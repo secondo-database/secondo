@@ -122,7 +122,7 @@ public:
 This constructor does nothing but is required for an AVLTree entry.
 
 */
-AvlEntry(){}
+AvlEntry():source(0){}
 
 
 /*
@@ -146,6 +146,7 @@ halfsegment.
         slope = 1.0;
      }
      insideAbove = Hs->GetAttr().insideAbove;
+     source = 0;
   }
 
 /*
@@ -165,6 +166,7 @@ point.
     vertical = true;
     slope = 0;
     insideAbove = false; 
+    source = 0;
  }
 
 
@@ -181,6 +183,7 @@ point.
     this->y2 = source.y2;
     this->vertical = source.vertical;
     this->slope = source.slope;
+    this->source = source.source;
   }
 
   
@@ -196,6 +199,7 @@ point.
      this->vertical = source.vertical;
      this->insideAbove = source.insideAbove;
      this->slope = source.slope;
+     this->source = source.source;
      return *this;
    }
 
@@ -232,24 +236,25 @@ the ~y1~ values for the comparison.
      double ty = vertical? y1 : y1 + ((x-x1)/(x2-x1))*(y2-y1);
      double cy = c.vertical? c.y1 : c.y1 + ((x-c.x1)/(c.x2-c.x1))*(c.y2-c.y1) ;
 
-     if(compexact){  // lexicographical compare of members
+   if(compexact){  // lexicographical compare of members
+
+      // first check : current y value
       if(!AlmostEqual(ty,cy)){
         if(ty<cy )
            return -1;
         else 
            return 1;
       }
+
       if(!AlmostEqual(slope,c.slope)){
          // if the current position is the last point of one 
-         // of the segments, we must use the y coordinates before
+         // segment, we must use the y coordinates before
          // the current x , otherwise the y coordinates after
          // that
          int f = 1;
-         if( (AlmostEqual(x2,x) && AlmostEqual(y2,ty))  ||
-             (AlmostEqual(c.x2,x) && AlmostEqual(c.y2,cy))) {
+         if(AlmostEqual(x2,x)  || AlmostEqual(c.x2,x) )   {
              f = -1;
          }
-
          if(slope<c.slope){
             return -f;
          } else {
@@ -258,10 +263,11 @@ the ~y1~ values for the comparison.
       } 
 
       if(!AlmostEqual(x1,c.x1)){
+        int f= slope>0?1:-1;
         if(x1<c.x1) 
-           return -1; 
+           return -f; 
         else 
-           return 1;
+           return f;
        }     
       if(!AlmostEqual(y1,c.y1)){
         if(y1<c.y1) 
@@ -281,12 +287,25 @@ the ~y1~ values for the comparison.
         else 
            return 1;
       }  else {
-         return 0;
+         if(source < c.source){
+            return -1;
+         } else if (source > c.source){
+            return 1;
+         } else {
+            return 0;
+         }
       }    
-     } else { // comparison with y coordinate
+  } 
+  else { // comparison with y coordinate
         if(AlmostEqual(ty,cy)){
          if(isPoint() || c.isPoint()){
-            return 0;
+             if(source < c.source){
+                return -1;
+             } else if (source > c.source){
+                return 1;
+             } else {
+                return 0;
+             }
          }
          int f = 1;
          if( (AlmostEqual(x2,x) && AlmostEqual(y2,ty))  ||
@@ -294,7 +313,13 @@ the ~y1~ values for the comparison.
              f = -1;
          }
            if(AlmostEqual(slope,c.slope)){
-              return 0;
+             if(source < c.source){
+                return -1;
+             } else if (source > c.source){
+                return 1;
+             } else {
+                return 0;
+             }
            } else if(slope<c.slope){
               return -f;
            } else {
@@ -332,8 +357,8 @@ the ~y1~ values for the comparison.
 
   void Print(ostream& out) const{
      out << "(" << x1 << ", " << y1 << ")->(" 
-                << x2 << ", " << y2 << ")" ;
-
+                << x2 << ", " << y2 << ")["
+                << source << ", " << GetY(x) << "]" ;
   }
 
   bool Contains(const Point p) const{
@@ -370,9 +395,180 @@ the ~y1~ values for the comparison.
      } 
   }
 
- 
+  void setSource(const int source){
+     this->source = source;
+  } 
+
+  int getSource() const{
+    return source;
+  }
+
+/*
+Returns the y value for the given x coordinate. If the 
+segment is vertical or the given x coordinate is 
+outside the range of the contained segment this function
+will force an assertion
+
+*/ 
+  double GetY(const double x)const{
+     assert(!isVertical());
+     bool endpoint = AlmostEqual(x,x1) || AlmostEqual(x,x2);
+     bool innerpoint = (x>=x1) && (x <=x2);
+     assert(endpoint || innerpoint);
+     return  y1 + ((x-x1)/(x2-x1))*(y2-y1);
+  }
+
+/*
+~Accessing members~
+
+*/
+   double GetY1() const { return y1; }
+   double GetY2() const { return y2; }
+   double GetX1() const { return x1; }
+   double GetX2() const { return x2; }
+   double GetMinY() const { return y1<y2?y1:y2; }
+   double GetMaxY() const { return y1>y2?y1:y2; }
+
+
+
+/*
+~CheckIntersection~
+
+This function assumes that this instance and e are neighbours
+for position x. It will set all intersections in res which may occur.
+Note: this function works only correct, if __e__ is the single event on
+position __x__.
+if onlydown is set to true, only such entries are regarded were the
+y coordinate is smaller than __maxY__ otherwise, such entries are ignored.
+
+
+*/
+  void checkIntersections(const AvlEntry* e, Int9M& res, const double x,
+                          bool onlydown = false, const double maxY = 0)const{
+     if(source==e->source){
+       return;
+     }
+
+     // compute the relations at the current x coordinate
+     // between both segments no further segment can exist
+     double cy = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+     double cey = e->y1 + ((x-e->x1)/(e->x2-e->x1))*(e->y2-e->y1);
+     int cmp = 0;
+
+     if(onlydown){
+        cout << "check only elements smaller than " << maxY << endl;
+     } else {
+        cout << "Check all elements." << endl;
+     }
+
+
+     if(!AlmostEqual(cy,cey) && onlydown && (cey>maxY || 
+         AlmostEqual(cey,maxY))){
+        cout << "skip check because y is to high" << endl;
+        return;
+     }
+
+     cout << " Perform the test " << endl << " cey = " << cey << endl;
+     cout << "cy = " << cy << endl;
+
+     if(AlmostEqual(cy,cey)){
+       // boundaries intersect
+       cmp = 0;
+       res.SetBB(true);
+     } else if(cy<cey){ 
+       cmp = -1;
+       if(insideAbove){
+          res.SetIE(true);
+          res.SetIB(true);
+          res.SetII(true);
+       } else {
+          res.SetEE(true);
+          res.SetEB(true);
+          res.SetEI(true);
+       }
+       if(e->insideAbove){
+         res.SetEE(true);
+         res.SetBE(true);
+         res.SetIE(true);
+       } else {
+         res.SetEI(true);
+         res.SetBI(true);
+         res.SetII(true);
+       }
+     } else { // cy>cey, symmetric to <
+       cmp = 1;
+      if(!onlydown || cy < maxY){
+         if(insideAbove){
+           res.SetEE(true),
+           res.SetEB(true);
+           res.SetEI(true);
+         } else {
+           res.SetIE(true);
+           res.SetIB(true);
+           res.SetII(true);
+         }
+         if(e->insideAbove){
+           res.SetEI(true);
+           res.SetBI(true);
+           res.SetII(true);
+         } else {
+           res.SetEE(true);
+           res.SetBE(true),
+           res.SetIE(true);
+         }
+      }
+     }
+
+
+     cout << "After processing the first pint, the resuot is " 
+          << endl << res << endl;
+
+
+
+     // compute the y value at the last x position
+     double x_last = x2<e->x2?x2:e->x2;
+
+
+     if(AlmostEqual(x_last,x)){
+       return;
+     }
+
+     double cy_last  = y1 + ((x_last-x1)/(x2-x1))*(y2-y1);
+     double cey_last = e->y1 + ((x_last-e->x1)/(e->x2-e->x1))*(e->y2-e->y1);
+    
+     if(AlmostEqual(cy_last,cey_last)){
+       res.SetBB(true);
+     } else if(cy_last < cey_last){
+       if(cmp>0){ // relation changed, segments must be intersect
+         res.SetBB(true);
+         res.SetBI(true);
+         res.SetBE(true);
+         res.SetII(true);
+         res.SetIE(true);
+         res.SetIB(true),
+         res.SetEE(true);
+         res.SetEB(true);
+         res.SetEI(true);   
+       }  
+     } else {  // cy_last > cey_last
+       if(cmp<0){ // relation changed
+         res.SetBB(true);
+         res.SetBB(true);
+         res.SetBI(true);
+         res.SetBE(true);
+         res.SetII(true);
+         res.SetIE(true);
+         res.SetIB(true),
+         res.SetEE(true);
+         res.SetEB(true);
+         res.SetEI(true);   
+       }
+     }
+  }
+
   static bool compexact;
   static double x;
+
 private:
   double x1;
   double y1;
@@ -381,6 +577,7 @@ private:
   double slope; // redundant to avoid computations 
   bool   vertical;
   bool   insideAbove;
+  int    source;
 };
 
 /*
@@ -422,6 +619,7 @@ int GetCalls_l_ps;
 int GetCalls_l_l;
 int GetCalls_r_p;
 int GetCalls_r_ps;
+int GetCalls_r_r;
 int bb_p_p;
 int bb_ps_p;
 int bb_ps_ps;
@@ -430,6 +628,7 @@ int bb_l_ps;
 int bb_l_l;
 int bb_r_p;
 int bb_r_ps;
+int bb_r_r;
 #endif
 
 /*
@@ -450,6 +649,7 @@ static void ResetStatistic(){
  GetCalls_l_l=0;
  GetCalls_r_p=0;
  GetCalls_r_ps=0;
+ GetCalls_r_r=0;
  bb_p_p=0;
  bb_ps_p=0;
  bb_ps_ps=0;
@@ -458,6 +658,7 @@ static void ResetStatistic(){
  bb_l_l=0;
  bb_r_p=0;
  bb_r_ps=0;
+ bb_r_r=0;
 }
 #endif
 
@@ -530,6 +731,8 @@ bool IsImplemented(ListExpr type1, ListExpr type2){
     if(((t1=="region") && (t2=="points"))) return true;
     if(((t1=="points") && (t2=="region"))) return true;
     
+
+    if(((t1=="region") && (t2=="region"))) return true;
 
     cout << t1 << " x " << t2 << " is not implemented" << endl;
     return false;
@@ -1372,9 +1575,23 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
         } else {
           if(hs->IsLeftDomPoint()){
              AvlEntry::x = xpos;
-             AvlEntry::compexact = false;
-             sss.insert(entry);    
-             assert(sss.Check(cerr)); 
+             AvlEntry::compexact = true;
+             bool ins = sss.insert(entry);    
+             if(!ins){
+                 cerr << "failed to insert " << entry << " at position " 
+                      << xpos << " into " << endl;
+                 sss.Print(cerr);
+                 cerr << " The element which is recognized to be equal is " 
+                      <<  *(sss.getMember(entry)) << endl;
+             }
+             assert(ins);
+             
+             if(!sss.Check(cerr)){
+                cerr << "AVL Tree property violated" << endl;
+                cerr << " Tree after inserting " << entry << " is " 
+                     << sss << endl <<endl;
+                assert(false);
+             } 
              pos++;
           } else {
              // perform the point
@@ -1392,6 +1609,7 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
                 AvlEntry::x = xpos;
                 AvlEntry::compexact = true;
                 sss.remove(*sm);
+                assert(sss.Check(cerr));
                 innercand = true;
                 pos++;
              }  else {
@@ -1428,8 +1646,9 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
      } else {
        AvlEntry::x = cx;
        if(hs->IsLeftDomPoint()){
-           AvlEntry::compexact = false;
-           sss.insert(entry);    
+           AvlEntry::compexact = true;
+           bool ins = sss.insert(entry);    
+           assert(ins);
            assert(sss.Check(cerr)); 
            pos++;
        } else {
@@ -1561,7 +1780,10 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
         __TRACE__
         if(isLeft){ // left endpoint
            AvlEntry e(hs);
-           sss.insert(e);
+           AvlEntry::compexact = true;
+           bool ins = sss.insert(e);
+           assert(ins);
+           assert(sss.Check(cerr));
         } else { // right endpoint 
            // check for points located at this point
            bool d = false;
@@ -1575,6 +1797,7 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
            }
            AvlEntry::compexact=true;
            sss.remove(e);
+           assert(sss.Check(cerr));
         }
         pos_reg++;
       } 
@@ -1584,11 +1807,14 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
       AvlEntry e(hs);
       if(!e.isVertical()){ // ignore vertical segments
          if(isLeft){
-           AvlEntry::compexact = false;
-           sss.insert(e);
+           AvlEntry::compexact = true;
+           bool ins = sss.insert(e);
+           assert(ins);
+           assert(sss.Check(cerr));
          } else {
            AvlEntry::compexact = true;
            sss.remove(e);
+           assert(sss.Check(cerr));
          }
       }
       pos_reg++;
@@ -1743,6 +1969,601 @@ void GetInt9M(Line const* const line1, Line const* const line2, Int9M& res){
 
 
 
+/*
+~GetInt9M~
+
+This function computes the 9-intersection matrix for two region objects.
+
+
+~process~
+
+This function supports the GetInt9M function. 
+
+*/
+
+void process(AVLTree<AvlEntry>& sss, const HalfSegment* hs, int& pos,
+             Int9M& res, int owner, bool& done, bool onlydown = false,
+             const double maxY = 0){
+   Point p = hs->GetDomPoint();
+   double x = p.GetX();
+   AvlEntry::x = x;
+   AvlEntry e(hs);
+   e.setSource(owner);
+   if(e.isVertical()){
+
+      // scan all halfsegments intersecting this halfsegment 
+      // get the smalles y coordinate of this segment
+      double miny = e.GetMinY(); 
+      double maxy = e.GetMaxY(); 
+      Point minPoint(true,x,miny); 
+      AvlEntry m(&minPoint);
+      AVLTree<AvlEntry>::iterator it = sss.tail(m);
+      // scan all segments in sss intersecting this
+      // vertical segment. Check all segments which has
+      // another owner for intersections
+      bool done = false;
+      while(!it.onEnd() && ! done){
+        const AvlEntry* entry = *it;
+        double cy = entry->GetY(x);
+        if(cy>maxy){
+          done = true; // no more intersecting elements
+        } else {
+          if(e.getSource()==owner){ // not of interest
+            it++;
+          } else {
+            res.SetBB(true); 
+            if(AlmostEqual(cy,miny)){
+              if(entry->isInsideAbove()){
+                 res.SetEI(true);
+                 res.SetBI(true);
+                 res.SetII(true);
+              } else {
+                 res.SetEE(true);
+                 res.SetBE(true);
+                 res.SetIE(true);
+              }
+            } else if(AlmostEqual(cy,maxy)){ // symmetric
+              if(entry->isInsideAbove()){
+                 res.SetEE(true);
+                 res.SetBE(true);
+                 res.SetIE(true);
+              } else {
+                 res.SetEI(true);
+                 res.SetBI(true);
+                 res.SetII(true);
+              }
+            } else { // a proper cross -> set all possible intersections
+              res.SetII(true);
+              res.SetIB(true);
+              res.SetIE(true);
+              res.SetBI(true);
+              res.SetBB(true);
+              res.SetBE(true);
+              res.SetEI(true);
+              res.SetEB(true);
+              res.SetEE(true);
+              done = true; // all intersections set
+            }
+            it++; 
+          }
+        }
+      }  
+   } else {
+		  const AvlEntry* under = sss.GetNearestSmaller(e);
+      const AvlEntry* above = sss.GetNearestGreater(e);
+      if(hs->IsLeftDomPoint()){
+         cout << "LeftEvent" << endl;
+         cout << "Owner = " << owner << endl;
+         double myY = e.GetY(x); 
+         if(under && (under->getSource()!=owner)){
+            cout << "UCheck " << e << " and " << (*under) << endl;
+            e.checkIntersections(under,res,x,true,myY);
+            cout << " res is " << res << endl;
+         } 
+         if(above && (above->getSource()!=owner)){
+            cout << "ACheck " << e << " and " << (*above) << endl;
+            e.checkIntersections(above,res,x,onlydown, maxY);
+            cout << " res is " << res << endl;
+         }
+         AvlEntry::compexact = true;
+         bool ins = sss.insert(e);
+         assert(ins);
+         assert(sss.Check(cerr));
+      } else {
+         cout << "RightEvent" << endl;
+         AvlEntry::compexact = true;
+         cout << "X = " << x << endl;
+         AVLTree<AvlEntry> Copy = sss;
+         sss.remove(e); 
+         if(!sss.Check(cerr)){
+             cerr << " invalid avlTree after removing " << e << endl;
+             cerr << " The original tree was " << endl << Copy <<endl
+                  << "The tree with the element is " << endl << sss << endl;
+             assert(false);
+
+         }
+         if(under && above){
+            int us = under->getSource();
+            int as = above->getSource();
+            // check neighbours
+            if(us!=as){
+               if(as==owner){
+                  above->checkIntersections(under,res,x,onlydown, maxY);
+               } else {
+                  under->checkIntersections(above,res,x, onlydown, maxY);
+               }
+            }
+         }
+      }
+   }
+   done = (res.GetNumber()==511);
+}
+
+struct ownedHalfSegment{
+   public:
+      ownedHalfSegment(const HalfSegment& hs, int owner){
+        this->hs = hs;
+        this->owner = owner;
+      }
+   // member
+   HalfSegment hs;
+   int owner;
+
+};
+
+void processVerticals(vector<ownedHalfSegment>& v1, 
+                      vector<ownedHalfSegment>& v2,
+                      Int9M& res, bool& done){
+
+  if(v1.empty() || v2.empty()){
+     return;
+  }
+  // simple quadratic implementation 
+  for(vector<ownedHalfSegment>::iterator it1= v1.begin(); 
+      it1!=v1.end();it1++){
+     for(vector<ownedHalfSegment>::iterator it2= v2.begin(); 
+         it2!=v2.end();it2++){
+       HalfSegment hs1 = (*it1).hs;
+       HalfSegment hs2 = (*it2).hs;
+       Point p11 = hs1.GetDomPoint();
+       Point p12 = hs1.GetSecPoint();
+       Point p21 = hs2.GetDomPoint();
+       Point p22 = hs2.GetSecPoint();   
+       double y1_max = p11.GetY()>p12.GetY()?p11.GetY():p12.GetY();
+       double y1_min = p11.GetY()<p12.GetY()?p11.GetY():p12.GetY();
+       double y2_max = p21.GetY()>p22.GetY()?p21.GetY():p22.GetY();
+       double y2_min = p21.GetY()<p22.GetY()?p21.GetY():p22.GetY();
+
+
+       if(AlmostEqual(y1_max,y2_min) || AlmostEqual(y1_min,y2_max)){
+           cout << " consequtive verticals" << endl;
+           res.SetBB(true);
+       } else if(y1_min>y2_max || y1_max<y2_min){ 
+          cout << "disjoint verticals" << endl;
+         ; // nothing to do  
+       } else {
+          cout << "overlapping verticals" << endl;
+          res.SetBB(true);
+          if(hs1.attr.insideAbove == hs2.attr.insideAbove){
+             res.SetEE(true);
+             res.SetII(true);
+          } else {
+             res.SetIE(true);
+             res.SetEI(true);
+          }
+       }
+     }
+  }
+  done = res.GetNumber()==511;
+}
+
+
+
+void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
+#ifdef TOPOPS_USE_STATISTIC
+  GetCalls_r_r++;
+#endif
+  res.SetValue(0);;
+  res.SetEE(true);
+  // check for emptyness
+  if(reg1->IsEmpty()){
+    if(reg2->IsEmpty()){ // no more intersection possible
+#ifdef TOPOPS_USE_STATISTIC
+       bb_r_r++;
+#endif
+       return; 
+    }else{
+      res.SetEI(true);
+      res.SetEB(true);
+#ifdef TOPOPS_USE_STATISTIC
+      bb_r_r++;
+#endif
+      return;
+    }
+  }
+
+  if(reg2->IsEmpty()){
+     res.SetIE(true);
+     res.SetBE(true);
+#ifdef TOPOPS_USE_STATISTIC
+     bb_r_r++;
+#endif
+     return;
+  }
+  // bounding box check
+  Rectangle<2> bbox1 = reg1->BoundingBox();
+  Rectangle<2> bbox2 = reg2->BoundingBox();
+  if(!bbox1.Intersects(bbox2)){
+     res.SetIE(true);
+     res.SetEI(true);
+     res.SetBE(true);
+     res.SetEB(true);
+#ifdef TOPOPS_USE_STATISTIC
+     bb_r_r++;
+#endif
+     return;
+  }
+
+  cout << "Bbox check failed, perform a plane sweep" << endl;
+
+
+  // bounding box check failed, perform a plane sweep
+  AVLTree<AvlEntry> sss;
+
+  int size1 = reg1->Size();
+  int size2 = reg2->Size();
+  int pos1 = 0;
+  int pos2 = 0;
+  bool done = false;
+
+  while( (pos1 < size1) && (pos2 < size2) && !done){
+    const HalfSegment* hs1;
+    const HalfSegment* hs2;
+    reg1->Get(pos1,hs1);
+    reg2->Get(pos2,hs2);
+    Point dp1 = hs1->GetDomPoint();
+    Point dp2 = hs2->GetDomPoint();
+    double x1 = dp1.GetX();
+    double x2 = dp2.GetX();
+    double y1 = dp1.GetY();
+    double y2 = dp2.GetY();
+
+    cout << "pos1 = " << pos1 << endl << "pos2 = " << pos2 << endl;
+
+
+    if(AlmostEqual(x1,x2)){ // more than one event on the same x coordinate
+
+      cout << "case equals" << endl;
+
+      double x = x1;
+      // the most complicated case, events from both regions
+      
+      /* Idea:
+         build three groups (left endpoint, right endpoint, verticals_1, 
+                             verticals_2)
+        - first process the right events 
+        - second process vertical segments
+             - check both groups
+             - check with current sss
+        - check left events again the right ones 
+      */ 
+      vector<ownedHalfSegment> LeftEvents;
+      vector<ownedHalfSegment> RightEvents;
+      vector<ownedHalfSegment> Verticals1;
+      vector<ownedHalfSegment> Verticals2;
+
+      bool stop1 = false;
+      bool stop2 = false;
+      // insert parallel
+      while( !stop1 && !stop2){
+        /* Note: the case y1==y2 is ommited because it is
+           handled by two run in this loop.
+        */
+        if(y1 < y2){ // -> process hs1
+           ownedHalfSegment ohs1(*hs1,1);
+           if(hs1->IsVertical()){
+             if(hs1->IsLeftDomPoint()){  
+                Verticals1.push_back(ohs1);  
+             }
+           } else if(hs1->IsLeftDomPoint()){
+              LeftEvents.push_back(ohs1);
+           } else {
+              RightEvents.push_back(ohs1);
+           }
+           // get the next halfsegment
+           pos1++;
+           if(pos1>=size1){ // the last event
+             stop1 = true;
+           } else {
+             reg1->Get(pos1,hs1);
+             dp1 = hs1->GetDomPoint();
+             x1 = dp1.GetX();
+             y1 = dp1.GetY();
+             if(!AlmostEqual(x,x1)){ // located on another x coordinate
+                stop1=true;
+             }
+           }
+         } else {  //y1 >= y2 -> process hs2
+           ownedHalfSegment ohs2(*hs2,2);
+           if(hs2->IsVertical()){
+             if(hs2->IsLeftDomPoint()){
+                Verticals2.push_back(ohs2);  
+             }
+           } else if(hs2->IsLeftDomPoint()){
+              LeftEvents.push_back(ohs2);
+           } else {
+              RightEvents.push_back(ohs2);
+           }
+           // get the next halfsegment
+           pos2++;
+           if(pos2>=size2){ // the last event
+             stop2 = true;
+           } else {
+             reg2->Get(pos2,hs2);
+             dp2 = hs2->GetDomPoint();
+             x2 = dp2.GetX();
+             y2 = dp2.GetY();
+             if(!AlmostEqual(x,x2)){ // located on another x coordinate
+                stop2=true;
+             }
+           }
+         }
+      } 
+      // insert rests of reg1
+      while(!stop1){
+        ownedHalfSegment ohs1(*hs1,1);;
+        if(hs1->IsVertical()){
+          if(hs1->IsLeftDomPoint()){
+              Verticals1.push_back(ohs1);  
+          }
+        } else if(hs1->IsLeftDomPoint()){
+          LeftEvents.push_back(ohs1);
+        } else {
+          RightEvents.push_back(ohs1);
+        }
+        // get the next halfsegment
+        pos1++;
+        if(pos1>=size1){ // the last event
+          stop1 = true;
+        } else {
+          reg1->Get(pos1,hs1);
+          dp1 = hs1->GetDomPoint();
+          x1 = dp1.GetX();
+          y1 = dp1.GetY();
+          if(!AlmostEqual(x,x1)){ // located on another x coordinate
+             stop1=true;
+          }
+        }
+      }
+      // insert rests of reg2
+      while(!stop2){
+        ownedHalfSegment ohs2(*hs2,2);;
+        if(hs2->IsVertical()){
+          if(hs2->IsLeftDomPoint()){
+             Verticals2.push_back(ohs2);  
+          }
+        } else if(hs2->IsLeftDomPoint()){
+          LeftEvents.push_back(ohs2);
+        } else {
+          RightEvents.push_back(ohs2);
+        }
+        // get the next halfsegment
+        pos2++;
+        if(pos2>=size2){ // the last event
+          stop2 = true;
+        } else {
+          reg2->Get(pos2,hs2);
+          dp2 = hs2->GetDomPoint();
+          x2 = dp2.GetX();
+          y2 = dp2.GetY();
+          if(!AlmostEqual(x,x2)){ // located on another x coordinate
+             stop2=true;
+          }
+        }
+      }
+
+
+
+      // we have build the groups at this position
+      cout << "All common part performed , sizes are " << endl
+           << " LeftEvents " << LeftEvents.size() << endl
+           << " RightEvents " << RightEvents.size() << endl
+           << "Verticals 1 " << Verticals1.size() << endl
+           << "Verticals 2 " << Verticals2.size() << endl
+           << " pos1 = " << pos1 << endl
+           << " pos2 = " << pos2 << endl << endl;
+      
+      // insert all LeftEvents into sss without any checks
+      vector<ownedHalfSegment>::iterator it;
+      AvlEntry::x = x;
+      AvlEntry::compexact=true;
+      for(it=LeftEvents.begin(); it!=LeftEvents.end(); it++){
+         ownedHalfSegment ohs = *it;
+         AvlEntry e(&(it->hs));
+         e.setSource(ohs.owner);
+         AVLTree<AvlEntry> Copy = sss;
+         bool ins = sss.insert(e);
+         if(!ins){
+           cerr << "failed to insert " << e << endl;
+           cerr << " into " << endl; sss.Print(cerr); cerr << endl;
+           cerr << "entry which is the same is ";
+           const AvlEntry* mem = sss.getMember(e);
+           if(mem){
+              cerr << *mem;
+           } else {
+              cerr << "Nothing found " << endl;
+           }
+           cerr << endl;
+
+           assert(false);
+         };
+         if(!sss.Check(cerr)){
+            cerr << endl << "during inserting of " << e 
+                 << " an invalid AVLtree is created" << endl
+                 << "The tree is " << endl << sss << endl
+                 << "The original tree is " << endl << Copy << endl;
+            cerr << " The current x position is " << x << endl;     
+                  
+            assert(false);
+         }
+      }
+
+      cout << "All LeftEvents are included in sss, starting with check" 
+           << endl;
+      
+
+      for(it=LeftEvents.begin(); it!=LeftEvents.end(); it++){
+        ownedHalfSegment ohs = *it;
+        AvlEntry e(&(it->hs));
+        e.setSource(ohs.owner);
+        const AvlEntry* above = sss.GetNearestGreater(e);
+        const AvlEntry* under = sss.GetNearestSmaller(e);
+        bool bound1 = false;
+        bool bound2 = false;
+        double ey = e.GetY(x);
+        if(above && (above->getSource() != e.getSource())){
+           double ay = above->GetY(x);
+           if(AlmostEqual(ey,ay)){
+              res.SetBB(true);
+              bound1 = true;
+           } else {
+              bound1 = false;
+           }
+        }
+        if(under && (under->getSource() != e.getSource())){
+           cout << " x = " << x << endl;
+           cout << "under = " << *under << endl;
+
+           double uy = under->GetY(x);
+           if(AlmostEqual(uy,ey)){
+              res.SetBB(true);
+              bound2 = true;
+           } else {
+              bound2 = false;
+           }
+        }
+
+        if(!bound1 && ! bound2){
+           if(above && (above->getSource()!=e.getSource())){
+               if(e.isInsideAbove() && above->isInsideAbove()){
+                    res.SetIE(true);
+               }
+               if(e.isInsideAbove() && !above->isInsideAbove()){
+                     res.SetII(true);
+               }
+               if(!e.isInsideAbove() && above->isInsideAbove()){
+                     res.SetEE(true);
+               }
+               if(!e.isInsideAbove() && !above->isInsideAbove()){
+                     res.SetEI(true); 
+               }
+           }
+           if(under && (under->getSource()!=e.getSource())){
+               if(e.isInsideAbove() && under->isInsideAbove()){
+                    res.SetEI(true);
+               }
+               if(e.isInsideAbove() && !under->isInsideAbove()){
+                     res.SetEE(true);
+               }
+               if(!e.isInsideAbove() && under->isInsideAbove()){
+                     res.SetII(true);
+               }
+               if(!e.isInsideAbove() && !under->isInsideAbove()){
+                     res.SetIE(true); 
+               }
+           }
+      }
+    } // for 
+
+
+
+      cout << "After processing the leftEvents : " << endl
+           << " res = " << res << endl
+           << " done = " << done << endl;
+
+
+      // process vertical segments
+      // part1 check vertical1 and vertical2 without sss
+      processVerticals(Verticals1, Verticals2, res, done);
+      // check the verticals with sss
+      cout << "After processing the verticals (without sss): " << endl
+           << " res = " << res << endl
+           << " done = " << done << endl;
+
+
+      for(it=Verticals1.begin(); it!=Verticals1.end(); it++){
+         ownedHalfSegment ohs = *it;
+         int dummypos;
+         process(sss,&ohs.hs,dummypos,res,ohs.owner, done);
+      }
+      for(it=Verticals2.begin(); it!=Verticals2.end(); it++){
+         ownedHalfSegment ohs = *it;
+         int dummypos;
+         process(sss,&ohs.hs,dummypos,res,ohs.owner, done);
+      }
+      cout << "After processing the verticals (with sss): " << endl
+           << " res = " << res << endl
+           << " done = " << done << endl;
+
+
+      // process rightsegments
+      for(it=RightEvents.begin(); it!=RightEvents.end(); it++){
+         ownedHalfSegment ohs = *it;
+         AvlEntry e(&(ohs.hs));
+         e.setSource(ohs.owner);
+         const AvlEntry* above = sss.GetNearestGreater(e);
+         const AvlEntry* under = sss.GetNearestSmaller(e);
+         double ey = e.GetY(x);
+         bool ignore = false;
+         if(above && e.getSource()!=above->getSource()){
+            double ay = above->GetY(x);
+            if(AlmostEqual(ay,ey)){
+              res.SetBB(true);
+              ignore= true;
+            }
+         } 
+         if(!ignore && under && e.getSource()!=under->getSource()){
+            double uy = under->GetY(x);
+            if(AlmostEqual(uy,ey)){
+               res.SetBB(true);
+               ignore=true;
+            }
+         }
+         if(!ignore && under && above ){
+            if(under->getSource()!=above->getSource()){
+               cout << "A lot of cases !!!" << endl;
+
+            }     
+         }
+         AVLTree<AvlEntry> Copy = sss;
+         AvlEntry::compexact=true;
+         if(!sss.remove(e)){
+            cout << "Problem in removing " << e << endl; 
+            cout << "The tree is " << endl; sss.Print(cout); cout << endl;
+            assert(false);
+         }
+         if(!sss.Check(cerr)){
+            cerr << "Current X is " << x << endl;
+            cerr << "removing of " << e << " leads to an invalid avl tree " 
+                 << endl;
+            cerr << "The original tree is " << Copy << endl 
+                 << " the result is " << endl << sss << endl;
+            assert(false);
+         }
+        
+      }
+
+      cout << "After processing the right events " << endl
+           << " res = " << res << endl
+           << " done = " << done << endl;
+    } else if(x1 < x2){
+      process(sss,hs1,pos1,res,1,done);
+    } else {
+      process(sss,hs2,pos2,res,2,done);
+    } 
+  }
+}
+
 
 
 /*
@@ -1829,7 +2650,9 @@ int TopOpsGetStatVM(Word* args, Word& result, int message,
       << "#GetInt9M(region, point): " << GetCalls_r_p << endl
       << "#BoxFilter(region, point): " << bb_r_p << endl
       << "#GetInt9M(region, points): " << GetCalls_r_ps << endl
-      << "#BoxFilter(region, points): " << bb_r_ps << endl;
+      << "#BoxFilter(region, points): " << bb_r_ps << endl
+      << "#GetInt9M(region,region) : " << GetCalls_r_r << endl
+      << "#BoxFilter(region,region) : " << bb_r_r << endl;
    ((FText*)result.addr) ->Set(true,ts.str().c_str());
    return 0;
 }
@@ -1912,7 +2735,7 @@ const string TopRelSpec =
    " ( <text> {point, points, line, region} x "
    "  {points, points, line, region} -> int9m </text--->"
    " \" toprel(_ _) \" "
-   "  \" computes the topological relationship of the arguments \" "
+   " <text>computes the topological relationship of the arguments</text--->"
     "  \" query toppred(c1,c2) \" ))";
 
 const string TopPredSpec =
@@ -1955,14 +2778,14 @@ ValueMapping TopRelMap[] = {
        TopRelSym<Point,Points>, TopRel<Points,Points>, TopRel<Line,Point>,
        TopRelSym<Point,Line>,TopRel<Line,Points>,TopRelSym<Points,Line>,
        TopRel<Region,Point>,TopRelSym<Point,Region>,
-       TopRel<Region,Points>, TopRelSym<Points,Region>  };
+       TopRel<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>};
 
 ValueMapping TopPredMap[] = {
        TopPred<Point,Point> , TopPred<Points,Point>,
        TopPredSym<Point,Points>, TopPred<Points,Points>, TopPred<Line,Point>,
        TopPredSym<Point,Line>,TopPred<Line,Points>,TopPredSym<Points,Line>,
        TopPred<Region,Point>,TopPredSym<Point,Region>,
-       TopPred<Region,Points>, TopRelSym<Points,Region> };
+       TopPred<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>};
 
 
 
@@ -2021,6 +2844,9 @@ static int TopOpsSelect(ListExpr args){
    }
    if(type1=="points" && (type2=="regions")){
        return 11;
+   }
+   if(type1=="region" && (type2=="region")){
+       return 12;
    }
 
    cerr << "selection function does not allow (" << type1 << " x " 
