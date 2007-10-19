@@ -769,115 +769,61 @@ the current buffer contents will be flushed to disk.
 The Iterator will first retrieve the tuples on disk and afterwards the remaining
 tuples which reside in memory.
 
-3.9.1 Struct ~PrivateTupleBuffer~
-
 */
-struct PrivateTupleBuffer
-{
-  typedef vector<Tuple*> TupleVec;
  
-  PrivateTupleBuffer( const size_t maxMemorySize ):
-    MAX_MEMORY_SIZE( maxMemorySize ),
-    diskBuffer( 0 ),
-    inMemory( true ),
-    traceFlag( RTFlag::isActive("RA:TupleBufferInfo") ),
-    totalExtSize( 0 ),
-    totalSize( 0 )
-    {}
+TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
+  MAX_MEMORY_SIZE( maxMemorySize ),
+  diskBuffer( 0 ),
+  inMemory( true ),
+  traceFlag( RTFlag::isActive("RA:TupleBufferInfo") ),
+  totalExtSize( 0 ),
+  totalSize( 0 )
+  {
+    if (traceFlag) 
+    {
+      cmsg.info() << "New Instance of TupleBuffer with size " 
+		  << maxMemorySize / 1024 << "kb " 
+		  << " address = " << (void*)this << endl;
+      cmsg.send();
+    }
+  }
+
 /*
 The constructor.
 
 */
-  ~PrivateTupleBuffer()
-  {
-    clearAll();
-    if( !inMemory )
-      diskBuffer->Delete();
-  }
 
-  void clearAll()
-  {
-     for( TupleVec::iterator it = memoryBuffer.begin(); 
-          it != memoryBuffer.end(); it++ )
-     {
-       //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl; 
-       (*it)->DecReference();
-       (*it)->DeleteIfAllowed();
-     }  
-     memoryBuffer.clear();
-     totalSize=0;
-  }
+TupleBuffer::~TupleBuffer()
+{
+  clearAll();
+  if( !inMemory )
+    diskBuffer->Delete();
+}
+
+void TupleBuffer::clearAll()
+{
+   for( TupleVec::iterator it = memoryBuffer.begin(); 
+	it != memoryBuffer.end(); it++ )
+   {
+     //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl; 
+     (*it)->DecReference();
+     (*it)->DeleteIfAllowed();
+   }  
+   memoryBuffer.clear();
+   totalSize=0;
+}
   
 /*
 The destructor.
 
 */
-  const size_t MAX_MEMORY_SIZE;
-/*
-The maximum size of the memory in bytes. 32 MBytes being used.
-
-*/
-  vector<Tuple*> memoryBuffer;
-/*
-The memory buffer which is a ~vector~ from STL.
-
-*/
-  Relation* diskBuffer;
-/*
-The buffer stored on disk.
-
-*/
-  bool inMemory;
-/*
-A flag that tells if the buffer fit in memory or not.
-
-*/
-  const bool traceFlag;
-/*
-Switch trace messages on or off
-
-*/  
-  double totalExtSize;
-/*
-The total size occupied by the tuples in the buffer,
-taking into account the small FLOBs.
-
-*/
-  double totalSize;
-/*
-The total size occupied by the tuples in the buffer,
-taking into account the FLOBs.
-
-*/
-};
-
-/*
-3.9.2 Implementation of the class ~TupleBuffer~
-
-*/
-TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
-privateTupleBuffer( new PrivateTupleBuffer( maxMemorySize ) )
-{
-  if (privateTupleBuffer->traceFlag) 
-  {
-    cmsg.info() << "New Instance of TupleBuffer with size " 
-                << maxMemorySize / 1024 << "kb " 
-                << " address = " << (void*)this << endl;
-    cmsg.send();
-  }
-}
-
-TupleBuffer::~TupleBuffer()
-{
-  delete privateTupleBuffer;
-}
 
 int TupleBuffer::GetNoTuples() const
 {
-  if( privateTupleBuffer->inMemory )
-    return privateTupleBuffer->memoryBuffer.size();
+  if( inMemory )
+    return memoryBuffer.size();
   else
-    return privateTupleBuffer->diskBuffer->GetNoTuples();
+    return diskBuffer->GetNoTuples();
 }
 
 double TupleBuffer::GetTotalRootSize() const
@@ -885,10 +831,10 @@ double TupleBuffer::GetTotalRootSize() const
   if( IsEmpty() )
     return 0;
 
-  if (privateTupleBuffer->inMemory) 
-    return GetNoTuples() * privateTupleBuffer->memoryBuffer[0]->GetRootSize();
+  if (inMemory) 
+    return GetNoTuples() * memoryBuffer[0]->GetRootSize();
   else	
-    return privateTupleBuffer->diskBuffer->GetTupleType()->GetTotalSize(); 
+    return diskBuffer->GetTupleType()->GetTotalSize(); 
 }
 
 
@@ -897,18 +843,18 @@ double TupleBuffer::GetTotalRootSize(int i) const
   if( IsEmpty() )
     return 0;
 
-  if (privateTupleBuffer->inMemory) 
-    return privateTupleBuffer->memoryBuffer[0]->GetRootSize(i);
+  if (inMemory) 
+    return memoryBuffer[0]->GetRootSize(i);
   else	
-    return privateTupleBuffer->diskBuffer->GetTupleType()->GetTotalSize(); 
+    return diskBuffer->GetTupleType()->GetTotalSize(); 
 }
 
 double TupleBuffer::GetTotalExtSize() const
 {
-  if( privateTupleBuffer->inMemory )
-    return privateTupleBuffer->totalExtSize;
+  if( inMemory )
+    return totalExtSize;
   else
-    return privateTupleBuffer->diskBuffer->GetTotalExtSize();
+    return diskBuffer->GetTotalExtSize();
 }
 
 double TupleBuffer::GetTotalExtSize(int i) const
@@ -916,19 +862,19 @@ double TupleBuffer::GetTotalExtSize(int i) const
   if( IsEmpty() )
     return 0;
 
-  if( privateTupleBuffer->inMemory )
-    return privateTupleBuffer->memoryBuffer[0]->GetExtSize(i);
+  if( inMemory )
+    return memoryBuffer[0]->GetExtSize(i);
   else
-    return privateTupleBuffer->diskBuffer->GetTotalExtSize();
+    return diskBuffer->GetTotalExtSize();
 }
 
 
 double TupleBuffer::GetTotalSize() const
 {
-  if( privateTupleBuffer->inMemory )
-    return privateTupleBuffer->totalSize;
+  if( inMemory )
+    return totalSize;
   else
-    return privateTupleBuffer->diskBuffer->GetTotalSize();
+    return diskBuffer->GetTotalSize();
 }
 
 double TupleBuffer::GetTotalSize(int i) const
@@ -936,91 +882,91 @@ double TupleBuffer::GetTotalSize(int i) const
   if( IsEmpty() )
     return 0;
 
-  if( privateTupleBuffer->inMemory )
-    return privateTupleBuffer->memoryBuffer[0]->GetSize(i);
+  if( inMemory )
+    return memoryBuffer[0]->GetSize(i);
   else
-    return privateTupleBuffer->diskBuffer->GetTotalSize();
+    return diskBuffer->GetTotalSize();
 }
 
 bool TupleBuffer::IsEmpty() const
 {
-  if( privateTupleBuffer->inMemory )
-    return privateTupleBuffer->memoryBuffer.empty();
+  if( inMemory )
+    return memoryBuffer.empty();
   else
     return false;
 }
 
 void TupleBuffer::Clear()
 {
-  if( privateTupleBuffer->inMemory )
+  if( inMemory )
   {
-    privateTupleBuffer->clearAll();
+    clearAll();
   }
   else
   {
-    delete privateTupleBuffer->diskBuffer;
-    privateTupleBuffer->inMemory = true;
+    delete diskBuffer;
+    inMemory = true;
   }
 }
 
 void TupleBuffer::AppendTuple( Tuple *t )
 {
   
-  if( privateTupleBuffer->inMemory )
+  if( inMemory )
   {
-    if( privateTupleBuffer->totalExtSize + t->GetExtSize() <= 
-        privateTupleBuffer->MAX_MEMORY_SIZE )
+    if( totalExtSize + t->GetExtSize() <= 
+        MAX_MEMORY_SIZE )
     {
       t->IncReference();
-      privateTupleBuffer->memoryBuffer.push_back( t );
-      privateTupleBuffer->totalExtSize += t->GetExtSize();
-      privateTupleBuffer->totalSize += t->GetSize();
+      memoryBuffer.push_back( t );
+      totalExtSize += t->GetExtSize();
+      totalSize += t->GetSize();
     }
     else
     {
-      if (privateTupleBuffer->traceFlag)
+      if (traceFlag)
       {
         cmsg.info() << "Changing TupleBuffer's state from inMemory "
                     << "-> !inMemory" << endl;
         cmsg.send();
       }
-      privateTupleBuffer->diskBuffer = 
+      diskBuffer = 
         new Relation( t->GetTupleType(), true );
 
       vector<Tuple*>::iterator iter = 
-        privateTupleBuffer->memoryBuffer.begin();
-      while( iter != privateTupleBuffer->memoryBuffer.end() )
+        memoryBuffer.begin();
+      while( iter != memoryBuffer.end() )
       {
-        privateTupleBuffer->diskBuffer->AppendTupleNoLOBs( *iter );
+        diskBuffer->AppendTupleNoLOBs( *iter );
         (*iter)->DecReference();
         (*iter)->DeleteIfAllowed();
         iter++;
       }
-      privateTupleBuffer->memoryBuffer.clear();
-      privateTupleBuffer->totalExtSize = 0;
-      privateTupleBuffer->totalSize = 0;
-      privateTupleBuffer->diskBuffer->AppendTupleNoLOBs( t );
-      privateTupleBuffer->inMemory = false;
+      memoryBuffer.clear();
+      totalExtSize = 0;
+      totalSize = 0;
+      diskBuffer->AppendTupleNoLOBs( t );
+      inMemory = false;
     }
   }
   else
   {
-    return privateTupleBuffer->diskBuffer->AppendTupleNoLOBs( t );
+    return diskBuffer->AppendTupleNoLOBs( t );
   }
 }
 
 Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
 {
-  if( privateTupleBuffer->inMemory )
+  if( inMemory )
   {
     if( id >= 0 && 
-        id < (TupleId)privateTupleBuffer->memoryBuffer.size() &&
-        privateTupleBuffer->memoryBuffer[id] != 0 )
-      return privateTupleBuffer->memoryBuffer[id];
+        id < (TupleId)memoryBuffer.size() &&
+        memoryBuffer[id] != 0 )
+      return memoryBuffer[id];
     return 0;
   }
   else
-    return privateTupleBuffer->diskBuffer->GetTuple( id );
+    return diskBuffer->GetTuple( id );
 }
 
 GenericRelationIterator *TupleBuffer::MakeScan() const
@@ -1029,82 +975,44 @@ GenericRelationIterator *TupleBuffer::MakeScan() const
 }
 
 /*
-3.9.3 Struct ~PrivateTupleBufferIterator~
+3.9.3 ~TupleBufferIterator~
 
 */
-struct PrivateTupleBufferIterator
-{
-  PrivateTupleBufferIterator( const TupleBuffer& tupleBuffer ):
-    tupleBuffer( tupleBuffer ),
-    currentTuple( 0 ),
-    diskIterator( 
-      tupleBuffer.privateTupleBuffer->inMemory ?  
-        0 : 
-        tupleBuffer.privateTupleBuffer->diskBuffer->MakeScan() )
-    {
-    }
+TupleBufferIterator::TupleBufferIterator( const TupleBuffer& tupleBuffer ):
+  tupleBuffer( tupleBuffer ),
+  currentTuple( 0 ),
+  diskIterator( 
+    tupleBuffer.inMemory ?  
+      0 : 
+      tupleBuffer.diskBuffer->MakeScan() )
+  {}
 /*
 The constructor.
 
 */
-  ~PrivateTupleBufferIterator()
-  {
-    delete diskIterator;
-  }
+TupleBufferIterator::~TupleBufferIterator()
+{
+  delete diskIterator;
+}
 /*
 The destructor.
 
 */
-  const TupleBuffer& tupleBuffer;
-/*
-A pointer to the tuple buffer.
-
-*/
-  size_t currentTuple;
-/*
-The current tuple if it is in memory.
-
-*/
-  GenericRelationIterator *diskIterator;
-/*
-The iterator if it is not in memory.
-
-*/
-};
-
-/*
-3.9.3 Implementation of the class ~TupleBufferIterator~
-
-*/
-TupleBufferIterator::
-TupleBufferIterator( const TupleBuffer& tupleBuffer ):
-  privateTupleBufferIterator( 
-    new PrivateTupleBufferIterator( tupleBuffer ) )
-  { 
-  }
-
-TupleBufferIterator::~TupleBufferIterator()
-{
-  delete privateTupleBufferIterator;
-}
 
 Tuple *TupleBufferIterator::GetNextTuple()
 {
-  if( privateTupleBufferIterator->diskIterator )
+  if( diskIterator )
   {
-    return privateTupleBufferIterator->diskIterator->GetNextTuple();
+    return diskIterator->GetNextTuple();
   }
   else
   {
-    if( privateTupleBufferIterator->currentTuple == 
-        privateTupleBufferIterator->
-          tupleBuffer.privateTupleBuffer->memoryBuffer.size() )
+    if( currentTuple == tupleBuffer.memoryBuffer.size() )
       return 0;
 
     Tuple *result = 
-      privateTupleBufferIterator->tupleBuffer.privateTupleBuffer->
-        memoryBuffer[privateTupleBufferIterator->currentTuple];
-    privateTupleBufferIterator->currentTuple++;
+      tupleBuffer.memoryBuffer[currentTuple];
+    currentTuple++;
 
     return result;
   }
@@ -1112,13 +1020,13 @@ Tuple *TupleBufferIterator::GetNextTuple()
 
 TupleId TupleBufferIterator::GetTupleId() const
 {
-  if( privateTupleBufferIterator->diskIterator )
+  if( diskIterator )
   {
-    return privateTupleBufferIterator->diskIterator->GetTupleId();
+    return diskIterator->GetTupleId();
   }
   else
   {
-    return privateTupleBufferIterator->currentTuple-1;
+    return currentTuple-1;
   }
 }
 
@@ -1462,17 +1370,14 @@ RandomRelationIterator *Relation::MakeRandomScan() const
   return new RandomRelationIterator( *this );
 }
 
-#ifdef _PREFETCHING_
 /*
-4.3 Struct ~PrivateRelationIterator~ (using ~PrefetchingIterator~)
+4.4 Implementation of the class ~RelationIterator~ 
+(using ~PrefetchingIterator~)
 
-This struct contains the private attributes of the class 
-~RelationIterator~.
+This class is used for scanning (iterating through) relations.
 
 */
-struct PrivateRelationIterator
-{
-  PrivateRelationIterator( const Relation& rel ):
+  RelationIterator::RelationIterator( const Relation& rel ):
     iterator( rel.privateRelation->tupleFile.SelectAllPrefetched() ),
     relation( rel ),
     endOfScan( false ),
@@ -1483,7 +1388,7 @@ struct PrivateRelationIterator
 The constructor.
 
 */
-  ~PrivateRelationIterator()
+  RelationIterator::~RelationIterator()
   {
     delete iterator;
   }
@@ -1491,93 +1396,57 @@ The constructor.
 The destructor.
 
 */
-  PrefetchingIterator *iterator;
-/*
-The iterator.
-
-*/
-  const Relation& relation;
-/*
-A reference to the relation.
-
-*/
-  bool endOfScan;
-/*
-Stores the state of the iterator.
-
-*/
-  TupleId currentTupleId;
-/*
-Stores the identification of the current tuple.
-
-*/
-};
-
-/*
-4.4 Implementation of the class ~RelationIterator~ 
-(using ~PrefetchingIterator~)
-
-This class is used for scanning (iterating through) relations.
-
-*/
-RelationIterator::RelationIterator( const Relation& relation ):
-  privateRelationIterator( new PrivateRelationIterator( relation ) )
-  {}
-
-RelationIterator::~RelationIterator()
-{
-  delete privateRelationIterator;
-}
 
 Tuple* RelationIterator::GetNextTuple()
 {
 //#define TRACE_ON
 //  NTRACE(10000, "GetNextTuple()")
 //#undef TRACE_ON 
-  if( !privateRelationIterator->iterator->Next() )
+  if( !iterator->Next() )
   {
-    privateRelationIterator->endOfScan = true;
-    privateRelationIterator->currentTupleId = -1;
+    endOfScan = true;
+    currentTupleId = -1;
     return 0;
   }
 
   Tuple *result = new Tuple( 
-    privateRelationIterator->relation.privateRelation->relDesc.tupleType );
+    relation.privateRelation->relDesc.tupleType );
   result->GetPrivateTuple()->Open( 
-    &privateRelationIterator->relation.privateRelation->tupleFile,
-    privateRelationIterator->relation.
+    &relation.privateRelation->tupleFile,
+    relation.
       privateRelation->relDesc.lobFileId,
-    privateRelationIterator->iterator );
-  privateRelationIterator->currentTupleId = result->GetTupleId();
+    iterator );
+  currentTupleId = result->GetTupleId();
   return result;
 }
 
 TupleId RelationIterator::GetTupleId() const
 {
-  return privateRelationIterator->currentTupleId;
+  return currentTupleId;
 }
 
 bool RelationIterator::EndOfScan()
 {
-  return privateRelationIterator->endOfScan;
+  return endOfScan;
 }
-
 
 /*
 4.5 Implementation of the class ~RandomRelationIterator~ 
 (using ~PrefetchingIterator~)
 
-This class is used for scanning (iterating through) relations.
+This class is used for scanning (iterating through) relations. Currently, the
+random iteration is only helpful for creating samples since it is possible to
+skip some of the tuples which makes the iteration a litte bit more efficent.
+Here we need an implementation which is able to skip some pages of the
+underlying record file. This would make it rather efficient,
 
 */
 RandomRelationIterator::RandomRelationIterator( const Relation& relation ):
-  privateRelationIterator( new PrivateRelationIterator( relation ) )
+  RelationIterator( relation )
   {}
 
 RandomRelationIterator::~RandomRelationIterator()
-{
-  delete privateRelationIterator;
-}
+{}
 
 Tuple* RandomRelationIterator::GetNextTuple(int step/*=1*/)
 {
@@ -1585,128 +1454,24 @@ Tuple* RandomRelationIterator::GetNextTuple(int step/*=1*/)
 //  NTRACE(10000, "GetNextTuple()")
 //#undef TRACE_ON 
   for (; step > 0; step--) {
-  if( !privateRelationIterator->iterator->Next() )
+  if( !iterator->Next() )
   {
-    privateRelationIterator->endOfScan = true;
-    privateRelationIterator->currentTupleId = -1;
+    endOfScan = true;
+    currentTupleId = -1;
     return 0;
   }
   }
 
   Tuple *result = new Tuple( 
-    privateRelationIterator->relation.privateRelation->relDesc.tupleType );
+    relation.privateRelation->relDesc.tupleType );
   result->GetPrivateTuple()->Open( 
-    &privateRelationIterator->relation.privateRelation->tupleFile,
-    privateRelationIterator->relation.
+    &relation.privateRelation->tupleFile,
+    relation.
       privateRelation->relDesc.lobFileId,
-    privateRelationIterator->iterator );
-  privateRelationIterator->currentTupleId = result->GetTupleId();
+    iterator );
+  currentTupleId = result->GetTupleId();
   return result;
 }
-
-TupleId RandomRelationIterator::GetTupleId() const
-{
-  return privateRelationIterator->currentTupleId;
-}
-
-bool RandomRelationIterator::EndOfScan()
-{
-  return privateRelationIterator->endOfScan;
-}
-
-#else
-/*
-4.5 Struct ~PrivateRelationIterator~ (using ~SmiRecordFileIterator~)
-
-This struct contains the private attributes of the class 
-~RelationIterator~.
-
-*/
-struct PrivateRelationIterator
-{
-  PrivateRelationIterator( const Relation& rel ):
-    iterator(),
-    relation( rel ), currentTupleId( -1 )
-    {
-      rel.privateRelation->tupleFile.SelectAll( iterator );
-    }
-/*
-The constructor.
-
-*/
-  ~PrivateRelationIterator()
-  {}
-/*
-The destructor.
-
-*/
-  SmiRecordFileIterator iterator;
-/*
-The iterator.
-
-*/
-  const Relation& relation;
-/*
-A reference to the relation.
-
-*/
-
-  TupleId currentTupleId;
-/*
-Stores the identification of the current tuple.
-
-*/
-
-};
-
-/*
-4.6 Implementation of the class ~RelationIterator~ 
-(using ~SmiRecordFileIterator~)
-
-This class is used for scanning (iterating through) relations.
-
-*/
-RelationIterator::RelationIterator( const Relation& relation ):
-  privateRelationIterator( new PrivateRelationIterator( relation ) )
-  {}
-
-RelationIterator::~RelationIterator()
-{
-  delete privateRelationIterator;
-}
-
-Tuple* RelationIterator::GetNextTuple()
-{
-  SmiRecord *record = new SmiRecord();
-  privateRelationIterator->iterator.Next( *record );
-
-  if( EndOfScan() )
-  {
-    privateRelationIterator->currentTupleId = -1;
-    return 0;
-  }
-
-  Tuple *result = new Tuple( 
-    privateRelationIterator->relation.privateRelation->tupleType );
-  result->GetPrivateTuple()->Open( 
-    &privateRelationIterator->relation.privateRelation->tupleFile,
-    &privateRelationIterator->relation.privateRelation->lobFile,
-    record );
-  privateRelationIterator->currentTupleId = result->GetTupleId();
-  return result;
-}
-
-const bool RelationIterator::EndOfScan()
-{
-  return privateRelationIterator->iterator.EndOfScan();
-}
-
-TupleId RelationIterator::GetTupleId() const
-{
-  return privateRelationIterator->currentTupleId;
-}
-
-#endif // _PREFETCHING_
 
 /*
 5 Auxiliary functions

@@ -29,10 +29,6 @@ include ../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
-#The define _PREFETCHING_ is used to use Prefetching Iterators instead or normal
-#ones and is used only for testing purposes. It will be removed in later versions.
-CCFLAGS += -D_PREFETCHING_
-
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all

@@ -139,7 +139,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
 #define MAX_NUM_OF_ATTR 10 
 
-class CcTuple;
+//class CcTuple;
 extern AlgebraManager* am;
 
 /*
@@ -1350,8 +1350,6 @@ The function to retrieve the current tuple ~id~.
 
 */
 
-
-
 };
 
 /*
@@ -1465,13 +1463,6 @@ Forward declaration of the ~TupleBuffer~ class.
 
 */
 
-struct PrivateTupleBufferIterator;
-/*
-Forward declaration of the struct ~PrivateTupleBufferIterator~. 
-This struct will contain the private attributes of the class 
-~TupleBufferIterator~. 
-
-*/
 class TupleBufferIterator : public GenericRelationIterator
 {
   public:
@@ -1499,9 +1490,19 @@ Returns the tuple identification of the current tuple.
 
   private:
 
-    PrivateTupleBufferIterator *privateTupleBufferIterator;
+  const TupleBuffer& tupleBuffer;
 /*
-The reference to the private attributes of this class.
+A pointer to the tuple buffer.
+
+*/
+  size_t currentTuple;
+/*
+The current tuple if it is in memory.
+
+*/
+  GenericRelationIterator *diskIterator;
+/*
+The iterator if it is not in memory.
 
 */
 };
@@ -1515,12 +1516,13 @@ passed in the constructor.
 
 
 */
-struct PrivateTupleBuffer;
+class Relation;
+
 /*
-Forward declaration of the struct ~PrivateTupleBuffer~. This struct 
-will contain the private attributes of the class ~TupleBuffer~.
+Forward declaration of class ~Relation~.
 
 */
+
 class TupleBuffer : public GenericRelation
 {
   public:
@@ -1569,15 +1571,49 @@ Checks if the tuple buffer is empty or not.
 */
 
     friend class TupleBufferIterator;
-    friend struct PrivateTupleBufferIterator;
 
   private:
 
-    PrivateTupleBuffer *privateTupleBuffer;
+  typedef vector<Tuple*> TupleVec;
+
+  const size_t MAX_MEMORY_SIZE;
 /*
-A reference to the private attributes.
+The maximum size of the memory in bytes. 32 MBytes being used.
 
 */
+  TupleVec memoryBuffer;
+/*
+The memory buffer which is a ~vector~ from STL.
+
+*/
+  Relation* diskBuffer;
+/*
+The buffer stored on disk.
+
+*/
+  bool inMemory;
+/*
+A flag that tells if the buffer fit in memory or not.
+
+*/
+  const bool traceFlag;
+/*
+Switch trace messages on or off
+
+*/  
+  double totalExtSize;
+/*
+The total size occupied by the tuples in the buffer,
+taking into account the small FLOBs.
+
+*/
+  double totalSize;
+/*
+The total size occupied by the tuples in the buffer,
+taking into account the FLOBs.
+
+*/
+  void clearAll();
 };
 
 /*
@@ -1589,19 +1625,6 @@ This class is used for scanning (iterating through) relations.
 
 */
 
-class Relation;
-/*
-Forward declaration of class ~Relation~.
-
-*/
-
-struct PrivateRelationIterator;
-/*
-Forward declaration of the struct ~PrivateRelationIterator~. This 
-struct will contain the private attributes of the class 
-~RelationIterator~.
-
-*/
 
 class RelationIterator : public GenericRelationIterator
 {
@@ -1634,16 +1657,31 @@ Returns the tuple identifier of the current tuple.
 Tells whether the cursor is in the end of a relation.
 
 */
-  private:
-    PrivateRelationIterator *privateRelationIterator;
+  protected:
+  PrefetchingIterator *iterator;
 /*
-The private attributes of the class ~RelationIterator~.
+The iterator.
+
+*/
+  const Relation& relation;
+/*
+A reference to the relation.
+
+*/
+  bool endOfScan;
+/*
+Stores the state of the iterator.
+
+*/
+  TupleId currentTupleId;
+/*
+Stores the identification of the current tuple.
 
 */
 };
 
 
-class RandomRelationIterator
+class RandomRelationIterator : protected RelationIterator
 {
   public:
     RandomRelationIterator( const Relation& relation );
@@ -1662,22 +1700,6 @@ The destructor.
 Retrieves the tuple in the current position of the iterator and moves
 the cursor forward to the next tuple. Returns 0 if the cursor is in 
 the end of a relation.
-
-*/
-    TupleId GetTupleId() const;
-/*
-Returns the tuple identifier of the current tuple.
-
-*/
-    bool EndOfScan();
-/*
-Tells whether the cursor is in the end of a relation.
-
-*/
-  private:
-    PrivateRelationIterator *privateRelationIterator;
-/*
-The private attributes of the class ~RelationIterator~.
 
 */
 };

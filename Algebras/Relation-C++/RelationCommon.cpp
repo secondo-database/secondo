@@ -70,6 +70,7 @@ to this implementation file.
 #include "QueryProcessor.h"
 #include "NestedList.h"
 #include "Counter.h"
+#include "Symbols.h"
 
 #include <set>
 #include <string>
@@ -78,6 +79,8 @@ to this implementation file.
 extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
+
+using namespace symbols;
 
 long Tuple::tuplesCreated = 0; 
 long Tuple::tuplesDeleted = 0; 
@@ -185,23 +188,23 @@ void Tuple::InitCounters(const bool val)
   maximumTuples = 0;
   tuplesInMemory = 0;
   
-  Counter::getRef("RA:CreateTuples") = 0;
-  Counter::getRef("RA:DeletedTuples") = 0;
-  Counter::getRef("RA:MaxTuplesInMem") = 0;
-  Counter::getRef("RA:TuplesInMem") = 0;
+  Counter::getRef(CTR_CreatedTuples) = 0;
+  Counter::getRef(CTR_DeletedTuples) = 0;
+  Counter::getRef(CTR_MaxmemTuples) = 0;
+  Counter::getRef(CTR_MemTuples) = 0;
 
-  Counter::reportValue("RA:CreatedTuples", val );
-  Counter::reportValue("RA:DeletedTuples", val);
-  Counter::reportValue("RA:MaxTuplesInMem", val);
-  Counter::reportValue("RA:TuplesInMem", val);
+  Counter::reportValue(CTR_CreatedTuples, val );
+  Counter::reportValue(CTR_DeletedTuples, val);
+  Counter::reportValue(CTR_MaxmemTuples, val);
+  Counter::reportValue(CTR_MemTuples, val);
 }
 
 void Tuple::SetCounterValues()
 {
-  Counter::getRef("RA:CreateTuples") = tuplesCreated;
-  Counter::getRef("RA:DeletedTuples") = tuplesDeleted;
-  Counter::getRef("RA:MaxTuplesInMem") = maximumTuples;
-  Counter::getRef("RA:TuplesInMem") = tuplesInMemory;
+  Counter::getRef(CTR_CreatedTuples) = tuplesCreated;
+  Counter::getRef(CTR_DeletedTuples) = tuplesDeleted;
+  Counter::getRef(CTR_MaxmemTuples) = maximumTuples;
+  Counter::getRef(CTR_MemTuples) = tuplesInMemory;
 }
 
 
