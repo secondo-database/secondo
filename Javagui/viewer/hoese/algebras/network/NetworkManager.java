@@ -26,7 +26,7 @@ import java.util.Vector;
  * GPoints, GLines and their moving counterparts can only be displayed in the
  * HoeseViewer if the network they belong two has allready been loaded. 
  * 
- * Each Network will be registered at this <code>NetworkManager</code>. When
+ * Each Network will be registered at this NetworkManager. When
  * it is needed it is available via it's id. If it has not been loaded an 
  * exception will be thrown.
  * 
@@ -36,61 +36,62 @@ import java.util.Vector;
  * @author Martin Scheppokat
  *
  */
-public class NetworkManager {
-
+public class NetworkManager 
+{
   /**
    * Instance for the Singleton-Pattern of GOF
    */
-	private static final NetworkManager INSTANCE = new NetworkManager();
-	
+  private static final NetworkManager INSTANCE = new NetworkManager();
+  
   /**
    * Get-Method returning the instance of the <code>NetworkManager</code>
    * 
    * @return The <code>NetworkManager</code>
    */
-	public static NetworkManager getInstance()
+  public static NetworkManager getInstance()
   {
-		return INSTANCE;
-	}
+    return INSTANCE;
+  }
 
   /**
    * All Networks loaded in the client
    */
-	private HashMap m_xNetworks;
+  private HashMap m_xNetworks;
 
   /**
    * Private-Constructor for Singleton-Pattern
    *
    */
-	private NetworkManager()
+  private NetworkManager()
   {
-		m_xNetworks = new HashMap();
-	}
-	
+    m_xNetworks = new HashMap();
+  }
+  
   /**
    * Registers a network.
    * @param in_xNetwork A network
    */
-	void addNetwork(Network in_xNetwork)
+  void addNetwork(Network in_xNetwork)
   {
     // Old network with same id will be replaced
     m_xNetworks.put(new Long(in_xNetwork.getId()), 
                     in_xNetwork);
-	}
-	
+  }
+  
   /**
    * Returns a network with a given id.
    * 
    * @return A network
    * @throws Exception If the network had not yet been loaded.
    */
-	public Network getNetwork(long in_lId) 
+  public Network getNetwork(long in_lId) 
   throws NetworkNotAvailableException
   {
     if(!m_xNetworks.containsKey(new Long(in_lId)))
     {
       throw new NetworkNotAvailableException(in_lId);
     }
-		return (Network)m_xNetworks.get(new Long(in_lId));
-	}
-}
+    return (Network)m_xNetworks.get(new Long(in_lId));
+  }
+} 
+

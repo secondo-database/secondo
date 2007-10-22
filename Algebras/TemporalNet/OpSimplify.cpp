@@ -22,17 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Operator simplify
+1.1 Implementation of Operator Simplify
+
+The operator merges units of network based moving points that are 
+one the same route if the speed is similar.
 
 Mai-Oktober 2007 Martin Scheppokat
 
-1 Overview
-
-
-This file contains the implementation of operator simplify
-
-
-2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #include "RelationAlgebra.h"
@@ -54,7 +51,7 @@ This file contains the implementation of operator simplify
 #include "OpSimplify.h"
 
 /*
-4.1.2 Typemap function of the operator
+Typemap function of the operator ~simplify~
 
 */
 ListExpr OpSimplify::TypeMap(ListExpr in_xArgs)
@@ -83,7 +80,7 @@ ListExpr OpSimplify::TypeMap(ListExpr in_xArgs)
 }
 
 /*
-4.1.2 Value mapping function of the operator
+Value mapping function of the operator ~simplify~
 
   
 */
@@ -177,23 +174,10 @@ int OpSimplify::ValueMapping(Word* args,
     double dSpeedDifference = dCurrentSpeed > dStartSpeed ? 
                               dCurrentSpeed - dStartSpeed :
                               dStartSpeed - dCurrentSpeed;
-    if( i == pMGPoint->GetNoComponents() -1)
-    {
-      // Last loop - create last unit
-      pMGPointSimplified->Add(UGPoint(Interval<Instant>(xStartStartTime, 
-                                                        xCurrentEndTime, 
-                                                        true, 
-                                                        false),
-                              iNetworkId,
-                              iStartRouteId,
-                              xStartSide,
-                              dStartStartPosition,
-                              dCurrentEndPosition));
-      
-    }
-    else if( iCurrentRouteId != iStartRouteId ||
-             xCurrentSide != xStartSide || 
-             dSpeedDifference > dEpsilon)
+
+    if( iCurrentRouteId != iStartRouteId ||
+        xCurrentSide != xStartSide || 
+        dSpeedDifference > dEpsilon)
     {
       // Create new unit
       pMGPointSimplified->Add(UGPoint(Interval<Instant>(xStartStartTime, 
@@ -212,6 +196,21 @@ int OpSimplify::ValueMapping(Word* args,
       xStartStartTime = xCurrentStartTime;
       dStartStartPosition = dCurrentStartPosition;
     }
+
+    if( i == pMGPoint->GetNoComponents() -1)
+    {
+      // Last loop - create last unit
+      pMGPointSimplified->Add(UGPoint(Interval<Instant>(xStartStartTime, 
+                                                        xCurrentEndTime, 
+                                                        true, 
+                                                        false),
+                              iNetworkId,
+                              iStartRouteId,
+                              xStartSide,
+                              dStartStartPosition,
+                              dCurrentEndPosition));
+      
+    }
     
     // Set Last-Values for next loop
     dLastEndPosition = dCurrentEndPosition; 
@@ -227,7 +226,7 @@ int OpSimplify::ValueMapping(Word* args,
 
 
 /*
-4.1.3 Specification of the operator
+Specification of the operator ~simplify~
 
 */
 const string OpSimplify::Spec  = 

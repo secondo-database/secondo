@@ -41,13 +41,13 @@ public class Segment
   /** 
    * Starting point of the segment.
    */
-	private Point2D.Double m_xPoint1;
-	
+  private Point2D.Double m_xPoint1;
+  
   /**
    * Endpoint of the segment.
    */
-	private Point2D.Double m_xPoint2;
-	
+  private Point2D.Double m_xPoint2;
+  
   /**
    * Next segment in a sequence 
    * where connecting segments follow
@@ -71,31 +71,31 @@ public class Segment
    * @param in_xPoint1 StartingPoint
    * @param in_xPoint2 EndPoint
    */
-	public Segment(Point2D.Double in_xPoint1, 
-	               Point2D.Double in_xPoint2) 
+  public Segment(Point2D.Double in_xPoint1, 
+                 Point2D.Double in_xPoint2) 
   {
-		m_xPoint1 = in_xPoint1;
-		m_xPoint2 = in_xPoint2;
-	}
+    m_xPoint1 = in_xPoint1;
+    m_xPoint2 = in_xPoint2;
+  }
 
-	/**
+  /**
    * Length of the segment 
    * @return
-	 */
+   */
   public double getLength() 
   {
-		return Math.sqrt(Math.pow(getXLength(),2) + Math.pow(getYLength(),2));
-	}
+    return Math.sqrt(Math.pow(getXLength(),2) + Math.pow(getYLength(),2));
+  }
 
   /**
    * Returns the starting point of the segment.
    * 
    * @return Starting point
    */
-	public Point2D.Double getPoint1() 
+  public Point2D.Double getPoint1() 
   {
-		return m_xPoint1;
-	}
+    return m_xPoint1;
+  }
 
   /**
    * Returns the Endpoint of the segment
@@ -113,10 +113,10 @@ public class Segment
    * 
    * @return A distance
    */
-	public double getXLength() 
+  public double getXLength() 
   {
-		return m_xPoint2.x - m_xPoint1.x;
-	}
+    return m_xPoint2.x - m_xPoint1.x;
+  }
 
   /**
    * Returns the distance between start and end
@@ -124,10 +124,10 @@ public class Segment
    * 
    * @return A distance
    */
-	public double getYLength() 
+  public double getYLength() 
   {
-		return m_xPoint2.y - m_xPoint1.y;
-	}
+    return m_xPoint2.y - m_xPoint1.y;
+  }
   
   /**
    * Set's the next segment in a sequential ordering of segments.

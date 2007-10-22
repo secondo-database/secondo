@@ -22,19 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Definition of MGPoint in Module TemporalNet
+1.1 Implementation of MGPoint
+
+A class representing a moving point in a network.
 
 Mai-Oktober 2007 Martin Scheppokat
 
-[TOC]
- 
-1 Overview
 
-
-This file contains the implementation of ~gline~
-
-
-2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #include "TemporalAlgebra.h"
@@ -76,7 +71,7 @@ ListExpr MGPoint::Property()
 }
 
 /*
-4.12.3 Kind Checking Function
+Kind Checking Function
 
 */
 bool MGPoint::Check(ListExpr type, 

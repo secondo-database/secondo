@@ -22,42 +22,32 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Declarations needed by Algebra TemporalNet
+1.1 Declaration of Operator Passes
+
+This operator checks whether a moving point passes a fixed point or not.
 
 Mai-Oktober 2007 Martin Scheppokat
 
-Defines, includes, and constants
-
 */
 
-#ifndef _TEMPORAL_NET_ALGEBRA_H_
-#define _TEMPORAL_NET_ALGEBRA_H_
+#ifndef OPPASSES_H_
+#define OPPASSES_H_
 
-#include <iostream>
-#include <sstream>
-#include <string>
-#include "NestedList.h"
-#include "QueryProcessor.h"
+class OpPasses
+{
+public:
+/*
 
-#ifndef __NETWORK_ALGEBRA_H__
-#error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
-Please include in *.cpp-File.
-#endif
+Type Mapping of operator ~passes~
 
-#ifndef GPOINT_H_
-#error GPoint.h is needed by TemporalNetAlgebra.h. Please include in *.cpp-File.
-#endif
-
-
-using namespace datetime;
+*/
+static ListExpr TypeMap(ListExpr args);
 
 /*
-Instant
-
-This class represents a time instant, or a point in time. It will be
-used in the ~instant~ type constructor.
+4.4.3 Specification of operator ~passes~
 
 */
-typedef DateTime Instant;
+static const string Spec;
+};
 
-#endif // _TEMPORAL_NET_ALGEBRA_H_
+#endif /*OPPASSES_H_*/

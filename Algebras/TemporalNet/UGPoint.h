@@ -22,19 +22,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of GLine in Module Network Algebra
+1.1 Declaration of the Unit-Class GPoint
 
 Mai-Oktober 2007 Martin Scheppokat
 
-[TOC]
- 
-1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 
@@ -53,7 +45,7 @@ Please include in *.cpp-File.
 
 
 /*
-3.8 UGPoint
+UGPoint
 
 This class will be used in the ~ugpoint~ type constructor, i.e., the type constructor
 for the temporal unit of gpoint values.
@@ -62,7 +54,7 @@ for the temporal unit of gpoint values.
 struct UGPoint : public SpatialTemporalUnit<GPoint, 3>
 {
 /*
-3.8.1 Constructors and Destructor
+Constructors and Destructor
 
 */
   UGPoint() {};
@@ -98,7 +90,7 @@ struct UGPoint : public SpatialTemporalUnit<GPoint, 3>
     {}
 
 /*
-3.6.2 Operator redefinitions
+Operator redefinitions
 
 */
 
@@ -125,7 +117,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 */
 
 /*
-3.8.3 Functions to be part of relations
+Functions to be part of relations
 
 */
 
@@ -180,27 +172,27 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
 
 /*
-4.9.3 Property Function
+Property Function
 
 */
     static ListExpr Property();
 
 /*
-4.9.3 Kind Checking Function
+Kind Checking Function
 
 */
     static bool Check(ListExpr type, 
                       ListExpr& errorInfo );
 
 /*
-4.9.4 ~Out~-function
+~Out~-function
 
 */
     static ListExpr Out(ListExpr typeInfo, 
                         Word value );
 
 /*
-4.9.5 ~In~-function
+~In~-function
 
 */
     static Word In(const ListExpr typeInfo, 
@@ -210,47 +202,47 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
                    bool& correct );
 
 /*
-4.9.6 ~Create~-function
+~Create~-function
 
 */
     static Word Create(const ListExpr typeInfo );
 
 /*
-4.9.7 ~Delete~-function
+~Delete~-function
 
 */
     static void Delete(const ListExpr typeInfo, 
                        Word& w );
 
 /*
-4.9.8 ~Close~-function
+~Close~-function
 
 */
     static void Close(const ListExpr typeInfo, 
                       Word& w );
 
 /*
-4.9.9 ~Clone~-function
+~Clone~-function
 
 */
     static Word Clone(const ListExpr typeInfo, 
                       const Word& w );
 
 /*
-4.9.10 ~Sizeof~-function
+~Sizeof~-function
 
 */
     static int SizeOf();
 
 /*
-4.9.11 ~Cast~-function
+~Cast~-function
 
 */
     static void* Cast(void* addr);
 
 
 /*
-3.8.4 Attributes
+Attributes
 
 */
     GPoint p0, p1;

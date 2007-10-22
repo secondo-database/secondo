@@ -22,21 +22,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Operator MPoint2MGPoint
+1.1 Declaration of Operator MPoint2MGPoint
 
 The operator translates moving points into network based moving points
 
 Mai-Oktober 2007 Martin Scheppokat
 
-[TOC]
-
-1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 
@@ -47,28 +39,30 @@ class OpMPoint2MGPoint
 {
 public:
 /*
-4.4 Operator ~sections~
-
-4.4.1 Type Mapping of operator ~sections~
+Type Mapping of operator ~mpoint2mgpoint~
 
 */
 static ListExpr TypeMap(ListExpr args);
 
 /*
-4.4.2 Value mapping function of operator ~sections~
+Value mapping function of operator ~mpoint2mgpoint~
 
 */
 static int ValueMapping( Word* args, Word& result, int message, 
                              Word& local, Supplier s );
 
 /*
-4.4.3 Specification of operator ~sections~
+Specification of operator ~mpoint2mgpoint~
 
 */
 static const string Spec;
 
 private:
 
+/*
+Send a message to all clients
+
+*/
 static void sendMessage(string in_strMessage);
 
 

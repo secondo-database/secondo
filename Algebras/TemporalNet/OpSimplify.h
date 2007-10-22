@@ -22,20 +22,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Operator Simplify
+1.1 Declaration of Operator Simplify
 
 The operator merges units of network based moving points that are 
 one the same route if the speed is similar.
 
 Mai-Oktober 2007 Martin Scheppokat
 
-1 Overview
-
-
-This file contains the declarations for operator simplify
-
-
-2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 
@@ -46,31 +40,23 @@ class OpSimplify
 {
 public:
 /*
-4.4 Operator ~sections~
-
-4.4.1 Type Mapping of operator ~sections~
+Type Mapping of operator ~simplify~
 
 */
 static ListExpr TypeMap(ListExpr args);
 
 /*
-4.4.2 Value mapping function of operator
+Value mapping function of operator ~simplify~
 
 */
 static int ValueMapping( Word* args, Word& result, int message, 
                              Word& local, Supplier s );
 
 /*
-4.4.3 Specification of operator 
+Specification of operator ~simplify~ 
 
 */
 static const string Spec;
-
-private:
-
-static void sendMessage(string in_strMessage);
-
-
 };
 
 #endif /*OPSIMPLIFY_H_*/

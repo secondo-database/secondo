@@ -22,19 +22,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of GLine in Module Network Algebra
+1.1 Implementation of Operator MPoint2MGPoint
+
+The operator translates moving points into network based moving points
 
 Mai-Oktober 2007 Martin Scheppokat
 
-[TOC]
- 
-1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #include "RelationAlgebra.h"
@@ -56,7 +50,7 @@ This file contains the implementation of ~gline~
 #include "OpMPoint2MGPoint.h"
 
 /*
-4.1.2 Typemap function of the operator
+Typemap function of the operator
 
 */
 ListExpr OpMPoint2MGPoint::TypeMap(ListExpr in_xArgs)
@@ -84,7 +78,7 @@ ListExpr OpMPoint2MGPoint::TypeMap(ListExpr in_xArgs)
 }
 
 /*
-4.1.2 Value mapping function of the operator
+Value mapping function of operator ~mpoint2mgpoint~
 
 The method will first look for a segment at the start of the mpoint.
 
@@ -428,7 +422,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
 
 
 /*
-4.1.3 Specification of the operator
+Specification of operator ~mpoint2mgpoint~
 
 */
 const string OpMPoint2MGPoint::Spec  = 

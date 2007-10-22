@@ -24,15 +24,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Module
+1.1 Implementation of Algebra TemporalNet
 
 May 2007 Martin Scheppokat
 
-[TOC]
-
-1 Overview
-
-2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #include "NestedList.h"
@@ -46,6 +42,7 @@ May 2007 Martin Scheppokat
 #include "OpMPoint2MGPoint.h"
 #include "OpUnits.h"
 #include "OpSimplify.h"
+#include "OpPasses.h"
 
 #include <iostream>
 #include <sstream>
@@ -62,7 +59,7 @@ extern QueryProcessor* qp;
 
 
 /*
-4.9.12 Creation of the type constructor ~upoint~
+Creation of the type constructor ~upoint~
 
 */
 TypeConstructor unitgpoint(
@@ -81,15 +78,7 @@ TypeConstructor unitgpoint(
 
 
 /*
-4.12 Type Constructor ~mgpoint~
-
-
-4.12.2 function Describing the Signature of the Type Constructor
-
-*/
-
-/*
-4.12.4 Creation of the type constructor ~mpoint~
+Creation of the type constructor ~mpoint~
 
 */
 TypeConstructor movinggpoint(
@@ -111,7 +100,7 @@ TypeConstructor movinggpoint(
 
 
 /*
-4.4.4 Definition 
+Operator mpoint2mgpoint 
 
 */
 Operator mpoint2mgpoint (
@@ -122,22 +111,39 @@ Operator mpoint2mgpoint (
           OpMPoint2MGPoint::TypeMap        // type mapping
 );
 
+/*
+Operator units
+
+*/
 Operator units("units",
                OpUnits::Spec,
                MappingUnits<MGPoint, UGPoint>,
                Operator::SimpleSelect,
                OpUnits::TypeMap );
 
+/*
+Operator simplify
+
+*/
 Operator simplify("simplify",
                   OpSimplify::Spec,
                   OpSimplify::ValueMapping,
                   Operator::SimpleSelect,
                   OpSimplify::TypeMap );
 
+/*
+Operator passes
+
+*/
+Operator passes("passes",
+                OpPasses::Spec,
+                MappingPasses<MGPoint, GPoint, GPoint>,
+                Operator::SimpleSelect,
+                OpPasses::TypeMap );
 
 
 /*
-6 Creating the Algebra
+Creating the Algebra
 
 */
 
@@ -157,6 +163,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&mpoint2mgpoint);
     AddOperator(&units);
     AddOperator(&simplify);
+    AddOperator(&passes);
   }
 
 
@@ -166,7 +173,7 @@ class TemporalNetAlgebra : public Algebra
 TemporalNetAlgebra temporalNetAlgebra;
 
 /*
-7 Initialization
+Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list

@@ -37,89 +37,89 @@ public class Network
    * The id of this network
    */
   private long m_lNetworkId;
-  
-	/**
-	 * All routes of this network
-	 */
-	private Route[] m_xRoutes;
+   
+  /**
+   * All routes of this network 
+   */
+  private Route[] m_xRoutes;
 
-	/**
-	 * All junctions of this network
-	 */
-	private Junction[] m_xJunctions;	
+  /**
+   * All junctions of this network
+   */
+  private Junction[] m_xJunctions;  
 
-	/**
-   * Construktor
+  /**
+   * Constructor
    *  
    * @param in_xValue Network in secondo list-format
    * @throws Exception If an error in the list is found
-	 */
-	public Network(ListExpr in_xValue) 
+   */
+  public Network(ListExpr in_xValue) 
     throws Exception
   {
-		
-		Vector xRoutes = new Vector();
-		Vector xJunctions = new Vector();
-		
-		// As a network consists of routes, junctions and sections, the length 
-		// of the list should be three. The type-identifier "Network" is not 
-		// passed to this function.
-		if(in_xValue.listLength() != 3)
+    
+    Vector xRoutes = new Vector();
+    Vector xJunctions = new Vector();
+    
+    // As a network consists of routes, junctions and sections, the length 
+    // of the list should be three. The type-identifier "Network" is not 
+    // passed to this function.
+    if(in_xValue.listLength() != 3)
     {
-			Reporter.writeError("Error in ListExpr");
-		}
-		
-		// Split into the three parts
+      Reporter.writeError("Error in ListExpr");
+    }
+    
+    // Split into the three parts
     ListExpr xIdList = in_xValue.first();
-		ListExpr xRouteList = in_xValue.second();
-		ListExpr xJunctionList = in_xValue.third();
-		
+    ListExpr xRouteList = in_xValue.second();
+    ListExpr xJunctionList = in_xValue.third();
+    
     // Transfer Network-ID
     m_lNetworkId = xIdList.intValue();
     
-		// Read routes from list
-		while(!xRouteList.isEmpty()){
+    // Read routes from list
+    while(!xRouteList.isEmpty()){
 
-			ListExpr xCurrentRouteList = xRouteList.first();			
-			xRoutes.add(new Route(xCurrentRouteList));
-			xRouteList = xRouteList.rest();
-		}
-		
-		// Read Junctions from list
-		while(!xJunctionList.isEmpty()){
+      ListExpr xCurrentRouteList = xRouteList.first();      
+      xRoutes.add(new Route(xCurrentRouteList));
+      xRouteList = xRouteList.rest();
+    }
+    
+    // Read Junctions from list
+    while(!xJunctionList.isEmpty()){
 
-			ListExpr xCurrentJunctionList = xJunctionList.first();
-			xJunctions.add(new Junction(xCurrentJunctionList));
-			xJunctionList = xJunctionList.rest();
-		}
+      ListExpr xCurrentJunctionList = xJunctionList.first();
+      xJunctions.add(new Junction(xCurrentJunctionList));
+      xJunctionList = xJunctionList.rest();
+    }
 
-		m_xRoutes = (Route[])xRoutes.toArray(new Route[0]);
-		m_xJunctions = (Junction[])xJunctions.toArray(new Junction[0]);
+    m_xRoutes = (Route[])xRoutes.toArray(new Route[0]);
+    m_xJunctions = (Junction[])xJunctions.toArray(new Junction[0]);
 
     // Register this network with the NetworkManager
     NetworkManager.getInstance().addNetwork(this);
     
-	}
+  }
 
-	/**
+  /**
    * Get the number of routes in teh network
    *  
    * @return Number of routes
-	 */
-	public int getRouteCount() 
+   */
+  public int getRouteCount() 
   {
-		return m_xRoutes.length;
-	}
+    return m_xRoutes.length;
+  }
 
-	/**
+  /**
    * Get a route in the network. 
    * @param in_iIndex between 0 and <code>getRouteCount()</code>
    * @return
-	 */
-	public Route getRouteAt(int in_iIndex) 
+   */
+  public Route getRouteAt(int in_iIndex) 
   {
-		return m_xRoutes[in_iIndex];
-	}
+    return m_xRoutes[in_iIndex];
+  }
 
 
   /**
@@ -127,41 +127,41 @@ public class Network
    * 
    * @return Number of Junctions
    */
-	public int getJunctionCount() 
+  public int getJunctionCount() 
   {
-		return m_xJunctions.length;
-	}
+    return m_xJunctions.length;
+  }
 
-	/**
+  /**
    * Get a junction of the network
    *  
    * @param in_iIndex between 0 and <code>getJunctionCount</code>
    * @return A junction
-	 */
-	public Junction getJunctionAt(int in_iIndex) 
+   */
+  public Junction getJunctionAt(int in_iIndex) 
   {
-		return m_xJunctions[in_iIndex];
-	}
+    return m_xJunctions[in_iIndex];
+  }
 
-	/**
+  /**
    * Searches for a route.
    *  
    * @param in_iId of the route
    * @return A route.
-	 */
-	public Route getRouteById(int in_iId) 
-  {	
-		for (int i = 0; i < m_xRoutes.length; i++) 
+   */
+  public Route getRouteById(int in_iId) 
+  {  
+    for (int i = 0; i < m_xRoutes.length; i++) 
     {
-			Route xCurrentRoute = m_xRoutes[i];
-			if(xCurrentRoute.getId() == in_iId)
+      Route xCurrentRoute = m_xRoutes[i];
+      if(xCurrentRoute.getId() == in_iId)
       {
-				return xCurrentRoute;
-			}
-		}
-		// No route found
-		throw new RuntimeException("Route with id" + in_iId + "not found.");
-	}
+        return xCurrentRoute;
+      }
+    }
+    // No route found
+    throw new RuntimeException("Route with id" + in_iId + "not found.");
+  }
 
   /**
    * Returns the id of this network

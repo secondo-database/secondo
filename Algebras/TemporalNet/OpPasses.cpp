@@ -22,10 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Implementation of Operator Units
+1.1 Implementation of Operator Passes
 
-The operator returns all units of a moving point
-
+This operator checks whether a moving point passes a fixed point or not.
 
 Mai-Oktober 2007 Martin Scheppokat
  
@@ -46,40 +45,45 @@ Mai-Oktober 2007 Martin Scheppokat
 #include "Network.h"
 #include "NetworkManager.h"
 
-#include "OpUnits.h"
+#include "OpPasses.h"
 
 /*
 Typemap function of the operator
 
 */
-ListExpr OpUnits::TypeMap(ListExpr in_xArgs)
+ListExpr OpPasses::TypeMap(ListExpr in_xArgs)
 {
-  if( nl->ListLength(in_xArgs) != 1 )
+  if( nl->ListLength(in_xArgs) != 2 )
     return (nl->SymbolAtom( "typeerror" ));
 
-  ListExpr xMPointDesc = nl->First(in_xArgs);
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  ListExpr xGPointDesc = nl->Second(in_xArgs);
 
-  if( (!nl->IsAtom( xMPointDesc )) ||
-      nl->AtomType( xMPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMPointDesc ) != "mgpoint" )
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
   {
     return (nl->SymbolAtom( "typeerror" ));
   }
   
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
-                         nl->SymbolAtom("ugpoint"));
+  if( (!nl->IsAtom( xGPointDesc )) ||
+      nl->AtomType( xGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xGPointDesc ) != "gpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+  
+  return nl->SymbolAtom("bool");
 }
-
-
 
 /*
 Specification of the operator
 
 */
-const string OpUnits::Spec  = 
+const string OpPasses::Spec  = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> (stream ugpoint)" "</text--->"
-  "<text>units(mgpoint)</text--->"
-  "<text>get the stream of units of the moving value.</text--->"
-  "<text>units(mgpoint)</text--->"
+  "( <text>mgpoint x gpoint -> boolean" "</text--->"
+  "<text>_ passes _</text--->"
+  "<text>Checks whether a moving point passes a fixed point.</text--->"
+  "<text>passes(X_MGPOINT, X_GPOINT)</text--->"
   ") )";

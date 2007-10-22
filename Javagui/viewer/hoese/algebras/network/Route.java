@@ -40,22 +40,22 @@ import viewer.hoese.algebras.Dsplline;
 public class Route 
 {
 
-	/**
-	 * ID for this route 
-	 */
-	private int m_iId;
-	
-	/**
+  /**
+   * ID for this route 
+   */
+  private int m_iId;
+  
+  /**
    * Length of the route
    * The member length is not used at the moment. The length is calculated 
    * via the length of the segments
-	 */
+   */
   private double m_dLength;
 
   /**
    * All segments of this route
    */
-	private Segment[] m_xSegments;
+  private Segment[] m_xSegments;
 
   /**
    * First segment of route
@@ -70,85 +70,84 @@ public class Route
   /**
    * Flag indication wether this route has two distinct sides
    */
-	private boolean m_bIsDualRoute;
-	
+  private boolean m_bIsDualRoute;
+  
   /**
    * Flag indication that this route starts at the smaller end
    */
-	private boolean m_bStartSmaller;
-	
-	/**
-	 * Constructor 
-	 * 
-	 * @param in_xList Secondos representation of a Route as a list.
-	 * @throws Exception If the list contains errors
-	 */
-	public Route(ListExpr in_xList) 
+  private boolean m_bStartSmaller;
+  
+  /**
+   * Constructor 
+   * 
+   * @param in_xList Secondos representation of a Route as a list.
+   * @throws Exception If the list contains errors
+   */
+  public Route(ListExpr in_xList) 
     throws Exception 
   {
-	  
-		Vector xSegments = new Vector();
+    
+    Vector xSegments = new Vector();
 
     // Read values for the list
-		m_iId =  in_xList.first().intValue();
-		m_dLength = in_xList.second().realValue();
-		ListExpr xLineList = in_xList.third();
-		m_bIsDualRoute = in_xList.fourth().boolValue();
-		m_bStartSmaller = in_xList.fifth().boolValue();
+    m_iId =  in_xList.first().intValue();
+    m_dLength = in_xList.second().realValue();
+    ListExpr xLineList = in_xList.third();
+    m_bIsDualRoute = in_xList.fourth().boolValue();
+    m_bStartSmaller = in_xList.fifth().boolValue();
 
     // Read segments
-		while (!xLineList.isEmpty()) {
-			ListExpr xSegmentList = xLineList.first();
-			if (xSegmentList.listLength() != 4) {
-				throw new Exception("Error: No correct line expression: 4 elements needed");
-			}
+    while (!xLineList.isEmpty()) {
+      ListExpr xSegmentList = xLineList.first();
+      if (xSegmentList.listLength() != 4) {
+        throw new Exception("Error: No correct line expression: 4 elements needed");
+      }
 
-			double x1 = LEUtils.readNumeric(xSegmentList.first()).doubleValue();
-			double y1 = LEUtils.readNumeric(xSegmentList.second()).doubleValue();
-			double x2 = LEUtils.readNumeric(xSegmentList.third()).doubleValue();
-			double y2 = LEUtils.readNumeric(xSegmentList.fourth()).doubleValue();
+      double x1 = LEUtils.readNumeric(xSegmentList.first()).doubleValue();
+      double y1 = LEUtils.readNumeric(xSegmentList.second()).doubleValue();
+      double x2 = LEUtils.readNumeric(xSegmentList.third()).doubleValue();
+      double y2 = LEUtils.readNumeric(xSegmentList.fourth()).doubleValue();
 
-			Point2D.Double xPoint1 = new Point2D.Double();
-			boolean bSuccess = ProjectionManager.project(x1 ,y1 ,xPoint1);
+      Point2D.Double xPoint1 = new Point2D.Double();
+      boolean bSuccess = ProjectionManager.project(x1 ,y1 ,xPoint1);
 
-			Point2D.Double xPoint2 = new Point2D.Double();
-			bSuccess &= ProjectionManager.project(x2 ,y2 ,xPoint2);
+      Point2D.Double xPoint2 = new Point2D.Double();
+      bSuccess &= ProjectionManager.project(x2 ,y2 ,xPoint2);
 
-			if(!bSuccess){
-				throw new Exception("error in projection of segment (" + 
-						x1 + "," + y1 + 
-						")->(" + 
-						x2 + "," + y2 + ")");
-			}
+      if(!bSuccess){
+        throw new Exception("error in projection of segment (" + 
+            x1 + "," + y1 + 
+            ")->(" + 
+            x2 + "," + y2 + ")");
+      }
 
-			// Segment
-			xSegments.add(new Segment(xPoint1,
-									  xPoint2));
-			
-			// Look at next element in the list
-			xLineList = xLineList.rest();
-		}
-		m_xSegments = (Segment[])xSegments.toArray(new Segment[0]);
+      // Segment
+      xSegments.add(new Segment(xPoint1,
+                    xPoint2));
+      
+      // Look at next element in the list
+      xLineList = xLineList.rest();
+    }
+    m_xSegments = (Segment[])xSegments.toArray(new Segment[0]);
     
     maintainSegmentsOrdering();
-	}
-	
+  }
+  
 
   /**
    * Constructor to copy only part of the route. Needed by 
-   * <code>getPartOfRoute</code>
+   * getPartOfRoute
    * 
    * @param in_xOtherRoute
    * @param in_dStart
    * @param in_dEnd
    */
-	public Route(Route in_xOtherRoute, 
+  public Route(Route in_xOtherRoute, 
                double in_dStart, 
                double in_dEnd) 
   {
     if(in_dStart >= in_dEnd)
     {
-//      throw new RuntimeException("End > Start");
       double dTemp = in_dStart;
       in_dStart = in_dEnd;
       in_dEnd = dTemp;
@@ -251,57 +250,57 @@ public class Route
    */
   public Point2D.Double getPointOnRoute(double in_dDistance)
   {
-		
-		// Look for segment
-		Segment xSegment = m_xFirstSegment;
-		double dDistanceOnRoute = 0;
-		while(xSegment != null) 
+    
+    // Look for segment
+    Segment xSegment = m_xFirstSegment;
+    double dDistanceOnRoute = 0;
+    while(xSegment != null) 
     {
-			dDistanceOnRoute += xSegment.getLength();
-			if(dDistanceOnRoute >= (in_dDistance - 0.01))
+      dDistanceOnRoute += xSegment.getLength();
+      if(dDistanceOnRoute >= (in_dDistance - 0.01))
       {
-				break;
-			}
+        break;
+      }
       xSegment = xSegment.getNextSegment();
-		}
+    }
 
-		// Calculate offset for this segment
-		double dDistanceOnSegment = in_dDistance - 
+    // Calculate offset for this segment
+    double dDistanceOnSegment = in_dDistance - 
                                 dDistanceOnRoute + 
                                 xSegment.getLength();
-		
-		return xSegment.getPointOnSegment(dDistanceOnSegment);
+    
+    return xSegment.getPointOnSegment(dDistanceOnSegment);
   }
-	
+  
 /**
  * Return the Id of the route.
  * 
  * @return Id
  */
-	public int getId()
+  public int getId()
   {
-		return m_iId;
-	}
-	
+    return m_iId;
+  }
+  
   /**
    * Returns the length of the route
    * 
    * @return Length
    */
-	public double getLength()
+  public double getLength()
   {
-		return m_dLength;
-	}
-	
+    return m_dLength;
+  }
+  
   /**
    * Returns a representation of the route to be displayed in the hoese-viewer.
    * 
    * @return A Path following all segments
    */
-	public Shape getRenderObject() 
+  public Shape getRenderObject() 
   {
     
-	  GeneralPath xPath = new GeneralPath();
+    GeneralPath xPath = new GeneralPath();
     
     for (int i = 0; i < m_xSegments.length; i++) 
     {
@@ -315,7 +314,7 @@ public class Route
     }
 
     return xPath;
-	}
+  }
 
   /**
    * Returns a part of the route. Needed by <code>RouteInterval</code>
@@ -323,7 +322,7 @@ public class Route
    * @param in_dEnd End of the route.
    * @return A possibly shorter route.
    */
-	public Route getPartOfRoute(double in_dStart, 
+  public Route getPartOfRoute(double in_dStart, 
                               double in_dEnd) 
   {
     return new Route(this,

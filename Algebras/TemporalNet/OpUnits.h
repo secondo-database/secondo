@@ -22,17 +22,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of Operator Units
+1.1 Declaration of Operator Units
+
+The operator returns all units of a moving point.
 
 Mai-Oktober 2007 Martin Scheppokat
-
-1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2 Defines, includes, and constants
 
 */
 
@@ -43,24 +37,17 @@ class OpUnits
 {
 public:
 /*
-4.4 Operator ~sections~
 
-4.4.1 Type Mapping of operator ~sections~
+Type Mapping of operator ~units~
 
 */
 static ListExpr TypeMap(ListExpr args);
 
 /*
-4.4.3 Specification of operator ~sections~
+4.4.3 Specification of operator ~units~
 
 */
 static const string Spec;
-
-private:
-
-static void sendMessage(string in_strMessage);
-
-
 };
 
 #endif /*OPUNIT_H_*/

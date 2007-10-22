@@ -22,19 +22,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-[1] Implementation of GLine in Module Network Algebra
+1.1 Implementation of the Unit-Class GPoint
 
 Mai-Oktober 2007 Martin Scheppokat
-
-[TOC]
- 
-1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2 Defines, includes, and constants
 
 */
 #include "TemporalAlgebra.h"
@@ -43,7 +33,7 @@ This file contains the implementation of ~gline~
 #include "UGPoint.h"
 
 /*
-3.1 Class ~UPoint~
+Temporal Function
 
 */
 void UGPoint::TemporalFunction( const Instant& t,
@@ -69,12 +59,9 @@ void UGPoint::TemporalFunction( const Instant& t,
     }
   else
     {
-return;
+      return;
 //      Instant t0 = timeInterval.start;
 //      Instant t1 = timeInterval.end;
-//
-//      double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
-//      double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
 //
 //      result.Set( x, y );
 //      result.SetDefined(true);
@@ -82,45 +69,41 @@ return;
 }
 
 
+/*
+Checks wether a unit passes a fixed point in the network
+
+*/
 bool UGPoint::Passes( const GPoint& p ) const
 {
-  throw SecondoException("Method UGPoint::Passes not implemented.");
-  assert( p.IsDefined() );
   assert( IsDefined() );
+  assert( p.IsDefined() );
 
-return false;
+  // Check if this unit is on the same route as the GPoint
+  if(p0.GetRouteId()!= p.GetRouteId())
+  {
+    return false;
+  }
 
-//  if( timeInterval.lc && AlmostEqual( p, p0 ) ||
-//      timeInterval.rc && AlmostEqual( p, p1 ) )
-//    return true;
-//
-//  if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
-//      AlmostEqual( p0.GetX(), p.GetX() ) )
-//    // If the segment is vertical
-//  {
-//    if( ( p0.GetY() <= p.GetY() && p1.GetY() >= p.GetY() ) ||
-//        ( p0.GetY() >= p.GetY() && p1.GetY() <= p.GetY() ) )
-//      return true;
-//  }
-//  else if( AlmostEqual( p0.GetY(), p1.GetY() ) &&
-//      AlmostEqual( p0.GetY(), p.GetY() ) )
-//    // If the segment is horizontal
-//  {
-//    if( ( p0.GetX() <= p.GetX() && p1.GetX() >= p.GetX() ) ||
-//        ( p0.GetX() >= p.GetX() && p1.GetX() <= p.GetX() ) )
-//      return true;
-//  }
-//  else
-//  {
-//    double k1 = ( p.GetX() - p0.GetX() ) / ( p.GetY() - p0.GetY() ),
-//           k2 = ( p1.GetX() - p0.GetX() ) / ( p1.GetY() - p0.GetY() );
-//
-//    if( AlmostEqual( k1, k2 ) &&
-//        ( ( p0.GetX() < p.GetX() && p1.GetX() > p.GetX() ) ||
-//          ( p0.GetX() > p.GetX() && p1.GetX() < p.GetX() ) ) )
-//      return true;
-//  }
-//  return false;
+  // p is between p0 and p1
+  if(p0.GetPosition() < p.GetPosition() &&
+     p.GetPosition() < p1.GetPosition() ||
+     p1.GetPosition() < p.GetPosition() &&
+     p.GetPosition() < p0.GetPosition()) 
+  {
+    return true;
+  }
+  
+  // If the edge of the interval is included we need to check the exakt 
+  // Position too. 
+  if(timeInterval.lc &&
+     p0.GetPosition() == p.GetPosition() ||
+     timeInterval.rc &&
+     p1.GetPosition() == p.GetPosition())
+  {
+    return true;
+  }
+  
+  return false;
 }
 
 
@@ -134,7 +117,10 @@ bool UGPoint::At( const GPoint& p, TemporalUnit<GPoint>& result ) const
 //
 }
 
+/*
+Property-Function
 
+*/
 ListExpr UGPoint::Property()
 {
   return (nl->TwoElemList(
@@ -149,7 +135,7 @@ nl->StringAtom("((i1 i2 TRUE FALSE) (1 1 0 0.0 0.3))"))));
 }
 
 /*
-4.9.3 Kind Checking Function
+Kind Checking Function
 
 */
 bool UGPoint::Check(ListExpr type, ListExpr& errorInfo)
@@ -158,7 +144,7 @@ bool UGPoint::Check(ListExpr type, ListExpr& errorInfo)
 }
 
 /*
-4.9.4 ~Out~-function
+~Out~-function
 
 */
 ListExpr UGPoint::Out(ListExpr typeInfo, 
@@ -191,7 +177,7 @@ ListExpr UGPoint::Out(ListExpr typeInfo,
 }
 
 /*
-4.9.5 ~In~-function
+~In~-function
 
 */
 Word UGPoint::In(const ListExpr typeInfo, 
@@ -300,7 +286,7 @@ Word UGPoint::In(const ListExpr typeInfo,
 }
 
 /*
-4.9.6 ~Create~-function
+~Create~-function
 
 */
 Word UGPoint::Create(const ListExpr typeInfo)
@@ -309,7 +295,7 @@ Word UGPoint::Create(const ListExpr typeInfo)
 }
 
 /*
-4.9.7 ~Delete~-function
+~Delete~-function
 
 */
 void UGPoint::Delete(const ListExpr typeInfo,
@@ -320,7 +306,7 @@ void UGPoint::Delete(const ListExpr typeInfo,
 }
 
 /*
-4.9.8 ~Close~-function
+~Close~-function
 
 */
 void UGPoint::Close(const ListExpr typeInfo, 
@@ -331,7 +317,7 @@ void UGPoint::Close(const ListExpr typeInfo,
 }
 
 /*
-4.9.9 ~Clone~-function
+~Clone~-function
 
 */
 Word UGPoint::Clone(const ListExpr typeInfo, 
@@ -342,7 +328,7 @@ Word UGPoint::Clone(const ListExpr typeInfo,
 }
 
 /*
-4.9.10 ~Sizeof~-function
+~Sizeof~-function
 
 */
 int UGPoint::SizeOf()
@@ -351,7 +337,7 @@ int UGPoint::SizeOf()
 }
 
 /*
-4.9.11 ~Cast~-function
+~Cast~-function
 
 */
 void* UGPoint::Cast(void* addr)

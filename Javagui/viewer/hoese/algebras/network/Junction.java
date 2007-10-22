@@ -40,52 +40,49 @@ public class Junction
   /**
    * The point this junction lies at.
    */
-	private Point2D.Double m_xPoint;
-	
+  private Point2D.Double m_xPoint;
+  
   /**
    * Constructor
    * 
    * @param in_xList Representation in secondo list-format
    * @throws Exception
    */
-	public Junction(ListExpr in_xList) 
+  public Junction(ListExpr in_xList) 
   throws Exception 
   {
-		// TODO: Check Format
-    
-    // We are only interested in the exakt location that has allready 
+    // We are only interested in the exakt location that has already 
     // been calculated by the server.
-		ListExpr xPointList = in_xList.sixth();
-	
-		double koord[] = new double[2];
-		if (xPointList.listLength() != 2) 
-		{
+    ListExpr xPointList = in_xList.sixth();
+  
+    double koord[] = new double[2];
+    if (xPointList.listLength() != 2) 
+    {
       // TODO: Handle undefined point in networks
-		  m_xPoint = new Point2D.Double();
-		  boolean bSuccess = ProjectionManager.project(1, 1, m_xPoint);
-		  System.out.println("undef");
-		  return;
-//	       throw new Exception("Error: No correct point expression: 2 elements needed");
-	  }  
-		
+      m_xPoint = new Point2D.Double();
+      boolean bSuccess = ProjectionManager.project(1, 1, m_xPoint);
+      System.out.println("undef");
+      return;
+    }  
+    
     // Create Point
-		double dX = LEUtils.readNumeric(xPointList.first()).doubleValue();
-		double dY = LEUtils.readNumeric(xPointList.second()).doubleValue();    
-	  m_xPoint = new Point2D.Double();
-	  boolean bSuccess = ProjectionManager.project(dX, dY, m_xPoint);
-	  if (!bSuccess) {
-	    throw new Exception("Error: No success in projection.");
-	  }
-	}
+    double dX = LEUtils.readNumeric(xPointList.first()).doubleValue();
+    double dY = LEUtils.readNumeric(xPointList.second()).doubleValue();    
+    m_xPoint = new Point2D.Double();
+    boolean bSuccess = ProjectionManager.project(dX, dY, m_xPoint);
+    if (!bSuccess) {
+      throw new Exception("Error: No success in projection.");
+    }
+  }
 
   /**
    * Returns a Point displayable by the viewer
    * @param af
    * @return
    */
-	public Point2D.Double getRenderObject() 
+  public Point2D.Double getRenderObject() 
   {
-		return m_xPoint;
-	}
+    return m_xPoint;
+  }
 
 }
