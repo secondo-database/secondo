@@ -2619,7 +2619,7 @@ bool MPoint::Present( const Instant& t ) const
     double mint = bbox.MinD(2);
     double maxt = bbox.MaxD(2);
     if( (instd < mint && !AlmostEqual(instd,mint)) ||
-        (instd > maxt && !AlmostEqual(instd,mint))
+        (instd > maxt && !AlmostEqual(instd,maxt))
       )
     {
 //       cout << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
