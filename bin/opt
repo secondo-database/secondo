@@ -1,4 +1,5 @@
 
+
 (DATABASE OPT 
     (TYPES 
         (TYPE StaedteRel 
@@ -629,6 +630,30 @@
                 ("Wolfsburg" 122000 3180 "05361" "WOB") 
                 ("Wuerzburg" 128000 8700 "0931" "WUE") 
                 ("Wuppertal" 377000 5600 "0202" "W"))) 
+        (OBJECT findop 
+            () 
+            (map string 
+                (rel 
+                    (tuple 
+                        (
+                            (Name string) 
+                            (Algebra string) 
+                            (Signature text) 
+                            (Syntax text) 
+                            (Meaning text) 
+                            (Example text) 
+                            (Result text) 
+                            (Remark text))))) 
+            (fun 
+                (s string) 
+                (consume 
+                    (filter 
+                        (feed SEC2OPERATORINFO) 
+                        (fun 
+                            (streamelem1 STREAMELEM) 
+                            (contains 
+                                (attr streamelem1 Name) 
+                                s)))))) 
         (OBJECT plz 
             (plzrel) 
             (rel 
