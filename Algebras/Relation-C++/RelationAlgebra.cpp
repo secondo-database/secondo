@@ -1797,7 +1797,7 @@ Filter(Word* args, Word& result, int message,
         
         if ( fli )		//filter was started
         {
-          if ( fli->returned > 5 ) 	//stable state assumed now
+          if ( fli->returned >= 5 ) 	//stable state assumed now
           {
             pRes->Card =  p1.Card * 
               ( (double) fli->returned / (double) (fli->current)); 
@@ -4788,6 +4788,226 @@ Operator relalgrename (
          RenameTypeMap           // type mapping
 );
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+5.12 Operator ~buffer~ (Notation: !)
+
+Collects a small initial number of tuples into a buffer before passing them to the successor. Useful for progress estimation.
+
+5.12.1 Type mapping function of operator ~buffer~
+
+Expects a stream of tuples and returns the same type.
+
+----    (stream  x)                 -> ( stream x)
+----
+
+*/
+ListExpr BufferTypeMap(ListExpr args)
+{
+  ListExpr first ;
+  string argstr;
+  
+  CHECK_COND(nl->ListLength(args) == 1,
+  "Operator ! expects a list of length one.");
+  
+  first = nl->First(args);
+  nl->WriteToString(argstr, first);
+  CHECK_COND(
+    ((nl->ListLength(first) == 2) &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
+    (!(nl->IsAtom(nl->Second(first)) ||
+       nl->IsEmpty(nl->Second(first))) &&    
+    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
+  "Operator ! expects an argument of type (stream(tuple"
+  "((a1 t1)...(an tn)))).\n"
+  "Operator ! gets an argument of type '" + argstr + "'.");
+  
+  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+}
+
+
+/*
+
+
+5.12.2 Value mapping function of operator ~buffer~
+
+*/
+
+
+
+const int BUFFERSIZE = 5;
+
+struct BufferLocalInfo
+{
+ int state;        //0 = initial, 1 = buffer filled, 
+		   //2 = buffer empty again
+ int noInBuffer;   //tuples read into buffer;
+ int next;	   //index of next tuple to be returned;
+ Tuple* tuples[BUFFERSIZE];
+};
+
+
+int
+Buffer(Word* args, Word& result, int message, 
+       Word& local, Supplier s)
+{
+  Word t;
+  Tuple* tuple;
+  BufferLocalInfo* bli;
+
+  bli = (BufferLocalInfo*) local.addr;
+
+  switch (message)
+  {
+    case OPEN :
+
+      if ( bli ) delete bli;
+
+      bli = new BufferLocalInfo;
+        bli->state = 0;
+        bli->noInBuffer = 0;
+        bli->next = -1;
+      local = SetWord(bli);
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST :
+
+      if ( bli->state == 2 )  		//regular behaviour
+					//put first to avoid overhead
+      {
+        qp->Request(args[0].addr,t);
+        if (qp->Received(args[0].addr))
+        {
+          tuple = (Tuple*)t.addr;
+          result = SetWord(tuple);
+          return YIELD;
+        }
+        else return CANCEL;
+      }
+
+
+      if ( bli->state == 0 ) 
+      {
+        //fill the buffer
+        qp->Request(args[0].addr, t);
+        while (qp->Received(args[0].addr) && bli->noInBuffer < BUFFERSIZE)
+        {
+          bli->tuples[bli->noInBuffer] = (Tuple*)t.addr;
+          bli->noInBuffer++;
+          if ( bli->noInBuffer < BUFFERSIZE ) qp->Request(args[0].addr, t);
+        }
+        if ( bli->noInBuffer > 1 ) bli->state = 1;	//next from buffer
+        else bli->state = 3;				//next cancel
+
+        //return first tuple from the buffer, if possible
+	if ( bli->noInBuffer > 0 )
+        {
+          result = SetWord(bli->tuples[0]);
+          bli->next = 1;
+          return YIELD;
+        }
+        else return CANCEL;
+      }
+      else if ( bli->state == 1 )
+      {
+        //return one tuple from the buffer
+
+        result = SetWord(bli->tuples[bli->next]);
+        bli->next++;
+        if ( bli->next == bli->noInBuffer )
+        {
+          if ( bli->noInBuffer == BUFFERSIZE ) 
+            bli->state = 2;			//next from stream
+          else bli->state = 3;			//next cancel
+        } 
+        return YIELD;
+      }
+      else 
+        if ( bli->state == 3 ) return CANCEL;
+        else cout << "Something terrible happened in the ! operator." << endl;
+
+
+
+    case CLOSE :
+
+      qp->Close(args[0].addr);
+      return 0;
+
+
+    case CLOSEPROGRESS:
+
+      if ( bli ) delete bli;
+      qp->CloseProgress(args[0].addr);
+      return 0;
+
+
+    case REQUESTPROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pRes->Copy(p1);
+        return YIELD;
+      }
+      else return CANCEL;
+
+  }
+  return 0;
+}
+/*
+
+5.12.3 Specification of operator ~buffer~
+
+*/
+const string BufferSpec  = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>stream(tuple(x)) -> stream(tuple(x))</text--->"
+  "<text>_ !</text--->"
+  "<text>Collects a small number of tuples into"
+  " a buffer before passing them to the successor."
+  " Useful for progress estimation."
+  "</text--->"
+  "<text>query plz feed filter[.Ort = \"Hagen\"] ! count</text--->"
+  ") )";
+
+/*
+
+
+5.12.4 Definition of operator ~buffer~
+
+*/
+Operator relalgbuffer (
+         "!",               	// name
+         BufferSpec,             // specification
+         Buffer,                 // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         BufferTypeMap           // type mapping
+);
+
+
+
+
 /*
 
 6 Class ~RelationAlgebra~
@@ -4872,6 +5092,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
     AddOperator(&relalgrename);		relalgrename.EnableProgress();
+    AddOperator(&relalgbuffer);		relalgbuffer.EnableProgress();
 
 #endif
 

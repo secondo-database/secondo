@@ -38,3 +38,4 @@ operator reduce alias REDUCE pattern _ op [ fun, _ ] implicit parameter tuple ty
 operator product alias PRODUCT pattern _ _ op
 operator rename alias RENAME pattern _ op [ _ ]
 operator mconsume alias MCONSUME pattern _ op
+operator ! alias BUFFER pattern _ op

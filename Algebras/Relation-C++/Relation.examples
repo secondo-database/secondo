@@ -1,6 +1,12 @@
 Database : berlintest
 Restore  : NO
 
+Operator : !
+Number   : 1
+Signature: stream(tuple(x)) -> stream(tuple(x))
+Example  : query plz feed filter[.Ort = "Hagen"] ! count
+Result   : 90
+
 Operator : TUPLE
 Number   : 1
 Signature: ((stream x)...) -> x, ((rel x)...) -> x
