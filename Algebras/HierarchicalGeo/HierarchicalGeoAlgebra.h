@@ -75,7 +75,7 @@ This class represents an epsilon-value of type real. It will be used in type
 constructors of all ~uncertain~ Datatypes.
 
 */
-template <class Alpha>
+//template <class Alpha>
 struct Uncertain
 {
   
@@ -91,7 +91,7 @@ The simple constructor. This constructor should not be used.
 
 */
 
-  Uncertain( bool is_defined):defined(is_defined) {}
+  Uncertain( bool is_defined):def(is_defined) {}
   
 /*
 Use this constructor when declaring uncertain object variables etc.
@@ -99,7 +99,7 @@ Use this constructor when declaring uncertain object variables etc.
 */
 
   Uncertain( const double& epsilon ):
-    epsilon ( epsilon ), defined ( true ) 
+    epsilon ( epsilon ), def ( true ) 
     {}
 
 /*
@@ -107,7 +107,7 @@ The creation of an uncertain value, setting the epsilon value.
 
 */
   Uncertain( const Uncertain& rhs) : 
-	  epsilon(rhs.epsilon), defined(rhs.defined) {}
+	  epsilon(rhs.epsilon), def(rhs.def) {}
 
   virtual ~Uncertain() {}
 
@@ -118,7 +118,7 @@ The creation of an uncertain value, setting the epsilon value.
   
   virtual bool IsValid() const
   {
-    if (epsilon >= 0 && defined)
+    if (epsilon >= 0 && def)
       return true;
     return false;
   }
@@ -148,7 +148,7 @@ Returns the epsilon value of the Uncertain value.
 
   virtual bool UncertainIsDefined() const
   {
-    return defined;
+    return def;
   }
 
 /*
@@ -157,9 +157,9 @@ epsilon value is set. The Alpha value is left to be set later.
 
 */
 
-  virtual void UncertainSetDefined( bool def )
+  virtual void UncertainSetDefined( bool defined )
   {
-    this->defined = def;
+    this->def = defined;
   }
   
 /*
@@ -180,7 +180,7 @@ The possible difference between the original value and the given value.
 */
   protected:
 
-  bool defined;
+  bool def;
 /*
 The flag that indicates if the value is defined or not.
 
@@ -197,8 +197,8 @@ MAYBE, is introduced.
 
 */
 
-#define CBool int
-#define maybe 2
+//#define CBool int
+//#define maybe 2
 
 
 /*
@@ -208,24 +208,29 @@ CPoint represents a Point value containing an epsilon value. It implements
 Uncertain.
 
 */
-struct CPoint : public Uncertain<Point>
-{
-  public:
+//struct CPoint : public Point
+//                public Uncertain
+//{
+//  public:
 /*
 3.3.1 Constructors and Destructor
   
 */
 
-  inline CPoint() {}
+//  inline CPoint() {}
   
 /*
 The default constructor which should not be used.
 
 */
   
-  CPoint(const double epsilon):
+/*  CPoint(const double epsilon):
       Uncertain<Point>( epsilon ) 
-      {}
+      {}*/
+      
+      
+      
+      
       
 /*
 The undefined constructor. Only the epsilon value is set. The point value is 
@@ -233,18 +238,28 @@ left undefined for later definition.
 
 */
   
-  CPoint( const double epsilon, const StandardAttribute* point):
+/*  CPoint( const double epsilon, const StandardAttribute* point):
       Uncertain<Point>( epsilon )
       {
         p.CopyFrom(point);
         p.SetDefined( defined );
-      }
+      }*/
+
+
+
+
+
+
+
+
+
+
 /*
 The copy-constructor.
 
 */
   
-  inline ~CPoint() {}
+//  inline ~CPoint() {}
 /*
 The destructor.
 
@@ -252,7 +267,7 @@ The destructor.
 
 */
   
-  bool IsDefined() const
+/*  bool IsDefined() const
   {
     return UncertainIsDefined() && p.IsDefined();
   }
@@ -263,20 +278,20 @@ The destructor.
   }
   
   int ToCPoint( Word* args, Word& result, int message, Word& local,
-                                        Supplier s );
+                                        Supplier s );*/
 
 /*
 Transforms a given Point and a given positive real-value to a new cpoint-value.
 
 */
     
-  void Set( CPoint cp )
+/*  void Set( CPoint cp )
   {
     this->epsilon = cp.epsilon;
     this->p = cp.p;
     this->defined = true;
     this->p.SetDefined( true );
-  }
+  }*/
   
 //  inline const Rectangle<2> BoundingBox() const;
 /*
@@ -289,9 +304,10 @@ bounding the area where the point may be.
 3.3.3 Attributes
 
 */
-  Point p;
+  //Point p;
   
-};
+//};
+
 
 
 /*
@@ -301,8 +317,8 @@ This class will be used in the ~cupoint~ type constructor, i.e., the type
 constructor for the uncertain temporal unit of point values.
 
 */
-class CUPoint : public SpatialTemporalUnit<Point, 3>,
-                public Uncertain<Point>   
+class CUPoint : public UPoint,
+                public Uncertain 
 {
   public:
 /*
@@ -316,16 +332,16 @@ The simple constructor. This constructor should not be used.
 */
   
   CUPoint( const bool is_defined ):
-      SpatialTemporalUnit<Point, 3>(false),
-      Uncertain<Point>(is_defined)
+      UPoint(false),
+      Uncertain(is_defined)
   {
     del.refs=1;
     del.isDelete=true;
   }
   
   CUPoint( const double epsilon ):
-      SpatialTemporalUnit<Point, 3>(false),
-      Uncertain<Point>(epsilon)
+      UPoint(false),
+      Uncertain(epsilon)
   {
     del.refs=1;
     del.isDelete=true;
@@ -346,10 +362,8 @@ The copy-constructor.
 */
   CUPoint( const double epsilon, const Interval<Instant>& interval,
       const Point& p0, const Point& p1 ):
-    SpatialTemporalUnit<Point, 3>( interval ),
-    Uncertain<Point> (epsilon),
-    p0( p0 ),
-    p1( p1 )
+    UPoint( interval, p0, p1 ),
+    Uncertain (epsilon)
     {
       del.refs=1;
       del.isDelete=true;
@@ -358,10 +372,8 @@ The copy-constructor.
   CUPoint( const double epsilon, const Interval<Instant>& interval,
       const double x0, const double y0,
       const double x1, const double y1 ):
-    SpatialTemporalUnit<Point, 3>( interval ),
-    Uncertain<Point> (epsilon),
-    p0( true, x0, y0 ),
-    p1( true, x1, y1 )
+    UPoint( interval, x0, y0, x1, y1 ),
+    Uncertain (epsilon)
     {
       del.refs=1;
       del.isDelete=true;
@@ -369,10 +381,8 @@ The copy-constructor.
   
   
   CUPoint( const CUPoint& source ) : 
-    SpatialTemporalUnit<Point, 3>(source), 
-    Uncertain<Point>(source), 
-    p0(source.p0), 
-    p1(source.p1) 
+    UPoint(source), 
+    Uncertain(source)
   {
     //*((Uncertain<Point>*)this) = *((Uncertain<Point>*)&source);
     //*((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&source);
@@ -381,6 +391,7 @@ The copy-constructor.
     del.refs=1;
     del.isDelete=true;
   }
+  
   //inline virtual ~CUPoint() {}
   
 /*
@@ -459,7 +470,7 @@ they are equal.
 3.4.4 Additional Uncertain-Temporal Functions
 
 */
-  void UTrajectory( Region& region ) const;
+  void UTrajectory( const double e, Region& region ) const;
   
 /*
 The only difference of this function to the function 'UTrajectory()' of the
@@ -481,8 +492,8 @@ the uncertainty-value epsilon is greater than 0.
 
 */
   
-  bool P_Passes( const Point& val ) const {return false;}
-  bool P_Passes( const Region& val ) const {return false;}
+  bool P_Passes( const Point& val ) const;
+  bool P_Passes( const Region& val ) const;
 
 /*
 P\_Passes() stands for 'Possibly\_Passes' and returns TRUE if there may be a
@@ -492,11 +503,9 @@ point in time.
 
 */
 
-  bool D_At( const Point& val, CUPoint& result ) const 
-  {return false;}
+  bool D_At( const Point& p, CUPoint& result ) const;
   
-  bool D_At( const Region& val, CUPoint& result ) const 
-  {return false;}
+  bool D_At( const Region& r, CUPoint& result ) const;
   
 /*
 The function D\_At ('Definitely\_At') returns that part of the CUPoint, which
@@ -506,10 +515,10 @@ is greater than 0.
 
 */
 
-  bool P_At( const Point& val, CUPoint& result ) const 
+  bool P_At( const Point& p, CUPoint& result ) const 
   {return false;}
   
-  bool P_At( const Region& val, CUPoint& result ) const 
+  bool P_At( const Region& r, CUPoint& result ) const 
   {return false;}
 
 /*
@@ -525,12 +534,12 @@ CUPoint, which possibly lies on or inside the given spatal object.
   
   void UnitSetDefined( bool def ) 
   {
-    SpatialTemporalUnit<Point, 3>::SetDefined( def );
+    UPoint::SetDefined( def );
   }
   
   bool UnitIsDefined() const
   {
-    return SpatialTemporalUnit<Point, 3>::IsDefined();
+    return UPoint::IsDefined();
   }
   
   // This SetDefined-Function leads to errors when a CUPoint is casted
@@ -549,12 +558,12 @@ CUPoint, which possibly lies on or inside the given spatal object.
   
   bool UnitIsValid() const
   {
-    return SpatialTemporalUnit<Point, 3>::IsValid();
+    return UPoint::IsValid();
   }
   
   bool IsValid() const
   {
-    return UnitIsValid() && Uncertain<Point>::IsValid();
+    return UnitIsValid() && Uncertain::IsValid();
   }
   
   inline virtual size_t Sizeof() const
@@ -602,7 +611,7 @@ CUPoint, which possibly lies on or inside the given spatal object.
     if(IsDefined())
     {
       
-      // +++++ nur zu Testzwecken +++
+      // +++++ for debugging purposes only +++
       cout << "Die UNIT ist definiert. \n";
       
       os << "CUPoint: " << "( ";
@@ -686,7 +695,7 @@ the epsilon-value.
 
 */
 
-  Point p0, p1;
+  //Point p0, p1;
   
 };
 
@@ -696,8 +705,8 @@ the epsilon-value.
 the implementation of an uncertain MPoint
 
 */
-class CMPoint : public Uncertain<Point>, 
-                         public Mapping< CUPoint, Point >
+class CMPoint : public Mapping< CUPoint, Point >,
+                public Uncertain
 {
   public:
 /*
@@ -710,10 +719,10 @@ The simple constructor. This constructor should not be used.
   
 */
   CMPoint( const int n ):
-      Uncertain<Point>( true ),    // +++++ nur zu Testzwecken true uebergeben!
-      Mapping< CUPoint, Point >( n )
+      Mapping< CUPoint, Point >( n ),
+      Uncertain( true )    // set to TRUE just for debugging purposes
       {
-        // +++++ nur zu Testzwecken initialisiert: +++
+        // +++++ initialized just for debugging purposes +++
         epsilon = 0.0;
         del.refs=1;
         del.isDelete=true;
@@ -778,6 +787,68 @@ using a check on bbox.
     }
     EndBulkLoad( false );
   }
+/*
+3.4.4 Additional Uncertain-Temporal Functions
+
+*/
+  //void Trajectory( Region& region ) const;
+  
+/*
+The only difference of this function to the function 'Trajectory()' of the
+TemporalAlgebra is the result-Type. To include the uncertainty of an uncertain
+spatio-temporal object, the trajectory of such an object is defined as a
+region-value, which represents the area, the uncertain object may possibly
+pass.
+
+*/
+  bool D_Passes( const Point& p ) const;
+  bool D_Passes( const Region& r ) const;
+
+/*
+The function-name D\_Passes() is a shorthand for 'Definitely\_Passes'. It 
+returns TRUE, if there is a point in time, when the uncertain spatio-temporal 
+object lies on or inside the given spatial object, and FALSE, when there may be
+no such point in time. Refering to a (certain) point-object, this will never 
+occur if the uncertainty-value epsilon is greater than 0.
+
+*/
+  
+  bool P_Passes( const Point& p ) const;
+  bool P_Passes( const Region& r ) const;
+
+/*
+P\_Passes() stands for 'Possibly\_Passes' and returns TRUE if there may be a
+point in time, when the uncertain spatio-temporal object lies on or inside the
+given spatial object. FALSE is only returned when there is certainly no such
+point in time.
+
+*/
+
+  bool D_At( const Point& val, CUPoint& result ) const 
+  {return false;}
+  
+  bool D_At( const Region& val, CUPoint& result ) const 
+  {return false;}
+  
+/*
+The function D\_At ('Definitely\_At') returns that part of the CMPoint, which
+lies definitely on or inside the given spatial object. Refering to a (certain)
+point-object, the returned CMPoint is empty if the uncertainty-value epsilon
+is greater than 0.
+
+*/
+
+  bool P_At( const Point& val, CUPoint& result ) const 
+  {return false;}
+  
+  bool P_At( const Region& val, CUPoint& result ) const 
+  {return false;}
+
+/*
+The function P\_At is a shorthand for 'Possibly\_At' and returns that part of
+the CMPoint, which possibly lies on or inside the given spatial object.
+
+*/
   
 /*
 3.5.3.1 Operation ~trajectory~
@@ -848,6 +919,8 @@ Returns the MPoint's minimum bounding rectangle
 */
   // return the stored bbox
   Rectangle<3> BoundingBox() const;
+  
+  Rectangle<2> BBox2D() const;
   
   // recompute bbox, if necessary
   void RestoreBoundingBox(const bool force = false);
@@ -1003,10 +1076,10 @@ ListExpr OutUncertain( ListExpr typeInfo, Word value )
 4.2.4 ~Create~-function
 
 */
-template <class Alpha>
+//template <class Alpha>
 Word CreateUncertain( const ListExpr typeInfo )
 {
-  return (SetWord( new Uncertain<Alpha>() ));
+  return (SetWord( new Uncertain() ));
 }
 
 
@@ -1014,10 +1087,10 @@ Word CreateUncertain( const ListExpr typeInfo )
 4.2.5 ~Delete~-function
 
 */
-template <class Alpha>
+//template <class Alpha>
 void DeleteUncertain( const ListExpr typeInfo, Word& w )
 {
-  delete (Uncertain<Alpha> *)w.addr;
+  delete (Uncertain *)w.addr;
   w.addr = 0;
 }
 
@@ -1025,10 +1098,10 @@ void DeleteUncertain( const ListExpr typeInfo, Word& w )
 4.2.6 ~Close~-function
 
 */
-template <class Alpha>
+//template <class Alpha>
 void CloseUncertain( const ListExpr typeInfo, Word& w )
 {
-  delete (Uncertain<Alpha> *)w.addr;
+  delete (Uncertain *)w.addr;
   w.addr = 0;
 }
 
@@ -1036,31 +1109,31 @@ void CloseUncertain( const ListExpr typeInfo, Word& w )
 4.2.7 ~Clone~-function
 
 */
-template <class Alpha>
+//template <class Alpha>
 Word CloneUncertain( const ListExpr typeInfo, const Word& w )
 {
-  Uncertain<Alpha> *uncertain = (Uncertain<Alpha> *)w.addr;
-  return SetWord( new Uncertain<Alpha>( *uncertain ) );
+  Uncertain *uncertain = (Uncertain *)w.addr;
+  return SetWord( new Uncertain( *uncertain ) );
 }
 
 /*
 4.2.8 ~Sizeof~-function
 
 */
-template <class Alpha>
+//template <class Alpha>
 int SizeOfUncertain()
 {
-  return sizeof(Uncertain<Alpha>);
+  return sizeof(Uncertain);
 }
 
 /*
 4.2.9 ~Cast~-function
 
 */
-template <class Alpha>
+//template <class Alpha>
 void* CastUncertain(void* addr)
 {
-  return new (addr) Uncertain<Alpha>;
+  return new (addr) Uncertain;
 }
 
 
@@ -1071,15 +1144,21 @@ void* CastUncertain(void* addr)
 4.3.1 Value mapping functions of operator ~epsilon~
 
 */
-template <class Alpha>
+
+//template <class Alpha>
 int UncertainEpsilon( Word* args, Word& result, int message, Word& local, 
                                   Supplier s )
 {
   result = qp->ResultStorage( s );
-  Uncertain<Alpha>* u = (Uncertain<Alpha>*)args[0].addr;
+  Uncertain* u = (Uncertain*)args[0].addr;
 
   if( u->UncertainIsDefined() )
-    ((CcReal*)result.addr)->Set( u->epsilon );
+  {
+    // +++++ for debugging purposes only +++
+    cout << "epsilon ist = " << u->GetEpsilon() << "\n";
+    
+    ((CcReal*)result.addr)->Set( u->GetEpsilon() );
+  }
   else
     ((CcReal*)result.addr)->SetDefined( false );
 
