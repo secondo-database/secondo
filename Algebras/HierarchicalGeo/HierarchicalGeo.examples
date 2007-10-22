@@ -49,3 +49,27 @@ Number   : 1
 Signature: (cupoint point) -> bool
 Example  : query cupmehring d_passes mehringdamm
 Result   : TRUE
+
+Operator : d_passes
+Number   : 2
+Signature: (cupoint point) -> bool
+Example  : query cupmehring1 d_passes mehringdamm
+Result   : FALSE
+
+Operator: p_passes
+Number  : 1
+Signature: (cupoint point)-> bool
+Example : query cupmehring1 p_passes mehringdamm
+Result   : TRUE
+
+Operator: d_at
+Number  : 1
+Signature: (cupoint point)-> cupoint
+Example : query cupmehring d_at mehringdamm
+Result   : file
+
+Operator: d_at
+Number  : 2
+Signature: (cupoint point)-> cupoint
+Example : query cupmehring1 d_at mehringdamm
+Result   : (cupoint undef)

@@ -46,41 +46,7 @@ open database hiergeo
 
 
 
-# 1 - Creating, updating, querying and deleting a cpoint-object
-
-
-#testcase createcpoint
-#yields success 
-create ctest1 : cpoint;
-
-
-#testcase updatecpoint
-#yields success
-update ctest1 := [const cpoint value(50.0 (9876.5 8765.4))];
-
-
-#testcase letcpoint
-#yields success
-let ctest2 = [const cpoint value(50.0 (8888.8 7777.7))];
-
-
-#testcase querycpoint
-#yields success
-query ctest2;
-
-
-#testcase deletecpoint
-#yields success
-delete ctest1;
-
-
-#testcase queryepsilon
-#yields (real 50.0)
-query epsilon(ctest2)
-
-
-
-# 2 - Tests about the datatype CUPoint (uncertain unit point)
+# 1  - Tests about the datatype CUPoint (uncertain unit point)
 
 
 #testcase createcupoint
@@ -119,10 +85,25 @@ query epsilon(cuptest2);
 
 #testcase querytrajectorycupoint
 #yields (region ( (( \
+            (-3579.495201296701 14222.05793191174)\
+            (-3582.966554333648 14230.51698962308)\
+            (-3582.910614118539 14239.76064708957)\
+            (-3566.910614118539 14316.76064708957)\
+            (-3563.515976039345 14324.9107195474)\
+            (-3557.078363311038 14331.40403084682)\
+            (-3548.643838866155 14334.9345756574)\
+            (-3539.500255036609 14334.9632814568)\
+            (-3531.043729153482 14331.48576520826)\
+            (-3524.565472908629 14325.03300259859)\
+            (-3521.054639569219 14316.59025431774)\
+            (-3521.047291948592 14307.44662838033)\
+            (-3521.089385881461 14307.23935291043)\
             (-3537.089385881461 14230.23935291043)\
-                (-3582.910614118539 14239.76064708957)\
-                (-3566.910614118539 14316.76064708957)\
-                (-3521.089385881461 14307.23935291043))) ))
+            (-3540.544551941697 14221.9982485468)\
+            (-3547.01242922497 14215.5350827034)\
+            (-3555.463355276174 14212.04397999108)\
+            (-3564.606973431696 14212.05799058932)\
+            (-3573.047161119282 14215.57497524513))) ))
 query trajectory( cuptest1);
 
 
@@ -140,7 +121,7 @@ query cupmehring d_passes mehringdamm;
 delete cuptest1;
 
 
-# 3 - Tests about the datatype cmpoint (uncertain moving point)
+# 2 - Tests about the datatype cmpoint (uncertain moving point)
 
 
 #testcase createcmpoint
@@ -245,7 +226,6 @@ delete cmptest1;
 
 #teardown
 
-delete ctest2;
 delete cuptest2;
 delete cmptest2;
 close database;
