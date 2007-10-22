@@ -34,6 +34,9 @@ type or operator renaming easier.
 
 */
 
+#ifndef SEC_SYMBOLS_H
+#define SEC_SYMBOLS_H
+
 #include <string>
 
 namespace symbols {
@@ -100,6 +103,32 @@ namespace symbols {
  Sym MAP("map"); 
  Sym STREAM("stream"); 
  Sym APPEND("APPEND"); 
-}	
 
+ // symbols for runtime flags
+ // and counters
+ Sym CTR_CreatedTuples("RA:CreatedTuples");
+ Sym CTR_DeletedTuples("RA:DeletedTuples");
+ Sym CTR_MaxmemTuples("RA:MaxTuplesInMem");
+ Sym CTR_MemTuples("RA:TuplesInMem");
+ 
+ Sym CTR_INT_Created("STD:INT_created");
+ Sym CTR_INT_Deleted("STD:INT_deleted");
+ Sym CTR_REAL_Created("STD:REAL_created");
+ Sym CTR_REAL_Deleted("STD:REAL_deleted");
+ Sym CTR_BOOL_Created("STD:BOOL_created");
+ Sym CTR_BOOL_Deleted("STD:BOOL_deleted");
+ Sym CTR_STR_Created("STD:STRING_created");
+ Sym CTR_STR_Deleted("STD:STRING_deleted");
 
+ Sym CTR_ATTR_BASIC_OPS("RA:Attr:BasicOps");
+ Sym CTR_ATTR_HASH_OPS("RA:Attr:HashOps");
+ Sym CTR_ATTR_COMPARE_OPS("RA:Attr:CompareOps");
+
+ Sym CTR_TBUF_BYTES_W("RA:TupleBuf:Write:Bytes");
+ Sym CTR_TBUF_PAGES_W("RA:TupleBuf:Write:Pages");
+ Sym CTR_TBUF_BYTES_R("RA:TupleBuf:Read:Bytes");
+ Sym CTR_TBUF_PAGES_R("RA:TupleBuf:Read:Pages");
+
+} // end of namespace	
+
+#endif
