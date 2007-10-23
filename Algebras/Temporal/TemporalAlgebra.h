@@ -951,8 +951,9 @@ to ~val~.
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<Alpha>& result ) const
   {
-    timeInterval.Intersection( i, result.timeInterval );
     result.defined = defined;
+    if(defined)
+      timeInterval.Intersection( i, result.timeInterval );
   }
 
 /*
