@@ -21,20 +21,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Declaration of operator shortest path
-
-
-March 2004 Victor Almeida
+1.1 Declaration of Operator ShortestPath
 
 Mai-Oktober 2007 Martin Scheppokat
 
-1.1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #ifndef OPSHORTESTPATH_H_
@@ -49,27 +40,26 @@ struct DijkstraStruct
   DijkstraStruct(int in_iSectionTid,
                  bool in_bUpDownFlag,
                  int in_iRouteId,
-                 float in_fMeas1,
-                 float in_fMeas2,
-                 float in_fD,
-                 float in_fHeuristicDistanceToEnd,
+                 double in_dMeas1,
+                 double in_dMeas2,
+                 double in_dD,
+                 double in_dHeuristicDistanceToEnd,
                  int in_iPiSectionTid,
                  bool in_bPiUpDownFlag)
   {
     m_iSectionTid = in_iSectionTid;
     m_bUpDownFlag = in_bUpDownFlag;
     m_iRouteId = in_iRouteId;
-    m_fMeas1 = in_fMeas1;
-    m_fMeas2 = in_fMeas2;
-    m_fD = in_fD;
-    m_fHeuristicDistanceToEnd = in_fHeuristicDistanceToEnd;
+    m_dMeas1 = in_dMeas1;
+    m_dMeas2 = in_dMeas2;
+    m_dD = in_dD;
+    m_dHeuristicDistanceToEnd = in_dHeuristicDistanceToEnd;
     m_iPiSectionTid = in_iPiSectionTid;
     m_bPiUpDownFlag = in_bPiUpDownFlag;
   }
   
 /*
-
-4.1.3 Copy-Constructor
+Struct Dijkstra
 
 */
 
@@ -77,10 +67,10 @@ struct DijkstraStruct
     m_iSectionTid(in_xDikstraStruct.m_iSectionTid),
     m_bUpDownFlag(in_xDikstraStruct.m_bUpDownFlag),
     m_iRouteId(in_xDikstraStruct.m_iRouteId),
-    m_fMeas1(in_xDikstraStruct.m_fMeas1), 
-    m_fMeas2(in_xDikstraStruct.m_fMeas2), 
-    m_fD(in_xDikstraStruct.m_fD),
-    m_fHeuristicDistanceToEnd(in_xDikstraStruct.m_fHeuristicDistanceToEnd),
+    m_dMeas1(in_xDikstraStruct.m_dMeas1), 
+    m_dMeas2(in_xDikstraStruct.m_dMeas2), 
+    m_dD(in_xDikstraStruct.m_dD),
+    m_dHeuristicDistanceToEnd(in_xDikstraStruct.m_dHeuristicDistanceToEnd),
     m_iPiSectionTid(in_xDikstraStruct.m_iPiSectionTid),
     m_bPiUpDownFlag(in_xDikstraStruct.m_bPiUpDownFlag)
   {
@@ -92,26 +82,26 @@ struct DijkstraStruct
   
   int m_iRouteId;
 
-  float m_fMeas1;
+  double m_dMeas1;
 
-  float m_fMeas2;
+  double m_dMeas2;
   
-  float m_fD;
+  double m_dD;
 
-  float m_fHeuristicDistanceToEnd;
+  double m_dHeuristicDistanceToEnd;
 
   int m_iPiSectionTid;
   
   bool m_bPiUpDownFlag;
 
-  float Length()
+  double Length()
   {
-    return m_fMeas2 - m_fMeas1;
+    return m_dMeas2 - m_dMeas1;
   }
   
-  float DistanceEstimation()
+  double DistanceEstimation()
   {
-    return m_fD + m_fHeuristicDistanceToEnd;
+    return m_dD + m_dHeuristicDistanceToEnd;
   }
   
   
@@ -123,7 +113,6 @@ struct DijkstraStruct
   }
 };
 
-// TODO: Umbenennen in DikstraQueue
 class PriorityQueue
 {
   public:
@@ -134,7 +123,6 @@ class PriorityQueue
 
   void push(DijkstraStruct* in_pStruct)
   {
-    // TODO: Zweite Datenstruktur befüllen
     m_xQueue.push_back(in_pStruct);
     size_t iIndex = 2 * (in_pStruct->m_iSectionTid - 1);
     if(in_pStruct->m_bUpDownFlag)
@@ -148,9 +136,7 @@ class PriorityQueue
     m_xElements[iIndex] = in_pStruct;
     
   }
-  
-  // TODO: Delete-Operator
-  
+    
   DijkstraStruct* pop()
   {
     
@@ -160,14 +146,6 @@ class PriorityQueue
     // To be replaced
     // ----------------------------------------------------------
     DijkstraStruct* pMinDijkstraStruct;
-
-//    for(size_t i = 0; i < m_xQueue.size(); ++i) 
-//    {
-//      DijkstraStruct xCurrentStruct = m_xQueue[i];
-//      cout << "Before " << i << ": " 
-//             << xCurrentStruct.m_iSegmentId << " "
-//             << xCurrentStruct.m_bDirectionUp << endl;
-//    }
 
     for(size_t i = 0; i < m_xQueue.size(); ++i) 
     {
@@ -194,14 +172,6 @@ class PriorityQueue
       }
       xIt++;
     }
-
-//    for(size_t i = 0; i < m_xQueue.size(); ++i) 
-//    {
-//      DijkstraStruct xCurrentStruct = m_xQueue[i];
-//      cout << "After " << i << ": "
-//           << xCurrentStruct.m_iSegmentId << " " 
-//           << xCurrentStruct.m_bDirectionUp << endl;
-//    }
     return pMinDijkstraStruct;
   }
   
@@ -233,7 +203,6 @@ class PriorityQueue
 
   private:
   
-  // TODO: Auf Pointer umbauen
   vector<DijkstraStruct*> m_xElements;
   
   // TODO: Zweite Datenstruktur mit allen Elementen in sortiert
@@ -248,13 +217,13 @@ class OpShortestPath
   public:
   
 /*
-4.1.2 Typemap function of the operator
+Typemap function of the operator
 
 */
   static ListExpr TypeMap(ListExpr args);
 
 /*
-4.1.2 Value mapping function of the operator
+Value mapping function of the operator
 
 */
   static int ValueMapping( Word* in_pArgs, 
@@ -264,7 +233,7 @@ class OpShortestPath
                            Supplier in_xSupplier );
 
 /*
-4.1.3 Specification of the operator
+Specification of the operator
 
 */
   static const string Spec;    

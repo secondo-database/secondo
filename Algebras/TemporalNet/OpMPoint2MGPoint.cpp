@@ -100,7 +100,6 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
                                    Supplier in_xSupplier)
 {
   // Get (empty) return value
-  cout << "M2MGPoint" << endl;
   MGPoint* pMGPoint = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pMGPoint ); 
 
@@ -112,7 +111,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
   if(pMPoint->GetNoComponents() == 0)
   {
     string strMessage = "MPoint is Empty.";   
-    cout << endl << strMessage << endl << endl;
+    cerr << endl << strMessage << endl << endl;
     sendMessage(strMessage);
     return 0;
   }
@@ -207,10 +206,10 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
   int iCurrentRouteId = xCurrentRouteId->GetIntval();
   CcReal* xCurrentMeas1; 
   xCurrentMeas1 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1); 
-  float fCurrentMeas1 = xCurrentMeas1->GetRealval();
+  double dCurrentMeas1 = xCurrentMeas1->GetRealval();
   CcReal* xCurrentMeas2; 
   xCurrentMeas2 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS2); 
-  float fCurrentMeas2 = xCurrentMeas2->GetRealval();      
+  double dCurrentMeas2 = xCurrentMeas2->GetRealval();      
 
 
   /////////////////////
@@ -256,7 +255,6 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
     //
     if(!bEndPointOnCurve || bChangedDirection)
     {
-      cout << "Off-Line." << endl;
       
       // Weg auf aktuellem Segment beenden. Hierzu muss zunächst erkannt
       // werden, ob das Segment bei 0 oder bei Length endet. Danach muss
@@ -270,18 +268,6 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
         // For a change to another segment the end of the last one has
         // to be reached.
         // End not reached. Invent pseudo-segment
-        cout << "New PseudoUnit " 
-             << " Section: " << iCurrentSectionTid
-             << " Route: " << iCurrentRouteId
-             << " From: " << fCurrentMeas1 + dStartPositionOnCurve
-             << " To: " << fCurrentMeas2
-             << endl;
-//          pMGPoint->Add(UGPoint(pCurrentUnit->timeInterval,
-//                                iNetworkId,
-//                                iRouteId,
-//                                bCurrentMovingUp ? Up : Down,
-//                                dStartPositionOnLine,
-//                                fMeas2));         
         xStart = pCurrentSectionCurve->EndPoint(true);
       }
       else if (!bCurrentMovingUpOnCurve &&
@@ -290,18 +276,6 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
         // For a change to another segment the start of the last one has
         // to be reached.
         // Start not reached. Invent pseudo-segment
-        cout << "New PseudoUnit " 
-             << " Section: " << iCurrentSectionTid
-             << " Route: " << iCurrentRouteId
-             << " From: " << fCurrentMeas1 + dStartPositionOnCurve
-             << " To: " << fCurrentMeas1
-             << endl;
-//          pMGPoint->Add(UGPoint(pCurrentUnit->timeInterval,
-//                                iNetworkId,
-//                                iRouteId,
-//                                bCurrentMovingUp ? Up : Down,
-//                                dStartPositionOnLine,
-//                                fMeas1));         
         xStart = pCurrentSectionCurve->StartPoint(true);
       }
       
@@ -356,9 +330,9 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
           xCurrentRouteId = (CcInt*)pCurrentSection->GetAttribute(SECTION_RID);
           iCurrentRouteId = xCurrentRouteId->GetIntval();
           xCurrentMeas1 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1);
-          fCurrentMeas1 = xCurrentMeas1->GetRealval();
+          dCurrentMeas1 = xCurrentMeas1->GetRealval();
           xCurrentMeas2 = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS2);
-          fCurrentMeas2 = xCurrentMeas2->GetRealval();      
+          dCurrentMeas2 = xCurrentMeas2->GetRealval();      
           break;
         }
       }
@@ -369,9 +343,7 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
         bCurrentMovingUpOnCurve = !bCurrentMovingUpOnCurve;
       }
     }
-
-    // TODO: Wat happens if no section was found?
-      
+          
     /////////////////////
     // 
     // Calculate points on route
@@ -380,26 +352,20 @@ int OpMPoint2MGPoint::ValueMapping(Word* args,
     double dTo;
     if(bCurrentCurveStartsSmaller)
     {
-      dFrom = fCurrentMeas1 + dStartPositionOnCurve;
-      dTo = fCurrentMeas1 + dEndPositionOnCurve;
+      dFrom = dCurrentMeas1 + dStartPositionOnCurve;
+      dTo = dCurrentMeas1 + dEndPositionOnCurve;
     }
     else
     {
       double dLength = pCurrentSectionCurve->Length();
-      dFrom = fCurrentMeas1 + dLength - dStartPositionOnCurve;
-      dTo = fCurrentMeas1 + dLength - dEndPositionOnCurve;
+      dFrom = dCurrentMeas1 + dLength - dStartPositionOnCurve;
+      dTo = dCurrentMeas1 + dLength - dEndPositionOnCurve;
     }
 
     /////////////////////
     // 
     // Create new unit for mgpoint
     //
-    cout << "New Unit " 
-         << " Section: " << iCurrentSectionTid
-         << " Route: " << iCurrentRouteId
-         << " From: " << dFrom 
-         << " To: " << dTo
-         << endl;
     pMGPoint->Add(UGPoint(pCurrentUnit->timeInterval,
                           iNetworkId,
                           iCurrentRouteId,

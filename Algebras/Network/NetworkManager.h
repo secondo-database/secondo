@@ -21,18 +21,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Declaration of a class managing networks
+1.1 Declaration of a class managing networks
 
 Mai-Oktober 2007 Martin Scheppokat
 
 
-1.1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 

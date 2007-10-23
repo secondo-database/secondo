@@ -21,16 +21,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Declaration of datatype for type-constructor Network
+1.1 Declaration of Network
 
 Mai-September 2007 Martin Scheppokat
-Parts of the source taken from Victor Almeida
 
-1.1 Overview
+Parts of the source taken from Victor Almeida
 
 This file contains the implementation of the type ~network~,
 
-1.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 
@@ -64,7 +63,7 @@ Please include in *.cpp-File.
 #endif
 
 /*
-1.1 Enumerations of columns for relations
+Enumerations of columns for relations
 
 */
 
@@ -95,11 +94,11 @@ Please include in *.cpp-File.
 
 
 /*
-1.1 Class ConnectivityCode
+Class ConnectivityCode
 
 */
 /*
-1.1.1 Enum for transitions
+Enum for transitions
 
 Enum defining binary coding for the possible transitions between to routes.
 
@@ -131,7 +130,7 @@ class ConnectivityCode
 
 
 /*
-1.1.1 Constructor. 
+Constructor. 
 
 Constructs the connectivity code given an integer value ~cc~.
 
@@ -142,7 +141,7 @@ Constructs the connectivity code given an integer value ~cc~.
   }
 
 /*
-1.1.1 Constructor for boolean values. 
+Constructor for boolean values. 
 
 Constructs the connectivity code given the Boolean values for
 all possibilities.
@@ -186,7 +185,7 @@ all possibilities.
 
 
 /*
-1.1.1 Method isPossible
+Method isPossible
 
 Checks if a transition is possible.
 
@@ -198,7 +197,7 @@ Checks if a transition is possible.
 
   private: 
 /*
-1.1.1 Field ConnectivtyCode
+Field ConnectivtyCode
 
 The connectivity code
 
@@ -209,7 +208,7 @@ The connectivity code
 
 
 /*
-1.1 Class DirectedSection
+Class DirectedSection
 
 This class is needed for the list of sections used in each entry 
 in the adjacency-list
@@ -220,7 +219,7 @@ class DirectedSection
   public:
 
 /*
-1.1.1 Constructor
+Constructor
 
 */
   DirectedSection() 
@@ -228,7 +227,7 @@ class DirectedSection
   }
   
 /*
-1.1.1 Constructor giving a section
+Constructor giving a section
 
 */
   DirectedSection( int in_iSectionTid,
@@ -239,7 +238,7 @@ class DirectedSection
   }
   
 /*
-1.1.1 Copy-Constructor
+Copy-Constructor
 
 */
   DirectedSection( const DirectedSection& in_xSection ):
@@ -250,7 +249,7 @@ class DirectedSection
     
 
 /*
-1.1.1 Redefinition of the assignment operator.
+Redefinition of the assignment operator.
 
 */
   DirectedSection& operator=( const DirectedSection& in_xSection )
@@ -273,7 +272,7 @@ class DirectedSection
   private:
 
 /*
-1.1.1 Field with section-pointer
+Field with section-pointer
 
 A pointer to the section.
 
@@ -281,8 +280,7 @@ A pointer to the section.
   int m_iSectionTid;
 
 /*
-
-1.1.1 Field Direction-flag
+Field Direction-flag
 
 A flag indicating the direction: ~true~ means up and ~false~ means down.
 
@@ -291,7 +289,7 @@ A flag indicating the direction: ~true~ means up and ~false~ means down.
 };
 
 /*
-1.1 Class DirectedSection
+Class DirectedSection
 
 This class is needed for the list of sections used in each entry 
 in the adjacency-list
@@ -302,7 +300,7 @@ class DirectedSectionPair
   public:
 
 /*
-1.1.1 Constructor
+Constructor
 
 */
   DirectedSectionPair() 
@@ -310,7 +308,7 @@ class DirectedSectionPair
   }
   
 /*
-1.1.1 Constructor giving a section
+Constructor giving a section
 
 */
   DirectedSectionPair(int in_iFirstSectionTid,
@@ -325,7 +323,7 @@ class DirectedSectionPair
   }
   
 /*
-1.1.1 Copy-Constructor
+Copy-Constructor
 
 */
   DirectedSectionPair( const DirectedSectionPair& in_xSection ):
@@ -356,7 +354,7 @@ class DirectedSectionPair
       
  
 /*
-1.1.1 Field with section-pointer
+Field with section-pointer
 
 A pointer to the section.
 
@@ -365,7 +363,7 @@ A pointer to the section.
 
 /*
 
-1.1.1 Field Direction-flag
+Field Direction-flag
 
 A flag indicating the direction: ~true~ means up and ~false~ means down.
 
@@ -373,7 +371,7 @@ A flag indicating the direction: ~true~ means up and ~false~ means down.
   bool m_bFirstUpDown;
 
 /*
-1.1.1 Field with section-pointer
+Field with section-pointer
 
 A pointer to the section.
 
@@ -381,8 +379,7 @@ A pointer to the section.
   int m_iSecondSectionTid;
 
 /*
-
-1.1.1 Field Direction-flag
+Field Direction-flag
 
 A flag indicating the direction: ~true~ means up and ~false~ means down.
 
@@ -392,7 +389,7 @@ A flag indicating the direction: ~true~ means up and ~false~ means down.
 
 
 /*
-1.1 Class AdjacencyListEntry
+Class AdjacencyListEntry
 
 Used for the adjacency-list of the network
 
@@ -400,13 +397,13 @@ Used for the adjacency-list of the network
 struct AdjacencyListEntry
 {
 /*
-1.1.1 The simple constructor.
+The simple constructor.
 
 */
   AdjacencyListEntry() {}
 
 /*
-1.1.1 The constructor.
+The constructor.
 
 */
   AdjacencyListEntry( int in_iLow, 
@@ -417,7 +414,7 @@ struct AdjacencyListEntry
   }
 
 /*
-1.1.1 The copy constructor.
+The copy constructor.
 
 */
   AdjacencyListEntry( const AdjacencyListEntry& in_xEntry ):
@@ -427,7 +424,7 @@ struct AdjacencyListEntry
   }
 
 /*
-1.1.1 Lower index
+Lower index
 
 The lower index in the adjacency lists sub-array.
 
@@ -435,7 +432,7 @@ The lower index in the adjacency lists sub-array.
   int m_iLow;
 
 /*
-1.1.1  Higher index
+Higher index
 
 The higher index in the adjacency lists sub-array.
 
@@ -444,7 +441,7 @@ The higher index in the adjacency lists sub-array.
 };
 
 /*
-1.1 Class JunctionSortEntry - A helper struct
+Class JunctionSortEntry - A helper struct
 
 */
 struct JunctionSortEntry
@@ -540,7 +537,7 @@ struct JunctionSortEntry
 };
 
 /*
-1.1 Public Methods of Class ~Network~
+Public Methods of Class ~Network~
 
 */
 class Network
@@ -587,7 +584,7 @@ The internal ~sections~ relation type info as string.
 
 /*
 
-1.1.1 Constructor
+Constructor
 
 The simple constructor.
 
@@ -595,7 +592,7 @@ The simple constructor.
   Network();
 
 /*
-1.1.1 Relation-Constuctor
+Relation-Constuctor
 
 The constructor that receives all information to create a network.
 
@@ -605,7 +602,7 @@ The constructor that receives all information to create a network.
           const ListExpr in_xTypeInfo);
 
 /*
-1.1.1 List-Constructor 
+List-Constructor 
 
 The constructor that receives a list containing a network
 
@@ -616,13 +613,13 @@ The constructor that receives a list containing a network
           bool& inout_bCorrect);
 
 /*
-1.1.1 The destructor.
+The destructor.
 
 */
   ~Network();
 
 /*
-1.1.1 Destroy-Method
+Destroy-Method
 
 This function sets all information inside the network to be
 destroyed when the destructor is called.
@@ -631,7 +628,7 @@ destroyed when the destructor is called.
     void Destroy();
 
 /*
-1.1.1 Load-Method
+Load-Method
  
 Loads a network given two relations containing the routes and junctions. 
 This function corresponds to the operator ~thenetwork~.
@@ -642,7 +639,7 @@ This function corresponds to the operator ~thenetwork~.
               const Relation *in_pJunctions);
 
 /*
-1.1.1 Out-Method
+Out-Method
  
 Outputs a network
 
@@ -650,7 +647,7 @@ Outputs a network
   ListExpr Out(ListExpr typeInfo);
     
 /*
-1.1.1 Save-Method
+Save-Method
 
 Saves all relations of the network
 
@@ -660,7 +657,7 @@ Saves all relations of the network
                  const ListExpr typeInfo );
                    
 /*
-1.1.1 Open-Method
+Open-Method
  
 Opens a network
 
@@ -678,7 +675,7 @@ is only done via the ~thenetwork~ operator.
 
 
 /*
-1.1.1 Method GetId
+Method GetId
 
 Returns the id of this network
 
@@ -686,7 +683,7 @@ Returns the id of this network
     int GetId();
 
 /*
-1.1.1 GetRoutes
+GetRoutes
 
 Returns a copy of the ~routes~ relation in external representation.  
 This function is used in the ~routes~ operator.
@@ -695,7 +692,7 @@ This function is used in the ~routes~ operator.
     Relation *GetRoutes();
 
 /*
-1.1.1 GetJunctions
+GetJunctions
 
 Returns a copy of the ~junctions~ relation in external representation.  
 This function is used in the ~junctions~ operator.
@@ -704,7 +701,7 @@ This function is used in the ~junctions~ operator.
     Relation *GetJunctions();
 
 /*
-1.1.1 GetJunctionsOnRoute
+GetJunctionsOnRoute
  
 
 */
@@ -712,21 +709,21 @@ This function is used in the ~junctions~ operator.
                              vector<JunctionSortEntry>& inout_xJunctions);
 
 /*
-1.1.1 GetSectionOnRoute
+GetSectionOnRoute
  
 
 */
     Tuple* GetSectionOnRoute(GPoint* in_xGPoint);
 
 /*
-1.1.1 GetPointOnRoute
+GetPointOnRoute
 
 */
     Point* GetPointOnRoute(GPoint* in_xGPoint);
 
 
 /*
-1.1.1 GetSections
+GetSections
  
 Returns a copy of the ~sections~ relation in external representation. 
 This function is used in the ~sections~ operator.
@@ -735,7 +732,7 @@ This function is used in the ~sections~ operator.
     Relation *GetSections();
 
 /*
-1.1.1 GetSectionsInternal
+GetSectionsInternal
 
 Returns the ~sections~ relation (in internal representation).
 
@@ -743,7 +740,7 @@ Returns the ~sections~ relation (in internal representation).
     Relation *GetSectionsInternal();
 
 /*
-1.1.1 Method GetAdjacentSections
+Method GetAdjacentSections
 
 */
 
@@ -753,7 +750,7 @@ Returns the ~sections~ relation (in internal representation).
 
 
 /*
-1.1 Static methods of Class ~Network~ supporting the type constructor
+Static methods of Class ~Network~ supporting the type constructor
 
 Public parts - Static-Methods supporting the type constructor for 
 the network
@@ -761,19 +758,19 @@ the network
 */
 
 /*
-1.1.1 NetworkProp
+NetworkProp
 
 */
   static ListExpr NetworkProp();
 
 /*
-1.1.1 OutNetwork
+OutNetwork
 
 */
   static ListExpr OutNetwork(ListExpr typeInfo, Word value);
 
 /*
-1.1.1 InNetwork
+InNetwork
 
 */
   static Word InNetwork(ListExpr in_xTypeInfo, 
@@ -783,43 +780,43 @@ the network
                         bool& inout_bCorrect);
 
 /*
-1.1.1 CreateNetwork
+CreateNetwork
 
 */
   static Word CreateNetwork(const ListExpr typeInfo);
 
 /*
-1.1.1 CloseNetwork
+CloseNetwork
 
 */
   static void CloseNetwork(const ListExpr typeInfo, Word& w);
 
 /*
-1.1.1 CloneNetwork
+CloneNetwork
 
 */
   static Word CloneNetwork(const ListExpr typeInfo, const Word& w);
 
 /*
-6.4.7 DeleteNetwork
+DeleteNetwork
 
 */
   static void DeleteNetwork(const ListExpr typeInfo, Word& w);
 
 /*
-6.4.8 CheckNetwork
+CheckNetwork
 
 */
   static bool CheckNetwork(ListExpr type, ListExpr& errorInfo);
 
 /*
-6.4.9 CastNetwork
+CastNetwork
 
 */
   static void* CastNetwork(void* addr);
 
 /*
-6.4.10 SaveNetwork
+SaveNetwork
 
 */
   static bool SaveNetwork( SmiRecord& valueRecord,
@@ -828,7 +825,7 @@ the network
                            Word& value );
 
 /*
-6.4.11 OpenNetwork
+OpenNetwork
 
 */
   static bool OpenNetwork( SmiRecord& valueRecord, 
@@ -837,7 +834,7 @@ the network
                            Word& value );
 
 /*
-6.4.12 SizeOfNetwork
+SizeOfNetwork
 
 */
   static int SizeOfNetwork();
@@ -846,12 +843,12 @@ the network
 
 
 /*
-1.1 Private methods of class ~Network~
+Private methods of class ~Network~
 
 */
 
 /*
-6.6.1 FillRoutes
+FillRoutes
 
 Copies the relation given as argument to the ~routes~ relations sorted by 
 the ~id~ attribute and creates the B-Tree in this attribute.
@@ -860,7 +857,7 @@ the ~id~ attribute and creates the B-Tree in this attribute.
   void FillRoutes( const Relation *in_pRoutes );
 
 /*
-6.6.2 FillJunctions
+FillJunctions
 
 Copies the relation given as argument to the ~junctions~ relation appending 
 the new attributes.
@@ -869,7 +866,7 @@ the new attributes.
   void FillJunctions( const Relation *in_pJunctions );
 
 /*
-6.6.3 FillSections
+FillSections
 
 Given the two ~routes~ and ~junctions~ relations, the ~sections~ relation 
 is retrieved.
@@ -878,7 +875,7 @@ is retrieved.
   void FillSections();
   
 /*
-6.6.4 FillAdjacencyLists
+FillAdjacencyLists
 
 Given that all relations are set up, the adjacency lists are created.
 
@@ -911,69 +908,69 @@ Read a flob from a file
                             size_t& inout_iOffset);
 
 /*
-1.1 Private fields of Class ~Network~
+Private fields of Class ~Network~
 
 */
 
 
  
 /*
-6.6.1 The ID of the network
+The ID of the network
 
 */
   int m_iId;
 
 /*
-6.6.1 True if all values of this network have been defined
+True if all values of this network have been defined
 
 */
   int m_bDefined;
 
 
 /*
-6.6.1 The ~routes~ relation.
+The ~routes~ relation.
 
 */
   Relation* m_pRoutes;
 
 /*
-6.6.2 The ~junctions~ relation.
+The ~junctions~ relation.
 
 */
   Relation* m_pJunctions;
 
 /*
-6.6.3 The ~sections~ relation.
+The ~sections~ relation.
 
 */
   Relation* m_pSections;
 
 /*
-6.6.4 The B-Tree in the ~routes~ relation.
+The B-Tree in the ~routes~ relation.
 
 */
   BTree* m_pBTreeRoutes;
 
 /*
-6.6.5 The B-Tree in the ~routes~ relation.
+The B-Tree in the ~routes~ relation.
 
 */
   BTree* m_pBTreeJunctionsByRoute1;
 
 /*
-6.6.6 The B-Tree in the ~routes~ relation.
+The B-Tree in the ~routes~ relation.
 
 */
   BTree* m_pBTreeJunctionsByRoute2;
 
 /*
-6.6.l The adjacency lists of sections.
+The adjacency lists of sections.
 
 */
   DBArray<AdjacencyListEntry> m_xAdjacencyList;
 
 /*
-6.6.8 The adjacency lists of sections.
+The adjacency lists of sections.
 
 */
   DBArray<DirectedSection> m_xSubAdjacencyList;

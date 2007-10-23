@@ -156,12 +156,6 @@ Functions to be part of relations
   virtual const Rectangle<3> BoundingBox() const
   {
     throw SecondoException("Method UGPoint::BoundingBox not implemented.");
-//    return Rectangle<3>( true, 1, //MIN( p0.GetX(), p1.GetX() ),
-//                               2, //MAX( p0.GetX(), p1.GetX() ),
-//                               3, //MIN( p0.GetY(), p1.GetY() ),
-//                               4, //MAX( p0.GetY(), p1.GetY() ),
-//                               timeInterval.start.ToDouble(),
-//                               timeInterval.end.ToDouble() );
   }
 
   virtual void TemporalFunction( const Instant& t,

@@ -101,7 +101,7 @@ int OpSimplify::ValueMapping(Word* args,
   if(pMGPoint->GetNoComponents() == 0)
   {
     string strMessage = "MPoint is Empty.";   
-    cout << endl << strMessage << endl << endl;
+    cerr << endl << strMessage << endl << endl;
     return 0;
   }
 
@@ -147,7 +147,6 @@ int OpSimplify::ValueMapping(Word* args,
 
     // Speed
     double dCurrentSpeed = dCurrentDistance / lCurrentDuration;    
-    cout << "Speed: " << dCurrentSpeed << endl;
     //////////////////////////////
     //
     // Set start values if this

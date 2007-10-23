@@ -21,20 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Declaration of operator routes
-
-
-March 2004 Victor Almeida
+1.1 Declaration of Operator Routes
 
 Mai-Oktober 2007 Martin Scheppokat
 
-1.1 Overview
+Parts of the source taken from Victor Almeida
 
-
-This file contains the implementation of ~gline~
-
-
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #ifndef OPNETWORKROUTES_H_
@@ -46,22 +39,22 @@ public:
 
 
 /*
-4.2 Operator ~routes~
+Operator ~routes~
 
-4.2.1 Type Mapping of operator ~routes~
+Type Mapping of operator ~routes~
 
 */
 static ListExpr TypeMap(ListExpr args);
 
 /*
-4.2.2 Value mapping function of operator ~routes~
+Value mapping function of operator ~routes~
 
 */
 static int ValueMapping( Word* args, Word& result, int message, 
                            Word& local, Supplier s );
 
 /*
-4.2.3 Specification of operator ~routes~
+Specification of operator ~routes~
 
 */
 static const string Spec;

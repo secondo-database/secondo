@@ -1,9 +1,9 @@
+
 /*
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Declarations necessary for network algebra
-
+1.1 Declarations Necessary for Algebra Network 
 
 */
 #ifndef __NETWORK_ALGEBRA_H__

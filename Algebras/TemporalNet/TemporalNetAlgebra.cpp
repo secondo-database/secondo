@@ -43,6 +43,7 @@ Defines, includes, and constants
 #include "OpUnits.h"
 #include "OpSimplify.h"
 #include "OpPasses.h"
+#include "OpTrajectory.h"
 
 #include <iostream>
 #include <sstream>
@@ -141,6 +142,16 @@ Operator passes("passes",
                 Operator::SimpleSelect,
                 OpPasses::TypeMap );
 
+/*
+Operator trajectory
+
+*/
+Operator trajectory("trajectory",
+                    OpTrajectory::Spec,
+                    OpTrajectory::ValueMapping,
+                    Operator::SimpleSelect,
+                    OpTrajectory::TypeMap );
+
 
 /*
 Creating the Algebra
@@ -164,6 +175,8 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&units);
     AddOperator(&simplify);
     AddOperator(&passes);
+    AddOperator(&trajectory);
+    
   }
 
 

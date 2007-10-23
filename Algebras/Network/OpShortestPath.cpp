@@ -21,18 +21,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Implementation of operator shorest path
+1.1 Implementation of Operator ShorestPath
 
 Mai-Oktober 2007 Martin Scheppokat
  
-1.1 Overview
-
 This file contains the implementation of the operator ShortestPath. It uses
 a modified version of diskstras algorithm keeping edges instead of nodes
 in Q. 
 
 
-1.2 Includes
+Includes
 
 */
 #include "RelationAlgebra.h"
@@ -52,9 +50,7 @@ in Q.
 #include <time.h>
 
 /*
-1.3 Implementation of Methods
-
-1.3.1 TypeMap: Type mapping function of the operator
+TypeMap: Type mapping function of the operator
 
 */
 ListExpr OpShortestPath::TypeMap(ListExpr in_xArgs)
@@ -83,7 +79,7 @@ ListExpr OpShortestPath::TypeMap(ListExpr in_xArgs)
 }
 
 /*
-1.3.2 ValueMapping: Value mapping function of the operator
+ValueMapping: Value mapping function of the operator
 
 */
 int OpShortestPath::ValueMapping( Word* args, 
@@ -159,7 +155,7 @@ int OpShortestPath::ValueMapping( Word* args,
 }
 
 /*
-1.3.3 Dijkstra: Modified Version of Dijkstras Algorithm. 
+Dijkstra: Modified Version of Dijkstras Algorithm. 
 
 Modified version of dikstras algorithm calculating shortest path in graphs.
 
@@ -199,16 +195,16 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     CcInt* xRouteId = (CcInt*)pSection->GetAttribute(SECTION_RID); 
     int iRouteId = xRouteId->GetIntval();
     CcReal* xMeas1 = (CcReal*)pSection->GetAttribute(SECTION_MEAS1); 
-    float fMeas1 = xMeas1->GetRealval();
+    double dMeas1 = xMeas1->GetRealval();
     CcReal* xMeas2 = (CcReal*)pSection->GetAttribute(SECTION_MEAS2); 
-    float fMeas2 = xMeas2->GetRealval();
+    double dMeas2 = xMeas2->GetRealval();
     Line* pLine = (Line*)pSection->GetAttribute(SECTION_CURVE);
     Point* pPoint = new Point(false);
     pLine->AtPosition(0, true, *pPoint);
 
     double dx = pPoint->GetX() - in_pToPoint->GetX();
     double dy = pPoint->GetY() - in_pToPoint->GetY();
-    float fHeuristicDistanceToEnd = sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
+    double dHeuristicDistanceToEnd = sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
     
 //    // Use Dijkstra instead of A*
 //    fHeuristicDistanceToEnd = 0;
@@ -220,10 +216,10 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     xQ.push(new DijkstraStruct(iSegmentId,
                                true,
                                iRouteId,
-                               fMeas1,
-                               fMeas2,
-                               bStartSegment ? 0 : float(1e29),
-                               fHeuristicDistanceToEnd,
+                               dMeas1,
+                               dMeas2,
+                               bStartSegment ? 0 : double(1e29),
+                               dHeuristicDistanceToEnd,
                                -1,
                                true));
 
@@ -233,19 +229,19 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     xQ.push(new DijkstraStruct(iSegmentId,
                                false,
                                iRouteId,
-                               fMeas1,
-                               fMeas2,
-                               bStartSegment ? 0 : float(1e29),
-                               fHeuristicDistanceToEnd,
+                               dMeas1,
+                               dMeas2,
+                               bStartSegment ? 0 : double(1e29),
+                               dHeuristicDistanceToEnd,
                                -1,
                                true));
 
     pSection->DeleteIfAllowed();
   }
   delete pSectionsIt;
-  cout << "InitializeSingleSource Time: " 
-       << (clock() - xEnterTime) << " / " << CLOCKS_PER_SEC << " Sekunden." 
-       << endl;
+//       << "InitializeSingleSource Time: " 
+//       << (clock() - xEnterTime) << " / " << CLOCKS_PER_SEC << " Sekunden." 
+//       << endl;
   // End InitializeSingleSource
 
   /////////////////////////////////
@@ -275,7 +271,6 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
        )
       )
     {
-      cout << "break" << endl;
       break;
     }
     
@@ -301,10 +296,10 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
                                          bAdjacentUpDownFlag);
 
       // Relax the weight if a shorter path has been found
-      if(pAdjacent->m_fD > pCurrent->m_fD + pCurrent->Length())
+      if(pAdjacent->m_dD > pCurrent->m_dD + pCurrent->Length())
       {
         // Calculate new distance
-        pAdjacent->m_fD = pCurrent->m_fD + pCurrent->Length();
+        pAdjacent->m_dD = pCurrent->m_dD + pCurrent->Length();
         // Set current as predecessor of adjacent section
         pAdjacent->m_iPiSectionTid = pCurrent->m_iSectionTid;
         pAdjacent->m_bPiUpDownFlag = pCurrent->m_bUpDownFlag;
@@ -312,21 +307,7 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
     }    
   }
   // Now all weights and all predecessors have been found.
-
-//  //#####################################
-// // Test
-//  for(int i = 0; i < xQ.getSSize(); i++)
-//  {
-//    DijkstraStruct* pStruct = xQ.getS(i);
-//    float fPos1 = pStruct->m_fMeas1;
-//    float fPos2 = pStruct->m_fMeas2;
-//    in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
-//                                fPos1, 
-//                                fPos2);
-//  }  
-//  //#####################################
-  
-    
+      
   // Find the route starting at the end looking at the pi-entries pointing
   // at a predecessor.  
   DijkstraStruct* pStruct; 
@@ -344,11 +325,11 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
   {
     // GPoint lies on an undirected section. We first get the distance
     // for both sides
-    float fUpDistance = xQ.get(in_iEndSegmentId, true)->m_fD;
-    float fDownDistance = xQ.get(in_iEndSegmentId, false)->m_fD;
+    double dUpDistance = xQ.get(in_iEndSegmentId, true)->m_dD;
+    double dDownDistance = xQ.get(in_iEndSegmentId, false)->m_dD;
     // Now we get the directed section for the shorter Distance
     pStruct = xQ.get(in_iEndSegmentId,
-                     fUpDistance < fDownDistance);    
+                     dUpDistance < dDownDistance);    
   }
  
   if(pStruct->m_iPiSectionTid == -1)
@@ -366,54 +347,54 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
   }
 
   // Add last interval of the route
-  float fPos1 = pStruct->m_fMeas1;
-  float fPos2 = pStruct->m_fMeas2; 
+  double dPos1 = pStruct->m_dMeas1;
+  double dPos2 = pStruct->m_dMeas2; 
   if(pStruct->m_bUpDownFlag)
   {
-    fPos2 = in_pToGPoint->GetPosition();
+    dPos2 = in_pToGPoint->GetPosition();
   }
   else
   {
-    fPos1 = in_pToGPoint->GetPosition();
+    dPos1 = in_pToGPoint->GetPosition();
   }
   in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
-                              fPos1, 
-                              fPos2);
+                              dPos1, 
+                              dPos2);
   // Add all predecessors until the start is reached.
   while(pStruct->m_iSectionTid != in_iStartSegmentId)
   {
     pStruct = xQ.get(pStruct->m_iPiSectionTid,
                      pStruct->m_bPiUpDownFlag);
-    float fPos1 = pStruct->m_fMeas1;
-    float fPos2 = pStruct->m_fMeas2;
+    double dPos1 = pStruct->m_dMeas1;
+    double dPos2 = pStruct->m_dMeas2;
     
     if(pStruct->m_iSectionTid == in_iStartSegmentId)
     {
       // First segment reached. We only need a part of this segment
       if(pStruct->m_bUpDownFlag)
       {
-        fPos1 = in_pFromGPoint->GetPosition();
+        dPos1 = in_pFromGPoint->GetPosition();
       }
       else
       {
-        fPos2 = in_pFromGPoint->GetPosition();
+        dPos2 = in_pFromGPoint->GetPosition();
       } 
     }
      
     in_pGLine->AddRouteInterval(pStruct->m_iRouteId, 
-                                fPos1, 
-                                fPos2);
+                                dPos1, 
+                                dPos2);
   }
   
-  cout << "DijkstraTime: " 
-       << (clock() - xEnterTime) << " / " << CLOCKS_PER_SEC << " Sekunden." 
-       << endl;
+//       << "DijkstraTime: " 
+//       << (clock() - xEnterTime) << " / " << CLOCKS_PER_SEC << " Sekunden." 
+//       << endl;
 }
 
 
 
 /*
-1.3.4 Specification of the operator
+Specification of the operator
 
 */
 const string OpShortestPath::Spec  = 
@@ -427,7 +408,7 @@ const string OpShortestPath::Spec  =
 
   
 /*
-1.3.5 sendMessage: Sending a message via the message-center
+sendMessage: Sending a message via the message-center
 
 */
 void OpShortestPath::sendMessage(string in_strMessage)

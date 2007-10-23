@@ -61,7 +61,6 @@ public class Junction
       // TODO: Handle undefined point in networks
       m_xPoint = new Point2D.Double();
       boolean bSuccess = ProjectionManager.project(1, 1, m_xPoint);
-      System.out.println("undef");
       return;
     }  
     

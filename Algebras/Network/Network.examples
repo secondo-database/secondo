@@ -24,6 +24,8 @@ Number   : 1
 Signature: rel x rel -> network
 Example  : query thenetwork(1, X_ROUTES, X_JUNCTIONS)
 Result   : file
+Tolerance: %0.01
+
 
 Operator : shortest_path
 Number   : 1

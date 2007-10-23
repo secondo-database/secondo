@@ -18,16 +18,13 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-1 Implementation of datatype for type-constructor Network
+1.1 Implementation of Network
 
 Mai-September 2007 Martin Scheppokat
+
 Parts of the source taken from Victor Almeida
 
-1.1 Overview
-
-This file contains the implementation of ~Network~
-
-1.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #include <sstream>
@@ -70,7 +67,7 @@ string Network::sectionsInternalTypeInfo =
 
 
 /*
-1.1 Construktor Network
+Constructor Network
 
 */                                     
 Network::Network():
@@ -88,7 +85,7 @@ m_xSubAdjacencyList(0)
 }
 
 /*
-1.1 Construktor reading a network from a record
+Constructor reading a network from a record
 
 */                                     
 Network::Network(SmiRecord& in_xValueRecord, 
@@ -195,7 +192,7 @@ m_xSubAdjacencyList(0)
 
 
 /*
-1.1 Construktor reading a network from a list
+Construktor reading a network from a list
 
 */                                     
 Network::Network(ListExpr in_xValue,
@@ -286,7 +283,7 @@ m_xSubAdjacencyList(0)
     // Read attributes from list
     // Read values from table
     int iRouteId = nl->IntValue(nl->First(xCurrentRoute));
-    float fLength  = nl->RealValue(nl->Second(xCurrentRoute));
+    double dLength  = nl->RealValue(nl->Second(xCurrentRoute));
     Word xLineWord = InLine(nl->TheEmptyList(),
                             nl->Third(xCurrentRoute),
                             in_iErrorPos,
@@ -298,7 +295,7 @@ m_xSubAdjacencyList(0)
     
     // Set all necessary attributes
     pNewRoute->PutAttribute(ROUTE_ID, new CcInt(true, iRouteId));
-    pNewRoute->PutAttribute(ROUTE_LENGTH, new CcReal(true, fLength));
+    pNewRoute->PutAttribute(ROUTE_LENGTH, new CcReal(true, dLength));
     pNewRoute->PutAttribute(ROUTE_CURVE, pLine);
     pNewRoute->PutAttribute(ROUTE_DUAL, new CcBool(true, bDual));
     pNewRoute->PutAttribute(ROUTE_STARTSSMALLER, new CcBool(true, 
@@ -342,9 +339,9 @@ m_xSubAdjacencyList(0)
     
     // Read attributes from list
     int iRoute1Id = nl->IntValue(nl->First(xCurrentJunction));
-    float fMeas1 = nl->RealValue(nl->Second(xCurrentJunction));
+    double dMeas1 = nl->RealValue(nl->Second(xCurrentJunction));
     int iRoute2Id = nl->IntValue(nl->Third(xCurrentJunction));
-    float fMeas2 = nl->RealValue(nl->Fourth(xCurrentJunction));
+    double dMeas2 = nl->RealValue(nl->Fourth(xCurrentJunction));
     int iConnectivityCode= nl->IntValue(nl->Fifth(xCurrentJunction));
     // The location of the junction "Point" is calculated in the load-method
   
@@ -352,11 +349,11 @@ m_xSubAdjacencyList(0)
     pNewJunction->PutAttribute(JUNCTION_ROUTE1_ID, 
                                 new CcInt(true, iRoute1Id));
     pNewJunction->PutAttribute(JUNCTION_ROUTE1_MEAS, 
-                                new CcReal(true, fMeas1));
+                                new CcReal(true, dMeas1));
     pNewJunction->PutAttribute(JUNCTION_ROUTE2_ID, 
                                 new CcInt(true, iRoute2Id));
     pNewJunction->PutAttribute(JUNCTION_ROUTE2_MEAS, 
-                                new CcReal(true, fMeas2));
+                                new CcReal(true, dMeas2));
     pNewJunction->PutAttribute(JUNCTION_CC, 
                                 new CcInt(true, iConnectivityCode));
       
@@ -376,7 +373,7 @@ m_xSubAdjacencyList(0)
 }
 
 /*
-1.1 Destructor
+Destructor
 
 */                                     
 Network::~Network()
@@ -390,7 +387,7 @@ Network::~Network()
 }
 
 /*
-1.1 Method Destroy -- Removing a network from the database
+Method Destroy -- Removing a network from the database
 
 */                                     
 void Network::Destroy()
@@ -413,7 +410,7 @@ void Network::Destroy()
 }
 
 /*
-1.1 Method Load -- Create a network from two external relations
+Method Load -- Create a network from two external relations
 
 */                                     
 void Network::Load(int in_iId,
@@ -429,7 +426,7 @@ void Network::Load(int in_iId,
 }
 
 /*
-1.1 Method FillRoutes
+Method FillRoutes
 
 */                                     
 void Network::FillRoutes(const Relation *routes)
@@ -457,7 +454,7 @@ void Network::FillRoutes(const Relation *routes)
 }
 
 /*
-1.1 Method FillJunctions
+Method FillJunctions
 
 */                                     
 void Network::FillJunctions(const Relation *in_pJunctions)
@@ -589,7 +586,7 @@ void Network::FillJunctions(const Relation *in_pJunctions)
 
 
 /*
-1.1 Method FillSections 
+Method FillSections 
  
 */
 void Network::FillSections()
@@ -888,32 +885,11 @@ void Network::FillSections()
     pRoute->DeleteIfAllowed();
   } // End while Routes
   delete pRoutesIt;
-
-
-//  GenericRelationIterator *pSectionsIter = m_pSections->MakeScan();
-//  Tuple *pCurrentSection;
-//
-//  while((pCurrentSection = pSectionsIter->GetNextTuple()) != 0)
-//  {
-//    CcInt* xRouteId = (CcInt*)pCurrentSection->GetAttribute(SECTION_RID);
-//    int iRouteId = xRouteId->GetIntval();
-//  CcReal* xStartPos = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS1);
-//    float fStartPos = xStartPos->GetRealval();
-//    CcReal* xEndPos = (CcReal*)pCurrentSection->GetAttribute(SECTION_MEAS2);
-//    float fEndPos = xEndPos->GetRealval();
-//
-//    cout << "Route:" << iRouteId << " "
-//         << "Section:" << pCurrentSection->GetTupleId() << " "
-//         << "Start:" << fStartPos << " "
-//         << "End:" << fEndPos 
-//         << endl;
-//  }
-//  delete pSectionsIter;
 }
 
 
 /*
-1.1 Method FillAdjacencyLists
+Method FillAdjacencyLists
 
 */
 void Network::FillAdjacencyLists()
@@ -1070,52 +1046,13 @@ void Network::FillAdjacencyLists()
       // Append new entry to sub-list
       m_xSubAdjacencyList.Append(DirectedSection(xPair.m_iSecondSectionTid, 
                                                  xPair.m_bSecondUpDown));
-//      cout << xPair.m_iFirstSectionTid 
-//           << (xPair.m_bFirstUpDown ? " (Up) " : " (Down) ") 
-//           << " -> " 
-//           << xPair.m_iSecondSectionTid  
-//           << (xPair.m_bSecondUpDown ? " (Up) " : " (Down) ")
-//           << endl; 
     }                                            
     xLastPair = xPair;
   }
-
-
-
-//  cout << "AdjacencyList" << endl;
-//  cout << "-------------" << endl;
-//  for (int i = 0; i < m_xAdjacencyList.Size(); ++i) 
-//  {
-//    const AdjacencyListEntry* xEntry;
-//    m_xAdjacencyList.Get(i, xEntry);
-//    cout << i << ": " 
-//         << "High:" << xEntry->m_iHigh << " " 
-//         << "Low:" << xEntry->m_iLow 
-//         << endl;
-//    
-//  }
-//  cout << "-------------" << endl;
-//
-//  cout << "SubAdjacencyList" << endl;
-//  cout << "----------------" << endl;
-//  for (int i = 0; i < m_xSubAdjacencyList.Size(); ++i) 
-//  {
-//    const DirectedSection* xEntry;
-//    m_xSubAdjacencyList.Get(i, xEntry);
-//
-//    bool bUpDownFlag = ((DirectedSection*)xEntry)->getUpDownFlag();
-//    int iSectionTid = ((DirectedSection*)xEntry)->getSectionTid();
-//    cout << i << ": " 
-//         << "Tid:" << iSectionTid << " "
-//         << "UpDownFlag:" << bUpDownFlag 
-//         << endl;
-//         
-//  }
-//  cout << "----------------" << endl;
 }
 
 /*
-1.1 Method FillAdjacenyPair
+Method FillAdjacenyPair
 
 */                                     
 void Network::FillAdjacencyPair(Tuple* in_pFirstSection,
@@ -1301,11 +1238,8 @@ void Network::GetAdjacentSections(int in_iSectionId,
 }
 
 
-
-
-
 /*
-3.3 ~Out~-function of type constructor ~network~
+~Out~-function of type constructor ~network~
 
 */
 ListExpr Network::Out(ListExpr typeInfo)
@@ -1324,7 +1258,7 @@ ListExpr Network::Out(ListExpr typeInfo)
     CcInt* pRouteId = (CcInt*)pCurrentRoute->GetAttribute(ROUTE_ID); 
     int iRouteId = pRouteId->GetIntval();
     CcReal* pLength = (CcReal*)pCurrentRoute->GetAttribute(ROUTE_LENGTH); 
-    float fLength  = pLength->GetRealval();
+    double dLength  = pLength->GetRealval();
     Line *pCurve = (Line*)pCurrentRoute->GetAttribute(ROUTE_CURVE);
     // The list for the curve contains all segments of the curve.
     ListExpr xCurve = OutLine(nl->TheEmptyList(), SetWord(pCurve));
@@ -1336,7 +1270,7 @@ ListExpr Network::Out(ListExpr typeInfo)
     
     // Build list
     xNext = nl->FiveElemList(nl->IntAtom(iRouteId),
-                             nl->RealAtom(fLength),
+                             nl->RealAtom(dLength),
                              xCurve,
                              nl->BoolAtom(bDual),
                              nl->BoolAtom(bStartsSmaller));
@@ -1371,13 +1305,13 @@ ListExpr Network::Out(ListExpr typeInfo)
     int iRoute1Id = pRoute1Id->GetIntval();
     CcReal* pMeas1;
     pMeas1 = (CcReal*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
-    float fMeas1 = pMeas1->GetRealval();
+    double dMeas1 = pMeas1->GetRealval();
     CcInt* pRoute2Id;
     pRoute2Id = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE2_ID);
     int iRoute2Id = pRoute2Id->GetIntval();
     CcReal* pMeas2;
     pMeas2 = (CcReal*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE2_MEAS); 
-    float fMeas2 = pMeas2->GetRealval();
+    double dMeas2 = pMeas2->GetRealval();
     CcInt* pConnectivityCode;
     pConnectivityCode = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_CC);
     int iConnectivityCode= pConnectivityCode->GetIntval();
@@ -1386,9 +1320,9 @@ ListExpr Network::Out(ListExpr typeInfo)
     
     // Build list
     xNext = nl->SixElemList(nl->IntAtom(iRoute1Id),
-                            nl->RealAtom(fMeas1),
+                            nl->RealAtom(dMeas1),
                             nl->IntAtom(iRoute2Id),
-                            nl->RealAtom(fMeas2),
+                            nl->RealAtom(dMeas2),
                             nl->IntAtom(iConnectivityCode),
                             xPoint);
       
@@ -1416,7 +1350,7 @@ ListExpr Network::Out(ListExpr typeInfo)
 
 
 /*
-3.11 ~Save~-function of type constructor ~network~
+~Save~-function of type constructor ~network~
 
 */
 ListExpr Network::Save(SmiRecord& in_xValueRecord, 
@@ -1502,7 +1436,7 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
 
 
 /*
-3.12 ~Open~-function of type constructor ~network~
+~Open~-function of type constructor ~network~
 
 */
 Network *Network::Open(SmiRecord& in_xValueRecord, 
@@ -1537,7 +1471,7 @@ ListExpr Network::OutNetwork(ListExpr typeInfo, Word value)
 }
 
 /*
-3.4 ~In~-function of type constructor ~network~
+~In~-function of type constructor ~network~
 
 */
 Word Network::InNetwork(ListExpr in_xTypeInfo, 
@@ -1563,7 +1497,7 @@ Word Network::InNetwork(ListExpr in_xTypeInfo,
 }
 
 /*
-3.5 ~Create~-function of type constructor ~network~
+~Create~-function of type constructor ~network~
 
 */
 Word Network::CreateNetwork(const ListExpr typeInfo)
@@ -1572,7 +1506,7 @@ Word Network::CreateNetwork(const ListExpr typeInfo)
 }
 
 /*
-3.6 ~Close~-function of type constructor ~network~
+~Close~-function of type constructor ~network~
 
 */
 void Network::CloseNetwork(const ListExpr typeInfo, Word& w)
@@ -1581,7 +1515,7 @@ void Network::CloseNetwork(const ListExpr typeInfo, Word& w)
 }
 
 /*
-3.7 ~Clone~-function of type constructor ~network~
+~Clone~-function of type constructor ~network~
 
 Not implemented yet.
 
@@ -1592,7 +1526,7 @@ Word Network::CloneNetwork(const ListExpr typeInfo, const Word& w)
 }
 
 /*
-3.8 ~Delete~-function of type constructor ~network~
+~Delete~-function of type constructor ~network~
 
 */
 void Network::DeleteNetwork(const ListExpr typeInfo, Word& w)
@@ -1603,7 +1537,7 @@ void Network::DeleteNetwork(const ListExpr typeInfo, Word& w)
 }
 
 /*
-3.9 ~Check~-function of type constructor ~network~
+~Check~-function of type constructor ~network~
 
 */
 bool Network::CheckNetwork(ListExpr type, ListExpr& errorInfo)
@@ -1612,7 +1546,7 @@ bool Network::CheckNetwork(ListExpr type, ListExpr& errorInfo)
 }
 
 /*
-3.10 ~Cast~-function of type constructor ~network~
+~Cast~-function of type constructor ~network~
 
 */
 void* Network::CastNetwork(void* addr)
@@ -1639,7 +1573,7 @@ bool Network::OpenNetwork(SmiRecord& valueRecord,
 }
 
 /*
-3.13 ~SizeOf~-function of type constructor ~network~
+~SizeOf~-function of type constructor ~network~
 
 */
 int Network::SizeOfNetwork()

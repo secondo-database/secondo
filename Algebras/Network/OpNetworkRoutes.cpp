@@ -21,21 +21,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Implementation of operator routes
+1.1 Implementation of operator routes
 
-
-March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
+Parts of the source taken from Victor Almeida
 
-1.1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #include "RelationAlgebra.h"
@@ -51,9 +44,7 @@ This file contains the implementation of ~gline~
 #include "OpNetworkRoutes.h"
 
 /*
-4.2 Operator ~routes~
-
-4.2.1 Type Mapping of operator ~routes~
+Type Mapping of operator ~routes~
 
 */
 ListExpr OpNetworkRoutes::TypeMap(ListExpr args)
@@ -75,7 +66,7 @@ ListExpr OpNetworkRoutes::TypeMap(ListExpr args)
 }
 
 /*
-4.2.2 Value mapping function of operator ~routes~
+Value mapping function of operator ~routes~
 
 */
 int OpNetworkRoutes::ValueMapping( Word* args, Word& result, int message, 
@@ -92,7 +83,7 @@ int OpNetworkRoutes::ValueMapping( Word* args, Word& result, int message,
 }
 
 /*
-4.2.3 Specification of operator ~routes~
+Specification of operator ~routes~
 
 */
 const string OpNetworkRoutes::Spec  = 

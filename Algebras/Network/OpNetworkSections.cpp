@@ -21,21 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Implementation of operator sections
-
-
-March 2004 Victor Almeida
+1.1 Implementation of Operator Sections
 
 Mai-Oktober 2007 Martin Scheppokat
 
+Parts of the source taken from Victor Almeida
 
-1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #include "RelationAlgebra.h"
@@ -51,9 +43,7 @@ This file contains the implementation of ~gline~
 #include "OpNetworkSections.h"
 
 /*
-4.4 Operator ~sections~
-
-4.4.1 Type Mapping of operator ~sections~
+Type Mapping of operator ~sections~
 
 */
 ListExpr OpNetworkSections::TypeMap(ListExpr args)
@@ -75,7 +65,7 @@ ListExpr OpNetworkSections::TypeMap(ListExpr args)
 }
 
 /*
-4.4.2 Value mapping function of operator ~sections~
+Value mapping function of operator ~sections~
 
 */
 int OpNetworkSections::ValueMapping( Word* args, Word& result, int message, 
@@ -92,7 +82,7 @@ int OpNetworkSections::ValueMapping( Word* args, Word& result, int message,
 }
 
 /*
-4.4.3 Specification of operator ~sections~
+Specification of operator ~sections~
 
 */
 const string OpNetworkSections::Spec  = 

@@ -20,28 +20,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
+//[TOC] [\tableofcontents]
 
-1.1 Declaration of operator junctions
+1.1 Declaration of Operator Trajectory
 
-Mai-Oktober 2007 Martin Scheppokat
+The operator finds the trajectory of a moving points 
 
-Parts of the source taken from Victor Almeida
+Oktober 2007 Martin Scheppokat
 
 Defines, includes, and constants
 
 */
-#ifndef OPNETWORKJUNCTION_H_
-#define OPNETWORKJUNCTION_H_
 
-class OpNetworkJunctions
+#ifndef OPTRAJECTORY_H_
+#define OPTRAJECTORY_H_
+
+class OpTrajectory
 {
-  public:
-    static ListExpr TypeMap(ListExpr args);
- 
-    static int ValueMapping( Word* args, Word& result, int message, 
-                              Word& local, Supplier s );
+public:
+/*
+Type Mapping of operator ~trajectory~
 
-    static const string Spec;
+*/
+static ListExpr TypeMap(ListExpr args);
+
+/*
+Value mapping function of operator ~trajectory~
+
+*/
+static int ValueMapping( Word* args, Word& result, int message, 
+                             Word& local, Supplier s );
+
+/*
+Specification of operator ~trajectory~
+
+*/
+static const string Spec;
+
 };
 
-#endif /*OPNETWORKJUNCTION_H_*/
+#endif /*OPTRAJECTORY_H_*/

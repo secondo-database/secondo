@@ -199,7 +199,10 @@ public class Route
       dCurrentPosition += xCurrentSegment.getLength();
     }
     m_xSegments = (Segment[])xSegments.toArray(new Segment[0]);
-    maintainSegmentsOrdering();
+    if(m_xSegments.length > 0)
+    {      
+      maintainSegmentsOrdering();
+    }    
   }
 
   /**
@@ -447,23 +450,6 @@ public class Route
     xCurrentSegment = m_xFirstSegment;
     while(xCurrentSegment != null)
     {
-//      if(xCurrentSegment.getStarts() == Segment.STARTS_SMALLER)
-//      {
-//        System.out.println("Segment (" + 
-//                           xCurrentSegment.getPoint1().x + ", " +
-//                           xCurrentSegment.getPoint1().y + ") - (" +
-//                           xCurrentSegment.getPoint2().x + ", " +
-//                           xCurrentSegment.getPoint2().y + ")");
-//      }
-//      else
-//      {
-//        System.out.println("Segment (" + 
-//                           xCurrentSegment.getPoint2().x + ", " +
-//                           xCurrentSegment.getPoint2().y + ") - (" +
-//                           xCurrentSegment.getPoint1().x + ", " +
-//                           xCurrentSegment.getPoint1().y + ")");        
-//      }
-      
       xCurrentSegment = xCurrentSegment.getNextSegment();
     } 
   }  

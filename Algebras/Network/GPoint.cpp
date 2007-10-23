@@ -21,19 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Implementation of datatype for type-constructor GPoint
+1.1 Implementation of GPoint
 
 March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-1.1 Overview
-
-
-This file contains the implementation of ~gpoint~
-
-
-2.2 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 
@@ -42,16 +36,14 @@ This file contains the implementation of ~gpoint~
 #include "GPoint.h"
 
 /*
-3.1 Functions
-
-3.1 
+Functions
 
 */
 
 /*
-4.1 Static Functions supporting the type-constructor
+Static Functions supporting the type-constructor
 
-4.1 ~In~-function
+~In~-function
 
 */
 Word GPoint::InGPoint( const ListExpr typeInfo, 
@@ -87,7 +79,7 @@ Word GPoint::InGPoint( const ListExpr typeInfo,
 }
 
 /*
-4.2 ~Out~-function
+~Out~-function
 
 */
 ListExpr GPoint::OutGPoint( ListExpr typeInfo, Word value )
@@ -106,7 +98,7 @@ ListExpr GPoint::OutGPoint( ListExpr typeInfo, Word value )
 }
 
 /*
-4.3 ~Create~-function
+~Create~-function
 
 */
 Word GPoint::CreateGPoint( const ListExpr typeInfo )
@@ -115,7 +107,7 @@ Word GPoint::CreateGPoint( const ListExpr typeInfo )
 }
 
 /*
-4.4 ~Delete~-function
+~Delete~-function
 
 */
 void GPoint::DeleteGPoint( const ListExpr typeInfo, Word& w )
@@ -125,7 +117,7 @@ void GPoint::DeleteGPoint( const ListExpr typeInfo, Word& w )
 }
 
 /*
-4.5 ~Close~-function
+~Close~-function
 
 */
 void GPoint::CloseGPoint( const ListExpr typeInfo, Word& w )
@@ -135,7 +127,7 @@ void GPoint::CloseGPoint( const ListExpr typeInfo, Word& w )
 }
 
 /*
-4.6 ~Clone~-function  
+~Clone~-function  
 
 */
 Word GPoint::CloneGPoint( const ListExpr typeInfo, const Word& w )
@@ -144,7 +136,7 @@ Word GPoint::CloneGPoint( const ListExpr typeInfo, const Word& w )
 }
 
 /*
-4.7 ~Cast~-function
+~Cast~-function
 
 */
 void* GPoint::CastGPoint( void* addr )
@@ -153,7 +145,7 @@ void* GPoint::CastGPoint( void* addr )
 }
 
 /*
-4.8 ~SizeOf~-function
+~SizeOf~-function
 
 */
 int GPoint::SizeOfGPoint()
@@ -163,7 +155,7 @@ int GPoint::SizeOfGPoint()
 
 
 /*
-4.9 Function describing the signature of the type constructor
+Function describing the signature of the type constructor
 
 */
 ListExpr GPoint::GPointProperty()
@@ -181,7 +173,7 @@ ListExpr GPoint::GPointProperty()
 }
 
 /*
-4.10 Kind Checking Function
+Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
 type constructor ~gpoint~ does not have arguments, this is trivial.

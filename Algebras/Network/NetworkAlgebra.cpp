@@ -21,28 +21,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Implementation of the NetworkAlgebra
+1.1 Implementation of Algebra Network
 
 
 March 2004 Victor Almeida
 
-December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable
-level remains. Models are also removed from type constructors.
-
-1.1 Overview
-
+Mai-Oktober 2007 Martin Scheppokat
 
 This file contains the implementation of the type constructors ~network~,
 ~gpoint~, and ~gline~ and the temporal corresponding ~moving~(~gpoint~)
 and ~moving~(~gline~).
 
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 
 /*
-3.2 Type property of type constructor ~network~
+Type property of type constructor ~network~
 
 */
 
@@ -75,7 +70,7 @@ extern QueryProcessor* qp;
 
 
 /*
-3.14 Type Constructor object for type constructor ~network~
+Type Constructor object for type constructor ~network~
 
 */
 TypeConstructor network( "network",          Network::NetworkProp,
@@ -88,18 +83,18 @@ TypeConstructor network( "network",          Network::NetworkProp,
                          Network::CheckNetwork );
 
 /*
-4 Type Constructor ~gpoint~
+Type Constructor ~gpoint~
 
-4.1 List Representation
+List Representation
 
 The list representation of a graph point is (nid rid pos side)
 
-3.3 ~Out~-function
+~Out~-function
 
 */
 
 /*
-3.12 Creation of the type constructor instance
+Creation of the type constructor instance
 
 */
 TypeConstructor gpoint(
@@ -116,7 +111,7 @@ TypeConstructor gpoint(
         GPoint::CheckGPoint );                      //kind checking function
 
 /*
-3.12 Creation of the type constructor instance
+Creation of the type constructor instance
 
 */
 TypeConstructor gline(
@@ -134,21 +129,21 @@ TypeConstructor gline(
 
 
 /*
-4 Operators
+Operators
 
 Definition of operators is similar to definition of type constructors. An
 operator is defined by creating an instance of class ~Operator~. Again we
 have to define some functions before we are able to create an ~Operator~
 instance.
 
-4.1 Operator ~thenetwork~
+Operator ~thenetwork~
 
-4.1.1 Type Mapping of operator ~thenetwork~
+Type Mapping of operator ~thenetwork~
 
 */
 
 /*
-4.1.4 Definition of operator ~thenetwork~
+Definition of operator ~thenetwork~
 
 */
 Operator networkthenetwork (
@@ -161,7 +156,7 @@ Operator networkthenetwork (
 
 
 /*
-4.2.4 Definition of operator ~routes~
+Definition of operator ~routes~
 
 */
 Operator networkroutes (
@@ -174,7 +169,7 @@ Operator networkroutes (
 
 
 /*
-4.3.4 Definition of operator ~junctions~
+Definition of operator ~junctions~
 
 */
 Operator networkjunctions (
@@ -187,7 +182,7 @@ Operator networkjunctions (
 
 
 /*
-4.4.4 Definition of operator ~sections~
+Definition of operator ~sections~
 
 */
 Operator networksections (
@@ -199,7 +194,7 @@ Operator networksections (
 );
 
 /*
-4.4.4 Definition 
+Definition 
 
 */
 Operator shortest_path (
@@ -212,7 +207,7 @@ Operator shortest_path (
 
 
 /*
-5.1 Creating the Algebra
+Creating the Algebra
 
 */
 
@@ -224,6 +219,10 @@ class NetworkAlgebra : public Algebra
     AddTypeConstructor( &network );
     AddTypeConstructor( &gpoint );
     AddTypeConstructor( &gline );
+
+    gpoint.AssociateKind( "DATA" );
+    gline.AssociateKind( "DATA" );
+    network.AssociateKind( "DATA" );
 
     AddOperator(&networkthenetwork);
     AddOperator(&networkroutes);
@@ -237,7 +236,7 @@ class NetworkAlgebra : public Algebra
 NetworkAlgebra networkAlgebra;
 
 /*
-6.1 Initialization
+Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list

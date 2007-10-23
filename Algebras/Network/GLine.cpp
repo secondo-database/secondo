@@ -21,19 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Implementation of datatype for type-constructor GLine
+1.1 Implementation of GLine
 
 March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-1.1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 
@@ -42,17 +36,55 @@ This file contains the implementation of ~gline~
 #include "GLine.h"
 
 /*
-3.1 Functions
-
-3.1 
+Functions
 
 */
-  GLine::GLine() 
-  {
-    m_bDefined = false;
-  }
 /*
 The simple constructor. Should not be used.
+
+*/
+  GLine::GLine()
+  {
+  }
+
+/*
+Empty constructor
+
+*/
+  GLine::GLine(int in_iSize):
+    m_xRouteIntervals(in_iSize)
+  {
+  }
+
+/*
+Construktor used internally
+
+*/
+  GLine::GLine(GLine* in_xOther):
+  m_xRouteIntervals(0) 
+  {
+    m_bDefined = in_xOther->m_bDefined;
+    m_iNetworkId = in_xOther->m_iNetworkId;
+    // Iterate over all RouteIntervalls
+    for (int i = 0; i < in_xOther->m_xRouteIntervals.Size(); ++i) 
+    {
+      // Get next Interval
+      const RouteInterval* pCurrentInterval;
+      in_xOther->m_xRouteIntervals.Get(i, pCurrentInterval);
+
+      int iRouteId = pCurrentInterval->m_iRouteId;
+      double dStart = pCurrentInterval->m_dStart;
+      double dEnd = pCurrentInterval->m_dEnd;
+      AddRouteInterval(iRouteId,
+                       dStart,
+                       dEnd);
+    }
+  }
+
+
+
+/*
+Construktor from list
 
 */
   GLine::GLine( ListExpr in_xValue,
@@ -114,42 +146,60 @@ The simple constructor. Should not be used.
     // Read attributes from list
     // Read values from table
     int iRouteId = nl->IntValue( nl->First(xCurrentRouteInterval) );
-    float fStart = nl->RealValue( nl->Second(xCurrentRouteInterval) );
-    float fEnd  = nl->RealValue( nl->Third(xCurrentRouteInterval) );
+    double dStart = nl->RealValue( nl->Second(xCurrentRouteInterval) );
+    double dEnd  = nl->RealValue( nl->Third(xCurrentRouteInterval) );
     
-    m_xRouteIntervals.push_back(RouteInterval(iRouteId,
-                                              fStart,
-                                              fEnd));
+    AddRouteInterval(iRouteId,
+                     dStart,
+                     dEnd);
   }
   inout_bCorrect = true;
   m_bDefined = true;
 }
 
+/*
+Set new network id
+
+*/
 void GLine::SetNetworkId(int in_iNetworkId)
 {
   m_iNetworkId = in_iNetworkId;
   m_bDefined = true;
 }
   
+/*
+Add a route interval
+
+*/
 void GLine::AddRouteInterval(int in_iRouteId,
-                             float fStart,
-                             float fEnd)
+                             double in_dStart,
+                             double in_dEnd)
 {
-  m_xRouteIntervals.push_back(RouteInterval(in_iRouteId,
-                                            fStart,
-                                            fEnd));
+  m_xRouteIntervals.Append(RouteInterval(in_iRouteId,
+                                         in_dStart,
+                                         in_dEnd));
 }   
 
-bool GLine::IsDefined()
+/*
+Checks whether the GLine is defined
+
+*/
+bool GLine::IsDefined() const
 {
   return m_bDefined;
 }
 
+/*
+Checks if the GLine is defined
+
+*/
+void GLine::SetDefined( bool in_bDefined )
+{
+  m_bDefined = in_bDefined;
+}
 
 /*
-4.1 Static Functions supporting the type-constructor
-
-4.1 ~In~-function
+~In~-function
 
 */
 Word GLine::In(const ListExpr in_xTypeInfo, 
@@ -175,7 +225,7 @@ Word GLine::In(const ListExpr in_xTypeInfo,
 }
 
 /*
-4.2 ~Out~-function
+~Out~-function
 
 */
 ListExpr GLine::Out(ListExpr in_xTypeInfo, 
@@ -194,20 +244,19 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
   ListExpr xRouteIntervals;
   
   // Iterate over all RouteIntervalls
-  for( size_t i = 0; i < pGline->m_xRouteIntervals.size(); i++ )
+  for (int i = 0; i < pGline->m_xRouteIntervals.Size(); ++i) 
   {
-    // Get next junction
-    RouteInterval xCurrentInterval = pGline->m_xRouteIntervals[i];
+    // Get next Interval
+    const RouteInterval* pCurrentInterval;
+    pGline->m_xRouteIntervals.Get(i, pCurrentInterval);
 
-    // Read values from table
-    int iRouteId = xCurrentInterval.m_iRouteId;
-    float fStart = xCurrentInterval.m_dStart;
-    float fEnd = xCurrentInterval.m_dEnd;
-  
+    int iRouteId = pCurrentInterval->m_iRouteId;
+    double dStart = pCurrentInterval->m_dStart;
+    double dEnd = pCurrentInterval->m_dEnd;
     // Build list
     xNext = nl->ThreeElemList(nl->IntAtom(iRouteId),
-                              nl->RealAtom(fStart),
-                              nl->RealAtom(fEnd));
+                              nl->RealAtom(dStart),
+                              nl->RealAtom(dEnd));
      
     // Create new list or append element to existing list
     if(bFirst)
@@ -221,21 +270,25 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
       xLast = nl->Append(xLast, xNext);
     }
   }
+  if(pGline->m_xRouteIntervals.Size() == 0)
+  {
+    xRouteIntervals = nl->TheEmptyList();
+  }
   return nl->TwoElemList(xNetworkId,
                          xRouteIntervals);
 }
 
 /*
-4.3 ~Create~-function
+~Create~-function
 
 */
 Word GLine::Create(const ListExpr typeInfo)
 {
-  return SetWord( new GLine() );
+  return SetWord( new GLine(0) );
 }
 
 /*
-4.4 ~Delete~-function
+~Delete~-function
 
 */
 void GLine::Delete(const ListExpr typeInfo, 
@@ -246,7 +299,7 @@ void GLine::Delete(const ListExpr typeInfo,
 }
 
 /*
-4.5 ~Close~-function
+~Close~-function
 
 */
 void GLine::Close(const ListExpr typeInfo, 
@@ -257,18 +310,17 @@ void GLine::Close(const ListExpr typeInfo,
 }
 
 /*
-4.6 ~Clone~-function
+~Clone~-function
 
 */
 Word GLine::Clone(const ListExpr typeInfo, 
                   const Word& w )
 {
   return SetWord( 0 );
-   
 }
 
 /*
-4.7 ~Cast~-function
+~Cast~-function
 
 */
 void* GLine::Cast(void* addr)
@@ -277,7 +329,7 @@ void* GLine::Cast(void* addr)
 }
 
 /*
-4.8 ~SizeOf~-function
+~SizeOf~-function
 
 */
 int GLine::SizeOf()
@@ -285,9 +337,78 @@ int GLine::SizeOf()
   return sizeof(GLine);
 }
 
+/*
+Another ~SizeOf~-function
+
+*/
+size_t GLine::Sizeof() const
+{
+  return sizeof(GLine);
+}
 
 /*
-4.9 Function describing the signature of the type constructor
+Adjazent-function
+
+*/
+bool GLine::Adjacent( const Attribute* arg ) const
+{
+  return false;
+}
+
+/*
+Compare-function
+
+*/
+int GLine::Compare( const Attribute* arg ) const
+{
+  return false;
+}
+
+Attribute* GLine::Clone() const
+{
+  GLine* xOther = (GLine*)this;
+  return new GLine(xOther);
+}
+
+size_t GLine::HashValue() const
+{
+  size_t xHash = m_iNetworkId;
+
+  // Iterate over all RouteIntervalls
+  for (int i = 0; i < m_xRouteIntervals.Size(); ++i) 
+  {
+    // Get next Interval
+    const RouteInterval* pCurrentInterval;
+    m_xRouteIntervals.Get(i, pCurrentInterval);
+
+    // Add something for each entry
+    int iRouteId = pCurrentInterval->m_iRouteId;
+    double dStart = pCurrentInterval->m_dStart;
+    double dEnd = pCurrentInterval->m_dEnd;
+    xHash += iRouteId + (size_t)dStart + (size_t)dEnd;
+  }
+  return xHash;
+}
+
+int GLine::NumOfFLOBs() const
+{
+  return 1;
+}
+
+FLOB* GLine::GetFLOB(const int i)
+{
+  return &m_xRouteIntervals;
+}
+
+
+void GLine::CopyFrom(const StandardAttribute* right)
+{
+  *this = *(const GLine *)right;
+}
+
+
+/*
+Function describing the signature of the type constructor
 
 */
 ListExpr GLine::Property()
@@ -304,7 +425,7 @@ ListExpr GLine::Property()
 }
 
 /*
-4.10 Kind Checking Function
+Kind Checking Function
 
 This function checks whether the type constructor is applied correctly. Since
 type constructor ~gpoint~ does not have arguments, this is trivial.

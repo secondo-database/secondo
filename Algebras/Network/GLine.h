@@ -21,31 +21,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Declaration of datatype for type-constructor GLine
+1.1 Declaration of GLine
 
 March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-1.1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #ifndef GLINE_H_
 #define GLINE_H_
 
+#include "StandardAttribute.h"
+#include "DBArray.h"
 
 
 struct RouteInterval
 {
+  RouteInterval()
+  {
+  }
+
   RouteInterval(int in_iRouteId,
-                float in_dStart,
-                float in_dEnd):
+                double in_dStart,
+                double in_dEnd):
     m_iRouteId(in_iRouteId),
     m_dStart(in_dStart),
     m_dEnd(in_dEnd)
@@ -57,39 +57,43 @@ struct RouteInterval
 The route id.
 
 */
-  float m_dStart;
+  double m_dStart;
 
-  float m_dEnd;
+  double m_dEnd;
 /*
 The distance interval in the route.
 
 */
 };
 
-class GLine
+class GLine : public StandardAttribute
 {
-  public:
-    GLine();
 /*
 The simple constructor. Should not be used.
+
+*/
+  public:
+    GLine();
+
+    GLine(int in_iSize);
+
+
+    GLine(GLine* in_xOther);
+
+/*
+The constructor.
 
 */
   GLine( ListExpr in_xValue,
          int in_iErrorPos, 
          ListExpr& inout_xErrorInfo, 
          bool& inout_bCorrect);
-/*
-The constructor.
-
-*/
     void SetNetworkId(int in_iNetworkId);
     
     void AddRouteInterval(int in_iRouteId,
-                          float fStart,
-                          float fEnd);
+                          double in_dStart,
+                          double in_dEnd);
     
-    bool IsDefined();
-
     static ListExpr Out( ListExpr typeInfo, Word value );
 
     static Word In( const ListExpr typeInfo, 
@@ -109,11 +113,33 @@ The constructor.
  
     static void* Cast( void* addr );
 
+    int NumOfFLOBs() const;
+
+    FLOB *GetFLOB( const int i );
+
     static int SizeOf();
 
     static ListExpr Property();
 
     static bool Check( ListExpr type, ListExpr& errorInfo );
+
+    bool IsDefined() const;
+
+    void SetDefined(bool);
+
+    size_t Sizeof() const;
+
+    int Compare(const Attribute*) const;
+
+    bool Adjacent(const Attribute*) const;
+
+    Attribute* Clone() const;
+
+    size_t HashValue() const;
+
+    void CopyFrom(const StandardAttribute*);
+
+
 
   private:
     
@@ -129,7 +155,7 @@ True if all members are defined
 
 */
 
-    vector<RouteInterval> m_xRouteIntervals;
+    DBArray<RouteInterval> m_xRouteIntervals;
 
 /*
 The array of route intervals.

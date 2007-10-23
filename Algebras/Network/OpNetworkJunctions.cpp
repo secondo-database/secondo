@@ -21,20 +21,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1 Implementation of operator junctions
+1.1 Implementation of operator junctions
 
-
-March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-1.1 Overview
+Parts of the source taken from Victor Almeida
 
-
-This file contains the implementation of ~gline~
-
-
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 
@@ -51,9 +45,9 @@ This file contains the implementation of ~gline~
 #include "OpNetworkJunctions.h"
 
 /*
-4.3 Operator ~junctions~
+Operator ~junctions~
 
-4.3.1 Type Mapping of operator ~junctions~
+Type Mapping of operator ~junctions~
 
 */
 ListExpr OpNetworkJunctions::TypeMap(ListExpr args)
@@ -75,7 +69,7 @@ ListExpr OpNetworkJunctions::TypeMap(ListExpr args)
 }
 
 /*
-4.3.2 Value mapping function of operator ~junctions~
+Value mapping function of operator ~junctions~
 
 */
 int OpNetworkJunctions::ValueMapping( Word* args, Word& result, int message, 
@@ -92,7 +86,7 @@ int OpNetworkJunctions::ValueMapping( Word* args, Word& result, int message,
 }
 
 /*
-4.3.3 Specification of operator ~junctions~
+Specification of operator ~junctions~
 
 */
 const string OpNetworkJunctions::Spec  = 

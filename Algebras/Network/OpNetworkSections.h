@@ -21,21 +21,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1.1 Declaration of operator sections
-
-
-March 2004 Victor Almeida
+Declaration of operator sections
 
 Mai-Oktober 2007 Martin Scheppokat
 
+Parts of the source taken from Victor Almeida
 
-1.1 Overview
-
-
-This file contains the implementation of ~gline~
-
-
-2.1 Defines, includes, and constants
+Defines, includes, and constants
 
 */
 #ifndef OPNETWORKSECTIONS_H_
@@ -45,27 +37,23 @@ class OpNetworkSections
 {
 public:
 /*
-4.4 Operator ~sections~
-
-4.4.1 Type Mapping of operator ~sections~
+Type Mapping of operator ~sections~
 
 */
 static ListExpr TypeMap(ListExpr args);
 
 /*
-4.4.2 Value mapping function of operator ~sections~
+Value mapping function of operator ~sections~
 
 */
 static int ValueMapping( Word* args, Word& result, int message, 
                              Word& local, Supplier s );
 
 /*
-4.4.3 Specification of operator ~sections~
+Specification of operator ~sections~
 
 */
 static const string Spec;
-
-
 };
 
 #endif /*OPNETWORKSECTIONS_H_*/
