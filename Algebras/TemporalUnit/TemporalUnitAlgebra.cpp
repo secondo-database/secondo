@@ -1784,10 +1784,10 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
         periods->IsEmpty()       ) // undefined, but only empty
       return CANCEL;
 #ifdef TUA_DEBUG
-      cout << "   Unit's timeInterval u="
-           << TUPrintTimeInterval( unit->timeInterval ) << endl;
+    cout << "   Unit's timeInterval u="
+         << TUPrintTimeInterval( unit->timeInterval ) << endl;
 #endif
-      if( localinfo->j == periods->GetNoComponents() )
+    if( localinfo->j == periods->GetNoComponents() )
       {
 #ifdef TUA_DEBUG
           cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (1)"
@@ -1801,10 +1801,10 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
          << TUPrintTimeInterval(*interval)
          << endl;
 #endif
-        while( interval->Before( unit->timeInterval ) &&
-           localinfo->j < periods->GetNoComponents() )
+    while( interval->Before( unit->timeInterval ) &&
+           localinfo->j+1 < periods->GetNoComponents() )
       {
-        localinfo->j++,
+        localinfo->j++;
         periods->Get(localinfo->j, interval);
 #ifdef TUA_DEBUG
         cout << "   Probing timeInterval="
@@ -8016,7 +8016,7 @@ const string  TemporalUnitAlwaysSpec =
   "("
   "<text>"
   "ubool -> bool\n"
-  "ubool -> bool"
+  "(stream ubool) -> bool"
   "</text--->"
   "<text>always( _ )</text--->"
   "<text>Returns 'false', iff the ubool/stream takes value 'true' "
