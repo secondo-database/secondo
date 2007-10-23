@@ -191,6 +191,10 @@ ALGEBRA_DEPS += gsl gslcblas
 #ALGEBRAS      += ConstraintAlgebra
 #ALGEBRA_DEPS  += Triangulation 
 
+#ALGEBRA_DIRS  += MTree
+#ALGEBRAS      += MTreeAlgebra
+
+
 # JNI Algebras - Java code will be called from C++ code.
 
 #JNI_ALGEBRA_DIRS := Fuzzy
