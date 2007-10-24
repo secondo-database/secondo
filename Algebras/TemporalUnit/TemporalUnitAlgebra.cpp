@@ -1751,16 +1751,18 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
 {
   AtPeriodsLocalInfo *localinfo;
   const Interval<Instant> *interval;
-
   Alpha* unit;
   Alpha r;
   Periods* periods;
-
 
   switch( message )
   {
   case OPEN:
 
+// #ifdef TUA_DEBUG
+//     cout << "\nMappingUnitAtPeriods: OPEN" << endl;
+// #endif
+    
     localinfo = new AtPeriodsLocalInfo;
     localinfo->uWord = args[0];
     localinfo->pWord = args[1];
@@ -1770,95 +1772,108 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
 
   case REQUEST:
 
-#ifdef TUA_DEBUG
-    cout << "\nMappingUnitAtPeriods: REQUEST" << endl;
-#endif
+// #ifdef TUA_DEBUG
+//     cout << "\nMappingUnitAtPeriods: REQUEST" << endl;
+// #endif
     if( local.addr == 0 )
       return CANCEL;
     localinfo = (AtPeriodsLocalInfo *)local.addr;
-    unit = (Alpha*)localinfo->uWord.addr;
-    periods = (Periods*)localinfo->pWord.addr;
+    unit      =   (Alpha*)localinfo->uWord.addr;
+    periods   = (Periods*)localinfo->pWord.addr;
 
     if( !unit->IsDefined()    ||
         !periods->IsDefined() ||   // as a set-valued type, periods cannot be
         periods->IsEmpty()       ) // undefined, but only empty
+    {
+      result = SetWord( 0 );
       return CANCEL;
-#ifdef TUA_DEBUG
-    cout << "   Unit's timeInterval u="
-         << TUPrintTimeInterval( unit->timeInterval ) << endl;
-#endif
-    if( localinfo->j == periods->GetNoComponents() )
+    }
+// #ifdef TUA_DEBUG
+//     cout << "   Unit's timeInterval u="
+//          << TUPrintTimeInterval( unit->timeInterval ) << endl;
+// #endif
+    if( localinfo->j >= periods->GetNoComponents() )
       {
-#ifdef TUA_DEBUG
-          cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (1)"
-               << endl;
-#endif
-          return CANCEL;
+        result = SetWord( 0 );
+// #ifdef TUA_DEBUG
+//           cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (1)"
+//                << endl;
+// #endif
+        return CANCEL;
       }
     periods->Get( localinfo->j, interval );
-#ifdef TUA_DEBUG
-    cout << "   Probing timeInterval p ="
-         << TUPrintTimeInterval(*interval)
-         << endl;
-#endif
+    localinfo->j++;
+// #ifdef TUA_DEBUG
+//     cout << "   Probing timeInterval p ="
+//          << TUPrintTimeInterval(*interval)
+//          << endl;
+// #endif
     while( interval->Before( unit->timeInterval ) &&
-           localinfo->j+1 < periods->GetNoComponents() )
-      {
-        localinfo->j++;
+           localinfo->j < periods->GetNoComponents() )
+    { // forward to first candidate interval
         periods->Get(localinfo->j, interval);
-#ifdef TUA_DEBUG
-        cout << "   Probing timeInterval="
-            << TUPrintTimeInterval(*interval)
-            << endl;
-        if (interval->Before( unit->timeInterval ))
-          cout << "     p is before u" << endl;
-        if (localinfo->j < periods->GetNoComponents())
-          cout << "   j < #Intervals" << endl;
-#endif
-      }
-
-    if( localinfo->j >= periods->GetNoComponents() ) {
-      result.addr = 0;
-#ifdef TUA_DEBUG
-        cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (2)"
-             << endl;
-#endif
-        return CANCEL;
+        localinfo->j++;
+// #ifdef TUA_DEBUG
+//         cout << "   Probing timeInterval="
+//             << TUPrintTimeInterval(*interval)
+//             << endl;
+//         if (interval->Before( unit->timeInterval ))
+//           cout << "     p is before u" << endl;
+//         if (localinfo->j < periods->GetNoComponents())
+//           cout << "   j < #Intervals" << endl;
+// #endif
     }
 
     if( unit->timeInterval.Before( *interval ) )
-      {
+//     if( interval->After( unit->timeInterval ) )
+      { // interval after unit-deftime --> finished
         result.addr = 0;
-#ifdef TUA_DEBUG
-          cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (3)"
-               << endl;
-#endif
-          return CANCEL;
-      }
-    else
-      {
+// #ifdef TUA_DEBUG
+//           cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (2)"
+//                << endl;
+// #endif
+        return CANCEL;
+    }
+
+    if(unit->timeInterval.Intersects( *interval ))
+    { // interval intersectd unit's deftime --> produce result
         // create unit restricted to interval
         unit->AtInterval( *interval, r );
         Alpha* aux = new Alpha( r );
         result = SetWord( aux );
-        localinfo->j++;
-#ifdef TUA_DEBUG
-            cout << "   Result interval="
-                 << TUPrintTimeInterval(aux->timeInterval)
-                 << endl;
-            cout << "   Result defined=" << aux->IsDefined()
-                 << endl;
-            cout << "MappingUnitAtPeriods: REQUEST finished: YIELD"
-                 << endl;
-#endif
+// #ifdef TUA_DEBUG
+//             cout << "   Result interval="
+//                  << TUPrintTimeInterval(aux->timeInterval)
+//                  << endl;
+//             cout << "   Result defined=" << aux->IsDefined()
+//                  << endl;
+//             cout << "MappingUnitAtPeriods: REQUEST finished: YIELD"
+//                  << endl;
+// #endif
         return YIELD;
-      }
+    }
 
-#ifdef TUA_DEBUG
-      cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (4)"
-           << endl;
-#endif
-      return CANCEL; // should not happen
+    if( localinfo->j >= periods->GetNoComponents() )
+    { // Passed last interval --> finished
+      result.addr = 0;
+// #ifdef TUA_DEBUG
+//       cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (3)"
+//         << endl;
+// #endif
+      return CANCEL;
+    }
+
+    result = SetWord( 0 );
+    cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (4)"
+         << endl;
+    cout << "Intervals should overlap: " << endl;
+    cout << "  Unit's timeInterval = ";
+    TUPrintTimeInterval(unit->timeInterval);
+    cout << "  Current Period's interval = ";
+    TUPrintTimeInterval(*interval);
+    cout << endl;
+    assert( false );
+    return CANCEL; // should not happen
 
   case CLOSE:
 
@@ -1953,8 +1968,19 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
       localinfo->j++;                             // next interval, loop
     }
 
-    // We have an interval possibly overlapping the unit's interval now
+    // We have an interval overlapping the unit's interval now
     // Return unit restricted to overlapping part of both intervals
+    if (!unit->timeInterval.Intersects( *interval) )
+    { // This may not happen!
+      cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
+        << ": Intervals do not overlap, but should do so:" << endl;
+      cout << "  Unit's timeInterval = ";
+      TUPrintTimeInterval(unit->timeInterval);
+      cout << endl << "  Current Period's interval = ";
+      TUPrintTimeInterval(*interval);
+      cout << endl;
+      assert(false);
+    }
     unit->AtInterval( *interval, resultUnit); // intersect unit and interval
     aux = new Alpha( resultUnit );
     result = SetWord( aux );
