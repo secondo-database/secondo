@@ -46,7 +46,7 @@
 
 
 # before the SETUP directive one can place Secondo commands
-# which may or may not suceed
+# which may or may not succeed
 delete database mytestdb;
 
 # the SETUP directive may specify the name of the test and a
@@ -149,7 +149,7 @@ query staedte;
 # result file by @<file>, for example
  
 # testcase StaedteQuery2
-# yields @staedte
+# yields @example.result1
 query staedte;
 
 # you do not have to specify a complete result in a YIELD
