@@ -1,11 +1,12 @@
 delete database pictest;
 create database pictest;
 open database pictest;
-e
 
 # 
 # create test pictures
 #
+
+#stop Test disabled since it produces many differnt results on 64 bit linux
 
 #testcase "create pic1"
 #yields success
