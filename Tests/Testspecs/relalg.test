@@ -346,7 +346,7 @@ query Staedte feed sum[Bev];
 query real feed sum[no];
 
 #testcase Sum3
-#yields (int undef)
+#yields (int 0)
 query Staedte feed head[0] sum[Bev];
 
 #testcase Product1
