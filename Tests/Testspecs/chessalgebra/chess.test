@@ -24,7 +24,7 @@
 # clean up what may be left over from e.g. a segfault
 delete database chesstest;
 
-#setup
+#setup chesstest ChessAlgebra
 create database chesstest;
 open database chesstest;
 
