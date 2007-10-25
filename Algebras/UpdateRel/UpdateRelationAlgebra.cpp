@@ -2675,15 +2675,16 @@ int UpdateDirectSave(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word t, value, elem;
-  Tuple* tup;
+  t.addr = 0; value.addr = 0; elem.addr = 0;
+  Tuple* tup = 0;
   Supplier supplier, supplier2, supplier3, son;
-  int  noOfAttrs, index;
+  int  noOfAttrs=0, index=0;
   ArgVectorPointer funargs;
-  TupleType *resultTupleType;
+  TupleType *resultTupleType = 0;
   ListExpr resultType;
-  Relation* relation;
-  Relation* auxRelation;
-  Attribute* newAttribute;
+  Relation* relation = 0;
+  Relation* auxRelation  = 0;
+  Attribute* newAttribute = 0;
 
   switch (message)
   {
@@ -2705,12 +2706,16 @@ int UpdateDirectSave(Word* args, Word& result, int message,
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
+	//tup->IncReference();
+
         Tuple *newTuple = new Tuple( resultTupleType );
         assert( newTuple->GetNoAttributes() ==
                 2 * tup->GetNoAttributes() + 1);
 
+	// store old values int the result tuple
         for (int i = 0; i < tup->GetNoAttributes(); i++)
         {
+          newTuple->CopyAttribute(i, tup , i);
           newTuple->CopyAttribute(i, tup , tup->GetNoAttributes()+i);
         }
 
@@ -2718,14 +2723,15 @@ int UpdateDirectSave(Word* args, Word& result, int message,
         // Get the supplier for the updatefunctions
         supplier = args[3].addr;
         vector<int>* changedIndices = new vector<int>(noOfAttrs);
-        vector<Attribute*>* newAttrs =
-          new vector<Attribute*>(noOfAttrs);
+        vector<Attribute*>* newAttrs = new vector<Attribute*>(noOfAttrs);
+
         for (int i=1; i <= noOfAttrs; i++)
         { // supplier for the next index of an updated attribute
           son = qp->GetSupplier(args[5].addr, i-1);
           qp->Request(son, elem);
           index = ((CcInt*)elem.addr)->GetIntval() -1;
           (*changedIndices)[i-1] = index;
+
           // Suppliers for the next updatefunction
           supplier2 = qp->GetSupplier(supplier, i-1);
           supplier3 = qp->GetSupplier(supplier2, 1);
@@ -2734,27 +2740,36 @@ int UpdateDirectSave(Word* args, Word& result, int message,
           qp->Request(supplier3,value);
           newAttribute = ((StandardAttribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
+
+	  // store new value in result tuple
+          newTuple->PutAttribute( index, newAttribute );
         }
-        relation->UpdateTuple(tup,*changedIndices,*newAttrs);
-        for (int i = 0; i < tup->GetNoAttributes(); i++)
-        {
-          newTuple->CopyAttribute( i, tup, i );
-        }
+
+	// store tid in outpur tuple
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
-                    newTuple->PutAttribute(
+        newTuple->PutAttribute(
                         newTuple->GetNoAttributes() - 1, tidAttr);
 
-                                // copy newTuple into auxTuple           
+        // copy new attribute values into auxTuple           
         Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
-        for (int i=0; i< newTuple->GetNoAttributes(); i++){ 
-            auxTuple->CopyAttribute( i,
-                                 newTuple,
-                                 i);
+	//cout << "tup:" << *tup << endl;
+	//cout << "new:" << *newTuple << endl;
+
+        for (int i=0; i< auxTuple->GetNoAttributes(); i++){ 
+            auxTuple->CopyAttribute( i, newTuple, i);
         }
+	//cout << "aux:" << *auxTuple << endl;
+
         auxRelation->AppendTuple(auxTuple);
         auxTuple->DeleteIfAllowed();
-        tup->DeleteIfAllowed();
+
+	relation->UpdateTuple(tup,*changedIndices,*newAttrs);
+	//cout << "new2:" << *newTuple << endl;
+	//tup->DecReference();
+        //tup->DeleteIfAllowed();
+	//cout << "new3:" << *newTuple << endl;
+
         delete changedIndices;
         delete newAttrs;
         result = SetWord(newTuple);
