@@ -271,7 +271,8 @@ Operator : touchpoints
 Number   : 2
 Signature: (line||region x region) -> points
 Example  : query WFlaechen feed {w} Flaechen feed {f} symmjoin[.geoData_w adjacent ..geoData_f] extend[Touch: touchpoints(.geoData_w, .geoData_f)] consume
-Result   : file
+Result   : (platform (linux file) (win32 file) (linux64 bug))
+Remark   : On linux 64 bit this query produces an object with a different list structure
 
 
 Operator : translate

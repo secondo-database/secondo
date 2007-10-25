@@ -123,7 +123,7 @@ Operator : # alias NOTEQUAL
 Number   : 18
 Signature: mregion x region -> mbool
 Example  : query mrain # val(mrain atinstant eight)
-Result   : file
+Result   : file 
 
 
 Operator : + alias PLUS
@@ -622,7 +622,7 @@ Operator : area
 Number   : 1
 Signature: mregion -> mreal
 Example  : query area(move(train1, Sehenswuerdreg feed extract[geoData]))
-Result   : file
+Result   : (platform (linux file) (win32 file) (linux64 bug))
 Remark   : On linux64 the result has more untis, hence there is probably a bug in the area operator
 
 Operator : concat
@@ -881,7 +881,7 @@ Operator : minus
 Number   : 9
 Signature: mreal x real -> mreal
 Example  : query (distance(train7, mehringdamm)) minus 3000.0
-Result   : file
+Result   : (platform (linux file) (win32 file) (linux64 bug))
 Remark   : On linux64 the a pair (0.0361728, 0.0) produces a big relative error
 Tolerance: %0.0001
 
@@ -917,7 +917,8 @@ Operator : minus
 Number   : 14
 Signature: mreal x mreal -> mreal
 Example  : query (distance(train1, mehringdamm)) minus (distance(train7, mehringdamm))
-Result   : file
+Result   : (platform (linux file) (win32 file) (linux64 bug))
+Remark   : On linux 64 bit this query produces an unexpected result
 Tolerance: %0.0001
 
 Operator : minus

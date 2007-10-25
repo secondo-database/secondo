@@ -289,7 +289,8 @@ Operator : rangevalues
 Number   : 4
 Signature: mreal -> rreal
 Example  : query rangevalues(distance(train7,mehringdamm))
-Result   : (rreal((0.0 13680.865506246306 TRUE TRUE)))
+Result   : (platform (linux (rreal((0.0 13680.865506246306 TRUE TRUE)))) (linux64 bug) (win32 (rreal((0.0 13680.865506246306 TRUE TRUE)))))
+Remark   : On linux 64 bit this query computes a result with 7 units
 
 
 Operator : setunitofdistance
