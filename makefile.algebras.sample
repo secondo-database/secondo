@@ -20,9 +20,6 @@ ALGEBRA_DEP_DIRS := $(SECONDO_SDK)/lib
 ALGEBRA_DIRS += FText
 ALGEBRAS     += FTextAlgebra
 
-#ALGEBRA_DIRS += OldRelation-C++
-#ALGEBRAS     += OldRelationAlgebra
-
 ALGEBRA_DIRS += Relation-C++
 ALGEBRAS     += RelationAlgebra
 
@@ -34,6 +31,12 @@ ALGEBRAS     += BTreeAlgebra
 
 ALGEBRA_DIRS += TupleIdentifier
 ALGEBRAS     += TupleIdentifierAlgebra
+
+ALGEBRA_DIRS += Stream
+ALGEBRAS     += StreamAlgebra
+
+ALGEBRA_DIRS += Function-C++
+ALGEBRAS     += FunctionAlgebra
 
 # comment out or add new algebras in this file.
 # You have to define an algebra name and a directory
@@ -68,10 +71,6 @@ ifndef SECONDO_MIN_ALGEBRA_SET
 
 ##########  Example Algebras
 
-
-ALGEBRA_DIRS += Function-C++
-ALGEBRAS     += FunctionAlgebra
-
 ALGEBRA_DIRS += PointRectangle
 ALGEBRAS     += PointRectangleAlgebra
 
@@ -88,7 +87,6 @@ ALGEBRAS     += BinaryFileAlgebra
 
 ALGEBRA_DIRS += Date
 ALGEBRAS     += DateAlgebra
-
 
 ALGEBRA_DIRS += RTree
 ALGEBRAS     += RTreeAlgebra
@@ -111,8 +109,6 @@ ALGEBRAS     += TemporalLiftedAlgebra
 ALGEBRA_DIRS += TemporalUnit
 ALGEBRAS     += TemporalUnitAlgebra
 
-ALGEBRA_DIRS += Stream
-ALGEBRAS     += StreamAlgebra
 
 ALGEBRA_DIRS += DateTime
 ALGEBRAS     += DateTimeAlgebra
@@ -171,9 +167,9 @@ ALGEBRA_DEPS += gsl gslcblas
 #ALGEBRA_DIRS += HierarchicalGeo
 #ALGEBRAS     += HierarchicalGeoAlgebra
 
-#ALGEBRA_DIRS += Simulation
-#ALGEBRAS     += SimulationAlgebra
-#ALGEBRA_DEPS += gsl gslcblas
+ALGEBRA_DIRS += Simulation
+ALGEBRAS     += SimulationAlgebra
+ALGEBRA_DEPS += gsl gslcblas
 
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra
@@ -194,6 +190,8 @@ ALGEBRA_DEPS += gsl gslcblas
 #ALGEBRA_DIRS  += MTree
 #ALGEBRAS      += MTreeAlgebra
 
+#ALGEBRA_DIRS += OldRelation-C++
+#ALGEBRAS     += OldRelationAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 

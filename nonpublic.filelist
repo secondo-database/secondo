@@ -15,7 +15,6 @@ PeriodicAlgebra Periodic
 RoseAlgebra Rose
 RemoteStreamAlgebra RemoteStream
 PartitionedStreamAlgebra PartitionedStream
-SimulationAlgebra Simulation
 
 # Student's algebras
 HierarchicalGeoAlgebra HierarchicalGeo
