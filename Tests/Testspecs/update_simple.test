@@ -22,7 +22,9 @@
 # (Runner can be found in directory UserInterfaces)
 
 #setup
-open database opt;
+create database upd_test;
+open database upd_test;
+restore Staedte from 'staedte.obj';
 
 let Staedte2 = Staedte feed head[0] consume;
 let Staedte3 = Staedte feed head[0] consume;
