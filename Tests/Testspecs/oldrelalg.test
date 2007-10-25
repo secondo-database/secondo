@@ -29,7 +29,7 @@
 # clean up what may be left over from e.g. a segfault
 delete database mrelalgtest;
 
-#setup
+#setup oldrelalg OldRelationAlgebra
 create database mrelalgtest;
 open database mrelalgtest;
 
