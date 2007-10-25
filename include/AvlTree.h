@@ -2,7 +2,7 @@
 0 An AVL Tree class
 
 This file contains the implementation of a standard AVL tree.
-Additionally some specialized search functions are provided.
+Additionally some specialized functions are provided.
 
 
 */
@@ -318,9 +318,34 @@ bool insert(const contenttype& x){
 }
 
 /*
-2.2 Remove
+2.1 insertN
 
-Deletes x from the tree. 
+This insert functions inserts the element provided as first parameter
+into the tree. The other parameters are set to the direct neighbour 
+in the tree. This means __left__ points to the greatest element in the
+tree which is smaller than __x__ and __right__ points to the smallest 
+element in the  tree greater than __x__. If such element(s) not exist(s),
+the corresponding parameter is set to 0. 
+
+*/
+bool insertN(const contenttype& x,      // in
+             const contenttype*& left,   // out
+             const contenttype*& right){ // out
+   __AVL_TRACE__
+   bool success;
+   left  = 0;
+   right = 0;
+   root = insertN(root,x,success,left,right);
+   root->updateHeight();
+   return success;
+}
+
+
+
+/*
+2.2 remove
+
+Deletes __x__ from the tree. 
 
 */
 bool remove(const contenttype& x){
@@ -334,9 +359,33 @@ bool remove(const contenttype& x){
 }
 
 /*
+2.1 removeN
+
+Deletes __x__ from the tree. __left__ and __right__ are set to the 
+neighbours __x__ in the tree. If the neighbours not exist or __x__
+is not an element of the tree, the corresponding parameter is set to 
+be NULL.
+
+*/
+bool removeN(const contenttype& x, 
+             const contenttype*& left, 
+             const contenttype*& right){
+  __AVL_TRACE__
+  bool found = false;
+  left  = 0;
+  right = 0;
+  root = removeN(root,x,found,left,right);
+  if(root){
+    root->updateHeight();
+  }
+  return found;
+}
+
+
+/*
 2.3 member
 
-Checks whether x is contained in the tree 
+Checks whether __x__ is contained in the tree. 
 
 */
 bool member(const contenttype& x) const{
@@ -839,8 +888,102 @@ static  AvlNode<contenttype>* insert(AvlNode<contenttype>* root,
    }
 }
 
+
 /*
-2.1 delete
+2.1 insertN
+
+This function inserts __content__ into the subtree given by root.
+
+It returns the root of the new tree. Left and right are set to the 
+left (right) neighbour of the new element (or NULL) if there are not
+present. __left__ and __right__ must be initialized with 0 to ensure a
+correct result for them.
+
+*/
+static  AvlNode<contenttype>* insertN(AvlNode<contenttype>* root, 
+                              const contenttype& content,bool& success,
+                              const contenttype*& left,
+                              const contenttype*& right){
+   __AVL_TRACE__
+   if(root==NULL){ // leaf reached
+      success=true;
+      return new AvlNode<contenttype>(content);
+   }
+
+   contenttype c = root->content;
+   if(c==content){ // an AVL tree represents a set, do nothing
+     // set the neighbours
+     if(root->left){
+        AvlNode<contenttype>* tmp = root->left;
+        while(tmp->right){
+          tmp = tmp->right;
+        }
+        left = &tmp->content;
+     }
+     if(root->right){
+        AvlNode<contenttype>* tmp = root->right;
+        while(tmp->left){
+          tmp = tmp->left;
+        }
+        right = &tmp->content;
+        
+     }
+
+      success=false;
+      return root;
+   } else if(content<c){ // perform the left subtree
+      root->left = insertN(root->left,content,success,left,right);
+      if(!right){
+        right =  &root->content;
+      }
+      if(!left && content>root->content){
+        left = &root->content;
+      }
+      root->updateHeight();
+      if(abs(root->balance())>1){ // rotation or double rotation required
+         // check where the overhang is
+         if(root->left->balance()>0){ // single rotation is sufficient
+            return rotateRight(root); 
+         }
+         if(root->left->balance()<0){
+            return rotateLeftRight(root);
+         } 
+         assert(false); // should never be reached
+         return NULL; 
+      } else{ // root remains balanced
+          return root;
+      }
+   } else{
+   // content > c => insert at right
+      root->right = insertN(root->right,content,success,left,right);
+      if(!left){
+        left = &root->content; 
+      } 
+      if(!right && content<root->content){
+        right = &root->content;
+      }
+      root->updateHeight();
+      if(abs(root->balance())>1){
+        if(root->right->balance()<0){ // LeftRotation
+           return rotateLeft(root);
+        }
+        if(root->right->balance()>0){
+           return rotateRightLeft(root);
+        }
+        assert(false); // should never be reached
+        return NULL;
+      } else{ // no rotation required
+           return root;
+     }
+   }
+}
+
+
+
+
+
+/*
+2.1 remove
 
 Deletes the Node holding the value __content__ from the subtree
 rooted by __root__.
@@ -922,6 +1065,133 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
        }
   }
 }
+
+
+/*
+2.1 removeN
+
+Deletes the Node holding the value __content__ from the subtree
+rooted by __root__. Set the arguments __left__ and __right__ to the left 
+and right neighbour respectively. __left__ and __right__ have to be 
+initialized with NULL.
+It returns the new root of the created tree.
+
+*/
+static AvlNode<contenttype>* removeN(AvlNode<contenttype>* root,
+                                 const contenttype& x, bool& found,
+                                 const contenttype*& left,
+                                 const contenttype*& right){
+   __AVL_TRACE__
+   if(root==NULL){ // nothing found
+      found = false;
+      return NULL;
+   }
+   contenttype  value = root->content;
+   if(x<value){
+      root->left = removeN(root->left,x,found,left,right);
+      if(!right){
+        right = &root->content;
+      } 
+      if(!left && value < x){
+         left = &root->content;
+      }
+      root->updateHeight();
+      if(root->right==NULL){ // because we have deleted  
+                            // in the left part, we cannot 
+                           // get any unbalanced subtree when right is null
+         return root; 
+      }
+      if(abs(root->balance())>1){ // we have to rotate
+          // we know that the height of the left son is smaller than before
+          int RB = root->right->balance();
+
+          if(RB<=0){ // rotation is sufficient
+             return rotateLeft(root);
+          } else{
+             return rotateRightLeft(root);
+          }
+      } else{ // balance of root is ok
+        return root;
+      }
+   } else if(x>value){
+       root->right = removeN(root->right,x,found,left,right);
+       if(!left){
+          left = &root->content;
+       } 
+       if(!right && value > x){
+          right = &root->content;
+       }
+       root->updateHeight();
+       if(abs(root->balance())>1){ // we have to rotate
+          int LB = root->left->balance();
+          if(LB>=0){
+             return rotateRight(root);
+          } else{
+             return rotateLeftRight(root);
+          }
+       } else {  // root is balanced
+         return root;
+       }
+   } else { // value == x , value found , we have a lot to do
+      found = true;
+      if(root->isLeaf()){
+        delete root; // free the memory
+        return NULL; // delete a single leaf
+      } 
+      if(root->left==NULL){
+        // search the content of the right neighbour
+        AvlNode<contenttype>* r = root->right;
+        while(r->left){
+           r = r->left;
+        }
+        right = &r->content;
+        AvlNode<contenttype>* res = root->right;
+        root->cut();
+        delete root;
+        return res;
+      }
+      if(root->right==NULL){
+        // search for the left neighbour
+        AvlNode<contenttype>* l = root->left;
+        while(l->right){
+           l = l->right;
+        }
+        left = &l->content;
+        AvlNode<contenttype>* res = root->left;
+        root->cut();
+        delete root;
+        return res;
+      }
+      // both sons exist
+
+      AvlNode<contenttype>* tmp;
+      tmp = root->left;
+      assert(tmp);
+      while(tmp->right){
+         tmp = tmp->right;
+      }
+      left = &tmp->content;
+
+      contenttype c(root->content);
+      root->right=deletemin(root->right,c);
+      root->updateHeight();
+      root->content = c;
+      right = &root->content;
+
+      if(abs(root->balance())>1){ // we have to rotate
+          int LB = root->left->balance();
+          if(LB>=0){
+             return rotateRight(root);
+          } else{
+             return rotateLeftRight(root);
+          }
+       } else{ // root is balanced
+         return root;
+       }
+  }
+}
+
+
 
 /* 
 2.1 deleteMin
