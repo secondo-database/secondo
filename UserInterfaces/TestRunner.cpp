@@ -955,8 +955,20 @@ TestRunner::ProcessExamples()
              if( nl->HasLength(tmpList, 1) 
 		  && nl->IsEqual(nl->First(tmpList), token) ) {
 	       list = nl->Second(tmpList);
+	       cout << "Using result for " << token << endl;
+	       if ( nl->IsEqual(list, "bug") )
+	         info.resultType = ExampleInfo::Bug;	        
+	       if ( nl->IsEqual(list, "file") )
+	         info.resultType = ExampleInfo::PlatformFile;	        
+	       if ( nl->IsEqual(list, "crashes") )
+	         info.resultType = ExampleInfo::PlatformFile;	        
                break;	     
 	     }
+	     else
+	     {
+	       cout << "No result for " 
+		    << token << " specified!" << endl;	     
+	     }	     
            }	     
            list2 = nl->Rest(list2);		   
          }		 
