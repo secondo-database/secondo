@@ -550,7 +550,7 @@ Operator : present
 Number   : 4
 Signature: (uT periods) -> bool
 Example  : query the_unit(mehringdamm, alexanderplatz, six30, nine, FALSE, TRUE) present deftime(train1)
-Result   : FALSE
+Result   : TRUE
 
 
 Operator : queryrect2d

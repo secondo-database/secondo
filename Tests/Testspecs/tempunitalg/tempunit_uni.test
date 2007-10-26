@@ -446,7 +446,7 @@ query ur3 present [const instant value "2003-11-20-06:33"]
 query (ui1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
 
 #testcase present_uconst_periods FALSE
-#yields (bool FALSE)
+#yields (bool TRUE)
 query (ui1 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-07:00" TRUE TRUE)) ])
 
 #testcase present_uconst_periods uconst-undef
@@ -464,7 +464,7 @@ query (ui3 present [const periods value ( ) ])
 query (ur4 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-06:55" TRUE FALSE)) ])
 
 #testcase present_ureal_periods FALSE
-#yields (bool FALSE)
+#yields (bool TRUE)
 query (ur4 present [const periods value ( ("2003-11-20-06:05" "2003-11-20-06:10" TRUE FALSE) ("2003-11-20-06:50" "2003-11-20-07:00" TRUE TRUE)) ])
 
 #testcase present_ureal_periods undef-ureal

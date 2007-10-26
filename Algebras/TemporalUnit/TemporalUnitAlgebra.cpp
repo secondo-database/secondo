@@ -2364,13 +2364,13 @@ UnitInstantPeriodsTypeMapBool( ListExpr args )
 
 */
 
-template <class Mapping>
+template <class Unit>
 int MappingUnitPresent_i( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
-  Mapping *m = ((Mapping*)args[0].addr);
+  Unit *m = ((Unit*)args[0].addr);
   Instant* inst = ((Instant*)args[1].addr);
   Instant t1 = *inst;
 
@@ -2384,31 +2384,35 @@ int MappingUnitPresent_i( Word* args, Word& result, int message,
   return 0;
 }
 
-template <class Mapping>
+template <class Unit>
 int MappingUnitPresent_p( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
-  Mapping *m = ((Mapping*)args[0].addr);
+  Unit *m = ((Unit*)args[0].addr);
   Periods* periods = ((Periods*)args[1].addr);
 
-  assert( periods->IsOrdered() );
+  if ( !m->IsDefined() || !periods->IsDefined() )
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+    return 0;
+  }
+  else if( periods->IsEmpty() ) // (undef periods are not defined)
+  {
+    ((CcBool *)result.addr)->Set( false, false );
+    return 0;
+  }
 
   // create a periods containing the smallest superinterval
   // of all intervals within the periods value.
-  Periods deftime( 0 ), defTime( 0 );
+  Periods deftime( 1 );
   deftime.Clear();
   deftime.StartBulkLoad();
   deftime.Add( m->timeInterval );
   deftime.EndBulkLoad( false );
-  deftime.Merge( defTime );
 
-  if ( !m->IsDefined() )
-    ((CcBool *)result.addr)->Set( false, false );
-  else if( periods->IsEmpty() ) // (undef periods are not defined)
-    ((CcBool *)result.addr)->Set( false, false );
-  else if( periods->Inside( defTime ) )
+  if( periods->Intersects( deftime ) )
     ((CcBool *)result.addr)->Set( true, true );
   else
     ((CcBool *)result.addr)->Set( true, false );
