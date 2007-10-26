@@ -112,9 +112,112 @@ query trajectory( cuptest1);
 query cupmehring1 d_passes mehringdamm;
 
 
-#testcase queryd_passescupoint3
+#testcase queryd_passescupoint2
 #yields (bool TRUE)
 query cupmehring d_passes mehringdamm;
+
+
+#testcase queryd_passescupoint3
+#yields (bool TRUE)
+query cupinhavel d_passes havel;
+
+
+#testcase queryd_passescupoint4
+#yields (bool TRUE)
+query cupkarpfenteich d_passes karpfenteich;
+
+
+#testcase queryd_passescupoint5
+#yields (bool TRUE)
+query cupkarpfenteich2 d_passes karpfenteich;
+
+
+#testcase queryd_passescupoint6
+#yields (bool FALSE)
+query cupkarpfenteich3 d_passes karpfenteich;
+
+
+#testcase queryd_passescupoint7
+#yields (bool FALSE)
+query cupouthavel d_passes havel;
+
+
+#testcase queryd_passescupoint8
+#yields (bool FALSE)
+query cuppointhavel d_passes havel;
+
+
+#testcase queryd_passescupoint9
+#yields (bool TRUE)
+query cuppointinhavel d_passes havel;
+
+ 
+#testcase queryd_passescupoint10
+#yields (bool TRUE)
+query cupthroughhavel d_passes havel;
+
+
+#testcase queryp_passescupoint1
+#yields (bool TRUE)
+query cupinhavel p_passes havel;
+
+
+#testcase queryp_passescupoint2
+#yields (bool TRUE)
+query cupkarpfenteich p_passes karpfenteich;
+
+
+#testcase queryp_passescupoint3
+#yields (bool TRUE)
+query cupkarpfenteich2 p_passes karpfenteich;
+
+
+#testcase queryp_passescupoint4
+#yields (bool TRUE)
+query cupkarpfenteich3 p_passes karpfenteich;
+
+
+#testcase queryp_passescupoint5
+#yields (bool TRUE)
+query cupmehring p_passes mehringdamm;
+
+
+#testcase queryp_passescupoint6
+#yields (bool TRUE)
+query cupmehring1 p_passes mehringdamm;
+
+
+#testcase queryp_passescupoint7
+#yields (bool TRUE)
+query cupouthavel p_passes havel;
+
+
+#testcase queryp_passescupoint8
+#yields (bool TRUE)
+query cuppointhavel p_passes havel;
+
+
+#testcase queryp_passescupoint9
+#yields (bool TRUE)
+query cuppointinhavel p_passes havel;
+
+
+#testcase queryp_passescupoint10
+#yields (bool TRUE)
+query cupthroughhavel p_passes havel;
+
+
+#testcase queryd_atcupoint 1
+#yields (cupoint (0.0 (\
+            ("2003-11-20-06:28" "2003-11-20-06:28" TRUE TRUE) \
+            (9396.0 9871.0 9396.0 9871.0))) )
+query cupmehring d_at mehringdamm;
+
+
+#testcase queryd_atcupoint 2
+#yields ( cupoint undef )
+query cupmehring1 d_at mehringdamm;
+
 
 #testcase deletecupoint
 #yields success
@@ -209,7 +312,7 @@ query cmptest1 present ( [const instant value"2003-11-21-07:01:45"] );
 query cmptest1 atinstant( [const instant value"2003-11-20-07:01:45"] );
 
 
-#testcase querycmptestatperiods
+#testcase querycmpatperiods
 #yields (cmpoint ( (23.4 (\
             ("2003-11-20-07:01:46" "2003-11-20-07:01:50" TRUE FALSE)\
             (-3548.178795714814 14291.88954562246 -3560.0 14235.0)))\
@@ -217,6 +320,34 @@ query cmptest1 atinstant( [const instant value"2003-11-20-07:01:45"] );
             ("2003-11-20-07:01:50" "2003-11-20-07:01:53" TRUE FALSE)\
             (-3560.0 14235.0 -3560.0 14235.0)))) )
 query cmptest atperiods ([const periods value(("2003-11-20-07:01:46" "2003-11-20-07:01:53" TRUE FALSE))]);
+
+
+#testcase querycmpd_passes1
+#yields (bool TRUE )
+query cmphavel d_passes havel;
+
+
+#testcase querycmpd_passes2
+#yields (bool TRUE )
+query cmpmehringd d_passes mehringdamm;
+
+#testcase querycmpp_passes1
+#yields (bool TRUE )
+query cmphavel p_passes havel;
+
+
+#testcase querycmpp_passes2
+#yields (bool TRUE )
+query cmpmehringd p_passes mehringdamm;
+
+#testcase querycmpunits1
+#yields (int 3 )
+query units(cmptest) count;
+
+
+#testcase querycmpunits2
+#yields success
+query units(cmptest) namedtransformstream [Unit] consume;
 
 
 #testcase deletecmpoint

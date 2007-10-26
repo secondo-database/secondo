@@ -73,3 +73,9 @@ Number  : 2
 Signature: (cupoint point)-> cupoint
 Example : query cupmehring1 d_at mehringdamm
 Result   : (cupoint undef)
+
+Operator: units
+Number  : 1
+Signature: cmpoint -> stream(cupoint)
+Example : query units(cmptest) count
+Result   : 3
