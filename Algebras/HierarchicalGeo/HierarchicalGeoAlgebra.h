@@ -973,7 +973,7 @@ this MPoint.
 void Circle( const Point p, const double radius, const int n, Region& result);
 
 bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
-                    const double epsilon, Point* defPP);
+                    const double epsilon, Point& defPP);
 
 /*
 4 Type Constructors

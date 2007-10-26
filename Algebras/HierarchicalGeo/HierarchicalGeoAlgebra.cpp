@@ -397,8 +397,10 @@ void CUPoint::AtInterval( const Interval<Instant>& i,
   else
   {
     if( pResult->p1.IsDefined() )
+      // +++++ for debugging purposes only +++++
       cout << "p1 ist definiert!\n";
     else
+      // +++++ for debugging purposes only +++++
       cout << "p1 ist NICHT definiert!\n";
       
     TemporalFunction( result.timeInterval.end, pResult->p1 );
@@ -453,7 +455,7 @@ bool CUPoint::D_Passes( const Region& r ) const
   assert( r.IsDefined() );
   assert( IsDefined() );
   
-  bool result = false;
+  //bool result = false;
   
   //1. If the cupoint's bbox and the region's bbox do not overlap, the result
   // is FALSE
@@ -466,15 +468,7 @@ bool CUPoint::D_Passes( const Region& r ) const
   bool distP1GreaterEpsilon = false;
   bool cupIntersectsRgn = false;
   int i;
-  HalfSegment segCup;
-  const HalfSegment *segRgn;        // HalfSegments for iterating the region
-  Point defPP;    // defines the point where the cupoint completely crosses
-                        // the regions border (The point on segCup which lies
-                        // inside the region and its distance to the regions
-                        // border equals the epsilon-value.)
-  bool defPPtooClose = true;
-  defPP.SetDefined(false);
-  
+  const HalfSegment *segRgn;        // a halfsegment for iterating the region
   
   //2. Determine, if one of the endpoints of the cupoint lies inside the region
   if (r.Contains( p0 ) )
@@ -482,74 +476,241 @@ bool CUPoint::D_Passes( const Region& r ) const
     containsP0 = true;
     distP0GreaterEpsilon = true;
   }
-  if ( !AlmostEqual(p0, p1) )
-    if ( r.Contains( p1 ) )
-    {
-      containsP1 = true;
-      distP1GreaterEpsilon = true;
-    }
   
-  //3. If one of the endpoints lies inside the region, determine if the
-  //distance of this endpoint to the regions border is greater than epsilon.
-  if( !AlmostEqual(p0, p1) )
+  if ( AlmostEqual(p0, p1) )
   {
-    if( p0 < p1 )
-      segCup.Set(true, p0, p1);
-    else
-      segCup.Set(false, p1, p0);
-      // p0 is the dominating point of the halfsegment
-        
-    //r.StartBulkLoad();
+    // there is just one point to prove.
     for(i = 0; i < r.Size(); i++)
     {
       r.Get( i, segRgn);
-      
-      if (segCup.Intersects(*segRgn) )
-        cupIntersectsRgn = true;
-      
-      if (containsP0 && (segRgn->Distance(p0) <= epsilon) )
+      if (segRgn->IsLeftDomPoint() && 
+          containsP0 && (segRgn->Distance(p0) <= epsilon) )
         // P0 is too close to this region's halfsegment
         distP0GreaterEpsilon = false;
-      if (containsP1 && (segRgn->Distance(p1) <= epsilon) )
-        // P0 is too close to this region's halfsegment
-        distP1GreaterEpsilon = false;
+    }
+    if( distP0GreaterEpsilon )
+      return true;
+    return false;
+  }
+
+  if ( r.Contains( p1 ) )
+  {
+    containsP1 = true;
+    distP1GreaterEpsilon = true;
+  }
+
+  HalfSegment segCup;
+  Point defPP;    // defines the point where the cupoint completely crosses
+                        // the regions border (The point on segCup which lies
+                        // inside the region and its distance to the regions
+                        // border equals the epsilon-value.)
+  bool defPPtooClose = false;
+  defPP.SetDefined(false);
+  bool p0tooClose;
+  bool p1tooClose;
   
-      if( containsP0 && !distP0GreaterEpsilon || 
-            containsP1 && !distP1GreaterEpsilon || 
-            !containsP0 && !containsP1 && cupIntersectsRgn )
+  //3. If one of the endpoints lies inside the region, determine if the
+  //distance of this endpoint to the regions border is greater than epsilon.
+  if( p0 < p1 )
+    segCup.Set(true, p0, p1);
+  else
+    segCup.Set(false, p1, p0);
+    // p0 is the dominating point of the halfsegment
+      
+  //r.StartBulkLoad();
+  const HalfSegment* lastDefPPhs;
+  /*
+  The Variable lastDefPPhs is a pointer to the last halfsegment of the region
+  to which a definite passing Point was computed. This is to ensure that the 
+  distance between a later defined defPP and this halfsegment can be proved 
+  again. */
+  bool lastDefPPhsIsDefined = false;
+  double dist;
+  HalfSegment hSegsTooClose[32]; // stores the halfsegments of the region whose
+                                // distance to the cupoint is less than epsilon
+  int noSegsTooClose = 0;
+  r.SelectFirst();
+  while( !r.EndOfHs() )
+  {
+    r.GetHs( segRgn );
+    
+    if( segRgn->IsLeftDomPoint() )
+    {
+      // +++++ for debugging purposes only +++++
+      //Coord lpx = segRgn->GetLeftPoint().GetX();
+      //Coord lpy = segRgn->GetLeftPoint().GetY();
+      //Coord rpx = segRgn->GetRightPoint().GetX();
+      //Coord rpy = segRgn->GetRightPoint().GetY();
+      //cout << "segRgn is defined by the edgepoints " << lpx << " " << lpy 
+      //  << "     " << rpx << " " << rpy << endl;
+      
+      p0tooClose = false;
+      p1tooClose = false;
+      defPPtooClose = false;
+      cupIntersectsRgn = segCup.Intersects(*segRgn);
+      
+      if (containsP0 && (segRgn->Distance(p0) <= epsilon) )
       {
+        // P0 is too close to this region's halfsegment
+        
+        // +++++ for debugging purposes only +++++
+        //cout << "Distance between segRgn and P0: " << segRgn->Distance(p0) 
+        //  << endl;
+        
+        distP0GreaterEpsilon = false;  // this variable will stay false
+        p0tooClose = true;   // this variable will be reset on every turn
+      } 
+      if (containsP1 && (segRgn->Distance(p1) <= epsilon) )
+      {
+        // P0 is too close to this region's halfsegment
+        
+        // +++++ for debugging purposes only +++++
+        //cout <<"Distance between segRgn and P1: " << segRgn->Distance(p1) 
+        //  << endl;
+        
+        distP1GreaterEpsilon = false;
+        p1tooClose = true;
+      }
+      
+      if( !cupIntersectsRgn && !p0tooClose && ! p1tooClose )
+      {
+        if( segCup.Distance( *segRgn ) <= epsilon )
+        {
+          hSegsTooClose[noSegsTooClose] = *segRgn;
+          noSegsTooClose++;
+          
+          // +++++ for debugging purposes only +++++
+          //cout << "A halfsegment has been added to 'hSegsTooClose[]'.\n";
+          //cout << "hSegsTooClose contains " << noSegsTooClose << " elements."
+          //    << endl;
+        }
+      }
+      
+      
+      if( defPP.IsDefined() )
+      {
+        dist = segRgn->Distance(defPP);
+        defPPtooClose = ( dist < epsilon && !AlmostEqual(dist, epsilon) );
+        
+        // +++++ for debugging purposes only +++++
+        //if (defPPtooClose) {
+        //  cout << "segRgn->Distance(defPP) is less than epsilon!\n";
+        //  cout << "Distance to defPP : " << segRgn->Distance(defPP) << endl;
+        //}
+      }
+      
+      if( (containsP0 && p0tooClose || containsP1 && p1tooClose || 
+          cupIntersectsRgn) && !defPP.IsDefined() || defPPtooClose )
+      {
+        // +++++ for debugging purposes only +++++
+        //if(containsP0 && p0tooClose)
+        //    cout << "containsP0 && p0tooClose is TRUE!\n";
+        //if(containsP1 && p1tooClose)
+        //    cout << "containsP1 && p1tooClose is TRUE!\n";
+        //if(cupIntersectsRgn)
+        //    cout << "cupIntersectsRgn is TRUE!\n";
+        //if(defPPtooClose)
+        //    cout << "defPPtooClose is TRUE!\n";
+        
         // If one of the endpoints lies inside the region and the distance
         // to the region's border is less than epsilon, or if the cupoint
         // intersects the region
-        if( defPP.IsDefined() )
-          defPPtooClose = (segRgn->Distance(defPP) <= epsilon);
-        if( defPPtooClose || !defPP.IsDefined() )
-          if( FindDefPassingPoint(segCup, *segRgn, epsilon, &defPP) )
-            defPPtooClose = false;
-          else {
-            defPPtooClose = true;
-            defPP.SetDefined(false);
+        
+        if( FindDefPassingPoint(segCup, *segRgn, epsilon, defPP) )
+        {
+          // +++++ for debugging purposes only +++++
+          //cout << "FindDefPassingPoint returns true.\n";
+          
+          defPPtooClose = false;
+          if( lastDefPPhsIsDefined )
+          {
+            // A defPP was previously defined, so for this new defPP, the
+            // distance to halfsegment i has to be compared to epsilon
+            dist = lastDefPPhs->Distance(defPP);
+            if( dist <= epsilon && !AlmostEqual(dist, epsilon) )
+            {
+              // +++++ for debugging purposes only +++++
+              //cout << "defPP has distance: " << lastDefPPhs->Distance(defPP)
+              //  << " to segment " << lastDefPPhs->GetLeftPoint().GetX() 
+              //  << " " << lastDefPPhs->GetLeftPoint().GetY() << "     "
+              //  << lastDefPPhs->GetRightPoint().GetX() << " "
+              //  << lastDefPPhs->GetRightPoint().GetY() << endl; 
+              
+              // The determined defPP is too close to a previous mentioned hs!
+              defPPtooClose = true;
+              defPP.SetDefined(false);
+              lastDefPPhsIsDefined = false;
+            }
+            else {
+              r.GetHs(lastDefPPhs); // hold a pointer to the region's hs
+              lastDefPPhsIsDefined = true;
+            }
           }
+          else
+          {
+            r.GetHs(lastDefPPhs); // save the index of the region's halfsegment
+            lastDefPPhsIsDefined = true;
+          }
+            
+          //if(defPP.IsDefined())
+          //  cout << "defPP is defined\n";
+        }
+        else {
+          // +++++ for debugging purposes only +++++
+          //cout << "defPP is set to UNDEFINED!\n";
+          
+          defPP.SetDefined(false);
+        }
       }
     }
+    r.SelectNext();
+    
   }
   //r.EndBulkLoad();
-  if (distP0GreaterEpsilon || distP1GreaterEpsilon || !defPPtooClose)
+  if( distP0GreaterEpsilon || distP1GreaterEpsilon )
+  {
     // One of the endpoints lies inside the region, and its distance to the
     // region's border is greater than epsilon, so the predicate 'definitely-
     // passes' is fullfilled.
     
     // +++++ for debugging purposes only +++
-    if (distP0GreaterEpsilon)
-      cout << "D_Passes: P0 liegt mit Abstand Epsilon in Region!\n";
-    if (distP1GreaterEpsilon)
-      cout << "D_Passes: P1 liegt mit Abstand Epsilon in Region!\n";
-    if (distP0GreaterEpsilon)
-      cout << "D_Passes: es existiert ein defPassingPoint in Region!\n";
+    //if (distP0GreaterEpsilon)
+    //  cout << "D_Passes: P0 liegt mit Abstand Epsilon in Region!\n";
+    //if (distP1GreaterEpsilon)
+    //  cout << "D_Passes: P1 liegt mit Abstand Epsilon in Region!\n";
     return true;
-  
-  
-  return result;
+  }
+  if( defPP.IsDefined() )
+  {  
+    
+    // +++++ for debugging purposes only +++++
+    //cout << "D_Passes: es existiert ein defPassingPoint in Region!\n";
+    //cout << "defPP = " << defPP.GetX() << " " << defPP.GetY() << "\n";
+    
+    if( noSegsTooClose > 0 )
+    {
+      // determine if the distance of the defined point defPP is less than
+      // epsilon. If so, return false
+      for(int j = 0; j < noSegsTooClose; j++)
+      {
+        // +++++ for debugging purposes only +++++
+        //cout << "Distance between hSegsTooClose[" << j+1 << "] = "
+        //    << hSegsTooClose[j].Distance( defPP ) << endl;
+        
+        
+        if( hSegsTooClose[j].Distance( defPP ) <= epsilon )
+        {
+          // +++++ for debugging purposes only +++++
+          //cout << "The final defPP is too close to a hs in hSegsTooClose[]!"
+          //    << endl;
+          
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 bool CUPoint::P_Passes( const Point& p ) const
@@ -593,35 +754,38 @@ bool CUPoint::P_Passes( const Region& r ) const
   
   if( r.Contains(p0) )
     return true;
-    
-  HalfSegment segCup;
   
-  if( !AlmostEqual(p0, p1) )
+  if( AlmostEqual(p0, p1) )
+  {
+    return (r.Distance( p0 ) <= epsilon );
+  }
+  else 
   {
     if( r.Contains(p1) )
       return true;
     
-    // else determine, if the
+    // else determine, if the distance of the halfsegment segCup (defined by 
+    // the unit's endpoints) to the region is less than epsilon 
+    HalfSegment segCup;
+    
     if( p0.GetX() < p1.GetX() ||
         p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY() )
       segCup.Set(true, p0, p1);
     else
-      segCup.Set(false, p0, p1);
-  } 
+      segCup.Set(false, p0, p1); 
   
-  const HalfSegment *segRgn;
-  int i = 0;
-  
-  while( i < r.Size() )
-  {
-    r.Get( i, segRgn);
+    const HalfSegment *segRgn;
+    int i = 0;
     
-    if( segRgn->Distance( p0 ) <= epsilon )
-      return true;
-    if( !AlmostEqual(p0, p1) )
-      if( segCup.Distance( segRgn ) <= epsilon )
+    while( i < r.Size() )
+    {
+      r.Get( i, segRgn);
+      
+      if( segRgn->Distance( segCup ) <= epsilon || 
+          segCup.Distance( *segRgn ) <= epsilon )
         return true;
-    i++;
+      i++;
+    }
   }
   return false;
 }
@@ -726,7 +890,7 @@ bool CUPoint::D_At( const Point& p, CUPoint& result ) const
 
 bool CUPoint::D_At( const Region& r, CUPoint& result ) const 
 {
-  /*assert( r.IsDefined() );
+  assert( r.IsDefined() );
   assert( IsDefined() );
   
   //1. If the cupoint's bbox and the region's bbox do not overlap, the result
@@ -772,7 +936,7 @@ bool CUPoint::D_At( const Region& r, CUPoint& result ) const
     }
     //r.EndBulkLoad();
   }
-  else
+  /*else
   {
     // both endpoints of the unit have to be proved.
     HalfSegment segCup;
@@ -1475,7 +1639,7 @@ be evaluable)!
 
 */
 bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
-                    const double epsilon, Point* defPP)
+                    const double epsilon, Point& defPP)
 {
   Coord xl, yl, xr, yr;
   Point auxlp, auxrp;
@@ -1486,7 +1650,7 @@ bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
     
   if (AlmostEqual(rgnhs.GetLeftPoint().GetX(), rgnhs.GetRightPoint().GetX()))
   {
-    // The halfsegment is vertical.
+    // The region's halfsegment is vertical.
     if (rgnhs.attr.insideAbove)
     {
       // The region lies on the left side of the halfsegment.
@@ -1506,7 +1670,7 @@ bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
   else if (AlmostEqual(rgnhs.GetLeftPoint().GetY(), 
                       rgnhs.GetRightPoint().GetY()) )
   {
-    // The halfsegment is horizontal.
+    // The region's halfsegment is horizontal.
     if (rgnhs.attr.insideAbove)
     {
       // The region lies above the halfsegment.
@@ -1574,10 +1738,11 @@ bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
     aux.Set(rgnhs.IsLeftDomPoint(), auxlp, auxrp);
   }
   // Find the intersection-point between chs and aux if there is one.
-  if( aux.Intersection( chs, *defPP ) )
+  if( aux.Intersection( chs, defPP ) )
   {
     // +++++ for debugging purposes only +++
-    cout << "FindDefPassingPoint: aux.Intersection(chs, defPP) liefert TRUE\n";
+    //cout << "FindDefPassingPoint: aux.Intersection(chs, defPP) returns TRUE"
+    // << endl;
     return true;
   }
   else
@@ -1585,27 +1750,38 @@ bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
     // If the halfsegment does not intersect the parallel halfsegment, 
     // determine, if it intersects a circle around the dominating point
     // with a radius of epsilon.
-   Coord circleX, circleY; 
-   if ( rgnhs.IsLeftDomPoint() )
-   {
-    circleX = xl;
-    circleY = yl;
+ 
+      // +++++ for debugging purposes only +++
+    //cout << "Determine defPP to the DomPoint of rgnhs.\n";
+    
+    Coord circleX, circleY; 
+    if ( chs.Distance( rgnhs.GetLeftPoint() ) <= epsilon )
+    {
+      circleX = rgnhs.GetLeftPoint().GetX();
+      circleY = rgnhs.GetLeftPoint().GetY();
+    }
+    else if ( chs.Distance( rgnhs.GetRightPoint() ) <= epsilon ) 
+    {
+      circleX = rgnhs.GetRightPoint().GetX();
+      circleY = rgnhs.GetRightPoint().GetY();
     }
     else {
-      circleX = xr;
-      circleY = yr;
-    }    
+      defPP.SetDefined(false);
+      return false;
+    }
+        
     double a,b,c;
     double bb4ac, mu1, mu2;
     Coord p1x = chs.GetLeftPoint().GetX();
     Coord p1y = chs.GetLeftPoint().GetY();
     Coord p2x = chs.GetRightPoint().GetX();
     Coord p2y = chs.GetRightPoint().GetY();
-    Coord dpx = p2x - p1x;
-    Coord dpy = p2y - p1y;
+    Coord lengthX = p2x - p1x;
+    Coord lengthY = p2y - p1y;
     
-    a = dpx * dpx + dpy;
-    b = 2 * (dpx * (p1x - circleX) + dpy * (p1y - circleY) );
+    
+    a = lengthX * lengthX + lengthY * lengthY;
+    b = 2 * (lengthX * (p1x - circleX) + lengthY * (p1y - circleY) );
     c = circleX * circleX + circleY * circleY;
     c += p1x * p1x + p1y * p1y;
     c -= 2 * (circleX * p1x + circleY * p1y);
@@ -1613,7 +1789,7 @@ bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
     bb4ac = b * b - 4 * a * c;
     // originally: if (fabs(a) <= EPS || bb4ac < 0) but 'EPS' was
     // not declared in the code-example, this algorithm is derived from.
-    if (bb4ac < 0) {
+    if( bb4ac < 0 ) {
       mu1 = 0;
       mu2 = 0;
       return(false);
@@ -1621,18 +1797,37 @@ bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
 
     mu1 = (-b + sqrt(bb4ac)) / (2 * a);
     mu2 = (-b - sqrt(bb4ac)) / (2 * a);
-
-    if( rgnhs.attr.insideAbove && 
-        rgnhs.GetLeftPoint().GetY() >= rgnhs.GetRightPoint().GetY() )
-      defPP->Set( p1x + mu1*(p2x - p1x), p1y + mu1*(p2y - p1y) );
+    
+    if( ( rgnhs.attr.insideAbove && 
+        rgnhs.GetLeftPoint().GetY() >= rgnhs.GetRightPoint().GetY() &&
+        chs.GetLeftPoint().GetY() < chs.GetRightPoint().GetY() ) ||
+        ( !rgnhs.attr.insideAbove &&
+        rgnhs.GetLeftPoint().GetY() < rgnhs.GetRightPoint().GetY() &&
+        chs.GetLeftPoint().GetY() >= chs.GetRightPoint().GetY() ) )
+      defPP.Set( p1x + mu1*(p2x - p1x), p1y + mu1*(p2y - p1y) );
     else
-      defPP->Set( p1x + mu2*(p2x - p1x), p1y + mu2*(p2y - p1y) );    
+      defPP.Set( p1x + mu2*(p2x - p1x), p1y + mu2*(p2y - p1y) );    
     
-    // +++++ for debugging purposes only +++
-    cout << "FindDefPassingPoint: defPP liegt auf einem Kreis TRUE\n";
+    // +++++ for debugging purposes only +++++
+    //cout << "FindDefPassingPoint: \n";
+    //cout << "     refering edgepoint of the region: " << circleX << " "
+    //      << circleY << endl;
+    //cout << "     determined definite-passing-point: " << defPP.GetX() << " "
+    //      << defPP.GetY() << endl;
+    //cout << "     epsilon = " << epsilon << endl;
+    //cout << "     distance between the two points = " 
+    //      << rgnhs.GetDomPoint().Distance( defPP ) << endl;
+    //cout << "    " << p1x << " <= " << defPP.GetX() << " <= " << p2x << "\n";
+    //cout << "    " << p1y << " <= " << defPP.GetY() << " <= " << p2y << "\n";
     
-    return(true);
+    if( (p1x <= defPP.GetX() && defPP.GetX() <= p2x) && 
+        ((p1y <= defPP.GetY() && defPP.GetY() <= p2y) ||
+        (p2y <= defPP.GetY() && defPP.GetY() <= p1y)) )
+    {
+      // if defPP is a Point of chs
+      return true;
     }
+  }
   return false;
 }
 
@@ -1640,296 +1835,12 @@ bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
 /*
 5 Type Constructors
 
-5.1 Type Constructor ~CPoint~
-
-Type ~cpoint~ represents an (epsilon, (x, y))-pair.
-
-List Representation
-
-The list representation of a ~cpoint~ is
-
-----    ( epsilon ( x y ) )
-----
-
-For example:
-
-----    ( 20.5 ( 329.456 22.289 ) )
-----
-
-Function describing the signature of the Type Constructor
-
-*/
-/*ListExpr CPointProperty()
-{
-  return (nl->TwoElemList(
-            nl->FiveElemList(
-                  nl->StringAtom("Signature"),
-                  nl->StringAtom("Example Type List"),
-                  nl->StringAtom("List Rep"),
-                  nl->StringAtom("Example List"),
-                  nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                  nl->StringAtom("-> UNCERTAIN"),
-                  nl->StringAtom("cpoint"),
-                  nl->StringAtom("(<epsilon>(<x> <y>))"),
-                  nl->StringAtom("( 20.5 ( 329.456 22.289) )"),
-                  nl->StringAtom(" epsilon must be a pos. real-value." ))));
-}*/
-
-/*
-Kind Checking Function
-
-*/
-
-/*bool CheckCPoint( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, "cpoint"));
-}*/
-
-/*
-~Out~-function
-
-*/
-/*ListExpr OutCPoint( ListExpr typeInfo, Word value )
-{
-  CPoint* cpoint = (CPoint*)(value.addr);
-  
-  if ( !cpoint->IsDefined() )
-    return (nl->SymbolAtom("undef"));
-  else
-    {
-      ListExpr coordinates =  nl->TwoElemList(
-      				nl->RealAtom( cpoint->GetX() ),
-      				nl->RealAtom( cpoint->GetY() )); 
-                  
-      return nl->TwoElemList(
-            nl->RealAtom( cpoint->GetEpsilon() ),
-            coordinates );
-    }
-}*/
-
-/*
-~In~-function
-
-*/
-
-/*Word InCPoint( const ListExpr typeInfo, const ListExpr instance,
-               const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  string errmsg;
-  if ( nl->ListLength( instance ) == 2 )    
-  // 2 arguments are necessary: epsilon and a point
-  {
-    ListExpr first = nl->First( instance );               // the epsilon value
-    ListExpr second = nl->Second( instance );    // the point representation
-    
-    if ( nl->IsAtom( first ) && (nl->AtomType( first ) == RealType ||
-            nl->AtomType( first ) == IntType) )
-    {
-      // The following commands are switched 'off' because they caused 
-      // to crash the SecondoTTYBDB while updating a cpoint-object.
-      // The only error-message was: 
-      //*** glibc detected ***  free(): invalid pointer: 0xbfab9dc8 ***
-      
-      /*double e;
-      if (nl->AtomType( first ) == IntType)
-        e = nl->IntValue( first );
-      else if(nl->AtomType( first ) == RealType)
-        e = nl->RealValue( first );
-      else
-        correct = false;
-        
-      if ( !correct )
-      {
-        errmsg = "InCPoint(): First instant must be a real or int.";
-        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-        delete &e;
-        return SetWord( Address(0) );
-      }*/
-      
-/*      if ( nl->ListLength( second ) == 2 &&
-            nl->IsAtom( nl->First( second )) &&
-            (nl->AtomType( nl->First( second )) == RealType ||
-            nl->AtomType( nl->First( second )) == IntType) &&
-            nl->IsAtom( nl->Second( second )) &&
-            (nl->AtomType( nl->Second( second )) == RealType ||
-            nl->AtomType( nl->Second( second )) == IntType))
-      // if the second list element contains two real- or int-values, 
-      // representing point-coordinates
-      { 
-        Coord x, y;
-        correct = true;
-        if( nl->IsAtom(nl->First( second )) )
-        {
-          if( nl->AtomType(nl->First( second )) == IntType )
-            x = nl->IntValue(nl->First( second ));
-          else if( nl->AtomType(nl->First( second )) == RealType )
-            x = nl->RealValue(nl->First( second ));
-          else
-            correct = false;
-        }
-        else
-          correct = false;
-    
-        //2. processing the second data item
-        if( correct && nl->IsAtom(nl->Second( second )) )
-        {
-          if( nl->AtomType(nl->Second( second )) == IntType )
-            y = nl->IntValue(nl->Second( second ));
-          else if( nl->AtomType(nl->Second( second )) == RealType )
-            y = nl->RealValue(nl->Second( second ));
-          else
-            correct = false;
-        }
-        else
-          correct = false;
-        
-        
-        if ( !correct )
-        {
-          errmsg = "InCPoint(): Second instant must be a representation" 
-                         "of a point value.";
-          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-          return SetWord( Address(0) );
-        }
-        
-        // +++++ for debugging purposes only +++
-        cout << "Der Epsilon-Wert des CPoint ist: " << nl->RealValue( first ) << "\n";
-        cout << "Der CPoint erhaelt die Koordinaten: " << x << " " << y << "\n";
-        
-        CPoint* cpoint = new CPoint( nl->RealValue( first ), 
-                x, y );
-        //delete &e;
-        correct = cpoint->IsValid();
-        
-        // +++++ for debugging purposes only +++
-        if(correct)
-          cout << "Der CPoint ist erfolgreich erstellt worden. \n";
-        
-        
-        if ( !correct )
-        {
-          errmsg = "InCPoint(): The cpoint-value is invalid!";
-          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-          return SetWord( Address(0) );
-        }
-        return SetWord( cpoint );
-      }
-      else
-      {
-        correct = false;
-        errmsg = "InCPoint(): Second instant must be a representation" 
-                         "of a point value.";
-        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-      }
-    }
-    else
-    {
-      correct = false;
-      errmsg = "InCPoint(): Error in first instant. First instant must be an "
-            "atomic value of type Real.";
-      errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-    }
-  }
-  errmsg = "InCPoint(): List must contain 2 elements. ";
-  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
-  return SetWord( Address(0) );
-}*/
-
-
-/*
-~Create~-function
-
-*/
-/*Word CreateCPoint( const ListExpr typeInfo )
-{
-  return (SetWord( new CPoint() ));
-}*/
-
-
-/*
-~Delete~-function
-
-*/
-/*void DeleteCPoint( const ListExpr typeInfo, Word& w )
-{
-  delete (CPoint *)w.addr;
-  w.addr = 0;
-}*/
-
-
-/*
-~Close~-function
-
-*/
-/*void CloseCPoint( const ListExpr typeInfo, Word& w )
-{
-  delete (CPoint *)w.addr;
-  w.addr = 0;
-}*/
-
-
-/*
-~Clone~-function
-
-*/
-/*Word CloneCPoint( const ListExpr typeInfo, const Word& w )
-{
-  CPoint *cpoint = (CPoint *)w.addr;
-  return SetWord( new CPoint( *cpoint ) );
-}*/
-
-
-/*
-~Sizeof~-function
-
-*/
-/*int SizeOfCPoint()
-{
-  return sizeof(CPoint);
-}*/
-
-
-/*
-~Cast~-function
-
-*/
-
-/*void * CastCPoint(void* addr)
-{
-  return new (addr) CPoint;
-}*/
-
-/*
-Creation of the type constructor ~cpoint~
-
-*/
-
-/*TypeConstructor uncertainpoint(
-        "cpoint",                //name
-        CPointProperty,     //property function describing signature
-        OutCPoint,
-        InCPoint,               //Out and In functions
-        0,
-        0,                         //SaveToList and RestoreFromList functions
-        CreateUncertain,
-        DeleteUncertain,        //object creation and deletion
-        0,
-        0,                         // object open and save
-        CloseCPoint,   
-        CloneCPoint,         //object close and clone
-        CastCPoint,           //cast function
-        SizeOfCPoint,       //sizeof function
-        CheckCPoint );      //kind checking function*/
-
-
-/*
-4.2 The Type Constructor ~cupoint~
+5.1  The Type Constructor ~cupoint~
 
 Type ~cupoint~ represents a pair (epsilon, (tinterval, (x0, y0, x1, y1)))
 consisting of an uncertainty-value and a value of type upoint.
 
-4.2.1 List Representation
+5.1.1 List Representation
 
 The list representation of an ~upoint~ is
 
@@ -1941,7 +1852,7 @@ For example:
 ----    ( 37.5 ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   
 ----                    (1.0 2.3 4.1 2.1) ) )
 
-4.2.2 function Describing the Signature of the Type Constructor
+5.1.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr CUPointProperty()
@@ -1961,7 +1872,7 @@ ListExpr CUPointProperty()
 
 
 /*
-4.2.3 Kind Checking Function
+5.1.3 Kind Checking Function
 
 */
 bool CheckCUPoint( ListExpr type, ListExpr& errorInfo )
@@ -1970,7 +1881,7 @@ bool CheckCUPoint( ListExpr type, ListExpr& errorInfo )
 }
 
 /*
-4.2.4 ~Out~-function
+5.1.4 ~Out~-function
 
 */
 ListExpr OutCUPoint( ListExpr typeInfo, Word value )
@@ -2004,7 +1915,7 @@ ListExpr OutCUPoint( ListExpr typeInfo, Word value )
 }
 
 /*
-4.2.5 ~In~-function
+5.1.5 ~In~-function
 
 The Nested list form is like this:  
   ( 37.4 ( ( 6.37  9.9  TRUE FALSE)   (1.0 2.3 4.1 2.1) ) )
@@ -2159,7 +2070,7 @@ Word InCUPoint( const ListExpr typeInfo, const ListExpr instance,
 
 
 /*
-4.2.6 ~Create~-function
+5.1.6 ~Create~-function
 
 */
 Word CreateCUPoint( const ListExpr typeInfo )
@@ -2168,7 +2079,7 @@ Word CreateCUPoint( const ListExpr typeInfo )
 }
 
 /*
-4.2.7 ~Delete~-function
+5.1.7 ~Delete~-function
 
 */
 void DeleteCUPoint( const ListExpr typeInfo, Word& w )
@@ -2178,7 +2089,7 @@ void DeleteCUPoint( const ListExpr typeInfo, Word& w )
 }
 
 /*
-4.2.8 ~Close~-function
+5.1.8 ~Close~-function
 
 */
 void CloseCUPoint( const ListExpr typeInfo, Word& w )
@@ -2188,7 +2099,7 @@ void CloseCUPoint( const ListExpr typeInfo, Word& w )
 }
 
 /*
-4.2.9 ~Clone~-function
+5.1.9 ~Clone~-function
 
 */
 Word CloneCUPoint( const ListExpr typeInfo, const Word& w )
@@ -2198,7 +2109,7 @@ Word CloneCUPoint( const ListExpr typeInfo, const Word& w )
 }
 
 /*
-4.2.10 ~Sizeof~-function
+5.1.10 ~Sizeof~-function
 
 */
 int SizeOfCUPoint()
@@ -2207,7 +2118,7 @@ int SizeOfCUPoint()
 }
 
 /*
-4.2.11 ~Cast~-function
+5.1.11 ~Cast~-function
 
 */
 void* CastCUPoint( void* addr ) 
@@ -2239,11 +2150,11 @@ TypeConstructor uncertainunitpoint(
 
 
 /*
-4.3 Type Constructor CMPoint
+5.3 Type Constructor CMPoint
 
 Type ~cmpoint~ represents a moving point.
 
-4.3.1 List Representation
+5.3.1 List Representation
 
 The list representation of a ~cmpoint~ is
 
@@ -2262,7 +2173,7 @@ For example:
         )
 ----
 
-4.3.2 function Describing the Signature of the Type Constructor
+5.3.2 function Describing the Signature of the Type Constructor
 
 */
 ListExpr CMPointProperty()
@@ -2283,7 +2194,7 @@ ListExpr CMPointProperty()
 }
 
 /*
-4.3.3 Kind Checking Function
+5.3.3 Kind Checking Function
 
 */
 bool
@@ -2313,21 +2224,21 @@ TypeConstructor uncertainmovingpoint(
 /*
 Type Constructor +++++ hier weitere Typkonstruktoren anfuegen +++++
 
-5 Operators
+6 Operators
 
 Definition of operators is similar to definition of type constructors. An
 operator is defined by creating an instance of class ~Operator~. Again we
 have to define some functions before we are able to create an ~Operator~
 instance.
 
-5.1 Type mapping functions
+6.1 Type mapping functions
 
 A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
 the output type of the operator is returned.
 
 
-5.1.1 Type mapping function ~UncertainTypeMapReal~
+6.1.1 Type mapping function ~UncertainTypeMapReal~
 
 This type mapping function is used for the Operation ~Epsilon()~.
 
@@ -2355,7 +2266,7 @@ ListExpr UncertainTypeMapReal( ListExpr args )
 }
 
 /*
-5.1.2 Type mapping function ~UncertainTypeMapBase~
+6.1.2 Type mapping function ~UncertainTypeMapBase~
 
 This type mapping function is used for the Operation ~Val()~. The keyword
 'base' indicates a reduction of an uncertain type to its particular base type.
@@ -2387,46 +2298,8 @@ ListExpr UncertainTypeMapBase( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
-
 /*
-5.1.3 Type mapping function ~CertainToUncertain~
-
-This type mapping function is used for the ~<certaintype>to<uncertaintype>~ 
-Operations.
-
-*/
-
-/*ListExpr CertainToUncertain( ListExpr args )
-{
-  if ( nl->ListLength( args ) == 2 )
-  {
-    ListExpr first = nl->First(args);
-    ListExpr second = nl->Second(args);
-    if ( nl->IsEqual( first, "real" ) )
-    {
-      // find out if the second argument is of an implemented uncertain type
-      if ( nl->IsEqual( second, "point" ) )
-        return nl->SymbolAtom("cpoint");
-      if ( nl->IsEqual( second, "upoint" ) )
-        return nl->SymbolAtom("cupoint");
-    }
-    if ( (nl->AtomType(first) == SymbolType) && (nl->AtomType(second) == 
-            SymbolType))
-      ErrorReporter::ReportError("Type mapping function got parameters of "
-        "type "
-          + nl->SymbolValue(first) + " and "
-          + nl->SymbolValue(second));
-    else
-      ErrorReporter::ReportError("Type mapping function got wrong types "
-        "as parameters.");
-  }
-  ErrorReporter::ReportError("Type mapping function got a parameter of length "
-    "!= 2.");
-  return nl->SymbolAtom("typeerror");
-}*/
-
-/*
-5.1.7 Type mapping function ~UncertainTempSetValueTypeMapInt~
+6.1.7 Type mapping function ~UncertainTempSetValueTypeMapInt~
 
 It is for the ~no\_components~ operator.
 
@@ -2444,7 +2317,7 @@ ListExpr UncertainTempSetValueTypeMapInt( ListExpr args )
 }
 
 /*
-5.1.8 Type mapping function ~UncertainMovingTypeMapSpatial~
+6.1.8 Type mapping function ~UncertainMovingTypeMapSpatial~
 
 This is for the operator ~trajectory~.
 
@@ -2464,7 +2337,7 @@ ListExpr UncertainMovingTypeMapSpatial( ListExpr args )
 
 
 /*
-5.1.9 Type mapping function ~UncertainMovingTypeMapTemporal~
+6.1.9 Type mapping function ~UncertainMovingTypeMapTemporal~
 
 This is defined for the operators ~deftime~.
 
@@ -2482,7 +2355,7 @@ ListExpr UncertainMovingTypeMapPeriods( ListExpr args )
 }
 
 /*
-5.1.10 Type mapping function ~UncertainMovingTypeMapBool~
+6.1.10 Type mapping function ~UncertainMovingTypeMapBool~
 
 It is for the operator ~present~.
 
@@ -2506,9 +2379,10 @@ ListExpr UncertainMovingInstantPeriodsTypeMapBool( ListExpr args )
 }
 
 /*
-5.1.11 Type mapping function ~UncertainMovingTypeMapBool~
+6.1.11 Type mapping function ~UncertainMovingTypeMapBool~
 
-This is the type mapping function for the operators ~d\_passes~ and ~p\_passes~.
+This is the type mapping function for the operators ~d\_passes~ and 
+~p\_passes~.
 
 */
 ListExpr UncertainMovingTypeMapBool( ListExpr args )
@@ -2530,7 +2404,7 @@ ListExpr UncertainMovingTypeMapBool( ListExpr args )
 }
 
 /*
-5.1.12 Type mapping function ~UncertainMovingTypeMapCMPoint~
+6.1.12 Type mapping function ~UncertainMovingTypeMapCMPoint~
 
 It is for the operators ~atperiods~, ~definitely\_at~, ~possibly\_at~
 
@@ -2557,7 +2431,7 @@ ListExpr UncertainMovingTypeMapMoving( ListExpr args )
 
 
 /*
-5.1.12 Type mapping function ~UncertainMovingTypeMapeIRegion~
+6.1.12 Type mapping function ~UncertainMovingTypeMapeIRegion~
 
 It is for the operator ~atinstant~.
 
@@ -2579,7 +2453,7 @@ ListExpr UncertainMovingInstantTypeMapIntime( ListExpr args )
 }
 
 /*
-5.1.13 Type mapping function ~UncertainMovingPeriodsTypeMapMoving~
+6.1.13 Type mapping function ~UncertainMovingPeriodsTypeMapMoving~
 
 It is for the operator ~atperiods~.
 
@@ -2601,7 +2475,7 @@ ListExpr UncertainMovingPeriodsTypeMapMoving( ListExpr args )
 }
 
 /*
-5.1.14 Type Mapping Function ~UncertainMovingTypeMapUnits~
+6.1.14 Type Mapping Function ~UncertainMovingTypeMapUnits~
 
 It is used for the operator ~units~
 
@@ -2630,7 +2504,7 @@ ListExpr UncertainMovingTypeMapUnits( ListExpr args )
 }
 
 /*
-5.1.18 Type mapping function "UncertainTemporalBBoxTypeMap"
+6.1.18 Type mapping function "UncertainTemporalBBoxTypeMap"
 
 For operator ~bbox~
 
@@ -2658,7 +2532,7 @@ ListExpr UncertainTemporalBBoxTypeMap( ListExpr args )
 
 
 /*
-5.1.19 Type Mapping Function ~MovingTypeMapUnits~
+6.1.19 Type Mapping Function ~MovingTypeMapUnits~
 
 It is used for the operator ~units~
 
@@ -2682,7 +2556,7 @@ ListExpr UncertainTemporalTypeMapUnits( ListExpr args )
 }
 
 /*
-5.2 Selection function
+6.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
 difference is that it doesn't return a type but the index of a value
@@ -2693,7 +2567,7 @@ Note that a selection function does not need to check the correctness of
 argument types; it has already been checked by the type mapping function that
 it is applied to correct arguments.
 
-5.2.1 Selection function ~UncertainSimpleSelect~
+6.2.1 Selection function ~UncertainSimpleSelect~
 
 Is used for the ~epsilon~ and ~val~ operators.
 
@@ -2716,7 +2590,7 @@ int UncertainSimpleSelect( ListExpr args )
 }
 
 /*
-5.2.2 Selection function ~UncertainTemporalSelect~
+6.2.2 Selection function ~UncertainTemporalSelect~
 
 Is used for the ~trajectory~ operator.
 
@@ -2735,7 +2609,7 @@ int UncertainTemporalSelect( ListExpr args )
 }
 
 /*
-5.2.3 Selection function ~UncertainPassesSelect~
+6.2.3 Selection function ~UncertainPassesSelect~
 
 This is used for varius ~...passes~ operators.
 
@@ -2766,7 +2640,7 @@ int UncertainPassesSelect( ListExpr args )
 }
 
 /*
-5.2.4 Selection function ~UncertainMovingInstantPeriodsSelect~
+6.2.4 Selection function ~UncertainMovingInstantPeriodsSelect~
 
 */
 int UncertainMovingInstantPeriodsSelect( ListExpr args )
@@ -2783,40 +2657,11 @@ int UncertainMovingInstantPeriodsSelect( ListExpr args )
 }
 
 /*
-6 Value mapping functions
+7 Value mapping functions
 
-6.1 Value mapping functions for class cpoint
+7.1 Value mapping functions for class cupoint
 
-
-6.1.1 Value mapping function for operator ~tocpoint~
-
-*/
-
-/*int ToCPoint( Word* args, Word& result, int message, Word& local,
-                                        Supplier s )
-{
-  result = qp->ResultStorage( s );
-  CcReal* e = (CcReal*)args[0].addr;
-  Point* p = (Point*)args[1].addr;
-  
-  if ( e >= 0 )
-    if ( p->IsDefined() )
-    {
-      CPoint cp( e->GetValue(), (StandardAttribute*) p );
-      ((CPoint*)result.addr)->Set(cp);
-    }
-    else
-    {
-      ((CPoint*)result.addr)->UncertainSetDefined( false );
-      cerr << "Result object is set to state: defined = false." << endl;
-    }
-  return 0;
-}*/
-
-/*
-6.2 Value mapping functions for class cupoint
-
-6.2.1 Value mapping function for operator ~epsilon~
+7.1.1 Value mapping function for operator ~epsilon~
 
 */
 int CUPointEpsilon( Word* args, Word& result, int message, Word& local, 
