@@ -1,0 +1,79 @@
+#VRML V2.0 utf8
+
+Shape {
+   appearance Appearance {
+      material Material { diffuseColor 0.1 1 0 shininess .5 transparency 0.1}
+   }   geometry IndexedFaceSet {
+      coord Coordinate {
+         point [
+                8.5 -10.65 0.0
+                0.9499998 -20.45 0.0
+                13.85 -14.45 0.0
+                8.5 -10.55 8.0
+                1.1500001 -20.4 8.0
+                13.9 -14.15 8.0
+               ]
+         }
+      coordIndex [
+         0 1 4 -1
+         1 2 3 -1
+         2 0 3 -1
+         3 4 0 -1
+         4 5 1 -1
+         5 3 1 -1
+      ]
+      solid FALSE
+   }
+}
+Shape {
+   appearance Appearance {
+      material Material { diffuseColor 1 0 0 shininess .5 transparency 0.4}
+   }   geometry IndexedFaceSet {
+      coord Coordinate {
+         point [
+                8.5 -10.65 0.0
+                0.9499998 -20.45 0.0
+                13.85 -14.45 0.0
+                8.5 -10.55 8.0
+                1.1500001 -20.4 8.0
+                13.9 -14.15 8.0
+               ]
+         }
+      coordIndex [
+      2 1 0 2 -1
+      ]
+      solid FALSE
+   }
+}
+Shape {
+   appearance Appearance {
+      material Material { diffuseColor 0 .5 1 shininess .5 transparency 0.4}
+   }   geometry IndexedFaceSet {
+      coord Coordinate {
+         point [
+                8.5 -10.65 0.0
+                0.9499998 -20.45 0.0
+                13.85 -14.45 0.0
+                8.5 -10.55 8.0
+                1.1500001 -20.4 8.0
+                13.9 -14.15 8.0
+               ]
+         }
+      coordIndex [
+      5 4 3 5 -1
+      ]
+      solid FALSE
+   }
+}
+PointLight {
+   attenuation 3.999999e-2 0 0
+   location -100 -100 1
+}
+Background {
+   skyColor [
+   0.0 0.1 0.8,
+   0.0 0.5 1.0,
+   1.0 1.0 1.0]
+   skyAngle [0, 1.571]
+}
+Viewpoint   {  orientation 0.25 -0.4 -0.8 2  position 0 0  1   }
