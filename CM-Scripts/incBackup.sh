@@ -28,16 +28,15 @@ BACKUPDIR=/www/CVS_Backup
 # Abbreviation of the day for a full backup
 # Note: This depends on language settings, 
 # for Example (LANG=en) Sun Mon Tue Wed Thu Fri Sat
-FULLDAY="Tue"
+FULLDAY="Thu"
 
 ###
 ###  Rarely used options
 ###
 
-# name and locaction of tar
+# name and locaction of tar. It must be a gnu tar which supports
+# incremental backups by the switch -g.
 TAR=/bin/tar                    
-
-TIMEDIR=$BACKUPDIR/last-full    
 
 ###
 ### IMPLEMENTATION PART
@@ -50,50 +49,57 @@ DOW=`date +%a`                        # Day of the week e.g. Mon
 DOM=`date +%d`                        # Date of the Month e.g. 27
 DM=`date +%d%b`                       # Date and Month e.g. 27Sep
 
-# On the 1st of the month a permanet full backup is made
 # At FULLDAY a full backup is made - If this task is successfull, the
-# last full backup will be removed.
+# last full backup will be replaced.
+#
 # The rest of the time an incremental backup is made. Each incremental
 # backup overwrites last weeks incremental backup of the same day.
 #
-# if NEWER = "", then tar backs up all files in the directories
-# otherwise it backs up files newer than the NEWER date. NEWER
-# gets it date from the file written every Sunday.
+# To do: Avoid that other processes access the file system subtrees which
+#        are visited by tar.
+#
+#        Multiple tar volumes
+#
+#        Other backup schemes than 7/1
 
-incFile="$TIMEDIR/$PREFIX-full-date"
-# Monthly full backup, replaces the backup of the last month.
-if [ "$DOM" = "01" ]; then
-  NEWER=""
-  $TAR $NEWER -cpf $BACKUPDIR/tmp-$PREFIX-$DM-full-monthly.tar $DIRECTORIES
-  rc=$?
-  if [ $rc -ne 0 ]; then 
-    echo -e "Error during creation of the monthly full backup."
-  else
-    rm -f $BACKUPDIR/$PREFIX-*-full-monthly.tar
-    mv $BACKUPDIR/tmp-$PREFIX-$DM-full-monthly.tar $BACKUPDIR/$PREFIX-$DM-full-monthly.tar
-  fi	  
-fi
+incFile="$BACKUPDIR/$PREFIX-snapshot.info"
+overWriteFlag="$BACKUPDIR/$PREFIX-no-inc-overwrite"
 
 # Weekly full backup
 if [ "$DOW" = "$FULLDAY" ]; then
 
-  # Update full backup date
-  $TAR -g $incFile -cpf $BACKUPDIR/tmp-$PREFIX-$DOW-full-weekly.tar $DIRECTORIES
+  # Create a new full backup
+  # Delete $incFile and create a new full backup 
+  # If this is successfull, replace the old full backup
+  # by the new one otherwise prevent to overwrite the daily incremental
+  # backups
+  fullFile=$BACKUPDIR/$PREFIX-$DOW-full-weekly.tar
+  tmpFile=$fullFile-tmp$$
+  tmpInc=$incFile-tmp$$
+  $TAR -g $tmpInc -cpf $tmpFile $DIRECTORIES
   rc=$?
   if [ $rc -ne 0 ]; then 
-    echo -e "Error during creation of the weekly full backup."
+    echo -e "Error during creation of the weekly full backup. Please check $BACKUPDIR"
+    touch $overWriteFlag
   else
-    rm -f $BACKUPDIR/tmp-$PREFIX-$DOW-full-weekly.tar
-    mv $BACKUPDIR/tmp-$PREFIX-$DOW-full-weekly.tar $BACKUPDIR/$PREFIX-$DOW-full-weekly.tar
+    mv $tmpFile $fullFile
+    mv $tmpInc $incFile
+    rm $overWriteFlag
   fi	  
 
   # Make incremental backup - overwrite the last weeks one
 else
 
-  $TAR -g $incFile -cpf $BACKUPDIR/$PREFIX-$DOW.tar $DIRECTORIES
+  dailyFile=$BACKUPDIR/$PREFIX-$DOW
+  if [ -e  $overWriteFlag ]; then
+    dailyFile=$dailyFile-$DM 
+  fi 
+  dailyFile=$dailyFile.tar	  
+
+  $TAR -g $incFile -cpf $dailyFile  $DIRECTORIES
   rc=$?
   if [ $rc -ne 0 ]; then 
-    echo -e "Error during creation of a daily incremental backup."
+    echo -e "Error during creation of a daily incremental backup. Please check $BACKUPDIR"
   fi
 fi
 
