@@ -11,8 +11,6 @@ import java.util.*;
  */
 public class TriRepUtil
 {
-    public static boolean debugging=false;
-    public static boolean debuggingWarnings=true;
     
     /**
      * Checks whether the points p1 and p2 are on the same side of the line
@@ -131,15 +129,11 @@ public class TriRepUtil
      */
     public static LineWA[] convexHull(LineWA[] lt)
     {
-        if(TriRepUtil.debugging)
+        //      System.out.println("convexHull bekommt:");
+        for(int i=0;i<lt.length;i++)
         {
-            System.out.println("convexHull bekommt:");
-            for(int i=0;i<lt.length;i++)
-            {
-                   System.out.println(lt[i]);
-            }
+            //   System.out.println(lt[i]);
         }
-        
         int minpoint, miny, minx, tmpx, tmpy;
         Stack unfinishedhull;
         int a, index,side, counter,i;
@@ -149,7 +143,7 @@ public class TriRepUtil
         
         // Test length. Any object with three or fewer points is guaranteed
         // to be convex
-        if (lt.length <= 3) return(lt);
+        // if (lt.length <= 3) return(lt);
         
         // Find the point with the lowest y coordinate.
         // If several points have the minimum y-coordinate, pick the one with the
@@ -168,6 +162,9 @@ public class TriRepUtil
                 index = a;
             }
         }
+        
+        System.out.print("Have found minimum y: ");
+        System.out.println(index);
         // Swaps the minimum point with the first point.
         tmp = lt[0];
         lt[0] = lt[index];
@@ -185,55 +182,10 @@ public class TriRepUtil
         
         // Sort the points with respect to the angle
         Arrays.sort(lt);
-        if(TriRepUtil.debugging)
+        //   System.out.println("Sorted:");
+        for(int j=0;j<lt.length;j++)
         {
-            System.out.println("Sorted:");
-            for(int j=0;j<lt.length;j++)
-            {
-                System.out.println(lt[j]);
-            }
-        }
-        Vector tmpvec = new Vector();
-        tmpvec.add(lt[0]);
-        for (i = 1; i < lt.length; i++) {
-            if (Math.abs(((LineWA) tmpvec.elementAt(tmpvec.size() - 1)).angle - lt[i].angle) > 0.01) {
-                tmpvec.add(lt[i]);
-            } else {
-                tmpx = lt[0].x - lt[i].x;
-                tmpy = lt[0].y - lt[i].y;
-                double distli = Math.sqrt(tmpx * tmpx + tmpy * tmpy);
-                tmpx = lt[0].x - ((LineWA) tmpvec.elementAt(tmpvec.size() - 1)).x;
-                tmpy = lt[0].y - ((LineWA) tmpvec.elementAt(tmpvec.size() - 1)).y;
-                double disttmp = Math.sqrt(tmpx * tmpx + tmpy * tmpy);
-                if (distli > disttmp) {
-                    tmpvec.remove(tmpvec.size() - 1);
-                    tmpvec.add(lt[i]);
-                }
-            }
-        }
-        if(tmpvec.size()<3)
-            return(lt);
-        lt=new LineWA[tmpvec.size()];
-        for (i = 0; i < tmpvec.size(); i++) {
-            lt[i] = (LineWA) tmpvec.elementAt(i);
-        }      
-        
-        if(TriRepUtil.debugging)
-        {
-            System.out.println("nach Löschen:");
-            for(int j=0;j<lt.length;j++)
-            {
-                System.out.println(lt[j]);
-            }
-        }
-        Arrays.sort(lt);
-        if(TriRepUtil.debugging)
-        {
-            System.out.println("Sorted2:");
-            for(int j=0;j<lt.length;j++)
-            {
-                System.out.println(lt[j]);
-            }
+            //      System.out.println(lt[j]);
         }
         // Use graham scan to create convex hull
         unfinishedhull = new Stack();
@@ -296,13 +248,10 @@ public class TriRepUtil
     }*/
         finishedhull = new LineWA[unfinishedhull.size()];
         unfinishedhull.toArray(finishedhull);
-        if(TriRepUtil.debugging)
+        System.out.println("convexHull erzeugt:");
+        for( i=0;i<finishedhull.length;i++)
         {
-            System.out.println("convexHull erzeugt:");
-            for( i=0;i<finishedhull.length;i++)
-            {
-                System.out.println(finishedhull[i]);
-            }
+            System.out.println(finishedhull[i]);
         }
         return(finishedhull);
     }
@@ -390,36 +339,28 @@ public class TriRepUtil
         return(area);
     }
     
-    public static double getSingleHausdorffDistance(LineWA obj1,LineWA[] obj2)
+    /**
+     * Finds the overlap between two polygons represented by point lists.
+     * Uses the java.awt.geom.Area class to compute intersection
+     * between two area features.
+     *
+     * @param obj1 The first polygon represented as a LineWA array.
+     * @param obj2 The second polygon represented as a LineWA array.
+     *
+     * @return An array containing two <code>double</code>values. The first
+     *         is the percentage of <i>obj1</i> that <i>obj2</i> overlaps,
+     *         and the second is the percentage of <i>obj2</i> that
+     *         <i>obj1</i> overlaps.
+     */
+    public static double[] findOverlap(LineWA[] obj1, LineWA[] obj2)
     {
-        double res=(obj1.x-obj2[0].x)*(obj1.x-obj2[0].x)+(obj1.y-obj2[0].y)*(obj1.y-obj2[0].y);
-        for(int i=1;i<obj2.length;i++)
-        {
-            res=Math.min(res,(obj1.x-obj2[i].x)*(obj1.x-obj2[i].x)+(obj1.y-obj2[i].y)*(obj1.y-obj2[i].y));
-        }
-        return(Math.sqrt(res));
-    }
-    
-    public static double getHausdorfDistance(LineWA[] obj1, LineWA[] obj2)
-    {
-        double res=0;
-        for(int i=0;i<obj1.length;i++)
-        {
-            res=Math.max(res,getSingleHausdorffDistance(obj1[i],obj2));
-        }
-        return(res);
-    }
-    
-    public static double getSingleOverlap(LineWA[] obj1, LineWA[] obj2)
-    {
-        
-        double areaovr;
+        double areaovr, a1, a2;
         PathIterator path;
         Area area1, area2;
         Polygon p1, p2;
         int a, type;
         double[] coords;
-        
+        double[] overlaps;
         double initx, inity, prevx, prevy;
         
         // Creating the polygons
@@ -476,34 +417,22 @@ public class TriRepUtil
             path.next();
         }
         areaovr = Math.abs(areaovr);
-        return(areaovr);
-    }
-    
-    /**
-     * Finds the overlap between two polygons represented by point lists.
-     * Uses the java.awt.geom.Area class to compute intersection
-     * between two area features.
-     *
-     * @param obj1 The first polygon represented as a LineWA array.
-     * @param obj2 The second polygon represented as a LineWA array.
-     *
-     * @return An array containing two <code>double</code>values. The first
-     *         is the percentage of <i>obj1</i> that <i>obj2</i> overlaps,
-     *         and the second is the percentage of <i>obj2</i> that
-     *         <i>obj1</i> overlaps.
-     */
-    public static double[] findOverlap(LineWA[] obj1, LineWA[] obj2)
-    {
-        double areaovr=getSingleOverlap(obj1,obj2);
-        double a1 = (double)findArea(obj1);
-        double a2 = (double)findArea(obj2);
-        double[] overlaps = new double[2];
+        a1 = (double)findArea(obj1);
+        a2 = (double)findArea(obj2);
+    /*    System.out.println(areaovr);
+    System.out.println(a1);
+    System.out.println(a2);
+    System.out.println("Overlaps in per cent");
+    System.out.println((areaovr/a1)*100);
+    System.out.println((areaovr/a2)*100);
+    System.out.println();*/
+        overlaps = new double[2];
         overlaps[0]=(areaovr/a1)*100;
         overlaps[1]=(areaovr/a2)*100;
         return(overlaps);
     }
     
-    /** double[] overlaps;
+    /**
      * This function computes the distance between two polygons by computing
      * the smallest convex hull containing both polygons and then computing
      * how much each of the polygons overlap with this convex hull.
@@ -543,310 +472,6 @@ public class TriRepUtil
         overlaps[0] = (area1/areach)*100;
         overlaps[1] = (area2/areach)*100;
         return(overlaps);
-    }
-    
-    public static LineWA getClosestBoundaryPoint(LineWA lineA,LineWA lineB, LineWA[] poly)
-    {
-        Vector intersections=new Vector();
-        for(int i=0;i< poly.length;i++)
-        {
-            if(TriRepUtil.PointOnLine(poly[i],lineA,lineB))
-                intersections.add(poly[i]);
-            //LineWA inter=TriRepUtil.getIntersection(lineA,lineB,poly[i],poly[(i+1)%poly.length]);
-            //if(inter!=null)
-//                intersections.add(inter);
-        }
-        if(intersections.size()==0)
-            return(null);
-        if(intersections.size()==1)
-            return((LineWA)intersections.elementAt(0));
-        int minSquareDist=Integer.MAX_VALUE;
-        int minIndex=0;
-        for(int i=0;i<intersections.size();i++)
-        {
-            LineWA tmp=(LineWA)intersections.elementAt(i);
-            int squareDist=(tmp.x-lineA.x)*(tmp.x-lineA.x)+(tmp.y-lineA.y)*(tmp.y-lineA.y);
-            if(squareDist<minSquareDist)
-            {
-                minSquareDist=squareDist;
-                minIndex=i;
-            }
-        }
-        return((LineWA)intersections.elementAt(minIndex));
-    }
-    
-    public static LineWA getclosestIntersection(LineWA lineA,LineWA lineB, LineWA[] poly)
-    {
-        Vector intersections=new Vector();
-        for(int i=0;i< poly.length;i++)
-        {
-            LineWA inter=TriRepUtil.getIntersection(lineA,lineB,poly[i],poly[(i+1)%poly.length]);
-            if(inter!=null)
-                intersections.add(inter);
-        }
-        if(intersections.size()==0)
-            return(null);
-        if(intersections.size()==1)
-            return((LineWA)intersections.elementAt(0));
-        int minSquareDist=Integer.MAX_VALUE;
-        int minIndex=0;
-        for(int i=0;i<intersections.size();i++)
-        {
-            LineWA tmp=(LineWA)intersections.elementAt(i);
-            int squareDist=(tmp.x-lineA.x)*(tmp.x-lineA.x)+(tmp.y-lineA.y)*(tmp.y-lineA.y);
-            if(squareDist<minSquareDist)
-            {
-                minSquareDist=squareDist;
-                minIndex=i;
-            }
-        }
-        return((LineWA)intersections.elementAt(minIndex));
-    }
-    
-    public static LineWA[] getIntersections(LineWA lineA,LineWA lineB, LineWA[] poly)
-    {
-        Vector intersections=new Vector();
-        for(int i=0;i< poly.length;i++)
-        {
-            LineWA inter=TriRepUtil.getIntersection(lineA,lineB,poly[i],poly[(i+1)%poly.length]);
-            if(inter!=null)
-                intersections.add(inter);
-        }
-        LineWA[] res=new LineWA[intersections.size()];
-        for(int i=0;i<res.length;i++)
-        {
-            res[i]=(LineWA)intersections.elementAt(i);
-        }
-        return(res);
-    }
-    
-    
-    public static LineWA getIntersection(LineWA line1A,LineWA line1B,LineWA line2A,LineWA line2B)
-    {
-        int minx1,maxx1,miny1,maxy1;
-        if(line1A.x>line1B.x)
-        {
-            minx1=line1B.x;
-            maxx1=line1A.x;
-        }
-        else
-        {
-            minx1=line1A.x;
-            maxx1=line1B.x;
-        }
-        if(line1A.y>line1B.y)
-        {
-            miny1=line1B.y;
-            maxy1=line1A.y;
-        }
-        else
-        {
-            miny1=line1A.y;
-            maxy1=line1B.y;
-        }
-        if(line2A.x<minx1&&line2B.x<minx1)
-            return(null);
-        if(line2A.x>maxx1&&line2B.x>maxx1)
-            return(null);
-        if(line2A.y<miny1&&line2B.y<miny1)
-            return(null);
-        if(line2A.y>maxy1&&line2B.y>maxy1)
-            return(null);
-        LineWA res=null;
-        int xlk= line1B.x-line1A.x;
-        int ylk= line1B.y-line1A.y;
-        int xnm= line2B.x-line2A.x;
-        int ynm= line2B.y-line2A.y;
-        int xmk= line2A.x-line1A.x;
-        int ymk= line2A.y-line1A.y;
-        int det=xnm*ylk-ynm*xlk;
-        if(det==0)
-        {
-            return(null);
-        }
-        else
-        {
-            double detinv =1.0/det;
-            double s=(xnm*ymk-ynm*xmk)*detinv;
-            double t=(xlk*ymk-ylk*xmk)*detinv;
-            if(s<-0||s>1||t<-0||t>1)
-            {
-                return(null);
-            }
-            else
-            {
-                int x=(int)Math.round(line1A.x+xlk*s);
-                int y=(int)Math.round(line1A.y+ylk*s);
-                res=new LineWA(x,y);
-            }
-        }
-        return(res);
-    }
-    public static boolean PointsOnLine(LineWA[] points,LineWA lineA,LineWA lineB)
-    {
-        boolean res=false;
-        for(int i=0;i<points.length;i++)
-        {
-            if(PointOnLine(points[i],lineA,lineB))
-            {
-                res=true;
-                break;
-            }
-        }
-        return(res);
-    }
-    
-    public static boolean PointOnLine(LineWA point,LineWA lineA,LineWA lineB)
-    {
-        double failureFactor=4.5;
-        if(point.y<Math.min(lineA.y,lineB.y)-failureFactor)
-            return (false);
-        if(point.y>Math.max(lineA.y,lineB.y)+failureFactor)
-            return(false);
-        if(lineA.x==lineB.x)    //vertical Line
-        {
-            if(Math.abs(point.x-lineA.x)>failureFactor)
-                return(false);
-            else
-            {
-                return(true);
-            }
-        }
-        if(point.x<Math.min(lineA.x,lineB.x)-failureFactor)
-            return(false);
-        if(point.x>Math.max(lineA.x,lineB.x)+failureFactor)
-            return(false);
-        double m=(lineB.y-lineA.y)/(1.0*(lineB.x-lineA.x));   //<inf, cause Line not vertical
-        double b=lineA.y-m*lineA.x;                         //line has the form: y=m*x+b
-        boolean res=false;
-        if(Math.abs(point.y-(point.x*m+b))<failureFactor)
-            res=true;
-        return(res);
-    }
-    
-    public static boolean PointOnBoundary(LineWA[] poly,LineWA point)
-    {
-        for(int i=0;i<poly.length;i++)
-        {
-            if(TriRepUtil.PointOnLine(point,poly[i],poly[(i+1)%poly.length]))
-                return(true);
-        }
-        return(false);
-    }
-    
-    public static double getRectangularDistance(LineWA lineA,LineWA lineB,LineWA point)
-    {
-        int xkj=lineA.x-point.x;
-        int ykj=lineA.y-point.y;
-        int xlk=lineB.x-lineA.x;
-        int ylk=lineB.y-lineA.y;
-        int denom=xlk*xlk+ylk*ylk;
-        if(denom==0)
-        {
-            return(Math.sqrt(xkj*xkj+ykj*ykj));
-        }
-        double t=(-1.0*(xkj*xlk+ykj*ylk))/(denom*1.0);
-        if(t<0||t>1)
-            return(Double.NaN);
-        double xfac=xkj+t*xlk;
-        double yfac=ykj+t*ylk;
-        double res=Math.sqrt(xfac*xfac+yfac*yfac);
-        
-        if((lineB.x-lineA.x)*(point.y-lineA.y)-(point.x-lineA.x)*(lineB.y-lineA.y)>0)
-            res=res*-1;
-        return res;
-    }
-    
-    
-    public static LineWA[] joinLinelists(LineWA[] first,LineWA[]second)
-    {
-        if(TriRepUtil.debugging)
-        {
-            System.out.println("JoinLininList");
-            for(int i=0;i<first.length;i++)
-            {
-                System.out.println(first[i]);
-            }
-            System.out.println();
-
-            for(int i=0;i<second.length;i++)
-            {
-                System.out.println(second[i]);
-            }
-        }
-        try
-        {
-            double area=TriRepUtil.getArea(first);
-            if(area<0)
-            {
-                LineWA[] tmplistrev = new LineWA[first.length];
-                for (int i=0;i<first.length;i++)
-                {
-                    tmplistrev[first.length-i-1]=first[i];
-                }
-                first=tmplistrev;
-            }
-            area=TriRepUtil.getArea(second);
-            if(area>0)
-            {
-                LineWA[] tmplistrev = new LineWA[second.length];
-                for (int i=0;i<second.length;i++)
-                {
-                    tmplistrev[second.length-i-1]=second[i];
-                }
-                second=tmplistrev;
-            }
-            Vector resV=new Vector();
-            int startIndex=0;
-            while(TriRepUtil.PointOnBoundary(second,first[startIndex]))
-                startIndex++;
-            int i=startIndex;
-            while(!TriRepUtil.PointsOnLine(second,first[i],first[i+1]))
-            {
-                resV.add(first[i]);
-                i++;
-            }
-            LineWA inter=TriRepUtil.getClosestBoundaryPoint(first[i-1],first[i],second);
-            int j=0;
-            while(!second[j].equals(inter))
-                j++;
-            resV.add(second[j]);
-            j=(j+1)%second.length;
-            // inter=TriRepUtil.getClosestBoundaryPoint(second[j],second[(j+1)%second.length],first);
-            while(!TriRepUtil.PointOnBoundary(first,second[j]))
-            {
-                resV.add(second[j]);
-                j=(j+1)%second.length;
-            }
-            resV.add(second[j]);
-            while(TriRepUtil.PointOnBoundary(second,first[i]))
-            {
-                i++;
-            }
-            for(;i<first.length;i++)
-            {
-                resV.add(first[i]);
-            }
-            for(i=0;i<startIndex;i++)
-            {
-                resV.add(first[i]);
-            }
-            LineWA[] res=new LineWA[resV.size()];
-            for(i=0;i<resV.size();i++)
-            {
-                res[i]=(LineWA)resV.elementAt(i);
-            }
-            return(res);
-        }
-        catch(NullPointerException e)
-        {
-            return(first);
-        }
-    }
-    
-    public  static LineWA getIntersection(LineWA[] line1,LineWA[] line2)
-    {
-        return(getIntersection(line1[0],line1[1],line2[0],line2[1]));
     }
     
 //    /**
@@ -1081,6 +706,10 @@ public class TriRepUtil
         for (int a=0;a<lines.length;a++)
         {
             System.out.println(lines[a]);
+//            System.out.print("X: ");
+//            System.out.print(lines[a].x);
+//            System.out.print("   Y: ");
+//            System.out.println(lines[a].y);
         }
     }
     
@@ -1152,13 +781,6 @@ public class TriRepUtil
             outline[n].y+=dy;
         }
     }
-    
-    public static double getDiameter(LineWA[] Poly)
-    {
-        LineWA[][]tmp= new LineWA[1][];
-        tmp[0]=Poly;
-        return(getMaxDistance2(tmp));
-    }
     public static double getMaxDistance2(LineWA[][] Polys)
     {
         long sTime=System.currentTimeMillis();
@@ -1195,8 +817,7 @@ public class TriRepUtil
                     tmpdist=x*x+y*y;
             }*/
         }
-        if(TriRepUtil.debugging)
-            System.out.println("Besser brauchte"+(System.currentTimeMillis()-sTime)+"ms");
+        System.out.println("Besser brauchte"+(System.currentTimeMillis()-sTime)+"ms");
         return(Math.sqrt(tmpdist));
     }
     
@@ -1251,9 +872,21 @@ public class TriRepUtil
                     tmpdist=x*x+y*y;
             }
         }
-        if(TriRepUtil.debugging)
-            System.out.println("Einfach brauchte"+(System.currentTimeMillis()-sTime)+"ms");
+        System.out.println("Einfach brauchte"+(System.currentTimeMillis()-sTime)+"ms");
         return(Math.sqrt(tmpdist));
     }
+    
+    public static void main(String[] arg)
+    {
+        LineWA[] test=new LineWA[4];
+        test[0]=new LineWA(550,297);
+        test[1]=new LineWA(501,216);
+        test[2]=new LineWA(484,157);
+        test[3]=new LineWA(465,93);
+        
+        TriRepUtil.convexHull(test);
+        
+    }
+    
     
 }

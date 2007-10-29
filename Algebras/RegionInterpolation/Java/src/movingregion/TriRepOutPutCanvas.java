@@ -1,6 +1,7 @@
 package movingregion;
 
 import java.awt.*;
+import java.awt.event.*;
 import javax.swing.*;
 
 
@@ -13,6 +14,8 @@ public class TriRepOutPutCanvas extends JPanel
     public TriRepOutPutCanvas(mLineRep tr,int timeShift)
     {
         super();
+        int[] pointinfo;
+        int y1,x1, nopoints;
         trirep = tr;
         maxy = 0;
         maxx = 0;
@@ -45,7 +48,7 @@ public class TriRepOutPutCanvas extends JPanel
         return(new Dimension(maxx+10,maxy+10));
     }
     
-    private void paintPoint(Graphics g,PointWNL p)
+    public void paintPoint(Graphics g,PointWNL p)
     {
         if(p.t==0)
             g.setColor(Color.blue);
@@ -60,7 +63,7 @@ public class TriRepOutPutCanvas extends JPanel
         g.fillOval(x-2,y-2,4,4);
     }
     
-    private void paintLine(Graphics g , PointWNL p1, PointWNL p2)
+    public void paintLine(Graphics g , PointWNL p1, PointWNL p2)
     {
         if(p1.t!=p2.t)
             g.setColor(Color.gray);
@@ -77,8 +80,8 @@ public class TriRepOutPutCanvas extends JPanel
     
     public void paint(Graphics g)
     {
-        g.setColor(Color.WHITE);
-        g.fillRect(0,0,this.getWidth(),this.getHeight());                
+        g.clearRect(0,0,this.getWidth(),this.getHeight());
+        
         for(int i=0;i<trirep.triangles.size();i++)
         {
             this.paintLine(g,trirep.getTriangle(i).p1,trirep.getTriangle(i).p2);

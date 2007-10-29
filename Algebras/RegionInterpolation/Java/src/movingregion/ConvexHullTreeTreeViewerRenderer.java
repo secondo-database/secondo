@@ -12,8 +12,10 @@ package movingregion;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.TreeNode;
 import java.awt.*;
 import javax.swing.*;
+import java.util.*;
 /**
  *
  * @author java
@@ -68,10 +70,11 @@ public class ConvexHullTreeTreeViewerRenderer extends DefaultTreeCellRenderer
         
         if(sel)
         {
-            if(!expanded)
-            {
-                tree.expandRow(row);
-            }
+            //if(!expanded)
+            //{
+             //   tree.expandRow(row);
+              //  System.out.println("Expand"+row);
+            //}
             setBackground(Color.ORANGE);
         }
         return this;

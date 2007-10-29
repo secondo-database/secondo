@@ -171,7 +171,8 @@ public class ConPolygon
         int d=(p1x-q1x)*(q2y-q1y)+(p1y-q1y)*(q1x-q2x);
         int f=(q2x-q1x)*(p2y-p1y)+(q2y-q1y)*(p1x-p2x);
         int e=(p1x-q1x)*(p2y-p1y)+(p1y-q1y)*(p1x-p2x);
-
+        // System.out.println("("+p1x+";"+p1y+")("+p2x+";"+p2y+")("+q1x+";"+q1y+")("+q2x+";"+q2y+")");
+        //System.out.println(d+" e"+e+" f"+f);
         if ( f  > 0 )
         {
             if(d < 0 || d > f ) return false;
@@ -184,6 +185,7 @@ public class ConPolygon
         }
         else
             if (e > 0 || e < f ) return false;
+        //System.out.println("TRUE");
         return true;
     }
     
@@ -313,6 +315,7 @@ public class ConPolygon
                             {
                                 if(this.getNrOfIndex(getIndexAt(i))<2)
                                 {
+//                                    System.out.println("adde an: "+this.getVertexAt(i)+" "+holes[k].getVertexAt(j));
                                     this.addHoleAt(holes[k],i,j);
                                     break all;
                                 }
@@ -321,6 +324,7 @@ public class ConPolygon
                     }
                 }
         }
+//        System.out.println("get "+this);
     }
     
     

@@ -1,4 +1,5 @@
 import java.awt.*;
+import java.awt.event.*;
 import javax.swing.*;
 import movingregion.MCIContents;
 
@@ -11,7 +12,7 @@ public class MCInterpolator {
     mcicont = new MCIContents();
     mcicont.init();
     dispwindow.getContentPane().add(mcicont,BorderLayout.CENTER);
-    dispwindow.setSize(800,600);    
+    dispwindow.setSize(500,500);    
     dispwindow.setVisible(true);
   }
 }

@@ -20,13 +20,11 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     JScrollPane Scroll;
     ConvexHullTreeViewer myParent;
     boolean enabled=true;
-    private int heig;
-    private int wid;
     
     /** Creates new form ConvexHullTreeTreeViewer */
     public ConvexHullTreeTreeViewer(ConvexHullTreeNode node,ConvexHullTreeViewer myParent)
     {
-        this.setBackground(Color.MAGENTA);
+        
         this.myParent=myParent;
         DefaultMutableTreeNode root=createNode(node);
         myTree=new JTree(root);
@@ -40,7 +38,6 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     
     public ConvexHullTreeTreeViewer(Region region,ConvexHullTreeViewer myParent)
     {
-        this.setBackground(Color.MAGENTA);
         this.myParent=myParent;
         DefaultMutableTreeNode root=createRegion(region);
         myTree=new JTree(root);
@@ -62,9 +59,11 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
                 RegionTreeNode[] res=new RegionTreeNode[tmp.length];
                 for(int i=0;i<tmp.length;i++)
                 {
+//                    System.out.println(i+" "+tmp[i].getLastPathComponent());
                     Object test2=tmp[i].getLastPathComponent();
                     DefaultMutableTreeNode test=(DefaultMutableTreeNode)(test2);
                     res[i]=(RegionTreeNode)test.getUserObject();
+//                    System.out.println("OK");
                 }
                 myParent.changeSelection(res);
             }
@@ -74,6 +73,7 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     
     public static DefaultMutableTreeNode createRegion(Region region)
     {
+//        System.out.println("region mit "+region.getNrOfFaces()+" Faces");
         DefaultMutableTreeNode res=new DefaultMutableTreeNode();
         res.setUserObject(region);
         for(int i=0;i<region.getNrOfFaces();i++)
@@ -86,6 +86,7 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     
     public static DefaultMutableTreeNode createFace(Face face)
     {
+//        System.out.println("CHN mit "+face.getCycle().getOutLine().length+" Ecken");
         DefaultMutableTreeNode res=new DefaultMutableTreeNode();
         res.setUserObject(face);
         res.add(createNode(face.getCycle()));
@@ -99,6 +100,7 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     
     public static DefaultMutableTreeNode createNode(ConvexHullTreeNode node)
     {
+//        System.out.println("CHN mit "+node.getOutLine().length+" Ecken");
         DefaultMutableTreeNode res=new DefaultMutableTreeNode();
         res.setUserObject(node);
         ConvexHullTreeNode[] tmp=node.getChildren();
@@ -112,7 +114,8 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     
     public void setActual(RegionTreeNode[] actual)
     {
-        enabled=false;       
+        enabled=false;
+        //System.out.println(myTree.getSelectionPath());
         myTree.clearSelection();
         if(actual!=null)
         {
@@ -122,7 +125,17 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
                 {
                     
                     TreePath path=findTreeNode(actual[i]);
+//                    System.out.println(path);
+                    //myTree.expandPath(path);
                     myTree.addSelectionPath(path);
+                    /*if(actual[i]!=null&&actual[i].equals(((DefaultMutableTreeNode)(myTree.getPathForRow(j).getLastPathComponent())).getUserObject()))
+                    {
+                        System.out.println("expand"+j+" of "+myTree.getRowCount());
+                        
+                        myTree.expandRow(j);
+                        myTree.addSelectionRow(j);         
+                        
+                    }*/
                 }
             }
         }
@@ -174,37 +187,18 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     private void initComponents()
     {
 
-        setLayout(new java.awt.GridLayout());
-
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 400, Short.MAX_VALUE)
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 300, Short.MAX_VALUE)
+        );
     }// </editor-fold>//GEN-END:initComponents
     
-    public Dimension getPreferredSize()
-    {
-        return(new Dimension(getWid(),getHeig()));
-    }
-    public Dimension getMaximumSize()
-    {
-        return(new Dimension(getWid(),getHeig()));
-    }
-    public Dimension getMinimumSize()
-    {
-        return(new Dimension(getWid(),getHeig()));
-    }
-    public int getHeig() {
-        return heig;
-    }
-
-    public void setHeig(int heig) {
-        this.heig = heig;
-    }
-
-    public int getWid() {
-        return wid;
-    }
-
-    public void setWid(int wid) {
-        this.wid = wid;
-    }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables

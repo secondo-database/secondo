@@ -6,7 +6,7 @@
 
 package movingregion;
 import java.awt.*;
-
+import javax.swing.*;
 public class oneSectionViewer extends javax.swing.JPanel
 {
     
@@ -19,10 +19,6 @@ public class oneSectionViewer extends javax.swing.JPanel
     
     public oneSectionViewer(mLineRep myTri,int time, int of)
     {
-        maxX=0;
-        maxY=0;
-        minX=Integer.MAX_VALUE;
-        minY=Integer.MAX_VALUE;
         this.myTri=myTri;
         this.time=time;
         this.of=of;
@@ -53,11 +49,8 @@ public class oneSectionViewer extends javax.swing.JPanel
     }
     
     public void paint(Graphics g)
-    {                
-        g.setColor(Color.WHITE);
-        g.fillRect(0,0,this.getWidth(),this.getHeight());        
-        g.setColor(Color.BLACK);
-        g.drawRect(0,0,this.getWidth(),this.getHeight());        
+    {
+        g.clearRect(0,0,this.getWidth(),this.getHeight());        
         g.setColor(Color.BLUE);
         LineWA[][] lines=myTri.getSection(time*1.0/of);        
         double scaleX=wid/((maxX-minX)*1.0);
@@ -79,7 +72,7 @@ public class oneSectionViewer extends javax.swing.JPanel
     }
     public Dimension getPreferredSize()
     {
-        return(new Dimension(wid,hei));
+        return(new Dimension(wid+10,hei+10));
     }
     
     /** This method is called from within the constructor to
@@ -91,8 +84,16 @@ public class oneSectionViewer extends javax.swing.JPanel
     private void initComponents()
     {
 
-        setLayout(new java.awt.GridLayout());
-
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 400, Short.MAX_VALUE)
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 300, Short.MAX_VALUE)
+        );
     }// </editor-fold>//GEN-END:initComponents
     
     

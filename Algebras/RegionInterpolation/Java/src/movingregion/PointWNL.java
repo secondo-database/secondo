@@ -8,7 +8,7 @@ import java.util.*;
      *
      * @author Erlend Tøssebro
      */
-    public class PointWNL
+    class PointWNL
     {    // Point with neighbour list
         public int x;             // x-coordinate of point
         public int y;             // y-coordinate of point
@@ -42,11 +42,6 @@ import java.util.*;
             y=py;
             t=pt;
             neighbours = new Vector();
-        }
-        
-        public int hashCode()
-        {
-            return((this.x * 165132 + this.y * 11231 + this.t * 54321) % 6654321);
         }
         
         public boolean equals(Object o)

@@ -57,17 +57,14 @@ public class ConvexHullTreeViewer extends javax.swing.JPanel
     
     public void setHei(int height)
     {
-        int height2= height-this.Scroll.getHorizontalScrollBar().getHeight();
-        polyView.setHei(height2-10);
-        treeView.setHeig(height2-10);
+        polyView.setHei(height);
     }
     
     
     public void setWid(int width)
     {
-        int width2=width-10;
-        polyView.setWid((int)Math.ceil(width2*2.0/3.0));
-        treeView.setWid((int)Math.floor(width2*1.0/3.0));
+        
+        polyView.setWid(width-300);//-this.treeView.getWidth());
     }
     
     public boolean contains(RegionTreeNode node)
@@ -84,8 +81,16 @@ public class ConvexHullTreeViewer extends javax.swing.JPanel
     private void initComponents()
     {
 
-        setLayout(new java.awt.GridLayout());
-
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 400, Short.MAX_VALUE)
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 300, Short.MAX_VALUE)
+        );
     }// </editor-fold>//GEN-END:initComponents
     
     

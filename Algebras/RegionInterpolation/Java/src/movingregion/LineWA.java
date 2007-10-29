@@ -1,6 +1,5 @@
 package movingregion;
 
-import java.io.*;
 /** 
   * This class is meant to store lines and the angle between them. The
   * class itself stores a single point and an angle. The point is the
@@ -12,11 +11,10 @@ import java.io.*;
   *
   * @author Erlend Tøssebro
   */
-public class LineWA implements Comparable ,Serializable{
+public class LineWA implements Comparable {
   public int x;          // The x-coordinate of the point
   public int y;          // The y-coordinate of the point
   public double angle;   // The angle between the last and next lines.
-  static final long serialVersionUID = 7965461305176575190L;
 
   /**
     * Constructor without parameters. This constructor initializes all
@@ -85,11 +83,6 @@ public class LineWA implements Comparable ,Serializable{
     return(-1);
   }
 
-  public int hashCode()
-  {
-      return((this.x * 4213 + this.y * 133326 + (int)(Math.floor(this.angle * 132451))) % 13542347);
-  }
-  
   /** 
     * Tests equality of two <code>LineWA</code> objects. These objects are 
     * equal if they have the same position.
@@ -108,7 +101,6 @@ public class LineWA implements Comparable ,Serializable{
   }
   public String toString()
   {
-      return("Line in ("+x+";"+y+") with "+angle+"°");
-      //return(+x+";"+y);
+      return("Line in ("+x+";"+y+") with "+Math.toDegrees(angle)+"°");
   }
 }

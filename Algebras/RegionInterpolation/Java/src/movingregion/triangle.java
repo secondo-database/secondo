@@ -17,19 +17,15 @@ public class triangle
 {
     
     
-    public triangle(PointWNL p1, PointWNL p2, PointWNL p3, int faceNr, int cycleNr)
+    public triangle(PointWNL p1, PointWNL p2, PointWNL p3)
     {
         this.p1=p1;
         this.p2=p2;
         this.p3=p3;
-        this.faceNr=faceNr;
-        this.cycleNr=cycleNr;
     }
     PointWNL p1;
     PointWNL p2;
     PointWNL p3;
-    int faceNr;
-    int cycleNr;
     
     /** Creates a new instance of triangle */
     public triangle()

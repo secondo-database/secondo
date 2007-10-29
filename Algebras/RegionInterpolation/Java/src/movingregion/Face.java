@@ -3,149 +3,18 @@ package movingregion;
 import java.util.*;
 import java.awt.*;
 import java.io.*;
-public class Face implements RegionTreeNode,Cloneable, Serializable 
+public class Face implements RegionTreeNode
 {
-    static final long serialVersionUID = -6107459580342391919L; 
+    
     ConvexHullTreeNode Cycle;
     Vector Holes;
-    Region parent;
-    int sourceOrTarget;
     
-    public Face(LineWA[] linelist,Region parent, int sourceOrTarget)
+    public Face(LineWA[] linelist)
     {
-        Cycle=new ConvexHullTreeNode(linelist,0,this, sourceOrTarget);
+        Cycle=new ConvexHullTreeNode(linelist,0,this);
         Holes=new Vector();
-        this.parent=parent;
-    }
-    public void removeHole(ConvexHullTreeNode toDelete)
-    {
-        this.Holes.remove(toDelete);
-    }
-    public Region getParent()
-    {
-        return(parent);
     }
     
-    public void setParent(Region parent)
-    {
-        this.parent=parent;
-    }
-
-    public void setSourceOrTarget(int sourceOrTarget)
-    {
-        this.sourceOrTarget=sourceOrTarget;
-        this.Cycle.setSourceOrTarget(sourceOrTarget);
-        for(int i=0;i<this.getNrOfHoles();i++)
-        {
-            this.getHole(i).setSourceOrTarget(sourceOrTarget);
-        }
-    }
-    
-    protected Object clone() 
-    {
-        Face res=new Face(Cycle.getLines(),this.getParent(), sourceOrTarget);
-        //res.setCycle((ConvexHullTreeNode)this.Cycle.clone());
-        for(int i=0;i<this.getNrOfHoles();i++)
-        {
-            res.addHole(this.getHole(i).getLines());
-        }
-        return(res);
-    }
-   
-    public void concavity2Hole(ConvexHullTreeNode con)
-    {
-        this.Cycle.removeChild(con);
-        con.setHole(true);
-        this.Holes.add(con);
-    }
-    
-    public Face splitOnLine(LineWA[] splitLine)
-    {
-        LineWA[][]resSplit=this.Cycle.getSplitNodes(splitLine);
-        if(resSplit==null||resSplit[1]==null)
-            return(null);
-        
-        Polygon cycle1=new Polygon();
-        for(int i=0;i<resSplit[0].length;i++)
-        {
-            cycle1.addPoint(resSplit[0][i].x,resSplit[0][i].y);
-        }
-        
-        Polygon cycle2=new Polygon();
-        for(int i=0;i<resSplit[1].length;i++)
-        {
-            cycle2.addPoint(resSplit[1][i].x,resSplit[1][i].y);
-        }
-        Vector stillHoles=new Vector();
-        Vector newCons=new Vector();
-        for(int i=0;i< this.getNrOfHoles();i++)
-        {
-            LineWA[][] tmpHole=this.getHole(i).getSplitNodes(splitLine);
-            if(tmpHole==null||tmpHole[1]==null)
-                stillHoles.add(this.getHole(i));
-            else
-            {
-                newCons.add(tmpHole[0]);
-                newCons.add(tmpHole[1]);
-            }
-        }        
-        for(int i=0;i<newCons.size();i++)
-        {
-            LineWA[] holePoints=(LineWA[])newCons.elementAt(i);
-            int j=0;
-            while(TriRepUtil.PointOnBoundary(resSplit[0],holePoints[j]))
-            {
-                j++;
-            }
-            if(cycle1.contains(new Point(holePoints[j].x,holePoints[j].y)))
-            {
-                try
-                {
-                    resSplit[0]=TriRepUtil.joinLinelists(resSplit[0],holePoints);       
-                }
-                catch(Exception e)
-                {
-                    if(TriRepUtil.debuggingWarnings)
-                        System.out.println("Problem bei joinLineList1 "+e.getMessage());
-                    return(null);
-                }
-            }
-            else
-            {
-                try
-                {
-                    resSplit[1]=TriRepUtil.joinLinelists(resSplit[1],holePoints);       
-                }
-                catch(Exception e)
-                {
-                    if(TriRepUtil.debuggingWarnings)
-                        System.out.println("Problem bei joinLineList2 "+e.getMessage());
-                    return(null);
-                }
-            }
-        }
-        this.Holes=new Vector();
-        this.Cycle=new ConvexHullTreeNode(resSplit[0],0,this, sourceOrTarget);        
-        Face res=new Face(resSplit[1],this.getParent(), sourceOrTarget);
-        for(int i=0;i<stillHoles.size();i++)
-        {
-            LineWA[] holePoints=((ConvexHullTreeNode)stillHoles.elementAt(i)).getLines();
-            int j=0;
-            while(TriRepUtil.PointOnBoundary(resSplit[0],holePoints[j]))
-            {
-                j++;
-            }
-            if(cycle1.contains(new Point(holePoints[j].x,holePoints[j].y)))
-            {
-                this.addHole((ConvexHullTreeNode)stillHoles.elementAt(i));                
-            }
-            else
-            {
-                res.addHole((ConvexHullTreeNode)stillHoles.elementAt(i));
-            }
-        }
-        return(res);
-    }
     public int hashCode()
     {
         int start=5132;
@@ -156,7 +25,6 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         {
             res=res+tmp[i].x+tmp[i].y;
         }
-        res=res * (this.getSourceOrTarget() + 1);
         res=res%modu;
         return (res);
     }
@@ -166,8 +34,6 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         if(o instanceof Face)
         {
             Face tmp=(Face)o;
-            if(this.getSourceOrTarget()!=tmp.getSourceOrTarget())
-                return(false);
             if(this.getNrOfHoles()!=tmp.getNrOfHoles())
                 return false;
             boolean res=Cycle.equals(tmp.getCycle());
@@ -191,37 +57,24 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         }
     }
     
-    public void addHole(ConvexHullTreeNode newHole)
-    {
-        
-        Holes.add(newHole);
-    }
+    
     
     public void addHole(LineWA[] linelist)
     {
-        Holes.add(new ConvexHullTreeNode(linelist,true,this, sourceOrTarget));
+        Holes.add(new ConvexHullTreeNode(linelist,true,this));
     }
-    
-    public int getSourceOrTarget()
-    {
-        return(this.sourceOrTarget);
-    }
-            
     public int getNrOfHoles()
     {
         return(Holes.size());
     }
-    
-    public ConvexHullTreeNode getCycle()    
+    public ConvexHullTreeNode getCycle()
     {
         return(Cycle);
     }
-    
     public ConvexHullTreeNode getHole(int index)
     {
         return((ConvexHullTreeNode)Holes.elementAt(index));
     }
-    
     public ConvexHullTreeNode[] getHolesAndConcavities()
     {
         ConvexHullTreeNode[] res=new ConvexHullTreeNode[this.getCycle().getChildren().length+this.getNrOfHoles()];
@@ -323,23 +176,11 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         fs.write("         }\n");
         fs.write("      coordIndex [\n");
         Convexer convexer=new Convexer(polycycle);
+//        System.out.println("Nächstaes Polygon:");
         convexer.writePolygone(fs,tmp);
         fs.write("      ]\n");
         fs.write("      solid FALSE\n");
         fs.write("   }\n");
         fs.write("}\n");
     }
-
-    public String toString()
-    {
-        String res="";        
-        res=res+this.getCycle();
-        for(int i=0;i< this.getNrOfHoles();i++)
-        {
-            res=res+"Holenr."+i+'\n';
-            res=res+this.getHole(i);
-        }
-        return(res);
-    }
-    
 }

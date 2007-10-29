@@ -1,8 +1,6 @@
 package movingregion;
-
+import java.awt.*;
 import java.util.*;
-import java.io.*;
-
 
 /**
  * This class represents a node in the convex hull tree. The node contains
@@ -12,9 +10,11 @@ import java.io.*;
  *
  * @author Erlend Tøssebro
  */
-public class ConvexHullTreeNode implements RegionTreeNode,Serializable
+public class ConvexHullTreeNode implements RegionTreeNode
 {
-    static final long serialVersionUID = -7832017217383957662l;
+    
+    public static final int Y_DISP = 200;
+    public static final int X_DISP = 400;
     
     /**
      * This class represents one line in the polygon stored in this
@@ -26,10 +26,10 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
      *
      * @author Erlend Tøssebro
      */
-    private class CHLine extends LineWA implements Serializable
+    private class CHLine extends LineWA
     {
         public ConvexHullTreeNode child;
-         static final long serialVersionUID =3477774149506989314l;
+        
         /**
          * Creates a new <code>CHLine</code> object from a <code>LineWA</code>
          * object.
@@ -45,50 +45,6 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
     }
     
-    private class doublePoint
-    {
-        double x;
-        double y;
-        public doublePoint(double x, double y)
-        {
-            this.x=x;
-            this.y=y;
-        }
-        public String toString()
-        {
-            return("("+x+";"+y+")");
-        }
-    }
-    
-    private class LineDist implements Comparable
-    {
-        public int x;
-        public int y;
-        public double distance;
-        public LineDist(LineWA p,double distance)
-        {
-            x=p.x;
-            y=p.y;
-            this.distance=distance;
-        }
-        public LineDist(int x,int y)
-        {
-            this.x=x;
-            this.y=y;
-            distance=0.0;
-        }
-        public int compareTo(Object o)
-        {
-            double tmp=distance-((LineDist)o).distance;
-            if (tmp>0)
-                return(1);
-            if(tmp<0)
-                return(-1);
-            return(0);
-        }
-    }
-    
-    
     // The list of lines
     private Vector linelist;
     // The list of regions which overlap this region
@@ -97,18 +53,24 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
     private int smallestpoint;
     private int smallesty;
     private int smallestx;
+//    private double min_overlap;
+//    private double min_overlap_match;
+//    private boolean matched; // Whether this object has been matched or not.
     private boolean isHole=false;
     RegionTreeNode myParent;
-    private int sourceOrTarget=0;
     /**
      * Creates an empty convex hull tree node
      */
     public ConvexHullTreeNode()
     {
-        linelist = new Vector();        
+        linelist = new Vector();
+        //overlaplist = new Vector();
         smallesty = Integer.MAX_VALUE;
         smallestx = Integer.MAX_VALUE;
         smallestpoint = -1;
+//        min_overlap = 0;
+//        min_overlap_match = 80;
+//        matched = false;
         myParent=null;
     }
     
@@ -125,20 +87,20 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
      * @param minmatch The minimum overlap required for two convex hull tree
      *                 nodes to match.
      */
-    public ConvexHullTreeNode(LineWA[] linelist,RegionTreeNode myParent, int sourceOrTarget)
+    public ConvexHullTreeNode(LineWA[] linelist,RegionTreeNode myParent)
     {
-        this(linelist,0,myParent, sourceOrTarget);
+        this(linelist,0,myParent);
     }
     
     
-    public ConvexHullTreeNode(LineWA[] linelist,boolean isHole,RegionTreeNode myParent, int sourceOrTarget)
+    public ConvexHullTreeNode(LineWA[] linelist,boolean isHole,RegionTreeNode myParent)
     {
-        this(linelist,0, isHole,myParent, sourceOrTarget);
+        this(linelist,0, isHole,myParent);
     }
     
-    public ConvexHullTreeNode(LineWA[] linelist, int level,RegionTreeNode myParent, int sourceOrTarget)
+    public ConvexHullTreeNode(LineWA[] linelist, int level,RegionTreeNode myParent)
     {
-        this(linelist,level,false,myParent, sourceOrTarget);
+        this(linelist,level,false,myParent);
     }
     
     /**
@@ -154,12 +116,11 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
      * @param minmatch The minimum overlap required for two convex hull tree
      *                 nodes to match.
      */
-    public ConvexHullTreeNode(LineWA[] linelist, int level, boolean isHole,RegionTreeNode myParent, int sourceOrTarget)
+    public ConvexHullTreeNode(LineWA[] linelist, int level, boolean isHole,RegionTreeNode myParent)
     {
         LineWA[] tmplist, convhull, childlist;
         this.myParent=myParent;
         this.isHole=isHole;
-        this.sourceOrTarget=sourceOrTarget;
         int node;
         int index1, index2, length, lastindex, noiterations;
         int indexll1, indexll2;
@@ -174,12 +135,10 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         if (level==0)
         {
             double area=TriRepUtil.getArea(linelist);
-            if(TriRepUtil.debugging)
-                System.out.println("Area="+area);
+            System.out.println("Area="+area);
             if(area<0)
             {
-                if(TriRepUtil.debugging)
-                    System.out.println("Falsche Drehrichtung");
+                System.out.println("Falsche Drehrichtung");
                 LineWA[] tmplistrev = new LineWA[linelist.length];
                 for (int i=0;i<linelist.length;i++)
                 {
@@ -190,27 +149,12 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         // Create temporary list so that convexHull() won't change the order of
         // points in the original linelist.
-        Vector tmplistVector=new Vector();
-        HashSet doubleDet=new HashSet();
-        
-        if(TriRepUtil.debugging)
-           System.out.println("Konstruiere Node Level: "+level);
+        tmplist = new LineWA[linelist.length];
+//        System.out.println("Konstruiere Node Level: "+level);
         for (int a=0;a<linelist.length;a++)
         {
-            if(doubleDet.contains(linelist[a]))
-            {
-                if(TriRepUtil.debuggingWarnings)
-                    System.out.println("Doppelten Punkt: "+linelist[a]+" in Linelist gelöscht");
-            }
-            else
-            {
-                tmplistVector.add(linelist[a]);            
-            }
-        }
-        tmplist = new LineWA[tmplistVector.size()];
-        for(int i=0;i<tmplistVector.size();i++)
-        {
-            tmplist[i] = (LineWA) tmplistVector.elementAt(i);
+            tmplist[a] = linelist[a];
+//            System.out.println(tmplist[a]);
         }
         // Find the convex hull
         convhull = TriRepUtil.convexHull(tmplist);
@@ -286,48 +230,12 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
                         childlist[length-b-1] = linelist[b+indexll1-linelist.length];
                     }
                 }
-                insertChild(index1, new ConvexHullTreeNode(childlist, level+1,this.isHole,this, sourceOrTarget));
+                insertChild(index1, new ConvexHullTreeNode(childlist, level+1,this.isHole,this));
             }
             index1 = index2;
             indexll1 = indexll2;
         }
     }
-    
-//    public ConvexHullTreeNode addChild(LineWA[] newChild)
-//    {
-//        ConvexHullTreeNode newNode=new ConvexHullTreeNode(newChild,1,this.isHole(),this);       //@TODO bloody Hack
-//        LineWA[] thisOutline=this.getOrderedOutLine();
-//        LineWA[] newOutline=newNode.getOrderedOutLine();
-//        int insertIndex;
-//        for(int i=0;i< thisOutline.length;i++)
-//        {
-//            for(int j=0;j<newOutline.length;j++)
-//            {
-//                if(thisOutline[i].equals(newOutline[j]))
-//                {
-//                    if(thisOutline[(i+1)%thisOutline.length].equals(newOutline[(j+1)%newOutline.length]))
-//                    {
-//                        ((CHLine)this.linelist.elementAt(i)).child=newNode;
-//                        return(newNode);
-//                    }
-//                    if(TriRepUtil.PointOnLine(newOutline[(j+1)%newOutline.length],thisOutline[i],thisOutline[(i+1)%thisOutline.length]))
-//                    {
-//                        ((CHLine)this.linelist.elementAt(i)).child=newNode;
-//                        this.linelist.insertElementAt(new CHLine(newOutline[(j+1)%newOutline.length]),i+1);                        
-//                        return(newNode);
-//                    }
-//                    if(TriRepUtil.PointOnLine(newOutline[(j-1+newOutline.length)%newOutline.length],thisOutline[i],thisOutline[(i-1+thisOutline.length)%thisOutline.length]))
-//                    {
-//                        ((CHLine)this.linelist.elementAt((i-1+thisOutline.length)%thisOutline.length)).child=newNode;
-//                        this.linelist.insertElementAt(new CHLine(newOutline[(j-1+newOutline.length)%newOutline.length]),(i-1+thisOutline.length)%thisOutline.length);                        
-//                        return(newNode);
-//                    }
-//                    insertIndex=i;
-//                }
-//            }
-//        }
-//        return(null);
-//    }
     
     public int hashCode()
     {
@@ -339,269 +247,8 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             res=res+tmp[i].x+tmp[i].y;
         }
-        res=res*(this.sourceOrTarget + 1);
         res=res%modu;
         return (res);
-    }
-    
-    public LineWA[]getSplitLine(ConvexHullTreeNode ref1,ConvexHullTreeNode ref2)
-    {
-        System.out.println(this);
-        System.out.println(ref1);
-        System.out.println(ref2);        
-        LineWA p1=ref1.getCenter();
-        LineWA p2=ref2.getCenter();
-        System.out.println(p1);        
-        System.out.println(p2);        
-        Vector pdist1=new Vector();
-        Vector pdist2=new Vector();
-        Vector resv=new Vector();
-        LineWA[] ref1lines=ref1.getLines();
-        LineWA[] ref2lines=ref2.getLines();
-        for (int i=0; i<ref1lines.length;i++)
-        {
-            double dist=TriRepUtil.getRectangularDistance(p1,p2,ref1lines[i]);
-            if(!Double.isNaN(dist))
-                pdist1.add(new LineDist(ref1lines[i],dist));
-        }
-        
-        for (int i=0; i<ref2lines.length;i++)
-        {
-            double dist=TriRepUtil.getRectangularDistance(p1,p2,ref2lines[i]);
-            if(!Double.isNaN(dist))
-                pdist2.add(new LineDist(ref2lines[i],dist));
-        }
-        Collections.sort(pdist1);
-        Collections.sort(pdist2);
-        
-        
-        while(pdist1.size()>1||pdist2.size()>1)
-        {
-            if(pdist1.size()==0||pdist2.size()==0)
-            {
-                if(TriRepUtil.debuggingWarnings)
-                    System.out.println("keine Splitline gefunden ");
-                return(null);
-            }
-            LineDist tmp1=(LineDist)pdist1.elementAt(0);
-            LineDist tmp2=(LineDist)pdist2.elementAt(0);
-            if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
-            &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
-                resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
-            
-            if(tmp1.distance>tmp2.distance)
-            {
-                if(pdist2.size()>1)
-                {
-                    pdist2.remove(0);
-                }
-                else
-                {
-                    while(pdist1.size()>1)
-                    {
-                        tmp1=(LineDist)pdist1.elementAt(0);
-                        tmp2=(LineDist)pdist2.elementAt(0);
-                        if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
-                        &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
-                            resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
-                        pdist1.remove(0);
-                    }
-                }
-            }
-            else
-            {
-                
-                if(pdist1.size()>1)
-                {
-                    pdist1.remove(0);
-                }
-                else
-                {
-                    while(pdist2.size()>1)
-                    {
-                        tmp1=(LineDist)pdist1.elementAt(0);
-                        tmp2=(LineDist)pdist2.elementAt(0);
-                        if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
-                        &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
-                            resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
-                        pdist2.remove(0);
-                    }
-                }
-            }
-            
-        }
-        if(pdist1.size()==0||pdist2.size()==0)
-        {
-            if(TriRepUtil.debuggingWarnings)
-                System.out.println("Problem bei der Erstellung einer Splitline");
-            return(null);
-        }
-        LineDist tmp1=(LineDist)pdist1.elementAt(0);
-        LineDist tmp2=(LineDist)pdist2.elementAt(0);
-        if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
-        &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
-            resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
-        for(int i=0;i< resv.size();i++)
-        {
-            System.out.println((doublePoint)resv.elementAt(i));
-        }
-        double sumLinex=0;
-        double sumLiney=0;
-        for(int i=0;i<resv.size();i++)
-        {
-            sumLinex+=((doublePoint)resv.elementAt(i)).x;
-            sumLiney+=((doublePoint)resv.elementAt(i)).y;
-        }
-        doublePoint centerLine=new doublePoint(sumLinex/(resv.size()),sumLiney/(resv.size()));
-        int sumRefx=0;
-        int sumRefy=0;
-        for(int i=0;i<ref1lines.length;i++)
-        {
-            sumRefx+=ref1lines[i].x;
-            sumRefy+=ref1lines[i].y;
-        }
-        for(int i=0;i<ref2lines.length;i++)
-        {
-            sumRefx+=ref2lines[i].x;
-            sumRefy+=ref2lines[i].y;
-        }
-        doublePoint centerRef=new doublePoint(sumRefx*1.0/(ref1lines.length+ref2lines.length),sumRefy*1.0/(ref1lines.length+ref2lines.length));        
-        double scaleVector=Math.abs(TriRepUtil.getArea(this.getLines()))/(Math.abs(TriRepUtil.getArea(ref1lines))+Math.abs(TriRepUtil.getArea(ref2lines)));        
-        double distLine=Math.sqrt((centerLine.x-((doublePoint)resv.elementAt(0)).x)*(centerLine.x-((doublePoint)resv.elementAt(0)).x)+(centerLine.y-((doublePoint)resv.elementAt(0)).y)*(centerLine.y-((doublePoint)resv.elementAt(0)).y));
-        distLine=Math.max(distLine,Math.sqrt((centerLine.x-((doublePoint)resv.elementAt(resv.size()-1)).x)*(centerLine.x-((doublePoint)resv.elementAt(resv.size()-1)).x)+(centerLine.y-((doublePoint)resv.elementAt(resv.size()-1)).y)*(centerLine.y-((doublePoint)resv.elementAt(resv.size()-1)).y)));
-        double thismaxdist =0;
-        LineWA centerThis=this.getCenter();
-        LineWA[] thisLines=this.getLines();
-        for(int i=0;i<thisLines.length;i++)
-        {
-            thismaxdist=Math.max(thismaxdist,Math.sqrt((thisLines[i].x-centerThis.x)*(thisLines[i].x-centerThis.x)+(thisLines[i].y-centerThis.y)*(thisLines[i].y-centerThis.y)));
-        }
-        double scale=thismaxdist/distLine*1.15;
-        for(int i=0;i<resv.size();i++)
-        {
-            doublePoint tmp=((doublePoint)resv.elementAt(i));
-            tmp.x=centerThis.x+(centerLine.x-centerRef.x)*scaleVector+(tmp.x-centerLine.x)*scale;
-                    //tmp.x+(centerThis.x-centerLine.x)+(centerLine.x-centerRef.x)*scaleVector;
-            tmp.y=centerThis.y+(centerLine.y-centerRef.y)*scaleVector+(tmp.y-centerLine.y)*scale;
-        }
-        
-        LineWA[] res=new LineWA[resv.size()];
-        System.out.println("RES");
-        for(int i=0;i<resv.size();i++)
-        {
-            doublePoint tmp=((doublePoint)resv.elementAt(i));
-            System.out.println(tmp);
-            res[i]=new LineWA((int)Math.round(tmp.x),(int)Math.round(tmp.y));
-        }
-        
-        return res;
-    }
-    
-    
-    public LineWA[][] getSplitNodes(LineWA[] splitLine)
-    {
-        if(splitLine==null||splitLine.length==0)
-            return(null);
-        LineWA[][] res=new LineWA[2][];
-        int lowIndexLine,highIndexLine,lowIndexPoly,highIndexPoly;
-        Vector IntersectionPoints=new Vector();
-        Vector IntersectionIndexPoly=new Vector();
-        Vector IntersectionIndexLine=new Vector();
-        LineWA[] polyLine=this.getLines();
-        for(int i=0;i<polyLine.length;i++)
-        {
-            for(int j=0;j<(splitLine.length-1);j++)
-            {
-                LineWA inters=TriRepUtil.getIntersection(polyLine[i],polyLine[(i+1)%polyLine.length],splitLine[j],splitLine[j+1]);
-                if(inters!=null)
-                {
-                    IntersectionPoints.add(inters);
-                    IntersectionIndexPoly.add(new Integer(i));
-                    IntersectionIndexLine.add(new Integer(j));
-                }
-            }
-        }
-        if(IntersectionPoints.size()!=2)
-        {
-            return(null);
-        }
-        else
-        {
-            
-            if(((Integer)IntersectionIndexPoly.elementAt(0)).intValue()>((Integer)IntersectionIndexPoly.elementAt(1)).intValue())
-            {
-                lowIndexPoly=((Integer)IntersectionIndexPoly.elementAt(1)).intValue();
-                highIndexPoly=((Integer)IntersectionIndexPoly.elementAt(0)).intValue();
-            }
-            else
-            {
-                lowIndexPoly=((Integer)IntersectionIndexPoly.elementAt(0)).intValue();
-                highIndexPoly=((Integer)IntersectionIndexPoly.elementAt(1)).intValue();
-            }
-            if(((Integer)IntersectionIndexLine.elementAt(0)).intValue()>((Integer)IntersectionIndexLine.elementAt(1)).intValue())
-            {
-                lowIndexLine=((Integer)IntersectionIndexLine.elementAt(1)).intValue();
-                highIndexLine=((Integer)IntersectionIndexLine.elementAt(0)).intValue();
-            }
-            else
-            {
-                lowIndexLine=((Integer)IntersectionIndexLine.elementAt(0)).intValue();
-                highIndexLine=((Integer)IntersectionIndexLine.elementAt(1)).intValue();
-            }
-            if(TriRepUtil.debugging)
-            {
-                System.out.println("lowHIg"+lowIndexPoly+highIndexPoly);
-                System.out.println("lowHIg"+lowIndexLine+highIndexLine);
-            }
-            res[0]=new LineWA[polyLine.length-highIndexPoly+lowIndexPoly+highIndexLine-lowIndexLine+2];
-            res[1]=new LineWA[highIndexPoly-lowIndexPoly+highIndexLine-lowIndexLine+2];
-            int index1=0;
-            int index2=0;
-            for(int i=0;i<=lowIndexPoly;i++ )
-            {
-                res[0][index1++]=polyLine[i];
-            }
-            for(int i=highIndexPoly;i>lowIndexPoly;i--)
-            {
-                res[1][index2++]=polyLine[i];
-            }
-            int indexindex=IntersectionIndexPoly.indexOf(new Integer(lowIndexPoly));  //toDo Sonderfall
-            
-            if(lowIndexPoly==highIndexPoly && TriRepUtil.debuggingWarnings)System.out.println("Problem: highIndex == lowIndex");
-            
-            res[0][index1++]=(LineWA)IntersectionPoints.elementAt(indexindex);
-            res[1][index2++]=(LineWA)IntersectionPoints.elementAt(indexindex);
-            if(IntersectionIndexLine.elementAt(indexindex).equals(new Integer(lowIndexLine)))
-            {
-                for(int i=lowIndexLine+1;i<=highIndexLine;i++)
-                {
-                    res[0][index1++]=splitLine[i];
-                    res[1][index2++]=splitLine[i];
-                }
-            }
-            else
-            {
-                
-                for(int i=highIndexLine;i>lowIndexLine;i--)
-                {
-                    res[0][index1++]=splitLine[i];
-                    res[1][index2++]=splitLine[i];
-                }
-            }
-            //indexindex=IntersectionIndexPoly.indexOf(new Integer(highIndexPoly));
-            res[0][index1++]=(LineWA)IntersectionPoints.elementAt((indexindex-1)*-1);
-            res[1][index2++]=(LineWA)IntersectionPoints.elementAt((indexindex-1)*-1);
-            for(int i=highIndexPoly+1;i<polyLine.length;i++)
-            {
-                res[0][index1++]=polyLine[i];
-            }
-        }
-        if(res[0][0].equals(res[0][res[0].length-1]))
-            return(null);
-        if(res[1][0].equals(res[1][res[1].length-1]))
-            return(null);
-        
-        return(res);
     }
     
     public boolean equals(Object o)
@@ -610,10 +257,8 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             boolean res=true;
             ConvexHullTreeNode tmp=(ConvexHullTreeNode)o;
-            if(this.sourceOrTarget!=tmp.getsourceOrTarget())
-                return(false);
             LineWA[]tmp1=this.getLines();
-            LineWA[]tmp2=tmp.getLines();            
+            LineWA[]tmp2=tmp.getLines();
             if(tmp1.length!=tmp2.length)
                 return false;
             for(int i=0;i<tmp1.length;i++)
@@ -900,41 +545,6 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
     {
         return(y/2);
     }
-    public void removeChild(ConvexHullTreeNode toDelete)
-    {
-        int length;
-        CHLine line;
-        length = linelist.size();
-        for (int a=0;a<length;a++)
-        {
-            line = (CHLine)linelist.elementAt(a);
-            if (line.child!=null&&line.child.equals(toDelete))
-            {
-                line.child=null;
-            }
-        }
-        
-    }
-    
-    public void setHole(boolean isHole)
-    {
-        this.isHole=isHole;
-        ConvexHullTreeNode[] children=this.getChildren();
-        for(int i=0;i<children.length;i++)
-        {
-            children[i].setHole(isHole);
-        }
-    }
-    
-    public void setSourceOrTarget(int sourceOrTarget)
-    {
-        this.sourceOrTarget=sourceOrTarget;
-        ConvexHullTreeNode[] children=this.getChildren();
-        for(int i=0;i<children.length;i++)
-        {
-            children[i].setSourceOrTarget(sourceOrTarget);
-        }        
-    }
     
     /**
      * This function finds the line a given child of this node is associated
@@ -956,7 +566,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         for (int a=0;a<length;a++)
         {
             line = (CHLine)linelist.elementAt(a);
-            if (line.child!=null&&line.child.equals(child))
+            if (line.child == child)
             {
                 result = new LineWA[2];
                 result[0] = (LineWA)line;
@@ -986,6 +596,142 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         return(smallestpoint);
     }
     
+//    /**
+//     * This function draws this convex hull three node in a "flattened" way.
+//     * It was used for debugging purposes, and is not necessary for the
+//     * algorithm itself to work.
+//     *
+//     * @param g The graphic into which the function should draw.
+//     * @param xdisp Displacement in the x direction
+//     * @param ydisp Displacement in the y direction.
+//     *
+//     * @return The centre of the drawn object given as an [x,y] coordinate pair.
+//     */
+//    public int[] drawThis(Graphics g, int xdisp, int ydisp)
+//    {
+//        CHLine line, next;
+//        int length, minx, maxx, miny, maxy;
+//        int[] centre;
+//        length = linelist.size();
+//        line = (CHLine)linelist.firstElement();
+//        minx = Integer.MAX_VALUE;
+//        miny = Integer.MAX_VALUE;
+//        maxx = 0;
+//        maxy = 0;
+//        centre = new int[2];
+//        for (int a=1;a<=length;a++)
+//        {
+//            if (a == length)
+//            {
+//                next = (CHLine)linelist.firstElement();
+//            }
+//            else next = (CHLine)linelist.elementAt(a);
+//            //g.setColor(Color.black);
+//            if (line.x < minx) minx = line.x;
+//            if (line.y < miny) miny = line.y;
+//            if (line.x > maxx) maxx = line.x;
+//            if (line.y > maxy) maxy = line.y;
+//            g.drawOval(computex(line.x, line.y)-2+xdisp, computey(line.y)+ydisp, 4, 4);
+//            if (line.child != null)
+//            {
+//                //g.setColor(Color.red);
+//            }
+//            g.drawLine(computex(line.x, line.y)+xdisp, computey(line.y)+ydisp, computex(next.x, next.y)+xdisp, computey(next.y)+ydisp);
+//            line = next;
+//        }
+//        centre[0] = (minx+maxx)/2;
+//        centre[1] = (miny+maxy)/2;
+//        //    System.out.println("Drawing an overlapping node!");
+//        return(centre);
+//    }
+//
+//    /**
+//     * Draws the convex hull tree with this node as its root. This function
+//     * was made for debugging purposes and is not needed for the algorithm
+//     * itself.
+//     *
+//     * @param g The graphic into which the function should draw.
+//     * @param xdisp Displacement in the x direction
+//     * @param ydisp Displacement in the y direction.
+//     */
+//    public void drawTree(Graphics g, int xdisp, int ydisp)
+//    {
+//        CHLine line, next;
+//        int length, minx, maxx, miny, maxy, cx, cy, ox, oy;
+//        boolean closingline;
+//        int[] centre;
+//        OverlapGraphEdge cedge;
+//        ConvexHullTreeNode cnode;
+//        length = linelist.size();
+//        line = (CHLine)linelist.firstElement();
+//        minx = Integer.MAX_VALUE;
+//        miny = Integer.MAX_VALUE;
+//        maxx = 0;
+//        maxy = 0;
+//        closingline = false;
+//        for (int a=1;a<=length;a++)
+//        {
+//            if (a == length)
+//            {
+//                next = (CHLine)linelist.firstElement();
+//                closingline = true;
+//            }
+//            else
+//            {
+//                next = (CHLine)linelist.elementAt(a);
+//                closingline = false;
+//            }
+//            g.setColor(Color.black);
+//            if (line.x < minx) minx = line.x;
+//            if (line.y < miny) miny = line.y;
+//            if (line.x > maxx) maxx = line.x;
+//            if (line.y > maxy) maxy = line.y;
+//            g.drawOval(computex(line.x, line.y)-2+xdisp, computey(line.y)+ydisp, 4, 4);
+//            if (line.child != null)
+//            {
+//                line.child.drawTree(g, xdisp, ydisp+Y_DISP);
+//                g.setColor(Color.red);
+//            }
+//            if (closingline) g.setColor(Color.blue);
+//            g.drawLine(computex(line.x, line.y)+xdisp, computey(line.y)+ydisp, computex(next.x, next.y)+xdisp, computey(next.y)+ydisp);
+//            line = next;
+//        }
+//        cx = (minx+maxx)/2;
+//        cy = (miny+maxy)/2;
+//        cx = computex(cx, cy);
+//        cy = computey(cy);
+//        cx += xdisp;
+//        cy += ydisp;
+//        for (int b=0;b<overlaplist.size();b++)
+//        {
+//            cedge = (OverlapGraphEdge)overlaplist.elementAt(b);
+//            cnode = cedge.overlapswith;
+//            centre = cnode.drawThis(g, xdisp+X_DISP, ydisp);
+//            ox = computex(centre[0], centre[1])+xdisp;
+//            oy = computey(centre[1])+ydisp;
+//            g.setColor(Color.black);
+//            g.drawOval(cx-2, cy-2, 4, 4);
+//            if (cedge.overlap >= ((100+min_overlap_match)/2))
+//            {
+//                g.setColor(Color.red);
+//            }
+//            if ((cedge.overlap < ((100+min_overlap_match)/2))
+//            && (cedge.overlap >= min_overlap_match))
+//            {
+//                g.setColor(Color.orange);
+//            }
+//            if ((cedge.overlap >= (min_overlap_match/2))
+//            && (cedge.overlap < min_overlap_match))
+//            {
+//                g.setColor(Color.green);
+//            }
+//            if (cedge.overlap < ((min_overlap_match)/2))
+//            {
+//                g.setColor(Color.blue);
+//            }
+//            g.drawLine(cx, cy, ox+X_DISP, oy);
+//        }
+//    }
     
     /**
      * Gets the polygon stored in the node in the order in which it is stored
@@ -1033,7 +779,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         int resx=0;
         int resy=0;
         for(int i=0;i<lines.length;i++)
-        {
+        {            
             double angle=ConVertex.getAngleRad(lines[i].x,lines[i].y,lines[(i-1+lines.length)%lines.length].x,lines[(i-1+lines.length)%lines.length].y,lines[(i+1)%lines.length].x,lines[(i+1)%lines.length].y);
             double weight=.5-(angle/2/Math.PI);
             resx+=(int)(lines[i].x*weight);
@@ -1042,11 +788,6 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
 //        resx=resx/lines.length;
 //        resy=resy/lines.length;
         return(new LineWA(resx,resy));
-    }
-    
-    public int getsourceOrTarget()
-    {
-        return(this.sourceOrTarget);
     }
     
     public LineWA getCenter()
@@ -1059,8 +800,8 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
             resx+=lines[i].x;
             resy+=lines[i].y;
         }
-        resx=resx/(lines.length);
-        resy=resy/(lines.length);
+        resx=resx/lines.length;
+        resy=resy/lines.length;
         return(new LineWA(resx,resy));
     }
     
@@ -1173,14 +914,12 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             if (TriRepUtil.indexOf(childlist, tojoin[a]) == -1)
             {
-                if(TriRepUtil.debugging)
-                    System.out.println("WARNING ConvexHullTreeNode 469: joinChildren called with non-child node!");
+                System.out.println("WARNING ConvexHullTreeNode 469: joinChildren called with non-child node!");
                 return(null);
             }
             if (tojoin[a] == null)
             {
-                if(TriRepUtil.debugging)
-                    System.out.println("WARNING CHTN 473: Tojoin element is null!");
+                System.out.println("WARNING CHTN 473: Tojoin element is null!");
             }
         }
         // Remove overlap between this node and other nodes (including children).
@@ -1225,16 +964,13 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
             {
                 if (begindex != -1)
                 {
-                    if(TriRepUtil.debugging)
+                    System.out.println("WARNING ConvexHullTreeNode 510: more than one end point: using last!");
+                    System.out.print("Number of concavities to join: ");
+                    System.out.println(tojoin.length);
+                    System.out.println("Length of concavities:");
+                    for (int l=0;l<tojoin.length;l++)
                     {
-                        System.out.println("WARNING ConvexHullTreeNode 510: more than one end point: using last!");
-                        System.out.print("Number of concavities to join: ");
-                        System.out.println(tojoin.length);
-                        System.out.println("Length of concavities:");
-                        for (int l=0;l<tojoin.length;l++)
-                        {
-                            System.out.println(tojoin[l].numberOfLines());
-                        }
+                        System.out.println(tojoin[l].numberOfLines());
                     }
                 }
                 begindex = next;
@@ -1242,8 +978,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         if (begindex == -1)
         {
-            if(TriRepUtil.debugging)
-                System.out.println("WARNING ConvexHullTreeNode 516: no begin point found!");
+            System.out.println("WARNING ConvexHullTreeNode 516: no begin point found!");
             begindex = 0;
         }
         childvector = new Vector();
@@ -1338,7 +1073,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
             childlinelist[nopoints-a-1] = (LineWA)childvector.elementAt(a);
         }
         //TriRepUtil.printLineList(childlinelist);
-        tmpline.child = new ConvexHullTreeNode(childlinelist,1,this, sourceOrTarget);
+        tmpline.child = new ConvexHullTreeNode(childlinelist,1,this);
         ConvexHullTreeNode[] childChildren=tmpline.child.getChildren();
         for (int i=0;i<childChildren.length;i++)
         {
@@ -1355,14 +1090,44 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
     
     public String toString()
     {
-        LineWA[] tmp=this.getLines();
+        LineWA[] tmp=this.getOutLine();
         String res="[ "+tmp[0];
         for (int i=1;i< tmp.length;i++)
         {
             res=res+'\n'+"   "+tmp[i];
         }
-        res=res+"]"+'\n';
+        res=res+"]";
         return(res);
     }
     
+    public static void main(String[] arg)
+    {
+        LineWA[] linelist=new LineWA[21];
+        linelist[0]=new LineWA(303,7);
+        linelist[1]=new LineWA(374,32);
+        linelist[2]=new LineWA(357,98);
+        linelist[3]=new LineWA(465,93);
+        linelist[4]=new LineWA(484,157);
+        linelist[5]=new LineWA(501,216);
+        linelist[6]=new LineWA(550,297);
+        linelist[7]=new LineWA(524,366);
+        linelist[8]=new LineWA(399,372);
+        linelist[9]=new LineWA(403,333);
+        linelist[10]=new LineWA(258,378);
+        linelist[11]=new LineWA(196,289);
+        linelist[12]=new LineWA(58,309);
+        linelist[13]=new LineWA(24,237);
+        linelist[14]=new LineWA(80,140);
+        linelist[15]=new LineWA(225,282);
+        linelist[16]=new LineWA(277,279);
+        linelist[17]=new LineWA(186,89);
+        linelist[18]=new LineWA(79,64);
+        linelist[19]=new LineWA(201,25);
+        linelist[20]=new LineWA(262,50);
+        
+        ConvexHullTreeNode test= new ConvexHullTreeNode(linelist,0,null);
+        javax.swing.JFrame testF=new javax.swing.JFrame();
+        //testF.getContentPane().add(new ConvexHullTreeViewer(test));
+        testF.setVisible(true);
+    }
 }
