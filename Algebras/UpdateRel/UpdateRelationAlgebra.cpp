@@ -2,8 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
+Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and 
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,6 +30,9 @@ June 2005 Matthias Zielke
 
 January 2006, Victor Almeida separated this algebra from the Extended
 Relational Algebra and fixed some memory leaks.
+
+October 2007, M. Spiekermann fixed bugs in the implementations of the operators
+~updatedirectsave~ and ~updatedirectsearch~.
 
 [TOC]
 
@@ -2450,13 +2453,14 @@ Operator extrelupdatesearch (
 /*
 2.18 Operator ~updatedirectsave~
 
-Updates each input tuple by  replacing the attributevalues of the attributes given by their names in the
-function-argumentlist with the new values received from the functions. Precondition is that the tuples
-of the inputstream originally belong to the relation that shall be updated.
-The updated tuple is made persistent and as
-the resultstream tuples are returned that contain the new values in first places, then all old values and finally
-the TupleIdentifier of the updated tuple. Additionally the resulttuples are stored in an auxiliary relation
-given as the third argument
+Updates each input tuple by  replacing the attributevalues of the attributes
+given by their names in the function-argumentlist with the new values received
+from the functions. Precondition is that the tuples of the inputstream
+originally belong to the relation that shall be updated.  The updated tuple is
+made persistent and as the resultstream tuples are returned that contain the
+new values in first places, then all old values and finally the TupleIdentifier
+of the updated tuple. Additionally the resulttuples are stored in an auxiliary
+relation given as the third argument
 
 2.18.0  General Type mapping functions of operators ~updatedirectsave~ and ~updatesearchsave~
 
@@ -2852,18 +2856,19 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word t, value, elem;
-  Tuple* tup;
-  Tuple* newTuple;
-  Tuple* nextTup;
+  t.addr = 0; value.addr = 0; elem.addr = 0;
+  Tuple* tup = 0;
+  Tuple* newTuple = 0;
+  Tuple* nextTup = 0;
   Supplier supplier, supplier2, supplier3, son;
-  int noOfAttrs, index;
+  int noOfAttrs = 0, index = 0;
   ArgVectorPointer funargs;
-  ListExpr resultType;
-  Relation* relation;
-  Relation* auxRelation;
-  RelationIterator* iter;
-  Attribute* newAttribute;
-  vector<Tuple*>* nextBucket;
+  ListExpr resultType = nl->Empty();
+  Relation* relation = 0;
+  Relation* auxRelation = 0;
+  RelationIterator* iter = 0;
+  Attribute* newAttribute = 0;
+  vector<Tuple*>* nextBucket = 0;
   struct LocalTransport
   {
     LocalTransport():
@@ -2892,7 +2897,10 @@ int UpdateSearchSave(Word* args, Word& result, int message,
              j != (*hashTable)[i]->end();
              j++ )
         {
-          (*j)->DecReference();
+          //(*j)->DecReference(); 
+	  // SPM: There seems to be a reference counting problem in this 
+	  // implementation. As a hot fix I commented out the line above
+	  // but I'm not shure if it is the whole story.
           (*j)->DeleteIfAllowed();
         }
         delete (*hashTable)[i];
@@ -2987,22 +2995,22 @@ int UpdateSearchSave(Word* args, Word& result, int message,
             {
               if(!compare(nextTup,tup) && !compare(tup,nextTup))
               {
-                newTuple =
-                  new Tuple( localTransport->resultTupleType );
+		int nextTupAttrs = nextTup->GetNoAttributes();      
+                newTuple = new Tuple( localTransport->resultTupleType );
                 assert( newTuple->GetNoAttributes() ==
-                        2 * nextTup->GetNoAttributes() + 1);
-                for (int i = 0;
-                     i < nextTup->GetNoAttributes(); i++)
-                  newTuple->PutAttribute(
-                    nextTup->GetNoAttributes() +i,
-                    nextTup->GetAttribute(i)->Clone());
+                        2 * nextTupAttrs + 1);
+                for (int i = 0; i < nextTupAttrs; i++) {
+                   newTuple->CopyAttribute(i, nextTup , i);
+                   newTuple->CopyAttribute(i, nextTup , nextTupAttrs+i);
+		}  
+
                 noOfAttrs = ((CcInt*)args[4].addr)->GetIntval();
                 // Supplier for the updatefunctions
                 supplier = args[3].addr;
-                vector<int>* changedIndices =
-                  new vector<int>(noOfAttrs);
-                vector<Attribute*>* newAttrs =
-                  new vector<Attribute*>(noOfAttrs);
+                vector<int>* changedIndices = new vector<int>(noOfAttrs);
+                vector<Attribute*>* newAttrs 
+			              = new vector<Attribute*>(noOfAttrs);
+
                 for (int i=1; i <= noOfAttrs; i++)
                 {
                   // Supplier for the next attributeindex
@@ -3019,25 +3027,27 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                   newAttribute =
                     ((StandardAttribute*)value.addr)->Clone();
                   (*newAttrs)[i-1] = newAttribute;
+
+		  // change attribute value for the output tuple
+		  newTuple->PutAttribute(index, newAttribute);
                 }
-                relation->UpdateTuple(
-                  nextTup,*changedIndices,*newAttrs);
-                Tuple *auxTuple =
-                  new Tuple( auxRelation->GetTupleType() );
-                for (int i = 0; i < nextTup->GetNoAttributes(); i++)
-                {
-                  newTuple->CopyAttribute( i, nextTup, i );
-                }
-                const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr =
-                  new TupleIdentifier(true,tid);
+                relation->UpdateTuple( nextTup,*changedIndices,*newAttrs);
+
+		// add tid to newTuple
+		const TupleId& tid = nextTup->GetTupleId();
+                StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
                 newTuple->PutAttribute(
                   newTuple->GetNoAttributes() - 1, tidAttr);
-                for (int i = 0; i < newTuple->GetNoAttributes(); i++)
+
+		// copy the updated tuple into auxTuple and append it
+		// to the auxiliary relation
+                Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
+                for (int i = 0; i < auxTuple->GetNoAttributes(); i++)
                 {
                   auxTuple->CopyAttribute(i, newTuple, i);
                 }
                 auxRelation->AppendTuple(auxTuple);
+
                 auxTuple->DeleteIfAllowed();
                 delete changedIndices;
                 delete newAttrs;

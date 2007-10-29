@@ -68,12 +68,12 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
   {
     index = changedIndices[i];
     assert( index >= 0 && index < GetNoAttributes() );
-    assert( privateTuple->attributes[index] != 0 );
+    assert( attributes[index] != 0 );
     for (int j = 0; 
-         j < privateTuple->attributes[index]->NumOfFLOBs(); 
+         j < attributes[index]->NumOfFLOBs(); 
          j++)
     {
-      FLOB *tmpFLOB = privateTuple->attributes[index]->GetFLOB(j);
+      FLOB *tmpFLOB = attributes[index]->GetFLOB(j);
 
       assert( index >= 0 && (size_t)index < attrSize.size() );
       attrSize[index] -= tmpFLOB->Size();
@@ -88,10 +88,10 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
       tmpFLOB->Destroy();
     }
 
-    privateTuple->attributes[index]->DeleteIfAllowed();
-    privateTuple->attributes[index] = newAttrs[i];
+    attributes[index]->DeleteIfAllowed();
+    attributes[index] = newAttrs[i];
   }
-  privateTuple->UpdateSave( changedIndices,
+  UpdateSave( changedIndices,
                             extSize, size, 
                             attrExtSize, attrSize );
 
