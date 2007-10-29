@@ -325,6 +325,8 @@ public class QueryResult extends JList {
   }
   /** A class for special rendering of datatypes in the list
    */
+
+
   private class QueryRenderer extends DefaultListCellRenderer {
     public Component getListCellRendererComponent (JList list, Object value, 
         int index, boolean isSelected, boolean cellHasFocus) {
@@ -344,7 +346,7 @@ public class QueryResult extends JList {
         if (!((DsplBase)value).getVisible())
           setForeground(Color.gray);
       if( value instanceof ExternDisplay){
-         setForeground(Color.GREEN);
+         setForeground(new Color(255,0,0));
       } 
       return  this;
     }
