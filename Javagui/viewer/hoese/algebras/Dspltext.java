@@ -27,6 +27,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.text.EditorKit;
+import javax.swing.text.StyledEditorKit;
 import javax.swing.text.Document;
 import tools.Base64Decoder;
 import org.jpedal.*;
@@ -224,7 +225,8 @@ public TextViewerFrame(){
   getContentPane().setLayout(new BorderLayout());
   Display = new JEditorPane();
   if(EKPlain==null){
-      EKPlain = JEditorPane.createEditorKitForContentType("text/plain");
+      //EKPlain = JEditorPane.createEditorKitForContentType("text/plain");
+      EKPlain = new StyledEditorKit();
       EKHtml = JEditorPane.createEditorKitForContentType("text/html");
       EKRtf = JEditorPane.createEditorKitForContentType("text/rtf");
   }
