@@ -1288,8 +1288,17 @@ Undefined periods will be suppressed, but defined periods of constant value
 will result in separate trips, if their duration is longer than the given
 minimum pause duration.
 
+Units are defined as stationary, if
+(i) their start and end point are AlmostEqual, or
+(ii) their starting and ending instant are identical, or
+(iii) their velocity is below ~minVelocity~
+
+Parameter ~minVelocity~ can be passed as an optional third argument. The unit is
+m/h. It has a default value of 1.0 m/d (=0.04167 m/h = 0.6944 mm/min = 0.01157 mm/s)
+
 ----
-    sim_trips: (mpoint x duration) --> (stream mpoint)
+    sim_trips: (mpoint x duration       ) --> (stream mpoint)
+    sim_trips: (mpoint x duration x real) --> (stream mpoint)
 
 ----
 
@@ -1297,7 +1306,7 @@ minimum pause duration.
 
 ListExpr sim_trips_TM ( ListExpr args )
 {
-  ListExpr arg1, arg2;
+  ListExpr arg1, arg2, arg3;
   if ( nl->ListLength( args ) == 2 )
   {
     arg1 = nl->First( args );
@@ -1311,10 +1320,39 @@ ListExpr sim_trips_TM ( ListExpr args )
                              nl->SymbolAtom("mpoint"));
     }
   }
+
+  if ( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+    if ( nl->AtomType( arg1 ) == SymbolType &&
+         nl->SymbolValue( arg1 ) == "mpoint"  &&
+         nl->AtomType( arg2 ) == SymbolType &&
+         nl->SymbolValue( arg2 ) == "duration" &&
+         nl->AtomType( arg3 ) == SymbolType &&
+         nl->SymbolValue( arg3 ) == "real")
+    {
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+                             nl->SymbolAtom("mpoint"));
+    }
+  }
+
   ErrorReporter::
       ReportError("SimulationAlgebra: sim_trips expected "
-      "mpoint x duration");
+      "(mpoint x duration) or (mpoint x duration x real)");
   return (nl->SymbolAtom( "typeerror" ));
+}
+
+bool IsAlmostStationaryUPoint(const UPoint u, const double minVelocity)
+{
+  if (AlmostEqual(u.p0,u.p1) || (u.timeInterval.start == u.timeInterval.end) )
+    return true;
+  double ds = u.p0.Distance(u.p1);
+  double dt = (u.timeInterval.end - u.timeInterval.start).ToDouble();
+  if (ds/dt < minVelocity)
+    return true;
+  return false;
 }
 
 struct SplitMpointLocalInfo
@@ -1327,6 +1365,7 @@ struct SplitMpointLocalInfo
   int  size;      // number of units
   int trip;       // number of current trip
   bool finished;  // whether we are finished or not
+  double minVelocity;
   UPoint u1;
 };
 
@@ -1348,6 +1387,30 @@ int sim_trips_VM ( Word* args, Word& result,
       sli = new SplitMpointLocalInfo;
       sli->pos = 0;
       sli->trip = 0;
+      sli->minVelocity = 1.0; // default value for minimum velocity
+
+      if(qp->GetNoSons(s)==3)
+      {
+        CcReal* mv = (CcReal*)args[2].addr;
+        if(!mv->IsDefined())
+        { // undefined optional argument -> return empty stream
+          sli->finished = true;
+          sli->u1 = UPoint(false);
+          return 0;
+        }
+        sli->minVelocity = mv->GetRealval() * 24.0;
+        if(sli->minVelocity < 0.0)
+        { // negative minimal velocity -> return empty stream
+          sli->minVelocity = 0;
+          sli->finished = true;
+          sli->u1 = UPoint(false);
+          return 0;
+        }
+      }
+      else
+      { // no optional argument
+        sli->minVelocity = 1.0;
+      }
       local = SetWord(sli);
 
       if ( !mpoint->IsDefined() ||
@@ -1454,15 +1517,19 @@ int sim_trips_VM ( Word* args, Word& result,
         }
         else // ELSE: No Gap --- consecutive units
         {
-          if ( AlmostEqual(sli->u1.p0, sli->u1.p1) )
+          if ( IsAlmostStationaryUPoint(sli->u1, sli->minVelocity) )
+          // if ( AlmostEqual(sli->u1.p0, sli->u1.p1) )
           { // sli->u1 is constant
-            if ( AlmostEqual(u2.p0, u2.p1) )
+            // if ( AlmostEqual(u2.p0, u2.p1) )
+            if ( IsAlmostStationaryUPoint(u2, sli->minVelocity) )
             { // sli->u1 is constant and u2 is constant
-              if ( AlmostEqual(sli->u1.p0, u2.p0) )
+              if ( AlmostEqual(sli->u1.p1, u2.p0) )
+              // if ( AlmostEqual(sli->u1.p0, u2.p0) )
               { // sli->u1 and u2 are constant AND equalvalue
                   // extend u1 by u2
                 sli->u1.timeInterval.end = u2.timeInterval.end;
                 sli->u1.timeInterval.rc  = u2.timeInterval.rc;
+                sli->u1.p1 = u2.p1;
                 if ( (sli->u1.timeInterval.end - sli->u1.timeInterval.start)
                       >= *mindur )
                 { // concatenation sli->u1+u2 is long enough
@@ -1535,7 +1602,7 @@ int sim_trips_VM ( Word* args, Word& result,
                 }
                 else
                 { // The current trip was already used. We need to close it
-                    // and start a new one for u1.
+                  // and start a new one for u1.
 //                   cout << " => Deferred Pause u1, revisit u2" << endl;
                   sli->pos--; // re-visit current unit u2
                   newtrip = true;
@@ -1552,7 +1619,8 @@ int sim_trips_VM ( Word* args, Word& result,
           } // end sli->u1 is constant
           else // sli->u1 is nonconstant
           {
-            if (AlmostEqual(u2.p0, u2.p1))
+            if ( IsAlmostStationaryUPoint(u2, sli->minVelocity) )
+            // if (AlmostEqual(u2.p0, u2.p1))
             { // sli->u1 is nonconstant and u2 is constant
               // Add u1 to current trip.
 //               cout << " => Continue u1." << endl;
@@ -1591,13 +1659,13 @@ int sim_trips_VM ( Word* args, Word& result,
 //       cout << " Finished Trip #" << sli->trip << "." << endl;
       assert( res->IsValid() );                    // XRIS: only for debugging
       result = SetWord( res );
-//        cout << endl
-//             << "===================================================" << endl;
+       cout << endl
+            << "===================================================" << endl;
       return YIELD;
 
     case CLOSE :
 
-//        cout << "sim_trips_VM received CLOSE" << endl;
+       cout << "sim_trips_VM received CLOSE" << endl;
       if (local.addr != 0)
       {
         sli = (SplitMpointLocalInfo*) local.addr;
@@ -1612,16 +1680,22 @@ int sim_trips_VM ( Word* args, Word& result,
 
 const string sim_trips_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text> mpoint x instant x instant x bool x bool -> mpoint</text--->"
-    "<text>M sim_trips[ D ]"
-    "</text--->"
+    "( <text> mpoint x duration -> stream(mpoint)</text--->"
+    "<text>M sim_trips[ D ]/n"
+    "M sim_trips[ D , Vmin ]</text--->"
     "<text>Splits a single mpoint 'M' into a stream of mpoints representing"
     "single 'trips'. Endings of trips are recognized by 1) stationary "
     "intervals with a duration of at least 'D', and 2) enclosed undefined "
-    "intervals of any length. Stationary intervals are interpreted as "
+    "intervals of any length. A unit is considered stationary, if /n"
+    " (i)   its starting and ending positions are equal, or /n"
+    " (ii)  its starting and ending instants are identical, or/n"
+    " (iii) its velocity is smaller than stated by the (optional) parameter "
+    "'Vmin' (given in unit [m/h]). If 'Vmin' is omitted, a standart value "
+    "of 0.041667 m/h (corresponding to 1.0 m/d) is applied./n"
+    "Stationary intervals are interpreted as "
     "'pauses' and will be returned as separate trips. For definition gaps, "
-    "no Trip will be created. The duration 'D' must be "
-    "positive ( > create_duration(0) ).</text--->"
+    "no Trip will be created. The parameter 'D' must be "
+    "positive ( > create_duration(0) ), 'Vmin' must be non-negative.</text--->"
     "<text>query train7 sim_trips[create_duration(0,1000)] count"
     "</text--->"
     ") )";
