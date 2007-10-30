@@ -1659,8 +1659,8 @@ int sim_trips_VM ( Word* args, Word& result,
 //       cout << " Finished Trip #" << sli->trip << "." << endl;
       assert( res->IsValid() );                    // XRIS: only for debugging
       result = SetWord( res );
-       cout << endl
-            << "===================================================" << endl;
+//        cout << endl
+//             << "===================================================" << endl;
       return YIELD;
 
     case CLOSE :
@@ -1680,18 +1680,18 @@ int sim_trips_VM ( Word* args, Word& result,
 
 const string sim_trips_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text> mpoint x duration -> stream(mpoint)</text--->"
-    "<text>M sim_trips[ D ]/n"
+    "( <text> mpoint x duration [ x real ] -> stream(mpoint)</text--->"
+    "<text>M sim_trips[ D ], "
     "M sim_trips[ D , Vmin ]</text--->"
     "<text>Splits a single mpoint 'M' into a stream of mpoints representing"
     "single 'trips'. Endings of trips are recognized by 1) stationary "
     "intervals with a duration of at least 'D', and 2) enclosed undefined "
-    "intervals of any length. A unit is considered stationary, if /n"
-    " (i)   its starting and ending positions are equal, or /n"
-    " (ii)  its starting and ending instants are identical, or/n"
-    " (iii) its velocity is smaller than stated by the (optional) parameter "
+    "intervals of any length. A unit is considered stationary, if "
+    "(i)   its starting and ending positions are equal, or "
+    "(ii)  its starting and ending instants are identical, or "
+    "(iii) its velocity is smaller than stated by the (optional) parameter "
     "'Vmin' (given in unit [m/h]). If 'Vmin' is omitted, a standart value "
-    "of 0.041667 m/h (corresponding to 1.0 m/d) is applied./n"
+    "of 0.041667 m/h (corresponding to 1.0 m/d) is applied. "
     "Stationary intervals are interpreted as "
     "'pauses' and will be returned as separate trips. For definition gaps, "
     "no Trip will be created. The parameter 'D' must be "
