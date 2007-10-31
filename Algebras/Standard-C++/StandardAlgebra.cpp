@@ -4152,7 +4152,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccoprelcount2 );
     AddOperator( &ccopkeywords );
     AddOperator( &ccopifthenelse );	
-         		ccopifthenelse.SetRequestsArguments();
+    ccopifthenelse.SetRequestsArguments();
     AddOperator( &ccbetween );
     //AddOperator( &ccelapsedtime );
     AddOperator( &ccldistance );
@@ -4238,17 +4238,8 @@ Here are some example queries:
 */
 
 void
-ShowStandardTypesStatistics( const bool reset )
+Statistics2Counters(bool reset, bool show)
 {
-  Counter::getRef("STD:INT_created") = CcInt::intsCreated;
-  Counter::getRef("STD:INT_deleted") = CcInt::intsDeleted;
-  Counter::getRef("STD:REAL_created") = CcReal::realsCreated;
-  Counter::getRef("STD:REAL_deleted") = CcReal::realsDeleted;
-  Counter::getRef("STD:BOOL_created") = CcBool::boolsCreated;
-  Counter::getRef("STD:BOOL_deleted") = CcBool::boolsDeleted;
-  Counter::getRef("STD:STRING_created") = CcString::stringsCreated;
-  Counter::getRef("STD:STRING_deleted") = CcString::stringsDeleted;
-
   if( reset )
   {
     CcInt::intsCreated = 0; CcInt::intsDeleted = 0;
@@ -4256,6 +4247,68 @@ ShowStandardTypesStatistics( const bool reset )
     CcBool::boolsCreated = 0; CcBool::boolsDeleted = 0;
     CcString::stringsCreated = 0; CcString::stringsDeleted = 0;
   }
+  Counter::getRef(CTR_INT_Created) = CcInt::intsCreated;
+  Counter::getRef(CTR_INT_Deleted) = CcInt::intsDeleted;
+  Counter::getRef(CTR_REAL_Created) = CcReal::realsCreated;
+  Counter::getRef(CTR_REAL_Deleted) = CcReal::realsDeleted;
+  Counter::getRef(CTR_BOOL_Created) = CcBool::boolsCreated;
+  Counter::getRef(CTR_BOOL_Deleted) = CcBool::boolsDeleted;
+  Counter::getRef(CTR_STR_Created) = CcString::stringsCreated;
+  Counter::getRef(CTR_STR_Deleted) = CcString::stringsDeleted;
+
+  Counter::reportValue(CTR_INT_Created, show);
+  Counter::reportValue(CTR_INT_Deleted, show);
+  Counter::reportValue(CTR_REAL_Created, show);
+  Counter::reportValue(CTR_REAL_Deleted, show);
+  Counter::reportValue(CTR_BOOL_Created, show);
+  Counter::reportValue(CTR_BOOL_Deleted, show);
+  Counter::reportValue(CTR_STR_Created, show);
+  Counter::reportValue(CTR_STR_Deleted, show);
+}
+
+
+long
+StdTypes::UpdateBasicOps(bool reset/*=false*/) {
+
+  long& basicOps = Counter::getRef(CTR_ATTR_BASIC_OPS);
+  long& hashOps = Counter::getRef(CTR_ATTR_HASH_OPS);
+  long& compareOps = Counter::getRef(CTR_ATTR_COMPARE_OPS);
+
+  long& intHash = Counter::getRef(CTR_INT_HASH);
+  long& intLess  = Counter::getRef(CTR_INT_LESS);
+  long& intEqual = Counter::getRef(CTR_INT_EQUAL);
+  long& intCompare = Counter::getRef(CTR_INT_COMPARE);
+
+  if (reset) 
+  {
+    intHash = 0;	  
+    intLess = 0;
+    intEqual = 0;
+    intCompare = 0;
+  }
+
+  hashOps += intHash;
+
+  compareOps += (intLess + intEqual + intCompare);
+
+  basicOps += hashOps + compareOps;
+
+  return basicOps;
+}	
+
+void
+StdTypes::ResetBasicOps() {
+  UpdateBasicOps(true);	
+}
+
+void
+StdTypes::InitCounters(bool show) {
+  Statistics2Counters(true, show);
+}
+
+void
+StdTypes::SetCounterValues(bool show) {
+  Statistics2Counters(false, show);
 }
 
 
