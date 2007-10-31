@@ -1344,10 +1344,9 @@ SmiSize PrefetchingIteratorImpl::BulkCopy(void* data, size_t dataLength,
 SmiSize PrefetchingIteratorImpl::ReadCurrentData
   (void* userBuffer, SmiSize nBytes, SmiSize offset)
 {
-
-  static long& ctr = Counter::getRef("Prefetch::ReadCurrent:Calls");
-  static long& byteCtr = Counter::getRef("Prefetch::ReadCurrent:Bytes");
-  static long& pageCtr = Counter::getRef("Prefetch::ReadCurrent:Pages");
+  static long& ctr = Counter::getRef("SmiPrefetch::Calls");
+  static long& byteCtr = Counter::getRef("SmiPrefetch::Read:Bytes");
+  static long& pageCtr = Counter::getRef("SmiPrefetch::Read:Pages");
   static const int pageSize = WinUnix::getPageSize();
   SmiSize bytes = 0;
   ctr++;
