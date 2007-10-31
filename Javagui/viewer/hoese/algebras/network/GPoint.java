@@ -49,6 +49,11 @@ public class GPoint
   private double m_dDistance;
   
   /**
+   * 
+   */
+  private Point2D.Double m_xPoint;
+  
+  /**
    * Constructor. 
    * 
    * @param in_xList List in secondo-format
@@ -65,7 +70,13 @@ public class GPoint
     
     // Check if the network is available. This will throw an exception
     // if it is not.
-    NetworkManager.getInstance().getNetwork(m_iNetworkId);
+    // Get Network. If the network is not loaded an exception is
+    // thrown
+    Network xNetwork = NetworkManager.getInstance().getNetwork(m_iNetworkId);
+    
+    // Calculate the point in absolute coordinates
+    Route xRoute = xNetwork.getRouteById(m_iRouteId);
+    m_xPoint = xRoute.getPointOnRoute(m_dDistance);
   }
 
   /**
@@ -79,12 +90,6 @@ public class GPoint
   public Point2D.Double getRenderObject()
     throws NetworkNotAvailableException 
   {
-    // Get Network. If the network is not loaded an exception is
-    // thrown
-    Network xNetwork = NetworkManager.getInstance().getNetwork(m_iNetworkId);
-    
-    // Calculate the point in absolute coordinates
-    Route xRoute = xNetwork.getRouteById(m_iRouteId);
-    return xRoute.getPointOnRoute(m_dDistance);
+    return m_xPoint;
   }
 }

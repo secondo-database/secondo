@@ -160,7 +160,7 @@ public class Network
       }
     }
     // No route found
-    throw new RuntimeException("Route with id" + in_iId + "not found.");
+    throw new RuntimeException("Route with id " + in_iId + " not found.");
   }
 
   /**

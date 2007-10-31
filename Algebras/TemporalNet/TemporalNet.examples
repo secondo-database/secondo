@@ -1,12 +1,6 @@
 Database: networktest
 Restore : no
 
-Operator : mpoint2mgpoint
-Number   : 1
-Signature: mpoint -> mgpoint
-Example  : query mpoint2mgpoint(1, [const mpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1.0 1.0 2.0 2.0)))]);
-Result   : crashes
-
 Operator : units
 Number   : 1
 Signature: mgpoint -> stream(ugpoint)

@@ -88,7 +88,7 @@ public class Segment
   }
 
   /**
-   * Returns the starting point of the segment.
+   * Returns the first point of the segment.
    * 
    * @return Starting point
    */
@@ -98,7 +98,7 @@ public class Segment
   }
 
   /**
-   * Returns the Endpoint of the segment
+   * Returns the second of the segment
    * 
    * @return Endpoint
    */
@@ -106,6 +106,45 @@ public class Segment
   {
     return m_xPoint2;
   }
+
+  /**
+   * Returns the starting point of the segment.
+   * 
+   * @return Starting point
+   */
+  public Point2D.Double getFirstPoint() 
+  {
+    switch(m_iStarts)
+    {
+    case STARTS_SMALLER:
+      return m_xPoint1;  
+    case STARTS_BIGGER:
+      return m_xPoint2;
+    default:
+      throw new RuntimeException("No such case in switch.");
+    }
+  }
+
+  /**
+   * Returns the Endpoint of the segment
+   * 
+   * @return Endpoint
+   */
+  public Point2D.Double getLastPoint() 
+  {
+    switch(m_iStarts)
+    {
+    case STARTS_SMALLER:
+      return m_xPoint2;  
+    case STARTS_BIGGER:
+      return m_xPoint1;
+    default:
+      throw new RuntimeException("No such case in switch.");
+    }
+  }
+
+  
+  
   
   /**
    * Returns the distance between start and end

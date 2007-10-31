@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1.1 Implementation of operator routes
+1.1 Implementation of Operator Routes
 
 
 Mai-Oktober 2007 Martin Scheppokat

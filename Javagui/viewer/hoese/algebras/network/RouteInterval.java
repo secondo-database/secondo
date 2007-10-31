@@ -54,6 +54,11 @@ public class RouteInterval
   private double m_dEnd;
 
   /**
+   * The part of the route for this RouteInterval
+   */
+  Route m_xRoutePart;
+  
+  /**
    * Constructor
    * 
    * @param in_lNetworkId
@@ -96,9 +101,11 @@ public class RouteInterval
     m_dEnd = xEndList.realValue();
     
     
-    // Check if the network is available. This will throw an exception
-    // if it is not.
-    NetworkManager.getInstance().getNetwork(m_lNetworkId);
+    // Load the part of the route.
+    Network xNetwork = NetworkManager.getInstance().getNetwork(m_lNetworkId);
+    Route xRoute = xNetwork.getRouteById(m_iRouteId);
+    m_xRoutePart = xRoute.getPartOfRoute(m_dStart,
+                                             m_dEnd);
   }
 
   /**
@@ -110,11 +117,7 @@ public class RouteInterval
   public Shape getRenderObject() 
     throws NetworkNotAvailableException 
   {
-    Network xNetwork = NetworkManager.getInstance().getNetwork(m_lNetworkId);
-    Route xRoute = xNetwork.getRouteById(m_iRouteId);
-    Route xRoutePart = xRoute.getPartOfRoute(m_dStart,
-                                             m_dEnd);
-    return xRoutePart.getRenderObject();
+    return m_xRoutePart.getRenderObject();
   }
 
 }
