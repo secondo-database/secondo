@@ -139,7 +139,16 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
 #define MAX_NUM_OF_ATTR 10 
 
-//class CcTuple;
+
+#undef TTRACE
+#define TTRACE(ptr, msg) { \
+	    cerr << (void*)this \
+	         << " " << __FUNCTION__ << ": " \
+	         << msg << endl; }
+
+#undef DEBUG
+#define DEBUG(ptr, msg) if (debug) TTRACE(ptr, msg)
+
 extern AlgebraManager* am;
 
 /*
@@ -308,146 +317,6 @@ Sum of all attribute sizes.
 A reference counter.
 
 */
-};
-
-
-
-
-/*
-3 Type constructor ~tuple~
-
-3.2 Struct ~PrivateTuple~
-
-This struct contains the private attributes of the class ~Tuple~.
-
-*/
-
-struct PrivateTuple
-{
-/*
-3.2.1 Constructors 
-
-*/
-  PrivateTuple( TupleType *tupleType );
-  PrivateTuple( const ListExpr typeInfo );
-
-/*
-3.2.2. Destructor 
-
-*/
-  ~PrivateTuple();
-
-/*
-~CopyAttribute~
-
-This function is used to copy attributes from tuples to tuples 
-without cloning attributes.
-
-*/
-  inline void CopyAttribute( int sourceIndex, 
-                             const PrivateTuple *source, 
-                             int destIndex )
-  {
-    if( attributes[destIndex] != 0 ){ 
-      // remove reference from an old attribute
-      (attributes[destIndex]->DeleteIfAllowed()); 
-    }
-    attributes[destIndex] = source->attributes[sourceIndex]->Copy();
-  }
-
-/*
-Saves a tuple into ~tuplefile~ and ~lobfile~. Returns the 
-sizes of the tuple saved.
-
-*/
-
-  void Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId,
-             double& extSize, double& size,
-             vector<double>& attrExtSize, vector<double>& attrSize,
-             bool ignorePersistentLOBs=false );
-
-/*
-Saves a tuple with updated attributes and reuses the old 
-record. 
-
-*/
-  void UpdateSave( const vector<int>& changedIndices,
-                   double& extSize, double& size,
-                   vector<double>& attrExtSize,
-                   vector<double>& attrSize );
-
-/*
-Opens a tuple from ~tuplefile~(~rid~) and ~lobfile~.
-
-*/
-  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
-             SmiRecordId rid );
-
-/*
-Opens a tuple from ~tuplefile~ and ~lobfile~ reading the 
-current record of ~iter~.
-
-*/
-  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
-             PrefetchingIterator *iter );
-
-/*
-Opens a tuple from ~tuplefile~ and ~lobfile~ reading from 
-~record~.
-
-*/
-  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
-             SmiRecord *record );                
-
-
-/*
-The unique identification of the tuple inside a relation.
-
-*/
-  SmiRecordId tupleId;
-
-/*
-Stores the tuple type.
-
-*/
-  mutable TupleType *tupleType;
-
-/*
-The attributes pointer array. The tuple information is kept in 
-memory.
-
-*/
-  Attribute **attributes;
-/*
-Reference to an ~SmiRecordFile~ which contains LOBs.
-
-*/
-  SmiFileId lobFileId;
-/*
-Reference to an ~SmiRecordFile~ which contains the tuple.
-
-*/
-  SmiRecordFile* tupleFile;
-
-/*
-The members below are useful for debugging:
-
-Profiling turned out that a separate member storing the number
-of attributes makes sense since it reduces calls for TupleType::NoAttributes
-
-*/
-  int NumOfAttr;
-  
-/*
-Debugging stuff
-
-*/  
-#ifdef MALLOC_CHECK_  
-  void free (void* ptr) { cerr << "freeing ptr " << ptr << endl; ::free(ptr); }
-#endif
-  static bool debug;
-
-
 };
 
 /*
@@ -764,34 +633,30 @@ class Tuple
 {
   public:
 
-    inline Tuple( TupleType* tupleType ):
-    privateTuple( new PrivateTuple( tupleType ) )
+    inline Tuple( TupleType* tupleType ) :
+    tupleType( tupleType )
     {
-      Init( tupleType->GetNoAttributes(), privateTuple );
+      Init( tupleType->GetNoAttributes());
+      DEBUG(this, "Constructor Tuple(TupleType *tupleType) called.")
     }
+
 /*
 The constructor. It contructs a tuple with the metadata passed in 
 the ~tupleType~ as argument.
 
 */
-    inline Tuple( const ListExpr typeInfo ):
-    privateTuple( new PrivateTuple( typeInfo ) )
+    inline Tuple( const ListExpr typeInfo ) :
+    tupleType( new TupleType( typeInfo ) )
     {
-      Init( privateTuple->tupleType->GetNoAttributes(), privateTuple);
+      Init( tupleType->GetNoAttributes());
+      DEBUG(this, "Constructor Tuple(const ListExpr typeInfo) called.")
     }
 /*
 A similar constructor as the above, but taking a list 
 expression ~typeInfo~ as argument.
 
 */
-    inline ~Tuple()
-    {
-      tuplesDeleted++;
-      tuplesInMemory--;
-      delete privateTuple;
-      if (noAttributes > MAX_NUM_OF_ATTR)
-        delete [] attributes;
-    }
+  ~Tuple();
 /*
 The destructor.
 
@@ -869,7 +734,7 @@ Update Relation Algebra.
 */
     inline int GetRootSize() const
     {
-      return privateTuple->tupleType->GetTotalSize();
+      return tupleType->GetTotalSize();
     }
 /*
 Returns the size of the tuple's root part.
@@ -877,7 +742,7 @@ Returns the size of the tuple's root part.
 */
     inline int GetRootSize( int i ) const
     {
-      return privateTuple->tupleType->GetAttributeType(i).size;
+      return tupleType->GetAttributeType(i).size;
     }
 /*
 Returns the size of the attribute's root part.
@@ -888,17 +753,10 @@ Returns the size of the attribute's root part.
       if ( !recomputeExtSize ) 
         return tupleExtSize;
 
-      tupleExtSize = privateTuple->tupleType->GetTotalSize();
-      for( int i = 0; 
-           i < privateTuple->tupleType->GetNoAttributes(); i++)
+      tupleExtSize = 0;
+      for( int i = 0; i < noAttributes; i++)
       {
-        for( int j = 0; 
-             j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
-        {
-          FLOB *tmpFLOB = privateTuple->attributes[i]->GetFLOB(j);
-          if( !tmpFLOB->IsLob() )
-            tupleExtSize += tmpFLOB->Size();
-        }
+        tupleExtSize += GetExtSize(i);
       }
       recomputeExtSize = false;
       return tupleExtSize; 
@@ -910,19 +768,17 @@ part, i.e. the small FLOBs.
 */
     inline int GetExtSize( int i ) const
     {
-      int tupleExtSize = GetRootSize( i );
-      for( int j = 0;
-           j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
+      int attrExtSize = GetRootSize( i );
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
-        FLOB *tmpFLOB = privateTuple->attributes[i]->GetFLOB(j);
+        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
         if( !tmpFLOB->IsLob() )
-          tupleExtSize += tmpFLOB->Size();
+          attrExtSize += tmpFLOB->Size();
       }
-      return tupleExtSize;
+      return attrExtSize;
     }
 /*
-Returns the size of an attribute of the tuple taking into account
-the extension part, i.e. the small FLOBs.
+Returns the size of attribute i including its extension part.
 
 */
     inline int GetSize() const
@@ -930,14 +786,10 @@ the extension part, i.e. the small FLOBs.
       if ( !recomputeSize ) 
         return tupleSize;
 
-      tupleSize = privateTuple->tupleType->GetTotalSize();
-      for( int i = 0; 
-           i < privateTuple->tupleType->GetNoAttributes(); i++)
+      tupleSize = 0;
+      for( int i = 0; i < noAttributes; i++)
       {
-        for( int j = 0; 
-             j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
-          tupleSize += 
-            privateTuple->attributes[i]->GetFLOB(j)->Size();
+	tupleSize += GetSize(i);      
       }
       recomputeSize = false;
       return tupleSize;
@@ -950,28 +802,13 @@ the FLOBs.
     inline int GetSize( int i ) const
     {
       int tupleSize = GetRootSize(i);
-      for( int j = 0;
-           j < privateTuple->attributes[i]->NumOfFLOBs(); j++)
-        tupleSize +=
-          privateTuple->attributes[i]->GetFLOB(j)->Size();
+      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
+        tupleSize += attributes[i]->GetFLOB(j)->Size();
       return tupleSize;
     }
 /*
 Returns the total size of an attribute of the tuple taking
 into account the FLOBs.
-
-*/
-    inline void CopyAttribute( int sourceIndex, 
-                               const Tuple *source, 
-                               int destIndex )
-    {
-      privateTuple->CopyAttribute( sourceIndex, 
-                                   source->privateTuple, 
-                                   destIndex );
-    }
-/*
-This function is used to copy attributes from tuples to tuples 
-without cloning attributes.
 
 */
     inline int GetNoAttributes() const 
@@ -984,7 +821,7 @@ Returns the number of attributes of the tuple.
 */
     inline TupleType* GetTupleType() const 
     {
-      return privateTuple->tupleType;
+      return tupleType;
     }
 /*
 Returns the tuple type.
@@ -1026,15 +863,6 @@ Increses the reference count of this tuple.
 Decreses the reference count of this tuple.
 
 */
-    inline PrivateTuple *GetPrivateTuple()
-    { 
-      return privateTuple; 
-    }
-/*
-Function to give outside access to the private part of the tuple 
-class.
-
-*/
     int GetNumOfRefs() const
     { 
       return refs; 
@@ -1043,7 +871,71 @@ class.
 Returns the number of references
 
 */
-    
+
+/*
+~CopyAttribute~
+
+This function is used to copy attributes from tuples to tuples 
+without cloning attributes.
+
+*/
+  inline void CopyAttribute( int sourceIndex, 
+                             const Tuple *source, 
+                             int destIndex )
+  {
+    if( attributes[destIndex] != 0 ){ 
+      // remove reference from an old attribute
+      (attributes[destIndex]->DeleteIfAllowed()); 
+    }
+    attributes[destIndex] = source->attributes[sourceIndex]->Copy();
+  }
+  
+/*
+Saves a tuple into ~tuplefile~ and ~lobfile~. Returns the 
+sizes of the tuple saved.
+
+*/
+
+  void Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId,
+             double& extSize, double& size,
+             vector<double>& attrExtSize, vector<double>& attrSize,
+             bool ignorePersistentLOBs=false );
+
+/*
+Saves a tuple with updated attributes and reuses the old 
+record. 
+
+*/
+  void UpdateSave( const vector<int>& changedIndices,
+                   double& extSize, double& size,
+                   vector<double>& attrExtSize,
+                   vector<double>& attrSize );
+
+/*
+Opens a tuple from ~tuplefile~(~rid~) and ~lobfile~.
+
+*/
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             SmiRecordId rid );
+
+/*
+Opens a tuple from ~tuplefile~ and ~lobfile~ reading the 
+current record of ~iter~.
+
+*/
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             PrefetchingIterator *iter );
+
+/*
+Opens a tuple from ~tuplefile~ and ~lobfile~ reading from 
+~record~.
+
+*/
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             SmiRecord *record );                
+
+  // debug flag  
+  static bool debug;
     
   private:
 
@@ -1064,25 +956,27 @@ Some statistics about tuples.
 Initializes the attributes array with zeros.
 
 */
-    inline void Init( int NoAttr, PrivateTuple* pt )
+    inline void Init( int NoAttr)
     {
+      tupleType->IncReference();
+      noAttributes = NoAttr;
+
+      refs = 0;
+      tupleId = 0;
+      tupleSize = 0;
+      tupleFile = 0;
+      tupleExtSize = 0;
+      lobFileId =  0;
+
       recomputeExtSize = true;
       recomputeSize = true;
 
-      noAttributes = NoAttr;
-      
       if ( noAttributes > MAX_NUM_OF_ATTR ) 
         attributes = new Attribute*[noAttributes];
       else 
         attributes = defAttributes;
 
-      refs = 0;
-
-      pt->attributes = attributes;
       InitAttrArray();
-
-      tupleExtSize = 0;
-      tupleSize = 0;
 
       tuplesCreated++;
       tuplesInMemory++;
@@ -1144,12 +1038,55 @@ entries, the it is statically constructed and ~attributes~ point
 to ~defAttributes~, otherwise it is dinamically constructed.
 
 */
-    mutable PrivateTuple *privateTuple;
+    //mutable PrivateTuple *privateTuple;
 /*
 The private implementation dependent attributes of the class 
 ~Tuple~.
 
 */
+
+
+
+/*
+The unique identification of the tuple inside a relation.
+
+*/
+  SmiRecordId tupleId;
+
+/*
+Stores the tuple type.
+
+*/
+  mutable TupleType *tupleType;
+
+/*
+Reference to an ~SmiRecordFile~ which contains LOBs.
+
+*/
+  SmiFileId lobFileId;
+/*
+Reference to an ~SmiRecordFile~ which contains the tuple.
+
+*/
+  SmiRecordFile* tupleFile;
+
+/*
+The members below are useful for debugging:
+
+Profiling turned out that a separate member storing the number
+of attributes makes sense since it reduces calls for TupleType::NoAttributes
+
+*/
+  int NumOfAttr;
+  
+/*
+Debugging stuff
+
+*/  
+#ifdef MALLOC_CHECK_  
+  void free (void* ptr) { cerr << "freeing ptr " << ptr << endl; ::free(ptr); }
+#endif
+
 };
 
 ostream& operator<<(ostream &os, Attribute &attrib);
@@ -1490,6 +1427,9 @@ Returns the tuple identification of the current tuple.
 
   private:
 
+  long& readData_Bytes;
+  long& readData_Pages;
+
   const TupleBuffer& tupleBuffer;
 /*
 A pointer to the tuple buffer.
@@ -1505,6 +1445,8 @@ The current tuple if it is in memory.
 The iterator if it is not in memory.
 
 */
+
+
 };
 
 /*
@@ -1614,6 +1556,9 @@ taking into account the FLOBs.
 
 */
   void clearAll();
+
+  void updateDataStatistics();
+
 };
 
 /*
@@ -1754,9 +1699,10 @@ relations.
 */
     ~Relation();
 /*
-The destructor.
+The destructor. Deletes the memory part of an relation object.
 
 */
+
     static Relation *GetRelation( const RelationDescriptor& d );
 /*
 

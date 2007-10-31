@@ -5164,7 +5164,7 @@ InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if ( RTFlag::isActive("RA:FLOB_Trace") )
     FLOB::debug = true;
   if ( RTFlag::isActive("RA:TUPLE_Trace") )
-    PrivateTuple::debug = true;
+    Tuple::debug = true;
  
   nl = nlRef;
   qp = qpRef;
