@@ -194,13 +194,15 @@ SmiEnvironment::Implementation::CloseDbHandles()
           instance.impl->dbHandles[idx].handle != 0 )
     {
       closed++;
-      const char* f;
-      const char* d;
-      instance.impl->dbHandles[idx].handle->get_dbname(&f, &d);
 
       if (traceHandles) 
+      { 
+        const char* f;
+        const char* d;
+        instance.impl->dbHandles[idx].handle->get_dbname(&f, &d);
         cerr << "closing handle for idx = " 
              << idx << " (" << f << ")" << endl;
+      }	
       int rc = instance.impl->dbHandles[idx].handle->close( flag );
       SetBDBError(rc);
       delete instance.impl->dbHandles[idx].handle;
@@ -211,7 +213,7 @@ SmiEnvironment::Implementation::CloseDbHandles()
     }
   }
 
-  if ( RTFlag::isActive("SMI:DbHandles") ) {
+  if ( traceHandles ) {
     cerr << "CloseDbHandles() - Report: size = " << size 
          << ", closed = " << closed 
          << ", nosync = " << dontSyncDiskCache << endl;
