@@ -289,6 +289,41 @@ This function changes the matrix to this one of the given number.
            defined = true;
        }
 
+
+/*
+2.1.10 ~Fill~
+
+This function sets all possible intersections within this 
+matrix to be __true__. After calling this function this
+Int9M instance is also defined.
+
+*/
+  void Fill(){
+    value = 511;
+    defined = true;
+  }
+
+/*
+2.1.10 ~IsFull~
+
+This function checks whether all intersections are set to be 
+non-empty. For an undefined isnatnce the result will be __false__.
+
+*/
+  bool IsFull(){
+    return defined && (value==511);
+  }
+
+/*
+2.1.10 ~IsEmpty~
+
+This function checks if all matrix entries are set to be empty.
+
+*/
+  bool IsEmpty(){
+    return defined && (value==0);
+  }
+
 /*
 2.1.11 Set Function
 

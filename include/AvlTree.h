@@ -54,12 +54,12 @@ public:
 This constructor creates a new leaf with the given content.
 
 */
-   AvlNode(const contenttype& content){
+   AvlNode(const contenttype& content1){
       __AVL_TRACE__
       height=0;
       left=NULL;
       right = NULL;
-      this->content = content;
+      this->content = content1;
    }
 /*
 1.0 Copy constructor
@@ -81,7 +81,7 @@ Creates a depth copy of this node.
 
 
 */
-  AvlNode<contenttype>& operator=(AvlNode<contenttype>&  source){
+  AvlNode<contenttype>& operator=(const AvlNode<contenttype>&  source){
      __AVL_TRACE__
      this->content = source.content;
      this->left = source.left?new AvlNode<contenttype>(source.left):NULL;
@@ -398,6 +398,28 @@ const contenttype* getMember(const contenttype& x) const{
    __AVL_TRACE__
    return getMember(root,x);
 }
+
+/*
+~GetMember~
+
+Returns a pointer to the entry ~m~ in the tree for which ~x~==~m~ holds.
+If the element is not found, the return value is NULL. After calling this 
+function ~left~ and ~right~ points to the element stored in the tree which
+is the left and right neighbour of x respectively. If a neighbour don't exist,
+the corresponding parameter is set to NULL.
+
+
+*/
+const contenttype* getMember(const contenttype& x, 
+                             const contenttype*& left,
+                             const contenttype*& right) const{
+  __AVL_TRACE__
+  left = 0;
+  right = 0;
+  return getMember(root,x,left,right);
+}
+
+
 
 /*
 2.4 GetNearestSmallerOrEqual
@@ -1253,6 +1275,47 @@ static const contenttype* getMember(AvlNode<contenttype>const* const root,
           ? getMember(root->left,content) 
           : getMember(root->right,content);
 }
+
+
+static const contenttype* getMember(AvlNode<contenttype>const* const root,
+                                    const contenttype& x,
+                                    const contenttype*& left,
+                                    const contenttype*& right){
+
+  __AVL_TRACE__
+  if(root==NULL) return 0;  // member not found
+  if(root->content==x){
+     if(root->left){ // search the left neighbour
+        AvlNode<contenttype>* tmp = root->left;
+        while(tmp->right){
+           tmp = tmp->right;
+        }
+        left = &tmp->content;
+     }
+     if(root->right){ // search the right neighbour
+        AvlNode<contenttype>* tmp = root->right;
+        while(tmp->left){
+           tmp = tmp->left;
+        }
+        left = &tmp->content;
+     }
+     return &root->content;
+  }
+  if(x < root->content){
+     const contenttype* res = getMember(root->left,x,left,right);
+     if(!right){
+        right = &root->content;
+     }
+     return res;
+  } else { // x > root->content
+     const contenttype* res = getMember(root->right,x,left,right);
+     if(!left){
+        left = &root->content;
+     }
+     return res;
+  }
+}
+
 
 
 /*
