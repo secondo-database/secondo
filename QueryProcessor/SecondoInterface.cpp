@@ -628,9 +628,12 @@ separate functions which should be named Command\_<name>.
   }
 
   // Initialize Counters for the creation and deletion of objects
-  bool objStatistics = RTFlag::isActive("SI:RelStatistics");
-  Tuple::InitCounters( objStatistics );
-  ShowStandardTypesStatistics( objStatistics );
+  bool relStatistics = RTFlag::isActive("SI:RelStatistics");
+  Tuple::InitCounters( relStatistics );
+  Attribute::InitCounters( relStatistics );
+
+  bool stdStatistics = RTFlag::isActive("STD:Statistics");
+  StdTypes::InitCounters( stdStatistics );
   
 
   //*** START COMMAND RECOGNITION ***//
@@ -1371,8 +1374,11 @@ separate functions which should be named Command\_<name>.
   }
     
   // handle counters
-  if (objStatistics) 
+  if (relStatistics) { 
     Tuple::SetCounterValues();
+    Attribute::SetCounterValues(relStatistics);
+  }  
+  StdTypes::SetCounterValues(stdStatistics);
 
   bool printCtrs = RTFlag::isActive("SI:PrintCounters");
   bool dumpCtrs = RTFlag::isActive("SI:DumpCounters");

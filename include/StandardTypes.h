@@ -69,11 +69,14 @@ by the ~StandardAlgebra~:
 #include "StandardAttribute.h"
 #include "NestedList.h"
 #include "Counter.h"
+#include "Symbols.h"
 
 /*
 2.1 CcInt
 
 */
+
+using namespace symbols;
 
 
 
@@ -144,7 +147,7 @@ class CcInt : public StandardAttribute
   
   inline size_t HashValue() const
   { 
-    static long& ctr = Counter::getRef("CcInt::HashValue");
+    static long& ctr = Counter::getRef(CTR_INT_HASH);
     ctr++;
     return (defined ? intval : 0); 
   }
@@ -156,38 +159,39 @@ class CcInt : public StandardAttribute
     intval = r->intval;
   }
   
-  inline int Compare(const Attribute *arg) const
+  inline int Compare(const Attribute* arg) const
   {
-    const CcInt* rhs = static_cast<const CcInt*>( arg );
-    static long& ctr = Counter::getRef("CcInt::Compare");
+    const CcInt* rhs = dynamic_cast<const CcInt*>( arg );
+    static long& ctr = Counter::getRef(CTR_INT_COMPARE);
     ctr++;
 
     return Attribute::GenericCompare<CcInt>(this, rhs, defined, rhs->defined);
   }
 
-  inline virtual bool Equal(const Attribute *arg) const
+  inline virtual bool Equal(const CcInt* rhs) const
   {
-    const CcInt* rhs = static_cast<const CcInt*>( arg );
-    static long& ctr = Counter::getRef("CcInt::Equal");
+    static long& ctr = Counter::getRef(CTR_INT_EQUAL);
     ctr++;
 
     return Attribute::GenericEqual<CcInt>(this, rhs, defined, rhs->defined);
   }
 
-  inline virtual bool Less(const Attribute *arg) const
+  inline virtual bool Less(const CcInt* rhs) const
   {
-    const CcInt* rhs = static_cast<const CcInt*>( arg );
-    static long& ctr = Counter::getRef("CcInt::Less");
+    static long& ctr = Counter::getRef(CTR_INT_LESS);
     ctr++;
 
     return Attribute::GenericLess<CcInt>(this, rhs, defined, rhs->defined);
   }
 
   
-  inline bool Adjacent(const Attribute *arg) const
+  inline bool Adjacent(const Attribute* arg) const
   {
+    static long& ctr = Counter::getRef(CTR_INT_ADJACENT);
+    ctr++;
+
     int a = GetIntval(),
-        b = ((const CcInt *)arg)->GetIntval();
+        b = dynamic_cast<const CcInt*>(arg)->GetIntval();
 
     return( a == b || a == b + 1 || b == a + 1 );
   }
@@ -236,6 +240,11 @@ class CcInt : public StandardAttribute
     return intval < rhs.intval;
   } 
 
+  inline void operator=(const CcInt& rhs)
+  {
+    intval = rhs.intval;
+    defined = rhs.defined;
+  }
   
   static long intsCreated;
   static long intsDeleted;
@@ -695,6 +704,11 @@ struct StdTypes
   static SEC_STD_REAL GetReal(const Word& w); 
   static bool GetBool(const Word& w); 
   static string GetString(const Word& w); 
+  
+  static void InitCounters(bool show);
+  static void SetCounterValues(bool show);
+  static long UpdateBasicOps(bool reset=false);
+  static void ResetBasicOps();
 };
 
 #endif
