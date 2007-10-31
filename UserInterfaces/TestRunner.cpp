@@ -959,6 +959,8 @@ TestRunner::ProcessExamples()
 	       if ( nl->IsEqual(list, "bug") )
 	         info.resultType = ExampleInfo::Bug;	        
 	       if ( nl->IsEqual(list, "file") )
+	         info.resultType = ExampleInfo::File;	        
+	       if ( nl->IsEqual(list, "platform") )
 	         info.resultType = ExampleInfo::PlatformFile;	        
 	       if ( nl->IsEqual(list, "crashes") )
 	         info.resultType = ExampleInfo::PlatformFile;	        
