@@ -2102,7 +2102,13 @@ As owner only __first__ and __second__ are the allowed values.
 
   }
   
+/*
 
+~Equalize~
+
+The value of this segment is taken from the argument.
+
+*/
 
   void Equalize( const AVLSegment& src){
      x1 = src.x1;
@@ -2231,7 +2237,7 @@ Compares this with s. The x intervals must overlap.
 
 
 /*
-3.6 ~IsVertical~
+3.6 ~isVertical~
 
 Checks whether this segment is vertical.
 
@@ -2241,6 +2247,22 @@ Checks whether this segment is vertical.
      return AlmostEqual(x1,x2);
  }
 
+
+/*
+3.7 getInsideAbove
+
+Returns the insideAbove value for such segments for which this value is unique,
+e.g. for segments having owner __first__ or __second__.
+
+*/
+
+  bool getInsideAbove(){
+      switch(owner){
+        case first : return insideAbove_first;
+        case second: return insideAbove_second;
+        default : assert(false);
+      }
+  }
 
 /*
 3.7 Comparison Operators 
@@ -2385,6 +2407,14 @@ Preconditions:
 
   }
 
+/*
+~splitAt~
+
+This function divides an segment into two parts at the point 
+provided by (x, y). The point must be on the interior of this segment.
+
+*/
+
   void splitAt(const double x, const double y, 
                AVLSegment& left, 
                AVLSegment& right)const{
@@ -2457,6 +2487,49 @@ common endpoint.
       double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
       return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
                  (ininterior(x,y) && s.contains(x,y)) );
+  }
+/*
+~Intersects~
+
+This function checks whether this segment and s have at least a 
+common point. 
+
+*/
+
+  bool intersects(const AVLSegment& s)const{
+      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
+        return true; 
+      }
+      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
+        return true;
+      }
+      if(overlaps(s)){ // a common line
+         return true;
+      }
+      if(compareSlopes(s)==0){ // parallel or disjoint lines
+         return false;
+      } 
+    
+      if(isVertical()){
+        double x = x1; // compute y for s
+        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        return  ( (contains(x,y) && s.contains(x,y) ) );
+
+      }
+      if(s.isVertical()){
+         double x = s.x1;
+         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+         return ((contains(x,y) && s.contains(x,y)));
+      }
+    
+      // both segments are non vertical 
+      double m1 = (y2-y1)/(x2-x1);
+      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
+      double c1 = y1 - m1*x1;
+      double c2 = s.y1 - m2*s.x1;
+      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
+      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+      return ( (contains(x,y) && s.contains(x,y) ) );
   }
 
 
@@ -2779,10 +2852,6 @@ segment is returned.
      return y1 + d*(y2-y1);
   }
 
-
-
-
-
 };
 
 
@@ -3076,18 +3145,56 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
               } else {
                 current.con_above = current.con_below-1;
               }
-              
+
+              // derive intersections from the coverage numbers
+              if(current.con_below == 0){
+                  res.SetEE(true);
+              } else if (current.con_below == 1) {
+                  if(current.getInsideAbove()){
+                     if(current.getOwner()==first){
+                        res.SetEI(true);
+                     } else {
+                        res.SetIE(true);
+                     }
+                  } else {
+                     if(current.getOwner()==first){
+                        res.SetIE(true);
+                     } else {
+                        res.SetEI(true);
+                     }
+                  }
+              } else {
+                 assert(current.con_below==2);
+                 res.SetII(true); 
+              }
+              // check for possible common endpoints with the neighbours
+              if(leftN && leftN->getOwner()!=current.getOwner()){
+                 if(leftN->intersects(current)){
+                     res.SetBB(true);
+                 }
+              }
+              if(rightN && rightN->getOwner()!=current.getOwner()){
+                 if(rightN->intersects(current)){
+                     res.SetBB(true);
+                 }
+              }
               current.checkCon(&sss); 
               sss.insert(current);
               assert(sss.Check(cerr));
 
            } else {
+              // check for possible common points with the neighbours
+              if(leftN && leftN->getOwner()!=current.getOwner()){
+                 if(leftN->intersects(current)){
+                     res.SetBB(true);
+                 }
+              }
+              if(rightN && rightN->getOwner()!=current.getOwner()){
+                 if(rightN->intersects(current)){
+                     res.SetBB(true);
+                 }
+              }
 
-              // the evil case !!!
-
-             // At least one of the segments must be divided
-
-             
              if(leftN && 
                 current.ininterior(leftN->getX2(), leftN->getY2())){
 
@@ -3247,6 +3354,30 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
             } else {
               current.con_above = current.con_below-1;
             }
+
+            
+            // derive intersections from the coverage numbers
+            if(current.con_below == 0){
+                res.SetEE(true);
+            } else if (current.con_below == 1) {
+                if(current.getInsideAbove()){
+                   if(current.getOwner()==first){
+                      res.SetEI(true);
+                   } else {
+                      res.SetIE(true);
+                   }
+                } else {
+                   if(current.getOwner()==first){
+                      res.SetIE(true);
+                   } else {
+                      res.SetEI(true);
+                   }
+                }
+            } else {
+               assert(current.con_below==2);
+               res.SetII(true); 
+            }
+
               
              assert(current.con_above>=0 && current.con_above<=2);
              assert(current.con_below + current.con_above > 0);
