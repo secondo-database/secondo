@@ -3222,6 +3222,7 @@ QueryProcessor::EvalS( void* node,
                       const int message)
 {
   progressView = 0;
+  allowProgress = false;
   Eval( node, result, 1 );
 }
 
@@ -4116,7 +4117,7 @@ QueryProcessor::ExecuteQuery( const string& queryListStr,
     {
       // evaluate the operator tree
 
-      qpp->Eval( tree, queryResult, OPEN );
+      qpp->EvalS( tree, queryResult, OPEN );
       qpp->Destroy( tree, false );
 
     }
