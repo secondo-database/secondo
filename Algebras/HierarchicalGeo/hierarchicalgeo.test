@@ -345,9 +345,23 @@ query cmpmehringd p_passes mehringdamm;
 query units(cmptest) count;
 
 
+#testcase querycmpd_at
+#yields (cmpoint ( (23.5 (\
+            ("2003-11-20-07:00:37.320" "2003-11-20-07:00:37.844" TRUE FALSE)\
+            (-2841.495125236518 14460.93238851565 -2849.0 14461.0)))\
+    (23.5 (\
+            ("2003-11-20-07:00:37.844" "2003-11-20-07:00:39.212" TRUE TRUE)\
+            (-2849.0 14461.0 -2868.139322458532 14465.27820149073)))) )
+query ctrain7 d_at havel;
+
 #testcase querycmpunits2
 #yields success
 query units(cmptest) namedtransformstream [Unit] consume;
+
+
+#testcase querytouncertain
+#yields success
+query touncertain(train7, 5.5);
 
 
 #testcase deletecmpoint

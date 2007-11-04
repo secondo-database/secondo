@@ -74,8 +74,20 @@ Signature: (cupoint point)-> cupoint
 Example : query cupmehring1 d_at mehringdamm
 Result   : (cupoint undef)
 
+Operator: d_at
+Number  : 3
+Signature: (cupoint point)-> cupoint
+Example : query ctrain7 d_at thecenter
+Result   : file
+
 Operator: units
 Number  : 1
 Signature: cmpoint -> stream(cupoint)
 Example : query units(cmptest) count
 Result   : 3
+
+Operator: touncertain
+Number: 1
+Signature: (mpoint real) -> cmpoint
+Example  : query touncertain(train7, 32.5)
+Result      : file

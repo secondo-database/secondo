@@ -27,6 +27,8 @@ operator units alias UNITS pattern op ( _ )
 operator d_passes alias D_PASSES pattern _ infixop _
 operator p_passes alias P_PASSES pattern _ infixop _
 operator d_at alias D_AT pattern _ infixop _
+operator p_at alias P_AT pattern _ infixop _
+operator touncertain alias TOUNCERTAIN pattern op( _, _ )
 
 # During the implementation of the datatypes 'cupoint' and 'cmpoint' a re-
 # implementation of the uncertain-template became necessary.  So the following
