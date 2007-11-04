@@ -37,7 +37,7 @@ the ~initialize~ method.
 
 Further it should inherit from a class wich inherits from ~Metrical~ e.g.
 ~MetricalAttribute~, ~StandardMetricalAttrbute~ or 
-~IndexableStandardMetricalAttribute~ (defined in ~MetricAttribute.h~) and 
+~IndexableStandardMetricalAttribute~ (defined in ~MetricAttribute.h~) and
 belong to the kind ~METRICAL~.
 
 1.2 Includes and Defines
@@ -52,7 +52,7 @@ belong to the kind ~METRICAL~.
 
 #include "SecondoInterface.h"
 
-typedef double (*Metric)( const void* attr1, const void* attr2 );
+typedef void (*Metric)( const void* attr1, const void* attr2, double& result );
 
 /*
 1.3 Class ~MetricRegistry~
@@ -66,7 +66,7 @@ and the ~typeId~ of the respective type constructor.
 class MetricRegistry
 {
  public:
-  static void Initialize( SecondoInterface* secondoInterface );
+  static void Initialize( SecondoInterface *secondoInterface );
 /*
 This method stores all defined metrics in the metric map.
 
@@ -80,38 +80,31 @@ respective type construktor is selected through ~algebraId~ and ~typeId~
 
 */
 
-  static double Distance( const int algebraId, const int typeId,
-                          const void* attr1, const void* attr2 );
-/*
-For every type constructor, this method calls the associated metric with the
-parameters ~attr1~ and ~attr2~. The respective type construktor is selected 
-through ~algebraId~ and ~typeId~ (if no metric has been associatet, the method
-returns 0).
-
-*/
-
  private:
-
-  static void RegisterMetric( const string& name, Metric mf );
+  static void RegisterMetric( const string &name, Metric mf );
 /*
 This method mapps the string ~name~ to the metric ~mf~
 
 */
 
-  static double PictureMetric( const void* attr1, const void* attr2 );
-/*
-This method implements the metric for the picture type constructor
-
-*/
-
-  static double HistogramMetric( const void* attr1, const void* attr2 );
+  static void HistogramMetric( const void* attr1,
+                               const void* attr2,
+                               double& result );
 /*
 This method implements the metric for the histogram type constructor
 
 */
 
+  static void PictureMetric( const void* attr1,
+                             const void* attr2,
+                             double& result );
+/*
+This method implements the metric for the picture type constructor
+
+*/
+
   static bool initialized;
-  static SecondoInterface* si;       // reference to secondo interface
+  static SecondoInterface *si;       // reference to secondo interface
   static map<string,Metric> metrics; // contains the registered metrics
 };
 

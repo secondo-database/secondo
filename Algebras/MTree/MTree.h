@@ -45,9 +45,10 @@ TODO: enter MTree datastructure discription
 #include "MetricAttribute.h"
 #include "MetricRegistry.h"
 #include "MTreeTools.h"
+#include "WinUnix.h"
 #include <list>
 
-const size_t MIN_PAGESIZE = 100;
+const size_t PAGESIZE = ( WinUnix::getPageSize() - 100 );
 /*
 
 
@@ -62,40 +63,178 @@ m-tree will use external storage for the strings.
 */
 
 /*
+1.8 struct ~MTreeLeafEntry~
+
+*/
+struct MTreeLeafEntry : public MTreeEntry
+{
+  TupleId tupleId; // tuple identifier
+
+  inline MTreeLeafEntry( char* buffer, int& offset, STORAGE_TYPE storageType )
+  {
+    Read( buffer, offset, storageType );
+  }
+
+/*
+Read constructor.
+
+*/
+
+  inline MTreeLeafEntry( MTreeData* data, TupleId tid, double dist )
+  {
+    this->tupleId = tid;
+    this->data = data;
+    this->dist = dist;
+  }
+/*
+Standard constructor.
+
+*/
+
+  static int StaticSize()
+  {
+    return sizeof(TupleId) +  // tupleId
+           sizeof(double);    // dist
+  }
+/*
+Returns the size of the entry in disk (without data member)
+
+*/
+
+  void Read( char* buffer, int& offset, STORAGE_TYPE storageType );
+/*
+Reads an entry from the buffer. Offset is increased.
+
+*/
+
+  void Write( char* buffer, int& offset );
+/*
+Writes an entry from the buffer. Offset is increased.
+
+*/
+
+};
+
+/*
+1 struct ~MTreeRoutingEntry~
+
+*/
+struct MTreeRoutingEntry : public MTreeEntry
+{
+  SmiRecordId *chield; // pointer to covering tree
+  double r;            // covering radius
+
+  inline MTreeRoutingEntry( char* buffer, int& offset,
+                            STORAGE_TYPE storageType )
+  {
+    Read( buffer, offset, storageType  );
+  }
+
+/*
+Read constructor.
+
+*/
+
+  inline MTreeRoutingEntry(
+        MTreeEntry* e, 
+        SmiRecordId *chield, 
+        double dist, 
+        double r )
+  {
+    this->data = e->data;
+    this->chield = chield;
+    this->dist = dist;
+    this->r = r;
+  }
+/*
+Constructor.
+
+*/
+
+  inline MTreeRoutingEntry(
+        MTreeData* data, 
+        SmiRecordId *chield, 
+        double dist, 
+        double r )
+  {
+    this->data = data;
+    this->chield = chield;
+    this->dist = dist;
+    this->r = r;
+  }
+/*
+
+
+*/
+
+  inline ~MTreeRoutingEntry()
+  {
+    cout << "MTreeRoutingEntry destructor called\n";
+    delete data;
+  }
+
+  static int StaticSize()
+  {
+    return sizeof(SmiRecordId) + // chield
+           sizeof(double) +      // dist
+           sizeof(double);       // r
+  }
+/*
+Returns the size of the entry in disk (without data member)
+
+*/
+
+  void Read( char *buffer, int &offset, STORAGE_TYPE storageType );
+/*
+Reads an entry from the buffer. Offset is increased.
+
+*/
+
+  void Write( char *buffer, int &offset );
+/*
+Writes an entry from the buffer. Offset is increased.
+
+*/
+};
+/*
 1 Class ~MTreeNode~
 
 */
 class MTreeNode
 {
  public:
-  MTreeNode( bool leaf, int maxEntries, int sizeOfEntries );
+  MTreeNode( bool leaf, size_t maxEntries, STORAGE_TYPE storageType );
   ~MTreeNode();
 
-  static int SizeOfEmptyNode();
-
-  inline size_t Size()
+  static inline int SizeOfEmptyNode()
   {
-      return SizeOfEmptyNode() +( sizeOfEntries * maxEntries );
+    return sizeof(size_t); // count of entries
   }
 
   void Read( SmiRecordFile &file, const SmiRecordId page );
   void Read( SmiRecord &record );
+
   void Write( SmiRecordFile &file, const SmiRecordId page );
   void Write( SmiRecord &record );
 
-  void InsertEntry( MTreeEntry *entry );
+  void InsertEntry( MTreeEntry* entry );
+
+  list<MTreeEntry*>::iterator GetEntryIterator()
+  {
+     return entries.begin();
+  }
 
   inline bool IsLeaf() { return isLeaf; }
   inline bool IsFull() { return !(entries.size() < maxEntries); }
+  inline int GetEntryIter() { return entries.size(); }
   inline int GetEntryCount() { return entries.size(); }
 
-
  private:
-  unsigned int maxEntries;  // max capacity of entries
+  list<MTreeEntry*> entries; // list containing the entries
   bool isLeaf;     // true, if the node is a leaf
   bool modified;   // true, if the node has been modified
-  list<MTreeEntry*> entries; // list containing the entries
-  int sizeOfEntries;
+  size_t maxEntries;
+  STORAGE_TYPE storageType;
 };
 
 /*
@@ -115,24 +254,47 @@ class MTreeHeader
     dataLength ( 0 ),
     maxLeafEntries ( 0 ),
     maxRoutingEntries ( 0 ),
-    leafEntrySize ( 0 ),
-    routingEntrySize ( 0 ),
     attrIndex ( 0 ),
     algebraId ( 0 ),
     typeId ( 0 ),
     height ( 0 ),
     nodeCount ( 0 ),
-    entriesCount ( 0 )
+    entryCount ( 0 )
   {}
 
   inline void Write( SmiRecord &record )
   {
-    assert( record.Read( this, sizeof( this ), 0 ) == sizeof( this ) );
+    assert( record.Write( this, sizeof( MTreeHeader ), 0 )
+            == sizeof(MTreeHeader) );
   }
 
   inline void Read( SmiRecord &record )
   {
-    assert( record.Write( this, sizeof( this ), 0 ) == sizeof( this ) );
+    assert( record.Read( this, sizeof( MTreeHeader ), 0 )
+    == sizeof(MTreeHeader) );
+  }
+
+  void Print( void )
+  {
+    cout << "\n"
+         << "Header Statistics:\n"
+         << "==================================================\n"
+         << "      header size = " << sizeof( MTreeHeader ) << "\n"
+         << "headerInitialized = " << headerInitialized << "\n"
+         << "             root = " << root << "\n"
+         << "          promFun = " << promFun << "\n"
+         << "          partfun = " << partFun << "\n"
+         << "          storage = " << storage << "\n"
+         << "       datafileId = " << datafileId << "\n"
+         << "   maxLeafEntries = " << maxLeafEntries << "\n"
+         << "maxRoutingEntries = " << maxRoutingEntries << "\n"
+         << "        attrIndex = " << attrIndex << "\n"
+         << "        algebraId = " << algebraId << "\n"
+         << "           typeId = " << typeId << "\n"
+         << "           height = " << height << "\n"
+         << "        nodeCount = " << nodeCount << "\n"
+         << "       entryCount = " << entryCount << "\n"
+         << "==================================================\n\n";
   }
 
   bool headerInitialized;
@@ -144,14 +306,12 @@ class MTreeHeader
   size_t dataLength;            // length of the data string
   int maxLeafEntries;    // maximum number of entries in a node
   int maxRoutingEntries; // maximum number of entries in a node
-  int leafEntrySize;
-  int routingEntrySize;
   int attrIndex;             // used attribute index
   int algebraId;
   int typeId;
   int height;                // height of the tree
   int nodeCount;
-  int entriesCount;
+  int entryCount;
 };
 
 /*
@@ -161,7 +321,7 @@ class MTreeHeader
 class MTree
 {
  public:
-  MTree( const size_t pagesize );
+  MTree();
 /*
 Constructor (creates a new tree)
 
@@ -247,16 +407,9 @@ This method returns the FileId of the SmiFile containing the m-tree
   SmiRecordFile* datafile; // the file, which is containing the tree
   MTreeHeader header; // contains some informations about the tree
   bool initialized;   // true, if initialize function has been called
-  size_t pagesize;       // needed to calculate max entries per node
-  DistanceFunction *distFun;
-  SplitPolicy *splitPol;
+  MetricWrapper* metric;
+  SplitPolicy *splitpol;
   Relation* rel;
-
-//    inline int MaxEntries( int level ) const
-//    {
-//      return ( level == header.height ) ? header.maxLeafEntries
-//                                          : header.maxRoutingEntries;
-//    }
 
 //    inline bool IsLeaf( int level ) const
 //    {

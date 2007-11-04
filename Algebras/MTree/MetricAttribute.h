@@ -54,10 +54,10 @@ initialize function.
 #include "StandardAttribute.h"
 
 /*
-1.3 Class ~IMetricalAttribute~
+1.3 Class ~MetricalAttribute~
 
-This interface class provides some functions, which are required, when the 
-type constructor should be indexed by metrical datastructures like m-trees.
+This class provides some functions, which are required, when the type 
+constructor should be indexed by metrical datastructures like m-trees.
 
 These functions make it possible to store a data string representation of this
 object in the datastucture instead of the whole object, but unlike the ~WriteTo~
@@ -66,74 +66,27 @@ stored, which are necessary for distance computations.
 
 If a type constructor should provide such capabilities, it must be of the kind
 ~METRICAL~ and the respective class has to inherit from on of the defined
-~MetricaAttribute~ classes below. Furthermore the metric for this type 
+~MetricaAttribute~ classes below. Furthermore the metric for this type
 constructor has to be added to the class ~MetricRegistry~ (~MetricRegistry.h~).
 
 */
-
-class IMetricalAttribute
+class StandardMetricalAttribute : public IndexableStandardAttribute
 {
- public:
-  inline virtual ~IMetricalAttribute() 
-  {}
+public:
+  virtual char *GetMData() const = 0;
 /*
-The Virtual Destructor.
+This method should return the data string for distance computations.
 
 */
-
-  virtual char* GetMData() const = 0;
-/*
-This method should return the data string for distance computations. 
-
-*/
-  virtual int GetMDataSize() const = 0;
+  virtual size_t GetMDataSize() const = 0;
 /*
 This method should return the length of the data string. If 0 is returned,
 the datatype object itself will be used for distance computations.
 
-*/
-
-};
-
-/*
-1.4 Classes ~MetricalAttribute~, ~StandardMetricalAttribute~ and 
-  ~IndexableStandardMetricalAttribute~
-
-These classes extend the classes ~Attribute~, ~StandardAttribute~ and
-~IndexableStandardAttribute~ with the above mentioned functionality for metrics
+WARNING: currently only fixed data length supportet, thus ensure that the data
+length will be independent from objects.
 
 */
-class MetricalAttribute :
-      public Attribute,
-      public IMetricalAttribute
-{
-  inline char* GetMData() const
-  { return 0; }
-
-  inline int GetMDataSize() const
-  { return 0; }
-};
-
-class StandardMetricalAttribute :
-      public StandardAttribute, 
-      public IMetricalAttribute
-{
-  inline char* GetMData() const
-  { return 0; }
-
-  inline int GetMDataSize() const
-  { return 0; }
-};
-
-class IndexableStandardMetricalAttribute :
-      public IndexableStandardAttribute,
-      public IMetricalAttribute
-{
-  inline char* GetMData() const
-  { return 0; }
-
-  inline int GetMDataSize() const
-  { return 0; }
 };
 
 #endif

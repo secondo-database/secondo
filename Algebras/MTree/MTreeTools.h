@@ -73,10 +73,9 @@ Constants for the type of data which is stored (data string or tuple id).
 */
 
 struct MTreeEntry;
-class DistanceFunction;
-
+class MetricWrapper;
 /*
-1.8 Class SplitPolicy
+1.3 Class SplitPolicy
 
 This class contains all avaliable promote and partition functions, which both
 together form the split policy. The split policy describes, how the entries in
@@ -86,7 +85,7 @@ a node are splittet into two nodes.
 class SplitPolicy
 {
  public:
-  SplitPolicy( DistanceFunction *distFun, 
+  SplitPolicy( MetricWrapper* metric,
                PROMFUN promFunId, PARTFUN partFunId );
 /*
 Constructor.
@@ -97,7 +96,7 @@ Constructor.
         list<MTreeEntry*> &entries,
         MTreeEntry *prom1, MTreeEntry *prom2 )
   {
-    promFun(entries, prom1, prom2);
+    promFun( entries, prom1, prom2, metric );
   }
 
   void Partition(
@@ -106,13 +105,14 @@ Constructor.
         list<MTreeEntry*> &entries1, double &rad1,
         list<MTreeEntry*> &entries2, double &rad2 )
   {
-    partFun(entries, prom1, prom2, entries1, rad1, entries2, rad2, distFun );
+    partFun(entries, prom1, prom2, entries1, rad1, entries2, rad2, metric );
   }
 
  private:
   void (*promFun)(
         list<MTreeEntry*> &entries,
-        MTreeEntry *prom1, MTreeEntry *prom2 );
+        MTreeEntry *prom1, MTreeEntry *prom2,
+        MetricWrapper *metric );
 /*
 Contains the selected promote function.
 
@@ -123,28 +123,30 @@ Contains the selected promote function.
         MTreeEntry *prom1, MTreeEntry *prom2,
         list<MTreeEntry*> &entries1, double &rad1,
         list<MTreeEntry*> &entries2, double &rad2,
-        DistanceFunction *distFun );
+        MetricWrapper *metric );
 /*
 Contains the selected partition function.
 
 */
 
-  DistanceFunction *distFun;
+  MetricWrapper* metric;
 /*
 Contains the distance function wrapper for the respective metric
 
 */
 
 /*
-1.8.1 Promote functions
+Promote functions
 
 These methods promote two objects in the entries list and return them in prom1
 and prom2. Furthermore the entries are deletet from entries-list.
 
 */
+
   static void RAND_Prom(
         list<MTreeEntry*> &entries,
-        MTreeEntry *prom1, MTreeEntry *prom2 );
+        MTreeEntry *prom1, MTreeEntry *prom2,
+        MetricWrapper* metric );
 /*
 This method promtes two randomly selected elements.
 
@@ -152,7 +154,8 @@ This method promtes two randomly selected elements.
 
   static void MRAD_Prom(
         list<MTreeEntry*> &entries,
-        MTreeEntry *prom1, MTreeEntry *prom2 );
+        MTreeEntry *prom1, MTreeEntry *prom2,
+        MetricWrapper *metric );
 /*
 TODO enter method description
 
@@ -161,7 +164,8 @@ TODO enter method description
 
   static void MMRAD_Prom(
         list<MTreeEntry*> &entries,
-        MTreeEntry *prom1, MTreeEntry *prom2 );
+        MTreeEntry *prom1, MTreeEntry *prom2,
+        MetricWrapper *metric );
 /*
 TODO enter method description
 
@@ -169,22 +173,24 @@ TODO enter method description
 
   static void MLB_Prom(
         list<MTreeEntry*> &entries,
-        MTreeEntry *prom1, MTreeEntry *prom2 );
+        MTreeEntry *prom1, MTreeEntry *prom2,
+        MetricWrapper *metric );
 /*
 TODO enter method description
 
 */
 
 /*
-1.8.2 Partition functions
+Partition functions
 
 */
+
   static void HyperplanePart(
         list<MTreeEntry*> &entries,
         MTreeEntry *prom1, MTreeEntry *prom2,
         list<MTreeEntry*> &entries1, double &rad1,
         list<MTreeEntry*> &entries2, double &rad2,
-        DistanceFunction *distFun );
+        MetricWrapper *metric );
 /*
 TODO enter method description
 
@@ -195,13 +201,19 @@ TODO enter method description
         MTreeEntry *prom1, MTreeEntry *prom2,
         list<MTreeEntry*> &entries1, double &rad1,
         list<MTreeEntry*> &entries2, double &rad2,
-        DistanceFunction *distFun );
+        MetricWrapper *metric );
 /*
 TODO enter method description
 
 */
 };
 
+/*
+1.4 Struct ~MTreeData~
+
+This class implements the data member im class ~MTreeEntry~
+
+*/
 struct MTreeData
 {
   virtual ~MTreeData()
@@ -213,43 +225,61 @@ Virtual destructor.
 
   virtual void Read( char *buffer, int &offset ) = 0;
 /*
-...
+Reads an data object from the buffer. Offset is increased.
 
 */
+
   virtual void Write( char *buffer, int &offset ) = 0;
 /*
-...
+Writes an data object from the buffer. Offset is increased.
 
 */
 };
 
-struct MTreeDataRef : public MTreeData
-{
-  MTreeDataRef( TupleId tid ) :
-    tupleId ( tid ) 
-  {}
 /*
+1.5 Struct MTreeDataRef
+
 ...
 
 */
+struct MTreeData_Ref : public MTreeData
+{
+  TupleId tupleId; // tuple identifier
 
-  inline void Read( char *buffer, int &offset )
+  inline MTreeData_Ref( char* buffer, int& offset)
+  {
+    Read( buffer, offset );
+  }
+/*
+Constructor (reads the data values from buffer).
+
+*/
+
+  inline MTreeData_Ref( TupleId tid ) :
+    tupleId ( tid ) 
+  {}
+/*
+Standard Constructor.
+
+*/
+
+  inline void Read( char* buffer, int& offset )
   {
     memcpy( &tupleId, buffer+offset, sizeof(TupleId) );
     offset += sizeof(TupleId);
   }
 /*
-...
+Reads an data object from the buffer. Offset is increased.
 
 */
 
-  inline void Write( char *buffer, int &offset )
+  inline void Write( char* buffer, int& offset )
   {
     memcpy( buffer+offset, &tupleId, sizeof(TupleId) );
     offset += sizeof(TupleId);
   }
 /*
-...
+Writes an data object from the buffer. Offset is increased.
 
 */
 
@@ -261,119 +291,140 @@ struct MTreeDataRef : public MTreeData
 Returns the size of the entry in disk (without data member)
 
 */
-
-  TupleId tupleId; // tuple identifier
 };
 
-struct MTreeDataInternal : public MTreeData
-{
-  inline MTreeDataInternal( char* datastr, size_t len ) :
-    datastr ( datastr ),
-    len ( len ) 
-  {}
 /*
-
+1.6 Struct MTreeDataInt
 
 */
-  inline void Read( char *buffer, int &offset )
-  {
-    memcpy( &len, buffer+offset, sizeof(int) );
-    offset += sizeof(int);
+struct MTreeData_Int : public MTreeData
+{
+  char* datastr; // data string for distance computations
+  size_t len;    // number of chars stored in the data string
 
+  inline MTreeData_Int( char* buffer, int& offset )
+  { Read( buffer, offset ); }
+/*
+Constructor (reads the data values from buffer).
+
+*/
+
+  inline MTreeData_Int( char* datastr, size_t len ) :
+    datastr ( datastr ),
+    len ( len ) {}
+/*
+Standard Constructor.
+
+*/
+
+  inline ~MTreeData_Int()
+  { delete[] datastr; }
+/*
+Destructor.
+
+*/
+
+   inline void Read( char* buffer, int& offset )
+  {
+    memcpy( &len, buffer+offset, sizeof(size_t) );
+    offset += sizeof(size_t);
+
+    datastr = new char[len];
     memcpy( datastr, buffer+offset, len );
     offset += len;
   }
 /*
-...
+Reads an data object from the buffer. Offset is increased.
 
 */
 
-  inline void Write( char *buffer, int &offset )
+  inline void Write( char* buffer, int& offset )
   {
-    memcpy( buffer+offset, &len, sizeof(int) );
-    offset += sizeof(int);
+    memcpy( buffer+offset, &len, sizeof(size_t) );
+    offset += sizeof(size_t);
 
     memcpy( buffer+offset, datastr, len );
     offset += len;
   }
 /*
-...
+Writes an data object from the buffer. Offset is increased.
 
 */
 
   static int StaticSize()
-  {
-    return sizeof(size_t);
-  }
-
-  inline int Size()
-  {
-    return sizeof(size_t) + len;
-  }
-
-  char* datastr; // data string for distance computations
-  size_t len;    // number of chars stored in the data string
+  { return sizeof(size_t); }
 };
 
-struct MTreeDataExternal : public MTreeData
+/*
+1.7 Struct MTreeDataExt
+
+*/
+struct MTreeData_Ext : public MTreeData
 {
-  inline MTreeDataExternal( SmiRecordId dataRec ) :
-    dataRec ( dataRec ) 
-  {}
+  SmiRecordId dataRec;
+
+  inline MTreeData_Ext( char* buffer, int& offset )
+{
+  Read( buffer, offset );
+}
+/*
+Constructor (reads the data values from buffer).
+
+*/
+
+  inline MTreeData_Ext( SmiRecordId dataRec ) :
+    dataRec ( dataRec ) {}
 /*
 ...
 
 */
 
-
-  inline void Read( char *buffer, int &offset )
+  inline void Read( char* buffer, int& offset )
   {
-    memcpy( &dataRec, buffer+offset, sizeof(SmiRecordId));
+    memcpy( &dataRec, buffer+offset, sizeof(SmiRecordId) );
     offset += sizeof(SmiRecordId);
   }
 /*
-...
+Writes an data object from the buffer. Offset is increased.
 
 */
 
-  inline void Write( char *buffer, int &offset )
+  inline void Write( char* buffer, int& offset )
   {
-    memcpy( buffer+offset, &dataRec, sizeof(SmiRecordId));
+    memcpy( buffer+offset, &dataRec, sizeof(SmiRecordId) );
     offset += sizeof(SmiRecordId);
   }
 /*
-...
+Reads an data object from the buffer. Offset is increased.
 
 */
 
   static int Size()
-  {
-    return sizeof(SmiRecordId);
-  }
-  SmiRecordId dataRec;
+  { return sizeof(SmiRecordId); }
 };
 
 /*
-1.3 struct ~MTreeEntry~
+1.8 struct ~MTreeEntry~
 
 */
 struct MTreeEntry
 {
-  double dist;      // distance to parent node
+  double dist;       // distance to parent node
   MTreeData* data;  // data representation of the tuple
 
-  virtual ~MTreeEntry()
-  {}
+  inline virtual ~MTreeEntry()
+  { delete data; }
 /*
 The virtual destructor.
 
 */
 
-  virtual void Read( char *buffer, int &offset ) = 0;
+  virtual void Read( char *buffer, int &offset, STORAGE_TYPE storageType ) = 0;
 /*
 Reads an entry from the buffer. Offset is increased.
 
 */
+
   virtual void Write( char *buffer, int &offset ) = 0;
 /*
 Writes an entry to the buffer. Offset is increased.
@@ -382,256 +433,109 @@ Writes an entry to the buffer. Offset is increased.
 };
 
 /*
-1.8 struct ~MTreeLeafEntry~
+1.9 Class ~MetricWrapper~
+
+This class encapsulates the metrics defined in ~MetricRegistry~ from their usage
+in m-tree. Due to the various possibilities for the data stored in the m-tree (
+reference, internal or external) there are various ways to extract the data from
+the internal storage to get the appropriate parameters for the metric. This is
+done by the static methods of this class. Which implementation will be used is
+selected by the ~storage~ parameter in the constructor.
 
 */
-struct MTreeLeafEntry : public MTreeEntry
-{
-  TupleId tupleId; // tuple identifier
-
-  inline MTreeLeafEntry( char *buffer, int offset )
-  {
-    Read( buffer, offset );
-  }
-
-/*
-Read constructor.
-
-*/
-
-  inline MTreeLeafEntry( MTreeData* data, TupleId tid, double dist )
-  {
-    this->tupleId = tid;
-    this->data = data;
-    this->dist = dist;
-  }
-/*
-Standard constructor.
-
-*/
-
-  static int StaticSize()
-  {
-    return sizeof(TupleId) +  // tupleId
-           sizeof(double);    // dist
-  }
-/*
-Returns the size of the entry in disk (without data member)
-
-*/
-
-  void Read( char *buffer, int &offset );
-/*
-Reads an entry from the buffer. Offset is increased.
-
-*/
-
-  void Write( char *buffer, int &offset );
-/*
-Writes an entry from the buffer. Offset is increased.
-
-*/
-
-};
-
-/*
-1 struct ~MTreeRoutingEntry~
-
-*/
-struct MTreeRoutingEntry : public MTreeEntry
-{
-  SmiRecordId *chield; // pointer to covering tree
-  double r;            // covering radius
-
-  inline MTreeRoutingEntry( char *buffer, int offset )
-  {
-    Read( buffer, offset );
-  }
-
-/*
-Read constructor.
-
-*/
-
-  inline MTreeRoutingEntry(
-        MTreeEntry* e, 
-        SmiRecordId *chield, 
-        double dist, 
-        double r )
-  {
-    this->data = e->data;
-    this->chield = chield;
-    this->dist = dist;
-    this->r = r;
-  }
-/*
-Constructor.
-
-*/
-
-  inline MTreeRoutingEntry(
-        MTreeData* data, 
-        SmiRecordId *chield, 
-        double dist, 
-        double r )
-  {
-    this->data = data;
-    this->chield = chield;
-    this->dist = dist;
-    this->r = r;
-  }
-/*
-
-
-*/
-
-  static int StaticSize()
-  {
-    return sizeof(SmiRecordId) + // chield
-           sizeof(double) +      // dist
-           sizeof(double);       // r
-  }
-/*
-Returns the size of the entry in disk (without data member)
-
-*/
-
-  void Read( char *buffer, int &offset );
-/*
-Reads an entry from the buffer. Offset is increased.
-
-*/
-
-  void Write( char *buffer, int &offset );
-/*
-Writes an entry from the buffer. Offset is increased.
-
-*/
-};
-
-/*
-1.4 class ~DistanceFunction~
-
-Wrapper class to allow distance computations on ~MTreeEntry~ objects directly.
-
-*/
-class DistanceFunction
+class MetricWrapper
 {
  public:
-  inline virtual ~DistanceFunction()
-  {}
+  inline MetricWrapper(Metric metric, Relation* rel, int attrIndex,
+                       SmiRecordFile* file, STORAGE_TYPE storage )
+  {
+    supp = new MWSupp( metric, rel, attrIndex, file );
+
+    switch( storage )
+    {
+      case REFERENCE:
+        metricImpl = DistRef;
+        break;
+      case INTERNAL:
+        metricImpl = DistInt;
+        break;
+      case EXTERNAL:
+        metricImpl = DistExt;
+        break;
+    }
+  }
 /*
-The virtual destructor.
+The constructor selects the appropriate implementation and initiates the
+~MWSupp~ object (see below).
 
 */
 
-  virtual double Distance( const MTreeEntry *e1,
-                           const MTreeEntry *e2 ) const = 0;
+  ~MetricWrapper()
+  { delete supp; }
 /*
-This method should return the distance beetween e1 and e2
+Destructor.
+
+*/
+
+  inline void Distance( const MTreeEntry* e1, const MTreeEntry* e2, double&
+result )
+  {
+    metricImpl( e1, e2, result, supp );
+  }
+/*
+This method calls the previously selected implementation.
+
+*/
+
+private:
+  struct MWSupp
+  {
+    MWSupp( Metric metric, Relation* rel, int attrIndex, SmiRecordFile* file) :
+      metric ( metric ),
+      rel ( rel ),
+      attrIndex ( attrIndex ),
+      file ( file )
+    {}
+
+    Metric metric;
+    Relation* rel;
+    int attrIndex;
+    SmiRecordFile* file;
+  } *supp;
+/*
+This struct contains all elements, which are needed from at least one
+implementation. A pointer to the supp object is assigned as additional
+parameter to the wrapper implementation methods.
+
+*/
+
+  void (*metricImpl)( const MTreeEntry* e1, const MTreeEntry* e2,
+                      double& result, MWSupp* supp );
+/*
+Pointer to the used wrapper implementation method
+
+*/
+
+  static void DistRef( const MTreeEntry* e1, const MTreeEntry* e2,
+                       double& result, MWSupp* supp );
+/*
+Wrapper implementation used for calls with storage type REFERENCE
+
+*/
+
+  static void DistInt( const MTreeEntry* e1, const MTreeEntry* e2,
+                       double& result, MWSupp* supp );
+/*
+Wrapper implementation used for calls with storage type INTERNAL
+
+*/
+
+  static void DistExt( const MTreeEntry* e1, const MTreeEntry* e2,
+                       double& result, MWSupp* supp );
+/*
+Wrapper implementation used for calls with storage type EXTERNAL
 
 */
 };
 
-/*
-1.5 Class ~DFReference~
-
-This wrapper class is used, if the metric needs the Objects itself
-
-*/
-class DFReference : public DistanceFunction
-{
- public:
-  inline DFReference( Relation *rel, int attrIndex, Metric distFun )
-  {
-    this->rel = rel;
-    this->attrIndex = attrIndex;
-    this->distFun = distFun;
-  }
-
-  inline double Distance( const MTreeEntry *e1, const MTreeEntry *e2 ) const
-  {
-    cout << "Distance function wrapper for REFERENCE representation called.\n";
-    TupleId tid1 = ((MTreeDataRef*)e1->data)->tupleId;
-    TupleId tid2 = ((MTreeDataRef*)e2->data)->tupleId;
-    StandardMetricalAttribute *m1 = ( StandardMetricalAttribute *)
-         ( rel->GetTuple(tid1) )->GetAttribute( attrIndex );
-    StandardMetricalAttribute *m2 = ( StandardMetricalAttribute*)
-         ( rel->GetTuple(tid2) )->GetAttribute( attrIndex );
-    return distFun( m1,m2 );
-  }
-
- private:
-  int attrIndex;
-  Relation *rel;
-  Metric distFun;
-};
-
-/*
-1.6 Class ~DFInternal~
-
-This wrapper class is used, if the metric needs small data strings (at least
-two entries must fit into one node)
-
-*/
-class DFInternal : public DistanceFunction
-{
- public:
-  inline DFInternal( Metric distFun )
-  {
-    this->distFun = distFun;
-  }
-
-  inline double Distance( const MTreeEntry *e1, const MTreeEntry *e2 ) const
-  {
-    cout << "Distance function wrapper for INTERNAL representation called.\n";
-    char* data1 = ((MTreeDataInternal*)e1->data)->datastr;
-    char* data2 = ((MTreeDataInternal*)e2->data)->datastr;
-    return distFun( data1, data2 );
-  }
-
- private:
-  Metric distFun;
-};
-
-/*
-1.7 Class ~DFExternal~
-
-This wrapper class is used, if the metric needs long data strings. In this
-case the strings are stored in seperate pages.
-
-*/
-class DFExternal : public DistanceFunction
-{
- public:
-  inline DFExternal( Metric distFun, SmiRecordFile* file )
-  {
-    this->distFun = distFun;
-    this->file = file;
-  }
-
-  inline double Distance( const MTreeEntry *e1, const MTreeEntry *e2 ) const
-  {
-    cout << "Distance function wrapper for EXTERNAL representation called.\n";
-    SmiRecordId page1 = ((MTreeDataExternal*)e1->data)->dataRec;
-    SmiRecordId page2 = ((MTreeDataExternal*)e2->data)->dataRec;
-
-    SmiRecord record;
-    int size = file->GetRecordLength();
-    char* data1[size];
-    char* data2[size];
-
-    assert( file->SelectRecord( page1, record, SmiFile::ReadOnly ));
-    assert( record.Read( data1, size, 0 ));
-
-    assert( file->SelectRecord( page2, record, SmiFile::ReadOnly ));
-    assert( record.Read( data2, size, 0 ));
-
-    return distFun( data1, data2 );
-  }
-
- private:
-  SmiRecordFile* file;
-  Metric distFun;
-};
 #endif

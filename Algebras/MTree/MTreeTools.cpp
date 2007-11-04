@@ -29,7 +29,7 @@ November 2007 Mirko Dibbert
 
 [TOC]
 
-1 Defines and includes
+1.1 Defines and includes
 
 */
 using namespace std;
@@ -38,15 +38,15 @@ using namespace std;
 #include <time.h>
 
 /*
-2 Class ~SplitPolicy~
+1.2 Class ~SplitPolicy~
 
-2.1 Constructor
+1.2.1 Constructor
 
 */
-SplitPolicy::SplitPolicy( DistanceFunction *distFun,
+SplitPolicy::SplitPolicy( MetricWrapper* metric,
                           PROMFUN promFunId, PARTFUN partFunId )
 {
-  this->distFun = distFun;
+  this->metric = metric;
 
   // init promote function
   switch ( promFunId )
@@ -76,14 +76,12 @@ SplitPolicy::SplitPolicy( DistanceFunction *distFun,
 }
 
 /*
-2.2 Promote functions
-
-2.2.1 Method ~RANDProm~
+1.2.2 Method ~RANDProm~
 
 */
-void SplitPolicy::RAND_Prom(
-      list<MTreeEntry*> &entries,
-      MTreeEntry *prom1, MTreeEntry *prom2 )
+void SplitPolicy::RAND_Prom( list<MTreeEntry*> &entries,
+                              MTreeEntry *prom1, MTreeEntry *prom2,
+                              MetricWrapper *metric )
 {
   srand ((unsigned) time(NULL));
   int pos1 = rand() % entries.size();
@@ -121,60 +119,65 @@ void SplitPolicy::RAND_Prom(
 }
 
 /*
-2.2.2 Method ~MRADProm~
+1.2.3 Method ~MRADProm~
 
 */
-void SplitPolicy::MRAD_Prom(
-      list<MTreeEntry*> &entries,
-      MTreeEntry *prom1, MTreeEntry *prom2 )
+void SplitPolicy::MRAD_Prom( list<MTreeEntry*> &entries,
+                              MTreeEntry *prom1, MTreeEntry *prom2,
+                              MetricWrapper *metric )
 {
-  // TODO not implemented yet
+  // TODO not yet implemented
+  assert( false );
 }
 
 
 /*
-2.2.3 Method ~MMRADProm~
+1.2.4 Method ~MMRADProm~
 
 */
-void SplitPolicy::MMRAD_Prom(
-      list<MTreeEntry*> &entries,
-      MTreeEntry *prom1, MTreeEntry *prom2 )
+void SplitPolicy::MMRAD_Prom( list<MTreeEntry*> &entries,
+                              MTreeEntry *prom1, MTreeEntry *prom2,
+                              MetricWrapper *metric )
 {
-  // TODO not implemented yet
+  // TODO not yet implemented
+  assert( false );
 }
 
 /*
-2.2.4 Method ~MLBProm~
+1.2.5 Method ~MLBProm~
 
 */
-void SplitPolicy::MLB_Prom( 
-      list<MTreeEntry*> &entries,
-      MTreeEntry *prom1, MTreeEntry *prom2 )
+void SplitPolicy::MLB_Prom( list<MTreeEntry*> &entries,
+                            MTreeEntry *prom1, MTreeEntry *prom2,
+                            MetricWrapper *metric )
 {
-  // TODO not implemented yet
+  // TODO not yet implemented
+  assert( false );
 }
 
 /*
-2.3 Partition functions
-
-2.3.1 Method ~HyperplanePart~
+1.2.6 Method ~HyperplanePart~
 
 */
-void SplitPolicy::HyperplanePart(
-      list<MTreeEntry*> &entries,
-      MTreeEntry *prom1, MTreeEntry *prom2,
-      list<MTreeEntry*> &entries1, double &rad1,
-      list<MTreeEntry*> &entries2, double &rad2,
-      DistanceFunction *distFun )
+void SplitPolicy::HyperplanePart( list<MTreeEntry*> &entries,
+                                  MTreeEntry *prom1, MTreeEntry *prom2,
+                                  list<MTreeEntry*> &entries1, double &rad1,
+                                  list<MTreeEntry*> &entries2, double &rad2,
+                                  MetricWrapper *metric )
 {
+  entries1.clear();
+  entries2.clear();
+
   entries1.push_back( prom1 );
   entries2.push_back( prom2 );
 
   list<MTreeEntry*>::iterator iter = entries.begin();
   while (iter != entries.end())
   {
-    double dist1 = distFun->Distance( *iter,prom1 );
-    double dist2 = distFun->Distance( *iter,prom2 );
+    double dist1, dist2; 
+    metric->Distance( *iter,prom1, dist1 );
+    metric->Distance( *iter,prom2, dist2 );
+
     if ( dist1 < dist2 )
       entries1.push_back( *iter );
     else 
@@ -183,85 +186,81 @@ void SplitPolicy::HyperplanePart(
 }
 
 /*
-2.3.2 Method ~BalancedPart~
+1.2.7 Method ~BalancedPart~
 
 */
-void SplitPolicy::BalancedPart(
-      list<MTreeEntry*> &entries,
-      MTreeEntry *prom1, MTreeEntry *prom2,
-      list<MTreeEntry*> &entries1, double &rad1,
-      list<MTreeEntry*> &entries2, double &rad2,
-      DistanceFunction *distFun )
+void SplitPolicy::BalancedPart( list<MTreeEntry*> &entries,
+                                MTreeEntry *prom1, MTreeEntry *prom2,
+                                list<MTreeEntry*> &entries1, double &rad1,
+                                list<MTreeEntry*> &entries2, double &rad2,
+                                MetricWrapper *metric )
 {
-  // TODO not implemented yet
+  // TODO not yet implemented
+  assert( false );
 }
 
 /*
-3 Struct ~MTreeLeafEntry~
+1.2 Class ~MetricWrapper~
 
-3.1 Method ~Read~
+1.2.1 Method ~DistRef~
 
 */
-void MTreeLeafEntry::Read(char *buffer, int &offset )
-{
-  memcpy( &dist, buffer+offset, sizeof(double) );
-  offset += sizeof(double);
+  void MetricWrapper::DistRef( const MTreeEntry* e1, const MTreeEntry* e2,
+                               double& result, MWSupp* supp )
+  {
+    TupleId tid1 = ((MTreeData_Ref*)e1->data)->tupleId;
+    TupleId tid2 = ((MTreeData_Ref*)e2->data)->tupleId;
 
-  memcpy( &tupleId, buffer+offset, sizeof(TupleId) );
-  offset += sizeof(TupleId);
+    // retrieve obj1 from relation rel
+    StandardMetricalAttribute *obj1 = ( StandardMetricalAttribute* )
+         ( supp->rel->GetTuple(tid1) )->GetAttribute( supp->attrIndex );
 
-  data->Read( buffer, offset );
-};
+    // retrieve obj2 from relation rel
+    StandardMetricalAttribute *obj2 = ( StandardMetricalAttribute* )
+         ( supp->rel->GetTuple(tid2) )->GetAttribute( supp->attrIndex );
+
+    // call metric with objects
+    supp->metric( obj1, obj2, result );
+  }
 
 /*
-3.2 Method ~Write~
+1.2.2 Method ~DistInf~
 
 */
-void MTreeLeafEntry::Write( char *buffer, int &offset )
-{
-  memcpy( buffer+offset, &dist, sizeof(double) );
-  offset += sizeof(double);
+  void MetricWrapper::DistInt( const MTreeEntry* e1, const MTreeEntry* e2,
+                               double& result, MWSupp* supp )
+  {
+    // call data strings from internal representation
+    char* data1 = ((MTreeData_Int*)e1->data)->datastr;
+    char* data2 = ((MTreeData_Int*)e2->data)->datastr;
 
-  memcpy( buffer+offset, &tupleId, sizeof(TupleId) );
-  offset += sizeof(TupleId);
-
-  data->Write( buffer, offset );
-}
+    // call metric with data strings
+    supp->metric( data1, data2, result );
+  }
 
 /*
-4 Struct ~MTreeRoutingEntry~
-
-4.1 Method ~Read~
+1.2.3 Method ~DistExt~
 
 */
-void MTreeRoutingEntry::Read( char *buffer, int &offset )
-{
-  memcpy( &dist, buffer+offset, sizeof(double) );
-  offset += sizeof(double);
+  void MetricWrapper::DistExt( const MTreeEntry* e1, const MTreeEntry* e2,
+                               double& result, MWSupp* supp )
+  {
+    SmiRecordId rec1 = ((MTreeData_Ext*)e1->data)->dataRec;
+    SmiRecordId rec2 = ((MTreeData_Ext*)e2->data)->dataRec;
 
-  memcpy( &r, buffer+offset, sizeof(double) );
-  offset += sizeof(double);
+    int size = supp->file->GetRecordLength();
+    SmiRecord record;
+    char* data1[size];
+    char* data2[size];
 
-  memcpy( &chield, buffer+offset, sizeof(SmiRecordId) );
-  offset += sizeof(SmiRecordId);
+    // retrieve data1 from record rec1
+    assert( supp->file->SelectRecord( rec1, record, SmiFile::ReadOnly ));
+    assert( record.Read( data1, size, 0 ));
 
-  data->Read( buffer, offset );
-}
+    // retrieve data2 from record rec2
+    assert( supp->file->SelectRecord( rec2, record, SmiFile::ReadOnly ));
+    assert( record.Read( data2, size, 0 ));
 
-/*
-4.2 Method ~Write~
-
-*/
-void MTreeRoutingEntry::Write( char *buffer, int &offset )
-{
-  memcpy( buffer+offset, &dist, sizeof(double) );
-  offset += sizeof(double);
-
-  memcpy( buffer+offset, &r, sizeof(double) );
-  offset += sizeof(double);
-
-  memcpy( buffer+offset, &chield, sizeof(SmiRecordId) );
-  offset += sizeof(SmiRecordId);
-
-  data->Write( buffer, offset );
-}
+    // call metric with data strings
+    supp->metric( data1, data2, result );
+  }

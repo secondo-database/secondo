@@ -99,8 +99,7 @@ Word RestoreFromListMTree( ListExpr typeInfo, ListExpr value,
 Word CreateMTree(const ListExpr typeInfo)
 {
   MetricRegistry::Initialize( si );
-  size_t pagesize = getpagesize() - 96;
-  return SetWord( new MTree( pagesize ) );
+  return SetWord( new MTree() );
 }
 
 void DeleteMTree(const ListExpr typeInfo, Word &w)
@@ -120,7 +119,7 @@ OpenMTree( SmiRecord &valueRecord,
   valueRecord.Read( &fileid, sizeof( SmiFileId ), offset );
   offset += sizeof( SmiFileId );
 
-  MTree *mtree = new MTree( fileid );
+  MTree* mtree = new MTree( fileid );
   value = SetWord( mtree );
   return true;
 }
@@ -206,8 +205,8 @@ int CreateMTreeValueMapping_Rel( Word  *args, Word  &result,
     {
       if (!mtree->IsInitialized())
       {
-        mtree->Initialize(relation, tuple, attrIndex, 
-                          RANDOM, GENERALIZED_HYPERPLANE);
+         mtree->Initialize(relation, tuple, attrIndex, 
+                           RANDOM, GENERALIZED_HYPERPLANE);
       }
       mtree->Insert( tuple->GetTupleId() );
     }

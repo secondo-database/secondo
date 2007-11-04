@@ -48,7 +48,7 @@ using namespace std;
 
 */
 bool MetricRegistry::initialized = false;
-SecondoInterface* MetricRegistry::si = 0;
+SecondoInterface *MetricRegistry::si = 0;
 map<string,Metric> MetricRegistry::metrics;
 
 /*
@@ -72,31 +72,10 @@ Metric MetricRegistry::GetMetric( const int algebraId, const int typeId )
 }
 
 /*
-1.2.3 Method ~Distance~
+1.2.3 Method ~RegisterMetric~
 
 */
-double MetricRegistry::Distance( const int algebraId, const int typeId,
-                                 const void* attr1, const void* attr2)
-{
-  ostringstream osId;
-  osId << "[" << algebraId << "|" << typeId << "]";
-  map<string,Metric>::iterator mfPos = metrics.find( osId.str() );
-
-  if ( mfPos != metrics.end() )
-  {
-    return (*mfPos->second)( attr1, attr2 );
-  }
-  else
-  { // no metric registered for this type
-    return 0;
-  }
-}
-
-/*
-1.2.4 Method ~RegisterMetric~
-
-*/
-void MetricRegistry::RegisterMetric( const string& name, Metric mf )
+void MetricRegistry::RegisterMetric( const string &name, Metric mf )
 {
    int algebraId, typeId;
    si->GetTypeId( name, algebraId, typeId );
@@ -106,50 +85,48 @@ void MetricRegistry::RegisterMetric( const string& name, Metric mf )
 }
 
 /*
+1.2.4 Method ~HistogramMetric~
+
+*/
+void MetricRegistry::HistogramMetric( const void* attr1,
+                                      const void* attr2,
+                                      double& result )
+{
+  cout << "Histogram metric called.\n";
+//   Histogram *h1 = (Histogram*)attr1;
+//   Histogram *h2 = (Histogram*)attr2;
+
+  // TODO compute result value
+}
+
+/*
 1.2.5 Method ~PictureMetric~
 
 */
-double MetricRegistry::PictureMetric( const void* attr1, const void* attr2 )
+  void MetricRegistry::PictureMetric( const void* attr1,
+                                      const void* attr2,
+                                      double& result )
 {
-  Picture* p1 = (Picture*)attr1;
-  Picture* p2 = (Picture*)attr2;
+  cout << "Picture metric called\n";
+  Picture *p1 = (Picture*)attr1;
+  Picture *p2 = (Picture*)attr2;
 
-  double result = 0;
-
-  // TODO compute result value
-
-  return result;
+// TODO compute result value
 }
 
 /*
-1.2.6 Method ~HistogramMetric~
+1.2.6 Method ~Initialize~
 
 */
-double MetricRegistry::HistogramMetric( const void* attr1, const void* attr2 )
-{
-  Histogram* h1 = (Histogram*)attr1;
-  Histogram* h2 = (Histogram*)attr2;
-
-  double result = 0;
-
-  // TODO compute result value
-
-  return result;
-}
-
-/*
-1.2.7 Method ~Initialize~
-
-*/
-void MetricRegistry::Initialize( SecondoInterface* secondoInterface )
+void MetricRegistry::Initialize( SecondoInterface *secondoInterface )
 {
   if (!initialized)
   {
     si = secondoInterface;
 
     // register defined metrics
-    RegisterMetric( "picture", &PictureMetric );
     RegisterMetric( "histogram", &HistogramMetric );
+    RegisterMetric( "picture", &PictureMetric );
 
     initialized = true;
   }
