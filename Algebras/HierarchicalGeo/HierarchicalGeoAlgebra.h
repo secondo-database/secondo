@@ -62,11 +62,12 @@ extern QueryProcessor* qp;
 using namespace datetime;
 
 
-
-
-
-
+class CUPoint;
+class CMPoint;
 /*
+Forward declarations.
+
+
 3 C++ Classes (Definition)
 
 3.1 Uncertain
@@ -188,130 +189,12 @@ The flag that indicates if the value is defined or not.
 
 };
 
-/*
-3.2 CBool
-
-This datatype represents an ~uncertain~ boolean value. To define a ~boolean 
-uncertainty~ a 3rd State (beyond the two known States TRUE and FALSE), called 
-MAYBE, is introduced. 
-
-*/
-
-//#define CBool int
-//#define maybe 2
-
-
-/*
-3.3 CPoint
-
-CPoint represents a Point value containing an epsilon value. It implements 
-Uncertain.
-
-*/
-//struct CPoint : public Point
-//                public Uncertain
-//{
-//  public:
-/*
-3.3.1 Constructors and Destructor
-  
-*/
-
-//  inline CPoint() {}
-  
-/*
-The default constructor which should not be used.
-
-*/
-  
-/*  CPoint(const double epsilon):
-      Uncertain<Point>( epsilon ) 
-      {}*/
-      
-      
-      
-      
-      
-/*
-The undefined constructor. Only the epsilon value is set. The point value is 
-left undefined for later definition.
-
-*/
-  
-/*  CPoint( const double epsilon, const StandardAttribute* point):
-      Uncertain<Point>( epsilon )
-      {
-        p.CopyFrom(point);
-        p.SetDefined( defined );
-      }*/
-
-
-
-
-
-
 
 
 
 
 /*
-The copy-constructor.
-
-*/
-  
-//  inline ~CPoint() {}
-/*
-The destructor.
-
-3.3.2 Member functions
-
-*/
-  
-/*  bool IsDefined() const
-  {
-    return UncertainIsDefined() && p.IsDefined();
-  }
-  
-  bool IsValid() const
-  {
-    return Uncertain<Point>::IsValid() && p.IsDefined();
-  }
-  
-  int ToCPoint( Word* args, Word& result, int message, Word& local,
-                                        Supplier s );*/
-
-/*
-Transforms a given Point and a given positive real-value to a new cpoint-value.
-
-*/
-    
-/*  void Set( CPoint cp )
-  {
-    this->epsilon = cp.epsilon;
-    this->p = cp.p;
-    this->defined = true;
-    this->p.SetDefined( true );
-  }*/
-  
-//  inline const Rectangle<2> BoundingBox() const;
-/*
-Returns the bounding box of the uncertain point, i.e. a rectangle area, 
-bounding the area where the point may be.
-
-*/
-  
-/*
-3.3.3 Attributes
-
-*/
-  //Point p;
-  
-//};
-
-
-
-/*
-3.4 CUPoint
+3.2 CUPoint
 
 This class will be used in the ~cupoint~ type constructor, i.e., the type 
 constructor for the uncertain temporal unit of point values.
@@ -322,7 +205,7 @@ class CUPoint : public UPoint,
 {
   public:
 /*
-3.4.1 Constructors and Destructor
+3.2.1 Constructors and Destructor
 
 */
   CUPoint() {}
@@ -351,11 +234,13 @@ The simple constructor, only defining the epsilon-value.
   
 */
   
-  /*CUPoint( const double epsilon, const StandardAttribute* upoint):
-      Uncertain<UPoint>( true, epsilon ) 
+  CUPoint( const double epsilon, const UPoint* source):
+    UPoint( *source ),
+    Uncertain( epsilon ) 
   {
-    this.CopyFrom(upoint);
-  }*/
+    del.refs=1;
+    del.isDelete=true;
+  }
 /*
 The copy-constructor.
   
@@ -397,7 +282,7 @@ The copy-constructor.
 /*
 The destructor.
 
-3.4.2 Operator redefinitions
+3.2.2 Operator redefinitions
 
 */
   //virtual CUPoint& operator=( const CUPoint& i )
@@ -436,7 +321,7 @@ they are equal.
 */
   
 /*
-3.4.3 The Temporal Functions
+3.2.3 The Temporal Functions
 
 */
 // +++++ Todo: Funktionen in .cpp-Datei implementieren  +++
@@ -467,7 +352,7 @@ they are equal.
                  const DateTime& duration) {}
   
 /*
-3.4.4 Additional Uncertain-Temporal Functions
+3.2.4 Additional Uncertain-Temporal Functions
 
 */
   void UTrajectory( const double e, Region& region ) const;
@@ -503,23 +388,20 @@ point in time.
 
 */
 
-  bool D_At( const Point& p, CUPoint& result ) const;
-  
-  bool D_At( const Region& r, CUPoint& result ) const;
+  void D_At( const Point& p, CUPoint& result ) const;
+  void D_At( const Region& r, CMPoint& result ) const;
   
 /*
-The function D\_At ('Definitely\_At') returns that part of the CUPoint, which
-lies definitely on or inside the given spatal object. Refering to a (certain)
+The function D\_At ('Definitely\_At') returns that part(s) of the CUPoint, that
+lie(s) definitely on or inside the given spatal object. Refering to a (certain)
 point-object, the returned CUPoint is empty if the uncertainty-value epsilon
-is greater than 0.
+is greater than 0. Refering to a region-object, there may be more than one 
+CUPoints to be returned, so the result-type is a CMPoint.
 
 */
 
-  bool P_At( const Point& p, CUPoint& result ) const 
-  {return false;}
-  
-  bool P_At( const Region& r, CUPoint& result ) const 
-  {return false;}
+  void P_At( const Point& p, CUPoint& result ) const;
+  void P_At( const Region& r, CMPoint& result ) const;
 
 /*
 The function P\_At is a shorthand for 'Possibly\_At' and returns that part of the
@@ -528,7 +410,7 @@ CUPoint, which possibly lies on or inside the given spatal object.
 */
 
 /*
-3.4.5 Functions to be part of relations
+3.2.5 Functions to be part of relations
 
 */
   
@@ -558,7 +440,12 @@ CUPoint, which possibly lies on or inside the given spatal object.
   
   bool UnitIsValid() const
   {
-    return UPoint::IsValid();
+    return TemporalUnit<Point>::IsValid();
+  }
+  
+  bool UncertainIsValid() const
+  {
+    return Uncertain::IsValid();
   }
   
   bool IsValid() const
@@ -691,7 +578,7 @@ For this is an uncertain UPoint-value, the returned Rectangle<3> is enlarged by
 the epsilon-value.
 
 
-3.4.5 Attributes
+3.2.5 Attributes
 
 */
 
@@ -700,7 +587,7 @@ the epsilon-value.
 };
 
 /*
-3.5 CMPoint
+3.3 CMPoint
 
 the implementation of an uncertain MPoint
 
@@ -710,7 +597,7 @@ class CMPoint : public Mapping< CUPoint, Point >,
 {
   public:
 /*
-3.5.1 Constructors and Destructor
+3.3.1 Constructors and Destructor
 
 */
   CMPoint() {}
@@ -734,7 +621,7 @@ The constructor. Initializes space for ~n~ elements.
 */
 
 /*
-3.5.2 Modifications of Inherited Functions
+3.3.2 Modifications of Inherited Functions
 
 Overwrites the function defined in Mapping, mostly in order to
 maintain the object's bounding box. Also, some methods can be improved
@@ -788,7 +675,7 @@ using a check on bbox.
     EndBulkLoad( false );
   }
 /*
-3.4.4 Additional Uncertain-Temporal Functions
+3.3.3 Additional Uncertain-Temporal Functions
 
 */
   //void Trajectory( Region& region ) const;
@@ -824,11 +711,8 @@ point in time.
 
 */
 
-  bool D_At( const Point& val, CUPoint& result ) const 
-  {return false;}
-  
-  bool D_At( const Region& val, CUPoint& result ) const 
-  {return false;}
+  void D_At( const Point& p, CMPoint& result ) const;
+  void D_At( const Region& r, CMPoint& result ) const;
   
 /*
 The function D\_At ('Definitely\_At') returns that part of the CMPoint, which
@@ -838,11 +722,8 @@ is greater than 0.
 
 */
 
-  bool P_At( const Point& val, CUPoint& result ) const 
-  {return false;}
-  
-  bool P_At( const Region& val, CUPoint& result ) const 
-  {return false;}
+  void P_At( const Point& val, CMPoint& result ) const;
+  void P_At( const Region& val, CMPoint& result ) const;
 
 /*
 The function P\_At is a shorthand for 'Possibly\_At' and returns that part of
@@ -851,7 +732,7 @@ the CMPoint, which possibly lies on or inside the given spatial object.
 */
   
 /*
-3.5.3.1 Operation ~trajectory~
+3.3.3.1 Operation ~trajectory~
 
 *Precondition:* ~X.IsOrdered()~
 
@@ -863,7 +744,7 @@ the CMPoint, which possibly lies on or inside the given spatial object.
   //void Trajectory( Line& line ) const;
   
 /*
-3.5.3.2 Operation ~distance~
+3.3.3.2 Operation ~distance~
 
 *Precondition:* ~X.IsOrdered()~
 
@@ -875,7 +756,7 @@ the CMPoint, which possibly lies on or inside the given spatial object.
   //void Distance( const Point& p, MReal& result ) const;
   
 /*
-3.5.3.3 Operation ~BreakPoints~
+3.3.3.3 Operation ~BreakPoints~
 
 *Precondition*: ~X.IsOrdered()~
 *Semantics*: Computes all points where this mpoints stays longer than the given
@@ -885,7 +766,7 @@ the CMPoint, which possibly lies on or inside the given spatial object.
   //void BreakPoints(Points& result, const DateTime& dur) const;
   
 /*
-3.5.3.4 ~Append~
+3.3.3.4 ~Append~
 
 The ~Append~ function appends all units of the argument to this 
 MPoint. If this mpoint or the argument is undefined or if the
@@ -897,7 +778,7 @@ mpoint after the operation (indicating the success).
   //bool Append(const MPoint& p, const bool autoresize = true);
   
 /*
-3.5.3.5 ~length~
+3.3.3.5 ~length~
 
 Determines the drive distance of this moving point.
 Will return a value smaller than zero if this mpoint is not defined
@@ -906,13 +787,13 @@ Will return a value smaller than zero if this mpoint is not defined
   //double Length() const;
   
 /*
-3.5.3.6 ~epsilon~  
+3.3.3.6 ~epsilon~  
 
 */
   void RestoreEpsilon();
   
 /*
-3.5.3.7 ~BoundingBox~
+3.3.3.7 ~BoundingBox~
 
 Returns the MPoint's minimum bounding rectangle
 
@@ -931,7 +812,7 @@ Returns the MPoint's minimum bounding rectangle
 };
 
 /*
-3.6 HierarchicalMapping
+3.4 HierarchicalMapping
 
 a template class to bind all (uncertain) representations of one object to one 
 HierarchicalMapping object. 
@@ -946,7 +827,7 @@ Attributes:
 
 
 /*
-3.7 HMPoint
+3.5 HMPoint
 
 the HierarchicalMovingPoint Type, containing a set of CUPoints from which
 every Generalization of the corresponding MPoint can be extracted. This
@@ -956,7 +837,7 @@ an epsilon-value = 0.
 */
 
 /*
-3.8 HCMPoint
+3.6 HCMPoint
 
 the type HierarchicalUncertainMovingPoint is a restricted variation of the
 type HierarchicalMovingPoint. It just contains those UPoints of the origin
@@ -967,12 +848,15 @@ this MPoint.
 
 
 /*
-3.9 Some auxiliary functions
+3.7 Some auxiliary functions
 
 */
 void Circle( const Point p, const double radius, const int n, Region& result);
 
 bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
+                    const double epsilon, Point& defPP);
+
+bool FindPosPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
                     const double epsilon, Point& defPP);
 
 /*
