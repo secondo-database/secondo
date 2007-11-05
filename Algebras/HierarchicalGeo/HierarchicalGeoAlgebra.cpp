@@ -400,12 +400,11 @@ void CUPoint::AtInterval( const Interval<Instant>& i,
     }
   else
   {
-    if( pResult->p1.IsDefined() )
-      // +++++ for debugging purposes only +++++
-      cout << "p1 ist definiert!\n";
-    else
-      // +++++ for debugging purposes only +++++
-      cout << "p1 ist NICHT definiert!\n";
+    // +++++ for debugging purposes only +++++
+    //if( pResult->p1.IsDefined() )
+    //  cout << "p1 ist definiert!\n";
+    //else
+    //  cout << "p1 ist NICHT definiert!\n";
       
     TemporalFunction( result.timeInterval.end, pResult->p1 );
   }
@@ -870,7 +869,7 @@ void CUPoint::D_At( const Point& p, CUPoint& result ) const
       {
         Instant t( timeInterval.start +
                    ( ( timeInterval.end - timeInterval.start ) *
-                   ( ( p.GetY() - p0.GetY() ) / ( p1.GetY() - p0.GetY() ) ) ) );
+                   ( ( p.GetY() - p0.GetY() ) / ( p1.GetY() - p0.GetY() ) ) ));
         Interval<Instant> interval( t, t, true, true );
         CUPoint unit(epsilon, interval, p, p );
         *pResult = unit;
@@ -887,7 +886,7 @@ void CUPoint::D_At( const Point& p, CUPoint& result ) const
       {
         Instant t( timeInterval.start +
                    ( ( timeInterval.end - timeInterval.start ) *
-                   ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ) );
+                   ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ));
         Interval<Instant> interval( t, t, true, true );
         CUPoint unit(epsilon, interval, p, p );
         *pResult = unit;
@@ -906,7 +905,7 @@ void CUPoint::D_At( const Point& p, CUPoint& result ) const
       {
         Instant t( timeInterval.start +
                    ( ( timeInterval.end - timeInterval.start ) *
-                   ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ) );
+                   ( ( p.GetX() - p0.GetX() ) / ( p1.GetX() - p0.GetX() ) ) ));
         Interval<Instant> interval( t, t, true, true );
         CUPoint unit(epsilon, interval, p, p );
         *pResult = unit;
@@ -1049,12 +1048,12 @@ uncertainty-value, determine one or more Passing Points as described above.
         // has to be proved.
         
         // +++++ for debugging purposes only +++++
-        Coord lpx = segRgn->GetLeftPoint().GetX();
-        Coord lpy = segRgn->GetLeftPoint().GetY();
-        Coord rpx = segRgn->GetRightPoint().GetX();
-        Coord rpy = segRgn->GetRightPoint().GetY();
-        cout << "segRgn is defined by the edgepoints " << lpx << " " << lpy 
-          << "     " << rpx << " " << rpy << endl;
+        //Coord lpx = segRgn->GetLeftPoint().GetX();
+        //Coord lpy = segRgn->GetLeftPoint().GetY();
+        //Coord rpx = segRgn->GetRightPoint().GetX();
+        //Coord rpy = segRgn->GetRightPoint().GetY();
+        //cout << "segRgn is defined by the edgepoints " << lpx << " " << lpy 
+        //  << "     " << rpx << " " << rpy << endl;
         
         p0tooClose = false;
         p1tooClose = false;
@@ -1108,12 +1107,12 @@ TRUE, mark it as 'undefined' and decrease the counter 'definedDefPPs'.
               definedDefPPs--;
               
               // +++++ for debugging purposes only +++++
-              cout << "segRgn->Distance(defPP" << k << ") less than epsilon!"
-                   << endl;
-              cout << "Distance to defPP[" << k << "]: " 
-                  << segRgn->Distance(defPP[k]) << endl;
-              cout << "There are actually " << definedDefPPs << " defPPs "
-                  << "defined!\n";
+              //cout << "segRgn->Distance(defPP" << k << ") less than epsilon!"
+              //     << endl;
+              //cout << "Distance to defPP[" << k << "]: " 
+              //    << segRgn->Distance(defPP[k]) << endl;
+              //cout << "There are actually " << definedDefPPs << " defPPs "
+              //    << "defined!\n";
             }
           }
         }
@@ -1159,22 +1158,23 @@ the following error message:
             containsP1 && p1tooClose || cupIntersectsRgn || aDefPPtooClose )
         {
           // +++++ for debugging purposes only +++++
-          if(hstooClose)
-              cout << "hstooClose is TRUE!\n";
-          if(containsP0 && p0tooClose)
-              cout << "containsP0 && p0tooClose is TRUE!\n";
-          if(containsP1 && p1tooClose)
-              cout << "containsP1 && p1tooClose is TRUE!\n";
-          if(cupIntersectsRgn)
-              cout << "cupIntersectsRgn is TRUE!\n";
-          if(aDefPPtooClose)
-              cout << "aDefPPtooClose is TRUE!\n";
+          //if(hstooClose)
+          //    cout << "hstooClose is TRUE!\n";
+          //if(containsP0 && p0tooClose)
+          //    cout << "containsP0 && p0tooClose is TRUE!\n";
+          //if(containsP1 && p1tooClose)
+          //    cout << "containsP1 && p1tooClose is TRUE!\n";
+          //if(cupIntersectsRgn)
+          //    cout << "cupIntersectsRgn is TRUE!\n";
+          //if(aDefPPtooClose)
+          //    cout << "aDefPPtooClose is TRUE!\n";
           
           Point p;
           if( FindDefPassingPoint(segCup, *segRgn, epsilon, p) )
           {
             // +++++ for debugging purposes only +++++
             //cout << "FindDefPassingPoint returns true.\n";
+            
             for(k = 0; k < aktDefPPs; k++)
             {
               if( defPP[k].IsDefined() )
@@ -1236,9 +1236,10 @@ no result and returns the following error message:
               definedDefPPs++;
                       
               // +++++ for debugging purposes only +++++
-              cout << "The number of defined Passing Points was " 
-                << "INcreased to " << definedDefPPs << "! \n";
-              cout << "A new defPP is defined. Now " << definedDefPPs << endl;
+              //cout << "The number of defined Passing Points was " 
+              //  << "INcreased to " << definedDefPPs << "! \n";
+              //cout << "A new defPP is defined. Now " << definedDefPPs 
+              //  << endl;
             }
           }
         }
@@ -1277,10 +1278,10 @@ If the whole Unit lies inside the region, it can simply be added to the result.
                 definedDefPPs--;
                 
                 // +++++ for debugging purposes only +++++
-                cout << "The number of defined Passing Points was " 
-                  << "DEcreased to " << definedDefPPs << "! \n";
-                cout << "Distance to defPP[" << k << "]: " 
-                  << segRgn->Distance(defPP[k]) << endl;
+                //cout << "The number of defined Passing Points was " 
+                //  << "DEcreased to " << definedDefPPs << "! \n";
+                //cout << "Distance to defPP[" << k << "]: " 
+                //  << segRgn->Distance(defPP[k]) << endl;
               }
             }
           }
@@ -1298,17 +1299,17 @@ to the region's border is greater than epsilon.
       bool firstrun = distP0GreaterEpsilon;
       
       // +++++ for debugging purposes only +++++
-      cout << "Begin building new CUPoints...\n";
+      //cout << "Begin building new CUPoints...\n";
       
       while( definedDefPPs > 0 )
       {
         // +++++ for debugging purposes only +++++
-        cout << "There are actually  " << definedDefPPs << "defPPs! \n";
+        //cout << "There are actually  " << definedDefPPs << "defPPs! \n";
         
         if( p0 < p1 )
         {
           // +++++ for debugging purposes only +++++
-          cout << "p0 < p1\n";
+          //cout << "p0 < p1\n";
           
           if( firstrun )
           {
@@ -1365,8 +1366,8 @@ to the region's border is greater than epsilon.
               if( defPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "defPP[" << k << "] is defined and represents point "
-                  << defPP[k].GetX() << " " << defPP[k].GetY() << endl;
+                //cout << "defPP[" << k << "] is defined and represents point "
+                //  << defPP[k].GetX() << " " << defPP[k].GetY() << endl;
                 
                 if( !ep0.IsDefined() )
                 {
@@ -1380,7 +1381,7 @@ to the region's border is greater than epsilon.
                 }
               }
             }
-            cout << "ep0 is the point at array-position " << l << "\n";
+            //cout << "ep0 is the point at array-position " << l << "\n";
             
             defPP[l].SetDefined(false);
             
@@ -1400,7 +1401,7 @@ to the region's border is greater than epsilon.
                 }
               }
             }
-            cout << "ep1 is the point at array-position " << l << "\n";
+            //cout << "ep1 is the point at array-position " << l << "\n";
             defPP[l].SetDefined(false);
             definedDefPPs = definedDefPPs - 2;
           }
@@ -1409,7 +1410,7 @@ to the region's border is greater than epsilon.
         {
           // ( p0 > p1 )
           // +++++ for debugging purposes only +++++
-          cout << "p0 > p1\n";
+          //cout << "p0 > p1\n";
           if( firstrun )
           {
             ep0 = p0;
@@ -1466,8 +1467,8 @@ to the region's border is greater than epsilon.
               if( defPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "defPP[" << k << "] is defined and represents point "
-                  << defPP[k].GetX() << " " << defPP[k].GetY() << endl;
+                //cout << "defPP[" << k << "] is defined and represents point "
+                //  << defPP[k].GetX() << " " << defPP[k].GetY() << endl;
                 
                 if( !ep0.IsDefined() )
                 {
@@ -1481,15 +1482,15 @@ to the region's border is greater than epsilon.
                 }
               }
             }
-            cout << "ep0 is the point at array-position " << l << "\n";
+            //cout << "ep0 is the point at array-position " << l << "\n";
             defPP[l].SetDefined(false);
             for( k = 0; k < aktDefPPs; k++ ) 
             {
               if( defPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "defPP[" << k << "] is defined and represents point "
-                  << defPP[k].GetX() << " " << defPP[k].GetY() << endl;
+                //cout << "defPP[" << k << "] is defined and represents point "
+                //  << defPP[k].GetX() << " " << defPP[k].GetY() << endl;
                 
                 if( !ep1.IsDefined() )
                 {
@@ -1503,7 +1504,7 @@ to the region's border is greater than epsilon.
                 }
               }
             }
-            cout << "ep1 is the point at array-position " << l << "\n";
+            //cout << "ep1 is the point at array-position " << l << "\n";
             defPP[l].SetDefined(false);
             definedDefPPs = definedDefPPs - 2;
           }
@@ -1522,27 +1523,27 @@ Determine the timeInterval for the new unit:
         bool trc;
         
         // +++++ for debugging purposes only +++++
-        cout << "Value of definedDefPPs: " << definedDefPPs << endl;
-        if( !ep0.IsDefined() ) {
-          cout << "Point ep0 is NOT defined!\n";
-          cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
-              << endl;
-        }
-        else {
-          cout << "Point ep0 is defined!\n";
-          cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
-              << endl;
-        }
-        if( !ep1.IsDefined() ) {
-          cout << "Point ep1 is NOT defined!\n";
-          cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
-              << endl;
-        }
-        else {
-          cout << "Point ep1 is defined!\n";
-          cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
-              << endl;
-        }
+        //cout << "Value of definedDefPPs: " << definedDefPPs << endl;
+        //if( !ep0.IsDefined() ) {
+        //  cout << "Point ep0 is NOT defined!\n";
+        //  cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
+        //      << endl;
+        //}
+        //else {
+        //  cout << "Point ep0 is defined!\n";
+        //  cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
+        //      << endl;
+        //}
+        //if( !ep1.IsDefined() ) {
+        //  cout << "Point ep1 is NOT defined!\n";
+        //  cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
+        //      << endl;
+        //}
+        //else {
+        //  cout << "Point ep1 is defined!\n";
+        //  cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
+        //      << endl;
+        //}
         
         
         if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
@@ -1622,7 +1623,7 @@ Determine the timeInterval for the new unit:
         else
         {
           // +++++ for debugging purposes only +++++
-          cout << "Determine, if ep0 and ep1 are points of the unit... \n";
+          //cout << "Determine, if ep0 and ep1 are points of the unit... \n";
           
           double k0;
           if(ep0 != p0)
@@ -1630,9 +1631,10 @@ Determine the timeInterval for the new unit:
           double k1 = (ep1.GetX() - p0.GetX()) / (ep1.GetY() - p0.GetY());
           double k2 = (p1.GetX() - p0.GetX()) / (p1.GetY() - p0.GetY());
           
-          cout << "k0 = " << k0 << "   k1 = " << k1 << "   k2 = " << k2 << endl;
+          //cout << "k0 = " << k0 << "   k1 = " << k1 << "   k2 = " << k2 
+          //  << endl;
           
-          if( ( ep0 == p0 || AlmostEqual( k0, k2 ) ) && AlmostEqual( k1, k2 ) &&
+          if( (ep0 == p0 || AlmostEqual( k0, k2 ) ) && AlmostEqual( k1, k2 ) &&
               ( (( p0.GetX() <= ep0.GetX() && p1.GetX() >= ep0.GetX() ) ||
               ( p0.GetX() >= ep0.GetX() && p1.GetX() <= ep0.GetX() )) &&
               (( p0.GetX() <= ep1.GetX() && p1.GetX() >= ep1.GetX() ) ||
@@ -1641,14 +1643,14 @@ Determine the timeInterval for the new unit:
             if( ep0 == p0 )
             {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 equals p0!\n";
+              //cout << "ep0 equals p0!\n";
               
               t0 = timeInterval.start;
               tlc = timeInterval.lc;
             }
             else {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 is a Point within the Unit!\n";
+              //cout << "ep0 is a Point within the Unit!\n";
               
               t0 = timeInterval.start +
                     (timeInterval.end - timeInterval.start) *
@@ -1659,14 +1661,14 @@ Determine the timeInterval for the new unit:
             if( ep1 == p1 )
             {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 equals p1!\n";
+              //cout << "ep0 equals p1!\n";
               
               t1 = timeInterval.end;
               trc = timeInterval.rc;
             }
             else {
               // +++++ for debugging purposes only +++++
-              cout << "ep1 is a Point within the Unit!\n";
+              //cout << "ep1 is a Point within the Unit!\n";
               
               t1 = timeInterval.start +
                     (timeInterval.end - timeInterval.start) *
@@ -1676,7 +1678,7 @@ Determine the timeInterval for the new unit:
             Interval<Instant> interval( t0, t1, tlc, trc );
             
             // +++++ for debugging purposes only +++++
-            cout << "Create a new CUPoint...\n";
+            //cout << "Create a new CUPoint...\n";
             
             CUPoint unit( epsilon, interval, ep0, ep1 );
             result.Add( unit );
@@ -1730,8 +1732,7 @@ region is less than epsilon.
       return;
     }
     
-    i = 0;
-    while( i < r.Size() )
+    for(i = 0; i < r.Size(); i++ )
     {
       r.Get( i, segRgn);
       if (segRgn->IsLeftDomPoint() && 
@@ -1825,12 +1826,12 @@ to the cupoint is greater than epsilon.
         // has to be proved.
         
         // +++++ for debugging purposes only +++++
-        Coord lpx = segRgn->GetLeftPoint().GetX();
-        Coord lpy = segRgn->GetLeftPoint().GetY();
-        Coord rpx = segRgn->GetRightPoint().GetX();
-        Coord rpy = segRgn->GetRightPoint().GetY();
-        cout << "segRgn is defined by the edgepoints " << lpx << " " << lpy 
-          << "     " << rpx << " " << rpy << endl;
+        //Coord lpx = segRgn->GetLeftPoint().GetX();
+        //Coord lpy = segRgn->GetLeftPoint().GetY();
+        //Coord rpx = segRgn->GetRightPoint().GetX();
+        //Coord rpy = segRgn->GetRightPoint().GetY();
+        //cout << "segRgn is defined by the edgepoints " << lpx << " " << lpy 
+        //  << "     " << rpx << " " << rpy << endl;
         
         hsCloserEpsilon = false;
         for(k = 0; k < aktPosPPs; k++)
@@ -1883,12 +1884,12 @@ TRUE, mark it as 'undefined' and decrease the counter 'definedPosPPs'.
               definedPosPPs--;
               
               // +++++ for debugging purposes only +++++
-              cout << "segRgn->Distance(posPP" << k << ") greater than epsilon"
-                   << endl;
-              cout << "Distance to posPP[" << k << "]: " 
-                  << segRgn->Distance(posPP[k]) << endl;
-              cout << "There are actually " << definedPosPPs << " posPPs "
-                  << "defined!\n";
+              //cout << "segRgn->Distance(posPP" << k 
+              //  << ") greater than epsilon" << endl;
+              //cout << "Distance to posPP[" << k << "]: " 
+              //    << segRgn->Distance(posPP[k]) << endl;
+              //cout << "There are actually " << definedPosPPs << " posPPs "
+              //    << "defined!\n";
             }
           }
         }
@@ -1932,12 +1933,12 @@ to the possibly defined Passing Points.
         if( hsCloserEpsilon || cupIntersectsRgn || aPosPPtooClose )
         {
           // +++++ for debugging purposes only +++++
-          if(hsCloserEpsilon)
-              cout << "hstooClose is TRUE!\n";
-          if(cupIntersectsRgn)
-              cout << "cupIntersectsRgn is TRUE!\n";
-          if(aPosPPtooClose)
-              cout << "aDefPPtooClose is TRUE!\n";
+          //if(hsCloserEpsilon)
+          //    cout << "hstooClose is TRUE!\n";
+          //if(cupIntersectsRgn)
+          //    cout << "cupIntersectsRgn is TRUE!\n";
+          //if(aPosPPtooClose)
+          //    cout << "aDefPPtooClose is TRUE!\n";
           
           Point p;
           if( FindPosPassingPoint(segCup, *segRgn, epsilon, p) )
@@ -1996,10 +1997,10 @@ to the possibly defined Passing Points.
               definedPosPPs++;
                       
               // +++++ for debugging purposes only +++++
-              cout << "The number of defined Passing Points was " 
-                << "INcreased to " << definedPosPPs << "! \n";
-              cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
-                << endl;
+              //cout << "The number of defined Passing Points was " 
+              //  << "INcreased to " << definedPosPPs << "! \n";
+              //cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
+              //  << endl;
             }
           }
         }
@@ -2079,10 +2080,10 @@ redefined.
           definedPosPPs++;
                   
           // +++++ for debugging purposes only +++++
-          cout << "The number of defined Passing Points was " 
-            << "INcreased to " << definedPosPPs << "! \n";
-          cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
-              << endl;
+          //cout << "The number of defined Passing Points was " 
+          //  << "INcreased to " << definedPosPPs << "! \n";
+          //cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
+          //    << endl;
         }
       }
     }
@@ -2134,10 +2135,10 @@ redefined.
           definedPosPPs++;
                   
           // +++++ for debugging purposes only +++++
-          cout << "The number of defined Passing Points was " 
-            << "INcreased to " << definedPosPPs << "! \n";
-          cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
-              << endl;
+          //cout << "The number of defined Passing Points was " 
+          //  << "INcreased to " << definedPosPPs << "! \n";
+          //cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
+          //    << endl;
         }
       }
     }
@@ -2160,12 +2161,12 @@ redefined.
               definedPosPPs--;
               
               // +++++ for debugging purposes only +++++
-              cout << "The number of defined Passing Points was " 
-                << "DEcreased to " << definedPosPPs << "! \n";
-              cout << "Distance to posPP[" << k << "]: " 
-                << segRgn->Distance(posPP[k]) << endl;
-              cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
-              << endl;
+              //cout << "The number of defined Passing Points was " 
+              //  << "DEcreased to " << definedPosPPs << "! \n";
+              //cout << "Distance to posPP[" << k << "]: " 
+              //  << segRgn->Distance(posPP[k]) << endl;
+              //cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
+              //  << endl;
             }
           }
         }
@@ -2173,13 +2174,13 @@ redefined.
     }
     
     // +++++ for debugging purposes only +++++
-    cout << "Distance of p0 to the region = " << distP0 << endl;
-    cout << "The closest halfsegment to p0 has the index " << hsMinDistP0 
-      << endl;
-    cout << "Distance of p1 to the region = " << distP1 << endl;
-    cout << "The closest halfsegment to p1 has the index " << hsMinDistP1 
-      << endl;
-    cout << "There are actually " << definedPosPPs << " defined posPPs.\n";
+    //cout << "Distance of p0 to the region = " << distP0 << endl;
+    //cout << "The closest halfsegment to p0 has the index " << hsMinDistP0 
+    //  << endl;
+    //cout << "Distance of p1 to the region = " << distP1 << endl;
+    //cout << "The closest halfsegment to p1 has the index " << hsMinDistP1 
+    //  << endl;
+    //cout << "There are actually " << definedPosPPs << " defined posPPs.\n";
     
     
     if( ( containsP0 || hsMinDistP0 > -1 && 
@@ -2203,17 +2204,17 @@ redefined.
                         (distP0 < epsilon || AlmostEqual(distP0, epsilon)) );
       
       // +++++ for debugging purposes only +++++
-      cout << "Begin building new CUPoints...\n";
+      //cout << "Begin building new CUPoints...\n";
       
       while( definedPosPPs > 0 )
       {
         // +++++ for debugging purposes only +++++
-        cout << "There are actually  " << definedPosPPs << "posPPs! \n";
+        //cout << "There are actually  " << definedPosPPs << "posPPs! \n";
         
         if( p0 < p1 )
         {
           // +++++ for debugging purposes only +++++
-          cout << "p0 < p1\n";
+          //cout << "p0 < p1\n";
           
           if( firstrun )
           {
@@ -2271,8 +2272,8 @@ redefined.
               if( posPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "posPP[" << k << "] is defined and represents point "
-                  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
+                //cout << "posPP[" << k << "] is defined and represents point "
+                //  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
                 
                 if( !ep0.IsDefined() )
                 {
@@ -2287,7 +2288,7 @@ redefined.
               }
             }
             // +++++ for debugging purposes only +++++
-            cout << "ep0 is the point at array-position " << l << "\n";
+            //cout << "ep0 is the point at array-position " << l << "\n";
             
             posPP[l].SetDefined(false);
             
@@ -2308,7 +2309,8 @@ redefined.
               }
             }
             // +++++ for debugging purposes only +++++
-            cout << "ep1 is the point at array-position " << l << "\n";
+            //cout << "ep1 is the point at array-position " << l << "\n";
+            
             posPP[l].SetDefined(false);
             definedPosPPs = definedPosPPs - 2;
           }
@@ -2316,8 +2318,10 @@ redefined.
         else 
         {
           // ( p0 > p1 )
+          
           // +++++ for debugging purposes only +++++
-          cout << "p0 > p1\n";
+          //cout << "p0 > p1\n";
+          
           if( firstrun )
           {
             ep0 = p0;
@@ -2375,8 +2379,8 @@ redefined.
               if( posPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "posPP[" << k << "] is defined and represents point "
-                  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
+                //cout << "posPP[" << k << "] is defined and represents point "
+                //  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
                 
                 if( !ep0.IsDefined() )
                 {
@@ -2390,15 +2394,18 @@ redefined.
                 }
               }
             }
-            cout << "ep0 is the point at array-position " << l << "\n";
+            
+            // +++++ for debugging purposes only +++++
+            //cout << "ep0 is the point at array-position " << l << "\n";
+            
             posPP[l].SetDefined(false);
             for( k = 0; k < aktPosPPs; k++ ) 
             {
               if( posPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "posPP[" << k << "] is defined and represents point "
-                  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
+                //cout << "posPP[" << k << "] is defined and represents point "
+                //  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
                 
                 if( !ep1.IsDefined() )
                 {
@@ -2412,7 +2419,10 @@ redefined.
                 }
               }
             }
-            cout << "ep1 is the point at array-position " << l << "\n";
+            
+            // +++++ for debugging purposes only +++++
+            //cout << "ep1 is the point at array-position " << l << "\n";
+            
             posPP[l].SetDefined(false);
             definedPosPPs = definedPosPPs - 2;
           }
@@ -2429,27 +2439,27 @@ redefined.
         bool trc;
         
         // +++++ for debugging purposes only +++++
-        cout << "Value of definedDefPPs: " << definedPosPPs << endl;
-        if( !ep0.IsDefined() ) {
-          cout << "Point ep0 is NOT defined!\n";
-          cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
-              << endl;
-        }
-        else {
-          cout << "Point ep0 is defined!\n";
-          cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
-              << endl;
-        }
-        if( !ep1.IsDefined() ) {
-          cout << "Point ep1 is NOT defined!\n";
-          cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
-              << endl;
-        }
-        else {
-          cout << "Point ep1 is defined!\n";
-          cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
-              << endl;
-        }
+        //cout << "Value of definedDefPPs: " << definedPosPPs << endl;
+        //if( !ep0.IsDefined() ) {
+        //  cout << "Point ep0 is NOT defined!\n";
+        //  cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
+        //      << endl;
+        //}
+        //else {
+        //  cout << "Point ep0 is defined!\n";
+        //  cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
+        //      << endl;
+        //}
+        //if( !ep1.IsDefined() ) {
+        //  cout << "Point ep1 is NOT defined!\n";
+        //  cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
+        //      << endl;
+        //}
+        //else {
+        //  cout << "Point ep1 is defined!\n";
+        //  cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
+        //      << endl;
+        //}
         
         
         if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
@@ -2529,7 +2539,7 @@ redefined.
         else
         {
           // +++++ for debugging purposes only +++++
-          cout << "Determine, if ep0 and ep1 are points of the unit... \n";
+          //cout << "Determine, if ep0 and ep1 are points of the unit... \n";
           
           double k0;
           if(ep0 != p0)
@@ -2537,9 +2547,11 @@ redefined.
           double k1 = (ep1.GetX() - p0.GetX()) / (ep1.GetY() - p0.GetY());
           double k2 = (p1.GetX() - p0.GetX()) / (p1.GetY() - p0.GetY());
           
-          cout << "k0 = " << k0 << "   k1 = " << k1 << "   k2 = " << k2 << endl;
+          // +++++ for debugging purposes only +++++
+          //cout << "k0 = " << k0 << "   k1 = " << k1 << "   k2 = " << k2 
+          //  << endl;
           
-          if( ( ep0 == p0 || AlmostEqual( k0, k2 ) ) && AlmostEqual( k1, k2 ) &&
+          if( (ep0 == p0 || AlmostEqual( k0, k2 ) ) && AlmostEqual( k1, k2 ) &&
               ( (( p0.GetX() <= ep0.GetX() && p1.GetX() >= ep0.GetX() ) ||
               ( p0.GetX() >= ep0.GetX() && p1.GetX() <= ep0.GetX() )) &&
               (( p0.GetX() <= ep1.GetX() && p1.GetX() >= ep1.GetX() ) ||
@@ -2548,14 +2560,14 @@ redefined.
             if( ep0 == p0 )
             {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 equals p0!\n";
+              //cout << "ep0 equals p0!\n";
               
               t0 = timeInterval.start;
               tlc = timeInterval.lc;
             }
             else {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 is a Point within the Unit!\n";
+              //cout << "ep0 is a Point within the Unit!\n";
               
               t0 = timeInterval.start +
                     (timeInterval.end - timeInterval.start) *
@@ -2566,14 +2578,14 @@ redefined.
             if( ep1 == p1 )
             {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 equals p1!\n";
+              //cout << "ep0 equals p1!\n";
               
               t1 = timeInterval.end;
               trc = timeInterval.rc;
             }
             else {
               // +++++ for debugging purposes only +++++
-              cout << "ep1 is a Point within the Unit!\n";
+              //cout << "ep1 is a Point within the Unit!\n";
               
               t1 = timeInterval.start +
                     (timeInterval.end - timeInterval.start) *
@@ -2583,7 +2595,7 @@ redefined.
             Interval<Instant> interval( t0, t1, tlc, trc );
             
             // +++++ for debugging purposes only +++++
-            cout << "Create a new CUPoint...\n";
+            //cout << "Create a new CUPoint...\n";
             
             CUPoint unit( epsilon, interval, ep0, ep1 );
             result.Add( unit );
@@ -3121,7 +3133,7 @@ void CMPoint::D_At( const Region& r, CMPoint& result ) const
   result.StartBulkLoad();
   
   // +++++ for debugging purposes only +++++
-  cout << "The CMPoint contains " << GetNoComponents() << " Units.\n";
+  //cout << "The CMPoint contains " << GetNoComponents() << " Units.\n";
   
   for(int i = 0; i < GetNoComponents(); i++)
   {
@@ -3130,20 +3142,21 @@ void CMPoint::D_At( const Region& r, CMPoint& result ) const
     if( resultunits.IsDefined() )
     {
       // +++++ for debugging purposes only +++++
-      cout << "CMPoint::D_At: resultunit " << i << " is defined" 
-        << "    and has " << resultunits.GetNoComponents() << " components."
-        << endl;
+      //cout << "CMPoint::D_At: resultunit " << i << " is defined" 
+      //  << "    and has " << resultunits.GetNoComponents() << " components."
+      //  << endl;
       
       for(int j = 0; j < resultunits.GetNoComponents(); j++)
       { 
         resultunits.Get( j, resunit ); 
         
         // +++++ for debugging purposes only +++++
-        cout << endl;
-        cout << "CMPoint::D_At(...): Add CUPoint to the result-CMPoint: \n";
-        cout << "CUPoint: epsilon = " << resunit->epsilon << "  coordinates = "
-            << resunit->p0.GetX() << " " << resunit->p0.GetY() << "     "
-            << resunit->p1.GetX() << " " << resunit->p1.GetY() << endl;
+        //cout << endl;
+        //cout << "CMPoint::D_At(...): Add CUPoint to the result-CMPoint: \n";
+        //cout << "CUPoint: epsilon = " << resunit->epsilon << "  coordinates "
+        //  << "= "  << resunit->p0.GetX() << " " << resunit->p0.GetY() 
+        //  << "     " << resunit->p1.GetX() << " " << resunit->p1.GetY() 
+        //  << endl;
             
         result.Add( *resunit );
       }
@@ -3172,30 +3185,37 @@ void CMPoint::P_At( const Region& r, CMPoint& result ) const
   result.StartBulkLoad();
   
   // +++++ for debugging purposes only +++++
-  cout << "The CMPoint contains " << GetNoComponents() << " Units.\n";
+  //cout << "The CMPoint contains " << GetNoComponents() << " Units.\n";
   
   for(int i = 0; i < GetNoComponents(); i++)
   {
     Get( i, unit );
+    
+    // +++++ for debugging purposes only +++++
+    //cout << "Unit " << i << " is defined by the endpoints " 
+    //  << unit->p0.GetX() << " " << unit->p0.GetY() << "    " 
+    //  << unit->p1.GetX() << " " << unit->p1.GetY() << endl;
+      
     unit->P_At( r, resultunits );
     if( resultunits.IsDefined() )
     {
       // +++++ for debugging purposes only +++++
-      cout << "CMPoint::D_At: resultunit " << i << " is defined" 
-        << "    and has " << resultunits.GetNoComponents() << " components."
-        << endl;
+      //cout << "CMPoint::D_At: resultunit " << i << " is defined" 
+      //  << "    and has " << resultunits.GetNoComponents() << " components."
+      //  << endl;
       
       for(int j = 0; j < resultunits.GetNoComponents(); j++)
       { 
         resultunits.Get( j, resunit ); 
         
         // +++++ for debugging purposes only +++++
-        cout << endl;
-        cout << "CMPoint::D_At(...): Add CUPoint to the result-CMPoint: \n";
-        cout << "CUPoint: epsilon = " << resunit->epsilon << "  coordinates = "
-            << resunit->p0.GetX() << " " << resunit->p0.GetY() << "     "
-            << resunit->p1.GetX() << " " << resunit->p1.GetY() << endl;
-            
+        //cout << endl;
+        //cout << "CMPoint::D_At(...): Add CUPoint to the result-CMPoint: \n";
+        //cout << "CUPoint: epsilon = " << resunit->epsilon << "  coordinates "
+        //  << "= " << resunit->p0.GetX() << " " << resunit->p0.GetY() 
+        //  << "     " << resunit->p1.GetX() << " " << resunit->p1.GetY() 
+        //  << endl;
+        
         result.Add( *resunit );
       }
     }
