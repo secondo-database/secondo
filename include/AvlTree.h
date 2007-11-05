@@ -28,6 +28,8 @@ Additionally some specialized functions are provided.
 using namespace std;
 
 
+
+
 /*
 0 Forward declaration of the AVLTree class
 
@@ -1285,6 +1287,7 @@ static const contenttype* getMember(AvlNode<contenttype>const* const root,
   __AVL_TRACE__
   if(root==NULL) return 0;  // member not found
   if(root->content==x){
+
      if(root->left){ // search the left neighbour
         AvlNode<contenttype>* tmp = root->left;
         while(tmp->right){
@@ -1292,12 +1295,14 @@ static const contenttype* getMember(AvlNode<contenttype>const* const root,
         }
         left = &tmp->content;
      }
+    
+
      if(root->right){ // search the right neighbour
         AvlNode<contenttype>* tmp = root->right;
         while(tmp->left){
            tmp = tmp->left;
         }
-        left = &tmp->content;
+        right = &tmp->content;
      }
      return &root->content;
   }

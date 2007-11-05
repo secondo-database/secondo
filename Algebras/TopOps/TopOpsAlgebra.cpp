@@ -102,6 +102,7 @@ using namespace toprel;
 
 
 
+
 /*
 3.3 Helper class for plane sweep algorithms
 
@@ -2138,6 +2139,9 @@ interior.
 
 */
  bool crosses(const AVLSegment& s) const{
+    if(!xOverlaps(s)){
+       return false;
+    }
     if(overlaps(s)){ // a common line
        return false;
     }
@@ -2149,13 +2153,16 @@ interior.
         double x = x1; // compute y for s
         double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
         return !AlmostEqual(y1,y) && !AlmostEqual(y2,y) &&
-               (y>y1)  && (y<y2);
+               (y>y1)  && (y<y2)
+               && !AlmostEqual(s.x1,x) && !AlmostEqual(s.x2,x) ;
     }
+
     if(s.isVertical()){
        double x = s.x1;
        double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-       return !AlmostEqual(y,s.y1) && !AlmostEqual(y,s.y1) && 
-              (y>s.y1) && (y<s.y2);
+       return !AlmostEqual(y,s.y1) && !AlmostEqual(y,s.y2) && 
+              (y>s.y1) && (y<s.y2) && 
+              !AlmostEqual(x1,x) && !AlmostEqual(x2,x);
     }
     
     // both segments are non vertical 
@@ -2168,6 +2175,20 @@ interior.
            !AlmostEqual(s.x1,xs) && !AlmostEqual(s.x2,xs) && // of any segment
            (x1<xs) && (xs<x2) && (s.x1<xs) && (xs<s.x2);
 }
+
+/*
+3.5 ~Extends~
+
+This function returns true, iff this segment is an extension of 
+the argument, i.e. if the right point of ~s~ is the left point of ~this~
+and the slopes are equal.
+
+*/
+  bool extends(AVLSegment s){
+     return pointEqual(x1,y1,s.x2,s.y2) &&
+            compareSlopes(s)==0;
+  }
+
 
 /*
 3.5 ~CompareTo~
@@ -2451,6 +2472,9 @@ common endpoint.
 */
 
   bool innerDisjoint(const AVLSegment& s)const{
+
+      
+
       if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
         return true; 
       }
@@ -2477,14 +2501,20 @@ common endpoint.
          return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
                     (ininterior(x,y) && s.contains(x,y)) );
       }
+
+
+
     
       // both segments are non vertical 
       double m1 = (y2-y1)/(x2-x1);
       double m2 = (s.y2-s.y1)/(s.x2-s.x1);
       double c1 = y1 - m1*x1;
       double c2 = s.y1 - m2*s.x1;
+
       double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
       double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+
+      
       return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
                  (ininterior(x,y) && s.contains(x,y)) );
   }
@@ -2949,6 +2979,39 @@ ownertype selectNext(Region const* const reg1,
 }
 
 
+class OwnedPoint{
+
+ public:
+    OwnedPoint(){
+      defined = false;
+    }   
+
+    OwnedPoint(Point p0, ownertype o){
+       p = p0;
+       owner = o;
+       defined = true;
+    }
+
+    OwnedPoint(const OwnedPoint& src){
+       p = src.p;
+       owner = src.owner;
+       defined = src.defined;
+    }
+
+    OwnedPoint& operator=(const OwnedPoint& src){
+       p = src.p;
+       owner = src.owner;
+       defined = src.defined;
+       return *this;
+    }
+
+    Point p;
+    ownertype owner; 
+    bool defined; 
+};
+
+
+
 
 void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
@@ -2996,7 +3059,6 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
   }
 
 
-
   AVLTree<AVLSegment> sss;            // sweep state structure
   // dynamic parts of the sweep event structure
   priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
@@ -3012,14 +3074,41 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
   const AVLSegment* leftN=0;  // the left neightboor of member
   const AVLSegment* rightN=0; // the right neighbour of member
   ownertype owner;
+  OwnedPoint lastDomPoint; // initialized to be undefined
 
   while( ((owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg))!=none)
           && !done){
 
     AVLSegment current(&nextSeg,owner);
 
-
     member = sss.getMember(current,leftN,rightN);
+
+    /*
+    Because right events are processed before
+    left events, we have to store the last dominating point
+    to detect intersections of the boundaries within a single point.
+    */
+
+    Point p = nextSeg.GetDomPoint();
+    if(!lastDomPoint.defined || !AlmostEqual(lastDomPoint.p,p)){
+        lastDomPoint.defined = true;
+        lastDomPoint.p = p;
+        lastDomPoint.owner = owner;
+    } else { // same point as before
+       if(lastDomPoint.owner != owner){
+          res.SetBB(true); // common point found
+       }
+    }
+
+
+ // debug::start
+    //cout << "process semnet" << current << "   ";
+    //cout << (nextSeg.IsLeftDomPoint()?"LEFT":"RIGHT");
+    //cout << endl << endl; 
+
+ // debug::end   
+
+
 
     if(nextSeg.IsLeftDomPoint()){
         AVLSegment left, common, right;
@@ -3036,14 +3125,14 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
 
            if(iac!=iam){
              res.SetIE(true);
-             res.SetEI(true);
+             res.SetEI(true); 
            } else {
              res.SetII(true);
              // res.setEE(true); // alreay done in initialisation
            }
 
-
            int parts = member->split(current,left,common,right);
+
            sss.remove(*member);
            assert(sss.Check(cerr));
 
@@ -3062,7 +3151,8 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
               }
            }
            assert(parts & COMMON);  // there must exist a common part
-         
+        
+           
            // update con_above
            if(iac){
              common.con_above++; 
@@ -3070,8 +3160,6 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
              common.con_above--;
            } 
 
-           assert(common.con_above>=0 && common.con_above<=2);
-           assert(common.con_below+common.con_above > 0);
            common.checkCon(); 
            sss.insert(common);
            
@@ -3080,7 +3168,7 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
            HalfSegment hs_common1 = common.convertToHs(false,first);
            HalfSegment hs_common2 = common.convertToHs(false,second);
            q1.push(hs_common1); 
-           q1.push(hs_common2);
+           q2.push(hs_common2);
 
            if(parts & RIGHT) { // there is an exclusive right part 
               // create the events for the remainder
@@ -3133,17 +3221,26 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
               bool iac = current.getOwner()==first
                               ?current.getInsideAbove_first()
                               :current.getInsideAbove_second();
-              if(leftN){
-                current.con_below = leftN->con_above;
-              } else {
-                current.con_below = 0;
-              }
+
               iac = current.getOwner()==first?current.getInsideAbove_first()
                                              :current.getInsideAbove_second();
-              if(iac){
-                current.con_above = current.con_below+1;
-              } else {
-                current.con_above = current.con_below-1;
+
+              if(leftN && current.extends(*leftN)){
+                current.con_below = leftN->con_below;
+                current.con_above = leftN->con_above;
+              }else{
+                if(leftN && leftN->isVertical()){
+                   current.con_below = leftN->con_below;
+                } else if(leftN){
+                   current.con_below = leftN->con_above;
+                } else {
+                   current.con_below = 0;
+                }
+                if(iac){
+                   current.con_above = current.con_below+1;
+                } else {
+                   current.con_above = current.con_below-1;
+                }
               }
 
               // derive intersections from the coverage numbers
@@ -3153,6 +3250,7 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
                   if(current.getInsideAbove()){
                      if(current.getOwner()==first){
                         res.SetEI(true);
+
                      } else {
                         res.SetIE(true);
                      }
@@ -3161,6 +3259,7 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
                         res.SetIE(true);
                      } else {
                         res.SetEI(true);
+
                      }
                   }
               } else {
@@ -3203,19 +3302,16 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
                 current.splitAt(leftN->getX2(), leftN->getY2(), left, right);
                 current = left;
                 HalfSegment hs_left = left.convertToHs(false);
-                HalfSegment hs_right = right.convertToHs(true);
                 switch(current.getOwner()){
                   case first:   { 
                                   q1.push(hs_left);
-                                  q1.push(HalfSegment(hs_right));
-                                  hs_right.SetLeftDomPoint(false);
-                                  q1.push(hs_right);
+                                  q1.push(right.convertToHs(true));
+                                  q1.push(right.convertToHs(false));
                                   break;
                                 }
                    case second: { q2.push(hs_left);
-                                  q2.push(HalfSegment(hs_right));
-                                  hs_right.SetLeftDomPoint(false);
-                                  q2.push(hs_right);
+                                  q2.push(right.convertToHs(true));
+                                  q2.push(right.convertToHs(false));
                                   break;
                                 }
                    default: assert(false);
@@ -3229,18 +3325,15 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
                 current.splitAt(rightN->getX2(), rightN->getY2(), left, right);
                 current = left;
                 HalfSegment hs_left = left.convertToHs(false);
-                HalfSegment hs_right = right.convertToHs(true);
                 switch(current.getOwner()){
-                  case first:   {   q1.push(hs_left);
-                                  q1.push(HalfSegment(hs_right));
-                                  hs_right.SetLeftDomPoint(false);
-                                  q1.push(hs_right);
+                  case first:   { q1.push(hs_left);
+                                  q1.push(right.convertToHs(true));
+                                  q1.push(right.convertToHs(false));
                                   break;
                                 }
                    case second: { q2.push(hs_left);
-                                  q2.push(hs_right);
-                                  hs_right.SetLeftDomPoint(false);
-                                  q2.push(hs_right);
+                                  q2.push(right.convertToHs(true));
+                                  q2.push(right.convertToHs(false));
                                   break;
                                 }
                    default: assert(false);
@@ -3268,6 +3361,7 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
                // and insert the shorted one
 
                sss.remove(*leftN);
+               leftN = &right; 
                left.checkCon();
                sss.insert(left);
 
@@ -3344,18 +3438,26 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
             bool iac = current.getOwner()==first?
                                 current.getInsideAbove_first()
                                :current.getInsideAbove_second();
-            if(leftN){
-              current.con_below = leftN->con_above;
-            } else {
-              current.con_below = 0;
-            }
-            if(iac){
-              current.con_above = current.con_below+1;
-            } else {
-              current.con_above = current.con_below-1;
+
+
+            if(leftN && current.extends(*leftN)){
+              current.con_below = leftN->con_below;
+              current.con_above = leftN->con_above;
+            }else{
+              if(leftN && leftN->isVertical()){
+                 current.con_below = leftN->con_below;
+              } else if(leftN){
+                 current.con_below = leftN->con_above;
+              } else {
+                 current.con_below = 0;
+              }
+              if(iac){
+                 current.con_above = current.con_below+1;
+              } else {
+                 current.con_above = current.con_below-1;
+              }
             }
 
-            
             // derive intersections from the coverage numbers
             if(current.con_below == 0){
                 res.SetEE(true);
@@ -3363,6 +3465,7 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
                 if(current.getInsideAbove()){
                    if(current.getOwner()==first){
                       res.SetEI(true);
+
                    } else {
                       res.SetIE(true);
                    }
@@ -3371,11 +3474,23 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
                       res.SetIE(true);
                    } else {
                       res.SetEI(true);
+
                    }
                 }
-            } else {
-               assert(current.con_below==2);
+            } else if(current.con_below==2){
                res.SetII(true); 
+            } else {
+              cerr << "invalid value for  con_below " 
+                   << current.con_below << endl;
+              if(!leftN){
+                 cerr << "no predecessor found" << endl;
+              } else {
+                 cerr << "Left= " << *leftN << endl;
+                 cerr << "extension : " << current.extends(*leftN) << endl;
+                 cerr << "vertical  : " << leftN->isVertical() << endl;
+              }
+              assert(false);
+              
             }
 
               
@@ -3387,10 +3502,46 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
        }
     } else { // right endpoint of an halfsegment
 
-      if(member){ // element found in sss
+      if(member){ // element found in sss, may be an old splitted element
+        // check if where member is located
+        if(member->getOwner()!=both){
+           // member is located in the interior or in the exterior of the 
+           // other region
+           if(member->con_below==0 || member->con_above==0){ // in exterior
+              switch(member->getOwner()){
+                case first: res.SetBE(true); 
+                            res.SetIE(true); 
+                            res.SetEE(true); 
+                            break;
+                case second: res.SetEB(true); 
+                             res.SetEI(true); 
+                             res.SetEE(true); 
+                             break;
+                default: assert(false);
+              }
+           } else if(member->con_below==2 || member->con_above==2){ //interior
+              switch(member->getOwner()){
+                case first: res.SetBI(true); 
+                            res.SetII(true); 
+                            res.SetEI(true); 
+                            break;
+                case second: res.SetIB(true); 
+                             res.SetII(true); 
+                             res.SetIE(true);
+                             break;
+                default: assert(false);
+              }
+           }else {
+              assert(false);
+           }    
+        }
+
         sss.remove(*member);
         assert(sss.Check(cerr));
+
+       
         if( leftN && rightN && !leftN->innerDisjoint(*rightN)){
+
            // leftN and rightN are crossing or one of the segments
            // splits the other one by its right endpoint 
            if(leftN->crosses(*rightN)){
@@ -3401,6 +3552,7 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
               AVLSegment left, right;
               leftN->splitAt(rightN->getX2(), rightN->getY2(),left,right);
               sss.remove(*leftN);
+              leftN = &right;
               assert(sss.Check(cerr));
               left.checkCon();
               sss.insert(left);
@@ -3500,8 +3652,9 @@ This function is symmetric to the ~TopRel~ functions. This function avoids
 the implementation of symmetric GetInt9M functions.
 
 For example, we have implemented the function GetInt9M(Points*, Point*).
-To provide [secondo] operators for both  TopRel(points,point) and TopRel(point,points),
-you can use TopRel<Points,Point> and TopRelSym<Points,Point> as value mappings.
+To provide [secondo] operators for both  TopRel(points,point) and 
+TopRel(point,points), you can use TopRel<Points,Point> and 
+TopRelSym<Points,Point> as value mappings.
 
 */
 template<class type1, class type2>
