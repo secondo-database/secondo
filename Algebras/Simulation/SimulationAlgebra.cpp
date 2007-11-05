@@ -1665,7 +1665,7 @@ int sim_trips_VM ( Word* args, Word& result,
 
     case CLOSE :
 
-       cout << "sim_trips_VM received CLOSE" << endl;
+//       cout << "sim_trips_VM received CLOSE" << endl;
       if (local.addr != 0)
       {
         sli = (SplitMpointLocalInfo*) local.addr;
