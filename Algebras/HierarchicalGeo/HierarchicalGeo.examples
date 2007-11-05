@@ -89,8 +89,14 @@ Result   : file
 Operator: p_at
 Number  : 2
 Signature: (cmpoint region)-> cmpoint
-Example : query ctrain p_at thecenter
-Result   : 
+Example : query ctrain7 p_at thecenter
+Result   : file
+
+Operator: p_at
+Number  : 3
+Signature: (cmpoint point)-> cmpoint
+Example : query ctrain7 p_at mehringdamm
+Result   : file
 
 Operator: units
 Number  : 1

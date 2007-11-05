@@ -207,22 +207,30 @@ query cuppointinhavel p_passes havel;
 query cupthroughhavel p_passes havel;
 
 
-#testcase queryd_atcupoint 1
+#testcase queryd_atcupoint1
 #yields (cupoint (0.0 (\
             ("2003-11-20-06:28" "2003-11-20-06:28" TRUE TRUE) \
             (9396.0 9871.0 9396.0 9871.0))) )
 query cupmehring d_at mehringdamm;
 
 
-#testcase querycupp_at
+#testcase queryd_atcupoint2
+#yields ( cupoint undef )
+query cupmehring1 d_at mehringdamm;
+
+
+#testcase queryp_atcupoint1
 #yields ( cmpoint ( (32.4 (\
             ("2003-11-20-07:00:37.844" "2003-11-20-07:00:43.127" TRUE TRUE)\
             (-2849.0 14461.0 -2922.882209401275 14477.51484680734)))) )
 query cuphavel p_at havel;
 
-#testcase queryd_atcupoint 2
-#yields ( cupoint undef )
-query cupmehring1 d_at mehringdamm;
+
+#testcase queryp_atcupoint
+#yields ( cupoint (0.1 (\
+        ("2003-11-20-06:28" "2003-11-20-06:28:00.015" TRUE TRUE)\
+        (9396.0 9871.0 9396.029162576093 9871.095653249582))) )
+query cupmehring1 p_at mehringdamm;
 
 
 #testcase deletecupoint
@@ -351,7 +359,7 @@ query cmpmehringd p_passes mehringdamm;
 query units(cmptest) count;
 
 
-#testcase querycmpd_at
+#testcase queryd_atcmpoint1
 #yields (cmpoint ( (23.5 (\
             ("2003-11-20-07:00:37.320" "2003-11-20-07:00:37.844" TRUE FALSE)\
             (-2841.495125236518 14460.93238851565 -2849.0 14461.0)))\
@@ -361,7 +369,19 @@ query units(cmptest) count;
 query ctrain7 d_at havel;
 
 
-#testcase querycmpp_at
+#testcase queryp_atcmpoint1
+#yields ( cmpoint ( (23.5 (\
+            ("2003-11-20-06:27:48.477" "2003-11-20-06:27:50" TRUE FALSE)\
+            (9388.648889508975 9848.679355418162 9396.0 9871.0)))\
+    (23.5 (\
+            ("2003-11-20-06:27:50" "2003-11-20-06:28" TRUE FALSE)\
+            (9396.0 9871.0 9396.0 9871.0)))\
+    (23.5 (\
+            ("2003-11-20-06:28" "2003-11-20-06:28:03.560" TRUE TRUE)\
+            (9396.0 9871.0 9402.853205381663 9893.478513651857)))) )
+query ctrain7 p_at mehringdamm;
+
+#testcase queryp_atcmpoint2
 #yields ( cmpoint ( (23.5 (\
             ("2003-11-20-07:00:34.013" "2003-11-20-07:00:37.844" TRUE FALSE)\
             (-2794.094843967178 14460.50535895466 -2849.0 14461.0)))\
