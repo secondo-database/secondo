@@ -1691,7 +1691,229 @@ Determine the timeInterval for the new unit:
 
 void CUPoint::P_At( const Point& p, CUPoint& result) const
 {
-  result.SetDefined(false);
+  assert( p.IsDefined() );
+  assert( IsDefined() );
+  
+  
+  if( !p.Inside(this->BBox2D()) )
+  {
+    result.SetDefined(false);
+    return;
+  }
+  
+  //CUPoint *pResult = &result;
+  double distp0 = p.Distance( p0 );
+  
+  if ( AlmostEqual(p0, p1) )
+  {
+    if( distp0 < epsilon || AlmostEqual( distp0, epsilon ) )
+      result = *this;
+  }
+  else
+  {
+    double distp1 = p.Distance( p1 );
+    if( ( distp0 < epsilon || AlmostEqual( distp0, epsilon ) ) &&
+        ( distp1 < epsilon || AlmostEqual( distp1, epsilon ) ) )
+      result = *this;
+    
+/*
+To determine that part of a cupoint, that is possibly at the given point, draw
+a circle with the radius of the uncertainty-value around this point and 
+determine the intersection-points of this circle with the halfsegment created 
+from the cupoint's endpoints.
+
+*/
+    
+    //HalfSegment segCup( true, p0, p1 );
+    
+    Coord circleX = p.GetX(),
+          circleY = p.GetY(); 
+        
+    double a,b,c;
+    double bb4ac, mu1, mu2;
+    Coord p0x = p0.GetX();
+    Coord p0y = p0.GetY();
+    Coord p1x = p1.GetX();
+    Coord p1y = p1.GetY();
+    Coord lengthX = p1x - p0x;
+    Coord lengthY = p1y - p0y;
+    
+    a = lengthX * lengthX + lengthY * lengthY;
+    b = 2 * (lengthX * (p0x - circleX) + lengthY * (p0y - circleY) );
+    c = circleX * circleX + circleY * circleY;
+    c += p0x * p0x + p0y * p0y;
+    c -= 2 * (circleX * p0x + circleY * p0y);
+    c -= epsilon * epsilon;
+    bb4ac = b * b - 4 * a * c;
+    // originally: if (fabs(a) <= EPS || bb4ac < 0) but 'EPS' was
+    // not declared in the code-example, this algorithm is derived from.
+    if( bb4ac < 0 ) 
+    {
+      mu1 = 0;
+      mu2 = 0;
+      result.SetDefined(false);
+      return;
+    }
+
+    mu1 = (-b + sqrt(bb4ac)) / (2 * a);
+    mu2 = (-b - sqrt(bb4ac)) / (2 * a);
+    
+    Point ep0;
+    Point ep1;
+    
+    if( distp0 < epsilon || AlmostEqual( distp0, epsilon ) )
+      ep0 = p0;
+    else
+      ep0.Set( p0x + mu2*(p1x - p0x), p0y + mu2*(p1y - p0y) );
+    if( distp1 < epsilon || AlmostEqual( distp1, epsilon ) )
+      ep1 = p1;
+    else
+      ep1.Set( p0x + mu1*(p1x - p0x), p0y + mu1*(p1y - p0y) );
+    
+    Instant t0;
+    Instant t1;
+    bool tlc;
+    bool trc;
+    
+    if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
+        AlmostEqual( p0.GetX(), ep0.GetX() ) && 
+        AlmostEqual( p0.GetX(), ep1.GetX() ) )
+        // If the segment is vertical
+    {
+      if( (( p0.GetY() <= ep0.GetY() && p1.GetY() >= ep0.GetY() ) ||
+          ( p0.GetY() >= ep0.GetY() && p1.GetY() <= ep0.GetY() )) &&
+          (( p0.GetY() <= ep1.GetY() && p1.GetY() >= ep1.GetY() ) ||
+          ( p0.GetY() >= ep1.GetY() && p1.GetY() <= ep1.GetY() )) )
+      {
+        if( ep0 == p0 )
+        {
+          t0 = timeInterval.start;
+          tlc = timeInterval.lc;
+        }
+        else {
+          t0 = timeInterval.start +
+                (timeInterval.end - timeInterval.start) *
+                ( (ep0.GetY() - p0.GetY()) / (p1.GetY() - p0.GetY()) );
+          tlc = true;
+        }
+        if( ep1 == p1 )
+        {
+          t1 = timeInterval.end;
+          trc = timeInterval.rc;
+        }
+        else {
+          t1 = timeInterval.start +
+                (timeInterval.end - timeInterval.start) *
+                ( (ep1.GetY() - p0.GetY()) / (p1.GetY() - p0.GetY()) );
+          trc = true; 
+        }
+        Interval<Instant> interval( t0, t1, tlc, trc );
+        CUPoint unit( epsilon, interval, ep0, ep1 );
+        result = unit;
+      }
+    }
+    else if( AlmostEqual( p0.GetY(), p1.GetY() ) &&
+            AlmostEqual( p0.GetY(), ep0.GetY() ) &&
+            AlmostEqual( p0.GetY(), ep1.GetY() ) )
+            // The segment is horizontal
+    {
+      if( (( p0.GetX() <= ep0.GetX() && p1.GetX() >= ep0.GetX() ) ||
+          ( p0.GetX() >= ep0.GetX() && p1.GetX() <= ep0.GetX() )) &&
+          (( p0.GetX() <= ep1.GetX() && p1.GetX() >= ep1.GetX() ) ||
+          ( p0.GetX() >= ep1.GetX() && p1.GetX() <= ep1.GetX() )) )
+      {
+        if( ep0 == p0 )
+        {
+          t0 = timeInterval.start;
+          tlc = timeInterval.lc;
+        }
+        else {
+          t0 = timeInterval.start +
+                (timeInterval.end - timeInterval.start) *
+                ( (ep0.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
+          tlc = true;
+        }
+        if( ep1 == p1 )
+        {
+          t1 = timeInterval.end;
+          trc = timeInterval.rc;
+        }
+        else {
+          t1 = timeInterval.start +
+                (timeInterval.end - timeInterval.start) *
+                ( (ep1.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
+          trc = true;
+        }
+        Interval<Instant> interval( t0, t1, tlc, trc );
+        CUPoint unit( epsilon, interval, ep0, ep1 );
+        result = unit;
+      }
+    }
+    else
+    {
+      // +++++ for debugging purposes only +++++
+      //cout << "Determine, if ep0 and ep1 are points of the unit... \n";
+      
+      double k0;
+      if(ep0 != p0)
+        k0 = (ep0.GetX() - p0.GetX()) / (ep0.GetY() - p0.GetY());
+      double k1 = (ep1.GetX() - p0.GetX()) / (ep1.GetY() - p0.GetY());
+      double k2 = (p1.GetX() - p0.GetX()) / (p1.GetY() - p0.GetY());
+      
+      //cout << "k0 = " << k0 << "   k1 = " << k1 << "   k2 = " << k2 
+      //  << endl;
+      
+      if( (ep0 == p0 || AlmostEqual( k0, k2 ) ) && AlmostEqual( k1, k2 ) &&
+          ( (( p0.GetX() <= ep0.GetX() && p1.GetX() >= ep0.GetX() ) ||
+          ( p0.GetX() >= ep0.GetX() && p1.GetX() <= ep0.GetX() )) &&
+          (( p0.GetX() <= ep1.GetX() && p1.GetX() >= ep1.GetX() ) ||
+          ( p0.GetX() >= ep1.GetX() && p1.GetX() <= ep1.GetX() )) ) )
+      {
+        if( ep0 == p0 )
+        {
+          // +++++ for debugging purposes only +++++
+          //cout << "ep0 equals p0!\n";
+          
+          t0 = timeInterval.start;
+          tlc = timeInterval.lc;
+        }
+        else {
+          // +++++ for debugging purposes only +++++
+          //cout << "ep0 is a Point within the Unit!\n";
+          
+          t0 = timeInterval.start +
+                (timeInterval.end - timeInterval.start) *
+                ( (ep0.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
+          tlc = true;
+        }
+        
+        if( ep1 == p1 )
+        {
+          // +++++ for debugging purposes only +++++
+          //cout << "ep0 equals p1!\n";
+          
+          t1 = timeInterval.end;
+          trc = timeInterval.rc;
+        }
+        else {
+          // +++++ for debugging purposes only +++++
+          //cout << "ep1 is a Point within the Unit!\n";
+          
+          t1 = timeInterval.start +
+                (timeInterval.end - timeInterval.start) *
+                ( (ep1.GetX() - p0.GetX()) / (p1.GetX() - p0.GetX()) );
+          trc = true;
+        }
+        Interval<Instant> interval( t0, t1, tlc, trc );
+        
+        // +++++ for debugging purposes only +++++
+        //cout << "Create a new CUPoint...\n";
+        
+        CUPoint unit( epsilon, interval, ep0, ep1 );
+        result = unit;
+      }
+    } 
+  }
 }
 
 void CUPoint::P_At( const Region& r, CMPoint& result) const
@@ -3167,7 +3389,24 @@ void CMPoint::D_At( const Region& r, CMPoint& result ) const
 
 void CMPoint::P_At( const Point& p, CMPoint& result ) const
 {
-  result.SetDefined( false );
+  assert( IsOrdered() );
+  assert( p.IsDefined() );
+  
+  if( !p.Inside(BBox2D()) )
+    result.SetDefined( false );
+  
+  const CUPoint *unit;
+  CUPoint resunit;
+  
+  result.StartBulkLoad();
+  for( int i = 0; i < GetNoComponents(); i++ )
+  {
+    Get(i, unit);
+    unit->P_At( p, resunit );
+    if( resunit.IsDefined() )
+      result.Add( resunit );
+  }
+  result.EndBulkLoad();
 }
 
 void CMPoint::P_At( const Region& r, CMPoint& result ) const
@@ -4302,9 +4541,13 @@ ListExpr UncertainMovingTypeMapMoving( ListExpr args )
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "point" ) &&
-        nl->IsEqual( arg1, "cupoint" ) )
-      return nl->SymbolAtom( "cupoint" );
+    if( nl->IsEqual( arg2, "point" ) )
+    {
+      if( nl->IsEqual( arg1, "cupoint" ) )
+        return nl->SymbolAtom( "cupoint" );
+      if( nl->IsEqual( arg1, "cmpoint" ) )
+        return nl->SymbolAtom( "cmpoint" );
+    }
     else if( nl->IsEqual( arg2, "region") &&
            ( nl->IsEqual( arg1, "cupoint") || 
              nl->IsEqual( arg1, "cmpoint") ) )
