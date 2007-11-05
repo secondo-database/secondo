@@ -76,9 +76,21 @@ Result   : (cupoint undef)
 
 Operator: d_at
 Number  : 3
-Signature: (cupoint point)-> cupoint
+Signature: (cmpoint region)-> cmpoint
 Example : query ctrain7 d_at thecenter
 Result   : file
+
+Operator: p_at
+Number  : 1
+Signature: (cupoint region)-> cupoint
+Example : query cuphavel p_at havel
+Result   : file
+
+Operator: p_at
+Number  : 2
+Signature: (cmpoint region)-> cmpoint
+Example : query ctrain p_at thecenter
+Result   : 
 
 Operator: units
 Number  : 1

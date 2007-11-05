@@ -214,6 +214,12 @@ query cupthroughhavel p_passes havel;
 query cupmehring d_at mehringdamm;
 
 
+#testcase querycupp_at
+#yields ( cmpoint ( (32.4 (\
+            ("2003-11-20-07:00:37.844" "2003-11-20-07:00:43.127" TRUE TRUE)\
+            (-2849.0 14461.0 -2922.882209401275 14477.51484680734)))) )
+query cuphavel p_at havel;
+
 #testcase queryd_atcupoint 2
 #yields ( cupoint undef )
 query cupmehring1 d_at mehringdamm;
@@ -353,6 +359,16 @@ query units(cmptest) count;
             ("2003-11-20-07:00:37.844" "2003-11-20-07:00:39.212" TRUE TRUE)\
             (-2849.0 14461.0 -2868.139322458532 14465.27820149073)))) )
 query ctrain7 d_at havel;
+
+
+#testcase querycmpp_at
+#yields ( cmpoint ( (23.5 (\
+            ("2003-11-20-07:00:34.013" "2003-11-20-07:00:37.844" TRUE FALSE)\
+            (-2794.094843967178 14460.50535895466 -2849.0 14461.0)))\
+    (23.5 (\
+            ("2003-11-20-07:00:37.844" "2003-11-20-07:00:42.503" TRUE TRUE)\
+            (-2849.0 14461.0 -2914.166436703772 14475.56661526319)))) )
+query ctrain7 p_at havel;
 
 #testcase querycmpunits2
 #yields success
