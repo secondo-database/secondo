@@ -1333,6 +1333,31 @@ double Point::Direction( const Point& p ) const
   return direction;
 }
 
+void Point::Rotate(const Coord& x, const Coord& y, 
+                          const double alpha, Point& res) const{
+
+  if(!IsDefined()){
+     res.SetDefined(false);
+     return;
+  }
+
+  double s = sin(alpha);
+  double c = cos(alpha);
+
+  double m00 = c;
+  double m01 = -s;
+  double m02 = x - x*c + y*s;
+  double m10 = s;
+  double m11 = c;
+  double m12 = y - x*s-y*c;
+
+  res.SetDefined(true);
+  res.x = m00*this->x + m01*this->y + m02;
+  res.y = m10*this->x + m11*this->y + m12;
+
+}
+
+
 /*
 4.2 List Representation
 
@@ -2353,6 +2378,47 @@ void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
   result.EndBulkLoad( false, false );
 }
 
+
+void Points::Rotate( const Coord& x, const Coord& y, 
+                     const double alpha,
+                     Points& result ) const
+{
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.Resize(Size());
+  result.SetDefined(true);
+
+  double s = sin(alpha);
+  double c = cos(alpha);
+
+  double m00 = c;
+  double m01 = -s;
+  double m02 = x - x*c + y*s;
+  double m10 = s;
+  double m11 = c;
+  double m12 = y - x*s-y*c;
+
+
+  result.StartBulkLoad();
+  const Point *p;
+  Point rot(true,0,0);
+
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, p );
+    rot.Set( m00*p->GetX() + m01*p->GetY() + m02,
+             m10*p->GetX() + m11*p->GetY() + m12);
+    result += rot;
+  }
+  result.EndBulkLoad( false, false );
+
+}
+
+
+
 size_t Points::HashValue() const
 {
   if( IsEmpty() )
@@ -2725,6 +2791,7 @@ void HalfSegment::Translate( const Coord& x, const Coord& y )
   lp.Translate( x, y );
   rp.Translate( x, y );
 }
+
 
 void HalfSegment::Set( bool ldp, const Point& lp, const Point& rp )
 {
@@ -4357,6 +4424,54 @@ void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
   result.SetNoComponents( NoComponents() );
   result.SetLineType( simple, cycle, startsSmaller );
   result.EndBulkLoad( false, false, false, false );
+}
+
+void Line::Rotate( const Coord& x, const Coord& y, 
+                   const double alpha,
+                   Line& result ) const
+{
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.Resize(Size());
+  result.SetDefined(true);
+
+  double s = sin(alpha);
+  double c = cos(alpha);
+
+  double m00 = c;
+  double m01 = -s;
+  double m02 = x - x*c + y*s;
+  double m10 = s;
+  double m11 = c;
+  double m12 = y - x*s-y*c;
+
+
+  result.StartBulkLoad();
+  const HalfSegment *hso;
+  Point p1;
+  Point p2;
+
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hso );
+    p1.Set( m00*hso->GetLeftPoint().GetX() 
+            + m01*hso->GetLeftPoint().GetY() + m02,
+            m10*hso->GetLeftPoint().GetX() 
+           + m11*hso->GetLeftPoint().GetY() + m12);
+    p2.Set( m00*hso->GetRightPoint().GetX() 
+             + m01*hso->GetRightPoint().GetY() + m02,
+             m10*hso->GetRightPoint().GetX() 
+             + m11*hso->GetRightPoint().GetY() + m12);
+
+    HalfSegment hsr(*hso); // ensure to copy attr;
+    hsr.Set(hso->IsLeftDomPoint(),p1,p2);
+    result += hsr;
+  }
+  result.EndBulkLoad(); // reordering may be required
+
 }
 
 void Line::Transform( Region& result ) const
@@ -7255,6 +7370,54 @@ void Region::Translate( const Coord& x, const Coord& y, Region& result ) const
   result.EndBulkLoad( false, false, false, false );
 }
 
+void Region::Rotate( const Coord& x, const Coord& y, 
+                   const double alpha,
+                   Region& result ) const
+{
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.Resize(Size());
+  result.SetDefined(true);
+
+  double s = sin(alpha);
+  double c = cos(alpha);
+
+  double m00 = c;
+  double m01 = -s;
+  double m02 = x - x*c + y*s;
+  double m10 = s;
+  double m11 = c;
+  double m12 = y - x*s-y*c;
+
+
+  result.StartBulkLoad();
+  const HalfSegment *hso;
+  Point p1;
+  Point p2;
+
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hso );
+    p1.Set( m00*hso->GetLeftPoint().GetX() 
+            + m01*hso->GetLeftPoint().GetY() + m02,
+            m10*hso->GetLeftPoint().GetX() 
+           + m11*hso->GetLeftPoint().GetY() + m12);
+    p2.Set( m00*hso->GetRightPoint().GetX() 
+             + m01*hso->GetRightPoint().GetY() + m02,
+             m10*hso->GetRightPoint().GetX() 
+             + m11*hso->GetRightPoint().GetY() + m12);
+
+    HalfSegment hsr(*hso); // ensure to copy attr;
+    hsr.Set(hso->IsLeftDomPoint(),p1,p2);
+    result += hsr;
+  }
+  result.EndBulkLoad(true,true,true,false); // reordering may be required
+
+}
+
 void Region::TouchPoints( const Line& l, Points& result ) const
 {
   assert( IsOrdered() && l.IsOrdered() );
@@ -7605,6 +7768,7 @@ void Region::SetPartnerNo()
     }
   }
 }
+
 
 double VectorSize(const Point &p1, const Point &p2)
 {
@@ -10730,6 +10894,44 @@ SpatialTranslateMap( ListExpr args )
 }
 
 /*
+10.1.17 Type mapping function for operator ~rotate~
+
+This type mapping function is used for the ~rotate~ operator.
+The mamp is spatialtype x real x real x real -> spatialtype 
+
+*/
+ListExpr
+SpatialRotateMap( ListExpr args )
+{
+  if ( nl->ListLength( args ) != 4 )
+  { ErrorReporter::ReportError("wrong number of arguments (4 expected)");
+    return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(args); 
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if( !nl->IsEqual(arg2,"real") ||
+      !nl->IsEqual(arg3,"real") ||
+      !nl->IsEqual(arg4,"real")){
+    ErrorReporter::ReportError("spatial x real x real x real expected");
+    return nl->TypeError();
+  }
+
+  if(!nl->AtomType(arg1)==SymbolType){
+    ErrorReporter::ReportError("spatial x real x real x real expected");
+    return nl->TypeError();
+  }
+  string st = nl->SymbolValue(arg1);
+  if( st!="point" && st!="points" && st!="line" && st!="region"){
+    ErrorReporter::ReportError("spatial x real x real x real expected");
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom(st);
+
+}
+/*
 10.1.17 Type mapping function for operator ~windowclipping~
 
 This type mapping function is used for the ~windowclipping~ operators. There are
@@ -11719,7 +11921,8 @@ SpatialComponentsSelect( ListExpr args )
 /*
 10.3.19 Selection function ~SpatialSelectTranslate~
 
-This select function is used for the ~translate~ and ~scale~ operators.
+This select function is used for the ~translate~, rotate, 
+and ~scale~ operators.
 
 */
 int
@@ -13245,6 +13448,27 @@ SpatialTranslate_l( Word* args, Word& result, int message,
   return 0;
 }
 
+template<class T>
+int SpatialRotate( Word* args, Word& result, int message,
+                    Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  T* res = static_cast<T*>(result.addr);
+  T* st = static_cast<T*>(args[0].addr);
+  CcReal* x = static_cast<CcReal*>(args[1].addr);
+  CcReal* y = static_cast<CcReal*>(args[2].addr);
+  CcReal* a = static_cast<CcReal*>(args[3].addr);
+  if(!st->IsDefined() || !x->IsDefined() || !y->IsDefined() 
+     || !a->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+  }
+  double angle = a->GetRealval() * PI / 180;
+
+  st->Rotate(x->GetRealval(),y->GetRealval(),angle,*res);
+  return 0;
+}
+
+
 int
 SpatialLine2Region( Word* args, Word& result, int message,
                     Word& local, Supplier s )
@@ -14593,6 +14817,12 @@ ValueMapping spatialtranslatemap[] = {
   SpatialTranslate_l,
   SpatialTranslate_r };
 
+ValueMapping spatialrotatemap[] = {
+  SpatialRotate<Point>,
+  SpatialRotate<Points>,
+  SpatialRotate<Line>,
+  SpatialRotate<Region>};
+
 ValueMapping spatialwindowclippinginmap[] = {
   SpatialWindowClippingIn_l,
   SpatialWindowClippingIn_r };
@@ -14825,6 +15055,15 @@ const string SpatialSpecTranslate  =
   "<text> _ translate[list]</text--->"
   "<text> move the object parallely for some distance.</text--->"
   "<text> query region1 translate[3.5, 15.1]</text--->"
+  ") )";
+
+const string SpatialSpecRotate  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(point||points||line||region x real x real x real) -> "
+  "point||points||line||region</text--->"
+  "<text> _ translate[ x y theta]</text--->"
+  "<text> rotates the spatial object around (x,y) theta degree</text--->"
+  "<text> query region1 rotate[3.5, 15.1, 10.0]</text--->"
   ") )";
 
 const string SpatialSpecAdd  =
@@ -15190,6 +15429,14 @@ Operator spatialtranslate (
   SpatialSelectTranslate,
   SpatialTranslateMap );
 
+Operator spatialrotate (
+  "rotate",
+  SpatialSpecRotate,
+  4,
+  spatialrotatemap,
+  SpatialSelectTranslate,
+  SpatialRotateMap );
+
 Operator spatialadd (
   "+",
   SpatialSpecAdd,
@@ -15396,6 +15643,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialsize );
     AddOperator( &spatialbbox);
     AddOperator( &spatialtranslate );
+    AddOperator( &spatialrotate );
     AddOperator( &spatialwindowclippingin );
     AddOperator( &spatialwindowclippingout );
     AddOperator( &spatialcomponents );

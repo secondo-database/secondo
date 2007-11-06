@@ -281,6 +281,12 @@ Signature: (point||points||line||region x real x real) -> point||points||line||r
 Example  : query trajectory(train7) translate[100.0, 0.0]
 Result   : file
 
+Operator : rotate
+Number   : 1
+Signature: (point||points||line||region x real x real x real) -> point||points||line||region
+Example  : query [const point value (0.0 10.0)] rotate [0.0, 0.0, 360.0]
+Result   : (point (0.0 10.0))
+Tolerance: 0.1
 
 Operator : union
 Number   : 1

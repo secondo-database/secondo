@@ -309,6 +309,19 @@ Operators redefinition.
     inline Point Translate( const Coord& x, const Coord& y ) const;
     inline void Translate( const Coord& x, const Coord& y );
 
+
+/*
+4.3.15 Operation ~rotate~
+
+This function rotates this point around the point defined by (x,y)
+with a degree of alpha. The result is stored in res.
+
+*/
+
+   inline void Rotate(const Coord& x, const Coord& y, const double alpha,
+                      Point& res) const;
+
+
 /*
 4.3.15 Operation ~add~
 
@@ -845,7 +858,13 @@ the size of ~U~ and ~m~ is the size of ~V~.
 *Complexity:* $O(n)$, where ~n~ is the size of ~U~
 
 */
-    void Translate( const Coord& x, const Coord& y, Points& ps ) const;
+  void Translate( const Coord& x, const Coord& y, Points& ps ) const;
+
+
+  void Rotate( const Coord& x, const Coord& y, double alpha,
+               Points& res ) const;
+
+
 /*
 4.4 Object Traversal Functions
 
@@ -1136,11 +1155,13 @@ function will compare the parameter points and put the smaller one to ~lp~ and l
 
 */
     void Translate( const Coord& x, const Coord& y );
+
 /*
 Translates the half segment by adding the coordinates ~x~ and ~y~ (which can be negative) to both
 ~lp~ and ~rp~ points.
 
 */
+
     inline void Scale( const Coord& f )
     {
       lp.Scale( f );
@@ -1686,6 +1707,10 @@ is the ~points~ result size.
 
 */
     void Translate( const Coord& x, const Coord& y, Line& l ) const;
+    
+    void Rotate( const Coord& x, const Coord& y, double alpha,
+                    Line& l ) const;
+    
 /*
 4.3.14 Operation ~transform~
 
@@ -2631,6 +2656,9 @@ Moves the region according x and y and stores the result in result.
 */
 
     void Translate(const Coord& x, const Coord& y, Region& result) const;
+    
+    void Rotate(const Coord& x, const Coord& y, const double alpha,
+                Region& result) const;
 
 /*
 
@@ -2671,8 +2699,11 @@ Moves this region.
 /*
 7.13 set partner number function
 
+This function requires the edgenumbers set correctly.
+
 */
    void SetPartnerNo();
+
 
 /*
 7.14 Get cycle direction functions
@@ -3195,6 +3226,7 @@ inline Point Point::Translate( const Coord& x, const Coord& y ) const
   assert( defined );
   return Point( true, this->x + x, this->y + y );
 }
+
 
 inline void Point::Translate( const Coord& x, const Coord& y )
 {
