@@ -104,516 +104,1008 @@ using namespace toprel;
 
 
 /*
-3.3 Helper class for plane sweep algorithms
+3.3 Definition of some constants.
 
-This class can be used to store halfsegments whithin an
-AVL tree. It is possible to switch the functionality of
-the comparison operators. The make it possible to insert
-/ delete a halfsegment with an exact match but to search only 
-dor the y value.
+*/
+const int LEFT      = 1;
+const int RIGHT     = 2;
+const int COMMON = 4;
+
+
+/*
+3.4 ownertype
+
+This class is used to store the source of an AVLSegment.
 
 */
 
-class AvlEntry;
-ostream& operator<<(ostream& o, const AvlEntry& e);
+enum ownertype{none, first, second, both};
+
+ostream& operator<<(ostream& o, const ownertype& owner){
+   switch(owner){
+      case none   : o << "none" ; break;
+      case first  : o << "first"; break;
+      case second : o << "second"; break;
+      case both   : o << "both"; break;
+      default     : assert(false);
+   }
+   return o;
+}
 
 
-class AvlEntry{
+/*
+3 Class AVLSegment
+
+This class is used for inserting into an avl tree during a plane sweep.
+
+
+*/
+
+class AVLSegment; 
+ostream& operator<<(ostream& o, const AVLSegment& s);
+
+
+class AVLSegment{
+
 public:
 
 /*
-3.3.0 Standard Constructor
-This constructor does nothing but is required for an AVLTree entry.
+3.0 ~Standard Constructor~
 
 */
-AvlEntry():source(0){}
-
-
-/*
-3.3.1 Constructor
-
-This constructor creates an AvlEntry from a 
-halfsegment.
-
-*/
-  AvlEntry(HalfSegment const * const Hs){
-     Point p1 = Hs->GetLeftPoint();
-     Point p2 = Hs->GetRightPoint();
-     x1 = p1.GetX();
-     y1 = p1.GetY();
-     x2 = p2.GetX();
-     y2 = p2.GetY();
-     vertical = x1==x2; 
-     if(!vertical){
-        slope = (y2-y1)/(x2-x1);
-     } else{
-        slope = 1.0;
-     }
-     insideAbove = Hs->GetAttr().insideAbove;
-     source = 0;
+  AVLSegment(){
+    x1 = 0;
+    x2 = 0;
+    y1 = 0;
+    y2 = 0;
+    owner = none;
+    insideAbove_first = false;
+    insideAbove_second = false;
+    con_below = 0;
+    con_above = 0;
   }
 
-/*
-3.3.2 Constructor
 
-This constructor creates an AvlEntry from a 
-point.
+/*
+3.1 ~Constructor~
+
+This constructor creates a new segment from the given HalfSegment.
+As owner only __first__ and __second__ are the allowed values.
 
 */
 
- AvlEntry(Point const * const P){
-    x1 = P->GetX();
-    x2 = x1;
-    y1 = P->GetY();
-    y2 = y1;
-   // set some dummy values 
-    vertical = true;
-    slope = 0;
-    insideAbove = false; 
-    source = 0;
+  AVLSegment(const HalfSegment* hs, ownertype owner){
+     x1 = hs->GetLeftPoint().GetX();
+     y1 = hs->GetLeftPoint().GetY();
+     x2 = hs->GetRightPoint().GetX();
+     y2 = hs->GetRightPoint().GetY();
+     if( (AlmostEqual(x1,x2) && (y2<y2) ) || (x2<x2) ){// swap the entries
+        double tmp = x1;
+        x1 = x2;
+        x2 = tmp;
+        tmp = y1;
+        y1 = y2;
+        y2 = tmp;
+     }
+     this->owner = owner;
+     switch(owner){
+        case first: { insideAbove_first = hs->GetAttr().insideAbove; 
+                      insideAbove_second = false;
+                      break;
+                     }
+        case second: {
+                      insideAbove_second = hs->GetAttr().insideAbove; 
+                      insideAbove_first = false;
+                       break;
+                     }
+        default: assert(false);
+     }
+     con_below = 0;
+     con_above = 0;
+  }
+
+  AVLSegment(const Point* p, ownertype owner){
+      x1 = p->GetX();
+      x2 = x1;
+      y1 = p->GetY();
+      y2 = y1;
+      this->owner = owner;
+      insideAbove_first = false;
+      insideAbove_second = false;
+      con_below = 0;
+      con_above = 0;
+  }
+
+
+/*
+3.2 ~Copy Constructor~
+
+*/
+   AVLSegment(const AVLSegment& src){
+      Equalize(src);
+   }
+
+/*
+3.3. Assignmet operator
+
+*/
+
+  AVLSegment& operator=(const AVLSegment& src){
+    Equalize(src);
+    return *this;
+  }
+
+  void Print(ostream& out)const{
+    out << "Segment("<<x1<<", " << y1 << ") -> (" << x2 << ", " << y2 <<") " 
+        << owner << " [ " << insideAbove_first << ", " 
+        << insideAbove_second << "] con("
+        << con_below << ", " << con_above << ")";
+
+  }
+  
+/*
+
+~Equalize~
+
+The value of this segment is taken from the argument.
+
+*/
+
+  void Equalize( const AVLSegment& src){
+     x1 = src.x1;
+     x2 = src.x2;
+     y1 = src.y1;
+     y2 = src.y2;
+     owner = src.owner;
+     insideAbove_first = src.insideAbove_first;
+     insideAbove_second = src.insideAbove_second;    
+     con_below = src.con_below;
+     con_above = src.con_above; 
+  }
+
+
+/*
+3.3 ~Destructor~
+
+*/
+   ~AVLSegment() {}
+
+
+/*
+3.4 ~crosses~
+
+Checks whether this segment and s have an intersection point of their
+interior. 
+
+*/
+ bool crosses(const AVLSegment& s) const{
+    if(isPoint() || s.isPoint()){
+      return false;
+    }
+
+    if(!xOverlaps(s)){
+       return false;
+    }
+    if(overlaps(s)){ // a common line
+       return false;
+    }
+    if(compareSlopes(s)==0){ // parallel or disjoint lines
+       return false;
+    } 
+    
+    if(isVertical()){
+        double x = x1; // compute y for s
+        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        return !AlmostEqual(y1,y) && !AlmostEqual(y2,y) &&
+               (y>y1)  && (y<y2)
+               && !AlmostEqual(s.x1,x) && !AlmostEqual(s.x2,x) ;
+    }
+
+    if(s.isVertical()){
+       double x = s.x1;
+       double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+       return !AlmostEqual(y,s.y1) && !AlmostEqual(y,s.y2) && 
+              (y>s.y1) && (y<s.y2) && 
+              !AlmostEqual(x1,x) && !AlmostEqual(x2,x);
+    }
+    
+    // both segments are non vertical 
+    double m1 = (y2-y1)/(x2-x1);
+    double m2 = (s.y2-s.y1)/(s.x2-s.x1);
+    double c1 = y1 - m1*x1;
+    double c2 = s.y1 - m2*s.x1;
+    double xs = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
+    return !AlmostEqual(x1,xs) && !AlmostEqual(x2,x2) && // not an endpoint   
+           !AlmostEqual(s.x1,xs) && !AlmostEqual(s.x2,xs) && // of any segment
+           (x1<xs) && (xs<x2) && (s.x1<xs) && (xs<s.x2);
+}
+
+/*
+3.5 ~Extends~
+
+This function returns true, iff this segment is an extension of 
+the argument, i.e. if the right point of ~s~ is the left point of ~this~
+and the slopes are equal.
+
+*/
+  bool extends(AVLSegment s){
+     return pointEqual(x1,y1,s.x2,s.y2) &&
+            compareSlopes(s)==0;
+  }
+
+
+/*
+3.5 ~CompareTo~
+
+Compares this with s. The x intervals must overlap.
+
+*/
+
+ int compareTo(const AVLSegment& s) const{
+    
+    assert(xOverlaps(s));
+
+    if(isPoint()){
+      if(s.isPoint()){
+        return comparePoints(x1,y1,s.x1,s.y1);
+      } else {
+        if(s.contains(x1,y1)){
+           return 0;
+        } else {
+           double y = s.getY(x1);
+           if(y1<y){
+             return -1;
+           } else {
+             return 1;
+           }
+        }
+      }
+    }
+    if(s.isPoint()){
+      if(contains(s.x1,s.y1)){
+        return 0;
+      } else {
+        double y = getY(s.x1);
+        if(y<s.y1){
+          return -1;
+        } else {
+          return 1;
+        }
+      }
+    }
+
+    bool v1 = isVertical();
+    bool v2 = s.isVertical();
+   
+    if(!v1 && !v2){ 
+       double x = max(x1,s.x1); // the right one of the left coordinates
+       double y_this = getY(x);
+       double y_s = s.getY(x);
+       if(!AlmostEqual(y_this,y_s)){
+          if(y_this<y_s){
+            return -1;
+          } else  {
+            return 1;
+          }
+       } else {
+         int cmp = compareSlopes(s);
+         if(cmp!=0){
+           return cmp;
+         }
+         // if the segments are connected, the left segment 
+         // is the smaller one
+         if(AlmostEqual(x2,s.x1)){
+             return -1;
+         }
+         if(AlmostEqual(s.x2,x1)){
+             return 1;
+         }
+         // the segments have an proper overlap
+         return 0;
+       }  
+   } else if(v1 && v2){ // both are vertical
+      if(AlmostEqual(y1,s.y2) || (y1>s.y2)){ // this is above s
+        return 1;
+      } 
+      if(AlmostEqual(s.y1,y2) || (s.y1>y2)){ // s above this
+        return 1;
+      }
+      // proper overlapping part
+      return 0;
+  } else { // one segment is vertical
+
+    double x = v1? x1 : s.x1; // x coordinate of the vertical segment
+    double y1 = getY(x);
+    double y2 = s.getY(x);
+    if(AlmostEqual(y1,y2)){
+        return v1?1:-1; // vertical segments have the greatest slope
+    } else if(y1<y2){
+       return -1;
+    } else {
+       return 1;
+    }
+  }
  }
 
 
 
 /*
-3.3.2 Copy Constructor
+3.6 ~isVertical~
+
+Checks whether this segment is vertical.
 
 */
 
-  AvlEntry(const AvlEntry& source){
-    this->x1 = source.x1;
-    this->x2 = source.x2;
-    this->y1 = source.y1;
-    this->y2 = source.y2;
-    this->vertical = source.vertical;
-    this->slope = source.slope;
-    this->source = source.source;
-  }
-
-  
-/*
-3.3.3 Assignment Operator
-
-*/  
-   AvlEntry& operator=(const AvlEntry& source){
-     this->x1 = source.x1;
-     this->x2 = source.x2;
-     this->y1 = source.y1;
-     this->y2 = source.y2;
-     this->vertical = source.vertical;
-     this->insideAbove = source.insideAbove;
-     this->slope = source.slope;
-     this->source = source.source;
-     return *this;
-   }
+ bool isVertical() const{
+     return AlmostEqual(x1,x2);
+ }
 
 /*
-3.3.4 Destructor
+2.6 isPoint
 
-*/
-   ~AvlEntry(){}
-
-
-/*
-3.3.5 isPoint
+Checks if this segment consists only of a single point.
 
 */
   bool isPoint() const{
+     return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
+  }
+
+
+/*
+3.7 getInsideAbove
+
+Returns the insideAbove value for such segments for which this value is unique,
+e.g. for segments having owner __first__ or __second__.
+
+*/
+
+  bool getInsideAbove(){
+      switch(owner){
+        case first : return insideAbove_first;
+        case second: return insideAbove_second;
+        default : assert(false);
+      }
+  }
+
+/*
+3.7 Comparison Operators 
+
+*/
+
+
+  bool operator==(const AVLSegment& s) const{
+    return compareTo(s)==0;
+  }
+
+  bool operator<(const AVLSegment& s) const{
+     return compareTo(s)<0;
+  }
+
+  bool operator>(const AVLSegment& s) const{
+     return compareTo(s)>0;
+  }
+
+/*
+3.8 ~split~
+
+This function splits two overlapping segments.
+Preconditions:
+1) this segments and ~s~ must overlap.
+
+2) the owner of this and s must be first and second or vice versa
+
+*/
+
+  int split(const AVLSegment& s, AVLSegment& left, AVLSegment& common, 
+            AVLSegment& right) const{
+
+
+     assert(overlaps(s));
+     assert( (this->owner==first && s.owner==second) ||
+             (this->owner==second && s.owner==first));
+
+     if(pointEqual(x1,y1,s.x1,s.y1)){
+       // common left point, the left part will be empty
+       if(pointEqual(x2,y2,s.x2,s.y2)){
+          // segments are equal , only a common segment exist
+          common.x1 = x1;
+          common.x2 = x2;
+          common.y1 = y1;
+          common.y2 = y2;
+          common.owner = both;
+          if(this->owner==first){
+            common.insideAbove_first  = insideAbove_first;
+            common.insideAbove_second = s.insideAbove_second;
+          } else {
+            common.insideAbove_first = s.insideAbove_first;
+            common.insideAbove_second = insideAbove_second;
+          }
+          common.con_above = con_above;
+          common.con_below = con_below;
+          return COMMON;
+       } else { // different end point 
+          common.x1 = x1;
+          common.y1 = y1;
+          common.x2 = min(x2,s.x2);
+          common.y2 = min(y2,s.y2);
+          common.owner = both;
+          if(this->owner==first){
+            common.insideAbove_first  = insideAbove_first;
+            common.insideAbove_second = s.insideAbove_second;
+          } else {
+            common.insideAbove_first = s.insideAbove_first;
+            common.insideAbove_second = insideAbove_second;
+          }
+          common.con_above = con_above;
+          common.con_below = con_below;
+          right.x1 = common.x2;
+          right.y1 = common.y2;
+          right.x2 = max(x2,s.x2);
+          right.y2 = max(y2,s.y2);
+          if(pointSmaller(x2,y2,s.x2,s.y2)){
+            right.owner = s.owner;
+            right.insideAbove_first = s.insideAbove_first;
+            right.insideAbove_second = s.insideAbove_second;
+          } else {
+            right.owner = this->owner;
+            right.insideAbove_first = this->insideAbove_first;
+            right.insideAbove_second = this->insideAbove_second; 
+          }
+          right.con_above = con_above;
+          right.con_below = con_below;
+          return COMMON | RIGHT; 
+       }
+     } else { // left points are different
+       // create the left segment
+       left.x1 = min(x1, s.x1);
+       left.y1 = min(y1, s.y1);
+       left.x2 = max(x1, s.x1);
+       left.y2 = max(y1, s.y1);
+       if(pointSmaller(x1, y1, s.x1, s.y1)){ // left is part of this
+         left.owner = this->owner;
+         left.insideAbove_first = this->insideAbove_first;
+         left.insideAbove_second = this->insideAbove_second;
+       } else { // left is owned by s
+         left.owner = s.owner;
+         left.insideAbove_first = s.insideAbove_first;
+         left.insideAbove_second = s.insideAbove_second;
+       }
+       left.con_below = con_below;
+       left.con_above = con_above;
+       common.x1 = left.x2;
+       common.y1 = left.y2;
+       common.x2 = min(x2, s.x2);
+       common.y2 = min(y1, s.y2);
+       common.owner = both;
+       if(this->owner==first){
+          common.insideAbove_first = this->insideAbove_first;
+          common.insideAbove_second = s.insideAbove_second;
+       }else {
+          common.insideAbove_first = s.insideAbove_first;
+          common.insideAbove_second = this->insideAbove_second;
+       }
+       common.con_below = con_below;
+       common.con_above = con_above;
+       if(pointEqual(x2, y2, s.x2, s.y2)){ // common endpoint, no right part
+         return LEFT | COMMON;
+       }
+       // create the right part
+       right.x1 = common.x2;
+       right.y1 = common.y2;
+       right.x2 = max(x2, s.x2);
+       right.y2 = max(y2, s.y2);
+       if(pointSmaller(x2,y2,s.x2,s.y2)){ // right owned by s
+         right.owner = s.owner;
+         right.insideAbove_first = s.insideAbove_first;
+         right.insideAbove_second = s.insideAbove_second;
+       } else {
+         right.owner = this->owner;
+         right.insideAbove_first = this->insideAbove_first;
+         right.insideAbove_second = this->insideAbove_second;
+       }
+       right.con_above = con_above;
+       right.con_below = con_below;
+       return LEFT | COMMON | RIGHT; // all parts exist
+     }     
+
+  }
+
+/*
+~splitAt~
+
+This function divides an segment into two parts at the point 
+provided by (x, y). The point must be on the interior of this segment.
+
+*/
+
+  void splitAt(const double x, const double y, 
+               AVLSegment& left, 
+               AVLSegment& right)const{
+
+     assert(ininterior(x,y));
+     left.x1=x1;
+     left.y1=y1;
+     left.x2 = x;
+     left.y2 = y;
+     left.owner = owner;
+     left.insideAbove_first = insideAbove_first;
+     left.insideAbove_second = insideAbove_second;
+     left.con_below = con_below;
+     left.con_above = con_above;
+
+     right.x1=x;
+     right.y1=y;
+     right.x2 = x2;
+     right.y2 = y2;
+     right.owner = owner;
+     right.insideAbove_first = insideAbove_first;
+     right.insideAbove_second = insideAbove_second;
+     right.con_below = con_below;
+     right.con_above = con_above;
+
+  }
+          
+/*
+~InnerDisjoint~
+
+This function checks whether this segment and s have at most a 
+common endpoint. 
+
+*/
+
+  bool innerDisjoint(const AVLSegment& s)const{
+      
+
+      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
+        return true; 
+      }
+      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
+        return true;
+      }
+      if(overlaps(s)){ // a common line
+         return false;
+      }
+      if(compareSlopes(s)==0){ // parallel or disjoint lines
+         return true;
+      } 
+    
+      if(isVertical()){
+        double x = x1; // compute y for s
+        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
+                   (ininterior(x,y) && s.contains(x,y)) );
+
+      }
+      if(s.isVertical()){
+         double x = s.x1;
+         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+         return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
+                    (ininterior(x,y) && s.contains(x,y)) );
+      }
+
+
+
+    
+      // both segments are non vertical 
+      double m1 = (y2-y1)/(x2-x1);
+      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
+      double c1 = y1 - m1*x1;
+      double c2 = s.y1 - m2*s.x1;
+
+      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
+      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+
+      
+      return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
+                 (ininterior(x,y) && s.contains(x,y)) );
+  }
+/*
+~Intersects~
+
+This function checks whether this segment and s have at least a 
+common point. 
+
+*/
+
+  bool intersects(const AVLSegment& s)const{
+      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
+        return true; 
+      }
+      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
+        return true;
+      }
+      if(overlaps(s)){ // a common line
+         return true;
+      }
+      if(compareSlopes(s)==0){ // parallel or disjoint lines
+         return false;
+      } 
+    
+      if(isVertical()){
+        double x = x1; // compute y for s
+        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        return  ( (contains(x,y) && s.contains(x,y) ) );
+
+      }
+      if(s.isVertical()){
+         double x = s.x1;
+         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+         return ((contains(x,y) && s.contains(x,y)));
+      }
+    
+      // both segments are non vertical 
+      double m1 = (y2-y1)/(x2-x1);
+      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
+      double c1 = y1 - m1*x1;
+      double c2 = s.y1 - m2*s.x1;
+      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
+      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+      return ( (contains(x,y) && s.contains(x,y) ) );
+  }
+
+
+/*
+3.10 ~ Get functions ~
+
+*/
+  double getX1() const { return x1; }
+
+  double getX2() const { return x2; }
+
+  double getY1() const { return y1; }
+
+  double getY2() const { return y2; }
+
+  ownertype getOwner() const { return owner; }
+
+  bool getInsideAbove_first() const { return insideAbove_first; }
+  bool getInsideAbove_second() const { return insideAbove_second; }
+
+
+/*
+~overlaps~
+
+Checks whether both this segment and __s__ have a common segment.
+
+*/
+   bool overlaps(const AVLSegment& s) const{
+      if(isPoint() || s.isPoint()){
+         return false;
+      }
+
+      if(compareSlopes(s)!=0){
+          return false;
+      } 
+      // one segment is a extension of the other one
+      if(pointEqual(x1,y1,s.x2,s.y2)){
+          return false;
+      }
+      if(pointEqual(x2,y2,s.x1,s.y1)){
+         return false;
+      }
+      return contains(s.x1,s.y1) || contains(s.x2,s.y2);
+   }
+
+/*
+~ininterior~
+
+This function checks whether the point defined by (x,y) is
+part of the interior of this segment.
+
+*/
+   bool ininterior(const double x,const  double y)const{
+     if(isPoint()){
+       return false;
+     }
+
+     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){ // an endpoint
+        return false;
+     }
+     // check if (x,y) is located on the line 
+     double res1 = (x-x1)*(y2-y1);
+     double res2 = (y-y1)*(x2-x1);
+     if(!AlmostEqual(res1,res2)){ // (x,y) not on the straight line 
+         return false;
+     }
+     
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        return (y>y1) && (y < y2);
+     } else {
+        return (x>x1) && (x<x2);
+     }
+   }
+
+/*
+3.6 public data members 
+
+These members are not used in this class. So the user of
+this class can change them without any problems within this
+class itself.
+
+*/
+ int con_below;  // should be used as coverage number
+ int con_above;  // should be used as coverage number
+
+
+/*
+3.7 checkCon
+
+If the public data members are used as coverage numbers, they must
+fullfill some conditions. Because maximum two regions are concerned,
+ecah coverage number must be in range {0,1,2}. Because each segment
+is assigned to a region, the sum of the coverage numbers must be
+proper greater than zero.
+
+*/
+  bool checkCon(AVLTree<AVLSegment>* tree=0){
+
+       bool res = ((con_below + con_above) >0) &&
+                  ( (con_below>=0) && (con_below<=2)) &&
+                  ( (con_above>=0) && (con_above<=2)); 
+
+       if(!res){
+          cout << "checkCondFailed for " << (*this);
+          if(tree){
+              cout << "the tree is " << *tree << endl << endl;
+          }
+       }
+
+
+       assert((con_below + con_above) >0);
+       assert( (con_below>=0) && (con_below<=2)); 
+       assert( (con_above>=0) && (con_above<=2)); 
+       return true;
+  }
+
+
+/*
+~ConvertToHs~
+
+This functions creates an HalfSegment from this segment.
+The owner must be __first__ or __second__
+
+*/
+HalfSegment convertToHs(bool lpd, ownertype owner = both )const{
+   assert( owner!=both || this->owner==first || this->owner==second);
+   assert( owner==both || owner==first || owner==second);
+ 
+   bool insideAbove;
+   if(owner==both){
+      insideAbove = this->owner==first?insideAbove_first
+                                  :insideAbove_second;
+   } else {
+      insideAbove = owner==first?insideAbove_first
+                                  :insideAbove_second;
+   }
+   
+   HalfSegment hs(lpd, Point(true,x1,y1), Point(true,x2,y2)); 
+   hs.attr.insideAbove = insideAbove;
+   return hs;
+}
+
+
+
+private:
+  /* data members  */
+  double x1,y1,x2,y2; // the geometry of this segment
+  bool insideAbove_first;
+  bool insideAbove_second;
+  ownertype owner;    // who is the owner of this segment
+
+
+/*
+~pointequal~
+
+This function checks if the points defined by (x1,y1) and 
+(x2,y2) are equals using the AlmostEqual function.
+
+*/
+  static bool pointEqual(const double x1, const double y1,
+                         const double x2, const double y2){
     return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
   }
 
-
 /*
-3.3.5 Comparison Operators
+~pointSmaller~
 
-We have to distinct between different modes of comparisons.
-If the compexact flag is set, we compare two segment as usual.
-Otherwise, we compute the y value at the current x value (defined 
-in the static member ~x~) and compare them. For vertical segments, we use
-the ~y1~ values for the comparison.
-
-
+This function checks if the point defined by (x1,y1) is
+smaller than the point defined by (x2,y2).
 
 */
-   int compareTo(const AvlEntry& c) const{
+ static bool pointSmaller(const double x1, const double y1,
+                          const double x2, const double y2){
+    if(pointEqual(x1,y1,x2,y2)){
+       return false;
+    }
+    return (AlmostEqual(x1,x2) && y1 < y2 ) ||  
+          (!AlmostEqual(x1,x2) && x1 < x2);
+ }
 
-   double ty = vertical? y1 : y1 + ((x-x1)/(x2-x1))*(y2-y1);
-   double cy = c.vertical? c.y1 : c.y1 + ((x-c.x1)/(c.x2-c.x1))*(c.y2-c.y1) ;
+/*
+~pointBelow~
 
-   if(compexact){  
+This function checks if the point defined by (x,y) is below this
+segment. The x coordinate of the point must be located in the
+x range of this segment.
 
-      // first check : current y value
-      if(!AlmostEqual(ty,cy)){
-        if(ty<cy )
-           return -1;
-        else 
-           return 1;
-      }
+*/
 
-      // a point is smaller than a segment
-      if(isPoint() || c.isPoint()){
-        if(isPoint()&&c.isPoint()){
-           return 0;
-        }
-        if(isPoint()){
+  bool pointBelow(const double x,const double y)const{
+    if(AlmostEqual(x1,x2)){ // a vertical segment
+       return !AlmostEqual(y,y1) && y < y1;
+    } else {
+      double res1 = (y*(x2-x1));
+      double res2 = (y1*(x2-x) + y2*(x-x1));
+      return  !AlmostEqual(res1,res2) && (res1 < res2);
+    }
+  }
+
+/*
+~pointAbove~
+
+This function checks if the point defined by (x,y) is above this
+segment.
+
+*/
+  bool pointAbove(const double x , const double y) const{
+    if(AlmostEqual(x1,x2)){ // vertical segment
+      return !AlmostEqual(y,y2) && y > y2;
+    } else {
+      double res1 = (y*(x2-x1));
+      double res2 = (y1*(x2-x) + y2*(x-x1));
+      return !AlmostEqual(res1,res2) && (res1 > res2);
+    }
+  }
+
+/*
+~comparePoints~
+
+*/
+  bool comparePoints(double x1, double y1, double x2, double y2)const{
+     if(AlmostEqual(x1,x2)){
+       if(AlmostEqual(y1,y2)){
+          return 0;
+       } else if(y1<y2){
           return -1;
-        } else{
+       } else {
           return 1;
-        }
-      }
+       }
+     } else if(x1<x2){
+       return -1;
+     } else {
+       return 1;
+     }
+  }
 
 
-      if(!AlmostEqual(slope,c.slope)){
-         // if the current position is the last point of one 
-         // segment, we must use the y coordinates before
-         // the current x , otherwise the y coordinates after
-         // that
-         int f = 1;
-         if(AlmostEqual(x2,x)  || AlmostEqual(c.x2,x) )   {
-             f = -1;
-         }
-         if(slope<c.slope){
-            return -f;
-         } else {
-            return f;
-         }
-      } 
 
-      if(!AlmostEqual(x1,c.x1)){
-        int f= slope>0?1:-1;
-        if(x1<c.x1) 
-           return -f; 
-        else 
-           return f;
-       }     
-      if(!AlmostEqual(y1,c.y1)){
-        if(y1<c.y1) 
-           return -1; 
-        else 
-           return 1;
-      }     
-      if(!AlmostEqual(x2,c.x2)){
-        if(x2<c.x2) 
-           return -1; 
-        else 
-           return 1;
-      }     
-      if(!AlmostEqual(y2,c.y2)){
-        if(y2<c.y2) 
-           return -1; 
-        else 
-           return 1;
-      }  else {
-         if(source < c.source){
-            return -1;
-         } else if (source > c.source){
-            return 1;
-         } else {
-            return 0;
-         }
-      }    
-  } 
-  else { // comparison with y coordinate
-        if(AlmostEqual(ty,cy)){
-         if(isPoint() || c.isPoint()){
-             if(source < c.source){
-                return -1;
-             } else if (source > c.source){
-                return 1;
-             } else {
-                return 0;
-             }
-         }
-         int f = 1;
-         if( (AlmostEqual(x2,x) && AlmostEqual(y2,ty))  ||
-             (AlmostEqual(c.x2,x) && AlmostEqual(c.y2,cy))) {
-             f = -1;
-         }
-           if(AlmostEqual(slope,c.slope)){
-             if(source < c.source){
-                return -1;
-             } else if (source > c.source){
-                return 1;
-             } else {
-                return 0;
-             }
-           } else if(slope<c.slope){
-              return -f;
-           } else {
-              return f;
-           }
-        } else if (ty<cy){
-           return -1;
-        } else {
-           return 1;
-        }
+/*
+~contains~
+
+Checks whether the the defined by (x,y) is located anywhere on this
+segment.
+
+*/
+   bool contains(const double x,const  double y)const{
+     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){
+        return true;
+     }
+     if(isPoint()){
+       return false;
+     }
+     // check if (x,y) is located on the line 
+     double res1 = (x-x1)*(y2-y1);
+     double res2 = (y-y1)*(x2-x1);
+     if(!AlmostEqual(res1,res2)){
+         return false;
+     }
+     
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        return (y>=y1) && (y <= y2);
+     } else {
+        return (x>=x1) && (x<=x2);
      }
    }
 
 
 
-   bool operator<(const AvlEntry& c)const{
-      return compareTo(c)<0;
+/*
+~compareSlopes~
+
+compares the slopes of __this__ and __s__. The slope of a vertical
+segemnt is greater than all other slopes. 
+
+*/
+   int compareSlopes(const AVLSegment& s) const{
+      assert(!isPoint() && !s.isPoint());
+      bool v1 = AlmostEqual(x1,x2);
+      bool v2 = AlmostEqual(s.x1,s.x2);
+      if(v1 && v2){ // both segments are vertical
+        return 0;
+      }
+      if(v1){
+        return 1;  // this is vertical, s not
+      }
+      if(v2){
+        return -1; // s is vertical
+      }
+
+      // both segments are non-vertical
+      double res1 = (y2-y1)/(x2-x1);
+      double res2 = (s.y2-s.y1)/(s.x2-s.x1);
+      int result = -3;
+      if( AlmostEqual(res1,res2)){
+         result = 0; 
+      } else if(res1<res2){
+         result =  -1;
+      } else { // res1>res2
+         result = 1;
+      }
+      return result;
    }
 
-  bool operator>(const AvlEntry& c)const{
-      return compareTo(c)>0;
-  }
-  
-  bool operator==(const AvlEntry& c)const{
-      return compareTo(c)==0;
-  }
-
-  bool isVertical()const{
-     return vertical;
-  }
-
-  bool isInsideAbove() const{
-     return insideAbove;
-  }
-
-  void Print(ostream& out) const{
-     out << "(" << x1 << ", " << y1 << ")->(" 
-                << x2 << ", " << y2 << ")["
-                << source << ", " << GetY(x) << "]" ;
-  }
-
-  bool Contains(const Point p) const{
-
-     Point p1(true,x1,y1);
-     Point p2(true,x2,y2);
-     if(AlmostEqual(p1,p)){
-        return true;
-     }
-     if(AlmostEqual(p2,p)){
-        return true;
-     }
-
-     double x = p.GetX();
-     double y = p.GetY();
-     if(x<x1){
-       return false;
-     }
-     if(x>x2){
-       return false;
-     }
-     if(vertical){
-        if(y<min(y1,y2)){
-          return false;
-        } else if(y>max(y1,y2)){
-          return false;
-        } else {
-          return true;
-        }
-     } else {
-        double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-        bool res =  AlmostEqual(y,p.GetY());
-        return res;
-     } 
-  }
-
-  void setSource(const int source){
-     this->source = source;
-  } 
-
-  int getSource() const{
-    return source;
-  }
-
 /*
-Returns the y value for the given x coordinate. If the 
-segment is vertical or the given x coordinate is 
-outside the range of the contained segment this function
-will force an assertion
+~XOverlaps~
 
-*/ 
-  double GetY(const double x)const{
-     assert(!isVertical());
-     bool endpoint = AlmostEqual(x,x1) || AlmostEqual(x,x2);
-     bool innerpoint = (x>=x1) && (x <=x2);
-     assert(endpoint || innerpoint);
-     return  y1 + ((x-x1)/(x2-x1))*(y2-y1);
-  }
-
-/*
-~Accessing members~
+Checks whether the x interval of this segment overlaps the
+x interval of s.
 
 */
-   double GetY1() const { return y1; }
-   double GetY2() const { return y2; }
-   double GetX1() const { return x1; }
-   double GetX2() const { return x2; }
-   double GetMinY() const { return y1<y2?y1:y2; }
-   double GetMaxY() const { return y1>y2?y1:y2; }
 
-
-
-/*
-~CheckIntersection~
-
-This function assumes that this instance and e are neighbours
-for position x. It will set all intersections in res which may occur.
-Note: this function works only correct, if __e__ is the single event on
-position __x__.
-if onlydown is set to true, only such entries are regarded were the
-y coordinate is smaller than __maxY__ otherwise, such entries are ignored.
-
-
-*/
-  void checkIntersections(const AvlEntry* e, Int9M& res, const double x,
-                          bool onlydown = false, const double maxY = 0)const{
-     if(source==e->source){
-       return;
-     }
-
-     // compute the relations at the current x coordinate
-     // between both segments no further segment can exist
-     double cy = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-     double cey = e->y1 + ((x-e->x1)/(e->x2-e->x1))*(e->y2-e->y1);
-     int cmp = 0;
-
-     if(onlydown){
-        cout << "check only elements smaller than " << maxY << endl;
-     } else {
-        cout << "Check all elements." << endl;
-     }
-
-
-     if(!AlmostEqual(cy,cey) && onlydown && (cey>maxY || 
-         AlmostEqual(cey,maxY))){
-        cout << "skip check because y is to high" << endl;
-        return;
-     }
-
-     cout << " Perform the test " << endl << " cey = " << cey << endl;
-     cout << "cy = " << cy << endl;
-
-     if(AlmostEqual(cy,cey)){
-       // boundaries intersect
-       cmp = 0;
-       res.SetBB(true);
-     } else if(cy<cey){ 
-       cmp = -1;
-       if(insideAbove){
-          res.SetIE(true);
-          res.SetIB(true);
-          res.SetII(true);
-       } else {
-          res.SetEE(true);
-          res.SetEB(true);
-          res.SetEI(true);
-       }
-       if(e->insideAbove){
-         res.SetEE(true);
-         res.SetBE(true);
-         res.SetIE(true);
-       } else {
-         res.SetEI(true);
-         res.SetBI(true);
-         res.SetII(true);
-       }
-     } else { // cy>cey, symmetric to <
-       cmp = 1;
-      if(!onlydown || cy < maxY){
-         if(insideAbove){
-           res.SetEE(true),
-           res.SetEB(true);
-           res.SetEI(true);
-         } else {
-           res.SetIE(true);
-           res.SetIB(true);
-           res.SetII(true);
-         }
-         if(e->insideAbove){
-           res.SetEI(true);
-           res.SetBI(true);
-           res.SetII(true);
-         } else {
-           res.SetEE(true);
-           res.SetBE(true),
-           res.SetIE(true);
-         }
-      }
-     }
-
-
-     cout << "After processing the first pint, the resuot is " 
-          << endl << res << endl;
-
-
-
-     // compute the y value at the last x position
-     double x_last = x2<e->x2?x2:e->x2;
-
-
-     if(AlmostEqual(x_last,x)){
-       return;
-     }
-
-     double cy_last  = y1 + ((x_last-x1)/(x2-x1))*(y2-y1);
-     double cey_last = e->y1 + ((x_last-e->x1)/(e->x2-e->x1))*(e->y2-e->y1);
-    
-     if(AlmostEqual(cy_last,cey_last)){
-       res.SetBB(true);
-     } else if(cy_last < cey_last){
-       if(cmp>0){ // relation changed, segments must be intersect
-         res.SetBB(true);
-         res.SetBI(true);
-         res.SetBE(true);
-         res.SetII(true);
-         res.SetIE(true);
-         res.SetIB(true),
-         res.SetEE(true);
-         res.SetEB(true);
-         res.SetEI(true);   
-       }  
-     } else {  // cy_last > cey_last
-       if(cmp<0){ // relation changed
-         res.SetBB(true);
-         res.SetBB(true);
-         res.SetBI(true);
-         res.SetBE(true);
-         res.SetII(true);
-         res.SetIE(true);
-         res.SetIB(true),
-         res.SetEE(true);
-         res.SetEB(true);
-         res.SetEI(true);   
-       }
-     }
+  bool xOverlaps(const AVLSegment& s) const{
+    if(!AlmostEqual(x1,s.x2) && x1 > s.x2){ // left of s
+        return false;
+    }
+    if(!AlmostEqual(x2,s.x1) && x2 < s.x1){ // right of s
+        return false;
+    }
+    return true;
   }
 
-  static bool compexact;
-  static double x;
+/*
+~XContains~
 
-private:
-  double x1;
-  double y1;
-  double x2;
-  double y2;
-  double slope; // redundant to avoid computations 
-  bool   vertical;
-  bool   insideAbove;
-  int    source;
+Checks if the x coordinates provided by the parameter __x__ is contained
+in the x interval of this segment;
+
+*/
+  bool xContains(const double x) const{
+    if(!AlmostEqual(x1,x) && x1>x){
+      return false;
+    }
+    if(!AlmostEqual(x2,x) && x2<x){
+      return false;
+    }
+    return true;
+  }
+
+/*
+~GetY~
+
+Computes the y value for the spcified  __x__. 
+__x__ must be contained in the x-interval of this segment. 
+If the segment is vertical, the minimum y value of this 
+segment is returned.
+
+*/  
+  double getY(const double x) const{
+     assert(xContains(x));
+     if(isVertical()){
+        return y1;
+     }
+     double d = (x-x1)/(x2-x1);
+     return y1 + d*(y2-y1);
+  }
+
 };
 
-/*
-3.3.5 Initialization of static members of AvlEntry
-
-
-*/
-
-bool AvlEntry::compexact=true;
-double AvlEntry::x = 0.0;
-
 
 /*
-3.3.6 Shift operator for the AVLEntry
+4 Shift Operator 
 
 */
-
-ostream& operator<<(ostream& o, const AvlEntry& entry){
-    entry.Print(o);
+ostream& operator<<(ostream& o, const AVLSegment& s){
+    s.Print(o);
     return o;
 }
 
@@ -851,21 +1343,7 @@ ListExpr TopOpsGetStatTypeMap(ListExpr args){
 
 The following function are supporting the GetInt9M functions.
 
-~About~
 
-This function compares two Coord values. If the deviation is smaller than
-a procentual value of the first number, the result will be true. Set EPSILON
-to zero to reach an exact result.
-
-*/
-bool About( Coord const& a, Coord const& b){
-  Coord e = EPSILON*a;
-  e = e<0?-e:e;
-  Coord dist = a>b?a-b:b-a;
-  return dist<e;
-}
-
-/*
 ~Compare~
 
 This function compare two point values
@@ -876,9 +1354,9 @@ This function compare two point values
      Coord y1 = p1->GetY();
      Coord x2 = p2->GetX();
      Coord y2 = p2->GetY();
-     if(About(x1,x2) && About(y1,y2))
+     if(AlmostEqual(x1,x2) && AlmostEqual(y1,y2))
        return 0;
-     if( (x1<x2) || ( About(x1,x2) && (y1<y2 ))){
+     if( (x1<x2) || ( AlmostEqual(x1,x2) && (y1<y2 ))){
        return -1;
      }
      return 1;
@@ -992,36 +1470,6 @@ int  NumberOfEndpoints(Line const* const line,
 }
 
 
-/* 
-~Contains~
-
-This function checks if the halfsegment contains the point.
-
- 
-
-*/
-
-inline bool Contains(HalfSegment const* const chs, const Point& point){
-   Coord x = point.GetX();
-   Coord y = point.GetY();
-   Point p1 = chs->GetLeftPoint();
-   Point p2 = chs->GetRightPoint();
-   Coord x1 = p1.GetX();
-   Coord x2 = p2.GetX();
-   Coord y1 = p1.GetY();
-   Coord y2 = p2.GetY();
-   // distance between p1 and p2
-   double d1 = sqrt( (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
-   // distance between p2 and p
-   double d2 = sqrt( (x2-x)*(x2-x) + (y2-y)*(y2-y));
-   // distance between p1 and p
-   double d3 = sqrt( (x1-x)*(x1-x) + (y1-y)*(y1-y));
-   double d = d1 - (d2+d3);
-   return About(0,d); 
-
-}
-
-
 
 /*
 ~InnerContains~
@@ -1046,7 +1494,7 @@ bool InnerContains(HalfSegment const* const chs, const Point& point){
       ( (x==x2) && (y==y2))){
       return false;
   } 
-  return Contains(chs,point);  
+  return chs->Contains(point);  
 }
 
 
@@ -1502,7 +1950,7 @@ void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
          point_x = currentPoint->GetX();
          point_y = currentPoint->GetY();
          if(!processed[pointpos]){  
-            if(About(dpx,point_x) && About(dpy,point_y)){
+            if(AlmostEqual(dpx,point_x) && AlmostEqual(dpy,point_y)){
               if(isEP){
                 res.SetBI(true);
               } else{
@@ -1532,11 +1980,28 @@ void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
 Computation of the 9 intersection matrix for a single point and a 
 region value. 
 
-*hacked* (should be changed to a single run
-
-[3] O(~m~) where m is the number of segments of the region parameter.
 
 */
+
+
+bool pointAbove(const HalfSegment* hs, const Point* p) {
+  double x1 = hs->GetLeftPoint().GetX();
+  double y1 = hs->GetLeftPoint().GetY();
+  double x2 = hs->GetRightPoint().GetX();
+  double y2 = hs->GetRightPoint().GetY();
+
+  double x = p->GetX();
+  double y = p->GetY();
+
+  if(AlmostEqual(x1,x2)){ // vertical segment
+     return y > max(y1,y2);
+  }
+  double d = (x-x1)/(x2-x1);
+  double ys = y1 + d*(y2-y1);
+  return (!AlmostEqual(y,ys) && y > ys);
+}
+
+
 void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
 
 #ifdef TOPOPS_USE_STATISTIC
@@ -1563,127 +2028,43 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
      return;
   }
 
-  // the bounding boxes overlap, we perform a plane sweep algorithm
+   // bbox check failed, we have to compute the result
 
-  AVLTree<AvlEntry> sss; // sweep state structure
-  int size = reg->Size();
-  int pos = 0; // current pos within the halfsegments
-  double xpos = p->GetX();
-  
-  vector<HalfSegment> v; // vector containing all events having the
-                         // same x position
-  
-  bool done = false;
-  const HalfSegment* hs;
-  bool innercand = false;
-  while(!done && pos<size){
-     reg->Get(pos,hs);
-     double cx = hs->GetDomPoint().GetX();
-     AvlEntry entry(hs);
 
-     if(AlmostEqual(cx,xpos)){
-        if(entry.isVertical()){
-           if(hs->Contains(*p)){
-              res.SetBI(true);
-              done = true;
-           } else {
-              pos++;
-           }
-        } else {
-          if(hs->IsLeftDomPoint()){
-             AvlEntry::x = xpos;
-             AvlEntry::compexact = true;
-             bool ins = sss.insert(entry);    
-             if(!ins){
-                 cerr << "failed to insert " << entry << " at position " 
-                      << xpos << " into " << endl;
-                 sss.Print(cerr);
-                 cerr << " The element which is recognized to be equal is " 
-                      <<  *(sss.getMember(entry)) << endl;
-             }
-             assert(ins);
-             
-             if(!sss.Check(cerr)){
-                cerr << "AVL Tree property violated" << endl;
-                cerr << " Tree after inserting " << entry << " is " 
-                     << sss << endl <<endl;
-                assert(false);
-             } 
-             pos++;
-          } else {
-             // perform the point
-             AvlEntry pe(p);
-             AvlEntry::x = xpos;
-             AvlEntry::compexact=false;
-             const AvlEntry* sm = sss.GetNearestSmallerOrEqual(pe);
-             if(sm==NULL){ // nothing found, point is possible 
-                           //located in exterior
-                pos++;
-             }  else if(sm->Contains(*p)){
-                res.SetBI(true);
-                done = true;
-             } else if(sm->isInsideAbove()){
-                AvlEntry::x = xpos;
-                AvlEntry::compexact = true;
-                sss.remove(*sm);
-                assert(sss.Check(cerr));
-                innercand = true;
-                pos++;
-             }  else {
-                 pos++;
-             }          
-          }
-        } 
-     } else if(cx>xpos){
-       // perform the point
-       AvlEntry pe(p);
-       AvlEntry::x = xpos;
-       AvlEntry::compexact=false;
-       const AvlEntry* sm = sss.GetNearestSmallerOrEqual(pe);
-       if(sm==NULL){ // nothing found, point is located in exterior
-          if(innercand){
-            res.SetII(true);
-          } else {
-            res.SetEI(true);
-          }
-       }  else if(sm->Contains(*p)){
-          res.SetBI(true);
-       } else if(sm->isInsideAbove()){
-          res.SetII(true);
-       }  else if(innercand){
-          res.SetII(true);
-       } else {
-          if(innercand){
-            res.SetII(true);
-          } else {
-            res.SetEI(true);
-          }
-       }         
-       done = true;
-     } else {
-       AvlEntry::x = cx;
-       if(hs->IsLeftDomPoint()){
-           AvlEntry::compexact = true;
-           bool ins = sss.insert(entry);    
-           assert(ins);
-           assert(sss.Check(cerr)); 
-           pos++;
-       } else {
-           AvlEntry::compexact= true;
-           sss.remove(entry);
-           assert(sss.Check(cerr)); 
-           pos++;
-       }
+
+
+   int size = reg->Size();
+   double x = p->GetX();
+  
+   const HalfSegment* hs;
+
+   int number = 0;
+
+   for(int i=0;i<size;i++){
+     reg->Get(i,hs);
+     if(hs->IsLeftDomPoint()){
+
+        if(hs->Contains(*p)){
+           res.SetBI(true); //point on boundary
+           return;
+        }
+        if(!hs->IsVertical()){
+            if(pointAbove(hs,p)){
+               if((AlmostEqual(hs->GetRightPoint().GetX(),x)) ||
+                  ( !AlmostEqual(hs->GetLeftPoint().GetX(),x) &&
+                    hs->GetLeftPoint().GetX()<x &&
+                    hs->GetRightPoint().GetX()>=x)){
+                   number++;
+               }
+            }
+        }
      }
-  }
-  if(!done){
-    if(innercand){
+   }
+   if(number % 2 == 0){
+      res.SetEI(true);
+   } else{
       res.SetII(true);
-    } else {
-      res.SetEI(true);  
-    }
-  }
-
+   }
 }
 
 
@@ -1694,11 +2075,109 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
 Computation of the 9 intersection matrix for a set of points and a 
 region value. 
 
-*hacked* should be changed to a plane sweep algorithm
-
-[3] O(~m~~n~) where m and n  are the sizes of the parameters .
-
 */
+
+
+ownertype selectNext(const Region*  reg,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     int& pos1,
+                     Points const* const p,
+                     int& pos2,
+                     HalfSegment& resultHS,
+                     Point& resultPoint){
+
+  assert(pos1>=0);
+  assert(pos2>=0);
+
+  int sizereg = reg->Size();
+  int sizepoint = p->Size();
+
+  const HalfSegment* rhs = 0;
+  const HalfSegment* qhs = 0;
+  HalfSegment qhsc;
+  const HalfSegment* minhs=0;
+  const Point* cp = 0;
+
+  if(pos1<sizereg){
+     reg->Get(pos1,rhs);
+  } 
+  if(!q1.empty()){
+     qhsc = q1.top();
+     qhs = &qhsc;
+  }
+  
+  if(pos2<sizepoint){
+     p->Get(pos2,cp); 
+  }
+
+  
+  int src = 0;  // none
+  if(rhs){
+    src = 1; 
+    minhs = rhs;
+  }
+  if(qhs){
+    if(src==0) {
+      src = 1;
+      minhs = qhs;
+    } else { // rhs and qhs exist
+      if(*qhs < *rhs){
+        src = 2;
+        minhs = qhs;
+      }
+    }
+  }
+  if(cp){
+   if(!minhs){
+     src = 3;
+   }  else {
+     double px = cp->GetX();
+     double hx = minhs->GetDomPoint().GetX();
+     if(AlmostEqual(px,hx)){
+        double py = cp->GetY();
+        double hy = minhs->GetDomPoint().GetY();
+        if(AlmostEqual(py,hy)){
+          if(!minhs->IsLeftDomPoint()){
+            // left < point < right
+            src = 3;
+          }
+        } else if(py<hy){
+          src = 3;
+        } // else don't change src
+     } else if(px<hx){
+       src = 3;
+     } // else do not change src
+   }
+  }
+
+  switch(src){
+    case 0: { return none;
+            }
+    case 1: { // region
+              pos1++;
+              resultHS = *minhs;
+              return first;
+            }
+    case 2: { // queue
+              q1.pop();
+              resultHS = *minhs;
+              return first;
+            }
+    case 3: {  // point
+               pos2++;
+               resultPoint = *cp;
+               return second;
+            }
+    default:  assert(false);
+              return none; 
+  }
+
+
+}
+
+
 void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
   GetCalls_r_ps++;
@@ -1737,164 +2216,128 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
 #endif
     return;
   }
+  // bbox failed, perform a plane sweep
 
-  AVLTree<AvlEntry> sss;
-  int size_reg = reg->Size(); 
-  int pos_reg = 0;
-  int size_poi = ps->Size();
-  int pos_poi = 0;
-  bool done = false;
+  // queue for splitted segments of the region
+  priority_queue<HalfSegment, vector<HalfSegment>, greater<HalfSegment> > q1;
+  AVLTree<AVLSegment> sss;
 
-  vector<Point> cps; // all points located on the same x coordinate
-  // fill the vector
-  const Point* cp;
-  double x_poi;
-  ps->Get(pos_poi,cp);
-  cps.push_back(*cp);
-  x_poi = cp->GetX();
-  bool d = false;
-  pos_poi++;
-  while(pos_poi<size_poi && ! d){
-     ps->Get(pos_poi,cp);
-     if(AlmostEqual(cp->GetX(),x_poi)){ // p is part of this group
-       cps.push_back(*cp);
-       pos_poi++;
-     } else { // start of the next group
-       d = true;
-     }
-  }
-  const HalfSegment* hs;
-  while(!done){
-    reg->Get(pos_reg,hs);
-    Point p = hs->GetDomPoint();
-    double x_reg = p.GetX();
-    bool isLeft = hs->IsLeftDomPoint();
-    if(AlmostEqual(x_reg,x_poi)){
-      AvlEntry::x = x_poi;
-      AvlEntry e(hs);
-      if(e.isVertical()){
-        // check if there are points located on this vertical segment
-        vector<Point>::iterator it, it_first, it_last;
-        bool d = false;
-        bool first = true;
-        for(it = cps.begin();it!=cps.end() && !d; it++){
-           Point p = *it;
-           if(e.Contains(p)){
-              if(first){
-                 first = false;
-                 it_first = it;
+  ownertype owner;
+  bool done = false; 
+  int pos1 =0; 
+  int pos2 =0;
+  Point CP;
+  HalfSegment CH;
+
+  while (!done && ( (owner= selectNext(reg,q1,pos1, ps,pos2,CH,CP))!=none)){
+    if(owner==second){ // the point
+       AVLSegment current(&CP,second);
+       const AVLSegment* left=0;
+       const AVLSegment* right=0;
+       const AVLSegment* member = sss.getMember(current, left, right);
+       if(member){ // point located on boundary
+         res.SetBI(true);
+       } else if(left){
+         if(left->getInsideAbove_first()){
+            res.SetII(true);
+         } else {
+            res.SetEI(true);
+         }
+       } else { // there is nothing under cp
+         res.SetEI(true);
+       }
+       done = res.GetII() && res.GetBI() && res.GetEI();
+    } else {  // the next element comes from the region
+      AVLSegment current(&CH,first);
+
+      const AVLSegment* leftN = 0;
+      const AVLSegment* rightN = 0;
+      const AVLSegment* member = sss.getMember(current,leftN,rightN);
+      if(CH.IsLeftDomPoint()){ // left Event
+         assert(!member); // a single region can't contain overlapping segments
+         AVLSegment left;
+         AVLSegment right;
+
+         // check if left or right split the current element
+         if(leftN && current.ininterior(leftN->getX2(), leftN->getY2())){
+            current.splitAt(leftN->getX2(), leftN->getY2(), left, right);
+            current = left;
+            q1.push(right.convertToHs(true,first));
+            q1.push(right.convertToHs(false,first)); 
+         }
+         if(rightN && current.ininterior(rightN->getX2(), rightN->getY2())){
+            current.splitAt(rightN->getX2(), rightN->getY2(), left, right);
+            current = left;
+            q1.push(right.convertToHs(true,first));
+            q1.push(right.convertToHs(false,first)); 
+         }     
+         // check if current splits left or right
+         if(leftN && leftN->ininterior(current.getX1(), current.getY1())){
+            leftN->splitAt(current.getX1(), current.getY1(),left,right); 
+            sss.remove(*leftN);
+            sss.insert(left);
+            leftN = &left;
+            q1.push(left.convertToHs(false,first));
+            q1.push(right.convertToHs(true,first));
+            q1.push(right.convertToHs(false,first));
+         }
+         if(leftN && leftN->ininterior(current.getX2(), current.getY2())){
+            leftN->splitAt(current.getX2(), current.getY2(),left,right); 
+            sss.remove(*leftN);
+            sss.insert(left);
+            leftN = &left;
+            q1.push(left.convertToHs(false,first));
+            q1.push(right.convertToHs(true,first));
+            q1.push(right.convertToHs(false,first));
+         }
+         if(rightN && rightN->ininterior(current.getX1(), current.getY1())){
+            rightN->splitAt(current.getX1(), current.getY1(),left,right); 
+            sss.remove(*rightN);
+            sss.insert(left);
+            rightN = &left;
+            q1.push(left.convertToHs(false,first));
+            q1.push(right.convertToHs(true,first));
+            q1.push(right.convertToHs(false,first));
+         }
+         if(rightN && rightN->ininterior(current.getX2(), current.getY2())){
+            rightN->splitAt(current.getX2(), current.getY2(),left,right); 
+            sss.remove(*rightN);
+            sss.insert(left);
+            rightN = &left;
+            q1.push(left.convertToHs(false,first));
+            q1.push(right.convertToHs(true,first));
+            q1.push(right.convertToHs(false,first));
+         }
+         sss.insert(current);
+
+ 
+      } else { // right event
+        if(member){
+           sss.remove(current);
+           if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
+              AVLSegment left;
+              AVLSegment right;
+              if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
+                 leftN->splitAt(rightN->getX2(),rightN->getY2(),left,right);
+                 sss.remove(*leftN);
+                 sss.insert(left);
+                 q1.push(left.convertToHs(false,first));
+                 q1.push(right.convertToHs(true,first));
+                 q1.push(right.convertToHs(false,first));
               }
-              it_last = it;
-           } 
-        }  
-        if(!first){ // there are points on this segment
-           res.SetBI(true);
-            it_last++;
-           cps.erase(it_first,it_last);
-        }
-        pos_reg++; // next hs
-      } else { // non-vertical segments
-        __TRACE__
-        if(isLeft){ // left endpoint
-           AvlEntry e(hs);
-           AvlEntry::compexact = true;
-           bool ins = sss.insert(e);
-           assert(ins);
-           assert(sss.Check(cerr));
-        } else { // right endpoint 
-           // check for points located at this point
-           bool d = false;
-           for(vector<Point>::iterator it = cps.begin();
-               it!=cps.end() && !d; it++){
-              if(AlmostEqual(p,*it)){
-                res.SetBI(true);
-                d = true; 
-                cps.erase(it);
+              if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
+                 rightN->splitAt(leftN->getX2(),leftN->getY2(),left,right);
+                 sss.remove(*leftN);
+                 sss.insert(left);
+                 q1.push(left.convertToHs(false,first));
+                 q1.push(right.convertToHs(true,first));
+                 q1.push(right.convertToHs(false,first));
               }
            }
-           AvlEntry::compexact=true;
-           sss.remove(e);
-           assert(sss.Check(cerr));
         }
-        pos_reg++;
-      } 
-    } else if (x_reg<x_poi){
-      
-      AvlEntry::x = x_reg;
-      AvlEntry e(hs);
-      if(!e.isVertical()){ // ignore vertical segments
-         if(isLeft){
-           AvlEntry::compexact = true;
-           bool ins = sss.insert(e);
-           assert(ins);
-           assert(sss.Check(cerr));
-         } else {
-           AvlEntry::compexact = true;
-           sss.remove(e);
-           assert(sss.Check(cerr));
-         }
       }
-      pos_reg++;
-    } else { // x_hs > x_poi
-       // check the current pointset again the content of sss
-       AvlEntry::x = x_poi;
-       bool full = false;
-       AvlEntry::compexact = false;
-       
-
-       for(vector<Point>::iterator i = cps.begin();i!=cps.end() && !full;i++){
-          Point cp = *i;
-          AvlEntry e(&cp);
-          const AvlEntry* seg = sss.GetNearestSmallerOrEqual(e);
-          if(seg==NULL){ // point under all segments
-            res.SetEI(true);
-          } else if(seg->Contains(*i)){ // on boundary
-            res.SetBI(true);
-          } else if(seg->isInsideAbove()){ 
-            res.SetII(true);
-          } else { 
-            res.SetEI(true);
-          }
-          full = res.GetEI() && res.GetII() && res.GetBI();
-       }
-       if(full || pos_poi >= size_poi){ 
-         cps.clear();
-         done = true;
-       } else { // build the next group of point
-         cps.clear();
-       }
-    }
-    if(cps.empty()){ // all points processed, get the next group
-       if(pos_poi>=size_poi){ // no points available
-         done = true;
-       } else {
-         ps->Get(pos_poi,cp);
-         cps.push_back(*cp);
-         x_poi = cp->GetX();
-         bool d = false;
-         pos_poi++;
-         while(pos_poi<size_poi && ! d){
-           ps->Get(pos_poi,cp);
-           if(AlmostEqual(cp->GetX(),x_poi)){ // p is part of this group
-              cps.push_back(*cp);
-              pos_poi++;
-            } else { // start of the next group
-              d = true;
-            }
-         }
-       }
-    }
-    if(res.GetII() && res.GetEI() && res.GetBI()){
-        done = true; // all possible intersections found
-    }
-    if(pos_reg>=size_reg){
-       done = true;
-    }
-  }
-  if(pos_poi<size_poi-1 || !cps.empty()){ // there are points right of reg
-    res.SetEI(true);
-  }  
-
+    } // element from region
+  } // while
 }
 
 /*
@@ -1986,913 +2429,6 @@ void GetInt9M(Line const* const line1, Line const* const line2, Int9M& res){
 
 
 
-
-
-enum ownertype{none, first, second, both};
-
-ostream& operator<<(ostream& o, const ownertype& owner){
-   switch(owner){
-      case none   : o << "none" ; break;
-      case first  : o << "first"; break;
-      case second : o << "second"; break;
-      case both   : o << "both"; break;
-      default     : assert(false);
-   }
-   return o;
-}
-
-
-const int LEFT      = 1;
-const int RIGHT     = 2;
-const int COMMON = 4;
-
-/*
-3 Class Segment
-
-This class is used for inserting into an avl tree during a plane sweep.
-
-
-*/
-
-class AVLSegment; 
-ostream& operator<<(ostream& o, const AVLSegment& s);
-
-
-class AVLSegment{
-
-public:
-
-/*
-3.0 ~Standard Constructor~
-
-*/
-  AVLSegment(){
-    x1 = 0;
-    x2 = 0;
-    y1 = 0;
-    y2 = 0;
-    owner = none;
-    insideAbove_first = false;
-    insideAbove_second = false;
-    con_below = 0;
-    con_above = 0;
-  }
-
-
-/*
-3.1 ~Constructor~
-
-This constructor creates a new segment from the given HalfSegment.
-As owner only __first__ and __second__ are the allowed values.
-
-*/
-
-  AVLSegment(const HalfSegment* hs, ownertype owner){
-     x1 = hs->GetLeftPoint().GetX();
-     y1 = hs->GetLeftPoint().GetY();
-     x2 = hs->GetRightPoint().GetX();
-     y2 = hs->GetRightPoint().GetY();
-     if( (AlmostEqual(x1,x2) && (y2<y2) ) || (x2<x2) ){// swap the entries
-        double tmp = x1;
-        x1 = x2;
-        x2 = tmp;
-        tmp = y1;
-        y1 = y2;
-        y2 = tmp;
-     }
-     this->owner = owner;
-     switch(owner){
-        case first: { insideAbove_first = hs->GetAttr().insideAbove; 
-                      insideAbove_second = false;
-                      break;
-                     }
-        case second: {
-                      insideAbove_second = hs->GetAttr().insideAbove; 
-                      insideAbove_first = false;
-                       break;
-                     }
-        default: assert(false);
-     }
-     con_below = 0;
-     con_above = 0;
-  }
-
-/*
-3.2 ~Copy Constructor~
-
-*/
-   AVLSegment(const AVLSegment& src){
-      Equalize(src);
-   }
-
-/*
-3.3. Assignmet operator
-
-*/
-
-  AVLSegment& operator=(const AVLSegment& src){
-    Equalize(src);
-    return *this;
-  }
-
-  void Print(ostream& out)const{
-    out << "Segment("<<x1<<", " << y1 << ") -> (" << x2 << ", " << y2 <<") " 
-        << owner << " [ " << insideAbove_first << ", " 
-        << insideAbove_second << "] con("
-        << con_below << ", " << con_above << ")";
-
-  }
-  
-/*
-
-~Equalize~
-
-The value of this segment is taken from the argument.
-
-*/
-
-  void Equalize( const AVLSegment& src){
-     x1 = src.x1;
-     x2 = src.x2;
-     y1 = src.y1;
-     y2 = src.y2;
-     owner = src.owner;
-     insideAbove_first = src.insideAbove_first;
-     insideAbove_second = src.insideAbove_second;    
-     con_below = src.con_below;
-     con_above = src.con_above; 
-  }
-
-
-/*
-3.3 ~Destructor~
-
-*/
-   ~AVLSegment() {}
-
-
-/*
-3.4 ~crosses~
-
-Checks whether this segment and s have an intersection point of their
-interior. 
-
-*/
- bool crosses(const AVLSegment& s) const{
-    if(!xOverlaps(s)){
-       return false;
-    }
-    if(overlaps(s)){ // a common line
-       return false;
-    }
-    if(compareSlopes(s)==0){ // parallel or disjoint lines
-       return false;
-    } 
-    
-    if(isVertical()){
-        double x = x1; // compute y for s
-        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
-        return !AlmostEqual(y1,y) && !AlmostEqual(y2,y) &&
-               (y>y1)  && (y<y2)
-               && !AlmostEqual(s.x1,x) && !AlmostEqual(s.x2,x) ;
-    }
-
-    if(s.isVertical()){
-       double x = s.x1;
-       double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-       return !AlmostEqual(y,s.y1) && !AlmostEqual(y,s.y2) && 
-              (y>s.y1) && (y<s.y2) && 
-              !AlmostEqual(x1,x) && !AlmostEqual(x2,x);
-    }
-    
-    // both segments are non vertical 
-    double m1 = (y2-y1)/(x2-x1);
-    double m2 = (s.y2-s.y1)/(s.x2-s.x1);
-    double c1 = y1 - m1*x1;
-    double c2 = s.y1 - m2*s.x1;
-    double xs = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-    return !AlmostEqual(x1,xs) && !AlmostEqual(x2,x2) && // not an endpoint   
-           !AlmostEqual(s.x1,xs) && !AlmostEqual(s.x2,xs) && // of any segment
-           (x1<xs) && (xs<x2) && (s.x1<xs) && (xs<s.x2);
-}
-
-/*
-3.5 ~Extends~
-
-This function returns true, iff this segment is an extension of 
-the argument, i.e. if the right point of ~s~ is the left point of ~this~
-and the slopes are equal.
-
-*/
-  bool extends(AVLSegment s){
-     return pointEqual(x1,y1,s.x2,s.y2) &&
-            compareSlopes(s)==0;
-  }
-
-
-/*
-3.5 ~CompareTo~
-
-Compares this with s. The x intervals must overlap.
-
-*/
-
- int compareTo(const AVLSegment& s) const{
-    
-    assert(xOverlaps(s));
-    
-
-    bool v1 = isVertical();
-    bool v2 = s.isVertical();
-   
-    if(!v1 && !v2){ 
-       double x = max(x1,s.x1); // the right one of the left coordinates
-       double y_this = getY(x);
-       double y_s = s.getY(x);
-       if(!AlmostEqual(y_this,y_s)){
-          if(y_this<y_s){
-            return -1;
-          } else  {
-            return 1;
-          }
-       } else {
-         int cmp = compareSlopes(s);
-         if(cmp!=0){
-           return cmp;
-         }
-         // if the segments are connected, the left segment 
-         // is the smaller one
-         if(AlmostEqual(x2,s.x1)){
-             return -1;
-         }
-         if(AlmostEqual(s.x2,x1)){
-             return 1;
-         }
-         // the segments have an proper overlap
-         return 0;
-       }  
-   } else if(v1 && v2){ // both are vertical
-      if(AlmostEqual(y1,s.y2) || (y1>s.y2)){ // this is above s
-        return 1;
-      } 
-      if(AlmostEqual(s.y1,y2) || (s.y1>y2)){ // s above this
-        return 1;
-      }
-      // proper overlapping part
-      return 0;
-  } else { // one segment is vertical
-
-    double x = v1? x1 : s.x1; // x coordinate of the vertical segment
-    double y1 = getY(x);
-    double y2 = s.getY(x);
-    if(AlmostEqual(y1,y2)){
-        return v1?1:-1; // vertical segments have the greatest slope
-    } else if(y1<y2){
-       return -1;
-    } else {
-       return 1;
-    }
-  }
- }
-
-
-
-/*
-3.6 ~isVertical~
-
-Checks whether this segment is vertical.
-
-*/
-
- bool isVertical() const{
-     return AlmostEqual(x1,x2);
- }
-
-
-/*
-3.7 getInsideAbove
-
-Returns the insideAbove value for such segments for which this value is unique,
-e.g. for segments having owner __first__ or __second__.
-
-*/
-
-  bool getInsideAbove(){
-      switch(owner){
-        case first : return insideAbove_first;
-        case second: return insideAbove_second;
-        default : assert(false);
-      }
-  }
-
-/*
-3.7 Comparison Operators 
-
-*/
-
-
-  bool operator==(const AVLSegment& s) const{
-    return compareTo(s)==0;
-  }
-
-  bool operator<(const AVLSegment& s) const{
-     return compareTo(s)<0;
-  }
-
-  bool operator>(const AVLSegment& s) const{
-     return compareTo(s)>0;
-  }
-
-/*
-3.8 ~split~
-
-This function splits two overlapping segments.
-Preconditions:
-1) this segments and ~s~ must overlap.
-
-2) the owner of this and s must be first and second or vice versa
-
-*/
-
-  int split(const AVLSegment& s, AVLSegment& left, AVLSegment& common, 
-            AVLSegment& right) const{
-
-
-     assert(overlaps(s));
-     assert( (this->owner==first && s.owner==second) ||
-             (this->owner==second && s.owner==first));
-
-     if(pointEqual(x1,y1,s.x1,s.y1)){
-       // common left point, the left part will be empty
-       if(pointEqual(x2,y2,s.x2,s.y2)){
-          // segments are equal , only a common segment exist
-          common.x1 = x1;
-          common.x2 = x2;
-          common.y1 = y1;
-          common.y2 = y2;
-          common.owner = both;
-          if(this->owner==first){
-            common.insideAbove_first  = insideAbove_first;
-            common.insideAbove_second = s.insideAbove_second;
-          } else {
-            common.insideAbove_first = s.insideAbove_first;
-            common.insideAbove_second = insideAbove_second;
-          }
-          common.con_above = con_above;
-          common.con_below = con_below;
-          return COMMON;
-       } else { // different end point 
-          common.x1 = x1;
-          common.y1 = y1;
-          common.x2 = min(x2,s.x2);
-          common.y2 = min(y2,s.y2);
-          common.owner = both;
-          if(this->owner==first){
-            common.insideAbove_first  = insideAbove_first;
-            common.insideAbove_second = s.insideAbove_second;
-          } else {
-            common.insideAbove_first = s.insideAbove_first;
-            common.insideAbove_second = insideAbove_second;
-          }
-          common.con_above = con_above;
-          common.con_below = con_below;
-          right.x1 = common.x2;
-          right.y1 = common.y2;
-          right.x2 = max(x2,s.x2);
-          right.y2 = max(y2,s.y2);
-          if(pointSmaller(x2,y2,s.x2,s.y2)){
-            right.owner = s.owner;
-            right.insideAbove_first = s.insideAbove_first;
-            right.insideAbove_second = s.insideAbove_second;
-          } else {
-            right.owner = this->owner;
-            right.insideAbove_first = this->insideAbove_first;
-            right.insideAbove_second = this->insideAbove_second; 
-          }
-          right.con_above = con_above;
-          right.con_below = con_below;
-          return COMMON | RIGHT; 
-       }
-     } else { // left points are different
-       // create the left segment
-       left.x1 = min(x1, s.x1);
-       left.y1 = min(y1, s.y1);
-       left.x2 = max(x1, s.x1);
-       left.y2 = max(y1, s.y1);
-       if(pointSmaller(x1, y1, s.x1, s.y1)){ // left is part of this
-         left.owner = this->owner;
-         left.insideAbove_first = this->insideAbove_first;
-         left.insideAbove_second = this->insideAbove_second;
-       } else { // left is owned by s
-         left.owner = s.owner;
-         left.insideAbove_first = s.insideAbove_first;
-         left.insideAbove_second = s.insideAbove_second;
-       }
-       left.con_below = con_below;
-       left.con_above = con_above;
-       common.x1 = left.x2;
-       common.y1 = left.y2;
-       common.x2 = min(x2, s.x2);
-       common.y2 = min(y1, s.y2);
-       common.owner = both;
-       if(this->owner==first){
-          common.insideAbove_first = this->insideAbove_first;
-          common.insideAbove_second = s.insideAbove_second;
-       }else {
-          common.insideAbove_first = s.insideAbove_first;
-          common.insideAbove_second = this->insideAbove_second;
-       }
-       common.con_below = con_below;
-       common.con_above = con_above;
-       if(pointEqual(x2, y2, s.x2, s.y2)){ // common endpoint, no right part
-         return LEFT | COMMON;
-       }
-       // create the right part
-       right.x1 = common.x2;
-       right.y1 = common.y2;
-       right.x2 = max(x2, s.x2);
-       right.y2 = max(y2, s.y2);
-       if(pointSmaller(x2,y2,s.x2,s.y2)){ // right owned by s
-         right.owner = s.owner;
-         right.insideAbove_first = s.insideAbove_first;
-         right.insideAbove_second = s.insideAbove_second;
-       } else {
-         right.owner = this->owner;
-         right.insideAbove_first = this->insideAbove_first;
-         right.insideAbove_second = this->insideAbove_second;
-       }
-       right.con_above = con_above;
-       right.con_below = con_below;
-       return LEFT | COMMON | RIGHT; // all parts exist
-     }     
-
-  }
-
-/*
-~splitAt~
-
-This function divides an segment into two parts at the point 
-provided by (x, y). The point must be on the interior of this segment.
-
-*/
-
-  void splitAt(const double x, const double y, 
-               AVLSegment& left, 
-               AVLSegment& right)const{
-
-     assert(ininterior(x,y));
-     left.x1=x1;
-     left.y1=y1;
-     left.x2 = x;
-     left.y2 = y;
-     left.owner = owner;
-     left.insideAbove_first = insideAbove_first;
-     left.insideAbove_second = insideAbove_second;
-     left.con_below = con_below;
-     left.con_above = con_above;
-
-     right.x1=x;
-     right.y1=y;
-     right.x2 = x2;
-     right.y2 = y2;
-     right.owner = owner;
-     right.insideAbove_first = insideAbove_first;
-     right.insideAbove_second = insideAbove_second;
-     right.con_below = con_below;
-     right.con_above = con_above;
-
-  }
-          
-/*
-~InnerDisjoint~
-
-This function checks whether this segment and s have at most a 
-common endpoint. 
-
-*/
-
-  bool innerDisjoint(const AVLSegment& s)const{
-
-      
-
-      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
-        return true; 
-      }
-      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
-        return true;
-      }
-      if(overlaps(s)){ // a common line
-         return false;
-      }
-      if(compareSlopes(s)==0){ // parallel or disjoint lines
-         return true;
-      } 
-    
-      if(isVertical()){
-        double x = x1; // compute y for s
-        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
-        return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                   (ininterior(x,y) && s.contains(x,y)) );
-
-      }
-      if(s.isVertical()){
-         double x = s.x1;
-         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-         return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                    (ininterior(x,y) && s.contains(x,y)) );
-      }
-
-
-
-    
-      // both segments are non vertical 
-      double m1 = (y2-y1)/(x2-x1);
-      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
-      double c1 = y1 - m1*x1;
-      double c2 = s.y1 - m2*s.x1;
-
-      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-
-      
-      return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                 (ininterior(x,y) && s.contains(x,y)) );
-  }
-/*
-~Intersects~
-
-This function checks whether this segment and s have at least a 
-common point. 
-
-*/
-
-  bool intersects(const AVLSegment& s)const{
-      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
-        return true; 
-      }
-      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
-        return true;
-      }
-      if(overlaps(s)){ // a common line
-         return true;
-      }
-      if(compareSlopes(s)==0){ // parallel or disjoint lines
-         return false;
-      } 
-    
-      if(isVertical()){
-        double x = x1; // compute y for s
-        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
-        return  ( (contains(x,y) && s.contains(x,y) ) );
-
-      }
-      if(s.isVertical()){
-         double x = s.x1;
-         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-         return ((contains(x,y) && s.contains(x,y)));
-      }
-    
-      // both segments are non vertical 
-      double m1 = (y2-y1)/(x2-x1);
-      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
-      double c1 = y1 - m1*x1;
-      double c2 = s.y1 - m2*s.x1;
-      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-      return ( (contains(x,y) && s.contains(x,y) ) );
-  }
-
-
-/*
-3.10 ~ Get functions ~
-
-*/
-  double getX1() const { return x1; }
-
-  double getX2() const { return x2; }
-
-  double getY1() const { return y1; }
-
-  double getY2() const { return y2; }
-
-  ownertype getOwner() const { return owner; }
-
-  bool getInsideAbove_first() const { return insideAbove_first; }
-  bool getInsideAbove_second() const { return insideAbove_second; }
-
-
-/*
-~overlaps~
-
-Checks whether both this segment and __s__ have a common segment.
-
-*/
-   bool overlaps(const AVLSegment& s) const{
-      if(compareSlopes(s)!=0){
-          return false;
-      } 
-      // one segment is a extension of the other one
-      if(pointEqual(x1,y1,s.x2,s.y2)){
-          return false;
-      }
-      if(pointEqual(x2,y2,s.x1,s.y1)){
-         return false;
-      }
-      return contains(s.x1,s.y1) || contains(s.x2,s.y2);
-   }
-
-/*
-~ininterior~
-
-This function checks whether the point defined by (x,y) is
-part of the interior of this segment.
-
-*/
-   bool ininterior(const double x,const  double y)const{
-     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){ // an endpoint
-        return false;
-     }
-     // check if (x,y) is located on the line 
-     double res1 = (x-x1)*(y2-y1);
-     double res2 = (y-y1)*(x2-x1);
-     if(!AlmostEqual(res1,res2)){ // (x,y) not on the straight line 
-         return false;
-     }
-     
-     if(AlmostEqual(x1,x2)){ // vertical segment
-        return (y>y1) && (y < y2);
-     } else {
-        return (x>x1) && (x<x2);
-     }
-   }
-
-/*
-3.6 public data members 
-
-These members are not used in this class. So the user of
-this class can change them without any problems within this
-class itself.
-
-*/
- int con_below;  // should be used as coverage number
- int con_above;  // should be used as coverage number
-
-
-/*
-3.7 checkCon
-
-If the public data members are used as coverage numbers, they must
-fullfill some conditions. Because maximum two regions are concerned,
-ecah coverage number must be in range {0,1,2}. Because each segment
-is assigned to a region, the sum of the coverage numbers must be
-proper greater than zero.
-
-*/
-  bool checkCon(AVLTree<AVLSegment>* tree=0){
-
-       bool res = ((con_below + con_above) >0) &&
-                  ( (con_below>=0) && (con_below<=2)) &&
-                  ( (con_above>=0) && (con_above<=2)); 
-
-       if(!res){
-          cout << "checkCondFailed for " << (*this);
-          if(tree){
-              cout << "the tree is " << *tree << endl << endl;
-          }
-       }
-
-
-       assert((con_below + con_above) >0);
-       assert( (con_below>=0) && (con_below<=2)); 
-       assert( (con_above>=0) && (con_above<=2)); 
-       return true;
-  }
-
-
-/*
-~ConvertToHs~
-
-This functions creates an HalfSegment from this segment.
-The owner must be __first__ or __second__
-
-*/
-HalfSegment convertToHs(bool lpd, ownertype owner = both )const{
-   assert( owner!=both || this->owner==first || this->owner==second);
-   assert( owner==both || owner==first || owner==second);
- 
-   bool insideAbove;
-   if(owner==both){
-      insideAbove = this->owner==first?insideAbove_first
-                                  :insideAbove_second;
-   } else {
-      insideAbove = owner==first?insideAbove_first
-                                  :insideAbove_second;
-   }
-   
-   HalfSegment hs(lpd, Point(true,x1,y1), Point(true,x2,y2)); 
-   hs.attr.insideAbove = insideAbove;
-   return hs;
-}
-
-
-
-private:
-  /* data members  */
-  double x1,y1,x2,y2; // the geometry of this segment
-  bool insideAbove_first;
-  bool insideAbove_second;
-  ownertype owner;    // who is the owner of this segment
-
-
-/*
-~pointequal~
-
-This function checks if the points defined by (x1,y1) and 
-(x2,y2) are equals using the AlmostEqual function.
-
-*/
-  static bool pointEqual(const double x1, const double y1,
-                         const double x2, const double y2){
-    return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
-  }
-
-/*
-~pointSmaller~
-
-This function checks if the point defined by (x1,y1) is
-smaller than the point defined by (x2,y2).
-
-*/
- static bool pointSmaller(const double x1, const double y1,
-                          const double x2, const double y2){
-    if(pointEqual(x1,y1,x2,y2)){
-       return false;
-    }
-    return (AlmostEqual(x1,x2) && y1 < y2 ) ||  
-          (!AlmostEqual(x1,x2) && x1 < x2);
- }
-
-/*
-~pointBelow~
-
-This function checks if the point defined by (x,y) is below this
-segment. The x coordinate of the point must be located in the
-x range of this segment.
-
-*/
-
-  bool pointBelow(const double x,const double y)const{
-    if(AlmostEqual(x1,x2)){ // a vertical segment
-       return !AlmostEqual(y,y1) && y < y1;
-    } else {
-      double res1 = (y*(x2-x1));
-      double res2 = (y1*(x2-x) + y2*(x-x1));
-      return  !AlmostEqual(res1,res2) && (res1 < res2);
-    }
-  }
-
-/*
-~pointAbove~
-
-This function checks if the point defined by (x,y) is above this
-segment.
-
-*/
-  bool pointAbove(const double x , const double y) const{
-    if(AlmostEqual(x1,x2)){ // vertical segment
-      return !AlmostEqual(y,y2) && y > y2;
-    } else {
-      double res1 = (y*(x2-x1));
-      double res2 = (y1*(x2-x) + y2*(x-x1));
-      return !AlmostEqual(res1,res2) && (res1 > res2);
-    }
-  }
-
-/*
-~contains~
-
-Checks whether the the defined by (x,y) is located anywhere on this
-segment.
-
-*/
-   bool contains(const double x,const  double y)const{
-     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){
-        return true;
-     }
-     // check if (x,y) is located on the line 
-     double res1 = (x-x1)*(y2-y1);
-     double res2 = (y-y1)*(x2-x1);
-     if(!AlmostEqual(res1,res2)){
-         return false;
-     }
-     
-     if(AlmostEqual(x1,x2)){ // vertical segment
-        return (y>=y1) && (y <= y2);
-     } else {
-        return (x>=x1) && (x<=x2);
-     }
-   }
-
-
-
-/*
-~compareSlopes~
-
-compares the slopes of __this__ and __s__. The slope of a vertical
-segemnt is greater than all other slopes. 
-
-*/
-   int compareSlopes(const AVLSegment& s) const{
-      bool v1 = AlmostEqual(x1,x2);
-      bool v2 = AlmostEqual(s.x1,s.x2);
-      if(v1 && v2){ // both segments are vertical
-        return 0;
-      }
-      if(v1){
-        return 1;  // this is vertical, s not
-      }
-      if(v2){
-        return -1; // s is vertical
-      }
-
-      // both segments are non-vertical
-      double res1 = (y2-y1)/(x2-x1);
-      double res2 = (s.y2-s.y1)/(s.x2-s.x1);
-      int result = -3;
-      if( AlmostEqual(res1,res2)){
-         result = 0; 
-      } else if(res1<res2){
-         result =  -1;
-      } else { // res1>res2
-         result = 1;
-      }
-      return result;
-   }
-
-/*
-~XOverlaps~
-
-Checks whether the x interval of this segment overlaps the
-x interval of s.
-
-*/
-
-  bool xOverlaps(const AVLSegment& s) const{
-    if(!AlmostEqual(x1,s.x2) && x1 > s.x2){ // left of s
-        return false;
-    }
-    if(!AlmostEqual(x2,s.x1) && x2 < s.x1){ // right of s
-        return false;
-    }
-    return true;
-  }
-
-/*
-~XContains~
-
-Checks if the x coordinates provided by the parameter __x__ is contained
-in the x interval of this segment;
-
-*/
-  bool xContains(const double x) const{
-    if(!AlmostEqual(x1,x) && x1>x){
-      return false;
-    }
-    if(!AlmostEqual(x2,x) && x2<x){
-      return false;
-    }
-    return true;
-  }
-
-/*
-~GetY~
-
-Computes the y value for the spcified  __x__. 
-__x__ must be contained in the x-interval of this segment. 
-If the segment is vertical, the minimum y value of this 
-segment is returned.
-
-*/  
-  double getY(const double x) const{
-     assert(xContains(x));
-     if(isVertical()){
-        return y1;
-     }
-     double d = (x-x1)/(x2-x1);
-     return y1 + d*(y2-y1);
-  }
-
-};
-
-
-/*
-4 Shift Operator 
-
-*/
-ostream& operator<<(ostream& o, const AVLSegment& s){
-    s.Print(o);
-    return o;
-}
 
 
 
