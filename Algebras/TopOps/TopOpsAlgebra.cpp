@@ -279,6 +279,19 @@ interior.
 
 */
  bool crosses(const AVLSegment& s) const{
+   double x,y;
+   return crosses(s,x,y);
+ }
+
+/*
+3.5 ~crosses~
+
+This function checks whether the interiors of the related 
+segments are crossing. If this function returns true,
+the parameters ~x~ and ~y~ are set to the intersection point.
+
+*/
+ bool crosses(const AVLSegment& s,double& x, double& y) const{
     if(isPoint() || s.isPoint()){
       return false;
     }
@@ -294,16 +307,16 @@ interior.
     } 
     
     if(isVertical()){
-        double x = x1; // compute y for s
-        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        x = x1; // compute y for s
+        y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
         return !AlmostEqual(y1,y) && !AlmostEqual(y2,y) &&
                (y>y1)  && (y<y2)
                && !AlmostEqual(s.x1,x) && !AlmostEqual(s.x2,x) ;
     }
 
     if(s.isVertical()){
-       double x = s.x1;
-       double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+       x = s.x1;
+       y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
        return !AlmostEqual(y,s.y1) && !AlmostEqual(y,s.y2) && 
               (y>s.y1) && (y<s.y2) && 
               !AlmostEqual(x1,x) && !AlmostEqual(x2,x);
@@ -315,7 +328,11 @@ interior.
     double c1 = y1 - m1*x1;
     double c2 = s.y1 - m2*s.x1;
     double xs = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-    return !AlmostEqual(x1,xs) && !AlmostEqual(x2,x2) && // not an endpoint   
+     
+    x = xs;
+    y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+
+    return !AlmostEqual(x1,xs) && !AlmostEqual(x2,xs) && // not an endpoint   
            !AlmostEqual(s.x1,xs) && !AlmostEqual(s.x2,xs) && // of any segment
            (x1<xs) && (xs<x2) && (s.x1<xs) && (xs<s.x2);
 }
@@ -333,6 +350,19 @@ and the slopes are equal.
             compareSlopes(s)==0;
   }
 
+/*
+3.5 ~extactEqualsTo~
+
+This function checks if s has the same geometry like this segment, i.e.
+if both endpoints are equal.  
+ 
+*/
+bool exactEqualsTo(const AVLSegment& s)const{
+  return pointEqual(x1,y1,s.x1,s.y1) &&
+         pointEqual(x2,y2,s.x2,s.y2);
+}
+
+
 
 /*
 3.5 ~CompareTo~
@@ -342,7 +372,18 @@ Compares this with s. The x intervals must overlap.
 */
 
  int compareTo(const AVLSegment& s) const{
-    
+  
+
+// debug::start
+
+   if(!xOverlaps(s)){
+     cout << "try to compare segment having disjoint x intervals " << endl;
+     cout << "segment 1 : " << *this << endl;
+     cout << "segment 2 : " << s << endl;  
+   }
+
+// debug::end 
+ 
     assert(xOverlaps(s));
 
     if(isPoint()){
@@ -644,6 +685,27 @@ provided by (x, y). The point must be on the interior of this segment.
      right.con_above = con_above;
 
   }
+
+/*
+~splitCross~
+
+Splits two crossing segments into the 4 corresponding parts. 
+Both segments must crossing.
+
+*/
+void splitCross(const AVLSegment& s, AVLSegment& left1, AVLSegment& right1,
+                AVLSegment& left2, AVLSegment& right2) const{
+
+    double x,y;
+    if(!crosses(s,x,y)){
+      bool cross= false;
+      assert(cross);
+    } 
+    splitAt(x, y, left1, right1);
+    s.splitAt(x, y, left2, right2);
+}
+
+
           
 /*
 ~InnerDisjoint~
@@ -884,6 +946,34 @@ HalfSegment convertToHs(bool lpd, ownertype owner = both )const{
 }
 
 
+/*
+~contains~
+
+Checks whether the point defined by (x,y) is located anywhere on this
+segment.
+
+*/
+   bool contains(const double x,const  double y)const{
+     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){
+        return true;
+     }
+     if(isPoint()){
+       return false;
+     }
+     // check if (x,y) is located on the line 
+     double res1 = (x-x1)*(y2-y1);
+     double res2 = (y-y1)*(x2-x1);
+     if(!AlmostEqual(res1,res2)){
+         return false;
+     }
+     
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        return (y>=y1) && (y <= y2);
+     } else {
+        return (x>=x1) && (x<=x2);
+     }
+   }
+
 
 private:
   /* data members  */
@@ -978,34 +1068,6 @@ segment.
   }
 
 
-
-/*
-~contains~
-
-Checks whether the the defined by (x,y) is located anywhere on this
-segment.
-
-*/
-   bool contains(const double x,const  double y)const{
-     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){
-        return true;
-     }
-     if(isPoint()){
-       return false;
-     }
-     // check if (x,y) is located on the line 
-     double res1 = (x-x1)*(y2-y1);
-     double res2 = (y-y1)*(x2-x1);
-     if(!AlmostEqual(res1,res2)){
-         return false;
-     }
-     
-     if(AlmostEqual(x1,x2)){ // vertical segment
-        return (y>=y1) && (y <= y2);
-     } else {
-        return (x>=x1) && (x<=x2);
-     }
-   }
 
 
 
@@ -1712,6 +1774,69 @@ This function computes the 9-intersection matrix for a line and a single point.
 Complexity: O(n)
 
 */
+
+ownertype selectNext( Line const* const line,
+                      priority_queue<HalfSegment, 
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q,
+                      int& pos,
+                      Point const* const point,
+                      const bool usePoint,
+                      HalfSegment& resHs,
+                      Point& resPoint){
+
+
+   int size = line->Size();
+   const HalfSegment* hsl = 0;
+   const HalfSegment* hsq = 0;
+   const HalfSegment* hsmin = 0;
+   HalfSegment hstmp;
+   int src = 0;  
+   if(pos < size){
+      line->Get(pos,hsl);
+   }
+   if(!q.empty()){
+       hstmp = q.top();
+       hsq = &hstmp;
+   }
+   if(hsl){
+      src = 1;
+      hsmin = hsl;
+   }
+   if(hsq){
+     if(!hsl || (*hsq < *hsl)){
+       src = 2;
+       hsmin = hsq;
+     }
+   }
+  
+   if(usePoint){ 
+     if(!hsmin){
+       src = 3;
+     } else {
+       Point p = hsmin->GetDomPoint();
+       if(*point < p){
+            src = 3;
+        }
+     }
+   }
+
+   switch(src){
+    case 0: return none;
+    case 1: pos++;
+            resHs = *hsmin;
+            return first;
+    case 2: q.pop();
+            resHs = *hsmin;
+            return first;
+    case 3: resPoint = *point;
+            return second;
+    default: assert(false); 
+             return none;
+   }
+}
+
+
 void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
    GetCalls_l_p++;
@@ -1730,72 +1855,305 @@ void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
    // because of the difference in the dimension   
    res.SetIE(true);
 
+   bool pointdone = false;
    // the line contains at least one halfsegment
    Rectangle<2> bbox_line = line->BoundingBox();
    Rectangle<2> bbox_point = point->BoundingBox();
    if(!bbox_line.Intersects(bbox_point)){
       res.SetIE(true);
       res.SetEI(true);
-      if(NumberOfEndpoints(line,1)>0){
-        res.SetBE(true); 
-      }
-#ifdef TOPOPS_USE_STATISTIC
-      bb_l_p++;
-#endif
-      return;
+      pointdone = true;
    }
 
    // prefilter unsuccessful -> scan the halfsegments
-   int size = line->Size(); 
+
+   AVLTree<AVLSegment> sss;
+   priority_queue<HalfSegment, vector<HalfSegment>, greater<HalfSegment> > q;
+
+
    bool done = false;
-   Point thePoint = (*point);
-   HalfSegment const* chs;
-   Point p;
-   int endpoints = NumberOfEndpoints(line,2);
-   for(int i=0;(i<size) && !done; i++){
-       line->Get(i,chs);
-       p = chs->GetDomPoint();
-       if(p==thePoint){ // point on endpoint of chs
-         done = true;
-         if(i+1<size){
-            line->Get(i+1,chs);
-            p=chs->GetDomPoint();
-            if(p==thePoint){ // an inner point of the line
-               res.SetII(true);
-               if(endpoints>0){
-                 res.SetBE(true);
-               }
-            } else{ // an endpoint of the line
-               res.SetBI(true);
-               if(endpoints>1){
-                 res.SetBE(true);
-               }
-            }
-         } else{ // an endpoint of the line
-             res.SetBI(true);
-             if(endpoints>1){
-               res.SetBE(true);
+   int pos = 0; // position within the line array
+   ownertype owner;
+   HalfSegment resHs;
+   Point resPoi;
+   Point lastDomPoint;
+   int lastDomPointCount = 0;
+
+
+   while(!done &&  
+         ((owner=selectNext(line,q,pos,point,
+           !pointdone,resHs,resPoi))!=none)){
+
+      if(owner==second){
+         pointdone = true;
+         AVLSegment current(&resPoi,second);
+
+
+         const AVLSegment* leftN=0;
+         const AVLSegment* rightN=0;
+         const AVLSegment* member= sss.getMember(current,leftN,rightN);
+         if(!member){ // point outside current, check lastdompoint
+           if(lastDomPointCount>0 && AlmostEqual(lastDomPoint,resPoi)){
+             // point located in the last dominating point
+             if(lastDomPointCount==1){ // on boundary
+                res.SetBI(true);
+             } else {
+                res.SetII(true);
              }
+             lastDomPointCount++;
+           } else { // point outside the line
+             // set intersection
+             res.SetEI(true);
+             // update dompoint
+             if(lastDomPointCount==1){ // last point was boundary
+                res.SetBE(true);
+             }
+
+             lastDomPoint = resPoi;
+             lastDomPointCount = 0;
+          }
+         } else {
+            double x = resPoi.GetX();
+            double y = resPoi.GetY();
+            if((leftN && leftN->contains(x,y))  ||
+               (rightN && rightN->contains(x,y))||
+               ( member->ininterior(x,y))){
+              res.SetII(true);
+            } else { // point located on an endpoint of member
+              if(lastDomPointCount>0 && AlmostEqual(resPoi,lastDomPoint)){
+                 if(lastDomPointCount==1){
+                   res.SetBI(true);
+                 } else {
+                   res.SetII(true);
+                 }
+                 lastDomPointCount++;
+              } else {
+                 res.SetEI(true);
+                 lastDomPointCount = 0;
+              } 
+
+            }
          }
-         return; 
+         done = res.GetBE(); 
+         lastDomPoint = resPoi;
+      } else { // an halfsegment
+        assert(owner==first);
+
+        // check for endpoints
+        Point domPoint = resHs.GetDomPoint();
+
+        // only check for dompoints if the segment is a new one (left)
+        // or its actually stored in the tree 
+        AVLSegment current(&resHs, first);
+        const AVLSegment* leftN=0;
+        const AVLSegment* rightN=0;
+        const AVLSegment* member= sss.getMember(current,leftN,rightN);
+ 
+        if(resHs.IsLeftDomPoint()  ||
+           (member && member->exactEqualsTo(current))){
+           if(lastDomPointCount==0 || !AlmostEqual(domPoint,lastDomPoint)){
+              if(lastDomPointCount==1){
+//              cout << "SetBE at line " << __LINE__ << endl; // debug;
+//              cout << "Boundary point is " << lastDomPoint << endl; // debug
+                 res.SetBE(true);
+              } 
+              lastDomPoint = domPoint;
+              lastDomPointCount = 1;
+           } else{
+              lastDomPointCount++;
+              lastDomPoint = domPoint;
+           }
+        }
+
+        if(resHs.IsLeftDomPoint()){  // left event
+           AVLSegment left1, left2, right1, right2;
+           if(member){ //overlapping segment found
+              if((!AlmostEqual(member->getX2(),current.getX2())) &&
+                 (member->getX2() < current.getX2() )){
+                // current is an extension of member
+                current.splitAt(member->getX2(), member->getY2(),left1,right1);
+                // create events for the remaining parts
+                q.push(right1.convertToHs(true,first));
+                q.push(right1.convertToHs(false,first));
+              }
+           } else { // there is no overlapping segment
+
+             // check for splits with the left segment
+             if(leftN && !leftN->innerDisjoint(current)){
+               if(leftN->ininterior(current.getX1(), current.getY1())){
+                  leftN->splitAt(current.getX1(), current.getY1(),
+                                 left1,right1);
+                  sss.remove(*leftN);
+                  leftN = &left1;
+                  sss.insert(left1);
+                  q.push(left1.convertToHs(false,first));
+                  q.push(right1.convertToHs(true,first));
+                  q.push(right1.convertToHs(false,first));
+               } else if(leftN->ininterior(current.getX2(), current.getY2())){
+                  leftN->splitAt(current.getX2(), current.getY2(),
+                                 left1,right1);
+                  sss.remove(*leftN);
+                  leftN = &left1;
+                  sss.insert(left1);
+                  q.push(left1.convertToHs(false,first));
+                  q.push(right1.convertToHs(true,first));
+                  q.push(right1.convertToHs(false,first));
+               } else if(leftN->crosses(current)){
+                  leftN->splitCross(current,left1,right1, left2,right2);
+
+                  sss.remove(*leftN);
+                  leftN = &left1;
+                  sss.insert(left1);
+                  q.push(left1.convertToHs(false,first));
+                  q.push(right1.convertToHs(true,first));
+                  q.push(right1.convertToHs(false,first));
+                  
+                  current = left2;
+                  q.push(left2.convertToHs(false,first));
+                  q.push(right2.convertToHs(true,first));
+                  q.push(right2.convertToHs(false,first));
+               } else if(current.ininterior(leftN->getX2(), leftN->getY2())){
+                 current.splitAt(leftN->getX2(), leftN->getY2(),left1,right1);
+                 current=left1;
+                 q.push(left1.convertToHs(false,first));
+                 q.push(right1.convertToHs(true,first));
+                 q.push(right1.convertToHs(false,first));
+               } else { // forgotten case
+                   assert(false);
+               }
+             }
+             // do the same thing for the rigt neighbour
+             if(rightN && !rightN->innerDisjoint(current)){
+               if(rightN->ininterior(current.getX1(), current.getY1())){
+                  rightN->splitAt(current.getX1(), current.getY1(),
+                                  left1,right1);
+                  sss.remove(*rightN);
+                  rightN = &left1;
+                  sss.insert(left1);
+                  q.push(left1.convertToHs(false,first));
+                  q.push(right1.convertToHs(true,first));
+                  q.push(right1.convertToHs(false,first));
+               }else if(rightN->ininterior(current.getX2(), current.getY2())){
+                  rightN->splitAt(current.getX2(), current.getY2(),
+                                  left1, right1);
+                  sss.remove(*rightN);
+                  rightN = &left1;
+                  sss.insert(left1);
+                  q.push(left1.convertToHs(false,first));
+                  q.push(right1.convertToHs(true,first));
+                  q.push(right1.convertToHs(false,first));
+               } else if(rightN->crosses(current)){
+                  rightN->splitCross(current,left1,right1, left2,right2);
+                  sss.remove(*rightN);
+                  rightN = &left1;
+                  sss.insert(left1);
+                  q.push(left1.convertToHs(false,first));
+                  q.push(right1.convertToHs(true,first));
+                  q.push(right1.convertToHs(false,first));
+                  
+                  current = left2;
+                  q.push(left2.convertToHs(false,first));
+                  q.push(right2.convertToHs(true,first));
+                  q.push(right2.convertToHs(false,first));
+               }else if(current.ininterior(rightN->getX2(), rightN->getY2())){
+                 current.splitAt(rightN->getX2(), rightN->getY2(),
+                                 left1, right1);
+                 current=left1;
+                 q.push(left1.convertToHs(false,first));
+                 q.push(right1.convertToHs(true,first));
+                 q.push(right1.convertToHs(false,first));
+               } else { // forgotten case
+                   assert(false);
+               }
+             }
+             sss.insert(current);
+           } // no overlapping segment
+       } else { // right event
+
+
+           AVLSegment left1, left2, right1, right2;
+        //   AVLSegment current(&resHs, second);
+       //    const AVLSegment* leftN=0;
+       //    const AVLSegment* rightN=0;
+
+        //   const AVLSegment* member= sss.getMember(current,leftN,rightN);
+
+
+           if(member && member->exactEqualsTo(current)){ // segment found
+
+              sss.remove(current);
+
+              if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
+                 // the neighbours are intersection ... check how !
+                 
+                 // endpoint of leftN splits rightN
+                 if(rightN->ininterior(leftN->getX2(), leftN->getY2())){
+                    rightN->splitAt(leftN->getX2(), leftN->getY2(),
+                                    left1, right1);
+                    sss.remove(*rightN);
+                    rightN = &left1;
+                    sss.insert(left1);
+                    q.push(left1.convertToHs(false,first));
+                    q.push(right1.convertToHs(true,first));
+                    q.push(right1.convertToHs(false,first));
+                 }
+                 // endpoint of rightN splits leftN
+                 if(leftN->ininterior(rightN->getX2(), rightN->getY2())){
+                    leftN->splitAt(rightN->getX2(), rightN->getY2(),
+                                   left1, right1);
+                    sss.remove(*leftN);
+                    leftN = &left1;
+                    sss.insert(left1);
+                    q.push(left1.convertToHs(false,first));
+                    q.push(right1.convertToHs(true,first));
+                    q.push(right1.convertToHs(false,first));
+                 }
+
+                 // leftN and rightN are crossing
+                 if(rightN->crosses(*leftN)){
+                    rightN->splitCross(*leftN,left1,right1, left2,right2);
+                    sss.remove(*rightN);
+                    rightN = &left1;
+                    sss.remove(*leftN);
+                    leftN = &left2;
+
+                    sss.insert(left1);
+                    sss.insert(left2);
+                    q.push(left1.convertToHs(false,first));
+                    q.push(left2.convertToHs(false,first));
+                    q.push(right1.convertToHs(true,first));
+                    q.push(right1.convertToHs(false,first));
+                    q.push(right2.convertToHs(true,first));
+                    q.push(right2.convertToHs(false,first));
+                 }
+              }
+           }
        }
-       if(InnerContains(chs,thePoint)){
-           res.SetII(true);
-           if(endpoints>0){
-              res.SetBE(true);
-           } 
-           return;
+     }
+     done = pointdone && res.GetBE();
+   } // end sweep
+
+   if(lastDomPointCount==1 && 
+      (!AlmostEqual(lastDomPoint,*point))){ 
+           // last Point of the line is an endpoint
+//      cout << "SetBE at line " << __LINE__ << endl; // debug;
+//      cout << "Boundary point is " << lastDomPoint << endl; //debug
+      res.SetBE(true); // endpoint found for the line 
+   }   
+
+   if(!pointdone){ // tree empty but point not processed
+     if(AlmostEqual(lastDomPoint,*point)){
+       if(lastDomPointCount==0){
+         res.SetEI(true);
+       } else if(lastDomPointCount==1){
+         res.SetBI(true);
+       } else {
+         res.SetII(true);
        }
-       // we can stop the computation when the next point is
-       // greater than thePoint
-       done = p>thePoint;
+     } else  { // in exterior
+       res.SetEI(true);
+     }
    }
-   // the point is outside the closure of the line
-   res.SetEI(true); // point in exterior
-   if(endpoints>0){
-      res.SetBE(true);
-   } 
-   return;
 }
 
 
@@ -2173,8 +2531,6 @@ ownertype selectNext(const Region*  reg,
     default:  assert(false);
               return none; 
   }
-
-
 }
 
 
