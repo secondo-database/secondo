@@ -719,16 +719,13 @@ int sim_create_trip_VM ( Word* args, Word& result,
             if ( AlmostEqual(lastMaxSpeed,sim_vmax_sidestreet) )
             {
               if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-              {
-                pWait = sim_dest_param_ss;}
-                else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                {
-                  pWait = sim_dest_param_sm;}
-                  else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                  {
-                    pWait = sim_dest_param_sf;}
-                    else
-                    { cout << " S->??? "; pWait = 0.0;}
+              { pWait = sim_dest_param_ss; }
+              else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
+              { pWait = sim_dest_param_sm; }
+              else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
+              { pWait = sim_dest_param_sf; }
+              else
+              { cout << " S->??? "; pWait = 0.0;}
             }
             else if ( AlmostEqual(lastMaxSpeed,sim_vmax_mainstreet) )
             {
@@ -736,27 +733,22 @@ int sim_create_trip_VM ( Word* args, Word& result,
               {
                 pWait = sim_dest_param_ms;}
                 else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                {
-                  pWait = sim_dest_param_mm;}
-                  else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                  {
-                    pWait = sim_dest_param_mf;}
-                    else
-                    { cout << " M->? "; pWait = 0.0;}
+                { pWait = sim_dest_param_mm;}
+                else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
+                { pWait = sim_dest_param_mf;}
+                else
+                { cout << " M->? "; pWait = 0.0;}
             }
             else if ( AlmostEqual(lastMaxSpeed,sim_vmax_freeway) )
             {
               if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-              {
-                pWait = sim_dest_param_fs;}
-                else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                {
-                  pWait = sim_dest_param_fm;}
-                  else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                  {
-                    pWait = sim_dest_param_ff;}
-                    else
-                    { cout << " F->? "; pWait = 0.0; }
+              { pWait = sim_dest_param_fs;}
+              else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
+              { pWait = sim_dest_param_fm;}
+              else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
+              { pWait = sim_dest_param_ff;}
+              else
+              { cout << " F->? "; pWait = 0.0; }
             }
             else
             {

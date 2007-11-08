@@ -1685,6 +1685,12 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
       double t_x, t_y, t1, t2, dxp1, dxp2, dyp1, dyp2, dt;
       bool intersectionfound = false;
 
+      result.timeInterval.start = DateTime(0,0,instanttype);
+      result.timeInterval.end   = DateTime(0,0,instanttype);
+      result.timeInterval.start.SetDefined(true);
+      result.timeInterval.end.SetDefined(true);
+      result.SetDefined(false);
+
       if ( !IsDefined() ||
            !other.IsDefined() ||
            !timeInterval.Intersects( other.timeInterval ) )
@@ -1692,6 +1698,7 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
           result.SetDefined( false );
           if (TA_DEBUG)
             cerr << "No intersection (0): deftimes do not overlap" << endl;
+          assert ( !result.IsDefined() || result.IsValid() );
           return; // nothing to do
         }
       if (timeInterval == other.timeInterval)
@@ -1727,6 +1734,7 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
             result.Print(cerr);
             cerr << endl;
           }
+          assert ( !result.IsDefined() || result.IsValid() );
           return;
         }
 
@@ -1744,6 +1752,7 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
                  << "  d1X=" << d1.GetX() << " d2X=" << d2.GetX() << endl
                  << "  d1Y=" << d1.GetY() << " d2Y=" << d2.GetY() << endl;
           result.SetDefined( false );
+          assert ( !result.IsDefined() || result.IsValid() );
           return; // nothing to do
         }
       // Some intersection is possible, as projections intersect...
@@ -1813,11 +1822,13 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
               result.Print(cerr);
               cerr << endl;
             }
-          return;
+            assert ( !result.IsDefined() || result.IsValid() );
+            return;
         }
       // else: no result
       if (TA_DEBUG) cerr << "No intersection (2)." << endl;
       result.SetDefined( false );
+      assert ( !result.IsDefined() || result.IsValid() );
       return;
 }
 

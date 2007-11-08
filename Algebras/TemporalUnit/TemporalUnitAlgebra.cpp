@@ -8856,55 +8856,84 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
 
       if ( !u1->IsDefined() || !u2->IsDefined() )
         {
-//           cerr << "Undef input" << endl; 
+//        cerr << "Undef input" << endl;
           return 0;
         }
       if ( !u1->timeInterval.Intersects(u2->timeInterval) )
         {
-//           cerr << "Deftimes do not intersect" << endl; 
+//        cerr << "Deftimes do not intersect" << endl;
           return 0;
         }
 
-//       cerr << "Deftime intersect" << endl;
+//    cerr << "Deftime intersect" << endl;
       u1->timeInterval.Intersection(u2->timeInterval, iv);
       u1->Intersection(*u2, uinters);
-      ivInters = uinters.timeInterval;
+      if ( uinters.IsDefined() )
+        ivInters = uinters.timeInterval;
       compresult = (opcode == 0) ? uinters.IsDefined() : !uinters.IsDefined();
 
-      if (!uinters.IsDefined())
-      {// no intersection: result unit spans common interval totally
-//         cerr << "No intersection" << endl;
+      if ( !uinters.IsDefined() ||
+           ( uinters.IsDefined() && !uinters.timeInterval.Inside(ivInters))
+         )
+      {// no intersection or intersection outside common interval:
+       // result unit spans common interval totally
+//      cout << "No intersection in: "; iv.Print(cout); cout << endl;
         localinfo->intersectionBool->Add(UBool(iv,CcBool(true,compresult)));
         localinfo->NoOfResults++;
         localinfo->finished = false;
         return 0;
       }
-      if ( uinters.IsDefined() &&
-          !(iv.start == ivInters.start && iv.lc == ivInters.lc))
-      {// before intersection interval
-//         cerr << "Before intersection" << endl;
-        ivBefore=Interval<Instant>(iv.start,ivInters.start,iv.lc,!ivInters.lc);
-        localinfo->intersectionBool->Add(
-            ConstTemporalUnit<CcBool>(ivBefore, CcBool(true, !compresult)) );
-        localinfo->NoOfResults++;
-        localinfo->finished = false;
-      }
-      if (uinters.IsDefined())
-      { // at intersection interval
-//         cerr << "At intersection" << endl;
+
+      if( uinters.IsDefined() &&
+          iv.start == ivInters.start &&
+          iv.end == ivInters.end
+        )
+      {//  only one resultunit
+//      cout << "Complete intersection: "; ivInters.Print(cout); cout << endl;
         localinfo->intersectionBool->Add(
             ConstTemporalUnit<CcBool>(ivInters, CcBool(true, compresult)) );
         localinfo->NoOfResults++;
         localinfo->finished = false;
+        return 0;
       }
-      if (uinters.IsDefined() && !(iv.end==ivInters.end && iv.rc==ivInters.rc))
-      {// after intersection interval
-//         cerr << "After intersection" << endl;
-        ivAfter = Interval<Instant>(ivInters.end,iv.end,!ivInters.rc,iv.rc);
-        localinfo->intersectionBool->Add(
-            ConstTemporalUnit<CcBool>(ivAfter, CcBool(true, !compresult)) );
-        localinfo->NoOfResults++;
-        localinfo->finished = false;
+
+      if ( uinters.IsDefined() )
+      {// possibly more than 1 resultunit
+        if ( (iv.start < ivInters.start) ||
+             ( (iv.start == ivInters.start) && iv.lc && !ivInters.lc &&
+                ivInters.Inside(iv) )
+           )
+        {//  result before intersection interval
+          ivBefore=Interval<Instant>(iv.start,ivInters.start,
+                                     iv.lc,!ivInters.lc);
+//        cout << "Before intersection: "; ivBefore.Print(cout); cout << endl;
+          localinfo->intersectionBool->Add(
+              ConstTemporalUnit<CcBool>(ivBefore, CcBool(true, !compresult)) );
+          localinfo->NoOfResults++;
+          localinfo->finished = false;
+        }
+        if ( ivInters.Inside(iv) )
+        { // result at intersection interval
+          // UPoint::Intersection(...) will also return a result being on the
+          // limit of an open interval. Therefore, we need the second condition!
+//        cout << "At intersection: "; ivInters.Print(cout); cout << endl;
+          localinfo->intersectionBool->Add(
+              ConstTemporalUnit<CcBool>(ivInters, CcBool(true, compresult)) );
+          localinfo->NoOfResults++;
+          localinfo->finished = false;
+        }
+        if ( (iv.end > ivInters.end) ||
+              ( (iv.end == ivInters.end) && iv.rc && !ivInters.rc &&
+              ivInters.Inside(iv) )
+           )
+        {//  result after intersection interval
+          ivAfter = Interval<Instant>(ivInters.end,iv.end,!ivInters.rc,iv.rc);
+//        cout << "After intersection: "; ivAfter.Print(cout); cout << endl;
+          localinfo->intersectionBool->Add(
+              ConstTemporalUnit<CcBool>(ivAfter, CcBool(true, !compresult)) );
+          localinfo->NoOfResults++;
+          localinfo->finished = false;
+        }
       }
       return 0;
 
@@ -8983,40 +9012,68 @@ template <int opcode, int unit_arg>
       ivInters = uinters.timeInterval;
       compresult = (opcode == 0) ? uinters.IsDefined() : !uinters.IsDefined();
 
-      if (!uinters.IsDefined())
-      {// no intersection: result unit spans common interval totally
-//         cerr << "No intersection" << endl;
+      if ( !uinters.IsDefined() ||
+            ( uinters.IsDefined() && !uinters.timeInterval.Inside(ivInters))
+         )
+      {// no intersection or intersection outside common interval:
+       // result unit spans common interval totally
+//      cout << "No intersection in: "; iv.Print(cout); cout << endl;
         localinfo->intersectionBool->Add(UBool(iv,CcBool(true,compresult)));
         localinfo->NoOfResults++;
         localinfo->finished = false;
         return 0;
       }
-      if ( uinters.IsDefined() &&
-           !(iv.start == ivInters.start && iv.lc == ivInters.lc))
-      {// before intersection interval
-//         cerr << "Before intersection" << endl;
-        ivBefore=Interval<Instant>(iv.start,ivInters.start,iv.lc,!ivInters.lc);
-        localinfo->intersectionBool->Add(
-            ConstTemporalUnit<CcBool>(ivBefore, CcBool(true, !compresult)) );
-        localinfo->NoOfResults++;
-        localinfo->finished = false;
-      }
-      if (uinters.IsDefined())
-      { // at intersection interval
-//         cerr << "At intersection" << endl;
+
+      if( uinters.IsDefined() &&
+          iv.start == ivInters.start &&
+          iv.end == ivInters.end
+        )
+      {//  only one resultunit
+//      cout << "Complete intersection: "; ivInters.Print(cout); cout << endl;
         localinfo->intersectionBool->Add(
             ConstTemporalUnit<CcBool>(ivInters, CcBool(true, compresult)) );
         localinfo->NoOfResults++;
         localinfo->finished = false;
+        return 0;
       }
-      if (uinters.IsDefined() && !(iv.end==ivInters.end && iv.rc==ivInters.rc))
-      {// after intersection interval
-//         cerr << "After intersection" << endl;
-        ivAfter = Interval<Instant>(ivInters.end,iv.end,!ivInters.rc,iv.rc);
-        localinfo->intersectionBool->Add(
-            ConstTemporalUnit<CcBool>(ivAfter, CcBool(true, !compresult)) );
-        localinfo->NoOfResults++;
-        localinfo->finished = false;
+
+      if ( uinters.IsDefined() )
+      {// possibly more than 1 resultunit
+        if ( (iv.start < ivInters.start) ||
+              ( (iv.start == ivInters.start) && iv.lc && !ivInters.lc &&
+              ivInters.Inside(iv) )
+           )
+        {//  result before intersection interval
+          ivBefore=Interval<Instant>(iv.start,ivInters.start,
+                                     iv.lc,!ivInters.lc);
+//        cout << "Before intersection: "; ivBefore.Print(cout); cout << endl;
+          localinfo->intersectionBool->Add(
+              ConstTemporalUnit<CcBool>(ivBefore, CcBool(true, !compresult)) );
+          localinfo->NoOfResults++;
+          localinfo->finished = false;
+        }
+        if ( ivInters.Inside(iv) )
+        { // result at intersection interval
+          // UPoint::Intersection(...) will also return a result being on the
+          // limit of an open interval. Therefore, we need the second condition!
+//        cout << "At intersection: "; ivInters.Print(cout); cout << endl;
+          localinfo->intersectionBool->Add(
+              ConstTemporalUnit<CcBool>(ivInters, CcBool(true, compresult)) );
+          localinfo->NoOfResults++;
+          localinfo->finished = false;
+        }
+        if ( (iv.end > ivInters.end) ||
+              ( (iv.end == ivInters.end) && iv.rc && !ivInters.rc &&
+              ivInters.Inside(iv) )
+           )
+        {//  result after intersection interval
+          ivAfter = Interval<Instant>(ivInters.end,iv.end,!ivInters.rc,iv.rc);
+//        cout << "After intersection: "; ivAfter.Print(cout); cout << endl;
+          localinfo->intersectionBool->Add(
+              ConstTemporalUnit<CcBool>(ivAfter, CcBool(true, !compresult)) );
+          localinfo->NoOfResults++;
+          localinfo->finished = false;
+        }
       }
       return 0;
 
