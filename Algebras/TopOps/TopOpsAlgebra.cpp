@@ -1779,9 +1779,9 @@ ownertype selectNext( Line const* const line,
                       priority_queue<HalfSegment, 
                                      vector<HalfSegment>, 
                                      greater<HalfSegment> >& q,
-                      int& pos,
+                      int& posLine,
                       Point const* const point,
-                      const bool usePoint,
+                      int& posPoint, // >0: point already used
                       HalfSegment& resHs,
                       Point& resPoint){
 
@@ -1792,8 +1792,8 @@ ownertype selectNext( Line const* const line,
    const HalfSegment* hsmin = 0;
    HalfSegment hstmp;
    int src = 0;  
-   if(pos < size){
-      line->Get(pos,hsl);
+   if(posLine < size){
+      line->Get(posLine,hsl);
    }
    if(!q.empty()){
        hstmp = q.top();
@@ -1810,7 +1810,7 @@ ownertype selectNext( Line const* const line,
      }
    }
   
-   if(usePoint){ 
+   if(posPoint==0){  // point not already used
      if(!hsmin){
        src = 3;
      } else {
@@ -1823,13 +1823,14 @@ ownertype selectNext( Line const* const line,
 
    switch(src){
     case 0: return none;
-    case 1: pos++;
+    case 1: posLine++;
             resHs = *hsmin;
             return first;
     case 2: q.pop();
             resHs = *hsmin;
             return first;
     case 3: resPoint = *point;
+            posPoint++;
             return second;
     default: assert(false); 
              return none;
@@ -1837,33 +1838,184 @@ ownertype selectNext( Line const* const line,
 }
 
 
-void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
-#ifdef TOPOPS_USE_STATISTIC
-   GetCalls_l_p++;
-#endif
+ownertype selectNext( Line const* const line,
+                      priority_queue<HalfSegment, 
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q,
+                      int& posLine,
+                      Points const* const point,
+                      int& posPoint, // >0: point already used
+                      HalfSegment& resHs,
+                      Point& resPoint){
+
+   int sizeP = point->Size();
+   int sizeL = line->Size();
+
+  
+   const HalfSegment* hsl = 0;
+   const HalfSegment* hsq = 0;
+   const HalfSegment* hsmin = 0;
+   HalfSegment hstmp;
+   int src = 0;  
+   if(posLine < sizeL){
+      line->Get(posLine,hsl);
+   }
+   if(!q.empty()){
+       hstmp = q.top();
+       hsq = &hstmp;
+   }
+   if(hsl){
+      src = 1;
+      hsmin = hsl;
+   }
+   if(hsq){
+     if(!hsl || (*hsq < *hsl)){
+       src = 2;
+       hsmin = hsq;
+     }
+   }
+  
+   const Point * cp;
+   if(posPoint<sizeP){  // point not already used
+     point->Get(posPoint,cp);
+     if(!hsmin){
+       src = 3;
+     } else {
+       Point p = hsmin->GetDomPoint();
+       if(*cp < p){
+            src = 3;
+        }
+     }
+   }
+
+   switch(src){
+    case 0: return none;
+    case 1: posLine++;
+            resHs = *hsmin;
+            return first;
+    case 2: q.pop();
+            resHs = *hsmin;
+            return first;
+    case 3: resPoint = *cp;
+            posPoint++;
+            return second;
+    default: assert(false); 
+             return none;
+   }
+
+}
+/*
+~initBox~
+
+Initializes the result and performs a bounding box check.
+If the initialisation is sufficient to determine the result,
+i.e. if the line is empty, the result will be true. Otherwise,
+the result will be false. 
+
+*/
+bool initBox(Line const* const line, 
+             Point const* const  point, 
+             Int9M& res,
+             bool & pointdone){
    res.SetValue(0);
    res.SetEE(true);
+
    if(line->IsEmpty()){
-     res.SetEI(true);
-#ifdef TOPOPS_USE_STATISTIC
-     bb_l_p++;
-#endif
-     return;
+       res.SetEI(true);
+       return true;
    }
+   
    // the interior of a non-empty line has always
    // an intersection with the exterior of a single point
    // because of the difference in the dimension   
    res.SetIE(true);
 
-   bool pointdone = false;
+   pointdone = false;
    // the line contains at least one halfsegment
    Rectangle<2> bbox_line = line->BoundingBox();
    Rectangle<2> bbox_point = point->BoundingBox();
+   // both objects are disjoint
    if(!bbox_line.Intersects(bbox_point)){
       res.SetIE(true);
       res.SetEI(true);
       pointdone = true;
    }
+  
+   return false;
+}
+
+bool initBox(Line const* const line, 
+             Points const* const  point, 
+             Int9M& res,
+             bool & pointdone){
+   res.SetValue(0);
+   res.SetEE(true);
+
+   pointdone = false;
+   if(line->IsEmpty()){
+       if(point->IsEmpty()){
+          pointdone = true;
+          return true;
+       }
+       else {
+         res.SetEI(true);
+         return true;
+       }
+   }
+
+   
+   // the interior of a non-empty line has always
+   // an intersection with the exterior of a single point
+   // because of the difference in the dimension   
+   res.SetIE(true);
+  
+   if(point->IsEmpty()){
+      pointdone = true;
+      return false; // search for boundary points
+   }
+
+   
+   // line and point are non empty
+   Rectangle<2> bbox_line = line->BoundingBox();
+   Rectangle<2> bbox_point = point->BoundingBox();
+   // both objects are disjoint
+   if(!bbox_line.Intersects(bbox_point)){
+      res.SetIE(true);
+      res.SetEI(true);
+   }
+   return false;
+}
+
+/*
+~isDone~
+
+This function checks whether all possible intersections for the 
+parameter combination of the first to parameters are set in in the 
+matrix.
+
+*/
+
+bool isDone(Line const* const line, Point const* const point, Int9M m){
+
+  return m.GetBE() && // endpoint of the line has been found
+         (m.GetII()  || m.GetBI() || m.GetEI());
+}
+
+
+bool isDone(Line const* const line, Points const* const point, Int9M m){
+
+  return m.GetBE() && // endpoint of the line has been found
+         (m.GetII()  && m.GetBI() && m.GetEI());
+}
+
+template<class Pclass>
+void GetInt9M(Line const* const line, Pclass const* const point,Int9M& res){
+
+   bool pointdone1 = false;
+   if(initBox(line,point,res,pointdone1)){
+      return;
+   }
+ 
 
    // prefilter unsuccessful -> scan the halfsegments
 
@@ -1872,8 +2024,11 @@ void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
 
 
    bool done = false;
-   int pos = 0; // position within the line array
+   int posline = 0; // position within the line array
    ownertype owner;
+
+   int posPoint = pointdone1?1:0;
+
    HalfSegment resHs;
    Point resPoi;
    Point lastDomPoint;
@@ -1881,11 +2036,10 @@ void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
 
 
    while(!done &&  
-         ((owner=selectNext(line,q,pos,point,
-           !pointdone,resHs,resPoi))!=none)){
+         ((owner=selectNext(line,q,posline,point,
+           posPoint,resHs,resPoi))!=none)){
 
       if(owner==second){
-         pointdone = true;
          AVLSegment current(&resPoi,second);
 
 
@@ -1934,7 +2088,7 @@ void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
 
             }
          }
-         done = res.GetBE(); 
+         done = isDone(line,point,res); 
          lastDomPoint = resPoi;
       } else { // an halfsegment
         assert(owner==first);
@@ -2130,204 +2284,22 @@ void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
            }
        }
      }
-     done = pointdone && res.GetBE();
+     done = isDone(line,point,res);
    } // end sweep
 
-   if(lastDomPointCount==1 && 
-      (!AlmostEqual(lastDomPoint,*point))){ 
-           // last Point of the line is an endpoint
-//      cout << "SetBE at line " << __LINE__ << endl; // debug;
-//      cout << "Boundary point is " << lastDomPoint << endl; //debug
-      res.SetBE(true); // endpoint found for the line 
-   }   
-
-   if(!pointdone){ // tree empty but point not processed
-     if(AlmostEqual(lastDomPoint,*point)){
-       if(lastDomPointCount==0){
-         res.SetEI(true);
-       } else if(lastDomPointCount==1){
-         res.SetBI(true);
-       } else {
-         res.SetII(true);
-       }
-     } else  { // in exterior
-       res.SetEI(true);
-     }
-   }
+   if(lastDomPointCount==1) { 
+     // last Point of the line is an endpoint
+     res.SetBE(true); // endpoint found for the line 
+  }   
 }
 
 
-/*
-~GetInt9M~
+void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
+   GetInt9M<Point>(line,point,res);
+}
 
-This function computes the topological relationship between a 
-__line__ and a pointset as 9-intersection matrix. 
-
-~complexity~ O(n * (m+1))
-
-should be changed to a plane sweep algorithm!
-
-*/
-
-void GetInt9M(Line const* const line, Points const* const ps, Int9M& res){
-
-#ifdef TOPOPS_USE_STATISTIC
-   GetCalls_l_ps++;
-#endif
-   
-   res.SetValue(0);
-   res.SetEE(true);
-   // special case empty line 
-   if(line->IsEmpty()){
-#ifdef TOPOPS_USE_STATISTIC
-      bb_l_ps++;
-#endif
-      if(!ps->IsEmpty()){
-         res.SetEI(true);
-      }
-      return;
-   }
-    
-   // line net empty => interior of the line intersects the 
-   // exterior of the point (dimension difference)
-   res.SetIE(true);
-  
-   // special case empty point set 
-   if(ps->IsEmpty()){
-     // non-empty line
-     int num = NumberOfEndpoints(line,1);
-     if(num>0){
-       res.SetBE(true);
-     }
-#ifdef TOPOPS_USE_STATISTIC
-     bb_l_ps++; 
-#endif
-     return;
-   }
-
-   // both objects are not empty 
-   // bounding box check
-   Rectangle<2> bbox1 = line->BoundingBox();
-   Rectangle<2> bbox2 = ps->BoundingBox();
-   if(!bbox1.Intersects(bbox2)){
-      int num = NumberOfEndpoints(line,1,0);
-      if(num>0){
-        res.SetBE(true);
-      }
-      res.SetIE(true);
-#ifdef TOPOPS_USE_STATISTIC
-      bb_l_ps++;
-#endif
-      return;
-   }
-
-   // we have to scan the objects
-   HalfSegment const* chs=NULL; // current halfsegment
-   Point dp;                     // dominating point of chs
-   Point ndp;                    // non-dominating point of chs  
-   Coord dpx;                   // x coordinate of dp
-   Coord dpy;
-   Coord ndpx;
-
-   line->Get(0,chs);
-   dp = chs->GetDomPoint();
-   dpx = dp.GetX();
-
-   int ps_size = ps->Size();
-   // array stored the state of each point in ps
-   bool processed[ps_size];
-   for(int i=0;i<ps_size;i++){
-      processed[i] = false;
-   }
-
-   // jump over all points left from dp 
-   int min = 0;
-   int max = ps_size-1;
-   int mid;
-   Point const* psp=NULL; // current point in pointset
-   Coord pspx; // x coordinate of psp
-   while(min<max){
-      mid = (min+max)/2;
-      ps->Get(mid,psp);
-      pspx = psp->GetX();
-      if(pspx>dpx){
-        max = mid-1;
-      } else if (pspx<dpx){
-        min = mid+1;
-      } else{ // equals
-        max = mid;
-      }
-   }
-
-   if(min>0){ //there are points left of the line
-      res.SetEI(true);
-   }
-
-
-  
-   // min contains the first relevant point
-   int line_size = line->Size();
-   int pos = 0; // position of the current halfsegment
-   bool done = false; // no more points to handle
-
-   // check all interesting halfsegments
-   while(pos<line_size && !done){
-     line->Get(pos,chs);
-     dp = chs->GetDomPoint();
-     dpx = dp.GetX();
-     // jump overal all points left to dp
-     ps->Get(min,psp);
-     pspx = psp->GetX();
-     while( (min<ps_size) && (pspx < dpx) ){
-        if(!processed[min]){ // found point outside of line
-           res.SetEI(true);
-           //processed[min]=true; // not required
-        }
-        min++;
-        ps->Get(min,psp);
-        pspx = psp->GetX();
-     } 
-     if(min==ps_size){ // all points processed
-       done=true;
-       // check wether boundary points exists beginning from this point
-       int num = NumberOfEndpoints(line,1,pos);
-       if(num>0){
-          res.SetBE(true);
-       }
-     }else{ // further points exist
-       bool isEP = HasEndpointAt(line,pos);
-       ndp = chs->GetSecPoint();
-       ndpx = ndp.GetX();
-       dpy = dp.GetY();
-       int pointpos=min;
-       Point const* currentPoint;
-       Coord point_x;
-       Coord point_y;
-       while(((pspx<ndpx)|| (pspx==dpx)) && pointpos<ps_size){
-         ps->Get(pointpos,currentPoint);
-         point_x = currentPoint->GetX();
-         point_y = currentPoint->GetY();
-         if(!processed[pointpos]){  
-            if(AlmostEqual(dpx,point_x) && AlmostEqual(dpy,point_y)){
-              if(isEP){
-                res.SetBI(true);
-              } else{
-                res.SetII(true);
-              } 
-              processed[pointpos] = true; 
-            } else if(InnerContains(chs,*currentPoint)){
-              res.SetII(true);
-              processed[pointpos] = true;  
-            }
-         }
-         pointpos++;
-       } // end list of points
-     } // end points exists
-     pos++; // go to the next halfsegment
-   }  // go trought the halfsegments
-
-   return;
-
+void GetInt9M(Line const* const line, Points const* const point,Int9M& res){
+   GetInt9M<Points>(line,point,res);
 }
 
 
