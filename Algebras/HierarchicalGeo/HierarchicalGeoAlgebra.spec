@@ -29,13 +29,8 @@ operator p_passes alias P_PASSES pattern _ infixop _
 operator d_at alias D_AT pattern _ infixop _
 operator p_at alias P_AT pattern _ infixop _
 operator touncertain alias TOUNCERTAIN pattern op( _, _ )
-
-# During the implementation of the datatypes 'cupoint' and 'cmpoint' a re-
-# implementation of the uncertain-template became necessary.  So the following
-# two operators won't work anymore.
-
-#operator val alias VAL pattern op( _ )
-#operator tocpoint alias TOCPOINT pattern op( _, _ )
+operator generalize alias GENERALIZE pattern op( _, _, _ )
+operator getmpoint alias GETMPOINT pattern op( _ )
 
 
 

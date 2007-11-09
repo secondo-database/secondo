@@ -64,6 +64,13 @@ using namespace datetime;
 
 class CUPoint;
 class CMPoint;
+
+template <class Alpha>
+class HierarchicalEntity;
+
+typedef HierarchicalEntity<CUPoint> HCUPoint;
+class HCMPoint;
+class HMPoint;
 /*
 Forward declarations.
 
@@ -189,10 +196,6 @@ The flag that indicates if the value is defined or not.
 
 };
 
-
-
-
-
 /*
 3.2 CUPoint
 
@@ -234,15 +237,28 @@ The simple constructor, only defining the epsilon-value.
   
 */
   
-  CUPoint( const double epsilon, const UPoint* source):
-    UPoint( *source ),
-    Uncertain( epsilon ) 
+  CUPoint( const UPoint& source):
+    UPoint( source ),
+    Uncertain( 0.0 ) 
   {
     del.refs=1;
     del.isDelete=true;
   }
 /*
-The copy-constructor.
+A constructor to create an uncertain unit point from a unit point.
+
+*/
+  CUPoint( const double epsilon, const UPoint& source):
+    UPoint( source ),
+    Uncertain( epsilon ) 
+  {
+    del.refs=1;
+    del.isDelete=true;
+  }
+  
+/*
+A constructor to create an uncertain unit point from the given epsilon-value 
+and unit point. This constructor should only be used to create test-data!
   
 */
   CUPoint( const double epsilon, const Interval<Instant>& interval,
@@ -269,14 +285,13 @@ The copy-constructor.
     UPoint(source), 
     Uncertain(source)
   {
-    //*((Uncertain<Point>*)this) = *((Uncertain<Point>*)&source);
-    //*((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&source);
-    //p0 = source.p0;
-    //p1 = source.p1;
     del.refs=1;
     del.isDelete=true;
   }
-  
+/*
+The copy-constructor.
+
+*/  
   //inline virtual ~CUPoint() {}
   
 /*
@@ -369,11 +384,11 @@ pass.
   bool D_Passes( const Region& r ) const;
 
 /*
-The function-name D\_Passes() is a shorthand for 'Definitely\_Passes'. It returns
-TRUE, if there is a point in time, when the uncertain spatio-temporal object
-lies on or inside the given spatial object, and FALSE, when there may be no
-such point in time. Refering to a (certain) point-object, this will never occur if
-the uncertainty-value epsilon is greater than 0.
+The function-name D\_Passes() is a shorthand for 'Definitely\_Passes'. It 
+returns TRUE, if there is a point in time, when the uncertain spatio-temporal 
+object lies on or inside the given spatial object, and FALSE, when there may 
+be no such point in time. Refering to a (certain) point-object, this will 
+never occur if the uncertainty-value epsilon is greater than 0.
 
 */
   
@@ -404,8 +419,8 @@ CUPoints to be returned, so the result-type is a CMPoint.
   void P_At( const Region& r, CMPoint& result ) const;
 
 /*
-The function P\_At is a shorthand for 'Possibly\_At' and returns that part of the
-CUPoint, which possibly lies on or inside the given spatal object.
+The function P\_At is a shorthand for 'Possibly\_At' and returns that part of 
+the CUPoint, which possibly lies on or inside the given spatal object.
 
 */
 
@@ -812,54 +827,565 @@ Returns the MPoint's minimum bounding rectangle
 };
 
 /*
-3.4 HierarchicalMapping
+3.4 HierarchicalEntity
 
-a template class to bind all (uncertain) representations of one object to one 
-HierarchicalMapping object. 
-
-Attributes: 
-- iDX: DBArray
-- eLEM: DBArray
-- canDestroy : bool
-- ordered : bool
+This template class offers attributes and operations to store datatypes in a
+hierarchical structure.
 
 */
+template <class Alpha>
+class HierarchicalEntity
+{
+  public:
+/*
+3.4.1 Constructors
+
+*/
+  
+  HierarchicalEntity() {}
+/*
+The simple constructor. This constructor should not be used.
+
+*/
+  
+  //HierarchicalEntity( const HierarchicalEntity<Alpha>& entity) {}
+/*
+The copy-constructor.
+
+*/  
+  
+  HierarchicalEntity( const Alpha& alpha, const int idx,
+                      const int start, const int end ):
+    value(),
+    generalizedby( -1 ),
+    layer( -1 ),
+    index( idx ),
+    originstart( start ),
+    originend( end )
+  {
+    value.CopyFrom( &alpha );
+  }
+/*
+The creation of a HierarchicalEntity, setting the typically allready known
+attributes.
+
+*/
+  HierarchicalEntity( const Alpha& alpha, const int genby, const int l,
+                      const int idx, const int start, const int end ):
+    value(),
+    generalizedby( genby ),
+    layer( l ),
+    index( idx ),
+    originstart( start ),
+    originend( end )
+  {
+    value.CopyFrom( &alpha );
+  }
+/*
+A constructor which sets all attributes (usually unsed by the in-function).
+
+*/
+  ~HierarchicalEntity() {}
+                    
+  
+/*
+3.4.2 Member functions
+
+*/
+  
+  inline bool IsValid() const
+  {
+    if( index > -1 )
+      return true;
+    return false;
+  }
+  
+  inline bool IsLeaf() const
+  {    
+    if( index > -1 && originstart = originend )
+      return true;
+    return false;
+  }
+
+  inline bool IsRoot() const
+  {
+    if( index > -1 && generalizedby == -1 )
+      return true;
+    return false;
+  }
+
+  void InsertToHierarchy(const int idx)
+  {
+    index = idx;
+  }
+  
+  inline void SetLayer(const int l)
+  {
+    layer = l;
+  }
+  
+  inline int GetLayer() const
+  {
+    return layer;
+  }
+  
+  inline int GetIndex() const
+  {
+    return index;
+  }
+  
+  int GetGeneralizedby() const
+  {
+    return generalizedby;
+  }
+  
+  void SetGeneralizedby(const int idx)
+  {
+    if( generalizedby == -1 )
+      generalizedby = idx;
+    else
+    {
+      cout << "Error in HierarchicalEntity::SetGeneralizedby(): The Index"
+        "of the Generalization of this Entity is already set!\n";
+      cerr << "Error in HierarchicalEntity::SetGeneralizedby(): The Index"
+        "of the Generalization of this Entity is already set!\n";
+    }
+  }
+  
+  int GetOriginstart() const
+  {
+    return originstart;
+  }
+  
+  int GetOriginend() const
+  {
+    return originend;
+  }
+  
+/*
+3.4.3 Functions to be part of relations
+
+*/  
+  
+  inline bool IsDefined() const
+  {
+    return IsValid();
+  }
+  
+  inline void SetDefined(bool defined) {}
+  
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
+  
+  inline int Compare( const HierarchicalEntity *ntt2 ) const
+  {
+    // TODO
+    return 1;
+  }
+  
+  inline ostream& Print( ostream &os ) const
+  {
+    if( !IsDefined() )
+    {
+      return os << "(HierarchicalEntity: undefined)";
+    }
+    os << "(HierarchicalEntity: " << generalizedby << " " << layer << " "
+      << index << " " << originstart << " " << originend << "\n\t";
+    value.Print(os);
+    os << "\n)" << endl;
+    return os;
+  }
+  
+  
+  
+/*
+3.4.4 Attributes
+
+*/
+  Alpha value;
+/*
+The object to be stored in the hierarchical structure
+
+*/
+  protected:
+
+    int generalizedby;
+/*
+The index of the fathernode, containing a generalization that includes all of
+its sons.
+
+*/
+    int layer;
+/*
+The position in the array.
+
+*/  
+    int index;
+/*
+The position in the array.
+
+*/  
+    int originstart;
+/*
+The index of the first entity, generalized by this entity.
+
+*/  
+    int originend;
+/*
+The index of the last entity, generalized by this entity.
+
+*/  
+};
 
 
 /*
-3.5 HMPoint
+3.5 HUPoint
 
-the HierarchicalMovingPoint Type, containing a set of CUPoints from which
+represents an unit point (UPoint) within an hierarchical structure. 
+
+*/
+//typedef HierarchicalEntity<UPoint> HUPoint;
+
+
+/*
+3.6 HCUPoint
+
+represents an uncertain unit point (CUPoint) within an hierarchical structure. 
+
+*/
+typedef HierarchicalEntity<CUPoint> HCUPoint;
+
+
+/*
+3.7 HCMPoint
+
+The type Hierarchical Uncertain Moving Point defines a hierarchical structure 
+in which up to 5 various Generalizations of a particular moving point can be 
+stored. Every unit of such an uncertain moving point is encapsulated within an 
+object called HierarchicalEntity. Such an Entity defines the position in the 
+hierarchical structure.
+
+Every uncertain unit point of an upper layer (one of the layers 0 to 4) 
+generalizes a number of uncertain unit points within the layer below.
+
+*/
+class HCMPoint : public StandardAttribute
+{
+  public:
+/*
+3.7.1 Constructors and Destructor
+
+*/
+  HCMPoint() {}
+/*
+The simple constructor. This constructor should not be used.
+
+*/
+  HCMPoint( const int n ):
+    layer0epsilon( -1 ), layer1epsilon( -1 ), layer2epsilon( -1 ),
+    layer3epsilon( -1 ), layer4epsilon( -1 ),
+    layer0( 2 ), layer1( 2 ), layer2( 2 ), layer3( 2 ), layer4( n ),
+    canDestroy( false )
+  {
+    del.refs=1;
+    del.isDelete=true;
+  }
+/*
+A constructor, initializing space for ~n~ entities in the bottom layer.
+
+*/
+  ~HCMPoint()
+  {
+    if( canDestroy )
+    {
+      layer0.Destroy();
+      layer1.Destroy();
+      layer2.Destroy();
+      layer3.Destroy();
+      layer4.Destroy();
+    }
+  }
+/*
+The destructor.
+
+*/
+  void Destroy()
+  {
+    canDestroy = true;
+  }
+/*
+This function should be called before the destructor if one wants to destroy 
+the persistent arrays of hierarchical entities. It marks the persistent arrays 
+for destroying. The destructor will perform the real destroying.
+
+3.7.2 Member Functions
+
+*/
+  inline bool IsEmpty() const;
+  
+  
+  inline int GetNoComponents() const;
+/*
+Returns if the hierarchicalmapping contains no entities.
+
+*/   
+  
+  void Get( const int i, const HCUPoint*& hcup ) const;
+  
+  
+  void GetCMPoint( const double epsilon, CMPoint& result );
+  
+
+  void Add( const HCUPoint& hcup );
+   
+  //void GetGeneralization( const double epsilon, const Unit*& upi ) const;
+/*
+Returns the unit ~upi~ at the position ~i~ in the mapping.
+
+*/
+  void Clear();
+  
+/*
+Remove all units in the mapping.
+
+*/
+  bool IsValid() const;
+/*
+This functions tests if a ~HMPoint~ is in a valid format. It is used for 
+debugging purposes only. The ~HMPoint~ is valid, if the following conditions 
+are true:
+
+  1 Each entity is valid
+
+  2 Each entity within the layers 0 to 4 has defined indices pointing to its
+    origin-entity.
+
+  3 Each entity within the layers 1 to 5 has a defined index 'generalizedby'.
+
+3.7.3 Functions to be part of relations
+
+*/  
+  inline bool IsDefined() const
+  {
+    return true;
+  }
+  
+  inline void SetDefined( bool Defined ) {}
+  
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
+  
+  inline int Compare( const Attribute *arg ) const;
+  
+  
+  inline bool Adjacent( const Attribute *arg ) const
+  {
+    return false;
+  }
+
+  inline Attribute* Clone() const;
+  
+
+  inline ostream& Print( ostream &os ) const
+  {
+    os << "(HMPoint: Print function not jet implemented! \n ";
+    return os;
+  }
+  
+  inline size_t HashValue() const
+  {
+    return 0;
+  }
+  
+  inline void CopyFrom( const StandardAttribute* right );
+
+  
+  inline int NumOfFLOBs() const
+  {
+    return 5;
+  }
+  
+  inline FLOB* GetFLOB( const int i);
+  
+/*
+3.7.4 Attributes
+
+*/
+    double layer0epsilon, layer1epsilon, layer2epsilon, layer3epsilon,
+            layer4epsilon;
+/*
+5 variables of type double, to store the uncertainty-value of each layer.
+
+*/     
+    DBArray<HCUPoint> layer0, layer1, layer2, layer3, layer4;
+/*
+5 DBArrays to store the entities depending on their epsilon-value.
+
+*/
+
+  protected:
+
+    bool canDestroy;
+/*
+A flag indicating if the destructor should destroy also the persistent
+array of intervals.
+
+*/
+
+};
+
+/*
+3.8 HMPoint
+
+the HierarchicalMovingPoint Type, contains a set of CUPoints from which
 every Generalization of the corresponding MPoint can be extracted. This
 type also contains the UPoints of the origin MPoint as CUPoint-Objects with
 an epsilon-value = 0.
 
 */
+class HMPoint : public HCMPoint
+{
+  public:
+/*
+3.8.1 Constructors and Destructor
+
+*/
+  HMPoint() {}
+/*
+The simple constructor. This constructor should not be used.
+
+*/
+  HMPoint( const int n ):
+    HCMPoint( 2 ), certainlayer( n )
+  {
+    del.refs=1;
+    del.isDelete=true;
+  }
+/*
+A constructor, initializing space for ~n~ entities in the bottom layer.
+
+*/
+  HMPoint( const double epsilon, const double faktor, const MPoint& m ):
+    HCMPoint( 2 ), certainlayer( m.GetNoComponents() )
+  {
+    del.refs=1;
+    del.isDelete=true;
+  }
+/*
+This constructor creates a new HMPoint from the given MPoint-object. The units 
+of the MPoint will be stored in hierarchical entities in the DBArray layer5. 
+The layers 4 to 0 will be filled with generalizations of this MPoint, which 
+are computed using the given values epsilon and faktor.
+
+*/  
+  //virtual ~HierarchicalMapping();
+/*
+The destructor.
+
+*/  
+  
+/*
+3.8.2 member functions
+
+*/  
+  
+  void clear()
+  {
+    HCMPoint::Clear();
+    certainlayer.Clear();
+  }
+  
+  int GetNoComponents() const
+  {
+    int noComponents = HCMPoint::GetNoComponents() + certainlayer.Size();
+    return noComponents;
+  }
+  
+  void Get( const int i, const HCUPoint* ntt );
+  
+  
+  void GetCMPoint( const double epsilon, CMPoint& result );
+  
+  
+  void GetMPoint( MPoint& result );
+  
+  
+  void Add( const HCUPoint& hcup );
+  
+/*
+3.8.3 functions to be part of relations
+
+*/
+  
+  inline int Compare( const Attribute *arg ) const;
+  
+  
+  inline Attribute* Clone();
+
+  
+  inline void CopyFrom( const StandardAttribute* right );
+  
+  
+  inline int NumOfFLOBs() const
+  {
+    return 6;
+  }
+/*
+3.8.4 Attributes
+
+*/
+    DBArray<HCUPoint> certainlayer;
+/*
+The DBArray ~certainlayer~ stores only HCUPoint-objects with an epsilon-value 
+of 0.
+
+*/  
+};
+
 
 /*
-3.6 HCMPoint
-
-the type HierarchicalUncertainMovingPoint is a restricted variation of the
-type HierarchicalMovingPoint. It just contains those UPoints of the origin
-MPoint, that are necessary to build a particular minimal Generalization of
-this MPoint.
+3.9 Some auxiliary functions
 
 */
 
-
-/*
-3.7 Some auxiliary functions
-
-*/
 void Circle( const Point p, const double radius, const int n, Region& result);
+/*
+Computes a cirular shaped region around Point p, with the given radius. This 
+region consists of n pairs of halfsegments.
+
+*/
 
 bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
                     const double epsilon, Point& defPP);
+/*
+This function tries to find a point on halfsegment chs, that has exactly the 
+distance of espilon to the halfsegment rgnhs and lies on the inner side of 
+rgnhs. Therefore rgnhs must belong to a region, so that the Attribute 
+insideAbove is evaluable. If such a point exists, the parameter defPP is set 
+to this value and TRUE is returned. Otherwise FALSE is returned.
+
+*/
 
 bool FindPosPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
-                    const double epsilon, Point& defPP);
-
+                    const double epsilon, Point& posPP);
 /*
+Does the same as 'FindDefPassingPoint', but it tries to find that point on the 
+outer side of the halfsegment rgnhs. If such a point exists, the parameter 
+posPP is set to this value and TRUE is returned. Otherwise FALSE is returned.
+
+*/
+
+void Generalize( const double epsilon, const double factor, 
+                  const MPoint& source, HMPoint& result);
+/*
+This Function inserts a MPoint-object into the certainlayer of a HMPoint and 
+computes up to 5 generalizations of this MPoint which are stored in the layers 
+0 to 4.
+
 4 Type Constructors
 
 
