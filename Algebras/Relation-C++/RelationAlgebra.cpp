@@ -1398,13 +1398,15 @@ Consume(Word* args, Word& result, int message,
         if ( cli->state == 0 )	//working
         {
 
-	  pRes->Progress = p1.Progress;
-
-          //pRes->Progress = 
-          //  (p1.Progress * p1.Time + 
-          //    cli->current *  (uConsume + p1.SizeExt * vConsume 
-          //        + (p1.Size - p1.SizeExt) * wConsume) ) 
-          //      / pRes->Time;
+          if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+                                                        //use pipelining
+            pRes->Progress = p1.Progress;
+          else
+            pRes->Progress = 
+            (p1.Progress * p1.Time + 
+              cli->current *  (uConsume + p1.SizeExt * vConsume 
+                  + (p1.Size - p1.SizeExt) * wConsume) ) 
+                / pRes->Time;
         }
         else 			//finished
         {
@@ -1797,22 +1799,34 @@ Filter(Word* args, Word& result, int message,
         
         if ( fli )		//filter was started
         {
-          if ( fli->returned >= 5 ) 	//stable state assumed now
+          if ( fli->returned >= enoughSuccessesSelection ) 	
+						//stable state assumed now
           {
             pRes->Card =  p1.Card * 
               ( (double) fli->returned / (double) (fli->current)); 
             pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter; 
-            pRes->Progress = (p1.Progress * p1.Time 
-              + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
+
+            if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+                                                        //use pipelining
+              pRes->Progress = p1.Progress;
+            else
+              pRes->Progress = (p1.Progress * p1.Time 
+                + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
+
 	    pRes->CopyBlocking(p1);
             return YIELD;
           }
         }
-		//filter not yet started	
+		//filter not yet started or not enough seen	
  
 	pRes->Card = p1.Card * qp->GetSelectivity(s);
         pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
-        pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+
+        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
 	pRes->CopyBlocking(p1);
         return YIELD;
       }
@@ -2344,10 +2358,14 @@ Project(Word* args, Word& result, int message,
 		//only pointers are copied; therefore the tuple sizes do not
 		//matter
 
-        pRes->Progress = 
-          (p1.Progress * p1.Time +  
-            pli->read * (uProject + pli->noAttrs * vProject)) 
-          / pRes->Time;
+        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress = 
+            (p1.Progress * p1.Time +  
+              pli->read * (uProject + pli->noAttrs * vProject)) 
+            / pRes->Time;
 
 	pRes->CopyBlocking(p1);		//non-blocking operator
 

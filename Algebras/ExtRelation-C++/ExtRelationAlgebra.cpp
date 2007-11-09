@@ -1696,7 +1696,7 @@ const string KrdupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               ") )";
 
 /*
-2.13.3 Definition of operator ~rdup~
+2.13.3 Definition of operator ~krdup~
 
 */
 Operator krdup (
@@ -2186,14 +2186,26 @@ int RdupValueMapping(Word* args, Word& result, int message,
           {
             pRes->Card =  p1.Card *
               ((double) rli->returned / (double) (rli->read));
-            pRes->Progress = (p1.Progress * p1.Time
-              + rli->read * uRdup * vRdup) / pRes->Time;
+
+            if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+                                                        //use pipelining
+              pRes->Progress = p1.Progress;
+            else
+              pRes->Progress = (p1.Progress * p1.Time
+                + rli->read * uRdup * vRdup) / pRes->Time;
+
             return YIELD;
           }
         }
 
         pRes->Card = p1.Card * wRdup;
-        pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+
+        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
+
         return YIELD;
       }
       else return CANCEL;
@@ -3305,14 +3317,17 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
         pRes->Time = p1.Time + p1.Card * (uExtend + eli->noNewAttrs * vExtend);
 
-  pRes->Progress = p1.Progress;
 
-        //pRes->Progress =
-        //  (p1.Progress * p1.Time +
-        //    eli->read * (uExtend + eli->noNewAttrs * vExtend))
-        //  / pRes->Time;
+        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress =
+            (p1.Progress * p1.Time +
+              eli->read * (uExtend + eli->noNewAttrs * vExtend))
+            / pRes->Time;
 
-  pRes->CopyBlocking(p1);    //non-blocking operator
+        pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
       }
@@ -3732,21 +3747,26 @@ int Loopjoin(Word* args, Word& result, int message,
 
 
 
-        if (lli->returned > 5) 
+        if (lli->returned > enoughSuccessesJoin) 
         {
           pRes->Card = p1.Card  *
             ((double) (lli->returned) / 
               (double) (lli->readFirst));
         }
         else
-    pRes->Card = p1.Card  * p2.Card;
+          pRes->Card = p1.Card  * p2.Card;
 
         pRes->CopySizes(lli);
 
         pRes->Time = p1.Time + p1.Card * p2.Time;
 
-        pRes->Progress =
-          (p1.Progress * p1.Time + (double) lli->readFirst * p2.Time)
+
+        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress =
+            (p1.Progress * p1.Time + (double) lli->readFirst * p2.Time)
           / pRes->Time;
 
         pRes->CopyBlocking(p1);  //non-blocking operator;
@@ -5897,7 +5917,7 @@ int GroupByValueMapping
           }
 
           gbli->Size = 0.0;
-    gbli->SizeExt = 0.0;
+          gbli->SizeExt = 0.0;
           for (int i = 0; i < gbli->noAttrs; i++)
           {
             gbli->Size += gbli->attrSize[i];
@@ -6974,7 +6994,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->CopySizes(pli);
 
         double predCost = 
-    (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
+          (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
 
     //the default value of 0.1 is only suitable for selections
 
@@ -6987,7 +7007,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
           predCost * uSymmJoin)
           / pRes->Time;
 
-        if (pli->returned > 50 )   // stable state assumed now
+        if (pli->returned > enoughSuccessesJoin )   // stable state assumed now
         {
           pRes->Card = p1.Card * p2.Card *
             ((double) pli->returned / 

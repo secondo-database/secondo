@@ -1886,7 +1886,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 
-          if (li->returned > 50 ) 	// stable state assumed now
+          if (li->returned > enoughSuccessesJoin ) 	// stable state 
           {
             pRes->Card = ((double) li->returned * (p1.Card + p2.Card)
            /  ((double) li->readFirst + (double) li->readSecond));
@@ -2666,7 +2666,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 	  double firstBuffer = 
 	    minimum(((double) li->memorySecond / p2.SizeExt), p2.Card);
 
-          if ( li->returned > 50 ) // stable state  
+          if ( li->returned > enoughSuccessesJoin ) // stable state  
           {
             pRes->Card = p1.Card * noPasses *
               ((double) li->returned / (double) li->readFirst);
