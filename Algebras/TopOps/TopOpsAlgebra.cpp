@@ -567,8 +567,14 @@ Preconditions:
        } else { // different end point 
           common.x1 = x1;
           common.y1 = y1;
-          common.x2 = min(x2,s.x2);
-          common.y2 = min(y2,s.y2);
+          if(pointSmaller(x2,y2,s.x2,s.y2)){
+            common.x2 = x2;
+            common.y2 = y2;
+          } else {
+            common.x2 = s.x2;
+            common.y2 = s.y2;
+          }
+
           common.owner = both;
           if(this->owner==first){
             common.insideAbove_first  = insideAbove_first;
@@ -581,8 +587,13 @@ Preconditions:
           common.con_below = con_below;
           right.x1 = common.x2;
           right.y1 = common.y2;
-          right.x2 = max(x2,s.x2);
-          right.y2 = max(y2,s.y2);
+          if(pointSmaller(s.x2,s.y2,x2,y2)){
+             right.x2 = x2;
+             right.y2 = y2;
+          } else {
+             right.x2 = s.x2;
+             right.y2 = s.y2;
+          }
           if(pointSmaller(x2,y2,s.x2,s.y2)){
             right.owner = s.owner;
             right.insideAbove_first = s.insideAbove_first;
@@ -598,10 +609,17 @@ Preconditions:
        }
      } else { // left points are different
        // create the left segment
-       left.x1 = min(x1, s.x1);
-       left.y1 = min(y1, s.y1);
-       left.x2 = max(x1, s.x1);
-       left.y2 = max(y1, s.y1);
+       if(pointSmaller(x1,y1,s.x1,s.y1)){
+         left.x1 = x1;
+         left.y1 = y1;
+         left.x2 = s.x1;
+         left.y2 = s.y2;
+       } else {
+         left.x1 = s.x1;
+         left.y1 = s.x2;
+         left.x2 = x1;
+         left.y2 = y1;
+       }
        if(pointSmaller(x1, y1, s.x1, s.y1)){ // left is part of this
          left.owner = this->owner;
          left.insideAbove_first = this->insideAbove_first;
@@ -615,8 +633,13 @@ Preconditions:
        left.con_above = con_above;
        common.x1 = left.x2;
        common.y1 = left.y2;
-       common.x2 = min(x2, s.x2);
-       common.y2 = min(y1, s.y2);
+       if(pointSmaller(x2,y2,s.x2,s.y2)){
+          common.x2 = x2;
+          common.y2 = y2;
+       } else {
+          common.x2 = s.x2;
+          common.y2 = s.y2;
+       }
        common.owner = both;
        if(this->owner==first){
           common.insideAbove_first = this->insideAbove_first;
@@ -633,8 +656,13 @@ Preconditions:
        // create the right part
        right.x1 = common.x2;
        right.y1 = common.y2;
-       right.x2 = max(x2, s.x2);
-       right.y2 = max(y2, s.y2);
+       if(pointSmaller(s.x2,s.y2,x2,y2)){
+          right.x2 = x2;
+          right.y2 = y2;
+       } else {
+          right.x2 = s.x2;
+          right.y2 = s.y2;
+       }
        if(pointSmaller(x2,y2,s.x2,s.y2)){ // right owned by s
          right.owner = s.owner;
          right.insideAbove_first = s.insideAbove_first;
@@ -1304,6 +1332,8 @@ bool IsImplemented(ListExpr type1, ListExpr type2){
     
 
     if(((t1=="region") && (t2=="region"))) return true;
+    if((t1=="line") && (t1=="line")) return true;
+
 
     cout << t1 << " x " << t2 << " is not implemented" << endl;
     return false;
@@ -1356,7 +1386,7 @@ ListExpr TopPredTypeMap(ListExpr args){
 /*
 3.3.5 TopRelTypeMap
 
-This function is the Type mapping for the toppred operator.
+This function is the Type mapping for the toprel operator.
 
 */
 
@@ -1400,165 +1430,6 @@ ListExpr TopOpsGetStatTypeMap(ListExpr args){
 }
 #endif
 
-/*
-3.3.4 Support functions
-
-The following function are supporting the GetInt9M functions.
-
-
-~Compare~
-
-This function compare two point values
-
-*/
-  static int Compare(Point const*  p1, Point const* p2){
-     Coord x1 = p1->GetX();
-     Coord y1 = p1->GetY();
-     Coord x2 = p2->GetX();
-     Coord y2 = p2->GetY();
-     if(AlmostEqual(x1,x2) && AlmostEqual(y1,y2))
-       return 0;
-     if( (x1<x2) || ( AlmostEqual(x1,x2) && (y1<y2 ))){
-       return -1;
-     }
-     return 1;
-  } 
-
-/*
-~HasEndpointAt~
-
-Returns true if the dom,inating point of the halfsegment at 
-position __pos__ of line is an endpoint of this line.
-
-*/
-bool HasEndpointAt(Line const* line, const int pos){
-  int size = line->Size();
-  if((pos<0) || (pos>=size)){
-     return false;
-  }
-  HalfSegment const* chs;
-  line->Get(pos,chs);
-  Point p0 = chs->GetDomPoint();
-  
-  Point p1(.0,.0);
-  if(pos>0){
-     line->Get(pos-1,chs); 
-     p1 = chs->GetDomPoint();
-     if(p0==p1){
-        return false;
-     } 
-  }
-  if(pos<size-1){
-    line->Get(pos+1,chs);
-    p1 = chs->GetDomPoint();
-    if(p0==p1){
-       return false;
-    }
-  }
-  return true;
-}
-
-
-/*
-~NumberOfEndpoints~
-
-This function computes the number of endpoints of __line__.
-The function stops the computation when the number of endpoints
-is greater than or equals to __stop__. If this argument holds a
-value [<=] 0, the function will not stop before all halfsegments
-are processed. If the first argument is given, the search will start
-from this index within the halfsegments.
-
-Complexity: O(n)
-
-*/
-int  NumberOfEndpoints(Line const* const line, 
-                       const int stop=-1, 
-                       int first=0){
-  if(line->IsEmpty()){ // an empty line has no endpoints
-     return 0;
-  } 
-   
-  if(first<0){
-     first=0;
-  }
-  int size = line->Size();
-  if(first>=size){
-     return 0;
-  }
-
-  // because the first sort criteria of halfsegments is the 
-  // dominating point, we have just to check whether a halfsegment
-  // at index+1 or index-1 has the same dominating point
-  HalfSegment const* chs1=NULL;  
-  HalfSegment const* chs2=NULL;
-  Point p1;
-  Point p2;
-  line->Get(first,chs1);
-  p1 = chs1->GetDomPoint();
-  int pos=first+1;
-  int num=0; // no endpoint up to now
-  while(pos<size){
-    line->Get(pos,chs2);
-    p2 = chs2->GetDomPoint();
-    if(p1!=p2){ // found an endpoint
-      if( (pos==first+1) && first>0){
-         // check if the former dp is equals
-         HalfSegment const* chs3;
-         line->Get(first-1,chs3);
-         Point p3 = chs3->GetDomPoint();
-         if(p3==p1){
-             num--; 
-         }
-      }
-      num++;
-      if( (stop>0) && (num>=stop)){
-        return num;
-      }
-    }
-    pos++;
-    // search a point different to p2
-    bool found = false;
-    while( (pos<size) && !found){
-      line->Get(pos,chs1);
-      p1 = chs1->GetDomPoint();
-      if(p1!=p2){
-        found = true;
-      }
-      pos++;
-    }
-  }
-  return num;
-}
-
-
-
-/*
-~InnerContains~
-
-This function checks whether __point__ is located on the 
-interior of __chs__.
-This check is done by checking whether the distance between the
-endpoints of the segments is equals to the sum of the distances between
-the endpoints to the point to check.
-
-*/
-bool InnerContains(HalfSegment const* const chs, const Point& point){
-  Coord x = point.GetX();
-  Coord y = point.GetY();
-  Point p1 = chs->GetLeftPoint();
-  Point p2 = chs->GetRightPoint();
-  Coord x1 = p1.GetX();
-  Coord x2 = p2.GetX();
-  Coord y1 = p1.GetY();
-  Coord y2 = p2.GetY();
-  if( ( (x==x1) && (y==y1)) || // endpoint, not inner point
-      ( (x==x2) && (y==y2))){
-      return false;
-  } 
-  return chs->Contains(point);  
-}
-
 
 
 /*
@@ -1581,7 +1452,7 @@ void GetInt9M(Point* p1 , Point*  p2,Int9M& res){
   res.SetValue(0);
   // in each case, the exteriors intersect
   res.SetEE(true);
-  if(Compare(p1,p2)==0){
+  if(AlmostEqual(p1,p2)){
     res.SetII(true);
   }else{
     res.SetIE(true);
@@ -1722,7 +1593,7 @@ void GetInt9M(Points* ps1, Points*  ps2,
        assert(i2<n2);
        ps1->Get(i1,p1);
        ps2->Get(i2,p2);
-       int cmp = Compare(p1,p2);
+       int cmp = p1->Compare(p2);
        p1 = NULL;
        p2 = NULL;
        if(cmp==0){ //p1==p2
@@ -2668,98 +2539,6 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
   } // while
 }
 
-/*
-~GetInt9M~
-
-This function computes the 9-intesection matrix for two line objects.
-
-~Complexity~ $O(n^2)$
-
-*/
-void GetInt9M(Line const* const line1, Line const* const line2, Int9M& res){
-#ifdef TOPOPS_USE_STATISTIC
-  GetCalls_l_l++;
-#endif
-  res.SetValue(0);;
-  res.SetEE(true);
-  // check for emptyness
-  if(line1->IsEmpty()){
-    if(line2->IsEmpty()){ // no more intersection possible
-#ifdef TOPOPS_USE_STATISTIC
-       bb_l_l++;
-#endif
-       return; 
-    }else{
-      res.SetEI(true);
-      if( NumberOfEndpoints(line2,1)>0){
-         res.SetEB(true);
-      }
-#ifdef TOPOPS_USE_STATISTIC
-      bb_l_l++;
-#endif
-      return;
-    }
-  }
-
-  if(line2->IsEmpty()){
-     res.SetIE(true);
-     if(NumberOfEndpoints(line1,1)>0){
-        res.SetBE(true);
-     }
-#ifdef TOPOPS_USE_STATISTIC
-     bb_l_l++;
-#endif
-     return;
-  }
-  // bounding box check
-  Rectangle<2> bbox1 = line1->BoundingBox();
-  Rectangle<2> bbox2 = line2->BoundingBox();
-  if(!bbox1.Intersects(bbox2)){
-     res.SetIE(true);
-     res.SetEI(true);
-     if(NumberOfEndpoints(line1,1)>0){
-       res.SetBE(true);
-     }
-     if(NumberOfEndpoints(line2,1)>0){
-       res.SetEB(true);
-     }
-#ifdef TOPOPS_USE_STATISTIC
-     bb_l_l++;
-#endif
-     return;
-  }
-
-   HalfSegment const* chs1;
-   //HalfSegment const* chs2;
-   
-   int size1 = line1->Size();
-   //int size2 = line2->Size();
-   //bool done=false;
-   Point dp1;
-   Point dp2;
-
-   for(int i=0;i<size1;i++){
-      line1->Get(i,chs1);
-      Point dp1 = chs1->GetDomPoint();
-      // process endpoint if present 
-      if(HasEndpointAt(line1,i)){
-         
-
-      }
-               
-
-
-   }  
-   
-
-
-}
-
-
-
-
-
-
 
 /*
 Selects the mimimum halfsegment from reg1, reg2, q1, and q2.
@@ -2774,10 +2553,10 @@ Note: pos1 and pos2 are increased automatically. In the same way,
 
 
 */
-
-ownertype selectNext(Region const* const reg1,
+template<class T1, class T2>
+ownertype selectNext(T1 const* const reg1,
                      int& pos1,
-                     Region const* const reg2,
+                     T2 const* const reg2,
                      int& pos2,
                      priority_queue<HalfSegment,  
                                     vector<HalfSegment>, 
@@ -2842,6 +2621,22 @@ ownertype selectNext(Region const* const reg1,
 
 }
 
+
+ownertype selectNext(Region const* const reg1,
+                     int& pos1,
+                     Region const* const reg2,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result
+                    ){
+
+   return selectNext<Region,Region>(reg1,pos1,reg2,pos2,q1,q2,result);
+}
 
 class OwnedPoint{
 
@@ -3479,11 +3274,442 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
     }
 
   } 
+}
 
-  
 
+ownertype selectNext(Line const* const line1,
+                     int& pos1,
+                     Line const* const line2,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result
+                    ){
+
+   return selectNext<Line,Line>(line1,pos1,line2,pos2,q1,q2,result);
+}
+
+
+
+void updateDomPoints(Point& lastDomPoint, const Point& newDomPoint,
+                     int& lastDomPointCount1, int& lastDomPointCount2,
+                     ownertype owner,
+                     Int9M& res){
+
+  // update dominating point information
+  int sum = lastDomPointCount1 + lastDomPointCount2;
+
+// debug::start
+  /*
+   cout << "Update domPoints: " << endl;
+   if(sum==0){
+     cout << "there is no last dompoint " << endl;
+   } else {
+     cout << "lastDomPoint is" << lastDomPoint << endl;
+   }
+   cout << "newDomPoint : " << newDomPoint << endl;
+   cout << "count 1 : " << lastDomPointCount1 << endl;
+   cout << "count 2 : " << lastDomPointCount2 << endl;
+  */
+//debug::end
+
+  if( sum == 0 || !AlmostEqual(lastDomPoint,newDomPoint)){
+     // dominating point changed
+     if(lastDomPointCount1 == 1){
+        if(lastDomPointCount2 == 1){
+//           cout << "SetBB at" << __LINE__ << endl; // debug
+           res.SetBB(true);
+        } else if(lastDomPointCount2>1){
+//           cout << "SetBI at" << __LINE__ << endl; // debug
+           res.SetBI(true);
+        } else {
+//           cout << "SetBE at" << __LINE__ << endl; // debug
+           res.SetBE(true);
+        }
+     } else if(lastDomPointCount1 > 1){
+        if(lastDomPointCount2 == 1){
+//           cout << "SetIB at" << __LINE__ << endl; // debug
+           res.SetIB(true);
+        } else if(lastDomPointCount2>1){
+//           cout << "SetII at" << __LINE__ << endl; // debug
+           res.SetII(true);
+        } else {
+//           cout << "SetIE at" << __LINE__ << endl; // debug
+           res.SetIE(true);
+        }
+     } else { // lastDomPointCount1 == 0
+        if(lastDomPointCount2 == 1){
+//           cout << "SetEB at" << __LINE__ << endl; // debug
+           res.SetEB(true);
+        } else if(lastDomPointCount2>1){
+//           cout << "SetEI at" << __LINE__ << endl; // debug
+           res.SetEI(true);
+        } else {
+//           cout << "SetEE at" << __LINE__ << endl; // debug
+           res.SetEE(true);
+        }
+     }
+      
+     // update dompoint and counter
+     lastDomPoint = newDomPoint;
+     switch(owner){
+        case first: lastDomPointCount1 = 1;
+                    lastDomPointCount2 = 0;
+                    break;
+        case second: lastDomPointCount1 = 0;
+                     lastDomPointCount2 = 1;
+                     break;
+        case both:   lastDomPointCount1 = 1;
+                     lastDomPointCount2 = 1;
+                     break;
+        default : assert(false);
+     } 
+  } else { // dominating point not changed
+      switch(owner){
+         case first : lastDomPointCount1++;
+                      break;
+         case second: lastDomPointCount2++;
+                      break;
+         case both  : lastDomPointCount1++;
+                      lastDomPointCount2++;
+                      break;
+         default : assert(false);
+       } 
+  }
+}
+
+/*
+~insertEvents~
+
+Creates Events for the AVLSegment. The flags determines
+whether the left and / or the right events should be created.
+
+*/
+
+void insertEvents(const AVLSegment& seg,
+                  const bool createLeft,
+                  const bool createRight,
+                  priority_queue<HalfSegment,  
+                                 vector<HalfSegment>, 
+                                 greater<HalfSegment> >& q1,
+                  priority_queue<HalfSegment,  
+                                 vector<HalfSegment>, 
+                                 greater<HalfSegment> >& q2){
+   switch(seg.getOwner()){
+      case first: {
+                    if(createLeft){
+                      q1.push(seg.convertToHs(true, first));
+                    }
+                    if(createRight){
+                      q1.push(seg.convertToHs(false, first));
+                    }
+                  }
+                  break;
+      case second:
+                    if(createLeft){
+                      q2.push(seg.convertToHs(true, second));
+                    }
+                    if(createRight){
+                      q2.push(seg.convertToHs(false, second));
+                    }
+                    break;
+      case both :
+                    if(createLeft){
+                      q1.push(seg.convertToHs(true, first));
+                      q2.push(seg.convertToHs(true, second));
+                    }
+                    if(createRight){
+                      q1.push(seg.convertToHs(false, first));
+                      q2.push(seg.convertToHs(false, second));
+                    }
+                    break;
+      default: assert(false);
+   }
 
 }
+
+/*
+~performSplit~
+
+Replaces the original segment by left and inserts corresponding events 
+into the queues.
+ 
+
+*/
+void performSplit(AVLTree<AVLSegment>& sss,
+                  const AVLSegment& original,
+                  const AVLSegment& left,
+                  const AVLSegment& right,
+                  priority_queue<HalfSegment,  
+                                 vector<HalfSegment>, 
+                                 greater<HalfSegment> >& q1,
+                  priority_queue<HalfSegment,  
+                                 vector<HalfSegment>, 
+                                 greater<HalfSegment> >& q2){
+   
+   sss.remove(original);
+   bool ok = sss.insert(left);
+   assert(ok);
+//   cout << __LINE__ << ": insert Event for " << left << endl; //debug
+   insertEvents(left, false, true, q1, q2);
+//   cout << __LINE__ << ": insert Event for " << right << endl; //debug
+   insertEvents(right, true, true, q1, q2);
+}
+ 
+
+
+
+void GetInt9M(Line const* const line1, 
+              Line const* const line2, 
+              Int9M& res){
+
+
+// we can only ommit the planesweep if both lines are empty
+// disjointness of the lines is not sufficient to compute the 
+// result completely becaus it's not known if one of the line has
+// any endpoints. For this reason, we ommit the bounding box check
+
+ res.SetValue(0);
+ res.SetEE(true);
+
+ if(line1->IsEmpty() && line2->IsEmpty()){
+    return; // no further intersections can be found
+ }
+
+ // initialise the sweep state structure  
+ AVLTree<AVLSegment> sss;
+ // initialize priority queues for remaining parts of splitted
+ // segments
+ priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+ priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+
+ int pos1=0;
+ int pos2=0;
+
+ bool done = false;
+
+ HalfSegment nextHs;
+
+ ownertype owner;
+
+ const AVLSegment* leftN=0;
+ const AVLSegment* rightN=0;
+ const AVLSegment* member=0;
+
+ Point lastDomPoint;
+ int lastDomPointCount1 = 0;
+ int lastDomPointCount2 = 0;
+ AVLSegment left1,right1,left2,right2,common;
+
+
+ while(!done && 
+       ((owner=selectNext(line1,pos1,line2,pos2,q1,q2,nextHs))!=none) ){
+   AVLSegment current(&nextHs,owner);
+
+// debug::start
+ /* 
+   cout << endl << endl << "perform segment : " << current << "   ";
+   cout << (nextHs.IsLeftDomPoint()?"LEFT":"RIGHT") << endl;
+  */
+//debug::end
+
+   // try to find an overlapping segment in sss
+   member = sss.getMember(current,leftN,rightN);
+   if(nextHs.IsLeftDomPoint()){ // left event
+      if(member){ // overlapping segment found in sss
+        if(member->getOwner()==both || member->getOwner()==owner){
+           // member and owner comes from the same line
+           // create events for the remaining part 
+           if(!AlmostEqual(member->getX2(),current.getX2()) &&
+              current.getX2() > member->getX2()){
+             // current is an extension of member
+             current.splitAt(member->getX2(),member->getY2(),left1,right1);
+             insertEvents(right1,true,true,q1,q2);
+           } // otherwise we can ignore current
+        } else { // owner of member and current are different
+           // there is a common inner part
+           res.SetII(true);
+
+           int parts =  member->split(current, left1, common, right1);
+
+           // remove the old entry in sss
+           sss.remove(*member);
+           // insert left and common to sss
+           if(parts&LEFT){
+              bool ok = sss.insert(left1);
+              assert(ok);
+              insertEvents(left1,false,true,q1,q2);
+           } 
+           assert(parts & COMMON);
+           
+           bool ok = sss.insert(common);
+           assert(ok);
+           insertEvents(common,false,true,q1,q2);
+           // create events for right
+           if(parts & RIGHT){
+              insertEvents(right1,true,true,q1,q2);
+           }
+
+           Point newDomPoint = nextHs.GetDomPoint();
+           updateDomPoints(lastDomPoint,newDomPoint, 
+                          lastDomPointCount1,lastDomPointCount2,owner, res);
+           
+           if(parts & LEFT){
+              // we have already processed the left event for the 
+              // segement which is replaced by common,
+              switch(owner){
+                 case first: lastDomPointCount2++;
+                             break;
+                 case second: lastDomPointCount1++;
+                              break;
+                 default:     assert(false);
+               } 
+           }
+
+        } 
+      } else { // no overlapping segment stored in sss
+        if(leftN && !leftN->innerDisjoint(current)){
+          if(leftN->ininterior(current.getX1(),current.getY1())){
+             // leftN divided by current's start point
+             leftN->splitAt(current.getX1(),current.getY1(),left1,right1);
+             performSplit(sss,*leftN,left1,right1,q1,q2);
+             leftN = &left1; 
+          } else if(leftN->ininterior(current.getX2(),current.getY2())){
+             leftN->splitAt(current.getX2(),current.getY2(),left1,right1);
+             performSplit(sss,*leftN,left1,right1,q1,q2);
+             leftN = &left1; 
+          } else  if(leftN->crosses(current)){
+             if(current.getOwner()!=leftN->getOwner()){
+//                 cout << "SetII at" << __LINE__ << endl; // debug
+                 res.SetII(true);
+             }
+             leftN->splitCross(current,left1,right1,left2,right2);
+             performSplit(sss,*leftN,left1,right1,q1,q2);
+             leftN = &left1;
+             current = left2;
+             insertEvents(left2,false,true,q1,q2);
+             insertEvents(right2,true,true,q1,q2);
+          } else if(current.ininterior(leftN->getX2(),leftN->getY2())){
+             current.splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
+             current = left1;
+             insertEvents(left1,false,true,q1,q2);
+             insertEvents(right1,true,true,q1,q2); 
+          } else { // forgotten case
+             assert(false);
+          }
+        }
+        if(rightN && !rightN->innerDisjoint(current)){
+          if(rightN->ininterior(current.getX1(),current.getY1())){
+             // leftN divided by current's start point
+             rightN->splitAt(current.getX1(),current.getY1(),left1,right1);
+             performSplit(sss,*rightN,left1,right1,q1,q2);
+             rightN = &left1; 
+          } else if(rightN->ininterior(current.getX2(),current.getY2())){
+             rightN->splitAt(current.getX2(),current.getY2(),left1,right1);
+             performSplit(sss,*rightN,left1,right1,q1,q2);
+             rightN = &left1; 
+          } else  if(rightN->crosses(current)){
+             if(current.getOwner()!=rightN->getOwner()){
+//                 cout << "SetII at" << __LINE__ << endl; // debug
+                 res.SetII(true);
+             }
+             rightN->splitCross(current,left1,right1,left2,right2);
+             performSplit(sss,*rightN,left1,right1,q1,q2);
+             rightN = &left1;
+             current = left2;
+             insertEvents(left2,false,true,q1,q2);
+             insertEvents(right2,true,true,q1,q2);
+          } else if(current.ininterior(rightN->getX2(),rightN->getY2())){
+             current.splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
+             current = left1;
+             insertEvents(left1,false,true,q1,q2);
+             insertEvents(right1,true,true,q1,q2); 
+          } else { // forgotten case
+             assert(false);
+          }
+        }
+        updateDomPoints(lastDomPoint,nextHs.GetDomPoint(),
+                        lastDomPointCount1, lastDomPointCount2, 
+                        owner,res);
+        bool ok = sss.insert(current); 
+        assert(ok);
+      }
+
+   } else { // right Event
+     // check if current is stored in sss
+     if(member && member->exactEqualsTo(current)){
+
+        Point newDomPoint = nextHs.GetDomPoint();
+        updateDomPoints(lastDomPoint,newDomPoint, 
+                        lastDomPointCount1,lastDomPointCount2,
+                        member->getOwner(), res);
+
+        AVLSegment copy(*member);
+        sss.remove(current); 
+        member = &copy;
+
+        switch(member->getOwner()){
+          case first:  res.SetIE(true);
+//                       cout << "SetIE at" << __LINE__ << endl; // debug
+                       break;
+          case second: res.SetEI(true);
+//                       cout << "SetEI at" << __LINE__ << endl; // debug
+                       break;
+          case both  : res.SetII(true);
+//                       cout << "SetII at" << __LINE__ << endl; // debug
+                       break;
+          default:     assert(false);
+        }
+
+        // check for intersections of the neighbours
+        if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
+           if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
+              leftN->splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
+              performSplit(sss,*leftN,left1,right1,q1,q2);
+              leftN = &left1;
+
+           } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
+              rightN->splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
+              performSplit(sss,*rightN,left1,right1,q1,q2);
+              rightN = &left1;
+           } else if(rightN->crosses(*leftN)){
+               if(leftN->getOwner() != rightN->getOwner()){
+//                 cout << "SetII at" << __LINE__ << endl; // debug
+                 res.SetII(true);
+               }  
+               leftN->splitCross(*rightN,left1,right1,left2,right2);
+               performSplit(sss,*leftN,left1,right1,q1,q2);
+               performSplit(sss,*rightN,left2,right2,q1,q2);
+               leftN = &left1;
+               rightN = &left2;
+           } else {  // forgotten case
+             assert(false);
+           }
+        }          
+     } // otherwise current comes from a splitted segment and is ignored
+   }
+   done = res.IsFull() ||
+          (line1->IsEmpty() && res.GetEI() && 
+           res.GetEB() && res.GetEE()) ||
+          (line2->IsEmpty() && res.GetIE() && 
+           res.GetBE() && res.GetEE()) ;
+
+ } // end of sweep
+
+ // create a point which is different to the last domPoint
+ Point newDP(lastDomPoint);
+ newDP.Translate(100,0);
+ updateDomPoints(lastDomPoint, newDP, 
+                 lastDomPointCount1, lastDomPointCount2, 
+                 first,res);
+}
+
+
+
 
 
 
@@ -3700,14 +3926,16 @@ ValueMapping TopRelMap[] = {
        TopRelSym<Point,Points>, TopRel<Points,Points>, TopRel<Line,Point>,
        TopRelSym<Point,Line>,TopRel<Line,Points>,TopRelSym<Points,Line>,
        TopRel<Region,Point>,TopRelSym<Point,Region>,
-       TopRel<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>};
+       TopRel<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>,
+       TopRel<Line,Line>};
 
 ValueMapping TopPredMap[] = {
        TopPred<Point,Point> , TopPred<Points,Point>,
        TopPredSym<Point,Points>, TopPred<Points,Points>, TopPred<Line,Point>,
        TopPredSym<Point,Line>,TopPred<Line,Points>,TopPredSym<Points,Line>,
        TopPred<Region,Point>,TopPredSym<Point,Region>,
-       TopPred<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>};
+       TopPred<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>,
+       TopPred<Line,Line>};
 
 
 
@@ -3769,6 +3997,9 @@ static int TopOpsSelect(ListExpr args){
    }
    if(type1=="region" && (type2=="region")){
        return 12;
+   }
+   if( (type1=="line") && (type2=="line")){
+       return 13;
    }
 
    cerr << "selection function does not allow (" << type1 << " x " 
