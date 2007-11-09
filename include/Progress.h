@@ -50,6 +50,25 @@ messages. This is still work in progress!
 using namespace std;
 
 
+/*
+The following are thresholds used in filter and join operators to determine when to switch into warm state (i.e., trust the selectivity observation). The denote the number of matching tuples that must have been found.
+
+
+*/
+
+const int enoughSuccessesSelection = 50;
+const int enoughSuccessesJoin = 50;
+
+/*
+If switched on, suitable operators just use the progress value of their predecessor, if there is no blocking operator before them.
+
+*/
+
+const bool pipelinedProgress = true;
+
+
+
+
 class ProgressLocalInfo;
 
 class ProgressInfo
