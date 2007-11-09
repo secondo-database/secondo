@@ -3436,7 +3436,7 @@ Then call the operator's value mapping function.
   // a multiple of the one defined here.      
   static clock_t clockDelta = CLOCKS_PER_SEC ; 
   static clock_t lastClock = clock();
-  
+
   // Do a clock check only after some calls of this code
   // branch.
   static const int progressDelta = 100;
@@ -3457,14 +3457,7 @@ Then call the operator's value mapping function.
 
       if ( RequestProgress(QueryTree, &progress) )
       {
-        //cout << "Clock = " << lastClock; 
-        //cout << "   Progress: " << progress.Progress << endl;
-        //cout << "   Card: " << progress.Card;
-        //cout << "   Time: " << progress.Time;
-        //cout << "   Size: " << progress.Size << endl;
-
         if ( progressView ) progressView->ModifyProgressView(progress);
-
       }
 
       allowProgress = true;
