@@ -246,15 +246,15 @@ int Int9M::Compare(const Attribute* arg) const{
        return -1;
     if(!v->defined)
        return 1;
-    unsigned short pos=1;
-    for(int i=0;i<9;i++){
-       if(value&pos && !v->value&pos)
-          return 1;
-       if(!value&pos && v->value&pos)
-          return -1;
-       pos = pos*2;
+
+    if(value < v->value){
+       return -1;
+    } else  if(value >v->value){
+       return 1;
+    } else {
+       return 0;
     }
-    return 0;
+    
 }
 
 /*
