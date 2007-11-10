@@ -3929,6 +3929,7 @@ inline FLOB* HCMPoint::GetFLOB( const int i)
 3.7.1 Member Functions
 
 */
+
 void HMPoint::Get( const int i, const HCUPoint* ntt )
 {
   assert( i < GetNoComponents() );
@@ -4082,7 +4083,11 @@ void HMPoint::GetCMPoint( const double epsilon, CMPoint& result )
 
 void HMPoint::GetMPoint( MPoint& result )
 {
-  assert( certainlayer.Size() > 0 );
+  if( certainlayer.Size() == 0 )
+  {
+    result.SetDefined(false);
+    return;
+  }
   
   result.Clear();
   result.Resize( certainlayer.Size() );
@@ -4794,17 +4799,25 @@ void Generalize( const double epsilon, const double factor,
   // insert the MPoint into the DBArray certainlayer
   int n = source.GetNoComponents();
   const UPoint *unit;
+  result.certainlayer.Resize( n );
   for(int i = 0; i < n; i++)
   {
     source.Get(i, unit);
     CUPoint cunit(*unit);
-    HCUPoint ntt(cunit, i, -1, -1);
+    HCUPoint ntt(cunit, 5 , i, -1, -1);
     
-    // +++++ for debugging purposes only +++++
+    
     cout << "Copy unit " << i << " to the HMPoint!\n";
     
+      
     result.certainlayer.Put(i, ntt);
   }
+  
+  // create the first generalization from the Units of the certainlayer
+  
+  double aktepsilon = epsilon;
+  
+  
   
   // TODO: implement the creation of up to 5 generalizations by using the
   // Douglas-Peucker algorithm.
@@ -5607,11 +5620,11 @@ bool CheckHMPoint( ListExpr type, ListExpr& errorInfo )
 
 */
 ListExpr OutHMPoint( ListExpr typeInfo, Word value )
-{
+{ 
   HMPoint* hmp = (HMPoint*)(value.addr);
-  if(! hmp->IsDefined()){
+  if(! hmp->IsDefined())
     return nl->SymbolAtom("undef");
-  } else
+  else
   if( hmp->IsEmpty() )
     return (nl->TheEmptyList());
   else
@@ -5619,11 +5632,13 @@ ListExpr OutHMPoint( ListExpr typeInfo, Word value )
     ListExpr l = nl->TheEmptyList(),
              lastElem, entityList;
 
-    for( int i = 0; i < hmp->GetNoComponents(); i++ )
+    // return the entities of each layer
+    
+    for( int i = 0; i < hmp->layer0.Size(); i++ )
     {
-      const HCUPoint *entity;
-      hmp->Get( i, entity );
-      HCUPoint *aux = (HCUPoint*)entity;
+      const HCUPoint *ntt;
+      hmp->layer0.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
       entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
       if( l == nl->TheEmptyList() )
       {
@@ -5633,6 +5648,84 @@ ListExpr OutHMPoint( ListExpr typeInfo, Word value )
       else
         lastElem = nl->Append( lastElem, entityList );
     }
+    
+    for( int i = 0; i < hmp->layer1.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hmp->layer1.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    for( int i = 0; i < hmp->layer2.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hmp->layer2.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    for( int i = 0; i < hmp->layer3.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hmp->layer3.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    for( int i = 0; i < hmp->layer4.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hmp->layer4.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    for( int i = 0; i < hmp->certainlayer.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hmp->certainlayer.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    
+    
     return l;
   }
 }
@@ -5643,6 +5736,8 @@ ListExpr OutHMPoint( ListExpr typeInfo, Word value )
 Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct )
 {
+  // +++++ for debugging purposes only +++++
+  cout << "The In-Function of HMPoint is executed!\n";
 
   int numEntities = nl->ListLength(instance);
   HMPoint* hmp = new HMPoint( numEntities );
@@ -5691,23 +5786,48 @@ Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
       delete hmp;
       return SetWord( Address(0) );
     }
-    hmp->Add( *ntt );
+    
+    const int layer = ntt->GetLayer();
+    
+    switch( layer )
+    {
+      case 0:
+        hmp->layer0.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 1:
+        hmp->layer1.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 2:
+        hmp->layer2.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 3:
+        hmp->layer3.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 4:
+        hmp->layer4.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 5:
+        hmp->certainlayer.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      default:
+        // this point should never be reached!
+        cout << "Error in InHMPoint: The layer-number of an entity is greater"
+          << " than 5!\n";
+        correct = false;
+        delete hmp;
+        return SetWord( Address(0) );
+    }
     nttcounter++;
     delete ntt;
   }
   return SetWord( hmp );
 }
-
-/*
-5.5.6 ~Open~-function
-
-Up to now, the default mechanism using the In- and Out-functions is used.
-
-
-5.5.7 ~Save~-function
-
-Up to now, the default mechanism using the In- and Out-functions is used.
-*/
 
 
 /*
@@ -5716,7 +5836,7 @@ Up to now, the default mechanism using the In- and Out-functions is used.
 */
 Word CreateHMPoint( const ListExpr typeInfo )
 {
-  return (SetWord( new HMPoint() ));
+  return (SetWord( new HMPoint( 0 ) ));
 }
 
 /*

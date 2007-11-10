@@ -854,11 +854,11 @@ The copy-constructor.
 
 */  
   
-  HierarchicalEntity( const Alpha& alpha, const int idx,
+  HierarchicalEntity( const Alpha& alpha, const int l, const int idx,
                       const int start, const int end ):
     value(),
     generalizedby( -1 ),
-    layer( -1 ),
+    layer( l ),
     index( idx ),
     originstart( start ),
     originend( end )
@@ -1086,7 +1086,7 @@ The simple constructor. This constructor should not be used.
   HCMPoint( const int n ):
     layer0epsilon( -1 ), layer1epsilon( -1 ), layer2epsilon( -1 ),
     layer3epsilon( -1 ), layer4epsilon( -1 ),
-    layer0( 2 ), layer1( 2 ), layer2( 2 ), layer3( 2 ), layer4( n ),
+    layer0( 0 ), layer1( 0 ), layer2( 0 ), layer3( 0 ), layer4( n ),
     canDestroy( false )
   {
     del.refs=1;
@@ -1260,7 +1260,7 @@ The simple constructor. This constructor should not be used.
 
 */
   HMPoint( const int n ):
-    HCMPoint( 2 ), certainlayer( n )
+    HCMPoint( 0 ), certainlayer( n )
   {
     del.refs=1;
     del.isDelete=true;
@@ -1270,7 +1270,7 @@ A constructor, initializing space for ~n~ entities in the bottom layer.
 
 */
   HMPoint( const double epsilon, const double faktor, const MPoint& m ):
-    HCMPoint( 2 ), certainlayer( m.GetNoComponents() )
+    HCMPoint( 0 ), certainlayer( m.GetNoComponents() )
   {
     del.refs=1;
     del.isDelete=true;
@@ -1297,6 +1297,16 @@ The destructor.
   {
     HCMPoint::Clear();
     certainlayer.Clear();
+  }
+
+/*
+It is necessary to overload the function IsEmpty to ensure that it uses the
+right function GetNoComponents.
+
+*/  
+  inline bool IsEmpty() const
+  {
+    return (GetNoComponents() == 0);
   }
   
   int GetNoComponents() const
