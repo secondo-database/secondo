@@ -1332,7 +1332,8 @@ bool IsImplemented(ListExpr type1, ListExpr type2){
     
 
     if(((t1=="region") && (t2=="region"))) return true;
-    if((t1=="line") && (t1=="line")) return true;
+    if((t1=="line") && (t2=="line")) return true;
+    if((t1=="line") && (t2=="region")) return true;
 
 
     cout << t1 << " x " << t2 << " is not implemented" << endl;
@@ -2564,7 +2565,8 @@ ownertype selectNext(T1 const* const reg1,
                      priority_queue<HalfSegment,  
                                     vector<HalfSegment>, 
                                     greater<HalfSegment> >& q2,
-                     HalfSegment& result
+                     HalfSegment& result,
+                     int& src = 0
                     ){
 
 
@@ -2610,6 +2612,7 @@ ownertype selectNext(T1 const* const reg1,
        }
     }
   }
+  src = index +  1;
   switch(index){
     case 0: pos1++; return first; 
     case 1: q1.pop();  return first;
@@ -2632,10 +2635,10 @@ ownertype selectNext(Region const* const reg1,
                      priority_queue<HalfSegment,  
                                     vector<HalfSegment>, 
                                     greater<HalfSegment> >& q2,
-                     HalfSegment& result
+                     HalfSegment& result,
+                     int& src // for debugging only
                     ){
-
-   return selectNext<Region,Region>(reg1,pos1,reg2,pos2,q1,q2,result);
+   return selectNext<Region,Region>(reg1,pos1,reg2,pos2,q1,q2,result,src);
 }
 
 class OwnedPoint{
@@ -2734,8 +2737,9 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
   const AVLSegment* rightN=0; // the right neighbour of member
   ownertype owner;
   OwnedPoint lastDomPoint; // initialized to be undefined
+  int src; 
 
-  while( ((owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg))!=none)
+  while( ((owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg,src))!=none)
           && !done){
 
     AVLSegment current(&nextSeg,owner);
@@ -3287,10 +3291,11 @@ ownertype selectNext(Line const* const line1,
                      priority_queue<HalfSegment,  
                                     vector<HalfSegment>, 
                                     greater<HalfSegment> >& q2,
-                     HalfSegment& result
+                     HalfSegment& result,
+                     int& src
                     ){
 
-   return selectNext<Line,Line>(line1,pos1,line2,pos2,q1,q2,result);
+   return selectNext<Line,Line>(line1,pos1,line2,pos2,q1,q2,result, src);
 }
 
 
@@ -3451,8 +3456,9 @@ void performSplit(AVLTree<AVLSegment>& sss,
                                  vector<HalfSegment>, 
                                  greater<HalfSegment> >& q2){
    
-   sss.remove(original);
-   bool ok = sss.insert(left);
+   bool ok = sss.remove(original);
+   assert(ok);
+   ok = sss.insert(left);
    assert(ok);
 //   cout << __LINE__ << ": insert Event for " << left << endl; //debug
    insertEvents(left, false, true, q1, q2);
@@ -3504,10 +3510,10 @@ void GetInt9M(Line const* const line1,
  int lastDomPointCount1 = 0;
  int lastDomPointCount2 = 0;
  AVLSegment left1,right1,left2,right2,common;
-
+ int src;
 
  while(!done && 
-       ((owner=selectNext(line1,pos1,line2,pos2,q1,q2,nextHs))!=none) ){
+       ((owner=selectNext(line1,pos1,line2,pos2,q1,q2,nextHs,src))!=none) ){
    AVLSegment current(&nextHs,owner);
 
 // debug::start
@@ -3584,7 +3590,6 @@ void GetInt9M(Line const* const line1,
              leftN = &left1; 
           } else  if(leftN->crosses(current)){
              if(current.getOwner()!=leftN->getOwner()){
-//                 cout << "SetII at" << __LINE__ << endl; // debug
                  res.SetII(true);
              }
              leftN->splitCross(current,left1,right1,left2,right2);
@@ -3614,7 +3619,6 @@ void GetInt9M(Line const* const line1,
              rightN = &left1; 
           } else  if(rightN->crosses(current)){
              if(current.getOwner()!=rightN->getOwner()){
-//                 cout << "SetII at" << __LINE__ << endl; // debug
                  res.SetII(true);
              }
              rightN->splitCross(current,left1,right1,left2,right2);
@@ -3654,13 +3658,10 @@ void GetInt9M(Line const* const line1,
 
         switch(member->getOwner()){
           case first:  res.SetIE(true);
-//                       cout << "SetIE at" << __LINE__ << endl; // debug
                        break;
           case second: res.SetEI(true);
-//                       cout << "SetEI at" << __LINE__ << endl; // debug
                        break;
           case both  : res.SetII(true);
-//                       cout << "SetII at" << __LINE__ << endl; // debug
                        break;
           default:     assert(false);
         }
@@ -3678,7 +3679,6 @@ void GetInt9M(Line const* const line1,
               rightN = &left1;
            } else if(rightN->crosses(*leftN)){
                if(leftN->getOwner() != rightN->getOwner()){
-//                 cout << "SetII at" << __LINE__ << endl; // debug
                  res.SetII(true);
                }  
                leftN->splitCross(*rightN,left1,right1,left2,right2);
@@ -3709,6 +3709,390 @@ void GetInt9M(Line const* const line1,
 }
 
 
+ownertype selectNext(Line const* const line,
+                     int& pos1,
+                     Region const* const region,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result,
+                     int& src
+                    ){
+
+   return selectNext<Line,Region>(line,pos1,region,pos2,q1,q2,result,src);
+}
+
+
+
+
+void updateDomPointInfo_Line_Region(Point& lastDomPoint,
+                                    const Point& newDomPoint,
+                                    int& count_line,
+                                    int& count_region,
+                                    const int coverage_Num,
+                                    const ownertype owner, 
+                                    Int9M& res){
+// debug::start
+
+  /*    cout << "UpdateDomPointInfo" << endl;
+    cout << " count:line " << count_line << endl;
+    cout << "cont_region " << count_region << endl << endl;
+  */
+// debug::end
+
+
+    int sum = count_line + count_region;
+    if(sum == 0 || !AlmostEqual(newDomPoint,lastDomPoint)){
+       // dominating point changed
+       if(count_line==0) { // exterior of the line
+          if(count_region>0){  // boundary of the region
+             res.SetEB(true);
+          } else { 
+             res.SetEE(true);
+          }
+       } else if(count_line == 1) { // boundary of the line
+         if(count_region>0){ // boundary of the region
+            res.SetBB(true);
+         } else {
+           if(coverage_Num==0){
+              res.SetBE(true);
+           } else {
+              res.SetBI(true);
+           }
+         }
+       } else { // interior of the line
+         if(count_region > 0){
+            res.SetIB(true);
+         } else {
+           if(coverage_Num==0){
+              res.SetIE(true);
+           } else {
+              res.SetII(true);
+           }
+         }
+       }
+       lastDomPoint = newDomPoint;
+       switch(owner){
+         case first : count_line = 1;
+                      count_region = 0;
+                      break;
+         case second: count_line = 0;
+                      count_region = 1;
+                      break;
+         case both  : count_line = 1;
+                      count_region = 1;
+                      break;
+         default    : assert(false);
+      }
+    } else { // dompoint was not changed
+       switch(owner){
+         case first : count_line++;
+                      break;
+         case second: count_region++;
+                      break;
+         case both  : count_line++;
+                      count_region++;
+                      break;
+         default    : assert(false);
+      }
+
+
+    }
+}
+
+
+
+
+void GetInt9M(Line   const* const line, 
+              Region const* const region, 
+              Int9M& res){
+
+  res.SetValue(0);
+  res.SetEE(true);
+  if(line->IsEmpty()){
+     if(region->IsEmpty()){
+       return;
+     } else {
+        res.SetEI(true);
+        res.SetEB(true);
+        res.SetEE(true);
+        return;
+     }
+  }   
+
+  if(!region->IsEmpty()){
+     res.SetEI(true);
+  }
+
+ // initialise the sweep state structure  
+ AVLTree<AVLSegment> sss;
+ // initialize priority queues for remaining parts of splitted
+ // segments
+ priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+ priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+
+ int pos1=0;
+ int pos2=0;
+
+ bool done = false;
+
+ HalfSegment nextHs;
+
+ ownertype owner;
+
+ const AVLSegment* leftN=0;
+ const AVLSegment* rightN=0;
+ const AVLSegment* member=0;
+
+ Point lastDomPoint;
+ int lastDomPointCount1 = 0;
+ int lastDomPointCount2 = 0;
+ AVLSegment left1,right1,left2,right2,common;
+
+ int src;
+
+ while(!done && 
+       ((owner=selectNext(line,pos1,region,pos2,q1,q2,nextHs,src))!=none)){
+
+  
+
+     AVLSegment current(&nextHs,owner);
+
+
+//  debug::start
+//    cout << "Process segment " << current;
+//    cout << "   " << (nextHs.IsLeftDomPoint()?"LEFT":"RIGHT") << endl;    
+//    cout << "Sourcve is " << src << endl;
+
+// debug::end
+
+     member = sss.getMember(current,leftN,rightN);
+     ownertype owner2 = owner;
+
+     if(nextHs.IsLeftDomPoint()){ // left end point
+       if(member){ // overlapping segment found
+         if(member->getOwner()==both || member->getOwner()==owner){
+            // current is part of member
+            if( (member->getX2() < current.getX2()) && 
+                 !AlmostEqual(member->getX2(), current.getX2())){
+               current.splitAt(member->getX2(),member->getY2(),left1,right1);
+               insertEvents(right1,true,true,q1,q2);  
+            } // otherwise there is nothing to do
+         } else { // stored segment come from the other spatial object
+            res.SetIB(true);
+            int parts = member->split(current,left1,common,right1);
+            sss.remove(*member);
+            member = &common;
+            if(parts & LEFT){
+              sss.insert(left1);
+              insertEvents(left1,false,true,q1,q2);
+            }
+            assert(parts & COMMON);
+
+            
+            // update coverage numbers
+            if(owner==first){ // the line
+              common.con_below = member->con_below;
+              common.con_above = member->con_above;
+            } else { // a region
+              common.con_below = member->con_below;
+              if(current.isVertical()){
+                 common.con_above = current.con_below; 
+              } else { // non-vertical
+                 if(nextHs.attr.insideAbove){
+                   common.con_above = common.con_below +1;
+                 } else {
+                   common.con_above = common.con_below -1;
+                 }
+              }
+            }
+
+            assert(current.con_below + current.con_above >= 0);
+            assert(current.con_below + current.con_above <= 1);
+
+            sss.insert(common);
+            insertEvents(common,false,true,q1,q2);
+            if(parts & RIGHT){
+              insertEvents(right1,true,true,q1,q2);
+            }
+
+
+            if(parts & LEFT){ // this dominating point comes from both 
+                              // halfsegments
+               owner2 = both;
+            }
+            // update counter for dominating points
+            Point domPoint = nextHs.GetDomPoint();
+            int cover = leftN?leftN->con_above:0;
+            updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
+                                           lastDomPointCount1, 
+                                           lastDomPointCount2,
+                                           cover,owner2,res);
+         }
+       } else { // no overlapping segment found
+          // check if current or an existing segment must be divided
+          if(leftN && !leftN->innerDisjoint(current)){
+              if(current.ininterior(leftN->getX2(), leftN->getY2())){
+                current.splitAt(leftN->getX2(), leftN->getY2(),left1,right1);
+                current = left1;
+                insertEvents(left1,false,true,q1,q2);
+                insertEvents(right1,true,true,q1,q2); 
+              } else if(leftN->ininterior(current.getX1(),current.getY1())){
+                leftN->splitAt(current.getX1(),current.getY1(),left1,right1);
+                performSplit(sss,*leftN,left1,right1,q1,q2);
+                leftN = &left1;
+                if(owner != leftN->getOwner()){
+                   owner2 = both;
+                }
+              } else if(leftN->ininterior(current.getX2(),current.getY2())){
+                leftN->splitAt(current.getX2(),current.getY2(),left1,right1);
+                performSplit(sss,*leftN,left1, right1, q1, q2);
+                leftN = &left1;
+              } else if(leftN->crosses(current)){
+                 leftN->splitCross(current,left1,right1,left2,right2);
+                 performSplit(sss,*leftN,left1,right1,q1,q2);
+                 leftN = &left1;
+                 current = left2;
+                 insertEvents(left2,false,true,q1,q2); 
+                 insertEvents(right2,true,true,q1,q2);
+              } else {
+                  assert(false);
+              }
+          }
+          // check for intersections with the right neighbour
+          if(rightN && !rightN->innerDisjoint(current)){
+              if(current.ininterior(rightN->getX2(), rightN->getY2())){
+                current.splitAt(rightN->getX2(), rightN->getY2(),left1,right1);
+                current = left1;
+                insertEvents(left1,false,true,q1,q2);
+                insertEvents(right1,true,true,q1,q2); 
+              } else if(rightN->ininterior(current.getX1(),current.getY1())){
+                rightN->splitAt(current.getX1(),current.getY1(),left1,right1);
+                performSplit(sss,*rightN,left1,right1,q1,q2);
+                rightN = &left1;
+                if(owner != rightN->getOwner()){
+                  owner2 = both;
+                }
+              } else if(rightN->ininterior(current.getX2(),current.getY2())){
+                cout << "rightN divided by current.end" << endl;
+                rightN->splitAt(current.getX2(),current.getY2(),left1,right1);
+                performSplit(sss,*rightN,left1, right1, q1, q2);
+                rightN = &left1;
+              } else if(rightN->crosses(current)){
+                 rightN->splitCross(current,left1,right1,left2,right2);
+
+                 performSplit(sss,*rightN,left1,right1,q1,q2);
+                 rightN = &left1;
+                 current = left2;
+                 insertEvents(left2,false,true,q1,q2); 
+                 insertEvents(right2,true,true,q1,q2);
+              } else {
+
+                 cout << "!innerdisjoint but not processed" << endl;
+                 cout << "current is " << current << endl;
+                 cout << "rightN is " << *rightN << endl;
+
+                 assert(false);
+              }
+          }
+
+
+          // update coverage numbers
+          if(leftN){
+             current.con_below = leftN->con_above;               
+          } else {
+             current.con_below = 0;
+          }
+          if(owner==first || current.isVertical()){ 
+               // a line does not change the coverage number 
+             current.con_above = current.con_below;
+          } else {
+             if(nextHs.attr.insideAbove){
+               current.con_above = current.con_below + 1;
+             } else {
+               current.con_above = current.con_below - 1;
+             }
+          } 
+ 
+          // update dominating points
+          Point domPoint = nextHs.GetDomPoint();
+          int cover=leftN?leftN->con_above:0;
+          updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
+                                        lastDomPointCount1,
+                                        lastDomPointCount2,
+                                        cover,
+                                        owner2,
+                                        res);
+          sss.insert(current);
+       }
+     } else { // right event
+        if(member && member->exactEqualsTo(current)){
+           AVLSegment tmp = *member;
+           sss.remove(*member);
+           member = &tmp;
+ 
+           if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
+              // leftN and rightN are intersecting
+              if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
+                 leftN->splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
+                 performSplit(sss,*leftN,left1,right1,q1,q2);
+                 leftN = &left1;
+              } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
+                 rightN->splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
+                 performSplit(sss,*rightN,left1,right1,q1,q2);
+                 rightN = &left1;
+              } else if(leftN->crosses(*rightN)){
+                 leftN->splitCross(*rightN,left1,right1,left2,right2);
+                 performSplit(sss,*leftN,left1,right1,q1,q2);
+                 leftN = &left1;
+                 performSplit(sss,*rightN,left2,right2,q1,q2);
+                 rightN = &left2;  
+              } else { // forgotten case 
+                 assert(false);
+              }
+           }
+          // update dominating point information 
+          int cover = leftN?leftN->con_above:0;
+          Point domPoint = nextHs.GetDomPoint();
+          updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
+                                         lastDomPointCount1,
+                                         lastDomPointCount2,
+                                         cover, member->getOwner(), res);
+          // detect intersections
+          switch(member->getOwner()){
+            case first : if(member->con_above==0){ // the line
+                            res.SetIE(true);
+                         } else {
+                            res.SetII(true);
+                         }
+                         break;
+            case second: res.SetEB(true);
+                         break;
+            case both  : res.SetIB(true);
+                         break;
+            default    : assert(false);
+
+          }
+
+        }
+     }
+
+ } 
+
+ // sweep done, check the last dominating point
+ Point domPoint(lastDomPoint);
+ domPoint.Translate(100,0);
+ updateDomPointInfo_Line_Region(lastDomPoint,domPoint,
+                                lastDomPointCount1, lastDomPointCount2,
+                                0, both, res);
+ 
+
+
+}
 
 
 
@@ -3927,7 +4311,7 @@ ValueMapping TopRelMap[] = {
        TopRelSym<Point,Line>,TopRel<Line,Points>,TopRelSym<Points,Line>,
        TopRel<Region,Point>,TopRelSym<Point,Region>,
        TopRel<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>,
-       TopRel<Line,Line>};
+       TopRel<Line,Line>, TopRel<Line,Region>};
 
 ValueMapping TopPredMap[] = {
        TopPred<Point,Point> , TopPred<Points,Point>,
@@ -3935,7 +4319,7 @@ ValueMapping TopPredMap[] = {
        TopPredSym<Point,Line>,TopPred<Line,Points>,TopPredSym<Points,Line>,
        TopPred<Region,Point>,TopPredSym<Point,Region>,
        TopPred<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>,
-       TopPred<Line,Line>};
+       TopPred<Line,Line>, TopPred<Line,Region> };
 
 
 
@@ -4000,6 +4384,9 @@ static int TopOpsSelect(ListExpr args){
    }
    if( (type1=="line") && (type2=="line")){
        return 13;
+   }
+   if( (type1=="line") && (type2=="region")){
+       return 14;
    }
 
    cerr << "selection function does not allow (" << type1 << " x " 
