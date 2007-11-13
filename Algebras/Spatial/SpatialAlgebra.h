@@ -3259,8 +3259,8 @@ inline Point& Point::operator=( const Point& p )
 inline bool Point::operator==( const Point& p ) const
 {
   assert( defined && p.defined );
-  return x == p.x && y == p.y;
-//  return AlmostEqual(x, p.x) && AlmostEqual(y, p.y); // changed by CD
+  return AlmostEqual(x, p.x) && AlmostEqual(y, p.y); // changed by TB
+  //  return x == p.x && y == p.y;
 }
 
 inline bool Point::operator!=( const Point& p ) const
@@ -3276,8 +3276,11 @@ inline bool Point::operator<=( const Point& p ) const
 inline bool Point::operator<( const Point& p ) const
 {
   assert( defined && p.defined );
-  return x < p.x || (x == p.x && y < p.y);
-//  return x < p.x || (AlmostEqual(x, p.x) && y < p.y); // changed by CD
+  bool eqx = AlmostEqual(x,p.x);
+  return (!eqx && (x < p.x) ) ||
+         (eqx && !AlmostEqual(y,p.y) && (y < p.y));
+
+ //  return x < p.x || (x == p.x && y < p.y); // changed by TB
 }
 
 inline bool Point::operator>=( const Point& p ) const
@@ -3288,9 +3291,14 @@ inline bool Point::operator>=( const Point& p ) const
 inline bool Point::operator>( const Point& p ) const
 {
   assert( defined && p.defined );
-  return x > p.x || ( x == p.x && y > p.y );
-//  return x > p.x || ( AlmostEqual(x, p.x) && y > p.y ); // changed by CD
+  bool eqx = AlmostEqual(x,p.x);
+  return (!eqx && (x > p.x)) ||
+         (eqx && !AlmostEqual(y,p.y) && (y>p.y));
+  //  return x > p.x || ( x == p.x && y > p.y ); // changed by TB
 }
+
+
+
 
 inline Point Point::operator+( const Point& p ) const
 {
