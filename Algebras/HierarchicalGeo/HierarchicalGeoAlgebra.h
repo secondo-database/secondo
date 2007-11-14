@@ -1132,6 +1132,56 @@ Returns if the hierarchicalmapping contains no entities.
 
 */   
   
+  inline double GetLayer0epsilon() const
+  {
+    return layer0epsilon;
+  }
+  
+  inline void SetLayer0epsilon(const double epsilon)
+  {
+    layer0epsilon = epsilon;
+  }
+  
+  inline double GetLayer1epsilon() const
+  {
+    return layer1epsilon;
+  }
+  
+  inline void SetLayer1epsilon(const double epsilon)
+  {
+    layer1epsilon = epsilon;
+  }
+  
+  inline double GetLayer2epsilon() const
+  {
+    return layer2epsilon;
+  }
+  
+  inline void SetLayer2epsilon(const double epsilon)
+  {
+    layer2epsilon = epsilon;
+  }
+  
+  inline double GetLayer3epsilon() const
+  {
+    return layer3epsilon;
+  }
+  
+  inline void SetLayer3epsilon(const double epsilon)
+  {
+    layer3epsilon = epsilon;
+  }
+  
+  inline double GetLayer4epsilon() const
+  {
+    return layer4epsilon;
+  }
+  
+  inline void SetLayer4epsilon(const double epsilon)
+  {
+    layer4epsilon = epsilon;
+  }   
+  
   void Get( const int i, const HCUPoint*& hcup ) const;
   
   
@@ -1139,7 +1189,7 @@ Returns if the hierarchicalmapping contains no entities.
   
 
   void Add( const HCUPoint& hcup );
-   
+  
   //void GetGeneralization( const double epsilon, const Unit*& upi ) const;
 /*
 Returns the unit ~upi~ at the position ~i~ in the mapping.
@@ -1260,7 +1310,7 @@ The simple constructor. This constructor should not be used.
 
 */
   HMPoint( const int n ):
-    HCMPoint( 0 ), certainlayer( n )
+    HCMPoint( 0 ), certainlayer( n ), epsilon( -1 ), factor( -1 )
   {
     del.refs=1;
     del.isDelete=true;
@@ -1269,8 +1319,9 @@ The simple constructor. This constructor should not be used.
 A constructor, initializing space for ~n~ entities in the bottom layer.
 
 */
-  HMPoint( const double epsilon, const double faktor, const MPoint& m ):
-    HCMPoint( 0 ), certainlayer( m.GetNoComponents() )
+  HMPoint( const double e, const double f, const MPoint& m ):
+    HCMPoint( 0 ), certainlayer( m.GetNoComponents() ), epsilon( e ),
+    factor( f )
   {
     del.refs=1;
     del.isDelete=true;
@@ -1282,7 +1333,11 @@ The layers 4 to 0 will be filled with generalizations of this MPoint, which
 are computed using the given values epsilon and faktor.
 
 */  
-  //virtual ~HierarchicalMapping();
+  ~HMPoint()
+  {
+    if( canDestroy )
+      certainlayer.Destroy();
+  }
 /*
 The destructor.
 
@@ -1315,16 +1370,52 @@ right function GetNoComponents.
     return noComponents;
   }
   
-  void Get( const int i, const HCUPoint* ntt );
+  inline void SetEpsilon(const double e)
+  {
+    epsilon = e;
+  }
   
+  inline double GetEpsilon() const
+  {
+    return epsilon;
+  }
+  
+  inline void SetFactor(const double f)
+  {
+    factor = f;
+  }
+  
+  inline double GetFactor() const
+  {
+    return factor;
+  }
+  
+  void Get( const int layer, const int i, HCUPoint const*& hcup );
+  
+  void Get( const int layer, const int i, CUPoint const*& cup );
+  
+  void Get( const int layer, const int i, UPoint const*& up );
+  
+  void Get( const int i, HCUPoint const*& ntt );
   
   void GetCMPoint( const double epsilon, CMPoint& result );
   
-  
   void GetMPoint( MPoint& result );
   
+  void Put( const int layer, const int i, HCUPoint& hcup);
+  
+  void ResizeLayer( const int layer, const int n );
   
   void Add( const HCUPoint& hcup );
+  
+  
+  void Generalize(const int layer, const bool checkBreakPoints, 
+                  const DateTime dur);
+  
+  
+  void Simplify(const int min, const int max, const int layer, bool* useleft, 
+              bool* useright, double* realepsilon, const double epsilon);
+
   
 /*
 3.8.3 functions to be part of relations
@@ -1348,7 +1439,11 @@ right function GetNoComponents.
 3.8.4 Attributes
 
 */
-    DBArray<HCUPoint> certainlayer;
+  DBArray<HCUPoint> certainlayer;
+  
+  protected:
+    double epsilon;
+    double factor;
 /*
 The DBArray ~certainlayer~ stores only HCUPoint-objects with an epsilon-value 
 of 0.
@@ -1390,11 +1485,27 @@ posPP is set to this value and TRUE is returned. Otherwise FALSE is returned.
 */
 
 void Generalize( const double epsilon, const double factor, 
-                  const MPoint& source, HMPoint& result);
+                  const MPoint& source, const bool checkBreakPoints, 
+                  const DateTime dur, HMPoint& result);
 /*
 This Function inserts a MPoint-object into the certainlayer of a HMPoint and 
 computes up to 5 generalizations of this MPoint which are stored in the layers 
 0 to 4.
+
+*/
+
+static bool IsBreakPoint(const UPoint* u,const DateTime& duration);
+/*
+This is an auxiliary function for the 'generalize'-algorithm.
+
+*/
+
+static bool connected(const UPoint* u1, const UPoint* u2);
+/*
+This function checks whether the end point of the first unit is equal
+to the start point of the second unit and if the time difference is
+at most a single instant.
+
 
 4 Type Constructors
 

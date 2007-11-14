@@ -3850,6 +3850,11 @@ inline Attribute* HCMPoint::Clone() const
       result->layer4.Put( j, *hcup );
     }
   }
+  result->SetLayer0epsilon( GetLayer0epsilon() );
+  result->SetLayer1epsilon( GetLayer1epsilon() );
+  result->SetLayer2epsilon( GetLayer2epsilon() );
+  result->SetLayer3epsilon( GetLayer3epsilon() );
+  result->SetLayer4epsilon( GetLayer4epsilon() );
   return result;
 }
 
@@ -3897,6 +3902,12 @@ inline void HCMPoint::CopyFrom( const StandardAttribute* right )
       layer4.Put( j, *ntt );
     }
   }
+  SetLayer0epsilon( hcmp->GetLayer0epsilon() );
+  SetLayer1epsilon( hcmp->GetLayer1epsilon() );
+  SetLayer2epsilon( hcmp->GetLayer2epsilon() );
+  SetLayer3epsilon( hcmp->GetLayer3epsilon() );
+  SetLayer4epsilon( hcmp->GetLayer4epsilon() );
+  
 }
 
 inline FLOB* HCMPoint::GetFLOB( const int i)
@@ -3930,7 +3941,76 @@ inline FLOB* HCMPoint::GetFLOB( const int i)
 
 */
 
-void HMPoint::Get( const int i, const HCUPoint* ntt )
+void HMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
+{
+  assert( layer > -1 );
+  assert( layer < 6 );
+  
+  switch( layer )
+  {
+    case 0:
+      if( i > layer0.Size() )
+        cout << "There are less than " << i << " elements in layer0!\n";
+      else
+        layer0.Get(i, ntt);
+      break;
+      
+    case 1:
+      if( i > layer1.Size() )
+        cout << "There are less than " << i << " elements in layer1!\n";
+      else
+        layer1.Get(i, ntt);
+      break;
+      
+    case 2:
+      if( i > layer2.Size() )
+        cout << "There are less than " << i << " elements in layer2!\n";
+      else
+        layer2.Get(i, ntt);
+      break;
+      
+    case 3:
+      if( i > layer3.Size() )
+        cout << "There are less than " << i << " elements in layer3!\n";
+      else
+        layer3.Get(i, ntt);
+      break;
+      
+    case 4:
+      if( i > layer4.Size() )
+        cout << "There are less than " << i << " elements in layer4!\n";
+      else
+        layer4.Get(i, ntt);
+      break;
+      
+    case 5:
+      if( i > certainlayer.Size() )
+        cout << "There are less than " << i << " elements in certainlayer!\n";
+      else
+        certainlayer.Get(i, ntt);
+      break;
+      
+    default:
+      // this case is prevented by the assert-commands
+      break;
+  }
+}
+
+void HMPoint::Get( const int layer, const int i, CUPoint const*& cup )
+{
+  const HCUPoint* ntt;
+  Get( layer, i, ntt );
+  cup = &(ntt->value);
+}
+
+void HMPoint::Get( const int layer, const int i, UPoint const*& up )
+{
+  const HCUPoint* ntt;
+  Get( layer, i, ntt );
+  up = (UPoint*)&(ntt->value);
+}
+
+void HMPoint::Get( const int i, HCUPoint const*& ntt )
 {
   assert( i < GetNoComponents() );
   int idx = i;
@@ -4103,8 +4183,57 @@ void HMPoint::GetMPoint( MPoint& result )
   result.EndBulkLoad();
 }
 
-void HMPoint::Add( const HCUPoint& hcup )
+void HMPoint::Put( const int layer, const int i, HCUPoint& ntt )
 {
+  assert( layer > -1 );
+  assert( layer < 6 );
+  
+  switch( layer )
+  {
+    case 0:
+      if( i > layer0.Size() )
+        layer0.Resize( i );
+      layer0.Put(i, ntt);
+      break;
+      
+    case 1:
+      if( i > layer1.Size() )
+        layer1.Resize( i );
+      layer1.Put(i, ntt);
+      break;
+      
+    case 2:
+      if( i > layer2.Size() )
+        layer2.Resize( i );
+      layer2.Put(i, ntt);
+      break;
+      
+    case 3:
+      if( i > layer3.Size() )
+        layer3.Resize( i );
+      layer3.Put(i, ntt);
+      break;
+      
+    case 4:
+      if( i > layer4.Size() )
+        layer4.Resize( i );
+      layer4.Put(i, ntt);
+      break;
+      
+    case 5:
+      if( i > certainlayer.Size() )
+        certainlayer.Resize( i );
+      certainlayer.Put(i, ntt);
+      break;
+      
+    default:
+      // this case is prevented by the assert-commands
+      break;
+  }
+}
+
+void HMPoint::Add( const HCUPoint& hcup )
+{ 
   if ( !hcup.IsDefined() )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
@@ -4166,6 +4295,317 @@ void HMPoint::Add( const HCUPoint& hcup )
       assert( false );
       break;
   }
+}
+
+void HMPoint::ResizeLayer( const int layer, const int n )
+{
+  switch( layer )
+  {
+    case 0:
+      layer0.Resize( n );
+      break;
+      
+    case 1:
+      layer1.Resize( n );
+      break;
+    
+    case 2:
+      layer2.Resize( n );
+      break;
+    
+    case 3:
+      layer3.Resize( n );
+      break;
+    
+    case 4:
+      layer4.Resize( n );
+      break;
+    
+    case 5:
+      certainlayer.Resize( n );
+      break;
+    
+    default:
+      // this point should never be reached!
+      break;
+  }
+}
+
+void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
+                          const DateTime dur)
+{
+  const int origlayerno = layer;
+  const int genlayerno = layer - 1;
+  double aktepsilon;
+  int size;
+  
+  switch( layer )
+  { 
+    case 1:
+      // +++++ for debugging purposes only +++++
+      cout << "Computing of CUPoints for layer 0!\n";
+      
+      size = layer1.Size();
+      if( size < 2 )
+        return;
+      aktepsilon = epsilon * factor * factor * factor * factor;
+      break;
+      
+    case 2:
+      // +++++ for debugging purposes only +++++
+      cout << "Computing of CUPoints for layer 1!\n";
+      
+      size = layer2.Size();
+      if( size < 2 )
+        return;
+      aktepsilon = epsilon * factor * factor * factor;
+      break;
+      
+    case 3:
+      // +++++ for debugging purposes only +++++
+      cout << "Computing of CUPoints for layer 2!\n";
+      
+      size = layer3.Size();
+      if( size < 2 )
+        return;
+      aktepsilon = epsilon * factor * factor;
+      break;
+      
+    case 4:
+      // +++++ for debugging purposes only +++++
+      cout << "Computing of CUPoints for layer 3!\n";
+      
+      size = layer1.Size();
+      if( size < 2 )
+        return;
+      aktepsilon = epsilon * factor;
+      break;
+      
+    case 5:
+      // +++++ for debugging purposes only +++++
+      cout << "Computing of CUPoints for layer 4!\n";
+      
+      size = certainlayer.Size();
+      if( size < 2 )
+      {
+        cout << "The mpoint has only 1 element!";
+        return;
+      }
+      aktepsilon = epsilon;
+      break;
+      
+    default:
+      // should never been reached!
+      break;
+  }
+  
+  // Create two bitmaps and a double array to keep in mind which sample point 
+  // belongs to the result and which real epsilon-value is computed for this 
+  // results cupoint. 
+  bool useleft[size];
+  bool useright[size];
+  double realepsilon[size];
+  
+  // Initialize the whole bitmaps to state FALSE and the double array to 
+  // value -1;
+  for(int i = 0; i < size; i++)
+  {
+    useleft[i] = false;
+    useright[i] = false;
+    realepsilon[i] = -1;
+  }
+  
+  int first = 0;
+  int last = 1;
+  const UPoint* u1;
+  const UPoint* u2;
+  ;
+  
+  while(last < size )
+  {
+    // for this purpose, only the upoint-part of the cupoint is needed:
+    Get(origlayerno, last-1, u1);
+    Get(origlayerno, last, u2);
+    
+    // check whether one of the cupoints is a constant cupoint and whether 
+    // last and last-1 are connected
+    if( checkBreakPoints && IsBreakPoint(u1,dur))
+    {
+      if(last-1 > first){
+         Simplify(first, last-2, origlayerno, useleft, useright, realepsilon, 
+                   epsilon);
+      }
+      Simplify(last-1, last-1, origlayerno, useleft, useright, realepsilon,
+                epsilon);
+      first = last;
+      last++;
+    } 
+    else if( checkBreakPoints && IsBreakPoint(u2,dur))
+    {
+      Simplify(first, last-1, origlayerno, useleft, useright, realepsilon,
+                epsilon);
+      last++;
+      Simplify(last-1, last-1, origlayerno, useleft, useright, realepsilon, 
+                epsilon);
+      first = last;
+      last++;
+    } 
+    else if(connected(u1,u2)) // enlarge the sequence
+      last++;
+    else 
+    {
+      // +++++ for debugging purposes only +++++
+      cout << "The Units u1 = ";
+      u1->Print(cout);
+      cout << " and u2 = ";
+      u2->Print(cout);
+      cout << " are not connected with each other!\n";
+      cout << "Function Simplify(...) is called with parameters: \n";
+      cout << "     first =       " << first << endl;
+      cout << "     last-1 =      " << last-1 << endl;
+      cout << "     origlayerno = " << origlayerno << endl;
+      cout << "     epsilon =     " << epsilon << endl << endl;
+      
+      Simplify(first, last-1, origlayerno, useleft, useright, realepsilon,
+                epsilon);
+      first=last;
+      last++;
+    }
+  }
+  // process the last recognized sequence
+  Simplify(first,last-1,origlayerno,useleft,useright,realepsilon,epsilon);
+
+  // +++++ for debugging purposes only +++++
+  cout << "\nlast recognized sequence of units: \n";
+  cout << "Function Simplify(...) is called with parameters: \n";
+  cout << "     first =       " << first << endl;
+  cout << "     last-1 =      " << last-1 << endl;
+  cout << "     origlayerno = " << origlayerno << endl;
+  cout << "     epsilon =     " << epsilon << endl << endl;
+    
+  
+  // count the number of remaining units
+  int count = 1; // count the most right sample point
+  for(int i = 0; i < size; i++)
+  {
+    if( useleft[i] )
+      count++;
+  }
+  ResizeLayer(genlayerno, count);
+  
+  // +++++ for debugging purposes only +++++
+  cout << "The Simplfiy()-Calls detected " << count << " for the next"
+    " layer! \n";
+  
+  Instant start;
+  Point p0;
+  bool closeLeft;
+  bool leftDefined = false;
+  int generalizedby = 0;
+  int originstart = 0;
+  
+  for(int i = 0; i < size; i++)
+  {
+    const HCUPoint* hcup;
+    const CUPoint* cup;
+    
+    Get(origlayerno, i, hcup);
+    HCUPoint aux = *hcup;
+    cup = &(aux.value);
+    aux.SetGeneralizedby( generalizedby );
+    Put(origlayerno, i, aux);
+    
+    if( useleft[i] )
+    {
+      // +++++ for debugging purposes only +++++
+      if(leftDefined)
+      {
+        cout << " error in mpoint simplification,"
+             << " overwrite an existing leftPoint "  << endl;
+      }
+      
+      originstart = i;
+      p0 = cup->p0;
+      closeLeft = cup->timeInterval.lc;
+      start = cup->timeInterval.start;
+      leftDefined = true;
+    }
+    if( useright[i] )
+    {
+      // +++++ for debugging purposes only +++++
+      if(!leftDefined)
+        cout << " error in mpoint simplification,"
+             << " rightdefined before leftdefined "  << endl;
+      Interval<Instant> interval( start, cup->timeInterval.end, closeLeft,
+                                  cup->timeInterval.rc);
+      CUPoint newCUPoint(realepsilon[i], interval, p0, cup->p1);
+      // Create a new Entity for the hierarchical structure, containing this
+      // new CUPoint.
+      HCUPoint newHCUPoint(newCUPoint, layer, generalizedby, originstart, i);
+      Put(genlayerno, generalizedby, newHCUPoint);
+      
+      // The next cup belongs to the next origin-hcup belongs to the next
+      // generalization.
+      generalizedby++; 
+      leftDefined = false;
+    }
+  }
+}
+
+void HMPoint::Simplify(const int min, const int max, const int layer,
+                    bool* useleft, bool* useright, double* realepsilon, 
+                    const double epsilon)
+{
+
+  // the endpoints are used in each case  
+  useleft[min] = true;
+  useright[max] = true;
+
+
+
+  if(min==max) // no intermediate sampling points -> nothing to simplify
+     return;
+
+  const UPoint* u1;
+  const UPoint* u2;
+  // build a UPoint from the endpoints
+  Get(layer, min, u1);
+  Get(layer, max, u2);
+  
+  UPoint upoint(Interval<Instant>(u1->timeInterval.start,
+                u2->timeInterval.end,true,true),
+                u1->p0,
+                u2->p1);
+
+  // search for the point with the highest distance to its simplified position
+  double maxDist = 0;
+  int maxIndex=0;
+  Point p_orig;
+  Point p_simple;
+  //const HCUPoint* hcup;
+  const UPoint* u;
+  double distance;
+  for(int i=min+1;i<=max;i++){
+     Get(layer, i,u);
+     upoint.TemporalFunction(u->timeInterval.start,p_simple, true);
+     distance  = p_simple.Distance(u->p0);
+     if(distance>maxDist){ // new maximum found
+        maxDist = distance;
+        maxIndex = i;
+     }
+  }
+
+  if(maxIndex==0){  // no difference found
+      return;
+  }
+  if(maxDist<=epsilon){  // differnce is in allowed range
+      realepsilon[max] = maxDist;
+      return;
+  }
+
+  // split at the left point of maxIndex
+  Simplify(min,maxIndex-1,layer,useleft,useright,realepsilon,epsilon);
+  Simplify(maxIndex,max,layer,useleft,useright,realepsilon,epsilon);
 }
 
 /*
@@ -4262,6 +4702,13 @@ inline Attribute* HMPoint::Clone()
       result->certainlayer.Put( j, *hcup );
     }
   }
+  result->SetLayer0epsilon( GetLayer0epsilon() );
+  result->SetLayer1epsilon( GetLayer1epsilon() );
+  result->SetLayer2epsilon( GetLayer2epsilon() );
+  result->SetLayer3epsilon( GetLayer3epsilon() );
+  result->SetLayer4epsilon( GetLayer4epsilon() );
+  result->SetEpsilon( GetEpsilon() );
+  result->SetFactor( GetFactor() );
   return result;
 }
 
@@ -4317,6 +4764,13 @@ inline void HMPoint::CopyFrom( const StandardAttribute* right )
       certainlayer.Put( j, *ntt );
     }
   }
+  SetLayer0epsilon( hmp->GetLayer0epsilon() );
+  SetLayer1epsilon( hmp->GetLayer1epsilon() );
+  SetLayer2epsilon( hmp->GetLayer2epsilon() );
+  SetLayer3epsilon( hmp->GetLayer3epsilon() );
+  SetLayer4epsilon( hmp->GetLayer4epsilon() );
+  SetEpsilon( hmp->GetEpsilon() );
+  SetFactor( hmp->GetFactor() );
 }
 
 /*
@@ -4786,41 +5240,72 @@ bool FindPosPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
 }
 
 void Generalize( const double epsilon, const double factor, 
-                  const MPoint& source, HMPoint& result)
+                  const MPoint& source, const bool checkBreakPoints,
+                  const DateTime dur, HMPoint& result)
 {
-  assert( source.IsDefined() );
-  assert( source.GetNoComponents() > 3 );
+  if( !source.IsDefined() )
+  {
+    cout << "The given MPoint-object is NOT defined!\n";
+    result.SetDefined(false);
+    return;
+  }
+  if( source.GetNoComponents() < 4 )
+  {
+    cout << "The given MPoint-object contains less than 4 units!\n"
+      << "In this case, a hierarchical structured dataset makes no sense!\n";
+    result.SetDefined(false);
+    return;
+  }
+    
   assert( source.IsOrdered() );
   assert( epsilon > 0.0 );
   assert( factor > 1.0 );
   
   result.Clear();
   
+  result.SetEpsilon( epsilon );
+  result.SetFactor( factor );
+  
   // insert the MPoint into the DBArray certainlayer
   int n = source.GetNoComponents();
   const UPoint *unit;
   result.certainlayer.Resize( n );
+  
   for(int i = 0; i < n; i++)
   {
     source.Get(i, unit);
     CUPoint cunit(*unit);
     HCUPoint ntt(cunit, 5 , i, -1, -1);
-    
-    
-    cout << "Copy unit " << i << " to the HMPoint!\n";
-    
-      
     result.certainlayer.Put(i, ntt);
   }
   
-  // create the first generalization from the Units of the certainlayer
+  result.certainlayer.TrimToSize();
+  // create a generalization for each layer
   
-  double aktepsilon = epsilon;
+  result.Generalize(5, checkBreakPoints, dur);
   
-  
-  
-  // TODO: implement the creation of up to 5 generalizations by using the
-  // Douglas-Peucker algorithm.
+  //for(int j = 5; j > 0; j--)
+  //  result.generalize(j, checkBreakPoints);
+}
+
+
+static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
+   if(u->p0 != u->p1){ // equal points required
+     return false;
+   }
+   DateTime dur = u->timeInterval.end -  u->timeInterval.start;
+   return (dur > duration);
+}
+
+static bool connected(const UPoint* u1, const UPoint* u2){
+   if(u1->p1 != u2->p0){ // spatial connected
+       return false;
+   }
+   // temporal connection
+   if(! ((u1->timeInterval.end) == (u2->timeInterval.start))){
+       return false;
+   }
+   return true;
 }
 
 /*
@@ -5600,8 +6085,9 @@ ListExpr HMPointProperty()
                   nl->StringAtom("Example List")),
           nl->FourElemList(nl->StringAtom("-> HIERARCHICAL MAPPING"),
                   nl->StringAtom("(hmpoint) "),
-                  nl->StringAtom("( e1 ... en) "),
-                  nl->TextAtom("( ((3 5 27 -1 -1)( 0.7 ((i1 i2 TRUE FALSE)" 
+                  nl->StringAtom("( (epsilon factor) (e1 ... en) ) "),
+                  nl->TextAtom("( ( 0.2 3.2 )" 
+                          "((3 5 27 -1 -1)( 0.7 ((i1 i2 TRUE FALSE)" 
                           "(1.0 2.2 2.5 2.1)))) )"))));
 }
 
@@ -5724,9 +6210,11 @@ ListExpr OutHMPoint( ListExpr typeInfo, Word value )
         lastElem = nl->Append( lastElem, entityList );
     }
     
+    ListExpr hmpattr = nl->TwoElemList(nl->RealAtom( hmp->GetEpsilon() ),
+                                       nl->RealAtom( hmp->GetFactor() ) );
+    ListExpr all = nl->TwoElemList( hmpattr, l );
     
-    
-    return l;
+    return all;
   }
 }
 /*
@@ -5735,17 +6223,45 @@ ListExpr OutHMPoint( ListExpr typeInfo, Word value )
 */
 Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  // +++++ for debugging purposes only +++++
-  cout << "The In-Function of HMPoint is executed!\n";
-
+{ 
   int numEntities = nl->ListLength(instance);
   HMPoint* hmp = new HMPoint( numEntities );
   correct = true;
   int nttcounter = 0;
   string errmsg;
 
-  ListExpr rest = instance;
+  if(nl->ListLength( instance ) != 2)
+  {
+    errmsg = "InHMPoint(): The List has an unexpected length (!= 2).";
+    errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+    correct = false;
+    delete hmp;
+    return SetWord( Address(0) );
+  }
+  
+  ListExpr hmpointattr = nl->First( instance );
+  ListExpr elemlist = nl->Second( instance );
+  
+  if( nl->ListLength( hmpointattr ) == 2 &&
+      nl->IsAtom( nl->First(hmpointattr) ) &&
+      nl->AtomType( nl->First(hmpointattr) ) == RealType &&
+      nl->IsAtom( nl->Second(hmpointattr) ) &&
+      nl->AtomType( nl->Second(hmpointattr) ) == RealType )
+  {
+    hmp->SetEpsilon( nl->RealValue( nl->First(hmpointattr)) );
+    hmp->SetFactor( nl->RealValue( nl->Second(hmpointattr)) );
+  }
+  else
+  {
+    errmsg = "InHMPoint(): One of the attributes 'epsilon' or 'factor' is "
+            "invalid.";
+    errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+    correct = false;
+    delete hmp;
+    return SetWord( Address(0) );
+  }
+  
+  ListExpr rest = elemlist;
   if (nl->AtomType( rest ) != NoAtom)
   { 
     if(nl->IsEqual(rest,"undef"))
@@ -7069,13 +7585,13 @@ int GeneralizeMPoint( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   MPoint *m = static_cast<MPoint*>(args[0].addr);
   CcReal *e = static_cast<CcReal*>(args[1].addr);
-  CcReal *f = static_cast<CcReal*>(args[1].addr);
+  CcReal *f = static_cast<CcReal*>(args[2].addr);
   HMPoint* pResult = (HMPoint*)result.addr;
-  
+  DateTime dt(0, 0, durationtype);
   
   if( m->IsDefined() && e->IsDefined() && f->IsDefined() )
     Generalize( static_cast<double>(e->GetValue()), 
-                static_cast<double>(f->GetValue()), *m, *pResult );
+                static_cast<double>(f->GetValue()), *m, false, dt, *pResult );
   else
     pResult->SetDefined(false);
   
