@@ -1676,6 +1676,10 @@ void UPoint::UTrajectory( Line& line ) const
   line.EndBulkLoad();
 }
 
+// This function will return the intersection of two upoint values as
+// an upoint value. If the common timeInterval iv if open bounded, and
+// both units would intersect at the open interval limit, there WILL
+// be passed a result, though it is not inside iv!
 void UPoint::Intersection(const UPoint &other, UPoint &result) const
 {
       Interval<Instant> iv;

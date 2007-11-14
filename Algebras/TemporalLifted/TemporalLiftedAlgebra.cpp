@@ -3256,6 +3256,7 @@ static void MovingCompareBoolMM( Mapping1& op1, Mapping2& op2,
 Calculates the Intersection with op = 1 and the minus-operator with op = 2
 
 */
+
 template <class Mapping1, class Mapping2, class Unit1,
 class Unit2>
 static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
@@ -3296,7 +3297,7 @@ static void MovingIntersectionMM( Mapping1& op1, Mapping2& op2,
 
     else {
       if(TLA_DEBUG)
-        cout<<"Both operators existant in interval iv #"<<i<<" ["
+        cout<<"Both operands existant in interval iv #"<<i<<" ["
         << iv->start.ToString()<< " "<< iv->end.ToString()<< " "<< iv->lc
         << " "<< iv->rc<< "] "<< u1Pos<< " "<< u2Pos<< endl;
 
@@ -5059,6 +5060,9 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
 
       // create intersection of  u1 x u2
       u1.Intersection(u2, resunit);
+      if( !resunit.timeInterval.Inside(*iv) )
+        // invalidate result, if it is on an open border of *iv
+        resunit.SetDefined(false);
 
       if ( resunit.IsDefined() && lastresunit.IsDefined() )
       { // Check for conflicting timeIntervals:

@@ -5127,8 +5127,10 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
       uv2 = (UPoint*) (u2.addr);
       res = new UPoint( false );
       uv1->Intersection(*uv2, *res);
-      if ( res->IsDefined() )
-      {
+      if ( res->IsDefined() && res->timeInterval.Inside(uv1->timeInterval) &&
+                               res->timeInterval.Inside(uv2->timeInterval) )
+      { // 2nd and 3rd condition guarantees, that results on "open borders"
+        // are filtered out
         sli->resultValues[sli->NoOfResults] = SetWord( res );
         sli->NoOfResults++;
         sli->finished = false;
