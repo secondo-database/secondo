@@ -39,7 +39,9 @@ operator = alias EQ pattern _ infixop _
 operator not alias NOT pattern op ( _ )
 operator sqrt alias SQRT pattern op ( _ )
 operator and alias AND pattern  _ infixop _
+operator sand alias SAND pattern  _ infixop _
 operator or alias OR pattern  _ infixop _
+operator sor alias SOR pattern  _ infixop _
 
 operator starts alias STARTS pattern _ infixop _
 operator contains alias CONTAINS pattern _ infixop _

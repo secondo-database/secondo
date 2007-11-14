@@ -77,6 +77,25 @@ Signature: (bool bool) -> bool
 Example  : query (8 = 8) and (3 < 4)
 Result   : TRUE
 
+Operator : and
+Number   : 2
+Signature: (bool bool) -> bool
+Example  : query (8 = (1/0)) and (3 < 4)
+Result   : FALSE
+
+
+Operator : sand
+Number   : 1
+Signature: (bool bool) -> bool
+Example  : query (8 = 8) sand (3 < 4)
+Result   : TRUE
+
+Operator : sand
+Number   : 2
+Signature: (bool bool) -> bool
+Example  : query (8 = (1/0)) sand (3 < 4)
+Result   : (bool undef)
+
 
 Operator : between
 Number   : 1
@@ -196,6 +215,25 @@ Number   : 1
 Signature: (bool bool) -> bool
 Example  : query (3 <= 4) or ("hotel" > "house")
 Result   : TRUE
+
+Operator : or
+Number   : 2
+Signature: (bool bool) -> bool
+Example  : query (3 <= (1/0)) or ("hotel" > "house")
+Result   : FALSE
+
+
+Operator : sor
+Number   : 1
+Signature: (bool bool) -> bool
+Example  : query (3 <= 4) sor ("hotel" > "house")
+Result   : TRUE
+
+Operator : sor
+Number   : 2
+Signature: (bool bool) -> bool
+Example  : query (3 <= (1/0)) sor ("hotel" > "house")
+Result   : (bool undef)
 
 
 Operator : randint

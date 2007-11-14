@@ -2322,51 +2322,121 @@ NotFun( Word* args, Word& result, int message, Word& local, Supplier s )
 }
 
 /*
-4.16 Value mapping functions of operator ~and~
+4.16 Value mapping functions of operators ~and~ and ~andS~
+
+For ~and~ the arguments are evaluated lazy. The result is TRUE, iff both arguments are
+DEFINED and TRUE, otherwise the result is FALSE. The result is always DEFINED.
+
+~andS~ has strict evaluation. If both arguments are DEFINED and TRUE, it returns TRUE.
+Otherwise if both arguments are DEFINED and at least one is FALSE, it returns FALSE.
+In all other cases, it returns UNDEFINED.
 
 */
 
 int
 AndFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
+  Word res;
   result = qp->ResultStorage( s );
-  if ( (((CcBool*)args[0].addr)->IsDefined() &&
-        ((CcBool*)args[1].addr)->IsDefined()) )
+
+  qp->Request(args[0].addr, res);
+  if ( !((CcBool*)res.addr)->IsDefined() )
   {
-    ((CcBool*)result.addr)->Set( true,
-        ((CcBool*)args[0].addr)->GetBoolval() &&
-                       ((CcBool*)args[1].addr)->GetBoolval() );
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
   }
+  if (! ((CcBool*)res.addr)->GetBoolval() )
+  {
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+
+  qp->Request(args[1].addr, res);
+  if ( !((CcBool*)res.addr)->IsDefined() )
+  {
+    ((CcBool*)result.addr)->Set(true,false);
+    return 0;
+  }
+  if ( ((CcBool*)res.addr)->GetBoolval() )
+    ((CcBool*)result.addr)->Set(true,true);
   else
-  {
-    ((CcBool *)result.addr)->Set( false, false );
-  }
-  return (0);
+    ((CcBool*)result.addr)->Set(true,false);
+  return 0;
 }
 
+int
+    AndSFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  if ( !((CcBool*)args[0].addr)->IsDefined() ||
+       !((CcBool*)args[1].addr)->IsDefined()
+     )
+    ((CcBool*)result.addr)->Set(false,false);
+  else if( ((CcBool*)args[0].addr)->GetBoolval() &&
+           ((CcBool*)args[1].addr)->GetBoolval()
+         )
+    ((CcBool*)result.addr)->Set(true,true);
+  else
+    ((CcBool*)result.addr)->Set(true,false);
+  return 0;
+}
+
+
 /*
-4.17 Value mapping functions of operator ~or~
+4.17 Value mapping functions of operators ~or~ and ~orS~
+
+For ~or~ the arguments are evaluated lazy. The result is TRUE, if at least one
+arguments is DEFINED and TRUE.
+Otherwise, it returns FALSE.
+
+~orS~ has strict evaluation. If both arguments are DEFINED and at least one is
+TRUE, it returns TRUE.
+Otherwise if both arguments are DEFINED and both are FALSE, it returns FALSE.
+In all other cases, it returns UNDEFINED.
 
 */
 
 int
 OrFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
+  Word res;
   result = qp->ResultStorage( s );
-  if( ((CcBool*)args[0].addr)->IsDefined() &&
-      ((CcBool*)args[1].addr)->IsDefined() )
+
+  qp->Request(args[0].addr, res);
+  if ( ((CcBool*)res.addr)->IsDefined() && ((CcBool*)res.addr)->GetBoolval() )
   {
-    ((CcBool*)result.addr)->Set( true,
-        ((CcBool*)args[0].addr)->GetBoolval() ||
-                  ((CcBool*)args[1].addr)->GetBoolval() );
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
   }
-  else
+
+  qp->Request(args[1].addr, res);
+  if ( ((CcBool*)res.addr)->IsDefined() && ((CcBool*)res.addr)->GetBoolval() )
   {
-    ((CcBool *)result.addr)->Set( false, false );
+    ((CcBool*)result.addr)->Set(true,true);
+    return 0;
   }
-  return (0);
+  ((CcBool*)result.addr)->Set(true,false);
+  return 0;
 }
 
+int
+OrSFun( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  if ( !((CcBool*)args[0].addr)->IsDefined() ||
+       !((CcBool*)args[1].addr)->IsDefined()
+     )
+    ((CcBool*)result.addr)->Set(false,false);
+  else if( ((CcBool*)args[0].addr)->GetBoolval() ||
+             ((CcBool*)args[1].addr)->GetBoolval()
+         )
+    ((CcBool*)result.addr)->Set(true,true);
+  else
+    ((CcBool*)result.addr)->Set(true,false);
+  return 0;
+}
 /*
 4.17 Value mapping functions of operator ~isempty~
 
@@ -3449,7 +3519,9 @@ ValueMapping ccstartsmap[] = { StartsFun };
 ValueMapping cccontainsmap[] = { ContainsFun };
 
 ValueMapping ccandmap[] = { AndFun };
+ValueMapping ccandSmap[] = { AndSFun };
 ValueMapping ccormap[] = { OrFun };
+ValueMapping ccorSmap[] = { OrSFun };
 ValueMapping ccnotmap[] = { NotFun };
 
 ValueMapping ccisemptymap[] = { IsEmpty<CcBool>,
@@ -3709,23 +3781,54 @@ const string CCSpecNot  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "<text>query not ( 4=4 )</text--->"
                              " ) )";
 
-const string CCSpecAnd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                          "\"Example\" )"
-                          "( <text>(bool bool) -> bool</text--->"
-                               "<text>_ and _</text--->"
-                               "<text>Logical And.</text--->"
-                               "<text>query (8 = 8) and (3 < 4)</text--->"
-                              ") )";
+const string CCSpecAnd  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" )"
+    "( <text>(bool bool) -> bool</text--->"
+    "<text>_ and _</text--->"
+    "<text>Lazy logical conjunction (AND). Returns TRUE iff both arguments are "
+    "defined and TRUE. The result is always defined. Arguments are evaluated "
+    "in a lazy fashion, first the left argument, then the right one. "
+    "The second argument is only evaluated if the first one is defined and "
+    "TRUE. </text--->"
+    "<text>query (8 = 8) and (3 < 4)</text--->"
+    ") )";
+
+const string CCSpecAndS  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" )"
+    "( <text>(bool bool) -> bool</text--->"
+    "<text>_ sand _</text--->"
+    "<text>Strict logical conjunction (AND). Returns TRUE iff both arguments "
+    "are defined and TRUE. If one of the arguments is UNDEFINED, so is the "
+    "result. All arguments are always evaluated.</text--->"
+    "<text>query (8 = 8) sand (3 < 4)</text--->"
+    ") )";
 
 const string CCSpecOr  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                         "\"Example\" )"
-                             "( <text>(bool bool) -> bool</text--->"
-                               "<text>_ or _</text--->"
-                               "<text>Logical Or.</text--->"
-                               "<text>query (3 <= 4) or (\"hotel\" > "
-                               "\"house\")"
-                               "</text--->"
-                               ") )";
+    "\"Example\" )"
+    "( <text>(bool bool) -> bool</text--->"
+    "<text>_ or _</text--->"
+    "<text>Lazy logical disjunction (OR). Returns TRUE iff at least one "
+    "argument is defined and TRUE. The result is always defined. Arguments are "
+    "evaluated in a lazy fashion, first the left argument, then the right one. "
+    "The second argument is only evaluated if the first one is undefined or "
+    "FALSE. </text--->"
+    "<text>query (3 <= 4) or (\"hotel\" > "
+    "\"house\")"
+    "</text--->"
+    ") )";
+
+const string CCSpecOrS  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" )"
+    "( <text>(bool bool) -> bool</text--->"
+    "<text>_ sor _</text--->"
+    "<text>Strict logical disjunction (OR). Returns TRUE iff both arguments "
+    "are defined and at least one is TRUE. If one of the arguments is "
+    "UNDEFINED, so is the result. All arguments are always evaluated.</text--->"
+    "<text>query (8 = 8) sor (3 < 4)</text--->"
+    ") )";
 
 const string CCSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                               "\"Example\" )"
@@ -3793,14 +3896,13 @@ const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(bool x T x T) ->  T </text--->"
-             "<text>ifthenelse(_, _, _)</text--->"
-             "<text>Returns the second argument, if the boolean value "
-             "expression, given"
-             " as a first argument, can be evaluated to true."
-             " If not, the operator returns the third argument."
-             " NOTE: The second and the third argument must be of the "
-                "same type T"
-             " of kind DATA.</text--->"
+             "<text>ifthenelse(P, R1, R1)</text--->"
+             "<text>Evalutes and returns the second argument R1, if the "
+             "boolean value expression, given as a first argument P, can be "
+             "evaluated to TRUE. If P evaluates to FALSE, the third argument "
+             "R2 is evaluated and returned. If is undefined, so is the result. "
+             "NOTE: The second and the third argument must be of the "
+             "same type T of kind DATA.</text--->"
              "<text>query ifthenelse(3 < 5,[const string value \"less\"],"
                 "[const string value \"greater\"])</text--->"
              ") )";
@@ -4012,7 +4114,13 @@ Operator ccnot( "not", CCSpecNot, 1, ccnotmap,
 Operator ccand( "and", CCSpecAnd, 1, ccandmap,
                 Operator::SimpleSelect, CcMathTypeMapBool2 );
 
+Operator ccandS( "sand", CCSpecAndS, 1, ccandSmap,
+                Operator::SimpleSelect, CcMathTypeMapBool2 );
+
 Operator ccor( "or", CCSpecOr, 1, ccormap,
+               Operator::SimpleSelect, CcMathTypeMapBool2 );
+
+Operator ccorS( "sor", CCSpecOrS, 1, ccorSmap,
                Operator::SimpleSelect, CcMathTypeMapBool2 );
 
 Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap,
@@ -4143,7 +4251,11 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccsubstr );
     AddOperator( &ccnot );
     AddOperator( &ccand );
+    ccand.SetRequestsArguments();
+    AddOperator( &ccandS );
     AddOperator( &ccor );
+    ccor.SetRequestsArguments();
+    AddOperator( &ccorS );
     AddOperator( &ccisempty );
     AddOperator( &ccuper );
     AddOperator( &ccsetintersection );
