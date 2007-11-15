@@ -4506,8 +4506,9 @@ int TopPredSym(Word* args, Word& result, int message,
       return 0;
   }
   Int9M matrix;
-  cluster->Transpose();
-  bool res = GetInt9M(v2,v1,matrix,true,*cluster);
+  Cluster tmp = *cluster;
+  tmp.Transpose();
+  bool res = GetInt9M(v2,v1,matrix,true,tmp);
   (static_cast<CcBool*>(result.addr))->Set(true,res);
   return 0;
 }
