@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 //[title] [ \thispagestyle{empty} \title{TopOps-Algebra} \author{Thomas Behr} \maketitle]
 //[times] [\ensuremath{\times}]
+//[x] [\ensuremath{\times}]
 //[->] [\ensuremath{\rightarrow}]
 //[<=] [\ensuremath{\leq{}}]
 //[>=] [\ensuremath{\ge{}}]
@@ -50,10 +51,8 @@ separate implementation is that we can exit the computation early in
 many cases. 
 
 
-3 Implementation
 
-3.1 Includes
-3.1.1 The Standard Includes for Algebra Modules
+1 Includes, Constants, and Definitions 
 
 */
 
@@ -76,46 +75,38 @@ many cases.
 #include "FTextAlgebra.h"
 #endif
 
-/*
-3.1.2 The Includes for the used Algebras
-
-*/
 
 #include "SpatialAlgebra.h"
 #include "TopRel.h"
 #include "StandardTypes.h"
 
+
+/*
+~A Macro useful for debugging ~
+
+*/
+
 //#define __TRACE__ cout << __FILE__ << "@" << __LINE__ << endl;
 #define __TRACE__
 
 
-/*
-3.2 Instances of NestedList and the QueryProcessor
-
-*/
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
-Coord  EPSILON = 0.000001;
+
 
 using namespace toprel;
 
 
-
-
-/*
-3.3 Definition of some constants.
-
-*/
 const int LEFT      = 1;
 const int RIGHT     = 2;
 const int COMMON = 4;
 
 
 /*
-3.4 ownertype
+2 Definition of ~ownertype~
 
-This class is used to store the source of an AVLSegment.
+This enumeration is used to store the source of an AVLSegment.
 
 */
 
@@ -134,7 +125,7 @@ ostream& operator<<(ostream& o, const ownertype& owner){
 
 
 /*
-3 Class AVLSegment
+3 The Class ~AVLSegment~
 
 This class is used for inserting into an avl tree during a plane sweep.
 
@@ -150,7 +141,9 @@ class AVLSegment{
 public:
 
 /*
-3.0 ~Standard Constructor~
+3.1 Contructors
+
+~Standard Constructor~
 
 */
   AVLSegment(){
@@ -167,7 +160,7 @@ public:
 
 
 /*
-3.1 ~Constructor~
+~Constructor~
 
 This constructor creates a new segment from the given HalfSegment.
 As owner only __first__ and __second__ are the allowed values.
@@ -204,6 +197,13 @@ As owner only __first__ and __second__ are the allowed values.
      con_above = 0;
   }
 
+/*
+~Constructor~
+
+Create a Segment only consisting of a single point.
+
+*/
+
   AVLSegment(const Point* p, ownertype owner){
       x1 = p->GetX();
       x2 = x1;
@@ -218,15 +218,23 @@ As owner only __first__ and __second__ are the allowed values.
 
 
 /*
-3.2 ~Copy Constructor~
+~Copy Constructor~
 
 */
    AVLSegment(const AVLSegment& src){
       Equalize(src);
    }
 
+
 /*
-3.3. Assignmet operator
+3.2 ~Destructor~
+
+*/
+   ~AVLSegment() {}
+
+
+/*
+3.3  operators
 
 */
 
@@ -235,6 +243,26 @@ As owner only __first__ and __second__ are the allowed values.
     return *this;
   }
 
+  bool operator==(const AVLSegment& s) const{
+    return compareTo(s)==0;
+  }
+
+  bool operator<(const AVLSegment& s) const{
+     return compareTo(s)<0;
+  }
+
+  bool operator>(const AVLSegment& s) const{
+     return compareTo(s)>0;
+  }
+
+/*
+3.3 Further needful Function
+
+~Print~
+
+This function writes this segment to __out__.
+
+*/
   void Print(ostream& out)const{
     out << "Segment("<<x1<<", " << y1 << ") -> (" << x2 << ", " << y2 <<") " 
         << owner << " [ " << insideAbove_first << ", " 
@@ -264,18 +292,15 @@ The value of this segment is taken from the argument.
   }
 
 
-/*
-3.3 ~Destructor~
-
-*/
-   ~AVLSegment() {}
 
 
 /*
-3.4 ~crosses~
+3.5 Geometric Functions
 
-Checks whether this segment and s have an intersection point of their
-interior. 
+~crosses~
+
+Checks whether this segment and __s__ have an intersection point of their
+interior.  
 
 */
  bool crosses(const AVLSegment& s) const{
@@ -284,7 +309,7 @@ interior.
  }
 
 /*
-3.5 ~crosses~
+~crosses~
 
 This function checks whether the interiors of the related 
 segments are crossing. If this function returns true,
@@ -338,7 +363,7 @@ the parameters ~x~ and ~y~ are set to the intersection point.
 }
 
 /*
-3.5 ~Extends~
+~extends~
 
 This function returns true, iff this segment is an extension of 
 the argument, i.e. if the right point of ~s~ is the left point of ~this~
@@ -351,7 +376,7 @@ and the slopes are equal.
   }
 
 /*
-3.5 ~extactEqualsTo~
+~exactEqualsTo~
 
 This function checks if s has the same geometry like this segment, i.e.
 if both endpoints are equal.  
@@ -362,27 +387,216 @@ bool exactEqualsTo(const AVLSegment& s)const{
          pointEqual(x2,y2,s.x2,s.y2);
 }
 
+/*
+~isVertical~
+
+Checks whether this segment is vertical.
+
+*/
+
+ bool isVertical() const{
+     return AlmostEqual(x1,x2);
+ }
+
+/*
+~isPoint~
+
+Checks if this segment consists only of a single point.
+
+*/
+  bool isPoint() const{
+     return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
+  }
 
 
 /*
-3.5 ~CompareTo~
+~InnerDisjoint~
+
+This function checks whether this segment and s have at most a 
+common endpoint. 
+
+*/
+
+  bool innerDisjoint(const AVLSegment& s)const{
+      
+
+      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
+        return true; 
+      }
+      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
+        return true;
+      }
+      if(overlaps(s)){ // a common line
+         return false;
+      }
+      if(compareSlopes(s)==0){ // parallel or disjoint lines
+         return true;
+      } 
+    
+      if(isVertical()){
+        double x = x1; // compute y for s
+        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
+                   (ininterior(x,y) && s.contains(x,y)) );
+
+      }
+      if(s.isVertical()){
+         double x = s.x1;
+         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+         return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
+                    (ininterior(x,y) && s.contains(x,y)) );
+      }
+
+
+
+    
+      // both segments are non vertical 
+      double m1 = (y2-y1)/(x2-x1);
+      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
+      double c1 = y1 - m1*x1;
+      double c2 = s.y1 - m2*s.x1;
+
+      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
+      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+
+      
+      return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
+                 (ininterior(x,y) && s.contains(x,y)) );
+  }
+/*
+~Intersects~
+
+This function checks whether this segment and s have at least a 
+common point. 
+
+*/
+
+  bool intersects(const AVLSegment& s)const{
+      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
+        return true; 
+      }
+      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
+        return true;
+      }
+      if(overlaps(s)){ // a common line
+         return true;
+      }
+      if(compareSlopes(s)==0){ // parallel or disjoint lines
+         return false;
+      } 
+    
+      if(isVertical()){
+        double x = x1; // compute y for s
+        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        return  ( (contains(x,y) && s.contains(x,y) ) );
+
+      }
+      if(s.isVertical()){
+         double x = s.x1;
+         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+         return ((contains(x,y) && s.contains(x,y)));
+      }
+    
+      // both segments are non vertical 
+      double m1 = (y2-y1)/(x2-x1);
+      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
+      double c1 = y1 - m1*x1;
+      double c2 = s.y1 - m2*s.x1;
+      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
+      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+      return ( (contains(x,y) && s.contains(x,y) ) );
+  }
+
+/*
+~overlaps~
+
+Checks whether both this segment and __s__ have a common segment.
+
+*/
+   bool overlaps(const AVLSegment& s) const{
+      if(isPoint() || s.isPoint()){
+         return false;
+      }
+
+      if(compareSlopes(s)!=0){
+          return false;
+      } 
+      // one segment is a extension of the other one
+      if(pointEqual(x1,y1,s.x2,s.y2)){
+          return false;
+      }
+      if(pointEqual(x2,y2,s.x1,s.y1)){
+         return false;
+      }
+      return contains(s.x1,s.y1) || contains(s.x2,s.y2);
+   }
+
+/*
+~ininterior~
+
+This function checks whether the point defined by (x,y) is
+part of the interior of this segment.
+
+*/
+   bool ininterior(const double x,const  double y)const{
+     if(isPoint()){
+       return false;
+     }
+
+     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){ // an endpoint
+        return false;
+     }
+     // check if (x,y) is located on the line 
+     double res1 = (x-x1)*(y2-y1);
+     double res2 = (y-y1)*(x2-x1);
+     if(!AlmostEqual(res1,res2)){ // (x,y) not on the straight line 
+         return false;
+     }
+     
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        return (y>y1) && (y < y2);
+     } else {
+        return (x>x1) && (x<x2);
+     }
+   }
+
+
+/*
+~contains~
+
+Checks whether the point defined by (x,y) is located anywhere on this
+segment.
+
+*/
+   bool contains(const double x,const  double y)const{
+     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){
+        return true;
+     }
+     if(isPoint()){
+       return false;
+     }
+     // check if (x,y) is located on the line 
+     double res1 = (x-x1)*(y2-y1);
+     double res2 = (y-y1)*(x2-x1);
+     if(!AlmostEqual(res1,res2)){
+         return false;
+     }
+     
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        return (y>=y1) && (y <= y2);
+     } else {
+        return (x>=x1) && (x<=x2);
+     }
+   }
+
+/*
+3.6 Comparison
 
 Compares this with s. The x intervals must overlap.
 
 */
 
  int compareTo(const AVLSegment& s) const{
-  
-
-// debug::start
-
-   if(!xOverlaps(s)){
-     cout << "try to compare segment having disjoint x intervals " << endl;
-     cout << "segment 1 : " << *this << endl;
-     cout << "segment 2 : " << s << endl;  
-   }
-
-// debug::end 
  
     assert(xOverlaps(s));
 
@@ -470,36 +684,16 @@ Compares this with s. The x intervals must overlap.
 
 
 
-/*
-3.6 ~isVertical~
-
-Checks whether this segment is vertical.
-
-*/
-
- bool isVertical() const{
-     return AlmostEqual(x1,x2);
- }
 
 /*
-2.6 isPoint
+3.7 Some ~Get~ Funtions
 
-Checks if this segment consists only of a single point.
-
-*/
-  bool isPoint() const{
-     return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
-  }
-
-
-/*
-3.7 getInsideAbove
+~getInsideAbove~
 
 Returns the insideAbove value for such segments for which this value is unique,
 e.g. for segments having owner __first__ or __second__.
 
 */
-
   bool getInsideAbove(){
       switch(owner){
         case first : return insideAbove_first;
@@ -508,26 +702,24 @@ e.g. for segments having owner __first__ or __second__.
       }
   }
 
-/*
-3.7 Comparison Operators 
+  double getX1() const { return x1; }
 
-*/
+  double getX2() const { return x2; }
 
+  double getY1() const { return y1; }
 
-  bool operator==(const AVLSegment& s) const{
-    return compareTo(s)==0;
-  }
+  double getY2() const { return y2; }
 
-  bool operator<(const AVLSegment& s) const{
-     return compareTo(s)<0;
-  }
+  ownertype getOwner() const { return owner; }
 
-  bool operator>(const AVLSegment& s) const{
-     return compareTo(s)>0;
-  }
+  bool getInsideAbove_first() const { return insideAbove_first; }
+  bool getInsideAbove_second() const { return insideAbove_second; }
+
 
 /*
-3.8 ~split~
+3.8 Split functions
+
+~split~
 
 This function splits two overlapping segments.
 Preconditions:
@@ -733,222 +925,9 @@ void splitCross(const AVLSegment& s, AVLSegment& left1, AVLSegment& right1,
     s.splitAt(x, y, left2, right2);
 }
 
-
-          
 /*
-~InnerDisjoint~
+3.9 Converting
 
-This function checks whether this segment and s have at most a 
-common endpoint. 
-
-*/
-
-  bool innerDisjoint(const AVLSegment& s)const{
-      
-
-      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
-        return true; 
-      }
-      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
-        return true;
-      }
-      if(overlaps(s)){ // a common line
-         return false;
-      }
-      if(compareSlopes(s)==0){ // parallel or disjoint lines
-         return true;
-      } 
-    
-      if(isVertical()){
-        double x = x1; // compute y for s
-        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
-        return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                   (ininterior(x,y) && s.contains(x,y)) );
-
-      }
-      if(s.isVertical()){
-         double x = s.x1;
-         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-         return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                    (ininterior(x,y) && s.contains(x,y)) );
-      }
-
-
-
-    
-      // both segments are non vertical 
-      double m1 = (y2-y1)/(x2-x1);
-      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
-      double c1 = y1 - m1*x1;
-      double c2 = s.y1 - m2*s.x1;
-
-      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-
-      
-      return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                 (ininterior(x,y) && s.contains(x,y)) );
-  }
-/*
-~Intersects~
-
-This function checks whether this segment and s have at least a 
-common point. 
-
-*/
-
-  bool intersects(const AVLSegment& s)const{
-      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
-        return true; 
-      }
-      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
-        return true;
-      }
-      if(overlaps(s)){ // a common line
-         return true;
-      }
-      if(compareSlopes(s)==0){ // parallel or disjoint lines
-         return false;
-      } 
-    
-      if(isVertical()){
-        double x = x1; // compute y for s
-        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
-        return  ( (contains(x,y) && s.contains(x,y) ) );
-
-      }
-      if(s.isVertical()){
-         double x = s.x1;
-         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-         return ((contains(x,y) && s.contains(x,y)));
-      }
-    
-      // both segments are non vertical 
-      double m1 = (y2-y1)/(x2-x1);
-      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
-      double c1 = y1 - m1*x1;
-      double c2 = s.y1 - m2*s.x1;
-      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-      return ( (contains(x,y) && s.contains(x,y) ) );
-  }
-
-
-/*
-3.10 ~ Get functions ~
-
-*/
-  double getX1() const { return x1; }
-
-  double getX2() const { return x2; }
-
-  double getY1() const { return y1; }
-
-  double getY2() const { return y2; }
-
-  ownertype getOwner() const { return owner; }
-
-  bool getInsideAbove_first() const { return insideAbove_first; }
-  bool getInsideAbove_second() const { return insideAbove_second; }
-
-
-/*
-~overlaps~
-
-Checks whether both this segment and __s__ have a common segment.
-
-*/
-   bool overlaps(const AVLSegment& s) const{
-      if(isPoint() || s.isPoint()){
-         return false;
-      }
-
-      if(compareSlopes(s)!=0){
-          return false;
-      } 
-      // one segment is a extension of the other one
-      if(pointEqual(x1,y1,s.x2,s.y2)){
-          return false;
-      }
-      if(pointEqual(x2,y2,s.x1,s.y1)){
-         return false;
-      }
-      return contains(s.x1,s.y1) || contains(s.x2,s.y2);
-   }
-
-/*
-~ininterior~
-
-This function checks whether the point defined by (x,y) is
-part of the interior of this segment.
-
-*/
-   bool ininterior(const double x,const  double y)const{
-     if(isPoint()){
-       return false;
-     }
-
-     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){ // an endpoint
-        return false;
-     }
-     // check if (x,y) is located on the line 
-     double res1 = (x-x1)*(y2-y1);
-     double res2 = (y-y1)*(x2-x1);
-     if(!AlmostEqual(res1,res2)){ // (x,y) not on the straight line 
-         return false;
-     }
-     
-     if(AlmostEqual(x1,x2)){ // vertical segment
-        return (y>y1) && (y < y2);
-     } else {
-        return (x>x1) && (x<x2);
-     }
-   }
-
-/*
-3.6 public data members 
-
-These members are not used in this class. So the user of
-this class can change them without any problems within this
-class itself.
-
-*/
- int con_below;  // should be used as coverage number
- int con_above;  // should be used as coverage number
-
-
-/*
-3.7 checkCon
-
-If the public data members are used as coverage numbers, they must
-fullfill some conditions. Because maximum two regions are concerned,
-ecah coverage number must be in range {0,1,2}. Because each segment
-is assigned to a region, the sum of the coverage numbers must be
-proper greater than zero.
-
-*/
-  bool checkCon(AVLTree<AVLSegment>* tree=0){
-
-       bool res = ((con_below + con_above) >0) &&
-                  ( (con_below>=0) && (con_below<=2)) &&
-                  ( (con_above>=0) && (con_above<=2)); 
-
-       if(!res){
-          cout << "checkCondFailed for " << (*this);
-          if(tree){
-              cout << "the tree is " << *tree << endl << endl;
-          }
-       }
-
-
-       assert((con_below + con_above) >0);
-       assert( (con_below>=0) && (con_below<=2)); 
-       assert( (con_above>=0) && (con_above<=2)); 
-       return true;
-  }
-
-
-/*
 ~ConvertToHs~
 
 This functions creates an HalfSegment from this segment.
@@ -973,34 +952,25 @@ HalfSegment convertToHs(bool lpd, ownertype owner = both )const{
    return hs;
 }
 
-
 /*
-~contains~
+3.10 public data members 
 
-Checks whether the point defined by (x,y) is located anywhere on this
-segment.
+These members are not used in this class. So the user of
+this class can change them without any problems within this
+class itself.
 
 */
-   bool contains(const double x,const  double y)const{
-     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){
-        return true;
-     }
-     if(isPoint()){
-       return false;
-     }
-     // check if (x,y) is located on the line 
-     double res1 = (x-x1)*(y2-y1);
-     double res2 = (y-y1)*(x2-x1);
-     if(!AlmostEqual(res1,res2)){
-         return false;
-     }
-     
-     if(AlmostEqual(x1,x2)){ // vertical segment
-        return (y>=y1) && (y <= y2);
-     } else {
-        return (x>=x1) && (x<=x2);
-     }
-   }
+ int con_below;  // should be used as coverage number
+ int con_above;  // should be used as coverage number
+
+
+/*
+3.11 Private part of the class
+
+Here the data members as well as some auxiliary functions are
+collected.
+
+*/
 
 
 private:
@@ -1030,56 +1000,20 @@ This function checks if the point defined by (x1,y1) is
 smaller than the point defined by (x2,y2).
 
 */
+
  static bool pointSmaller(const double x1, const double y1,
                           const double x2, const double y2){
-    if(pointEqual(x1,y1,x2,y2)){
-       return false;
-    }
-    return (AlmostEqual(x1,x2) && y1 < y2 ) ||  
-          (!AlmostEqual(x1,x2) && x1 < x2);
+
+    return comparePoints(x1,y1,x2,y2) < 0;
  }
 
-/*
-~pointBelow~
-
-This function checks if the point defined by (x,y) is below this
-segment. The x coordinate of the point must be located in the
-x range of this segment.
-
-*/
-
-  bool pointBelow(const double x,const double y)const{
-    if(AlmostEqual(x1,x2)){ // a vertical segment
-       return !AlmostEqual(y,y1) && y < y1;
-    } else {
-      double res1 = (y*(x2-x1));
-      double res2 = (y1*(x2-x) + y2*(x-x1));
-      return  !AlmostEqual(res1,res2) && (res1 < res2);
-    }
-  }
-
-/*
-~pointAbove~
-
-This function checks if the point defined by (x,y) is above this
-segment.
-
-*/
-  bool pointAbove(const double x , const double y) const{
-    if(AlmostEqual(x1,x2)){ // vertical segment
-      return !AlmostEqual(y,y2) && y > y2;
-    } else {
-      double res1 = (y*(x2-x1));
-      double res2 = (y1*(x2-x) + y2*(x-x1));
-      return !AlmostEqual(res1,res2) && (res1 > res2);
-    }
-  }
 
 /*
 ~comparePoints~
 
 */
-  bool comparePoints(double x1, double y1, double x2, double y2)const{
+  static int comparePoints(const double x1,const  double y1,
+                            const double x2,const double y2){
      if(AlmostEqual(x1,x2)){
        if(AlmostEqual(y1,y2)){
           return 0;
@@ -1094,10 +1028,6 @@ segment.
        return 1;
      }
   }
-
-
-
-
 
 /*
 ~compareSlopes~
@@ -1172,13 +1102,14 @@ in the x interval of this segment;
 /*
 ~GetY~
 
-Computes the y value for the spcified  __x__. 
+Computes the y value for the specified  __x__. 
 __x__ must be contained in the x-interval of this segment. 
 If the segment is vertical, the minimum y value of this 
 segment is returned.
 
 */  
   double getY(const double x) const{
+
      assert(xContains(x));
      if(isVertical()){
         return y1;
@@ -1191,7 +1122,7 @@ segment is returned.
 
 
 /*
-4 Shift Operator 
+3.12 Shift Operator 
 
 */
 ostream& operator<<(ostream& o, const AVLSegment& s){
@@ -1201,9 +1132,195 @@ ostream& operator<<(ostream& o, const AVLSegment& s){
 
 
 
+/*
+5 Some auxiliary Function
+
+
+*/
+
+inline void SetII(Int9M& m, const bool useCluster, 
+                  Cluster& cluster,bool& done){
+  if(!m.GetII()){
+     m.SetII(true);
+     if(useCluster){
+        cluster.Restrict(II,true);
+        done = done || cluster.isExtension(m) || cluster.IsEmpty();
+     }
+  }
+}
+
+inline void SetIB(Int9M& m, const bool useCluster,
+                  Cluster& cluster, bool& done){
+  if(!m.GetIB()){
+     m.SetIB(true);
+     if(useCluster){
+        cluster.Restrict(IB,true);
+        done = done || cluster.isExtension(m)|| cluster.IsEmpty();
+     }
+  }
+}
+
+inline void SetIE(Int9M& m, const bool useCluster,
+                  Cluster& cluster, bool& done){
+  if(!m.GetIE()){
+     m.SetIE(true);
+     if(useCluster){
+        cluster.Restrict(IE,true);
+        done = done || cluster.isExtension(m)|| cluster.IsEmpty();
+     }
+  }
+}
+
+inline void SetBI(Int9M& m, const bool useCluster,
+                  Cluster& cluster, bool& done){
+  if(!m.GetBI()){
+     m.SetBI(true);
+     if(useCluster){
+        cluster.Restrict(BI,true);
+        done = done || cluster.isExtension(m)|| cluster.IsEmpty();
+     }
+  }
+}
+
+inline void SetBB(Int9M& m, const bool useCluster,
+                  Cluster& cluster, bool& done){
+  if(!m.GetBB()){
+     m.SetBB(true);
+     if(useCluster){
+        cluster.Restrict(BB,true);
+        done = done || cluster.isExtension(m)|| cluster.IsEmpty();
+     }
+  }
+}
+
+inline void SetBE(Int9M& m, const bool useCluster, 
+                  Cluster& cluster, bool& done){
+  if(!m.GetBE()){
+     m.SetBE(true);
+     if(useCluster){
+        cluster.Restrict(BE,true);
+        done = done || cluster.isExtension(m)|| cluster.IsEmpty();
+     }
+  }
+}
+
+inline void SetEI(Int9M& m, const bool useCluster,
+                  Cluster& cluster, bool& done){
+  if(!m.GetEI()){
+     m.SetEI(true);
+     if(useCluster){
+        cluster.Restrict(EI,true);
+        done = done || cluster.isExtension(m)|| cluster.IsEmpty();
+     }
+  }
+}
+
+inline void SetEB(Int9M& m, const bool useCluster,
+                  Cluster& cluster, bool& done){
+  if(!m.GetEB()){
+     m.SetEB(true);
+     if(useCluster){
+        cluster.Restrict(EB,true);
+        done = done || cluster.isExtension(m)|| cluster.IsEmpty();
+     }
+  }
+}
+
+inline void SetEE(Int9M& m, const bool useCluster, 
+                  Cluster& cluster, bool& done){
+  if(!m.GetEE()){
+     m.SetEE(true);
+     if(useCluster){
+        cluster.Restrict(EE,true);
+        done = done || cluster.isExtension(m)|| cluster.IsEmpty();
+     }
+  }
+}
+
 
 /*
-3.3 Statistical information 
+~insertEvents~
+
+Creates Events for the AVLSegment and insert them into ~q1~ and/ or ~q1~.
+The target queue(s) is determined by the owner of ~seg~.
+The flags ~createLeft~ and ~createRight~ determine
+whether the left and / or the right events should be created.
+
+*/
+
+void insertEvents(const AVLSegment& seg,
+                  const bool createLeft,
+                  const bool createRight,
+                  priority_queue<HalfSegment,  
+                                 vector<HalfSegment>, 
+                                 greater<HalfSegment> >& q1,
+                  priority_queue<HalfSegment,  
+                                 vector<HalfSegment>, 
+                                 greater<HalfSegment> >& q2){
+   switch(seg.getOwner()){
+      case first: {
+                    if(createLeft){
+                      q1.push(seg.convertToHs(true, first));
+                    }
+                    if(createRight){
+                      q1.push(seg.convertToHs(false, first));
+                    }
+                  }
+                  break;
+      case second:
+                    if(createLeft){
+                      q2.push(seg.convertToHs(true, second));
+                    }
+                    if(createRight){
+                      q2.push(seg.convertToHs(false, second));
+                    }
+                    break;
+      case both :
+                    if(createLeft){
+                      q1.push(seg.convertToHs(true, first));
+                      q2.push(seg.convertToHs(true, second));
+                    }
+                    if(createRight){
+                      q1.push(seg.convertToHs(false, first));
+                      q2.push(seg.convertToHs(false, second));
+                    }
+                    break;
+      default: assert(false);
+   }
+
+}
+
+/*
+~performSplit~
+
+Replaces the original segment by left and inserts corresponding events 
+into the queues.
+ 
+
+*/
+void performSplit(AVLTree<AVLSegment>& sss,
+                  const AVLSegment& original,
+                  const AVLSegment& left,
+                  const AVLSegment& right,
+                  priority_queue<HalfSegment,  
+                                 vector<HalfSegment>, 
+                                 greater<HalfSegment> >& q1,
+                  priority_queue<HalfSegment,  
+                                 vector<HalfSegment>, 
+                                 greater<HalfSegment> >& q2){
+   
+   bool ok = sss.remove(original);
+   assert(ok);
+   ok = sss.insert(left);
+   assert(ok);
+   insertEvents(left, false, true, q1, q2);
+   insertEvents(right, true, true, q1, q2);
+}
+ 
+
+
+/*
+6 Statistical information 
 
 The following variables collect some statistical information.
 
@@ -1229,6 +1346,7 @@ int bb_r_p;
 int bb_r_ps;
 int bb_r_r;
 #endif
+
 
 /*
 ~ResetStatistic~
@@ -1261,182 +1379,17 @@ static void ResetStatistic(){
 }
 #endif
 
-/*
-3.3 Type Mapping of the __TopPred__ operator
-
-This operator checks whether the topological relationship between
-two spatial objects is part of a predicate cluster which is defined
-by a predicate group together with the name of this cluster. So, the 
-signature of this operator is:
-
-  $o_1$ [times] $o_2$ [times] string [times] predicategroup [->] bool 
-
-
-3.3.1 IsSpatialType
-
-This function checks whether the type given as a ListExpr is one of
-point, points, line, or region.
-
-*/
-
-inline bool IsSpatialType(ListExpr type){
-   if(!nl->IsAtom(type)){
-      return false;
-   }
-   if(!nl->AtomType(type)==SymbolType){
-      return false;
-   }
-   string t = nl->SymbolValue(type);
-   if(t=="point") return true;
-   if(t=="points") return true;
-   if(t=="line") return true;
-   if(t=="region") return true;
-   return false;
-}
-
-/*
-3.3.2 IsImplemented
-
-This function checks whether the given combination of 
-spatial objects is implemented. 
-
-~Recondition~ Both lists must hold SymbolAtoms
-
-*/
-bool IsImplemented(ListExpr type1, ListExpr type2){
-    string t1 = nl->SymbolValue(type1);
-    string t2 = nl->SymbolValue(type2);
-    if( (t1=="point" || t1=="points")  &&
-        (t2=="point" || t2=="points")){
-        return true;
-    }
-    if( ((t1=="point") && (t2=="line"))){
-       return true;
-    }
-      
-    if(((t1=="line") && (t2=="point"))){
-      return true;
-    }
-    
-    if( ((t1=="points") && (t2=="line"))){
-       return true;
-    }
-      
-    if(((t1=="line") && (t2=="points"))){
-      return true;
-    }
-    if(((t1=="region") && (t2=="point"))) return true;
-    if(((t1=="point") && (t2=="region"))) return true;
-    if(((t1=="region") && (t2=="points"))) return true;
-    if(((t1=="points") && (t2=="region"))) return true;
-    
-
-    if(((t1=="region") && (t2=="region"))) return true;
-    if((t1=="line") && (t2=="line")) return true;
-    if((t1=="line") && (t2=="region")) return true;
-
-
-    cout << t1 << " x " << t2 << " is not implemented" << endl;
-    return false;
-}
-
-/*
-3.3.4 TopPredTypeMap
-
-This function is the type mapping for the toppred operator.
-
-*/
-ListExpr TopPredTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=4){
-      ErrorReporter::ReportError("four arguments required");
-      return nl->SymbolAtom("typeerror");
-   }
-   ListExpr str = nl->Third(args);
-   ListExpr group = nl->Fourth(args);
-   if(!nl->IsEqual(str,"string")){
-       ErrorReporter::ReportError("the third argument must" 
-                                  " be of type string\n");
-       return nl->SymbolAtom("typeerror");
-   }
-   if(!nl->IsEqual(group,"predicategroup")){
-       ErrorReporter::ReportError("the third argument must" 
-                                  " be of type predicategroup\n");
-       return nl->SymbolAtom("typeerror");
-   }
-   ListExpr o1 = nl->First(args);
-   ListExpr o2 = nl->Second(args);
-   if(!IsSpatialType(o1)){
-      ErrorReporter::ReportError("The first argument must be a spatial type");
-      return nl->SymbolAtom("typeerror");
-   }   
-   if(!IsSpatialType(o2)){
-      ErrorReporter::ReportError("The second argument"
-                                 " must be a spatial type");
-      return nl->SymbolAtom("typeerror");
-   }  
-   
-   if(!IsImplemented(o1,o1)){
-      ErrorReporter::ReportError("not implemented combination");
-      return nl->SymbolAtom("typeerror");
-   }
- 
-   return nl->SymbolAtom("bool");
-}
 
 
 /*
-3.3.5 TopRelTypeMap
+7 Computation of the 9 intersection matrices
 
-This function is the Type mapping for the toprel operator.
-
-*/
-
-ListExpr TopRelTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=2){
-      ErrorReporter::ReportError("two arguments expected");
-      return nl->SymbolAtom("typeerror");
-   }
-   if(!IsSpatialType(nl->First(args)) 
-      || !IsSpatialType(nl->Second(args))){
-       ErrorReporter::ReportError("Spatial types expected");
-       return (nl->SymbolAtom( "typeerror" ));
-   }
-   if(!IsImplemented(nl->First(args),nl->Second(args))){
-       ErrorReporter::ReportError("combination not implemented yet");
-       return nl->SymbolAtom("typeerror");
-   }
-   return nl->SymbolAtom("int9m");
-}
+The following functions compute the 9 intersection matrix for 
+different combinations of spatial data types.
 
 
-#ifdef  TOPOPS_USE_STATISTIC
-/*
-3.3.6 ResetStatisticTypeMap
+7.1 ~point~ [x] ~point~
 
-*/
-ListExpr TopOpsResetStatTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=0){
-      ErrorReporter::ReportError("no argument expected");
-      return nl->SymbolAtom("typeerror");
-   }
-   return nl->SymbolAtom("bool");
-}
-
-ListExpr TopOpsGetStatTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=0){
-      ErrorReporter::ReportError("no argument expected");
-      return nl->SymbolAtom("typeerror");
-   }
-   return nl->SymbolAtom("text");
-}
-#endif
-
-
-
-/*
-3.4 Computation of the 9 intersection matrices
-
-~GetInt9M~
 
 This function computes the 9-intersection matrix between two point values.
 Because a single point is very simple, no bounding box tests are
@@ -1446,7 +1399,9 @@ Complexity: O(1)
 
 */
 
-void GetInt9M(Point* p1 , Point*  p2,Int9M& res){
+bool GetInt9M(Point* p1 , Point*  p2,Int9M& res, 
+             const bool useCluster= false,
+             Cluster cluster = Cluster()){
 #ifdef TOPOPS_USE_STATISTIC
   GetCalls_p_p++;
 #endif
@@ -1459,19 +1414,28 @@ void GetInt9M(Point* p1 , Point*  p2,Int9M& res){
     res.SetIE(true);
     res.SetEI(true);
   }
+  if(useCluster){
+    return cluster.Contains(res);
+  } else {
+    return true;
+  }
 }
 
+
 /*
-~GetInt9M~
+7.2 ~point~ [x] ~points~
+
 
 The next function computes the 9 intersection matrix between a 
 point value and a points value. 
 
-Complexity: O(log(n))  where ~n~ is the number of points in the __points__
+Complexity: O(log(n))  where ~n~ is the number of points in the __ps__
 value.
 
 */
-void GetInt9M(Points*  ps, Point* p,Int9M& res){
+bool GetInt9M(Points*  ps, Point* p,Int9M& res,
+              const bool useCluster=false,
+              Cluster cluster = Cluster()){
 #ifdef TOPOPS_USE_STATISTIC
   GetCalls_ps_p++;
 #endif
@@ -1486,7 +1450,11 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
      bb_ps_p++;
 #endif
-     return;
+     if(useCluster){
+       return cluster.Contains(res);
+     } else {
+       return true;
+     }
   }  
   
   // bounding box check
@@ -1498,7 +1466,11 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
       bb_ps_p++;
 #endif
-      return;
+     if(useCluster){
+        return cluster.Contains(res);
+     } else {
+        return true;
+     }
   }
 
   int size = ps->Size();
@@ -1511,12 +1483,18 @@ void GetInt9M(Points*  ps, Point* p,Int9M& res){
   } else{
      res.SetII(true);  
   }
-  return;
+  if(useCluster){
+    return cluster.Contains(res);
+  } else {
+    return true;
+  }
 }
 
 
+
 /*
-~GetInt9M~
+7.3 ~points~ [x] ~points~
+
 
 This function returns the 9 intersection matrix describing the 
 topological relationship between two __points__ values.
@@ -1525,16 +1503,43 @@ Complexity: O(~n~+~m~) , where ~n~ and ~m~ is the size of ~ps~1 and
 ~ps~2 respectively, where ~n~ and ~m~ is the size of ~ps~1 and
 ~ps~2 respectively.
 
+
+If the useCluster is set to be __false__, the return value is always
+__true__.   In this case, the parameter __res__ will contain the
+9 intersection matrix describing the topological relationship between
+~p1~1 and ~ps~2. In the other case, this matrix in not computed 
+completely. Instead, the return value will indicate whether the 
+topological relationship is part of the ~cluster~. 
+
+
 */
-void GetInt9M(Points* ps1, Points*  ps2,
-              Int9M& res){
+bool GetInt9M(Points* ps1, Points*  ps2,
+              Int9M& res,
+              const bool useCluster = false,
+              Cluster cluster = Cluster(0)){
+ 
+   if(useCluster && cluster.IsEmpty()){
+       return false;
+   }
+   if(useCluster){ // restrict cluster to matrices which are realizable 
+                   // for the points/points combination
+      cluster.Restrict(EE,true); // the extreiors always intersect
 
+      // the boundary of a points value is empty, thereby no intersections
+      // of this part with any other part may exist
+      Int9M r(true, false, true, false, false, false, true,false,true);
+      cluster.Restrict(r,false);
 
-  
+      if(cluster.IsEmpty()){
+        return false;
+      }
+   }
+ 
 #ifdef TOPOPS_USE_STATISTIC
 
    GetCalls_ps_ps++;
 #endif
+
    int n1 = ps1->Size();
    int n2 = ps2->Size();
 
@@ -1546,7 +1551,11 @@ void GetInt9M(Points* ps1, Points*  ps2,
 #ifdef TOPOPS_USE_STATISTIC
      bb_ps_ps++;
 #endif
-     return;
+     if(useCluster){
+       return cluster.Contains(res);
+     } else {
+       return true;
+     }
    }
    if(n1<=0){
       // some points of ps2 are in the exterior of ps1
@@ -1554,7 +1563,11 @@ void GetInt9M(Points* ps1, Points*  ps2,
 #ifdef TOPOPS_USE_STATISTIC
       bb_ps_ps++;
 #endif
-      return;
+      if(useCluster){
+         return cluster.Contains(res);
+      } else {
+         return true;
+      }
    }
    if(n2<=0){
       // symmetrically to the previous case
@@ -1562,8 +1575,14 @@ void GetInt9M(Points* ps1, Points*  ps2,
 #ifdef TOPOPS_USE_STATISTIC
       bb_ps_ps++;
 #endif
-      return;
+      if(useCluster){
+         return cluster.Contains(res);
+      } else {
+         return true;
+      }
    }
+
+
    // bounding box check
    Rectangle<2> bbox1 = ps1->BoundingBox();
    Rectangle<2> bbox2 = ps2->BoundingBox();
@@ -1574,76 +1593,91 @@ void GetInt9M(Points* ps1, Points*  ps2,
 #ifdef TOPOPS_USE_STATISTIC
       bb_ps_ps++;
 #endif
-      return;
+      if(useCluster){
+        return cluster.Contains(res);
+      } else {
+         return true;
+      }
    }
+
+   // bounding box check failed, perform an parallel scan
 
    const Point* p1;
    const Point* p2;
-   // some boolean constants for early exit
-   bool ii=false;
-   bool ie=false;
-   bool ei=false;
-   // perform a parallel scan
+
    int i1=0; 
    int i2=0;
-  
  
    bool done = false;
    do{ 
-       assert(i1<n1);
-       assert(i2<n2);
        ps1->Get(i1,p1);
        ps2->Get(i2,p2);
        int cmp = p1->Compare(p2);
        p1 = NULL;
        p2 = NULL;
        if(cmp==0){ //p1==p2
-         if(!ii){
-            res.SetII(true);
-         }
-         ii=true;
+         SetII(res,useCluster,cluster,done); 
          i1++;
          i2++;
        } else if (cmp<0){
          // p1 in the exterior of p2 
-         if(!ie){
-             res.SetIE(true);
-         }
-         ie=true;
+         SetIE(res,useCluster,cluster,done);
          i1++; 
        } else{ // p1 > p2
-          if(!ei){
-             res.SetEI(true);
-          }
-          ei=true;
-          i2++;
+         SetEI(res,useCluster,cluster,done);
+         i2++;
        }
-       
-       done= ((i1>=n1-1) || (i2>=n2-1)) || // end of one points value reached
-             (ii && ie && ie);           // no more intersections possible
-   }while(!done);    
-   
+       done= done || 
+             ((i1>=n1-1) || (i2>=n2-1)) || // end of one points value reached
+             (res.GetII() && res.GetIE() && res.GetEI()); 
+       if(useCluster){
+          done = done || cluster.IsEmpty();
+       }
+   }while(!done);    // end of scan
 
+   if(res.GetII() && res.GetIE()  && res.GetEI()){ 
+      // maximum count of intersections
+      if(!useCluster){
+         return true;  
+      } else {
+         return cluster.Contains(res);
+      }
+   }
+   if((i1<n1-1)){ // ps1 has further points
+      SetIE(res,useCluster,cluster,done);
+   }
 
-   if(ii && ie && ei){ // maximum count of intersections
-      return;  
+   if( (i2<n2-1)){ // ps2 has further points
+      SetEI(res,useCluster,cluster,done);
    }
-   if(i1<n1-1){ // ps1 has further points
-      res.SetIE(true);
+   if(!useCluster){
+      return true;
+   } else {
+      return cluster.Contains(res);
    }
-   if(i2<n2-1){ // ps2 has further points
-      res.SetEI(true);
-   }
-   return;
 }
 
 
+
 /*
-~GetInt9M~
+7.4 ~line~ [x] ~point~ and ~line~ [x] ~points~
 
-This function computes the 9-intersection matrix for a line and a single point.
+The next functions compute the topological relationship between a
+line and a point or points value. 
 
-Complexity: O(n)
+
+~SelectNext~ line x point
+
+This function looks which event from the line or from the point
+is smaller. The line is divided into the original line part
+at position posLine and possible splitted segments stored
+in ~q~. The return value of the function will be ~first~ if the
+next event comes from the line value and ~second~ if the next
+event comes from the point value. Depending of the return value,
+one of the arguments ~resHs~ or ~resPoint~ is set the the value of 
+this event. 
+The positions are increased automatically by this function.
+
 
 */
 
@@ -1709,6 +1743,14 @@ ownertype selectNext( Line const* const line,
    }
 }
 
+/*
+~selectNext~ line x points
+
+This function works like the function above but instead for a point, a 
+points value is used.
+
+*/
+
 
 ownertype selectNext( Line const* const line,
                       priority_queue<HalfSegment, 
@@ -1716,7 +1758,7 @@ ownertype selectNext( Line const* const line,
                                      greater<HalfSegment> >& q,
                       int& posLine,
                       Points const* const point,
-                      int& posPoint, // >0: point already used
+                      int& posPoint, 
                       HalfSegment& resHs,
                       Point& resPoint){
 
@@ -1867,27 +1909,68 @@ matrix.
 
 */
 
-bool isDone(Line const* const line, Point const* const point, Int9M m){
+bool isDone(Line const* const line, Point const* const point, Int9M m,
+            const bool useCluster, const Cluster& cluster){
 
-  return m.GetBE() && // endpoint of the line has been found
-         (m.GetII()  || m.GetBI() || m.GetEI());
+ bool res = m.GetBE() && // endpoint of the line has been found
+           (m.GetII()  || m.GetBI() || m.GetEI());
+ if(useCluster){
+   return res || cluster.IsEmpty() || cluster.isExtension(m);
+ } else {
+    return res;
+ }
 }
 
 
-bool isDone(Line const* const line, Points const* const point, Int9M m){
+bool isDone(Line const* const line, Points const* const point, Int9M m,
+            const bool useCluster, const Cluster& cluster){
 
-  return m.GetBE() && // endpoint of the line has been found
-         (m.GetII()  && m.GetBI() && m.GetEI());
+  bool res = m.GetBE() && // endpoint of the line has been found
+             (m.GetII()  && m.GetBI() && m.GetEI());
+  if(useCluster){
+     return res || cluster.IsEmpty() || cluster.isExtension(m);
+  } else {
+     return res;
+  }
 }
+
+/*
+~GetInt9M~
+
+The template parameter can be instantiated with ~Point~ or ~Points~.
+
+*/
 
 template<class Pclass>
-void GetInt9M(Line const* const line, Pclass const* const point,Int9M& res){
+bool GetInt9M(Line const* const line, 
+              Pclass const* const point,
+              Int9M& res,
+              const bool useCluster,
+              Cluster& cluster){
 
    bool pointdone1 = false;
    if(initBox(line,point,res,pointdone1)){
-      return;
+      if(useCluster){
+         return cluster.Contains(res);
+      } else {
+        return true;
+      }
    }
+
+   // line is not empty
  
+   // restrict the cluster to valid matrices
+   if(useCluster){
+       cluster.Restrict(EE,true); // hold in each case
+       cluster.Restrict(IE,true); // nonempty line
+
+       // boundary of a point is empty
+       Int9M m(true, false, true, true,false,true, true,false,true);
+       cluster.Restrict(m,false);
+       if(cluster.IsEmpty()){
+         return false;
+       }
+   }
 
    // prefilter unsuccessful -> scan the halfsegments
 
@@ -1905,15 +1988,15 @@ void GetInt9M(Line const* const line, Pclass const* const point,Int9M& res){
    Point resPoi;
    Point lastDomPoint;
    int lastDomPointCount = 0;
-
+   // avoid unneeded expensive restrictions of the cluster
+  
 
    while(!done &&  
          ((owner=selectNext(line,q,posline,point,
            posPoint,resHs,resPoi))!=none)){
 
-      if(owner==second){
+      if(owner==second){ // event comes from the point(s) value
          AVLSegment current(&resPoi,second);
-
 
          const AVLSegment* leftN=0;
          const AVLSegment* rightN=0;
@@ -1922,19 +2005,17 @@ void GetInt9M(Line const* const line, Pclass const* const point,Int9M& res){
            if(lastDomPointCount>0 && AlmostEqual(lastDomPoint,resPoi)){
              // point located in the last dominating point
              if(lastDomPointCount==1){ // on boundary
-                res.SetBI(true);
+                SetBI(res,useCluster,cluster,done);
              } else {
-                res.SetII(true);
+                SetII(res,useCluster,cluster,done);
              }
              lastDomPointCount++;
            } else { // point outside the line
-             // set intersection
-             res.SetEI(true);
+             SetEI(res,useCluster,cluster,done);
              // update dompoint
              if(lastDomPointCount==1){ // last point was boundary
-                res.SetBE(true);
+                SetBE(res,useCluster,cluster,done);
              }
-
              lastDomPoint = resPoi;
              lastDomPointCount = 0;
           }
@@ -1944,23 +2025,23 @@ void GetInt9M(Line const* const line, Pclass const* const point,Int9M& res){
             if((leftN && leftN->contains(x,y))  ||
                (rightN && rightN->contains(x,y))||
                ( member->ininterior(x,y))){
-              res.SetII(true);
+              SetII(res,useCluster,cluster,done);
             } else { // point located on an endpoint of member
               if(lastDomPointCount>0 && AlmostEqual(resPoi,lastDomPoint)){
                  if(lastDomPointCount==1){
-                   res.SetBI(true);
+                   SetBI(res,useCluster,cluster,done);
                  } else {
-                   res.SetII(true);
+                   SetII(res,useCluster,cluster,done);
                  }
                  lastDomPointCount++;
               } else {
-                 res.SetEI(true);
+                 SetEI(res,useCluster,cluster,done);
                  lastDomPointCount = 0;
               } 
 
             }
          }
-         done = isDone(line,point,res); 
+         done = done || isDone(line,point,res,useCluster,cluster); 
          lastDomPoint = resPoi;
       } else { // an halfsegment
         assert(owner==first);
@@ -1979,9 +2060,7 @@ void GetInt9M(Line const* const line, Pclass const* const point,Int9M& res){
            (member && member->exactEqualsTo(current))){
            if(lastDomPointCount==0 || !AlmostEqual(domPoint,lastDomPoint)){
               if(lastDomPointCount==1){
-//              cout << "SetBE at line " << __LINE__ << endl; // debug;
-//              cout << "Boundary point is " << lastDomPoint << endl; // debug
-                 res.SetBE(true);
+                 SetBE(res,useCluster,cluster,done);
               } 
               lastDomPoint = domPoint;
               lastDomPointCount = 1;
@@ -2096,21 +2175,14 @@ void GetInt9M(Line const* const line, Pclass const* const point,Int9M& res){
            } // no overlapping segment
        } else { // right event
 
-
            AVLSegment left1, left2, right1, right2;
-        //   AVLSegment current(&resHs, second);
-       //    const AVLSegment* leftN=0;
-       //    const AVLSegment* rightN=0;
-
-        //   const AVLSegment* member= sss.getMember(current,leftN,rightN);
-
 
            if(member && member->exactEqualsTo(current)){ // segment found
 
               sss.remove(current);
 
               if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
-                 // the neighbours are intersection ... check how !
+                 // the neighbours are intersecting ... check how !
                  
                  // endpoint of leftN splits rightN
                  if(rightN->ininterior(leftN->getX2(), leftN->getY2())){
@@ -2156,32 +2228,47 @@ void GetInt9M(Line const* const line, Pclass const* const point,Int9M& res){
            }
        }
      }
-     done = isDone(line,point,res);
+     done = done ||  isDone(line,point,res,useCluster, cluster);
    } // end sweep
 
    if(lastDomPointCount==1) { 
      // last Point of the line is an endpoint
-     res.SetBE(true); // endpoint found for the line 
-  }   
+     SetBE(res,useCluster,cluster,done);
+   }   
+   if(useCluster){
+      return cluster.Contains(res);
+   }else {
+      return true;
+   }
 }
 
+/*
+~Instantiations of the template function~
 
-void GetInt9M(Line const* const line, Point const* const point,Int9M& res){
-   GetInt9M<Point>(line,point,res);
+*/
+
+bool GetInt9M(Line const* const line, Point const* const point,Int9M& res,
+              const bool useCluster=false, Cluster cluster = Cluster()){
+   return GetInt9M<Point>(line,point,res, useCluster, cluster);
 }
 
-void GetInt9M(Line const* const line, Points const* const point,Int9M& res){
-   GetInt9M<Points>(line,point,res);
+bool GetInt9M(Line const* const line, Points const* const point,Int9M& res,
+              const bool useCluster=false, Cluster cluster = Cluster()){
+  return GetInt9M<Points>(line,point,res, useCluster, cluster);
 }
 
 
 
 /*
-~GetInt9M~
+7.5 ~region~ [x] ~point~
 
 Computation of the 9 intersection matrix for a single point and a 
 region value. 
 
+
+~pointAbove~
+
+Auxiliary functtion checking if ~p~ is located above ~hs~.
 
 */
 
@@ -2204,7 +2291,9 @@ bool pointAbove(const HalfSegment* hs, const Point* p) {
 }
 
 
-void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
+bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
+              const bool useCluster= false,
+              Cluster cluster = Cluster()){
 
 #ifdef TOPOPS_USE_STATISTIC
   GetCalls_r_p++;
@@ -2214,10 +2303,14 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
   res.SetEE(true);
   if(reg->IsEmpty()){
      res.SetEI(true);
-     return;
+     if(useCluster){
+       return cluster.Contains(res);
+     } else {
+       return true;
+     }
   }
   res.SetIE(true); // the point can't cover an infinite set of points
-  res.SetBE(true); //  see above
+  res.SetBE(true); 
 
   Rectangle<2> bboxreg = reg->BoundingBox();
   Rectangle<2> bboxp = p->BoundingBox();
@@ -2227,13 +2320,14 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
       bb_r_p++;
 #endif
-     return;
+     if(useCluster){
+       return cluster.Contains(res);
+     } else {
+       return true;
+     }
   }
 
    // bbox check failed, we have to compute the result
-
-
-
 
    int size = reg->Size();
    double x = p->GetX();
@@ -2245,10 +2339,13 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
    for(int i=0;i<size;i++){
      reg->Get(i,hs);
      if(hs->IsLeftDomPoint()){
-
         if(hs->Contains(*p)){
            res.SetBI(true); //point on boundary
-           return;
+           if(useCluster){
+             return cluster.Contains(res);
+           } else {
+              return true;
+           }
         }
         if(!hs->IsVertical()){
             if(pointAbove(hs,p)){
@@ -2267,18 +2364,37 @@ void GetInt9M(Region const* const reg, Point const* const p, Int9M& res){
    } else{
       res.SetII(true);
    }
+   if(useCluster){
+      return cluster.Contains(res);
+   } else {
+      return true;
+   }
 }
 
 
 
 /*
-~GetInt9M~
+7.6 ~region~ [x] ~points~
 
 Computation of the 9 intersection matrix for a set of points and a 
 region value. 
 
-*/
 
+~selectNext~
+
+If the event caused by the region is smaller then this one cause by the
+points vaue, the result of the function will be ~first~. Otherwise, the
+result will be ~second~. The region itself may be consist of the original
+halfsegments and halfsegments produced by dividing original halfsegments.
+The positions indicate the current elements of the halfsegment arrays.
+They are updated automatically within this function. 
+Depending on the return value, one of the parameter ~resultHs~ or
+~resultPoint~ is set to the value of the next event.
+
+If the region and the points value are already processed, the return value will 
+be ~none~.
+
+*/
 
 ownertype selectNext(const Region*  reg,
                      priority_queue<HalfSegment,  
@@ -2314,7 +2430,6 @@ ownertype selectNext(const Region*  reg,
      p->Get(pos2,cp); 
   }
 
-  
   int src = 0;  // none
   if(rhs){
     src = 1; 
@@ -2378,7 +2493,9 @@ ownertype selectNext(const Region*  reg,
 }
 
 
-void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
+bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
+              const bool useCluster=false,
+              Cluster cluster = Cluster()){
 #ifdef TOPOPS_USE_STATISTIC
   GetCalls_r_ps++;
 #endif
@@ -2390,21 +2507,34 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
          bb_r_ps++;
 #endif
-         return; 
+       if(useCluster){
+          return cluster.Contains(res);
+       } else {
+         return true; 
+       }
       }
       res.SetEI(true);
 #ifdef TOPOPS_USE_STATISTIC
       bb_r_ps++;
 #endif
-      return;
+      if(useCluster){
+        return cluster.Contains(res);;
+      } else {
+        return true;  
+      }
    } 
    res.SetIE(true);
    res.SetBE(true);
+
    if(ps->IsEmpty()){ // no more intersections can be found
 #ifdef TOPOPS_USE_STATISTIC
       bb_r_ps++;
 #endif
-      return;
+      if(useCluster){
+        return cluster.Contains(res);
+      } else {
+        return true;
+      }
    }
   // bounding box test
   Rectangle<2> regbox = reg->BoundingBox();
@@ -2414,9 +2544,30 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
     bb_r_ps++;
 #endif
-    return;
+    if(useCluster){
+      return cluster.Contains(res);
+    } else {
+      return true;
+    }
   }
   // bbox failed, perform a plane sweep
+
+  if(useCluster){
+    // restrict the cluster to possible values
+
+    // boundary of an points value is empty
+    Int9M m1(true,false,true, true,false,true, true,false,true);
+    cluster.Restrict(m1,false);
+    
+    cluster.Restrict(res,true);
+
+    if(cluster.IsEmpty()){
+      return false;
+    }
+    if(cluster.isExtension(res)){
+      return true;
+    }
+  }
 
   // queue for splitted segments of the region
   priority_queue<HalfSegment, vector<HalfSegment>, greater<HalfSegment> > q1;
@@ -2436,17 +2587,17 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
        const AVLSegment* right=0;
        const AVLSegment* member = sss.getMember(current, left, right);
        if(member){ // point located on boundary
-         res.SetBI(true);
+         SetBI(res,useCluster,cluster,done);
        } else if(left){
          if(left->getInsideAbove_first()){
-            res.SetII(true);
+            SetII(res,useCluster,cluster,done);
          } else {
-            res.SetEI(true);
+            SetEI(res,useCluster,cluster,done);
          }
        } else { // there is nothing under cp
-         res.SetEI(true);
+         SetEI(res,useCluster,cluster,done);
        }
-       done = res.GetII() && res.GetBI() && res.GetEI();
+       done = done || res.GetII() && res.GetBI() && res.GetEI();
     } else {  // the next element comes from the region
       AVLSegment current(&CH,first);
 
@@ -2538,26 +2689,33 @@ void GetInt9M(Region const* const reg, Points const* const ps, Int9M& res){
       }
     } // element from region
   } // while
+  if(useCluster){
+    return cluster.Contains(res);
+  } else{
+    return true;
+  }
 }
 
 
+
 /*
-Selects the mimimum halfsegment from reg1, reg2, q1, and q2.
-If no values are availablee, the return value will be __none__. 
+Selects the mimimum halfsegment from v1, v2, q1, and q2.
+If no values are available, the return value will be __none__. 
 In this case, __result__ remains unchanged. Otherwise, __result__
 is set to the minimum value found.
-Otherwise, it will be first or second depending on the region 
+Otherwise, it will be first or second depending on the value 
 containing the minimum. If some halfsegments are equal, the one
-from the first region is selected. 
+from the v1 is selected. 
 Note: pos1 and pos2 are increased automatically. In the same way, 
       the topmost element of the selected queue is deleted. 
 
+The template paraeter may be instantiated with ~Region~ or ~Line~
 
 */
 template<class T1, class T2>
-ownertype selectNext(T1 const* const reg1,
+ownertype selectNext(T1 const* const v1,
                      int& pos1,
-                     T2 const* const reg2,
+                     T2 const* const v2,
                      int& pos2,
                      priority_queue<HalfSegment,  
                                     vector<HalfSegment>, 
@@ -2573,8 +2731,8 @@ ownertype selectNext(T1 const* const reg1,
   const HalfSegment* values[4];
   int number = 0; // number of available values
   // read the available elements
-  if(pos1<reg1->Size()){
-     reg1->Get(pos1,values[0]);
+  if(pos1<v1->Size()){
+     v1->Get(pos1,values[0]);
      number++;
   }  else {
      values[0] = 0;   
@@ -2585,8 +2743,8 @@ ownertype selectNext(T1 const* const reg1,
     values[1] = &q1.top();
     number++;   
   }
-  if(pos2<reg2->Size()){
-     reg2->Get(pos2,values[2]);
+  if(pos2<v2->Size()){
+     v2->Get(pos2,values[2]);
      number++;
   }  else {
      values[2] = 0;   
@@ -2621,9 +2779,12 @@ ownertype selectNext(T1 const* const reg1,
     default: assert(false);   
   }
   return none;
-
 }
 
+/*
+~Instantiation of the selectNext Function~
+
+*/
 
 ownertype selectNext(Region const* const reg1,
                      int& pos1,
@@ -2672,10 +2833,14 @@ class OwnedPoint{
     bool defined; 
 };
 
+/*
+7.7 ~region~ [x] ~region~
 
+*/
 
-
-void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
+bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
+              const bool useCluster =false,
+              Cluster cluster = Cluster()){
 #ifdef TOPOPS_USE_STATISTIC
   GetCalls_r_r++;
 #endif
@@ -2687,14 +2852,22 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
        bb_r_r++;
 #endif
-       return; 
+       if(useCluster){
+           return cluster.Contains(res); 
+       } else {
+           return true;
+       }
     }else{
       res.SetEI(true);
       res.SetEB(true);
 #ifdef TOPOPS_USE_STATISTIC
       bb_r_r++;
 #endif
-      return;
+      if(useCluster){
+         return cluster.Contains(res); 
+      } else {
+         return true;
+      }
     }
   }
 
@@ -2704,7 +2877,11 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
      bb_r_r++;
 #endif
-     return;
+     if(useCluster){
+        return cluster.Contains(res);
+     } else {
+        return true;
+     }
   }
   // bounding box check
   Rectangle<2> bbox1 = reg1->BoundingBox();
@@ -2717,8 +2894,22 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
 #ifdef TOPOPS_USE_STATISTIC
      bb_r_r++;
 #endif
-     return;
+     if(useCluster){
+        return cluster.Contains(res);
+     } else{
+        return true;
+     }
   }
+
+  if(useCluster){
+     cluster.Restrict(res,true);
+     if(cluster.IsEmpty() ){
+        return false;
+     }
+     if(cluster.isExtension(res)){
+        return true;
+     } 
+  } 
 
 
   AVLTree<AVLSegment> sss;            // sweep state structure
@@ -2759,18 +2950,9 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
         lastDomPoint.owner = owner;
     } else { // same point as before
        if(lastDomPoint.owner != owner){
-          res.SetBB(true); // common point found
+          SetBB(res,useCluster,cluster,done);
        }
     }
-
-
- // debug::start
-    //cout << "process semnet" << current << "   ";
-    //cout << (nextSeg.IsLeftDomPoint()?"LEFT":"RIGHT");
-    //cout << endl << endl; 
-
- // debug::end   
-
 
 
     if(nextSeg.IsLeftDomPoint()){
@@ -2779,30 +2961,26 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
            // check for valid region representation
            assert(member->getOwner() != current.getOwner()); 
            assert(member->getOwner() != both);
-
-           res.SetBB(true); // common boundary found
+           SetBB(res,useCluster,cluster,done); // common boundary found
            bool iac = current.getOwner()==first?current.getInsideAbove_first()
                                             :current.getInsideAbove_second();
            bool iam = member->getOwner()==first?member->getInsideAbove_first()
                                            :member->getInsideAbove_second();
 
            if(iac!=iam){
-             res.SetIE(true);
-             res.SetEI(true); 
+             SetIE(res,useCluster,cluster,done);
+             SetEI(res,useCluster,cluster,done);
            } else {
-             res.SetII(true);
+             SetII(res,useCluster,cluster,done);
              // res.setEE(true); // alreay done in initialisation
            }
 
            int parts = member->split(current,left,common,right);
 
            sss.remove(*member);
-           assert(sss.Check(cerr));
 
            if(parts & LEFT){   // there is a left part
-              left.checkCon(); 
               sss.insert(left);  // simulates a left event.
-              assert(sss.Check(cerr));
               // create a halfsegment (rightevent) for left
               // create the right event for this segment
               switch(left.getOwner()){
@@ -2823,10 +3001,8 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
              common.con_above--;
            } 
 
-           common.checkCon(); 
            sss.insert(common);
            
-           assert(sss.Check(cerr));
            // insert the corresponding right event into one of the queues
            HalfSegment hs_common1 = common.convertToHs(false,first);
            HalfSegment hs_common2 = common.convertToHs(false,second);
@@ -2866,7 +3042,11 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
               // computation of the intersections
               res.Fill(); 
               done = true;
-              return;
+              if(useCluster){
+                return cluster.Contains(res);
+              } else {
+                return true;
+              }
            }    
            // check crossing right
            if(rightN && rightN->crosses(current)){
@@ -2874,7 +3054,11 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
               // computation of the intersections
               res.Fill(); 
               done = true;
-              return;
+              if(useCluster){ 
+                 return cluster.Contains(res);
+              } else {
+                 return true;
+              }
            }
            // check for disjointness with both neighbours
            if( ( !leftN || leftN->innerDisjoint(current)) &&
@@ -2908,52 +3092,49 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
 
               // derive intersections from the coverage numbers
               if(current.con_below == 0){
-                  res.SetEE(true);
+                  ; // EE is set already in initialization
+                  //res.SetEE(true);
               } else if (current.con_below == 1) {
                   if(current.getInsideAbove()){
                      if(current.getOwner()==first){
-                        res.SetEI(true);
-
+                        SetEI(res,useCluster,cluster,done);
                      } else {
-                        res.SetIE(true);
+                        SetIE(res,useCluster,cluster,done);
                      }
                   } else {
                      if(current.getOwner()==first){
-                        res.SetIE(true);
+                        SetIE(res,useCluster,cluster,done);
                      } else {
-                        res.SetEI(true);
-
+                        SetEI(res,useCluster,cluster,done);
                      }
                   }
               } else {
                  assert(current.con_below==2);
-                 res.SetII(true); 
+                 SetII(res,useCluster,cluster,done);
               }
               // check for possible common endpoints with the neighbours
               if(leftN && leftN->getOwner()!=current.getOwner()){
                  if(leftN->intersects(current)){
-                     res.SetBB(true);
+                     SetBB(res,useCluster,cluster,done);
                  }
               }
               if(rightN && rightN->getOwner()!=current.getOwner()){
                  if(rightN->intersects(current)){
-                     res.SetBB(true);
+                     SetBB(res,useCluster,cluster,done);  
                  }
               }
-              current.checkCon(&sss); 
               sss.insert(current);
-              assert(sss.Check(cerr));
 
            } else {
               // check for possible common points with the neighbours
               if(leftN && leftN->getOwner()!=current.getOwner()){
                  if(leftN->intersects(current)){
-                     res.SetBB(true);
+                     SetBB(res,useCluster,cluster,done);
                  }
               }
               if(rightN && rightN->getOwner()!=current.getOwner()){
                  if(rightN->intersects(current)){
-                     res.SetBB(true);
+                     SetBB(res,useCluster,cluster,done);
                  }
               }
 
@@ -3025,7 +3206,6 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
 
                sss.remove(*leftN);
                leftN = &right; 
-               left.checkCon();
                sss.insert(left);
 
                switch(left.getOwner()){
@@ -3070,7 +3250,6 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
                // remove the nonsplitted segment from sss 
                // and insert the shorted one
                sss.remove(*rightN);
-               left.checkCon();
                sss.insert(left);
                // create events for the splitted segments
                switch(left.getOwner()){
@@ -3123,25 +3302,23 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
 
             // derive intersections from the coverage numbers
             if(current.con_below == 0){
-                res.SetEE(true);
+                ; // res.SetEE(true); // already done in initialization
             } else if (current.con_below == 1) {
                 if(current.getInsideAbove()){
                    if(current.getOwner()==first){
-                      res.SetEI(true);
-
+                      SetEI(res,useCluster,cluster,done);
                    } else {
-                      res.SetIE(true);
+                      SetIE(res,useCluster,cluster,done);
                    }
                 } else {
                    if(current.getOwner()==first){
-                      res.SetIE(true);
+                      SetIE(res,useCluster,cluster,done);
                    } else {
-                      res.SetEI(true);
-
+                      SetEI(res,useCluster,cluster,done);
                    }
                 }
             } else if(current.con_below==2){
-               res.SetII(true); 
+               SetII(res,useCluster,cluster,done);
             } else {
               cerr << "invalid value for  con_below " 
                    << current.con_below << endl;
@@ -3159,7 +3336,6 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
               
              assert(current.con_above>=0 && current.con_above<=2);
              assert(current.con_below + current.con_above > 0);
-             current.checkCon();           
              sss.insert(current);
            }
        }
@@ -3172,25 +3348,25 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
            // other region
            if(member->con_below==0 || member->con_above==0){ // in exterior
               switch(member->getOwner()){
-                case first: res.SetBE(true); 
-                            res.SetIE(true); 
-                            res.SetEE(true); 
+                case first: SetBE(res,useCluster,cluster,done);  
+                            SetIE(res,useCluster,cluster,done); 
+                            //res.SetEE(true); 
                             break;
-                case second: res.SetEB(true); 
-                             res.SetEI(true); 
-                             res.SetEE(true); 
+                case second: SetEB(res,useCluster,cluster,done);  
+                             SetEI(res,useCluster,cluster,done); 
+                             //res.SetEE(true); 
                              break;
                 default: assert(false);
               }
            } else if(member->con_below==2 || member->con_above==2){ //interior
               switch(member->getOwner()){
-                case first: res.SetBI(true); 
-                            res.SetII(true); 
-                            res.SetEI(true); 
+                case first: SetBI(res,useCluster,cluster,done); 
+                            SetII(res,useCluster,cluster,done); 
+                            SetEI(res,useCluster,cluster,done); 
                             break;
-                case second: res.SetIB(true); 
-                             res.SetII(true); 
-                             res.SetIE(true);
+                case second: SetIB(res,useCluster,cluster,done); 
+                             SetII(res,useCluster,cluster,done); 
+                             SetIE(res,useCluster,cluster,done);
                              break;
                 default: assert(false);
               }
@@ -3200,7 +3376,6 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
         }
 
         sss.remove(*member);
-        assert(sss.Check(cerr));
 
        
         if( leftN && rightN && !leftN->innerDisjoint(*rightN)){
@@ -3210,16 +3385,17 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
            if(leftN->crosses(*rightN)){
               assert(leftN->getOwner() != rightN->getOwner()); 
               res.Fill(); // we are done
-              return;
+              if(useCluster){ 
+                 return cluster.Contains(res);
+              } else {
+                 return true;
+              }
            } else if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
               AVLSegment left, right;
               leftN->splitAt(rightN->getX2(), rightN->getY2(),left,right);
               sss.remove(*leftN);
               leftN = &right;
-              assert(sss.Check(cerr));
-              left.checkCon();
               sss.insert(left);
-              assert(sss.Check(cerr));
               switch(leftN->getOwner()){
                   case first: { q1.push(left.convertToHs(false));
                                q1.push(right.convertToHs(true,first));
@@ -3245,10 +3421,7 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
               AVLSegment left, right;
               rightN->splitAt(leftN->getX2(), leftN->getY2(),left,right);
               sss.remove(*rightN);
-              assert(sss.Check(cerr));
-              left.checkCon();
               sss.insert(left);
-              assert(sss.Check(cerr));
               switch(rightN->getOwner()){
                   case first: { q1.push(left.convertToHs(false));
                                q1.push(right.convertToHs(true,first));
@@ -3276,11 +3449,31 @@ void GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res){
         }
       }
     }
+    if(res.IsFull()){
+      done = true;
+    }
+    if(useCluster){
+      done = done || cluster.IsEmpty();
+    }
+  } // sweep
+  
+  if(useCluster){
+    return cluster.Contains(res); 
+  } else {
+    return true;
+  }
+ 
+} // GetInt9M (region x region)
 
-  } 
-}
 
 
+/* 
+7.8 ~line~ [x] ~line~
+
+
+~Instantiation of the selectNext function ~
+
+*/
 ownertype selectNext(Line const* const line1,
                      int& pos1,
                      Line const* const line2,
@@ -3299,63 +3492,51 @@ ownertype selectNext(Line const* const line1,
 }
 
 
+/*
+~updateDompoints~
+
+This functions does all things caused by the next dominating point.
+This function can only used for two line values.
+
+*/
 
 void updateDomPoints(Point& lastDomPoint, const Point& newDomPoint,
                      int& lastDomPointCount1, int& lastDomPointCount2,
                      ownertype owner,
-                     Int9M& res){
+                     Int9M& res,
+                     bool useCluster,
+                     Cluster& cluster,
+                     bool& done){
 
   // update dominating point information
   int sum = lastDomPointCount1 + lastDomPointCount2;
-
-// debug::start
-  /*
-   cout << "Update domPoints: " << endl;
-   if(sum==0){
-     cout << "there is no last dompoint " << endl;
-   } else {
-     cout << "lastDomPoint is" << lastDomPoint << endl;
-   }
-   cout << "newDomPoint : " << newDomPoint << endl;
-   cout << "count 1 : " << lastDomPointCount1 << endl;
-   cout << "count 2 : " << lastDomPointCount2 << endl;
-  */
-//debug::end
 
   if( sum == 0 || !AlmostEqual(lastDomPoint,newDomPoint)){
      // dominating point changed
      if(lastDomPointCount1 == 1){
         if(lastDomPointCount2 == 1){
-//           cout << "SetBB at" << __LINE__ << endl; // debug
-           res.SetBB(true);
+           SetBB(res,useCluster,cluster,done);
         } else if(lastDomPointCount2>1){
-//           cout << "SetBI at" << __LINE__ << endl; // debug
-           res.SetBI(true);
+           SetBI(res,useCluster,cluster,done);
         } else {
-//           cout << "SetBE at" << __LINE__ << endl; // debug
-           res.SetBE(true);
+           SetBE(res,useCluster,cluster,done);
         }
      } else if(lastDomPointCount1 > 1){
         if(lastDomPointCount2 == 1){
-//           cout << "SetIB at" << __LINE__ << endl; // debug
-           res.SetIB(true);
+           SetIB(res,useCluster,cluster,done);
         } else if(lastDomPointCount2>1){
-//           cout << "SetII at" << __LINE__ << endl; // debug
-           res.SetII(true);
+           SetII(res,useCluster,cluster,done);
         } else {
-//           cout << "SetIE at" << __LINE__ << endl; // debug
-           res.SetIE(true);
+           SetIE(res,useCluster,cluster,done);
         }
      } else { // lastDomPointCount1 == 0
         if(lastDomPointCount2 == 1){
-//           cout << "SetEB at" << __LINE__ << endl; // debug
-           res.SetEB(true);
+           SetEB(res,useCluster,cluster,done);
         } else if(lastDomPointCount2>1){
-//           cout << "SetEI at" << __LINE__ << endl; // debug
-           res.SetEI(true);
+           SetEI(res,useCluster,cluster,done);
         } else {
-//           cout << "SetEE at" << __LINE__ << endl; // debug
-           res.SetEE(true);
+           ;
+           // SetEE(res,useCluster,cluster,done);
         }
      }
       
@@ -3387,103 +3568,56 @@ void updateDomPoints(Point& lastDomPoint, const Point& newDomPoint,
   }
 }
 
-/*
-~insertEvents~
 
-Creates Events for the AVLSegment. The flags determines
-whether the left and / or the right events should be created.
-
-*/
-
-void insertEvents(const AVLSegment& seg,
-                  const bool createLeft,
-                  const bool createRight,
-                  priority_queue<HalfSegment,  
-                                 vector<HalfSegment>, 
-                                 greater<HalfSegment> >& q1,
-                  priority_queue<HalfSegment,  
-                                 vector<HalfSegment>, 
-                                 greater<HalfSegment> >& q2){
-   switch(seg.getOwner()){
-      case first: {
-                    if(createLeft){
-                      q1.push(seg.convertToHs(true, first));
-                    }
-                    if(createRight){
-                      q1.push(seg.convertToHs(false, first));
-                    }
-                  }
-                  break;
-      case second:
-                    if(createLeft){
-                      q2.push(seg.convertToHs(true, second));
-                    }
-                    if(createRight){
-                      q2.push(seg.convertToHs(false, second));
-                    }
-                    break;
-      case both :
-                    if(createLeft){
-                      q1.push(seg.convertToHs(true, first));
-                      q2.push(seg.convertToHs(true, second));
-                    }
-                    if(createRight){
-                      q1.push(seg.convertToHs(false, first));
-                      q2.push(seg.convertToHs(false, second));
-                    }
-                    break;
-      default: assert(false);
-   }
-
-}
-
-/*
-~performSplit~
-
-Replaces the original segment by left and inserts corresponding events 
-into the queues.
- 
-
-*/
-void performSplit(AVLTree<AVLSegment>& sss,
-                  const AVLSegment& original,
-                  const AVLSegment& left,
-                  const AVLSegment& right,
-                  priority_queue<HalfSegment,  
-                                 vector<HalfSegment>, 
-                                 greater<HalfSegment> >& q1,
-                  priority_queue<HalfSegment,  
-                                 vector<HalfSegment>, 
-                                 greater<HalfSegment> >& q2){
-   
-   bool ok = sss.remove(original);
-   assert(ok);
-   ok = sss.insert(left);
-   assert(ok);
-//   cout << __LINE__ << ": insert Event for " << left << endl; //debug
-   insertEvents(left, false, true, q1, q2);
-//   cout << __LINE__ << ": insert Event for " << right << endl; //debug
-   insertEvents(right, true, true, q1, q2);
-}
- 
-
-
-
-void GetInt9M(Line const* const line1, 
+bool GetInt9M(Line const* const line1, 
               Line const* const line2, 
-              Int9M& res){
+              Int9M& res,
+              const bool useCluster=false,
+              Cluster cluster = Cluster() ){
 
 
 // we can only ommit the planesweep if both lines are empty
 // disjointness of the lines is not sufficient to compute the 
-// result completely becaus it's not known if one of the line has
+// result completely because it's not known if one of the line has
 // any endpoints. For this reason, we ommit the bounding box check
 
  res.SetValue(0);
  res.SetEE(true);
 
  if(line1->IsEmpty() && line2->IsEmpty()){
-    return; // no further intersections can be found
+    if(useCluster){
+       return cluster.Contains(res);
+    }else {
+       return true; // no further intersections can be found
+    }
+ }
+
+ bool done = false;
+
+ if(line1->IsEmpty()){
+    // line2 is non empty
+    SetEI(res,useCluster,cluster,done);
+    if(useCluster){
+      Int9M m(false,false,false, false,false,false, true,true,true);
+      cluster.Restrict(m,false);
+    }
+ }
+ if(line2->IsEmpty()){
+    SetIE(res,useCluster,cluster,done);
+    if(useCluster){
+      Int9M m(false, false, true, false,false,true, false,false,true);
+      cluster.Restrict(m,false);
+    }
+ }
+
+
+ if(useCluster){
+   if(cluster.IsEmpty()){
+     return false;
+   }
+   if(cluster.isExtension(res)){
+     return true;
+   }
  }
 
  // initialise the sweep state structure  
@@ -3495,8 +3629,6 @@ void GetInt9M(Line const* const line1,
 
  int pos1=0;
  int pos2=0;
-
- bool done = false;
 
  HalfSegment nextHs;
 
@@ -3516,13 +3648,6 @@ void GetInt9M(Line const* const line1,
        ((owner=selectNext(line1,pos1,line2,pos2,q1,q2,nextHs,src))!=none) ){
    AVLSegment current(&nextHs,owner);
 
-// debug::start
- /* 
-   cout << endl << endl << "perform segment : " << current << "   ";
-   cout << (nextHs.IsLeftDomPoint()?"LEFT":"RIGHT") << endl;
-  */
-//debug::end
-
    // try to find an overlapping segment in sss
    member = sss.getMember(current,leftN,rightN);
    if(nextHs.IsLeftDomPoint()){ // left event
@@ -3538,12 +3663,13 @@ void GetInt9M(Line const* const line1,
            } // otherwise we can ignore current
         } else { // owner of member and current are different
            // there is a common inner part
-           res.SetII(true);
+           SetII(res,useCluster,cluster,done);
 
            int parts =  member->split(current, left1, common, right1);
 
            // remove the old entry in sss
            sss.remove(*member);
+           member = &common;
            // insert left and common to sss
            if(parts&LEFT){
               bool ok = sss.insert(left1);
@@ -3562,7 +3688,8 @@ void GetInt9M(Line const* const line1,
 
            Point newDomPoint = nextHs.GetDomPoint();
            updateDomPoints(lastDomPoint,newDomPoint, 
-                          lastDomPointCount1,lastDomPointCount2,owner, res);
+                          lastDomPointCount1,lastDomPointCount2,owner, res,
+                          useCluster, cluster, done);
            
            if(parts & LEFT){
               // we have already processed the left event for the 
@@ -3590,7 +3717,7 @@ void GetInt9M(Line const* const line1,
              leftN = &left1; 
           } else  if(leftN->crosses(current)){
              if(current.getOwner()!=leftN->getOwner()){
-                 res.SetII(true);
+                 SetII(res,useCluster,cluster,done);
              }
              leftN->splitCross(current,left1,right1,left2,right2);
              performSplit(sss,*leftN,left1,right1,q1,q2);
@@ -3619,7 +3746,7 @@ void GetInt9M(Line const* const line1,
              rightN = &left1; 
           } else  if(rightN->crosses(current)){
              if(current.getOwner()!=rightN->getOwner()){
-                 res.SetII(true);
+                 SetII(res,useCluster,cluster,done);
              }
              rightN->splitCross(current,left1,right1,left2,right2);
              performSplit(sss,*rightN,left1,right1,q1,q2);
@@ -3638,7 +3765,7 @@ void GetInt9M(Line const* const line1,
         }
         updateDomPoints(lastDomPoint,nextHs.GetDomPoint(),
                         lastDomPointCount1, lastDomPointCount2, 
-                        owner,res);
+                        owner,res,useCluster,cluster,done);
         bool ok = sss.insert(current); 
         assert(ok);
       }
@@ -3650,18 +3777,19 @@ void GetInt9M(Line const* const line1,
         Point newDomPoint = nextHs.GetDomPoint();
         updateDomPoints(lastDomPoint,newDomPoint, 
                         lastDomPointCount1,lastDomPointCount2,
-                        member->getOwner(), res);
+                        member->getOwner(), res, 
+                        useCluster, cluster, done);
 
         AVLSegment copy(*member);
         sss.remove(current); 
         member = &copy;
 
         switch(member->getOwner()){
-          case first:  res.SetIE(true);
+          case first:  SetIE(res,useCluster,cluster,done);
                        break;
-          case second: res.SetEI(true);
+          case second: SetEI(res,useCluster,cluster,done); 
                        break;
-          case both  : res.SetII(true);
+          case both  : SetII(res,useCluster,cluster,done);
                        break;
           default:     assert(false);
         }
@@ -3679,7 +3807,7 @@ void GetInt9M(Line const* const line1,
               rightN = &left1;
            } else if(rightN->crosses(*leftN)){
                if(leftN->getOwner() != rightN->getOwner()){
-                 res.SetII(true);
+                 SetII(res,useCluster,cluster,done);
                }  
                leftN->splitCross(*rightN,left1,right1,left2,right2);
                performSplit(sss,*leftN,left1,right1,q1,q2);
@@ -3692,11 +3820,14 @@ void GetInt9M(Line const* const line1,
         }          
      } // otherwise current comes from a splitted segment and is ignored
    }
-   done = res.IsFull() ||
+   done = done || res.IsFull() ||
           (line1->IsEmpty() && res.GetEI() && 
            res.GetEB() && res.GetEE()) ||
           (line2->IsEmpty() && res.GetIE() && 
            res.GetBE() && res.GetEE()) ;
+   if(useCluster){
+      done = done || cluster.IsEmpty() || cluster.isExtension(res);
+   }
 
  } // end of sweep
 
@@ -3705,9 +3836,26 @@ void GetInt9M(Line const* const line1,
  newDP.Translate(100,0);
  updateDomPoints(lastDomPoint, newDP, 
                  lastDomPointCount1, lastDomPointCount2, 
-                 first,res);
+                 first,res,useCluster,cluster,done);
+
+ if(useCluster){
+    return cluster.Contains(res);
+ } else {
+    return true;
+ }
+
 }
 
+
+/*
+7.9 ~line~ [x] ~region~
+
+
+~selectNext~
+
+Instantiation of the selectNext function for line x region.
+
+*/
 
 ownertype selectNext(Line const* const line,
                      int& pos1,
@@ -3727,7 +3875,14 @@ ownertype selectNext(Line const* const line,
 }
 
 
+/*
+~updateDomPointInfo[_]Line[_]Region~
 
+Does the things required by the switch from lastDomPoint
+to newDomPoint.
+
+
+*/
 
 void updateDomPointInfo_Line_Region(Point& lastDomPoint,
                                     const Point& newDomPoint,
@@ -3735,43 +3890,38 @@ void updateDomPointInfo_Line_Region(Point& lastDomPoint,
                                     int& count_region,
                                     const int coverage_Num,
                                     const ownertype owner, 
-                                    Int9M& res){
-// debug::start
-
-  /*    cout << "UpdateDomPointInfo" << endl;
-    cout << " count:line " << count_line << endl;
-    cout << "cont_region " << count_region << endl << endl;
-  */
-// debug::end
-
+                                    Int9M& res,
+                                    const bool useCluster,
+                                    Cluster& cluster,
+                                    bool& done){
 
     int sum = count_line + count_region;
     if(sum == 0 || !AlmostEqual(newDomPoint,lastDomPoint)){
        // dominating point changed
        if(count_line==0) { // exterior of the line
           if(count_region>0){  // boundary of the region
-             res.SetEB(true);
+             SetEB(res,useCluster,cluster,done);
           } else { 
-             res.SetEE(true);
+             ; // SetEE(res,useCluster,cluster,done);
           }
        } else if(count_line == 1) { // boundary of the line
          if(count_region>0){ // boundary of the region
-            res.SetBB(true);
+            SetBB(res,useCluster,cluster,done);
          } else {
            if(coverage_Num==0){
-              res.SetBE(true);
+              SetBE(res,useCluster,cluster,done);
            } else {
-              res.SetBI(true);
+              SetBI(res,useCluster,cluster,done);
            }
          }
        } else { // interior of the line
          if(count_region > 0){
-            res.SetIB(true);
+            SetIB(res,useCluster,cluster,done);
          } else {
            if(coverage_Num==0){
-              res.SetIE(true);
+              SetIE(res,useCluster,cluster,done);
            } else {
-              res.SetII(true);
+              SetII(res,useCluster,cluster,done);
            }
          }
        }
@@ -3799,33 +3949,58 @@ void updateDomPointInfo_Line_Region(Point& lastDomPoint,
                       break;
          default    : assert(false);
       }
-
-
     }
 }
 
 
+/*
+~GetInt9M~  line x region
 
+*/
 
-void GetInt9M(Line   const* const line, 
+bool GetInt9M(Line   const* const line, 
               Region const* const region, 
-              Int9M& res){
+              Int9M& res,
+              const bool useCluster=false,
+              Cluster cluster = Cluster()){
 
   res.SetValue(0);
   res.SetEE(true);
   if(line->IsEmpty()){
      if(region->IsEmpty()){
-       return;
+       if(useCluster){
+          return cluster.Contains(res);
+       } else {
+          return true;
+       }
      } else {
         res.SetEI(true);
         res.SetEB(true);
         res.SetEE(true);
-        return;
+       if(useCluster){
+          return cluster.Contains(res);
+       } else {
+          return true;
+       }
      }
   }   
 
   if(!region->IsEmpty()){
      res.SetEI(true);
+  }
+
+  if(useCluster){
+     cluster.Restrict(res,true);
+     if(region->IsEmpty()){
+        Int9M m(false,false,true,false,false,true,false,false,true);
+        cluster.Restrict(m,false);
+     }
+     if(cluster.IsEmpty()){
+       return false;
+     } 
+     if(cluster.isExtension(res)){
+       return true;
+     }
   }
 
  // initialise the sweep state structure  
@@ -3858,17 +4033,7 @@ void GetInt9M(Line   const* const line,
  while(!done && 
        ((owner=selectNext(line,pos1,region,pos2,q1,q2,nextHs,src))!=none)){
 
-  
-
      AVLSegment current(&nextHs,owner);
-
-
-//  debug::start
-//    cout << "Process segment " << current;
-//    cout << "   " << (nextHs.IsLeftDomPoint()?"LEFT":"RIGHT") << endl;    
-//    cout << "Sourcve is " << src << endl;
-
-// debug::end
 
      member = sss.getMember(current,leftN,rightN);
      ownertype owner2 = owner;
@@ -3883,7 +4048,7 @@ void GetInt9M(Line   const* const line,
                insertEvents(right1,true,true,q1,q2);  
             } // otherwise there is nothing to do
          } else { // stored segment come from the other spatial object
-            res.SetIB(true);
+            SetIB(res,useCluster,cluster,done);
             int parts = member->split(current,left1,common,right1);
             sss.remove(*member);
             member = &common;
@@ -3931,7 +4096,8 @@ void GetInt9M(Line   const* const line,
             updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
                                            lastDomPointCount1, 
                                            lastDomPointCount2,
-                                           cover,owner2,res);
+                                           cover,owner2,res, 
+                                           useCluster, cluster, done);
          }
        } else { // no overlapping segment found
           // check if current or an existing segment must be divided
@@ -3978,7 +4144,6 @@ void GetInt9M(Line   const* const line,
                   owner2 = both;
                 }
               } else if(rightN->ininterior(current.getX2(),current.getY2())){
-                cout << "rightN divided by current.end" << endl;
                 rightN->splitAt(current.getX2(),current.getY2(),left1,right1);
                 performSplit(sss,*rightN,left1, right1, q1, q2);
                 rightN = &left1;
@@ -3990,16 +4155,10 @@ void GetInt9M(Line   const* const line,
                  current = left2;
                  insertEvents(left2,false,true,q1,q2); 
                  insertEvents(right2,true,true,q1,q2);
-              } else {
-
-                 cout << "!innerdisjoint but not processed" << endl;
-                 cout << "current is " << current << endl;
-                 cout << "rightN is " << *rightN << endl;
-
+              } else { //forgotten case
                  assert(false);
               }
           }
-
 
           // update coverage numbers
           if(leftN){
@@ -4026,7 +4185,7 @@ void GetInt9M(Line   const* const line,
                                         lastDomPointCount2,
                                         cover,
                                         owner2,
-                                        res);
+                                        res, useCluster, cluster, done);
           sss.insert(current);
        }
      } else { // right event
@@ -4061,26 +4220,25 @@ void GetInt9M(Line   const* const line,
           updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
                                          lastDomPointCount1,
                                          lastDomPointCount2,
-                                         cover, member->getOwner(), res);
+                                         cover, member->getOwner(), res,
+                                         useCluster,cluster, done);
           // detect intersections
           switch(member->getOwner()){
             case first : if(member->con_above==0){ // the line
-                            res.SetIE(true);
+                            SetIE(res,useCluster,cluster,done);
                          } else {
-                            res.SetII(true);
+                            SetII(res,useCluster,cluster,done);
                          }
                          break;
-            case second: res.SetEB(true);
+            case second: SetEB(res,useCluster,cluster,done);
                          break;
-            case both  : res.SetIB(true);
+            case both  : SetIB(res,useCluster,cluster,done);
                          break;
             default    : assert(false);
-
           }
 
         }
      }
-
  } 
 
  // sweep done, check the last dominating point
@@ -4088,47 +4246,166 @@ void GetInt9M(Line   const* const line,
  domPoint.Translate(100,0);
  updateDomPointInfo_Line_Region(lastDomPoint,domPoint,
                                 lastDomPointCount1, lastDomPointCount2,
-                                0, both, res);
+                                0, both, res, useCluster,cluster,done);
  
-
-
+ if(useCluster){
+     return cluster.Contains(res);
+ } else {
+     return true;
+ }
 }
+
+
+/*
+8 Integrating Operators in Secondo 
+
+
+8.1 Type Mapping Functions 
+
+8.1.1 IsSpatialType
+
+This function checks whether the type given as a ListExpr is one of
+point, points, line, or region.
+
+*/
+
+inline bool IsSpatialType(ListExpr type){
+   if(!nl->IsAtom(type)){
+      return false;
+   }
+   if(!nl->AtomType(type)==SymbolType){
+      return false;
+   }
+   string t = nl->SymbolValue(type);
+   if(t=="point") return true;
+   if(t=="points") return true;
+   if(t=="line") return true;
+   if(t=="region") return true;
+   return false;
+}
+
+
+/*
+8.1.2 TopPredTypeMap
+
+This function is the type mapping for the toppred operator.
+The signature of this operator is:
+    t1 x t2 x cluster -> bool
+
+where t1, t2 in {point, points, line, region}.
+
+
+*/
+ListExpr TopPredTypeMap(ListExpr args){
+
+   if(nl->ListLength(args)!=3){
+      ErrorReporter::ReportError("three arguments required");
+      return nl->TypeError();
+   }
+   ListExpr cl = nl->Third(args);
+   if(!nl->IsEqual(cl,"cluster")){
+       ErrorReporter::ReportError("the third argument must" 
+                                  " be of type cluster\n");
+       return nl->TypeError();
+   }
+   ListExpr o1 = nl->First(args);
+   ListExpr o2 = nl->Second(args);
+   if(!IsSpatialType(o1)){
+      ErrorReporter::ReportError("The first argument must be a spatial type");
+      return nl->TypeError();
+   }   
+   if(!IsSpatialType(o2)){
+      ErrorReporter::ReportError("The second argument"
+                                 " must be a spatial type");
+      return nl->TypeError();
+   }  
+   
+   return nl->SymbolAtom("bool");
+}
+
+
+/*
+8.1.3 TopRelTypeMap
+
+This function is the Type mapping for the toprel operator.
+The signature is t1 x t2 -> int9m
+where t1, t2 in {point, points, line, region}
+
+*/
+
+ListExpr TopRelTypeMap(ListExpr args){
+   if(nl->ListLength(args)!=2){
+      ErrorReporter::ReportError("two arguments expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   if(!IsSpatialType(nl->First(args)) 
+      || !IsSpatialType(nl->Second(args))){
+       ErrorReporter::ReportError("Spatial types expected");
+       return (nl->SymbolAtom( "typeerror" ));
+   }
+   return nl->SymbolAtom("int9m");
+}
+
+
+#ifdef  TOPOPS_USE_STATISTIC
+/*
+8.1.4  ResetStatisticTypeMap
+
+The signature is: -> bool
+
+*/
+ListExpr TopOpsResetStatTypeMap(ListExpr args){
+   if(nl->ListLength(args)!=0){
+      ErrorReporter::ReportError("no argument expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   return nl->SymbolAtom("bool");
+}
+
+/*
+8.1.5  GetStatisticTypeMap
+
+The signature is: -> text
+
+*/
+
+ListExpr TopOpsGetStatTypeMap(ListExpr args){
+   if(nl->ListLength(args)!=0){
+      ErrorReporter::ReportError("no argument expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   return nl->SymbolAtom("text");
+}
+#endif
 
 
 
 
 /*
-4 Implementation of the TopRel Value Mappings 
+8.2 Value Mappings 
 
-4.1 TopRel
+8.2.1 ~TopRel~
 
-This function is a template for all computations of topological
-predicates. It requires the Implementation of the function GetInt9M
-for all instantiations.
+This value mapping can be instantiated with all combinations
+where a function ~getInt9M~ exists for the type combination
+~type1~ x ~type2~.
 
 */
 template<class type1, class type2>
 int TopRel(Word* args, Word& result, int message,
            Word& local, Supplier s){
   result = qp->ResultStorage(s);
-  type1* p1 = (type1*) args[0].addr;
-  type2* p2 = (type2*) args[1].addr;
+  type1* p1 = static_cast<type1*>(args[0].addr);
+  type2* p2 = static_cast<type2*>(args[1].addr);
   Int9M matrix; 
   GetInt9M(p1,p2,matrix);
-  *((Int9M*)result.addr) = matrix; 
+  *(static_cast<Int9M*>(result.addr)) = matrix; 
   return 0;
 }
 
 /*
-4.2 TopRelSym
-
 This function is symmetric to the ~TopRel~ functions. This function avoids
 the implementation of symmetric GetInt9M functions.
-
-For example, we have implemented the function GetInt9M(Points*, Point*).
-To provide [secondo] operators for both  TopRel(points,point) and 
-TopRel(point,points), you can use TopRel<Points,Point> and 
-TopRelSym<Points,Point> as value mappings.
 
 */
 template<class type1, class type2>
@@ -4136,18 +4413,18 @@ int TopRelSym(Word* args, Word& result, int message,
            Word& local, Supplier s){
 
   result = qp->ResultStorage(s);
-  type1* p2 = (type1*) args[0].addr;
-  type2* p1 = (type2*) args[1].addr;
+  type1* p1 = static_cast<type1*>(args[0].addr);
+  type2* p2 = static_cast<type2*>(args[1].addr);
   Int9M matrix(0);
-  GetInt9M(p1,p2,matrix);
+  GetInt9M(p2,p1,matrix);
   matrix.Transpose();
-  *((Int9M*)result.addr)=matrix; // correct the swapping 
+  *(static_cast<Int9M*>(result.addr))=matrix; // correct the swapping 
   return 0;
 }
 
 
 /*
-5 Statistical Information
+8.2.2  Statistical Information
 
 The next two functions implement the value mapping for the
 statistical infomation operators.
@@ -4159,7 +4436,7 @@ int TopOpsResetStatVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
    result = qp->ResultStorage(s);
    ResetStatistic();
-   ((CcBool*)result.addr)->Set(true,true);
+   (static_cast<CcBool*>(result.addr))->Set(true,true);
    return 0;
 }
 
@@ -4185,79 +4462,64 @@ int TopOpsGetStatVM(Word* args, Word& result, int message,
       << "#BoxFilter(region, points): " << bb_r_ps << endl
       << "#GetInt9M(region,region) : " << GetCalls_r_r << endl
       << "#BoxFilter(region,region) : " << bb_r_r << endl;
-   ((FText*)result.addr) ->Set(true,ts.str().c_str());
+   (static_cast<FText*>(result.addr)) ->Set(true,ts.str().c_str());
    return 0;
 }
 
 #endif
 
 /*
-5 Implementation of the TopPred Value Mappings
+8.2.3 Value Mapping for the ~toppred~ operator
 
-5.1 Simple Value Mappings
-
-Some computations of the 9 intersection matrix are simple enough to
-compute it within the TopPred operator without exploiting properties
-of the arguments for an early exit. We handle all such functions 
-by two template functions in the same way as for the TopRel operator.
-
-~TopPred~
+The following value mappings are specialized versions 
+where an early exit may advantageous.
 
 */
-template<class type1, class type2>
+template<class t1, class t2>
 int TopPred(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  
-    result = qp->ResultStorage(s);
-    type1* p1 = (type1*) args[0].addr;
-    type2* p2 = (type2*) args[1].addr;
-    CcString* name = (CcString*) args[2].addr;
-    PredicateGroup* pg = (PredicateGroup*) args[3].addr;
-    const STRING_T* n = name->GetStringval(); 
-    Cluster* theCluster = pg->GetClusterOf(n);
-    if(!theCluster){// name not found within group
-        ((CcBool*)result.addr)->Set(true,false);
-        return 0;
-    }
-    Int9M matrix;
-    GetInt9M(p1,p2,matrix);
-    ((CcBool*)result.addr)->Set(true,theCluster->Contains(matrix));
-    delete theCluster;
-    return 0;
+    
+  result = qp->ResultStorage(s);
+  t1* v1 = static_cast<t1*>(args[0].addr);
+  t2* v2 = static_cast<t2*>(args[1].addr);
+  Cluster* cluster = static_cast<Cluster*>(args[2].addr);
+  if(!cluster->IsDefined()){// name not found within group
+      (static_cast<CcBool*>(result.addr))->Set(false,false);
+      return 0;
+  }
+
+  Int9M matrix;
+  bool res = GetInt9M(v1,v2,matrix,true,*cluster);
+  (static_cast<CcBool*>(result.addr))->Set(true,res);
+  return 0;
 }
 
 /*
-~TopPredSym~
-
-The symmetric function to ~TopPred~.
+As for the ~toprel~ opererator there is a symmetric value mapping.
 
 */
-template<class type1, class type2>
+template<class t1, class t2>
 int TopPredSym(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  
-    result = qp->ResultStorage(s);
-    type2* p1 = (type2*) args[0].addr;
-    type1* p2 = (type1*) args[1].addr;
-    CcString* name = (CcString*) args[2].addr;
-    PredicateGroup* pg = (PredicateGroup*) args[3].addr;
-    const STRING_T* n = name->GetStringval(); 
-    Cluster* theCluster = pg->GetClusterOf(n);
-    if(!theCluster){// name not found within group
-        ((CcBool*)result.addr)->Set(true,false);
-        return 0;
-    }
-    Int9M matrix;
-    GetInt9M(p1,p2,matrix);
-    matrix.Transpose();
-    ((CcBool*)result.addr)->Set(true,theCluster->Contains(matrix));
-    delete theCluster;
-    return 0;
+  result = qp->ResultStorage(s);
+  t1* v1 = static_cast<t1*>(args[0].addr);
+  t2* v2 = static_cast<t2*>(args[1].addr);
+  Cluster* cluster = static_cast<Cluster*>(args[2].addr);
+  if(!cluster->IsDefined()){// name not found within group
+      (static_cast<CcBool*>(result.addr))->Set(false,false);
+      return 0;
+  }
+  Int9M matrix;
+  cluster->Transpose();
+  bool res = GetInt9M(v2,v1,matrix,true,*cluster);
+  (static_cast<CcBool*>(result.addr))->Set(true,res);
+  return 0;
 }
 
 
+
 /*
-6  Operator specifications
+8.3  Operator specifications
 
 */
 
@@ -4268,16 +4530,15 @@ const string TopRelSpec =
    "  {points, points, line, region} -> int9m </text--->"
    " \" toprel(_ _) \" "
    " <text>computes the topological relationship of the arguments</text--->"
-    "  \" query toppred(c1,c2) \" ))";
+    "  \" query toprel(reg1, reg2) \" ))";
 
 const string TopPredSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( <text> so1 x so2 x string x predicategroup -> bool "
+   " ( <text> so1 x so2 x cluster -> bool "
    " where o1, o2 in {point, points, line, region}</text--->"
-   " \" topred(_ _ _ _) \" "
+   " \" topred(_ _ _) \" "
    " <text> checks whether the topological relationship between"
-   " the spatial objects is part of the cluster defined by name"
-   " and group</text---> "
+   " the spatial objects is part of the cluster </text---> "
     "  \" query toppred(c1,c2) \" ))";
 
 #ifdef TOPOPS_USE_STATISTIC
@@ -4298,7 +4559,7 @@ const string TopOpsGetStatSpec =
 #endif
 
 /*
-7 Value Mapping Arrays
+8.4 Value Mapping Arrays
 
 The following arrays collect the value mappings to enable overloaded 
 operations.
@@ -4314,17 +4575,25 @@ ValueMapping TopRelMap[] = {
        TopRel<Line,Line>, TopRel<Line,Region>};
 
 ValueMapping TopPredMap[] = {
-       TopPred<Point,Point> , TopPred<Points,Point>,
-       TopPredSym<Point,Points>, TopPred<Points,Points>, TopPred<Line,Point>,
-       TopPredSym<Point,Line>,TopPred<Line,Points>,TopPredSym<Points,Line>,
-       TopPred<Region,Point>,TopPredSym<Point,Region>,
-       TopPred<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>,
-       TopPred<Line,Line>, TopPred<Line,Region> };
-
+       TopPred<Point,Point> , 
+       TopPred<Points,Point>,
+       TopPredSym<Point,Points>,
+       TopPred<Points,Points>, 
+       TopPred<Line,Point>,
+       TopPredSym<Point,Line>,
+       TopPred<Line,Points>,
+       TopPredSym<Points,Line>,
+       TopPred<Region,Point>,
+       TopPredSym<Point,Region>,
+       TopPred<Region,Points>,
+       TopPredSym<Points,Region>,
+       TopPred<Region,Region>,
+       TopPred<Line,Line>, 
+       TopPred<Line,Region> };
 
 
 /*
-8 Selection Function
+8.5 Selection Function
 
 The value mapping array containg the value mapping functions for both
 operator in the same order. For this reason it is sufficient to have
@@ -4333,17 +4602,10 @@ one single selection function for both functions.
 */
 
 static int TopOpsSelect(ListExpr args){
-   int len = nl->ListLength(args);
-   if(len!=2 && len !=4){
-       return -1; 
-   }
-   if( (nl->AtomType(nl->First(args))!=SymbolType) ||
-       (nl->AtomType(nl->Second(args))!=SymbolType)){
-       return -1;
-   } 
    string type1 = nl->SymbolValue(nl->First(args));
    string type2 = nl->SymbolValue(nl->Second(args));
-   if( (type1=="point") && (type2=="point")){
+   
+  if( (type1=="point") && (type2=="point")){
       return 0;
    }
    if( (type1=="points") && (type2=="point")){
@@ -4389,26 +4651,12 @@ static int TopOpsSelect(ListExpr args){
        return 14;
    }
 
-   cerr << "selection function does not allow (" << type1 << " x " 
-        << type2 << ")" << endl;
-   
-   ListExpr tmreslist;
-   string tmres;
-   if(len==2){
-     tmreslist = TopRelTypeMap(args);
-     nl->WriteToString(tmres,tmreslist);
-   }else{
-     tmreslist = TopPredTypeMap(args);
-     nl->WriteToString(tmres,tmreslist);
-   }
-   cerr << "SelectionFunction called when tm returns " +tmres+"\n";
    return -1;
-   //   assert(false);
 } 
 
 
 /*
-9 Definition of operators
+8.6 Definition of operators
 
 In this section instances of the algebra operators are build.
 
@@ -4452,7 +4700,7 @@ Operator topops_get_stat(
 
 
 /*
-10 Creating the algebra
+8.7 Creating the algebra
 
 */
 class TopOpsAlgebra : public Algebra {
@@ -4469,7 +4717,7 @@ class TopOpsAlgebra : public Algebra {
 } topOpsAlgebra;
 
 /*
-11 Initialization of the Algebra
+8.8 Initialization of the Algebra
    
 */
 extern "C"

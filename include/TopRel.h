@@ -965,6 +965,29 @@ matrices with the pecified value at the given position - but this version is fas
    void Restrict(const int pos, const bool value);
 
 
+/*
+2.2.24 Restrict
+
+Removes all matrices from this cluster whith different entries than the
+Int9M value provided as the first argument at the positions specified by the
+boolean parameter. 
+
+*/
+    void Restrict(const Int9M& m, const bool value);
+
+
+/*
+2.2.25 IsExtension
+
+This function checks whether all extensions of __m__, i.e. all matrices
+which can derived from __m__ by setting additional intersections are part
+of this cluster.
+
+*/
+   bool isExtension(const Int9M& m) const;
+
+
+
 
 /*
 2.2.21 Operators

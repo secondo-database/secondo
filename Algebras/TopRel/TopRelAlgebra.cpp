@@ -768,6 +768,37 @@ Otherwise the result will not be as expected.
  }
 
 
+void Cluster::Restrict(const Int9M& m, const bool value){
+   int matrix = m.GetNumber();
+   if(value){
+      for(int i=0; i<512;i++){
+         if( (matrix & i) != matrix ){
+            SetValueAt(i,false);
+         }
+      }
+   } else { // value==false
+      matrix = matrix ^ 511;
+      for(int i=0; i<512; i++){
+         if(((i ^ 511 ) & matrix)!=matrix){
+            SetValueAt(i,false);
+         }
+      }
+   }
+
+
+}
+
+
+   bool Cluster::isExtension(const Int9M& m) const{
+      int matrix = m.GetNumber();
+      for(int i=0;i<512;i++){
+         if(!(ValueAt(i | matrix ))){
+            return false;
+         }
+      }
+      return true;
+   }
+
 /*
 2.2.12 Relax
 
@@ -1787,6 +1818,16 @@ ListExpr ClusterOfTM(ListExpr args){
     return nl->SymbolAtom("typeerror");
 }
 
+ListExpr GetClusterTM(ListExpr args){
+    if(nl->ListLength(args)==2){
+        if(nl->IsEqual(nl->First(args),"predicategroup") &&
+           nl->IsEqual(nl->Second(args),"string"))
+            return nl->SymbolAtom("cluster");
+    }
+    ErrorReporter::ReportError("predicategroup x string expected");
+    return nl->SymbolAtom("typeerror");
+}
+
 ListExpr SizeOfTM(ListExpr args){
    if(nl->ListLength(args)==1){
       if(nl->IsEqual(nl->First(args),"cluster") |
@@ -2287,11 +2328,39 @@ int ClusterOf_Fun(Word* args, Word& result, int message,
     Int9M* IM = (Int9M*) args[1].addr;
     Cluster* res = (Cluster*) result.addr;
     Cluster* tmp = PG->GetClusterOf(*IM);
+    if(!tmp){
+       res->SetDefined(false);
+       return 0;
+    }
     res->Equalize(tmp);
     delete tmp;
     return 0;
 }
 
+int GetCluster_Fun(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    PredicateGroup* PG = static_cast<PredicateGroup*>(args[0].addr);
+    CcString* name = static_cast<CcString*>(args[1].addr);
+    Cluster* res = static_cast<Cluster*>(result.addr);
+
+    if(!PG->IsDefined() || !name->IsDefined()){
+       res->SetDefined(false);
+       return 0;
+    }
+
+    const STRING_T* str = name->GetStringval();
+
+    Cluster* tmp = PG->GetClusterOf(str);
+ 
+    if(!tmp){ // name not found
+       res->SetDefined(false);
+       return 0;
+    }
+    res->Equalize(tmp);
+    delete tmp;
+    return 0;
+}
 int SizeOfCluster_Fun(Word* args, Word& result, int message,
                 Word& local, Supplier s){
     result = qp->ResultStorage(s);
@@ -2621,6 +2690,15 @@ const string TopRelEqualsSpec =
     " <text> query [const int9m value 3] = [const int9m value 4] "
     "</text--->))";
 
+
+const string GetClusterSpec =
+    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    " ( <text>predicategroup x string -> cluster</text--->"
+    " \" clusterof(group,name)  \" "
+    " <text>returns the cluster in group specified by name</text---> "
+    " <text> query clusterof(std,\"equals\") "
+    "</text--->))";
+
 /*
 
 This specification is for debugging only.
@@ -2827,6 +2905,13 @@ Operator pwdisjoint(
          Operator::SimpleSelect,
          PWDisjointTM);
 
+Operator getcluster(
+         "getcluster", // name
+         GetClusterSpec, // specification
+         GetCluster_Fun,
+         Operator::SimpleSelect,
+         GetClusterTM);
+
 Operator unspecified(
          "unspecified", // name
          UnSpecified_Spec, // specification
@@ -2999,6 +3084,7 @@ class TopRelAlgebra : public Algebra
     AddOperator(&toprel::relax_op);
     AddOperator(&toprel::stdpgroup);
     AddOperator(&toprel::toprel_equals);
+    AddOperator(&toprel::getcluster);
   }
   ~TopRelAlgebra() {};
 } toprelAlgebra;
