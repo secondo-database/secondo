@@ -3825,10 +3825,6 @@ bool GetInt9M(Line const* const line1,
            res.GetEB() && res.GetEE()) ||
           (line2->IsEmpty() && res.GetIE() && 
            res.GetBE() && res.GetEE()) ;
-   if(useCluster){
-      done = done || cluster.IsEmpty() || cluster.isExtension(res);
-   }
-
  } // end of sweep
 
  // create a point which is different to the last domPoint
