@@ -76,7 +76,10 @@ extern QueryProcessor* qp;
 /*
 2.1 Definition of some constants
 
+*/
+static const double minEpsilonLimiter = 0.00001;
 
+/*
 3 Implementation of C++ Classes
 
 3.1 Template Class ~Uncertain~
@@ -88,12 +91,6 @@ extern QueryProcessor* qp;
 3.2 Class ~CUPoint~
 
 */
-//virtual void CUPoint::TemporalFunction( const Instant& t,
-//                                 Point& result,
-//                                 bool ignoreLimits = false ) const 
-//{
-//  
-//}
 
 void CUPoint::UTrajectory(const double e, Region& result ) const
 {
@@ -102,7 +99,7 @@ void CUPoint::UTrajectory(const double e, Region& result ) const
   
   double cmpepsilon;
   
-  if( e < 0 )
+  if( e < epsilon )
     cmpepsilon = epsilon;
   else
     cmpepsilon = e;
@@ -3495,6 +3492,47 @@ inline int HCMPoint::GetNoComponents() const
   return noComponents;
 }
 
+double HCMPoint::GetLayerepsilon( const int layer ) const
+{
+  switch( layer )
+  {
+    case 0:
+      return layer0epsilon;
+    case 1:
+      return layer1epsilon;
+    case 2:
+      return layer2epsilon;
+    case 3:
+      return layer3epsilon;
+    case 4:
+      return layer4epsilon;
+    default:
+      // this point should never been reached
+      return -1;
+  }
+}
+
+void HCMPoint::SetLayerepsilon( const int layer, const double epsilon )
+{
+  switch( layer )
+  {
+    case 0:
+      layer0epsilon = epsilon;
+    case 1:
+      layer1epsilon = epsilon;
+    case 2:
+      layer2epsilon = epsilon;
+    case 3:
+      layer3epsilon = epsilon;
+    case 4:
+      layer4epsilon = epsilon;
+    default:
+      // this point should never been reached
+      break;
+  }
+}
+
+
 void HCMPoint::Get( const int i, const HCUPoint*& ntt ) const
 {
   assert( i < GetNoComponents() );
@@ -4075,7 +4113,7 @@ void HMPoint::GetCMPoint( const double epsilon, CMPoint& result )
   result.Clear();
   // Determine the first layer, whose epsilon-value is less than the wanted
   // epsilon-value:
-  if( epsilon <= layer0epsilon )
+  if( layer0epsilon > 0 && epsilon >= layer0epsilon )
   {
     result.Resize( layer0.Size() );
     const HCUPoint* ntt;
@@ -4089,7 +4127,7 @@ void HMPoint::GetCMPoint( const double epsilon, CMPoint& result )
     }
     result.EndBulkLoad();
   }
-  else if( epsilon <= layer1epsilon )
+  else if( layer1epsilon > 0 && epsilon >= layer1epsilon )
   {
     result.Resize( layer1.Size() );
     const HCUPoint* ntt;
@@ -4103,7 +4141,7 @@ void HMPoint::GetCMPoint( const double epsilon, CMPoint& result )
     }
     result.EndBulkLoad();
   }
-  else if( epsilon <= layer2epsilon )
+  else if( layer2epsilon > 0 && epsilon >= layer2epsilon )
   {
     result.Resize( layer2.Size() );
     const HCUPoint* ntt;
@@ -4117,7 +4155,7 @@ void HMPoint::GetCMPoint( const double epsilon, CMPoint& result )
     }
     result.EndBulkLoad();
   }
-  else if( epsilon <= layer3epsilon )
+  else if( layer3epsilon > 0 && epsilon >= layer3epsilon )
   {
     result.Resize( layer3.Size() );
     const HCUPoint* ntt;
@@ -4131,7 +4169,7 @@ void HMPoint::GetCMPoint( const double epsilon, CMPoint& result )
     }
     result.EndBulkLoad();
   }
-  else if( epsilon <= layer4epsilon )
+  else if( layer4epsilon > 0 && epsilon >= layer4epsilon )
   {
     result.Resize( layer4.Size() );
     const HCUPoint* ntt;
@@ -4331,11 +4369,12 @@ void HMPoint::ResizeLayer( const int layer, const int n )
   }
 }
 
-void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
+bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
                           const DateTime dur)
 {
   const int origlayerno = layer;
   const int genlayerno = layer - 1;
+  double *layerepsilon;
   double aktepsilon;
   int size;
   
@@ -4345,9 +4384,10 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       // +++++ for debugging purposes only +++++
       cout << "Computing of CUPoints for layer 0!\n";
       
+      layerepsilon = &layer0epsilon;
       size = layer1.Size();
       if( size < 2 )
-        return;
+        return false;
       aktepsilon = epsilon * factor * factor * factor * factor;
       break;
       
@@ -4355,9 +4395,10 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       // +++++ for debugging purposes only +++++
       cout << "Computing of CUPoints for layer 1!\n";
       
+      layerepsilon = &layer1epsilon;
       size = layer2.Size();
       if( size < 2 )
-        return;
+        return false;
       aktepsilon = epsilon * factor * factor * factor;
       break;
       
@@ -4365,9 +4406,10 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       // +++++ for debugging purposes only +++++
       cout << "Computing of CUPoints for layer 2!\n";
       
+      layerepsilon = &layer2epsilon;
       size = layer3.Size();
       if( size < 2 )
-        return;
+        return false;
       aktepsilon = epsilon * factor * factor;
       break;
       
@@ -4375,9 +4417,10 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       // +++++ for debugging purposes only +++++
       cout << "Computing of CUPoints for layer 3!\n";
       
-      size = layer1.Size();
+      layerepsilon = &layer3epsilon;
+      size = layer4.Size();
       if( size < 2 )
-        return;
+        return false;
       aktepsilon = epsilon * factor;
       break;
       
@@ -4385,11 +4428,12 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       // +++++ for debugging purposes only +++++
       cout << "Computing of CUPoints for layer 4!\n";
       
+      layerepsilon = &layer4epsilon;
       size = certainlayer.Size();
       if( size < 2 )
       {
         cout << "The mpoint has only 1 element!";
-        return;
+        return false;
       }
       aktepsilon = epsilon;
       break;
@@ -4398,6 +4442,13 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       // should never been reached!
       break;
   }
+  
+  // +++++ for debugging purposes only +++++
+  cout << "Control Variable-Initialization for next Generalization:\n";
+  cout << "     origlayerno       = " << origlayerno << endl;
+  cout << "     genlayerno        = " << genlayerno << endl;
+  cout << "     size of origlayer = " << size << endl;
+  cout << "     aktepsilon        = " << aktepsilon << endl << endl;
   
   // Create two bitmaps and a double array to keep in mind which sample point 
   // belongs to the result and which real epsilon-value is computed for this 
@@ -4433,20 +4484,20 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
     {
       if(last-1 > first){
          Simplify(first, last-2, origlayerno, useleft, useright, realepsilon, 
-                   epsilon);
+                   aktepsilon);
       }
       Simplify(last-1, last-1, origlayerno, useleft, useright, realepsilon,
-                epsilon);
+                aktepsilon);
       first = last;
       last++;
     } 
     else if( checkBreakPoints && IsBreakPoint(u2,dur))
     {
       Simplify(first, last-1, origlayerno, useleft, useright, realepsilon,
-                epsilon);
+                aktepsilon);
       last++;
       Simplify(last-1, last-1, origlayerno, useleft, useright, realepsilon, 
-                epsilon);
+                aktepsilon);
       first = last;
       last++;
     } 
@@ -4467,13 +4518,13 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       cout << "     epsilon =     " << epsilon << endl << endl;
       
       Simplify(first, last-1, origlayerno, useleft, useright, realepsilon,
-                epsilon);
+                aktepsilon);
       first=last;
       last++;
     }
   }
   // process the last recognized sequence
-  Simplify(first,last-1,origlayerno,useleft,useright,realepsilon,epsilon);
+  Simplify(first,last-1,origlayerno,useleft,useright,realepsilon,aktepsilon);
 
   // +++++ for debugging purposes only +++++
   cout << "\nlast recognized sequence of units: \n";
@@ -4481,13 +4532,15 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
   cout << "     first =       " << first << endl;
   cout << "     last-1 =      " << last-1 << endl;
   cout << "     origlayerno = " << origlayerno << endl;
-  cout << "     epsilon =     " << epsilon << endl << endl;
+  cout << "     epsilon =     " << aktepsilon << endl << endl;
     
   
   // count the number of remaining units
   int count = 1; // count the most right sample point
   for(int i = 0; i < size; i++)
   {
+    if( realepsilon[i] > *layerepsilon )
+      *layerepsilon = realepsilon[i];
     if( useleft[i] )
       count++;
   }
@@ -4496,6 +4549,8 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
   // +++++ for debugging purposes only +++++
   cout << "The Simplfiy()-Calls detected " << count << " for the next"
     " layer! \n";
+  cout << "The epsilon value of layer " << genlayerno << " has been set to "
+    << *layerepsilon << endl;
   
   Instant start;
   Point p0;
@@ -4541,8 +4596,14 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       CUPoint newCUPoint(realepsilon[i], interval, p0, cup->p1);
       // Create a new Entity for the hierarchical structure, containing this
       // new CUPoint.
-      HCUPoint newHCUPoint(newCUPoint, layer, generalizedby, originstart, i);
+      HCUPoint newHCUPoint(newCUPoint,genlayerno,generalizedby,originstart,i);
       Put(genlayerno, generalizedby, newHCUPoint);
+      
+      // +++++ for debugging purposes only +++++
+      cout << "A new HCUPoint with index " << generalizedby 
+        << " has been created in layer " << genlayerno << "\n";
+      newHCUPoint.Print(cout);
+      cout << endl;
       
       // The next cup belongs to the next origin-hcup belongs to the next
       // generalization.
@@ -4550,6 +4611,7 @@ void HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       leftDefined = false;
     }
   }
+  return true;
 }
 
 void HMPoint::Simplify(const int min, const int max, const int layer,
@@ -4564,7 +4626,12 @@ void HMPoint::Simplify(const int min, const int max, const int layer,
 
 
   if(min==max) // no intermediate sampling points -> nothing to simplify
-     return;
+  {
+    const CUPoint* cup;
+    Get(layer, max, cup);
+    realepsilon[max] = cup->GetEpsilon();
+    return;
+  }
 
   const UPoint* u1;
   const UPoint* u2;
@@ -5282,10 +5349,15 @@ void Generalize( const double epsilon, const double factor,
   result.certainlayer.TrimToSize();
   // create a generalization for each layer
   
-  result.Generalize(5, checkBreakPoints, dur);
+  //result.Generalize(5, checkBreakPoints, dur);
   
-  //for(int j = 5; j > 0; j--)
-  //  result.generalize(j, checkBreakPoints);
+  int j = 5;
+  bool correct;
+  while(j > 0 && correct)
+  {
+    correct = result.Generalize(j, checkBreakPoints, dur);
+    j--;
+  }
 }
 
 
@@ -6212,7 +6284,12 @@ ListExpr OutHMPoint( ListExpr typeInfo, Word value )
     
     ListExpr hmpattr = nl->TwoElemList(nl->RealAtom( hmp->GetEpsilon() ),
                                        nl->RealAtom( hmp->GetFactor() ) );
-    ListExpr all = nl->TwoElemList( hmpattr, l );
+    ListExpr hcmpattr = nl->FiveElemList(nl->RealAtom(hmp->GetLayerepsilon(0)),
+                                        nl->RealAtom(hmp->GetLayerepsilon(1)),
+                                        nl->RealAtom(hmp->GetLayerepsilon(2)),
+                                        nl->RealAtom(hmp->GetLayerepsilon(3)),
+                                        nl->RealAtom(hmp->GetLayerepsilon(4)));
+    ListExpr all = nl->ThreeElemList( hmpattr, hcmpattr, l );
     
     return all;
   }
@@ -6230,7 +6307,7 @@ Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
   int nttcounter = 0;
   string errmsg;
 
-  if(nl->ListLength( instance ) != 2)
+  if(nl->ListLength( instance ) != 3)
   {
     errmsg = "InHMPoint(): The List has an unexpected length (!= 2).";
     errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
@@ -6240,7 +6317,8 @@ Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
   }
   
   ListExpr hmpointattr = nl->First( instance );
-  ListExpr elemlist = nl->Second( instance );
+  ListExpr hcmpointattr = nl->Second( instance );
+  ListExpr elemlist = nl->Third( instance );
   
   if( nl->ListLength( hmpointattr ) == 2 &&
       nl->IsAtom( nl->First(hmpointattr) ) &&
@@ -6254,6 +6332,34 @@ Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
   else
   {
     errmsg = "InHMPoint(): One of the attributes 'epsilon' or 'factor' is "
+            "invalid.";
+    errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+    correct = false;
+    delete hmp;
+    return SetWord( Address(0) );
+  }
+  
+  if( nl->ListLength( hcmpointattr ) == 5 &&
+      nl->IsAtom( nl->First(hcmpointattr) ) &&
+      nl->AtomType( nl->First(hcmpointattr) ) == RealType &&
+      nl->IsAtom( nl->Second(hcmpointattr) ) &&
+      nl->AtomType( nl->Second(hcmpointattr) ) == RealType &&
+      nl->IsAtom( nl->Third(hcmpointattr) ) &&
+      nl->AtomType( nl->Third(hcmpointattr) ) == RealType &&
+      nl->IsAtom( nl->Fourth(hcmpointattr) ) &&
+      nl->AtomType( nl->Fourth(hcmpointattr) ) == RealType &&
+      nl->IsAtom( nl->Fifth(hcmpointattr) ) &&
+      nl->AtomType( nl->Fifth(hcmpointattr) ) == RealType )
+  {
+    hmp->SetLayer0epsilon( nl->RealValue( nl->First(hcmpointattr)) );
+    hmp->SetLayer1epsilon( nl->RealValue( nl->Second(hcmpointattr)) );
+    hmp->SetLayer2epsilon( nl->RealValue( nl->Third(hcmpointattr)) );
+    hmp->SetLayer3epsilon( nl->RealValue( nl->Fourth(hcmpointattr)) );
+    hmp->SetLayer4epsilon( nl->RealValue( nl->Fifth(hcmpointattr)) );
+  }
+  else
+  {
+    errmsg = "InHMPoint(): One of the attributes 'layer<n>epsilon' is "
             "invalid.";
     errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
     correct = false;
@@ -6841,6 +6947,31 @@ ListExpr HierarchicalMovingTypeMapMoving( ListExpr args )
 }
 
 /*
+6.1.20 Type Mapping Function ~HierarchicalMovingTypeMapMoving~
+
+It is used for the operator ~getmpoint~
+
+Type mapping for ~getmpoint~ is
+
+----    (hmpoint) -> (mpoint)
+----
+
+*/
+ListExpr HierarchicalMovingTypeMapUncertainMoving( ListExpr args )
+{
+  if ( nl->ListLength(args) == 2 )
+  {
+    ListExpr arg1 = nl->First(args);
+    ListExpr arg2 = nl->Second(args);
+
+    if( nl->IsEqual( arg1, "hmpoint" ) &&
+        nl->IsEqual( arg2, "real" ) )
+      return nl->SymbolAtom("cmpoint");
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
 6.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -6958,6 +7089,22 @@ int TemporalToUncertainSelect( ListExpr args )
   return -1; // This point should never be reached
 }
 
+/*
+6.2.6 Selection function ~HierarchicalToUncertainSelect~
+
+*/
+int HierarchicalToUncertainSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+  if( nl->SymbolValue( arg1 ) == "hmpoint" )
+    return 0;
+    
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+    return 1;
+    
+  return -1; // This point should never be reached
+}
 
 /*
 7 Value mapping functions
@@ -7010,6 +7157,10 @@ int CUPointToUncertain( Word* args, Word& result, int message, Word& local,
 /*
 6.2.2 Value mapping function for operator ~trajectory~
 
+Unfortunately there will be no region created, if the epsilon value equals 0. 
+To avoid this, a minimal epsilon value is computed by deviding the coordinate 
+with the highest value by a constant named minEpsilonLimiter.
+
 */
 int CUPointTrajectory( Word* args, Word& result, int message,
  Word& local, Supplier s )
@@ -7018,7 +7169,19 @@ int CUPointTrajectory( Word* args, Word& result, int message,
 
   Region *region = ((Region*)result.addr);
   CUPoint *cupoint = ((CUPoint*)args[0].addr);
-  cupoint->UTrajectory(-1, *region );
+  
+  // If epsilon equals 0, set a minimal epsilon value greater 0 to ensure,
+  // that a region-object is created!
+  double max = fabs(cupoint->p0.GetX());
+  if( fabs(cupoint->p1.GetX()) > max )
+    max = fabs(cupoint->p1.GetX());
+  if( fabs(cupoint->p0.GetY()) > max )
+    max = fabs(cupoint->p0.GetY());
+  if( fabs(cupoint->p1.GetY()) > max )
+    max = fabs(cupoint->p1.GetY());
+  max = max * minEpsilonLimiter;
+  
+  cupoint->UTrajectory(max, *region );
 
   return 0;
 }
@@ -7575,7 +7738,9 @@ int CMPointP_AtRegion(Word* args, Word& result, int message,
 }
 
 /*
-6.3.11 value mapping functions for operator ~generalize~
+6.4 Value Mapping Functions for type ~HMPoint~
+
+6.4.11 value mapping functions for operator ~generalize~
 
 */
 
@@ -7599,7 +7764,7 @@ int GeneralizeMPoint( Word* args, Word& result, int message, Word& local,
 }
 
 /*
-6.3.12 value mapping functions for operator ~getmpoint~
+6.4.12 value mapping functions for operator ~getmpoint~
 
 */
 
@@ -7614,6 +7779,48 @@ int HMPointGetMPoint( Word* args, Word& result, int message, Word& local,
   if( hmp->IsDefined() )
     hmp->GetMPoint(*pResult);
   else
+    pResult->SetDefined(false);
+  
+  return 0;
+}
+
+/*
+6.4.12 value mapping functions for operator ~getcmpoint~
+
+*/
+int HMPointGetCMPoint( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HMPoint *hmp = static_cast<HMPoint*>(args[0].addr);
+  CcReal *epsilon = static_cast<CcReal*>(args[1].addr);
+  CMPoint* pResult = (CMPoint*)result.addr;
+  
+  if( hmp->IsDefined() )
+    hmp->GetCMPoint( epsilon->GetValue(), *pResult );
+  else
+    pResult->SetDefined(false);
+  
+  return 0;
+}
+
+/*
+6.5 Value Mapping Functions for type ~HCMPoint~
+
+6.5.1 value mapping function for operator ~getcmpoint~
+
+*/
+int HCMPointGetCMPoint( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  //HCMPoint *hmp = static_cast<HCMPoint*>(args[0].addr);
+  //CcReal *epsilon = static_cast<CcReal*>(args[1].addr);
+  CMPoint* pResult = (CMPoint*)result.addr;
+  
+  //if( hmp->IsDefined() )
+  //  hmp->GetCMPoint( epsilon->GetValue(), *pResult );
+  //else
     pResult->SetDefined(false);
   
   return 0;
@@ -7674,6 +7881,10 @@ ValueMapping uncertainpatmap[] = {
 ValueMapping temporaltouncertainmap[] = {
                                       CUPointToUncertain,
                                       CMPointToUncertain };
+
+ValueMapping hierarchicaltouncertainmap[] = {
+                                      HMPointGetCMPoint,
+                                      HCMPointGetCMPoint };
 
 /*
 Specification strings
@@ -7817,7 +8028,7 @@ const string MovingSpecGeneralize =
   "<text>Creates up to 5 generalizations from the given mpoint, using the"
   "second argument as the initial epsilon and the third argument as a factor "
   "to increase the epsilon value.</text--->"
-  "<text>let htrain7 = generalize( train7, 5.0, 2.0  )</text--->"
+  "<text>let htrain7 = generalize( train7, 25.0, 1.5  )</text--->"
   ") )";
 
 const string HierarchicalMovingSpecGetMPoint =
@@ -7826,7 +8037,17 @@ const string HierarchicalMovingSpecGetMPoint =
   "<text> getmpoint( _ ) </text--->"
   "<text>Extracts the original mpoint, from a hierarchical moving point"
   "(hmpoint).</text--->"
-  "<text>let htrain7 = generalize( train7, 5.0, 2.0  )</text--->"
+  "<text>let htrain7 = getmpoint( htrain7 )</text--->"
+  ") )";
+
+const string HierarchicalMovingSpecGetCMPoint =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(hmpoint) -> mpoint </text--->"
+  "<text> getcmpoint( _ ) </text--->"
+  "<text>Extracts that cmpoint from a hierarchical moving point, that has the"
+  "greatest uncertainty-value, that is less than the given real value."
+  "</text--->"
+  "<text>let htrain7 = getcmpoint( htrain7, 20.0 )</text--->"
   ") )";
 
 /*
@@ -7933,6 +8154,13 @@ Operator hierarchicalmovingpointgetmpoint( "getmpoint",
                               Operator::SimpleSelect,
                               HierarchicalMovingTypeMapMoving );
 
+Operator hierarchicalmovingpointgetcmpoint( "getcmpoint",
+                              HierarchicalMovingSpecGetCMPoint,
+                              2,
+                              hierarchicaltouncertainmap,
+                              HierarchicalToUncertainSelect,
+                              HierarchicalMovingTypeMapUncertainMoving );
+
 /*
 Creating the Algebra
  
@@ -7976,6 +8204,7 @@ class HierarchicalGeoAlgebra : public Algebra
     AddOperator( &temporaltouncertain );
     AddOperator( &movingpointgeneralize );
     AddOperator( &hierarchicalmovingpointgetmpoint );
+    AddOperator( &hierarchicalmovingpointgetcmpoint );
   }
   ~HierarchicalGeoAlgebra() {};
 };

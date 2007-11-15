@@ -1125,12 +1125,9 @@ for destroying. The destructor will perform the real destroying.
 */
   inline bool IsEmpty() const;
   
+  double GetLayerepsilon( const int layer ) const;
   
-  inline int GetNoComponents() const;
-/*
-Returns if the hierarchicalmapping contains no entities.
-
-*/   
+  void SetLayerepsilon( const int layer, const double epsilon );
   
   inline double GetLayer0epsilon() const
   {
@@ -1180,7 +1177,13 @@ Returns if the hierarchicalmapping contains no entities.
   inline void SetLayer4epsilon(const double epsilon)
   {
     layer4epsilon = epsilon;
-  }   
+  }
+  
+  inline int GetNoComponents() const;
+/*
+Returns if the hierarchicalmapping contains no entities.
+
+*/   
   
   void Get( const int i, const HCUPoint*& hcup ) const;
   
@@ -1409,7 +1412,7 @@ right function GetNoComponents.
   void Add( const HCUPoint& hcup );
   
   
-  void Generalize(const int layer, const bool checkBreakPoints, 
+  bool Generalize(const int layer, const bool checkBreakPoints, 
                   const DateTime dur);
   
   
