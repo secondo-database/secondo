@@ -1516,7 +1516,7 @@ topological relationship is part of the ~cluster~.
 bool GetInt9M(Points* ps1, Points*  ps2,
               Int9M& res,
               const bool useCluster = false,
-              Cluster cluster = Cluster(0)){
+              Cluster cluster = Cluster(false)){
  
    if(useCluster && cluster.IsEmpty()){
        return false;
@@ -2293,7 +2293,8 @@ bool pointAbove(const HalfSegment* hs, const Point* p) {
 
 bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
               const bool useCluster= false,
-              Cluster cluster = Cluster()){
+              Cluster cluster = Cluster(),
+              const bool transpose = false){
 
 #ifdef TOPOPS_USE_STATISTIC
   GetCalls_r_p++;
@@ -2304,6 +2305,9 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
   if(reg->IsEmpty()){
      res.SetEI(true);
      if(useCluster){
+       if(transpose){
+          res.Transpose();
+       }
        return cluster.Contains(res);
      } else {
        return true;
@@ -2321,6 +2325,9 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
       bb_r_p++;
 #endif
      if(useCluster){
+       if(transpose){
+          res.Transpose();
+       }
        return cluster.Contains(res);
      } else {
        return true;
@@ -2342,6 +2349,9 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
         if(hs->Contains(*p)){
            res.SetBI(true); //point on boundary
            if(useCluster){
+             if(transpose){
+               res.Transpose();
+             }
              return cluster.Contains(res);
            } else {
               return true;
@@ -2365,6 +2375,9 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
       res.SetII(true);
    }
    if(useCluster){
+      if(transpose){
+        res.Transpose();
+      }
       return cluster.Contains(res);
    } else {
       return true;
@@ -4506,9 +4519,27 @@ int TopPredSym(Word* args, Word& result, int message,
       return 0;
   }
   Int9M matrix;
-  Cluster tmp = *cluster;
-  tmp.Transpose();
+  Cluster tmp(cluster,true);
   bool res = GetInt9M(v2,v1,matrix,true,tmp);
+  (static_cast<CcBool*>(result.addr))->Set(true,res);
+  return 0;
+}
+
+
+
+template<class t1, class t2>
+int TopPredSym2(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  t1* v1 = static_cast<t1*>(args[0].addr);
+  t2* v2 = static_cast<t2*>(args[1].addr);
+  Cluster* cluster = static_cast<Cluster*>(args[2].addr);
+  if(!cluster->IsDefined()){// name not found within group
+      (static_cast<CcBool*>(result.addr))->Set(false,false);
+      return 0;
+  }
+  Int9M matrix;
+  bool res = GetInt9M(v2,v1,matrix,true,*cluster,true);
   (static_cast<CcBool*>(result.addr))->Set(true,res);
   return 0;
 }
@@ -4581,7 +4612,7 @@ ValueMapping TopPredMap[] = {
        TopPred<Line,Points>,
        TopPredSym<Points,Line>,
        TopPred<Region,Point>,
-       TopPredSym<Point,Region>,
+       TopPredSym2<Point,Region>,
        TopPred<Region,Points>,
        TopPredSym<Points,Region>,
        TopPred<Region,Region>,
