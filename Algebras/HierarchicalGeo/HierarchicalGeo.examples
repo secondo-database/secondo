@@ -109,3 +109,21 @@ Number: 1
 Signature: (mpoint real) -> cmpoint
 Example  : query touncertain(train7, 32.5)
 Result      : file
+
+Operator: generalize
+Number: 1
+Signature: (mpoint real real) -> hmpoint
+Example  : query generalize(train5, 20.0, 3.0)
+Result      : file
+
+Operator: getmpoint
+Number: 1
+Signature: (hmpoint) -> mpoint
+Example  : query getmpoint(htrain7)
+Result      : file
+
+Operator: getcmpoint
+Number: 1
+Signature: (hmpoint real) -> cmpoint
+Example  : query getcmpoint(htrain7, 35.0)
+Result      : file
