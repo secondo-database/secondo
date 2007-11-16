@@ -1412,7 +1412,7 @@ right function GetNoComponents.
   void Add( const HCUPoint& hcup );
   
   
-  bool Generalize(const int layer, const bool checkBreakPoints, 
+  int Generalize(const int layer, const bool checkBreakPoints, 
                   const DateTime dur);
   
   

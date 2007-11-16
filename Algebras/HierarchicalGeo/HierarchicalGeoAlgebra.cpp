@@ -4369,7 +4369,7 @@ void HMPoint::ResizeLayer( const int layer, const int n )
   }
 }
 
-bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
+int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
                           const DateTime dur)
 {
   const int origlayerno = layer;
@@ -4382,7 +4382,7 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
   { 
     case 1:
       // +++++ for debugging purposes only +++++
-      cout << "Computing of CUPoints for layer 0!\n";
+      //cout << "Computing of CUPoints for layer 0!\n";
       
       layerepsilon = &layer0epsilon;
       size = layer1.Size();
@@ -4393,7 +4393,7 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       
     case 2:
       // +++++ for debugging purposes only +++++
-      cout << "Computing of CUPoints for layer 1!\n";
+      //cout << "Computing of CUPoints for layer 1!\n";
       
       layerepsilon = &layer1epsilon;
       size = layer2.Size();
@@ -4404,7 +4404,7 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       
     case 3:
       // +++++ for debugging purposes only +++++
-      cout << "Computing of CUPoints for layer 2!\n";
+      //cout << "Computing of CUPoints for layer 2!\n";
       
       layerepsilon = &layer2epsilon;
       size = layer3.Size();
@@ -4415,7 +4415,7 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       
     case 4:
       // +++++ for debugging purposes only +++++
-      cout << "Computing of CUPoints for layer 3!\n";
+      //cout << "Computing of CUPoints for layer 3!\n";
       
       layerepsilon = &layer3epsilon;
       size = layer4.Size();
@@ -4426,7 +4426,7 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       
     case 5:
       // +++++ for debugging purposes only +++++
-      cout << "Computing of CUPoints for layer 4!\n";
+      //cout << "Computing of CUPoints for layer 4!\n";
       
       layerepsilon = &layer4epsilon;
       size = certainlayer.Size();
@@ -4444,11 +4444,11 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
   }
   
   // +++++ for debugging purposes only +++++
-  cout << "Control Variable-Initialization for next Generalization:\n";
-  cout << "     origlayerno       = " << origlayerno << endl;
-  cout << "     genlayerno        = " << genlayerno << endl;
-  cout << "     size of origlayer = " << size << endl;
-  cout << "     aktepsilon        = " << aktepsilon << endl << endl;
+  //cout << "Control Variable-Initialization for next Generalization:\n";
+  //cout << "     origlayerno       = " << origlayerno << endl;
+  //cout << "     genlayerno        = " << genlayerno << endl;
+  //cout << "     size of origlayer = " << size << endl;
+  //cout << "     aktepsilon        = " << aktepsilon << endl << endl;
   
   // Create two bitmaps and a double array to keep in mind which sample point 
   // belongs to the result and which real epsilon-value is computed for this 
@@ -4506,16 +4506,16 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
     else 
     {
       // +++++ for debugging purposes only +++++
-      cout << "The Units u1 = ";
-      u1->Print(cout);
-      cout << " and u2 = ";
-      u2->Print(cout);
-      cout << " are not connected with each other!\n";
-      cout << "Function Simplify(...) is called with parameters: \n";
-      cout << "     first =       " << first << endl;
-      cout << "     last-1 =      " << last-1 << endl;
-      cout << "     origlayerno = " << origlayerno << endl;
-      cout << "     aktepsilon =     " << aktepsilon << endl << endl;
+      //cout << "The Units u1 = ";
+      //u1->Print(cout);
+      //cout << " and u2 = ";
+      //u2->Print(cout);
+      //cout << " are not connected with each other!\n";
+      //cout << "Function Simplify(...) is called with parameters: \n";
+      //cout << "     first =       " << first << endl;
+      //cout << "     last-1 =      " << last-1 << endl;
+      //cout << "     origlayerno = " << origlayerno << endl;
+      //cout << "     aktepsilon =     " << aktepsilon << endl << endl;
       
       Simplify(first, last-1, origlayerno, useleft, useright, realepsilon,
                 aktepsilon);
@@ -4527,12 +4527,12 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
   Simplify(first,last-1,origlayerno,useleft,useright,realepsilon,aktepsilon);
 
   // +++++ for debugging purposes only +++++
-  cout << "\nlast recognized sequence of units: \n";
-  cout << "Function Simplify(...) is called with parameters: \n";
-  cout << "     first =       " << first << endl;
-  cout << "     last-1 =      " << last-1 << endl;
-  cout << "     origlayerno = " << origlayerno << endl;
-  cout << "     epsilon =     " << aktepsilon << endl << endl;
+  //cout << "\nlast recognized sequence of units: \n";
+  //cout << "Function Simplify(...) is called with parameters: \n";
+  //cout << "     first =       " << first << endl;
+  //cout << "     last-1 =      " << last-1 << endl;
+  //cout << "     origlayerno = " << origlayerno << endl;
+  //cout << "     epsilon =     " << aktepsilon << endl << endl;
     
   
   // count the number of remaining units
@@ -4547,10 +4547,10 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
   ResizeLayer(genlayerno, count);
   
   // +++++ for debugging purposes only +++++
-  cout << "The Simplfiy()-Calls detected " << count << " for the next"
-    " layer! \n";
-  cout << "The epsilon value of layer " << genlayerno << " has been set to "
-    << *layerepsilon << endl;
+  //cout << "The Simplfiy()-Calls detected " << count << " for the next"
+  //  " layer! \n";
+  //cout << "The epsilon value of layer " << genlayerno << " has been set to "
+  //  << *layerepsilon << endl;
   
   Instant start;
   Point p0;
@@ -4573,11 +4573,9 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
     if( useleft[i] )
     {
       // +++++ for debugging purposes only +++++
-      if(leftDefined)
-      {
-        cout << " error in mpoint simplification,"
-             << " overwrite an existing leftPoint "  << endl;
-      }
+      //if(leftDefined)
+      //  cout << " error in mpoint simplification,"
+      //       << " overwrite an existing leftPoint "  << endl;
       
       originstart = i;
       p0 = cup->p0;
@@ -4588,9 +4586,10 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
     if( useright[i] )
     {
       // +++++ for debugging purposes only +++++
-      if(!leftDefined)
-        cout << " error in mpoint simplification,"
-             << " rightdefined before leftdefined "  << endl;
+      //if(!leftDefined)
+      //  cout << " error in mpoint simplification,"
+      //       << " rightdefined before leftdefined "  << endl;
+      
       Interval<Instant> interval( start, cup->timeInterval.end, closeLeft,
                                   cup->timeInterval.rc);
       CUPoint newCUPoint(realepsilon[i], interval, p0, cup->p1);
@@ -4600,10 +4599,10 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       Put(genlayerno, generalizedby, newHCUPoint);
       
       // +++++ for debugging purposes only +++++
-      cout << "A new HCUPoint with index " << generalizedby 
-        << " has been created in layer " << genlayerno << "\n";
-      newHCUPoint.Print(cout);
-      cout << endl;
+      //cout << "A new HCUPoint with index " << generalizedby 
+      //  << " has been created in layer " << genlayerno << "\n";
+      //newHCUPoint.Print(cout);
+      //cout << endl;
       
       // The next cup belongs to the next origin-hcup belongs to the next
       // generalization.
@@ -4611,7 +4610,7 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       leftDefined = false;
     }
   }
-  return true;
+  return count;
 }
 
 void HMPoint::Simplify(const int min, const int max, const int layer,
@@ -4635,35 +4634,32 @@ void HMPoint::Simplify(const int min, const int max, const int layer,
 
   const UPoint* u1;
   const UPoint* u2;
-  // build a UPoint from the endpoints
+  // build a HalfSegment from the endpoints
   Get(layer, min, u1);
   Get(layer, max, u2);
+  HalfSegment hs(true, u1->p0, u2->p1);
   
-  UPoint upoint(Interval<Instant>(u1->timeInterval.start,
-                u2->timeInterval.end,true,true),
-                u1->p0,
-                u2->p1);
-
   // search for the point with the highest distance to its simplified position
   double maxDist = 0;
   int maxIndex=0;
   Point p_orig;
-  Point p_simple;
+  //Point p_simple;
   //const HCUPoint* hcup;
   const UPoint* u;
   double distance;
   for(int i=min+1;i<=max;i++){
      Get(layer, i,u);
-     upoint.TemporalFunction(u->timeInterval.start,p_simple, true);
-     distance  = p_simple.Distance(u->p0);
+     //upoint.TemporalFunction(u->timeInterval.start,p_simple, true);
+     distance  = hs.Distance(u->p0);
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;
      }
   }
 
-  if(maxIndex==0){  // no difference found
-      return;
+  if(maxIndex==0){  // no difference found  
+    realepsilon[max] = maxDist;
+    return;
   }
   if(maxDist<=epsilon){  // differnce is in allowed range
       realepsilon[max] = maxDist;
@@ -5352,13 +5348,14 @@ void Generalize( const double epsilon, const double factor,
   //result.Generalize(5, checkBreakPoints, dur);
   
   int j = 5;
-  bool correct;
-  while(j > 0 && correct)
+  int sizeOfLastLayer = n;
+  while(j > 0 && sizeOfLastLayer > 1)
   {
-    correct = result.Generalize(j, checkBreakPoints, dur);
+    sizeOfLastLayer = result.Generalize(j, checkBreakPoints, dur);
     j--;
   }
 }
+
 
 
 static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
@@ -5372,7 +5369,7 @@ static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
 static bool connected(const UPoint* u1, const UPoint* u2){
   if( !AlmostEqual(u1->p1, u2->p0) ){ // spatial connected
     // +++++ for debugging purposes only +++++
-    cout << "The Units are not TEMPORAL connected!\n";
+    cout << "The Units are not SPATIAL connected!\n";
     return false;
   }
   // temporal connection
@@ -7941,8 +7938,7 @@ const string UncertainMovingSpecTrajectory =
   "( <text>cupoint || cmpoint -> region</text--->"
   "<text>trajectory ( _ )</text--->"
   "<text>Returns a Region-Object, representing the possible trajectory-area "
-  "of the given uncertain unit/moving point. Unfortunately, a cmpoint-object"
-  " must be given as a string value containing the objects name!</text--->"
+  "of the given uncertain unit/moving point.</text--->"
   "<text>query trajectory( cuphavel ) || query trajectory( \"cmphavel\" "
   "</text--->) )";
 
