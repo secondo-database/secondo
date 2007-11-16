@@ -4515,7 +4515,7 @@ bool HMPoint::Generalize(const int layer, const bool checkBreakPoints,
       cout << "     first =       " << first << endl;
       cout << "     last-1 =      " << last-1 << endl;
       cout << "     origlayerno = " << origlayerno << endl;
-      cout << "     epsilon =     " << epsilon << endl << endl;
+      cout << "     aktepsilon =     " << aktepsilon << endl << endl;
       
       Simplify(first, last-1, origlayerno, useleft, useright, realepsilon,
                 aktepsilon);
@@ -5370,14 +5370,18 @@ static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
 }
 
 static bool connected(const UPoint* u1, const UPoint* u2){
-   if(u1->p1 != u2->p0){ // spatial connected
-       return false;
-   }
-   // temporal connection
-   if(! ((u1->timeInterval.end) == (u2->timeInterval.start))){
-       return false;
-   }
-   return true;
+  if( !AlmostEqual(u1->p1, u2->p0) ){ // spatial connected
+    // +++++ for debugging purposes only +++++
+    cout << "The Units are not TEMPORAL connected!\n";
+    return false;
+  }
+  // temporal connection
+  if(! (u1->timeInterval.end == u2->timeInterval.start) ){
+    // +++++ for debugging purposes only +++++
+    cout << "The Units are not TEMPORAL connected!\n";
+    return false;
+  }
+  return true;
 }
 
 /*
@@ -6666,7 +6670,7 @@ ListExpr UncertainMovingTypeMapSpatial( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "string" ) ||
+    if( nl->IsEqual( arg1, "cmpoint" ) ||
         nl->IsEqual( arg1, "cupoint") )
       return nl->SymbolAtom( "region" );
   }
@@ -7018,7 +7022,7 @@ int UncertainTemporalSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "cupoint" )
     return 0;
     
-  if( nl->SymbolValue( arg1 ) == "string" )
+  if( nl->SymbolValue( arg1 ) == "cmpoint" )
     return 1;
   
   return -1; // This point should never be reached
@@ -7406,26 +7410,32 @@ int CMPointToUncertain( Word* args, Word& result, int message, Word& local,
 int CMPointTrajectory( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
-  char* cmpointname;
+  // +++++ for debugging purposes only +++++
+  cout << "Value Mapping Function CMPointTrajectory is called!\n";
+  
+  //char* cmpointname;
+  ostringstream strTrajectPtr;
+  
   string querystring;
   //Word resultword;
   
   result = qp->ResultStorage( s );
   
-  if( ((CcString*)args[0].addr)->IsDefined() )
+  if( args[0].addr > 0 )
   {
     // create the query list
-    cmpointname = (char*)(((CcString*)args[0].addr)->GetStringval());
+    //cmpointname = (char*)(((CcString*)args[0].addr)->GetStringval());
+    strTrajectPtr << (long)args[0].addr;
     
     // +++++ for debugging purposes only +++
-    //cout << "Das aufgerufene Objekt heisst: " << (string)cmpointname << "."
-    //  << endl;
+    cout << "Das aufgerufene Objekt hat die Adresse: " << strTrajectPtr.str() 
+      << ".\n";
     
     querystring =                         
     "(aggregateB"
       "(projectextend"
         "(namedtransformstream"
-          "(units " + (string)cmpointname + ")"
+          "(units (cmpoint (ptr " + strTrajectPtr.str() + ")) )"
           "Unit)"
         "()"
         "("
