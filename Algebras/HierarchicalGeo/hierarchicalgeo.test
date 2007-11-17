@@ -405,6 +405,59 @@ query touncertain(train7, 5.5);
 delete cmptest1;
 
 
+# 3 - Tests about the datatype hmpoint (hierarchical moving point)
+
+
+#testcase generalize
+#yields success
+query generalize(train1, 30.5, 2.0);
+
+
+#testcase getmpoint
+#yields success
+query getmpoint(htrain7);
+
+
+#testcase getcmpoint
+#yields (cmpoint (\
+    (344.9794279792633 (\
+            ("2003-11-20-06:06" "2003-11-20-06:11:19.024" TRUE FALSE)\
+            (16821.0 1252.0 13837.0 2806.0)))\
+    (670.1852354470175 (\
+            ("2003-11-20-06:11:19.024" "2003-11-20-06:22:50" TRUE FALSE)\
+            (13837.0 2806.0 11837.0 8980.0)))\
+    (1389.861161739539 (\
+            ("2003-11-20-06:22:50" "2003-11-20-06:38:15.462" TRUE FALSE)\
+            (11837.0 8980.0 4813.0 8864.0)))\
+    (543.5225068634451 (\
+            ("2003-11-20-06:38:15.462" "2003-11-20-06:50:09.600" TRUE FALSE)\
+            (4813.0 8864.0 3166.0 14269.0)))\
+    (348.7817465908955 (\
+            ("2003-11-20-06:50:09.600" "2003-11-20-07:02" TRUE FALSE)\
+            (3166.0 14269.0 -3560.0 14235.0)))))
+query getcmpoint(htrain7, 1620.0);
+
+
+#testcase hmpoint_deftime
+#yields (periods (( "2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE)) )
+query deftime(htrain7);
+
+
+#testcase hmpoint_present_instant
+#yields (bool TRUE)
+query htrain7 present six30;
+
+
+#testcase hmpoint_present_periods1
+#yields (bool FALSE)
+query htrain1 present one43one56;
+
+
+#testcase hmpoint_present_periods2
+#yields (bool TRUE)
+query htrain7 present one43one56;
+
+
 #teardown
 
 delete cuptest2;

@@ -3532,6 +3532,67 @@ void HCMPoint::SetLayerepsilon( const int layer, const double epsilon )
   }
 }
 
+void HCMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
+{
+  assert( layer > -1 );
+  assert( layer < 5 );
+  
+  switch( layer )
+  {
+    case 0:
+      if( i > layer0.Size() )
+        cout << "There are less than " << i << " elements in layer0!\n";
+      else
+        layer0.Get(i, ntt);
+      break;
+      
+    case 1:
+      if( i > layer1.Size() )
+        cout << "There are less than " << i << " elements in layer1!\n";
+      else
+        layer1.Get(i, ntt);
+      break;
+      
+    case 2:
+      if( i > layer2.Size() )
+        cout << "There are less than " << i << " elements in layer2!\n";
+      else
+        layer2.Get(i, ntt);
+      break;
+      
+    case 3:
+      if( i > layer3.Size() )
+        cout << "There are less than " << i << " elements in layer3!\n";
+      else
+        layer3.Get(i, ntt);
+      break;
+      
+    case 4:
+      if( i > layer4.Size() )
+        cout << "There are less than " << i << " elements in layer4!\n";
+      else
+        layer4.Get(i, ntt);
+      break;
+        
+    default:
+      // this case is prevented by the assert-commands
+      break;
+  }
+}
+
+void HCMPoint::Get( const int layer, const int i, CUPoint const*& cup )
+{
+  const HCUPoint* ntt;
+  Get( layer, i, ntt );
+  cup = &(ntt->value);
+}
+
+void HCMPoint::Get( const int layer, const int i, UPoint const*& up )
+{
+  const HCUPoint* ntt;
+  Get( layer, i, ntt );
+  up = (UPoint*)&(ntt->value);
+}
 
 void HCMPoint::Get( const int i, const HCUPoint*& ntt ) const
 {
@@ -3733,6 +3794,268 @@ void HCMPoint::Clear()
   
   layer4epsilon = -1;
   layer4.Clear();
+}
+/*
+
+*/
+
+int HCMPoint::Position( int layer, const Instant& t )
+{
+  assert( t.IsDefined() );
+  
+  int size;
+  
+  switch( layer )
+  {
+    case 0:
+      size = layer0.Size();
+      break;
+      
+    case 1:
+      size = layer1.Size();
+      break;
+    
+    case 2:
+      size = layer2.Size();
+      break;
+    
+    case 3:
+      size = layer3.Size();
+      break;
+    
+    case 4:
+      size = layer4.Size();
+      break;
+    
+    default:
+      // This point should never be reached.
+      break;
+  }
+
+  int first = 0, last = size - 1;
+  Instant t1 = t;
+
+  while (first <= last)
+  {
+    int mid = ( first + last ) / 2;
+
+    if( (mid < 0) || (mid >= size) )
+      return -1;
+
+    const UPoint *midUnit;
+    Get( layer, mid, midUnit );
+
+    if( midUnit->timeInterval.Contains(t1) )
+      return mid;
+    else  //not contained
+      if( ( t1 > midUnit->timeInterval.end ) ||
+          ( t1 == midUnit->timeInterval.end ) )
+        first = mid + 1;
+      else if( ( t1 < midUnit->timeInterval.start ) ||
+               ( t1 == midUnit->timeInterval.start ) )
+        last = mid - 1;
+      else
+        return -1; //should never be reached.
+    }
+    return -1;
+}
+/*
+
+*/
+
+/*
+RestoreBoundingBox() checks, whether the MPoint's MBR ~bbox~ is ~undefined~
+and thus may needs to be recalculated and if, does so.
+
+*/
+
+void HCMPoint::RestoreBoundingBox(const bool force)
+{
+  if(!IsDefined() || GetNoComponents() == 0)
+  { // invalidate bbox
+    bbox.SetDefined(false);
+  }
+  else if(force || !bbox.IsDefined())
+  { // construct bbox
+    int layer, size;
+    if(layer0.Size() > 0)
+    {
+      layer = 0;
+      size = layer0.Size();
+    }
+    else if(layer1.Size() > 0)
+    {
+      layer = 1;
+      size = layer1.Size();
+    }
+    else if(layer2.Size() > 0)
+    {
+      layer = 2;
+      size = layer2.Size();
+    }
+    else if(layer3.Size() > 0)
+    {
+      layer = 3;
+      size = layer3.Size();
+    }
+    else if(layer4.Size() > 0)
+    {
+      layer = 4;
+      size = layer4.Size();
+    }
+    
+    const CUPoint *unit;
+    bool isfirst = true;
+    for( int i = 0; i < size; i++ )
+    {
+      Get(layer, i, unit );
+      if (isfirst)
+      {
+        bbox = unit->BoundingBox();
+        isfirst = false;
+      }
+      else
+      {
+        bbox = bbox.Union(unit->BoundingBox());
+      }
+    }
+  } // else: bbox unchanged and still correct
+}
+
+// Class functions
+Rectangle<3u> HCMPoint::BoundingBox() const
+{
+  return bbox;
+}
+
+Rectangle<2> HCMPoint::BBox2D() const
+{
+  return Rectangle<2>( true, bbox.MinD(0), bbox.MaxD(0),
+                             bbox.MinD(1), bbox.MaxD(1) );
+}
+
+void HCMPoint::DefTime( Periods& p )
+{
+  int layer, size;
+  if(layer0.Size() > 0)
+  {
+    layer = 0;
+    size = layer0.Size();
+  }
+  else if(layer1.Size() > 0)
+  {
+    layer = 1;
+    size = layer1.Size();
+  }
+  else if(layer2.Size() > 0)
+  {
+    layer = 2;
+    size = layer2.Size();
+  }
+  else if(layer3.Size() > 0)
+  {
+    layer = 3;
+    size = layer3.Size();
+  }
+  else if(layer4.Size() > 0)
+  {
+    layer = 4;
+    size = layer4.Size();
+  }
+  
+  Periods result( size );
+  
+  const UPoint *unit;
+  result.StartBulkLoad();
+  for( int i = 0; i < size; i++ )
+  {
+    Get( 0, i, unit );
+    result.Add( unit->timeInterval );
+  }
+  result.EndBulkLoad( false );
+  result.Merge( p );
+}
+
+bool HCMPoint::Present( const Instant& t )
+{
+  assert( IsDefined() );
+  assert( t.IsDefined() );
+
+  int layer, size;
+  if(layer0.Size() > 0)
+  {
+    layer = 0;
+    size = layer0.Size();
+  }
+  else if(layer1.Size() > 0)
+  {
+    layer = 1;
+    size = layer1.Size();
+  }
+  else if(layer2.Size() > 0)
+  {
+    layer = 2;
+    size = layer2.Size();
+  }
+  else if(layer3.Size() > 0)
+  {
+    layer = 3;
+    size = layer3.Size();
+  }
+  else if(layer4.Size() > 0)
+  {
+    layer = 4;
+    size = layer4.Size();
+  }
+  
+  if(bbox.IsDefined())
+  { // do MBR-check
+    double instd = t.ToDouble();
+    double mint = bbox.MinD(2);
+    double maxt = bbox.MaxD(2);
+    if( (instd < mint && !AlmostEqual(instd,mint)) ||
+        (instd > maxt && !AlmostEqual(instd,mint))
+      )
+    {
+      // +++++ for debugging purposes only +++++
+      cout << "BoundingBox-Check failed!\n";
+      
+      return false;
+    }
+  }
+  int pos = Position(layer, t);
+  if( pos == -1 )         //not contained in any unit
+    return false;
+  return true;
+}
+/*
+
+*/
+
+bool HCMPoint::Present( const Periods& t )
+{
+  assert( IsDefined() );
+  assert( t.IsDefined() );
+  assert( t.IsOrdered() );
+
+  Periods defTime( 0 );
+  DefTime( defTime );
+  if(bbox.IsDefined())
+  { // do MBR-check
+    double MeMin = bbox.MinD(2);
+    double MeMax = bbox.MaxD(2);
+    Instant tmin; t.Minimum(tmin);
+    Instant tmax; t.Maximum(tmax);
+    double pmin = tmin.ToDouble();
+    double pmax = tmax.ToDouble();
+    if( (pmin < MeMin && !AlmostEqual(pmin,MeMin)) ||
+         (pmax > MeMax && !AlmostEqual(pmax,MeMax))
+      )
+    {
+      return false;
+    }
+  }
+  return t.Intersects( defTime );
 }
 
 /*
@@ -3984,54 +4307,15 @@ void HMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
   assert( layer > -1 );
   assert( layer < 6 );
   
-  switch( layer )
+  if(layer == 5)
   {
-    case 0:
-      if( i > layer0.Size() )
-        cout << "There are less than " << i << " elements in layer0!\n";
-      else
-        layer0.Get(i, ntt);
-      break;
-      
-    case 1:
-      if( i > layer1.Size() )
-        cout << "There are less than " << i << " elements in layer1!\n";
-      else
-        layer1.Get(i, ntt);
-      break;
-      
-    case 2:
-      if( i > layer2.Size() )
-        cout << "There are less than " << i << " elements in layer2!\n";
-      else
-        layer2.Get(i, ntt);
-      break;
-      
-    case 3:
-      if( i > layer3.Size() )
-        cout << "There are less than " << i << " elements in layer3!\n";
-      else
-        layer3.Get(i, ntt);
-      break;
-      
-    case 4:
-      if( i > layer4.Size() )
-        cout << "There are less than " << i << " elements in layer4!\n";
-      else
-        layer4.Get(i, ntt);
-      break;
-      
-    case 5:
-      if( i > certainlayer.Size() )
-        cout << "There are less than " << i << " elements in certainlayer!\n";
-      else
-        certainlayer.Get(i, ntt);
-      break;
-      
-    default:
-      // this case is prevented by the assert-commands
-      break;
+    if( i > certainlayer.Size() )
+      cout << "There are less than " << i << " elements in certainlayer!\n";
+    else
+      certainlayer.Get(i, ntt);
   }
+  else
+    HCMPoint::Get( layer, i, ntt );
 }
 
 void HMPoint::Get( const int layer, const int i, CUPoint const*& cup )
@@ -5354,6 +5638,7 @@ void Generalize( const double epsilon, const double factor,
     sizeOfLastLayer = result.Generalize(j, checkBreakPoints, dur);
     j--;
   }
+  result.RestoreBoundingBox( true );
 }
 
 
@@ -6449,6 +6734,8 @@ Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
     nttcounter++;
     delete ntt;
   }
+  hmp->RestoreBoundingBox( false );
+  
   return SetWord( hmp );
 }
 
@@ -6575,43 +6862,11 @@ ListExpr UncertainTypeMapReal( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
-/*
-6.1.2 Type mapping function ~UncertainTypeMapBase~
-
-This type mapping function is used for the Operation ~Val()~. The keyword
-'base' indicates a reduction of an uncertain type to its particular base type.
-So in this case a 'base type' can also be a spatial or temporal type.
-
-*/
-
-ListExpr UncertainTypeMapBase( ListExpr args )
-{
-  if ( nl->ListLength( args ) == 1 )
-  {
-    ListExpr arg1 = nl->First( args );
-    
-    if( nl->IsEqual( arg1, "cpoint") )
-      return nl->SymbolAtom( "point" );
-      
-    if( nl->IsEqual( arg1, "cupoint") )
-      return nl->SymbolAtom( "upoint" );
-    if (nl->AtomType( args ) == SymbolType)
-    {
-      ErrorReporter::ReportError("Type mapping function got a "
-              "parameter of type " +nl->SymbolValue(args) + 
-              "which is no uncertain type.");
-      return nl->SymbolAtom("typeerror");
-    }
-  }
-  ErrorReporter::ReportError("Type mapping function got a "
-        "parameter of length != 1.");
-  return nl->SymbolAtom( "typeerror" );
-}
 
 /*
 6.1.3 Type mapping function ~UncertainTypeMapBaseToUncertain~
 
-This type mapping function is used for the Operation ~Val()~. The keyword
+This type mapping function is used for the Operator ~touncertain~. The keyword
 'base' indicates a reduction of an uncertain type to its particular base type.
 So in this case a 'base type' can also be a spatial or temporal type.
 
@@ -6631,6 +6886,15 @@ ListExpr UncertainTypeMapBaseToUncertain( ListExpr args )
     if( nl->IsEqual( arg1, "mpoint") &&
         nl->IsEqual( arg2, "real") )
       return nl->SymbolAtom( "cmpoint" );
+    
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+              "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+
+              ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
   ErrorReporter::ReportError("Type mapping function got a "
         "parameter of length != 2.");
@@ -6651,7 +6915,16 @@ ListExpr UncertainTempSetValueTypeMapInt( ListExpr args )
 
     if( nl->IsEqual( arg1, "cmpoint" ) )
       return nl->SymbolAtom( "int" );
+    
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6670,7 +6943,35 @@ ListExpr UncertainMovingTypeMapSpatial( ListExpr args )
     if( nl->IsEqual( arg1, "cmpoint" ) ||
         nl->IsEqual( arg1, "cupoint") )
       return nl->SymbolAtom( "region" );
+    
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  if( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args );
+    ListExpr arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "hcmpoint" ) ||
+        nl->IsEqual( arg1, "hmpoint") && 
+        nl->IsEqual( arg2, "real" ) )
+      return nl->SymbolAtom( "region" );
+      
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+              "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+
+              ".");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1 or 2.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6687,9 +6988,20 @@ ListExpr UncertainMovingTypeMapPeriods( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
 
-    if( nl->IsEqual( arg1, "cmpoint" ) )
+    if( nl->IsEqual( arg1, "cmpoint" ) ||
+        nl->IsEqual( arg1, "hcmpoint" ) ||
+        nl->IsEqual( arg1, "hmpoint" ) )
       return nl->SymbolAtom( "periods" );
+    
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6701,19 +7013,28 @@ It is for the operator ~present~.
 */
 ListExpr UncertainMovingInstantPeriodsTypeMapBool( ListExpr args )
 {
-   if ( nl->ListLength( args ) == 2 )
+  if ( nl->ListLength( args ) == 2 )
   {
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg2, "instant" ) ||
-        nl->IsEqual( arg2, "periods" ) )
+    if( (nl->IsEqual(arg1, "cmpoint") ||
+        nl->IsEqual(arg1, "hcmpoint") ||
+        nl->IsEqual(arg1, "hmpoint") ) && 
+        (nl->IsEqual(arg2, "instant") ||
+        nl->IsEqual(arg2, "periods")) )  
+      return nl->SymbolAtom( "bool" );
+    
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
     {
-      if( nl->IsEqual( arg1, "cmpoint") )
-
-        return nl->SymbolAtom( "bool" );
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
     }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6726,7 +7047,7 @@ This is the type mapping function for the operators ~d\_passes~ and
 */
 ListExpr UncertainMovingTypeMapBool( ListExpr args )
 {
-   if ( nl->ListLength( args ) == 2 )
+  if ( nl->ListLength( args ) == 2 )
   {
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
@@ -6738,7 +7059,16 @@ ListExpr UncertainMovingTypeMapBool( ListExpr args )
           nl->IsEqual( arg1, "cupoint") )
         return nl->SymbolAtom( "bool" );
     }
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6750,7 +7080,7 @@ It is for the operators ~d\_at~, ~p\_at~
 */
 ListExpr UncertainMovingTypeMapMoving( ListExpr args )
 {
-   if ( nl->ListLength( args ) == 2 )
+  if ( nl->ListLength( args ) == 2 )
   {
     ListExpr arg1 = nl->First( args ),
              arg2 = nl->Second( args );
@@ -6762,11 +7092,21 @@ ListExpr UncertainMovingTypeMapMoving( ListExpr args )
       if( nl->IsEqual( arg1, "cmpoint" ) )
         return nl->SymbolAtom( "cmpoint" );
     }
-    else if( nl->IsEqual( arg2, "region") &&
-           ( nl->IsEqual( arg1, "cupoint") || 
-             nl->IsEqual( arg1, "cmpoint") ) )
+    if( nl->IsEqual( arg2, "region") &&
+        ( nl->IsEqual( arg1, "cupoint") || 
+         nl->IsEqual( arg1, "cmpoint") ) )
       return nl->SymbolAtom( "cmpoint" );
+      
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6790,7 +7130,17 @@ ListExpr UncertainMovingInstantTypeMapIntime( ListExpr args )
       if( nl->IsEqual( arg1, "cmpoint" ) )
         return nl->SymbolAtom( "intimeregion" );
     }
+    
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6812,7 +7162,17 @@ ListExpr UncertainMovingPeriodsTypeMapMoving( ListExpr args )
       if( nl->IsEqual( arg1, "cmpoint" ) )
         return nl->SymbolAtom( "cmpoint" );
     }
+    
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6865,10 +7225,15 @@ ListExpr UncertainTemporalBBoxTypeMap( ListExpr args )
     if( nl->IsEqual( arg1, "cmpoint" ) )
       return (nl->SymbolAtom( "rect3" ));
 
-    //if( nl->IsEqual( arg1, "cipoint" ) )
-    //  return (nl->SymbolAtom( "rect3" ));
-
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -6893,7 +7258,16 @@ ListExpr UncertainTemporalTypeMapUnits( ListExpr args )
     if( nl->IsEqual( arg1, "cmpoint" ) )
       return nl->TwoElemList(nl->SymbolAtom("stream"),
        nl->SymbolAtom("cupoint"));
+    
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -6920,7 +7294,19 @@ ListExpr MovingTypeMapHierarchy( ListExpr args )
         nl->IsEqual( arg2, "real" ) &&
         nl->IsEqual( arg3, "real" ) )
       return nl->SymbolAtom("hmpoint");
+  
+  if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType &&
+        nl->AtomType( arg3 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ ", " +nl->SymbolValue(arg2)+ "and " 
+          +nl->SymbolValue(arg3)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 3.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -6943,7 +7329,16 @@ ListExpr HierarchicalMovingTypeMapMoving( ListExpr args )
 
     if( nl->IsEqual( arg1, "hmpoint" ) )
       return nl->SymbolAtom("mpoint");
+  
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1.");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -6968,12 +7363,22 @@ ListExpr HierarchicalMovingTypeMapUncertainMoving( ListExpr args )
     if( nl->IsEqual( arg1, "hmpoint" ) &&
         nl->IsEqual( arg2, "real" ) )
       return nl->SymbolAtom("cmpoint");
+    
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
   }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
   return nl->SymbolAtom("typeerror");
 }
 
 /*
-6.2 Selection function
+6.2 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
 difference is that it doesn't return a type but the index of a value
@@ -6986,24 +7391,43 @@ it is applied to correct arguments.
 
 6.2.1 Selection function ~UncertainSimpleSelect~
 
-Is used for the ~epsilon~ and ~val~ operators.
+Is used for the ~epsilon~ operator.
 
 */
 int UncertainSimpleSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
   
-  if( nl->SymbolValue( arg1 ) == "cpoint" )
+  if( nl->SymbolValue( arg1 ) == "cupoint" )
     return 0;
     
-  if( nl->SymbolValue( arg1 ) == "cupoint" )
-    return 1;
-    
   if( nl->SymbolValue( arg1 ) == "cmpoint" )
-    return 2;
+    return 1;
+  
   // ...space for further possible argument types
   
   return -1; // This point should never be reached
+}
+
+/*
+6.2.2 Selection function ~HierarchicalSimpleSelect~
+
+This Selection Function is used for operator ~deftime~.
+
+*/
+int HierarchicalSimpleSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "cmpoint" )
+    return 0;
+  
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+    return 1;
+    
+  if( nl->SymbolValue( arg1 ) == "hmpoint" )
+    return 2;
+  return -1;
 }
 
 /*
@@ -7021,6 +7445,12 @@ int UncertainTemporalSelect( ListExpr args )
     
   if( nl->SymbolValue( arg1 ) == "cmpoint" )
     return 1;
+  
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+    return 2;
+  
+  if( nl->SymbolValue( arg1 ) == "hmpoint" )
+    return 3;
   
   return -1; // This point should never be reached
 }
@@ -7059,16 +7489,38 @@ int UncertainPassesSelect( ListExpr args )
 /*
 6.2.4 Selection function ~UncertainMovingInstantPeriodsSelect~
 
+This function is used for the operators ~present~, ~atinstant~ and ~atperiods~.
+
 */
 int UncertainMovingInstantPeriodsSelect( ListExpr args )
 {
-  ListExpr arg1 = nl->Second( args );
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
   
-  if( nl->SymbolValue( arg1 ) == "instant" )
+  if( nl->SymbolValue( arg1 ) == "cmpoint" &&
+      nl->SymbolValue( arg2 ) == "instant" )
     return 0;
     
-  if( nl->SymbolValue( arg1 ) == "periods" )
+  if( nl->SymbolValue( arg1 ) == "cmpoint" &&
+      nl->SymbolValue( arg2 ) == "periods" )
     return 1;
+
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" &&
+      nl->SymbolValue( arg2 ) == "instant" )
+    return 2;
+  
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" &&
+      nl->SymbolValue( arg2 ) == "periods" )
+    return 3;
+
+  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
+      nl->SymbolValue( arg2 ) == "instant" )
+    return 4;
+  
+  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
+      nl->SymbolValue( arg2 ) == "periods" )
+    return 5;
+  
     
   return -1; // This point should never be reached
 }
@@ -7408,25 +7860,20 @@ int CMPointTrajectory( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
   // +++++ for debugging purposes only +++++
-  cout << "Value Mapping Function CMPointTrajectory is called!\n";
+  //cout << "Value Mapping Function CMPointTrajectory is called!\n";
   
-  //char* cmpointname;
   ostringstream strTrajectPtr;
-  
   string querystring;
-  //Word resultword;
-  
   result = qp->ResultStorage( s );
   
   if( args[0].addr > 0 )
   {
-    // create the query list
-    //cmpointname = (char*)(((CcString*)args[0].addr)->GetStringval());
+    // create the query list:
     strTrajectPtr << (long)args[0].addr;
     
     // +++++ for debugging purposes only +++
-    cout << "Das aufgerufene Objekt hat die Adresse: " << strTrajectPtr.str() 
-      << ".\n";
+    //cout << "Das aufgerufene Objekt hat die Adresse: " << strTrajectPtr.str() 
+    //  << ".\n";
     
     querystring =                         
     "(aggregateB"
@@ -7450,11 +7897,9 @@ int CMPointTrajectory( Word* args, Word& result, int message,
         "()))";
      
     // +++++ for debugging purposes only +++++     
-    cout << querystring << endl;
-    if( QueryProcessor::ExecuteQuery(querystring, result) )
-      cout << "ExecuteQuery war erfolgreich! \n";
-    else cout << "Error in executing operator query" << endl;
-    
+    //cout << querystring << endl;
+    if( !QueryProcessor::ExecuteQuery(querystring, result) )
+      cout << "Error in executing operator query" << endl;
   }
   return 0;
 }
@@ -7834,6 +8279,68 @@ int HCMPointGetCMPoint( Word* args, Word& result, int message, Word& local,
 }
 
 /*
+6.5.1 value mapping function for operator ~deftime~
+
+*/
+int HCMPointDeftime( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HCMPoint* hcmp = static_cast<HCMPoint*>(args[0].addr);
+  Periods* pResult = (Periods*)result.addr;
+  
+  if( hcmp->IsDefined() )
+    hcmp->DefTime( *pResult );
+  else
+    pResult->SetDefined(false);
+  
+  return 0;
+}
+
+/*
+6.5.4 Value Mapping function for operator ~present~
+
+*/
+
+// If the second argument is an Instant:
+int HCMPointPresent_i( Word* args, Word& result,
+                     int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  HCMPoint *hcmp = ((HCMPoint*)args[0].addr);
+  Instant* inst = ((Instant*)args[1].addr);
+
+  if( !inst->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( hcmp->Present( *inst ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+// If the second argument is a Period:
+int HCMPointPresent_p( Word* args, Word& result,
+                         int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  HCMPoint *hcmp = ((HCMPoint*)args[0].addr);
+  Periods* periods = ((Periods*)args[1].addr);
+
+  if( periods->IsEmpty() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( hcmp->Present( *periods ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+/*
 Definition of operators
 
 Definition of operators is done in a way similar to definition of 
@@ -7849,7 +8356,6 @@ ValueMapping arrays
 */
 
 ValueMapping uncertainepsilonmap[] = {
-                                      UncertainEpsilon,
                                       CUPointEpsilon,
                                       CMPointEpsilon };
                                       
@@ -7859,7 +8365,11 @@ ValueMapping uncertaintrajectorymap[] = {
 
 ValueMapping uncertaintemporalpresentmap[] = {
                                       CMPointPresent_i,
-                                      CMPointPresent_p };
+                                      CMPointPresent_p,
+                                      HCMPointPresent_i,
+                                      HCMPointPresent_p,
+                                      HCMPointPresent_i,
+                                      HCMPointPresent_p };
 
 ValueMapping uncertaindpassesmap[] = {
                                       CUPointD_PassesPoint,
@@ -7889,9 +8399,14 @@ ValueMapping temporaltouncertainmap[] = {
                                       CUPointToUncertain,
                                       CMPointToUncertain };
 
-ValueMapping hierarchicaltouncertainmap[] = {
+ValueMapping hierarchicalgetcmpointmap[] = {
                                       HMPointGetCMPoint,
                                       HCMPointGetCMPoint };
+
+ValueMapping hierarchicaldeftimemap[] = {
+                                      MappingDefTime<CMPoint>,
+                                      HCMPointDeftime,
+                                      HCMPointDeftime };
 
 /*
 Specification strings
@@ -7926,10 +8441,10 @@ const string CPointSpecToCPoint =
 
 const string TemporalSpecDefTime  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>uncertain moving point -> periods</text--->"
+  "( <text>uncertain/hierarchical moving point -> periods</text--->"
   "<text>deftime( _ )</text--->"
-  "<text>Gets the defined time of the corresponding uncertain moving point."
-  "</text--->"
+  "<text>Gets the defined time of the corresponding uncertain or hierarchical"
+  " moving point.</text--->"
   "<text>deftime( cmp1 )</text--->"
   ") )";
 
@@ -7944,12 +8459,12 @@ const string UncertainMovingSpecTrajectory =
 
 const string UncertainTemporalSpecPresent  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(cmT instant) -> bool,\n"
-  "(cmT periods) -> bool</text--->"
+  "( <text>(cmT || hmT instant) -> bool,\n"
+  "(cmT || hmT periods) -> bool</text--->"
   "<text>_ present _ </text--->"
   "<text>Checks whether the moving object is present at the given "
   "instant or period.</text--->"
-  "<text>cmpoint1 present instant1</text--->"
+  "<text>htrain7 present instant1</text--->"
   ") )";
 
 const string UncertainTemporalSpecAtInstant =
@@ -8063,17 +8578,10 @@ Operators
 
 Operator uncertainepsilon( "epsilon",
                               UncertainSpecEpsilon,
-                              3,
+                              2,
                               uncertainepsilonmap,
                               UncertainSimpleSelect,
                               UncertainTypeMapReal );
-
-/*Operator uncertainval( "val",
-                              UncertainSpecVal,
-                              2,
-                              uncertainvalmap,
-                              UncertainSimpleSelect,
-                              UncertainTypeMapBase );*/
 
 Operator uncertaintrajectory( "trajectory",
                               UncertainMovingSpecTrajectory,
@@ -8084,13 +8592,14 @@ Operator uncertaintrajectory( "trajectory",
                               
 Operator uncertaintemporaldeftime( "deftime",
                               TemporalSpecDefTime,
-                              MappingDefTime<CMPoint>,
-                              Operator::SimpleSelect,
+                              3,
+                              hierarchicaldeftimemap,
+                              HierarchicalSimpleSelect,
                               UncertainMovingTypeMapPeriods );    
                               
 Operator uncertaintemporalpresent( "present",
                               UncertainTemporalSpecPresent,
-                              2,
+                              6,
                               uncertaintemporalpresentmap,
                               UncertainMovingInstantPeriodsSelect,
                               UncertainMovingInstantPeriodsTypeMapBool);
@@ -8163,7 +8672,7 @@ Operator hierarchicalmovingpointgetmpoint( "getmpoint",
 Operator hierarchicalmovingpointgetcmpoint( "getcmpoint",
                               HierarchicalMovingSpecGetCMPoint,
                               2,
-                              hierarchicaltouncertainmap,
+                              hierarchicalgetcmpointmap,
                               HierarchicalToUncertainSelect,
                               HierarchicalMovingTypeMapUncertainMoving );
 

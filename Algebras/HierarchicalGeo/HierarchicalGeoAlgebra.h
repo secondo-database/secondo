@@ -339,7 +339,6 @@ they are equal.
 3.2.3 The Temporal Functions
 
 */
-// +++++ Todo: Funktionen in .cpp-Datei implementieren  +++
 
   virtual void TemporalFunction( const Instant& t,
                                  Point& result,
@@ -438,15 +437,6 @@ the CUPoint, which possibly lies on or inside the given spatal object.
   {
     return UPoint::IsDefined();
   }
-  
-  // This SetDefined-Function leads to errors when a CUPoint is casted
-  // to a UPoint-object.
-  
-  /*void SetDefined( bool def )
-  {
-    UnitSetDefined( def );
-    UncertainSetDefined( def );
-  }*/
   
   bool IsDefined() const
   {
@@ -1041,15 +1031,6 @@ The index of the last entity, generalized by this entity.
 
 
 /*
-3.5 HUPoint
-
-represents an unit point (UPoint) within an hierarchical structure. 
-
-*/
-//typedef HierarchicalEntity<UPoint> HUPoint;
-
-
-/*
 3.6 HCUPoint
 
 represents an uncertain unit point (CUPoint) within an hierarchical structure. 
@@ -1091,6 +1072,7 @@ The simple constructor. This constructor should not be used.
   {
     del.refs=1;
     del.isDelete=true;
+    bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 /*
 A constructor, initializing space for ~n~ entities in the bottom layer.
@@ -1179,7 +1161,19 @@ for destroying. The destructor will perform the real destroying.
     layer4epsilon = epsilon;
   }
   
+  void Get( const int layer, const int i, HCUPoint const*& hcup );
+  
+  void Get( const int layer, const int i, CUPoint const*& cup );
+  
+  void Get( const int layer, const int i, UPoint const*& up );
+ 
   inline int GetNoComponents() const;
+  
+  int Position( int layer, const Instant& t );
+  
+  void DefTime( Periods& p );
+  bool Present( const Instant& i );
+  bool Present( const Periods& p );
 /*
 Returns if the hierarchicalmapping contains no entities.
 
@@ -1263,6 +1257,21 @@ are true:
   }
   
   inline FLOB* GetFLOB( const int i);
+
+/*
+3.7.3.7 ~BoundingBox~
+
+Returns the HCMPoint's minimum bounding rectangle
+
+*/
+  // return the stored bbox
+  Rectangle<3> BoundingBox() const;
+  
+  // return a bbox without the 3rd (temporal) Dimension
+  Rectangle<2> BBox2D() const;
+  
+  // recompute bbox, if necessary
+  void RestoreBoundingBox(const bool force = false);
   
 /*
 3.7.4 Attributes
@@ -1289,6 +1298,13 @@ array of intervals.
 
 */
 
+  private:
+  
+    Rectangle<3> bbox;
+/*
+Represents the bounding box of the hcmpoint.
+
+*/
 };
 
 /*
