@@ -127,3 +127,17 @@ Number: 1
 Signature: (hmpoint real) -> cmpoint
 Example  : query getcmpoint(htrain7, 35.0)
 Result      : file
+
+Operator: passes
+Number: 1
+Signature: hmpoint -> bool
+Example  : query htrain7 passes mehringdamm
+Result      : TRUE
+
+Operator: passes
+Number: 2
+Signature: hmpoint -> bool
+Example  : query htrain7 passes havel
+Result      : TRUE
+
+

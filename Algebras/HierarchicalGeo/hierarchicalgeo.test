@@ -458,6 +458,27 @@ query htrain1 present one43one56;
 query htrain7 present one43one56;
 
 
+#testcase hmpoint_passes_point1
+#yields (bool TRUE)
+query htrain7 passes mehringdamm;
+
+
+#testcase hmpoint_passes_point2
+#yields (bool FALSE)
+query htrain7 passes alexanderplatz;
+
+
+#testcase hmpoint_passes_region1
+#yields (bool TRUE)
+query htrain7 passes havel;
+
+
+#testcase hmpoint_passes_region2
+#yields (bool FALSE)
+query htrain7 passes karpfenteich;
+
+
+
 #teardown
 
 delete cuptest2;
