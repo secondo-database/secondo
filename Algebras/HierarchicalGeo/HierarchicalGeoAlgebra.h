@@ -1171,9 +1171,18 @@ for destroying. The destructor will perform the real destroying.
   
   int Position( int layer, const Instant& t );
   
+  inline void GetFirstLayer( int& layer, int& size ) const;
+  
   void DefTime( Periods& p );
   bool Present( const Instant& i );
   bool Present( const Periods& p );
+  bool D_Passes( const Point& p );
+  bool D_Passes( const int layer, const int start, const int end, 
+                  const Point& p );
+  bool D_Passes( const Region& r );
+  bool D_Passes( const int layer, const int start, const int end, 
+                  const Region& r );
+  
 /*
 Returns if the hierarchicalmapping contains no entities.
 
@@ -1435,6 +1444,12 @@ right function GetNoComponents.
   void Simplify(const int min, const int max, const int layer, bool* useleft, 
               bool* useright, double* realepsilon, const double epsilon);
 
+  bool D_Passes( const Point& p );
+  bool D_Passes( const int layer, const int start, const int end,
+                  const Point& p );
+  bool D_Passes( const Region& r );
+  bool D_Passes( const int layer, const int start, const int end,
+                  const Region& r );  
   
 /*
 3.8.3 functions to be part of relations

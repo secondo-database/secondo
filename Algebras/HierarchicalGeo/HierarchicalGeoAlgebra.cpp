@@ -744,7 +744,8 @@ the same as the definitely\_passes function.
   
   if( AlmostEqual( p0, p1) )
   {
-    if( p0.Distance( p ) <= epsilon )
+    double dist = p0.Distance( p );
+    if( dist < epsilon || AlmostEqual(dist, epsilon) )
       return true;
     else
       return false;
@@ -757,7 +758,11 @@ the same as the definitely\_passes function.
       hs.Set(true, p0, p1);
     else
       hs.Set(false, p0, p1);
-    return (hs.Distance(p) <= epsilon);
+    double dist = hs.Distance(p);
+    if(dist < epsilon || AlmostEqual(dist, epsilon) )
+      return true;
+    else
+      return false;
   }
 }
 
@@ -779,7 +784,11 @@ is FALSE.
   
   if( AlmostEqual(p0, p1) )
   {
-    return (r.Distance( p0 ) <= epsilon );
+    double dist = r.Distance( p0 );
+    if( dist < epsilon || AlmostEqual(dist, epsilon) )
+      return true;
+    else
+      return false;
   }
   else 
   {
@@ -3878,31 +3887,7 @@ void HCMPoint::RestoreBoundingBox(const bool force)
   else if(force || !bbox.IsDefined())
   { // construct bbox
     int layer, size;
-    if(layer0.Size() > 0)
-    {
-      layer = 0;
-      size = layer0.Size();
-    }
-    else if(layer1.Size() > 0)
-    {
-      layer = 1;
-      size = layer1.Size();
-    }
-    else if(layer2.Size() > 0)
-    {
-      layer = 2;
-      size = layer2.Size();
-    }
-    else if(layer3.Size() > 0)
-    {
-      layer = 3;
-      size = layer3.Size();
-    }
-    else if(layer4.Size() > 0)
-    {
-      layer = 4;
-      size = layer4.Size();
-    }
+    GetFirstLayer(layer, size);
     
     const CUPoint *unit;
     bool isfirst = true;
@@ -3934,9 +3919,8 @@ Rectangle<2> HCMPoint::BBox2D() const
                              bbox.MinD(1), bbox.MaxD(1) );
 }
 
-void HCMPoint::DefTime( Periods& p )
+inline void HCMPoint::GetFirstLayer( int& layer, int& size ) const
 {
-  int layer, size;
   if(layer0.Size() > 0)
   {
     layer = 0;
@@ -3962,6 +3946,12 @@ void HCMPoint::DefTime( Periods& p )
     layer = 4;
     size = layer4.Size();
   }
+}
+
+void HCMPoint::DefTime( Periods& p )
+{
+  int layer, size;
+  GetFirstLayer(layer, size);
   
   Periods result( size );
   
@@ -3982,31 +3972,7 @@ bool HCMPoint::Present( const Instant& t )
   assert( t.IsDefined() );
 
   int layer, size;
-  if(layer0.Size() > 0)
-  {
-    layer = 0;
-    size = layer0.Size();
-  }
-  else if(layer1.Size() > 0)
-  {
-    layer = 1;
-    size = layer1.Size();
-  }
-  else if(layer2.Size() > 0)
-  {
-    layer = 2;
-    size = layer2.Size();
-  }
-  else if(layer3.Size() > 0)
-  {
-    layer = 3;
-    size = layer3.Size();
-  }
-  else if(layer4.Size() > 0)
-  {
-    layer = 4;
-    size = layer4.Size();
-  }
+  GetFirstLayer(layer, size);
   
   if(bbox.IsDefined())
   { // do MBR-check
@@ -4029,6 +3995,10 @@ bool HCMPoint::Present( const Instant& t )
   return true;
 }
 /*
+bool Present( const Periods\& t )
+
+Checks all Units in the most uncertain Layer of the HCMPoint, if the given 
+Periods-Value is completely inside the Definition-time of the HCMPoint-object.
 
 */
 
@@ -4057,6 +4027,121 @@ bool HCMPoint::Present( const Periods& t )
   }
   return t.Intersects( defTime );
 }
+
+/*
+bool D\_Passes( const Point\& p )
+
+Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint definitely-
+passes the given Point-value.
+
+*/
+bool HCMPoint::D_Passes( const Point& p )
+{
+  assert( p.IsDefined() );
+  assert( IsDefined() );
+  
+  if( !p.Inside(BBox2D()) )
+    return false;
+  
+  bool result = false;
+  int layer, size;
+  GetFirstLayer(layer, size);
+  
+  result = D_Passes( layer, 0, size, p );
+  return result;
+}
+
+/*
+bool D\_Passes( const int layer, const int start, const int end, 
+const Point\& p )
+
+This recursive function determines, by an in-order run through the hierarchical
+ structure, if the HCMPoint definitely-passes the given Point-value.
+
+*/
+bool HCMPoint::D_Passes( const int layer, const int start, const int end, 
+                  const Point& p )
+{
+  bool result = false;
+  const HCUPoint *ntt;
+  const CUPoint *cup;
+  const UPoint *u;
+  
+  for(int i = start; i < end; i++ )
+  {
+    Get(layer, i, ntt);
+    cup = &(ntt->value);
+    u = (UPoint*)&(ntt->value);
+    if( cup->GetEpsilon() == 0.0 && u->Passes( p ) )
+      return true;
+    if( cup->P_Passes( p ) && layer < 4 )
+      result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
+                          p );
+    if( result )
+      return true;
+  }
+  return false;
+}
+
+/*
+bool D\_Passes( const Region\& r )
+
+Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint definitely-
+passes the given Region-value.
+
+*/
+bool HCMPoint::D_Passes( const Region& r )
+{
+  assert( r.IsDefined() );
+  assert( IsDefined() );
+  
+  if( !r.BoundingBox().Intersects(BBox2D()) )
+    return false;
+  
+  bool result = false;
+  int layer, size;
+  GetFirstLayer(layer, size);
+  
+  result = D_Passes( layer, 0, size, r );
+  return result;
+}
+
+/*
+bool D\_Passes( const int layer, const int start, const int end, 
+const Region\& r )
+
+This recursive Function determines, by an in-order run through the hierarchical
+ structure, if the HCMPoint definitely-passes the given Region-value.
+
+*/
+bool HCMPoint::D_Passes( const int layer, const int start, const int end, 
+                  const Region& r )
+{
+  bool result = false;
+  const HCUPoint *ntt;
+  const CUPoint *cup;
+  
+  for(int i = start; i < end; i++ )
+  {
+    Get(layer, i, cup);
+    if( cup->D_Passes( r ) )
+      return true;
+  }
+  for(int i = start; i < end; i++ )
+  {
+    Get(layer, i, ntt);
+    cup = &(ntt->value);
+    if( cup->P_Passes( r ) && layer < 4 )
+      result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
+                          r );
+    if( result )
+      return true;
+  }
+  return false;
+}
+
 
 /*
 3.6.2 Functions to be part of relations
@@ -4956,6 +5041,183 @@ void HMPoint::Simplify(const int min, const int max, const int layer,
 }
 
 /*
+bool D\_Passes( const Point\& p )
+
+Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint definitely-
+passes the given Point-value.
+
+*/
+bool HMPoint::D_Passes( const Point& p )
+{
+  assert( p.IsDefined() );
+  assert( IsDefined() );
+  
+  if( !p.Inside(BBox2D()) )
+    return false;
+  
+  bool result = false;
+  int layer, size;
+  GetFirstLayer(layer, size);
+  
+  result = D_Passes( layer, 0, size-1, p );
+  return result;
+}
+
+/*
+bool D\_Passes( const int layer, const int start, const int end, 
+const Point\& p )
+
+This recursive function determines, by a pre-order run through the hierarchical
+ structure, if the HMPoint definitely-passes the given Point-value.
+
+*/
+bool HMPoint::D_Passes( const int layer, const int start, const int end, 
+                  const Point& p )
+{
+  // +++++ for debugging purposes only +++++
+  //cout << "======> Call for D_Passes ( " << layer << ", " << start << ", "
+  //  << end << " ) \n";
+  
+  bool result = false;
+  const HCUPoint *ntt;
+  const CUPoint *cup;
+  
+  if( layer == 5 )
+  {
+    // +++++ for debugging purposes only +++++
+    //cout << "Reached certain layer!\n";
+    
+    for(int i = start; i <= end; i++)
+    {
+      // +++++ for debugging purposes only +++++
+      //cout << "Proove Unit " << i << "...\n";
+      
+      Get(layer, i, cup);
+      // +++++ for debugging purposes only +++++
+      //cout << "Proove Unit ";
+      //cup->Print(cout);
+      //cout << endl;
+      
+      if( cup->D_Passes( p ) )
+      {
+        // +++++ for debugging purposes only +++++
+        //cout << "u->Passes( p ) returned TRUE for Unit " << i << "!\n";
+        
+        return true;
+      } 
+    }
+  }
+  else
+  {
+    for(int i = start; i <= end; i++ )
+    {
+      // +++++ for debugging purposes only +++++
+      //cout << "Proove Unit " << i << "...\n";
+      
+      Get(layer, i, ntt);
+      cup = &(ntt->value);
+      if( (cup->GetEpsilon() == 0.0) && cup->D_Passes( p ) )
+      {
+        // +++++ for debugging purposes only +++++
+        //cout << "u->Passes( p ) returned TRUE for Unit " << i << " on Layer " 
+        //  << layer << "!\n";
+        
+        return true;
+      }
+      if( cup->P_Passes( p ) && layer < 5 )
+      {
+        // +++++ for debugging purposes only +++++
+        //cout << "Recursive call for D_Passes( " << layer+1 << ", " 
+        //  << ntt->GetOriginstart() << ", " << ntt->GetOriginend() << " ) !\n";
+        
+        result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
+                            p );
+      }
+      else
+      {
+        // +++++ for debugging purposes only +++++
+        //cout << "P_Passes(...) for unit " << i << " returned FALSE!\n";
+      }
+      if( result )
+        return true;
+    }
+  }
+  return false;
+}
+
+/*
+bool D\_Passes( const Region\& r )
+
+Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint definitely-
+passes the given Region-value.
+
+*/
+bool HMPoint::D_Passes( const Region& r )
+{
+  assert( r.IsDefined() );
+  assert( IsDefined() );
+  
+  if( !r.BoundingBox().Intersects(BBox2D()) )
+    return false;
+  
+  bool result = false;
+  int layer, size;
+  GetFirstLayer(layer, size);
+  
+  result = D_Passes( layer, 0, size-1, r );
+  return result;
+}
+
+/*
+bool D\_Passes( const int layer, const int start, const int end, 
+const Region\& r )
+
+This recursive Function determines, by an in-order run through the hierarchical
+ structure, if the HCMPoint definitely-passes the given Region-value.
+
+*/
+bool HMPoint::D_Passes( const int layer, const int start, const int end, 
+                  const Region& r )
+{
+  bool result = false;
+  const HCUPoint *ntt;
+  const CUPoint *cup;
+  
+  for(int i = start; i <= end; i++ )
+  {
+    Get(layer, i, cup);
+    if( cup->D_Passes( r ) )
+    {
+      // +++++ for debugging purposes only +++++
+      cout << "D_Passes( region ) returned TRUE for Unit " << i << " on Layer " 
+        << layer << "!\n";
+      
+      return true;
+    }
+  }
+  for(int i = start; i <= end; i++ )
+  {
+    Get(layer, i, ntt);
+    cup = &(ntt->value);
+    if( cup->P_Passes( r ) && layer < 5 )
+    {
+      // +++++ for debugging purposes only +++++
+      cout << "recursive call for D_Passes( " << layer+1 << ", " 
+        <<ntt->GetOriginstart()<<", "<<ntt->GetOriginend()<<", "<< " )\n";
+        
+      result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
+                          r );
+    }
+    if( result )
+      return true;
+  }
+  return false;
+}
+
+
+/*
 3.7.2 Functions to be part of relations
 
 */
@@ -5669,7 +5931,7 @@ static bool connected(const UPoint* u1, const UPoint* u2){
 /*
 5 Type Constructors
 
-5.1  The Type Constructor ~cupoint~
+5.1  Type Constructor ~CUPoint~
 
 Type ~cupoint~ represents a pair (epsilon, (tinterval, (x0, y0, x1, y1)))
 consisting of an uncertainty-value and a value of type upoint.
@@ -7056,7 +7318,42 @@ ListExpr UncertainMovingTypeMapBool( ListExpr args )
         nl->IsEqual( arg2, "region" ) )
     {
       if( nl->IsEqual( arg1, "cmpoint") ||
-          nl->IsEqual( arg1, "cupoint") )
+          nl->IsEqual( arg1, "cupoint") ||
+          nl->IsEqual( arg1, "hcmpoint") ||
+          nl->IsEqual( arg1, "hmpoint") )
+        return nl->SymbolAtom( "bool" );
+    }
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+6.1.12 Type mapping function ~UncertainMovingTypeMapBool~
+
+This is the type mapping function for the operators ~d\_passes~ and 
+~p\_passes~.
+
+*/
+ListExpr HierarchicalTemporalTypeMapBool( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "point" ) ||
+        nl->IsEqual( arg2, "region" ) )
+    {
+      if( nl->IsEqual( arg1, "hmpoint") )
         return nl->SymbolAtom( "bool" );
     }
     if (nl->AtomType( arg1 ) == SymbolType && 
@@ -7483,6 +7780,45 @@ int UncertainPassesSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == "region" )
     return 3;    
   
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" &&
+      nl->SymbolValue( arg2 ) == "point" )
+    return 4;
+  
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 5;
+  
+  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
+      nl->SymbolValue( arg2 ) == "point" )
+    return 6;
+  
+  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 7;
+  
+  return -1; // This point should never be reached
+}
+
+/*
+6.2.3 Selection function ~HierarchicalPassesSelect~
+
+This is used for operator ~passes~.
+
+*/
+
+int HierarchicalPassesSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+  
+  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
+      nl->SymbolValue( arg2 ) == "point" )
+    return 0;
+  
+  if( nl->SymbolValue( arg1 ) == "hmpoint" &&
+      nl->SymbolValue( arg2 ) == "region" )
+    return 1;
+    
   return -1; // This point should never be reached
 }
 
@@ -8257,6 +8593,49 @@ int HMPointGetCMPoint( Word* args, Word& result, int message, Word& local,
 }
 
 /*
+6.4.13 Value Mapping functions for operator ~d\_passes~
+
+*/
+
+// If the second argument is a Point:
+int HMPointD_PassesPoint(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+
+  HMPoint *hmp = ((HMPoint*)args[0].addr);
+  Point* p = ((Point*)args[1].addr);
+
+  if( !p->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( hmp->D_Passes( *p ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+// If the second argument is a Region:
+int HMPointD_PassesRegion(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+
+  HMPoint *hmp = ((HMPoint*)args[0].addr);
+  Region* r = ((Region*)args[1].addr);
+
+  if( !r->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( hmp->D_Passes( *r ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+/*
 6.5 Value Mapping Functions for type ~HCMPoint~
 
 6.5.1 value mapping function for operator ~getcmpoint~
@@ -8341,6 +8720,49 @@ int HCMPointPresent_p( Word* args, Word& result,
 }
 
 /*
+6.5.5 Value Mapping functions for operator ~d\_passes~
+
+*/
+
+// If the second argument is a Point:
+int HCMPointD_PassesPoint(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+
+  HCMPoint *hcmp = ((HCMPoint*)args[0].addr);
+  Point* p = ((Point*)args[1].addr);
+
+  if( !p->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( hcmp->D_Passes( *p ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+// If the second argument is a Region:
+int HCMPointD_PassesRegion(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+
+  HCMPoint *hcmp = ((HCMPoint*)args[0].addr);
+  Region* r = ((Region*)args[1].addr);
+
+  if( !r->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( hcmp->D_Passes( *r ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+/*
 Definition of operators
 
 Definition of operators is done in a way similar to definition of 
@@ -8375,7 +8797,15 @@ ValueMapping uncertaindpassesmap[] = {
                                       CUPointD_PassesPoint,
                                       CUPointD_PassesRegion,
                                       CMPointD_PassesPoint,
-                                      CMPointD_PassesRegion };
+                                      CMPointD_PassesRegion,
+                                      HCMPointD_PassesPoint,
+                                      HCMPointD_PassesRegion,
+                                      HMPointD_PassesPoint,
+                                      HMPointD_PassesRegion };
+
+ValueMapping hierarchicalpassesmap[] = {
+                                      HMPointD_PassesPoint,
+                                      HMPointD_PassesRegion };
 
 ValueMapping uncertainppassesmap[] = {
                                       CUPointP_PassesPoint,
@@ -8494,11 +8924,21 @@ const string UncertainTemporalSpecUnits  =
 
 const string UncertainTemporalSpecDPasses =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(cmpoint||cupoint x point||region ) -> bool</text--->"
+  "( <text>(cmpoint||cupoint||hcmpoint||hmpoint x point||region ) -> "
+  "bool</text--->"
   "<text>_ d_passes _ </text--->"
   "<text>Checks whether the uncertain moving object definitely passes the "
   "given spatial object.</text--->"
-  "<text>cmpoint1 d_passes point1</text--->"
+  "<text>htrain7 d_passes mehringdamm</text--->"
+  ") )";
+
+const string HierarchicalTemporalSpecPasses =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(hmpoint x point||region ) -> bool</text--->"
+  "<text>_ passes _ </text--->"
+  "<text>Checks whether the hierarchical moving point passes the given "
+  "spatial object.</text--->"
+  "<text>htrain7 passes thecenter</text--->"
   ") )";
 
 const string UncertainTemporalSpecPPasses =
@@ -8624,10 +9064,17 @@ Operator uncertaintemporalunits( "units",
 
 Operator uncertaintemporaldpasses( "d_passes",
                               UncertainTemporalSpecDPasses,
-                              4,
+                              8,
                               uncertaindpassesmap,
                               UncertainPassesSelect,
                               UncertainMovingTypeMapBool );
+
+Operator hierarchicaltemporalpasses( "passes",
+                              HierarchicalTemporalSpecPasses,
+                              2,
+                              hierarchicalpassesmap,
+                              HierarchicalPassesSelect,
+                              HierarchicalTemporalTypeMapBool );
                             
 Operator uncertaintemporalppasses( "p_passes",
                               UncertainTemporalSpecPPasses,
@@ -8720,6 +9167,7 @@ class HierarchicalGeoAlgebra : public Algebra
     AddOperator( &movingpointgeneralize );
     AddOperator( &hierarchicalmovingpointgetmpoint );
     AddOperator( &hierarchicalmovingpointgetcmpoint );
+    AddOperator( &hierarchicaltemporalpasses );
   }
   ~HierarchicalGeoAlgebra() {};
 };

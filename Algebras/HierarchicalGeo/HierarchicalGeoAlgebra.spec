@@ -31,7 +31,7 @@ operator p_at alias P_AT pattern _ infixop _
 operator touncertain alias TOUNCERTAIN pattern op( _, _ )
 operator generalize alias GENERALIZE pattern op( _, _, _ )
 operator getmpoint alias GETMPOINT pattern op( _ )
-
+operator passes alias PASSES pattern _ infixop _
 
 
 
