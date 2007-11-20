@@ -79,6 +79,11 @@ static const unsigned short P9 = 512;
 // The name of the unspecified cluster
 static const STRING_T UNSPECIFIED = "unspecified";
 
+// an array containing the transposedd versions 
+// for a matrix number
+static unsigned short TranspArray[512];
+
+
 extern NestedList *nl;
 extern QueryProcessor* qp;
 
@@ -128,6 +133,12 @@ void Int9M::Set( const bool II, const bool IB, const bool IE,
    value = value & 511;
    defined = true;
 }
+
+
+void Int9M::Transpose(){
+     value = TranspArray[value];
+}
+
 
 /*
 2.1.3 ToListExpr
@@ -348,6 +359,9 @@ bool Int9M::operator==(const Int9M& I2) const{
 /*
 2.2  Definitions for the Cluster Type
 
+*/
+
+/*
 2.2.1 The ValueAt function
 
 This functions checks whether the matrix with number pos is a
@@ -371,6 +385,29 @@ bool Cluster::ValueAt(const int pos) const{
        default : assert(false);
    }
 }
+
+
+
+bool Cluster::ValueAt(int pos, unsigned char BitVector[64]){
+   assert(pos >= 0 && pos < 512);
+   int bytenum = pos / 8;
+   int bytepos = pos % 8;
+   unsigned char theByte = BitVector[bytenum];
+   switch(bytepos){
+       case 0 : return P0 & theByte;
+       case 1 : return P1 & theByte;
+       case 2 : return P2 & theByte;
+       case 3 : return P3 & theByte;
+       case 4 : return P4 & theByte;
+       case 5 : return P5 & theByte;
+       case 6 : return P6 & theByte;
+       case 7 : return P7 & theByte;
+       default : assert(false);
+   }
+
+
+}
+
 
 /*
 2.2.2 ToString
@@ -410,8 +447,8 @@ This function sets the containedness of the matrix number pos to the
 given value.
 
 */
-void Cluster::SetValueAt(const int pos,const bool value,
-                         unsigned char bitvector[])const{
+inline static void SetValueAtSimple(const int pos,const bool value,
+                         unsigned char bitvector[]){
     assert(pos>=0 && pos < 512);
     int bytenum = pos / 8;
     int bytepos = pos % 8;
@@ -442,8 +479,18 @@ void Cluster::SetValueAt(const int pos,const bool value,
     }
 }
 
+void Cluster::SetValueAt(const int pos,const bool value,
+                         unsigned char bitvector[],
+                         unsigned char bitvectorT[] )const{
+    assert(pos>=0 && pos < 512);
+    SetValueAtSimple(pos,value,bitvector);
+    int pos2 = TranspArray[pos];
+    SetValueAtSimple(pos2,value,bitvectorT);
+}
+
+
 void Cluster::SetValueAt(const int pos, const bool value){
-    SetValueAt(pos,value,BitVector);
+    SetValueAt(pos,value,BitVector, BitVectorT);
 }
 
 
@@ -457,19 +504,10 @@ to define new cluster from existining ones e.g. a ~contains~ cluster from a
 
 */
 void Cluster::Transpose(){
-   Cluster TMP(0);
-   unsigned short number = 0;
-   Int9M currentM(number);
-   int count = 0;
-   for(int i=0;i<512;i++){
-      if(ValueAt(i)){
-         count++;
-         currentM.SetToNumber(i);
-         currentM.Transpose();
-         TMP.SetValueAt(currentM.GetNumber(),true);
-      }
-   }
-  memcpy(BitVector,TMP.BitVector,64);
+  unsigned char tmp[64];
+  memcpy(tmp,BitVector,64);
+  memcpy(BitVector,BitVectorT,64);
+  memcpy(BitVectorT,tmp,64);
 }
 
 
@@ -587,7 +625,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
        }
        else{
           unsigned short v = current.GetNumber();
-          SetValueAt(v,true,TMP);
+          SetValueAt(v,true,TMP,BitVectorT);
        }
    }
 
@@ -596,9 +634,27 @@ bool Cluster::ReadFrom(const ListExpr LE){
    }
    memcpy(BitVector,TMP,64);
    strcpy(name,TMPname);
+   Transpose(BitVector,BitVectorT);
    defined = true;
    return true;
 }
+
+/*
+2.2.5 Transpose
+
+*/
+void Cluster::Transpose(unsigned char Source[64],
+                        unsigned char Target[64]){
+   for(int i=0;i<512;i++){
+      if(ValueAt(i,Source)){
+         SetValueAtSimple(TranspArray[i],true,Target);
+      } else {
+         SetValueAtSimple(TranspArray[i],false,Target);
+      }
+   }
+}
+
+
 
 /*
 2.2.4 Equalize functions
@@ -614,6 +670,7 @@ void Cluster::Equalize(const Cluster& value){
 void Cluster::Equalize(const Cluster* value){
      strcpy(name, value->name);
      memcpy(BitVector,value->BitVector,64);
+     memcpy(BitVectorT,value->BitVectorT,64);
      defined = value->defined;
 }
 
@@ -874,7 +931,7 @@ PredicateGroup::PredicateGroup( const int size ) :
      theClusters( size ),
      canDelete( false ),
      sorted(true),
-     unSpecified(0)
+     unSpecified(false)
      {
    // at this point, we defined a single
    // clusters 'unspecified containing all
@@ -3089,6 +3146,18 @@ class TopRelAlgebra : public Algebra
   ~TopRelAlgebra() {};
 } toprelAlgebra;
 
+
+void InitializeTranspArray(){
+   toprel::Int9M m(0);
+   for(int i=0;i<512;i++){
+      m.SetValue(i);
+      m.TransposeSlow();
+      TranspArray[i] = m.GetNumber(); 
+   }
+
+}
+
+
 /*
 8 Initialization of the Algebra
 
@@ -3100,6 +3169,7 @@ InitializeTopRelAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
+  InitializeTranspArray();
   return (&toprelAlgebra);
 }
 

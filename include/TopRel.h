@@ -411,20 +411,7 @@ This function computes the transpose of this matrix.
 This can be used to detect symmetries between matrices.
 
 */
-       void Transpose(){
-            Int9M tmp;
-            tmp.value = 0;
-            tmp.SetII(GetII());
-            tmp.SetIB(GetBI());
-            tmp.SetIE(GetEI());
-            tmp.SetBI(GetIB());
-            tmp.SetBB(GetBB());
-            tmp.SetBE(GetEB());
-            tmp.SetEI(GetIE());
-            tmp.SetEB(GetBE());
-            tmp.SetEE(GetEE());
-            value = tmp.value;
-       }
+       void Transpose();
 
 /*
 2.1.15 Destroy
@@ -537,6 +524,21 @@ an attribute type within secondo relations.
        bool operator!=(const Int9M I2) const{
           return CompareTo(I2)!=0;
        }
+       
+      void TransposeSlow(){
+             Int9M tmp;
+             tmp.value = 0;
+             tmp.SetII(GetII());
+             tmp.SetIB(GetBI());
+             tmp.SetIE(GetEI());
+             tmp.SetBI(GetIB());
+             tmp.SetBB(GetBB());
+             tmp.SetBE(GetEB());
+             tmp.SetEI(GetIE());
+             tmp.SetEB(GetBE());
+             tmp.SetEE(GetEE());
+             value = tmp.value;
+       }
 
 
    private:
@@ -544,6 +546,8 @@ an attribute type within secondo relations.
        // entries in the matrix
        unsigned short value; 
        bool defined;
+
+
 };
 
 
@@ -582,11 +586,13 @@ ignored.
           //for(int i=0;i<64;i++)
           //    BitVector[i]=0;
           if(all){
-              memcpy(BitVector,fullBlock,64);
-              strcpy(name,"empty");
+             memcpy(BitVector,fullBlock,64);
+             memcpy(BitVectorT,fullBlock,64);
+             strcpy(name,"empty");
           } else {
              memcpy(BitVector,emptyBlock,64);
-              strcpy(name,"complete");
+             memcpy(BitVectorT,emptyBlock,64);
+             strcpy(name,"complete");
           }
           defined = true;
       }
@@ -596,6 +602,10 @@ ignored.
 
 */
     Cluster(const Cluster& source){
+       Equalize(source);
+    }
+
+    Cluster(const Cluster* source){
        Equalize(source);
     }
 
@@ -680,8 +690,10 @@ This implements the familiar union function for the matrix sets.
 
 */
     void Union(const Cluster* C2){
-          for(int i=0;i<64;i++)
+          for(int i=0;i<64;i++){
              BitVector[i] |= C2->BitVector[i];
+             BitVectorT[i] |= C2->BitVectorT[i];
+          }
       }
 
 /*
@@ -691,8 +703,10 @@ This function computes the intersection of this cluster and the argument.
 
 */
       void Intersection(const Cluster* C2){
-          for(int i=0;i<64;i++)
+          for(int i=0;i<64;i++){
              BitVector[i] &= C2->BitVector[i];
+             BitVectorT[i] &= C2->BitVectorT[i];
+          }
       }
 
 
@@ -702,10 +716,12 @@ This function computes the intersection of this cluster and the argument.
 A call of this function yields true if this cluster and C2 have common elements.
 
 */
-      bool Intersects(const Cluster* C2){
-          for(int i=0;i<64;i++)
-            if( BitVector[i] & C2->BitVector[i])
+      bool Intersects(const Cluster* C2) const{
+          for(int i=0;i<64;i++){
+            if( BitVector[i] & C2->BitVector[i]){
                return true;
+            }
+          }
           return false;
       }
 
@@ -717,8 +733,10 @@ A call of this function yields true if this cluster and C2 have common elements.
 
 */ 
       void Minus(const Cluster* C2){
-          for(int i=0;i<64;i++)
+          for(int i=0;i<64;i++){
              BitVector[i] = (BitVector[i] & ( ~(C2->BitVector[i])));
+             BitVectorT[i] = (BitVectorT[i] & ( ~(C2->BitVectorT[i])));
+          }
 
       }
 
@@ -730,8 +748,10 @@ matrices minus the matrices conatained originally in it.
 
 */
       void Invert(){
-          for(int i=0;i<64;i++)
+          for(int i=0;i<64;i++){
               BitVector[i] ^= 255;
+              BitVectorT[i] ^= 255;
+          }
       }
 
 /*
@@ -744,6 +764,7 @@ This function removes all matrices from this cluster.
           //for(int i=0;i<64;i++)
           //    BitVector[i] = 0;
           memcpy(BitVector,emptyBlock,64);
+          memcpy(BitVectorT,emptyBlock,64);
       }
 
 /*
@@ -757,6 +778,7 @@ The MakeFull function changes this cluster to contain all
          //for(int i=0;i<64;i++)
          //     BitVector[i] = 255;
          memcpy(BitVector,fullBlock,64);
+         memcpy(BitVectorT,fullBlock,64);
       }
 /*
 2.2.15 IsEmpty
@@ -777,7 +799,7 @@ This function returns true if this cluster contains all 512
 possible matrices.
 
 */
-     bool IsComplete(){
+     bool IsComplete() const{
        return (memcmp(BitVector,fullBlock,64)==0);
      }
 
@@ -1007,11 +1029,19 @@ clusters.
 
 
    private:
-      unsigned char  BitVector[64];
+      unsigned char BitVector[64];  // the set of matrices
+      unsigned char BitVectorT[64]; // set of transposed matrices
       bool defined;
       STRING_T name;
       void SetValueAt(const int pos, const bool value, 
-                      unsigned char bitvector[]) const;
+                      unsigned char bitvector[],
+                      unsigned char bitvectorT[]) const;
+
+      static void Transpose(unsigned char Source[64],
+                     unsigned char Target[64]);
+
+      static bool ValueAt(int pos, unsigned char BitVector[64]);
+
 };
 
 /*

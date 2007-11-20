@@ -1476,7 +1476,16 @@ bool GetInt9M(Points*  ps, Point* p,Int9M& res,
   int size = ps->Size();
   if(size>1){
      res.SetIE(true);
+     if(useCluster){
+        cluster.Restrict(IE,true);
+        if(cluster.IsEmpty()){
+           return false;
+        }
+     }
   }
+
+
+
   if(!(ps->Contains(p))){ // Contains uses binary search
      res.SetEI(true);
      res.SetIE(true);
@@ -4519,7 +4528,8 @@ int TopPredSym(Word* args, Word& result, int message,
       return 0;
   }
   Int9M matrix;
-  Cluster tmp(cluster,true);
+  Cluster tmp(cluster);
+  tmp.Transpose();
   bool res = GetInt9M(v2,v1,matrix,true,tmp);
   (static_cast<CcBool*>(result.addr))->Set(true,res);
   return 0;
@@ -4612,7 +4622,7 @@ ValueMapping TopPredMap[] = {
        TopPred<Line,Points>,
        TopPredSym<Points,Line>,
        TopPred<Region,Point>,
-       TopPredSym2<Point,Region>,
+       TopPredSym<Point,Region>, // use TopPredSym2
        TopPred<Region,Points>,
        TopPredSym<Points,Region>,
        TopPred<Region,Region>,
