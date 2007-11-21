@@ -1,0 +1,45 @@
+
+Sequoia Data Converter
+======================
+
+General Information
+-------------------
+Point and Polygon files can be downloaded via:
+
+http://s2k-ftp.cs.berkeley.edu:8000/sequoia/benchmark
+
+All provided files are compressed. Use guzip to unpack them.
+
+
+Converting Point Data
+---------------------
+
+Point data can be converted into Secondo's nested list format using the
+CVS2Secondo converter. Here, just a appropriate configuration file 
+seq-points.cfg is provided. For further information read the documentation
+aboud the csv2Secondo converter.
+
+
+
+Converting Polygon Data
+-----------------------
+
+The converter can process only a single file. If you want to process 
+more than a single file, you have to concat them separated by an 
+empty line. You can use the following command line (within a bash) to do so:
+
+for i in *; do echo "" >> all; cat $i >> all; done; echo "" >> all
+
+Please substitute the '*' by the filenames which should be concatenated.
+
+
+The converter is a Java program, before you can use it, it must be 
+compiled. This is done by enter 'make' within the converter's directory.
+
+After that, the compiler can be called via:
+
+java SecPoly <filename> [> <outfilename> ] 
+
+
+
+
