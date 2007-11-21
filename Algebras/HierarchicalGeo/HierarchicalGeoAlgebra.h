@@ -423,6 +423,8 @@ the CUPoint, which possibly lies on or inside the given spatal object.
 
 */
 
+  void AtInstant( const Instant& t, Intime<Region>& result ) const;
+
 /*
 3.2.5 Functions to be part of relations
 
@@ -924,12 +926,12 @@ A constructor which sets all attributes (usually unsed by the in-function).
     return index;
   }
   
-  int GetGeneralizedby() const
+  inline int GetGeneralizedby() const
   {
     return generalizedby;
   }
   
-  void SetGeneralizedby(const int idx)
+  inline void SetGeneralizedby(const int idx)
   {
     if( generalizedby == -1 )
       generalizedby = idx;
@@ -942,14 +944,24 @@ A constructor which sets all attributes (usually unsed by the in-function).
     }
   }
   
-  int GetOriginstart() const
+  inline int GetOriginstart() const
   {
     return originstart;
   }
   
-  int GetOriginend() const
+  inline void SetOriginstart(const int start)
+  {
+    originstart = start;
+  }
+  
+  inline int GetOriginend() const
   {
     return originend;
+  }
+  
+  inline void SetOriginend(const int end)
+  {
+    originend = end;
   }
   
 /*
@@ -1068,7 +1080,18 @@ The simple constructor. This constructor should not be used.
     layer0epsilon( -1 ), layer1epsilon( -1 ), layer2epsilon( -1 ),
     layer3epsilon( -1 ), layer4epsilon( -1 ),
     layer0( 0 ), layer1( 0 ), layer2( 0 ), layer3( 0 ), layer4( n ),
-    canDestroy( false )
+    canDestroy( false ), epsilon( -1 ), factor( -1 )
+  {
+    del.refs=1;
+    del.isDelete=true;
+    bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  }
+  
+  HCMPoint( const int n, const double e, const double f ):
+    layer0epsilon( -1 ), layer1epsilon( -1 ), layer2epsilon( -1 ),
+    layer3epsilon( -1 ), layer4epsilon( -1 ),
+    layer0( 0 ), layer1( 0 ), layer2( 0 ), layer3( 0 ), layer4( n ),
+    canDestroy( false ), epsilon( e ), factor( f )
   {
     del.refs=1;
     del.isDelete=true;
@@ -1161,33 +1184,149 @@ for destroying. The destructor will perform the real destroying.
     layer4epsilon = epsilon;
   }
   
-  void Get( const int layer, const int i, HCUPoint const*& hcup );
+  inline void SetEpsilon(const double e)
+  {
+    epsilon = e;
+  }
   
-  void Get( const int layer, const int i, CUPoint const*& cup );
+  inline double GetEpsilon() const
+  {
+    return epsilon;
+  }
   
-  void Get( const int layer, const int i, UPoint const*& up );
+  inline void SetFactor(const double f)
+  {
+    factor = f;
+  }
+  
+  inline double GetFactor() const
+  {
+    return factor;
+  }
+  
+  inline void Get( const int layer, const int i, HCUPoint const*& hcup );
+  
+  inline void Get( const int layer, const int i, CUPoint const*& cup );
+  
+  inline void Get( const int layer, const int i, UPoint const*& up );
  
+  inline void Put( const int layer, const int i, HCUPoint& hcup);
+  
   inline int GetNoComponents() const;
   
-  int Position( int layer, const Instant& t );
+  inline void ResizeLayer( const int layer, const int n );
   
+  inline int LayerSize( const int layer ) const;
+  
+  int Position( int layer, const Instant& t );
+  int Position( int layer, const Instant& t, const int start, const int end );
+                        
   inline void GetFirstLayer( int& layer, int& size ) const;
   
   void DefTime( Periods& p );
   bool Present( const Instant& i );
+
+/*
+bool Present( const Periods\& t )
+
+Checks all Units in the most uncertain Layer of the HCMPoint, if the given 
+Periods-Value is completely inside the Definition-time of the HCMPoint-object.
+
+*/
   bool Present( const Periods& p );
+
+/*
+bool D\_Passes( const Point\& p )
+
+Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint definitely-
+passes the given Point-value.
+
+*/
   bool D_Passes( const Point& p );
+
+/*
+bool D\_Passes( const int layer, const int start, const int end, 
+const Point\& p )
+
+This recursive function determines, by a pre-order run through the hierarchical
+ structure, if the HCMPoint definitely-passes the given Point-value.
+
+*/
   bool D_Passes( const int layer, const int start, const int end, 
                   const Point& p );
+
+/*
+bool D\_Passes( const Region\& r )
+
+Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint definitely-
+passes the given Region-value.
+
+*/
   bool D_Passes( const Region& r );
+
+/*
+bool D\_Passes( const int layer, const int start, const int end, 
+const Region\& r )
+
+This recursive Function determines, by an in-order run through the hierarchical
+ structure, if the HCMPoint definitely-passes the given Region-value.
+
+*/
   bool D_Passes( const int layer, const int start, const int end, 
                   const Region& r );
+
+/*
+bool P\_Passes( const Point\& p )
+
+Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint possibly-
+passes the given Point-value.
+
+*/
+  bool P_Passes( const Point& p );
+
+/*
+bool P\_Passes( const int layer, const int start, const int end, 
+const Point\& p )
+
+This recursive function determines, by a pre-order run through the hierarchical
+ structure, if the HCMPoint possibly-passes the given Point-value.
+
+*/
+  bool P_Passes( const int layer, const int start, const int end, 
+                  const Point& p );
+
+/*
+bool P\_Passes( const Region\& r )
+
+Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint possibly-
+passes the given Region-value.
+
+*/
+  bool P_Passes( const Region& r );
+
+/*
+bool P\_Passes( const int layer, const int start, const int end, 
+const Region\& r )
+
+This recursive Function determines, by a pre-order run through the hierarchical
+ structure, if the HCMPoint possibly-passes the given Region-value.
+
+*/
+  bool P_Passes( const int layer, const int start, const int end, 
+                  const Region& r );
+
+  void AtInstant( const Instant& t, Intime<Region>& result );
+  int AtInstant( const int layer, const int start, const int end,  
+                  const Instant& t, Intime<Region>& result );
   
 /*
-Returns if the hierarchicalmapping contains no entities.
 
-*/   
-  
+
+*/     
   void Get( const int i, const HCUPoint*& hcup ) const;
   
   
@@ -1301,14 +1440,14 @@ Returns the HCMPoint's minimum bounding rectangle
   protected:
 
     bool canDestroy;
+    double epsilon;
+    double factor;
 /*
 A flag indicating if the destructor should destroy also the persistent
 array of intervals.
 
 */
 
-  private:
-  
     Rectangle<3> bbox;
 /*
 Represents the bounding box of the hcmpoint.
@@ -1338,7 +1477,7 @@ The simple constructor. This constructor should not be used.
 
 */
   HMPoint( const int n ):
-    HCMPoint( 0 ), certainlayer( n ), epsilon( -1 ), factor( -1 )
+    HCMPoint( 0 ), certainlayer( n )
   {
     del.refs=1;
     del.isDelete=true;
@@ -1348,8 +1487,7 @@ A constructor, initializing space for ~n~ entities in the bottom layer.
 
 */
   HMPoint( const double e, const double f, const MPoint& m ):
-    HCMPoint( 0 ), certainlayer( m.GetNoComponents() ), epsilon( e ),
-    factor( f )
+    HCMPoint( 0, e, f ), certainlayer( m.GetNoComponents() )
   {
     del.refs=1;
     del.isDelete=true;
@@ -1398,26 +1536,6 @@ right function GetNoComponents.
     return noComponents;
   }
   
-  inline void SetEpsilon(const double e)
-  {
-    epsilon = e;
-  }
-  
-  inline double GetEpsilon() const
-  {
-    return epsilon;
-  }
-  
-  inline void SetFactor(const double f)
-  {
-    factor = f;
-  }
-  
-  inline double GetFactor() const
-  {
-    return factor;
-  }
-  
   void Get( const int layer, const int i, HCUPoint const*& hcup );
   
   void Get( const int layer, const int i, CUPoint const*& cup );
@@ -1447,10 +1565,16 @@ right function GetNoComponents.
   bool D_Passes( const Point& p );
   bool D_Passes( const int layer, const int start, const int end,
                   const Point& p );
+                  
   bool D_Passes( const Region& r );
   bool D_Passes( const int layer, const int start, const int end,
-                  const Region& r );  
+                  const Region& r );
+                    
+  void AtInstant( const Instant& t, Intime<Point>& result );
+  int AtInstant( const int layer, const int start, const int end, 
+                  const Instant& t, Intime<Point>& result );
   
+  void ReduceHierarchy( const double epsilon, HCMPoint& result );
 /*
 3.8.3 functions to be part of relations
 
@@ -1474,10 +1598,6 @@ right function GetNoComponents.
 
 */
   DBArray<HCUPoint> certainlayer;
-  
-  protected:
-    double epsilon;
-    double factor;
 /*
 The DBArray ~certainlayer~ stores only HCUPoint-objects with an epsilon-value 
 of 0.

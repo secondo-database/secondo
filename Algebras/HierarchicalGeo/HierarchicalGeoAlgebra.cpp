@@ -825,6 +825,51 @@ the uncertainty-value.
   return false;
 }
 
+void CUPoint::AtInstant( const Instant& t, Intime<Region>& result ) const
+{
+  assert( t.IsDefined() );
+  if( IsDefined() && t.IsDefined() )
+  {
+    // compute result
+    double instd = t.ToDouble();
+    double mind = timeInterval.start.ToDouble();
+    double maxd = timeInterval.end.ToDouble();
+    if( (mind > instd && !AlmostEqual(mind,instd)) ||
+         (maxd < instd && !AlmostEqual(maxd,instd))
+      )
+    {
+      result.SetDefined(false);
+    } 
+    else
+    {
+      result.SetDefined( true );
+      Point respoint;
+      TemporalFunction( t, respoint );
+      
+      double e = GetEpsilon();
+      if( e == 0.0 )
+      {  
+        e = fabs(p0.GetX());
+        if( fabs(p1.GetX()) > e )
+          e = fabs(p1.GetX());
+        if( fabs(p0.GetY()) > e )
+          e = fabs(p0.GetY());
+        if( fabs(p1.GetY()) > e )
+          e = fabs(p1.GetY());
+        e = e * minEpsilonLimiter;
+      }
+      Circle(respoint, e, 16, result.value);
+      result.instant.CopyFrom( &t );
+    }
+  } 
+  else
+  {
+    result.SetDefined(false);
+  }
+}
+/*
+
+*/
 void CUPoint::D_At( const Point& p, CUPoint& result ) const
 {
   assert( p.IsDefined() );
@@ -3112,7 +3157,20 @@ void CMPoint::AtInstant( const Instant& t, Intime<Region>& result ) const
           result.SetDefined( true );
           Point respoint;
           posUnit->TemporalFunction( t, respoint );
-          Circle(respoint, posUnit->epsilon, 16, result.value);
+          
+          double e = posUnit->GetEpsilon();
+          if( e == 0.0 )
+          {  
+            e = fabs(posUnit->p0.GetX());
+            if( fabs(posUnit->p1.GetX()) > e )
+              e = fabs(posUnit->p1.GetX());
+            if( fabs(posUnit->p0.GetY()) > e )
+              e = fabs(posUnit->p0.GetY());
+            if( fabs(posUnit->p1.GetY()) > e )
+              e = fabs(posUnit->p1.GetY());
+            e = e * minEpsilonLimiter;
+          }
+          Circle(respoint, e, 16, result.value);
           result.instant.CopyFrom( &t );
         }
       }
@@ -3541,7 +3599,7 @@ void HCMPoint::SetLayerepsilon( const int layer, const double epsilon )
   }
 }
 
-void HCMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
+inline void HCMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
 {
   assert( layer > -1 );
   assert( layer < 5 );
@@ -3549,35 +3607,35 @@ void HCMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
   switch( layer )
   {
     case 0:
-      if( i > layer0.Size() )
+      if( i >= layer0.Size() )
         cout << "There are less than " << i << " elements in layer0!\n";
       else
         layer0.Get(i, ntt);
       break;
       
     case 1:
-      if( i > layer1.Size() )
+      if( i >= layer1.Size() )
         cout << "There are less than " << i << " elements in layer1!\n";
       else
         layer1.Get(i, ntt);
       break;
       
     case 2:
-      if( i > layer2.Size() )
+      if( i >= layer2.Size() )
         cout << "There are less than " << i << " elements in layer2!\n";
       else
         layer2.Get(i, ntt);
       break;
       
     case 3:
-      if( i > layer3.Size() )
+      if( i >= layer3.Size() )
         cout << "There are less than " << i << " elements in layer3!\n";
       else
         layer3.Get(i, ntt);
       break;
       
     case 4:
-      if( i > layer4.Size() )
+      if( i >= layer4.Size() )
         cout << "There are less than " << i << " elements in layer4!\n";
       else
         layer4.Get(i, ntt);
@@ -3589,14 +3647,14 @@ void HCMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
   }
 }
 
-void HCMPoint::Get( const int layer, const int i, CUPoint const*& cup )
+inline void HCMPoint::Get( const int layer, const int i, CUPoint const*& cup )
 {
   const HCUPoint* ntt;
   Get( layer, i, ntt );
   cup = &(ntt->value);
 }
 
-void HCMPoint::Get( const int layer, const int i, UPoint const*& up )
+inline void HCMPoint::Get( const int layer, const int i, UPoint const*& up )
 {
   const HCUPoint* ntt;
   Get( layer, i, ntt );
@@ -3654,6 +3712,51 @@ void HCMPoint::Get( const int i, const HCUPoint*& ntt ) const
   }
 }
 
+inline void HCMPoint::Put( const int layer, const int i, HCUPoint& ntt )
+{
+  assert( layer > -1 );
+  assert( layer < 5 );
+  
+  switch( layer )
+  {
+    case 0:
+      if( i > layer0.Size() )
+        layer0.Resize( i );
+      layer0.Put(i, ntt);
+      break;
+      
+    case 1:
+      if( i > layer1.Size() )
+        layer1.Resize( i );
+      layer1.Put(i, ntt);
+      break;
+      
+    case 2:
+      if( i > layer2.Size() )
+        layer2.Resize( i );
+      layer2.Put(i, ntt);
+      break;
+      
+    case 3:
+      if( i > layer3.Size() )
+        layer3.Resize( i );
+      layer3.Put(i, ntt);
+      break;
+      
+    case 4:
+      if( i > layer4.Size() )
+        layer4.Resize( i );
+      layer4.Put(i, ntt);
+      break;
+        
+    default:
+      // this case is prevented by the assert-commands
+      break;
+  }
+}
+
+
+
 void HCMPoint::GetCMPoint( const double epsilon, CMPoint& result )
 {
   assert( !IsEmpty() );
@@ -3661,7 +3764,7 @@ void HCMPoint::GetCMPoint( const double epsilon, CMPoint& result )
   result.Clear();
   // Determine the first layer, whose epsilon-value is less than the wanted
   // epsilon-value and build a CMPoint from its entities:
-  if( epsilon <= layer0epsilon )
+  if( epsilon >= layer0epsilon )
   {
     result.Resize( layer0.Size() );
     const HCUPoint* ntt;
@@ -3675,7 +3778,7 @@ void HCMPoint::GetCMPoint( const double epsilon, CMPoint& result )
     }
     result.EndBulkLoad();
   }
-  else if( epsilon <= layer1epsilon )
+  else if( epsilon >= layer1epsilon )
   {
     result.Resize( layer1.Size() );
     const HCUPoint* ntt;
@@ -3689,7 +3792,7 @@ void HCMPoint::GetCMPoint( const double epsilon, CMPoint& result )
     }
     result.EndBulkLoad();
   }
-  else if( epsilon <= layer2epsilon )
+  else if( epsilon >= layer2epsilon )
   {
     result.Resize( layer2.Size() );
     const HCUPoint* ntt;
@@ -3703,7 +3806,7 @@ void HCMPoint::GetCMPoint( const double epsilon, CMPoint& result )
     }
     result.EndBulkLoad();
   }
-  else if( epsilon <= layer3epsilon )
+  else if( epsilon >= layer3epsilon )
   {
     result.Resize( layer3.Size() );
     const HCUPoint* ntt;
@@ -3717,7 +3820,7 @@ void HCMPoint::GetCMPoint( const double epsilon, CMPoint& result )
     }
     result.EndBulkLoad();
   }
-  else if( epsilon <= layer4epsilon )
+  else if( epsilon >= layer4epsilon )
   {
     result.Resize( layer4.Size() );
     const HCUPoint* ntt;
@@ -3808,6 +3911,62 @@ void HCMPoint::Clear()
 
 */
 
+inline int HCMPoint::LayerSize( const int layer ) const
+{
+  switch( layer )
+  {
+    case 0:
+      return layer0.Size();
+      
+    case 1:
+      return layer1.Size();
+    
+    case 2:
+      return layer2.Size();
+    
+    case 3:
+      return layer3.Size();
+    
+    case 4:
+      return layer4.Size();
+    
+    default:
+      // this point should never be reached!
+      return 0;
+  }
+}
+
+inline void HCMPoint::ResizeLayer( const int layer, const int n )
+{
+  switch( layer )
+  {
+    case 0:
+      layer0.Resize( n );
+      break;
+      
+    case 1:
+      layer1.Resize( n );
+      break;
+    
+    case 2:
+      layer2.Resize( n );
+      break;
+    
+    case 3:
+      layer3.Resize( n );
+      break;
+    
+    case 4:
+      layer4.Resize( n );
+      break;
+    
+    default:
+      // this point should never be reached!
+      break;
+  }
+}
+
+
 int HCMPoint::Position( int layer, const Instant& t )
 {
   assert( t.IsDefined() );
@@ -3849,6 +4008,40 @@ int HCMPoint::Position( int layer, const Instant& t )
     int mid = ( first + last ) / 2;
 
     if( (mid < 0) || (mid >= size) )
+      return -1;
+
+    const UPoint *midUnit;
+    Get( layer, mid, midUnit );
+
+    if( midUnit->timeInterval.Contains(t1) )
+      return mid;
+    else  //not contained
+      if( ( t1 > midUnit->timeInterval.end ) ||
+          ( t1 == midUnit->timeInterval.end ) )
+        first = mid + 1;
+      else if( ( t1 < midUnit->timeInterval.start ) ||
+               ( t1 == midUnit->timeInterval.start ) )
+        last = mid - 1;
+      else
+        return -1; //should never be reached.
+    }
+    return -1;
+}
+
+int HCMPoint::Position( int layer, const Instant& t, const int start, 
+                        const int end )
+{
+  assert( t.IsDefined() );
+  assert( start >= 0 && end < LayerSize(layer) );
+  
+  Instant t1 = t;
+  int first = start;
+  int last = end;
+  while (first <= last)
+  {
+    int mid = ( first + last ) / 2;
+
+    if( (mid < start) || (mid >= end) )
       return -1;
 
     const UPoint *midUnit;
@@ -3994,6 +4187,7 @@ bool HCMPoint::Present( const Instant& t )
     return false;
   return true;
 }
+
 /*
 bool Present( const Periods\& t )
 
@@ -4001,7 +4195,6 @@ Checks all Units in the most uncertain Layer of the HCMPoint, if the given
 Periods-Value is completely inside the Definition-time of the HCMPoint-object.
 
 */
-
 bool HCMPoint::Present( const Periods& t )
 {
   assert( IsDefined() );
@@ -4048,7 +4241,7 @@ bool HCMPoint::D_Passes( const Point& p )
   int layer, size;
   GetFirstLayer(layer, size);
   
-  result = D_Passes( layer, 0, size, p );
+  result = D_Passes( layer, 0, size-1, p );
   return result;
 }
 
@@ -4056,7 +4249,7 @@ bool HCMPoint::D_Passes( const Point& p )
 bool D\_Passes( const int layer, const int start, const int end, 
 const Point\& p )
 
-This recursive function determines, by an in-order run through the hierarchical
+This recursive function determines, by a pre-order run through the hierarchical
  structure, if the HCMPoint definitely-passes the given Point-value.
 
 */
@@ -4068,7 +4261,7 @@ bool HCMPoint::D_Passes( const int layer, const int start, const int end,
   const CUPoint *cup;
   const UPoint *u;
   
-  for(int i = start; i < end; i++ )
+  for(int i = start; i <= end; i++ )
   {
     Get(layer, i, ntt);
     cup = &(ntt->value);
@@ -4076,8 +4269,12 @@ bool HCMPoint::D_Passes( const int layer, const int start, const int end,
     if( cup->GetEpsilon() == 0.0 && u->Passes( p ) )
       return true;
     if( cup->P_Passes( p ) && layer < 4 )
-      result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
-                          p );
+    {
+      int ostart = ntt->GetOriginstart();
+      int oend = ntt->GetOriginend();
+      if( ostart > -1 && oend > -1)
+        result = D_Passes( layer+1, ostart, oend, p );
+    }
     if( result )
       return true;
   }
@@ -4104,7 +4301,7 @@ bool HCMPoint::D_Passes( const Region& r )
   int layer, size;
   GetFirstLayer(layer, size);
   
-  result = D_Passes( layer, 0, size, r );
+  result = D_Passes( layer, 0, size-1, r );
   return result;
 }
 
@@ -4123,25 +4320,238 @@ bool HCMPoint::D_Passes( const int layer, const int start, const int end,
   const HCUPoint *ntt;
   const CUPoint *cup;
   
-  for(int i = start; i < end; i++ )
+  for(int i = start; i <= end; i++ )
   {
     Get(layer, i, cup);
     if( cup->D_Passes( r ) )
       return true;
   }
-  for(int i = start; i < end; i++ )
+  for(int i = start; i <= end; i++ )
   {
     Get(layer, i, ntt);
     cup = &(ntt->value);
     if( cup->P_Passes( r ) && layer < 4 )
-      result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
-                          r );
+    {
+      int ostart = ntt->GetOriginstart();
+      int oend = ntt->GetOriginend();
+      if( ostart > -1 && oend > -1)
+        result = D_Passes( layer+1, ostart, oend, r );
+    }
     if( result )
       return true;
   }
   return false;
 }
 
+/*
+bool P\_Passes( const Point\& p )
+
+Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint possibly-
+passes the given Point-value.
+
+*/
+bool HCMPoint::P_Passes( const Point& p )
+{
+  assert( p.IsDefined() );
+  assert( IsDefined() );
+  
+  if( !p.Inside(BBox2D()) )
+    return false;
+  
+  bool result = false;
+  int layer, size;
+  GetFirstLayer(layer, size);
+  
+  result = P_Passes( layer, 0, size-1, p );
+  return result;
+}
+
+/*
+bool P\_Passes( const int layer, const int start, const int end, 
+const Point\& p )
+
+This recursive function determines, by a pre-order run through the hierarchical
+ structure, if the HCMPoint possibly-passes the given Point-value.
+
+*/
+bool HCMPoint::P_Passes( const int layer, const int start, const int end, 
+                  const Point& p )
+{
+  bool result = false;
+  const HCUPoint *ntt;
+  const CUPoint *cup;
+  
+  for(int i = start; i <= end; i++ )
+  {
+    Get(layer, i, ntt);
+    cup = &(ntt->value);
+    int ostart = ntt->GetOriginstart();
+    int oend = ntt->GetOriginend();
+    if( ostart == -1 && oend == -1 )
+    { 
+      if( cup->P_Passes( p ) )
+        return true;
+    }
+    else if( cup->P_Passes( p ) && layer < 4 )
+      result = P_Passes( layer+1, ostart, oend, p );
+    if( result )
+      return true;
+  }
+  return false;
+}
+
+/*
+bool P\_Passes( const Region\& r )
+
+Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine if the HCMPoint possibly-
+passes the given Region-value.
+
+*/
+bool HCMPoint::P_Passes( const Region& r )
+{
+  assert( r.IsDefined() );
+  assert( IsDefined() );
+  
+  if( !r.BoundingBox().Intersects(BBox2D()) )
+    return false;
+  
+  bool result = false;
+  int layer, size;
+  GetFirstLayer(layer, size);
+  
+  result = P_Passes( layer, 0, size-1, r );
+  return result;
+}
+
+/*
+bool P\_Passes( const int layer, const int start, const int end, 
+const Region\& r )
+
+This recursive Function determines, by a pre-order run through the hierarchical
+ structure, if the HCMPoint possibly-passes the given Region-value.
+
+*/
+bool HCMPoint::P_Passes( const int layer, const int start, const int end, 
+                  const Region& r )
+{
+  bool result = false;
+  const HCUPoint *ntt;
+  const CUPoint *cup;
+  
+  
+  for(int i = start; i <= end; i++ )
+  {
+    Get(layer, i, ntt);
+    cup = &(ntt->value);
+    if( cup->P_Passes( r ) )
+    {
+      int start = ntt->GetOriginstart();
+      int end = ntt->GetOriginend();
+      if( start == -1 && end == -1 )
+        return true;
+      else if( layer < 4 )
+        result = P_Passes( layer+1, start, end, r );
+    }
+    if( result )
+      return true;
+  }
+  return false;
+}
+
+/*
+ AtInstant( const Instant\& t )
+
+Checks, if the given Instant-Value lies inside the BoundingBox of this 
+HCMPoint. If so, it calls a recursive Function to determine a circular shaped 
+Intime<Region>-Object related to the given Instant.
+
+*/
+void HCMPoint::AtInstant( const Instant& t, Intime<Region>& result )
+{
+  assert( t.IsDefined() );
+  
+  if( IsDefined() && t.IsDefined() )
+  {
+    if( !bbox.IsDefined() )
+    { // result is undefined
+      result.SetDefined(false);
+    } else if( IsEmpty() )
+    { // result is undefined
+      result.SetDefined(false);
+    } 
+    else
+    { // proove if the Instant lies inside the bbox
+      double instd = t.ToDouble();
+      double mind = bbox.MinD(2);
+      double maxd = bbox.MaxD(2);
+      if( (mind > instd && !AlmostEqual(mind,instd)) ||
+           (maxd < instd && !AlmostEqual(maxd,instd)) )
+        result.SetDefined(false);
+      else
+      {
+        int layer, size, dummy;
+        GetFirstLayer(layer, size);
+        dummy = AtInstant( layer, 0, size-1, t, result );
+      }
+    }
+  } 
+  else
+    result.SetDefined(false);
+}
+
+/*
+bool AtInstant( const int layer, const int start, const int end, 
+const Region\& r )
+
+This recursive Function determines, by a Devide-and-Conquer-Search through the 
+hierarchical structure, a circular shaped Intime<Region>-Object, related to 
+the given Instant.
+
+*/
+int HCMPoint::AtInstant( const int layer, const int start, const int end, 
+                  const Instant& t, Intime<Region>& result )
+{
+  int pos = Position( layer, t, start, end );
+  
+  if( pos == -1 )  // not contained in any unit
+    result.SetDefined( false );
+  else if(layer < 5 && LayerSize(layer+1) > 0)
+  {
+    const HCUPoint* ntt;
+    Get(layer, pos, ntt);
+    int ostart = ntt->GetOriginstart();
+    int oend = ntt->GetOriginend();
+    AtInstant( layer+1, ostart, oend, t, result ); // recursive call
+  }
+  else
+  {
+    const CUPoint *posUnit;
+    Get(layer, pos, posUnit );
+    result.SetDefined( true );
+    Point respoint;
+    posUnit->TemporalFunction( t, respoint );
+    
+    // If epsilon equals 0, set a minimal epsilon value greater 0 to ensure,
+    // that a region-object is created!
+    double e = posUnit->GetEpsilon();
+    if( e == 0.0 )
+    {  
+      e = fabs(posUnit->p0.GetX());
+      if( fabs(posUnit->p1.GetX()) > e )
+        e = fabs(posUnit->p1.GetX());
+      if( fabs(posUnit->p0.GetY()) > e )
+        e = fabs(posUnit->p0.GetY());
+      if( fabs(posUnit->p1.GetY()) > e )
+        e = fabs(posUnit->p1.GetY());
+      e = e * minEpsilonLimiter;
+    }
+    Circle(respoint, e, 16, result.value);
+    result.instant.CopyFrom( &t );
+  }
+  return 0;
+}
 
 /*
 3.6.2 Functions to be part of relations
@@ -4595,48 +5005,13 @@ void HMPoint::Put( const int layer, const int i, HCUPoint& ntt )
   assert( layer > -1 );
   assert( layer < 6 );
   
-  switch( layer )
+  if( layer == 5 &&  i > certainlayer.Size() )
   {
-    case 0:
-      if( i > layer0.Size() )
-        layer0.Resize( i );
-      layer0.Put(i, ntt);
-      break;
-      
-    case 1:
-      if( i > layer1.Size() )
-        layer1.Resize( i );
-      layer1.Put(i, ntt);
-      break;
-      
-    case 2:
-      if( i > layer2.Size() )
-        layer2.Resize( i );
-      layer2.Put(i, ntt);
-      break;
-      
-    case 3:
-      if( i > layer3.Size() )
-        layer3.Resize( i );
-      layer3.Put(i, ntt);
-      break;
-      
-    case 4:
-      if( i > layer4.Size() )
-        layer4.Resize( i );
-      layer4.Put(i, ntt);
-      break;
-      
-    case 5:
-      if( i > certainlayer.Size() )
-        certainlayer.Resize( i );
-      certainlayer.Put(i, ntt);
-      break;
-      
-    default:
-      // this case is prevented by the assert-commands
-      break;
+    certainlayer.Resize( i );
+    certainlayer.Put(i, ntt);
   }
+  else
+    HCMPoint::Put( layer, i, ntt );
 }
 
 void HMPoint::Add( const HCUPoint& hcup )
@@ -4706,36 +5081,10 @@ void HMPoint::Add( const HCUPoint& hcup )
 
 void HMPoint::ResizeLayer( const int layer, const int n )
 {
-  switch( layer )
-  {
-    case 0:
-      layer0.Resize( n );
-      break;
-      
-    case 1:
-      layer1.Resize( n );
-      break;
-    
-    case 2:
-      layer2.Resize( n );
-      break;
-    
-    case 3:
-      layer3.Resize( n );
-      break;
-    
-    case 4:
-      layer4.Resize( n );
-      break;
-    
-    case 5:
-      certainlayer.Resize( n );
-      break;
-    
-    default:
-      // this point should never be reached!
-      break;
-  }
+  if( layer == 5 )
+    certainlayer.Resize( n );
+  else
+    HCMPoint::ResizeLayer( layer, n ); // call super
 }
 
 int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
@@ -5041,6 +5390,69 @@ void HMPoint::Simplify(const int min, const int max, const int layer,
 }
 
 /*
+void Scale( const double epsilon )
+
+Creates a new HCMPoint-Object from this HMPoint. This new Object contains only 
+the layers down to that epsilon-value, that is necessary to allow queries with 
+the given epsilon-value. (So in most cases, the uncertainty-value of the most 
+certain layer is a bit smaller than the given epsilon-value.
+
+*/
+void HMPoint::ReduceHierarchy( const double e, HCMPoint& result )
+{
+  assert( !IsEmpty() );
+  if(e < GetLayer4epsilon() )
+  {
+    cout << "The given Uncertainty-Value is too small! There is nothing to" 
+      " scale!\n";
+    cerr << "The given Uncertainty-Value is too small! There is nothing to" 
+      " scale!\n";
+    return;
+  }
+  
+  result.Clear();  
+  const HCUPoint* ntt;
+  int size;
+  int i = 0;
+  // copy layers with epsilon greater e
+  while( i < 5 && GetLayerepsilon(i) > e )
+  {
+    size = LayerSize(i);
+    result.ResizeLayer( i, size );
+    for(int j = 0; j < size; j++)
+    {
+      Get(i, j, ntt);
+      HCUPoint hcup(*ntt);
+      result.Put(i, j, hcup);
+    }
+    result.SetLayerepsilon( i, GetLayerepsilon(i) );
+    i++;
+  }
+  // Copy the necessary most certain layer and set the idices of originstart
+  // and originend to -1.
+  size = LayerSize(i);
+  result.ResizeLayer( i, size );
+  for(int j = 0; j < size; j++)
+  {
+    Get(i, j, ntt);
+    HCUPoint hcup(*ntt);
+    hcup.SetOriginstart(-1);
+    hcup.SetOriginend(-1);
+    result.Put(i, j, hcup);
+  }
+  result.SetEpsilon( GetEpsilon() );
+  result.SetFactor( GetFactor() );
+  result.SetLayerepsilon( i, GetLayerepsilon(i) );
+  i++;
+  while( i < 5 )
+  {
+    result.SetLayerepsilon( i, -1 );
+    i++;
+  }
+}
+
+
+/*
 bool D\_Passes( const Point\& p )
 
 Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
@@ -5216,6 +5628,81 @@ bool HMPoint::D_Passes( const int layer, const int start, const int end,
   return false;
 }
 
+/*
+ AtInstant( const Instant\& t )
+
+Checks, if the given Instant-Value lies inside the BoundingBox of this 
+HCMPoint. If so, it calls a recursive Function to determine a circular shaped 
+Intime<Region>-Object related to the given Instant.
+
+*/
+void HMPoint::AtInstant( const Instant& t, Intime<Point>& result )
+{
+  assert( t.IsDefined() );
+  
+  if( IsDefined() && t.IsDefined() )
+  {
+    if( !bbox.IsDefined() )
+    { // result is undefined
+      result.SetDefined(false);
+    } else if( IsEmpty() )
+    { // result is undefined
+      result.SetDefined(false);
+    } 
+    else
+    { // proove if the Instant lies inside the bbox
+      double instd = t.ToDouble();
+      double mind = bbox.MinD(2);
+      double maxd = bbox.MaxD(2);
+      if( (mind > instd && !AlmostEqual(mind,instd)) ||
+           (maxd < instd && !AlmostEqual(maxd,instd)) )
+        result.SetDefined(false);
+      else
+      {
+        int layer, size, dummy;
+        GetFirstLayer(layer, size);
+        dummy = AtInstant( layer, 0, size-1, t, result );
+      }
+    }
+  } 
+  else
+    result.SetDefined(false);
+}
+
+/*
+bool AtInstant( const int layer, const int start, const int end, 
+const Region\& r )
+
+This recursive Function determines, by a Devide-and-Conquer-Search through the 
+hierarchical structure, a circular shaped Intime<Region>-Object, related to 
+the given Instant.
+
+*/
+int HMPoint::AtInstant( const int layer, const int start, const int end, 
+                  const Instant& t, Intime<Point>& result )
+{
+  int pos = Position( layer, t, start, end );
+  
+  if( pos == -1 )  // not contained in any unit
+    result.SetDefined( false );
+  else if(layer == 5 )
+  {
+    const UPoint *posUnit;
+    Get(layer, pos, posUnit );
+    result.SetDefined( true );
+    posUnit->TemporalFunction( t, result.value );
+    result.instant.CopyFrom( &t );
+  }
+  else
+  {
+    const HCUPoint* ntt;
+    Get(layer, pos, ntt);
+    int ostart = ntt->GetOriginstart();
+    int oend = ntt->GetOriginend();
+    AtInstant( layer+1, ostart, oend, t, result ); // recursive call
+  }
+  return 0;
+}
 
 /*
 3.7.2 Functions to be part of relations
@@ -6667,7 +7154,398 @@ TypeConstructor hierarchicaluncertainunitpoint(
         CastHCUPoint,     //cast function
         SizeOfHCUPoint,   //sizeof function
         CheckHCUPoint );  //kind checking function
+/*
+5.5 Type Constructor ~HCMPoint~
 
+5.5.1 List Representation
+
+The list representation of a ~hcmpoint~ is
+
+----    ( e1 ... en )
+----
+
+, where e1, ..., en are entities of type ~hcupoint~.
+
+for example:
+
+----    (
+          ( (3 5 27 -1 -1)
+            (0.7
+              (((instant 6.37) (instant 9.9) TRUE FALSE) (1.0 2.3 4.1 2.1))))
+          ( (3 5 28 -1 -1)
+            (0.9
+              (((instant 9.9) (instant 10.2) TRUE FALSE) (4.1 2.1 5.3 2.7))))
+        )
+----
+
+5.5.2 Function describing the Signature of the Type Constructor
+
+*/
+ListExpr HCMPointProperty()
+{
+  return (nl->TwoElemList(
+          nl->FourElemList(nl->StringAtom("Signature"),
+                  nl->StringAtom("Example Type List"),
+                  nl->StringAtom("List Rep"),
+                  nl->StringAtom("Example List")),
+          nl->FourElemList(nl->StringAtom("-> HIERARCHICAL MAPPING"),
+                  nl->StringAtom("(hcmpoint) "),
+                  nl->StringAtom("( (epsilon factor) (e1 ... en) ) "),
+                  nl->TextAtom("( ( 0.2 3.2 )" 
+                          "((3 5 27 -1 -1)( 0.7 ((i1 i2 TRUE FALSE)" 
+                          "(1.0 2.2 2.5 2.1)))) )"))));
+}
+
+
+/*
+5.5.3 Kind Checking Function
+
+*/
+bool CheckHCMPoint( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "hcmpoint" ));
+}
+
+/*
+5.5.4 ~Out~-function
+
+*/
+ListExpr OutHCMPoint( ListExpr typeInfo, Word value )
+{ 
+  HCMPoint* hcmp = (HCMPoint*)(value.addr);
+  if(! hcmp->IsDefined())
+    return nl->SymbolAtom("undef");
+  else
+  if( hcmp->IsEmpty() )
+    return (nl->TheEmptyList());
+  else
+  {
+    ListExpr l = nl->TheEmptyList(),
+             lastElem, entityList;
+
+    // return the entities of each layer
+    
+    for( int i = 0; i < hcmp->layer0.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hcmp->layer0.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    for( int i = 0; i < hcmp->layer1.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hcmp->layer1.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    for( int i = 0; i < hcmp->layer2.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hcmp->layer2.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    for( int i = 0; i < hcmp->layer3.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hcmp->layer3.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    for( int i = 0; i < hcmp->layer4.Size(); i++ )
+    {
+      const HCUPoint *ntt;
+      hcmp->layer4.Get( i, ntt );
+      HCUPoint *aux = (HCUPoint*)ntt;
+      entityList = OutHCUPoint( nl->TheEmptyList(), SetWord(aux) );
+      if( l == nl->TheEmptyList() )
+      {
+        l = nl->Cons( entityList, nl->TheEmptyList() );
+        lastElem = l;
+      }
+      else
+        lastElem = nl->Append( lastElem, entityList );
+    }
+    
+    ListExpr epsilonfactor = nl->TwoElemList(nl->RealAtom( hcmp->GetEpsilon() ),
+                                      nl->RealAtom( hcmp->GetFactor() ) );
+    ListExpr layerepsilons = nl->FiveElemList(
+                                      nl->RealAtom(hcmp->GetLayerepsilon(0)),
+                                      nl->RealAtom(hcmp->GetLayerepsilon(1)),
+                                      nl->RealAtom(hcmp->GetLayerepsilon(2)),
+                                      nl->RealAtom(hcmp->GetLayerepsilon(3)),
+                                      nl->RealAtom(hcmp->GetLayerepsilon(4)));
+    ListExpr all = nl->ThreeElemList( epsilonfactor, layerepsilons, l );
+    
+    return all;
+  }
+}
+/*
+5.5.5 ~In~-function
+
+*/
+Word InHCMPoint( const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct )
+{ 
+  int numEntities = nl->ListLength(instance);
+  HCMPoint* hcmp = new HCMPoint( numEntities );
+  correct = true;
+  int nttcounter = 0;
+  string errmsg;
+
+  if(nl->ListLength( instance ) != 3)
+  {
+    errmsg = "InHCMPoint(): The List has an unexpected length (!= 2).";
+    errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+    correct = false;
+    delete hcmp;
+    return SetWord( Address(0) );
+  }
+  
+  ListExpr epsilonfactor = nl->First( instance );
+  ListExpr layerepsilons = nl->Second( instance );
+  ListExpr elemlist = nl->Third( instance );
+  
+  if( nl->ListLength( epsilonfactor ) == 2 &&
+      nl->IsAtom( nl->First(epsilonfactor) ) &&
+      nl->AtomType( nl->First(epsilonfactor) ) == RealType &&
+      nl->IsAtom( nl->Second(epsilonfactor) ) &&
+      nl->AtomType( nl->Second(epsilonfactor) ) == RealType )
+  {
+    hcmp->SetEpsilon( nl->RealValue( nl->First(epsilonfactor)) );
+    hcmp->SetFactor( nl->RealValue( nl->Second(epsilonfactor)) );
+  }
+  else
+  {
+    errmsg = "InHCMPoint(): One of the attributes 'epsilon' or 'factor' is "
+            "invalid.";
+    errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+    correct = false;
+    delete hcmp;
+    return SetWord( Address(0) );
+  }
+  
+  if( nl->ListLength( layerepsilons ) == 5 &&
+      nl->IsAtom( nl->First(layerepsilons) ) &&
+      nl->AtomType( nl->First(layerepsilons) ) == RealType &&
+      nl->IsAtom( nl->Second(layerepsilons) ) &&
+      nl->AtomType( nl->Second(layerepsilons) ) == RealType &&
+      nl->IsAtom( nl->Third(layerepsilons) ) &&
+      nl->AtomType( nl->Third(layerepsilons) ) == RealType &&
+      nl->IsAtom( nl->Fourth(layerepsilons) ) &&
+      nl->AtomType( nl->Fourth(layerepsilons) ) == RealType &&
+      nl->IsAtom( nl->Fifth(layerepsilons) ) &&
+      nl->AtomType( nl->Fifth(layerepsilons) ) == RealType )
+  {
+    hcmp->SetLayer0epsilon( nl->RealValue( nl->First(layerepsilons)) );
+    hcmp->SetLayer1epsilon( nl->RealValue( nl->Second(layerepsilons)) );
+    hcmp->SetLayer2epsilon( nl->RealValue( nl->Third(layerepsilons)) );
+    hcmp->SetLayer3epsilon( nl->RealValue( nl->Fourth(layerepsilons)) );
+    hcmp->SetLayer4epsilon( nl->RealValue( nl->Fifth(layerepsilons)) );
+  }
+  else
+  {
+    errmsg = "InHCMPoint(): One of the attributes 'layer<n>epsilon' is "
+            "invalid.";
+    errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+    correct = false;
+    delete hcmp;
+    return SetWord( Address(0) );
+  }
+  
+  ListExpr rest = elemlist;
+  if (nl->AtomType( rest ) != NoAtom)
+  { 
+    if(nl->IsEqual(rest,"undef"))
+    {
+       hcmp->SetDefined(false);
+       return SetWord( Address( hcmp ) );
+    } 
+    else 
+    {
+      correct = false;
+      delete hcmp;
+      return SetWord( Address( 0 ) );
+    }
+  }
+  else while( !nl->IsEmpty( rest ) )
+  {
+    ListExpr first = nl->First( rest );
+    rest = nl->Rest( rest );
+
+    HCUPoint *ntt = (HCUPoint*)InHCUPoint( nl->TheEmptyList(), first,
+                                errorPos, errorInfo, correct ).addr;
+
+    if( correct && ( !ntt->IsDefined() ) )
+    {
+      errmsg = "InHCMPoint(): Entity " + int2string(nttcounter) + " is undef.";
+      errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+      correct = false;
+      delete ntt;
+      delete hcmp;
+      return SetWord( Address(0) );
+    }
+    if ( !correct )
+    {
+      errmsg = "InHCMPoint(): Representation of Entity "
+                + int2string(nttcounter) + " is wrong.";
+      errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+      hcmp->Destroy();
+      delete hcmp;
+      return SetWord( Address(0) );
+    }
+    
+    const int layer = ntt->GetLayer();
+    
+    switch( layer )
+    {
+      case 0:
+        hcmp->layer0.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 1:
+        hcmp->layer1.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 2:
+        hcmp->layer2.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 3:
+        hcmp->layer3.Put( ntt->GetIndex(), *ntt );
+        break;
+        
+      case 4:
+        hcmp->layer4.Put( ntt->GetIndex(), *ntt );
+        break;
+          
+      default:
+        // this point should never be reached!
+        cout << "Error in InHCMPoint: The layer-number of an entity is greater"
+          << " than 4!\n";
+        correct = false;
+        delete hcmp;
+        return SetWord( Address(0) );
+    }
+    nttcounter++;
+    delete ntt;
+  }
+  hcmp->RestoreBoundingBox( false );
+  
+  return SetWord( hcmp );
+}
+
+
+/*
+5.5.8 ~Create~-function
+
+*/
+Word CreateHCMPoint( const ListExpr typeInfo )
+{
+  return (SetWord( new HCMPoint( 0 ) ));
+}
+
+/*
+5.5.9 ~Delete~-function
+
+*/
+void DeleteHCMPoint( const ListExpr typeInfo, Word& w )
+{
+  ((HCMPoint *)w.addr)->Destroy();
+  delete (HCMPoint *)w.addr;
+  w.addr = 0;
+}
+
+/*
+5.5.10 ~Close~-function
+
+*/
+void CloseHCMPoint( const ListExpr typeInfo, Word& w )
+{
+  delete (HCMPoint *)w.addr;
+  w.addr = 0;
+}
+
+/*
+5.5.11 ~Clone~-function
+
+*/
+Word CloneHCMPoint( const ListExpr typeInfo, const Word& w )
+{
+  return SetWord( ((HCMPoint *)w.addr)->Clone() );
+}
+
+/*
+5.5.12 ~Sizeof~-function
+
+*/
+int SizeOfHCMPoint()
+{
+  return sizeof(HCMPoint);
+}
+
+/*
+5.5.13 ~Cast~-function
+
+*/
+void* CastHCMPoint(void* addr)
+{
+  return new (addr) HCMPoint;
+}
+
+/*
+5.5.14 Creation of the type constructor ~mpoint~
+
+*/
+TypeConstructor hierarchicaluncertainmovingpoint(
+        "hcmpoint",          //name
+        HCMPointProperty,    //property function describing signature
+        OutHCMPoint,
+        InHCMPoint,          //Out and In functions
+        0,
+        0,                  //SaveToList and RestoreFromList functions
+        CreateHCMPoint,
+        DeleteHCMPoint,      //object creation and deletion
+        0,
+        0,                  // object open and save
+        CloseHCMPoint,
+        CloneHCMPoint,       //object close and clone
+        CastHCMPoint,        //cast function
+        SizeOfHCMPoint,      //sizeof function
+        CheckHCMPoint );     //kind checking function
 
 /*
 5.5 Type Constructor ~HMPoint~
@@ -7108,9 +7986,9 @@ ListExpr UncertainTypeMapReal( ListExpr args )
   {
     ListExpr arg1 = nl->First( args );
     
-    if ( nl->IsEqual( arg1, "cpoint" ) || 
-          nl->IsEqual( arg1, "cupoint" ) || 
-          nl->IsEqual( arg1, "cmpoint" ) )
+    if ( nl->IsEqual( arg1, "cupoint" ) || 
+          nl->IsEqual( arg1, "cmpoint" ) ||
+          nl->IsEqual( arg1, "hcmpoint" ) )
       return nl->SymbolAtom("real");
     if (nl->AtomType( args ) == SymbolType)
     {
@@ -7124,6 +8002,34 @@ ListExpr UncertainTypeMapReal( ListExpr args )
   return nl->SymbolAtom("typeerror");
 }
 
+
+/*
+6.1.2 Type mapping function ~HierarchicalTypeMapInt~
+
+This type mapping function is used for the Operation ~no\_components()~.
+
+*/
+ListExpr HierarchicalTypeMapInt( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+    
+    if ( nl->IsEqual( arg1, "cmpoint" ) ||
+          nl->IsEqual( arg1, "hcmpoint" ) ||
+          nl->IsEqual( arg1, "hmpoint") )
+      return nl->SymbolAtom("int");
+    if (nl->AtomType( args ) == SymbolType)
+    {
+      ErrorReporter::ReportError("Type mapping function got a "
+              "parameter of type " +nl->SymbolValue(args) + ".");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 1.");
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 6.1.3 Type mapping function ~UncertainTypeMapBaseToUncertain~
@@ -7163,32 +8069,6 @@ ListExpr UncertainTypeMapBaseToUncertain( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
-/*
-6.1.7 Type mapping function ~UncertainTempSetValueTypeMapInt~
-
-It is for the ~no\_components~ operator.
-
-*/
-ListExpr UncertainTempSetValueTypeMapInt( ListExpr args )
-{
-  if ( nl->ListLength( args ) == 1 )
-  {
-    ListExpr arg1 = nl->First( args );
-
-    if( nl->IsEqual( arg1, "cmpoint" ) )
-      return nl->SymbolAtom( "int" );
-    
-    if (nl->AtomType( args ) == SymbolType)
-    {
-      ErrorReporter::ReportError("Type mapping function got a "
-              "parameter of type " +nl->SymbolValue(args) + ".");
-      return nl->SymbolAtom("typeerror");
-    }
-  }
-  ErrorReporter::ReportError("Type mapping function got a "
-        "parameter of length != 1.");
-  return nl->SymbolAtom( "typeerror" );
-}
 
 /*
 6.1.8 Type mapping function ~UncertainMovingTypeMapSpatial~
@@ -7424,8 +8304,16 @@ ListExpr UncertainMovingInstantTypeMapIntime( ListExpr args )
 
     if( nl->IsEqual( arg2, "instant" ) )
     {
-      if( nl->IsEqual( arg1, "cmpoint" ) )
+      if( nl->IsEqual( arg1, "cupoint" ) ||
+          nl->IsEqual( arg1, "cmpoint" ) ||
+          nl->IsEqual( arg1, "hcmpoint") )
         return nl->SymbolAtom( "intimeregion" );
+    }
+    
+    if( nl->IsEqual( arg2, "instant" ) )
+    {
+      if( nl->IsEqual( arg1, "hmpoint") )
+        return nl->SymbolAtom( "ipoint" );
     }
     
     if (nl->AtomType( arg1 ) == SymbolType && 
@@ -7657,9 +8545,45 @@ ListExpr HierarchicalMovingTypeMapUncertainMoving( ListExpr args )
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
 
-    if( nl->IsEqual( arg1, "hmpoint" ) &&
+    if( ( nl->IsEqual(arg1, "hmpoint") ||
+        nl->IsEqual(arg1, "hcmpoint") ) &&
         nl->IsEqual( arg2, "real" ) )
       return nl->SymbolAtom("cmpoint");
+    
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+6.1.21 Type Mapping Function ~HierarchicalTypeMapHierarchical~
+
+It is used for the operator ~scale~
+
+Type mapping for ~scale~ is
+
+----    (hmpoint real) -> (hcmpoint)
+----
+
+*/
+ListExpr HierarchicalTypeMapHierarchical( ListExpr args )
+{
+  if ( nl->ListLength(args) == 2 )
+  {
+    ListExpr arg1 = nl->First(args);
+    ListExpr arg2 = nl->Second(args);
+
+    if( nl->IsEqual( arg1, "hmpoint" ) &&
+        nl->IsEqual( arg2, "real" ) )
+      return nl->SymbolAtom("hcmpoint");
     
     if (nl->AtomType( arg1 ) == SymbolType && 
         nl->AtomType( arg2 ) == SymbolType )
@@ -7701,6 +8625,8 @@ int UncertainSimpleSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "cmpoint" )
     return 1;
   
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+    return 2;
   // ...space for further possible argument types
   
   return -1; // This point should never be reached
@@ -7751,6 +8677,32 @@ int UncertainTemporalSelect( ListExpr args )
   
   return -1; // This point should never be reached
 }
+
+/*
+6.2.3 Selection function ~UncertainTemporalAtTimeSelect~
+
+Is used for the ~atinstant~ operator.
+
+*/
+int UncertainTemporalAtTimeSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  
+  if( nl->SymbolValue( arg1 ) == "cupoint" )
+    return 0;
+    
+  if( nl->SymbolValue( arg1 ) == "cmpoint" )
+    return 1;
+  
+  if( nl->SymbolValue( arg1 ) == "hcmpoint" )
+    return 2;
+  
+  if( nl->SymbolValue( arg1 ) == "hmpoint" )
+    return 3;
+  
+  return -1; // This point should never be reached
+}
+
 
 /*
 6.2.3 Selection function ~UncertainPassesSelect~
@@ -8064,6 +9016,22 @@ int CUPointP_PassesRegion(Word* args, Word& result, int message,
 }
 
 /*
+6.2.4 Value mapping function for operator ~atinstant~
+
+*/
+int CUPointAtInstant( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CUPoint* cup = ((CUPoint*)args[0].addr);
+  Instant* inst = (Instant*) args[1].addr;
+  Intime<Region>* pResult = (Intime<Region>*)result.addr;
+
+  cup->AtInstant(*inst, *pResult);
+  return 0;
+}
+
+/*
 6.2.5 Value mapping functions for operator ~d\_at~
 
 */
@@ -8155,6 +9123,26 @@ int CMPointEpsilon( Word* args, Word& result, int message, Word& local,
   }
   else
     ((CcReal*)result.addr)->SetDefined( false );
+
+  return 0;
+}
+
+/*
+6.3.2 Value mapping function for operator ~no\_components~
+
+*/
+int CMPointNoComponents( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CMPoint* m  = static_cast<CMPoint*>(args[0].addr);
+
+  if( m->IsDefined() )
+  {
+    ((CcInt*)result.addr)->Set( m->GetNoComponents() );
+  }
+  else
+    ((CcInt*)result.addr)->SetDefined( false );
 
   return 0;
 }
@@ -8552,6 +9540,26 @@ int GeneralizeMPoint( Word* args, Word& result, int message, Word& local,
 }
 
 /*
+6.4.2 Value mapping function for operator ~no\_components~
+
+*/
+int HMPointNoComponents( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HMPoint* hmp  = static_cast<HMPoint*>(args[0].addr);
+
+  if( hmp->IsDefined() )
+  {
+    ((CcInt*)result.addr)->Set( hmp->GetNoComponents() );
+  }
+  else
+    ((CcInt*)result.addr)->SetDefined( false );
+
+  return 0;
+}
+
+/*
 6.4.12 value mapping functions for operator ~getmpoint~
 
 */
@@ -8636,22 +9644,109 @@ int HMPointD_PassesRegion(Word* args, Word& result, int message,
 }
 
 /*
+6.4.18 value mapping functions for operator ~getcmpoint~
+
+*/
+int HMPointReduceHierarchy( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HMPoint *hmp = static_cast<HMPoint*>(args[0].addr);
+  CcReal *epsilon = static_cast<CcReal*>(args[1].addr);
+  HCMPoint* pResult = (HCMPoint*)result.addr;
+  
+  if( hmp->IsDefined() )
+    hmp->ReduceHierarchy( epsilon->GetValue(), *pResult ); 
+  else
+    pResult->SetDefined(false);
+  
+  return 0;
+}
+
+/*
+6.3.4 Value mapping function for operator ~atinstant~
+
+*/
+int HMPointAtInstant( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HMPoint* hmp = ((HMPoint*)args[0].addr);
+  Instant* inst = (Instant*) args[1].addr;
+  Intime<Point>* pResult = (Intime<Point>*)result.addr;
+
+  hmp->AtInstant(*inst, *pResult);
+  return 0;
+}
+
+/*
 6.5 Value Mapping Functions for type ~HCMPoint~
 
-6.5.1 value mapping function for operator ~getcmpoint~
+6.5.1 value mapping function for operator ~epsilon~
+
+*/
+int HCMPointEpsilon( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HCMPoint* hcmp  = static_cast<HCMPoint*>(args[0].addr);
+
+  if( hcmp->IsDefined() )
+  {
+    if(hcmp->LayerSize(4) > 0)
+      ((CcReal*)result.addr)->Set( hcmp->GetLayer4epsilon() );
+    else if( hcmp->LayerSize(3) > 0 )
+      ((CcReal*)result.addr)->Set( hcmp->GetLayer3epsilon() );
+    else if( hcmp->LayerSize(2) > 0 )
+      ((CcReal*)result.addr)->Set( hcmp->GetLayer2epsilon() );
+    else if( hcmp->LayerSize(1) > 0 )
+      ((CcReal*)result.addr)->Set( hcmp->GetLayer1epsilon() );
+    else if( hcmp->LayerSize(0) > 0 )
+      ((CcReal*)result.addr)->Set( hcmp->GetLayer0epsilon() );
+    else
+      ((CcReal*)result.addr)->SetDefined( false );
+  }
+  else
+    ((CcReal*)result.addr)->SetDefined( false );
+
+  return 0;
+}
+
+/*
+6.5.2 Value mapping function for operator ~no\_components~
+
+*/
+int HCMPointNoComponents( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HCMPoint* hcmp  = static_cast<HCMPoint*>(args[0].addr);
+
+  if( hcmp->IsDefined() )
+  {
+    ((CcInt*)result.addr)->Set( hcmp->GetNoComponents() );
+  }
+  else
+    ((CcInt*)result.addr)->SetDefined( false );
+
+  return 0;
+}
+
+/*
+6.5.3 value mapping function for operator ~getcmpoint~
 
 */
 int HCMPointGetCMPoint( Word* args, Word& result, int message, Word& local, 
                                   Supplier s )
 {
   result = qp->ResultStorage( s );
-  //HCMPoint *hmp = static_cast<HCMPoint*>(args[0].addr);
-  //CcReal *epsilon = static_cast<CcReal*>(args[1].addr);
+  HCMPoint *hmp = static_cast<HCMPoint*>(args[0].addr);
+  CcReal *epsilon = static_cast<CcReal*>(args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
   
-  //if( hmp->IsDefined() )
-  //  hmp->GetCMPoint( epsilon->GetValue(), *pResult );
-  //else
+  if( hmp->IsDefined() )
+    hmp->GetCMPoint( epsilon->GetValue(), *pResult );
+  else
     pResult->SetDefined(false);
   
   return 0;
@@ -8763,6 +9858,65 @@ int HCMPointD_PassesRegion(Word* args, Word& result, int message,
 }
 
 /*
+6.5.5 Value Mapping functions for operator ~p\_passes~
+
+*/
+
+// If the second argument is a Point:
+int HCMPointP_PassesPoint(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+
+  HCMPoint *hcmp = ((HCMPoint*)args[0].addr);
+  Point* p = ((Point*)args[1].addr);
+
+  if( !p->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( hcmp->P_Passes( *p ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+// If the second argument is a Region:
+int HCMPointP_PassesRegion(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+
+  HCMPoint *hcmp = ((HCMPoint*)args[0].addr);
+  Region* r = ((Region*)args[1].addr);
+
+  if( !r->IsDefined() )
+    ((CcBool *)result.addr)->Set( false, false );
+  else if( hcmp->P_Passes( *r ) )
+    ((CcBool *)result.addr)->Set( true, true );
+  else
+    ((CcBool *)result.addr)->Set( true, false );
+
+  return 0;
+}
+
+/*
+6.3.4 Value mapping function for operator ~atinstant~
+
+*/
+int HCMPointAtInstant( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HCMPoint* hcmp = ((HCMPoint*)args[0].addr);
+  Instant* inst = (Instant*) args[1].addr;
+  Intime<Region>* pResult = (Intime<Region>*)result.addr;
+
+  hcmp->AtInstant(*inst, *pResult);
+  return 0;
+}
+
+/*
 Definition of operators
 
 Definition of operators is done in a way similar to definition of 
@@ -8779,7 +9933,13 @@ ValueMapping arrays
 
 ValueMapping uncertainepsilonmap[] = {
                                       CUPointEpsilon,
-                                      CMPointEpsilon };
+                                      CMPointEpsilon,
+                                      HCMPointEpsilon };
+
+ValueMapping hierarchicalnocomponentsmap[] = {
+                                      CMPointNoComponents,
+                                      HCMPointNoComponents,
+                                      HMPointNoComponents };
                                       
 ValueMapping uncertaintrajectorymap[] = {
                                       CUPointTrajectory,
@@ -8811,7 +9971,15 @@ ValueMapping uncertainppassesmap[] = {
                                       CUPointP_PassesPoint,
                                       CUPointP_PassesRegion,
                                       CMPointP_PassesPoint,
-                                      CMPointP_PassesRegion };
+                                      CMPointP_PassesRegion,
+                                      HCMPointP_PassesPoint,
+                                      HCMPointP_PassesRegion };
+
+ValueMapping uncertaintemporalatinstantmap[] = {
+                                      CUPointAtInstant,
+                                      CMPointAtInstant,
+                                      HCMPointAtInstant,
+                                      HMPointAtInstant };
 
 ValueMapping uncertaindatmap[] = {
                                       CUPointD_AtPoint,
@@ -8845,21 +10013,19 @@ Specification strings
 
 const string UncertainSpecEpsilon  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>uT -> epsilon</text--->"
+  "( <text>cupoint||cmpoint||hcmpoint -> epsilon</text--->"
   "<text>epsilon ( _ )</text--->"
   "<text>Returns an uncertain values' epsilon value.</text--->"
   "<text>epsilon ( i1 )</text--->"
   ") )";
 
-
-/*const string UncertainSpecVal =
+const string HierarchicalSpecNoComponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>uT -> x</text--->"
-  "<text>val ( _ )</text--->"
-  "<text>Returns an uncertain value's value.</text--->"
-  "<text>val ( i1 )</text--->"
-  ") )";*/
-
+  "( <text>uT -> epsilon</text--->"
+  "<text>epsilon ( _ )</text--->"
+  "<text>Returns an uncertain values' epsilon value.</text--->"
+  "<text>epsilon ( i1 )</text--->"
+  ") )";
 
 const string CPointSpecToCPoint =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -8899,10 +10065,10 @@ const string UncertainTemporalSpecPresent  =
 
 const string UncertainTemporalSpecAtInstant =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(cmpoint instant) -> iregion</text--->"
+  "( <text>(cupoint||cmpoint||hcmpoint instant) -> iregion</text--->"
   "<text>_ atinstant _ </text--->"
-  "<text>From an uncertain moving point, get the intime region "
-  "representing the uncertain point of the instant.</text--->"
+  "<text>From an uncertain or hierarchical moving point, get the intime "
+  "region representing the uncertain point of the instant.</text--->"
   "<text>cmpoint1 atinstant instant1</text--->"
   ") )";
 
@@ -8943,7 +10109,7 @@ const string HierarchicalTemporalSpecPasses =
 
 const string UncertainTemporalSpecPPasses =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(cmpoint||cupoint x point||region ) -> bool</text--->"
+  "( <text>(cmpoint||cupoint||hcmpoint x point||region ) -> bool</text--->"
   "<text>_ d_passes _ </text--->"
   "<text>Checks whether the uncertain moving object possibly passes the "
   "given spatial object.</text--->"
@@ -9003,7 +10169,7 @@ const string HierarchicalMovingSpecGetMPoint =
 
 const string HierarchicalMovingSpecGetCMPoint =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(hmpoint) -> mpoint </text--->"
+  "( <text>(hmpoint || hcmpoint) -> mcpoint </text--->"
   "<text> getcmpoint( _ ) </text--->"
   "<text>Extracts that cmpoint from a hierarchical moving point, that has the"
   "greatest uncertainty-value, that is less than the given real value."
@@ -9011,6 +10177,15 @@ const string HierarchicalMovingSpecGetCMPoint =
   "<text>let htrain7 = getcmpoint( htrain7, 20.0 )</text--->"
   ") )";
 
+const string HierarchicalMovingSpecReduceHierarchy =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(hmpoint real) -> hcmoint </text--->"
+  "<text> reduce_hierarchy( _, _ ) </text--->"
+  "<text>Creates a HCMPoint-Object containing just the layers down to that "
+  "layer which is necessary to represent a cmpoint with the given epsilon-"
+  "value.</text--->"
+  "<text>let hctrain7 = scale( htrain7, 20.0 )</text--->"
+  ") )";
 /*
 Operators
 
@@ -9018,10 +10193,17 @@ Operators
 
 Operator uncertainepsilon( "epsilon",
                               UncertainSpecEpsilon,
-                              2,
+                              3,
                               uncertainepsilonmap,
                               UncertainSimpleSelect,
                               UncertainTypeMapReal );
+
+Operator hierarchicalnocomponents( "no_components",
+                              HierarchicalSpecNoComponents,
+                              3,
+                              hierarchicalnocomponentsmap,
+                              HierarchicalSimpleSelect,
+                              HierarchicalTypeMapInt );
 
 Operator uncertaintrajectory( "trajectory",
                               UncertainMovingSpecTrajectory,
@@ -9046,8 +10228,9 @@ Operator uncertaintemporalpresent( "present",
 
 Operator uncertaintemporalatinstant( "atinstant",
                               UncertainTemporalSpecAtInstant,
-                              CMPointAtInstant,
-                              Operator::SimpleSelect,
+                              4,
+                              uncertaintemporalatinstantmap,
+                              UncertainTemporalAtTimeSelect,
                               UncertainMovingInstantTypeMapIntime );
 
 Operator uncertaintemporalatperiods( "atperiods",
@@ -9078,7 +10261,7 @@ Operator hierarchicaltemporalpasses( "passes",
                             
 Operator uncertaintemporalppasses( "p_passes",
                               UncertainTemporalSpecPPasses,
-                              4,
+                              6,
                               uncertainppassesmap,
                               UncertainPassesSelect,
                               UncertainMovingTypeMapBool );
@@ -9123,6 +10306,12 @@ Operator hierarchicalmovingpointgetcmpoint( "getcmpoint",
                               HierarchicalToUncertainSelect,
                               HierarchicalMovingTypeMapUncertainMoving );
 
+Operator hierarchicalmovingpointreducehierarchy( "reduce_hierarchy",
+                              HierarchicalMovingSpecReduceHierarchy,
+                              HMPointReduceHierarchy,
+                              Operator::SimpleSelect,
+                              HierarchicalTypeMapHierarchical );
+
 /*
 Creating the Algebra
  
@@ -9148,9 +10337,14 @@ class HierarchicalGeoAlgebra : public Algebra
     hierarchicaluncertainunitpoint.AssociateKind( "HIERARCHICAL" );
     
     AddTypeConstructor( &hierarchicalmovingpoint );
-    hierarchicaluncertainunitpoint.AssociateKind( "DATA" );
-    hierarchicaluncertainunitpoint.AssociateKind( "UNCERTAIN" );
-    hierarchicaluncertainunitpoint.AssociateKind( "HIERARCHICAL" );
+    hierarchicalmovingpoint.AssociateKind( "DATA" );
+    hierarchicalmovingpoint.AssociateKind( "UNCERTAIN" );
+    hierarchicalmovingpoint.AssociateKind( "HIERARCHICAL" );
+    
+    AddTypeConstructor( &hierarchicaluncertainmovingpoint );
+    hierarchicaluncertainmovingpoint.AssociateKind( "DATA" );
+    hierarchicaluncertainmovingpoint.AssociateKind( "UNCERTAIN" );
+    hierarchicaluncertainmovingpoint.AssociateKind( "HIERARCHICAL" );
     
     AddOperator( &uncertainepsilon );
     AddOperator( &uncertaintrajectory );
@@ -9168,6 +10362,8 @@ class HierarchicalGeoAlgebra : public Algebra
     AddOperator( &hierarchicalmovingpointgetmpoint );
     AddOperator( &hierarchicalmovingpointgetcmpoint );
     AddOperator( &hierarchicaltemporalpasses );
+    AddOperator( &hierarchicalmovingpointreducehierarchy );
+    AddOperator( &hierarchicalnocomponents );
   }
   ~HierarchicalGeoAlgebra() {};
 };

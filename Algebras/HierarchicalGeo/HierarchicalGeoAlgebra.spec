@@ -18,6 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator epsilon alias EPSILON pattern op ( _ )
+operator no_components alias NO_COMPONENTS pattern op( _ )
 operator trajectory alias TRAJECTORY pattern op ( _ )
 operator deftime alias DEFTIME pattern op ( _ )
 operator present alias PRESENT pattern _ infixop _
@@ -32,7 +33,7 @@ operator touncertain alias TOUNCERTAIN pattern op( _, _ )
 operator generalize alias GENERALIZE pattern op( _, _, _ )
 operator getmpoint alias GETMPOINT pattern op( _ )
 operator passes alias PASSES pattern _ infixop _
-
+operator reduce_hierarchy alias REDUCE_HIERARCHY pattern op( _, _ )
 
 
 
