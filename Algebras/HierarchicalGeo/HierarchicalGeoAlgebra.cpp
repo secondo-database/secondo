@@ -4037,25 +4037,50 @@ int HCMPoint::Position( int layer, const Instant& t, const int start,
   Instant t1 = t;
   int first = start;
   int last = end;
+  
+  // +++++ for debugging purposes only +++++
+  //cout << "HCMPoint::Position: Start while- with 'first' = " << first 
+  //  << " and 'last' = " << last << endl;
+  
   while (first <= last)
   {
     int mid = ( first + last ) / 2;
 
-    if( (mid < start) || (mid >= end) )
+    if( (mid < start) || (mid > end) )
       return -1;
 
-    const UPoint *midUnit;
+    const CUPoint *midUnit;
     Get( layer, mid, midUnit );
-
+    
+    // +++++ for debugging purposes only +++++
+    //cout << "Prove CUPoint No. " << mid << ":\n";
+    //midUnit->Print(cout);
+    
     if( midUnit->timeInterval.Contains(t1) )
+    {
+      // +++++ for debugging purposes only +++++
+      //cout << "CUPoint No. " << mid << "contains the Time-Instant.\n";
+      
       return mid;
+    }
     else  //not contained
       if( ( t1 > midUnit->timeInterval.end ) ||
           ( t1 == midUnit->timeInterval.end ) )
+      {
         first = mid + 1;
+        
+        // +++++ for debugging purposes only +++++
+        //cout << "The Time-Instant is GREATER than the CUPoint's "
+        //  << "timeInterval.end. 'first' is set to " << first << "!\n";
+      }
       else if( ( t1 < midUnit->timeInterval.start ) ||
                ( t1 == midUnit->timeInterval.start ) )
+      {
         last = mid - 1;
+        // +++++ for debugging purposes only +++++
+        //cout << "The Time-Instant is LESS than the CUPoint's "
+        //  << "timeInterval.end. 'last' is set to " << last << "!\n";
+      }
       else
         return -1; //should never be reached.
     }
@@ -4476,9 +4501,17 @@ void HCMPoint::AtInstant( const Instant& t, Intime<Region>& result )
   {
     if( !bbox.IsDefined() )
     { // result is undefined
+      
+      // +++++ for debugging purposes only +++++
+      cout << "HCMPoint::AtInstant: The bbox is UNDEFINED!\n";
+      
       result.SetDefined(false);
     } else if( IsEmpty() )
     { // result is undefined
+      
+      // +++++ for debugging purposes only +++++
+      cout << "HCMPoint::AtInstant: The HCMPoint is EMPTY!\n";
+      
       result.SetDefined(false);
     } 
     else
@@ -4493,6 +4526,10 @@ void HCMPoint::AtInstant( const Instant& t, Intime<Region>& result )
       {
         int layer, size, dummy;
         GetFirstLayer(layer, size);
+        
+        // +++++ for debugging purposes only +++++
+        cout << "HCMPoint::AtInstant: Initial recursive call...\n";
+        
         dummy = AtInstant( layer, 0, size-1, t, result );
       }
     }
@@ -4516,13 +4553,26 @@ int HCMPoint::AtInstant( const int layer, const int start, const int end,
   int pos = Position( layer, t, start, end );
   
   if( pos == -1 )  // not contained in any unit
+  {
+    // +++++ for debugging purposes only +++++
+    cout << "No Unit of layer " << layer << " between the indices " << start
+      << " and " << end << " contains the demanded Time-Instant!\n";
+      
     result.SetDefined( false );
+  }
   else if(layer < 5 && LayerSize(layer+1) > 0)
   {
     const HCUPoint* ntt;
     Get(layer, pos, ntt);
     int ostart = ntt->GetOriginstart();
     int oend = ntt->GetOriginend();
+    
+    // +++++ for debugging purposes only +++++
+    cout << "Further recursive call for \n";
+    cout << "     layer : " << layer+1 << endl;
+    cout << "     ostart: " << ostart << endl;
+    cout << "     oend  : " << oend << "!\n";
+    
     AtInstant( layer+1, ostart, oend, t, result ); // recursive call
   }
   else
@@ -4547,6 +4597,10 @@ int HCMPoint::AtInstant( const int layer, const int start, const int end,
         e = fabs(posUnit->p1.GetY());
       e = e * minEpsilonLimiter;
     }
+    
+    // +++++ for debugging purposes only +++++
+    cout << "Create result-Circle...\n";
+    
     Circle(respoint, e, 16, result.value);
     result.instant.CopyFrom( &t );
   }
@@ -5005,9 +5059,10 @@ void HMPoint::Put( const int layer, const int i, HCUPoint& ntt )
   assert( layer > -1 );
   assert( layer < 6 );
   
-  if( layer == 5 &&  i > certainlayer.Size() )
+  if( layer == 5 )
   {
-    certainlayer.Resize( i );
+    if( i > certainlayer.Size() )
+      certainlayer.Resize( i );
     certainlayer.Put(i, ntt);
   }
   else
@@ -5079,6 +5134,14 @@ void HMPoint::Add( const HCUPoint& hcup )
   }
 }
 
+inline int HMPoint::LayerSize( const int layer ) const
+{
+  if( layer == 5 )
+    return certainlayer.Size();
+  else
+    return HCMPoint::LayerSize( layer );
+}
+
 void HMPoint::ResizeLayer( const int layer, const int n )
 {
   if( layer == 5 )
@@ -5086,6 +5149,66 @@ void HMPoint::ResizeLayer( const int layer, const int n )
   else
     HCMPoint::ResizeLayer( layer, n ); // call super
 }
+
+int HMPoint::Position( int layer, const Instant& t, const int start, 
+                        const int end )
+{
+  assert( t.IsDefined() );
+  assert( start >= 0 && end < LayerSize(layer) );
+  
+  Instant t1 = t;
+  int first = start;
+  int last = end;
+  
+  // +++++ for debugging purposes only +++++
+  //cout << "HCMPoint::Position: Start while- with 'first' = " << first 
+  //  << " and 'last' = " << last << endl;
+  
+  while (first <= last)
+  {
+    int mid = ( first + last ) / 2;
+
+    if( (mid < start) || (mid > end) )
+      return -1;
+
+    const CUPoint *midUnit;
+    Get( layer, mid, midUnit );
+    
+    // +++++ for debugging purposes only +++++
+    //cout << "Prove CUPoint No. " << mid << ":\n";
+    //midUnit->Print(cout);
+    
+    if( midUnit->timeInterval.Contains(t1) )
+    {
+      // +++++ for debugging purposes only +++++
+      //cout << "CUPoint No. " << mid << "contains the Time-Instant.\n";
+      
+      return mid;
+    }
+    else  //not contained
+      if( ( t1 > midUnit->timeInterval.end ) ||
+          ( t1 == midUnit->timeInterval.end ) )
+      {
+        first = mid + 1;
+        
+        // +++++ for debugging purposes only +++++
+        //cout << "The Time-Instant is GREATER than the CUPoint's "
+        //  << "timeInterval.end. 'first' is set to " << first << "!\n";
+      }
+      else if( ( t1 < midUnit->timeInterval.start ) ||
+               ( t1 == midUnit->timeInterval.start ) )
+      {
+        last = mid - 1;
+        // +++++ for debugging purposes only +++++
+        //cout << "The Time-Instant is LESS than the CUPoint's "
+        //  << "timeInterval.end. 'last' is set to " << last << "!\n";
+      }
+      else
+        return -1; //should never be reached.
+    }
+    return -1;
+}
+
 
 int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
                           const DateTime dur)
@@ -5680,14 +5803,17 @@ the given Instant.
 */
 int HMPoint::AtInstant( const int layer, const int start, const int end, 
                   const Instant& t, Intime<Point>& result )
-{
+{ 
   int pos = Position( layer, t, start, end );
   
   if( pos == -1 )  // not contained in any unit
     result.SetDefined( false );
   else if(layer == 5 )
   {
-    const UPoint *posUnit;
+    // +++++ for debugging purposes only +++++
+    //cout << "Reached layer 5, create ipoint... \n";
+    
+    const CUPoint *posUnit;
     Get(layer, pos, posUnit );
     result.SetDefined( true );
     posUnit->TemporalFunction( t, result.value );
@@ -5699,9 +5825,68 @@ int HMPoint::AtInstant( const int layer, const int start, const int end,
     Get(layer, pos, ntt);
     int ostart = ntt->GetOriginstart();
     int oend = ntt->GetOriginend();
+    
+    // +++++ for debugging purposes only +++++
+    //cout << "Further recursive call for \n";
+    //cout << "     layer : " << layer+1 << endl;
+    //cout << "     ostart: " << ostart << endl;
+    //cout << "     oend  : " << oend << "!\n";
+    
     AtInstant( layer+1, ostart, oend, t, result ); // recursive call
   }
   return 0;
+}
+
+/*
+AtPeriods( const Periods\& per, HMPoint\& result )
+
+Computes, by a recursive in-order run, for every layer of this hmpoint-object
+the intersection of the hmpoint to the given periods and returns the 
+intersection-set as a new hmpoint.
+
+*/
+void HMPoint::AtPeriods( const Periods& p, HMPoint& result )
+{
+  assert( p.IsDefined() );
+  assert( p.IsOrdered() );
+  
+  if( !IsDefined() ) // the result hmpoint stays empty!
+    return;
+  
+  if( !bbox.IsDefined() || IsEmpty() ) // the result hmpoint stays empty!
+    return;
+  
+  Instant perMinInst; p.Minimum(perMinInst);
+  Instant perMaxInst; p.Maximum(perMaxInst);
+  double permind = perMinInst.ToDouble();
+  double permaxd = perMaxInst.ToDouble();
+  double mind = bbox.MinD(2);
+  double maxd = bbox.MaxD(2);
+  if( (mind > permaxd && !AlmostEqual(mind,permaxd)) ||
+      (maxd < permind && !AlmostEqual(maxd,permind)) )
+    return;
+  
+/*
+The hmpoint is not empty and the periods-object intersects the hmpoint. 
+Determine the intersection-periods and -values for every layer of the 
+result-hmpoint!
+
+*/
+  int layer = 5; 
+  int size = certainlayer.Size();
+  const HCUPoint* ntt;
+  
+  while( layer >= 0 && size > 0 )
+  {
+    int i = 0, j = 0;
+    Get(layer, i, ntt);
+    
+    
+    
+    
+    layer++;
+    size = LayerSize(layer);
+  } 
 }
 
 /*

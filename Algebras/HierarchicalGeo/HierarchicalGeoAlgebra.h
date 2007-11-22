@@ -1550,10 +1550,13 @@ right function GetNoComponents.
   
   void Put( const int layer, const int i, HCUPoint& hcup);
   
+  inline int LayerSize( const int layer ) const;
+  
   void ResizeLayer( const int layer, const int n );
   
   void Add( const HCUPoint& hcup );
   
+  int Position( int layer, const Instant& t, const int start, const int end );
   
   int Generalize(const int layer, const bool checkBreakPoints, 
                   const DateTime dur);
@@ -1573,6 +1576,8 @@ right function GetNoComponents.
   void AtInstant( const Instant& t, Intime<Point>& result );
   int AtInstant( const int layer, const int start, const int end, 
                   const Instant& t, Intime<Point>& result );
+  
+  void AtPeriods( const Periods& p, HMPoint& result);
   
   void ReduceHierarchy( const double epsilon, HCMPoint& result );
 /*
