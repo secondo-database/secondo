@@ -343,6 +343,23 @@ bool insertN(const contenttype& x,      // in
 }
 
 
+/*
+~insert2~
+
+inserts x into the tree and returns a pointer to the stored element.
+If x is already an element of the tree, a pointer to the stored element
+is returned.
+
+*/
+const contenttype* insert2(const contenttype& x){
+   __AVL_TRACE__
+   const contenttype* result=0;
+   root = insert2(root,x, result);
+   root->updateHeight();
+   return result; 
+}
+
+
 
 /*
 2.2 remove
@@ -1003,6 +1020,53 @@ static  AvlNode<contenttype>* insertN(AvlNode<contenttype>* root,
 }
 
 
+static  AvlNode<contenttype>* insert2(AvlNode<contenttype>* root, 
+                                  const contenttype& content,
+                                  contenttype const*& elem){
+   __AVL_TRACE__
+   if(root==NULL){ // leaf reached
+      AvlNode<contenttype>* res =  new AvlNode<contenttype>(content);
+      elem = &res->content;
+      return res;
+   }
+   contenttype c = root->content;
+   if(c==content){ // an AVL tree represents a set, do nothing
+      elem = &root->content;
+      return root;
+   } else if(content<c){ // perform the left subtree
+      root->left = insert2(root->left,content,elem);
+      root->updateHeight();
+      if(abs(root->balance())>1){ // rotation or double rotation required
+         // check where the overhang is
+         if(root->left->balance()>0){ // single rotation is sufficient
+            return rotateRight(root); 
+         }
+         if(root->left->balance()<0){
+            return rotateLeftRight(root);
+         } 
+         assert(false); // should never be reached
+         return NULL; 
+      } else{ // root remains balanced
+          return root;
+      }
+   } else{
+   // content > c => insert at right 
+      root->right = insert2(root->right,content,elem);
+      root->updateHeight();
+      if(abs(root->balance())>1){
+        if(root->right->balance()<0){ // LeftRotation
+           return rotateLeft(root);
+        }
+        if(root->right->balance()>0){
+           return rotateRightLeft(root);
+        }
+        assert(false); // should never be reached
+        return NULL;
+      } else{ // no rotation required
+           return root;
+     }
+   }
+}
 
 
 

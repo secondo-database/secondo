@@ -182,16 +182,17 @@ As owner only __first__ and __second__ are the allowed values.
      }
      this->owner = owner;
      switch(owner){
-        case first: { insideAbove_first = hs->GetAttr().insideAbove; 
-                      insideAbove_second = false;
-                      break;
-                     }
-        case second: {
-                      insideAbove_second = hs->GetAttr().insideAbove; 
-                      insideAbove_first = false;
-                       break;
-                     }
-        default: assert(false);
+        case first: { 
+             insideAbove_first = hs->GetAttr().insideAbove; 
+             insideAbove_second = false;
+             break;
+        } case second: {
+             insideAbove_second = hs->GetAttr().insideAbove; 
+             insideAbove_first = false;
+             break;
+        } default: {
+             assert(false);
+        }
      }
      con_below = 0;
      con_above = 0;
@@ -346,6 +347,21 @@ the parameters ~x~ and ~y~ are set to the intersection point.
               (y>s.y1) && (y<s.y2) && 
               !AlmostEqual(x1,x) && !AlmostEqual(x2,x);
     }
+    // avoid problems with rounding errors during computation of
+    // the intersection point
+    if(pointEqual(x1,y1,s.x1,s.y1)){
+      return false;
+    }
+    if(pointEqual(x2,y2,s.x1,s.y1)){
+      return false;
+    }
+    if(pointEqual(x1,y1,s.x2,s.y2)){
+      return false;
+    }
+    if(pointEqual(x2,y2,s.x2,s.y2)){
+      return false;
+    }
+
     
     // both segments are non vertical 
     double m1 = (y2-y1)/(x2-x1);
@@ -1259,35 +1275,35 @@ void insertEvents(const AVLSegment& seg,
                                  greater<HalfSegment> >& q2){
    switch(seg.getOwner()){
       case first: {
-                    if(createLeft){
-                      q1.push(seg.convertToHs(true, first));
-                    }
-                    if(createRight){
-                      q1.push(seg.convertToHs(false, first));
-                    }
-                  }
-                  break;
-      case second:
-                    if(createLeft){
-                      q2.push(seg.convertToHs(true, second));
-                    }
-                    if(createRight){
-                      q2.push(seg.convertToHs(false, second));
-                    }
-                    break;
-      case both :
-                    if(createLeft){
-                      q1.push(seg.convertToHs(true, first));
-                      q2.push(seg.convertToHs(true, second));
-                    }
-                    if(createRight){
-                      q1.push(seg.convertToHs(false, first));
-                      q2.push(seg.convertToHs(false, second));
-                    }
-                    break;
-      default: assert(false);
+           if(createLeft){
+              q1.push(seg.convertToHs(true, first));
+           }
+           if(createRight){
+              q1.push(seg.convertToHs(false, first));
+           }
+           break;
+      } case second:{
+           if(createLeft){
+              q2.push(seg.convertToHs(true, second));
+           }
+           if(createRight){
+              q2.push(seg.convertToHs(false, second));
+           }
+           break;
+      } case both : { 
+           if(createLeft){
+              q1.push(seg.convertToHs(true, first));
+              q2.push(seg.convertToHs(true, second));
+           }
+           if(createRight){
+              q1.push(seg.convertToHs(false, first));
+              q2.push(seg.convertToHs(false, second));
+           }
+           break;
+      } default: {
+           assert(false);
+      }
    }
-
 }
 
 /*
@@ -1317,6 +1333,106 @@ void performSplit(AVLTree<AVLSegment>& sss,
    insertEvents(right, true, true, q1, q2);
 }
  
+
+/*
+~splitByNeighbour~
+
+
+neighbour has to be an neighbour from current within sss.
+
+*/
+
+void splitByNeighbour(AVLTree<AVLSegment>& sss,
+                      AVLSegment& current,
+                      AVLSegment const*& neighbour,
+                      priority_queue<HalfSegment,  
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q1,
+                      priority_queue<HalfSegment,  
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q2){
+    AVLSegment left1, right1, left2, right2;
+    if(neighbour && !neighbour->innerDisjoint(current)){
+       if(neighbour->ininterior(current.getX1(),current.getY1())){
+          neighbour->splitAt(current.getX1(),current.getY1(),left1,right1);
+          sss.remove(*neighbour);
+          neighbour = sss.insert2(left1);
+          insertEvents(left1,false,true,q1,q2);
+          insertEvents(right1,true,true,q1,q2);
+       } else if(neighbour->ininterior(current.getX2(),current.getY2())){
+          neighbour->splitAt(current.getX2(),current.getY2(),left1,right1);
+          sss.remove(*neighbour);
+          neighbour = sss.insert2(left1);
+          insertEvents(left1,false,true,q1,q2);
+          insertEvents(right1,true,true,q1,q2);
+       } else if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
+          current.splitAt(neighbour->getX2(),neighbour->getY2(),left1,right1);
+          current = left1; 
+          insertEvents(left1,false,true,q1,q2);
+          insertEvents(right1,true,true,q1,q2);
+       } else if(current.crosses(*neighbour)){
+          neighbour->splitCross(current,left1,right1,left2,right2);
+          sss.remove(*neighbour);
+          neighbour = sss.insert2(left1);
+          current = left2;
+          insertEvents(left1,false,true,q1,q2);
+          insertEvents(right1,true,true,q1,q2);
+          insertEvents(left2,false,true,q1,q2);
+          insertEvents(right2,true,true,q1,q2);
+       } else {  // forgotten case
+          assert(false);
+       }
+    } 
+}
+
+
+/*
+~splitNeighbours~
+
+checks if the left and the right neighbour are intersection in their
+interiors and permorms the required actions.
+
+
+*/
+
+void splitNeighbours(AVLTree<AVLSegment>& sss,
+                     AVLSegment const*& leftN,
+                     AVLSegment const*& rightN,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2){
+  if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
+    AVLSegment left1, right1, left2, right2;
+    if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
+       leftN->splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
+       sss.remove(*leftN);
+       leftN = sss.insert2(left1);
+       insertEvents(left1,false,true,q1,q2);
+       insertEvents(right1,true,true,q1,q2);
+    } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
+       rightN->splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
+       sss.remove(*rightN);
+       rightN = sss.insert2(left1);
+       insertEvents(left1,false,true,q1,q2);
+       insertEvents(right1,true,true,q1,q2);
+    } else if (rightN->crosses(*leftN)){
+         leftN->splitCross(*rightN,left1,right1,left2,right2);
+         sss.remove(*leftN);
+         sss.remove(*rightN);
+         leftN = sss.insert2(left1);
+         rightN = sss.insert2(left2);
+         insertEvents(left1,false,true,q1,q2);
+         insertEvents(left2,false,true,q1,q2);
+         insertEvents(right1,true,true,q1,q2);
+         insertEvents(right2,true,true,q1,q2);
+    } else { // forgotten case
+       assert(false);
+    }
+  } // intersecting neighbours
+}
 
 
 /*
@@ -2413,8 +2529,8 @@ They are updated automatically within this function.
 Depending on the return value, one of the parameter ~resultHs~ or
 ~resultPoint~ is set to the value of the next event.
 
-If the region and the points value are already processed, the return value will 
-be ~none~.
+If the region and the points value are already processed, the return 
+value will be ~none~.
 
 */
 
@@ -2492,25 +2608,24 @@ ownertype selectNext(const Region*  reg,
   }
 
   switch(src){
-    case 0: { return none;
-            }
-    case 1: { // region
-              pos1++;
-              resultHS = *minhs;
-              return first;
-            }
-    case 2: { // queue
-              q1.pop();
-              resultHS = *minhs;
-              return first;
-            }
-    case 3: {  // point
-               pos2++;
-               resultPoint = *cp;
-               return second;
-            }
-    default:  assert(false);
-              return none; 
+    case 0: { 
+       return none;
+    } case 1: { // region
+       pos1++;
+       resultHS = *minhs;
+       return first;
+    } case 2: { // queue
+       q1.pop();
+       resultHS = *minhs;
+       return first;
+    } case 3: {  // point
+       pos2++;
+       resultPoint = *cp;
+       return second;
+    } default: {
+        assert(false);
+        return none; 
+    }
   }
 }
 
@@ -2628,85 +2743,13 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
       const AVLSegment* member = sss.getMember(current,leftN,rightN);
       if(CH.IsLeftDomPoint()){ // left Event
          assert(!member); // a single region can't contain overlapping segments
-         AVLSegment left;
-         AVLSegment right;
-
-         // check if left or right split the current element
-         if(leftN && current.ininterior(leftN->getX2(), leftN->getY2())){
-            current.splitAt(leftN->getX2(), leftN->getY2(), left, right);
-            current = left;
-            q1.push(right.convertToHs(true,first));
-            q1.push(right.convertToHs(false,first)); 
-         }
-         if(rightN && current.ininterior(rightN->getX2(), rightN->getY2())){
-            current.splitAt(rightN->getX2(), rightN->getY2(), left, right);
-            current = left;
-            q1.push(right.convertToHs(true,first));
-            q1.push(right.convertToHs(false,first)); 
-         }     
-         // check if current splits left or right
-         if(leftN && leftN->ininterior(current.getX1(), current.getY1())){
-            leftN->splitAt(current.getX1(), current.getY1(),left,right); 
-            sss.remove(*leftN);
-            sss.insert(left);
-            leftN = &left;
-            q1.push(left.convertToHs(false,first));
-            q1.push(right.convertToHs(true,first));
-            q1.push(right.convertToHs(false,first));
-         }
-         if(leftN && leftN->ininterior(current.getX2(), current.getY2())){
-            leftN->splitAt(current.getX2(), current.getY2(),left,right); 
-            sss.remove(*leftN);
-            sss.insert(left);
-            leftN = &left;
-            q1.push(left.convertToHs(false,first));
-            q1.push(right.convertToHs(true,first));
-            q1.push(right.convertToHs(false,first));
-         }
-         if(rightN && rightN->ininterior(current.getX1(), current.getY1())){
-            rightN->splitAt(current.getX1(), current.getY1(),left,right); 
-            sss.remove(*rightN);
-            sss.insert(left);
-            rightN = &left;
-            q1.push(left.convertToHs(false,first));
-            q1.push(right.convertToHs(true,first));
-            q1.push(right.convertToHs(false,first));
-         }
-         if(rightN && rightN->ininterior(current.getX2(), current.getY2())){
-            rightN->splitAt(current.getX2(), current.getY2(),left,right); 
-            sss.remove(*rightN);
-            sss.insert(left);
-            rightN = &left;
-            q1.push(left.convertToHs(false,first));
-            q1.push(right.convertToHs(true,first));
-            q1.push(right.convertToHs(false,first));
-         }
+         splitByNeighbour(sss,current,leftN,q1,q1);
+         splitByNeighbour(sss,current,rightN,q1,q1);
          sss.insert(current);
-
- 
       } else { // right event
-        if(member){
+        if(member && member->exactEqualsTo(current)){
            sss.remove(current);
-           if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
-              AVLSegment left;
-              AVLSegment right;
-              if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
-                 leftN->splitAt(rightN->getX2(),rightN->getY2(),left,right);
-                 sss.remove(*leftN);
-                 sss.insert(left);
-                 q1.push(left.convertToHs(false,first));
-                 q1.push(right.convertToHs(true,first));
-                 q1.push(right.convertToHs(false,first));
-              }
-              if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
-                 rightN->splitAt(leftN->getX2(),leftN->getY2(),left,right);
-                 sss.remove(*leftN);
-                 sss.insert(left);
-                 q1.push(left.convertToHs(false,first));
-                 q1.push(right.convertToHs(true,first));
-                 q1.push(right.convertToHs(false,first));
-              }
-           }
+           splitNeighbours(sss,leftN,rightN,q1,q1);
         }
       }
     } // element from region
@@ -3159,144 +3202,8 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
                      SetBB(res,useCluster,cluster,done);
                  }
               }
-
-             if(leftN && 
-                current.ininterior(leftN->getX2(), leftN->getY2())){
-
-                // case 1 endpoint of leftN devides current
-                AVLSegment left, right;
-                current.splitAt(leftN->getX2(), leftN->getY2(), left, right);
-                current = left;
-                HalfSegment hs_left = left.convertToHs(false);
-                switch(current.getOwner()){
-                  case first:   { 
-                                  q1.push(hs_left);
-                                  q1.push(right.convertToHs(true));
-                                  q1.push(right.convertToHs(false));
-                                  break;
-                                }
-                   case second: { q2.push(hs_left);
-                                  q2.push(right.convertToHs(true));
-                                  q2.push(right.convertToHs(false));
-                                  break;
-                                }
-                   default: assert(false);
-                }
-             }
-            
-             if(rightN && 
-                current.ininterior(rightN->getX2(), rightN->getY2())){
-                // case 1 endpoint of rightN devides current
-                AVLSegment left, right;
-                current.splitAt(rightN->getX2(), rightN->getY2(), left, right);
-                current = left;
-                HalfSegment hs_left = left.convertToHs(false);
-                switch(current.getOwner()){
-                  case first:   { q1.push(hs_left);
-                                  q1.push(right.convertToHs(true));
-                                  q1.push(right.convertToHs(false));
-                                  break;
-                                }
-                   case second: { q2.push(hs_left);
-                                  q2.push(right.convertToHs(true));
-                                  q2.push(right.convertToHs(false));
-                                  break;
-                                }
-                   default: assert(false);
-
-                }
-             }
-            
-             if(leftN && // case leftN ist splitted by current
-                ( leftN->ininterior(current.getX1(), current.getY1()) ||
-                  leftN->ininterior(current.getX2(), current.getY2()))){
-               // determine the split point
-               double x,y;
-               if( leftN->ininterior(current.getX1(), current.getY1())){
-                   x = current.getX1();
-                   y = current.getY1();
-               } else {
-                   x = current.getX2();
-                   y = current.getY2();
-               }
-
-               // split leftN
-               AVLSegment left, right;
-               leftN->splitAt(x, y, left, right);
-               // remove the nonsplitted segment from sss 
-               // and insert the shorted one
-
-               sss.remove(*leftN);
-               leftN = &right; 
-               sss.insert(left);
-
-               switch(left.getOwner()){
-                  case first:   { q1.push(left.convertToHs(false,first));
-                                  q1.push(right.convertToHs(false));
-                                  q1.push(right.convertToHs(true));
-                                  break;
-                                }
-                   case second: { q2.push(left.convertToHs(false,second));
-                                  q2.push(right.convertToHs(false));
-                                  q2.push(right.convertToHs(true));
-                                  break;
-                                }
-                   case both: {   q1.push(left.convertToHs(false,first));
-                                  q2.push(left.convertToHs(false,second));
-                                  q1.push(right.convertToHs(false,first));
-                                  q2.push(right.convertToHs(false,second));
-                                  q1.push(right.convertToHs(true,first));
-                                  q2.push(right.convertToHs(true,second));
-                                  break;
-                              }
-                   default: assert(false);
-
-                }
-
-             }
-             if(rightN && // case rightN ist splitted by current
-                ( rightN->ininterior(current.getX1(), current.getY1()) ||
-                  rightN->ininterior(current.getX2(), current.getY2()))){
-               // determine the split point
-               double x,y;
-               if( rightN->ininterior(current.getX1(), current.getY1())){
-                   x = current.getX1();
-                   y = current.getY1();
-               } else {
-                   x = current.getX2();
-                   y = current.getY2();
-               }
-               // split leftN
-               AVLSegment left, right;
-               rightN->splitAt(x, y, left, right);
-               // remove the nonsplitted segment from sss 
-               // and insert the shorted one
-               sss.remove(*rightN);
-               sss.insert(left);
-               // create events for the splitted segments
-               switch(left.getOwner()){
-                  case first:   { q1.push(left.convertToHs(false,first));
-                                  q1.push(right.convertToHs(true,first));
-                                  q1.push(right.convertToHs(false,first));
-                                  break;
-                                }
-                   case second: { q2.push(left.convertToHs(false,second));
-                                  q2.push(right.convertToHs(false,second));
-                                  q2.push(right.convertToHs(true,second));
-                                  break;
-                                }
-                   case both: {   q1.push(left.convertToHs(false,first));
-                                  q2.push(left.convertToHs(false,second));
-                                  q1.push(right.convertToHs(true,first));
-                                  q2.push(right.convertToHs(true,second));
-                                  q1.push(right.convertToHs(false,first));
-                                  q2.push(right.convertToHs(false,second));
-                                  break;
-                              }
-                   default: assert(false);
-
-                }
-             }
+              splitByNeighbour(sss,current,leftN,q1,q2);
+              splitByNeighbour(sss,current,rightN,q1,q2);
              // insert current (may be shortened) into sss
             // update coverage numbers
             bool iac = current.getOwner()==first?
@@ -3401,9 +3308,6 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
 
        
         if( leftN && rightN && !leftN->innerDisjoint(*rightN)){
-
-           // leftN and rightN are crossing or one of the segments
-           // splits the other one by its right endpoint 
            if(leftN->crosses(*rightN)){
               assert(leftN->getOwner() != rightN->getOwner()); 
               res.Fill(); // we are done
@@ -3412,62 +3316,8 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
               } else {
                  return true;
               }
-           } else if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
-              AVLSegment left, right;
-              leftN->splitAt(rightN->getX2(), rightN->getY2(),left,right);
-              sss.remove(*leftN);
-              leftN = &right;
-              sss.insert(left);
-              switch(leftN->getOwner()){
-                  case first: { q1.push(left.convertToHs(false));
-                               q1.push(right.convertToHs(true,first));
-                               q1.push(right.convertToHs(false,first));
-                               break;
-                              }
-                  case second: { q2.push(left.convertToHs(false));
-                               q2.push(right.convertToHs(true,second));
-                               q2.push(right.convertToHs(false,second));
-                               break;
-                               }
-                  case both: { q1.push(left.convertToHs(false,first));
-                               q2.push(left.convertToHs(false,second));
-                               q1.push(right.convertToHs(true,first));
-                               q2.push(right.convertToHs(true,second));
-                               q1.push(right.convertToHs(false,first));
-                               q2.push(right.convertToHs(false,second));
-                               break; 
-                             }
-                  default:  assert(false);
-              }
-           } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
-              AVLSegment left, right;
-              rightN->splitAt(leftN->getX2(), leftN->getY2(),left,right);
-              sss.remove(*rightN);
-              sss.insert(left);
-              switch(rightN->getOwner()){
-                  case first: { q1.push(left.convertToHs(false));
-                               q1.push(right.convertToHs(true,first));
-                               q1.push(right.convertToHs(false,first));
-                               break;
-                              }
-                  case second: { q2.push(left.convertToHs(false));
-                               q2.push(right.convertToHs(true,second));
-                               q2.push(right.convertToHs(false,second));
-                               break;
-                               }
-                  case both: { q1.push(left.convertToHs(false,first));
-                               q2.push(left.convertToHs(false,second));
-                               q1.push(right.convertToHs(true,first));
-                               q2.push(right.convertToHs(true,second));
-                               q1.push(right.convertToHs(false,first));
-                               q2.push(right.convertToHs(false,second));
-                               break; 
-                             }
-                  default:  assert(false);
-              }
-           } else {  // should never occur
-               assert(false); 
            }
+           splitNeighbours(sss,leftN,rightN,q1,q2);
         }
       }
     }
@@ -3727,64 +3577,8 @@ bool GetInt9M(Line const* const line1,
 
         } 
       } else { // no overlapping segment stored in sss
-        if(leftN && !leftN->innerDisjoint(current)){
-          if(leftN->ininterior(current.getX1(),current.getY1())){
-             // leftN divided by current's start point
-             leftN->splitAt(current.getX1(),current.getY1(),left1,right1);
-             performSplit(sss,*leftN,left1,right1,q1,q2);
-             leftN = &left1; 
-          } else if(leftN->ininterior(current.getX2(),current.getY2())){
-             leftN->splitAt(current.getX2(),current.getY2(),left1,right1);
-             performSplit(sss,*leftN,left1,right1,q1,q2);
-             leftN = &left1; 
-          } else  if(leftN->crosses(current)){
-             if(current.getOwner()!=leftN->getOwner()){
-                 SetII(res,useCluster,cluster,done);
-             }
-             leftN->splitCross(current,left1,right1,left2,right2);
-             performSplit(sss,*leftN,left1,right1,q1,q2);
-             leftN = &left1;
-             current = left2;
-             insertEvents(left2,false,true,q1,q2);
-             insertEvents(right2,true,true,q1,q2);
-          } else if(current.ininterior(leftN->getX2(),leftN->getY2())){
-             current.splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
-             current = left1;
-             insertEvents(left1,false,true,q1,q2);
-             insertEvents(right1,true,true,q1,q2); 
-          } else { // forgotten case
-             assert(false);
-          }
-        }
-        if(rightN && !rightN->innerDisjoint(current)){
-          if(rightN->ininterior(current.getX1(),current.getY1())){
-             // leftN divided by current's start point
-             rightN->splitAt(current.getX1(),current.getY1(),left1,right1);
-             performSplit(sss,*rightN,left1,right1,q1,q2);
-             rightN = &left1; 
-          } else if(rightN->ininterior(current.getX2(),current.getY2())){
-             rightN->splitAt(current.getX2(),current.getY2(),left1,right1);
-             performSplit(sss,*rightN,left1,right1,q1,q2);
-             rightN = &left1; 
-          } else  if(rightN->crosses(current)){
-             if(current.getOwner()!=rightN->getOwner()){
-                 SetII(res,useCluster,cluster,done);
-             }
-             rightN->splitCross(current,left1,right1,left2,right2);
-             performSplit(sss,*rightN,left1,right1,q1,q2);
-             rightN = &left1;
-             current = left2;
-             insertEvents(left2,false,true,q1,q2);
-             insertEvents(right2,true,true,q1,q2);
-          } else if(current.ininterior(rightN->getX2(),rightN->getY2())){
-             current.splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
-             current = left1;
-             insertEvents(left1,false,true,q1,q2);
-             insertEvents(right1,true,true,q1,q2); 
-          } else { // forgotten case
-             assert(false);
-          }
-        }
+        splitByNeighbour(sss,current,leftN,q1,q2);
+        splitByNeighbour(sss,current,rightN,q1,q2);
         updateDomPoints(lastDomPoint,nextHs.GetDomPoint(),
                         lastDomPointCount1, lastDomPointCount2, 
                         owner,res,useCluster,cluster,done);
@@ -3815,31 +3609,7 @@ bool GetInt9M(Line const* const line1,
                        break;
           default:     assert(false);
         }
-
-        // check for intersections of the neighbours
-        if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
-           if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
-              leftN->splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
-              performSplit(sss,*leftN,left1,right1,q1,q2);
-              leftN = &left1;
-
-           } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
-              rightN->splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
-              performSplit(sss,*rightN,left1,right1,q1,q2);
-              rightN = &left1;
-           } else if(rightN->crosses(*leftN)){
-               if(leftN->getOwner() != rightN->getOwner()){
-                 SetII(res,useCluster,cluster,done);
-               }  
-               leftN->splitCross(*rightN,left1,right1,left2,right2);
-               performSplit(sss,*leftN,left1,right1,q1,q2);
-               performSplit(sss,*rightN,left2,right2,q1,q2);
-               leftN = &left1;
-               rightN = &left2;
-           } else {  // forgotten case
-             assert(false);
-           }
-        }          
+        splitNeighbours(sss,leftN,rightN,q1,q2);
      } // otherwise current comes from a splitted segment and is ignored
    }
    done = done || res.IsFull() ||
@@ -3862,7 +3632,7 @@ bool GetInt9M(Line const* const line1,
     return true;
  }
 
-}
+} // line x line
 
 
 /*
@@ -4119,65 +3889,8 @@ bool GetInt9M(Line   const* const line,
          }
        } else { // no overlapping segment found
           // check if current or an existing segment must be divided
-          if(leftN && !leftN->innerDisjoint(current)){
-              if(current.ininterior(leftN->getX2(), leftN->getY2())){
-                current.splitAt(leftN->getX2(), leftN->getY2(),left1,right1);
-                current = left1;
-                insertEvents(left1,false,true,q1,q2);
-                insertEvents(right1,true,true,q1,q2); 
-              } else if(leftN->ininterior(current.getX1(),current.getY1())){
-                leftN->splitAt(current.getX1(),current.getY1(),left1,right1);
-                performSplit(sss,*leftN,left1,right1,q1,q2);
-                leftN = &left1;
-                if(owner != leftN->getOwner()){
-                   owner2 = both;
-                }
-              } else if(leftN->ininterior(current.getX2(),current.getY2())){
-                leftN->splitAt(current.getX2(),current.getY2(),left1,right1);
-                performSplit(sss,*leftN,left1, right1, q1, q2);
-                leftN = &left1;
-              } else if(leftN->crosses(current)){
-                 leftN->splitCross(current,left1,right1,left2,right2);
-                 performSplit(sss,*leftN,left1,right1,q1,q2);
-                 leftN = &left1;
-                 current = left2;
-                 insertEvents(left2,false,true,q1,q2); 
-                 insertEvents(right2,true,true,q1,q2);
-              } else {
-                  assert(false);
-              }
-          }
-          // check for intersections with the right neighbour
-          if(rightN && !rightN->innerDisjoint(current)){
-              if(current.ininterior(rightN->getX2(), rightN->getY2())){
-                current.splitAt(rightN->getX2(), rightN->getY2(),left1,right1);
-                current = left1;
-                insertEvents(left1,false,true,q1,q2);
-                insertEvents(right1,true,true,q1,q2); 
-              } else if(rightN->ininterior(current.getX1(),current.getY1())){
-                rightN->splitAt(current.getX1(),current.getY1(),left1,right1);
-                performSplit(sss,*rightN,left1,right1,q1,q2);
-                rightN = &left1;
-                if(owner != rightN->getOwner()){
-                  owner2 = both;
-                }
-              } else if(rightN->ininterior(current.getX2(),current.getY2())){
-                rightN->splitAt(current.getX2(),current.getY2(),left1,right1);
-                performSplit(sss,*rightN,left1, right1, q1, q2);
-                rightN = &left1;
-              } else if(rightN->crosses(current)){
-                 rightN->splitCross(current,left1,right1,left2,right2);
-
-                 performSplit(sss,*rightN,left1,right1,q1,q2);
-                 rightN = &left1;
-                 current = left2;
-                 insertEvents(left2,false,true,q1,q2); 
-                 insertEvents(right2,true,true,q1,q2);
-              } else { //forgotten case
-                 assert(false);
-              }
-          }
-
+          splitByNeighbour(sss,current,leftN,q1,q2);
+          splitByNeighbour(sss,current,rightN,q1,q2);
           // update coverage numbers
           if(leftN){
              current.con_below = leftN->con_above;               
@@ -4211,31 +3924,11 @@ bool GetInt9M(Line   const* const line,
            AVLSegment tmp = *member;
            sss.remove(*member);
            member = &tmp;
- 
-           if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
-              // leftN and rightN are intersecting
-              if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
-                 leftN->splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
-                 performSplit(sss,*leftN,left1,right1,q1,q2);
-                 leftN = &left1;
-              } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
-                 rightN->splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
-                 performSplit(sss,*rightN,left1,right1,q1,q2);
-                 rightN = &left1;
-              } else if(leftN->crosses(*rightN)){
-                 leftN->splitCross(*rightN,left1,right1,left2,right2);
-                 performSplit(sss,*leftN,left1,right1,q1,q2);
-                 leftN = &left1;
-                 performSplit(sss,*rightN,left2,right2,q1,q2);
-                 rightN = &left2;  
-              } else { // forgotten case 
-                 assert(false);
-              }
-           }
-          // update dominating point information 
-          int cover = leftN?leftN->con_above:0;
-          Point domPoint = nextHs.GetDomPoint();
-          updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
+           splitNeighbours(sss,leftN,rightN,q1,q2); 
+           // update dominating point information 
+           int cover = leftN?leftN->con_above:0;
+           Point domPoint = nextHs.GetDomPoint();
+           updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
                                          lastDomPointCount1,
                                          lastDomPointCount2,
                                          cover, member->getOwner(), res,
@@ -4274,9 +3967,665 @@ bool GetInt9M(Line   const* const line,
 }
 
 
+
+
+/*
+8 ~Realminize~
+
+This function converts Line givens as source into a realminized version
+stored in ~result~.
+
+
+
+*/
+ownertype selectNext(const Line& src, int& pos,
+                            priority_queue<HalfSegment,  
+                                           vector<HalfSegment>, 
+                                           greater<HalfSegment> > q,
+                            HalfSegment& result){
+
+ int size = src.Size();
+ if(size>=pos){
+    if(q.empty()){
+      return none;
+    } else {
+      result = q.top();
+      q.pop();
+      return first;
+    }
+ } else {
+   const HalfSegment* hs;
+   src.Get(pos,hs);
+
+   if(q.empty()){
+      result = *hs;      
+      pos++;
+      return first;
+   } else{
+      HalfSegment hsq = q.top();
+      if(hsq<*hs){
+         result = hsq;
+         q.pop();
+         return first;
+      } else {
+         pos++;
+         result = *hs;
+         return first;
+      }
+   }
+ }
+ 
+
+
+}
+
+
+void Realminize2(const Line& src, Line& result){
+
+  result.Clear();
+  if(!src.IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  if(src.Size()==0){ // empty line, nothing to realminize
+    return;
+  }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  AVLTree<AVLSegment> sss;
+
+  int pos = 0;
+
+  HalfSegment nextHS;
+  const AVLSegment* member=0;
+  const AVLSegment* leftN  = 0;
+  const AVLSegment* rightN = 0;
+
+  AVLSegment left1, right1,left2,right2;
+  
+  result.StartBulkLoad();
+  int edgeno = 0;
+
+  while(selectNext(src,pos,q,nextHS)!=none) {
+      AVLSegment current(&nextHS,first);
+      member = sss.getMember(current,leftN,rightN);
+      if(nextHS.IsLeftDomPoint()){
+         if(member){ // overlapping segment found in sss
+            double xm = member->getX2();
+            double xc = current.getX2();
+            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+               current.splitAt(xm,member->getY2(),left1,right1);
+               insertEvents(right1,true,true,q,q);
+            }
+         } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q,q);
+            splitByNeighbour(sss,current,rightN,q,q);
+            sss.insert(current);
+         }
+      } else {  // nextHS rightDomPoint
+          if(member && member->exactEqualsTo(current)){
+             // insert the segments
+             HalfSegment hs1 = current.convertToHs(true);
+             HalfSegment hs2 = current.convertToHs(false);
+             hs1.attr.edgeno = edgeno;
+             result += hs1;
+             result += hs2;
+             splitNeighbours(sss,leftN,rightN,q,q);
+             edgeno++;
+          }
+      }      
+  }
+  result.EndBulkLoad();
+} // Realminize2
+
+
+
+
+/*
+9 Set Operations
+
+
+The following functtion implement the operations union, intersection and
+difference for some combinations of spatial types.
+
+
+9.1 Definition of possible opperations
+
+*/
+
+enum SetOperation{union_op, intersection_op, difference_op};
+
+
+/*
+9.2 ~line~ [x] ~line~ [->] ~line~
+
+This combination can be used for all possible set operations.
+
+
+*/
+
+void SetOp(const Line& line1,
+           const Line& line2,
+           Line& result,
+           SetOperation op){
+
+   result.Clear();
+   if(!line1.IsDefined() || !line2.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(line1.Size()==0){
+       switch(op){
+         case union_op : result = line2;
+                         return;
+         case intersection_op : return; // empty line
+         case difference_op : return; // empty line
+         default : assert(false);
+       }
+   }
+   if(line2.Size()==0){
+      switch(op){
+         case union_op: result = line1;
+                        return;
+         case intersection_op: return;
+         case difference_op: result = line1;
+                             return;
+         default : assert(false);
+      }
+   }
+
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  AVLTree<AVLSegment> sss;
+  ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  const AVLSegment* member=0;
+  const AVLSegment* leftN = 0;
+  const AVLSegment* rightN = 0;
+
+  AVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+
+  result.StartBulkLoad();
+  while( (owner=selectNext(&line1,pos1,&line2,pos2,q1,q2,nextHs,src))!=none){
+       AVLSegment current(&nextHs,owner);
+       member = sss.getMember(current,leftN,rightN);
+       if(nextHs.IsLeftDomPoint()){
+          if(member){ // found an overlapping segment
+             if(member->getOwner()==current.getOwner()){ // same source
+                 double xm = member->getX2();
+                 double xc = current.getX2();
+                 if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+                    current.splitAt(xm,member->getY2(),left1,right1);
+                    insertEvents(right1,true,true,q1,q2);
+                 }
+             }  else { // member and current come from different sources
+                 int parts = member->split(current,left1,common1,right1);
+                 sss.remove(*member);
+                 member = &common1;
+                 if(parts & LEFT){
+                     sss.insert(left1);
+                     insertEvents(left1,false,true,q1,q2);
+                 }
+                 assert(parts & COMMON);
+                 sss.insert(common1);
+                 insertEvents(common1,false,true,q1,q2);
+                 if(parts & RIGHT){
+                    insertEvents(right1,true,true,q1,q2);
+                 }
+             }
+          } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q1,q2);
+            splitByNeighbour(sss,current,rightN,q1,q2);
+            sss.insert(current);
+          }
+       } else { // nextHS rightDomPoint
+         if(member && member->exactEqualsTo(current)){
+             // insert the segments into the result
+             switch(op){
+                case union_op : { 
+                     HalfSegment hs1 = member->convertToHs(true,first);
+                     hs1.attr.edgeno = edgeno; 
+                     result += hs1;
+                     hs1.SetLeftDomPoint(false);
+                     result += hs1;
+                     edgeno++;
+                     break;
+                } case intersection_op : {
+                     if(member->getOwner()==both){
+                        HalfSegment hs1 = member->convertToHs(true,first);
+                        hs1.attr.edgeno = edgeno; 
+                        result += hs1;
+                        hs1.SetLeftDomPoint(false);
+                        result += hs1;
+                        edgeno++;
+                      } 
+                      break;
+                } case difference_op :{
+                      if(member->getOwner()==first){
+                        HalfSegment hs1 = member->convertToHs(true,first);
+                        hs1.attr.edgeno = edgeno; 
+                        result += hs1;
+                        hs1.SetLeftDomPoint(false);
+                        result += hs1;
+                        edgeno++;
+                      } 
+                      break;
+                } default : {
+                      assert(false);
+                }
+             }
+             sss.remove(*member);
+             splitNeighbours(sss,leftN,rightN,q1,q2);
+         }
+       }
+  } 
+  result.EndBulkLoad(true,false,true,true);
+} // setop line x line -> line
+
+/*
+
+9.3 ~region~ [x] ~region~ [->] ~region~
+
+*/
+
+void SetOp(const Region& reg1,
+           const Region& reg2,
+           Region& result,
+           SetOperation op){
+
+   result.Clear();
+   if(!reg1.IsDefined() || !reg2.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(reg1.Size()==0){
+       switch(op){
+         case union_op : result = reg2;
+                         return;
+         case intersection_op : return; // empty region
+         case difference_op : return; // empty region
+         default : assert(false);
+       }
+   }
+   if(reg2.Size()==0){
+      switch(op){
+         case union_op: result = reg1;
+                        return;
+         case intersection_op: return;
+         case difference_op: result = reg1;
+                             return;
+         default : assert(false);
+      }
+   }
+
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  AVLTree<AVLSegment> sss;
+  ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  const AVLSegment* member=0;
+  const AVLSegment* leftN = 0;
+  const AVLSegment* rightN = 0;
+
+  AVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+
+  result.StartBulkLoad();
+  while( (owner=selectNext(&reg1,pos1,&reg2,pos2,q1,q2,nextHs,src))!=none){
+       AVLSegment current(&nextHs,owner);
+       member = sss.getMember(current,leftN,rightN);
+       if(nextHs.IsLeftDomPoint()){
+          if(member){ // overlapping segment found
+            assert(member->getOwner()!=both);   
+            assert(member->getOwner()!=owner); 
+            int parts = member->split(current,left1,common1,right1);
+            sss.remove(*member);
+            if(parts & LEFT){
+              sss.insert(left1);
+              insertEvents(left1,false,true,q1,q2);
+            }
+            assert(parts & COMMON);
+            // update coverage numbers
+            if(current.getInsideAbove()){
+               common1.con_above++;
+            }  else {
+               common1.con_above--;
+            }
+            sss.insert(common1);
+            insertEvents(common1,false,true,q1,q2);
+            if(parts & RIGHT){
+               insertEvents(right1,true,true,q1,q2);
+            }
+          } else { // there is no overlapping segment
+            // try to split segments if required
+            splitByNeighbour(sss,current,leftN,q1,q2);
+            splitByNeighbour(sss,current,rightN,q1,q2);
+
+
+            // update coverage numbers
+
+            bool iac = current.getOwner()==first
+                            ?current.getInsideAbove_first()
+                            :current.getInsideAbove_second();
+
+            iac = current.getOwner()==first?current.getInsideAbove_first()
+                                           :current.getInsideAbove_second();
+
+            if(leftN && current.extends(*leftN)){
+              current.con_below = leftN->con_below;
+              current.con_above = leftN->con_above;
+            }else{
+              if(leftN && leftN->isVertical()){
+                 current.con_below = leftN->con_below;
+              } else if(leftN){
+                 current.con_below = leftN->con_above;
+              } else {
+                 current.con_below = 0;
+              }
+              if(iac){
+                 current.con_above = current.con_below+1;
+              } else {
+                 current.con_above = current.con_below-1;
+              }
+            }
+            // insert element
+            sss.insert(current); 
+          }
+       } else {  // nextHs.IsRightDomPoint
+          if(member && member->exactEqualsTo(current)){
+              switch(op){
+                case union_op :{
+                   if( (member->con_above==0) || (member->con_below==0)) {
+                      HalfSegment hs1 = member->getOwner()==both
+                                      ?member->convertToHs(true,first)
+                                      :member->convertToHs(true);
+                      hs1.attr.edgeno = edgeno;
+                      result += hs1;
+                      hs1.SetLeftDomPoint(false);
+                      result += hs1;
+                      edgeno++;
+                   }
+                   break;
+                }
+                case intersection_op: {
+                  if(member->con_above==2 || member->con_below==2){
+                      HalfSegment hs1 = member->getOwner()==both
+                                      ?member->convertToHs(true,first)
+                                      :member->convertToHs(true);
+                      hs1.attr.edgeno = edgeno;
+                      result += hs1;
+                      hs1.SetLeftDomPoint(false);
+                      result += hs1;
+                      edgeno++;
+                  } 
+                  break;
+                }
+                case difference_op : {
+                  switch(member->getOwner()){
+                    case first:{
+                      if(member->con_above + member->con_below == 1){
+                         HalfSegment hs1 = member->getOwner()==both
+                                          ?member->convertToHs(true,first)
+                                          :member->convertToHs(true);
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    case second:{
+                      if(member->con_above + member->con_below == 3){
+                         HalfSegment hs1 = member->getOwner()==both
+                                          ?member->convertToHs(true,second)
+                                          :member->convertToHs(true);
+                         hs1.attr.insideAbove = ! hs1.attr.insideAbove;
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    case both: {
+                      if((member->con_above==1) && (member->con_below== 1)){
+                         HalfSegment hs1 = member->getOwner()==both
+                                          ?member->convertToHs(true,first)
+                                          :member->convertToHs(true);
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    default : assert(false);
+                  } // switch member->getOwner
+                  break;
+                } // case difference
+                default : assert(false);
+              } // end of switch
+              sss.remove(*member);
+              splitNeighbours(sss,leftN,rightN,q1,q2);
+          } // current found in sss
+       } // right endpoint
+  }
+  result.EndBulkLoad();
+} // setOP region x region -> region
+
+
+
+/*
+9.4 ~region~ x ~line~ -> ~region~  
+
+This combination can only be used for the operations
+union and difference. In both cases, the result will be
+the original region value.
+
+*/
+
+void SetOp(const Region& region,
+           const Line& line,
+           Region& result,
+           SetOperation op){
+
+   assert(op == union_op || op == difference_op);
+   result.Clear();
+   if(!line.IsDefined() || !region.IsDefined()){
+      result.SetDefined(false);
+      return;
+   }
+   result.SetDefined(true);
+   result.CopyFrom(&region);
+}
+
+/*
+9.5  ~line~ [x] ~region~ [->] ~line~
+
+Here, only the difference and intersection operation are applicable.
+
+
+*/
+void SetOp(const Line& line,
+           const Region& region,
+           Line& result,
+           SetOperation op){
+
+  assert(op==intersection_op || op == difference_op);
+
+  result.Clear();
+  if(!line.IsDefined() || !region.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(line.Size()==0){ // empty line -> empty result
+       switch(op){
+         case intersection_op : return; // empty region
+         case difference_op : return; // empty region
+         default : assert(false);
+       }
+   }
+   if(region.Size()==0){
+      switch(op){
+         case intersection_op: return; 
+         case difference_op: result = line;
+                             return;
+         default : assert(false);
+      }
+   }
+
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  AVLTree<AVLSegment> sss;
+  ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  const AVLSegment* member=0;
+  const AVLSegment* leftN = 0;
+  const AVLSegment* rightN = 0;
+
+  AVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+
+  result.StartBulkLoad();
+  // perform a planesweeo
+  while( (owner=selectNext(&line,pos1,&region,pos2,q1,q2,nextHs,src))!=none){
+     AVLSegment current(&nextHs,owner);
+     member = sss.getMember(current,leftN,rightN);
+     if(nextHs.IsLeftDomPoint()){
+        if(member){ // there is an overlapping segment in sss
+           if(member->getOwner()==owner ||
+              member->getOwner()==both     ){
+              if(current.ininterior(member->getX2(),member->getY2())){
+                 current.splitAt(member->getX2(),member->getY2(),left1,right1);
+                 insertEvents(right1,true,true,q1,q2);
+              }
+           } else { // member and source come from difference sources
+             int parts = member->split(current,left1,common1,right1);
+             sss.remove(*member);
+             member = &common1;
+             if(parts & LEFT){
+                sss.insert(left1);
+                insertEvents(left1,false,true,q1,q2);
+             }
+             assert(parts & COMMON);
+             if(owner==second) {  // the region
+               if(current.getInsideAbove()){
+                  common1.con_above++;
+               } else {
+                  common1.con_above--;
+               }
+             } // for a line is nothing to do
+             sss.insert(common1);
+             insertEvents(common1,false,true,q1,q2);
+             if(parts & RIGHT){
+                 insertEvents(right1,true,true,q1,q2);
+             }
+           }
+        } else { // no overlapping segment in sss found
+          splitByNeighbour(sss,current,leftN,q1,q2);
+          splitByNeighbour(sss,current,rightN,q1,q2); 
+          // update coverage numbers
+          if(owner==second){ // the region
+            bool iac = current.getInsideAbove();
+            if(leftN && current.extends(*leftN)){
+              current.con_below = leftN->con_below;
+              current.con_above = leftN->con_above;
+            }else{
+              if(leftN && leftN->isVertical()){
+                 current.con_below = leftN->con_below;
+              } else if(leftN){
+                 current.con_below = leftN->con_above;
+              } else {
+                 current.con_below = 0;
+              }
+              if(iac){
+                 current.con_above = current.con_below+1;
+              } else {
+                 current.con_above = current.con_below-1;
+              }
+            }
+          } else { // the line
+            if(leftN){
+               if(leftN->isVertical()){
+                  current.con_below = leftN->con_below;
+               } else {
+                  current.con_below = leftN->con_above;
+               }
+            }
+            current.con_above = current.con_below; 
+          }
+          // insert element
+          sss.insert(current); 
+        }
+     } else { // nextHs.IsRightDomPoint()
+       if(member && member->exactEqualsTo(current)){
+
+          switch(op){
+              case intersection_op: {
+                if( (member->getOwner()==both) ||
+                    (member->getOwner()==first && member->con_above>0)){
+                    HalfSegment hs1 = member->convertToHs(true,first);
+                    hs1.attr.edgeno = edgeno;
+                    result += hs1;
+                    hs1.SetLeftDomPoint(false);
+                    result += hs1;
+                    edgeno++;
+                }
+                break;
+              }
+              case difference_op: {
+                if( (member->getOwner()==first) &&  
+                    (member->con_above==0)){
+                    HalfSegment hs1 = member->convertToHs(true,first);
+                    hs1.attr.edgeno = edgeno;
+                    result += hs1;
+                    hs1.SetLeftDomPoint(false);
+                    result += hs1;
+                    edgeno++;
+                }
+                break;
+              }
+              default : assert(false);
+          }
+          sss.remove(*member);
+          splitNeighbours(sss,leftN,rightN,q1,q2);
+       } 
+     }
+  }
+  result.EndBulkLoad();
+} // setOP(line x region -> line)
+
 /*
 8 Integrating Operators in Secondo 
-
 
 8.1 Type Mapping Functions 
 
@@ -4364,6 +4713,23 @@ ListExpr TopRelTypeMap(ListExpr args){
    return nl->SymbolAtom("int9m");
 }
 
+/*
+8.1.4 Realminize2TypeMap
+
+Just line -> line.
+
+*/
+ListExpr Realminize2TypeMap(ListExpr args){
+  if(nl->ListLength(args)==1 &&
+     nl->IsEqual(nl->First(args),"line")){
+     return nl->SymbolAtom("line");
+  }else {
+     ErrorReporter::ReportError("line expected");
+     return nl->TypeError();
+  }
+}
+
+
 
 #ifdef  TOPOPS_USE_STATISTIC
 /*
@@ -4396,6 +4762,115 @@ ListExpr TopOpsGetStatTypeMap(ListExpr args){
 }
 #endif
 
+
+
+
+/*
+8.1.6 SetOpTypeMap
+
+currently only line x line -> line is implemented  
+
+*/
+
+
+ListExpr Union2TypeMap(ListExpr args){
+
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("2 arguments expected.");
+     return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+
+   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
+     ErrorReporter::ReportError("two spatial type expected");
+     return nl->TypeError();
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("line");
+   }
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("region");
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("region");
+   }
+
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("region");
+   }
+   ErrorReporter::ReportError("combination not implemented yet");
+   return nl->TypeError();
+}
+
+
+ListExpr Intersection2TypeMap(ListExpr args){
+
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("2 arguments expected.");
+     return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+
+   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
+     ErrorReporter::ReportError("two spatial type expected");
+     return nl->TypeError();
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("line");
+   }
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("region");
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("line");
+   }
+
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("line");
+   }
+   ErrorReporter::ReportError("combination not implemented yet");
+   return nl->TypeError();
+}
+
+
+
+ListExpr Difference2TypeMap(ListExpr args){
+
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("2 arguments expected.");
+     return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+
+   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
+     ErrorReporter::ReportError("two spatial type expected");
+     return nl->TypeError();
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("line");
+   }
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("region");
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("line");
+   }
+
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("region");
+   }
+   ErrorReporter::ReportError("combination not implemented yet");
+   return nl->TypeError();
+}
 
 
 
@@ -4555,6 +5030,51 @@ int TopPredSym2(Word* args, Word& result, int message,
 }
 
 
+/*
+8.2.4 Realminize2
+
+*/
+int Realminize2VM(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   Line* arg = static_cast<Line*>(args[0].addr);
+   result = qp->ResultStorage(s);
+   Line* res = static_cast<Line*>(result.addr);
+   Realminize2(*arg,*res);
+   return 0;
+}
+
+
+/*
+8.2.5 Value mapping for set operations
+
+*/
+template<class t1, class t2, class tres>
+void SetOp(const t1& arg1, const t2& arg2, tres& result){
+   SetOp(arg1,arg2,result);
+}
+
+template<class t1, class t2, class tres, SetOperation op>
+int SetOpVM(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   t1* arg1 = static_cast<t1*>(args[0].addr);
+   t2* arg2 = static_cast<t2*>(args[1].addr); 
+   tres* res = static_cast<tres*>(result.addr);
+   SetOp(*arg1,*arg2,*res,op);
+   return 0;
+}
+
+template<class t1, class t2, class tres, SetOperation op>
+int SetOpVMSym(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   t1* arg1 = static_cast<t1*>(args[0].addr);
+   t2* arg2 = static_cast<t2*>(args[1].addr); 
+   tres* res = static_cast<tres*>(result.addr);
+   SetOp(*arg2,*arg1,*res,op);
+   return 0;
+}
 
 /*
 8.3  Operator specifications
@@ -4594,6 +5114,35 @@ const string TopOpsGetStatSpec =
    "  \" gets statistical information of this algebra \" "
     "  \" query topops_get_stat() \" ))";
 
+
+const string Realminize2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> line -> line </text--->"
+ " \" realminize2() \" "
+ "  \" corrects the representation of a line value \" "
+	"  \" query realminize2(trajectory(Train2)) \" ))";
+
+const string Union2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> line x line -> line </text--->"
+ " \"  _ union2 _ \" "
+ "  \" computes the union of two line values \" "
+	"  \" query l1 union2 l2 \" ))";
+
+const string Intersection2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> line x line -> line </text--->"
+ " \"  _ intersection2 _ \" "
+ "  \" computes the intersection of two line values \" "
+	"  \" query l1 intersection2 l2 \" ))";
+
+const string Difference2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> line x line -> line </text--->"
+ " \"  _ difference2 _ \" "
+ "  \" computes the difference of two line values \" "
+	"  \" query l1 difference2 l2 \" ))";
+
 #endif
 
 /*
@@ -4628,6 +5177,27 @@ ValueMapping TopPredMap[] = {
        TopPred<Region,Region>,
        TopPred<Line,Line>, 
        TopPred<Line,Region> };
+
+ValueMapping Union2Map[] = {
+       SetOpVM<Line,Line,Line,union_op>,
+       SetOpVM<Region,Region,Region,union_op>,
+       SetOpVM<Region,Line,Region,union_op>,
+       SetOpVMSym<Line,Region,Region,union_op>
+       };
+
+ValueMapping Intersection2Map[] = {
+       SetOpVM<Line,Line,Line,intersection_op>,
+       SetOpVM<Region,Region,Region,intersection_op>,
+       SetOpVM<Line,Region,Line,intersection_op>,
+       SetOpVMSym<Region,Line,Line,intersection_op>
+      };
+
+ValueMapping Difference2Map[] = {
+       SetOpVM<Line,Line,Line,difference_op>,
+       SetOpVM<Region,Region,Region,difference_op>,
+       SetOpVM<Line,Region,Line,difference_op>,
+       SetOpVMSym<Line,Region,Region,difference_op>
+      };
 
 
 /*
@@ -4693,6 +5263,27 @@ static int TopOpsSelect(ListExpr args){
 } 
 
 
+static int SetOpSelect(ListExpr args){
+   string type1 = nl->SymbolValue(nl->First(args));
+   string type2 = nl->SymbolValue(nl->Second(args));
+   
+  if( (type1=="line") && (type2=="line")){
+      return 0;
+   }
+  if( (type1=="region") && (type2=="region")){
+      return 1;
+   }
+  if( (type1=="line") && (type2=="region")){
+      return 2;
+   }
+  if( (type1=="region") && (type2=="line")){
+      return 3;
+   }
+   return -1;
+}
+
+
+
 /*
 8.6 Definition of operators
 
@@ -4736,6 +5327,42 @@ Operator topops_get_stat(
 #endif
 
 
+Operator realminize2(
+     "realminize2",           //name
+     Realminize2Spec,   //specification
+     Realminize2VM, //value mapping
+     Operator::SimpleSelect,         //trivial selection function
+     Realminize2TypeMap //type mapping
+);
+
+
+Operator union2(
+        "union2",     // name
+         Union2Spec,   // specification
+         sizeof(Union2Map)/sizeof(ValueMapping),  // number of functions
+         Union2Map,    // array of value mappings
+         SetOpSelect,
+         Union2TypeMap
+         );
+
+
+Operator intersection2(
+        "intersection2",     // name
+         Intersection2Spec,   // specification
+         sizeof(Intersection2Map)/sizeof(ValueMapping),  // number of functions
+         Intersection2Map,    // array of value mappings
+         SetOpSelect,
+         Intersection2TypeMap
+         );
+
+Operator difference2(
+        "difference2",     // name
+         Difference2Spec,   // specification
+         sizeof(Difference2Map)/sizeof(ValueMapping),  // number of functions
+         Difference2Map,    // array of value mappings
+         SetOpSelect,
+         Difference2TypeMap
+         );
 
 /*
 8.7 Creating the algebra
@@ -4750,6 +5377,10 @@ class TopOpsAlgebra : public Algebra {
         AddOperator(&topops_reset_stat);
         AddOperator(&topops_get_stat);
 #endif
+        AddOperator(&realminize2);
+        AddOperator(&union2);
+        AddOperator(&intersection2);
+        AddOperator(&difference2);
       }
      ~TopOpsAlgebra(){}
 } topOpsAlgebra;
