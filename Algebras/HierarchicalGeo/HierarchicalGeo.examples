@@ -140,4 +140,14 @@ Signature: hmpoint -> bool
 Example  : query htrain7 passes havel
 Result      : TRUE
 
+Operator: no_components
+Number: 1
+Signature: hmpoint -> int
+Example  : query no_components(htrain7)
+Result      : 329
 
+Operator: reduce_hierarchy
+Number: 1
+Signature: (hmpoint real) -> hcmpoint
+Example  : query reduce_hierarchy(htrain7, 60.0)
+Result      : file

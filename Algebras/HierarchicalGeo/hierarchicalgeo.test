@@ -241,6 +241,16 @@ delete cuptest1;
 # 2 - Tests about the datatype cmpoint (uncertain moving point)
 
 
+#testcase cmpoint_no_components
+#yields (int 185)
+query no_components(ctrain7);
+
+
+#testcase cmpoint_epsilon
+#yields (real 23.5)
+query epsilon(ctrain7);
+
+
 #testcase createcmpoint
 #yields success 
 create cmptest1 : cmpoint;
@@ -390,6 +400,49 @@ query ctrain7 p_at mehringdamm;
             (-2849.0 14461.0 -2914.166436703772 14475.56661526319)))) )
 query ctrain7 p_at havel;
 
+
+#testcase cmpoint_trajectory
+#yields (region ( ( (\
+            (-3193.893132338269 14544.83214581003)\
+            (-3195.96408466695 14552.77233796307)\
+            (-3194.834068701427 14560.89997961932)\
+            (-3190.675624542305 14567.97407582664)\
+            (-3184.123697531491 14572.91449558814)\
+            (-3176.178689592596 14574.96689511693)\
+            (-3168.017418697178 14573.80513969528)\
+            (-3024.738279179143 14523.29005845494)\
+            (-3023.396895075166 14523.81345025783)\
+            (-3013.502721714583 14523.59308706634)\
+            (-2843.502721714583 14485.59308706634)\
+            (-2839.889436607304 14484.01886025721)\
+            (-2737.791900336638 14483.09906263315)\
+            (-2731.932740752651 14481.9124663562)\
+            (-2620.473848214378 14507.49319579122)\
+            (-2612.899218078519 14507.7581667033)\
+            (-2605.564162929844 14505.06145669763)\
+            (-2599.822536929913 14499.75966362682)\
+            (-2596.551018601779 14492.66230871689)\
+            (-2596.249130181142 14484.85307429409)\
+            (-2598.962966466713 14477.52433828412)\
+            (-2604.27815668849 14471.79511217625)\
+            (-2611.383134033621 14468.54018117637)\
+            (-2611.526151785622 14468.50680420878)\
+            (-2722.655221264061 14443.00177186947)\
+            (-2729.19055351437 14438.64575797138)\
+            (-2738.046536898055 14436.9000468763)\
+            (-2738.208099663362 14436.90093736685)\
+            (-2840.406442236398 14437.8216431558)\
+            (-2844.487231899825 14436.20736149431)\
+            (-2854.33286144601 14436.37073714466)\
+            (-2854.497278285417 14436.40691293366)\
+            (-3024.497278285417 14474.40691293366)\
+            (-3033.364225991968 14478.29471053929)\
+            (-3038.488042585621 14483.60383703904)\
+            (-3181.982581302822 14534.19486030472)\
+            (-3188.937421692982 14538.29177678565)))) )
+query trajectory(cmphavel);
+
+
 #testcase querycmpunits2
 #yields success
 query units(cmptest) namedtransformstream [Unit] consume;
@@ -406,6 +459,11 @@ delete cmptest1;
 
 
 # 3 - Tests about the datatype hmpoint (hierarchical moving point)
+
+
+#testcase hmpoint_no_components
+#yields (int 329)
+query no_components(htrain7);
 
 
 #testcase generalize
@@ -476,6 +534,146 @@ query htrain7 passes havel;
 #testcase hmpoint_passes_region2
 #yields (bool FALSE)
 query htrain7 passes karpfenteich;
+
+
+#testcase hmpoint_reduce_hierarchy
+#yields success
+query reduce_hierarchy(htrain7, 180.0);
+
+
+#testcase hmpoint_atinstant1
+#yields (ipoint ("2003-11-20-06:30" (8988.0 10323.0)) )
+query htrain7 atinstant six30;
+
+
+#testcase hmpoint_atinstant2
+#yields (ipoint undef)
+query htrain7 atinstant eight30;
+
+
+# 4 - Tests about the datatype hmpoint (hierarchical moving point)
+
+
+#testcase hcmpoint_no_components
+#yields (int 70)
+query no_components(hctrain7);
+
+
+#testcase hcmpoint_epsilon
+#yields (real 57.8985236656)
+query epsilon(hctrain7);
+
+
+#testcase getmpoint
+#yields error
+query getmpoint(hctrain7);
+
+
+#testcase hcmpoint_getcmpoint
+#yields (cmpoint (\
+    (344.9794279792633 (\
+            ("2003-11-20-06:06" "2003-11-20-06:11:19.024" TRUE FALSE)\
+            (16821.0 1252.0 13837.0 2806.0)))\
+    (670.1852354470175 (\
+            ("2003-11-20-06:11:19.024" "2003-11-20-06:22:50" TRUE FALSE)\
+            (13837.0 2806.0 11837.0 8980.0)))\
+    (1389.861161739539 (\
+            ("2003-11-20-06:22:50" "2003-11-20-06:38:15.462" TRUE FALSE)\
+            (11837.0 8980.0 4813.0 8864.0)))\
+    (543.5225068634451 (\
+            ("2003-11-20-06:38:15.462" "2003-11-20-06:50:09.600" TRUE FALSE)\
+            (4813.0 8864.0 3166.0 14269.0)))\
+    (348.7817465908955 (\
+            ("2003-11-20-06:50:09.600" "2003-11-20-07:02" TRUE FALSE)\
+            (3166.0 14269.0 -3560.0 14235.0)))))
+query getcmpoint(hctrain7, 1620.0);
+
+
+#testcase hcmpoint_deftime
+#yields (periods (( "2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE)) )
+query deftime(hctrain7);
+
+
+#testcase hcmpoint_present_instant1
+#yields (bool TRUE)
+query hctrain7 present six30;
+
+
+#testcase hcmpoint_present_instant2
+#yields (bool FALSE)
+query hctrain7 present eight30;
+
+
+#testcase hcmpoint_present_periods2
+#yields (bool TRUE)
+query hctrain7 present one43one56;
+
+
+#testcase hcmpoint_passes_point1
+#yields (bool FALSE)
+query hctrain7 d_passes mehringdamm;
+
+
+#testcase hcmpoint_passes_point2
+#yields (bool FALSE)
+query hctrain7 d_passes alexanderplatz;
+
+
+#testcase hcmpoint_passes_region1
+#yields (bool FALSE)
+query hctrain7 d_passes havel;
+
+
+#testcase hcmpoint_passes_region2
+#yields (bool FALSE)
+query hctrain7 d_passes karpfenteich;
+
+
+#testcase hcmpoint_passes_point1
+#yields (bool TRUE)
+query hctrain7 p_passes mehringdamm;
+
+
+#testcase hcmpoint_passes_point2
+#yields (bool FALSE)
+query hctrain7 p_passes alexanderplatz;
+
+
+#testcase hcmpoint_passes_region1
+#yields (bool TRUE)
+query hctrain7 p_passes havel;
+
+
+#testcase hcmpoint_p_passes_region2
+#yields (bool FALSE)
+query hctrain7 p_passes karpfenteich;
+
+
+#testcase hcmpoint_atinstant1
+#yields (intimeregion ("2003-11-20-06:30" ( ( (\
+                (8894.35994735426 10294.41665943154)\
+                (8892.695430679325 10302.57295215564)\
+                (8894.283668018195 10310.74444093785)\
+                (8898.882154274843 10317.68343588739)\
+                (8905.788754872787 10322.33043437489)\
+                (8913.948913417797 10323.97589457879)\
+                (8922.116670012589 10322.36857414697)\
+                (8929.044904627357 10317.75389193851)\
+                (8933.67575760884 10310.83645546058)\
+                (8935.3021523637 10302.67247561839)\
+                (8933.751177216338 10294.69270099153)\
+                (8929.18515804605 10287.73229901328)\
+                (8922.300342200824 10283.05308566704)\
+                (8914.147959800273 10281.36952160306)\
+                (8905.9727834162 10282.93866718319)\
+                (8899.023065992662 10287.52093239761))))) )
+query hctrain7 atinstant six30;
+
+
+#testcase hcmpoint_atinstant2
+#yields (intimeregion undef)
+query hctrain7 atinstant eight30;
+
 
 
 
