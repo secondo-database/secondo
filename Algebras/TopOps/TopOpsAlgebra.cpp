@@ -1306,33 +1306,6 @@ void insertEvents(const AVLSegment& seg,
    }
 }
 
-/*
-~performSplit~
-
-Replaces the original segment by left and inserts corresponding events 
-into the queues.
- 
-
-*/
-void performSplit(AVLTree<AVLSegment>& sss,
-                  const AVLSegment& original,
-                  const AVLSegment& left,
-                  const AVLSegment& right,
-                  priority_queue<HalfSegment,  
-                                 vector<HalfSegment>, 
-                                 greater<HalfSegment> >& q1,
-                  priority_queue<HalfSegment,  
-                                 vector<HalfSegment>, 
-                                 greater<HalfSegment> >& q2){
-   
-   bool ok = sss.remove(original);
-   assert(ok);
-   ok = sss.insert(left);
-   assert(ok);
-   insertEvents(left, false, true, q1, q2);
-   insertEvents(right, true, true, q1, q2);
-}
- 
 
 /*
 ~splitByNeighbour~
@@ -3676,7 +3649,8 @@ void updateDomPointInfo_Line_Region(Point& lastDomPoint,
                                     const Point& newDomPoint,
                                     int& count_line,
                                     int& count_region,
-                                    const int coverage_Num,
+                                    int& lastCoverage_Num,
+                                    const int newCoverageNum, 
                                     const ownertype owner, 
                                     Int9M& res,
                                     const bool useCluster,
@@ -3696,7 +3670,7 @@ void updateDomPointInfo_Line_Region(Point& lastDomPoint,
          if(count_region>0){ // boundary of the region
             SetBB(res,useCluster,cluster,done);
          } else {
-           if(coverage_Num==0){
+           if(lastCoverage_Num==0){
               SetBE(res,useCluster,cluster,done);
            } else {
               SetBI(res,useCluster,cluster,done);
@@ -3706,7 +3680,7 @@ void updateDomPointInfo_Line_Region(Point& lastDomPoint,
          if(count_region > 0){
             SetIB(res,useCluster,cluster,done);
          } else {
-           if(coverage_Num==0){
+           if(lastCoverage_Num==0){
               SetIE(res,useCluster,cluster,done);
            } else {
               SetII(res,useCluster,cluster,done);
@@ -3738,6 +3712,7 @@ void updateDomPointInfo_Line_Region(Point& lastDomPoint,
          default    : assert(false);
       }
     }
+    lastCoverage_Num = newCoverageNum;
 }
 
 
@@ -3776,6 +3751,23 @@ bool GetInt9M(Line   const* const line,
   if(!region->IsEmpty()){
      res.SetEI(true);
   }
+
+  Rectangle<2> bbox1 = line->BoundingBox();
+  Rectangle<2> bbox2 = region->BoundingBox();
+
+  if(!bbox1.Intersects(bbox2)){
+      res.SetIE(true); // line is not empty
+      if(!region->IsEmpty()){
+        res.SetEB(true);
+      }
+      if(useCluster){
+          Int9M m(false,false,true, false, false, true, true,true,true);
+          cluster.Restrict(m,false);
+      }
+  }
+ 
+  
+
 
   if(useCluster){
      cluster.Restrict(res,true);
@@ -3817,10 +3809,11 @@ bool GetInt9M(Line   const* const line,
  AVLSegment left1,right1,left2,right2,common;
 
  int src;
+ int lastCoverageNum = 0;
 
+ // plane sweep
  while(!done && 
        ((owner=selectNext(line,pos1,region,pos2,q1,q2,nextHs,src))!=none)){
-
      AVLSegment current(&nextHs,owner);
 
      member = sss.getMember(current,leftN,rightN);
@@ -3845,8 +3838,6 @@ bool GetInt9M(Line   const* const line,
               insertEvents(left1,false,true,q1,q2);
             }
             assert(parts & COMMON);
-
-            
             // update coverage numbers
             if(owner==first){ // the line
               common.con_below = member->con_below;
@@ -3880,11 +3871,11 @@ bool GetInt9M(Line   const* const line,
             }
             // update counter for dominating points
             Point domPoint = nextHs.GetDomPoint();
-            int cover = leftN?leftN->con_above:0;
             updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
                                            lastDomPointCount1, 
                                            lastDomPointCount2,
-                                           cover,owner2,res, 
+                                           lastCoverageNum,current.con_below,
+                                           owner2,res, 
                                            useCluster, cluster, done);
          }
        } else { // no overlapping segment found
@@ -3892,29 +3883,49 @@ bool GetInt9M(Line   const* const line,
           splitByNeighbour(sss,current,leftN,q1,q2);
           splitByNeighbour(sss,current,rightN,q1,q2);
           // update coverage numbers
-          if(leftN){
-             current.con_below = leftN->con_above;               
-          } else {
-             current.con_below = 0;
+          if(owner==second){ // the region
+            bool iac = current.getInsideAbove();
+            if(leftN && current.extends(*leftN)){
+              current.con_below = leftN->con_below;
+              current.con_above = leftN->con_above;
+            }else{
+              if(leftN && leftN->isVertical()){
+                 current.con_below = leftN->con_below;
+              } else if(leftN){
+                 current.con_below = leftN->con_above;
+              } else {
+                 current.con_below = 0;
+              }
+              if(iac){
+                 current.con_above = current.con_below+1;
+              } else {
+                 current.con_above = current.con_below-1;
+              }
+            }
+          } else { // the line
+            if(leftN){
+               if(current.extends(*leftN)){
+                  current.con_below = leftN->con_below;
+                  current.con_above = leftN->con_above;
+               } else if(leftN->isVertical()){
+                  current.con_below = leftN->con_below;
+               } else {
+                  current.con_below = leftN->con_above;
+               }
+            } else { // no left neighbour found
+               current.con_below = 0;
+            }
+            current.con_above = current.con_below; 
           }
-          if(owner==first || current.isVertical()){ 
-               // a line does not change the coverage number 
-             current.con_above = current.con_below;
-          } else {
-             if(nextHs.attr.insideAbove){
-               current.con_above = current.con_below + 1;
-             } else {
-               current.con_above = current.con_below - 1;
-             }
-          } 
- 
+
+
           // update dominating points
           Point domPoint = nextHs.GetDomPoint();
-          int cover=leftN?leftN->con_above:0;
           updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
                                         lastDomPointCount1,
                                         lastDomPointCount2,
-                                        cover,
+                                        lastCoverageNum,
+                                        current.con_below,
                                         owner2,
                                         res, useCluster, cluster, done);
           sss.insert(current);
@@ -3926,12 +3937,13 @@ bool GetInt9M(Line   const* const line,
            member = &tmp;
            splitNeighbours(sss,leftN,rightN,q1,q2); 
            // update dominating point information 
-           int cover = leftN?leftN->con_above:0;
            Point domPoint = nextHs.GetDomPoint();
            updateDomPointInfo_Line_Region(lastDomPoint, domPoint,
                                          lastDomPointCount1,
                                          lastDomPointCount2,
-                                         cover, member->getOwner(), res,
+                                         lastCoverageNum,
+                                         member->con_below,
+                                         member->getOwner(), res,
                                          useCluster,cluster, done);
           // detect intersections
           switch(member->getOwner()){
@@ -3957,7 +3969,8 @@ bool GetInt9M(Line   const* const line,
  domPoint.Translate(100,0);
  updateDomPointInfo_Line_Region(lastDomPoint,domPoint,
                                 lastDomPointCount1, lastDomPointCount2,
-                                0, both, res, useCluster,cluster,done);
+                                lastCoverageNum, 0, both, res, useCluster,
+                                cluster,done);
  
  if(useCluster){
      return cluster.Contains(res);
@@ -4321,7 +4334,6 @@ void SetOp(const Region& reg1,
 
 
             // update coverage numbers
-
             bool iac = current.getOwner()==first
                             ?current.getInsideAbove_first()
                             :current.getInsideAbove_second();
