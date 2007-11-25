@@ -1323,6 +1323,21 @@ This recursive Function determines, by a pre-order run through the hierarchical
   int AtInstant( const int layer, const int start, const int end,  
                   const Instant& t, Intime<Region>& result );
   
+  void D_At( const Point& p, CMPoint& result );
+  bool D_At( const int layer, const int start, const int end, const Point& p,  
+                  CMPoint& result);
+                  
+  void D_At( const Region& r, CMPoint& result );
+  bool D_At( const int layer, const int start, const int end, 
+                  const Region& r, CMPoint& result );
+                  
+  void P_At( const Point& p, CMPoint& result );
+  bool P_At( const int layer, const int start, const int end, const Point& p,  
+                  CMPoint& result);
+                  
+  void P_At( const Region& r, CMPoint& result );
+  bool P_At( const int layer, const int start, const int end, 
+                  const Region& r, CMPoint& result );
 /*
 
 
