@@ -4940,7 +4940,8 @@ const string Realminize2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
  " ( <text> line -> line </text--->"
  " \" realminize2() \" "
- "  \" removes crossings and overlapping segments from a line value \" "
+ "  <text>removes crossings and overlapping"
+        " segments from a line value </text---> "
 "  \" query realminize2(trajectory(Train2)) \" ))";
 
 const string Union2Spec =
@@ -4954,7 +4955,7 @@ const string Intersection2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
  " ( <text> {line,region} x {line,region} -> {line,region} </text--->"
  " \"  _ intersection2 _ \" "
- "  \" computes the intersection of two spatial values \" "
+ "  <text> computes the intersection of two spatial values </text---> "
   "  \" query l1 intersection2 l2 \" ))";
 
 const string Difference2Spec =
