@@ -275,3 +275,9 @@ Result   : file
 Remark   : Computes a default predicate group
     
 
+Operator : getCluster 
+Number   : 1
+Signature: predicategroup x string -> cluster 
+Example  : query getcluster(stdpgroup(),"equal")
+Result   : (cluster ("equal" 0 1 16 17 256 257 272 273))
+Remark   : extract the cluster with given name from a predicategroup
