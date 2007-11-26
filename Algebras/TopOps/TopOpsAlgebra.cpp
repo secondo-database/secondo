@@ -68,14 +68,6 @@ many cases.
 #include "AvlTree.h"
 
 
-#define TOPOPS_USE_STATISTIC
-
-#ifdef TOPOPS_USE_STATISTIC
-// used for statistical information
-#include "FTextAlgebra.h"
-#endif
-
-
 #include "SpatialAlgebra.h"
 #include "TopRel.h"
 #include "StandardTypes.h"
@@ -1325,6 +1317,7 @@ void splitByNeighbour(AVLTree<AVLSegment>& sss,
                                      vector<HalfSegment>, 
                                      greater<HalfSegment> >& q2){
     AVLSegment left1, right1, left2, right2;
+
     if(neighbour && !neighbour->innerDisjoint(current)){
        if(neighbour->ininterior(current.getX1(),current.getY1())){
           neighbour->splitAt(current.getX1(),current.getY1(),left1,right1);
@@ -1408,65 +1401,8 @@ void splitNeighbours(AVLTree<AVLSegment>& sss,
 }
 
 
-/*
-6 Statistical information 
-
-The following variables collect some statistical information.
-
-*/
-
-#ifdef TOPOPS_USE_STATISTIC
-int GetCalls_p_p;
-int GetCalls_ps_p;
-int GetCalls_ps_ps;
-int GetCalls_l_p;
-int GetCalls_l_ps;
-int GetCalls_l_l;
-int GetCalls_r_p;
-int GetCalls_r_ps;
-int GetCalls_r_r;
-int bb_p_p;
-int bb_ps_p;
-int bb_ps_ps;
-int bb_l_p;
-int bb_l_ps;
-int bb_l_l;
-int bb_r_p;
-int bb_r_ps;
-int bb_r_r;
-#endif
 
 
-/*
-~ResetStatistic~
-
-This functions sets all variables holding statistical
-information to int initial values.
-
-*/
-
-#ifdef TOPOPS_USE_STATISTIC
-static void ResetStatistic(){
- GetCalls_p_p=0;
- GetCalls_ps_p=0;
- GetCalls_ps_ps=0;
- GetCalls_l_p=0;
- GetCalls_l_ps=0;
- GetCalls_l_l=0;
- GetCalls_r_p=0;
- GetCalls_r_ps=0;
- GetCalls_r_r=0;
- bb_p_p=0;
- bb_ps_p=0;
- bb_ps_ps=0;
- bb_l_p=0;
- bb_l_ps=0;
- bb_l_l=0;
- bb_r_p=0;
- bb_r_ps=0;
- bb_r_r=0;
-}
-#endif
 
 
 
@@ -1491,9 +1427,6 @@ Complexity: O(1)
 bool GetInt9M(Point* p1 , Point*  p2,Int9M& res, 
              const bool useCluster= false,
              Cluster cluster = Cluster()){
-#ifdef TOPOPS_USE_STATISTIC
-  GetCalls_p_p++;
-#endif
   res.SetValue(0);
   // in each case, the exteriors intersect
   res.SetEE(true);
@@ -1525,9 +1458,6 @@ value.
 bool GetInt9M(Points*  ps, Point* p,Int9M& res,
               const bool useCluster=false,
               Cluster cluster = Cluster()){
-#ifdef TOPOPS_USE_STATISTIC
-  GetCalls_ps_p++;
-#endif
   // initialization
   res.SetValue(0);
   res.SetEE(true); // holds always for bounded objects
@@ -1536,9 +1466,6 @@ bool GetInt9M(Points*  ps, Point* p,Int9M& res,
   if(ps->IsEmpty()){ // the simples case
      res.SetEI(true);
 
-#ifdef TOPOPS_USE_STATISTIC
-     bb_ps_p++;
-#endif
      if(useCluster){
        return cluster.Contains(res);
      } else {
@@ -1552,9 +1479,6 @@ bool GetInt9M(Points*  ps, Point* p,Int9M& res,
   if(!box_p.Intersects(box_ps)){ // disjointness of the bounding boxes
       res.SetIE(true);
       res.SetEI(true);
-#ifdef TOPOPS_USE_STATISTIC
-      bb_ps_p++;
-#endif
      if(useCluster){
         return cluster.Contains(res);
      } else {
@@ -1633,11 +1557,6 @@ bool GetInt9M(Points* ps1, Points*  ps2,
       }
    }
  
-#ifdef TOPOPS_USE_STATISTIC
-
-   GetCalls_ps_ps++;
-#endif
-
    int n1 = ps1->Size();
    int n2 = ps2->Size();
 
@@ -1646,9 +1565,6 @@ bool GetInt9M(Points* ps1, Points*  ps2,
 
    if(n1<=0 && n2<=0){
       // there are no inner parts which can intersect any part
-#ifdef TOPOPS_USE_STATISTIC
-     bb_ps_ps++;
-#endif
      if(useCluster){
        return cluster.Contains(res);
      } else {
@@ -1658,9 +1574,6 @@ bool GetInt9M(Points* ps1, Points*  ps2,
    if(n1<=0){
       // some points of ps2 are in the exterior of ps1
       res.SetEI(true);
-#ifdef TOPOPS_USE_STATISTIC
-      bb_ps_ps++;
-#endif
       if(useCluster){
          return cluster.Contains(res);
       } else {
@@ -1670,9 +1583,6 @@ bool GetInt9M(Points* ps1, Points*  ps2,
    if(n2<=0){
       // symmetrically to the previous case
       res.SetIE(true);
-#ifdef TOPOPS_USE_STATISTIC
-      bb_ps_ps++;
-#endif
       if(useCluster){
          return cluster.Contains(res);
       } else {
@@ -1688,9 +1598,6 @@ bool GetInt9M(Points* ps1, Points*  ps2,
       // non empty disjoint points values
       res.SetIE(true);
       res.SetEI(true);
-#ifdef TOPOPS_USE_STATISTIC
-      bb_ps_ps++;
-#endif
       if(useCluster){
         return cluster.Contains(res);
       } else {
@@ -2394,10 +2301,6 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
               Cluster cluster = Cluster(),
               const bool transpose = false){
 
-#ifdef TOPOPS_USE_STATISTIC
-  GetCalls_r_p++;
-#endif
-
   res.SetValue(0);
   res.SetEE(true);
   if(reg->IsEmpty()){
@@ -2419,9 +2322,6 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
 
   if(!bboxreg.Intersects(bboxp)){
      res.SetEI(true);
-#ifdef TOPOPS_USE_STATISTIC
-      bb_r_p++;
-#endif
      if(useCluster){
        if(transpose){
           res.Transpose();
@@ -2606,17 +2506,11 @@ ownertype selectNext(const Region*  reg,
 bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
               const bool useCluster=false,
               Cluster cluster = Cluster()){
-#ifdef TOPOPS_USE_STATISTIC
-  GetCalls_r_ps++;
-#endif
   res.SetValue(0); 
   // test for emptyness
    res.SetEE(true);
    if(reg->IsEmpty()){
       if(ps->IsEmpty()){
-#ifdef TOPOPS_USE_STATISTIC
-         bb_r_ps++;
-#endif
        if(useCluster){
           return cluster.Contains(res);
        } else {
@@ -2624,9 +2518,6 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
        }
       }
       res.SetEI(true);
-#ifdef TOPOPS_USE_STATISTIC
-      bb_r_ps++;
-#endif
       if(useCluster){
         return cluster.Contains(res);;
       } else {
@@ -2637,9 +2528,6 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
    res.SetBE(true);
 
    if(ps->IsEmpty()){ // no more intersections can be found
-#ifdef TOPOPS_USE_STATISTIC
-      bb_r_ps++;
-#endif
       if(useCluster){
         return cluster.Contains(res);
       } else {
@@ -2651,9 +2539,6 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
   Rectangle<2> pbox = ps->BoundingBox();
   if(!regbox.Intersects(pbox)){ // disjoint objects
     res.SetEI(true);
-#ifdef TOPOPS_USE_STATISTIC
-    bb_r_ps++;
-#endif
     if(useCluster){
       return cluster.Contains(res);
     } else {
@@ -2879,17 +2764,11 @@ class OwnedPoint{
 bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
               const bool useCluster =false,
               Cluster cluster = Cluster()){
-#ifdef TOPOPS_USE_STATISTIC
-  GetCalls_r_r++;
-#endif
   res.SetValue(0);;
   res.SetEE(true);
   // check for emptyness
   if(reg1->IsEmpty()){
     if(reg2->IsEmpty()){ // no more intersection possible
-#ifdef TOPOPS_USE_STATISTIC
-       bb_r_r++;
-#endif
        if(useCluster){
            return cluster.Contains(res); 
        } else {
@@ -2898,9 +2777,6 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
     }else{
       res.SetEI(true);
       res.SetEB(true);
-#ifdef TOPOPS_USE_STATISTIC
-      bb_r_r++;
-#endif
       if(useCluster){
          return cluster.Contains(res); 
       } else {
@@ -2912,9 +2788,6 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   if(reg2->IsEmpty()){
      res.SetIE(true);
      res.SetBE(true);
-#ifdef TOPOPS_USE_STATISTIC
-     bb_r_r++;
-#endif
      if(useCluster){
         return cluster.Contains(res);
      } else {
@@ -2929,9 +2802,6 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
      res.SetEI(true);
      res.SetBE(true);
      res.SetEB(true);
-#ifdef TOPOPS_USE_STATISTIC
-     bb_r_r++;
-#endif
      if(useCluster){
         return cluster.Contains(res);
      } else{
@@ -3455,7 +3325,12 @@ bool GetInt9M(Line const* const line1,
     }
  }
 
-
+ 
+ if(!line1->BoundingBox().Intersects(line2->BoundingBox()) && useCluster){
+     Int9M m(false,false,true,false,false,true,true,true,true);
+     cluster.Restrict(m,false);
+ }
+ 
  if(useCluster){
    if(cluster.IsEmpty()){
      return false;
@@ -3994,11 +3869,11 @@ stored in ~result~.
 ownertype selectNext(const Line& src, int& pos,
                             priority_queue<HalfSegment,  
                                            vector<HalfSegment>, 
-                                           greater<HalfSegment> > q,
+                                           greater<HalfSegment> >& q,
                             HalfSegment& result){
 
  int size = src.Size();
- if(size>=pos){
+ if(size<=pos){
     if(q.empty()){
       return none;
     } else {
@@ -4009,7 +3884,6 @@ ownertype selectNext(const Line& src, int& pos,
  } else {
    const HalfSegment* hs;
    src.Get(pos,hs);
-
    if(q.empty()){
       result = *hs;      
       pos++;
@@ -4027,9 +3901,6 @@ ownertype selectNext(const Line& src, int& pos,
       }
    }
  }
- 
-
-
 }
 
 
@@ -4060,6 +3931,7 @@ void Realminize2(const Line& src, Line& result){
   result.StartBulkLoad();
   int edgeno = 0;
 
+
   while(selectNext(src,pos,q,nextHS)!=none) {
       AVLSegment current(&nextHS,first);
       member = sss.getMember(current,leftN,rightN);
@@ -4078,14 +3950,16 @@ void Realminize2(const Line& src, Line& result){
          }
       } else {  // nextHS rightDomPoint
           if(member && member->exactEqualsTo(current)){
-             // insert the segments
+             // insert the halfsegments
              HalfSegment hs1 = current.convertToHs(true);
              HalfSegment hs2 = current.convertToHs(false);
              hs1.attr.edgeno = edgeno;
+             hs2.attr.edgeno = edgeno;
              result += hs1;
              result += hs2;
              splitNeighbours(sss,leftN,rightN,q,q);
              edgeno++;
+             sss.remove(*member);
           }
       }      
   }
@@ -4449,7 +4323,7 @@ void SetOp(const Region& reg1,
 
 
 /*
-9.4 ~region~ x ~line~ -> ~region~  
+9.4 ~region~ [x] ~line~ [->] ~region~  
 
 This combination can only be used for the operations
 union and difference. In both cases, the result will be
@@ -4669,7 +4543,7 @@ inline bool IsSpatialType(ListExpr type){
 
 This function is the type mapping for the toppred operator.
 The signature of this operator is:
-    t1 x t2 x cluster -> bool
+    t1 [x] t2 [x] cluster [->] bool
 
 where t1, t2 in {point, points, line, region}.
 
@@ -4707,7 +4581,7 @@ ListExpr TopPredTypeMap(ListExpr args){
 8.1.3 TopRelTypeMap
 
 This function is the Type mapping for the toprel operator.
-The signature is t1 x t2 -> int9m
+The signature is t1 [x] t2 [->] int9m
 where t1, t2 in {point, points, line, region}
 
 */
@@ -4728,7 +4602,7 @@ ListExpr TopRelTypeMap(ListExpr args){
 /*
 8.1.4 Realminize2TypeMap
 
-Just line -> line.
+Signature: line [->] line.
 
 */
 ListExpr Realminize2TypeMap(ListExpr args){
@@ -4743,44 +4617,15 @@ ListExpr Realminize2TypeMap(ListExpr args){
 
 
 
-#ifdef  TOPOPS_USE_STATISTIC
-/*
-8.1.4  ResetStatisticTypeMap
-
-The signature is: -> bool
-
-*/
-ListExpr TopOpsResetStatTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=0){
-      ErrorReporter::ReportError("no argument expected");
-      return nl->SymbolAtom("typeerror");
-   }
-   return nl->SymbolAtom("bool");
-}
 
 /*
-8.1.5  GetStatisticTypeMap
+8.1.6 Union2TypeMap
 
-The signature is: -> text
-
-*/
-
-ListExpr TopOpsGetStatTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=0){
-      ErrorReporter::ReportError("no argument expected");
-      return nl->SymbolAtom("typeerror");
-   }
-   return nl->SymbolAtom("text");
-}
-#endif
-
-
-
-
-/*
-8.1.6 SetOpTypeMap
-
-currently only line x line -> line is implemented  
+Signatures:   
+  line [x] line [->] line
+  line [x] region [->] region 
+  region [x] line [->] region
+  region [x] region [->] region
 
 */
 
@@ -4818,6 +4663,17 @@ ListExpr Union2TypeMap(ListExpr args){
 }
 
 
+
+/*
+8.1.7 Intersection2TypeMap
+
+Signatures:   
+  line [x] line [->] line
+  line [x] region [->] line 
+  region [x] line [->] line
+  region [x] region [->] region
+
+*/
 ListExpr Intersection2TypeMap(ListExpr args){
 
    if(nl->ListLength(args)!=2){
@@ -4851,6 +4707,16 @@ ListExpr Intersection2TypeMap(ListExpr args){
 }
 
 
+/*
+8.1.8 Difference2TypeMap
+
+Signatures:   
+  line [x] line [->] line
+  line [x] region [->] line 
+  region [x] line [->] region
+  region [x] region [->] region
+
+*/
 
 ListExpr Difference2TypeMap(ListExpr args){
 
@@ -4928,50 +4794,6 @@ int TopRelSym(Word* args, Word& result, int message,
 }
 
 
-/*
-8.2.2  Statistical Information
-
-The next two functions implement the value mapping for the
-statistical infomation operators.
-
-*/
-
-#ifdef TOPOPS_USE_STATISTIC
-int TopOpsResetStatVM(Word* args, Word& result, int message, 
-                    Word& local, Supplier s){
-   result = qp->ResultStorage(s);
-   ResetStatistic();
-   (static_cast<CcBool*>(result.addr))->Set(true,true);
-   return 0;
-}
-
-int TopOpsGetStatVM(Word* args, Word& result, int message, 
-                    Word& local, Supplier s){
-   result = qp->ResultStorage(s);
-   stringstream ts;
-   ts << "#GetInt9M(point, point): " << GetCalls_p_p << endl
-      << "#BoxFilter(point, point): " << bb_p_p << endl
-      << "#GetInt9M(points, point): " << GetCalls_ps_p << endl
-      << "#BoxFilter(points, point): " << bb_ps_p << endl
-      << "#GetInt9M(points, points): " << GetCalls_ps_ps << endl
-      << "#BoxFilter(points, points): " << bb_ps_ps << endl
-      << "#GetInt9M(line, point): " << GetCalls_l_p << endl
-      << "#BoxFilter(line, point): " << bb_l_p << endl
-      << "#GetInt9M(line, points): " << GetCalls_l_ps << endl
-      << "#BoxFilter(line, points): " << bb_l_ps << endl
-      << "#GetInt9M(line, line): " << GetCalls_l_l << endl
-      << "#BoxFilter(line, line): " << bb_l_l << endl
-      << "#GetInt9M(region, point): " << GetCalls_r_p << endl
-      << "#BoxFilter(region, point): " << bb_r_p << endl
-      << "#GetInt9M(region, points): " << GetCalls_r_ps << endl
-      << "#BoxFilter(region, points): " << bb_r_ps << endl
-      << "#GetInt9M(region,region) : " << GetCalls_r_r << endl
-      << "#BoxFilter(region,region) : " << bb_r_r << endl;
-   (static_cast<FText*>(result.addr)) ->Set(true,ts.str().c_str());
-   return 0;
-}
-
-#endif
 
 /*
 8.2.3 Value Mapping for the ~toppred~ operator
@@ -5099,63 +4921,48 @@ const string TopRelSpec =
    " ( <text> {point, points, line, region} x "
    "  {points, points, line, region} -> int9m </text--->"
    " \" toprel(_ _) \" "
-   " <text>computes the topological relationship of the arguments</text--->"
+   " <text>computes the 9 intersection matrix describing the"
+   " topological relationship between the arguments</text--->"
     "  \" query toprel(reg1, reg2) \" ))";
 
 const string TopPredSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
    " ( <text> so1 x so2 x cluster -> bool "
    " where o1, o2 in {point, points, line, region}</text--->"
-   " \" topred(_ _ _) \" "
+   " \" topred(_, _, _) \" "
    " <text> checks whether the topological relationship between"
    " the spatial objects is part of the cluster </text---> "
-    "  \" query toppred(c1,c2) \" ))";
-
-#ifdef TOPOPS_USE_STATISTIC
-const string TopOpsResetStatSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( <text> -> bool </text--->"
-   " \" topops_reset_stat \" "
-   "  \" sets statistical information to initial values \" "
-    "  \" query topops_reset_stat() \" ))";
-
-const string TopOpsGetStatSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( <text> -> text </text--->"
-   " \" topops_get_stat() \" "
-   "  \" gets statistical information of this algebra \" "
-    "  \" query topops_get_stat() \" ))";
+    "  \" query toppred(l1,r1,cl_equals) \" ))";
 
 
 const string Realminize2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
  " ( <text> line -> line </text--->"
  " \" realminize2() \" "
- "  \" corrects the representation of a line value \" "
-	"  \" query realminize2(trajectory(Train2)) \" ))";
+ "  \" removes crossings and overlapping segments from a line value \" "
+"  \" query realminize2(trajectory(Train2)) \" ))";
 
 const string Union2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
- " ( <text> line x line -> line </text--->"
+ " ( <text> t1 x t2 -> tx, ti in {line, region}  </text--->"
  " \"  _ union2 _ \" "
- "  \" computes the union of two line values \" "
-	"  \" query l1 union2 l2 \" ))";
+ "  \" computes the union of two spatial values \" "
+  "  \" query l1 union2 l2 \" ))";
 
 const string Intersection2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
- " ( <text> line x line -> line </text--->"
+ " ( <text> {line,region} x {line,region} -> {line,region} </text--->"
  " \"  _ intersection2 _ \" "
- "  \" computes the intersection of two line values \" "
-	"  \" query l1 intersection2 l2 \" ))";
+ "  \" computes the intersection of two spatial values \" "
+  "  \" query l1 intersection2 l2 \" ))";
 
 const string Difference2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
- " ( <text> line x line -> line </text--->"
+ " ( <text> {line,region} x {line,region} -> {line,region} </text--->"
  " \"  _ difference2 _ \" "
- "  \" computes the difference of two line values \" "
-	"  \" query l1 difference2 l2 \" ))";
+ "  \" computes the difference of two spatial values \" "
+  "  \" query l1 difference2 l2 \" ))";
 
-#endif
 
 /*
 8.4 Value Mapping Arrays
@@ -5183,7 +4990,7 @@ ValueMapping TopPredMap[] = {
        TopPred<Line,Points>,
        TopPredSym<Points,Line>,
        TopPred<Region,Point>,
-       TopPredSym<Point,Region>, // use TopPredSym2
+       TopPredSym<Point,Region>, 
        TopPred<Region,Points>,
        TopPredSym<Points,Region>,
        TopPred<Region,Region>,
@@ -5321,24 +5128,6 @@ Operator toppred(
          TopPredTypeMap
          );
 
-#ifdef TOPOPS_USE_STATISTIC
-Operator topops_reset_stat(
-     "topops_reset_stat",           //name
-     TopOpsResetStatSpec,   //specification
-     TopOpsResetStatVM, //value mapping
-     Operator::SimpleSelect,         //trivial selection function
-     TopOpsResetStatTypeMap //type mapping
-);
-Operator topops_get_stat(
-     "topops_get_stat",           //name
-     TopOpsGetStatSpec,   //specification
-     TopOpsGetStatVM, //value mapping
-     Operator::SimpleSelect,         //trivial selection function
-     TopOpsGetStatTypeMap //type mapping
-);
-#endif
-
-
 Operator realminize2(
      "realminize2",           //name
      Realminize2Spec,   //specification
@@ -5385,10 +5174,6 @@ class TopOpsAlgebra : public Algebra {
      TopOpsAlgebra() : Algebra() {
         AddOperator(&optoprel);
         AddOperator(&toppred);
-#ifdef TOPOPS_USE_STATISTIC
-        AddOperator(&topops_reset_stat);
-        AddOperator(&topops_get_stat);
-#endif
         AddOperator(&realminize2);
         AddOperator(&union2);
         AddOperator(&intersection2);
@@ -5405,9 +5190,6 @@ extern "C"
 Algebra* InitializeTopOpsAlgebra( NestedList* nlRef, QueryProcessor* qpRef ) {
     nl = nlRef;
     qp = qpRef;
-#ifdef TOPOPS_USE_STATISTIC
-    ResetStatistic();
-#endif
     return (&topOpsAlgebra);
 }
 
