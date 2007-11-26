@@ -1587,6 +1587,14 @@ right function GetNoComponents.
   bool D_Passes( const Region& r );
   bool D_Passes( const int layer, const int start, const int end,
                   const Region& r );
+  
+  void D_At( const Point& p, MPoint& result );
+  bool D_At( const int layer, const int start, const int end, 
+                  const Point& p, MPoint& result);
+  
+  void D_At( const Region& r, MPoint& result );
+  bool D_At( const int layer, const int start, const int end, 
+                  const Region& r, MPoint& result );
                     
   void AtInstant( const Instant& t, Intime<Point>& result );
   int AtInstant( const int layer, const int start, const int end, 

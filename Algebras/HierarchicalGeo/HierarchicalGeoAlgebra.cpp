@@ -1982,7 +1982,7 @@ is empty (or undefined).
   if( !r.BoundingBox().Intersects( this->BBox2D() ) )
   {
     // +++++ for debugging purposes only +++++
-    cout << "The Region does NOT intersect the CUPoint's bounding box!\n";
+    //cout << "The Region does NOT intersect the CUPoint's bounding box!\n";
     
     return;
   }
@@ -2104,12 +2104,12 @@ to the cupoint is greater than epsilon.
         // has to be proved.
         
         // +++++ for debugging purposes only +++++
-        Coord lpx = segRgn->GetLeftPoint().GetX();
-        Coord lpy = segRgn->GetLeftPoint().GetY();
-        Coord rpx = segRgn->GetRightPoint().GetX();
-        Coord rpy = segRgn->GetRightPoint().GetY();
-        cout << "segRgn is defined by the edgepoints " << lpx << " " << lpy 
-          << "     " << rpx << " " << rpy << endl;
+        //Coord lpx = segRgn->GetLeftPoint().GetX();
+        //Coord lpy = segRgn->GetLeftPoint().GetY();
+        //Coord rpx = segRgn->GetRightPoint().GetX();
+        //Coord rpy = segRgn->GetRightPoint().GetY();
+        //cout << "segRgn is defined by the edgepoints " << lpx << " " << lpy 
+        //  << "     " << rpx << " " << rpy << endl;
         
         hsCloserEpsilon = false;
         for(k = 0; k < aktPosPPs; k++)
@@ -2158,16 +2158,17 @@ TRUE, mark it as 'undefined' and decrease the counter 'definedPosPPs'.
             if( posPPtooClose[k] )
             {
               posPP[k].SetDefined(false);
-              aPosPPtooClose = true;
+              //if(definedPosPPs > 0)
               definedPosPPs--;
+              aPosPPtooClose = true;
               
               // +++++ for debugging purposes only +++++
-              cout << "segRgn->Distance(posPP" << k 
-                << ") greater than epsilon" << endl;
-              cout << "Distance to posPP[" << k << "]: " 
-                  << segRgn->Distance(posPP[k]) << endl;
-              cout << "There are actually " << definedPosPPs << " posPPs "
-                  << "defined!\n";
+              //cout << "segRgn->Distance(posPP" << k 
+              //  << ") greater than epsilon" << endl;
+              //cout << "Distance to posPP[" << k << "]: " 
+              //    << segRgn->Distance(posPP[k]) << endl;
+              //cout << "There are actually " << definedPosPPs << " posPPs "
+              //    << "defined!\n";
             }
           }
         }
@@ -2211,25 +2212,32 @@ to the possibly defined Passing Points.
         if( hsCloserEpsilon || cupIntersectsRgn || aPosPPtooClose )
         {
           // +++++ for debugging purposes only +++++
-          if(hsCloserEpsilon)
-              cout << "hstooClose is TRUE!\n";
-          if(cupIntersectsRgn)
-              cout << "cupIntersectsRgn is TRUE!\n";
-          if(aPosPPtooClose)
-              cout << "aDefPPtooClose is TRUE!\n";
+          //if(hsCloserEpsilon)
+          //    cout << "hstooClose is TRUE!\n";
+          //if(cupIntersectsRgn)
+          //    cout << "cupIntersectsRgn is TRUE!\n";
+          //if(aPosPPtooClose)
+          //    cout << "aDefPPtooClose is TRUE!\n";
           
           Point p;
           if( FindPosPassingPoint(segCup, *segRgn, epsilon, p) )
           {
             // +++++ for debugging purposes only +++++
-            cout << "FindDefPassingPoint returns true.\n";
+            //cout << "FindPosPassingPoint returns true.\n";
+            
             for(k = 0; k < aktPosPPs; k++)
             {
               if( posPP[k].IsDefined() )
               {
                 if( AlmostEqual(p.GetX(), posPP[k].GetX()) &&
                     AlmostEqual(p.GetY(), posPP[k].GetY()) )
+                {    
+                  // +++++ for debugging purposes only +++++
+                  //cout << "The found posPP is already defined. Don't add "
+                  //  "this Point to the mentioned posPP's!\n";  
+                  
                   p.SetDefined(false);
+                }
               }
               if( posPPtooClose[k] && lastPosPPhs[k] > -1 )
               {
@@ -2275,10 +2283,10 @@ to the possibly defined Passing Points.
               definedPosPPs++;
                       
               // +++++ for debugging purposes only +++++
-              cout << "The number of defined Passing Points was " 
-                << "INcreased to " << definedPosPPs << "! \n";
-              cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
-                << endl;
+              //cout << "The number of defined Passing Points was " 
+              //  << "INcreased to " << definedPosPPs << "! \n";
+              //cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
+              //  << endl;
             }
           }
         }
@@ -2313,12 +2321,16 @@ redefined.
     
     if( !containsP0 && hsMinDistP0 > -1 && distP0 > epsilon )
     {
+      // +++++ for debugging purposes only +++++
+      //cout << endl << "The distance of P0 to the region is greater than "
+      //  "epsilon, so compute an additional posPP!\n";
+      
       Point p;
       r.Get(hsMinDistP0, segRgn);
       if( FindPosPassingPoint(segCup, *segRgn, epsilon, p) )
       {
         // +++++ for debugging purposes only +++++
-        cout << "FindDefPassingPoint returns true.\n";
+        //cout << "FindPosPassingPoint returns true.\n";
         
         for(k = 0; k < aktPosPPs; k++)
         {
@@ -2359,22 +2371,26 @@ redefined.
           definedPosPPs++;
                   
           // +++++ for debugging purposes only +++++
-          cout << "The number of defined Passing Points was " 
-            << "INcreased to " << definedPosPPs << "! \n";
-          cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
-              << endl;
+          //cout << "The number of defined Passing Points was " 
+          //  << "INcreased to " << definedPosPPs << "! \n";
+          //cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
+          //    << endl;
         }
       }
     }
     
     if( !containsP1 && hsMinDistP1 > -1 && distP1 > epsilon )
     {
+      // +++++ for debugging purposes only +++++
+      //cout << endl << "The distance of P1 to the region is greater than "
+      //  "epsilon, so compute an additional posPP!\n";
+        
       Point p;
       r.Get( hsMinDistP1, segRgn);
       if( FindPosPassingPoint(segCup, *segRgn, epsilon, p) )
       {
         // +++++ for debugging purposes only +++++
-        cout << "FindDefPassingPoint returns true.\n";
+        //cout << "FindPosPassingPoint returns true.\n";
         
         for(k = 0; k < aktPosPPs; k++)
         {
@@ -2415,10 +2431,10 @@ redefined.
           definedPosPPs++;
                   
           // +++++ for debugging purposes only +++++
-          cout << "The number of defined Passing Points was " 
-            << "INcreased to " << definedPosPPs << "! \n";
-          cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
-              << endl;
+          //cout << "The number of defined Passing Points was " 
+          //  << "INcreased to " << definedPosPPs << "! \n";
+          //cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
+          //    << endl;
         }
       }
     }
@@ -2431,7 +2447,8 @@ redefined.
       {
         if( posPP[k].IsDefined() )
         {
-          for(int j = 0; j < noSegsCloserEpsilon; j++)
+          int j = 0;
+          while(j < noSegsCloserEpsilon && posPP[k].IsDefined() )
           {
             r.Get( hSegsCloserEpsilon[j], segRgn );
             dist = segRgn->Distance( posPP[k] );
@@ -2441,26 +2458,31 @@ redefined.
               definedPosPPs--;
               
               // +++++ for debugging purposes only +++++
-              cout << "The number of defined Passing Points was " 
-                << "DEcreased to " << definedPosPPs << "! \n";
-              cout << "Distance to posPP[" << k << "]: " 
-                << segRgn->Distance(posPP[k]) << endl;
-              cout << "posPP = " << posPP[k].GetX() << " " << posPP[k].GetY()
-                << endl;
+              //cout << "Segment No. " << j << ", defined by the points (";
+              //segRgn->GetLeftPoint().Print(cout);
+              //cout << " ";
+              //segRgn->GetRightPoint().Print(cout);
+              //cout << ") is too close to posPP[" << k << "]\n";
+              //cout << "The number of defined Passing Points was " 
+              //  << "DEcreased to " << definedPosPPs << "! \n";
+              //cout << "Distance to posPP[" << k << "] ("<< posPP[k].GetX() 
+              //  << " " << posPP[k].GetY()"): " << segRgn->Distance(posPP[k]) 
+              //  << endl;
             }
+            j++;
           }
         }
       }
     }
     
     // +++++ for debugging purposes only +++++
-    cout << "Distance of p0 to the region = " << distP0 << endl;
-    cout << "The closest halfsegment to p0 has the index " << hsMinDistP0 
-      << endl;
-    cout << "Distance of p1 to the region = " << distP1 << endl;
-    cout << "The closest halfsegment to p1 has the index " << hsMinDistP1 
-      << endl;
-    cout << "There are actually " << definedPosPPs << " defined posPPs.\n";
+    //cout << "Distance of p0 to the region = " << distP0 << endl;
+    //cout << "The closest halfsegment to p0 has the index " << hsMinDistP0 
+    //  << endl;
+    //cout << "Distance of p1 to the region = " << distP1 << endl;
+    //cout << "The closest halfsegment to p1 has the index " << hsMinDistP1 
+    //  << endl;
+    //cout << "There are actually " << definedPosPPs << " defined posPPs.\n";
     
     
     if( ( containsP0 || hsMinDistP0 > -1 && 
@@ -2484,17 +2506,17 @@ redefined.
                         (distP0 < epsilon || AlmostEqual(distP0, epsilon)) );
       
       // +++++ for debugging purposes only +++++
-      cout << "Begin building new CUPoints...\n";
+      //cout << "Begin building new CUPoints...\n";
       
       while( definedPosPPs > 0 )
       {
         // +++++ for debugging purposes only +++++
-        cout << "There are actually  " << definedPosPPs << "posPPs! \n";
+        //cout << "There are actually  " << definedPosPPs << "posPPs! \n";
         
         if( p0 < p1 )
         {
           // +++++ for debugging purposes only +++++
-          cout << "p0 < p1\n";
+          //cout << "p0 < p1\n";
           
           if( firstrun )
           {
@@ -2552,8 +2574,8 @@ redefined.
               if( posPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "posPP[" << k << "] is defined and represents point "
-                  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
+                //cout << "posPP[" << k << "] is defined and represents point "
+                //  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
                 
                 if( !ep0.IsDefined() )
                 {
@@ -2568,7 +2590,7 @@ redefined.
               }
             }
             // +++++ for debugging purposes only +++++
-            cout << "ep0 is the point at array-position " << l << "\n";
+            //cout << "ep0 is the point at array-position " << l << "\n";
             
             posPP[l].SetDefined(false);
             
@@ -2589,7 +2611,7 @@ redefined.
               }
             }
             // +++++ for debugging purposes only +++++
-            cout << "ep1 is the point at array-position " << l << "\n";
+            //cout << "ep1 is the point at array-position " << l << "\n";
             
             posPP[l].SetDefined(false);
             definedPosPPs = definedPosPPs - 2;
@@ -2600,7 +2622,7 @@ redefined.
           // ( p0 > p1 )
           
           // +++++ for debugging purposes only +++++
-          cout << "p0 > p1\n";
+          //cout << "p0 > p1\n";
           
           if( firstrun )
           {
@@ -2659,8 +2681,8 @@ redefined.
               if( posPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "posPP[" << k << "] is defined and represents point "
-                  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
+                //cout << "posPP[" << k << "] is defined and represents point "
+                //  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
                 
                 if( !ep0.IsDefined() )
                 {
@@ -2676,7 +2698,7 @@ redefined.
             }
             
             // +++++ for debugging purposes only +++++
-            cout << "ep0 is the point at array-position " << l << "\n";
+            //cout << "ep0 is the point at array-position " << l << "\n";
             
             posPP[l].SetDefined(false);
             for( k = 0; k < aktPosPPs; k++ ) 
@@ -2684,8 +2706,8 @@ redefined.
               if( posPP[k].IsDefined() )
               {
                 // +++++ for debugging purposes only +++++
-                cout << "posPP[" << k << "] is defined and represents point "
-                  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
+                //cout << "posPP[" << k << "] is defined and represents point "
+                //  << posPP[k].GetX() << " " << posPP[k].GetY() << endl;
                 
                 if( !ep1.IsDefined() )
                 {
@@ -2701,7 +2723,7 @@ redefined.
             }
             
             // +++++ for debugging purposes only +++++
-            cout << "ep1 is the point at array-position " << l << "\n";
+            //cout << "ep1 is the point at array-position " << l << "\n";
             
             posPP[l].SetDefined(false);
             definedPosPPs = definedPosPPs - 2;
@@ -2710,7 +2732,7 @@ redefined.
         // build a new CUPoint from these two points
           
         // +++++ for debugging purposes only +++
-        cout << "D_Passes: P0 liegt mit Abstand Epsilon in Region!\n";
+        //cout << "D_Passes: P0 liegt mit Abstand Epsilon in Region!\n";
         
         // determine the timeInterval for the new unit
         Instant t0;
@@ -2719,27 +2741,27 @@ redefined.
         bool trc;
         
         // +++++ for debugging purposes only +++++
-        cout << "Value of definedDefPPs: " << definedPosPPs << endl;
-        if( !ep0.IsDefined() ) {
-          cout << "Point ep0 is NOT defined!\n";
-          cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
-              << endl;
-        }
-        else {
-          cout << "Point ep0 is defined!\n";
-          cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
-              << endl;
-        }
-        if( !ep1.IsDefined() ) {
-          cout << "Point ep1 is NOT defined!\n";
-          cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
-              << endl;
-        }
-        else {
-          cout << "Point ep1 is defined!\n";
-          cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
-              << endl;
-        }
+        //cout << "Value of definedDefPPs: " << definedPosPPs << endl;
+        //if( !ep0.IsDefined() ) {
+        //  cout << "Point ep0 is NOT defined!\n";
+        //  cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
+        //      << endl;
+        //}
+        //else {
+        //  cout << "Point ep0 is defined!\n";
+        //  cout << "Values of ep0: " << ep0.GetX() << " " << ep0.GetY()
+        //      << endl;
+        //}
+        //if( !ep1.IsDefined() ) {
+        //  cout << "Point ep1 is NOT defined!\n";
+        //  cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
+        //      << endl;
+        //}
+        //else {
+        //  cout << "Point ep1 is defined!\n";
+        //  cout << "Values of ep1: " << ep1.GetX() << " " << ep1.GetY()
+        //      << endl;
+        //}
         
         
         if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
@@ -2819,7 +2841,7 @@ redefined.
         else
         {
           // +++++ for debugging purposes only +++++
-          cout << "Determine, if ep0 and ep1 are points of the unit... \n";
+          //cout << "Determine, if ep0 and ep1 are points of the unit... \n";
           
           double k0;
           if(ep0 != p0)
@@ -2828,8 +2850,8 @@ redefined.
           double k2 = (p1.GetX() - p0.GetX()) / (p1.GetY() - p0.GetY());
           
           // +++++ for debugging purposes only +++++
-          cout << "k0 = " << k0 << "   k1 = " << k1 << "   k2 = " << k2 
-            << endl;
+          //cout << "k0 = " << k0 << "   k1 = " << k1 << "   k2 = " << k2 
+          //  << endl;
           
           if( (ep0 == p0 || AlmostEqual( k0, k2 ) ) && AlmostEqual( k1, k2 ) &&
               ( (( p0.GetX() <= ep0.GetX() && p1.GetX() >= ep0.GetX() ) ||
@@ -2840,14 +2862,14 @@ redefined.
             if( ep0 == p0 )
             {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 equals p0!\n";
+              //cout << "ep0 equals p0!\n";
               
               t0 = timeInterval.start;
               tlc = timeInterval.lc;
             }
             else {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 is a Point within the Unit!\n";
+              //cout << "ep0 is a Point within the Unit!\n";
               
               t0 = timeInterval.start +
                     (timeInterval.end - timeInterval.start) *
@@ -2858,14 +2880,14 @@ redefined.
             if( ep1 == p1 )
             {
               // +++++ for debugging purposes only +++++
-              cout << "ep0 equals p1!\n";
+              //cout << "ep0 equals p1!\n";
               
               t1 = timeInterval.end;
               trc = timeInterval.rc;
             }
             else {
               // +++++ for debugging purposes only +++++
-              cout << "ep1 is a Point within the Unit!\n";
+              //cout << "ep1 is a Point within the Unit!\n";
               
               t1 = timeInterval.start +
                     (timeInterval.end - timeInterval.start) *
@@ -2875,7 +2897,7 @@ redefined.
             Interval<Instant> interval( t0, t1, tlc, trc );
             
             // +++++ for debugging purposes only +++++
-            cout << "Create a new CUPoint...\n";
+            //cout << "Create a new CUPoint...\n";
             
             CUPoint unit( epsilon, interval, ep0, ep1 );
             result.Add( unit );
@@ -3420,7 +3442,7 @@ void CMPoint::D_At( const Region& r, CMPoint& result ) const
     result.SetDefined( false );
   
   const CUPoint *unit;
-  CMPoint resultunits;
+  CMPoint resultunits( 0 );
   const CUPoint *resunit;
   
   result.StartBulkLoad();
@@ -3489,7 +3511,7 @@ void CMPoint::P_At( const Region& r, CMPoint& result ) const
     result.SetDefined( false );
   
   const CUPoint *unit;
-  CMPoint resultunits;
+  CMPoint resultunits( 0 );
   const CUPoint *resunit;
   
   result.StartBulkLoad();
@@ -4548,10 +4570,8 @@ bool HCMPoint::D_At( const int layer, const int start, const int end,
         result.Add( resunit );
       resIsValid = !result.IsEmpty();
     }
-    else
-    {
-      resIsValid = D_At( layer+1, ostart, oend, p, result );
-    }
+    else if( ntt->value.P_Passes(p) )
+      resIsValid = D_At( layer+1, ostart, oend, p, result ); // recursive call
   }
   return resIsValid;
 }
@@ -4577,7 +4597,7 @@ void HCMPoint::D_At( const Region& r, CMPoint& result )
   int layer, size;
   GetFirstLayer(layer, size);
   
-  //CMPoint& rescmpoint;
+  //CMPoint rescmpoint( 0 );
   result.StartBulkLoad();
   resIsValid = D_At( layer, 0, size-1, r, result );
   result.EndBulkLoad();
@@ -4620,7 +4640,7 @@ bool HCMPoint::D_At( const int layer, const int start, const int end,
       // +++++ for debugging purposes only +++++
       //  cout << "HCMPoint::D_At: Reached bottom layer!\n";
       
-      CMPoint resultunits;
+      CMPoint resultunits( 0 );
       const CUPoint *resunit;
       
       unit->D_At( r, resultunits );
@@ -4645,7 +4665,7 @@ bool HCMPoint::D_At( const int layer, const int start, const int end,
       }
       resIsValid = !result.IsEmpty();
     }
-    else if( unit->D_Passes( r ) )
+    else if( unit->P_Passes( r ) )
     {
       // +++++ for debugging purposes only +++++
       //cout << "HCMPoint::D_At: the unit of entity" << i << " on layer " << 
@@ -4748,8 +4768,8 @@ void HCMPoint::P_At( const Region& r, CMPoint& result )
   result.EndBulkLoad();
   
   // +++++ for debugging purposes only +++++
-  if(result.IsEmpty())
-    cout << "The resulting CMPoint-Object is EMPTY!\n";
+  //if(result.IsEmpty())
+  //  cout << "The resulting CMPoint-Object is EMPTY!\n";
   
   //if( resIsValid && !rescmpoint.IsEmpty() )
   //  Generalize(rescmpoint, GetEpsilon(), GetFactor(), result);
@@ -4768,10 +4788,10 @@ bool HCMPoint::P_At( const int layer, const int start, const int end,
   bool resIsValid = false;
   
   // +++++ for debugging purposes only +++++
-  cout << "Call for recursive Function HCMPoint::D_At with Arguments:\n";
-  cout << "     layer = " << layer << endl;
-  cout << "     start = " << start << endl;
-  cout << "     end = " << end << endl << endl;
+  //cout << "Call for recursive Function HCMPoint::D_At with Arguments:\n";
+  //cout << "     layer = " << layer << endl;
+  //cout << "     start = " << start << endl;
+  //cout << "     end = " << end << endl << endl;
   
   for(int i = start; i <= end; i++ )
   {
@@ -4783,27 +4803,27 @@ bool HCMPoint::P_At( const int layer, const int start, const int end,
     if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
     {
       // +++++ for debugging purposes only +++++
-        cout << "HCMPoint::P_At: Reached bottom layer!\n";
+      //  cout << "HCMPoint::P_At: Reached bottom layer!\n";
       
-      CMPoint resultunits;
+      CMPoint resultunits( 0 );
       const CUPoint *resunit;
       
       unit->P_At( r, resultunits );
       if( resultunits.IsDefined() )
       {
         // +++++ for debugging purposes only +++++
-        cout << "HCMPoint::P_At: resultunit for entity" << i  
-          << " has " << resultunits.GetNoComponents() <<" components."
-          << endl;
+        //cout << "HCMPoint::P_At: resultunit for entity" << i  
+        //  << " has " << resultunits.GetNoComponents() <<" components."
+        //  << endl;
         
         for(int j = 0; j < resultunits.GetNoComponents(); j++)
         { 
           resultunits.Get( j, resunit ); 
           
           // +++++ for debugging purposes only +++++
-          cout << endl;
-          cout<< "HCMPoint::P_At(...): Add CUPoint to the result-CMPoint:\n";
-          resunit->Print(cout);
+          //cout << endl;
+          //cout<< "HCMPoint::P_At(...): Add CUPoint to the result-CMPoint:\n";
+          //resunit->Print(cout);
               
           result.Add( *resunit );
         }
@@ -4813,8 +4833,8 @@ bool HCMPoint::P_At( const int layer, const int start, const int end,
     else if( unit->P_Passes( r ) )
     {
       // +++++ for debugging purposes only +++++
-      cout << "HCMPoint::P_At: the unit of entity" << i << " on layer " << 
-        layer << " passes the region.\n"; 
+      //cout << "HCMPoint::P_At: the unit of entity" << i << " on layer " << 
+      //  layer << " passes the region.\n"; 
       
       resIsValid =  P_At( layer+1, ostart, oend, r, result );
     }
@@ -4840,14 +4860,14 @@ void HCMPoint::AtInstant( const Instant& t, Intime<Region>& result )
     { // result is undefined
       
       // +++++ for debugging purposes only +++++
-      cout << "HCMPoint::AtInstant: The bbox is UNDEFINED!\n";
+      //cout << "HCMPoint::AtInstant: The bbox is UNDEFINED!\n";
       
       result.SetDefined(false);
     } else if( IsEmpty() )
     { // result is undefined
       
       // +++++ for debugging purposes only +++++
-      cout << "HCMPoint::AtInstant: The HCMPoint is EMPTY!\n";
+      //cout << "HCMPoint::AtInstant: The HCMPoint is EMPTY!\n";
       
       result.SetDefined(false);
     } 
@@ -4865,7 +4885,7 @@ void HCMPoint::AtInstant( const Instant& t, Intime<Region>& result )
         GetFirstLayer(layer, size);
         
         // +++++ for debugging purposes only +++++
-        cout << "HCMPoint::AtInstant: Initial recursive call...\n";
+        //cout << "HCMPoint::AtInstant: Initial recursive call...\n";
         
         dummy = AtInstant( layer, 0, size-1, t, result );
       }
@@ -4892,8 +4912,8 @@ int HCMPoint::AtInstant( const int layer, const int start, const int end,
   if( pos == -1 )  // not contained in any unit
   {
     // +++++ for debugging purposes only +++++
-    cout << "No Unit of layer " << layer << " between the indices " << start
-      << " and " << end << " contains the demanded Time-Instant!\n";
+    //cout << "No Unit of layer " << layer << " between the indices " << start
+    //  << " and " << end << " contains the demanded Time-Instant!\n";
       
     result.SetDefined( false );
   }
@@ -4905,10 +4925,10 @@ int HCMPoint::AtInstant( const int layer, const int start, const int end,
     int oend = ntt->GetOriginend();
     
     // +++++ for debugging purposes only +++++
-    cout << "Further recursive call for \n";
-    cout << "     layer : " << layer+1 << endl;
-    cout << "     ostart: " << ostart << endl;
-    cout << "     oend  : " << oend << "!\n";
+    //cout << "Further recursive call for \n";
+    //cout << "     layer : " << layer+1 << endl;
+    //cout << "     ostart: " << ostart << endl;
+    //cout << "     oend  : " << oend << "!\n";
     
     AtInstant( layer+1, ostart, oend, t, result ); // recursive call
   }
@@ -4936,7 +4956,7 @@ int HCMPoint::AtInstant( const int layer, const int start, const int end,
     }
     
     // +++++ for debugging purposes only +++++
-    cout << "Create result-Circle...\n";
+    //cout << "Create result-Circle...\n";
     
     Circle(respoint, e, 16, result.value);
     result.instant.CopyFrom( &t );
@@ -5850,7 +5870,7 @@ void HMPoint::Simplify(const int min, const int max, const int layer,
 }
 
 /*
-void Scale( const double epsilon )
+ReduceHierarchy
 
 Creates a new HCMPoint-Object from this HMPoint. This new Object contains only 
 the layers down to that epsilon-value, that is necessary to allow queries with 
@@ -6087,6 +6107,171 @@ bool HMPoint::D_Passes( const int layer, const int start, const int end,
   }
   return false;
 }
+
+/*
+Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine the HCMPoint definitely-
+at the given Point-value.
+
+*/
+void HMPoint::D_At( const Point& p, MPoint& result )
+{
+  assert( p.IsDefined() );
+  assert( IsDefined() );
+  
+  result.Clear();
+  if( !p.Inside(BBox2D()) )
+    return;
+  
+  bool resIsValid = false;
+  int layer, size;
+  GetFirstLayer(layer, size);
+  
+  result.StartBulkLoad();
+  resIsValid = D_At( layer, 0, size-1, p, result);
+  result.EndBulkLoad();
+  
+  // +++++ for debugging purposes only +++++
+  //if(result.IsEmpty())
+  //  cout << "The resulting CMPoint-Object is EMPTY!\n";
+  
+}
+
+/*
+This recursive function determines, by a pre-order run through the hierarchical
+ structure, the HCMPoint definitely-at the given Point-value.
+
+*/
+bool HMPoint::D_At( const int layer, const int start, const int end, 
+                  const Point& p, MPoint& result)
+{
+  const HCUPoint *ntt;
+  const CUPoint *unit;
+  bool resIsValid = false;
+  
+  for(int i = start; i <= end; i++ )
+  {
+    Get(layer, i, ntt);
+    int ostart = ntt->GetOriginstart();
+    int oend = ntt->GetOriginend();
+    
+    if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
+    {
+      unit = &(ntt->value);
+      CUPoint resunit;
+      
+      unit->D_At( p, resunit );
+      if( resunit.IsDefined() )
+        result.Add( static_cast<UPoint>(resunit) );
+      resIsValid = !result.IsEmpty();
+    }
+    else if( ntt->value.P_Passes(p) )
+      resIsValid = D_At( layer+1, ostart, oend, p, result ); //recursive call
+  }
+  return resIsValid;
+}
+
+/*
+HCMPoint D\_At( const Region\& r, CMPoint\& result )
+
+Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
+If so, it calls a recursive Function to determine the Units lying definitely-
+at the given Region-value.
+
+*/
+void HMPoint::D_At( const Region& r, MPoint& result )
+{
+  assert( r.IsDefined() );
+  assert( IsDefined() );
+  
+  result.Clear();
+  if( !r.BoundingBox().Intersects(BBox2D()) )
+    return;
+  
+  bool resIsValid = false;
+  int layer, size;
+  GetFirstLayer(layer, size);
+  
+  //CMPoint& rescmpoint;
+  result.StartBulkLoad();
+  resIsValid = D_At( layer, 0, size-1, r, result );
+  result.EndBulkLoad();
+  
+  // +++++ for debugging purposes only +++++
+  //if(result.IsEmpty())
+  //  cout << "The resulting CMPoint-Object is EMPTY!\n";
+  
+  //if( resIsValid && !rescmpoint.IsEmpty() )
+  //  Generalize(rescmpoint, GetEpsilon(), GetFactor(), result);
+}
+
+/*
+This recursive Function determines, by a pre-order run through the hierarchical
+ structure, if the HCMPoint definitely-passes the given Region-value.
+
+*/
+bool HMPoint::D_At( const int layer, const int start, const int end, 
+                  const Region& r, MPoint& result )
+{
+  const HCUPoint *ntt;
+  const CUPoint *unit;
+  bool resIsValid = false;
+  
+  // +++++ for debugging purposes only +++++
+  //cout << "Call for recursive Function HCMPoint::D_At with Arguments:\n";
+  //cout << "     layer = " << layer << endl;
+  //cout << "     start = " << start << endl;
+  //cout << "     end = " << end << endl << endl;
+  
+  for(int i = start; i <= end; i++ )
+  {
+    Get(layer, i, ntt);
+    unit = &(ntt->value);
+    int ostart = ntt->GetOriginstart();
+    int oend = ntt->GetOriginend();
+    
+    if( ostart < 0 && oend < 0 || LayerSize(layer+1) == 0 )
+    {
+      // +++++ for debugging purposes only +++++
+      //  cout << "HCMPoint::D_At: Reached bottom layer!\n";
+      
+      CMPoint resultunits( 0 );
+      const CUPoint *resunit;
+      
+      unit->D_At( r, resultunits );
+      if( resultunits.IsDefined() )
+      {
+        // +++++ for debugging purposes only +++++
+        //cout << "HCMPoint::D_At: resultunit for entity" << i  
+        //  << " has " << resultunits.GetNoComponents() <<" components."
+        //  << endl;
+        
+        for(int j = 0; j < resultunits.GetNoComponents(); j++)
+        { 
+          resultunits.Get( j, resunit ); 
+          
+          // +++++ for debugging purposes only +++++
+          //cout << endl;
+          //cout<< "HCMPoint::D_At(...): Add CUPoint to the result-CMPoint:\n";
+          //resunit->Print(cout);
+              
+          result.Add( static_cast<UPoint>(*resunit) );
+        }
+      }
+      resIsValid = !result.IsEmpty();
+    }
+    else if( unit->P_Passes( r ) )
+    {
+      // +++++ for debugging purposes only +++++
+      //cout << "HCMPoint::D_At: the unit of entity" << i << " on layer " << 
+      //  layer << " passes the region.\n"; 
+      
+      resIsValid =  D_At( layer+1, ostart, oend, r, result );
+    }
+  }
+  return resIsValid;
+}
+
 
 /*
  AtInstant( const Instant\& t )
@@ -8786,19 +8971,23 @@ ListExpr UncertainMovingTypeMapMoving( ListExpr args )
 
     if( nl->IsEqual( arg2, "point" ) )
     {
-      if( nl->IsEqual( arg1, "cupoint" ) )
-        return nl->SymbolAtom( "cupoint" );
-      if( nl->IsEqual( arg1, "cmpoint" ) ||
-          nl->IsEqual( arg1, "hcmpoint") )
-        return nl->SymbolAtom( "cmpoint" );
+      if( nl->IsEqual(arg1, "cupoint") )
+        return nl->SymbolAtom("cupoint");
+      if( nl->IsEqual(arg1, "cmpoint") ||
+          nl->IsEqual(arg1, "hcmpoint") )
+        return nl->SymbolAtom("cmpoint");
+      if( nl->IsEqual(arg1, "hmpoint") )
+        return nl->SymbolAtom("mpoint");
     }
     if( nl->IsEqual( arg2, "region") ) 
     {
-      if( nl->IsEqual( arg1, "cupoint") || 
-          nl->IsEqual( arg1, "cmpoint") )
-        return nl->SymbolAtom( "cmpoint" );
-      if( nl->IsEqual( arg1, "hcmpoint") )
-        return nl->SymbolAtom( "cmpoint" );
+      if( nl->IsEqual(arg1, "cupoint") || 
+          nl->IsEqual(arg1, "cmpoint") )
+        return nl->SymbolAtom("cmpoint");
+      if( nl->IsEqual(arg1, "hcmpoint") )
+        return nl->SymbolAtom("cmpoint");
+      if( nl->IsEqual(arg1, "hmpoint") )
+        return nl->SymbolAtom("mpoint");
     }
 
     if (nl->AtomType( arg1 ) == SymbolType && 
@@ -10171,6 +10360,41 @@ int HMPointD_PassesRegion(Word* args, Word& result, int message,
 }
 
 /*
+6.4.14 value mapping functions for operator ~d\_at~
+
+*/
+
+// If the first argument is a CMPoint and the second one is a point:
+int HMPointD_AtPoint(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+
+  HMPoint *m = ((HMPoint*)args[0].addr);
+  Point* p = ((Point*)args[1].addr);
+  MPoint* pResult = (MPoint*)result.addr;
+
+  m->D_At(*p, *pResult);
+
+  return 0;
+}
+
+// If the first argument is a CMPoint and the second one is a region:
+int HMPointD_AtRegion(Word* args, Word& result, int message, 
+                Word& local, Supplier s)
+{
+  result = qp->ResultStorage( s );
+
+  HMPoint *m = ((HMPoint*)args[0].addr);
+  Region* r = ((Region*)args[1].addr);
+  MPoint* pResult = (MPoint*)result.addr;
+
+  m->D_At(*r, *pResult);
+
+  return 0;
+}
+
+/*
 6.4.18 value mapping functions for operator ~getcmpoint~
 
 */
@@ -10585,7 +10809,13 @@ ValueMapping uncertaindatmap[] = {
                                       CMPointD_AtPoint,
                                       CMPointD_AtRegion,
                                       HCMPointD_AtPoint,
-                                      HCMPointD_AtRegion };
+                                      HCMPointD_AtRegion,
+                                      HMPointD_AtPoint,
+                                      HMPointD_AtRegion };
+
+ValueMapping hierarchicalatmap[] = {
+                                      HMPointD_AtPoint,
+                                      HMPointD_AtRegion };
                                       
 ValueMapping uncertainpatmap[] = {
                                       CUPointP_AtPoint,
@@ -10715,7 +10945,7 @@ const string UncertainTemporalSpecPPasses =
   "<text>_ d_passes _ </text--->"
   "<text>Checks whether the uncertain moving object possibly passes the "
   "given spatial object.</text--->"
-  "<text>cmpoint1 p_passes region1</text--->"
+  "<text>hctrain7 p_passes thecenter</text--->"
   ") )";
 
 const string UncertainTemporalSpecDAt =
@@ -10726,7 +10956,16 @@ const string UncertainTemporalSpecDAt =
   "<text> _ d_at _ </text--->"
   "<text>Restricts the moving object to the times where its value "
   "equals the given value.</text--->"
-  "<text>cmphavel d_at havel</text--->"
+  "<text>ctrain7 d_at thecenter</text--->"
+  ") )";
+
+const string HierarchicalTemporalSpecAt =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(hmpoint x point||region) -> mpoint \n </text--->"
+  "<text> _ at _ </text--->"
+  "<text>Restricts the moving object to the times where its value "
+  "equals the given value.</text--->"
+  "<text>htrain7 at havel</text--->"
   ") )";
 
 const string UncertainTemporalSpecPAt =
@@ -10870,9 +11109,16 @@ Operator uncertaintemporalppasses( "p_passes",
 
 Operator uncertaintemporaldat( "d_at",
                               UncertainTemporalSpecDAt,
-                              6,
+                              8,
                               uncertaindatmap,
                               UncertainPassesSelect,
+                              UncertainMovingTypeMapMoving );
+
+Operator hierarchicaltemporalat( "at",
+                              HierarchicalTemporalSpecAt,
+                              2,
+                              hierarchicalatmap,
+                              HierarchicalPassesSelect,
                               UncertainMovingTypeMapMoving );
                               
 Operator uncertaintemporalpat( "p_at",
@@ -10966,6 +11212,7 @@ class HierarchicalGeoAlgebra : public Algebra
     AddOperator( &hierarchicaltemporalpasses );
     AddOperator( &hierarchicalmovingpointreducehierarchy );
     AddOperator( &hierarchicalnocomponents );
+    AddOperator( &hierarchicaltemporalat );
   }
   ~HierarchicalGeoAlgebra() {};
 };
