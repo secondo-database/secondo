@@ -151,3 +151,15 @@ Number: 1
 Signature: (hmpoint real) -> hcmpoint
 Example  : query reduce_hierarchy(htrain7, 60.0)
 Result      : file
+
+Operator: at
+Number: 1
+Signature: (hmpoint point) -> mpoint
+Example  : query htrain7 at mehringdamm
+Result      : file
+
+Operator: at
+Number: 2
+Signature: (hmpoint region) -> mpoint
+Example  : query htrain7 at havel
+Result      : file
