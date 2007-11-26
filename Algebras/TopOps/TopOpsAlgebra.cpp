@@ -813,10 +813,10 @@ Preconditions:
          left.x1 = x1;
          left.y1 = y1;
          left.x2 = s.x1;
-         left.y2 = s.y2;
+         left.y2 = s.y1;
        } else {
          left.x1 = s.x1;
-         left.y1 = s.x2;
+         left.y1 = s.y1;
          left.x2 = x1;
          left.y2 = y1;
        }
@@ -3223,6 +3223,7 @@ void updateDomPoints(Point& lastDomPoint, const Point& newDomPoint,
                      Cluster& cluster,
                      bool& done){
 
+
   // update dominating point information
   int sum = lastDomPointCount1 + lastDomPointCount2;
 
@@ -3325,10 +3326,11 @@ bool GetInt9M(Line const* const line1,
     }
  }
 
- 
- if(!line1->BoundingBox().Intersects(line2->BoundingBox()) && useCluster){
-     Int9M m(false,false,true,false,false,true,true,true,true);
-     cluster.Restrict(m,false);
+ if(!line1->IsEmpty() && !line2->IsEmpty()){ 
+    if(!line1->BoundingBox().Intersects(line2->BoundingBox()) && useCluster){
+        Int9M m(false,false,true,false,false,true,true,true,true);
+        cluster.Restrict(m,false);
+    }
  }
  
  if(useCluster){
@@ -3367,6 +3369,12 @@ bool GetInt9M(Line const* const line1,
  while(!done && 
        ((owner=selectNext(line1,pos1,line2,pos2,q1,q2,nextHs,src))!=none) ){
    AVLSegment current(&nextHs,owner);
+
+// debug::start
+   // cout << "process segment " << current << "  "
+   //      << (nextHs.IsLeftDomPoint()?"LEFT":"RIGHT") << endl;
+// debug::end
+
 
    // try to find an overlapping segment in sss
    member = sss.getMember(current,leftN,rightN);
@@ -3407,22 +3415,14 @@ bool GetInt9M(Line const* const line1,
            }
 
            Point newDomPoint = nextHs.GetDomPoint();
+           ownertype owner2 = owner;
+           if(parts  & LEFT){
+              owner2 = both;
+           }
            updateDomPoints(lastDomPoint,newDomPoint, 
-                          lastDomPointCount1,lastDomPointCount2,owner, res,
+                          lastDomPointCount1,lastDomPointCount2,owner2, res,
                           useCluster, cluster, done);
            
-           if(parts & LEFT){
-              // we have already processed the left event for the 
-              // segement which is replaced by common,
-              switch(owner){
-                 case first: lastDomPointCount2++;
-                             break;
-                 case second: lastDomPointCount1++;
-                              break;
-                 default:     assert(false);
-               } 
-           }
-
         } 
       } else { // no overlapping segment stored in sss
         splitByNeighbour(sss,current,leftN,q1,q2);
@@ -3450,6 +3450,7 @@ bool GetInt9M(Line const* const line1,
 
         switch(member->getOwner()){
           case first:  SetIE(res,useCluster,cluster,done);
+                       cout << "SET IE at " << __LINE__ << endl;
                        break;
           case second: SetEI(res,useCluster,cluster,done); 
                        break;
@@ -4883,10 +4884,10 @@ int Realminize2VM(Word* args, Word& result, int message,
 8.2.5 Value mapping for set operations
 
 */
-template<class t1, class t2, class tres>
-void SetOp(const t1& arg1, const t2& arg2, tres& result){
-   SetOp(arg1,arg2,result);
-}
+//template<class t1, class t2, class tres>
+//void SetOp(const t1& arg1, const t2& arg2, tres& result){
+//   SetOp(arg1,arg2,result);
+//}
 
 template<class t1, class t2, class tres, SetOperation op>
 int SetOpVM(Word* args, Word& result, int message,
@@ -5007,15 +5008,15 @@ ValueMapping Union2Map[] = {
 ValueMapping Intersection2Map[] = {
        SetOpVM<Line,Line,Line,intersection_op>,
        SetOpVM<Region,Region,Region,intersection_op>,
-       SetOpVM<Line,Region,Line,intersection_op>,
-       SetOpVMSym<Region,Line,Line,intersection_op>
+       SetOpVMSym<Region,Line,Line,intersection_op>,
+       SetOpVM<Line,Region,Line,intersection_op>
       };
 
 ValueMapping Difference2Map[] = {
        SetOpVM<Line,Line,Line,difference_op>,
        SetOpVM<Region,Region,Region,difference_op>,
-       SetOpVM<Line,Region,Line,difference_op>,
-       SetOpVMSym<Line,Region,Region,difference_op>
+       SetOpVM<Region,Line,Region,difference_op>,
+       SetOpVM<Line,Region,Line,difference_op>
       };
 
 
@@ -5092,10 +5093,10 @@ static int SetOpSelect(ListExpr args){
   if( (type1=="region") && (type2=="region")){
       return 1;
    }
-  if( (type1=="line") && (type2=="region")){
+   if( (type1=="region") && (type2=="line")){
       return 2;
    }
-  if( (type1=="region") && (type2=="line")){
+   if( (type1=="line") && (type2=="region")){
       return 3;
    }
    return -1;

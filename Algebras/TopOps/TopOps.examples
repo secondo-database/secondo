@@ -1,20 +1,6 @@
 Database: berlintest
 Restore : No
 
-Operator : topops_get_stat
-Number   : 1
-Signature: -> text 
-Example  : query topops_get_stat() contains "point" 
-Result   : (bool TRUE)
-Remark   : some statistic information 
-
-
-Operator : topops_reset_stat
-Number   : 1
-Signature: -> bool 
-Example  : query topops_reset_stat() 
-Result   : (bool TRUE)
-Remark   : sets the statistic to the initial state
 
 Operator : toprel
 Number   : 1
@@ -48,32 +34,121 @@ Operator : toprel
 Number   : 5
 Signature: line x line -> int9m 
 Example  : query toprel(trajectory(train7),trajectory(train7))
-Result   : bug
-Remark   : not implemented yet 
+Result   : (int9m (TRUE FALSE FALSE  FALSE TRUE FALSE FALSE FALSE TRUE)) 
 
 
 Operator : toprel
 Number   : 6
 Signature: line x region -> int9m 
 Example  : query toprel(trajectory(train7),thecenter)
-Result   : bug
-Remark   : not implemented yet 
+Result   : (int9m (TRUE TRUE TRUE FALSE FALSE TRUE TRUE TRUE TRUE))
 
 
 Operator : toprel
 Number   : 7
 Signature: region x region -> int9m 
 Example  : query toprel(thecenter,thecenter)
-Result   : bug
-Remark   : not implemented yet 
+Result   : (int9m (TRUE FALSE FALSE FALSE TRUE FALSE FALSE FALSE TRUE))
 
 
 Operator : toppred
 Number   : 1
 Signature: {point, points, line, region} x {point, points, line, region} x string x predicategroup -> bool 
-Example  : query toppred(mehringdamm, mehringdamm, "equal", stdpgroup())
+Example  : query toppred(mehringdamm, mehringdamm, getcluster(stdpgroup(),"equal"))
 Result   : (bool TRUE)
-Remark   : Simple implementation using the toprel operation 
+Remark   : examples for the remaining signatures missing
+
+
+ 
+Operator : realminize2
+Number   : 1
+Signature: line -> line 
+Example  : query (realminize2(trajectory(train7))) = trajectory(train7)
+Result   : (bool TRUE)
+
+Operator  : union2
+Number    : 1
+Signature : line x line -> line
+Example   : query  (trajectory(train7) union2 trajectory(train7))=trajectory(train7)
+Result    : (bool TRUE)
+
+
+Operator  : union2
+Number    : 2
+Signature : region x region -> region
+Example   : query  (thecenter union2 thecenter) = thecenter
+Result    : (bool TRUE)
+
+
+Operator  : union2
+Number    : 3
+Signature : line x region -> region
+Example   : query  (trajectory(train7) union2 thecenter) = thecenter
+Result    : (bool TRUE)
+
+
+Operator  : union2
+Number    : 4
+Signature : region x line -> region
+Example   : query  (thecenter union2 trajectory(train7)) = thecenter
+Result    : (bool TRUE)
+
+
+
+Operator  : intersection2
+Number    : 1
+Signature : line x line -> line
+Example   : query  (trajectory(train7) intersection2 trajectory(train7))=trajectory(train7)
+Result    : (bool TRUE)
+
+
+Operator  : intersection2
+Number    : 2
+Signature : region x region -> region
+Example   : query  (thecenter intersection2 thecenter) = thecenter
+Result    : (bool TRUE)
+
+
+Operator  : intersection2
+Number    : 3
+Signature : line x region -> region
+Example   : query  toprel(trajectory(train7) intersection2 thecenter,trajectory(train7)) 
+Result    : (int9m (TRUE FALSE FALSE TRUE FALSE FALSE TRUE TRUE TRUE))
+Remark    : returns the part of the line which are in interior or on boundary of the region
+
+Operator  : intersection2
+Number    : 4
+Signature : region x line -> region
+Example   : query  toprel(thecenter intersection2 trajectory(train7),trajectory(train7))
+Result    : (int9m (TRUE FALSE FALSE TRUE FALSE FALSE TRUE TRUE TRUE))
+
+Operator  : difference2
+Number    : 1
+Signature : line x line -> line
+Example   : query trajectory(train7) difference2 trajectory(train7)
+Result    : (line ())
+
+
+Operator  : difference2
+Number    : 2
+Signature : region x region -> region
+Example   : query thecenter difference2 thecenter
+Result    : (region ())
+
+
+Operator  : difference2
+Number    : 3
+Signature : region x line -> region
+Example   : query (thecenter difference2 trajectory(train7)) = thecenter
+Result    : (bool TRUE)
+
+
+Operator  : difference2
+Number    : 4
+Signature : line x region -> line
+Example   : query toprel((trajectory(train7) difference2 thecenter), trajectory(train7))
+Result    : (int9m (TRUE FALSE FALSE TRUE TRUE FALSE TRUE FALSE TRUE))
+
 
 
 
