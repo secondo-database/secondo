@@ -4650,6 +4650,16 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
   {
     if( unit.timeInterval.Before( *interval ) )
     {
+      if( auxPeriods.GetNoComponents() > 0 )
+      {
+        int ostart = ntt->GetOriginstart();
+        int oend = ntt->GetOriginend();
+        if(layer < 5 && ostart > -1 && oend > -1)
+        {
+          dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result); 
+          auxPeriods.Clear();
+        }
+      }
       if(++i > end )
         break;
       Get( layer, i, ntt );
@@ -4665,12 +4675,12 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
     { // the actual intervals overlap each other
       
       // +++++ for debugging purposes only +++++
-      cout << "On layer " << layer << " the interval ";
-      interval->Print(cout);
-      cout << endl << "  overlaps the timeInterval of Unit " << i << "!\n";
-      cout << "    ";
-      unit.timeInterval.Print(cout);
-      cout << endl << endl;
+      //cout << "On layer " << layer << " the interval ";
+      //interval->Print(cout);
+      //cout << endl << "  overlaps the timeInterval of Unit " << i << "!\n";
+      //cout << "    ";
+      //unit.timeInterval.Print(cout);
+      //cout << endl << endl;
       
       
       if( bottomLayer )
@@ -4684,9 +4694,9 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
         assert( r.IsValid() );
         
         // +++++ for debugging purposes only +++++
-        cout << "Add new Unit with timeInterval = ";
-        r.timeInterval.Print(cout);
-        cout << endl << endl;
+        //cout << "Add new Unit with timeInterval = ";
+        //r.timeInterval.Print(cout);
+        //cout << endl << endl;
         
         result.Add( r );
       }
@@ -4695,9 +4705,9 @@ int HCMPoint::AtPeriods( const int layer, const int start, const int end,
         auxPeriods.Add( *interval );
         
         // +++++ for debugging purposes only +++++
-        cout << "Add the periods-interval to 'auxPeriods'!\n";
-        cout << "auxPeriods for layer " << layer+1 << " has " 
-          << auxPeriods.GetNoComponents() << " components.\n" << endl;
+        //cout << "Add the periods-interval to 'auxPeriods'!\n";
+        //cout << "auxPeriods for layer " << layer+1 << " has " 
+        //  << auxPeriods.GetNoComponents() << " components.\n" << endl;
       }
       
       if( interval->end == unit.timeInterval.end )
@@ -6927,6 +6937,16 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
   {
     if( unit.timeInterval.Before( *interval ) )
     {
+      if( auxPeriods.GetNoComponents() > 0 )
+      {
+        int ostart = ntt->GetOriginstart();
+        int oend = ntt->GetOriginend();
+        if(layer < 5 && ostart > -1 && oend > -1)
+        {
+          dummy = AtPeriods(layer+1, ostart, oend, auxPeriods, result); 
+          auxPeriods.Clear();
+        }
+      }
       if(++i > end )
         break;
       Get( layer, i, ntt );
@@ -6942,9 +6962,12 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
     { // the actual intervals overlap each other
       
       // +++++ for debugging purposes only +++++
-      cout << "On layer " << layer << " the interval ";
-      interval->Print(cout);
-      cout << " overlaps the timeInterval of Unit " << i << "!\n";
+      //cout << "On layer " << layer << " the interval ";
+      //interval->Print(cout);
+      //cout << endl << "  overlaps the timeInterval of Unit " << i << "!\n";
+      //cout << "    ";
+      //unit.timeInterval.Print(cout);
+      //cout << endl << endl;
       
       
       if(layer == 5)
@@ -6956,10 +6979,23 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
         
         assert( r.IsDefined() );
         assert( r.IsValid() );
+        
+        // +++++ for debugging purposes only +++++
+        //cout << "Add new Unit with timeInterval = ";
+        //r.timeInterval.Print(cout);
+        //cout << endl << endl;
+        
         result.Add( r );
       }
       else
+      {
         auxPeriods.Add( *interval );
+        
+        // +++++ for debugging purposes only +++++
+        //cout << "Add the periods-interval to 'auxPeriods'!\n";
+        //cout << "auxPeriods for layer " << layer+1 << " has " 
+        //  << auxPeriods.GetNoComponents() << " components.\n" << endl;
+      }
       
       if( interval->end == unit.timeInterval.end )
       { // same ending instant
