@@ -1207,14 +1207,14 @@ for destroying. The destructor will perform the real destroying.
   inline void Get( const int layer, const int i, HCUPoint const*& hcup );
   
   inline void Get( const int layer, const int i, CUPoint const*& cup );
-  
-  inline void Get( const int layer, const int i, UPoint const*& up );
- 
+   
   inline void Put( const int layer, const int i, HCUPoint& hcup);
   
   inline int GetNoComponents() const;
   
   inline void ResizeLayer( const int layer, const int n );
+  
+  inline void TrimLayerToSize( const int layer );
   
   inline int LayerSize( const int layer ) const;
   
@@ -1225,6 +1225,13 @@ for destroying. The destructor will perform the real destroying.
   
   void DefTime( Periods& p );
   bool Present( const Instant& i );
+  
+  int Generalize(const int layer, const bool checkBreakPoints,
+                          const DateTime dur);
+
+  void Simplify(const int min, const int max, const int layer,
+                    bool* useleft, bool* useright, double* realepsilon, 
+                    const double epsilon);
 
 /*
 bool Present( const Periods\& t )
@@ -1323,6 +1330,10 @@ This recursive Function determines, by a pre-order run through the hierarchical
   int AtInstant( const int layer, const int start, const int end,  
                   const Instant& t, Intime<Region>& result );
   
+  void AtPeriods( const Periods& p, CMPoint& result);
+  int AtPeriods( const int layer, const int start, const int end, 
+                  const Periods& p, CMPoint& result );
+
   void D_At( const Point& p, CMPoint& result );
   bool D_At( const int layer, const int start, const int end, const Point& p,  
                   CMPoint& result);
@@ -1338,6 +1349,7 @@ This recursive Function determines, by a pre-order run through the hierarchical
   void P_At( const Region& r, CMPoint& result );
   bool P_At( const int layer, const int start, const int end, 
                   const Region& r, CMPoint& result );
+
 /*
 
 
@@ -1600,7 +1612,9 @@ right function GetNoComponents.
   int AtInstant( const int layer, const int start, const int end, 
                   const Instant& t, Intime<Point>& result );
   
-  void AtPeriods( const Periods& p, HMPoint& result);
+  void AtPeriods( const Periods& p, MPoint& result);
+  int AtPeriods( const int layer, const int start, const int end, 
+                  const Periods& p, MPoint& result );
   
   void ReduceHierarchy( const double epsilon, HCMPoint& result );
 /*
@@ -1676,13 +1690,18 @@ computes up to 5 generalizations of this MPoint which are stored in the layers
 
 */
 
-static bool IsBreakPoint(const UPoint* u,const DateTime& duration);
+void Generalize( const double epsilon, const double factor, const int layer, 
+                  const CMPoint& source, const bool checkBreakPoints,
+                  const DateTime dur, HMPoint& result);
+
+
+static bool IsBreakPoint(const CUPoint* u,const DateTime& duration);
 /*
 This is an auxiliary function for the 'generalize'-algorithm.
 
 */
 
-static bool connected(const UPoint* u1, const UPoint* u2);
+static bool connected(const CUPoint* u1, const UPoint* u2);
 /*
 This function checks whether the end point of the first unit is equal
 to the start point of the second unit and if the time difference is
