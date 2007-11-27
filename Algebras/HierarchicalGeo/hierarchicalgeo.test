@@ -551,6 +551,21 @@ query htrain7 atinstant six30;
 query htrain7 atinstant eight30;
 
 
+#testcase hmpoint_atperiods1
+#yields *train7AtSix10six30
+query htrain7 atperiods six10_six30;
+
+
+#testcase hmpoint_atperiods2
+#yields (mpoint ( (\
+        ("2003-11-20-07:01:45" "2003-11-20-07:01:50" TRUE FALSE)\
+        (-3545.223494643517 14306.11193202808 -3560.0 14235.0))\
+    (\
+        ("2003-11-20-07:01:50" "2003-11-20-07:01:56" TRUE FALSE)\
+        (-3560.0 14235.0 -3560.0 14235.0))) )
+query htrain7 atperiods one43one56;
+
+
 #testcase hmpoint_p_at1
 #yields (mpoint ( (\
         ("2003-11-20-06:27:50" "2003-11-20-06:28" TRUE FALSE)\
@@ -571,7 +586,7 @@ query htrain7 d_at mehringdamm;
 query htrain7 d_at havel;
 
 
-# 4 - Tests about the datatype hmpoint (hierarchical moving point)
+# 4 - Tests about the datatype hcmpoint (hierarchical uncertain moving point)
 
 
 #testcase hcmpoint_no_components
@@ -693,6 +708,18 @@ query hctrain7 atinstant six30;
 #testcase hcmpoint_atinstant2
 #yields (intimeregion undef)
 query hctrain7 atinstant eight30;
+
+
+#testcase hcmpoint_atperiods1
+#yields *ctrain7AtSix10six30
+query hctrain7 atperiods six10_six30;
+
+
+#testcase hcmpoint_atperiods2
+#yields (cmpoint ( (31.65512809905122 (\
+            ("2003-11-20-07:01:45" "2003-11-20-07:01:56" TRUE FALSE)\
+            (-3493.133765008297 14361.89942407184 -3542.169004002213 14268.83984641916)))) )
+query hctrain7 atperiods one43one56;
 
 
 #testcase hcmpoint_d_at1
