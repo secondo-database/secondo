@@ -5694,7 +5694,7 @@ inline void HCMPoint::CopyFrom( const StandardAttribute* right )
 inline FLOB* HCMPoint::GetFLOB( const int i)
 {
   assert( i > -1 );
-  assert( i < 5 );
+  assert( i < NumOfFLOBs() );
   
   switch( i )
   {
@@ -7238,6 +7238,17 @@ inline void HMPoint::CopyFrom( const StandardAttribute* right )
   SetLayer4epsilon( hmp->GetLayer4epsilon() );
   SetEpsilon( hmp->GetEpsilon() );
   SetFactor( hmp->GetFactor() );
+}
+
+inline FLOB* HMPoint::GetFLOB( const int i)
+{
+  assert( i > -1 );
+  assert( i < NumOfFLOBs() );
+  
+  if( i == 5 )
+    return &certainlayer;
+  else
+    return HCMPoint::GetFLOB( i );
 }
 
 /*

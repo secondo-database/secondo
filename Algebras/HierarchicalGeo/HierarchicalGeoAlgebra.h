@@ -424,11 +424,6 @@ the CUPoint, which possibly lies on or inside the given spatal object.
 */
 
   void AtInstant( const Instant& t, Intime<Region>& result ) const;
-
-/*
-3.2.5 Functions to be part of relations
-
-*/
   
   void UnitSetDefined( bool def ) 
   {
@@ -440,11 +435,6 @@ the CUPoint, which possibly lies on or inside the given spatal object.
     return UPoint::IsDefined();
   }
   
-  bool IsDefined() const
-  {
-    return UnitIsDefined() && UncertainIsDefined();
-  }
-  
   bool UnitIsValid() const
   {
     return TemporalUnit<Point>::IsValid();
@@ -453,6 +443,22 @@ the CUPoint, which possibly lies on or inside the given spatal object.
   bool UncertainIsValid() const
   {
     return Uncertain::IsValid();
+  }
+  
+/*
+3.2.5 Functions to be part of relations
+
+*/
+  
+  bool IsDefined() const
+  {
+    return UnitIsDefined() && UncertainIsDefined();
+  }
+  
+  void SetDefined( const bool defined )
+  {
+    UnitSetDefined( defined );
+    UncertainSetDefined( defined );
   }
   
   bool IsValid() const
@@ -506,7 +512,7 @@ the CUPoint, which possibly lies on or inside the given spatal object.
     {
       
       // +++++ for debugging purposes only +++
-      cout << "Die UNIT ist definiert. \n";
+      //cout << "Die UNIT ist definiert. \n";
       
       os << "CUPoint: " << "( ";
       os << epsilon << "( ";
@@ -614,14 +620,13 @@ The simple constructor. This constructor should not be used.
 */
   CMPoint( const int n ):
       Mapping< CUPoint, Point >( n ),
-      Uncertain( true )    // set to TRUE just for debugging purposes
-      {
-        // +++++ initialized just for debugging purposes +++
-        epsilon = 0.0;
-        del.refs=1;
-        del.isDelete=true;
-        bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-      }
+      Uncertain( true )    
+  {
+    epsilon = 0.0;
+    del.refs=1;
+    del.isDelete=true;
+    bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  }
 /*
 The constructor. Initializes space for ~n~ elements.
 
@@ -802,7 +807,7 @@ Will return a value smaller than zero if this mpoint is not defined
 /*
 3.3.3.7 ~BoundingBox~
 
-Returns the MPoint's minimum bounding rectangle
+Returns the CMPoint's minimum bounding rectangle
 
 */
   // return the stored bbox
@@ -826,7 +831,7 @@ hierarchical structure.
 
 */
 template <class Alpha>
-class HierarchicalEntity
+class HierarchicalEntity: public StandardAttribute
 {
   public:
 /*
@@ -840,7 +845,18 @@ The simple constructor. This constructor should not be used.
 
 */
   
-  //HierarchicalEntity( const HierarchicalEntity<Alpha>& entity) {}
+  HierarchicalEntity( const HierarchicalEntity<Alpha>& entity): 
+      value(),
+      generalizedby( entity.GetGeneralizedby() ),
+      layer( entity.GetLayer() ),
+      index( entity.GetIndex() ),
+      originstart( entity.GetOriginstart() ),
+      originend( entity.GetOriginend() )
+  {
+    value.CopyFrom( &entity.value );
+    del.refs=1;
+    del.isDelete=true;
+  }
 /*
 The copy-constructor.
 
@@ -856,6 +872,8 @@ The copy-constructor.
     originend( end )
   {
     value.CopyFrom( &alpha );
+    del.refs=1;
+    del.isDelete=true;
   }
 /*
 The creation of a HierarchicalEntity, setting the typically allready known
@@ -872,6 +890,8 @@ attributes.
     originend( end )
   {
     value.CopyFrom( &alpha );
+    del.refs=1;
+    del.isDelete=true;
   }
 /*
 A constructor which sets all attributes (usually unsed by the in-function).
@@ -906,7 +926,7 @@ A constructor which sets all attributes (usually unsed by the in-function).
     return false;
   }
 
-  void InsertToHierarchy(const int idx)
+  inline void SetIndex(const int idx)
   {
     index = idx;
   }
@@ -980,11 +1000,51 @@ A constructor which sets all attributes (usually unsed by the in-function).
   {
     return sizeof( *this );
   }
-  
-  inline int Compare( const HierarchicalEntity *ntt2 ) const
+
+/*
+For HierarchicalEntity is a container-element, providing an order of units 
+within a hierarchical structure, only the layer- and index-values are 
+compared. The order of the contained units is ignored here!
+
+*/
+  inline int Compare( const Attribute* arg ) const
   {
-    // TODO
-    return 1;
+    HierarchicalEntity<Alpha>* other = (HierarchicalEntity<Alpha>*) arg;
+    if( !IsDefined() && !other->IsDefined() )
+      return 0;
+    if( !IsDefined() )
+      return -1;
+    if( !other->IsDefined() )
+      return 1;
+    
+    if( layer < other->GetLayer() )
+      return -1;
+    if( layer > other->GetLayer() )
+      return 1;
+    else
+    { // the layer-values are equal
+      if( index < other->GetIndex() )
+        return -1;
+      if( index > other->GetIndex() )
+        return 1;
+    }
+    return 0;
+  }
+  
+  bool Adjacent( const Attribute* arg ) const
+  {
+    HierarchicalEntity<Alpha>* other = (HierarchicalEntity<Alpha>*) arg;
+    if( IsDefined() && other->IsDefined() && layer == other->GetLayer() )
+    {
+      if( index+1 == other->GetIndex() || index-1 == other->GetIndex() )
+        return true;
+    }
+    return false;
+  }
+  
+  HierarchicalEntity<Alpha>* Clone() const
+  {
+    return (new HierarchicalEntity<Alpha>( *this) );
   }
   
   inline ostream& Print( ostream &os ) const
@@ -1000,7 +1060,23 @@ A constructor which sets all attributes (usually unsed by the in-function).
     return os;
   }
   
+  virtual size_t HashValue() const
+  {
+    return 0;
+  }
   
+  virtual void CopyFrom( const StandardAttribute* right )
+  {
+    const HierarchicalEntity<Alpha>* i =
+      (const HierarchicalEntity<Alpha>*)right;
+    
+    generalizedby = i->GetGeneralizedby();
+    layer = i->GetLayer();
+    index = i->GetIndex();
+    originstart = i->GetOriginstart();
+    originend = i->GetOriginend();
+    value.CopyFrom( &i->value );
+  }
   
 /*
 3.4.4 Attributes
@@ -1370,7 +1446,7 @@ Returns the unit ~upi~ at the position ~i~ in the mapping.
   void Clear();
   
 /*
-Remove all units in the mapping.
+Remove all entities in all DBArrays.
 
 */
   bool IsValid() const;
@@ -1635,6 +1711,9 @@ right function GetNoComponents.
   {
     return 6;
   }
+  
+  inline FLOB* GetFLOB( const int i);
+  
 /*
 3.8.4 Attributes
 
