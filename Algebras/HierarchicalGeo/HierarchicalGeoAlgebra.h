@@ -216,7 +216,6 @@ class CUPoint : public UPoint,
 The simple constructor. This constructor should not be used.
 
 */
-  
   CUPoint( const bool is_defined ):
       UPoint(false),
       Uncertain(is_defined)
@@ -343,14 +342,27 @@ they are equal.
   virtual void TemporalFunction( const Instant& t,
                                  Point& result,
                                  bool ignoreLimits = false ) const;
-  virtual bool Passes( const Point& val ) const {return false;}
-  bool Passes( const Region& val ) const {return false;}
+  
+  virtual bool Passes( const Point& val ) const 
+  {
+    return D_Passes( val );
+  }
+  
+  bool Passes( const Region& val ) const 
+  {
+    return D_Passes( val );
+  }
+  
   virtual bool At( const Point& val, TemporalUnit<Point>& result ) const 
-  {return false;}
+  {
+    return false;
+  }
+  
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const;
+  
   void Distance( const Point& p, UReal& result ) const {}
-  //  void UTrajectory( UPoint& unit,Line& line ) const;
+  
   
   void USpeed( UReal& result ) const {}
   void UVelocity( UPoint& result ) const {}
@@ -358,12 +370,10 @@ they are equal.
   
   virtual bool EqualValue( const CUPoint& i )
   {
-  return   AlmostEqual( p0, i.p0 ) &&
-           AlmostEqual( p1, i.p1 );
+    return ( AlmostEqual( p0, i.p0 ) && AlmostEqual( p1, i.p1 ) );
   }
 
-  void Translate(const double x, const double y, 
-                 const DateTime& duration) {}
+  void Translate(const double x, const double y, const DateTime& duration) {}
   
 /*
 3.2.4 Additional Uncertain-Temporal Functions
@@ -445,7 +455,33 @@ the CUPoint, which possibly lies on or inside the given spatal object.
     return Uncertain::IsValid();
   }
   
+  bool IsValid() const
+  {
+    return UnitIsValid() && Uncertain::IsValid();
+  }
+
+virtual const Rectangle<3> BoundingBox() const
+  {
+    return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
+                               MAX( p0.GetX(), p1.GetX() )+epsilon,
+                               MIN( p0.GetY(), p1.GetY() )-epsilon,
+                               MAX( p0.GetY(), p1.GetY() )+epsilon,
+                               timeInterval.start.ToDouble(),
+                               timeInterval.end.ToDouble() );
+  }
+  
+  virtual const Rectangle<2> BBox2D() const
+  {
+    return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
+                               MAX( p0.GetX(), p1.GetX() )+epsilon,
+                               MIN( p0.GetY(), p1.GetY() )-epsilon,
+                               MAX( p0.GetY(), p1.GetY() )+epsilon);
+  }
 /*
+For this is an uncertain UPoint-value, the returned Rectangle<3> is enlarged by
+the epsilon-value.
+
+
 3.2.5 Functions to be part of relations
 
 */
@@ -459,11 +495,6 @@ the CUPoint, which possibly lies on or inside the given spatal object.
   {
     UnitSetDefined( defined );
     UncertainSetDefined( defined );
-  }
-  
-  bool IsValid() const
-  {
-    return UnitIsValid() && Uncertain::IsValid();
   }
   
   inline virtual size_t Sizeof() const
@@ -482,21 +513,23 @@ the CUPoint, which possibly lies on or inside the given spatal object.
       return 1;
 
     int cmp = timeInterval.CompareTo(up2->timeInterval);
-    if(cmp){
-       return cmp;
-    }
-    if(p0<up2->p0){
+    if(cmp)
+      return cmp;
+    
+    if(p0<up2->p0)
       return -1;
-    }
-    if(p0>up2->p0){
+    if(p0>up2->p0)
       return 1;
-    }
-    if(p1>up2->p1){
-       return 1;
-    }
-    if(p1<up2->p1){
-       return -1;
-    }
+    if(p1>up2->p1)
+      return 1;
+    if(p1<up2->p1)
+      return -1;
+
+    if( epsilon < up2->GetEpsilon() )
+      return -1;
+    if( epsilon > up2->GetEpsilon() )
+      return 1;
+    
     return 0;
   }
   
@@ -507,13 +540,8 @@ the CUPoint, which possibly lies on or inside the given spatal object.
   
   ostream& Print( ostream& os ) const
   {
-
     if(IsDefined())
     {
-      
-      // +++++ for debugging purposes only +++
-      //cout << "Die UNIT ist definiert. \n";
-      
       os << "CUPoint: " << "( ";
       os << epsilon << "( ";
       timeInterval.Print(os);
@@ -525,9 +553,7 @@ the CUPoint, which possibly lies on or inside the given spatal object.
       return os;
     }
     else
-    {
       return os << "CUPoint: (undef) ";
-    }
   }
   
   inline virtual size_t HashValue() const
@@ -568,29 +594,8 @@ the CUPoint, which possibly lies on or inside the given spatal object.
         p1 = Point( false, 0.0, 0.0);
       }
   }
-  
-  virtual const Rectangle<3> BoundingBox() const
-  {
-    return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
-                               MAX( p0.GetX(), p1.GetX() )+epsilon,
-                               MIN( p0.GetY(), p1.GetY() )-epsilon,
-                               MAX( p0.GetY(), p1.GetY() )+epsilon,
-                               timeInterval.start.ToDouble(),
-                               timeInterval.end.ToDouble() );
-  }
-  
-  virtual const Rectangle<2> BBox2D() const
-  {
-    return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() )-epsilon,
-                               MAX( p0.GetX(), p1.GetX() )+epsilon,
-                               MIN( p0.GetY(), p1.GetY() )-epsilon,
-                               MAX( p0.GetY(), p1.GetY() )+epsilon);
-  }
+
 /*
-For this is an uncertain UPoint-value, the returned Rectangle<3> is enlarged by
-the epsilon-value.
-
-
 3.2.5 Attributes
 
 */
@@ -646,7 +651,6 @@ using a check on bbox.
   void MergeAdd(const CUPoint& unit);
   void EndBulkLoad( const bool sort = true );
   void Restrict( const vector< pair<int, int> >& intervals );
-  ostream& Print( ostream &os ) const;
   //bool operator==( const CMPoint& r ) const;
   bool Present( const Instant& t ) const;
   bool Present( const Periods& t ) const;
@@ -654,38 +658,23 @@ using a check on bbox.
   void AtPeriods( const Periods& p, CMPoint& result ) const;
   void Trajectory( Region& region );
   
-  virtual Attribute* Clone() const
+/*
+Functions to be part of relations
+
+*/  
+  
+  ostream& CMPoint::Print( ostream &os ) const;
+  
+  virtual Attribute* Clone() const;
+  
+  void CopyFrom( const StandardAttribute* right );
+  
+  inline virtual size_t Sizeof() const
   {
-    assert( IsOrdered() );
-    CMPoint *result = new CMPoint( GetNoComponents() );
-    if(GetNoComponents()>0){
-      result->units.Resize(GetNoComponents());
-    }
-    result->StartBulkLoad();
-    const CUPoint *unit;
-    for( int i = 0; i < GetNoComponents(); i++ )
-    {
-      Get( i, unit );
-      result->Add( *unit );
-    }
-    result->EndBulkLoad( false );
-    return (Attribute*) result;
+    return sizeof( *this );
   }
   
-  void CopyFrom( const StandardAttribute* right )
-  {
-    const CMPoint *r = (const CMPoint*)right;
-    assert( r->IsOrdered() );
-    Clear();
-    StartBulkLoad();
-    const CUPoint *unit;
-    for( int i = 0; i < r->GetNoComponents(); i++ )
-    {
-      r->Get( i, unit );
-      Add( *unit );
-    }
-    EndBulkLoad( false );
-  }
+  
 /*
 3.3.3 Additional Uncertain-Temporal Functions
 
