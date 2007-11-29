@@ -3394,6 +3394,8 @@ void CMPoint::D_At( const Point& p, CMPoint& result ) const
   assert( IsOrdered() );
   assert( p.IsDefined() );
   
+  result.Clear();
+  
   if( !p.Inside(BBox2D()) )
     result.SetDefined( false );
   
@@ -3421,6 +3423,8 @@ void CMPoint::D_At( const Region& r, CMPoint& result ) const
   
   if( !r.BoundingBox().Intersects(BBox2D()) )
     result.SetDefined( false );
+  
+  result.Clear();
   
   const CUPoint *unit;
   CMPoint resultunits( 0 );
@@ -3466,6 +3470,8 @@ void CMPoint::P_At( const Point& p, CMPoint& result ) const
   assert( IsOrdered() );
   assert( p.IsDefined() );
   
+  result.Clear();
+  
   if( !p.Inside(BBox2D()) )
     result.SetDefined( false );
   
@@ -3490,6 +3496,8 @@ void CMPoint::P_At( const Region& r, CMPoint& result ) const
   
   if( !r.BoundingBox().Intersects(BBox2D()) )
     result.SetDefined( false );
+  
+  result.Clear();
   
   const CUPoint *unit;
   CMPoint resultunits( 0 );
@@ -10658,6 +10666,8 @@ int CMPointToUncertain( Word* args, Word& result, int message, Word& local,
   CMPoint *cmp = ((CMPoint*)result.addr);
   
   const UPoint *unit;
+  
+  cmp->Clear();
   
   if( m->IsDefined() && e->IsDefined() )
   {
