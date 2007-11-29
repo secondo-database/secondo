@@ -5025,6 +5025,7 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
     const UPoint *u2transfer;
 
     rp.Get(i, iv, u1Pos, u2Pos);
+    assert( iv->IsValid() );
 
     if (TLA_DEBUG)
       { cout << "rp:" << i << ": " ; 
@@ -5060,6 +5061,9 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
 
       // create intersection of  u1 x u2
       u1.Intersection(u2, resunit);
+
+      assert( resunit.timeInterval.IsValid() );
+
       if( !resunit.timeInterval.Inside(*iv) )
         // invalidate result, if it is on an open border of *iv
         resunit.SetDefined(false);
