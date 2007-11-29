@@ -5062,6 +5062,21 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
       // create intersection of  u1 x u2
       u1.Intersection(u2, resunit);
 
+      if( !resunit.timeInterval.IsValid() )
+      { // Debugging Info
+        cout << "Error in " << __PRETTY_FUNCTION__ << " ["<< __FILE__ << ":"
+             << __LINE__ << "]:" << endl;
+        cout << "u1transfer = "; u1transfer->Print(cout); cout << endl;
+        cout << "u2transfer = "; u2transfer->Print(cout); cout << endl;
+        cout << "u1         = "; u1.Print(cout); cout << endl;
+        cout << "u2         = "; u2.Print(cout); cout << endl;
+        cout << "iv         = " << (iv->lc ? "[" : "(")
+             << iv->start << "," << iv->end << (iv->lc ? "[" : "(") << endl;
+        cout << "resunit.timeInterval = "
+            << (resunit.timeInterval.lc ? "[" : "(")
+            << resunit.timeInterval.start << "," << resunit.timeInterval.end
+            << (resunit.timeInterval.lc ? "[" : "(") << endl;
+      }
       assert( resunit.timeInterval.IsValid() );
 
       if( !resunit.timeInterval.Inside(*iv) )
