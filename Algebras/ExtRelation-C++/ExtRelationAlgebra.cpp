@@ -4719,8 +4719,8 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
     argstr + "'." );
 
   nl->WriteToString(argstr, second);
-  CHECK_COND( !nl->IsAtom(second) &&
-    nl->ListLength(second) > 0,
+  CHECK_COND( (!nl->IsAtom(second) && nl->ListLength(second) >= 0)
+      || (nl->ListLength(second) == 0),
     "Operator projectextendstream expects as second argument a "
     "list of attribute names\n"
     "Operator projectextendstream gets as second argument '" + 
@@ -4844,9 +4844,15 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
     "from the attribute names in projection list.\n"
     "Projection list: '" + argstr + "'.\n" );
 
-
-  lastNewAttrList =
-          nl->Append( lastNewAttrList, appendAttr );
+  if(!nl->IsEmpty(newAttrList))
+  { // non-empty projection list
+    lastNewAttrList = nl->Append( lastNewAttrList, appendAttr );
+  }
+  else
+  { // empty projection list
+    newAttrList = nl->OneElemList(appendAttr);
+    lastNewAttrList = newAttrList;
+  }
 
   return nl->ThreeElemList(
            nl->SymbolAtom("APPEND"),
