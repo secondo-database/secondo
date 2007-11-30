@@ -992,7 +992,7 @@ empty (or undefined).
   bool cupIntersectsRgn = false;
   int i;
   const HalfSegment *segRgn;        // a halfsegment for iterating the region
-  
+  double dist;
 /*
 2. Determine, if one of the endpoints of the cupoint lies inside the region.
 
@@ -1009,8 +1009,9 @@ empty (or undefined).
     for(i = 0; i < r.Size(); i++)
     {
       r.Get( i, segRgn);
+      dist = segRgn->Distance(p0);
       if (segRgn->IsLeftDomPoint() && 
-          containsP0 && (segRgn->Distance(p0) <= epsilon) )
+          containsP0 && (dist < epsilon) && !AlmostEqual(dist, epsilon) )
         // P0 is too close to this region's halfsegment
         distP0GreaterEpsilon = false;
     }
@@ -1076,10 +1077,8 @@ again.
         
     //r.StartBulkLoad();
 
-
-    double dist;
-    int hSegsTooClose[32]; // stores the halfsegments of the region 
-                           // whose distance to thecupoint is less than epsilon
+    int hSegsTooClose[32]; // stores the halfsegments of the region whose  
+                           // distance to the cupoint is less than epsilon
     int noSegsTooClose = 0; 
 /*
 3. If one of the endpoints lies inside the region, determine if the distance of
@@ -1167,22 +1166,22 @@ TRUE, mark it as 'undefined' and decrease the counter 'definedDefPPs'.
             }
           }
         }
-        
-        if( !cupIntersectsRgn && !p0tooClose && ! p1tooClose )
-        {
+
+
 /* 
 Determine if the distance of the actual halfsegment to the unit is less than
 epsilon. If so, store its index in the array hSegsTooClose[].
 
 */
-          hstooClose = ( segCup.Distance( *segRgn ) <= epsilon );
-          if( hstooClose )
+        dist = segCup.Distance( *segRgn );
+        hstooClose = ( dist < epsilon && !AlmostEqual(dist, epsilon) );
+        if( hstooClose )
+        {
+          if(noSegsTooClose < 32)
           {
-            if(noSegsTooClose < 32)
-            {
-              hSegsTooClose[noSegsTooClose] = i;
-              noSegsTooClose++;
-            }
+            hSegsTooClose[noSegsTooClose] = i;
+            noSegsTooClose++;
+          }
 /*
 For it is extremely unlikely that more than 32 of the region's halfsegments lie
 too close to the unit, the array-size hSegsTooClose is set to this value. If 
@@ -1190,18 +1189,17 @@ such a rare case should happen, the Operation exits with no result and returns
 the following error message:
 
 */
-            else {
-              cout << "Error in CUPoint::D_At(Region&, CMPoint&): \n";
-              cout << "There are more than 32 HalfSegments in the region whose"
-                   << " distance to the unit is less than epsilon!"
-                   << "The result is not computable by this algorithm!";
-              cerr << "Error in CUPoint::D_At(Region&, CMPoint&): \n";
-              cerr << "There are more than 32 HalfSegments in the region whose"
-                   << " distance to the unit is less than epsilon!"
-                   << "The result is not computable by this algorithm!";
-              result.SetDefined(false);
-              return;
-            }
+          else {
+            cout << "Error in CUPoint::D_At(Region&, CMPoint&): \n";
+            cout << "There are more than 32 HalfSegments in the region whose"
+                 << " distance to the unit is less than epsilon!"
+                 << "The result is not computable by this algorithm!";
+            cerr << "Error in CUPoint::D_At(Region&, CMPoint&): \n";
+            cerr << "There are more than 32 HalfSegments in the region whose"
+                 << " distance to the unit is less than epsilon!"
+                 << "The result is not computable by this algorithm!";
+            result.SetDefined(false);
+            return;
           }
         }
         
@@ -1345,6 +1343,12 @@ endpoints in this evaluation if they lie inside the region and their distance
 to the region's border is greater than epsilon.
 
 */
+      // +++++ for debugging purposes only +++++
+      //int countPoints = definedDefPPs + distP0GreaterEpsilon 
+      //  + distP1GreaterEpsilon;
+      //cout << endl << "There are " << countPoints << " DefPPs left!\n\n";
+      
+      
       Point ep0;
       Point ep1;
       bool firstrun = distP0GreaterEpsilon;
@@ -1432,6 +1436,7 @@ to the region's border is greater than epsilon.
                 }
               }
             }
+            // +++++ for debugging purposes only +++++
             //cout << "ep0 is the point at array-position " << l << "\n";
             
             defPP[l].SetDefined(false);
@@ -1452,7 +1457,10 @@ to the region's border is greater than epsilon.
                 }
               }
             }
+            
+            // +++++ for debugging purposes only +++++
             //cout << "ep1 is the point at array-position " << l << "\n";
+            
             defPP[l].SetDefined(false);
             definedDefPPs = definedDefPPs - 2;
           }
@@ -1462,6 +1470,7 @@ to the region's border is greater than epsilon.
           // ( p0 > p1 )
           // +++++ for debugging purposes only +++++
           //cout << "p0 > p1\n";
+          
           if( firstrun )
           {
             ep0 = p0;
@@ -1555,7 +1564,10 @@ to the region's border is greater than epsilon.
                 }
               }
             }
+            
+            // +++++ for debugging purposes only +++++
             //cout << "ep1 is the point at array-position " << l << "\n";
+            
             defPP[l].SetDefined(false);
             definedDefPPs = definedDefPPs - 2;
           }
@@ -1682,6 +1694,7 @@ Determine the timeInterval for the new unit:
           double k1 = (ep1.GetX() - p0.GetX()) / (ep1.GetY() - p0.GetY());
           double k2 = (p1.GetX() - p0.GetX()) / (p1.GetY() - p0.GetY());
           
+          // +++++ for debugging purposes only +++++
           //cout << "k0 = " << k0 << "   k1 = " << k1 << "   k2 = " << k2 
           //  << endl;
           
@@ -2179,8 +2192,8 @@ index of this halfsegment in the array hSegsCloserEpsilon, to compare it later
 to the possibly defined Passing Points.
 
 */
-        
-        if( segCup.Distance( *segRgn ) <= epsilon )
+        dist = segCup.Distance( *segRgn );
+        if( dist < epsilon && !AlmostEqual(dist, epsilon) )
         {
           if(noSegsCloserEpsilon < 32)
           {
