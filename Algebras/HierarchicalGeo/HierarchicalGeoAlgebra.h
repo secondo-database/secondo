@@ -1269,9 +1269,9 @@ for destroying. The destructor will perform the real destroying.
     return factor;
   }
   
-  inline void Get( const int layer, const int i, HCUPoint const*& hcup );
+  inline void Get( const int layer, const int i, HCUPoint const*& hcup ) const;
   
-  inline void Get( const int layer, const int i, CUPoint const*& cup );
+  inline void Get( const int layer, const int i, CUPoint const*& cup ) const;
    
   inline void Put( const int layer, const int i, HCUPoint& hcup);
   
@@ -1461,6 +1461,7 @@ are true:
   
   inline void SetDefined( bool Defined ) {}
   
+  
   inline size_t Sizeof() const
   {
     return sizeof( *this );
@@ -1477,11 +1478,8 @@ are true:
   inline Attribute* Clone() const;
   
 
-  inline ostream& Print( ostream &os ) const
-  {
-    os << "(HMPoint: Print function not jet implemented! \n ";
-    return os;
-  }
+  inline ostream& Print( ostream &os ) const;
+  
   
   inline size_t HashValue() const
   {
@@ -1628,13 +1626,13 @@ right function GetNoComponents.
     return noComponents;
   }
   
-  void Get( const int layer, const int i, HCUPoint const*& hcup );
+  void Get( const int layer, const int i, HCUPoint const*& hcup ) const;
   
-  void Get( const int layer, const int i, CUPoint const*& cup );
+  void Get( const int layer, const int i, CUPoint const*& cup ) const;
   
-  void Get( const int layer, const int i, UPoint const*& up );
+  //void Get( const int layer, const int i, UPoint const*& up ) const;
   
-  void Get( const int i, HCUPoint const*& ntt );
+  void Get( const int i, HCUPoint const*& ntt ) const;
   
   void GetCMPoint( const double epsilon, CMPoint& result );
   
@@ -1686,20 +1684,28 @@ right function GetNoComponents.
 3.8.3 functions to be part of relations
 
 */
+  inline ostream& Print( ostream &os ) const;
   
   inline int Compare( const Attribute *arg ) const;
   
   
-  inline Attribute* Clone();
+  inline Attribute* Clone() const;
 
   
   inline void CopyFrom( const StandardAttribute* right );
+  
+  
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
   
   
   inline int NumOfFLOBs() const
   {
     return 6;
   }
+  
   
   inline FLOB* GetFLOB( const int i);
   

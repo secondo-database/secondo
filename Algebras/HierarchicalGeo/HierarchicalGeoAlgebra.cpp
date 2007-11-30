@@ -3604,6 +3604,10 @@ void CMPoint::CopyFrom( const StandardAttribute* right )
   const CMPoint *r = (const CMPoint*)right;
   assert( r->IsOrdered() );
   Clear();
+  int size = r->GetNoComponents();
+  if(size > 0)
+    this->units.Resize(size);
+  
   StartBulkLoad();
   const CUPoint *unit;
   for( int i = 0; i < r->GetNoComponents(); i++ )
@@ -3687,7 +3691,8 @@ void HCMPoint::SetLayerepsilon( const int layer, const double epsilon )
   }
 }
 
-inline void HCMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
+inline void HCMPoint::Get( const int layer, const int i, 
+    HCUPoint const*& ntt ) const
 {
   assert( layer > -1 );
   assert( layer < 5 );
@@ -3735,7 +3740,8 @@ inline void HCMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
   }
 }
 
-inline void HCMPoint::Get( const int layer, const int i, CUPoint const*& cup )
+inline void HCMPoint::Get( const int layer, const int i, 
+    CUPoint const*& cup ) const
 {
   const HCUPoint* ntt;
   Get( layer, i, ntt );
@@ -5533,6 +5539,39 @@ int HCMPoint::AtInstant( const int layer, const int start, const int end,
 3.6.2 Functions to be part of relations
 
 */
+
+inline ostream& HCMPoint::Print( ostream &os ) const
+{
+  if( !IsDefined() )
+    return os << "(HCMPoint: undefined)";
+  
+  os << "(HCMPoint: defined, MBR = ";
+  bbox.Print(os);
+  os << "Initial epsilon-value = " << epsilon << ", Factor = " << factor
+    << endl;
+  os << " Epsilon-values of the 5 Layers = ( ";
+  for( int i = 0; i < 5; i++)
+    os << GetLayerepsilon(i) << " ";
+  os << ")\n";
+  os << ", contains " << GetNoComponents() << " entities: \n";
+  int size;
+  const HCUPoint *ntt;
+  for(int i = 0; i < 5; i++)
+  {
+    os << "\t(\n";
+    size = LayerSize(i);
+    for(int j = 0; j < size; j++)
+    {
+      Get(i, j, ntt);
+      os << "\n\t\t";
+      ntt->Print(os);
+    }
+    os << "\t)\n";
+  }
+  os << "\n)" << endl;
+  return os;
+}
+
 inline int HCMPoint::Compare( const Attribute *arg ) const
 {
   const HCMPoint* hcmp2 = dynamic_cast<const HCMPoint*>(arg);
@@ -5541,7 +5580,7 @@ inline int HCMPoint::Compare( const Attribute *arg ) const
   size_t index;
   const HCUPoint* ntt1;
   const HCUPoint* ntt2;
-  int cmp;
+  int cmp = 0;
 
   size1 = GetNoComponents();
   size2 = hcmp2->GetNoComponents();
@@ -5552,141 +5591,56 @@ inline int HCMPoint::Compare( const Attribute *arg ) const
   
   // compare the entities of each layer
   
-  size1 = layer0.Size();
-  size2 = hcmp2->layer0.Size();
-  if( size1 < size2 )
-    return -1;
-  if( size1 > size2 )
-    return 1;
-  index = 0;  
-  while( (index < size1) && (index < size2) )
+  for(int i = 0; i < 5; i++)
   {
-    layer0.Get(index, ntt1);
-    hcmp2->layer0.Get(index, ntt2);
-    cmp = ntt1->Compare(ntt2);
-    if(cmp) // different entities
-      return cmp;
-    index++;
+    size1 = LayerSize(i);
+    size2 = hcmp2->LayerSize(i);
+    if( size1 < size2 )
+      return -1;
+    if( size1 > size2 )
+      return 1;
+    index = 0;  
+    while( (index < size1) && (index < size2) )
+    {
+      Get(i, index, ntt1);
+      hcmp2->Get(i, index, ntt2);
+      cmp = ntt1->Compare(ntt2);
+      if(cmp) // different entities
+        return cmp;
+      index++;
+    }
   }
   
-  size1 = layer1.Size();
-  size2 = hcmp2->layer1.Size();
-  if( size1 < size2 )
-    return -1;
-  if( size1 > size2 )
-    return 1;
-  index = 0;  
-  while( (index < size1) && (index < size2) )
-  {
-    layer1.Get(index, ntt1);
-    hcmp2->layer1.Get(index, ntt2);
-    cmp = ntt1->Compare(ntt2);
-    if(cmp) // different entities
-      return cmp;
-    index++;
-  }
-  
-  size1 = layer2.Size();
-  size2 = hcmp2->layer2.Size();
-  if( size1 < size2 )
-    return -1;
-  if( size1 > size2 )
-    return 1;
-  index = 0;  
-  while( (index < size1) && (index < size2) )
-  {
-    layer2.Get(index, ntt1);
-    hcmp2->layer2.Get(index, ntt2);
-    cmp = ntt1->Compare(ntt2);
-    if(cmp) // different entities
-      return cmp;
-    index++;
-  }
-  
-  size1 = layer3.Size();
-  size2 = hcmp2->layer3.Size();
-  if( size1 < size2 )
-    return -1;
-  if( size1 > size2 )
-    return 1;
-  index = 0;  
-  while( (index < size1) && (index < size2) )
-  {
-    layer3.Get(index, ntt1);
-    hcmp2->layer3.Get(index, ntt2);
-    cmp = ntt1->Compare(ntt2);
-    if(cmp) // different entities
-      return cmp;
-    index++;
-  }
-  
-  size1 = layer4.Size();
-  size2 = hcmp2->layer4.Size();
-  if( size1 < size2 )
-    return -1;
-  if( size1 > size2 )
-    return 1;
-  index = 0;  
-  while( (index < size1) && (index < size2) )
-  {
-    layer4.Get(index, ntt1);
-    hcmp2->layer4.Get(index, ntt2);
-    cmp = ntt1->Compare(ntt2);
-    if(cmp) // different entities
-      return cmp;
-    index++;
-  }
   return 0;
 }
 
 inline Attribute* HCMPoint::Clone() const
 {
-  HCMPoint *result = new HCMPoint( GetNoComponents() );
+  HCMPoint *result = new HCMPoint( 0 );
   
   if(GetNoComponents() > 0)
   {
     const HCUPoint *hcup;
+    int size;
     
-    result->layer0.Resize( this->layer0.Size() );
-    for( int j = 0; j < this->layer0.Size(); j++)
+    for(int i = 0; i < 5; i++)
     {
-      this->layer0.Get( j, hcup );
-      result->layer0.Put( j, *hcup );
-    }
-    
-    result->layer1.Resize( this->layer1.Size() );
-    for( int j = 0; j < this->layer1.Size(); j++)
-    {
-      this->layer1.Get( j, hcup );
-      result->layer1.Put( j, *hcup );
-    }
-    
-    result->layer2.Resize( this->layer2.Size() );
-    for( int j = 0; j < this->layer2.Size(); j++)
-    {
-      this->layer2.Get( j, hcup );
-      result->layer2.Put( j, *hcup );
-    }
-    
-    result->layer3.Resize( this->layer3.Size() );
-    for( int j = 0; j < this->layer3.Size(); j++)
-    {
-      this->layer3.Get( j, hcup );
-      result->layer3.Put( j, *hcup );
-    }
-    
-    result->layer4.Resize( this->layer4.Size() );
-    for( int j = 0; j < this->layer4.Size(); j++)
-    {
-      this->layer4.Get( j, hcup );
-      result->layer4.Put( j, *hcup );
+      size = this->LayerSize(i);
+      if(size > 0)
+      {
+        result->ResizeLayer( i, size );
+        for( int j = 0; j < size; j++)
+        {
+          this->Get(i, j, hcup );
+          HCUPoint ntt( *hcup );
+          result->Put(i,  j, ntt );
+        }
+        result->SetLayerepsilon( i, this->GetLayerepsilon(i) );
+      }
     }
   }
-  result->SetLayer0epsilon( GetLayer0epsilon() );
-  result->SetLayer1epsilon( GetLayer1epsilon() );
-  result->SetLayer2epsilon( GetLayer2epsilon() );
-  result->SetLayer3epsilon( GetLayer3epsilon() );
-  result->SetLayer4epsilon( GetLayer4epsilon() );
+  result->SetEpsilon(this->GetEpsilon());
+  result->SetFactor(this->GetFactor());
   return result;
 }
 
@@ -5694,52 +5648,30 @@ inline void HCMPoint::CopyFrom( const StandardAttribute* right )
 {
   const HCMPoint *hcmp = dynamic_cast<const HCMPoint*>(right);
   
+  Clear();
   if(hcmp->GetNoComponents() > 0)
   {
-    Clear();
     const HCUPoint *ntt;
+    int size;
     
-    layer0.Resize( this->layer0.Size() );
-    for( int j = 0; j < this->layer0.Size(); j++)
+    for(int i = 0; i < 5; i++)
     {
-      hcmp->layer0.Get( j, ntt );
-      layer0.Put( j, *ntt );
+      size = hcmp->LayerSize(i);
+      if(size > 0)
+      {
+        ResizeLayer( i, size );
+        for( int j = 0; j < size; j++)
+        {
+          hcmp->Get( i, j, ntt );
+          HCUPoint hcup( *ntt );
+          Put( i, j, hcup );
+        }
+        SetLayerepsilon( i, hcmp->GetLayerepsilon(i) );
+      }
     }
-    
-    layer1.Resize( this->layer1.Size() );
-    for( int j = 0; j < this->layer1.Size(); j++)
-    {
-      hcmp->layer1.Get( j, ntt );
-      layer1.Put( j, *ntt );
-    }
-    
-    layer2.Resize( this->layer2.Size() );
-    for( int j = 0; j < this->layer2.Size(); j++)
-    {
-      hcmp->layer2.Get( j, ntt );
-      layer2.Put( j, *ntt );
-    }
-    
-    layer3.Resize( this->layer3.Size() );
-    for( int j = 0; j < this->layer3.Size(); j++)
-    {
-      hcmp->layer3.Get( j, ntt );
-      layer3.Put( j, *ntt );
-    }
-    
-    layer4.Resize( this->layer4.Size() );
-    for( int j = 0; j < this->layer4.Size(); j++)
-    {
-      hcmp->layer4.Get( j, ntt );
-      layer4.Put( j, *ntt );
-    }
+    SetEpsilon(hcmp->GetEpsilon());
+    SetFactor(hcmp->GetFactor());  
   }
-  SetLayer0epsilon( hcmp->GetLayer0epsilon() );
-  SetLayer1epsilon( hcmp->GetLayer1epsilon() );
-  SetLayer2epsilon( hcmp->GetLayer2epsilon() );
-  SetLayer3epsilon( hcmp->GetLayer3epsilon() );
-  SetLayer4epsilon( hcmp->GetLayer4epsilon() );
-  
 }
 
 inline FLOB* HCMPoint::GetFLOB( const int i)
@@ -5773,7 +5705,7 @@ inline FLOB* HCMPoint::GetFLOB( const int i)
 
 */
 
-void HMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
+void HMPoint::Get( const int layer, const int i, HCUPoint const*& ntt ) const
 {
   assert( layer > -1 );
   assert( layer < 6 );
@@ -5789,21 +5721,21 @@ void HMPoint::Get( const int layer, const int i, HCUPoint const*& ntt )
     HCMPoint::Get( layer, i, ntt );
 }
 
-void HMPoint::Get( const int layer, const int i, CUPoint const*& cup )
+void HMPoint::Get( const int layer, const int i, CUPoint const*& cup ) const
 {
   const HCUPoint* ntt;
   Get( layer, i, ntt );
   cup = &(ntt->value);
 }
 
-void HMPoint::Get( const int layer, const int i, UPoint const*& up )
-{
-  const HCUPoint* ntt;
-  Get( layer, i, ntt );
-  up = (UPoint*)&(ntt->value);
-}
+//void HMPoint::Get( const int layer, const int i, UPoint const*& up ) const
+//{
+//  const HCUPoint* ntt;
+//  Get( layer, i, ntt );
+//  up = (UPoint*)&(ntt->value);
+//}
 
-void HMPoint::Get( const int i, HCUPoint const*& ntt )
+void HMPoint::Get( const int i, HCUPoint const*& ntt ) const
 {
   assert( i < GetNoComponents() );
   int idx = i;
@@ -6402,7 +6334,7 @@ void HMPoint::Simplify(const int min, const int max, const int layer,
   Point p_orig;
   //Point p_simple;
   //const HCUPoint* hcup;
-  const UPoint* u;
+  const CUPoint* u;
   double distance;
   for(int i=min+1;i<=max;i++){
      Get(layer, i,u);
@@ -7123,6 +7055,38 @@ int HMPoint::AtPeriods( const int layer, const int start, const int end,
 
 */
 
+inline ostream& HMPoint::Print( ostream &os ) const
+{
+  if( !IsDefined() )
+    return os << "(HMPoint: undefined)";
+  
+  os << "(HMPoint: defined, MBR = ";
+  bbox.Print(os);
+  os << "Initial epsilon-value = " << epsilon << ", Factor = " << factor
+    << endl;
+  os << " Epsilon-values of the 5 uncertain Layers = ( ";
+  for( int i = 0; i < 5; i++)
+    os << GetLayerepsilon(i) << " ";
+  os << ")\n";
+  os << ", contains " << GetNoComponents() << " entities: \n";
+  int size;
+  const HCUPoint *ntt;
+  for(int i = 0; i < 6; i++)
+  {
+    os << "\t(\n";
+    size = LayerSize(i);
+    for(int j = 0; j < size; j++)
+    {
+      Get(i, j, ntt);
+      os << "\n\t\t";
+      ntt->Print(os);
+    }
+    os << "\t)\n";
+  }
+  os << "\n)" << endl;
+  return os;
+}
+
 inline int HMPoint::Compare( const Attribute *arg ) const
 {
   const HMPoint* hmp2 = dynamic_cast<const HMPoint*>(arg);
@@ -7162,63 +7126,33 @@ inline int HMPoint::Compare( const Attribute *arg ) const
   return 0;
 }
 
-inline Attribute* HMPoint::Clone()
+inline Attribute* HMPoint::Clone() const
 {
-  HMPoint *result = new HMPoint( GetNoComponents() );
+  HMPoint *result = new HMPoint( 0 );
   
   if(GetNoComponents() > 0)
   {
     const HCUPoint *hcup;
+    int size;
     
-    result->layer0.Resize( this->layer0.Size() );
-    for( int j = 0; j < this->layer0.Size(); j++)
+    for( int i = 0; i < 5; i++)
     {
-      this->layer0.Get( j, hcup );
-      result->layer0.Put( j, *hcup );
-    }
-    
-    result->layer1.Resize( this->layer1.Size() );
-    for( int j = 0; j < this->layer1.Size(); j++)
-    {
-      this->layer1.Get( j, hcup );
-      result->layer1.Put( j, *hcup );
-    }
-    
-    result->layer2.Resize( this->layer2.Size() );
-    for( int j = 0; j < this->layer2.Size(); j++)
-    {
-      this->layer2.Get( j, hcup );
-      result->layer2.Put( j, *hcup );
-    }
-    
-    result->layer3.Resize( this->layer3.Size() );
-    for( int j = 0; j < this->layer3.Size(); j++)
-    {
-      this->layer3.Get( j, hcup );
-      result->layer3.Put( j, *hcup );
-    }
-    
-    result->layer4.Resize( this->layer4.Size() );
-    for( int j = 0; j < this->layer4.Size(); j++)
-    {
-      this->layer4.Get( j, hcup );
-      result->layer4.Put( j, *hcup );
-    }
-    
-    result->certainlayer.Resize( this->certainlayer.Size() );
-    for( int j = 0; j < this->certainlayer.Size(); j++)
-    {
-      this->certainlayer.Get( j, hcup );
-      result->certainlayer.Put( j, *hcup );
+      size = this->LayerSize(i);
+      if(size > 0)
+      {
+        result->ResizeLayer( i, size );
+        for( int j = 0; j < size; j++)
+        {
+          this->Get(i, j, hcup );
+          HCUPoint ntt( *hcup );
+          result->Put(i,  j, ntt );
+        }
+        result->SetLayerepsilon( i, this->GetLayerepsilon(i) );
+      }
     }
   }
-  result->SetLayer0epsilon( GetLayer0epsilon() );
-  result->SetLayer1epsilon( GetLayer1epsilon() );
-  result->SetLayer2epsilon( GetLayer2epsilon() );
-  result->SetLayer3epsilon( GetLayer3epsilon() );
-  result->SetLayer4epsilon( GetLayer4epsilon() );
-  result->SetEpsilon( GetEpsilon() );
-  result->SetFactor( GetFactor() );
+  result->SetEpsilon(this->GetEpsilon());
+  result->SetFactor(this->GetFactor());
   return result;
 }
 
@@ -7226,61 +7160,30 @@ inline void HMPoint::CopyFrom( const StandardAttribute* right )
 {
   const HMPoint *hmp = dynamic_cast<const HMPoint*>(right);
   
+  Clear();
   if(hmp->GetNoComponents() > 0)
   {
-    Clear();
     const HCUPoint *ntt;
+    int size;
     
-    // copy all entities of each layer
-    layer0.Resize( hmp->layer0.Size() );
-    for( int j = 0; j < layer0.Size(); j++)
+    for(int i = 0; i < 5; i++)
     {
-      hmp->layer0.Get( j, ntt );
-      layer0.Put( j, *ntt );
+      size = hmp->LayerSize(i);
+      if(size > 0)
+      {
+        ResizeLayer( i, size );
+        for( int j = 0; j < size; j++)
+        {
+          hmp->Get( i, j, ntt );
+          HCUPoint hcup( *ntt );
+          Put( i, j, hcup );
+        }
+        SetLayerepsilon( i, hmp->GetLayerepsilon(i) );
+      }
     }
-    
-    layer1.Resize( hmp->layer1.Size() );
-    for( int j = 0; j < layer1.Size(); j++)
-    {
-      hmp->layer1.Get( j, ntt );
-      layer1.Put( j, *ntt );
-    }
-    
-    layer2.Resize( hmp->layer2.Size() );
-    for( int j = 0; j < layer2.Size(); j++)
-    {
-      hmp->layer2.Get( j, ntt );
-      layer2.Put( j, *ntt );
-    }
-    
-    layer3.Resize( hmp->layer3.Size() );
-    for( int j = 0; j < layer3.Size(); j++)
-    {
-      hmp->layer3.Get( j, ntt );
-      layer3.Put( j, *ntt );
-    }
-    
-    layer4.Resize( hmp->layer4.Size() );
-    for( int j = 0; j < layer4.Size(); j++)
-    {
-      hmp->layer4.Get( j, ntt );
-      layer4.Put( j, *ntt );
-    }
-
-    certainlayer.Resize( hmp->certainlayer.Size() );
-    for( int j = 0; j < certainlayer.Size(); j++)
-    {
-      hmp->certainlayer.Get( j, ntt );
-      certainlayer.Put( j, *ntt );
-    }
+    SetEpsilon(hmp->GetEpsilon());
+    SetFactor(hmp->GetFactor());  
   }
-  SetLayer0epsilon( hmp->GetLayer0epsilon() );
-  SetLayer1epsilon( hmp->GetLayer1epsilon() );
-  SetLayer2epsilon( hmp->GetLayer2epsilon() );
-  SetLayer3epsilon( hmp->GetLayer3epsilon() );
-  SetLayer4epsilon( hmp->GetLayer4epsilon() );
-  SetEpsilon( hmp->GetEpsilon() );
-  SetFactor( hmp->GetFactor() );
 }
 
 inline FLOB* HMPoint::GetFLOB( const int i)
