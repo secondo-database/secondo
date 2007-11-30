@@ -5062,7 +5062,7 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
       // create intersection of  u1 x u2
       u1.Intersection(u2, resunit);
 
-      if( !resunit.timeInterval.IsValid() )
+      if( resunit.IsDefined() && !resunit.timeInterval.IsValid() )
       { // Debugging Info
         cout << "Error in " << __PRETTY_FUNCTION__ << " ["<< __FILE__ << ":"
              << __LINE__ << "]:" << endl;
@@ -5071,15 +5071,17 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
         cout << "u1         = "; u1.Print(cout); cout << endl;
         cout << "u2         = "; u2.Print(cout); cout << endl;
         cout << "iv         = " << (iv->lc ? "[" : "(")
-             << iv->start << "," << iv->end << (iv->lc ? "[" : "(") << endl;
+             << iv->start << "," << iv->end << (iv->rc ? "[" : "(") << endl;
         cout << "resunit.timeInterval = "
             << (resunit.timeInterval.lc ? "[" : "(")
             << resunit.timeInterval.start << "," << resunit.timeInterval.end
             << (resunit.timeInterval.lc ? "[" : "(") << endl;
+        resunit.SetDefined(false);
+        assert(false);
       }
       assert( resunit.timeInterval.IsValid() );
 
-      if( !resunit.timeInterval.Inside(*iv) )
+      if( !resunit.IsDefined() || !resunit.timeInterval.Inside(*iv) )
         // invalidate result, if it is on an open border of *iv
         resunit.SetDefined(false);
 
