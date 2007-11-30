@@ -5059,85 +5059,89 @@ int TemporalMPointMPointIntersection( Word* args, Word& result, int message,
       u1transfer->AtInterval(*iv, u1);
       u2transfer->AtInterval(*iv, u2);
 
-      // create intersection of  u1 x u2
+      // create intersection of  u1 x u2 (may be undefined!)
       u1.Intersection(u2, resunit);
 
-      if( resunit.IsDefined() && !resunit.timeInterval.IsValid() )
-      { // Debugging Info
-        cout << "Error in " << __PRETTY_FUNCTION__ << " ["<< __FILE__ << ":"
-             << __LINE__ << "]:" << endl;
-        cout << "u1transfer = "; u1transfer->Print(cout); cout << endl;
-        cout << "u2transfer = "; u2transfer->Print(cout); cout << endl;
-        cout << "u1         = "; u1.Print(cout); cout << endl;
-        cout << "u2         = "; u2.Print(cout); cout << endl;
-        cout << "iv         = " << (iv->lc ? "[" : "(")
-             << iv->start << "," << iv->end << (iv->rc ? "[" : "(") << endl;
-        cout << "resunit.timeInterval = "
-            << (resunit.timeInterval.lc ? "[" : "(")
-            << resunit.timeInterval.start << "," << resunit.timeInterval.end
-            << (resunit.timeInterval.lc ? "[" : "(") << endl;
-        resunit.SetDefined(false);
-        assert(false);
-      }
-      assert( resunit.timeInterval.IsValid() );
+      if( resunit.IsDefined() )
+      {
+        if( !resunit.timeInterval.IsValid() )
+        { // Debugging Info
+          cout << "Error in " << __PRETTY_FUNCTION__ << " ["<< __FILE__ << ":"
+              << __LINE__ << "]:" << endl;
+          cout << "u1transfer = "; u1transfer->Print(cout); cout << endl;
+          cout << "u2transfer = "; u2transfer->Print(cout); cout << endl;
+          cout << "u1         = "; u1.Print(cout); cout << endl;
+          cout << "u2         = "; u2.Print(cout); cout << endl;
+          cout << "iv         = " << (iv->lc ? "[" : "(")
+              << iv->start << "," << iv->end << (iv->rc ? "]" : ")") << endl;
+          cout << "resunit.timeInterval = "
+              << (resunit.timeInterval.lc ? "[" : "(")
+              << resunit.timeInterval.start << "," << resunit.timeInterval.end
+              << (resunit.timeInterval.rc ? "]" : ")") << endl;
+          resunit.SetDefined(false);
+          assert( resunit.timeInterval.IsValid() );
+        }
 
-      if( !resunit.IsDefined() || !resunit.timeInterval.Inside(*iv) )
+        if( resunit.IsDefined() && !resunit.timeInterval.Inside(*iv) )
+        {
         // invalidate result, if it is on an open border of *iv
-        resunit.SetDefined(false);
+          resunit.SetDefined(false);
+        }
 
-      if ( resunit.IsDefined() && lastresunit.IsDefined() )
-      { // Check for conflicting timeIntervals:
-        if ( (lastresunit.timeInterval.end == resunit.timeInterval.start) &&
-             lastresunit.timeInterval.rc && resunit.timeInterval.lc 
-           )
-        { // We have a conflict!
+        if ( resunit.IsDefined() && lastresunit.IsDefined() )
+        { // Check for conflicting timeIntervals:
+          if ( (lastresunit.timeInterval.end == resunit.timeInterval.start) &&
+                lastresunit.timeInterval.rc && resunit.timeInterval.lc
+             )
+          { // We have a conflict!
           // solution1: change closedness flag for one non-instant unit
           // solution2: drop a [x, x]-type unit
-          if (TLA_DEBUG)
-          { cout << "\n We have a conflict! \n" << endl;
-            cout << "lastresunit: "; lastresunit.timeInterval.Print(cout); 
-            cout << endl;
-            cout << "resunit:     "; resunit.timeInterval.Print(cout); 
-            cout << endl;
-          }
-          if (lastresunit.timeInterval.start == lastresunit.timeInterval.end)
-          { // drop lastresunit
             if (TLA_DEBUG)
-              cout << "Dropping lastresunit.\n" << endl;
+            { cout << "\n We have a conflict! \n" << endl;
+            cout << "lastresunit: "; lastresunit.timeInterval.Print(cout);
+            cout << endl;
+            cout << "resunit:     "; resunit.timeInterval.Print(cout);
+            cout << endl;
+            }
+            if (lastresunit.timeInterval.start == lastresunit.timeInterval.end)
+            { // drop lastresunit
+              if (TLA_DEBUG)
+                cout << "Dropping lastresunit.\n" << endl;
             // do not add lastresunit
-            lastresunit = resunit; // queue up resunit
-          }
-          else if (resunit.timeInterval.start == resunit.timeInterval.end)
-          { // drop resunit
+              lastresunit = resunit; // queue up resunit
+            }
+            else if (resunit.timeInterval.start == resunit.timeInterval.end)
+            { // drop resunit
             // do not add lastresunit
             // let lastresunit in the queue, do not queue up resunit
-            if (TLA_DEBUG)
-              cout << "Dropping resunit.\n" << endl;
+              if (TLA_DEBUG)
+                cout << "Dropping resunit.\n" << endl;
+            }
+            else
+            { // set closednessflags to pattern |A,B[   ]B,C|
+              if (TLA_DEBUG)
+                cout << "Changing closedness.\n" << endl;
+              lastresunit.timeInterval.rc = false;
+              resunit.timeInterval.lc = true;
+              res->MergeAdd(lastresunit); // add lastresunit
+              lastresunit = resunit;      // queue up resunit
+            }
           }
           else
-          { // set closednessflags to pattern |A,B[   ]B,C|
+          { // else: No conflict.
             if (TLA_DEBUG)
-              cout << "Changing closedness.\n" << endl;
-            lastresunit.timeInterval.rc = false;
-            resunit.timeInterval.lc = true;
-            res->MergeAdd(lastresunit); // add lastresunit
-            lastresunit = resunit;      // queue up resunit
+              cout << "No conflict.\n" << endl;
+            if ( lastresunit.IsDefined() )
+              res->MergeAdd(lastresunit); // Add lastresunit
+            if ( resunit.IsDefined() )
+              lastresunit = resunit;      // queue up resunit
           }
-        } 
-        else
-        { // else: No conflict.
-          if (TLA_DEBUG)
-            cout << "No conflict.\n" << endl;
-          if ( lastresunit.IsDefined() ) 
-            res->MergeAdd(lastresunit); // Add lastresunit
-          if ( resunit.IsDefined() )
-            lastresunit = resunit;      // queue up resunit
         }
-      }
-      else if ( resunit.IsDefined() )
+        else if ( resunit.IsDefined() )
         // lastresunit undefined, but resunit defined
-        lastresunit = resunit; // ignore lastresunit, queue up resunit
-      // else: lastresunit defined, but resunit undefined - Do nothing!
+          lastresunit = resunit; // ignore lastresunit, queue up resunit
+        // else: lastresunit defined, but resunit undefined - Do nothing!
+      } // else: resunit undefined. Do nothing.
     }
   }
   if (lastresunit.IsDefined() )
