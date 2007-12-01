@@ -4532,6 +4532,12 @@ Rectangle<3u> HCMPoint::BoundingBox() const
 
 Rectangle<2> HCMPoint::BBox2D() const
 {
+  // +++++ for debugging purposes only +++++
+  cout << "The BBox is defined as: MinD(0) = " << bbox.MinD(0) << " MaxD(0) = "
+    << bbox.MaxD(0) << "     and MinD(1) = " << bbox.MinD(1) << " MaxD(1) = "
+    << bbox.MaxD(1) << endl << endl; 
+  
+  
   return Rectangle<2>( true, bbox.MinD(0), bbox.MaxD(0),
                              bbox.MinD(1), bbox.MaxD(1) );
 }
@@ -4576,7 +4582,7 @@ void HCMPoint::DefTime( Periods& p )
   result.StartBulkLoad();
   for( int i = 0; i < size; i++ )
   {
-    Get( 0, i, unit );
+    Get( layer, i, unit );
     result.Add( unit->timeInterval );
   }
   result.EndBulkLoad( false );
@@ -4601,7 +4607,7 @@ bool HCMPoint::Present( const Instant& t )
       )
     {
       // +++++ for debugging purposes only +++++
-      cout << "BoundingBox-Check failed!\n";
+      //cout << "BoundingBox-Check failed!\n";
       
       return false;
     }
@@ -6375,9 +6381,9 @@ void HMPoint::ReduceHierarchy( const double e, HCMPoint& result )
   if(e < GetLayer4epsilon() )
   {
     cout << "The given Uncertainty-Value is too small! There is nothing to" 
-      " scale!\n";
+      " reduce!\n";
     cerr << "The given Uncertainty-Value is too small! There is nothing to" 
-      " scale!\n";
+      " reduce!\n";
     return;
   }
   
@@ -6386,30 +6392,38 @@ void HMPoint::ReduceHierarchy( const double e, HCMPoint& result )
   int size;
   int i = 0;
   // copy layers with epsilon greater e
-  while( i < 5 && GetLayerepsilon(i) > e )
+  while( i < 5 )
   {
     size = LayerSize(i);
+    if( size > 0 )
+    {
+      if( GetLayerepsilon(i) <= e )
+        break;
+      result.ResizeLayer( i, size );
+      for(int j = 0; j < size; j++)
+      {
+        Get(i, j, ntt);
+        HCUPoint hcup(*ntt);
+        result.Put(i, j, hcup);
+      }
+    }
+    result.SetLayerepsilon( i, GetLayerepsilon(i) );
+    i++;
+  }
+  // Copy the necessary most certain layer and set the indices of originstart
+  // and originend to -1.
+  size = LayerSize(i);
+  if( size > 0 )
+  {
     result.ResizeLayer( i, size );
     for(int j = 0; j < size; j++)
     {
       Get(i, j, ntt);
       HCUPoint hcup(*ntt);
+      hcup.SetOriginstart(-1);
+      hcup.SetOriginend(-1);
       result.Put(i, j, hcup);
     }
-    result.SetLayerepsilon( i, GetLayerepsilon(i) );
-    i++;
-  }
-  // Copy the necessary most certain layer and set the idices of originstart
-  // and originend to -1.
-  size = LayerSize(i);
-  result.ResizeLayer( i, size );
-  for(int j = 0; j < size; j++)
-  {
-    Get(i, j, ntt);
-    HCUPoint hcup(*ntt);
-    hcup.SetOriginstart(-1);
-    hcup.SetOriginend(-1);
-    result.Put(i, j, hcup);
   }
   result.SetEpsilon( GetEpsilon() );
   result.SetFactor( GetFactor() );
@@ -7133,11 +7147,10 @@ inline Attribute* HMPoint::Clone() const
   if(GetNoComponents() > 0)
   {
     const HCUPoint *hcup;
-    int size;
     
-    for( int i = 0; i < 5; i++)
+    for( int i = 0; i < 6; i++)
     {
-      size = this->LayerSize(i);
+      int size = this->LayerSize(i);
       if(size > 0)
       {
         result->ResizeLayer( i, size );
@@ -7164,11 +7177,10 @@ inline void HMPoint::CopyFrom( const StandardAttribute* right )
   if(hmp->GetNoComponents() > 0)
   {
     const HCUPoint *ntt;
-    int size;
     
-    for(int i = 0; i < 5; i++)
+    for(int i = 0; i < 6; i++)
     {
-      size = hmp->LayerSize(i);
+      int size = hmp->LayerSize(i);
       if(size > 0)
       {
         ResizeLayer( i, size );
