@@ -1,0 +1,226 @@
+#This file is part of SECONDO.
+#
+#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Database Systems for New Applications.
+#
+#SECONDO is free software; you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation; either version 2 of the License, or
+#(at your option) any later version.
+#
+#SECONDO is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with SECONDO; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+# a test for the spatial algebra
+# run with : TestRunner -c SecondoConfig.ini < hierarchicalgeo.test
+
+# A fresh restored berlin database needs to be present for
+# this test
+
+
+#setup hierarchicalgeotest
+
+open database berlintest
+
+
+
+# The conventions for commands are the same as in SecondoTTYBDB
+# make sure that commands are always terminated 
+# (either by a semicolon or by a newline)
+
+# a TESTCASE consists of a TESTCASE declarative followed
+# by a YIELDS declarative followed by a command.
+# multiple or no commands after a YIELD directive
+# will confuse the TestRunner
+
+# the expected output specified by the YIELD declarative
+# is converted to a ListExpr and the TestRunner compares
+# it to Secondo's actual output by calling  
+# NestedList->Equal 
+
+
+
+# 1  - Tests about Object-creation within relations
+
+#testcase touncertain1
+#yields success
+let CTrains = Trains feed krdup[Line] projectextend[Id, Line; CTrip: touncertain(.Trip, 22.5)] consume
+
+
+#testcase touncertain2
+#yields success
+let CTrains20 = Trains feed projectextend[Id, Line; CTrip: touncertain(.Trip, 22.5)] head[20] consume
+
+
+#testcase generalize1
+#yields success
+let HTrains = Trains feed krdup[Line] projectextend[Id, Line; HTrip: generalize(.Trip, 30.0, 3.0)] consume
+
+
+#testcase generalize2
+#yields success
+let HTrains20 = Trains feed projectextend[Id, Line; HTrip: generalize(.Trip, 30.0, 3.0)] head[20] consume
+
+
+#testcase reduce_hierarchy1
+#yields success
+let HCTrains = HTrains feed projectextend[Id, Line; HCTrip: reduce_hierarchy(.HTrip, 90.0)] consume
+
+
+#testcase reduce_hierarchy2
+#yields success
+let HCTrains20 = HTrains20 feed projectextend[Id, Line; HCTrip: reduce_hierarchy(.HTrip, 90.0)] consume
+
+
+# 2 - Creation of result-objects
+
+
+let resultDEFTIME10 = Trains feed projectextend[Id, Line; DEFTIME: deftime(.Trip)] head[10] consume
+
+
+let resultDEFTIME = Trains feed krdup[Line] projectextend[Id, Line; DEFTIME: deftime(.Trip)] consume
+
+
+let resultPRESENTinstant10 = Trains feed projectextend[Id, Line; PRESENT: .Trip present six30] head[10] consume
+
+
+let resultPRESENTinstant = Trains feed krdup[Line] projectextend[Id, Line; PRESENT: .Trip present six30] consume
+
+
+let resultPRESENTperiods10 = Trains feed projectextend[Id, Line; PRESENT: .Trip present six10_six30] head[10] consume
+
+
+
+# 3 - Tests about Operator 'deftime':
+
+#testcase DEFTIME_cmpoint1
+#yields *resultDEFTIME10
+query Trains feed projectextend[Id, Line; DEFTIME: deftime(touncertain(.Trip, 22.5))] head[10] consume
+
+
+#testcase DEFTIME_cmpoint2
+#yields *resultDEFTIME10
+query CTrains20 feed projectextend[Id, Line; DEFTIME: deftime(.CTrip)] head[10] consume
+
+
+#testcase DEFTIME_hmpoint1
+#yields *resultDEFTIME
+query Trains feed krdup[Line] projectextend[Id, Line; DEFTIME: deftime(generalize(.Trip, 30.0, 3.0))] consume
+
+
+#testcase DEFTIME_hmpoint2
+#yields *resultDEFTIME
+query HTrains feed projectextend[Id, Line; DEFTIME: deftime(.HTrip)] consume
+
+
+#testcase DEFTIME_hcmpoint1
+#yields *resultDEFTIME
+query Trains feed krdup[Line] projectextend[Id, Line; DEFTIME: deftime(reduce_hierarchy(generalize(.Trip, 30.0, 3.0), 90.0))] consume
+
+
+#testcase DEFTIME_hcmpoint2
+#yields *resultDEFTIME
+query HCTrains feed projectextend[Id, Line; DEFTIME: deftime(.HCTrip)] consume
+
+
+# 4 - Tests about Operator 'present'
+
+#testcase PRESENTinstant_cmpoint1
+#yields *resultPRESENTinstant10
+query Trains feed projectextend[Id, Line; PRESENT: (touncertain(.Trip, 22.5) present six30)] head[10] consume
+
+
+#testcase PRESENTinstant_cmpoint2
+#yields *resultPRESENTinstant10
+query CTrains20 feed projectextend[Id, Line; PRESENT: .CTrip present six30] head[10] consume
+
+#testcase PRESENTinstant_hmpoint1
+#yields *resultPRESENTinstant10
+query Trains feed projectextend[Id, Line; PRESENT: (generalize(.Trip, 30.0, 2.5) present six30)] head[10] consume
+
+#testcase PRESENTinstant_hmpoint2
+#yields *resultPRESENTinstant
+query HTrains feed projectextend[Id, Line; PRESENT: .HTrip present six30] consume
+
+
+#testcase PRESENTinstant_hcmpoint1
+#yields *resultPRESENTinstant10
+query Trains feed projectextend[Id, Line; PRESENT: (reduce_hierarchy(generalize(.Trip, 30.0, 3.0), 90.0) present six30)] head[10] consume 
+
+
+#testcase PRESENTinstant_hcmpoint2
+#yields *resultPRESENTinstant10
+query HCTrains20 feed projectextend[Id, Line; PRESENT: .HCTrip present six30] head[10] consume
+
+
+#testcase PRESENTperiods_cmpoint1
+#yields *resultPRESENTperiods10
+query Trains feed projectextend[Id, Line; PRESENT: touncertain(.Trip, 22.5) present six10_six30] head[10] consume
+
+
+#testcase PRESENTperiods_cmpoint2
+#yields *resultPRESENTperiods10
+query CTrains20 feed projectextend[Id, Line; PRESENT: .CTrip present six10_six30] head[10] consume
+
+
+#testcase PRESENTperiods_hcmpoint1
+#yields *resultPRESENTperiods10
+query Trains feed projectextend[Id, Line; PRESENT: generalize(.Trip, 30.0, 3.0) present six10_six30] head[10] consume
+
+
+#testcase PRESENTperiods_hcmpoint2
+#yields *resultPRESENTperiods10
+query HTrains20 feed projectextend[Id, Line; PRESENT: .HTrip present six10_six30] head[10] consume
+
+
+#testcase PRESENTperiods_hcmpoint1
+#yields *resultPRESENTperiods10
+query Trains feed projectextend[Id, Line; PRESENT: (reduce_hierarchy(generalize(.Trip, 30.0, 3.0), 90.0) present six10_six30)] head[10] consume
+
+
+#testcase PRESENTperiods_hcmpoint2
+#yields *resultPRESENTperiods10
+query HCTrains20 feed projectextend[Id, Line; PRESENT: .HCTrip present six10_six30] head[10] consume
+
+
+#teardown
+
+delete CTrains;
+
+
+delete CTrains20;
+
+
+delete HTrains;
+
+
+delete HTrains20;
+
+
+delete HCTrains;
+
+
+delete HCTrains20;
+
+
+delete resultDEFTIME10;
+
+
+delete resultDEFTIME;
+
+
+delete resultPRESENTinstant10;
+
+
+delete resultPRESENTinstant;
+
+
+delete resultPRESENTperiods10;
+
+
