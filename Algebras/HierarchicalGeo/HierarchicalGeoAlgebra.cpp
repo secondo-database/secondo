@@ -3126,8 +3126,6 @@ bool CMPoint::Present( const Periods& t ) const
   assert( t.IsDefined() );
   assert( t.IsOrdered() );
 
-  Periods defTime( 0 );
-  DefTime( defTime );
   if(bbox.IsDefined())
   { // do MBR-check
     double MeMin = bbox.MinD(2);
@@ -3136,13 +3134,15 @@ bool CMPoint::Present( const Periods& t ) const
     Instant tmax; t.Maximum(tmax);
     double pmin = tmin.ToDouble();
     double pmax = tmax.ToDouble();
-    if( (pmin < MeMin && !AlmostEqual(pmin,MeMin)) ||
-         (pmax > MeMax && !AlmostEqual(pmax,MeMax))
+    if( (pmax < MeMin && !AlmostEqual(pmax,MeMin)) ||
+         (pmin > MeMax && !AlmostEqual(pmin,MeMax))
       )
     {
       return false;
     }
   }
+  Periods defTime( 0 );
+  DefTime( defTime );
   return t.Intersects( defTime );
 }
 
@@ -4533,9 +4533,9 @@ Rectangle<3u> HCMPoint::BoundingBox() const
 Rectangle<2> HCMPoint::BBox2D() const
 {
   // +++++ for debugging purposes only +++++
-  cout << "The BBox is defined as: MinD(0) = " << bbox.MinD(0) << " MaxD(0) = "
-    << bbox.MaxD(0) << "     and MinD(1) = " << bbox.MinD(1) << " MaxD(1) = "
-    << bbox.MaxD(1) << endl << endl; 
+  //cout << "The BBox is defined as: MinD(0) = "<< bbox.MinD(0) <<" MaxD(0) = "
+  //  << bbox.MaxD(0) << "     and MinD(1) = " << bbox.MinD(1) << " MaxD(1) = "
+  //  << bbox.MaxD(1) << endl << endl; 
   
   
   return Rectangle<2>( true, bbox.MinD(0), bbox.MaxD(0),
@@ -4631,8 +4631,6 @@ bool HCMPoint::Present( const Periods& t )
   assert( t.IsDefined() );
   assert( t.IsOrdered() );
 
-  Periods defTime( 0 );
-  DefTime( defTime );
   if(bbox.IsDefined())
   { // do MBR-check
     double MeMin = bbox.MinD(2);
@@ -4641,13 +4639,26 @@ bool HCMPoint::Present( const Periods& t )
     Instant tmax; t.Maximum(tmax);
     double pmin = tmin.ToDouble();
     double pmax = tmax.ToDouble();
-    if( (pmin < MeMin && !AlmostEqual(pmin,MeMin)) ||
-         (pmax > MeMax && !AlmostEqual(pmax,MeMax))
+    
+    // +++++ for debugging purposes only +++++
+    cout << "HCMPoint::Present:\n";
+    cout << "BBox-Min = " << MeMin << "    BBox-Max = " << MeMax << endl;
+    cout << "Periods-Min = " << pmin << "    Periods-Max = " << pmax << endl
+      << endl;
+    
+    
+    if( (pmax < MeMin && !AlmostEqual(pmax,MeMin)) ||
+         (pmin > MeMax && !AlmostEqual(pmin,MeMax))
       )
     {
+      // +++++ for debugging purposes only +++++
+      cout << "HCMPoint::Present: BBox-Check returned: no Intersection!\n";
+      
       return false;
     }
   }
+  Periods defTime( 0 );
+  DefTime( defTime );
   return t.Intersects( defTime );
 }
 
@@ -4663,6 +4674,8 @@ void HCMPoint::AtPeriods( const Periods& p, CMPoint& result )
 {
   assert( p.IsDefined() );
   assert( p.IsOrdered() );
+  
+  result.Clear();
   
   if( !IsDefined() ) // the result cmpoint stays empty!
     return;
@@ -5647,6 +5660,12 @@ inline Attribute* HCMPoint::Clone() const
   }
   result->SetEpsilon(this->GetEpsilon());
   result->SetFactor(this->GetFactor());
+  result->bbox = this->BoundingBox();
+  
+  // +++++ for debugging purposes only +++++
+  cout << "HCMPoint::Clone(): The HCMPoint's boundingbox is defined as: ";
+  result->BoundingBox().Print(cout);
+  
   return result;
 }
 
@@ -5676,7 +5695,12 @@ inline void HCMPoint::CopyFrom( const StandardAttribute* right )
       }
     }
     SetEpsilon(hcmp->GetEpsilon());
-    SetFactor(hcmp->GetFactor());  
+    SetFactor(hcmp->GetFactor());
+    bbox = hcmp->BoundingBox();  
+    
+    // +++++ for debugging purposes only +++++
+    cout << "HCMPoint::CopyFrom: The HCMPoint's boundingbox is defined as: ";
+    BoundingBox().Print(cout);
   }
 }
 
@@ -6434,6 +6458,7 @@ void HMPoint::ReduceHierarchy( const double e, HCMPoint& result )
     result.SetLayerepsilon( i, -1 );
     i++;
   }
+  result.RestoreBoundingBox();
 }
 
 
@@ -6553,6 +6578,9 @@ passes the given Region-value.
 */
 bool HMPoint::D_Passes( const Region& r )
 {
+  // +++++ for debugging purposes only +++++
+  cout << "call for HMPoint::D_Passes( ... Region )\n";
+  
   assert( r.IsDefined() );
   assert( IsDefined() );
   
@@ -6578,6 +6606,10 @@ This recursive Function determines, by an in-order run through the hierarchical
 bool HMPoint::D_Passes( const int layer, const int start, const int end, 
                   const Region& r )
 {
+  // +++++ for debugging purposes only +++++
+  cout << "call for recursive function HMPoint::D_Passes( ... Region )\n";
+  
+  
   bool result = false;
   const HCUPoint *ntt;
   const CUPoint *cup;
@@ -6877,6 +6909,8 @@ void HMPoint::AtPeriods( const Periods& p, MPoint& result )
   assert( p.IsDefined() );
   assert( p.IsOrdered() );
   
+  result.Clear();
+  
   if( !IsDefined() ) // the result hmpoint stays empty!
     return;
   
@@ -7166,6 +7200,12 @@ inline Attribute* HMPoint::Clone() const
   }
   result->SetEpsilon(this->GetEpsilon());
   result->SetFactor(this->GetFactor());
+  result->bbox = this->BoundingBox();
+  
+  // +++++ for debugging purposes only +++++
+  //cout << "HMPoint::Clone: The HCMPoint's boundingbox is defined as: ";
+  //result->BoundingBox().Print(cout);
+  
   return result;
 }
 
@@ -7194,7 +7234,12 @@ inline void HMPoint::CopyFrom( const StandardAttribute* right )
       }
     }
     SetEpsilon(hmp->GetEpsilon());
-    SetFactor(hmp->GetFactor());  
+    SetFactor(hmp->GetFactor());
+    bbox = hmp->BoundingBox();
+    
+    // +++++ for debugging purposes only +++++
+    //cout << "HMPoint::CopyFrom: The HCMPoint's boundingbox is defined as: ";
+    //BoundingBox().Print(cout);  
   }
 }
 
@@ -7685,10 +7730,10 @@ void Generalize( const double epsilon, const double factor,
     result.SetDefined(false);
     return;
   }
-  if( source.GetNoComponents() < 4 )
+  if( source.GetNoComponents() < 2 )
   {
-    cout << "The given MPoint-object contains less than 4 units!\n"
-      << "In this case, a hierarchical structured dataset makes no sense!\n";
+    cout << "The given MPoint-object contains less than 2 units!\n"
+      << "There is nothing to generalize!\n";
     result.SetDefined(false);
     return;
   }
@@ -8862,7 +8907,7 @@ Word InHCMPoint( const ListExpr typeInfo, const ListExpr instance,
     nttcounter++;
     delete ntt;
   }
-  hcmp->RestoreBoundingBox( false );
+  hcmp->RestoreBoundingBox( );
   
   return SetWord( hcmp );
 }
@@ -9273,7 +9318,7 @@ Word InHMPoint( const ListExpr typeInfo, const ListExpr instance,
     nttcounter++;
     delete ntt;
   }
-  hmp->RestoreBoundingBox( false );
+  hmp->RestoreBoundingBox( );
   
   return SetWord( hmp );
 }
@@ -9482,8 +9527,12 @@ ListExpr UncertainMovingTypeMapSpatial( ListExpr args )
     ListExpr arg1 = nl->First( args );
 
     if( nl->IsEqual( arg1, "cmpoint" ) ||
-        nl->IsEqual( arg1, "cupoint") )
+        nl->IsEqual( arg1, "cupoint") ||
+        nl->IsEqual( arg1, "hcmpoint") )
       return nl->SymbolAtom( "region" );
+    
+    if( nl->IsEqual( arg1, "hmpoint" ) )
+      return nl->SymbolAtom( "line" );
     
     if (nl->AtomType( args ) == SymbolType)
     {
@@ -9492,27 +9541,9 @@ ListExpr UncertainMovingTypeMapSpatial( ListExpr args )
       return nl->SymbolAtom("typeerror");
     }
   }
-  if( nl->ListLength( args ) == 2 )
-  {
-    ListExpr arg1 = nl->First( args );
-    ListExpr arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "hcmpoint" ) ||
-        nl->IsEqual( arg1, "hmpoint") && 
-        nl->IsEqual( arg2, "real" ) )
-      return nl->SymbolAtom( "region" );
-      
-    if (nl->AtomType( arg1 ) == SymbolType && 
-        nl->AtomType( arg2 ) == SymbolType )
-    {
-      ErrorReporter::ReportError("Type mapping function got parameters of "
-              "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+
-              ".");
-      return nl->SymbolAtom("typeerror");
-    }
-  }
   ErrorReporter::ReportError("Type mapping function got a "
-        "parameter of length != 1 or 2.");
+        "parameter of length != 1.");
   return nl->SymbolAtom( "typeerror" );
 }
 
@@ -9582,11 +9613,10 @@ ListExpr UncertainMovingInstantPeriodsTypeMapBool( ListExpr args )
 /*
 6.1.11 Type mapping function ~UncertainMovingTypeMapBool~
 
-This is the type mapping function for the operators ~d\_passes~ and 
-~p\_passes~.
+This is the type mapping function for the operators ~d\_passes~.
 
 */
-ListExpr UncertainMovingTypeMapBool( ListExpr args )
+ListExpr UncertainDPassesTypeMapBool( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
   {
@@ -9599,7 +9629,41 @@ ListExpr UncertainMovingTypeMapBool( ListExpr args )
       if( nl->IsEqual( arg1, "cmpoint") ||
           nl->IsEqual( arg1, "cupoint") ||
           nl->IsEqual( arg1, "hcmpoint") ||
-          nl->IsEqual( arg1, "hmpoint") )
+          nl->IsEqual( arg1, "hmpoint" ) )
+        return nl->SymbolAtom( "bool" );
+    }
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+6.1.11 Type mapping function ~UncertainMovingTypeMapBool~
+
+This is the type mapping function for the operators ~p\_passes~.
+
+*/
+ListExpr UncertainPPassesTypeMapBool( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "point" ) ||
+        nl->IsEqual( arg2, "region" ) )
+    {
+      if( nl->IsEqual( arg1, "cmpoint") ||
+          nl->IsEqual( arg1, "cupoint") ||
+          nl->IsEqual( arg1, "hcmpoint") )
         return nl->SymbolAtom( "bool" );
     }
     if (nl->AtomType( arg1 ) == SymbolType && 
@@ -9622,7 +9686,7 @@ This is the type mapping function for the operators ~d\_passes~ and
 ~p\_passes~.
 
 */
-ListExpr HierarchicalTemporalTypeMapBool( ListExpr args )
+ListExpr HierarchicalPassesTypeMapBool( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
   {
@@ -9651,10 +9715,10 @@ ListExpr HierarchicalTemporalTypeMapBool( ListExpr args )
 /*
 6.1.12 Type mapping function ~UncertainMovingTypeMapCMPoint~
 
-It is for the operators ~d\_at~, ~p\_at~
+It is for the operator ~d\_at~
 
 */
-ListExpr UncertainMovingTypeMapMoving( ListExpr args )
+ListExpr UncertainDAtTypeMapMoving( ListExpr args )
 {
   if ( nl->ListLength( args ) == 2 )
   {
@@ -9695,7 +9759,81 @@ ListExpr UncertainMovingTypeMapMoving( ListExpr args )
   return nl->SymbolAtom( "typeerror" );
 }
 
+/*
+6.1.12 Type mapping function ~UncertainMovingTypeMapCMPoint~
 
+It is for the operator ~d\_at~
+
+*/
+ListExpr HierarchicalAtTypeMapMoving( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "point" ) ||
+        nl->IsEqual( arg2, "region" ) )
+    {
+      if( nl->IsEqual(arg1, "hmpoint") )
+        return nl->SymbolAtom("mpoint");
+    }
+
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+6.1.12 Type mapping function ~UncertainMovingTypeMapCMPoint~
+
+It is for the operator ~d\_at~
+
+*/
+ListExpr UncertainPAtTypeMapMoving( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 2 )
+  {
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, "point" ) )
+    {
+      if( nl->IsEqual(arg1, "cupoint") )
+        return nl->SymbolAtom("cupoint");
+      if( nl->IsEqual(arg1, "cmpoint") ||
+          nl->IsEqual(arg1, "hcmpoint") )
+        return nl->SymbolAtom("cmpoint");
+    }
+    if( nl->IsEqual( arg2, "region") ) 
+    {
+      if( nl->IsEqual(arg1, "cupoint") || 
+          nl->IsEqual(arg1, "cmpoint") )
+        return nl->SymbolAtom("cmpoint");
+      if( nl->IsEqual(arg1, "hcmpoint") )
+        return nl->SymbolAtom("cmpoint");
+    }
+
+    if (nl->AtomType( arg1 ) == SymbolType && 
+        nl->AtomType( arg2 ) == SymbolType )
+    {
+      ErrorReporter::ReportError("Type mapping function got parameters of "
+          "type " +nl->SymbolValue(arg1)+ " and " +nl->SymbolValue(arg2)+ ".");
+      return nl->SymbolAtom("typeerror");
+    }
+  }
+  ErrorReporter::ReportError("Type mapping function got a "
+        "parameter of length != 2.");
+  return nl->SymbolAtom( "typeerror" );
+}
 
 /*
 6.1.12 Type mapping function ~UncertainMovingTypeMapeIRegion~
@@ -10044,7 +10182,6 @@ int UncertainSimpleSelect( ListExpr args )
   
   if( nl->SymbolValue( arg1 ) == "hcmpoint" )
     return 2;
-  // ...space for further possible argument types
   
   return -1; // This point should never be reached
 }
@@ -10996,6 +11133,32 @@ int HMPointNoComponents( Word* args, Word& result, int message, Word& local,
 }
 
 /*
+6.4.12 value mapping functions for operator ~trajectory~
+
+*/
+
+int HMPointTrajectory( Word* args, Word& result, int message, Word& local, 
+                                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  HMPoint *hmp = static_cast<HMPoint*>(args[0].addr);
+  Line* pResult = (Line*)result.addr;
+  
+  MPoint aux( 0 );
+  
+  if( hmp->IsDefined() )
+  {
+    hmp->GetMPoint(aux);
+    aux.Trajectory(*pResult);
+    aux.DeleteIfAllowed();
+  }
+  else
+    pResult->SetDefined(false);
+  
+  return 0;
+}
+
+/*
 6.4.12 value mapping functions for operator ~getmpoint~
 
 */
@@ -11240,6 +11403,75 @@ int HCMPointNoComponents( Word* args, Word& result, int message, Word& local,
   else
     ((CcInt*)result.addr)->SetDefined( false );
 
+  return 0;
+}
+
+/*
+6.3.2 Value mapping function for operator ~trajectory~
+
+*/
+int HCMPointTrajectory( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+  // +++++ for debugging purposes only +++++
+  //cout << "Value Mapping Function CMPointTrajectory is called!\n";
+  
+  HCMPoint* hcmp = static_cast<HCMPoint*>(args[0].addr);
+  
+  int size = 0;
+  int i = 5;
+  while( size == 0 )
+  {
+    i--;
+    size = hcmp->LayerSize( i );
+  }
+  double e = hcmp->GetLayerepsilon( i );
+  CMPoint cmp( 0 );
+  hcmp->GetCMPoint( e, cmp );
+  
+  
+  ostringstream strTrajectPtr;
+  string querystring;
+  result = qp->ResultStorage( s );
+  
+  if( &cmp > 0 )
+  {
+    // create the query list:
+    strTrajectPtr << (long)&cmp;
+    
+    // +++++ for debugging purposes only +++
+    //cout << "Das aufgerufene Objekt hat die Adresse: " << strTrajectPtr.str() 
+    //  << ".\n";
+    
+    querystring =                         
+    "(aggregateB"
+      "(projectextend"
+        "(namedtransformstream"
+          "(units (cmpoint (ptr " + strTrajectPtr.str() + ")) )"
+          "Unit)"
+        "()"
+        "("
+          "(regions"
+            "(fun"
+              "(tuple1 TUPLE)"
+                "(trajectory"
+                  "(attr tuple1 Unit))))))"
+      "regions"
+      "(fun"
+        "(r1 region)"
+        "(r2 region)"
+        "(union_new r1 r2))"
+      "(region"
+        "()))";
+     
+    // +++++ for debugging purposes only +++++     
+    //cout << querystring << endl;
+    if( !QueryProcessor::ExecuteQuery(querystring, result) )
+      cout << "Error in executing operator query" << endl;
+  }
+  
+  cmp.DeleteIfAllowed();
+  
   return 0;
 }
 
@@ -11541,7 +11773,9 @@ ValueMapping hierarchicalnocomponentsmap[] = {
                                       
 ValueMapping uncertaintrajectorymap[] = {
                                       CUPointTrajectory,
-                                      CMPointTrajectory };
+                                      CMPointTrajectory,
+                                      HCMPointTrajectory,
+                                      HMPointTrajectory };
 
 ValueMapping uncertaintemporalpresentmap[] = {
                                       CMPointPresent_i,
@@ -11834,7 +12068,7 @@ Operator hierarchicalnocomponents( "no_components",
 
 Operator uncertaintrajectory( "trajectory",
                               UncertainMovingSpecTrajectory,
-                              2,
+                              4,
                               uncertaintrajectorymap,
                               UncertainTemporalSelect,
                               UncertainMovingTypeMapSpatial);    
@@ -11878,42 +12112,42 @@ Operator uncertaintemporaldpasses( "d_passes",
                               8,
                               uncertaindpassesmap,
                               UncertainPassesSelect,
-                              UncertainMovingTypeMapBool );
+                              UncertainDPassesTypeMapBool );
 
 Operator hierarchicaltemporalpasses( "passes",
                               HierarchicalTemporalSpecPasses,
                               2,
                               hierarchicalpassesmap,
                               HierarchicalPassesSelect,
-                              HierarchicalTemporalTypeMapBool );
+                              HierarchicalPassesTypeMapBool );
                             
 Operator uncertaintemporalppasses( "p_passes",
                               UncertainTemporalSpecPPasses,
                               6,
                               uncertainppassesmap,
                               UncertainPassesSelect,
-                              UncertainMovingTypeMapBool );
+                              UncertainPPassesTypeMapBool );
 
 Operator uncertaintemporaldat( "d_at",
                               UncertainTemporalSpecDAt,
                               8,
                               uncertaindatmap,
                               UncertainPassesSelect,
-                              UncertainMovingTypeMapMoving );
+                              UncertainDAtTypeMapMoving );
 
 Operator hierarchicaltemporalat( "at",
                               HierarchicalTemporalSpecAt,
                               2,
                               hierarchicalatmap,
                               HierarchicalPassesSelect,
-                              UncertainMovingTypeMapMoving );
+                              HierarchicalAtTypeMapMoving );
                               
 Operator uncertaintemporalpat( "p_at",
                               UncertainTemporalSpecPAt,
                               6,
                               uncertainpatmap,
                               UncertainPassesSelect,
-                              UncertainMovingTypeMapMoving );
+                              UncertainPAtTypeMapMoving );
 
 Operator temporaltouncertain( "touncertain",
                               TemporalSpecToUncertain,
