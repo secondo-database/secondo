@@ -20,92 +20,148 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//[TOC] [\tableofcontents]
+3 Managing Metrics
 
-1 Header file of Metric Registry
+December 2007, Mirko Dibbert
 
-November 2007 Mirko Dibbert
+3.1 Overview
 
-[TOC]
+Every type constructor, which needs a metric (e.g. to be indexed by m-trees),
+has to implement at least one method of the type "TMetric"[4] for the respective
+type constructor in the class "MetricRegistry"[4] (see below). The metrics
+should except DistData objects, which are created with the "getDistData"[4]
+method of the respective attribute class, which must inherrit from
+"MetricalAttribute"[4] (extends "IndexableStandardAttribute"[4] to provide this
+method.
 
-1.1 Overview
+3.2 Class ~MetricRegistry~
 
-Every type constructor, which should provide a metric (e.g. to be stored in
-m-trees), has to implement ecactly one method of type ~Metric~ for the
-respective type constructor in the class ~MetricRegistry~ and register it in
-the ~initialize~ method.
+3.2.1 Class description
 
-Further it should inherit from a class wich inherits from ~Metrical~ e.g.
-~MetricalAttribute~, ~StandardMetricalAttrbute~ or 
-~IndexableStandardMetricalAttribute~ (defined in ~MetricAttribute.h~) and
-belong to the kind ~METRICAL~.
+TODO enter class description
 
-1.2 Includes and Defines
+3.2.2 Definition part (file: MetricRegistry.h)
 
 */
+#ifndef __METRIC_REGISTRY_H
+#define __METRIC_REGISTRY_H
 
-#ifndef __METRIC_REGISTRY_H__
-#define __METRIC_REGISTRY_H__
+#define DEBUG_METRIC_REGISTRY
 
 #include <string>
 #include <map>
-
 #include "SecondoInterface.h"
 
-typedef void (*Metric)( const void* attr1, const void* attr2, double& result );
-
+const string MF_DEFAULT = "default";
 /*
-1.3 Class ~MetricRegistry~
-
-This class manages the defined metrics. Bevore a metric may be used, the
-~Initialize~ method has to be called to register the defined metrics. The
-metrics are stored in the map ~metrics~ which is indexed by the ~algebraId~
-and the ~typeId~ of the respective type constructor.
+The name for default metrics. Each type constructor which need a metric,
+should define one of the provided metrics as default metric, which is used
+if no metric is specified.
 
 */
+
+typedef void ( *TMetric )( const void* data1, const void* data2,
+               double& result );
+/*
+Type definition for metrics.
+
+*/
+
 class MetricRegistry
 {
- public:
-  static void Initialize( SecondoInterface *secondoInterface );
-/*
-This method stores all defined metrics in the metric map.
+  struct MetricData
+  {
+    string tcName;
+    TMetric metric;
+    string descr;
 
-*/
+    MetricData()
+    {}
 
-  static Metric GetMetric( const int algebraId, const int typeId );
-/*
-For every type constructor, this method returns the associated metric. The 
-respective type construktor is selected through ~algebraId~ and ~typeId~ 
-(if no metric has been associatet, the method returns 0).
+    inline MetricData( const string& tcName_,
+               const TMetric metric_,
+               const string& descr_ )
+    : tcName ( tcName_ ), metric ( metric_ ), descr ( descr_ )
+    {}
+  }; // MetricData
 
-*/
-
- private:
-  static void RegisterMetric( const string &name, Metric mf );
-/*
-This method mapps the string ~name~ to the metric ~mf~
-
-*/
-
-  static void HistogramMetric( const void* attr1,
-                               const void* attr2,
-                               double& result );
-/*
-This method implements the metric for the histogram type constructor
-
-*/
-
-  static void PictureMetric( const void* attr1,
-                             const void* attr2,
-                             double& result );
-/*
-This method implements the metric for the picture type constructor
-
-*/
-
+  static map< string, MetricData > metric_map;
   static bool initialized;
-  static SecondoInterface *si;       // reference to secondo interface
-  static map<string,Metric> metrics; // contains the registered metrics
+
+  static void registerMetric( const string& metricName,
+                const MetricData& data );
+/*
+This method is used to register a new metric.
+
+*/
+
+  static void initialize();
+/*
+This method registeres all defined distance functions.
+
+*/
+
+public:
+  static TMetric getMetric( const string& tcName,
+                            const string& metricName );
+/*
+This method returns the associated distance function (0, if no distance function
+was found).
+
+*/
+
+  static ListExpr listMetrics();
+/*
+This method returns all registered metrics in a list, wich has the following
+fomrat:
+
+\begin{center}
+      ((tcName metricName metricType metricDescr)...(...))
+\end{center}
+
+This list is used in the "DisplayTTY"[4] class to print the registered metrics
+in a formated manner, which is used by the "list metrics"[4] command.
+
+*/
+
+private:
+/********************************************************************
+Below, all avaliable metrics will be defined:
+
+********************************************************************/
+  static void EuclideanInt(
+      const void* data1, const void* data2, double& result );
+/*
+Euclidean distance function for the "int"[4] type constructor.
+
+*/
+  static void EuclideanReal(
+      const void* data1, const void* data2, double& result );
+/*
+Euclidean distance function for the "real"[4] type constructor.
+
+*/
+
+  static void EditDistance(
+      const void* data1, const void* data2, double& result );
+/*
+Edit distance function for the "string"[4] type constructor.
+
+*/
+
+  static void HistogramMetric(
+      const void* data1, const void* data2, double& result );
+/*
+Metric for the "histogram"[4] type constructor.
+
+*/
+
+  static void PictureMetric(
+      const void* data1, const void* data2, double& result );
+/*
+Metric for the "picture"[4] type constructor.
+
+*/
 };
 
 #endif

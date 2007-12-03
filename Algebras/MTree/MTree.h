@@ -163,8 +163,10 @@ Destructor
 
 */
 
-  void initialize( const Attribute* attr, const string tcName,
-                   const string metricName, const string configName );
+  void initialize( const Attribute* attr,
+                   const string tcName,
+                   const string metricName,
+                   const string configName );
 /*
 This method initializes a new created m-tree.
 

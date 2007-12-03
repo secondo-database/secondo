@@ -130,8 +130,10 @@ void MT::MTree::readHeader()
 Method ~initialize~ :
 
 */
-void MT::MTree::initialize( const Attribute* attr, const string tcName,
-                            const string metricName, const string configName )
+void MT::MTree::initialize( const Attribute* attr,
+                            const string tcName,
+                            const string metricName,
+                            const string configName )
 {
   if ( initialized )
     return;
