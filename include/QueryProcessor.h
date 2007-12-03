@@ -169,8 +169,6 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "FLOBCache.h"
-#include "ProgressView.h"
-#include "Progress.h"
 
 struct OpNode;
 typedef OpNode* OpTree;
@@ -186,8 +184,9 @@ struct VarEntry
 
 typedef vector<VarEntry>  VarEntryTable;
 
-
-
+// forward declarations to avoid compile time dependencies
+class ProgressView;
+class ProgressInfo;
 
 /************************************************************************** 
 3.2 Class "QueryProcessor"[1]
@@ -210,9 +209,7 @@ and algebra manager.
 Destroys a query processor instance.
 
 */
-
-
-
+ 
   ProgressView* progressView;
 
 /*

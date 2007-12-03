@@ -51,6 +51,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Messages.h"          // msg->Send(msgList)
 #include "Profiles.h"          // SmiProfile::GetParameter
 #include "Progress.h"
+#include "CharTransform.h"
 
 using namespace std;
 
@@ -60,7 +61,7 @@ class ProgressView
 
   ProgressView()
   {
-    parmFile = "SecondoConfig.ini";
+    parmFile = expandVar("$(SECONDO_CONFIG)");
     PROGRESS_NORM = SmiProfile::GetParameter("ProgressEstimation", 
       "ProgNorm", 50, parmFile);
     DETPROT = SmiProfile::GetParameter("ProgressEstimation", 

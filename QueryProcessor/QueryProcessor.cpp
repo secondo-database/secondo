@@ -222,6 +222,9 @@ using namespace std;
 #include "NList.h"
 #include "Profiles.h"
 #include "FLOBCache.h"
+#include "ProgressView.h"
+#include "Progress.h"
+
 #include <stdexcept>
 
 

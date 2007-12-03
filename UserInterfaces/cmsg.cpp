@@ -34,6 +34,8 @@ April 2007, M. Spiekermann. Some code moved from LogMsg.h into this file
 #include "CharTransform.h"
 #include "FileSystem.h"
 #include "LogMsg.h"
+#include "Messages.h"
+#include "StopWatch.h"
 
 using namespace std;
 
@@ -184,4 +186,54 @@ void CMsg::resetErrors(){
   allErrors.clear();
 }
 
-  
+/*
+Implementation of Class ProgMesHandler 
+
+*/
+
+bool
+ProgMesHandler::handleMsg(NList msgList)
+{
+  if ( !msgList.first().isSymbol("progress") )
+    return false;
+
+  int ActValue = msgList.second().first().intval();
+  int TotalValue = msgList.second().second().intval();
+
+  static StopWatch* s = 0;
+  static double rt = 0;
+
+  if (ActValue < 0) // Initialisierung
+  {
+    for (int i = 1; i < TotalValue; i++)
+      if ((i % 10) == 0) cout << "|"; else cout << "-";
+	cout << "|" << endl;
+    s = new StopWatch;    
+  }
+  else 
+  {
+    rt = s->diffSecondsReal();
+    static int prg = 0;      
+    if (TotalValue > 0)
+    {
+      prg++;
+      string bar1(prg, '.');
+      string bar2(50-prg, ' ');
+      int p= (ActValue*100 / TotalValue); 
+      cout << "\r" << bar1 << bar2 
+           << " " << p << "% " 
+	   << "(run: " << ceil(rt) 
+	   << "s, rest: " << ceil( rt/p * (100-p) )  << "s)    " 
+	   << flush;
+    }
+    else
+    {
+      cout <<  "feddisch!" << endl << endl;
+      delete s;
+      s = 0;
+      prg = 0;
+    } 
+  }
+  return true;
+}
+
