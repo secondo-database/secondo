@@ -469,6 +469,7 @@ is FALSE.
   bool distP1GreaterEpsilon = false;
   bool cupIntersectsRgn = false;
   int i;
+  double dist;
   const HalfSegment *segRgn;        // a halfsegment for iterating the region
   
 /*
@@ -487,8 +488,9 @@ is FALSE.
     for(i = 0; i < r.Size(); i++)
     {
       r.Get( i, segRgn);
+      dist = segRgn->Distance(p0);
       if (segRgn->IsLeftDomPoint() && 
-          containsP0 && (segRgn->Distance(p0) <= epsilon) )
+          containsP0 && (dist < epsilon || AlmostEqual(dist, epsilon)) )
         // P0 is too close to this region's halfsegment
         distP0GreaterEpsilon = false;
     }
@@ -529,23 +531,23 @@ this endpoint to the regions border is greater than epsilon.
     // p0 is the dominating point of the halfsegment
       
   //r.StartBulkLoad();
-  const HalfSegment* lastDefPPhs;
+  int lastDefPPhs;
 /*  
-The Variable lastDefPPhs is a pointer to the last halfsegment of the region to
-which a definite passing Point was computed. This is to ensure that the 
-distance between a later defined defPP and this halfsegment can be proved 
+The Variable lastDefPPhs stores the index to the last halfsegment of the 
+region to which a definite passing Point was computed. This is to ensure that 
+the distance between a later defined defPP and this halfsegment can be proved 
 again.
 
 */
   bool lastDefPPhsIsDefined = false;
-  double dist;
-  HalfSegment hSegsTooClose[32]; // stores the halfsegments of the region whose
-                                // distance to the cupoint is less than epsilon
+  int hSegsTooClose[r.Size()]; 
+                  // stores the indices of halfsegments of the region whose
+                  // distance to the cupoint is less than epsilon
   int noSegsTooClose = 0;
-  r.SelectFirst();
-  while( !r.EndOfHs() )
+  
+  for(i = 0; i < r.Size(); i++)
   {
-    r.GetHs( segRgn );
+    r.Get(i, segRgn );
     
     if( segRgn->IsLeftDomPoint() )
     {
@@ -562,18 +564,20 @@ again.
       defPPtooClose = false;
       cupIntersectsRgn = segCup.Intersects(*segRgn);
       
-      if (containsP0 && (segRgn->Distance(p0) <= epsilon) )
+      dist = segRgn->Distance(p0);
+      if (containsP0 && dist < epsilon && !AlmostEqual(dist, epsilon) )
       {
         // P0 is too close to this region's halfsegment
         
         // +++++ for debugging purposes only +++++
-        //cout << "Distance between segRgn and P0: " << segRgn->Distance(p0) 
-        //  << endl;
+        //cout << "Distance between segRgn and P0: " << dist << endl;
         
         distP0GreaterEpsilon = false;  // this variable will stay false
         p0tooClose = true;   // this variable will be reset on every turn
-      } 
-      if (containsP1 && (segRgn->Distance(p1) <= epsilon) )
+      }
+      
+      dist = segRgn->Distance(p1); 
+      if (containsP1 && dist < epsilon && !AlmostEqual(dist, epsilon) )
       {
         // P0 is too close to this region's halfsegment
         
@@ -587,9 +591,10 @@ again.
       
       if( !cupIntersectsRgn && !p0tooClose && ! p1tooClose )
       {
-        if( segCup.Distance( *segRgn ) <= epsilon )
+        dist = segCup.Distance(*segRgn);
+        if( dist < epsilon && !AlmostEqual(dist, epsilon) )
         {
-          hSegsTooClose[noSegsTooClose] = *segRgn;
+          hSegsTooClose[noSegsTooClose] = i;
           noSegsTooClose++;
           
           // +++++ for debugging purposes only +++++
@@ -640,8 +645,9 @@ border is less than epsilon, or if the cupoint intersects the region.
           {
             // A defPP was previously defined, so for this new defPP, the
             // distance to halfsegment i has to be compared to epsilon
-            dist = lastDefPPhs->Distance(defPP);
-            if( dist <= epsilon && !AlmostEqual(dist, epsilon) )
+            r.Get(lastDefPPhs, segRgn);
+            dist = segRgn->Distance(defPP);
+            if( dist < epsilon && !AlmostEqual(dist, epsilon) )
             {
               // +++++ for debugging purposes only +++++
               //cout << "defPP has distance: " << lastDefPPhs->Distance(defPP)
@@ -656,16 +662,17 @@ border is less than epsilon, or if the cupoint intersects the region.
               lastDefPPhsIsDefined = false;
             }
             else {
-              r.GetHs(lastDefPPhs); // hold a pointer to the region's hs
+              lastDefPPhs = i; // hold a pointer to the region's hs
               lastDefPPhsIsDefined = true;
             }
           }
           else
           {
-            r.GetHs(lastDefPPhs); // save the index of the region's halfsegment
+            lastDefPPhs = i; // save the index of the region's halfsegment
             lastDefPPhsIsDefined = true;
           }
-            
+          
+          // +++++ for debugging purposes only +++++  
           //if(defPP.IsDefined())
           //  cout << "defPP is defined\n";
         }
@@ -677,8 +684,6 @@ border is less than epsilon, or if the cupoint intersects the region.
         }
       }
     }
-    r.SelectNext();
-    
   }
   //r.EndBulkLoad();
   if( distP0GreaterEpsilon || distP1GreaterEpsilon )
@@ -694,6 +699,7 @@ fullfilled.
     //  cout << "D_Passes: P0 liegt mit Abstand Epsilon in Region!\n";
     //if (distP1GreaterEpsilon)
     //  cout << "D_Passes: P1 liegt mit Abstand Epsilon in Region!\n";
+    
     return true;
   }
   if( defPP.IsDefined() )
@@ -713,8 +719,9 @@ fullfilled.
         //cout << "Distance between hSegsTooClose[" << j+1 << "] = "
         //    << hSegsTooClose[j].Distance( defPP ) << endl;
         
-        
-        if( hSegsTooClose[j].Distance( defPP ) <= epsilon )
+        r.Get(hSegsTooClose[j], segRgn);
+        dist = segRgn->Distance( defPP );
+        if( dist < epsilon && !AlmostEqual(dist, epsilon) )
         {
           // +++++ for debugging purposes only +++++
           //cout << "The final defPP is too close to a hs in hSegsTooClose[]!"
@@ -6607,7 +6614,7 @@ bool HMPoint::D_Passes( const int layer, const int start, const int end,
                   const Region& r )
 {
   // +++++ for debugging purposes only +++++
-  cout << "call for recursive function HMPoint::D_Passes( ... Region )\n";
+  //cout << "call for recursive function HMPoint::D_Passes( ... Region )\n";
   
   
   bool result = false;
@@ -6634,7 +6641,7 @@ bool HMPoint::D_Passes( const int layer, const int start, const int end,
     {
       // +++++ for debugging purposes only +++++
       cout << "recursive call for D_Passes( " << layer+1 << ", " 
-        <<ntt->GetOriginstart()<<", "<<ntt->GetOriginend()<<", "<< " )\n";
+        <<ntt->GetOriginstart()<<", "<<ntt->GetOriginend()<<", "<< " )\n\n";
         
       result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
                           r );
