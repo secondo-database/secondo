@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -19,20 +19,32 @@
 
 ########################################################################
 #
-# generic makefile for an algebra module 
+# makefile for MTreeAlgebra module
 #
 ########################################################################
+DOCU_FILES = MT1 MTreeAlgebra.h MTreeAlgebra.cpp\
+			 MT2 MTree.h MTree.cpp\
+			 MT3 MTNodeMngr.h MTNodeMngr.h\
+			 MT4 MTNode.h MTNode.cpp\
+             MT5 MTEntry.h MTEntry.cpp\
+             MT6 MTSplitpol.h MTSplitpol.cpp\
+             MT7 MetricRegistry.h MetricRegistry.cpp\
+             MT8 MetricalAttribute.h\
+             MT9 DistData.h DistData.cpp\
+             MT10 MTreeConfig.h MTreeConfig.cpp
+
+DOCU = docu
 
 # inlcude global definitions
 include ../../makefile.env
 
 # expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
+CCFLAGS += $(ALG_INC_DIRS)
 
 # create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
+# OBJECTS and LIBOBJ are computed automatically by makefile.env
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: $(OBJECTS) $(LIBOBJ) $(DOCU)
 
 # include pre-computed dependencies
 include $(DEP_FILES)
@@ -45,3 +57,6 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+
+docu:	$(DOCU_FILES)
+	cat $^ > docu_mtree

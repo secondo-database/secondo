@@ -1,0 +1,14 @@
+create database test;
+open database test;
+restore gdict from '../Algebras/MTree/testdata/gdict';
+
+let dicttree = gdict createmtree[default,default,Val];
+let dicttree = gdict createmtree[default,random,Val];
+let dicttree = gdict createmtree[default,mRad,Val];
+let dicttree = gdict createmtree[default,mMRad,Val];
+let dicttree = gdict createmtree[default,mMRadHP,Val];
+(2nd parameter selects the metric, 3rd selects the mtree-config object);
+
+query gdict dicttree rangesearch["Hagen",1.0] consume;
+query gdict dicttree rangesearch["Fernuniversität",3.0] consume;
+query gdict dicttree rangesearch["Kaffee",2.0] consume;

@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -17,4 +17,6 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator createmtree alias CREATEMTREE pattern _ op [ _ ]
+operator createmtree alias CREATEMTREE pattern _ op [ _, _, _ ]
+operator rangesearch alias RANGESEARCH pattern _ _ op [ _, _ ]
+operator nnsearch alias NNSEARCH pattern _ _ op [ _, _ ]

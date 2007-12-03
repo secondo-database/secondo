@@ -1,599 +1,542 @@
 /*
-----
-This file is part of SECONDO.
+/newpage
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
-//paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
-
-1 Implementation of ~MTree~ datastructure
-
-November 2007 Mirko Dibbert
-
-[TOC]
-
-1 Defines and includes
+2.2.3 Implementation part (file: MTree.cpp)
 
 */
-using namespace std;
-
 #include "MTree.h"
 
-#define isLeaf(level)\
-(header.height == level) ? true : false
-
 /*
-3 Struct ~MTreeLeafEntry~
-
-3.1 Method ~Read~
+Constructor (new m-tree):
 
 */
-void MTreeLeafEntry::Read(char *buffer, int &offset, STORAGE_TYPE storageType )
-{
-  memcpy( &dist, buffer+offset, sizeof(double) );
-  offset += sizeof(double);
-
-  memcpy( &tupleId, buffer+offset, sizeof(TupleId) );
-  offset += sizeof(TupleId);
-
-// cout << "..." << ((MTreeLeafEntry*)entries.back())->tupleId << "...\n";
-  switch ( storageType )
-  {
-    case REFERENCE:
-      data = new MTreeData_Ref( buffer, offset );
-      break;
-
-    case INTERNAL:
-      data = new MTreeData_Int( buffer, offset );
-      break;
-
-    case EXTERNAL:
-      data = new MTreeData_Ext( buffer, offset );
-      break;
-  }
-};
-
-/*
-3.2 Method ~Write~
-
-*/
-void MTreeLeafEntry::Write( char *buffer, int &offset )
-{
-  memcpy( buffer+offset, &dist, sizeof(double) );
-  offset += sizeof(double);
-
-  memcpy( buffer+offset, &tupleId, sizeof(TupleId) );
-  offset += sizeof(TupleId);
-
-  data->Write( buffer, offset );
-}
-
-/*
-4 Struct ~MTreeRoutingEntry~
-
-4.1 Method ~Read~
-
-*/
-void MTreeRoutingEntry::Read( char *buffer, int &offset,
-                              STORAGE_TYPE storageType )
-{
-  memcpy( &dist, buffer+offset, sizeof(double) );
-  offset += sizeof(double);
-
-  memcpy( &r, buffer+offset, sizeof(double) );
-  offset += sizeof(double);
-
-  memcpy( &chield, buffer+offset, sizeof(SmiRecordId) );
-  offset += sizeof(SmiRecordId);
-
-  switch ( storageType )
-  {
-    case REFERENCE:
-      data = new MTreeData_Ref( buffer, offset );
-      break;
-
-    case INTERNAL:
-      data = new MTreeData_Int( buffer, offset );
-      break;
-
-    case EXTERNAL:
-      data = new MTreeData_Ext( buffer, offset );
-      break;
-  }
-}
-
-/*
-4.2 Method ~Write~
-
-*/
-void MTreeRoutingEntry::Write( char *buffer, int &offset )
-{
-  memcpy( buffer+offset, &dist, sizeof(double) );
-  offset += sizeof(double);
-
-  memcpy( buffer+offset, &r, sizeof(double) );
-  offset += sizeof(double);
-
-  memcpy( buffer+offset, &chield, sizeof(SmiRecordId) );
-  offset += sizeof(SmiRecordId);
-
-  data->Write( buffer, offset );
-}
-
-/*
-1 Class ~MTreeNode~
-
-1.1 Constructor
-
-*/
-MTreeNode::MTreeNode( bool leaf, size_t maxEntries,
-                      STORAGE_TYPE storageType ) :
-  entries()
-{
-  this->isLeaf = leaf;
-  this->maxEntries = maxEntries;
-  this->storageType = storageType;
-  modified = true;
-
-}
-
-/*
-1.1 Destructor
-
-*/
-MTreeNode::~MTreeNode()
-{
-  list<MTreeEntry*>::iterator iter = entries.begin();
-  while (iter != entries.end())
-  {
-    delete *iter;
-    iter++;
-  }
-}
-
-/*
-1.1 Methods ~Read~
-
-*/
-void MTreeNode::Read( SmiRecordFile &file, const SmiRecordId page )
-{
-  SmiRecord record;
-  assert( file.SelectRecord( page, record, SmiFile::ReadOnly ) );
-  Read( record );
-}
-
-void MTreeNode::Read( SmiRecord &record )
-{
-  int offset = 0;
-  char buffer[record.Size()];
-
-  assert( record.Read( buffer, record.Size(), offset ) );
-
-  // read number of stored entries
-  size_t count;
-  memcpy( &count, buffer + offset, sizeof( count ) );
-  offset += sizeof( count );
-
-  assert( count <= maxEntries );
-
-  // read the entry array.
-  entries.clear();
-  for( size_t i = 0; i < count; i++ )
-  {
-    if( isLeaf )
-    {
-      MTreeLeafEntry* e = new MTreeLeafEntry( buffer, offset, storageType );
-      entries.push_back(e);
-    }
-    else
-    {
-      entries.push_back(new MTreeRoutingEntry( buffer, offset, storageType ));
-    }
-  }
-  modified = false;
-}
-
-/*
-1.1 Methods ~Write~
-
-*/
-void MTreeNode::Write( SmiRecordFile &file, const SmiRecordId page )
-{
-  if( modified )
-  {
-    SmiRecord record;
-    assert( file.SelectRecord( page, record, SmiFile::Update ) );
-    Write( record );
-  }
-}
-
-void MTreeNode::Write( SmiRecord &record )
-{
-  if( modified )
-  {
-    int offset = 0;
-    char buffer[record.Size()];
-    memset( buffer, 0, record.Size() );
-
-    // write number of stored 
-    size_t count = entries.size();
-    memcpy( buffer + offset, &count, sizeof( count ) );
-    offset += sizeof( count );
-
-    assert(count <= maxEntries );
-
-    // write the entry array
-    list<MTreeEntry*>::iterator iter;
-    for(iter = entries.begin(); iter != entries.end(); iter++ )
-    {
-      if (isLeaf)
-      {
-        ((MTreeLeafEntry*)*iter)->Write( buffer, offset );
-      }
-      else
-      {
-        ((MTreeRoutingEntry*)*iter)->Write( buffer, offset );
-      }
-    }
-
-    assert( record.Write( buffer, record.Size(), 0 ) );
-
-    modified = false;
-  }
-}
-
-/*
-1.1 Methods ~InsertEntry~
-
-*/
-void MTreeNode::InsertEntry( MTreeEntry *entry )
-{
-  entries.push_back(entry);
-  modified = true;
-}
-
-/*
-2 Class ~MTree~
-
-2.1 Constructors
-
-*/
-MTree::MTree() :
-  file( true, PAGESIZE ),
+MT::MTree::MTree()
+: initialized( false ),
+  file( true, NODE_PAGESIZE ),
   header(),
-  initialized ( false )
+  splitpol( 0 ),
+  nodeMngr( 0 )
 {
   file.Create();
 
-  // create header page
+  // create header nodeId
   SmiRecordId headerId;
   SmiRecord headerRecord;
-  assert( file.AppendRecord( headerId, headerRecord ) );
+  file.AppendRecord( headerId, headerRecord );
   assert( headerId == 1 );
-
-  // create root node page
-  SmiRecordId rootId;
-  SmiRecord rootRecord;
-  assert( file.AppendRecord( rootId, rootRecord ) );
-  header.root = rootId;
-}
-
-MTree::MTree( const SmiFileId fileId ) :
-  file(true),
-  initialized ( false )
-{
-  file.Open( fileId );
-  ReadHeader();
-
-  if (header.storage == EXTERNAL)
-  {
-    datafile = new SmiRecordFile( true );
-    datafile->Open( header.datafileId );
-  }
-
 }
 /*
-2.2 Destructor
+Constructor (load m-tree):
 
 */
-MTree::~MTree()
+MT::MTree::MTree( const SmiFileId fileid )
+: initialized( false ),
+  file( true ),
+  header(),
+  splitpol( 0 ),
+  nodeMngr( 0 )
 {
-  if( file.IsOpen() )
-  {
-    WriteHeader();
-    file.Close();
-  }
+  assert(file.Open( fileid ));
+  readHeader();
 
-  if ( header.storage == EXTERNAL )
-  {
-    if( datafile->IsOpen() )
-      datafile->Close();
+  // get metric function
+  metric = MetricRegistry::getMetric
+      ( header.tcName, header.metricName );
 
-    delete datafile;
-  }
+  // get MTreeConfig object
+  config = MTreeConfigReg::getMTreeConfig ( header.configName );
 
-  delete metric;
-  delete splitpol;
-}
+  // initialize node manager
+  nodeMngr = new NodeMngr( &file, config.maxNodeEntries );
 
-void MTree::DeleteFile()
-{
-  if( file.IsOpen() )
-    file.Close();
-
-  file.Drop();
-
-  // delete datafile, if external storage had been used
-  if ( header.storage == EXTERNAL )
-  {
-    cout << "deleting datafile\n";
-    if (datafile->IsOpen())
-      datafile->Close();
-
-    datafile->Drop();
-  }
-}
-
-/*
-2.3 Method ~Initialize~
-
-*/
-void MTree::Initialize(
-        Relation *rel, Tuple *tuple, int attrIndex,
-        PROMFUN promFun, PARTFUN partFun )
-{
-  this->rel = rel;
-
-  // get attribute object from tuple
-  StandardMetricalAttribute *attr = (StandardMetricalAttribute*)
-                             tuple->GetAttribute( attrIndex );
-
-  // get attribute type
-  AttributeType type = tuple->GetTupleType()->GetAttributeType( attrIndex );
-
-  // update header
-  header.promFun = promFun;
-  header.partFun = partFun;
-  header.attrIndex = attrIndex;
-  header.algebraId = type.algId;
-  header.typeId = type.typeId;
-  header.dataLength = attr->GetMDataSize();
-
-  // calculate max entries per node
-  int emptySize = PAGESIZE - MTreeNode::SizeOfEmptyNode();
-  int maxLeaf, maxRouting;
-  int leafEntrySize, routingEntrySize;
-
-  if ( header.dataLength == 0 )
-  {
-    cout << "REFERENCE storage\n";
-    header.storage = REFERENCE;
-    leafEntrySize = MTreeLeafEntry::StaticSize() + MTreeData_Ref::Size();
-    routingEntrySize = MTreeRoutingEntry::StaticSize() + MTreeData_Ref::Size();
-    maxLeaf = emptySize / leafEntrySize;
-    maxRouting = emptySize / routingEntrySize;
-  }
-  else
-  {
-    leafEntrySize = MTreeLeafEntry::StaticSize() + 
-                    MTreeData_Int::StaticSize() + header.dataLength;
-    routingEntrySize = MTreeRoutingEntry::StaticSize() + 
-                       MTreeData_Int::StaticSize() + header.dataLength;
-    maxLeaf = emptySize / leafEntrySize;
-    maxRouting = emptySize / routingEntrySize;
-
-    if ( ( maxLeaf >= MIN_NODE_CAPACITY ) && 
-         ( maxRouting >= MIN_NODE_CAPACITY ))
-    {
-      cout << "INTERNAL storage\n";
-      header.storage = INTERNAL;
-    }
-    else
-    {
-      cout << "EXTERNAL storage\n";
-      header.storage = EXTERNAL;
-      leafEntrySize = MTreeLeafEntry::StaticSize() + 
-                      MTreeData_Ext::Size();
-      routingEntrySize = MTreeRoutingEntry::StaticSize() + 
-                         MTreeData_Ext::Size();
-      maxLeaf = emptySize / leafEntrySize;
-      maxRouting = emptySize / routingEntrySize;
-
-      // create datafile for external storage
-      datafile = new SmiRecordFile(true, header.dataLength);
-      datafile->Create();
-      header.datafileId = datafile->GetFileId();
-    }
-  }
-  header.maxLeafEntries = maxLeaf;
-  header.maxRoutingEntries = maxRouting;
-  header.headerInitialized = true;
-
-  cout << "MaxEntries [leaf | internal ] : [ "
-       << maxLeaf << " | " << maxRouting << " ]\n";
-  cout << "Sizes                         : [ " << leafEntrySize << " | "
-       << routingEntrySize << " ]\n\n";
-
-  InitializeFromHeader( rel );
-}
-
-/*
-2.4 Method ~InitializeFromHeader~
-
-*/
-void MTree::InitializeFromHeader(Relation *rel)
-{
-  assert (header.headerInitialized);
-
-  Metric metric = MetricRegistry::GetMetric( header.algebraId, header.typeId );
-  assert (metric != 0); 
-/*
-This assertion fails, in no metric had been defined in MetricRegistry.
-
-*/
-
-  // create distance function
-  this->metric = new MetricWrapper( metric, rel, header.attrIndex,
-                                    datafile, header.storage);
-
-  // create split policy
-  splitpol = new SplitPolicy( this->metric, header.promFun, header.partFun );
-
-  //create root node and write it into root page
-  MTreeNode *root = new MTreeNode( true, header.maxLeafEntries,
-                                   header.storage );
-  root->Write( file, header.root );
-  header.height = 1;
-  header.nodeCount++;
+  // initialize split policy
+  splitpol = new
+      Splitpol( config.promoteFun, config.partitionFun, metric );
 
   initialized = true;
 }
 
 /*
-2.5 Method ~ReadHeader~
+Destructor:
 
 */
-void MTree::ReadHeader()
+MT::MTree::~MTree()
 {
-  SmiRecord record;
-  assert( file.SelectRecord( (SmiRecordId)1, record, SmiFile::ReadOnly ) );
-  header.Read( record );
-}
-
-/*
-2.6 Method ~WriteHeader~
-
-*/
-void MTree::WriteHeader()
-{
-  SmiRecord record;
-  assert( file.SelectRecord( (SmiRecordId)1, record, SmiFile::Update ) );
-  header.Write( record );
-}
-
-/*
-1.1 Method Split
-
-*/
-void MTree::Split()
-{
-//  MTreeEntry *prom1;
-//  MTreeEntry *prom2;
-//  splitpol->Promote(entries, prom1, prom2);
-//  list<MTreeEntry*> entries1, entries2;
-//  double rad1, rad2;
-//  splitpol->Partition(entries, prom1, prom2, entries1, rad1, entries2,rad2);
-//  SmiRecordId* chield = ???
-//  MTreeRoutingEntry *p1 = new MTreeRoutingEntry(prom1, chield, rad1);
-//  MTreeRoutingEntry *p2 = new MTreeRoutingEntry(prom2, chield, rad2);
-//  ...
-}
-
-/*
-1.1 Method ~Insert~
-
-*/
-void MTree::Insert( TupleId tupleId  )
-{
-cout << "MTree::Insert( " << tupleId << " )\n";
-
-  assert( initialized );
-
-   MTreeData* data;
-   StandardMetricalAttribute *attr = (StandardMetricalAttribute*)
-         (rel->GetTuple( tupleId ))->GetAttribute( header.attrIndex );
-
-  // create new entry
-  switch( header.storage )
+  if ( file.IsOpen() )
   {
-    case REFERENCE:
-      data = new MTreeData_Ref( tupleId );
-      break;
-
-    case INTERNAL:
-      data = new MTreeData_Int(attr->GetMData(), attr->GetMDataSize());
-      break;
-
-    case EXTERNAL:
-      SmiRecordId dataRecId;
-      SmiRecord record;
-      datafile->AppendRecord(dataRecId, record);
-      data = new MTreeData_Ext(dataRecId);
-
-      // write data string into record
-      char* datastr = attr->GetMData();
-      assert( datafile->SelectRecord( dataRecId, record, SmiFile::Update ) );
-      assert( record.Write( datastr, header.dataLength, 0 ) 
-              == header.dataLength );
-      break;
+    writeHeader();
+    file.Close();
   }
-  MTreeLeafEntry* entry = new MTreeLeafEntry(data, tupleId, 0);
 
-  int currLevel;
-  SmiRecordId currRec;
-  MTreeNode* currNode;
-  list<MTreeEntry*>::iterator iter;
+  delete splitpol;
+  delete nodeMngr;
 
-  // load root
-  currLevel = 1;
-  currRec = header.root;
-  currNode = new MTreeNode( isLeaf(currLevel), header.maxLeafEntries,
-                            header.storage );
-  currNode->Read( file, currRec );
-  iter = currNode->GetEntryIterator();
-
-cout << " Current entries in root: " << currNode->GetEntryCount() << "\n";
-  while( true )
+#ifdef __MT_DEBUG
+  if ( Node::objectsOpen() )
   {
-    if ( !(currNode->IsLeaf()) )
-    { // routing entry
-      // find best node to continue
-      return;
+    cmsg.warning() << "*** Memory leak warning: "
+                   << Node::objectsOpen()
+                   << " <MT::Node> object(s) left open!" << endl;
+    cmsg.send();
+  }
+
+  if ( Entry::objectsOpen() )
+  {
+    cmsg.warning() << "*** Memory leak warning: "
+                   << Entry::objectsOpen()
+                   << " <MT::Entry> object(s) left open!" << endl;
+    cmsg.send();
+  }
+#endif
+}
+
+/*
+Method ~deleteFile~
+
+*/
+void
+MT::MTree::deleteFile()
+{
+  if ( file.IsOpen() )
+    file.Close();
+
+  file.Drop();
+}
+
+/*
+Method ~writeHeader~ :
+
+*/
+void
+MT::MTree::writeHeader()
+{
+  SmiRecord record;
+  file.SelectRecord( (SmiRecordId)1, record, SmiFile::Update );
+  record.Write( &header, sizeof( Header ), 0 );
+}
+
+/*
+Method ~readHeader~ :
+
+*/
+void MT::MTree::readHeader()
+{
+  SmiRecord record;
+  file.SelectRecord( (SmiRecordId)1, record, SmiFile::ReadOnly );
+  record.Read( &header, sizeof( Header ), 0 );
+}
+
+/*
+Method ~initialize~ :
+
+*/
+void MT::MTree::initialize( const Attribute* attr, const string tcName,
+                            const string metricName, const string configName )
+{
+  if ( initialized )
+    return;
+
+  // get metric function
+  metric = MetricRegistry::getMetric ( tcName, metricName );
+
+  // get MTreeConfig object
+  config = MTreeConfigReg::getMTreeConfig( configName );
+
+  // initialize node manager
+  nodeMngr = new NodeMngr( &file, config.maxNodeEntries );
+
+  // initialize split policy
+  splitpol = new
+      Splitpol( config.promoteFun, config.partitionFun, metric );
+
+  //create root node
+  Node* root = nodeMngr->createNode();
+  header.leafCount++;
+  header.height++;
+
+  // update header
+  strcpy( header.tcName, tcName.c_str() );
+  strcpy( header.metricName, metricName.c_str() );
+  strcpy( header.configName, configName.c_str() );
+  header.root = root->getNodeId();
+
+  root->deleteIfAllowed();
+
+  initialized = true;
+}
+
+/*
+Method ~getDistData~ :
+
+*/
+DistData*
+MT::MTree::getDistData( Attribute* attr )
+{
+  DistData* data;
+  string tcName ( header.tcName );
+  if ( tcName == "int" )
+  {
+    int value = static_cast<CcInt*>(attr)->GetValue();
+    char buffer[sizeof(int)];
+    memcpy( buffer, &value, sizeof(int) );
+    data = new DistData( sizeof(int), buffer );
+  }
+  else if  ( tcName == "real" )
+  {
+    SEC_STD_REAL value =
+        static_cast<CcReal*>(attr)-> GetValue();
+    char buffer[sizeof(SEC_STD_REAL)];
+    memcpy( buffer, &value, sizeof(SEC_STD_REAL) );
+    data = new DistData( sizeof(SEC_STD_REAL), buffer );
+  }
+  else if  ( tcName == "string" )
+  {
+    string value = static_cast<CcString*>( attr )-> GetValue();
+    data = new DistData( value );
+  }
+  else
+  {
+    data = static_cast<MetricalAttribute*>( attr )->
+        getDistData( header.metricName );
+  }
+  return data;
+}
+
+/*
+Method ~split~ :
+
+*/
+void
+MT::MTree::split( Entry* entry )
+{
+  unsigned char deepth = header.height - 1;
+
+  while ( true )
+  {
+    bool isLeaf = ( deepth == (header.height-1) );
+
+    // create new node
+    Node* newNode;
+    if ( isLeaf )
+    {
+      header.leafCount++;
+      newNode = nodeMngr->createNode();
     }
     else
-    { // insert node into leaf
-      if(currNode->IsFull() )
-      { // split, if nesccesary
-        Split();
-        cout << "trying to split";
-        return;
-      }
-      else
-      { // currNode is not full, new entry will be stored
-        double dist;
+    {
+      header.routingCount++;
+      newNode = nodeMngr->createNode();
+    }
 
-        if ( currLevel == 1) // current node is the root node
+    // get current entries, store new entry vector to node
+    // (will be filled in splitpol->apply)
+    vector<Entry*>* entries = new vector<Entry*>();
+    nodePtr->swapEntries( entries );
+    entries->push_back( entry );
+
+    /* apply splitpol: this will split the entries given in the first
+       vector to the second and third vector by using the promote and
+       partition function defined in the current MTreeConfig object.
+    */
+    splitpol->apply( entries, nodePtr->getEntries(),
+                     newNode->getEntries(), isLeaf );
+    delete entries;
+
+    #ifdef __MT_PRINT_SPLIT_INFO
+    cmsg.info() << "\nsplit: splitted nodes contain "
+                << nodePtr->getEntryCount() << " / "
+                << newNode->getEntryCount() << " entries." << endl;
+    cmsg.send();
+    #endif
+
+    // set modified flag to true and recompute node size
+    nodePtr->modified( SIZE_CHANGED );
+    newNode->modified( SIZE_CHANGED );
+
+    // retrieve promote entries
+    Entry* promL = splitpol->getPromL();
+    Entry* promR = splitpol->getPromR();
+
+    // update chield pointers
+    promL->setChield( nodePtr->getNodeId() );
+    promR->setChield( newNode->getNodeId() );
+
+    newNode->deleteIfAllowed();
+
+    // insert new root
+    if ( deepth == 0 )
+    {
+      header.routingCount++;
+      Node* newRoot = nodeMngr->createNode();
+      newRoot->insert( promL );
+      newRoot->insert( promR );
+      header.root = newRoot->getNodeId();
+      header.height++;
+      newRoot->deleteIfAllowed();
+      return;
+    }
+    // insert promoted entries into routing nodes
+    else
+    {
+      deepth--;
+      nodePtr->deleteIfAllowed();
+      nodePtr = nodeMngr->getNode( path[deepth] );
+
+      // update distances to parent
+      if ( deepth > 0)
+      {
+        double distL, distR;
+        Node* parent = nodeMngr->getNode( path[deepth-1] );
+        Entry* parentEntry =
+            (*parent->getEntries())[indizes[deepth-1]];
+        (*metric)( promL->data(), parentEntry->data(), distL );
+        (*metric)( promR->data(), parentEntry->data(), distR );
+        promL->setDist( distL );
+        promR->setDist( distR );
+        parent->deleteIfAllowed();
+      }
+
+      // replace old promoted entry with promL
+      nodePtr->update( indizes[deepth], promL );
+
+      // insert promR
+      if (!nodePtr->insert( promR ))
+        entry = promR;
+      else
+        return;
+    } // else
+  } // while
+}
+
+/*
+Method ~insert~ :
+
+*/
+void
+MT::MTree::insert( Attribute* attr, TupleId tupleId )
+{
+  #ifdef __MT_DEBUG
+  assert( initialized );
+  #endif
+
+  #ifdef __MT_PRINT_INSERT_INFO
+  if ((header.entryCount % 5000) == 0)
+  {
+    cmsg.info() << endl
+                << "routing nodes: " << header.routingCount
+                << "\tleaves: " << header.leafCount
+                << "\theight: " << header.height
+                << "\tentries: " << header.entryCount << "\t";
+    cmsg.send();
+  }
+  else if ((header.entryCount % 100) == 0)
+  {
+    cmsg.info() << ".";
+    cmsg.send();
+  }
+  #endif
+
+  unsigned char deepth = 0;
+
+  // init path vector
+  path.clear();
+  path.reserve( header.height + 1 );
+  path.push_back( header.root );
+
+  // init index vector
+  indizes.clear();
+  indizes.reserve( header.height );
+
+  // init node pointer
+  nodePtr = nodeMngr->getNode( header.root );
+
+  // create new entry
+  Entry* entry = new Entry( tupleId, getDistData(attr) );
+
+  // descent tree until leaf level
+  while ( deepth < header.height - 1 )
+  { /* find best path (follow the entry with the nearest dist to
+        new entry or the smallest covering radius increase) */
+      list<SearchBestPathEntry> entriesIn;
+      list<SearchBestPathEntry> entriesOut;
+
+      vector<Entry*>* entries = nodePtr->getEntries();
+      vector<Entry*>::iterator iter;
+      unsigned index = 0;
+      for ( iter = entries->begin();
+            iter != entries->end();
+            iter++, index++ )
+      {
+        double dist;
+        (*metric)( (*iter)->data(), entry->data(), dist );
+        if ( dist <= (*iter)->rad() )
         {
-          dist = 0;
+          entriesIn.push_back(
+              SearchBestPathEntry( *iter, dist, index ) );
         }
         else
         {
-          metric->Distance( *iter, entry, dist );
+          entriesOut.push_back(
+              SearchBestPathEntry( *iter, dist, index ) );
+        }
+      } // for
+
+      list<SearchBestPathEntry>::iterator best;
+      if (!entriesIn.empty())
+      { // select entry with nearest dist to new entry
+        best = entriesIn.begin();
+        list<SearchBestPathEntry>::iterator iter;
+        for ( iter = entriesIn.begin();
+              iter != entriesIn.end();
+              iter++ )
+        {
+          if ( (*iter).dist < (*best).dist )
+          {
+            best = iter;
+          }
+        } // for
+      } // if
+      else
+      { // select entry with minimal radius increase
+        best = entriesOut.begin();
+        double minIncrease =
+            (*best).dist - entriesOut.front().entry->rad();
+
+        list<SearchBestPathEntry>::iterator iter;
+        for ( iter = entriesIn.begin();
+              iter != entriesIn.end();
+              iter++ )
+        {
+          double increase = (*iter).dist - (*iter).entry->rad();
+          if ( increase < minIncrease )
+          {
+            minIncrease = increase;
+            best = iter;
+          }
         }
 
-        currNode->InsertEntry( entry );
-        currNode->Write( file, currRec );
-        delete currNode;
-        currNode = 0;
-        return;
+        // update increased covering radius
+        (*best).entry->setRad( (*best).dist );
+        nodePtr->modified( !SIZE_CHANGED );
+      }
+
+      // update path/indizes vector
+      path.push_back( (*best).entry->chield() );
+      indizes.push_back( (*best).index );
+
+      //load chield node
+      deepth++;
+      nodePtr->deleteIfAllowed();
+      nodePtr = nodeMngr->getNode( (*best).entry->chield() );
+  }
+
+  // nodePtr points to a leaf node
+
+  // compute distance to parent node, if exist
+  if ( deepth > 0 )
+  {
+    double dist;
+    Node* parent = nodeMngr->getNode( path[deepth-1] );
+    Entry* parentEntry = (*parent->getEntries())[indizes[deepth-1]];
+    (*metric)( entry->data(), parentEntry->data(), dist );
+    entry->setDist( dist );
+    parent->deleteIfAllowed();
+  }
+
+  // insert entry into leaf, split if neccesary
+  if ( !nodePtr->insert( entry ) )
+  {
+    split( entry );
+  }
+
+  nodePtr->deleteIfAllowed();
+  header.entryCount++;
+}
+
+/*
+Method ~rangeSearch~ :
+
+*/
+void MT::MTree::rangeSearch( Attribute* attr,
+                             const double& searchRad,
+                             list<TupleId>* results )
+{
+  #ifdef __MT_DEBUG
+  assert( initialized );
+  #endif
+
+  results->clear();
+  DistData* data = getDistData( attr );
+
+  stack<RemainingNodesEntry> remainingNodess;
+  remainingNodess.push( RemainingNodesEntry(header.root, 0, 0 ) );
+
+  size_t count = 0;
+  while( !remainingNodess.empty() )
+  {
+    RemainingNodesEntry parent = remainingNodess.top();
+    nodePtr = nodeMngr->getNode( remainingNodess.top().nodeId );
+    unsigned char deepth = remainingNodess.top().deepth;
+    double distQueryParent = remainingNodess.top().dist;
+    remainingNodess.pop();
+
+    if ( deepth < (header.height - 1) )
+    { // routing node
+      vector<Entry*>* entries = nodePtr->getEntries();
+      for ( size_t i=0; i<entries->size(); i++ )
+      {
+        Entry* curEntry = (*entries)[i];
+        double dist = curEntry->dist();
+        double radSum = searchRad + curEntry->rad();
+        if ( abs( distQueryParent - dist ) <= radSum )
+        {
+          double newDistQueryParent;
+          (*metric)( data, curEntry->data(), newDistQueryParent );
+          if ( newDistQueryParent <= radSum )
+          {
+            remainingNodess.push( RemainingNodesEntry(
+                curEntry->chield(), deepth+1, newDistQueryParent ) );
+          }
+        }
       }
     }
-  }
+    else
+    { // leaf
+      vector<Entry*>* entries = nodePtr->getEntries();
+      for ( size_t i=0; i<entries->size(); i++ )
+      {
+        Entry* curEntry = (*entries)[i];
+        double dist = curEntry->dist();
+        if ( abs( distQueryParent - dist ) <= searchRad )
+        {
+          count++;
+          double distQueryCurrent;
+          (*metric)( data, curEntry->data(), distQueryCurrent );
+          if ( distQueryCurrent <= searchRad )
+          {
+            results->push_back( curEntry->tid() );
+          }
+        } // if
+      } // for
+    } // else
+    nodePtr->deleteIfAllowed();
+  } // while
+
+  data->deleteIfAllowed();
+
+#ifdef __MT_PRINT_SEARCH_INFO
+  cmsg.info() << "Tried " << count << " out of " << header.entryCount
+              << " elements..." << endl << endl;
+  cmsg.send();
+#endif
+}
+
+/*
+Method ~rangeSearch~ :
+
+*/
+void MT::MTree::nnSearch( Attribute* attr, int nncount,
+                          list<TupleId>* results )
+{
+// not yet implemented
 }

@@ -20,316 +20,140 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
-//paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
+2 The M-Tree Datastructure
 
-1 Header file of ~MTree~ datastructure
+December 2007, Mirko Dibbert
 
-November 2007 Mirko Dibbert
+2.1 Overview
 
-[TOC]
+TODO enter datastructure description
 
-1.1 Overview
+2.2 Class ~MTree~
 
-TODO: enter MTree datastructure discription
+2.2.1 Class description
 
-1.2 Includes and Defines
+TODO enter class description
 
-*/
-
-#ifndef __MTREE_H__
-#define __MTREE_H__
-
-#include "RelationAlgebra.h"
-#include "MetricAttribute.h"
-#include "MetricRegistry.h"
-#include "MTreeTools.h"
-#include "WinUnix.h"
-#include <list>
-
-const size_t PAGESIZE = ( WinUnix::getPageSize() - 100 );
-/*
-
+2.2.2 Definition part (file: MTree.h)
 
 */
+#ifndef __MTREE_H
+#define __MTREE_H
 
-const int MIN_NODE_CAPACITY = 2;
-/*
-Should be at least 2 and is used, if a data string is stored:
-If there does not fit at least MIN NODE CAPACITY entries into every node the
-m-tree will use external storage for the strings.
+#include "MTNodeMngr.h"
+#include "MTSplitpol.h"
+#include "MTreeConfig.h"
 
-*/
-
-/*
-1.8 struct ~MTreeLeafEntry~
-
-*/
-struct MTreeLeafEntry : public MTreeEntry
+namespace MT
 {
-  TupleId tupleId; // tuple identifier
 
-  inline MTreeLeafEntry( char* buffer, int& offset, STORAGE_TYPE storageType )
-  {
-    Read( buffer, offset, storageType );
-  }
-
-/*
-Read constructor.
-
-*/
-
-  inline MTreeLeafEntry( MTreeData* data, TupleId tid, double dist )
-  {
-    this->tupleId = tid;
-    this->data = data;
-    this->dist = dist;
-  }
-/*
-Standard constructor.
-
-*/
-
-  static int StaticSize()
-  {
-    return sizeof(TupleId) +  // tupleId
-           sizeof(double);    // dist
-  }
-/*
-Returns the size of the entry in disk (without data member)
-
-*/
-
-  void Read( char* buffer, int& offset, STORAGE_TYPE storageType );
-/*
-Reads an entry from the buffer. Offset is increased.
-
-*/
-
-  void Write( char* buffer, int& offset );
-/*
-Writes an entry from the buffer. Offset is increased.
-
-*/
-
-};
-
-/*
-1 struct ~MTreeRoutingEntry~
-
-*/
-struct MTreeRoutingEntry : public MTreeEntry
-{
-  SmiRecordId *chield; // pointer to covering tree
-  double r;            // covering radius
-
-  inline MTreeRoutingEntry( char* buffer, int& offset,
-                            STORAGE_TYPE storageType )
-  {
-    Read( buffer, offset, storageType  );
-  }
-
-/*
-Read constructor.
-
-*/
-
-  inline MTreeRoutingEntry(
-        MTreeEntry* e, 
-        SmiRecordId *chield, 
-        double dist, 
-        double r )
-  {
-    this->data = e->data;
-    this->chield = chield;
-    this->dist = dist;
-    this->r = r;
-  }
-/*
-Constructor.
-
-*/
-
-  inline MTreeRoutingEntry(
-        MTreeData* data, 
-        SmiRecordId *chield, 
-        double dist, 
-        double r )
-  {
-    this->data = data;
-    this->chield = chield;
-    this->dist = dist;
-    this->r = r;
-  }
-/*
-
-
-*/
-
-  inline ~MTreeRoutingEntry()
-  {
-    cout << "MTreeRoutingEntry destructor called\n";
-    delete data;
-  }
-
-  static int StaticSize()
-  {
-    return sizeof(SmiRecordId) + // chield
-           sizeof(double) +      // dist
-           sizeof(double);       // r
-  }
-/*
-Returns the size of the entry in disk (without data member)
-
-*/
-
-  void Read( char *buffer, int &offset, STORAGE_TYPE storageType );
-/*
-Reads an entry from the buffer. Offset is increased.
-
-*/
-
-  void Write( char *buffer, int &offset );
-/*
-Writes an entry from the buffer. Offset is increased.
-
-*/
-};
-/*
-1 Class ~MTreeNode~
-
-*/
-class MTreeNode
-{
- public:
-  MTreeNode( bool leaf, size_t maxEntries, STORAGE_TYPE storageType );
-  ~MTreeNode();
-
-  static inline int SizeOfEmptyNode()
-  {
-    return sizeof(size_t); // count of entries
-  }
-
-  void Read( SmiRecordFile &file, const SmiRecordId page );
-  void Read( SmiRecord &record );
-
-  void Write( SmiRecordFile &file, const SmiRecordId page );
-  void Write( SmiRecord &record );
-
-  void InsertEntry( MTreeEntry* entry );
-
-  list<MTreeEntry*>::iterator GetEntryIterator()
-  {
-     return entries.begin();
-  }
-
-  inline bool IsLeaf() { return isLeaf; }
-  inline bool IsFull() { return !(entries.size() < maxEntries); }
-  inline int GetEntryIter() { return entries.size(); }
-  inline int GetEntryCount() { return entries.size(); }
-
- private:
-  list<MTreeEntry*> entries; // list containing the entries
-  bool isLeaf;     // true, if the node is a leaf
-  bool modified;   // true, if the node has been modified
-  size_t maxEntries;
-  STORAGE_TYPE storageType;
-};
-
-/*
-1 Struct ~MTreeHeader~
-
-*/
-class MTreeHeader
-{
- public:
-  MTreeHeader() :
-    headerInitialized ( false ),
-    root ( 0 ),
-    promFun ( STD_PROMFUN ),
-    partFun ( STD_PARTFUN ),
-    storage ( REFERENCE ),
-    datafileId ( 0 ),
-    dataLength ( 0 ),
-    maxLeafEntries ( 0 ),
-    maxRoutingEntries ( 0 ),
-    attrIndex ( 0 ),
-    algebraId ( 0 ),
-    typeId ( 0 ),
-    height ( 0 ),
-    nodeCount ( 0 ),
-    entryCount ( 0 )
-  {}
-
-  inline void Write( SmiRecord &record )
-  {
-    assert( record.Write( this, sizeof( MTreeHeader ), 0 )
-            == sizeof(MTreeHeader) );
-  }
-
-  inline void Read( SmiRecord &record )
-  {
-    assert( record.Read( this, sizeof( MTreeHeader ), 0 )
-    == sizeof(MTreeHeader) );
-  }
-
-  void Print( void )
-  {
-    cout << "\n"
-         << "Header Statistics:\n"
-         << "==================================================\n"
-         << "      header size = " << sizeof( MTreeHeader ) << "\n"
-         << "headerInitialized = " << headerInitialized << "\n"
-         << "             root = " << root << "\n"
-         << "          promFun = " << promFun << "\n"
-         << "          partfun = " << partFun << "\n"
-         << "          storage = " << storage << "\n"
-         << "       datafileId = " << datafileId << "\n"
-         << "   maxLeafEntries = " << maxLeafEntries << "\n"
-         << "maxRoutingEntries = " << maxRoutingEntries << "\n"
-         << "        attrIndex = " << attrIndex << "\n"
-         << "        algebraId = " << algebraId << "\n"
-         << "           typeId = " << typeId << "\n"
-         << "           height = " << height << "\n"
-         << "        nodeCount = " << nodeCount << "\n"
-         << "       entryCount = " << entryCount << "\n"
-         << "==================================================\n\n";
-  }
-
-  bool headerInitialized;
-  SmiRecordId root;          // page of the root node
-  PROMFUN promFun;             // index of used promotion function
-  PARTFUN partFun;             // index of used partition function
-  STORAGE_TYPE storage;
-  SmiFileId datafileId;
-  size_t dataLength;            // length of the data string
-  int maxLeafEntries;    // maximum number of entries in a node
-  int maxRoutingEntries; // maximum number of entries in a node
-  int attrIndex;             // used attribute index
-  int algebraId;
-  int typeId;
-  int height;                // height of the tree
-  int nodeCount;
-  int entryCount;
-};
-
-/*
-1 Class ~MTree~
-
-*/
 class MTree
 {
- public:
+  struct Header
+  {
+    STRING_T tcName;     // type name of the stored entries
+    STRING_T metricName; // name of the used metric
+    STRING_T configName; // name of the MTreeConfig object
+    SmiRecordId root;    // page of the root node
+    unsigned height;
+    unsigned entryCount;
+    unsigned routingCount;
+    unsigned leafCount;
+
+    Header() :
+      root ( 0 ),
+      height( 0 ),
+      entryCount( 0 ),
+      routingCount( 0 ),
+      leafCount( 0 )
+    {}
+  }; // struct Header
+/*
+This struct contains all neccesary data to reinitialize a previously stored
+m-tree.
+
+*/
+
+  bool initialized;
+  SmiRecordFile file;
+  Header header;
+  Splitpol* splitpol;
+  NodeMngr* nodeMngr;
+
+  TMetric metric;
+  MTreeConfig config;
+  vector<SmiRecordId> path;
+  vector<unsigned> indizes;
+  Node* nodePtr;
+
+struct RemainingNodesEntry
+{
+  SmiRecordId nodeId;
+  unsigned deepth;
+  double dist;
+
+  RemainingNodesEntry( SmiRecordId nodeId_, size_t deepth_,
+                      double dist_ ) :
+    nodeId( nodeId_ ),
+    deepth( deepth_ ),
+    dist ( dist_ )
+  {}
+
+};
+/*
+This struct is used in the "rangeSearch"[4] method as path entry
+
+*/
+
+struct SearchBestPathEntry
+{
+  SearchBestPathEntry( Entry* entry_, double dist_,
+                       unsigned index_ ) :
+    entry( entry_ ),
+    dist( dist_ ),
+    index( index_ )
+  {}
+
+  Entry* entry;
+  double dist;
+  unsigned index;
+};
+/*
+This struct is used in the "insert"[4] method when searching for the best path
+to descent the tree.
+
+*/
+
+  void readHeader();
+/*
+Reads the header from file.
+
+*/
+
+  void writeHeader();
+/*
+Writes the header to file.
+
+*/
+
+
+  void split(Entry* entry );
+/*
+Splits an node by applying the split policy defined in the MTreeConfing object.
+
+*/
+
+public:
   MTree();
 /*
-Constructor (creates a new tree)
+Constructor, creates a new m-tree ("initialize"[4] method must be called before
+the tree can be used).
 
 */
 
   MTree( const SmiFileId fileid );
 /*
-Constructor (opens an existing tree)
+Constructor, opens an existing tree.
 
 */
 
@@ -339,87 +163,66 @@ Destructor
 
 */
 
-  void Initialize( Relation *rel, Tuple *tuple, int attrIndex,
-                  PROMFUN promFun = STD_PROMFUN,
-                  PARTFUN partFun = STD_PARTFUN);
+  void initialize( const Attribute* attr, const string tcName,
+                   const string metricName, const string configName );
 /*
-This method is needed to set a pointer to the relation and to store the
-attribute index. This will be needed when the objects are only stored as
-reference (tupleId) to get the objects for distance computations.
-
-The tuple is needed to get one reference object which is needed to get the
-datastring length and with it the storage method: If the GetMDatalength
-returns 0, the object will be stored as reference. Otherwise the objects
-string representation will be stored direktly in the nodes, if the data string
-length is small enough to store at least two entries per node, or in a seperate
-SmiRecordFile (Member ~datafile~) otherwhise. 
-
-For every type of storage (REFERENCE, INTNERNAL, EXTERNAL) there exist a
-correspondent class for the data member in ~MTreeEntry~ and a respective
-wrapper class for the distance function.
+This method initializes a new created m-tree.
 
 */
 
-  inline void Initialize( Relation *rel )
+  void deleteFile();
+/*
+This Method deletes the m-tree file.
+
+*/
+
+  DistData* getDistData( Attribute* attr );
+/*
+Returns a new DistData object which will be created from a CcInt, CcReal or
+CcString object or obtained from the getDistData method of attr.
+
+*/
+
+  inline SmiFileId getFileId()
   {
-    InitializeFromHeader( rel );
+    return file.GetFileId();
   }
 /*
-This method is used to initialize the MTree as above, but the required values
-are obtained from the previously stored header.
+This method returns the file id of the "SmiRecordFile"[4] containing the m-tree.
 
 */
 
-  void DeleteFile();
+  inline bool isInitialized()
+  { return initialized; }
 /*
-This Method deletes the file, used in ~DeleteMTree~ function (MTreeAlgebra.cpp)
+Returns true, if the m-tree has been successfully initialized.
 
 */
 
-  inline bool IsInitialized() { return initialized; }
-/*
-Returns true if the Initialize function has been called previously.
-
-*/
-
-  void Insert( TupleId tupleId );
+  void insert( Attribute* attr, TupleId tupleId );
 /*
 Inserts a new entry into the tree.
 
 */
 
-  inline SmiFileId GetFileId() { return file.GetFileId(); }
+  void rangeSearch( Attribute* attr, const double& searchRad,
+                    list<TupleId>* results );
+
 /*
-This method returns the FileId of the SmiFile containing the m-tree
+Returns all entries in the tree, wich have a maximum distance of "searchRad"[4]
+to the attribute "attr"[4] in the result list.
 
 */
 
- private:
-
-  void InitializeFromHeader(Relation *rel);
-
-  void ReadHeader();
-  void WriteHeader();
-
-  void Split();
-
-  SmiRecordFile file; // the file, which is containing the tree
-  SmiRecordFile* datafile; // the file, which is containing the tree
-  MTreeHeader header; // contains some informations about the tree
-  bool initialized;   // true, if initialize function has been called
-  MetricWrapper* metric;
-  SplitPolicy *splitpol;
-  Relation* rel;
-
-//    inline bool IsLeaf( int level ) const
-//    {
-//      return ( level == header.height );
-//    }
+void nnSearch( Attribute* attr, int nncount,
+               list<TupleId>* results );
 /*
-Returns the maximum number of entries per node.
+k-nearest-neighbour search
 
 */
 
-};
+}; // MTree
+
+} // namespace MTree
 
 #endif
