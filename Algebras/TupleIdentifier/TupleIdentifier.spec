@@ -23,3 +23,7 @@ operator addtupleid alias ADDTUPLEID pattern _ op
 #Already defined in the StandardAlgebra:
 #operator = alias EQ pattern _ infixop _
 #operator # alias NE pattern _ infixop _
+#operator > alias GT pattern _ infixop _
+#operator < alias LT pattern _ infixop _
+#operator >= alias GE pattern _ infixop _
+#operator <= alias LE pattern _ infixop _

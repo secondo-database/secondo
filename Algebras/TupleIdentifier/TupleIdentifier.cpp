@@ -505,24 +505,61 @@ EqualTupleIdTypeMap(ListExpr args)
 
 
 /*
-3.3.2 Value mapping function of operator ~=~
+3.3.2 Value mapping function of operators ~=, \#, $<$, $>$, $\leq$, $\geq$~
+
+Comparison operators
+
+----
+  Operator   op
+  <          0
+  <=         1
+  =          2
+  >=         3
+  >          4
+  #          5
+----
 
 */
 
+template<int op>
 int
-TIDEqualTupleId( Word* args, Word& result, 
-                 int message, Word& local, Supplier s )
+TIDCompareTupleId( Word* args, Word& result,
+                   int message, Word& local, Supplier s )
 {
+  assert((op >= 0) && (op <=5));
   result = qp->ResultStorage( s );
   const TupleIdentifier* a = static_cast<const TupleIdentifier*>(args[0].addr);
   const TupleIdentifier* b = static_cast<const TupleIdentifier*>(args[1].addr);
 
-  ((CcBool *)result.addr)->Set( true, a->Compare(b) == 0 );
+  int cmp = a->Compare(b);
+  switch (op)
+  {
+    case 0: // <
+      ((CcBool *)result.addr)->Set( true, a->Compare(b) < 0 );
+      return (0);
+    case 1: // <=
+      ((CcBool *)result.addr)->Set( true, a->Compare(b) <= 0 );
+      return (0);
+    case 2: // =
+      ((CcBool *)result.addr)->Set( true, a->Compare(b) == 0 );
+      return (0);
+    case 3: // >=
+      ((CcBool *)result.addr)->Set( true, a->Compare(b) >= 0 );
+      return (0);
+    case 4: // >
+      ((CcBool *)result.addr)->Set( true, a->Compare(b) > 0 );
+      return (0);
+    case 5: // #
+      ((CcBool *)result.addr)->Set( true, a->Compare(b) != 0 );
+      return (0);
+  }
+  // ERROR:
+  ((CcBool *)result.addr)->Set( false, false );
   return (0);
 }
 
 /*
-3.3.3 Specification of operator ~=~
+3.3.3 Specification of operators ~=, \#, $<$, $>$, $\leq$, $\geq$~
 
 */
 
@@ -541,83 +578,133 @@ const string EqualTupleIdSpec =
   "All in-memory tuples have tid=0.</text--->"
   ") )";
 
+const string NequalTupleIdSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Result\" \"Comment\" ) "
+    "( <text>(tid tid) -> bool</text--->"
+    "<text>_ # _</text--->"
+    "<text>Returns TRUE, iff both tuple identifiers are different (i.e "
+    "both refer to different tuples).</text--->"
+    "<text>query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A}\n"
+    "plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B}\n"
+    "symmjoin[.id_A # ..id_B] count</text--->"
+    "<text>338720</text--->"
+    "<text>Caution: Only compare TIDs referring to the same relation! "
+    "All in-memory tuples have tid=0.</text--->"
+    ") )";
+
+const string LessTupleIdSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Result\" \"Comment\" ) "
+    "( <text>(tid tid) -> bool</text--->"
+    "<text>_ < _</text--->"
+    "<text>Returns TRUE, iff the first tuple identifier is less than "
+    "the second one.</text--->"
+    "<text>query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A}\n"
+    "plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B}\n"
+    "symmjoin[.id_A < ..id_B] count</text--->"
+    "<text>169360</text--->"
+    "<text>Caution: Only compare TIDs referring to the same relation! "
+    "All in-memory tuples have tid=0.</text--->"
+    ") )";
+
+const string GreaterTupleIdSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Result\" \"Comment\" ) "
+    "( <text>(tid tid) -> bool</text--->"
+    "<text>_ > _</text--->"
+    "<text>Returns TRUE, iff the first tuple identifier is greater than "
+    "the second one.</text--->"
+    "<text>query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A}\n"
+    "plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B}\n"
+    "symmjoin[.id_A > ..id_B] count</text--->"
+    "<text>169360</text--->"
+    "<text>Caution: Only compare TIDs referring to the same relation! "
+    "All in-memory tuples have tid=0.</text--->"
+    ") )";
+
+const string LeqTupleIdSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Result\" \"Comment\" ) "
+    "( <text>(tid tid) -> bool</text--->"
+    "<text>_ <= _</text--->"
+    "<text>Returns TRUE, iff the first tuple identifier is less or equal than "
+    "the second one.</text--->"
+    "<text>query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A}\n"
+    "plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B}\n"
+    "symmjoin[.id_A <= ..id_B] count</text--->"
+    "<text>171696</text--->"
+    "<text>Caution: Only compare TIDs referring to the same relation! "
+    "All in-memory tuples have tid=0.</text--->"
+    ") )";
+
+const string GeqTupleIdSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Result\" \"Comment\" ) "
+    "( <text>(tid tid) -> bool</text--->"
+    "<text>_ < _</text--->"
+    "<text>Returns TRUE, iff the first tuple identifier is greater or equal "
+    "than the second one.</text--->"
+    "<text>query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A}\n"
+    "plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B}\n"
+    "symmjoin[.id_A >= ..id_B] count</text--->"
+    "<text>171696</text--->"
+    "<text>Caution: Only compare TIDs referring to the same relation! "
+    "All in-memory tuples have tid=0.</text--->"
+    ") )";
+
 /*
-3.3.4 Definition of operator ~=~
+3.3.4 Definition of operators ~=, \#, $<$, $>$, $\leq$, $\geq$~
 
 */
+
+Operator tidless (
+         "<",                      // name
+         LessTupleIdSpec,          // specification
+         TIDCompareTupleId<0>,     // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         EqualTupleIdTypeMap       // type mapping
+                 );
+
+Operator tidleq (
+         "<=",                     // name
+         LeqTupleIdSpec,           // specification
+         TIDCompareTupleId<1>,     // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         EqualTupleIdTypeMap       // type mapping
+                );
 
 Operator tidequal (
          "=",                      // name
          EqualTupleIdSpec,         // specification
-         TIDEqualTupleId,          // value mapping
+         TIDCompareTupleId<2>,     // value mapping
          Operator::SimpleSelect,   // trivial selection function
          EqualTupleIdTypeMap       // type mapping
 );
 
-/*
-3.3 Operator ~\#~
+Operator tidgeq (
+         ">=",                      // name
+         GeqTupleIdSpec,           // specification
+         TIDCompareTupleId<3>,     // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         EqualTupleIdTypeMap       // type mapping
+                  );
 
-Compares two TupleIdentifiers and returns TRUE, iff they are not equal.
-
-3.3.1 Type mapping function of operator ~\#~
-
-----    (tid tid) -> bool
-----
-
-Uses ~EqualTupleIdTypeMap~
-
-*/
-
-
-/*
-3.3.2 Value mapping function of operator ~\#~
-
-*/
-
-int
-TIDNEqualTupleId( Word* args, Word& result, 
-                  int message, Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  const TupleIdentifier* a = static_cast<const TupleIdentifier*>(args[0].addr);
-  const TupleIdentifier* b = static_cast<const TupleIdentifier*>(args[1].addr);
-
-  ((CcBool *)result.addr)->Set( true, a->Compare(b) != 0 );
-  return (0);
-}
-
-/*
-3.3.3 Specification of operator ~\#~
-
-*/
-
-const string NEqualTupleIdSpec = 
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" \"Result\" \"Comment\" ) "
-  "( <text>(tid tid) -> bool</text--->"
-  "<text>_ # _</text--->"
-  "<text>Returns TRUE, iff both tuple identifiers are different (i.e "
-  "both refer to different tuples).</text--->"
-  "<text>query plz feed head[4] loopsel[plz_Ort exactmatchS[.Ort]] {A}\n"
-  "plz feed head[4] loopsel[plz_Ort  exactmatchS[.Ort]] {B}\n"
-  "symmjoin[.id_A # ..id_B] count</text--->"
-  "<text>338720</text--->"
-  "<text>Caution: Only compare TIDs referring to the same relation! "
-  "All in-memory tuples have tid=0.</text--->"
-  ") )";
-
-/*
-3.3.4 Definition of operator ~\#~
-
-*/
+Operator tidgreater (
+         ">",                      // name
+         GreaterTupleIdSpec,       // specification
+         TIDCompareTupleId<4>,     // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         EqualTupleIdTypeMap       // type mapping
+                  );
 
 Operator tidnequal (
          "#",                      // name
-         NEqualTupleIdSpec,        // specification
-         TIDNEqualTupleId,         // value mapping
+         NequalTupleIdSpec,        // specification
+         TIDCompareTupleId<5>,     // value mapping
          Operator::SimpleSelect,   // trivial selection function
          EqualTupleIdTypeMap       // type mapping
-);
+                  );
 
 
 /*
@@ -637,6 +724,11 @@ class TupleIdentifierAlgebra : public Algebra
     AddOperator( &tidaddtupleid );
     AddOperator( &tidequal );
     AddOperator( &tidnequal );
+    AddOperator( &tidless );
+    AddOperator( &tidleq );
+    AddOperator( &tidgreater );
+    AddOperator( &tidgeq );
+    
   }
   ~TupleIdentifierAlgebra() {};
 };
