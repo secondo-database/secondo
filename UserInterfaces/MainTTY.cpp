@@ -46,7 +46,7 @@ TestRunnerCS
 */   
 
 #include "License.h"
-#include "Application.h"
+#include "TTYParameter.h"
 #include "LogMsg.h"
 #include "Messages.h"
 

@@ -85,6 +85,7 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 #include "CharTransform.h"
 #include "LogMsg.h"
 #include "ExampleReader.h"
+#include "TTYParameter.h"
 
 using namespace std;
 

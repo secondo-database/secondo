@@ -93,6 +93,7 @@ using namespace std;
 #include "DisplayTTY.h"
 #include "CharTransform.h"
 #include "LogMsg.h"
+#include "TTYParameter.h"
 
 
 class SecondoTTY : public Application 
