@@ -248,30 +248,30 @@ SECONDO_APP := SecondoBDB \
 	       SecondoMonitor \
 	       SecondoRegistrar \
 	       SecondoCheckpoint \
+	       SecondoTTYCS \
+	       SecondoTTYNT \
+	       SecondoTTYBDB \
 
-DEMO_BIN_FILES := $(addprefix $(SECONDO_DEMO)/bin/, $(SECONDO_APP))
-DEMO_QUERY := bin/testqueries
+DEMO_BIN := $(addprefix bin/, $(SECONDO_APP))
 DEMO_MAN := Documents/SecondoManual.pdf
-DEMO_ARCHIVE := $(tempdir)/secondo-demo.tar.gz
+DEMO_CFG := bin/SecondoConfig.ini
+DEMO_TAR := $(tempdir)/secondo-demo.tar.gz
+
+DEMO_DLL := $(PL_DLL_DIR)/libpl* $(SECONDO_SDK)/bdb/lib/libdb_cxx*
 
 vpath Secondo% bin
 
 .PHONY: demo
-demo: mkdemodir $(DEMO_ARCHIVE) 
+demo: mkdemodir $(DEMO_TAR) 
 
-$(DEMO_ARCHIVE): $(DEMO_BIN_FILES) $(DEMO_QUERY) $(DEMO_MAN)
-	cp $(DEMO_QUERY) $(SECONDO_DEMO)/bin
-	cp $(DEMO_MAN) $(SECONDO_DEMO)
+$(DEMO_TAR): $(DEMO_BIN) $(DEMO_CFG) $(DEMO_MAN) $(DEMO_DLL)
+	cp $^ $(SECONDO_DEMO)
 	cd $(tempdir); tar -cvzf $@ secondo-demo
 
 .PHONY: mkdemodir
 mkdemodir:
 	mkdir -p $(SECONDO_DEMO)/bin
 
-
-$(SECONDO_DEMO)/bin/Secondo%: Secondo%
-	cp $< $@
-	strip $@
 
 srcprefix := secondo
 define checkTag
@@ -451,3 +451,7 @@ newfiles:
 .PHONY: addfiles
 addfiles:
 	cvs add $(cat newfiles.txt)
+
+# pattern rule for creating an tar ball
+%.tar.gz : %
+	tar -czf $@ $<
