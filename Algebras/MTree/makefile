@@ -29,7 +29,6 @@ DOCU_FILES = MT1 MTreeAlgebra.h MTreeAlgebra.cpp\
              MT5 MTEntry.h MTEntry.cpp\
              MT6 MTSplitpol.h MTSplitpol.cpp\
              MT7 MetricRegistry.h MetricRegistry.cpp\
-             MT8 MetricalAttribute.h\
              MT9 DistData.h DistData.cpp\
              MT10 MTreeConfig.h MTreeConfig.cpp
 

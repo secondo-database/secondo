@@ -52,16 +52,16 @@ MT::NodeMngr::insert( MT::Node* node )
 }
 
 /*
-Method ~getNode~
+Method ~getNode~ :
 
 */
 MT::Node*
 MT::NodeMngr::getNode( SmiRecordId nodeId )
 {
     map< SmiRecordId, TaggedNode >::iterator
+        iter = m_nodes.find( nodeId );
 
     // search node in routing node cache
-    iter = m_nodes.find(nodeId);
     if ( iter != m_nodes.end() )
     {
       #ifdef __MT_PRINT_NODE_CACHE_INFO

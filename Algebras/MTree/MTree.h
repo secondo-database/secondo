@@ -81,6 +81,7 @@ m-tree.
   NodeMngr* nodeMngr;
 
   TMetric metric;
+  TGetDataFun getDistData;
   MTreeConfig config;
   vector<SmiRecordId> path;
   vector<unsigned> indizes;
@@ -175,13 +176,6 @@ This method initializes a new created m-tree.
   void deleteFile();
 /*
 This Method deletes the m-tree file.
-
-*/
-
-  DistData* getDistData( Attribute* attr );
-/*
-Returns a new DistData object which will be created from a CcInt, CcReal or
-CcString object or obtained from the getDistData method of attr.
 
 */
 

@@ -58,13 +58,6 @@ the read function of the "node"[4] class.
 
 #include "MTreeAlgebra.h"
 
-const unsigned MT_STATIC_ENTRY_SIZE =
-    sizeof( TupleId ) +    // tid
-    sizeof( double )  +    // dist
-    sizeof( double )  +    // rad
-    sizeof( SmiRecordId ); // chield
-
-
 namespace MT
 {
 
@@ -86,7 +79,10 @@ This method reads the entry from "buffer"[4] and increases "offset"[4].
 
   inline void updateSize()
   {
-    m_size = MT_STATIC_ENTRY_SIZE +
+    m_size = sizeof( TupleId ) +    // tid
+             sizeof( double )  +    // dist
+             sizeof( double )  +    // rad
+             sizeof( SmiRecordId )+ // chield
              sizeof( size_t ) +      // size of data string
              m_data->size();         // data string
   }

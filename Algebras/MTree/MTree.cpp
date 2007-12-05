@@ -43,6 +43,9 @@ MT::MTree::MTree( const SmiFileId fileid )
   metric = MetricRegistry::getMetric
       ( header.tcName, header.metricName );
 
+  getDistData = MetricRegistry::getDataFun
+      ( header.tcName, header.metricName );
+ 
   // get MTreeConfig object
   config = MTreeConfigReg::getMTreeConfig ( header.configName );
 
@@ -141,6 +144,9 @@ void MT::MTree::initialize( const Attribute* attr,
   // get metric function
   metric = MetricRegistry::getMetric ( tcName, metricName );
 
+  getDistData = MetricRegistry::getDataFun
+      ( tcName, metricName );
+ 
   // get MTreeConfig object
   config = MTreeConfigReg::getMTreeConfig( configName );
 
@@ -165,43 +171,6 @@ void MT::MTree::initialize( const Attribute* attr,
   root->deleteIfAllowed();
 
   initialized = true;
-}
-
-/*
-Method ~getDistData~ :
-
-*/
-DistData*
-MT::MTree::getDistData( Attribute* attr )
-{
-  DistData* data;
-  string tcName ( header.tcName );
-  if ( tcName == "int" )
-  {
-    int value = static_cast<CcInt*>(attr)->GetValue();
-    char buffer[sizeof(int)];
-    memcpy( buffer, &value, sizeof(int) );
-    data = new DistData( sizeof(int), buffer );
-  }
-  else if  ( tcName == "real" )
-  {
-    SEC_STD_REAL value =
-        static_cast<CcReal*>(attr)-> GetValue();
-    char buffer[sizeof(SEC_STD_REAL)];
-    memcpy( buffer, &value, sizeof(SEC_STD_REAL) );
-    data = new DistData( sizeof(SEC_STD_REAL), buffer );
-  }
-  else if  ( tcName == "string" )
-  {
-    string value = static_cast<CcString*>( attr )-> GetValue();
-    data = new DistData( value );
-  }
-  else
-  {
-    data = static_cast<MetricalAttribute*>( attr )->
-        getDistData( header.metricName );
-  }
-  return data;
 }
 
 /*
@@ -326,12 +295,12 @@ MT::MTree::insert( Attribute* attr, TupleId tupleId )
   {
     cmsg.info() << endl
                 << "routing nodes: " << header.routingCount
-                << "\tleaves: " << header.leafCount
-                << "\theight: " << header.height
-                << "\tentries: " << header.entryCount << "\t";
+                << ", leaves: " << header.leafCount
+                << ", height: " << header.height
+                << ", entries: " << header.entryCount << " ";
     cmsg.send();
   }
-  else if ((header.entryCount % 100) == 0)
+  else if ((header.entryCount % 500) == 0)
   {
     cmsg.info() << ".";
     cmsg.send();
@@ -353,7 +322,7 @@ MT::MTree::insert( Attribute* attr, TupleId tupleId )
   nodePtr = nodeMngr->getNode( header.root );
 
   // create new entry
-  Entry* entry = new Entry( tupleId, getDistData(attr) );
+  Entry* entry = new Entry( tupleId, (*getDistData)(attr) );
 
   // descent tree until leaf level
   while ( deepth < header.height - 1 )
@@ -429,7 +398,7 @@ MT::MTree::insert( Attribute* attr, TupleId tupleId )
       //load chield node
       deepth++;
       nodePtr->deleteIfAllowed();
-      nodePtr = nodeMngr->getNode( (*best).entry->chield() );
+      nodePtr = nodeMngr->getNode( path.back() );
   }
 
   // nodePtr points to a leaf node
@@ -476,7 +445,6 @@ void MT::MTree::rangeSearch( Attribute* attr,
   size_t count = 0;
   while( !remainingNodess.empty() )
   {
-    RemainingNodesEntry parent = remainingNodess.top();
     nodePtr = nodeMngr->getNode( remainingNodess.top().nodeId );
     unsigned char deepth = remainingNodess.top().deepth;
     double distQueryParent = remainingNodess.top().dist;

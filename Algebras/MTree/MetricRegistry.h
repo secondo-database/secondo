@@ -29,7 +29,7 @@ December 2007, Mirko Dibbert
 Every type constructor, which needs a metric (e.g. to be indexed by m-trees),
 has to implement at least one method of the type "TMetric"[4] for the respective
 type constructor in the class "MetricRegistry"[4] (see below). The metrics
-should except DistData objects, which are created with the "getDistData"[4]
+should except DistData objects, which are created with the "GetData"[4]
 method of the respective attribute class, which must inherrit from
 "MetricalAttribute"[4] (extends "IndexableStandardAttribute"[4] to provide this
 method.
@@ -51,6 +51,7 @@ TODO enter class description
 #include <string>
 #include <map>
 #include "SecondoInterface.h"
+#include "DistData.h"
 
 const string MF_DEFAULT = "default";
 /*
@@ -67,21 +68,29 @@ Type definition for metrics.
 
 */
 
+typedef DistData* ( *TGetDataFun )( void* attr );
+/*
+Type definition for GetData methods.
+
+*/
+
 class MetricRegistry
 {
   struct MetricData
   {
     string tcName;
     TMetric metric;
+    TGetDataFun getDataFun;
     string descr;
 
     MetricData()
     {}
 
     inline MetricData( const string& tcName_,
-               const TMetric metric_,
+               const TMetric metric_, const TGetDataFun getDataFun_,
                const string& descr_ )
-    : tcName ( tcName_ ), metric ( metric_ ), descr ( descr_ )
+    : tcName ( tcName_ ), metric ( metric_ ), getDataFun( getDataFun_ ),
+      descr ( descr_ )
     {}
   }; // MetricData
 
@@ -110,6 +119,13 @@ was found).
 
 */
 
+  static TGetDataFun getDataFun(  const string& tcName,
+                                  const string& metricName );
+/*
+TODO
+
+*/
+
   static ListExpr listMetrics();
 /*
 This method returns all registered metrics in a list, wich has the following
@@ -125,6 +141,16 @@ in a formated manner, which is used by the "list metrics"[4] command.
 */
 
 private:
+/********************************************************************
+Below, all avaliable GetData methods will be defined:
+
+********************************************************************/
+static DistData* GetDataInt( void* attr );
+static DistData* GetDataReal( void* attr );
+static DistData* GetDataString( void* attr );
+static DistData* GetDataHistogram( void* attr );
+static DistData* GetDataPicture( void* attr );
+
 /********************************************************************
 Below, all avaliable metrics will be defined:
 
@@ -159,7 +185,7 @@ Metric for the "histogram"[4] type constructor.
   static void PictureMetric(
       const void* data1, const void* data2, double& result );
 /*
-Metric for the "picture"[4] type constructor.
+Metrics for the "picture"[4] type constructor.
 
 */
 };

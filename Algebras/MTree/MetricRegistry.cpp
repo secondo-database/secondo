@@ -11,10 +11,10 @@ using namespace std;
 #include <sstream>
 #include "NList.h"
 #include "StandardTypes.h"
-#include "MetricalAttribute.h"
 #include "MetricRegistry.h"
 #include "StandardTypes.h"
 #include "PictureAlgebra.h"
+#include "JPEGPicture.h"
 
 extern SecondoInterface* si;
 
@@ -55,7 +55,7 @@ Method ~getMetric~ :
 */
 TMetric
 MetricRegistry::getMetric( const string& tcName,
-               const string& metricName )
+                           const string& metricName )
 {
   if (!initialized)
     initialize();
@@ -79,7 +79,35 @@ MetricRegistry::getMetric( const string& tcName,
 }
 
 /*
-Method ~ListMetrics~ :
+Method ~getData~ :
+
+*/
+TGetDataFun MetricRegistry::getDataFun( const string& tcName,
+                                        const string& metricName )
+{
+  if (!initialized)
+    initialize();
+
+  int algebraId, typeId;
+  si->GetTypeId( tcName, algebraId, typeId );
+
+  ostringstream osId;
+  osId << algebraId << "#" << typeId << ".";
+  if ( metricName != MF_DEFAULT )
+    osId << metricName;
+
+  map< string, MetricData >::iterator pos =
+      metric_map.find( osId.str() );
+
+  if ( pos != metric_map.end() )
+  {
+    return pos->second.getDataFun;
+  }
+  else return 0;
+}
+
+/*
+Method ~listMetrics~ :
 
 */
 ListExpr
@@ -114,6 +142,77 @@ MetricRegistry::listMetrics()
   };
 
   return list.listExpr();
+}
+
+/*******************************************************************************
+Below, the avaliable getData methods will be implemented:
+
+*******************************************************************************/
+DistData* MetricRegistry::GetDataInt( void* attr )
+{
+  int value = static_cast<CcInt*>(attr)->GetValue();
+  char buffer[sizeof(int)];
+  memcpy( buffer, &value, sizeof(int) );
+  return new DistData( sizeof(int), buffer );
+}
+
+DistData* MetricRegistry::GetDataReal( void* attr )
+{
+  SEC_STD_REAL value =
+      static_cast<CcReal*>(attr)-> GetValue();
+  char buffer[sizeof(SEC_STD_REAL)];
+  memcpy( buffer, &value, sizeof(SEC_STD_REAL) );
+  return new DistData( sizeof(SEC_STD_REAL), buffer );
+}
+
+DistData* MetricRegistry::GetDataString( void* attr )
+{
+  string value = static_cast<CcString*>( attr )-> GetValue();
+  return new DistData( value );
+}
+
+DistData* MetricRegistry::GetDataHistogram( void* attr )
+{
+  return new DistData("");
+}
+
+/*
+Method GetDataPicture64Cols
+
+*/
+DistData* MetricRegistry::GetDataPicture( void* attr )
+{
+  unsigned long size;
+  const char* imgdata = static_cast<Picture*>( attr )->
+      GetJPEGData(size);
+
+  JPEGPicture rgb( (unsigned char *) imgdata, size );
+
+  unsigned long int rgbSize;
+  unsigned char* rgbData = rgb.GetImageData( rgbSize );
+  const unsigned int numOfPixels = rgbSize/3;
+
+  unsigned long colorhist_abs[64];
+  double colorhist[64];
+  for (int i=0; i<64; i++)
+  {
+    colorhist_abs[i] = 0;
+    colorhist[i] = 0;
+  }
+
+  for (unsigned long pos=0; pos<(numOfPixels); pos++)
+  {
+    char r = rgbData[(3*pos)] / 64;
+    char g = rgbData[(3*pos)+1] / 64;
+    char b = rgbData[(3*pos)+2] / 64;
+    colorhist_abs[(16*r)+(4*g)+b]++;
+  }
+
+  for (int i=0; i<64; i++)
+  {
+    colorhist[i] = (double)colorhist_abs[i] / numOfPixels;
+  }
+  return new DistData(64*sizeof(double), &colorhist);
 }
 
 /*******************************************************************************
@@ -223,10 +322,12 @@ void MetricRegistry::PictureMetric(
       ( static_cast<const DistData*>( data2 )->value() );
 
   result = 0;
-  for (int i=0; i<512; i++)
-   result += pow(( values1[i] - values2[i] ), 2);
+
+  for (int i=0; i<64; i++)
+    result += pow(( values1[i] - values2[i] ), 2);
+
   result = sqrt(result);
-  cout << result << endl;
+//   cout << result << endl;
 }
 
 /*
@@ -256,38 +357,26 @@ MetricRegistry::initialize()
 {
   //int type constructor
   registerMetric( MF_DEFAULT,
-      MetricData( "int",& EuclideanInt,
+      MetricData( "int", &EuclideanInt, &GetDataInt,
       "Euclidean distance metric" ));
 
   // real type constructor
   registerMetric( MF_DEFAULT,
-      MetricData( "real",& EuclideanReal,
+      MetricData( "real", &EuclideanReal, &GetDataReal,
       "Euclidean distance metric" ));
 
   // string type constructor
   registerMetric( MF_DEFAULT,
-      MetricData( "string",& EditDistance,
+      MetricData( "string", &EditDistance, GetDataString,
       "Edit distance metric" ));
-
-  // string type constructor
-  registerMetric( "EditDist1",
-      MetricData( "string", &EditDistance,
-      "Edit distance metric (alternative MTreeConfig: "
-      "minimum rad prom, balanced part )" ));
-
-  // string type constructor
-  registerMetric( "EditDist2",
-      MetricData( "string", &EditDistance,
-      "Edit distance metric (alternative MTreeConfig: "
-      "Random prom, balanced part)" ));
 
   // histogram type constructor
   registerMetric( MF_DEFAULT,
-      MetricData( "histogram",& HistogramMetric,
+      MetricData( "histogram", &HistogramMetric, &GetDataHistogram,
       "Not yet implemented" ));
 
   // picture type constructor
   registerMetric( MF_DEFAULT,
-      MetricData( "picture",& PictureMetric,
+      MetricData( "picture", &PictureMetric, &GetDataPicture,
       "Not yet implemented" ));
 }

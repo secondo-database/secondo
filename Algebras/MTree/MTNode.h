@@ -134,6 +134,9 @@ Removes entry at position pos from the node.
 
   inline void deleteIfAllowed()
   {
+#ifdef __MT_DEBUG
+    assert( m_refs > 0 );
+#endif
     --m_refs;
     if ( !m_refs )
       delete this;

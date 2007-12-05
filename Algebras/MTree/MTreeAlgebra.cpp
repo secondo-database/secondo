@@ -330,17 +330,6 @@ ListExpr CreateMTreeTypeMapping( ListExpr args )
   CHECK_COND( attrIndex > 0, errmsg );
   NList attrType ( attrTypeLE );
 
-  // check, if attribute type is string, int, real or METRICAL
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  cond = attrType.isEqual( "string" ) ||
-         attrType.isEqual( "int" ) ||
-         attrType.isEqual( "real" ) ||
-         am->CheckKind( "METRICAL", attrType.listExpr(), errorInfo );
-  errmsg = "Operator createmtree expects an attribute of type "
-           "string, int, real or METRICAL as third argument, but got"
-           " '" + attrType.convertToString() + "'.";
-  CHECK_COND( cond, errmsg );
-
   // check if the metric given in second argument is defined
   errmsg = "Operator createmtree expects the name of a registered"
            "metric as second argument, but got a list with structure"
@@ -535,17 +524,6 @@ ListExpr RangeSearchTypeMapping( ListExpr args )
            arg2.convertToString() + "'.";
   CHECK_COND( arg2.first().isEqual( "mtree" ), errmsg );
 
-  // check third argument
-  errmsg = "Operator createmtree expects an attribute of type "
-           " string, int, real or METRICAL as third argument, but "
-           "got '" + arg3.convertToString() + "'.";
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  cond = arg3.isEqual( "string" ) ||
-         arg3.isEqual( "int" ) ||
-         arg3.isEqual( "real" ) ||
-         am->CheckKind( "METRICAL", arg3.listExpr(), errorInfo );
-  CHECK_COND( cond, errmsg );
-
   // check if used attribute is equal to attribute used in m-tree
   cond = arg2.third().isEqual( arg3.convertToString() );
   errmsg = "The used m-tree contains attributes of type " +
@@ -727,17 +705,6 @@ ListExpr NNSearchTypeMapping( ListExpr args )
            "as second argument, but got '" +
            arg2.convertToString() + "'.";
   CHECK_COND( arg2.first().isEqual( "mtree" ), errmsg );
-
-  // check third argument
-  errmsg = "Operator nnsearch expects an attribute of type "
-           " string, int, real or METRICAL as third argument, but "
-           "got '" + arg3.convertToString() + "'.";
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  cond = arg3.isEqual( "string" ) ||
-         arg3.isEqual( "int" ) ||
-         arg3.isEqual( "real" ) ||
-         am->CheckKind( "METRICAL", arg3.listExpr(), errorInfo );
-  CHECK_COND( cond, errmsg );
 
   // check if used attribute is equal to attribute used in m-tree
   cond = arg2.third().isEqual( arg3.convertToString() );

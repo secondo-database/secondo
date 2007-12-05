@@ -49,7 +49,6 @@ TODO insert algebra description
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "MetricRegistry.h"
-#include "MetricalAttribute.h"
 
 using namespace std;
 

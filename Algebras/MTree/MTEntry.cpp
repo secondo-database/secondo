@@ -11,7 +11,7 @@ Initialise static members :
 
 */
 
-#ifdef __MT_DEBUG
+#ifdef m__MT_DEBUG
 size_t MT::Entry::m_created = 0;
 size_t MT::Entry::m_deleted = 0;
 #endif
@@ -67,12 +67,24 @@ Method ~write~ :
 void
 MT::Entry::write( char* const buffer, int& offset ) const
 {
-  // write tid, dist, rad and chield
-  memcpy( buffer+offset, this, MT_STATIC_ENTRY_SIZE );
-  offset += MT_STATIC_ENTRY_SIZE;
+  // write tuple-id
+  memcpy( buffer+offset, &m_tid, sizeof( TupleId ) );
+  offset += sizeof( TupleId );
+
+  // write distance to parent node
+  memcpy( buffer+offset, &m_dist, sizeof( double ) );
+  offset += sizeof( double );
+
+  // write covering radius
+  memcpy( buffer+offset, &m_rad, sizeof( double ) );
+  offset += sizeof( double );
+
+  // write pointer to chield node
+  memcpy( buffer+offset, &m_chield, sizeof( SmiRecordId ) );
+  offset += sizeof( SmiRecordId );
 
   // write data string
-  m_data->write( buffer, offset );
+ m_data->write( buffer, offset );
 }
 
 /*
@@ -82,9 +94,21 @@ Method ~read~ :
 void
 MT::Entry::read( const char* const buffer, int& offset )
 {
-  // read tid, dist, rad and chield
-  memcpy( this, buffer+offset, MT_STATIC_ENTRY_SIZE );
-  offset += MT_STATIC_ENTRY_SIZE;
+  // read tuple-id
+  memcpy( &m_tid, buffer+offset, sizeof( TupleId ) );
+  offset += sizeof( TupleId );
+
+  // read distance to parent node
+  memcpy( &m_dist, buffer+offset, sizeof( double ) );
+  offset += sizeof( double );
+
+  // read covering radius
+  memcpy( &m_rad, buffer+offset, sizeof( double ) );
+  offset += sizeof( double );
+
+  // read pointer to chield node
+  memcpy( &m_chield, buffer+offset, sizeof( SmiRecordId ) );
+  offset += sizeof( SmiRecordId );
 
   // read data string
   m_data = new DistData( buffer, offset );
