@@ -4732,7 +4732,7 @@ void CommonBorder(
        } // right endpoint
   }
   result.EndBulkLoad();
-} // setOP region x region -> region
+} // commonborder 
 
 
 
