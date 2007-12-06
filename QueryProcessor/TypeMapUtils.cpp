@@ -69,8 +69,17 @@ mappings::CheckSimpleMap( const string map[], size_t n,
     NList sym = l.elem(i+1);
     if ( !sym.isSymbol(map[i]) )
     {
-      string err = "Symbol number " + int2Str(i) + " has incorrect type."
-                   " Expected " + map[i] + " but got " + sym.str() + "!";
+     string err;
+     if(sym.hasStringValue())
+     {
+       err = "Symbol number " + int2Str(i) + " has incorrect type."
+             " Expected " + map[i] + " but got " + sym.str() + "!";
+     }
+     else 
+     {
+       err = "Symbol number " + int2Str(i) + " has incorrect type."
+             " Expected " + map[i] + " but got a complex type!";
+     }
                    
       res = l.typeError(err);
       return false;
