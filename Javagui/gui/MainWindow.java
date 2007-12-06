@@ -181,11 +181,11 @@ private ProgressTimer progressTimer;
 
 
 
-private JFileChooser FC_History = new JFileChooser();
-private JFileChooser FC_ExecuteFile = new JFileChooser();
-private JFileChooser FC_Database = new JFileChooser();
-private JFileChooser FC_Snapshot = new JFileChooser();
-private JFileChooser FC_Object = new JFileChooser();
+private JFileChooser FC_History = new JFileChooser(".");
+private JFileChooser FC_ExecuteFile = new JFileChooser(".");
+private JFileChooser FC_Database = new JFileChooser(".");
+private JFileChooser FC_Snapshot = new JFileChooser(".");
+private JFileChooser FC_Object = new JFileChooser(".");
 private FileFilter pngFilter;
 private FileFilter epsFilter;
 private static String pngTitle = "Save PNG image";
@@ -1511,9 +1511,9 @@ public boolean execGuiCommand(String command){
   * @return number of errors occured*/
 public int executeFile(String fileName, boolean ignoreErrors){
   if(Environment.TTY_STYLED_SCRIPT){
-     return executeTTYScript(fileName,true);
+     return executeTTYScript(fileName,ignoreErrors);
   }else{
-     return executeSimpleFile(fileName,true);
+     return executeSimpleFile(fileName,ignoreErrors);
  }
 
 }
@@ -1983,16 +1983,29 @@ public static void main(String[] args){
   int argspos = 0;
   String user ="";
   String passwd = "";
+  String testFileName = null;
   while(argspos < args.length){
      if(args[argspos].equals("--testmode")){
         Environment.TESTMODE = Environment.SIMPLE_TESTMODE;
         argspos++;
+        if(argspos<args.length){
+          testFileName = args[argspos];
+          argspos++;
+        }
      } else if(args[argspos].equals("--testmode2")){
         Environment.TESTMODE = Environment.EXTENDED_TESTMODE;
         argspos++;
+        if(argspos<args.length){
+          testFileName = args[argspos];
+          argspos++;
+        }
      } else if(args[argspos].equals("--testrunner")){
         Environment.TESTMODE = Environment.TESTRUNNER_MODE;
         argspos++;
+        if(argspos<args.length){
+          testFileName = args[argspos];
+          argspos++;
+        }
      } else if(args[argspos].equals("-u")){
         if(argspos+1 == args.length){
           Reporter.writeError("missing argument after -u option");
@@ -2020,7 +2033,7 @@ public static void main(String[] args){
   File testfile=null;
   // extract the file from the second argument
   if(Environment.TESTMODE != Environment.NO_TESTMODE){
-     if(args.length>1){
+     if(testFileName!=null && !testFileName.equals("")){
         testfile = new File(args[1]);
         if(!testfile.exists()){
             Reporter.writeError("testfile " + testfile+" not found");
@@ -2313,12 +2326,14 @@ private void createMenuBar(){
 
    ActionListener ExecuteListener= new ActionListener(){
       public void actionPerformed(ActionEvent evt){
-         if(FC_ExecuteFile.showSaveDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
+         if(FC_ExecuteFile.showOpenDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
             Object Source = evt.getSource();
-            if(Source.equals(MI_ExecuteFile_HaltOnError))
+            if(Source.equals(MI_ExecuteFile_HaltOnError)){
                 executeFile(FC_ExecuteFile.getSelectedFile().getPath(),false);
-            else
+            } else {
                 executeFile(FC_ExecuteFile.getSelectedFile().getPath(),true);
+
+            }
          }
       }
    };
