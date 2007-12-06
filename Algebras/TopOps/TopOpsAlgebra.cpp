@@ -426,8 +426,6 @@ common endpoint.
 */
 
   bool innerDisjoint(const AVLSegment& s)const{
-      
-
       if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
         return true; 
       }
@@ -439,37 +437,24 @@ common endpoint.
       }
       if(compareSlopes(s)==0){ // parallel or disjoint lines
          return true;
-      } 
-    
-      if(isVertical()){
-        double x = x1; // compute y for s
-        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
-        return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                   (ininterior(x,y) && s.contains(x,y)) );
-
       }
-      if(s.isVertical()){
-         double x = s.x1;
-         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-         return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                    (ininterior(x,y) && s.contains(x,y)) );
+      if(ininterior(s.x1,s.y1)){
+         return false;
       }
-
-
-
+      if(ininterior(s.x2,s.y2)){
+         return false;
+      }
+      if(s.ininterior(x1,y1)){
+        return false;
+      }
+      if(s.ininterior(x2,y2)){
+        return false;
+      }
+      if(crosses(s)){
+         return false;
+      }
+      return true;
     
-      // both segments are non vertical 
-      double m1 = (y2-y1)/(x2-x1);
-      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
-      double c1 = y1 - m1*x1;
-      double c2 = s.y1 - m2*s.x1;
-
-      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-
-      
-      return ! ( (contains(x,y) && s.ininterior(x,y) )  ||
-                 (ininterior(x,y) && s.contains(x,y)) );
   }
 /*
 ~Intersects~
@@ -547,25 +532,26 @@ part of the interior of this segment.
 
 */
    bool ininterior(const double x,const  double y)const{
-     if(isPoint()){
+     if(isPoint()){ // a point has no interior
        return false;
      }
 
      if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){ // an endpoint
         return false;
      }
-     // check if (x,y) is located on the line 
-     double res1 = (x-x1)*(y2-y1);
-     double res2 = (y-y1)*(x2-x1);
-     if(!AlmostEqual(res1,res2)){ // (x,y) not on the straight line 
-         return false;
+
+     if(!AlmostEqual(x,x1) && x < x1){ // (x,y) left of this
+         return false; 
+     }     
+     if(!AlmostEqual(x,x2) && x > x2){ // (X,Y) right of this
+        return false;
      }
-     
-     if(AlmostEqual(x1,x2)){ // vertical segment
-        return (y>y1) && (y < y2);
-     } else {
-        return (x>x1) && (x<x2);
+     if(isVertical()){
+       return (!AlmostEqual(y,y1) && (y>y1) &&
+               !AlmostEqual(y,y2) && (y<y2));
      }
+     double ys = getY(x);
+     return AlmostEqual(y,ys);
    }
 
 
@@ -636,6 +622,11 @@ Compares this with s. The x intervals must overlap.
         }
       }
     }
+
+
+   if(overlaps(s)){
+     return 0; 
+   }
 
     bool v1 = isVertical();
     bool v2 = s.isVertical();
@@ -740,142 +731,94 @@ Preconditions:
   int split(const AVLSegment& s, AVLSegment& left, AVLSegment& common, 
             AVLSegment& right) const{
 
-
      assert(overlaps(s));
      assert( (this->owner==first && s.owner==second) ||
              (this->owner==second && s.owner==first));
 
-     if(pointEqual(x1,y1,s.x1,s.y1)){
-       // common left point, the left part will be empty
-       if(pointEqual(x2,y2,s.x2,s.y2)){
-          // segments are equal , only a common segment exist
-          common.x1 = x1;
-          common.x2 = x2;
-          common.y1 = y1;
-          common.y2 = y2;
-          common.owner = both;
-          if(this->owner==first){
-            common.insideAbove_first  = insideAbove_first;
-            common.insideAbove_second = s.insideAbove_second;
-          } else {
-            common.insideAbove_first = s.insideAbove_first;
-            common.insideAbove_second = insideAbove_second;
-          }
-          common.con_above = con_above;
-          common.con_below = con_below;
-          return COMMON;
-       } else { // different end point 
-          common.x1 = x1;
-          common.y1 = y1;
-          if(pointSmaller(x2,y2,s.x2,s.y2)){
-            common.x2 = x2;
-            common.y2 = y2;
-          } else {
-            common.x2 = s.x2;
-            common.y2 = s.y2;
-          }
 
-          common.owner = both;
-          if(this->owner==first){
-            common.insideAbove_first  = insideAbove_first;
-            common.insideAbove_second = s.insideAbove_second;
-          } else {
-            common.insideAbove_first = s.insideAbove_first;
-            common.insideAbove_second = insideAbove_second;
-          }
-          common.con_above = con_above;
-          common.con_below = con_below;
-          right.x1 = common.x2;
-          right.y1 = common.y2;
-          if(pointSmaller(s.x2,s.y2,x2,y2)){
-             right.x2 = x2;
-             right.y2 = y2;
-          } else {
-             right.x2 = s.x2;
-             right.y2 = s.y2;
-          }
-          if(pointSmaller(x2,y2,s.x2,s.y2)){
-            right.owner = s.owner;
-            right.insideAbove_first = s.insideAbove_first;
-            right.insideAbove_second = s.insideAbove_second;
-          } else {
-            right.owner = this->owner;
-            right.insideAbove_first = this->insideAbove_first;
-            right.insideAbove_second = this->insideAbove_second; 
-          }
-          right.con_above = con_above;
-          right.con_below = con_below;
-          return COMMON | RIGHT; 
-       }
-     } else { // left points are different
-       // create the left segment
-       if(pointSmaller(x1,y1,s.x1,s.y1)){
+     int result = 0;
+
+
+
+     int cmp = comparePoints(x1,y1,s.x1,s.y1);
+     if(cmp==0){
+        left.x1 = x1;
+        left.y1 = y1;
+        left.x2 = x1;
+        left.y2 = y1; 
+     } else { // there is a left part
+       result = result | LEFT;
+       if(cmp<0){ // this is smaller
          left.x1 = x1;
          left.y1 = y1;
          left.x2 = s.x1;
          left.y2 = s.y1;
-       } else {
-         left.x1 = s.x1;
-         left.y1 = s.y1;
-         left.x2 = x1;
-         left.y2 = y1;
-       }
-       if(pointSmaller(x1, y1, s.x1, s.y1)){ // left is part of this
          left.owner = this->owner;
+         left.con_above = this->con_above;
+         left.con_below = this->con_below;
          left.insideAbove_first = this->insideAbove_first;
          left.insideAbove_second = this->insideAbove_second;
-       } else { // left is owned by s
+       } else { // s is smaller than this
+         left.x1 = s.x1;
+         left.y1 = s.y1;
+         left.x2 = this->x1;
+         left.y2 = this->y1; 
          left.owner = s.owner;
+         left.con_above = s.con_above;
+         left.con_below = s.con_below;
          left.insideAbove_first = s.insideAbove_first;
          left.insideAbove_second = s.insideAbove_second;
-       }
-       left.con_below = con_below;
-       left.con_above = con_above;
-       common.x1 = left.x2;
-       common.y1 = left.y2;
-       if(pointSmaller(x2,y2,s.x2,s.y2)){
-          common.x2 = x2;
-          common.y2 = y2;
-       } else {
-          common.x2 = s.x2;
-          common.y2 = s.y2;
-       }
-       common.owner = both;
-       if(this->owner==first){
-          common.insideAbove_first = this->insideAbove_first;
-          common.insideAbove_second = s.insideAbove_second;
-       }else {
-          common.insideAbove_first = s.insideAbove_first;
-          common.insideAbove_second = this->insideAbove_second;
-       }
-       common.con_below = con_below;
-       common.con_above = con_above;
-       if(pointEqual(x2, y2, s.x2, s.y2)){ // common endpoint, no right part
-         return LEFT | COMMON;
-       }
-       // create the right part
-       right.x1 = common.x2;
-       right.y1 = common.y2;
-       if(pointSmaller(s.x2,s.y2,x2,y2)){
-          right.x2 = x2;
-          right.y2 = y2;
-       } else {
-          right.x2 = s.x2;
-          right.y2 = s.y2;
-       }
-       if(pointSmaller(x2,y2,s.x2,s.y2)){ // right owned by s
-         right.owner = s.owner;
-         right.insideAbove_first = s.insideAbove_first;
-         right.insideAbove_second = s.insideAbove_second;
-       } else {
-         right.owner = this->owner;
-         right.insideAbove_first = this->insideAbove_first;
-         right.insideAbove_second = this->insideAbove_second;
-       }
-       right.con_above = con_above;
-       right.con_below = con_below;
-       return LEFT | COMMON | RIGHT; // all parts exist
-     }     
+       } 
+     }
+
+    // there is an overlapping part
+    result = result | COMMON;
+    cmp = comparePoints(x2,y2,s.x2,s.y2);
+    common.owner = both;
+    common.x1 = left.x2;
+    common.y1 = left.y2;
+    if(this->owner==first){
+      common.insideAbove_first  = insideAbove_first;
+      common.insideAbove_second = s.insideAbove_second;
+    } else {
+      common.insideAbove_first = s.insideAbove_first;
+      common.insideAbove_second = insideAbove_second;
+    }
+    common.con_above = con_above;
+    common.con_below = con_below;
+    if(cmp<0){
+       common.x2 = x2;
+       common.y2 = y2;
+    } else {
+       common.x2 = s.x2;
+       common.y2 = s.y2;
+    }
+    if(cmp==0){ // common right endpoint
+        return result;
+    }
+
+    result = result | RIGHT;
+    right.x1 = common.x2;
+    right.y1 = common.y2;
+    if(cmp<0){ // right part comes from s
+       right.owner = s.owner;
+       right.x2 = s.x2;
+       right.y2 = s.y2;
+       right.insideAbove_first = s.insideAbove_first;
+       right.insideAbove_second = s.insideAbove_second;
+       right.con_below = s.con_below;
+       right.con_above = s.con_above;
+    }  else { // right part comes from this
+       right.owner = this->owner;
+       right.x2 = this->x2;
+       right.y2 = this->y2;
+       right.insideAbove_first = this->insideAbove_first;
+       right.insideAbove_second = this->insideAbove_second;
+       right.con_below = this->con_below;
+       right.con_above = this->con_above;
+    }
+   return result;
+
 
   }
 
@@ -1346,6 +1289,31 @@ void splitByNeighbour(AVLTree<AVLSegment>& sss,
           insertEvents(left2,false,true,q1,q2);
           insertEvents(right2,true,true,q1,q2);
        } else {  // forgotten case
+          cerr.precision(16);
+          cerr << "current" << current << endl
+               << "neighbour " << (*neighbour) << endl;
+          if(current.overlaps(*neighbour)){ // a common line
+              cerr << "1 : The segments overlaps" << endl;
+           }
+           if(neighbour->ininterior(current.getX1(),current.getY1())){
+              cerr << "2 : neighbour->ininterior(current.x1,current.y1)" 
+                   << endl;
+           }
+           if(neighbour->ininterior(current.getX2(),current.getY2())){
+              cerr << "3 : neighbour->ininterior(current.getX2()"
+                   << ",current.getY2()" << endl;
+           }
+          if(current.ininterior(neighbour->getX1(),neighbour->getY1())){
+             cerr << " 4 : current.ininterior(neighbour->getX1(),"
+                  << "neighbour.getY1()" << endl;  
+          }
+          if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
+            cerr << " 5 : current.ininterior(neighbour->getX2(),"
+                 << "neighbour->getY2())" << endl;
+          }
+          if(current.crosses(*neighbour)){
+             cerr << "6 : crosses" << endl;
+          }
           assert(false);
        }
     } 
@@ -1399,10 +1367,6 @@ void splitNeighbours(AVLTree<AVLSegment>& sss,
     }
   } // intersecting neighbours
 }
-
-
-
-
 
 
 
@@ -1994,7 +1958,7 @@ bool GetInt9M(Line const* const line,
    Point lastDomPoint;
    int lastDomPointCount = 0;
    // avoid unneeded expensive restrictions of the cluster
-  
+   AVLSegment tmpL,tmpR;  
 
    while(!done &&  
          ((owner=selectNext(line,q,posline,point,
@@ -2006,6 +1970,16 @@ bool GetInt9M(Line const* const line,
          const AVLSegment* leftN=0;
          const AVLSegment* rightN=0;
          const AVLSegment* member= sss.getMember(current,leftN,rightN);
+         if(leftN){
+            tmpL = *leftN;
+            leftN = &tmpL;
+         }
+         if(rightN){
+            tmpR = *rightN;
+            rightN = &tmpR;
+         }
+
+
          if(!member){ // point outside current, check lastdompoint
            if(lastDomPointCount>0 && AlmostEqual(lastDomPoint,resPoi)){
              // point located in the last dominating point
@@ -2060,6 +2034,14 @@ bool GetInt9M(Line const* const line,
         const AVLSegment* leftN=0;
         const AVLSegment* rightN=0;
         const AVLSegment* member= sss.getMember(current,leftN,rightN);
+        if(leftN){
+           tmpL = *leftN;
+           leftN = &tmpL;
+        }
+        if(rightN){
+           tmpR = *rightN;
+           rightN = &tmpR;
+        }
  
         if(resHs.IsLeftDomPoint()  ||
            (member && member->exactEqualsTo(current))){
@@ -2574,6 +2556,7 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
   int pos2 =0;
   Point CP;
   HalfSegment CH;
+  AVLSegment tmpL,tmpR;
 
   while (!done && ( (owner= selectNext(reg,q1,pos1, ps,pos2,CH,CP))!=none)){
     if(owner==second){ // the point
@@ -2581,6 +2564,14 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
        const AVLSegment* left=0;
        const AVLSegment* right=0;
        const AVLSegment* member = sss.getMember(current, left, right);
+       if(left){
+          tmpL = *left;
+          left = &tmpL;
+       }
+       if(right){
+          tmpR = *right;
+          right = &tmpR;
+       }
        if(member){ // point located on boundary
          SetBI(res,useCluster,cluster,done);
        } else if(left){
@@ -2599,6 +2590,14 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
       const AVLSegment* leftN = 0;
       const AVLSegment* rightN = 0;
       const AVLSegment* member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
       if(CH.IsLeftDomPoint()){ // left Event
          assert(!member); // a single region can't contain overlapping segments
          splitByNeighbour(sss,current,leftN,q1,q1);
@@ -2837,6 +2836,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   ownertype owner;
   OwnedPoint lastDomPoint; // initialized to be undefined
   int src; 
+  AVLSegment tmpL,tmpR;
 
   while( ((owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg,src))!=none)
           && !done){
@@ -2844,6 +2844,14 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
     AVLSegment current(&nextSeg,owner);
 
     member = sss.getMember(current,leftN,rightN);
+    if(leftN){
+       tmpL = *leftN;
+       leftN = &tmpL;
+    }
+    if(rightN){
+       tmpR = *rightN;
+       rightN = &tmpR;
+    }
 
     /*
     Because right events are processed before
@@ -3215,13 +3223,14 @@ This function can only used for two line values.
 
 */
 
-void updateDomPoints(Point& lastDomPoint, const Point& newDomPoint,
-                     int& lastDomPointCount1, int& lastDomPointCount2,
-                     ownertype owner,
-                     Int9M& res,
-                     bool useCluster,
-                     Cluster& cluster,
-                     bool& done){
+void updateDomPoints_Line_Line(
+              Point& lastDomPoint, const Point& newDomPoint,
+              int& lastDomPointCount1, int& lastDomPointCount2,
+              ownertype owner,
+              Int9M& res,
+              bool useCluster,
+              Cluster& cluster,
+              bool& done){
 
 
   // update dominating point information
@@ -3365,6 +3374,9 @@ bool GetInt9M(Line const* const line1,
  int lastDomPointCount2 = 0;
  AVLSegment left1,right1,left2,right2,common;
  int src;
+ AVLSegment tmpL,tmpR;
+
+
 
  while(!done && 
        ((owner=selectNext(line1,pos1,line2,pos2,q1,q2,nextHs,src))!=none) ){
@@ -3378,6 +3390,14 @@ bool GetInt9M(Line const* const line1,
 
    // try to find an overlapping segment in sss
    member = sss.getMember(current,leftN,rightN);
+   if(leftN){
+      tmpL = *leftN;
+      leftN = &tmpL;
+   }
+   if(rightN){
+      tmpR = *rightN;
+      rightN = &tmpR;
+   }
    if(nextHs.IsLeftDomPoint()){ // left event
       if(member){ // overlapping segment found in sss
         if(member->getOwner()==both || member->getOwner()==owner){
@@ -3419,7 +3439,7 @@ bool GetInt9M(Line const* const line1,
            if(parts  & LEFT){
               owner2 = both;
            }
-           updateDomPoints(lastDomPoint,newDomPoint, 
+           updateDomPoints_Line_Line(lastDomPoint,newDomPoint, 
                           lastDomPointCount1,lastDomPointCount2,owner2, res,
                           useCluster, cluster, done);
            
@@ -3427,9 +3447,9 @@ bool GetInt9M(Line const* const line1,
       } else { // no overlapping segment stored in sss
         splitByNeighbour(sss,current,leftN,q1,q2);
         splitByNeighbour(sss,current,rightN,q1,q2);
-        updateDomPoints(lastDomPoint,nextHs.GetDomPoint(),
+        updateDomPoints_Line_Line(lastDomPoint,nextHs.GetDomPoint(),
                         lastDomPointCount1, lastDomPointCount2, 
-                        owner,res,useCluster,cluster,done);
+                         owner,res,useCluster,cluster,done);
         bool ok = sss.insert(current); 
         assert(ok);
       }
@@ -3439,7 +3459,8 @@ bool GetInt9M(Line const* const line1,
      if(member && member->exactEqualsTo(current)){
 
         Point newDomPoint = nextHs.GetDomPoint();
-        updateDomPoints(lastDomPoint,newDomPoint, 
+        
+        updateDomPoints_Line_Line(lastDomPoint,newDomPoint, 
                         lastDomPointCount1,lastDomPointCount2,
                         member->getOwner(), res, 
                         useCluster, cluster, done);
@@ -3450,7 +3471,6 @@ bool GetInt9M(Line const* const line1,
 
         switch(member->getOwner()){
           case first:  SetIE(res,useCluster,cluster,done);
-                       cout << "SET IE at " << __LINE__ << endl;
                        break;
           case second: SetEI(res,useCluster,cluster,done); 
                        break;
@@ -3471,7 +3491,7 @@ bool GetInt9M(Line const* const line1,
  // create a point which is different to the last domPoint
  Point newDP(lastDomPoint);
  newDP.Translate(100,0);
- updateDomPoints(lastDomPoint, newDP, 
+ updateDomPoints_Line_Line(lastDomPoint, newDP, 
                  lastDomPointCount1, lastDomPointCount2, 
                  first,res,useCluster,cluster,done);
 
@@ -3683,6 +3703,7 @@ bool GetInt9M(Line   const* const line,
  int lastDomPointCount1 = 0;
  int lastDomPointCount2 = 0;
  AVLSegment left1,right1,left2,right2,common;
+ AVLSegment tmpL,tmpR;
 
  int src;
  int lastCoverageNum = 0;
@@ -3693,6 +3714,14 @@ bool GetInt9M(Line   const* const line,
      AVLSegment current(&nextHs,owner);
 
      member = sss.getMember(current,leftN,rightN);
+     if(leftN){
+        tmpL = *leftN;
+        leftN = &tmpL;
+     }
+     if(rightN){
+        tmpR = *rightN;
+        rightN = &tmpR;
+     }
      ownertype owner2 = owner;
 
      if(nextHs.IsLeftDomPoint()){ // left end point
@@ -3931,11 +3960,20 @@ void Realminize2(const Line& src, Line& result){
   
   result.StartBulkLoad();
   int edgeno = 0;
+  AVLSegment tmpL,tmpR;
 
 
   while(selectNext(src,pos,q,nextHS)!=none) {
       AVLSegment current(&nextHS,first);
       member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
       if(nextHS.IsLeftDomPoint()){
          if(member){ // overlapping segment found in sss
             double xm = member->getX2();
@@ -4042,11 +4080,20 @@ void SetOp(const Line& line1,
              left2,right2;
 
   int edgeno =0;
+  AVLSegment tmpL,tmpR;
 
   result.StartBulkLoad();
   while( (owner=selectNext(&line1,pos1,&line2,pos2,q1,q2,nextHs,src))!=none){
        AVLSegment current(&nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
+       if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+       }
+       if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+       }
        if(nextHs.IsLeftDomPoint()){
           if(member){ // found an overlapping segment
              if(member->getOwner()==current.getOwner()){ // same source
@@ -4157,6 +4204,46 @@ void SetOp(const Region& reg1,
       }
    }
 
+   if(!reg1.BoundingBox().Intersects(reg2.BoundingBox())){
+      switch(op){
+        case union_op: {
+          result.StartBulkLoad();
+          int edgeno=0;
+          int s = reg1.Size();
+          const HalfSegment* hs;
+          for(int i=0;i<s;i++){
+              reg1.Get(i,hs);
+              if(hs->IsLeftDomPoint()){
+                 HalfSegment HS(*hs);
+                 HS.attr.edgeno = edgeno;
+                 result += HS;
+                 HS.SetLeftDomPoint(false);
+                 result += HS;
+                 edgeno++;
+              }
+          }
+          s = reg2.Size(); 
+          for(int i=0;i<s;i++){
+              reg2.Get(i,hs);
+              if(hs->IsLeftDomPoint()){
+                 HalfSegment HS(*hs);
+                 HS.attr.edgeno = edgeno;
+                 result += HS;
+                 HS.SetLeftDomPoint(false);
+                 result += HS;
+                 edgeno++;
+              }
+          }
+          result.EndBulkLoad();
+          return;
+        } case difference_op: {
+           result = reg1;
+           return; 
+        } case intersection_op:{
+           return;
+        } default: assert(false);
+      }
+   }
 
   priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
   priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
@@ -4175,11 +4262,20 @@ void SetOp(const Region& reg1,
              left2,right2;
 
   int edgeno =0;
+  AVLSegment tmpL,tmpR;
 
   result.StartBulkLoad();
   while( (owner=selectNext(&reg1,pos1,&reg2,pos2,q1,q2,nextHs,src))!=none){
        AVLSegment current(&nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
+       if(leftN){
+          tmpL = *leftN;
+          leftN = &tmpL;
+       }
+       if(rightN){
+          tmpR = *rightN;
+          rightN = &tmpR;
+       }
        if(nextHs.IsLeftDomPoint()){
           if(member){ // overlapping segment found
             assert(member->getOwner()!=both);   
@@ -4390,6 +4486,7 @@ void SetOp(const Line& line,
   ownertype owner;
   int pos1 = 0;
   int pos2 = 0;
+  int size1= line.Size();
   HalfSegment nextHs;
   int src = 0;
 
@@ -4401,12 +4498,23 @@ void SetOp(const Line& line,
              left2,right2;
 
   int edgeno =0;
+  AVLSegment tmpL,tmpR;
+  bool done = false;
 
   result.StartBulkLoad();
   // perform a planesweeo
-  while( (owner=selectNext(&line,pos1,&region,pos2,q1,q2,nextHs,src))!=none){
+  while( ((owner=selectNext(&line,pos1,&region,pos2,q1,q2,nextHs,src))!=none)
+         && ! done){
      AVLSegment current(&nextHs,owner);
      member = sss.getMember(current,leftN,rightN);
+     if(leftN){
+        tmpL = *leftN;
+        leftN = &tmpL;
+     }
+     if(rightN){
+        tmpR = *rightN;
+        rightN = &tmpR;
+     }
      if(nextHs.IsLeftDomPoint()){
         if(member){ // there is an overlapping segment in sss
            if(member->getOwner()==owner ||
@@ -4505,11 +4613,129 @@ void SetOp(const Line& line,
           }
           sss.remove(*member);
           splitNeighbours(sss,leftN,rightN,q1,q2);
-       } 
+       }
+       if(pos1>=size1 && q1.empty()){ // line is processed
+          done = true;
+       }
      }
   }
   result.EndBulkLoad();
 } // setOP(line x region -> line)
+
+
+
+/*
+
+9.5  ~CommonBorder~
+
+
+Signature: ~region~ [x] ~region~ [->] line
+
+*/
+
+void CommonBorder(
+           const Region& reg1,
+           const Region& reg2,
+           Line& result){
+
+   result.Clear();
+   if(!reg1.IsDefined() || !reg2.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(reg1.Size()==0 || reg2.Size()==0){
+       // a region is empty -> the common border is also empty
+       return;
+   }
+   if(!reg1.BoundingBox().Intersects(reg2.BoundingBox())){
+      // no common border possible
+      return;
+   }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  AVLTree<AVLSegment> sss;
+  ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  const AVLSegment* member=0;
+  const AVLSegment* leftN = 0;
+  const AVLSegment* rightN = 0;
+
+  AVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+  AVLSegment tmpL,tmpR;
+
+  result.StartBulkLoad();
+  bool done = false;
+  int size1 = reg1.Size();
+  int size2 = reg2.Size();
+
+  while( ((owner=selectNext(&reg1,pos1,&reg2,pos2,q1,q2,nextHs,src))!=none)
+         && !done  ){
+       AVLSegment current(&nextHs,owner);
+       member = sss.getMember(current,leftN,rightN);
+       if(leftN){
+          tmpL = *leftN;
+          leftN = &tmpL;
+       }
+       if(rightN){
+          tmpR = *rightN;
+          rightN = &tmpR;
+       }
+       if(nextHs.IsLeftDomPoint()){
+          if(member){ // overlapping segment found
+            assert(member->getOwner()!=both);   
+            assert(member->getOwner()!=owner); 
+            int parts = member->split(current,left1,common1,right1);
+            sss.remove(*member);
+            if(parts & LEFT){
+              sss.insert(left1);
+              insertEvents(left1,false,true,q1,q2);
+            }
+            assert(parts & COMMON);
+            sss.insert(common1);
+            insertEvents(common1,false,true,q1,q2);
+            if(parts & RIGHT){
+               insertEvents(right1,true,true,q1,q2);
+            }
+          } else { // there is no overlapping segment
+            // try to split segments if required
+            splitByNeighbour(sss,current,leftN,q1,q2);
+            splitByNeighbour(sss,current,rightN,q1,q2);
+
+            sss.insert(current); 
+          }
+       } else {  // nextHs.IsRightDomPoint
+          if(member && member->exactEqualsTo(current)){
+              if(member->getOwner()==both){
+                 HalfSegment hs = member->convertToHs(true,first);
+                 hs.attr.edgeno = edgeno;
+                 result += hs;
+                 hs.SetLeftDomPoint(false);
+                 result += hs;
+                 edgeno++; 
+              }
+              sss.remove(*member);
+              splitNeighbours(sss,leftN,rightN,q1,q2);
+          } // current found in sss
+          if(((pos1 >= size1) && q1.empty())  || 
+             ((pos2 >= size2) && q2.empty())){
+             done = true;
+          } 
+       } // right endpoint
+  }
+  result.EndBulkLoad();
+} // setOP region x region -> region
+
+
+
 
 /*
 8 Integrating Operators in Secondo 
@@ -4752,6 +4978,29 @@ ListExpr Difference2TypeMap(ListExpr args){
 }
 
 
+/*
+
+8.1.9 CommonBorder2TypeMap
+
+Signature: ~region~ [x] ~region~ [->] ~line~
+
+*/
+
+ListExpr CommonBorder2TypeMap(ListExpr args){
+
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("Wrong number of arguments,"
+                                " region x region expected");
+     return nl->TypeError();
+  }
+  if(nl->IsEqual(nl->First(args),"region") &&
+     nl->IsEqual(nl->Second(args),"region")){
+     return nl->SymbolAtom("line");
+  }
+  ErrorReporter::ReportError(" region x region expected");
+  return nl->TypeError();
+}
+
 
 /*
 8.2 Value Mappings 
@@ -4884,10 +5133,6 @@ int Realminize2VM(Word* args, Word& result, int message,
 8.2.5 Value mapping for set operations
 
 */
-//template<class t1, class t2, class tres>
-//void SetOp(const t1& arg1, const t2& arg2, tres& result){
-//   SetOp(arg1,arg2,result);
-//}
 
 template<class t1, class t2, class tres, SetOperation op>
 int SetOpVM(Word* args, Word& result, int message,
@@ -4910,6 +5155,22 @@ int SetOpVMSym(Word* args, Word& result, int message,
    SetOp(*arg2,*arg1,*res,op);
    return 0;
 }
+
+
+/*
+8.2.6 Value Mapping for CommonBorder2
+
+*/
+int CommonBorder2VM(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Region* arg1 = static_cast<Region*>(args[0].addr);
+   Region* arg2 = static_cast<Region*>(args[1].addr); 
+   Line* res = static_cast<Line*>(result.addr);
+   CommonBorder(*arg2,*arg1,*res);
+   return 0;
+}
+
 
 /*
 8.3  Operator specifications
@@ -4965,6 +5226,12 @@ const string Difference2Spec =
  "  \" computes the difference of two spatial values \" "
   "  \" query l1 difference2 l2 \" ))";
 
+const string CommonBorder2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> region x region -> line </text--->"
+ " \"  _ commonborder2  _ \" "
+ "  \" computes the common part of the boundaries of the arguments \" "
+  "  \" query r1 commonborder2 r2 \" ))";
 
 /*
 8.4 Value Mapping Arrays
@@ -5022,7 +5289,7 @@ ValueMapping Difference2Map[] = {
 
 
 /*
-8.5 Selection Function
+8.5 Selection Functions
 
 The value mapping array containg the value mapping functions for both
 operator in the same order. For this reason it is sufficient to have
@@ -5167,6 +5434,15 @@ Operator difference2(
          Difference2TypeMap
          );
 
+
+Operator commonborder2(
+         "commonborder2",           //name
+          CommonBorder2Spec,   //specification
+          CommonBorder2VM, //value mapping
+          Operator::SimpleSelect,         //trivial selection function
+          CommonBorder2TypeMap //type mapping
+);
+
 /*
 8.7 Creating the algebra
 
@@ -5180,6 +5456,7 @@ class TopOpsAlgebra : public Algebra {
         AddOperator(&union2);
         AddOperator(&intersection2);
         AddOperator(&difference2);
+        AddOperator(&commonborder2);
       }
      ~TopOpsAlgebra(){}
 } topOpsAlgebra;

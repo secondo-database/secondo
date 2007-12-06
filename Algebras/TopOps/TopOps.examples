@@ -150,5 +150,10 @@ Example   : query toprel((trajectory(train7) difference2 thecenter), trajectory(
 Result    : (int9m (TRUE FALSE FALSE TRUE TRUE FALSE TRUE FALSE TRUE))
 
 
+Operator  : commonborder2
+Number    : 1
+Signature : region x region -> line
+Example   : query (thecenter commonborder2 thecenter) = boundary(thecenter)
+Result    : (bool TRUE)
 
 
