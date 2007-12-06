@@ -69,14 +69,15 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
     if(index<0){
       return null; 
     }
-    PointMap pm = (PointMap) PointMaps.get(index);
+    CPointMap pm = (CPointMap) PointMaps.get(index);
     Interval in = (Interval)Intervals.get(index);
     double t1 = in.getStart();
     double t2 = in.getEnd();
     double Delta = (time-t1)/(t2-t1);
+    double e = pm.e;
     double x = pm.x1+Delta*(pm.x2-pm.x1);
     double y = pm.y1+Delta*(pm.y2-pm.y1);
-    return "("+format.format(x)+", "+ format.format(y)+")";
+    return "("+format.format(e)+"("+format.format(x)+", "+ format.format(y)+"))";
 
   }
 
@@ -103,11 +104,12 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
        return null;
     }
     
-    PointMap pm = (PointMap) PointMaps.get(index);
+    CPointMap pm = (CPointMap) PointMaps.get(index);
     Interval in = (Interval)Intervals.get(index);
     double t1 = in.getStart();
     double t2 = in.getEnd();
     double Delta = (t-t1)/(t2-t1);
+    double e = pm.e;
     double x = pm.x1+Delta*(pm.x2-pm.x1);
     double y = pm.y1+Delta*(pm.y2-pm.y1);
 
@@ -116,8 +118,18 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
     // The higth and width of the ellipse is related to the epsilon-value.
     // For epsilon is the radius, but pix / pixy denote the complete width / higth
     // of the point-object, they are set to 2*epsilon.
-    double pixy = Math.abs(2*epsilon);
-    double pix = Math.abs(2*epsilon);
+    double pixy = 0;
+    double pix = 0;
+    if( e == 0.0 )
+    {
+      pixy = 4;
+      pix = 4;
+    }
+    else
+    {    
+      pixy = Math.abs(2*e);
+      pix = Math.abs(2*e);
+    }
     Shape shp;
     if (Cat.getPointasRect())
       shp = new Rectangle2D.Double(point.getX()- pix/2, point.getY() - pixy/2, pix, pixy);
@@ -130,10 +142,10 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
   /**
    * Reads the coefficients out of ListExpr for a map
    * @param le ListExpr of four reals.
-   * @return The PointMap that was read.
+   * @return The CPointMap that was read.
    * @see <a href="Dsplmovingpointsrc.html#readPointMap">Source</a>
    */
-  private PointMap readPointMap (ListExpr le) {
+  private CPointMap readCPointMap(double e, ListExpr le) {
     Double value[] =  {
       null, null, null, null
     };
@@ -164,7 +176,7 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
     if(!ProjectionManager.project(value[2].doubleValue(),value[3].doubleValue(),aPoint)){
       return null;
     }
-    return  new PointMap(x1,y1,aPoint.x,aPoint.y);
+    return  new CPointMap(e,x1,y1,aPoint.x,aPoint.y);
   }
 
   /**
@@ -195,22 +207,22 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
       }
       // deprecated version of external representation
       Interval in=null;
-      PointMap pm=null;
+      CPointMap pm=null;
       // The deprecated version fits only to the 'certain' type moving point and can be ignored here.
       /*if (L == 8){
          Reporter.writeWarning("Warning: using deprecated external representation of a moving point !");
          in = LEUtils.readInterval(ListExpr.fourElemList(aunit.first(),
                                    aunit.second(), aunit.third(), aunit.fourth()));
          aunit = aunit.rest().rest().rest().rest();
-         pm = readPointMap(ListExpr.fourElemList(aunit.first(), aunit.second(),
+         pm = readCPointMap(ListExpr.fourElemList(aunit.first(), aunit.second(),
                            aunit.third(), aunit.fourth()));
       }*/
       // the corrected version of external representation
       if(L==2){
-         tmpepsilon = LEUtils.readNumeric(acunit.first()).doubleValue();
-         if(tmpepsilon > epsilon) {
-            epsilon = tmpepsilon;
-         }
+         epsilon = LEUtils.readNumeric(acunit.first()).doubleValue();
+         //if(tmpepsilon > epsilon) {
+         //   epsilon = tmpepsilon;
+         //}
          ListExpr aunit = acunit.second();
          int Ll = aunit.listLength();
          if(Ll!=2){
@@ -219,7 +231,7 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
             return;
          }
          in = LEUtils.readInterval(aunit.first());
-         pm = readPointMap(aunit.second());
+         pm = readCPointMap(epsilon, aunit.second());
       }
 
       if ((in == null) || (pm == null)){
@@ -283,7 +295,7 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
        return;
     for (int j = 0; j < Intervals.size(); j++) {
       Interval in = (Interval)Intervals.elementAt(j);
-      PointMap pm = (PointMap)PointMaps.elementAt(j);
+      CPointMap pm = (CPointMap)PointMaps.elementAt(j);
       
       // To expand the bounding box by the epsilon-value, it is necessary to sort the x- and y-values:
       if (pm.x1 <= pm.x2) {
@@ -339,7 +351,7 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
     if(index<0){
       return 0; 
     }
-    PointMap pm = (PointMap) PointMaps.get(index);
+    CPointMap pm = (CPointMap) PointMaps.get(index);
     Interval in = (Interval)Intervals.get(index);
     double t1 = in.getStart();
     double t2 = in.getEnd();
@@ -361,10 +373,11 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
   }
   
 
-  class PointMap {
-    double x1,x2,y1,y2;
+  class CPointMap{
+    double e, x1,x2,y1,y2;
 
-    public PointMap (double x1, double y1, double x2, double y2) {
+    public CPointMap(double e, double x1, double y1, double x2, double y2) {
+       this.e = e;
        this.x1 = x1;
        this.y1 = y1;
        this.x2 = x2;
@@ -372,7 +385,7 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
     }
 
     public String toString(){
-      return ("[x1,y1 | x2,y2] = ["+x1+","+y1+" <> "+x2+","+y2+"]");
+      return ("(epsilon[x1,y1 | x2,y2]) = ("+e+"["+x1+","+y1+" <> "+x2+","+y2+"])");
     }
   }
 }
