@@ -40,7 +40,7 @@ CONTENTTYPE="picture"
 CONTENTNAME="Picture"
 NOW=$(date +"%Y-%m-%d-%T")
 
-which stat
+which stat 2>&1 >/dev/null
 if [ "$?" = "0" ]; then
    USESTAT=TRUE
 else
@@ -123,7 +123,7 @@ HEADER="(OBJECT $1 ()  (rel (tuple ( (Filename text)($CONTENTNAME $CONTENTTYPE )
 shift
 
 
-if [ $1 = "-d" ]; then
+if [ "$1" = "-d" ]; then
 # case directory name is given
   shift
   # check for directory name
