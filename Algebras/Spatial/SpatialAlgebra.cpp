@@ -2830,10 +2830,16 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
   }
   else
   {
-    if( dp.GetX() == sp.GetX() && DP.GetX() == SP.GetX() )
+    bool v1 = IsVertical();
+    bool v2 = hs.IsVertical();
+    if( v1 && v2 ) // both are vertical
     {
-      if( ( sp.GetY() > dp.GetY() && SP.GetY() > DP.GetY() ) ||
-          ( sp.GetY() < dp.GetY() && SP.GetY() < DP.GetY() ) )
+      if(   (     (CompareDouble(sp.GetY(),dp.GetY())>0) 
+               && ( CompareDouble(SP.GetY(),DP.GetY())>0) 
+            ) 
+          ||
+            (     (CompareDouble(sp.GetY(),dp.GetY())<0)
+               && (CompareDouble(SP.GetY(),DP.GetY())<0) ) )
       {
         if( sp < SP )
           return -1;
@@ -2841,7 +2847,7 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
           return 1;
         return 0;
       }
-      else if( sp.GetY() > dp.GetY() )
+      else if( CompareDouble(sp.GetY(),dp.GetY())>0)
       {
         if( ldp == true )
           return 1;
@@ -2854,30 +2860,30 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
         return 1;
       }
     }
-    else if( dp.GetX() == sp.GetX() )
+    else if( AlmostEqual(dp.GetX(),sp.GetX()) )
     {
-      if( sp.GetY() > dp.GetY() )
+      if( CompareDouble(sp.GetY(), dp.GetY())>0 )
       {
         if( ldp == true )
           return 1;
         return -1;
       }
-      else if( sp.GetY() < dp.GetY() )
+      else if( CompareDouble(sp.GetY(),dp.GetY())<0 )
       {
         if( ldp == true )
           return -1;
         return 1;
       }
     }
-    else if( DP.GetX() == SP.GetX() )
+    else if( AlmostEqual(DP.GetX(), SP.GetX()) )
     {
-      if( SP.GetY() > DP.GetY() )
+      if( CompareDouble(SP.GetY() , DP.GetY())>0 )
       {
         if( ldp == true )
           return -1;
         return 1;
       }
-      else if( SP.GetY() < DP.GetY() )
+      else if( CompareDouble(SP.GetY() , DP.GetY())<0 )
       {
         if( ldp == true )
           return 1;
@@ -2893,9 +2899,9 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
       double k = (yd - ys) / (xd - xs),
              K= (Yd -Ys) / (Xd - Xs);
 
-      if( k < K )
+      if( CompareDouble(k , K) <0 )
         return -1;
-      if( k > K)
+      if( CompareDouble( k,  K) > 0)
         return 1;
 
       if( sp < SP )

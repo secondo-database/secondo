@@ -98,6 +98,19 @@ inline bool AlmostEqual( const Point& p1,
 inline bool AlmostEqual( const HalfSegment& hs1,
                          const HalfSegment& hs2 );
 
+
+inline int CompareDouble(const double a, const double b){
+   if(AlmostEqual(a,b))
+   {
+       return 0;
+   }
+   if(a<b)
+   {
+      return -1;
+   }
+   return 1;
+}
+
 /*
 4 Struct Point
 
