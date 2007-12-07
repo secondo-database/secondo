@@ -31,9 +31,45 @@
 # for many files (more than the possible argumentlist of the current bash)
 # or for files with spaces in filenames use a pipe for creating the Relation
 #
-# example:   find $HOME -name "*.txt" | createTextRelation txtrelation >txtRelationObj
 #
-# written, 2005, January - Th. Behr
+# written, 2007, December - Th. Behr
+
+# This script converts a set of jpg files into a relation in Secondo's nested list format.
+# There are different ways to use this script:
+#
+# 1. Converting a directory and its subdirectories:
+# --------------------------------------------------
+# createRelation <RelName> -d <Dir> [>OutFileName]
+# The first parameter is the name of the relation to create. Ensure to use a valid
+# Secondo symbol. After the -d parameter, the directory containing the pictures must be
+# given. Because the script write to the standard output, the result can be written to
+# a file in the usual way.
+#
+# 2. Converting some files
+# ------------------------
+# If only some files should be converted, the script should be called by:
+# createRelation <RelName> <file_1> <file_2>.....<file_n>
+#
+# 3. Reading the filename from stdinput
+# -------------------------------------
+# If the name of the relation is the only one argument, i.e. the script is called via
+# createRealation <RelName>
+# The filenames are read from the standard input. Thereby this script can be used
+# within a pipe, e.g.
+# find -iname "*.jpg" | createRelation <RelName> [>Outfile]
+#
+#  Hints
+#  -----
+# The best place to call this script is Secondo's bin directory. Just enter the complete
+# path to the script. 
+# On windows platforms it is not possible to use absolute path names. 
+#
+
+
+
+
+
+
 
 
 CONTENTTYPE="picture"
