@@ -41,38 +41,38 @@ in Lex, and <action> is a block of Java code.
 
 The tokens accepted by this scanner follow the following rules:
 
-        <boolAtom> =	{ 'TRUE' | 'FALSE' }
+        <boolAtom> =        { 'TRUE' | 'FALSE' }
 
-        <intAtom> =	<sign> <number>
+        <intAtom> =        <sign> <number>
 
-        <sign> =	['-']  // This includes the option of having no sign.
+        <sign> =        ['-']  // This includes the option of having no sign.
 
 
-        <realAtom> =	<sign> <number> '.' <number>
-        	|	<sign> <number> '.' <number> <exponent>
-        	|	<sign> <number> <exponent>
+        <realAtom> =        <sign> <number> '.' <number>
+                |        <sign> <number> '.' <number> <exponent>
+                |        <sign> <number> <exponent>
 
-        <stringAtom> =	'"' <characterSeq> '"'
+        <stringAtom> =        '"' <characterSeq> '"'
 
-        <symbolAtom> =	<letter> {<letter> | <digit> | <underline>}*
-        	|	<otherChar> {<otherChar>}*
+        <symbolAtom> =        <letter> {<letter> | <digit> | <underline>}*
+                |        <otherChar> {<otherChar>}*
 
-        <textAtom> =	'<' text '>' {<anyChar>}* '<' '\' text '-' '-' '-' '>'
+        <textAtom> =        '<' text '>' {<anyChar>}* '<' '\' text '-' '-' '-' '>'
 
 Where:
 
-        <number> =	<digit> {<digit>}*
-        <exponent> =	'E' <sign> <number>
-        <characterSeq> =	<stringCharacter> <characterSeq>
-        	|
-        <anyChar> =	<any possible character>
-        <letter> =	'A'-'Z'
-        	|	'a'-'z'
-        <digit> =	'0'-'9'
-        <stringCharacter> =	<any character except the doble quote
+        <number> =        <digit> {<digit>}*
+        <exponent> =        'E' <sign> <number>
+        <characterSeq> =        <stringCharacter> <characterSeq>
+                |
+        <anyChar> =        <any possible character>
+        <letter> =        'A'-'Z'
+                |        'a'-'z'
+        <digit> =        '0'-'9'
+        <stringCharacter> =        <any character except the doble quote
                                  character>
-	<underline> =	<The underline character '_'>
-        <otherChar> =	<any character which is neither a <letter> nor a
+        <underline> =        <The underline character '_'>
+        <otherChar> =        <any character which is neither a <letter> nor a
                          <digit> nor a '"', '(' or ')'>
 
 */
@@ -175,9 +175,9 @@ commentend   =  "!_"
                   // Gets its value.
                   ListExpr value = null;
                   try{
-		    value = ListExpr.intAtom(Integer.valueOf(yytext()).intValue());
+                    value = ListExpr.intAtom(Integer.valueOf(yytext()).intValue());
                   }
-	          catch (NumberFormatException except){
+                  catch (NumberFormatException except){
                     // If an error when parsing occur, an unknown token was
                     // read.
                     if (NLTokenizer.DEBUG_MODE){
@@ -185,7 +185,7 @@ commentend   =  "!_"
                     }
                     return (new NLToken(NLToken.error, null, yychar+1,
                             yyline+1));
- 	          }
+                   }
                   // If the value was propertly parsed.
                   return(new NLToken(NLToken.TT_INT_ATOM, value, yychar+1,
                          yyline+1));
@@ -205,9 +205,9 @@ commentend   =  "!_"
                            yyline+1));
                   }
                   try{
-		    value = ListExpr.realAtom(Double.parseDouble(yytext()));
+                    value = ListExpr.realAtom(Double.parseDouble(yytext()));
                   }
-	          catch (NumberFormatException except){
+                  catch (NumberFormatException except){
                     // If an error when parsing occur, an unknown token was
                     // read.
                     if (NLTokenizer.DEBUG_MODE){
@@ -215,7 +215,7 @@ commentend   =  "!_"
                     }
                     return (new NLToken(NLToken.error, null, yychar+1,
                             yyline+1));
- 	          }
+                   }
                   // If the value was propertly parsed.
                   return(new NLToken(NLToken.TT_REAL_ATOM, value, yychar+1,
                          yyline+1));
@@ -251,36 +251,45 @@ commentend   =  "!_"
 
 <YYINITIAL> {filename} {
                      // first extract the real filename
-		     String FNWithTags = yytext();
-		     String FN = FNWithTags.substring(6,FNWithTags.length()-10).trim();
+                     String FNWithTags = yytext();
+                     String FN = FNWithTags.substring(6,FNWithTags.length()-10).trim();
                      try{
-		        String Directory = ListExpr.getDirectory();
-			if(Directory==null)
-			   Reporter.writeError("Directory shound not be null");
-			if(!Directory.endsWith(File.separator))
-			   Directory += File.separatorChar;
-			File F = new File(Directory+FN);
+                        String Directory = ListExpr.getDirectory();
+                        String fn = null;
+                        if(!FN.startsWith(File.separator)){
+                           if(Directory==null){
+                              Reporter.writeError("Directory shound not be null");
+                           }
+                           if(!Directory.endsWith(File.separator)){
+                               Directory += File.separatorChar;
+                           }
+                           fn = Directory + FN;
+                        } else {
+                           fn = FN;
+                        }
 
-			long size = F.length();
-			long encodedSize = Base64Encoder.getEncodedSize(size);
-			BufferedInputStream in = new BufferedInputStream(new FileInputStream(F));
-			Base64Encoder Enc = new Base64Encoder(in);
-			StringBuffer Content = new StringBuffer((int)encodedSize+1);
-			int next;
+                        File F = new File(fn);
+
+                        long size = F.length();
+                        long encodedSize = Base64Encoder.getEncodedSize(size);
+                        BufferedInputStream in = new BufferedInputStream(new FileInputStream(F));
+                        Base64Encoder Enc = new Base64Encoder(in);
+                        StringBuffer Content = new StringBuffer((int)encodedSize+1);
+                        int next;
                         while( (next = Enc.getNext())>=0)
                                Content.append((char)next);
                         in.close();
-			return( new NLToken(NLToken.TT_TEXT_ATOM,
-			        ListExpr.textAtom(Content.toString()),
+                        return( new NLToken(NLToken.TT_TEXT_ATOM,
+                                ListExpr.textAtom(Content.toString()),
                                 yychar+1,yyline+1));
-		     } catch(Exception e){
-		        if(DEBUG_MODE){
+                     } catch(Exception e){
+                        if(DEBUG_MODE){
                             Reporter.writeError("error in reading binary data from file");
-			                      Reporter.debug(e);
-			}
-			 return (new NLToken(NLToken.error, null, yychar+1,
+                                              Reporter.debug(e);
+                        }
+                         return (new NLToken(NLToken.error, null, yychar+1,
                             yyline+1));
-		     }
+                     }
 
                 }
 
