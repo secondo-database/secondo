@@ -38,8 +38,14 @@
 
 CONTENTTYPE="picture"
 CONTENTNAME="Picture"
+NOW=$(date +"%Y-%m-%d-%T")
 
-
+which stat
+if [ "$?" = "0" ]; then
+   USESTAT=TRUE
+else
+   USESTAT=FALSE
+fi
 
 function writeTuple {
 
@@ -47,7 +53,11 @@ if [ "$#" = "0" ]; then
  read F
  while [ -n "$F" ]; do
    FB=$(basename $F)
-   D=$(stat -c %y $F | sed "s/\([^ ]*\).*/\1/g" )
+   if [ "$USESTAT" = "TRUE" ]; then
+      D=$(stat -c %y $F | sed "s/\([^ ]*\).*/\1/g" )
+   else
+      D=$NOW
+   fi
    # (<file> <date> <category> <portrait> <data>)
      echo -e  "  ( <text>$F</text---> "
      echo -e  "    ( \"$FB\" "
@@ -62,7 +72,11 @@ if [ "$#" = "0" ]; then
    while [ "$#" != "0" ]; do
      F=$1
      FB=$(basename $F)
-     D=$(stat -c %y $F | sed "s/\([^ ]*\).*/\1/g" )
+     if [ "$USESTAT" = "TRUE" ]; then
+        D=$(stat -c %y $F | sed "s/\([^ ]*\).*/\1/g" )
+     else
+        D=$NOW
+     fi
      # (<file> <date> <category> <portrait> <data>)
      echo -e  "  ( <text>$F</text---> "
      echo -e  "    ( \"$FB\" "
