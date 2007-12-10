@@ -5521,7 +5521,7 @@ ValueMapping TopRelMap[] = {
        TopRelSym<Point,Line>,TopRel<Line,Points>,TopRelSym<Points,Line>,
        TopRel<Region,Point>,TopRelSym<Point,Region>,
        TopRel<Region,Points>, TopRelSym<Points,Region>,TopRel<Region,Region>,
-       TopRel<Line,Line>, TopRel<Line,Region>};
+       TopRel<Line,Line>, TopRel<Line,Region>, TopRelSym<Region,Line>};
 
 ValueMapping TopPredMap[] = {
        TopPred<Point,Point> , 
@@ -5538,7 +5538,8 @@ ValueMapping TopPredMap[] = {
        TopPredSym<Points,Region>,
        TopPred<Region,Region>,
        TopPred<Line,Line>, 
-       TopPred<Line,Region> };
+       TopPred<Line,Region>,
+       TopPredSym<Region,Line>  };
 
 ValueMapping AdjacentMap[] = {
        TrAdjacentVM<Point,Point> ,     TrAdjacentVM<Points,Point>,
@@ -5700,6 +5701,9 @@ static int TopOpsSelect(ListExpr args){
    }
    if( (type1=="line") && (type2=="region")){
        return 14;
+   }
+   if( (type1=="region") && (type2=="line")){
+       return 15;
    }
 
    return -1;
