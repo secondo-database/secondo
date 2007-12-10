@@ -157,3 +157,58 @@ Example   : query (thecenter commonborder2 thecenter) = boundary(thecenter)
 Result    : (bool TRUE)
 
 
+Operator  : tradjacent 
+Number    : 1
+Signature : t1 x t2 -> bool, t1, t2 in {point, points, line, region}
+Example   : query thecenter tradjacent tiergarten
+Result    : (bool FALSE)
+
+
+Operator  : trinside 
+Number    : 1
+Signature : t1 x t2 -> bool, t1, t2 in {point, points, line, region}
+Example   : query thecenter trinside tiergarten
+Result    : (bool FALSE)
+
+
+Operator  : trcovers 
+Number    : 1
+Signature : t1 x t2 -> bool, t1, t2 in {point, points, line, region}
+Example   : query thecenter trcovers tiergarten
+Result    : (bool FALSE)
+
+
+Operator  : trcoveredby 
+Number    : 1
+Signature : t1 x t2 -> bool, t1, t2 in {point, points, line, region}
+Example   : query thecenter trcoveredby tiergarten
+Result    : (bool FALSE)
+
+
+Operator  : trequal 
+Number    : 1
+Signature : t1 x t2 -> bool, t1, t2 in {point, points, line, region}
+Example   : query thecenter trequal tiergarten
+Result    : (bool FALSE)
+
+
+Operator  : trdisjoint 
+Number    : 1
+Signature : t1 x t2 -> bool, t1, t2 in {point, points, line, region}
+Example   : query thecenter trdisjoint tiergarten
+Result    : (bool FALSE)
+
+
+Operator  : troverlaps 
+Number    : 1
+Signature : t1 x t2 -> bool, t1, t2 in {point, points, line, region}
+Example   : query thecenter troverlaps tiergarten
+Result    : (bool FALSE)
+
+
+Operator  : trcontains 
+Number    : 1
+Signature : t1 x t2 -> bool, t1, t2 in {point, points, line, region}
+Example   : query thecenter trcontains tiergarten
+Result    : (bool TRUE)
+

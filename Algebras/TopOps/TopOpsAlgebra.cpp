@@ -4816,18 +4816,36 @@ where t1, t2 in {point, points, line, region}
 ListExpr TopRelTypeMap(ListExpr args){
    if(nl->ListLength(args)!=2){
       ErrorReporter::ReportError("two arguments expected");
-      return nl->SymbolAtom("typeerror");
+      return nl->TypeError();
    }
    if(!IsSpatialType(nl->First(args)) 
       || !IsSpatialType(nl->Second(args))){
        ErrorReporter::ReportError("Spatial types expected");
-       return (nl->SymbolAtom( "typeerror" ));
+       return (nl->TypeError());
    }
    return nl->SymbolAtom("int9m");
 }
 
 /*
-8.1.4 Realminize2TypeMap
+8.1.4 StdPredTypeMap
+
+*/
+
+ListExpr StdPredTypeMap(ListExpr args){
+   if(nl->ListLength(args)!=2){
+      ErrorReporter::ReportError("two arguments expected");
+      return nl->SymbolAtom("typeerror");
+   }
+   if(!IsSpatialType(nl->First(args)) 
+      || !IsSpatialType(nl->Second(args))){
+       ErrorReporter::ReportError("Spatial types expected");
+       return (nl->TypeError());
+   }
+   return nl->SymbolAtom("bool");
+}
+
+/*
+8.1.5 Realminize2TypeMap
 
 Signature: line [->] line.
 
@@ -5171,6 +5189,197 @@ int CommonBorder2VM(Word* args, Word& result, int message,
    return 0;
 }
 
+/*
+8.2.7 Standard Topological Predicates
+
+*/
+
+static Cluster cl_disjoint;
+static Cluster cl_adjacent;
+static Cluster cl_overlap;
+static Cluster cl_covers;
+static Cluster cl_coveredBy;
+static Cluster cl_inside;
+static Cluster cl_contains;
+static Cluster cl_equal;
+
+
+template<class t1, class t2>
+int StdPred(Word* args, Word& result, int message,
+                    Word& local, Supplier s, Cluster& cl){
+    
+  result = qp->ResultStorage(s);
+  t1* v1 = static_cast<t1*>(args[0].addr);
+  t2* v2 = static_cast<t2*>(args[1].addr);
+  Int9M matrix;
+  bool res = GetInt9M(v1,v2,matrix,true,cl);
+  (static_cast<CcBool*>(result.addr))->Set(true,res);
+  return 0;
+}
+
+template<class t1, class t2>
+int StdPredSym(Word* args, Word& result, int message,
+                    Word& local, Supplier s, Cluster& cl){
+    
+  result = qp->ResultStorage(s);
+  t1* v1 = static_cast<t1*>(args[0].addr);
+  t2* v2 = static_cast<t2*>(args[1].addr);
+  Int9M matrix;
+  Cluster tmp(cl);
+  tmp.Transpose();
+  bool res = GetInt9M(v2,v1,matrix,true,tmp);
+  (static_cast<CcBool*>(result.addr))->Set(true,res);
+  return 0;
+}
+
+template<class t1, class t2>
+int TrAdjacentVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPred<t1,t2>(args,result,message,local,s,cl_adjacent);
+}
+
+template<class t1, class t2>
+int TrAdjacentVMSymm(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPredSym<t1,t2>(args,result,message,local,s,cl_adjacent);
+}
+
+
+template<class t1, class t2>
+int TrInsideVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPred<t1,t2>(args,result,message,local,s,cl_inside);
+}
+
+template<class t1, class t2>
+int TrInsideVMSymm(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPredSym<t1,t2>(args,result,message,local,s,cl_inside);
+}
+
+
+template<class t1, class t2>
+int TrCoversVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPred<t1,t2>(args,result,message,local,s,cl_covers);
+}
+
+template<class t1, class t2>
+int TrCoversVMSymm(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPredSym<t1,t2>(args,result,message,local,s,cl_covers);
+}
+
+
+template<class t1, class t2>
+int TrCoveredByVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPred<t1,t2>(args,result,message,local,s,cl_coveredBy);
+}
+
+template<class t1, class t2>
+int TrCoveredByVMSymm(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPredSym<t1,t2>(args,result,message,local,s,cl_coveredBy);
+}
+
+
+template<class t1, class t2>
+int TrEqualVM(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+  return StdPred<t1,t2>(args,result,message,local,s,cl_equal);
+}
+
+template<class t1, class t2>
+int TrEqualVMSymm(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPredSym<t1,t2>(args,result,message,local,s,cl_equal);
+}
+
+template<class t1, class t2>
+int TrDisjointVM(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+  return StdPred<t1,t2>(args,result,message,local,s,cl_disjoint);
+}
+
+template<class t1, class t2>
+int TrDisjointVMSymm(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPredSym<t1,t2>(args,result,message,local,s,cl_disjoint);
+}
+
+
+template<class t1, class t2>
+int TrOverlapVM(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+  return StdPred<t1,t2>(args,result,message,local,s,cl_overlap);
+}
+
+template<class t1, class t2>
+int TrOverlapVMSymm(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPredSym<t1,t2>(args,result,message,local,s,cl_overlap);
+}
+
+template<class t1, class t2>
+int TrContainsVM(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+  return StdPred<t1,t2>(args,result,message,local,s,cl_contains);
+}
+
+template<class t1, class t2>
+int TrContainsVMSymm(Word* args, Word& result, int message,
+                    Word& local, Supplier s){
+  return StdPredSym<t1,t2>(args,result,message,local,s,cl_contains);
+}
+
+
+static void initClusters(){
+  PredicateGroup pg;
+  pg.SetToDefault();
+
+  Cluster* cl = pg.GetClusterOf("disjoint");
+  assert(cl);
+  cl_disjoint = *cl;
+  delete cl;
+
+  cl = pg.GetClusterOf("meet");
+  assert(cl);
+  cl_adjacent = *cl;
+  delete cl;
+
+
+  cl = pg.GetClusterOf("overlap");
+  assert(cl);
+  cl_overlap = *cl;
+  delete cl;
+
+  cl = pg.GetClusterOf("covers");
+  assert(cl);
+  cl_covers = *cl;
+  delete cl;
+
+  cl = pg.GetClusterOf("coveredBy");
+  assert(cl);
+  cl_coveredBy = *cl;
+  delete cl;
+
+  cl = pg.GetClusterOf("inside");
+  assert(cl);
+  cl_inside = *cl;
+  delete cl;
+
+  cl = pg.GetClusterOf("contains");
+  assert(cl);
+  cl_contains = *cl;
+  delete cl;
+  
+  cl = pg.GetClusterOf("equal");
+  assert(cl);
+  cl_equal = *cl;
+  delete cl;
+}
+
 
 /*
 8.3  Operator specifications
@@ -5230,8 +5439,73 @@ const string CommonBorder2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
  " ( <text> region x region -> line </text--->"
  " \"  _ commonborder2  _ \" "
- "  \" computes the common part of the boundaries of the arguments \" "
+ "  <text> computes the common part of the"
+ " boundaries of the arguments </text---> "
   "  \" query r1 commonborder2 r2 \" ))";
+
+
+const string TrAdjacentSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> bool, t1,t2 in {point, points, line, region}</text--->"
+ " \"  _ tradjacent  _ \" "
+ " <text> checks whether the arguments have exacly a common border </text--->"
+  "  \" query r1 tradjacent r2 \" ))";
+
+
+const string TrInsideSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> bool, t1,t2 in {point, points, line, region}</text--->"
+ " \"  _ trinside  _ \" "
+ " <text> checks whether the first argument is"
+ " part of the second one </text---> "
+  "  \" query r1 trinside r2 \" ))";
+
+const string TrContainsSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> bool, t1,t2 in {point, points, line, region}</text--->"
+ " \"  _ trcontains  _ \" "
+ " <text> checks whether the second argument is part of"
+ " the first one </text---> "
+  "  \" query r1 trcontains r2 \" ))";
+
+const string TrCoversSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> bool, t1,t2 in {point, points, line, region}</text--->"
+ " \"  _ trcovers  _ \" "
+ " <text> checks whether the first argument is part of the second one and"
+ " the boundaries touches each other</text---> "
+  "  \" query r1 trcovers r2 \" ))";
+
+const string TrCoveredBySpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> bool, t1,t2 in {point, points, line, region}</text--->"
+ " \"  _ trcoveredby  _ \" "
+ "  <text> checks whether the second argument is part of the first one and"
+ " the boundaries touches each other</text---> "
+  "  \" query r1 trcoveredby r2 \" ))";
+
+const string TrEqualSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> bool, t1,t2 in {point, points, line, region}</text--->"
+ " \"  _ trequal  _ \" "
+ "  <text> checks whether the arguments have the same geometry</text---> "
+  "  \" query r1 trequal r2 \" ))";
+
+
+const string TrOverlapSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> bool, t1,t2 in {point, points, line, region}</text--->"
+ " \"  _ toverlap  _ \" "
+ "  <text> checks whether the arguments have a common part ans "
+ "also exclusive ones</text---> "
+ "  \" query r1 troverlaps r2 \" ))";
+
+const string TrDisjointSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> bool, t1,t2 in {point, points, line, region}</text--->"
+ " \"  _ trdisjoint  _ \" "
+ "  <text> checks if the arguments have no common part </text--->"
+ "  \" query r1 trdisjoint r2 \" ))";
 
 /*
 8.4 Value Mapping Arrays
@@ -5265,6 +5539,87 @@ ValueMapping TopPredMap[] = {
        TopPred<Region,Region>,
        TopPred<Line,Line>, 
        TopPred<Line,Region> };
+
+ValueMapping AdjacentMap[] = {
+       TrAdjacentVM<Point,Point> ,     TrAdjacentVM<Points,Point>,
+       TrAdjacentVMSymm<Point,Points>, TrAdjacentVM<Points,Points>, 
+       TrAdjacentVM<Line,Point>,       TrAdjacentVMSymm<Point,Line>,
+       TrAdjacentVM<Line,Points>,      TrAdjacentVMSymm<Points,Line>,
+       TrAdjacentVM<Region,Point>,     TrAdjacentVMSymm<Point,Region>,
+       TrAdjacentVM<Region,Points>,    TrAdjacentVMSymm<Points,Region>,
+       TrAdjacentVM<Region,Region>,    TrAdjacentVM<Line,Line>, 
+       TrAdjacentVM<Line,Region>,      TrAdjacentVMSymm<Region,Line>};
+
+ValueMapping InsideMap[] = {
+       TrInsideVM<Point,Point> ,     TrInsideVM<Points,Point>,
+       TrInsideVMSymm<Point,Points>, TrInsideVM<Points,Points>, 
+       TrInsideVM<Line,Point>,       TrInsideVMSymm<Point,Line>,
+       TrInsideVM<Line,Points>,      TrInsideVMSymm<Points,Line>,
+       TrInsideVM<Region,Point>,     TrInsideVMSymm<Point,Region>,
+       TrInsideVM<Region,Points>,    TrInsideVMSymm<Points,Region>,
+       TrInsideVM<Region,Region>,    TrInsideVM<Line,Line>, 
+       TrInsideVM<Line,Region>,      TrInsideVMSymm<Region,Line>};
+
+ValueMapping CoversMap[] = {
+       TrCoversVM<Point,Point> ,     TrCoversVM<Points,Point>,
+       TrCoversVMSymm<Point,Points>, TrCoversVM<Points,Points>, 
+       TrCoversVM<Line,Point>,       TrCoversVMSymm<Point,Line>,
+       TrCoversVM<Line,Points>,      TrCoversVMSymm<Points,Line>,
+       TrCoversVM<Region,Point>,     TrCoversVMSymm<Point,Region>,
+       TrCoversVM<Region,Points>,    TrCoversVMSymm<Points,Region>,
+       TrCoversVM<Region,Region>,    TrCoversVM<Line,Line>, 
+       TrCoversVM<Line,Region>,      TrCoversVMSymm<Region,Line>};
+
+ValueMapping CoveredByMap[] = {
+       TrCoveredByVM<Point,Point> ,     TrCoveredByVM<Points,Point>,
+       TrCoveredByVMSymm<Point,Points>, TrCoveredByVM<Points,Points>, 
+       TrCoveredByVM<Line,Point>,       TrCoveredByVMSymm<Point,Line>,
+       TrCoveredByVM<Line,Points>,      TrCoveredByVMSymm<Points,Line>,
+       TrCoveredByVM<Region,Point>,     TrCoveredByVMSymm<Point,Region>,
+       TrCoveredByVM<Region,Points>,    TrCoveredByVMSymm<Points,Region>,
+       TrCoveredByVM<Region,Region>,    TrCoveredByVM<Line,Line>, 
+       TrCoveredByVM<Line,Region>,      TrCoveredByVMSymm<Region,Line>};
+
+ValueMapping EqualMap[] = {
+       TrEqualVM<Point,Point> ,     TrEqualVM<Points,Point>,
+       TrEqualVMSymm<Point,Points>, TrEqualVM<Points,Points>, 
+       TrEqualVM<Line,Point>,       TrEqualVMSymm<Point,Line>,
+       TrEqualVM<Line,Points>,      TrEqualVMSymm<Points,Line>,
+       TrEqualVM<Region,Point>,     TrEqualVMSymm<Point,Region>,
+       TrEqualVM<Region,Points>,    TrEqualVMSymm<Points,Region>,
+       TrEqualVM<Region,Region>,    TrEqualVM<Line,Line>, 
+       TrEqualVM<Line,Region>,      TrEqualVMSymm<Region,Line>};
+
+ValueMapping DisjointMap[] = {
+       TrDisjointVM<Point,Point> ,     TrDisjointVM<Points,Point>,
+       TrDisjointVMSymm<Point,Points>, TrDisjointVM<Points,Points>, 
+       TrDisjointVM<Line,Point>,       TrDisjointVMSymm<Point,Line>,
+       TrDisjointVM<Line,Points>,      TrDisjointVMSymm<Points,Line>,
+       TrDisjointVM<Region,Point>,     TrDisjointVMSymm<Point,Region>,
+       TrDisjointVM<Region,Points>,    TrDisjointVMSymm<Points,Region>,
+       TrDisjointVM<Region,Region>,    TrDisjointVM<Line,Line>, 
+       TrDisjointVM<Line,Region>,      TrDisjointVMSymm<Region,Line>};
+
+ValueMapping OverlapMap[] = {
+       TrOverlapVM<Point,Point> ,     TrOverlapVM<Points,Point>,
+       TrOverlapVMSymm<Point,Points>, TrOverlapVM<Points,Points>, 
+       TrOverlapVM<Line,Point>,       TrOverlapVMSymm<Point,Line>,
+       TrOverlapVM<Line,Points>,      TrOverlapVMSymm<Points,Line>,
+       TrOverlapVM<Region,Point>,     TrOverlapVMSymm<Point,Region>,
+       TrOverlapVM<Region,Points>,    TrOverlapVMSymm<Points,Region>,
+       TrOverlapVM<Region,Region>,    TrOverlapVM<Line,Line>, 
+       TrOverlapVM<Line,Region>,      TrOverlapVMSymm<Region,Line>};
+
+ValueMapping ContainsMap[] = {
+       TrContainsVM<Point,Point> ,     TrContainsVM<Points,Point>,
+       TrContainsVMSymm<Point,Points>, TrContainsVM<Points,Points>, 
+       TrContainsVM<Line,Point>,       TrContainsVMSymm<Point,Line>,
+       TrContainsVM<Line,Points>,      TrContainsVMSymm<Points,Line>,
+       TrContainsVM<Region,Point>,     TrContainsVMSymm<Point,Region>,
+       TrContainsVM<Region,Points>,    TrContainsVMSymm<Points,Region>,
+       TrContainsVM<Region,Region>,    TrContainsVM<Line,Line>, 
+       TrContainsVM<Line,Region>,      TrContainsVMSymm<Region,Line>};
+
 
 ValueMapping Union2Map[] = {
        SetOpVM<Line,Line,Line,union_op>,
@@ -5397,6 +5752,78 @@ Operator toppred(
          TopPredTypeMap
          );
 
+Operator trAdjacent(
+        "tradjacent",     // name
+         TrAdjacentSpec,   // specification
+         sizeof(AdjacentMap)/sizeof(ValueMapping),  // number of functions
+         AdjacentMap,    // array of value mappings
+         TopOpsSelect,
+         StdPredTypeMap
+         );
+
+Operator trContains(
+        "trcontains",     // name
+         TrContainsSpec,   // specification
+         sizeof(ContainsMap)/sizeof(ValueMapping),  // number of functions
+         ContainsMap,    // array of value mappings
+         TopOpsSelect,
+         StdPredTypeMap
+         );
+
+Operator trOverlap(
+        "troverlaps",     // name
+         TrOverlapSpec,   // specification
+         sizeof(OverlapMap)/sizeof(ValueMapping),  // number of functions
+         OverlapMap,    // array of value mappings
+         TopOpsSelect,
+         StdPredTypeMap
+         );
+
+Operator trDisjoint(
+        "trdisjoint",     // name
+         TrDisjointSpec,   // specification
+         sizeof(DisjointMap)/sizeof(ValueMapping),  // number of functions
+         DisjointMap,    // array of value mappings
+         TopOpsSelect,
+         StdPredTypeMap
+         );
+
+Operator trEqual(
+        "trequal",     // name
+         TrEqualSpec,   // specification
+         sizeof(EqualMap)/sizeof(ValueMapping),  // number of functions
+         EqualMap,    // array of value mappings
+         TopOpsSelect,
+         StdPredTypeMap
+         );
+
+Operator trCoveredBy(
+        "trcoveredby",     // name
+         TrCoveredBySpec,   // specification
+         sizeof(CoveredByMap)/sizeof(ValueMapping),  // number of functions
+         CoveredByMap,    // array of value mappings
+         TopOpsSelect,
+         StdPredTypeMap
+         );
+
+Operator trCovers(
+        "trcovers",     // name
+         TrCoversSpec,   // specification
+         sizeof(CoversMap)/sizeof(ValueMapping),  // number of functions
+         CoversMap,    // array of value mappings
+         TopOpsSelect,
+         StdPredTypeMap
+         );
+
+Operator trInside(
+        "trinside",     // name
+         TrInsideSpec,   // specification
+         sizeof(InsideMap)/sizeof(ValueMapping),  // number of functions
+         InsideMap,    // array of value mappings
+         TopOpsSelect,
+         StdPredTypeMap
+         );
+
 Operator realminize2(
      "realminize2",           //name
      Realminize2Spec,   //specification
@@ -5457,6 +5884,14 @@ class TopOpsAlgebra : public Algebra {
         AddOperator(&intersection2);
         AddOperator(&difference2);
         AddOperator(&commonborder2);
+        AddOperator(&trAdjacent);
+        AddOperator(&trInside);
+        AddOperator(&trCovers);
+        AddOperator(&trCoveredBy);
+        AddOperator(&trEqual);
+        AddOperator(&trDisjoint);
+        AddOperator(&trOverlap);
+        AddOperator(&trContains);
       }
      ~TopOpsAlgebra(){}
 } topOpsAlgebra;
@@ -5469,6 +5904,7 @@ extern "C"
 Algebra* InitializeTopOpsAlgebra( NestedList* nlRef, QueryProcessor* qpRef ) {
     nl = nlRef;
     qp = qpRef;
+    initClusters();
     return (&topOpsAlgebra);
 }
 

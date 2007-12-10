@@ -1238,6 +1238,14 @@ Cluster* PredicateGroup::GetClusterOf(const STRING_T* name)const{
    return NULL;
 }
 
+
+Cluster* PredicateGroup::GetClusterOf(const string name)const{
+  STRING_T theName;
+  strcpy(theName,name.c_str());
+  return GetClusterOf(&theName);
+}
+
+
 /*
 ~SetToDefault~
 

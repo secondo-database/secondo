@@ -275,7 +275,7 @@ Result   : file
 Remark   : Computes a default predicate group
     
 
-Operator : getCluster 
+Operator : getcluster 
 Number   : 1
 Signature: predicategroup x string -> cluster 
 Example  : query getcluster(stdpgroup(),"equal")

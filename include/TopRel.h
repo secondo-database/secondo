@@ -1348,6 +1348,7 @@ group, the result will be __NULL__.
 
 */
 Cluster* GetClusterOf(const STRING_T* name) const;
+Cluster* GetClusterOf(const string name) const;
    
 
 /*
