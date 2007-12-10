@@ -224,7 +224,6 @@ doc-dist: $(net)/documentation
 	cd $(net) && zip -9 -r $(tempdir)/secondo-$@.zip documentation 
 
 
-SECONDO_DEMO = $(tempdir)/secondo-demo
 
 OLD_APPS := bin/SecondoTTYBDB \
 	    bin/SecondoMonitorBDB \
@@ -242,36 +241,67 @@ remove-old-apps:
 remove-old-config:
 	rm -f bin/SecondoConfig.ini Optimizer/SecondoConfig.ini
 
-SECONDO_APP := SecondoBDB \
-	       SecondoCS \
-	       SecondoListener \
-	       SecondoMonitor \
-	       SecondoRegistrar \
-	       SecondoCheckpoint \
-	       SecondoTTYCS \
-	       SecondoTTYNT \
-	       SecondoTTYBDB \
+## rules for building a demo version
 
-DEMO_BIN := $(addprefix bin/, $(SECONDO_APP))
+SECONDO_DEMO = ./sec-demo/secondo
 DEMO_MAN := Documents/SecondoManual.pdf
-DEMO_CFG := bin/SecondoConfig.ini
-DEMO_TAR := $(tempdir)/secondo-demo.tar.gz
 
-DEMO_DLL := $(PL_DLL_DIR)/libpl* $(SECONDO_SDK)/bdb/lib/libdb_cxx*
+ifeq ($(platform),win32)
+DEMO_DEPS := $(PL_DLL_DIR)/*dll \
+	    $(PL_DLL_DIR)/pthreadVC*dll \
+	    $(JPL_JAR) \
+	    $(SECONDO_SDK)/auxtools/bin/libgsl*dll
 
-vpath Secondo% bin
+else
+DEMO_DLL := $(PL_DLL_DIR)/libpl* \
+	    $(SECONDO_SDK)/auxtools/lib/libgsl*dll \
+	    $(SECONDO_SDK)/bdb/lib/libdb_cxx*
+endif
+
+
+TPC := Tools/Generators/TPC-H
+TPC_GEN = $(TPC)/dbgen.exe $(TPC)/dists.dss $(TPC)/secondo/restore_objs
+
+vpath Secondo% bin 
 
 .PHONY: demo
-demo: mkdemodir $(DEMO_TAR) 
+demo: mkdemodir cp_deps cp_files
 
-$(DEMO_TAR): $(DEMO_BIN) $(DEMO_CFG) $(DEMO_MAN) $(DEMO_DLL)
-	cp $^ $(SECONDO_DEMO)
-	cd $(tempdir); tar -cvzf $@ secondo-demo
 
 .PHONY: mkdemodir
 mkdemodir:
+	rm -rf $(SECONDO_DEMO)
 	mkdir -p $(SECONDO_DEMO)/bin
+	mkdir -p $(SECONDO_DEMO)/Optimizer
 
+.PHONY: cp_deps
+cp_deps: $(DEMO_MAN) $(DEMO_DEPS) $(TPC_GEN)
+	cp $^ $(SECONDO_DEMO)/bin
+	cp $(PL_LIB_DIR)/../boot32.prc $(SECONDO_DEMO)
+	cp -R $(PL_LIB_DIR)/../boot $(SECONDO_DEMO)
+	cp -R $(PL_LIB_DIR)/../library $(SECONDO_DEMO)
+
+.PHONY: cp_files
+cp_files:
+	cp -R Optimizer $(SECONDO_DEMO)
+	cp -R bin $(SECONDO_DEMO)
+	cp CM-Scripts/initdemo.sh $(SECONDO_DEMO)
+
+
+.PHONY: demo2
+demo2: cp_gui demo
+
+.PHONY: cp_gui 
+cp_gui:
+	mkdir -p $(SECONDO_DEMO)/Javagui
+	cp -R Javagui/Demo/* $(SECONDO_DEMO)/Javagui
+
+
+.PHONY: tar_demo
+tar_demo:
+	cd ./sec-demo; tar -cvzf ../sec-demo.tgz \
+	    --exclude-from ../opt_demo.exclude \
+	    --exclude-from ../bin_demo.exclude *
 
 srcprefix := secondo
 define checkTag

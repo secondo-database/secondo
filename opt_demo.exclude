@@ -1,0 +1,13 @@
+secondo/Optimizer/CVS
+secondo/Optimizer/Entropy
+secondo/Optimizer/Figures
+secondo/Optimizer/tmp
+
+secondo/Optimizer/SelfJoinTest.txt
+secondo/Optimizer/TestOptimizer
+secondo/Optimizer/adaptiveJoin.pl
+secondo/Optimizer/stored*pl
+secondo/Optimizer/tar.ex
+secondo/Optimizer/test.tgz
+secondo/Optimizer/opt_correl*
+secondo/Optimizer/*~
