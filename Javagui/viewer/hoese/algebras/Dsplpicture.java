@@ -104,7 +104,7 @@ private ListExpr theList;
 
 private static class PictureViewerFrame extends JFrame{
 
-/** Creates a new Frame displaying a single image .
+/** Creates a new Frame displaying a single image.
 */
 public PictureViewerFrame(){
 
