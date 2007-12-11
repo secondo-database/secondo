@@ -219,16 +219,22 @@ ProgMesHandler::handleMsg(NList msgList)
       prg++;
       string bar1(prg, '.');
       string bar2(50-prg, ' ');
-      int p= (ActValue*100 / TotalValue); 
+      int p= (ActValue*100 / TotalValue);
+      int restTime = ceil( rt/p * (100-p) );
+      int showMin = restTime / 60;
+      int showSec = restTime - (showMin * 60); 
+
       cout << "\r" << bar1 << bar2 
-           << " " << p << "% " 
-	   << "(run: " << ceil(rt) 
-	   << "s, rest: " << ceil( rt/p * (100-p) )  << "s)    " 
+           //<< " " 
+	   //<< p << "% " 
+	   //<< "(run: " << ceil(rt) 
+	   //<< "s, rest: " <<  restSecs << "s)    " 
+           << " remaining: " << showMin << ":" << showSec << " min  "
 	   << flush;
     }
     else
     {
-      cout <<  "feddisch!" << endl << endl;
+      cout << endl << "feddisch!" << endl << endl;
       delete s;
       s = 0;
       prg = 0;
