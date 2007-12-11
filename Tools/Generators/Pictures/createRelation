@@ -154,7 +154,7 @@ if [ "$#" = "0" ]; then
 fi
 
 
-HEADER="(OBJECT $1 ()  (rel (tuple ( (Filename text)($CONTENTNAME $CONTENTTYPE ) ))) ("
+HEADER="(OBJECT $1 ()  (rel (tuple ( (Filename filepath)($CONTENTNAME $CONTENTTYPE ) ))) ("
 
 shift
 
