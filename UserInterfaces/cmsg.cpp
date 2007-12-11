@@ -28,6 +28,7 @@ April 2007, M. Spiekermann. Some code moved from LogMsg.h into this file
 #include <vector>
 #include <string>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 
@@ -220,7 +221,7 @@ ProgMesHandler::handleMsg(NList msgList)
       string bar1(prg, '.');
       string bar2(50-prg, ' ');
       int p= (ActValue*100 / TotalValue);
-      int restTime = ceil( rt/p * (100-p) );
+      int restTime = static_cast<int>( ceil( rt/p * (100-p) ) );
       int showMin = restTime / 60;
       int showSec = restTime - (showMin * 60); 
 
@@ -229,7 +230,8 @@ ProgMesHandler::handleMsg(NList msgList)
 	   //<< p << "% " 
 	   //<< "(run: " << ceil(rt) 
 	   //<< "s, rest: " <<  restSecs << "s)    " 
-           << " remaining: " << showMin << ":" << showSec << " min  "
+           << " remaining: " << showMin << ":" 
+	   << setw(2) << setfill('0') << showSec << " min  "
 	   << flush;
     }
     else
