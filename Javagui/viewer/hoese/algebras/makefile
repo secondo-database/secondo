@@ -32,6 +32,7 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 all: $(CLASSFILES)
 	make -C periodic all
 	make -C network all
+	make -C fileviewers all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH):$(JARS) $<
@@ -42,3 +43,4 @@ clean:
 	rm -f *.class
 	make -C periodic clean
 	make -C network clean
+	make -C fileviewers clean
