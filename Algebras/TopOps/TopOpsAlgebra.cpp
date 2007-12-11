@@ -48,8 +48,12 @@ is given by a name together with a predicategroup. Basically, this
 can also be implemented by computing the topological relationship and
 check whether the result is contained in the given cluster. The advantage of a
 separate implementation is that we can exit the computation early in 
-many cases. 
+many cases.
+Additionally, this algebra provides some topological predicates using the
+standard predicate group. 
 
+Moreover, in this algebra are set operations for spatial types (union2, 
+intersection2, difference2, commonborder2) implemented.
 
 
 1 Includes, Constants, and Definitions 
@@ -2069,95 +2073,8 @@ bool GetInt9M(Line const* const line,
                 q.push(right1.convertToHs(false,first));
               }
            } else { // there is no overlapping segment
-
-             // check for splits with the left segment
-             if(leftN && !leftN->innerDisjoint(current)){
-               if(leftN->ininterior(current.getX1(), current.getY1())){
-                  leftN->splitAt(current.getX1(), current.getY1(),
-                                 left1,right1);
-                  sss.remove(*leftN);
-                  leftN = &left1;
-                  sss.insert(left1);
-                  q.push(left1.convertToHs(false,first));
-                  q.push(right1.convertToHs(true,first));
-                  q.push(right1.convertToHs(false,first));
-               } else if(leftN->ininterior(current.getX2(), current.getY2())){
-                  leftN->splitAt(current.getX2(), current.getY2(),
-                                 left1,right1);
-                  sss.remove(*leftN);
-                  leftN = &left1;
-                  sss.insert(left1);
-                  q.push(left1.convertToHs(false,first));
-                  q.push(right1.convertToHs(true,first));
-                  q.push(right1.convertToHs(false,first));
-               } else if(leftN->crosses(current)){
-                  leftN->splitCross(current,left1,right1, left2,right2);
-
-                  sss.remove(*leftN);
-                  leftN = &left1;
-                  sss.insert(left1);
-                  q.push(left1.convertToHs(false,first));
-                  q.push(right1.convertToHs(true,first));
-                  q.push(right1.convertToHs(false,first));
-                  
-                  current = left2;
-                  q.push(left2.convertToHs(false,first));
-                  q.push(right2.convertToHs(true,first));
-                  q.push(right2.convertToHs(false,first));
-               } else if(current.ininterior(leftN->getX2(), leftN->getY2())){
-                 current.splitAt(leftN->getX2(), leftN->getY2(),left1,right1);
-                 current=left1;
-                 q.push(left1.convertToHs(false,first));
-                 q.push(right1.convertToHs(true,first));
-                 q.push(right1.convertToHs(false,first));
-               } else { // forgotten case
-                   assert(false);
-               }
-             }
-             // do the same thing for the rigt neighbour
-             if(rightN && !rightN->innerDisjoint(current)){
-               if(rightN->ininterior(current.getX1(), current.getY1())){
-                  rightN->splitAt(current.getX1(), current.getY1(),
-                                  left1,right1);
-                  sss.remove(*rightN);
-                  rightN = &left1;
-                  sss.insert(left1);
-                  q.push(left1.convertToHs(false,first));
-                  q.push(right1.convertToHs(true,first));
-                  q.push(right1.convertToHs(false,first));
-               }else if(rightN->ininterior(current.getX2(), current.getY2())){
-                  rightN->splitAt(current.getX2(), current.getY2(),
-                                  left1, right1);
-                  sss.remove(*rightN);
-                  rightN = &left1;
-                  sss.insert(left1);
-                  q.push(left1.convertToHs(false,first));
-                  q.push(right1.convertToHs(true,first));
-                  q.push(right1.convertToHs(false,first));
-               } else if(rightN->crosses(current)){
-                  rightN->splitCross(current,left1,right1, left2,right2);
-                  sss.remove(*rightN);
-                  rightN = &left1;
-                  sss.insert(left1);
-                  q.push(left1.convertToHs(false,first));
-                  q.push(right1.convertToHs(true,first));
-                  q.push(right1.convertToHs(false,first));
-                  
-                  current = left2;
-                  q.push(left2.convertToHs(false,first));
-                  q.push(right2.convertToHs(true,first));
-                  q.push(right2.convertToHs(false,first));
-               }else if(current.ininterior(rightN->getX2(), rightN->getY2())){
-                 current.splitAt(rightN->getX2(), rightN->getY2(),
-                                 left1, right1);
-                 current=left1;
-                 q.push(left1.convertToHs(false,first));
-                 q.push(right1.convertToHs(true,first));
-                 q.push(right1.convertToHs(false,first));
-               } else { // forgotten case
-                   assert(false);
-               }
-             }
+             splitByNeighbour(sss,current,leftN,q,q);
+             splitByNeighbour(sss,current,rightN,q,q);
              sss.insert(current);
            } // no overlapping segment
        } else { // right event
@@ -2167,51 +2084,7 @@ bool GetInt9M(Line const* const line,
            if(member && member->exactEqualsTo(current)){ // segment found
 
               sss.remove(current);
-
-              if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
-                 // the neighbours are intersecting ... check how !
-                 
-                 // endpoint of leftN splits rightN
-                 if(rightN->ininterior(leftN->getX2(), leftN->getY2())){
-                    rightN->splitAt(leftN->getX2(), leftN->getY2(),
-                                    left1, right1);
-                    sss.remove(*rightN);
-                    rightN = &left1;
-                    sss.insert(left1);
-                    q.push(left1.convertToHs(false,first));
-                    q.push(right1.convertToHs(true,first));
-                    q.push(right1.convertToHs(false,first));
-                 }
-                 // endpoint of rightN splits leftN
-                 if(leftN->ininterior(rightN->getX2(), rightN->getY2())){
-                    leftN->splitAt(rightN->getX2(), rightN->getY2(),
-                                   left1, right1);
-                    sss.remove(*leftN);
-                    leftN = &left1;
-                    sss.insert(left1);
-                    q.push(left1.convertToHs(false,first));
-                    q.push(right1.convertToHs(true,first));
-                    q.push(right1.convertToHs(false,first));
-                 }
-
-                 // leftN and rightN are crossing
-                 if(rightN->crosses(*leftN)){
-                    rightN->splitCross(*leftN,left1,right1, left2,right2);
-                    sss.remove(*rightN);
-                    rightN = &left1;
-                    sss.remove(*leftN);
-                    leftN = &left2;
-
-                    sss.insert(left1);
-                    sss.insert(left2);
-                    q.push(left1.convertToHs(false,first));
-                    q.push(left2.convertToHs(false,first));
-                    q.push(right1.convertToHs(true,first));
-                    q.push(right1.convertToHs(false,first));
-                    q.push(right2.convertToHs(true,first));
-                    q.push(right2.convertToHs(false,first));
-                 }
-              }
+              splitNeighbours(sss,leftN,rightN,q,q);
            }
        }
      }
