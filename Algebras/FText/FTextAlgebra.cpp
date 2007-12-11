@@ -200,6 +200,44 @@ DeleteFText( const ListExpr typeInfo, Word& w )
   w.addr = 0;
 }
 
+
+/*
+2.8 ~Open~-function
+
+*/
+bool
+OpenFText( SmiRecord& valueRecord,
+                size_t& offset,
+                const ListExpr typeInfo,
+                Word& value )
+{
+  // This Open function is implemented in the Attribute class
+  // and uses the same method of the Tuple manager to open objects
+  FText *ft =
+    (FText*)Attribute::Open( valueRecord, offset, typeInfo );
+  value = SetWord( ft );
+  return true;
+}
+
+/*
+2.9 ~Save~-function
+
+*/
+bool
+SaveFText( SmiRecord& valueRecord,
+                size_t& offset,
+                const ListExpr typeInfo,
+                Word& value )
+{
+  FText *ft = (FText *)value.addr;
+
+  // This Save function is implemented in the Attribute class
+  // and uses the same method of the Tuple manager to save objects
+  Attribute::Save( valueRecord, offset, typeInfo, ft );
+  return true;
+}
+
+
 void
 CloseFText( const ListExpr typeInfo, Word& w )
 {
@@ -350,6 +388,8 @@ CheckFText( ListExpr type, ListExpr& errorInfo )
 }
 
 
+
+
 /*
 
 2.7 Creation of the type constructor instance
@@ -362,7 +402,8 @@ TypeConstructor ftext(
   OutFText,    InFText,         //Out and In functions
   0,           0,               //SaveToList and RestoreFromList functions
   CreateFText, DeleteFText,     //object creation and deletion
-  0, 0, CloseFText, CloneFText, //object open, save, close, and clone
+  OpenFText, SaveFText, 
+  CloseFText, CloneFText,       //close, and clone
   CastFText,                    //cast function
   SizeOfFText,                  //sizeof function
   CheckFText );                 //kind checking function

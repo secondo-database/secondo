@@ -52,6 +52,7 @@ using namespace std;
 #include "FLOB.h"
 #include "Base64.h"
 #include "BinaryFileAlgebra.h"
+#include "FTextAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -282,6 +283,21 @@ BinaryFileProperty()
                              nl->StringAtom(""))));
 }
 
+ListExpr
+FilePathProperty()
+{
+  return (nl->TwoElemList(
+            nl->FiveElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> DATA"),
+                             nl->StringAtom("filepath"),
+                             nl->StringAtom("<text>filename</text--->"),
+                             nl->StringAtom("<text>../image.jpg</text--->"),
+                             nl->StringAtom(""))));
+}
 /*
 2.6 ~Create~-function
 
@@ -394,8 +410,13 @@ CheckBinaryFile( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, "binfile" ));
 }
 
+bool
+CheckFilePath( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "filepath" ));
+}
 /*
-2.15 Creation of the Type Constructor Instance
+2.15 Creation of the Type Constructor Instances
 
 */
 TypeConstructor binfile(
@@ -410,6 +431,18 @@ TypeConstructor binfile(
   SizeOfBinaryFile,                    //sizeof function
 CheckBinaryFile );                     //kind checking function
 
+
+TypeConstructor filepath(
+  "filepath",                           //name
+  FilePathProperty,                  //property function describing signature
+  OutFText,  InFText,     //Out and In functions
+  0,                 0,                //SaveTo and RestoreFrom List functions
+  CreateFText,  DeleteFText, //object creation and deletion
+  OpenFText,    SaveFText,   //object open and save
+  CloseFText,   CloneFText,  //object close and clone
+  CastFText,                      //cast function
+  SizeOfFText,                    //sizeof function
+  CheckFilePath );                     //kind checking function
 /*
 4 Operators
 
@@ -506,6 +539,9 @@ class BinaryFileAlgebra : public Algebra
 
     binfile.AssociateKind("DATA");
     binfile.AssociateKind("FILE");
+    
+    AddTypeConstructor( &filepath );
+    filepath.AssociateKind("DATA");
 
     AddOperator( &saveto );
 

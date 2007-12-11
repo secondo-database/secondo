@@ -213,5 +213,28 @@ inline FLOB* FText::GetFLOB( const int i )
   return &theText;
 }
 
+
+Word CreateFText( const ListExpr typeInfo );
+
+void DeleteFText( const ListExpr typeInfo, Word& w );
+
+void CloseFText( const ListExpr typeInfo, Word& w );
+
+Word CloneFText( const ListExpr typeInfo, const Word& w );
+
+int SizeOfFText();
+
+void* CastFText( void* addr );
+
+ListExpr OutFText( ListExpr typeInfo, Word value );
+
+Word InFText( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct );
+
+bool OpenFText( SmiRecord& valueRecord, size_t& offset, 
+                const ListExpr typeInfo, Word& value );
+
+bool SaveFText( SmiRecord& valueRecord, size_t& offset,
+                const ListExpr typeInfo, Word& value );
 #endif 
 
