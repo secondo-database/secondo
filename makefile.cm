@@ -250,7 +250,8 @@ ifeq ($(platform),win32)
 DEMO_DEPS := $(PL_DLL_DIR)/*dll \
 	    $(PL_DLL_DIR)/pthreadVC*dll \
 	    $(JPL_JAR) \
-	    $(SECONDO_SDK)/auxtools/bin/libgsl*dll
+	    $(SECONDO_SDK)/auxtools/bin/libgsl*dll \
+	    $(SECONDO_SDK)/auxtools/bin/jpeg*dll
 
 else
 DEMO_DLL := $(PL_DLL_DIR)/libpl* \
@@ -276,6 +277,7 @@ mkdemodir:
 
 .PHONY: cp_deps
 cp_deps: $(DEMO_MAN) $(DEMO_DEPS) $(TPC_GEN)
+	make -C Tools/Generators/TPC-H
 	cp $^ $(SECONDO_DEMO)/bin
 	cp $(PL_LIB_DIR)/../boot32.prc $(SECONDO_DEMO)
 	cp -R $(PL_LIB_DIR)/../boot $(SECONDO_DEMO)
