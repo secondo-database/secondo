@@ -168,6 +168,9 @@ public FileViewerFrame(){
    public void actionPerformed(ActionEvent evt){
      if(baseDirSelect.showOpenDialog(FileViewerFrame.this)==JFileChooser.APPROVE_OPTION){
           baseDir = baseDirSelect.getSelectedFile().getAbsolutePath();
+          if(!baseDir.endsWith(File.separator)){
+            baseDir += File.separator;
+          }
      }
    }
   });
