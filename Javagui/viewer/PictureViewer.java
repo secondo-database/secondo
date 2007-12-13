@@ -67,7 +67,7 @@ import tools.*;
 import java.io.*;
 import java.awt.image.*;
 import java.lang.*;
-
+import viewer.hoese.algebras.Dsplfilepath;
 
 
 
@@ -117,6 +117,8 @@ extends SecondoViewer
 
  // the value of MAX_TEXT_LENGTH must be greater then five
  private final static int 	MAX_TEXT_LENGTH=100;
+
+ private Dsplfilepath fileView = new Dsplfilepath();
 
 
 
@@ -356,9 +358,16 @@ public void displayTableObject( int row, int col)
 		pictuPane.removeall();
 		metaText.setText("" );
 	   }
-	}
-	else
-	{
+	}if (CurrentTable.getColumnType(col).equals("filepath") ){
+    Object o = CurrentTable.getValueAt(row,col);
+    //System.out.println("Content:" + o);
+    //System.out.println(" Class    : " + o.getClass());
+    ListExpr p = new ListExpr();
+    p.readFromString(o.toString());
+    fileView.init(ListExpr.symbolAtom("filepath"),p,null);
+    fileView.displayExtern();
+    phVec = new Vector();
+	} else {
 	   //	there is nothing to do !
 	   //
 	   return;
@@ -919,6 +928,7 @@ This methode adds an Objects to the viewer, stores it and displays it.
 			  (elem.second().symbolValue().equals("real")) ||
 			  (elem.second().symbolValue().equals("bool")) ||
 			  (elem.second().symbolValue().equals("string")) ||
+			  (elem.second().symbolValue().equals("filepath")) ||
 			  (elem.second().symbolValue().equals("picture")) ||
 			  (elem.second().symbolValue().equals("histogram")) ||
 			  (elem.second().symbolValue().equals("instant")) )))

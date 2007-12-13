@@ -93,8 +93,10 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
      } else {
         Entry = V;
      }
-     // look for an possible Viewer
-     qr.addEntry(this);
+     // look for an possible Viewe
+     if(qr!=null){
+        qr.addEntry(this);
+     }
      return;
 }
 
