@@ -119,6 +119,7 @@ extends SecondoViewer
  private final static int 	MAX_TEXT_LENGTH=100;
 
  private Dsplfilepath fileView = new Dsplfilepath();
+ private ListExpr filepathtype = ListExpr.symbolAtom("filepath");
 
 
 
@@ -359,12 +360,7 @@ public void displayTableObject( int row, int col)
 		metaText.setText("" );
 	   }
 	}if (CurrentTable.getColumnType(col).equals("filepath") ){
-    Object o = CurrentTable.getValueAt(row,col);
-    //System.out.println("Content:" + o);
-    //System.out.println(" Class    : " + o.getClass());
-    ListExpr p = new ListExpr();
-    p.readFromString(o.toString());
-    fileView.init(ListExpr.symbolAtom("filepath"),p,null);
+    Dsplfilepath fileView = (Dsplfilepath) CurrentTable.getValueAt(row,col);
     fileView.displayExtern();
     phVec = new Vector();
 	} else {
@@ -549,17 +545,15 @@ private Vector getTupleValues(ListExpr LE, Vector vtypes )
 		//
 		String type = (String) vtypes.elementAt(index++);
 
-		if ( type.equals( "picture" ))
-		{
+		if ( type.equals( "picture" )) {
 			tupleVec.add( getExprPicIcon( attributeValue ));
-		}
-		else
-		if ( type.equals( "histogram" ))
-		{
+		} else if ( type.equals( "histogram" )) {
 			tupleVec.add( getExprHistogram( attributeValue ));
-		}
-		else
-		{
+		}  else if ( type.equals( "filepath" )) {
+       Dsplfilepath fp = new Dsplfilepath();
+       fp.init(filepathtype,attributeValue,null);
+       tupleVec.add(fp);
+    }else {
 			tupleVec.add( attributeValue.writeListExprToString() );
 		}
 	}

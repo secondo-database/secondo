@@ -88,11 +88,11 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
      }
      T=extendString(T,typewidth);
      text = V;
-     if(V.length()>MAX_DIRECT_DISPLAY_LENGTH){
-        Entry = V.substring(0,MAX_DIRECT_DISPLAY_LENGTH);
-     } else {
-        Entry = V;
-     }
+     File f = new File(V);
+     Entry = f.getName();
+     if(Entry.length()>MAX_DIRECT_DISPLAY_LENGTH){
+        Entry = Entry.substring(0,MAX_DIRECT_DISPLAY_LENGTH-3)+"...";
+     } 
      // look for an possible Viewe
      if(qr!=null){
         qr.addEntry(this);
@@ -114,7 +114,7 @@ private static FileViewerFrame Display=null;
 private String Entry; // shortened filename
 private String text;  // full filename
 
-private static final int MAX_DIRECT_DISPLAY_LENGTH = 30;
+private static final int MAX_DIRECT_DISPLAY_LENGTH = 15;
 
 private static final String WHITESPACES = " \t\n\r";
 
