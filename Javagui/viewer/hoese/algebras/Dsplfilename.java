@@ -126,6 +126,8 @@ private static NoFileViewer noFileViewer;
 private static JFileChooser baseDirSelect;
 private String baseDir = "./";
 
+private JLabel fullName;
+
 public FileViewerFrame(){
  if(fileViewers==null){
     fileViewers = new Vector();
@@ -158,6 +160,10 @@ public FileViewerFrame(){
   controlPanel.add(repaintBtn);
   controlPanel.add(closeBtn);
   
+  fullName = new JLabel("");
+  JPanel p = new JPanel();
+  p.add(fullName);
+  getContentPane().add(p,BorderLayout.NORTH);
   getContentPane().add(Display,BorderLayout.CENTER);
   getContentPane().add(controlPanel,BorderLayout.SOUTH);
 
@@ -183,6 +189,7 @@ public FileViewerFrame(){
 public void setSource(Dsplfilename S){
   Source = S;
   // add processing of the base directory here
+  fullName.setText(S.text);
   File f = new File(S.text);
   if(!f.isAbsolute()){
      f = new File(baseDir,S.text);
