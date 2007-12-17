@@ -1,7 +1,36 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//[_] [\_]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]  [}]
+//characters      [4]   teletype:   [\texttt{]  [}]
+
+November/December 2007, Mirko Dibbert
+
 //[_] [\_]
 
-3.2.3 Implementation Part (file: MetricRegistry.cpp)
+5.8 Implementation of class "MetricRegistry"[4] (file: MetricRegistry.cpp)
 
 */
 
@@ -15,6 +44,7 @@ using namespace std;
 #include "StandardTypes.h"
 #include "PictureAlgebra.h"
 #include "JPEGPicture.h"
+#include <fstream>
 
 extern SecondoInterface* si;
 
@@ -24,6 +54,12 @@ Initialize static members :
 */
 bool MetricRegistry::initialized = false;
 map< string, MetricRegistry::MetricData > MetricRegistry::metric_map;
+map< string, string > MetricRegistry::defaults;
+
+double MetricRegistry::pictureSimMatrix[128][128];
+double MetricRegistry::pictureSimMatrix2[256][256];
+double MetricRegistry::pictureSimMatrix3[256][256];
+
 
 /*
 Method ~registerMetric~ :
@@ -36,17 +72,18 @@ the result list. The algebra- and type-id are only used to order the output of
 */
 void
 MetricRegistry::registerMetric( const string& metricName,
-                const MetricData& data )
+                const MetricData& data, bool isDefault )
 {
   int algebraId, typeId;
   si->GetTypeId( data.tcName, algebraId, typeId );
 
   ostringstream osId;
-  osId << algebraId << "#" << typeId << ".";
-  if ( metricName != MF_DEFAULT )
-    osId << metricName;
+  osId << algebraId << "#" << typeId << "." << metricName;
 
   metric_map[osId.str()] = data;
+
+  if ( isDefault )
+    defaults[ data.tcName ] = metricName;
 }
 
 /*
@@ -62,11 +99,25 @@ MetricRegistry::getMetric( const string& tcName,
 
   int algebraId, typeId;
   si->GetTypeId( tcName, algebraId, typeId );
-
   ostringstream osId;
   osId << algebraId << "#" << typeId << ".";
-  if ( metricName != MF_DEFAULT )
+
+  if ( metricName == "default" )
+  { // search default metric for type constructor 'tcName'
+    map< string, string >::iterator pos = defaults.find( tcName );
+    if ( pos != defaults.end() )
+    {
+      osId << pos->second;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+  else
+  {
     osId << metricName;
+  }
 
   map< string, MetricData >::iterator pos =
       metric_map.find( osId.str() );
@@ -75,7 +126,10 @@ MetricRegistry::getMetric( const string& tcName,
   {
     return pos->second.metric;
   }
-  else return 0;
+  else
+  {
+    return 0;
+  }
 }
 
 /*
@@ -90,11 +144,25 @@ TGetDataFun MetricRegistry::getDataFun( const string& tcName,
 
   int algebraId, typeId;
   si->GetTypeId( tcName, algebraId, typeId );
-
   ostringstream osId;
   osId << algebraId << "#" << typeId << ".";
-  if ( metricName != MF_DEFAULT )
+
+  if ( metricName == "default" )
+  { // search default metric for type constructor 'tcName'
+    map< string, string >::iterator pos = defaults.find( tcName );
+    if ( pos != defaults.end() )
+    {
+      osId << pos->second;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+  else
+  {
     osId << metricName;
+  }
 
   map< string, MetricData >::iterator pos =
       metric_map.find( osId.str() );
@@ -128,7 +196,7 @@ MetricRegistry::listMetrics()
     // get metricName
     string metricName = key.substr( key.find( '.' ) + 1 );
     if ( metricName == "" )
-      metricName = MF_DEFAULT;
+      metricName = "default";
 
     // get tcName
     string tcName = pos->second.tcName;
@@ -148,7 +216,7 @@ MetricRegistry::listMetrics()
 Below, the avaliable getData methods will be implemented:
 
 *******************************************************************************/
-DistData* MetricRegistry::GetDataInt( void* attr )
+DistData* MetricRegistry::getDataInt( void* attr )
 {
   int value = static_cast<CcInt*>(attr)->GetValue();
   char buffer[sizeof(int)];
@@ -156,7 +224,7 @@ DistData* MetricRegistry::GetDataInt( void* attr )
   return new DistData( sizeof(int), buffer );
 }
 
-DistData* MetricRegistry::GetDataReal( void* attr )
+DistData* MetricRegistry::getDataReal( void* attr )
 {
   SEC_STD_REAL value =
       static_cast<CcReal*>(attr)-> GetValue();
@@ -165,54 +233,10 @@ DistData* MetricRegistry::GetDataReal( void* attr )
   return new DistData( sizeof(SEC_STD_REAL), buffer );
 }
 
-DistData* MetricRegistry::GetDataString( void* attr )
+DistData* MetricRegistry::getDataString( void* attr )
 {
   string value = static_cast<CcString*>( attr )-> GetValue();
   return new DistData( value );
-}
-
-DistData* MetricRegistry::GetDataHistogram( void* attr )
-{
-  return new DistData("");
-}
-
-/*
-Method GetDataPicture64Cols
-
-*/
-DistData* MetricRegistry::GetDataPicture( void* attr )
-{
-  unsigned long size;
-  const char* imgdata = static_cast<Picture*>( attr )->
-      GetJPEGData(size);
-
-  JPEGPicture rgb( (unsigned char *) imgdata, size );
-
-  unsigned long int rgbSize;
-  unsigned char* rgbData = rgb.GetImageData( rgbSize );
-  const unsigned int numOfPixels = rgbSize/3;
-
-  unsigned long colorhist_abs[64];
-  double colorhist[64];
-  for (int i=0; i<64; i++)
-  {
-    colorhist_abs[i] = 0;
-    colorhist[i] = 0;
-  }
-
-  for (unsigned long pos=0; pos<(numOfPixels); pos++)
-  {
-    char r = rgbData[(3*pos)] / 64;
-    char g = rgbData[(3*pos)+1] / 64;
-    char b = rgbData[(3*pos)+2] / 64;
-    colorhist_abs[(16*r)+(4*g)+b]++;
-  }
-
-  for (int i=0; i<64; i++)
-  {
-    colorhist[i] = (double)colorhist_abs[i] / numOfPixels;
-  }
-  return new DistData(64*sizeof(double), &colorhist);
 }
 
 /*******************************************************************************
@@ -298,18 +322,242 @@ void MetricRegistry::EditDistance(
   result = ( double ) d[len1][len2];
 }
 
-/*
-Method ~HistogramMetric~ :
-
-*/
-void MetricRegistry::HistogramMetric(
-    const void* data1, const void* data2, double& result )
+void rgb2hsv( unsigned char r, unsigned char g, unsigned char b,
+              int &h, int &s, int &v )
 {
-  // TODO compute result value
+    unsigned char rgbMin = min( min( r, g ), b );
+    unsigned char rgbMax = max( max( r, g ), b );
+    unsigned char delta = rgbMax - rgbMin;
+
+    // compute h
+    if ( delta == 0 )
+    {
+      h = 0;
+    }
+    else
+    {
+      if ( rgbMax == r )
+      {
+        h = 60 * (g - b) / delta;
+      }
+      else if ( rgbMax == g )
+      {
+        h = 120 * (g - b) / delta;
+      }
+      else // rgbMax == b
+      {
+        h = 240 * (g - b) / delta;
+      }
+    }
+
+    if ( h < 0 )
+      h += 360;
+
+    // compute s
+    if ( rgbMax == 0 )
+      s = 0;
+    else
+      s = 255 * delta / rgbMax;
+
+    // compute v
+    v = rgbMax;
+}
+
+void rgb2lab( unsigned char r, unsigned char g, unsigned char b,
+              double &Lab_L, double &Lab_a, double &Lab_b )
+{
+  double R, G, B;
+  double rd = (double)r/255;
+  double gd = (double)g/255;
+  double bd = (double)b/255;
+
+  // compute R
+  if ( r <= 10 )
+    R = rd / 12.92;
+  else
+    R = pow( (rd+0.055)/1.055, 2.2 );
+
+  // compute G
+  if ( g <= 10 )
+    G = gd / 12.92;
+  else
+    G = pow( (gd+0.055)/1.055, 2.2 );
+
+  // compute B
+  if ( b <= 10 )
+    B = bd / 12.92;
+  else
+    B = pow( (bd+0.055)/1.055, 2.2 );
+
+  // compute X,Y,Z coordinates of r,g,b
+  double X = 0.4124240 * R + 0.357579 * G + 0.1804640 * B;
+  double Y = 0.2126560 * R + 0.715158 * G + 0.0721856 * B;
+  double Z = 0.0193324 * R + 0.119193 * G + 0.9504440 * B;
+
+  /* used chromacity coordinates of whitepoint D65:
+     x = 0.312713, y = 0.329016
+
+     the respective XYZ coordinates are
+     Y = 1,
+     X = Y * x / y       = 0.9504492183, and
+     Z = Y * (1-x-y) / y = 1.0889166480
+  */
+
+  double eps = 0.008856; // = 216 / 24389
+
+  double x = X / 0.95045;
+  double y = Y;
+  double z = Z / 1.08892;
+
+  long double fx, fy, fz;
+
+  if (x > eps)
+    fx = pow( x, 0.333333 );
+  else
+    fx = 7.787 * x + 0.137931;
+
+  if (y > eps)
+    fy = pow( y, 0.333333 );
+  else
+    fx = 7.787 * y + 0.137931;
+
+  if (z > eps)
+    fz = pow( z, 0.333333 );
+  else
+    fx = 7.787 * z + 0.137931;
+
+  // compute Lab coordinates
+  Lab_L = (116  * fy) - 16;
+  Lab_a = 500 * ( fx - fy );
+  Lab_b = 200 * ( fy - fz );
 }
 
 /*
-Method ~PictureMetric~ :
+Method ~getDataPicture~ :
+
+*/
+
+DistData* MetricRegistry::getDataPicture( void* attr )
+{
+  unsigned long size;
+  const char* imgdata = static_cast<Picture*>( attr )->
+      GetJPEGData(size);
+
+  JPEGPicture rgb( (unsigned char *) imgdata, size );
+
+  unsigned long int rgbSize;
+  unsigned char* rgbData = rgb.GetImageData( rgbSize );
+
+  const unsigned int numOfPixels = rgbSize/3;
+
+  unsigned long colorhist_abs[128];
+  double colorhist[128];
+
+  for (int i=0; i<128; i++)
+    colorhist_abs[i] = 0;
+
+  for (unsigned long pos=0; pos<(numOfPixels); pos++)
+  {
+    int h,s,v;
+    unsigned char r = rgbData[(3*pos)];
+    unsigned char g = rgbData[(3*pos)+1];
+    unsigned char b = rgbData[(3*pos)+2];
+
+    rgb2hsv( r, g, b, h, s, v );
+
+    int h_offset = h/45;  // 8 parts
+    int s_offset = s/64;  // 4 parts
+    int v_offset = v/128; // 4 parts
+    colorhist_abs[16*h_offset + 4*s_offset + v_offset]++;
+  }
+
+  for (int i=0; i<128; i++)
+    colorhist[i] = (double)colorhist_abs[i] / numOfPixels;
+
+return new DistData(128*sizeof(double), &colorhist);
+}
+
+DistData* MetricRegistry::getDataPicture2( void* attr )
+{
+  unsigned long size;
+  const char* imgdata = static_cast<Picture*>( attr )->
+      GetJPEGData(size);
+
+  JPEGPicture rgb( (unsigned char *) imgdata, size );
+
+  unsigned long int rgbSize;
+  unsigned char* rgbData = rgb.GetImageData( rgbSize );
+
+  const unsigned int numOfPixels = rgbSize/3;
+
+  unsigned long colorhist_abs[256];
+  double colorhist[256];
+
+  for (int i=0; i<256; i++)
+    colorhist_abs[i] = 0;
+
+  for (unsigned long pos=0; pos<(numOfPixels); pos++)
+  {
+    int h,s,v;
+    unsigned char r = rgbData[(3*pos)];
+    unsigned char g = rgbData[(3*pos)+1];
+    unsigned char b = rgbData[(3*pos)+2];
+
+    rgb2hsv( r, g, b, h, s, v );
+
+    int h_offset = (int)(h/22.5); // 16 parts
+    int s_offset = s/64;          // 4 parts
+    int v_offset = v/128;         // 4 parts
+    colorhist_abs[16*h_offset + 4*s_offset + v_offset]++;
+  }
+
+  for (int i=0; i<256; i++)
+    colorhist[i] = (double)colorhist_abs[i] / numOfPixels;
+
+  return new DistData(256*sizeof(double), &colorhist);
+}
+
+DistData* MetricRegistry::getDataPicture3( void* attr )
+{
+  unsigned long size;
+  const char* imgdata = static_cast<Picture*>( attr )->
+      GetJPEGData(size);
+
+  JPEGPicture rgb( (unsigned char *) imgdata, size );
+
+  unsigned long int rgbSize;
+  unsigned char* rgbData = rgb.GetImageData( rgbSize );
+
+  const unsigned int numOfPixels = rgbSize/3;
+
+  unsigned long colorhist_abs[256];
+  double colorhist[256];
+
+  for (int i=0; i<256; i++)
+    colorhist_abs[i] = 0;
+
+  for (unsigned long pos=0; pos<(numOfPixels); pos++)
+  {
+    unsigned char r = rgbData[(3*pos)];
+    unsigned char g = rgbData[(3*pos)+1];
+    unsigned char b = rgbData[(3*pos)+2];
+
+    Lab lab(r, g, b);
+
+    int L_offset = (int)(lab.L / 25);
+    int A_offset = (int)((lab.a+86) / 24);  // [0, 184]
+    int B_offset = (int)((lab.b+107) / 26);   // [0, 201]
+    colorhist_abs[64*L_offset + 8*A_offset + B_offset]++;
+  }
+
+  for (int i=0; i<256; i++)
+    colorhist[i] = (double)colorhist_abs[i] / numOfPixels;
+
+  return new DistData(256*sizeof(double), &colorhist);
+}
+
+/*
+Method PictureMetric1 :
 
 */
 void MetricRegistry::PictureMetric(
@@ -321,13 +569,130 @@ void MetricRegistry::PictureMetric(
   const double* values2 = static_cast<const double*>
       ( static_cast<const DistData*>( data2 )->value() );
 
-  result = 0;
+  long double res = 0;
 
-  for (int i=0; i<64; i++)
-    result += pow(( values1[i] - values2[i] ), 2);
+  for (int pos1 = 0; pos1<128; pos1++)
+    for (int pos2 = 0; pos2<128; pos2++)
+    {
+      res += ( (values1[pos1] - values2[pos1])  *
+              ( values1[pos2] - values2[pos2]) *
+                pictureSimMatrix[pos1][pos2] );
+    }
 
-  result = sqrt(result);
-//   cout << result << endl;
+   result = sqrt(res);
+}
+
+/*
+Method PictureMetric2 :
+
+*/
+void MetricRegistry::PictureMetric2(
+    const void* data1, const void* data2, double& result )
+{
+  const double* values1 = static_cast<const double*>
+      ( static_cast<const DistData*>( data1 )->value() );
+
+  const double* values2 = static_cast<const double*>
+      ( static_cast<const DistData*>( data2 )->value() );
+
+  long double res = 0;
+
+  for (int pos1 = 0; pos1<256; pos1++)
+    for (int pos2 = 0; pos2<256; pos2++)
+    {
+      res += ( (values1[pos1] - values2[pos1])  *
+              ( values1[pos2] - values2[pos2]) *
+                pictureSimMatrix2[pos1][pos2] );
+    }
+
+   result = sqrt(res);
+}
+
+/*
+Method PictureMetric3 :
+
+*/
+void MetricRegistry::PictureMetric3(
+    const void* data1, const void* data2, double& result )
+{
+  const double* values1 = static_cast<const double*>
+      ( static_cast<const DistData*>( data1 )->value() );
+
+  const double* values2 = static_cast<const double*>
+      ( static_cast<const DistData*>( data2 )->value() );
+
+  long double res = 0;
+
+  for (int pos1 = 0; pos1<256; pos1++)
+    for (int pos2 = 0; pos2<256; pos2++)
+    {
+      res += ( (values1[pos1] - values2[pos1])  *
+              ( values1[pos2] - values2[pos2]) *
+                pictureSimMatrix3[pos1][pos2] );
+    }
+
+   result = sqrt(res);
+}
+
+void
+MetricRegistry::InitPictureMetric()
+{
+  for (int h1=0; h1<8; h1++)
+    for (int s1=0; s1<4; s1++)
+      for (int v1=0; v1<4; v1++)
+        for (int h2=0; h2<8; h2++)
+          for (int s2=0; s2<4; s2++)
+            for (int v2=0; v2<4; v2++)
+              {
+                double d1 = pow(0.25 * (v1-v2), 2);
+                double d2 = pow((0.125+(s1*0.25)) * cos((h1*45)) -
+                                (0.125+(s2*0.25)) * cos((h2*45)), 2);
+                double d3 = pow((0.125+(s1*0.25)) * sin((h1*45)) -
+                                (0.125+(s2*0.25)) * sin((h2*45)), 2);
+
+                int pos1 = (16*h1)+(4*s1)+v1;
+                int pos2 = (16*h2)+(4*s2)+v2;
+                pictureSimMatrix[pos1][pos2]
+                    = exp((-2)*sqrt(d1+d2+d3));
+              }
+
+  for (int h1=0; h1<16; h1++)
+    for (int s1=0; s1<4; s1++)
+      for (int v1=0; v1<4; v1++)
+        for (int h2=0; h2<16; h2++)
+          for (int s2=0; s2<4; s2++)
+            for (int v2=0; v2<4; v2++)
+              {
+                double d1 = pow(0.25 * (v1-v2), 2);
+                double d2 = pow((0.125+(s1*0.25)) * cos((h1*22.5)) -
+                              (0.125+(s2*0.25)) * cos((h2*22.5)), 2);
+                double d3 = pow((0.125+(s1*0.25)) * sin((h1*22.5)) -
+                              (0.125+(s2*0.25)) * sin((h2*22.5)), 2);
+
+                int pos1 = (16*h1)+(4*s1)+v1;
+                int pos2 = (16*h2)+(4*s2)+v2;
+                pictureSimMatrix2[pos1][pos2]
+                    = exp((-2)*sqrt(d1+d2+d3));
+              }
+
+  for (int L1=0; L1<4; L1++)
+    for (int a1=0; a1<8; a1++)
+      for (int b1=0; b1<8; b1++)
+        for (int L2=0; L2<4; L2++)
+          for (int a2=0; a2<8; a2++)
+            for (int b2=0; b2<8; b2++)
+              {
+                double d = (
+                    pow(25.0 * (L1-L2), 2) +
+                    pow(24.0 * (a1-a2), 2) +
+                    pow(26.0 * (b1-b2), 2) );
+
+                int pos1 = (64*L1)+(8*a1)+b1;
+                int pos2 = (64*L2)+(8*a2)+b2;
+                pictureSimMatrix3[pos1][pos2]
+                    = exp((-2)*sqrt(d));
+              }
+
 }
 
 /*
@@ -355,28 +720,58 @@ The MF[_]Data constructor takes the following parameter:
 void
 MetricRegistry::initialize()
 {
+
+  if ( initialized )
+    return;
+
+  const bool isDefault = true;
+
   //int type constructor
-  registerMetric( MF_DEFAULT,
-      MetricData( "int", &EuclideanInt, &GetDataInt,
-      "Euclidean distance metric" ));
+  registerMetric( "Euclid", MetricData(
+      "int",         // type constructor
+      &EuclideanInt, // metric
+      &getDataInt,   // getData function
+      "Euclidean distance metric"
+      ), isDefault );
 
   // real type constructor
-  registerMetric( MF_DEFAULT,
-      MetricData( "real", &EuclideanReal, &GetDataReal,
-      "Euclidean distance metric" ));
+  registerMetric( "Euclid", MetricData(
+      "real",         // type constructor
+      &EuclideanReal, // metric
+      &getDataReal,   // getData function
+      "Euclidean distance metric"
+      ), isDefault );
 
   // string type constructor
-  registerMetric( MF_DEFAULT,
-      MetricData( "string", &EditDistance, GetDataString,
-      "Edit distance metric" ));
+  registerMetric( "EditDist", MetricData(
+      "string",       // type constructor
+      &EditDistance,  // metric
+      &getDataString, // getData function
+      "Edit distance metric"
+      ), isDefault );
 
-  // histogram type constructor
-  registerMetric( MF_DEFAULT,
-      MetricData( "histogram", &HistogramMetric, &GetDataHistogram,
-      "Not yet implemented" ));
+  registerMetric( "hsv128", MetricData(
+      "picture",       // type constructor
+      &PictureMetric, // metric
+      &getDataPicture, // getData function
+      "Quadratic distance metric (HSV hisogram with 128 bins)"
+      ));
 
-  // picture type constructor
-  registerMetric( MF_DEFAULT,
-      MetricData( "picture", &PictureMetric, &GetDataPicture,
-      "Not yet implemented" ));
+  registerMetric( "hsv256", MetricData(
+      "picture",       // type constructor
+      &PictureMetric2, // metric
+      &getDataPicture2, // getData function
+      "Quadratic distance metric (HSV hisogram with 256 bins)"
+      ));
+
+  registerMetric( "lab", MetricData(
+      "picture",       // type constructor
+      &PictureMetric3, // metric
+      &getDataPicture3, // getData function
+      "Quadratic distance metric (LAB histogram with 256 bins)"
+      ), isDefault );
+
+InitPictureMetric();
+
+  initialized = true;
 }
