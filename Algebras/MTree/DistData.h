@@ -1,6 +1,4 @@
 /*
-//[_] [\_]
-
 ----
 This file is part of SECONDO.
 
@@ -22,68 +20,82 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-3.4 Class ~DistData~
+//[_] [\_]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]  [}]
+//characters      [4]   teletype:   [\texttt{]  [}]
+//paragraph [24]  table3columns:    [\begin{quote}\begin{tabular}{llll}][\end{tabular}\end{quote}]
+//[--------]      [\hline]
 
-December 2007, Mirko Dibbert
+4.3 Class ~DistData~ (file: DistData.h)
 
-3.4.1 Class description
+November/December 2007, Mirko Dibbert
 
-This class contains a data array, which contains all neccecary data for
-distance computations. For each metric, the respective objects will be
-created with the "getDistData"[4] method of the corresponding attribute class.
+4.3.1 Class Description
 
-3.4.2 Definition part (file: DistData.h)
+This class provides a data array, which contains all neccecary data for distance
+computations with the metrics defined in class "MetricRegistry"[4].
+\\[3ex]
+This class provides the following constructors:
+
+----
+DistData( size_t size, const void* value )
+----
+Creates a new object with length "size"[4] and read it's value from "value"[4].
+
+----
+DistData( const string value )
+----
+Creates a new object from the string.
+
+----
+DistData( const char* buffer, int& offset )
+----
+Creates a new object and read it's size and value from
+buffer, starting at position offset - offset will be increased.
+
+----
+DistData( const DistData& e )
+----
+Copy constructor.
+\\[3ex]
+This class provides the following methods:
+
+[24]  getter    & I/O     & create/delete    & miscellaneous   \\
+[--------]
+  value         & write   & copy             & operator =      \\
+  size          &         & deleteIfAllowed  & objectsOpen
+
+4.3.2 Class definition
 
 */
-#ifndef __DISTDATA_H
-#define __DISTDATA_H
+#ifndef DISTDATA_H
+#define DISTDATA_H
 
-// #define __DEBUG_DISTDATA
+// #define __DISTDATA_DEBUG
 
 #include <iostream>
 #include <string>
 #include "assert.h"
-#include "LogMsg.h"
+
+using namespace std;
 
 class DistData
 {
-  size_t m_size;
-  char* m_value;
-  unsigned char m_refs;
 
 public:
   inline DistData( size_t size, const void* value )
-  : m_size( size ), m_value( new char[size] ), m_refs( 1 )
+  : m_size( size ), m_value( new char[m_size] ), m_refs( 1 )
   {
     memcpy( m_value, value , m_size );
 
-    #ifdef __DEBUG_DISTDATA
-    DistData::m_created++;
+    #ifdef __DISTDATA_DEBUG
+    m_objectsOpen++;
     #endif
   }
 /*
-Constructor, creates a new object with length "size"[4] and read it's value
-from "value"[4].
-
-*/
-
-  inline DistData( const char* buffer, int& offset )
-  : m_refs ( 1 )
-  {
-    memcpy( &m_size, buffer + offset, sizeof(size_t) );
-    offset += sizeof(size_t);
-
-    m_value = new char[m_size];
-    memcpy( m_value, buffer + offset, m_size );
-    offset += m_size;
-
-#ifdef __DEBUG_DISTDATA
-    DistData::m_created++;
-#endif
-  }
-/*
-Read constructor, creates a new object and read it's size and value from
-buffer, starting at position offset - offset is increased.
+Constructor.
 
 */
 
@@ -92,12 +104,33 @@ buffer, starting at position offset - offset is increased.
   {
     memcpy( m_value, value.c_str(), m_size );
 
-#ifdef __DEBUG_DISTDATA
-    DistData::m_created++;
-#endif
+    #ifdef __DISTDATA_DEBUG
+    m_objectsOpen++;
+    #endif
   }
 /*
-Constructor, creates a new object from a string.
+Constructor.
+
+*/
+
+  inline DistData( const char* buffer, int& offset )
+  : m_refs ( 1 )
+  {
+    // read m_size
+    memcpy( &m_size, buffer+offset, sizeof(size_t) );
+    offset += sizeof(size_t);
+
+    // read m_value
+    m_value = new char[m_size];
+    memcpy( m_value, buffer+offset, m_size );
+    offset += m_size;
+
+    #ifdef __DISTDATA_DEBUG
+    m_objectsOpen++;
+    #endif
+  }
+/*
+Constructor.
 
 */
 
@@ -106,9 +139,9 @@ Constructor, creates a new object from a string.
   {
     memcpy( m_value, e.m_value, e.m_size );
 
-#ifdef __DEBUG_DISTDATA
-    DistData::m_created++;
-#endif
+    #ifdef __DISTDATA_DEBUG
+    m_objectsOpen++;
+    #endif
   }
 /*
 Copy constructor.
@@ -119,76 +152,95 @@ Copy constructor.
   {
     delete m_value;
 
-#ifdef __DEBUG_DISTDATA
+    #ifdef __DISTDATA_DEBUG
     assert( !m_refs );
-    DistData::m_deleted++;
-#endif
+    m_objectsOpen--;
+    #endif
   }
 /*
-The Destructor.
+Destructor.
+
+*/
+
+  inline const void* value() const
+  {
+    return m_value;
+  }
+/*
+Returns a reference to the data array stored in m[_]value.
+
+*/
+
+  inline size_t size() const
+  {
+    return m_size;
+  }
+/*
+Returns the size of the data array
 
 */
 
   inline DistData* copy()
   {
-    if( m_refs == numeric_limits<unsigned char>::max() )
+    if( m_refs < numeric_limits<unsigned char>::max() )
+    {
+      m_refs++;
+      return this;
+    }
+    else
+    {
       return new DistData( *this );
-
-    m_refs++;
-    return this;
+    }
   }
-
-  inline void deleteIfAllowed()
-  {
-    --m_refs;
-    if ( !m_refs )
-      delete this;
-  }
-
-  inline const void* value() const
-  { return m_value; }
 /*
-Returns "m[_]value"[4].
+Returns a pointer to the current object and increases the reference counter.
+In case of counter overflow, a new copy of the object would be returned instead.
 
 */
 
-  inline size_t size() const
-  { return m_size; }
+  inline void deleteIfAllowed()
+  {
+    #ifdef __DISTDATA_DEBUG
+    assert( m_refs > 0 );
+    #endif
+
+    m_refs--;
+    if ( !m_refs )
+      delete this;
+  }
 /*
-Returns "m[_]size"[4].
+Decreases the reference counter and deletes the object
+if no more references exist.
 
 */
 
   DistData& operator=( const DistData& e );
 /*
-Assignment Operator.
+Assignment Operator, copies the values from "data"[4] to the current object.
 
 */
 
   void write( char* buffer, int& offset ) const;
 /*
-Writes the data string to the buffer at position offset. Offset is increased.
+Writes the object to the buffer at position offset. Offset is increased.
 
 */
 
-#ifdef __DEBUG_DISTDATA
+  static inline size_t objectsOpen()
+  {
+    return m_objectsOpen;
+  }
 /*
-The following methods are implemented for debugging purposes:
+This method returns the count of open objects (if "[_][_]DISTDATA[_]DEBUG"[4] is
+not defined, this method will allways return 0).
 
 */
+
 private:
-  static size_t m_created, m_deleted;
-
-public:
-  static inline size_t created() const
-  { return m_created; }
-
-  static inline size_t deleted() const
-  { return m_deleted; }
-
-  static inline size_t openObjects() const
-  { return ( m_created - m_deleted ); }
-#endif
+  size_t          m_size;        // length of the data array
+  char*           m_value;       // contains the data array
+  unsigned char   m_refs;        // reference counter
+  static unsigned m_objectsOpen; // currently open objects
 
 }; // class DistData
 
