@@ -22,15 +22,24 @@
 # makefile for MTreeAlgebra module
 #
 ########################################################################
-DOCU_FILES = MT1 MTreeAlgebra.h MTreeAlgebra.cpp\
-			 MT2 MTree.h MTree.cpp\
-			 MT3 MTNodeMngr.h MTNodeMngr.h\
-			 MT4 MTNode.h MTNode.cpp\
-             MT5 MTEntry.h MTEntry.cpp\
-             MT6 MTSplitpol.h MTSplitpol.cpp\
-             MT7 MetricRegistry.h MetricRegistry.cpp\
-             MT9 DistData.h DistData.cpp\
-             MT10 MTreeConfig.h MTreeConfig.cpp
+DOCU_FILES = MT1 MTreeAlgebra.h \
+             MT2 MTree.h \
+             MT3 MTreeNodeMngr.h \
+             MT4 MTreeNode.h \
+             MT5 MTreeEntry.h \
+             MT6 MTreeSplitpol.h \
+             MT7 MTreeConfig.h \
+             MT8 MetricRegistry.h \
+             MT9 DistData.h \
+             MT10 MTreeAlgebra.cpp \
+             MT11 MTree.cpp \
+             MT12 MTreeNodeMngr.cpp \
+             MT13 MTreeNode.cpp \
+             MT14 MTreeEntry.cpp \
+             MT15 MTreeSplitpol.cpp \
+             MT16 MTreeConfig.cpp\
+             MT17 MetricRegistry.cpp \
+             MT18 DistData.cpp
 
 DOCU = docu
 
