@@ -20,20 +20,33 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-3.5 Configuring m-trees
+//[_] [\_]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]  [}]
+//characters      [4]   teletype:   [\texttt{]  [}]
+
+2.7 Class ~MT::MTreeConfigReg~ (file: MTreeConfig.h)
 
 December 2007, Mirko Dibbert
 
-3.5.1 Overview
+2.7.1 Class description
 
-TODO
+This class manages the different "MTreeConfig"[4] objects. These objects
+contain configuration data for mtrees, which set the split policy and the
+maximum number of entries per node.
 
-3.5.2 Definition part (file: MTreeConfig.h)
+2.7.2 Class definition
 
 */
+
+#ifndef MTREE_CONFIG_H
+#define MTREE_CONFIG_H
+
 #include <string>
 #include <map>
-#include "MTSplitpol.h"
+#include "MTreeSplitpol.h"
+#include "MTreeAlgebra.h"
 
 namespace MT
 {
@@ -41,8 +54,7 @@ namespace MT
 /*
 Struct ~MTreeConfig~ :
 
-This struct contains some config parameter, which allows it to optimize the
-mtree datastructure.
+This struct contains some config parameters for "MT::MTree"[4].
 
 */
 struct MTreeConfig
@@ -61,8 +73,8 @@ additional I/O access duo to the growing count of nodes.
   PROMOTE promoteFun;
   PARTITION partitionFun;
 /*
-This parameters contain the promote and partition functions, which should be
-used.
+This parameters contain the promote and partition functions,
+which should be used.
 
 */
 
@@ -90,8 +102,6 @@ Constructor (creates objects with the given parameters).
 /*
 Class ~MTreeConfigReg~ :
 
-TODO insert description
-
 */
 class MTreeConfigReg
 {
@@ -107,19 +117,27 @@ default values.
 
 */
 
+  static bool contains( const string& name );
+/*
+Returns true, if a "MTreeConfig"[4] object with name "name"[4] is registered.
+
+*/
+
   static void initialize();
 /*
-This method registeres all defined distance functions.
+This method registeres the "MTreeConfig" objects.
 
 */
 
   static void registerMTreeConfig( const string& name,
                                    const MTreeConfig& config );
 /*
-This method is used to register a "MTreeConfig"[4] object for the
-associatedmetric.
+This method stores a "MTreeConfig"[4] object into "mTreeConfig[_]map"[4]
+using "name"[4] as key.
 
 */
 };
 
 } // namespace
+
+#endif

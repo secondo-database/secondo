@@ -1,10 +1,36 @@
 /*
-\newpage
+----
+This file is part of SECONDO.
 
-3.5.4 Implementation part (file: MTreeConfig.cpp)
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//[_] [\_]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]  [}]
+//characters      [4]   teletype:   [\texttt{]  [}]
+
+November/December 2007, Mirko Dibbert
+
+5.7 Implementation of class "MT::MTreeConfig"[4] (file: MTreeConfig.cpp)
 
 */
-#include "MTreeAlgebra.h"
 #include "MTreeConfig.h"
 
 /*
@@ -20,7 +46,7 @@ Method ~registerMTreeConfig~ :
 */
 void
 MT::MTreeConfigReg::registerMTreeConfig( const string& name,
-                                     const MTreeConfig& config )
+                                         const MTreeConfig& config )
 {
   mTreeConfig_map[ name ] = config;
 }
@@ -39,54 +65,28 @@ MT::MTreeConfigReg::getMTreeConfig( const string& name )
       mTreeConfig_map.find( name );
 
   if ( pos != mTreeConfig_map.end() )
-  {
-    #ifdef __MT_PRINT_CONFIG_INFO
-    string promFunStr, partFunStr;
-    switch ( pos->second.promoteFun )
-    {
-      case RANDOM:
-        promFunStr = "random";
-        break;
-      case m_RAD:
-        promFunStr = "minmal sum of covering radii";
-        break;
-      case mM_RAD:
-        promFunStr = "minimal maximum of covering radii";
-        break;
-      case M_LB_DIST:
-        promFunStr = "maximum lower bound on distance";
-        break;
-    }
-    switch ( pos->second.partitionFun )
-    {
-      case GENERALIZED_HYPERPLANE:
-        partFunStr = "generalized hyperplane";
-        break;
-      case BALANCED:
-        partFunStr = "balanced";
-        break;
-    }
-    cmsg.info() << endl
-                << "Found mtree-config: " << endl
-                << "----------------------------------------" << endl
-                << "max entries per node: "
-                << pos->second.maxNodeEntries << endl
-                << "promote function: " << promFunStr << endl
-                << "partition function: " << partFunStr << endl
-                << endl;
-    cmsg.send();
-    #endif
     return pos->second;
-  }
   else
-  {
-    #ifdef MT_PRINT_CONFIG_INFO
-    cmsg.info() << "No mtree-config found, using default values."
-                << endl;
-    cmsg.send();
-    #endif
     return MTreeConfig();
-  }
+}
+
+/*
+Method ~contains~ :
+
+*/
+bool
+MT::MTreeConfigReg::contains( const string& name)
+{
+  if (!initialized)
+    initialize();
+
+  map< string, MTreeConfig >::iterator pos =
+      mTreeConfig_map.find( name );
+
+  if ( pos != mTreeConfig_map.end() )
+    return true;
+  else
+    return false;
 }
 
 /*
@@ -96,34 +96,35 @@ Method ~initialize~ :
 void
 MT::MTreeConfigReg::initialize()
 {
-  registerMTreeConfig( "default",  MTreeConfig() );
-
-  registerMTreeConfig( "rand",
+  registerMTreeConfig( "default",
       MTreeConfig(
-          80,      // maxNodeEntries
-          RANDOM,  // promote function (min. covering radius)
-          BALANCED // partition function
-      ));
-
-  registerMTreeConfig( "mRad",
-      MTreeConfig(
-          80,      // maxNodeEntries
-          m_RAD,   // promote function (min. covering radius)
-          BALANCED // partition function
-      ));
-
-  registerMTreeConfig( "mMRad",
-      MTreeConfig(
-          80,      // maxNodeEntries
-          mM_RAD,   // promote function (min. covering radius)
-          BALANCED // partition function
-      ));
-
-  registerMTreeConfig( "mMRadHP",
-      MTreeConfig(
-          80,      // maxNodeEntries
-          mM_RAD,   // promote function (min. covering radius)
+          80,                    // maxNodeEntries
+          M_LB_DIST,             // promote function
           GENERALIZED_HYPERPLANE // partition function
       ));
+
+  registerMTreeConfig( "random",
+      MTreeConfig( 80, RANDOM, BALANCED ));
+
+  registerMTreeConfig( "mRad",
+      MTreeConfig( 80, m_RAD, BALANCED ));
+
+  registerMTreeConfig( "randomHP",
+      MTreeConfig( 80, RANDOM, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mMRad",
+      MTreeConfig( 80, mM_RAD, BALANCED ));
+
+  registerMTreeConfig( "mlbDist",
+      MTreeConfig( 80, M_LB_DIST, BALANCED ));
+
+  registerMTreeConfig( "mRadHP",
+      MTreeConfig( 80, m_RAD, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mMRadHP",
+      MTreeConfig( 80, mM_RAD, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mlbDistHP",
+      MTreeConfig( 80, M_LB_DIST, GENERALIZED_HYPERPLANE ));
   initialized = true;
 }
