@@ -20,24 +20,37 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-November 2007, Mirko Dibbert
+//[_] [\_]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]  [}]
+//characters      [4]   teletype:   [\texttt{]  [}]
+
+5.1 Implementation of the MTreeAlgebra (file: MTreeAlgebra.cpp)
+
+November/December 2007, Mirko Dibbert
+
+5.1.1 Imcludes and Defines
 
 */
 using namespace std;
 
-#include "MTreeAlgebra.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "MTree.h"
+#include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
+#include "MTree.h"
+#include "MTreeConfig.h"
 
-extern NestedList *nl;
-extern QueryProcessor *qp;
-extern AlgebraManager *am;
+extern NestedList* nl;
+extern QueryProcessor* qp;
+extern AlgebraManager* am;
 
 /*
-1.3 Type Constructor ~MTree~
+5.1.2 Type Constructors
+
+5.1.2.1 Type Constructor ~MTree~
 
 */
 static ListExpr
@@ -58,8 +71,18 @@ MTreeProp()
 ListExpr
 OutMTree( ListExpr typeInfo, Word  value )
 {
-  return nl->OneElemList( nl->StringAtom(
-  "should output some statistic infos in final vesion" ));
+  MT::MTree* mtree = static_cast<MT::MTree*>(value.addr);
+
+  return nl->FiveElemList(
+    nl->StringAtom( "M-Tree statistics" ),
+        nl->TwoElemList( nl->StringAtom( "Height" ),
+                         nl->IntAtom( mtree->getHeight() ) ),
+        nl->TwoElemList( nl->StringAtom( "# of routing nodes" ),
+                         nl->IntAtom( mtree->getRoutingCount() ) ),
+        nl->TwoElemList( nl->StringAtom( "# of leafes" ),
+                         nl->IntAtom( mtree->getLeafCount() ) ),
+        nl->TwoElemList( nl->StringAtom( "# of (leaf) entries" ),
+                         nl->IntAtom( mtree->getEntryCount() ) ) );
 }
 
 Word
@@ -93,9 +116,9 @@ CreateMTree( const ListExpr typeInfo )
 void
 DeleteMTree( const ListExpr typeInfo, Word &w )
 {
-  MT::MTree *mtree = ( MT::MTree* )w.addr;
-  mtree->deleteFile();
-  delete mtree;
+  static_cast<MT::MTree*>(w.addr)->deleteFile();
+  delete static_cast<MT::MTree*>(w.addr);
+  w.addr = 0;
 }
 
 bool
@@ -142,7 +165,8 @@ void CloseMTree( const ListExpr typeInfo, Word &w )
 
 Word CloneMTree( const ListExpr typeInfo, const Word &w )
 {
-  return SetWord( 0 );
+  MT::MTree* res = new MT::MTree(*static_cast<MT::MTree*>(w.addr));
+  return SetWord( res );
 }
 
 void *CastMTree( void *addr )
@@ -172,9 +196,9 @@ mtree( "mtree",      MTreeProp,
      CheckMTree );
 
 /*
-1.4 Operators
+5.1.3 Operators
 
-1.4.1 Operator ~createmtree~
+5.1.3.1 Operator ~createmtree~
 
 */
 int
@@ -186,24 +210,23 @@ CreateMTreeValueMapping_Rel( Word  *args, Word  &result,
 
   Relation* relation = ( Relation* )args[0].addr;
   int attrIndex = (( CcInt* )args[4].addr )->GetIntval();
-  string mfName = (( CcString* )args[5].addr )->GetValue();
-  string configName = (( CcString* )args[6].addr )->GetValue();
+  string type = (( CcString* )args[5].addr )->GetValue();
+  string mfName = (( CcString* )args[6].addr )->GetValue();
+  string configName = (( CcString* )args[7].addr )->GetValue();
   Tuple *tuple;
-  cout << mfName << " " << configName << endl;
   GenericRelationIterator *iter = relation->MakeScan();
+
+  mtree->initialize( type, mfName, configName );
+
+  #ifdef __MT_PRINT_CONFIG_INFO
+  mtree->printMTreeConfig();
+  #endif
+
   while (( tuple = iter->GetNextTuple() ) != 0 )
   {
-    AttributeType type =
-        tuple->GetTupleType()-> GetAttributeType( attrIndex );
-
     Attribute* attr = tuple->GetAttribute( attrIndex );
     if( attr->IsDefined() )
     {
-      if ( !mtree->isInitialized() )
-      {
-        mtree->initialize( attr, am->Constrs(
-            type.algId, type.typeId ), mfName, configName );
-      }
       mtree->insert( attr, tuple->GetTupleId() );
     }
     tuple->DeleteIfAllowed();
@@ -214,15 +237,8 @@ CreateMTreeValueMapping_Rel( Word  *args, Word  &result,
   cmsg.info() << endl;
   cmsg.send();
   #endif
-//   mtree->print();
-//         try
-//         {
-//           //new ...
-//         }
-//         catch (bad_alloc&)
-//         {
-//         }
 
+  mtree->finalizeInsert();
   return 0;
 }
 
@@ -233,8 +249,15 @@ int CreateMTreeValueMapping_Stream( Word  *args, Word  &result,
   MT::MTree *mtree = ( MT::MTree* )result.addr;
 
   int attrIndex = (( CcInt* )args[4].addr )->GetIntval();
-  string mfName = (( CcString* )args[5].addr )->GetValue();
-  string configName = (( CcString* )args[6].addr )->GetValue();
+  string type = (( CcString* )args[5].addr )->GetValue();
+  string mfName = (( CcString* )args[6].addr )->GetValue();
+  string configName = (( CcString* )args[7].addr )->GetValue();
+
+  mtree->initialize( type, mfName, configName );
+
+  #ifdef __MT_PRINT_CONFIG_INFO
+  mtree->printMTreeConfig();
+  #endif
 
   Word wTuple;
 
@@ -250,11 +273,6 @@ int CreateMTreeValueMapping_Stream( Word  *args, Word  &result,
         tuple->GetTupleType()->GetAttributeType( attrIndex );
     if( attr->IsDefined() )
     {
-      if ( !mtree->isInitialized() )
-      {
-        mtree->initialize( attr, am->Constrs(
-            type.algId, type.typeId ), mfName, configName );
-      }
       mtree->insert( attr, tuple->GetTupleId() );
     }
     tuple->DeleteIfAllowed();
@@ -340,22 +358,27 @@ ListExpr CreateMTreeTypeMapping( ListExpr args )
            attrType.convertToString() + " not defined!";
   cond = MetricRegistry::getMetric(
       attrType.convertToString(), mfName ) != 0;
+  CHECK_COND( cond, errmsg);
 
+  // check if the mtree-config given in third argument is defined
   errmsg = "Operator createmtree expects the name of a registered"
            "mtree-config object as third argument, but got a list "
            "with structure '" + arg2.convertToString() + "'.";
   CHECK_COND( arg3.isSymbol(), errmsg);
   string configName = arg3.str();
-  // TODO type checking for config name
+  errmsg = "MTreeConfig " + configName + " for type constructor " +
+           attrType.convertToString() + " not defined!";
+  cond = MT::MTreeConfigReg::contains( configName );
+  CHECK_COND( cond, errmsg);
 
   NList result (
       NList( "APPEND" ),
       NList(
         attrIndex - 1,
+        NList ( attrType.convertToString(), true ),
         NList ( mfName, true ),
         NList ( configName, true ) ),
       NList( NList( "mtree" ), tupleDescription, attrType ) );
-  cout << result.convertToString() << endl;
   return result.listExpr();
 }
 
@@ -364,19 +387,20 @@ struct CreateMTreeInfo : OperatorInfo
   CreateMTreeInfo()
   {
     name = "createmtree";
-    signature = "rel x string x id -> mtree";
-    syntax = "_ _ createmtree [ _ ]";
-    meaning = "string should be the name of the metric.";
-    example =
-      "let mtree_index = Rel DEFAULT createmtree [key]";
-    remark = "";
+    signature =
+      "( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
+      " metricName, mtreeConfigName, xi) ->"
+      " (mtree (tuple ((x1 t1)...(xn tn))) ti)";
+    syntax = "_ createmtree [_, _, _]";
+    meaning = "";
+    example = "pictures createmtree [default, default, Pic]";
   }
 };
 
 
 
 /********************************************************************
-1.1 Operator range
+5.1.3.2 Operator range
 
 ********************************************************************/
 
@@ -430,6 +454,10 @@ int RangeSearchValueMapping_Rel( Word  *args, Word  &result,
       MT::MTree* mtree = static_cast<MT::MTree*>( args[1].addr );
       Attribute* attr = static_cast<Attribute*>( args[2].addr );
       double searchRad = ((CcReal*)args[3].addr)->GetValue();
+
+      #ifdef __MT_PRINT_CONFIG_INFO
+      mtree->printMTreeConfig();
+      #endif
 
       mtree->rangeSearch( attr, searchRad, localInfo->results );
       localInfo->initResultIterator();
@@ -511,18 +539,25 @@ ListExpr RangeSearchTypeMapping( ListExpr args )
            ( arg1.first().isEqual( "stream" ) &&
              IsStreamDescription( arg1.listExpr() ))
          );
-  errmsg = "Operator createmtree expects a list with structure\n"
+  errmsg = "Operator rangesearch expects a list with structure\n"
            "   rel (tuple ((a1 t1)...(an tn))) or\n"
            "   stream (tuple ((a1 t1)...(an tn)))\n"
            "as first argument, but got a list with structure '" +
        arg1.convertToString() + "'.";
-  CHECK_COND( cond , errmsg);
+  CHECK_COND( cond , errmsg );
 
-  // check second argument
+  cond = !(arg2.isAtom()) &&
+         arg2.first().isEqual( "mtree" ) &&
+         arg2.second().first().isEqual( "tuple" ) &&
+         IsTupleDescription( arg2.second().second().listExpr() ) &&
+         arg2.third().isSymbol();
+
   errmsg = "Operator rangesearch expects a mtree "
            "as second argument, but got '" +
            arg2.convertToString() + "'.";
-  CHECK_COND( arg2.first().isEqual( "mtree" ), errmsg );
+  CHECK_COND( cond , errmsg );
+
+  // check second argument
 
   // check if used attribute is equal to attribute used in m-tree
   cond = arg2.third().isEqual( arg3.convertToString() );
@@ -548,17 +583,19 @@ struct RangeSearchInfo : OperatorInfo
   RangeSearchInfo()
   {
     name = "rangesearch";
-    signature = "m-tree x string x attribute x int -> rel";
-    syntax = "_ range [ _, _, _ ]";
-    meaning = "string should be the name of the metric.";
-    example =
-      "query mtree_index range [DEFAULT, queryattr, 2]";
+    signature =
+      "( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))) x"
+      " (mtree (tuple ((x1 t1)...(xn tn))) ti) ->"
+      " (stream (tuple ((x1 t1)...(xn tn))))";
+    syntax = "_ _ rangesearch [_, _]";
+    meaning = "";
+    example = "pictures pictree rangesearch [pic1, 0.5]";
     remark = "";
   }
 };
 
 /********************************************************************
-1.1 Operator nnsearch
+5.1.3.3 Operator nnsearch
 
 ********************************************************************/
 
@@ -612,6 +649,10 @@ int NNSearchValueMapping_Rel( Word  *args, Word  &result,
       MT::MTree* mtree = static_cast<MT::MTree*>( args[1].addr );
       Attribute* attr = static_cast<Attribute*>( args[2].addr );
       int nncount= ((CcInt*)args[3].addr)->GetValue();
+
+      #ifdef __MT_PRINT_CONFIG_INFO
+      mtree->printMTreeConfig();
+      #endif
 
       mtree->nnSearch( attr, nncount, localInfo->results );
       localInfo->initResultIterator();
@@ -730,16 +771,19 @@ struct NNSearchInfo : OperatorInfo
   NNSearchInfo()
   {
     name = "nnsearch";
-    signature = "";
-    syntax = "";
+    signature =
+      "( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))) x"
+      " (mtree (tuple ((x1 t1)...(xn tn))) ti) ->"
+      " (stream (tuple ((x1 t1)...(xn tn))))";
+    syntax = "_ _ nnsearch [_, _]";
     meaning = "";
-    example = "";
+    example = "pictures pictree nnsearch [pic1, 0.5]";
     remark = "";
   }
 };
 
 /*
-1.5 Create and initialize the Algebra
+5.1.5 Create and initialize the Algebra
 
 */
 

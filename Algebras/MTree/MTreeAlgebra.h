@@ -20,35 +20,33 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//[_] [\_]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]  [}]
+//characters      [4]   teletype:   [\texttt{]  [}]
+
 1 MTreeAlgebra
 
-November 2007, Mirko Dibbert
+November/December 2007, Mirko Dibbert
 
 1.1 Overview
 
 TODO insert algebra description
 
+1.2 Global includes and Defines
+
 */
-#ifndef __MTREE_ALGEBRA_H
-#define __MTREE_ALGEBRA_H
+#ifndef MTREE_ALGEBRA_H
+#define MTREE_ALGEBRA_H
 
-// #define __MT_DEBUG
-// #define __MT_PRINT_ENTRY_INFO
-// #define __MT_PRINT_NODE_INFO
+#define __MT_DEBUG
 
+// #define __MT_PRINT_SPLIT_INFO
 #define __MT_PRINT_NODE_CACHE_INFO
 #define __MT_PRINT_CONFIG_INFO
-// #define __MT_PRINT_SPLIT_INFO
 #define __MT_PRINT_INSERT_INFO
 #define __MT_PRINT_SEARCH_INFO
-
-#include <stack>
-#include "StandardTypes.h"
-#include "WinUnix.h"
-#include "LogMsg.h"
-#include "StandardTypes.h"
-#include "RelationAlgebra.h"
-#include "MetricRegistry.h"
 
 using namespace std;
 
@@ -66,9 +64,16 @@ occurs, the integer value needs to be increased!
 
 */
 
-const unsigned MAX_CACHED_NODES = 1024;
+const unsigned NODE_CACHE_SIZE = 8*1024*1024;
 /*
-The maximum number of nodes, which should be hold open in the node cache
+Size of the node cache in bytes.
+
+Warning: If the cache size is to huge (greater than about 1GB on my sytem
+(SuSE 10.2, 32bit, system pagesize = 4k)), the following error could occur:
+
+----
+DbEnv: Lock table is out of available object entries
+----
 
 */
 
@@ -76,7 +81,7 @@ const bool ROOT = true;
 const bool SIZE_CHANGED = true;
 /*
 
-Some constants to make the source better readable.
+Some constants to make the source code better readable.
 
 */
 
