@@ -672,10 +672,10 @@ MetricRegistry::InitPictureMetric()
             for (int v2=0; v2<4; v2++)
               {
                 double d1 = pow(0.25 * (v1-v2), 2);
-                double d2 = pow((0.125+(s1*0.25)) * cos((h1*45)) -
-                                (0.125+(s2*0.25)) * cos((h2*45)), 2);
-                double d3 = pow((0.125+(s1*0.25)) * sin((h1*45)) -
-                                (0.125+(s2*0.25)) * sin((h2*45)), 2);
+                double d2 = pow((0.125+(s1*0.25)) * cos((h1*45.0)) -
+                              (0.125+(s2*0.25)) * cos((h2*45.0)), 2);
+                double d3 = pow((0.125+(s1*0.25)) * sin((h1*45.0)) -
+                              (0.125+(s2*0.25)) * sin((h2*45.0)), 2);
 
                 int pos1 = (16*h1)+(4*s1)+v1;
                 int pos2 = (16*h2)+(4*s2)+v2;
