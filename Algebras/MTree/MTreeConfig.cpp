@@ -98,33 +98,94 @@ MT::MTreeConfigReg::initialize()
 {
   registerMTreeConfig( "default",
       MTreeConfig(
-          80,                    // maxNodeEntries
+          200,                   // maxNodeEntries
           M_LB_DIST,             // promote function
           GENERALIZED_HYPERPLANE // partition function
       ));
 
+/*
+Register config objects with maximum entries per node.
+
+*/
   registerMTreeConfig( "random",
-      MTreeConfig( 80, RANDOM, BALANCED ));
+      MTreeConfig( 200, RANDOM, BALANCED ));
 
   registerMTreeConfig( "mRad",
-      MTreeConfig( 80, m_RAD, BALANCED ));
+      MTreeConfig( 200, m_RAD, BALANCED ));
 
   registerMTreeConfig( "randomHP",
-      MTreeConfig( 80, RANDOM, GENERALIZED_HYPERPLANE ));
+      MTreeConfig( 200, RANDOM, GENERALIZED_HYPERPLANE ));
 
   registerMTreeConfig( "mMRad",
-      MTreeConfig( 80, mM_RAD, BALANCED ));
+      MTreeConfig( 200, mM_RAD, BALANCED ));
 
   registerMTreeConfig( "mlbDist",
-      MTreeConfig( 80, M_LB_DIST, BALANCED ));
+      MTreeConfig( 200, M_LB_DIST, BALANCED ));
 
   registerMTreeConfig( "mRadHP",
-      MTreeConfig( 80, m_RAD, GENERALIZED_HYPERPLANE ));
+      MTreeConfig( 200, m_RAD, GENERALIZED_HYPERPLANE ));
 
   registerMTreeConfig( "mMRadHP",
-      MTreeConfig( 80, mM_RAD, GENERALIZED_HYPERPLANE ));
+      MTreeConfig( 200, mM_RAD, GENERALIZED_HYPERPLANE ));
 
   registerMTreeConfig( "mlbDistHP",
+      MTreeConfig( 200, M_LB_DIST, GENERALIZED_HYPERPLANE ));
+
+/*
+Register config objects with max. 80 entries per node.
+
+*/
+ registerMTreeConfig( "random80",
+      MTreeConfig( 80, RANDOM, BALANCED ));
+
+  registerMTreeConfig( "mRad80",
+      MTreeConfig( 80, m_RAD, BALANCED ));
+
+  registerMTreeConfig( "randomHP80",
+      MTreeConfig( 80, RANDOM, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mMRad80",
+      MTreeConfig( 80, mM_RAD, BALANCED ));
+
+  registerMTreeConfig( "mlbDist80",
+      MTreeConfig( 80, M_LB_DIST, BALANCED ));
+
+  registerMTreeConfig( "mRadHP80",
+      MTreeConfig( 80, m_RAD, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mMRadHP80",
+      MTreeConfig( 80, mM_RAD, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mlbDistHP80",
       MTreeConfig( 80, M_LB_DIST, GENERALIZED_HYPERPLANE ));
+
+/*
+Register config objects with max. 40 entries per node.
+
+*/
+  registerMTreeConfig( "random40",
+      MTreeConfig( 40, RANDOM, BALANCED ));
+
+  registerMTreeConfig( "mRad40",
+      MTreeConfig( 40, m_RAD, BALANCED ));
+
+  registerMTreeConfig( "randomHP40",
+      MTreeConfig( 40, RANDOM, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mMRad40",
+      MTreeConfig( 40, mM_RAD, BALANCED ));
+
+  registerMTreeConfig( "mlbDist40",
+      MTreeConfig( 40, M_LB_DIST, BALANCED ));
+
+  registerMTreeConfig( "mRadHP40",
+      MTreeConfig( 40, m_RAD, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mMRadHP40",
+      MTreeConfig( 40, mM_RAD, GENERALIZED_HYPERPLANE ));
+
+  registerMTreeConfig( "mlbDistHP40",
+      MTreeConfig( 40, M_LB_DIST, GENERALIZED_HYPERPLANE ));
+
   initialized = true;
 }
