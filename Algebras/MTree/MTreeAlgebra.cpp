@@ -108,13 +108,13 @@ RestoreFromListMTree( ListExpr typeInfo, ListExpr value,
 }
 
 Word
-CreateMTree( const ListExpr typeInfo )
+createMTree( const ListExpr typeInfo )
 {
   return SetWord( new MT::MTree() );
 }
 
 void
-DeleteMTree( const ListExpr typeInfo, Word &w )
+DeleteMTree( const ListExpr typeInfo, Word& w )
 {
   static_cast<MT::MTree*>(w.addr)->deleteFile();
   delete static_cast<MT::MTree*>(w.addr);
@@ -125,7 +125,7 @@ bool
 OpenMTree( SmiRecord &valueRecord,
        size_t &offset,
        const ListExpr typeInfo,
-       Word &value )
+       Word& value )
 {
   SmiFileId fileid;
   valueRecord.Read( &fileid, sizeof( SmiFileId ), offset );
@@ -140,7 +140,7 @@ bool
 SaveMTree( SmiRecord &valueRecord,
        size_t &offset,
        const ListExpr typeInfo,
-       Word &value )
+       Word& value )
 {
   SmiFileId fileId;
   MT::MTree *mtree = ( MT::MTree* )value.addr;
@@ -157,13 +157,13 @@ SaveMTree( SmiRecord &valueRecord,
   }
 }
 
-void CloseMTree( const ListExpr typeInfo, Word &w )
+void CloseMTree( const ListExpr typeInfo, Word& w )
 {
   MT::MTree *mtree = ( MT::MTree* )w.addr;
   delete mtree;
 }
 
-Word CloneMTree( const ListExpr typeInfo, const Word &w )
+Word CloneMTree( const ListExpr typeInfo, const Word& w )
 {
   MT::MTree* res = new MT::MTree(*static_cast<MT::MTree*>(w.addr));
   return SetWord( res );
@@ -189,32 +189,38 @@ TypeConstructor
 mtree( "mtree",      MTreeProp,
      OutMTree,    InMTree,
      SaveToListMTree, RestoreFromListMTree,
-     CreateMTree,   DeleteMTree,
+     createMTree,   DeleteMTree,
      OpenMTree,     SaveMTree,
      CloseMTree,    CloneMTree,
      CastMTree,     SizeOfMTree,
      CheckMTree );
 
-/*
+/********************************************************************
 5.1.3 Operators
 
 5.1.3.1 Operator ~createmtree~
 
-*/
-int
-CreateMTreeValueMapping_Rel( Word  *args, Word  &result,
-               int message, Word  &local, Supplier s )
+********************************************************************/
+int createMTreeValueMapping_Rel(
+    Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   MT::MTree *mtree = ( MT::MTree* )result.addr;
 
-  Relation* relation = ( Relation* )args[0].addr;
-  int attrIndex = (( CcInt* )args[4].addr )->GetIntval();
-  string type = (( CcString* )args[5].addr )->GetValue();
-  string mfName = (( CcString* )args[6].addr )->GetValue();
-  string configName = (( CcString* )args[7].addr )->GetValue();
-  Tuple *tuple;
-  GenericRelationIterator *iter = relation->MakeScan();
+  Relation* relation =
+      static_cast<Relation*>(args[0].addr);
+
+  int attrIndex =
+      static_cast<CcInt*>(args[2].addr)->GetIntval();
+
+  string type =
+      static_cast<CcString*>(args[3].addr)->GetValue();
+
+  string mfName =
+      static_cast<CcString*>(args[4].addr)->GetValue();
+
+  string configName =
+      static_cast<CcString*>(args[5].addr)->GetValue();
 
   mtree->initialize( type, mfName, configName );
 
@@ -222,6 +228,8 @@ CreateMTreeValueMapping_Rel( Word  *args, Word  &result,
   mtree->printMTreeConfig();
   #endif
 
+  Tuple* tuple;
+  GenericRelationIterator* iter = relation->MakeScan();
   while (( tuple = iter->GetNextTuple() ) != 0 )
   {
     Attribute* attr = tuple->GetAttribute( attrIndex );
@@ -233,25 +241,30 @@ CreateMTreeValueMapping_Rel( Word  *args, Word  &result,
   }
   delete iter;
 
-  #ifdef MT_PRINT_INSERT_INFO
-  cmsg.info() << endl;
-  cmsg.send();
-  #endif
-
   mtree->finalizeInsert();
   return 0;
 }
 
-int CreateMTreeValueMapping_Stream( Word  *args, Word  &result,
-                  int message, Word  &local, Supplier s )
+int createMTreeValueMapping_Stream(
+    Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   MT::MTree *mtree = ( MT::MTree* )result.addr;
 
-  int attrIndex = (( CcInt* )args[4].addr )->GetIntval();
-  string type = (( CcString* )args[5].addr )->GetValue();
-  string mfName = (( CcString* )args[6].addr )->GetValue();
-  string configName = (( CcString* )args[7].addr )->GetValue();
+  void* stream =
+      static_cast<Relation*>(args[0].addr);
+
+  int attrIndex =
+      static_cast<CcInt*>(args[2].addr)->GetIntval();
+
+  string type =
+      static_cast<CcString*>(args[3].addr)->GetValue();
+
+  string mfName =
+      static_cast<CcString*>(args[4].addr)->GetValue();
+
+  string configName =
+      static_cast<CcString*>(args[5].addr)->GetValue();
 
   mtree->initialize( type, mfName, configName );
 
@@ -260,31 +273,26 @@ int CreateMTreeValueMapping_Stream( Word  *args, Word  &result,
   #endif
 
   Word wTuple;
-
-  assert(mtree != 0);
-
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, wTuple);
-  while (qp->Received(args[0].addr))
+  qp->Open( stream );
+  qp->Request( stream, wTuple );
+  while ( qp->Received( stream ) )
   {
-    Tuple* tuple = (Tuple*)wTuple.addr;
+    Tuple* tuple = static_cast<Tuple*>(wTuple.addr);
     Attribute* attr = tuple->GetAttribute( attrIndex );
-    AttributeType type =
-        tuple->GetTupleType()->GetAttributeType( attrIndex );
     if( attr->IsDefined() )
     {
       mtree->insert( attr, tuple->GetTupleId() );
     }
     tuple->DeleteIfAllowed();
-    qp->Request(args[0].addr, wTuple);
+    qp->Request( stream, wTuple );
   }
-  qp->Close(args[0].addr);
+  qp->Close( stream );
 
+  mtree->finalizeInsert();
   return 0;
 }
 
-
-int CreateMTreeSelect( ListExpr args )
+int createMTreeSelect( ListExpr args )
 {
   if ( nl->IsEqual( nl->First( nl->First( args ) ), "rel" ) )
     return 0;
@@ -295,24 +303,22 @@ int CreateMTreeSelect( ListExpr args )
   return -1;
 }
 
-ValueMapping CreateMTreeMap[] = { CreateMTreeValueMapping_Rel,
-                  CreateMTreeValueMapping_Stream
-                };
+ValueMapping createMTreeMap[] = {
+    createMTreeValueMapping_Rel,
+    createMTreeValueMapping_Stream
+};
 
-
-ListExpr CreateMTreeTypeMapping( ListExpr args )
+ListExpr createMTreeTypeMapping( ListExpr args )
 {
   string errmsg;
   bool cond;
   NList nl_args( args );
 
-  errmsg = "Operator createmtree expects three arguments.";
-  CHECK_COND( nl_args.length() == 4, errmsg );
+  errmsg = "Operator createmtree expects two arguments.";
+  CHECK_COND( nl_args.length() == 2, errmsg );
 
   NList arg1 = nl_args.first();
   NList arg2 = nl_args.second();
-  NList arg3 = nl_args.third();
-  NList arg4 = nl_args.fourth();
 
   // check first argument (should be relation or stream)
   cond = !(arg1.isAtom()) &&
@@ -329,8 +335,430 @@ ListExpr CreateMTreeTypeMapping( ListExpr args )
        arg1.convertToString() + "'.";
   CHECK_COND( cond , errmsg);
 
-  // check, if third argument is an attribute name
+  // check, if fourth argument is an attribute name
   errmsg = "Operator createmtree expects an attribute name "
+           "as fourth argument, but got '" +
+           arg2.convertToString() + "'.";
+  CHECK_COND( arg2.isSymbol(), errmsg);
+
+  string attrName = arg2.str();
+  NList tupleDescription = arg1.second();
+  NList attrList = tupleDescription.second();
+
+  // check, if attribute can be found in attribute list
+  errmsg = "Attribute name '" + attrName + "' is not known.\n"
+           "Known Attribute(s):\n" + attrList.convertToString();
+  ListExpr attrTypeLE;
+
+  int attrIndex = FindAttribute( attrList.listExpr(),
+                                 attrName, attrTypeLE );
+  CHECK_COND( attrIndex > 0, errmsg );
+  NList attrType ( attrTypeLE );
+  string attrTypeStr = attrType.convertToString();
+
+  // check if default metric exists
+  string mfName = MetricRegistry::getDefaultName( attrTypeStr );
+  errmsg = "Missing default metric for type constructor " +
+           attrTypeStr + "!";
+  CHECK_COND( mfName != "unknown", errmsg);
+
+  // check if default mtree-config object exists
+  errmsg = "Operator createmtree expects the name of a registered"
+           "mtree-config object as third argument, but got a list "
+           "with structure '" + arg2.convertToString() + "'.";
+  string configName = "default";
+  errmsg = "Missing default mtreeconfig!";
+  cond = MT::MTreeConfigReg::contains( configName );
+  CHECK_COND( cond, errmsg);
+
+  NList result (
+      NList( "APPEND" ),
+      NList(
+        attrIndex - 1,
+        NList ( attrTypeStr, true ),
+        NList ( mfName, true ),
+        NList ( configName, true ) ),
+      NList( NList( "mtree" ), tupleDescription, attrType ) );
+  return result.listExpr();
+}
+
+struct createMTreeInfo : OperatorInfo
+{
+  createMTreeInfo()
+  {
+    name = "createmtree";
+    signature =
+      "( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
+      " metricName, xi) ->"
+      " (mtree (tuple ((x1 t1)...(xn tn))) ti)";
+    syntax = "_ createmtree [_]";
+    meaning =
+        "creates a new mtree from relation or stream in arg1\n"
+        "arg2 must be the name of the attribute in arg1, "
+        "which should be indexed by the mtree";
+    example = "pictures createmtree [Pic]";
+  }
+};
+
+/********************************************************************
+5.1.3.2 Operator ~createmtree2~
+
+********************************************************************/
+int createMTree2ValueMapping_Rel(
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MT::MTree *mtree = ( MT::MTree* )result.addr;
+
+  Relation* relation =
+      static_cast<Relation*>(args[0].addr);
+
+  int attrIndex =
+      static_cast<CcInt*>(args[3].addr)->GetIntval();
+
+  string type =
+      static_cast<CcString*>(args[4].addr)->GetValue();
+
+  string mfName =
+      static_cast<CcString*>(args[5].addr)->GetValue();
+
+  string configName =
+      static_cast<CcString*>(args[6].addr)->GetValue();
+
+  mtree->initialize( type, mfName, configName );
+
+  #ifdef __MT_PRINT_CONFIG_INFO
+  mtree->printMTreeConfig();
+  #endif
+
+  Tuple* tuple;
+  GenericRelationIterator* iter = relation->MakeScan();
+  while (( tuple = iter->GetNextTuple() ) != 0 )
+  {
+    Attribute* attr = tuple->GetAttribute( attrIndex );
+    if( attr->IsDefined() )
+    {
+      mtree->insert( attr, tuple->GetTupleId() );
+    }
+    tuple->DeleteIfAllowed();
+  }
+  delete iter;
+
+  mtree->finalizeInsert();
+  return 0;
+}
+
+int createMTree2ValueMapping_Stream(
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MT::MTree *mtree = ( MT::MTree* )result.addr;
+
+  void* stream =
+      static_cast<Relation*>(args[0].addr);
+
+  int attrIndex =
+      static_cast<CcInt*>(args[3].addr)->GetIntval();
+
+  string type =
+      static_cast<CcString*>(args[4].addr)->GetValue();
+
+  string mfName =
+      static_cast<CcString*>(args[5].addr)->GetValue();
+
+  string configName =
+      static_cast<CcString*>(args[6].addr)->GetValue();
+
+  mtree->initialize( type, mfName, configName );
+
+  #ifdef __MT_PRINT_CONFIG_INFO
+  mtree->printMTreeConfig();
+  #endif
+
+  Word wTuple;
+  qp->Open( stream );
+  qp->Request( stream, wTuple );
+  while ( qp->Received( stream ) )
+  {
+    Tuple* tuple = static_cast<Tuple*>(wTuple.addr);
+    Attribute* attr = tuple->GetAttribute( attrIndex );
+    if( attr->IsDefined() )
+    {
+      mtree->insert( attr, tuple->GetTupleId() );
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request( stream, wTuple );
+  }
+  qp->Close( stream );
+
+  mtree->finalizeInsert();
+  return 0;
+}
+
+int createMTree2Select( ListExpr args )
+{
+  if ( nl->IsEqual( nl->First( nl->First( args ) ), "rel" ) )
+    return 0;
+
+  if ( nl->IsEqual( nl->First( nl->First( args ) ), "stream" ) )
+    return 1;
+
+  return -1;
+}
+
+ValueMapping createMTree2Map[] = {
+    createMTree2ValueMapping_Rel,
+    createMTree2ValueMapping_Stream
+};
+
+ListExpr createMTree2TypeMapping( ListExpr args )
+{
+  string errmsg;
+  bool cond;
+  NList nl_args( args );
+
+  errmsg = "Operator createmtree2 expects three arguments.";
+  CHECK_COND( nl_args.length() == 3, errmsg );
+
+  NList arg1 = nl_args.first();
+  NList arg2 = nl_args.second();
+  NList arg3 = nl_args.third();
+
+  // check first argument (should be relation or stream)
+  cond = !(arg1.isAtom()) &&
+         (
+           ( arg1.first().isEqual( "rel" ) &&
+             IsRelDescription( arg1.listExpr() )) ||
+           ( arg1.first().isEqual( "stream" ) &&
+             IsStreamDescription( arg1.listExpr() ))
+         );
+  errmsg = "Operator createmtree2 expects a list with structure\n"
+           "   rel (tuple ((a1 t1)...(an tn))) or\n"
+           "   stream (tuple ((a1 t1)...(an tn)))\n"
+           "as first argument, but got a list with structure '" +
+       arg1.convertToString() + "'.";
+  CHECK_COND( cond , errmsg);
+
+  // check, if fourth argument is an attribute name
+  errmsg = "Operator createmtree2 expects an attribute name "
+           "as fourth argument, but got '" +
+           arg3.convertToString() + "'.";
+  CHECK_COND( arg3.isSymbol(), errmsg);
+
+  string attrName = arg3.str();
+  NList tupleDescription = arg1.second();
+  NList attrList = tupleDescription.second();
+
+  // check, if attribute can be found in attribute list
+  errmsg = "Attribute name '" + attrName + "' is not known.\n"
+           "Known Attribute(s):\n" + attrList.convertToString();
+  ListExpr attrTypeLE;
+  int attrIndex = FindAttribute( attrList.listExpr(),
+                                 attrName, attrTypeLE );
+  CHECK_COND( attrIndex > 0, errmsg );
+  NList attrType ( attrTypeLE );
+  string attrTypeStr = attrType.convertToString();
+
+  // check if the metric given in second argument is defined
+  errmsg = "Operator createmtree2 expects the name of a registered"
+           "metric as second argument, but got a list with structure"
+           " '" + arg2.convertToString() + "'.";
+  CHECK_COND( arg2.isSymbol(), errmsg);
+  string mfName = arg2.str();
+  if (mfName == "default")
+  {
+    mfName = MetricRegistry::getDefaultName( attrTypeStr );
+    errmsg = "Missing default metric for type constructor " +
+             attrTypeStr + "!";
+    CHECK_COND( mfName != "unknown", errmsg);
+  }
+
+  errmsg = "Metric " + mfName + " for type constructor " +
+           attrTypeStr + " not defined!";
+  cond = MetricRegistry::getMetric( attrTypeStr, mfName ) != 0;
+  CHECK_COND( cond, errmsg);
+
+  // check if default mtree-config object exists
+  errmsg = "Operator createmtree2 expects the name of a registered"
+           "mtree-config object as third argument, but got a list "
+           "with structure '" + arg2.convertToString() + "'.";
+  string configName = "default";
+  errmsg = "Missing default mtreeconfig!";
+  cond = MT::MTreeConfigReg::contains( configName );
+  CHECK_COND( cond, errmsg);
+
+  NList result (
+      NList( "APPEND" ),
+      NList(
+        attrIndex - 1,
+        NList ( attrTypeStr, true ),
+        NList ( mfName, true ),
+        NList ( configName, true ) ),
+      NList( NList( "mtree" ), tupleDescription, attrType ) );
+  return result.listExpr();
+}
+
+struct createMTree2Info : OperatorInfo
+{
+  createMTree2Info()
+  {
+    name = "createmtree2";
+    signature =
+      "( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
+      " metricName, xi) ->"
+      " (mtree (tuple ((x1 t1)...(xn tn))) ti)";
+    syntax = "_ createmtree2 [_, _]";
+    meaning =
+        "creates a new mtree from relation or stream in arg1\n"
+        "arg2 must be the name of a registered metric\n"
+        "arg3 must be the name of the attribute in arg1, "
+        "which should be indexed by the mtree";
+    example = "pictures createmtree2 [Pic, lab]";
+  }
+};
+
+/********************************************************************
+5.1.3.3 Operator ~createmtree3~
+
+********************************************************************/
+int createMTree3ValueMapping_Rel(
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MT::MTree *mtree = ( MT::MTree* )result.addr;
+
+  Relation* relation =
+      static_cast<Relation*>(args[0].addr);
+
+  int attrIndex =
+      static_cast<CcInt*>(args[4].addr)->GetIntval();
+
+  string type =
+      static_cast<CcString*>(args[5].addr)->GetValue();
+
+  string mfName =
+      static_cast<CcString*>(args[6].addr)->GetValue();
+
+  string configName =
+      static_cast<CcString*>(args[7].addr)->GetValue();
+
+  mtree->initialize( type, mfName, configName );
+
+  #ifdef __MT_PRINT_CONFIG_INFO
+  mtree->printMTreeConfig();
+  #endif
+
+  Tuple* tuple;
+  GenericRelationIterator* iter = relation->MakeScan();
+  while (( tuple = iter->GetNextTuple() ) != 0 )
+  {
+    Attribute* attr = tuple->GetAttribute( attrIndex );
+    if( attr->IsDefined() )
+    {
+      mtree->insert( attr, tuple->GetTupleId() );
+    }
+    tuple->DeleteIfAllowed();
+  }
+  delete iter;
+
+  mtree->finalizeInsert();
+  return 0;
+}
+
+int createMTree3ValueMapping_Stream(
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MT::MTree *mtree = ( MT::MTree* )result.addr;
+
+  void* stream =
+      static_cast<Relation*>(args[0].addr);
+
+  int attrIndex =
+      static_cast<CcInt*>(args[4].addr)->GetIntval();
+
+  string type =
+      static_cast<CcString*>(args[5].addr)->GetValue();
+
+  string mfName =
+      static_cast<CcString*>(args[6].addr)->GetValue();
+
+  string configName =
+      static_cast<CcString*>(args[7].addr)->GetValue();
+
+  mtree->initialize( type, mfName, configName );
+
+  #ifdef __MT_PRINT_CONFIG_INFO
+  mtree->printMTreeConfig();
+  #endif
+
+  Word wTuple;
+  qp->Open( stream );
+  qp->Request( stream, wTuple );
+  while ( qp->Received( stream ) )
+  {
+    Tuple* tuple = static_cast<Tuple*>(wTuple.addr);
+    Attribute* attr = tuple->GetAttribute( attrIndex );
+    if( attr->IsDefined() )
+    {
+      mtree->insert( attr, tuple->GetTupleId() );
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request( stream, wTuple );
+  }
+  qp->Close( stream );
+
+  mtree->finalizeInsert();
+  return 0;
+}
+
+int createMTree3Select( ListExpr args )
+{
+  if ( nl->IsEqual( nl->First( nl->First( args ) ), "rel" ) )
+    return 0;
+
+  if ( nl->IsEqual( nl->First( nl->First( args ) ), "stream" ) )
+    return 1;
+
+  return -1;
+}
+
+ValueMapping createMTree3Map[] = {
+    createMTree3ValueMapping_Rel,
+    createMTree3ValueMapping_Stream
+};
+
+ListExpr createMTree3TypeMapping( ListExpr args )
+{
+  string errmsg;
+  bool cond;
+  NList nl_args( args );
+
+  errmsg = "Operator createmtree3 expects four arguments.";
+  CHECK_COND( nl_args.length() == 4, errmsg );
+
+  NList arg1 = nl_args.first();
+  NList arg2 = nl_args.second();
+  NList arg3 = nl_args.third();
+  NList arg4 = nl_args.fourth();
+
+  // check first argument (should be relation or stream)
+  cond = !(arg1.isAtom()) &&
+         (
+           ( arg1.first().isEqual( "rel" ) &&
+             IsRelDescription( arg1.listExpr() )) ||
+           ( arg1.first().isEqual( "stream" ) &&
+             IsStreamDescription( arg1.listExpr() ))
+         );
+  errmsg = "Operator createmtree3 expects a list with structure\n"
+           "   rel (tuple ((a1 t1)...(an tn))) or\n"
+           "   stream (tuple ((a1 t1)...(an tn)))\n"
+           "as first argument, but got a list with structure '" +
+       arg1.convertToString() + "'.";
+  CHECK_COND( cond , errmsg);
+
+  // check, if fourth argument is an attribute name
+  errmsg = "Operator createmtree3 expects an attribute name "
            "as fourth argument, but got '" +
            arg4.convertToString() + "'.";
   CHECK_COND( arg4.isSymbol(), errmsg);
@@ -347,27 +775,35 @@ ListExpr CreateMTreeTypeMapping( ListExpr args )
                                  attrName, attrTypeLE );
   CHECK_COND( attrIndex > 0, errmsg );
   NList attrType ( attrTypeLE );
+  string attrTypeStr = attrType.convertToString();
 
   // check if the metric given in second argument is defined
-  errmsg = "Operator createmtree expects the name of a registered"
+  errmsg = "Operator createmtree3 expects the name of a registered"
            "metric as second argument, but got a list with structure"
            " '" + arg2.convertToString() + "'.";
   CHECK_COND( arg2.isSymbol(), errmsg);
   string mfName = arg2.str();
+  if (mfName == "default")
+  {
+    mfName = MetricRegistry::getDefaultName( attrTypeStr );
+    errmsg = "Missing default metric for type constructor " +
+             attrTypeStr + "!";
+    CHECK_COND( mfName != "unknown", errmsg);
+  }
+
   errmsg = "Metric " + mfName + " for type constructor " +
-           attrType.convertToString() + " not defined!";
-  cond = MetricRegistry::getMetric(
-      attrType.convertToString(), mfName ) != 0;
+           attrTypeStr + " not defined!";
+  cond = MetricRegistry::getMetric( attrTypeStr, mfName ) != 0;
   CHECK_COND( cond, errmsg);
 
   // check if the mtree-config given in third argument is defined
-  errmsg = "Operator createmtree expects the name of a registered"
+  errmsg = "Operator createmtree3 expects the name of a registered"
            "mtree-config object as third argument, but got a list "
            "with structure '" + arg2.convertToString() + "'.";
   CHECK_COND( arg3.isSymbol(), errmsg);
   string configName = arg3.str();
   errmsg = "MTreeConfig " + configName + " for type constructor " +
-           attrType.convertToString() + " not defined!";
+           attrTypeStr + " not defined!";
   cond = MT::MTreeConfigReg::contains( configName );
   CHECK_COND( cond, errmsg);
 
@@ -375,42 +811,45 @@ ListExpr CreateMTreeTypeMapping( ListExpr args )
       NList( "APPEND" ),
       NList(
         attrIndex - 1,
-        NList ( attrType.convertToString(), true ),
+        NList ( attrTypeStr, true ),
         NList ( mfName, true ),
         NList ( configName, true ) ),
       NList( NList( "mtree" ), tupleDescription, attrType ) );
   return result.listExpr();
 }
 
-struct CreateMTreeInfo : OperatorInfo
+struct createMTree3Info : OperatorInfo
 {
-  CreateMTreeInfo()
+  createMTree3Info()
   {
-    name = "createmtree";
+    name = "createmtree3";
     signature =
       "( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
-      " metricName, mtreeConfigName, xi) ->"
+      " metric, mtreeconfig, xi) ->"
       " (mtree (tuple ((x1 t1)...(xn tn))) ti)";
-    syntax = "_ createmtree [_, _, _]";
-    meaning = "";
-    example = "pictures createmtree [default, default, Pic]";
+    syntax = "_ createmtree3 [_, _, _]";
+    meaning =
+        "creates a new mtree from relation or stream in arg1\n"
+        "arg2 must be the name of a registered metric\n"
+        "arg3 must be the name of a registered mtree config object\n"
+        "arg4 must be the name of the attribute in arg1, "
+        "which should be indexed by the mtree";
+    example = "pictures createmtree [lab, mlbDistHP, Pic]";
   }
 };
 
-
-
 /********************************************************************
-5.1.3.2 Operator range
+5.1.3.4 Operator range
 
 ********************************************************************/
 
-struct RangeSearchLocalInfo
+struct rangeSearchLocalInfo
 {
   Relation* relation;
   list<TupleId>* results;
   list<TupleId>::iterator iter;
 
-  RangeSearchLocalInfo( Relation* rel ) :
+  rangeSearchLocalInfo( Relation* rel ) :
     relation( rel ),
     results( new list<TupleId> )
     {}
@@ -420,7 +859,7 @@ struct RangeSearchLocalInfo
     iter = results->begin();
   }
 
-  ~RangeSearchLocalInfo()
+  ~rangeSearchLocalInfo()
   {
     delete results;
   }
@@ -440,16 +879,16 @@ struct RangeSearchLocalInfo
   }
 };
 
-int RangeSearchValueMapping_Rel( Word  *args, Word  &result,
-                  int message, Word  &local, Supplier s )
+int rangeSearchValueMapping(
+    Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  RangeSearchLocalInfo *localInfo;
+  rangeSearchLocalInfo *localInfo;
 
   switch (message)
   {
     case OPEN :
     {
-      localInfo = new RangeSearchLocalInfo(
+      localInfo = new rangeSearchLocalInfo(
           static_cast<Relation*>( args[0].addr ) );
       MT::MTree* mtree = static_cast<MT::MTree*>( args[1].addr );
       Attribute* attr = static_cast<Attribute*>( args[2].addr );
@@ -469,7 +908,7 @@ int RangeSearchValueMapping_Rel( Word  *args, Word  &result,
 
     case REQUEST :
     {
-      localInfo = (RangeSearchLocalInfo*)local.addr;
+      localInfo = (rangeSearchLocalInfo*)local.addr;
 
       TupleId tid = localInfo->next();
       if( tid )
@@ -486,7 +925,7 @@ int RangeSearchValueMapping_Rel( Word  *args, Word  &result,
 
     case CLOSE :
     {
-      localInfo = (RangeSearchLocalInfo*)local.addr;
+      localInfo = (rangeSearchLocalInfo*)local.addr;
       delete localInfo;
       return 0;
     }
@@ -494,30 +933,7 @@ int RangeSearchValueMapping_Rel( Word  *args, Word  &result,
   return 0;
 }
 
-int
-RangeSearchValueMapping_Stream( Word  *args, Word  &result,
-               int message, Word  &local, Supplier s )
-{
-  return 0;
-}
-
-int RangeSearchSelect( ListExpr args )
-{
-  if ( nl->IsEqual( nl->First( nl->First( args ) ), "rel" ) )
-    return 0;
-
-  if ( nl->IsEqual( nl->First( nl->First( args ) ), "stream" ) )
-    return 1;
-
-  return -1;
-}
-
-ValueMapping RangeSearchMap[] = { RangeSearchValueMapping_Rel,
-                  RangeSearchValueMapping_Stream
-                };
-
-
-ListExpr RangeSearchTypeMapping( ListExpr args )
+ListExpr rangeSearchTypeMapping( ListExpr args )
 {
   string errmsg;
   bool cond;
@@ -578,9 +994,9 @@ ListExpr RangeSearchTypeMapping( ListExpr args )
       arg1.second().listExpr());
 }
 
-struct RangeSearchInfo : OperatorInfo
+struct rangeSearchInfo : OperatorInfo
 {
-  RangeSearchInfo()
+  rangeSearchInfo()
   {
     name = "rangesearch";
     signature =
@@ -588,24 +1004,26 @@ struct RangeSearchInfo : OperatorInfo
       " (mtree (tuple ((x1 t1)...(xn tn))) ti) ->"
       " (stream (tuple ((x1 t1)...(xn tn))))";
     syntax = "_ _ rangesearch [_, _]";
-    meaning = "";
-    example = "pictures pictree rangesearch [pic1, 0.5]";
-    remark = "";
+    meaning = "arg1 should be the relation, from which the mtree in "
+              "arg2 has been created\n"
+              "arg3 contain the reference attribute\n"
+              "arg4 contain the maximal distance to arg3";
+    example = "pictures pictree rangesearch [pic1, 0.2]";
   }
 };
 
 /********************************************************************
-5.1.3.3 Operator nnsearch
+5.1.3.5 Operator nnsearch
 
 ********************************************************************/
 
-struct NNSearchLocalInfo
+struct nnSearchLocalInfo
 {
   Relation* relation;
   list<TupleId>* results;
   list<TupleId>::iterator iter;
 
-  NNSearchLocalInfo( Relation* rel ) :
+  nnSearchLocalInfo( Relation* rel ) :
     relation( rel ),
     results( new list<TupleId> )
     {}
@@ -615,7 +1033,7 @@ struct NNSearchLocalInfo
     iter = results->begin();
   }
 
-  ~NNSearchLocalInfo()
+  ~nnSearchLocalInfo()
   {
     delete results;
   }
@@ -635,16 +1053,16 @@ struct NNSearchLocalInfo
   }
 };
 
-int NNSearchValueMapping_Rel( Word  *args, Word  &result,
-                  int message, Word  &local, Supplier s )
+int nnSearchValueMapping(
+    Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  NNSearchLocalInfo *localInfo;
+  nnSearchLocalInfo *localInfo;
 
   switch (message)
   {
     case OPEN :
     {
-      localInfo = new NNSearchLocalInfo(
+      localInfo = new nnSearchLocalInfo(
           static_cast<Relation*>( args[0].addr ) );
       MT::MTree* mtree = static_cast<MT::MTree*>( args[1].addr );
       Attribute* attr = static_cast<Attribute*>( args[2].addr );
@@ -664,7 +1082,7 @@ int NNSearchValueMapping_Rel( Word  *args, Word  &result,
 
     case REQUEST :
     {
-      localInfo = (NNSearchLocalInfo*)local.addr;
+      localInfo = (nnSearchLocalInfo*)local.addr;
 
       TupleId tid = localInfo->next();
       if( tid )
@@ -681,7 +1099,7 @@ int NNSearchValueMapping_Rel( Word  *args, Word  &result,
 
     case CLOSE :
     {
-      localInfo = (NNSearchLocalInfo*)local.addr;
+      localInfo = (nnSearchLocalInfo*)local.addr;
       delete localInfo;
       return 0;
     }
@@ -689,30 +1107,7 @@ int NNSearchValueMapping_Rel( Word  *args, Word  &result,
   return 0;
 }
 
-int
-NNSearchValueMapping_Stream( Word  *args, Word  &result,
-               int message, Word  &local, Supplier s )
-{
-  return 0;
-}
-
-int NNSearchSelect( ListExpr args )
-{
-  if ( nl->IsEqual( nl->First( nl->First( args ) ), "rel" ) )
-    return 0;
-
-  if ( nl->IsEqual( nl->First( nl->First( args ) ), "stream" ) )
-    return 1;
-
-  return -1;
-}
-
-ValueMapping NNSearchMap[] = { NNSearchValueMapping_Rel,
-                  NNSearchValueMapping_Stream
-                };
-
-
-ListExpr NNSearchTypeMapping( ListExpr args )
+ListExpr nnSearchTypeMapping( ListExpr args )
 {
   string errmsg;
   bool cond;
@@ -766,9 +1161,9 @@ ListExpr NNSearchTypeMapping( ListExpr args )
       arg1.second().listExpr());
 }
 
-struct NNSearchInfo : OperatorInfo
+struct nnSearchInfo : OperatorInfo
 {
-  NNSearchInfo()
+  nnSearchInfo()
   {
     name = "nnsearch";
     signature =
@@ -776,9 +1171,183 @@ struct NNSearchInfo : OperatorInfo
       " (mtree (tuple ((x1 t1)...(xn tn))) ti) ->"
       " (stream (tuple ((x1 t1)...(xn tn))))";
     syntax = "_ _ nnsearch [_, _]";
-    meaning = "";
-    example = "pictures pictree nnsearch [pic1, 0.5]";
-    remark = "";
+    meaning = "arg1 should be the relation, from which the mtree in "
+              "arg2 has been created\n"
+              "arg3 contain the reference attribute\n"
+              "arg4 contain the count of nearest neighbours of arg3 "
+              "which should be searched";
+    example = "pictures pictree nnsearch [pic1, 5]";
+  }
+};
+
+/********************************************************************
+5.1.3.5 Operator mdistance
+
+********************************************************************/
+int mdistanceValueMapping(
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal* resultValue = static_cast<CcReal*>(result.addr);
+
+  Attribute* attr1 =
+      static_cast<Attribute*>(args[0].addr);
+
+  Attribute* attr2 =
+      static_cast<Attribute*>(args[1].addr);
+
+  string type =
+      static_cast<CcString*>(args[2].addr)->GetValue();
+
+  string mfName =
+      static_cast<CcString*>(args[3].addr)->GetValue();
+
+  TMetric metric = MetricRegistry::getMetric( type, mfName );
+  TGetDataFun getData = MetricRegistry::getDataFun( type, mfName );
+
+  double dist;
+  (*metric)( (*getData)(attr1), (*getData)(attr2), dist );
+  resultValue->Set( true, dist );
+
+  return 0;
+}
+
+ListExpr mdistanceTypeMapping( ListExpr args )
+{
+  string errmsg;
+  NList nl_args( args );
+
+  errmsg = "Operator mdistance expects two arguments.";
+  CHECK_COND( nl_args.length() == 2, errmsg );
+
+  NList arg1 = nl_args.first();
+  NList arg2 = nl_args.second();
+
+  errmsg = "Operator mdistance expects two attributes of the "
+           "same type!";
+  CHECK_COND( arg1 == arg2, errmsg );
+
+  string type = arg1.convertToString();
+
+  // check if default metric exists
+  string mfName = MetricRegistry::getDefaultName( type );
+  errmsg = "Missing default metric for type constructor " +
+           type + "!";
+  CHECK_COND( mfName != "unknown", errmsg);
+
+  NList result (
+      NList( "APPEND" ),
+      NList(
+        NList ( type, true ),
+        NList ( mfName, true ) ),
+      NList( "real" ) );
+
+  return result.listExpr();
+}
+
+struct mdistanceInfo : OperatorInfo
+{
+  mdistanceInfo()
+  {
+    name = "mdistance";
+    signature = "attribute x attribute x metricName -> real";
+    syntax = "mdistance(_, _)";
+    meaning = "computes the distance between arg1 and arg2 "
+              "by applying the default metric for the arg1 and arg2";
+    example = "mdistance(pic1, pic2)";
+    remark = "arg1 and arg2 must be of the same type";
+  }
+};
+
+/********************************************************************
+5.1.3.5 Operator mdistance2
+
+********************************************************************/
+int mdistance2ValueMapping(
+    Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcReal* resultValue = static_cast<CcReal*>(result.addr);
+
+  Attribute* attr1 =
+      static_cast<Attribute*>(args[0].addr);
+
+  Attribute* attr2 =
+      static_cast<Attribute*>(args[1].addr);
+
+  string type =
+      static_cast<CcString*>(args[3].addr)->GetValue();
+
+  string mfName =
+      static_cast<CcString*>(args[4].addr)->GetValue();
+
+  TMetric metric = MetricRegistry::getMetric( type, mfName );
+  TGetDataFun getData = MetricRegistry::getDataFun( type, mfName );
+
+  double dist;
+  (*metric)( (*getData)(attr1), (*getData)(attr2), dist );
+  resultValue->Set( true, dist );
+
+  return 0;
+}
+
+ListExpr mdistance2TypeMapping( ListExpr args )
+{
+  string errmsg;
+  NList nl_args( args );
+
+  errmsg = "Operator mdistance2 expects three arguments.";
+  CHECK_COND( nl_args.length() == 3, errmsg );
+
+  NList arg1 = nl_args.first();
+  NList arg2 = nl_args.second();
+  NList arg3 = nl_args.third();
+
+  errmsg = "Operator mdistance2 expects two attributes of the "
+           "same type!";
+  CHECK_COND( arg1 == arg2, errmsg );
+
+  string type = arg1.convertToString();
+
+  // check if the metric given in third argument is defined
+  errmsg = "Operator mdistance2 expects the name of a registered"
+           "metric as third argument, but got a list with structure"
+           " '" + arg3.convertToString() + "'.";
+  CHECK_COND( arg3.isSymbol(), errmsg);
+  string mfName = arg3.str();
+  if (mfName == "default")
+  {
+    mfName = MetricRegistry::getDefaultName( type );
+    errmsg = "Missing default metric for type constructor " +
+             type + "!";
+    CHECK_COND( mfName != "unknown", errmsg);
+  }
+
+  errmsg = "Metric " + mfName + " for type constructor " +
+           type + " not defined!";
+  CHECK_COND(MetricRegistry::getMetric( type, mfName ) != 0, errmsg);
+
+  NList result (
+      NList( "APPEND" ),
+      NList(
+        NList ( type, true ),
+        NList ( mfName, true ) ),
+      NList( "real" ) );
+
+  return result.listExpr();
+}
+
+struct mdistance2Info : OperatorInfo
+{
+  mdistance2Info()
+  {
+    name = "mdistance2";
+    signature = "attribute x attribute x metricName -> real";
+    syntax = "mdistance2(_, _, _)";
+    meaning = "computes the distance between arg1 and arg2 "
+              "by applying the metric given in arg3";
+    example = "mdistance2(pic1, pic2, lab)";
+    remark = "arg1 and arg2 must be of the same type";
   }
 };
 
@@ -794,23 +1363,45 @@ public:
   MTreeAlgebra() : Algebra()
   {
     AddTypeConstructor( &mtree );
-    AddOperator(
-        CreateMTreeInfo(),
-        CreateMTreeMap,
-        CreateMTreeSelect,
-        CreateMTreeTypeMapping );
 
     AddOperator(
-        RangeSearchInfo(),
-        RangeSearchMap,
-        RangeSearchSelect,
-        RangeSearchTypeMapping );
+        createMTreeInfo(),
+        createMTreeMap,
+        createMTreeSelect,
+        createMTreeTypeMapping );
 
     AddOperator(
-        NNSearchInfo(),
-        NNSearchMap,
-        NNSearchSelect,
-        NNSearchTypeMapping );
+        createMTree2Info(),
+        createMTree2Map,
+        createMTree2Select,
+        createMTree2TypeMapping );
+
+    AddOperator(
+        createMTree3Info(),
+        createMTree3Map,
+        createMTree3Select,
+        createMTree3TypeMapping );
+
+    AddOperator(
+        rangeSearchInfo(),
+        rangeSearchValueMapping,
+        rangeSearchTypeMapping );
+
+    AddOperator(
+        nnSearchInfo(),
+        nnSearchValueMapping,
+        nnSearchTypeMapping );
+
+    AddOperator(
+        mdistanceInfo(),
+        mdistanceValueMapping,
+        mdistanceTypeMapping );
+
+    AddOperator(
+        mdistance2Info(),
+        mdistance2ValueMapping,
+        mdistance2TypeMapping );
+
   }
 
   ~MTreeAlgebra() {};
