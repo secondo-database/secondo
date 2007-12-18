@@ -1,0 +1,52 @@
+Database: berlintest
+Restore : No
+
+Operator : createmtree
+Number   : 1
+Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn))) metricName, xi) -> (mtree (tuple ((x1 t1)...(xn tn))) ti)
+Example  : query pictures createmtree [Pic]
+Result   : (mtree (tuple((id tid) (x1 t1)...(xn tn))) picture)
+
+
+Operator : createmtree2
+Number   : 1
+Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn))) metricName, xi) -> (mtree (tuple ((x1 t1)...(xn tn))) ti)
+Example  : query pictures createmtree2 [Pic, lab]
+Result   : (mtree (tuple((id tid) (x1 t1)...(xn tn))) picture)
+
+
+Operator : createmtree3
+Number   : 1
+Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn))) metric, mtreeconfig, xi) -> (mtree (tuple ((x1 t1)...(xn tn))) ti)
+Example  : query pictures createmtree [lab, mlbDistHP, Pic]
+Result   : (mtree (tuple((id tid) (x1 t1)...(xn tn))) picture)
+
+
+Operator : mdistance2
+Number   : 1
+Signature: attribute x attribute x metricName -> real
+Example  : query mdistance2(pic1, pic2, lab)
+Result   : 0.2873522923
+
+
+Operator : mdistance
+Number   : 1
+Signature: attribute x attribute x metricName -> real
+Example  : query mdistance(pic1, pic2)
+Result   : 0.2873522923
+
+
+Operator : nnsearch
+Number   : 1
+Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))) x (mtree (tuple ((x1 t1)...(xn tn))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query pictures pictree nnsearch [pic1, 0.5]
+Result   : (rel (tuple ((id tid) (x1 t1)...(xn tn))))
+
+
+Operator : rangesearch
+Number   : 1
+Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))) x (mtree (tuple ((x1 t1)...(xn tn))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query pictures pictree rangesearch [pic1, 0.5]
+Result   : (rel (tuple ((id tid) (x1 t1)...(xn tn))))
+
+
