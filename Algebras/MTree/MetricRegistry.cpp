@@ -79,7 +79,6 @@ MetricRegistry::registerMetric( const string& metricName,
 
   ostringstream osId;
   osId << algebraId << "#" << typeId << "." << metricName;
-
   metric_map[osId.str()] = data;
 
   if ( isDefault )
@@ -131,6 +130,34 @@ MetricRegistry::getMetric( const string& tcName,
     return 0;
   }
 }
+
+/*
+Method ~getDefaultName~
+
+*/
+string
+MetricRegistry::getDefaultName( const string& tcName )
+{
+  if (!initialized)
+    initialize();
+
+  int algebraId, typeId;
+  si->GetTypeId( tcName, algebraId, typeId );
+  ostringstream osId;
+  osId << algebraId << "#" << typeId << ".";
+
+  // search default metric for type constructor 'tcName'
+  map< string, string >::iterator pos = defaults.find( tcName );
+  if ( pos != defaults.end() )
+  {
+    return pos->second;
+  }
+  else
+  {
+    return "unknown";
+  }
+}
+
 
 /*
 Method ~getData~ :
@@ -474,7 +501,7 @@ DistData* MetricRegistry::getDataPicture( void* attr )
   for (int i=0; i<128; i++)
     colorhist[i] = (double)colorhist_abs[i] / numOfPixels;
 
-return new DistData(128*sizeof(double), &colorhist);
+  return new DistData(128*sizeof(double), &colorhist);
 }
 
 DistData* MetricRegistry::getDataPicture2( void* attr )
@@ -536,7 +563,7 @@ DistData* MetricRegistry::getDataPicture3( void* attr )
   for (int i=0; i<256; i++)
     colorhist_abs[i] = 0;
 
-  for (unsigned long pos=0; pos<(numOfPixels); pos++)
+  for (unsigned long pos=0; pos < numOfPixels; pos++)
   {
     unsigned char r = rgbData[(3*pos)];
     unsigned char g = rgbData[(3*pos)+1];

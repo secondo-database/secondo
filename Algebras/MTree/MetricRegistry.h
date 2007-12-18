@@ -126,6 +126,12 @@ was found).
 
 */
 
+  static string getDefaultName( const string& tcName );
+/*
+Returns the name of the default metric for tcName.
+
+*/
+
   static TGetDataFun getDataFun( const string& tcName,
       const string& metricName = "default" );
 /*
