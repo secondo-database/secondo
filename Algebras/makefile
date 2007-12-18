@@ -36,7 +36,7 @@ endif
 
 
 .PHONY: all
-all: examples buildlibs
+all: buildlibs
 
 ../makefile.algebras: ../makefile.algebras.sample
 	$(cp-config-file)
