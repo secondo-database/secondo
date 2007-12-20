@@ -310,7 +310,8 @@ int PictureSimpleEqualsValueMap(Word* args,
                                 Word& local,
                                 Supplier s);
 
-extern TypeConstructor picture;
+extern TypeConstructor* picture;
+extern void initPicture();
 
 /*
 
@@ -340,7 +341,8 @@ extern int PictureIsGrayscaleValueMap(Word* args,
 
 */
 
-extern TypeConstructor histogram;
+extern TypeConstructor* histogram;
+extern void initHistogram();
 
 /*
 
@@ -583,12 +585,13 @@ class PictureAlgebra: public Algebra {
 public:
     PictureAlgebra() : Algebra() {
         if (PA_DEBUG) cerr << "initializing PictureAlgebra" << endl;
+        initPicture(); 
+        AddTypeConstructor(picture);
+        initHistogram();
+        AddTypeConstructor(histogram);
 
-        AddTypeConstructor(&picture);
-        AddTypeConstructor(&histogram);
-
-        picture.AssociateKind("DATA");
-        histogram.AssociateKind("DATA");
+        picture->AssociateKind("DATA");
+        histogram->AssociateKind("DATA");
 
         AddOperator(&height);
         AddOperator(&width);

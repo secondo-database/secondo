@@ -952,8 +952,7 @@ static bool SavePicture(SmiRecord& rec, size_t& offset,
 
 static bool CheckPicture(ListExpr type, ListExpr& errorInfo) {
     if (PA_DEBUG) cerr << "CheckPicture() called" << endl;
-
-    return nl->IsEqual(type, "picture");
+    return  nl->IsEqual(type, "picture");
 }
 
 /*
@@ -977,7 +976,10 @@ static void* CastPicture(void* addr) {
 
 */
 
-TypeConstructor picture(
+TypeConstructor* picture = 0;
+
+ void initPicture(){
+  picture = new TypeConstructor (
     "picture",                                //name
     PictureProperty,                          //property function describing 
                                               //  signature
@@ -992,6 +994,9 @@ TypeConstructor picture(
     SizeOfPicture,                            //sizeof function
     CheckPicture                              //kind checking function
 );
+}
+
+
 /*
 
 10 Type mapping functions

@@ -958,7 +958,10 @@ static void* CastHistogram(void* addr) {
 
 */
 
-TypeConstructor histogram(
+TypeConstructor* histogram = 0;
+ 
+void initHistogram(){
+   histogram = new TypeConstructor(
     "histogram",                              //name
     HistogramProperty,                        //property function describing 
                                               //  signature
@@ -971,4 +974,4 @@ TypeConstructor histogram(
     CastHistogram,                            //cast function
     SizeOfHistogram,                          //sizeof function
     CheckHistogram );                         //kind checking function
-
+}
