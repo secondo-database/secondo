@@ -31,7 +31,7 @@ November/December 2007, Mirko Dibbert
 Initialise count of open objects:
 
 */
-size_t MT::Entry::m_objectsOpen = 0;
+unsigned MT::Entry::m_objectsOpen = 0;
 
 /*
 Assignment Operator :
