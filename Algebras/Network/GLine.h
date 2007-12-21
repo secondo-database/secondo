@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,6 +27,8 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
+Dezember 2007 Simone Jandt
+
 Defines, includes, and constants
 
 */
@@ -51,7 +53,7 @@ struct RouteInterval
     m_dEnd(in_dEnd)
   {
   }
-  
+
   int m_iRouteId;
 /*
 The route id.
@@ -85,21 +87,21 @@ The constructor.
 
 */
   GLine( ListExpr in_xValue,
-         int in_iErrorPos, 
-         ListExpr& inout_xErrorInfo, 
+         int in_iErrorPos,
+         ListExpr& inout_xErrorInfo,
          bool& inout_bCorrect);
     void SetNetworkId(int in_iNetworkId);
-    
+
     void AddRouteInterval(int in_iRouteId,
                           double in_dStart,
                           double in_dEnd);
-    
+
     static ListExpr Out( ListExpr typeInfo, Word value );
 
-    static Word In( const ListExpr typeInfo, 
+    static Word In( const ListExpr typeInfo,
                     const ListExpr instance,
-                    const int errorPos, 
-                    ListExpr& errorInfo, 
+                    const int errorPos,
+                    ListExpr& errorInfo,
                     bool& correct );
 
     static Word Create( const ListExpr typeInfo );
@@ -108,9 +110,9 @@ The constructor.
 
     static void Close( const ListExpr typeInfo, Word& w );
 
-    static Word Clone( const ListExpr typeInfo, 
+    static Word Clone( const ListExpr typeInfo,
                        const Word& w );
- 
+
     static void* Cast( void* addr );
 
     int NumOfFLOBs() const;
@@ -139,10 +141,12 @@ The constructor.
 
     void CopyFrom(const StandardAttribute*);
 
+    DBArray<RouteInterval> GetRouteIntervals();
+
 
 
   private:
-    
+
     int m_iNetworkId;
 /*
 The network id.

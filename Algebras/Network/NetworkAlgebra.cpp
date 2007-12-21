@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
+
 
 This file contains the implementation of the type constructors ~network~,
 ~gpoint~, and ~gline~ and the temporal corresponding ~moving~(~gpoint~)
@@ -194,7 +195,7 @@ Operator networksections (
 );
 
 /*
-Definition 
+Definition of Operator shortest path
 
 */
 Operator shortest_path (
@@ -205,7 +206,19 @@ Operator shortest_path (
           OpShortestPath::TypeMap        // type mapping
 );
 
+/*
+Definition of  operator length
 
+
+
+Operator lengthn (
+          "lengthn",               // name
+          OpLength::Spec,          // specification
+          OpLength::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpLength::TypeMap        // type mapping
+);
+*/
 /*
 Creating the Algebra
 
@@ -229,6 +242,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networkjunctions);
     AddOperator(&networksections);
     AddOperator(&shortest_path);
+//    AddOperator(&lengthn);
   }
   ~NetworkAlgebra() {};
 };
@@ -254,7 +268,7 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeNetworkAlgebra( NestedList* nlRef, 
+InitializeNetworkAlgebra( NestedList* nlRef,
                           QueryProcessor* qpRef )
 {
   nl = nlRef;

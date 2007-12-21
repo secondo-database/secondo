@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
+
+December 2007 Simone Jandt (GLine::In repaired)
 
 Defines, includes, and constants
 
@@ -61,12 +63,12 @@ Construktor used internally
 
 */
   GLine::GLine(GLine* in_xOther):
-  m_xRouteIntervals(0) 
+  m_xRouteIntervals(0)
   {
     m_bDefined = in_xOther->m_bDefined;
     m_iNetworkId = in_xOther->m_iNetworkId;
     // Iterate over all RouteIntervalls
-    for (int i = 0; i < in_xOther->m_xRouteIntervals.Size(); ++i) 
+    for (int i = 0; i < in_xOther->m_xRouteIntervals.Size(); ++i)
     {
       // Get next Interval
       const RouteInterval* pCurrentInterval;
@@ -88,20 +90,20 @@ Construktor from list
 
 */
   GLine::GLine( ListExpr in_xValue,
-                int in_iErrorPos, 
-                ListExpr& inout_xErrorInfo, 
+                int in_iErrorPos,
+                ListExpr& inout_xErrorInfo,
                 bool& inout_bCorrect)
 {
   // Check the list
   if(!(nl->ListLength( in_xValue ) == 2))
   {
     string strErrorMessage = "GLine(): List length must be 2.";
-    inout_xErrorInfo = nl->Append(inout_xErrorInfo, 
+    inout_xErrorInfo = nl->Append(inout_xErrorInfo,
                                   nl->StringAtom(strErrorMessage));
     inout_bCorrect = false;
     m_bDefined = false;
     return;
-  }   
+  }
 
   // Split into the two parts
   ListExpr xNetworkIdList = nl->First(in_xValue);
@@ -109,16 +111,16 @@ Construktor from list
 
   // Check the parts
   if(!nl->IsAtom(xNetworkIdList) ||
-      nl->AtomType(xNetworkIdList) != IntType) 
+      nl->AtomType(xNetworkIdList) != IntType)
   {
     string strErrorMessage = "GLine(): Error while reading network-id.";
-        inout_xErrorInfo = nl->Append(inout_xErrorInfo, 
+        inout_xErrorInfo = nl->Append(inout_xErrorInfo,
                                       nl->StringAtom(strErrorMessage));
     m_bDefined = false;
     inout_bCorrect = false;
     return;
-  }   
-  
+  }
+
   m_iNetworkId = nl->IntValue(xNetworkIdList);
 
   // Iterate over all routes
@@ -126,29 +128,29 @@ Construktor from list
   {
     ListExpr xCurrentRouteInterval = nl->First( xRouteIntervalList );
     xRouteIntervalList = nl->Rest( xRouteIntervalList );
-    
+
     if( nl->ListLength( xCurrentRouteInterval ) != 3 ||
       (!nl->IsAtom( nl->First(xCurrentRouteInterval))) ||
-      nl->AtomType( nl->First(xCurrentRouteInterval)) != IntType || 
+      nl->AtomType( nl->First(xCurrentRouteInterval)) != IntType ||
       (!nl->IsAtom( nl->Second(xCurrentRouteInterval))) ||
       nl->AtomType( nl->Second(xCurrentRouteInterval)) != RealType ||
       (!nl->IsAtom( nl->Third(xCurrentRouteInterval))) ||
       nl->AtomType( nl->Third(xCurrentRouteInterval)) != RealType)
     {
       string strErrorMessage = "GLine(): Error while reading route-interval.";
-          inout_xErrorInfo = nl->Append(inout_xErrorInfo, 
+          inout_xErrorInfo = nl->Append(inout_xErrorInfo,
                                         nl->StringAtom(strErrorMessage));
       inout_bCorrect = false;
       m_bDefined = false;
       return;
     }
-    
+
     // Read attributes from list
     // Read values from table
     int iRouteId = nl->IntValue( nl->First(xCurrentRouteInterval) );
     double dStart = nl->RealValue( nl->Second(xCurrentRouteInterval) );
     double dEnd  = nl->RealValue( nl->Third(xCurrentRouteInterval) );
-    
+
     AddRouteInterval(iRouteId,
                      dStart,
                      dEnd);
@@ -166,7 +168,7 @@ void GLine::SetNetworkId(int in_iNetworkId)
   m_iNetworkId = in_iNetworkId;
   m_bDefined = true;
 }
-  
+
 /*
 Add a route interval
 
@@ -178,7 +180,8 @@ void GLine::AddRouteInterval(int in_iRouteId,
   m_xRouteIntervals.Append(RouteInterval(in_iRouteId,
                                          in_dStart,
                                          in_dEnd));
-}   
+}
+
 
 /*
 Checks whether the GLine is defined
@@ -202,33 +205,58 @@ void GLine::SetDefined( bool in_bDefined )
 ~In~-function
 
 */
-Word GLine::In(const ListExpr in_xTypeInfo, 
-               ListExpr in_xValue,
-               int in_iErrorPos, 
-               ListExpr& inout_xErrorInfo, 
-               bool& inout_bCorrect)
-{
-  GLine* pLine = new GLine(in_xValue,
-                           in_iErrorPos,
-                           inout_xErrorInfo,
-                           inout_bCorrect);
 
-  if( inout_bCorrect )
-  {
-    return SetWord( pLine );
+Word GLine::In(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct){
+  GLine* pGline = new GLine(0);
+  if (nl->ListLength(instance) != 2) {
+    correct = false;
+    cmsg.inFunError("Expecting (networkid (list of routeintervals))");
+    return SetWord(Address(0));
   }
-  else
-  {
-    delete pLine;
-    return SetWord( 0 );
+  ListExpr FirstElem = nl->First(instance);
+  ListExpr SecondElem = nl->Second(instance);
+  if (!nl->IsAtom(FirstElem) || !nl->AtomType(FirstElem)== IntType) {
+    correct = false;
+    cmsg.inFunError("Networkadress is not evaluable");
+    return SetWord(Address(0));
   }
+  if (nl->IsEmpty(SecondElem)) {
+    correct = false;
+    cmsg.inFunError("List of routeintervals is empty.");
+    return SetWord(Address(0));
+  }
+  pGline->SetNetworkId(nl->IntValue(FirstElem));
+  while (!nl->IsEmpty(SecondElem)) {
+    ListExpr start = nl->First(SecondElem);
+    SecondElem = nl->Rest(SecondElem);
+    if (!nl->ListLength(start) == 3) {
+      correct = false;
+      cmsg.inFunError("Routeinterval incorrect.Expected list of 3 Elements.");
+      return SetWord(Address(0));
+    }
+    ListExpr lrid = nl->First(start);
+    ListExpr lpos1 = nl->Second(start);
+    ListExpr lpos2 = nl->Third(start);
+    if (!nl->IsAtom(lrid) || !nl->AtomType(lrid) == IntType ||
+         !nl->IsAtom(lpos1) || !nl->AtomType(lpos1) == RealType ||
+         !nl->IsAtom(lpos2) || !nl->AtomType(lpos2) == RealType) {
+      correct = false;
+      cmsg.inFunError("Routeinterval should be list int, real, real.");
+      return SetWord(Address(0));
+    }
+    pGline->AddRouteInterval(nl->IntValue(lrid),
+                             nl->RealValue(lpos1),
+                             nl->RealValue(lpos2));
+  }
+  correct = true;
+  return SetWord(pGline);
 }
-
 /*
 ~Out~-function
 
 */
-ListExpr GLine::Out(ListExpr in_xTypeInfo, 
+ListExpr GLine::Out(ListExpr in_xTypeInfo,
                     Word in_xValue)
 {
   GLine *pGline = (GLine*)in_xValue.addr;
@@ -242,9 +270,9 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
   bool bFirst = true;
   ListExpr xNetworkId = nl->IntAtom(pGline->m_iNetworkId);
   ListExpr xRouteIntervals;
-  
+
   // Iterate over all RouteIntervalls
-  for (int i = 0; i < pGline->m_xRouteIntervals.Size(); ++i) 
+  for (int i = 0; i < pGline->m_xRouteIntervals.Size(); ++i)
   {
     // Get next Interval
     const RouteInterval* pCurrentInterval;
@@ -257,7 +285,7 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
     xNext = nl->ThreeElemList(nl->IntAtom(iRouteId),
                               nl->RealAtom(dStart),
                               nl->RealAtom(dEnd));
-     
+
     // Create new list or append element to existing list
     if(bFirst)
     {
@@ -291,7 +319,7 @@ Word GLine::Create(const ListExpr typeInfo)
 ~Delete~-function
 
 */
-void GLine::Delete(const ListExpr typeInfo, 
+void GLine::Delete(const ListExpr typeInfo,
                    Word& w )
 {
   delete (GLine*)w.addr;
@@ -302,7 +330,7 @@ void GLine::Delete(const ListExpr typeInfo,
 ~Close~-function
 
 */
-void GLine::Close(const ListExpr typeInfo, 
+void GLine::Close(const ListExpr typeInfo,
                   Word& w )
 {
   delete (GLine*)w.addr;
@@ -313,7 +341,7 @@ void GLine::Close(const ListExpr typeInfo,
 ~Clone~-function
 
 */
-Word GLine::Clone(const ListExpr typeInfo, 
+Word GLine::Clone(const ListExpr typeInfo,
                   const Word& w )
 {
   return SetWord( 0 );
@@ -375,7 +403,7 @@ size_t GLine::HashValue() const
   size_t xHash = m_iNetworkId;
 
   // Iterate over all RouteIntervalls
-  for (int i = 0; i < m_xRouteIntervals.Size(); ++i) 
+  for (int i = 0; i < m_xRouteIntervals.Size(); ++i)
   {
     // Get next Interval
     const RouteInterval* pCurrentInterval;
@@ -435,3 +463,4 @@ bool GLine::Check( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "gline" ));
 }
+
