@@ -64,6 +64,7 @@ Type property of type constructor ~network~
 #include "OpNetworkRoutes.h"
 #include "OpNetworkSections.h"
 #include "OpShortestPath.h"
+#include "OpLength.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -210,7 +211,6 @@ Operator shortest_path (
 Definition of  operator length
 
 
-
 Operator lengthn (
           "lengthn",               // name
           OpLength::Spec,          // specification
@@ -218,7 +218,9 @@ Operator lengthn (
           Operator::SimpleSelect,        // selection function
           OpLength::TypeMap        // type mapping
 );
+
 */
+
 /*
 Creating the Algebra
 
@@ -242,7 +244,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networkjunctions);
     AddOperator(&networksections);
     AddOperator(&shortest_path);
-//    AddOperator(&lengthn);
+
   }
   ~NetworkAlgebra() {};
 };

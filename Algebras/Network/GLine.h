@@ -141,7 +141,6 @@ The constructor.
 
     void CopyFrom(const StandardAttribute*);
 
-    DBArray<RouteInterval> GetRouteIntervals();
 
 
 
