@@ -295,7 +295,7 @@ and unit point. This constructor should only be used to create test-data!
 The copy-constructor.
 
 */  
-  //inline virtual ~CUPoint() {}
+  virtual ~CUPoint() {}
   
 /*
 The destructor.

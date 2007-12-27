@@ -5683,14 +5683,16 @@ inline void HCMPoint::CopyFrom( const StandardAttribute* right )
         }
         SetLayerepsilon( i, hcmp->GetLayerepsilon(i) );
       }
+      else
+        SetLayerepsilon( i, -1.0 );
     }
     SetEpsilon(hcmp->GetEpsilon());
     SetFactor(hcmp->GetFactor());
     bbox = hcmp->BoundingBox();  
     
     // +++++ for debugging purposes only +++++
-    cout << "HCMPoint::CopyFrom: The HCMPoint's boundingbox is defined as: ";
-    BoundingBox().Print(cout);
+    //cout << "HCMPoint::CopyFrom: The HCMPoint's boundingbox is defined as: ";
+    //BoundingBox().Print(cout);
   }
 }
 
@@ -10450,7 +10452,8 @@ int CUPointToUncertain( Word* args, Word& result, int message, Word& local,
   if( u->IsDefined() && e->IsDefined() )
   {
     CUPoint aux( ((double)e->GetValue()) , *u);
-    *cup = aux;
+    cup->CopyFrom( &aux );
+    aux.DeleteIfAllowed();
   }
   else
     cup->SetDefined(false);
@@ -10473,6 +10476,7 @@ int CUPointTrajectory( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
 
   Region *region = ((Region*)result.addr);
+  Region aux( 0 );
   CUPoint *cupoint = ((CUPoint*)args[0].addr);
   
   // If epsilon equals 0, set a minimal epsilon value greater 0 to ensure,
@@ -10486,7 +10490,9 @@ int CUPointTrajectory( Word* args, Word& result, int message,
     max = fabs(cupoint->p1.GetY());
   max = max * minEpsilonLimiter;
   
-  cupoint->UTrajectory(max, *region );
+  cupoint->UTrajectory(max, aux );
+  region->CopyFrom( &aux );
+  //aux.DeleteIfAllowed();  // causes errors!
 
   return 0;
 }
@@ -10589,9 +10595,12 @@ int CUPointAtInstant( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   CUPoint* cup = ((CUPoint*)args[0].addr);
   Instant* inst = (Instant*) args[1].addr;
+  IRegion aux(false);
   Intime<Region>* pResult = (Intime<Region>*)result.addr;
 
-  cup->AtInstant(*inst, *pResult);
+  cup->AtInstant(*inst, aux);
+  pResult->CopyFrom( &aux );
+  aux.DeleteIfAllowed();
   return 0;
 }
 
@@ -10608,7 +10617,6 @@ int CUPointD_AtPoint(Word* args, Word& result, int message,
 
   CUPoint *u = ((CUPoint*)args[0].addr);
   Point* p = ((Point*)args[1].addr);
-
   CUPoint* pResult = (CUPoint*)result.addr;
 
   u->D_At(*p, *pResult);
@@ -10734,6 +10742,7 @@ int CMPointToUncertain( Word* args, Word& result, int message, Word& local,
       m->Get(i, unit);
       CUPoint aux( ((double)e->GetValue()), *unit );  
       cmp->Add(aux);
+      //aux.DeleteIfAllowed(); // causes Errors!
     }
   }
   else
@@ -10848,8 +10857,11 @@ int CMPointAtInstant( Word* args, Word& result, int message,
   CMPoint* cmp = ((CMPoint*)args[0].addr);
   Instant* inst = (Instant*) args[1].addr;
   Intime<Region>* pResult = (Intime<Region>*)result.addr;
+  IRegion aux(false);
 
-  cmp->AtInstant(*inst, *pResult);
+  cmp->AtInstant(*inst, aux);
+  pResult->CopyFrom( &aux );
+  //aux.DeleteIfAllowed();  //causes errors!
   return 0;
 }
 
@@ -10862,10 +10874,12 @@ int CMPointAtPeriods( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   CMPoint* cmp = ((CMPoint*)args[0].addr);
+  CMPoint aux(false);
   CMPoint* pResult = (CMPoint*)result.addr;
   Periods* per = (Periods*)args[1].addr;
 
-  cmp->AtPeriods(*per,*pResult);
+  cmp->AtPeriods(*per,aux);
+  pResult->CopyFrom( &aux );
   return 0;
 }
 
@@ -11023,8 +11037,10 @@ int CMPointD_AtPoint(Word* args, Word& result, int message,
   CMPoint *m = ((CMPoint*)args[0].addr);
   Point* p = ((Point*)args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  m->D_At(*p, *pResult);
+  m->D_At(*p, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11038,8 +11054,10 @@ int CMPointD_AtRegion(Word* args, Word& result, int message,
   CMPoint *m = ((CMPoint*)args[0].addr);
   Region* r = ((Region*)args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  m->D_At(*r, *pResult);
+  m->D_At(*r, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11058,8 +11076,10 @@ int CMPointP_AtPoint(Word* args, Word& result, int message,
   CMPoint *m = ((CMPoint*)args[0].addr);
   Point* p = ((Point*)args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  m->P_At(*p, *pResult);
+  m->P_At(*p, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11073,8 +11093,10 @@ int CMPointP_AtRegion(Word* args, Word& result, int message,
   CMPoint *m = ((CMPoint*)args[0].addr);
   Region* r = ((Region*)args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  m->P_At(*r, *pResult);
+  m->P_At(*r, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11094,11 +11116,15 @@ int GeneralizeMPoint( Word* args, Word& result, int message, Word& local,
   CcReal *e = static_cast<CcReal*>(args[1].addr);
   CcReal *f = static_cast<CcReal*>(args[2].addr);
   HMPoint* pResult = (HMPoint*)result.addr;
+  HMPoint aux( 0 );
   DateTime dt(0, 0, durationtype);
   
   if( m->IsDefined() && e->IsDefined() && f->IsDefined() )
+  {
     Generalize( static_cast<double>(e->GetValue()), 
-                static_cast<double>(f->GetValue()), *m, false, dt, *pResult );
+                static_cast<double>(f->GetValue()), *m, false, dt, aux );
+    pResult->CopyFrom( &aux );
+  }
   else
     pResult->SetDefined(false);
   
@@ -11136,14 +11162,17 @@ int HMPointTrajectory( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   HMPoint *hmp = static_cast<HMPoint*>(args[0].addr);
   Line* pResult = (Line*)result.addr;
+  Line auxln( 0 );
   
   MPoint aux( 0 );
   
   if( hmp->IsDefined() )
   {
     hmp->GetMPoint(aux);
-    aux.Trajectory(*pResult);
+    aux.Trajectory(auxln);
     aux.DeleteIfAllowed();
+    pResult->CopyFrom( &auxln );
+    auxln.DeleteIfAllowed();
   }
   else
     pResult->SetDefined(false);
@@ -11162,13 +11191,16 @@ int HMPointGetMPoint( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   HMPoint *hmp = static_cast<HMPoint*>(args[0].addr);
   MPoint* pResult = (MPoint*)result.addr;
+  MPoint aux( 0 );
   
   
   if( hmp->IsDefined() )
-    hmp->GetMPoint(*pResult);
+  {
+    hmp->GetMPoint(aux);
+    pResult->CopyFrom( &aux );
+  }
   else
     pResult->SetDefined(false);
-  
   return 0;
 }
 
@@ -11183,9 +11215,13 @@ int HMPointGetCMPoint( Word* args, Word& result, int message, Word& local,
   HMPoint *hmp = static_cast<HMPoint*>(args[0].addr);
   CcReal *epsilon = static_cast<CcReal*>(args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
   
   if( hmp->IsDefined() )
-    hmp->GetCMPoint( epsilon->GetValue(), *pResult );
+  {
+    hmp->GetCMPoint( epsilon->GetValue(), aux );
+    pResult->CopyFrom( &aux );
+  }
   else
     pResult->SetDefined(false);
   
@@ -11249,8 +11285,10 @@ int HMPointD_AtPoint(Word* args, Word& result, int message,
   HMPoint *m = ((HMPoint*)args[0].addr);
   Point* p = ((Point*)args[1].addr);
   MPoint* pResult = (MPoint*)result.addr;
+  MPoint aux( 0 );
 
-  m->D_At(*p, *pResult);
+  m->D_At(*p, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11264,8 +11302,10 @@ int HMPointD_AtRegion(Word* args, Word& result, int message,
   HMPoint *m = ((HMPoint*)args[0].addr);
   Region* r = ((Region*)args[1].addr);
   MPoint* pResult = (MPoint*)result.addr;
+  MPoint aux( 0 );
 
-  m->D_At(*r, *pResult);
+  m->D_At(*r, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11281,9 +11321,13 @@ int HMPointReduceHierarchy( Word* args, Word& result, int message, Word& local,
   HMPoint *hmp = static_cast<HMPoint*>(args[0].addr);
   CcReal *epsilon = static_cast<CcReal*>(args[1].addr);
   HCMPoint* pResult = (HCMPoint*)result.addr;
+  HCMPoint aux( 0 );
   
   if( hmp->IsDefined() )
-    hmp->ReduceHierarchy( epsilon->GetValue(), *pResult ); 
+  {
+    hmp->ReduceHierarchy( epsilon->GetValue(), aux );
+    pResult->CopyFrom( &aux );
+  } 
   else
     pResult->SetDefined(false);
   
@@ -11479,9 +11523,13 @@ int HCMPointGetCMPoint( Word* args, Word& result, int message, Word& local,
   HCMPoint *hmp = static_cast<HCMPoint*>(args[0].addr);
   CcReal *epsilon = static_cast<CcReal*>(args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
   
   if( hmp->IsDefined() )
-    hmp->GetCMPoint( epsilon->GetValue(), *pResult );
+  {
+    hmp->GetCMPoint( epsilon->GetValue(), aux );
+    pResult->CopyFrom( &aux );
+  }
   else
     pResult->SetDefined(false);
   
@@ -11498,9 +11546,13 @@ int HCMPointDeftime( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   HCMPoint* hcmp = static_cast<HCMPoint*>(args[0].addr);
   Periods* pResult = (Periods*)result.addr;
+  Periods aux( 0 );
   
   if( hcmp->IsDefined() )
-    hcmp->DefTime( *pResult );
+  {
+    hcmp->DefTime( aux );
+    pResult->CopyFrom( &aux );
+  }
   else
     pResult->SetDefined(false);
   
@@ -11650,8 +11702,10 @@ int HCMPointD_AtPoint(Word* args, Word& result, int message,
   HCMPoint *m = ((HCMPoint*)args[0].addr);
   Point* p = ((Point*)args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  m->D_At(*p, *pResult);
+  m->D_At(*p, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11665,8 +11719,10 @@ int HCMPointD_AtRegion(Word* args, Word& result, int message,
   HCMPoint *m = ((HCMPoint*)args[0].addr);
   Region* r = ((Region*)args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  m->D_At(*r, *pResult);
+  m->D_At(*r, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11686,8 +11742,10 @@ int HCMPointP_AtPoint(Word* args, Word& result, int message,
   HCMPoint *m = ((HCMPoint*)args[0].addr);
   Point* p = ((Point*)args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  m->P_At(*p, *pResult);
+  m->P_At(*p, aux);
+  pResult->CopyFrom( &aux );
 
   return 0;
 }
@@ -11701,9 +11759,11 @@ int HCMPointP_AtRegion(Word* args, Word& result, int message,
   HCMPoint *m = ((HCMPoint*)args[0].addr);
   Region* r = ((Region*)args[1].addr);
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  m->P_At(*r, *pResult);
-
+  m->P_At(*r, aux);
+  pResult->CopyFrom( &aux );
+  
   return 0;
 }
 
@@ -11718,8 +11778,10 @@ int HCMPointAtInstant( Word* args, Word& result, int message,
   HCMPoint* hcmp = ((HCMPoint*)args[0].addr);
   Instant* inst = (Instant*) args[1].addr;
   Intime<Region>* pResult = (Intime<Region>*)result.addr;
+  IRegion aux(false);
 
-  hcmp->AtInstant(*inst, *pResult);
+  hcmp->AtInstant(*inst, aux);
+  pResult->CopyFrom( &aux );
   return 0;
 }
 
@@ -11734,8 +11796,11 @@ int HCMPointAtPeriods( Word* args, Word& result, int message,
   HCMPoint* hcmp = ((HCMPoint*)args[0].addr);
   Periods* per = (Periods*)args[1].addr;
   CMPoint* pResult = (CMPoint*)result.addr;
+  CMPoint aux( 0 );
 
-  hcmp->AtPeriods(*per,*pResult);
+  hcmp->AtPeriods(*per,aux);
+  pResult->CopyFrom( &aux );
+  
   return 0;
 }
 
