@@ -32,9 +32,10 @@ September - November 2007 Sascha Vaut
 
 1 Overview
 
-Up to now, this file contains the implementation of the type constructors 
-~uncertain, cpoint, cupoint~ and ~cmpoint~. The memory data structures used for
-these type constructors are implemented in the HierarchicalGeoAlgebra.h file.
+This file contains the implementation of the type constructors 
+~uncertain~, ~cpoint~, ~cupoint~, ~cmpoint~, ~hcupoint~, ~hcmpoint~ and 
+~hmpoint~. The memory data structures used for these type constructors are 
+implemented in the HierarchicalGeoAlgebra.h file.
 
 2 Defines, includes, and constants
 
@@ -211,7 +212,7 @@ functions sin(alpha) and cos(alpha) are used:
       return;
     }
     
-    HalfSegment hs;
+    HalfSegment hs(false, ep1, ep2);
     int partnerno = 0;
     int n = 16;
     double valueX, valueY;
@@ -229,7 +230,7 @@ functions sin(alpha) and cos(alpha) are used:
       angle = ( PI / 180 ) * p1.Direction( ep1 );
     }
     result.StartBulkLoad();
-    Point v1, v2;
+    Point v1(false, 0, 0), v2(false, 0, 0);
     
     for( int i = 0; i <= n; i++ )
     {
@@ -357,8 +358,8 @@ void CUPoint::TemporalFunction( const Instant& t,
     }
   else
     {
-      Instant t0 = timeInterval.start;
-      Instant t1 = timeInterval.end;
+      Instant t0(timeInterval.start);
+      Instant t1(timeInterval.end);
 
       double x = (p1.GetX() - p0.GetX()) * ((t - t0) / (t1 - t0)) + p0.GetX();
       double y = (p1.GetY() - p0.GetY()) * ((t - t0) / (t1 - t0)) + p0.GetY();
@@ -505,8 +506,7 @@ is FALSE.
     distP1GreaterEpsilon = true;
   }
 
-  HalfSegment segCup;
-  Point defPP;    
+  Point defPP(false, 0, 0);    
   
 /* 
 Point defPP defines the point where the cupoint completely crosses the 
@@ -524,9 +524,8 @@ distance to the regions border equals the epsilon-value.)
 this endpoint to the regions border is greater than epsilon.
 
 */
-  if( p0 < p1 )
-    segCup.Set(true, p0, p1);
-  else
+  HalfSegment segCup(true, p0, p1);
+  if( p0 >= p1 )
     segCup.Set(false, p1, p0);
     // p0 is the dominating point of the halfsegment
       
@@ -759,12 +758,10 @@ the same as the definitely\_passes function.
   }
   else
   {
-    HalfSegment hs;
+    HalfSegment hs(false, p0, p1);
     if( p0.GetX() < p1.GetX() ||
         p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY() )
       hs.Set(true, p0, p1);
-    else
-      hs.Set(false, p0, p1);
     double dist = hs.Distance(p);
     if(dist < epsilon || AlmostEqual(dist, epsilon) )
       return true;
@@ -808,13 +805,11 @@ halfsegment segCup (defined by the unit's endpoints) to the region is less than
 the uncertainty-value.
 
 */ 
-    HalfSegment segCup;
+    HalfSegment segCup(false, p0, p1);
     
     if( p0.GetX() < p1.GetX() ||
         p0.GetX() == p1.GetX() && p0.GetY() < p1.GetY() )
       segCup.Set(true, p0, p1);
-    else
-      segCup.Set(false, p0, p1); 
   
     const HalfSegment *segRgn;
     int i = 0;
@@ -850,7 +845,7 @@ void CUPoint::AtInstant( const Instant& t, Intime<Region>& result ) const
     else
     {
       result.SetDefined( true );
-      Point respoint;
+      Point respoint(false, 0, 0);
       TemporalFunction( t, respoint );
       
       double e = GetEpsilon();
@@ -1034,9 +1029,7 @@ empty (or undefined).
     {
       containsP1 = true;
       distP1GreaterEpsilon = true;
-    }
-  
-    HalfSegment segCup;   
+    }   
 /*
 To compute various Passing Points, a spatial representation of the unit is 
 needed (the epsilon-value is used separately and so is ignored here).
@@ -1076,10 +1069,9 @@ again.
       lastDefPPhs[k] = -1;
     }
     
+    HalfSegment segCup(false, p1, p0);
     if( p0 < p1 )
       segCup.Set(true, p0, p1);
-    else
-      segCup.Set(false, p1, p0);
       // the dominating point of the halfsegment marks p0
         
     //r.StartBulkLoad();
@@ -1225,7 +1217,7 @@ the following error message:
           //if(aDefPPtooClose)
           //    cout << "aDefPPtooClose is TRUE!\n";
           
-          Point p;
+          Point p(false, 0, 0);
           if( FindDefPassingPoint(segCup, *segRgn, epsilon, p) )
           {
             // +++++ for debugging purposes only +++++
@@ -1356,8 +1348,8 @@ to the region's border is greater than epsilon.
       //cout << endl << "There are " << countPoints << " DefPPs left!\n\n";
       
       
-      Point ep0;
-      Point ep1;
+      Point ep0(false, 0, 0);
+      Point ep1(false, 0, 0);
       bool firstrun = distP0GreaterEpsilon;
       
       // +++++ for debugging purposes only +++++
@@ -1587,8 +1579,8 @@ to the region's border is greater than epsilon.
 Determine the timeInterval for the new unit:
 
 */
-        Instant t0;
-        Instant t1;
+        Instant t0(instanttype);
+        Instant t1(instanttype);
         bool tlc;
         bool trc;
         
@@ -1829,8 +1821,8 @@ from the cupoint's endpoints.
     mu1 = (-b + sqrt(bb4ac)) / (2 * a);
     mu2 = (-b - sqrt(bb4ac)) / (2 * a);
     
-    Point ep0;
-    Point ep1;
+    Point ep0(false, 0, 0);
+    Point ep1(false, 0, 0);
     
     if( distp0 < epsilon || AlmostEqual( distp0, epsilon ) )
       ep0 = p0;
@@ -1841,8 +1833,8 @@ from the cupoint's endpoints.
     else
       ep1.Set( p0x + mu1*(p1x - p0x), p0y + mu1*(p1y - p0y) );
     
-    Instant t0;
-    Instant t1;
+    Instant t0(instanttype);
+    Instant t1(instanttype);
     bool tlc;
     bool trc;
     
@@ -2061,7 +2053,7 @@ To compute various Passing Points, a spatial representation of the unit is
 needed (the epsilon-value is used separately and so is ignored here).
 
 */
-    HalfSegment segCup;
+    HalfSegment segCup(true, p0, p1);
     bool hsCloserEpsilon;
     bool aPosPPtooClose = false;
     const int maxPosPPs = 16;
@@ -2093,14 +2085,7 @@ again.
       posPP[k].SetDefined(false);
       posPPtooClose[k] = false;
       lastPosPPhs[k] = -1;
-    }
-    
-    //if( p0 < p1 )
-      segCup.Set(true, p0, p1);
-    //else
-    //  segCup.Set(false, p1, p0);
-      // the dominating point of the halfsegment marks p0
-        
+    }        
     //r.StartBulkLoad();
 
 
@@ -2239,7 +2224,7 @@ to the possibly defined Passing Points.
           //if(aPosPPtooClose)
           //    cout << "aDefPPtooClose is TRUE!\n";
           
-          Point p;
+          Point p(false, 0, 0);
           if( FindPosPassingPoint(segCup, *segRgn, epsilon, p) )
           {
             // +++++ for debugging purposes only +++++
@@ -2345,7 +2330,7 @@ redefined.
       //cout << endl << "The distance of P0 to the region is greater than "
       //  "epsilon, so compute an additional posPP!\n";
       
-      Point p;
+      Point p(false, 0, 0);
       r.Get(hsMinDistP0, segRgn);
       if( FindPosPassingPoint(segCup, *segRgn, epsilon, p) )
       {
@@ -2405,7 +2390,7 @@ redefined.
       //cout << endl << "The distance of P1 to the region is greater than "
       //  "epsilon, so compute an additional posPP!\n";
         
-      Point p;
+      Point p(false, 0, 0);
       r.Get( hsMinDistP1, segRgn);
       if( FindPosPassingPoint(segCup, *segRgn, epsilon, p) )
       {
@@ -2520,8 +2505,8 @@ redefined.
       // the endpoints in this evaluation if they lie inside the region and
       // their distance to the region's border is greater than epsilon.
       
-      Point ep0;
-      Point ep1;
+      Point ep0(false, 0, 0);
+      Point ep1(false, 0, 0);
       bool firstrun = (containsP0 || hsMinDistP0 > -1 && 
                         (distP0 < epsilon || AlmostEqual(distP0, epsilon)) );
       
@@ -2755,8 +2740,8 @@ redefined.
         //cout << "D_Passes: P0 liegt mit Abstand Epsilon in Region!\n";
         
         // determine the timeInterval for the new unit
-        Instant t0;
-        Instant t1;
+        Instant t0(instanttype);
+        Instant t1(instanttype);
         bool tlc;
         bool trc;
         
@@ -2995,7 +2980,7 @@ void CMPoint::MergeAdd(const CUPoint& unit){
                              unit.timeInterval.rc);
   CUPoint cupoint(e, complete,last->p0, unit.p1);
   delete &e;
-  Point p;
+  Point p(false, 0, 0);
   cupoint.TemporalFunction(last->timeInterval.end, p, true);
   if(!AlmostEqual(p,last->p0)){
      Add(unit);
@@ -3137,8 +3122,8 @@ bool CMPoint::Present( const Periods& t ) const
   { // do MBR-check
     double MeMin = bbox.MinD(2);
     double MeMax = bbox.MaxD(2);
-    Instant tmin; t.Minimum(tmin);
-    Instant tmax; t.Maximum(tmax);
+    Instant tmin(instanttype); t.Minimum(tmin);
+    Instant tmax(instanttype); t.Maximum(tmax);
     double pmin = tmin.ToDouble();
     double pmax = tmax.ToDouble();
     if( (pmax < MeMin && !AlmostEqual(pmax,MeMin)) ||
@@ -3185,7 +3170,7 @@ void CMPoint::AtInstant( const Instant& t, Intime<Region>& result ) const
           const CUPoint *posUnit;
           units.Get( pos, posUnit );
           result.SetDefined( true );
-          Point respoint;
+          Point respoint(false, 0, 0);
           posUnit->TemporalFunction( t, respoint );
           
           double e = posUnit->GetEpsilon();
@@ -3228,8 +3213,8 @@ void CMPoint::AtPeriods( const Periods& p, CMPoint& result ) const
       result.SetDefined(true);
     } else
     { // compute result
-      Instant perMinInst; p.Minimum(perMinInst);
-      Instant perMaxInst; p.Maximum(perMaxInst);
+      Instant perMinInst(instanttype); p.Minimum(perMinInst);
+      Instant perMaxInst(instanttype); p.Maximum(perMaxInst);
       double permind = perMinInst.ToDouble();
       double permaxd = perMaxInst.ToDouble();
       double mind = bbox.MinD(2);
@@ -4119,7 +4104,7 @@ int HCMPoint::Position( int layer, const Instant& t )
   }
 
   int first = 0, last = size - 1;
-  Instant t1 = t;
+  Instant t1( t );
 
   while (first <= last)
   {
@@ -4152,7 +4137,7 @@ int HCMPoint::Position( int layer, const Instant& t, const int start,
   assert( t.IsDefined() );
   assert( start >= 0 && end < LayerSize(layer) );
   
-  Instant t1 = t;
+  Instant t1( t );
   int first = start;
   int last = end;
   
@@ -4377,8 +4362,8 @@ int HCMPoint::Generalize(const int layer, const bool checkBreakPoints,
   //cout << "The epsilon value of layer " << genlayerno << " has been set to "
   //  << *layerepsilon << endl;
   
-  Instant start;
-  Point p0;
+  Instant start(instanttype);
+  Point p0(false, 0, 0);
   bool closeLeft;
   bool leftDefined = false;
   int generalizedby = 0;
@@ -4467,9 +4452,7 @@ void HCMPoint::Simplify(const int min, const int max, const int layer,
   // search for the point with the highest distance to its simplified position
   double maxDist = 0;
   int maxIndex=0;
-  Point p_orig;
-  //Point p_simple;
-  //const HCUPoint* hcup;
+  Point p_orig(false, 0, 0);
   const CUPoint* u;
   double distance;
   for(int i=min+1;i<=max;i++){
@@ -4642,8 +4625,8 @@ bool HCMPoint::Present( const Periods& t )
   { // do MBR-check
     double MeMin = bbox.MinD(2);
     double MeMax = bbox.MaxD(2);
-    Instant tmin; t.Minimum(tmin);
-    Instant tmax; t.Maximum(tmax);
+    Instant tmin(instanttype); t.Minimum(tmin);
+    Instant tmax(instanttype); t.Maximum(tmax);
     double pmin = tmin.ToDouble();
     double pmax = tmax.ToDouble();
     
@@ -4690,8 +4673,8 @@ void HCMPoint::AtPeriods( const Periods& p, CMPoint& result )
   if( !bbox.IsDefined() || IsEmpty() ) // the result cmpoint stays empty!
     return;
   
-  Instant perMinInst; p.Minimum(perMinInst);
-  Instant perMaxInst; p.Maximum(perMaxInst);
+  Instant perMinInst(instanttype); p.Minimum(perMinInst);
+  Instant perMaxInst(instanttype); p.Maximum(perMaxInst);
   double permind = perMinInst.ToDouble();
   double permaxd = perMaxInst.ToDouble();
   double mind = bbox.MinD(2);
@@ -5080,8 +5063,8 @@ bool HCMPoint::P_Passes( const Region& r )
 bool P\_Passes( const int layer, const int start, const int end, 
 const Region\& r )
 
-This recursive Function determines, by a pre-order run through the hierarchical
- structure, if the HCMPoint possibly-passes the given Region-value.
+This recursive Function determines, if the HCMPoint possibly-passes the 
+given Region-value.
 
 */
 bool HCMPoint::P_Passes( const int layer, const int start, const int end, 
@@ -5141,7 +5124,7 @@ void HCMPoint::D_At( const Point& p, CMPoint& result )
 }
 
 /*
-This recursive function determines, by a pre-order run through the hierarchical
+This recursive function determines, by a in-order run through the hierarchical
  structure, the HCMPoint definitely-at the given Point-value.
 
 */
@@ -5534,7 +5517,7 @@ int HCMPoint::AtInstant( const int layer, const int start, const int end,
     const CUPoint *posUnit;
     Get(layer, pos, posUnit );
     result.SetDefined( true );
-    Point respoint;
+    Point respoint(false, 0, 0);
     posUnit->TemporalFunction( t, respoint );
     
     // If epsilon equals 0, set a minimal epsilon value greater 0 to ensure,
@@ -5928,7 +5911,7 @@ void HMPoint::GetMPoint( MPoint& result )
   result.Clear();
   result.Resize( certainlayer.Size() );
   const HCUPoint* ntt;
-  UPoint resunit;
+  UPoint resunit(false);
   result.StartBulkLoad();
   for(int i = 0; i < certainlayer.Size(); i++)
   {
@@ -6041,7 +6024,7 @@ int HMPoint::Position( int layer, const Instant& t, const int start,
   assert( t.IsDefined() );
   assert( start >= 0 && end < LayerSize(layer) );
   
-  Instant t1 = t;
+  Instant t1( t );
   int first = start;
   int last = end;
   
@@ -6278,8 +6261,8 @@ int HMPoint::Generalize(const int layer, const bool checkBreakPoints,
   //cout << "The epsilon value of layer " << genlayerno << " has been set to "
   //  << *layerepsilon << endl;
   
-  Instant start;
-  Point p0;
+  Instant start(instanttype);
+  Point p0(false, 0, 0);
   bool closeLeft;
   bool leftDefined = false;
   int generalizedby = 0;
@@ -6368,7 +6351,7 @@ void HMPoint::Simplify(const int min, const int max, const int layer,
   // search for the point with the highest distance to its simplified position
   double maxDist = 0;
   int maxIndex=0;
-  Point p_orig;
+  Point p_orig(false, 0, 0);
   //Point p_simple;
   //const HCUPoint* hcup;
   const CUPoint* u;
@@ -6558,7 +6541,7 @@ bool HMPoint::D_Passes( const int layer, const int start, const int end,
       {
         // +++++ for debugging purposes only +++++
         //cout << "Recursive call for D_Passes( " << layer+1 << ", " 
-        //  << ntt->GetOriginstart() << ", " << ntt->GetOriginend() << " ) !\n";
+        // << ntt->GetOriginstart() << ", " << ntt->GetOriginend() << " ) !\n";
         
         result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
                             p );
@@ -6627,8 +6610,8 @@ bool HMPoint::D_Passes( const int layer, const int start, const int end,
     if( cup->D_Passes( r ) )
     {
       // +++++ for debugging purposes only +++++
-      cout << "D_Passes( region ) returned TRUE for Unit " << i << " on Layer " 
-        << layer << "!\n";
+      //cout << "D_Passes( region ) returned TRUE for Unit " << i << 
+      //  " on Layer " << layer << "!\n";
       
       return true;
     }
@@ -6640,8 +6623,8 @@ bool HMPoint::D_Passes( const int layer, const int start, const int end,
     if( cup->P_Passes( r ) && layer < 5 )
     {
       // +++++ for debugging purposes only +++++
-      cout << "recursive call for D_Passes( " << layer+1 << ", " 
-        <<ntt->GetOriginstart()<<", "<<ntt->GetOriginend()<<", "<< " )\n\n";
+      //cout << "recursive call for D_Passes( " << layer+1 << ", " 
+      //  <<ntt->GetOriginstart()<<", "<<ntt->GetOriginend()<<", "<< " )\n\n";
         
       result = D_Passes( layer+1, ntt->GetOriginstart(), ntt->GetOriginend(),
                           r );
@@ -6924,8 +6907,8 @@ void HMPoint::AtPeriods( const Periods& p, MPoint& result )
   if( !bbox.IsDefined() || IsEmpty() ) // the result hmpoint stays empty!
     return;
   
-  Instant perMinInst; p.Minimum(perMinInst);
-  Instant perMaxInst; p.Maximum(perMaxInst);
+  Instant perMinInst(instanttype); p.Minimum(perMinInst);
+  Instant perMaxInst(instanttype); p.Maximum(perMaxInst);
   double permind = perMinInst.ToDouble();
   double permaxd = perMaxInst.ToDouble();
   double mind = bbox.MinD(2);
@@ -7278,7 +7261,6 @@ void Circle( const Point p, const double radius, const int n, Region& result)
   double valueX, valueY;
   double angle;
   int partnerno = 0;
-  HalfSegment hs;
   
   result.Clear();            // clear the result region
   if (!p.IsDefined() || radius<=0.0 || n<3 )
@@ -7312,7 +7294,7 @@ void Circle( const Point p, const double radius, const int n, Region& result)
         Point v2(true, valueX ,valueY);
 
         // Create a halfsegment for this segment
-        hs.Set(true, v1, v2);
+        HalfSegment hs(true, v1, v2);
         hs.attr.faceno = 0;         // only one face
         hs.attr.cycleno = 0;        // only one cycle
         hs.attr.edgeno = partnerno;
@@ -7345,8 +7327,10 @@ bool FindDefPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
                     const double epsilon, Point& defPP)
 {
   Coord xl, yl, xr, yr;
-  Point auxlp, auxrp;
-  HalfSegment aux;
+  Point auxlp(true, 0, 0), auxrp(true, 1, 1);
+  // the Points auxlp and auxrp must be defined to initialize the HalfSegment
+  // aux!
+  HalfSegment aux(false, auxlp, auxrp);
   
   // create a parallel HalfSegment on the inner side of rgnhs, which has a
   // distance of epsilon to rgnhs.
@@ -7538,8 +7522,10 @@ bool FindPosPassingPoint( const HalfSegment& chs, const HalfSegment& rgnhs,
                     const double epsilon, Point& posPP)
 {
   Coord xl, yl, xr, yr;
-  Point auxlp, auxrp;
-  HalfSegment aux;
+  Point auxlp(true, 0, 0), auxrp(true, 1, 1);
+  // The Points auxlp and auxrp must be defined to enable the initialization
+  // of the HalfSegment aux!
+  HalfSegment aux(false, auxlp, auxrp);
   
   // create a parallel HalfSegment on the inner side of rgnhs, which has a
   // distance of epsilon to rgnhs.

@@ -149,6 +149,10 @@ true:
     return epsilon;
   }
 
+  void SetEpsilon(double e)
+  {
+    epsilon = e;
+  }
 /*
 Returns the epsilon value of the Uncertain value.
 
@@ -296,45 +300,7 @@ The copy-constructor.
 /*
 The destructor.
 
-3.2.2 Operator redefinitions
 
-*/
-  //virtual CUPoint& operator=( const CUPoint& i )
-  //{
-  //  epsilon = i.epsilon;
-  //  UncertainSetDefined( i.IsDefined());
-  //  timeInterval.CopyFrom( i.timeInterval );
-  //  p0 = i.p0;
-  //  p1 = i.p1;
-  //  
-  //  return *this;
-  //}
-/*
-Redefinition of the copy operator ~=~.
-
-*/
-
-  //virtual bool operator==( const CUPoint& i ) const
-  //{
-  //  return epsilon == i.epsilon && value == i.value;
-  //}
-/*
-Returns ~true~ if this cupoint is equal to the cupoint ~i~ and ~false~ if they 
-are different.
-
-*/
-  
-  //virtual bool operator!=( const CUPoint& i ) const
-  //{
-  //  return!( *this == i );
-  //}
-/*
-Returns ~true~ if this cupoint is different to the cupoint ~i~ and ~false~ if 
-they are equal.
-
-*/
-  
-/*
 3.2.3 The Temporal Functions
 
 */
@@ -435,6 +401,11 @@ the CUPoint, which possibly lies on or inside the given spatal object.
 
   void AtInstant( const Instant& t, Intime<Region>& result ) const;
   
+  void Set(double e, Interval<Instant> t, Point p0, Point p1)
+  {
+    
+  }
+ 
   void UnitSetDefined( bool def ) 
   {
     UPoint::SetDefined( def );
@@ -596,7 +567,7 @@ the epsilon-value.
   }
 
 /*
-3.2.5 Attributes
+3.2.6 Attributes
 
 */
 
@@ -651,7 +622,6 @@ using a check on bbox.
   void MergeAdd(const CUPoint& unit);
   void EndBulkLoad( const bool sort = true );
   void Restrict( const vector< pair<int, int> >& intervals );
-  //bool operator==( const CMPoint& r ) const;
   bool Present( const Instant& t ) const;
   bool Present( const Periods& t ) const;
   void AtInstant( const Instant& t, Intime<Region>& result ) const;
@@ -730,64 +700,7 @@ is greater than 0.
 The function P\_At is a shorthand for 'Possibly\_At' and returns that part of
 the CMPoint, which possibly lies on or inside the given spatial object.
 
-*/
-  
-/*
-3.3.3.1 Operation ~trajectory~
 
-*Precondition:* ~X.IsOrdered()~
-
-*Semantics:*
-
-*Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
-
-*/
-  //void Trajectory( Line& line ) const;
-  
-/*
-3.3.3.2 Operation ~distance~
-
-*Precondition:* ~X.IsOrdered()~
-
-*Semantics:*
-
-*Complexity:* $O( n )$, where ~n~ is the number of units of this ~MPoint~
-
-*/
-  //void Distance( const Point& p, MReal& result ) const;
-  
-/*
-3.3.3.3 Operation ~BreakPoints~
-
-*Precondition*: ~X.IsOrdered()~
-*Semantics*: Computes all points where this mpoints stays longer than the given
-             time.
-
-*/
-  //void BreakPoints(Points& result, const DateTime& dur) const;
-  
-/*
-3.3.3.4 ~Append~
-
-The ~Append~ function appends all units of the argument to this 
-MPoint. If this mpoint or the argument is undefined or if the
-argument starts before this mpoint ends, this mpoint will be set
-to be undefined. The return value is the defined state of this 
-mpoint after the operation (indicating the success). 
-
-*/
-  //bool Append(const MPoint& p, const bool autoresize = true);
-  
-/*
-3.3.3.5 ~length~
-
-Determines the drive distance of this moving point.
-Will return a value smaller than zero if this mpoint is not defined
-
-*/
-  //double Length() const;
-  
-/*
 3.3.3.6 ~epsilon~  
 
 */
@@ -1299,8 +1212,6 @@ for destroying. The destructor will perform the real destroying.
                     const double epsilon);
 
 /*
-bool Present( const Periods\& t )
-
 Checks all Units in the most uncertain Layer of the HCMPoint, if the given 
 Periods-Value is completely inside the Definition-time of the HCMPoint-object.
 
@@ -1308,8 +1219,6 @@ Periods-Value is completely inside the Definition-time of the HCMPoint-object.
   bool Present( const Periods& p );
 
 /*
-bool D\_Passes( const Point\& p )
-
 Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
 If so, it calls a recursive Function to determine if the HCMPoint definitely-
 passes the given Point-value.
@@ -1318,9 +1227,6 @@ passes the given Point-value.
   bool D_Passes( const Point& p );
 
 /*
-bool D\_Passes( const int layer, const int start, const int end, 
-const Point\& p )
-
 This recursive function determines, by a pre-order run through the hierarchical
  structure, if the HCMPoint definitely-passes the given Point-value.
 
@@ -1329,8 +1235,6 @@ This recursive function determines, by a pre-order run through the hierarchical
                   const Point& p );
 
 /*
-bool D\_Passes( const Region\& r )
-
 Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
 If so, it calls a recursive Function to determine if the HCMPoint definitely-
 passes the given Region-value.
@@ -1339,9 +1243,6 @@ passes the given Region-value.
   bool D_Passes( const Region& r );
 
 /*
-bool D\_Passes( const int layer, const int start, const int end, 
-const Region\& r )
-
 This recursive Function determines, by an in-order run through the hierarchical
  structure, if the HCMPoint definitely-passes the given Region-value.
 
@@ -1350,8 +1251,6 @@ This recursive Function determines, by an in-order run through the hierarchical
                   const Region& r );
 
 /*
-bool P\_Passes( const Point\& p )
-
 Checks, if the given Point-Value lies inside the BoundingBox of this HCMPoint. 
 If so, it calls a recursive Function to determine if the HCMPoint possibly-
 passes the given Point-value.
@@ -1360,9 +1259,6 @@ passes the given Point-value.
   bool P_Passes( const Point& p );
 
 /*
-bool P\_Passes( const int layer, const int start, const int end, 
-const Point\& p )
-
 This recursive function determines, by a pre-order run through the hierarchical
  structure, if the HCMPoint possibly-passes the given Point-value.
 
@@ -1371,8 +1267,6 @@ This recursive function determines, by a pre-order run through the hierarchical
                   const Point& p );
 
 /*
-bool P\_Passes( const Region\& r )
-
 Checks, if the given Region-Value intersects the BoundingBox of this HCMPoint. 
 If so, it calls a recursive Function to determine if the HCMPoint possibly-
 passes the given Region-value.
@@ -1381,9 +1275,6 @@ passes the given Region-value.
   bool P_Passes( const Region& r );
 
 /*
-bool P\_Passes( const int layer, const int start, const int end, 
-const Region\& r )
-
 This recursive Function determines, by a pre-order run through the hierarchical
  structure, if the HCMPoint possibly-passes the given Region-value.
 
