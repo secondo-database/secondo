@@ -33,9 +33,9 @@ Signature: gpoint x gpoint -> gline
 Example  : query shortest_path(X_GPOINT, X_GPOINT2)
 Result   : file
 
-Operator : lengthn
+Operator : length
 Number   : 1
 Signature: gline -> real
-Example  : query lengthn(shortest_path(X_GPOINT,X_GPOINT2))
+Example  : query length([const gline value (1 (1 1.5 2.0))])
 Result   : 0.5
 Tolerance:%0.01

@@ -210,16 +210,16 @@ Operator shortest_path (
 /*
 Definition of  operator length
 
+*/
 
-Operator lengthn (
-          "lengthn",               // name
+Operator networklength (
+          "length",               // name
           OpLength::Spec,          // specification
           OpLength::ValueMapping,  // value mapping
           Operator::SimpleSelect,        // selection function
           OpLength::TypeMap        // type mapping
 );
 
-*/
 
 /*
 Creating the Algebra
@@ -244,6 +244,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networkjunctions);
     AddOperator(&networksections);
     AddOperator(&shortest_path);
+    AddOperator(&networklength);
 
   }
   ~NetworkAlgebra() {};

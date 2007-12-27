@@ -154,6 +154,7 @@ Construktor from list
     AddRouteInterval(iRouteId,
                      dStart,
                      dEnd);
+
   }
   inout_bCorrect = true;
   m_bDefined = true;
@@ -434,6 +435,23 @@ void GLine::CopyFrom(const StandardAttribute* right)
   *this = *(const GLine *)right;
 }
 
+/*
+
+Returns the length of the given GLine as double value
+
+*/
+
+double GLine::GetLength(){
+  double length = 0.0;
+  for (int i= 0; i<m_xRouteIntervals.Size(); ++i) {
+    const RouteInterval* pCurrentInterval;
+    m_xRouteIntervals.Get(i,pCurrentInterval);
+    double posStart = pCurrentInterval->m_dStart;
+    double posEnd = pCurrentInterval->m_dEnd;
+    length = length + fabs(posEnd - posStart);
+  };
+  return length;
+}
 
 /*
 Function describing the signature of the type constructor

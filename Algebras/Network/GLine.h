@@ -141,7 +141,7 @@ The constructor.
 
     void CopyFrom(const StandardAttribute*);
 
-
+    double GetLength ();
 
 
   private:
@@ -164,6 +164,7 @@ True if all members are defined
 The array of route intervals.
 
 */
+
 };
 
 #endif /*GLINE_H_*/
