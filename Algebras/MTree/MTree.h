@@ -76,19 +76,71 @@ searching for the best path to descent the tree.
 struct RemainingNodesEntry
 {
   SmiRecordId nodeId;
-  unsigned deepth;
   double dist;
 
-  RemainingNodesEntry( SmiRecordId nodeId_, size_t deepth_,
-                      double dist_ ) :
+  RemainingNodesEntry( SmiRecordId nodeId_, double dist_ ) :
     nodeId( nodeId_ ),
-    deepth( deepth_ ),
     dist ( dist_ )
   {}
 
 };
 /*
 This struct is used in the "rangeSearch"[4] method of "mtree"[4].
+
+*/
+
+struct RemainingNodesEntryNNS
+{
+  SmiRecordId nodeId;
+  double minDist;
+  double distQueryParent;
+
+  RemainingNodesEntryNNS( SmiRecordId nodeId_,
+                          double distQueryParent_ ,
+                          double minDist_ ) :
+    nodeId( nodeId_ ),
+    minDist( minDist_ ),
+    distQueryParent( distQueryParent_ )
+  {}
+
+  bool operator>(const RemainingNodesEntryNNS& op2) const
+  {
+    return ( minDist > op2.minDist );
+  }
+};
+/*
+This struct is used in the "nnSearch"[4] method of "mtree"[4].
+
+*/
+
+struct NNEntry
+{
+  TupleId tid;
+  double dist;
+  
+  NNEntry( TupleId tid_, double dist_ )
+  : tid( tid_ ), dist( dist_ )
+  {}
+  
+  bool operator<(const NNEntry& op2) const
+  {
+    if ( (( tid == 0 ) && ( op2.tid == 0 )) ||
+         (( tid != 0 ) && ( op2.tid != 0 )) )
+    {
+        return ( dist < op2.dist );
+    }
+    else
+    {
+      if (( tid == 0 ) && ( op2.tid != 0 ))
+        return true;
+      else // (( tid != 0 ) && ( op2.tid == 0 ))
+        return false;
+    }
+  }
+  
+};
+/*
+TODO
 
 */
 
