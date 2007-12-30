@@ -32,7 +32,21 @@ November/December 2007, Mirko Dibbert
 
 */
 #include <stack>
+#include <queue>
 #include "MTree.h"
+
+template <typename FloatType>
+inline bool nearlyEqual(FloatType a, FloatType b)
+{
+  FloatType infinity = numeric_limits<FloatType>::infinity();
+  if (a == infinity)
+    return (b == infinity);
+  else if (b == infinity)
+    return false;
+  const FloatType scale = max(fabs(a), fabs(b));
+  return  fabs(a - b) <=
+      scale * 3 *  numeric_limits<FloatType>::epsilon();
+}
 
 /*
 Constructor (new m-tree):
@@ -688,7 +702,7 @@ void MT::MTree::rangeSearch( Attribute* attr,
   DistData* data = getDistData( attr );
 
   stack<RemainingNodesEntry> remainingNodes;
-  remainingNodes.push( RemainingNodesEntry(header.root, 0, 0 ) );
+  remainingNodes.push( RemainingNodesEntry(header.root, 0 ) );
 
   #ifdef __MT_PRINT_SEARCH_INFO
   unsigned entryCount = 0;
@@ -706,19 +720,20 @@ void MT::MTree::rangeSearch( Attribute* attr,
     #endif
 
     nodePtr->read( remainingNodes.top().nodeId );
-    unsigned char deepth = remainingNodes.top().deepth;
     double distQueryParent = remainingNodes.top().dist;
     remainingNodes.pop();
 
-    if ( deepth < (header.height - 1) )
+    vector<Entry*>* entries = nodePtr->getEntries();
+    vector<Entry*>::iterator iter;
+    if (( !entries->empty() ) && ((*entries)[0]->chield()))
     { // routing node
-      vector<Entry*>* entries = nodePtr->getEntries();
-      vector<Entry*>::iterator iter;
       for ( iter = entries->begin(); iter != entries->end(); iter++)
       {
         double dist = (*iter)->dist();
         double radSum = searchRad + (*iter)->rad();
-        if ( abs( distQueryParent - dist ) <= radSum )
+        double distDiff = fabs(distQueryParent - dist);
+        if ( (distDiff  < radSum) ||
+             nearlyEqual<double>(distDiff, radSum) )
         {
           #ifdef __MT_PRINT_SEARCH_INFO
           distComputations++;
@@ -726,22 +741,23 @@ void MT::MTree::rangeSearch( Attribute* attr,
 
           double newDistQueryParent;
           (*metric)( data, (*iter)->data(), newDistQueryParent );
-          if ( newDistQueryParent <= radSum )
+          if ( (newDistQueryParent < radSum) ||
+              nearlyEqual<double>(newDistQueryParent, radSum) )
           {
             remainingNodes.push( RemainingNodesEntry(
-                (*iter)->chield(), deepth+1, newDistQueryParent ) );
+                (*iter)->chield(), newDistQueryParent ) );
           }
         }
       }
     }
     else
-    { // leaf
-      vector<Entry*>* entries = nodePtr->getEntries();
-      vector<Entry*>::iterator iter;
+    { // leaf node
       for ( iter = entries->begin(); iter != entries->end(); iter++)
       {
         double dist = (*iter)->dist();
-        if ( abs( distQueryParent - dist ) <= searchRad )
+        double distDiff = fabs(distQueryParent - dist);
+        if ( (distDiff  < searchRad) ||
+             nearlyEqual<double>(distDiff, searchRad) )
         {
           #ifdef __MT_PRINT_SEARCH_INFO
           entryCount++;
@@ -750,14 +766,15 @@ void MT::MTree::rangeSearch( Attribute* attr,
 
           double distQueryCurrent;
           (*metric)( data, (*iter)->data(), distQueryCurrent );
-          if ( distQueryCurrent <= searchRad )
+          if ( (distQueryCurrent < searchRad) ||
+              nearlyEqual<double>(distDiff, searchRad) )
           {
             resultList.push_back( pair<double, TupleId>(
                 distQueryCurrent, (*iter)->tid()) );
           }
         } // if
       } // for
-    } // else
+    }
   } // while
 
   nodePtr->deleteIfAllowed();
@@ -767,11 +784,12 @@ void MT::MTree::rangeSearch( Attribute* attr,
   list< pair<double, TupleId> >::iterator iter = resultList.begin();
   while ( iter != resultList.end() )
   {
+    // cout << iter->second << "\n";
     results->push_back( iter->second );
     iter++;
   }
 
-#ifdef __MT_PRINT_SEARCH_INFO
+  #ifdef __MT_PRINT_SEARCH_INFO
   unsigned maxNodes = header.routingCount + header.leafCount;
   unsigned maxEntries = header.entryCount;
   unsigned maxDistComputations = maxNodes + maxEntries - 1;
@@ -783,11 +801,11 @@ void MT::MTree::rangeSearch( Attribute* attr,
       << "Entries analyzed      : " << entryCount << "\t(max "
       << maxEntries << ")" << endl << endl;
   cmsg.send();
-#endif
+  #endif
 }
 
 /*
-Method ~rangeSearch~ :
+Method ~nnSearch~ :
 
 */
 void MT::MTree::nnSearch( Attribute* attr, int nncount,
@@ -797,5 +815,225 @@ void MT::MTree::nnSearch( Attribute* attr, int nncount,
   assert( initialized );
   #endif
 
-  // not yet implemented
+  results->clear();
+
+  // init nearest neighbours array
+  list< NNEntry > nearestNeighbours;
+  for (int i=0; i<nncount; i++)
+  {
+    nearestNeighbours.push_back(
+        NNEntry( 0, numeric_limits<double>::infinity() ) );
+  }
+
+  DistData* data = getDistData( attr );
+
+  vector< RemainingNodesEntryNNS > remainingNodes;
+
+  #ifdef __MT_PRINT_SEARCH_INFO
+  unsigned entryCount = 0;
+  unsigned nodeCount = 0;
+  unsigned distComputations = 0;
+  #endif
+
+  remainingNodes.push_back(
+      RemainingNodesEntryNNS(header.root, 0, 0) );
+
+  Node* nodePtr = new Node(
+      &file, config.maxNodeEntries, header.root );
+
+  while( !remainingNodes.empty() )
+  {
+    #ifdef __MT_PRINT_SEARCH_INFO
+    nodeCount++;
+    #endif
+
+    // read node with smallest minDist
+    nodePtr->read( remainingNodes.front().nodeId );
+    double distQueryParent = remainingNodes.front().distQueryParent;
+    double searchRad = nearestNeighbours.back().dist;
+
+    // remove entry from remainingNodes heap
+    pop_heap( remainingNodes.begin(), remainingNodes.end(),
+              greater< RemainingNodesEntryNNS >() );
+    remainingNodes.pop_back();
+
+    vector<Entry*>* entries = nodePtr->getEntries();
+    vector<Entry*>::iterator iter;
+    if (( !entries->empty() ) && ((*entries)[0]->chield()))
+    { // routing node
+      for ( iter = entries->begin(); iter != entries->end(); iter++)
+      {
+        double distDiff = fabs(distQueryParent - (*iter)->dist());
+        double radSum = searchRad + (*iter)->rad();
+        if ( (distDiff < radSum) ||
+             nearlyEqual<double>(distDiff, radSum) )
+        {
+          #ifdef __MT_PRINT_SEARCH_INFO
+          distComputations++;
+          #endif
+
+          double newDistQueryParent;
+          (*metric)( data, (*iter)->data(), newDistQueryParent );
+
+          double minDist, maxDist;
+          minDist = max(newDistQueryParent - (*iter)->rad(), 0.0);
+          maxDist = newDistQueryParent + (*iter)->rad();
+
+          if ( (minDist < searchRad) ||
+               nearlyEqual<double>(minDist, searchRad) )
+          {
+            // insert new entry into remainingNodes heap
+            remainingNodes.push_back( RemainingNodesEntryNNS(
+                (*iter)->chield(), newDistQueryParent, minDist) );
+            push_heap( remainingNodes.begin(), remainingNodes.end(),
+                greater<RemainingNodesEntryNNS>() );
+
+            if ( maxDist < searchRad )
+            {
+              // update nearesNeighbours
+              list<NNEntry>::iterator nnIter;
+              nnIter = nearestNeighbours.begin();
+
+              while ( (maxDist > (*nnIter).dist) &&
+                      (nnIter != nearestNeighbours.end()) )
+              {
+                nnIter++;
+              }
+
+              if ( ((*nnIter).tid == 0) &&
+                   ( nnIter != nearestNeighbours.end() ) )
+              {
+                if ( !nearlyEqual<double>(maxDist, (*nnIter).dist))
+                {
+                  nearestNeighbours.insert(
+                      nnIter, NNEntry( 0, maxDist ) );
+                  nearestNeighbours.pop_back();
+                }
+              }
+
+              searchRad = nearestNeighbours.back().dist;
+
+              vector<RemainingNodesEntryNNS>::iterator iter =
+                  remainingNodes.begin();
+
+              while ( iter != remainingNodes.end() )
+              {
+                if ( (*iter).minDist > searchRad )
+                {
+                  iter = remainingNodes.erase( iter );
+                }
+                else
+                  iter++;
+              }
+              make_heap( remainingNodes.begin(),
+                         remainingNodes.end(),
+                         greater<RemainingNodesEntryNNS>() );
+            }
+          }
+        }
+      }
+    }
+    else
+    { // leaf node
+      for ( iter = entries->begin(); iter != entries->end(); iter++)
+      {
+        double distDiff = fabs(distQueryParent - (*iter)->dist());
+        if ( (distDiff < searchRad) ||
+             nearlyEqual<double>(distDiff, searchRad) )
+        {
+          #ifdef __MT_PRINT_SEARCH_INFO
+          entryCount++;
+          distComputations++;
+          #endif
+
+          double distQueryCurrent;
+          (*metric)( data, (*iter)->data(), distQueryCurrent );
+
+          if ( (distQueryCurrent < searchRad) ||
+               nearlyEqual<double>(distQueryCurrent, searchRad) )
+          {
+
+            list<NNEntry>::iterator nnIter;
+            nnIter = nearestNeighbours.begin();
+
+            while ( (distQueryCurrent > (*nnIter).dist) &&
+                    (nnIter != nearestNeighbours.end()) )
+            {
+              nnIter++;
+            }
+
+            bool done = false;
+            if ( nnIter != nearestNeighbours.end() )
+            {
+              TupleId tid = (*iter)->tid();
+              double dist = distQueryCurrent;
+
+              while ( !done && ( nnIter != nearestNeighbours.end()) )
+              {
+                if ((*nnIter).tid == 0)
+                {
+                  (*nnIter).dist = dist;
+                  (*nnIter).tid = tid;
+                  done = true;
+                }
+                else
+                {
+                  swap(dist, (*nnIter).dist);
+                  swap(tid, (*nnIter).tid);
+                }
+                nnIter++;
+              }
+            }
+
+            searchRad = nearestNeighbours.back().dist;
+
+            vector<RemainingNodesEntryNNS>::iterator
+                iter = remainingNodes.begin();
+
+            while ( iter != remainingNodes.end() )
+            {
+              if ( (*iter).minDist > searchRad )
+              {
+                swap( *iter, remainingNodes.back() );
+                remainingNodes.pop_back();
+              }
+              else
+                iter++;
+            }
+            make_heap( remainingNodes.begin(),
+                       remainingNodes.end(),
+                       greater<RemainingNodesEntryNNS>() );
+
+          }
+        }
+      }
+    }
+  }
+
+  nodePtr->deleteIfAllowed();
+  data->deleteIfAllowed();
+  list< NNEntry >::iterator iter;
+  for ( iter = nearestNeighbours.begin();
+        iter != nearestNeighbours.end(); iter++)
+  {
+    // cout << (*iter).tid << endl;
+    if ((*iter).tid != 0 )
+    {
+      results->push_back( (*iter).tid );
+    }
+  }
+
+  #ifdef __MT_PRINT_SEARCH_INFO
+  unsigned maxNodes = header.routingCount + header.leafCount;
+  unsigned maxEntries = header.entryCount;
+  unsigned maxDistComputations = maxNodes + maxEntries - 1;
+  cmsg.info()
+      << "Distance computations : " << distComputations << "\t(max "
+      << maxDistComputations << ")" << endl
+      << "Nodes analyzed        : " << nodeCount << "\t(max "
+      << maxNodes << ")" << endl
+      << "Entries analyzed      : " << entryCount << "\t(max "
+      << maxEntries << ")" << endl << endl;
+  cmsg.send();
+  #endif
 }
