@@ -221,6 +221,7 @@ void MT::Splitpol::MLB_Prom()
 {
   m_promLId = 0;
   m_promRId = 1;
+  assert ( (*m_entries)[ 0 ]->dist() == 0);
   double maxDistToParent = (*m_entries)[ 1 ]->dist();
   for (unsigned i=2; i < m_entries->size(); i++ )
   {
@@ -245,7 +246,6 @@ void MT::Splitpol::Hyperplane_Part()
   m_entriesL->push_back( (*m_entries)[ m_promLId ] );
   m_entriesR->push_back( (*m_entries)[ m_promRId ] );
 
-  double distL, distR;
   (*m_entries)[ m_promLId ]->setDist( 0 );
   (*m_entries)[ m_promRId ]->setDist( 0 );
 
@@ -257,7 +257,7 @@ void MT::Splitpol::Hyperplane_Part()
   else
   {
     m_radL = (*m_entries)[ m_promLId ]->rad();
-    m_radR = m_radR, (*m_entries)[ m_promRId ]->rad();
+    m_radR = (*m_entries)[ m_promRId ]->rad();
   }
 
   for ( size_t i=0; i < m_entries->size(); i++ )
@@ -265,6 +265,7 @@ void MT::Splitpol::Hyperplane_Part()
     if ( (i != m_promLId) && (i != m_promRId) )
     {
       // determine distances to promoted elements
+      double distL, distR;
       if ( m_distances )
       {
           unsigned distArrOffset = i * m_entries->size();
@@ -273,11 +274,10 @@ void MT::Splitpol::Hyperplane_Part()
       }
       else
       {
-        (*m_metric)( (*m_entries)[ i ]->data(),
-                     (*m_entries)[ m_promLId ]->data(), distL );
-
-        (*m_metric)( (*m_entries)[ i ]->data(),
-                     (*m_entries)[ m_promRId ]->data(), distR );
+        (*m_metric)( ((*m_entries)[ i ])->data(),
+                     ((*m_entries)[ m_promLId ])->data(), distL );
+        (*m_metric)( ((*m_entries)[ i ])->data(),
+                     ((*m_entries)[ m_promRId ])->data(), distR );
       }
 
       /* push entry i to list with nearest promoted entry and update
@@ -318,17 +318,19 @@ void MT::Splitpol::Balanced_Part()
   m_entriesL->push_back( (*m_entries)[ m_promLId ] );
   m_entriesR->push_back( (*m_entries)[ m_promRId ] );
 
-  m_radL = 0;
-  m_radR = 0;
-
   (*m_entries)[ m_promLId ]->setDist( 0 );
   (*m_entries)[ m_promRId ]->setDist( 0 );
 
-  if ( !m_isLeaf )
-    m_radL = max( m_radL, (*m_entries)[ m_promLId ]->rad() );
-
-  if ( !m_isLeaf )
-    m_radR = max( m_radR, (*m_entries)[ m_promRId ]->rad() );
+  if ( m_isLeaf )
+  {
+    m_radL = 0;
+    m_radR = 0;
+  }
+  else
+  {
+    m_radL = (*m_entries)[ m_promLId ]->rad();
+    m_radR = (*m_entries)[ m_promRId ]->rad();
+  }
 
   /* copy m_entries into entries (the list contains the entries
      together with its distances to the promoted elements */
@@ -337,9 +339,7 @@ void MT::Splitpol::Balanced_Part()
   {
     if ( (i != m_promLId) && (i != m_promRId) )
     {
-      double distL;
-      double distR;
-
+      double distL, distR;
       if ( m_distances )
       {
           unsigned distArrOffset = i * m_entries->size();
@@ -408,7 +408,6 @@ void MT::Splitpol::Balanced_Part()
 
       m_entriesR->push_back( (*nearestPos).entry );
       m_entriesR->back()->setDist( distR );
-
       entries.erase ( nearestPos );
     }
       assignLeft = !assignLeft;
