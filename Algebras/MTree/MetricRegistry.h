@@ -153,14 +153,41 @@ in a formated manner, which is used by the "list metrics"[4] command.
 
 */
 
+  static void removeAuxiliaryArrays()
+  {
+    if (pictureSimMatrix1)
+    {
+      delete[] pictureSimMatrix1;
+      pictureSimMatrix1 = 0;
+    }
+    
+    if (pictureSimMatrix2)
+    {
+      delete[] pictureSimMatrix2;
+      pictureSimMatrix2 = 0;
+    }
+
+    if (pictureSimMatrix3)
+    {
+      delete[] pictureSimMatrix3;
+      pictureSimMatrix3 = 0;
+    }
+
+    if (pictureLabOffsetTable)
+    {
+      delete[] pictureLabOffsetTable;
+      pictureLabOffsetTable = 0;
+    }
+  }
+/*
+Deletes the auxiliary arrays to free the reserved memory
+
+*/
+
 private:
 struct Lab
 {
   signed char L, a, b;
-
-  Lab( signed char L_, signed char a_, signed char b_ )
-  : L(L_), a(a_), b(b_)
-  {}
 
   Lab( unsigned char r_, unsigned char g_, unsigned char b_ )
   {
@@ -169,28 +196,25 @@ struct Lab
     double gd = (double)g_/255;
     double bd = (double)b_/255;
 
-    // compute R
-    if ( r_ <= 10 )
+    if ( rd > 0.04045 )
+      R = pow( (rd+0.055) / 1.055, 2.2 );
+    else
       R = rd / 12.92;
-    else
-      R = pow( (rd+0.055)/1.055, 2.2 );
 
-    // compute G
-    if ( g_ <= 10 )
+    if ( gd > 0.04045 )
+      G = pow( (gd+0.055) / 1.055, 2.2 );
+    else
       G = gd / 12.92;
-    else
-      G = pow( (gd+0.055)/1.055, 2.2 );
 
-    // compute B
-    if ( b_ <= 10 )
-      B = bd / 12.92;
+    if ( bd > 0.04045 )
+      B = pow( (bd+0.055) / 1.055, 2.2 );
     else
-      B = pow( (bd+0.055)/1.055, 2.2 );
+      B = bd / 12.92;
 
     // compute X,Y,Z coordinates of r,g,b
-    double X = 0.4124240 * R + 0.357579 * G + 0.1804640 * B;
-    double Y = 0.2126560 * R + 0.715158 * G + 0.0721856 * B;
-    double Z = 0.0193324 * R + 0.119193 * G + 0.9504440 * B;
+    double X = 0.4124 * R + 0.3576 * G + 0.1805 * B;
+    double Y = 0.2127 * R + 0.7152 * G + 0.0722 * B;
+    double Z = 0.0193 * R + 0.1192 * G + 0.9500 * B;
 
     /* used chromacity coordinates of whitepoint D65:
       x = 0.312713, y = 0.329016
@@ -289,15 +313,18 @@ Metric for the "histogram"[4] type constructor.
   static void PictureMetric3(
       const void* data1, const void* data2, double& result );
 /*
-Metric for the "picture"[4] type constructor.
+Metrics for the "picture"[4] type constructor.
 
 */
 
-  static void InitPictureMetric();
+  static double* pictureSimMatrix1;
+  static double* pictureSimMatrix2;
+  static double* pictureSimMatrix3;
+  static unsigned* pictureLabOffsetTable;
+/*
+Auxiliary arrays for picture metric.
 
-  static double pictureSimMatrix[128][128];
-  static double pictureSimMatrix2[256][256];
-  static double pictureSimMatrix3[256][256];
+*/
 };
 
 #endif
