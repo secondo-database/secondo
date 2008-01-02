@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,6 +27,8 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
+January 2008 Simone Jandt
+
 Defines, includes, and constants
 
 */
@@ -49,8 +51,8 @@ struct RLoc
 The simple constructor. Should not be used.
 
 */
-  RLoc( const TupleId rid, 
-        const double d, 
+  RLoc( const TupleId rid,
+        const double d,
         const Side side ):
     rid( rid ), d( d ), side( side )
   {}
@@ -97,11 +99,11 @@ The simple constructor.
 
 */
     GPoint( bool in_bDefined,
-            int in_iNetworkId = 0, 
-            TupleId in_xRid = 0, 
-            double in_dLocation = 0.0, 
+            int in_iNetworkId = 0,
+            TupleId in_xRid = 0,
+            double in_dLocation = 0.0,
             Side in_xSide = None ):
-    m_iNetworkId( in_iNetworkId ), 
+    m_iNetworkId( in_iNetworkId ),
     m_xRouteLocation( in_xRid, in_dLocation, in_xSide ),
     m_bDefined( in_bDefined )
     {}
@@ -110,8 +112,8 @@ The constructor.
 
 */
     GPoint( const GPoint& in_xOther ):
-    m_iNetworkId( in_xOther.m_iNetworkId ), 
-    m_xRouteLocation( in_xOther.m_xRouteLocation ), 
+    m_iNetworkId( in_xOther.m_iNetworkId ),
+    m_xRouteLocation( in_xOther.m_xRouteLocation ),
     m_bDefined( in_xOther.m_bDefined )
     {}
 /*
@@ -123,8 +125,8 @@ The copy constructor.
       m_bDefined = in_xOther.m_bDefined;
       if( m_bDefined )
       {
-        m_iNetworkId = in_xOther.m_iNetworkId; 
-        m_xRouteLocation = in_xOther.m_xRouteLocation; 
+        m_iNetworkId = in_xOther.m_iNetworkId;
+        m_xRouteLocation = in_xOther.m_xRouteLocation;
       }
       return *this;
     }
@@ -165,7 +167,7 @@ Returns the relative position of the graph point in the route.
 Returns the side on the route of the graph point.
 
 */
-    
+
 
     bool IsDefined() const
     {
@@ -235,10 +237,11 @@ Returns the side on the route of the graph point.
 
     static bool CheckGPoint( ListExpr type, ListExpr& errorInfo );
 
+    double distance (GPoint* toGPoint);
 
 
   private:
-    
+
     int m_iNetworkId;
 /*
 The network id.
@@ -253,7 +256,7 @@ The route location.
 /*
 A flag indicating whether the instance is defined or not.
 
-*/ 
+*/
 };
 
 

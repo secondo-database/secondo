@@ -27,7 +27,7 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-December 2007 Simone Jandt (GLine::In repaired)
+December 2007 Simone Jandt (GLine::In repaired, GetLength())
 
 Defines, includes, and constants
 

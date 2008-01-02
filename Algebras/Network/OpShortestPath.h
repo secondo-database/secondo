@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -57,7 +57,7 @@ struct DijkstraStruct
     m_iPiSectionTid = in_iPiSectionTid;
     m_bPiUpDownFlag = in_bPiUpDownFlag;
   }
-  
+
 /*
 Struct Dijkstra
 
@@ -67,48 +67,48 @@ Struct Dijkstra
     m_iSectionTid(in_xDikstraStruct.m_iSectionTid),
     m_bUpDownFlag(in_xDikstraStruct.m_bUpDownFlag),
     m_iRouteId(in_xDikstraStruct.m_iRouteId),
-    m_dMeas1(in_xDikstraStruct.m_dMeas1), 
-    m_dMeas2(in_xDikstraStruct.m_dMeas2), 
+    m_dMeas1(in_xDikstraStruct.m_dMeas1),
+    m_dMeas2(in_xDikstraStruct.m_dMeas2),
     m_dD(in_xDikstraStruct.m_dD),
     m_dHeuristicDistanceToEnd(in_xDikstraStruct.m_dHeuristicDistanceToEnd),
     m_iPiSectionTid(in_xDikstraStruct.m_iPiSectionTid),
     m_bPiUpDownFlag(in_xDikstraStruct.m_bPiUpDownFlag)
   {
   }
-    
+
   int m_iSectionTid;
-  
+
   bool m_bUpDownFlag;
-  
+
   int m_iRouteId;
 
   double m_dMeas1;
 
   double m_dMeas2;
-  
+
   double m_dD;
 
   double m_dHeuristicDistanceToEnd;
 
   int m_iPiSectionTid;
-  
+
   bool m_bPiUpDownFlag;
 
   double Length()
   {
     return m_dMeas2 - m_dMeas1;
   }
-  
+
   double DistanceEstimation()
   {
     return m_dD + m_dHeuristicDistanceToEnd;
   }
-  
-  
-  bool operator== (const DijkstraStruct& in_xOther) 
+
+
+  bool operator== (const DijkstraStruct& in_xOther)
   {
     bool bReturn = (m_iSectionTid == in_xOther.m_iSectionTid &&
-                    m_bUpDownFlag == in_xOther.m_bUpDownFlag); 
+                    m_bUpDownFlag == in_xOther.m_bUpDownFlag);
     return bReturn;
   }
 };
@@ -116,7 +116,7 @@ Struct Dijkstra
 class PriorityQueue
 {
   public:
-  
+
   PriorityQueue()
   {
   }
@@ -134,12 +134,12 @@ class PriorityQueue
       m_xElements.resize(iIndex + 1);
     }
     m_xElements[iIndex] = in_pStruct;
-    
+
   }
-    
+
   DijkstraStruct* pop()
   {
-    
+
     // ----------------------------------------------------------
     // For testing only !
     // This implementation needs O(n)
@@ -147,19 +147,19 @@ class PriorityQueue
     // ----------------------------------------------------------
     DijkstraStruct* pMinDijkstraStruct;
 
-    for(size_t i = 0; i < m_xQueue.size(); ++i) 
+    for(size_t i = 0; i < m_xQueue.size(); ++i)
     {
       DijkstraStruct* pCurrentStruct = m_xQueue[i];
       if(i == 0 ||
-         pCurrentStruct->DistanceEstimation() < 
+         pCurrentStruct->DistanceEstimation() <
          pMinDijkstraStruct->DistanceEstimation())
       {
         pMinDijkstraStruct = pCurrentStruct;
       }
     }
-    
+
     std::vector<DijkstraStruct*>::iterator xIt = m_xQueue.begin();
-    while(xIt != m_xQueue.end()) 
+    while(xIt != m_xQueue.end())
     {
       DijkstraStruct* pCurrent = *xIt;
       if(pCurrent->m_iSectionTid == pMinDijkstraStruct->m_iSectionTid &&
@@ -174,7 +174,7 @@ class PriorityQueue
     }
     return pMinDijkstraStruct;
   }
-  
+
   bool isEmtpy()
   {
     return m_xQueue.empty();
@@ -202,20 +202,20 @@ class PriorityQueue
   }
 
   private:
-  
+
   vector<DijkstraStruct*> m_xElements;
-  
+
   // TODO: Zweite Datenstruktur mit allen Elementen in sortiert
   vector<DijkstraStruct*> m_xQueue;
-  
+
   vector<DijkstraStruct*> m_xS;
-  
+
 };
 
 class OpShortestPath
 {
   public:
-  
+
 /*
 Typemap function of the operator
 
@@ -226,19 +226,19 @@ Typemap function of the operator
 Value mapping function of the operator
 
 */
-  static int ValueMapping( Word* in_pArgs, 
-                           Word& in_xResult, 
-                           int in_iMessage, 
-                           Word& in_xLocal, 
+  static int ValueMapping( Word* in_pArgs,
+                           Word& in_xResult,
+                           int in_iMessage,
+                           Word& in_xLocal,
                            Supplier in_xSupplier );
 
 /*
 Specification of the operator
 
 */
-  static const string Spec;    
+  static const string Spec;
 
-  private:
+
 
 /*
 Dikstra's Algorithm
@@ -251,6 +251,8 @@ Dikstra's Algorithm
                        GPoint* in_pToGPoint,
                        Point* in_pToPoint,
                        GLine* in_pGLine);
+
+  private:
 
 /*
 Sending a message via the message-center

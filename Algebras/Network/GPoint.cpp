@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,13 +27,24 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
+January 2008 Simone Jandt (distance)
+
 Defines, includes, and constants
 
 */
 
-
+#include "RelationAlgebra.h"
+#include "BTreeAlgebra.h"
 #include "TupleIdentifier.h"
+#include "SpatialAlgebra.h"
+#include "StandardTypes.h"
 #include "GPoint.h"
+#include "GLine.h"
+#include "Network.h"
+#include "NetworkManager.h"
+#include "OpShortestPath.h"
+
+
 
 /*
 Functions
@@ -46,16 +57,16 @@ Static Functions supporting the type-constructor
 ~In~-function
 
 */
-Word GPoint::InGPoint( const ListExpr typeInfo, 
+Word GPoint::InGPoint( const ListExpr typeInfo,
                        const ListExpr instance,
-                       const int errorPos, 
-                       ListExpr& errorInfo, 
+                       const int errorPos,
+                       ListExpr& errorInfo,
                        bool& correct )
 {
   if( nl->ListLength( instance ) == 4 )
   {
     if( nl->IsAtom( nl->First(instance) ) &&
-        nl->AtomType( nl->First(instance) ) == IntType && 
+        nl->AtomType( nl->First(instance) ) == IntType &&
         nl->IsAtom( nl->Second(instance) ) &&
         nl->AtomType( nl->Second(instance) ) == IntType &&
         nl->IsAtom( nl->Third(instance) ) &&
@@ -63,11 +74,11 @@ Word GPoint::InGPoint( const ListExpr typeInfo,
         nl->IsAtom( nl->Fourth(instance) ) &&
         nl->AtomType( nl->Fourth(instance) ) == IntType )
     {
-      GPoint *gp = new GPoint( 
+      GPoint *gp = new GPoint(
         true,
         nl->IntValue( nl->First(instance) ),
         nl->IntValue( nl->Second(instance) ),
-        nl->RealValue( nl->Third(instance) ), 
+        nl->RealValue( nl->Third(instance) ),
         (Side)nl->IntValue( nl->Fourth(instance) ) );
       correct = true;
       return SetWord( gp );
@@ -127,12 +138,12 @@ void GPoint::CloseGPoint( const ListExpr typeInfo, Word& w )
 }
 
 /*
-~Clone~-function  
+~Clone~-function
 
 */
 Word GPoint::CloneGPoint( const ListExpr typeInfo, const Word& w )
 {
-  return SetWord( ((GPoint*)w.addr)->Clone() ); 
+  return SetWord( ((GPoint*)w.addr)->Clone() );
 }
 
 /*
@@ -179,7 +190,49 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~gpoint~ does not have arguments, this is trivial.
 
 */
+
 bool GPoint::CheckGPoint( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "gpoint" ));
 }
+
+/*
+Distance function computes the distance between two gpoints. Using Dijkstras-
+Algorithm for shortestpath computing from OpShortestPath and GetLength-function
+from GLine.
+
+*/
+
+double GPoint::distance (GPoint* pToGPoint){
+  GPoint* pFromGPoint = (GPoint*) this;
+  GLine* pGLine = new GLine(0);
+  if (pFromGPoint->GetNetworkId() != pToGPoint->GetNetworkId()) {
+    cmsg.inFunError("Both gpoints belong to different networks.");
+    return 0.0;
+  }
+  Network* pNetwork=NetworkManager::GetNetwork(pFromGPoint->GetNetworkId());
+  if (pNetwork == 0) {
+    cmsg.inFunError("Network does not exist on this database");
+    return 0.0;
+  };
+  pGLine->SetNetworkId(pFromGPoint->GetNetworkId());
+  Tuple* pFromSection = pNetwork->GetSectionOnRoute(pFromGPoint);
+  Tuple* pToSection = pNetwork->GetSectionOnRoute(pToGPoint);
+  Point* pToPoint = pNetwork->GetPointOnRoute(pToGPoint);
+  if (pToSection == 0 || pFromSection == 0) {
+    cmsg.inFunError("Start or End not found.");
+    if (pFromSection != 0 )
+      pFromSection->DeleteIfAllowed();
+    if (pToSection != 0)
+      pToSection->DeleteIfAllowed();
+    NetworkManager::CloseNetwork(pNetwork);
+    return 0.0;
+  }
+  OpShortestPath::Dijkstra(pNetwork, pFromSection->GetTupleId(), pFromGPoint,
+                           pToSection->GetTupleId(), pToGPoint, pToPoint,
+                           pGLine);
+  delete pToPoint;
+  NetworkManager::CloseNetwork(pNetwork);
+  return pGLine->GetLength();
+}
+
