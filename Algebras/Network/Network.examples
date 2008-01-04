@@ -36,7 +36,7 @@ Result   : file
 Operator : length
 Number   : 1
 Signature: gline -> real
-Example  : query length(shortest_path(X_GPOINT, X_GPOINT2)
+Example  : query length(shortest_path(X_GPOINT, X_GPOINT2))
 Result   : 3568.7576255798
 Tolerance:%0.01
 
