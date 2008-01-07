@@ -74,10 +74,6 @@ public class ConvexHullTreePolygonViewer extends javax.swing.JPanel
                 g.setColor(Color.GREEN);
                 g.fillOval((int)((node.getSteinerPoint().x-minX)*scaleX)-2,(int)((node.getSteinerPoint().y-minY)*scaleY)-2,4,4);
                 g.setColor(Color.ORANGE);
-                System.out.println((int)((node.getSteinerPoint().x-minX)*scaleX)+" "+(int)((node.getSteinerPoint().y-minY)*scaleY));
-                System.out.println(node.getSteinerPoint());
-                System.out.println(node.getCenter());
-                System.out.println(minX);
             }
         }
         g.drawPolygon(tmp);
@@ -99,14 +95,6 @@ public class ConvexHullTreePolygonViewer extends javax.swing.JPanel
     public void drawFace(Graphics g, Color c, Face node)
     {
         
-        if(c==null)
-        {
-            drawPolygonFromNode(g,Color.GREEN,node.getCycle());
-        }
-        else
-        {
-            drawPolygonFromNode(g,c,node.getCycle());
-        }
         ConvexHullTreeNode[] children=node.getCycle().getChildren();
         for(int i=0;i<children.length;i++)
         {
@@ -143,12 +131,38 @@ public class ConvexHullTreePolygonViewer extends javax.swing.JPanel
                 }
             }
         }
+        if(c==null)
+        {
+            g.setColor(Color.GREEN);
+        }
+        else
+        {
+            g.setColor(c);
+        }
+        double scaleX=wid/((maxX-minX)*1.0);
+        double scaleY=hei/((maxY-minY)*1.0);
+        Polygon tmp =new Polygon();
+        LineWA[]tmpli=node.getCycle().getLines();
+        for(int i=0;i<tmpli.length;i++)
+        {
+            tmp.addPoint((int)((tmpli[i].x-minX)*scaleX),(int)((tmpli[i].y-minY)*scaleY));
+            if(c==Color.ORANGE)
+            {
+                g.drawString(i+"",(int)((tmpli[i].x-minX)*scaleX),(int)((tmpli[i].y-minY)*scaleY));
+                g.setColor(Color.BLUE);
+                g.fillOval((int)((node.getCycle().getCenter().x-minX)*scaleX)-2,(int)((node.getCycle().getCenter().y-minY)*scaleY)-2,4,4);
+                g.setColor(Color.GREEN);
+                g.fillOval((int)((node.getCycle().getSteinerPoint().x-minX)*scaleX)-2,(int)((node.getCycle().getSteinerPoint().y-minY)*scaleY)-2,4,4);
+                g.setColor(Color.ORANGE);
+            }
+        }
+        g.drawPolygon(tmp);
     }
     
     public void paint(Graphics g)
     {
         
-        g.clearRect(0,0,this.getWidth(),this.getHeight());        
+        g.clearRect(0,0,this.getWidth(),this.getHeight());
         for(int j=0;j<root.getNrOfFaces();j++)
         {
             drawFace(g,null,root.getFace(j));

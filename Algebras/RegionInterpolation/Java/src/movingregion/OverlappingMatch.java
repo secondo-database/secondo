@@ -6,33 +6,41 @@ import java.util.*;
 public class OverlappingMatch extends Match
 {
     
+    double threshold;
     /** Creates a new instance of OverlappingMatch */
     
     public OverlappingMatch(Region source, Region target,double threshold)
     {
-        super(source,target,"OverlapingMatch "+threshold,"this implements the Fixed theshold overlaping Match for set of cycles");
+        super(source,target,"OverlapingMatch "+((int)(threshold*100))+" %","this implements the Fixed theshold overlaping Match for set of cycles");
+        this.threshold=threshold;
         this.addMatch(source,target);
-        HashSet unmatched=new HashSet(source.getNrOfFaces()+target.getNrOfFaces());
-        for(int i=0;i< source.getNrOfFaces();i++)
+        this.matchFaces(source.getFaces(),target.getFaces());
+        this.fertig();
+    }
+    
+    public void matchFaces(Face[] faces1,Face[] faces2)
+    {
+        System.out.println("FaceMAtch");
+        HashSet unmatched=new HashSet(faces1.length+faces2.length);
+        for(int i=0;i< faces1.length;i++)
         {
-            for(int j=0;j<target.getNrOfFaces();j++)
+            for(int j=0;j<faces2.length;j++)
             {
-                
-                double overlap= getOverlapp(source.getFace(i).getCycle(),target.getFace(j).getCycle());
+                double overlap= getOverlapp(faces1[i].getCycle(),faces2[j].getCycle());
                 if(overlap>threshold)
                 {
-                    this.addMatch(source.getFace(i),target.getFace(j));
-                    this.addMatch(target.getFace(j),source.getFace(i));
-                    this.addMatch(source.getFace(i).getCycle(),target.getFace(j).getCycle());
-                    this.addMatch(target.getFace(j).getCycle(),source.getFace(i).getCycle());
+                    this.addMatch(faces1[i],faces2[j]);
+                    this.addMatch(faces2[j],faces1[i]);
+                    this.addMatch(faces1[i].getCycle(),faces2[j].getCycle());
+                    this.addMatch(faces2[j].getCycle(),faces1[i].getCycle());
                     System.out.println("addMatch");
                 }
             }
-            unmatched.add(source.getFace(i));
+            unmatched.add(faces1[i]);
         }
-        for(int i=0;i<target.getNrOfFaces();i++)
+        for(int i=0;i<faces2.length;i++)
         {
-            unmatched.add(target.getFace(i));
+            unmatched.add(faces2[i]);
         }
         while(!unmatched.isEmpty())
         {
@@ -49,7 +57,7 @@ public class OverlappingMatch extends Match
                         unmatched.remove(matches[i]);
                         dimMatch+=((Face)matches[i]).getCycle().getChildren().length;
                     }
-                    this.matchCHTNs(next.getHolesAndConcavities(),this.getTargetChildren(next),threshold);
+                    this.matchCHTNs(next.getHolesAndConcavities(),this.getTargetChildren(next));
                 }
                 else
                 {
@@ -59,81 +67,122 @@ public class OverlappingMatch extends Match
                         {
                             unmatched.remove(getMatches(matches[0])[i]);
                         }
-                        this.matchCHTNs(((Face)matches[0]).getHolesAndConcavities(),this.getTargetChildren(matches[0]),threshold);
+                        this.matchCHTNs(((Face)matches[0]).getHolesAndConcavities(),this.getTargetChildren(matches[0]));
                     }
                     else
                     {
                         unmatched.remove(matches[0]);
-                        this.matchCHTNs(next.getHolesAndConcavities(),this.getTargetChildren(next),threshold);
+                        this.matchCHTNs(next.getHolesAndConcavities(),this.getTargetChildren(next));
                     }
                 }
             }
         }
-        System.out.println("Fertig2");
-        System.out.println(this);
-        System.out.println("Fertig");
-        
-     //   this.fertig();
-        System.out.println("Fertig");
-        System.out.println(this);
-        System.out.println("Fertig2");
     }
     
-    public void matchCHTNs(ConvexHullTreeNode[] chtn1,ConvexHullTreeNode[] chtn2,double threshold)
+    public void matchCHTNs(ConvexHullTreeNode[] chtn1,ConvexHullTreeNode[] chtn2)
     {
-        HashSet unmatched=new HashSet(source.getNrOfFaces()+target.getNrOfFaces());
-        for(int i=0;i< chtn1.length;i++)
+        if(chtn1!=null&&chtn1.length>0&&chtn2!=null&&chtn2.length>0)
         {
-            for(int j=0;j<chtn2.length;j++)
+            System.out.println("MAtchCHTN");
+            System.out.println("source");
+            for(int i=0;i< chtn1.length;i++)
             {
-                
-                double overlap= getOverlapp(chtn1[i],chtn2[j]);
-                if(overlap>threshold)
-                {
-                    this.addMatch(chtn1[i],chtn2[j]);
-                    this.addMatch(chtn2[j],chtn1[i]);
-                    System.out.println("addMatch");
-                }
+                System.out.println(chtn1[i]);
             }
-            unmatched.add(chtn1[i]);
-        }
-        for(int i=0;i<chtn2.length;i++)
-        {
-            unmatched.add(chtn2[i]);
-        }
-        while(!unmatched.isEmpty())
-        {
-            ConvexHullTreeNode next=(ConvexHullTreeNode)(unmatched.iterator().next());
-            unmatched.remove(next);
-            RegionTreeNode[] matches=this.getMatches(next);
-            if(matches!=null&&matches[0]!=null)
+            System.out.println("target");
+            for(int i=0;i< chtn2.length;i++)
             {
-                if(matches.length>1)
+                System.out.println(chtn2[i]);
+            }
+            HashSet unmatched=new HashSet(source.getNrOfFaces()+target.getNrOfFaces());
+            for(int i=0;i< chtn1.length;i++)
+            {
+                for(int j=0;j<chtn2.length;j++)
                 {
-                    for(int i=0;i<matches.length;i++)
+                    
+                    double overlap= getOverlapp(chtn1[i],chtn2[j]);
+                    if(overlap>threshold)
                     {
-                        unmatched.remove(matches[i]);
+                        this.addMatch(chtn1[i],chtn2[j]);
+                        this.addMatch(chtn2[j],chtn1[i]);
+                        System.out.println("addMatch");
                     }
-                    this.matchCHTNs(next.getChildren(),this.getTargetChildren(next),threshold);
                 }
-                else
+                unmatched.add(chtn1[i]);
+            }
+            for(int i=0;i<chtn2.length;i++)
+            {
+                unmatched.add(chtn2[i]);
+            }
+            while(unmatched.isEmpty())
+            {
+                ConvexHullTreeNode next=(ConvexHullTreeNode)(unmatched.iterator().next());
+                unmatched.remove(next);
+                RegionTreeNode[] matches=this.getMatches(next);
+                if(matches!=null&&matches[0]!=null)
                 {
-                    if(getMatches(matches[0]).length>1)
+                    if(matches.length>1)
                     {
-                        for(int i=0;i<getMatches(matches[0]).length;i++)
+                        for(int i=0;i<matches.length;i++)
                         {
-                            unmatched.remove(getMatches(matches[0])[i]);
+                            unmatched.remove(matches[i]);
                         }
-                        this.matchCHTNs(((ConvexHullTreeNode)matches[0]).getChildren(),this.getTargetChildren(matches[0]),threshold);
+                        System.out.println("1");
+                        this.matchCHTNs(next.getChildren(),this.getTargetChildren(next));
                     }
                     else
                     {
-                        unmatched.remove(matches[0]);
-                        this.matchCHTNs(next.getChildren(),((ConvexHullTreeNode)matches[0]).getChildren(),threshold);
+                        if(getMatches(matches[0]).length>1)
+                        {
+                            for(int i=0;i<getMatches(matches[0]).length;i++)
+                            {
+                                unmatched.remove(getMatches(matches[0])[i]);
+                            }
+                            System.out.println("2");
+                            this.matchCHTNs(((ConvexHullTreeNode)matches[0]).getChildren(),this.getTargetChildren(matches[0]));
+                        }
+                        else
+                        {
+                            unmatched.remove(matches[0]);
+                            System.out.println("3");
+                            this.matchCHTNs(next.getChildren(),((ConvexHullTreeNode)matches[0]).getChildren());
+                        }
                     }
                 }
             }
         }
+    }
+    
+    public ConvexHullTreeNode getBestMatch(ConvexHullTreeNode source,ConvexHullTreeNode[] targets)
+    {
+        double best=0;
+        ConvexHullTreeNode bestMatch=null;
+        for(int i=0;i<targets.length;i++)
+        {
+            double overl=getOverlapp(source,targets[i]);
+            if(overl>best)
+            {
+                bestMatch=targets[i];
+                best=overl;
+            }
+        }
+        return(bestMatch);
+    }
+    
+    public Face getBestMatch(Face source,Face[] targets)
+    {
+        double best=0;
+        Face bestMatch=null;
+        for(int i=0;i<targets.length;i++)
+        {
+            double overl=getOverlapp(source.getCycle(),targets[i].getCycle());
+            if(overl>best)
+            {
+                bestMatch=targets[i];
+                best=overl;
+            }
+        }
+        return(bestMatch);
     }
     
     
@@ -141,6 +190,6 @@ public class OverlappingMatch extends Match
     {
         double [] res=TriRepUtil.findOverlap(chtn1.getOutLine(),chtn2.getOutLine());
         System.out.println("OVER"+res[0]);
-        return((res[0])/100.0);        
+        return((res[0])/100.0);
     }
 }

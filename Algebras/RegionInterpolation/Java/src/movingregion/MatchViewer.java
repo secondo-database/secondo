@@ -76,12 +76,36 @@ public class MatchViewer extends javax.swing.JPanel
 //        System.out.println("repaint "+this.myMatch.getName());
         g.setFont(new Font("SansSerif",Font.BOLD,24));
         FontMetrics fm=g.getFontMetrics();
-        int y=(int)(fm.getMaxAscent()*1.5);
-        g.drawString(this.myMatch.getName(),this.getWidth()-fm.stringWidth(myMatch.getName())-jScrollPane1.getVerticalScrollBar().getWidth()-10,y);
+        int y=0;//(int)(fm.getMaxAscent()*1.5);
+        int maxStringWidth=this.getWidth()/4;
+        //g.drawString(this.myMatch.getName(),this.getWidth()-fm.stringWidth(myMatch.getName())-jScrollPane1.getVerticalScrollBar().getWidth()-10,y);
+        fm=g.getFontMetrics();
+        String myName=this.myMatch.getName();
+        do
+        {
+            y=y+(int)(fm.getMaxAscent()*1.5);
+            String tmp="";
+            while (fm.stringWidth(tmp)<maxStringWidth)
+            {
+              //  System.out.println(tmp);
+                if(myName.indexOf(" ")!=-1)
+                {
+                    tmp=tmp+" "+ myName.substring(0,myName.indexOf(" "));
+                    myName=myName.substring(myName.indexOf(" ")+1);
+                }
+                else
+                {
+                    //System.out.println(Descrip);
+                    tmp=tmp+" "+ myName;
+                    myName="";
+                }
+            }
+            g.drawString(tmp,this.getWidth()-fm.stringWidth(tmp)-jScrollPane1.getVerticalScrollBar().getWidth()-10,y);            
+        }
+        while(myName.length()>0);//fm.stringWidth(Descrip)>maxStringWidth);
         
         g.setFont(new Font("SansSerif",Font.PLAIN,16));
-        fm=g.getFontMetrics();
-        int maxStringWidth=this.getWidth()/4;
+        fm=g.getFontMetrics();        
         String Descrip=myMatch.getDescription();
         do
         {

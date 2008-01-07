@@ -51,6 +51,8 @@ public class oneSectionViewer extends javax.swing.JPanel
     public void paint(Graphics g)
     {
         g.clearRect(0,0,this.getWidth(),this.getHeight());        
+        g.setColor(Color.BLACK);
+        g.drawRect(0,0,this.getWidth(),this.getHeight());        
         g.setColor(Color.BLUE);
         LineWA[][] lines=myTri.getSection(time*1.0/of);        
         double scaleX=wid/((maxX-minX)*1.0);

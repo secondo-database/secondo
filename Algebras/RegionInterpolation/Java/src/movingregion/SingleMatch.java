@@ -21,7 +21,26 @@ public class SingleMatch
     
     public int getNrTargets()
     {
-        return(targets.length);
+        int res=0;
+        for(int i=0;i<this.targets.length;i++)
+        {
+            if(targets[i]!=null)
+            {
+                res++;
+            }
+        }
+        return(res);
+    }
+    
+    public void removeNulls()
+    {
+        for(int i=0;i<this.targets.length;i++)
+        {
+            if(targets[i]==null)
+            {
+                this.removeTarget(i);
+            }
+        }
     }
     
     public RegionTreeNode getTargetAt(int i)
@@ -29,9 +48,26 @@ public class SingleMatch
         return(targets[i]);
     }
     
+    public void removeTarget(int index)
+    {
+        RegionTreeNode[] newTargets=new RegionTreeNode[targets.length-1];
+        int j=0;
+        for(int i=0;i<targets.length;i++)
+        {
+            if(i!=index)
+            {
+                newTargets[j]=targets[i];
+                j++;
+            }
+            
+        }
+        targets=newTargets;
+    }
+    
     public void removeTargets()
     {
-        targets=        targets=new RegionTreeNode[0];
+        targets=targets=new RegionTreeNode[1];
+        targets[0]=null;
     }
     
     public void addTarget(RegionTreeNode target)

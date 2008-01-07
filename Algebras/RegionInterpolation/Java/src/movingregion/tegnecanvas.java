@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import javax.swing.*;
+import java.io.*;
 
 public class tegnecanvas extends JPanel implements ActionListener
 {
@@ -19,6 +20,9 @@ public class tegnecanvas extends JPanel implements ActionListener
     private int wid;
     private int avtiveSnap=0;
     private Region[] Snaps=new Region[2];
+    private JButton save1Butt;
+    private JButton save2Butt;
+    private JButton loadButt;
     
     public tegnecanvas(MCIContents myParent)
     {
@@ -34,18 +38,121 @@ public class tegnecanvas extends JPanel implements ActionListener
         addHoleButt.addActionListener(this);
         drawNextSS = new JButton("Store Snapshot");
         drawNextSS.addActionListener(this);
+        save1Butt=new JButton("Save First");
+        save1Butt.addActionListener(this);
+        save2Butt=new JButton("Save Sec");
+        save2Butt.addActionListener(this);
+        loadButt=new JButton("Load");
+        loadButt.addActionListener(this);
         drawUtils=new JToolBar();
         drawUtils.add(reDrawButt);
         drawUtils.add(addFaceButt);
         drawUtils.add(addHoleButt);
         drawUtils.add(drawNextSS);
+        drawUtils.add(save1Butt);
+        drawUtils.add(save2Butt);
+        drawUtils.add(loadButt);
         add(drawUtils,BorderLayout.NORTH);
         enableEvents(AWTEvent.MOUSE_EVENT_MASK);
         fistSnapPoints = new Vector();
     }
     
+    public void setSnapshoot(Region region)
+    {
+        this.Snaps[avtiveSnap]=region;
+        avtiveSnap++;
+        this.addFace=true;
+        this.addHole=false;
+        if(avtiveSnap==2)
+        {
+            myParent.store();
+        }
+    }
+    
     public void actionPerformed(ActionEvent e)
     {
+        if(e.getSource()==loadButt)
+        {
+            
+            JFileChooser chooser = new JFileChooser();
+            RegionFileFilter filter=new RegionFileFilter();
+            chooser.setMultiSelectionEnabled(true);
+            chooser.setFileFilter(filter);
+            //chooser.setAccessory(new ImagePreview(chooser));
+            int returnVal = chooser.showOpenDialog(this);
+            if(returnVal == JFileChooser.APPROVE_OPTION)
+            {
+                InputStream fis = null;
+                try
+                {
+                    fis = new FileInputStream( chooser.getSelectedFile() );
+                    ObjectInputStream o = new ObjectInputStream( fis );
+                    setSnapshoot( (Region) o.readObject());
+                }
+                catch ( IOException e2 )
+                { System.err.println( e2 ); }
+                catch ( ClassNotFoundException e2 )
+                { System.err.println( e2 ); }
+                finally
+                { try
+                  { fis.close(); }
+                  catch ( Exception e2 )
+                  { } }
+            }
+        }
+        if(e.getSource()==save1Butt)
+        {
+            JFileChooser chooser = new JFileChooser();
+            RegionFileFilter filter=new RegionFileFilter();
+            chooser.setMultiSelectionEnabled(false);
+            chooser.setFileFilter(filter);
+            //chooser.setAccessory(new ImagePreview(chooser));
+            int returnVal = chooser.showSaveDialog(this);
+            if(returnVal == JFileChooser.APPROVE_OPTION)
+            {
+                OutputStream fos = null;
+                try
+                {
+                    fos = new FileOutputStream( chooser.getSelectedFile());
+                    ObjectOutputStream o = new ObjectOutputStream( fos );
+                    o.writeObject(this.getFirstSnapshot());
+                }
+                catch ( IOException e2 )
+                { System.err.println( e2 ); }
+                finally
+                { try
+                  { fos.close(); }
+                  catch ( Exception e2 )
+                  { } }
+            }
+        }
+        
+        if(e.getSource()==save2Butt)
+        {
+            JFileChooser chooser = new JFileChooser();
+            RegionFileFilter filter=new RegionFileFilter();
+            chooser.setMultiSelectionEnabled(false);
+            chooser.setFileFilter(filter);
+            //chooser.setAccessory(new ImagePreview(chooser));
+            int returnVal = chooser.showSaveDialog(this);
+            if(returnVal == JFileChooser.APPROVE_OPTION)
+            {
+                OutputStream fos = null;
+                try
+                {
+                    fos = new FileOutputStream( chooser.getSelectedFile());
+                    ObjectOutputStream o = new ObjectOutputStream( fos );
+                    o.writeObject(this.getSecondSnapshot());
+                }
+                catch ( IOException e2 )
+                { System.err.println( e2 ); }
+                finally
+                { try
+                  { fos.close(); }
+                  catch ( Exception e2 )
+                  { } }
+            }
+        }
         if (e.getSource() == reDrawButt)
         {
             Snaps[0]=new Region();
@@ -63,16 +170,16 @@ public class tegnecanvas extends JPanel implements ActionListener
             this.addFace=true;
             this.addHole=false;
             if(avtiveSnap==2)
-            {                                
-                myParent.store();                
+            {
+                myParent.store();
             }
-        }        
+        }
         if (e.getSource() == addFaceButt)
         {
             this.finishLastOperation();
             this.addFace=true;
             this.addHole=false;
-        }                
+        }
         if (e.getSource() == addHoleButt)
         {
             this.finishLastOperation();
@@ -81,6 +188,11 @@ public class tegnecanvas extends JPanel implements ActionListener
         }
         
         this.repaint();
+    }
+    
+    public boolean isready()
+    {
+        return(this.avtiveSnap==2);
     }
     
     protected void processMouseEvent(MouseEvent e)
@@ -120,14 +232,14 @@ public class tegnecanvas extends JPanel implements ActionListener
             }
             if(this.addFace)
             {
-                Snaps[avtiveSnap].addFace(new Face(tmp));
+                Snaps[avtiveSnap].addFace(new Face(tmp,Snaps[avtiveSnap]));
             }
             if(this.addHole)
             {
                 Snaps[avtiveSnap].getFace(Snaps[avtiveSnap].getNrOfFaces()-1).addHole(tmp);
             }
             fistSnapPoints.removeAllElements();
-        }                
+        }
     }
     
     public Dimension getMinimumSize()
@@ -142,12 +254,12 @@ public class tegnecanvas extends JPanel implements ActionListener
     
     public Region getFirstSnapshot()
     {
-        return(Snaps[0]);
+        return((Region)Snaps[0].clone());
     }
     
     public Region getSecondSnapshot()
     {
-        return(Snaps[1]);
+        return((Region)Snaps[1].clone());
     }
     
     public void paint(Graphics g)
@@ -161,7 +273,7 @@ public class tegnecanvas extends JPanel implements ActionListener
         else
         {
             Snaps[0].paintRegion(g,true);
-        }       
+        }
         int antallpunkt;
         Dimension storrelse;
         Point nvpunkt,gpunkt;
@@ -186,5 +298,11 @@ public class tegnecanvas extends JPanel implements ActionListener
                 gpunkt = nvpunkt;
             }
         }
+        g.setColor(Color.GREEN);
+        g.drawLine(200,0,250,100);
+        g.drawLine(250,100,220,200);
+        g.drawLine(220,200,150,300);        
+        g.drawLine(150,300,200,400);
+        
     }
 }

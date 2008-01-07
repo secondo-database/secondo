@@ -17,14 +17,14 @@ import java.util.*;
  */
 public class CentroidMatch extends Match
 {
-    
+    int threshold;
     /** Creates a new instance of CentroidMatch */
     public CentroidMatch(Region source, Region target,double thresholdRel)
     {
         
-        super(source,target,"CentroidMatch","this implements the position of centroids Match, known from the paper of Erlend Tøssebro (5.2 1)");
+        super(source,target,"CentroidMatch "+((int)(thresholdRel*100))+" %","this implements the position of centroids Match, known from the paper of Erlend Tøssebro (5.2 1)");
         
-        LineWA[][] tmp=new LineWA[source.getNrOfFaces()+target.getNrOfFaces()][];
+        LineWA[][] tmp=new LineWA[source.getNrOfFaces()+target.getNrOfFaces()][];   //Calculate the threshold for matching
         for(int i=0;i<source.getNrOfFaces();i++)
         {
             tmp[i]=source.getFace(i).getCycle().getLines();
@@ -34,29 +34,35 @@ public class CentroidMatch extends Match
             tmp[i+source.getNrOfFaces()]=target.getFace(i).getCycle().getLines();
         }
         double greatestDist=TriRepUtil.getMaxDistance2(tmp);
-        int threshold=(int)(greatestDist*thresholdRel);
-        System.out.println("HALLO"+greatestDist+" "+threshold);
+        threshold=(int)(greatestDist*thresholdRel);                                 //Calculate the threshold for matching
         this.addMatch(source,target);
-        HashSet unmatched=new HashSet(source.getNrOfFaces()+target.getNrOfFaces());
-        for(int i=0;i< source.getNrOfFaces();i++)
+        this.matchFaces(source.getFaces(),target.getFaces());
+        
+        this.fertig();
+    }
+    
+    public void matchFaces(Face[] faces1,Face[] faces2)
+    {
+        HashSet unmatched=new HashSet(faces1.length+faces2.length);
+        for(int i=0;i< faces1.length;i++)
         {
-            for(int j=0;j<target.getNrOfFaces();j++)
+            for(int j=0;j<faces2.length;j++)
             {
                 
-                double distance= getDistance(source.getFace(i).getCycle(),target.getFace(j).getCycle());
+                double distance= getDistance(faces1[i].getCycle(),faces2[j].getCycle());
                 if(distance<threshold)
                 {
-                    this.addMatch(source.getFace(i),target.getFace(j));
-                    this.addMatch(target.getFace(j),source.getFace(i));
-                    this.addMatch(source.getFace(i).getCycle(),target.getFace(j).getCycle());
-                    this.addMatch(target.getFace(j).getCycle(),source.getFace(i).getCycle());
+                    this.addMatch(faces1[i],faces2[j]);
+                    this.addMatch(faces2[j],faces1[i]);
+                    this.addMatch(faces1[i].getCycle(),faces2[j].getCycle());
+                    this.addMatch(faces2[j].getCycle(),faces1[i].getCycle());
                 }
             }
-            unmatched.add(source.getFace(i));
+            unmatched.add(faces1[i]);
         }
-        for(int i=0;i<target.getNrOfFaces();i++)
+        for(int i=0;i<faces2.length;i++)
         {
-            unmatched.add(target.getFace(i));
+            unmatched.add(faces2[i]);
         }
         while(!unmatched.isEmpty())
         {
@@ -73,7 +79,7 @@ public class CentroidMatch extends Match
                         unmatched.remove(matches[i]);
                         dimMatch+=((Face)matches[i]).getCycle().getChildren().length;
                     }
-                    this.matchCHTNs(next.getCycle().getChildren(),this.getTargetChildren(next),threshold);
+                    this.matchCHTNs(next.getCycle().getChildren(),this.getTargetChildren(next));
                 }
                 else
                 {
@@ -83,20 +89,19 @@ public class CentroidMatch extends Match
                         {
                             unmatched.remove(getMatches(matches[0])[i]);
                         }
-                        this.matchCHTNs(((Face)matches[0]).getCycle().getChildren(),this.getTargetChildren(matches[0]),threshold);
+                        this.matchCHTNs(((Face)matches[0]).getCycle().getChildren(),this.getTargetChildren(matches[0]));
                     }
                     else
                     {
                         unmatched.remove(matches[0]);
-                        this.matchCHTNs(next.getCycle().getChildren(),((Face)matches[0]).getCycle().getChildren(),threshold);
+                        this.matchCHTNs(next.getCycle().getChildren(),((Face)matches[0]).getCycle().getChildren());
                     }
                 }
             }
         }
-        this.fertig();
     }
     
-    public void matchCHTNs(ConvexHullTreeNode[] chtn1,ConvexHullTreeNode[] chtn2,int threshold)
+    public void matchCHTNs(ConvexHullTreeNode[] chtn1,ConvexHullTreeNode[] chtn2)
     {
         HashSet unmatched=new HashSet(source.getNrOfFaces()+target.getNrOfFaces());
         for(int i=0;i< chtn1.length;i++)
@@ -131,7 +136,7 @@ public class CentroidMatch extends Match
                     {
                         unmatched.remove(matches[i]);
                     }
-                    this.matchCHTNs(next.getChildren(),this.getTargetChildren(next),threshold);
+                    this.matchCHTNs(next.getChildren(),this.getTargetChildren(next));
                 }
                 else
                 {
@@ -141,19 +146,51 @@ public class CentroidMatch extends Match
                         {
                             unmatched.remove(getMatches(matches[0])[i]);
                         }
-                        this.matchCHTNs(((ConvexHullTreeNode)matches[0]).getChildren(),this.getTargetChildren(matches[0]),threshold);
+                        this.matchCHTNs(((ConvexHullTreeNode)matches[0]).getChildren(),this.getTargetChildren(matches[0]));
                     }
                     else
                     {
                         unmatched.remove(matches[0]);
-                        this.matchCHTNs(next.getChildren(),((ConvexHullTreeNode)matches[0]).getChildren(),threshold);
+                        this.matchCHTNs(next.getChildren(),((ConvexHullTreeNode)matches[0]).getChildren());
                     }
                 }
             }
         }
     }
     
-    public static double getDistance(ConvexHullTreeNode chtn1,ConvexHullTreeNode chtn2)
+    public Face getBestMatch(Face source,Face[] targets)
+    {
+        double best=Double.MAX_VALUE;
+        Face bestMatch=null;
+        for(int i=0;i<targets.length;i++)
+        {
+            double overl=getDistance(source.getCycle(),targets[i].getCycle());
+            if(overl<best)
+            {
+                bestMatch=targets[i];
+                best=overl;
+            }
+        }
+        return(bestMatch);
+    }
+    
+    public ConvexHullTreeNode getBestMatch(ConvexHullTreeNode source,ConvexHullTreeNode[] targets)
+    {
+        double best=Double.MAX_VALUE;
+        ConvexHullTreeNode bestMatch=null;
+        for(int i=0;i<targets.length;i++)
+        {
+            double overl=getDistance(source,targets[i]);
+            if(overl<best)
+            {
+                bestMatch=targets[i];
+                best=overl;
+            }
+        }
+        return(bestMatch);
+    }
+    
+    private static double getDistance(ConvexHullTreeNode chtn1,ConvexHullTreeNode chtn2)
     {
         LineWA center1=chtn1.getCenter();
         LineWA center2=chtn2.getCenter();

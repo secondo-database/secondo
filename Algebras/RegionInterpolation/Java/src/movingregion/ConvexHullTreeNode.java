@@ -1,6 +1,8 @@
 package movingregion;
 import java.awt.*;
 import java.util.*;
+import java.io.*;
+
 
 /**
  * This class represents a node in the convex hull tree. The node contains
@@ -10,11 +12,9 @@ import java.util.*;
  *
  * @author Erlend Tøssebro
  */
-public class ConvexHullTreeNode implements RegionTreeNode
+public class ConvexHullTreeNode implements RegionTreeNode,Serializable
 {
-    
-    public static final int Y_DISP = 200;
-    public static final int X_DISP = 400;
+    static final long serialVersionUID = -7832017217383957662l;
     
     /**
      * This class represents one line in the polygon stored in this
@@ -26,7 +26,7 @@ public class ConvexHullTreeNode implements RegionTreeNode
      *
      * @author Erlend Tøssebro
      */
-    private class CHLine extends LineWA
+    private class CHLine extends LineWA implements Serializable
     {
         public ConvexHullTreeNode child;
         
@@ -45,6 +45,46 @@ public class ConvexHullTreeNode implements RegionTreeNode
         }
     }
     
+    private class doublePoint
+    {
+        double x;
+        double y;
+        public doublePoint(double x, double y)
+        {
+            this.x=x;
+            this.y=y;
+        }
+    }
+    
+    private class LineDist implements Comparable
+    {
+        public int x;
+        public int y;
+        public double distance;
+        public LineDist(LineWA p,double distance)
+        {
+            x=p.x;
+            y=p.y;
+            this.distance=distance;
+        }
+        public LineDist(int x,int y)
+        {
+            this.x=x;
+            this.y=y;
+            distance=0.0;
+        }
+        public int compareTo(Object o)
+        {
+            double tmp=distance-((LineDist)o).distance;
+            if (tmp>0)
+                return(1);
+            if(tmp<0)
+                return(-1);
+            return(0);
+        }
+    }
+    
+    
     // The list of lines
     private Vector linelist;
     // The list of regions which overlap this region
@@ -53,9 +93,6 @@ public class ConvexHullTreeNode implements RegionTreeNode
     private int smallestpoint;
     private int smallesty;
     private int smallestx;
-//    private double min_overlap;
-//    private double min_overlap_match;
-//    private boolean matched; // Whether this object has been matched or not.
     private boolean isHole=false;
     RegionTreeNode myParent;
     /**
@@ -237,6 +274,42 @@ public class ConvexHullTreeNode implements RegionTreeNode
         }
     }
     
+    public ConvexHullTreeNode addChild(LineWA[] newChild)
+    {
+        ConvexHullTreeNode newNode=new ConvexHullTreeNode(newChild,1,this.isHole(),this);       //@TODO bloody Hack
+        LineWA[] thisOutline=this.getOrderedOutLine();
+        LineWA[] newOutline=newNode.getOrderedOutLine();
+        int insertIndex;
+        for(int i=0;i< thisOutline.length;i++)
+        {
+            for(int j=0;j<newOutline.length;j++)
+            {
+                if(thisOutline[i].equals(newOutline[j]))
+                {
+                    if(thisOutline[(i+1)%thisOutline.length].equals(newOutline[(j+1)%newOutline.length]))
+                    {
+                        ((CHLine)this.linelist.elementAt(i)).child=newNode;
+                        return(newNode);
+                    }
+                    if(TriRepUtil.PointOnLine(newOutline[(j+1)%newOutline.length],thisOutline[i],thisOutline[(i+1)%thisOutline.length]))
+                    {
+                        ((CHLine)this.linelist.elementAt(i)).child=newNode;
+                        this.linelist.insertElementAt(new CHLine(newOutline[(j+1)%newOutline.length]),i+1);                        
+                        return(newNode);
+                    }
+                    if(TriRepUtil.PointOnLine(newOutline[(j-1+newOutline.length)%newOutline.length],thisOutline[i],thisOutline[(i-1+thisOutline.length)%thisOutline.length]))
+                    {
+                        ((CHLine)this.linelist.elementAt((i-1+thisOutline.length)%thisOutline.length)).child=newNode;
+                        this.linelist.insertElementAt(new CHLine(newOutline[(j-1+newOutline.length)%newOutline.length]),(i-1+thisOutline.length)%thisOutline.length);                        
+                        return(newNode);
+                    }
+                    insertIndex=i;
+                }
+            }
+        }
+        return(null);
+    }
+    
     public int hashCode()
     {
         int start=5132;
@@ -249,6 +322,239 @@ public class ConvexHullTreeNode implements RegionTreeNode
         }
         res=res%modu;
         return (res);
+    }
+    
+    public LineWA[]getSplitLine(ConvexHullTreeNode ref1,ConvexHullTreeNode ref2)
+    {
+        LineWA p1=ref1.getCenter();
+        LineWA p2=ref2.getCenter();
+        Vector pdist1=new Vector();
+        Vector pdist2=new Vector();
+        Vector resv=new Vector();
+        LineWA[] ref1lines=ref1.getLines();
+        LineWA[] ref2lines=ref2.getLines();
+        for (int i=0; i<ref1lines.length;i++)
+        {
+            double dist=TriRepUtil.getRectangularDistance(p1,p2,ref1lines[i]);
+            if(!Double.isNaN(dist))
+                pdist1.add(new LineDist(ref1lines[i],dist));
+        }
+        
+        for (int i=0; i<ref2lines.length;i++)
+        {
+            double dist=TriRepUtil.getRectangularDistance(p1,p2,ref2lines[i]);
+            if(!Double.isNaN(dist))
+                pdist2.add(new LineDist(ref2lines[i],dist));
+        }
+        Collections.sort(pdist1);
+        Collections.sort(pdist2);
+        
+        
+        while(pdist1.size()>1||pdist2.size()>1)
+        {
+            if(pdist1.size()==0||pdist2.size()==0)
+            {
+                System.out.println("nix");
+                return(null);
+            }
+            LineDist tmp1=(LineDist)pdist1.elementAt(0);
+            LineDist tmp2=(LineDist)pdist2.elementAt(0);
+            if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
+            &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
+                resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
+            
+            if(tmp1.distance>tmp2.distance)
+            {
+                if(pdist2.size()>1)
+                {
+                    pdist2.remove(0);
+                }
+                else
+                {
+                    while(pdist1.size()>1)
+                    {
+                        tmp1=(LineDist)pdist1.elementAt(0);
+                        tmp2=(LineDist)pdist2.elementAt(0);
+                        if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
+                        &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
+                            resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
+                        pdist1.remove(0);
+                    }
+                }
+            }
+            else
+            {
+                
+                if(pdist1.size()>1)
+                {
+                    pdist1.remove(0);
+                }
+                else
+                {
+                    while(pdist2.size()>1)
+                    {
+                        tmp1=(LineDist)pdist1.elementAt(0);
+                        tmp2=(LineDist)pdist2.elementAt(0);
+                        //if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
+                        //&&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
+                            resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
+                        pdist2.remove(0);
+                    }
+                }
+            }
+            
+        }
+        LineDist tmp1=(LineDist)pdist1.elementAt(0);
+        LineDist tmp2=(LineDist)pdist2.elementAt(0);
+        if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
+        &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
+            resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
+        double sumLinex=0;
+        double sumLiney=0;
+        for(int i=0;i<resv.size();i++)
+        {
+            sumLinex+=((doublePoint)resv.elementAt(i)).x;
+            sumLiney+=((doublePoint)resv.elementAt(i)).y;
+        }
+        doublePoint centerLine=new doublePoint(sumLinex/(resv.size()),sumLiney/(resv.size()));
+        int sumRefx=0;
+        int sumRefy=0;
+        for(int i=0;i<ref1lines.length;i++)
+        {
+            sumRefx+=ref1lines[i].x;
+            sumRefy+=ref1lines[i].y;
+        }
+        for(int i=0;i<ref2lines.length;i++)
+        {
+            sumRefx+=ref2lines[i].x;
+            sumRefy+=ref2lines[i].y;
+        }
+        doublePoint centerRef=new doublePoint(sumRefx*1.0/(ref1lines.length+ref2lines.length),sumRefy*1.0/(ref1lines.length+ref2lines.length));        
+        double scaleVector=Math.abs(TriRepUtil.getArea(this.getLines()))/(Math.abs(TriRepUtil.getArea(ref1lines))+Math.abs(TriRepUtil.getArea(ref2lines)));        
+        double distLine=Math.sqrt((centerLine.x-((doublePoint)resv.elementAt(0)).x)*(centerLine.x-((doublePoint)resv.elementAt(0)).x)+(centerLine.y-((doublePoint)resv.elementAt(0)).y)*(centerLine.y-((doublePoint)resv.elementAt(0)).y));
+        distLine=Math.max(distLine,Math.sqrt((centerLine.x-((doublePoint)resv.elementAt(resv.size()-1)).x)*(centerLine.x-((doublePoint)resv.elementAt(resv.size()-1)).x)+(centerLine.y-((doublePoint)resv.elementAt(resv.size()-1)).y)*(centerLine.y-((doublePoint)resv.elementAt(resv.size()-1)).y)));
+        double thismaxdist =0;
+        LineWA centerThis=this.getCenter();
+        LineWA[] thisLines=this.getLines();
+        for(int i=0;i<thisLines.length;i++)
+        {
+            thismaxdist=Math.max(thismaxdist,Math.sqrt((thisLines[i].x-centerThis.x)*(thisLines[i].x-centerThis.x)+(thisLines[i].y-centerThis.y)*(thisLines[i].y-centerThis.y)));
+        }
+        double scale=thismaxdist/distLine*1.05;
+        for(int i=0;i<resv.size();i++)
+        {
+            doublePoint tmp=((doublePoint)resv.elementAt(i));
+            tmp.x=centerThis.x+(centerLine.x-centerRef.x)*scaleVector+(tmp.x-centerLine.x)*scale;
+                    //tmp.x+(centerThis.x-centerLine.x)+(centerLine.x-centerRef.x)*scaleVector;
+            tmp.y=centerThis.y+(centerLine.y-centerRef.y)*scaleVector+(tmp.y-centerLine.y)*scale;
+        }
+        
+        LineWA[] res=new LineWA[resv.size()];
+        for(int i=0;i<resv.size();i++)
+        {
+            doublePoint tmp=((doublePoint)resv.elementAt(i));
+            res[i]=new LineWA((int)Math.round(tmp.x),(int)Math.round(tmp.y));
+        }
+        
+        return res;
+    }
+    
+    
+    public LineWA[][] getSplitNodes(LineWA[] splitLine)
+    {
+        LineWA[][] res=new LineWA[2][];
+        int lowIndexLine,highIndexLine,lowIndexPoly,highIndexPoly;
+        Vector IntersectionPoints=new Vector();
+        Vector IntersectionIndexPoly=new Vector();
+        Vector IntersectionIndexLine=new Vector();
+        LineWA[] polyLine=this.getLines();
+        for(int i=0;i<polyLine.length;i++)
+        {
+            for(int j=0;j<(splitLine.length-1);j++)
+            {
+                LineWA inters=TriRepUtil.getIntersection(polyLine[i],polyLine[(i+1)%polyLine.length],splitLine[j],splitLine[j+1]);
+                if(inters!=null)
+                {
+                    IntersectionPoints.add(inters);
+                    IntersectionIndexPoly.add(new Integer(i));
+                    IntersectionIndexLine.add(new Integer(j));
+                }
+            }
+        }
+        if(IntersectionPoints.size()!=2)
+        {
+            
+        }
+        else
+        {
+            
+            if(((Integer)IntersectionIndexPoly.elementAt(0)).intValue()>((Integer)IntersectionIndexPoly.elementAt(1)).intValue())
+            {
+                lowIndexPoly=((Integer)IntersectionIndexPoly.elementAt(1)).intValue();
+                highIndexPoly=((Integer)IntersectionIndexPoly.elementAt(0)).intValue();
+            }
+            else
+            {
+                lowIndexPoly=((Integer)IntersectionIndexPoly.elementAt(0)).intValue();
+                highIndexPoly=((Integer)IntersectionIndexPoly.elementAt(1)).intValue();
+            }
+            if(((Integer)IntersectionIndexLine.elementAt(0)).intValue()>((Integer)IntersectionIndexLine.elementAt(1)).intValue())
+            {
+                lowIndexLine=((Integer)IntersectionIndexLine.elementAt(1)).intValue();
+                highIndexLine=((Integer)IntersectionIndexLine.elementAt(0)).intValue();
+            }
+            else
+            {
+                lowIndexLine=((Integer)IntersectionIndexLine.elementAt(0)).intValue();
+                highIndexLine=((Integer)IntersectionIndexLine.elementAt(1)).intValue();
+            }
+            System.out.println("lowHIg"+lowIndexPoly+highIndexPoly);
+            System.out.println("lowHIg"+lowIndexLine+highIndexLine);
+            res[0]=new LineWA[polyLine.length-highIndexPoly+lowIndexPoly+highIndexLine-lowIndexLine+2];
+            res[1]=new LineWA[highIndexPoly-lowIndexPoly+highIndexLine-lowIndexLine+2];
+            int index1=0;
+            int index2=0;
+            for(int i=0;i<=lowIndexPoly;i++ )
+            {
+                res[0][index1++]=polyLine[i];
+            }
+            for(int i=highIndexPoly;i>lowIndexPoly;i--)
+            {
+                res[1][index2++]=polyLine[i];
+            }
+            int indexindex=IntersectionIndexPoly.indexOf(new Integer(lowIndexPoly));  //toDo Sonderfall
+            
+            if(lowIndexPoly==highIndexPoly)System.out.println("Problem");
+            
+            res[0][index1++]=(LineWA)IntersectionPoints.elementAt(indexindex);
+            res[1][index2++]=(LineWA)IntersectionPoints.elementAt(indexindex);
+            if(IntersectionIndexLine.elementAt(indexindex).equals(new Integer(lowIndexLine)))
+            {
+                for(int i=lowIndexLine+1;i<=highIndexLine;i++)
+                {
+                    res[0][index1++]=splitLine[i];
+                    res[1][index2++]=splitLine[i];
+                }
+            }
+            else
+            {
+                
+                for(int i=highIndexLine;i>lowIndexLine;i--)
+                {
+                    res[0][index1++]=splitLine[i];
+                    res[1][index2++]=splitLine[i];
+                }
+            }
+            //indexindex=IntersectionIndexPoly.indexOf(new Integer(highIndexPoly));
+            res[0][index1++]=(LineWA)IntersectionPoints.elementAt((indexindex-1)*-1);
+            res[1][index2++]=(LineWA)IntersectionPoints.elementAt((indexindex-1)*-1);
+            for(int i=highIndexPoly+1;i<polyLine.length;i++)
+            {
+                res[0][index1++]=polyLine[i];
+            }
+        }
+        
+        return(res);
     }
     
     public boolean equals(Object o)
@@ -545,6 +851,30 @@ public class ConvexHullTreeNode implements RegionTreeNode
     {
         return(y/2);
     }
+    public void removeChild(ConvexHullTreeNode toDelete)
+    {
+        int length;
+        CHLine line;
+        length = linelist.size();
+        for (int a=0;a<length;a++)
+        {
+            line = (CHLine)linelist.elementAt(a);
+            if (line.child!=null&&line.child.equals(toDelete))
+            {
+                line.child=null;
+            }
+        }
+        
+    }
+    public void setHole(boolean isHole)
+    {
+        this.isHole=isHole;
+        ConvexHullTreeNode[] children=this.getChildren();
+        for(int i=0;i<children.length;i++)
+        {
+            children[i].setHole(isHole);
+        }
+    }
     
     /**
      * This function finds the line a given child of this node is associated
@@ -566,7 +896,7 @@ public class ConvexHullTreeNode implements RegionTreeNode
         for (int a=0;a<length;a++)
         {
             line = (CHLine)linelist.elementAt(a);
-            if (line.child == child)
+            if (line.child!=null&&line.child.equals(child))
             {
                 result = new LineWA[2];
                 result[0] = (LineWA)line;
@@ -779,7 +1109,7 @@ public class ConvexHullTreeNode implements RegionTreeNode
         int resx=0;
         int resy=0;
         for(int i=0;i<lines.length;i++)
-        {            
+        {
             double angle=ConVertex.getAngleRad(lines[i].x,lines[i].y,lines[(i-1+lines.length)%lines.length].x,lines[(i-1+lines.length)%lines.length].y,lines[(i+1)%lines.length].x,lines[(i+1)%lines.length].y);
             double weight=.5-(angle/2/Math.PI);
             resx+=(int)(lines[i].x*weight);
@@ -800,8 +1130,8 @@ public class ConvexHullTreeNode implements RegionTreeNode
             resx+=lines[i].x;
             resy+=lines[i].y;
         }
-        resx=resx/lines.length;
-        resy=resy/lines.length;
+        resx=resx/(lines.length);
+        resy=resy/(lines.length);
         return(new LineWA(resx,resy));
     }
     
@@ -1090,13 +1420,13 @@ public class ConvexHullTreeNode implements RegionTreeNode
     
     public String toString()
     {
-        LineWA[] tmp=this.getOutLine();
+        LineWA[] tmp=this.getLines();
         String res="[ "+tmp[0];
         for (int i=1;i< tmp.length;i++)
         {
             res=res+'\n'+"   "+tmp[i];
         }
-        res=res+"]";
+        res=res+"]"+'\n';
         return(res);
     }
     
@@ -1130,4 +1460,5 @@ public class ConvexHullTreeNode implements RegionTreeNode
         //testF.getContentPane().add(new ConvexHullTreeViewer(test));
         testF.setVisible(true);
     }
+    
 }

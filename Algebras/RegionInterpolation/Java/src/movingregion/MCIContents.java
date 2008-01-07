@@ -32,6 +32,19 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     SectionViewer sections;
     MatchViewer matchviewer;
     JSlider matchParam;
+    JSlider AreaWeight;
+    JSlider OverlapWeight;
+    JSlider HausdorffWeight;
+    JSlider LinearWeight;
+    JPanel WeightPanel;
+    JPanel AreaWeightPanel;
+    JPanel HausdorffWeightPanel;
+    JPanel OverlapWeightPanel;
+    JPanel LinearWeightPanel;
+    JTextField AreaRatingRes=new JTextField("0.00");
+    JTextField OverlapRatingRes=new JTextField("0.00");
+    JTextField HausdorffRatingRes=new JTextField("0.00");
+    JTextField LinearRatingRes=new JTextField("0.00");
     
     public void componentHidden( ComponentEvent e )
     {}
@@ -66,12 +79,13 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     
     public void init()
     {
-        String[] matchTypes = { "SimpleMatch", "OverlapMatch", "CentroidMatch","SteinerPointMatch"};
+        String[] matchTypes = {"OptimalMatch", "OverlapMatch", "CentroidMatch","SteinerPointMatch","SimpleMatch"};
         matchType = new JComboBox();
         for ( String s : matchTypes )
             matchType.addItem( s );
         matchType.addActionListener(this);
         matchParam= new JSlider(0,100,50);
+        matchParam.setMinimumSize(new Dimension(30,1));
         matchParam.addChangeListener(this);
         resultScroller=new JScrollPane();
         tab=new JTabbedPane(JTabbedPane.BOTTOM);
@@ -99,6 +113,46 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         knappanel.add(vrmlViewer);
         knappanel.add(matchType);
         knappanel.add(matchParam);
+        WeightPanel=new JPanel();
+        AreaWeightPanel=new JPanel();
+        OverlapWeightPanel=new JPanel();
+        HausdorffWeightPanel=new JPanel();
+        LinearWeightPanel=new JPanel();
+        AreaWeight= new JSlider(0,100,50);
+        AreaWeight.addChangeListener(this);
+        OverlapWeight= new JSlider(0,100,50);
+        OverlapWeight.addChangeListener(this);
+        HausdorffWeight= new JSlider(0,100,50);
+        HausdorffWeight.addChangeListener(this);
+        LinearWeight= new JSlider(0,100,50);
+        LinearWeight.addChangeListener(this);
+        AreaWeightPanel.setLayout(new GridLayout(3,0));
+        AreaWeightPanel.add(new JLabel("AreaRating"));
+        AreaWeightPanel.add(AreaWeight);
+        AreaWeightPanel.add(AreaRatingRes);
+        
+        OverlapWeightPanel.setLayout(new GridLayout(3,0));
+        OverlapWeightPanel.add(new JLabel("OverlapRating"));
+        OverlapWeightPanel.add(OverlapWeight);
+        OverlapWeightPanel.add(OverlapRatingRes);
+        
+        HausdorffWeightPanel.setLayout(new GridLayout(3,0));
+        HausdorffWeightPanel.add(new JLabel("HausdorffRating"));
+        HausdorffWeightPanel.add(HausdorffWeight);
+        HausdorffWeightPanel.add(HausdorffRatingRes);
+        
+        LinearWeightPanel.setLayout(new GridLayout(3,0));
+        LinearWeightPanel.add(new JLabel("LinearRating"));
+        LinearWeight.setMinimumSize(new Dimension(30,1));
+        LinearWeightPanel.add(LinearWeight);
+        LinearWeightPanel.add(LinearRatingRes);
+        
+        WeightPanel.setLayout(new GridLayout(0,5));
+        WeightPanel.add(AreaWeightPanel);
+        WeightPanel.add(OverlapWeightPanel);
+        WeightPanel.add(HausdorffWeightPanel);
+        WeightPanel.add(LinearWeightPanel);
+        knappanel.add(WeightPanel);
         export.addActionListener(this);
         drawUtils.add(export);
         drawUtils.add(new Label("time of second snapp:"));
@@ -112,6 +166,7 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         tab.addTab("Config",knappanel);
         add(tab,BorderLayout.CENTER);
         tegneomr.addComponentListener(this);
+        //  tegneomr.setSnapshoot(new Region("/home/java/testCenter",300,200));
     }
     
     public void start()
@@ -121,6 +176,12 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     public void stateChanged(ChangeEvent e)
     {
         if(e.getSource()==matchParam)
+        {
+            newDraw();
+            store();
+        }
+        
+        if(e.getSource()==AreaWeight||e.getSource()==OverlapWeight||e.getSource()==HausdorffWeight||e.getSource()==LinearWeight)
         {
             newDraw();
             store();
@@ -151,8 +212,17 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     
     public void store()
     {
-        firstS=new ConvexHullTreeViewer(tegneomr.getFirstSnapshot());
-        secS=new ConvexHullTreeViewer(tegneomr.getSecondSnapshot());
+//        LineWA[] splitl=new LineWA[5];
+//        splitl[0]=new LineWA(200,0);
+//        splitl[1]=new LineWA(250,100);
+//        splitl[2]=new LineWA(220,200);
+//        splitl[3]=new LineWA(150,300);
+//        splitl[4]=new LineWA(200,400);
+        // Region testr=tegneomr.getFirstSnapshot();
+//        testr.splitOnLine(splitl);
+        System.out.println("Splitline:");
+        //testr.splitOnLine(testr.getFace(0).Cycle.getSplitLine(tegneomr.getSecondSnapshot().getFace(0).Cycle,tegneomr.getSecondSnapshot().getFace(1).Cycle));
+        
         Match match=null;
         if((this.matchType.getSelectedItem()+"").equals("SimpleMatch"))
         {
@@ -170,7 +240,17 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         {
             match=new SteinerPointMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot(),matchParam.getValue()/100.0);
         }
-        
+        if((this.matchType.getSelectedItem()+"").equals("OptimalMatch"))
+        {
+            match=new OptimalMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot(),AreaWeight.getValue()/100.0,OverlapWeight.getValue()/100.0,HausdorffWeight.getValue()/100.0,LinearWeight.getValue()/100.0);
+            
+        }
+        this.AreaRatingRes.setText(match.getAreaRating()+"");
+        this.OverlapRatingRes.setText(match.getOverlapRating()+"");
+        this.HausdorffRatingRes.setText(match.getHausdorffRating()+"");
+        this.LinearRatingRes.setText(match.getLinarRating()+"");
+        firstS=new ConvexHullTreeViewer(match.getSource());
+        secS=new ConvexHullTreeViewer(match.getTarget());
         trirep=new mLineRep(match);
         result = new TriRepOutPutCanvas(trirep,((Integer)timeSpinner.getValue()).intValue());
         matchviewer=new MatchViewer(match);
@@ -209,8 +289,11 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
 //        }
         if(e.getSource()==matchType)
         {
-            newDraw();
-            store();
+            if(tegneomr.isready())
+            {
+                newDraw();
+                store();
+            }
         }
         if (e.getSource() == export)
         {

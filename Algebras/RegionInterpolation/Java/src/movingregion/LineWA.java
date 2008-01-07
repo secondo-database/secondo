@@ -1,5 +1,6 @@
 package movingregion;
 
+import java.io.*;
 /** 
   * This class is meant to store lines and the angle between them. The
   * class itself stores a single point and an angle. The point is the
@@ -11,7 +12,7 @@ package movingregion;
   *
   * @author Erlend Tøssebro
   */
-public class LineWA implements Comparable {
+public class LineWA implements Comparable ,Serializable{
   public int x;          // The x-coordinate of the point
   public int y;          // The y-coordinate of the point
   public double angle;   // The angle between the last and next lines.
@@ -101,6 +102,7 @@ public class LineWA implements Comparable {
   }
   public String toString()
   {
-      return("Line in ("+x+";"+y+") with "+Math.toDegrees(angle)+"°");
+      //return("Line in ("+x+";"+y+") with "+Math.toDegrees(angle)+"°");
+      return(+x+";"+y);
   }
 }

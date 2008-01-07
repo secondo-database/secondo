@@ -217,7 +217,7 @@ public class mLineRep
         for(int i=0;i<cht1.getChildren().length;i++)
         {
             RegionTreeNode[] matches =this.myMatch.getMatches(cht1.getChildren()[i]);
-            if(matches==null||matches[0]==null)
+            if(matches==null||matches.length==0||matches[0]==null)
             {
                 addTrianglesFromCHTNull(cht1.getChildren()[i],time1);
             }
@@ -237,7 +237,7 @@ public class mLineRep
         for(int i=0;i<cht2.getChildren().length;i++)
         {
             RegionTreeNode[] matches =this.myMatch.getMatches(cht2.getChildren()[i]);
-            if(matches==null||matches[0]==null)
+            if(matches==null||matches.length==0||matches[0]==null)
             {
                 addTrianglesFromCHTNull(cht2.getChildren()[i],time2);
             }
@@ -337,7 +337,7 @@ public class mLineRep
         for (int i=0;i<face2.getNrOfHoles();i++)
         {
             RegionTreeNode[] matchedHole=(this.myMatch.getMatches(face2.getHole(i)));
-            if(matchedHole==null||matchedHole[0]==null)
+            if(matchedHole==null||matchedHole.length==0||matchedHole[0]==null)
             {
                 PointWNL p3=new PointWNL(face2.getHole(i).getCenter().x,face2.getHole(i).getCenter().y,time1);
                 this.addTrianglesFromCHTPoint(face2.getHole(i),time2,p3);
@@ -385,7 +385,7 @@ public class mLineRep
         {
             Face tmpFace=myMatch.getTarget().getFace(i);
             RegionTreeNode[] matched=(this.myMatch.getMatches(tmpFace));
-            if(matched==null||matched[0]==null)
+            if(matched==null||matched.length==0||matched[0]==null)
             {
                 addTrianglesFromFaceNull(tmpFace,this.secTime);
             }
@@ -500,7 +500,7 @@ public class mLineRep
         //fl1[2]=new LineWA(100,180);
         fl1[2]=new LineWA(200,200);
          fl1[3]=new LineWA(130,100);
-        Face f1=new Face(fl1);
+        Face f1=new Face(fl1,null);
         Region r1=new Region();
         r1.addFace(f1);
         LineWA[] fl2=new LineWA[4];
@@ -509,7 +509,7 @@ public class mLineRep
         //fl2[2]=new LineWA(200,00);
         fl2[2]=new LineWA(130,100);
         fl2[3]=new LineWA(00,0);
-        Face f2=new Face(fl2);
+        Face f2=new Face(fl2,null);
         Region r2=new Region();
         r2.addFace(f2);
         //SimpleMatch sm=new SimpleMatch(r1,r2);
