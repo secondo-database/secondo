@@ -298,11 +298,5 @@ public class tegnecanvas extends JPanel implements ActionListener
                 gpunkt = nvpunkt;
             }
         }
-        g.setColor(Color.GREEN);
-        g.drawLine(200,0,250,100);
-        g.drawLine(250,100,220,200);
-        g.drawLine(220,200,150,300);        
-        g.drawLine(150,300,200,400);
-        
     }
 }

@@ -321,7 +321,7 @@ public class mLineRep
         for (int i=0;i<face1.getNrOfHoles();i++)
         {
             RegionTreeNode[] matchedHole=(this.myMatch.getMatches(face1.getHole(i)));
-            if(matchedHole==null||matchedHole[0]==null)
+            if(matchedHole==null||matchedHole.length==0||matchedHole[0]==null)
             {
                 PointWNL p3=new PointWNL(face1.getHole(i).getCenter().x,face1.getHole(i).getCenter().y,time2);
                 this.addTrianglesFromCHTPoint(face1.getHole(i),time1,p3);

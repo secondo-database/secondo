@@ -462,6 +462,8 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
     
     public LineWA[][] getSplitNodes(LineWA[] splitLine)
     {
+        if(splitLine==null||splitLine.length==0)
+            return(null);
         LineWA[][] res=new LineWA[2][];
         int lowIndexLine,highIndexLine,lowIndexPoly,highIndexPoly;
         Vector IntersectionPoints=new Vector();
