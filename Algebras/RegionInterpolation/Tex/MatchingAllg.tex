@@ -1,8 +1,6 @@
 \documentclass[a4paper,10pt,twoside]{scrreprt}
-
 \usepackage{ngerman}
 \usepackage[T1]{fontenc}
-
 \usepackage{index}
   \newindex{default}{idx}{ind}{Schlagwortverzeichnis}
 \renewcommand{\labelenumi}{\theenumi)}
@@ -16,27 +14,21 @@
 \lstset{language=java}
 \lstset{emph={HashSet,Region,Face, ConvexHullTreeNode,RegionTreeNode}}
 \lstset{breaklines=true,frame=tlrb,numbers=left,emphstyle=\textbf}
-%opening
 \title{Ideen zum Matching}
 \author{Andreas Ruloffs}
-\usepackage{fancyhdr} % für spezielle Kopfzeilen
-
-
+\usepackage{fancyhdr} 
 \pagestyle{fancy}
-
 \setlength{\textheight}{220mm}
 \setlength{\headheight}{12mm}
 \addtolength{\headwidth}{\oddsidemargin}
 \addtolength{\headwidth}{\evensidemargin}
 \fancyhead[ER,OL]{\includegraphics[height=1cm]{/home/java/Documents/Tex/feu_logo2.eps}}
 \renewcommand{\chaptermark} [1]{\markboth{ \thechapter.  #1}{ \thesection  #1}}
-
 \fancyhead[EL]{\sc\leftmark }
 \fancyhead[OR]{\sc\rightmark}
 \lfoot[\thepage]{}
 \rfoot[]{\thepage}
 \cfoot{}
-
 
 \begin{document}
 
