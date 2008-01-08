@@ -81,8 +81,10 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     {
         String[] matchTypes = {"OptimalMatch", "OverlapMatch", "CentroidMatch","SteinerPointMatch","SimpleMatch"};
         matchType = new JComboBox();
-        for ( String s : matchTypes )
-            matchType.addItem( s );
+        for ( int i=0;i< matchTypes.length;i++ )
+        {
+            matchType.addItem( matchTypes[i]);
+        }
         matchType.addActionListener(this);
         matchParam= new JSlider(0,100,50);
         matchParam.setMinimumSize(new Dimension(30,1));
@@ -95,7 +97,7 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         drawUtils=new JToolBar();
         wfdisp = false;
         trirep = null;
-        setLayout(new BorderLayout());
+        getContentPane().setLayout(new BorderLayout());
         knappanel = new JPanel();
         draw.setLayout(new BorderLayout());
         knappanel.setLayout(new FlowLayout(FlowLayout.LEFT));
@@ -160,11 +162,11 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         tegneomr = new tegnecanvas(this);
         draw.add(tegneomr);
         drawUtils.setRollover(true);
-        add(drawUtils,BorderLayout.NORTH);
+        getContentPane().add(drawUtils,BorderLayout.NORTH);
         tab.addTab("Draw",draw);
         tab.addTab("Draw",draw);
         tab.addTab("Config",knappanel);
-        add(tab,BorderLayout.CENTER);
+        getContentPane().add(tab,BorderLayout.CENTER);
         tegneomr.addComponentListener(this);
         //  tegneomr.setSnapshoot(new Region("/home/java/testCenter",300,200));
     }
@@ -211,18 +213,7 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     }
     
     public void store()
-    {
-//        LineWA[] splitl=new LineWA[5];
-//        splitl[0]=new LineWA(200,0);
-//        splitl[1]=new LineWA(250,100);
-//        splitl[2]=new LineWA(220,200);
-//        splitl[3]=new LineWA(150,300);
-//        splitl[4]=new LineWA(200,400);
-        // Region testr=tegneomr.getFirstSnapshot();
-//        testr.splitOnLine(splitl);
-        System.out.println("Splitline:");
-        //testr.splitOnLine(testr.getFace(0).Cycle.getSplitLine(tegneomr.getSecondSnapshot().getFace(0).Cycle,tegneomr.getSecondSnapshot().getFace(1).Cycle));
-        
+    {        
         Match match=null;
         if((this.matchType.getSelectedItem()+"").equals("SimpleMatch"))
         {

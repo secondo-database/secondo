@@ -52,16 +52,8 @@ public class SectionViewer extends javax.swing.JPanel
 
         add(JustALayoutPanel, java.awt.BorderLayout.NORTH);
 
-        javax.swing.GroupLayout SectionMainLayout = new javax.swing.GroupLayout(SectionMain);
-        SectionMain.setLayout(SectionMainLayout);
-        SectionMainLayout.setHorizontalGroup(
-            SectionMainLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 397, Short.MAX_VALUE)
-        );
-        SectionMainLayout.setVerticalGroup(
-            SectionMainLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 267, Short.MAX_VALUE)
-        );
+        SectionMain.setLayout(new java.awt.GridLayout());
+
         Scroller.setViewportView(SectionMain);
 
         add(Scroller, java.awt.BorderLayout.CENTER);

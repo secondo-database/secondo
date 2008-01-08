@@ -29,7 +29,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
     private class CHLine extends LineWA implements Serializable
     {
         public ConvexHullTreeNode child;
-        
+         static final long serialVersionUID =3477774149506989314l;
         /**
          * Creates a new <code>CHLine</code> object from a <code>LineWA</code>
          * object.
