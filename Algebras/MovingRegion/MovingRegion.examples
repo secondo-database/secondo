@@ -103,6 +103,14 @@ Example  : query inst(initial(move(train7, thecenter)))
 Result   : (instant "2003-11-20-06:06")
 
 
+Operator : move
+Number   : 2
+Signature: mpoint x region -> mregion
+Example  : query Flaechen feed  extend[ I : inst(initial(move(train7, .geoData  )))] count 
+Result   : crashes
+Remark   : DBArray can only be sorted in state InMemory. This problem must be fixed in the DBArray implementation!
+
+
 Operator : present
 Number   : 1
 Signature: mregion x instant -> bool
