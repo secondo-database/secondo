@@ -728,7 +728,7 @@ This function splits two overlapping segments.
 Preconditions:
 1) this segments and ~s~ must overlap.
 
-2) the owner of this and s must be first and second or vice versa
+2) the owner of this and s must be different 
 
 */
 
@@ -3969,7 +3969,8 @@ void SetOp(const Line& line1,
        }
        if(nextHs.IsLeftDomPoint()){
           if(member){ // found an overlapping segment
-             if(member->getOwner()==current.getOwner()){ // same source
+             if(member->getOwner()==current.getOwner() ||
+                member->getOwner()==both){ // same source
                  double xm = member->getX2();
                  double xc = current.getX2();
                  if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
