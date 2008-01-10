@@ -892,10 +892,12 @@ Given that all relations are set up, the adjacency lists are created.
 
 
   void SaveAdjacencyList(SmiRecord& in_xValueRecord, 
-                         size_t& inout_iOffset);
+                         size_t& inout_iOffset,
+                         SmiFileId& fileId);
 
   void SaveSubAdjacencyList(SmiRecord& in_xValueRecord, 
-                            size_t& inout_iOffset);
+                            size_t& inout_iOffset,
+                            SmiFileId& fileId);
 
 /*
 Read a flob from a file

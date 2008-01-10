@@ -1425,11 +1425,14 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
     return false;
   }
 
+  SmiFileId fileId = 0;
   SaveAdjacencyList(in_xValueRecord,
-                    inout_iOffset);    
+                    inout_iOffset,
+                    fileId);    
 
   SaveSubAdjacencyList(in_xValueRecord,
-                       inout_iOffset);    
+                       inout_iOffset,
+                       fileId);    
 
   return true; 
 }
@@ -1583,8 +1586,12 @@ int Network::SizeOfNetwork()
 
 
 void Network::SaveAdjacencyList(SmiRecord& in_xValueRecord, 
-                                size_t& inout_iOffset)
+                                size_t& inout_iOffset,
+                                SmiFileId& fileId)
 {
+
+ /*
+  // old implementation 
   int iSize = m_xAdjacencyList.Size();
   in_xValueRecord.Write(&iSize, 
                         sizeof(int), 
@@ -1609,11 +1616,41 @@ void Network::SaveAdjacencyList(SmiRecord& in_xValueRecord,
                           inout_iOffset);
     inout_iOffset += sizeof(int);    
   }
+ */
+
+ // new implementation by Th. Behr
+
+ // save to a lob if required 
+ if(m_xAdjacencyList.IsLob()){
+    m_xAdjacencyList.SaveToLob(fileId);
+ }
+ 
+ // write the root of the DBArray 
+
+ int size = sizeof(DBArray<AdjacencyListEntry>);
+ in_xValueRecord.Write(&m_xAdjacencyList,size,inout_iOffset);
+ inout_iOffset += size;
+
+ if(!m_xAdjacencyList.IsLob()){
+    // not a lob, store the data into the record
+    int extensionsize = m_xAdjacencyList.GetFLOBSize();
+    if(extensionsize>0){
+       char* extensionElement = (char *) malloc(extensionsize);
+       m_xAdjacencyList.WriteTo(extensionElement);
+       in_xValueRecord.Write(extensionElement,extensionsize,inout_iOffset);
+       inout_iOffset += extensionsize;
+       free(extensionElement);
+    }
+ }
+
 }
 
 void Network::SaveSubAdjacencyList(SmiRecord& in_xValueRecord, 
-                                   size_t& inout_iOffset)
+                                   size_t& inout_iOffset,
+                                   SmiFileId& fileId)
 {
+  /* 
+  // old implementation
   int iSize = m_xSubAdjacencyList.Size();
   in_xValueRecord.Write(&iSize, 
                         sizeof(int), 
@@ -1640,11 +1677,40 @@ void Network::SaveSubAdjacencyList(SmiRecord& in_xValueRecord,
                           inout_iOffset);
     inout_iOffset += sizeof(bool);    
   }
+
+  */  
+
+  // new Implementation by Th. Behr
+
+  // save lob data
+  if(m_xSubAdjacencyList.IsLob()){
+     m_xSubAdjacencyList.SaveToLob(fileId);
+  }
+  // save the root of the DBArray
+  int size = sizeof(DBArray<DirectedSection>);
+  in_xValueRecord.Write(&m_xSubAdjacencyList,size,inout_iOffset);
+  inout_iOffset += size;
+
+  int extensionsize = 0; 
+  char *extensionElement = 0;
+  if(!m_xSubAdjacencyList.IsLob()){
+    // not a lob, save the data into the record
+    extensionsize = m_xSubAdjacencyList.GetFLOBSize();
+    if(extensionsize>0){
+       extensionElement = (char *) malloc(extensionsize);
+       m_xSubAdjacencyList.WriteTo(extensionElement);
+       in_xValueRecord.Write(extensionElement,extensionsize,inout_iOffset);
+       inout_iOffset += extensionsize;
+       free(extensionElement);
+    }
+ }
 }
 
 void Network::OpenAdjacencyList(SmiRecord& in_xValueRecord, 
                          size_t& inout_iOffset)
 {
+  /*
+  // old implementation
   // Read length from record
   int iSize;
   in_xValueRecord.Read( &iSize, 
@@ -1670,11 +1736,31 @@ void Network::OpenAdjacencyList(SmiRecord& in_xValueRecord,
 
     m_xAdjacencyList.Append(AdjacencyListEntry(iLow, iHigh));  
   }
+  */
+
+  // new implementation by Th. Behr
+  
+  // read the root of the dbarray
+  int size = sizeof(DBArray<AdjacencyListEntry>);
+  in_xValueRecord.Read(&m_xAdjacencyList,size,inout_iOffset);
+  inout_iOffset += size;
+  // cast the data to a new DBArray 
+  new (&m_xAdjacencyList) DBArray<AdjacencyListEntry>;
+  // if the array is no lob, read the data directly
+  if(!m_xAdjacencyList.IsLob()){
+     unsigned int extSize = m_xAdjacencyList.GetFLOBSize();
+     char* data = (char*) malloc(extSize);
+     in_xValueRecord.Read(data,extSize,inout_iOffset);
+     inout_iOffset += extSize;
+     m_xAdjacencyList.ReadFrom(data);
+  }
 }
 
 void Network::OpenSubAdjacencyList(SmiRecord& in_xValueRecord, 
                             size_t& inout_iOffset)
 {
+
+  /*
   // Read length from record
   int iSize;
   in_xValueRecord.Read( &iSize, 
@@ -1700,6 +1786,24 @@ void Network::OpenSubAdjacencyList(SmiRecord& in_xValueRecord,
 
     m_xSubAdjacencyList.Append(DirectedSection(iSectionTid, 
                                                bUpDownFlag));
+  }
+  */
+
+  // new implementation by Th. Behr
+
+  // read the dbarray's root
+  int size = sizeof(DBArray<DirectedSection>);
+  in_xValueRecord.Read(&m_xSubAdjacencyList,size,inout_iOffset);
+  inout_iOffset += size;
+  // cast the data to a new DBArray
+  new (&m_xSubAdjacencyList) DBArray<DirectedSection>;
+  if(!m_xSubAdjacencyList.IsLob()){
+     // read non-lob data
+     unsigned int extSize = m_xSubAdjacencyList.GetFLOBSize();
+     char* data = (char*) malloc(extSize);
+     in_xValueRecord.Read(data,extSize,inout_iOffset);
+     inout_iOffset += extSize;
+     m_xSubAdjacencyList.ReadFrom(data);
   }
 }
 
