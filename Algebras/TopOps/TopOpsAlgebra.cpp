@@ -573,18 +573,19 @@ segment.
      if(isPoint()){
        return false;
      }
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        return (y>=y1) && (y <= y2);
+     } 
      // check if (x,y) is located on the line 
      double res1 = (x-x1)*(y2-y1);
      double res2 = (y-y1)*(x2-x1);
      if(!AlmostEqual(res1,res2)){
          return false;
      }
-     
-     if(AlmostEqual(x1,x2)){ // vertical segment
-        return (y>=y1) && (y <= y2);
-     } else {
-        return (x>=x1) && (x<=x2);
-     }
+
+     return ((x>x1) && (x<x2)) ||
+            AlmostEqual(x,x1) ||
+            AlmostEqual(x,x2);
    }
 
 /*
@@ -596,7 +597,10 @@ Compares this with s. The x intervals must overlap.
 
  int compareTo(const AVLSegment& s) const{
  
-    assert(xOverlaps(s));
+    if(!xOverlaps(s)){
+      cerr << "Warning: compare AVLSegments with disjoint x intervals" << endl;
+      cerr << "This may be a problem of roundig errors!" << endl;
+    }
 
     if(isPoint()){
       if(s.isPoint()){
@@ -1065,7 +1069,13 @@ segment is returned.
 */  
   double getY(const double x) const{
 
-     assert(xContains(x));
+     if(!xContains(x)){
+       cerr << "Warning: compute y value for a x outside the x interval!" 
+            << endl;
+       double diff1 = x1 - x;
+       double diff2 = x - x2;
+       cerr << "difference to x is " << (diff1>diff2?diff1:diff2) << endl;
+     }
      if(isVertical()){
         return y1;
      }
@@ -1292,8 +1302,10 @@ void splitByNeighbour(AVLTree<AVLSegment>& sss,
           insertEvents(right1,true,true,q1,q2);
           insertEvents(left2,false,true,q1,q2);
           insertEvents(right2,true,true,q1,q2);
-       } else {  // forgotten case
+       } else {  // forgotten case or wrong order of halfsegments
           cerr.precision(16);
+          cerr << "Warning wrong order in halfsegment array detected" << endl;
+
           cerr << "current" << current << endl
                << "neighbour " << (*neighbour) << endl;
           if(current.overlaps(*neighbour)){ // a common line
@@ -1308,8 +1320,18 @@ void splitByNeighbour(AVLTree<AVLSegment>& sss,
                    << ",current.getY2()" << endl;
            }
           if(current.ininterior(neighbour->getX1(),neighbour->getY1())){
-             cerr << " 4 : current.ininterior(neighbour->getX1(),"
+             cerr << " case 4 : current.ininterior(neighbour->getX1(),"
                   << "neighbour.getY1()" << endl;  
+             cerr << "may be an effect of rounding errors" << endl;
+
+             cerr << "remove left part from current" << endl;
+             current.splitAt(neighbour->getX1(),neighbour->getY1(),
+                             left1,right1);
+             cerr << "removed part is " << left1 << endl;
+             current = right1;
+             insertEvents(current,false,true,q1,q2);
+             return;  
+
           }
           if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
             cerr << " 5 : current.ininterior(neighbour->getX2(),"
