@@ -921,6 +921,8 @@ Type mapping for ~makemvalue~ is
               APPEND (i ti)
       stream (tuple ([x1:t1,x1:ustring,..,[xn:tn)))  ->  mstring
               APPEND (i ti)
+
+      NOT YET AVAILABLE DUE TO ERRORS:
       stream (tuple ([x1:t1,x1:uregion,..,[xn:tn)))  ->  movingregion
               APPEND (i ti)
 
@@ -944,7 +946,7 @@ ListExpr TU_TM_themvalue( ListExpr args )
   if ( argstr == "((stream uint))" )    return nl->SymbolAtom( "mint" );
   if ( argstr == "((stream ureal))" )   return nl->SymbolAtom( "mreal" );
   if ( argstr == "((stream upoint))" )  return nl->SymbolAtom( "mpoint" );
-  if ( argstr == "((stream uregion))" ) return nl->SymbolAtom( "movingregion" );
+//if ( argstr == "((stream uregion))" ) return nl->SymbolAtom( "movingregion" );
   if ( argstr == "((stream ustring))" ) return nl->SymbolAtom( "mstring" );
 
   return nl->SymbolAtom( "typeerror" );
@@ -1033,9 +1035,10 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
                || inputtype == "ureal"
                || inputtype == "upoint"
                || inputtype == "ustring"
-               || inputtype == "uregion"),
+//             || inputtype == "uregion"
+              ),
               "Attribute type is not of type ubool, uint, ustring, ureal"
-              "upoint or uregion.");
+              "or upoint (uregion: not yet available).");
 
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
@@ -1052,8 +1055,8 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
     attrtype = nl->SymbolAtom( "mint" );
   if( inputtype == "ustring" )
     attrtype = nl->SymbolAtom( "mstring" );
-  if( inputtype == "uregion" )
-    attrtype = nl->SymbolAtom( "movingregion" );
+//if( inputtype == "uregion" )
+//  attrtype = nl->SymbolAtom( "movingregion");
 
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->TwoElemList(nl->IntAtom(j),
@@ -1228,8 +1231,9 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
 const string
 TemporalSpecMakemvalue  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>For T in {bool, int, string, real, point, region}:\n"
-"((stream (tuple ((x1 t1)...(xn tn))) (uT)))-> mT</text--->"
+"( <text>For T in {bool, int, string, real, point, region*}:\n"
+"((stream (tuple ((x1 t1)...(xn tn))) (uT)))-> mT\n"
+"*: Not yet available</text--->"
 "<text>_ makemvalue[ _ ]</text--->"
 "<text>Create a moving object from a (not necessarily sorted) "
 "tuple stream containing a unit type attribute. "
@@ -1241,8 +1245,9 @@ TemporalSpecMakemvalue  =
 const string
 TemporalSpecThemvalue  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>For T in {bool, int, string, real, point, region}:\n"
-"(stream uT) -> mT</text--->"
+"( <text>For T in {bool, int, string, real, point, region*}:\n"
+"(stream uT) -> mT\n"
+"*: Not yet available</text--->"
 "<text>_ the_mvalue</text--->"
 "<text>Create a moving object from a (not necessarily sorted) "
 "object stream containing units. "
