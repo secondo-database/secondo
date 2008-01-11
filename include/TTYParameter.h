@@ -61,6 +61,8 @@ struct TTYParameter
   string iFileName;
   string oFileName;
   string num;
+  string pl_opt_L;
+  string pl_opt_G;
   
   typedef enum {Test, Optimizer, Server, TTY} RunMode;
   RunMode runMode;
@@ -74,6 +76,8 @@ struct TTYParameter
   bool isPLMode() { return removeFirstArg("-pl"); } 
  
   bool isServerMode() { return removeFirstArg("-srv"); } 
+
+  void Print(ostream& os);
 
   
 /*

@@ -141,6 +141,8 @@ removes the first argument if present.
     iFileName     = "";
     oFileName     = "";
     num           = "0";
+    pl_opt_L      = "";
+    pl_opt_G      = "";
 
     numArgs = argc;
     argValues = argv;
@@ -150,6 +152,23 @@ removes the first argument if present.
   } 
 
   
+  void TTYParameter::Print(ostream& os)
+  {
+    os << "parmFile  = " << parmFile << endl;
+    os << "user      = " << user << endl;
+    os << "pswd      = " << pswd << endl;
+    os << "host      = " << host << endl;
+    os << "port      = " << port << endl;
+    os << "iFileName = " << iFileName << endl;
+    os << "oFileName = " << oFileName << endl;
+    os << "num       = " << num << endl;
+    os << "pl_opt_L  = " << pl_opt_L << endl;
+    os << "pl_opt_G  = " << pl_opt_G << endl;
+    os << "numArgs   = " << numArgs << endl;
+    os << "runMode   = " << runMode << endl;
+    os << "runExamples = " << runExamples << endl;
+  }	  
+
 /*
 1.1 CheckConfiguration
 
@@ -199,10 +218,17 @@ TTYParameter::CheckConfiguration()
   "  -h host    : Host address of Secondo server        (SECONDO_HOST)\n" <<
   "  -p port    : Port of Secondo server                (SECONDO_PORT)\n" <<
   "\n" << 
-  "Mode test only:\n" <<
+  "Mode -test only:\n" <<
   "-----------------------------------------------------------------------\n" <<
   "  -num N     : run only the specified test number \n" <<
   "\n" <<
+  "Mode -pl only:\n" <<
+  "-----------------------------------------------------------------------\n" <<
+  "  -G #       : global stack size \n" <<
+  "  -L #       : local stack size \n" <<
+  "\n" <<
+
+
   "Note: Command line options overrule environment variables.\n";
 
   // check comamnd options 
