@@ -1,4 +1,4 @@
-# ! /bin/bash
+#!/bin/bash
 #
 # March 2005, Markus Spiekermann
 #
@@ -23,7 +23,7 @@
 # 1) change to the directory above source
 # 2) find * -name "*.jpg" | artpics2rel.sh > objectfile
 
-if [ "$1" = "--oldstyle" ]; then
+if [ $1 = "--oldstyle" ]
    objectend=")())"
    shift
 else

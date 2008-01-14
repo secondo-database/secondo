@@ -73,7 +73,7 @@ BDB_OBJECTS :=  TestRunner.o \
 		 
 ALG_LIST    :=  SecondoInterface.o AlgebraList.o
 
-TTY_OBJECTS :=  cmsg.o \
+TTY_OBJECTS :=  cmsg.o MainTTY.o \
 		SecondoInterfaceGeneral.o \
 	        SecondoTTY.o \
 		DisplayTTY.o
@@ -135,7 +135,7 @@ $(APP_LIB): $(TTY_OBJECTS) $(BDB_OBJECTS)
 
 # SecondoBDB, the stand alone application.
 $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
-$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): MainTTY.o $(APP_LIB) $(ALG_LIST) $(PL_OBJECTS)
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(APP_LIB) $(ALG_LIST) $(PL_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
 

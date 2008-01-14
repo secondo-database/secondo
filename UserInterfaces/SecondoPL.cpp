@@ -54,7 +54,6 @@ using namespace std;
 #include "Profiles.h"
 #include "LogMsg.h"
 #include "License.h"
-#include "TTYParameter.h"
 
 
 #ifdef SECONDO_USE_ENTROPY
@@ -660,6 +659,62 @@ PL_extension predicates[] =
   { 0, 0, 0, 0 } /* terminating line */
 };
 
+
+/*
+6 GetParameterFromArg
+
+*/
+char* GetParameterFromArg(int& argc, char** argv, 
+                                string envVar, string option)
+{
+  int i = 0;
+  int j;
+  char* result;
+
+  if((result = getenv(envVar.c_str())) != 0)
+  {
+    return result;
+  }
+
+  while(i < argc - 1 && strcmp(argv[i], option.c_str()) != 0)
+  {
+    ++i;
+  }
+
+  if(i < argc - 1)
+  {
+    result = argv[i + 1];
+    for(j = i + 2; j < argc; j++)
+    {
+      argv[j - 2] = argv[j];
+    }
+    argc -= 2;
+    return result;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+
+/*
+
+7 Function GetConfigFileNameFromArgV
+
+Attempts to retrieve the configuration file name via the
+enviroment. If it is found, it is returned. Otherwise,
+search the arguments of the main function for two sucessive
+strings of the form -c FileName. These two strings are then
+removed from the argument vector and the argument count is
+reduced by 2. Returns the FileName on success and NULL otherwise.
+
+*/
+char* GetConfigFileNameFromArgV(int& argc, char** argv)
+{
+  return GetParameterFromArg(argc,argv,"SECONDO_CONFIG","-u");
+}
+
 /*
 
 8 Function StartSecondoC
@@ -669,16 +724,15 @@ configuration file. Return true iff successful.
 
 */
 bool
-StartSecondoC(TTYParameter& tp)
+StartSecondoC(char* configFileName, string user, string pswd)
 {
-  if ( !tp.CheckConfiguration() ) {
-    return false;
-  }  
-  //tp.Print(cout);  
+  string host = "";
+  string port = "";
+  string configFile = configFileName;
 
   si = new SecondoInterface();
 
-  if(si->Initialize(tp.user, tp.pswd, tp.host, tp.port, tp.parmFile))
+  if(si->Initialize(user, pswd, host, port, configFile))
   {
     plnl = si->GetNestedList();
     NList::setNLRef(plnl);
@@ -690,7 +744,7 @@ StartSecondoC(TTYParameter& tp)
     si = 0;
     cout
       << "Error while starting Secondo with config file "
-      << tp.parmFile << "." << endl;
+      << configFile << "." << endl;
     return false;
   }
 }
@@ -704,16 +758,19 @@ This function registers the secondo predicate at the prolog engine.
 
 */
 
-int registerSecondo(){
-  
-  //cout << "register secondo" << endl;
-  
-  TTYParameter tp(0,0);
-
+int registerSecondo(const char*  user, const char*  pswd){
+  cout << "register secondo" << endl;
+  char* configFile;
   atexit(handle_exit);
 
-  if( !StartSecondoC(tp) )
+  /* Start Secondo and remove Secondo command line arguments
+     from the argument vector .*/
+  //configFile = GetConfigFileNameFromArgV(argc, argv);
+  int argnumber =0;
+  configFile = GetConfigFileNameFromArgV(argnumber,0);
+  if(configFile == 0 || !StartSecondoC(configFile,user,pswd))
   {
+    cout << "SECONDO_CONFIG not defined" << endl;
     return -1;
   }
 

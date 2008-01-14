@@ -100,7 +100,32 @@ class ProgMesHandler : public MessageHandler
 {
 
   public:
-  virtual bool handleMsg(NList msgList);
+  virtual bool handleMsg(NList msgList)
+  {
+    if ( !msgList.first().isSymbol("progress") )
+      return false;
+
+    int ActValue = msgList.second().first().intval();
+    int TotalValue = msgList.second().second().intval();
+
+	if (ActValue < 0) // Initialisierung
+	{
+        for (int i = 1; i < TotalValue; i++)
+          if ((i % 10) == 0) cout << "|"; else cout << "-";
+        cout << "|" << endl;
+	}
+	else
+	if (TotalValue < 0) // Abschluss
+	{
+		cout << endl << "feddisch" << endl;
+    }
+    else
+	{
+		cout << "." << flush;
+	}
+
+    return true;
+  }
   ProgMesHandler() {};
   ~ProgMesHandler() {};
 

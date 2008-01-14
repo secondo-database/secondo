@@ -289,41 +289,6 @@ This function changes the matrix to this one of the given number.
            defined = true;
        }
 
-
-/*
-2.1.10 ~Fill~
-
-This function sets all possible intersections within this 
-matrix to be __true__. After calling this function this
-Int9M instance is also defined.
-
-*/
-  void Fill(){
-    value = 511;
-    defined = true;
-  }
-
-/*
-2.1.10 ~IsFull~
-
-This function checks whether all intersections are set to be 
-non-empty. For an undefined isnatnce the result will be __false__.
-
-*/
-  bool IsFull(){
-    return defined && (value==511);
-  }
-
-/*
-2.1.10 ~IsEmpty~
-
-This function checks if all matrix entries are set to be empty.
-
-*/
-  bool IsEmpty(){
-    return defined && (value==0);
-  }
-
 /*
 2.1.11 Set Function
 
@@ -411,7 +376,20 @@ This function computes the transpose of this matrix.
 This can be used to detect symmetries between matrices.
 
 */
-       void Transpose();
+       void Transpose(){
+            Int9M tmp;
+            tmp.value = 0;
+            tmp.SetII(GetII());
+            tmp.SetIB(GetBI());
+            tmp.SetIE(GetEI());
+            tmp.SetBI(GetIB());
+            tmp.SetBB(GetBB());
+            tmp.SetBE(GetEB());
+            tmp.SetEI(GetIE());
+            tmp.SetEB(GetBE());
+            tmp.SetEE(GetEE());
+            value = tmp.value;
+       }
 
 /*
 2.1.15 Destroy
@@ -524,21 +502,6 @@ an attribute type within secondo relations.
        bool operator!=(const Int9M I2) const{
           return CompareTo(I2)!=0;
        }
-       
-      void TransposeSlow(){
-             Int9M tmp;
-             tmp.value = 0;
-             tmp.SetII(GetII());
-             tmp.SetIB(GetBI());
-             tmp.SetIE(GetEI());
-             tmp.SetBI(GetIB());
-             tmp.SetBB(GetBB());
-             tmp.SetBE(GetEB());
-             tmp.SetEI(GetIE());
-             tmp.SetEB(GetBE());
-             tmp.SetEE(GetEE());
-             value = tmp.value;
-       }
 
 
    private:
@@ -546,8 +509,6 @@ an attribute type within secondo relations.
        // entries in the matrix
        unsigned short value; 
        bool defined;
-
-
 };
 
 
@@ -586,13 +547,11 @@ ignored.
           //for(int i=0;i<64;i++)
           //    BitVector[i]=0;
           if(all){
-             memcpy(BitVector,fullBlock,64);
-             memcpy(BitVectorT,fullBlock,64);
-             strcpy(name,"empty");
+              memcpy(BitVector,fullBlock,64);
+              strcpy(name,"empty");
           } else {
              memcpy(BitVector,emptyBlock,64);
-             memcpy(BitVectorT,emptyBlock,64);
-             strcpy(name,"complete");
+              strcpy(name,"complete");
           }
           defined = true;
       }
@@ -602,10 +561,6 @@ ignored.
 
 */
     Cluster(const Cluster& source){
-       Equalize(source);
-    }
-
-    Cluster(const Cluster* source){
        Equalize(source);
     }
 
@@ -690,10 +645,8 @@ This implements the familiar union function for the matrix sets.
 
 */
     void Union(const Cluster* C2){
-          for(int i=0;i<64;i++){
+          for(int i=0;i<64;i++)
              BitVector[i] |= C2->BitVector[i];
-             BitVectorT[i] |= C2->BitVectorT[i];
-          }
       }
 
 /*
@@ -703,10 +656,8 @@ This function computes the intersection of this cluster and the argument.
 
 */
       void Intersection(const Cluster* C2){
-          for(int i=0;i<64;i++){
+          for(int i=0;i<64;i++)
              BitVector[i] &= C2->BitVector[i];
-             BitVectorT[i] &= C2->BitVectorT[i];
-          }
       }
 
 
@@ -716,12 +667,10 @@ This function computes the intersection of this cluster and the argument.
 A call of this function yields true if this cluster and C2 have common elements.
 
 */
-      bool Intersects(const Cluster* C2) const{
-          for(int i=0;i<64;i++){
-            if( BitVector[i] & C2->BitVector[i]){
+      bool Intersects(const Cluster* C2){
+          for(int i=0;i<64;i++)
+            if( BitVector[i] & C2->BitVector[i])
                return true;
-            }
-          }
           return false;
       }
 
@@ -733,10 +682,8 @@ A call of this function yields true if this cluster and C2 have common elements.
 
 */ 
       void Minus(const Cluster* C2){
-          for(int i=0;i<64;i++){
+          for(int i=0;i<64;i++)
              BitVector[i] = (BitVector[i] & ( ~(C2->BitVector[i])));
-             BitVectorT[i] = (BitVectorT[i] & ( ~(C2->BitVectorT[i])));
-          }
 
       }
 
@@ -748,10 +695,8 @@ matrices minus the matrices conatained originally in it.
 
 */
       void Invert(){
-          for(int i=0;i<64;i++){
+          for(int i=0;i<64;i++)
               BitVector[i] ^= 255;
-              BitVectorT[i] ^= 255;
-          }
       }
 
 /*
@@ -764,7 +709,6 @@ This function removes all matrices from this cluster.
           //for(int i=0;i<64;i++)
           //    BitVector[i] = 0;
           memcpy(BitVector,emptyBlock,64);
-          memcpy(BitVectorT,emptyBlock,64);
       }
 
 /*
@@ -778,7 +722,6 @@ The MakeFull function changes this cluster to contain all
          //for(int i=0;i<64;i++)
          //     BitVector[i] = 255;
          memcpy(BitVector,fullBlock,64);
-         memcpy(BitVectorT,fullBlock,64);
       }
 /*
 2.2.15 IsEmpty
@@ -799,7 +742,7 @@ This function returns true if this cluster contains all 512
 possible matrices.
 
 */
-     bool IsComplete() const{
+     bool IsComplete(){
        return (memcmp(BitVector,fullBlock,64)==0);
      }
 
@@ -987,29 +930,6 @@ matrices with the pecified value at the given position - but this version is fas
    void Restrict(const int pos, const bool value);
 
 
-/*
-2.2.24 Restrict
-
-Removes all matrices from this cluster whith different entries than the
-Int9M value provided as the first argument at the positions specified by the
-boolean parameter. 
-
-*/
-    void Restrict(const Int9M& m, const bool value);
-
-
-/*
-2.2.25 IsExtension
-
-This function checks whether all extensions of __m__, i.e. all matrices
-which can derived from __m__ by setting additional intersections are part
-of this cluster.
-
-*/
-   bool isExtension(const Int9M& m) const;
-
-
-
 
 /*
 2.2.21 Operators
@@ -1029,19 +949,11 @@ clusters.
 
 
    private:
-      unsigned char BitVector[64];  // the set of matrices
-      unsigned char BitVectorT[64]; // set of transposed matrices
+      unsigned char  BitVector[64];
       bool defined;
       STRING_T name;
       void SetValueAt(const int pos, const bool value, 
-                      unsigned char bitvector[],
-                      unsigned char bitvectorT[]) const;
-
-      static void Transpose(unsigned char Source[64],
-                     unsigned char Target[64]);
-
-      static bool ValueAt(int pos, unsigned char BitVector[64]);
-
+                      unsigned char bitvector[]) const;
 };
 
 /*
@@ -1348,7 +1260,6 @@ group, the result will be __NULL__.
 
 */
 Cluster* GetClusterOf(const STRING_T* name) const;
-Cluster* GetClusterOf(const string name) const;
    
 
 /*

@@ -123,11 +123,6 @@ namespace symbols {
  Sym CTR_ATTR_BASIC_OPS("RA:Attr:BasicOps");
  Sym CTR_ATTR_HASH_OPS("RA:Attr:HashOps");
  Sym CTR_ATTR_COMPARE_OPS("RA:Attr:CompareOps");
- Sym CTR_INT_COMPARE("CcInt::Compare");
- Sym CTR_INT_EQUAL("CcInt::Equal");
- Sym CTR_INT_LESS("CcInt::Less");
- Sym CTR_INT_HASH("CcInt::HashValue");
- Sym CTR_INT_ADJACENT("CcInt::Adjacent");
 
  Sym CTR_TBUF_BYTES_W("RA:TupleBuf:Write:Bytes");
  Sym CTR_TBUF_PAGES_W("RA:TupleBuf:Write:Pages");

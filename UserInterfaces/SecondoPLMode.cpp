@@ -34,7 +34,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <stdlib.h>
 #include "SecondoConfig.h"
 #include "Application.h"
-#include "TTYParameter.h"
 #include <string>
 
 using namespace std;
@@ -50,9 +49,9 @@ Secondo.
 
 extern PL_extension predicates[];
 extern void handle_exit(void);
-//extern char* GetConfigFileNameFromArgV(int&, char**);
-//extern char* GetParameterFromArg(int&, char**,string,string);
-extern bool StartSecondoC(TTYParameter& tp);
+extern char* GetConfigFileNameFromArgV(int&, char**);
+extern char* GetParameterFromArg(int&, char**,string,string);
+extern bool StartSecondoC(char*, string, string);
 
 /*
 2 SecondoPLMode
@@ -62,13 +61,26 @@ This function is the ~main~ function of SecondoPL.
 */
 
 int
-SecondoPLMode(TTYParameter& tp)
+SecondoPLMode(int argc, char **argv)
 {
+  char* configFile;
+
   atexit(handle_exit);
 
-  if( !StartSecondoC(tp) )
+  /* Start Secondo and remove Secondo command line arguments
+     from the argument vector .*/
+  configFile = GetConfigFileNameFromArgV(argc, argv);
+  char* user = GetParameterFromArg(argc,argv,"SECONDO_USER","-u");
+  if(!user){
+    user = "";
+  }
+  char* passwd = GetParameterFromArg(argc,argv,"SECONDO_PASSWD","-s");
+  if(!passwd){
+    passwd ="";
+  }
+  if(configFile == 0 || !StartSecondoC(configFile,user, passwd))
   {
-    cout << "Usage : SecondoPL [secondo-options] [-L size -G size]" 
+    cout << "Usage : SecondoPL [-c ConfigFileName] [prolog engine options]" 
          << endl;
     exit(1);
   }
@@ -77,32 +89,18 @@ SecondoPLMode(TTYParameter& tp)
   PL_register_extensions(predicates);
 
   /* initialize the prologb engine */
+  char * initargs[argc+3];
+  int p=0;
+  for(p=0;p<argc;p++)   // copy arguments
+     initargs[p]=argv[p];
+  initargs[argc] ="pl";
+  initargs[argc+1] ="-g";
+  initargs[argc+2] ="true";
+  if(!PL_initialise(argc+3,initargs))
+      PL_halt(1);
+  else{
 
-  // check for prolog engine args
-  char* initargs[5];
-  int i=0;
-
-  if (tp.pl_opt_L != "") {
-    initargs[i] = strdup( tp.pl_opt_L.c_str() );	  
-    i++;	  
-  }  
-  if (tp.pl_opt_G != "") {
-    initargs[i] = strdup( tp.pl_opt_G.c_str() );	  
-    i++;
-  }  
-  	  
-  initargs[i++] ="pl";
-  initargs[i++] ="-g";
-  initargs[i++] ="true";
-
-  if( !PL_initialise(i,initargs) ) 
-  {
-    PL_halt(1);
-  }
-  else
-  {
-     	  
-      {
+    {
       // VTA - 15.11.2005
       // I added this piece of code in order to run with newer versions
       // of prolog. Without this code, the libraries (e.g. list.pl) are
@@ -117,8 +115,8 @@ SecondoPLMode(TTYParameter& tp)
       PL_put_list_chars(t1, "");
       predicate_t p = PL_predicate("member",2,"");
       PL_call_predicate(NULL,PL_Q_NORMAL,p,t0);
-      // end VTA 
-      }   
+    }
+          
 
      /* load the auxiliary and calloptimizer */
      term_t a0 = PL_new_term_refs(1);

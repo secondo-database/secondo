@@ -85,7 +85,6 @@ This is the test enviroment for Secondo. The code is derived from SecondoTTY.
 #include "CharTransform.h"
 #include "LogMsg.h"
 #include "ExampleReader.h"
-#include "TTYParameter.h"
 
 using namespace std;
 
@@ -960,8 +959,6 @@ TestRunner::ProcessExamples()
 	       if ( nl->IsEqual(list, "bug") )
 	         info.resultType = ExampleInfo::Bug;	        
 	       if ( nl->IsEqual(list, "file") )
-	         info.resultType = ExampleInfo::File;	        
-	       if ( nl->IsEqual(list, "platform") )
 	         info.resultType = ExampleInfo::PlatformFile;	        
 	       if ( nl->IsEqual(list, "crashes") )
 	         info.resultType = ExampleInfo::PlatformFile;	        

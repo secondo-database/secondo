@@ -28,8 +28,6 @@ Additionally some specialized functions are provided.
 using namespace std;
 
 
-
-
 /*
 0 Forward declaration of the AVLTree class
 
@@ -56,12 +54,12 @@ public:
 This constructor creates a new leaf with the given content.
 
 */
-   AvlNode(const contenttype& content1){
+   AvlNode(const contenttype& content){
       __AVL_TRACE__
       height=0;
       left=NULL;
       right = NULL;
-      this->content = content1;
+      this->content = content;
    }
 /*
 1.0 Copy constructor
@@ -83,7 +81,7 @@ Creates a depth copy of this node.
 
 
 */
-  AvlNode<contenttype>& operator=(const AvlNode<contenttype>&  source){
+  AvlNode<contenttype>& operator=(AvlNode<contenttype>&  source){
      __AVL_TRACE__
      this->content = source.content;
      this->left = source.left?new AvlNode<contenttype>(source.left):NULL;
@@ -343,23 +341,6 @@ bool insertN(const contenttype& x,      // in
 }
 
 
-/*
-~insert2~
-
-inserts x into the tree and returns a pointer to the stored element.
-If x is already an element of the tree, a pointer to the stored element
-is returned.
-
-*/
-const contenttype* insert2(const contenttype& x){
-   __AVL_TRACE__
-   const contenttype* result=0;
-   root = insert2(root,x, result);
-   root->updateHeight();
-   return result; 
-}
-
-
 
 /*
 2.2 remove
@@ -417,28 +398,6 @@ const contenttype* getMember(const contenttype& x) const{
    __AVL_TRACE__
    return getMember(root,x);
 }
-
-/*
-~GetMember~
-
-Returns a pointer to the entry ~m~ in the tree for which ~x~==~m~ holds.
-If the element is not found, the return value is NULL. After calling this 
-function ~left~ and ~right~ points to the element stored in the tree which
-is the left and right neighbour of x respectively. If a neighbour don't exist,
-the corresponding parameter is set to NULL.
-
-
-*/
-const contenttype* getMember(const contenttype& x, 
-                             const contenttype*& left,
-                             const contenttype*& right) const{
-  __AVL_TRACE__
-  left = 0;
-  right = 0;
-  return getMember(root,x,left,right);
-}
-
-
 
 /*
 2.4 GetNearestSmallerOrEqual
@@ -1020,53 +979,6 @@ static  AvlNode<contenttype>* insertN(AvlNode<contenttype>* root,
 }
 
 
-static  AvlNode<contenttype>* insert2(AvlNode<contenttype>* root, 
-                                  const contenttype& content,
-                                  contenttype const*& elem){
-   __AVL_TRACE__
-   if(root==NULL){ // leaf reached
-      AvlNode<contenttype>* res =  new AvlNode<contenttype>(content);
-      elem = &res->content;
-      return res;
-   }
-   contenttype c = root->content;
-   if(c==content){ // an AVL tree represents a set, do nothing
-      elem = &root->content;
-      return root;
-   } else if(content<c){ // perform the left subtree
-      root->left = insert2(root->left,content,elem);
-      root->updateHeight();
-      if(abs(root->balance())>1){ // rotation or double rotation required
-         // check where the overhang is
-         if(root->left->balance()>0){ // single rotation is sufficient
-            return rotateRight(root); 
-         }
-         if(root->left->balance()<0){
-            return rotateLeftRight(root);
-         } 
-         assert(false); // should never be reached
-         return NULL; 
-      } else{ // root remains balanced
-          return root;
-      }
-   } else{
-   // content > c => insert at right 
-      root->right = insert2(root->right,content,elem);
-      root->updateHeight();
-      if(abs(root->balance())>1){
-        if(root->right->balance()<0){ // LeftRotation
-           return rotateLeft(root);
-        }
-        if(root->right->balance()>0){
-           return rotateRightLeft(root);
-        }
-        assert(false); // should never be reached
-        return NULL;
-      } else{ // no rotation required
-           return root;
-     }
-   }
-}
 
 
 
@@ -1341,50 +1253,6 @@ static const contenttype* getMember(AvlNode<contenttype>const* const root,
           ? getMember(root->left,content) 
           : getMember(root->right,content);
 }
-
-
-static const contenttype* getMember(AvlNode<contenttype>const* const root,
-                                    const contenttype& x,
-                                    const contenttype*& left,
-                                    const contenttype*& right){
-
-  __AVL_TRACE__
-  if(root==NULL) return 0;  // member not found
-  if(root->content==x){
-
-     if(root->left){ // search the left neighbour
-        AvlNode<contenttype>* tmp = root->left;
-        while(tmp->right){
-           tmp = tmp->right;
-        }
-        left = &tmp->content;
-     }
-    
-
-     if(root->right){ // search the right neighbour
-        AvlNode<contenttype>* tmp = root->right;
-        while(tmp->left){
-           tmp = tmp->left;
-        }
-        right = &tmp->content;
-     }
-     return &root->content;
-  }
-  if(x < root->content){
-     const contenttype* res = getMember(root->left,x,left,right);
-     if(!right){
-        right = &root->content;
-     }
-     return res;
-  } else { // x > root->content
-     const contenttype* res = getMember(root->right,x,left,right);
-     if(!left){
-        left = &root->content;
-     }
-     return res;
-  }
-}
-
 
 
 /*

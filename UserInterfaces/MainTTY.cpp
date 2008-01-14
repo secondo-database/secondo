@@ -46,7 +46,7 @@ TestRunnerCS
 */   
 
 #include "License.h"
-#include "TTYParameter.h"
+#include "Application.h"
 #include "LogMsg.h"
 #include "Messages.h"
 
@@ -55,7 +55,7 @@ using namespace std;
 // forward declarations
 extern int SecondoTTYMode(const TTYParameter&);
 extern int SecondoTestRunner(const TTYParameter&);
-extern int SecondoPLMode(TTYParameter&);
+extern int SecondoPLMode(int, char **);
 
 #ifndef SEC_TTYCS
 extern int SecondoServerMode( const int, const char**);
@@ -85,7 +85,7 @@ main( const int argc, char* argv[] )
 
 #ifdef SECONDO_PL 
   if ( tp.isPLMode() )
-    return SecondoPLMode(tp);
+    return SecondoPLMode(tp.numArgs,tp.argValues);
 #endif
 
   cout << License::getStr() << endl;

@@ -55,7 +55,6 @@ derived attribute class must implement.
 #include "SecondoSystem.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "Counter.h"
 //#include "AlgebraManager.h"
 #include "FLOB.h"
 //#include "WinUnix.h"
@@ -94,13 +93,13 @@ struct AttrDelete
 
 */
 // forward declaration
-class Tuple; 
+struct PrivateTuple; 
 
 class Attribute
 {
-  // allow a Tuple to manipulate the reference counter
+  // allow a PrivateTuple to manipulate the reference counter
   // directly
-  friend class Tuple;
+  friend struct PrivateTuple;
   public:
 
     inline Attribute()
@@ -163,8 +162,6 @@ Thus the result of a comparison of attribute values is never undefined!
 */
     virtual int CompareAlmost( const Attribute *rhs ) const
     {
-      static long& ctr = Counter::getRef("ATTR::CompareAlmost");
-      ctr++;
       return Compare(rhs);
     }
 
@@ -199,8 +196,6 @@ For examples refer to the ~StandardAlgebra~.
                                       const bool lDef, 
                                       const bool rDef    )
     {
-      static long& ctr = Counter::getRef("ATTR::GenericCompare");
-      ctr++;
       if ( lDef &&  rDef) // case 11: value comparison
       {
         if (  *left == *right  )
@@ -230,8 +225,6 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
 
     inline virtual bool Equal(const Attribute* rhs) const
     {
-      static long& ctr = Counter::getRef("ATTR::Equal");
-      ctr++;
       return Compare(rhs) == 0;
     } 
 
@@ -241,8 +234,6 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
                                      const bool lDef, 
                                      const bool rDef    )
     {
-      static long& ctr = Counter::getRef("ATTR::GenericEqual");
-      ctr++;
       if (  *left == *right  )
         return true;
       else
@@ -251,15 +242,11 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
 
     inline virtual bool Less(const Attribute* rhs) const
     {
-      static long& ctr = Counter::getRef("ATTR::Less");
-      ctr++;
       return Compare(rhs) < 0;
     } 
 
     inline virtual bool LessAlmost(const Attribute* rhs) const
     {
-      static long& ctr = Counter::getRef("ATTR::LessAlmost");
-      ctr++;
       return CompareAlmost(rhs) < 0;
     } 
 
@@ -269,8 +256,6 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
                                     const bool lDef, 
                                     const bool rDef    )
     {
-      static long& ctr = Counter::getRef("ATTR::GenericLess");
-      ctr++;
       if (  *left < *right  )
         return true;
       else
@@ -410,8 +395,6 @@ Returns the number of references for this attribute.
 Print the delete reference info to a string (for debugging)
 
 */
-  static void InitCounters(bool show);
-  static void SetCounterValues(bool show);
 
   protected:
 
@@ -430,12 +413,6 @@ Set the reference counter to 1
 
 */
 
-/*
-Counters for basic operations. Useful for verifying cost formulas and determining
-cost factors.
-
-*/   
-    static void counters(bool reset, bool show);
 
 };
 
