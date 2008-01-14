@@ -241,3 +241,43 @@ Example  : query ten feed addcounter[ Cnt , 1] consume
 Result   : file
 
 
+Operator : var
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed var[Bev]
+Result   : 118775771627.3442
+
+
+Operator : var
+Number   : 2
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., an:dn]))) x ai) -> real
+Example  : query Staedte feed extend[BevR: .Bev * 1.0] var[BevR]
+Result   : 118775771627.3442
+
+
+Operator : stats
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., aj: int, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
+Example  : query ten feed stats[no,no] consume
+Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 1.0 10.0 55.0 5.5 9.166666666666666 10 1.0 10.0 55.0 5.5 9.166666666666666 10 10 9.166666666666666 1.0)))
+
+
+Operator : stats
+Number   : 2
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., aj: int, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
+Example  : query ten feed extend[r: -1.0 * .no] stats[no,r] consume
+Result   : ((rel(tuple((CountX int)(MinX real)(MaxX real)(SumX real)(AvgX real)(VarX real)(CountY int)(MinY real)(MaxY real)(SumY real)(AvgY real)(VarY real)(Count int)(CountXY int)(CovXY real)(CorrXY real))))((10 1.0 10.0 55.0 5.5 9.166666666666666 10 -10.0 -1.0 -55.0 -5.5 9.166666666666666 10 10 -9.166666666666666 -1.0)))
+
+
+Operator : stats
+Number   : 3
+Signature: ((stream (tuple([a1:d1, ..., ai:real, ..., aj: real, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
+Example  : query ten feed extend[r1: (1.0 * .no), r2: (10.0/(.no*1.0))] stats[r1,r2] consume
+Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 1.0  10.0 55.0 5.5 9.166666666666666 10 1.0 10.0 29.28968253968254 2.928968253968254 7.687580309901738 10 10 -6.788139329805995 -0.8086306440033478)))
+
+
+Operator : stats
+Number   : 4
+Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., aj: real, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
+Example  : query ten feed extend[r: -1.0 * .no] stats[r,no] consume
+Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 -10.0  -1.0 -55.0 -5.5 9.166666666666666 10 1.0 10.0 55.0 5.5 9.166666666666666 10 10 -9.166666666666666 -1.0)))

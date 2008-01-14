@@ -70,6 +70,9 @@ October 2007, M. Spiekermann, T. Behr. Reimplementation of the operators ~avg~
 and ~sum~ in order to provide better example code since these should be used as
 examples for the practical course.
 
+January 2008, C. D[ue]ntgen adds aggregation operator ~var~, computing the
+variance on a stream.
+
 [TOC]
 
 1 Includes and defines
@@ -1219,19 +1222,25 @@ Operator extrelmin (
 );
 
 /*
-2.10 Operators ~avg~ and ~sum~
+2.10 Operators ~avg~, ~sum~, and ~var~
 
-2.10.1 Type mapping function of Operators ~avg~ and ~sum~
+2.10.1 Type mapping function of Operators ~avg~, ~sum~, and ~var~
 
 Type mapping for ~avg~ is
 
-----  ((stream (tuple ((x1 t1)...(xn tn))) xi)  -> real
+----  ((stream (tuple ((x1 t1)...(xn tn))) xi)  -> real)
               APPEND (i ti)
 ----
 
 Type mapping for ~sum~ is
 
-----  ((stream (tuple ((x1 t1)...(xn tn))) xi)  -> ti
+----  ((stream (tuple ((x1 t1)...(xn tn))) xi)  -> ti)
+              APPEND (i ti)
+----
+
+Type mapping for ~var~ is
+
+----  ((stream (tuple ((x1 t1)...(xn tn))) xi)  -> real)
               APPEND (i ti)
 ----
 
@@ -1310,7 +1319,7 @@ AvgSumSelect( ListExpr args )
 }
 /*
 
-2.10.2 Value mapping function of operators ~avg~ and ~sum~
+2.10.2 Value mapping function of operators ~avg~, ~sum~, and ~var~
 
 Here we use template functions which may be instantiated with the
 following values:
@@ -1327,7 +1336,7 @@ SumValueMapping(Word* args, Word& result, int message,
 {
   T sum = 0;
   int number = 0;
-  
+
   Word currentTupleWord = SetWord(Address(0));
   int attributeIndex = static_cast<CcInt*>( args[2].addr)->GetIntval() - 1;
 
@@ -1342,7 +1351,7 @@ SumValueMapping(Word* args, Word& result, int message,
     if( currentAttr->IsDefined() ) // process only defined elements
     {
       number++;
-      sum += currentAttr->GetValue();     
+      sum += currentAttr->GetValue();
     }
     currentTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, currentTupleWord);
@@ -1350,8 +1359,8 @@ SumValueMapping(Word* args, Word& result, int message,
   qp->Close(args[0].addr);
 
   result = qp->ResultStorage(s);
-  static_cast<R*>( result.addr )->Set(true, sum);               
-  return 0;    
+  static_cast<R*>( result.addr )->Set(true, sum);
+  return 0;
 }
 
 template<class T, class R> int
@@ -1360,7 +1369,7 @@ AvgValueMapping(Word* args, Word& result, int message,
 {
   T sum = 0;
   int number = 0;
-  
+
   Word currentTupleWord = SetWord(Address(0));
   int attributeIndex = static_cast<CcInt*>( args[2].addr )->GetIntval() - 1;
 
@@ -1389,14 +1398,80 @@ AvgValueMapping(Word* args, Word& result, int message,
   else
   {
     SEC_STD_REAL sumreal = sum;
-    static_cast<CcReal*>( result.addr )->Set(true, sumreal / number);         
+    static_cast<CcReal*>( result.addr )->Set(true, sumreal / number);
   }
-  return 0;    
+  return 0;
+}
+
+
+template<class T, class R> int
+VarValueMapping(Word* args, Word& result, int message,
+                Word& local, Supplier s)
+{
+  T sum = 0;
+  int number = 0;
+  int counter = 0;
+  SEC_STD_REAL mean = 0.0;
+  SEC_STD_REAL diffsum = 0.0;
+
+  result = qp->ResultStorage(s);
+  Word currentTupleWord = SetWord(Address(0));
+  int attributeIndex = static_cast<CcInt*>( args[2].addr )->GetIntval() - 1;
+
+  // In a first scan, we compute the stream's MEAN:
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, currentTupleWord);
+  while(qp->Received(args[0].addr))
+  {
+    Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
+    R* currentAttr =
+        static_cast<R*>( currentTuple->GetAttribute(attributeIndex) );
+
+    if( currentAttr->IsDefined() ) // process only defined elements
+    {
+      number++;
+      sum += currentAttr->GetValue();
+    }
+    currentTuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, currentTupleWord);
+  }
+  qp->Close(args[0].addr);
+
+  // if there was no defined value, we are finished. Otherwise we need a secomd
+  // scan to compute the stream's VARIANCE
+  if ( number < 2 ) {
+    static_cast<Attribute*>( result.addr )->SetDefined(false);
+  }
+  else
+  {
+    mean = (sum * 1.0) / number;
+
+    qp->Open(args[0].addr);
+    qp->Request(args[0].addr, currentTupleWord);
+    while( (qp->Received(args[0].addr)) && (counter <= number) )
+    {
+      Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
+      R* currentAttr =
+          static_cast<R*>( currentTuple->GetAttribute(attributeIndex) );
+
+      if( currentAttr->IsDefined() ) // process only defined elements
+      {
+        counter++;
+        SEC_STD_REAL Diff = ( (currentAttr->GetValue() * 1.0) - mean );
+        diffsum += Diff * Diff;
+      }
+      currentTuple->DeleteIfAllowed();
+      qp->Request(args[0].addr, currentTupleWord);
+    }
+    qp->Close(args[0].addr);
+    static_cast<CcReal*>( result.addr )->Set(true, diffsum / (counter - 1));
+  }
+  return 0;
 }
 
 
 /*
-2.10.3 Operator Descriptions for ~avg~ and ~sum~
+2.10.3 Operator Descriptions for ~avg~, ~sum~, and ~var~
 
 */
 
@@ -1430,7 +1505,479 @@ struct sumInfo : OperatorInfo {
                 "ai over the input stream. ";
   }    
 
-};  
+};
+
+struct varInfo : OperatorInfo {
+
+  varInfo() : OperatorInfo() {
+ 
+    name      = "var";
+    signature = "((stream (tuple([a1:d1, ..., "
+        "ai:int, ..., an:dn]))) x ai) -> real";
+    appendSignature( "((stream (tuple([a1:d1, ...,"
+        " ai:real, ..., an:dn]))) x ai) -> real" );
+    syntax    = "_ var [ _ ]";
+    meaning   = "Returns the variance of the values of attribute "
+        "ai over the input stream. Needs to perform 2 scans!";
+  }
+
+};
+
+/*
+10.5 Operator ~stats~
+
+This operator calculates several aggregation functions and statistics on a
+stream of tuples containing two mumeric attributes. And returns a single tuple with
+all the results:
+
+  * CountX - Number of defined instances for the first attribute X
+
+  * MinX   - minimum instance of the first attribute
+
+  * MaxX   - maximum instance of the first attribute
+
+  * SumX   - sum for all defined instance of the first attribute
+
+  * AvgX   - mean for all defined instance of the first attribute
+
+  * VarX   - variance for all defined instance of the first attribute
+
+  * CountY - Number of defined instances for the second attribute Y
+
+  * MinY   - minimum instance of the second attribute
+
+  * MaxY   - maximum instance of the second attribute
+
+  * SumY   - sum for all defined instance of the second attribute
+
+  * AvgY   - mean for all defined instance of the second attribute
+
+  * VarY   - variance for all defined instance of the second attribute
+
+  * Count  - Cardinality of the stream
+
+  * CountXY - Number of tuples, where both arguments X and Y are defined
+
+  * CovXY  - the covariance for X and Y
+
+  * Corr   - the Pearson product-moment correlation coefficient for X and Y
+
+*/
+
+/*
+10.5.1 Type mapping for ~stats~
+
+Type mapping for ~stats~ is
+
+----  ((stream (tuple ((x1 t1)...(xn tn))) xi xj)  -> stream(tuple(
+             (CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)
+             (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)
+             (Count int) (CountXY int) (CovXY real) (CorrXY real)))
+              APPEND ((i ti) (j tj))
+
+      where ti, ty in {int, real}
+----
+
+*/
+
+ListExpr  StatsTypeMap( ListExpr args )
+{
+
+  NList type(args);
+  if ( !type.hasLength(3) )
+  {
+    return NList::typeError("Expecting three arguments.");
+  }
+
+  NList first = type.first();
+  if (
+      !first.hasLength(2)  ||
+      !first.first().isSymbol(STREAM) ||
+      !first.second().hasLength(2) ||
+      !first.second().first().isSymbol(TUPLE) ||
+      !IsTupleDescription( first.second().second().listExpr() ) )
+  {
+    return NList::typeError("First argument must be of type stream(tuple(X))");
+  }
+
+  NList second = type.second();
+  if ( !second.isSymbol() ) {
+    return NList::typeError( "Second argument must be an attribute name. "
+        "Perhaps the attribute's name may be the name "
+        "of a Secondo object!" );
+  }
+
+  NList third = type.third();
+  if ( !second.isSymbol() ) {
+    return NList::typeError( "Third argument must be an attribute name. "
+        "Perhaps the attribute's name may be the name "
+        "of a Secondo object!" );
+  }
+
+  string attrnameX = type.second().str();
+  ListExpr attrtypeX = nl->Empty();
+  int jX = FindAttribute(first.second().second().listExpr(),
+                         attrnameX, attrtypeX);
+
+  string attrnameY = type.third().str();
+  ListExpr attrtypeY = nl->Empty();
+  int jY = FindAttribute(first.second().second().listExpr(),
+                         attrnameY, attrtypeY);
+
+  if ( (jX != 0) && (jY != 0) )
+  {
+    if ( nl->SymbolValue(attrtypeX) != REAL &&
+         nl->SymbolValue(attrtypeX) != INT )
+    {
+      return NList::typeError(
+          "Attribute type of 2nd argument is not of type real or int.");
+    }
+    if ( nl->SymbolValue(attrtypeY) != REAL &&
+         nl->SymbolValue(attrtypeY) != INT )
+    {
+      return NList::typeError(
+          "Attribute type of 3rd argument is not of type real or int.");
+    }
+    NList resTupleType = NList(NList("CountX"),NList(INT)).enclose();
+    resTupleType.append(NList(NList("MinX"),NList(REAL)));
+    resTupleType.append(NList(NList("MaxX"),NList(REAL)));
+    resTupleType.append(NList(NList("SumX"),NList(REAL)));
+    resTupleType.append(NList(NList("AvgX"),NList(REAL)));
+    resTupleType.append(NList(NList("VarX"),NList(REAL)));
+    resTupleType.append(NList(NList("CountY"),NList(INT)));
+    resTupleType.append(NList(NList("MinY"),NList(REAL)));
+    resTupleType.append(NList(NList("MaxY"),NList(REAL)));
+    resTupleType.append(NList(NList("SumY"),NList(REAL)));
+    resTupleType.append(NList(NList("AvgY"),NList(REAL)));
+    resTupleType.append(NList(NList("VarY"),NList(REAL)));
+    resTupleType.append(NList(NList("Count"),NList(INT)));
+    resTupleType.append(NList(NList("CountXY"),NList(INT)));
+    resTupleType.append(NList(NList("CovXY"),NList(REAL)));
+    resTupleType.append(NList(NList("CorrXY"),NList(REAL)));
+    NList resType = NList( NList(APPEND), NList(NList(jX), NList(jY)),
+                           NList(NList(STREAM),NList(NList(TUPLE),resTupleType))
+                         );
+//    cout << "Result of StatsTypeMap:" << resType << endl;
+    return resType.listExpr();
+  }
+  else
+  {
+    if (jX == 0)
+      return NList::typeError( "Attribute '" + attrnameX + "' is not known.");
+    else
+      return NList::typeError( "Attribute '" + attrnameY + "' is not known.");
+  }
+}
+
+/*
+Since the list structure has been already checked the selection function can
+trust to have a list of the correct format. Hence we can ommit many checks and
+access elements directly.
+
+*/
+
+int StatsSelect( ListExpr args )
+{
+  NList type(args);
+  NList first = type.first();
+  string attrnameX = type.second().str();
+  string attrnameY = type.third().str();
+  ListExpr attrtypeX = nl->Empty();
+  ListExpr attrtypeY = nl->Empty();
+  FindAttribute(first.second().second().listExpr(), attrnameX, attrtypeX);
+  FindAttribute(first.second().second().listExpr(), attrnameY, attrtypeY);
+
+  if ((nl->SymbolValue(attrtypeX) == INT)&&(nl->SymbolValue(attrtypeY) == INT))
+    return 0;
+  if ((nl->SymbolValue(attrtypeX) == INT)&&(nl->SymbolValue(attrtypeY) == REAL))
+    return 1;
+  if ((nl->SymbolValue(attrtypeX) == REAL)&&(nl->SymbolValue(attrtypeY) == INT))
+    return 2;
+  if ((nl->SymbolValue(attrtypeX) == REAL)&&(nl->SymbolValue(attrtypeY)==REAL))
+    return 3;
+  assert( false );
+  return -1;
+}
+
+/*
+10.5.2 Value mapping for ~stats~
+
+There are 4 template class parameters.
+Tx and Ty are ~int~ or ~real~,
+Rx and Ry are the corresponding types ~CcInt~ resp. ~CcReal~.
+
+*/
+
+template<class Tx, class Rx, class Ty, class Ry> int
+    StatsValueMapping(Word* args, Word& result, int message,
+                      Word& local, Supplier s)
+{
+
+  bool *finished = 0;
+  TupleType *resultTupleType = 0;
+  Tuple *newTuple = 0;
+  CcInt *CCountX = 0;
+  CcReal *CMinX = 0;
+  CcReal *CMaxX = 0;
+  CcReal *CSumX = 0;
+  CcReal *CAvgX = 0;
+  CcReal *CVarX = 0;
+  CcInt *CCountY = 0;
+  CcReal *CMinY = 0;
+  CcReal *CMaxY = 0;
+  CcReal *CSumY = 0;
+  CcReal *CAvgY = 0;
+  CcReal *CVarY = 0;
+  CcInt *CCount = 0;
+  CcInt *CCountXY = 0;
+  CcReal *CCovXY = 0;
+  CcReal *CCorrXY = 0;
+
+  switch(message)
+  {
+    case OPEN:
+    {
+      finished = new bool(false);
+      local.addr = finished;
+      return 0;
+    }
+    
+    case REQUEST:
+    {
+      if(local.addr == 0)
+        return CANCEL;
+      finished = (bool*) local.addr;
+      if(*finished)
+        return CANCEL;
+
+      int countAll = 0, countX = 0, countY = 0, countXY = 0;
+      SEC_STD_REAL minX = 0, maxX = 0, sumX = 0;
+      SEC_STD_REAL minY = 0, maxY = 0, sumY = 0;
+      SEC_STD_REAL meanX = 0, meanY  = 0;
+      SEC_STD_REAL diffsumX = 0, diffsumY = 0, sumXY = 0;
+      SEC_STD_REAL sumX2 = 0, sumY2 = 0, sumsqX = 0, sumsqY = 0;
+
+      Tx currX = 0;
+      Ty currY = 0;
+
+      result = qp->ResultStorage(s);
+      Word currentTupleWord = SetWord(Address(0));
+      int attributeIndexX = static_cast<CcInt*>(args[3].addr)->GetIntval() - 1;
+      int attributeIndexY = static_cast<CcInt*>(args[4].addr)->GetIntval() - 1;
+
+      // In a first scan, we compute the stream's MEANs for X,Y
+      // and count defined values for X,Y:
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr, currentTupleWord);
+      while(qp->Received(args[0].addr))
+      {
+        countAll++;
+        Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
+        Rx* currentAttrX =
+            static_cast<Rx*>( currentTuple->GetAttribute(attributeIndexX) );
+        Ry* currentAttrY =
+            static_cast<Ry*>( currentTuple->GetAttribute(attributeIndexY) );
+
+        if( currentAttrX->IsDefined() )
+        {
+          countX++;
+          currX = currentAttrX->GetValue();
+          if (countX == 1)
+          {
+            minX = currX;
+            maxX = currX;
+          }
+          else
+          {
+            if (currX < minX)
+              minX = currX;
+            if (currX > maxX)
+              maxX = currX;
+          }
+          sumX += currX;
+        }
+        if( currentAttrY->IsDefined() )
+        {
+          countY++;
+          currY = currentAttrY->GetValue();
+          if (countY == 1)
+          {
+            minY = currY;
+            maxY = currY;
+          }
+          else
+          {
+            if (currY < minY)
+              minY = currY;
+            if (currY > maxY)
+              maxY = currY;
+          }
+          sumY += currY;
+        }
+        currentTuple->DeleteIfAllowed();
+        qp->Request(args[0].addr, currentTupleWord);
+      }
+      qp->Close(args[0].addr);
+
+      if ( (countX + countY) > 1 )
+      {
+        meanX = (sumX * 1.0) / countX;
+        meanY = (sumY * 1.0) / countY;
+
+        // A second Scan to calculate the emprical covariance and
+        // emprical correlation coefficient. Therefore, we recalculate the means
+        // using only those tuples, where both attributes are defined...
+        qp->Open(args[0].addr);
+        qp->Request(args[0].addr, currentTupleWord);
+        while( qp->Received(args[0].addr) )
+        {
+          Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
+          Rx* currentAttrX =
+              static_cast<Rx*>( currentTuple->GetAttribute(attributeIndexX) );
+          Ry* currentAttrY =
+              static_cast<Ry*>( currentTuple->GetAttribute(attributeIndexY) );
+          if( currentAttrX->IsDefined() )
+          { // for var(X):
+            currX = currentAttrX->GetValue();
+            diffsumX += (currX - meanX) * (currX - meanX);
+          }
+          if( currentAttrY->IsDefined() )
+          { // for var(Y):
+            currY = currentAttrY->GetValue();
+            diffsumY += (currY - meanY) * (currY - meanY);
+          }
+          if( currentAttrX->IsDefined() && currentAttrY->IsDefined() )
+          { // for cov(X,Y) and corr(X,Y):
+            countXY++;
+            sumX2 += currX;
+            sumY2 += currY;
+            sumXY += currX * currY;
+            sumsqX += currX * currX;
+            sumsqY += currY * currY;
+          }
+          currentTuple->DeleteIfAllowed();
+          qp->Request(args[0].addr, currentTupleWord);
+        }
+        qp->Close(args[0].addr);
+      }
+
+      // create the resulttuple:
+      resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      newTuple = new Tuple( resultTupleType );
+
+      CCountX = new CcInt(true, countX);
+      CMinX   = new CcReal((countX > 0), minX);
+      CMaxX   = new CcReal((countX > 0), maxX);
+      CSumX   = new CcReal(true, sumX);
+      if (countX > 0){
+        CAvgX = new CcReal(true, sumX / countX);
+        CVarX = new CcReal(true, diffsumX / (countX - 1));
+      }
+      else{
+        CAvgX = new CcReal(false, 0);
+        CVarX = new CcReal(false, 0);
+      }
+      CCountY = new CcInt(true, countY);
+      CMinY   = new CcReal((countY > 0), minY);
+      CMaxY   = new CcReal((countY > 0), maxY);
+      CSumY   = new CcReal(true, sumY);
+      if (countY > 0){
+        CAvgY = new CcReal(true, sumY / countY);
+        CVarY = new CcReal(true, diffsumY / (countY - 1));
+      }
+      else {
+        CAvgY = new CcReal(false, 0);
+        CVarY = new CcReal(false, 0);
+      }
+      CCount  = new CcInt(true, countAll);
+      CCountXY = new CcInt(true, countXY);
+      if(countXY > 1){
+        SEC_STD_REAL covXY =
+            (sumXY - (sumX2 * sumY2 / countXY)) / (countXY - 1);
+        CCovXY = new CcReal(true, covXY);
+        SEC_STD_REAL meanX2 = sumX2/countXY;
+        SEC_STD_REAL meanY2 = sumY2/countXY;
+        SEC_STD_REAL denom =   sqrt(sumsqX - (countXY * (meanX2 * meanX2)))
+                             * sqrt(sumsqY - (countXY * (meanY2 * meanY2)));
+        if (denom == 0){
+            CCorrXY = new CcReal(false, 0);
+        }
+        else{
+          CCorrXY = new
+              CcReal(true, (sumXY - (countXY * meanX2 * meanY2) ) / denom);
+        }
+      }
+      else {
+        CCovXY  = new CcReal(false, 0);
+        CCorrXY = new CcReal(false, 0);
+      }
+      newTuple->PutAttribute(  0,(StandardAttribute*)CCountX);
+      newTuple->PutAttribute(  1,(StandardAttribute*)CMinX);
+      newTuple->PutAttribute(  2,(StandardAttribute*)CMaxX);
+      newTuple->PutAttribute(  3,(StandardAttribute*)CSumX);
+      newTuple->PutAttribute(  4,(StandardAttribute*)CAvgX);
+      newTuple->PutAttribute(  5,(StandardAttribute*)CVarX);
+      newTuple->PutAttribute(  6,(StandardAttribute*)CCountY);
+      newTuple->PutAttribute(  7,(StandardAttribute*)CMinY);
+      newTuple->PutAttribute(  8,(StandardAttribute*)CMaxY);
+      newTuple->PutAttribute(  9,(StandardAttribute*)CSumY);
+      newTuple->PutAttribute( 10,(StandardAttribute*)CAvgY);
+      newTuple->PutAttribute( 11,(StandardAttribute*)CVarY);
+      newTuple->PutAttribute( 12,(StandardAttribute*)CCount);
+      newTuple->PutAttribute( 13,(StandardAttribute*)CCountXY);
+      newTuple->PutAttribute( 14,(StandardAttribute*)CCovXY);
+      newTuple->PutAttribute( 15,(StandardAttribute*)CCorrXY);
+
+      result = SetWord(newTuple);
+      resultTupleType->DeleteIfAllowed();
+
+      *finished = true;
+      return YIELD;
+    }
+    
+    case CLOSE:
+    {
+      if(local.addr == 0)
+        return 0;
+      finished = (bool*) local.addr;
+      delete(finished);
+      return 0;
+    }
+  } // end switch
+  return -1;
+}
+
+/*
+10.5.2 Operator Descriptions for ~stats~
+
+*/
+
+struct statsInfo : OperatorInfo {
+
+  statsInfo() : OperatorInfo() {
+ 
+    name      = "stats";
+    signature = "((stream (tuple([a1:d1, ... ,an:dn]))) x ai x aj) -> "
+    "stream(tuple( \n"
+    "(CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)\n"
+    "(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)\n"
+    "(Count int) (CountXY int) (CovXY real) (CorrXY real))\n, "
+    "where ti, tj in {int,real}";
+    syntax    = "_ stats [ attrnameX , attrnameY ]";
+    meaning   = "Returns a tuple containing several statistics for 2 numerical "
+        "attributes 'attrnameX', 'attrnameY' on the stream. The first 6 "
+        "attributes contain the number of tuples where X is defined, the "
+        "minimum and maximum value for X, the sum for X, the mean for X, and "
+        "the variance of X. \n"
+        "The 7th to 12th attribute hold the appropriate statistics for Y.\n"
+        "the last 4 attributes hold the total count of tuples in the stream, "
+        "the number of tuples, where both attributes X and Y contain defined "
+        "values, the covariance of X and X, and finally Pearson's "
+        "correlation coefficient";
+  }
+
+};
+
 
 /*
 2.10 Operator ~krdup~
@@ -8148,10 +8695,22 @@ class ExtRelationAlgebra : public Algebra
                          AvgValueMapping<SEC_STD_REAL,CcReal>, 0 };
     ValueMapping sumFuns[] = { SumValueMapping<int,CcInt>, 
                          SumValueMapping<SEC_STD_REAL,CcReal>, 0 };
+    ValueMapping varFuns[] = { VarValueMapping<int,CcInt>,
+                         VarValueMapping<SEC_STD_REAL,CcReal>, 0 };
 
     AddOperator(avgInfo(), avgFuns, AvgSumSelect, AvgSumTypeMap<true>);
     AddOperator(sumInfo(), sumFuns, AvgSumSelect, AvgSumTypeMap<false>);
-
+    AddOperator(varInfo(), varFuns, AvgSumSelect, AvgSumTypeMap<true>);
+    
+    ValueMapping statsFuns[] =
+    {
+      StatsValueMapping<int,CcInt,int,CcInt>,
+      StatsValueMapping<int,CcInt,SEC_STD_REAL,CcReal>,
+      StatsValueMapping<SEC_STD_REAL,CcReal,int,CcInt>,
+      StatsValueMapping<SEC_STD_REAL,CcReal,SEC_STD_REAL,CcReal>, 0
+    };
+    AddOperator(statsInfo(), statsFuns, StatsSelect, StatsTypeMap);
+    
     AddOperator(&extrelhead);
     AddOperator(&extrelsortby);
     AddOperator(&extrelsort);
