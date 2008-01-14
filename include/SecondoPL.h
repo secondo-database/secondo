@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifdef __cplusplus
 extern "C"{
 #endif
-int registerSecondo(const char* user, const char* pswd);
+int registerSecondo();
 #ifdef __cplusplus
 }
 #endif

@@ -39,7 +39,7 @@ static {
   }
 
 
-  public static native int registerSecondo(String user, String passwd);
+  public static native int registerSecondo();
 
    
 
@@ -55,10 +55,10 @@ static {
       * register the secondo predicate
       * loads the optimizer prolog code
       */
-    private boolean initialize(String user, String passwd){
+    private boolean initialize(){
       // later here is to invoke the init function which
       // registers the Secondo(command,Result) predicate to prolog
-    if(registerSecondo(user,passwd)!=0){
+    if(registerSecondo()!=0){
        System.err.println("error in registering the secondo predicate ");
        return false;
     }
@@ -610,13 +610,11 @@ static {
      */
    public static void main(String[] args){
        if(args.length<1){
-        System.err.println("usage:  java OptimizerServer -classpath .:<jplclasses> OptimizerServer Port [-u user][ -s passwd ] ");
+        System.err.println("usage:  java OptimizerServer -classpath .:<jplclasses> OptimizerServer Port");
               System.exit(1);
        }
        // process options
        Runtime rt = Runtime.getRuntime();
-       String user = "";
-       String passwd = "";
        int pos = 1;
        while(pos<args.length){
            if(args[pos].equals("-trace_methods")){
@@ -627,23 +625,7 @@ static {
                rt.traceInstructions(true);
                System.out.println("enable instruction tracing");
                pos++;
-           } else if(args[pos].equals("-u")){
-               if(pos==args.length-1){
-                  System.err.println("missing username for -u option");
-                  System.exit(-1);
-               }
-               pos++; 
-               user = args[pos];
-               pos++;
-           }else if(args[pos].equals("-s")){
-               if(pos==args.length-1){
-                  System.err.println("missing passwd for -s option");
-                  System.exit(-1);
-               }
-               pos++;
-               passwd = args[pos];
-               pos++;
-           }else{
+           } else{
                System.out.println("unknown option " + args[pos]);
                System.exit(-1);
            }
@@ -673,7 +655,7 @@ static {
            System.exit(1);
         }
 
-       if(! OS.initialize(user,passwd)){
+       if(! OS.initialize()){
           System.out.println("initialization failed");
           System.exit(1);
        }

@@ -704,17 +704,11 @@ This function registers the secondo predicate at the prolog engine.
 
 */
 
-int registerSecondo(const char* user, const char* passwd){
+int registerSecondo(){
   
-  cout << "register secondo" << endl;
+  //cout << "register secondo" << endl;
   
   TTYParameter tp(0,0);
-  if ( string(user) != "" ) { 
-    tp.user = user;
-  }	    
-  if ( string(passwd) != "" ) { 
-    tp.pswd = passwd;
-  }	    
 
   atexit(handle_exit);
 
