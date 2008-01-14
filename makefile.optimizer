@@ -59,7 +59,7 @@ ifeq ($(platform2),linux)
 ifdef GMP_LIB
 PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -l$(GMP_LIB)
 else
-PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm 
+PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm $(SECONDO_SDK)/auxtools/lib/libgmp.so 
 endif
 endif
 
