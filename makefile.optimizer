@@ -54,17 +54,24 @@ ifeq ($(platform),win32)
 PLLDFLAGS := $(PL_LIB_DIR)/libpl.lib -lm
 endif
 
+AUXLIBS := $(SECONDO_SDK)/auxtools/lib 
+
 platform2 := $(subst 64,,$(platform))
 ifeq ($(platform2),linux)
-ifdef GMP_LIB
-PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -l$(GMP_LIB)
-else
-PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm $(SECONDO_SDK)/auxtools/lib/libgmp.so 
-endif
+  ifndef GMP_LIB
+    PLVER := $(shell if [ $(PL_VERSION) -lt 50600 ]; then  echo "5x"; else echo "6x"; fi)
+    ifeq ($(PLVER), 6x)
+      LD_GMP := -lgmp
+    endif  
+  else
+    LD_GMP := -l$(GMP_LIB)
+  endif
 endif
 
+PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -L$(AUXLIBS) $(LD_GMP)
+
 ifeq ($(platform),mac_osx)
-PLLDFLAGS :=  -L/opt/local/lib -L$(PL_LIB_DIR) -l$(PL_LIB) $(SECONDO_SDK)/auxtools/lib/libreadline.a -lncurses -lm 
+PLLDFLAGS :=  -L/opt/local/lib -L$(PL_LIB_DIR) -l$(PL_LIB) $(AUXLIBS)/libreadline.a -lncurses -lm 
 endif
 
 # define directories for using jpl
