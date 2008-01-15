@@ -2721,6 +2721,8 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
 
   int pos1=0; // current position in the halfsegment array of reg1
   int pos2=0; // current position in the halfsegment array of reg2
+  int size1 = reg1->Size();
+  int size2 = reg2->Size();
 
   bool done = false;
   HalfSegment nextSeg;
@@ -2732,6 +2734,8 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   OwnedPoint lastDomPoint; // initialized to be undefined
   int src; 
   AVLSegment tmpL,tmpR;
+  bool empty1 = false;
+  bool empty2 = false;
 
   while( ((owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg,src))!=none)
           && !done){
@@ -2755,6 +2759,17 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
     */
 
     Point p = nextSeg.GetDomPoint();
+
+    empty1 = (pos1>=size1) && q1.empty() && (owner!=first) &&
+             (   ((p.GetX()>lastDomPoint.p.GetX() &&
+                  !AlmostEqual(p.GetX(),lastDomPoint.p.GetX()))
+                || lastDomPoint.owner==second)); 
+    
+    empty2 = (pos2>=size2) && q2.empty() && (owner!=second) &&
+             ((   (p.GetX()>lastDomPoint.p.GetX() &&
+                  !AlmostEqual(p.GetX(),lastDomPoint.p.GetX()))
+               || lastDomPoint.owner==first)); 
+
     if(!lastDomPoint.defined || !AlmostEqual(lastDomPoint.p,p)){
         lastDomPoint.defined = true;
         lastDomPoint.p = p;
@@ -2764,6 +2779,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
           SetBB(res,useCluster,cluster,done);
        }
     }
+
 
 
     if(nextSeg.IsLeftDomPoint()){
@@ -2783,7 +2799,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
              SetEI(res,useCluster,cluster,done);
            } else {
              SetII(res,useCluster,cluster,done);
-             // res.setEE(true); // alreay done in initialisation
+             // res.setEE(true); // already done in initialization
            }
 
            int parts = member->split(current,left,common,right);
@@ -2936,7 +2952,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
               }
               sss.insert(current);
 
-           } else {
+           } else { // inner intersection with at least one neighbour
               // check for possible common points with the neighbours
               if(leftN && leftN->getOwner()!=current.getOwner()){
                  if(leftN->intersects(current)){
@@ -3007,8 +3023,6 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
               assert(false);
               
             }
-
-              
              assert(current.con_above>=0 && current.con_above<=2);
              assert(current.con_below + current.con_above > 0);
              sss.insert(current);
@@ -3072,6 +3086,36 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
     }
     if(useCluster){
       done = done || cluster.IsEmpty();
+    }
+
+    if(empty1 || empty2){
+       done = true;
+       if(!empty1){
+         res.SetBE(true);
+         res.SetIE(true);
+         if(!res.GetBB()){
+             owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg,src);
+             if(owner==second && lastDomPoint.owner!=second){
+                Point dP = nextSeg.GetDomPoint();
+                if(AlmostEqual(dP,lastDomPoint.p)){
+                   res.SetBB(true);
+                } 
+             }
+         }
+       }
+       if(!empty2){
+         res.SetEB(true);
+         res.SetEI(true);
+         if(!res.GetBB()){
+             owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg,src);
+             if(owner==first && lastDomPoint.owner!=first){
+                Point dP = nextSeg.GetDomPoint();
+                if(AlmostEqual(dP,lastDomPoint.p)){
+                   res.SetBB(true);
+                } 
+             }
+         }
+       }
     }
   } // sweep
   
@@ -3255,7 +3299,9 @@ bool GetInt9M(Line const* const line1,
 
  int pos1=0;
  int pos2=0;
-
+ int size1 = line1->Size();
+ int size2 = line2->Size();
+ 
  HalfSegment nextHs;
 
  ownertype owner;
@@ -3271,16 +3317,23 @@ bool GetInt9M(Line const* const line1,
  int src;
  AVLSegment tmpL,tmpR;
 
+ bool empty1 = false; // flag indicating end of line 1
+ bool empty1eval = false; // empty1 already evaluated
+ bool empty2 = false;
+ bool empty2eval = false;
 
 
  while(!done && 
        ((owner=selectNext(line1,pos1,line2,pos2,q1,q2,nextHs,src))!=none) ){
+
    AVLSegment current(&nextHs,owner);
 
 // debug::start
    // cout << "process segment " << current << "  "
    //      << (nextHs.IsLeftDomPoint()?"LEFT":"RIGHT") << endl;
 // debug::end
+   empty1 = pos1>=size1 && q1.empty() && lastDomPointCount1==0;
+   empty2 = pos2>=size2 && q2.empty() && lastDomPointCount2==0;
 
 
    // try to find an overlapping segment in sss
@@ -3376,11 +3429,37 @@ bool GetInt9M(Line const* const line1,
         splitNeighbours(sss,leftN,rightN,q1,q2);
      } // otherwise current comes from a splitted segment and is ignored
    }
-   done = done || res.IsFull() ||
-          (line1->IsEmpty() && res.GetEI() && 
-           res.GetEB() && res.GetEE()) ||
-          (line2->IsEmpty() && res.GetIE() && 
-           res.GetBE() && res.GetEE()) ;
+   done = done || res.IsFull(); 
+
+   if(empty1) { // end of line1 reached
+     if(res.GetEI() && res.GetEB()){
+       done = true;
+     } else if(useCluster && !empty1eval){
+        Int9M tmp = res;
+        tmp.SetEI(true);
+        tmp.SetEB(true);
+        cluster.Restrict(tmp,false);
+        if(cluster.IsEmpty()){
+           return false;
+        }     
+     }
+   }
+
+   if(empty2) { // end of line1 reached
+     if(res.GetIE() && res.GetBE()){
+       done = true;
+     } else if(useCluster && !empty2eval){
+        Int9M tmp = res;
+        tmp.SetIE(true);
+        tmp.SetBE(true);
+        cluster.Restrict(tmp,false);
+        if(cluster.IsEmpty()){
+           return false;
+        }     
+     }
+   }
+
+
  } // end of sweep
 
  // create a point which is different to the last domPoint
