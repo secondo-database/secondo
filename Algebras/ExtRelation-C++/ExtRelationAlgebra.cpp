@@ -1408,6 +1408,10 @@ template<class T, class R> int
 VarValueMapping(Word* args, Word& result, int message,
                 Word& local, Supplier s)
 {
+  TupleBuffer *tp = 0;
+  GenericRelationIterator *relIter = 0;
+  long MaxMem = qp->MemoryAvailableForOperator();
+
   T sum = 0;
   int number = 0;
   int counter = 0;
@@ -1417,6 +1421,8 @@ VarValueMapping(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Word currentTupleWord = SetWord(Address(0));
   int attributeIndex = static_cast<CcInt*>( args[2].addr )->GetIntval() - 1;
+
+  tp = new TupleBuffer(MaxMem);
 
   // In a first scan, we compute the stream's MEAN:
   qp->Open(args[0].addr);
@@ -1432,6 +1438,7 @@ VarValueMapping(Word* args, Word& result, int message,
       number++;
       sum += currentAttr->GetValue();
     }
+    tp->AppendTuple(currentTuple);
     currentTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, currentTupleWord);
   }
@@ -1446,11 +1453,12 @@ VarValueMapping(Word* args, Word& result, int message,
   {
     mean = (sum * 1.0) / number;
 
-    qp->Open(args[0].addr);
-    qp->Request(args[0].addr, currentTupleWord);
-    while( (qp->Received(args[0].addr)) && (counter <= number) )
+    Tuple* currentTuple = 0;
+    relIter = tp->MakeScan();
+    currentTuple = relIter->GetNextTuple();
+
+    while( currentTuple && (counter <= number) )
     {
-      Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
       R* currentAttr =
           static_cast<R*>( currentTuple->GetAttribute(attributeIndex) );
 
@@ -1461,11 +1469,12 @@ VarValueMapping(Word* args, Word& result, int message,
         diffsum += Diff * Diff;
       }
       currentTuple->DeleteIfAllowed();
-      qp->Request(args[0].addr, currentTupleWord);
+      currentTuple = relIter->GetNextTuple();
     }
-    qp->Close(args[0].addr);
+    delete relIter;
     static_cast<CcReal*>( result.addr )->Set(true, diffsum / (counter - 1));
   }
+  delete tp;
   return 0;
 }
 
@@ -1713,6 +1722,10 @@ template<class Tx, class Rx, class Ty, class Ry> int
                       Word& local, Supplier s)
 {
 
+  TupleBuffer *tp = 0;
+  GenericRelationIterator *relIter = 0;
+  long MaxMem = qp->MemoryAvailableForOperator();
+
   bool *finished = 0;
   TupleType *resultTupleType = 0;
   Tuple *newTuple = 0;
@@ -1765,6 +1778,8 @@ template<class Tx, class Rx, class Ty, class Ry> int
       int attributeIndexX = static_cast<CcInt*>(args[3].addr)->GetIntval() - 1;
       int attributeIndexY = static_cast<CcInt*>(args[4].addr)->GetIntval() - 1;
 
+      tp = new TupleBuffer(MaxMem);
+
       // In a first scan, we compute the stream's MEANs for X,Y
       // and count defined values for X,Y:
       qp->Open(args[0].addr);
@@ -1814,6 +1829,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
           }
           sumY += currY;
         }
+        tp->AppendTuple(currentTuple);
         currentTuple->DeleteIfAllowed();
         qp->Request(args[0].addr, currentTupleWord);
       }
@@ -1827,11 +1843,12 @@ template<class Tx, class Rx, class Ty, class Ry> int
         // A second Scan to calculate the emprical covariance and
         // emprical correlation coefficient. Therefore, we recalculate the means
         // using only those tuples, where both attributes are defined...
-        qp->Open(args[0].addr);
-        qp->Request(args[0].addr, currentTupleWord);
-        while( qp->Received(args[0].addr) )
+        Tuple* currentTuple = 0;
+        relIter = tp->MakeScan();
+        currentTuple = relIter->GetNextTuple();
+
+        while( currentTuple )
         {
-          Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
           Rx* currentAttrX =
               static_cast<Rx*>( currentTuple->GetAttribute(attributeIndexX) );
           Ry* currentAttrY =
@@ -1856,10 +1873,11 @@ template<class Tx, class Rx, class Ty, class Ry> int
             sumsqY += currY * currY;
           }
           currentTuple->DeleteIfAllowed();
-          qp->Request(args[0].addr, currentTupleWord);
+          currentTuple = relIter->GetNextTuple();
         }
-        qp->Close(args[0].addr);
+        delete relIter;
       }
+      delete tp;
 
       // create the resulttuple:
       resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
