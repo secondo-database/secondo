@@ -68,7 +68,7 @@ SecondoPLMode(TTYParameter& tp)
 
   if( !StartSecondoC(tp) )
   {
-    cout << "Usage : SecondoPL [secondo-options] [-L size -G size]" 
+    cout << "Usage : SecondoPL [Secondo-options] [Prolog-options]" 
          << endl;
     exit(1);
   }
@@ -76,26 +76,20 @@ SecondoPLMode(TTYParameter& tp)
   /* Start PROLOG interpreter with our extensions. */
   PL_register_extensions(predicates);
 
-  /* initialize the prologb engine */
+  /* initialize the PROLOG engine */
 
-  // check for prolog engine args
-  char* initargs[5];
-  int i=0;
+  int argc = 0;
+  char** argv = tp.Get_plargs(argc);
 
-  if (tp.pl_opt_L != "") {
-    initargs[i] = strdup( tp.pl_opt_L.c_str() );	  
-    i++;	  
-  }  
-  if (tp.pl_opt_G != "") {
-    initargs[i] = strdup( tp.pl_opt_G.c_str() );	  
-    i++;
-  }  
-  	  
-  initargs[i++] ="pl";
-  initargs[i++] ="-g";
-  initargs[i++] ="true";
+  cerr << endl <<__FILE__ << ":" << __LINE__ 
+       << " Calling PL_initialize with ";	  
 
-  if( !PL_initialise(i,initargs) ) 
+  for (int i = 0; i < argc; i++) {
+    cerr << argv[i] << " ";	  
+  }	  
+  cerr << endl << endl;
+
+  if( !PL_initialise(argc,argv) ) 
   {
     PL_halt(1);
   }

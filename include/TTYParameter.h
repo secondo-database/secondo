@@ -29,6 +29,7 @@ This circumvents some linker errors about doubly defined symbols which occured o
 #define TTYParameter_H
 
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -49,6 +50,8 @@ struct TTYParameter
 
   bool getEnvValue(const string& var, string& value);
 
+  vector<string> plargs;
+
   public:
   int numArgs;
   char** argValues;
@@ -61,8 +64,6 @@ struct TTYParameter
   string iFileName;
   string oFileName;
   string num;
-  string pl_opt_L;
-  string pl_opt_G;
   
   typedef enum {Test, Optimizer, Server, TTY} RunMode;
   RunMode runMode;
@@ -71,15 +72,40 @@ struct TTYParameter
 
   TTYParameter(const int argc, char** argv);
 
-  bool isTestRunnerMode() { return removeFirstArg("-test"); } 
+  bool isTestRunnerMode() 
+  { 
+    bool rc = removeFirstArg("-test"); 
+    if (rc) {
+      runMode = Test;
+    }
+    return rc;    
+  } 
    
-  bool isPLMode() { return removeFirstArg("-pl"); } 
+  bool isPLMode() 
+  { 
+    bool rc = removeFirstArg("-pl"); 
+    if (rc) {
+      runMode = Optimizer;
+    }
+    return rc ;   
+  } 
  
-  bool isServerMode() { return removeFirstArg("-srv"); } 
-
+  bool isServerMode() 
+  { 
+    bool rc = removeFirstArg("-srv"); 
+    if (rc) {
+      runMode = Server;
+    }
+    return rc ;   
+  } 
+	  
   void Print(ostream& os);
 
+  void Appendto_plargs(const string& arg) { plargs.push_back(arg); }
   
+  char** Get_plargs(int& argc);
+
+
 /*
 1.1 CheckConfiguration
 

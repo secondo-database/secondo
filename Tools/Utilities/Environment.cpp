@@ -92,37 +92,37 @@ Implementation of TTYParameter
 
 const bool TTYParameter::needIdent = false;
  
-  bool TTYParameter::removeFirstArg(const string& expected)
-  {
-    if (numArgs < 2)
-      return false;	    
-    
-    string value(argValues[1]);
-    if ( value == expected ) 
-    { 
-      numArgs--;
-      argValues[1] = argValues[0];
-      argValues = &(argValues[1]);
-      return true;
-    }  
-    return false;
-  }
+bool TTYParameter::removeFirstArg(const string& expected)
+{
+  if (numArgs < 2)
+    return false;	    
+  
+  string value(argValues[1]);
+  if ( value == expected ) 
+  { 
+    numArgs--;
+    argValues[1] = argValues[0];
+    argValues = &(argValues[1]);
+    return true;
+  }  
+  return false;
+}
 
-  bool TTYParameter::getEnvValue(const string& var, string& value)
-  {	  
-    char* envValue=0;
-    if ( value.empty() )
+bool TTYParameter::getEnvValue(const string& var, string& value)
+{	  
+  char* envValue=0;
+  if ( value.empty() )
+  {
+    envValue = getenv( var.c_str() );
+    if ( envValue != 0 )
     {
-      envValue = getenv( var.c_str() );
-      if ( envValue != 0 )
-      {
-	value = envValue;
-        cout << "Using " << var << " = " << value << endl;
-	return true;
-      }
+      value = envValue;
+      cout << "Using " << var << " = " << value << endl;
+      return true;
     }
-    return false;
   }
+  return false;
+}
 
   
 /*
@@ -131,43 +131,39 @@ removes the first argument if present.
 */
   
 
-  TTYParameter::TTYParameter(const int argc, char** argv)
-  {
-    parmFile      = "";
-    user          = "";
-    pswd          = "";
-    host          = "";
-    port          = "";
-    iFileName     = "";
-    oFileName     = "";
-    num           = "0";
-    pl_opt_L      = "";
-    pl_opt_G      = "";
+TTYParameter::TTYParameter(const int argc, char** argv)
+{
+  parmFile      = "";
+  user          = "";
+  pswd          = "";
+  host          = "";
+  port          = "";
+  iFileName     = "";
+  oFileName     = "";
+  num           = "0";
 
-    numArgs = argc;
-    argValues = argv;
+  numArgs = argc;
+  argValues = argv;
 
-    runMode = TTY;
-    runExamples = false;
-  } 
+  runMode = TTY;
+  runExamples = false;
+} 
 
-  
-  void TTYParameter::Print(ostream& os)
-  {
-    os << "parmFile  = " << parmFile << endl;
-    os << "user      = " << user << endl;
-    os << "pswd      = " << pswd << endl;
-    os << "host      = " << host << endl;
-    os << "port      = " << port << endl;
-    os << "iFileName = " << iFileName << endl;
-    os << "oFileName = " << oFileName << endl;
-    os << "num       = " << num << endl;
-    os << "pl_opt_L  = " << pl_opt_L << endl;
-    os << "pl_opt_G  = " << pl_opt_G << endl;
-    os << "numArgs   = " << numArgs << endl;
-    os << "runMode   = " << runMode << endl;
-    os << "runExamples = " << runExamples << endl;
-  }	  
+
+void TTYParameter::Print(ostream& os)
+{
+  os << "parmFile  = " << parmFile << endl;
+  os << "user      = " << user << endl;
+  os << "pswd      = " << pswd << endl;
+  os << "host      = " << host << endl;
+  os << "port      = " << port << endl;
+  os << "iFileName = " << iFileName << endl;
+  os << "oFileName = " << oFileName << endl;
+  os << "num       = " << num << endl;
+  os << "numArgs   = " << numArgs << endl;
+  os << "runMode   = " << runMode << endl;
+  os << "runExamples = " << runExamples << endl;
+}	  
 
 /*
 1.1 CheckConfiguration
@@ -224,11 +220,10 @@ TTYParameter::CheckConfiguration()
   "\n" <<
   "Mode -pl only:\n" <<
   "-----------------------------------------------------------------------\n" <<
-  "  -G #       : global stack size \n" <<
-  "  -L #       : local stack size \n" <<
+  "  -G#[km]       : global stack size = #\n" <<
+  "  -L#[km]       : local stack size = #\n" <<
+  "  ...           : other prolog options see man pl \n" <<
   "\n" <<
-
-
   "Note: Command line options overrule environment variables.\n";
 
   // check comamnd options 
@@ -300,12 +295,24 @@ TTYParameter::CheckConfiguration()
     }
     else
     {
-      cout << "Error: Invalid option: '" << argSwitch << "'." << endl;
-      if ( argOk )
-      {
-        cout << "  having option value: '" << argValue << "'." << endl;
+      if (runMode != Optimizer) 
+      {	      
+        cout << "Error: Invalid option: '" << argSwitch << "'." << endl;
+        if ( argOk )
+        {
+          cout << "  having option value: '" << argValue << "'." << endl;
+        }
+        ok = false;
       }
-      ok = false;
+      else
+      {
+        // save unknown arguments in order to pass them 
+	// to the prolog engine
+        plargs.push_back( argSwitch );		
+	if (argOk) {
+          plargs.push_back( argValue );		
+        }
+      }	      
     }
     i++;
     if ( argOk )
@@ -389,5 +396,18 @@ TTYParameter::CheckConfiguration()
     cout << availOptions << endl;
   }
   return (ok);
+}
+
+char** TTYParameter::Get_plargs(int& argc)
+{
+  argc = plargs.size();
+  char** argv = new char*[argc];
+
+  for (int i=0; i < argc; i++) 
+  {
+    argv[i] = strdup( plargs[i].c_str() );  
+  }  
+
+  return argv;
 }
 
