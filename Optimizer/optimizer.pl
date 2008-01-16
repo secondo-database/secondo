@@ -4693,7 +4693,7 @@ The SQL-syntax is as follows:
   '[const region value ()]'.
 
   Otherwise, you can use user defined aggregation in the select clause of 
-  a query, just like ordinary aggregation operator, like ~sum~, ~avg~, 
+  a query, just like ordinary aggregation operator, like ~sum~, ~avg~, ~var~,
   ~min~, or ~max~.
 
   No filtering for definedness of attribute values is done. If required, you
