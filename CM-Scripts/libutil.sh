@@ -773,8 +773,9 @@ function startupXterm {
 # $2 version given as "x.y" 
 function checkVersion {
 
+  #echo "args: $1, $2 ?"
   local version1=$($1 | sed -nr '1s#.* ([0-9]+)[.]([0-9]+)[.]?([0-9]+)?.*#\1x\2y\3#p')
-  local version2=$(echo "$2" | sed -nr '1s#[^0-9]*([0-9]+)[.]([0-9]+)[.]?([0-9]+)?.*#\1x\2y\3#p')
+  local version2=$(echo "$2" | sed -nr '1s#(.*)-?([0-9]+)[.]([0-9]+)[.]?([0-9]+)?.*#\2x\3y\4#p')
   #echo "$version1 >= $version2 ?"
 
   local -i n1=$[${version1%x*}]

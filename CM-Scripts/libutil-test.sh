@@ -244,7 +244,7 @@ if [ "$1" == "checkVersion" ]; then
    done
   done  
   
-  if ! checkVersion "returnVersion 4.1.1" "gcc-core-4.1.1.tar.gz"; then
+  if ! checkVersion "returnVersion 4.1.1" "/tmp/x032.49/sdk-inst/gcc-core-4.1.1.tar.gz"; then
     echo "Error: gcc 4.1.1 expected !"
   else
     echo "gcc 4.1.1 as expected"
