@@ -3332,8 +3332,8 @@ bool GetInt9M(Line const* const line1,
    // cout << "process segment " << current << "  "
    //      << (nextHs.IsLeftDomPoint()?"LEFT":"RIGHT") << endl;
 // debug::end
-   empty1 = pos1>=size1 && q1.empty() && lastDomPointCount1==0;
-   empty2 = pos2>=size2 && q2.empty() && lastDomPointCount2==0;
+   empty1 = pos1>=size1 && q1.empty() && lastDomPointCount1==0 && owner!=first;
+   empty2 = pos2>=size2 && q2.empty() && lastDomPointCount2==0 && owner!=second;
 
 
    // try to find an overlapping segment in sss
