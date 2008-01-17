@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 //[_] [\_]
+//[&] [\&]
 //[toc] [\tableofcontents]
 //[title] [ \title{TopRel Algebra} \author{Thomas Behr} \maketitle]
 //[times] [\ensuremath{\times}]
@@ -75,6 +76,14 @@ static const unsigned short P6 = 64;
 static const unsigned short P7 = 128;
 static const unsigned short P8 = 256;
 static const unsigned short P9 = 512;
+
+
+
+static const  int PART_INTER = 1;
+static const  int NO_EXT_INTER = 2;
+static const  int O1_EMPTY = 4;
+static const  int O2_EMPTY = 8;
+
 
 // The name of the unspecified cluster
 static const STRING_T UNSPECIFIED = "unspecified";
@@ -388,7 +397,7 @@ bool Cluster::ValueAt(const int pos) const{
 
 
 
-bool Cluster::ValueAt(int pos, unsigned char BitVector[64]){
+bool Cluster::ValueAt(const int pos,const unsigned char BitVector[64]){
    assert(pos >= 0 && pos < 512);
    int bytenum = pos / 8;
    int bytepos = pos % 8;
@@ -481,7 +490,7 @@ inline static void SetValueAtSimple(const int pos,const bool value,
 
 void Cluster::SetValueAt(const int pos,const bool value,
                          unsigned char bitvector[],
-                         unsigned char bitvectorT[] )const{
+                         unsigned char bitvectorT[])const{
     assert(pos>=0 && pos < 512);
     SetValueAtSimple(pos,value,bitvector);
     int pos2 = TranspArray[pos];
@@ -489,8 +498,12 @@ void Cluster::SetValueAt(const int pos,const bool value,
 }
 
 
-void Cluster::SetValueAt(const int pos, const bool value){
+void Cluster::SetValueAt(const int pos, const bool value, 
+                         const bool updateBox){
     SetValueAt(pos,value,BitVector, BitVectorT);
+    if(updateBox){
+        updateBoxChecks();
+    }
 }
 
 
@@ -503,11 +516,16 @@ to define new cluster from existining ones e.g. a ~contains~ cluster from a
 ~covered-by~ one.
 
 */
-void Cluster::Transpose(){
+void Cluster::Transpose(const bool updateBC /*=true*/){
   unsigned char tmp[64];
   memcpy(tmp,BitVector,64);
   memcpy(BitVector,BitVectorT,64);
   memcpy(BitVectorT,tmp,64);
+  if(updateBC){
+     updateBoxChecks();
+  } else {
+     boxchecksok=false;
+  }
 }
 
 
@@ -579,12 +597,13 @@ bool Cluster::ReadFrom(const ListExpr LE){
       }
       for(unsigned short i=0;i<512;i++){
           if(evalTree(T,i))
-            SetValueAt(i,true);
+            SetValueAt(i,true,false);
           else
-            SetValueAt(i,false);
+            SetValueAt(i,false,false);
       }
       strcpy(name,nl->StringValue(nl->First(LE)).c_str());
       destroyTree(T);
+      updateBoxChecks();
       return true;
    }
 
@@ -636,6 +655,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
    strcpy(name,TMPname);
    Transpose(BitVector,BitVectorT);
    defined = true;
+   updateBoxChecks();
    return true;
 }
 
@@ -672,6 +692,8 @@ void Cluster::Equalize(const Cluster* value){
      memcpy(BitVector,value->BitVector,64);
      memcpy(BitVectorT,value->BitVectorT,64);
      defined = value->defined;
+     boxchecks = value->boxchecks;
+     boxchecksok = value->boxchecksok;
 }
 
 /*
@@ -717,6 +739,118 @@ For this reason we just return false here.
 bool Cluster::Adjacent(const Attribute*) const{
    return false;
 }
+
+/*
+2.2.7 updateBoxChecks
+
+This function codes some interesting information into the __boxchecks__ 
+variable. The information is coded as
+
+
+  * boxchecks [&] 1 > 0: each contained matrix has a 1 entry at positions ii | ib | bi | bb,
+    if the boxes are disjoint, this cluster cannot contain the toprel of the corresponding 
+    objects
+
+  * boxchecks [&] 2 > 0: each matrix has a 0 entry at positions ei [&] eb [&] ie [&] be,
+    if the boxes are non-equal, this cluster cannot contain the toprel of the corresponding
+    objects
+
+  * ...
+
+*/
+
+void Cluster::updateBoxChecks(){
+  boxchecks = 0;
+
+  Int9M m1(1,1,0,1,1,0,0,0,0);
+  Int9M m2(0,0,1,0,0,1,1,1,0);
+
+  Int9M m3(1,1,1,1,1,1,0,0,0);
+  Int9M m4(1,1,0,1,1,0,1,1,0); 
+
+
+  int n1 = m1.GetNumber();
+  int n2 = m2.GetNumber(); 
+  int n3 = m3.GetNumber();
+  int n4 = m4.GetNumber();
+
+  int part_inter = PART_INTER;
+  int no_ext_inter = NO_EXT_INTER;
+  int o1_empty = O1_EMPTY;
+  int o2_empty = O2_EMPTY;
+
+
+  for(unsigned short i=0; i<512; i++){
+    if(ValueAt(i)){
+        if(! ( n1 & i ) ){ 
+           part_inter = 0; 
+        }
+        if( (i & n2) ){
+           no_ext_inter = 0;
+        }       
+        if( (i & n3)){
+           o1_empty = 0;
+        } 
+        if ((i & n4)){
+           o2_empty = 0;
+        }
+    } 
+  }
+
+  boxchecks = part_inter | no_ext_inter | o1_empty | o2_empty;
+  boxchecksok = true;
+
+}
+
+/*
+2.2.7 checkBoxes
+
+*/
+int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
+               const Rectangle<2> box2, const bool empty2) const{
+  if(!boxchecksok){
+      cout << "checkBoxes called but info is not up to date" << endl;
+      return 3;
+  }
+
+  if(empty1 && empty2){
+     Int9M m(0,0,0,0,0,0,0,0,1);
+     if(Contains(m)){
+        return 1; 
+     } else {
+        return 2;
+     }
+  }
+
+  if(!empty1 && (boxchecks & O1_EMPTY)){
+      return 2;
+  }
+
+  if(!empty2 && (boxchecks & O2_EMPTY)){
+      return 2;
+  }
+
+  if(boxchecks & PART_INTER){
+    if(empty1 || empty2 ){
+       return 2;
+    }
+    if(!box1.Intersects(box2)){
+       return 2;
+    }
+  }
+  
+  if(boxchecks & NO_EXT_INTER){
+     if(empty1 || empty2){ // boxes are different
+        return 2;
+     }
+     if(box1 != box2){
+        return 2;
+     }
+  }
+  return 3; // nothinng known
+}
+
+
 
 /*
 2.2.8 Functions for the defined state
@@ -778,7 +912,7 @@ fulfilling the given condition.
 
 */
 
-bool Cluster::Restrict(string condition){
+bool Cluster::Restrict(string condition, const bool updateBC /*=true*/){
 
    const char* cond_c = condition.c_str();
    struct tree* T=0;
@@ -800,10 +934,15 @@ bool Cluster::Restrict(string condition){
    }
    for(int i=0;i<512;i++){
       if(!evalTree(T,i)){
-         SetValueAt(i,false);
+         SetValueAt(i,false,false);
       }
    }
    destroyTree(T);
+   if(updateBC){
+      updateBoxChecks();
+   } else {
+      boxchecksok = false;
+   }
    return true;
 }
 
@@ -816,33 +955,43 @@ Otherwise the result will not be as expected.
 
 
 */
- void Cluster::Restrict(const int pos, const bool value){
+ void Cluster::Restrict(const int pos, const bool value, 
+                        const bool updateBC/*=true*/){
     for(int i=0;i<512;i++){
        if( ((i&pos) !=0) != value){
-          SetValueAt(i,false);
+          SetValueAt(i,false,false);
        }  
+    }
+    if(updateBC){
+       updateBoxChecks();
+    } else {
+       boxchecksok = false;
     }
  }
 
 
-void Cluster::Restrict(const Int9M& m, const bool value){
+void Cluster::Restrict(const Int9M& m, const bool value, 
+                       const bool updateBC/*=true*/){
    int matrix = m.GetNumber();
    if(value){
       for(int i=0; i<512;i++){
          if( (matrix & i) != matrix ){
-            SetValueAt(i,false);
+            SetValueAt(i,false,false);
          }
       }
    } else { // value==false
       matrix = matrix ^ 511;
       for(int i=0; i<512; i++){
          if(((i ^ 511 ) & matrix)!=matrix){
-            SetValueAt(i,false);
+            SetValueAt(i,false,false);
          }
       }
+   } 
+   if(updateBC){
+      updateBoxChecks();
+   } else {
+      boxchecksok = false;
    }
-
-
 }
 
 
@@ -864,7 +1013,7 @@ This function adds all matrices fulfilling the given condition to
 
 */
 
-bool Cluster::Relax(string condition){
+bool Cluster::Relax(string condition, const bool updateBC /*=true*/){
 
    const char* cond_c = condition.c_str();
    struct tree* T=0;
@@ -885,10 +1034,15 @@ bool Cluster::Relax(string condition){
    }
    for(int i=0;i<512;i++){
       if(evalTree(T,i)){
-         SetValueAt(i,true);
+         SetValueAt(i,true,false);
       }
    }
    destroyTree(T);
+   if(updateBC){
+      updateBoxChecks();
+   } else {
+      boxchecksok = false; 
+   }
    return true;
 }
 

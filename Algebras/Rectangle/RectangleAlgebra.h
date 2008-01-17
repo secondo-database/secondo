@@ -129,7 +129,15 @@ Checks if the rectangle contains the rectangle ~r~.
 
     inline bool Intersects( const Rectangle<dim>& r ) const;
 /*
-Checks if the rectangle intersects with rectangle ~r~.
+Checks if the rectangle intersects with rectangle ~r~. Both rectangles
+must be defined.
+
+*/
+    inline bool IntersectsUD( const Rectangle<dim>& r ) const;
+/*
+Checks if the rectangle intersects with rectangle ~r~. If one of the
+involved rectangles is not defined, the result will be false; 
+
 
 */
 
@@ -479,6 +487,21 @@ template <unsigned dim>
 inline bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
 {
   assert( defined && r.defined );
+
+  for( unsigned i = 0; i < dim; i++ )
+    if( max[i] < r.min[i] || r.max[i] < min[i] )
+      return false;
+
+  return true;
+}
+
+
+template <unsigned dim>
+inline bool Rectangle<dim>::IntersectsUD( const Rectangle<dim>& r ) const
+{
+  if(!( defined && r.defined) ){
+      return false;
+  }
 
   for( unsigned i = 0; i < dim; i++ )
     if( max[i] < r.min[i] || r.max[i] < min[i] )

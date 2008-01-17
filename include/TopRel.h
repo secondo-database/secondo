@@ -79,6 +79,7 @@ topological predicates.
 #include "StandardAttribute.h"
 #include "StandardTypes.h"
 #include "DBArray.h"
+#include "RectangleAlgebra.h"
 
 
 
@@ -582,7 +583,7 @@ making this constructor different to the standard constructor and is
 ignored.
 
 */
-      Cluster(const bool all){
+      Cluster(const bool all, const bool updateBC = true){
           //for(int i=0;i<64;i++)
           //    BitVector[i]=0;
           if(all){
@@ -595,6 +596,11 @@ ignored.
              strcpy(name,"complete");
           }
           defined = true;
+          if(updateBC){
+              updateBoxChecks();
+          } else {
+              boxchecksok = false;
+          }
       }
 
 /* 
@@ -645,7 +651,7 @@ This can be used for easy defining of symmetrical clusters, e.g.
    Contains.Transpose().SetName("CoveredBy");
 
 */
-      void Transpose();
+      void Transpose(const bool updateBC = true);
 
 /*
 2.2.6 Disjoint
@@ -654,7 +660,7 @@ This function checks whether this cluster and the argument has no
 common matrices.
 
 */
-      bool Disjoint(Cluster* C2){
+      bool Disjoint(const Cluster* C2) const{
          for(int i=0;i<64;i++)
             if(BitVector[i] & C2->BitVector[i])
                return false;
@@ -689,10 +695,13 @@ This function checks whether the argument is part of this cluster.
 This implements the familiar union function for the matrix sets.
 
 */
-    void Union(const Cluster* C2){
+    void Union(const Cluster* C2, const bool updateBC=true){
           for(int i=0;i<64;i++){
              BitVector[i] |= C2->BitVector[i];
              BitVectorT[i] |= C2->BitVectorT[i];
+          }
+          if(updateBC){
+             updateBoxChecks();
           }
       }
 
@@ -702,10 +711,13 @@ This implements the familiar union function for the matrix sets.
 This function computes the intersection of this cluster and the argument.
 
 */
-      void Intersection(const Cluster* C2){
+      void Intersection(const Cluster* C2, const bool updateBC = true){
           for(int i=0;i<64;i++){
              BitVector[i] &= C2->BitVector[i];
              BitVectorT[i] &= C2->BitVectorT[i];
+          }
+          if(updateBC){
+             updateBoxChecks();
           }
       }
 
@@ -732,12 +744,14 @@ A call of this function yields true if this cluster and C2 have common elements.
 ~Minus~ removes all matrices contained in C2 from this cluster.
 
 */ 
-      void Minus(const Cluster* C2){
+      void Minus(const Cluster* C2, const bool updateBC = true){
           for(int i=0;i<64;i++){
              BitVector[i] = (BitVector[i] & ( ~(C2->BitVector[i])));
              BitVectorT[i] = (BitVectorT[i] & ( ~(C2->BitVectorT[i])));
           }
-
+          if(updateBC){
+             updateBoxChecks();
+          }
       }
 
 /*
@@ -747,10 +761,13 @@ The ~Invert~ function changes this cluster containing all possible
 matrices minus the matrices conatained originally in it.
 
 */
-      void Invert(){
+      void Invert(const bool updateBC = true){
           for(int i=0;i<64;i++){
               BitVector[i] ^= 255;
               BitVectorT[i] ^= 255;
+          }
+          if(updateBC){
+             updateBoxChecks();
           }
       }
 
@@ -760,11 +777,14 @@ matrices minus the matrices conatained originally in it.
 This function removes all matrices from this cluster.
 
 */
-      void MakeEmpty(){
+      void MakeEmpty(const bool updateBC = true){
           //for(int i=0;i<64;i++)
           //    BitVector[i] = 0;
           memcpy(BitVector,emptyBlock,64);
           memcpy(BitVectorT,emptyBlock,64);
+          if(updateBC) {
+             updateBoxChecks();
+          }
       }
 
 /*
@@ -774,11 +794,14 @@ The MakeFull function changes this cluster to contain all
 512 possible matrices.
 
 */
-      void MakeFull(){
+      void MakeFull(const bool updateBC = true){
          //for(int i=0;i<64;i++)
          //     BitVector[i] = 255;
          memcpy(BitVector,fullBlock,64);
          memcpy(BitVectorT,fullBlock,64);
+         if(updateBC){
+            updateBoxChecks();
+         }
       }
 /*
 2.2.15 IsEmpty
@@ -940,7 +963,8 @@ This function sets the containment of the matrix with number pos to
 the given value.
 
 */
-      void SetValueAt(const int pos,const bool value);
+      void SetValueAt(const int pos,const bool value, 
+                      const bool updateBC=true);
       
 /*
 2.2.20 GetName
@@ -961,7 +985,7 @@ the result will be false and the cluster is not changed.
 
 */
 
-    bool Restrict(string condition);
+    bool Restrict(string condition, const bool updateBC = true);
 
 
 /*
@@ -973,7 +997,7 @@ of the formula describing the condition.
 
 */
 
-   bool Relax(string condition);
+   bool Relax(string condition, const bool updateBC = true);
 
 /*
 2.2.23 Restrict
@@ -984,7 +1008,7 @@ This result of this function is the same as an intersection with a cluster conta
 matrices with the pecified value at the given position - but this version is faster.
 
 */
-   void Restrict(const int pos, const bool value);
+   void Restrict(const int pos, const bool value, const bool updateBC = true);
 
 
 /*
@@ -995,7 +1019,7 @@ Int9M value provided as the first argument at the positions specified by the
 boolean parameter. 
 
 */
-    void Restrict(const Int9M& m, const bool value);
+    void Restrict(const Int9M& m, const bool value, const bool updateBC=true);
 
 
 /*
@@ -1009,6 +1033,23 @@ of this cluster.
    bool isExtension(const Int9M& m) const;
 
 
+/*
+2.2.26 CheckBoxes
+
+This function works as prefilter for bounding box and 
+empty checks. The function has the follwing return values:
+
+  * 1 : from the arguments we can derive that the cluster will contain the
+        9 intersection matrix 
+
+  * 2 : from the arguments we can derive that the cluster will not contain the
+         9 intersection matrix 
+
+  * 3 : from the arguments we cannot derive a result
+
+*/
+  int checkBoxes( const Rectangle<2> box1, const bool empty1,
+                  const Rectangle<2> box2, const bool empty2) const;
 
 
 /*
@@ -1027,12 +1068,18 @@ clusters.
             return (*this);
       }
 
+      void updateBoxChecks();
 
    private:
       unsigned char BitVector[64];  // the set of matrices
       unsigned char BitVectorT[64]; // set of transposed matrices
       bool defined;
       STRING_T name;
+
+      int boxchecks; // coded information about this cluster
+      bool boxchecksok;
+
+
       void SetValueAt(const int pos, const bool value, 
                       unsigned char bitvector[],
                       unsigned char bitvectorT[]) const;
@@ -1040,7 +1087,7 @@ clusters.
       static void Transpose(unsigned char Source[64],
                      unsigned char Target[64]);
 
-      static bool ValueAt(int pos, unsigned char BitVector[64]);
+      static bool ValueAt(const int pos, const unsigned char BitVector[64]);
 
 };
 

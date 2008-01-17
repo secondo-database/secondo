@@ -1112,7 +1112,7 @@ inline void SetII(Int9M& m, const bool useCluster,
   if(!m.GetII()){
      m.SetII(true);
      if(useCluster){
-        cluster.Restrict(II,true);
+        cluster.Restrict(II,true,false);
         done = done || cluster.isExtension(m) || cluster.IsEmpty();
      }
   }
@@ -1123,7 +1123,7 @@ inline void SetIB(Int9M& m, const bool useCluster,
   if(!m.GetIB()){
      m.SetIB(true);
      if(useCluster){
-        cluster.Restrict(IB,true);
+        cluster.Restrict(IB,true,false);
         done = done || cluster.isExtension(m)|| cluster.IsEmpty();
      }
   }
@@ -1134,7 +1134,7 @@ inline void SetIE(Int9M& m, const bool useCluster,
   if(!m.GetIE()){
      m.SetIE(true);
      if(useCluster){
-        cluster.Restrict(IE,true);
+        cluster.Restrict(IE,true,false);
         done = done || cluster.isExtension(m)|| cluster.IsEmpty();
      }
   }
@@ -1145,7 +1145,7 @@ inline void SetBI(Int9M& m, const bool useCluster,
   if(!m.GetBI()){
      m.SetBI(true);
      if(useCluster){
-        cluster.Restrict(BI,true);
+        cluster.Restrict(BI,true,false);
         done = done || cluster.isExtension(m)|| cluster.IsEmpty();
      }
   }
@@ -1156,7 +1156,7 @@ inline void SetBB(Int9M& m, const bool useCluster,
   if(!m.GetBB()){
      m.SetBB(true);
      if(useCluster){
-        cluster.Restrict(BB,true);
+        cluster.Restrict(BB,true,false);
         done = done || cluster.isExtension(m)|| cluster.IsEmpty();
      }
   }
@@ -1167,7 +1167,7 @@ inline void SetBE(Int9M& m, const bool useCluster,
   if(!m.GetBE()){
      m.SetBE(true);
      if(useCluster){
-        cluster.Restrict(BE,true);
+        cluster.Restrict(BE,true,false);
         done = done || cluster.isExtension(m)|| cluster.IsEmpty();
      }
   }
@@ -1178,7 +1178,7 @@ inline void SetEI(Int9M& m, const bool useCluster,
   if(!m.GetEI()){
      m.SetEI(true);
      if(useCluster){
-        cluster.Restrict(EI,true);
+        cluster.Restrict(EI,true,false);
         done = done || cluster.isExtension(m)|| cluster.IsEmpty();
      }
   }
@@ -1189,7 +1189,7 @@ inline void SetEB(Int9M& m, const bool useCluster,
   if(!m.GetEB()){
      m.SetEB(true);
      if(useCluster){
-        cluster.Restrict(EB,true);
+        cluster.Restrict(EB,true,false);
         done = done || cluster.isExtension(m)|| cluster.IsEmpty();
      }
   }
@@ -1200,7 +1200,7 @@ inline void SetEE(Int9M& m, const bool useCluster,
   if(!m.GetEE()){
      m.SetEE(true);
      if(useCluster){
-        cluster.Restrict(EE,true);
+        cluster.Restrict(EE,true,false);
         done = done || cluster.isExtension(m)|| cluster.IsEmpty();
      }
   }
@@ -1484,7 +1484,7 @@ bool GetInt9M(Points*  ps, Point* p,Int9M& res,
   if(size>1){
      res.SetIE(true);
      if(useCluster){
-        cluster.Restrict(IE,true);
+        cluster.Restrict(IE,true,false);
         if(cluster.IsEmpty()){
            return false;
         }
@@ -1537,22 +1537,33 @@ bool GetInt9M(Points* ps1, Points*  ps2,
    if(useCluster && cluster.IsEmpty()){
        return false;
    }
+   int n1 = ps1->Size();
+   int n2 = ps2->Size();
+   
    if(useCluster){ // restrict cluster to matrices which are realizable 
                    // for the points/points combination
-      cluster.Restrict(EE,true); // the extreiors always intersect
+
+      int cb = cluster.checkBoxes(ps1->BoundingBox(),n1,
+                                  ps2->BoundingBox(),n2);
+      if(cb==1) {
+          return true;
+      }
+      if(cb==2){
+         return false;
+      }
+
+      cluster.Restrict(EE,true,false); // the extreiors always intersect
 
       // the boundary of a points value is empty, thereby no intersections
       // of this part with any other part may exist
       Int9M r(true, false, true, false, false, false, true,false,true);
-      cluster.Restrict(r,false);
+      cluster.Restrict(r,false,false);
 
       if(cluster.IsEmpty()){
         return false;
       }
    }
  
-   int n1 = ps1->Size();
-   int n2 = ps2->Size();
 
    res.SetValue(0);
    res.SetEE(true);
@@ -1588,7 +1599,7 @@ bool GetInt9M(Points* ps1, Points*  ps2,
    // bounding box check
    Rectangle<2> bbox1 = ps1->BoundingBox();
    Rectangle<2> bbox2 = ps2->BoundingBox();
-   if(!bbox1.Intersects(bbox2)){
+   if(!bbox1.IntersectsUD(bbox2)){
       // non empty disjoint points values
       res.SetIE(true);
       res.SetEI(true);
@@ -1933,6 +1944,15 @@ bool isDone(Line const* const line, Points const* const point, Int9M m,
   }
 }
 
+bool isEmpty(const Point& p){
+   return false;
+}
+
+bool isEmpty(const Points& ps){
+   return ps.IsEmpty();
+}
+
+
 /*
 ~GetInt9M~
 
@@ -1956,16 +1976,27 @@ bool GetInt9M(Line const* const line,
       }
    }
 
-   // line is not empty
+   if(useCluster){
+      // line is not empty
+      int cb = cluster.checkBoxes(line->BoundingBox(),line->Size()==0,
+                                  point->BoundingBox(),
+                                  isEmpty(point));
+      if(cb==1) {
+         return true;
+      }
+      if(cb==2){
+         return false;
+      }
+   }
  
    // restrict the cluster to valid matrices
    if(useCluster){
-       cluster.Restrict(EE,true); // hold in each case
-       cluster.Restrict(IE,true); // nonempty line
+       cluster.Restrict(EE,true,false); // hold in each case
+       cluster.Restrict(IE,true,false); // nonempty line
 
        // boundary of a point is empty
        Int9M m(true, false, true, true,false,true, true,false,true);
-       cluster.Restrict(m,false);
+       cluster.Restrict(m,false,false);
        if(cluster.IsEmpty()){
          return false;
        }
@@ -2179,17 +2210,13 @@ bool pointAbove(const HalfSegment* hs, const Point* p) {
 
 bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
               const bool useCluster= false,
-              Cluster cluster = Cluster(),
-              const bool transpose = false){
+              Cluster cluster = Cluster()){
 
   res.SetValue(0);
   res.SetEE(true);
   if(reg->IsEmpty()){
      res.SetEI(true);
      if(useCluster){
-       if(transpose){
-          res.Transpose();
-       }
        return cluster.Contains(res);
      } else {
        return true;
@@ -2204,15 +2231,23 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
   if(!bboxreg.Intersects(bboxp)){
      res.SetEI(true);
      if(useCluster){
-       if(transpose){
-          res.Transpose();
-       }
        return cluster.Contains(res);
      } else {
        return true;
      }
   }
 
+  if(useCluster){
+      int cb = cluster.checkBoxes(reg->BoundingBox(),false,
+                                  p->BoundingBox(),
+                                  false);
+      if(cb==1) {
+         return true;
+      }
+      if(cb==2){
+         return false;
+      }
+   }
    // bbox check failed, we have to compute the result
 
    int size = reg->Size();
@@ -2228,9 +2263,6 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
         if(hs->Contains(*p)){
            res.SetBI(true); //point on boundary
            if(useCluster){
-             if(transpose){
-               res.Transpose();
-             }
              return cluster.Contains(res);
            } else {
               return true;
@@ -2254,9 +2286,6 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
       res.SetII(true);
    }
    if(useCluster){
-      if(transpose){
-        res.Transpose();
-      }
       return cluster.Contains(res);
    } else {
       return true;
@@ -2426,6 +2455,15 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
       return true;
     }
   }
+  if(useCluster){
+      int cb = cluster.checkBoxes(regbox, false, pbox, false);
+      if(cb==1) {
+         return true;
+      }
+      if(cb==2){
+         return false;
+      }
+   }
   // bbox failed, perform a plane sweep
 
   if(useCluster){
@@ -2433,9 +2471,9 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
 
     // boundary of an points value is empty
     Int9M m1(true,false,true, true,false,true, true,false,true);
-    cluster.Restrict(m1,false);
+    cluster.Restrict(m1,false,false);
     
-    cluster.Restrict(res,true);
+    cluster.Restrict(res,true,false);
 
     if(cluster.IsEmpty()){
       return false;
@@ -2695,7 +2733,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   // bounding box check
   Rectangle<2> bbox1 = reg1->BoundingBox();
   Rectangle<2> bbox2 = reg2->BoundingBox();
-  if(!bbox1.Intersects(bbox2)){
+  if(!bbox1.IntersectsUD(bbox2)){
      res.SetIE(true);
      res.SetEI(true);
      res.SetBE(true);
@@ -2708,7 +2746,14 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   }
 
   if(useCluster){
-     cluster.Restrict(res,true);
+     int cb = cluster.checkBoxes(bbox1, false, bbox2, false);
+     if(cb==1) {
+        return true;
+     }
+     if(cb==2){
+        return false;
+     }
+     cluster.Restrict(res,true,false);
      if(cluster.IsEmpty() ){
         return false;
      }
@@ -3261,27 +3306,37 @@ bool GetInt9M(Line const* const line1,
  }
 
  bool done = false;
+ if(useCluster){
+      int cb = cluster.checkBoxes(line1->BoundingBox(),line1->IsEmpty(),
+                             line2->BoundingBox(),line2->IsEmpty());
+      if(cb==1) {
+          return true;
+      }
+      if(cb==2){
+         return false;
+      }
+ }
 
  if(line1->IsEmpty()){
     // line2 is non empty
     SetEI(res,useCluster,cluster,done);
     if(useCluster){
       Int9M m(false,false,false, false,false,false, true,true,true);
-      cluster.Restrict(m,false);
+      cluster.Restrict(m,false,false);
     }
  }
  if(line2->IsEmpty()){
     SetIE(res,useCluster,cluster,done);
     if(useCluster){
       Int9M m(false, false, true, false,false,true, false,false,true);
-      cluster.Restrict(m,false);
+      cluster.Restrict(m,false,false);
     }
  }
 
  if(!line1->IsEmpty() && !line2->IsEmpty()){ 
     if(!line1->BoundingBox().Intersects(line2->BoundingBox()) && useCluster){
         Int9M m(false,false,true,false,false,true,true,true,true);
-        cluster.Restrict(m,false);
+        cluster.Restrict(m,false,false);
     }
  }
  
@@ -3442,7 +3497,7 @@ bool GetInt9M(Line const* const line1,
         Int9M tmp = res;
         tmp.SetEI(true);
         tmp.SetEB(true);
-        cluster.Restrict(tmp,false);
+        cluster.Restrict(tmp,false,false);
         if(cluster.IsEmpty()){
            return false;
         }     
@@ -3456,7 +3511,7 @@ bool GetInt9M(Line const* const line1,
         Int9M tmp = res;
         tmp.SetIE(true);
         tmp.SetBE(true);
-        cluster.Restrict(tmp,false);
+        cluster.Restrict(tmp,false,false);
         if(cluster.IsEmpty()){
            return false;
         }     
@@ -3628,26 +3683,41 @@ bool GetInt9M(Line   const* const line,
 
   Rectangle<2> bbox1 = line->BoundingBox();
   Rectangle<2> bbox2 = region->BoundingBox();
+  
+  if(useCluster){
+     int cb = cluster.checkBoxes(bbox1, line->IsEmpty(), 
+                                 bbox2, region->IsEmpty());
+     if(cb==1) {
+        return true;
+     }
+     if(cb==2){
+        return false;
+     }
+     cluster.Restrict(res,true,false);
+     if(cluster.IsEmpty() ){
+        return false;
+     }
+     if(cluster.isExtension(res)){
+        return true;
+     } 
+  } 
 
-  if(!bbox1.Intersects(bbox2)){
+  if(!bbox1.IntersectsUD(bbox2)){
       res.SetIE(true); // line is not empty
       if(!region->IsEmpty()){
         res.SetEB(true);
       }
       if(useCluster){
           Int9M m(false,false,true, false, false, true, true,true,true);
-          cluster.Restrict(m,false);
+          cluster.Restrict(m,false,false);
       }
   }
- 
-  
-
 
   if(useCluster){
-     cluster.Restrict(res,true);
+     cluster.Restrict(res,true,false);
      if(region->IsEmpty()){
         Int9M m(false,false,true,false,false,true,false,false,true);
-        cluster.Restrict(m,false);
+        cluster.Restrict(m,false,false);
      }
      if(cluster.IsEmpty()){
        return false;
