@@ -151,7 +151,7 @@ SecondoServer::CallSecondo()
     ready = (line == "</Secondo>");
     if ( !ready )
     {
-      cmdText += line;
+      cmdText += line + "\n";
     }
   }
   while (!ready && !iosock.fail());
