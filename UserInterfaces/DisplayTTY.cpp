@@ -208,7 +208,7 @@ DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
   {
     cout << endl;
     string s = nl->ToString( nl->First( nl->First( numType ) ) );
-    string attr = string( maxNameLen-s.length() , ' ' ) + s + string(":");
+    string attr = string( maxNameLen-s.length() , ' ' ) + s + string(": ");
     cout << attr;
     maxIndent = attr.length();
 
