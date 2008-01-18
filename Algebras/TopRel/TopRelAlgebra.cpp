@@ -522,9 +522,11 @@ void Cluster::Transpose(const bool updateBC /*=true*/){
   memcpy(BitVector,BitVectorT,64);
   memcpy(BitVectorT,tmp,64);
   if(updateBC){
-     updateBoxChecks();
+    int btmp = boxchecks;
+    boxchecks = boxchecksT;
+    boxchecksT = btmp;
   } else {
-     boxchecksok=false;
+    boxchecksok = false;
   }
 }
 
@@ -693,6 +695,7 @@ void Cluster::Equalize(const Cluster* value){
      memcpy(BitVectorT,value->BitVectorT,64);
      defined = value->defined;
      boxchecks = value->boxchecks;
+     boxchecksT = value->boxchecksT;
      boxchecksok = value->boxchecksok;
 }
 
@@ -759,9 +762,9 @@ variable. The information is coded as
 
 */
 
-void Cluster::updateBoxChecks(){
+void Cluster::updateBoxChecks(const unsigned char bitvector[],
+                              int& boxchecks){
   boxchecks = 0;
-
   Int9M m1(1,1,0,1,1,0,0,0,0);
   Int9M m2(0,0,1,0,0,1,1,1,0);
 
@@ -781,7 +784,7 @@ void Cluster::updateBoxChecks(){
 
 
   for(unsigned short i=0; i<512; i++){
-    if(ValueAt(i)){
+    if(ValueAt(i,bitvector)){
         if(! ( n1 & i ) ){ 
            part_inter = 0; 
         }
@@ -798,8 +801,13 @@ void Cluster::updateBoxChecks(){
   }
 
   boxchecks = part_inter | no_ext_inter | o1_empty | o2_empty;
-  boxchecksok = true;
 
+}
+
+void Cluster::updateBoxChecks(){
+  updateBoxChecks(BitVector,boxchecks);
+  updateBoxChecks(BitVectorT,boxchecksT);
+  boxchecksok = true;
 }
 
 /*
@@ -1522,6 +1530,7 @@ InInt9M( const ListExpr typeInfo, const ListExpr instance,
      correct=true;
      return SetWord(res);
   }
+  correct=false;
   delete res;
   return SetWord(Address(0));
 }
@@ -1529,12 +1538,13 @@ InInt9M( const ListExpr typeInfo, const ListExpr instance,
 Word
 InCluster(const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct){
-   Cluster* res = new Cluster(false);
-   nl->WriteListExpr(instance);
+   Cluster* res = new Cluster(false,false);
+   //nl->WriteListExpr(instance);
    if(res->ReadFrom(instance)){
       correct = true;
       return SetWord(res);
    }
+   correct = false;
    delete res;
    return SetWord(Address(0));
 }
@@ -1547,6 +1557,7 @@ InPredicateGroup(const ListExpr typeInfo, const ListExpr instance,
       correct = true;
       return SetWord(res);
    }
+   correct = false;
    delete res;
    return SetWord(Address(0));
 } 
@@ -1564,7 +1575,7 @@ CreateInt9M( const ListExpr typeInfo )
 
 Word
 CreateCluster( const ListExpr typeInfo){
-   return (SetWord(new Cluster(false)));
+   return (SetWord(new Cluster(false,false)));
 }
 
 Word

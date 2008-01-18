@@ -1076,7 +1076,8 @@ clusters.
       bool defined;
       STRING_T name;
 
-      int boxchecks; // coded information about this cluster
+      int boxchecks;  // coded information about this cluster
+      int boxchecksT; // information baout the transposed array
       bool boxchecksok;
 
 
@@ -1088,6 +1089,9 @@ clusters.
                      unsigned char Target[64]);
 
       static bool ValueAt(const int pos, const unsigned char BitVector[64]);
+      
+      static void updateBoxChecks(const unsigned char bitvector[],
+                                  int& boxchecks);
 
 };
 
