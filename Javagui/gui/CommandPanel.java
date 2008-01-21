@@ -658,7 +658,9 @@ public class CommandPanel extends JScrollPane {
                                   boolean isAbsolute,
                                   ListExpr expectedResult) {
     // empty commands are successful 
-    command = command.replaceAll("\n"," ").trim();
+ //   command = command.replaceAll("\n"," ").trim();
+      command = command.trim();
+
     if (command.equals("")){
        showPrompt();
        if(isTest){

@@ -433,7 +433,7 @@ static {
                 return;
                }
                while(!input.equals("</query>")){
-                  res.append(input + " ");
+                  res.append(input + "\n");
                   input = in.readLine();
                   //System.out.println("receive"+input);
                   if(input==null){
