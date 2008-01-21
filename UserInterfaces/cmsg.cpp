@@ -219,7 +219,7 @@ ProgMesHandler::handleMsg(NList msgList)
     {
       prg++;
       string bar1(prg, '.');
-      string bar2(50-prg, ' ');
+      string bar2(max(50-prg,0), ' ');
       int p= (ActValue*100 / TotalValue);
       int restTime = static_cast<int>( ceil( rt/p * (100-p) ) );
       int showMin = restTime / 60;
