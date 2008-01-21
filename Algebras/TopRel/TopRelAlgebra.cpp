@@ -79,10 +79,12 @@ static const unsigned short P9 = 512;
 
 
 
-static const  int PART_INTER = 1;
-static const  int NO_EXT_INTER = 2;
-static const  int O1_EMPTY = 4;
-static const  int O2_EMPTY = 8;
+static const int PART_INTER = 1;
+static const int NO_EXT_INTER = 2;
+static const int O1_EMPTY = 4;
+static const int O2_EMPTY = 8;
+static const int O1_NON_EMPTY = 16;
+static const int O2_NON_EMPTY = 32;
 
 
 // The name of the unspecified cluster
@@ -781,7 +783,9 @@ void Cluster::updateBoxChecks(const unsigned char bitvector[],
   int no_ext_inter = NO_EXT_INTER;
   int o1_empty = O1_EMPTY;
   int o2_empty = O2_EMPTY;
-
+  int o1_non_empty = O1_NON_EMPTY;
+  int o2_non_empty = O2_NON_EMPTY;
+   
 
   for(unsigned short i=0; i<512; i++){
     if(ValueAt(i,bitvector)){
@@ -797,10 +801,17 @@ void Cluster::updateBoxChecks(const unsigned char bitvector[],
         if ((i & n4)){
            o2_empty = 0;
         }
+        if(!(i & n3)){
+           o1_non_empty = 0;
+        }
+        if(!(i & n4)){
+           o2_non_empty = 0;
+        }
     } 
   }
 
-  boxchecks = part_inter | no_ext_inter | o1_empty | o2_empty;
+  boxchecks = part_inter | no_ext_inter | o1_empty | o2_empty |
+              o1_non_empty | o2_non_empty;
 
 }
 
@@ -836,6 +847,14 @@ int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
 
   if(!empty2 && (boxchecks & O2_EMPTY)){
       return 2;
+  }
+
+  if(empty1 && (boxchecks & O1_NON_EMPTY)){
+     return 2;
+  }
+
+  if(empty2 && (boxchecks & O2_NON_EMPTY)){
+     return 2;
   }
 
   if(boxchecks & PART_INTER){
