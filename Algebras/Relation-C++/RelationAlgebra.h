@@ -1506,12 +1506,29 @@ for intermediate result sets needed in operator implementations.
 
 */
 
+    Tuple* GetTupleAtPos( const size_t pos ) const;
+    bool SetTupleAtPos( const size_t pos, Tuple* t);
+/*
+Retrieves or assigns a tuple to the memory buffer. If the
+position is out of range or the buffer is not in state inMemory, 
+a null pointer or false will be returned.
+
+For a valid position the stored tuple pointer will be returned or assigned.
+Positions start at zero.
+
+*/
+
     bool IsEmpty() const;
 /*
 Checks if the tuple buffer is empty or not.
 
 */
 
+    inline bool InMemory() const { return inMemory; }
+/*
+Checks if the tuple buffer is empty or not.
+
+*/
     friend class TupleBufferIterator;
 
   private:

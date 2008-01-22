@@ -848,8 +848,10 @@ void TupleBuffer::clearAll()
 	it != memoryBuffer.end(); it++ )
    {
      //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl; 
-     (*it)->DecReference();
-     (*it)->DeleteIfAllowed();
+     if (*it != 0) {
+       (*it)->DecReference();
+       (*it)->DeleteIfAllowed();
+     }  
    }  
    memoryBuffer.clear();
    totalSize=0;
@@ -1015,15 +1017,41 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
 {
   if( inMemory )
   {
-    if( id >= 0 && 
-        id < (TupleId)memoryBuffer.size() &&
-        memoryBuffer[id] != 0 )
-      return memoryBuffer[id];
+    return GetTupleAtPos( id );	  
+  }
+  else 
+  {
+    return diskBuffer->GetTuple( id );
+  }  
+}
+
+Tuple* TupleBuffer::GetTupleAtPos( const size_t pos ) const
+{
+  if( inMemory )
+  {
+    if( pos >= 0 
+	&& pos < memoryBuffer.size()
+	&& memoryBuffer[pos] != 0 ) 
+    {
+      return memoryBuffer[pos];
+    }  
     return 0;
   }
-  else
-    return diskBuffer->GetTuple( id );
+  return 0;
 }
+
+bool TupleBuffer::SetTupleAtPos( const size_t pos, Tuple* t)
+{
+  if( inMemory )
+  {
+    if( pos >= 0 && pos < memoryBuffer.size() )
+    {	    
+      memoryBuffer[pos] = t;	    
+    }
+    return true;	  
+  } 	  
+  return false;
+}	
 
 GenericRelationIterator *TupleBuffer::MakeScan() const
 {
