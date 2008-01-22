@@ -3416,8 +3416,19 @@ ListExpr JoinTypeMap (ListExpr args)
 2.15.2 Value mapping function of operator ~mergejoin~
 
 */
-template<bool expectSorted> int
-MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s);
+
+extern int 
+mergejoin_vm( Word* args, Word& result, 
+	      int message, Word& local, Supplier s );
+
+extern int 
+sortmergejoin_vm( Word* args, Word& result, 
+		  int message, Word& local, Supplier s );
+
+extern int 
+sortmergejoinr_vm( Word* args, Word& result, 
+		   int message, Word& local, Supplier s );
+
 /*
 
 2.15.3 Specification of operator ~mergejoin~
@@ -3446,7 +3457,7 @@ const string MergeJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator extrelmergejoin(
          "mergejoin",        // name
          MergeJoinSpec,     // specification
-         MergeJoin<true>,         // value mapping
+         mergejoin_vm,         // value mapping
          Operator::SimpleSelect,          // trivial selection function
          JoinTypeMap<false, 0>   // type mapping
 );
@@ -3481,7 +3492,7 @@ const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
 Operator extrelsortmergejoin(
          "sortmergejoin",        // name
          SortMergeJoinSpec,     // specification
-         MergeJoin<false>,         // value mapping
+         sortmergejoin_vm,         // value mapping
          Operator::SimpleSelect,          // trivial selection function
          JoinTypeMap<false, 1>   // type mapping
 );
@@ -8678,6 +8689,92 @@ Operator extreladdcounter (
 );
 
 
+struct printrefsInfo : OperatorInfo {
+
+  printrefsInfo()
+  {
+    name      = PRINTREFS; 
+
+    signature = REL_TUPLE + " -> " + REL_TUPLE;
+    syntax    = "_" + PRINTREFS + "_";
+    meaning   = "Prints out the values of the tuple's "
+	        "and attribute's reference counter";
+  }
+};  
+
+static ListExpr printrefs_tm(ListExpr args)
+{
+  NList l(args);
+  
+  static const string err1 = "printrefs expects stream(tuple(...))!";
+  
+  if ( !l.hasLength(1) )
+    return l.typeError(err1);
+ 
+  NList attrs; 
+  if ( l.checkStreamTuple( attrs ) )
+    return NList::typeError(err1);
+  
+  return l.first().listExpr();
+}
+
+
+int printrefs_vm( Word* args, Word& result, int message, 
+                 Word& local, Supplier s)
+{
+  Word w = SetWord(Address(0));
+
+  switch (message)
+  {
+    case OPEN :
+
+      qp->Open(args[0].addr);
+      return 0;
+
+    case REQUEST :
+
+      qp->Request(args[0].addr, w);
+      if (qp->Received(args[0].addr))
+      {
+        Tuple* t = static_cast<Tuple*>( w.addr );
+        int tRefs = t->GetNumOfRefs();
+	cout << (void*)t << ": " << tRefs << "(";
+	for(int i = 0; i < t->GetNoAttributes(); i++) 
+	{
+	  cout << " " << t->GetAttribute(i)->NoRefs();	
+	}       	
+        cout << ")" << endl;
+
+        result.addr = t;
+	return YIELD;
+      }
+      result.addr = 0;
+      return CANCEL;       
+      
+    case CLOSE :
+
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  return 0;
+}
+
+
+struct sortmergejoinrInfo : OperatorInfo {
+
+  sortmergejoinrInfo()
+  {
+    name      = SMJ_R; 
+
+    signature = STREAM_TUPLE + " x " + STREAM_TUPLE + " -> " + STREAM_TUPLE;
+    syntax    = "_ _" + SMJ_R + "[an, bm]";
+    meaning   = "Computes the sortmergejoin but returns the result "
+	        "starting with a random subset.";
+
+    supportsProgress = true;
+  }
+};  
+
 
 
 /*
@@ -8718,6 +8815,9 @@ class ExtRelationAlgebra : public Algebra
 
     AddOperator(avgInfo(), avgFuns, AvgSumSelect, AvgSumTypeMap<true>);
     AddOperator(sumInfo(), sumFuns, AvgSumSelect, AvgSumTypeMap<false>);
+
+    AddOperator(printrefsInfo(), printrefs_vm, printrefs_tm);
+
     AddOperator(varInfo(), varFuns, AvgSumSelect, AvgSumTypeMap<true>);
     
     ValueMapping statsFuns[] =
@@ -8737,7 +8837,12 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergediff);
     AddOperator(&extrelmergeunion);
     AddOperator(&extrelmergejoin);
+    
     AddOperator(&extrelsortmergejoin);
+    AddOperator(sortmergejoinrInfo(), 
+		    sortmergejoinr_vm, 
+		    JoinTypeMap<false, 1> );
+
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelextendstream);
