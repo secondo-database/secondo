@@ -50,7 +50,11 @@ public:
  
    static inline bool isLittleEndian() { return *(char *)&endian_detect == 1;}
 
-   static int rand(void) { return rand(); }
+   static inline int rand(void) { return ::rand(); }
+   static inline int rand(int n) 
+   { 
+     return 1 + (int) (n * 1.0 * (rand() / (RAND_MAX + 1.0))); 
+   }
 
    static void srand(unsigned int seed) { return srand(seed); }
   
