@@ -166,10 +166,11 @@ Operator::Operator( const OperatorInfo& oi,
   selectFunc     = SimpleSelect;
   valueMap       = new ValueMapping[1];
   typeMap        = tm;
-  supportsProgress = false;
-  requestsArgs   = false;
+  supportsProgress = oi.supportsProgress ? true : false;
+  requestsArgs   = oi.requestsArgs ? true : false;
 
   AddValueMapping( 0, vm );
+
 }
 
 Operator::Operator( const OperatorInfo& oi,
@@ -188,8 +189,8 @@ Operator::Operator( const OperatorInfo& oi,
   selectFunc     = sf;
   valueMap       = new ValueMapping[max];
   typeMap        = tm;
-  supportsProgress = false;
-  requestsArgs   = false;
+  supportsProgress = oi.supportsProgress ? true : false;
+  requestsArgs   = oi.requestsArgs ? true : false;
 
   for ( int i = 0; i < max; i++ ) {
     //cout << "Adding " << i << endl;

@@ -72,6 +72,8 @@ struct OperatorInfo {
   string meaning;
   string example;
   string remark;
+  bool supportsProgress;
+  bool requestsArgs;
    
   OperatorInfo() :
     name(""),  
@@ -79,7 +81,9 @@ struct OperatorInfo {
     syntax(""),
     meaning(""),
     example(""),
-    remark("")
+    remark(""),
+    supportsProgress(false),	
+    requestsArgs(false)	
   {}
 
   OperatorInfo(const OperatorInfo& o) :
@@ -88,7 +92,9 @@ struct OperatorInfo {
     syntax(o.syntax),
     meaning(o.meaning),
     example(o.example),
-    remark(o.remark)
+    remark(o.remark),
+    supportsProgress(o.supportsProgress),	
+    requestsArgs(o.requestsArgs)	
   {}
 
   OperatorInfo( const string& _name,
@@ -103,6 +109,8 @@ struct OperatorInfo {
    meaning = _meaning;
    example = _example;
    remark="";
+   supportsProgress = false;
+   requestsArgs = false;
  } 
 
  OperatorInfo( const string& opName, const string& specStr);
