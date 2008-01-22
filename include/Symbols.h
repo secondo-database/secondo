@@ -81,8 +81,14 @@ namespace symbols {
  // relation algebra
 #undef REL 
 #undef TUPLE 
+#undef REL_TUPLE
+#undef PRINTREFS 
  Sym REL("rel");
  Sym TUPLE("tuple");
+ Sym REL_TUPLE("rel(tuple(...))");
+ Sym STREAM_TUPLE("stream(tuple(...))");
+ Sym PRINTREFS("printrefs");
+ Sym SMJ_R("sortmergejoin_r");
 
  // chess algebra
 #undef MATERIAL 
