@@ -21,8 +21,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 May 2007, M. Spiekermann. Initial version.
+Dec 2009, M. Spiekermann. Comment added.
 
-This file contains some functions which can be used for simple type mappings.
+This file contains some utility functions which can be used for 
+simple type mappings. Typically much operators have very simple signatures
+and are candidates for this general implementaton.
 
 */
 
@@ -41,8 +44,30 @@ using namespace std;
 
 namespace mappings {
 
+/*
+1 Auxiliary functions not intended as interface
+
+*/
 bool
 CheckSimpleMap(const string map[], size_t n, ListExpr args, ListExpr& res);
+
+
+/*
+2 Programming Interface
+
+
+The function below can be used for type mappings which map
+n-1 atomic types to another atomic type, e.g. 
+
+----
+    int x int -> bool
+----
+
+The atomic types must be encoded as string constants in an array map.
+Code examples which use this interface can be studied in the 
+module ~StandardAlgebra~.
+
+*/	
 
 ListExpr
 SimpleMap(const string map[], size_t n, ListExpr arg);
@@ -63,6 +88,13 @@ SimpleMaps(const string map[n][m], ListExpr args)
   // to do: more precise error messages
   return NList().typeError(err.str());
 }	
+
+/*
+The next two functions are a variant for overloaded operators.
+The template parameters n and m denote that the operator has n-1 
+arguments and m signatures.
+
+*/
 
 template<int n, int m>
 int
