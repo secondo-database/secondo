@@ -5272,24 +5272,12 @@ int StdPredSym(Word* args, Word& result, int message,
 template<class t1, class t2>
 int TrAdjacentVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPred<t1,t2>(args,result,message,local,s,cl_adjacent);
 }
 
 template<class t1, class t2>
 int TrAdjacentVMSymm(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPredSym<t1,t2>(args,result,message,local,s,cl_adjacent);
 }
 
@@ -5297,24 +5285,12 @@ int TrAdjacentVMSymm(Word* args, Word& result, int message,
 template<class t1, class t2>
 int TrInsideVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPred<t1,t2>(args,result,message,local,s,cl_inside);
 }
 
 template<class t1, class t2>
 int TrInsideVMSymm(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPredSym<t1,t2>(args,result,message,local,s,cl_inside);
 }
 
@@ -5322,24 +5298,12 @@ int TrInsideVMSymm(Word* args, Word& result, int message,
 template<class t1, class t2>
 int TrCoversVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPred<t1,t2>(args,result,message,local,s,cl_covers);
 }
 
 template<class t1, class t2>
 int TrCoversVMSymm(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPredSym<t1,t2>(args,result,message,local,s,cl_covers);
 }
 
@@ -5347,24 +5311,12 @@ int TrCoversVMSymm(Word* args, Word& result, int message,
 template<class t1, class t2>
 int TrCoveredByVM(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPred<t1,t2>(args,result,message,local,s,cl_coveredBy);
 }
 
 template<class t1, class t2>
 int TrCoveredByVMSymm(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPredSym<t1,t2>(args,result,message,local,s,cl_coveredBy);
 }
 
@@ -5372,50 +5324,24 @@ int TrCoveredByVMSymm(Word* args, Word& result, int message,
 template<class t1, class t2>
 int TrEqualVM(Word* args, Word& result, int message,
               Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(v1->BoundingBox() != (v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPred<t1,t2>(args,result,message,local,s,cl_equal);
 }
 
 template<class t1, class t2>
 int TrEqualVMSymm(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(v1->BoundingBox() != (v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPredSym<t1,t2>(args,result,message,local,s,cl_equal);
 }
 
 template<class t1, class t2>
 int TrDisjointVM(Word* args, Word& result, int message,
               Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(v1->BoundingBox().IsDefined() && v2->BoundingBox().IsDefined() &&
-     !v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,true);
-     return 0;
-  }
   return StdPred<t1,t2>(args,result,message,local,s,cl_disjoint);
 }
 
 template<class t1, class t2>
 int TrDisjointVMSymm(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(v1->BoundingBox().IsDefined() && v2->BoundingBox().IsDefined() &&
-     !v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,true);
-     return 0;
-  }
   return StdPredSym<t1,t2>(args,result,message,local,s,cl_disjoint);
 }
 
@@ -5423,48 +5349,24 @@ int TrDisjointVMSymm(Word* args, Word& result, int message,
 template<class t1, class t2>
 int TrOverlapVM(Word* args, Word& result, int message,
               Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPred<t1,t2>(args,result,message,local,s,cl_overlap);
 }
 
 template<class t1, class t2>
 int TrOverlapVMSymm(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPredSym<t1,t2>(args,result,message,local,s,cl_overlap);
 }
 
 template<class t1, class t2>
 int TrContainsVM(Word* args, Word& result, int message,
               Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPred<t1,t2>(args,result,message,local,s,cl_contains);
 }
 
 template<class t1, class t2>
 int TrContainsVMSymm(Word* args, Word& result, int message,
                     Word& local, Supplier s){
-  t1* v1 = static_cast<t1*>(args[0].addr);
-  t2* v2 = static_cast<t2*>(args[1].addr);
-  if(!v1->BoundingBox().Intersects(v2->BoundingBox())){
-     (static_cast<CcBool*>(result.addr))->Set(true,false);
-     return 0;
-  }
   return StdPredSym<t1,t2>(args,result,message,local,s,cl_contains);
 }
 
