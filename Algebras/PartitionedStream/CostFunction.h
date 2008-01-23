@@ -185,7 +185,10 @@ struct CostResult {
   CostResult() : read(0), write(0), cpu(0), value(0.0) {}
   ~CostResult() {}
 
-  void weightResult() { value = wr()*read + ws()*write + wc()*cpu; }
+  void weightResult(float scale=1.0) 
+  { 
+    value = scale * wr()*read + ws()*write + wc()*cpu; 
+  }
    
   ostream& print(ostream& os) const
   {
@@ -212,10 +215,12 @@ class CostFunction {
     const string name;
     const int index;
     int maxMem;
+    float scale;
 
-  CostFunction( const string& inName, int inIndex) :
+  CostFunction( const string& inName, int inIndex, float inScale=1.0) :
     name(inName),
-    index(inIndex)
+    index(inIndex),
+    scale(inScale)
   {
     maxMem = qp->MemoryAvailableForOperator();
   }    
@@ -227,7 +232,7 @@ class CostFunction {
   { 
     CostResult r;
     costs(p, r.read, r.write, r.cpu);
-    r.weightResult();
+    r.weightResult(scale);
     const string prefix="PSA::Cost1_"+name;
     Counter::getRef(prefix+"_read") = r.read;
     Counter::getRef(prefix+"_write") = r.write;
@@ -246,7 +251,7 @@ interchanged.
     CostResult r;
     s.swap();
     costs(s, r.read, r.write, r.cpu);
-    r.weightResult();
+    r.weightResult(scale);
     const string prefix="PSA::Cost2_"+name;
     Counter::getRef(prefix+"_read") = r.read;
     Counter::getRef(prefix+"_write") = r.write;
@@ -265,7 +270,7 @@ interchanged.
 class HashJoinCost : private CostFunction 
 {
   public:
-  HashJoinCost(int index = 0) : CostFunction("hashjoin", index)
+  HashJoinCost(int index = 0) : CostFunction("hashjoin", index, 0.00154)
   {}
   virtual ~HashJoinCost() {}
   
@@ -278,9 +283,14 @@ class HashJoinCost : private CostFunction
     int bufferB = 3*maxMem/4; 
     
     // average number of tuples in buckets
-    const int buckets=997;
+    const int buckets=9997;
     int bufferedTuplesB = min(bufferB / p.tsB, p.cardB);
-    int avgHashChainB = bufferedTuplesB / buckets; 
+
+    // we assume that 5% of the buckets will not be hit. Moreover, we assume
+    // that the buckets are not equally filled. Hence we reduce the average
+    // length by 50%. 
+
+    float avgHashChainB = max(1.0, (0.5 * bufferedTuplesB) / (0.95 * buckets));
     
     // If B does not fit A will be flushed to disk and read
     // multiple times while B is scanned only once. The 
@@ -290,13 +300,22 @@ class HashJoinCost : private CostFunction
     // Disk I/O is proportional to f 
     if (f > 1) {
       write += p.pagesA;
-      read  += f * p.pagesA;
+      // before writing all tuples are used for probing
+      read  += (f - 1) * p.pagesA; 
     }
     
-    // Computation of hash values and probing buckets
+    // hash operations:
     cpu += (f * p.cardA) + p.cardB;
-    cpu += f * p.cardA * avgHashChainB;
 
+    // expected compare operations while probing buckets
+    //cpu += (int)ceil((f * p.cardA * 1.0) * p.cardB * p.sel * avgHashChainB);
+    cpu += (int)ceil(p.cardA * (p.cardB * p.sel));
+    SHOW(cpu)		    
+    cpu += (int)ceil(f * p.cardA * avgHashChainB);
+    SHOW(cpu)		    
+
+    SHOW(p.sizeB)
+    SHOW(bufferB)
     SHOW(f)
     SHOW(bufferedTuplesB)
     SHOW(avgHashChainB) 
@@ -354,7 +373,7 @@ If the tuples do not fit into memory
       int restTuples = p.cardA - maxHeapSize;
       assert(restTuples >= 0); 
       
-      int restPages = (restTuples * p.pagesA) / p.cardA;
+      int restPages = (int)ceil((restTuples * 1.0 * p.pagesA) / p.cardA);
       write += restPages;
       
       SHOW(diskParts)
@@ -374,6 +393,7 @@ If the tuples do not fit into memory
 
     SHOW(read)
     SHOW(write)
+    SHOW(dcpu)
     SHOW(cpu)
 
     TRACE("*** END SortCost ***")
@@ -402,7 +422,8 @@ class SortMergeJoinCost : private CostFunction
 {
   public:
   SortCost sort;
-  SortMergeJoinCost(int index = 0) : CostFunction("sortmergejoin", index)
+  SortMergeJoinCost(int index = 0) : 
+    CostFunction("sortmergejoin", index, 0.0028)
   {}
   virtual ~SortMergeJoinCost() {}
   
@@ -436,7 +457,7 @@ class SortMergeJoinCost : private CostFunction
     // some extra materializations of result groups 
     cpu += p.cardA + p.cardB;
    
-    int resultCard = (int) ceil(p.sel * p.cardA * p.cardB);
+    int resultCard = (int) ceil((p.sel * p.cardA) * p.cardB);
     if (resultCard == 0)
       return;
     
@@ -503,12 +524,11 @@ class ProductFilterCost : private CostFunction
      write = z * p.pagesB;
      cpu = p.cardA * p.cardB;
   }
-  
 };
 
 /*
 The index loopjoin will run ~cardA~ times an exactmatch query retrieving matching tuples.
-In order to retrieve the tuples It gets them from a Btree which stores pairs of
+In order to retrieve the tuples it gets them from a B-tree which stores pairs of
 attribute values and tuple ID. These tuple IDs are used to get the tuples from its
 berkeley-db file by random access. A factor $m = sel * cardB$ defines how
 many matches are returned. In the worst case every matching tuple needs a page
@@ -526,7 +546,7 @@ Hence we have
 class IndexLoopJoinCost : private CostFunction 
 {
   public:
-  IndexLoopJoinCost(int index = 0) : CostFunction("indexloopjoin", index)
+  IndexLoopJoinCost(int index = 0) : CostFunction("indexloopjoin", index, 0.01)
   {}
   
   virtual ~IndexLoopJoinCost() {}
