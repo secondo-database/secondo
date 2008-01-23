@@ -47,14 +47,13 @@ export OptMsg := "true"
 endif
 
 ifeq ($(optimizer),"true")
-OPTIMIZER_SERVER = optserver
+OPTIMIZER_SERVER := optserver
+AUXLIBS := $(SECONDO_SDK)/auxtools/lib 
 
 # compilation options for the PROLOG shell
 ifeq ($(platform),win32)
-PLLDFLAGS := $(PL_LIB_DIR)/libpl.lib -lm
+PLLDFLAGS := -L$(PL_DLL_DIR) -lpl -lm
 endif
-
-AUXLIBS := $(SECONDO_SDK)/auxtools/lib 
 
 platform2 := $(subst 64,,$(platform))
 ifeq ($(platform2),linux)
@@ -66,9 +65,8 @@ ifeq ($(platform2),linux)
   else
     LD_GMP := -l$(GMP_LIB)
   endif
+  PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -L$(AUXLIBS) $(LD_GMP)
 endif
-
-PLLDFLAGS := -L$(PL_LIB_DIR) -l$(PL_LIB) -lreadline -lncurses -lm -L$(AUXLIBS) $(LD_GMP)
 
 ifeq ($(platform),mac_osx)
 PLLDFLAGS :=  -L/opt/local/lib -L$(PL_LIB_DIR) -l$(PL_LIB) $(AUXLIBS)/libreadline.a -lncurses -lm 
