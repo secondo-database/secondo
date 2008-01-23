@@ -70,6 +70,7 @@ for query processing.
 
 #include "SystemInfoRel.h"
 #include "Environment.h"
+#include "Symbols.h"
 
 /*
 Dependencies with other algebras: RelationAlgebra, StandardAlgebra
@@ -81,6 +82,8 @@ Dependencies with other algebras: RelationAlgebra, StandardAlgebra
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+
+using namespace symbols;
 
 inline int
 nextInt(const double d) 
@@ -183,7 +186,96 @@ class PJoinTuple : public InfoTuple
 
 
 
+class CostTuple : public InfoTuple
+{
+   public:
+   int id;
+   int param_arg1_card;
+   int param_arg2_card;
+   int param_res_card;
+   int param_arg1_pages;
+   int param_arg2_pages;	   
+   SEC_STD_REAL param_join_sel;
 
+   string cost_name;
+   int cost_write;
+   int cost_read;
+   int cost_cpu;
+   SEC_STD_REAL cost_value;
+   int real_write; 
+   int real_read;
+   int real_cpu;   
+   SEC_STD_REAL real_runtime;
+
+   CostTuple() {
+   id=0;
+   param_arg1_card = 0;
+   param_arg2_card = 0;
+   param_res_card = 0;
+   param_arg1_pages = 0;
+   param_arg2_pages = 0;   
+   param_join_sel = 0.0;
+   cost_name = "";
+   cost_write = 0;
+   cost_read = 0;
+   cost_cpu = 0;
+   cost_value = 0;
+   real_write = 0; 
+   real_read = 0;
+   real_cpu = 0;   
+   real_runtime = 0;
+   }
+   
+   CostTuple(const CostParams& cp, const CostResult& cr) {
+   id=0;
+   param_arg1_card = cp.cardA;
+   param_arg2_card = cp.cardB;
+   param_res_card = 0;
+   param_arg1_pages = cp.pagesA;
+   param_arg2_pages = cp.pagesB;   
+   param_join_sel = cp.sel;
+   cost_name = "";
+   cost_write = cr.write;
+   cost_read = cr.read;
+   cost_cpu = cr.cpu;
+   cost_value = cr.value;
+   real_write = 0; 
+   real_read = 0;
+   real_cpu = 0;   
+   real_runtime = 0;
+   }
+   virtual ~CostTuple() {} 
+
+   virtual NList valueList() const
+   {
+     NList list;
+     list.makeHead( NList().intAtom(id) );
+     list.append( NList().intAtom(param_arg1_card) );
+     list.append( NList().intAtom(param_arg2_card) );
+     list.append( NList().intAtom(param_res_card) );
+     list.append( NList().intAtom(param_arg1_pages) );
+     list.append( NList().intAtom(param_arg2_pages) );
+     list.append( NList().realAtom(param_join_sel) );
+     list.append( NList().stringAtom(cost_name) );
+     list.append( NList().intAtom(cost_write) );
+     list.append( NList().intAtom(cost_read) );
+     list.append( NList().intAtom(cost_cpu) );
+     list.append( NList().realAtom(cost_value) );
+     list.append( NList().intAtom(real_write) );
+     list.append( NList().intAtom(real_read) );
+     list.append( NList().intAtom(real_cpu) );
+     list.append( NList().realAtom(real_runtime) );
+     return list;
+   } 
+   
+   virtual ostream& print(ostream& os) const
+   {
+      os << id << sep
+         << cost_name << sep
+         << cost_value << endl; 
+      return os;
+   } 
+};
 
 class PJoinRel : public SystemInfoRel
 {
@@ -217,8 +309,38 @@ class PJoinRel : public SystemInfoRel
    } 
 }; 
 
+
+class CostRel : public SystemInfoRel
+{
+   public:
+   CostRel(const string& name) : SystemInfoRel(name) 
+   {}
+   virtual ~CostRel() {}
+
+   virtual void initSchema()
+   { 
+     addAttribute("Id",    INT    );
+     addAttribute("Param_arg1_card",  INT );
+     addAttribute("Param_arg2_card", INT );
+     addAttribute("Param_res_card", INT );
+     addAttribute("Param_arg1_pages", INT );
+     addAttribute("Param_arg2_pages", INT );
+     addAttribute("Param_join_sel", REAL );
+     addAttribute("Cost_name", STRING );
+     addAttribute("Cost_write", INT );
+     addAttribute("Cost_read", INT );
+     addAttribute("Cost_cpu", INT );
+     addAttribute("Cost_value", REAL );
+     addAttribute("Real_write", INT );
+     addAttribute("Real_read",  INT );
+     addAttribute("Real_cpu", INT );
+     addAttribute("Real_runtime", REAL );
+   } 
+}; 
+
 // the system relation instance pointer
 PJoinRel* pjoinRel = 0;
+CostRel* costRel = 0;
 
 
 // extern InObject InRel;
@@ -2184,15 +2306,27 @@ The probe join will be stopped if
       SHOW(cp)
       costFuns = new CostFunctions();
        
+      bool useHint = false;
+      size_t useIndex = 0;
       for (size_t i=1; i<evalFuns->size(); i++) 
       {
-        bool ok = costFuns->append( (evalFuns->get(i)).getName(), i );
+	string name = (evalFuns->get(i)).getName(); 
+	if ( hasPrefix("use_", name) ) {
+	  removePrefix("use_", name);	
+	  useHint = true;
+	  useIndex = i;
+        }		
+	SHOW(name)
+        bool ok = costFuns->append( name, i );
         assert(ok);
       } 
       
       const CostInfo ci = costFuns->findBest(cp);
       SHOW(ci)
       bestPos = ci.cf->index;
+      if (useHint) {
+        bestPos = useIndex;   	      
+      }	      
       assert( bestPos < (int)evalFuns->size() );
       
       FunInfo& f = evalFuns->get(bestPos);
@@ -2733,7 +2867,7 @@ function selection.
 */
 
 
-static ListExpr shuffle2_tm(ListExpr args, const string& op)
+static ListExpr shuffleX_tm(ListExpr args, const string& op)
 {
   NList l(args);
   
@@ -2756,8 +2890,31 @@ static ListExpr shuffle2_tm(ListExpr args, const string& op)
 
 static ListExpr shuffle_tm(ListExpr args)
 {
-  return shuffle2_tm(args, "shuffle");
+  return shuffleX_tm(args, "shuffle");
 }
+
+static ListExpr shuffle2_tm(ListExpr args)
+{
+  NList l(args);
+  
+  static const string e1 = expects( sym.STREAM(), sym.TUPLE() );
+  string err1 = "expecting (" + e1 + " x int)";
+  
+  if ( !checkLength(l, 2, err1) )
+    return l.typeError( err1 );
+  
+  //cout << l.first() << endl;
+
+  NList attrs;
+  if ( checkStreamTuple( l.first(), attrs) 
+       && l.second().str() == sym.INT() )
+  {	  
+    return l.first().listExpr();
+  }
+
+  return l.typeError( argNotCorrect(1) + err1);
+}
+
 
 /*
 The shuffle operator uses a tuple buffer of size $M$ and stores all incoming
@@ -2850,13 +3007,474 @@ struct ShuffleBuf {
 }; 
 
 
+  /*
+struct ShuffleInfo {
+
+  ShuffleInfo(int maxMem = 4 * 1024 * 1024, int maxTuples = 512)
+    : persBuf(3/4 * maxMem), 
+      memBuf(maxMem),
+      streamPos(0),
+      pos(maxTuples/2),
+      memTuples(maxTuples),
+      skip(2),
+      run(1),	
+      stepwidth(2),
+      bufIter(0),
+      memBufFinished(false),
+      memCtr(0),		   	   
+      persCtr(0)		   	   
+  {}
+
+  ~ShuffleInfo()
+  {	  
+    if ( bufIter != 0) {
+      delete bufIter;
+      bufIter = 0;      
+    }
+  }     
+
+  void append(Tuple* t) {
+
+    if ( (streamPos % skip) == 0 ) { 
+      // tuple will be selected for the	front part of the
+      // output stream.
+   
+    if ( memBuf.GetNoTuples() == memTuples ) 
+    {
+      size_t p = nextReplacePos(); 	    
+      if ( p >= memTuples )
+      {
+	// restart      
+        initReplacePos();
+	p = nextReplacePos();
+      }
+        assert( p < memTuples );
+        // store t in buffer
+	t->IncReference();
+        memBuf.SetTupleAtPos(p, t);
+	assert( memBuf.InMemory() );
+    }
+    else
+    {	    
+      memBuf.AppendTuple(t);	    
+    }    
+
+    } // end of if ( (streamPos % skip) == 0 )
+    else
+    {
+      persCtr++;	    
+      persBuf.AppendTuple(t);	    
+    }	    
+    streamPos++; 
+  }	  
+
+  Tuple* getNext() {
+     
+    Tuple* result = 0;
+
+    // return the tuples of the memory buffer
+    if ( memBufFinished == false ) 
+    {
+      if ( bufIter == 0) {
+        bufIter = memBuf.MakeScan();	
+      }	      
+      memCtr++;
+      result = bufIter->GetNextTuple();
+
+      if (result == 0) {	      
+        cerr << endl;
+        cerr << "streamPos" << streamPos << endl;	    
+        cerr << "memBuf: " << memBuf.GetNoTuples() << endl;	    
+        cerr << "memCtr: " << memCtr << endl;	    
+        cerr << "persBuf: " << persBuf.GetNoTuples() << endl;
+        cerr << "persCtr: " << persCtr << endl;
+        memBufFinished = true;
+	delete bufIter;
+	bufIter = 0;
+      } 	
+    }
+    
+    // return the tuples of the persistent buffer
+    if ( memBufFinished == true)
+    {
+      if ( bufIter == 0) {
+        bufIter = persBuf.MakeScan();	
+      }	      
+      result = bufIter->GetNextTuple();      	      
+    }	    
+
+    return result;      
+  }	  
+
+  inline void initReplacePos() 
+  {
+    skip = max((size_t)2, streamPos / memTuples);
+    run++;
+    pos = memTuples / 2;
+
+    // compress buffer: replace i by 2i. The replaced positions
+    // are transferred to persBuf.
+
+    cerr << endl << "compressing buffer" << endl;
+    for(size_t i=1; i < memTuples/2; i++)
+    {
+	// transfer pos 2*i-1 to persBuf
+	Tuple* t = memBuf.GetTupleAtPos(2*i-1);
+	assert(t != 0);
+	t->DecReference();
+	persCtr++;
+	persBuf.AppendTuple(t);
+    }	
+
+    for(size_t i=1; i < memTuples/2; i++)
+    {	    
+	// override pos i
+	Tuple* t = memBuf.GetTupleAtPos(2*i);
+	assert(t != 0);
+	memBuf.SetTupleAtPos(i, t);
+	memBuf.SetTupleAtPos(2*i, 0);
+    }
+
+    bool trace = false;
+
+    if (trace) {
+    for(size_t i=0; i < memTuples/2; i++) {
+	Tuple* t = memBuf.GetTupleAtPos(i);
+        cerr << i << ": ";		
+	if (t == 0)
+          cerr << "null pointer!";
+        else
+	  cerr << *t;
+	cerr << endl;  	  
+    }
+    }
+
+    cerr << endl;
+	    
+    cerr << endl
+	 << "run: " << run 
+	 << " streamPos: " << streamPos
+	 << " bufindex: " << pos
+	 << " skip: " << skip 
+	 << endl; 
+  }	  
+
+  inline size_t nextReplacePos() {
+
+    cerr << "p" << pos << ", ";
+    size_t res = pos;
+    pos++;
+    return res;
+  }	  
+
+  TupleBuffer persBuf;
+  TupleBuffer memBuf;
+  size_t streamPos;
+  size_t pos;
+  size_t memTuples;
+  size_t skip;
+  size_t run;
+  size_t stepwidth;
+
+  GenericRelationIterator* bufIter;
+  bool memBufFinished;
+  size_t memCtr;
+  size_t persCtr;
+
+};
+  */
+
+/*
+Operator ~shuffle~ 
+
+*/
+
+struct ShuffleInfo {
+
+  ShuffleInfo(int maxMem = 4 * 1024 * 1024, int maxTuples = 100000 )
+    : persBuf(3/4 * maxMem), 
+      memBuf(maxMem),
+      memTuples(500),	
+      skip(maxTuples/500),
+      streamPos(0),
+      bufIter(0),
+      memBufFinished(false),
+      trace(false)	
+  {}
+
+  ~ShuffleInfo()
+  {	  
+    if ( bufIter != 0) {
+      delete bufIter;
+      bufIter = 0;      
+    }
+  }     
+
+  void append(Tuple* t) {
+
+    if ( (streamPos % skip) == 0 ) 
+    { 
+      // tuple will be selected for the	front part of the
+      // output stream.
+      memBuf.AppendTuple(t);	    
+
+    } // end of if ( (streamPos % skip) == 0 )
+    else
+    {
+      persBuf.AppendTuple(t);	    
+    }	    
+    streamPos++; 
+  }	  
+
+  Tuple* getNext() {
+     
+    Tuple* result = 0;
+
+    // return the tuples of the memory buffer
+    if ( memBufFinished == false ) 
+    {
+      if ( bufIter == 0) {
+        bufIter = memBuf.MakeScan();	
+      }	      
+      result = bufIter->GetNextTuple();
+
+      if (result == 0) {	      
+
+	if (trace) {      
+          cerr << endl;
+          cerr << "streamPos: " << streamPos << endl;	    
+          cerr << "memBuf   : " << memBuf.GetNoTuples() << endl;	    
+          cerr << "persBuf  : " << persBuf.GetNoTuples() << endl;
+        }  
+        memBufFinished = true;
+	delete bufIter;
+	bufIter = 0;
+      } 	
+    }
+    
+    // return the tuples of the persistent buffer
+    if ( memBufFinished == true)
+    {
+      if ( bufIter == 0) {
+        bufIter = persBuf.MakeScan();	
+      }	      
+      result = bufIter->GetNextTuple();      	      
+    }	    
+
+    return result;      
+  }	  
+
+
+  TupleBuffer persBuf;
+  TupleBuffer memBuf;
+  size_t memTuples;
+  size_t skip;
+  size_t streamPos;
+
+  GenericRelationIterator* bufIter;
+  bool memBufFinished;
+  bool trace;
+
+};	
+
+
+
+
+
+static int shuffle2_vm( Word* args, 
+                        Word& result, int message, 
+                        Word& local, Supplier s    )
+{
+  //args[0]: stream(tuple(y))  
+  //args[1]: int
+  
+  static const string pre = "shuffle2: ";
+  
+  ShuffleInfo* info = static_cast<ShuffleInfo*>( local.addr );
+  Word stream = args[0];
+  int numTuples = StdTypes::GetInt( args[1] );
+  
+  switch (message)
+  {
+    case OPEN :
+    { 
+      info = new ShuffleInfo(4 * 1024 * 1024, numTuples);	    
+      qp->Open(stream.addr);
+      Tuple* t = nextTuple(stream);
+      while( t != 0 )
+      {
+        info->append(t);
+        t = nextTuple(stream);
+      } 
+      local.addr = info;
+       
+      return 0;
+    } 
+    
+    case REQUEST :
+    {
+      Tuple* t = info->getNext();
+      if ( t != 0 )
+      {
+        result.addr = t;
+        return YIELD;
+      }
+      else
+      {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    
+    case CLOSE :
+    {
+      qp->Close(stream.addr);
+      delete info;
+      
+      return 0;
+    }
+
+    default : { assert(false); }  
+  }  
+  return 0;
+}   
+
+
+/*
+Operator ~shuffle~ 
+
+*/
+
+
+struct ShuffleInfoRAND : public ShuffleInfo {
+
+  ShuffleInfoRAND() : ShuffleInfo(), run(0)
+  {}
+
+  ~ShuffleInfoRAND()
+  {}     
+
+  void append(Tuple* t) {
+	  
+    int i = streamPos % memTuples;  	  
+    if ( i == 0 ) {
+     run++;
+
+     if (trace) {
+
+       cerr << endl
+	    << "memTuples: " << memTuples   
+	    << ", run: " << run
+	    << ", replaced slots:" 
+	    << endl;
+     }  
+    }	     
+
+    if (run == 1) {
+      // fill buffer the first time	    
+      memBuf.AppendTuple(t);	    
+    }	    
+    else { // run > 1
+
+    size_t r = WinUnix::rand(run); 
+    assert( (r >= 1) && (r <= run) );
+
+    if ( r == run )
+    { 
+      if (trace) {
+        cerr << i << " ";	
+      }	
+
+      // tuple will be selected for the	front part 
+      // of the output stream.
+      Tuple* s = memBuf.GetTupleAtPos(i);
+      s->DecReference();
+      persBuf.AppendTuple(s);
+      t->IncReference();       
+      memBuf.SetTupleAtPos(i, t);
+    } 
+    else
+    {
+      persBuf.AppendTuple(t);	    
+    }
+
+    } // end of run > 1
+
+    streamPos++; 
+  }
+
+  size_t run;  
+
+};	
+
 static int shuffle_vm( Word* args, 
+                        Word& result, int message, 
+                        Word& local, Supplier s    )
+{
+  //args[0]: stream(tuple(y))  
+  
+  static const string pre = "shuffle: ";
+  
+  ShuffleInfoRAND* info = static_cast<ShuffleInfoRAND*>( local.addr );
+  Word stream = args[0];
+  
+  switch (message)
+  {
+    case OPEN :
+    { 
+      info = new ShuffleInfoRAND();	    
+      qp->Open(stream.addr);
+      Tuple* t = nextTuple(stream);
+      while( t != 0 )
+      {
+        info->append(t);
+        t = nextTuple(stream);
+      } 
+      local.addr = info;
+       
+      return 0;
+    } 
+    
+    case REQUEST :
+    {
+      Tuple* t = info->getNext();
+      if ( t != 0 )
+      {
+        result.addr = t;
+        return YIELD;
+      }
+      else
+      {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    
+    case CLOSE :
+    {
+      qp->Close(stream.addr);
+      delete info;
+      
+      return 0;
+    }
+
+    default : { assert(false); }  
+  }  
+  return 0;
+}   
+
+static ListExpr memshuffle_tm(ListExpr args)
+{
+  return shuffleX_tm(args, "memshuffle");
+}
+
+static int memshuffle_vm( Word* args, 
                        Word& result, int message, 
                        Word& local, Supplier s    )
 {
   //args[0]: Input stream(ptuple(y))  or stream(tuple(y)) 
   
-  static const string pre = "shuffle: ";
+  static const string pre = "memshuffle: ";
   
   ShuffleBuf* info = static_cast<ShuffleBuf*>( local.addr );
   
@@ -2913,20 +3531,158 @@ static int shuffle_vm( Word* args,
 }   
 
 
-static ListExpr memshuffle_tm(ListExpr args)
+static ListExpr runtime_tm(ListExpr list)
 {
-  return shuffle2_tm(args, "memshuffle");
+  NList args(list);
+
+  if (!args.hasLength(7))
+    return NList::typeError("Expecting 7 arguments");  
+
+  if ( !args.elem(1).isSymbol(STRING) )
+    return NList::typeError("Expecting a string as first argument");  
+  if ( !args.elem(2).isSymbol(INT) )
+    return NList::typeError("Expecting an int as second argument");  
+  if ( !args.elem(3).isSymbol(INT) )
+    return NList::typeError("Expecting an int as third argument");  
+  if ( !args.elem(4).isSymbol(REAL) )
+    return NList::typeError("Expecting a real as forth argument");  
+  if ( !args.elem(5).isSymbol(REAL) )
+    return NList::typeError("Expecting a real as fifth argument");  
+  if ( !args.elem(6).isSymbol(REAL) )
+    return NList::typeError("Expecting a real as sixth argument"); 
+  if ( !args.elem(7).isSymbol(INT) )
+    return NList::typeError("Expecting an int as seventh argument"); 
+
+  return NList(INT).listExpr();  
 }
 
-static int memshuffle_vm( Word* args, Word& result, int message, 
-                    Word& local, Supplier s)
+static int runtime_vm( Word* args, Word& result, int message, 
+                       Word& local, Supplier s)
 {
   // args[0]: Input stream(ptuple(y))  or stream(tuple(y)) 
-  return shuffle_vm(args, result, message, local, s);
+  result = qp->ResultStorage(s);
+  Word w;
+  
+  qp->Request(args[0].addr, w);
+  string name = StdTypes::GetString(w);
+  qp->Request(args[1].addr, w);
+  int c1 = StdTypes::GetInt(w);
+  qp->Request(args[2].addr, w);
+  int c2 = StdTypes::GetInt(w);
+  qp->Request(args[3].addr, w);
+  int s1 = (int)floor( StdTypes::GetReal(w) + 0.5 );
+  qp->Request(args[4].addr, w);
+  int s2 = (int)floor( StdTypes::GetReal(w) + 0.5 );
+  qp->Request(args[5].addr, w);
+  SEC_STD_REAL sel = StdTypes::GetReal(w);
+
+  SHOW(name)
+  SHOW(c1)
+  SHOW(s1)	  
+  CostParams p(c1, s1, c2, s2, sel);
+  cout << p << endl;
+  StopWatch t;
+  
+  // evaluate the last argument
+  t.start();
+  qp->Request(args[6].addr, w);
+  double rt = t.diffSecondsReal(); 
+  cout << rt << endl;
+
+  CostFunctions* costFuns = new CostFunctions();
+  costFuns->append( name, 1 );
+  const CostInfo ci = costFuns->findBest(p);
+  SHOW(ci)
+ 
+  // set result value
+  CcInt* funRes = static_cast<CcInt*>( w.addr);
+  CcInt* res = static_cast<CcInt*>( result.addr );
+  res->CopyFrom(funRes);
+
+  // store values in system table
+  static int id = 0;
+  id++;
+
+  CostTuple* cost = new CostTuple(p, ci.costs);
+  cost->cost_name = name;
+  cost->id = id;
+  cost->param_res_card = res->GetIntval(); 
+  cost->real_runtime = rt;
+  cost->real_write = Counter::getRef( CTR_TBUF_PAGES_W ); 
+  cost->real_read = Counter::getRef( CTR_TBUF_PAGES_R );
+  long& intHash = Counter::getRef(CTR_INT_HASH);
+  long& intLess  = Counter::getRef(CTR_INT_LESS);
+  long& intEqual = Counter::getRef(CTR_INT_EQUAL);
+  long& intCompare = Counter::getRef(CTR_INT_COMPARE);
+  cost->real_cpu = intHash + intLess + intEqual + intCompare;
+
+  costRel->append(cost, false);
+  return 0; 
 }   
 
-
 }; // end of PartStreamMappings
+
+class SIG {
+
+  public:	
+  SIG( const string& p1, 
+       const string& p2, 
+       const string& p3 = "", 
+       const string& p4 = "", 
+       const string& p5 = "", 
+       const string& p6 = "", 
+       const string& p7 = "", 
+       const string& p8 = "") {
+
+    map.push_back(p1);	  
+    map.push_back(p2);	  
+    if (p3 != "")	  
+      map.push_back(p3);	  
+    if (p4 != "")	  
+      map.push_back(p4);	  
+    if (p5 != "")	  
+      map.push_back(p5);	  
+    if (p6 != "")	  
+      map.push_back(p6);	  
+    if (p7 != "")	  
+      map.push_back(p7);	  
+    if (p8 != "")	  
+      map.push_back(p8);	  
+  }	  
+
+  string str() {
+
+    string res="";	  
+    size_t args = map.size();
+    assert(args >= 2);
+
+    res=map[0];
+    for(size_t i = 1; i <= args-2; i++) {
+      res += " x " + map[i];	    
+    }
+    res += " -> " + map[args-1];
+    return res;    
+  }	  
+
+  private:
+  vector<string> map;
+
+};	
+
+struct runtimeInfo : OperatorInfo {
+
+  runtimeInfo()
+  {
+    name      = "runtime"; 
+    signature = SIG(STRING, INT, INT, 
+                     REAL, REAL, REAL, "(map ... -> int)", INT).str();
+    syntax    = "runtime(s,t1,t2,s1,s2,sel,f)";
+    meaning   = "Determines the runtime for a join given by function f and "
+                "applies the cost function named by s with the parameters: "
+		"t1,t2,s1,s2 (input cardinalities and avg. tuple sizes), "
+		"sel (join selectivity)";
+  }
+};  
 
 
 // Defining static member sym
@@ -3113,11 +3869,10 @@ class PartStreamAlgebra : public Algebra
       AddOperator( op );
 
         oi.name =      "shuffle";
-        oi.signature = "stream(ptuple(y)) -> stream(ptuple(y)), "
-                       "stream(tuple(y)) -> stream(tuple(y))";
+        oi.signature = "stream(tuple(y)) -> stream(tuple(y))";
         oi.syntax =    "_ shuffle";
-        oi.meaning =   "Overloaded operator which materializes a stream "
-                       "and produces output tuples in random order.";
+        oi.meaning =   "Materializes a stream "
+                       "returns the first 500 tuples in random order.";
       
       op = new Operator(
         oi,  
@@ -3125,6 +3880,21 @@ class PartStreamAlgebra : public Algebra
         psm::shuffle_tm     
       );
       
+      AddOperator( op );
+
+        oi.name =      "shuffle2";
+        oi.signature = "stream(tuple(y)) x int -> stream(tuple(y))";
+        oi.syntax =    "_ shuffle2[ i ]";
+        oi.meaning =   "Every i-th tuple is passed directly to the output "
+	               "(non-blocking). The other tuples are materialized "
+		       "and returned afterwards.";
+      
+      op = new Operator(
+        oi,  
+        psm::shuffle2_vm,    
+        psm::shuffle2_tm     
+      );
+
       AddOperator( op );
 
         oi.name =      "memshuffle";
@@ -3157,7 +3927,10 @@ class PartStreamAlgebra : public Algebra
       
       AddOperator( op );
 
-      
+      op = new Operator( runtimeInfo(), psm::runtime_vm, psm::runtime_tm );
+      AddOperator( op );
+      op->SetRequestsArguments();
+
     }
 
     // We don't care about the deletion of Algebra and TypeConstructor
@@ -3181,8 +3954,10 @@ InitializePartitionedStreamAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   qp = qpRef;
 
   pjoinRel = new PJoinRel("SEC2PJOIN");
+  costRel = new CostRel("SEC2PJOINCOST");
   SystemTables& st = SystemTables::getInstance();
   st.insert(pjoinRel);
+  st.insert(costRel);
   
   return (&partStreamAlgebra);
 }
