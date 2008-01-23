@@ -90,7 +90,7 @@ Number   : 1
 Signature: stream(tuple(y)) -> stream(tuple(y))
 Example  : query plz feed shuffle count
 Result   : 41267
-Remark   : Currently this is the same implementation as memshuffle!
+Remark   : This implementation materializes a stream and guarantees that the first 500 Tuples are a random subset!
 
 
 Operator : shuffle
@@ -99,5 +99,20 @@ Signature: stream(ptuple(y)) -> stream(ptuple(y))
 Example  : query plz pfeed[1000] shuffle pdelete count
 Result   : crashes
 Remark   : Currently, this overloaded operator is not implemented yet!  
+
+Operator : shuffle2
+Number   : 1
+Signature: stream(tuple(y)) -> stream(tuple(y))
+Example  : query plz feed shuffle2[41267] count
+Result   : 41267
+Remark   : This implementation materializes a stream and guarantees that the first 500 Tuples are a random subset!
+
+
+
+Operator : runtime
+Number   : 1
+Signature: string x int x int x real x real x real x (map ... -> int) -> int
+Example  : query runtime("hj", 50, 50, 1.0, 1.0, 1.0, plz feed head[50] plz feed head[50] {A2} hashjoin[PLZ, PLZ_A2, 9997] count)
+Result   : 50
 
 

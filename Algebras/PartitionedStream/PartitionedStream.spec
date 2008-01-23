@@ -18,6 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator shuffle alias SHUFFLE pattern _ op
+operator shuffle2 alias SHUFFLE2 pattern _ op [ _ ]
 operator memshuffle alias MEMSHUFFLE pattern _ op
 
 operator pfeed alias PFEED pattern _ op [ _ ]
@@ -38,7 +39,7 @@ operator pjoin2 alias PJOIN2 pattern _ _ op [ funlist ]
 operator pjoin1 alias PJOIN1 pattern _ _ op [ _; funlist ]
          implicit parameters left, right types PSTREAM1, ANY2
 
-
+operator runtime alias RUNTIME pattern op (_, _, _, _, _, _ , _)
 
 #operator loopa alias LOOPA pattern _ _ op [ fun ] 
 #         implicit parameters first, second types ELEMENT, ELEMENT2
