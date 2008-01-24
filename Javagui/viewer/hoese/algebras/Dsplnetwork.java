@@ -176,13 +176,14 @@ public class Dsplnetwork extends DisplayGraph
   * @param inout_xQueryResult Result object. If everything is fine the object
   * will be added.
   */
-	public void init(ListExpr in_xType, 
+	public void init(String name,
+                   ListExpr in_xType, 
 					 ListExpr in_xValue, 
 					 QueryResult inout_xQueryResult)
 	{
 		try 
     {
-			AttrName = in_xType.symbolValue();
+			AttrName = name;
 			m_xNetwork = new Network(in_xValue);
 			inout_xQueryResult.addEntry(this);
 		}

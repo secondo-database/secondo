@@ -52,8 +52,8 @@ public  Dsplfilename(){
 /** Adds a button to the query which on a Click would be 
   * pop up a window
   **/
-public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     init(type,0,value,0,qr);
+public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
+     init(name, type,0,value,0,qr);
 }
   
 
@@ -61,9 +61,9 @@ public String toString(){
    return Entry;
 }
 
-public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+public void init (String name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
-     String T = new String(type.symbolValue());
+     String T = name;
      String V;
 
      if (value.listLength()==1){

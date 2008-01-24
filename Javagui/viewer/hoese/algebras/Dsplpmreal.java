@@ -40,8 +40,8 @@ public String toString(){
    return Entry;
 }
 
-public void init(ListExpr type,int typewidth,ListExpr value,int valuewidth,QueryResult qr){
-  AttrName = type.symbolValue();
+public void init(String name,ListExpr type,int typewidth,ListExpr value,int valuewidth,QueryResult qr){
+  AttrName = name;
   Move = new TotalMove();
   String V; // value of this pmreal
   V = "pmreal";

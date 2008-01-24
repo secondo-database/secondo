@@ -167,15 +167,15 @@ public class LEUtils {
    * @param value the value of the datatype
    * @param qr Collects the results
    */
-  public static void analyse (ListExpr type, ListExpr value, QueryResult qr) {
+  public static void analyse (String name, ListExpr type, ListExpr value, QueryResult qr) {
     DsplBase db;
     if (type.isAtom()) {
       db = getClassFromName(type.symbolValue());
-      db.init(type, value, qr);
+      db.init(name, type, value, qr);
     }
     else {
       db = getClassFromName(type.first().symbolValue());
-      db.init(type, value, qr);
+      db.init(name, type, value, qr);
     }
   }
 

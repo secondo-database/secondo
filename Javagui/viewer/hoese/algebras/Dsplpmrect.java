@@ -54,8 +54,8 @@ public Shape getRenderObject(int num,AffineTransform at){
   return Rect;
 }
 
-public void init(ListExpr type,ListExpr value,QueryResult qr){
-  AttrName = type.symbolValue();
+public void init(String name, ListExpr type,ListExpr value,QueryResult qr){
+  AttrName = name;
   Move = new TotalMove();
   if(!Move.readFrom(value,linearClass)){
      qr.addEntry("("+AttrName +"WrongListFormat )");

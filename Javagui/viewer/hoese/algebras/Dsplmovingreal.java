@@ -367,12 +367,12 @@ public class Dsplmovingreal extends DsplGeneric implements
    * @see sj.lang.ListExpr
    * @see <a href="Dsplmovingrealsrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     init(type,0,value,0,qr);
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+     init(name,type,0,value,0,qr);
   }
 
-  public void init (ListExpr type,int typeWidth, ListExpr value,int valueWidth, QueryResult qr) {
-    AttrName = extendString(type.symbolValue(),typeWidth);
+  public void init (String name, ListExpr type,int typeWidth, ListExpr value,int valueWidth, QueryResult qr) {
+    AttrName = extendString(name,typeWidth);
     err=true;
     ScanValue(value);
     computeMinMax();

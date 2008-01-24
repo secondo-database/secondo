@@ -160,9 +160,9 @@ public class Dsplpath extends DisplayGraph implements DsplSimple
 	 *            queryresult to display output.
 	 */
 
-	public void init(ListExpr type, ListExpr value, QueryResult qr)
+	public void init(String name, ListExpr type, ListExpr value, QueryResult qr)
 	{
-		AttrName = type.symbolValue();
+		AttrName = name;
 		ScanValue(value);
 		if (err)
 		{

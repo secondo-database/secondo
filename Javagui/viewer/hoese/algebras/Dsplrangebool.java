@@ -71,15 +71,15 @@ public class Dsplrangebool extends DsplGeneric {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplrangeboolsrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
     String e = "";
     if ((!ScanValue(value)) || value.isEmpty())
-      qr.addEntry("(" + type.symbolValue() + ":[?,?])"); 
+      qr.addEntry("(" + name + ":[?,?])"); 
     else {
       //qr.addEntry(type.symbolValue()+": "+ranges); //.elementAt(0));
       for (int i = 0; i < ranges.size(); i += 1)
         e = e + " " + (String)ranges.elementAt(i);
-      qr.addEntry(type.symbolValue() + ":" + e);
+      qr.addEntry(name+ ":" + e);
     }
     return;
   }

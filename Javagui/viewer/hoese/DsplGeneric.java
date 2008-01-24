@@ -27,7 +27,7 @@ import viewer.HoeseViewer;
 /**
  * A generic implementation of the DsplBase Interface. Useful as baseclass to avoid
  * implementation of all the methods. If the datatype is unknown this class will be used.
- * @author  Thomas Höse
+ * @author  Thomas Hoese
  * @version 0.99 1.1.02
  */
 public class DsplGeneric implements DsplBase,DsplSimple {
@@ -69,27 +69,22 @@ public class DsplGeneric implements DsplBase,DsplSimple {
    * @see <a href="DsplGenericsrc.html#init">Source</a>
    */
 
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    init(type,0,value,0,qr);
+  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
+    init(name,type,0,value,0,qr);
   }
 
 
- public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+ public void init (String name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
     if(!this.getClass().equals(theClass)) {
-       init(type,value,qr);
+       init(name,type,value,qr);
        return;
     }
 
-    String ts;
-    if (type.isAtom())
-      ts = type.writeListExprToString();
-    else
-     ts = type.first().writeListExprToString();
-     String T = "Unknown Type";
-     String N = extendString(ts,typewidth);
-     qr.addEntry(N + " : " + T);
-     return;
+    String ts = "no display function defined";
+    String N = extendString(name,typewidth);
+    qr.addEntry(N + " : " + ts);
+    return;
 
   }
 

@@ -31,7 +31,7 @@ import tools.Reporter;
  * The general class for all datatypes that a viewed by a external application.
  * An external type must be registered in the configuration-file. A temporal file is created
  * for the data, that need to be decoded from Base64 -format.
- * @author  Thomas Höse
+ * @author  Thomas Hoese
  * @version 0.99 1.1.02
  */
 public class Dsplexternal
@@ -152,8 +152,8 @@ public class Dsplexternal
    * @see sj.lang.ListExpr
    * @see <a href="Dsplexternalsrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = name;
     String s = scanValue(value);
     if (s != null)
       qr.addEntry("(external?:" + s + ")"); 

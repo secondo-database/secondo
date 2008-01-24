@@ -50,8 +50,8 @@ public  Dsplpicture(){
 /** Adds a button to the query which on a Click would be 
   * pop up a window
   **/
-public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     init(type,0,value,0,qr);
+public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+     init(name,type,0,value,0,qr);
 }
   
 /* returns the String representation of this */
@@ -62,9 +62,9 @@ public String toString(){
 /** reads the data from the value list.
   */
   
-public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
-     String T = new String(type.symbolValue());
+     String T = name;
      T=extendString(T,typewidth);
      if(value.listLength()!=5){
         qr.addEntry(T+" : Error");

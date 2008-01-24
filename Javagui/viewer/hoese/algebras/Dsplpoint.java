@@ -151,15 +151,16 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple
    * @see sj.lang.ListExpr
    * @see <a href="Dsplpointsrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     init(type,0,value,0,qr);
+  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
+     init(name, type,0,value,0,qr);
   }
   
 
-  public void init (ListExpr type, int  typewidth,
+  public void init (String name,
+                    ListExpr type, int  typewidth,
                     ListExpr value, int valueWidth, 
                     QueryResult qr) {
-    AttrName = extendString(type.symbolValue(),typewidth);
+    AttrName = extendString(name,typewidth);
     if(isUndefined(value)){
        qr.addEntry(new String("" + AttrName + ": undefined"));
        return;

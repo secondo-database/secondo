@@ -46,8 +46,8 @@ public class Dsplimage
     return  TestFrame;
   }
 
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = name;
     lab = new JLabel(new ImageIcon(value.stringValue()));
     lab.setOpaque(true);
     qr.addEntry(this);

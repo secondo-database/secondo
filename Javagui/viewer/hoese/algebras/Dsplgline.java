@@ -147,13 +147,14 @@ public class Dsplgline extends DisplayGraph
    * @param inout_xQueryResult Result object. If everything is fine the object
    * will be added.
    */
-  public void init(ListExpr in_xType, 
+  public void init(String name,
+                   ListExpr in_xType, 
                    ListExpr in_xValue, 
                    QueryResult inout_xQueryResult)
   {
     try 
     {
-      AttrName = in_xType.symbolValue();
+      AttrName = name;
       if(isUndefined(in_xValue))
       {
         inout_xQueryResult.addEntry(AttrName + ": undefined");

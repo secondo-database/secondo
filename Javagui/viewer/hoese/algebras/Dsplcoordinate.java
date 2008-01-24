@@ -78,11 +78,11 @@ public class Dsplcoordinate extends DsplGeneric {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplcoordinatesrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
     if (!ScanValue(value))
-      qr.addEntry("(" + type.symbolValue() + ":" + koord + ")"); 
+      qr.addEntry("(" + name + ":" + koord + ")"); 
     else 
-      qr.addEntry(type.symbolValue() + ":" + koord);
+      qr.addEntry(name + ":" + koord);
     return;
   }
 }

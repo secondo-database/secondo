@@ -93,8 +93,8 @@ public class Dsplintimebool extends Dsplinstant {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplintimeboolsrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = name;
     String v = getString(value);     
     entry = AttrName + ":" + v;
     if(!err){
@@ -104,10 +104,10 @@ public class Dsplintimebool extends Dsplinstant {
     }
   }
 
-public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth,
+public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth,
 QueryResult qr)
   {
-     String T = new String(type.symbolValue());
+     String T = name;
      String V = getString(value);
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);

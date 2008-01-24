@@ -551,7 +551,7 @@ private Vector getTupleValues(ListExpr LE, Vector vtypes )
 			tupleVec.add( getExprHistogram( attributeValue ));
 		}  else if ( type.equals( "filepath" )) {
        Dsplfilepath fp = new Dsplfilepath();
-       fp.init(filepathtype,attributeValue,null);
+       fp.init(filepathtype.toString(),filepathtype,attributeValue,null);
        tupleVec.add(fp);
     }else {
 			tupleVec.add( attributeValue.writeListExprToString() );

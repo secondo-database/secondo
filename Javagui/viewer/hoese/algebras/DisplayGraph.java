@@ -239,10 +239,10 @@ public abstract class DisplayGraph extends DsplGeneric
   }
 
 
-  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   { minTypeWidth = typewidth;
     minValueWidth = valuewidth;
-    init(type,value,qr);
+    init(name, type,value,qr);
   }
 
 }

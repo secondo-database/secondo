@@ -271,8 +271,8 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
    * @see sj.lang.ListExpr
    * @see <a href="Dsplmovingpointsrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = name;
     int length = value.listLength();
     double xlow;
     double ylow;

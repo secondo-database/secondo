@@ -41,7 +41,7 @@ public class Dspltuple extends DsplGeneric {
    * @see sj.lang.ListExpr
    * @see <a href="Dspltuplesrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
     int maxAttribNameLen = maxAttributLength(type.second());
     while (!value.isEmpty()) {
       displayTuple(type.second(), value.first(), maxAttribNameLen, qr);
@@ -52,26 +52,38 @@ public class Dspltuple extends DsplGeneric {
     return;
   }
 
+
+    
+
   /**
    * A method which create an instance of each displayclass that appears as attribute-type, 
    * and calls its init method.
    * @see <a href="Dspltuplesrc.html#displayTuple">Source</a>
    */
-  private void displayTuple (ListExpr type, ListExpr value, int maxNameLen, 
-      QueryResult qr) {
+  private void displayTuple (ListExpr type, ListExpr value, int maxNameLen, QueryResult qr) {
     int i;
     String s;
     DsplBase dg;
     while (!value.isEmpty()) {
       s = type.first().first().symbolValue();
-      dg = LEUtils.getClassFromName(type.first().second().symbolValue());
+      ListExpr subType = type.first().second();
+
+
+      while(subType.atomType()!=ListExpr.SYMBOL_ATOM){
+         subType = subType.first();
+      }
+
+      dg = LEUtils.getClassFromName(subType.symbolValue());
       // ensure to add exactly one entry per attribute
       int oldnum = qr.getModel().getSize();
+      String name = type.first().first().symbolValue();
+
+      subType = type.first().second();
       if (dg instanceof DsplSimple){
-         ((DsplSimple)dg).init(type.first().first(),maxNameLen, value.first(),0, qr);
+         ((DsplSimple)dg).init(name,subType,maxNameLen, value.first(),0, qr);
       }
       else{
-         dg.init(type.first().first(), value.first(), qr);
+         dg.init(name,subType, value.first(), qr);
       }
       int newnum = qr.getModel().getSize();
       int diff = newnum-oldnum;

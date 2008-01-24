@@ -75,15 +75,15 @@ public class Dsplint extends DsplGeneric implements DsplSimple, RenderAttribute,
    * up the intern datastructures for this type. An alphanumeric representation is 
    * neccessary for the displaying this type in the queryresultlist.
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    entry = type.symbolValue() +" : "+ getString(value);
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+    entry = name +" : "+ getString(value);
     qr.addEntry(this);
     return;
   }
 
-  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
-     String T = new String(type.symbolValue());
+     String T = name;
      String V = getString(value); 
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);

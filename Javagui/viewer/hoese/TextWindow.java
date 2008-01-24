@@ -599,7 +599,7 @@ public class TextWindow extends JPanel {
 /** Starts scanning of the query result qr for datatypes
   */
   private void processQuery (QueryResult qr) {
-    LEUtils.analyse(qr.LEResult.first(), qr.LEResult.second(), qr); 
+    LEUtils.analyse("",qr.LEResult.first(), qr.LEResult.second(), qr); 
     qr.computeTimeBounds(); 
   }
 

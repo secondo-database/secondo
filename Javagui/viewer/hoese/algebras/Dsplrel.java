@@ -40,7 +40,7 @@ public class Dsplrel extends DsplGeneric {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplrelsrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
     long startTime=0;
     if(gui.Environment.MEASURE_TIME){
       startTime = System.currentTimeMillis();
@@ -49,7 +49,7 @@ public class Dsplrel extends DsplGeneric {
     if(gui.Environment.MEASURE_MEMORY){
         usedMemory=gui.Environment.usedMemory();
     }
-    LEUtils.analyse(type.second(), value, qr);
+    LEUtils.analyse(name, type.second(), value, qr);
     if(gui.Environment.MEASURE_TIME){
        Reporter.writeInfo(" Building relation has taken :"+
                           (System.currentTimeMillis()-startTime)+" milliseconds");

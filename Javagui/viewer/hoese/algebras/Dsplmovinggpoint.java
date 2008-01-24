@@ -137,13 +137,14 @@ public class Dsplmovinggpoint extends DisplayTimeGraph
    * @param inout_xQueryResult Result object. If everything is fine the object
    * will be added.
    */
-  public void init (ListExpr in_xType, 
+  public void init (String name,
+                    ListExpr in_xType, 
                     ListExpr in_xValue, 
                     QueryResult inout_xQueryResult) 
   {
     try
     {
-      AttrName = in_xType.symbolValue();
+      AttrName = name;
       m_xMovingPoint = new MGPoint(in_xValue);
       Intervals = m_xMovingPoint.getIntervals();
       inout_xQueryResult.addEntry(this);

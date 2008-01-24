@@ -61,22 +61,17 @@ public class Dsplduration extends DsplGeneric implements DsplSimple{
   }
 
   
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    String v = getString(value);
-    if(v==null)
-       v = "<error>";
-    entry = (new String(type.symbolValue() + ":" + v));
-    qr.addEntry(this);
-    return;
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+    init(name,type,0,value,0,qr);
   }
 
   public String toString(){
      return entry;
   }
 
-  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
-     String T = new String(type.symbolValue());
+     String T = name;
      String V = getString(value);
      if(V==null)
        V = "<error>";

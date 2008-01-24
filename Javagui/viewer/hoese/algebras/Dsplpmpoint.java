@@ -109,9 +109,9 @@ public String getLabel(double time){
 }
 
 
-public void init(ListExpr type,ListExpr value,QueryResult qr){
+public void init(String name, ListExpr type,ListExpr value,QueryResult qr){
   error = false;
-  AttrName = type.symbolValue();
+  AttrName = name;
   Move = new TotalMove();
   if(!Move.readFrom(value,linearClass)){
      if(qr!=null){

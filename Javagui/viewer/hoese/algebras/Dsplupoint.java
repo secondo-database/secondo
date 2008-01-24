@@ -128,8 +128,8 @@ public class Dsplupoint extends DisplayTimeGraph {
    * @param value A list consisting of interval and two endpoints
    * @param qr queryresult to display output.
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = name;
     ScanValue(value);
     if (err) {
       Reporter.writeError("Dsplmovingpoint Error in ListExpr :parsing aborted");

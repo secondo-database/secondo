@@ -40,11 +40,11 @@ public class Dspldate extends DsplGeneric implements DsplSimple{
    * @see QueryResult
    * @see sj.lang.ListExpr
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     init(type,0,value,0,qr);
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+     init(name, type,0,value,0,qr);
   }
 
-  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name ,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {  
      String V="";
      if(isUndefined(value)){
@@ -56,7 +56,7 @@ public class Dspldate extends DsplGeneric implements DsplSimple{
            V = "<error>";
         }
      }
-     String T = new String(type.symbolValue());
+     String T = name;
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);
      qr.addEntry(T + " : " + V);

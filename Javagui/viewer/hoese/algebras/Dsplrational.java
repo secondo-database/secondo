@@ -51,12 +51,12 @@ public class Dsplrational extends DsplGeneric implements DsplSimple{
      return result;
    }
 
-   public void init(ListExpr type, ListExpr value, QueryResult qr){
+   public void init(String name, ListExpr type, ListExpr value, QueryResult qr){
      qr.addEntry("rat : " + getValueString(value));
    }
- public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+ public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
-     String T = new String(type.symbolValue());
+     String T = name;
      String V = getValueString(value);
      T=extendString(T,typewidth);
      V=extendString(V,valuewidth);

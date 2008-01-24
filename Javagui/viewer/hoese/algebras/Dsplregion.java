@@ -134,8 +134,8 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
    * @see sj.lang.ListExpr
    * @see <a href="Dsplregionsrc.html#init">Source</a>
    */
-   public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+   public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = name;
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

@@ -348,8 +348,8 @@ public boolean isPointType(int num){
   /**
    * Init. the Dsplconstraint instance.
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = type.symbolValue();
+  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = name;
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

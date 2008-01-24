@@ -41,13 +41,13 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple,Writable{
    * up the intern datastructures for this type. An alphanumeric representation is
    * neccessary for the displaying this type in the queryresultlist.
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     init(type,0,value,0,qr);
+  public void init (String Name,ListExpr type, ListExpr value, QueryResult qr) {
+     init(Name,type,0,value,0,qr);
   }
 
-  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String Name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
-     String T = new String(type.symbolValue());
+     String T = Name;
      int size = 0;
      byte[] dummy = new byte[128];
      int r;

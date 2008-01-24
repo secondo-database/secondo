@@ -91,13 +91,13 @@ public class Dsplpredicategroup extends DsplGeneric implements DsplSimple, Exter
 
   /* Sets the entry for the queryresult.
   */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-     init(type,0,value,0,qr);
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+     init(name, type,0,value,0,qr);
   }
 
-  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
-     String T = new String(type.symbolValue());
+     String T = name;
      text = getDisplay(value);
      String V = "predicategroup";
      T=extendString(T,typewidth);

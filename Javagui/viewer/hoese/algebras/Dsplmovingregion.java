@@ -233,14 +233,15 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
    * @see generic.QueryResult
    * @see sj.lang.ListExpr
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-       init(type,0,value,0,qr);
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+       init(name, type,0,value,0,qr);
   }
 
-  public void init (ListExpr type, int typewidth,
+  public void init (String name,
+                    ListExpr type, int typewidth,
                     ListExpr value,int valuewidth,
                     QueryResult qr) {
-    AttrName = extendString(type.symbolValue(),typewidth);
+    AttrName = extendString(name,typewidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Dsplmovingregion Error in ListExpr :parsing aborted");

@@ -161,15 +161,15 @@ public class Dsplurl extends DsplGeneric implements DsplSimple,LabelAttribute{
    * @see sj.lang.ListExpr
    * @see <a href="Dsplstringsrc.html#init">Source</a>
    */
-  public void init (ListExpr type, ListExpr value, QueryResult qr) {
-      init(type,0,value,0,qr);
+  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+      init(name, type,0,value,0,qr);
   }
 
-  public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
   {
      url = new Url();
      String V;
-     String T = new String(type.symbolValue());
+     String T = name;
      T=extendString(T,typewidth);
      if(url.readFrom(value)){
          V=extendString(url.toString(),valuewidth);
