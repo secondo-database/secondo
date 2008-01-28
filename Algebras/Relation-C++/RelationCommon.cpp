@@ -106,53 +106,56 @@ TupleType::TupleType( const ListExpr typeInfo )
   int i = 0;
 
   try {
-  
-  const string errMsg("TupleType: Wrong list format! Line ");
-  if ( nl->ListLength(typeInfo) < 2) {
-    throw SecondoException(errMsg + int2Str(__LINE__));
-  }  
-  noAttributes = nl->ListLength( nl->Second( typeInfo ) );
-  ListExpr rest = nl->Second( typeInfo );
-
-  attrTypeArray = new AttributeType[noAttributes];
-
-  while( !nl->IsEmpty( rest ) )
-  {
-    ListExpr list = nl->First( rest );
-
-    if (nl->ListLength(list) < 2)
+    const string errMsg("TupleType: Wrong list format! Line ");
+    if ( nl->ListLength(typeInfo) != 2) { // ( <tuple> <attr_list> )
       throw SecondoException(errMsg + int2Str(__LINE__));
-    
-    //list = (a b ...)
-    ListExpr b = nl->Second( list );
-    rest = nl->Rest( rest );
+    }  
+    noAttributes = nl->ListLength( nl->Second( typeInfo ) );
+    ListExpr rest = nl->Second( typeInfo );
 
-    int algId=0, typeId=0, size=0;
-    if( nl->IsAtom(b) )
-      throw SecondoException(errMsg + int2Str(__LINE__));
+    attrTypeArray = new AttributeType[noAttributes];
 
-    ListExpr b1 = nl->First( b );
-    if( nl->IsAtom( b1 ) ) //b = (b1 b2 ...)
+    while( !nl->IsEmpty( rest ) )
     {
-      if ( nl->ListLength(b) < 2 )
+      ListExpr list = nl->First( rest );
+
+      if (nl->ListLength(list) != 2){ //( <attr_name> <attr_desc> )
         throw SecondoException(errMsg + int2Str(__LINE__));
-      //b = (algid typeid ...)	    
-      algId = nl->IntValue( nl->First( b ) ),
-      typeId = nl->IntValue( nl->Second( b ) ),
-      size = (am->SizeOfObj(algId, typeId))();
-    }
-    else
-    {
-      if ( nl->ListLength(b1) < 2 );
+      }
+      
+      //list = (a b ...)
+      ListExpr b = nl->Second( list );
+      rest = nl->Rest( rest );
+
+      int algId=0, typeId=0, size=0;
+      if( nl->IsAtom(b) ){
         throw SecondoException(errMsg + int2Str(__LINE__));
-      //b1 = ((algid typeid ...) ...)    
-      algId = nl->IntValue( nl->First(b1) );
-      typeId = nl->IntValue( nl->Second(b1) );
-      size = (am->SizeOfObj(algId, typeId))();
+      }
+
+      ListExpr b1 = nl->First( b );
+      if( nl->IsAtom( b1 ) ) //b = (b1 b2 ...)
+      {
+        if ( nl->ListLength(b) < 2 ){
+          throw SecondoException(errMsg + int2Str(__LINE__));
+        }
+        //b = (algid typeid ...)      
+        algId = nl->IntValue( nl->First( b ) ),
+        typeId = nl->IntValue( nl->Second( b ) ),
+        size = (am->SizeOfObj(algId, typeId))();
+      }
+      else
+      {
+        if ( nl->ListLength(b1) < 2 ){
+          throw SecondoException(errMsg + int2Str(__LINE__));
+        }
+        //b1 = ((algid typeid ...) ...)    
+        algId = nl->IntValue( nl->First(b1) );
+        typeId = nl->IntValue( nl->Second(b1) );
+        size = (am->SizeOfObj(algId, typeId))();
+      }
+      totalSize += size;
+      attrTypeArray[i++] = AttributeType( algId, typeId, size );
     }
-    totalSize += size;
-    attrTypeArray[i++] = AttributeType( algId, typeId, size );
-  }
   }
   catch (SecondoException e) {
     cerr << e.msg() << endl;
