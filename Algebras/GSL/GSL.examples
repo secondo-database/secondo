@@ -66,7 +66,7 @@ Result   : TRUE
 
 Operator : rng_geometric
 Number   : 1
-Signature:  real x real -> real
+Signature:  real x real -> int
 Example  : query intstream(1, 900000) use[fun(i1:int) rng_geometric( 0.75 )] transformstream filter[(.elem > 13) or (.elem < 1) ] count <= 2
 Result   : TRUE
 

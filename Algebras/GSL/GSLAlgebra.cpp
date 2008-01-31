@@ -1395,7 +1395,7 @@ int gslalg_rng_geometric_VM ( Word* args, Word& result,
 
 const string gslalg_rng_geometric_Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text> real x real -> real</text--->"
+    "( <text> real x real -> int</text--->"
     "<text>rng_geometric( p )</text--->"
     "<text>Returns a random integer from the geometric distribution, "
     "the number of independent trials with probability p until the first "
