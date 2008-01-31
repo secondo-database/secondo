@@ -5372,7 +5372,7 @@ int TrContainsVMSymm(Word* args, Word& result, int message,
 
 
 static void initClusters(){
-  PredicateGroup pg;
+  PredicateGroup pg(0);
   pg.SetToDefault();
 
   Cluster* cl = pg.GetClusterOf("disjoint");
