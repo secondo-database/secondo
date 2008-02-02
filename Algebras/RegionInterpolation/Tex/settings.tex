@@ -1,0 +1,90 @@
+\documentclass[a4paper,12pt,twoside,halfparskip,bibtotocnumbered,liststotocnumbered,idxtotoc]{scrreprt}
+
+\usepackage{ngerman}	%Deutsch
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage{gensymb}	%Sonderzeichen
+
+\usepackage{index}
+
+\newindex{default}{idx}{ind}{C Stichwortverzeichnis}
+  \newcommand{\indexARtmp}[1]{#1\index{#1}}
+% \newcommand{\indexAR}[2]{\hypertarget{#1}{\indexARtmp{#2}}
+
+  
+\usepackage{amsmath}	%MAthe
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\usepackage{listings}	%für Quellcode
+\usepackage{color}	%für Farben im Quellcode
+\lstset{language=java}
+\lstset{emph={HashSet,Region,Face, ConvexHullTreeNode,RegionTreeNode}}
+\lstset{stringstyle=\color{blue}}
+\lstset{keywordstyle=\color{magenta}\textbf}
+\lstset{commentstyle=\color{green}\itshape}
+\lstset{breaklines=true,frame=tlrb,frameround=tttt,rulecolor=\color{black},numbers=left,emphstyle=\color{red}\textbf,tabsize=3}
+
+\usepackage{bibgerm}
+\usepackage{graphicx}
+\usepackage{ifpdf}
+\ifpdf
+\DeclareGraphicsRule{*}{mps}{*}{}
+\fi
+
+\usepackage{multicol}
+\usepackage[german,vlined,boxed]{/usr/local/teTeX/share/texmf-dist/tex/latex/algorithms/algorithm2e}
+\usepackage{framed}
+\usepackage{lscape}
+
+\usepackage{units}	%\usepackage{units} 	  	units → Paket für Einheiten: mit \unit[wert]{einheit}, Bsp.: 5 mm \unitfrac[wert]{zähler}{nenner}, Bsp.: 5 g/m \nicefrac[schrift]{zähler}{nenner}
+
+\usepackage[germanb]{minitoc}
+\mtcsettitle{parttoc}{Anhangsverzeichnis}
+\mtcsetdepth{parttoc}{0}
+\mtcsetrules{*}{off} 
+\setcounter{tocdepth}{1} %% <- Tiefe bei (Haupt-)Inhaltsverzeichnis
+
+\usepackage{fancyhdr} % für spezielle Kopfzeilen
+\usepackage{floatflt}
+\pagestyle{fancy}
+\setlength{\headheight}{12mm}
+\addtolength{\headwidth}{\oddsidemargin}
+\addtolength{\headwidth}{\evensidemargin}
+\fancyhead[ER,OL]{\includegraphics[height=1cm]{/home/java/Documents/Tex/Tex/feu_logo2.eps}}
+\renewcommand{\chaptermark} [1]{\markboth{ \thechapter.  #1}{ \thesection   #1}}
+\fancyhead[EL]{\sc\leftmark }
+\fancyhead[OR]{\sc\rightmark}
+\lfoot[\thepage]{}
+\rfoot[]{\thepage}
+\cfoot{}
+\renewcommand{\labelenumi}{\theenumi)}
+\renewcommand{\labelenumii}{(\alph{enumii})}
+
+\newcommand{\anmerkung}{\color{red}}
+
+
+\usepackage[
+dvipdfm,
+raiselinks=false;
+pdfdisplaydoctitle=true,
+breaklinks=true,
+ pdfpagelabels=true,
+ bookmarks=true,
+colorlinks=true,
+linkcolor=black,
+anchorcolor=black,
+citecolor=black,
+filecolor=black,
+menucolor=black,
+urlcolor=black]{hyperref}
+
+\hypersetup{% ä=\344, ö=\366, ü=\374, Ä=\304, Ö=\326, Ü=\334, ß=\377
+ pdftitle={Berechnung beweglicher Objekte aus Beobachtungen},
+ pdfauthor={Andreas Ruloffs},
+ pdfsubject={},
+ pdfkeywords={},
+ pdfcreator={LaTeX},
+ pdfproducer={LaTeX mit hyperref}
+}
