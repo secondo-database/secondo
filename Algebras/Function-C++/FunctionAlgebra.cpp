@@ -108,6 +108,7 @@ Errors will be found when the function is used, i.e., sent to the
 query processor.
 
 */
+  correct = true;
   return (SetWord( instance ));
 }
 
