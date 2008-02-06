@@ -85,6 +85,8 @@ static const int O1_EMPTY = 4;
 static const int O2_EMPTY = 8;
 static const int O1_NON_EMPTY = 16;
 static const int O2_NON_EMPTY = 32;
+static const int O1_INNER = 64;
+static const int O2_INNER = 128;
 
 
 // The name of the unspecified cluster
@@ -771,13 +773,18 @@ void Cluster::updateBoxChecks(const unsigned char bitvector[],
   Int9M m2(0,0,1,0,0,1,1,1,0);
 
   Int9M m3(1,1,1,1,1,1,0,0,0);
-  Int9M m4(1,1,0,1,1,0,1,1,0); 
+  Int9M m4(1,1,0,1,1,0,1,1,0);
+
+  Int9M m5(0,0,1,0,0,1,0,0,0); 
+  Int9M m6(0,0,0,0,0,0,1,1,0); 
 
 
   int n1 = m1.GetNumber();
   int n2 = m2.GetNumber(); 
   int n3 = m3.GetNumber();
   int n4 = m4.GetNumber();
+  int n5 = m5.GetNumber();
+  int n6 = m6.GetNumber();
 
   int part_inter = PART_INTER;
   int no_ext_inter = NO_EXT_INTER;
@@ -785,6 +792,8 @@ void Cluster::updateBoxChecks(const unsigned char bitvector[],
   int o2_empty = O2_EMPTY;
   int o1_non_empty = O1_NON_EMPTY;
   int o2_non_empty = O2_NON_EMPTY;
+  int o1_inner = O1_INNER;
+  int o2_inner = O2_INNER;
    
 
   for(unsigned short i=0; i<512; i++){
@@ -807,11 +816,17 @@ void Cluster::updateBoxChecks(const unsigned char bitvector[],
         if(!(i & n4)){
            o2_non_empty = 0;
         }
+        if( (i & n5)){
+           o1_inner = false;
+        }
+        if( (i & n6)){
+           o2_inner = false;
+        }
     } 
   }
 
-  boxchecks = part_inter | no_ext_inter | o1_empty | o2_empty |
-              o1_non_empty | o2_non_empty;
+  boxchecks = part_inter   | no_ext_inter | o1_empty | o2_empty |
+              o1_non_empty | o2_non_empty | o1_inner | o2_inner;
 
 }
 
@@ -874,6 +889,19 @@ int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
         return 2;
      }
   }
+
+  if(boxchecks & O1_INNER){
+    if(!box2.Contains(box1)){
+        return 2;
+    }
+  }  
+  if(boxchecks & O2_INNER){
+    if(!box1.Contains(box2)){
+       return 2;
+    }
+  }
+
+
   return 3; // nothinng known
 }
 
