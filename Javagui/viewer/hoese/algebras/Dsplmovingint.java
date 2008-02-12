@@ -238,23 +238,8 @@ public String getLabel(double time){
   }
   
 
-  /**
-   * This method is used to analyse the type and value in NestedList format and build
-   * up the intern datastructures for this type. An alphanumeric representation is 
-   * neccessary for the displaying this type in the queryresultlist.
-   * @param type A ListExpr of the datatype string 
-   * @param value A string in a listexpr
-   * @param qr The queryresultlist to add alphanumeric representation
-   * @see QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplstringsrc.html#init">Source</a>
-   */
-  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
-      init(name,type,0,value,0,qr);
-  }
-
-  public void init (String name,ListExpr type,int typeWidth,ListExpr value,int valueWidth, QueryResult qr){
-    AttrName = extendString(name,typeWidth);
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr){
+    AttrName = extendString(name,nameWidth);
     ScanValue(value);
     if (err) {
       defined=false;

@@ -61,16 +61,8 @@ public class Dsplrangeint extends DsplGeneric {
     return  true;
   }
 
-  /**
-   * Init. the Dsplrangeint instance.
-   * @param type The symbol rangeint
-   * @param value A list of integer intervals
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplrangeintsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    name = extendString(name, nameWidth);
     String e = "";
     if ((!ScanValue(value)) || value.isEmpty())
       qr.addEntry("(" + name + ":[?,?]"); 

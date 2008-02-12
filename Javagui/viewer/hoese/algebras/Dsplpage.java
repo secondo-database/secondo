@@ -151,7 +151,8 @@ protected boolean  scanValue(ListExpr value){
 }
 
 
-public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+public void init ( String name , int nameWidth,
+                   ListExpr type, ListExpr value,  QueryResult qr)
   {
 
      String T = new String(type.symbolValue());
@@ -166,7 +167,7 @@ public void init (ListExpr type,int typewidth,ListExpr value,int valuewidth, Que
        V = "Page";
        scanValue(value);
      }
-     T=extendString(T,typewidth);
+     T=extendString(T,nameWidth);
      String Text = V;
 
      Entry = T + " : <page> ...";

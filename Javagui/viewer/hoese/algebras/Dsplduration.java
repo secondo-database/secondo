@@ -28,7 +28,7 @@ import viewer.hoese.*;
 /**
  * A displayclass for the duration type 
  */
-public class Dsplduration extends DsplGeneric implements DsplSimple{
+public class Dsplduration extends DsplGeneric {
 
   String entry;
   boolean defined;
@@ -61,22 +61,19 @@ public class Dsplduration extends DsplGeneric implements DsplSimple{
   }
 
   
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    init(name,type,0,value,0,qr);
-  }
 
   public String toString(){
      return entry;
   }
 
-  public void init (String name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, int nameWidth, 
+                    ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = getString(value);
      if(V==null)
        V = "<error>";
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
+     T=extendString(T,nameWidth);
      entry=(T + " : " + V);
      qr.addEntry(this);
      return;

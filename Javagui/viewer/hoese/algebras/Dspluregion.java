@@ -30,7 +30,7 @@ import tools.Reporter;
 /**
  * A displayclass for the uregion-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dspluregion extends Dsplmovingregion implements DsplSimple{
+public class Dspluregion extends Dsplmovingregion {
   /**
    * Scans the representation of a movingregion datatype
    * @param v A list of start and end intervals with regionmap value

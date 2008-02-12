@@ -62,16 +62,8 @@ public class Dsplrangebool extends DsplGeneric {
     return  true;
   }
 
-  /**
-   * Init. the Dsplrangebool instance.
-   * @param type The symbol rangebool
-   * @param value A list of boolean intervals
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplrangeboolsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    name = extendString(name, nameWidth);
     String e = "";
     if ((!ScanValue(value)) || value.isEmpty())
       qr.addEntry("(" + name + ":[?,?])"); 

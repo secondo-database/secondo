@@ -51,14 +51,17 @@ public interface DsplBase {
    * up the intern datastructures for this type. An alphanumeric representation is 
    * neccessary for the displaying this type in the queryresultlist.
    * @param name The name of the value, e.g. the attribute name
-   * @param type A ListExpr of the datatype atomic like point or not e.g. rel
-   * @param value The value of this object
+   * @param nameWidth for formatted output 
+   * @param type A ListExpr describing the data type 
+   * @param value ListExpr describing the value of the object
    * @param qr The queryresultlist to add alphanumeric representation
    * @see generic.QueryResult
    * @see sj.lang.ListExpr
    */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr);
-
+   public void init (String Name, int nameWidth,
+                     ListExpr type,
+                     ListExpr value,
+                      QueryResult qr);
 
 
   /**
@@ -90,6 +93,10 @@ public interface DsplBase {
    * @return true if selected, false if not
    */
   public boolean getSelected ();
+
+
+
+
 }
 
 

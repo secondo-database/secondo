@@ -30,7 +30,14 @@ import tools.Reporter;
  */
 public class Dsplarray extends DsplGeneric {
 
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth,
+                    ListExpr type, ListExpr value, 
+                    QueryResult qr) {
+
+    if(type.listLength()!=2){
+      qr.addEntry("Error in array type");
+      return;   
+    }
     ListExpr simpleTypeList =  type.second();
     if(simpleTypeList.atomType()!=ListExpr.SYMBOL_ATOM){
       qr.addEntry("Error in array type");
@@ -53,7 +60,7 @@ public class Dsplarray extends DsplGeneric {
 		dg = LEUtils.getClassFromName(type);
 		// ensure to add exactly one entry per attribute
 		int oldnum = qr.getModel().getSize();
-	  dg.init("",typelist, value, qr);
+	  dg.init("",0, typelist, value, qr);
 		
 		int newnum = qr.getModel().getSize();
 		int diff = newnum-oldnum;

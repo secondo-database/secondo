@@ -34,7 +34,7 @@ import java.awt.Font;
 /**
  * A displayclass for the int9m type 
  */
-public class Dsplint9m extends DsplGeneric implements DsplSimple, ExternDisplay{
+public class Dsplint9m extends DsplGeneric implements ExternDisplay{
   /** string which is used for wrong formatted nested lists **/
   static final String ERROR="wrong list";
   /** a frame for external display **/
@@ -101,18 +101,11 @@ public class Dsplint9m extends DsplGeneric implements DsplSimple, ExternDisplay{
   }
 
 
-  /* Sets the entry for the queryresult.
-  */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-      init(name, type,0,value,0,qr);
-  }
-
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = getDisplay(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
+     T=extendString(T, nameWidth);
      entry = T + " : " + V;
      qr.addEntry(this);
      return;

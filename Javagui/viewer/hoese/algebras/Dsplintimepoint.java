@@ -33,8 +33,7 @@ import tools.Reporter;
 /**
  * A displayclass for the intimepoint-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dsplintimepoint extends Dsplpoint
-    implements Timed {
+public class Dsplintimepoint extends Dsplpoint implements Timed {
   Interval TimeBounds;
 
   /** A method of the Timed-Interface
@@ -119,17 +118,8 @@ public class Dsplintimepoint extends Dsplpoint
     return true;
   }
 
-  /**
-   * Init. the Dsplintimepoint instance.
-   * @param type The symbol intimepoint
-   * @param value The value of an instant and a point-datatype
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplintimepointsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name, nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

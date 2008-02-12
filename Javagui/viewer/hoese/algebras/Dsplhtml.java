@@ -39,7 +39,7 @@ import java.util.regex.*;
 /**
  * A displayclass for the html formatted code 
  */
-public class Dsplhtml extends DsplGeneric implements ExternDisplay,DsplSimple{
+public class Dsplhtml extends DsplGeneric implements ExternDisplay{
 
 protected boolean defined;
 protected String content;
@@ -55,13 +55,6 @@ public  Dsplhtml(){
 }
 
 
-/** Adds a button to the query which on a Click would be 
-  * pop up a window
-  **/
-public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-     init(name, type,0,value,0,qr);
-}
-  
 
 public String toString(){
    return Entry;
@@ -176,7 +169,8 @@ protected boolean  scanValue(ListExpr value){
 }
 
 
-public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+public void init (String name, int nameWidth,
+                  ListExpr type, ListExpr value,  QueryResult qr)
   {
      String T = name;
      String V;
@@ -195,7 +189,7 @@ public void init (String name, ListExpr type,int typewidth,ListExpr value,int va
        scanValue(value);
 
      }
-     T=extendString(T,typewidth);
+     T=extendString(T,nameWidth);
      String Text = V;
 
      Entry = T + " : <html> ...";

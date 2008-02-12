@@ -69,8 +69,8 @@ public class Dsplrectangle extends DisplayGraph {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplrectanglesrc.html#init">Source</a>
    */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name, nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

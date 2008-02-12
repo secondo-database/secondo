@@ -150,6 +150,7 @@ public class Dsplgpoint extends DisplayGraph
   * will be added.
   */
   public void init(String name,
+                   int nameWidth,
                    ListExpr in_xType, 
                    ListExpr in_xValue, 
                    QueryResult inout_xQueryResult)
@@ -163,7 +164,7 @@ public class Dsplgpoint extends DisplayGraph
       }
 
       
-      AttrName = name;
+      AttrName = extendString(name, nameWidth);
       m_xGPoint= new GPoint(in_xValue);
       inout_xQueryResult.addEntry(this);
     }

@@ -358,21 +358,10 @@ public class Dsplmovingreal extends DsplGeneric implements
         le.first().boolValue());
   }
 
-  /**
-   * Init. the Dsplmovingreal instance.
-   * @param type The symbol movingreal
-   * @param value A list of time-intervals with the parameter for a quadratic or squareroot formula
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplmovingrealsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-     init(name,type,0,value,0,qr);
-  }
 
-  public void init (String name, ListExpr type,int typeWidth, ListExpr value,int valueWidth, QueryResult qr) {
-    AttrName = extendString(name,typeWidth);
+  public void init (String name, int nameWidth, 
+                    ListExpr type,  ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth);
     err=true;
     ScanValue(value);
     computeMinMax();

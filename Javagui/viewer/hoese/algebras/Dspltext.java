@@ -38,7 +38,7 @@ import java.io.*;
 /**
  * A displayclass for the html formatted code 
  */
-public class Dspltext extends DsplGeneric implements ExternDisplay,DsplSimple{
+public class Dspltext extends DsplGeneric implements ExternDisplay{
 
 private boolean defined;
 
@@ -52,19 +52,12 @@ public  Dspltext(){
 }
 
 
-/** Adds a button to the query which on a Click would be 
-  * pop up a window
-  **/
-public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-     init(name, type,0,value,0,qr);
-}
-  
 
 public String toString(){
    return Entry;
 }
 
-public void init (String name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+public void init (String name, int nameWidth, ListExpr type,ListExpr value, QueryResult qr)
   {
      String T = name;
      String V;
@@ -87,7 +80,7 @@ public void init (String name,ListExpr type,int typewidth,ListExpr value,int val
 						theList = value;
 				 }
      }
-     T=extendString(T,typewidth);
+     T=extendString(T,nameWidth);
      String Text = V;
      computeType(Text);
 

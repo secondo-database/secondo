@@ -170,16 +170,8 @@ public class Dsplpointsequence extends DisplayGraph {
     }
   }
 
-  /**
-   * Init. the Dsplpointsequence instance.
-   * @param type The symbol line
-   * @param value A list of segments.
-   * @param qr queryresult to display output.
-   * @see QueryResult
-   * @see sj.lang.ListExpr
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name, nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

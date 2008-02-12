@@ -171,11 +171,11 @@ public class LEUtils {
     DsplBase db;
     if (type.isAtom()) {
       db = getClassFromName(type.symbolValue());
-      db.init(name, type, value, qr);
+      db.init(name,0, type,  value, qr);
     }
     else {
       db = getClassFromName(type.first().symbolValue());
-      db.init(name, type, value, qr);
+      db.init(name, 0, type, value, qr);
     }
   }
 

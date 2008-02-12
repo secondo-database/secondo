@@ -84,35 +84,14 @@ public class Dsplintimeint extends Dsplinstant {
     return v2+" - " + Wert;
   }
 
-  /**
-   * Init. the Dsplintimeint instance.
-   * @param type The symbol intimeint
-   * @param value The value of an instant and an int.
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplintimeintsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth,ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth);
     String v = getString(value);
      entry = AttrName+":"+v;
     if(err)
        qr.addEntry(entry);
     else
        qr.addEntry(this);
-  }
-
-public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth,
-QueryResult qr)
-  {
-     String T = name;
-     String V = getString(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
-     entry=(T + " : " + V);
-     qr.addEntry(this);
-     return;
   }
 
 

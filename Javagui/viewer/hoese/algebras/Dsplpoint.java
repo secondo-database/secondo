@@ -32,7 +32,7 @@ import java.text.DecimalFormat;
 /**
  * The displayclass of the Rose algebras point datatype.
  */
-public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple {
+public class Dsplpoint extends DisplayGraph implements LabelAttribute {
   /** The internal datatype representation */
   Point2D.Double point;
   DecimalFormat format = new DecimalFormat("#.#####");
@@ -142,25 +142,12 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute,DsplSimple
     }
   }
 
-  /**
-   * Init. the Dsplpoint instance.
-   * @param type The symbol point
-   * @param value The numeric value of a point.
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplpointsrc.html#init">Source</a>
-   */
-  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
-     init(name, type,0,value,0,qr);
-  }
-  
 
-  public void init (String name,
-                    ListExpr type, int  typewidth,
-                    ListExpr value, int valueWidth, 
+  public void init (String name, int nameWidth,
+                    ListExpr type, 
+                    ListExpr value,
                     QueryResult qr) {
-    AttrName = extendString(name,typewidth);
+    AttrName = extendString(name,nameWidth);
     if(isUndefined(value)){
        qr.addEntry(new String("" + AttrName + ": undefined"));
        return;

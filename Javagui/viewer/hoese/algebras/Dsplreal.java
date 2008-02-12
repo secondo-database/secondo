@@ -29,7 +29,7 @@ import viewer.hoese.*;
  * A displayclass for the real-type, alphanumeric only
  */
 public class Dsplreal extends DsplGeneric 
-       implements DsplSimple, LabelAttribute, RenderAttribute{
+       implements LabelAttribute, RenderAttribute{
 
   // this value is represented
   private double value;
@@ -57,27 +57,12 @@ public class Dsplreal extends DsplGeneric
     }
   }
   
-  /**
-   * This method is used to analyse the type and value in NestedList format and build
-   * up the intern datastructures for this type. An alphanumeric representation is
-   * neccessary for the displaying this type in the queryresultlist.
-   * @param type datatype real
-   * @param value A real in a listexpr
-   * @param qr The queryresultlist to add alphanumeric representation
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplrealsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-      init(name,type,0,value,0,qr);
-  }
-
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, int nameWidth, ListExpr type,
+                    ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = computeValue(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
+     T=extendString(T, nameWidth);
      entry = (T + " : " + V);
      qr.addEntry(this);
   }

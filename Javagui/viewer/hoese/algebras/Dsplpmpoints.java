@@ -76,8 +76,8 @@ public Shape getRenderObject(int num,AffineTransform at){
 }
 
 
-public void init(String name, ListExpr type,ListExpr value,QueryResult qr){
-  AttrName = name;
+public void init(String name, int nameWidth, ListExpr type,ListExpr value,QueryResult qr){
+  AttrName = extendString(name, nameWidth);
    if(isUndefined(value)){
      defined=false;
      qr.addEntry(AttrName+"undefined");

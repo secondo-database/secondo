@@ -32,8 +32,7 @@ import tools.Reporter;
 /**
  * A displayclass for the instant-type (spatiotemp algebra), alphanumeric with TimePanel
  */
-public class Dsplinstant extends DsplGeneric
-    implements Timed {
+public class Dsplinstant extends DsplGeneric implements Timed {
   Interval TimeBounds;
   boolean err = true;
   boolean defined;
@@ -91,17 +90,8 @@ public class Dsplinstant extends DsplGeneric
     return LEUtils.convertTimeToString(TimeBounds.getStart());
   }
 
-  /**
-   * Init. the Dsplinstant instance.
-   * @param type The symbol instant
-   * @param value The value of an instant .
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplinstantsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth);
     String v = getString(value);
     entry = AttrName + ":"+v;
     if (err) {
@@ -110,16 +100,6 @@ public class Dsplinstant extends DsplGeneric
     } 
     else 
       qr.addEntry(this);
-  }
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
-  {
-     String T = name;
-     String V = getString(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
-     entry=(T + " : " + V);
-     qr.addEntry(this);
-     return;
   }
 
 

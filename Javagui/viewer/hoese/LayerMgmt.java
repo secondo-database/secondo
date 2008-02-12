@@ -25,7 +25,7 @@ import javax.swing.*;
 import viewer.HoeseViewer;
 /** 
  * This class lists the layers and allow moving up or down of layers, based upun swing's JDialog
- * @author  Höse
+ * @author  Hoese
  * @version 
  */
 public class LayerMgmt extends javax.swing.JDialog {

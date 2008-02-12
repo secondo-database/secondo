@@ -28,7 +28,7 @@ import viewer.hoese.*;
 /**
  * A displayclass for the string-type, alphanumeric only
  */
-public class Dsplurl extends DsplGeneric implements DsplSimple,LabelAttribute{
+public class Dsplurl extends DsplGeneric implements LabelAttribute{
 
    /** a class representing an Url **/
    public static class Url implements Comparable{
@@ -150,29 +150,15 @@ public class Dsplurl extends DsplGeneric implements DsplSimple,LabelAttribute{
    Url url;
    String label;
 
-  /**
-   * This method is used to analyse the type and value in NestedList format and build
-   * up the intern datastructures for this type. An alphanumeric representation is 
-   * neccessary for the displaying this type in the queryresultlist.
-   * @param type A ListExpr of the datatype string 
-   * @param value A string in a listexpr
-   * @param qr The queryresultlist to add alphanumeric representation
-   * @see QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplstringsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-      init(name, type,0,value,0,qr);
-  }
 
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value,QueryResult qr)
   {
      url = new Url();
      String V;
      String T = name;
-     T=extendString(T,typewidth);
+     T=extendString(T,nameWidth);
      if(url.readFrom(value)){
-         V=extendString(url.toString(),valuewidth);
+         V=url.toString();
          label=V;
      } else {
          V = "Error";

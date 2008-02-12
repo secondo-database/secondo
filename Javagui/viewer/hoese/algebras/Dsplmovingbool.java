@@ -148,21 +148,9 @@ public class Dsplmovingbool extends DsplGeneric
     err = false;
   }
 
-  /**
-   * Init. the Dsplmovingbool instance.
-   * @param type The symbol movingbool.
-   * @param value A list of time-intervals with an boolean value
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplmovingboolsrc.html#init">Source</a>
-   */
-  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
-        init(name,type,0,value,0,qr);
-  }
 
-  public void init (String name, ListExpr type,int typeWidth, ListExpr value,int valueWidth, QueryResult qr) {
-    AttrName = extendString(name,typeWidth);
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value,  QueryResult qr) {
+    AttrName = extendString(name,nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

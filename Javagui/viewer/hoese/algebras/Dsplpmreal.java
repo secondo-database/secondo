@@ -40,7 +40,10 @@ public String toString(){
    return Entry;
 }
 
-public void init(String name,ListExpr type,int typewidth,ListExpr value,int valuewidth,QueryResult qr){
+public void init(String name, int nameWidth, 
+                 ListExpr type,
+                 ListExpr value,
+                 QueryResult qr){
   AttrName = name;
   Move = new TotalMove();
   String V; // value of this pmreal
@@ -54,7 +57,7 @@ public void init(String name,ListExpr type,int typewidth,ListExpr value,int valu
      V = "undefined";
      ok = false;
   }
-  AttrName = extendString(AttrName,typewidth);
+  AttrName = extendString(AttrName, nameWidth);
   Entry = AttrName + " : "+V;
   if(!ok){
     qr.addEntry(Entry);

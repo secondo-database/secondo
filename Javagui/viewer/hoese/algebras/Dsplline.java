@@ -165,22 +165,8 @@ public class Dsplline extends DisplayGraph {
   }
 
 
-  public void init(String name,ListExpr type, ListExpr value,QueryResult qr){
-        init(name, type,0,value,0,qr);
-  }
-
-
-  /**
-   * Init. the Dsplline instance.
-   * @param type The symbol line
-   * @param typwwidth the minium number of cahracters uded for the type
-   * @param value A list of segments.
-   * @param qr queryresult to display output.
-   * @see QueryResult
-   * @see sj.lang.ListExpr
-   */
-  public void init (String name, ListExpr type,int typewidth, ListExpr value,int valueWidth, QueryResult qr) {
-    AttrName = extendString(name,typewidth);
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

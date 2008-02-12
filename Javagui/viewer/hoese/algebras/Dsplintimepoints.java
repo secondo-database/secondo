@@ -33,8 +33,7 @@ import tools.Reporter;
 /**
  * A displayclass for the intimepoints-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dsplintimepoints extends Dsplpoints
-    implements Timed {
+public class Dsplintimepoints extends Dsplpoints implements Timed {
   Interval boundingInterval;
 
   /** A method of the Timed-Interface

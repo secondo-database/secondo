@@ -30,8 +30,7 @@ import  viewer.hoese.*;
  * An example how to implement the DsplBase interface for a class displaying images in a
  * different frame.
  */
-public class Dsplimage
-    implements DsplBase {
+public class Dsplimage implements DsplBase {
   protected String AttrName;
   protected boolean selected;
   private boolean visible = true;
@@ -46,8 +45,8 @@ public class Dsplimage
     return  TestFrame;
   }
 
-  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = DsplGeneric.extendString(name,nameWidth);
     lab = new JLabel(new ImageIcon(value.stringValue()));
     lab.setOpaque(true);
     qr.addEntry(this);

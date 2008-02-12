@@ -63,16 +63,8 @@ public class Dsplrangereal extends DsplGeneric {
     return  true;
   }
 
-  /**
-   * Init. the Dsplrangereal instance.
-   * @param type The symbol rangereal
-   * @param value A list of real intervals
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplrangerealsrc.html#init">Source</a>
-   */
-  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    name = extendString(name , nameWidth);
     String e = "";
     if ((!ScanValue(value)) || value.isEmpty())
       qr.addEntry("(" + name + ":[?,?])"); 

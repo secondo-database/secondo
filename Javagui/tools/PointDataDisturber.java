@@ -1017,7 +1017,7 @@ private boolean processRelList(ListExpr type, ListExpr value){
 private boolean processValueList( ListExpr value){
    log.println("\n\nstart conversion of a single periodic moving point \n\n");
    Dsplpmpoint pmp = new Dsplpmpoint();
-   pmp.init("pmpoint",ListExpr.symbolAtom("pmpoint"),value,null);
+   pmp.init("pmpoint",0, ListExpr.symbolAtom("pmpoint"),value,null);
    if(pmp.getError()){
       log.println("Invalid list representation of a periodic moving point");
       // print out an empty list

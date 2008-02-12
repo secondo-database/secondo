@@ -30,7 +30,7 @@ import viewer.HoeseViewer;
  * @author  Thomas Hoese
  * @version 0.99 1.1.02
  */
-public class DsplGeneric implements DsplBase,DsplSimple {
+public class DsplGeneric implements DsplBase {
   protected String AttrName;
   protected boolean selected;
   private boolean visible = true;
@@ -56,46 +56,21 @@ public class DsplGeneric implements DsplBase,DsplSimple {
   public SecondoFrame getFrame () {
     return  null;
   }
-  /**
-   * This method is used to analyse the type and value in NestedList format and build
-   * up the intern datastructures for this type. An alphanumeric representation is
-   * neccessary for the displaying this type in the queryresultlist.
-   * This class is used if datatype is unknown.
-   * @param type A symbolatom with the datatype
-   * @param value The value of this object
-   * @param qr The queryresultlist to add alphanumeric representation
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="DsplGenericsrc.html#init">Source</a>
-   */
-
-  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
-    init(name,type,0,value,0,qr);
-  }
 
 
- public void init (String name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
-  {
-    if(!this.getClass().equals(theClass)) {
-       init(name,type,value,qr);
-       return;
-    }
 
+public void init(String name,int nameWidth, 
+                 ListExpr type,
+                 ListExpr value,
+                 QueryResult qr)
+{
     String ts = "no display function defined";
-    String N = extendString(name,typewidth);
+    String N = extendString(name,nameWidth);
     qr.addEntry(N + " : " + ts);
     return;
+}
 
-  }
 
- protected String extendString(String S ,int MinWidth){
-   String R = new String(S);
-   int NoSpaces=MinWidth-R.length();
-   for(int i=0;i<NoSpaces;i++)
-      R = ' '+R;
-   R=R.replaceAll("\n", " ");
-   return R;
-  }
 
 
 
@@ -135,6 +110,18 @@ public class DsplGeneric implements DsplBase,DsplSimple {
     return  selected;
   }
 
+
+ /** Adds spaces to S so that S has a minimum length of MinWidth **/
+ public  static String extendString(String S ,int MinWidth){
+   String R = new String(S);
+   int NoSpaces=MinWidth-R.length();
+   for(int i=0;i<NoSpaces;i++)
+      R = ' '+R;
+   R=R.replaceAll("\n", " ");
+   return R;
+  }
+
+
   /**
     * Checks whether LE described an undefined value.
     */
@@ -152,8 +139,6 @@ public class DsplGeneric implements DsplBase,DsplSimple {
     return false;
   }
 
-
-  private static Class theClass = new DsplGeneric().getClass();
 
 }
 

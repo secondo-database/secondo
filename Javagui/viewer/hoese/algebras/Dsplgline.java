@@ -148,13 +148,14 @@ public class Dsplgline extends DisplayGraph
    * will be added.
    */
   public void init(String name,
+                   int nameWidth,
                    ListExpr in_xType, 
                    ListExpr in_xValue, 
                    QueryResult inout_xQueryResult)
   {
     try 
     {
-      AttrName = name;
+      AttrName = extendString(name,nameWidth);
       if(isUndefined(in_xValue))
       {
         inout_xQueryResult.addEntry(AttrName + ": undefined");

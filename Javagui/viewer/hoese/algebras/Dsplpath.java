@@ -32,8 +32,7 @@ import tools.Reporter;
  * A Displayclass for a path from the graph-algebra
  */
 
-public class Dsplpath extends DisplayGraph implements DsplSimple
-{
+public class Dsplpath extends DisplayGraph {
 	/** The internal datatype representation */
 	private Vector verticies;
 	private Vector edges;
@@ -149,25 +148,15 @@ public class Dsplpath extends DisplayGraph implements DsplSimple
 	}
 
 
-	/**
-	 * Init. the Dsplpath instance.
-	 * 
-	 * @param type
-	 *            The symbol path
-	 * @param value
-	 *            the nestedlist representation of the path
-	 * @param qr
-	 *            queryresult to display output.
-	 */
 
-	public void init(String name, ListExpr type, ListExpr value, QueryResult qr)
+	public void init(String name, int nameWidth,  ListExpr type, ListExpr value, QueryResult qr)
 	{
-		AttrName = name;
+		AttrName = extendString(name, nameWidth);
 		ScanValue(value);
 		if (err)
 		{
 			Reporter.writeError("Error in ListExpr :parsing aborted");
-			qr.addEntry(new String("(" + AttrName + ": GA(graph))"));
+			qr.addEntry(new String("(" + AttrName + " : GA(graph))"));
 			return;
 		} else if(!defined){
       qr.addEntry("undefined");

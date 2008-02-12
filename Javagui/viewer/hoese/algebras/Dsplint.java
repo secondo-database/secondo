@@ -28,7 +28,7 @@ import viewer.hoese.*;
 /**
  * A displayclass for the int-type, alphanumeric only
  */
-public class Dsplint extends DsplGeneric implements DsplSimple, RenderAttribute, LabelAttribute {
+public class Dsplint extends DsplGeneric implements  RenderAttribute, LabelAttribute {
    /** the value of this integer **/
    int value;
    /** the text to display **/
@@ -75,22 +75,12 @@ public class Dsplint extends DsplGeneric implements DsplSimple, RenderAttribute,
    * up the intern datastructures for this type. An alphanumeric representation is 
    * neccessary for the displaying this type in the queryresultlist.
    */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    entry = name +" : "+ getString(value);
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    entry = extendString(name,nameWidth) +" : "+ getString(value);
     qr.addEntry(this);
     return;
   }
 
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
-  {
-     String T = name;
-     String V = getString(value); 
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
-     entry=(T + " : " + V);
-     qr.addEntry(this);
-     return;
-  }
 
   public String toString(){
       return entry;

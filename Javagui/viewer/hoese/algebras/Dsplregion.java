@@ -31,7 +31,7 @@ import tools.Reporter;
 /**
  * The displayclass of the region datatype (Rose algebra).
  */
-public class Dsplregion extends DisplayGraph implements DsplSimple{
+public class Dsplregion extends DisplayGraph {
   /** The internal datastructure of the region datatype */
   Area areas;
   boolean defined;
@@ -134,15 +134,15 @@ public class Dsplregion extends DisplayGraph implements DsplSimple{
    * @see sj.lang.ListExpr
    * @see <a href="Dsplregionsrc.html#init">Source</a>
    */
-   public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+   public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name, nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");
-      qr.addEntry(extendString(AttrName,minTypeWidth)+" : Error(region)");
+      qr.addEntry((AttrName)+" : Error(region)");
       return;
     } else if(!defined){
-       qr.addEntry(extendString(AttrName,minTypeWidth)+" : undefined");
+       qr.addEntry((AttrName)+" : undefined");
        return;
     }
     qr.addEntry(this);

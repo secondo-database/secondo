@@ -35,7 +35,7 @@ import java.awt.Font;
 /**
  * A displayclass for the cluster type 
  */
-public class Dsplcluster extends DsplGeneric implements DsplSimple, ExternDisplay{
+public class Dsplcluster extends DsplGeneric implements  ExternDisplay{
   /** string which is used for wrong formatted nested lists **/
   static final String ERROR="wrong list";
   /** a frame for external display **/
@@ -176,16 +176,14 @@ public class Dsplcluster extends DsplGeneric implements DsplSimple, ExternDispla
 
   /* Sets the entry for the queryresult.
   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-     init(name,type,0,value,0,qr);
-  }
-
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, int nameWidth,
+                    ListExpr type, ListExpr value,
+                    QueryResult qr)
   {
      String T = name;
      text = getDisplay(value);
      String V = "cluster";
-     T=extendString(T,typewidth);
+     T=extendString(T,nameWidth);
      entry = T + " : " + V;
      qr.addEntry(this);
      return;

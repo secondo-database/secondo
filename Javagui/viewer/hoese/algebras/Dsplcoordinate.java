@@ -69,20 +69,13 @@ public class Dsplcoordinate extends DsplGeneric {
     return  true;
   }
 
-  /**
-   * Init. the Dsplcoordinate instance.
-   * @param type The symbol coordinate
-   * @param value The numeric value of a coordinate.
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplcoordinatesrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth, 
+                    ListExpr type, ListExpr value,  QueryResult qr) {
+    String name1 = extendString(name,nameWidth);
     if (!ScanValue(value))
-      qr.addEntry("(" + name + ":" + koord + ")"); 
+      qr.addEntry("(" + name1 + ":" + koord + ")"); 
     else 
-      qr.addEntry(name + ":" + koord);
+      qr.addEntry(name1 + ":" + koord);
     return;
   }
 }

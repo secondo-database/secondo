@@ -84,36 +84,16 @@ public class Dsplintimereal extends Dsplinstant {
     return "["+v2+"] "+Wert;
   }
 
-  /**
-   * Init. the Dsplintimereal instance.
-   * @param type The symbol intimereal
-   * @param value The value of an instant and an real.
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplintimerealsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
-    String v = getString(value);
-    entry = AttrName+":"+v;
-    if(err){
-       qr.addEntry("<error>");    
-    }else{
-       qr.addEntry(this);
-    }
-  }
-
   public String toString () {
     return entry; 
   }
 
-  public void init (String name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, int nameWidth, 
+                    ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = getString(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
+     T=extendString(T,nameWidth);
      entry=(T + " : " + V);
      if(!err){
         qr.addEntry(this);

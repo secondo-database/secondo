@@ -92,16 +92,8 @@ public class Dsplrect extends DisplayGraph {
      }
   }
 
-  /**
-   * Init. the Dsplrect instance.
-   * @param type The symbol rect
-   * @param value The 4 Numeric  of a rectangle x1 x2 y1 y2
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth,  ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name, nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

@@ -113,17 +113,8 @@ public class Dsplperiods extends DsplGeneric implements Timed {
     return "periods";
   }
 
-  /**
-   * Init. the Dsplperiods instance.
-   * @param type The symbol periods
-   * @param value A list of time intervals
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplperiodssrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    String t = name;
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    String t = extendString(name, nameWidth);
     String v = getString(value);
     entry = t+":"+v;
     if(err){
@@ -133,22 +124,6 @@ public class Dsplperiods extends DsplGeneric implements Timed {
     qr.addEntry(this);
     computeTimeBounds(); 
   }
-public void init (String name, ListExpr type, int typewidth, ListExpr value,
-                  int valuewidth, QueryResult qr)
-  {
-     String T = name;
-     String V = getString(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
-     entry=(T + " : " + V);
-     if(err){
-        qr.addEntry(entry);
-     } else{
-        qr.addEntry(this);
-     }
-     computeTimeBounds();
-  }
-
 
  /** computes the timebounds for this objects **/
   private void computeTimeBounds(){

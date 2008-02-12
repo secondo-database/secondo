@@ -33,8 +33,7 @@ import tools.Reporter;
 /**
  * A displayclass for the intimeregion-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dsplintimeregion extends Dsplregion
-    implements Timed {
+public class Dsplintimeregion extends Dsplregion implements Timed {
   Interval TimeBounds;
 
   /** A method of the Timed-Interface
@@ -111,8 +110,8 @@ public class Dsplintimeregion extends Dsplregion
    * @see sj.lang.ListExpr
    * @see <a href="Dsplintimeregionsrc.html#init">Source</a>
    */
-  public void init (String name,ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name, nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

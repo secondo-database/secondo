@@ -262,17 +262,9 @@ public class Dsplcmpoint extends DisplayTimeGraph implements LabelAttribute, Ren
      return true;
   }
 
-  /**
-   * Init. the Dsplmovingpoint instance and calculate the overall bounds and Timebounds
-   * @param type The symbol movingpoint
-   * @param value A list of start and end intervals with ax,bx,ay,by values
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplmovingpointsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth, 
+                    ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth);
     int length = value.listLength();
     double xlow;
     double ylow;

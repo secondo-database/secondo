@@ -33,7 +33,7 @@ import java.awt.image.BufferedImage;
  */
 
 public abstract class DisplayGraph extends DsplGeneric
-    implements DsplGraph,DsplSimple {
+    implements DsplGraph {
 
 /** if an error occurs during creation this field will be true */
   protected boolean err = false;
@@ -53,9 +53,6 @@ public abstract class DisplayGraph extends DsplGeneric
 /** Position of the label */
   private Point LabPosOffset = new Point(-30, -10);
 
- /** the typewidth to display in a relation */
- protected int minTypeWidth=0;
- protected int minValueWidth=0;
 
  /** A point for shippping data between this class and the projectionmanager.
    * this point has only an technical aspect. It avoid to create a lot of
@@ -235,14 +232,14 @@ public abstract class DisplayGraph extends DsplGeneric
    * @see <a href="DisplayGraphsrc.html#toString">Source</a>
    */
   public String toString () {
-    return  extendString(AttrName,minTypeWidth) + " : " + extendString(Cat.getName(),minValueWidth);
+    return  AttrName + " : " + Cat.getName();
   }
 
 
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
-  { minTypeWidth = typewidth;
-    minValueWidth = valuewidth;
-    init(name, type,value,qr);
+  public void init (String name, int nameWidth,
+                    ListExpr type, ListExpr value,
+                    QueryResult qr)
+  { AttrName = extendString(name,nameWidth); 
   }
 
 }

@@ -32,8 +32,7 @@ import tools.Reporter;
 /**
  * A displayclass for the intimeline-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dsplintimeline extends Dsplline
-    implements Timed {
+public class Dsplintimeline extends Dsplline implements Timed {
     Interval TimeBounds;
    private String entry;
    private boolean defined;  
@@ -99,17 +98,8 @@ public class Dsplintimeline extends Dsplline
     return "intimeline";
   }
 
-  /**
-   * Init. the Dsplintimeline instance.
-   * @param type The symbol intimeline
-   * @param value The value of an instant and a line-datatype
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplintimelinesrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = name;
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth);
     String v = getString(value);
     entry = type.symbolValue()+":"+v;
     if(!err){
@@ -124,23 +114,6 @@ public class Dsplintimeline extends Dsplline
 
   public String toString(){
      return entry;
-  }
-
-  /** The formatted output "*/
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
-  {
-     String T = name;
-     String V = getString(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
-     entry=(T + " : " + V);
-     if(!err){
-         qr.addEntry(this);
-     } else{
-        qr.addEntry(entry);
-     }
-
-     return;
   }
 
 

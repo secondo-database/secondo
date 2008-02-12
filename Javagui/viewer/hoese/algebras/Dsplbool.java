@@ -28,9 +28,8 @@ import viewer.hoese.*;
  * A displayclass for the bool-type, alphanumeric only
  */
 public class Dsplbool extends DsplGeneric 
-                      implements RenderAttribute, LabelAttribute,
-                                  DsplSimple {
-  /** the value of this boolean if defined **/
+                      implements RenderAttribute, LabelAttribute { 
+ /** the value of this boolean if defined **/
   boolean value;
   /** the defined flag of this boolean **/
   boolean defined;
@@ -63,27 +62,12 @@ public class Dsplbool extends DsplGeneric
 
 
 
-  /**
-   * This method is used to analyse the type and value in NestedList format and build
-   * up the intern datastructures for this type. An alphanumeric representation is 
-   * neccessary for the displaying this type in the queryresultlist.
-   * @param type datatype bool 
-   * @param value A bool in a listexpr
-   * @param qr The queryresultlist to add alphanumeric representation
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplboolsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    init(name,type,0,value,0,qr);;
-  }
-
-  public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String name, int nameWidth, ListExpr type,
+                    ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = getString(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
+     T=extendString(T,nameWidth);
      entry=(T + " : " + V);
      qr.addEntry(this);
      return;

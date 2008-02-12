@@ -144,25 +144,11 @@ public class Dsplmovingstring extends DsplGeneric implements Timed,LabelAttribut
     
   }
 
-  /**
-   * Init. the Dsplmovingstring instance.
-   * @param type The symbol movingstring.
-   * @param value A list of time-intervals with an string value
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplmovingstringsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-    init(name, type,0,value,0,qr);
-  }
-
-   public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+   public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr)
   {
-     String T = name;
+     String T = extendString(name, nameWidth);
      String V = getString(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
+     T=extendString(T,nameWidth);
      entry=(T + " : " + V);
      if(err){
         qr.addEntry(entry);

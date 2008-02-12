@@ -22,7 +22,7 @@ package viewer.hoese.algebras;
 import sj.lang.ListExpr;
 import viewer.hoese.*;
 
-public class Dsplrational extends DsplGeneric implements DsplSimple{
+public class Dsplrational extends DsplGeneric {
    // returns a string representing this rational or "ERROR" if
    // the format of the list is wrong
    private String getValueString(ListExpr value){
@@ -51,15 +51,12 @@ public class Dsplrational extends DsplGeneric implements DsplSimple{
      return result;
    }
 
-   public void init(String name, ListExpr type, ListExpr value, QueryResult qr){
-     qr.addEntry("rat : " + getValueString(value));
-   }
- public void init (String name, ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+ public void init (String name, int nameWidth, 
+                   ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = getValueString(value);
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
+     T=extendString(T,nameWidth);
      qr.addEntry(T + " : " + V);
      return;
   }

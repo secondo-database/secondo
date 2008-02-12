@@ -88,9 +88,9 @@ public class Dsplnmap extends DisplayGraph {
    }
 
 
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth,  ListExpr type, ListExpr value, QueryResult qr) {
     value.writeListExpr();
-    AttrName = name;
+    AttrName = extendString(name, nameWidth);
     ListExpr nmap;
 
        if (!value.fifth().isEmpty())

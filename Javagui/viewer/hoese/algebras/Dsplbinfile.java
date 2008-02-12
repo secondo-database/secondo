@@ -31,7 +31,7 @@ import tools.Base64Decoder;
 /**
  * A displayclass for the string-type, alphanumeric only
  */
-public class Dsplbinfile extends DsplGeneric implements DsplSimple,Writable{
+public class Dsplbinfile extends DsplGeneric implements  Writable{
   boolean defined;
   ListExpr theList;
   String entry="";
@@ -41,11 +41,9 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple,Writable{
    * up the intern datastructures for this type. An alphanumeric representation is
    * neccessary for the displaying this type in the queryresultlist.
    */
-  public void init (String Name,ListExpr type, ListExpr value, QueryResult qr) {
-     init(Name,type,0,value,0,qr);
-  }
-
-  public void init (String Name,ListExpr type,int typewidth,ListExpr value,int valuewidth, QueryResult qr)
+  public void init (String Name, int nameWidth,
+                    ListExpr type, ListExpr value,
+                    QueryResult qr)
   {
      String T = Name;
      int size = 0;
@@ -70,8 +68,7 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple,Writable{
             defined=false;
          }
      }
-     T=extendString(T,typewidth);
-     V=extendString(V,valuewidth);
+     T=extendString(T,nameWidth);
      entry =T+" : " + V;
      if(!defined){
          qr.addEntry(entry);
@@ -88,7 +85,7 @@ public class Dsplbinfile extends DsplGeneric implements DsplSimple,Writable{
   }  
 
 
-  /** implemnting the writable interface **/
+  /** implementing the writable interface **/
   public boolean writeTo(File f){
       try{
         byte[] data = Base64Decoder.decode(theList.textValue());

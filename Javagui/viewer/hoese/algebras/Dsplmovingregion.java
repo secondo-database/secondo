@@ -30,7 +30,7 @@ import tools.Reporter;
 /**
  * A displayclass for the movingregion-type (spatiotemp algebra), 2D with TimePanel
  */
-public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
+public class Dsplmovingregion extends DisplayTimeGraph{
   //AffineTransform internAT;
   Point2D.Double point;
   Vector RegionMaps;
@@ -225,23 +225,12 @@ public class Dsplmovingregion extends DisplayTimeGraph implements DsplSimple{
     err = false;
   }
 
-  /**
-   * Init. the Dsplmovingregion instance and calculate the overall bounds and Timebounds
-   * @param type The symbol movingregion
-   * @param value A list of start and end intervals with regionmap value
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
-       init(name, type,0,value,0,qr);
-  }
 
-  public void init (String name,
-                    ListExpr type, int typewidth,
-                    ListExpr value,int valuewidth,
+  public void init (String name, int nameWidth,
+                    ListExpr type, 
+                    ListExpr value,
                     QueryResult qr) {
-    AttrName = extendString(name,typewidth);
+    AttrName = extendString(name,nameWidth);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Dsplmovingregion Error in ListExpr :parsing aborted");

@@ -31,7 +31,7 @@ import gui.SecondoObject;
 /**
  * A Displayclass for an graph from the graph-algebra
  */
-public class Dsplgraph extends DisplayGraph implements DsplSimple, DisplayComplex
+public class Dsplgraph extends DisplayGraph implements DisplayComplex
 {
 	/** The internal datatype representation */
 	String label;
@@ -350,9 +350,9 @@ private Rectangle2D.Double computeBounds(){
 	 *            queryresult to display output.
 	 */
 
-	public void init(String name,ListExpr type, ListExpr value, QueryResult qr)
+	public void init(String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr)
 	{
-		AttrName = name;
+		AttrName = extendString(name,nameWidth);
 		ScanValue(value);
 		if (err)
 		{

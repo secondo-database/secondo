@@ -40,7 +40,7 @@ public class Dsplrel extends DsplGeneric {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplrelsrc.html#init">Source</a>
    */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth,  ListExpr type, ListExpr value, QueryResult qr) {
     long startTime=0;
     if(gui.Environment.MEASURE_TIME){
       startTime = System.currentTimeMillis();

@@ -63,16 +63,8 @@ public class Dsplrangestring extends DsplGeneric {
     return  true;
   }
 
-  /**
-   * Init. the Dsplrangestring instance.
-   * @param type The symbol rangestring
-   * @param value A list of string intervals
-   * @param qr queryresult to display output.
-   * @see generic.QueryResult
-   * @see sj.lang.ListExpr
-   * @see <a href="Dsplrangestringsrc.html#init">Source</a>
-   */
-  public void init (String name, ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+    name = extendString(name,nameWidth);
     String e = "";
     if ((!ScanValue(value)) || value.isEmpty())
       qr.addEntry("(" + name + ":[?,?]"); 
