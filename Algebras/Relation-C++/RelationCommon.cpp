@@ -100,7 +100,7 @@ metadata of a tuple attributes.
 
 TupleType::TupleType( const ListExpr typeInfo )
 {
-  attrTypeArray = 0;	
+  attrTypeArray = 0;
   totalSize = 0;
   refs = 1;
   int i = 0;
@@ -161,10 +161,10 @@ TupleType::TupleType( const ListExpr typeInfo )
     cerr << e.msg() << endl;
     cerr << "Input list: " << nl->ToString(typeInfo) << endl;    
     cerr << "Assuming list: " 
-	        << "(a1 (algid typeid) a2 (algid typeid) ....) or" << endl;  
+         << "(a1 (algid typeid) a2 (algid typeid) ....) or" << endl;
     cerr << "               " 
-	        << "(a1 ((algid typeid)) a2 ((algid typeid)) ....) " << endl;
-  }	  
+         << "(a1 ((algid typeid)) a2 ((algid typeid)) ....) " << endl;
+  } 
 }
 
 /*
@@ -690,20 +690,17 @@ bool IsTupleDescription( ListExpr a )
 {
   ListExpr rest = a;
   ListExpr current;
-
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
   while(!nl->IsEmpty(rest))
   {
     current = nl->First(rest);
     rest = nl->Rest(rest);
-    if((nl->ListLength(current) == 2)
-      && (nl->IsAtom(nl->First(current)))
-      && (nl->AtomType(nl->First(current)) == SymbolType)
-      && (nl->IsAtom(nl->Second(current)))
-      && (nl->AtomType(nl->Second(current)) == SymbolType))
-    {
-    }
-    else
+    if(! (    (nl->ListLength(current) == 2)
+           && (nl->IsAtom(nl->First(current)))
+           && (nl->AtomType(nl->First(current)) == SymbolType)
+           && am->CheckKind("DATA",nl->Second(current),errorInfo))){
       return false;
+    }
   }
   return true;
 }
