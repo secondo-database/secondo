@@ -1099,12 +1099,18 @@ int MappingMakemvalue(Word* args,Word& result,int message,
       Attribute* currentAttr = (Attribute*)currentTuple->
         GetAttribute(attributeIndex);
 
-      if(currentAttr->IsDefined())
-        {
-          unit = (Unit*) currentAttr;
-          m->Add( *unit );
-          currentTuple->DeleteIfAllowed();
-        }
+      if(currentAttr == 0)
+      {
+        cout << endl << "ERROR in MappingMakemvalue: received Nullpointer!" 
+             << endl;
+        assert( false );
+      }
+      else  if(currentAttr->IsDefined())
+      {
+        unit = (Unit*) currentAttr;
+        m->Add( *unit );
+        currentTuple->DeleteIfAllowed();
+      }
       qp->Request(args[0].addr, currentTupleWord);
     }
   m->EndBulkLoad( true ); // force Mapping to sort the units
@@ -1133,11 +1139,17 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
   while ( qp->Received(args[0].addr) ) // get all tuples
     {
       unit = (Unit*) currentUnit.addr;
-      if(unit->IsDefined())
-        {
-          m->Add( *unit );
-          unit->DeleteIfAllowed();
-        }
+      if(unit == 0)
+      {
+        cout << endl << "ERROR in MappingMakemvaluePlain: received Nullpointer!"
+             << endl;
+        assert( false );
+      }
+      else if(unit->IsDefined())
+      {
+        m->Add( *unit );
+        unit->DeleteIfAllowed();
+      }
       qp->Request(args[0].addr, currentUnit);
     }
   m->EndBulkLoad( true ); // force Mapping to sort the units
@@ -1174,7 +1186,13 @@ int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
       Attribute* currentAttr = (Attribute*)currentTuple->
         GetAttribute(attributeIndex);
 
-      if(currentAttr->IsDefined())
+      if(currentAttr == 0)
+      {
+        cout << endl << "ERROR in MappingMakemvalue: received Nullpointer!" 
+             << endl;
+        assert( false );
+      }
+      else if(currentAttr->IsDefined())
         {
           unit = (URegion*) currentAttr;
           cout << "MappingMakemvalue_movingregion: " << endl;
@@ -1209,7 +1227,13 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
   while ( qp->Received(args[0].addr) ) // get all tuples
     {
       unit = (URegion*) currentUnit.addr;
-      if(unit->IsDefined())
+      if(unit == 0)
+      {
+        cout << endl << "ERROR in MappingMakemvalue_movingregionPlain: "
+            "received Nullpointer!" << endl;
+        assert( false );
+      }
+      else if(unit->IsDefined())
         {
           cout << "MappingMakemvalue_movingregion: " << endl;
           unit->Print(cout);
@@ -1830,7 +1854,6 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     }
 
     if( unit->timeInterval.Before( *interval ) )
-//     if( interval->After( unit->timeInterval ) )
       { // interval after unit-deftime --> finished
         result.addr = 0;
 // #ifdef TUA_DEBUG
@@ -8590,11 +8613,10 @@ Test +         T x uT --> (stream ubool) +(**)
 */
 ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  string argstr1, argstr2;
 
   if( nl->ListLength( args ) == 2 )
     {
+      ListExpr arg1, arg2;
       arg1 = nl->First( args );
       arg2 = nl->Second( args );
       if (nl->Equal( arg1, arg2 ))
@@ -8621,26 +8643,19 @@ ListExpr TUCompareValuePredicatesTypeMap( ListExpr args )
         return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                nl->SymbolAtom( "ubool" ));
     }
-  if(arg1)
   // Error case:
-  nl->WriteToString(argstr1, arg1);
-  nl->WriteToString(argstr2, arg2);
   ErrorReporter::ReportError(
     "CompareTemporalValueOperator (one of <, >, <=, >=) "
     "expects two arguments of types '(uT x uT)', '(T x uT)', or '(uT x T)', "
-    "where T in {bool, int, real, string}. The "
-    "passed arguments have types '" + argstr1 + "' and '"
-    + argstr2 + "'.");
+    "where T in {bool, int, real, string}.");
   return nl->SymbolAtom("typeerror");
 }
 
 ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
 {
-  ListExpr arg1, arg2;
-  string argstr1, argstr2;
-
   if( nl->ListLength( args ) == 2 )
     {
+      ListExpr arg1, arg2;
       arg1 = nl->First( args );
       arg2 = nl->Second( args );
       if (nl->Equal( arg1, arg2 ))
@@ -8654,29 +8669,22 @@ ListExpr TUCompareValueEqPredicatesTypeMap( ListExpr args )
             return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                                 nl->SymbolAtom( "ubool" ));
         }
+      string argstr;
+      nl->WriteToString(argstr, args);
+      if (argstr == "(bool ubool)"     || argstr == "(ubool bool)"     ||
+          argstr == "(int uint)"       || argstr == "(unit int)"       ||
+          argstr == "(string ustring)" || argstr == "(ustring string)" ||
+          argstr == "(real ureal)"     || argstr == "(ureal real)"     ||
+          argstr == "(point upoint)"   || argstr == "(upoint point)")
+        return nl->TwoElemList(nl->SymbolAtom( "stream" ),
+                               nl->SymbolAtom( "ubool" ));
     }
-  
-
-    string argstr;
-    nl->WriteToString(argstr, args);
-    if (argstr == "(bool ubool)"     || argstr == "(ubool bool)"     ||
-        argstr == "(int uint)"       || argstr == "(unit int)"       ||
-        argstr == "(string ustring)" || argstr == "(ustring string)" ||
-        argstr == "(real ureal)"     || argstr == "(ureal real)"     ||
-        argstr == "(point upoint)"   || argstr == "(upoint point)")
-      return nl->TwoElemList(nl->SymbolAtom( "stream" ),
-                             nl->SymbolAtom( "ubool" ));
-
 // Error case:
-  nl->WriteToString(argstr1, arg1);
-  nl->WriteToString(argstr2, arg2);
   ErrorReporter::ReportError(
     "CompareTemporalValueOperator (one of =, #) "
     "expects two arguments of "
     "type 'uT x uT', 'T x uT' or 'uT x T', where T in "
-    "{bool, int, real, string, point}, or (uregion x uregion). The "
-    "passed arguments have types '" + argstr1 + "' and '"
-    + argstr2 + "'.");
+    "{bool, int, real, string, point}, or (uregion x uregion). ");
   return nl->SymbolAtom("typeerror");
 }
 
