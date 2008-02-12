@@ -1919,74 +1919,104 @@ TypeConstructor predicategroup(
 
 */
 ListExpr Int9M_Int9M(ListExpr args){
-   if(nl->ListLength(args)!=1)
-      return nl->SymbolAtom("typeerror");
+   if(nl->ListLength(args)!=1){
+      ErrorReporter::ReportError("wrong number of arguments expected: 1");
+      return nl->TypeError();
+   }
    ListExpr arg=nl->First(args);
-   if(nl->AtomType(arg)!=SymbolType)
-      return nl->SymbolAtom("typeerror");
-   if(nl->IsEqual(arg,"int9m"))
+   if(nl->IsEqual(arg,"int9m")){
+      ErrorReporter::ReportError("int9m expected");
       return nl->SymbolAtom("int9m");
-   return nl->SymbolAtom("typeerror");
+   }
+   return nl->TypeError();
 }
 
 ListExpr Int9M_Int9M_Int9M(ListExpr args){
-   if(nl->ListLength(args)!=2)
-      return nl->SymbolAtom("typeerror");
+   if(nl->ListLength(args)!=2){
+      ErrorReporter::ReportError("two arguments expected");
+      return nl->TypeError();
+   }
    if(nl->IsEqual(nl->First(args),"int9m") &&
-      nl->IsEqual(nl->Second(args),"int9m"))
+      nl->IsEqual(nl->Second(args),"int9m")){
       return nl->SymbolAtom("int9m");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("int9m x int9m expected");
+   return nl->TypeError();
 }
 
 ListExpr Int9M_Int(ListExpr args){
-   if(nl->ListLength(args)!=1)
-     return nl->SymbolAtom("typeerror");
-   if(nl->IsEqual(nl->First(args),"int9m"))
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("One argument expected"); 
+     return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"int9m")){
      return nl->SymbolAtom("int");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("int9m expected");
+   return nl->TypeError();
 }
 
 ListExpr Cluster_String(ListExpr args){
-   if(nl->ListLength(args)!=1)
-     return nl->SymbolAtom("typeerror");
-   if(nl->IsEqual(nl->First(args),"cluster"))
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("one argument expected");
+     return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"cluster")){
      return nl->SymbolAtom("string");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("cluster expected");
+   return nl->TypeError();
 }
 
 ListExpr Cluster_Cluster(ListExpr args){
-   if(nl->ListLength(args)!=1)
-      return nl->SymbolAtom("typeerror");
-   if(nl->IsEqual(nl->First(args),"cluster"))
+   if(nl->ListLength(args)!=1){
+      ErrorReporter::ReportError("one argument expected");
+      return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"cluster")){
       return nl->SymbolAtom("cluster");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("cluster expected");
+   return nl->TypeError();
 }
 
 ListExpr Cluster_Int9M_Cluster(ListExpr args){
-   if(nl->ListLength(args)!=2)
-     return nl->SymbolAtom("typeerror");
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("two arguments expected");
+     return nl->TypeError();
+   }
    if(nl->IsEqual(nl->First(args),"cluster") &&
-      nl->IsEqual(nl->Second(args),"int9m"))
+      nl->IsEqual(nl->Second(args),"int9m")){
       return nl->SymbolAtom("cluster");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("cluster x int9m expected");
+   return nl->TypeError();
 }
 
 ListExpr Cluster_Int9M_Bool(ListExpr args){
-   if(nl->ListLength(args)!=2)
-     return nl->SymbolAtom("typeerror");
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("cluster x int9m expected");
+     return nl->TypeError();
+   }
    if(nl->IsEqual(nl->First(args),"cluster") &&
-      nl->IsEqual(nl->Second(args),"int9m"))
+      nl->IsEqual(nl->Second(args),"int9m")){
       return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("cluster x int9m expected");
+   return nl->TypeError();
 }
 
 ListExpr Cluster_Cluster_Bool(ListExpr args){
-   if(nl->ListLength(args)!=2)
-     return nl->SymbolAtom("typeerror");
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("cluster x cluster expected");
+     return nl->TypeError();
+   }
    if(nl->IsEqual(nl->First(args),"cluster") &&
-      nl->IsEqual(nl->Second(args),"cluster"))
+      nl->IsEqual(nl->Second(args),"cluster")){
       return nl->SymbolAtom("bool");
-   return nl->SymbolAtom("typeerror");
+   }
+     ErrorReporter::ReportError("cluster x cluster expected");
+   return nl->TypeError();
 }
 
 ListExpr TransposeTM(ListExpr args){
@@ -1999,61 +2029,81 @@ ListExpr TransposeTM(ListExpr args){
          nl->IsEqual(nl->Second(args),"string"))
          return nl->SymbolAtom("cluster");
    }
-   return nl->SymbolAtom("typeerror");
+   ErrorReporter::ReportError("int9m  or cluster x string expected");
+   return nl->TypeError();
 }
 
 ListExpr Cluster_String_Cluster(ListExpr args){
    if(nl->ListLength(args)!=2){
      ErrorReporter::ReportError("Two arguments expected");
-     return nl->SymbolAtom("typeerror");
+     return nl->TypeError();
    }
    if(!nl->IsEqual(nl->First(args),"cluster")){
      ErrorReporter::ReportError("First argument must be a cluster");
-     return nl->SymbolAtom("typeerror");
+     return nl->TypeError();
    }
    if(! nl->IsEqual(nl->Second(args),"string")){
      ErrorReporter::ReportError("The second argument must be a string");
-     return nl->SymbolAtom("typeerror");
+     return nl->TypeError();
    }
    return nl->SymbolAtom("cluster");
 }
 
 ListExpr Cluster_Cluster_Cluster(ListExpr args){
-   if(nl->ListLength(args)!=2)
-     return nl->SymbolAtom("typeerror");
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("cluster x cluster expected"); 
+     return nl->TypeError();
+   }
    if(nl->IsEqual(nl->First(args),"cluster") &&
-      nl->IsEqual(nl->Second(args),"cluster"))
+      nl->IsEqual(nl->Second(args),"cluster")){
       return nl->SymbolAtom("cluster");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("cluster x cluster expected"); 
+   return nl->TypeError();
 }
 
 ListExpr SetOpsTM(ListExpr args){
-   if(nl->ListLength(args)!=2)
-     return nl->SymbolAtom("typeerror");
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("int9m x int9m or "
+                                "cluster x cluster expected");
+     return nl->TypeError();
+   }
    if(nl->IsEqual(nl->First(args),"cluster") &&
-      nl->IsEqual(nl->Second(args),"cluster"))
+      nl->IsEqual(nl->Second(args),"cluster")){
       return nl->SymbolAtom("cluster");
+   }
    if(nl->IsEqual(nl->First(args),"int9m") &&
-      nl->IsEqual(nl->Second(args),"int9m"))
+      nl->IsEqual(nl->Second(args),"int9m")){
       return nl->SymbolAtom("int9m");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("int9m x int9m or "
+                              "cluster x cluster expected");
+   return nl->TypeError();
 }
 
 ListExpr InvertTM(ListExpr args){
-   if(nl->ListLength(args)!=1)
-     return nl->SymbolAtom("typeerror");
-   if(nl->IsEqual(nl->First(args),"cluster"))
+   if(nl->ListLength(args)!=1){
+      ErrorReporter::ReportError("int9m or cluster  expected");
+      return nl->TypeError();
+   }
+   
+   if(nl->IsEqual(nl->First(args),"cluster")){
       return nl->SymbolAtom("cluster");
-   if(nl->IsEqual(nl->First(args),"int9m") )
+   }
+   if(nl->IsEqual(nl->First(args),"int9m") ){
       return nl->SymbolAtom("int9m");
-   return nl->SymbolAtom("typeerror");
+   }
+   ErrorReporter::ReportError("int9m or cluster  expected");
+   return nl->TypeError();
 }
 
 ListExpr CreatePGroupTM(ListExpr args){
    while(!nl->IsEmpty(args)){
       ListExpr current = nl->First(args);
-      if(!nl->IsEqual(current,"cluster"))
-         return nl->SymbolAtom("typeerror");
+      if(!nl->IsEqual(current,"cluster")){
+         ErrorReporter::ReportError("cluster x cluster x ...  expected");
+         return nl->TypeError();
+      }
       args = nl->Rest(args);
    }
    return nl->SymbolAtom("predicategroup");
@@ -2062,7 +2112,7 @@ ListExpr CreatePGroupTM(ListExpr args){
 ListExpr CreateValidPGroupTM(ListExpr args){
   if(nl->ListLength(args)<1){
        ErrorReporter::ReportError("At Least one element required");
-       return nl->SymbolAtom("typeerror");
+       return nl->TypeError();
    }
    nl->WriteListExpr(args);
    while(!nl->IsEmpty(args)){
@@ -2070,7 +2120,7 @@ ListExpr CreateValidPGroupTM(ListExpr args){
       if(!nl->IsEqual(current,"cluster")){
          ErrorReporter::ReportError("only clusters are allowed\n");
          nl->WriteListExpr(current);
-         return nl->SymbolAtom("typeerror");
+         return nl->TypeError();
       }
       args = nl->Rest(args);
    }
@@ -2080,51 +2130,56 @@ ListExpr CreateValidPGroupTM(ListExpr args){
 ListExpr ClusterName_OfTM(ListExpr args){
     if(nl->ListLength(args)==2){
         if(nl->IsEqual(nl->First(args),"predicategroup") &&
-           nl->IsEqual(nl->Second(args),"int9m"))
+           nl->IsEqual(nl->Second(args),"int9m")){
             return nl->SymbolAtom("string");
+        }
     }
-    return nl->SymbolAtom("typeerror");
+    ErrorReporter::ReportError("predicategroup x int9m expected");
+    return nl->TypeError();
 }
 
 ListExpr ClusterOfTM(ListExpr args){
     if(nl->ListLength(args)==2){
         if(nl->IsEqual(nl->First(args),"predicategroup") &&
-           nl->IsEqual(nl->Second(args),"int9m"))
+           nl->IsEqual(nl->Second(args),"int9m")){
             return nl->SymbolAtom("cluster");
+        }
     }
-    return nl->SymbolAtom("typeerror");
+    ErrorReporter::ReportError("predicategroup x int9m  expected");
+    return nl->TypeError();
 }
 
 ListExpr GetClusterTM(ListExpr args){
     if(nl->ListLength(args)==2){
         if(nl->IsEqual(nl->First(args),"predicategroup") &&
-           nl->IsEqual(nl->Second(args),"string"))
+           nl->IsEqual(nl->Second(args),"string")){
             return nl->SymbolAtom("cluster");
+        }
     }
     ErrorReporter::ReportError("predicategroup x string expected");
-    return nl->SymbolAtom("typeerror");
+    return nl->TypeError();
 }
 
 ListExpr SizeOfTM(ListExpr args){
    if(nl->ListLength(args)==1){
       if(nl->IsEqual(nl->First(args),"cluster") |
-         nl->IsEqual(nl->First(args),"predicategroup"))
+         nl->IsEqual(nl->First(args),"predicategroup")){
          return nl->SymbolAtom("int");
-      else {
+      } else {
         ErrorReporter::ReportError("TopRel:  SizeOf expects a cluster "
                                    "or a predicategroup\n");
-        return nl->SymbolAtom("typeerror");
+        return nl->TypeError();
       }
    }
    ErrorReporter::ReportError("TopRel: Wrong number of"
                               " arguments for sizeof\n");
-   return nl->SymbolAtom("typerror");
+   return nl->TypeError();
 }
 
 ListExpr CreateClusterTM(ListExpr args){
    if(nl->ListLength(args)!=2){
       ErrorReporter::ReportError("CreateCluster expects 2 arguments\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->SymbolAtom("typerror");
    }
    if( nl->IsEqual(nl->First(args),"string") &&
        (nl->IsEqual(nl->Second(args),"string") ||
@@ -2132,37 +2187,39 @@ ListExpr CreateClusterTM(ListExpr args){
         return nl->SymbolAtom("cluster");
    ErrorReporter::ReportError("CreateCluster requires"
                               " string x {string,text} as arguments\n");
-   return nl->SymbolAtom("typeerror");
+   return nl->TypeError();
 }
 
 ListExpr IsCompleteTM(ListExpr args){
   if(nl->ListLength(args)!=1){
      ErrorReporter::ReportError("IsComplete has one element\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->TypeError();
   }
-  if(nl->IsEqual(nl->First(args),"predicategroup"))
+  if(nl->IsEqual(nl->First(args),"predicategroup")){
      return nl->SymbolAtom("bool");
+  }
   ErrorReporter::ReportError("IsComplete"
                              " needs a predicategroup as argument\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->TypeError();
 }
 
 ListExpr UnSpecifiedTM(ListExpr args){
   if(nl->ListLength(args)!=1){
      ErrorReporter::ReportError("unspecified needs one element\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->TypeError();
   }
-  if(nl->IsEqual(nl->First(args),"predicategroup"))
+  if(nl->IsEqual(nl->First(args),"predicategroup")){
      return nl->SymbolAtom("cluster");
+  }
   ErrorReporter::ReportError("unspecified"
                              " needs a predicategroup as argument\n");
-  return nl->SymbolAtom("typeerror");
+  return nl->TypeError();
 }
 
 ListExpr MultiSetOpsTM(ListExpr args){
   if(nl->ListLength(args)<1){
      ErrorReporter::ReportError("At least one argument required\n");
-     return nl->SymbolAtom("typeerror");
+     return nl->TypeError();
   }
   ListExpr rest = nl->Rest(args);
   if(nl->IsEqual(nl->First(args),"int9m")){
@@ -2188,44 +2245,37 @@ ListExpr MultiSetOpsTM(ListExpr args){
       return nl->SymbolAtom("cluster");
   }
   ErrorReporter::ReportError("int9m or cluster required");
-  return nl->SymbolAtom("typeerror");
+  return nl->TypeError();
 }
 
 ListExpr PWDisjointTM(ListExpr args){
   ListExpr rest = args;
   while(!nl->IsEmpty(rest)){
     if(!nl->IsEqual(nl->First(rest),"cluster")){
-       ErrorReporter::ReportError("elements must be from the same type");
-       return  nl->SymbolAtom("typeerror");
+       ErrorReporter::ReportError("elements must be of type cluster");
+       return nl->TypeError();
     }
     rest = nl->Rest(rest);
   }
   return nl->SymbolAtom("bool");
-  ErrorReporter::ReportError("cluster required");
-  return nl->SymbolAtom("typeerror");
 }
 
 
 ListExpr RestrictRelaxTM(ListExpr args){
   if(nl->ListLength(args)!=2){
       ErrorReporter::ReportError("Restrict and Relax require two arguments\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->TypeError();
   }
   if(!nl->IsEqual(nl->First(args),"cluster")){
       ErrorReporter::ReportError("Restrict and Relax require"
                                  " cluster as first argument \n");
-      string type;
-      nl->WriteToString(type,nl->First(args));
-      ErrorReporter::ReportError("but get "+type+ "\n");
-      return nl->SymbolAtom("typeerror");
+      return nl->TypeError();
   }
   if(!nl->IsEqual(nl->Second(args),"string") &&
      !nl->IsEqual(nl->Second(args),"text")){
-      string type;
-      nl->WriteToString(type,nl->Second(args));
       ErrorReporter::ReportError("Restrict and Relax require string or text"
-                             " as second argument but receive "+type+"\n");
-      return nl->SymbolAtom("typeerror");
+                              " as second argument ");
+      return nl->TypeError();
   }
   return nl->SymbolAtom("cluster");
 }
@@ -2236,7 +2286,7 @@ ListExpr StdPGroup_TM(ListExpr args){
      return nl->SymbolAtom("predicategroup");
   }
   ErrorReporter::ReportError("stdpgroup does not expect any argument.");
-  return nl->SymbolAtom("typeerror");
+  return nl->TypeError();
 }
 
 
