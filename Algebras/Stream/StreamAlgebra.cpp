@@ -2096,7 +2096,6 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
   if ( !nl->IsAtom(first) &&
        (nl->ListLength(first) == 2) &&
        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       nl->IsAtom(nl->Second(first)) &&
        am->CheckKind("DATA", nl->Second(first), errorInfo) )
     {
       T = nl->Second(first);
@@ -2127,7 +2126,6 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
            !nl->IsAtom(nl->First(TupleDescr)) &&
            (nl->ListLength(nl->First(TupleDescr)) == 2) &&
            (nl->IsAtom(nl->First(nl->First(TupleDescr)))) &&
-           (nl->IsAtom(nl->Second(nl->First(TupleDescr)))) &&
            am->CheckKind("DATA", nl->Second(nl->First(TupleDescr)), errorInfo))
         {
           T = nl->Second(nl->First(TupleDescr));
@@ -2166,7 +2164,7 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
   }
   ListExpr stream = nl->First(args);
   if(nl->ListLength(stream)!=2){
-    ErrorReporter::ReportError("first argument shouzld be stream(t)");
+    ErrorReporter::ReportError("first argument should be stream(t)");
     return nl->TypeError();
   }
   if(!nl->IsEqual(nl->First(stream),"stream")){
@@ -2466,7 +2464,7 @@ ListExpr ProjecttransformstreamTM(ListExpr args){
    ListExpr arg1 = nl->First(args);
    ListExpr arg2 = nl->Second(args);
    if(nl->AtomType(arg2)!=SymbolType){
-      ErrorReporter::ReportError("the second argumnet has"
+      ErrorReporter::ReportError("the second argument has"
                                  " to be an attributename");
       return nl->SymbolAtom("typeerror");
    }
@@ -3318,13 +3316,13 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
         first = r1->GetRealval();
         last =  r2->GetRealval();
         diff = r3->GetRealval();
-      }	      
+      }
       else {
         first = 0;
         last = -1;
-        diff = 1; 	
+        diff = 1;
       }
-    }	    
+    }
   };
   
   RangeAndDiff* range_d = 0;
@@ -3393,7 +3391,7 @@ struct realstreamInfo : OperatorInfo
     syntax    = REALSTREAM + "(_ , _, _)";
     meaning   = "Creates a stream of reals containing the numbers "
                 "between the first and the second argument. The third "
-		"argument defines the step width.";
+                "argument defines the step width.";
   }
 };
 
@@ -3628,7 +3626,7 @@ struct ensure_Info : OperatorInfo {
     signature = "stream(T) x int -> bool";
     syntax =    "ensure[n]";
     meaning =   "Returns true if at least n tuples are received"
-	        ", otherwise false.";
+                ", otherwise false.";
   }
 
 };
@@ -3723,7 +3721,7 @@ int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
   qp->Close(args[0].addr);
 
   bool ensure = (num == 0);
-  result = qp->ResultStorage(s);	  
+  result = qp->ResultStorage(s);
   CcBool* res = static_cast<CcBool*>( result.addr ); 
   res->Set( true, ensure );
   return 0;
