@@ -2110,6 +2110,7 @@ ListExpr ProjectTypeMap(ListExpr args)
     "Operator project gets a list '" + argstr + "'.");
  
   noAttrs = nl->ListLength(second);
+  set<string> attrNames;
   while (!(nl->IsEmpty(second)))
   {
     first2 = nl->First(second);
@@ -2124,6 +2125,14 @@ ListExpr ProjectTypeMap(ListExpr args)
         "Attributename in the list is not of symbol type.");
       return nl->SymbolAtom("typeerror");
     }
+    if(attrNames.find(attrname)!=attrNames.end()){
+       ErrorReporter::ReportError("names within the projection "
+                                  "list are not unique");
+       return nl->TypeError();
+    } else {
+       attrNames.insert(attrname);
+    }
+
     j = FindAttribute(nl->Second(nl->Second(first)), 
                       attrname, attrtype);
     if (j)
@@ -2154,8 +2163,6 @@ ListExpr ProjectTypeMap(ListExpr args)
           return nl->SymbolAtom("typeerror");
     }
   }
-  // Check whether all new attribute names are distinct
-  // - not yet implemented
   outlist = 
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),

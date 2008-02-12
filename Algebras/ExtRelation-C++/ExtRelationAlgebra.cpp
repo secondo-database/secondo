@@ -5826,7 +5826,6 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
   listOk = listOk && ( nl->ListLength(args) == 3 );
 
   if ( listOk ) {
-
     first  = nl->First(args);
     second = nl->Second(args);
     third  = nl->Third(args);
@@ -5855,11 +5854,14 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
     return nl->SymbolAtom("typeerror");
   }
 
-  ListExpr tuple = nl->First(nl->Second(first));
 
-  listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(first)) == stream );
-  listOk = listOk && ( nl->AtomType(tuple) == SymbolType );
-  listOk = listOk && ( nl->SymbolValue(tuple) == tupleSymbolStr );
+  // check for tuple stream
+  listOk = listOk &&
+           (nl->ListLength(first) == 2) &&
+           (TypeOfRelAlgSymbol(nl->First(first) == stream)) &&
+           (nl->ListLength(nl->Second(first)) == 2 ) &&
+           (nl->IsEqual(nl->First(nl->Second(first)),tupleSymbolStr)) &&
+           (IsTupleDescription(nl->Second(nl->Second(first))));        
 
   if ( !listOk ) {
 
@@ -5879,6 +5881,11 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
   {
     ListExpr attrtype = nl->TheEmptyList();
     ListExpr first2 = nl->First(rest);
+    if(nl->AtomType(first2)!=SymbolType){
+      ErrorReporter::ReportError("Wrong format for an attribute name");
+      return nl->TypeError();  
+    }
+
     string attrname = nl->SymbolValue(first2);
 
     // calculate index of attribute in tuple
@@ -5943,29 +5950,17 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
       return nl->SymbolAtom("typeerror");
     }
 
-    // Check if mapOut is of kind DATA or
-    // if the function returns a typeerror
-    ListExpr typeConstructor = nl->TheEmptyList();
-    if ( nl->IsAtom(mapOut) ) // function returns a simple type
-    {
-      typeConstructor = mapOut;
-
-    } else { // function returns a complex type
-
-      typeConstructor = nl->First(mapOut);
-    }
-
     // check if the Type Constructor belongs to KIND DATA
     // If the functions result type is typeerror this check will also fail
     ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
-    if ( !am->CheckKind("DATA", typeConstructor, errorInfo) ) {
+    if ( !am->CheckKind("DATA", mapOut, errorInfo) ) {
 
       stringstream errMsg;
       errMsg << "groupby: The aggregate function for attribute \""
           << nl->SymbolValue(newAttr) << "\""
           << " returns a type which is not usable in tuples."
           << " The type constructor \""
-          << nl->SymbolValue(typeConstructor) << "\""
+          <<  nl->ToString(mapOut) << "\""
           << " belongs not to kind DATA!"
           << ends;
 
@@ -6642,54 +6637,32 @@ ListExpr AggregateTypeMap( ListExpr args )
   {
     nl->WriteToString(argstr, nl->Second(nl->Second(first)));
     ErrorReporter::ReportError(
-      "Operator aggregate expects as secong argument an attribute name.\n"
+      "Operator aggregate expects as second argument an attribute name.\n"
       "Attribute name '" + attrName + 
       "' does not belong to the tuple of the first argument.\n"
       "Known Attribute(s): " + argstr + "\n");
     return nl->SymbolAtom("typeerror");
   }
 
+  // (map data_1 x data_1 -> data_2
   nl->WriteToString(argstr, third);
   CHECK_COND( nl->ListLength(third) == 4 &&
     TypeOfRelAlgSymbol(nl->First(third)) == ccmap &&
-    (nl->IsAtom(nl->Second(third)) && 
-    nl->AtomType(nl->Second(third)) == SymbolType ||
-    nl->ListLength(nl->Second(third)) == 1) &&
-    (nl->IsAtom(nl->Third(third)) && 
-    nl->AtomType(nl->Third(third)) == SymbolType ||
-    nl->ListLength(nl->Third(third)) == 1) &&
-    nl->Equal(nl->Second(third), nl->Third(third)) &&
-    (nl->IsAtom(nl->Fourth(third)) && 
-    nl->AtomType(nl->Fourth(third)) == SymbolType ||
-    nl->ListLength(nl->Fourth(third)) == 1),
+    nl->Equal(nl->Second(third),nl->Third(third)) &&
+    nl->Equal(nl->Second(third),nl->Fourth(third)),
     "Operator aggregate expects as third argument a list with length four"
-    " and structure (map t1 t1 t2).\n"
+    " and structure (map t1 t1 t1).\n"
     " Operator aggregate gets as third argument '" + argstr + "'.\n" );
 
   nl->WriteToString(argstr, nl->TwoElemList(nl->Second(third), 
                     nl->Third(third)) );
   nl->WriteToString(argstr2, attrType);
-  CHECK_COND(nl->Equal(nl->Second(third), attrType) &&
-    nl->Equal(nl->Third(third), attrType),
+  CHECK_COND(nl->Equal(nl->Second(third), attrType), 
     "Operator aggregate expects that the input types for the mapping "
     "and the type of the attribute\n"
     "passed as first argument have the same description.\n"
     "Input types for the mapping: '" + argstr + "'.\n"
     "Attribute type: '" + argstr2 + "'.\n");
-
-  nl->WriteToString(argstr, nl->Fourth(third));
-  CHECK_COND(nl->Equal(nl->Fourth(third), attrType),
-    "Operator aggregate expects that the result type for the mapping "
-    "and the type of the attribute\n"
-    "passed as first argument have the same description.\n"
-    "Result type for the mapping: '" + argstr + "'.\n"
-    "Attribute type: '" + argstr2 + "'.\n");
-
-  nl->WriteToString(argstr, fourth);
-  CHECK_COND(nl->IsAtom(fourth) && nl->AtomType(fourth) == SymbolType ||
-             nl->ListLength(fourth) == 1,
-    "Operator aggregate expects the fourth argument to be a single value.\n"
-    "Operator aggregate gets as fourth argument: '" + argstr + "'.\n");
 
   nl->WriteToString(argstr2, nl->Fourth(third));
   CHECK_COND(nl->Equal(nl->Fourth(third), fourth),
