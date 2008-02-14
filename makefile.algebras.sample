@@ -171,6 +171,9 @@ ALGEBRA_DIRS += Simulation
 ALGEBRAS     += SimulationAlgebra
 ALGEBRA_DEPS += gsl gslcblas
 
+#ALGEBRA_DIRS += Histogram
+#ALGEBRAS     += HistogramAlgebra
+
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra
 
