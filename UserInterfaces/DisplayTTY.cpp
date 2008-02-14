@@ -208,7 +208,7 @@ DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
   {
     cout << endl;
     string s = nl->ToString( nl->First( nl->First( numType ) ) );
-    string attr = string( maxNameLen-s.length() , ' ' ) + s + string(": ");
+    string attr = string( maxNameLen-s.length() , ' ' ) + s + string(":");
     cout << attr;
     maxIndent = attr.length();
 
@@ -1306,6 +1306,326 @@ DisplayTTY::DisplayGraph( ListExpr type, ListExpr numType, ListExpr value)
   }
 }
 
+
+
+/*
+DisplayHistogram2d
+
+*/
+
+void
+DisplayTTY::DisplayHistogram2d( ListExpr type, 
+							 ListExpr numType, 
+							 ListExpr value )
+{
+  cout << setprecision(16);
+  NList val = NList(value);
+	bool err;
+	if ( val.isAtom() && val.isSymbol() &&
+			val.str() == "undef" )
+	{
+		cout << "UNDEFINED";
+	}
+
+
+	else if ( val.length() != 3 ||  
+    ((val.first().length()-1) 
+    	* (val.second().length()-1)!= 
+    		val.third().length()))
+		{
+			err = true;
+			cout << "Incorrect Data Format"; 
+			nl->WriteListExpr(value, cout);
+		}
+		else
+	{
+
+		NList rangesX = val.first();
+    NList rangesXCopy = val.first();
+    NList rangesY = val.second();
+    NList bins = val.third();
+    
+    // Maximum ermitteln, zur Skalierung
+    NList elem, temp = NList();
+    double maxRangeX = 0;
+    double minRange = 1e300;
+    double last = getNumeric(rangesX.first().listExpr(), err);
+    double d, dist;
+    temp.append(rangesX.first());
+    rangesX.rest();
+    while(!rangesX.isEmpty())
+    {
+        elem = rangesX.first();
+        d = getNumeric(elem.listExpr(), err);
+        dist = d - last;
+        maxRangeX = maxRangeX > dist ? maxRangeX : dist;
+        minRange = minRange < dist ? minRange : dist;
+        last = d;
+        rangesX.rest(); // erstes Element entfernen
+        temp.append(elem);
+    } 
+    rangesX = temp;
+    
+    // Maximum ermitteln, zur Skalierung
+    /*NList elem,*/ temp = NList();
+    double maxBin = 1;
+    //double d;
+    while(!bins.isEmpty())
+    {
+        elem = bins.first();
+        d = getNumeric(elem.listExpr(), err);
+        maxBin = maxBin > d ? maxBin : d;
+        
+        bins.rest(); // erstes Element entfernen
+        temp.append(elem);
+    } 
+    bins = temp;  
+    
+    cout << endl;
+    cout << "HISTOGRAM2D:" << endl;
+    cout<< endl;
+
+    double rangeY = getNumeric(rangesY.first().listExpr(), err);
+    cout << "************* RangeY:"<< rangeY;
+    cout << " **************"<< endl;
+    rangesY.rest(); //paints first rangeY
+    
+    int height;
+    int width;
+
+    while ( !(rangesY.isEmpty()))
+    {
+      double rangeX = getNumeric(rangesX.first().listExpr(), err);
+      cout << "x: " << rangeX << endl;
+      rangesX.rest(); //paints first rangeX
+
+      double rangeY = getNumeric(rangesY.first().listExpr(), err);
+
+      while ( !(rangesX.isEmpty()))
+      {
+        double lastRange = rangeX;
+        rangeX = getNumeric(rangesX.first().listExpr(), err);
+        double bin = getNumeric(bins.first().listExpr(), err);
+        
+        // only scale, if bin greater than 80
+        if (maxBin <= 80)
+        {
+          height = bin+1;
+        }
+        else {
+          height = (bin+1)/maxBin*80.0/(rangeX-lastRange)*minRange;
+        }
+        string space = "";
+        
+        for (int i = 0; i < height;++i)
+        {
+          cout << "_";
+          space += " ";
+        }
+        
+        cout << endl;
+        
+        string binStr = "";
+        
+        stringstream ss(stringstream::in | stringstream::out);
+        ss << bin;
+        ss >> binStr;
+        
+        int numLen = binStr.length();
+        
+        width = (rangeX-lastRange)*7.0/maxRangeX;
+        
+        for (int i = 0; i < width - 1;i++)
+        {
+          if (i == 0)
+            if (numLen < space.length())
+             cout << bin << space.substr(numLen) << "|" << endl;
+            else
+              cout << space << "|" << bin << endl;
+          else
+            cout << space << "|" << endl;
+        }
+        
+        if (width < 2)
+          if (numLen < space.length())
+           cout << bin << space.substr(numLen) << "|" << endl;
+          else
+            cout << space << "|" << bin << endl;
+        else
+          cout << space << "|" << endl;
+        
+        for (int i = 0; i < height;++i)
+        {
+          cout << "_";
+        }     
+        cout << "|" << (bin/(rangeX-lastRange)) << endl;
+        cout << "x: "<< rangeX << endl;
+
+        rangesX.rest();
+        bins.rest();
+      } // while ( !(nl->IsEmpty(rangesX)) )
+
+      rangesX = rangesXCopy;
+      cout << "*********** RangeY: " << rangeY;
+      cout << " ***************" << endl;
+      rangesY.rest();
+    } // while( !(nl->IsEmpty(rangesY)) )
+
+	}
+	cout << endl;
+}
+
+
+/*
+DisplayHistogram1d
+
+*/
+
+void
+DisplayTTY::DisplayHistogram1d( ListExpr type, 
+							 ListExpr numType, 
+							 ListExpr value )
+{
+  cout << setprecision(16);
+  NList val = NList(value);
+	bool err;
+	if ( val.isAtom() && val.isSymbol() &&
+			val.str() == "undef" )
+	{
+		cout << "UNDEFINED";
+	}
+
+
+	else if ( val.length() != 2 ||  
+    (!(val.first().length()) 
+    		== val.second().length() + 1))
+		{
+			err = true;
+			cout << "Incorrect Data Format"; 
+			nl->WriteListExpr(value, cout);
+		}
+
+
+		else
+	{
+    NList ranges = val.first();
+    NList bins = val.second();
+    
+		// Maximum ermitteln, zur Skalierung
+	  NList elem, temp = NList();
+	  double maxRange = 0;
+	  double minRange = 1e300;
+	  double last = getNumeric(ranges.first().listExpr(), err);
+	  double d, dist;
+	  temp.append(ranges.first());
+	  ranges.rest();
+	  while(!ranges.isEmpty())
+	  {
+	      elem = ranges.first();
+	      d = getNumeric(elem.listExpr(), err);
+	      dist = d - last;
+	      maxRange = maxRange > dist ? maxRange : dist;
+	      minRange = minRange < dist ? minRange : dist;
+	      last = d;
+	      ranges.rest(); // erstes Element entfernen
+	      temp.append(elem);
+	  } 
+	  ranges = temp;
+	  
+    // Maximum ermitteln, zur Skalierung
+    /*NList elem,*/ temp = NList();
+    double maxBin = 1;
+    //double d;
+    while(!bins.isEmpty())
+    {
+        elem = bins.first();
+        d = getNumeric(elem.listExpr(), err);
+        maxBin = maxBin > d ? maxBin : d;
+        
+        bins.rest(); // erstes Element entfernen
+        temp.append(elem);
+    } 
+    bins = temp;	  
+
+		cout << endl;
+		cout << "HISTOGRAM:" << endl;
+		cout<< endl;
+		double range = getNumeric(ranges.first().listExpr(), err);
+		cout << range << endl;
+		ranges.rest();
+		int height;
+		int width;
+		while ( !(ranges.isEmpty()) ){
+		  double lastRange = range;
+			range = getNumeric(ranges.first().listExpr(), err);
+			
+			double bin = getNumeric(bins.first().listExpr(), err);
+			
+			// only scale, if bin greater than 80
+			if (maxBin <= 80)
+			{
+			  height = bin+1;
+			}
+			else {
+        height = (bin+1)/maxBin*80.0/(range-lastRange)*minRange;
+			}
+			string space = "";
+			
+			for (int i = 0; i < height;++i)
+			{
+			  cout << "_";
+			  space += " ";
+			}
+			
+			cout << endl;
+			
+      string binStr = "";
+      
+      stringstream ss(stringstream::in | stringstream::out);
+      ss << bin;
+      ss >> binStr;
+      
+			int numLen = binStr.length();	
+			
+			width = (range-lastRange)*7.0/maxRange;
+			
+			for (int i = 0; i < width - 1;i++)
+			{
+        if (i == 0)
+          if (numLen < space.length())
+           cout << bin << space.substr(numLen) << "|" << endl;
+          else
+            cout << space << "|" << bin << endl;
+        else
+          cout << space << "|" << endl;
+			}
+			
+      if (width < 2)
+        if (numLen < space.length())
+         cout << bin << space.substr(numLen) << "|" << endl;
+        else
+          cout << space << "|" << bin << endl;
+      else
+        cout << space << "|" << endl;
+			
+      for (int i = 0; i < height;++i)
+      {
+        cout << "_";
+      }			
+      cout << "|" << bin/(range-lastRange) << endl;
+			cout << range << endl;
+
+			ranges.rest();
+			bins.rest();
+		}
+
+	}
+	cout << endl;
+}
+
+
+
+
 /*
 DisplayPosition
 
@@ -1826,6 +2146,10 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   InsertDisplayFunction( "edge",  &DisplayEdge);
   InsertDisplayFunction( "path",  &DisplayPath);
   InsertDisplayFunction( "graph",  &DisplayGraph);
+  
+  InsertDisplayFunction( "histogram1d", &DisplayHistogram1d);
+  InsertDisplayFunction( "histogram2d", &DisplayHistogram2d);
+  
   InsertDisplayFunction( "position", &DisplayPosition );
   InsertDisplayFunction( "move", &DisplayMove );
 }
