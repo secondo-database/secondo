@@ -102,6 +102,20 @@ namespace symbols {
  Sym MPOINT("mpoint");
  Sym POINT("point");
 
+ // histogram types
+#undef HISTOGRAM1D
+#undef HISTOGRAM2D
+ Sym HISTOGRAM1D("histogram1d");
+ Sym HISTOGRAM2D("histogram2d");
+ Sym IS_UNDEFINED("is_undefined");
+ Sym BINRANGE_MIN("binrange_min");
+ Sym BINRANGE_MAX("binrange_max");
+ Sym BINRANGE_MINX("binrange_minX");
+ Sym BINRANGE_MAXX("binrange_maxX");
+ Sym BINRANGE_MINY("binrange_minY");
+ Sym BINRANGE_MAXY("binrange_maxY");
+
+
  // some reserved words of the query processor
 #undef MAP 
 #undef STREAM 

@@ -337,6 +337,25 @@ Is a display function for graph.
 
 */
 
+  static void DisplayHistogram1d( ListExpr type, 
+		  					   ListExpr numType, 
+		  					   ListExpr value );  
+ 
+/*
+Displayfunction for histogram1d
+
+*/
+  
+  static void DisplayHistogram2d( ListExpr type, 
+		  					   ListExpr numType, 
+		  					   ListExpr value );  
+ 
+/*
+Displayfunction for histogram2d
+
+*/
+  
+
   static void DisplayPosition( ListExpr type,
                                ListExpr numType,
                                ListExpr value );
