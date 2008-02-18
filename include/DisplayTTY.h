@@ -364,6 +364,25 @@ Displayfunction for histogram2d
                                ListExpr numType,
                                ListExpr value );
 
+/*
+Is a display function for Collections with list type
+collection(subtype)
+
+*/
+  static void DisplayCollection( ListExpr type,
+         ListExpr numType,
+         ListExpr value);
+/*
+Is a display function for Collections with list type
+collection(subtype amount)
+
+*/
+  static void DisplayMultiset( ListExpr type,
+         ListExpr numType,
+         ListExpr value);
+
+
+
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
   static map<string,DisplayFunction> displayFunctions;

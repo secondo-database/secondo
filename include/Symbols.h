@@ -115,6 +115,47 @@ namespace symbols {
  Sym BINRANGE_MINY("binrange_minY");
  Sym BINRANGE_MAXY("binrange_maxY");
 
+//vector, set, multiset algebra
+#undef VECTOR
+#undef SET
+#undef MULTISET
+#undef CONTAINS
+#undef IN
+#undef SIZE
+#undef EQ
+#undef GT
+#undef LT
+#undef LE
+#undef GE
+#undef ISDEF
+Sym ISDEF("is_defined");
+Sym EQ("=");
+Sym GT(">");
+Sym LT("<");
+Sym GE(">=");
+Sym LE("<=");
+Sym SIZE("size");
+Sym VECTOR("vector");
+Sym SET("set");
+Sym MULTISET("multiset");
+Sym CONTAINS("contains");
+Sym IN("in");
+Sym INSERT("insert");
+Sym ADD("+");
+Sym COLLECT_SET("collect_set");
+Sym COLLECT_MULTISET("collect_multiset");
+Sym COLLECT_VECTOR("collect_vector");
+Sym COMPONENTS("components");
+Sym GET("get");
+Sym DELETE("deleteelem");
+Sym CONCAT("concat");
+Sym UNION("union");
+Sym INTERSECTION("intersection");
+Sym DIFFERENCE("difference");
+Sym CREATE_PREFIX("create_");
+
+
+
 
  // some reserved words of the query processor
 #undef MAP 

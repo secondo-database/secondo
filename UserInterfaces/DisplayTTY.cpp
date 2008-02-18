@@ -1837,7 +1837,80 @@ DisplayTTY::DisplayMove( ListExpr type, ListExpr numType, ListExpr value )
   }
 }
 
+/*
+This is the general TTY display function for all collection with list
+type collectio(subtyp). In our case this is vector an set.
+In order to keep the functionality of the subtype, the display function of
+the subtype is used by calling it through the CallDisplayFunction method.
 
+*/
+
+void
+DisplayTTY::DisplayCollection( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if(nl->ListLength(value)==0){
+    cout << "empty vector";
+  }else{
+    cout << nl->ToString(nl->First(type)) << " of ";
+    cout << nl->ToString(nl->Second(type)) << endl;
+    int no=1;
+    if(nl->IsAtom(nl->Second(type))){
+      while(!nl->IsEmpty(value)){
+        cout << "Item No: " << no++ << " = ";
+        CallDisplayFunction(nl->Second(numType),
+  nl->Second(type),nl->Second(numType),nl->First(value));
+        cout << endl;
+        value = nl->Rest(value);
+      }
+    }else{
+      while(!nl->IsEmpty(value)){
+        cout << "Item No: " << no++ << " = ";
+        CallDisplayFunction(nl->First(nl->Second(numType)),
+  nl->Second(type),nl->Second(numType),nl->First(value));
+        cout << endl;
+        value = nl->Rest(value);
+      }
+    }
+  }
+}
+
+
+/*
+This is the Displayfunction for collections of list
+type collection(subtype amount)
+In our case this is the multiset collection.
+
+*/
+void
+DisplayTTY::DisplayMultiset( ListExpr type, ListExpr numType, ListExpr value)
+{
+  if(nl->ListLength(value)==0){
+    cout << "empty vector";
+  }else{
+    cout << nl->ToString(nl->First(type)) << " of ";
+    cout << nl->ToString(nl->Second(type)) << endl;
+    int no=1;
+    if(nl->IsAtom(nl->Second(type))){
+      while(!nl->IsEmpty(value)){
+        cout << "Item No: " << no++ << " = ";
+        CallDisplayFunction(nl->Second(numType),
+  nl->Second(type),nl->Second(numType),nl->First(nl->First(value)));
+        cout << " Anzahl: " << nl->IntValue(nl->Second(nl->First(value)));
+  cout << endl;
+        value = nl->Rest(value);
+      }
+    }else{
+      while(!nl->IsEmpty(value)){
+        cout << "Item No: " << no++ << " = ";
+        CallDisplayFunction(nl->First(nl->Second(numType)),
+  nl->Second(type),nl->Second(numType),nl->First(nl->First(value)));
+        cout << endl;cout << "Anzahl: ";
+  cout << nl->IntValue(nl->Second(nl->First(value))) << endl;
+  value = nl->Rest(value);
+      }
+    }
+  }
+}
 
 
 
@@ -2149,6 +2222,11 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   
   InsertDisplayFunction( "histogram1d", &DisplayHistogram1d);
   InsertDisplayFunction( "histogram2d", &DisplayHistogram2d);
+
+  InsertDisplayFunction( "vector", &DisplayCollection );
+  InsertDisplayFunction( "set", &DisplayCollection );
+  InsertDisplayFunction( "multiset", &DisplayMultiset );
+
   
   InsertDisplayFunction( "position", &DisplayPosition );
   InsertDisplayFunction( "move", &DisplayMove );
