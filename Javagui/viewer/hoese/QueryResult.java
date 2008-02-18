@@ -137,6 +137,76 @@ public class QueryResult extends JList {
     GraphObjects = new Vector(50);
   }
 
+/**
+   * Creates a QueryResult for Collections with a command and a result of a query
+   * @param   String acommand
+   * @param   ListExpr aLEResult
+   * @param   boolean isColl
+   */
+ public QueryResult (String acommand, ListExpr aLEResult,boolean isColl) {
+    super();
+    interval = null;
+    setFont(new Font("Monospaced",Font.PLAIN,12));
+
+    // processing double clicks
+    addMouseListener(new MouseAdapter() {
+      public void mouseClicked (MouseEvent e) {
+        if(e.getButton()!=MouseEvent.BUTTON1 && e.getClickCount()==1){
+            int index = QueryResult.this.locationToIndex(e.getPoint());
+            if(index<0){
+              return;
+            }
+            Object o = QueryResult.this.getModel().getElementAt(index);
+            if(o!=null && (o instanceof Writable)){
+                if(filechooser.showSaveDialog(null)==JFileChooser.APPROVE_OPTION){
+                     File F = filechooser.getSelectedFile();
+                     if(F.exists()){
+                        if(Reporter.showQuestion("File " + F+ " already exists,\n Overwrite It?")!=Reporter.YES){
+                           return;
+                        }
+                     }
+                     boolean ok = false;
+                     try{
+                        ok = ((Writable)o).writeTo(F);
+                     }catch(Exception e4){
+                        Reporter.debug(e4);
+                     }
+                     if(ok){
+                         Reporter.showInfo("File "+F+" has been written");
+                     } else{
+                         Reporter.showError("error in writing file " + F);
+                     }
+                }
+            }
+        }
+        if (e.getClickCount() != 2){
+          return;
+        }
+        Object o = QueryResult.this.getSelectedValue();
+        if ((o instanceof DsplBase) && (((DsplBase)o).getFrame() != null)) {
+            ((DsplBase)o).getFrame().select(o);
+            ((DsplBase)o).getFrame().show(true);
+        }
+        if((o instanceof ExternDisplay)){
+            ExternDisplay BG = (ExternDisplay) o;
+            if(!BG.isExternDisplayed()){
+                BG.displayExtern();
+            }
+        }
+      }
+    });
+
+
+   setModel(new DefaultListModel());
+    setCellRenderer(new QueryRenderer());
+    setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    setBackground(Color.lightGray);
+    command = acommand;
+    LEResult = aLEResult;
+    GraphObjects = new Vector(50);
+  }
+
+
 
 
   /** get the ViewConfigs for this query */
