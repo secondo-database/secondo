@@ -114,11 +114,19 @@ public Point3DSimple centreOfGravity() {
      
 }
 
-/** computes the distance between P and the centre of gravity
+/** computes the distance between P and most far point
   * of this figure
   */
 public double distance(Point3DSimple P) {
-   return P.distance(centreOfGravity());
+   // return P.distance(centreOfGravity());
+   double dist = 0;
+   for(int i=0;i<getSize();i++){
+      double d = P.distance(get(i));
+      if(d>dist){
+         dist = d;
+      }
+   }
+   return dist;
 }
 
 /** check for emptyness */
@@ -131,6 +139,12 @@ public int getSize() { return Points.size(); }
 public Point3DSimple getPoint3DAt(int i) throws IndexOutOfBoundsException {
    return (Point3DSimple) Points.get(i);
 }
+
+public Point3DSimple get(int i){
+   return (Point3DSimple) Points.get(i);
+
+}
+
 
 /** set point on position i */
 public void setPoint3DAt(Point3DSimple P, int i) throws IndexOutOfBoundsException {
