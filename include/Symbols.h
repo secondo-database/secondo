@@ -147,7 +147,7 @@ Sym COLLECT_MULTISET("collect_multiset");
 Sym COLLECT_VECTOR("collect_vector");
 Sym COMPONENTS("components");
 Sym GET("get");
-Sym DELETE("deleteelem");
+Sym DELETEELEM("deleteelem");
 Sym CONCAT("concat");
 Sym UNION("union");
 Sym INTERSECTION("intersection");
