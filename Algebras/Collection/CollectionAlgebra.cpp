@@ -2291,8 +2291,9 @@ cout << "GetValueMap" << endl;
 #ifdef DEBUGHEAD
 cout << "DeleteTypeMap" << endl;
 #endif
-      const string errMsg = "Operator " + DELETE + " expects (set DATA) x DATA"
-                                   " or (multiset DATA) x DATA";
+      const string errMsg = "Operator " + DELETEELEM + 
+                            " expects (set DATA) x DATA"
+                            " or (multiset DATA) x DATA";
     
       ListExpr argCollection;
       ListExpr argCollectionType;
@@ -2356,10 +2357,10 @@ cout << "DeleteValueMap" << endl;
     
     deleteInfo()
     {
-      name      = DELETE;
+      name      = DELETEELEM;
       signature = SET + "(t) x t -> " + SET + "(t)";
       appendSignature(MULTISET + "(t) x t -> " + MULTISET + "(t)");
-      syntax    = DELETE + "( _, _ )";
+      syntax    = DELETEELEM + "( _, _ )";
       meaning   = "Deletes a component one time from the set or multiset"
                    " if it is present in the collection";
     }
