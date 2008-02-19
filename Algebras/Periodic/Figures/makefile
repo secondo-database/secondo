@@ -7,6 +7,9 @@ FILES=ObviousSolution.eps UnFoldedSolution.eps RepTreeWithAdditionalLevel.eps Un
 all: $(FILES)
 
 
+UniLogo.eps: logo.eps1
+	cp $< $@
+
 %.eps: %.dvi
 	dvips -E -o $@ $<
 
