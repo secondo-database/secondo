@@ -43,6 +43,7 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
+import javax.swing.JFileChooser;
 
 import viewer.*;
 import viewer.hoese.*;
@@ -60,7 +61,7 @@ import viewer.viewer3d.objects.*;
 /**
  * A Displayclass for an graph from the histogram2d-algebra
  */                             
-public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, ExternDisplay
+public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 {
 	/** The internal datatype representation */
     static ExtWin extWin = new ExtWin("Histogram2D");
@@ -75,34 +76,6 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
   
   static ID id = new ID();
   
-
-  /**
-   * @return Null.
-   */
-   public Shape getRenderObject(int no, AffineTransform af){
-	   return null;
-   }
-
-   /** 
-    * must be implemented
-    */
-   public void draw(Graphics g, double time, AffineTransform af){
-   }
-
-   /** Returns 1. */
-   public int numberOfShapes(){
-	   return 1;
-   }
-   /** Returns false. */
-   public boolean isPointType(int no){
-	   return false;
-   }
-   /** Returns false. */
-   public boolean isLineType(int no){
-	   return false;
-   }
-
-
 
 	/**
 	 * Scans the numeric representation of a histogram2d datatype
@@ -264,11 +237,11 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 		/** creates a new external window **/
 		public ExtWin(String title){
 			super(title);
-			this.getContentPane().setLayout(new GridLayout(1,2));
+      JPanel showPanel = new JPanel( (new GridLayout(1,2)));
 			w3dPanel1 = new MyWorld3D();
-			super.getContentPane().add(w3dPanel1);
+			showPanel.add(w3dPanel1);
 			w3dPanel2 = new MyWorld3D();
-			super.getContentPane().add(w3dPanel2);
+			showPanel.add(w3dPanel2);
 //			int panelWidth = 350;
 //			int panelHeight = 550;
 			//to conform panel size to histogram2d
@@ -277,7 +250,6 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 			int size = Math.min(screenSize.width/2, screenSize.height);
 			w3dPanel1.setPreferredSize(new Dimension(size-40, size-40));
 			w3dPanel2.setPreferredSize(new Dimension(size-40, size-40));
-			this.pack();
 
 			MouseNavigator mouseNavi = new MouseNavigator();
 			w3dPanel1.addMouseListener(mouseNavi);
@@ -292,6 +264,28 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 //			w3dPanel1.setKeyListener();
 //			w3dPanel2.setKeyListener();
 			this.validate();
+
+      getContentPane().setLayout(new BorderLayout());
+      getContentPane().add(showPanel,BorderLayout.CENTER);
+
+      JPanel p2 = new JPanel();
+      JButton saveLeft = new JButton("save left");
+      saveLeft.addActionListener(new ActionListener(){
+         public void actionPerformed(ActionEvent evt){
+             JFileChooser fc = new JFileChooser(".");
+             if(fc.showSaveDialog(null)==JFileChooser.APPROVE_OPTION){
+                //System.out.println(" PSEXPORT >>> ");
+                extern.psexport.PSCreator.export(w3dPanel1,fc.getSelectedFile());
+                //System.out.println("PSEXPORT <<<<");
+             }
+         }
+      });
+      p2.add(saveLeft);
+      getContentPane().add(p2,BorderLayout.SOUTH);
+      
+			this.pack();
+
+
 		}
 		
 		public void setSource(Dsplhistogram2d hist2d){
@@ -433,17 +427,25 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 
 		//to paint the coordinates
 		public void paint(Graphics g){
-//			System.out.println("im paint 1");
-			super.paint(g);
-//			System.out.println("im paint 2");
+			//System.out.println("im paint 1");
+      try{
+   			super.paint(g);
+      } catch(Exception e ){
+         Reporter.debug(e);;
+      }
+			// System.out.println("im paint 2");
 
 			if (this.rangesXVecPaint == null || this.rangesZVecPaint == null || this.binsHeightPaint ==  null){
-				// no informations
-//				System.out.println("im paint 3");
+				// no information
+				//System.err.println("im paint 3");
+        //System.err.println("rangesXVecPaint = " + rangesXVecPaint);
+        //System.err.println("rangesZVecPaint = " + rangesZVecPaint);
+        // System.err.println("binsHeightPaint = " + binsHeightPaint);
+        
 				return;
 			}
 			else{
-//				System.out.println("im paint 4");
+				// System.out.println("im paint 4");
 				FM3DGraphic Fm3D = new FM3DGraphic();
 				try {
 					Fm3D.setView(this.getEyeX(), this.getEyeY(), this.getEyeZ(),
@@ -559,7 +561,8 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 					//y vary * unitY
 					double itheightNext =  ((Double)(itheight.next())).doubleValue();
 					String itheightNextStr = Double.toString(itheightNext);
-					String itheightNextStrShort =  itheightNextStr.substring(0, Math.min(itheightNextStr.length(),itheightNextStr.indexOf(".")+3));
+					String itheightNextStrShort =  itheightNextStr.substring(0, Math.min(itheightNextStr.length(),
+                                         itheightNextStr.indexOf(".")+3));
 					Point transformed = this.transformPoint(0,(itheightNext)*unitY, (maxZ-minZ)*unitZ, Fm3D);
 					if (transformed != null){
 						g.drawString(itheightNextStrShort, transformed.x-28, transformed.y+5);
@@ -588,11 +591,14 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 		private Point transformPoint(double x, double y, double z, FM3DGraphic Fm3D){
 //			System.out.println("im transformPoint 1");
 
-			IDPoint3D toTransform = new IDPoint3D(x, y, z,255,255,255,id);
-			Figure2D transformedFigure = Fm3D.figureTransformation(toTransform.getFigure3D());
-			if (transformedFigure.isPoint()){
-				IDPoint2D transformedPoint = transformedFigure.getPoint();
-//				System.out.println("im transformPoint end");
+			Point3D toTransform = new Point3D(x, y, z,255,255,255,id);
+      
+			Figure2D transformedFigure = toTransform.project(Fm3D);
+      if(transformedFigure == null){
+        return null;
+      }
+			if (transformedFigure instanceof IDPoint2D){
+        IDPoint2D transformedPoint = (IDPoint2D) transformedFigure;
 				return new Point((int)(transformedPoint.getX()), (int)(transformedPoint.getY()));
 			}
 			else{
@@ -659,7 +665,7 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 		 * @param binsVecPaint
 		 */
 		public void setHistogram(double[] rangesXVecPaint,double[] rangesZVecPaint, double[] binsVecPaint){
-//			System.out.println("im setHistogram 1");
+			//System.out.println("im setHistogram 1");
 			this.removeAll();
 			this.rangesXVecPaint = rangesXVecPaint;
 			this.rangesZVecPaint = rangesZVecPaint;
@@ -790,8 +796,8 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 					int cRed, int cGreen, int cBlue){
 			
 //				System.out.println("im paintColumnColor 1");
-				   IDPoint3DVector pointVecC = new IDPoint3DVector();
-				   Line3DVector lineVecC = new Line3DVector();
+//				   Point3DVector pointVecC = new Point3DVector();
+//				   Line3DVector lineVecC = new Line3DVector();
 				   Triangle3DVector triaVecC = new Triangle3DVector();
 				   
 				   if (height == 0.0){
@@ -927,97 +933,85 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 				   }
 				   
 
+				   //triangles
+				   Point3DSimple pBackRightDownForTria = new Point3DSimple(rangeSmallX, 0, rangeBigZ,cRed,cGreen,cBlue); 
+				   Point3DSimple pBackLeftDownForTria = new Point3DSimple(rangeBigX, 0,rangeBigZ,cRed, cGreen, cBlue); 
 				   
-				   //lines
-				   IDPoint3D pBackRightDown = new IDPoint3D(rangeSmallX, 0, rangeBigZ,cRed-100,cGreen-100,cBlue-100, id); 
-				   IDPoint3D pBackLeftDown = new IDPoint3D(rangeBigX, 0,rangeBigZ,cRed-100, cGreen-100, cBlue-100, id); 
-				   IDPoint3D pBackRightUp = new IDPoint3D(rangeSmallX, height, rangeBigZ,cRed-100, cGreen-100, cBlue-100, id); 
-				   IDPoint3D pBackLeftUp = new IDPoint3D(rangeBigX, height, rangeBigZ,cRed-100, cGreen-100, cBlue-100, id);  
-				   IDPoint3D pFrontRightDown = new IDPoint3D(rangeSmallX, 0, rangeSmallZ,cRed-100, cGreen-100, cBlue-100, id); 
-				   IDPoint3D pFrontLeftDown = new IDPoint3D(rangeBigX, 0, rangeSmallZ,cRed-100, cGreen-100, cBlue-100, id); 
-				   IDPoint3D pFrontRightUp = new IDPoint3D(rangeSmallX, height, rangeSmallZ,cRed-100, cGreen-100, cBlue-100, id); 
-				   IDPoint3D pFrontLeftUp = new IDPoint3D(rangeBigX, height, rangeSmallZ,cRed-100, cGreen-100, cBlue-100, id);
+           Point3DSimple pFrontRightDownForTria = new Point3DSimple(rangeSmallX, 0, rangeSmallZ,cRed, cGreen, cBlue); 
+				   Point3DSimple pFrontLeftDownForTria = new Point3DSimple(rangeBigX, 0, rangeSmallZ,cRed, cGreen, cBlue); 
 				   
 
-				   //triangles
-				   IDPoint3D pBackRightDownForTria = new IDPoint3D(rangeSmallX, 0, rangeBigZ,cRed,cGreen,cBlue, id); 
-				   IDPoint3D pBackLeftDownForTria = new IDPoint3D(rangeBigX, 0,rangeBigZ,cRed, cGreen, cBlue, id); 
-				   IDPoint3D pBackRightUpForTria = new IDPoint3D(rangeSmallX, height, rangeBigZ,cRed, cGreen, cBlue, id); 
-				   IDPoint3D pBackLeftUpForTria = new IDPoint3D(rangeBigX, height, rangeBigZ,cRed, cGreen, cBlue, id);  
-				   IDPoint3D pFrontRightDownForTria = new IDPoint3D(rangeSmallX, 0, rangeSmallZ,cRed, cGreen, cBlue, id); 
-				   IDPoint3D pFrontLeftDownForTria = new IDPoint3D(rangeBigX, 0, rangeSmallZ,cRed, cGreen, cBlue, id); 
-				   IDPoint3D pFrontRightUpForTria = new IDPoint3D(rangeSmallX, height, rangeSmallZ,cRed, cGreen, cBlue, id); 
-				   IDPoint3D pFrontLeftUpForTria = new IDPoint3D(rangeBigX, height, rangeSmallZ,cRed, cGreen, cBlue, id); 
+           Point3DSimple pBackRightUpForTria = new Point3DSimple(rangeSmallX, height, rangeBigZ,cRed, cGreen, cBlue); 
+				   Point3DSimple pBackLeftUpForTria = new Point3DSimple(rangeBigX, height, rangeBigZ,cRed, cGreen, cBlue);  
+
+
+				   Point3DSimple pFrontRightUpForTria = new Point3DSimple(rangeSmallX, height, rangeSmallZ,cRed, cGreen, cBlue); 
+				   Point3DSimple pFrontLeftUpForTria = new Point3DSimple(rangeBigX, height, rangeSmallZ,cRed, cGreen, cBlue); 
 				  
 
-//				   IDPoint3D testpFrontLeftUp = new IDPoint3D(rangeBigX, height, rangeSmallZ,0, 0, 0, id); //BLACK test leftobenvorne
-//				   pointVecC.append(testpFrontLeftUp);
-			   
-
-				   //front lines
-				   Line3D lLeftFront = new Line3D(pFrontLeftUp, pFrontLeftDown);
-				   Line3D lRightFront = new Line3D(pFrontRightUp, pFrontRightDown);
-				   Line3D lUpFront = new Line3D(pFrontLeftUp, pFrontRightUp);
-				   Line3D lDownFront = new Line3D(pFrontLeftDown, pFrontRightDown);
-				   //back lines
-				   Line3D lLeftBack = new Line3D(pBackLeftUp, pBackLeftDown);
-				   Line3D lRighBack = new Line3D(pBackRightUp, pBackRightDown);
-				   Line3D lUpBack = new Line3D(pBackLeftUp, pBackRightUp);
-				   Line3D lDownBack = new Line3D(pBackLeftDown, pBackRightDown);
-				   //upper lines
-				   Line3D lLeftUp = new Line3D(pFrontLeftUp, pBackLeftUp);
-				   Line3D lRightUp = new Line3D(pFrontRightUp, pBackRightUp);
-				   //lower lines
-				   Line3D lLeftDown = new Line3D(pFrontLeftDown, pBackLeftDown);
-				   Line3D lRightDown = new Line3D(pFrontRightDown, pBackRightDown);
-				   
-				   lineVecC.append(lLeftFront);
-				   lineVecC.append(lRightFront);
-				   lineVecC.append(lUpFront);
-				   lineVecC.append(lDownFront);
-				   lineVecC.append(lLeftBack);
-				   lineVecC.append(lRighBack);
-				   lineVecC.append(lUpBack);
-				   lineVecC.append(lDownBack);
-				   lineVecC.append(lLeftUp);
-				   lineVecC.append(lRightUp);
-				   lineVecC.append(lLeftDown);
-				   lineVecC.append(lRightDown);			  
 
 				   //front
-				   Triangle3D tFrontUp = new Triangle3D(pFrontLeftDownForTria, pFrontLeftUpForTria, pFrontRightUpForTria);				   
-				   Triangle3D tFrontDown = new Triangle3D(pFrontLeftDownForTria, pFrontRightUpForTria, pFrontRightDownForTria);
+				   Triangle3D tFrontUp = new Triangle3D(pFrontLeftDownForTria, 
+                                                pFrontLeftUpForTria, 
+                                                pFrontRightUpForTria,
+                                                true,false,true,Color.BLACK,id);				  
+
+ 
+				   Triangle3D tFrontDown = new Triangle3D(pFrontLeftDownForTria, 
+                                                  pFrontRightUpForTria, 
+                                                  pFrontRightDownForTria,
+                                                  false,true,true,Color.BLACK,id);
 				   //back
-				   Triangle3D tBackUp = new Triangle3D(pBackLeftDownForTria, pBackRightUpForTria, pBackLeftUpForTria);
-				   Triangle3D tBackDown = new Triangle3D(pBackLeftDownForTria, pBackRightUpForTria, pBackRightDownForTria);
+				   Triangle3D tBackUp = new Triangle3D(pBackLeftDownForTria, 
+                                               pBackRightUpForTria, 
+                                               pBackLeftUpForTria,
+                                               false,true,true,Color.BLACK,id);
+
+
+				   Triangle3D tBackDown = new Triangle3D(pBackLeftDownForTria, 
+                                                 pBackRightUpForTria, 
+                                                 pBackRightDownForTria,
+                                                 false,true,true,Color.BLACK,id);
 				   //sides
-				   Triangle3D tLeftUp = new Triangle3D(pFrontLeftDownForTria, pFrontLeftUpForTria, pBackLeftUpForTria);
-				   Triangle3D tLeftDown = new Triangle3D(pFrontLeftDownForTria, pBackLeftUpForTria, pBackLeftDownForTria);
-				   Triangle3D tRightUp = new Triangle3D(pFrontRightDownForTria, pFrontRightUpForTria, pBackRightUpForTria);
-				   Triangle3D tRightDown = new Triangle3D(pFrontRightDownForTria, pBackRightUpForTria, pBackRightDownForTria);
+				   Triangle3D tLeftUp = new Triangle3D(pFrontLeftDownForTria, pFrontLeftUpForTria, pBackLeftUpForTria,
+                                               true,false,true,Color.BLACK,id);
+				   Triangle3D tLeftDown = new Triangle3D(pFrontLeftDownForTria, pBackLeftUpForTria, pBackLeftDownForTria,
+                                                 false,true,true,Color.BLACK,id);
+
+				   Triangle3D tRightUp = new Triangle3D(pFrontRightDownForTria, pFrontRightUpForTria, pBackRightUpForTria,
+                                                true,false,true,Color.BLACK,id);
+				   Triangle3D tRightDown = new Triangle3D(pFrontRightDownForTria, pBackRightUpForTria, pBackRightDownForTria,
+                                                  false,true,true,Color.BLACK,id);
 				   //bottom
-				   Triangle3D tBottomLeft = new Triangle3D(pFrontLeftDownForTria, pBackLeftDownForTria, pBackRightDownForTria);
-				   Triangle3D tBottomRight = new Triangle3D(pFrontLeftDownForTria, pBackRightDownForTria, pFrontRightDownForTria);
+				   Triangle3D tBottomLeft = new Triangle3D(pFrontLeftDownForTria, pBackLeftDownForTria, pBackRightDownForTria,
+                                                   true,false,true,Color.BLACK,id);
+				   Triangle3D tBottomRight = new Triangle3D(pFrontLeftDownForTria, pBackRightDownForTria, pFrontRightDownForTria,
+                                                    false,true,true,Color.BLACK, id);
 				   //head
-				   Triangle3D tHeadLeft = new Triangle3D(pFrontLeftUpForTria, pBackLeftUpForTria, pBackRightUpForTria);
-				   Triangle3D tHeadRight = new Triangle3D(pFrontLeftUpForTria, pBackRightUpForTria, pFrontRightUpForTria);
+				   Triangle3D tHeadLeft = new Triangle3D(pFrontLeftUpForTria, pBackLeftUpForTria, pBackRightUpForTria,
+                                                 true,false,true,Color.BLACK,id);
+
+				   Triangle3D tHeadRight = new Triangle3D(pFrontLeftUpForTria, pBackRightUpForTria, pFrontRightUpForTria,
+                                                  false,true,true,Color.BLACK,id);
+
 				   this.setFill(true);
 				   
 				   triaVecC.append(tFrontUp);	
 				   triaVecC.append(tFrontDown);	
 				   triaVecC.append(tBackUp);	
-				   triaVecC.append(tBackDown);	
+  			   triaVecC.append(tBackDown);	
 				   triaVecC.append(tLeftUp);	
 				   triaVecC.append(tLeftDown);	
-				   triaVecC.append(tRightUp);	
+  			   triaVecC.append(tRightUp);	
 				   triaVecC.append(tRightDown);	
 				   triaVecC.append(tBottomLeft);	
 				   triaVecC.append(tBottomRight);
 				   triaVecC.append(tHeadLeft);
 				   triaVecC.append(tHeadRight);
 
-				   this.add(pointVecC);
-				   this.add(lineVecC);
+
+				   //this.add(pointVecC);
+				   //this.add(lineVecC);
 				   this.add(triaVecC);		
 //					System.out.println("im paintColumnColor end");
 			}
@@ -1036,7 +1030,8 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 			 * @param cGreen
 			 * @param cBlue
 			 */
-			private void paintHistogram2d(double[] _rangesX, double[] _rangesZ, double[] _bins,double unitX, double unitZ, double unitY, int cRed, int cGreen, int cBlue){
+			private void paintHistogram2d(double[] _rangesX, double[] _rangesZ, double[] _bins,double unitX, 
+                                    double unitZ, double unitY, int cRed, int cGreen, int cBlue){
 				int binsCount = 0;
 				double paintX = 0.0;
 				double paintZ = 0.0;
@@ -1103,9 +1098,9 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 					double unitY){
 //				System.out.println("im paintCoordingatesystemXYZ 1");
 				
-				IDPoint3DVector pointVec = new IDPoint3DVector();
+				// Point3DVector pointVec = new Point3DVector();
 				Line3DVector	 lineVec = new Line3DVector();
-				Triangle3DVector triaVec = new Triangle3DVector();
+				//Triangle3DVector triaVec = new Triangle3DVector();
 
 				if (minX > 0.0){
 					minX = 0.0;
@@ -1118,24 +1113,24 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 				}
 
 //				System.out.println("im paintCoordingatesystemXYZ 2");
-				IDPoint3D pNull = new IDPoint3D(0, 0.0,0,0,0,0, id); 
-				IDPoint3D pXpositiv = new IDPoint3D(maxX*unitX,0, 0, 0, 0, 0, id); 
-				IDPoint3D pXnegativ = new IDPoint3D((maxX-minX)*unitX,0, 0, 0, 0, 0, id); 
+				Point3D pNull = new Point3D(0, 0.0,0,0,0,0, id); 
+				Point3D pXpositiv = new Point3D(maxX*unitX,0, 0, 0, 0, 0, id); 
+				Point3D pXnegativ = new Point3D((maxX-minX)*unitX,0, 0, 0, 0, 0, id); 
 				//y-axis for binheights
-				IDPoint3D pYpositiv = new IDPoint3D(0,maxY*unitY, 0, 0, 0, 0, id); 
-				IDPoint3D pYnegativ = new IDPoint3D(0,minY*unitY, 0, 0, 0, 0, id); 
-				IDPoint3D pZpositiv = new IDPoint3D(0,0, maxZ*unitZ, 0, 0, 0, id); 
-				IDPoint3D pZnegativ = new IDPoint3D(0,0, (maxZ-minZ)*unitZ, 0, 0, 0, id); 
+				Point3D pYpositiv = new Point3D(0,maxY*unitY, 0, 0, 0, 0,id); 
+				Point3D pYnegativ = new Point3D(0,minY*unitY, 0, 0, 0, 0,id); 
+				Point3D pZpositiv = new Point3D(0,0, maxZ*unitZ, 0, 0, 0,id); 
+				Point3D pZnegativ = new Point3D(0,0, (maxZ-minZ)*unitZ, 0, 0, 0,id); 
 				
-				IDPoint3D pFront = new IDPoint3D((maxX-minX)*unitX, 0, (maxZ-minZ)*unitZ, 0,0,0);
-				IDPoint3D pZYUp = new IDPoint3D(0, maxY*unitY, (maxZ-minZ)*unitZ, 0,0,0);			
-				IDPoint3D pXYUp = new IDPoint3D((maxX-minX)*unitX, maxY*unitY, 0, 0,0,0);	
-				IDPoint3D pZYDown = new IDPoint3D(0, minY*unitY, (maxZ-minZ)*unitZ, 0,0,0);			
-				IDPoint3D pXYDown = new IDPoint3D((maxX-minX)*unitX, minY*unitY, 0, 0,0,0);	
+				Point3D pFront = new Point3D((maxX-minX)*unitX, 0, (maxZ-minZ)*unitZ, 0,0,0);
+				Point3D pZYUp = new Point3D(0, maxY*unitY, (maxZ-minZ)*unitZ, 0,0,0);			
+				Point3D pXYUp = new Point3D((maxX-minX)*unitX, maxY*unitY, 0, 0,0,0);	
+				Point3D pZYDown = new Point3D(0, minY*unitY, (maxZ-minZ)*unitZ, 0,0,0);			
+				Point3D pXYDown = new Point3D((maxX-minX)*unitX, minY*unitY, 0, 0,0,0);	
 		
 //				System.out.println("im paintCoordingatesystemXYZ 3");
 
-				pointVec.append(pNull);
+				/*pointVec.append(pNull);
 				pointVec.append(pXpositiv);
 				pointVec.append(pXnegativ);
 				pointVec.append(pYpositiv);
@@ -1145,6 +1140,7 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 				pointVec.append(pFront);
 				pointVec.append(pZYDown);
 				pointVec.append(pXYDown);
+       */
 
 				Line3D Xpositiv = new Line3D(pNull, pXpositiv);
 				Line3D Xnegativ = new Line3D(pXpositiv, pXnegativ);
@@ -1184,11 +1180,11 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 				//to paint the steps of the coordinatesystem XY columns and XZ columns
 				Vector rangeXIntervals = this.paintSteps(maxX, minX);
 				Iterator itx = rangeXIntervals.iterator();
-				IDPoint3D[] stepsX = new IDPoint3D[12];
-				IDPoint3D[] stepsX_Ymax = new IDPoint3D[12]; //above
-				IDPoint3D[] stepsX_Ymin = new IDPoint3D[12]; //above
-				IDPoint3D[] stepsX_Zmax = new IDPoint3D[12]; // bottom
-				IDPoint3D[] stepsX_Zmin = new IDPoint3D[12]; // bottom
+				Point3D[] stepsX = new Point3D[12];
+				Point3D[] stepsX_Ymax = new Point3D[12]; //above
+				Point3D[] stepsX_Ymin = new Point3D[12]; //above
+				Point3D[] stepsX_Zmax = new Point3D[12]; // bottom
+				Point3D[] stepsX_Zmin = new Point3D[12]; // bottom
 				Line3D[] lineXYColumn = new Line3D[12];
 				Line3D[] lineXYColumnMin = new Line3D[12];
 				Line3D[] lineXZColumn = new Line3D[12];
@@ -1202,15 +1198,15 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 //					System.out.println("itxNext: "+itxNext);
 //					System.out.println("i: "+i);
 //					System.out.println("itxNext*unitX: "+itxNext*unitX);
-					stepsX[i]= new IDPoint3D((maxX-itxNext)*unitX, 0,0, 0,0,0);	
-					stepsX_Ymax[i]= new IDPoint3D((maxX-itxNext)*unitX, maxY*unitY,0, 0,0,0);	
-					stepsX_Ymin[i]= new IDPoint3D((maxX-itxNext)*unitX, minY*unitY,0, 0,0,0);
+					stepsX[i]= new Point3D((maxX-itxNext)*unitX, 0,0, 0,0,0);	
+					stepsX_Ymax[i]= new Point3D((maxX-itxNext)*unitX, maxY*unitY,0, 0,0,0);	
+					stepsX_Ymin[i]= new Point3D((maxX-itxNext)*unitX, minY*unitY,0, 0,0,0);
 					lineXYColumn[i] = new Line3D(stepsX[i], stepsX_Ymax[i]);
 					lineXYColumnMin[i] = new Line3D(stepsX[i], stepsX_Ymin[i]);
 					lineVec.append(lineXYColumn[i]);
 					lineVec.append(lineXYColumnMin[i]);
-					stepsX_Zmax[i] = new IDPoint3D((maxX-itxNext)*unitX, 0,maxZ*unitZ, 0,0,0);
-					stepsX_Zmin[i] = new IDPoint3D((maxX-itxNext)*unitX, 0,(maxZ-minZ)*unitZ, 0,0,0);
+					stepsX_Zmax[i] = new Point3D((maxX-itxNext)*unitX, 0,maxZ*unitZ, 0,0,0);
+					stepsX_Zmin[i] = new Point3D((maxX-itxNext)*unitX, 0,(maxZ-minZ)*unitZ, 0,0,0);
 					lineXZColumn[i] = new Line3D(stepsX_Zmax[i], stepsX[i]);
 					lineXZColumnMin[i] = new Line3D(stepsX_Zmin[i], stepsX[i]);
 					lineVec.append(lineXZColumn[i]);
@@ -1222,11 +1218,11 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 				//to paint the steps of the coordinatesystem YZ columns and ZX rows
 				Vector rangeZIntervals = this.paintSteps(maxZ, minZ);
 				Iterator itz = rangeZIntervals.iterator();
-				IDPoint3D[] stepsZ = new IDPoint3D[12];
-				IDPoint3D[] stepsZ_Ymax = new IDPoint3D[12]; //above
-				IDPoint3D[] stepsZ_Ymin = new IDPoint3D[12]; //above
-				IDPoint3D[] stepsZ_Xmax = new IDPoint3D[12]; // bottom, row
-				IDPoint3D[] stepsZ_Xmin = new IDPoint3D[12]; // bottom, row
+				Point3D[] stepsZ = new Point3D[12];
+				Point3D[] stepsZ_Ymax = new Point3D[12]; //above
+				Point3D[] stepsZ_Ymin = new Point3D[12]; //above
+				Point3D[] stepsZ_Xmax = new Point3D[12]; // bottom, row
+				Point3D[] stepsZ_Xmin = new Point3D[12]; // bottom, row
 				Line3D[] lineYZColumn = new Line3D[12];
 				Line3D[] lineYZColumnMin = new Line3D[12];
 				Line3D[] lineZXRow = new Line3D[12];
@@ -1237,15 +1233,15 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 				while  (itz.hasNext() ){
 					double itzNext =  ((Double)(itz.next())).doubleValue();
 //					System.out.println("itzNext: "+itzNext);
-					stepsZ[j]= new IDPoint3D(0, 0,(maxZ-itzNext)*unitZ, 0,0,0);	
-					stepsZ_Ymax[j]= new IDPoint3D(0, maxY*unitY,(maxZ-itzNext)*unitZ, 0,0,0);	
-					stepsZ_Ymin[j]= new IDPoint3D(0, minY*unitY,(maxZ-itzNext)*unitZ, 0,0,0);
+					stepsZ[j]= new Point3D(0, 0,(maxZ-itzNext)*unitZ, 0,0,0);	
+					stepsZ_Ymax[j]= new Point3D(0, maxY*unitY,(maxZ-itzNext)*unitZ, 0,0,0);	
+					stepsZ_Ymin[j]= new Point3D(0, minY*unitY,(maxZ-itzNext)*unitZ, 0,0,0);
 					lineYZColumn[j] = new Line3D(stepsZ[j], stepsZ_Ymax[j]);
 					lineYZColumnMin[j] = new Line3D(stepsZ[j], stepsZ_Ymin[j]);
 					lineVec.append(lineYZColumn[j]);
 					lineVec.append(lineYZColumnMin[j]);
-					stepsZ_Xmax[j] = new IDPoint3D(maxX*unitX, 0,(maxZ-itzNext)*unitZ, 0,0,0);
-					stepsZ_Xmin[j] = new IDPoint3D((maxX-minX)*unitX, 0,(maxZ-itzNext)*unitZ, 0,0,0);
+					stepsZ_Xmax[j] = new Point3D(maxX*unitX, 0,(maxZ-itzNext)*unitZ, 0,0,0);
+					stepsZ_Xmin[j] = new Point3D((maxX-minX)*unitX, 0,(maxZ-itzNext)*unitZ, 0,0,0);
 					lineZXRow[j] = new Line3D(stepsZ_Xmax[j], stepsZ[j]);
 					lineZXRowMin[j] = new Line3D(stepsZ_Xmin[j], stepsZ[j]);
 					lineVec.append(lineZXRow[j]);
@@ -1256,11 +1252,11 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 				//to paint the steps of the coordinatesystem YZ rows and YX rows
 				Vector rangeYIntervals = this.paintSteps(maxY, minY);
 				Iterator ity = rangeYIntervals.iterator();
-				IDPoint3D[] stepsY = new IDPoint3D[12];
-				IDPoint3D[] stepsY_Xmax = new IDPoint3D[12]; //above				
-				IDPoint3D[] stepsY_Xmin = new IDPoint3D[12]; //above
-				IDPoint3D[] stepsY_Zmax = new IDPoint3D[12]; // bottom, row
-				IDPoint3D[] stepsY_Zmin = new IDPoint3D[12]; // bottom, row
+				Point3D[] stepsY = new Point3D[12];
+				Point3D[] stepsY_Xmax = new Point3D[12]; //above				
+				Point3D[] stepsY_Xmin = new Point3D[12]; //above
+				Point3D[] stepsY_Zmax = new Point3D[12]; // bottom, row
+				Point3D[] stepsY_Zmin = new Point3D[12]; // bottom, row
 				Line3D[] lineYZRow = new Line3D[12];
 				Line3D[] lineYZRowMin = new Line3D[12];
 				Line3D[] lineYXRow = new Line3D[12];
@@ -1270,15 +1266,15 @@ public class Dsplhistogram2d extends DsplGeneric implements DisplayComplex, Exte
 				
 				while  (ity.hasNext() ){
 					double ityNext =  ((Double)(ity.next())).doubleValue();
-					stepsY[k]= new IDPoint3D(0, ityNext*unitY,0, 0,0,0);	
-					stepsY_Xmax[k]= new IDPoint3D(maxX*unitX, ityNext*unitY,0, 0,0,0);	
-					stepsY_Xmin[k]= new IDPoint3D((maxX-minX)*unitX, ityNext*unitY,0, 0,0,0);	
+					stepsY[k]= new Point3D(0, ityNext*unitY,0, 0,0,0);	
+					stepsY_Xmax[k]= new Point3D(maxX*unitX, ityNext*unitY,0, 0,0,0);	
+					stepsY_Xmin[k]= new Point3D((maxX-minX)*unitX, ityNext*unitY,0, 0,0,0);	
 					lineYXRow[k] = new Line3D(stepsY[k], stepsY_Xmax[k]);
 					lineYXRowMin[k] = new Line3D(stepsY[k], stepsY_Xmin[k]);
 					lineVec.append(lineYXRow[k]);
 					lineVec.append(lineYXRowMin[k]);
-					stepsY_Zmax[k] = new IDPoint3D(0, ityNext*unitY,maxZ*unitZ, 0,0,0);
-					stepsY_Zmin[k] = new IDPoint3D(0, ityNext*unitY,(maxZ-minZ)*unitZ, 0,0,0);
+					stepsY_Zmax[k] = new Point3D(0, ityNext*unitY,maxZ*unitZ, 0,0,0);
+					stepsY_Zmin[k] = new Point3D(0, ityNext*unitY,(maxZ-minZ)*unitZ, 0,0,0);
 					lineYZRow[k] = new Line3D(stepsY_Zmax[k], stepsY[k]);
 					lineYZRowMin[k] = new Line3D(stepsY_Zmin[k], stepsY[k]);
 					lineVec.append(lineYZRow[k]);

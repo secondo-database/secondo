@@ -30,10 +30,10 @@ import java.awt.image.*;
 import java.awt.*;
 import gui.idmanager.*;
 
-public class Line2D {
+public class Line2D extends Figure2D{
 
 /** creates a new Line by given Points */
-public  Line2D( Point2D P1, Point2D P2) {
+public  Line2D( Point2D P1, Point2D P2, ID aID) {
    x1 = (int) P1.getX();
    y1 = (int) P1.getY();
    c1r = P1.getRed();
@@ -45,23 +45,23 @@ public  Line2D( Point2D P1, Point2D P2) {
    c2g = P2.getGreen();
    c2b = P2.getBlue();
    empty = false;
-   MyID = IDManager.getNextID();
+   myID = new ID();
+   myID.equalize(aID);
 }
 
+public Line2D(Point2D P1, Point2D P2){
+   this(P1,P2,IDManager.getNextID());
+}
+
+
 /** returns a copy from this */
-public Line2D copy(){
+public Figure2D duplicate(){
   Line2D C = new Line2D(new Point2D(x1,y1,c1r,c1g,c1b),
                         new Point2D(x2,y2,c2r,c2g,c2b));
-  C.MyID.equalize(MyID);
+  C.myID.equalize(myID);
   return C;
 }
 
-/** get the ID of this */
-public ID getID(){ return MyID; }
-
-/** set the ID of this */
-public void setID(ID newID){ MyID.equalize(newID);}
-   
 /** check for equal position */
 public boolean equalsCoordinates(Line2D L){
 
@@ -70,12 +70,27 @@ public boolean equalsCoordinates(Line2D L){
 
 }
 
+public boolean equals(Figure2D f){
+   if(!(f instanceof Line2D)){
+      return false;
+   }
+   Line2D L = (Line2D) f;
+   return x1 == L.x1 &&
+          x2 == L.x2 &&
+          y1 == L.y1 &&
+          y2 == L.y2 &&
+          c1r == L.c1r && c2r == L.c2r &&
+          c1g == L.c1g && c2g == L.c2g &&
+          c1b == L.c1b && c2b == L.c2b &&
+          myID.equals(L.myID);
+}
+
 
 /**
   * paint this line on img
   * @ param gradient: paint in single color or with gradient
   */
-public void paint(BufferedImage img, boolean Gradient) {
+public void paint(Graphics g, boolean filled, boolean Gradient) {
 
   if( !empty)  {
 
@@ -89,10 +104,10 @@ public void paint(BufferedImage img, boolean Gradient) {
         int ColorValue;
         int x;
         int y;
-        int minY = img.getMinY();
-        int minX = img.getMinX();
-        int maxX = minX + img.getWidth();
-        int maxY = minY + img.getHeight();
+//        int minY = img.getMinY();
+//        int minX = img.getMinX();
+//        int maxX = minX + img.getWidth();
+//        int maxY = minY + img.getHeight();
 
 
         if ( Math.abs(y2-y1) > Math.abs(x2-x1) ) {  // steile Linie
@@ -101,15 +116,9 @@ public void paint(BufferedImage img, boolean Gradient) {
 
               delta= (double)(y-y1)/deltaY;
               x = (int)(x1 + delta*deltaX);
-
-              if( x>=minX & x <maxX & y>=minY & y<maxY) {
-
-                  ColorValue = (int) 4278190080L +              // Alpha-Value
-                               (int) (c1r+delta*deltaCr) * 65536 +
-                               (int) (c1g+delta*deltaCg) * 256   +
-                               (int) (c1b+delta*deltaCb);
-                  img.setRGB(x,y,ColorValue);
-             }
+              g.setColor(new Color((int) (c1r+delta*deltaCr),
+                                   (int) (c1g+delta*deltaCg),  (int) (c1b+delta*deltaCb)));
+              g.fillRect(x,y,1,1);
            } // for
          } // if
          else {   // flat line
@@ -117,19 +126,17 @@ public void paint(BufferedImage img, boolean Gradient) {
                delta = (double)(x-x1)/deltaX;
                y = (int) ( y1 + delta*deltaY);
 
-              if( x>=minX & x <maxX & y>=minY & y<maxY) {
                    ColorValue = (int) 4278190080L +              // Alpha-Value
                             (int) (c1r+delta*deltaCr) * 65536 +
                             (int) (c1g+delta*deltaCg) * 256   +
                             (int) (c1b+delta*deltaCb);
-                  img.setRGB(x,y,ColorValue);
-              }
+                   g.setColor(new Color(ColorValue));
+                   g.fillRect(x,y,1,1);
              } // for
          }// else
      }
      else {   // !Gradient
         Color C = new Color( (c1r+c2r)/2,(c1g+c2g)/2,(c1b+c2b)/2);
-        Graphics g = img.getGraphics();
         g.setColor(C);
         g.drawLine(x1,y1,x2,y2);
      }// else
@@ -138,27 +145,6 @@ public void paint(BufferedImage img, boolean Gradient) {
 
  }  // paint
 
-
-
-/** paint this line if it intersects the given clipping-area */
-public void paint(BufferedImage img, boolean Gradient,
-                   int clipx, int clipy, int clipw, int cliph) {
-
-boolean paintit=true;
-int miny = Math.min(y1,y2);
-int maxy = Math.max(y1,y2);
-int maxx = Math.max(x1,x2);
-int minx = Math.min(x1,x2);
-
-if ( ( miny > (clipy + cliph))   |   // under clippingarea
-     ( maxy < clipy         )    |   // over area
-     ( minx > (clipx+clipw) )    |   // right of area
-     ( maxx < clipx         )       // left of area
-    )
-    paintit = false;
-if (paintit)
-    paint(img,Gradient);
-}
 
 /** get the x-coordinate of endpoint 1 */
 public int getX1(){ return x1;}
@@ -193,8 +179,6 @@ public void setEmpty(boolean e){  // empty by Clipping !
 
  /** is this a empty line */
  private boolean empty;
- /** the ID of this line */
- private ID MyID;
 
 } // class Line2D
 

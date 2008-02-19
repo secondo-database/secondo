@@ -32,7 +32,7 @@ public Triangle3DVector getTriangles();
 /** returns all containing lines of this object */
 public Line3DVector getLines();
 /** returns the containing points of this object */
-public IDPoint3DVector getPoints();
+public Point3DVector getPoints();
 /** convert SO to a Object3D */
 public boolean readFromSecondoObject(SecondoObject SO);
 /** return the ID of this Object */

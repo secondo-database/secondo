@@ -40,8 +40,8 @@ public class FM3DGraphic{
 public FM3DGraphic() {
   // Initialize global variables 
   RotAngle = 0.0;                     // for Rotation
-  RotPt1 = new Point3D(0,0,0,0,0,0);
-  RotPt2 = new Point3D(0,0,5,0,0,0); 
+  RotPt1 = new Point3DSimple(0,0,0,0,0,0);
+  RotPt2 = new Point3DSimple(0,0,5,0,0,0); 
   RotationMatrix = new Matrix(4,4);
   computeRotationMatrix();
 
@@ -53,9 +53,9 @@ public FM3DGraphic() {
 
   NormalMatrix = new Matrix(4,4);  // Matrix to normalize
 
-  EYE    = new Point3D(0,-1,0,0,0,0);  // values for the visitor
-  VRP    = new Point3D(0,0,0,0,0,0); 
-  ViewUp = new Point3D(0,0,1,0,0,0);  
+  EYE    = new Point3DSimple(0,-1,0,0,0,0);  // values for the visitor
+  VRP    = new Point3DSimple(0,0,0,0,0,0); 
+  ViewUp = new Point3DSimple(0,0,1,0,0,0);  
   d      = EYE.distance(VRP);
 
   computeNormalMatrix(); 
@@ -69,11 +69,11 @@ public FM3DGraphic() {
 
 
 /** returns the eye-position of the view */
- public Point3D getEye()    { return EYE.duplicate(); }
+ public Point3DSimple getEye()    { return EYE.duplicate(); }
 /** returns the view-reference-point of the view */
- public Point3D getVRP()    { return VRP.duplicate(); }
+ public Point3DSimple getVRP()    { return VRP.duplicate(); }
 /** returns the ViewUp-Point of the view */
- public Point3D getViewUp() { return ViewUp.duplicate(); }
+ public Point3DSimple getViewUp() { return ViewUp.duplicate(); }
 
 /** check wether the view is valid; */
  public static boolean checkView(double XEye, double YEye, double ZEye,
@@ -89,7 +89,7 @@ public FM3DGraphic() {
    ydif = YVRP-YEye;
    zdif = ZVRP-ZEye;
 
-   Point3D Point = new Point3D(0,0,0,0,0,0);
+   Point3DSimple Point = new Point3DSimple(0,0,0,0,0,0);
 
    cross(XVU,YVU,ZVU,xdif,ydif,zdif,Point);
 
@@ -129,7 +129,7 @@ public void setView( double IXE, double IYE , double IZE,
    ydif = IYVRP-IYE;
    zdif = IZVRP-IZE;
 
-   Point3D Point = new Point3D(0,0,0,0,0,0);
+   Point3DSimple Point = new Point3DSimple(0,0,0,0,0,0);
 
    cross(IXVU,IYVU,IZVU,xdif,ydif,zdif,Point);
 
@@ -140,9 +140,9 @@ public void setView( double IXE, double IYE , double IZE,
    ok = absolute(xges,yges,zges) >0.0;
 
    if (ok) {
-      EYE    = new Point3D(IXE,IYE,IZE,0,0,0);
-      VRP    = new Point3D(IXVRP,IYVRP,IZVRP,0,0,0);
-      ViewUp = new Point3D(IXVU,IYVU,IZVU,0,0,0);
+      EYE    = new Point3DSimple(IXE,IYE,IZE,0,0,0);
+      VRP    = new Point3DSimple(IXVRP,IYVRP,IZVRP,0,0,0);
+      ViewUp = new Point3DSimple(IXVU,IYVU,IZVU,0,0,0);
       d = EYE.distance(VRP);
       computeNormalMatrix();
       computeViewMatrix();
@@ -208,10 +208,10 @@ public double getViewportHeight() {return  ViewPort.Height;}
 public void setRotationAxis(double X1, double Y1, double Z1,
                             double X2, double Y2, double Z2) {
 
-  Point3D Pt1, Pt2;
+  Point3DSimple Pt1, Pt2;
 
-   Pt1 = new Point3D(X1,Y1,Z1,0,0,0);
-   Pt2 = new Point3D(X2,Y2,Z2,0,0,0);   
+   Pt1 = new Point3DSimple(X1,Y1,Z1,0,0,0);
+   Pt2 = new Point3DSimple(X2,Y2,Z2,0,0,0);   
    if (! Pt1.equals(Pt2) ) {
       RotPt1.equalize(Pt1);
       RotPt2.equalize(Pt2);
@@ -220,7 +220,7 @@ public void setRotationAxis(double X1, double Y1, double Z1,
 }   
 
 /** set the rotation-axis by Pt1 and Pt2 */
-public void setRotationAxis(Point3D Pt1, Point3D Pt2) {
+public void setRotationAxis(Point3DSimple Pt1, Point3DSimple Pt2) {
 
    if (! Pt1.equals(Pt2) ) {
       RotPt1.equalize(Pt1);
@@ -243,23 +243,22 @@ public void setTranslation(double XDif, double YDif,double ZDif) {
 /**
   * transform a figure to 2-dim-representation
   */
-public Figure2D figureTransformation(Figure3D Fig) {
+public Point2DSequence figureTransformation(Point3DSequence Fig) {
 
- Figure3D   Copy;           // a copy from Input
- Figure2D   Transform;      // the result
+ Point3DSequence   Copy;           // a copy from Input
+ Point2DSequence   Transform;      // the result
  double      X3D,Y3D,Z3D;   // Coordinates of 3d_point
  double      X2D,Y2D;       // Coordinates of 2D-Point
  int         R,G,B;         // Color of Points
  double      Sort;          
- Point3D     Current;
+ Point3DSimple     Current;
 
  Copy = Fig.duplicate();  // save the original
  normalizeFigure(Copy);    // main_work
  clipFigure(Copy);        // clip on the View-pyramid
  Sort = getSort(Copy);    // Sort = distance to eye
- Transform = new Figure2D();
+ Transform = new Point2DSequence();
  Transform.setSort(Sort);
- Transform.setID(Copy.getID());
  if ( ! Copy.isEmpty() ) {   // empty from clipping ?
        projectFigure(Copy);
        for(int i=0; i< Copy.getSize(); i++) {
@@ -288,16 +287,16 @@ public Figure2D figureTransformation(Figure3D Fig) {
 
 
 /** normalize the figure */
-public void normalizeFigure(Figure3D Fig) {
+public void normalizeFigure(Point3DSequence Fig) {
    transformFigure(Fig,NormalMatrix);
 }
 
 
 /** the projection of fig */
-public void projectFigure(Figure3D Fig) {
+public void projectFigure(Point3DSequence Fig) {
   double  X,Y,Z,h;
   int     R,G,B;
-  Point3D Current;
+  Point3DSimple Current;
 
   for (int i=0; i< Fig.getSize(); i++) {
        Current = Fig.getPoint3DAt(i);
@@ -311,40 +310,40 @@ public void projectFigure(Figure3D Fig) {
        X = X/h;
        Y = Y/h;
        Z = 0.0;
-       Fig.setPoint3DAt(new Point3D(X,Y,Z,R,G,B),i);
+       Fig.setPoint3DAt(new Point3DSimple(X,Y,Z,R,G,B),i);
   }
 }  
 
 
 /** move Fig by given translation */
-public void moveFigure(Figure3D Fig)  {
+public void moveFigure(Point3DSequence Fig)  {
   transformFigure(Fig,TranslationMatrix);
 }
 
 
 /** rotate a point */
-public void rotatePoint(Point3D Pt) {
+public void rotatePoint(Point3DSimple Pt) {
  transformPoint(Pt,RotationMatrix);
 }
 
 /** normalize a point */
-public void normalizePoint(Point3D Pt) {
+public void normalizePoint(Point3DSimple Pt) {
   transformPoint(Pt,NormalMatrix);
 }
 
 /** translate a point */
-public void movePoint(Point3D Pt) {
+public void movePoint(Point3DSimple Pt) {
    transformPoint(Pt,TranslationMatrix);
 }
 
 /** distance between VRP and EYE */
 private  double   d;      //   (* distance from VRP to  EYE *)
 /** the view reference point */
-private  Point3D  VRP;
+private  Point3DSimple  VRP;
 /* the position of the eye */
-private  Point3D  EYE;
+private  Point3DSimple  EYE;
 /** the viewUp-point */
-private  Point3D  ViewUp;
+private  Point3DSimple  ViewUp;
 
 /** a class to represent the volume */
 private class VolumeC  { public double  Width = 6;
@@ -369,7 +368,7 @@ private Matrix   RotationMatrix;
 /** the angle of rotation */
 private double   RotAngle;       //    rotationangle
 /** a point of the rotation-axis */
-private Point3D  RotPt1,RotPt2;  //    rotationaxis
+private Point3DSimple  RotPt1,RotPt2;  //    rotationaxis
 /** the matrix for the translation */
 private Matrix   TranslationMatrix;
 /** the matrix to normalize */
@@ -383,9 +382,9 @@ private Matrix   ViewUndo;
 /** a clipping-object */
 
 /** compute the sort for the painter-algorithm */
-private double getSort(Figure3D Fig) {
+private double getSort(Point3DSequence Fig) {
   // compute sort of a normalized figure
-   double Sort = Fig.distance(new Point3D(0,0,-d,0,0,0));
+   double Sort = Fig.distance(new Point3DSimple(0,0,-d,0,0,0));
    return Sort;
 }
 
@@ -395,9 +394,9 @@ private static double absolute(double X,double Y,double Z) {
 }
 
 /** tranform a figure by give matrix */
-private void transformFigure(Figure3D Fig, Matrix Mat) {
+private void transformFigure(Point3DSequence Fig, Matrix Mat) {
    double X,Y,Z;
-   Point3D Pt;
+   Point3DSimple Pt;
 
   for (int i=0; i<Fig.getSize(); i++) {
       Pt = Fig.getPoint3DAt(i);
@@ -408,7 +407,7 @@ private void transformFigure(Figure3D Fig, Matrix Mat) {
 
 
 /** clip a figure on the uni-pyramid */
-private void clipFigure(Figure3D Fl) {
+private void clipFigure(Point3DSequence Fl) {
 
    transformFigure(Fl,ViewMatrix);
    Clipping.clipFigure(Fl,Volume.z_min/d);
@@ -417,11 +416,11 @@ private void clipFigure(Figure3D Fl) {
 
 
 /** transform a single point by given matrix */
-private void transformPoint(Point3D Pt, Matrix Mat)  {
+private void transformPoint(Point3DSimple Pt, Matrix Mat)  {
 
     Matrix  PtMat;     // (* Pt in homogenius coordinates *)
     Matrix  TransMat;   //    transformed Matrix *)
-    Point3D TransPt;   // (* transformed Point *)
+    Point3DSimple TransPt;   // (* transformed Point *)
     int R,G,B;          // Color of Point
 
    PtMat   = Point2Matrix(Pt);
@@ -438,7 +437,7 @@ private void transformPoint(Point3D Pt, Matrix Mat)  {
 /** compute the cross-product */
 private static void cross( double  x1, double y1, double z1,
                            double  x2, double y2, double z2,
-                           Point3D Goal) {
+                           Point3DSimple Goal) {
 
 
   Goal.setX(y1*z2 - z1*y2);
@@ -448,7 +447,7 @@ private static void cross( double  x1, double y1, double z1,
 }
 
 /** normalize a single point */
-private void normalize(Point3D Pt) {
+private void normalize(Point3DSimple Pt) {
   double X,Y,Z, ABS;
 
   X = Pt.getX();
@@ -469,7 +468,7 @@ private void  computeNormalMatrix() {
   double  x1,y1,z1,x2,y2,z2;   
   double  x3,y3,z3,x4,y4,z4; 
   double  B;                              //  (* absolute *)
-  Point3D vzStrich,vxStrich, vyStrich;
+  Point3DSimple vzStrich,vxStrich, vyStrich;
   Matrix  Translat,Rotat,Norma;
 
   // (* fuer die Berechnungen siehe Musterloesung zu Graphische
@@ -480,7 +479,7 @@ private void  computeNormalMatrix() {
   y2 = VRP.getY()- EYE.getY();
   z2 = VRP.getZ()- EYE.getZ();
 
-  Point3D Help = new Point3D(x2,y2,z2,0,0,0);
+  Point3DSimple Help = new Point3DSimple(x2,y2,z2,0,0,0);
   normalize(Help);
   x2 = Help.getX();
   y2 = Help.getY();
@@ -494,7 +493,7 @@ private void  computeNormalMatrix() {
 
   // (* x2 ,y2,z2 sind noch die Koordinaten von vzStrich *)
 
-  Point3D Pt3 = new Point3D(0,0,0,0,0,0);
+  Point3DSimple Pt3 = new Point3DSimple(0,0,0,0,0,0);
 
   cross(x1,y1,z1,x2,y2,z2,Pt3);
   normalize(Pt3);
@@ -503,11 +502,11 @@ private void  computeNormalMatrix() {
   y3 = Pt3.getY();
   z3 = Pt3.getZ();
 
-  vxStrich = new Point3D(x3,y3,z3,0,0,0);
+  vxStrich = new Point3DSimple(x3,y3,z3,0,0,0);
 
   //  (* x2 ... ist vzStrich   und x3 ... ist vxStrich  *)
 
-  Point3D Pt4 = new Point3D(0,0,0,0,0,0);
+  Point3DSimple Pt4 = new Point3DSimple(0,0,0,0,0,0);
 
   cross(x2,y2,z2,x3,y3,z3,Pt4);
 
@@ -515,7 +514,7 @@ private void  computeNormalMatrix() {
   y4 = Pt4.getY();
   z4 = Pt4.getZ();
 
-  vyStrich = new Point3D(x4,y4,z4,0,0,0);
+  vyStrich = new Point3DSimple(x4,y4,z4,0,0,0);
 
   Translat = new Matrix(4,4);
   Translat.setValue(0,0, 1.0);
@@ -552,7 +551,7 @@ private void  computeNormalMatrix() {
 /** compute matrix for rotation by given rotation-axis and angle */
 private void computeRotationMatrix() {
 
-Point3D  Help;
+Point3DSimple  Help;
 Matrix   Transl1,Transl2,Rotation,Part,Total;
 double   x,y,z;
 int      i,j;
@@ -570,7 +569,7 @@ double   W;
   y = RotPt1.getY()-RotPt2.getY();
   z = RotPt1.getZ()-RotPt2.getZ(); 
  
-  Help = new Point3D(x,y,z,0,0,0);  //  (* verschobener RotPkt1 *)
+  Help = new Point3DSimple(x,y,z,0,0,0);  //  (* verschobener RotPkt1 *)
  
   Transl1 = computeTranslationMatrix(-RotPt2.getX(),
                                      -RotPt2.getY(),
@@ -642,13 +641,13 @@ private void computeViewMatrix() {
 }
 
 /** compute a rotation-matrix */
-private Matrix PointRotationMatrix(Point3D Pt,double Angle) {
+private Matrix PointRotationMatrix(Point3DSimple Pt,double Angle) {
   Matrix   Mat; 
   double   s,t,c,B,x,y,z;
-  Point3D  Help;
+  Point3DSimple  Help;
 
   Mat  = new Matrix(4,4); 
-  Help = new Point3D(0,0,0,0,0,0);
+  Help = new Point3DSimple(0,0,0,0,0,0);
  
   B = Help.distance(Pt);  // (* Laenge des Ortsvektors Pkt *)
 
@@ -688,7 +687,7 @@ private Matrix computeScaleMatrix(double x, double y, double z ) {
 
 
 /** convert a point to a matrix */
-private Matrix Point2Matrix(Point3D Pt) {
+private Matrix Point2Matrix(Point3DSimple Pt) {
  Matrix Mat; 
  Mat =  new Matrix(4,4);
  Mat.setValue(0,0,Pt.getX() );
@@ -699,8 +698,8 @@ private Matrix Point2Matrix(Point3D Pt) {
 } 
 
 /** convert a matrix to a point */
-private Point3D Matrix2Point(Matrix M,int R,int G,int B) {
- Point3D  Pt;
+private Point3DSimple Matrix2Point(Matrix M,int R,int G,int B) {
+ Point3DSimple  Pt;
  double   x,y,z,w;
 
   x = M.getValue(0,0);
@@ -713,7 +712,7 @@ private Point3D Matrix2Point(Matrix M,int R,int G,int B) {
      z = z / w;
   }
 
-  Pt = new Point3D(x,y,z,R,G,B);
+  Pt = new Point3DSimple(x,y,z,R,G,B);
   return Pt;
 }
  

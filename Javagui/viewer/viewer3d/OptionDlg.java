@@ -35,7 +35,7 @@ public OptionDlg(Frame F,World3D W3D){
    getContentPane().setLayout(new BorderLayout());
    JPanel POptions = new JPanel(new GridLayout(1,4));
    POptions.add(CB_Gradient);
-   POptions.add(CB_Border);
+   //POptions.add(CB_Border);
    POptions.add(CB_Filled);
    POptions.add(CB_Proportional);
    getContentPane().add(POptions,BorderLayout.CENTER);
@@ -70,7 +70,7 @@ public OptionDlg(Frame F,World3D W3D){
 
 public void reset(){
    if(W3D!=null){
-     CB_Border.setSelected(W3D.isBorder());
+     //CB_Border.setSelected(W3D.isBorder());
      CB_Filled.setSelected(W3D.isFill());
      CB_Gradient.setSelected(W3D.isGradient());
      CB_Proportional.setSelected(W3D.isProportional());
@@ -82,12 +82,12 @@ public boolean apply(){
   if(W3D==null)
      return true;
   else{
-     if(! (CB_Border.isSelected() | CB_Filled.isSelected())){
+     //if(! (CB_Border.isSelected() | CB_Filled.isSelected())){
+     if(! ( CB_Filled.isSelected())){
         Reporter.writeError("please select border or filled");
         return false;
      }
      else{
-       W3D.setBorder(CB_Border.isSelected());
        W3D.setFill(CB_Filled.isSelected());
 	 W3D.setGradient(CB_Gradient.isSelected());
 	 W3D.setProportion(CB_Proportional.isSelected());
@@ -105,7 +105,7 @@ public void cancel(){
 
 private World3D W3D;
 private JCheckBox CB_Gradient = new JCheckBox("gradient");
-private JCheckBox CB_Border = new JCheckBox("paint border");
+//private JCheckBox CB_Border = new JCheckBox("paint border");
 private JCheckBox CB_Filled = new JCheckBox("filled");
 private JCheckBox CB_Proportional = new JCheckBox("proportional");
 private JButton OkBtn = new JButton("ok");

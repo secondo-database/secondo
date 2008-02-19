@@ -41,14 +41,11 @@ public World3D() {
 
    Fct3D = new FM3DGraphic();
    W2D   = new World2D();
-   FV    = new Triangle3DVector();
-   PV    = new IDPoint3DVector();
-   LV    = new Line3DVector();
-   border = false;
+   FV    = new Figure3DVector();
 
-   Point3D Eye    = Fct3D.getEye();
-   Point3D VRP    = Fct3D.getVRP();
-   Point3D ViewUp = Fct3D.getViewUp();
+   Point3DSimple Eye    = Fct3D.getEye();
+   Point3DSimple VRP    = Fct3D.getVRP();
+   Point3DSimple ViewUp = Fct3D.getViewUp();
    Visitor        = new Visitorclass();
 
    Visitor.XEye = Eye.getX();
@@ -86,20 +83,6 @@ public double getViewUpY(){ return Visitor.YViewUp;}
 /** get the z-coordinate of ViewUp-Point */
 public double getViewUpZ(){ return Visitor.ZViewUp;}
      
-
-/** paint border of triangles ? */
-public void setBorder(boolean M) {
-  // paint a border by the triangles ?
-  if (M!=border) {
-     border = M;
-     imageChanged=true;
-   }
-}
-
-/** is border painting enabled ? */
-public boolean isBorder(){
-  return border;
-}
 
 /** fill triangles ? */
 public void setFill(boolean f) {
@@ -228,53 +211,47 @@ public void setViewport(double x0,double y0,double width,double height) {
 /** insert a new Triangle to the world */
 public void insertTriangle(Triangle3D F) {
   FV.append(F);
-  insertFigure(F.getFigure3D());
   imageChanged=true;
-}
-
-/** inserts all Triangles in TV **/
-public void add(Triangle3DVector TV){
-  for(int i=0;i<TV.getSize();i++)
-      insertTriangle(TV.get(i));
 }
 
 
 /** insert a new point to the world */
-public void insertPoint(IDPoint3D P) {
-   PV.append(P);
-   Figure3D Fig = P.getFigure3D();
-   insertFigure(Fig);
+public void insertPoint(Point3D P) {
+   FV.append(P);
    imageChanged=true;
-}
-
-/** inserts all points in PV */
-public void add(IDPoint3DVector PV){
-  for(int i=0;i<PV.getSize();i++)
-      insertPoint(PV.get(i));
 }
 
 
 /** insert a new line to the world */
 public void insertLine(Line3D L){
-   LV.append(L);
-   insertFigure(L.getFigure3D());
+   FV.append(L);
    imageChanged=true;
 }
 
-/** inserts all lines in LV */
-public void add(Line3DVector LV){
-  for(int i=0;i<LV.getSize();i++)
-      insertLine(LV.get(i));
+public void add(Triangle3DVector tv){
+   for(int i=0;i<tv.getSize();i++){
+       insertTriangle(tv.getTriangle3DAt(i));
+   }
 }
 
+public void add(Line3DVector lv){
+   for(int i=0;i<lv.getSize();i++){
+       insertLine(lv.getLine3DAt(i));
+   }
+}
+
+
+public void add(Point3DVector pv){
+   for(int i=0;i<pv.getSize();i++){
+       insertPoint(pv.getPoint3DAt(i));
+   }
+}
 
 
 /** removes all figures from the world */
 public void removeAll() {
    W2D.deleteAll();
    FV.empty();
-   LV.empty();
-   PV.empty();
    imageChanged=true;
 }
 
@@ -285,33 +262,12 @@ public void removeID(ID RID) {
   int i=0;
   int max = FV.getSize();
   while (i<max) {
-    if ( FV.getTriangle3DAt(i).getID().equals(RID)  ) {
+    if ( FV.getFigure3DAt(i).getID().equals(RID)  ) {
        FV.remove(i);
        max--;
     }else
       i++;
   }
- 
-  i=0;
-  max = LV.getSize();
-  while (i<max) {
-    if ( LV.getLine3DAt(i).getID().equals(RID)  ) {
-       LV.remove(i);
-       max--;
-    }else
-      i++;
-  }
- 
-  i=0;
-  max = PV.getSize();
-  while (i<max) {
-    if ( PV.getIDPoint3DAt(i).getID().equals(RID)  ) {
-       PV.remove(i);
-       max--;
-    }else
-      i++;
-  }
-
   imageChanged=true;
 }
 
@@ -319,52 +275,44 @@ public void removeID(ID RID) {
 
 /** paint this world */
 public void paint(Graphics G) {
-  if(img==null){
+ /*
+  if(img==null || img.getHeight()!=getSize().height || img.getWidth()!=getSize().width){
      img =(BufferedImage) createImage(getSize().width,getSize().height);
   }
   if (imageChanged) {
-       W2D.paintWorld(img,border,fill,Gradient);
+       W2D.deleteAll();
+       for(int i=0;i<FV.getSize();i++){
+         W2D.insert(FV.get(i).project(Fct3D));
+       }
+       W2D.paintWorld(img.getGraphics(),getSize().width,getSize().height,fill,Gradient);
        imageChanged=false;
+  }*/
+ 
+  if(imageChanged){ 
+     W2D.deleteAll();
+     for(int i=0;i<FV.getSize();i++){
+        Figure3D f3 =  FV.get(i);
+        Figure2D f2 =   f3.copy().project(Fct3D);
+        W2D.insert(f2);
+     }
+     W2D.sort();
   }
-  G.clearRect(0,0,img.getHeight(),img.getWidth());
-  G.drawImage(img,0,0,null);
+ 
+  G.clearRect(0,0,getSize().width,getSize().height);
+  W2D.paintWorld(G,getSize().width,getSize().height,fill,Gradient);
+  //G.drawImage(img,0,0,null);
 }
 
 
 //##########  private methods
 
-
-/** insert a figure */
-private void insertFigure(Figure3D Fig) {
-
- Figure2D Fig2D = Fct3D.figureTransformation(Fig);
-
- if (! Fig2D.isEmpty()) {
-    W2D.insertFigure(Fig2D);
- }
-
-}
-
-
 /** update the world */
 private void allNew() {
-
-  W2D.deleteAll();
-  for(int i=0; i<FV.getSize(); i++) {
-     insertFigure(FV.getTriangle3DAt(i).getFigure3D());
-  }
-  for(int i=0; i<PV.getSize();i++){
-    insertFigure(PV.getIDPoint3DAt(i).getFigure3D());
-  }
-  for(int i=0; i<LV.getSize();i++){
-    insertFigure(LV.getLine3DAt(i).getFigure3D());
-  }
-
+ imageChanged=true;
+ repaint();
 }
 
 	
-/** paint a border ? */
-private boolean       border;                   // paint a border ?
 /** fill the interior of a triangle */
 private boolean       fill=true;                // only a gridpaint ?
 /** gradient-paint or single color per figure */
@@ -374,7 +322,17 @@ private boolean       Gradient = false;
 private class Visitorclass {
       double  XEye,YEye,ZEye,XVRP,YVRP,ZVRP,
                       XViewUp,YViewUp,ZViewUp;
-   }
+}
+
+
+public String toString(){
+  return "W3D: Eye =    (" + Visitor.XEye +", " + Visitor.YEye + ", " + Visitor.ZEye + ")\n" +
+         "     VRP =    (" + Visitor.XVRP +", " + Visitor.YVRP + ", " + Visitor.ZVRP + ")\n" +
+         "     ViewUp = (" + Visitor.XViewUp +", " + Visitor.YViewUp + ", " + Visitor.ZViewUp + ")\n" +
+         "     dimension   =  ("+width+", "+height+")";
+      
+
+}
 
 /** define the view */
 private Visitorclass Visitor;
@@ -386,11 +344,7 @@ private FM3DGraphic   Fct3D;
 private World2D   W2D;
 
 /** the set of triangles */
-private Triangle3DVector   FV;
-/** the set of lines */
-private Line3DVector       LV;
-/** the set of points */
-private IDPoint3DVector      PV;
+private Figure3DVector   FV;
 
 /** is the image cahnged ? */
 private boolean  imageChanged;

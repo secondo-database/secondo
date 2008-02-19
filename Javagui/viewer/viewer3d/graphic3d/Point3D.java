@@ -19,147 +19,92 @@
 
 package viewer.viewer3d.graphic3d;
 
+import gui.idmanager.*;
 import java.awt.Color;
-import viewer.viewer3d.graphic2d.Point2D;
+import viewer.viewer3d.graphic2d.*;
 
-/*******************
-* author  : Thomas Behr
-* version : 1.1
-* date    : 16.5.2000
-* content : class Point3D
-********************/
+/** this class provides a 3dim point with a own ID */
+public class Point3D extends Figure3D{
+  
+  Point3DSequence s;
 
 
-public class Point3D {
 
-/** coordinate of this point */
-protected double  x,y,z;
-/** color-part of this point */
-protected int     cr,cg,cb;     // rgb-values of color
+public Point3D(double x,double y,double z, int r, int g, int b,ID aID){
+  s = new Point3DSequence();
+  s.addPoint(new Point3DSimple(x,y,z,r,g,b)); 
+  myID = IDManager.getNextID(); 
+  myID.equalize(aID);
+}
 
+
+/** creates an new point */
+public Point3D(double x,double y,double z, int r, int g, int b){
+   this(x,y,z,r,g,b,IDManager.getNextID());
+}
+
+public Figure3D copy(){
+   return  new Point3D(getX(),getY(),getZ(),getColor(),myID);
+}
+
+
+public Point3DSimple getLocation(){
+   return s.getPoint3DAt(0).duplicate();
+}
+
+
+public Point3D(double x, double y, double z, Color c, ID aID){
+   this(x,y,z,c.getRed(),c.getGreen(),c.getBlue());
+   myID.equalize(aID);
+}
+
+public double getX(){ return s.getPoint3DAt(0).getX(); }
+
+public double getY(){ return s.getPoint3DAt(0).getY(); }
+
+public double getZ(){ return s.getPoint3DAt(0).getZ(); }
+
+public Color getColor(){ return s.getPoint3DAt(0).getColor(); }
 
 /** creates a new point */
-public Point3D(double x, double y, double z, int r , int g, int b) {
-  this.x = x;
-  this.y = y;
-  this.z = z;
-  cr = r;
-  cg = g;
-  cb = b;
-}
-
-/** creates a new point */
-public Point3D( double x, double y, double z, Color C) {
-  this.x = x;
-  this.y = y;
-  this.z = z;
-  cr = C.getRed();
-  cg = C.getGreen();
-  cb = C.getBlue();
-}
-
-/** check for valid color-values */
-public boolean isValid(){
- // test : color is ok ?
- return cr>=0 & cr <256 & cg>=0 & cg<256 & cb>=0 & cb<256;
-
-}
-
-/** returns the x-coordinate of this point*/
-public double getX() { return x; }
-
-/** returns the y-coordinate of this point*/
-public double getY() {return y; }
-
-/** returns the z-coordinate of this point*/
-public double getZ() {return z; }
-
-/** returns the red-part of this point */
-public int getR() { return cr; }
-/** returns the green-part of this point */
-public int getG() { return cg; }
-/** returns the blue-part of this point */
-public int getB() { return cb; }
-/** returns the color of this point */
-public Color getColor() { return new Color(cr,cg,cb); }
-
-/** set the color of this point */
-public void setColor(Color C) {
-   cr = C.getRed();
-   cg = C.getGreen();
-   cb = C.getBlue();
-}
-
-/** set the color of this point */
-public void setColor(int r,int g, int b){
-  cr=r;
-  cg=g;
-  cb=b;
+public Point3D(double x,double y, double z, Color C){
+   this(x,y,z,C.getRed(),C.getGreen(),C.getBlue());
 }
 
 
-/** set the red-part of this point */
-public void setR(int r) { cr = r; }
-/** set the green-part of this point */
-public void setG(int g) { cg = g;}
-/** set the blue-part of this point */
-public void setB(int b) { cb = b; }
-
-/** set the x-coordinate of this point */
-public void setX(double x) { this.x = x;}
-/** set the y-coordinate of this point */
-public void setY(double y) { this.y = y;}
-/** set the z-coordinate of this point */
-public void setZ(double z) { this.z = z;}
-
-/** set the position of this point */
-public void moveTo(double x, double y, double z) {
-  this.x = x;
-  this.y = y;
-  this.z = z;
-}
-
-/** returns a readable representation of this point */
-public String toString() {
-  return ( "[( "+ x + ", "+ y + ", "+z+"),("+cr+","+cg+","+cb+")]"  );
-}
-
-/** returns a copy of this point */
-public Point3D duplicate() {
-   return new Point3D(x,y,z,cr,cg,cb); }
-
-/** equalize this to P */
-public void equalize(Point3D P) {
-   x = P.x;
-   y = P.y;
-   z = P.z;
-   cr = P.cr;
-   cg = P.cg;
-   cb = P.cb;
-}
-
-/** check for equality with P */
-public boolean equals(Point3D P) {
-  return ( (x==P.x) && (y==P.y) && (z==P.z) &&
-           (cr==P.cr) && (cg==P.cg) && (cb==P.cb));
- }
-
-
-
-
-/** computes the distance between this point and  P */
-public double distance(Point3D P) {
- double d =  (x-P.x)*(x-P.x) +
-             (y-P.y)*(y-P.y) +
-             (z-P.z)*(z-P.z);
- return Math.sqrt(d);
+public BoundingBox3D getBoundingBox(){
+  BoundingBox3D BB3 = new BoundingBox3D();
+  Point3DSimple p = s.getPoint3DAt(0);
+  BB3.set(p.getX(),p.getY(),p.getZ(),p.getX(),p.getY(),p.getZ());
+  return BB3;
 }
 
 /** returns the projection of this point */
-public Point2D project() {
-  return new Point2D(x,y,cr,cg,cb);
+public Figure2D project(FM3DGraphic fm){
+   Point2DSequence s2 = fm.figureTransformation(s);
+   if(s2.isEmpty()){ // a victim of clipping
+      return null;
+   }
+
+   Point2D p2 = s2.getPoint2DAt(0);
+   IDPoint2D ip2 = new IDPoint2D(p2,myID);
+   ip2.setSort(s2.getSort()); 
+   return ip2;
+}
+
+
+public Point3D duplicate(){
+  return new Point3D(getX(),getY(),getZ(),getColor(),myID);
+}
+
+
+public void moveTo(double x, double y,double z){
+    Point3DSimple p = s.getPoint3DAt(0);
+    p.moveTo(x,y,z);
+    s.setPoint3DAt(p,0);
+}
+
 }
 
 
 
-}

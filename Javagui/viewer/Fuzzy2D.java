@@ -278,7 +278,7 @@ public boolean addObject(SecondoObject o){
        FPoint3D P3D = new FPoint3D();
        if(!P3D.readFromSecondoObject(o))
           return false;
-       IDPoint3DVector PV = P3D.getPoints();
+       Point3DVector PV = P3D.getPoints();
        if(PV!=null)
          for(int i=0;i<PV.getSize();i++)
             myPoints.append(PV.get(i));
@@ -348,7 +348,7 @@ private void addGraphicalObjects(Object3D O){
        for(int i=0;i<Lns.getSize();i++)
            myLines.append(Lns.get(i));
 
-    IDPoint3DVector Pts = O.getPoints();
+    Point3DVector Pts = O.getPoints();
     if(Pts!=null)
        for(int i=0;i<Pts.getSize();i++)
            myPoints.append(Pts.get(i));
@@ -505,7 +505,7 @@ private void showObjectSettings(){
   update();
 }
 
-private IDPoint3DVector myPoints=new IDPoint3DVector();
+private Point3DVector myPoints=new Point3DVector();
 private Line3DVector myLines= new Line3DVector();
 private Triangle3DVector myTriangles=new Triangle3DVector();
 private BoundingBox3D BB3=new BoundingBox3D();

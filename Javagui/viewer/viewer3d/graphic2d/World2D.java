@@ -35,9 +35,14 @@ import java.awt.Graphics;
 public class World2D {
 
 /** insert a figure to the world */
-public void insertFigure(Figure2D F) {
-  W2d.Include(F);
+public void insert(Figure2D F) {
+  W2d.append(F);
 }
+
+public void sort(){
+   W2d.sort();
+}
+
 
 /** removes all figures from the world */
 public  void deleteAll() {
@@ -50,35 +55,17 @@ public void deleteFiguresWithID( ID PID ) {
 }
 
 /** paint the world on img */
-public void paintWorld(BufferedImage img,
-                        boolean border,       
-                        boolean filled,
-                        boolean gradient )     
+public void paintWorld(Graphics g,
+                       int width,
+                       int height,
+                       boolean filled,
+                       boolean gradient ){
 
-                        {
-
-  Graphics G = img.getGraphics();
-  G.clearRect(0,0,img.getWidth(),img.getHeight());
+  g.clearRect(0,0,width,height);
   for (int i=W2d.getSize()-1; i>=0; i--) {
-    if (W2d.getFigure2DAt(i).isTriangle()) {
-        Triangle2D[] Trs = W2d.getFigure2DAt(i).getTriangles();
-        for(int j=0; j<Trs.length; j++)
-        if (Trs[j]!=null)
-            Trs[j].paint(img,border,filled,gradient);
-    } // if triangles
-    else
-      if (W2d.getFigure2DAt(i).isLine()) {
-        Line2D Line = W2d.getFigure2DAt(i).getLine();
-        Line.paint(img,gradient);
-      }
-      else {   // a Point
-          IDPoint2D P = W2d.getFigure2DAt(i).getPoint();   
-          P.paint(img);
-      }
-
-  } // for all figures in W2d
-
-
+     Figure2D f = W2d.getFigure2DAt(i);
+     f.paint(g,filled,gradient);  
+  }
 } // paint World
 
 /** the content of the world */

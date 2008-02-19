@@ -30,7 +30,7 @@ public class FLine3D implements Object3D{
 
 public Triangle3DVector getTriangles(){ return null;}
 public Line3DVector getLines(){ return Lines;}
-public IDPoint3DVector getPoints(){return null;}
+public Point3DVector getPoints(){return null;}
 /** get red-part by given membership-value */
 private int getR(double delta){
   return (int)( (double)(minR) + delta*( (double) (maxR-minR)));
@@ -114,7 +114,7 @@ private void computeLine3Ds(){
   Lines = new Line3DVector();
   SingleSegment SS;
   Line3D L3D;
-  Point3D P3D1,P3D2;
+  Point3DSimple P3D1,P3D2;
   BB.set(0,0,0,0,0,0);
   int minx,miny,minz,maxx,maxy,maxz;
   BoundingBox3D BB2 = new BoundingBox3D();
@@ -134,8 +134,8 @@ private void computeLine3Ds(){
        BB.extend(BB2);
     }
 
-    P3D1 = new Point3D(SS.P1.x,SS.P1.y,SS.P1.z*ScaleFactor,getR(SS.P1.z),getG(SS.P1.z),getB(SS.P1.z));
-    P3D2 = new Point3D(SS.P2.x,SS.P2.y,SS.P2.z*ScaleFactor,getR(SS.P2.z),getG(SS.P2.z),getB(SS.P2.z));
+    P3D1 = new Point3DSimple(SS.P1.x,SS.P1.y,SS.P1.z*ScaleFactor,getR(SS.P1.z),getG(SS.P1.z),getB(SS.P1.z));
+    P3D2 = new Point3DSimple(SS.P2.x,SS.P2.y,SS.P2.z*ScaleFactor,getR(SS.P2.z),getG(SS.P2.z),getB(SS.P2.z));
     L3D = new Line3D(P3D1,P3D2,myID);
     Lines.append(L3D);
   } 
@@ -191,7 +191,7 @@ public boolean nearByXY(double x, double y,double exactness){
 /** returns true if the vertical line in xy is in the near of the
   * segment defined by P1,P2
   */
-static boolean nearByXY(Point3D P1, Point3D P2,double x, double y,double square_exactness){
+static boolean nearByXY(Point3DSimple P1, Point3DSimple P2,double x, double y,double square_exactness){
 
 double P1x = P1.getX(),
        P1y = P1.getY(),

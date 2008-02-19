@@ -23,7 +23,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import viewer.viewer3d.graphic3d.*;
-import viewer.viewer3d.objects.BoundingBox3D;
 import tools.Reporter;
 
 /**

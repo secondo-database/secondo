@@ -23,37 +23,81 @@ import gui.idmanager.*;
 import java.awt.*;
 import java.awt.image.*;
 
-public class IDPoint2D extends Point2D{
+public class IDPoint2D extends Figure2D{
 
-// a point with foreign identity
+ protected double x_pos;
+ protected double y_pos;
+ protected int cr,cg,cb;    // Colorvalues for this Point
 
-/** creates a point with a foreign inentity */
-public IDPoint2D(Point2D P){
-    super(P.x_pos,P.y_pos,P.cr,P.cg,P.cb);
-}
+ public boolean equals(Figure2D f){
+    if(! (f instanceof IDPoint2D)){
+        return false;
+    }
+    IDPoint2D p = (IDPoint2D) f;
+    return myID.equals(p.myID) &&
+           x_pos == p.x_pos &&
+           y_pos == p.y_pos &&
+           cr == p.cr && cg == p.cg && cb == p.cb;
+ }
+
+
+
+ /** returns the x-coordinate of this point*/
+ public double getX() { return x_pos; }
+
+ /** returns the y-coordinate of this point*/
+ public double getY() { return y_pos; }
+
+ /** set the x-coordinate */
+ public void setX(double x) { x_pos = x; }
+
+ /** set the y-coordinate */
+ public void setY(double y) { y_pos = y; }
+
+ /** set the x and the y-coordinate */
+ public void moveTo(double x, double y) {
+   x_pos = x;
+   y_pos = y;
+ }
+
+ /** get the red-part of the color of this point */
+ public int getRed() { return cr; }
+ /** get the green-part of the color of this point */ 
+ public int getGreen() { return cg; }
+ /** get the blue-part of the color of this point */
+ public int getBlue() { return cb; }
+
+ public String toString() {
+   return "[( " + x_pos + " , "+ y_pos + "),("+cr+","+cg+","+cb+")]"; }
 
 /** creates a new Point */
 public IDPoint2D(double x, double y, int r, int g, int b){
-  super(x,y,r,g,b);
+  this.x_pos = x;
+  this.y_pos = y;
+  this.cr = r;
+  this.cg = g;
+  this.cb = b;
 }
 
 /** creates a new point */
 public IDPoint2D(double x,double y, Color C){
-  super(x,y,C);
+   this(x,y,C.getRed(),C.getGreen(),C.getBlue());
 }
+
+public IDPoint2D(Point2D p, ID aID){
+   this(p.getX(),p.getY(),p.getRed(),p.getGreen(),p.getBlue());
+   myID = new ID();
+   myID.equalize(aID);
+
+}
+
 
 /** returns a copy of this */
-public IDPoint2D copy(){
+public IDPoint2D duplicate(){
   IDPoint2D C = new IDPoint2D(x_pos,y_pos,cr,cg,cb);
-  C.MyID.equalize(MyID);
+  C.myID.equalize(myID);
   return C;
 }
-
-
-/** returns the ID of this point */
-public ID getID(){ return MyID;}
-/** set the ID of this point */
-public void setID(ID newID){ MyID.equalize(newID);}
 
 /** set the diameter for painting */
 public void setDiameter(int dia) {
@@ -63,31 +107,14 @@ public void setDiameter(int dia) {
 
 
 /** paint this point on img */
-public void paint(BufferedImage img){
-   Graphics G = img.getGraphics();
-   G.setColor(new Color(cr,cg,cb));
-   G.fillOval((int)x_pos-dia/2,(int)y_pos-dia/2,dia,dia);
+public void paint(Graphics g, boolean filled, boolean gradient){
+   g.setColor(new Color(cr,cg,cb));
+   g.fillOval((int)x_pos-dia/2,(int)y_pos-dia/2,dia,dia);
 }
 
 
-/** paint this point if it containing in given clipping area */
-public void paint(BufferedImage img,
-                   int clipx, int clipy, int clipw,int cliph){
-   if ( (x_pos>=clipx)          &&
-        (x_pos<=(clipx+clipw))  &&
-        (y_pos>=clipy)          &&
-        (y_pos<=(clipy+cliph))      )
-        paint(img);
-
- }
-    
-
 /** the diameter for painting */
 private int dia=13;         // diameter for paint this Point
-/** the ID o fthis point */
-private ID MyID = IDManager.getNextID();
-
-
 
 }
 

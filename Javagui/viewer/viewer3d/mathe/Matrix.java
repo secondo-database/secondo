@@ -220,7 +220,7 @@ public double Determinante() {
            }
          }
 
-      // gz ist jetzt rowsnr. mit Groeátem Pivotelement *)
+      // gz ist jetzt rowsnr. mit Groesstem Pivotelement *)
 
           if (gz!=dia) {
             swapRows(dia,gz);

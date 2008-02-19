@@ -41,7 +41,7 @@ private Vector V;
 public Point2DVector() { V = new Vector(); }
 
 /** returns a copy from this */
-public Point2DVector Duplicate() {
+public Point2DVector duplicate() {
   Point2DVector Copy = new Point2DVector();
   Copy.V = (Vector) V.clone();
   return Copy;
@@ -72,7 +72,7 @@ public void setPoint2DAt(int i, Point2D Pt) {
 }
 
 /** deletes all containing points */
-public void empty() { V = new Vector(); }
+public void empty() { V.clear(); }
 
 /** check for emptyness */
 public boolean isEmpty() { return V.size()==0; }

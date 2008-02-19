@@ -31,7 +31,7 @@ public class FPoint3D implements Object3D{
 public Triangle3DVector getTriangles(){ return null;}
 public Line3DVector getLines(){ return null;}
 
-public IDPoint3DVector getPoints(){return Points;}
+public Point3DVector getPoints(){return Points;}
 
 
 /** check if the type from SO is a FPoint
@@ -64,7 +64,7 @@ public String toString(){return Name;}
 private boolean readFromListExpr(ListExpr LE){
 
   double SF = 1.0;
-  Points = new IDPoint3DVector();
+  Points = new Point3DVector();
   SingleFPoints = new Vector();
   if(LE==null)
      return false;
@@ -101,8 +101,8 @@ private boolean readFromListExpr(ListExpr LE){
 
 private void computePoints3D(){
   // compute the 3DPointVector
-  Points = new IDPoint3DVector(); 
-  IDPoint3D P3D;
+  Points = new Point3DVector(); 
+  Point3D P3D;
   SingleFPoint P;
   BB.set(0,0,0,0,0,0);
   BoundingBox3D BB2= new BoundingBox3D();
@@ -115,7 +115,7 @@ private void computePoints3D(){
          BB.extend(BB2);
       } 
 
-      P3D = new IDPoint3D(P.x,P.y,
+      P3D = new Point3D(P.x,P.y,
                           P.z*ScaleFactor,
                           getRed(P.z),getGreen(P.z),getBlue(P.z));
       P3D.setID(myID); // each member of this FPoint has the same ID
@@ -182,7 +182,7 @@ public boolean nearByXY(double x, double y,double exactness){
 
 
 
-private IDPoint3DVector Points = new IDPoint3DVector();
+private Point3DVector Points = new Point3DVector();
 private Vector SingleFPoints = new Vector();
 private double ScaleFactor;
 private int minR=0,minG=0,minB=0,maxR=255,maxG=255,maxB=255;

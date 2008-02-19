@@ -47,7 +47,7 @@ public void setProportional(boolean p){
 
 
 /** adds a Point to this Image */
-public void add(IDPoint3D P){
+public void add(Point3D P){
   if(P!=null) {
     Points.append(P);
     transformAndInsert(P);
@@ -55,14 +55,14 @@ public void add(IDPoint3D P){
 }
 
 /** adds a set of points to this image */
-public void add(IDPoint3D[] Pts){
+public void add(Point3D[] Pts){
   if(Pts!=null)
      for(int i=0;i<Pts.length;i++)
         add(Pts[i]);
 }
 
 /** add all elements of Pts to this images*/
-public void add(IDPoint3DVector Pts){
+public void add(Point3DVector Pts){
   if(Pts!=null)
      for(int i=0;i<Pts.getSize();i++)
         add(Pts.get(i));
@@ -165,10 +165,10 @@ private void set(int x, int y ,double z,int Colorvalue){
 /** paint all containing points 
   */
 private void paintPoints(){
-  IDPoint3D P;
+  Point3D P;
   for(int i=0;i<TransformedPoints.getSize();i++){
       P = TransformedPoints.get(i);
-      paintSinglePoint( (int)P.getX(),(int)P.getY(),P.getZ(),P.getColor().getRGB());
+      paintSinglePoint( (int)P.getX(),(int)P.getY(),(int)P.getZ(),P.getColor().getRGB());
   }
 }
 
@@ -249,8 +249,8 @@ private void paintLines(){
   * a line with bigger width
   */
 private void paintSingleLine(Line3D L){
-  Point3D P1 = L.getEP1();
-  Point3D P2 = L.getEP2();
+  Point3DSimple P1 = L.getEP1();
+  Point3DSimple P2 = L.getEP2();
   int x1 = (int) P1.getX();
   int y1 = (int) P1.getY();
   double z1 = P1.getZ();
@@ -331,7 +331,7 @@ private void paintTriangles(){
 
 /** paint a single Triangle on this image */
 private void paintSingleTriangle(Triangle3D T){
-  Point3D P1 = T.getCP1(),
+  Point3DSimple P1 = T.getCP1(),
           P2 = T.getCP2(),
           P3 = T.getCP3();
   int y1= (int)P1.getY(),
@@ -348,7 +348,7 @@ private void paintSingleTriangle(Triangle3D T){
   if(ymin==ymax)  // not a triangle
      return;
   
-  Point3D TMP;
+  Point3DSimple TMP;
   // set the 1st Point
   if(y2==ymin){
      TMP=P1;
@@ -449,11 +449,11 @@ private void paintSingleTriangle(Triangle3D T){
   
 
   if(border){
-     Point3D P1_1 = P1.duplicate();
+     Point3DSimple P1_1 = P1.duplicate();
      P1_1.setR(0);P1_1.setG(0);P1_1.setB(0);
-     Point3D P2_1 = P2.duplicate();
+     Point3DSimple P2_1 = P2.duplicate();
      P2_1.setR(0);P2_1.setG(0);P2_1.setB(0);
-     Point3D P3_1 = P3.duplicate();
+     Point3DSimple P3_1 = P3.duplicate();
      P3_1.setR(0);P3_1.setG(0);P3_1.setB(0);
      paintSingleLine(new Line3D(P1_1,P2_1));
      paintSingleLine(new Line3D(P1_1,P3_1));
@@ -568,6 +568,26 @@ private void transformObjects(){
 
 
 /** Transforms a point from world into screen coordinates */
+private void transform(Point3DSimple P){
+  double x = P.getX();
+  double y = P.getY();
+  double z = P.getZ();
+  // first translate to (0,0)
+  x = x-BB.getMinX();
+  y = y-BB.getMinY();
+  // Scale 
+  double sx = width/BB.getWidth();
+  double sy = height/BB.getHeight();
+  if(proportional){          
+     sx = Math.min(sx,sy);
+     sy = sx;
+  }
+  x = x*sx;
+  // 
+  y = height- y*sy;
+  P.moveTo(x,y,z);
+}
+
 private void transform(Point3D P){
   double x = P.getX();
   double y = P.getY();
@@ -618,12 +638,13 @@ public double getWorldAccuracy(int PixelSize){
  * transform P a insert the transformed Point into
  * the TransformedPoints vector
  */
-private void transformAndInsert(IDPoint3D P){
+private void transformAndInsert(Point3D P){
    TMPBB.readFrom(P.getBoundingBox());
    if(BB.intersect(TMPBB)){
       Point3D P2 = P.duplicate();
       transform(P2);   
-      IDPoint3D P3 = new IDPoint3D(P2.getX(),P2.getY(),P2.getZ(),P.getR(),P.getG(),P.getB(),P.getID());
+      Color C = P.getColor();
+      Point3D P3 = new Point3D(P2.getX(),P2.getY(),P2.getZ(),C.getRed(),C.getGreen(),C.getBlue(),P.getID());
       TransformedPoints.append(P3);
    }   
 }
@@ -636,8 +657,8 @@ private void transformAndInsert(Line3D L){
   TMPBB.readFrom(L.getBoundingBox());
   if(BB.intersect(TMPBB)){
      ID id = L.getID();
-     Point3D P1 = L.getEP1();
-     Point3D P2 = L.getEP2();
+     Point3DSimple P1 = L.getEP1();
+     Point3DSimple P2 = L.getEP2();
      transform(P1);
      transform(P2);
      Line3D NL = new Line3D(P1,P2,id);
@@ -654,9 +675,9 @@ private void transformAndInsert(Triangle3D T){
    TMPBB.readFrom(T.getBoundingBox());
    if(BB.intersect(TMPBB)){
       ID id = T.getID();
-      Point3D P1 = T.getCP1().duplicate();
-      Point3D P2 = T.getCP2().duplicate();
-      Point3D P3 = T.getCP3().duplicate();
+      Point3DSimple P1 = T.getCP1().duplicate();
+      Point3DSimple P2 = T.getCP2().duplicate();
+      Point3DSimple P3 = T.getCP3().duplicate();
       transform(P1);
       transform(P2);
       transform(P3);
@@ -744,13 +765,13 @@ public void setPointSize(int Size){
 
 
 /** contains the Points in world coordinates */
-private IDPoint3DVector Points=new IDPoint3DVector();
+private Point3DVector Points=new Point3DVector();
 /** contains all Lines in world coordinates */
 private Line3DVector Lines = new Line3DVector();
 /** contsians all triangles in world coordinates */
 private Triangle3DVector Triangles = new Triangle3DVector();
 /** contains the points to displayed in screen coordinates */
-private IDPoint3DVector TransformedPoints = new IDPoint3DVector();
+private Point3DVector TransformedPoints = new Point3DVector();
 /** contains the lines to displayed in screen coordinates */
 private Line3DVector TransformedLines = new Line3DVector();
 /** contains triangles in screen coordinates */

@@ -42,33 +42,66 @@ private Vector V = new Vector();
 
 
 /** add a new Figure2D */
-public void append (Figure2D P) { V.add(P); }
-
-/** insert P on position i */
-public void insertAt(Figure2D P,int i) { V.add(i,P); }
-
-
-/** insert P on position given by sort-value of P */
-public void Include( Figure2D P) {
-  // insert by Sort from P
-  int min = 0;
-  int max = V.size();
-  int middle;
-  double PSort = P.getSort();
-
-  while ( (max-min) > 1 )  {
-           middle = (max+min) / 2;
-           if ( ((Figure2D) V.get(middle) ).getSort() > PSort )
-              max = middle;
-           else
-              min = middle;
-    } // while
-
-  V.add(min,P);
+public void append (Figure2D P) { 
+    if(P!=null){
+       V.add(P);
+    }
 }
 
-/** returns number of containing figures */
-public int getSize() { return V.size(); }
+
+/** returns the element at the specified position **/
+public Figure2D get(int index){
+   return (Figure2D) V.get(index);
+}
+
+
+
+/** sorts this vector by the value of the getSort() function **/
+public void sort(){
+  // sort using heapsort
+  int n = V.size();
+  for(int i=n/2;i>0;i--)
+     reheap(i,n);
+  for(int i=n;i>1;i--){
+      Object tmp = V.get(0);
+      V.set(0,V.get(i-1));
+      V.set(i-1,tmp);
+      reheap(1,i-1);
+   }
+}
+
+/** function supporting the sort() function **/
+private void reheap(int i, int k){
+   int j,son;
+   j=i;
+   boolean done = false;
+   while(2*j<=k && !done){
+      if(2*j+1<=k){
+         if(get(2*j-1).getSort()>get(2*j).getSort()){
+            son = 2*j;
+         } else {
+            son = 2*j+1;
+         }
+      } else {
+         son = 2*j;
+      }
+      if(get(j-1).getSort()<get(son-1).getSort()){
+         // swap elements
+         Object tmp = V.get(j-1);
+         V.set(j-1, V.get(son-1));
+         V.set(son-1, tmp);
+         j = son;
+      } else {
+         done=true;
+      }
+   }
+}
+
+
+/** returns the number of containing figures */
+public int getSize() { 
+   return V.size(); 
+}
 
 /** get the figure on position i */
 public Figure2D getFigure2DAt(int i) throws NoSuchElementException {
@@ -76,40 +109,32 @@ public Figure2D getFigure2DAt(int i) throws NoSuchElementException {
 }
 
 /** deletes all containing figures */
-public void empty() { V = new Vector(); }
+public void empty() { 
+  V.clear(); 
+}
 
 /** check for emptyness */
-public boolean isEmpty() { return V.size()==0; }
-
-
-/** search the figure with given ID from begin */
-private int SearchID(ID SID, int Begin ) {
-  if (Begin >= V.size() ) return -1;
-  for (int i=Begin; i<V.size(); i++) {
-    if (SID.equals (( (Figure2D) V.get(i)).getID() )  )
-        return i;
-  }
-  return -1;
+public boolean isEmpty() { 
+   return V.size()==0; 
 }
+
 
 
 /** deletes all figures with given ID */
 public void deleteFiguresWithID(ID PID)  {
 
    // removes all Figures whith PID
-
-  int i = 0;
+  Vector nV = new Vector(V.size());
   int max = V.size();
 
-  while (i<max) {
-    if ( ( (Figure2D) V.get(i) ).getID().equals(PID) ) {
-       V.remove(i);
-       max --;
-      }
-      else i++;
-  }
+  for(int i=0;i<max;i++){
+    Figure2D fig = get(i);
+    if(! fig.getID().equals(PID)){
+      nV.add(fig);
+    } 
+  }  
+  V = nV;
 }
-          
 
 
 } // class

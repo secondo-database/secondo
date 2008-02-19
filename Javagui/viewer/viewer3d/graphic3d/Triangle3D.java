@@ -21,9 +21,7 @@ package viewer.viewer3d.graphic3d;
 
 import java.awt.Color;
 import gui.idmanager.*;
-import viewer.viewer3d.graphic2d.Point2D;
-import viewer.viewer3d.graphic2d.Triangle2D;
-import viewer.viewer3d.objects.BoundingBox3D;
+import viewer.viewer3d.graphic2d.*;
 
 /***********************************
 *
@@ -35,139 +33,189 @@ import viewer.viewer3d.objects.BoundingBox3D;
 
 
 
-public class Triangle3D {
+public class Triangle3D extends Figure3D{
 
-/** the ID of this triangle */
-private   ID         MyID;
-/** the cornerpoints */
-private   Point3D[]  Points = new Point3D[3];
+
+Point3DSequence endpoints; // endpoints of the interior
+Point3DSequence line1_2;
+Point3DSequence line1_3;
+Point3DSequence line2_3;
+
 
 /** returns a readable representation of this triangle */
 public String toString() {
   String S = "Triangle3D ";
-  for(int i=0;i<3;i++) { S += Points[i]; }
+  for(int i=0;i<3;i++) { S += endpoints.getPoint3DAt(i); }
   return S;
 }
 
 
+public Point3DSimple getCP1(){
+   return endpoints.getPoint3DAt(0);
+}
+
+public Point3DSimple getCP2(){
+   return endpoints.getPoint3DAt(1);
+}
+public Point3DSimple getCP3(){
+   return endpoints.getPoint3DAt(2);
+}
+
 /** creates a new Triangle */
-public Triangle3D( Point3D  P1, Point3D P2, Point3D P3){
-   Points[0] = P1;
-   Points[1] = P2;
-   Points[2] = P3;
-   MyID = IDManager.getNextID();
+public Triangle3D( Point3DSimple  P1, Point3DSimple P2, Point3DSimple P3,
+                   boolean line1_2, boolean line1_3, boolean line2_3, Color borderColor, ID aID){
+   endpoints = new Point3DSequence();
+   endpoints.addPoint(P1);
+   endpoints.addPoint(P2);
+   endpoints.addPoint(P3);
+   if(line1_2 || line1_3 || line2_3){
+      P1 = P1.duplicate();
+      P1.setColor(borderColor);
+      P2 = P2.duplicate();
+      P2.setColor(borderColor);
+      P3 = P3.duplicate();
+      P3.setColor(borderColor);
+   }
+   if(line1_2){
+      this.line1_2 = new Point3DSequence();
+      this.line1_2.addPoint(P1);
+      this.line1_2.addPoint(P2);
+   } else {
+      this.line1_2 = null;
+   } 
+   if(line1_3){
+      this.line1_3 = new Point3DSequence();
+      this.line1_3.addPoint(P1);
+      this.line1_3.addPoint(P3);
+   } else {
+      this.line1_3 = null;
+   } 
+   if(line2_3){
+      this.line2_3 = new Point3DSequence();
+      this.line2_3.addPoint(P2);
+      this.line2_3.addPoint(P3);
+   } else {
+      this.line2_3 = null;
+   }
+   myID = new ID();
+   myID.equalize(aID); 
 }
 
-public Triangle3D(Point3D P1,Point3D P2, Point3D P3,ID aID){
-   Points[0] = P1;
-   Points[1] = P2;
-   Points[2] = P3;
-   MyID = aID;
+public Triangle3D(Point3DSimple P1,Point3DSimple P2, Point3DSimple P3,ID aID){
+   this(P1,P2,P3,false,false,false,Color.BLACK, aID);
 }
 
+public Triangle3D(Point3DSimple P1,Point3DSimple P2, Point3DSimple P3){
+   this(P1,P2,P3,false,false,false,Color.BLACK, IDManager.getNextID());
+}
 
 /** returns a copy of this triangle */
 public Triangle3D duplicate() {
-  return new Triangle3D(Points[0].duplicate(),Points[1].duplicate(),
-                        Points[2].duplicate(),MyID);
+   Color C = null;
+   if(line1_2!=null){
+      C = line1_2.getPoint3DAt(0).getColor();
+   }
+   if(line1_3!=null && C==null){
+      C = line1_3.getPoint3DAt(0).getColor();
+   } 
+   if(line2_3!=null && C==null){
+      C = line2_3.getPoint3DAt(0).getColor();
+   } 
+   return new Triangle3D(endpoints.getPoint3DAt(0), 
+                  endpoints.getPoint3DAt(1), 
+                  endpoints.getPoint3DAt(2),
+                  line1_2!=null,
+                  line1_3!=null,
+                  line2_3!=null,
+                  C, myID);
 }
+
+public Figure3D copy(){
+   return duplicate();
+}
+
 
 
 /** returns the BoundingBox of this Triangle*/
 public BoundingBox3D getBoundingBox(){
   BoundingBox3D BB3 = new BoundingBox3D();
   double xmin,xmax,ymin,ymax,zmin,zmax;
-  xmin=xmax=Points[0].getX();
-  ymin=ymax=Points[0].getY();
-  zmin=zmax=Points[0].getZ();
+  xmin=xmax=endpoints.getPoint3DAt(0).getX();
+  ymin=ymax=endpoints.getPoint3DAt(0).getY();
+  zmin=zmax=endpoints.getPoint3DAt(0).getZ();
   for(int i=1;i<3;i++){
-      if(xmin>Points[i].getX())
-         xmin=Points[i].getX();
-      if(xmax<Points[i].getX())
-         xmax=Points[i].getX();
-      if(ymin>Points[i].getY())
-         ymin=Points[i].getY();
-      if(ymax<Points[i].getY())
-         ymax=Points[i].getY();
-      if(zmin>Points[i].getZ())
-         zmin=Points[i].getZ();
-      if(zmax<Points[i].getZ())
-         zmax=Points[i].getZ();
+      Point3DSimple p = endpoints.getPoint3DAt(i);
+      double x = p.getX();
+      double y = p.getY();
+      double z = p.getZ();
+      xmin = xmin>x?x:xmin;
+      ymin = ymin>y?y:xmin;
+      zmin = zmin>z?z:xmin;
+      xmax = xmax<x?x:xmax;
+      ymax = ymax<y?y:xmax;
+      zmax = zmax<z?z:xmax;
   }
   BB3.set(xmin,ymin,zmin,xmax,ymax,zmax);
   return BB3;
 }
 
-/** equalize this to Source */
-public void equalize(Triangle3D Source) {
-  this.MyID.equalize(Source.MyID);
-  for(int i=0;i<3;i++)
-     this.Points[i].equalize(Source.Points[i]);
-}
-
-
-/** check for equality of the values (not ID) */
-public boolean equalValues(Triangle3D D2) {
-
-  boolean result=true;
-  
-  for(int i=0; i<3 ; i++)      // equal Points
-    result = result && Points[i].equals(D2.Points[i]);
- return result;
-}
-
-
 /** check for equality */
 public boolean equals(Triangle3D Q2) {
-  return MyID.equals(Q2.MyID) && this.equalValues(Q2);
+  if(! myID.equals(Q2.myID)){
+    return false;
+  }
+  if(!endpoints.equals(endpoints)){
+    return false;
+  }
+  // ignore border at this moment
+  return true;
 }
 
-/** check for equality of the ID */
-public boolean equalID(Triangle3D Q2) {
-  return MyID.equals(Q2.MyID);
-}
-
-/** set the ID of this triangle */
-public void setID(ID QID) { MyID.equalize(QID); }
-
-/** get the ID of this triangle */
-public ID getID() { return MyID; }
-
-/** creates a figure3D from this triangle */
-public Figure3D getFigure3D() {
-
-  Figure3D Fig = new Figure3D();
-  Fig.setID(MyID);
-  Fig.addPoint(Points[0]);
-  Fig.addPoint(Points[1]);
-  Fig.addPoint(Points[2]);
-  return Fig;
-}
 
 /** returns the projection of this triangle */
-public Triangle2D  project() {
+public Figure2D  project(FM3DGraphic fm) {
 
-  Point2D[] pts2d = new Point2D[3];
+   // first, convert the interior
+   Point2DSequence interior = fm.figureTransformation(endpoints);
+   if(interior.isEmpty()){
+      return null;
+   }
+  
+   
+ 
+   Triangle2D res = new Triangle2D(myID);
 
-  for(int i=0;i<3;i++)
-     pts2d[i] = Points[i].project();
+   res.setSort(interior.getSort());
 
-  return new Triangle2D(pts2d[0],pts2d[1],pts2d[2]);
+
+   Point2D p1 = interior.getPoint2DAt(0);
+   for(int i=0;i<interior.getSize()-2;i++){
+       Point2D p2 = interior.getPoint2DAt(i+1);
+       Point2D p3 = interior.getPoint2DAt(i+2);
+       res.insert(new Triangle2DSimple(p1,p2,p3));
+   }
+   // insert lines 
+   if(line1_2!=null){
+     Point2DSequence seg = fm.figureTransformation(line1_2);
+     if(!seg.isEmpty()){
+        res.insert(new Line2D(seg.getPoint2DAt(0), seg.getPoint2DAt(1)));
+     }
+   } 
+   if(line1_3!=null){
+     Point2DSequence seg = fm.figureTransformation(line1_3);
+     if(!seg.isEmpty()){
+        res.insert(new Line2D(seg.getPoint2DAt(0), seg.getPoint2DAt(1)));
+     }
+   } 
+   if(line2_3!=null){
+     Point2DSequence seg = fm.figureTransformation(line2_3);
+     if(!seg.isEmpty()){
+        res.insert(new Line2D(seg.getPoint2DAt(0), seg.getPoint2DAt(1)));
+     }
+   } 
+   return res;
 }
 
-/** returns a cornerpoint of this triangle */
-public Point3D getCP1(){ return Points[0]; }
-/** returns a cornerpoint of this triangle */
-public Point3D getCP2(){ return Points[1]; }
-/** returns a cornerpoint of this triangle */
-public Point3D getCP3(){ return Points[2]; }
-
-/** set a cornerpoint of this triangle */
-public void setCP1(Point3D P){Points[0] = P; }
-/** set a cornerpoint of this triangle */
-public void setCP2(Point3D P){Points[1] = P; }
-/** set a cornerpoint of this triangle */
-public void setCP3(Point3D P){Points[2] = P; }
 
 
 } // class Triangle3D

@@ -19,7 +19,7 @@
 
 package viewer.fuzzy2d;
 
-import viewer.viewer3d.objects.BoundingBox3D;
+import viewer.viewer3d.graphic3d.BoundingBox3D;
 
 public class BoundingBox2D{
 

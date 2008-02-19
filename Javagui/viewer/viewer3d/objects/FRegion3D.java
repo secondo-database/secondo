@@ -31,7 +31,7 @@ public class FRegion3D implements Object3D{
 
 public Triangle3DVector getTriangles(){ return Triangles;}
 public Line3DVector getLines(){ return null;}
-public IDPoint3DVector getPoints(){return null;}
+public Point3DVector getPoints(){return null;}
 
 /** get red-part by given membership-value */
 private int getR(double delta){
@@ -119,7 +119,7 @@ private void computeTriangles3D(){
   Triangles = new Triangle3DVector();
   SingleTriangle ST;
   Triangle3D T3D;
-  Point3D P3D1,P3D2,P3D3;
+  Point3DSimple P3D1,P3D2,P3D3;
   BoundingBox3D BB2 = new BoundingBox3D();
   int z1,z2,z3;
   int minx,miny,minz;
@@ -145,9 +145,9 @@ private void computeTriangles3D(){
 
 
 
-    P3D1 = new Point3D(ST.P1.x,ST.P1.y,ST.P1.z*ScaleFactor,getR(ST.P1.z),getG(ST.P1.z),getB(ST.P1.z));
-    P3D2 = new Point3D(ST.P2.x,ST.P2.y,ST.P2.z*ScaleFactor,getR(ST.P2.z),getG(ST.P2.z),getB(ST.P2.z));
-    P3D3 = new Point3D(ST.P3.x,ST.P3.y,ST.P3.z*ScaleFactor,getR(ST.P3.z),getG(ST.P3.z),getB(ST.P3.z));
+    P3D1 = new Point3DSimple(ST.P1.x,ST.P1.y,ST.P1.z*ScaleFactor,getR(ST.P1.z),getG(ST.P1.z),getB(ST.P1.z));
+    P3D2 = new Point3DSimple(ST.P2.x,ST.P2.y,ST.P2.z*ScaleFactor,getR(ST.P2.z),getG(ST.P2.z),getB(ST.P2.z));
+    P3D3 = new Point3DSimple(ST.P3.x,ST.P3.y,ST.P3.z*ScaleFactor,getR(ST.P3.z),getG(ST.P3.z),getB(ST.P3.z));
     T3D = new Triangle3D(P3D1,P3D2,P3D3,myID);
     Triangles.append(T3D);
   }
@@ -199,9 +199,9 @@ public boolean nearByXY(double x, double y, double exactness){
 
 
 private static boolean nearByXY(Triangle3D T,double x, double y, double square_exactness){
-  Point3D P1 = T.getCP1(),
-          P2 = T.getCP2(),
-          P3 = T.getCP3();
+  Point3DSimple P1 = T.getCP1();
+  Point3DSimple P2 = T.getCP2();
+  Point3DSimple P3 = T.getCP3();
   if( FLine3D.nearByXY(P1,P2,x,y,square_exactness) || FLine3D.nearByXY(P1,P3,x,y,square_exactness) ||
       FLine3D.nearByXY(P2,P3,x,y,square_exactness))
      return true;

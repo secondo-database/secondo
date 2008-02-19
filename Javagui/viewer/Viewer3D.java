@@ -94,7 +94,7 @@ private void showObjectSettings(){
   W3D.removeID(id);      // remove the old representation
   O3D.showSettings(VC.getMainFrame());
 
-  IDPoint3DVector PV = O3D.getPoints();  
+  Point3DVector PV = O3D.getPoints();  
   Line3DVector LV = O3D.getLines();
   Triangle3DVector TV = O3D.getTriangles();
   if(PV!=null) W3D.add(PV);
@@ -152,7 +152,7 @@ private void showPaintOptions(){
        FPoint3D P3D = new FPoint3D();
        if(!P3D.readFromSecondoObject(o))
           return false;
-       IDPoint3DVector PV = P3D.getPoints();  
+       Point3DVector PV = P3D.getPoints();  
        ComboBox.addItem(P3D);
        BoundingBox.extend(P3D.getBoundingBox());
        BoundingBoxLabel.setText(BBText+BoundingBox);

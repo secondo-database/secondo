@@ -21,9 +21,7 @@ package viewer.viewer3d.graphic3d;
 
 import java.awt.Color;
 import gui.idmanager.*;
-import viewer.viewer3d.graphic2d.Point2D;
-import viewer.viewer3d.graphic2d.Line2D;
-import viewer.viewer3d.objects.BoundingBox3D;
+import viewer.viewer3d.graphic2d.*;
 
 /***********************************
 *
@@ -35,56 +33,68 @@ import viewer.viewer3d.objects.BoundingBox3D;
 
 
 
-public class Line3D {
+public class Line3D extends Figure3D{
 
 /** a endpoint */
-private   Point3D    EP1,EP2;                           // endpoints
-/** a empty-line ? */
-private   boolean    empty;
-/** the ID */
-private   ID         MyID;
+private   Point3DSequence endpoints;
 
 /** returns a readable representation of this point */
 public String toString() {
- return  "Line3d : " + EP1 + EP2;
+ return  "Line3d : " + endpoints.getPoint3DAt(0) + ", " + endpoints.getPoint3DAt(1);
  }
 
 /** creates a new line by given endpoints */
-public Line3D( Point3D  P1, Point3D P2){
-   EP1 = P1.duplicate();
-   EP2 = P2.duplicate();
-   empty = false;
-   MyID = IDManager.getNextID();
-  }
+public Line3D( Point3DSimple  P1, Point3DSimple P2){
+   this(P1,P2,IDManager.getNextID());
+}
 
-public Line3D(Point3D P1, Point3D P2,ID aID){
-  EP1 = P1.duplicate();
-  EP2 = P2.duplicate();
-  empty = false;
-  MyID = aID;
+public Line3D(Point3DSimple P1, Point3DSimple P2,ID aID){
+  endpoints = new Point3DSequence();
+  endpoints.addPoint(P1);
+  endpoints.addPoint(P2);
+  myID = IDManager.getNextID();
+  myID.equalize(aID);
 }
 
 
+public Line3D(Point3D P1, Point3D P2){
+    this(P1.getLocation(),P2.getLocation());
+
+}
+public Point3DSimple getEP1(){
+   return endpoints.getPoint3DAt(0);
+}
+
+public Point3DSimple getEP2(){
+   return endpoints.getPoint3DAt(1);
+}
+
 /** returns a copy of this */
 public Line3D duplicate() {
-  return new Line3D(EP1,EP2,MyID);
+  return new Line3D(endpoints.getPoint3DAt(0),
+                    endpoints.getPoint3DAt(1),myID);
+}
+
+public Figure3D copy(){
+   return duplicate();
 }
 
 /** equalize this to Source */
 public void equalize(Line3D Source) {
-  this.EP1.equalize(Source.EP1);
-  this.EP2.equalize(Source.EP2);
-  this.empty = Source.empty;
+  endpoints.equalize(Source.endpoints);
+  myID.equalize(Source.myID);
 }
 
 /** check for equal position and color (not needed ID) */
 public boolean equalValues(Line3D D2) {
- return EP1.equals(D2.EP1) && EP2.equals(D2.EP2) && empty==D2.empty;
+ return endpoints.equals(D2.endpoints);
 }
 
 /** returns the Bounding Box of this Line */
 public BoundingBox3D getBoundingBox(){
   BoundingBox3D BB3 = new BoundingBox3D();
+  Point3DSimple EP1 = endpoints.getPoint3DAt(0);
+  Point3DSimple EP2 = endpoints.getPoint3DAt(1);
   double x1 = EP1.getX(),
          x2 = EP2.getX(),
          y1 = EP1.getY(),
@@ -99,60 +109,26 @@ public BoundingBox3D getBoundingBox(){
 
 /** check for equality with Q2  */
 public boolean equals(Line3D Q2) {
-  return EP1.equals(Q2.EP1) && EP2.equals(Q2.EP2) && empty==Q2.empty &&
-         MyID.equals(Q2.MyID);
+  return endpoints.equals(Q2.endpoints) && 
+         myID.equals(Q2.myID);
 }
 
 /** check for equality of the ID's */
 public boolean equalID(Line3D Q2) {
-  return  MyID.equals(Q2.MyID);
+  return  myID.equals(Q2.myID);
 }
-
-/** set the ID */
-public void setID(ID QID)
-   { MyID.equalize(QID);
-   }
-
-/** get the ID */
-public ID   getID()       { return MyID; }
-
 
 /** get the projection of this line */
-public Line2D  project() {
-   Line2D L;
-   Point2D   Pep1 = EP1.project();
-   Point2D   Pep2 = EP2.project();
-   L = new Line2D(Pep1,Pep2);
-   L.setID(MyID);
-   L.setEmpty(empty);
-   return L;
+public Figure2D  project(FM3DGraphic fm) {
+   Point2DSequence p2s = fm.figureTransformation(endpoints);
+   if(p2s.isEmpty()){
+      return null;
+   }
+   Line2D res = new Line2D(p2s.getPoint2DAt(0), p2s.getPoint2DAt(1), myID);
+   res.setSort(p2s.getSort());
+   return res;
 }
 
-/** set this line to be empty */
-public void setEmpty(boolean e){ empty = e; }
-/** is this a empty-line */
-public boolean isEmpty() { return empty; }
-
-
-/** creates a figure3D from this line */
-public Figure3D getFigure3D() {
-  Figure3D Fig = new Figure3D();
-  Fig.addPoint(EP1);
-  Fig.addPoint(EP2);
-  Fig.setID(MyID);
-  return Fig;
-}
-
-
-/** returns a endpoint of this line */
-public Point3D getEP1() { return EP1.duplicate(); }
-/** returns a endpoint of this line */
-public Point3D getEP2() { return EP2.duplicate(); }
-
-/** set a endpoint of this line */
-public void setEP1(Point3D P) { EP1.equalize(P); }
-/** set a endpoint of this line */
-public void setEP2(Point3D P) { EP2.equalize(P); }
 
 } // class Line3D
 

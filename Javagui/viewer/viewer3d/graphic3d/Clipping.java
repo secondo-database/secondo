@@ -72,8 +72,8 @@ private static double computeLambda(double x1, double y1 , double z1,
 
 
 /** clip a figure on a plane of the uni-pyramide */
-private static void clip(Figure3D Figure,int Fct) {
-  Figure3D  FHelp;
+private static void clip(Point3DSequence Figure,int Fct) {
+  Point3DSequence  FHelp;
   Point3D   Pt;
   double    x1,y1,z1,x2,y2,z2;
   int       c1r,c1g,c1b, c2r,c2g,c2b;   //Colors of Points
@@ -82,7 +82,7 @@ private static void clip(Figure3D Figure,int Fct) {
   double    X,Y,Z;
   boolean   In1,In2;
   double    Lambda;
-  Point3D   Current;
+  Point3DSimple   Current;
   int       numberOfPoints;
 
  if (! Figure.isEmpty() ) {
@@ -190,7 +190,7 @@ private static void clip(Figure3D Figure,int Fct) {
 
 
 /** clip a figure by given Z_{min} */
-public static void clipFigure(Figure3D Fig,double VB) {
+public static void clipFigure(Point3DSequence Fig,double VB) {
 
  if (VB > 0.0) ZPlane=VB;
  else          ZPlane=0.1;
