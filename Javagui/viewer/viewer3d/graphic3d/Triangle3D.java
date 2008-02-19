@@ -65,9 +65,9 @@ public Point3DSimple getCP3(){
 public Triangle3D( Point3DSimple  P1, Point3DSimple P2, Point3DSimple P3,
                    boolean line1_2, boolean line1_3, boolean line2_3, Color borderColor, ID aID){
    endpoints = new Point3DSequence();
-   endpoints.addPoint(P1);
-   endpoints.addPoint(P2);
-   endpoints.addPoint(P3);
+   endpoints.addPoint(P1.duplicate());
+   endpoints.addPoint(P2.duplicate());
+   endpoints.addPoint(P3.duplicate());
    if(line1_2 || line1_3 || line2_3){
       P1 = P1.duplicate();
       P1.setColor(borderColor);

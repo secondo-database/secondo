@@ -93,7 +93,7 @@ public IDPoint2D(Point2D p, ID aID){
 
 
 /** returns a copy of this */
-public IDPoint2D duplicate(){
+public Figure2D duplicate(){
   IDPoint2D C = new IDPoint2D(x_pos,y_pos,cr,cg,cb);
   C.myID.equalize(myID);
   return C;

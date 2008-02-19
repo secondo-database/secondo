@@ -305,6 +305,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 		private static final double zoomStep = 0.05;
 		/**count of complete rotations for moving the mouse one pixel*/
 		private static final double rotationSpeed = 0.001;
+
 		
 		private Vector w3ds;
 		
@@ -417,6 +418,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 		double[] binsHeightPaint = null;
 		private Color mainColor = Color.white;
 		MouseNavigator mouseNavi = new MouseNavigator();
+    private static Stroke stroke = new BasicStroke(0.5f);
 
 		int selectedBin = -1;
 
@@ -427,6 +429,7 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 
 		//to paint the coordinates
 		public void paint(Graphics g){
+      ((Graphics2D)g).setStroke(stroke);
 			//System.out.println("im paint 1");
       try{
    			super.paint(g);
@@ -780,6 +783,117 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 			return out;
 		}
 
+
+    /** split the given rectangle into two triangles and inserts them into tv.
+      **/
+    private void insertRectangleSimple(Triangle3DVector tv,
+                                       Point3DSimple p1, Point3DSimple p2, Point3DSimple p3, Point3DSimple p4,
+                                       boolean l1_2, boolean l2_3, boolean l3_4, boolean  l4_1,
+                                       Color borderColor, ID aID){
+
+        Triangle3D t1 = new Triangle3D(p1,p2,p3, l1_2, false,l2_3, borderColor,aID);
+        Triangle3D t2 = new Triangle3D(p1,p3,p4, false,l4_1,l3_4,borderColor,aID);
+        tv.append(t1);
+        tv.append(t2);
+    }
+
+
+    /** adds a rectangle to the trianglevector. The rectangle is splitted 
+      * into nearly squares. So, the painting algorithm works better.
+     **/
+     private void insertRectangle(Triangle3DVector tv, 
+                                 Point3DSimple p1, Point3DSimple p2, Point3DSimple p3, Point3DSimple p4,
+                                 Color color,
+                                 Color borderColor, ID aID){
+         p1.setColor(color);
+         p2.setColor(color);
+         p3.setColor(color);
+         p4.setColor(color);
+         double len1_2 = p1.distance(p2);
+         double len1_4 = p1.distance(p4);
+
+         if(len1_2==0 || len1_4==0){
+            insertRectangleSimple(tv,p1,p2,p3,p4, true,true,true,true,borderColor,aID); 
+         } else {
+            double ratio = len1_2 > len1_4 ? len1_2/len1_4 : len1_4/len1_2;
+            if((int)ratio < 2){ // split not needed ???
+                insertRectangleSimple(tv,p1,p2,p3,p4, true,true,true,true,borderColor,aID); 
+            } else {
+               double x1 = p1.getX();
+               double y1 = p1.getY();
+               double z1 = p1.getZ();
+
+               double x2 = p2.getX();
+               double y2 = p2.getY();
+               double z2 = p2.getZ();
+
+               double x3 = p3.getX();
+               double y3 = p3.getY();
+               double z3 = p3.getZ();
+                
+               double x4 = p4.getX();
+               double y4 = p4.getY();
+               double z4 = p4.getZ();
+               
+               if(len1_2>len1_4){
+                  int steps = (int) (len1_2 / len1_4);
+                  double dx1 = (x2-x1)/ steps;
+                  double dx2 = (x3-x4)/steps;
+                  double dy1 = (y2-y1)/steps;
+                  double dy2 = (y3-y4)/steps;
+                  double dz1 = (z2-z1)/steps;
+                  double dz2 = (z3-z4)/steps;
+
+                  Point3DSimple P1 = p1.duplicate();
+                  Point3DSimple P4 = p4.duplicate();
+         
+
+                  for(int i=1;i<=steps;i++){
+                      Point3DSimple P2 = new Point3DSimple(x1 + i*dx1, y1+i*dy1, z1+i*dz1,color);
+                      Point3DSimple P3 = new Point3DSimple(x4 + i*dx2, y4+i*dy2, z4+i*dz2,color);
+                      if(i==1){ // first rectangle
+                         insertRectangleSimple(tv,P1,P2,P3,P4,true,false,true,true,borderColor,aID);
+                      } else if(i==steps){ // last triangle
+                         insertRectangleSimple(tv,P1,P2,P3,P4,true,true,true,false,borderColor,aID); 
+                      } else {
+                         insertRectangleSimple(tv,P1,P2,P3,P4,true,false,true,false,borderColor,aID);
+                      }
+                      P1 = P2;
+                      P4 = P3;
+                  }
+
+               } else {
+                  int steps = (int) (len1_4 / len1_2);
+                  double dx1 = (x3-x2)/ steps;
+                  double dx2 = (x4-x1)/steps;
+                  double dy1 = (y3-y2)/steps;
+                  double dy2 = (y4-y1)/steps;
+                  double dz1 = (z3-z2)/steps;
+                  double dz2 = (z4-z1)/steps;
+                  Point3DSimple P1 = p2.duplicate();
+                  Point3DSimple P4 = p1.duplicate();
+                  for(int i=1;i<=steps;i++){
+                     Point3DSimple P2 = new Point3DSimple( x2+i*dx1, y2+i*dy1, z2+i*dz1, color);
+                     Point3DSimple P3 = new Point3DSimple( x1+i*dx2, y1+i*dy2 , z1+i*dz2, color);
+                      if(i==1){ // first rectangle
+                         insertRectangleSimple(tv,P1,P2,P3,P4,true,false,true,true,borderColor,aID);
+                      } else if(i==steps){ // last triangle
+                         insertRectangleSimple(tv,P1,P2,P3,P4,true,true,true,false,borderColor,aID); 
+                      } else {
+                         insertRectangleSimple(tv,P1,P2,P3,P4,true,false,true,false,borderColor,aID);
+                      }
+                      P1 = P2;
+                      P4 = P3;
+                  }
+               }
+
+            }
+         }
+
+     }
+
+
+
 			/**
 			 * adds the 3D geometry for one column of a histogram2d
 			 * 
@@ -798,120 +912,11 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 //				System.out.println("im paintColumnColor 1");
 //				   Point3DVector pointVecC = new Point3DVector();
 //				   Line3DVector lineVecC = new Line3DVector();
-				   Triangle3DVector triaVecC = new Triangle3DVector();
 				   
 				   if (height == 0.0){
 					   return;
 				   }
 				  
-/////////////   TRY  TO  SHOW   L I G H T I N G  E F F E C T ?     ///////////////////////// 			   
-
-//				   if(cRed <50){
-//				   cRed= 50;
-//				   }
-//				   if(cGreen <50){
-//				   cGreen= 50;
-//				   }
-//				   if(cBlue <50){
-//				   cBlue= 50;
-//				   }
-//				   if(cRed >205){
-//				   cRed= 205;
-//				   }
-//				   if(cGreen >205){
-//				   cGreen= 205;
-//				   }
-//				   if(cBlue >205){
-//				   cBlue= 205;
-//				   }
-
-
-
-//				   //the lightstuff
-//				   IDPoint3D pFrontLeftUpLight = new IDPoint3D(rangeBigX, height, rangeSmallZ,cRed+50, cGreen+50, cBlue+50, id);			   
-//				   IDPoint3D pFrontLeftUpMiddle = new IDPoint3D(rangeBigX, height, rangeSmallZ,cRed, cGreen, cBlue, id);
-//				   IDPoint3D pFrontLeftUpDark = new IDPoint3D(rangeBigX, height, rangeSmallZ,cRed-50, cGreen-50, cBlue-50, id); 
-//				   IDPoint3D pFrontLeftDownLight = new IDPoint3D(rangeBigX, 0, rangeSmallZ,cRed+50, cGreen+50, cBlue+50, id);
-//				   IDPoint3D pFrontLeftDownMiddle = new IDPoint3D(rangeBigX, 0, rangeSmallZ,cRed, cGreen, cBlue, id);
-//				   IDPoint3D pFrontLeftDownDark = new IDPoint3D(rangeBigX, 0, rangeSmallZ,cRed-50, cGreen-50, cBlue-50, id);
-//				   IDPoint3D pFrontRightUpLight = new IDPoint3D(rangeSmallX, height, rangeSmallZ,cRed+50, cGreen+50, cBlue+50, id); 
-//				   IDPoint3D pFrontRightUpMiddle = new IDPoint3D(rangeSmallX, height, rangeSmallZ,cRed, cGreen, cBlue, id); 
-//				   IDPoint3D pFrontRightUpDark = new IDPoint3D(rangeSmallX, height, rangeSmallZ,cRed-50, cGreen-50, cBlue-50, id); 
-//				   IDPoint3D pFrontRightDownLight = new IDPoint3D(rangeSmallX, 0, rangeSmallZ,cRed+50, cGreen+50, cBlue+50, id); 
-//				   IDPoint3D pFrontRightDownMiddle = new IDPoint3D(rangeSmallX, 0, rangeSmallZ,cRed, cGreen, cBlue, id); 
-//				   IDPoint3D pFrontRightDownDark = new IDPoint3D(rangeSmallX, 0, rangeSmallZ,cRed-50, cGreen-50, cBlue-50, id); 
-//				   IDPoint3D pBackLeftUpLight = new IDPoint3D(rangeBigX, height, rangeBigZ,cRed+50, cGreen+50, cBlue+50, id); 
-//				   IDPoint3D pBackLeftUpMiddle = new IDPoint3D(rangeBigX, height, rangeBigZ,cRed, cGreen, cBlue, id); 
-//				   IDPoint3D pBackLeftUpDark = new IDPoint3D(rangeBigX, height, rangeBigZ,cRed-50, cGreen-50, cBlue-50, id); 
-//				   IDPoint3D pBackLeftDownLight = new IDPoint3D(rangeBigX, 0,rangeBigZ,cRed+50, cGreen+50, cBlue+50, id); 
-//				   IDPoint3D pBackLeftDownMiddle = new IDPoint3D(rangeBigX, 0,rangeBigZ,cRed, cGreen, cBlue, id); 
-//				   IDPoint3D pBackLeftDownDark = new IDPoint3D(rangeBigX, 0,rangeBigZ,cRed-50, cGreen-50, cBlue-50, id); 
-//				   IDPoint3D pBackRightUpLight = new IDPoint3D(rangeSmallX, height, rangeBigZ,cRed+50, cGreen+50, cBlue+50, id); 
-//				   IDPoint3D pBackRightUpMiddle = new IDPoint3D(rangeSmallX, height, rangeBigZ,cRed, cGreen, cBlue, id); 
-//				   IDPoint3D pBackRightUpDark = new IDPoint3D(rangeSmallX, height, rangeBigZ,cRed-50, cGreen-50, cBlue-50, id); 
-//				   IDPoint3D pBackRightDownLight = new IDPoint3D(rangeSmallX, 0, rangeBigZ,cRed+50,cGreen+50,cBlue+50, id); 
-//				   IDPoint3D pBackRightDownMiddle = new IDPoint3D(rangeSmallX, 0, rangeBigZ,cRed,cGreen,cBlue, id);
-//				   IDPoint3D pBackRightDownDark = new IDPoint3D(rangeSmallX, 0, rangeBigZ,cRed-50,cGreen-50,cBlue-50, id);
-
-//				   //TO TEST
-//				   IDPoint3D pFrontLeftDownTest = new IDPoint3D(rangeBigX, 0, rangeSmallZ,0, 0,0, id); 
-//				   IDPoint3D pFrontLeftUpTest = new IDPoint3D(rangeBigX, height, rangeSmallZ,255, 0, 0, id); 
-//				   IDPoint3D pBackLeftUpTest = new IDPoint3D(rangeBigX, height, rangeBigZ,0, 255, 0, id); 
-//				   IDPoint3D pBackLeftDownTest = new IDPoint3D(rangeBigX, 0,rangeBigZ,0,0,255, id);
-
-
-//				   pointVecC.append(pFrontLeftDownTest);
-//				   pointVecC.append(pFrontLeftUpTest);
-//				   pointVecC.append(pBackLeftUpTest);
-//				   pointVecC.append(pBackLeftDownTest);
-
-
-
-//				   Triangle3D tFrontOne = new Triangle3D(pFrontLeftDownMiddle, pFrontLeftUpMiddle, pFrontRightUpMiddle);
-//				   Triangle3D tFrontTwo = new Triangle3D(pFrontRightUpMiddle, pFrontLeftDownMiddle, pFrontRightDownMiddle);
-//				   Triangle3D tFrontThree = new Triangle3D(pFrontLeftDownMiddle, pFrontLeftUpMiddle, pFrontRightDownMiddle);
-//				   Triangle3D tFrontFour = new Triangle3D(pFrontRightUpMiddle, pFrontLeftUpMiddle, pFrontRightDownMiddle);
-//				   //left side
-//				   Triangle3D tLeftOne = new Triangle3D(pFrontLeftDownLight, pFrontLeftUpLight, pBackLeftUpLight);
-//				   Triangle3D tLeftTwo = new Triangle3D(pFrontLeftDownLight, pBackLeftUpLight, pBackLeftDownLight);
-//				   //right side
-//				   Triangle3D tRightUpOne = new Triangle3D(pFrontRightDownDark, pFrontRightUpDark, pBackRightUpDark);
-//				   Triangle3D tRightDownTwo = new Triangle3D(pFrontRightDownDark, pBackRightUpDark, pBackRightDownDark);
-//				   //bottom
-//				   Triangle3D tBottomOne = new Triangle3D(pFrontLeftDownDark, pBackLeftDownDark, pBackRightDownDark);
-//				   Triangle3D tBottomTwo = new Triangle3D(pFrontLeftDownDark, pBackRightDownDark, pFrontRightDownDark);
-//				   //head
-//				   Triangle3D tHeadOne = new Triangle3D(pFrontLeftUpLight, pBackLeftUpLight, pBackRightUpLight);
-//				   Triangle3D tHeadTwo = new Triangle3D(pFrontLeftUpLight, pBackRightUpLight, pFrontRightUpLight);
-//				   //back
-//				   Triangle3D tBackOne = new Triangle3D(pBackLeftDownMiddle, pBackRightUpMiddle, pBackLeftUpMiddle);
-//				   Triangle3D tBackTwo = new Triangle3D(pBackLeftDownMiddle, pBackRightUpMiddle, pBackRightDownMiddle);
-//				   this.setFill(true);
-
-
-//				   triaVecC.append(tFrontOne);
-//				   triaVecC.append(tFrontTwo);
-//				   triaVecC.append(tFrontThree);
-//				   triaVecC.append(tFrontFour);				   
-
-//				   triaVecC.append(tLeftOne);
-//				   triaVecC.append(tLeftTwo);
-//				   triaVecC.append(tRightUpOne);
-//				   triaVecC.append(tRightDownTwo);
-//				   triaVecC.append(tBottomOne);
-//				   triaVecC.append(tBottomTwo);
-//				   triaVecC.append(tHeadOne);
-//				   triaVecC.append(tHeadTwo);
-//				   triaVecC.append(tBackOne);
-//				   triaVecC.append(tBackTwo);
-
-//				   this.update();
-
-
-			
-				
-				
-				///////////////////   W I T H O U T   L I G H T    //////////////////////////////////
 			   
 				   if(cRed <100){
 					   cRed= 100;
@@ -933,6 +938,9 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 				   }
 				   
 
+           Color color = new Color(cRed,cGreen,cBlue);
+           Color borderColor = Color.BLACK;
+
 				   //triangles
 				   Point3DSimple pBackRightDownForTria = new Point3DSimple(rangeSmallX, 0, rangeBigZ,cRed,cGreen,cBlue); 
 				   Point3DSimple pBackLeftDownForTria = new Point3DSimple(rangeBigX, 0,rangeBigZ,cRed, cGreen, cBlue); 
@@ -947,73 +955,30 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
 
 				   Point3DSimple pFrontRightUpForTria = new Point3DSimple(rangeSmallX, height, rangeSmallZ,cRed, cGreen, cBlue); 
 				   Point3DSimple pFrontLeftUpForTria = new Point3DSimple(rangeBigX, height, rangeSmallZ,cRed, cGreen, cBlue); 
-				  
 
 
-				   //front
-				   Triangle3D tFrontUp = new Triangle3D(pFrontLeftDownForTria, 
-                                                pFrontLeftUpForTria, 
-                                                pFrontRightUpForTria,
-                                                true,false,true,Color.BLACK,id);				  
+				   Triangle3DVector triaVecC = new Triangle3DVector();
 
- 
-				   Triangle3D tFrontDown = new Triangle3D(pFrontLeftDownForTria, 
-                                                  pFrontRightUpForTria, 
-                                                  pFrontRightDownForTria,
-                                                  false,true,true,Color.BLACK,id);
-				   //back
-				   Triangle3D tBackUp = new Triangle3D(pBackLeftDownForTria, 
-                                               pBackRightUpForTria, 
-                                               pBackLeftUpForTria,
-                                               false,true,true,Color.BLACK,id);
-
-
-				   Triangle3D tBackDown = new Triangle3D(pBackLeftDownForTria, 
-                                                 pBackRightUpForTria, 
-                                                 pBackRightDownForTria,
-                                                 false,true,true,Color.BLACK,id);
-				   //sides
-				   Triangle3D tLeftUp = new Triangle3D(pFrontLeftDownForTria, pFrontLeftUpForTria, pBackLeftUpForTria,
-                                               true,false,true,Color.BLACK,id);
-				   Triangle3D tLeftDown = new Triangle3D(pFrontLeftDownForTria, pBackLeftUpForTria, pBackLeftDownForTria,
-                                                 false,true,true,Color.BLACK,id);
-
-				   Triangle3D tRightUp = new Triangle3D(pFrontRightDownForTria, pFrontRightUpForTria, pBackRightUpForTria,
-                                                true,false,true,Color.BLACK,id);
-				   Triangle3D tRightDown = new Triangle3D(pFrontRightDownForTria, pBackRightUpForTria, pBackRightDownForTria,
-                                                  false,true,true,Color.BLACK,id);
-				   //bottom
-				   Triangle3D tBottomLeft = new Triangle3D(pFrontLeftDownForTria, pBackLeftDownForTria, pBackRightDownForTria,
-                                                   true,false,true,Color.BLACK,id);
-				   Triangle3D tBottomRight = new Triangle3D(pFrontLeftDownForTria, pBackRightDownForTria, pFrontRightDownForTria,
-                                                    false,true,true,Color.BLACK, id);
-				   //head
-				   Triangle3D tHeadLeft = new Triangle3D(pFrontLeftUpForTria, pBackLeftUpForTria, pBackRightUpForTria,
-                                                 true,false,true,Color.BLACK,id);
-
-				   Triangle3D tHeadRight = new Triangle3D(pFrontLeftUpForTria, pBackRightUpForTria, pFrontRightUpForTria,
-                                                  false,true,true,Color.BLACK,id);
-
-				   this.setFill(true);
-				   
-				   triaVecC.append(tFrontUp);	
-				   triaVecC.append(tFrontDown);	
-				   triaVecC.append(tBackUp);	
-  			   triaVecC.append(tBackDown);	
-				   triaVecC.append(tLeftUp);	
-				   triaVecC.append(tLeftDown);	
-  			   triaVecC.append(tRightUp);	
-				   triaVecC.append(tRightDown);	
-				   triaVecC.append(tBottomLeft);	
-				   triaVecC.append(tBottomRight);
-				   triaVecC.append(tHeadLeft);
-				   triaVecC.append(tHeadRight);
-
-
-				   //this.add(pointVecC);
-				   //this.add(lineVecC);
+           // front
+           insertRectangle( triaVecC, pFrontLeftDownForTria, pFrontLeftUpForTria, 
+                                      pFrontRightUpForTria, pFrontRightDownForTria, color, borderColor,id);
+           // left side
+           insertRectangle( triaVecC, pBackLeftDownForTria, pBackLeftUpForTria, 
+                                      pFrontLeftUpForTria, pFrontLeftDownForTria, color,borderColor, id);
+           // back
+           insertRectangle( triaVecC, pBackLeftDownForTria, pBackLeftUpForTria,
+                                      pBackRightUpForTria, pBackRightDownForTria, color,borderColor, id); 
+           // right side
+           insertRectangle( triaVecC, pFrontRightDownForTria, pFrontRightUpForTria,
+                                      pBackRightUpForTria, pBackRightDownForTria, color,borderColor,id);
+           // bottom
+          insertRectangle( triaVecC, pFrontLeftDownForTria, pBackLeftDownForTria,
+                                      pBackRightDownForTria, pFrontRightDownForTria, color,borderColor,id); 
+           // top
+           insertRectangle( triaVecC, pFrontLeftUpForTria, pBackLeftUpForTria,
+                                      pBackRightUpForTria, pFrontRightUpForTria, color,borderColor,id);
+                                      
 				   this.add(triaVecC);		
-//					System.out.println("im paintColumnColor end");
 			}
 			
 			
