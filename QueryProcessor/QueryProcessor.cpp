@@ -224,7 +224,6 @@ using namespace std;
 #include "FLOBCache.h"
 #include "ProgressView.h"
 #include "Progress.h"
-
 #include <stdexcept>
 
 
@@ -3899,11 +3898,14 @@ QueryProcessor::DeleteResultStorage( const Supplier s )
 void 
 QueryProcessor::ReInitResultStorage( const Supplier s )
 {
+
   OpTree tree = (OpTree) s;
+  ListExpr type = (tree->u.op.isFun)?nl->Third(tree->typeExpr):tree->typeExpr;
+  //ListExpr type = tree->typeExpr;
   tree->u.op.resultWord =
     (algebraManager->CreateObj
       ( tree->u.op.resultAlgId, tree->u.op.resultTypeId ))
-        ( GetCatalog()->NumericType( tree->typeExpr ) );
+        ( GetCatalog()->NumericType( type ) );
 }
 
 /*
