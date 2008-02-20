@@ -2237,7 +2237,7 @@ cout << "GetTypeMap" << endl;
             if ( 
                 (nl->IsEqual(nl->First(argCollection), VECTOR))
                && am->CheckKind("DATA", argType, errorInfo) ){
-                return nl->OneElemList(argType);
+                return argType;
             } 
         }
       }

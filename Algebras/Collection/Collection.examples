@@ -95,7 +95,7 @@ Operator : intersection
 Number   : 1
 Signature: (set DATA) x (set DATA) -> (set DATA)
 Example  : query components(intersection([const set(string) value ("Schule" "Uni")],[const set(string) value ("Fernseher" "Konzert")])) count
-Result   : 4
+Result   : 0 
 
 Operator : intersection
 Number   : 2
@@ -166,5 +166,5 @@ Result   : 3
 Operator : insert
 Number   : 1
 Signature: (set DATA) x (DATA) -> (set DATA)
-Example  : query components(([const set(int) value (1 2)] [const set(int) value (3 4)] insert)) count
-Result   : 4
+Example  : query components(([const set(int) value (1 2)] 3 insert)) count
+Result   : 3
