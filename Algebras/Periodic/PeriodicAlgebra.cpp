@@ -86,6 +86,8 @@ using namespace datetime;
 
 #include "TemporalAlgebra.h"
 
+namespace periodic {
+
 
 /*
 1 Definitions of some constants
@@ -14422,6 +14424,8 @@ class PeriodicMoveAlgebra : public Algebra
 
   PeriodicMoveAlgebra periodicMoveAlgebra;
 
+} // namespace periodic
+
 
 /*
 6.2 Initialization
@@ -14448,5 +14452,5 @@ InitializePeriodicAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   __TRACE__
   nl = nlRef;
   qp = qpRef;
-  return (&periodicMoveAlgebra);
+  return (&periodic::periodicMoveAlgebra);
 }

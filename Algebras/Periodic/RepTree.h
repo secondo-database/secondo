@@ -11,6 +11,9 @@ reconstructs itself for representing this repetations.
 #ifndef REPTREE_H
 #define REPTREE_H
 
+
+namespace periodic {
+
 /*
 1.1 The Class RepTree
 
@@ -252,5 +255,7 @@ At level 0, the trees are only compared via there id's.
 */
     bool EqualWithDepth(const RepTree* T2, const int depth)const;
 };
+
+} // namespace periodic
 
 #endif

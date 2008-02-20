@@ -83,6 +83,7 @@ using namespace toprel;
 
 #include "TemporalAlgebra.h"
 
+namespace periodic {
 
 static const int LINEAR = 0;
 static const int COMPOSITE = 1;
@@ -1017,7 +1018,7 @@ halfsegment.
    void Speed(MovingRealUnit& result) const;
 
    double Direction() const;
-   void LinearPointMove::Direction(MovingRealUnit& result) const;
+   void Direction(MovingRealUnit& result) const;
  
  private:
    RelInterval interval;
@@ -1619,7 +1620,7 @@ ostream& operator<< (ostream &os, class PMPoints &P);
 
 
 
-
+} // namespace periodic 
 
 #endif
 

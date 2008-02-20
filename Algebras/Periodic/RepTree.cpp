@@ -33,6 +33,9 @@ defines the count of repetitions of this son.
 
 #include "NodeTypes.h"
 
+
+namespace periodic {
+
 /*
 ~ID variable~
 
@@ -677,3 +680,5 @@ void RepTree::PrintNL(){
       std::cout << ")";
 }
 
+
+} // namespace periodic

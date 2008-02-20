@@ -11,6 +11,8 @@
 #define NULL 0
 #endif
 
+namespace periodic{
+
 // forward declaration of the list class
 template<class T>class  List;
 
@@ -517,6 +519,6 @@ Changes this iterator to be an iterator on the argument.
 
 };
 
-
+} // namespace periodic
 
 #endif
