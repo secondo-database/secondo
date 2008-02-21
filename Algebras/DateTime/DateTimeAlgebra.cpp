@@ -2482,6 +2482,18 @@ int CreateInstantFromIntIntFun(Word* args, Word& result, int message,
     return 0;
 }
 
+
+int InstantToStringFun(Word* args, Word& result, int message,
+                                Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    DateTime *T = static_cast<DateTime*>(args[0].addr);
+    string rs = T->ToString();
+    ( static_cast<CcString*>(result.addr))->Set(true,rs); 
+   return 0;
+}
+
+
+
 /*
 4.3 Specifications
 
@@ -2679,6 +2691,13 @@ const string CreateInstantSpec =
    "'Create an instant value from a real (days) or a pair of int "
    "(days, milliseconds). Parameter milliseconds must be >=0'  "
    "\"query create_instant(10, 5) \" ))";
+
+const string ToStringSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"instant -> string \""
+   "\" tostring(_)\" "
+   "'returns a string representation of an instant'  "
+   "\"query tostring(now()) \" ))";
 
 /*
 4.3 ValueMappings of overloaded Operators
@@ -2923,6 +2942,12 @@ Operator dt_create_instant(
        TheInstantSelect,
        CreateInstantTM);
 
+Operator dt_tostring(
+       "tostring",    // name
+       ToStringSpec,  // specification
+       InstantToStringFun,
+       Operator::SimpleSelect,
+       InstantString );
 
 /*
 5 Creating the Algebra
@@ -2968,6 +2993,7 @@ class DateTimeAlgebra : public Algebra
     AddOperator(&dt_create_instant);
     AddOperator(&dt_duration2real);
     AddOperator(&dt_instant2real);
+    AddOperator(&dt_tostring);
   }
   ~DateTimeAlgebra() {};
 };

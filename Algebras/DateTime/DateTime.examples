@@ -260,3 +260,10 @@ Number   : 2
 Signature: duration -> int
 Example  : query day_of([const duration value (21 599)])
 Result   : 21
+
+
+Operator : tostring
+Number   : 1
+Signature: instant -> string
+Example  : query tostring([const instant value "2008-2-21"])
+Result   : (string "2008-02-21")
