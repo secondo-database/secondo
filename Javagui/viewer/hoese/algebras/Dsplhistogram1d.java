@@ -55,6 +55,7 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 	static ExtWin extWin = new ExtWin();
 	
 	boolean err;
+        boolean undef = false;
 	
 	static double[] rangesVec = null;
 	static double[] binsVec = null;	
@@ -100,12 +101,18 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 	   int i = 0; //to count through ranges and bins
 	   int j = 0;
 	   int c = 0;
-	   if(v.listLength()!=2){
-		   Reporter.writeError("ListLength of the graph type must be two.");
-		   err=true; 
-		   return;
+           
+           if ( v.isAtom() && v.writeListExprToString().trim().equalsIgnoreCase("undef")){
+              undef = true;
+              return;
+           }
 
+           if(v.listLength()!=2){
+              Reporter.writeError("ListLength of the graph type must be two.");
+              err=true;
+              return;
 	   }
+
 	   ListExpr ranges = v.first();
 	   ListExpr bins = v.second();
 	   ListExpr rangesRest = ranges;
@@ -175,7 +182,13 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
   public void init(String name, int nameLength, ListExpr type, ListExpr value, QueryResult qr){
     AttrName = extendString(name, nameLength);
  		ScanValue(value);
-		if (err){
+                if (undef)
+                {
+                  qr.addEntry(new String( AttrName + ": undefined"));
+                  return;
+                }
+		
+                if (err){
 			Reporter.writeError("Error in ListExpr :parsing aborted");
 			qr.addEntry(new String("(" + AttrName + ": GA(histogram1d))"));
 			return;
