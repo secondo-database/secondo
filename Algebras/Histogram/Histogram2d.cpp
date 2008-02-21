@@ -59,31 +59,29 @@ namespace hgr
   {
   }
 
-  Histogram2d::Histogram2d(bool defined, size_t sizeX, size_t sizeY) :
-    rangeX(sizeX+1), rangeY(sizeY+1)
+  Histogram2d::Histogram2d(bool _defined, size_t sizeX, size_t sizeY) :
+    BaseHistogram(_defined, sizeX * sizeY), rangeX(sizeX + 1), rangeY(sizeY + 1)
   {
-    bin = DBArray<HIST_REAL>(sizeX*sizeY);
-    SetDefined(defined);
   }
 
   Histogram2d::Histogram2d(const Histogram2d& rhs) :
-  rangeX(rhs.rangeX.Size()), rangeY(rhs.rangeY.Size())
+    BaseHistogram(rhs), rangeX(rhs.rangeX.Size()), rangeY(rhs.rangeY.Size())
   {
-    bin = DBArray<HIST_REAL>(rhs.bin.Size());
-    SetDefined(rhs.IsDefined() );
-
     for (int i = 0; i < rhs.GetNoRangeX(); i++)
-    rangeX.Append( *rhs.GetRangeX(i) );
+      rangeX.Append( *rhs.GetRangeX(i) );
 
     for (int i = 0; i < rhs.GetNoRangeY(); i++)
-    rangeY.Append( *rhs.GetRangeY(i) );
-
-    for (int j = 0; j < rhs.GetNoBin(); j++)
-    bin.Append( *rhs.GetBin(j) );
+      rangeY.Append( *rhs.GetRangeY(i) );
   }
 
   Histogram2d::~Histogram2d()
   {
+  }
+  
+  Histogram2d& Histogram2d::operator = (const Histogram2d& h)
+  {
+    CopyFrom(&h);
+    return *this;
   }
 
 /*
@@ -147,7 +145,7 @@ namespace hgr
 */
   bool Histogram2d::IsEmpty() const
   {
-    return rangeX.Size() == 0 && rangeY.Size() == 0 && bin.Size() == 0;
+    return (rangeX.Size() == 0) && (rangeY.Size() == 0) && (bin.Size() == 0);
   }
 
 /*
@@ -175,13 +173,19 @@ namespace hgr
   void Histogram2d::ResizeRangeX(const int newSize)
   {
     if (newSize > 0)
+    {
+      rangeX.Clear();
       rangeX.Resize(newSize);
+    }
   }
 
   void Histogram2d::ResizeRangeY(const int newSize)
   {
     if (newSize > 0)
+    {
+      rangeY.Clear();
       rangeY.Resize(newSize);
+    }
   }
 
 /*  
@@ -551,12 +555,12 @@ it is either empty or all of the following statements are true:
 5.1 Operators == and $<$
     
 */  
-  bool Histogram2d::operator ==(const BaseHistogram& h) const
+  bool Histogram2d::operator == (const BaseHistogram& h) const
   {
     return CompareAlmost(h) == 0;
   }
 
-  bool Histogram2d::operator <(const BaseHistogram& h) const
+  bool Histogram2d::operator < (const BaseHistogram& h) const
   {
     return CompareAlmost(h) == -1;
   }
@@ -567,6 +571,14 @@ it is either empty or all of the following statements are true:
   Word Histogram2d::In(const ListExpr typeInfo, const ListExpr instance,
       const int errorPos, ListExpr& errorInfo, bool& correct)
   {
+    NList in(instance);
+    if (in.isSymbol("undef") || 
+       (in.length() == 1 && in.first().isSymbol("undef")))
+    {
+      correct = true;
+      return SetWord(new Histogram2d(false));
+    }
+    
     Word w = SetWord(Address(0) );
     
     Histogram2d* newHist = new Histogram2d(true);
@@ -713,7 +725,7 @@ it is either empty or all of the following statements are true:
         
     if (!hist->IsDefined())
     {
-      NList result = NList("undef", false);      
+      NList result = NList("undef");      
       return result.listExpr();
     }
     else if(hist->IsEmpty()) 
@@ -1411,98 +1423,6 @@ pages 80-83, Aarhus, Denmark, June 2002.
     return list.typeError(errMsg);
   }
   
-  /*
-  int SetHistogram2dFun(Word* args, Word& result, int message, Word& local,
-      Supplier s)
-  {
-    Word elem;
-    CcReal* streamObj;
-    HIST_REAL value, lastValue;
-    bool firstElem;
-
-    // The query processor provided an empty Histogram2d-instance:
-    result = qp->ResultStorage(s);
-    Histogram2d* resultHg = (Histogram2d*) result.addr;
-
-    for (int i = 0; i < 2; i++)
-    {
-      qp->Open(args[i].addr);
-      firstElem = true;
-
-      // Request the first element of the stream:
-      qp->Request(args[i].addr, elem);
-
-      while (qp->Received(args[i].addr))
-      {
-        // There is a next element:
-        streamObj = (CcReal*) elem.addr;
-        value = streamObj->GetRealval();
-
-        if (!streamObj->IsDefined())
-        {
-          cout << "Error in operator set_histogram2d: "
-              << "A stream contains an undefined value." << endl;
-          resultHg->Clear();
-          resultHg->SetDefined(false);
-          qp->Close(args[i].addr);
-          return 0;
-        }
-
-        if (!firstElem && (CmpReal(value, lastValue) < 1))
-        {
-          cout << "Error in operator set_histogram2d: "
-              << "A stream is not sorted or contains duplicates." << endl;
-          resultHg->Clear();
-          resultHg->SetDefined(false);
-          qp->Close(args[i].addr);
-          return 0;
-        }
-
-        if (i == 0)
-        {
-          resultHg->AppendRangeX(value);
-        }
-        else
-        {
-          resultHg->AppendRangeY(value);
-        }
-
-        lastValue = value;
-        firstElem = false;
-
-        // Consume the stream object:
-        streamObj->DeleteIfAllowed();
-
-        // Request the next element of the stream:
-        qp->Request(args[i].addr, elem);
-
-      } // while (qp->Received(args[i].addr))
-
-      qp->Close(args[i].addr);
-
-    } // end of: for (int i = 0; i < 2; i++)
-
-    if (resultHg->GetNoRangeX() < 2 || resultHg->GetNoRangeY() < 2)
-    {
-      cout << "Error in operator set_histogram2d: "
-          << "A stream contains less than two elements." << endl;
-      resultHg->Clear();
-      resultHg->SetDefined(false);
-      return 0;
-    }
-
-    int noOfBins = (resultHg->GetNoRangeX() - 1)
-        * (resultHg->GetNoRangeY() - 1);
-    
-    resultHg->ResizeBin(noOfBins);
-
-    for (int i = 0; i < noOfBins; i++)
-      resultHg->AppendBin(0.0);
-
-    return 0;
-  }
-  */
-  
   int SetHistogram2dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
@@ -1516,6 +1436,7 @@ pages 80-83, Aarhus, Denmark, June 2002.
     // The query processor provided an empty Histogram2d-instance:
     result = qp->ResultStorage(s);
     Histogram2d* resultHg = (Histogram2d*) result.addr;
+    resultHg->Clear();
 
     qp->Open(args[0].addr);
     qp->Open(args[1].addr);
@@ -1940,7 +1861,9 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     
     // return filled histogram2d
     result = qp->ResultStorage(s);
-    ((Histogram2d*) result.addr)->CopyFrom(hist);
+    Histogram2d* res = (Histogram2d*)result.addr;
+    res->Clear();
+    res->CopyFrom(hist);
 
     qp->Close(args[0].addr);
 
@@ -2156,6 +2079,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     // The query processor provided an empty Histogram2d-instance:
     result = qp->ResultStorage(s);
     Histogram2d* resultHg = (Histogram2d*) result.addr;
+    resultHg->Clear();
 
     // We don't use the attrnames, 
     // delivered in args[1].addr and args[2].addr.
@@ -2375,6 +2299,7 @@ Argument 0 histogram, 1 lower bound X, 2 upper bound X,
 
     result = qp->ResultStorage(s);
     Histogram2d* res = (Histogram2d*)result.addr;
+    res->Clear();
 
     if (!hist->IsDefined() ||
         hist->IsEmpty() ||
@@ -2605,6 +2530,7 @@ Argument 0 Histogram2d, 1 X real value, 2 Y real value, 3 incVal
     // return histogram2d
     result = qp->ResultStorage(s);
     Histogram2d* hist = (Histogram2d*)result.addr;
+    hist->Clear();
     
     if (!h->IsDefined() || !x->IsDefined() || !y->IsDefined())
     {
@@ -3529,6 +3455,7 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     // The query processor provided an empty Histogram1d-instance:
     result = qp->ResultStorage(s);
     Histogram2d* hist = (Histogram2d*) result.addr;
+    hist->Clear();
     CcInt* indexX = (CcInt*)args[5].addr;
     CcInt* indexY = (CcInt*)args[6].addr;
     CcInt* maxCategoriesX = (CcInt*)args[3].addr;

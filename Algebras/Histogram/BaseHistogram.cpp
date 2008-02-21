@@ -39,6 +39,24 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 
 namespace hgr
 {
+  BaseHistogram::BaseHistogram()
+  {
+  }
+  
+  BaseHistogram::BaseHistogram(bool _defined, size_t size) : 
+    bin(size)
+  {
+    SetDefined(_defined);
+  }
+  
+  BaseHistogram::BaseHistogram(const BaseHistogram& rhs) :
+    bin(rhs.bin.Size())
+  {
+    SetDefined(rhs.IsDefined());
+        
+    for (int j = 0; j < rhs.GetNoBin(); j++)
+      bin.Append( *rhs.GetBin(j) );
+  }
   
   BaseHistogram::~BaseHistogram()
   {
@@ -66,7 +84,10 @@ namespace hgr
   void BaseHistogram::ResizeBin(const int newSize)
   {
     if (newSize > 0)
+    {
+      bin.Clear();
       bin.Resize(newSize);
+    }
   } 
   
   bool BaseHistogram::IsDefined() const
@@ -315,7 +336,7 @@ namespace hgr
 
     result = qp->ResultStorage(s);
     BaseHistogram* hist = (BaseHistogram*)result.addr;
-    hist->SetDefined(true);
+    hist->Clear();
     hist->CopyFrom(histBase);
 
     if (hist->IsRefinement(*histPattern))
@@ -361,6 +382,7 @@ namespace hgr
     // The query processor provided an empty BaseHistogram-instance:
     result = qp->ResultStorage(s);
     BaseHistogram* resultHg = (BaseHistogram*)result.addr;
+    resultHg->Clear();
     
     if (!inputHg->IsDefined())
     {
@@ -519,6 +541,7 @@ namespace hgr
     // The query processor provided an empty BaseHistogram-instance:
     result = qp->ResultStorage(s);
     BaseHistogram* resultHg = (BaseHistogram*)result.addr;
+    resultHg->Clear();
 
     if (!inputHg1->IsDefined() || !inputHg2->IsDefined())
     {

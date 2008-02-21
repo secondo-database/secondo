@@ -1,4 +1,4 @@
-Database:	berlintest
+Database:	OPT
 Restore:	NO
 
 Operator : set_histogram1d

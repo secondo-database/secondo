@@ -71,9 +71,11 @@ important includes and some basic methods common to 1d and 2d histograms.
   {
     public:
     
-    Histogram1d(bool defined, size_t size = 0);
+    Histogram1d(bool _defined, size_t size = 0);
     Histogram1d(const Histogram1d& rhs);
-    virtual ~Histogram1d();
+    ~Histogram1d();
+    
+    Histogram1d& operator = (const Histogram1d& h);
 
 /*
 3.1 Testing and reading   

@@ -73,28 +73,28 @@ namespace hgr
   {
   }
 
-  Histogram1d::Histogram1d(bool defined, size_t size) :
-    range(size+1)
+  Histogram1d::Histogram1d(bool _defined, size_t size) :
+    BaseHistogram(_defined, size), range(size + 1)
   {
-    bin = DBArray<HIST_REAL>(size);
-    SetDefined(defined);
   }
 
-  Histogram1d::Histogram1d(const Histogram1d& rhs) :
-    range(rhs.range.Size())
+  Histogram1d::Histogram1d(const Histogram1d& rhs) : 
+    BaseHistogram(rhs), range(rhs.range.Size())
   {
-    bin = DBArray<HIST_REAL>(rhs.bin.Size());
-    SetDefined(rhs.IsDefined() );
-
     for (int i = 0; i < rhs.GetNoRange(); i++)
+    {
       range.Append( *rhs.GetRange(i) );
-
-    for (int j = 0; j < rhs.GetNoBin(); j++)
-      bin.Append( *rhs.GetBin(j) );
+    }
   }
 
   Histogram1d::~Histogram1d()
   {
+  }
+  
+  Histogram1d& Histogram1d::operator = (const Histogram1d& h)
+  {
+    CopyFrom(&h);
+    return *this;
   }
 
 /*  
@@ -357,12 +357,12 @@ namespace hgr
   void Histogram1d::ResizeRange(const int newSize)
   {
     if (newSize > 0)
+    {
+      range.Clear();
       range.Resize(newSize);
+    }
   }
 
-  
-  
-  
   bool Histogram1d::IsRefinement(const BaseHistogram& b) const
   {
     const Histogram1d* h = static_cast<const Histogram1d*>(&b);
@@ -410,12 +410,12 @@ namespace hgr
   }
   
   
-  bool Histogram1d::operator ==(const BaseHistogram& h) const
+  bool Histogram1d::operator == (const BaseHistogram& h) const
   {
     return CompareAlmost(h) == 0;
   }
   
-  bool Histogram1d::operator <(const BaseHistogram& h) const
+  bool Histogram1d::operator < (const BaseHistogram& h) const
   {
     return CompareAlmost(h) == -1;
   }
@@ -423,9 +423,18 @@ namespace hgr
   Word Histogram1d::In(const ListExpr typeInfo, const ListExpr instance,
       const int errorPos, ListExpr& errorInfo, bool& correct)
   {
-    Word w = SetWord(Address(0) );
-    
+    NList in(instance);
+ 
+    if (in.isSymbol("undef") || 
+       (in.length() == 1 && in.first().isSymbol("undef")))
+    {
+      correct = true;
+      return SetWord(new Histogram1d(false));
+    }
+        
+    Word w = SetWord(Address(0));
     Histogram1d* newHist = new Histogram1d(true);
+    newHist->Clear();
     const ListExpr *concise = &instance;
     ListExpr rangeList;
     ListExpr binList;
@@ -507,7 +516,6 @@ namespace hgr
       } // while ( !nl->IsEmpty(restItems) )
       
       correct = true;
-      //cout << *newHist << " hash = " << newHist->HashValue() << endl;
       return SetWord(newHist);
   } // static Word In (  const ListExpr typeInfo,
 
@@ -520,11 +528,9 @@ namespace hgr
     const int numberRanges = hist->GetNoRange();
     const int numberBins   = hist->GetNoBin();
     
-    //cout << *hist << " hash = " << hist->HashValue() << endl;
-    
     if (!hist->IsDefined())
     {
-      NList result = NList("undef", false);      
+      NList result = NList("undef");      
       return result.listExpr();
     }
     else if(hist->IsEmpty()) 
@@ -564,7 +570,7 @@ namespace hgr
         else
           last = nl->Append( last, newElem);
       }//for
-
+      
       return nl->TwoElemList( rangeExpr, binExpr);
     } // else { // if( newHist->IsEmpty() ) {  
       
@@ -800,7 +806,7 @@ The algorithm is taken from
   
   Word Histogram1d::Create( const ListExpr typeInfo )
   {
-    return SetWord( new Histogram1d( true ) );
+    return SetWord(new Histogram1d(true));
   }
   
   // the KindCheck or CheckKind function
@@ -975,6 +981,7 @@ The algorithm is taken from
     // The query processor provided an empty Histogram1d-instance:
     result = qp->ResultStorage(s);
     Histogram1d* resultHg = (Histogram1d*) result.addr;
+    resultHg->Clear();
 
     qp->Open(args[0].addr);
 
@@ -1032,6 +1039,7 @@ The algorithm is taken from
     }
 
     int noOfBins = resultHg->GetNoRange() - 1;
+    
     resultHg->ResizeBin(noOfBins);
 
     for (int i = 0; i < noOfBins; i++)
@@ -1073,7 +1081,7 @@ The algorithm is taken from
   int NoComponentsFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
-    Histogram1d* h1 = static_cast<Histogram1d*>(args[0].addr );
+    Histogram1d* h1 = static_cast<Histogram1d*>(args[0].addr);
     result = qp->ResultStorage(s);
     CcInt* i = static_cast<CcInt*>(result.addr);
     
@@ -1347,7 +1355,9 @@ The function makes use of four arguments:
     
     // return filled histogram1d
     result = qp->ResultStorage(s);
-    ((Histogram1d*) result.addr)->CopyFrom(hist);
+    Histogram1d* res = (Histogram1d*)result.addr;
+    res->Clear();
+    res->CopyFrom(hist);
 
     qp->Close(args[0].addr);
 
@@ -1453,6 +1463,7 @@ The function makes use of four arguments:
     // The query processor provided an empty Histogram1d-instance:
     result = qp->ResultStorage(s);
     Histogram1d* resultHg = (Histogram1d*) result.addr;
+    resultHg->Clear();
 
     // We don't use the attrname, delivered in args[1].addr.
     // Get the index of the attribute instead:
@@ -1777,6 +1788,7 @@ The function makes use of four arguments:
     // return histogram1d
     result = qp->ResultStorage(s);
     Histogram1d* hist = (Histogram1d*)result.addr;
+    hist->Clear();
     
     if (!h->IsDefined() || !x->IsDefined())
     {
@@ -2337,6 +2349,7 @@ The function makes use of four arguments:
     // The query processor provided an empty Histogram1d-instance:
     result = qp->ResultStorage(s);
     Histogram1d* hist = (Histogram1d*) result.addr;
+    hist->Clear();
     CcInt* index = (CcInt*)args[3].addr;
     CcInt* maxCategories = (CcInt*)args[2].addr;
 
