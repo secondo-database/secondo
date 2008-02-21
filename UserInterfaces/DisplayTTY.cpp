@@ -1410,10 +1410,11 @@ DisplayTTY::DisplayHistogram2d( ListExpr type,
         // only scale, if bin greater than 80
         if (maxBin <= 80)
         {
-          height = bin+1;
+          height = static_cast<int>(bin+1);
         }
         else {
-          height = (bin+1)/maxBin*80.0/(rangeX-lastRange)*minRange;
+          height =
+            static_cast<int>((bin+1)/maxBin*80.0/(rangeX-lastRange)*minRange);
         }
         string space = "";
         
@@ -1433,12 +1434,12 @@ DisplayTTY::DisplayHistogram2d( ListExpr type,
         
         int numLen = binStr.length();
         
-        width = (rangeX-lastRange)*7.0/maxRangeX;
+        width = static_cast<int>((rangeX-lastRange)*7.0/maxRangeX);
         
         for (int i = 0; i < width - 1;i++)
         {
           if (i == 0)
-            if (numLen < space.length())
+            if ( numLen < static_cast<int>(space.length()) )
              cout << bin << space.substr(numLen) << "|" << endl;
             else
               cout << space << "|" << bin << endl;
@@ -1447,7 +1448,7 @@ DisplayTTY::DisplayHistogram2d( ListExpr type,
         }
         
         if (width < 2)
-          if (numLen < space.length())
+          if ( numLen < static_cast<int>(space.length()) )
            cout << bin << space.substr(numLen) << "|" << endl;
           else
             cout << space << "|" << bin << endl;
@@ -1564,10 +1565,11 @@ DisplayTTY::DisplayHistogram1d( ListExpr type,
 			// only scale, if bin greater than 80
 			if (maxBin <= 80)
 			{
-			  height = bin+1;
+        height = static_cast<int>(bin+1);
 			}
 			else {
-        height = (bin+1)/maxBin*80.0/(range-lastRange)*minRange;
+        height =
+          static_cast<int>((bin+1)/maxBin*80.0/(range-lastRange)*minRange);
 			}
 			string space = "";
 			
@@ -1587,12 +1589,12 @@ DisplayTTY::DisplayHistogram1d( ListExpr type,
       
 			int numLen = binStr.length();	
 			
-			width = (range-lastRange)*7.0/maxRange;
+      width = static_cast<int>((range-lastRange)*7.0/maxRange);
 			
 			for (int i = 0; i < width - 1;i++)
 			{
         if (i == 0)
-          if (numLen < space.length())
+          if ( numLen < static_cast<int>(space.length()) )
            cout << bin << space.substr(numLen) << "|" << endl;
           else
             cout << space << "|" << bin << endl;
@@ -1601,7 +1603,7 @@ DisplayTTY::DisplayHistogram1d( ListExpr type,
 			}
 			
       if (width < 2)
-        if (numLen < space.length())
+        if ( numLen < static_cast<int>(space.length()) )
          cout << bin << space.substr(numLen) << "|" << endl;
         else
           cout << space << "|" << bin << endl;
