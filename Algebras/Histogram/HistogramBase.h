@@ -91,9 +91,12 @@ any kind of histogram ("BaseHistogram").
 3.1 Constructors and destructor
   
 */  
-    inline BaseHistogram() {}
-    inline BaseHistogram(const BaseHistogram& rhs) {}
-    virtual ~BaseHistogram();
+    BaseHistogram();
+    BaseHistogram(bool _defined, size_t size = 0);
+    BaseHistogram(const BaseHistogram& rhs);
+    virtual ~BaseHistogram(); 
+    
+    //virtual BaseHistogram& operator = (const BaseHistogram& h) const = 0;
 
 /*    
 3.2 Functions and operators  
@@ -182,6 +185,7 @@ to be overwritten in histogram1d and histogram2d:
 
 */
 
+    virtual void Clear() = 0;
     virtual void CopyRangesFrom(const BaseHistogram* h) = 0;
     
     virtual bool IsEmpty() const = 0;
@@ -206,8 +210,11 @@ histogram's number of dimensions.
 
 */
 protected:
+  
     DBArray<HIST_REAL> bin;
     bool defined;
+    
+    
 
 /*
 3.2.12 CmpBinSearch(real, real)

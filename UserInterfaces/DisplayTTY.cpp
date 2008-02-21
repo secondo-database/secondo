@@ -72,38 +72,38 @@ using namespace std;
 
 #define LINELENGTH 80
 /*
-1.3 Managing display functions
+             1.3 Managing display functions
 
-The map *displayFunctions* holds all existing display functions. It
-is indexed by a string created from the algebraId and the typeId of
-the corresponding type constructor.
+             The map *displayFunctions* holds all existing display functions. It
+             is indexed by a string created from the algebraId and the typeId of
+             the corresponding type constructor.
 
 */
-SecondoInterface* DisplayTTY::si = 0;
-NestedList*       DisplayTTY::nl = 0;
-map<string,DisplayFunction> DisplayTTY::displayFunctions;
-int DisplayTTY::maxIndent = 0;
+             SecondoInterface* DisplayTTY::si = 0;
+         NestedList*       DisplayTTY::nl = 0;
+         map<string,DisplayFunction> DisplayTTY::displayFunctions;
+         int DisplayTTY::maxIndent = 0;
 
 /*
-The function *CallDisplayFunction* uses its first argument *idPair*
---- consisting of the two-elem-list $<$algebraId, typeId$>$ --- to
-find the right display function in the array *displayFunctions*. The
-arguments *typeArg* and *valueArg* are simply passed to this display
-function.
+         The function *CallDisplayFunction* uses its first argument *idPair*
+         --- consisting of the two-elem-list $<$algebraId, typeId$>$ --- to
+         find the right display function in the array *displayFunctions*. The
+         arguments *typeArg* and *valueArg* are simply passed to this display
+         function.
 
 */
 
-void
-DisplayTTY::CallDisplayFunction( const ListExpr idPair,
-                                 ListExpr type,
-                                 ListExpr numType,
-                                 ListExpr value )
+         void
+             DisplayTTY::CallDisplayFunction( const ListExpr idPair,
+                                              ListExpr type,
+                                              ListExpr numType,
+                                              ListExpr value )
 {
   ostringstream osId;
   osId << "[" << nl->IntValue( nl->First( idPair ) )
-       << "|" << nl->IntValue( nl->Second( idPair ) ) << "]";
+      << "|" << nl->IntValue( nl->Second( idPair ) ) << "]";
   map<string,DisplayFunction>::iterator dfPos =
-    displayFunctions.find( osId.str() );
+      displayFunctions.find( osId.str() );
   if ( dfPos != displayFunctions.end() )
   {
     (*(dfPos->second))( type, numType, value );
@@ -122,8 +122,8 @@ determined by the type constructor name given as first argument.
 */
 
 void
-DisplayTTY::InsertDisplayFunction( const string& name,
-                                   DisplayFunction df )
+    DisplayTTY::InsertDisplayFunction( const string& name,
+                                       DisplayFunction df )
 {
   int algebraId, typeId;
   si->GetTypeId( name, algebraId, typeId );
@@ -144,7 +144,9 @@ and subvalue, respectively.
 */
 
 void
-DisplayTTY::DisplayGeneric( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayGeneric( ListExpr type,
+                                ListExpr numType,
+                                ListExpr value )
 {
   cout << "No specific display function defined.";
   cout << " Generic function used." << endl;
@@ -155,7 +157,8 @@ DisplayTTY::DisplayGeneric( ListExpr type, ListExpr numType, ListExpr value )
 }
 
 void
-DisplayTTY::DisplayRelation( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayRelation( ListExpr type,
+                                 ListExpr numType, ListExpr value )
 {
   type = nl->Second( type );
   numType = nl->Second( numType );
@@ -163,7 +166,7 @@ DisplayTTY::DisplayRelation( ListExpr type, ListExpr numType, ListExpr value )
 }
 
 int
-DisplayTTY::MaxHeaderLength( ListExpr type )
+    DisplayTTY::MaxHeaderLength( ListExpr type )
 {
   int max, len;
   string s;
@@ -183,7 +186,7 @@ DisplayTTY::MaxHeaderLength( ListExpr type )
 
 
 int
-DisplayTTY::MaxAttributLength( ListExpr type )
+    DisplayTTY::MaxAttributLength( ListExpr type )
 {
   int max=0, len=0;
   string s="";
@@ -201,8 +204,8 @@ DisplayTTY::MaxAttributLength( ListExpr type )
 }
 
 void
-DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
-                          ListExpr value, const int maxNameLen )
+    DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
+                              ListExpr value, const int maxNameLen )
 {
   while (!nl->IsEmpty( value ))
   {
@@ -235,7 +238,7 @@ DisplayTTY::DisplayTuple( ListExpr type, ListExpr numType,
 }
 
 void
-DisplayTTY::DisplayTuples( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayTuples( ListExpr type, ListExpr numType, ListExpr value )
 {
   int maxAttribNameLen = MaxAttributLength( nl->Second( numType ) );
   while (!nl->IsEmpty( value ))
@@ -248,7 +251,7 @@ DisplayTTY::DisplayTuples( ListExpr type, ListExpr numType, ListExpr value )
 }
 
 void
-DisplayTTY::DisplayInt( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayInt( ListExpr type, ListExpr numType, ListExpr value )
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -262,7 +265,7 @@ DisplayTTY::DisplayInt( ListExpr type, ListExpr numType, ListExpr value )
 }
 
 void
-DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -283,7 +286,8 @@ DisplayTTY::DisplayReal( ListExpr type, ListExpr numType, ListExpr value )
 }
 
 void
-DisplayTTY::DisplayBoolean( ListExpr list, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayBoolean( ListExpr list,
+                                ListExpr numType, ListExpr value )
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -304,7 +308,7 @@ DisplayTTY::DisplayBoolean( ListExpr list, ListExpr numType, ListExpr value )
 }
 
 void
-DisplayTTY::DisplayString( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayString( ListExpr type, ListExpr numType, ListExpr value )
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -319,7 +323,7 @@ DisplayTTY::DisplayString( ListExpr type, ListExpr numType, ListExpr value )
 
 
 void
-DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
 {
 
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
@@ -341,46 +345,46 @@ DisplayTTY::DisplayText( ListExpr type, ListExpr numType, ListExpr value )
     line = "";
     for (unsigned i = 1; i <= printstr.length(); i++)
     {
-      line += printstr[i-1];
-      if (printstr[i-1] == ' ') lastblank = position;
-      position++;
-      lastline = ( i == printstr.length() );
-      if ( position == LINELENGTH || lastline || (printstr[i-1] == '\n') )
-      {
-        if ( lastline || (printstr[i-1] == '\n') )
-        {
-          cout << line;
-          line = "";
-          lastblank = -1;
-          position = 0;
-        }
-        else
-        {
-          if ( lastblank > 0 )
-          {
-            cout << line.substr(0, lastblank) << endl;
-            restline = line.substr(lastblank+1, position);
-            line = "";
-            line += restline;
-            lastblank = -1;
-            position = line.length();
-          }
-          else
-          {
-            cout << line << endl;
-            line = "";
-            lastblank = -1;
-            position = 0;
-          }
-        }
-      }
-    }
+    line += printstr[i-1];
+    if (printstr[i-1] == ' ') lastblank = position;
+    position++;
+    lastline = ( i == printstr.length() );
+    if ( position == LINELENGTH || lastline || (printstr[i-1] == '\n') )
+    {
+    if ( lastline || (printstr[i-1] == '\n') )
+    {
+    cout << line;
+    line = "";
+    lastblank = -1;
+    position = 0;
+  }
+    else
+    {
+    if ( lastblank > 0 )
+    {
+    cout << line.substr(0, lastblank) << endl;
+    restline = line.substr(lastblank+1, position);
+    line = "";
+    line += restline;
+    lastblank = -1;
+    position = line.length();
+  }
+    else
+    {
+    cout << line << endl;
+    line = "";
+    lastblank = -1;
+    position = 0;
+  }
+  }
+  }
+  }
     */
   }
 }
 
 void
-DisplayTTY::DisplayFun( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayFun( ListExpr type, ListExpr numType, ListExpr value )
 {
   cout << "Function type: ";
   nl->WriteListExpr( type, cout );
@@ -390,108 +394,108 @@ DisplayTTY::DisplayFun( ListExpr type, ListExpr numType, ListExpr value )
 }
 
 void
-DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayDate( ListExpr type, ListExpr numType, ListExpr value)
 {
   if (nl->IsAtom(value) && nl->AtomType(value)==StringType)
-      cout <<nl->StringValue(value);
+    cout <<nl->StringValue(value);
   else
-      cout <<"Incorrect Data Format!";
+    cout <<"Incorrect Data Format!";
 }
 
 
 void
-DisplayTTY::DisplayBinfile( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayBinfile( ListExpr type, ListExpr numType, ListExpr value)
 {
-   cout <<"binary file";
+  cout <<"binary file";
 }
 
 
 
 double DisplayTTY::getNumeric(ListExpr value, bool &err){
-   if(nl->AtomType(value)==IntType){
-      err=false;
-      return nl->IntValue(value);
-   }
-   if(nl->AtomType(value)==RealType){
-      err=false;
-      return nl->RealValue(value);
-   }
-   if(nl->AtomType(value)==NoAtom){
-      int len = nl->ListLength(value);
-      if(len!=5 & len!=6){
-        err=true;
-  return 0;
-      }
-      ListExpr F = nl->First(value);
-      if(nl->AtomType(F)!=SymbolType){
-         err=true;
-   return 0;
-      }
-      if(nl->SymbolValue(F)!="rat"){
+  if(nl->AtomType(value)==IntType){
+    err=false;
+    return nl->IntValue(value);
+  }
+  if(nl->AtomType(value)==RealType){
+    err=false;
+    return nl->RealValue(value);
+  }
+  if(nl->AtomType(value)==NoAtom){
+    int len = nl->ListLength(value);
+    if(len!=5 & len!=6){
+      err=true;
+      return 0;
+    }
+    ListExpr F = nl->First(value);
+    if(nl->AtomType(F)!=SymbolType){
+      err=true;
+      return 0;
+    }
+    if(nl->SymbolValue(F)!="rat"){
+      err=true;
+      return 0;
+    }
+    value = nl->Rest(value);
+    double sign = 1.0;
+    if(nl->ListLength(value)==5){  // with sign
+      ListExpr SignList = nl->First(value);
+      if(nl->AtomType(SignList)!=SymbolType){
         err=true;
         return 0;
       }
-      value = nl->Rest(value);
-      double sign = 1.0;
-      if(nl->ListLength(value)==5){  // with sign
-        ListExpr SignList = nl->First(value);
-        if(nl->AtomType(SignList)!=SymbolType){
-     err=true;
-           return 0;
-  }
-        string SignString = nl->SymbolValue(SignList);
-  if(SignString=="-")
-     sign = -1.0;
-  else if(SignString=="+")
-     sign = 1.0;
-  else{
-    err=true;
-    return 0;
-  }
-        value= nl->Rest(value);
+      string SignString = nl->SymbolValue(SignList);
+      if(SignString=="-")
+        sign = -1.0;
+      else if(SignString=="+")
+        sign = 1.0;
+      else{
+        err=true;
+        return 0;
       }
-      if(nl->AtomType(nl->First(value))==IntType &&
-         nl->AtomType(nl->Second(value))==IntType &&
-         nl->AtomType(nl->Third(value))==SymbolType &&
-   nl->SymbolValue(nl->Third(value))=="/" &&
-   nl->AtomType(nl->Fourth(value))==IntType){
+      value= nl->Rest(value);
+    }
+    if(nl->AtomType(nl->First(value))==IntType &&
+       nl->AtomType(nl->Second(value))==IntType &&
+       nl->AtomType(nl->Third(value))==SymbolType &&
+       nl->SymbolValue(nl->Third(value))=="/" &&
+       nl->AtomType(nl->Fourth(value))==IntType){
       err=false;
       double intpart = nl->IntValue(nl->First(value));
       double numDecimal = nl->IntValue(nl->Second(value));
       double denomDecimal = nl->IntValue(nl->Fourth(value));
       if(denomDecimal==0){
-         err=true;
-         return 0;
+        err=true;
+        return 0;
       }
       double res1 = intpart*denomDecimal + numDecimal/denomDecimal;
       return sign*res1;
-   } else{
-  err = true;
+       } else{
+         err = true;
+         return 0;
+       }
+  }
+  err=true;
   return 0;
-     }
-   }
-   err=true;
-   return 0;
 }
 
 void
-DisplayTTY::DisplayXPoint( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayXPoint( ListExpr type, ListExpr numType, ListExpr value)
 {
   if(nl->ListLength(value)!=2)
-     cout << "Incorrect Data Format";
+    cout << "Incorrect Data Format";
   else{
-     bool err;
-     double x = getNumeric(nl->First(value),err);
-     if(err){
-       cout << "Incorrect Data Format";
-       return;
-     }
-     double y = getNumeric(nl->Second(value),err);
-     if(err){
-       cout << "Incorrect Data Format";
-       return;
-     }
-     cout << "xpoint (" << x << "," << y << ")";
+    bool err;
+    double x = getNumeric(nl->First(value),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    double y = getNumeric(nl->Second(value),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    cout << "xpoint (" << x << "," << y << ")";
   }
 }
 /*
@@ -500,7 +504,7 @@ DisplayPoint
 */
 
 void
-DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -508,20 +512,20 @@ DisplayTTY::DisplayPoint( ListExpr type, ListExpr numType, ListExpr value)
     cout << "UNDEFINED";
   }
   else if(nl->ListLength(value)!=2)
-     cout << "Incorrect Data Format";
+    cout << "Incorrect Data Format";
   else{
-     bool err;
-     double x = getNumeric(nl->First(value),err);
-     if(err){
-       cout << "Incorrect Data Format";
-       return;
-     }
-     double y = getNumeric(nl->Second(value),err);
-     if(err){
-       cout << "Incorrect Data Format";
-       return;
-     }
-     cout << "point: (" << x << "," << y << ")";
+    bool err;
+    double x = getNumeric(nl->First(value),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    double y = getNumeric(nl->Second(value),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    cout << "point: (" << x << "," << y << ")";
   }
 }
 
@@ -770,13 +774,13 @@ DisplayMP3
 */
 
 void
-DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayMP3( ListExpr type, ListExpr numType, ListExpr value)
 {
-    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
-  cout << "UNDEFINED";
-    else
-  cout << "mp3 file";
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
+    cout << "UNDEFINED";
+  else
+    cout << "mp3 file";
 }
 
 /*
@@ -784,33 +788,33 @@ DisplayID3
 
 */
 void
-DisplayTTY::DisplayID3( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayID3( ListExpr type, ListExpr numType, ListExpr value)
 {
-    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
-    {
-  cout << "UNDEFINED";
-    }
-    else
-    {
-  cout << "ID3-Tag"<<endl << endl;
-  cout << "Title   : " << nl->StringValue (nl->First (value)) <<endl;
-  cout << "Author  : " << nl->StringValue (nl->Second (value)) << endl;
-  cout << "Album   : " << nl->StringValue (nl->Third (value)) << endl;
-  cout << "Year    : " << nl->IntValue (nl->Fourth (value)) << endl;
-  cout << "Comment : " << nl->StringValue (nl->Fifth (value)) << endl;
-
-  if (nl->ListLength(value) == 6)
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
   {
-      cout << "Genre   : " << nl->StringValue (nl->Sixth (value)) << endl;
+    cout << "UNDEFINED";
   }
   else
   {
+    cout << "ID3-Tag"<<endl << endl;
+    cout << "Title   : " << nl->StringValue (nl->First (value)) <<endl;
+    cout << "Author  : " << nl->StringValue (nl->Second (value)) << endl;
+    cout << "Album   : " << nl->StringValue (nl->Third (value)) << endl;
+    cout << "Year    : " << nl->IntValue (nl->Fourth (value)) << endl;
+    cout << "Comment : " << nl->StringValue (nl->Fifth (value)) << endl;
+
+    if (nl->ListLength(value) == 6)
+    {
+      cout << "Genre   : " << nl->StringValue (nl->Sixth (value)) << endl;
+    }
+    else
+    {
       cout << "Track   : " << nl->IntValue (nl->Sixth (value)) << endl;
       cout << "Genre   : ";
       cout << nl->StringValue (nl->Sixth (nl->Rest (value))) << endl;
-  }
     }
+  }
 }
 
 /*
@@ -819,25 +823,25 @@ DisplayLyrics
 */
 
 void
-DisplayTTY::DisplayLyrics( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayLyrics( ListExpr type, ListExpr numType, ListExpr value)
 {
-    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
-        nl->SymbolValue( value ) == "undef" )
-    {
-  cout << "UNDEFINED";
-    }
-    else
-    {
-  cout << "Lyrics"<<endl<<endl;
-  int no = nl->ListLength (value) / 2;
-  for (int i=1; i<=no; i++)
+  if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+      nl->SymbolValue( value ) == "undef" )
   {
+    cout << "UNDEFINED";
+  }
+  else
+  {
+    cout << "Lyrics"<<endl<<endl;
+    int no = nl->ListLength (value) / 2;
+    for (int i=1; i<=no; i++)
+    {
       cout << "[" << nl->IntValue ( nl->First (value)) / 60 << ":";
       cout << nl->IntValue ( nl->First (value)) % 60 << "] ";
       cout << nl->StringValue (nl->Second (value));
       value = nl->Rest (nl->Rest (value));
-  }
     }
+  }
 }
 
 /*
@@ -845,7 +849,7 @@ DisplayMidi
 
 */
 void
-DisplayTTY::DisplayMidi (ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayMidi (ListExpr type, ListExpr numType, ListExpr value)
 {
   int size = nl->IntValue(nl->Second(value));
   int noOfTracks = nl->IntValue(nl->Third(value));
@@ -858,29 +862,29 @@ DisplayArray
 
 */
 void
-DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayArray( ListExpr type, ListExpr numType, ListExpr value)
 {
 
   if(nl->ListLength(value)==0)
-     cout << "an empty array";
+    cout << "an empty array";
   else{
-     ListExpr AType = nl->Second(type);
-     ListExpr ANumType = nl->Second(numType);
+    ListExpr AType = nl->Second(type);
+    ListExpr ANumType = nl->Second(numType);
      // find the idpair
-     ListExpr idpair = ANumType;
-     while(nl->AtomType(nl->First(idpair))!=IntType)
-        idpair = nl->First(idpair);
+    ListExpr idpair = ANumType;
+    while(nl->AtomType(nl->First(idpair))!=IntType)
+      idpair = nl->First(idpair);
 
-     int No = 1;
-     cout << "*************** BEGIN ARRAY ***************" << endl;
-     while( !nl->IsEmpty(value)){
-        cout << "--------------- Field No: ";
-  cout << No++ << " ---------------" << endl;
-        CallDisplayFunction(idpair,AType,ANumType,nl->First(value));
-  cout << endl;
-  value = nl->Rest(value);
-     }
-     cout << "***************  END ARRAY  ***************";
+    int No = 1;
+    cout << "*************** BEGIN ARRAY ***************" << endl;
+    while( !nl->IsEmpty(value)){
+      cout << "--------------- Field No: ";
+      cout << No++ << " ---------------" << endl;
+      CallDisplayFunction(idpair,AType,ANumType,nl->First(value));
+      cout << endl;
+      value = nl->Rest(value);
+    }
+    cout << "***************  END ARRAY  ***************";
 
   }
 }
@@ -890,7 +894,8 @@ DisplayInstant
 
 */
 void
-DisplayTTY::DisplayInstant( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayInstant( ListExpr type,
+                                ListExpr numType, ListExpr value )
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -898,7 +903,7 @@ DisplayTTY::DisplayInstant( ListExpr type, ListExpr numType, ListExpr value )
     cout << "UNDEFINED";
   }
   else if(nl->AtomType(value) ==RealType){
-    cout << nl->RealValue(value);   
+    cout << nl->RealValue(value);
   } else {
     cout << nl->StringValue( value );
   }
@@ -909,7 +914,8 @@ DisplayDuration
 
 */
 void
-DisplayTTY::DisplayDuration( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayDuration( ListExpr type,
+                                 ListExpr numType, ListExpr value )
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -918,30 +924,30 @@ DisplayTTY::DisplayDuration( ListExpr type, ListExpr numType, ListExpr value )
   }
   else
   { bool written = false;
-    if(nl->ListLength(value)==2){
-      if( (nl->AtomType(nl->First(value))==IntType) &&
-          (nl->AtomType(nl->Second(value))==IntType)){
-         int dv  = nl->IntValue(nl->First(value));
-   int msv = nl->IntValue(nl->Second(value));
-   written = true;
-   if( (dv==0) && (msv==0)){
-              cout << "0ms";
-   }else{
-     if(dv!=0){
-         cout << dv << " days";
-         if(msv>0)
-             cout <<" + ";
-     }
-           if(msv > 0)
-         cout << msv <<" ms";
-   }
-
+  if(nl->ListLength(value)==2){
+    if( (nl->AtomType(nl->First(value))==IntType) &&
+         (nl->AtomType(nl->Second(value))==IntType)){
+      int dv  = nl->IntValue(nl->First(value));
+      int msv = nl->IntValue(nl->Second(value));
+      written = true;
+      if( (dv==0) && (msv==0)){
+        cout << "0ms";
+      }else{
+        if(dv!=0){
+          cout << dv << " days";
+          if(msv>0)
+            cout <<" + ";
+        }
+        if(msv > 0)
+          cout << msv <<" ms";
       }
-    }
-    if(!written){
-       cout << "unknown list format for duration; using nested list output:";
-       nl->WriteListExpr(value);
-    }
+
+         }
+  }
+  if(!written){
+    cout << "unknown list format for duration; using nested list output:";
+    nl->WriteListExpr(value);
+  }
   }
 }
 
@@ -950,7 +956,7 @@ DisplayTid
 
 */
 void
-DisplayTTY::DisplayTid( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayTid( ListExpr type, ListExpr numType, ListExpr value )
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -967,7 +973,7 @@ DisplayHtml
 
 */
 void
-DisplayTTY::DisplayHtml( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayHtml( ListExpr type, ListExpr numType, ListExpr value)
 {
   if(nl->ListLength(value)!=3)
     cout << "Incorrect Data Format";
@@ -994,51 +1000,51 @@ DisplayTTY::DisplayHtml( ListExpr type, ListExpr numType, ListExpr value)
     cout << "-------------Start of html content:" << endl;
     cout << text << endl;
     cout << "-------------End of html content:" << endl;
-    }
+  }
 }
 /*
 DisplayPage
 
 */
 void
-DisplayTTY::DisplayPage( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayPage( ListExpr type, ListExpr numType, ListExpr value)
 {
   if(nl->ListLength(value)<1)
-     cout << "Incorrect Data Format";
+    cout << "Incorrect Data Format";
   else{
-     string out;
-     nl->WriteToString(out, type);
-     cout << "Type: " << out << endl;
+    string out;
+    nl->WriteToString(out, type);
+    cout << "Type: " << out << endl;
 
-     ListExpr First = nl->First(value);              //html
-     nl->WriteToString(out, First);
-     int nrOfEmb = nl->ListLength(value) - 1;
-     DisplayResult( nl->First(First), nl->Second(First) );
+    ListExpr First = nl->First(value);              //html
+    nl->WriteToString(out, First);
+    int nrOfEmb = nl->ListLength(value) - 1;
+    DisplayResult( nl->First(First), nl->Second(First) );
 
-     First = nl->Rest(value);
+    First = nl->Rest(value);
      //now lists of (url text)
-     cout << "----Start of embedded objects" << endl;
-     for( int ii=0; ii < nrOfEmb; ii++)
-     {
-        ListExpr emblist = nl->First(First);
-        First = nl->Rest(First);
+    cout << "----Start of embedded objects" << endl;
+    for( int ii=0; ii < nrOfEmb; ii++)
+    {
+      ListExpr emblist = nl->First(First);
+      First = nl->Rest(First);
 
-        if ( nl->ListLength( emblist ) == 3)
-        {
-            cout << endl << ii+1 << ". embedded object:" << endl;
-            ListExpr embFirst = nl->First(emblist);         //url
-            DisplayResult( nl->First(embFirst), nl->Second(embFirst) );
-            cout << "The content is binary coded, no display here" << endl;
-            string mime = nl->StringValue(nl->Third(emblist));
-            cout << "Mimetype: " << mime << endl;
-        }
-        else
-        {
-            cout << "Incorrect Data Format";
-            return;
-        }
-     }
-     cout << "----End of embedded objects" << endl;
+      if ( nl->ListLength( emblist ) == 3)
+      {
+        cout << endl << ii+1 << ". embedded object:" << endl;
+        ListExpr embFirst = nl->First(emblist);         //url
+        DisplayResult( nl->First(embFirst), nl->Second(embFirst) );
+        cout << "The content is binary coded, no display here" << endl;
+        string mime = nl->StringValue(nl->Third(emblist));
+        cout << "Mimetype: " << mime << endl;
+      }
+      else
+      {
+        cout << "Incorrect Data Format";
+        return;
+      }
+    }
+    cout << "----End of embedded objects" << endl;
   }
 }
 
@@ -1047,32 +1053,32 @@ DisplayUrl
 
 */
 void
-DisplayTTY::DisplayUrl( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayUrl( ListExpr type, ListExpr numType, ListExpr value)
 {
   if(nl->ListLength(value)!=3)
-     cout << "Incorrect Data Format";
+    cout << "Incorrect Data Format";
   else{
-      string out;
-      nl->WriteToString(out, type);
-      cout << "Type: " << out << endl;
+    string out;
+    nl->WriteToString(out, type);
+    cout << "Type: " << out << endl;
 
-      ListExpr First = nl->First(value);              //protocol
-      ListExpr Second = nl->Second(value);    //host
-      ListExpr Third = nl->Third(value);              //path
-      string prot = nl->StringValue(First);
-      string host = nl->Text2String(Second);
-      string path = nl->Text2String(Third);
-      cout << "- Protocol: " << prot << endl;
-      cout << "- Host: " << host << endl;
-      cout << "- Path: " << path << endl;
-      }
+    ListExpr First = nl->First(value);              //protocol
+    ListExpr Second = nl->Second(value);    //host
+    ListExpr Third = nl->Third(value);              //path
+    string prot = nl->StringValue(First);
+    string host = nl->Text2String(Second);
+    string path = nl->Text2String(Third);
+    cout << "- Protocol: " << prot << endl;
+    cout << "- Host: " << host << endl;
+    cout << "- Path: " << path << endl;
+  }
 }
 /*
 DisplayVertex
 
 */
 void
-DisplayTTY::DisplayVertex( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayVertex( ListExpr type, ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -1080,39 +1086,39 @@ DisplayTTY::DisplayVertex( ListExpr type, ListExpr numType, ListExpr value)
     cout << "UNDEFINED";
   }
   else if(nl->ListLength(value)!=2)
-     cout << "Incorrect Data Format";
+    cout << "Incorrect Data Format";
   else{
-     bool err=false;
-     int key = (int) getNumeric(nl->First(value),err);
-     if(err){
-       cout << "Incorrect Data Format";
-       return;
-     }
-     if( nl->IsAtom( nl->Second(value) )  &&
-         nl->SymbolValue(  nl->Second(value) ) == "undef" )
-      {
-         cout << "vertex "<<key<<": no point defined";
-         return;
-      }
-      double x = getNumeric(nl->First(nl->Second(value)),err);
-      if(err){
-        cout << "Incorrect Data Format";
-        return;
-      }
-      double y = getNumeric(nl->Second(nl->Second(value)),err);
-      if(err){
-        cout << "Incorrect Data Format";
-        return;
-      }
-      cout << "vertex "<<key<<": (" << x << "," << y << ")";
-   }
- }
+    bool err=false;
+    int key = (int) getNumeric(nl->First(value),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    if( nl->IsAtom( nl->Second(value) )  &&
+        nl->SymbolValue(  nl->Second(value) ) == "undef" )
+    {
+      cout << "vertex "<<key<<": no point defined";
+      return;
+    }
+    double x = getNumeric(nl->First(nl->Second(value)),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    double y = getNumeric(nl->Second(nl->Second(value)),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    cout << "vertex "<<key<<": (" << x << "," << y << ")";
+  }
+}
 /*
 DisplayEdge
 
 */
 void
-DisplayTTY::DisplayEdge( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayEdge( ListExpr type, ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -1120,26 +1126,26 @@ DisplayTTY::DisplayEdge( ListExpr type, ListExpr numType, ListExpr value)
     cout << "UNDEFINED";
   }
   else if(nl->ListLength(value)!=3)
-     cout << "Incorrect Data Format";
+    cout << "Incorrect Data Format";
   else{
-     bool err=false;
-     int key1 = (int) getNumeric(nl->First(value),err);
-     if(err){
-       cout << "Incorrect Data Format";
-       return;
-     }
+    bool err=false;
+    int key1 = (int) getNumeric(nl->First(value),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
 
-     int key2 = (int) getNumeric(nl->Second(value),err);
-     if(err){
-       cout << "Incorrect Data Format";
-       return;
-     }
-     double cost = getNumeric(nl->Third(value),err);
-     if(err){
-       cout << "Incorrect Data Format";
-       return;
-     }
-     cout << "edge "<<key1<<"---" << cost << "---->" << key2;
+    int key2 = (int) getNumeric(nl->Second(value),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    double cost = getNumeric(nl->Third(value),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    cout << "edge "<<key1<<"---" << cost << "---->" << key2;
   }
 }
 /*
@@ -1147,7 +1153,7 @@ DisplayPath
 
 */
 void
-DisplayTTY::DisplayPath( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayPath( ListExpr type, ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
@@ -1155,72 +1161,72 @@ DisplayTTY::DisplayPath( ListExpr type, ListExpr numType, ListExpr value)
     cout << "UNDEFINED";
   }
   else if(nl->ListLength(value)!=1&&(nl->ListLength(value)-1)%2!=0)
-     cout << "Incorrect Data Format" ;
+    cout << "Incorrect Data Format" ;
   else{
-     cout <<"*******************BEGIN PATH***************************"<<endl;
-     bool err=false;
-     int key = (int) getNumeric(nl->First(nl->First(value)),err);
-     if(err){
+    cout <<"*******************BEGIN PATH***************************"<<endl;
+    bool err=false;
+    int key = (int) getNumeric(nl->First(nl->First(value)),err);
+    if(err){
+      cout << "Incorrect Data Format";
+      return;
+    }
+    if( nl->IsAtom( nl->Second(nl->First(value)) )  &&
+        nl->SymbolValue(  nl->Second(nl->First(value)) ) == "undef" )
+    {
+      cout << "vertex "<<key<<": no point defined";
+
+    }
+    else{
+      double x = getNumeric(nl->First(nl->Second(nl->First(value))),err);
+      if(err){
         cout << "Incorrect Data Format";
         return;
-     }
-     if( nl->IsAtom( nl->Second(nl->First(value)) )  &&
-         nl->SymbolValue(  nl->Second(nl->First(value)) ) == "undef" )
-     {
-         cout << "vertex "<<key<<": no point defined";
+      }
+      double y = getNumeric(nl->Second(nl->Second(nl->First(value))),err);
+      if(err){
+        cout << "Incorrect Data Format";
+        return;
+      }
+      cout << "vertex "<<key<<": (" << x << "," << y << ")"<<endl;
+    }
+    value=nl->Rest(value);
+    while (!nl->IsEmpty( value ))
+    {
 
-     }
-     else{
-       double x = getNumeric(nl->First(nl->Second(nl->First(value))),err);
-       if(err){
-          cout << "Incorrect Data Format";
-          return;
-       }
-       double y = getNumeric(nl->Second(nl->Second(nl->First(value))),err);
-       if(err){
-         cout << "Incorrect Data Format";
-         return;
-       }
-       cout << "vertex "<<key<<": (" << x << "," << y << ")"<<endl;
-       }
-       value=nl->Rest(value);
-       while (!nl->IsEmpty( value ))
-       {
-
-        double cost =  getNumeric(nl->First(value),err);
-        if(err){
-          cout << "Incorrect Data Format";
-          return;
-        }
-        cout <<"---"<<cost<<"--->"<<endl;
+      double cost =  getNumeric(nl->First(value),err);
+      if(err){
+        cout << "Incorrect Data Format";
+        return;
+      }
+      cout <<"---"<<cost<<"--->"<<endl;
  
-        int key = (int) getNumeric(nl->First(nl->Second(value)),err);
+      int key = (int) getNumeric(nl->First(nl->Second(value)),err);
+      if(err){
+        cout << "Incorrect Data Format";
+        return;
+      }
+      if( nl->IsAtom( nl->Second(nl->Second(value)) )  &&
+          nl->SymbolValue(  nl->Second(nl->Second(value)) ) == "undef" )
+      {
+        cout << "vertex "<<key<<": no point defined";
+      }
+      else
+      {
+        double x = getNumeric(nl->First(nl->Second(nl->Second(value))),err);
         if(err){
-           cout << "Incorrect Data Format";
-           return;
-        }
-        if( nl->IsAtom( nl->Second(nl->Second(value)) )  &&
-            nl->SymbolValue(  nl->Second(nl->Second(value)) ) == "undef" )
-        {
-            cout << "vertex "<<key<<": no point defined";
-        }
-        else
-        {
-          double x = getNumeric(nl->First(nl->Second(nl->Second(value))),err);
-          if(err){
-            cout << "Incorrect Data Format";
-            return;
+          cout << "Incorrect Data Format";
+          return;
         }
         double y = getNumeric(nl->Second(nl->Second(nl->Second(value))),err);
         if(err){
-           cout << "Incorrect Data Format";
-           return;
+          cout << "Incorrect Data Format";
+          return;
         }
         cout << "vertex "<<key<<": (" << x << "," << y << ")"<<endl;
       }
       value = nl->Rest(nl->Rest( value ));
-   }
-   cout <<"********************END PATH****************************"<<endl;
+    }
+    cout <<"********************END PATH****************************"<<endl;
   }
 }
 /*
@@ -1228,81 +1234,81 @@ DisplayGraph
 
 */
 void
-DisplayTTY::DisplayGraph( ListExpr type, ListExpr numType, ListExpr value)
+    DisplayTTY::DisplayGraph( ListExpr type, ListExpr numType, ListExpr value)
 {
   if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
       nl->SymbolValue( value ) == "undef" )
   {
-     cout << "UNDEFINED";
+    cout << "UNDEFINED";
   }
   else if(nl->ListLength(value)!=2)
-     cout << "Incorrect Data Format ";
+    cout << "Incorrect Data Format ";
   else{
-     ListExpr vertices=nl->First(value);
-     ListExpr edges=nl->Second(value);
-     cout <<"*******************BEGIN GRAPH***************************"<<endl;
-     bool err=false;
-     cout <<"********************VERTICES*****************************"<<endl;
-     while (!nl->IsEmpty( vertices ))
-     {
+    ListExpr vertices=nl->First(value);
+    ListExpr edges=nl->Second(value);
+    cout <<"*******************BEGIN GRAPH***************************"<<endl;
+    bool err=false;
+    cout <<"********************VERTICES*****************************"<<endl;
+    while (!nl->IsEmpty( vertices ))
+    {
 
-        int key = (int) getNumeric(nl->First(nl->First(vertices)),err);
+      int key = (int) getNumeric(nl->First(nl->First(vertices)),err);
+      if(err){
+        cout << "Incorrect Data Format";
+        return;
+      }
+      if( nl->IsAtom( nl->Second(nl->First(vertices)) )  &&
+          nl->SymbolValue(  nl->Second(nl->First(vertices)) ) == "undef" )
+      {
+        cout << key<<": no point defined"<<endl;;
+
+      }
+      else
+      {
+        double x = getNumeric(nl->First(nl->Second(nl->First(vertices))),err);
         if(err){
           cout << "Incorrect Data Format";
           return;
         }
-        if( nl->IsAtom( nl->Second(nl->First(vertices)) )  &&
-            nl->SymbolValue(  nl->Second(nl->First(vertices)) ) == "undef" )
-        {
-            cout << key<<": no point defined"<<endl;;
-
-        }
-        else
-        {
-         double x = getNumeric(nl->First(nl->Second(nl->First(vertices))),err);
-         if(err){
-            cout << "Incorrect Data Format";
-            return;
-         }
-         double y = getNumeric(nl->Second(nl->Second(nl->First(vertices))),err);
+        double y = getNumeric(nl->Second(nl->Second(nl->First(vertices))),err);
         if(err){
-           cout << "Incorrect Data Format";
-           return;
+          cout << "Incorrect Data Format";
+          return;
         }
         cout << key<<": (" << x << "," << y << ")"<<endl;
-        }
-        vertices = nl->Rest(vertices);
-  
-     }
-     cout <<"**********************EDGES******************************"<<endl;
-     while (!nl->IsEmpty( edges ))
-     {
-        if(nl->ListLength(nl->First(edges))!=3)
-            cout << "Incorrect Data Format";
-         else{
-            bool err=false;
-            int key1 = (int)getNumeric(nl->First(nl->First(edges)),err);
-            if(err){
-               cout << "Incorrect Data Format";
-               return;
-            }
- 
-            int key2 = (int)getNumeric(nl->Second(nl->First(edges)),err);
-            if(err){
-               cout << "Incorrect Data Format";
-               return;
-            }
-            double cost = getNumeric(nl->Third(nl->First(edges)),err);
-            if(err){
-              cout << "Incorrect Data Format";
-              return;
-            }
-            cout << key1<<"---" << cost << "---->" << key2<<endl;
-         }
-         edges = nl->Rest(edges);
-
       }
-     cout <<"********************END GRAPH****************************"<<endl;
+      vertices = nl->Rest(vertices);
+  
+    }
+    cout <<"**********************EDGES******************************"<<endl;
+    while (!nl->IsEmpty( edges ))
+    {
+      if(nl->ListLength(nl->First(edges))!=3)
+        cout << "Incorrect Data Format";
+      else{
+        bool err=false;
+        int key1 = (int)getNumeric(nl->First(nl->First(edges)),err);
+        if(err){
+          cout << "Incorrect Data Format";
+          return;
+        }
+ 
+        int key2 = (int)getNumeric(nl->Second(nl->First(edges)),err);
+        if(err){
+          cout << "Incorrect Data Format";
+          return;
+        }
+        double cost = getNumeric(nl->Third(nl->First(edges)),err);
+        if(err){
+          cout << "Incorrect Data Format";
+          return;
+        }
+        cout << key1<<"---" << cost << "---->" << key2<<endl;
+      }
+      edges = nl->Rest(edges);
+
+    }
+    cout <<"********************END GRAPH****************************"<<endl;
   }
 }
 
@@ -1313,167 +1319,165 @@ DisplayHistogram2d
 
 */
 
-void
-DisplayTTY::DisplayHistogram2d( ListExpr type, 
-							 ListExpr numType, 
-							 ListExpr value )
+void DisplayTTY::DisplayHistogram2d(ListExpr type, ListExpr numType,
+                                    ListExpr value)
 {
   cout << setprecision(16);
   NList val = NList(value);
-	bool err;
-	if ( val.isAtom() && val.isSymbol() &&
-			val.str() == "undef" )
-	{
-		cout << "UNDEFINED";
-	}
+  bool err;
+  if (val.isAtom() && val.isSymbol() && val.str() == "undef")
+  {
+    cout << "UNDEFINED";
+  }
 
+  else if (val.length() != 3 || ((val.first().length()-1) *
+           (val.second().length()-1)!= val.third().length()))
+  {
+    err = true;
+    cout << "Incorrect Data Format";
+    nl->WriteListExpr(value, cout);
+  }
+  else
+  {
 
-	else if ( val.length() != 3 ||  
-    ((val.first().length()-1) 
-    	* (val.second().length()-1)!= 
-    		val.third().length()))
-		{
-			err = true;
-			cout << "Incorrect Data Format"; 
-			nl->WriteListExpr(value, cout);
-		}
-		else
-	{
-
-		NList rangesX = val.first();
-    NList rangesXCopy = val.first();
+    NList rangesX = val.first();
     NList rangesY = val.second();
+    NList rangesYCopy = val.second();
     NList bins = val.third();
-    
+
     // Maximum ermitteln, zur Skalierung
     NList elem, temp = NList();
-    double maxRangeX = 0;
+    double maxRangeY = 0;
     double minRange = 1e300;
-    double last = getNumeric(rangesX.first().listExpr(), err);
+    double last = getNumeric(rangesY.first().listExpr(), err);
     double d, dist;
-    temp.append(rangesX.first());
-    rangesX.rest();
-    while(!rangesX.isEmpty())
+    temp.append(rangesY.first());
+    rangesY.rest();
+    while (!rangesY.isEmpty())
     {
-        elem = rangesX.first();
-        d = getNumeric(elem.listExpr(), err);
-        dist = d - last;
-        maxRangeX = maxRangeX > dist ? maxRangeX : dist;
-        minRange = minRange < dist ? minRange : dist;
-        last = d;
-        rangesX.rest(); // erstes Element entfernen
-        temp.append(elem);
-    } 
-    rangesX = temp;
-    
+      elem = rangesY.first();
+      d = getNumeric(elem.listExpr(), err);
+      dist = d - last;
+      maxRangeY = maxRangeY > dist ? maxRangeY : dist;
+      minRange = minRange < dist ? minRange : dist;
+      last = d;
+      rangesY.rest(); // erstes Element entfernen
+      temp.append(elem);
+    }
+    rangesY = temp;
+
     // Maximum ermitteln, zur Skalierung
-    /*NList elem,*/ temp = NList();
+    temp = NList();
     double maxBin = 1;
     //double d;
-    while(!bins.isEmpty())
+    while (!bins.isEmpty())
     {
-        elem = bins.first();
-        d = getNumeric(elem.listExpr(), err);
-        maxBin = maxBin > d ? maxBin : d;
-        
-        bins.rest(); // erstes Element entfernen
-        temp.append(elem);
-    } 
-    bins = temp;  
-    
+      elem = bins.first();
+      d = getNumeric(elem.listExpr(), err);
+      maxBin = maxBin > d ? maxBin : d;
+
+      bins.rest(); // erstes Element entfernen
+      temp.append(elem);
+    }
+    bins = temp;
+
     cout << endl;
     cout << "HISTOGRAM2D:" << endl;
     cout<< endl;
 
-    double rangeY = getNumeric(rangesY.first().listExpr(), err);
-    cout << "************* RangeY:"<< rangeY;
+    double _rangeX = getNumeric(rangesX.first().listExpr(), err);
+    cout << "************* RangeX: "<< _rangeX;
     cout << " **************"<< endl;
-    rangesY.rest(); //paints first rangeY
-    
+    rangesX.rest(); //paints first rangeX
+
     int height;
     int width;
 
-    while ( !(rangesY.isEmpty()))
+    while ( !(rangesX.isEmpty()))
     {
-      double rangeX = getNumeric(rangesX.first().listExpr(), err);
-      cout << "x: " << rangeX << endl;
-      rangesX.rest(); //paints first rangeX
-
       double rangeY = getNumeric(rangesY.first().listExpr(), err);
+      cout << "y: " << rangeY << endl;
+      rangesY.rest(); //paints first rangeY
 
-      while ( !(rangesX.isEmpty()))
+      double rangeX = getNumeric(rangesX.first().listExpr(), err);
+
+      while ( !(rangesY.isEmpty()))
       {
-        double lastRange = rangeX;
-        rangeX = getNumeric(rangesX.first().listExpr(), err);
+        double lastRange = rangeY;
+        rangeY = getNumeric(rangesY.first().listExpr(), err);
         double bin = getNumeric(bins.first().listExpr(), err);
-        
+
         // only scale, if bin greater than 80
         if (maxBin <= 80)
         {
           height = static_cast<int>(bin+1);
         }
-        else {
+        else
+        {
           height =
-            static_cast<int>((bin+1)/maxBin*80.0/(rangeX-lastRange)*minRange);
+              static_cast<int>((bin+1)/maxBin*80.0/(rangeY-lastRange)*minRange);
         }
         string space = "";
-        
-        for (int i = 0; i < height;++i)
+
+        for (int i = 0; i < height; ++i)
         {
           cout << "_";
           space += " ";
         }
-        
+
         cout << endl;
-        
+
         string binStr = "";
-        
+
         stringstream ss(stringstream::in | stringstream::out);
         ss << bin;
         ss >> binStr;
-        
+
         int numLen = binStr.length();
-        
-        width = static_cast<int>((rangeX-lastRange)*7.0/maxRangeX);
-        
-        for (int i = 0; i < width - 1;i++)
+
+        width = static_cast<int>((rangeY-lastRange)*7.0/maxRangeY);
+
+        for (int i = 0; i < width - 1; i++)
         {
           if (i == 0)
-            if ( numLen < static_cast<int>(space.length()) )
-             cout << bin << space.substr(numLen) << "|" << endl;
-            else
-              cout << space << "|" << bin << endl;
+            if (numLen < static_cast<int>(space.length()))
+              cout << bin << space.substr(numLen) << "|" << endl;
+          else
+            cout << space << "|" << bin << endl;
           else
             cout << space << "|" << endl;
         }
-        
+
         if (width < 2)
-          if ( numLen < static_cast<int>(space.length()) )
-           cout << bin << space.substr(numLen) << "|" << endl;
-          else
-            cout << space << "|" << bin << endl;
+          if (numLen < static_cast<int>(space.length()))
+            cout << bin << space.substr(numLen) << "|" << endl;
+        else
+          cout << space << "|" << bin << endl;
         else
           cout << space << "|" << endl;
-        
-        for (int i = 0; i < height;++i)
+
+        for (int i = 0; i < height; ++i)
         {
           cout << "_";
-        }     
-        cout << "|" << (bin/(rangeX-lastRange)) << endl;
-        cout << "x: "<< rangeX << endl;
+        }
+        cout << "|" << (bin/(rangeY-lastRange)) << endl;
+        cout << "y: "<< rangeY << endl;
 
-        rangesX.rest();
+        rangesY.rest();
         bins.rest();
-      } // while ( !(nl->IsEmpty(rangesX)) )
 
-      rangesX = rangesXCopy;
-      cout << "*********** RangeY: " << rangeY;
+      } // while ( !(rangesY.isEmpty()))
+
+      rangesY = rangesYCopy;
+      cout << "*********** RangeX: " << rangeX;
       cout << " ***************" << endl;
-      rangesY.rest();
-    } // while( !(nl->IsEmpty(rangesY)) )
+      rangesX.rest();
 
-	}
-	cout << endl;
+    } // while ( !(rangesX.isEmpty()))
+
+  }
+
+  cout << endl;
 }
 
 
@@ -1483,146 +1487,147 @@ DisplayHistogram1d
 */
 
 void
-DisplayTTY::DisplayHistogram1d( ListExpr type, 
-							 ListExpr numType, 
-							 ListExpr value )
+    DisplayTTY::DisplayHistogram1d( ListExpr type,
+                                    ListExpr numType,
+                                    ListExpr value )
 {
   cout << setprecision(16);
   NList val = NList(value);
-	bool err;
-	if ( val.isAtom() && val.isSymbol() &&
-			val.str() == "undef" )
-	{
-		cout << "UNDEFINED";
-	}
+  bool err;
+  if ( val.isAtom() && val.isSymbol() &&
+       val.str() == "undef" )
+  {
+    cout << "UNDEFINED";
+  }
 
 
-	else if ( val.length() != 2 ||  
-    (!(val.first().length()) 
-    		== val.second().length() + 1))
-		{
-			err = true;
-			cout << "Incorrect Data Format"; 
-			nl->WriteListExpr(value, cout);
-		}
+  else if ( val.length() != 2 ||
+            (!(val.first().length())
+            == val.second().length() + 1))
+  {
+    err = true;
+    cout << "Incorrect Data Format";
+    nl->WriteListExpr(value, cout);
+  }
 
 
-		else
-	{
+  else
+  {
     NList ranges = val.first();
     NList bins = val.second();
     
 		// Maximum ermitteln, zur Skalierung
-	  NList elem, temp = NList();
-	  double maxRange = 0;
-	  double minRange = 1e300;
-	  double last = getNumeric(ranges.first().listExpr(), err);
-	  double d, dist;
-	  temp.append(ranges.first());
-	  ranges.rest();
-	  while(!ranges.isEmpty())
-	  {
-	      elem = ranges.first();
-	      d = getNumeric(elem.listExpr(), err);
-	      dist = d - last;
-	      maxRange = maxRange > dist ? maxRange : dist;
-	      minRange = minRange < dist ? minRange : dist;
-	      last = d;
-	      ranges.rest(); // erstes Element entfernen
-	      temp.append(elem);
-	  } 
-	  ranges = temp;
+    NList elem, temp = NList();
+    double maxRange = 0;
+    double minRange = 1e300;
+    double last = getNumeric(ranges.first().listExpr(), err);
+    double d, dist;
+    temp.append(ranges.first());
+    ranges.rest();
+    while(!ranges.isEmpty())
+    {
+      elem = ranges.first();
+      d = getNumeric(elem.listExpr(), err);
+      dist = d - last;
+      maxRange = maxRange > dist ? maxRange : dist;
+      minRange = minRange < dist ? minRange : dist;
+      last = d;
+      ranges.rest(); // erstes Element entfernen
+      temp.append(elem);
+    }
+    ranges = temp;
 	  
     // Maximum ermitteln, zur Skalierung
     /*NList elem,*/ temp = NList();
-    double maxBin = 1;
+                    double maxBin = 1;
     //double d;
-    while(!bins.isEmpty())
-    {
-        elem = bins.first();
-        d = getNumeric(elem.listExpr(), err);
-        maxBin = maxBin > d ? maxBin : d;
+                    while(!bins.isEmpty())
+                    {
+                      elem = bins.first();
+                      d = getNumeric(elem.listExpr(), err);
+                      maxBin = maxBin > d ? maxBin : d;
         
-        bins.rest(); // erstes Element entfernen
-        temp.append(elem);
-    } 
-    bins = temp;	  
+                      bins.rest(); // erstes Element entfernen
+                      temp.append(elem);
+                    }
+                    bins = temp;
 
-		cout << endl;
-		cout << "HISTOGRAM:" << endl;
-		cout<< endl;
-		double range = getNumeric(ranges.first().listExpr(), err);
-		cout << range << endl;
-		ranges.rest();
-		int height;
-		int width;
-		while ( !(ranges.isEmpty()) ){
-		  double lastRange = range;
-			range = getNumeric(ranges.first().listExpr(), err);
+                    cout << endl;
+                    cout << "HISTOGRAM:" << endl;
+                    cout<< endl;
+                    double range = getNumeric(ranges.first().listExpr(), err);
+                    cout << range << endl;
+                    ranges.rest();
+                    int height;
+                    int width;
+                    while ( !(ranges.isEmpty()) ){
+                      double lastRange = range;
+                      range = getNumeric(ranges.first().listExpr(), err);
 			
-			double bin = getNumeric(bins.first().listExpr(), err);
+                      double bin = getNumeric(bins.first().listExpr(), err);
 			
 			// only scale, if bin greater than 80
-			if (maxBin <= 80)
-			{
-        height = static_cast<int>(bin+1);
-			}
-			else {
-        height =
-          static_cast<int>((bin+1)/maxBin*80.0/(range-lastRange)*minRange);
-			}
-			string space = "";
+                      if (maxBin <= 80)
+                      {
+                        height = static_cast<int>(bin+1);
+                      }
+                      else {
+                        height = static_cast<int>
+                            ((bin+1)/maxBin*80.0/(range-lastRange)*minRange);
+                      }
+                      string space = "";
 			
-			for (int i = 0; i < height;++i)
-			{
-			  cout << "_";
-			  space += " ";
-			}
+                      for (int i = 0; i < height;++i)
+                      {
+                        cout << "_";
+                        space += " ";
+                      }
 			
-			cout << endl;
+                      cout << endl;
 			
-      string binStr = "";
+                      string binStr = "";
       
-      stringstream ss(stringstream::in | stringstream::out);
-      ss << bin;
-      ss >> binStr;
+                      stringstream ss(stringstream::in | stringstream::out);
+                      ss << bin;
+                      ss >> binStr;
       
-			int numLen = binStr.length();	
+                      int numLen = binStr.length();
 			
-      width = static_cast<int>((range-lastRange)*7.0/maxRange);
+                      width =
+                          static_cast<int>((range-lastRange)*7.0/maxRange);
 			
-			for (int i = 0; i < width - 1;i++)
-			{
-        if (i == 0)
-          if ( numLen < static_cast<int>(space.length()) )
-           cout << bin << space.substr(numLen) << "|" << endl;
-          else
-            cout << space << "|" << bin << endl;
-        else
-          cout << space << "|" << endl;
-			}
+                      for (int i = 0; i < width - 1;i++)
+                      {
+                        if (i == 0)
+                          if (numLen < static_cast<int>(space.length()))
+                            cout << bin << space.substr(numLen) << "|" << endl;
+                        else
+                          cout << space << "|" << bin << endl;
+                        else
+                          cout << space << "|" << endl;
+                      }
 			
-      if (width < 2)
-        if ( numLen < static_cast<int>(space.length()) )
-         cout << bin << space.substr(numLen) << "|" << endl;
-        else
-          cout << space << "|" << bin << endl;
-      else
-        cout << space << "|" << endl;
+                      if (width < 2)
+                        if (numLen < static_cast<int>(space.length()))
+                          cout << bin << space.substr(numLen) << "|" << endl;
+                      else
+                        cout << space << "|" << bin << endl;
+                      else
+                        cout << space << "|" << endl;
 			
-      for (int i = 0; i < height;++i)
-      {
-        cout << "_";
-      }			
-      cout << "|" << bin/(range-lastRange) << endl;
-			cout << range << endl;
+                      for (int i = 0; i < height;++i)
+                      {
+                        cout << "_";
+                      }
+                      cout << "|" << bin/(range-lastRange) << endl;
+                      cout << range << endl;
 
-			ranges.rest();
-			bins.rest();
-		}
+                      ranges.rest();
+                      bins.rest();
+                    }
 
-	}
-	cout << endl;
+  }
+  cout << endl;
 }
 
 
@@ -1633,7 +1638,8 @@ DisplayPosition
 
 */
 void
-DisplayTTY::DisplayPosition( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayPosition( ListExpr type,
+                                 ListExpr numType, ListExpr value )
 {
   string agents[ 64 ];
 
@@ -1694,8 +1700,8 @@ DisplayTTY::DisplayPosition( ListExpr type, ListExpr numType, ListExpr value )
         }
       }
 
-      cout << "Position: (after move number " 
-           << moveNumber << ")" << endl << endl;
+      cout << "Position: (after move number "
+          << moveNumber << ")" << endl << endl;
       cout << "        a b c d e f g h" << endl;
       cout << "       ----------------" << endl;
       for ( int row = 7; row >= 0; row-- )
@@ -1717,7 +1723,7 @@ DisplayMove
 */
 
 void
-DisplayTTY::DisplayMove( ListExpr type, ListExpr numType, ListExpr value )
+    DisplayTTY::DisplayMove( ListExpr type, ListExpr numType, ListExpr value )
 {
   if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
        nl->SymbolValue( value ) == "undef" )
@@ -1827,7 +1833,7 @@ DisplayTTY::DisplayMove( ListExpr type, ListExpr numType, ListExpr value )
       cout << endl;
     
     cout << agent << " moves from "
-    << startfile << startrow << " to " << endfile << endrow;
+        << startfile << startrow << " to " << endfile << endrow;
 
     if ( ( captured != "none" ) && ( captured != "None" ) )
       cout << " and captures " << captured << endl;
@@ -1839,85 +1845,12 @@ DisplayTTY::DisplayMove( ListExpr type, ListExpr numType, ListExpr value )
   }
 }
 
-/*
-This is the general TTY display function for all collection with list
-type collectio(subtyp). In our case this is vector an set.
-In order to keep the functionality of the subtype, the display function of
-the subtype is used by calling it through the CallDisplayFunction method.
 
-*/
-
-void
-DisplayTTY::DisplayCollection( ListExpr type, ListExpr numType, ListExpr value)
-{
-  if(nl->ListLength(value)==0){
-    cout << "empty vector";
-  }else{
-    cout << nl->ToString(nl->First(type)) << " of ";
-    cout << nl->ToString(nl->Second(type)) << endl;
-    int no=1;
-    if(nl->IsAtom(nl->Second(type))){
-      while(!nl->IsEmpty(value)){
-        cout << "Item No: " << no++ << " = ";
-        CallDisplayFunction(nl->Second(numType),
-  nl->Second(type),nl->Second(numType),nl->First(value));
-        cout << endl;
-        value = nl->Rest(value);
-      }
-    }else{
-      while(!nl->IsEmpty(value)){
-        cout << "Item No: " << no++ << " = ";
-        CallDisplayFunction(nl->First(nl->Second(numType)),
-  nl->Second(type),nl->Second(numType),nl->First(value));
-        cout << endl;
-        value = nl->Rest(value);
-      }
-    }
-  }
-}
-
-
-/*
-This is the Displayfunction for collections of list
-type collection(subtype amount)
-In our case this is the multiset collection.
-
-*/
-void
-DisplayTTY::DisplayMultiset( ListExpr type, ListExpr numType, ListExpr value)
-{
-  if(nl->ListLength(value)==0){
-    cout << "empty vector";
-  }else{
-    cout << nl->ToString(nl->First(type)) << " of ";
-    cout << nl->ToString(nl->Second(type)) << endl;
-    int no=1;
-    if(nl->IsAtom(nl->Second(type))){
-      while(!nl->IsEmpty(value)){
-        cout << "Item No: " << no++ << " = ";
-        CallDisplayFunction(nl->Second(numType),
-  nl->Second(type),nl->Second(numType),nl->First(nl->First(value)));
-        cout << " Anzahl: " << nl->IntValue(nl->Second(nl->First(value)));
-  cout << endl;
-        value = nl->Rest(value);
-      }
-    }else{
-      while(!nl->IsEmpty(value)){
-        cout << "Item No: " << no++ << " = ";
-        CallDisplayFunction(nl->First(nl->Second(numType)),
-  nl->Second(type),nl->Second(numType),nl->First(nl->First(value)));
-        cout << endl;cout << "Anzahl: ";
-  cout << nl->IntValue(nl->Second(nl->First(value))) << endl;
-  value = nl->Rest(value);
-      }
-    }
-  }
-}
 
 
 
 void
-DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
+    DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 {
   int algebraId, typeId;
   string  name;
@@ -1936,67 +1869,67 @@ DisplayTTY::DisplayResult( ListExpr type, ListExpr value )
 }
 
 void
-DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
+    DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
 {
-   NList list(value);
-   string errMsg = string("Error: Unknown List Format. ") + 
-                   "Expecting (name (labels) (entries)) but got \n" +
-                   list.convertToString() + "\n";
+  NList list(value);
+  string errMsg = string("Error: Unknown List Format. ") +
+      "Expecting (name (labels) (entries)) but got \n" +
+      list.convertToString() + "\n";
 
-   if ( !list.hasLength(3) ) {
-     cout << errMsg << endl;
-     return;
-   }
+  if ( !list.hasLength(3) ) {
+    cout << errMsg << endl;
+    return;
+  }
 
-   NList nameSymbol = list.first();   
-   NList labels = list.second();
-   NList entries  = list.third();
+  NList nameSymbol = list.first();
+  NList labels = list.second();
+  NList entries  = list.third();
 
-   if ( ! (  nameSymbol.isSymbol() 
-             && labels.isList()
-             && entries.isList()   ) ) 
-   {
-     cout << errMsg;
-     return;
-   }  
+  if ( ! (  nameSymbol.isSymbol()
+            && labels.isList()
+            && entries.isList()   ) )
+  {
+    cout << errMsg;
+    return;
+  }
    
-   if ( !(labels.length() == entries.length()) )
-   {
-     cout << "Error: Length of the label list does not "
-          << "equal the length of the entries list." << endl;
-     cout << errMsg << endl;
-     return;
-   } 
+  if ( !(labels.length() == entries.length()) )
+  {
+    cout << "Error: Length of the label list does not "
+        << "equal the length of the entries list." << endl;
+    cout << errMsg << endl;
+    return;
+  }
    
-   cout << endl;
-   string name = nameSymbol.str();
-   string blanks = "";
-   blanks.assign( maxNameLen-4 , ' ' );
-   cout << blanks << "Name: " << name << endl;
+  cout << endl;
+  string name = nameSymbol.str();
+  string blanks = "";
+  blanks.assign( maxNameLen-4 , ' ' );
+  cout << blanks << "Name: " << name << endl;
 
-   try {
-   while ( !labels.isEmpty() )
-   {
-     string s = labels.first().str();
-     blanks.assign( maxNameLen - s.length() , ' ' );
+  try {
+    while ( !labels.isEmpty() )
+    {
+      string s = labels.first().str();
+      blanks.assign( maxNameLen - s.length() , ' ' );
      //cout << blanks << s << ": ";
-     string printstr = blanks + s + ": ";
-     printstr += entries.first().str();
-     cout << wordWrap(0, maxNameLen+2, LINELENGTH, printstr) << endl;
-     labels.rest();
-     entries.rest();
-   }
+      string printstr = blanks + s + ": ";
+      printstr += entries.first().str();
+      cout << wordWrap(0, maxNameLen+2, LINELENGTH, printstr) << endl;
+      labels.rest();
+      entries.rest();
+    }
   }
   catch (NListErr err) {
-   cout << "The elements of the two sublists labels and entries"
+    cout << "The elements of the two sublists labels and entries"
         << " need to be text or string atoms." << endl
         << err.msg() << endl;
-  } 
+  }
 }
 
 
 ListExpr
-DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
+    DisplayTTY::ConcatLists( ListExpr list1, ListExpr list2)
 {
   if (nl->IsEmpty(list1))
   {
@@ -2023,7 +1956,7 @@ SecondoTTY.
 */
 
 void
-DisplayTTY::DisplayResult2( ListExpr value )
+    DisplayTTY::DisplayResult2( ListExpr value )
 {
   ListExpr InquiryType = nl->First(value);
   string TypeName = nl->SymbolValue(InquiryType);
@@ -2034,31 +1967,31 @@ DisplayTTY::DisplayResult2( ListExpr value )
     cout << "Database(s)" << endl;
     cout << "--------------------" << endl;
     if(nl->ListLength(v)==0)
-       cout << "none" << endl;
+      cout << "none" << endl;
     while(!nl->IsEmpty(v)){
       cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
       v = nl->Rest(v);
     }
     return;
-  } 
+  }
   else if(TypeName=="algebras")
   {
     cout << endl << "--------------------" << endl;
     cout << "Algebra(s) " << endl;
     cout << "--------------------" << endl;
     if(nl->ListLength(v)==0)
-       cout << "none" << endl;
+      cout << "none" << endl;
     while(!nl->IsEmpty(v))
     {
       cout << "  " << nl->SymbolValue(nl->First(v)) << endl;
       v = nl->Rest(v);
     }
     return;
-  } 
+  }
   else if(TypeName=="types")
   {
-      nl->WriteListExpr(v,cout);
-      return;
+    nl->WriteListExpr(v,cout);
+    return;
   }
   else if(TypeName=="objects")
   {
@@ -2077,20 +2010,20 @@ DisplayTTY::DisplayResult2( ListExpr value )
     }
     nl->WriteListExpr(v,cout);
     return;
-  } 
+  }
   else if(TypeName=="constructors" || TypeName=="operators")
   {
     cout << endl << "--------------------" << endl;
     if(TypeName=="constructors")
       cout <<"Type Constructor(s)\n";
-    else 
+    else
       cout << "Operator(s)" << endl;
     cout << "--------------------" << endl;
     if(nl->IsEmpty(v))
     {
-     cout <<"  none " << endl;
-    } 
-    else 
+      cout <<"  none " << endl;
+    }
+    else
     {
       ListExpr headerlist = v;
       int MaxLength = 0;
@@ -2135,7 +2068,7 @@ DisplayTTY::DisplayResult2( ListExpr value )
         len = (nl->StringValue(nl->First(tmp2))).length();
         if(len>maxLength)
           maxLength=len;
-         tmp2 = nl->Rest(tmp2);
+        tmp2 = nl->Rest(tmp2);
       }
       tmp1 = nl->Rest(tmp1);
     }
@@ -2151,13 +2084,13 @@ DisplayTTY::DisplayResult2( ListExpr value )
         tmp2 = nl->Rest(tmp2);
       }
       tmp1 = nl->Rest(tmp1);
-    } 
+    }
 
     cout << endl << "-------------------------" << endl;
     cout << "  "<< "Type Constructor(s)" << endl;
     cout << "-------------------------" << endl;
     if(nl->ListLength(Cs)==0)
-       cout << "  none" << endl;
+      cout << "  none" << endl;
     while(!nl->IsEmpty(Cs))
     {
       DisplayDescriptionLines(nl->First(Cs),maxLength);
@@ -2183,7 +2116,7 @@ DisplayTTY::DisplayResult2( ListExpr value )
 }
 
 void
-DisplayTTY::Initialize( SecondoInterface* secondoInterface )
+    DisplayTTY::Initialize( SecondoInterface* secondoInterface )
 {
   si = secondoInterface;
   nl = si->GetNestedList();
@@ -2224,11 +2157,6 @@ DisplayTTY::Initialize( SecondoInterface* secondoInterface )
   
   InsertDisplayFunction( "histogram1d", &DisplayHistogram1d);
   InsertDisplayFunction( "histogram2d", &DisplayHistogram2d);
-
-  InsertDisplayFunction( "vector", &DisplayCollection );
-  InsertDisplayFunction( "set", &DisplayCollection );
-  InsertDisplayFunction( "multiset", &DisplayMultiset );
-
   
   InsertDisplayFunction( "position", &DisplayPosition );
   InsertDisplayFunction( "move", &DisplayMove );
