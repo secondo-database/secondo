@@ -39,6 +39,9 @@ import viewer.hoese.*;
 import tools.Reporter;
 import java.awt.Graphics;
 
+import javax.swing.*;
+import java.awt.event.*;
+
 
 /**
  * A Displayclass for an histogram1d from the histogram1d-algebra
@@ -225,7 +228,11 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 		static double[] binsVec = null;	
 		static double[] rangesVecOld = null;
 		static double[] binsVecOld = null;	
-
+    JButton saveBtn1 = new JButton("Save left");
+    JButton saveBtn2 = new JButton("Save right");
+    JButton saveBtn3 = new JButton("Save both");
+    JPanel p1 = new JPanel(new GridLayout(1,2));
+    
 		/** creates a new external window **/
 		public ExtWin(){
 	 
@@ -234,13 +241,72 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 			this.myPan2 = new HistogramPanel();
 			this.myPan1.setMainColor(new Color(66, 149, 210));
 			this.myPan2.setMainColor(new Color(66, 149, 210));
+      this.myPan1.setBorderColor(Color.WHITE);
+      this.myPan2.setBorderColor(Color.WHITE);
 			
 			this.myPan1.setKeyListener();
 			this.myPan2.setKeyListener();
+      
+      myPan1.setOpaque(true);
+      myPan2.setOpaque(true);
+      p1.setOpaque(true);  
 			
-			this.getContentPane().setLayout(new GridLayout(1,2));
-			this.getContentPane().add(myPan1);
-			this.getContentPane().add(myPan2);
+			this.getContentPane().setLayout(new BorderLayout());
+    
+			p1.add(myPan1);
+			p1.add(myPan2);
+      this.getContentPane().add(p1,BorderLayout.CENTER);
+
+      JPanel controlPanel = new JPanel();
+      controlPanel.add(saveBtn1);
+      controlPanel.add(saveBtn2);
+      controlPanel.add(saveBtn3);
+      
+      this.getContentPane().add(controlPanel,BorderLayout.SOUTH);
+      
+      ActionListener saveListener = new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+          JFileChooser fc = new JFileChooser(".");
+          if(fc.showSaveDialog(null)==JFileChooser.APPROVE_OPTION){
+            JComponent toSave = null;
+            Object obj = evt.getSource();
+            Color borderColor = myPan1.getBorderColor();
+            Color bg = myPan1.getBackground();
+            
+            if(obj.equals(saveBtn1) ){
+              toSave = myPan1;
+            } else  if(obj.equals(saveBtn2)){
+              toSave = myPan2;
+            } else if(obj.equals(saveBtn3)){
+              toSave = p1;
+            }
+            
+            p1.setBackground(Color.WHITE);
+            myPan1.setBackground(Color.WHITE);
+            myPan2.setBackground(Color.WHITE);
+            toSave.setOpaque(true);
+            myPan1.setBorderColor(Color.BLACK);
+            myPan2.setBorderColor(Color.BLACK);
+            toSave.repaint();
+            
+            
+            extern.psexport.PSCreator.export(toSave,fc.getSelectedFile());
+
+            myPan1.setBorderColor(borderColor);
+            myPan2.setBorderColor(borderColor);
+            p1.setBackground(bg);
+            myPan1.setBackground(bg);
+            myPan2.setBackground(bg);
+          }
+        }
+      };
+      saveBtn1.addActionListener(saveListener);  
+      saveBtn2.addActionListener(saveListener);
+      saveBtn3.addActionListener(saveListener);
+      
+
+      
+      
 			setSize(600,300);
 			super.validate();
 
@@ -266,6 +332,7 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 		double[] binsHeightPaint = null;
 		private Color mainColor = Color.white;
 		private Color selectedColor = new Color(97,190,240);
+    private Color borderColor = Color.WHITE; 
 
 		int selectedBin = -1; //to identify the accented column
 		
@@ -310,7 +377,17 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 		public void setSelectedColor(Color selectedColor){
 			this.selectedColor = selectedColor;
 		}
-		
+    
+    public Color getSelectedColor(){
+      return this.selectedColor;
+    }
+    public void setBorderColor(Color borderColor){
+      this.borderColor = borderColor;
+    }
+    
+    public Color getBorderColor(){
+      return this.borderColor;
+    }
 		/**
 		 * 
 		 * @param ranges
@@ -417,8 +494,10 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 		 * Draws the histogram in the panel.
 		 */
 		public void paintComponent(Graphics g){
-//			   System.out.println("ich bin im paintComponents 1!"); 
-			g.clearRect(0, 0, this.getWidth(), this.getHeight());			
+      super.paintComponent(g);
+//			   System.out.println("ich bin im paintComponents 1!");
+      g.setColor(this.getBackground());
+			g.fillRect(0, 0, this.getWidth(), this.getHeight());
 //			   System.out.println("ich bin im paintComponents 2!"); 
 			this.drawOneHistogram(g, 0, 
 					rangesVecPaint, binsVecPaint, this.mainColor );
@@ -524,7 +603,7 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 				if(height < 0.0)
 				{	
 					gfx.fillRect((int) (sumLength*unitX)+myNullX, myNullY,(int) (width*unitX),(int) (-height*unitY));
-					gfx.setColor(Color.WHITE);
+					gfx.setColor(borderColor);
 					gfx.drawRect((int) (sumLength*unitX)+myNullX, myNullY,(int) (width*unitX),(int) (-height*unitY)); //minus?
 				}
 				else
@@ -532,7 +611,7 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 //					   System.out.println("ich bin im drawOneHistogram 4!"); 
 					gfx.fillRect(myNullX + (int) (sumLength*unitX), myNullY-(int)(height*unitY),(int) (width*unitX),(int) (height*unitY));
 //					   System.out.println("ich bin im drawOneHistogram 5!"); 
-					gfx.setColor(Color.WHITE);
+					gfx.setColor(borderColor);
 					gfx.drawRect(myNullX + (int) (sumLength*unitX), myNullY-(int)(height*unitY),(int) (width*unitX),(int) (height*unitY));
 //					   System.out.println("ich bin im drawOneHistogram 6!"); 
 				}
@@ -553,20 +632,27 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 						if(_binsVec[i] >= 0.0){
 							freq = (_binsVec[i]/binSum)*100;
 //							System.out.println("freq: "+freq);
-							String frequency = Double.toString( freq);
-							String frequencySmall =frequency.substring(0,Math.min(frequency.length(),frequency.indexOf(".")+3)); 
-							gfx.drawString("relative Häufigkeit: "+frequencySmall+" %", 10,15);
+							String relFrequency = Double.toString( freq);
+              String relFrequencySmall =relFrequency.substring(0,Math.min(relFrequency.length(),relFrequency.indexOf(".")+3));
+              String absFrequency = Double.toString( _binsVec[i] );
+              //String absFrequencySmall =absFrequency.substring(0,Math.min(absFrequency.length(),absFrequency.indexOf(".")+3));
+              String absFrequencySmall = absFrequency;
+              gfx.drawString("Bin: "+i, 10,15);
+              gfx.drawString("Rel. freq.: "+relFrequencySmall+" %", 70,15);
+              gfx.drawString("Abs. freq.: "+absFrequencySmall, 180,15);
 						}
 					}
 	
 //					   System.out.println("ich bin im drawOneHistogram 8!"); 
 					
 					String _rangeSmallL = Double.toString( _rangesVec[i]);
-					String _rangeSmall =  _rangeSmallL.substring(0,Math.min(_rangeSmallL.length(),_rangeSmallL.indexOf(".")+3)); 							
-					gfx.drawString("untere Rangegrenze: " + _rangeSmall, 10,30);
+          //String _rangeSmall =  _rangeSmallL.substring(0,Math.min(_rangeSmallL.length(),_rangeSmallL.indexOf(".")+3));
+          String _rangeSmall = _rangeSmallL;
+					gfx.drawString("Lower bound: " + _rangeSmall, 10,30);
 					String _rangeBigL = Double.toString( _rangesVec[i+1]);
-					String _rangeBig =  _rangeBigL.substring(0,Math.min(_rangeBigL.length(),_rangeBigL.indexOf(".")+3)); 
-					gfx.drawString("obere Rangegrenze: " + _rangeBig, 10,45);					
+          //String _rangeBig =  _rangeBigL.substring(0,Math.min(_rangeBigL.length(),_rangeBigL.indexOf(".")+3));
+          String _rangeBig =  _rangeBigL;
+					gfx.drawString("Upper bound: " + _rangeBig, 10,45);
 				}
 				
 				sumLength = sumLength + width;

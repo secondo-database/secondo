@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-[1] Header File of the Graph Algebra
+[1] Header File of the Histogram Algebra
 
 December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 
