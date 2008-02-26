@@ -691,6 +691,7 @@ bool IsTupleDescription( ListExpr a )
   ListExpr rest = a;
   ListExpr current;
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+  set<string> attrnames;
   while(!nl->IsEmpty(rest))
   {
     current = nl->First(rest);
@@ -698,8 +699,12 @@ bool IsTupleDescription( ListExpr a )
     if(! (    (nl->ListLength(current) == 2)
            && (nl->IsAtom(nl->First(current)))
            && (nl->AtomType(nl->First(current)) == SymbolType)
-           && am->CheckKind("DATA",nl->Second(current),errorInfo))){
+           && am->CheckKind("DATA",nl->Second(current),errorInfo)
+           && attrnames.find(nl->SymbolValue(nl->First(current)))==
+                 attrnames.end())) {
       return false;
+    } else {
+      attrnames.insert(nl->SymbolValue(nl->First(current)));
     }
   }
   return true;

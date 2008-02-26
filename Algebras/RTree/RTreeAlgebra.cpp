@@ -2018,6 +2018,14 @@ ListExpr GetTuplesTypeMap(ListExpr args)
     "one and only one attribute of type tid but gets\n'" +
     streamDescriptionStr + "'.");
 
+  if( !IsTupleDescription(newAttrList) ){
+    ErrorReporter::ReportError("Result after merging tuples is not a "
+                               "valid attribute list (Possible reasons: "
+                               "duplicate attribute names or an attribute "
+                               "type is not of kind DATA)");
+    return nl->TypeError();
+  }
+  
   return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
@@ -2269,7 +2277,15 @@ ListExpr GetTuples2TypeMap(ListExpr args)
     else
       lastNewAttrList = nl->Append(lastNewAttrList, first);
   }
-
+  
+  if( !IsTupleDescription(newAttrList) ){
+    ErrorReporter::ReportError("Result after merging tuples is not a "
+                               "valid attribute list (Possible reasons: "
+                               "duplicate attribute names or an attribute "
+                               "type is not of kind DATA)");
+    return nl->TypeError();
+  }
+  
   ListExpr restype = 
       nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
@@ -2469,6 +2485,14 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
     "one and only one attribute of type tid but gets\n'" +
     streamDescriptionStr + "'.");
 
+  if( !IsTupleDescription(newAttrList) ){
+    ErrorReporter::ReportError("Result after merging tuples is not a "
+                               "valid attribute list (Possible reasons: "
+                               "duplicate attribute names or an attribute "
+                               "type is not of kind DATA)");
+    return nl->TypeError();
+  }
+  
   return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
