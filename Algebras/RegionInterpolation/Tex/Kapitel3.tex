@@ -29,17 +29,16 @@ In dem Aufsatz \cite{AAR} wurde das Matching mit dem Steiner-Punkt als Referenzp
 \subsection{Matching mit Referenzpunkten}
 
 Unter der Annahme, dass es möglich ist zu jedem Polygon, das gematcht wird ein Referenzpunkt zuberechnen, kann ein Feld aufgebaut werden, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen werden kann. Wird dieses Feld aufsteigend nach den Entfernungen geordnet, steht zu erwarten,
-dass es zwischen den erwünschten und den unerwünschten Matches einen Sprung in dem Graphen geben wird. 
+dass es zwischen den erwünschten und den unerwünschten Matches einen Sprung in dem Graphen geben wird.  Diesen Sprung m"u"ste mit geeigneten statistischen Verfahren berechnet werden k"onnen. 
 
-Nehmen wir also an, wir haben eine M"oglichkeit, zu jedem Polygon, das wir matchen wollen einen Referenzpunkt zu berechnen. Dann k"onnen wir ein Feld aufbauen, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen werden. Ordnen wir dieses Feld aufsteigend nach den Entfernungen, so steht zu erwarten, dass es zwischen den erw"unschten und den unerw"unschten Matches einen Sprung in dem Graphen geben wird. Diesen Sprung m"u"ste man mit geeigneten statistischen Verfahren finden k"onnen. 
+Nachteilig an diesem Verfahren ist, dass die Laufzeit dieses Verfahrens hoch ist. Finden sich auf den beiden Seiten des Matchings $n$ beziehungsweise $m$ Referenzpunkte, so hat das resultierende Feld die Dimension $n\times m$. Dieses Feld kann in $O(n\times m)$aufgebaut werden. Zum Sortieren des Feldes wird dann $O((n\times m)\log(n\times m))$ verwendet. Also ist dieses Verfahren mindestens vom Typ $O((n\times m)\log(n\times m))$ (je nach dem verwendeten statistischen Verfahren k"onnte die Laufzeit sogar schlechter sein).
 
-Nachteilig an diesem Verfahren ist, dass die Laufzeit dieses Verfahrens hoch ist. Haben wir auf den beiden Seiten des Matchings $n$ beziehungsweise $m$ Referenzpunkte, so ist hat das resultierende Feld die Dimension $n\times m$. Dieses Feld kann man in $O(n\times m)$aufbauen. Zum Sortieren des Feldes braucht man dann $O((n\times m)\log(n\times m))$. Also ist dises Verfahren mindestens vom Typ $O((n\times m)\log(n\times m))$ (je nach dem verwendeten statistischen Verfahren k"onnte die Laufzeit sogar schlechter sein).
+Aufgrund der oben benannten schlechten Laufzeit und unter dem Aspekt, dass kein vergleichbar geeignetes Verfahren gefunden wurde/zur Verfügung stand, wird in der vorliegenden Arbeit das wesentlich einfachere Schwellwertverfahren verwendet, dass wie folgt formuliert werden kann: \flqq Matche zwei Cycle, wenn der Abstand ihrer Referenzpunkte kleiner als der Schwellwert ist.\frqq
 
-Wegen dieser schlechten Laufzeit, und weil ich noch kein geeignetes Verfahren gefunden habe, verwende ich das wesentlich einfachere Schwellwertverfahren, dass man formulieren kann: Matche zwei Cycle, wenn der Abstand ihrer Referenzpunkte kleiner als der Schwellwert ist. 
+Die Laufzeit dieses Verfahrens ist wesentlich besser. Zu jedem der $m\times n$ verschiedenen  Referenzpunkte wird der  Abstand (in konstanter Zeit) berechnet und mit dem Schwellwert vergleichen. Also ist die Laufzeit$O(n\times n)$.
 
-Die Laufzeit dieses Verfahrens ist wesentlich besser. Ich berechne zu jeder der $m\times n$ verschiedenen  Referenzpunkte den Abstand (in konstanter Zeit) und vergleiche diesen mit dem Schwellwert. Also ist die Laufzeit$O(n\times n)$.
+Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird. Man berechnent $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\times m)$. Praktisch wird desshalb ein Algorithmus verwendet, der in $O((n+m)\log{n+m})$ einen sehr "ahnlich Wert berechnet. Siehe hierzu: "`Spezielle Algorithmen"'.
 
-Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus Diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird. Man berechnent $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\times m)$. Praktisch verwende ich desshalb einen Algorithmus, der mir in $O((n+m)\log{n+m})$ einen sehr "ahnlich Wert berechnet. Siehe hierzu: "`Spezielle Algorithmen"'.
 \subsection{Beseitigung von 1:n Matches}
 
 Falls es ein 1:n Matching gibt, dann muss diese aufgel"ost werden. Hierbei existieren 2 M"oglichkeiten:
@@ -50,12 +49,12 @@ Dieser Fall ist der einfachere, seine Behandlung wurde schon von Herrn T\o{}sseb
 
 \item Alle n Targets haben unterschiedliche V"ater
 
-In diesem Fall kommen wir mit der Vereinigung der Targets, wie oben beschrieben, nicht weiter, also m"ussen wir versuchen, den Source aufzuteilen. Hiebei ist zu beachten:
+In diesem Fallist die Vereinigung der Targets, wie oben beschrieben, nicht zielf"uhrend, sondern es muss versucht werden den Source aufzuteilen. Hierbei ist folgendes zu beachten:
 \begin{itemize}
-\item Eine ConvexHullTreeNode kann man nur an Eckpunkten, oder an Punkten auf Linien teilen, die keine Kinder haben, da man sonst den ConvexHullTree zerst"oren w"urde.
+\item Eine ConvexHullTreeNode ist nur an Eckpunkten, oder an Punkten auf Linien zu teilen, die keine Kinder haben, da sonst die ConvexHullTree zerst"ort w"urden.
 
-\item Eine ConvexHullTreeNode kann man nur an zwei Punkten teilen, wenn das beschriebene Polygon auch nur in zwei Teile zerf"allt.
-\item Zerteilt man ein Face, so sollte man dabei kein Hole zerteilen. Falls sich das nicht verhindern l"asst, so zerf"allt das Loch in zwei Konkavit"aten, was eine Neuberechnung der entsprechenden Matchings zu Folge hat.
+\item Eine ConvexHullTreeNode ist nur an zwei Punkten zu teilen, wenn das beschriebene Polygon auch nur in zwei Teile zerf"allt.
+\item Wird in Face zerteilt , sollte m"oglichst kein Hole zerteilt werden. Falls sich das nicht verhindern l"asst, so zerf"allt das Loch in zwei Konkavit"aten, was eine Neuberechnung der entsprechenden Matchings zur Folge hat.
 
 \item Die Zerteilung der Source-Komponente sollte die Lage und das Verh"altnis der Fl"acheninhalte der Target-Komponenten weitestgehend wiederspiegeln.
 
@@ -64,55 +63,57 @@ In diesem Fall kommen wir mit der Vereinigung der Targets, wie oben beschrieben,
 \subsection{Beseitigung von "`gedrehten Konkavit"aten"'}
 In manchen F"allen versagt das in \cite{TG} genannte Verfahren, um aus Matchings Moving-Regions zu erzeugen. Dieses, in Kapitel "`6 Interpolating between two arbitray polygones"' beschriebene Verfahren setzt voraus, dass die beiden gematchten Kinderpolygone ein gemeinsames, aus zwei Dreiecken zusammengesetztes Trapez in der Aussenh"ulle der beider Vaterpolygone besitzen. 
 
-Dies ist zum Biespiel dann nicht der Fall, wenn wir uns als Quellpolygon ein "`U"', und als Zielpolygon ein um 90$\degree$ gedrehtes "`U"' vorstellen. Auch wenn die Konkativit"aten richtig zueinander gematcht sind, versagt das bekannte Verfahren.
+Dies ist zum Beispiel dann nicht der Fall, wenn wir uns als Quellpolygon ein "`U"', und als Zielpolygon ein um 90$\degree$ gedrehtes "`U"' vorstellen. Auch wenn die Konkativit"aten richtig zueinander gematcht sind, versagt das bekannte Verfahren.
 
-Die, das Matching abschlie"sende, Funktion kann solche F"alle erkenne, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater, sowie die beiden Nachbarkanten des Vates, mit der x-Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, so liegt der Fal vor, dass das Verfahren nicht funktioniert.
+Die, das Matching abschlie"sende, Funktion kann solche F"alle erkenne, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater, sowie die beiden Nachbarkanten des Vaters, mit der x-Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, so liegt der Fall vor, dass das Verfahren nicht funktioniert.
 
 Wenn ein solcher Fall erkannt wird, so gibt es zwei M"oglichkeiten zu reagieren:
 \begin{itemize}
 \item Beide Konkativit"aten werden gegen $null$ gematcht
 
-In diesem Fall sehen wir, wie die Konkativit"at auf der einen Seite verschwindet, und zeitgleich auf der anderen Seite eine Neue entsteht. Obwohl dieses Verfahren das deutlich Einfachere ist, sieht das Resultat recht gut aus.
+In diesem Fall verschwindet die Konkativit"at auf der einen Seite  und zeitgleich entsteht auf der anderen Seite eine Neue entsteht. Obwohl dieses Verfahren das deutlich Einfachere ist, zeigt sich in der praktischen Anwendung, dass das Resultat den Erwartungen weitestgehend entspricht.
 
 \item Die beiden Konkativit"aten werden zu L"ochern umgewandelt
 
-In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueinander gematcht werden. In dem Resultat w"urde man also sehen, wie sich die Konkativit"at von der einen Seite abl"ost, und zu der anderen Seite wandert. M"oglicherweise sieht dieses Verfahren nat"urlicher aus, man muss sich aber noch "uberlegen, was passiert, wenn der Weg zwischen den beiden Positionen nicht "`frei"' ist (etwa weil sich hier ein weiteres Loch oder eine Konkativit"at befindet).
+In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueinander gematcht werden. Im Resultat w"urde sich die Konkativit"at von der einen Seite abl"osen, und zu der anderen Seite wandern. M"oglicherweise sieht dieses Verfahren nat"urlicher aus, es ist aber nicht absehbar, was passiert, wenn der Weg zwischen den beiden Positionen nicht "`frei"' ist (etwa weil sich hier ein weiteres Loch oder eine Konkativit"at befindet).
 
 \end{itemize}
 
 
 \subsection{Erstellung eines Matchings aus mehreren Anderen}
 
-Wenn man die bereits ausprobierten Matchings betrachtet, so stellt man fest, dass das Overlapping-Match besser auf Vereinigungen und Aufsplitterungen von Cycles reagiert, und dass das Schwerpunkt-Verfahren besser auf kleine und schnelle Cycles abgestimmt ist. 
+
+Es ist festzustellen, das unter der Betrachtung der bereits erstellten Matchings, dass das Overlapping-Match besser auf Vereinigungen und Aufsplitterungen von Cycles reagiert, und dass das Schwerpunkt-Verfahren besser auf kleine und schnelle Cycles abgestimmt ist. 
 
 Es scheint also ein verfolgenswerter Ansatz zu sein, beide Matches (und vielleicht noch andere, etwa Overlapping mit mehreren Schwellwerten), zu berechnen, und aus diesen das beste Matching zu bestimmen. 
 
-Um die G"ute eines gegebenen Matchings zu bestimmen, habe ich folgende Verfahren erdacht. Damit die verschiedenen Bewertungen vergleichbar sind, habe ich diese auf 1 normiert.
+Zur Bestimung der G"ute eines gegebenen Matchings sind folgende Verfahren angedacht. Damit die verschiedenen Bewertungen vergleichbar sind, sind diese auf 1 normiert.
 \begin{itemize}
-\item Die Overlapp-Bewertung: 
+\item Die \index{Bewertung!Overlap}Overlap-Bewertung: 
 
-Ist der Duchschnitt der "Uberlappungen gro"s, so ist das gut.
+Ein gro"ser Durchschnitt der "Uberlappungen wirkt sich positiv auf die Bewertung aus.
 
-Dieses Bewertungsverfahren korespondiert zwar direkt mit dem Overlaping-Match, da es aber in \cite{AFRW} verwendet wird, benutze ich dieses Verfahren. Die Berechnung l"auft so:
+Dieses Bewertungsverfahren korrespondiert zwar direkt mit dem Overlaping-Match, da es aber in \cite{AFRW} verwendet wird, wird es in dieser Arbeit benutzt. Die Berechnung l"auft so:
 
 $$r_O=\frac{\sum_{m\in M} \frac{A_{overlap}}{A_{source}+A_{target}}}{|M|}$$
 
-\item Die Schwerpunkt-Bewertung:
+\item Die \index{Bewertung!Schwerpunkt}Schwerpunkt-Bewertung:
 
-Ist die durchschnittliche Entfernung der zueinander gematchten Schwerpunkte gro"s, so ist das schlecht.
+Ein kleiner Durchschnitt der Entfernungen der zueinander gematchten Schwerpunkte wirkt sich positiv auf die Bewertung aus.
 
-Da dieses Verfahren direckt mit dem Schwerpunkt-Match korespondiert, und ausserdem nach \cite{AFRW} nicht zu erwarten steht, dass dieses Verfahren eine deutlich andere Werte als die Overlap-Bewertung liefert, verfolge ich dieses nicht weiter.
+Da dieses Verfahren direkt mit dem Schwerpunkt-Match korrespondiert, und ausserdem nach \cite{AFRW} nicht zu erwarten steht, dass dieses Verfahren eine deutlich andere Werte als die Overlap-Bewertung liefert, verfolge ich dieses nicht weiter.
 
-\item Die Summen-Norm:
+\item Die \index{Bewertung!Flächensummen}Summen-Bewertung:
 
-Sind die zueinander gematchten Fl"achen etwa gleich gro"s, so ist das gut. 
+
+Etwa gleich gro"se, zueinander gematchte Fl"achen, wirken sich positiv auf die Bewertung aus.
 
 Es steht zu erwarten, dass zueinander geh"orige F"achen etwa gleich gross sind. Auch wenn sich eine Fl"ache in mehrere andere teilt, wird die Summe der Fl"acheninhalte in etwa so gro"s sein, wie der Fl"acheninhalt der Ursprungsfl"ache. Zur Normierung teile ich den Kleineren durch den gr"o"seren Fl"acheninhalt, und bekomme somit die Abweichung in Prozent. Die Berechnung l"auft so:
 
 $$A_{target}=\sum_{t\in Target}A_t$$
 $$r_A=\frac {\sum_{m\in M}\frac{\min{A_{source},A_{target}}}{\max{A_{source},A_{target}}}}{|M|}$$
 
-\item Die \index{Hausdorff-Norm}Hausdorff-Norm:
+\item Die \index{Bewertung!Hausdorff}Hausdorff-Bewertung:
 
 In \cite{AAR} wird die,  oben bereits eingef"uhrte, Hausdorff-Norm benutzt, um Matchings zu bewerten. 
 
@@ -121,16 +122,13 @@ Bei der Implementierung dieser Norm stellt sich die Frage der Normierung. Mangel
 $$r_H=\frac{\sum_{m\in M}\delta_H(m)}{|M|\times d}$$
 
 
-\item Die Linear-Norm
+\item Die \index{Bewertung!linear}Linear-Bewertung
 
 Bei der Implementierung der obigen Verfahren zeigte sich, dass die Verfahren eine Tendenz zu "ubertriebenen Zersplitterungen aufweisen. Unter der Pr"amisse, dass dies in den allermeisten F"allen eher selten der Fall ist, f"urte ich diesen Bewertungsfaktor ein, um dieses Verhalten abzuschw"achen.
 
 F"uhrt das Matching zu einer geringen Anzahl an Zersplitterungen, so ist das gut.
 
 Die Berechnung l"auft so:
-
-
-
 
 $$L(m)=
 \begin{cases}
@@ -141,9 +139,9 @@ $$
 
 $$r_L=\frac{\sum_{m\in M}L(m)}{|M|}$$
 
-\item Die Struktur-Norm:
+\item Die \index{Bewertung!strukturell}Struktur-Norm:
 
-Stimmen die aufeinander gematchten Cycles strukturell weit "uberein, so ist das gut (eventuell kann man hier die Struktur der jeweiligen ConvexHullTrees heranziehen).
+Stimmen die aufeinander gematchten Cycles strukturell weit "uberein, so wirkt sich das positiv auf die Bewertung aus (eventuell kann man hier die Struktur der jeweiligen ConvexHullTrees heranziehen).
 
 Diese Norm finde ich nach wie vor interesant, habe sie aber noch nicht weiter verfolgt. Nach der Betrachtung der Ergebnisse aus den anderen Normen, scheint eine weitere Verfolgung auch nicht notwendig. Zur Struktur der ConvexHullTrees ist zu sagen, dass in \cite{TG} der Umstand beschrieben ist , das "ahnliche Polygone teilweise recht unterschiedliche ConvexHullTree-Repr"asentationen aufweisen k"onnen, was eine solche Bewertung nat"urlich negativ beweinflussen kann\footnote{Dieses ist aber weniger schlimm als es klingt, Herr T\o{}ssebro macht in diesem Artikel plausiebel, dass dieses Problem eher ein Problem von kleinen, k"unstlichen Testdatens"atzen als von realen Daten ist}.
 
@@ -597,3 +595,4 @@ Punkt: &Der Punkt, zu dem der Abstand gemessen wird,\\
 %\nocite{Lei}
 %\nocite{Gru}
 %\nocite{AFRW}
+\nocite{FGNS}
