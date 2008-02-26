@@ -691,6 +691,16 @@ bool IsTupleDescription( ListExpr a )
   ListExpr rest = a;
   ListExpr current;
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+
+  if(nl->AtomType(a)!=NoAtom){
+     ErrorReporter::ReportError("Not a valid tuple type, must be a list.");
+     return  false;
+  }
+  if(nl->IsEmpty(a)){
+     ErrorReporter::ReportError("An empty attribute list is not allowed.");
+     return false;
+  }
+
   set<string> attrnames;
   while(!nl->IsEmpty(rest))
   {
@@ -699,9 +709,19 @@ bool IsTupleDescription( ListExpr a )
     if(! (    (nl->ListLength(current) == 2)
            && (nl->IsAtom(nl->First(current)))
            && (nl->AtomType(nl->First(current)) == SymbolType)
-           && am->CheckKind("DATA",nl->Second(current),errorInfo)
+           && am->CheckKind("DATA",nl->Second(current),errorInfo))
            && attrnames.find(nl->SymbolValue(nl->First(current)))==
-                 attrnames.end())) {
+                 attrnames.end()) {
+      if(nl->ListLength(current!=2)){
+         ErrorReporter::ReportError("Attribut description must have length 2");
+      }
+      if(!nl->IsAtom(nl->First(current)) || 
+         !nl->AtomType(nl->First(current)) == SymbolType){
+         ErrorReporter::ReportError("Attribute name must be a symbol.");
+      }
+      if(! am->CheckKind("DATA",nl->Second(current),errorInfo)){
+         ErrorReporter::ReportError("Attribute type is not of kind DATA.");
+      }
       return false;
     } else {
       attrnames.insert(nl->SymbolValue(nl->First(current)));
@@ -719,27 +739,36 @@ Checks wether a ListExpression is of the form
 */
 bool IsRelDescription( ListExpr relDesc )
 {
-  if( nl->ListLength(relDesc) != 2 )
+  if( nl->ListLength(relDesc) != 2 ){
+    ErrorReporter::ReportError("Relation description must have length 2.");
     return false;
+  }
 
   ListExpr relSymbol = nl->First(relDesc);
   ListExpr tupleDesc = nl->Second(relDesc);
 
   if( !nl->IsAtom(relSymbol) ||
       nl->AtomType(relSymbol) != SymbolType ||
-      nl->SymbolValue(relSymbol) != "rel" )
+      nl->SymbolValue(relSymbol) != "rel" ){
+    ErrorReporter::ReportError("Symbol 'rel' expected");
     return false;
+  }
 
-  if( nl->ListLength(tupleDesc) != 2 )
+  if( nl->ListLength(tupleDesc) != 2 ){
+    ErrorReporter::ReportError("Tuple description must have length 2.");
     return false;
+  }
 
   ListExpr tupleSymbol = nl->First(tupleDesc);;
   ListExpr attrList = nl->Second(tupleDesc);
 
   if( !nl->IsAtom(tupleSymbol) ||
       nl->AtomType(tupleSymbol) != SymbolType ||
-      nl->SymbolValue(tupleSymbol) != "tuple" )
+      nl->SymbolValue(tupleSymbol) != "tuple" ){
+    ErrorReporter::ReportError("The first element of a tuple description"
+                               " must be the symbol 'tuple'.");
     return false;
+  }
 
   if( !IsTupleDescription(attrList) )
     return false;
@@ -756,27 +785,36 @@ Checks wether a ListExpression is of the form
 */
 bool IsStreamDescription( ListExpr streamDesc )
 {
-  if( nl->ListLength(streamDesc) != 2 )
+  if( nl->ListLength(streamDesc) != 2 ){
+    ErrorReporter::ReportError("A stream description must have length 2.");
     return false;
+  }
 
   ListExpr streamSymbol = nl->First(streamDesc);
   ListExpr tupleDesc = nl->Second(streamDesc);
 
   if( !nl->IsAtom(streamSymbol) ||
       nl->AtomType(streamSymbol) != SymbolType ||
-      nl->SymbolValue(streamSymbol) != "stream" )
+      nl->SymbolValue(streamSymbol) != "stream" ){
+    ErrorReporter::ReportError("Symbol 'stream' expected");
     return false;
+  }
 
-  if( nl->ListLength(tupleDesc) != 2 )
+  if( nl->ListLength(tupleDesc) != 2 ){
+    ErrorReporter::ReportError("Tuple description must have length 2.");
     return false;
+ }
 
   ListExpr tupleSymbol = nl->First(tupleDesc);;
   ListExpr attrList = nl->Second(tupleDesc);
 
   if( !nl->IsAtom(tupleSymbol) ||
       nl->AtomType(tupleSymbol) != SymbolType ||
-      nl->SymbolValue(tupleSymbol) != "tuple" )
+      nl->SymbolValue(tupleSymbol) != "tuple" ){
+    ErrorReporter::ReportError("The first element of a tuple description"
+                               " must be the symbol 'tuple'.");
     return false;
+  }
 
   if( !IsTupleDescription(attrList) )
     return false;
