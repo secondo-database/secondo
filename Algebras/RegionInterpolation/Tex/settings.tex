@@ -1,4 +1,4 @@
-\documentclass[a4paper,12pt,twoside,halfparskip,bibtotocnumbered,liststotocnumbered,idxtotoc]{scrreprt}
+\documentclass[a4paper,12pt,twoside,halfparskip,bibtotocnumbered,liststotocnumbered]{scrreprt}
 
 \usepackage{ngerman}	%Deutsch
 \usepackage[T1]{fontenc}
@@ -8,9 +8,7 @@
 
 \usepackage{index}
 
-\newindex{default}{idx}{ind}{C Stichwortverzeichnis}
-  \newcommand{\indexARtmp}[1]{#1\index{#1}}
-% \newcommand{\indexAR}[2]{\hypertarget{#1}{\indexARtmp{#2}}
+\newindex{default}{idx}{ind}{E Stichwortverzeichnis}
 
   
 \usepackage{amsmath}	%MAthe
@@ -18,9 +16,12 @@
 \usepackage{amssymb}
 
 \usepackage{listings}	%für Quellcode
-\usepackage{color}	%für Farben im Quellcode
-\lstset{language=java}
-\lstset{emph={HashSet,Region,Face, ConvexHullTreeNode,RegionTreeNode}}
+\usepackage{xcolor}	%für Farben im Quellcode
+\lstset{language=[gnu]c++}%language=java}
+\lstset{alsolanguage=Java}
+\lstset{inputencoding=utf8,
+        extendedchars=\true }
+\lstset{emph={HashSet,RegionForInterpolation,Face, ConvexHullTreeNode,RegionTreeNode, CHLine, LineDist,LineWA}}
 \lstset{stringstyle=\color{blue}}
 \lstset{keywordstyle=\color{magenta}\textbf}
 \lstset{commentstyle=\color{green}\itshape}
@@ -28,13 +29,17 @@
 
 \usepackage{bibgerm}
 \usepackage{graphicx}
+\usepackage{picins}
 \usepackage{ifpdf}
 \ifpdf
 \DeclareGraphicsRule{*}{mps}{*}{}
 \fi
 
 \usepackage{multicol}
-\usepackage[german,vlined,boxed]{/usr/local/teTeX/share/texmf-dist/tex/latex/algorithms/algorithm2e}
+\usepackage[german,vlined,boxruled]{/usr/local/teTeX/share/texmf-dist/tex/latex/algorithms/algorithm2e}
+\setlength{\algomargin}{1em}
+%&\SetInd{1em}{1em}
+\Setvlineskip{1em}
 \usepackage{framed}
 \usepackage{lscape}
 
@@ -61,13 +66,14 @@
 \cfoot{}
 \renewcommand{\labelenumi}{\theenumi)}
 \renewcommand{\labelenumii}{(\alph{enumii})}
-
-\newcommand{\anmerkung}{\color{red}}
+\definecolor{red}{rgb}{1,0,0}
+\definecolor{RED}{rgb}{1,0,0}
+\newcommand{\anmerkung}[1]{{\textit{#1}}}
 
 
 \usepackage[
 dvipdfm,
-raiselinks=false;
+raiselinks=false,
 pdfdisplaydoctitle=true,
 breaklinks=true,
  pdfpagelabels=true,

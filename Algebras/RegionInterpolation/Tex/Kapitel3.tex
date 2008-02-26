@@ -1,14 +1,165 @@
-\chapter[Eigenes]{Eigenes
-\normalsize{Die Java-Applikation, Die Secondo Algebra, Experimante mit Regionen}\anmerkung{30-40 Seiten Astrid: Vorschlag für besseren Namen}
+\chapter[Eigene "Uberlegungen und die Implementierung \anmerkung{30 Seiten }]{Eigene "Uberlegungen und die Implementierung der resultierenden L"osung
+\normalsize{Die Java-Applikation, Die Secondo Algebra, Experimante mit Regionen \anmerkung{30-40 Seiten }}
 }
 \minitoc
 \newpage
-\section{Benutzte Hilfsklassen}
-\subsection{RegionTreeNode}
+\section{Vor"uberlegungen \anmerkung{7 Seiten}}
+\anmerkung{Hier beschreibe ich welche Gedanken ich mir zum Theme Matching gemacht habe, und welche davon ich verwirklicht habe. Ausserdem bewerte ich die Vorschl"age aus der Literatur, die ich oben bereits erw"ahnt habe.}
+\subsection{Bewertung der Vorschl"age von Herr  T\o{}ssebro}
+\begin{enumerate}
+\item Position of centroid
+
+In dem Paper wurde diese M"oglichkeit nicht weiter betrachtet, da die Autoren davon ausgehen, dass ein Referenzpunkt, der auch au"serhalb des Polygons liegen kann nicht zu guten Matchings f"uhren kann. Hierzu muss angemerkt werden, dass im Rahmen der vorliegenden Arbeit das Matching auf Ebene des ConvexHullTrees durchgef"uhrt wird, und lediglich mit konvexen H"ullen von Polygone gearbeitet wird. Der Schwerpunkt einer konvexen H"ulle liegt nat"urlich aber wieder innerhalb dieser (wenngleich nicht zwangsl"aufig auch innerhalb des repr"asentierten Polygons). Au"serdem erscheint es plausibel, dass ein Referenzpunkt-Verfahren seine St"arke gerade dort haben wird, wo die "Uberlappungsalgorithmen ihre Schw"achen haben (bei sich schnell bewegenden, kleinen Objekten).
+
+Der Vorschlag, "`N"achste Nachbarn"' zu benutzen, hat den Nachteil, dass man so nur 1:1 Matches finden kann. Im Rahmen der vorliegenden Arbeit wurde stattdessen Schwellwert-Verfahren gew"ahlt, in dem zu einem Element der einen Seite, alle Elemente der Anderen gematcht werden, deren Schwerpunkte weniger als "`Schwellwert"' entfernt sind. 
+
+\item Fixend threshold (set of cycles)
+
+Das Verfahren wurde analog zur Beschreibung Erlend T\o{}ssebros "ubernommen und implementiert. 
+
+\item Maximize Overlap (set of cycles)
+
+Dieses Verfahren k"onnte interesannt sein, ist aber noch nicht implementiert.
+
+\item Matching mit dem Steiner-Punkt
+
+In dem Aufsatz \cite{AAR} wurde das Matching mit dem Steiner-Punkt als Referenzpunkt durchgef"uhrt. Auch wenn die Grundausrichtung dieser Arbeit von meiner verschieden ist, so ist es doch m"oglicherweise interessant, diese Spur weiterzuverfolgen. Zu dem eigentlichen Ablauf des Matchings gilt dasselbe, wie f"ur das Schwerpunktverfahren.
+\end{enumerate}
+
+\subsection{Matching mit Referenzpunkten}
+
+Unter der Annahme, dass es möglich ist zu jedem Polygon, das gematcht wird ein Referenzpunkt zuberechnen, kann ein Feld aufgebaut werden, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen werden kann. Wird dieses Feld aufsteigend nach den Entfernungen geordnet, steht zu erwarten,
+dass es zwischen den erwünschten und den unerwünschten Matches einen Sprung in dem Graphen geben wird. 
+
+Nehmen wir also an, wir haben eine M"oglichkeit, zu jedem Polygon, das wir matchen wollen einen Referenzpunkt zu berechnen. Dann k"onnen wir ein Feld aufbauen, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen werden. Ordnen wir dieses Feld aufsteigend nach den Entfernungen, so steht zu erwarten, dass es zwischen den erw"unschten und den unerw"unschten Matches einen Sprung in dem Graphen geben wird. Diesen Sprung m"u"ste man mit geeigneten statistischen Verfahren finden k"onnen. 
+
+Nachteilig an diesem Verfahren ist, dass die Laufzeit dieses Verfahrens hoch ist. Haben wir auf den beiden Seiten des Matchings $n$ beziehungsweise $m$ Referenzpunkte, so ist hat das resultierende Feld die Dimension $n\times m$. Dieses Feld kann man in $O(n\times m)$aufbauen. Zum Sortieren des Feldes braucht man dann $O((n\times m)\log(n\times m))$. Also ist dises Verfahren mindestens vom Typ $O((n\times m)\log(n\times m))$ (je nach dem verwendeten statistischen Verfahren k"onnte die Laufzeit sogar schlechter sein).
+
+Wegen dieser schlechten Laufzeit, und weil ich noch kein geeignetes Verfahren gefunden habe, verwende ich das wesentlich einfachere Schwellwertverfahren, dass man formulieren kann: Matche zwei Cycle, wenn der Abstand ihrer Referenzpunkte kleiner als der Schwellwert ist. 
+
+Die Laufzeit dieses Verfahrens ist wesentlich besser. Ich berechne zu jeder der $m\times n$ verschiedenen  Referenzpunkte den Abstand (in konstanter Zeit) und vergleiche diesen mit dem Schwellwert. Also ist die Laufzeit$O(n\times n)$.
+
+Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus Diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird. Man berechnent $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\times m)$. Praktisch verwende ich desshalb einen Algorithmus, der mir in $O((n+m)\log{n+m})$ einen sehr "ahnlich Wert berechnet. Siehe hierzu: "`Spezielle Algorithmen"'.
+\subsection{Beseitigung von 1:n Matches}
+
+Falls es ein 1:n Matching gibt, dann muss diese aufgel"ost werden. Hierbei existieren 2 M"oglichkeiten:
+\begin{itemize}
+\item Alle $n$ Targets sind Kinder einer einzigen ConvexHullTreeNode
+
+Dieser Fall ist der einfachere, seine Behandlung wurde schon von Herrn T\o{}ssebro beschrieben. Kurz gesagt geht es darum, die konvexe H"ulle aller Targets zu bilden, und das Matching von den $n$ Targets auf diese neue H"ulle umzuleiten.
+
+\item Alle n Targets haben unterschiedliche V"ater
+
+In diesem Fall kommen wir mit der Vereinigung der Targets, wie oben beschrieben, nicht weiter, also m"ussen wir versuchen, den Source aufzuteilen. Hiebei ist zu beachten:
+\begin{itemize}
+\item Eine ConvexHullTreeNode kann man nur an Eckpunkten, oder an Punkten auf Linien teilen, die keine Kinder haben, da man sonst den ConvexHullTree zerst"oren w"urde.
+
+\item Eine ConvexHullTreeNode kann man nur an zwei Punkten teilen, wenn das beschriebene Polygon auch nur in zwei Teile zerf"allt.
+\item Zerteilt man ein Face, so sollte man dabei kein Hole zerteilen. Falls sich das nicht verhindern l"asst, so zerf"allt das Loch in zwei Konkavit"aten, was eine Neuberechnung der entsprechenden Matchings zu Folge hat.
+
+\item Die Zerteilung der Source-Komponente sollte die Lage und das Verh"altnis der Fl"acheninhalte der Target-Komponenten weitestgehend wiederspiegeln.
+
+\end{itemize} 
+\end{itemize} 
+\subsection{Beseitigung von "`gedrehten Konkavit"aten"'}
+In manchen F"allen versagt das in \cite{TG} genannte Verfahren, um aus Matchings Moving-Regions zu erzeugen. Dieses, in Kapitel "`6 Interpolating between two arbitray polygones"' beschriebene Verfahren setzt voraus, dass die beiden gematchten Kinderpolygone ein gemeinsames, aus zwei Dreiecken zusammengesetztes Trapez in der Aussenh"ulle der beider Vaterpolygone besitzen. 
+
+Dies ist zum Biespiel dann nicht der Fall, wenn wir uns als Quellpolygon ein "`U"', und als Zielpolygon ein um 90$\degree$ gedrehtes "`U"' vorstellen. Auch wenn die Konkativit"aten richtig zueinander gematcht sind, versagt das bekannte Verfahren.
+
+Die, das Matching abschlie"sende, Funktion kann solche F"alle erkenne, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater, sowie die beiden Nachbarkanten des Vates, mit der x-Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, so liegt der Fal vor, dass das Verfahren nicht funktioniert.
+
+Wenn ein solcher Fall erkannt wird, so gibt es zwei M"oglichkeiten zu reagieren:
+\begin{itemize}
+\item Beide Konkativit"aten werden gegen $null$ gematcht
+
+In diesem Fall sehen wir, wie die Konkativit"at auf der einen Seite verschwindet, und zeitgleich auf der anderen Seite eine Neue entsteht. Obwohl dieses Verfahren das deutlich Einfachere ist, sieht das Resultat recht gut aus.
+
+\item Die beiden Konkativit"aten werden zu L"ochern umgewandelt
+
+In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueinander gematcht werden. In dem Resultat w"urde man also sehen, wie sich die Konkativit"at von der einen Seite abl"ost, und zu der anderen Seite wandert. M"oglicherweise sieht dieses Verfahren nat"urlicher aus, man muss sich aber noch "uberlegen, was passiert, wenn der Weg zwischen den beiden Positionen nicht "`frei"' ist (etwa weil sich hier ein weiteres Loch oder eine Konkativit"at befindet).
+
+\end{itemize}
+
+
+\subsection{Erstellung eines Matchings aus mehreren Anderen}
+
+Wenn man die bereits ausprobierten Matchings betrachtet, so stellt man fest, dass das Overlapping-Match besser auf Vereinigungen und Aufsplitterungen von Cycles reagiert, und dass das Schwerpunkt-Verfahren besser auf kleine und schnelle Cycles abgestimmt ist. 
+
+Es scheint also ein verfolgenswerter Ansatz zu sein, beide Matches (und vielleicht noch andere, etwa Overlapping mit mehreren Schwellwerten), zu berechnen, und aus diesen das beste Matching zu bestimmen. 
+
+Um die G"ute eines gegebenen Matchings zu bestimmen, habe ich folgende Verfahren erdacht. Damit die verschiedenen Bewertungen vergleichbar sind, habe ich diese auf 1 normiert.
+\begin{itemize}
+\item Die Overlapp-Bewertung: 
+
+Ist der Duchschnitt der "Uberlappungen gro"s, so ist das gut.
+
+Dieses Bewertungsverfahren korespondiert zwar direkt mit dem Overlaping-Match, da es aber in \cite{AFRW} verwendet wird, benutze ich dieses Verfahren. Die Berechnung l"auft so:
+
+$$r_O=\frac{\sum_{m\in M} \frac{A_{overlap}}{A_{source}+A_{target}}}{|M|}$$
+
+\item Die Schwerpunkt-Bewertung:
+
+Ist die durchschnittliche Entfernung der zueinander gematchten Schwerpunkte gro"s, so ist das schlecht.
+
+Da dieses Verfahren direckt mit dem Schwerpunkt-Match korespondiert, und ausserdem nach \cite{AFRW} nicht zu erwarten steht, dass dieses Verfahren eine deutlich andere Werte als die Overlap-Bewertung liefert, verfolge ich dieses nicht weiter.
+
+\item Die Summen-Norm:
+
+Sind die zueinander gematchten Fl"achen etwa gleich gro"s, so ist das gut. 
+
+Es steht zu erwarten, dass zueinander geh"orige F"achen etwa gleich gross sind. Auch wenn sich eine Fl"ache in mehrere andere teilt, wird die Summe der Fl"acheninhalte in etwa so gro"s sein, wie der Fl"acheninhalt der Ursprungsfl"ache. Zur Normierung teile ich den Kleineren durch den gr"o"seren Fl"acheninhalt, und bekomme somit die Abweichung in Prozent. Die Berechnung l"auft so:
+
+$$A_{target}=\sum_{t\in Target}A_t$$
+$$r_A=\frac {\sum_{m\in M}\frac{\min{A_{source},A_{target}}}{\max{A_{source},A_{target}}}}{|M|}$$
+
+\item Die \index{Hausdorff-Norm}Hausdorff-Norm:
+
+In \cite{AAR} wird die,  oben bereits eingef"uhrte, Hausdorff-Norm benutzt, um Matchings zu bewerten. 
+
+Bei der Implementierung dieser Norm stellt sich die Frage der Normierung. Mangels Alternative habe ich mich dazu entschlossen, alle einzelnen Hausdorff--Abst"ande duch den Duchmesser $d$ der Ausgangsregionen zu teilen.  Durchmesser bezeichne hierbei den Gr"o"sten Abstand, den zwei Punkte zueinander haben. Dieses Vorgehen bedeutet aber leider, dass die Abst"ande von kleinen Konkavit"aten relativ wenig in die Gesamtbewertung eingehen. Die Berechnung lautet:
+
+$$r_H=\frac{\sum_{m\in M}\delta_H(m)}{|M|\times d}$$
+
+
+\item Die Linear-Norm
+
+Bei der Implementierung der obigen Verfahren zeigte sich, dass die Verfahren eine Tendenz zu "ubertriebenen Zersplitterungen aufweisen. Unter der Pr"amisse, dass dies in den allermeisten F"allen eher selten der Fall ist, f"urte ich diesen Bewertungsfaktor ein, um dieses Verhalten abzuschw"achen.
+
+F"uhrt das Matching zu einer geringen Anzahl an Zersplitterungen, so ist das gut.
+
+Die Berechnung l"auft so:
+
+
+
+
+$$L(m)=
+\begin{cases}
+	\frac{1}{2} & \text{falls }|targets|=0\\
+	\frac{1}{|targets|} & \text{sonst}
+    \end{cases}
+$$
+
+$$r_L=\frac{\sum_{m\in M}L(m)}{|M|}$$
+
+\item Die Struktur-Norm:
+
+Stimmen die aufeinander gematchten Cycles strukturell weit "uberein, so ist das gut (eventuell kann man hier die Struktur der jeweiligen ConvexHullTrees heranziehen).
+
+Diese Norm finde ich nach wie vor interesant, habe sie aber noch nicht weiter verfolgt. Nach der Betrachtung der Ergebnisse aus den anderen Normen, scheint eine weitere Verfolgung auch nicht notwendig. Zur Struktur der ConvexHullTrees ist zu sagen, dass in \cite{TG} der Umstand beschrieben ist , das "ahnliche Polygone teilweise recht unterschiedliche ConvexHullTree-Repr"asentationen aufweisen k"onnen, was eine solche Bewertung nat"urlich negativ beweinflussen kann\footnote{Dieses ist aber weniger schlimm als es klingt, Herr T\o{}ssebro macht in diesem Artikel plausiebel, dass dieses Problem eher ein Problem von kleinen, k"unstlichen Testdatens"atzen als von realen Daten ist}.
+
+
+\end{itemize} 
+
+Wie man am Beispiel der Summen-Norm sehen kann, gibt es mehr M"oglichkeiten zu bewerten, als es effiziente Matchings gibt. Das Summen-Matching, das lauten k"onnte: "`Matche ein Cycle mit  einer Menge von Anderen, wenn die Summe der Fl"acheninhalte fast gleich ist zu dem Fl"acheninhalt des einen Cycles"', entspricht dem Rucksack-Problem und ist daher nicht effizient l"osbar. Die Bewertung, wie gut ein gegebenes Matching ist, sollte mit diesem Verfahren aber effizient m"oglich sein.
+
+\section{Gemeinsame Grundlagen \anmerkung{20 Seiten}}
+\anmerkung{Hier beschreibe ich ausf"uhrlicher die gemeinsame Grundlage der beiden Implementierungen, einschlie"slich einer Beschreibng der verwendeten Klassen.}
+\subsection{Beschreibung der Klassen}
+\subsubsection{RegionTreeNode}
 
 Dieses Interface dient dazu, Region, Faces und ConvexHullTreeNodes gleichbehandeln zu k"onnen. Implementiert sind nur hashCode und equals, zum Auffinden von SingleMatches in HashSets.
 
-\subsection{\index{SingleMatch}SingleMatch}
+\subsubsection{\index{SingleMatch}SingleMatch}
 Diese Klasse repr"asentiert eine einzelnes Teilmatch.  Es enth"alt eine Source-Kom"-ponente und ein Feld von Target-Komponenten. Alle Komponenten sind RegionTreeNodes.
 Die wichtigsten Methoden sind:
 
@@ -47,7 +198,7 @@ Liefert den Hashwert des Matches.
 
 Die beiden letzten Methoden dienen dazu, SingleMatches in einem HashSet ablegen zu k"onnen, wobei nur die source-Komponente f"ur das Auffinden des Matches herangezogen wird.
 
-\section{Die abstrakte Klasse Match}
+\subsubsection{\index{Match!Klasse}Die abstrakte Klasse Match}
 Diese Klasse stellt die wesentlichen Mechanismen zur Verf"ugung, um einfach Matches programmieren zu k"onnen. Es enth"alt die Eigenschaften:
 \begin{itemize}
 \item source
@@ -107,120 +258,327 @@ In dieser Klasse sind auch einige der Bewertungsverfahren implementiert, die in 
 
 \end{itemize}
 
-\section{Beseitigung von 1:n Matches}
+\subsection{Beschreibung von verwendeten Algorithmen}
+In disem Abschnitt werde ich Algorithmen vorstellen, die entweder sehr zentral f"ur die L"osung des Interpolationsproblems sind, oder Algorithmen, die keine Standard-Algorithemen sind. Diese Algorithmen musste ich also selbst entwickeln.
 
-Falls es ein 1:n Matching gibt, dann muss diese aufgel"ost werden. Hierbei existieren 2 M"oglichkeiten:
-\begin{itemize}
-\item Alle $n$ Targets sind Kinder einer einzigen ConvexHullTreeNode
+\subsubsection{Rotaring Pane}
+\begin{algorithm}
+		\SetKwFunction{fMI}{finde\_passenden\_Index}
+	\caption{Rotaring Pane Allgorithmus, um aus zwei konvexen H"ullen moving segments zu erstellen}
+	\Ein{KH"ulle1 und KH"ulle2, zwei konvexe H"ullenb"aume}
+	\Ergebnis{Eine Menge von moving segments, die die Interpolation der beiden Polygone darstellt}
+	\Begin{
+		Bestimme $KH1$ und $KH2$ die konvexen H"ullen der Polygone als Feld von LineWAs\;
+		Berechne die Winkel in jedem Eckpunkt von $KH1$ und $KH2$\;
+		Sortiere $KH1$ und $KH2$ aufsteigend nach diesen Winkeln\;
+		$j:=0$\;
+		\Fuer{$i<KH1.l"ange$}{
+			$j:=\fMI{KH2, j, KH1[i].winkel, \text{false}}$\;
+			F"uge das moving segment:$(KH1[i],KH1[i+1],KH2[j]$ dem Ergebnis-Feld hinzu\;
+		}			
+		$j:=0$\;
+		\Fuer{$i<KH2.l"ange$}{
+			$j:=\fMI{KH1, j, KH2[i].winkel,\text{true}}$\;
+			F"uge das moving segment:$(KH2[i],KH2[i+1],KH[j]$ dem Ergebnis-Feld hinzu\;
+		}			
+	}
+\end{algorithm}
 
-Dieser Fall ist der einfachere, seine Behandlung wurde schon von Herrn T\o{}ssebro beschrieben. Kurz gesagt geht es darum, die konvexe H"ulle aller Targets zu bilden, und das Matching von den $n$ Targets auf diese neue H"ulle umzuleiten.
+\begin{function}
+	\caption{finde\_passenden\_Index(Polygon, Startindex, Winkel, Gleiche\_Winkel)}
+	
+	\Ein{\begin{tabular}{ll}
+		Polygon: &Das zu durchsuchende konvexe Polygon als Feld\\
+ 			&von LineWAs\\
+		Startindex: &Der Index, an dem die Suche beginnen\\
+ 				&soll\\
+		Winkel: &Der Winkel, zu dem der passende Index gesucht\\
+ 			&wird\\
+		Gleiche\_Winkel: &Dieser boolsche Parameter gibt an, \\
+				&wie mit parallelen Kanten verfahren werden soll
+	     \end{tabular}
+	}
+	\BlankLine
+	\Ergebnis{Der Index des Punktes, an dem die Linie anf"angt, mit der die Ecke mit dem "ubergebenen Winkel gematched wird}
+	\Begin{	
+        	\uWenn {$Winkel<Polygon[0].Winkel$}	{
+        		Gebe den Index 0 zur"uck\;
+		}
+        	\uWenn{$Polygon[0].Winkel=Winkel$ und $Gleiche\_Winkel$}{
+        			Gebe den Index 0 zur"uck\;
+		}        
+        	\Wenn{$Winkel>Polygon[letzer\_Index].Winkel$}{
+        		Gebe den Index 0 zur"uck\;
+		}
+	
+        	\Solange{Nicht $(Polygon[j].Winkel\geq Winkel$ und $Polygon[j-1].Winkel\leq Winkel)$}{
+        		\uWenn{$(j\neq0$ und $Winkel<Polygon[j-1].Winkel$}{
+        			$j:=j-1$\;
+			}	
+ 	           	\Sonst{
+				\Wenn{$Polygon[0].Winkel\neq Winkel$}{
+		                 	$j:=j+1$\;
+				}
+			}
+		}
+		\Wenn{$Polygon[j].Winkel=Winkel$ und $Gleiche\_Winkel$}{
+	        	$j:=j+1$\;
+		}
+		Gebe den Index $j$ zur"uck\;
+	}		
+\end{function}
+\clearpage
+\subsubsection{Zerlegung von einfachen Polygonen in konvexe Polygone}
+\begin{algorithm}
+	\SetKwFunction{gCV}{liefere\_konvexe\_Ecken}
+	\SetKwFunction{iSA}{ist\_teilbar}
+	\caption{Zerlegung von einfachen Polygonen in konvexe Polygone}
+	\Ein{Eine Menge $Polygone$ von einfachen Polygonen, repr"asentiert durch geordnete Punktlisten}
+	\Ergebnis{Die Menge $Polygone$ besteht nur noch aus konvexen Polygonen}
+	\Begin{
+		$aktuell:=0$\;
+		$konvexe\_Ecken=\emptyset$\;
+		\Wiederh{$|konvexe\_Ecken|=0$ und $aktuell=|Polygone|$}{
+            		$aktuelles\_Polygon=Polygone[aktuell]$\;
+			$konvexe\_Ecken=aktuelles\_Polygon.\gCV{}$\;
+			\uWenn{$|konvexe\_Ecken|>0$}{
+				\Wenn{$|konvexe\_Ecken|>1$}{
+					\Fuer{$i<|konvexe\_Ecken|$}{
+						\Fuer{$j:=i+1$ \KwTo $j<|konvexe\_Ecken|$}{
+							\Wenn{$aktuelles\_Polygon.\iSA{konvexe\_Ecken[i],konvexe\_Ecken[j]}$}{
+								Teile $aktuelles\_Polygon$ an den Ecken $konvexe\_Ecken[i]$ und $konvexe\_Ecken[j]$\;
+								Ersetzt $aktuelles\_Polygon$ in $Polygone$ durch die beiden neuen Polygone\;
+								Durchlaufe alle Scheifen von neuem\;
+							}
+						}
+					}
+				}
+                		$Index1:=konvexe\_Ecken[0]$\;
+				$Index2:=Index1+\frac{|aktuelles\_Polygon|}{2}$\;
+				\Fuer{$i<|aktuelles\_Polygon|$}{
+					$split\_Index=Index2+\frac{(-1)^i i}{2}$\;
+		                    	\Wenn{$aktuelles\_Polygon.\iSA{Index1,split\_Index}$}{
+		                    	Teile $aktuelles\_Polygon$ an den Ecken $Index1$ und $split\_Index$\;
+								Ersetzt $aktuelles\_Polygon$ in $Polygone$ durch die beiden neuen Polygone\;
+					}
+				}
+			}
+			\Sonst{
+				$aktuell:=aktuell+1$\;
+			}
 
-\item Alle n Targets haben unterschiedliche V"ater
+		}
+	}
+\end{algorithm}
+\clearpage
+\subsubsection{Aufbau eines ConvexHullTrees}
+Der Algorithmus zum Aufbau eines ConvexHullTrees wurde in \cite{TG} bereits erl"autert. Da dieser aber von zentraler Bedeutung zur L"osung des Problems ist, bespreche ich den Algorithmus an dieser Stelle noch einmal.
 
-In diesem Fall kommen wir mit der Vereinigung der Targets, wie oben beschrieben, nicht weiter, also m"ussen wir versuchen, den Source aufzuteilen. Hiebei ist zu beachten:
-\begin{itemize}
-\item Eine ConvexHullTreeNode kann man nur an Eckpunkten, oder an Punkten auf Linien teilen, die keine Kinder haben, da man sonst den ConvexHullTree zerst"oren w"urde.
+Als Beispiel dient mir ein Polygon aus der GERMANY-Datenbank. Bei diesem Polygon handelt es sich um die Gemeinde Sandershausen, die als Enklave zu dem Stadtkreis Kassel geh"ort. Abbildung \ref{fig:Sanders} zeigt dieses Polygon in dem dazugeh"origen Luftbild, dass ich aus der Applikation Google-Earth entnommen habe. 
 
-\item Eine ConvexHullTreeNode kann man nur an zwei Punkten teilen, wenn das beschriebene Polygon auch nur in zwei Teile zerf"allt.
-\item Zerteilt man ein Face, so sollte man dabei kein Hole zerteilen. Falls sich das nicht verhindern l"asst, so zerf"allt das Loch in zwei Konkavit"aten, was eine Neuberechnung der entsprechenden Matchings zu Folge hat.
+Der erste Schritt, bei der Erzeugung eines ConvexHullTree-Kontens, ist die Ereugung der konvexen H"ulle des Polygons. In den Abbildungen \ref{fig:sand2} und \ref{fig:sanders3} ist diese in Rotbraun eingezeichnet. Der Allgorithmus, der zur Erzeugung der H"ulle benutzt wird ist der \index{Graham Scan}Graham Scan Algorithmus, der zu den Standard-Allgorithem zu z"ahlen ist. In \cite{G72} wurde dieser Algorithmus das erste Mal beschrieben. Eine gute Beschreibung finden Sie \anmerkung{hier Literaturstelle einf"ugen}.
 
-\item Die Zerteilung der Source-Komponente sollte die Lage und das Verh"altnis der Fl"acheninhalte der Target-Komponenten weitestgehend wiederspiegeln.
+Im Anschu"s daran wird das Ausgangspolygon nach zusammenh"angenden Linienz"ugen durchsucht, die nicht in der konvexen H"ulle enthalten sind. Diese Suche wird mittels eines parallelen Durchlaufs duch beide Linienz"uge realisiert.
 
-\end{itemize} 
-\end{itemize} 
-\section{Beseitigung von "`gedrehten Konkativit"aten"'}
-In manchen F"allen versagt das in \cite{TG} genannte Verfahren, um aus Matchings Moving-Regions zu erzeugen. Dieses, in Kapitel "`6 Interpolating between two arbitray polygones"' beschriebene Verfahren setzt voraus, dass die beiden gematchten Kinderpolygone ein gemeinsames, aus zwei Dreiecken zusammengesetztes Trapez in der Aussenh"ulle der beider Vaterpolygone besitzen. 
+Schlie"slich wird diser Algorithmus rekursiv f"ur alle diese Linienz"uge aufgerufen und die Ergebnisse werden an die entsprechenden Stellen in den Vaterknoten eingeh"angt.
 
-Dies ist zum Biespiel dann nicht der Fall, wenn wir uns als Quellpolygon ein "`U"', und als Zielpolygon ein um 90$\degree$ gedrehtes "`U"' vorstellen. Auch wenn die Konkativit"aten richtig zueinander gematcht sind, versagt das bekannte Verfahren.
+\begin{figure}
+	\centering
+	\includegraphics[height=5cm]{Sandershausen.eps}
+	\caption{Die Gemeinde Sandershausen als Beispiel eines ConvexHullTrees}
+	\label{fig:Sanders}
+\end{figure}
+\begin{figure}
+	\centering
+	\includegraphics[width=5cm]{Sandershausen2.eps}
+	\caption{Ausschnitt von Sandershausen mit den Nodes der Level 0-1}
+	\label{fig:sand2}
+\end{figure}
+\begin{figure}
+	\centering
+	\includegraphics[width=5cm]{Sandershausen3.eps}
+	\caption{Ausschnitt von Sandershausen mit dem kompletten ConvexHullTree}
+	\label{fig:sanders3}
+\end{figure}
 
-Die, das Matching abschlie"sende, Funktion kann solche F"alle erkenne, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater, sowie die beiden Nachbarkanten des Vates, mit der x-Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, so liegt der Fal vor, dass das Verfahren nicht funktioniert.
+\begin{algorithm}
 
-Wenn ein solcher Fall erkannt wird, so gibt es zwei M"oglichkeiten zu reagieren:
-\begin{itemize}
-\item Beide Konkativit"aten werden gegen $null$ gematcht
+\SetKwFunction{cH}{berechne\_konvexe\_H"ulle}
+	\caption{Erzeuge einen konvexen H"ullenbaum aus einem Polygon}
+	\Ein{\begin{tabular}{ll}
+		Polygon: &Ein Polygon,rep"asentiert duch eine geordnete Liste von \\
+			&Eckpunkten\\
+		Ebene:	&Die Ebene des zu Erzeugenden Elementes\\
+		ist\_Loch: &Ein boolscher Parameter der angibt, ob das neue Element \\
+			&zu einem Loch geh"ort\\
+		Vater:	&Das Vaterelement des Neuen\\
+		\end{tabular}
+	}
+	\BlankLine
+	\Ergebnis{Ein konvexer H"ullenbaum, der das "ubergebene Poygon beschreibt}
+	\Begin{
+	
+%         LineWA[] tmplist, convhull, childlist;
+	Setze die Klassen-Variabeleln $ist\_Loch$ und $Vater$\;
 
-In diesem Fall sehen wir, wie die Konkativit"at auf der einen Seite verschwindet, und zeitgleich auf der anderen Seite eine Neue entsteht. Obwohl dieses Verfahren das deutlich Einfachere ist, sieht das Resultat recht gut aus.
-
-\item Die beiden Konkativit"aten werden zu L"ochern umgewandelt
-
-In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueinander gematcht werden. In dem Resultat w"urde man also sehen, wie sich die Konkativit"at von der einen Seite abl"ost, und zu der anderen Seite wandert. M"oglicherweise sieht dieses Verfahren nat"urlicher aus, man muss sich aber noch "uberlegen, was passiert, wenn der Weg zwischen den beiden Positionen dicht "`frei"' ist (etwa weil sich hier ein weiteres Loch oder eine Konkativit"at befindet).
-
-\end{itemize}
-
-
-\section{Eine Beispielimplementation}
-
-Der folgende Quellcode ist ein Beispiel f"ur die Implementierung eines Matches, er ist der Klasse CentroidMatch entnommen, k"onnte aber auch aus der Klasse OverlapingMatch stammen. 
-
-\begin{lstlisting}
-public ExampleMatch(Region source, Region target,int threshold){
-   super(source,target,"ExampleMatch",description);
-   this.addMatch(source,target);
-   HashSet unmatched=new HashSet();
-   for(int i=0;i< source.getNrOfFaces();i++) {
-      for(int j=0;j<target.getNrOfFaces();j++) {                         
-         if(isMatch()) {
-            this.addMatch(source.getFace(i),target.getFace(j));
-            this.addMatch(target.getFace(j),source.getFace(i));
-            this.addMatch(source.getFace(i).getCycle(),target.getFace(j).getCycle());
-            this.addMatch(target.getFace(j).getCycle(),source.getFace(i).getCycle());
-         }
-      }
-      unmatched.add(source.getFace(i));
-   }
-   for(int i=0;i<target.getNrOfFaces();i++) {
-      unmatched.add(target.getFace(i));
-   }
-   while(!unmatched.isEmpty()) {
-      Face next=(Face)(unmatched.iterator().next());
-      unmatched.remove(next);
-      RegionTreeNode[] matches=this.getMatches(next);
-      if(matches!=null&&matches[0]!=null) {
-         if(matches.length>1) {
-            int dimMatch=0;
-            for(int i=0;i<matches.length;i++) {
-               unmatched.remove(matches[i]);
-               dimMatch+=((Face)matches[i]).getCycle().getChildren().length;
-            }
-            this.matchCHTNs(next.getCycle().getChildren(),this.getTargetChildren(next),threshold);
-         }
-         else {
-            if(getMatches(matches[0]).length>1) {
-               for(int i=0;i<getMatches(matches[0]).length;i++) {
-                  unmatched.remove(getMatches(matches[0])[i]);
-               }
-               this.matchCHTNs(((Face)matches[0]).getCycle().getChildren(),this.getTargetChildren(matches[0]),threshold);
-            }
-            else {
-               unmatched.remove(matches[0]);
-               this.matchCHTNs(next.getCycle().getChildren(),((Face)matches[0]).getCycle().getChildren(),threshold);
-            }
-         }
-      }
-   }
-   this.fertig();
+%         int node;
+%         int index1, index2, length, lastindex, noiterations;
+%         int indexll1, indexll2;
+%         this.linelist = new Vector();
+%         smallesty = Integer.MAX_VALUE;
+%         smallestx = Integer.MAX_VALUE;
+%         smallestpoint = -1;       
+	$konvexeH"ulle:=\cH(Polygon)$\;
+%         // Find where the first node in linelist is in the convex hull
+%         // (Or the earliest possible if the first node is not on the hull)
+%         // This is to preserve the order in the linelist in the ordering of
+%         // points in the convex hull tree node.
+	$startindex:=0$\;
+	$endindex:=konvexeH"ulle.L"ange$\;
+	Finde den Index, in der konvexen H"ulle, der dem niedrigsten Index in dem Polygon entspricht, und speichere Ihn in $startindex$\;
+	Finde den Index, in der konvexen H"ulle, der dem h"ochsten Index in dem Polygon entspricht, und speichere Ihn in $endindex$\;
+         %for (int a=0;a<linelist.length;a++)
+% {
+%             index1 = TriRepUtil.indexOf(convhull, linelist[a]);
+%             if (index1 != -1) break;
+% }
+%         for (int a=linelist.length-1;a>=0;a--)
+% {
+%             lastindex = TriRepUtil.indexOf(convhull, linelist[a]);
+%             if (lastindex != -1) break;
+% }
+	\uWenn{$startindex<endindex$}{
+		\Fuer{$i:=startindex$ \KwTo $i\leq endindex$}{	
+			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
+		}
+	}
+	\Sonst{
+		
+        	\Fuer{$i:=index1$ \KwTo $konvexeH"ulle.L"ange$}
+		{
+			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
+		}
+		\Fuer{$i:=0$ \KwTo $endindex$}
+		{
+			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
+		}
+	}
+%         // Check lines in convex hull with lines in line list. Whenever two points
+%         // which are neighbours in the convex hull are not neighbours in the line
+%         // list, create a child node from the points between them.
+%         
+%         noiterations = numberOfLines();
+%         index1 = 0;
+%         indexll1 = 0;
+%         while (!(linelist[indexll1].equals(getLine(index1))))
+% {
+%             indexll1++;
+% }
+	\Fuer{$i<konvexeH"ulle.L"ange$}
+	{
+%             index2 = index1+1;
+%             indexll2 = indexll1+1;
+%             while (!(linelist[indexll2 % linelist.length].equals(getLine(index2 % noiterations))))
+% {
+%                 indexll2++;
+% }
+%             
+%             if ((indexll2 != indexll1+1) && ((level == 0) ||
+%                     ((indexll2 != linelist.length) && (indexll1 != linelist.length-1)))
+%                     && (indexll2 != indexll1-1))
+% {
+%                 // create child node
+%                 length = indexll2-indexll1+1;
+%                 childlist = new LineWA[length];
+%                 for (int b=0;b<length;b++)
+% {
+%                     if ((b+indexll1) < linelist.length)
+% {
+%                         childlist[length-b-1] = linelist[b+indexll1];
+% }
+%                     else
+% {
+%                         childlist[length-b-1] = linelist[b+indexll1-linelist.length];
+% }
+% }
+%                 insertChild(index1, new ConvexHullTreeNode(childlist, level+1,this.isHole,this));
+% }
+%             index1 = index2;
+%             indexll1 = indexll2;
+	}
 }
-\end{lstlisting}
-Man kann sehen, dass die eigentliche Arbeit in dem Konstruktor passiert. 
+ \end{algorithm}
+\clearpage
+\subsubsection{Bestimmung der maximalen Distanz mehrerer Polygone}
+\begin{algorithm}
+	\SetKwFunction{gLDFP}{l"angste\_Entfernung\_von\_Punkt}
+	\SetKwFunction{dist}{Quadrat\_der\_Entfernung}
+	\caption{Bestimmung der maximalen Distanz mehrerer Polygone}
+	\Ein{Mehrere Polygone repr"asentiert duch ihre Punktlisten}
+	\Aus{Der maximale Abstand von zwei Punkten}
+	\Begin{
+		Bilde eine gemeinsame Punktliste durch konkatenieren der Eingangslisten\;
+		Bilde $CH$ die konvexe H"ulle der Eingangsdaten\;
+		$i:=0$\; 
+		$tmpdist:=0$\;
+		$pos:=frac{CH.length}{2}$\;
+		\Fuer{$i<CH.length$}{
+			$pos:=\gLDFP{CH[i],CH,pos}$\;
+			$distxy:=\dist{CH[i],CH[pos]}$\;
+		        \Wenn{$distxy>tmpdist$}
+			{			
+			           $tmpdist:=distxy$\;
+			}			
+		}    
+		Das Ergebnis ist $\sqrt{tmpdist}$\;
+	}
+\end{algorithm}
 
-In den Zeilen 2-4 wird der Superkonstruktor aufgerufen, dabei werden Name, Beschreibung, Source und Target gesetzt. Dann wird ein Match f"ur die Regionen source und target hinzugef"ugt und es wird die HashTabe unmatched initialisiert.
+\begin{function}
+	\SetKwFunction{dist}{Quadrat\_der\_Entfernung}
+	\SetKwFunction{gLDFP}{l"angste\_Entfernung\_von\_Punkt}
+	\caption{l"angste\_Entfernung\_von\_Punkt(Punkt, Polygon, Startindex)}
+	\Ein{\begin{tabular}{ll}
+Punkt: &Der Punkt, zu dem der Abstand gemessen wird,\\
+	     Polygon: &Das Polygon, in dem der am weitesten \\
+			&entfernte Punkt gesucht wird\\
+	
+	     Startindex: &Der Index an dem die Suche begonnen wird\end{tabular}}
+	\BlankLine
+	\Ergebnis{Der Index des Polygonpunktes, der von dem Punkt den maximalen Abstand hat.}
+	\Begin{
+		$distpos:=\dist{Punkt,Polygon[pos]}$\;
+		$distposlinks:=\dist{Punkt,Polygon[pos+1]}$\;
+		$distposrechts:=\dist{Punkt,Polygon[pos-1]}$\;
+		\uWenn{$distpos\geq distposlinks$ und $distpos\geq distposrechts$}{
+			Gebe $pos$ als Ergebnis zur"uck\;
+		}
+		\Sonst{
+			\uWenn{$distposlinks>distpos$}{
+				Gebe $\gLDFP{Punkt, Polygon, (pos+1)}$ zur"uck\;
+			}		
+			\Sonst{Gebe $\gLDFP{Punkt, Polygon, (pos-1)}$ zur"uck\;}
+		}
+	}
+\end{function}
 
-In den Zeilen 5-15 werden alle Kombinationen von Source- und Target-Faces durchgegangen. Falls ein Match gefunden wird (hier von der Dummy-Methode isMatch()), so werden die entsprechenden Faces und die Cycles der Faces gematcht (in beiden Richtungen). In Zeile 14 werden ausserdem alle Source-Faces der Table unnmatched hinzugef"ugt.
+\begin{function}
+	\caption{Quadrat\_der\_Entfernung(Punkt1, Punkt2)}
+	\Ein{Die beiden Punkte, deren Abstand berechnet werden soll}
+	\Ergebnis{Das Quadrat des Abstandes der beiden Punkte}
+	\Begin{
+		Berechne $x_1^2$ $x_2^2$, $y_1^2$, $y_2^2$, $x_1x_2$ und $y_1y_2$ in doppelter Genauigkeit\;
+		Gebe $x_1^2+x_2^2+y_1^2+y_2^2-2(x_1x_2+y_1y_2)$ in einfacher Genauigkeit zur"uck\;
+	}
+\end{function}
 
-In den Zeilen 16-18 ereilt dieses Schicksal auch alle Target-Faces, so dass in dem Table jetzt alle Faces der beteiligten Regionen zu finden sind.
+\clearpage
 
-Die Zeilen 19-45 werden solage duchlaufen, bis unmatched leer ist, also alle Faces weiterbearbeitet sind.
+\section{Die Java-Application \anmerkung{3 Seiten}}
+\anmerkung{Hier beschreibe ich kurz, welche "Anderungen ich an der gegebenen Java-Applikation vorgenommen habe. Hier betrachte ich haupts"achlich die GUI-Komponenten.}
+\section{Die Secondo-Algebra \anmerkung{3 Seiten}}
+\anmerkung{Hier beschreibe ich kurz, wie ich die Secondo-Algebra implementiert habe. Speziell die Einbettung in das Secondo soll hier betrachtet werden.}
 
-In den Zeilen 22-24 werden die Zuordungen vorgenommen:
-\begin{itemize}
-\item next wird zum n"achsten unbearbeiteten Face
-\item next wird aus unmatched gel"oscht (next wird ja gerade bearbeitet)
-\item matches werden die Targets von next
-
-\end{itemize} 
-Falls matches nicht null ist, werden alle zu next gematchten Faces gesucht, aus dem Table gel"oscht, und es wird die Funktion matchCHTN mit den entsprechenden Kindelementen aufgerufen. Die mehrfache Verzweigung dieses Codeteiles liegt daran, dass next auf mehreren Seiten einen 1:n Beziehung liegen k"onnte. Die Methode matchCHTN macht im Prinzip das gleiche wie der Konstruktor, nur entf"allt die Sonderbehandlung der Holes und Cycles.
-
-In Zeile wird endlich die Funktion fertig aufgerufen, die das Matching, wie oben beschrieben, bereinigt.
 
 %\chapter{Vom Matching zum MovingRegion}
 

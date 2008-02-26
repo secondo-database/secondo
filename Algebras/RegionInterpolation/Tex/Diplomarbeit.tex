@@ -1,4 +1,4 @@
-\includeonly{settings,HandbuchInc,titel,Kapitel1,Kapitel2,Kapitel3,Kapitel4,Quelltexte,Anhaenge}
+\includeonly{settings,HandbuchInc,titel,Kapitel1,Kapitel2,Kapitel3,Kapitel4,Kapitel5,Kapitel6,Quelltexte,ErstellungEigenerMatches}
 \include{settings}
 \begin{document}
 \include{titel}
@@ -10,10 +10,15 @@ Diplomarbeit halt
 \doparttoc
 
 \tableofcontents 
+
+%
+
 \include{Kapitel1}
 \include{Kapitel2}
 \include{Kapitel3}
 \include{Kapitel4}
+\include{Kapitel5}
+\include{Kapitel6}
 
 \begin{appendix} \label{anhang}
 \part*{Anhänge}
@@ -22,7 +27,7 @@ Diplomarbeit halt
 \parttoc
 
  \include{HandbuchInc}  
- 
+ \include{ErstellungEigenerMatches}
  \chapter{Klassendiagramm}
  \begin{landscape}
  \begin{figure}	
@@ -89,8 +94,8 @@ Diplomarbeit halt
  \include{Quelltexte} 
   
  \printindex
- \addcontentsline{toc}{chapter}{C Stichwortverzeichnis}
- \setcounter{chapter}{4}
+ \addcontentsline{toc}{chapter}{E Stichwortverzeichnis}
+ \setcounter{chapter}{5}
 \bibliography{literatur}
 
 \bibliographystyle{geralpha}
