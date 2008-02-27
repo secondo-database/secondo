@@ -4677,12 +4677,12 @@ RenameTypeMap( ListExpr args )
   second  = nl->Second(args);
   
   nl->WriteToString(argstr, first);  
-  CHECK_COND( nl->ListLength(first) == 2   &&
-    TypeOfRelAlgSymbol(nl->First(first) == stream) &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator rename expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
+  if (!IsStreamDescription(first)) {
+    ErrorReporter::ReportError(	  
+    "Operator rename expects a valid tuple stream "
     "Operator rename gets a list with structure '" + argstr + "'.");
+    return nl->TypeError();
+  }  
   
   nl->WriteToString(argstr, second);   
   CHECK_COND( nl->IsAtom(second) && 
