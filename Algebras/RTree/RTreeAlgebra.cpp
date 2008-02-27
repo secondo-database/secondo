@@ -435,39 +435,20 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
     "the attribute to index.");
   attrName = nl->SymbolValue(attrNameLE);
 
-  nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(!nl->IsEmpty(relDescription) &&
-    nl->ListLength(relDescription) == 2,
-    errmsg +
-    "\nOperator creatertree expects a first argument with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) or "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets it with structure '" + relDescriptionStr + "'.");
-
+  // Check for relation as first argument
+  if( !IsRelDescription(relDescription) ){
+    nl->WriteToString (relDescriptionStr, relDescription);
+    ErrorReporter::ReportError( "\nOperator creatertree expects a relation as "
+        "its first argument, but gets '" + relDescriptionStr + "'.");
+    return nl->TypeError();
+  }
+  // Test for index attribute
   ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND((nl->IsEqual(nl->First(relDescription), "rel") ||
-    nl->IsEqual(nl->First(relDescription), "stream")) &&
-    nl->ListLength(tupleDescription) == 2,
-    errmsg +
-    "\nOperator creatertree expects a first argument with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) or "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets it with structure '" + relDescriptionStr + "'.");
-
   ListExpr attrList = nl->Second(tupleDescription);
-  CHECK_COND(nl->IsEqual(nl->First(tupleDescription), "tuple") &&
-    IsTupleDescription(attrList),
-    errmsg +
-    "\nOperator creatertree expects a first argument with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) or "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets it with structure '" + relDescriptionStr + "'.");
-
   CHECK_COND(
     (attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
     errmsg +
-    "\nOperator creatertree expects that the attribute " +
+    "\nOperator creatertree expects the attribute " +
     attrName + "\npassed as second argument to be part of "
     "the relation or stream description\n'" +
     relDescriptionStr + "'.");
@@ -1083,35 +1064,16 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
 
   /* handle rel part of argument */
   nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
-  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
+  if( !IsRelDescription(relDescription) ){
+    nl->WriteToString (relDescriptionStr, relDescription);
+    ErrorReporter::ReportError( "\nOperator windowintersects expects a "
+        "relation as its first argument, but gets '"
+        + relDescriptionStr + "'.");
+    return nl->TypeError();
+  }
 
-  ListExpr relSymbol = nl->First(relDescription);;
   ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND(nl->IsAtom(relSymbol) &&
-    nl->AtomType(relSymbol) == SymbolType &&
-    nl->SymbolValue(relSymbol) == "rel" &&
-    !nl->IsEmpty(tupleDescription) &&
-    !nl->IsAtom(tupleDescription) &&
-    nl->ListLength(tupleDescription) == 2,
-    "Operator windowintersects expects a R-Tree with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
-    "but gets a relation list with structure \n"
-    "'"+relDescriptionStr+"'.");
-
-  ListExpr tupleSymbol = nl->First(tupleDescription);
   ListExpr attrList = nl->Second(tupleDescription);
-
-  CHECK_COND(nl->IsAtom(tupleSymbol) &&
-    nl->AtomType(tupleSymbol) == SymbolType &&
-    nl->SymbolValue(tupleSymbol) == "tuple" &&
-    IsTupleDescription(attrList),
-    "Operator windowintersects expects a R-Tree with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
-    "but gets a relation list with structure \n"
-    "'"+relDescriptionStr+"'.");
 
   /* check that rtree and rel have the same associated tuple type */
   CHECK_COND(nl->Equal(attrList, rtreeAttrList),
@@ -1692,7 +1654,7 @@ WindowIntersectsSSelection( ListExpr args )
 }
 
 /*
-5.1.3 Value mapping function of operator ~windowintersectsB~
+5.1.3 Value mapping function of operator ~windowintersectsS~
 
 */
 template <unsigned dim, class LeafInfo>
@@ -1942,19 +1904,23 @@ ListExpr GetTuplesTypeMap(ListExpr args)
 
   // Handle the stream part of arguments
   nl->WriteToString (streamDescriptionStr, streamDescription);
-  CHECK_COND(IsStreamDescription(streamDescription),
-    errmsg +
-    "\nOperator gettuples expects a first argument with structure "
-    "(stream (tuple ((id tid) (a1 t1)...(an tn))))\n"
-    "but gets it with structure '" + streamDescriptionStr + "'.");
+  if( !IsStreamDescription(streamDescription) )
+  {
+    ErrorReporter::ReportError("\nOperator 'gettuples' expects a valid "
+        "tuplestream as its first argument, but gets '"
+        + streamDescriptionStr + "'.");
+    return nl->TypeError();
+  }
 
   // Handle the rel part of arguments
   nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(IsRelDescription(relDescription),
-    errmsg +
-    "\nOperator gettuples expects a second argument with structure "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "but gets it with structure '" + relDescriptionStr + "'.");
+  if( !IsRelDescription(relDescription) )
+  {
+    ErrorReporter::ReportError("\nOperator 'gettuples' expects a valid "
+        "relation as its second argument, but gets '"
+        + relDescriptionStr + "'.");
+    return nl->TypeError();
+  }
 
   ListExpr sTupleDescription = nl->Second(streamDescription),
            sAttrList = nl->Second(sTupleDescription),
@@ -1979,7 +1945,7 @@ ListExpr GetTuplesTypeMap(ListExpr args)
     {
       CHECK_COND(tidIndex == 0,
        "Operator gettuples expects as first argument a stream with\n"
-       "one and only one attribute of type tid but gets\n'" +
+       "one and only one attribute of type 'tid' but gets\n'" +
        streamDescriptionStr + "'.");
       tidIndex = j;
     }
@@ -2015,7 +1981,7 @@ ListExpr GetTuplesTypeMap(ListExpr args)
 
   CHECK_COND( tidIndex != 0,
     "Operator gettuples expects as first argument a stream with\n"
-    "one and only one attribute of type tid but gets\n'" +
+    "one and only one attribute of type 'tid' but gets\n'" +
     streamDescriptionStr + "'.");
 
   if( !IsTupleDescription(newAttrList) ){
@@ -2138,7 +2104,7 @@ const string gettuplesSpec  =
       "<text>Retrieves the tuples in the relation in the second "
       "argument given by the tuple id in first argument stream. "
       "The result tuple type is a concatenation of both types "
-      "without the tid attribute.</text--->"
+      "without the 'tid' attribute.</text--->"
       "<text>query citiesInd windowintersectsS[r] cities gettuples; "
       "where citiesInd is e.g. created with 'let citiesInd = "
       "cities creatertree [pos]'</text--->"
@@ -2374,21 +2340,23 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
 
   // Handle the stream part of arguments
   nl->WriteToString (streamDescriptionStr, streamDescription);
-
-  CHECK_COND(IsStreamDescription(streamDescription),
-    errmsg +
-    "\nOperator gettuplesdbl expects a first argument with structure "
-    "(stream (tuple ((id tid) (a1 t1)...(an tn))))\n"
-    "but gets it with structure '" + streamDescriptionStr + "'.");
+  if ( !IsStreamDescription(streamDescription) )
+  {
+    ErrorReporter::ReportError( "\nOperator gettuplesdbl expects a valid "
+        "tuplestream as its first argument, but gets '"
+        + streamDescriptionStr + "'." );
+    return nl->TypeError();
+  }
 
   // Handle the rel part of arguments
   nl->WriteToString (relDescriptionStr, relDescription);
-
-  CHECK_COND(IsRelDescription(relDescription),
-    errmsg +
-    "\nOperator gettuplesdbl expects a second argument with structure "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "but gets it with structure '" + relDescriptionStr + "'.");
+  if ( !IsRelDescription(relDescription) )
+  {
+    ErrorReporter::ReportError( "\nOperator gettuplesdbl expects a valid "
+        "relation as its second argument, but gets '"
+        + relDescriptionStr + "'." );
+        return nl->TypeError();
+  }
 
   ListExpr sTupleDescription = nl->Second(streamDescription),
            sAttrList = nl->Second(sTupleDescription),
@@ -2734,39 +2702,25 @@ ListExpr CreateRTreeBulkLoadTypeMap(ListExpr args)
 
   CHECK_COND(nl->IsAtom(attrNameLE) &&
       nl->AtomType(attrNameLE) == SymbolType,
-  errmsg + "\nThe second argument must be the name of "
-      "the attribute to index.");
+  errmsg + "\nThe second argument for operator creatertree_bulkload must be "
+      "the name of the attribute to index.");
   attrName = nl->SymbolValue(attrNameLE);
 
   nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(!nl->IsEmpty(relDescription) &&
-      nl->ListLength(relDescription) == 2,
-  errmsg +
-      "\nOperator creatertree expects a first argument with structure "
-      "(stream (tuple ((a1 t1)...(an tn))))\n"
-      "but gets it with structure '" + relDescriptionStr + "'.");
+  if( !IsStreamDescription(relDescription) )
+  {
+    ErrorReporter::ReportError("\nOperator creatertree_bulkload expects a "
+        "valid tuplestream as its first argument, but gets '"
+        + relDescriptionStr + "'.");
+    return nl->TypeError();
+  }
 
   ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND( (nl->IsEqual(nl->First(relDescription), "stream")) &&
-      nl->ListLength(tupleDescription) == 2,
-  errmsg +
-      "\nOperator creatertree_bulkload expects a first argument with "
-      "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-      "but gets it with structure '" + relDescriptionStr + "'.");
-
   ListExpr attrList = nl->Second(tupleDescription);
-  CHECK_COND(nl->IsEqual(nl->First(tupleDescription), "tuple") &&
-      IsTupleDescription(attrList),
-  errmsg +
-      "\nOperator creatertree_bulkload expects a first argument with "
-      "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-      "but gets it with structure '" + relDescriptionStr + "'.");
-
   CHECK_COND(
       (attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
   errmsg +
-      "\nOperator creatertree_bulkload expects that the attribute " +
+      "\nOperator creatertree_bulkload expects the attribute " +
       attrName + "\npassed as second argument to be part of "
       "the stream description\n'" +
       relDescriptionStr + "'.");
