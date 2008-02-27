@@ -236,7 +236,8 @@ class SortByLocalInfo : protected ProgressWrapper
 {
   public:
     SortByLocalInfo( Word stream, const bool lexicographic,
-		     void *tupleCmp, ProgressLocalInfo* p            ):
+		     void *tupleCmp, ProgressLocalInfo* p, 
+		     bool mkRndSubset = false):
       ProgressWrapper(p),
       stream( stream ),
       currentIndex( 0 ),
@@ -253,136 +254,172 @@ class SortByLocalInfo : protected ProgressWrapper
         // does not help us in this case. Is it a Compiler bug or C++ feature?
         // Hence a new class TupleAndRelPos was defined which implements
         // the comparison operator '<'.
-        TupleQueue* currentRun = &queue[0];
-        TupleQueue* nextRun = &queue[1];
-
-        Word wTuple = SetWord(Address(0));
-        size_t  c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
-        bool newRelation = true;
-
-
-        MAX_MEMORY = qp->MemoryAvailableForOperator();
-        cmsg.info("ERA:ShowMemInfo")
-          << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
-        cmsg.send();
-
-        TupleBuffer *rel=0;
-        TupleAndRelPos lastTuple(0, tupleCmpBy);
-
-        qp->Request(stream.addr, wTuple);
-        TupleAndRelPos minTuple(0, tupleCmpBy);
-        while(qp->Received(stream.addr)) // consume the stream completely
+	
+	InitRuns();
+        if (!mkRndSubset)
+        {	 
+	  CreateRuns();
+	}
+        else
         {
-          progress->read++;
-          c++; // tuple counter;
-          Tuple *t = static_cast<Tuple*>( wTuple.addr );
-          TupleAndRelPos nextTuple(t, tupleCmpBy);
-          if( MAX_MEMORY > (size_t)t->GetSize() )
-          {
-            nextTuple.tuple->IncReference();
-            currentRun->push(nextTuple);
-            i++; // increment Tuples in memory counter
-            MAX_MEMORY -= t->GetSize();
-          }
-          else
-          { // memory is completely used
-            progress->state = 1;
-            if ( newRelation )
-            { // create new relation
-              r++;
-              rel = new TupleBuffer( 0 );
-              GenericRelationIterator *iter = 0;
-              relations.push_back( make_pair( rel, iter ) );
-              newRelation = false;
-
-              // get first tuple and store it in an relation
-              nextTuple.tuple->IncReference();
-              currentRun->push(nextTuple);
-              minTuple = currentRun->top();
-              minTuple.tuple->DecReference();
-              rel->AppendTuple( minTuple.tuple );
-              lastTuple = minTuple;
-              currentRun->pop();
-            }
-            else
-            { // check if nextTuple can be saved in current relation
-              TupleAndRelPos copyOfLast = lastTuple;
-              if ( nextTuple < lastTuple )
-              { // nextTuple is in order
-                // Push the next tuple int the heap and append the minimum to
-                // the current relation and push
-                nextTuple.tuple->IncReference();
-                currentRun->push(nextTuple);
-                minTuple = currentRun->top();
-                minTuple.tuple->DecReference();
-                rel->AppendTuple( minTuple.tuple );
-                lastTuple = minTuple;
-                currentRun->pop();
-                m++;
-              }
-              else
-              { // nextTuple is smaller, save it for the next relation
-                nextTuple.tuple->IncReference();
-                nextRun->push(nextTuple);
-                n++;
-                if ( !currentRun->empty() )
-                {
-                  // Append the minimum to the current relation
-                  minTuple = currentRun->top();
-                  minTuple.tuple->DecReference();
-                  rel->AppendTuple( minTuple.tuple );
-                  lastTuple = minTuple;
-                  currentRun->pop();
-                }
-                else
-                { //create a new run
-                  newRelation = true;
-
-                  // swap queues
-                  TupleQueue *helpRun = currentRun;
-                  currentRun = nextRun;
-                  nextRun = helpRun;
-                  ShowPartitionInfo(c,a,n,m,r,rel);
-                  i=n;
-                  a=0;
-                  n=0;
-                  m=0;
-                } // end new run
-              } // end next tuple is smaller
-
-              // delete last tuple if saved to relation and
-              // not referenced by minTuple
-              if ( copyOfLast.tuple && (copyOfLast.tuple != minTuple.tuple) )
-              {
-                copyOfLast.tuple->DeleteIfAllowed();
-              }
-
-            } // check if nextTuple can be saved in current relation
-          }// memory is completely used
-
-          qp->Request(stream.addr, wTuple);
-        }
-        ShowPartitionInfo(c,a,n,m,r,rel);
-
-        // delete lastTuple and minTuple if allowed
-        if ( lastTuple.tuple )
-        {
-          lastTuple.tuple->DeleteIfAllowed();
-        }
-        if ( (minTuple.tuple != lastTuple.tuple) )
-        {
-          minTuple.tuple->DeleteIfAllowed();
-        }
-
-        // copy the lastRun and NextRun runs into tuple buffers
-        // which stay in memory.
-        CopyQueue2Vector(0);
-        CopyQueue2Vector(1);
-
-	InitMerge();
-
-        Counter::getRef("Sortby:ExternPartitions") = relations.size();
+	  MakeRndSubset();
+        }	 
+        FinishRuns();	
+        InitMerge();
       }
+
+
+  public:
+
+  void InitRuns()
+  {
+    currentRun = &queue[0];
+    nextRun = &queue[1];
+
+    c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
+    newRelation = true;
+
+    MAX_MEMORY = qp->MemoryAvailableForOperator();
+    cmsg.info("ERA:ShowMemInfo")
+      << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
+    cmsg.send();
+
+    lastTuple = TupleAndRelPos(0, tupleCmpBy);
+    minTuple = TupleAndRelPos(0, tupleCmpBy);
+
+    rel=0;
+  }	
+
+  void CreateRuns()
+  {
+    Word wTuple = SetWord(Address(0));
+    qp->Request(stream.addr, wTuple);
+    while(qp->Received(stream.addr)) // consume the stream completely
+    {
+      Tuple *t = static_cast<Tuple*>( wTuple.addr );
+      AppendTuple(t);
+      qp->Request(stream.addr, wTuple);
+    }
+  }
+
+  void MakeRndSubset()
+  {
+
+  } 
+
+  void FinishRuns()
+  {
+    ShowPartitionInfo(c,a,n,m,r,rel);
+    Counter::getRef("Sortby:ExternPartitions") = relations.size();
+
+    // delete lastTuple and minTuple if allowed
+    if ( lastTuple.tuple )
+    {
+      lastTuple.tuple->DeleteIfAllowed();
+    }
+    if ( (minTuple.tuple != lastTuple.tuple) )
+    {
+      minTuple.tuple->DeleteIfAllowed();
+    }
+
+    // copy the lastRun and NextRun runs into tuple buffers
+    // which stay in memory.
+    CopyQueue2Vector(0);
+    CopyQueue2Vector(1);
+
+  }	
+
+
+  inline void AppendTuple(Tuple* t)
+  {
+    progress->read++;
+    c++; // tuple counter;
+    TupleAndRelPos nextTuple(t, tupleCmpBy);
+    if( MAX_MEMORY > (size_t)t->GetSize() )
+    {
+      nextTuple.tuple->IncReference();
+      currentRun->push(nextTuple);
+      i++; // increment Tuples in memory counter
+      MAX_MEMORY -= t->GetSize();
+    }
+    else
+    { // memory is completely used
+      progress->state = 1;
+      if ( newRelation )
+      { // create new relation
+	r++;
+	rel = new TupleBuffer( 0 );
+	GenericRelationIterator *iter = 0;
+	relations.push_back( make_pair( rel, iter ) );
+	newRelation = false;
+
+	// get first tuple and store it in an relation
+	nextTuple.tuple->IncReference();
+	currentRun->push(nextTuple);
+	minTuple = currentRun->top();
+	minTuple.tuple->DecReference();
+	rel->AppendTuple( minTuple.tuple );
+	lastTuple = minTuple;
+	currentRun->pop();
+      }
+      else
+      { // check if nextTuple can be saved in current relation
+	TupleAndRelPos copyOfLast = lastTuple;
+	if ( nextTuple < lastTuple )
+	{ // nextTuple is in order
+	  // Push the next tuple int the heap and append the minimum to
+	  // the current relation and push
+	  nextTuple.tuple->IncReference();
+	  currentRun->push(nextTuple);
+	  minTuple = currentRun->top();
+	  minTuple.tuple->DecReference();
+	  rel->AppendTuple( minTuple.tuple );
+	  lastTuple = minTuple;
+	  currentRun->pop();
+	  m++;
+	}
+	else
+	{ // nextTuple is smaller, save it for the next relation
+	  nextTuple.tuple->IncReference();
+	  nextRun->push(nextTuple);
+	  n++;
+	  if ( !currentRun->empty() )
+	  {
+	    // Append the minimum to the current relation
+	    minTuple = currentRun->top();
+	    minTuple.tuple->DecReference();
+	    rel->AppendTuple( minTuple.tuple );
+	    lastTuple = minTuple;
+	    currentRun->pop();
+	  }
+	  else
+	  { //create a new run
+	    newRelation = true;
+
+	    // swap queues
+	    TupleQueue *helpRun = currentRun;
+	    currentRun = nextRun;
+	    nextRun = helpRun;
+	    ShowPartitionInfo(c,a,n,m,r,rel);
+	    i=n;
+	    a=0;
+	    n=0;
+	    m=0;
+	  } // end new run
+	} // end next tuple is smaller
+
+	// delete last tuple if saved to relation and
+	// not referenced by minTuple
+	if ( copyOfLast.tuple && (copyOfLast.tuple != minTuple.tuple) )
+	{
+	  copyOfLast.tuple->DeleteIfAllowed();
+	}
+
+      } // end of check if nextTuple can be saved in current relation
+    }// end of memory is completely used
+
+  }	
+
 
 /*
 It may happen, that the localinfo object will be destroyed
@@ -437,24 +474,10 @@ In this case we need to delete also all tuples stored in memory.
         TupleAndRelPos p = mergeTuples.top();
         p.tuple->DecReference();
         mergeTuples.pop();
+
         Tuple *result = p.tuple;
         Tuple *t = 0;
-
-        //if (p.pos > 0)
-          t = relations[p.pos].second->GetNextTuple();
-        /*else
-        {
-          int idx = p.pos+2;
-          if ( !queue[idx].empty() )
-          {
-            t = queue[idx].top().tuple;
-            //t->DecReference();
-	    memrelations[idx].push_back(p);
-            queue[idx].pop();
-          }
-          else
-            t = 0;
-        }*/
+        t = relations[p.pos].second->GetNextTuple();
 
         if( t != 0 )
         { // run not finished
@@ -470,8 +493,9 @@ In this case we need to delete also all tuples stored in memory.
     {	    
       for( size_t i = 0; i < relations.size(); i++ )
       {
-	if ( relations[i].second != 0 )
+	if ( relations[i].second != 0 ) {
 	  delete relations[i].second;
+	}  
 
         relations[i].second = relations[i].first->MakeScan();
 
@@ -508,18 +532,18 @@ In this case we need to delete also all tuples stored in memory.
       }
     }
 
-    void CopyQueue2Vector(int idx)
+    void CopyQueue2Vector(int i)
     {
-      assert(idx == 0 || idx ==1);
+      assert( i == 0 || i == 1 );
 
       TupleBuffer* tbuf = new TupleBuffer();
       GenericRelationIterator *iter = 0;
       relations.push_back( make_pair( tbuf, iter ) );
 
-      while( !queue[0].empty() )
+      while( !queue[i].empty() )
       {
-	Tuple* t = queue[0].top().tuple;
-	queue[0].pop();
+	Tuple* t = queue[i].top().tuple;
+	queue[i].pop();
 	t->DecReference();
 	tbuf->AppendTuple(t);
       }          
@@ -543,6 +567,19 @@ In this case we need to delete also all tuples stored in memory.
     TupleQueue queue[2];
     TupleQueue mergeTuples;
     TupleVector memrelations[2];
+
+  private:
+    TupleQueue* currentRun;
+    TupleQueue* nextRun;
+
+    TupleBuffer* rel;
+
+    size_t  c, i, a, n, m, r; // counter variables
+
+    bool newRelation;
+
+    TupleAndRelPos lastTuple;
+    TupleAndRelPos  minTuple;
 };
 
 
@@ -1067,12 +1104,11 @@ class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo
                         _streamB, wAttrIndexB, 
                         _expectSorted, s, p ),
     streamPos(0),
-    memTuples(500),
-    run(0),
+    positions(500,0),	
     memBufIter(0),     
     memBufFinished(false),
     firstScanFinished(false),
-    trace(false)
+    trace(true)
   {}	  	  
 
   ~MergeJoinLocalInfoSHF() {
@@ -1091,10 +1127,34 @@ class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo
        while (res != 0)
        {
          // decide if tuple replaces one of the buffer
-         append(res);
          streamPos++;
+
+	    size_t i = 0;
+	    bool replaced = false;
+	    Tuple* v = rtBuf.ReplacedByRandom(res, i, replaced);
+	    
+	    if ( replaced )
+	    { 
+	      positions[i] = streamPos;	    
+	      // v was replaced by res
+	      if (v != 0) {
+		//persBuf.AppendTuple(v);	    
+		v->DeleteIfAllowed();
+	      }	
+	    }
+	    else 
+	    { 
+	      assert(v == 0);
+	      // v == 0, and t was not stored in buffer
+	      res->DeleteIfAllowed();
+	    }
+
          res = MergeJoinLocalInfo::NextResultTuple();
        } 
+       if (trace)
+         cerr << "copy2TupleBuf" << endl;
+
+       rtBuf.copy2TupleBuf( memBuf );
 
          // reset scan	     
          firstScanFinished = true;
@@ -1147,73 +1207,13 @@ class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo
      return res;
   }	  
 
-  void append(Tuple* t) {
-	  
-    int i = streamPos % memTuples;  	  
-    if ( i == 0 ) {
-     run++;
-
-     if (trace) {
-
-       cerr << endl
-	    << "memTuples: " << memTuples   
-	    << ", run: " << run
-	    << ", positions.size: " << positions.size()
-	    << ", replaced slots:" 
-	    << endl;
-     }  
-    }	     
-
-    if (run == 1) 
-    {
-      // fill buffer the first time	    
-      memBuf.AppendTuple(t);	    
-      positions.push_back(streamPos);
-    }	    
-    else 
-    { // run > 1
-
-    int r = WinUnix::rand(run); 
-    if (trace) {
-      cerr << " r = " << r;
-    }  
-
-    assert( (r >= 1) && (r <= run) );
-
-    if ( r == run )
-    { 
-      if (trace) {
-        cerr << " i = " << i;	
-      }	
-
-      // tuple will be selected for the	front part 
-      // of the output stream.
-      Tuple* s = memBuf.GetTupleAtPos(i);
-      s->DecReference();
-      s->DeleteIfAllowed();
-      t->IncReference();
-      memBuf.SetTupleAtPos(i, t);
-      positions[i] = streamPos;
-    } 
-    else
-    {
-      t->DeleteIfAllowed();  
-    }
-
-    } // end of run > 1
-  }
-
-
   private:
-    size_t streamPos;
-    size_t memTuples;
-    int run;
+  size_t streamPos;
 
-  //TupleBuffer persBuf;
   TupleBuffer memBuf;
   vector<size_t> positions;
   vector<size_t>::const_iterator posIter;
-  //size_t skip;
+  RandomTBuf rtBuf;
   
   GenericRelationIterator* memBufIter;
   bool memBufFinished;
