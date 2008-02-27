@@ -178,7 +178,7 @@ open database relalgtest;
                 ("Wuerzburg" 128000 8700 '932387399811123125657234' "WUE")
                 ("Wuppertal" 377000 5600 '2009809328735423498' "W"))));
 
-query setoption("MaxMemPerOperator", 256)
+query setoption("MaxMemPerOperator", 256 * 1024);
 
 #testcase count2
 #yields (int 10)
@@ -462,7 +462,7 @@ query Staedte sample[0, 1.0] count
 
 #testcase intstream1
 #yields (bool TRUE)
-query intstream(1, 4000000) use[fun(i:int) randint(i)] transformstream count = 4000000;
+query intstream(1, 4000000) use[fun(i:int) randint(i)] transformstream sort count = 4000000;
 
 
 
