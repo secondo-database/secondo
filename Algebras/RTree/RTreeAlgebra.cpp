@@ -435,11 +435,14 @@ ListExpr CreateRTreeTypeMap(ListExpr args)
     "the attribute to index.");
   attrName = nl->SymbolValue(attrNameLE);
 
-  // Check for relation as first argument
-  if( !IsRelDescription(relDescription) ){
+  // Check for relation or tuplestream as first argument
+  if( !IsRelDescription(relDescription) &&
+      !IsStreamDescription(relDescription) )
+  {
     nl->WriteToString (relDescriptionStr, relDescription);
-    ErrorReporter::ReportError( "\nOperator creatertree expects a relation as "
-        "its first argument, but gets '" + relDescriptionStr + "'.");
+    ErrorReporter::ReportError( "\nOperator creatertree expects a relation or "
+        " tuplestream as its first argument, but gets '"
+        + relDescriptionStr + "'.");
     return nl->TypeError();
   }
   // Test for index attribute
@@ -923,26 +926,22 @@ ValueMapping rtreecreatertreemap [] = { CreateRTreeRelSpatial<2>,
 */
 
 const string CreateRTreeSpec  =
-  "( ( \"1st Signature\" \"2nd Signature\" "
-  "\"3rd Signature\" \"Syntax\" \"Meaning\" "
-  "\"1st Example\" \"2nd Example\" "
-  "\"3rd Example\" ) "
+  "( ( \"1st Signature\""
+  " \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
   "( <text>((rel (tuple (x1 t1)...(xn tn)))) xi)"
-  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)</text--->"
-  "<text>((stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
-  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)</text--->"
-  "<text>((stream (tuple (x1 t1)...(xn tn) "
+  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)\n"
+  "((stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
+  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)\n"
+  "((stream (tuple (x1 t1)...(xn tn) "
   "(id tid)(low int)(high int))) xi)"
   " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)</text--->"
   "<text>_ creatertree [ _ ]</text--->"
   "<text>Creates an rtree<d>. The key type ti must "
   "be of kind SPATIAL2D, SPATIAL3D, SPATIAL4D or Spatial8D, "
   "or of type rect, rect2, rect3, rect4 or rect8.</text--->"
-  "<text>let myrtree = Kreis creatertree [Gebiet]</text--->"
   "<text>let myrtree = Kreis feed extend[id: tupleid(.)] "
   "creatertree[Gebiet]</text--->"
-  "<text>let myrtree = Kreis feed extend[id: tupleid(.)] "
-  "extend[low: 0, high: 0] creatertree[Gebiet]</text--->"
   ") )";
 
 /*
