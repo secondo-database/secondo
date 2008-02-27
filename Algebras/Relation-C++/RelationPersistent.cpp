@@ -120,6 +120,7 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+// for displaying debugging outputs set it to true
 bool Tuple::debug = false;
 
 void
