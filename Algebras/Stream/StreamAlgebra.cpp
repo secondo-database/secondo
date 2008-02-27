@@ -2798,11 +2798,12 @@ streamCountFun (Word* args, Word& result, int message, Word& local, Supplier s)
   while ( qp->Received(args[0].addr) )
     {
       count++;
-      ((Attribute*) elem.addr)->DeleteIfAllowed();// consume the stream objects
-    qp->Request(args[0].addr, elem);
+      Attribute* attr = static_cast<Attribute*>( elem.addr );
+      attr->DeleteIfAllowed(); // consume the stream object
+      qp->Request(args[0].addr, elem);
     }
   result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->Set(true, count);
+  static_cast<CcInt*>(result.addr)->Set(true, count);
 
   qp->Close(args[0].addr);
 
