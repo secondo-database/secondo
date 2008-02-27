@@ -1518,7 +1518,7 @@ Positions start at zero.
 
 */
 
-    bool IsEmpty() const;
+    inline bool IsEmpty() const;
 /*
 Checks if the tuple buffer is empty or not.
 
@@ -1577,6 +1577,41 @@ taking into account the FLOBs.
   void updateDataStatistics();
 
 };
+
+/*
+The class ~RandomTBuf~ provides a special kind of tuple buffer
+which draws a random subset of N tuples for all tuples which
+are given to it. 
+
+Only the selected tuples are stored there, rejected or released
+tuples must be handled elsewhere
+
+*/
+
+
+class RandomTBuf
+{
+  public:
+  RandomTBuf( size_t subsetSize = 500 );
+  ~RandomTBuf() {};
+
+  Tuple* ReplacedByRandom(Tuple* in, size_t& idx, bool& replaced);
+
+  typedef vector<Tuple*> Storage;
+  typedef Storage::iterator iterator;
+
+  iterator begin() { return memBuf.begin(); }
+  iterator end()   { return memBuf.end(); }
+
+  void copy2TupleBuf(TupleBuffer& tb);
+
+  private:
+    size_t subsetSize;
+    size_t streamPos;
+    int run;
+    bool trace;
+    Storage memBuf;
+}; 
 
 /*
 4 Type constructor ~rel~

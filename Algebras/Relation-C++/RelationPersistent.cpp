@@ -848,10 +848,10 @@ void TupleBuffer::clearAll()
 	it != memoryBuffer.end(); it++ )
    {
      //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl; 
-     if (*it != 0) {
+     //if (*it != 0) {
        (*it)->DecReference();
        (*it)->DeleteIfAllowed();
-     }  
+     //}  
    }  
    memoryBuffer.clear();
    totalSize=0;
@@ -1119,6 +1119,80 @@ TupleId TupleBufferIterator::GetTupleId() const
     return currentTuple-1;
   }
 }
+
+
+RandomTBuf::RandomTBuf(size_t setSize /*= default*/)
+  : subsetSize(setSize),
+    streamPos(0),
+    run(0),
+    trace(false),
+    memBuf(subsetSize,0)
+{} 
+
+
+Tuple* RandomTBuf::ReplacedByRandom(Tuple* s, size_t& i, bool& replaced)
+{
+    Tuple* t = 0;
+    replaced = false;
+
+    i = streamPos % subsetSize;  	  
+    if ( i == 0 ) 
+    {
+     run++;
+
+     if (trace) {
+
+       cerr << endl
+	    << "subsetSize: " << subsetSize  
+	    << ", run: " << run
+	    << ", replaced slots:" 
+	    << endl;
+     }  
+    }	     
+
+    if (run > 0)
+    { 
+      int r = WinUnix::rand(run); 
+      if (trace) {
+        cerr << ", r = " << r;
+      }  
+
+      assert( (r >= 1) && (r <= run) );
+
+      //cout << "s:" << *s << endl;
+      if ( r == run )
+      { 
+	if (trace) {
+	  cerr << ", i = " << i;	
+	}	
+
+	// tuple s will be selected for the front part 
+	// of the output stream. The currently stored tuple
+	// t at slot i will be released.
+        replaced = true;
+
+	t = memBuf[i];
+	if (t != 0) {
+	  //cout << "t:" << *t << endl;
+	  t->DecReference();
+	}  
+	s->IncReference();
+	memBuf[i] = s;
+      } 
+    } // end of run > 0
+
+    streamPos++;
+    return t;
+}
+
+void RandomTBuf::copy2TupleBuf(TupleBuffer& tb)
+{
+    for(iterator it = begin(); it != end(); it++) {
+      (*it)->DecReference();	    
+      tb.AppendTuple(*it);
+    }	
+}	
+
 
 /*
 4 Type constructor ~rel~
