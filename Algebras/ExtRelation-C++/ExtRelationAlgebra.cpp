@@ -8716,7 +8716,7 @@ int printrefs_vm( Word* args, Word& result, int message,
 	{
 	  cout << " " << t->GetAttribute(i)->NoRefs();	
 	}       	
-        cout << ")" << endl;
+        cout << " )" << endl;
 
         result.addr = t;
 	return YIELD;

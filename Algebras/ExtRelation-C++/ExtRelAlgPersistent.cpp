@@ -1052,6 +1052,7 @@ public:
 
      Tuple* result = new Tuple( resultTupleType );
      Concat( ptA.tuple, t, result );
+     t->DeleteIfAllowed();
 
      return result;  
     }
