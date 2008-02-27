@@ -969,16 +969,12 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   nl->WriteToString(argstr, first);
 
   // check the structure of the list.
-  CHECK_COND(nl->ListLength(first) == 2  &&
-             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-             (nl->ListLength(nl->Second(first)) == 2) &&
-             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-             (nl->ListLength(nl->Second(first)) == 2) &&
-             (IsTupleDescription(nl->Second(nl->Second(first)))),
-  "Operator makemvalue expects as first argument a list with structure "
-  "(stream (tuple ((a1 t1)...(an tn))))\n"
-  "Operator makemvalue gets as first argument '" + argstr + "'." );
-
+  if( !IsStreamDescription(first) )
+  {
+    ErrorReporter::ReportError("Operator makemvalue expects as first argument "
+      "a tuplestream, but gets '" + argstr + "'.");
+    return nl->TypeError();
+  }
 
   // check the given parameter
   second  = nl->Second(args);
