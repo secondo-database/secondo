@@ -1,5 +1,5 @@
 Database: networktest
-Restore : NO
+Restore : no
 
 Operator : junctions
 Number   : 1
@@ -37,12 +37,19 @@ Operator : length
 Number   : 1
 Signature: gline -> real
 Example  : query length(shortest_path(X_GPOINT, X_GPOINT2))
-Result   : 3568.7576255798
+Result   : 12356.5436770293
 Tolerance:%0.01
 
 Operator : distance
 Number   : 1
 Signature: gpoint x gpoint -> real
 Example  : query distance(X_GPOINT, X_GPOINT2)
-Result   : 3568.7576255798
+Result   : 12356.5436770293
+Tolerance:%0.01
+
+Operator : point2gpoint
+Number   : 1
+Signature: point -> gpoint
+Example  : query point2gpoint(X_NETWORK, [const point value(8594.0 8773.0)])
+Result   : (gpoint (1 1 385.0474775448921 2))
 Tolerance:%0.01

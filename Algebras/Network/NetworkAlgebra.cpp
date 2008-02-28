@@ -28,6 +28,8 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
+February 2008 Simone Jandt added OpPoint2GPoint
+
 
 This file contains the implementation of the type constructors ~network~,
 ~gpoint~, and ~gline~ and the temporal corresponding ~moving~(~gpoint~)
@@ -66,6 +68,7 @@ Type property of type constructor ~network~
 #include "OpShortestPath.h"
 #include "OpLength.h"
 #include "OpDistance.h"
+#include "OpPoint2GPoint.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -235,6 +238,19 @@ Operator networkdistance (
 );
 
 /*
+Definition of  operator point2gpoint
+
+*/
+
+Operator point2gpoint (
+          "point2gpoint",               // name
+          OpPoint2GPoint::Spec,          // specification
+          OpPoint2GPoint::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpPoint2GPoint::TypeMap        // type mapping
+);
+
+/*
 Creating the Algebra
 
 */
@@ -259,7 +275,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&shortest_path);
     AddOperator(&networklength);
     AddOperator(&networkdistance);
-
+    AddOperator(&point2gpoint);
   }
   ~NetworkAlgebra() {};
 };

@@ -119,7 +119,7 @@ RTFlags +=  Server:BinaryTransfer
 ###
 
 # Switch off the transaction and logging subsystem of Berkeley-DB
-#RTFlags += SMI:NoTransactions
+RTFlags += SMI:NoTransactions
 
 #RTFlags += SMI:DbHandles
 
@@ -168,7 +168,7 @@ RTFlags += DEBUG:DemangleStackTrace
 
 # Max memory in kb available for an operator (e.g. hashjoin or sort)
 # default is 16348
-#MaxMemPerOperator=4096
+# MaxMemPerOperator=4096
 
 
 # --- ProgressEstimation Section ---
@@ -210,11 +210,11 @@ CheckpointTime=5
 # Directory where logging files are stored (may be relative to home directory)
 #LogDir=
 # Cache Size in kB
-CacheSize=16384
+CacheSize=65536
 # Lock System Configuration
-MaxLockers=300000
-MaxLocks=300000
-MaxLockObjects=300000
+MaxLockers=3000000
+MaxLocks=3000000
+MaxLockObjects=3000000
 
 
 # --- Context sections ---

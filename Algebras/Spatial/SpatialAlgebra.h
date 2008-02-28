@@ -452,7 +452,7 @@ ostream& operator<<( ostream& o, const Point& p );
 // for finding insert position and sorting the DBArray:
 int PointCompare( const void *a, const void *b );
 
-// for checking whether DBArray contains an element and 
+// for checking whether DBArray contains an element and
 // removing duplicates:
 int PointCompareAlmost( const void *a, const void *b );
 
@@ -1720,10 +1720,10 @@ is the ~points~ result size.
 
 */
     void Translate( const Coord& x, const Coord& y, Line& l ) const;
-    
+
     void Rotate( const Coord& x, const Coord& y, double alpha,
                     Line& l ) const;
-    
+
 /*
 4.3.14 Operation ~transform~
 
@@ -1743,16 +1743,16 @@ This function stores a simplified version into the argument __result__.
 The simplification is performed within three steps.
 In an initial step, simple lines are extracted from the original one.
 The reason is, that junctions within the line should be kept.
-In the second step. each simple line is simplified by removing 
+In the second step. each simple line is simplified by removing
 sampling points using the well known Douglas Peucker algorithm. By using this
 algorithm, it's guarantet that the maximum derivation from the original line
 is smaller or equal to epsilon (or zero if epsilon is smaller than zero).
 Unfortunately by simplifying the line, new selfintersections can be
-created. We remove them in a final step. 
+created. We remove them in a final step.
 
 
 */
-    void Simplify(Line& result, const double epsilon, 
+    void Simplify(Line& result, const double epsilon,
                   const Points& importantPoint = Points(0)) const;
 
 
@@ -1760,7 +1760,7 @@ created. We remove them in a final step.
 /*
 ~Realminize~
 
-Removes overlapping segments and splits the line at all crossings 
+Removes overlapping segments and splits the line at all crossings
 of the segments. May be that simple segments are represented by
 many parts in the result.
 
@@ -1966,7 +1966,23 @@ Returns ~true~, iff there is a selected segment.  In this case,
 
 */
 
+bool GetStartSmaller();
+/*
+Returns the startSmaller value of the line.
 
+*/
+
+bool IsCycle();
+/*
+Returns the cycle value of the line.
+
+*/
+
+bool IsSimple();
+/*
+Returns the simple value of the line.
+
+*/
   private:
 /*
 6.10 Private member functions
@@ -1982,7 +1998,7 @@ Sorts (quick-sort algorithm) the persistent array of half segments in the line v
 Remove duplicates in the (ordered) array of half-segments.
 
 */
-    bool Find( const HalfSegment& hs, int& pos, 
+    bool Find( const HalfSegment& hs, int& pos,
                const bool& exact = false ) const;
 /*
 Searches (binary search algorithm) for a half segment in the line value and
@@ -2669,7 +2685,7 @@ Moves the region according x and y and stores the result in result.
 */
 
     void Translate(const Coord& x, const Coord& y, Region& result) const;
-    
+
     void Rotate(const Coord& x, const Coord& y, const double alpha,
                 Region& result) const;
 
@@ -3724,18 +3740,18 @@ inline int Line::Size() const
 // {
 //   if( IsEmpty() )
 //     return Point( false );
-// 
+//
 //   if( startsSmaller && this->startsSmaller )
 //     pos = 0;
 //   else
 //     pos = Size() - 1;
-// 
+//
 //   const LRS *lrs;
 //   Get( pos, lrs );
-// 
+//
 //   const HalfSegment* hs;
 //   Get( lrs->hsPos, hs );
-// 
+//
 //   return pos == 0 ?
 //          hs->GetDomPoint() :
 //          hs->GetSecPoint();
@@ -3763,11 +3779,11 @@ inline Point Line::StartPoint( bool startsSmaller ) const
     pos = lrsArray.Size()-1;
   }
 
-  // Read entry from linear referencing system. 
+  // Read entry from linear referencing system.
   const LRS *lrs;
   Get( pos, lrs );
 
-  // Get half-segment 
+  // Get half-segment
   const HalfSegment* hs;
   Get( lrs->hsPos, hs );
 
@@ -3783,18 +3799,18 @@ inline Point Line::StartPoint( bool startsSmaller ) const
 // {
 //   if( IsEmpty() )
 //     return Point( false );
-// 
+//
 //   if( startsSmaller && this->startsSmaller )
 //     pos = Size()-1;
 //   else
 //     pos = 0;
-// 
+//
 //   const LRS *lrs;
 //   Get( pos, lrs );
-// 
+//
 //   const HalfSegment* hs;
 //   Get( lrs->hsPos, hs );
-// 
+//
 //   return pos == 0 ?
 //          hs->GetDomPoint() :
 //          hs->GetSecPoint();
@@ -4080,7 +4096,7 @@ inline bool AlmostEqual( const double d1, const double d2 )
 //          dd2 = modf( d2, &i2 );
 //   long ii1 = (long)i1,
 //        ii2 = (long)i2;
-// 
+//
 //   if( abs(ii1 - ii2) > 1 )
 //     return false;
 

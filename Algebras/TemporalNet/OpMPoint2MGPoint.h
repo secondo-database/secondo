@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -48,7 +48,7 @@ static ListExpr TypeMap(ListExpr args);
 Value mapping function of operator ~mpoint2mgpoint~
 
 */
-static int ValueMapping( Word* args, Word& result, int message, 
+static int ValueMapping( Word* args, Word& result, int message,
                              Word& local, Supplier s );
 
 /*
@@ -64,7 +64,6 @@ Send a message to all clients
 
 */
 static void sendMessage(string in_strMessage);
-
 
 };
 

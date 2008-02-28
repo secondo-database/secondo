@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -53,9 +53,9 @@ ListExpr OpNetworkRoutes::TypeMap(ListExpr args)
   if( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-    if( nl->IsAtom( arg1 ) && 
+    if( nl->IsAtom( arg1 ) &&
         nl->AtomType( arg1 ) == SymbolType &&
-        nl->SymbolValue( arg1 ) == "network" ) 
+        nl->SymbolValue( arg1 ) == "network" )
     {
       ListExpr xType;
       nl->ReadFromString(Network::routesTypeInfo, xType);
@@ -69,12 +69,12 @@ ListExpr OpNetworkRoutes::TypeMap(ListExpr args)
 Value mapping function of operator ~routes~
 
 */
-int OpNetworkRoutes::ValueMapping( Word* args, Word& result, int message, 
+int OpNetworkRoutes::ValueMapping( Word* args, Word& result, int message,
                            Word& local, Supplier s )
 {
   Network *network = (Network*)args[0].addr;
-  result = SetWord( network->GetRoutes() );
-
+  Relation* pRoute = network->GetRoutes();
+  result =  SetWord( pRoute->Clone());
   Relation *resultSt = (Relation*)qp->ResultStorage(s).addr;
   resultSt->Close();
   qp->ChangeResultStorage(s, result);
@@ -86,7 +86,7 @@ int OpNetworkRoutes::ValueMapping( Word* args, Word& result, int message,
 Specification of operator ~routes~
 
 */
-const string OpNetworkRoutes::Spec  = 
+const string OpNetworkRoutes::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>network -> rel" "</text--->"

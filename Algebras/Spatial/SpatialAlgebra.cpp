@@ -814,7 +814,7 @@ void SelectNext_rr( const Region& R1, const Region& R2,
 
 3.1 Class Event
 
-Used for realmization of lines. 
+Used for realmization of lines.
 
 */
 
@@ -828,7 +828,7 @@ public:
   RealmSegment(double x1, double y1, double x2, double y2){
       set(x1,y1,x2,y2);
   }
-   
+
   void set(double x1, double y1, double x2, double y2){
      if(AlmostEqual(x1,x2)){ // vertical segment, order by y
         if(y1<y2){
@@ -947,7 +947,7 @@ vertical segments are ordered by their covered y range.
      } else {
          y_s = s.y1 + ((x-s.x1)/(s.x2-s.x1)) * (s.y2-s.y1);
      }
-  
+
      if(vert_this && vert_s){ // both segments are vertical
         double y_this_max = max(y1,y2); // check for overlapping
                                        // or adjacent segments
@@ -964,7 +964,7 @@ vertical segments are ordered by their covered y range.
              return 1;
         }
      } else if(vert_this){
-        return -1; 
+        return -1;
      } else if(vert_s){
         return 1;
      }
@@ -981,7 +981,7 @@ vertical segments are ordered by their covered y range.
         double m_this = (y2-y1) / (x2-x1);
         double m_s = (s.y2-s.y1) / (s.x2-s.x1);
         if(AlmostEqual(m_this,m_s)){ // segments are overlapping
-           return 0; 
+           return 0;
         } else if(m_this<m_s){
            return -1;
         } else {
@@ -995,12 +995,12 @@ vertical segments are ordered by their covered y range.
 ~Split~
 
 Reduces this segment to the part right from the given x-value. The left part
-is returned in the parameter __left__. If both parts exist, the return value 
+is returned in the parameter __left__. If both parts exist, the return value
 will be 0, if only the left part exists (this will be empty), the return value is
--1, otherwise (there is no left part) the result will be 1.  
+-1, otherwise (there is no left part) the result will be 1.
 
 *Precondition*: The segment cannot be vertical.
-  
+
 */
  int Split(const double x, RealmSegment& left){
     //cout << "RealmSegment::Split(this="<< (*this) << ", x=" << x
@@ -1019,7 +1019,7 @@ will be 0, if only the left part exists (this will be empty), the return value i
         left.y2 = y;
         this->x1 = x;
         this->y1 = y;
-        return 0; 
+        return 0;
     }
  }
 
@@ -1051,7 +1051,7 @@ will be 0, if only the left part exists (this will be empty), the return value i
 /*
 ~SplitVert~
 
-works like split but for vertical segments. 
+works like split but for vertical segments.
 
 */
 
@@ -1089,7 +1089,7 @@ class RealmEvent{
 /*
 ~Constructor~
 
-*/  
+*/
   RealmEvent(const unsigned char type,
              const int seg1,
              const int seg2,
@@ -1119,12 +1119,12 @@ class RealmEvent{
         // check indexes
         assert(seg1>=0);
         assert(seg1<(int)segments->size());
-        
-        // don't allow vertical segments here 
+
+        // don't allow vertical segments here
         if(type!='v'){
-            assert(!AlmostEqual((*segments)[seg1].x1, (*segments)[seg1].x2)); 
+            assert(!AlmostEqual((*segments)[seg1].x1, (*segments)[seg1].x2));
         } else {
-            assert(AlmostEqual((*segments)[seg1].x1, (*segments)[seg1].x2)); 
+            assert(AlmostEqual((*segments)[seg1].x1, (*segments)[seg1].x2));
         }
 
         this->type = type;
@@ -1205,7 +1205,7 @@ class RealmEvent{
     }
   }
 
-  void print(ostream& o) const{ 
+  void print(ostream& o) const{
      o << "[RealmEvent: x_pos=" << x_pos << ", type="<< type;
      o <<", seg1=" <<  seg1;
      if(type=='i'){
@@ -1219,10 +1219,10 @@ class RealmEvent{
 
   unsigned char getType()const{ return type; }
   int getSeg1()const{ return seg1; }
-  int getSeg2()const{ return seg2; } 
-  
+  int getSeg2()const{ return seg2; }
 
-private: 
+
+private:
   unsigned char type; // l(eft), r(ight), i(ntersection), or v(ertical)
   int seg1; // >=0
   int seg2; // >=0 if type = 'i', -1 otherwise
@@ -1333,7 +1333,7 @@ double Point::Direction( const Point& p ) const
   return direction;
 }
 
-void Point::Rotate(const Coord& x, const Coord& y, 
+void Point::Rotate(const Coord& x, const Coord& y,
                           const double alpha, Point& res) const{
 
   if(!IsDefined()){
@@ -1650,7 +1650,7 @@ Points& Points::operator+=( const Point& p )
   else
   { // DBArray is sorted
     int pos;
-    if( !Find( p, pos, false ) ) 
+    if( !Find( p, pos, false ) )
     { // no AlmostEqual point contained
       if( IsEmpty() )
         bbox = p.BoundingBox();
@@ -1709,7 +1709,7 @@ Points& Points::operator-=( const Point& p )
       points.Get( posLow-1, auxp );
       if( AlmostEqual(p, *auxp) )
       { posLow--; }
-      else 
+      else
       { break; }
     }
     posHigh = pos;
@@ -1718,7 +1718,7 @@ Points& Points::operator-=( const Point& p )
       points.Get( posHigh+1, auxp );
       if( AlmostEqual(p, *auxp) )
       { posHigh++; }
-      else 
+      else
       { break; }
     }
     for( int i = 0; i < Size()-posHigh; i++ )
@@ -1809,13 +1809,13 @@ int PointHalfSegmentCompare( const void *a, const void *b )
 // {
 //   const Point *pa = (const Point *)a;
 //   const HalfSegment *hsb = (const HalfSegment *)b;
-// 
+//
 //   if( *pa == hsb->GetDomPoint() )
 //     return 0;
-// 
+//
 //   if( *pa < hsb->GetDomPoint() )
 //     return -1;
-// 
+//
 //   return 1;
 // }
 
@@ -1849,12 +1849,12 @@ void Points::Sort(const bool exact /*= true*/)
 
 /*
 Function supporting the RemoveDuplicates function.
-This function checks whether in an array of points 
-a point exists which is AlmostEqual to the given one. 
-The search is restricted to the range in array given 
+This function checks whether in an array of points
+a point exists which is AlmostEqual to the given one.
+The search is restricted to the range in array given
 by the indices __min__ and __max__.
 
-*/ 
+*/
 bool AlmostContains( const Point* points, const Point& p,
                      int min, int max, int size){
 
@@ -1870,7 +1870,7 @@ bool AlmostContains( const Point* points, const Point& p,
            return true;
         }
         pos--;
-     } 
+     }
      // search right of min
      pos=min+1;
      while(pos<size &&AlmostEqual(points[pos].GetX(),x)){
@@ -1878,7 +1878,7 @@ bool AlmostContains( const Point* points, const Point& p,
           return  true;
         }
         pos++;
-    } 
+    }
     return false; // no matching point found
   } else {
       int mid = (min+max)/2;
@@ -1890,7 +1890,7 @@ bool AlmostContains( const Point* points, const Point& p,
          return AlmostContains(points,p,min,mid-1,size);
       }else {
          return AlmostContains(points,p,mid+1,max,size);
-      } 
+      }
   }
 }
 
@@ -1910,7 +1910,7 @@ void Points::RemoveDuplicates()
     if(!found){
       allPoints[elems] = p;
       elems++;
-    } 
+    }
  }
  if(elems!=Size()){
      points.Clear();
@@ -2281,13 +2281,13 @@ void Points::Union( const Point& p, Points& result ) const
 
     if( !inserted && *pi > p )
     {
-      result += p;     
+      result += p;
       inserted = true;
     }
     result += *pi;
   }
   if( !inserted )
-    result += p;        
+    result += p;
 
   result.EndBulkLoad( false, true );
 }
@@ -2315,7 +2315,7 @@ void Points::Union( const Points& ps, Points& result ) const
       int GotPt = ps.GetPt( p );
       assert( GotPt );
     }
-    result += *p;              
+    result += *p;
     SelectNext_pp( *this, ps, obj, stat );
   }
   result.EndBulkLoad( false, true );
@@ -2379,7 +2379,7 @@ void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
 }
 
 
-void Points::Rotate( const Coord& x, const Coord& y, 
+void Points::Rotate( const Coord& x, const Coord& y,
                      const double alpha,
                      Points& result ) const
 {
@@ -2834,9 +2834,9 @@ int HalfSegment::Compare( const HalfSegment& hs ) const
     bool v2 = hs.IsVertical();
     if( v1 && v2 ) // both are vertical
     {
-      if(   (     (CompareDouble(sp.GetY(),dp.GetY())>0) 
-               && ( CompareDouble(SP.GetY(),DP.GetY())>0) 
-            ) 
+      if(   (     (CompareDouble(sp.GetY(),dp.GetY())>0)
+               && ( CompareDouble(SP.GetY(),DP.GetY())>0)
+            )
           ||
             (     (CompareDouble(sp.GetY(),dp.GetY())<0)
                && (CompareDouble(SP.GetY(),DP.GetY())<0) ) )
@@ -4432,7 +4432,7 @@ void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
   result.EndBulkLoad( false, false, false, false );
 }
 
-void Line::Rotate( const Coord& x, const Coord& y, 
+void Line::Rotate( const Coord& x, const Coord& y,
                    const double alpha,
                    Line& result ) const
 {
@@ -4463,13 +4463,13 @@ void Line::Rotate( const Coord& x, const Coord& y,
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hso );
-    p1.Set( m00*hso->GetLeftPoint().GetX() 
+    p1.Set( m00*hso->GetLeftPoint().GetX()
             + m01*hso->GetLeftPoint().GetY() + m02,
-            m10*hso->GetLeftPoint().GetX() 
+            m10*hso->GetLeftPoint().GetX()
            + m11*hso->GetLeftPoint().GetY() + m12);
-    p2.Set( m00*hso->GetRightPoint().GetX() 
+    p2.Set( m00*hso->GetRightPoint().GetX()
              + m01*hso->GetRightPoint().GetY() + m02,
-             m10*hso->GetRightPoint().GetX() 
+             m10*hso->GetRightPoint().GetX()
              + m11*hso->GetRightPoint().GetY() + m12);
 
     HalfSegment hsr(*hso); // ensure to copy attr;
@@ -4537,12 +4537,12 @@ static double maxDist(vector<Point>& orig, // points
     index = maxindex;
     return maxdist;
   } catch (out_of_range){
-      cerr << "min=" << min << " max=" << max << " size=" 
+      cerr << "min=" << min << " max=" << max << " size="
            << orig.size() << endl;
       assert(false);
   }
 }
-                 
+
 
 /*
 Implementation of the Douglas Peucker algorithm.
@@ -4588,7 +4588,7 @@ static void  douglas_peucker(vector<Point>& orig, // original chain of points
      use[i] = false;
   }
   // call the recursive implementation
-  douglas_peucker(orig,epsilon, use, 0, orig.size()-1);  
+  douglas_peucker(orig,epsilon, use, 0, orig.size()-1);
 }
 
 
@@ -4596,7 +4596,7 @@ static void  douglas_peucker(vector<Point>& orig, // original chain of points
 void Line::Simplify(Line& result, const double epsilon,
                     const Points& importantPoints /*= Points(0)*/ ) const{
    result.Clear(); // remove old stuff
-   
+
    if(!IsDefined()){ // this is not defined
       result.SetDefined(false);
       return;
@@ -4606,14 +4606,14 @@ void Line::Simplify(Line& result, const double epsilon,
        result.CopyFrom(this);
        return;
    }
-   // at least one immediate point is required to simplify 
+   // at least one immediate point is required to simplify
    // the line, thus at leat 4 halfsegments are needed.
    if(Size()<4){
       result.CopyFrom(this);
       return;
    }
    // an array with the used halfsegments
-   bool used[Size()];  
+   bool used[Size()];
    for(int i=0;i<Size();i++){
       used[i] = false;
    }
@@ -4623,8 +4623,8 @@ void Line::Simplify(Line& result, const double epsilon,
    vector<Point> complete;
 
    const HalfSegment* hs; // current halfsegment
-  
-   result.StartBulkLoad(); 
+
+   result.StartBulkLoad();
    int pos = 0;
    int size = Size();
    int egdeno=0;
@@ -4633,7 +4633,7 @@ void Line::Simplify(Line& result, const double epsilon,
     while(pos<size && used[pos]){
       pos++;
     }
-    
+
     if(pos<size){
        // unused halfsegment found
        forward.clear();
@@ -4656,9 +4656,9 @@ void Line::Simplify(Line& result, const double epsilon,
              int e = min(partner+3,Size());
              int count =0;
              const HalfSegment* tmp;
-       
+
              // search around partner for segments with an
-             // equal dominating point. 
+             // equal dominating point.
             for(int k=s; (k<e) && (count < 2); k++){
                if(k!=partner){
                   Get(k,tmp);
@@ -4669,7 +4669,7 @@ void Line::Simplify(Line& result, const double epsilon,
                   }
                }
              }
-             done = (count != 1) || used[next]; 
+             done = (count != 1) || used[next];
           }
        }
        forward.push_back(hs->GetDomPoint());
@@ -4711,7 +4711,7 @@ void Line::Simplify(Line& result, const double epsilon,
              }
          }
        } while(!done);
-       // connect backward and forward into complete 
+       // connect backward and forward into complete
        complete.clear();
        for(int i=backward.size()-1; i>=0; i--){
          complete.push_back(backward[i]);
@@ -4721,7 +4721,7 @@ void Line::Simplify(Line& result, const double epsilon,
        }
 
 
-       // determine all segments to use and copy them into the result 
+       // determine all segments to use and copy them into the result
        bool use[complete.size()];
        douglas_peucker(complete,epsilon,use);
        int size = complete.size();
@@ -4737,10 +4737,10 @@ void Line::Simplify(Line& result, const double epsilon,
              egdeno++;
              last = p;
           }
-       } 
- 
+       }
+
      }
-   }   
+   }
    result.EndBulkLoad();
 
    // TODO:
@@ -4769,8 +4769,8 @@ public:
        this->index=index;
     }
 
-    RealmSSSE(){ 
-      this->index = 0; 
+    RealmSSSE(){
+      this->index = 0;
     }
 
     void Set(int index){
@@ -4809,15 +4809,15 @@ public:
           if(segments==NULL){
              cerr << "segments not initialized " << endl;
           } else {
-             cerr << "segments.size = " << segments->size(); 
-          }      
+             cerr << "segments.size = " << segments->size();
+          }
           cerr << endl ;
           assert(false);
        }
        return (*segments)[index];
    }
 
-   void print(ostream& o) const{ 
+   void print(ostream& o) const{
      o << "(RealmSSSE: seg = ";
      if(index<(int)segments->size()){
         o << (*segments)[index];
@@ -4829,7 +4829,7 @@ public:
 
 
    int getIndex() const{
-     return index; 
+     return index;
    }
 
   // the original segments, used for comparisons
@@ -4856,7 +4856,7 @@ class RealmSSS{
   }
 
   ~RealmSSS(){}
-  
+
 /*
 
 Does all the things needed to insert a new segment into the
@@ -4870,7 +4870,7 @@ parameter.
                  multiset<RealmSegment>& leftParts){
 
     // don't allow vertical segments to insert
-    assert(!AlmostEqual(entry.getSegment().x1, entry.getSegment().x2)); 
+    assert(!AlmostEqual(entry.getSegment().x1, entry.getSegment().x2));
 
     // insert is only allowed at left events
     // for this reason, we force that the x coordinate __x__ of the event
@@ -4889,8 +4889,8 @@ parameter.
 //       }
 //     }
 
-//    assert(AlmostEqual(x,entry.getSegment().x1));   
- 
+//    assert(AlmostEqual(x,entry.getSegment().x1));
+
     leftParts.clear();
       // left event
       // iterate C, check whether entry lies on a segment. Is so, split it.
@@ -4916,13 +4916,13 @@ parameter.
             e_seg.y2 = entry_seg.y2;
             (*segments)[e.getIndex()] = e_seg;
             assert(i!=C.end());
-            *i = e; 
+            *i = e;
 //             cout << "\t ignoring segment " << entry << endl;
 //             cout << "\t merging segments to " << e << endl;
             (*ignore)[entry.getIndex()]=true;
             isExtend = true;
           } else{
-//            cout << "segment is a part of an existing one," 
+//            cout << "segment is a part of an existing one,"
 //                   << " ignore it if not equal" << endl;
             if(e.getIndex()!=entry.getIndex()){
 //               cout << "\t ignoring segment " << entry << endl;
@@ -4952,9 +4952,9 @@ parameter.
       }
     }
     if(!isExtend){
-//      cout << "Segment is not a part or an extension of an" 
+//      cout << "Segment is not a part or an extension of an"
 //           << "  existing one, insert a new segment to C" << endl;
-      assert((entry.getIndex() >=0) && 
+      assert((entry.getIndex() >=0) &&
              (entry.getIndex()< (int)segments->size()));
       C.push_back(entry);
     }
@@ -5000,12 +5000,12 @@ parameter.
                          priority_queue<RealmEvent>& Q,
                          const double currentX){
     double x,y;
-    if(left.getSegment().intersection(right.getSegment(),x,y)){ 
+    if(left.getSegment().intersection(right.getSegment(),x,y)){
        // segments intersect
        assert(left.getIndex() < (int)segments->size());
 
        assert(right.getIndex() < (int)segments->size());
-        
+
        RealmEvent e('i',left.getIndex(),right.getIndex(),x);
        if(!AlmostEqual(x,currentX) && x > currentX){
           Q.push(e);
@@ -5028,7 +5028,7 @@ parameter.
                  priority_queue<RealmEvent>& Q){
 
     // check for correctness of replacement
-    assert(replacement.getIndex()>=0 && 
+    assert(replacement.getIndex()>=0 &&
            replacement.getIndex()<(int)segments->size());
 
     RealmSegment::currentX = x;
@@ -5075,15 +5075,15 @@ parameter.
   void swap(double x_pos, RealmSegment& seg1,
                        RealmSegment& seg2,
                        priority_queue<RealmEvent>& Q){
-    
+
     RealmSegment::currentX = x_pos;
     sort(C.begin(),C.end());
     bool found = false;
     for(vector<RealmSSSE>::iterator i=C.begin(); i!=C.end() && !found; i++){
-      RealmSegment seg = (*segments)[i->getIndex()]; 
+      RealmSegment seg = (*segments)[i->getIndex()];
       if( (seg == seg1) || (seg == seg2) ){
         if( (i+1) == C.end()){
-           return;   
+           return;
         }
         RealmSSSE e1 = *i;
         RealmSSSE e2 = *(i+1);
@@ -5092,7 +5092,7 @@ parameter.
 
         *(i+1) = e1;
         assert((i+1)->getIndex() < (int)segments->size());
-      
+
 
         if(i!=C.begin()){
           checkIntersection(*(i-1),*i,Q,x_pos);
@@ -5158,13 +5158,13 @@ The result set is returned in ~segments~.
         }
 
         if (!(AlmostEqual(y,seg.y1) || AlmostEqual(y,seg.y2))){// split vertical
-          RealmSegment lower(seg.x1, y_min, seg.x2, y); 
+          RealmSegment lower(seg.x1, y_min, seg.x2, y);
           segments.insert(lower); // insert vertical
           seg.set(seg.x1,y,seg.x2,y_max);
           done = AlmostEqual(y,seg.y2); // vertical segment finished
         }
       } else {
-        //cout << "split is not needed" << endl; 
+        //cout << "split is not needed" << endl;
       }
      // done = (y > seg.y2);
     }
@@ -5182,7 +5182,7 @@ The result set is returned in ~segments~.
     o << endl;
     return o;
   }
-  
+
   private:
     vector<RealmSSSE> C;             // vector of contained elems
     vector<RealmSegment>* segments;  // vector of segments
@@ -5220,7 +5220,7 @@ void Line::Realminize(){
 
   // current edgenumber
   int edgeno=0;
-  
+
   priority_queue<RealmEvent> Q;
   int size = Size();
   // the evctore containing all segments of the original line
@@ -5248,7 +5248,7 @@ void Line::Realminize(){
              Q.push(evt);
           }
       } else {
-         if(!AlmostEqual(s.x1,s.x2)){ 
+         if(!AlmostEqual(s.x1,s.x2)){
             // create only a single entry for verticals
             int index = indexes[hs->GetAttr().partnerno];
             RealmEvent evt('r',index,hs->GetDomPoint().GetX());
@@ -5256,9 +5256,9 @@ void Line::Realminize(){
          }
       }
    }
-   
+
    // propagate the segments to all classes which need it
-   RealmSSSE::segments = &segments; 
+   RealmSSSE::segments = &segments;
    RealmSSS S(&segments,&ignore);
 
    Clear();
@@ -5275,7 +5275,7 @@ void Line::Realminize(){
       double lastX;
 
 //      cout << "Build group " << endl;
-//      cout << "there are " << Q.size() << "events in this queue" << endl; 
+//      cout << "there are " << Q.size() << "events in this queue" << endl;
       do{
         RealmEvent evt = Q.top();
         if(first){
@@ -5294,7 +5294,7 @@ void Line::Realminize(){
 
         }
       }while(!done && !Q.empty());
-      
+
 
 //      cout << "process events at position " << lastX << endl;
 //      cout << " >>>>>>>>> content of SSS <<<<<<<<<<< " << endl;
@@ -5303,13 +5303,13 @@ void Line::Realminize(){
 
 
 //      cout << "Group created" << endl;
-//      cout << "there are " << Q.size() << "events in this queue" << endl; 
-      
+//      cout << "there are " << Q.size() << "events in this queue" << endl;
+
 
 //      cout << "G={" << endl;
 //      for_each(G.begin(),G.end(),print<RealmEvent>(cout));
 //      cout << "}" << endl;
-      
+
       // process the group found in the last step
       multiset<RealmSegment> segs; // set of  segments
       multiset<RealmSegment>::iterator itSegs;
@@ -5322,7 +5322,7 @@ void Line::Realminize(){
       double x = (*(G.begin())).x_pos;
 
       // special case: group consists of one element only
-      if(G.size()==1){ 
+      if(G.size()==1){
 //         cout << "process single event group " << endl;
          RealmEvent e = *(G.begin());
 //         cout << "Event = " << e << endl;
@@ -5343,7 +5343,7 @@ void Line::Realminize(){
                            if(AlmostEqual(s.x2,e.x_pos) || s.x2 < e.x_pos){
                               insertSegment(*this, s, edgeno);
                               S.remove(e.x_pos,s,Q);
-                           } else { // extended segment, move event 
+                           } else { // extended segment, move event
                               e.x_pos = s.x2;
                               Q.push(e);
                            }
@@ -5366,10 +5366,10 @@ void Line::Realminize(){
 
                         assert(e.getSeg1()<(int)segments.size());
                         left1 = segments[e.getSeg1()].Split(e.x_pos,seg1);
-                        
+
                         assert(e.getSeg2() < (int)segments.size());
                         left2 = segments[e.getSeg2()].Split(e.x_pos,seg2);
-                       
+
                         // insert the left parts into the line
                         // if there are ones
                         if(left1<1 && !ignore[e.getSeg1()]){
@@ -5384,7 +5384,7 @@ void Line::Realminize(){
                         if(left2<0){
                           ignore[e.getSeg2()] = true;
                         }
-                        if(!ignore[e.getSeg1()] && 
+                        if(!ignore[e.getSeg1()] &&
                            !ignore[e.getSeg2()]){ // existing right parts
                             S.swap(e.x_pos, segments[e.getSeg1()],
                                    segments[e.getSeg2()], Q);
@@ -5400,8 +5400,8 @@ void Line::Realminize(){
       } else { // G contains more than one element
 //         cout << "process multi event group" << endl;
          set<RealmEvent> V; // all vertical segements
-         set<RealmEvent> G2; // group without vertical segments 
-         
+         set<RealmEvent> G2; // group without vertical segments
+
          set<RealmEvent>::iterator itV;
          set<RealmEvent>::iterator itG2;
 
@@ -5413,11 +5413,11 @@ void Line::Realminize(){
                   G2.insert(e);
               }
          }
-         
-          
+
+
 
          set<RealmEvent> V2;
-         // merge the vertical segments of V 
+         // merge the vertical segments of V
 //         cout << "merge vertical segments" << endl;
          if(!V.empty()){
             itV = V.begin();
@@ -5460,8 +5460,8 @@ void Line::Realminize(){
            done = false;
            set<RealmEvent> G_i; // group with the same (x,y) positon
            bool first = true;
-           RealmEvent last;          
- 
+           RealmEvent last;
+
 //           cout <<" build subgroup " << endl;
            while(itG2!=G2.end() && !done){
              if(first){
@@ -5470,7 +5470,7 @@ void Line::Realminize(){
                  last_y = segments[last.getSeg1()].GetY(last.x_pos);
                  G_i.insert(last);
                  splitPointsY.insert(last_y); // save as split point
-                 itG2++; 
+                 itG2++;
              } else {
                  RealmEvent next = *itG2;
                  double next_y = segments[next.getSeg1()].GetY(last.x_pos);
@@ -5485,10 +5485,10 @@ void Line::Realminize(){
 
 //           cout << "building subgroup finished" << endl;
 
-           
+
            // Process group G_i
 
-           // if a sgement is split, we add the left part to the 
+           // if a sgement is split, we add the left part to the
            // line and create a new left event for the remaining (right)
            // part
 
@@ -5499,7 +5499,7 @@ void Line::Realminize(){
 //           for_each(G_i.begin(),G_i.end(),print<RealmEvent>(cout));
 //           cout << "\n}" << endl;
 
-            
+
            for(set<RealmEvent>::iterator itG_i=G_i.begin();
                                               itG_i!=G_i.end(); itG_i++){
 
@@ -5529,17 +5529,17 @@ void Line::Realminize(){
 
 //               cout << "output the left parts of s1 = " << s1 << endl;
 //               cout << " and                     s2 = " << s2 << endl;
- 
+
                // remove both segments from S
                S.remove(e_ij.x_pos,s1,Q);
                S.remove(e_ij.x_pos,s2,Q);
-           
+
 //               cout << " after removing the segments SS is " << endl;
 //               cout << S.Print(cout);
 //               cout << " xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" << endl;
 
 
-               // split the segments at the position of this event    
+               // split the segments at the position of this event
                int left1 = s1.Split(e_ij.x_pos, leftpart1);
                int left2 = s2.Split(e_ij.x_pos, leftpart2);
 
@@ -5556,20 +5556,20 @@ void Line::Realminize(){
                   ignore[e_ij.getSeg1()] = true;
                }
                if(!ignore[e_ij.getSeg1()]){ // there is a right part
-                 // trim the original segment 
+                 // trim the original segment
                  // create a new left event
                  RealmEvent n1('l',e_ij.getSeg1(),e_ij.x_pos);
                  LeftEvents.push_back(n1);
                } else {
                  ignore[e_ij.getSeg1()] = true;
                }
-               
+
                segments[e_ij.getSeg2()] = s2;
                if(left2<0){
                   ignore[e_ij.getSeg2()]=true;
                }
                if(!ignore[e_ij.getSeg2()]){ // there is a right part
-                 // trim the original segment 
+                 // trim the original segment
                  // create a new left event
                  RealmEvent n2('l',e_ij.getSeg2(),e_ij.x_pos);
                  LeftEvents.push_back(n2);
@@ -5590,7 +5590,7 @@ void Line::Realminize(){
              for(vector<RealmEvent>::iterator itLeftEvents=LeftEvents.begin();
                  itLeftEvents!=LeftEvents.end(); itLeftEvents++){
                 RealmEvent e = *itLeftEvents;
-                
+
                 assert(e.getSeg1()<(int)segments.size());
                 RealmSSSE entry(e.getSeg1());
                 // insert this segment
@@ -5607,7 +5607,7 @@ void Line::Realminize(){
 
         // process vertical segments
 //        cout << "process verical segments" << endl;
-       
+
         // split vertical segments in V 2 at splitpoints
         multiset<RealmSegment> V3;
         V3.clear();
@@ -5616,7 +5616,7 @@ void Line::Realminize(){
         set<double>::iterator it_splitpoints = splitPointsY.begin();
 
         while((it_splitpoints!= splitPointsY.end()) &&  (it_v2!=V2.end())){
-               
+
              double y = *it_splitpoints;
              RealmSegment s = segments[it_v2->getSeg1()];
              double y1 = min(s.y1,s.y2);
@@ -5630,7 +5630,7 @@ void Line::Realminize(){
                  RealmSegment s_L(s.x1,s.y1,s.x2,y);
                  V3.insert(s_L);
                  s.set(s.x1, y, s.x2, s.y2);
-                 segments[it_v2->getSeg1()] = s; 
+                 segments[it_v2->getSeg1()] = s;
                  it_splitpoints++;
              }
         }
@@ -5638,8 +5638,8 @@ void Line::Realminize(){
            V3.insert(segments[it_v2->getSeg1()]);
            it_v2++;
         }
-         
-        
+
+
         for(multiset<RealmSegment>::iterator v3_it = V3.begin();
                                            v3_it!=V3.end();v3_it++){
          RealmSegment s = *v3_it;
@@ -5678,6 +5678,18 @@ bool Line::AtPosition( double pos, bool startsSmaller, Point& p ) const
 
   p = hs->AtPosition( pos - lrs2->lrsPos );
   return true;
+}
+
+bool Line::GetStartSmaller() {
+  return startsSmaller;
+}
+
+bool Line::IsCycle() {
+  return cycle;
+}
+
+bool Line::IsSimple(){
+  return simple;
 }
 
 bool Line::AtPoint( const Point& p,
@@ -6149,8 +6161,8 @@ void Line::RemoveDuplicates()
 
   int newEdgeNumbers[size]; // mapping oldnumber -> newnumber
   for(int i=0;i<size;i++){
-     newEdgeNumbers[i] = -1; 
-  } 
+     newEdgeNumbers[i] = -1;
+  }
   int newedge = 0;  // next unused edge number
 
   HalfSegment tmp;
@@ -6163,7 +6175,7 @@ void Line::RemoveDuplicates()
   newEdgeNumbers[last.attr.edgeno] = newedge;
   last.attr.edgeno = newedge;
   line.Put(0,last);
-  newedge++; 
+  newedge++;
 
   for( int i = 1; i < size; i++ )
   {
@@ -6174,10 +6186,10 @@ void Line::RemoveDuplicates()
       // new segment found
     {
       pos++;
-      if(newEdgeNumbers[edge]<0){ // first 
+      if(newEdgeNumbers[edge]<0){ // first
          newEdgeNumbers[edge] = newedge;
          tmp.attr.edgeno = newedge;
-         newedge++; 
+         newedge++;
       } else {
          tmp.attr.edgeno = newEdgeNumbers[edge];
       }
@@ -6376,7 +6388,7 @@ ostream& Line::Print( ostream &os ) const
   os << *this;
   os.flags(oldOptions);
   return os;
-  
+
 }
 
 /*
@@ -7226,9 +7238,9 @@ double Region::Area() const
       // y0, y1 must be >= 0, so we correct them
       y0 = hs->GetLeftPoint().GetY() - minY;
       y1 = hs->GetRightPoint().GetY() - minY;
-//       cout << "HSegment #" << i 
-//           << ": ( (" << x0 << "," << y0 
-//           << ") (" << x1 << "," << y1 << ") )" 
+//       cout << "HSegment #" << i
+//           << ": ( (" << x0 << "," << y0
+//           << ") (" << x1 << "," << y1 << ") )"
 //           << hs->attr.insideAbove << endl;
 //       double dx = (x1-x0);
 //       double ay = (y1+y0) * 0.5;
@@ -7376,7 +7388,7 @@ void Region::Translate( const Coord& x, const Coord& y, Region& result ) const
   result.EndBulkLoad( false, false, false, false );
 }
 
-void Region::Rotate( const Coord& x, const Coord& y, 
+void Region::Rotate( const Coord& x, const Coord& y,
                    const double alpha,
                    Region& result ) const
 {
@@ -7407,13 +7419,13 @@ void Region::Rotate( const Coord& x, const Coord& y,
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hso );
-    p1.Set( m00*hso->GetLeftPoint().GetX() 
+    p1.Set( m00*hso->GetLeftPoint().GetX()
             + m01*hso->GetLeftPoint().GetY() + m02,
-            m10*hso->GetLeftPoint().GetX() 
+            m10*hso->GetLeftPoint().GetX()
            + m11*hso->GetLeftPoint().GetY() + m12);
-    p2.Set( m00*hso->GetRightPoint().GetX() 
+    p2.Set( m00*hso->GetRightPoint().GetX()
              + m01*hso->GetRightPoint().GetY() + m02,
-             m10*hso->GetRightPoint().GetX() 
+             m10*hso->GetRightPoint().GetX()
              + m11*hso->GetRightPoint().GetY() + m12);
 
     HalfSegment hsr(*hso); // ensure to copy attr;
@@ -8781,7 +8793,7 @@ void Region::ComputeCycle( HalfSegment &hs,
                                      -1);
        adjacentPointFound = s->goToCHS2Left;
      }
- 
+
      if(!adjacentPointFound){
          cerr << "Problem in rebuilding cycle in a region " << endl;
          cerr << "no adjacent point found" << endl;
@@ -8945,7 +8957,7 @@ void Region::ComputeRegion()
    //Insert in the vector the first cycle of the first face
   face.push_back(0);
   cycle = new bool[Size()];
-#ifdef SECONDO_MAC_OSX 
+#ifdef SECONDO_MAC_OSX
   // something goes wrong at mac osx and the memset function
   int size = Size();
   for(int i=0;i<size;i++){
@@ -10112,14 +10124,14 @@ SetSetMapBool( ListExpr args )
     } else {
       ErrorReporter::ReportError(" t_1 x t_2 expected,"
                                  " with t_1, t_2 in {points,line,region}");
-    }    
+    }
   } else {
       ErrorReporter::ReportError("two arguments expected");
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
 
-/* 
+/*
 10.1.2 PointsRegionMapBool
 
 */
@@ -10167,7 +10179,7 @@ RegionRegionMapBool( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
-/* 
+/*
 10.1.2 PointRegionMapBool
 
 */
@@ -10192,7 +10204,7 @@ PointRegionMapBool( ListExpr args )
 }
 
 
-/* 
+/*
 10.1.2 AdjacentTypeMap
 
 */
@@ -10204,16 +10216,16 @@ AdjacentTypeMap( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if( 
-      ((SpatialTypeOfSymbol(arg1)==stpoints) && 
+    if(
+      ((SpatialTypeOfSymbol(arg1)==stpoints) &&
        (SpatialTypeOfSymbol(arg2)==stregion)) ||
-      ((SpatialTypeOfSymbol(arg1)==stline) && 
+      ((SpatialTypeOfSymbol(arg1)==stline) &&
        (SpatialTypeOfSymbol(arg2)==stregion)) ||
-      ((SpatialTypeOfSymbol(arg1)==stregion) && 
+      ((SpatialTypeOfSymbol(arg1)==stregion) &&
        (SpatialTypeOfSymbol(arg2)==stpoints)) ||
-      ((SpatialTypeOfSymbol(arg1)==stregion) && 
+      ((SpatialTypeOfSymbol(arg1)==stregion) &&
        (SpatialTypeOfSymbol(arg2)==stline)) ||
-      ((SpatialTypeOfSymbol(arg1)==stregion) && 
+      ((SpatialTypeOfSymbol(arg1)==stregion) &&
        (SpatialTypeOfSymbol(arg2)==stregion))){
       return nl->SymbolAtom("bool");
     } else {
@@ -10226,7 +10238,7 @@ AdjacentTypeMap( ListExpr args )
 }
 
 
-/* 
+/*
 10.1.2 InsideTypeMap
 
 */
@@ -10238,32 +10250,32 @@ InsideTypeMap( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if( 
-      ((SpatialTypeOfSymbol(arg1)==stpoint) && 
+    if(
+      ((SpatialTypeOfSymbol(arg1)==stpoint) &&
        (SpatialTypeOfSymbol(arg2)==stpoints)) ||
 
-      ((SpatialTypeOfSymbol(arg1)==stpoint) && 
+      ((SpatialTypeOfSymbol(arg1)==stpoint) &&
        (SpatialTypeOfSymbol(arg2)==stline)) ||
 
-      ((SpatialTypeOfSymbol(arg1)==stpoint) && 
+      ((SpatialTypeOfSymbol(arg1)==stpoint) &&
        (SpatialTypeOfSymbol(arg2)==stregion)) ||
 
-      ((SpatialTypeOfSymbol(arg1)==stpoints) && 
+      ((SpatialTypeOfSymbol(arg1)==stpoints) &&
        (SpatialTypeOfSymbol(arg2)==stpoints)) ||
 
-      ((SpatialTypeOfSymbol(arg1)==stpoints) && 
+      ((SpatialTypeOfSymbol(arg1)==stpoints) &&
        (SpatialTypeOfSymbol(arg2)==stline))||
 
-      ((SpatialTypeOfSymbol(arg1)==stpoints) && 
+      ((SpatialTypeOfSymbol(arg1)==stpoints) &&
        (SpatialTypeOfSymbol(arg2)==stregion)) ||
 
-      ((SpatialTypeOfSymbol(arg1)==stline) && 
+      ((SpatialTypeOfSymbol(arg1)==stline) &&
        (SpatialTypeOfSymbol(arg2)==stline)) ||
 
-      ((SpatialTypeOfSymbol(arg1)==stline) && 
+      ((SpatialTypeOfSymbol(arg1)==stline) &&
        (SpatialTypeOfSymbol(arg2)==stregion)) ||
 
-      ((SpatialTypeOfSymbol(arg1)==stregion) && 
+      ((SpatialTypeOfSymbol(arg1)==stregion) &&
        (SpatialTypeOfSymbol(arg2)==stregion)) ){
       return nl->SymbolAtom("bool");
     } else {
@@ -10757,7 +10769,7 @@ ListExpr SpatialComponentsMap( ListExpr args )
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stregion )
       return nl->TwoElemList( nl->SymbolAtom("stream"),
                               nl->SymbolAtom("region") );
-    
+
     if( SpatialTypeOfSymbol( nl->First( args ) ) == stline )
       return nl->TwoElemList( nl->SymbolAtom("stream"),
                               nl->SymbolAtom("line") );
@@ -10903,7 +10915,7 @@ SpatialTranslateMap( ListExpr args )
 10.1.17 Type mapping function for operator ~rotate~
 
 This type mapping function is used for the ~rotate~ operator.
-The mamp is spatialtype x real x real x real -> spatialtype 
+The mamp is spatialtype x real x real x real -> spatialtype
 
 */
 ListExpr
@@ -10913,7 +10925,7 @@ SpatialRotateMap( ListExpr args )
   { ErrorReporter::ReportError("wrong number of arguments (4 expected)");
     return nl->TypeError();
   }
-  ListExpr arg1 = nl->First(args); 
+  ListExpr arg1 = nl->First(args);
   ListExpr arg2 = nl->Second(args);
   ListExpr arg3 = nl->Third(args);
   ListExpr arg4 = nl->Fourth(args);
@@ -11194,7 +11206,7 @@ ListExpr
 10.1.9 Type mapping for the ~polylines~ operator
 
 The ~polylines~ operator takes a complex line and creates
-a set of simple polylines from it. Thus, the signature of 
+a set of simple polylines from it. Thus, the signature of
 this operator is line -> stream(line)
 
 */
@@ -11236,7 +11248,7 @@ ListExpr SimplifyTypeMap(ListExpr args){
       ErrorReporter::ReportError("line x real [x points] expected");
       return nl->TypeError();
    }
-   if( (len==3) && 
+   if( (len==3) &&
        !(nl->IsEqual(nl->Third(args),"points"))){
        ErrorReporter::ReportError("line x real [ x points] expected");
        return nl->TypeError();
@@ -11927,7 +11939,7 @@ SpatialComponentsSelect( ListExpr args )
 /*
 10.3.19 Selection function ~SpatialSelectTranslate~
 
-This select function is used for the ~translate~, rotate, 
+This select function is used for the ~translate~, rotate,
 and ~scale~ operators.
 
 */
@@ -13463,7 +13475,7 @@ int SpatialRotate( Word* args, Word& result, int message,
   CcReal* x = static_cast<CcReal*>(args[1].addr);
   CcReal* y = static_cast<CcReal*>(args[2].addr);
   CcReal* a = static_cast<CcReal*>(args[3].addr);
-  if(!st->IsDefined() || !x->IsDefined() || !y->IsDefined() 
+  if(!st->IsDefined() || !x->IsDefined() || !y->IsDefined()
      || !a->IsDefined()){
       res->SetDefined(false);
       return 0;
@@ -13513,17 +13525,17 @@ int SpatialRect2Region( Word* args, Word& result, int message,
   {
     HalfSegment hs;
     int partnerno = 0;
-    double min0 = rect->MinD(0), max0 = rect->MaxD(0), 
+    double min0 = rect->MinD(0), max0 = rect->MaxD(0),
            min1 = rect->MinD(1), max1 = rect->MaxD(1);
 
-    Point v1(true, max0, min1), 
-          v2(true, max0, max1), 
-          v3(true, min0, max1), 
+    Point v1(true, max0, min1),
+          v2(true, max0, max1),
+          v3(true, min0, max1),
           v4(true, min0, min1);
 
-    if( AlmostEqual(v1, v2) || 
-        AlmostEqual(v2, v3) || 
-        AlmostEqual(v3, v4) || 
+    if( AlmostEqual(v1, v2) ||
+        AlmostEqual(v2, v3) ||
+        AlmostEqual(v3, v4) ||
         AlmostEqual(v4, v1) )
     { // one interval is (almost) empty, so will be the region
       res->SetDefined( true );
@@ -13934,7 +13946,7 @@ public:
 
   ~LineComponentsLi(){
      theLine->DeleteIfAllowed();
-     delete[] used; 
+     delete[] used;
    }
 
   Line* NextLine(){
@@ -13966,21 +13978,21 @@ public:
         HalfSegment hs1 = *hs;
         hs1.attr.edgeno = edgeno;
         hs1.SetLeftDomPoint(false);
-        (*result) += hs1;  
+        (*result) += hs1;
         hs1.SetLeftDomPoint(true);
         (*result) += hs1;
         edgeno++;
-        // search an extension of result 
+        // search an extension of result
         Point p = hsp->GetDomPoint();
         criticalPoints.push(hsppos);
 
         // search within the stack
         bool found = false;
         while(!criticalPoints.empty() && !found){
-          int k = criticalPoints.top(); 
+          int k = criticalPoints.top();
           const HalfSegment* tmp;
           theLine->Get(k,tmp);
-          Point p = tmp->GetDomPoint(); 
+          Point p = tmp->GetDomPoint();
           // search left of k
           int m = k-1;
           while(m>0 && isDomPoint(p,m) && !found){
@@ -13998,7 +14010,7 @@ public:
              if(found){
                hspos = m;
              }
-          } 
+          }
 
           if(!found){
              criticalPoints.pop();
@@ -14033,7 +14045,7 @@ SpatialComponents_l( Word* args, Word& result, int message,
    switch(message){
      case OPEN:{
        local.addr = new LineComponentsLi((Line*) args[0].addr);
-       return 0;  
+       return 0;
      }
 
      case REQUEST:{
@@ -14050,7 +14062,7 @@ SpatialComponents_l( Word* args, Word& result, int message,
        if(local.addr){
           LineComponentsLi* li = (LineComponentsLi*) local.addr;
           delete li;
-          return 0; 
+          return 0;
        }
      }
    }
@@ -14243,18 +14255,18 @@ SpatialGetY_p( Word* args, Word& result, int message,
 
 
 /*
-10.4.29 Value mapping function for the ~polylines~ operator 
+10.4.29 Value mapping function for the ~polylines~ operator
 
 */
 
 class LineSplitter{
-public:  
+public:
 /*
 ~Constructor~
 
-Creates a LineSplitter from the given line. 
-  
-*/ 
+Creates a LineSplitter from the given line.
+
+*/
    LineSplitter(Line* line, bool ignoreCriticalPoints,
                 Points* points = 0){
         this->theLine = line;
@@ -14280,9 +14292,9 @@ Creates a LineSplitter from the given line.
 ~NextLine~
 
 This function extracts the next simple part of the line.
-If the line is processed completely, the result will be 
-0. This function creates a new line instance via the new 
-operator. The caller of this function has to ensure the 
+If the line is processed completely, the result will be
+0. This function creates a new line instance via the new
+operator. The caller of this function has to ensure the
 deletion of this object.
 
 */
@@ -14290,7 +14302,7 @@ deletion of this object.
       // go to the first unused halfsegment
       while(lastPos<size && used[lastPos]){
         lastPos++;
-      }     
+      }
       if(lastPos>=size){
          return 0;
       }
@@ -14323,23 +14335,23 @@ deletion of this object.
         attr1.edgeno = edgeno;
         Hs1.SetAttr(attr1);
         AttrType attr2 = Hs2.GetAttr();
-        attr2.edgeno=edgeno;         
+        attr2.edgeno=edgeno;
         Hs2.SetAttr(attr2);
         edgeno++;
         (*result) += (Hs1);
         (*result) += (Hs2);
         // mark as used
         used[pos] = true;
-        used[partnerpos] = true;  
+        used[partnerpos] = true;
 
 
         bool found = false;
         int sp = partnerpos-1;
-        
+
         if(points==0 || !points->Contains(p)){ // no enforced split
 
             // search for extension of the polyline
-            // search left of partnerpos for an extension 
+            // search left of partnerpos for an extension
             while(sp>0 && !found){
               const HalfSegment* hs3;
               if(!used[sp]){
@@ -14358,7 +14370,7 @@ deletion of this object.
                  sp --; // search next
               }
             }
-            // search on the right side of partnerpos for extension 
+            // search on the right side of partnerpos for extension
             if(!found){
                sp = partnerpos + 1;
                while(sp<size && !found){
@@ -14392,19 +14404,19 @@ deletion of this object.
            done = true;
         }
 
-        if(done && !seconddir && (lastPos < (size-1)) && 
+        if(done && !seconddir && (lastPos < (size-1)) &&
            (points==0 || !points->Contains(firstPoint))){
            // done means at this point, the line can't be extended
            // in the direction start from the first selected halfsegment.
            // but is is possible the extend the line by going into the
-           // reverse direction 
+           // reverse direction
            seconddir = true;
            const HalfSegment* hs;
            theLine->Get(lastPos,hs);
            Point p = hs->GetDomPoint();
            while(lastPos<size && used[lastPos]){
              lastPos ++;
-           } 
+           }
            if(lastPos <size){
               theLine->Get(lastPos,hs);
               Point p2 = hs->GetDomPoint();
@@ -14415,7 +14427,7 @@ deletion of this object.
                        done = false;
                     }
                   }
-               } 
+               }
            }
         }
       } // while
@@ -14427,7 +14439,7 @@ private:
 ~isCriticalPoint~
 
 Checks whether the dominating point of the halfsegment at
-position index is a critical one meaning a junction within the 
+position index is a critical one meaning a junction within the
 line.
 
 */
@@ -14487,7 +14499,7 @@ int SpatialPolylines(Word* args, Word& result, int message,
           }
           return 0;
       case REQUEST:
-           localinfo = (LineSplitter*) local.addr; 
+           localinfo = (LineSplitter*) local.addr;
            res = localinfo->NextLine();
            if(res==0){
               return CANCEL;
@@ -14496,11 +14508,11 @@ int SpatialPolylines(Word* args, Word& result, int message,
               return YIELD;
            }
       case CLOSE:
-           localinfo = (LineSplitter*) local.addr; 
+           localinfo = (LineSplitter*) local.addr;
            if(localinfo!=0){
               delete localinfo;
-           }   
-           return 0;        
+           }
+           return 0;
    }
    return 0; // ignore unknown message
 }
@@ -14546,7 +14558,7 @@ class SegmentsInfo{
           hs1.SetLeftDomPoint(false);
           (*res) += hs1;
           res->EndBulkLoad();
-          return res; 
+          return res;
        }
     }
   private:
@@ -14570,7 +14582,7 @@ int SpatialSegments(Word* args, Word& result, int message,
       res = si->NextSegment();
       if(res){
          result = SetWord(res);
-         return YIELD; 
+         return YIELD;
       } else {
          return CANCEL;
       }
@@ -14862,7 +14874,7 @@ ValueMapping spatialgetxmap[] = { SpatialGetX_p };
 
 ValueMapping spatialgetymap[] = { SpatialGetY_p };
 
-ValueMapping spatialsimplifymap[] = { SpatialSimplify_LReal, 
+ValueMapping spatialsimplifymap[] = { SpatialSimplify_LReal,
                                       SpatialSimplify_LRealPs };
 
 /*

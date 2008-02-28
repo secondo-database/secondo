@@ -49,3 +49,9 @@ Signature: mgpoint -> gline
 Example  : query trajectory([const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))]);
 Result   : (gline(1((1 0.2 2.4))))
 
+Operator : mpoint2mgpoint
+Number   : 1
+Signature: mpoint -> mgpoint
+Example  : query mpoint2mgpoint(X_NETWORK, mpointtest)
+Result   : file
+Tolerance: 0.01%
