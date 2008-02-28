@@ -23,21 +23,29 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
+//[_] [\_]
 
 [1] Implementation of the Cluster Algebra
 
 June, 2006.
-Basic functionality, one operator with default values and one with maximal distance and minimal number of points as values. Only the type 'points' has been implemented so far.
+Basic functionality, one operator with default values and one 
+with maximal distance and minimal number of points as values. 
+Only the type 'points' has been implemented so far.
 
 [TOC]
 
 1 Overview
 
-This implementation file essentially contains the implementation of the classes ~ClusterAlgebra~ and ~DBccan~ which contains the actual cluster algorithm.
+This implementation file essentially contains the implementation of the 
+classes ~ClusterAlgebra~ and ~DBccan~ which contains the actual 
+cluster algorithm.
 
 2 Defines and Includes
 
-Eps is used for the clusteralgorithm as the maximal distance, the minimum points (MinPts) may be apart. If there are further points in the Eps-range to one of the points in the cluster, this point (and further points from this on) belong to the same cluster.
+Eps is used for the clusteralgorithm as the maximal distance, the 
+minimum points (MinPts) may be apart. If there are further points 
+in the Eps-range to one of the points in the cluster, this point 
+(and further points from this on) belong to the same cluster.
 
 */
 
@@ -133,30 +141,34 @@ PointsTypeMapB( ListExpr args)
   } 
   return nl->SymbolAtom("typeerror");
 }
-/*
-4.1 Selection function
 
-A selection function is quite similar to a type mapping function. The only
-difference is that it doesn't return a type but the index of a value
-mapping function being able to deal with the respective combination of
-input parameter types.
 
-Note that a selection function does not need to check the correctness of
-argument types; it has already been checked by the type mapping function that it
-is applied to correct arguments.
+static ListExpr cluster_c_TM(ListExpr args){
+  if(nl->ListLength(args)!=3){
+     ErrorReporter::ReportError("points x int x real expected");
+     return nl->TypeError();
+  }
+  if(nl->IsEqual(nl->First(args),"points") &&
+     nl->IsEqual(nl->Second(args),"int") &&
+     nl->IsEqual(nl->Third(args),"real")){
+     return nl->TwoElemList(nl->SymbolAtom("stream"),
+                            nl->SymbolAtom("points"));
+   
+  }
 
-No selection function has been used so far.
+  ErrorReporter::ReportError("points x int x real expected");
+  return nl->TypeError();
 
-*/
-//static int SimpleSelect(ListExpr args) {
-        //return 0;
-//}
+}
+
 
 /*
 5.1 Value mapping function for operator ~cluster\_a~.
 
-Predefined values for Eps (distance) and MinPts (minimum number of points) for the cluster algorithm are used.
-First an array with four columns is set up, a pointer array is being used in all the DBscan-class functions for access to this array.
+Predefined values for Eps (distance) and MinPts (minimum number of points)
+for the cluster algorithm are used.
+First an array with four columns is set up, a pointer array is being 
+used in all the DBscan-class functions for access to this array.
 
 */
 int cluster_aFun (Word* args, Word& result, int message, Word& local, 
@@ -221,7 +233,8 @@ int cluster_aFun (Word* args, Word& result, int message, Word& local,
   DBscan cluster;       
         
 /*
-Here the no-parameter default setup function is being called, which itself calls the actual cluster algorithm.
+Here the no-parameter default setup function is being called, which 
+itself calls the actual cluster algorithm.
 
 */      
   a = cluster.Parameter_Standard(cpoints ,cpoints_size);        
@@ -233,7 +246,8 @@ Here the no-parameter default setup function is being called, which itself calls
                                   "cluster_aFun Ergebnis: " << a << endl;
   cmsg.send();}                                 
 /*
-Copy the result from the internal array 'cpoints' back into the result 'points' memory location.
+Copy the result from the internal array 'cpoints' back into the 
+result 'points' memory location.
 
 */              
   cluster.CopyToResult(args,result, message, local, s, cpoints);
@@ -243,7 +257,8 @@ Copy the result from the internal array 'cpoints' back into the result 'points' 
 /*
 5.2 Value mapping function for operator ~cluster\_b~.
 
-This function receives tweo arguments: Eps and MinPts, which are used for the cluster algorithm.
+This function receives tweo arguments: Eps and MinPts, which are used 
+for the cluster algorithm.
 
 The first part ist identical to operator ~cluster\_a~.
 
@@ -345,6 +360,261 @@ The parameters are eing used for the cluster algorithm.
         
   return 0;
 }
+
+/*
+5.3 Value Mapping function for cluster[_]c
+
+*/
+
+class ClusterC_LocalInfo{
+ public:
+    ClusterC_LocalInfo(Points* pts, CcInt* minPts, CcReal* eps){
+       if(!pts->IsDefined() || !minPts->IsDefined() || !eps->IsDefined()){
+           defined = false;
+           return;
+       }
+       this->pts = pts;
+       this->minPts = max(0,minPts->GetIntval());
+       this->eps =  eps->GetRealval();
+       this->eps2 = this->eps*this->eps; 
+       defined = true;
+       size = pts->Size();
+       no = new int[size];
+       env = new set<int>*[size];
+       pos = 0;
+
+       // set all points to be  UNCLASSIFIED 
+       // and clean all sets
+       for(int i=0;i<size;i++){
+         no[i] = UNCLASSIFIED;
+         env[i] = new set<int>();
+       }
+       computeEnv();
+       pos = 0;
+       clusterId = 1;
+    }
+
+   ~ClusterC_LocalInfo(){
+      if(defined){
+         for(int i=0;i<size;i++){
+            delete env[i];
+         }
+         delete[] env;
+         delete[] no;
+       }
+    } 
+
+
+   Points* getNext(){
+      if(!defined){ // no next cluster available
+          return 0;
+      } 
+      // search the next unclassified point
+      while(pos<size){
+         if(no[pos] >= 0 ){ // point already classified
+           pos++;
+         } else if ( env[pos]->size()<minPts){
+           no[pos] = -2; // mark as NOISE
+           pos++;
+         } else {
+           // create a new cluster
+           Points* result = expand(pos);
+           clusterId++;
+           pos++;
+           return result;
+         }
+      }   
+      return 0; 
+   }
+
+
+  private:
+    Points* pts; // source points value
+    unsigned int minPts;
+    double eps;
+    double eps2;
+    bool  defined; 
+    int* no;  // cluster number
+    set<int>** env; // environments;
+    int size;
+    int pos;
+    int clusterId;
+
+    static const int UNCLASSIFIED = -1;
+    static const int NOISE = -2;
+
+    /* computes the epsilon environment for each point.
+     *  takes quadratical runtime, should be changed later.
+     */
+    void computeEnv(){
+      // debug::start  :: enforce a sorted input !!
+          pts->StartBulkLoad(); 
+          pts->EndBulkLoad();
+      // debug::end
+        for(int i=0;i<size;i++){
+           computeEnv(i);
+        }
+    }
+
+    /** computes the square of the distance between two points **/
+    double qdist(const Point* p1, const Point* p2){
+      double x1 = p1->GetX();
+      double x2 = p2->GetX();
+      double y1 = p1->GetY();
+      double y2 = p2->GetY();
+      double dx = x1-x2;
+      double dy = y1-y2;
+      return dx*dx + dy*dy;
+
+    } 
+
+    /** compute the environment for the point at the given position
+      * requires quadratic runtime, should be changed later
+      */
+    void computeEnv(const int pos){
+        const Point* p;
+        pts->Get(pos,p);
+       
+       
+       /**   
+        // complete naive implementation
+        for(int i=0;i<size;i++){
+           const Point* p2;
+           pts->Get(i,p2);
+           if(qdist(p,p2)<=eps2){
+              env[pos]->insert(i);
+           }
+        } 
+       **/
+       
+       // better implementation ; pts must be sorted
+       double x = p->GetX();
+       
+       bool done = false;
+       for(int i=pos; i>=0 && !done; i--){
+          const Point* p2;
+          pts->Get(i,p2);
+          double x2 = p2->GetX();
+          if( (x-x2) > eps){
+            done = true;
+          } else {
+            if(qdist(p,p2)<=eps2){
+             env[pos]->insert(i);
+            }
+          }
+       }
+
+       done = false;
+       for(int i=pos+1; i<size && !done; i++){
+          const Point* p2;
+          pts->Get(i,p2);
+          double x2 = p2->GetX();
+          if( (x2-x) > eps){
+            done = true;
+          } else {
+            if(qdist(p,p2)<=eps2){
+             env[pos]->insert(i);
+            }
+          }
+       }
+
+
+    }
+
+    /** expands a cluster */
+    Points* expand(int pos){
+
+
+      Points* result = new Points(minPts);
+      result->StartBulkLoad();
+
+      /*        
+        // Note : the following code does not implement the expand 
+        // function of dbscan.
+        // its just for checking the correct computed environment of each point
+
+        set<int>::iterator it;
+        for(it =  env[pos]->begin(); it!=env[pos]->end();it++){
+           const Point* p;
+           pts->Get(*it,p);
+           (*result) += (*p);
+        } 
+      */
+
+
+       // implementing the dbscan expand
+       set<int> seeds = *env[pos];
+       no[pos] = clusterId;
+       const Point* p;
+       pts->Get(pos,p);
+       (*result) += (*p);  
+       seeds.erase(pos);
+
+       while(!seeds.empty()){
+         int cpos = *(seeds.begin());
+         if(no[cpos]<0){ // not classified by another cluster
+            no[cpos] = clusterId;
+            pts->Get(cpos,p);
+            (*result) += (*p);
+            set<int>::iterator it;
+            for(it = env[cpos]->begin();it!=env[cpos]->end(); it++){
+               if(no[*it]<0){
+                  if(env[*it]->size()>=minPts){ // a core point
+                     seeds.insert(*it);
+                  } else { // border point
+                     no[*it] = clusterId;
+                     pts->Get(*it,p);
+                     (*result) += *p;
+                  }
+               }
+            }
+         }
+         seeds.erase(cpos);
+       }
+
+
+       result->EndBulkLoad();
+       return result;
+    }
+};
+
+
+int cluster_cFun (Word* args, Word& result, int message, Word& local, 
+                  Supplier s) {     
+   switch(message){
+        case OPEN : {
+          Points* pts = static_cast<Points*>(args[0].addr);
+          CcInt* minPts = static_cast<CcInt*>(args[1].addr);
+          CcReal* eps = static_cast<CcReal*>(args[2].addr);
+          local = SetWord(new ClusterC_LocalInfo(pts,minPts,eps));
+          return 0;
+      } case REQUEST : {
+          if(local.addr==0){
+            return CANCEL;
+          }
+          ClusterC_LocalInfo* linfo = 
+                 static_cast<ClusterC_LocalInfo*>(local.addr);
+          
+          Points* hasNext = linfo->getNext();
+          result = SetWord(hasNext);
+          if(hasNext){
+             return YIELD;
+          } else {
+             return CANCEL;
+          }
+      } case CLOSE : {
+          if(local.addr!=0){
+             delete static_cast<ClusterC_LocalInfo*>(local.addr);
+          }    
+          return 0;
+      }                       
+   }
+   return -1; // should never be reached
+
+}
+
+
+
 /*
 6.1 Specification Strings for Operator cluster\_a
 
@@ -372,6 +642,19 @@ const string cluster_bSpec =
         "<text>query Kneipen cluster_b[5,200]</text--->"
         ") )";
 /*
+6.3 Specification Strings for Operator cluster\_b
+
+*/
+const string cluster_cSpec = 
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+        "\"Example\" ) "
+        "( <text>points x int x real -> stream(points)</text--->"
+        "<text> _ cluster_c [_, _] </text--->"
+        "<text>compute cluster for given minPts"
+        " and epsilon. </text--->"
+        "<text>query Kneipen cluster_b[5,200.0] count</text--->"
+        ") )";
+/*
 7.1 Operator cluster\_a
 
 */
@@ -397,6 +680,17 @@ Operator cluster_b (
 );
 
 
+/*
+7.2 Operator cluster[_]c
+
+*/
+Operator cluster_c (
+        "cluster_c",            //name
+        cluster_cSpec,          //specification
+        cluster_cFun,           //value mapping
+        Operator::SimpleSelect, //trivial selection function
+        cluster_c_TM          //type mapping
+);
 
 /*
 8.1 Creating the cluster algebra
@@ -409,6 +703,7 @@ public:
   {
     AddOperator ( &cluster_a );
     AddOperator ( &cluster_b );
+    AddOperator ( &cluster_c );
                 
     ///// tracefile  /////
     if ( RTFlag::isActive("ClusterText:Trace") ) {
@@ -470,9 +765,11 @@ DBscan::DBscan() // Constructor
 /*
 10.2    Function FindClusters
 
-This function is being called through the 'Parameter-' functions, which set up Eps and MinPts. 
+This function is being called through the 'Parameter-' functions, 
+which set up Eps and MinPts. 
  
- It loops through each point and passes it on to the 'ExpandCluster' function if the point has not been classified as a cluster member yet.
+It loops through each point and passes it on to the 'ExpandCluster' function 
+if the point has not been classified as a cluster member yet.
  
 */
 int DBscan::FindClusters(double** cpoints, int cpoints_size){
@@ -509,7 +806,8 @@ int DBscan::FindClusters(double** cpoints, int cpoints_size){
 /*
 10.3    Function Parameter\_Standard
 
-This function only sets MinPts and Eps to the \#DEFINE values and calls the function 'FindClusters'.
+This function only sets MinPts and Eps to the \#DEFINE values and 
+calls the function 'FindClusters'.
 
 */
 
@@ -526,7 +824,8 @@ int DBscan::Parameter_Standard(double** cpoints,int cpoints_size) {
 /*
 10.4    Function Parameter\_UserDefined
 
-Similar to the function 'Parameter\_Standard', but sets MinPts and Eps to the parameter values.
+Similar to the function 'Parameter\_Standard', but sets MinPts and 
+Eps to the parameter values.
 
 */
 
@@ -544,7 +843,8 @@ int DBscan::Parameter_UserDefined(double** cpoints,int cpoints_size,
 /*
 10.5    Function ExpandCluster
 
-This function checks, if the passed point is member of a cluster and - if so - checks for further members. For this, the function 'Search' is being used.
+This function checks, if the passed point is member of a cluster and - if so - 
+checks for further members. For this, the function 'Search' is being used.
 
 */
 
@@ -585,7 +885,8 @@ bool DBscan::ExpandCluster(double** cpoints,int cpoints_size,int point)
 /*
 10.6    Function CopyToResult
 
-This function copies the resulting cluster members back into the 'points' value provided by the QueryProcessor.
+This function copies the resulting cluster members back into the 'points' 
+value provided by the QueryProcessor.
 
 */
 void DBscan::CopyToResult(Word* args, Word& result, int message, Word& local,
@@ -611,7 +912,8 @@ void DBscan::CopyToResult(Word* args, Word& result, int message, Word& local,
 /*
 10.7    Function Search
 
-This function searches for all points in the 'Eps'-area of each given point and returns these.
+This function searches for all points in the 'Eps'-area of each given 
+point and returns these.
 This function has so far been implemented only as a SLOW each-by-each search.
 Alternative methods (R[*]-Tree, ...) should be implemented.
 

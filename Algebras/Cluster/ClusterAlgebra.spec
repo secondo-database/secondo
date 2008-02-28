@@ -22,3 +22,4 @@
 
 operator cluster_a alias CLUSTERA pattern op ( _ )
 operator cluster_b alias CLUSTERB pattern _ op [ _, _]
+operator cluster_c alias CLUSTERC pattern _ op [ _, _]
