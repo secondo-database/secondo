@@ -448,8 +448,8 @@ class ClusterC_LocalInfo{
      */
     void computeEnv(){
       // debug::start  :: enforce a sorted input !!
-          pts->StartBulkLoad(); 
-          pts->EndBulkLoad();
+       //   pts->StartBulkLoad(); 
+       //   pts->EndBulkLoad();
       // debug::end
         for(int i=0;i<size;i++){
            computeEnv(i);

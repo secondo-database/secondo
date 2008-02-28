@@ -2413,7 +2413,7 @@ void Points::Rotate( const Coord& x, const Coord& y,
              m10*p->GetX() + m11*p->GetY() + m12);
     result += rot;
   }
-  result.EndBulkLoad( false, false );
+  result.EndBulkLoad( true, false );
 
 }
 
