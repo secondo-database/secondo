@@ -1,55 +1,54 @@
 Database: networktest
-Restore : no
+Restore : yes
 
 Operator : junctions
 Number   : 1
 Signature: network -> rel
-Example  : query junctions(X_NETWORK)
+Example  : query junctions(B_NETWORK);
 Result   : file
 
 Operator : routes
 Number   : 1
 Signature: network -> rel
-Example  : query routes(X_NETWORK)
+Example  : query routes(B_NETWORK);
 Result   : file
 
 Operator : sections
 Number   : 1
 Signature: network -> rel
-Example  : query sections(X_NETWORK)
+Example  : query sections(B_NETWORK);
 Result   : file
 
 Operator : thenetwork
 Number   : 1
 Signature: rel x rel -> network
-Example  : query thenetwork(1, X_ROUTES, X_JUNCTIONS)
+Example  : query thenetwork(1, B_ROUTES, B_JUNCTIONS);
 Result   : file
-Tolerance: %0.01
-
 
 Operator : shortest_path
 Number   : 1
 Signature: gpoint x gpoint -> gline
-Example  : query shortest_path(X_GPOINT, X_GPOINT2)
-Result   : file
+Example  : query shortest_path(X_GPOINT, X_GPOINT2);
+Result   : (gline(1((2 0.0 1.0)(1 385.0474775448921 773.1299430080975)(1 1.0 385.04744775448921))))
+Tolerance: %0.01
 
 Operator : length
 Number   : 1
 Signature: gline -> real
 Example  : query length(shortest_path(X_GPOINT, X_GPOINT2))
-Result   : 12356.5436770293
+Result   : 773.1299430081
 Tolerance:%0.01
 
 Operator : distance
 Number   : 1
 Signature: gpoint x gpoint -> real
 Example  : query distance(X_GPOINT, X_GPOINT2)
-Result   : 12356.5436770293
+Result   : 773.1299430081
 Tolerance:%0.01
 
 Operator : point2gpoint
 Number   : 1
 Signature: point -> gpoint
-Example  : query point2gpoint(X_NETWORK, [const point value(8594.0 8773.0)])
+Example  : query point2gpoint(B_NETWORK, [const point value(8594.0 8773.0)])
 Result   : (gpoint (1 1 385.0474775448921 2))
 Tolerance:%0.01
