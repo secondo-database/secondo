@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 This operator checks whether a moving point passes a fixed point or not.
 
 Mai-Oktober 2007 Martin Scheppokat
- 
+
 */
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
@@ -65,14 +65,14 @@ ListExpr OpPasses::TypeMap(ListExpr in_xArgs)
   {
     return (nl->SymbolAtom( "typeerror" ));
   }
-  
+
   if( (!nl->IsAtom( xGPointDesc )) ||
       nl->AtomType( xGPointDesc ) != SymbolType ||
       nl->SymbolValue( xGPointDesc ) != "gpoint" )
   {
     return (nl->SymbolAtom( "typeerror" ));
   }
-  
+
   return nl->SymbolAtom("bool");
 }
 
@@ -80,7 +80,7 @@ ListExpr OpPasses::TypeMap(ListExpr in_xArgs)
 Specification of the operator
 
 */
-const string OpPasses::Spec  = 
+const string OpPasses::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mgpoint x gpoint -> boolean" "</text--->"
   "<text>_ passes _</text--->"

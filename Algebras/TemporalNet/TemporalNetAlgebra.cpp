@@ -44,6 +44,7 @@ Defines, includes, and constants
 #include "OpSimplify.h"
 #include "OpPasses.h"
 #include "OpTrajectory.h"
+#include "OpTempNetLength.h"
 
 #include <iostream>
 #include <sstream>
@@ -69,7 +70,7 @@ TypeConstructor unitgpoint(
         UGPoint::Out, UGPoint::In,              // Out and In functions
         0,             0,                       // Save to and restore
                                                 // from list functions
-        UGPoint::Create,                        // Object creation 
+        UGPoint::Create,                        // Object creation
         UGPoint::Delete,                        // and deletion
         0,             0,                       // Object open and save
         UGPoint::Close, UGPoint::Clone,         // Object close and clone
@@ -84,24 +85,24 @@ Creation of the type constructor ~mpoint~
 */
 TypeConstructor movinggpoint(
         "mgpoint",                                  // Name
-        MGPoint::Property,                          // Property function 
+        MGPoint::Property,                          // Property function
         OutMapping<MGPoint, UGPoint, UGPoint::Out>,
         InMapping<MGPoint, UGPoint, UGPoint::In>,   // Out and In functions
-        0,                                          // SaveToList and 
+        0,                                          // SaveToList and
         0,                                          // RestoreFromList
-        CreateMapping<MGPoint>,                     // Object creation and 
+        CreateMapping<MGPoint>,                     // Object creation and
         DeleteMapping<MGPoint>,                     // deletion
         0,                                          // Object open and save
-        0,      
+        0,
         CloseMapping<MGPoint>,                      // Object close and clone
-        CloneMapping<MGPoint>, 
+        CloneMapping<MGPoint>,
         CastMapping<MGPoint>,                       // Cast function
         SizeOfMapping<MGPoint>,                     // Sizeof function
         MGPoint::Check);                            // Kind checking function
 
 
 /*
-Operator mpoint2mgpoint 
+Operator mpoint2mgpoint
 
 */
 Operator mpoint2mgpoint (
@@ -152,6 +153,17 @@ Operator trajectory("trajectory",
                     Operator::SimpleSelect,
                     OpTrajectory::TypeMap );
 
+/*
+Operator length
+
+*/
+Operator tempnetlength("length",
+                    OpTempNetLength::Spec,
+                    OpTempNetLength::ValueMapping,
+                    Operator::SimpleSelect,
+                    OpTempNetLength::TypeMap );
+
+
 
 /*
 Creating the Algebra
@@ -161,7 +173,7 @@ Creating the Algebra
 class TemporalNetAlgebra : public Algebra
 {
   public:
-  
+
   TemporalNetAlgebra() : Algebra()
   {
     AddTypeConstructor( &unitgpoint );
@@ -170,13 +182,14 @@ class TemporalNetAlgebra : public Algebra
     movinggpoint.AssociateKind( "TEMPORAL" );
     movinggpoint.AssociateKind( "DATA" );
     unitgpoint.AssociateKind( "DATA" );
-    
+
     AddOperator(&mpoint2mgpoint);
     AddOperator(&units);
     AddOperator(&simplify);
     AddOperator(&passes);
     AddOperator(&trajectory);
-    
+    AddOperator(&tempnetlength);
+
   }
 
 
@@ -202,7 +215,7 @@ dynamically at runtime.
 
 */
 
-extern "C" Algebra* InitializeTemporalNetAlgebra( NestedList* in_pNL, 
+extern "C" Algebra* InitializeTemporalNetAlgebra( NestedList* in_pNL,
                                                   QueryProcessor* in_pQP )
 {
   nl = in_pNL;
