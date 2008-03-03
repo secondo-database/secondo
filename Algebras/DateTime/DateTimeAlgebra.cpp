@@ -1944,12 +1944,24 @@ ListExpr DurationRealDuration(ListExpr args){
 
 ListExpr InstantString(ListExpr args){
   if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected\n");
+    return nl->SymbolAtom("typeerror");
+  }
+  if(nl->IsEqual(nl->First(args),"instant"))
+    return nl->SymbolAtom("string");
+  ErrorReporter::ReportError("instant expected\n");
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr DateTimeString(ListExpr args){
+  if(nl->ListLength(args)!=1){
      ErrorReporter::ReportError("one argument expected\n");
      return nl->SymbolAtom("typeerror");
   }
-  if(nl->IsEqual(nl->First(args),"instant"))
+  if(nl->IsEqual(nl->First(args),"instant") ||
+     nl->IsEqual(nl->First(args),"duration"))
      return nl->SymbolAtom("string");
-  ErrorReporter::ReportError("string expected\n");
+  ErrorReporter::ReportError("instant or duration expected\n");
   return nl->SymbolAtom("typeerror");
 }
 
@@ -2483,7 +2495,7 @@ int CreateInstantFromIntIntFun(Word* args, Word& result, int message,
 }
 
 
-int InstantToStringFun(Word* args, Word& result, int message,
+int DateTimeToStringFun(Word* args, Word& result, int message,
                                 Word& local, Supplier s){
     result = qp->ResultStorage(s);
     DateTime *T = static_cast<DateTime*>(args[0].addr);
@@ -2694,7 +2706,7 @@ const string CreateInstantSpec =
 
 const string ToStringSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"instant -> string \""
+  " ( \"{instant, duration} -> string \""
    "\" tostring(_)\" "
    "'returns a string representation of an instant'  "
    "\"query tostring(now()) \" ))";
@@ -2945,9 +2957,9 @@ Operator dt_create_instant(
 Operator dt_tostring(
        "tostring",    // name
        ToStringSpec,  // specification
-       InstantToStringFun,
+       DateTimeToStringFun,
        Operator::SimpleSelect,
-       InstantString );
+       DateTimeString );
 
 /*
 5 Creating the Algebra

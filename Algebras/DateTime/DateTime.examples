@@ -267,3 +267,9 @@ Number   : 1
 Signature: instant -> string
 Example  : query tostring([const instant value "2008-2-21"])
 Result   : (string "2008-02-21")
+
+Operator : tostring
+Number   : 2
+Signature: duration -> string
+Example  : query tostring([const duration value (15 2000)])
+Result   : (string "15;2000")
