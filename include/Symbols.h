@@ -155,6 +155,14 @@ Sym DIFFERENCE("difference");
 Sym CREATE_PREFIX("create_");
 
 
+#undef PICTURE
+ Sym PICTURE("picture");
+#undef DISTDATA
+ Sym DISTDATA("distdata"); // GeneralTreeAlgebra
+#undef MTREE
+ Sym MTREE("mtree");       // MTreeAlgebra
+#undef XTREE
+ Sym XTREE("xtree");        // XTreeAlgebra
 
 
  // some reserved words of the query processor
