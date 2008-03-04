@@ -28,6 +28,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2007 Martin Scheppokat
 
+March 2008 Simone Jandt Added type constructor igpoint and operators: length,
+initial, atinstant and final.
+
 Defines, includes, and constants
 
 */
@@ -45,6 +48,9 @@ Defines, includes, and constants
 #include "OpPasses.h"
 #include "OpTrajectory.h"
 #include "OpTempNetLength.h"
+#include "OpTempNetAtinstant.h"
+#include "OpTempNetInitial.h"
+#include "OpTempNetFinal.h"
 
 #include <iostream>
 #include <sstream>
@@ -59,6 +65,55 @@ Defines, includes, and constants
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
+
+/*
+Intime GPoint Property
+
+*/
+ListExpr
+IntimeGPointProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
+                             nl->StringAtom("(igpoint) "),
+                             nl->StringAtom("(instant gpoint-value)"),
+                             nl->StringAtom("((instant) (1 1 1.0 2))"))));
+}
+
+/*
+Kind checking Function for ~igpoint~
+
+*/
+bool
+CheckIntimeGPoint( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "igpoint" ));
+}
+
+/*
+Creation of the type constructor  ~igpoint~
+
+*/
+TypeConstructor intimegpoint(
+        "igpoint",                    //name
+        IntimeGPointProperty,  //property function describing signature
+        OutIntime<GPoint, GPoint::OutGPoint>,
+        InIntime<GPoint, GPoint::InGPoint>,         //Out and In functions
+        0,
+        0,       //SaveToList and RestoreFromList functions
+        CreateIntime<GPoint>,
+        DeleteIntime<GPoint>,              //object creation and deletion
+        0,
+        0,                           // object open and save
+        CloseIntime<GPoint>,
+        CloneIntime<GPoint>,               //object close and clone
+        CastIntime<GPoint>,                //cast function
+        SizeOfIntime<GPoint>,              //sizeof function
+        CheckIntimeGPoint );               //kind checking function
 
 /*
 Creation of the type constructor ~upoint~
@@ -163,7 +218,35 @@ Operator tempnetlength("length",
                     Operator::SimpleSelect,
                     OpTempNetLength::TypeMap );
 
+/*
+Operator atinstant
 
+*/
+Operator tempnetatinstant("atinstant",
+                OpTempNetAtinstant::Spec,
+                MappingAtInstant<MGPoint, GPoint>,
+                Operator::SimpleSelect,
+                OpTempNetAtinstant::TypeMap );
+
+/*
+Operator initial
+
+*/
+Operator tempnetinitial("initial",
+                OpTempNetInitial::Spec,
+                MappingInitial<MGPoint, UGPoint, GPoint>,
+                Operator::SimpleSelect,
+                OpTempNetInitial::TypeMap );
+
+/*
+Operator final
+
+*/
+Operator tempnetfinal("final",
+                OpTempNetFinal::Spec,
+                MappingFinal<MGPoint,UGPoint, GPoint>,
+                Operator::SimpleSelect,
+                OpTempNetFinal::TypeMap );
 
 /*
 Creating the Algebra
@@ -178,10 +261,13 @@ class TemporalNetAlgebra : public Algebra
   {
     AddTypeConstructor( &unitgpoint );
     AddTypeConstructor( &movinggpoint );
+    AddTypeConstructor( &intimegpoint);
 
     movinggpoint.AssociateKind( "TEMPORAL" );
     movinggpoint.AssociateKind( "DATA" );
     unitgpoint.AssociateKind( "DATA" );
+    intimegpoint.AssociateKind("TEMPORAL");
+    intimegpoint.AssociateKind("DATA");
 
     AddOperator(&mpoint2mgpoint);
     AddOperator(&units);
@@ -189,6 +275,9 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&passes);
     AddOperator(&trajectory);
     AddOperator(&tempnetlength);
+    AddOperator(&tempnetatinstant);
+    AddOperator(&tempnetinitial);
+    AddOperator(&tempnetfinal);
 
   }
 

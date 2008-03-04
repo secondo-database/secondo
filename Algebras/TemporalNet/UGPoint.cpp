@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 Mai-Oktober 2007 Martin Scheppokat
 
+March 2008 Simone Jandt TemporalFunction added
+
 */
 #include "TemporalAlgebra.h"
 #include "TupleIdentifier.h"
@@ -40,32 +42,34 @@ void UGPoint::TemporalFunction( const Instant& t,
                                 GPoint& result,
                                 bool ignoreLimits ) const
 {
-  throw SecondoException("Method UGPoint::TemporalFunction not implemented.");
   if( !IsDefined() ||
       !t.IsDefined() ||
-      (!timeInterval.Contains( t ) && !ignoreLimits) )
-    {
+      (!timeInterval.Contains( t ) && !ignoreLimits) ){
       result.SetDefined(false);
-    }
-  else if( t == timeInterval.start )
-    {
+  } else {
+    if( t == timeInterval.start ){
       result = p0;
       result.SetDefined(true);
+    } else {
+      if( t == timeInterval.end ) {
+        result = p1;
+        result.SetDefined(true);
+      }  else {
+        Instant t1 = timeInterval.end;
+        double tStart = timeInterval.start.ToDouble();
+        double tEnd = timeInterval.end.ToDouble();
+        double tInst = t.ToDouble();
+        double posStart = p0.GetPosition();
+        double posEnd = p1.GetPosition();
+        double posInst = fabs(posEnd-posStart) * (tInst-tStart) /
+                        (tEnd - tStart) + posStart;
+        result = GPoint(true, p0.GetNetworkId(), p0.GetRouteId(), posInst,
+                        p0.GetSide());
+        result.SetDefined(true);
+      }
     }
-  else if( t == timeInterval.end )
-    {
-      result = p1;
-      result.SetDefined(true);
-    }
-  else
-    {
-      return;
-//      Instant t0 = timeInterval.start;
-//      Instant t1 = timeInterval.end;
-//
-//      result.Set( x, y );
-//      result.SetDefined(true);
-    }
+  }
+  return;
 }
 
 
@@ -88,21 +92,21 @@ bool UGPoint::Passes( const GPoint& p ) const
   if(p0.GetPosition() < p.GetPosition() &&
      p.GetPosition() < p1.GetPosition() ||
      p1.GetPosition() < p.GetPosition() &&
-     p.GetPosition() < p0.GetPosition()) 
+     p.GetPosition() < p0.GetPosition())
   {
     return true;
   }
-  
-  // If the edge of the interval is included we need to check the exakt 
-  // Position too. 
+
+  // If the edge of the interval is included we need to check the exakt
+  // Position too.
   if(timeInterval.lc &&
-     p0.GetPosition() == p.GetPosition() ||
+     AlmostEqual(p0.GetPosition(), p.GetPosition()) ||
      timeInterval.rc &&
-     p1.GetPosition() == p.GetPosition())
+     AlmostEqual(p1.GetPosition(),p.GetPosition()))
   {
     return true;
   }
-  
+
   return false;
 }
 
@@ -147,7 +151,7 @@ bool UGPoint::Check(ListExpr type, ListExpr& errorInfo)
 ~Out~-function
 
 */
-ListExpr UGPoint::Out(ListExpr typeInfo, 
+ListExpr UGPoint::Out(ListExpr typeInfo,
                       Word value)
 {
   UGPoint* ugpoint = (UGPoint*)(value.addr);
@@ -158,15 +162,15 @@ ListExpr UGPoint::Out(ListExpr typeInfo,
   }
   else
   {
-    ListExpr timeintervalList = 
+    ListExpr timeintervalList =
         nl->FourElemList(OutDateTime( nl->TheEmptyList(),
                                       SetWord(&ugpoint->timeInterval.start) ),
-                         OutDateTime( nl->TheEmptyList(), 
+                         OutDateTime( nl->TheEmptyList(),
                                       SetWord(&ugpoint->timeInterval.end) ),
                          nl->BoolAtom( ugpoint->timeInterval.lc ),
                          nl->BoolAtom( ugpoint->timeInterval.rc));
 
-    ListExpr pointsList = 
+    ListExpr pointsList =
          nl->FiveElemList(nl->IntAtom( ugpoint->p0.GetNetworkId() ),
                           nl->IntAtom( ugpoint->p0.GetRouteId() ),
                           nl->IntAtom( ugpoint->p0.GetSide() ),
@@ -180,10 +184,10 @@ ListExpr UGPoint::Out(ListExpr typeInfo,
 ~In~-function
 
 */
-Word UGPoint::In(const ListExpr typeInfo, 
+Word UGPoint::In(const ListExpr typeInfo,
                  const ListExpr instance,
-                 const int errorPos, 
-                 ListExpr& errorInfo, 
+                 const int errorPos,
+                 ListExpr& errorInfo,
                  bool& correct)
 {
   string errmsg;
@@ -211,7 +215,7 @@ Word UGPoint::In(const ListExpr typeInfo,
       }
 
       Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
-       nl->Second( first ), 
+       nl->Second( first ),
        errorPos, errorInfo, correct ).addr;
 
       if( !correct )
@@ -254,7 +258,7 @@ Word UGPoint::In(const ListExpr typeInfo,
                                      nl->IntValue( nl->First( second ) ),
                                      nl->IntValue( nl->Second( second ) ),
                                      (Side)nl->IntValue( nl->Third( second ) ),
-                                     nl->RealValue( nl->Fourth( second ) ), 
+                                     nl->RealValue( nl->Fourth( second ) ),
                                      nl->RealValue( nl->Fifth( second ) ));
 
         correct = ugpoint->IsValid();
@@ -309,7 +313,7 @@ void UGPoint::Delete(const ListExpr typeInfo,
 ~Close~-function
 
 */
-void UGPoint::Close(const ListExpr typeInfo, 
+void UGPoint::Close(const ListExpr typeInfo,
                     Word& w)
 {
   delete (UGPoint *)w.addr;
@@ -320,7 +324,7 @@ void UGPoint::Close(const ListExpr typeInfo,
 ~Clone~-function
 
 */
-Word UGPoint::Clone(const ListExpr typeInfo, 
+Word UGPoint::Clone(const ListExpr typeInfo,
                     const Word& w )
 {
   UGPoint *ugpoint = (UGPoint *)w.addr;

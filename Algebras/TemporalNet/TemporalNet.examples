@@ -62,3 +62,24 @@ Signature: mgpoint -> real
 Example  : query length([const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))]);
 Result   : 2.2
 Tolerance: 0.01%
+
+Operator : atinstant
+Number   : 1
+Signature: mgpoint x instant -> igpoint
+Example  : query ([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]) atinstant create_instant(2555.42362);
+Result   : (igpoint("2007-01-01-10:10:00.768" (1 1 0.7679999864841811 1)))
+Tolerance: 0.01%
+
+Operator : initial
+Number   : 1
+Signature: mgpoint x instant -> igpoint
+Example  : query initial([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]);
+Result   : (igpoint("2007-01-01-10:10" (1 1 0.0 1)))
+Tolerance: 0.01%
+
+Operator : final
+Number   : 1
+Signature: mgpoint x instant -> igpoint
+Example  : query final([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]);
+Result   : (igpoint("2007-01-01-10:10:02" (1 1 15.0 1)))
+Tolerance: 0.01%

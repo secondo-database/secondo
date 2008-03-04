@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -47,8 +47,8 @@ Please include in *.cpp-File.
 /*
 UGPoint
 
-This class will be used in the ~ugpoint~ type constructor, i.e., the type constructor
-for the temporal unit of gpoint values.
+This class will be used in the ~ugpoint~ type constructor, i.e., the type
+constructor for the temporal unit of gpoint values.
 
 */
 struct UGPoint : public SpatialTemporalUnit<GPoint, 3>
@@ -63,26 +63,26 @@ Constructors and Destructor
     SpatialTemporalUnit<GPoint, 3>(is_defined) {};
 
   UGPoint( const Interval<Instant>& interval,
-           const int in_NetworkID, 
+           const int in_NetworkID,
            const int in_RouteID,
            const Side in_Side,
-           const double in_Position0, 
+           const double in_Position0,
            const double in_Position1 ):
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( true,        // defined
-        in_NetworkID,    // NetworkID 
-        in_RouteID,      // RouteID 
+        in_NetworkID,    // NetworkID
+        in_RouteID,      // RouteID
         in_Position0,    // d
         in_Side),      // Side
     p1( true,        // defined
-        in_NetworkID,    // NetworkID 
-        in_RouteID,      // RouteID 
+        in_NetworkID,    // NetworkID
+        in_RouteID,      // RouteID
         in_Position1,    // d
         in_Side)       // Side
     {}
 
   UGPoint( const Interval<Instant>& interval,
-           const GPoint& p0, 
+           const GPoint& p0,
            const GPoint& p1 ):
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( p0 ),
@@ -175,24 +175,24 @@ Property Function
 Kind Checking Function
 
 */
-    static bool Check(ListExpr type, 
+    static bool Check(ListExpr type,
                       ListExpr& errorInfo );
 
 /*
 ~Out~-function
 
 */
-    static ListExpr Out(ListExpr typeInfo, 
+    static ListExpr Out(ListExpr typeInfo,
                         Word value );
 
 /*
 ~In~-function
 
 */
-    static Word In(const ListExpr typeInfo, 
+    static Word In(const ListExpr typeInfo,
                    const ListExpr instance,
-                   const int errorPos, 
-                   ListExpr& errorInfo, 
+                   const int errorPos,
+                   ListExpr& errorInfo,
                    bool& correct );
 
 /*
@@ -205,21 +205,21 @@ Kind Checking Function
 ~Delete~-function
 
 */
-    static void Delete(const ListExpr typeInfo, 
+    static void Delete(const ListExpr typeInfo,
                        Word& w );
 
 /*
 ~Close~-function
 
 */
-    static void Close(const ListExpr typeInfo, 
+    static void Close(const ListExpr typeInfo,
                       Word& w );
 
 /*
 ~Clone~-function
 
 */
-    static Word Clone(const ListExpr typeInfo, 
+    static Word Clone(const ListExpr typeInfo,
                       const Word& w );
 
 /*
