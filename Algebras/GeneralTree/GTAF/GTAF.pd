@@ -1,0 +1,617 @@
+/*
+//[_] [\_]
+//characters      [1]   verbatim:   [$]   [$]
+//characters      [2]   formula:    [$]   [$]
+//characters      [3]   capital:    [\textsc{]  [}]
+//characters      [4]   teletype:   [\texttt{]  [}]
+//paragraph [11] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [21]  table1column:     [\begin{quote}\begin{tabular}{l}]   [\end{tabular}\end{quote}]
+//paragraph [22]  table2columns:    [\begin{quote}\begin{tabular}{ll}]  [\end{tabular}\end{quote}]
+//paragraph [23]  table3columns:    [\begin{quote}\begin{tabular}{lll}] [\end{tabular}\end{quote}]
+//paragraph [24]  table4columns:    [\begin{quote}\begin{tabular}{llll}][\end{tabular}\end{quote}]
+//[--------]      [\hline]
+//[TOC] [\tableofcontents]
+
+[11] GeneralTreeAlgebra framework (GTAF)
+
+January-February 2008, Mirko Dibbert
+
+[TOC]
+\newpage
+
+1 Overview
+
+This framework provides some basic functionality for implementation of "SmiRecordFile"[4] based trees. Examples for the usage of this framework could be found in the "MTreeAlgebra"[4] and the "XTreeAlgebra"[4] implementation. All framework classes belong to the namespace "gtaf"[4].
+
+To enable the debug mode for this framework, define "GTAF[_]DEBUG"[4] before including the headerfile "GTAF.h". This activates some additional features, which could help to find bugs in the derived trees, e.g. checking for open node/entry objects in the "Tree"[4] destructor to find memory leaks or using "dynamic[_]cast"[4] and halt the dbms in case of invalid casts instead of using "static[_]casts"[4], which could lead to a crash in a complete different situation. Since these features (in particular the use of dynamic casts) could reduce the performance of the framework, they are only activated in debug mode.
+
+
+The framework consists of the following files (the mentioned classes will be described below):
+
+  * "GTAF.h"[4]\\
+    Main file of the framework. This file must be included, if the framework should be used. Contains the "Header"[4] and the "Tree"[4] class.
+
+  * "GTAF[_]Types.h"[4]\\
+    Contains all typedefs of the framework.
+
+  * "GTAF[_]Config.h"[4]\\
+    Includes "GTAF[_]Types.h" and contains some defines and constants, that could be used to configurate the framework. This file is included in all framework files.
+
+  * "GTAF[_]Manager.h"[4], "GTAF[_]Manager.cpp"[4]\\
+    Contains the "DefaultCachePriority" struct and "TreeManager"[4] class, which provides a node cache and some methods to traverse the tree.
+
+  * "GTAF[_]NodeConfig.h"[4], "GTAF[_]NodeConfig.cpp"[4]\\
+    Contains the "NodeConfig"[4] class, which contains the node type-id, the priority value and min./max. values for the count of entries and file records for the assigned node.
+
+  * "GTAF[_]NodeSupp.h"[4], "GTAF[_]NodeSupp.cpp"[4]\\
+    Contains the "NodeSupp"[4] class, which contains a reference to the tree file and a prototype node for each node type.
+
+  * "GTAF[_]Base.h"[4], "GTAF[_]Base.h"[4]\\
+    Contains the base class for general tree entries ("EntryBase"[4]) and nodes ("NodeBase"[4]).
+
+  * "GTAF[_]FileNode.h"[4], "GTAF[_]FileNode.cpp"[4]\\
+    Contains the "FileNode"[4] class, which extends the "NodeBase"[4] class with file management abilities.
+
+  * "GTAF[_]Nodes.h"[4]\\
+    Contains the classes "GenericVectorNode"[4], "InternalNode"[4] and "LeafNode"[4].\\[3ex]
+    These classes are only implemented for use in the derived trees classes and are not directly used in the framework, thus it is possible to use individual implementations instead of these classes. In this case, the user defined classes must inherrit from the "NodeBase"[4] class.
+
+  * "GTAF[_]Entries.h"[4]\\
+    Contains the classes "InternalEntry"[4] and "LeafEntry"[4], which should be used as base for user defined entry classes.
+
+  * "GTAF[_]Errors.h"[4], "GTAF[_]Errors.cpp"[4]\\
+    Contains the "Msg"[4] class, which is used to show all error and warning messages of the framework.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1 Class descriptions
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The following class diagram shows the structure of the framework classes. The main class of the framework is the "Tree"[4] class. This class contains the "SmiRecordFile"[4] that stores the tree. The constructor calls the default constructor of the "Header"[4] class (or a class derived from the header class). Further it creates a new "NodeSupp"[4] object, which contains a reference to the tree file. This object is needed in the "Node"[4] class to create new nodes or read previously stored nodes from the file. At least, it calls the "TreeManager"[4] constructor with the "NodeSupp"[4] object, which needs the "NodeSupp"[4] object, if a new "Node"[4] object must be created.
+
+		Figure 1: GTAF classes
+				[GTreeDiag.eps]
+
+The "Header"[4] class contain some data, that will automatically be read and written within the tree file. If the provided data fields are not sufficient, it is possible to use another header class instead, which should be derived from "Header"[4].
+
+The "NodeBase"[4] class is the main class for the general tree nodes. It provides some general data and methods for all node types as far as a set of pure virtual methods, e.g. to insert new entries into the node. The "Node"[4] class could be used similar to the "NodeBase"[4] class, but additionally provides some file management features for the node (internally the "Node"[4] class contains a pointer to the respective node object, which could also be directly accessed, if necessary). The "GenericVectorNode"[4] class extends the "NodeBase"[4] class with an entry vector and some methods for direct access to the vector. The "InternalNode"[4] and "LeafNode"[4] class after all implement two node types, that should be sufficient in many cases. Otherwhise they could be extended with user defined nodes. For sure it is also possible to use a complete new implementation, e.g. to use another representation of the entries than a vector, as long as this class is derived from "NodeBase"[4].
+
+The "EntryBase"[4] class is the entry correspondant to the "NodeBase"[4] class, and is used as pointer type, e.g. in some methods of the "NodeBase"[4] class, thus all general tree entries must be derived from this class. The "InternalEntry"[4] class provides a "SmiRecordId" member, which takes the pointer to the chield node. This class should be used as base class for all internal entries. The "LeafEntry"[4] class curently provides no further functionality, but it should be used as base class for leaf entries anyway for the case that this class should be extended in the future.
+
+The following subsections describe the mentioned classes in detail.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1 Class "Tree"[4] (template class)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- template <class THeader = Header,
+               class TTreeManager = TreeManager>
+     class Tree;
+----
+This class is the base class for the trees and contains the tree file as well as some basic methods, which are described in detail below.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Template parameters
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The first template parameter is optional and could be a class, which is derived from the "Header"[4] class (or any class, that contains at least the same members as the "Header"[4] class). This parameter could be used to extend the default header class with additional members. The only restriction to the header class is, that it may not contain any dynamic members (e.g. strings, vectors, lists, etc.), since the object representation must be contained in a continious memory area. The size of the header does not matter, since the respective read/write methods will automatically use more than one record in the tree file to store the header, if necessary.
+
+The second template parameter is also optional and could be used to customize the default tree manager class, e.g. to add further methods.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Constructors
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- Tree(bool temporary = false)
+----
+This constructor creates a new tree. If the "temporary"[4] paramerer equals "true"[4], the tree file will be dropped when the tree is deleted. Otherwise the "deleteFile"[4] method needs to be called for this purpose.
+
+---- Tree(SmiFileId fileId)
+----
+This constructor read a previously stored tree from the specified file.
+
+---- Tree(const Tree& tree)
+----
+This is the default copy constructor, which copies the complete tree file.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Methods
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- void deleteFile()
+----
+Deletes the tree file.
+
+---- SmiFileId getFileId()
+----
+Returns the file id of the "SmiRecordFile"[4], that contains the tree.
+
+---- unsigned getInternalCount()
+     unsigned getLeafCount()
+     unsigned getEntryCount()
+     unsigned getHeight()
+     unsigned openTrees()
+     unsigned openNodes()
+     unsigned openEntries()
+----
+These methods return some statistic information about the tree. The "openXXX"[4] methods return the count of currently open objects of the respective type for all trees that use this framework. This feature is only enabled in debug mode (otherwhise these methods will allways return 0) and used to show a warning message, if objects left open after removing the last open tree. When implementing new trees, these methods could also be helpful tools for debugging purposes.
+
+---- void addNodePrototype(NodeBase* node)
+----
+Adds a new protoype node. A prototype node is needed for each node type, that should be avaliable in the tree. These prototypes are used to create new instances of the respective node type by calling their clone methods, thus the framework could create new nodes without knowing the respective classes.
+
+---- NodePtr createNode(NodeTypeId type, unsigned level = 0)
+     NodePtr createNeighbourNode(NodeTypeId type)
+     NodePtr createRoot(NodeTypeId type)
+     NodePtr createLeaf(NodeTypeId type)
+----
+These methods should be used to create a new node. The "type"[4] value specifies the node type, that should be created. For this purpose, a prototype node of the respective type must have been added by using the "addNodePrototype"[4] method, otherwhise an error message will be printed to "cmsg::error()"[4]. If more than one prototype of the same type has been added, the first of that nodes will be cloned.
+
+If the node cache should not be used, the first method could be used, wheras the level parameter could be ignored. Otherwhise "level"[4] should contain the right node level for that node (with leaf level = 0), since it is used to compute the priority of the node: If the cache if full, the node(s) with the lowest priority will be removed from the cache, thus a wrong level value will probably promote false nodes to be removed. The remaining create methods call the "createNode"[4] method with the respective "level"[4] parameter (the "createNeighbourNode"[4] method use "treeMngr->curNode()->level()"[4]).
+
+---- NodePtr getNode(SmiRecordId nodeId, unsigned level = 0)
+----
+Reads the specified node from file (for the meaning of "level"[4] see above).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Data Members (protected)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+These members could be accessed directly from the derived trees, wheres usually only "header"[4] and "treeMngr"[4] should be needed. The "nodeSupp"[4] object could be used, if a node should be created/loaded without using the respective "treeMngr"[4] methods by calling the respective "Node"[4] constructor.
+
+---- THeader header;
+     TTreeManager* treeMngr;
+     NodeSupp* nodeSupp
+     SmiRecordFile file;
+----
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Struct "Header"[4]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This struct contains the following members, which are stored within the tree file. It should be used as base class for individual header classes, if this class is not sufficient.
+
+---- SmiRecordId root;       // page of the root node
+     unsigned height;        // height of the tree
+     unsigned entryCount;    // count of the entries stored in the tree
+     unsigned internalCount; // count of Internal nodes in the tree
+     unsigned leafCount;     // count of leaf nodes in the tree
+----
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1 Class "NodeManager"[4] (template class)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- class TreeManager;
+----
+This class implements some methods to traverse the tree and implements a cache structure for the tree nodes.
+
+The class provides only the following constructor:
+
+---- TreeManager(NodeSupp* supp )
+----
+The "supp"[4] object contains a reference to the tree file and the node prototypes and is needed in the "FileNode"[4] constructor, which is called when a new node should be created or a previously saved node should be read from file.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Priority function and struct "DefaultCachePriority"[4]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The node cache needs a priority function of the following signature to promote the node(s), that should be removed from the node cache, if the cache size exceeds the maximum cache size:
+
+---- unsigned getPriority(NodePtr &node)
+----
+The probablility of a node to remain in the cache is proportional to the return value of the priority function. The default priority function is implemented as follows:
+
+---- unsigned getPriority(NodePtr &node)
+     {
+        return 10 * node->priority() +
+                5 * node->level() +
+                    node->pagecount();
+     }
+----
+With the default priority function, the probability of holding a node in the cache is influenced by three parameters: the node priority, the node level and the size of the node. Increasing this values also increase the probability of the node to remain in the cache.
+
+The most important value is the node level, whereas the root has the highest level and the leaves belong to level 0. When using the "createRoot"[4], "createLeaf"[4], "createNeighbourNode"[4], "getParent"[4] and "getChield"[4] methods, the level would be set automatically. For the "createNode"[4] and "getNode"[4] methods, the respective level is expected as parameter.
+
+The node priority could be specified in the "NodeConfig"[4] objects (see chapter GTAF-nodes) and could be used to increase the default priority of the respective node type, e.g to assure that nodes of a specific type should remain as long as possible in the cache.
+
+If the default priority function is not sufficient, the "setPriorityFun"[4] method could be used to replace it with a user defined priority function (see below).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Methods
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- inline void setPriorityFun(PriorityFun pf)
+----
+This function could be used to replace the default priority function with a user defined priority function, which must expect a "NodePtr"[4] as parameter and return a "unsigned"[4] value as result.
+
+---- void enableCache()
+     void disableCache()
+     void clearCache()
+     unsigned cacheSize()
+----
+These methods concern the node cache: The first two methods en-/disable the node cache. The "clearCache"[4] method removes all nodes from the cache and is called from the "disableCache"[4] method. The "cacheSize"[4] method returns the currently used size of the node cache in bytes.
+
+---- NodePtr createNode(NodeTypeId type, unsigned level = 0);
+     NodePtr createNeighbourNode(NodeTypeId type)
+     NodePtr getNode(SmiRecordId nodeId, unsigned level = 0);
+----
+These methods are used to create new nodes or read a node from file. The meaning of "type"[4] and "file"[4] has already described above.
+
+---- void initPath(SmiRecordId rootId, unsigned rootLevel)
+     void getChield(unsigned i)
+     void getParent() const
+     bool hasParent()
+     NodePtr curNode()
+     NodePtr parentNode()
+     unsigned curLevel()
+     template<class TNode> TNode::entryType* parentEntry()
+----
+These methods could be used to traverse the tree. The "initPath"[4] method initiates a new path from the spezified root. Assure to use the right level value, if the node cache should be used, otherwhise the node cache would probably not remove the expected nodes from the cache. The "getChield"[4] and "getParent"[4] methods read the chield/parent node of the current node from file. The "curNode"[4] and "parentNode"[4] return a (smart pointer) reference to the current/parent node. The "curLevel"[4] method returns the level of the current node in path.
+
+The template method "parentEntry"[4] returns a pointer to the parent entry, which is casted to the appropriate entry type. The "TNode"[4] class must match the node type of the parent node, otherwhise the cast will lead to an error (if debug mode is enabled) or to undefined results.
+
+---- void replaceParentEntry(InternalEntry* entry)
+----
+Replaces the parent entry of "curNode()"[4] with "entry"[4] and updates the used cache size.
+
+---- bool insert(NodePtr node, EntryBase* entry)
+     bool insertCopy(NodePtr node, EntryBase* e)
+     void clear(NodePtr node)
+     void remove(NodePtr node, unsigned i)
+     void recomputeSize(NodePtr node)
+     void drop(NodePtr node);
+----
+These methods call the respective methods of "node"[4] and updates the used cache size ("drop"[4] will also remove the node from the node cache). If the node cache should be used, assure to use this methods instead of direct use of the respective methods of the "node"[4] object, since the used cache size would not be correct otherwhise.
+\\[3ex]
+If an individual node manager class should be implemented, this class needs to provide at least the following methods, since they are called from the "Tree"[4] class:
+
+---- void enableCache()
+     void disableCache()
+     NodePtr createNode(NodeTypeId type, unsigned level);
+     NodePtr createNeighbourNode(NodeTypeId type)
+     NodePtr getNode(SmiRecordId nodeId, unsigned level);
+----
+Furthermore, it needs a constructor with the same signature as the default node manager class.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1 GTAF-Nodes
+
+1.1.1.1 Struct "NodeConfig"[4]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This struct contains some data, that is equal in all node objects of a specific type. The only method is the constructor, which has the following signature:
+
+---- NodeConfig(
+         NodeTypeId type,
+         unsigned priority = 0,
+         unsigned minEntries = 2,
+         unsigned maxEntries = numeric_limits<unsigned>::max(),
+         unsigned minPages = 1,
+         unsigned maxPages = 1,
+         bool cacheable = true)
+----
+The first parameter specifies the type-id of the node and should be unique for every registered node prototype. The second parameter sets the node-priority, which influences the promote algorithm of the node cache. The next three parameters influence the "insert"[4] method for nodes as follows:
+
+The "insert"[4] method will return "false"[4] until the node contains at least "minEntries"[4] and needs at least "minPages"[4] memory pages. In this case, it would return "true"[4] (means that an overflow has been occured and the node should be splitted), as soon as it contains "maxEntries"[4] entries or it needs more than "maxPages"[4] pages in the tree file.
+
+If the node should take unlimited entries, the constructor could be called with "minEntries = 0", which will set "minEntries = numeric[_]limits<unsigned>::max()"[4]. "maxEntries"[4] and "maxPages"[4] do not affect the "insert"[4] method in this case, thus the default values could be used.
+
+The "cacheable"[4] value could be set to "false"[4], to avoid storing nodes of the respective type in the node cache, e.g. if leaf nodes should generally not be cacheable.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Struct "NodeSupp"[4]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This class contains a reference to the tree file and a vector of prototypes for all nodes. The prototypes are needed to create new nodes of a specific type without knowing the node class. New prototypes could be added with the "addNodePrototype"[4] method of the "Tree"[4] class.
+
+This class is not of any interest for users if this framework, since it is for internal use only. It contains a reference to the tree file and a list of prototype nodes and is needed in the "Node"[4] class to create new nodes of a specific type or to read a previously stored node from the tree file.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Class "NodeBase"[4]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This class is the base class for the general tree nodes: All general tree nodes must be directly or indirectly derived from this class. Pointers to a node could use this class as pointer type, but usually the "Node"[4] class should be used instead, since the "NodeBase"[4] class has no file management abilities. All methods of this class are also provided by the "Node" class, which passes through calls of the respective methods to this class (or one of the derived classes in case of virtual methods).
+
+In debug mode, this class adds a counter to all derived classes, which is used in the "Tree"[4] destructor to show a warning message, if not all nodes had been detroyed.
+
+Beyond the default copy constructor, the "NodeBase"[4] class provides the following constructor:
+
+---- NodeBase(NodeConfigPtr config, unsigned emptySize)
+----
+The first parameter must be a reference to the respective "NodeConfig"[4] object for that node type. The second parameter is needed, if the derived classes contain additional elements, that should be stored to the node record, e.g. the count of entries in the "GenericVectorNode"[4] class. This value is used to initialize the size value of empty nodes.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1.1 Methods
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- NodeTypeId typeId() const
+----
+Returns the type-id of the node.
+
+---- bool isCached() const
+     bool isModified() const
+     void setCached()
+     void setModified()
+     void resetCached()
+     void resetModified()
+----
+Returns or updates the state of the cached/modified flag.
+
+---- bool isCacheable() const
+----
+Returns true, if the node could be stored in the node cache.
+
+
+---- unsigned pagecount() const
+----
+Returns the count of pages, which this node would need in the file.
+
+---- unsigned level() const
+     void incLevel()
+     void decLevel()
+     void setLevel(unsigned level)
+----
+Returns or updates the level of the node in the tree.
+
+---- unsigned priority() const
+----
+Returns the priority of the node.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1.1 Virtual methods
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- virtual bool isLeaf() const = 0;
+----
+Should return "true"[4] for leaf nodes and "false"[4] for internal nodes.
+
+---- virtual void read(const char* const buffer, int& offset) = 0;
+     virtual void write(char* const buffer, int& offset) const = 0;
+----
+Should read/write the node from/to buffer and increase offset.
+
+---- virtual NodeBase* clone() const = 0;
+----
+Should return a copy of the node.
+
+---- virtual SmiRecordId chield(unsigned i) const = 0;
+----
+Should return the "SmiRecordId" of the i-th subtree of the node, if the node is an internal node and 0 for leaf nodes.
+
+---- virtual void recomputeSize() = 0;
+----
+Should recompute the size of the node and set the modified flag (needed, if the entry representation has been manimpulated directly)
+
+---- virtual bool insert(EntryBase* e) = 0;
+----
+Inserts a new entry into the node. Should return "true"[4], if the node needs to be splitted after insert (the entry should be inserted in any case).
+
+---- virtual bool insertCopy(EntryBase* e) = 0;
+----
+Like ~insert~, but inserts a copy of "e"[4] by calling the copy constructor of the respective entry class.
+
+---- virtual unsigned entryCount() const = 0;
+----
+Should return the count of all contained entries.
+
+---- virtual void clear() = 0;
+----
+Should remove all entries.
+
+---- virtual void remove(unsigned i) = 0;
+----
+Should remove the i-th entry.
+
+---- virtual void replace(unsigned i, EntryBase* newEntry) = 0;
+----
+Should replace the i-th emtry with "newEntry"[4].
+
+---- virtual unsigned memSize() const = 0;
+----
+Should return the memory size of the node in bytes, which is needed to update the size of the node-cache, if used. Since this size is only needed to check, if the node cache has reached it's maximum size, it is sufficient to compute an approximately value to avoid complex computations.
+
+---- virtual EntryBase* baseEntry(unsigned i) const = 0;
+----
+Returns the i-th entry in the node.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Class "GenericVectorNode"[4] (template class)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- template<class TEntry> class GenericVectorNode;
+----
+This class implements all virtual methods of the "NodeBase"[4] class (except of the "isLeaf"[4], the "chield"[4] and the "clone"[4] method), using a "vector"[4] to store the entries. The entry-type for the node is expected as template paremeter.
+\\[3ex]
+The following types are defined within this class:
+
+---- typedef typename vector<TEntry*>::iterator iterator;
+     typedef TEntry entryType;
+----
+Additional to the methods of "NodeBase"[4], the following methods are provided:
+
+---- iterator begin() const
+     iterator end() const
+     iterator entryIt(unsigned i) const
+----
+Returns an interator to the respective entry vector position.
+
+---- vector<TEntry*>* entries() const
+----
+Returns a reference to the entry vector, e.g. for direct manipulation of the vector (in this case, the "recomputeSize"[4] method should be called, if the size of the node has been changed.
+
+---- void reserve(size_t n)
+----
+Reserves space for the specified ammount of entries.
+
+---- void fastRemove(unsigned i)
+     void fastRemove(iterator it)
+     void remove(iterator it)
+----
+The "fastRemove"[4] methods work similar to the "remove" methods, but moves the last entry in the vector to the position of the removed entry. This is faster since no further pointers have to be moved, but destroyes the entry order. The "iterator" versions could be used alternatively to the explicite position versions of the remove methods.
+
+---- TEntry* entry(unsigned i) const
+----
+Returns a reference to the i-th entry, which works like "baseEntry", but returns a "TBase"[4] instead of an "EntryBase" pointer. This method (or the "entryIt"[4] method) should always be used instead of "baseEntry"[4], if possible to avoid unnecessary typecasts.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Classes "InternalNode"[4] and "LeafNode"[4] (template classes)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+---- template<class TEntry>
+     class InternalNode : public GenericVectorNode<TEntry>
+
+     template<class TEntry>
+     class LeafNode : public GenericVectorNode<TEntry>
+----
+These classes should be used directly or as base class for user defined nodes. They implement the "clone"[4], the "isLeaf"[4] and the "chield"[4] methods for the respective node types, whereas the "clone"[4] method must be overwritten in all derived classes.
+
+If the derived class contain additional data, that should be stored within the node records, it must overwrite the read and write method, which have the following signature:
+
+---- virtual void read(const char* const buffer, int& offset);
+     virtual void write(char* const buffer, int& offset) const;
+----
+These methods must also call the respective methods of the parent class, otherwhise the entry vector will not be stored. Furhter, the "emptySize" parameter of the constructor must be called with the size of these additional data, otherwhise the buffer would be too small!
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.7 Class "Node"[4]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This class provides the file-management part for all nodes and is the base class of the "NodePtr"[4] type.
+
+When creating a new node, assure to call the "getNodeId"[4] method at least one time to create a new record for the node, otherwhise an error message will be printed to "cmsg::error()"[4].
+
+The class provides the following constructors:
+
+---- Node(NodeSupp* supp, NodeTypeId type);
+     Node(NodeSupp* supp, SmiRecordId nodeId)
+----
+The first constructor creates a new node of the respective type. The second constructor reads the node from page "nodeId"[4] in the tree file. The "NodeSupp"[4] pointer must refer to the same object as "Tree::nodeSupp"[4].
+\\[3ex]
+Further, this class provides the following methods:
+
+---- NodePtr clone() const
+----
+Returns a copy of the "Node"[4] object.
+
+---- SmiRecordId getNodeId()
+----
+Returns the record id of the node. If no record exist, a new record will be appended to the file.
+
+---- void createNode(NodeTypeId type)
+----
+Creates a new node. If the "Node"[4] object already refers to a node, this one will be written to file before.
+
+---- void put()
+----
+Writes the node to file.
+
+---- void get(SmiRecordId nodeId)
+----
+Reads the node from file. If the "Node"[4] object already refers to a node, this one will be written to file before.
+
+---- void drop()
+----
+Removes the referred node from file.
+
+---- SmartPtr<NodeBase> ptr()
+----
+Returns a reference to the contained "NodeBase"[4] pointer.
+
+---- template<class TNode> SmartPtr<TNode> cast()
+----
+Like "ptr"[4], but casts the node to the template type (in debug mode, false cast will show an error message on "cmsg::error()"[4]). This is useful to access methods of the contained node objects, which are not provided from "NodeBase"[4] class (e.g. "entries"[4], "entry"[4] or "entryIt"[4] of the "GenericVectorNode"[4] class). If debug mode is enabled, false casts will lead to an error-message and halt the dbms. Example:
+
+---- treeMngr->curNode()->cast<MyNodeClass>()->doSomething();
+----
+This would call the "doSomething"[4] method of "MyNodeClass"[4], which is equivalent to
+
+---- treeMngr->curNode()->ptr().staticCast<MyNodeClass>()->doSomething();
+----
+if debug mode is disabled, but additionaly checks if the cast is allowed by using the "dynamicCast" method of the "SmartPointer"[4] class in debug mode.
+
+For easier access to the methods of the "NodeBase"[4] class, all its methods are wrapped within this class. The following list shows some of these methods, wich could be interesting for users of the framework (the remaining methods are mainly used for internal purposes, e.g. caching or file management):
+
+---- bool isLeaf() const
+     bool isModified() const
+     void setModified()
+     void resetModified()
+     bool insert(EntryBase* e)
+     bool insertCopy(EntryBase* e)
+     void recomputeSize()
+     unsigned entryCount() const
+     void clear()
+     void remove(unsigned i)
+     void replace(unsigned i, EntryBase* newEntry)
+     unsigned level() const
+     void incLevel()
+     void decLevel()
+     void setLevel(unsigned level)
+     EntryBase* baseEntry(unsigned i) const
+     NodeTypeId typeId() const
+     SmiRecordId chield(unsigned i) const
+----
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1 General tree entries
+
+1.1.1.1 Class "EntryBase"[4]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This class is the base class for all general tree entries. All entries of general tree nodes must be derived from this class, since it is e.g. used as pointer type for the "NodeBase::insert"[4] method.
+
+In debug mode, this class adds a counter to all derived classes, which is used in the "Tree"[4] destructor to show a warning message, if not all entries had been detroyed.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+1.1.1.1 Classes "InternalEntry"[4] and "LeafEntry"[4]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Theses classes should be used as base class for general-tree entries. They do not contain any data (except of the chield pointer for internal entries), thus it is necessary to implement own entry classes, which inherrit from these classes. The derived classes must implement read/write methods with the following signature:
+
+---- void write(char* const buffer, int& offset) const
+     void read(const char* const buffer, int& offset)
+----
+It is recommended to call the respective methods of the base class in these methods, even for the curently empty "LeafEntry"[4] class, to be ready for possible future extensions.
+
+*/
