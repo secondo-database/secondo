@@ -113,12 +113,55 @@ bool UGPoint::Passes( const GPoint& p ) const
 
 bool UGPoint::At( const GPoint& p, TemporalUnit<GPoint>& result ) const
 {
-  throw SecondoException("Method UGPoint::At not implemented.");
-//  assert( IsDefined() );
-//  assert( p.IsDefined() );
-//
-//  UGPoint *pResult = (UGPoint*)&result;
-//
+  if (!IsDefined() || !p.IsDefined()) {
+    cerr << "mgpoint and gpoint must be defiend." << endl;
+    return false;
+  }
+  assert (IsDefined());
+  assert (p.IsDefined());
+  UGPoint *pResult = (UGPoint*) &result;
+  if (p0.GetNetworkId() != p.GetNetworkId()) {
+    return false;
+  } else {
+    if (p0.GetRouteId() != p.GetRouteId()){
+      return false;
+    } else {
+      if (p.GetSide() != p0.GetSide() &&
+          !(p.GetSide() == 2 || p0.GetSide() == 2)) {
+            return false;
+      } else {
+        double start = p0.GetPosition();
+        double end = p1.GetPosition();
+        double pos = p.GetPosition();
+        if (AlmostEqual(start,pos) && timeInterval.lc) {
+          Interval<Instant> interval(timeInterval.start,
+                                     timeInterval.start, true, true);
+          UGPoint aktunit(interval, p,p);
+          *pResult = aktunit;
+          return true;
+        } else {
+          if (AlmostEqual(end,pos) && timeInterval.rc) {
+            Interval<Instant> interval(timeInterval.end,
+                                       timeInterval.end, true, true);
+            UGPoint aktunit(interval, p,p);
+            *pResult = aktunit;
+            return true;
+          } else {
+            if ((start < pos && pos < end) || (end < pos && pos < start)) {
+              double factor = fabs(pos-start) / fabs(end-start);
+              Instant tpos = (timeInterval.end - timeInterval.start) * factor +
+                              timeInterval.start;
+              Interval<Instant> interval(tpos, tpos, true, true);
+              UGPoint aktunit(interval, p, p);
+              *pResult = aktunit;
+              return true;
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
 }
 
 /*
