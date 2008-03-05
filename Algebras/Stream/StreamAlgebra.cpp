@@ -3732,7 +3732,8 @@ int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 ValueMapping ensure_vms[] =
 {
   ensure_vm<Tuple>,
-  ensure_vm<Attribute>
+  ensure_vm<Attribute>,
+  0
 };
 
 /*

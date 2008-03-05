@@ -66,6 +66,11 @@ Signature:((stream T)) -> (stream T)
 Example  : query intstream (1,10) printstream count
 Result   : 10
 
+Operator : printstream
+Number   : 2
+Signature:((stream(tuple( T))) -> (stream(tuple (T)))
+Example  : query intstream (1,10) transformstream printstream count
+Result   : 10
 
 Operator : transformstream
 Number   : 1
@@ -138,6 +143,12 @@ Operator : ensure
 Number   : 1
 Signature: stream(T) -> bool 
 Example  : query intstream(1,5) ensure[5];
+Result   : TRUE 
+
+Operator : ensure 
+Number   : 3
+Signature: stream(tuple(T))) -> bool 
+Example  : query intstream(1,5) transformstream ensure[5];
 Result   : TRUE 
 
 Operator : ensure 
