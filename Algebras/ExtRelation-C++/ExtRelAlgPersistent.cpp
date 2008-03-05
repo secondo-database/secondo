@@ -926,7 +926,7 @@ public:
 
   ~MergeJoinLocalInfo()
   {
-    cerr << "calling ~MergeJoinLocalInfo()" << endl;	  
+    //cerr << "calling ~MergeJoinLocalInfo()" << endl;	  
     if( !expectSorted )
     {
       // delete the objects instantiated for sorting
