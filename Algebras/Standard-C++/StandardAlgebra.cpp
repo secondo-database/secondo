@@ -3570,7 +3570,7 @@ ValueMapping ccnum2stringvaluemap[] =
 ValueMapping abs_vms[] =
 {
   abs_vm<CcReal, double>,
-  abs_vm<CcInt, int>
+  abs_vm<CcInt, int>, 0
 };
 
 
