@@ -76,3 +76,5 @@ operator num2string alias NUM2STRING pattern op( _ )
 operator char alias CHAR pattern op ( _ )
 
 operator abs alias ABS pattern op ( _ )
+operator ++ alias PLUSPLUS pattern _ op
+

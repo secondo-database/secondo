@@ -311,10 +311,10 @@ Example  : query substr("Hello World!", 2, 8)
 Result   : "ello Wo"
 
 
-Operator : upper
+Operator : ++
 Number   : 1
 Signature: string -> string
-Example  : query upper ( "hello" )
+Example  : query "hello"++
 Result   : "hellp"
 
 

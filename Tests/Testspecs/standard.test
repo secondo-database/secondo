@@ -315,9 +315,9 @@ query "house" < "hotel"
 #yields (bool TRUE)
 query "house" > "hotel"
 
-#testcase upper
+#testcase plusplus
 #yields (bool TRUE)
-query upper ( "hello" ) = "hellp"
+query "hello"++ = "hellp"
 
 #testcase ldistance
 #yields (int 1)

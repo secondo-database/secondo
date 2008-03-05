@@ -1206,7 +1206,7 @@ CcMathSelectIsEmpty( ListExpr args )
 
 
 /*
-4.2.10 Type mapping function for the ~upper~ operator:
+4.2.10 Type mapping function for the ~++~ operator:
 
 string ---> string.
 
@@ -2279,15 +2279,18 @@ SubStrFun( Word* args, Word& result, int message, Word& local, Supplier s )
   int p2 = wpos2->GetIntval();
 
   CcString* wres = reinterpret_cast<CcString*>( result.addr );
+  int strlen = str1.length();
 
   // compute result value
   if (    wstr->IsDefined()
        && wpos1->IsDefined()
        && wpos2->IsDefined()
-       && (p2 >= p1) && (p1 >= 1) )
+       && (p2 >= p1)
+       && (p1 >= 1)
+       && (p1 <= strlen) )
   {
     int n = min( static_cast<long unsigned int>(p2-p1),
-        static_cast<long unsigned int>(str1.length()-p1) );
+                 static_cast<long unsigned int>(strlen-p1) );
     wres->Set( true, (STRING_T*)(str1.substr(p1-1, n+1).c_str()) );
   }
   else
@@ -2461,12 +2464,12 @@ IsEmpty( Word* args, Word& result, int message, Word& local, Supplier s )
 
 
 /*
-4.18 Value mapping functions of operator ~upper~
+4.18 Value mapping functions of operator ~++~
 
 */
 
 int
-UpperFun( Word* args, Word& result, int message, Word& local, Supplier s )
+PlusPlusFun( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   char * orgStr = (char*)((CcString*)args[0].addr)->GetStringval();
@@ -3840,13 +3843,13 @@ const string CCSpecIsEmpty  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                                "<text>query isempty ( 8 )</text--->"
                               ") )";
 
-const string CCSpecUpper  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+const string CCSpecPlusPlus  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>string -> string</text--->"
-                               "<text>upper ( _ )</text--->"
-                               "<text>Returns a string immediately upper to"
-                               " the original one.</text--->"
-                               "<text>query upper ( \"hello\" )</text--->"
+                               "<text> _ ++</text--->"
+                               "<text>Returns successor for the passed string "
+                               "</text--->"
+                               "<text>query \"hello\"++</text--->"
                                ") )";
 
 const string CCSpecSetIntersection  = "( ( \"Signature\" \"Meaning\" )"
@@ -3931,8 +3934,8 @@ const string
 CCSpecSubStr = "(" + specListHeader + "("
                    + "'(string x int x int) ->  string.'"
                    + "'substr(s, p, q)'"
-                   + "'Returns the part of a string s between the"
-                     + "position parameters p and q. Positions start at 0.'"
+                   + "'Returns the part of a string s starting at "
+                   + "position p and ending at position q. Positions at 1.'"
                    + "'query substr(\"test\",2,3)'))";
 
 const string
@@ -4126,7 +4129,7 @@ Operator ccorS( "sor", CCSpecOrS, 1, ccorSmap,
 Operator ccisempty( "isempty", CCSpecIsEmpty, 4, ccisemptymap,
                     CcMathSelectIsEmpty, CcMathTypeMapBool4 );
 
-Operator ccuper( "upper", CCSpecUpper, UpperFun,
+Operator ccplusplus( "++", CCSpecPlusPlus, PlusPlusFun,
                  Operator::SimpleSelect, CcStringMapCcString );
 
 Operator ccsetintersection( "intersection", CCSpecSetIntersection, 4,
@@ -4257,7 +4260,7 @@ class CcAlgebra1 : public Algebra
     ccor.SetRequestsArguments();
     AddOperator( &ccorS );
     AddOperator( &ccisempty );
-    AddOperator( &ccuper );
+    AddOperator( &ccplusplus );
     AddOperator( &ccsetintersection );
     AddOperator( &ccsetminus );
     AddOperator( &ccoprelcount );
