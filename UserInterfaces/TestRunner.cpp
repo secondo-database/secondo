@@ -113,7 +113,7 @@ class TestRunner : public Application
 
   ListExpr CallSecondo();
   void CallSecondo2();
-  void RegisterError();
+  void RegisterError(bool warning = false);
  
   ListExpr MakeConstant(const string& type, ListExpr value); 
 
@@ -130,15 +130,20 @@ class TestRunner : public Application
 
   void ShowCommand( const string& cmd) const;
   void ShowTestTitle() const;
-  void ShowTestErrorMsg() const;
+  void ShowTestErrorMsg(bool warning = false) const;
   void ShowErrorSummary() const;
   void ShowTestSuccessMsg(const string& msg) const;
 
-  void VerifyResult(ListExpr outList, ListExpr expectedResult); 
+  void VerifyResult( ListExpr outList, 
+		     ListExpr expectedResult, bool warning = false ); 
 
   void DisplayError( const string& cmd, ListExpr expectedResult, 
                      int errorCode, const string& errorMessage, 
                      ListExpr outList ); 
+
+  void DisplayWarning( const string& cmd, ListExpr expectedResult, 
+                       int errorCode, const string& errorMessage, 
+                       ListExpr outList ); 
 
   string            parmFile;
   string            user;
@@ -319,11 +324,19 @@ TestRunner::ShowTestSuccessMsg(const string& msg) const
 
 
 void
-TestRunner::ShowTestErrorMsg() const
+TestRunner::ShowTestErrorMsg(bool warning) const
 {
+  if (warning) {	
+  cout
+    << endl << color(blue) 
+    << "==> [TEST COVERAGE WARNING]" << color(normal) << endl;
+  }
+  else
+  {
   cout
     << endl << color(red) 
     << "==> [ERROR]" << color(normal) << endl;
+  }	  
 }
 
 
@@ -427,11 +440,13 @@ TestRunner::ShowErrorSummary() const
 }
 
 void
-TestRunner::RegisterError()
+TestRunner::RegisterError(bool warning /*= false */)
 {
-  numErrors++;
-  errorLines.push_back( make_pair(testCaseNumber, testCaseLine) );
-  ShowTestErrorMsg();
+  if (!warning)	{
+    numErrors++;
+    errorLines.push_back( make_pair(testCaseNumber, testCaseLine) );
+  }  
+  ShowTestErrorMsg(warning);
 }
 
 
@@ -1087,7 +1102,8 @@ TestRunner::RunCmd(const string& cmd, SecErrInfo& err)
 }
 
 void 
-TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult) 
+TestRunner::VerifyResult( ListExpr outList, 
+                          ListExpr expectedResult, bool warning) 
 {
   /* verify that the expected results were delivered */
   bool result = false;
@@ -1108,18 +1124,22 @@ TestRunner::VerifyResult(ListExpr outList, ListExpr expectedResult)
   }
   else 
   {
-    RegisterError();
-    cout 
-      << color(red)
-      << "The test returned unexpected results!" << endl;
+    RegisterError(warning);
+    if (!warning) {
+      cout 
+	<< color(red)
+	<< "The test returned unexpected results!" << endl;
 
-    if (d != 0.0) {
-      cout << "Used real value tolerance: " << d; 
-    if (realValTolerance.isRelative)
-      cout << " (relative) ";
-    else
-      cout << " (absolute) ";
-    cout << endl;
+      if (d != 0.0) 
+      {
+	cout << "Used real value tolerance: " << d; 
+	if (realValTolerance.isRelative ) {
+	  cout << " (relative) ";
+	} else {
+	  cout << " (absolute) ";
+	}  
+	cout << endl;
+      }
     }
 
     cout  
@@ -1166,6 +1186,25 @@ TestRunner::DisplayError( const string& cmd, ListExpr expectedResult,
        << leftArrow 
        << color(normal) << endl;
 }
+
+void 
+TestRunner::DisplayWarning( const string& cmd, ListExpr expectedResult, 
+                            int errorCode, const string& errorMessage, 
+                            ListExpr outList ) 
+{
+  cout 
+    << color(blue)
+    << "Warning: unexpected result:" << endl
+    << rightArrow << endl
+    << "Expected result : " << endl
+    << nl->ToString(expectedResult) << endl;
+  ShowErrCodeInfo(errorCode, errorMessage, outList);
+  ShowCommand(cmd);
+  cout << color(blue)
+       << leftArrow 
+       << color(normal) << endl;
+}
+
 
 
 /*
@@ -1308,7 +1347,9 @@ TestRunner::CallSecondo()
           }
           else 
           {
-            VerifyResult(outList, expectedResult);
+            // in case of success compare results, but handle 
+	    // differences only as warning 		  
+            VerifyResult(outList, expectedResult, true);
             ListExpr ops = nl->Second(outList);
             missingOps += nl->ToString(ops);
             missingOpsNo += nl->ListLength(ops);
