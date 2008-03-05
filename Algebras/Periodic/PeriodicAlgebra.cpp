@@ -256,7 +256,7 @@ double PointPosOnSegment(double x1, double y1,
         return -1;  
   }
   // check wether p is on the line defined by s
-  if(! ((x-x1)*(y2-y1)==(y-y1)*(x2-x1))){
+  if( ((x-x1)*(y2-y1)!=(y-y1)*(x2-x1))){
        return -1;
   }
   if(x1==x2){ // special case vertical segment
@@ -7695,8 +7695,8 @@ bool LinearPointsMove::ReadFrom(const ListExpr value, DBArray<TwoPoints> &Pts,
  while(! nl->IsEmpty(starts)){
     Start = nl->First(starts);
     End = nl->First(ends);
-    if(!nl->AtomType(Start)==NoAtom  ||
-       !nl->AtomType(End)==NoAtom){
+    if(nl->AtomType(Start)!=NoAtom  ||
+       nl->AtomType(End)!=NoAtom){
        if(DEBUG_MODE){
           cerr << "Error in LinearPointsMove::ReadFrom" << endl;
           cerr << "start or end is not a list" << endl;
@@ -9759,7 +9759,7 @@ void PMPoint::ReadFromMPoint(MPoint& P){
            interval.SetDefined(true);
            wlc = UP->timeInterval.lc;
         }else {
-           if( (!(LastMove.timeInterval.end == start)) ||
+           if( ((LastMove.timeInterval.end != start)) ||
                (!LastMove.timeInterval.rc && !lc)){
                // a gap found between the last unit and this unit
                LinearPointMove GapMove(0);
@@ -12659,7 +12659,7 @@ ListExpr AtTypeMap(ListExpr args){
      ErrorReporter::ReportError("The second argument must be an instant\n");
      return nl->SymbolAtom(TYPE_ERROR);
    }
-   if(!nl->AtomType(nl->First(args))==SymbolType){
+   if(nl->AtomType(nl->First(args))!=SymbolType){
       ErrorReporter::ReportError("At can't handle composite types \n");
       return nl->SymbolAtom(TYPE_ERROR);
    }
@@ -12909,11 +12909,11 @@ ListExpr IntersectionTypeMap(ListExpr args){
         return nl->SymbolAtom(TYPE_ERROR);  
     }
     // for tests we use only a pmbool 
-    if(!nl->AtomType(nl->First(args))==SymbolType){
+    if(nl->AtomType(nl->First(args))!=SymbolType){
         ErrorReporter::ReportError("The first argument can't be composite");
         return nl->SymbolAtom(TYPE_ERROR);
     }
-    if(!nl->AtomType(nl->Second(args))==SymbolType){
+    if(nl->AtomType(nl->Second(args))!=SymbolType){
         ErrorReporter::ReportError("The second argument can't be composite");
         return nl->SymbolAtom(TYPE_ERROR);
     }
@@ -12938,11 +12938,11 @@ ListExpr DistanceTypeMap(ListExpr args){
      return nl->SymbolAtom(TYPE_ERROR);  
   }
   // for tests we use only a pmbool 
-  if(!nl->AtomType(nl->First(args))==SymbolType){
+  if(nl->AtomType(nl->First(args))!=SymbolType){
       ErrorReporter::ReportError("The first argument can't be composite");
       return nl->SymbolAtom(TYPE_ERROR);
   }
-  if(!nl->AtomType(nl->Second(args))==SymbolType){
+  if(nl->AtomType(nl->Second(args))!=SymbolType){
       ErrorReporter::ReportError("The second argument can't be composite");
       return nl->SymbolAtom(TYPE_ERROR);
   }
