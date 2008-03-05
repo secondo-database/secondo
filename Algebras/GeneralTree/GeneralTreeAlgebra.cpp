@@ -386,7 +386,6 @@ gdistanceDD_VM(Word* args, Word& result,
     }
 
     // get distance function
-    DistDataId id = ddAttr1->distdataId();
     DistfunInfo info = DistfunReg::getInfo(
             distfunName, ddAttr1->distdataId());
 
@@ -444,12 +443,10 @@ ListExpr getdistdata_TM(ListExpr args)
              + typeName + "\"!";
     CHECK_COND(dataName != DDATA_UNDEFINED, errmsg);
 
-    NList result(
-        NList(APPEND),
-        NList(
-            NList (typeName, true),
-            NList (dataName, true)),
-    NList(DISTDATA));
+    NList res1(APPEND);
+    NList res2(NList(typeName, true), NList(dataName, true));
+    NList res3(DISTDATA);
+    NList result(res1, res2, res3);
     return result.listExpr();
 }
 
@@ -497,12 +494,10 @@ ListExpr getdistdata2_TM(ListExpr args)
         CHECK_COND(false, errmsg);
     }
 
-    NList result(
-        NList(APPEND),
-        NList(
-            NList (typeName, true),
-            NList (dataName, true)),
-    NList(DISTDATA));
+    NList res1(APPEND);
+    NList res2(NList(typeName, true), NList(dataName, true));
+    NList res3(DISTDATA);
+    NList result(res1, res2, res3);
     return result.listExpr();
 }
 
@@ -533,11 +528,10 @@ ListExpr gdistance_TM(ListExpr args)
         // the value mapping function, since they need the name of
         // the assigned type constructor, which is stored within the
         // attribute objects.
-        NList result(
-            NList(APPEND),
-            NList(
-              NList(DFUN_DEFAULT, true).enclose()),
-            NList(REAL));
+        NList res1(APPEND);
+        NList res2(DFUN_DEFAULT, true); res2.enclose();
+        NList res3(REAL);
+        NList result(res1, res2, res3);
         return result.listExpr();
     }
     else
@@ -553,14 +547,13 @@ ListExpr gdistance_TM(ListExpr args)
             CHECK_COND(false, errmsg);
         }
 
-        NList result(
-            NList(APPEND),
-            NList(
-              NList(typeName, true),
-              NList(distfunName, true),
-              NList(dataName, true)),
-            NList(REAL));
-
+        NList res1(APPEND);
+        NList res2(NList(
+            typeName, true), 
+            NList(distfunName, true), 
+            NList(dataName, true));
+        NList res3(REAL);
+        NList result(res1, res2, res3);
         return result.listExpr();
     }
 }
@@ -605,11 +598,10 @@ ListExpr gdistance2_TM(ListExpr args)
         // the value mapping function, since they need the name of
         // the assigned type constructor, which is stored within the
         // attribute objects.
-        NList result(
-            NList(APPEND),
-            NList(
-              NList(distfunName, true).enclose()),
-            NList(REAL));
+        NList res1(APPEND);
+        NList res2(distfunName, true); res2.enclose();
+        NList res3(REAL);
+        NList result(res1, res2, res3);
         return result.listExpr();
     }
 
@@ -637,14 +629,14 @@ ListExpr gdistance2_TM(ListExpr args)
         }
     }
 
-    NList result(
-        NList(APPEND),
-        NList(
-            NList(typeName, true),
-            NList(distfunName, true),
-            NList(dataName, true)),
-        NList(REAL));
-
+        NList res1(APPEND);
+        NList res2(NList(
+            typeName, true), 
+            NList(distfunName, true), 
+            NList(dataName, true));
+        NList res3(REAL);
+        NList result(res1, res2, res3);
+        return result.listExpr();
     return result.listExpr();
 }
 
@@ -735,14 +727,13 @@ ListExpr gdistance3_TM(ListExpr args)
         }
     }
 
-    NList result(
-        NList(APPEND),
-        NList(
-            NList(typeName, true),
-            NList(distfunName, true),
-            NList(dataName, true)),
-        NList(REAL));
-
+    NList res1(APPEND);
+    NList res2(NList(
+        typeName, true), 
+        NList(distfunName, true), 
+        NList(dataName, true));
+    NList res3(REAL);
+    NList result(res1, res2, res3);
     return result.listExpr();
 }
 
