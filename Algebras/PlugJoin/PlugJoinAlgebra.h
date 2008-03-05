@@ -576,6 +576,9 @@ template<unsigned dim>
 bool R_TreeNodePnJ<dim>::Insert( const R_TreeEntryPnJ<dim>& ent )
 {
   assert( count <= maxEntries );
+  if(!ent.box.IsDefined()){ // ignore empty bboxes
+     return true;
+  }
   entry[ count++ ] = ent;
   return count <= maxEntries;
 }
@@ -2145,6 +2148,10 @@ bool R_TreePnJ<dim>::First (const BBox<dim>& box, R_TreeEntryPnJ<dim>& result,
                             vector <ArrayIndex>& leavesOverflowed, 
                             int replevel)
 {
+  if(!box.IsDefined()){
+      return false;
+  }
+
   //Remember that we have started a scan of the R-Tree
   scanFlag = true;
 

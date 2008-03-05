@@ -865,11 +865,13 @@ Building the initial R-Tree and gathering overflowed entries in partiton.
 
       BBox<dim> box = ((StandardSpatialAttribute<dim>*)innerTuple->
                          GetAttribute(innerAttrIndexPnJ))->BoundingBox();
-      R_TreeEntryPnJ<dim> e( box, innerIter->GetTupleId() );
+      if(box.IsDefined()){ // an undefined box cannot intersects anything
+         R_TreeEntryPnJ<dim> e( box, innerIter->GetTupleId() );
 
-      if ( !(hdr.rtree)->Insert( e, nodeNo ) )
-      {
-        BufferInsert( innerRelPart, innerRelInfo, nodeNo, e);
+         if ( !(hdr.rtree)->Insert( e, nodeNo ) )
+         {
+           BufferInsert( innerRelPart, innerRelInfo, nodeNo, e);
+         }
       }
 
       innerTuple->DeleteIfAllowed();
@@ -973,6 +975,7 @@ Next tuple found in outer Relation.
 */
           SBox = ((StandardSpatialAttribute<dim>*)outerTuple->
                             GetAttribute(hdr.outerAttrIndex))->BoundingBox();
+      
           hdr.outerActualTupleId = hdr.outerIter->GetTupleId();
 
           hdr.outerEntry = R_TreeEntryPnJ<dim>(SBox, hdr.outerActualTupleId);
