@@ -102,6 +102,8 @@ Deletes the subtree represented by this tree.
       __AVL_TRACE__
       if(left) delete left;
       if(right) delete right;
+      left = NULL;
+      right = NULL;
    }    
 
 /*
@@ -249,7 +251,10 @@ Creates a depth copy of the argument.
 */
    ~AVLTree(){
       __AVL_TRACE__
-      delete root;
+      if(root){
+         delete root;
+         root = NULL;
+      }
    }
 
 /*
@@ -258,8 +263,10 @@ Creates a depth copy of the argument.
 */
     AVLTree<contenttype>& operator=(const AVLTree<contenttype> source){
        __AVL_TRACE__
-       delete root;
-       source.root?new AvlNode<contenttype>(source.root) : NULL;
+       if(root){
+          delete root;
+       }
+       root = source.root?new AvlNode<contenttype>(source.root) : NULL;
        return  *this;
     }
 
