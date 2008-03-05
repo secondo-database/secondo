@@ -39,6 +39,9 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 (ii) ~length~ which give back the length of a text.
 
+
+March 2008, Christian D[ue]ntgen added operators ~getcatalog~
+
 1 Preliminaries
 
 1.1 Includes
@@ -56,7 +59,9 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
-#include "StandardTypes.h" //needed because we return a CcBool in an op.
+#include "StandardTypes.h"
+#include "RelationAlgebra.h"
+#include "NList.h"
 #include "LogMsg.h"
 #include "DiceCoeff.h"
 
@@ -549,6 +554,95 @@ ListExpr TypeMapDice(ListExpr args){
 
 
 /*
+
+Type Mapping for operator ~getCatalog~
+
+*/
+ListExpr TypeGetCatalog( ListExpr args )
+{
+  NList type(args);
+
+  if ( type.hasLength(0) ){
+    NList resTupleType = NList(NList("ObjectName"),NList(STRING)).enclose();
+    resTupleType.append(NList(NList("Type"),NList(TEXT)));
+    resTupleType.append(NList(NList("TypeExpr"),NList(TEXT)));
+    NList resType =
+        NList(NList(NList(STREAM),NList(NList(TUPLE),resTupleType)));
+    return resType.listExpr();
+  }
+  return NList::typeError( "No argument expected!");
+}
+
+/*
+
+Type Mapping for operators ~substr~
+
+*/
+ListExpr TypeFTextSubstr( ListExpr args )
+{
+  NList type(args);
+
+  if ( !type.hasLength(3) ){
+    return NList::typeError( "Three arguments expected");
+  }
+  if (    type.second() != NList(INT)
+       || type.third()  != NList(INT)
+     )
+  {
+    return NList::typeError( "Boundary arguments must be of type int.");
+  }
+  if ( type.first() == NList(STRING) )
+  {
+    return NList(STRING).listExpr();
+  }
+  return NList::typeError( "Expected text as first argument type.");
+}
+
+/*
+
+Type Mapping for operators ~subtext~
+
+*/
+ListExpr TypeFTextSubtext( ListExpr args )
+{
+  NList type(args);
+
+  if ( !type.hasLength(3) ){
+    return NList::typeError( "Three arguments expected");
+  }
+  if (    type.second() != NList(INT)
+          || type.third()  != NList(INT)
+     )
+  {
+    return NList::typeError( "Boundary arguments must be of type int.");
+  }
+  if ( type.first() == NList(STRING) )
+  {
+    return NList(STRING).listExpr();
+  }
+  return NList::typeError( "Expected text as first argument type.");
+}
+
+/*
+
+Type Mapping for operator ~find~
+
+*/
+ListExpr TypeFTextFind( ListExpr args )
+{
+  NList type(args);
+
+  if ( type.hasLength(2)
+      &&( (type.first() == NList(INT)) || (type.first() == NList(TEXT)) )
+      &&( (type.second() == NList(INT)) || (type.second() == NList(TEXT)) )
+     )
+  {
+    return NList(NList(STREAM),NList(INT)).listExpr();
+  }
+  return NList::typeError("Expected two arguments of {text,string} types.");
+}
+
+/*
 3.3 Value Mapping Functions
 
 */
@@ -650,6 +744,15 @@ int trimstr (char s[])
   return n;
 }
 
+// NonStopCharakters are alphanumeric characters, german umlauts and
+// the hyphen/minus sign
+bool IsNonStopCharacter(const char c)
+{
+  return ( isalnum(c)
+      || c == '-' || c == 'ß' || c =='ü' || c =='Ü'
+      || c == 'ö' || c == 'Ö' || c == 'ä' || c == 'Ä');
+}
+
 int
 ValMapkeywords (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
@@ -689,9 +792,7 @@ The length of a string is three characters or more.
       while (true) {
         switch ( state ) {
           case 0 : c = thetext->subw[textcursor];
-                   if ( isalnum(c) 
-                        || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-                        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                   if ( IsNonStopCharacter( c ) )
                    {
                      outstr[stringcursor] = c;
                      stringcursor++;
@@ -706,9 +807,7 @@ The length of a string is three characters or more.
                    break;
           case 1 : c = thetext->subw[textcursor];
                    //cout << c << " state 1 " << endl;
-                   if ( isalnum(c) 
-                        || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-                        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                   if (IsNonStopCharacter( c ))
                    {
                      outstr[stringcursor] = c;
                      stringcursor++;
@@ -723,9 +822,7 @@ The length of a string is three characters or more.
                    break;
           case 2 : c = thetext->subw[textcursor];
                    //cout << c << " state 2 " << endl;
-                   if ( isalnum(c) 
-                        || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-                        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                   if (IsNonStopCharacter( c ))
                    {
                      outstr[stringcursor] = c;
                      stringcursor++;
@@ -740,9 +837,7 @@ The length of a string is three characters or more.
                    break;
           case 3 : c = thetext->subw[textcursor];
                    //cout << c << " state 3 " << endl;
-                   if ( isalnum(c) 
-                        || c == '-' || c == 'ä' || c =='ö' || c =='ü'
-                        || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
+                   if (IsNonStopCharacter( c ))
                    {
                      outstr[stringcursor] = c;
                      stringcursor++;
@@ -757,17 +852,11 @@ The length of a string is three characters or more.
                    break;
         case 4 : c = thetext->subw[textcursor];
                  //cout << c << " state 4 " << endl;
-                 if ( (isalnum(c) 
-                       || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
-                       || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-                       && (stringcursor == 48) ) {
-                 state = 5;
-                 stringcursor = 0;
+                 if ( IsNonStopCharacter( c ) && (stringcursor == 48) ) {
+                  state = 5;
+                  stringcursor = 0;
                  }         
-                 else if ( (isalnum(c) 
-                           || c == '-'|| c == 'ä' || c =='ö' || c =='ü'
-                           || c == 'Ä' || c == 'Ö' || c == 'Ü' || c == 'ß') 
-                           && (stringcursor < 48) ) {
+                 else if ( IsNonStopCharacter( c ) && (stringcursor < 48) ) {
                    outstr[stringcursor] = c;
                    stringcursor++;
                    state = 4;
@@ -783,7 +872,7 @@ The length of a string is three characters or more.
                    mystring->Set(true, &outstr);
                    result = SetWord(mystring);  
                    thetext->start = ++textcursor;
-                   local.addr = thetext;   
+                   local.addr = thetext;
                    return YIELD;
                  }
                  textcursor++;
@@ -958,6 +1047,159 @@ ValMapDice_t_t(Word* args, Word& result, int message,
 }
 
 /*
+4.26 Operator ~getCatalog~
+
+
+*/
+
+struct GetCatalogLocalInfo{
+  NList myCatalog;
+  bool finished;
+};
+
+int ValMapGetCatalog( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  GetCatalogLocalInfo* li   = 0;
+  bool foundValidEntry      = true;
+  Tuple *newTuple           = 0;
+  CcString *objectNameValue = 0;
+  FText *typeValue          = 0;
+  FText *typeExprValue      = 0;
+  TupleType *resultTupleType = 0;
+
+  switch( message )
+  {
+    case OPEN:
+      // cout << "open" << endl;
+      li = new GetCatalogLocalInfo;
+      li->finished = true;
+      li->myCatalog = NList(SecondoSystem::GetCatalog()->ListObjects());
+      if(!li->myCatalog.isEmpty() && li->myCatalog.isList())
+      {
+        li->myCatalog.rest(); // ignore 'OBJECTS'
+        li->finished = false;
+      }
+      local = SetWord( li );
+      return 0;
+
+    case REQUEST:
+      //  cout << "request" << endl;
+      if (local.addr == 0)
+        return CANCEL;
+      li = (GetCatalogLocalInfo*) local.addr;
+      if( li->finished )
+        return CANCEL;
+      if(li->myCatalog.isEmpty())
+      {
+        li->finished = true;
+        return CANCEL;
+      }
+      foundValidEntry = false;
+      while( !foundValidEntry )
+      {
+        // Get head of li->myCatalog
+        NList currentEntry = li->myCatalog.first();
+        if(    currentEntry.isList()
+               && currentEntry.hasLength(4)
+               && currentEntry.first().isSymbol("OBJECT")
+               && currentEntry.second().isSymbol()
+               && currentEntry.third().isList()
+               && currentEntry.fourth().isList()
+          )
+        {
+          currentEntry.rest(); // ignore 'OBJECT'
+          objectNameValue =
+              new CcString(true, currentEntry.first().convertToString());
+          typeValue =
+              new FText(true, currentEntry.second().isEmpty() ? "" :
+              currentEntry.second().first().convertToString().c_str());
+          typeExprValue =
+              new FText(true, currentEntry.third().isEmpty() ? "" :
+              currentEntry.third().first().convertToString().c_str());
+          resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+          newTuple = new Tuple( resultTupleType );
+          newTuple->PutAttribute(  0,(StandardAttribute*)objectNameValue);
+          newTuple->PutAttribute(  1,(StandardAttribute*)typeValue);
+          newTuple->PutAttribute(  2,(StandardAttribute*)typeExprValue);
+          result = SetWord(newTuple);
+          resultTupleType->DeleteIfAllowed();
+          foundValidEntry = true;
+        } else
+        {
+          cerr << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+              << "): Malformed Catalog Entry passed:" << endl
+              << "\tcurrentEntry.isList() = "
+              << currentEntry.isList() << endl
+              << "\tcurrentEntry.hasLength(4) = "
+              << currentEntry.hasLength(4) << endl
+              << "\tcurrentEntry.first().isSymbol(\"OBJECT\") = "
+              << currentEntry.first().isSymbol("OBJECT") << endl
+              << "\tcurrentEntry.second().isSymbol() "
+              << currentEntry.second().isSymbol() << endl
+              << "\tcurrentEntry.third().isList() = "
+              << currentEntry.third().isList() << endl
+              << "\tcurrentEntry.fourth().isList()"
+              << currentEntry.fourth().isList() << endl
+              << "\tcurrentEntry is: "
+              << currentEntry.convertToString() << endl;
+        }
+        li->myCatalog.rest();
+      }
+      if(foundValidEntry)
+        return YIELD;
+      li->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+      // cout << "close" << endl;
+      if (local.addr != 0){
+        li = (GetCatalogLocalInfo*) local.addr;
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+
+/*
+4.27 Operator ~substr~
+
+
+*/
+int ValMapSubstr( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  return 0;
+}
+
+/*
+4.28 Operator ~subtext~
+
+
+*/
+int ValMapSubtext( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  return 0;
+}
+
+/*
+4.29 Operator ~find~
+
+
+*/
+int ValMapFind( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+  return 0;
+}
+
+
+/*
 3.4 Definition of Operators
 
 */
@@ -1031,6 +1273,48 @@ const string diceSpec  =
              "</text--->"
              ") )";
 
+const string getCatalogSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> -> stream(tuple((ObjectName string)(Type string)"
+    "(TypeExpr ftext)))</text--->"
+    "<text>getCatalog( )</text--->"
+    "<text>Returns all object descriptions from the catalog of the currently "
+    "opened database as a tuple stream.</text--->"
+    "<text>query getCatalog( ) consume</text--->"
+    ") )";
+
+const string substrSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> text x int x int -> string</text--->"
+    "<text>substr( s, b, e)</text--->"
+    "<text>Returns a substring of a text value, beginning at position 'b' "
+    "and ending at position 'e', where the first character's position is 1. "
+    "if (e - b)>48, the result will be truncated to its starting 48 "
+    "characters.</text--->"
+    "<text>query substr('Hello world!', 1, 3 ) consume</text--->"
+    ") )";
+
+const string subtextSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> text x int x int -> text</text--->"
+    "<text>subtext( s, b, e)</text--->"
+    "<text>Returns a subtext of a text value, beginning at position 'b' "
+    "and ending at position 'e', where the first character's position is 1. "
+    "</text--->"
+    "<text>query subtext('Hello world!', 1, 3 )</text--->"
+    ") )";
+
+const string findSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> {text | string} x {text | string}  -> stream(int)</text--->"
+    "<text>find( s, p )</text--->"
+    "<text>Returns a stream of integers giving the starting positions of all "
+    "occurances of a pattern 'p' within a string or text 's'. The position of "
+    "the first character in 's' is 1. For any malformed parameter combination, "
+    "the result is an empty stream.</text--->"
+    "<text>query find('Hello world!', 'l') count</text--->"
+    ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -1090,6 +1374,44 @@ Operator diceCoeff(
    TypeMapDice
 );
 
+Operator ftextgetcatalog
+(
+    "getcatalog",
+    getCatalogSpec,
+    ValMapGetCatalog,
+    Operator::SimpleSelect,
+    TypeGetCatalog
+);
+
+Operator ftextsubstr
+(
+    "substr",
+    substrSpec,
+    ValMapGetCatalog,
+    Operator::SimpleSelect,
+    TypeFTextSubstr
+);
+
+Operator ftextsubtext
+    (
+    "subtext",
+    subtextSpec,
+    ValMapSubtext,
+    Operator::SimpleSelect,
+    TypeFTextSubtext
+    );
+
+Operator ftextfind
+(
+    "find",
+    findSpec,
+    ValMapFind,
+    Operator::SimpleSelect,
+    TypeFTextFind
+        );
+
+
+
 /*
 5 Creating the algebra
 
@@ -1110,6 +1432,12 @@ public:
     AddOperator( &getkeywords );
     AddOperator( &getsentences );
     AddOperator( &diceCoeff);
+    AddOperator( &ftextgetcatalog );
+//     AddOperator( &ftextsubstr );
+//     AddOperator( &ftextsubtext );
+//     AddOperator( &ftextfind );
+
+    
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
     )

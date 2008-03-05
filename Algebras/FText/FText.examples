@@ -49,4 +49,11 @@ Signature: text -> stream(text)
 Example  : query 'First sentence. Second sentence.' sentences count
 Result   : 2
 
+Operator : getcatalog
+Number   : 1
+Signature: -> stream(tuple((ObjectName string)(Type text)(TypeExpr text)))
+Example  : query getcatalog() count >= 9
+Result   : TRUE
+Remark   : We have 9 system tables at least.
+
 
