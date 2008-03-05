@@ -1,0 +1,38 @@
+Database: berlintest
+Restore : No
+
+Operator : gdistance2
+Number   : 1
+Signature: attribute x attribute x distfunName -> real
+Example  : query gdistance2(5, 2, euclid)
+Result   : 3.0
+
+
+Operator : gdistance3
+Number   : 1
+Signature: attribute x attribute x distfunName x distdataName -> real
+Example  : query gdistance3(5, 2, euclid, native)
+Result   : 3.0
+
+
+Operator : gdistance
+Number   : 1
+Signature: attribute x attribute -> real
+Example  : query gdistance(5, 2)
+Result   : 3.0
+
+
+Operator : getdistdata2
+Number   : 1
+Signature: attribute x distdataName -> distdata
+Example  : query getdistdata(5, native)
+Result   : (distdata)
+
+
+Operator : getdistdata
+Number   : 1
+Signature: attribute -> distdata
+Example  : query getdistdata(5)
+Result   : (distdata)
+
+
