@@ -72,23 +72,20 @@ Default constructor (creates an undefined info object)
 
 */
     inline DistDataInfo() :
-            m_name("undef"),
-            m_descr("undef"),
-            m_id(-1),
-            m_getDataFun(0),
-            m_flags(0)
+        m_name("undef"), m_descr("undef"), m_id(-1),
+        m_getDataFun(0), m_flags(0)
     {}
 
 /*
 Constructor (creates a new info object with the given values)
 
 */
-    inline DistDataInfo(const string& name, const string& descr,
+    DistDataInfo(const string& name, const string& descr,
                         int id, const string& typeName,
-                        const GetDataFun getDataFun, char flags) :
-            m_name(name), m_descr(descr), m_id(id),
-            m_getDataFun(getDataFun),
-            m_flags(DDATA_IS_DEFINED | flags)
+                        const GetDataFun getDataFun,
+                        char flags = 0) :
+        m_name(name), m_descr(descr), m_id(id),
+        m_getDataFun(getDataFun), m_flags(DDATA_IS_DEFINED | flags)
     {
         si->GetTypeId(typeName, m_algebraId, m_typeId);
     }
@@ -150,7 +147,7 @@ Returns the type-id of the assigned type constructor.
     { return m_typeId; }
 
 /*
-Returns "true"[4], if the "DistDataInfo"[4] object is defined, and "false"[4] otherwhise. This method should only return "false"[4] for the default "getDistfunInfo"[4] object, which is returned, if a requested distance function could not be found in the "DistDataReg"[4] class.
+Returns "true"[4], if the "DistDataInfo"[4] object is defined, and "false"[4] otherwhise. This method should only return "false"[4] for the default "DistDataInfo"[4] object, which is returned, if a requested distance function could not be found in the "DistDataReg"[4] class.
 
 */
     inline bool isDefined() const

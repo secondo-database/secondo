@@ -87,7 +87,7 @@ DistDataReg::defaultName(const string& typeName)
 }
 
 /*
-Method ~getDistDataId~:
+Method ~getDataId~:
 
 */
 DistDataId DistDataReg::getDataId(
@@ -113,7 +113,7 @@ DistDataId DistDataReg::getDataId(
 }
 
 /*
-Method ~getDistDataInfo~:
+Method ~getInfo~:
 
 */
 DistDataInfo&

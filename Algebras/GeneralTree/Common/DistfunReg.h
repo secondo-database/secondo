@@ -75,11 +75,8 @@ Default constructor (creates an undefined info object)
 
 */
     inline DistfunInfo() :
-            m_name("undef"),
-            m_descr("undef"),
-            m_distfun(0),
-            m_distdataInfo(),
-            m_flags(0)
+        m_name("undef"), m_descr("undef"), m_distfun(0),
+        m_distdataId(false), m_distdataInfo(), m_flags(0)
     {}
 
 /*
@@ -88,11 +85,11 @@ Constructor (creates a new info object with the given values)
 */
     DistfunInfo(const string& name, const string& descr,
                 const Distfun distfun, DistDataId distdataId,
-                char flags) :
-            m_name(name), m_descr(descr),
-            m_distfun(distfun), m_distdataId(distdataId),
-            m_distdataInfo(DistDataReg::getInfo(m_distdataId)),
-            m_flags(DFUN_IS_DEFINED | flags)
+                char flags = 0) :
+        m_name(name), m_descr(descr),
+        m_distfun(distfun), m_distdataId(distdataId),
+        m_distdataInfo(DistDataReg::getInfo(m_distdataId)),
+        m_flags(DFUN_IS_DEFINED | flags)
     {}
 
 /*
@@ -154,7 +151,7 @@ Calls the assigned getdata function with parameter "attr"[4].
     { return m_distdataInfo.getData(attr); }
 
 /*
-Returns "true"[4], if the "DistfunInfo"[4] object is defined, and "false"[4] otherwhise. This method should only return "false"[4] for the default "getInfo"[4] object, which is returned, if a requested distance function could not be found in the "DistfunReg"[4] class.
+Returns "true"[4], if the "DistfunInfo"[4] object is defined, and "false"[4] otherwhise. This method should only return "false"[4] for the default "DistfunInfo"[4] object, which is returned, if a requested distance function could not be found in the "DistfunReg"[4] class.
 
 */
     inline bool isDefined() const
@@ -202,21 +199,21 @@ Registeres a new "DistfunInfo"[4] object.
 Returns the specified "DistfunInfo"[4] object.
 
 */
-    static DistfunInfo& getInfo(
+    static inline DistfunInfo& getInfo(
         const string& distfunName, const string& typeName,
-        const string& dataName);
+        const string& dataName)
+    {
+        return getInfo(distfunName,
+                       DistDataReg::getDataId(typeName, dataName));
+
+    }
 
 /*
 Returns the specified "DistfunInfo"[4] object.
 
 */
-    static inline DistfunInfo& getInfo(
-        const string& distfunName, DistDataId id)
-    {
-        DistDataInfo datainfo = DistDataReg::getInfo(id);
-        return getInfo(
-            distfunName, datainfo.typeName(), datainfo.name());
-    }
+    static DistfunInfo& getInfo(
+        const string& distfunName, DistDataId id);
 
 /*
 Returns "true"[4], if the specified "DistFunInfo"[4] object exists.

@@ -68,7 +68,7 @@ DistfunReg::addInfo(DistfunInfo info)
 }
 
 /*
-Method ~getDefaultDistfunName~:
+Method ~defaultName~:
 
 */
 string
@@ -90,28 +90,25 @@ Method ~getInfo~:
 
 */
 DistfunInfo& DistfunReg::getInfo(
-    const string& distfunName,
-    const string& typeName,
-    const string& dataName)
+        const string& distfunName, DistDataId id)
 {
     if (!initialized)
         initialize();
 
     ostringstream osId;
-    DistDataId id = DistDataReg::getDataId(typeName, dataName);
-
     if (!id.defined)
         return defaultInfo;
 
     if (distfunName == DFUN_DEFAULT)
     {
+        string typeName = am->Constrs(id.algebraId, id.typeId);
         osId << id.algebraId << "#" << id.typeId << "#"
-            << defaultName(typeName) << "#" << id.distdataId;
+             << defaultName(typeName) << "#" << id.distdataId;
     }
     else
     {
         osId << id.algebraId << "#" << id.typeId << "#"
-            << distfunName << "#" << id.distdataId;
+             << distfunName << "#" << id.distdataId;
     }
 
     distfunIter iter2 = distfunInfos.find(osId.str());
@@ -169,7 +166,7 @@ DistfunReg::definedNames(const string& typeName)
 }
 
 /*
-Method ~getInfos~:
+Method ~getInfoList~:
 
 */
 void
