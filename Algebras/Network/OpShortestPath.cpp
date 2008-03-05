@@ -95,6 +95,11 @@ int OpShortestPath::ValueMapping( Word* args,
   GPoint* pFromGPoint = (GPoint*)args[0].addr;
   GPoint* pToGPoint = (GPoint*)args[1].addr;
 
+  if (pFromGPoint == 0 || pToGPoint == 0 || !pFromGPoint->IsDefined() ||
+      !pToGPoint->IsDefined()) {
+     sendMessage("Both gpoints must exist and be defined.");
+     return 0;
+  }
   // Check wether both points belong to the same network
   if(pFromGPoint->GetNetworkId() != pToGPoint->GetNetworkId())
   {
@@ -117,27 +122,23 @@ int OpShortestPath::ValueMapping( Word* args,
 
   // Get sections where the path should start or end
   Tuple* pFromSection = pNetwork->GetSectionOnRoute(pFromGPoint);
+  if (pFromSection == 0) {
+    sendMessage("Starting GPoint not found in network.");
+    pFromSection->DeleteIfAllowed();
+    NetworkManager::CloseNetwork(pNetwork);
+    return 0;
+  }
   Tuple* pToSection = pNetwork->GetSectionOnRoute(pToGPoint);
+  if (pToSection == 0) {
+    sendMessage("End GPoint not found in network.");
+    pFromSection->DeleteIfAllowed();
+    pToSection->DeleteIfAllowed();
+    NetworkManager::CloseNetwork(pNetwork);
+    return 0;
+  }
   Point* pToPoint = pNetwork->GetPointOnRoute(pToGPoint);
 
-  if(pToSection == 0 ||
-     pFromSection == 0)
-  {
-    sendMessage("Start or End not found. Possibly the route has no "
-                "junctions or is not part of the network.");
-    if(pFromSection != 0)
-    {
-      pFromSection->DeleteIfAllowed();
-    }
-    if(pToSection != 0)
-    {
-      pToSection->DeleteIfAllowed();
-    }
-    NetworkManager::CloseNetwork(pNetwork);
-      return 0;
-  }
-
-  pGLine->SetNetworkId(1);
+  pGLine->SetNetworkId(pNetwork->GetId());
 
   // Calculate the shortest path
   Dijkstra(pNetwork,
@@ -150,6 +151,8 @@ int OpShortestPath::ValueMapping( Word* args,
 
   // Cleanup and return
   delete pToPoint;
+  pFromSection->DeleteIfAllowed();
+  pToSection->DeleteIfAllowed();
   NetworkManager::CloseNetwork(pNetwork);
   return 0;
 }
