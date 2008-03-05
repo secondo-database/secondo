@@ -706,10 +706,10 @@ public:
     AddOperator ( &cluster_c );
                 
     ///// tracefile  /////
-    if ( RTFlag::isActive("ClusterText:Trace") ) {
-      cmsg.file() << "Cluster: Constructor " << endl;
-      cmsg.send();
-    }
+   // if ( RTFlag::isActive("ClusterText:Trace") ) {
+   //   cmsg.file() << "Cluster: Constructor " << endl;
+   //   cmsg.send();
+   // }
     ///// tracefile end /////   
   }
   ~ClusterAlgebra() {}; 
@@ -744,9 +744,9 @@ InitializeClusterAlgebra(  NestedList* nlRef,
   qp = qpRef;
    
   ///// tracefile ////
-  if ( RTFlag::isActive("ClusterText:Trace") ) {
-     cmsg.file() << "Cluster: InitializeClusterAlgebra " 
-                 << endl; cmsg.send(); }
+ // if ( RTFlag::isActive("ClusterText:Trace") ) {
+ //    cmsg.file() << "Cluster: InitializeClusterAlgebra " 
+ //                << endl; cmsg.send(); }
   
   return (&clusterAlgebra);
 }
