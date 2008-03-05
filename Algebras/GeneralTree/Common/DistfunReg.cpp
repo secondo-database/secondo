@@ -201,6 +201,7 @@ DistfunReg::printDistfuns()
     list<DistfunInfo> distfunInfos;
     DistfunReg::getInfoList(distfunInfos);
     list<DistfunInfo>::iterator iter = distfunInfos.begin();
+
     while(iter != distfunInfos.end())
     {
         cmsg.info() << "name             : "
@@ -213,14 +214,16 @@ DistfunReg::printDistfuns()
 
         string curName = iter->name();
         string curType = iter->data().typeName();
-        while ((iter->name() == curName) &&
-                (iter->data().typeName() == curType))
+        while ((iter != distfunInfos.end()) &&
+               (iter->name() == curName) &&
+               (iter->data().typeName() == curType))
         {
             cmsg.info() << iter->data().name();
             ++iter;
 
-            if ((iter->name() == curName) &&
-                    (iter->data().typeName() == curType))
+            if ((iter != distfunInfos.end()) &&
+                (iter->name() == curName) &&
+                (iter->data().typeName() == curType))
                 cmsg.info() << ", ";
         }
         cmsg.info() << seperator;
