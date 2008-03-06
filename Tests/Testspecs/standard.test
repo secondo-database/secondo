@@ -417,6 +417,39 @@ query ceil(-1.2)
 #yields (real -2.0)
 query floor(-1.2)
 
+#testcase isdefined_int_true
+#yields (bool TRUE)
+query isdefined(-12)
+
+#testcase isdefined_int_false
+#yields (bool FALSE)
+query isdefined([const int value undef])
+
+#testcase isdefined_real_true
+#yields (bool TRUE)
+query isdefined(-676.782)
+
+#testcase isdefined_real_false
+#yields (bool FALSE)
+query isdefined( 1.0 / 0)
+
+#testcase isdefined_string_true
+#yields (bool TRUE)
+query isdefined("")
+
+#testcase isdefined_string_false
+#yields (bool FALSE)
+query isdefined([const string value undef])
+
+#testcase isdefined_bool_true
+#yields (bool TRUE)
+query isdefined(FALSE)
+
+#testcase isdefined_bool_false
+#yields (bool FALSE)
+query isdefined([const bool value undef])
+
+
 
 
 #testcase coverage

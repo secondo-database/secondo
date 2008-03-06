@@ -1422,6 +1422,28 @@ ccnum2stringSelect( ListExpr args )
   return SimpleSelect<2,2>(maps_num2str, args);	 
 }
 
+/*
+4.2.16 Type mapping function ~DATAbool~
+
+Maps DATA [->] bool
+It is for the  operator ~isdefined~.
+
+*/
+
+ListExpr
+    DATAbool( ListExpr args )
+{
+  NList mArgs(args);
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  if(    !mArgs.hasLength(1)
+      || !SecondoSystem::GetAlgebraManager()->
+          CheckKind("DATA", mArgs.first().listExpr(), errorInfo)
+    )
+  {
+    return NList::typeError("Expected single argument of kind DATA.");
+  }
+  return NList(BOOL).listExpr();
+}
 
 
 /*
@@ -3451,6 +3473,20 @@ int CcCharFun( Word* args, Word& result, int message,
 }
 
 /*
+4.25 Operator ~isdefined~
+
+*/
+int CCisdefinedValueMap( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Attribute* Obj = (Attribute*) args[0].addr;
+  ((CcBool *)result.addr)->Set( true, Obj->IsDefined() );
+  return 0;
+}
+
+
+/*
 5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -3518,63 +3554,41 @@ ValueMapping ccdiffmap[] = { CcDiff<CcInt>,
                              CcDiff<CcString> };
 
 ValueMapping ccstartsmap[] = { StartsFun };
-
 ValueMapping cccontainsmap[] = { ContainsFun };
-
 ValueMapping ccandmap[] = { AndFun };
 ValueMapping ccandSmap[] = { AndSFun };
 ValueMapping ccormap[] = { OrFun };
 ValueMapping ccorSmap[] = { OrSFun };
 ValueMapping ccnotmap[] = { NotFun };
-
 ValueMapping ccisemptymap[] = { IsEmpty<CcBool>,
                                 IsEmpty<CcInt>,
                                 IsEmpty<CcReal>,
                                 IsEmpty<CcString> };
-
 ValueMapping ccsetintersectionmap[] =
         { CcSetIntersection_ii, CcSetIntersection_rr, CcSetIntersection_bb,
         CcSetIntersection_ss };
-
 ValueMapping ccsetminusmap[] =
         { CcSetMinus_ii, CcSetMinus_rr, CcSetMinus_bb, CcSetMinus_ss };
-
 ValueMapping ccoprelcountmap[] = { RelcountFun };
 ValueMapping ccoprelcountmap2[] = { RelcountFun2 };
 ValueMapping cckeywordsmap[] = { keywordsFun };
-
 ValueMapping ccbetweenmap[] = { CcBetween<CcInt>, CcBetween<CcReal>,
                                 CcBetween<CcString>, CcBetween<CcBool> };
-
 //ValueMapping cchashvaluemap[] = { CcHashValue<CcInt>, CcHashValue<CcReal>,
                                 //CcHashValue<CcString>, CcHashValue<CcBool> };
-
 ValueMapping cchashvaluemap[] = { CcHashValue };
-
 ValueMapping ccroundvaluemap[] = { CcRoundValueMap };
-
 ValueMapping ccint2realvaluemap[] = { CcInt2realValueMap };
 ValueMapping ccreal2intvaluemap[] = { CcReal2intValueMap };
 ValueMapping ccint2boolvaluemap[] = { CcInt2boolValueMap };
 ValueMapping ccbool2intvaluemap[] = { CcBool2intValueMap };
 ValueMapping ccfloorvaluemap[] = { CcFloorValueMap };
 ValueMapping ccceilvaluemap[] = { CcCeilValueMap };
-
 ValueMapping ccnum2stringvaluemap[] =
-{
-  CcNum2String<CcReal>,
-  CcNum2String<CcInt>
-};
-
-
-ValueMapping abs_vms[] =
-{
-  abs_vm<CcReal, double>,
-  abs_vm<CcInt, int>, 0
-};
-
-
+                          { CcNum2String<CcReal>, CcNum2String<CcInt> };
+ValueMapping abs_vms[] = { abs_vm<CcReal, double>, abs_vm<CcInt, int>, 0 };
 ValueMapping cccharvaluemap[] = { CcCharFun };
+ValueMapping ccisdefinedvaluemap[] = { CCisdefinedValueMap };
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -4045,6 +4059,17 @@ const string CCcharSpec =
     "<text>query char(25)</text--->"
     ") )";
 
+const string CCisdefinedSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>DATA -> bool</text--->"
+    "<text>isdefined( v )</text--->"
+    "<text>Tests, whether a value 'v' of a type in kind DATA is defined. "
+    "Actually, the operator depends on the implementation of 'IsDefined()'. "
+    "For several types with set-sementics, this is not implemented "
+    "consequently.</text--->"
+    "<text>query isdefined(987)</text--->"
+    ") )";
+
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,
                  CcMathSelectCompute, CcMathTypeMap );
 
@@ -4192,6 +4217,8 @@ Operator ccnum2string( "num2string", CCnum2stringSpec, 2, ccnum2stringvaluemap,
 Operator ccchar( "char", CCcharSpec, 1, cccharvaluemap,
                  Operator::SimpleSelect, IntString);
 
+Operator ccisdefined( "isdefined", CCisdefinedSpec, 1, ccisdefinedvaluemap,
+                      Operator::SimpleSelect, DATAbool);
 /*
 6 Class ~CcAlgebra~
 
@@ -4281,6 +4308,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccfloor );
     AddOperator( &ccchar );
     AddOperator( &ccnum2string );
+    AddOperator( &ccisdefined );
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );

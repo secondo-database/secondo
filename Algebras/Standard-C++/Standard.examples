@@ -433,3 +433,9 @@ Signature: int -> int
 Example  : query abs(-4)
 Result   : 4 
 
+Operator : isdefined 
+Number   : 1 
+Signature: DATA -> bool
+Example  : query isdefined([const int value undef])
+Result   : FALSE
+
