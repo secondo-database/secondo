@@ -56,4 +56,15 @@ Example  : query getcatalog() count >= 9
 Result   : TRUE
 Remark   : We have 9 system tables at least.
 
+Operator : substr
+Number   : 1
+Signature: text x int x int -> string
+Example  : query substr('123456789A123456789B123456789C', 10, 20) = "A123456789B"
+Result   : TRUE
+
+Operator : isempty
+Number   : 1
+Signature: text -> bool
+Example  : query isempty('')
+Result   : TRUE
 

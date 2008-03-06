@@ -25,8 +25,9 @@ operator contains alias CONTAINS pattern _ infixop _
 operator keywords alias KEYWORDS pattern _ op
 operator sentences alias SENTENCES pattern _ op
 operator getcatalog alias GETCATALOG pattern op( _ )
-#operator subtext alias SUBTEXT pattern op(_, _, _)
+operator subtext alias SUBTEXT pattern op(_, _, _)
 #operator find alias FIND pattern op(_, _)
 
 #Operators already specified elsewhere:
 #operator substr alias SUBSTR pattern op(_, _, _)
+#operator isempty alias ISEMPTY pattern op( _ )

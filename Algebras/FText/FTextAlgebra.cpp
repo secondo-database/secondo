@@ -318,7 +318,19 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
     First = nl->First(instance);
   else
     First = instance;
-  
+
+  if ( nl->IsAtom( First ) && nl->AtomType( First ) == SymbolType
+       && nl->SymbolValue( First ) == "undef" )
+  {
+    string buffer = "";
+    FText* newftext = new FText( false, buffer.c_str() );
+    correct = true;
+
+    if(traces)
+      cout << "End InFText with undef Text '"<<buffer<<"'\n";
+    return SetWord(newftext);
+  }
+
   if ( nl->IsAtom(First) && nl->AtomType(First) == TextType)
   {
     string buffer;
@@ -591,7 +603,7 @@ ListExpr TypeFTextSubstr( ListExpr args )
   {
     return NList::typeError( "Boundary arguments must be of type int.");
   }
-  if ( type.first() == NList(STRING) )
+  if ( type.first() == NList(TEXT) )
   {
     return NList(STRING).listExpr();
   }
@@ -616,7 +628,7 @@ ListExpr TypeFTextSubtext( ListExpr args )
   {
     return NList::typeError( "Boundary arguments must be of type int.");
   }
-  if ( type.first() == NList(STRING) )
+  if ( type.first() == NList(TEXT) )
   {
     return NList(STRING).listExpr();
   }
@@ -641,6 +653,26 @@ ListExpr TypeFTextFind( ListExpr args )
   }
   return NList::typeError("Expected two arguments of {text,string} types.");
 }
+
+
+/*
+
+Type Mapping for signature ~text [->] bool~
+
+*/
+ListExpr FTextTypeMapTextBool( ListExpr args )
+{
+  NList type(args);
+
+  if ( type.hasLength(1)
+       &&( (type.first() == NList(TEXT)) )
+     )
+  {
+    return NList(BOOL).listExpr();
+  }
+  return NList::typeError("Expected single text argument.");
+}
+
 
 /*
 3.3 Value Mapping Functions
@@ -1173,6 +1205,33 @@ int ValMapGetCatalog( Word* args, Word& result, int message,
 int ValMapSubstr( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
+  result = qp->ResultStorage( s );
+
+  FText *Ctxt    = (FText*)args[0].addr;
+  CcInt *Cbegin  = (CcInt*)args[1].addr;
+  CcInt *Cend    = (CcInt*)args[2].addr;
+  CcString *CRes = reinterpret_cast<CcString*>(result.addr);
+
+  if ( !Ctxt->IsDefined() || !Cbegin->IsDefined() || !Cend->IsDefined() )
+  {
+    CRes->Set( false, string("") );
+    return 0;
+  }
+  int begin  = Cbegin->GetIntval();
+  int end    = Cend->GetIntval();
+  int txtlen = Ctxt->TextLength();
+  if( (begin < 1) || (begin > end) || (begin > txtlen) )
+  {
+    CRes->Set( false, string("") );
+    return 0;
+  }
+  int n = min(min( (end-begin), (txtlen-begin) ),
+              static_cast<int>(MAX_STRINGSIZE));
+  string mytxt = static_cast<const char*>( Ctxt->Get() );
+  cout << "mytxt=\"" << mytxt << "\"" << endl;
+  string mysubstring = mytxt.substr(begin-1, n+1);
+  cout << "mysubstring=\"" << mysubstring << "\"" << endl;
+  CRes->Set( true, mysubstring );
   return 0;
 }
 
@@ -1184,6 +1243,32 @@ int ValMapSubstr( Word* args, Word& result, int message,
 int ValMapSubtext( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
+  result = qp->ResultStorage( s );
+
+  FText *Ctxt    = (FText*)args[0].addr;
+  CcInt *Cbegin  = (CcInt*)args[1].addr;
+  CcInt *Cend    = (CcInt*)args[2].addr;
+  FText *CRes = reinterpret_cast<FText*>(result.addr);
+
+  if ( !Ctxt->IsDefined() || !Cbegin->IsDefined() || !Cend->IsDefined() )
+  {
+    CRes->Set( false, string("") );
+    return 0;
+  }
+  int begin  = Cbegin->GetIntval();
+  int end    = Cend->GetIntval();
+  int txtlen = Ctxt->TextLength();
+  if( (begin < 1) || (begin > end) || (begin > txtlen) )
+  {
+    CRes->Set( false, string("") );
+    return 0;
+  }
+  int n = min( (end-begin), (txtlen-begin) );
+  string mytxt = static_cast<const char*>( Ctxt->Get() );
+  cout << "mytxt=\"" << mytxt << "\"" << endl;
+  string mysubstring = mytxt.substr(begin-1, n+1);
+  cout << "mysubstring=\"" << mysubstring << "\"" << endl;
+  CRes->Set( true, mysubstring.c_str() );
   return 0;
 }
 
@@ -1198,6 +1283,21 @@ int ValMapFind( Word* args, Word& result, int message,
   return 0;
 }
 
+
+/*
+4.30 Operator ~isempty~
+
+
+*/
+int FTextValMapIsEmpty( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool *CRes = reinterpret_cast<CcBool*>(result.addr);
+  FText *Ctxt    = (FText*)args[0].addr;
+  CRes->Set( true, ( !Ctxt->IsDefined() || Ctxt->TextLength() == 0) );
+  return 0;
+}
 
 /*
 3.4 Definition of Operators
@@ -1315,6 +1415,14 @@ const string findSpec =
     "<text>query find('Hello world!', 'l') count</text--->"
     ") )";
 
+const string FTextisemptySpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> {text | string} x {text | string}  -> stream(int)</text--->"
+    "<text>isempty( t )</text--->"
+    "<text>Returns TRUE, if text 't' is either undefined or empty.</text--->"
+    "<text>query isempty('')</text--->"
+    ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -1387,29 +1495,37 @@ Operator ftextsubstr
 (
     "substr",
     substrSpec,
-    ValMapGetCatalog,
+    ValMapSubstr,
     Operator::SimpleSelect,
     TypeFTextSubstr
 );
 
 Operator ftextsubtext
-    (
+(
     "subtext",
     subtextSpec,
     ValMapSubtext,
     Operator::SimpleSelect,
     TypeFTextSubtext
-    );
+);
 
 Operator ftextfind
 (
     "find",
     findSpec,
     ValMapFind,
-    Operator::SimpleSelect,
+    Operator::SimpleSelect, // needs select function!
     TypeFTextFind
-        );
+);
 
+Operator ftextisempty
+    (
+    "isempty",
+    FTextisemptySpec,
+    FTextValMapIsEmpty,
+    Operator::SimpleSelect, // needs select function!
+    FTextTypeMapTextBool
+    );
 
 
 /*
@@ -1433,9 +1549,10 @@ public:
     AddOperator( &getsentences );
     AddOperator( &diceCoeff);
     AddOperator( &ftextgetcatalog );
-//     AddOperator( &ftextsubstr );
+    AddOperator( &ftextsubstr );
 //     AddOperator( &ftextsubtext );
 //     AddOperator( &ftextfind );
+    AddOperator( &ftextisempty );
 
     
     LOGMSG( "FText:Trace",

@@ -47,7 +47,8 @@ class FText: public StandardAttribute
 public:
 
   inline FText();
-  inline FText(bool newDefined, const char *newText = NULL);
+  inline FText( bool newDefined, const char *newText = NULL) ;
+  inline FText( bool newDefined, const string& newText );
   inline FText(const FText&);
   inline ~FText();
   inline void Destroy();
@@ -55,6 +56,7 @@ public:
   inline bool  SearchString( const char* subString );
   inline void  Set( const char *newString );
   inline void  Set( bool newDefined, const char *newString );
+  inline void  Set( bool newDefined, const string& newString );
   inline int TextLength() const;
   inline const char *Get() const;
 
@@ -97,7 +99,7 @@ inline FText::FText()
   LOGMSG( "FText:Trace",  cout <<"End FText()"<<'\n'; )
 }
 
-inline FText::FText( bool newDefined, const char *newText ) :
+inline FText::FText( bool newDefined, const char *newText /* =0*/ ) :
 theText( 0 )
 {
   LOGMSG( "FText:Trace",
@@ -109,6 +111,20 @@ theText( 0 )
            cout <<"End FText(bool newDefined, textType newText)"
                 <<'\n'; )
 }
+
+inline FText::FText( bool newDefined, const string& newText ) :
+    theText( 0 )
+{
+  LOGMSG( "FText:Trace",
+          cout << '\n'
+              <<"Start FText( bool newDefined, const string newText )"
+              <<'\n'; )
+      Set( newDefined, newText );
+  LOGMSG( "FText:Trace",
+          cout <<"End FText( bool newDefined, const string newText )"
+              <<'\n'; )
+}
+
 
 inline FText::FText( const FText& f ) :
 theText( 0 )
@@ -165,6 +181,21 @@ inline void FText::Set( bool newDefined, const char *newString )
 
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
+
+inline void FText::Set( bool newDefined, const string& newString )
+{
+  LOGMSG( "FText:Trace",
+          cout << '\n' << "Start Set with newString='"
+              << newString << endl; )
+  theText.Resize( newString.length() + 1 );
+  char myStr[newString.length()+1];
+  memset ( myStr, '\0', newString.length()+1);
+  strncpy( myStr, newString.data(), MAX_STRINGSIZE  );
+  theText.Put( 0, newString.length() + 1, myStr);
+  defined = newDefined;
+  LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
+}
+
 
 inline int FText::TextLength() const
 {
