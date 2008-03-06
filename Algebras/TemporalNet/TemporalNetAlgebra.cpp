@@ -52,6 +52,8 @@ Defines, includes, and constants
 #include "OpTempNetInitial.h"
 #include "OpTempNetFinal.h"
 #include "OpTempNetAt.h"
+#include "OpTempNetVal.h"
+#include "OpTempNetInst.h"
 
 #include <iostream>
 #include <sstream>
@@ -250,6 +252,27 @@ Operator tempnetfinal("final",
                 OpTempNetFinal::TypeMap );
 
 /*
+
+Operator val
+
+*/
+Operator tempnetval("val",
+                OpTempNetVal::Spec,
+                IntimeVal<GPoint>,
+                Operator::SimpleSelect,
+                OpTempNetVal::TypeMap );
+
+/*
+
+Operator inst
+
+*/
+Operator tempnetinst("inst",
+                OpTempNetInst::Spec,
+                IntimeInst<GPoint>,
+                Operator::SimpleSelect,
+                OpTempNetInst::TypeMap );
+/*
 Operator at
 
 */
@@ -291,6 +314,8 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetinitial);
     AddOperator(&tempnetfinal);
     AddOperator(&tempnetat);
+    AddOperator(&tempnetval);
+    AddOperator(&tempnetinst);
 
   }
 
