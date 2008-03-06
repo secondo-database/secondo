@@ -59,6 +59,7 @@ public:
   inline void  Set( bool newDefined, const string& newString );
   inline int TextLength() const;
   inline const char *Get() const;
+  inline const string GetValue() const;
 
 /*************************************************************************
 
@@ -207,6 +208,13 @@ inline const char *FText::Get() const
   const char* s = 0;
   theText.Get(0, &s);
   return s;
+}
+
+inline const string FText::GetValue() const
+{
+  const char* s = 0;
+  theText.Get(0, &s);
+  return string(s);
 }
 
 inline bool FText::IsDefined() const

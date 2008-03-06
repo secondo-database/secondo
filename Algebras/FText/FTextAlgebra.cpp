@@ -640,18 +640,22 @@ ListExpr TypeFTextSubtext( ListExpr args )
 Type Mapping for operator ~find~
 
 */
-ListExpr TypeFTextFind( ListExpr args )
+ListExpr FTextTypeMapFind( ListExpr args )
 {
   NList type(args);
 
-  if ( type.hasLength(2)
-      &&( (type.first() == NList(INT)) || (type.first() == NList(TEXT)) )
-      &&( (type.second() == NList(INT)) || (type.second() == NList(TEXT)) )
+  if ( type.hasLength(2) &&
+       (
+          (type == NList(STRING, STRING))
+       || (type == NList(TEXT,   TEXT  ))
+       || (type == NList(STRING, TEXT  ))
+       || (type == NList(TEXT,   STRING))
+       )
      )
   {
-    return NList(NList(STREAM),NList(INT)).listExpr();
+    return NList(STREAM, INT).listExpr();
   }
-  return NList::typeError("Expected two arguments of {text,string} types.");
+  return NList::typeError("Expected {text|string} x {text|string}.");
 }
 
 
@@ -671,6 +675,39 @@ ListExpr FTextTypeMapTextBool( ListExpr args )
     return NList(BOOL).listExpr();
   }
   return NList::typeError("Expected single text argument.");
+}
+
+/*
+
+Type Mapping Function for operator ~+~
+
+----
+        text x {text | string} --> text
+        {text | string} x text --> text
+----
+
+*/
+ListExpr FTextTypeMapPlus( ListExpr args )
+{
+  NList type(args);
+
+  if ( !type.hasLength(2)
+       &&( (type.first() == NList(TEXT)) )
+     )
+  {
+    return NList::typeError("Expected two arguments.");
+  }
+  NList first = type.first();
+  NList second = type.second();
+  if(    (type == NList(STRING, TEXT  ))
+      || (type == NList(TEXT,   TEXT  ))
+      || (type == NList(TEXT,   STRING))
+    )
+  {
+    return NList(TEXT).listExpr();
+  }
+  return NList::typeError("Expected (text x {text|string}) "
+      "or ({text|string} x text).");
 }
 
 
@@ -1277,12 +1314,111 @@ int ValMapSubtext( Word* args, Word& result, int message,
 
 
 */
-int ValMapFind( Word* args, Word& result, int message,
+
+struct ValMapFindLocalInfo{
+  string text;
+  string pattern;
+  unsigned textlen;
+  unsigned patternlen;
+  unsigned int lastPosFound;
+  bool finished;
+};
+
+template<class T1, class T2>
+int FTextValMapFind( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
+  result = qp->ResultStorage( s );
+  T1 *Ctext = 0;
+  T2 *Cpattern = 0;
+  ValMapFindLocalInfo *li;
+
+  switch( message )
+  {
+    case OPEN:
+
+      Ctext    = static_cast<T1*>(args[0].addr);
+      Cpattern = static_cast<T2*>(args[1].addr);
+      li = new ValMapFindLocalInfo;
+      li->finished = true;
+      li->text = "";
+      li->pattern = "";
+      li->textlen = 0;
+      li->patternlen = 0;
+      li->lastPosFound = string::npos;
+      if( Ctext->IsDefined() && Cpattern->IsDefined() )
+      {
+        li->text = Ctext->GetValue();
+        li->pattern = Cpattern->GetValue();
+        li->lastPosFound = 0;
+        li->textlen      = li->text.length();
+        li->patternlen   = li->pattern.length();
+        li->finished = (    (li->patternlen > li->textlen)
+                         || (li->patternlen == 0)
+                       );
+      }
+      local = SetWord(li);
+      return 0;
+
+    case REQUEST:
+      if(local.addr == 0)
+      {
+        result.addr = 0;
+        return CANCEL;
+      }
+      li = (ValMapFindLocalInfo*) local.addr;
+      if(     li->finished
+          || (li->lastPosFound == string::npos)
+          || (li->lastPosFound + li->patternlen > li->textlen)
+        )
+      {
+        result.addr = 0;
+        return CANCEL;
+      }
+      li->lastPosFound = li->text.find(li->pattern, li->lastPosFound);
+      if(li->lastPosFound != string::npos)
+      {
+        CcInt* res = new CcInt(true, ++(li->lastPosFound));
+        result.addr = res;
+        return YIELD;
+      }
+      li->finished = false;
+      result.addr = 0;
+      return CANCEL;
+
+    case CLOSE:
+      if(local.addr != 0)
+      {
+        li = (ValMapFindLocalInfo*) local.addr;
+        delete li;
+      }
+      return 0;
+  }
   return 0;
 }
 
+ValueMapping FText_VMMap_Find[] =
+{
+  FTextValMapFind<CcString, FText>,    //  0
+  FTextValMapFind<FText, CcString>,    //  1
+  FTextValMapFind<FText, FText>,       //  2
+  FTextValMapFind<CcString, CcString>  //  3
+};
+
+int FTextSelectFunFind( ListExpr args )
+{
+  NList type(args);
+  if( (type.first() == NList(STRING)) && (type.second() == NList(TEXT)) )
+    return 0;
+  if( (type.first() == NList(TEXT)) && (type.second() == NList(STRING)) )
+    return 1;
+  if( (type.first() == NList(TEXT)) && (type.second() == NList(TEXT)) )
+    return 2;
+  if( (type.first() == NList(STRING)) && (type.second() == NList(STRING)) )
+    return 3;  
+  // else: ERROR
+  return -1;
+}
 
 /*
 4.30 Operator ~isempty~
@@ -1297,6 +1433,55 @@ int FTextValMapIsEmpty( Word* args, Word& result, int message,
   FText *Ctxt    = (FText*)args[0].addr;
   CRes->Set( true, ( !Ctxt->IsDefined() || Ctxt->TextLength() == 0) );
   return 0;
+}
+
+
+/*
+4.30 Operator ~+~
+
+*/
+template<class T1, class T2>
+int FTextValMapPlus( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  FText *CRes = reinterpret_cast<FText*>(result.addr);
+
+  T1 *Ctxt1    = (T1*)args[0].addr;
+  T2 *Ctxt2    = (T2*)args[1].addr;
+
+  if( !Ctxt1->IsDefined() || !Ctxt2->IsDefined() )
+  {
+    CRes->SetDefined( false );
+    return 0;
+  }
+
+  string mTxt1 = string(Ctxt1->GetValue());
+  string mTxt2 = string(Ctxt2->GetValue());
+  string myRes = mTxt1 + mTxt2;
+
+  CRes->Set( true, myRes );
+  return 0;
+}
+
+ValueMapping FText_VMMap_Plus[] =
+{
+  FTextValMapPlus<CcString, FText>,    //  0
+  FTextValMapPlus<FText, CcString>,    //  1
+  FTextValMapPlus<FText, FText>        //  2
+};
+
+int FTextSelectFunPlus( ListExpr args )
+{
+  NList type(args);
+  if( (type.first() == NList(STRING)) && (type.second() == NList(TEXT)) )
+    return 0;
+  if( (type.first() == NList(TEXT)) && (type.second() == NList(STRING)) )
+    return 1;
+  if( (type.first() == NList(TEXT)) && (type.second() == NList(TEXT)) )
+    return 2;
+  // else: ERROR
+  return -1;
 }
 
 /*
@@ -1404,7 +1589,7 @@ const string subtextSpec =
     "<text>query subtext('Hello world!', 1, 3 )</text--->"
     ") )";
 
-const string findSpec =
+const string FTextfindSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> {text | string} x {text | string}  -> stream(int)</text--->"
     "<text>find( s, p )</text--->"
@@ -1422,6 +1607,17 @@ const string FTextisemptySpec =
     "<text>Returns TRUE, if text 't' is either undefined or empty.</text--->"
     "<text>query isempty('')</text--->"
     ") )";
+
+const string FTextplusSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> {text | string} x text -> text \n"
+    " text x {text | string -> text}</text--->"
+    "<text>t1 + t2</text--->"
+    "<text>Returns the concatenation of a combination of text with another "
+    "text or string value.</text--->"
+    "<text>query ('Hello' + \" world\" + '!')</text--->"
+    ") )";
+
 
 /*
 The Definition of the operators of the type ~text~.
@@ -1510,13 +1706,14 @@ Operator ftextsubtext
 );
 
 Operator ftextfind
-(
+    (
     "find",
-    findSpec,
-    ValMapFind,
-    Operator::SimpleSelect, // needs select function!
-    TypeFTextFind
-);
+    FTextfindSpec,
+    4,
+    FText_VMMap_Find,
+    FTextSelectFunFind, // needs select function!
+    FTextTypeMapFind
+    );
 
 Operator ftextisempty
     (
@@ -1527,6 +1724,15 @@ Operator ftextisempty
     FTextTypeMapTextBool
     );
 
+Operator ftextplus
+    (
+    "+",
+    FTextplusSpec,
+    3,
+    FText_VMMap_Plus,
+    FTextSelectFunPlus, // needs select function!
+    FTextTypeMapPlus
+    );
 
 /*
 5 Creating the algebra
@@ -1551,8 +1757,9 @@ public:
     AddOperator( &ftextgetcatalog );
     AddOperator( &ftextsubstr );
 //     AddOperator( &ftextsubtext );
-//     AddOperator( &ftextfind );
+    AddOperator( &ftextfind );
     AddOperator( &ftextisempty );
+    AddOperator( &ftextplus );
 
     
     LOGMSG( "FText:Trace",

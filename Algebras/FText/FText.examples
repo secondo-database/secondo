@@ -25,6 +25,18 @@ Signature: text x text -> bool
 Example  : query 'hello world' contains 'lox' 
 Result   : FALSE
 
+Operator : contains
+Number   : 5
+Signature: text x string -> bool
+Example  : query 'hello world' contains "lox"
+Result   : FALSE
+
+Operator : contains
+Number   : 6
+Signature: text x string -> bool
+Example  : query 'hello world' contains " wo"
+Result   : TRUE
+
 Operator : dice
 Number   : 1
 Signature: int x text x text -> real 
@@ -67,4 +79,53 @@ Number   : 1
 Signature: text -> bool
 Example  : query isempty('')
 Result   : TRUE
+
+Operator : +
+Number   : 1
+Signature: text x text -> text
+Example  : query ('Hello' + ' world!')
+Result   : 'Hello world!'
+
+Operator : +
+Number   : 2
+Signature: text x string -> text
+Example  :query ('Hello' + " world!")
+Result   : 'Hello world!'
+
+Operator : +
+Number   : 3
+Signature: string x text -> text
+Example  : query ("Hello" + ' world!')
+Result   : 'Hello world!'
+
+Operator : find
+Number   : 1 
+Signature: text x text -> stream(int)
+Example  : query find('12345678901234567890123456789012345678901234567890', '12345678901234567890123456789012345678901234567890') count
+Result   : 1
+
+Operator : find 
+Number   : 2
+Signature: text x text -> stream(int)
+Example  : query find('12345678901234567890123456789012345678901234567890', '1234567890') count
+Result   : 5
+
+Operator : find 
+Number   : 3
+Signature: text x string -> stream(int)
+Example  : query find('12345678901234567890123456789012345678901234567890', "1234567890") count
+Result   : 5
+
+Operator : find 
+Number   : 4
+Signature: string x text -> stream(int)
+Example  : query find("12345678901234567890123456789012345678901234567890", '1234567890') count
+Result   : 4
+
+Operator : find 
+Number   : 5
+Signature: string x string -> stream(int)
+Example  : query find("12345678901234567890123456789012345678901234567890", "1234567890") count
+Result   : 4
+
 
