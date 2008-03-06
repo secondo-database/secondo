@@ -251,6 +251,20 @@ Operator point2gpoint (
 );
 
 /*
+Definition of  operator equal
+
+*/
+
+Operator netgpequal (
+          "=",               // name
+          OpNetEqual::Spec,          // specification
+          OpNetEqual::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpNetEqual::TypeMap        // type mapping
+);
+
+
+/*
 Creating the Algebra
 
 */

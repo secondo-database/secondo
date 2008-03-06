@@ -52,3 +52,15 @@ Signature: point -> gpoint
 Example  : query point2gpoint(B_NETWORK, [const point value(8594.0 8773.0)])
 Result   : (gpoint (1 1 385.0474775448921 2))
 Tolerance:%0.01
+
+Operator : =
+Number   : 1
+Signature: gpoint x gpoint -> bool
+Example  : query X_GPOINT = X_GPOINT2
+Result   : FALSE
+
+Operator : =
+Number   : 2
+Signature: gpoint x gpoint -> bool
+Example  : query X_GPOINT = X_GPOINT
+Result   : TRUE

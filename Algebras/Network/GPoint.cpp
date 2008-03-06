@@ -236,3 +236,25 @@ double GPoint::distance (GPoint* pToGPoint){
   return pGLine->GetLength();
 }
 
+/*
+Compares two gpoints and returns true if the gpoints are at the same position.
+
+*/
+
+bool GPoint::operator== (const GPoint& p) const{
+  if (!m_bDefined || !p.IsDefined()) {
+    return false;
+  } else {
+    if (m_iNetworkId == p.GetNetworkId() &&
+      m_xRouteLocation.rid == p.GetRouteId() &&
+      m_xRouteLocation.d == p.GetPosition() &&
+      (m_xRouteLocation.side == p.GetSide() ||
+       m_xRouteLocation.side == 2 ||
+       p.GetSide() == 2)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  return false;
+}

@@ -239,6 +239,8 @@ Returns the side on the route of the graph point.
 
     double distance (GPoint* toGPoint);
 
+    bool operator== (const GPoint& p) const;
+
 
   private:
 
