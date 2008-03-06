@@ -26,310 +26,299 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //characters      [3]   capital:    [\textsc{]  [}]
 //characters      [4]   teletype:   [\texttt{]  [}]
 
-2 The M-Tree Datastructure
+1 Headerfile "MTree.h"[4]
 
-November/December 2007, Mirko Dibbert
+January-March 2008, Mirko Dibbert
 
-2.1 Overview
+1.1 Overview
 
-TODO enter datastructure description
+This file contains the "MTree"[4] class and some auxiliary structures.
 
-2.2 Class ~MTree~ (file: MTree.h)
-
-2.2.1 Class description
-
-TODO enter class description
-
-2.2.2 Class definition
+1.1 Includes and defines
 
 */
-#ifndef MTREE_H
-#define MTREE_H
+#ifndef __MTREE_H
+#define __MTREE_H
 
-#include "MTreeNodeMngr.h"
+#include "MTreeBase.h"
 #include "MTreeSplitpol.h"
 #include "MTreeConfig.h"
-#include "StandardTypes.h"
+#include "SecondoInterface.h"
+#include "AlgebraManager.h"
 
-namespace MT
-{
+extern SecondoInterface* si;
+extern AlgebraManager* am;
 
-struct SearchBestPathEntry
-{
-  SearchBestPathEntry( MT::Entry* entry_, double dist_,
-                       unsigned index_ ) :
-    entry( entry_ ),
-    dist( dist_ ),
-    index( index_ )
-  {}
+namespace mtreeAlgebra {
 
-  MT::Entry* entry;
-  double dist;
-  unsigned index;
-};
 /*
-This struct is used in the "insert"[4] method of "mtree"[4] when
-searching for the best path to descent the tree.
+1.1 Struct "SearchBestPathEntry"[4]:
+
+This struct is needed in the "insert"[4] method of "mtree"[4].
 
 */
-
-struct RemainingNodesEntry
+struct SearchBestPathEntry
 {
-  SmiRecordId nodeId;
-  double dist;
+    SearchBestPathEntry(
+            InternalEntry* _entry, DFUN_RESULT _dist,
+            unsigned _index) :
+        entry(_entry), dist(_dist), index(_index)
+    {}
 
-  RemainingNodesEntry( SmiRecordId nodeId_, double dist_ ) :
-    nodeId( nodeId_ ),
-    dist ( dist_ )
-  {}
-
+    mtreeAlgebra::InternalEntry* entry;
+    DFUN_RESULT dist;
+    unsigned index;
 };
+
 /*
+1.1 Struct "RemainingNodesEntry"[4]:
+
 This struct is used in the "rangeSearch"[4] method of "mtree"[4].
 
 */
+struct RemainingNodesEntry
+{
+    SmiRecordId nodeId;
+    DFUN_RESULT dist;
 
+    RemainingNodesEntry(
+            SmiRecordId _nodeId, DFUN_RESULT _dist) :
+        nodeId(_nodeId), dist (_dist)
+    {}
+};
+
+/*
+1.1 Struct "RemainingNodesEntryNNS"[4]:
+
+This struct is needed in the "nnSearch"[4] method of "mtree"[4].
+
+*/
 struct RemainingNodesEntryNNS
 {
-  SmiRecordId nodeId;
-  double minDist;
-  double distQueryParent;
+    SmiRecordId nodeId;
+    DFUN_RESULT minDist;
+    DFUN_RESULT distQueryParent;
 
-  RemainingNodesEntryNNS( SmiRecordId nodeId_,
-                          double distQueryParent_ ,
-                          double minDist_ ) :
-    nodeId( nodeId_ ),
-    minDist( minDist_ ),
-    distQueryParent( distQueryParent_ )
-  {}
+    RemainingNodesEntryNNS(
+            SmiRecordId _nodeId, DFUN_RESULT _distQueryParent,
+            DFUN_RESULT _minDist) :
+        nodeId(_nodeId), minDist(_minDist),
+        distQueryParent(_distQueryParent)
+    {}
 
-  bool operator>(const RemainingNodesEntryNNS& op2) const
-  {
-    return ( minDist > op2.minDist );
-  }
+    bool operator > (const RemainingNodesEntryNNS& op2) const
+    { return (minDist > op2.minDist); }
 };
+
 /*
-This struct is used in the "nnSearch"[4] method of "mtree"[4].
+1.1 Struct "NNEntry"[4]:
+
+This struct is needed in the "nnSearch"[4] method of "mtree"[4].
 
 */
-
 struct NNEntry
 {
-  TupleId tid;
-  double dist;
-  
-  NNEntry( TupleId tid_, double dist_ )
-  : tid( tid_ ), dist( dist_ )
-  {}
-  
-  bool operator<(const NNEntry& op2) const
-  {
-    if ( (( tid == 0 ) && ( op2.tid == 0 )) ||
-         (( tid != 0 ) && ( op2.tid != 0 )) )
+    TupleId tid;
+    DFUN_RESULT dist;
+
+    NNEntry(TupleId _tid, DFUN_RESULT _dist)
+    : tid(_tid), dist(_dist)
+    {}
+
+    bool operator < (const NNEntry& op2) const
     {
-        return ( dist < op2.dist );
+        if (((tid == 0) && (op2.tid == 0)) ||
+            ((tid != 0) && (op2.tid != 0)))
+        {
+            return (dist < op2.dist);
+        }
+        else  if ((tid == 0) && (op2.tid != 0))
+        {
+            return true;
+        }
+        else // ((tid != 0) && (op2.tid == 0))
+        {
+            return false;
+        }
     }
-    else
-    {
-      if (( tid == 0 ) && ( op2.tid != 0 ))
-        return true;
-      else // (( tid != 0 ) && ( op2.tid == 0 ))
-        return false;
-    }
-  }
-  
 };
-/*
-TODO
 
-*/
+/********************************************************************
+1.1 Struct Header
 
-class MTree
+********************************************************************/
+struct Header : public gtaf::Header
+{
+    Header() :
+        gtaf::Header()
+    {
+        distfunName[0] = '\0';
+        configName[0] = '\0';
+    }
+
+    STRING_T distfunName; // name of the used metric
+    STRING_T configName;  // name of the MTreeConfig object
+    DistDataId dataId;    // id of the used distdata type
+};
+
+/********************************************************************
+1.1 Class MTree
+
+********************************************************************/
+class MTree : public gtaf::Tree<Header>
 {
 
 public:
-  MTree();
 /*
-Constructor, creates a new m-tree ("initialize"[4] method
-must be called before the tree can be used).
+Default cConstructor, creates a new m-tree.
 
 */
+  MTree(bool temporary = false);
 
-  MTree( const SmiFileId fileid );
 /*
 Constructor, opens an existing tree.
 
 */
+  MTree(const SmiFileId fileId);
 
-  MTree( const MTree& mtree );
 /*
-Copy constructor
+Default copy constructor
 
 */
+  MTree(const MTree& mtree);
 
-  ~MTree();
 /*
 Destructor
 
 */
-
-  void initialize( const string& tcName,
-                   const string& metricName,
-                   const string& configName );
-/*
-This method initializes a new created m-tree.
-
-*/
-
-  void deleteFile();
-/*
-This Method deletes the m-tree file.
-
-*/
-
-  inline SmiFileId getFileId()
+  inline ~MTree()
   {
-    return file.GetFileId();
+    if (splitpol)
+        delete splitpol;
   }
+
 /*
-This method returns the file id of the "SmiRecordFile"[4] containing the m-tree.
+Initializes a new created m-tree. This method must be called, before a new tree could be used.
 
 */
+  void initialize(DistDataId dataId, const string& distfunName,
+                  const string& configName);
 
-  inline bool isInitialized()
-  {
-    return initialized;
-  }
 /*
-Returns true, if the m-tree has been successfully initialized.
+Creates a new LeafEntry from "attr "[4] and inserts it into the mtree.
 
 */
+    void insert(Attribute* attr, TupleId tupleId);
 
-  inline int getRoutingCount()
-  {
-    return header.routingCount;
-  }
 /*
-Returns the count of all routing nodes.
+Creates a new LeafEntry from "data"[4] and inserts it into the mtree.
 
 */
+    void insert(DistData* data, TupleId tupleId);
 
-  inline int getLeafCount()
-  {
-    return header.leafCount;
-  }
-/*
-Retunrs the count of all leafes.
-
-*/
-
-  inline int getEntryCount()
-  {
-    return header.entryCount;
-  }
-/*
-Returns the count of all entries, stored in the mtree.
-
-*/
-
-  inline int getHeight()
-  {
-    return header.height;
-  }
-/*
-Returns the height of the mtree.
-
-*/
-
-  void insert( Attribute* attr, TupleId tupleId );
 /*
 Inserts a new entry into the mtree.
 
 */
+void insert(LeafEntry* entry, TupleId tupleId);
 
-  inline void finalizeInsert()
-  {
-    nodeMngr->flush();
-  }
-
-  void rangeSearch( Attribute* attr, const double& searchRad,
-                    list<TupleId>* results );
 
 /*
-Returns all entries in the tree, wich have a maximum distance of
-"searchRad"[4] to the attribute "attr"[4] in the result list.
+Returns all entries, wich have a maximum distance of "searchRad"[4] to the given "Attribute"[4] object in the result list.
 
 */
+    inline void rangeSearch(Attribute* attr,
+                            const DFUN_RESULT& searchRad,
+                            list<TupleId>* results)
+    {
+        rangeSearch(df_info.getData(attr), searchRad, results);
+    }
 
-void nnSearch( Attribute* attr, int nncount,
-               list<TupleId>* results );
 /*
-Returns the "nncount"[4] nearest neighbours ot
-the attribute "attr"[4] in the result list.
+Returns all entries, wich have a maximum distance of "searchRad"[4] to the given "DistData"[4] object in the result list.
 
 */
+    void rangeSearch(DistData* data,
+                     const DFUN_RESULT& searchRad,
+                     list<TupleId>* results);
 
-  void printMTreeConfig();
+
 /*
-Writes the "config"[4] object to "cmsg.info()"[4].
+Returns the "nncount"[4] nearest neighbours ot the "Attribute"[4] object in the result list.
 
 */
+    inline void nnSearch(Attribute* attr, int nncount,
+                  list<TupleId>* results)
+    {
+        nnSearch(df_info.getData(attr), nncount, results);
+    }
+
+/*
+Returns the "nncount"[4] nearest neighbours ot the "DistData"[4] object in the result list.
+
+*/
+    void nnSearch(DistData* data, int nncount,
+                  list<TupleId>* results);
+
+/*
+Returns the name of the assigned type constructor.
+
+*/
+    inline string typeName()
+    { return df_info.data().typeName(); }
+
+/*
+Returns the name of the assigned distance function.
+
+*/
+    inline string distfunName()
+    { return header.distfunName; }
+
+/*
+Returns the id of the assigned distdata type.
+
+*/
+    inline DistDataId& dataId()
+    { return header.dataId; }
+
+/*
+Returns the name of the used "MTreeConfig"[4] object.
+
+*/
+    inline string configName()
+    { return header.configName; }
+
+/*
+Returns true, if the m-tree has already been initialized.
+
+*/
+    inline bool isInitialized()
+    { return initialized; }
 
 private:
-  struct Header
-  {
-    STRING_T tcName;     // type name of the stored entries
-    STRING_T metricName; // name of the used metric
-    STRING_T configName; // name of the MTreeConfig object
-    SmiRecordId root;    // page of the root node
-    unsigned height;     // height of the mtree
-    unsigned entryCount; // count of the entries stored in the mtree
-    unsigned routingCount; // count of the mtree routing nodes
-    unsigned leafCount;    // count of the mtree leafes
+  bool initialized;    // true, if the mtree has been initialized
+  Splitpol* splitpol;  // reference to chosen split policy
+  DistfunInfo df_info; // assigned DistfunInfo object
+  MTreeConfig config;  // assigned MTreeConfig object
 
-    Header() :
-      root ( 0 ),
-      height( 0 ),
-      entryCount( 0 ),
-      routingCount( 0 ),
-      leafCount( 0 )
-    {}
-  };
 /*
-This struct contains all neccesary data, which is needed
-to reinitialize a previously stored m-tree.
+Adds prototypes for the avaliable node types.
 
 */
+  void registerNodePrototypes();
 
-  bool initialized;   // true, if the mtree has been initialized
-  SmiRecordFile file; // contains the mtree file
-  Header header;      // contains the header data
-  Splitpol* splitpol; // reference to chosen split policy
-  NodeMngr* nodeMngr; // reference to node-manager
-  TMetric metric;     // reference to chosen metric
-  TGetDataFun getDistData; // reference to respectiva getData method
-  MTreeConfig config; // chosen MTreeConfig object
-
-  void readHeader();
 /*
-Reads the header from file.
+Initializes distfunInfo splitpol objects and calls the "registerNodePrototypes" method. This method needs an initialized header to work.
 
 */
+  void initialize();
 
-  void writeHeader();
-/*
-Writes the header to file.
-
-*/
-
-  void split(Entry* entry );
 /*
 Splits an node by applying the split policy defined in the MTreeConfing object.
 
 */
-
+  void split();
 }; // MTree
 
-} // namespace MTree
-
-#endif
+} // namespace mtee_alg
+#endif // ifdef __MTREE_H
