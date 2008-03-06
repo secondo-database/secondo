@@ -18,10 +18,16 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator createmtree alias CREATEMTREE pattern _ op [_]
-operator createmtree2 alias CREATEMTREE2 pattern _ op [_, _]
-operator createmtree3 alias CREATEMTREE3 pattern _ op [_, _, _]
-operator rangesearch alias RANGESEARCH pattern _ _ op [_, _]
-operator nnsearch alias NNSEARCH pattern _ _ op [_, _]
+# rel/tuple stream x attribute -> mtree
 
-operator mdistance alias MDISTANCE pattern op (_, _)
-operator mdistance2 alias MDISTANCE pattern op (_, _, _)
+operator createmtree2 alias CREATEMTREE2 pattern _ op [_, _, _]
+# rel/tuple stream x attribute x config x distfun -> mtree
+
+operator createmtree3 alias CREATEMTREE3 pattern _ op [_, _, _, _]
+# rel/tuple stream x attribute x config x distfun x distdata -> mtree
+
+operator rangesearch alias RANGESEARCH pattern _ op [_, _, _]
+# mtree x rel x attr x real -> real
+
+operator nnsearch alias NNSEARCH pattern _ op [_, _, _]
+# mtree x rel x attr x int -> real
