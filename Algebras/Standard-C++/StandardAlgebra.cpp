@@ -1430,8 +1430,7 @@ It is for the  operator ~isdefined~.
 
 */
 
-ListExpr
-    DATAbool( ListExpr args )
+ListExpr DATAbool( ListExpr args )
 {
   NList mArgs(args);
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
@@ -1443,6 +1442,34 @@ ListExpr
     return NList::typeError("Expected single argument of kind DATA.");
   }
   return NList(BOOL).listExpr();
+}
+
+
+/*
+4.2.16 Type mapping function ~CcTypeMapTinDATA\_TinDATAint~
+
+Maps
+
+----  T x T --> bool, T in kind DATA
+----
+
+It is, e.g. for the  operator ~compare~.
+
+*/
+
+ListExpr CcTypeMapTinDATA_TinDATAint( ListExpr args )
+{
+  NList mArgs(args);
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  if(   !mArgs.hasLength(2)
+     || ( mArgs.first() != mArgs.second() )
+     || !SecondoSystem::GetAlgebraManager()->
+          CheckKind("DATA", mArgs.first().listExpr(), errorInfo)
+    )
+  {
+    return NList::typeError("Expected T x T for T in kind DATA.");
+  }
+  return NList(INT).listExpr();
 }
 
 
@@ -3485,6 +3512,19 @@ int CCisdefinedValueMap( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+4.25 Operator ~cccomparevaluemap~
+
+*/
+int CCcomparevaluemap( Word* args, Word& result, int message,
+                           Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Attribute* Obj1 = (Attribute*) args[0].addr;
+  Attribute* Obj2 = (Attribute*) args[1].addr;
+  ((CcInt *)result.addr)->Set( true, Obj1->Compare(Obj2) );
+  return 0;
+}
 
 /*
 5 Definition of operators
@@ -3588,7 +3628,6 @@ ValueMapping ccnum2stringvaluemap[] =
                           { CcNum2String<CcReal>, CcNum2String<CcInt> };
 ValueMapping abs_vms[] = { abs_vm<CcReal, double>, abs_vm<CcInt, int>, 0 };
 ValueMapping cccharvaluemap[] = { CcCharFun };
-ValueMapping ccisdefinedvaluemap[] = { CCisdefinedValueMap };
 
 const string CCSpecAdd  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                           "\"Example\" )"
@@ -4070,6 +4109,21 @@ const string CCisdefinedSpec =
     "<text>query isdefined(987)</text--->"
     ") )";
 
+const string CCcompareSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>T x T -> int, T in DATA</text--->"
+    "<text>compare( v1, v2 )</text--->"
+    "<text>Applies the internal 'Compare' function to both arguments. The "
+    "result is always a defined integer. If both arguments are 'equal', "
+    "the result is 0; if 'v1 < v2', the result is a negative integer, if "
+    "'v1 > v2', the result is a positive integer. Undefined values are "
+    "treated as 'infinitely small', two undefined values are 'equal'. Since "
+    "this operator relies on the type's implementation of 'Compare', the "
+    "behaviour may differ, if the implementation is non-canonical.</text--->"
+    "<text>query compare(-987, [const int value undef])</text--->"
+    ") )";
+
+
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,
                  CcMathSelectCompute, CcMathTypeMap );
 
@@ -4217,8 +4271,12 @@ Operator ccnum2string( "num2string", CCnum2stringSpec, 2, ccnum2stringvaluemap,
 Operator ccchar( "char", CCcharSpec, 1, cccharvaluemap,
                  Operator::SimpleSelect, IntString);
 
-Operator ccisdefined( "isdefined", CCisdefinedSpec, 1, ccisdefinedvaluemap,
+Operator ccisdefined( "isdefined", CCisdefinedSpec, CCisdefinedValueMap,
                       Operator::SimpleSelect, DATAbool);
+
+Operator cccompare( "compare", CCcompareSpec, CCcomparevaluemap,
+                      Operator::SimpleSelect, CcTypeMapTinDATA_TinDATAint);
+
 /*
 6 Class ~CcAlgebra~
 
@@ -4309,6 +4367,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccchar );
     AddOperator( &ccnum2string );
     AddOperator( &ccisdefined );
+    AddOperator( &cccompare );
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );

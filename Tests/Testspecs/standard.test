@@ -449,6 +449,34 @@ query isdefined(FALSE)
 #yields (bool FALSE)
 query isdefined([const bool value undef])
 
+#testcase compare_int_<
+#yields (int -1)
+query compare(1,2)
+
+#testcase compare_int_>
+#yields (int 1)
+query compare(6956,-6542)
+
+#testcase compare_int=
+#yields (int 0)
+query compare(-654,-654)
+
+#testcase compare_int_undef=
+#yields (int 0)
+query compare([const int value undef],[const int value undef])
+
+#testcase compare_int_undef<
+#yields (int 1)
+query compare(-6876,[const int value undef])
+
+#testcase compare_int_undef>
+#yields (int -1)
+query compare([const int value undef],6876)
+
+#testcase compare_int_undef=
+#yields (int 0)
+query compare([const int value undef],[const int value undef])
+
 
 
 

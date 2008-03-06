@@ -439,3 +439,9 @@ Signature: DATA -> bool
 Example  : query isdefined([const int value undef])
 Result   : FALSE
 
+Operator : compare 
+Number   : 1 
+Signature: T x T -> int, T in kind DATA
+Example  : query compare([const int value undef], -68421)
+Result   : -1
+
