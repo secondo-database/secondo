@@ -116,6 +116,17 @@ public class RelViewer extends SecondoViewer{
   private void exportTable(JTable table, File file){
     try{
        PrintStream out = new PrintStream(new FileOutputStream(file));
+
+       // print out the header
+       for(int j=0;j<table.getColumnCount();j++){
+         if(j>0){
+           out.print(",");
+         }
+         out.print((""+table.getColumnModel().getColumn(j).getIdentifier()).replaceAll("\n"," ").replaceAll(",",";"));
+        
+       }
+       out.println("");
+
        for(int i=0;i<table.getRowCount(); i++){
           for(int j=0;j<table.getColumnCount();j++){
             if(j>0){
