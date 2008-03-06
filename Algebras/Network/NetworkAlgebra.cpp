@@ -69,6 +69,7 @@ Type property of type constructor ~network~
 #include "OpLength.h"
 #include "OpDistance.h"
 #include "OpPoint2GPoint.h"
+#include "OpNetEqual.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -290,6 +291,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networklength);
     AddOperator(&networkdistance);
     AddOperator(&point2gpoint);
+    AddOperator(&netgpequal);
   }
   ~NetworkAlgebra() {};
 };
