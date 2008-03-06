@@ -46,7 +46,7 @@ This headerfile contains the "DistDataReg" class, which provides the distdata ty
 extern AlgebraManager* am;
 extern SecondoInterface* si;
 
-namespace general_tree
+namespace generalTree
 {
 
 // type for getData functions
@@ -55,7 +55,6 @@ typedef DistData* (*GetDataFun)(const void* attr);
 // flags for the DistDataInfo class
 // (DDATA_IS_DEFINED will be automatically set from the constructor)
 const char DDATA_IS_DEFINED = (1 << 0);
-const char DDATA_IS_DEFAULT = (1 << 1);
 
 /********************************************************************
 1.1 Class "DistDataInfo"[4]
@@ -153,13 +152,6 @@ Returns "true"[4], if the "DistDataInfo"[4] object is defined, and "false"[4] ot
     inline bool isDefined() const
     { return (m_flags & DDATA_IS_DEFINED); }
 
-/*
-Returns "true"[4], if the info object is the default info object for the respective type constructor.
-
-*/
-    inline bool isDefault() const
-    { return (m_flags & DDATA_IS_DEFAULT); }
-
 private:
     string m_name;             // unique name (used for selection)
     string m_descr;            // short description
@@ -177,6 +169,8 @@ This class contains all defined distdata types.
 ********************************************************************/
 class DistDataReg
 {
+friend class DistfunReg;
+
 public:
 /*
 Registeres a new "DistdataInfo"[4] object.

@@ -41,9 +41,9 @@ This headerfile contains the "BBoxReg" class, which provides the avaliable bound
 #include "DistDataReg.h"
 #include "BBox.h"
 
-using general_tree::DistDataInfo;
+using generalTree::DistDataInfo;
 
-namespace general_tree
+namespace generalTree
 {
 
 // type for getBBox functions
@@ -200,6 +200,6 @@ Below, the avaliable distance functions are implemented:
     { return new GenericBBox<SEC_STD_REAL, 1>; }
 };
 
-} // namespace general_tree
+} // namespace generalTree
 #endif // ifndef __BBOX_REG_H
 //

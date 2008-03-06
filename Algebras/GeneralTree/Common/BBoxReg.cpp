@@ -35,7 +35,7 @@ This file implements the "BBoxReg"[4] class.
 */
 #include "BBoxReg.h"
 
-using namespace general_tree;
+using namespace generalTree;
 
 /*
 Initialize static members :

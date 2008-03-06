@@ -44,16 +44,16 @@ This headerfile contains the "DistfunReg" class, which contains some distance fu
 extern AlgebraManager* am;
 extern SecondoInterface* si;
 
-namespace general_tree
+namespace generalTree
 {
 
 // result type of distance functions
 // (should be a floating point type, e.g. float or double)
-typedef double DFUN_RESULT_TYPE;
+typedef double DFUN_RESULT;
 
 // type for distance functions
 typedef void (*Distfun)(const DistData* data1, const DistData* data2,
-                        DFUN_RESULT_TYPE& result);
+                        DFUN_RESULT& result);
 
 // flags for the DistfunInfo class
 // (DFUN_IS_DEFINED will be automatically set from the constructor)
@@ -118,7 +118,7 @@ Calls the assigned distance funcion with the given distdata objects.
 
 */
     inline void dist(const DistData* data1, const DistData* data2,
-                     DFUN_RESULT_TYPE& result) const
+                     DFUN_RESULT& result) const
     { m_distfun(data1, data2, result); }
 
 /*
@@ -126,7 +126,7 @@ Calls the assigned distance funcion with the given attribute objects (the respec
 
 */
     inline void dist(const Attribute* attr1, const Attribute* attr2,
-                     DFUN_RESULT_TYPE& result)
+                     DFUN_RESULT& result)
     { m_distfun(getData(attr1), getData(attr2), result); }
 
 /*
@@ -190,6 +190,19 @@ class DistfunReg
 {
 public:
 /*
+Initializes the distance functions and distdata types (in particular sets the default distdata types)
+
+*/
+    static void initialize();
+
+/*
+Returns "true"[4], if the "initialize"[4] has already been called.
+
+*/
+    static inline bool isInitialized()
+    { return initialized; }
+
+/*
 Registeres a new "DistfunInfo"[4] object.
 
 */
@@ -220,12 +233,22 @@ Returns "true"[4], if the specified "DistFunInfo"[4] object exists.
 
 */
     static inline bool isDefined(
-        const string& typeName,
-        const string& distfunName,
+        const string& distfunName, const string& typeName,
         const string& distdataName)
     {
         return getInfo(
                 distfunName, typeName, distdataName).isDefined();
+    }
+
+/*
+Returns "true"[4], if the specified "DistFunInfo"[4] object exists.
+
+*/
+    static inline bool isDefined(
+        const string& distfunName, DistDataId id)
+    {
+        return getInfo(
+                distfunName, id).isDefined();
     }
 
 /*
@@ -255,7 +278,6 @@ Prints a structured list with all defined distance functions to cmsg.info().
 private:
     typedef map<string, DistfunInfo>::iterator distfunIter;
 
-    static void initialize();
     static bool initialized;
 
     static bool distfunsShown;
@@ -275,7 +297,7 @@ Euclidean distance function for the "int"[4] type constructor.
 */
     static void EuclideanInt(
         const DistData* data1, const DistData* data2,
-        double& result);
+        DFUN_RESULT& result);
 
 /*
 Euclidean distance function for the "real"[4] type constructor.
@@ -283,7 +305,7 @@ Euclidean distance function for the "real"[4] type constructor.
 */
     static void EuclideanReal(
         const DistData* data1, const DistData* data2,
-        double& result);
+        DFUN_RESULT& result);
 
 /*
 Edit distance function for the "string"[4] type constructor.
@@ -291,7 +313,7 @@ Edit distance function for the "string"[4] type constructor.
 */
     static void EditDistance(
         const DistData* data1, const DistData* data2,
-        double& result);
+        DFUN_RESULT& result);
 };
 
 } //namespace distfuns

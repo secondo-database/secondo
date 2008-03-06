@@ -37,7 +37,7 @@ This file implements the "DistfunReg"[4] class.
 #include "DistfunReg.h"
 #include "PictureFuns.h"
 
-using namespace general_tree;
+using namespace generalTree;
 
 /*
 Initialize static members:
@@ -64,7 +64,11 @@ DistfunReg::addInfo(DistfunInfo info)
     distfunInfos [osId.str()] = info;
 
     if (info.isDefault())
+    {
         defaultNames[info.data().typeName()] = info.name();
+        DistDataReg::defaultNames[info.data().typeName()] =
+                                                  info.data().name();
+    }
 }
 
 /*
@@ -74,7 +78,7 @@ Method ~defaultName~:
 string
 DistfunReg::defaultName(const string& typeName)
 {
-    if (!initialized)
+    if(!initialized)
         initialize();
 
     map<string, string>::iterator iter =
@@ -92,7 +96,7 @@ Method ~getInfo~:
 DistfunInfo& DistfunReg::getInfo(
         const string& distfunName, DistDataId id)
 {
-    if (!initialized)
+    if(!initialized)
         initialize();
 
     ostringstream osId;
@@ -125,7 +129,7 @@ Method ~definedNames~:
 string
 DistfunReg::definedNames(const string& typeName)
 {
-    if (!initialized)
+    if(!initialized)
         initialize();
 
     // search first info object for typeName
@@ -172,6 +176,9 @@ Method ~getInfoList~:
 void
 DistfunReg::getInfoList(list<DistfunInfo>& result)
 {
+    if(!initialized)
+        initialize();
+
     distfunIter iter = distfunInfos.begin();
     while(iter != distfunInfos.end())
     {
@@ -192,7 +199,7 @@ DistfunReg::printDistfuns()
     else
         distfunsShown = true;
 
-    if (!initialized)
+    if(!initialized)
         initialize();
 
     const string seperator = "\n" + string(70, '-') + "\n";
@@ -241,7 +248,8 @@ Method ~EuclideanInt~:
 
 */
 void DistfunReg::EuclideanInt(
-    const DistData* data1, const DistData* data2, double& result)
+    const DistData* data1, const DistData* data2,
+    DFUN_RESULT& result)
 {
     int val1 = *static_cast<const int*>(data1->value());
     int val2 = *static_cast<const int*>(data2->value());
@@ -253,7 +261,8 @@ Method ~EuclideanReal~:
 
 */
 void DistfunReg::EuclideanReal(
-    const DistData* data1, const DistData* data2, double& result)
+    const DistData* data1, const DistData* data2,
+    DFUN_RESULT& result)
 {
     SEC_STD_REAL val1 =
         *static_cast<const SEC_STD_REAL*>(data1->value());
@@ -267,7 +276,8 @@ Method ~EditDistance~ :
 
 */
 void DistfunReg::EditDistance(
-    const DistData* data1, const DistData* data2, double& result)
+    const DistData* data1, const DistData* data2,
+    DFUN_RESULT& result)
 {
     const char* str1 = static_cast<const char*>(data1->value());
     const char* str2 = static_cast<const char*>(data2->value());
@@ -342,6 +352,8 @@ DistfunReg::initialize()
 {
     if (initialized)
         return;
+
+    DistDataReg::initialize();
 
     addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,

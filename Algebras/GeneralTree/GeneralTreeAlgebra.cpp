@@ -78,7 +78,7 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
-namespace general_tree
+namespace generalTree
 {
 
 /* comment out this define to disable printing a list of all defined
@@ -110,7 +110,8 @@ DistDataProp()
 ListExpr
 OutDistData(ListExpr type_Info, Word value)
 {
-    DistDataAttr* ddAttr = static_cast<DistDataAttr*>(value.addr);
+    DistDataAttribute* ddAttr =
+            static_cast<DistDataAttribute*>(value.addr);
     Base64 b64;
     string b64string;
     b64.encode(ddAttr->value(), ddAttr->size(), b64string);
@@ -181,7 +182,7 @@ InDistData(ListExpr type_Info, ListExpr value,
         data = dataNL.str();
 
     // deconde data string
-    DistDataAttr* ddAttr = new DistDataAttr(0);
+    DistDataAttribute* ddAttr = new DistDataAttribute(0);
     Base64 b64;
     char bindata[b64.sizeDecoded(data.size())];
     int size = b64.decode(data, bindata);
@@ -196,12 +197,13 @@ InDistData(ListExpr type_Info, ListExpr value,
 
 Word
 createDistData(const ListExpr type_Info)
-{ return SetWord(new DistDataAttr(0)); }
+{ return SetWord(new DistDataAttribute(0)); }
 
 void
 DeleteDistData(const ListExpr type_Info, Word& w)
 {
-    DistDataAttr* ddAttr = static_cast<DistDataAttr*>(w.addr);
+    DistDataAttribute* ddAttr =
+        static_cast<DistDataAttribute*>(w.addr);
     ddAttr->deleteFLOB();
     delete ddAttr;
     w.addr = 0;
@@ -227,27 +229,27 @@ SaveDistData(SmiRecord &valueRecord, size_t &offset,
 void
 CloseDistData(const ListExpr type_Info, Word& w)
 {
-    delete(DistDataAttr*)w.addr;
+    delete(DistDataAttribute*)w.addr;
 }
 
 Word
 CloneDistData(const ListExpr type_Info, const Word& w)
 {
-    DistDataAttr* src = static_cast<DistDataAttr*>(w.addr);
-    DistDataAttr* cpy = new DistDataAttr(*src);
+    DistDataAttribute* src = static_cast<DistDataAttribute*>(w.addr);
+    DistDataAttribute* cpy = new DistDataAttribute(*src);
     return SetWord(cpy);
 }
 
 void*
 CastDistData(void *addr)
 {
-    return new(addr) DistDataAttr;
+    return new(addr) DistDataAttribute;
 }
 
 int
 SizeOfDistData()
 {
-    return sizeof(DistDataAttr);
+    return sizeof(DistDataAttribute);
 }
 
 bool
@@ -281,7 +283,8 @@ getdistdata_VM(Word* args, Word& result,
                int message, Word& local, Supplier s)
 {
     result = qp->ResultStorage(s);
-    DistDataAttr* ddAttr = static_cast<DistDataAttr*>(result.addr);
+    DistDataAttribute* ddAttr =
+        static_cast<DistDataAttribute*>(result.addr);
 
     Attribute* attr = static_cast<Attribute*>(args[0].addr);
 
@@ -291,8 +294,8 @@ getdistdata_VM(Word* args, Word& result,
     string dataName = static_cast<CcString*>(
         args[paramCnt+1].addr)->GetValue();
 
-    DistDataInfo info = DistDataReg::getInfo(typeName, dataName);
     DistDataId id = DistDataReg::getDataId(typeName, dataName);
+    DistDataInfo info = DistDataReg::getInfo(id);
     ddAttr->set(true, info.getData(attr), id);
 
     return 0;
@@ -326,7 +329,7 @@ gdistance_VM(Word* args, Word& result,
     string dataName =
         static_cast<CcString*>(args[paramCnt+2].addr)->GetValue();
 
-    DFUN_RESULT_TYPE dist;
+    DFUN_RESULT dist;
     DistfunReg::getInfo(distfunName, typeName, dataName).
                                             dist(attr1, attr2, dist);
     resultValue->Set(true, dist);
@@ -347,8 +350,10 @@ gdistanceDD_VM(Word* args, Word& result,
     result = qp->ResultStorage(s);
     CcReal* resultValue = static_cast<CcReal*>(result.addr);
 
-    DistDataAttr* ddAttr1 = static_cast<DistDataAttr*>(args[0].addr);
-    DistDataAttr* ddAttr2 = static_cast<DistDataAttr*>(args[1].addr);
+    DistDataAttribute* ddAttr1 =
+        static_cast<DistDataAttribute*>(args[0].addr);
+    DistDataAttribute* ddAttr2 =
+        static_cast<DistDataAttribute*>(args[1].addr);
     string distfunName =
         static_cast<CcString*>(args[paramCnt].addr)->GetValue();
 
@@ -410,7 +415,7 @@ gdistanceDD_VM(Word* args, Word& result,
         return 0;
     }
 
-    DFUN_RESULT_TYPE dist;
+    DFUN_RESULT dist;
     DistData dd1(ddAttr1->size(), ddAttr1->value());
     DistData dd2(ddAttr2->size(), ddAttr2->value());
     info.dist(&dd1, &dd2, dist);
@@ -429,6 +434,10 @@ Type mapping for operator "getdistdata"[4].
 ********************************************************************/
 ListExpr getdistdata_TM(ListExpr args)
 {
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
     string errmsg;
     NList nl_args(args);
 
@@ -458,6 +467,10 @@ Type mapping for operator "getdistdata2"[4].
 ********************************************************************/
 ListExpr getdistdata2_TM(ListExpr args)
 {
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
     #ifdef PRINT_DISTFUN_INFOS
     DistfunReg::printDistfuns();
     #endif
@@ -509,6 +522,10 @@ Type mapping for operator "gdistance"[4]
 ********************************************************************/
 ListExpr gdistance_TM(ListExpr args)
 {
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
     string errmsg;
     NList nl_args(args);
 
@@ -549,8 +566,8 @@ ListExpr gdistance_TM(ListExpr args)
 
         NList res1(APPEND);
         NList res2(NList(
-            typeName, true), 
-            NList(distfunName, true), 
+            typeName, true),
+            NList(distfunName, true),
             NList(dataName, true));
         NList res3(REAL);
         NList result(res1, res2, res3);
@@ -566,6 +583,10 @@ Type mapping for operator "gdistance"[4]
 ********************************************************************/
 ListExpr gdistance2_TM(ListExpr args)
 {
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
     #ifdef PRINT_DISTFUN_INFOS
     DistfunReg::printDistfuns();
     #endif
@@ -593,7 +614,7 @@ ListExpr gdistance2_TM(ListExpr args)
     string distfunName = arg3.str();
     string dataName = DistDataReg::defaultName(typeName);
 
-    if(typeName == DISTDATA)
+    if (typeName == DISTDATA)
     {   // further type checkings for distdata attributes are done in
         // the value mapping function, since they need the name of
         // the assigned type constructor, which is stored within the
@@ -605,7 +626,7 @@ ListExpr gdistance2_TM(ListExpr args)
         return result.listExpr();
     }
 
-    if (distfunName == DFUN_UNDEFINED)
+    if (distfunName == DFUN_DEFAULT)
     {
         distfunName = DistfunReg::defaultName(typeName);
         errmsg =
@@ -616,7 +637,7 @@ ListExpr gdistance2_TM(ListExpr args)
     else
     { // search distfun
         if (!DistfunReg::isDefined(
-                typeName, distfunName, dataName))
+                distfunName, typeName, dataName))
         {
             errmsg =
                 "Distance function \"" + distfunName +
@@ -631,8 +652,8 @@ ListExpr gdistance2_TM(ListExpr args)
 
         NList res1(APPEND);
         NList res2(NList(
-            typeName, true), 
-            NList(distfunName, true), 
+            typeName, true),
+            NList(distfunName, true),
             NList(dataName, true));
         NList res3(REAL);
         NList result(res1, res2, res3);
@@ -648,6 +669,10 @@ Type mapping for operator "gdistance3"[4]
 ********************************************************************/
 ListExpr gdistance3_TM(ListExpr args)
 {
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
     #ifdef PRINT_DISTFUN_INFOS
     DistfunReg::printDistfuns();
     #endif
@@ -686,6 +711,7 @@ ListExpr gdistance3_TM(ListExpr args)
             arg4.str() + "'!";
     CHECK_COND(arg4.isSymbol(), errmsg);
     string dataName = arg4.str();
+
     if (dataName == DDATA_DEFAULT)
     {
         errmsg =
@@ -703,7 +729,7 @@ ListExpr gdistance3_TM(ListExpr args)
         CHECK_COND(false, errmsg);
     }
 
-    if (distfunName == DFUN_UNDEFINED)
+    if (distfunName == DFUN_DEFAULT)
     {
         distfunName = DistfunReg::defaultName(typeName);
         errmsg =
@@ -714,7 +740,7 @@ ListExpr gdistance3_TM(ListExpr args)
     else
     { // search distfun
         if (!DistfunReg::isDefined(
-                typeName, distfunName, dataName))
+                distfunName, typeName, dataName))
         {
             errmsg =
                 "Distance function \"" + distfunName +
@@ -729,8 +755,8 @@ ListExpr gdistance3_TM(ListExpr args)
 
     NList res1(APPEND);
     NList res2(NList(
-        typeName, true), 
-        NList(distfunName, true), 
+        typeName, true),
+        NList(distfunName, true),
         NList(dataName, true));
     NList res3(REAL);
     NList result(res1, res2, res3);
@@ -889,9 +915,9 @@ public:
     ~GeneralTreeAlgebra() {};
 };
 
-} // general_tree
+} // generalTree
 
-general_tree::GeneralTreeAlgebra generalTreeAlgebra;
+generalTree::GeneralTreeAlgebra generalTreeAlgebra;
 
 extern "C"
     Algebra* InitializeGeneralTreeAlgebra(

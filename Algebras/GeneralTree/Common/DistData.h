@@ -39,7 +39,7 @@ January-February 2008, Mirko Dibbert
 
 This headerfile contains the "DistData"[4] datatype, which stores the data for the distance functions defined in "DistFuns.h"[4]. Each "DistData"[4] object contains the memory representation of the respective data structure (e.g. histograms for the "picture"[4] type constructor distance functions), which is stored as "char"[4] array.
 
-Below, two classes are defined for this purpose: The "DistData"[4] class should be used for internal representation and contains only the data itself. The "DistDataAttr"[4] class implements the "distdata"[4] type constructor and additionally stores the algebra- and type-id of the type-constructor and the id of the distance function, that had been used to create the object. Furthermore, the data is stored within a "FLOB"[4] object instead of a char array, since dynamically data is not allowed within attributes.
+Below, two classes are defined for this purpose: The "DistData"[4] class should be used for internal representation and contains only the data itself. The "DistDataAttribute"[4] class implements the "distdata"[4] type constructor and additionally stores the algebra- and type-id of the type-constructor and the id of the distance function, that had been used to create the object. Furthermore, the data is stored within a "FLOB"[4] object instead of a char array, since dynamically data is not allowed within attributes.
 
 2 Includes and defines
 
@@ -91,7 +91,7 @@ The last constructor is the default copy constructor, which returs a deep copy o
 
 ********************************************************************/
 
-namespace general_tree
+namespace generalTree
 {
 
 class DistData
@@ -187,7 +187,7 @@ private:
 };
 
 /******************************************************************************
-3.2 Class "DistDataAttr"[4]
+3.2 Class "DistDataAttribute"[4]
 
 This class implementes the "distdata"[4] type constructor of the "GeneralTree"[4] algebra. Additionally to the methods of the "DistData"[4] class and the "StandardAttribute"[4] methods, the class provides the following methods:
 
@@ -208,12 +208,12 @@ This method is only needed in the "DeleteDistData"[4] method of the "distdata"[4
 \\[3ex]
 Beyond the copy constructor, only the following constructor is avaliable (the standard constructor should not be used):
 
----- DistDataAttr(size_t size)
+---- DistDataAttribute(size_t size)
 ----
 This constructor should be called with the assumed flob size or with 0 (if necessary, the flob will be resized in the set method).
 
 ******************************************************************************/
-class DistDataAttr : public StandardAttribute
+class DistDataAttribute : public StandardAttribute
 {
 
 public:
@@ -221,14 +221,14 @@ public:
 Default constructor (should not be used, except for the cast method).
 
 */
-  inline DistDataAttr()
+  inline DistDataAttribute()
   {}
 
 /*
 Constructor (use this constructor to create new objects, if size is unknown use 0)
 
 */
-  inline DistDataAttr(size_t size)
+  inline DistDataAttribute(size_t size)
   : m_data(size), m_defined(false)
   {}
 
@@ -236,7 +236,7 @@ Constructor (use this constructor to create new objects, if size is unknown use 
 Default copy constructor.
 
 */
-  DistDataAttr(const DistDataAttr& ddAttr)
+  DistDataAttribute(const DistDataAttribute& ddAttr)
   : m_data(ddAttr.m_data.Size()),
     m_defined(ddAttr.m_defined),
     m_distdataId(ddAttr.m_distdataId)
@@ -251,15 +251,15 @@ Default copy constructor.
 Destructor.
 
 */
-  inline ~DistDataAttr()
+  inline ~DistDataAttribute()
   {}
 
 /*
 Returns a copy of the object.
 
 */
-  inline DistDataAttr* clone() const
-  { return new DistDataAttr(*this); }
+  inline DistDataAttribute* clone() const
+  { return new DistDataAttribute(*this); }
 
 /*
 Sets the attribute values to the given values.
@@ -361,8 +361,8 @@ Implementation of virtual methods from the StandardAttribute class:
 
   virtual void CopyFrom(const StandardAttribute* rhs)
   {
-    const DistDataAttr* ddAttr =
-        static_cast<const DistDataAttr*>(rhs);
+    const DistDataAttribute* ddAttr =
+        static_cast<const DistDataAttribute*>(rhs);
 
     if(ddAttr->IsDefined())
     {
@@ -379,7 +379,7 @@ private:
   FLOB m_data;     // contains the data of the DistData object
   bool m_defined;  // true, if the attribute is defined
   DistDataId m_distdataId;
-}; // class DistDataAttr
+}; // class DistDataAttribute
 
-} // namespace general_tree
+} // namespace generalTree
 #endif // #ifndef __DISTDATA_H

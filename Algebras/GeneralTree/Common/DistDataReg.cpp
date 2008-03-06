@@ -37,7 +37,7 @@ This file implements the "DistDataReg"[4] class.
 #include "DistDataReg.h"
 #include "PictureFuns.h"
 
-using namespace general_tree;
+using namespace generalTree;
 
 /*
 Initialize static members :
@@ -56,16 +56,13 @@ Method ~addInfo~:
 void
 DistDataReg::addInfo(DistDataInfo info)
 {
-    ostringstream osTypeId;
     ostringstream osId;
-    osTypeId << info.algebraId() << "#" << info.typeId();
-    osId << osTypeId.str() << "#" << info.id();
+    osId << info.algebraId() << "#"
+         << info.typeId() << "#"
+         << info.id();
     distdataInfos [osId.str()] = info;
 
     dataIds[info.name()] = info.id();
-
-    if (info.isDefault())
-        defaultNames[info.typeName()] = info.name();
 }
 
 /*
@@ -75,9 +72,6 @@ Method ~getDefaultDataName~:
 string
 DistDataReg::defaultName(const string& typeName)
 {
-    if (!initialized)
-        initialize();
-
     map<string, string>::iterator iter =
             defaultNames.find(typeName);
     if (iter == defaultNames.end())
@@ -93,7 +87,7 @@ Method ~getDataId~:
 DistDataId DistDataReg::getDataId(
         const string& typeName, const string& dataName)
 {
-    if (!initialized)
+    if(!initialized)
         initialize();
 
     int algebraId, typeId;
@@ -119,7 +113,7 @@ Method ~getInfo~:
 DistDataInfo&
 DistDataReg::getInfo(DistDataId id)
 {
-    if (!initialized)
+    if(!initialized)
         initialize();
 
     ostringstream osId;
@@ -139,7 +133,7 @@ Method ~definedNames~:
 string
 DistDataReg::definedNames(const string& typeName)
 {
-    if (!initialized)
+    if(!initialized)
         initialize();
 
     // search first info object for typeName
@@ -156,9 +150,6 @@ DistDataReg::definedNames(const string& typeName)
             (iter->second.typeName() == typeName))
     {
         result << "\"" << iter->second.name() << "\"";
-
-        if (iter->second.isDefault())
-            result << " [default]";
 
         ++iter;
         if ((iter != distdataInfos.end()) &&
@@ -225,14 +216,7 @@ Registeres all defined distdata types. The parameters of the DistDataInfo constr
 
   5 pointer to the respective getdata function
 
-  6 flags
-
-Currently only the following flag is defined (except of the "DDATA[_]IS[_]DEFINED"[4] flag, which is set automatically from the constructor):
-
-  * "DDATA[_]IS[_]DEFAULT"[4]\\
-    uses the resp. distdata type as default (e.g. for the getdistdata operator of the GeneralTreeAlgebra)
-
-If more than one distdata type for a specific type constructer has been defined with the default flag, the last registered one will be used as default.
+  6 flags (currently no individual flags defined)
 
 Constants for the name, description and type id for all distdata types should be defined in the "DistDataNames.h"[4] headerfile.
 
@@ -243,17 +227,20 @@ DistDataReg::initialize()
     if (initialized)
         return;
 
-    addInfo(DistDataInfo(
-        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-        INT, getDataInt, DDATA_IS_DEFAULT));
+    // the default DistDataInfo objects are specified when adding
+    // default distance functions in the DistfunReg class
 
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-        REAL, getDataReal, DDATA_IS_DEFAULT));
+        INT, getDataInt));
 
     addInfo(DistDataInfo(
         DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
-        STRING, getDataString, DDATA_IS_DEFAULT));
+        REAL, getDataReal));
+
+    addInfo(DistDataInfo(
+        DDATA_NATIVE, DDATA_NATIVE_DESCR, DDATA_NATIVE_ID,
+        STRING, getDataString));
 
     picture_funs::PictureFuns::initDistData();
 

@@ -43,7 +43,7 @@ This headerfile contains constants for the "DistFunReg"[4] class, in particular 
 #include "Symbols.h"
 #include <map>
 
-namespace general_tree
+namespace generalTree
 {
 
 /*

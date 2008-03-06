@@ -44,7 +44,7 @@ This headerfile contains the "PictureFuns"[4] class, which implements all functi
 #include "PictureAlgebra.h"
 #include "JPEGPicture.h"
 
-using namespace general_tree;
+using namespace generalTree;
 
 namespace picture_funs
 {
@@ -218,32 +218,32 @@ The following methods implement the defined distance functions for the picture t
     template<bool compressedData>
     static void eucl_hsv128 (
             const DistData* dd1, const DistData* dd2,
-            DFUN_RESULT_TYPE& result);
+            DFUN_RESULT& result);
 
     template<bool compressedData>
     static void eucl_hsv256 (
             const DistData* dd1, const DistData* dd2,
-            DFUN_RESULT_TYPE& result);
+            DFUN_RESULT& result);
 
     template<bool compressedData>
     static void eucl_lab256 (
             const DistData* dd1, const DistData* dd2,
-            DFUN_RESULT_TYPE& result);
+            DFUN_RESULT& result);
 
     template<bool compressedData>
     static void quadr_hsv128 (
             const DistData* dd1, const DistData* dd2,
-            DFUN_RESULT_TYPE& result);
+            DFUN_RESULT& result);
 
     template<bool compressedData>
     static void quadr_hsv256 (
             const DistData* dd1, const DistData* dd2,
-            DFUN_RESULT_TYPE& result);
+            DFUN_RESULT& result);
 
     template<bool compressedData>
     static void quadr_lab256 (
             const DistData* dd1, const DistData* dd2,
-            DFUN_RESULT_TYPE& result);
+            DFUN_RESULT& result);
 
 /********************************************************************
 The following methods implement the GetBBox and CreateBBox functions for the defined distdata types:
@@ -268,7 +268,7 @@ Computes the Minkowski-distance (and in particular the euclidean distance, if n=
 ********************************************************************/
     template<unsigned dim, int n>
     inline static void computeMinkowskiDist (
-            histDomain* v1, histDomain* v2, DFUN_RESULT_TYPE& result);
+            histDomain* v1, histDomain* v2, DFUN_RESULT& result);
 
 /********************************************************************
 Computes the quadratic distance, using the given similarity matrix.
@@ -277,7 +277,7 @@ Computes the quadratic distance, using the given similarity matrix.
     template<unsigned dim>
     static inline void computeQuadraticDist (
             histDomain* v1, histDomain* v2, histDomain* simmatrix,
-            DFUN_RESULT_TYPE& result);
+            DFUN_RESULT& result);
 
 /********************************************************************
 Encodes the histogram into a distdata object.
@@ -466,7 +466,7 @@ Method ~eucl[_]hsv128~:
 // distance functions
 template<bool compressedData> void
 PictureFuns::eucl_hsv128 (
-const DistData* dd1, const DistData* dd2, DFUN_RESULT_TYPE& result)
+const DistData* dd1, const DistData* dd2, DFUN_RESULT& result)
 {
     histDomain hist1[128];
     histDomain hist2[128];
@@ -481,7 +481,7 @@ Method ~eucl[_]hsv256~:
 */
 template<bool compressedData> void
 PictureFuns::eucl_hsv256 (
-const DistData* dd1, const DistData* dd2, DFUN_RESULT_TYPE& result)
+const DistData* dd1, const DistData* dd2, DFUN_RESULT& result)
 {
     histDomain hist1[256];
     histDomain hist2[256];
@@ -496,7 +496,7 @@ Method ~eucl[_]lab256~:
 */
 template<bool compressedData> void
 PictureFuns::eucl_lab256 (
-const DistData* dd1, const DistData* dd2, DFUN_RESULT_TYPE& result)
+const DistData* dd1, const DistData* dd2, DFUN_RESULT& result)
 {
     histDomain hist1[256];
     histDomain hist2[256];
@@ -511,7 +511,7 @@ Method ~quadr[_]hsv128~:
 */
 template<bool compressedData> void
 PictureFuns::quadr_hsv128 (
-const DistData* dd1, const DistData* dd2, DFUN_RESULT_TYPE& result)
+const DistData* dd1, const DistData* dd2, DFUN_RESULT& result)
 {
     if (!hsv128SimMatrix)
         computeHsv128SimMatrix();
@@ -529,7 +529,7 @@ Method ~quadr[_]hsv256~:
 */
 template<bool compressedData> void
 PictureFuns::quadr_hsv256 (
-const DistData* dd1, const DistData* dd2, DFUN_RESULT_TYPE& result)
+const DistData* dd1, const DistData* dd2, DFUN_RESULT& result)
 {
     if (!hsv256SimMatrix)
         computeHsv256SimMatrix();
@@ -547,7 +547,7 @@ Method ~quadr[_]lab256~:
 */
 template<bool compressedData> void
 PictureFuns::quadr_lab256 (
-const DistData* dd1, const DistData* dd2, DFUN_RESULT_TYPE& result)
+const DistData* dd1, const DistData* dd2, DFUN_RESULT& result)
 {
     if (!lab256SimMatrix)
         computeLab256SimMatrix();
@@ -598,7 +598,7 @@ Method ~computeMinkowskiDist~:
 */
 template<unsigned dim, int n> void
 PictureFuns::computeMinkowskiDist (
-        histDomain* v1, histDomain* v2, DFUN_RESULT_TYPE& result)
+        histDomain* v1, histDomain* v2, DFUN_RESULT& result)
 {
     result = 0;
     for (unsigned pos = 0; pos < dim; ++pos)
@@ -612,7 +612,7 @@ Method ~computeQuadraticDist~:
 template<unsigned dim> void
 PictureFuns::computeQuadraticDist (
         histDomain* v1, histDomain* v2, histDomain* simMatrix,
-        DFUN_RESULT_TYPE& result)
+        DFUN_RESULT& result)
 {
     histDomain diff[dim];
     unsigned first = 0;

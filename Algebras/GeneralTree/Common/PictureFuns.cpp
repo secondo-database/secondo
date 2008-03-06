@@ -37,7 +37,7 @@ This file implements the "PictureFuns"[4] class.
 #include "DistfunReg.h"
 
 using namespace picture_funs;
-using namespace general_tree;
+using namespace generalTree;
 
 /*
 initialize static members:
@@ -181,7 +181,7 @@ void PictureFuns::initDistData()
 
     DistDataReg::addInfo(DistDataInfo(
         DDATA_LAB256, DDATA_LAB256_DESCR, DDATA_LAB256_ID,
-        PICTURE, &getData_lab256<true>, DDATA_IS_DEFAULT));
+        PICTURE, &getData_lab256<true>));
 
     DistDataReg::addInfo(DistDataInfo(
         DDATA_HSV128_NCOMPR,

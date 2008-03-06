@@ -52,7 +52,7 @@ If the "GenericBBox"[4] class is not sufficient, it is also possible to implemen
 
 using namespace std;
 
-namespace general_tree
+namespace generalTree
 {
 
 /********************************************************************
@@ -189,5 +189,5 @@ protected:
     domainT m_ub[dim];  // array of upper bounds
 }; // class BBox
 
-} // namespace general_tree
+} // namespace generalTree
 #endif // #ifndef __BOUNDING_BOX_H

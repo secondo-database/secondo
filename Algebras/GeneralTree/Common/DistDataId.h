@@ -38,7 +38,7 @@ This headerfile contains the "DistDataId"[4] struct, which could be used retriev
 #ifndef __DISTDATA_ID_H
 #define __DISTDATA_ID_H
 
-namespace general_tree {
+namespace generalTree {
 
 /*
 1.1 Struct "DistDataId"[4]
@@ -47,7 +47,7 @@ namespace general_tree {
 struct DistDataId
 {
 /*
-Default constructor (should not be used - needed, since this struct is stored within the "DistDataAttr"[4] class, which needs this constructor).
+Default constructor (should not be used - needed, since this struct is stored within the "DistDataAttribute"[4] class, which needs this constructor).
 
 */
     DistDataId()
@@ -89,5 +89,5 @@ Constructor.
     int distdataId; // id of the distdata object
 };
 
-} // namespace general_tree
+} // namespace generalTree
 #endif // ifndef __DISTDATA_ID_H
