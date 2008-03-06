@@ -26,65 +26,100 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //characters      [3]   capital:    [\textsc{]  [}]
 //characters      [4]   teletype:   [\texttt{]  [}]
 
-1 MTreeAlgebra
+1 Headerfile "MTreeAlgebra.h"[4]
 
-November/December 2007, Mirko Dibbert
+January-February 2008, Mirko Dibbert
 
 1.1 Overview
 
-TODO insert algebra description
+This file contains some defines and constants, which could be used to configurate the mtree algebra.
 
-1.2 Global includes and Defines
-
-*/
-#ifndef MTREE_ALGEBRA_H
-#define MTREE_ALGEBRA_H
-
-#define __MT_DEBUG
-
-// #define __MT_PRINT_SPLIT_INFO
-#define __MT_PRINT_NODE_CACHE_INFO
-#define __MT_PRINT_CONFIG_INFO
-#define __MT_PRINT_INSERT_INFO
-#define __MT_PRINT_SEARCH_INFO
-
-using namespace std;
-
-namespace MT
-{
-
-const unsigned NODE_PAGESIZE = ( WinUnix::getPageSize() - 60 );
-/*
-Size of a m-tree node. If an error like
-
-----
-DbEnv: Record size of x too large for page size of y
-----
-occurs, the integer value needs to be increased!
+1.1 Includes and defines
 
 */
+#ifndef __MTREE_ALGEBRA_H
+#define __MTREE_ALGEBRA_H
 
-const unsigned NODE_CACHE_SIZE = 8*1024*1024;
-/*
-Size of the node cache in bytes.
+/////////////////////////////////////////////////////////////////////
+// enables debugging mode for the mtree-algebra:
+/////////////////////////////////////////////////////////////////////
+#define MTREE_DEBUG
 
-Warning: If the cache size is to huge (greater than about 1GB on my sytem
-(SuSE 10.2, 32bit, system pagesize = 4k)), the following error could occur:
 
-----
-DbEnv: Lock table is out of available object entries
-----
+/////////////////////////////////////////////////////////////////////
+// enables debugging mode for general tree algebra framework:
+/////////////////////////////////////////////////////////////////////
+#define GTAF_DEBUG
 
-*/
 
-const bool ROOT = true;
-const bool SIZE_CHANGED = true;
-/*
+/////////////////////////////////////////////////////////////////////
+// enables print of statistic infos in the insert method:
+// (should be replaced by progress operator version)
+/////////////////////////////////////////////////////////////////////
+#define MTREE_PRINT_INSERT_INFO
 
-Some constants to make the source code better readable.
+/////////////////////////////////////////////////////////////////////
+// enables print of count of objects in leaf/right node after split:
+/////////////////////////////////////////////////////////////////////
+// #define MTREE_PRINT_SPLIT_INFO
 
-*/
 
-}
+/////////////////////////////////////////////////////////////////////
+// enables print of statistic infos in the search methods:
+/////////////////////////////////////////////////////////////////////
+// #define MTREE_PRINT_SEARCH_INFO
 
-#endif
+
+
+#include "GTAF.h"
+#include "DistfunReg.h" // also includes distdata
+
+namespace mtreeAlgebra {
+
+using namespace generalTree;
+using gtaf::NodeConfig;
+using gtaf::NodeTypeId;
+
+// constants for the node types
+const NodeTypeId Leaf = 0;
+const NodeTypeId Internal = 1;
+
+// priorities of the node types
+const unsigned leafPrio       = 0; // priority for leaf nodes
+const unsigned internalPrio   = 1; // priority for internal nodes
+
+// en-/disable caching for all node types
+const bool nodeCacheEnabled = true;
+
+// en-/disable caching seperately for each node type
+const bool leafCacheable = true;
+const bool internalCacheable = true;
+
+// the insert method prints out statistic infos every
+// <insertInfoInterval> insertions, if MTREE_PRINT_INSERT_INFO
+//has been defined
+const int insertInfoUpdataInterval = 1;
+
+/////////////////////////////////////////////////////////////////////
+// default values for the node config objects
+// (used in the MTreeConfig class)
+
+// min. count of pages for leaf / internal nodes
+const unsigned minLeafPages   = 1;
+const unsigned minIntPages    = 1;
+
+// max. count of pages for leaf / internal nodes
+const unsigned maxLeafPages   = 1;
+const unsigned maxIntPages    = 1;
+
+// min. count of entries for leaf / internal nodes
+const unsigned minLeafEntries = 3;
+const unsigned minIntEntries  = 3;
+
+// max. count of entries for leaf / internal nodes
+const unsigned maxLeafEntries = numeric_limits<unsigned>::max();
+const unsigned maxIntEntries = numeric_limits<unsigned>::max();
+/////////////////////////////////////////////////////////////////////
+
+} // namespace mtreeAlgebra
+#endif // #ifndef __MTREE_ALGEBRA_H

@@ -26,64 +26,59 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //characters      [3]   capital:    [\textsc{]  [}]
 //characters      [4]   teletype:   [\texttt{]  [}]
 
-November/December 2007, Mirko Dibbert
+January-February 2008, Mirko Dibbert
 
-5.7 Implementation of class "MT::MTreeConfig"[4] (file: MTreeConfig.cpp)
+1 Implementation file "MTreeConfig.cpp"[4]
+
+This file implements the "MTreeConfig"[4] class.
 
 */
+#include <limits>
 #include "MTreeConfig.h"
 
-/*
-Initialise static members :
-
-*/
-bool MT::MTreeConfigReg::initialized = false;
-map< string, MT::MTreeConfig > MT::MTreeConfigReg::mTreeConfig_map;
+using namespace mtreeAlgebra;
 
 /*
-Method ~registerMTreeConfig~ :
+Initialize static members :
 
 */
-void
-MT::MTreeConfigReg::registerMTreeConfig( const string& name,
-                                         const MTreeConfig& config )
-{
-  mTreeConfig_map[ name ] = config;
-}
+bool MTreeConfigReg::initialized = false;
+map<string, MTreeConfig> MTreeConfigReg::configs;
+
 
 /*
-Method ~getMTreeConfig~ :
+Method ~getConfig~ :
 
 */
-MT::MTreeConfig
-MT::MTreeConfigReg::getMTreeConfig( const string& name )
+MTreeConfig
+MTreeConfigReg::getConfig(const string& name)
 {
   if (!initialized)
     initialize();
 
   map< string, MTreeConfig >::iterator pos =
-      mTreeConfig_map.find( name );
+      configs.find(name);
 
-  if ( pos != mTreeConfig_map.end() )
+  if (pos != configs.end())
     return pos->second;
   else
     return MTreeConfig();
 }
 
 /*
-Method ~contains~ :
+Method ~isDefined~ :
 
 */
 bool
-MT::MTreeConfigReg::contains( const string& name)
+MTreeConfigReg::isDefined(const string& name)
 {
   if (!initialized)
     initialize();
 
   map< string, MTreeConfig >::iterator pos =
-      mTreeConfig_map.find( name );
+      configs.find(name);
 
-  if ( pos != mTreeConfig_map.end() )
+  if (pos != configs.end())
     return true;
   else
     return false;
@@ -94,98 +89,147 @@ Method ~initialize~ :
 
 */
 void
-MT::MTreeConfigReg::initialize()
+MTreeConfigReg::initialize()
 {
-  registerMTreeConfig( "default",
-      MTreeConfig(
-          200,                   // maxNodeEntries
-          M_LB_DIST,             // promote function
-          GENERALIZED_HYPERPLANE // partition function
-      ));
-
 /*
-Register config objects with maximum entries per node.
+Create node configs
 
 */
-  registerMTreeConfig( "random",
-      MTreeConfig( 200, RANDOM, BALANCED ));
+  NodeConfig defaultleafConfig(Leaf,
+      leafPrio, minLeafEntries,
+      maxLeafEntries, minLeafPages, maxLeafPages);
 
-  registerMTreeConfig( "mRad",
-      MTreeConfig( 200, m_RAD, BALANCED ));
+  NodeConfig defaultinternalConfig(Internal,
+      internalPrio, minIntEntries,
+      maxIntEntries, minIntPages, maxIntPages);
 
-  registerMTreeConfig( "randomHP",
-      MTreeConfig( 200, RANDOM, GENERALIZED_HYPERPLANE ));
+  NodeConfig leafConfig40(Leaf,
+      leafPrio, minLeafEntries, 40, minLeafPages, maxLeafPages);
 
-  registerMTreeConfig( "mMRad",
-      MTreeConfig( 200, mM_RAD, BALANCED ));
+  NodeConfig internalConfig40(Internal,
+      internalPrio, minIntEntries, 40, minIntPages, maxIntPages);
 
-  registerMTreeConfig( "mlbDist",
-      MTreeConfig( 200, M_LB_DIST, BALANCED ));
+  NodeConfig leafConfig80(Leaf,
+      leafPrio, minLeafEntries, 80, minLeafPages, maxLeafPages);
 
-  registerMTreeConfig( "mRadHP",
-      MTreeConfig( 200, m_RAD, GENERALIZED_HYPERPLANE ));
-
-  registerMTreeConfig( "mMRadHP",
-      MTreeConfig( 200, mM_RAD, GENERALIZED_HYPERPLANE ));
-
-  registerMTreeConfig( "mlbDistHP",
-      MTreeConfig( 200, M_LB_DIST, GENERALIZED_HYPERPLANE ));
+  NodeConfig internalConfig80(Internal,
+      internalPrio, minIntEntries, 80, minIntPages, maxIntPages);
 
 /*
-Register config objects with max. 80 entries per node.
+Add default config
 
 */
- registerMTreeConfig( "random80",
-      MTreeConfig( 80, RANDOM, BALANCED ));
-
-  registerMTreeConfig( "mRad80",
-      MTreeConfig( 80, m_RAD, BALANCED ));
-
-  registerMTreeConfig( "randomHP80",
-      MTreeConfig( 80, RANDOM, GENERALIZED_HYPERPLANE ));
-
-  registerMTreeConfig( "mMRad80",
-      MTreeConfig( 80, mM_RAD, BALANCED ));
-
-  registerMTreeConfig( "mlbDist80",
-      MTreeConfig( 80, M_LB_DIST, BALANCED ));
-
-  registerMTreeConfig( "mRadHP80",
-      MTreeConfig( 80, m_RAD, GENERALIZED_HYPERPLANE ));
-
-  registerMTreeConfig( "mMRadHP80",
-      MTreeConfig( 80, mM_RAD, GENERALIZED_HYPERPLANE ));
-
-  registerMTreeConfig( "mlbDistHP80",
-      MTreeConfig( 80, M_LB_DIST, GENERALIZED_HYPERPLANE ));
+  configs["default"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      M_LB_DIST, GENERALIZED_HYPERPLANE);
 
 /*
-Register config objects with max. 40 entries per node.
+Add config objects with unlimited entries per node.
 
 */
-  registerMTreeConfig( "random40",
-      MTreeConfig( 40, RANDOM, BALANCED ));
+  configs["randomBal"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      RANDOM, BALANCED);
 
-  registerMTreeConfig( "mRad40",
-      MTreeConfig( 40, m_RAD, BALANCED ));
+  configs["mradBal"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      m_RAD, BALANCED);
 
-  registerMTreeConfig( "randomHP40",
-      MTreeConfig( 40, RANDOM, GENERALIZED_HYPERPLANE ));
+  configs["mmradBal"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      mM_RAD, BALANCED);
 
-  registerMTreeConfig( "mMRad40",
-      MTreeConfig( 40, mM_RAD, BALANCED ));
+  configs["mlbBal"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      M_LB_DIST, BALANCED);
 
-  registerMTreeConfig( "mlbDist40",
-      MTreeConfig( 40, M_LB_DIST, BALANCED ));
+  configs["randomHP"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      RANDOM, GENERALIZED_HYPERPLANE);
 
-  registerMTreeConfig( "mRadHP40",
-      MTreeConfig( 40, m_RAD, GENERALIZED_HYPERPLANE ));
+  configs["mradHP"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      m_RAD, GENERALIZED_HYPERPLANE);
 
-  registerMTreeConfig( "mMRadHP40",
-      MTreeConfig( 40, mM_RAD, GENERALIZED_HYPERPLANE ));
+  configs["mmradHP"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      mM_RAD, GENERALIZED_HYPERPLANE);
 
-  registerMTreeConfig( "mlbDistHP40",
-      MTreeConfig( 40, M_LB_DIST, GENERALIZED_HYPERPLANE ));
+  configs["mlbdistHP"] =  MTreeConfig(
+      defaultleafConfig, defaultinternalConfig,
+      M_LB_DIST, GENERALIZED_HYPERPLANE);
+
+/*
+Add config objects with max. 80 entries per node.
+
+*/
+  configs["randomBal80"] =  MTreeConfig(
+      leafConfig80, internalConfig80,
+      RANDOM, BALANCED);
+
+  configs["mradBal80"] =  MTreeConfig(
+      leafConfig80, internalConfig80,
+      m_RAD, BALANCED);
+
+  configs["mmradBal80"] =  MTreeConfig(
+      leafConfig80, internalConfig80,
+      mM_RAD, BALANCED);
+
+  configs["mlbBal80"] =  MTreeConfig(
+      leafConfig80, internalConfig80,
+      M_LB_DIST, BALANCED);
+
+  configs["randomHP80"] =  MTreeConfig(
+      leafConfig80, internalConfig80,
+      RANDOM, GENERALIZED_HYPERPLANE);
+
+  configs["mradHP80"] =  MTreeConfig(
+      leafConfig80, internalConfig80,
+      m_RAD, GENERALIZED_HYPERPLANE);
+
+  configs["mmradHP80"] =  MTreeConfig(
+      leafConfig80, internalConfig80,
+      mM_RAD, GENERALIZED_HYPERPLANE);
+
+  configs["mlbdistHP80"] =  MTreeConfig(
+      leafConfig80, internalConfig80,
+      M_LB_DIST, GENERALIZED_HYPERPLANE);
+
+/*
+Add config objects with max. 40 entries per node.
+
+*/
+  configs["randomBal40"] =  MTreeConfig(
+      leafConfig40, internalConfig40,
+      RANDOM, BALANCED);
+
+  configs["mradBal40"] =  MTreeConfig(
+      leafConfig40, internalConfig40,
+      m_RAD, BALANCED);
+
+  configs["mmradBal40"] =  MTreeConfig(
+      leafConfig40, internalConfig40,
+      mM_RAD, BALANCED);
+
+  configs["mlbBal40"] =  MTreeConfig(
+      leafConfig40, internalConfig40,
+      M_LB_DIST, BALANCED);
+
+  configs["randomHP40"] =  MTreeConfig(
+      leafConfig40, internalConfig40,
+      RANDOM, GENERALIZED_HYPERPLANE);
+
+  configs["mradHP40"] =  MTreeConfig(
+      leafConfig40, internalConfig40,
+      m_RAD, GENERALIZED_HYPERPLANE);
+
+  configs["mmradHP40"] =  MTreeConfig(
+      leafConfig40, internalConfig40,
+      mM_RAD, GENERALIZED_HYPERPLANE);
+
+  configs["mlbdistHP40"] =  MTreeConfig(
+      leafConfig40, internalConfig40,
+      M_LB_DIST, GENERALIZED_HYPERPLANE);
 
   initialized = true;
 }

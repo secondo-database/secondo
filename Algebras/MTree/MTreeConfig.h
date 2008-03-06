@@ -26,20 +26,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //characters      [3]   capital:    [\textsc{]  [}]
 //characters      [4]   teletype:   [\texttt{]  [}]
 
-2.7 Class ~MT::MTreeConfigReg~ (file: MTreeConfig.h)
+1 Headerfile "MTreeConfig.h"[4]
 
-December 2007, Mirko Dibbert
+January-February 2008, Mirko Dibbert
 
-2.7.1 Class description
+1.1 Overview
 
-This class manages the different "MTreeConfig"[4] objects. These objects
-contain configuration data for mtrees, which set the split policy and the
-maximum number of entries per node.
+This headerfile contains the "MTreeConfigReg"[4] class, which provides a set of configurations. Each configuration is identified with a unique name and sets the used split policy by defining the promote and split function, that should be used, as well as the gtaf::NodeConfig objects for internal and leaf nodes, which sets the min/max count entries and pages per node.
 
-2.7.2 Class definition
+All avaliable config objects are defined in the initialize function (file "MTreeConfig.cpp"[4]) and could be set, when using the createmtree2 or createmtree3 operator.
+
+1.1 Includes and defines
 
 */
-
 #ifndef MTREE_CONFIG_H
 #define MTREE_CONFIG_H
 
@@ -48,96 +47,85 @@ maximum number of entries per node.
 #include "MTreeSplitpol.h"
 #include "MTreeAlgebra.h"
 
-namespace MT
+namespace mtreeAlgebra
 {
 
 /*
-Struct ~MTreeConfig~ :
-
-This struct contains some config parameters for "MT::MTree"[4].
+1.1 Struct ~MTreeConfig~ :
 
 */
 struct MTreeConfig
 {
-  unsigned maxNodeEntries;
 /*
-This parameter adjust the maximum count of entries, wich should be stored
-within a m-tree node when the associated metric is used.
-
-A limiting value could make sense, if the DistData values are very short and
-the cost of distance computations is (much) higher than the cost of the
-additional I/O access duo to the growing count of nodes.
+Config objects for all node types.
 
 */
+  NodeConfig leafNodeConfig;
+  NodeConfig internalNodeConfig;
 
+/*
+This parameters contain the promote and partition functions, which should be used.
+
+*/
   PROMOTE promoteFun;
   PARTITION partitionFun;
-/*
-This parameters contain the promote and partition functions,
-which should be used.
 
-*/
-
-  MTreeConfig()
-  : maxNodeEntries ( 200 ),
-    promoteFun( RANDOM ),
-    partitionFun( BALANCED ) {}
 /*
 Constructor (creates object with default values).
 
 */
+  MTreeConfig()
+  : leafNodeConfig(Leaf, 0, 3),
+    internalNodeConfig(Internal, 1, 3),
+    promoteFun(RANDOM),
+    partitionFun(BALANCED)
+  {}
 
-  MTreeConfig( unsigned maxNodeEntries_,
-               PROMOTE promoteFun_,
-               PARTITION partitionFun_ )
-  : maxNodeEntries ( (maxNodeEntries_ < 2) ? 2 : maxNodeEntries_ ),
-    promoteFun( promoteFun_ ),
-    partitionFun( partitionFun_ ) {}
 /*
 Constructor (creates objects with the given parameters).
 
 */
+  MTreeConfig(NodeConfig _leafNodeConfig,
+              NodeConfig _internalNodeConfig,
+              PROMOTE _promoteFun,
+              PARTITION _partitionFun)
+  : leafNodeConfig(_leafNodeConfig),
+    internalNodeConfig(_internalNodeConfig),
+    promoteFun(_promoteFun),
+    partitionFun(_partitionFun)
+  {}
 };
 
 /*
-Class ~MTreeConfigReg~ :
+1.1 Class MTreeConfigReg:
 
 */
 class MTreeConfigReg
 {
-  static map< string, MTreeConfig > mTreeConfig_map;
-  static bool initialized;
-
 public:
-  static MTreeConfig getMTreeConfig( const string& name );
 /*
-This method returns the MTreeConfig object, that belongs to the specified
-metric. If no such object is registered, the method returns a new object with
-default values.
+This method returns the specified "MTreeConfig"[4] object. If no such object could be found, the method returns a new object with default values.
 
 */
+    static MTreeConfig getConfig(const string& name);
 
-  static bool contains( const string& name );
 /*
-Returns true, if a "MTreeConfig"[4] object with name "name"[4] is registered.
+Returns true, if the specified "MTreeConfig"[4] object is defiend.
 
 */
+    static bool isDefined(const string& name);
 
-  static void initialize();
 /*
-This method registeres the "MTreeConfig" objects.
+Registeres all "MTreeConfig" objects.
 
 */
+    static void initialize();
 
-  static void registerMTreeConfig( const string& name,
-                                   const MTreeConfig& config );
-/*
-This method stores a "MTreeConfig"[4] object into "mTreeConfig[_]map"[4]
-using "name"[4] as key.
-
-*/
+private:
+    static map<string, MTreeConfig> configs;
+    static bool initialized;
 };
 
-} // namespace
+} // namespace mtreeAlgebra
 
 #endif
