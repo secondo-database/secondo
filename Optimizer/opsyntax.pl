@@ -93,6 +93,7 @@ translated by default.
 For all other forms, a plan\_to\_atom rule has to be programmed explicitly.
 
 */
+:- dynamic(secondoOp/3).
 
 secondoOp(distance, prefix, 2).
 secondoOp(intersection_new, prefix, 2).
