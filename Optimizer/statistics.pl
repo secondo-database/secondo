@@ -298,6 +298,7 @@ transformPred(attr(Attr, Arg, Case), Param, Arg,
 
 transformPred(attr(Attr, Arg, Case), _, _, attr(Attr, Arg, Case)) :- !.
 
+/*
 transformPred(Pred, Param, Arg, Pred2) :-
   compound(Pred),
   functor(Pred, T, 1), !,
@@ -316,6 +317,32 @@ transformPred(Pred, Param, Arg, Pred2) :-
   functor(Pred2, T, 2),
   arg(1, Pred2, Arg1T),
   arg(2, Pred2, Arg2T).
+
+transformPred(Pred, Param, Arg, Pred2) :-
+  compound(Pred),
+  functor(Pred, T, 3), !,
+  arg(1, Pred, Arg1),
+  arg(2, Pred, Arg2),
+  arg(3, Pred, Arg3),
+  transformPred(Arg1, Param, Arg, Arg1T),
+  transformPred(Arg2, Param, Arg, Arg2T),
+  transformPred(Arg3, Param, Arg, Arg3T),
+  functor(Pred2, T, 3),
+  arg(1, Pred2, Arg1T),
+  arg(2, Pred2, Arg2T),
+  arg(3, Pred2, Arg3T).
+*/
+
+transformPred([], _, _, []).
+transformPred([Arg1|Args1], Param, Arg, [Arg1T|Args1T]) :-
+  transformPred(Arg1, Param, Arg, Arg1T),
+  transformPred(Args1, Param, Arg, Args1T).
+
+transformPred(Pred, Param, Arg, Pred2) :-
+  compound(Pred),
+  Pred =.. [T|Args],
+  transformPred(Args, Param, Arg, Args2),
+  Pred2 =.. [T|Args2].
 
 transformPred(Pred, _, _, Pred).
 
