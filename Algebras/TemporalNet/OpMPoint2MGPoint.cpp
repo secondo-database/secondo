@@ -232,34 +232,6 @@ bool checkPoint03 (Line *route, Point point, bool startSmaller, double &pos,
 }
 
 
-/*
-Typemap function of the operator
-
-*/
-// ListExpr OpMPoint2MGPoint::TypeMap(ListExpr in_xArgs)
-// {
-//   if( nl->ListLength(in_xArgs) != 2 )
-//     return (nl->SymbolAtom( "typeerror" ));
-//
-//   ListExpr xNetworkIdDesc = nl->First(in_xArgs);
-//   ListExpr xMPointDesc = nl->Second(in_xArgs);
-//
-//   if( (!nl->IsAtom(xNetworkIdDesc)) ||
-//       !nl->IsEqual(xNetworkIdDesc, "int"))
-//   {
-//     return (nl->SymbolAtom("typeerror"));
-//   }
-//
-//   if( (!nl->IsAtom( xMPointDesc )) ||
-//       nl->AtomType( xMPointDesc ) != SymbolType ||
-//       nl->SymbolValue( xMPointDesc ) != "mpoint" )
-//   {
-//     return (nl->SymbolAtom( "typeerror" ));
-//   }
-//
-//   return nl->SymbolAtom( "mgpoint" );
-// }
-
 ListExpr OpMPoint2MGPoint::TypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 2 ){

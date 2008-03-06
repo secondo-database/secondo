@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 Mai-Oktober 2007 Martin Scheppokat
 
-March 2008 Simone Jandt TemporalFunction added
+March 2008 Simone Jandt TemporalFunction, At added
 
 */
 #include "TemporalAlgebra.h"

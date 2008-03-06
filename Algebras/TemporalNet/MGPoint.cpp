@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@ The simple constructor. This constructor should not be used.
 MGPoint::MGPoint()
 {
 }
-    
+
 /*
 The constructor. Initializes space for ~n~ elements.
 
@@ -66,7 +66,7 @@ ListExpr MGPoint::Property()
             nl->FourElemList(nl->StringAtom("-> MAPPING"),
                              nl->StringAtom("(mgpoint) "),
                              nl->StringAtom("( u1 ... un ) "),
-                             nl->StringAtom("(((i1 i2 TRUE FALSE) " 
+                             nl->StringAtom("(((i1 i2 TRUE FALSE) "
                                             "(1 1 0 0.1 2.4)) ...)"))));
 }
 
@@ -74,8 +74,11 @@ ListExpr MGPoint::Property()
 Kind Checking Function
 
 */
-bool MGPoint::Check(ListExpr type, 
+bool MGPoint::Check(ListExpr type,
                     ListExpr& errorInfo)
 {
   return (nl->IsEqual( type, "mgpoint" ));
 }
+
+
+

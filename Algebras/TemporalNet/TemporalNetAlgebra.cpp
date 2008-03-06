@@ -49,6 +49,7 @@ Defines, includes, and constants
 #include "OpTrajectory.h"
 #include "OpTempNetLength.h"
 #include "OpTempNetAtinstant.h"
+#include "OpTempNetAtperiods.h"
 #include "OpTempNetInitial.h"
 #include "OpTempNetFinal.h"
 #include "OpTempNetAt.h"
@@ -282,6 +283,15 @@ Operator tempnetat("at",
                 Operator::SimpleSelect,
                 OpTempNetAt::TypeMap );
 
+/*
+Operator atinstant
+
+*/
+Operator tempnetatperiods("atperiods",
+                OpTempNetAtperiods::Spec,
+                OpTempNetAtperiods::ValueMapping,
+                Operator::SimpleSelect,
+                OpTempNetAtperiods::TypeMap );
 
 /*
 Creating the Algebra
@@ -316,6 +326,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetat);
     AddOperator(&tempnetval);
     AddOperator(&tempnetinst);
+    AddOperator(&tempnetatperiods);
 
   }
 

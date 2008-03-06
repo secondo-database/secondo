@@ -164,7 +164,6 @@ Functions to be part of relations
   virtual bool Passes( const GPoint& val ) const;
   virtual bool At( const GPoint& val, TemporalUnit<GPoint>& result ) const;
 
-
 /*
 Property Function
 

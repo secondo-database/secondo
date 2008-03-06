@@ -22,63 +22,39 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Declaration of MGPoint
+1.1 Declaration of Operator atperiods
 
-A class representing a moving point in a network.
+This operator restricts a moving gpoint to the given periods.
 
-Mai-Oktober 2007 Martin Scheppokat
-
-Defines, includes, and constants
+March 2008 Simone Jandt
 
 */
-#ifndef MGPOINT_H_
-#define MGPOINT_H_
 
-#ifndef _TEMPORAL_ALGEBRA_H_
-#error TemporalAlgebra.h is needed by MGPoint.h. \
-Please include in *.cpp-File.
-#endif
+#ifndef OPTEMPNETATPERIODS_H_
+#define OPTEMPNETATPERIODS_H_
 
-#ifndef UGPOINT_H_
-#error UGPoint.h is needed by MGPoint.h. \
-Please include in *.cpp-File.
-#endif
-
-
-
-
-/*
-Class ~MGPoint~
-
-*/
-class MGPoint : public Mapping< UGPoint, GPoint >
+class OpTempNetAtperiods
 {
-  public:
+public:
 /*
-Constructors and Destructor
+
+Type Mapping of operator ~atperiods~
 
 */
-/*
-The simple constructor. This constructor should not be used.
-
-*/
-    MGPoint();
+static ListExpr TypeMap(ListExpr args);
 
 /*
-The constructor. Initializes space for ~n~ elements.
+Value mapping function of operator ~atperiods~
 
 */
-    MGPoint( const int n );
-
-    static ListExpr Property();
+static int ValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s );
 
 /*
-Kind Checking Function
+4.4.3 Specification of operator ~atperiods~
 
 */
-    static bool Check(ListExpr type,
-                      ListExpr& errorInfo);
-
+static const string Spec;
 };
 
-#endif /*MGPOINT_H_*/
+#endif /*OPTEMPNETATPERIODS_H_*/
