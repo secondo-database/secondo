@@ -26,6 +26,8 @@ import java.awt.*;
 import java.util.Vector;
 import gui.*;
 import java.awt.event.*;
+import java.io.*;
+import javax.swing.JFileChooser;
 
 public class RelViewer extends SecondoViewer{
 
@@ -34,6 +36,9 @@ public class RelViewer extends SecondoViewer{
  private JTable CurrentTable;
  private Vector Tables;
  private JPanel dummy;  // to show nothing
+ private JButton exportBtn;
+ private JFileChooser filechooser;
+
  // the value of MAX_TEXT_LENGTH must be greater then five
  private final static int MAX_TEXT_LENGTH=100;
 
@@ -44,13 +49,28 @@ public class RelViewer extends SecondoViewer{
    dummy = new JPanel();
    CurrentTable = null;
    Tables = new Vector();
+   exportBtn = new JButton("export");
+
+   JPanel p = new JPanel();
+   p.add(exportBtn);
+   
+   filechooser = new JFileChooser(".");
+
    setLayout(new BorderLayout());
    add(ComboBox,BorderLayout.NORTH);
    add(ScrollPane,BorderLayout.CENTER);
+   add(p,BorderLayout.SOUTH);
+
    ComboBox.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
           showSelectedObject();
        }});
+   exportBtn.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+          exportAsCSV();
+       }
+   });
+
  }
 
 
@@ -69,6 +89,50 @@ public class RelViewer extends SecondoViewer{
  public  String getName(){
    return "RelationsViewer";
  }
+
+ /** exports the currently selected table into a file in
+   * csv format.
+   */
+ private void exportAsCSV(){
+    int index = ComboBox.getSelectedIndex();
+    if(index<0){
+      tools.Reporter.showError("no table is selected");
+      return;
+    }
+    JTable theTable = (JTable) Tables.get(index);
+    if(filechooser.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+       File file = filechooser.getSelectedFile();
+       if(file.exists()){
+         if(tools.Reporter.showQuestion("File already exists\n overwrite it?")!=tools.Reporter.YES){
+             return;
+         }
+       }
+       exportTable(theTable,file);
+    } 
+ }
+
+ /** function supporting expostAsCSV
+   */
+  private void exportTable(JTable table, File file){
+    try{
+       PrintStream out = new PrintStream(new FileOutputStream(file));
+       for(int i=0;i<table.getRowCount(); i++){
+          for(int j=0;j<table.getColumnCount();j++){
+            if(j>0){
+               out.print(",");
+            }
+            out.print((""+table.getValueAt(i,j)).replaceAll("\n"," ").replaceAll(",",";"));
+          }
+          out.println("");
+       } 
+       out.close();
+    } catch(IOException e){
+       tools.Reporter.debug(e);
+       tools.Reporter.showError("Error in writing file");
+    }
+  }
+
+
 
  public boolean addObject(SecondoObject o){
    if (isDisplayed(o)){
