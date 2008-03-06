@@ -444,19 +444,24 @@ AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {
 
   table->clear();
   int algId = 0;
-
   while ( NextAlgebraId( algId ) )
   {
     const int N = OperatorNumber(algId);
     for (int opId = 0; opId < N; opId++) {
-      OperatorUsageTuple* t = new OperatorUsageTuple;
-      t->name = GetAlgebraName(algId);
-      t->algebra = Ops(algId, opId);
-      if (opPtrField[algId][opId]) 
-        t->calls=1; 
-      else 
-	t->calls=0; 
-      table->append(t,false); 
+      
+      string name = GetAlgebraName(algId);
+      string algebra = Ops(algId, opId);
+      Operator* op = opPtrField[algId][opId];
+      if(op){
+        for(int i=0;i<op->GetNumOfFun();i++){
+           OperatorUsageTuple* t = new OperatorUsageTuple;
+           t->algebra = algebra;
+           t->name = name;
+           t->vmid = i;
+           t->calls = op->GetCalls(i);
+           table->append(t,false); 
+         }
+      }
     }
   }
 }

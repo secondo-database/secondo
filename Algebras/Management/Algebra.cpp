@@ -128,12 +128,15 @@ Operator::Operator( const string& nm,
   numOfFunctions = noF;
   selectFunc     = sf;
   valueMap       = new ValueMapping[numOfFunctions];
+  calls          = new unsigned int[numOfFunctions];
   typeMap        = tm;
   supportsProgress = false;
   requestsArgs   = false;
 
-  for ( int i = 0; i < numOfFunctions; i++ )
+  for ( int i = 0; i < numOfFunctions; i++ ){
+    calls[i] = 0;
     AddValueMapping( i, vms[i] );
+  }
 }
 
 Operator::Operator( const string& nm,
@@ -144,14 +147,22 @@ Operator::Operator( const string& nm,
 {
   name           = nm;
   specString     = specStr;
-  numOfFunctions = 1;
   selectFunc     = sf;
-  valueMap       = new ValueMapping[1];
+  if(vm){
+     numOfFunctions = 1;
+     valueMap       = new ValueMapping[1];
+     calls          = new unsigned int[1];
+     AddValueMapping( 0, vm );
+     calls[0] = 0; 
+  } else {
+     valueMap = 0;
+     calls = 0;
+     numOfFunctions = 0;
+  }
   typeMap        = tm;
   supportsProgress = false;
   requestsArgs   = false;
 
-  AddValueMapping( 0, vm );
 }
 
 Operator::Operator( const OperatorInfo& oi,
@@ -161,15 +172,25 @@ Operator::Operator( const OperatorInfo& oi,
   // define member attributes
   name           = oi.name;
   specString     = oi.str();
-  spec           = oi;  
-  numOfFunctions = 1;
+  spec           = oi; 
+
+
+  if(vm){ 
+     numOfFunctions = 1;
+     valueMap       = new ValueMapping[1];
+     calls          = new unsigned int[1];
+     AddValueMapping( 0, vm );
+     calls[0] = 0;
+  } else {
+     valueMap = 0;
+     numOfFunctions = 0;
+     calls = 0;
+  }
+
   selectFunc     = SimpleSelect;
-  valueMap       = new ValueMapping[1];
   typeMap        = tm;
   supportsProgress = oi.supportsProgress ? true : false;
   requestsArgs   = oi.requestsArgs ? true : false;
-
-  AddValueMapping( 0, vm );
 
 }
 
@@ -188,6 +209,7 @@ Operator::Operator( const OperatorInfo& oi,
   numOfFunctions = max;
   selectFunc     = sf;
   valueMap       = new ValueMapping[max];
+  calls          = new unsigned int[max];
   typeMap        = tm;
   supportsProgress = oi.supportsProgress ? true : false;
   requestsArgs   = oi.requestsArgs ? true : false;
@@ -196,6 +218,7 @@ Operator::Operator( const OperatorInfo& oi,
     //cout << "Adding " << i << endl;
     //cout << (void*) vms[i] << endl;
     AddValueMapping( i, vms[i] );
+    calls[i] = 0;
   }  
 }
 

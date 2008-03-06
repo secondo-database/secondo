@@ -224,6 +224,7 @@ using namespace std;
 #include "FLOBCache.h"
 #include "ProgressView.h"
 #include "Progress.h"
+#include "Operator.h"
 #include <stdexcept>
 
 
@@ -475,6 +476,8 @@ of the form shown here.
 static int OpNodeIdCtr = 0;
 static map<void*, int> OpNodeAddr2Id;
 
+typedef Operator* OpPtr;
+
 enum OpNodeType { Pointer, Object, IndirectObject, Operator };
 struct OpNode
 {
@@ -515,6 +518,7 @@ arguments. In this case the operator must
       int opFunId;
       int noSons;
       ValueMapping valueMap;
+      OpPtr theOperator;
       ArgVector sons;
       ArgVector sonresults;
       bool isFun;
@@ -579,6 +583,7 @@ OpNode(OpNodeType type = Operator) :
       u.op.opFunId = 0;
       u.op.noSons = 0;
       u.op.valueMap = 0;
+      u.op.theOperator = 0;
       u.op.isFun = false;
       u.op.funArgs = 0;
       u.op.funNo  = 0;    
@@ -2678,9 +2683,8 @@ QueryProcessor::Subtree( const ListExpr expr,
      
       node->u.op.algebraId = algebraId; 
       node->u.op.opFunId =  opFunId; 
-      node->u.op.valueMap =
-                  algebraManager->getOperator(algebraId, opId)
-                                           ->GetValueMapping(funId);
+      node->u.op.theOperator = algebraManager->getOperator(algebraId, opId);
+      node->u.op.valueMap = node->u.op.theOperator->GetValueMapping(funId);
 
       /* next fields may be overwritten later */
       node->u.op.noSons = 0;
@@ -2748,10 +2752,10 @@ QueryProcessor::Subtree( const ListExpr expr,
       int opId  = opFunId % 65536;
       int funId = opFunId / 65536;
      
-      node->u.op.opFunId =  opFunId; 
-      node->u.op.valueMap =
-                  algebraManager->getOperator(node->u.op.algebraId, opId)
-                                                      ->GetValueMapping(funId);
+      node->u.op.opFunId =  opFunId;
+      node->u.op.theOperator = algebraManager
+                                 ->getOperator(node->u.op.algebraId, opId);
+      node->u.op.valueMap = node->u.op.theOperator->GetValueMapping(funId);
 
       //check whether this operator does not use automatic evaluation
       //of arguments, but uses explicit requests instead
@@ -3486,7 +3490,7 @@ Then call the operator's value mapping function.
                           cerr << fn << "*** Call value mapping for "
                           << nl->SymbolValue(tree->u.op.symbol) << endl;
                         }
-         
+          tree->u.op.theOperator->incCalls(tree->u.op.opFunId / 65536); 
           status =
             (*(tree->u.op.valueMap))( arg, result, message, 
                                       tree->u.op.local, tree );

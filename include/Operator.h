@@ -168,6 +168,7 @@ Versions using ~OperatorInfo~.
   virtual ~Operator()
   {
     delete[] valueMap;
+    delete[] calls;
   }
 /*
 Destroys an operator instance.
@@ -194,6 +195,7 @@ the argument types ~argtypes~.
                                Supplier s ) const
   {
     assert((0 <= index) && (index < numOfFunctions));
+    calls[index]++;
     return (*valueMap[index])( args, result, message, local, s );
   }
 
@@ -280,6 +282,46 @@ Checks the ~requestsArgs~ field.
 */
 
 
+  inline int GetNumOfFun(){
+     return numOfFunctions;
+  }
+/*
+Returns the number of contained value mappings.
+
+*/
+
+  inline int GetCalls(int index){
+      return calls[index];
+  }
+
+
+  inline void incCalls(int index){
+     assert(index>=0 && index < numOfFunctions);
+     calls[index]++;
+  }
+/*
+Increments the number of calls;
+
+*/
+
+
+/*
+Returns the number calls of the specified value mapping.
+
+*/
+  int GetCalls(){
+    int sum = 0;
+    for(int i=0;i<numOfFunctions;i++){
+      sum += calls[i];
+    }
+    return sum;
+  }
+
+/*
+Returns the number of calls for this operator.
+
+*/
+
     private:
 
     bool AddValueMapping( const int index, ValueMapping f );
@@ -293,6 +335,7 @@ Adds a value mapping function to the list of overloaded operator functions.
     int            numOfFunctions; // No. overloaded functions
     SelectFunction selectFunc;
     ValueMapping*  valueMap;       // Array of size numOfFunctions
+    unsigned int*   calls;          // counter for each overloaded version
     TypeMapping    typeMap;
     bool           supportsProgress;  //Operator supports progress queries.
     bool	   requestsArgs;   //operator explicitly asks for evaluation

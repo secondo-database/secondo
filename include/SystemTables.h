@@ -478,6 +478,7 @@ class OperatorUsageTuple : public InfoTuple
    public:
    string name;
    string algebra;
+   int    vmid;
    int    calls;
    
    OperatorUsageTuple() {}
@@ -486,6 +487,7 @@ class OperatorUsageTuple : public InfoTuple
      name = "";
      algebra = "";
      calls = 0;
+     vmid = 0;
    } 
 
    virtual NList valueList() const
@@ -493,6 +495,7 @@ class OperatorUsageTuple : public InfoTuple
      NList list;
      list.makeHead( NList().stringAtom(name) );
      list.append( NList().stringAtom(algebra) );
+     list.append( NList().intAtom(vmid));
      list.append( NList().intAtom(calls) );
      return list;
    } 
@@ -518,6 +521,7 @@ class OperatorUsageRel : public SystemInfoRel
    { 
      addAttribute("Algebra",  sym.STRING() );
      addAttribute("Operator", sym.STRING() );
+     addAttribute("ValueMap", sym.INT());
      addAttribute("Calls",    sym.INT()    );
    } 
 }; 
