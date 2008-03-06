@@ -550,6 +550,7 @@ class CcString : public StandardAttribute
     defined = d;
     memset ( stringval,'\0',      MAX_STRINGSIZE+1);
     strncpy( stringval, v.data(), MAX_STRINGSIZE  );
+    stringsCreated++;
   }
 
   inline ~CcString() 
@@ -597,8 +598,8 @@ class CcString : public StandardAttribute
 
   inline void Set( bool d, const STRING_T* v ) 
   { 
-    defined = d; 
-    strcpy( stringval, *v); 
+    defined = d;
+    strcpy( stringval, *v);
   }
 
   inline void Set( const bool d, const string v ) 
