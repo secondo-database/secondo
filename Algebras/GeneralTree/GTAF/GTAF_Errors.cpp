@@ -62,7 +62,7 @@ void
 Msg::showDbgMsg()
 {
     cmsg.info() << seperator
-    << "<GTAF> Debugging outputs enabled..." << seperator
+    << "<GTAF> Debugging mode enabled" << seperator
     << endl;
     cmsg.send();
 }
