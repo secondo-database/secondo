@@ -34,3 +34,9 @@ operator find alias FIND pattern op(_, _)
 #operator substr alias SUBSTR pattern op(_, _, _)
 #operator isempty alias ISEMPTY pattern op( _ )
 #operator + alias PLUS pattern _ infixop  _
+#operator = alias EQ pattern _ infixop _
+#operator # alias NE pattern _ infixop _
+#operator < alias LT pattern _ infixop _
+#operator > alias GT pattern _ infixop _
+#operator <= alias LE pattern _ infixop _
+#operator >= alias GE pattern _ infixop _

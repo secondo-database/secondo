@@ -1,6 +1,114 @@
 Database : berlintest
 Restore  : No
 
+Operator : <
+Number   : 1
+Signature: string x text -> bool
+Example  : query "TestA" < 'TestB'
+Result   : TRUE
+
+Operator : <
+Number   : 2
+Signature: text x text -> bool
+Example  : query 'TestA' < 'TestB'
+Result   : TRUE
+
+Operator : <
+Number   : 3
+Signature: text x string -> bool
+Example  : query 'TestA' < "TestB"
+Result   : TRUE
+
+Operator : <=
+Number   : 1
+Signature: string x text -> bool
+Example  : query "TestA" <= 'TestB'
+Result   : TRUE
+
+Operator : <=
+Number   : 2
+Signature: text x text -> bool
+Example  : query 'TestA' <= 'TestB'
+Result   : TRUE
+
+Operator : <=
+Number   : 3
+Signature: text x string -> bool
+Example  : query 'TestA' <= "TestB"
+Result   : TRUE
+
+Operator : =
+Number   : 1
+Signature: string x text -> bool
+Example  : query "TestA" = 'TestB'
+Result   : FALSE
+
+Operator : =
+Number   : 2
+Signature: text x text -> bool
+Example  : query 'TestA' = 'TestB'
+Result   : FALSE
+
+Operator : =
+Number   : 3
+Signature: text x string -> bool
+Example  : query 'TestA' = "TestB"
+Result   : FALSE
+
+Operator : >=
+Number   : 1
+Signature: string x text -> bool
+Example  : query "TestA" >= 'TestB'
+Result   : FALSE
+
+Operator : >=
+Number   : 2
+Signature: text x text -> bool
+Example  : query 'TestA' >= 'TestB'
+Result   : FALSE
+
+Operator : >= 
+Number   : 3
+Signature: text x string -> bool
+Example  : query 'TestA' >= "TestB"
+Result   : FALSE
+
+Operator : >
+Number   : 1
+Signature: string x text -> bool
+Example  : query "TestA" > 'TestB'
+Result   : FALSE
+
+Operator : >
+Number   : 2
+Signature: text x text -> bool
+Example  : query 'TestA' > 'TestB'
+Result   : FALSE
+
+Operator : >
+Number   : 3
+Signature: text x string -> bool
+Example  : query 'TestA' > "TestB"
+Result   : FALSE
+
+Operator : #
+Number   : 1
+Signature: string x text -> bool
+Example  : query "TestA" # 'TestB' 
+Result   : TRUE
+
+Operator : #
+Number   : 2
+Signature: text x text -> bool
+Example  : query 'TestA' # 'TestB'
+Result   : TRUE
+
+Operator : #
+Number   : 3
+Signature: text x string -> bool
+Example  : query 'TestA' # "TestB"
+Result   : TRUE
+
 Operator : contains
 Number   : 1
 Signature: text x text -> bool
@@ -133,5 +241,4 @@ Number   : 5
 Signature: string x string -> stream(int)
 Example  : query find("12345678901234567890123456789012345678901234567890", "1234567890") count
 Result   : 4
-
 

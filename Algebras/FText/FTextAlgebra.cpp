@@ -1532,7 +1532,7 @@ template<class T1, class T2, int OP>
 int FTextValMapComparePred( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
-  assert( (OP >=1) && (OP <=5));
+  assert( (OP >=0) && (OP <=5) );
 
   result = qp->ResultStorage( s );
   CcBool *CRes = (CcBool*)(result.addr);
@@ -1561,6 +1561,59 @@ int FTextValMapComparePred( Word* args, Word& result, int message,
   return 0;
 }
 
+ValueMapping FText_VMMap_Less[] =
+{
+  FTextValMapComparePred<CcString, FText, 0>,    //
+  FTextValMapComparePred<FText, CcString, 0>,    //
+  FTextValMapComparePred<FText, FText, 0>        //
+};
+
+ValueMapping FText_VMMap_LessEq[] =
+{
+  FTextValMapComparePred<CcString, FText, 1>,    //
+  FTextValMapComparePred<FText, CcString, 1>,    //
+  FTextValMapComparePred<FText, FText, 1>        //
+};
+
+ValueMapping FText_VMMap_Eq[] =
+{
+  FTextValMapComparePred<CcString, FText, 2>,    //
+  FTextValMapComparePred<FText, CcString, 2>,    //
+  FTextValMapComparePred<FText, FText, 2>        //
+};
+
+ValueMapping FText_VMMap_BiggerEq[] =
+{
+  FTextValMapComparePred<CcString, FText, 3>,    //
+  FTextValMapComparePred<FText, CcString, 3>,    //
+  FTextValMapComparePred<FText, FText, 3>        //
+};
+
+ValueMapping FText_VMMap_Bigger[] =
+{
+  FTextValMapComparePred<CcString, FText, 4>,    //
+  FTextValMapComparePred<FText, CcString, 4>,    //
+  FTextValMapComparePred<FText, FText, 4>        //
+};
+
+ValueMapping FText_VMMap_Neq[] =
+{
+  FTextValMapComparePred<CcString, FText, 5>,    //
+  FTextValMapComparePred<FText, CcString, 5>,    //
+  FTextValMapComparePred<FText, FText, 5>        // 
+};
+
+int FTextSelectFunComparePred( ListExpr args )
+{
+  NList type(args);
+  if( (type.first() == NList(STRING)) && (type.second() == NList(TEXT)) )
+    return 0;
+  else if( (type.first() == NList(TEXT)) && (type.second() == NList(STRING)) )
+    return 1;
+  else if( (type.first() == NList(TEXT)) && (type.second() == NList(TEXT)) )
+    return 2;
+  return -1; // error
+}
 
 /*
 3.4 Definition of Operators
@@ -1696,6 +1749,61 @@ const string FTextplusSpec =
     "<text>query ('Hello' + \" world\" + '!')</text--->"
     ") )";
 
+// Compare predicates
+const string FTextLessSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text          x {text|string} -> bool\n"
+    "{text|string} x text          -> bool</text--->"
+    "<text>_ < _</text--->"
+    "<text>Lexicographical ordering predicate 'less than'.</text--->"
+    "<text>query 'TestA' < 'TestB'</text--->"
+    ") )";
+
+const string FTextLessEqSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text          x {text|string} -> bool\n"
+    "{text|string} x text          -> bool</text--->"
+    "<text>_ <= _</text--->"
+    "<text>Lexicographical ordering predicate 'less than or equal'.</text--->"
+    "<text>query 'TestA' <= 'TestB'</text--->"
+    ") )";
+
+const string FTextEqSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text          x {text|string} -> bool\n"
+    "{text|string} x text          -> bool</text--->"
+    "<text>_ = _</text--->"
+    "<text>Lexicographical ordering predicate 'equals'.</text--->"
+    "<text>query 'TestA' = 'TestB'</text--->"
+    ") )";
+
+const string FTextBiggerEqSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text          x {text|string} -> bool\n"
+    "{text|string} x text          -> bool</text--->"
+    "<text>_ >= _</text--->"
+    "<text>Lexicographical ordering predicate 'greater than or equal'."
+    "</text--->"
+    "<text>query 'TestA' >= 'TestB'</text--->"
+    ") )";
+
+const string FTextBiggerSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text          x {text|string} -> bool\n"
+    "{text|string} x text          -> bool</text--->"
+    "<text>_ > _</text--->"
+    "<text>Lexicographical ordering predicate 'greater than'.</text--->"
+    "<text>query 'TestA' > 'TestB'</text--->"
+    ") )";
+
+const string FTextNeqSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text          x {text|string} -> bool\n"
+    "{text|string} x text          -> bool</text--->"
+    "<text>_ # _</text--->"
+    "<text>Lexicographical ordering predicate 'nonequal to'.</text--->"
+    "<text>query 'TestA' # 'TestB'</text--->"
+    ") )";
 
 /*
 The Definition of the operators of the type ~text~.
@@ -1789,7 +1897,7 @@ Operator ftextfind
     FTextfindSpec,
     4,
     FText_VMMap_Find,
-    FTextSelectFunFind, // needs select function!
+    FTextSelectFunFind,
     FTextTypeMapFind
     );
 
@@ -1798,7 +1906,7 @@ Operator ftextisempty
     "isempty",
     FTextisemptySpec,
     FTextValMapIsEmpty,
-    Operator::SimpleSelect, // needs select function!
+    Operator::SimpleSelect,
     FTextTypeMapTextBool
     );
 
@@ -1808,10 +1916,69 @@ Operator ftextplus
     FTextplusSpec,
     3,
     FText_VMMap_Plus,
-    FTextSelectFunPlus, // needs select function!
+    FTextSelectFunPlus,
     FTextTypeMapPlus
     );
 
+Operator ftextless
+    (
+    "<",
+    FTextLessSpec,
+    3,
+    FText_VMMap_Less,
+    FTextSelectFunComparePred,
+    FTextTypeMapComparePred
+    );
+
+Operator ftextlesseq
+    (
+    "<=",
+    FTextLessEqSpec,
+    3,
+    FText_VMMap_LessEq,
+    FTextSelectFunComparePred,
+    FTextTypeMapComparePred
+    );
+
+Operator ftexteq
+    (
+    "=",
+    FTextEqSpec,
+    3,
+    FText_VMMap_Eq,
+    FTextSelectFunComparePred,
+    FTextTypeMapComparePred
+    );
+
+Operator ftextbiggereq
+    (
+    ">=",
+    FTextBiggerEqSpec,
+    3,
+    FText_VMMap_BiggerEq,
+    FTextSelectFunComparePred,
+    FTextTypeMapComparePred
+    );
+
+Operator ftextbigger
+    (
+    ">",
+    FTextBiggerSpec,
+    3,
+    FText_VMMap_Bigger,
+    FTextSelectFunComparePred,
+    FTextTypeMapComparePred
+    );
+
+Operator ftextneq
+    (
+    "#",
+    FTextNeqSpec,
+    3,
+    FText_VMMap_Neq,
+    FTextSelectFunComparePred,
+    FTextTypeMapComparePred
+    );
 
 /*
 5 Creating the algebra
@@ -1839,6 +2006,12 @@ public:
     AddOperator( &ftextfind );
     AddOperator( &ftextisempty );
     AddOperator( &ftextplus );
+    AddOperator( &ftextless );
+    AddOperator( &ftextlesseq );
+    AddOperator( &ftexteq );
+    AddOperator( &ftextbiggereq );
+    AddOperator( &ftextbigger );
+    AddOperator( &ftextneq );
 
     
     LOGMSG( "FText:Trace",
