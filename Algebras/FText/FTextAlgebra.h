@@ -175,7 +175,8 @@ inline void FText::Set( bool newDefined, const char *newString )
 
   if( newString != NULL )
   {
-    theText.Resize( strlen( newString ) + 1 );
+    theText.Clean();
+//     theText.Resize( strlen( newString ) + 1 );
     theText.Put( 0, strlen( newString ) + 1, newString );
   }
   defined = newDefined;
@@ -188,11 +189,12 @@ inline void FText::Set( bool newDefined, const string& newString )
   LOGMSG( "FText:Trace",
           cout << '\n' << "Start Set with newString='"
               << newString << endl; )
-  theText.Resize( newString.length() + 1 );
-  char myStr[newString.length()+1];
-  memset ( myStr, '\0', newString.length()+1);
-  strncpy( myStr, newString.data(), MAX_STRINGSIZE  );
-  theText.Put( 0, newString.length() + 1, myStr);
+  theText.Clean();
+  if(newDefined)
+  {
+//     theText.Resize( newString.length() + 1 );
+    theText.Put( 0, newString.length() + 1, newString.c_str());
+  }
   defined = newDefined;
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }

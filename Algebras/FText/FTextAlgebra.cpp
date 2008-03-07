@@ -135,10 +135,19 @@ int FText::Compare( const Attribute *arg ) const
 
 ostream& FText::Print(ostream &os) const
 {
+  if(!IsDefined())
+  {
+    return (os << "TEXT: UNDEFINED");
+  }
   const char* t = 0;
   theText.Get(0, &t);
   string s(t);
-  return (os << "'" << s.substr(0,20) << " ... '" );
+  size_t len = theText.Size();
+  if(TextLength() > 65)
+  {
+    return (os << "TEXT: (" <<len <<") '" << s.substr(0,60) << " ... '" );
+  }
+  return (os << "TEXT: (" <<len << ") '" << s << "'" );
 }
 
 
@@ -630,7 +639,7 @@ ListExpr TypeFTextSubtext( ListExpr args )
   }
   if ( type.first() == NList(TEXT) )
   {
-    return NList(STRING).listExpr();
+    return NList(TEXT).listExpr();
   }
   return NList::typeError( "Expected text as first argument type.");
 }
@@ -691,9 +700,7 @@ ListExpr FTextTypeMapPlus( ListExpr args )
 {
   NList type(args);
 
-  if ( !type.hasLength(2)
-       &&( (type.first() == NList(TEXT)) )
-     )
+  if ( !type.hasLength(2) )
   {
     return NList::typeError("Expected two arguments.");
   }
@@ -705,6 +712,37 @@ ListExpr FTextTypeMapPlus( ListExpr args )
     )
   {
     return NList(TEXT).listExpr();
+  }
+  return NList::typeError("Expected (text x {text|string}) "
+      "or ({text|string} x text).");
+}
+
+
+
+/*
+Type Mapping Function for comparison predicates ~$<$, $<=$, $=$, $>=$, $>$, $\neq$~
+
+----
+    <, <=, =, >=, >, #: {string|text} x {string|text} --> bool
+----
+
+*/
+ListExpr FTextTypeMapComparePred( ListExpr args )
+{
+  NList type(args);
+
+  if ( !type.hasLength(2) )
+  {
+    return NList::typeError("Expected two arguments.");
+  }
+  NList first = type.first();
+  NList second = type.second();
+  if(    (type == NList(STRING, TEXT  ))
+          || (type == NList(TEXT,   TEXT  ))
+          || (type == NList(TEXT,   STRING))
+    )
+  {
+    return NList(BOOL).listExpr();
   }
   return NList::typeError("Expected (text x {text|string}) "
       "or ({text|string} x text).");
@@ -1281,31 +1319,28 @@ int ValMapSubtext( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  FText *Ctxt    = (FText*)args[0].addr;
-  CcInt *Cbegin  = (CcInt*)args[1].addr;
-  CcInt *Cend    = (CcInt*)args[2].addr;
-  FText *CRes = reinterpret_cast<FText*>(result.addr);
+  FText *CRes   = (FText*)(result.addr);
+  FText *Ctxt   = (FText*)args[0].addr;
+  CcInt *Cbegin = (CcInt*)args[1].addr;
+  CcInt *Cend   = (CcInt*)args[2].addr;
 
   if ( !Ctxt->IsDefined() || !Cbegin->IsDefined() || !Cend->IsDefined() )
   {
     CRes->Set( false, string("") );
     return 0;
   }
-  int begin  = Cbegin->GetIntval();
-  int end    = Cend->GetIntval();
-  int txtlen = Ctxt->TextLength();
+  int begin   = Cbegin->GetIntval();
+  int end     = Cend->GetIntval();
+  string mTxt = Ctxt->GetValue();
+  int txtlen  = mTxt.length();
   if( (begin < 1) || (begin > end) || (begin > txtlen) )
   {
     CRes->Set( false, string("") );
     return 0;
   }
-  int n = min( (end-begin), (txtlen-begin) );
-  string mytxt = static_cast<const char*>( Ctxt->Get() );
-  cout << "mytxt=\"" << mytxt << "\"" << endl;
-  string mysubstring = mytxt.substr(begin-1, n+1);
-  cout << "mysubstring=\"" << mysubstring << "\"" << endl;
-  CRes->Set( true, mysubstring.c_str() );
+  int n = min( (end - begin)+1, txtlen);
+  string myRes = mTxt.substr(begin-1, n);
+  CRes->Set( true, myRes );
   return 0;
 }
 
@@ -1485,6 +1520,49 @@ int FTextSelectFunPlus( ListExpr args )
 }
 
 /*
+4.30 Operators  ~$<$, $<=$, $=$, $>=$, $>$, $\neq$~
+
+----
+    <, <=, =, >=, >, #: {string|text} x {string|text} --> bool
+OP: 0,  1, 2,  3, 4, 5
+----
+
+*/
+template<class T1, class T2, int OP>
+int FTextValMapComparePred( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
+{
+  assert( (OP >=1) && (OP <=5));
+
+  result = qp->ResultStorage( s );
+  CcBool *CRes = (CcBool*)(result.addr);
+  bool res = false;
+  T1 *Ctxt1 = (T1*)args[0].addr;
+  T2 *Ctxt2 = (T2*)args[1].addr;
+  if( !Ctxt1->IsDefined() || !Ctxt2->IsDefined() )
+  {
+    CRes->Set( false, false );
+    return 0;
+  }
+  string mTxt1 = string(Ctxt1->GetValue());
+  string mTxt2 = string(Ctxt2->GetValue());
+  int cmp = mTxt1.compare(mTxt2);
+  switch( OP )
+  {
+    case 0: res = (cmp <  0); break; // <
+    case 1: res = (cmp <= 0); break; // <=
+    case 2: res = (cmp == 0); break; //  =
+    case 3: res = (cmp >= 0); break; // >=
+    case 4: res = (cmp >  0); break; // >
+    case 5: res = (cmp != 0); break; //  #
+    default: assert( false);  break; // illegal mode of operation 
+  }
+  CRes->Set( true, res );
+  return 0;
+}
+
+
+/*
 3.4 Definition of Operators
 
 */
@@ -1571,7 +1649,7 @@ const string getCatalogSpec =
 const string substrSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> text x int x int -> string</text--->"
-    "<text>substr( s, b, e)</text--->"
+    "<text>substr( s, b, e )</text--->"
     "<text>Returns a substring of a text value, beginning at position 'b' "
     "and ending at position 'e', where the first character's position is 1. "
     "if (e - b)>48, the result will be truncated to its starting 48 "
@@ -1582,7 +1660,7 @@ const string substrSpec =
 const string subtextSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text> text x int x int -> text</text--->"
-    "<text>subtext( s, b, e)</text--->"
+    "<text>subtext( s, b, e )</text--->"
     "<text>Returns a subtext of a text value, beginning at position 'b' "
     "and ending at position 'e', where the first character's position is 1. "
     "</text--->"
@@ -1734,6 +1812,7 @@ Operator ftextplus
     FTextTypeMapPlus
     );
 
+
 /*
 5 Creating the algebra
 
@@ -1756,7 +1835,7 @@ public:
     AddOperator( &diceCoeff);
     AddOperator( &ftextgetcatalog );
     AddOperator( &ftextsubstr );
-//     AddOperator( &ftextsubtext );
+    AddOperator( &ftextsubtext );
     AddOperator( &ftextfind );
     AddOperator( &ftextisempty );
     AddOperator( &ftextplus );

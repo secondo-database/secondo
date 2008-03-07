@@ -71,8 +71,14 @@ Remark   : We have 9 system tables at least.
 Operator : substr
 Number   : 1
 Signature: text x int x int -> string
-Example  : query substr('123456789A123456789B123456789C', 10, 20) = "A123456789B"
-Result   : TRUE
+Example  : query substr('123456789A123456789B123456789C', 10, 20)
+Result   : "A123456789B"
+
+Operator : subtext
+Number   : 1
+Signature: text x int x int -> text
+Example  : query subtext('123456789A123456789B123456789C', 10, 20)
+Result   : 'A123456789B'
 
 Operator : isempty
 Number   : 1
