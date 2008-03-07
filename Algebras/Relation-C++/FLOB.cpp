@@ -262,20 +262,20 @@ FLOB::Malloc(size_t newSize /*= 0*/) {
   if (!resize) {
     if (size == 0) 
     {
-      // initialize the buffer pointer	  
-      fd.inMemory.buffer = 0;	  
+      // initialize the buffer pointer
+      fd.inMemory.buffer = 0;
     }
     else
     {	  
-      // allocate a buffer	    
+      // allocate a buffer
       fd.inMemory.buffer = (char*)malloc( size );
     }
   }
   else // resize
-  {   
+  {
     if ( newSize != size )  
     {
-      // resize the internal buffer	    
+      // resize the internal buffer
       fd.inMemory.buffer = 
         (char *)realloc( fd.inMemory.buffer, newSize );
       size = newSize;
@@ -522,11 +522,14 @@ void
 FLOB::Resize( size_t newSize )
 {
   assert( type != Destroyed );
-  assert( newSize > 0 ); // Use Clean
- 
+  if( newSize <= 0)
+  {
+    Clean();
+    return;
+  }
   if( type == InMemory )
   {
-    Malloc(newSize);	  
+    Malloc(newSize);
   }
   else {
     // This code cannot be reached because the other
