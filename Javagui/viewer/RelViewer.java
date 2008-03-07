@@ -180,7 +180,7 @@ public class RelViewer extends SecondoViewer{
     // analyse type
     ListExpr maintype = type.first();
     if (type.listLength()!=2 || !maintype.isAtom() || maintype.atomType()!=ListExpr.SYMBOL_ATOM
-        || !(maintype.symbolValue().equals("rel") | maintype.symbolValue().equals("mrel")))
+        || !(maintype.symbolValue().equals("rel") || maintype.symbolValue().equals("mrel") || maintype.symbolValue().equals("trel")))
        return null; // not a relation
     ListExpr tupletype = type.second();
     // analyse Tuple
@@ -292,7 +292,7 @@ public class RelViewer extends SecondoViewer{
      else{
        LE = LE.first();
        if(LE.isAtom() && LE.atomType()==ListExpr.SYMBOL_ATOM &&
-       (LE.symbolValue().equals("rel") | LE.symbolValue().equals("mrel")) )
+          (LE.symbolValue().equals("rel") | LE.symbolValue().equals("mrel") | LE.symbolValue().equals("trel")) )
            return true;
        else
            return false;
