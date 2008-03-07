@@ -951,7 +951,6 @@ start time and the junction as startposition of the new current unit.
                               dMGPointCurrStartPos,
                               dMGPointCurrEndPos));
   pMGPoint->EndBulkLoad();
-  cout << "Translation ok" << endl;
   pCurrentRoute->DeleteIfAllowed();
   pTestRoute->DeleteIfAllowed();
   //pRoutes->Delete();

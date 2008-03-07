@@ -56,6 +56,8 @@ Defines, includes, and constants
 #include "OpTempNetVal.h"
 #include "OpTempNetInst.h"
 #include "OpTempNetPresent.h"
+#include "OpTempNetIsEmpty.h"
+#include "OpTempNetNoComp.h"
 
 #include <iostream>
 #include <sstream>
@@ -305,6 +307,25 @@ Operator tempnetpresent("present",
                 OpTempNetPresent::TypeMap );
 
 /*
+Operator isempty
+
+*/
+Operator tempnetisempty("isempty",
+                OpTempNetIsEmpty::Spec,
+                OpTempNetIsEmpty::ValueMapping,
+                Operator::SimpleSelect,
+                OpTempNetIsEmpty::TypeMap );
+
+/*
+Operator nocomponents
+
+*/
+Operator tempnetnocomp("no_components",
+                OpTempNetNoComp::Spec,
+                OpTempNetNoComp::ValueMapping,
+                Operator::SimpleSelect,
+                OpTempNetNoComp::TypeMap );
+/*
 Creating the Algebra
 
 */
@@ -339,6 +360,8 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetinst);
     AddOperator(&tempnetatperiods);
     AddOperator(&tempnetpresent);
+    AddOperator(&tempnetisempty);
+    AddOperator(&tempnetnocomp);
 
   }
 

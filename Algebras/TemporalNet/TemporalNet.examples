@@ -124,3 +124,26 @@ Signature: mgpoint x periods -> bool
 Example  : query ([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]) present [const periods value (("2008-01-01-10:10:00.000" "2008-01-01-10:10:01.000" TRUE TRUE))];
 Result   : FALSE
 
+Operator : isempty
+Number   : 1
+Signature: mgpoint -> bool
+Example  : query isempty([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]);
+Result   : FALSE
+
+Operator : isempty
+Number   : 2
+Signature: mgpoint -> bool
+Example  : query isempty([const mgpoint value()]);
+Result   : TRUE
+
+Operator : no_components
+Number   : 1
+Signature: mgpoint -> int
+Example  : query no_components([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]);
+Result   : 2
+
+Operator : no_components
+Number   : 2
+Signature: mgpoint -> int
+Example  : query no_components([const mgpoint value()]);
+Result   : 0
