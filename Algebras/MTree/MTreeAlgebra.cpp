@@ -955,7 +955,8 @@ createmtree_TM(ListExpr args)
         res2.append(NList(attrIndex - 1));
         res2.append(NList(distfunName, true));
         res2.append(NList(configName, true));
-        NList res3(NList(MTREE), arg1.second());
+        NList mtree(MTREE); 
+        NList res3(mtree, arg1.second());
         NList result(res1, res2, res3);
         return result.listExpr();
     }
@@ -986,7 +987,8 @@ createmtree_TM(ListExpr args)
         res2.append(NList(distfunName, true));
         res2.append(NList(dataName, true));
         res2.append(NList(configName, true));
-        NList res3(NList(MTREE), arg1.second());
+        NList mtree(MTREE); 
+        NList res3(mtree, arg1.second());
         NList result(res1, res2, res3);
 
         return result.listExpr();
@@ -1227,8 +1229,9 @@ rangesearch_TM(ListExpr args)
            arg4.convertToString() + "'.";
   CHECK_COND(arg4.isEqual(REAL), errmsg);
 
+  NList append(APPEND);
   NList result (
-      NList(APPEND),
+      append,
       NList(arg3.convertToString(), true).enclose(),
       NList(NList(STREAM), arg2.second()));
   return result.listExpr();
@@ -1279,8 +1282,9 @@ nnsearch_TM(ListExpr args)
            arg4.convertToString() + "'.";
   CHECK_COND(arg4.isEqual(INT), errmsg);
 
+  NList append(APPEND);
   NList result (
-      NList(APPEND),
+      append,
       NList(arg3.convertToString(), true).enclose(),
       NList(NList(STREAM), arg2.second()));
   return result.listExpr();
@@ -1437,7 +1441,7 @@ struct createmtree3_Info : OperatorInfo
             "arg2 must be the name of the attribute in arg1, "
             "which should be indexed by the mtree\n";
             "arg3 must be the name of a registered mtree-config\n"
-            "arg4 must be the name of a registered metric\n";
+            "arg4 must be the name of a registered metric\n"
             "arg5 must be the name of a registered distdata type";
         example = "pictures createmtree [lab, mlbdistHP, quadr, lab256]";
     }
