@@ -231,7 +231,8 @@ int OpTempNetAtperiods::ValueMapping(Word* args,
     }
   }
   pMGPres->EndBulkLoad();
-  pMGPres->SetDefined(true);
+  if (pMGPres->GetNoComponents() == 0) pMGPres->SetDefined(false);
+  else pMGPres->SetDefined(true);
   return 0;
 }
 

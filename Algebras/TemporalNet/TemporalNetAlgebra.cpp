@@ -55,6 +55,7 @@ Defines, includes, and constants
 #include "OpTempNetAt.h"
 #include "OpTempNetVal.h"
 #include "OpTempNetInst.h"
+#include "OpTempNetPresent.h"
 
 #include <iostream>
 #include <sstream>
@@ -294,6 +295,16 @@ Operator tempnetatperiods("atperiods",
                 OpTempNetAtperiods::TypeMap );
 
 /*
+Operator present
+
+*/
+Operator tempnetpresent("present",
+                OpTempNetPresent::Spec,
+                OpTempNetPresent::ValueMapping,
+                Operator::SimpleSelect,
+                OpTempNetPresent::TypeMap );
+
+/*
 Creating the Algebra
 
 */
@@ -327,6 +338,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetval);
     AddOperator(&tempnetinst);
     AddOperator(&tempnetatperiods);
+    AddOperator(&tempnetpresent);
 
   }
 
