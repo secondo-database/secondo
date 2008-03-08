@@ -110,10 +110,7 @@ Append node records, if neccessary (could only happen, if no records has been re
                     ++m_extPageCnt)
             {
                 m_supp->file()->AppendRecord(rec_no, rec);
-
-#ifdef GTAF_DEBUG
                 assert(rec_no == m_extensionId + m_extPageCnt);
-#endif
             }
         }
 
@@ -173,10 +170,7 @@ FileNode::get(SmiRecordId nodeId)
     if (m_node.defined())
         put();
 
-#ifdef GTAF_DEBUG
     assert(nodeId);
-
-#endif
 
     // read header page
     char headerBuf[PAGESIZE];
