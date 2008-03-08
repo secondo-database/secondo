@@ -1,4 +1,6 @@
 /*
+\newpage
+
 ----
 This file is part of SECONDO.
 
@@ -49,7 +51,8 @@ This file contains the "MTree"[4] class and some auxiliary structures.
 extern SecondoInterface* si;
 extern AlgebraManager* am;
 
-namespace mtreeAlgebra {
+namespace mtreeAlgebra
+{
 
 /*
 1.1 Struct "SearchBestPathEntry"[4]:
@@ -144,13 +147,13 @@ struct NNEntry
 };
 
 /********************************************************************
-1.1 Struct Header
+1.1 Struct "Header"[4]
 
 ********************************************************************/
 struct Header : public gtaf::Header
 {
     Header() :
-        gtaf::Header()
+        gtaf::Header(), initialized(false)
     {
         distfunName[0] = '\0';
         configName[0] = '\0';
@@ -159,10 +162,11 @@ struct Header : public gtaf::Header
     STRING_T distfunName; // name of the used metric
     STRING_T configName;  // name of the MTreeConfig object
     DistDataId dataId;    // id of the used distdata type
+    bool initialized;     // true, if the mtree has been initialized
 };
 
 /********************************************************************
-1.1 Class MTree
+1.1 Class "MTree"[4]
 
 ********************************************************************/
 class MTree : public gtaf::Tree<Header>
@@ -173,36 +177,36 @@ public:
 Default cConstructor, creates a new m-tree.
 
 */
-  MTree(bool temporary = false);
+    MTree(bool temporary = false);
 
 /*
 Constructor, opens an existing tree.
 
 */
-  MTree(const SmiFileId fileId);
+    MTree(const SmiFileId fileId);
 
 /*
 Default copy constructor
 
 */
-  MTree(const MTree& mtree);
+    MTree(const MTree& mtree);
 
 /*
 Destructor
 
 */
-  inline ~MTree()
-  {
-    if (splitpol)
-        delete splitpol;
-  }
+    inline ~MTree()
+    {
+        if (splitpol)
+            delete splitpol;
+    }
 
 /*
 Initializes a new created m-tree. This method must be called, before a new tree could be used.
 
 */
-  void initialize(DistDataId dataId, const string& distfunName,
-                  const string& configName);
+    void initialize(DistDataId dataId, const string& distfunName,
+                    const string& configName);
 
 /*
 Creates a new LeafEntry from "attr "[4] and inserts it into the mtree.
@@ -220,7 +224,7 @@ Creates a new LeafEntry from "data"[4] and inserts it into the mtree.
 Inserts a new entry into the mtree.
 
 */
-void insert(LeafEntry* entry, TupleId tupleId);
+    void insert(LeafEntry* entry, TupleId tupleId);
 
 
 /*
@@ -275,6 +279,13 @@ Returns the name of the assigned distance function.
     { return header.distfunName; }
 
 /*
+Returns the name of the assigned distdata type.
+
+*/
+    inline string dataName()
+    { return df_info.data().name(); }
+
+/*
 Returns the id of the assigned distdata type.
 
 */
@@ -292,33 +303,32 @@ Returns the name of the used "MTreeConfig"[4] object.
 Returns true, if the m-tree has already been initialized.
 
 */
-    inline bool isInitialized()
-    { return initialized; }
+    inline bool isInitialized() const
+    { return header.initialized; }
 
 private:
-  bool initialized;    // true, if the mtree has been initialized
-  Splitpol* splitpol;  // reference to chosen split policy
-  DistfunInfo df_info; // assigned DistfunInfo object
-  MTreeConfig config;  // assigned MTreeConfig object
+    Splitpol* splitpol;  // reference to chosen split policy
+    DistfunInfo df_info; // assigned DistfunInfo object
+    MTreeConfig config;  // assigned MTreeConfig object
 
 /*
 Adds prototypes for the avaliable node types.
 
 */
-  void registerNodePrototypes();
+    void registerNodePrototypes();
 
 /*
 Initializes distfunInfo splitpol objects and calls the "registerNodePrototypes" method. This method needs an initialized header to work.
 
 */
-  void initialize();
+    void initialize();
 
 /*
 Splits an node by applying the split policy defined in the MTreeConfing object.
 
 */
-  void split();
+    void split();
 }; // MTree
 
-} // namespace mtee_alg
+} // namespace mteeAlgebra
 #endif // ifdef __MTREE_H

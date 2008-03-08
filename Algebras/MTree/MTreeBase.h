@@ -1,4 +1,6 @@
 /*
+\newpage
+
 ----
 This file is part of SECONDO.
 

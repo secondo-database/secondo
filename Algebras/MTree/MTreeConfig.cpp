@@ -1,4 +1,6 @@
 /*
+\newpage
+
 ----
 This file is part of SECONDO.
 
@@ -44,6 +46,7 @@ Initialize static members :
 */
 bool MTreeConfigReg::initialized = false;
 map<string, MTreeConfig> MTreeConfigReg::configs;
+string MTreeConfigReg::defaultConfigName = "undef";
 
 
 /*
@@ -116,12 +119,10 @@ Create node configs
       internalPrio, minIntEntries, 80, minIntPages, maxIntPages);
 
 /*
-Add default config
+Set default config
 
 */
-  configs["default"] =  MTreeConfig(
-      defaultleafConfig, defaultinternalConfig,
-      M_LB_DIST, GENERALIZED_HYPERPLANE);
+  defaultConfigName = "mlbdistHP";
 
 /*
 Add config objects with unlimited entries per node.

@@ -1,4 +1,6 @@
 /*
+\newpage
+
 ----
 This file is part of SECONDO.
 
@@ -67,8 +69,7 @@ Default Constructor:
 
 */
 MTree::MTree(bool temporary) :
-        gtaf::Tree<Header>(temporary),
-        initialized(false), splitpol(false)
+        gtaf::Tree<Header>(temporary), splitpol(false)
 {
     registerNodePrototypes();
 
@@ -84,11 +85,11 @@ Constructor (load m-tree):
 
 */
 MTree::MTree(const SmiFileId fileId) :
-        gtaf::Tree<Header>(fileId),
-        initialized(false), splitpol(false)
+        gtaf::Tree<Header>(fileId), splitpol(false)
 {
     registerNodePrototypes();
-    initialize();
+    if (header.initialized)
+        initialize();
 }
 
 /*
@@ -98,7 +99,7 @@ Copy constructor:
 MTree::MTree(const MTree& mtree) :
         gtaf::Tree<Header>(mtree), splitpol(false)
 {
-    if (mtree.initialized)
+    if (mtree.isInitialized())
         initialize();
 }
 
@@ -135,11 +136,8 @@ MTree::initialize()
     splitpol = new Splitpol(
         config.promoteFun, config.partitionFun, df_info.distfun());
 
-    // enalble node cache
-    treeMngr->enableCache();
-
-    initialized = true;
-
+    if (nodeCacheEnabled)
+        treeMngr->enableCache();
 }
 
 /*
@@ -150,7 +148,7 @@ void
 MTree::initialize(DistDataId dataId, const string& distfunName,
                   const string& configName)
 {
-    if (initialized)
+    if (isInitialized())
         return;
 
     // copy values to header
@@ -159,6 +157,8 @@ MTree::initialize(DistDataId dataId, const string& distfunName,
     strcpy(header.configName, configName.c_str());
 
     initialize();
+
+    header.initialized = true;
 }
 
 /*
@@ -272,7 +272,7 @@ MTree::insert(Attribute* attr, TupleId tupleId)
 }
 
 /*
-Method ~intert~ ("DistData"[4] objects):
+Method ~insert~ ("DistData"[4] objects):
 
 */
 void
@@ -313,7 +313,7 @@ Method ~insert~ ("LeafEntry"[4] objects):
 void MTree::insert(LeafEntry* entry, TupleId tupleId)
 {
     #ifdef MTREE_DEBUG
-    assert(initialized);
+    assert(isInitialized());
     #endif
 
     #ifdef MTREE_PRINT_INSERT_INFO
@@ -324,9 +324,12 @@ void MTree::insert(LeafEntry* entry, TupleId tupleId)
                     << "entries: " << header.entryCount
                     << ", routing/leaf nodes: "
                     << header.internalCount << "/"
-                    << header.leafCount
-                    << ", cache used: "
-                    << treeMngr->cacheSize()/1024 << " kb";
+                    << header.leafCount;
+        if(nodeCacheEnabled)
+        {
+            cmsg.info() << ", cache used: "
+                        << treeMngr->cacheSize()/1024 << " kb";
+        }
         cmsg.send();
     }
     #endif
@@ -427,7 +430,7 @@ void MTree::rangeSearch(DistData* data,
                         list<TupleId>* results)
 {
   #ifdef MTREE_DEBUG
-  assert(initialized);
+  assert(isInitialized());
   #endif
 
   results->clear();

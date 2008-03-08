@@ -1,4 +1,6 @@
 /*
+\newpage
+
 ----
 This file is part of SECONDO.
 
@@ -50,8 +52,10 @@ All avaliable config objects are defined in the initialize function (file "MTree
 namespace mtreeAlgebra
 {
 
+const string CONFIG_DEFAULT("default");
+
 /*
-1.1 Struct ~MTreeConfig~ :
+1.1 Struct "MTreeConfig"[4] :
 
 */
 struct MTreeConfig
@@ -97,7 +101,7 @@ Constructor (creates objects with the given parameters).
 };
 
 /*
-1.1 Class MTreeConfigReg:
+1.1 Class "MTreeConfigReg"[4]:
 
 */
 class MTreeConfigReg
@@ -116,13 +120,26 @@ Returns true, if the specified "MTreeConfig"[4] object is defiend.
     static bool isDefined(const string& name);
 
 /*
-Registeres all "MTreeConfig" objects.
+Returns the name of the default mtree config.
+
+*/
+    static inline string defaultName()
+    {
+        if (!initialized)
+            initialize();
+
+        return defaultConfigName;
+    }
+
+/*
+Registeres all "MTreeConfig"[4] objects.
 
 */
     static void initialize();
 
 private:
     static map<string, MTreeConfig> configs;
+    static string defaultConfigName;
     static bool initialized;
 };
 

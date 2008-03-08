@@ -1,4 +1,6 @@
 /*
+\newpage
+
 ----
 This file is part of SECONDO.
 
@@ -52,7 +54,7 @@ extern AlgebraManager* am;
 namespace mtreeAlgebra {
 
 /********************************************************************
-1.2 Type constructor MTREE[4]
+1.1 Type constructor "MTREE"[4]
 
 ********************************************************************/
 static ListExpr
@@ -83,6 +85,8 @@ OutMTree(ListExpr type_Info, Word w)
                     NList(mtree->typeName(), true)),
                 NList(NList("metric:"),
                     NList(mtree->distfunName(), true)),
+                NList(NList("distdata type:"),
+                    NList(mtree->dataName(), true)),
                 NList(NList("mtree-config:"),
                     NList(mtree->configName(), true))));
 
@@ -122,7 +126,7 @@ DeleteMTree(const ListExpr type_Info, Word& w)
 {
     static_cast<MTree*>(w.addr)->deleteFile();
     delete static_cast<MTree*>(w.addr);
-      w.addr = 0;
+    w.addr = 0;
 }
 
 bool
@@ -178,7 +182,7 @@ SizeOfMTree()
 
 bool
 CheckMTree(ListExpr typeName, ListExpr &error_Info)
-{ return ( nl->IsEqual( typeName, MTREE ) ); }
+{ return nl->IsEqual(typeName, MTREE); }
 
 TypeConstructor
 mtreeTC(MTREE,       MTreeProp,
@@ -192,7 +196,7 @@ mtreeTC(MTREE,       MTreeProp,
         CheckMTree);
 
 /********************************************************************
-1.3 Operators
+1.1 Operators
 
 1.3.1 Value mappings
 
@@ -203,7 +207,7 @@ This value mapping function is used for all "createmtree"[4] operators, which ex
 It is designed as template function, which expects the count of arguments as template paremeter.
 
 ********************************************************************/
-template<unsigned char paramCnt> int
+template<unsigned paramCnt> int
         createmtreeRel_VM(Word* args, Word& result, int message,
                           Word& local, Supplier s)
 {
@@ -233,11 +237,6 @@ template<unsigned char paramCnt> int
     DistDataId id = DistDataReg::getDataId(typeName, dataName);
     mtree->initialize(id, distfunName, configName);
 
-    #ifdef MT_PRINT_INSERT_INFO
-    cmsg.info() << endl << endl;
-    cmsg.send();
-    #endif
-
     Tuple* tuple;
     GenericRelationIterator* iter = relation->MakeScan();
     while ((tuple = iter->GetNextTuple()) != 0)
@@ -251,30 +250,27 @@ template<unsigned char paramCnt> int
     }
     delete iter;
 
-    #ifdef MT_PRINT_INSERT_INFO
-    cmsg.info() << endl << endl;
-    cmsg.send();
+    #ifdef MTREE_PRINT_INSERT_INFO
+    cout << endl;
     #endif
 
     return 0;
 }
 
 /********************************************************************
-1.3.1.2 createmtreeRel[_]VM
+1.3.1.2 createmtreeStream[_]VM
 
-This value mapping function is used for all "createmtree"[4] operators, which expect a tupe stream and non-distdata attributes.
+This value mapping function is used for all "createmtree"[4] operators, which expect a tupel stream and non-distdata attributes.
 
 It is designed as template function, which expects the count of arguments as template paremeter.
 
 ********************************************************************/
-template<unsigned char paramCnt> int
+template<unsigned paramCnt> int
 createmtreeStream_VM(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
     result = qp->ResultStorage(s);
-
-    MTree* mtree =
-        static_cast<MTree*>(result.addr);
+    MTree* mtree = static_cast<MTree*>(result.addr);
 
     void* stream =
         static_cast<Relation*>(args[0].addr);
@@ -297,11 +293,6 @@ createmtreeStream_VM(Word* args, Word& result, int message,
     DistDataId id = DistDataReg::getDataId(typeName, dataName);
     mtree->initialize(id, distfunName, configName);
 
-    #ifdef MT_PRINT_INSERT_INFO
-    cmsg.info() << endl << endl;
-    cmsg.send();
-    #endif
-
     Word wTuple;
     qp->Open(stream);
     qp->Request(stream, wTuple);
@@ -318,9 +309,8 @@ createmtreeStream_VM(Word* args, Word& result, int message,
     }
     qp->Close(stream);
 
-    #ifdef MT_PRINT_INSERT_INFO
-    cmsg.info() << endl << endl;
-    cmsg.send();
+    #ifdef MTREE_PRINT_INSERT_INFO
+    cout << endl;
     #endif
 
     return 0;
@@ -334,13 +324,12 @@ This value mapping function is used for all "createmtree"[4] operators, which ex
 It is designed as template function, which expects the count of arguments as template paremeter.
 
 ********************************************************************/
-template<unsigned char paramCnt> int
+template<unsigned paramCnt> int
 createmtreeDDRel_VM(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
     result = qp->ResultStorage(s);
-    MTree* mtree =
-        static_cast<MTree*>(result.addr);
+    MTree* mtree = static_cast<MTree*>(result.addr);
 
     Relation* relation =
         static_cast<Relation*>(args[0].addr);
@@ -354,60 +343,103 @@ createmtreeDDRel_VM(Word* args, Word& result, int message,
     string configName =
         static_cast<CcString*>(args[paramCnt+2].addr)->GetValue();
 
-    #ifdef MT_PRINT_INSERT_INFO
-    cmsg.info() << endl << endl;
-    cmsg.send();
-    #endif
-
     Tuple* tuple;
     GenericRelationIterator* iter = relation->MakeScan();
+
+    DistDataId id;
     while ((tuple = iter->GetNextTuple()))
     {
         DistDataAttribute* attr = static_cast<DistDataAttribute*>(
-                                     tuple->GetAttribute(attrIndex));
+                tuple->GetAttribute(attrIndex));
+
         if(attr->IsDefined())
         {
-            if (!mtree->isInitialized())
+            if (mtree->isInitialized())
             {
-                DistDataId id = attr->distdataId();
-                DistDataInfo info = DistDataReg::getInfo(id);
-                string typeName = info.typeName();
-
-                if (distfunName == DFUN_DEFAULT)
-                distfunName = DistfunReg::defaultName(typeName);
-
-                if (!DistfunReg::isDefined(distfunName, id))
+                if(attr->distdataId() != id)
                 {
-                    const string seperator = "\n" +
-                                              string(70, '-') + "\n";
+                    const string seperator =
+                            "\n" + string(70, '-') + "\n";
                     cmsg.error()
-                    << seperator << "Operator createmtree: " << endl
-                    << "Distance function \"" << distfunName
-                    << "\" for type \""
-                    << typeName << "\" is not defined!" << endl
-                    << "Defined distance functions: " << endl << endl
-                    << DistfunReg::definedNames(typeName)
-                    << seperator << endl;
+                        << seperator
+                        << "Operator createmtree: " << endl
+                        << "Got distdata attributes of different "
+                        << "types!" << endl << "(type constructor "
+                        << "or distdata type are not equal)"
+                        << seperator << endl;
                     cmsg.send();
                     tuple->DeleteIfAllowed();
                     delete iter;
                     return CANCEL;
                 }
-                mtree->initialize(
-                    attr->distdataId(), distfunName, configName);
             }
+            else
+            {  // initialize mtree
+                id = attr->distdataId();
+                DistDataInfo info = DistDataReg::getInfo(id);
+                string dataName = info.name();
+                string typeName = info.typeName();
+
+                if (distfunName == DFUN_DEFAULT)
+                {
+                    distfunName = DistfunReg::defaultName(typeName);
+                }
+
+                // check if distance function is defined
+                if (!DistfunReg::isDefined(distfunName, id))
+                {
+                    const string seperator =
+                            "\n" + string(70, '-') + "\n";
+                    cmsg.error()
+                        << seperator
+                        << "Operator createmtree: " << endl
+                        << "Distance function \"" << distfunName
+                        << "\" for type \"" << typeName
+                        << "\" is not defined!" << endl
+                        << "Defined distance functions: " << endl
+                        << endl
+                        << DistfunReg::definedNames(typeName)
+                        << seperator << endl;
+                    cmsg.send();
+                    tuple->DeleteIfAllowed();
+                    delete iter;
+                    return CANCEL;
+                }
+
+                if (!DistfunReg::getInfo(
+                        distfunName, typeName, dataName).isMetric())
+                {
+                    const string seperator =
+                            "\n" + string(70, '-') + "\n";
+                    cmsg.error()
+                        << seperator
+                        << "Operator createmtree: " << endl
+                        << "Distance function \"" << distfunName
+                        << "\" with \"" << dataName
+                        << "\" data for type" << endl
+                        << "\"" << typeName << "\" is no metric!"
+                        << seperator << endl;
+                    cmsg.send();
+                    tuple->DeleteIfAllowed();
+                    delete iter;
+                    return CANCEL;
+                }
+
+                mtree->initialize(
+                        attr->distdataId(), distfunName, configName);
+            }
+
+            // insert attribute into mtree
             DistData* data =
                     new DistData(attr->size(), attr->value());
-
             mtree->insert(data, tuple->GetTupleId());
         }
         tuple->DeleteIfAllowed();
     }
     delete iter;
 
-    #ifdef MT_PRINT_INSERT_INFO
-    cmsg.info() << endl << endl;
-    cmsg.send();
+    #ifdef MTREE_PRINT_INSERT_INFO
+    cout << endl;
     #endif
 
     return 0;
@@ -416,20 +448,18 @@ createmtreeDDRel_VM(Word* args, Word& result, int message,
 /********************************************************************
 1.3.1.4 createmtreeDDStream[_]VM
 
-This value mapping function is used for all "createmtree"[4] operators, which expect a tupe stream and distdata attributes.
+This value mapping function is used for all "createmtree"[4] operators, which expect a tupel stream and distdata attributes.
 
 It is designed as template function, which expects the count of arguments as template paremeter.
 
 
 ********************************************************************/
-template<unsigned char paramCnt> int
+template<unsigned paramCnt> int
 createmtreeDDStream_VM(Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
     result = qp->ResultStorage(s);
-
-    MTree* mtree =
-        static_cast<MTree*>(result.addr);
+    MTree* mtree = static_cast<MTree*>(result.addr);
 
     void* stream =
         static_cast<Relation*>(args[0].addr);
@@ -443,30 +473,92 @@ createmtreeDDStream_VM(Word* args, Word& result, int message,
     string configName =
         static_cast<CcString*>(args[paramCnt+2].addr)->GetValue();
 
-    #ifdef MT_PRINT_INSERT_INFO
-    cmsg.info() << endl << endl;
-    cmsg.send();
-    #endif
-
+    DistDataId id;
     Word wTuple;
     qp->Open(stream);
     qp->Request(stream, wTuple);
     while (qp->Received(stream))
     {
         Tuple* tuple = static_cast<Tuple*>(wTuple.addr);
-        DistDataAttribute* attr =
-            static_cast<DistDataAttribute*>(tuple->GetAttribute(attrIndex));
+        DistDataAttribute* attr = static_cast<DistDataAttribute*>(
+                                     tuple->GetAttribute(attrIndex));
         if(attr->IsDefined())
         {
-            if (!mtree->isInitialized())
+            if (mtree->isInitialized())
             {
-//         int algebraId = attr->algebraId();
-//         int typeId = attr->typeId();
-//         int distfunId = attr->distfunId();
-//         mtree->initialize(algebraId, typeId, distfunId, configName);
+                if(attr->distdataId() != id)
+                {
+                    const string seperator =
+                            "\n" + string(70, '-') + "\n";
+                    cmsg.error()
+                        << seperator
+                        << "Operator createmtree: " << endl
+                        << "Got distdata attributes of different "
+                        << "types!" << endl << "(type constructor "
+                        << "or distdata type are not equal)"
+                        << seperator << endl;
+                    cmsg.send();
+                    tuple->DeleteIfAllowed();
+                    return CANCEL;
+                }
+            }
+            else
+            {  // initialize mtree
+                id = attr->distdataId();
+                DistDataInfo info = DistDataReg::getInfo(id);
+                string dataName = info.name();
+                string typeName = info.typeName();
+
+                if (distfunName == DFUN_DEFAULT)
+                {
+                    distfunName = DistfunReg::defaultName(typeName);
+                }
+
+                // check if distance function is defined
+                if (!DistfunReg::isDefined(distfunName, id))
+                {
+                    const string seperator =
+                            "\n" + string(70, '-') + "\n";
+                    cmsg.error()
+                        << seperator
+                        << "Operator createmtree: " << endl
+                        << "Distance function \"" << distfunName
+                        << "\" for type \"" << typeName
+                        << "\" is not defined!" << endl
+                        << "Defined distance functions: " << endl
+                        << endl
+                        << DistfunReg::definedNames(typeName)
+                        << seperator << endl;
+                    cmsg.send();
+                    tuple->DeleteIfAllowed();
+                    return CANCEL;
+                }
+
+                if (!DistfunReg::getInfo(
+                        distfunName, typeName, dataName).isMetric())
+                {
+                    const string seperator =
+                            "\n" + string(70, '-') + "\n";
+                    cmsg.error()
+                        << seperator
+                        << "Operator createmtree: " << endl
+                        << "Distance function \"" << distfunName
+                        << "\" with \"" << dataName
+                        << "\" data for type" << endl
+                        << "\"" << typeName << "\" is no metric!"
+                        << seperator << endl;
+                    cmsg.send();
+                    tuple->DeleteIfAllowed();
+                    return CANCEL;
+                }
+
+                mtree->initialize(
+                        attr->distdataId(), distfunName, configName);
             }
 
-            DistData* data = new DistData(attr->size(), attr->value());
+            // insert attribute into mtree
+            DistData* data =
+                    new DistData(attr->size(), attr->value());
             mtree->insert(data, tuple->GetTupleId());
         }
         tuple->DeleteIfAllowed();
@@ -475,9 +567,8 @@ createmtreeDDStream_VM(Word* args, Word& result, int message,
 
     qp->Close(stream);
 
-    #ifdef MT_PRINT_INSERT_INFO
-    cmsg.info() << endl << endl;
-    cmsg.send();
+    #ifdef MTREE_PRINT_INSERT_INFO
+    cout << endl;
     #endif
 
     return 0;
@@ -560,10 +651,10 @@ rangesearch_VM(Word* args, Word& result, int message,
       {
         const string seperator = "\n" + string(70, '-') + "\n";
         cmsg.error() << seperator
-            << "Operator rangesearch got an \"" << typeName
-            << "\" attribute, but the mtree contains \""
-            << mtree->typeName() << "\" attriubtes!"
-            << seperator << endl;
+            << "Operator rangesearch:" << endl
+            << "Got an \"" << typeName << "\" attribute, but the "
+            << "mtree contains \"" << mtree->typeName()
+            << "\" attriubtes!" << seperator << endl;
         cmsg.send();
         return CANCEL;
       }
@@ -634,27 +725,16 @@ rangesearchDD_VM(Word* args, Word& result, int message,
       string typeName =
           static_cast<CcString*>(args[4].addr)->GetValue();
 
-//       int algebraId = ddAttr->algebraId();
-//       int typeId = ddAttr->typeId();
-//       int distfunId = ddAttr->distfunId();
-//       if ((algebraId != mtree->algebraId()) ||
-//           (typeId != mtree->typeId()))
-//       {
-//         cmsg.error()
-//           << "Operator rangesearch: distdata attribute type does "
-//           << "not match the type of the mtree!" << endl;
-//         cmsg.send();
-//         return CANCEL;
-//       }
-//
-//       if (distfunId != mtree->distfunId())
-//       {
-//         cmsg.error()
-//           << "Operator rangesearch: distdata distance function does "
-//           << "not match the distance function of the mtree!" << endl;
-//         cmsg.send();
-//         return CANCEL;
-//       }
+      if (attr->distdataId() != mtree->dataId())
+      {
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+          << "Operator rangesearch:" << endl
+          << "Distdata attribute type does not match the type of "
+          << "the mtree!" << seperator << endl;
+        cmsg.send();
+        return CANCEL;
+      }
 
       DistData* data = new DistData(attr->size(), attr->value());
       mtree->rangeSearch(data, searchRad, info->results);
@@ -767,9 +847,12 @@ nnsearch_VM(Word* args, Word& result, int message,
 
       if (mtree->typeName() != typeName)
       {
-        cmsg.error()
-          << "Operator nnsearch: attribute type does "
-          << "not match the type of the mtree!" << endl;
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+            << "Operator nnsearch:" << endl
+            << "Got an \"" << typeName << "\" attribute, but the "
+            << "mtree contains \"" << mtree->typeName()
+            << "\" attriubtes!" << seperator << endl;
         cmsg.send();
         return CANCEL;
       }
@@ -829,40 +912,29 @@ nnsearchDD_VM(Word* args, Word& result, int message,
           static_cast<Relation*>(args[1].addr));
       local = SetWord(info);
 
-      DistDataAttribute* ddAttr =
+      DistDataAttribute* attr =
           static_cast<DistDataAttribute*>(args[2].addr);
 
       int nncount = ((CcInt*)args[3].addr)->GetValue();
 
 
-//       int algebraId = ddAttr->algebraId();
-//       int typeId = ddAttr->typeId();
-//       int distfunId = ddAttr->distfunId();
-//       if ((algebraId != mtree->algebraId()) ||
-//           (typeId != mtree->typeId()))
-//       {
-//         cmsg.error()
-//           << "Operator nnsearch: distdata attribute type does "
-//           << "not match the type of the mtree!" << endl;
-//         cmsg.send();
-//         return CANCEL;
-//       }
-//
-//       if (distfunId != mtree->distfunId())
-//       {
-//         cmsg.error()
-//           << "Operator nnsearch: distdata distance function does "
-//           << "not match the distance function of the mtree!" << endl;
-//         cmsg.send();
-//         return CANCEL;
-//       }
-//
-//       DistData* data = new DistData(ddAttr->size(), ddAttr->value());
-//       mtree->nnSearch(data, nncount, info->results);
-//       info->initResultIterator();
-//
-//       assert(info->relation != 0);
-//       return 0;
+      if (attr->distdataId() != mtree->dataId())
+      {
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+          << "Operator nnsearch:" << endl
+          << "Distdata attribute type does not match the type of "
+          << "the mtree!" << seperator << endl;
+        cmsg.send();
+        return CANCEL;
+      }
+
+      DistData* data = new DistData(attr->size(), attr->value());
+      mtree->nnSearch(data, nncount, info->results);
+      info->initResultIterator();
+
+      assert(info->relation != 0);
+      return 0;
     }
 
     case REQUEST :
@@ -899,25 +971,35 @@ nnsearchDD_VM(Word* args, Word& result, int message,
 
 1.3.2.1 createmtree[_]TM
 
+relation/tuple stream x attribute name -> mtree (op. createmtree)
+
+relation/tuple stream x attribute name x
+config name x distfun name -> mtree (op. createmtree2)
+
+relation/tuple stream x attribute name x
+config name x distfun name x distdata type -> mtree (op. createmtree3)
+
 ********************************************************************/
-ListExpr
-createmtree_TM(ListExpr args)
+template<unsigned paramCnt>
+ListExpr createmtree_TM(ListExpr args)
 {
     // initialize distance functions and distdata types
     if (!DistfunReg::isInitialized())
         DistfunReg::initialize();
 
+    stringstream paramCntErr;
     string errmsg;
     bool cond;
     NList nl_args(args);
 
-    errmsg = "Expecting two arguments.";
-    CHECK_COND(nl_args.length() == 2, errmsg);
+    paramCntErr << "Expecting " << paramCnt << " arguments.";
+    cond = nl_args.length() == paramCnt;
+    CHECK_COND(cond, paramCntErr.str());
 
     NList arg1 = nl_args.first();
     NList arg2 = nl_args.second();
 
-    // check first argument (should be relation or stream)
+    // check first argument (should be relation or tuple stream)
     NList attrs;
     cond = (arg1.checkRel(attrs) || arg1.checkStreamTuple(attrs));
     errmsg = "Expecting a relation or tuple stream as first "
@@ -933,257 +1015,144 @@ createmtree_TM(ListExpr args)
     // check, if attribute can be found in attribute list
     string attrName = arg2.str();
     errmsg = "Attribute name '" + attrName + "' is not known.\n"
-            "Known Attribute(s):\n" + attrs.convertToString();
+             "Known Attribute(s):\n" + attrs.convertToString();
     ListExpr attrTypeLE;
     int attrIndex = FindAttribute(
-        attrs.listExpr(), attrName, attrTypeLE);
+            attrs.listExpr(), attrName, attrTypeLE);
     CHECK_COND(attrIndex > 0, errmsg);
     NList attrType (attrTypeLE);
     string typeName = attrType.str();
 
-    // check if default mtree-config object exists
-    errmsg = "Missing default mtree-config object.";
-    string configName = "default";
-    cond = MTreeConfigReg::isDefined(configName);
-    CHECK_COND(cond, errmsg);
+    // select config name
+    string configName;
+    if (paramCnt >= 3)
+    {  // type mapping for createmtree2 and createmtree3
+        NList arg3 = nl_args.third();
+        errmsg = "Expecting the name of an existing mtree config "
+                 "or '" + CONFIG_DEFAULT + "\" as third argument.";
+        CHECK_COND(arg3.isSymbol(), errmsg);
+        configName = arg3.str();
+    }
+    else
+    {  // type mapping for createmtree
+        configName = CONFIG_DEFAULT;
+    }
 
-    if (typeName == DISTDATA)
+    // check, if selected config name is defined
+    if (configName == CONFIG_DEFAULT)
     {
-        string distfunName = DFUN_DEFAULT;
-        NList res1(APPEND);
-        NList res2;
-        res2.append(NList(attrIndex - 1));
-        res2.append(NList(distfunName, true));
-        res2.append(NList(configName, true));
-        NList mtree(MTREE); 
-        NList res3(mtree, arg1.second());
-        NList result(res1, res2, res3);
-        return result.listExpr();
+        configName = MTreeConfigReg::defaultName();
+        errmsg = "Default config (\"" + configName +
+                 "\") not defined!";
     }
     else
     {
-        string distfunName = DistfunReg::defaultName(typeName);
-        string dataName = DistDataReg::defaultName(typeName);
-        if (distfunName == DFUN_UNDEFINED)
-        {
-            errmsg =
-                "No default distance function defined for type \""
-                + typeName + "\"!" + " Defined names: \n\n" +
-                distfunName;
-            CHECK_COND(false, errmsg);
-        }
+        errmsg = "Config \"" + configName + "\" not defined!";
+    }
+    CHECK_COND(MTreeConfigReg::isDefined(configName), errmsg);
 
-    // check if default distance function is a metric
-    errmsg = "The default distance function for type \"" +
-           typeName + "\" is no metric!";
-    cond = DistfunReg::
-            getInfo(distfunName, typeName, dataName).isMetric();
-    CHECK_COND(cond, errmsg);
+    // select distfun name
+    string distfunName;
+    if (paramCnt >= 4)
+    {  // type mapping for createmtree2 and createmtree3
+        NList arg4 = nl_args.fourth();
+        errmsg = "Expecting the name of an existing distance function "
+                 "or '" + DFUN_DEFAULT + "\" as fourth argument.";
+        CHECK_COND(arg4.isSymbol(), errmsg);
+        distfunName = arg4.str();
+    }
+    else
+    {  // type mapping for createmtree
+        distfunName = DFUN_DEFAULT;
+    }
 
+    if (typeName == DISTDATA)
+    {
         NList res1(APPEND);
         NList res2;
         res2.append(NList(attrIndex - 1));
-        res2.append(NList(typeName, true));
         res2.append(NList(distfunName, true));
-        res2.append(NList(dataName, true));
         res2.append(NList(configName, true));
-        NList mtree(MTREE); 
-        NList res3(mtree, arg1.second());
+        NList res3(MTREE);
         NList result(res1, res2, res3);
-
         return result.listExpr();
     }
-}
 
-/********************************************************************
-1.3.2.2 createmtree2[_]TM
+    // *** typeName != DISTDATA ***
 
-********************************************************************/
-ListExpr
-createmtree2_TM(ListExpr args)
-{
-    CHECK_COND(false, "operator not yet adapted to new structure");
+    // select distdata type
+    string dataName;
+    if (paramCnt == 5)
+    { // type mapping for createmtree3
+        NList arg5 = nl_args.fifth();
+        errmsg = "Expecting the name of an existing distdata type "
+                 "or '" + DDATA_DEFAULT + "\" as fifth argument.";
+        CHECK_COND(arg5.isSymbol(), errmsg);
+        dataName = arg5.str();
+    }
+    else
+    { // type mapping for createmtree1 and createmtree2
+        dataName = DistDataReg::defaultName(typeName);
+    }
 
-    // initialize distance functions and distdata types
-    if (!DistfunReg::isInitialized())
-        DistfunReg::initialize();
+    // check, if selected distance function with selected distdata
+    // type is defined
+    if (dataName == DDATA_DEFAULT)
+    {
+        errmsg = "No default distdata type defined for type \"" +
+                 typeName + "\"!";
+        dataName = DistDataReg::defaultName(typeName);
+        CHECK_COND(dataName != DDATA_UNDEFINED, errmsg);
+    }
+    else if(!DistDataReg::isDefined(typeName, dataName))
+    {
+        errmsg = "Distdata type \"" + dataName + "\" for type \"" +
+                 typeName + "\" is not defined! Defined names: \n\n" +
+                 DistDataReg::definedNames(typeName);
+        CHECK_COND(false, errmsg);
+    }
 
-    string errmsg;
-    bool cond;
-    NList nl_args(args);
+    if (distfunName == DFUN_DEFAULT)
+    {
+        distfunName = DistfunReg::defaultName(typeName);
+        errmsg = "No default distance function defined for type \""
+            + typeName + "\"!";
+        CHECK_COND(distfunName != DFUN_UNDEFINED, errmsg);
+    }
+    else
+    { // search distfun
+        if (!DistfunReg::isDefined(
+                distfunName, typeName, dataName))
+        {
+            errmsg = "Distance function \"" + distfunName +
+                     "\" not defined for type \"" +
+                     typeName + "\" and data type \"" +
+                     dataName + "\"! Defined names: \n\n" +
+                     DistfunReg::definedNames(typeName);
+            CHECK_COND(false, errmsg);
+        }
+    }
 
-    errmsg = "Expecting three arguments.";
-    CHECK_COND(nl_args.length() == 3, errmsg);
-
-    NList arg1 = nl_args.first();
-    NList arg2 = nl_args.second();
-    NList arg3 = nl_args.third();
-
-    // check first argument (should be relation or stream)
-    NList attrs;
-    cond = (arg1.checkRel(attrs) || arg1.checkStreamTuple(attrs));
-    errmsg = "Expecting a relation or tuple stream as first argument, "
-            "but got a list with structure '" +
-            arg1.convertToString() + "'.";
+    // check if selected distance function is a metric
+    errmsg = "Distance function \"" + distfunName +
+             "\" with \"" + dataName + "\" data for type \"" +
+             typeName + "\" is no metric!";
+    cond = DistfunReg::getInfo(
+            distfunName, typeName, dataName).isMetric();
     CHECK_COND(cond, errmsg);
 
-    // check, if second argument is the name of an existing attribute
-    errmsg = "Expecting the name of an existing attribute as second "
-            "argument, but got '" + arg2.convertToString() + "'.";
-    CHECK_COND(arg2.isSymbol(), errmsg);
+    // generate result list
+    NList res1(APPEND);
+    NList res2;
+    res2.append(NList(attrIndex - 1));
+    res2.append(NList(typeName, true));
+    res2.append(NList(distfunName, true));
+    res2.append(NList(dataName, true));
+    res2.append(NList(configName, true));
+    NList res3(MTREE);
+    NList result(res1, res2, res3);
 
-    // check, if attribute can be found in attribute list
-    string attrName = arg2.str();
-    errmsg = "Attribute name '" + attrName + "' is not known.\n"
-            "Known Attribute(s):\n" + attrs.convertToString();
-    ListExpr attrTypeLE;
-    int attrIndex = FindAttribute(
-        attrs.listExpr(), attrName, attrTypeLE);
-    CHECK_COND(attrIndex > 0, errmsg);
-    NList attrType (attrTypeLE);
-    string typeName = attrType.str();
-
-    // check if the mtree-config given in third argument is defined
-    errmsg = "Expecting the name of a registered mtree-config object "
-            "as third argument, but got a list with structure '" +
-            arg3.convertToString() + "'.";
-    CHECK_COND(arg3.isSymbol(), errmsg);
-    string configName = arg3.str();
-    errmsg = "MTreeConfig \"" + configName + "\" not defined.";
-    cond = MTreeConfigReg::isDefined(configName);
-    CHECK_COND(cond, errmsg);
-
-//   if (typeName != DISTDATA)
-//   {
-//     // check if default distance function exists
-//     errmsg = "No default distance function defined for type \"" +
-//              typeName + "\"!";
-//     string dfName;
-//     CHECK_COND(Distfuns::DistfunReg::(typeName, dfName), errmsg);
-//
-//     // check if default distance function is a metric
-//     errmsg = "The default distance function for type \"" +
-//            typeName + "\" is not a metric.";
-//     cond = Distfuns::getDistfunData(typeName, dfName).isMetric();
-//     CHECK_COND(cond, errmsg);
-//
-//    // create result list
-//     NList result (
-//         NList(APPEND),
-//         NList(
-//           attrIndex - 1,
-//           NList (typeName, true),
-//           NList (configName, true),
-//           NList (dfName, true)),
-//         NList(NList(MTREE), arg1.second()));
-//     return result.listExpr();
-//   }
-//   else
-//   {
-//     // create result list
-//     NList result (
-//         NList(APPEND),
-//         NList(
-//           attrIndex - 1,
-//           NList (configName, true)),
-//         NList(NList(MTREE), arg1.second()));
-//     return result.listExpr();
-//   }
-}
-
-/********************************************************************
-1.3.2.3 createmtree3[_]TM
-
-********************************************************************/
-ListExpr
-createmtree3_TM(ListExpr args)
-{
-    CHECK_COND(false, "operator not yet adapted to new structure");
-
-    // initialize distance functions and distdata types
-    if (!DistfunReg::isInitialized())
-        DistfunReg::initialize();
-
-    string errmsg;
-    bool cond;
-    NList nl_args(args);
-
-    errmsg = "Expecting four arguments.";
-    CHECK_COND(nl_args.length() == 4, errmsg);
-
-    NList arg1 = nl_args.first();
-    NList arg2 = nl_args.second();
-    NList arg3 = nl_args.third();
-    NList arg4 = nl_args.fourth();
-
-    // check first argument (should be relation or stream)
-    NList attrs;
-    cond = (arg1.checkRel(attrs) || arg1.checkStreamTuple(attrs));
-    errmsg = "Expecting a relation or tuple stream as first argument, "
-            "but got a list with structure '" +
-            arg1.convertToString() + "'.";
-    CHECK_COND(cond, errmsg);
-
-    // check, if second argument is the name of an existing attribute
-    errmsg = "Expecting the name of an existing attribute as second "
-            "argument, but got '" + arg2.convertToString() + "'.";
-    CHECK_COND(arg2.isSymbol(), errmsg);
-
-    // check, if attribute can be found in attribute list
-    string attrName = arg2.str();
-    errmsg = "Attribute name '" + attrName + "' is not known.\n"
-            "Known Attribute(s):\n" + attrs.convertToString();
-    ListExpr attrTypeLE;
-    int attrIndex = FindAttribute(
-        attrs.listExpr(), attrName, attrTypeLE);
-    CHECK_COND(attrIndex > 0, errmsg);
-    NList attrType (attrTypeLE);
-    string typeName = attrType.str();
-
-    // check if the mtree-config given in third argument is defined
-    errmsg = "Expecting the name of a registered mtree-config object "
-            "as third argument, but got a list with structure '" +
-            arg3.convertToString() + "'.";
-    CHECK_COND(arg3.isSymbol(), errmsg);
-    string configName = arg3.str();
-    errmsg = "MTreeConfig \"" + configName + "\" not defined.";
-    cond = MTreeConfigReg::isDefined(configName);
-    CHECK_COND(cond, errmsg);
-
-//   // check if the distance function given in third arg. is defined
-//   errmsg = "Expeciting the name of a registered metric as fourth "
-//            "argument, but got a list with structure '" +
-//            arg4.convertToString() + "'.";
-//   CHECK_COND(arg4.isSymbol(), errmsg);
-//   string dfName = arg4.str();
-//   if (dfName == "default")
-//   {
-//     errmsg = "No default distance function defined for type \"" +
-//              typeName + "\"!";
-//     CHECK_COND(Distfuns::DistfunReg::(typeName, dfName), errmsg);
-//   }
-//
-//   errmsg = "Distfun " + dfName + " for type \"" +
-//            typeName + "\" not defined!";
-//   cond = Distfuns::getDistfunData(typeName, dfName).isDefined();
-//   CHECK_COND(cond, errmsg);
-//
-//   // check if default distance function is a metric
-//   errmsg = "The default distance function for type \"" +
-//            typeName + "\" is not a metric.";
-//   cond = Distfuns::getDistfunData(typeName, dfName).isMetric();
-//   CHECK_COND(cond, errmsg);
-//
-//   // create result list
-//   NList result (
-//       NList(APPEND),
-//       NList(
-//         attrIndex - 1,
-//         NList (typeName, true),
-//         NList (configName, true),
-//         NList (dfName, true)),
-//       NList(NList(MTREE), arg1.second()));
-//   return result.listExpr();
+    return result.listExpr();
 }
 
 /********************************************************************
@@ -1198,7 +1167,6 @@ rangesearch_TM(ListExpr args)
         DistfunReg::initialize();
 
   string errmsg;
-  bool cond;
   NList nl_args(args);
 
   errmsg = "Operator range expects four arguments.";
@@ -1210,13 +1178,8 @@ rangesearch_TM(ListExpr args)
   NList arg4 = nl_args.fourth();
 
   // check first argument (should be a mtree)
-  cond = !(arg1.isAtom()) && (arg1.length() == 2) &&
-         arg1.first().isEqual(MTREE) &&
-         arg1.second().first().isEqual(TUPLE) &&
-         IsTupleDescription(arg1.second().second().listExpr());
-  errmsg = "Expecting a mtree as first argument, but got '" +
-           arg1.convertToString() + "'.";
-  CHECK_COND(cond , errmsg);
+  errmsg = "Expecting a mtree as first argument!";
+  CHECK_COND(arg1.isEqual(MTREE), errmsg);
 
   // check second argument (should be relation)
   NList attrs;
@@ -1249,10 +1212,9 @@ nnsearch_TM(ListExpr args)
         DistfunReg::initialize();
 
   string errmsg;
-  bool cond;
   NList nl_args(args);
 
-  errmsg = "Operator nnsearch expects three arguments.";
+  errmsg = "Operator nnsearch expects four arguments.";
   CHECK_COND(nl_args.length() == 4, errmsg);
 
   NList arg1 = nl_args.first();
@@ -1261,13 +1223,8 @@ nnsearch_TM(ListExpr args)
   NList arg4 = nl_args.fourth();
 
   // check first argument (should be a mtree)
-  cond = !(arg1.isAtom()) && (arg1.length() == 2) &&
-         arg1.first().isEqual(MTREE) &&
-         arg1.second().first().isEqual(TUPLE) &&
-         IsTupleDescription(arg1.second().second().listExpr());
-  errmsg = "Expecting a mtree as first argument, but got '" +
-           arg1.convertToString() + "'.";
-  CHECK_COND(cond, errmsg);
+  errmsg = "Expecting a mtree as first argument!";
+  CHECK_COND(arg1.isEqual(MTREE), errmsg);
 
   // check second argument (should be relation)
   NList attrs;
@@ -1363,15 +1320,17 @@ ValueMapping createmtree_Map[] = {
 };
 
 ValueMapping createmtree2_Map[] = {
-    createmtreeRel_VM<3>,
-    createmtreeStream_VM<3>,
-    createmtreeDDRel_VM<3>,
-    createmtreeDDStream_VM<3>
+    createmtreeRel_VM<4>,
+    createmtreeStream_VM<4>,
+    createmtreeDDRel_VM<4>,
+    createmtreeDDStream_VM<4>
 };
 
 ValueMapping createmtree3_Map[] = {
-    createmtreeRel_VM<4>,
-    createmtreeStream_VM<4>,
+    createmtreeRel_VM<5>,
+    createmtreeStream_VM<5>,
+    createmtreeDDRel_VM<5>,
+    createmtreeDDStream_VM<5>
 };
 
 ValueMapping rangesearch_Map[] = {
@@ -1395,8 +1354,7 @@ struct createmtree_Info : OperatorInfo
         name = "createmtree";
         signature =
         "(<text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
-        " metricName, xi) ->"
-        " (mtree (tuple ((x1 t1)...(xn tn))) ti)";
+        " metricName, xi) -> mtree";
         syntax = "_ createmtree [_]";
         meaning =
             "creates a new mtree from relation or tuple stream in arg1\n"
@@ -1413,13 +1371,12 @@ struct createmtree2_Info : OperatorInfo
         name = "createmtree2";
         signature =
         "(<text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
-        " metricName, xi) ->"
-        " (mtree (tuple ((x1 t1)...(xn tn))) ti)";
+        " metricName, xi) -> mtree";
         syntax = "_ createmtree2 [_, _, _]";
         meaning =
             "creates a new mtree from relation or tuple stream in arg1\n"
             "arg2 must be the name of the attribute in arg1, "
-            "which should be indexed by the mtree\n";
+            "which should be indexed by the mtree\n"
             "arg3 must be the name of a registered mtree-config\n"
             "arg4 must be the name of a registered metric";
         example = "pictures createmtree2 [Pic, mlbdistHP, quadr]";
@@ -1433,13 +1390,12 @@ struct createmtree3_Info : OperatorInfo
         name = "createmtree3";
         signature =
         "(<text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
-        " metric, mtreeconfig, xi) ->"
-        " (mtree (tuple ((x1 t1)...(xn tn))) ti)";
+        "metric, mtreeconfig, xi) -> mtree";
         syntax = "_ createmtree3 [_, _, _, _]";
         meaning =
             "creates a new mtree from relation or tuple stream in arg1\n"
             "arg2 must be the name of the attribute in arg1, "
-            "which should be indexed by the mtree\n";
+            "which should be indexed by the mtree\n"
             "arg3 must be the name of a registered mtree-config\n"
             "arg4 must be the name of a registered metric\n"
             "arg5 must be the name of a registered distdata type";
@@ -1453,9 +1409,9 @@ struct rangesearch_Info : OperatorInfo
     {
         name = "rangesearch";
         signature =
-        "(<text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))) x"
-        " (mtree (tuple ((x1 t1)...(xn tn))) ti) ->"
-        " (stream (tuple ((x1 t1)...(xn tn))))";
+        "(<text>mtree x (rel (tuple ((id tid) (x1 t1)...(xn tn)))) "
+        "x attribute x real -> "
+        "(stream (tuple ((x1 t1)...(xn tn))))";
         syntax = "_ rangesearch [_, _, _]";
         meaning = "arg1: mtree\n"
                 "arg2: relation, that must contain at "
@@ -1472,9 +1428,9 @@ struct nnsearch_Info : OperatorInfo
     {
         name = "nnsearch";
         signature =
-        "(<text>(mtree (tuple ((x1 t1)...(xn tn))) ti) x"
-        "(rel (tuple ((id tid) (x1 t1)...(xn tn))))->"
-        " (stream (tuple ((x1 t1)...(xn tn))))";
+        "(<text>mtree x (rel (tuple ((id tid) (x1 t1)...(xn tn)))) "
+        "x attribute x int -> "
+        "(stream (tuple ((x1 t1)...(xn tn))))";
         syntax = "_ nnsearch [_, _, _]";
         meaning = "arg1: mtree\n"
                 "arg2: relation, that must contain at "
@@ -1502,17 +1458,17 @@ public:
         AddOperator(createmtree_Info(),
                     createmtree_Map,
                     createmtree_Select,
-                    createmtree_TM);
+                    createmtree_TM<2>);
 
         AddOperator(createmtree2_Info(),
                     createmtree2_Map,
                     createmtree_Select,
-                    createmtree2_TM);
+                    createmtree_TM<4>);
 
         AddOperator(createmtree3_Info(),
                     createmtree3_Map,
-                    createmtree3_Select,
-                    createmtree3_TM);
+                    createmtree_Select,
+                    createmtree_TM<5>);
 
         AddOperator(rangesearch_Info(),
                     rangesearch_Map,

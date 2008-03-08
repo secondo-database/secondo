@@ -1,4 +1,6 @@
 /*
+\newpage
+
 ----
 This file is part of SECONDO.
 
@@ -43,13 +45,13 @@ This file contains some defines and constants, which could be used to configurat
 /////////////////////////////////////////////////////////////////////
 // enables debugging mode for the mtree-algebra:
 /////////////////////////////////////////////////////////////////////
-#define MTREE_DEBUG
+// #define MTREE_DEBUG
 
 
 /////////////////////////////////////////////////////////////////////
 // enables debugging mode for general tree algebra framework:
 /////////////////////////////////////////////////////////////////////
-#define GTAF_DEBUG
+// #define GTAF_DEBUG
 
 
 /////////////////////////////////////////////////////////////////////
@@ -80,25 +82,25 @@ using namespace generalTree;
 using gtaf::NodeConfig;
 using gtaf::NodeTypeId;
 
+// en-/disable caching for all node types
+const bool nodeCacheEnabled = true;
+
+// the insert method prints out statistic infos every
+// insertInfoInterval insertions, if MTREE_PRINT_INSERT_INFO
+// has been defined above
+const int insertInfoUpdataInterval = 25;
+
 // constants for the node types
 const NodeTypeId Leaf = 0;
 const NodeTypeId Internal = 1;
-
-// priorities of the node types
-const unsigned leafPrio       = 0; // priority for leaf nodes
-const unsigned internalPrio   = 1; // priority for internal nodes
-
-// en-/disable caching for all node types
-const bool nodeCacheEnabled = true;
 
 // en-/disable caching seperately for each node type
 const bool leafCacheable = true;
 const bool internalCacheable = true;
 
-// the insert method prints out statistic infos every
-// <insertInfoInterval> insertions, if MTREE_PRINT_INSERT_INFO
-//has been defined
-const int insertInfoUpdataInterval = 1;
+// priorities of the node types
+const unsigned leafPrio       = 0; // priority for leaf nodes
+const unsigned internalPrio   = 1; // priority for internal nodes
 
 /////////////////////////////////////////////////////////////////////
 // default values for the node config objects
