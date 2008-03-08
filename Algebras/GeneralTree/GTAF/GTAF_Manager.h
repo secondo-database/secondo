@@ -45,6 +45,7 @@ January-February 2008, Mirko Dibbert
 #define __GTAF_MANAGER_H
 
 #include <limits>
+#include "GTAF_Config.h"
 #include "GTAF_Entries.h"
 
 namespace gtaf
@@ -117,8 +118,34 @@ Removes all nodes from the node cache and disables it.
 /*
 Removes all nodes from cache.
 
+(methods needs to resist in headerfile, otherwhise the defines are not set)
+
 */
-    void clearCache();
+    void clearCache()
+    {
+        if (!cache.empty())
+            {
+                #ifdef GTAF_SHOW_CACHE_INFOS
+                cmsg.info() << endl << "Writing cached nodes to disc... ";
+                cmsg.send();
+                #endif
+
+                cache.clear();
+                curSize = 0;
+
+                #ifdef GTAF_SHOW_CACHE_INFOS
+                cmsg.info() << " [OK]" << endl;
+                cmsg.send();
+                #endif
+
+                #ifdef GTAF_SHOW_CACHE_INFOS
+                cmsg.info() << endl << "node-cache m_hits   : " << m_hits
+                << endl << "node-cache m_misses : " << m_misses
+                << endl << endl;
+                cmsg.send();
+                #endif
+            }
+    }
 
 /*
 Returns the current size of the cache.

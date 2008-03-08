@@ -41,6 +41,7 @@ January-February 2008, Mirko Dibbert
 This file implements the "TreeManger"[4] class.
 
 */
+#include "GTAF_Config.h"
 #include "GTAF_Manager.h"
 
 using namespace gtaf;
@@ -54,9 +55,7 @@ TreeManager::createNode(NodeTypeId type, unsigned level)
 {
     if (useCache)
     {
-#ifdef GTAF_SHOW_CACHE_INFOS
         ++m_misses;
-#endif
 
         NodePtr node;
 
@@ -117,17 +116,12 @@ TreeManager::getNode(SmiRecordId nodeId, unsigned level)
 
         if (iter != cache.end())
         {
-#ifdef GTAF_SHOW_CACHE_INFOS
             ++m_hits;
-#endif
             return iter->second;
         }
 
         // node not found in cache
-#ifdef GTAF_SHOW_CACHE_INFOS
         ++m_misses;
-
-#endif
 
         // create new node
         NodePtr node;
@@ -309,37 +303,6 @@ TreeManager::drop(NodePtr node)
     }
     else
         node->drop();
-}
-
-/*
-Method ~clearCache~:
-
-*/
-void
-TreeManager::clearCache()
-{
-    if (!cache.empty())
-    {
-#ifdef GTAF_SHOW_CACHE_INFOS
-        cmsg.info() << endl << "Writing cached nodes to disc... ";
-        cmsg.send();
-#endif
-
-        cache.clear();
-        curSize = 0;
-
-#ifdef GTAF_SHOW_CACHE_INFOS
-        cmsg.info() << " [OK]" << endl;
-        cmsg.send();
-#endif
-
-#ifdef GTAF_SHOW_CACHE_INFOS
-        cmsg.info() << endl << "node-cache m_hits   : " << m_hits
-        << endl << "node-cache m_misses : " << m_misses
-        << endl << endl;
-        cmsg.send();
-#endif
-    }
 }
 
 /*
