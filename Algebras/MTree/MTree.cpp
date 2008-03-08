@@ -476,7 +476,7 @@ void MTree::rangeSearch(DistData* data,
           DFUN_RESULT distQueryCurrent;
           df_info.dist(data, (*it)->data(), distQueryCurrent);
           if ((distQueryCurrent < searchRad) ||
-              nearlyEqual<DFUN_RESULT>(distDiff, searchRad))
+              nearlyEqual<DFUN_RESULT>(distQueryCurrent, searchRad))
           {
             resultList.push_back(pair<DFUN_RESULT, TupleId>(
                 distQueryCurrent, (*it)->tid()));
