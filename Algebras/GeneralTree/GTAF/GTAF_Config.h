@@ -52,9 +52,6 @@ January-February 2008, Mirko Dibbert
     #define ENABLE_OBJECT_COUNT
     // enable counter for open objects
 
-    #define DIST_FUNS_DEBUG
-    // enable debug mode for "DistFuns.h"[4]
-
     #define GTAF_SHOW_CACHE_INFOS
     // print hits/misses statistic of the node cache
 #endif
