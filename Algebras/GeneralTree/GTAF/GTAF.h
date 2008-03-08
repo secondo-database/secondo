@@ -44,8 +44,8 @@ January-February 2008, Mirko Dibbert
 #ifndef __GENERAL_TREE_H
 #define __GENERAL_TREE_H
 
-#include "GTAF_Nodes.h"
 #include "GTAF_Manager.h"
+#include "GTAF_Nodes.h"
 
 using namespace std;
 
@@ -440,13 +440,12 @@ gtaf::Tree<THeader, TTreeManager>::~Tree()
       than one tree exists, e.g. when calling the copy constructor)*/
     if (openTrees() == 1)
     {
-        if (unsigned i = openNodes())
-            Msg::memoryLeak_Warning(i, "nodes");
+        if (openNodes())
+            Msg::memoryLeak_Warning(openNodes(), "nodes");
 
-        if (unsigned i = openEntries())
-            Msg::memoryLeak_Warning(i, "entries");
+        if (openEntries())
+            Msg::memoryLeak_Warning(openEntries(), "entries");
     }
-
 #endif
 } // Tree destructor
 
