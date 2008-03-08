@@ -228,7 +228,7 @@ Distance function using compressed histograms:
         DFUN_QUADRATIC, DFUN_QUADRATIC_DESCR,
         quadr_lab256<true>,
         DistDataReg::getDataId(PICTURE, DDATA_LAB256),
-        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
+        DFUN_IS_METRIC));
 
     DistfunReg::addInfo(DistfunInfo(
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
@@ -246,7 +246,7 @@ Distance function using compressed histograms:
         DFUN_EUCLID, DFUN_EUCLID_DESCR,
         eucl_lab256<true>,
         DistDataReg::getDataId(PICTURE, DDATA_LAB256),
-        DFUN_IS_METRIC));
+        DFUN_IS_METRIC | DFUN_IS_DEFAULT));
 
 /*
 Distance function using uncompressed histograms:
