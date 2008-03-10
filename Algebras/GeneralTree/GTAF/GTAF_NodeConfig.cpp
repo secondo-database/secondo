@@ -53,7 +53,7 @@ NodeConfig::NodeConfig(NodeTypeId type, unsigned priority,
                        unsigned minEntries, unsigned maxEntries,
                        unsigned minPages, unsigned maxPages,
                        bool cacheable)
-        : m_type(type), m_priority(m_priority),
+        : m_type(type), m_priority(priority),
         m_minEntries(minEntries),
         m_maxEntries(maxEntries),
         m_minPages(minPages),
