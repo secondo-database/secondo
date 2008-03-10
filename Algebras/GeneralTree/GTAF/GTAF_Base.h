@@ -263,8 +263,10 @@ Should replace the i-th emtry with "newEntry"[4].
 /*
 Should return the size of the entry im memory, which is needed to update the size of the node-cache, if used. Since this size is only needed to check, if the node cache has reached it's maximum size, it is sufficient to compute an approximately value to avoid complex computations.
 
+If the "recompute"[4] value is false, the last value (stored in m[_]memSize) should be returned. Otherwhise the memory size should be recomputed first. A call with parameter "recompute = false"[4] is needed from the tree manager in the "recomputeSize"[4] method, which calls respective method of this class. The method needs the last size, since the size could have been changed before calling the method.
+
 */
-    virtual unsigned memSize() const = 0;
+    virtual unsigned memSize(bool recompute = true) const = 0;
 
 /*
 Returns the i-th entry in the node, needed it the respective node class is not known.
@@ -280,6 +282,7 @@ protected:
     bool          m_cached;    // cached flag
     unsigned      m_pagecount; // count of extension pages
     unsigned      m_level;     // level of the node
+    mutable unsigned m_memSize;// current size of the node in memory
 };
 
 /********************************************************************
