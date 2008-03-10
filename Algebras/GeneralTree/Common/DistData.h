@@ -49,7 +49,6 @@ Below, two classes are defined for this purpose: The "DistData"[4] class should 
 
 #include <iostream>
 #include <string>
-#include "SmartPtr.h"
 #include "StandardTypes.h"
 #include "StandardAttribute.h"
 #include "SecondoInterface.h"
