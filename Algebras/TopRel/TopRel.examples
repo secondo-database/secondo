@@ -36,6 +36,11 @@ Example  : query [const cluster value ("c1"  1 2 3)] - [const cluster value ("c1
 Result   : (cluster ("c1" 1 3))
 Remark   : computes the (set-) difference of the included matrices
 
+Operator : -
+Number   : 2
+Signature: cluster x int9m -> cluster
+Example  : query [const cluster value ("c1"  1 2 3)] - [const int9m value 2]
+Result   : (cluster ("c1" 1 3))
 
 Operator : clustername_of
 Number   : 1
@@ -63,11 +68,17 @@ Remark   : checks if the matrix is part of the cluster
 
 Operator : createcluster
 Number   : 1
-Signature:  string x {text, string} -> cluster  
+Signature:  string x string -> cluster  
 Example  :  query createcluster("test","ii & !ee & ib & bi & !bb")
 Result   : (cluster ("test" 416 418 420 422 424 426 428 430 480 482 484 486 488 490 492 494))
 Remark   : creates a cluster from the given name and matrices
 
+Operator : createcluster
+Number   : 2
+Signature: string x text -> cluster  
+Example  : query createcluster("test",'ii & !ee & ib & bi & !bb')
+Result   : (cluster ("test" 416 418 420 422 424 426 428 430 480 482 484 486 488 490 492 494))
+Remark   : creates a cluster from the given name and matrices
 
 Operator : createpgroup
 Number   : 1
