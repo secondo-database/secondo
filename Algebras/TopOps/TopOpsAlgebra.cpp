@@ -32,17 +32,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[->] [\ensuremath{\rightarrow}]
 //[<=] [\ensuremath{\leq{}}]
 //[>=] [\ensuremath{\ge{}}]
-
+//[secondo] [\textsc{Secondo}]
+//[{] [\}]
+//[}] [\}]
 
 [title]
 [toc]
 [etoc]
 
-2 General Description
+1 General Description
 
 This algebra connects the TopRelAlgebra and the SpatialAlgebra.
 It implements functions computing the topological 
-relationsships of spatial values. Furthermore it provides some
+relationships of spatial values. Furthermore it provides some
 functions checking whether two objects are part of a cluster which
 is given by a name together with a predicategroup. Basically, this
 can also be implemented by computing the topological relationship and
@@ -52,11 +54,11 @@ many cases.
 Additionally, this algebra provides some topological predicates using the
 standard predicate group. 
 
-Moreover, in this algebra are set operations for spatial types (union2, 
-intersection2, difference2, commonborder2) implemented.
+Moreover, in this algebra set operations for spatial types (union2, 
+intersection2, difference2, commonborder2) are implemented.
 
 
-1 Includes, Constants, and Definitions 
+2 Includes, Constants, and Definitions 
 
 */
 
@@ -93,6 +95,7 @@ extern QueryProcessor* qp;
 
 using namespace toprel;
 
+namespace topops{
 
 const int LEFT      = 1;
 const int RIGHT     = 2;
@@ -102,7 +105,7 @@ const int COMMON = 4;
 /*
 2 Definition of ~ownertype~
 
-This enumeration is used to store the source of an AVLSegment.
+This enumeration is used to indicate the source of an ~AVLSegment~.
 
 */
 
@@ -137,7 +140,7 @@ class AVLSegment{
 public:
 
 /*
-3.1 Contructors
+3.1 Constructors
 
 ~Standard Constructor~
 
@@ -224,14 +227,14 @@ Create a Segment only consisting of a single point.
 
 
 /*
-3.2 ~Destructor~
+3.2 Destructor
 
 */
    ~AVLSegment() {}
 
 
 /*
-3.3  operators
+3.3 Operators
 
 */
 
@@ -253,7 +256,7 @@ Create a Segment only consisting of a single point.
   }
 
 /*
-3.3 Further needful Function
+3.3 Further Needful Functions
 
 ~Print~
 
@@ -297,7 +300,7 @@ The value of this segment is taken from the argument.
 ~crosses~
 
 Checks whether this segment and __s__ have an intersection point of their
-interior.  
+interiors.  
 
 */
  bool crosses(const AVLSegment& s) const{
@@ -463,7 +466,7 @@ common endpoint.
 /*
 ~Intersects~
 
-This function checks whether this segment and s have at least a 
+This function checks whether this segment and ~s~ have at least a 
 common point. 
 
 */
@@ -507,7 +510,7 @@ common point.
 /*
 ~overlaps~
 
-Checks whether both this segment and __s__ have a common segment.
+Checks whether this segment and ~s~ have a common segment.
 
 */
    bool overlaps(const AVLSegment& s) const{
@@ -693,7 +696,7 @@ Compares this with s. The x intervals must overlap.
 
 
 /*
-3.7 Some ~Get~ Funtions
+3.7 Some ~Get~ Functions
 
 ~getInsideAbove~
 
@@ -724,15 +727,32 @@ e.g. for segments having owner __first__ or __second__.
 
 
 /*
-3.8 Split functions
+3.8 Split Functions
 
 ~split~
 
 This function splits two overlapping segments.
 Preconditions:
-1) this segments and ~s~ must overlap.
 
-2) the owner of this and s must be different 
+1) this segment and ~s~ have to overlap.
+
+2) the owner of this and ~s~ must be different 
+
+~left~, ~common~ and ~right~ will contain the
+explicitely left part, a common part, and 
+an explecitely right part. The left and/or right part
+my be empty. The existence can be checked using the return
+value of this function. Let ret the return value. It holds:
+
+  __ret | LEFT__: the left part exists
+
+  __ret | COMMON__: the common part exist (always true)
+
+  __ret | RIGHT__: the right part exists
+
+
+The constants LEFT, COMMON, and RIGHT have been defined
+earlier.
 
 */
 
@@ -834,7 +854,7 @@ Preconditions:
 /*
 ~splitAt~
 
-This function divides an segment into two parts at the point 
+This function divides a segment into two parts at the point 
 provided by (x, y). The point must be on the interior of this segment.
 
 */
@@ -876,7 +896,7 @@ provided by (x, y). The point must be on the interior of this segment.
 ~splitCross~
 
 Splits two crossing segments into the 4 corresponding parts. 
-Both segments must crossing.
+Both segments have to cross each other.
 
 */
 void splitCross(const AVLSegment& s, AVLSegment& left1, AVLSegment& right1,
@@ -890,12 +910,12 @@ void splitCross(const AVLSegment& s, AVLSegment& left1, AVLSegment& right1,
 }
 
 /*
-3.9 Converting
+3.9 Converting Functions
 
 ~ConvertToHs~
 
-This functions creates an HalfSegment from this segment.
-The owner must be __first__ or __second__
+This functions creates a ~HalfSegment~ from this segment.
+The owner must be __first__ or __second__.
 
 */
 HalfSegment convertToHs(bool lpd, ownertype owner = both )const{
@@ -917,7 +937,7 @@ HalfSegment convertToHs(bool lpd, ownertype owner = both )const{
 }
 
 /*
-3.10 public data members 
+3.10 Public Data Members 
 
 These members are not used in this class. So the user of
 this class can change them without any problems within this
@@ -929,7 +949,7 @@ class itself.
 
 
 /*
-3.11 Private part of the class
+3.11 Private Part
 
 Here the data members as well as some auxiliary functions are
 collected.
@@ -948,8 +968,8 @@ private:
 /*
 ~pointequal~
 
-This function checks if the points defined by (x1,y1) and 
-(x2,y2) are equals using the AlmostEqual function.
+This function checks if the points defined by (x1, y1) and 
+(x2,y2) are equals using the ~AlmostEqual~ function.
 
 */
   static bool pointEqual(const double x1, const double y1,
@@ -960,8 +980,8 @@ This function checks if the points defined by (x1,y1) and
 /*
 ~pointSmaller~
 
-This function checks if the point defined by (x1,y1) is
-smaller than the point defined by (x2,y2).
+This function checks if the point defined by (x1, y1) is
+smaller than the point defined by (x2, y2).
 
 */
 
@@ -997,7 +1017,7 @@ smaller than the point defined by (x2,y2).
 ~compareSlopes~
 
 compares the slopes of __this__ and __s__. The slope of a vertical
-segemnt is greater than all other slopes. 
+segment is greater than all other slopes. 
 
 */
    int compareSlopes(const AVLSegment& s) const{
@@ -1032,7 +1052,7 @@ segemnt is greater than all other slopes.
 ~XOverlaps~
 
 Checks whether the x interval of this segment overlaps the
-x interval of s.
+x interval of ~s~.
 
 */
 
@@ -1049,7 +1069,7 @@ x interval of s.
 /*
 ~XContains~
 
-Checks if the x coordinates provided by the parameter __x__ is contained
+Checks if the x coordinate provided by the parameter __x__ is contained
 in the x interval of this segment;
 
 */
@@ -1103,7 +1123,7 @@ ostream& operator<<(ostream& o, const AVLSegment& s){
 
 
 /*
-5 Some auxiliary Function
+5 Some Auxiliary Functions
 
 
 */
@@ -1211,8 +1231,8 @@ inline void SetEE(Int9M& m, const bool useCluster,
 /*
 ~insertEvents~
 
-Creates Events for the AVLSegment and insert them into ~q1~ and/ or ~q1~.
-The target queue(s) is determined by the owner of ~seg~.
+Creates events for the ~AVLSegment~ and insert them into ~q1~ and/ or ~q1~.
+The target queue(s) is (are) determined by the owner of ~seg~.
 The flags ~createLeft~ and ~createRight~ determine
 whether the left and / or the right events should be created.
 
@@ -1265,7 +1285,7 @@ void insertEvents(const AVLSegment& seg,
 ~splitByNeighbour~
 
 
-neighbour has to be an neighbour from current within sss.
+~neighbour~ has to be an neighbour from ~current~ within ~sss~.
 
 */
 
@@ -1354,8 +1374,8 @@ void splitByNeighbour(AVLTree<AVLSegment>& sss,
 /*
 ~splitNeighbours~
 
-checks if the left and the right neighbour are intersection in their
-interiors and permorms the required actions.
+Checks if the left and the right neighbour are intersecting in their
+interiors and performs the required actions.
 
 
 */
@@ -1404,7 +1424,7 @@ void splitNeighbours(AVLTree<AVLSegment>& sss,
 /*
 7 Computation of the 9 intersection matrices
 
-The following functions compute the 9 intersection matrix for 
+The following functions compute the 9 intersection matrices for 
 different combinations of spatial data types.
 
 
@@ -1446,13 +1466,14 @@ bool GetInt9M(Point* p1 , Point*  p2,Int9M& res,
 The next function computes the 9 intersection matrix between a 
 point value and a points value. 
 
-Complexity: O(log(n))  where ~n~ is the number of points in the __ps__
+Complexity: O(log(n) + 1)  where ~n~ is the number of points in the __ps__
 value.
 
 */
 bool GetInt9M(Points*  ps, Point* p,Int9M& res,
               const bool useCluster=false,
               Cluster cluster = Cluster()){
+
   // initialization
   res.SetValue(0);
   res.SetEE(true); // holds always for bounded objects
@@ -1460,14 +1481,13 @@ bool GetInt9M(Points*  ps, Point* p,Int9M& res,
   // check for emptyness
   if(ps->IsEmpty()){ // the simples case
      res.SetEI(true);
-
      if(useCluster){
        return cluster.Contains(res);
      } else {
        return true;
      }
   }  
-  
+ 
   // bounding box check
   Rectangle<2> box_ps = ps->BoundingBox();
   Rectangle<2> box_p  = p->BoundingBox();
@@ -1493,13 +1513,15 @@ bool GetInt9M(Points*  ps, Point* p,Int9M& res,
   }
 
 
-
-  if(!(ps->Contains(p))){ // Contains uses binary search
+  if(!(ps->Contains(*p))){ // Contains uses binary search
      res.SetEI(true);
      res.SetIE(true);
   } else{
      res.SetII(true);  
   }
+
+  
+
   if(useCluster){
     return cluster.Contains(res);
   } else {
@@ -1512,22 +1534,18 @@ bool GetInt9M(Points*  ps, Point* p,Int9M& res,
 /*
 7.3 ~points~ [x] ~points~
 
-
-This function returns the 9 intersection matrix describing the 
+This function computes the 9 intersection matrix describing the 
 topological relationship between two __points__ values.
 
-Complexity: O(~n~+~m~) , where ~n~ and ~m~ is the size of ~ps~1 and
-~ps~2 respectively, where ~n~ and ~m~ is the size of ~ps~1 and
+Complexity: O(~n~+~m~ + 1) , where ~n~ and ~m~ is the size of ~ps~1 and
 ~ps~2 respectively.
 
-
-If the useCluster is set to be __false__, the return value is always
+If ~useCluster~ is set to be __false__, the return value is always
 __true__.   In this case, the parameter __res__ will contain the
 9 intersection matrix describing the topological relationship between
-~p1~1 and ~ps~2. In the other case, this matrix in not computed 
+~p1~1 and ~ps~2. In the other case, the matrix is not computed 
 completely. Instead, the return value will indicate whether the 
-topological relationship is part of the ~cluster~. 
-
+topological relationship is part of ~cluster~. 
 
 */
 bool GetInt9M(Points* ps1, Points*  ps2,
@@ -1669,7 +1687,6 @@ bool GetInt9M(Points* ps1, Points*  ps2,
 }
 
 
-
 /*
 7.4 ~line~ [x] ~point~ and ~line~ [x] ~points~
 
@@ -1677,18 +1694,17 @@ The next functions compute the topological relationship between a
 line and a point or points value. 
 
 
-~SelectNext~ line x point
+~SelectNext~ line [x] point
 
 This function looks which event from the line or from the point
 is smaller. The line is divided into the original line part
-at position posLine and possible splitted segments stored
+at position ~posLine~ and possible splitted segments stored
 in ~q~. The return value of the function will be ~first~ if the
 next event comes from the line value and ~second~ if the next
 event comes from the point value. Depending of the return value,
 one of the arguments ~resHs~ or ~resPoint~ is set the the value of 
 this event. 
 The positions are increased automatically by this function.
-
 
 */
 
@@ -1755,7 +1771,7 @@ ownertype selectNext( Line const* const line,
 }
 
 /*
-~selectNext~ line x points
+~selectNext~ line [x] points
 
 This function works like the function above but instead for a point, a 
 points value is used.
@@ -1833,8 +1849,8 @@ ownertype selectNext( Line const* const line,
 ~initBox~
 
 Initializes the result and performs a bounding box check.
-If the initialisation is sufficient to determine the result,
-i.e. if the line is empty, the result will be true. Otherwise,
+If the initialization is sufficient to determine the result,
+i.e. if the line is empty, the result will be __true__. Otherwise,
 the result will be false. 
 
 */
@@ -1915,7 +1931,7 @@ bool initBox(Line const* const line,
 ~isDone~
 
 This function checks whether all possible intersections for the 
-parameter combination of the first to parameters are set in in the 
+parameter combination of the first two parameters are set in in the 
 matrix.
 
 */
@@ -2161,7 +2177,7 @@ bool GetInt9M(Line const* const line,
 }
 
 /*
-~Instantiations of the template function~
+Instantiations of the template function
 
 */
 
@@ -2186,7 +2202,7 @@ region value.
 
 ~pointAbove~
 
-Auxiliary functtion checking if ~p~ is located above ~hs~.
+Auxiliary function checking if ~p~ is located above ~hs~.
 
 */
 
@@ -2304,9 +2320,9 @@ region value.
 
 ~selectNext~
 
-If the event caused by the region is smaller then this one cause by the
-points vaue, the result of the function will be ~first~. Otherwise, the
-result will be ~second~. The region itself may be consist of the original
+If the event caused by the region is smaller then the one caused by the
+points value, the result of the function will be ~first~. Otherwise, the
+result will be ~second~. The region itself may consist of the original
 halfsegments and halfsegments produced by dividing original halfsegments.
 The positions indicate the current elements of the halfsegment arrays.
 They are updated automatically within this function. 
@@ -2559,17 +2575,20 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
 
 
 /*
-Selects the mimimum halfsegment from v1, v2, q1, and q2.
+
+~selectNext~
+
+Selects the minimum halfsegment from ~v~1, ~v~2, ~q~1, and ~q~2.
 If no values are available, the return value will be __none__. 
 In this case, __result__ remains unchanged. Otherwise, __result__
-is set to the minimum value found.
-Otherwise, it will be first or second depending on the value 
-containing the minimum. If some halfsegments are equal, the one
-from the v1 is selected. 
-Note: pos1 and pos2 are increased automatically. In the same way, 
+is set to the minimum value found. In this case, the return value
+will be ~first~ or ~second~.
+If some halfsegments are equal, the one
+from  ~v~1 is selected. 
+Note: ~pos~1 and ~pos~2 are increased automatically. In the same way, 
       the topmost element of the selected queue is deleted. 
 
-The template paraeter may be instantiated with ~Region~ or ~Line~
+The template parameter can be instantiated with ~Region~ or ~Line~
 
 */
 template<class T1, class T2>
@@ -2642,7 +2661,7 @@ ownertype selectNext(T1 const* const v1,
 }
 
 /*
-~Instantiation of the selectNext Function~
+Instantiation of the ~selectNext~ Function.
 
 */
 
@@ -2662,6 +2681,13 @@ ownertype selectNext(Region const* const reg1,
    return selectNext<Region,Region>(reg1,pos1,reg2,pos2,q1,q2,result,src);
 }
 
+/*
+The Class ~OwnedPoint~
+
+This class contains a point together with its owner.
+
+
+*/
 class OwnedPoint{
 
  public:
@@ -3168,7 +3194,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
 7.8 ~line~ [x] ~line~
 
 
-~Instantiation of the selectNext function ~
+Instantiation of the ~selectNext~ function.
 
 */
 ownertype selectNext(Line const* const line1,
@@ -3190,10 +3216,10 @@ ownertype selectNext(Line const* const line1,
 
 
 /*
-~updateDompoints~
+~updateDomPoints~
 
-This functions does all things caused by the next dominating point.
-This function can only used for two line values.
+This functions does all the things caused by the next dominating point.
+This function only works correct with two line values.
 
 */
 
@@ -3529,7 +3555,7 @@ bool GetInt9M(Line const* const line1,
 
 ~selectNext~
 
-Instantiation of the selectNext function for line x region.
+Instantiation of the ~selectNext~ function for ~line~ [x] ~region~.
 
 */
 
@@ -3554,9 +3580,8 @@ ownertype selectNext(Line const* const line,
 /*
 ~updateDomPointInfo[_]Line[_]Region~
 
-Does the things required by the switch from lastDomPoint
-to newDomPoint.
-
+Does the things required by the switch from ~lastDomPoint~
+to ~newDomPoint~.
 
 */
 
@@ -3632,7 +3657,7 @@ void updateDomPointInfo_Line_Region(Point& lastDomPoint,
 
 
 /*
-~GetInt9M~  line x region
+~GetInt9M~  ~line~ [x] ~region~
 
 */
 
@@ -3918,16 +3943,11 @@ bool GetInt9M(Line   const* const line,
  }
 }
 
-
-
-
 /*
 8 ~Realminize~
 
-This function converts Line givens as source into a realminized version
+This function converts  a line given as ~src~ into a realminized version
 stored in ~result~.
-
-
 
 */
 ownertype selectNext(const Line& src, int& pos,
@@ -4040,17 +4060,15 @@ void Realminize2(const Line& src, Line& result){
 } // Realminize2
 
 
-
-
 /*
-9 Set Operations
+9 Set Operations (union, intersection, difference)
 
 
-The following functtion implement the operations union, intersection and
-difference for some combinations of spatial types.
+The following functions implement the operations ~union~, 
+~intersection~ and ~difference~ for some combinations of spatial types.
 
 
-9.1 Definition of possible opperations
+9.1 Definition of Possible Operations
 
 */
 
@@ -4460,7 +4478,7 @@ void SetOp(const Region& reg1,
 9.4 ~region~ [x] ~line~ [->] ~region~  
 
 This combination can only be used for the operations
-union and difference. In both cases, the result will be
+~union~ and ~difference~. In both cases, the result will be
 the original region value.
 
 */
@@ -4483,7 +4501,7 @@ void SetOp(const Region& region,
 /*
 9.5  ~line~ [x] ~region~ [->] ~line~
 
-Here, only the difference and intersection operation are applicable.
+Here, only the ~difference~ and ~intersection~ operation are applicable.
 
 
 */
@@ -4660,13 +4678,10 @@ void SetOp(const Line& line,
 } // setOP(line x region -> line)
 
 
-
 /*
+9  ~CommonBorder~
 
-9.5  ~CommonBorder~
-
-
-Signature: ~region~ [x] ~region~ [->] line
+Signature: ~region~ [x] ~region~ [->] ~line~
 
 */
 
@@ -4772,17 +4787,15 @@ void CommonBorder(
 } // commonborder 
 
 
-
-
 /*
-8 Integrating Operators in Secondo 
+8 Integrating Operators in [secondo] 
 
 8.1 Type Mapping Functions 
 
-8.1.1 IsSpatialType
+~IsSpatialType~
 
 This function checks whether the type given as a ListExpr is one of
-point, points, line, or region.
+~point~, ~points~, ~line~, or ~region~.
 
 */
 
@@ -4790,7 +4803,7 @@ inline bool IsSpatialType(ListExpr type){
    if(!nl->IsAtom(type)){
       return false;
    }
-   if(!nl->AtomType(type)==SymbolType){
+   if(nl->AtomType(type)!=SymbolType){
       return false;
    }
    string t = nl->SymbolValue(type);
@@ -4803,13 +4816,13 @@ inline bool IsSpatialType(ListExpr type){
 
 
 /*
-8.1.2 TopPredTypeMap
+~TopPredTypeMap~
 
-This function is the type mapping for the toppred operator.
+This function is the type mapping for the ~toppred~ operator.
 The signature of this operator is:
     t1 [x] t2 [x] cluster [->] bool
 
-where t1, t2 in {point, points, line, region}.
+where t1, t2 in [{]point, points, line, region[}].
 
 
 */
@@ -4842,11 +4855,11 @@ ListExpr TopPredTypeMap(ListExpr args){
 
 
 /*
-8.1.3 TopRelTypeMap
+~TopRelTypeMap~
 
-This function is the Type mapping for the toprel operator.
+This function is the type mapping for the ~toprel~ operator.
 The signature is t1 [x] t2 [->] int9m
-where t1, t2 in {point, points, line, region}
+where t1, t2 in [{]point, points, line, region[}]
 
 */
 
@@ -4864,10 +4877,13 @@ ListExpr TopRelTypeMap(ListExpr args){
 }
 
 /*
-8.1.4 StdPredTypeMap
+~StdPredTypeMap~
+    
+t1 [x] t2 [->] bool,
+
+where t1,t2 in [{]point, points, line, region[}].
 
 */
-
 ListExpr StdPredTypeMap(ListExpr args){
    if(nl->ListLength(args)!=2){
       ErrorReporter::ReportError("two arguments expected");
@@ -4882,7 +4898,7 @@ ListExpr StdPredTypeMap(ListExpr args){
 }
 
 /*
-8.1.5 Realminize2TypeMap
+~Realminize2TypeMap~
 
 Signature: line [->] line.
 
@@ -4897,16 +4913,17 @@ ListExpr Realminize2TypeMap(ListExpr args){
   }
 }
 
-
-
-
 /*
-8.1.6 Union2TypeMap
+~Union2TypeMap~
 
-Signatures:   
+Signatures:  
+ 
   line [x] line [->] line
+
   line [x] region [->] region 
+
   region [x] line [->] region
+
   region [x] region [->] region
 
 */
@@ -4944,15 +4961,17 @@ ListExpr Union2TypeMap(ListExpr args){
    return nl->TypeError();
 }
 
-
-
 /*
-8.1.7 Intersection2TypeMap
+~Intersection2TypeMap~
 
 Signatures:   
+
   line [x] line [->] line
+
   line [x] region [->] line 
+
   region [x] line [->] line
+
   region [x] region [->] region
 
 */
@@ -4990,12 +5009,16 @@ ListExpr Intersection2TypeMap(ListExpr args){
 
 
 /*
-8.1.8 Difference2TypeMap
+~Difference2TypeMap~
 
 Signatures:   
+
   line [x] line [->] line
+
   line [x] region [->] line 
+
   region [x] line [->] region
+
   region [x] region [->] region
 
 */
@@ -5035,7 +5058,7 @@ ListExpr Difference2TypeMap(ListExpr args){
 
 /*
 
-8.1.9 CommonBorder2TypeMap
+~CommonBorder2TypeMap~
 
 Signature: ~region~ [x] ~region~ [->] ~line~
 
@@ -5060,11 +5083,11 @@ ListExpr CommonBorder2TypeMap(ListExpr args){
 /*
 8.2 Value Mappings 
 
-8.2.1 ~TopRel~
+~TopRel~
 
 This value mapping can be instantiated with all combinations
-where a function ~getInt9M~ exists for the type combination
-~type1~ x ~type2~.
+where a function ~GetInt9M~ exists for the type combination
+~type1~ [x] ~type2~.
 
 */
 template<class type1, class type2>
@@ -5080,8 +5103,8 @@ int TopRel(Word* args, Word& result, int message,
 }
 
 /*
-This function is symmetric to the ~TopRel~ functions. This function avoids
-the implementation of symmetric GetInt9M functions.
+This function is symmetrical to the ~TopRel~ function. This function avoids
+the implementation of symmetric ~GetInt9M~ functions.
 
 */
 template<class type1, class type2>
@@ -5099,12 +5122,9 @@ int TopRelSym(Word* args, Word& result, int message,
 }
 
 
-
 /*
-8.2.3 Value Mapping for the ~toppred~ operator
+Value Mapping for the ~toppred~ operator
 
-The following value mappings are specialized versions 
-where an early exit may advantageous.
 
 */
 template<class t1, class t2>
@@ -5115,7 +5135,7 @@ int TopPred(Word* args, Word& result, int message,
   t1* v1 = static_cast<t1*>(args[0].addr);
   t2* v2 = static_cast<t2*>(args[1].addr);
   Cluster* cluster = static_cast<Cluster*>(args[2].addr);
-  if(!cluster->IsDefined()){// name not found within group
+  if(!cluster->IsDefined()){
       (static_cast<CcBool*>(result.addr))->Set(false,false);
       return 0;
   }
@@ -5170,7 +5190,7 @@ int TopPredSym2(Word* args, Word& result, int message,
 
 
 /*
-8.2.4 Realminize2
+~Realminize2~
 
 */
 int Realminize2VM(Word* args, Word& result, int message,
@@ -5185,7 +5205,7 @@ int Realminize2VM(Word* args, Word& result, int message,
 
 
 /*
-8.2.5 Value mapping for set operations
+Value mapping for set operations
 
 */
 
@@ -5213,7 +5233,7 @@ int SetOpVMSym(Word* args, Word& result, int message,
 
 
 /*
-8.2.6 Value Mapping for CommonBorder2
+Value Mapping for ~CommonBorder2~
 
 */
 int CommonBorder2VM(Word* args, Word& result, int message,
@@ -5227,7 +5247,22 @@ int CommonBorder2VM(Word* args, Word& result, int message,
 }
 
 /*
-8.2.7 Standard Topological Predicates
+~Standard Topological Predicates~
+
+
+In the following section, we define predicates
+implementing our imagination of topological predicates.
+They can be used without an explicit definition of a cluster.
+
+
+*/
+
+/*
+~Standard Cluster~
+
+For each standard predicate, we hold a variable of
+type cluster. The variables are initialized once 
+at the algebra initialization.
 
 */
 
@@ -5241,6 +5276,10 @@ static Cluster cl_contains;
 static Cluster cl_equal;
 
 
+/*
+Value Mappings for standard predicates
+
+*/
 template<class t1, class t2>
 int StdPred(Word* args, Word& result, int message,
                     Word& local, Supplier s, Cluster& cl){
@@ -5371,6 +5410,13 @@ int TrContainsVMSymm(Word* args, Word& result, int message,
 }
 
 
+/*
+~initClusters~
+
+This function initializes the standard clusters.
+
+*/
+
 static void initClusters(){
   PredicateGroup pg(0);
   pg.SetToDefault();
@@ -5419,10 +5465,11 @@ static void initClusters(){
 
 
 /*
-8.3  Operator specifications
+9.3 Operator Specifications
+
+Here, the operator descriptions are defined.
 
 */
-
 
 const string TopRelSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -5561,22 +5608,14 @@ ValueMapping TopRelMap[] = {
        TopRel<Line,Line>, TopRel<Line,Region>, TopRelSym<Region,Line>};
 
 ValueMapping TopPredMap[] = {
-       TopPred<Point,Point> , 
-       TopPred<Points,Point>,
-       TopPredSym<Point,Points>,
-       TopPred<Points,Points>, 
-       TopPred<Line,Point>,
-       TopPredSym<Point,Line>,
-       TopPred<Line,Points>,
-       TopPredSym<Points,Line>,
-       TopPred<Region,Point>,
-       TopPredSym<Point,Region>, 
-       TopPred<Region,Points>,
-       TopPredSym<Points,Region>,
-       TopPred<Region,Region>,
-       TopPred<Line,Line>, 
-       TopPred<Line,Region>,
-       TopPredSym<Region,Line>  };
+       TopPred<Point,Point> , TopPred<Points,Point>,
+       TopPredSym<Point,Points>, TopPred<Points,Points>, 
+       TopPred<Line,Point>, TopPredSym<Point,Line>,
+       TopPred<Line,Points>, TopPredSym<Points,Line>,
+       TopPred<Region,Point>, TopPredSym<Point,Region>, 
+       TopPred<Region,Points>, TopPredSym<Points,Region>,
+       TopPred<Region,Region>, TopPred<Line,Line>, 
+       TopPred<Line,Region>, TopPredSym<Region,Line>  };
 
 ValueMapping AdjacentMap[] = {
        TrAdjacentVM<Point,Point> ,     TrAdjacentVM<Points,Point>,
@@ -5684,10 +5723,6 @@ ValueMapping Difference2Map[] = {
 /*
 8.5 Selection Functions
 
-The value mapping array containg the value mapping functions for both
-operator in the same order. For this reason it is sufficient to have
-one single selection function for both functions.
-
 */
 
 static int TopOpsSelect(ListExpr args){
@@ -5727,7 +5762,7 @@ static int TopOpsSelect(ListExpr args){
    if( type1=="region" && (type2=="points")){
        return  10;
    }
-   if(type1=="points" && (type2=="regions")){
+   if(type1=="points" && (type2=="region")){
        return 11;
    }
    if(type1=="region" && (type2=="region")){
@@ -5769,9 +5804,9 @@ static int SetOpSelect(ListExpr args){
 
 
 /*
-8.6 Definition of operators
+8.6 Creating Instances of Operators
 
-In this section instances of the algebra operators are build.
+In this section instances of the algebra operators are built.
 
 */
 Operator optoprel(
@@ -5912,7 +5947,7 @@ Operator commonborder2(
 );
 
 /*
-8.7 Creating the algebra
+8.7 Creating the Algebra
 
 */
 class TopOpsAlgebra : public Algebra {
@@ -5937,6 +5972,9 @@ class TopOpsAlgebra : public Algebra {
      ~TopOpsAlgebra(){}
 } topOpsAlgebra;
 
+
+} // end of namespace topops
+
 /*
 8.8 Initialization of the Algebra
    
@@ -5945,7 +5983,7 @@ extern "C"
 Algebra* InitializeTopOpsAlgebra( NestedList* nlRef, QueryProcessor* qpRef ) {
     nl = nlRef;
     qp = qpRef;
-    initClusters();
-    return (&topOpsAlgebra);
+    topops::initClusters();
+    return (&topops::topOpsAlgebra);
 }
 
