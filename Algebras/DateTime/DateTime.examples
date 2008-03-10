@@ -216,17 +216,46 @@ Result   : 0
 
 Operator : theInstant
 Number   : 1
-Signature:  int  -> instant
+Signature: int  -> instant
 Example  : query theInstant(2006)
 Result   : (instant "2006-01-01")
 
+Operator : theInstant
+Number   : 2 
+Signature: int x int -> instant
+Example  : query theInstant(2006,5)
+Result   : (instant "2006-05-01")
 
 Operator : theInstant
-Number   : 2
+Number   : 3
+Signature: int x int x int -> instant
+Example  : query theInstant(2006,5,5)
+Result   : (instant "2006-05-05")
+
+
+Operator : theInstant
+Number   : 4
+Signature: int x int x int x int  -> instant
+Example  : query theInstant(2006,5,5,12)
+Result   : (instant "2006-05-05-12:00")
+ 
+Operator : theInstant
+Number   : 5
+Signature: int x int x int x int x int -> instant
+Example  : query theInstant(2006,5,5,12,35)
+Result   : (instant "2006-05-05-12:35")
+
+Operator : theInstant
+Number   : 6
 Signature:  int x int x int x int x int x int  -> instant
 Example  : query theInstant(2006, 12 , 18, 15, 40 , 31)
 Result   : (instant "2006-12-18-15:40:31")
 
+Operator : theInstant
+Number   : 7
+Signature:  int x int x int x int x int x int x int -> instant
+Example  : query theInstant(2006, 12 , 18, 15, 40 , 31, 567)
+Result   : (instant "2006-12-18-15:40:31.567")
 
 Operator : today
 Number   : 1
