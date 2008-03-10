@@ -1169,7 +1169,8 @@ rangesearch_TM(ListExpr args)
   string errmsg;
   NList nl_args(args);
 
-  errmsg = "Operator range expects four arguments.";
+  errmsg = "Operator rangesearch expects four arguments(mtree x "
+           "relation x search_attribute x search_range)";
   CHECK_COND(nl_args.length() == 4, errmsg);
 
   NList arg1 = nl_args.first();
@@ -1214,7 +1215,8 @@ nnsearch_TM(ListExpr args)
   string errmsg;
   NList nl_args(args);
 
-  errmsg = "Operator nnsearch expects four arguments.";
+  errmsg = "Operator nnsearch expects four arguments(mtree x "
+           "relation x search_attribute x nncount)";
   CHECK_COND(nl_args.length() == 4, errmsg);
 
   NList arg1 = nl_args.first();

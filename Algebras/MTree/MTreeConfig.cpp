@@ -98,25 +98,29 @@ MTreeConfigReg::initialize()
 Create node configs
 
 */
-  NodeConfig defaultleafConfig(Leaf,
-      leafPrio, minLeafEntries,
-      maxLeafEntries, minLeafPages, maxLeafPages);
+  NodeConfig defaultleafConfig(
+        Leaf, leafPrio, minLeafEntries, maxLeafEntries,
+        minLeafPages, maxLeafPages, leafCacheable);
 
-  NodeConfig defaultinternalConfig(Internal,
-      internalPrio, minIntEntries,
-      maxIntEntries, minIntPages, maxIntPages);
+  NodeConfig defaultinternalConfig(
+        Internal, internalPrio, minIntEntries, maxIntEntries,
+        minIntPages, maxIntPages, internalCacheable);
 
-  NodeConfig leafConfig40(Leaf,
-      leafPrio, minLeafEntries, 40, minLeafPages, maxLeafPages);
+  NodeConfig leafConfig40(
+        Leaf, leafPrio, minLeafEntries, 40,
+        minLeafPages, maxLeafPages, leafCacheable);
 
-  NodeConfig internalConfig40(Internal,
-      internalPrio, minIntEntries, 40, minIntPages, maxIntPages);
+  NodeConfig internalConfig40(
+        Internal, internalPrio, minIntEntries, 40,
+        minIntPages, maxIntPages, internalCacheable);
 
-  NodeConfig leafConfig80(Leaf,
-      leafPrio, minLeafEntries, 80, minLeafPages, maxLeafPages);
+  NodeConfig leafConfig80(
+        Leaf, leafPrio, minLeafEntries, 80,
+        minLeafPages, maxLeafPages, leafCacheable);
 
-  NodeConfig internalConfig80(Internal,
-      internalPrio, minIntEntries, 80, minIntPages, maxIntPages);
+  NodeConfig internalConfig80(
+        Internal, internalPrio, minIntEntries, 80,
+        minIntPages, maxIntPages, internalCacheable);
 
 /*
 Set default config

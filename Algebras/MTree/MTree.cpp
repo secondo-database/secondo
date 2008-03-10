@@ -70,15 +70,7 @@ Default Constructor:
 */
 MTree::MTree(bool temporary) :
         gtaf::Tree<Header>(temporary), splitpol(false)
-{
-    registerNodePrototypes();
-
-    //create root node
-    NodePtr root(createLeaf(Leaf));
-    header.root = root->getNodeId();
-    ++header.leafCount;
-    ++header.height;
-}
+{}
 
 /*
 Constructor (load m-tree):
@@ -87,9 +79,11 @@ Constructor (load m-tree):
 MTree::MTree(const SmiFileId fileId) :
         gtaf::Tree<Header>(fileId), splitpol(false)
 {
-    registerNodePrototypes();
     if (header.initialized)
+    {
         initialize();
+        registerNodePrototypes();
+    }
 }
 
 /*
@@ -157,8 +151,15 @@ MTree::initialize(DistDataId dataId, const string& distfunName,
     strcpy(header.configName, configName.c_str());
 
     initialize();
-
     header.initialized = true;
+
+    registerNodePrototypes();
+
+    //create root node
+    NodePtr root(createLeaf(Leaf));
+    header.root = root->getNodeId();
+    ++header.leafCount;
+    ++header.height;
 }
 
 /*
@@ -317,7 +318,7 @@ void MTree::insert(LeafEntry* entry, TupleId tupleId)
     #endif
 
     #ifdef MTREE_PRINT_INSERT_INFO
-    if ((header.entryCount % insertInfoUpdataInterval) == 0)
+    if ((header.entryCount % insertInfoInterval) == 0)
     {
         const string clearline = "\r" + string(70, ' ') + "\r";
         cmsg.info() << clearline
@@ -432,6 +433,8 @@ void MTree::rangeSearch(DistData* data,
   #ifdef MTREE_DEBUG
   assert(isInitialized());
   #endif
+    cout << treeMngr->cacheSize()/1024 << " kb, open nodes: "
+         << openNodes() << "/" << openEntries() << "\t";
 
   results->clear();
   list< pair<DFUN_RESULT, TupleId> > resultList;
@@ -544,6 +547,10 @@ Method ~nnSearch~ :
 void MTree::nnSearch(DistData* data, int nncount,
                           list<TupleId>* results)
 {
+  #ifdef MTREE_DEBUG
+  assert(isInitialized());
+  #endif
+
   results->clear();
 
   // init nearest neighbours array

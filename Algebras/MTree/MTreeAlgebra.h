@@ -77,35 +77,23 @@ This file contains some defines and constants, which could be used to configurat
 #include "DistfunReg.h" // also includes distdata
 
 namespace mtreeAlgebra {
-
-using namespace generalTree;
-using gtaf::NodeConfig;
-using gtaf::NodeTypeId;
-
 // en-/disable caching for all node types
 const bool nodeCacheEnabled = true;
-
-// the insert method prints out statistic infos every
-// insertInfoInterval insertions, if MTREE_PRINT_INSERT_INFO
-// has been defined above
-const int insertInfoUpdataInterval = 25;
-
-// constants for the node types
-const NodeTypeId Leaf = 0;
-const NodeTypeId Internal = 1;
 
 // en-/disable caching seperately for each node type
 const bool leafCacheable = true;
 const bool internalCacheable = true;
 
-// priorities of the node types
-const unsigned leafPrio       = 0; // priority for leaf nodes
-const unsigned internalPrio   = 1; // priority for internal nodes
+// intevall of printing statistic infos in the insert method
+// (does only work, if MTREE_PRINT_INSERT_INFO has been defined)
+const int insertInfoInterval = 100;
 
-/////////////////////////////////////////////////////////////////////
-// default values for the node config objects
-// (used in the MTreeConfig class)
 
+
+/********************************************************************
+Default values for the node config objects (used in the MTreeConfig class):
+
+********************************************************************/
 // min. count of pages for leaf / internal nodes
 const unsigned minLeafPages   = 1;
 const unsigned minIntPages    = 1;
@@ -121,7 +109,24 @@ const unsigned minIntEntries  = 3;
 // max. count of entries for leaf / internal nodes
 const unsigned maxLeafEntries = numeric_limits<unsigned>::max();
 const unsigned maxIntEntries = numeric_limits<unsigned>::max();
-/////////////////////////////////////////////////////////////////////
+
+
+
+/********************************************************************
+The following constants should not be changed:
+
+********************************************************************/
+using namespace generalTree;
+using gtaf::NodeConfig;
+using gtaf::NodeTypeId;
+
+// constants for the node types
+const NodeTypeId Leaf = 0;
+const NodeTypeId Internal = 1;
+
+// priorities of the node types
+const unsigned leafPrio       = 0; // default = 0
+const unsigned internalPrio   = 1; // default = 1
 
 } // namespace mtreeAlgebra
 #endif // #ifndef __MTREE_ALGEBRA_H
