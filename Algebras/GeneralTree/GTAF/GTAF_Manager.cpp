@@ -56,9 +56,7 @@ TreeManager::createNode(NodeTypeId type, unsigned level)
     if (useCache)
     {
         ++m_misses;
-
         NodePtr node;
-
         try
         {
             node = new FileNode(nodeSupp, type);
@@ -68,7 +66,6 @@ TreeManager::createNode(NodeTypeId type, unsigned level)
         catch (bad_alloc&)
         {
             disableCache();
-
             try
             {
                 node = new FileNode(nodeSupp, type);
@@ -80,13 +77,11 @@ TreeManager::createNode(NodeTypeId type, unsigned level)
                 cmsg.send();
             }
         }
-
         return node;
     }
     else
     {
         NodePtr node;
-
         try
         {
             node = new FileNode(nodeSupp, type);
@@ -97,7 +92,6 @@ TreeManager::createNode(NodeTypeId type, unsigned level)
             << "Not enough memory to create new node!" << endl;
             cmsg.send();
         }
-
         return node;
     }
 }
@@ -135,7 +129,6 @@ TreeManager::getNode(SmiRecordId nodeId, unsigned level)
         catch (bad_alloc&)
         {
             disableCache();
-
             try
             {
                 node = new FileNode(nodeSupp, nodeId);
@@ -147,13 +140,11 @@ TreeManager::getNode(SmiRecordId nodeId, unsigned level)
                 cmsg.send();
             }
         }
-
         return node;
     }
     else
     {
         NodePtr node;
-
         try
         {
             node = new FileNode(nodeSupp, nodeId);
@@ -164,7 +155,6 @@ TreeManager::getNode(SmiRecordId nodeId, unsigned level)
             << "Not enough memory to read node!" << endl;
             cmsg.send();
         }
-
         return node;
     }
 }
@@ -224,7 +214,7 @@ TreeManager::insertCopy(NodePtr node, EntryBase* e)
         bool result = node->insertCopy(e);
         curSize += node->memSize();
 
-        if (curSize > maxNodeCacheSize)
+         if (curSize > maxNodeCacheSize)
             cleanupCache();
 
         return result;
@@ -262,7 +252,7 @@ TreeManager::remove(NodePtr node, unsigned i)
         curSize -= node->memSize();
         node->remove(i);
         curSize += node->memSize();
-    }
+   }
     else
         node->remove(i);
 }
@@ -276,10 +266,10 @@ TreeManager::recomputeSize(NodePtr node)
 {
     if (node->isCached())
     {
-        curSize -= node->memSize();
+        curSize -= node->memSize(false);
         node->recomputeSize();
         curSize += node->memSize();
-    }
+   }
     else
         node->recomputeSize();
 }
@@ -323,7 +313,6 @@ TreeManager::putToCache(NodePtr node)
                 node->setCached();
                 curSize += node->memSize();
                 cache[node->getNodeId()] = node;
-
                 if (curSize > maxNodeCacheSize)
                     cleanupCache();
             }
@@ -340,22 +329,24 @@ TreeManager::cleanupCache()
 {
     // delete old nodes from cache, if neccesary
     list<PriorityEntry> priorities;
-
     for (iterator iter = cache.begin(); iter != cache.end(); ++iter)
     {
-        priorities.push_back(PriorityEntry(
-                                 getPriority(iter->second), iter));
+        priorities.push_back(
+                PriorityEntry(getPriority(iter->second), iter));
     }
 
     priorities.sort();
 
-    while (curSize > minNodeCacheSize)
+    // the empty check is nessesary, since curSize could have a wrong
+    // value, e.g. if the node methods are used directly instead of
+    // using the resp. methods of this class
+    while ((curSize > minNodeCacheSize) && !cache.empty())
     {
         iterator iter = priorities.front().iter;
+        priorities.pop_front();
         iter->second->resetCached();
         curSize -= iter->second->memSize();
         cache.erase(iter);
-        priorities.pop_front();
     }
 }
 
