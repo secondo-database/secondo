@@ -124,27 +124,34 @@ Removes all nodes from cache.
     void clearCache()
     {
         if (!cache.empty())
+        {
+            #ifdef GTAF_SHOW_CACHE_INFOS
+            cmsg.info() << endl << "Writing cached nodes to disc... ";
+            cmsg.send();
+            #endif
+
+            // reset cached flag for all cached nodes
+            for (iterator it = cache.begin();
+                          it != cache.end(); ++it)
             {
-                #ifdef GTAF_SHOW_CACHE_INFOS
-                cmsg.info() << endl << "Writing cached nodes to disc... ";
-                cmsg.send();
-                #endif
-
-                cache.clear();
-                curSize = 0;
-
-                #ifdef GTAF_SHOW_CACHE_INFOS
-                cmsg.info() << " [OK]" << endl;
-                cmsg.send();
-                #endif
-
-                #ifdef GTAF_SHOW_CACHE_INFOS
-                cmsg.info() << endl << "node-cache m_hits   : " << m_hits
-                << endl << "node-cache m_misses : " << m_misses
-                << endl << endl;
-                cmsg.send();
-                #endif
+                it->second->resetCached();
             }
+
+            cache.clear();
+            curSize = 0;
+
+            #ifdef GTAF_SHOW_CACHE_INFOS
+            cmsg.info() << " [OK]" << endl;
+            cmsg.send();
+            #endif
+
+            #ifdef GTAF_SHOW_CACHE_INFOS
+            cmsg.info() << endl << "node-cache m_hits   : " << m_hits
+            << endl << "node-cache m_misses : " << m_misses
+            << endl << endl;
+            cmsg.send();
+            #endif
+        }
     }
 
 /*
