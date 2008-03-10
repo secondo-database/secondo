@@ -146,7 +146,7 @@ public:
 The following methods wraps the respective methods of the "NodeBase"[4] class:
 
 */
-    inline unsigned memSize() const;
+    inline unsigned memSize(bool recompute = true) const;
     inline bool isCached() const;
     inline void setCached();
     inline void resetCached();
@@ -264,8 +264,8 @@ Method ~memSize~:
 
 */
 unsigned
-FileNode::memSize() const
-{ return m_node->memSize(); }
+FileNode::memSize(bool recompute) const
+{ return m_node->memSize(recompute); }
 
 /*
 Method ~isCached~:
@@ -289,7 +289,7 @@ Method ~resetCached~:
 */
 void
 FileNode::resetCached()
-{ m_node->setCached(); }
+{ m_node->resetCached(); }
 
 /*
 Method ~isModified~:
