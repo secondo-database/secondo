@@ -1,0 +1,23 @@
+Database: berlintest
+Restore : NO
+
+Operator : cluster_a
+Number   : 1
+Signature: points -> points
+Example  : query cluster_a( [const points value ( (2.0 3.0) (3.0 2.0) (10.0 11))] )
+Result   : (points ())
+
+
+Operator : cluster_b
+Number   : 1
+Signature: points  x int x int -> points
+Example  : query [const points value ( (2.0 3.0) (3.0 2.0) (10.0 11))] cluster_b[1, 3]
+Result   : (points ((2.0 3.0)(3.0 2.0)))
+
+
+Operator : cluster_c
+Number   : 1
+Signature: points  x int x real -> points
+Example  : query [const points value ( (2.0 3.0) (3.0 2.0) (10.0 11))] cluster_c[2, 3.0] count
+Result   : (int 1)
+
