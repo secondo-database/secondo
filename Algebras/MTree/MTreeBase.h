@@ -46,7 +46,7 @@ This headerfile implements entries and nodes of the mtree datastructure.
 #include "MTreeAlgebra.h"
 
 namespace mtreeAlgebra {
-typedef gtaf::NodePtr NodePtr;
+using gtaf::NodePtr;
 
 /********************************************************************
 1.1 Deklaration part
@@ -84,7 +84,8 @@ Default copy constructor.
 
 */
     inline LeafEntry(const LeafEntry& e) :
-            m_tid(e.m_tid), m_data(e.m_data), m_dist(e.m_dist)
+            m_tid(e.m_tid), m_data(new DistData(*e.m_data)),
+            m_dist(e.m_dist)
     {}
 
 /*
@@ -92,7 +93,7 @@ Destructor.
 
 */
     inline ~LeafEntry()
-    {}
+    { delete m_data; }
 
 /*
 Returns the covering raidius of the entry (always 0 for leafes).
@@ -215,7 +216,8 @@ Constructor (creates a new internal entry with given values).
     inline InternalEntry(const InternalEntry& e, DFUN_RESULT _rad,
                         SmiRecordId _chield) :
         gtaf::InternalEntry(_chield),
-        m_dist(e.m_dist), m_rad(_rad), m_data(e.m_data)
+        m_dist(e.m_dist), m_rad(_rad),
+        m_data(new DistData(*e.m_data))
     {}
 
 /*
@@ -225,7 +227,8 @@ Constructor (creates a new internal entry from a leaf entry).
     inline InternalEntry(const LeafEntry& e, DFUN_RESULT _rad,
                         SmiRecordId _chield) :
             gtaf::InternalEntry(_chield),
-            m_dist(e.m_dist), m_rad(_rad), m_data(e.m_data)
+            m_dist(e.m_dist), m_rad(_rad),
+            m_data(new DistData(*e.m_data))
     {}
 
 /*
@@ -233,7 +236,7 @@ Destructor.
 
 */
     inline ~InternalEntry()
-    {}
+    { delete m_data; }
 
 /*
 Returns distance of the entry to the parent node.
