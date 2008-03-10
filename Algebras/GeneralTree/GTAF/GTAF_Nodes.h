@@ -191,7 +191,7 @@ Like above entry method, but returns an EntryBase pointer (e.g. used in the "Tre
 Returns the (approximately) size of the entry im memory.
 
 */
-    virtual inline unsigned memSize() const;
+    virtual inline unsigned memSize(bool recompute = true) const;
 
 protected:
 /*
@@ -357,9 +357,7 @@ Destructor:
 template<class TEntry>
 GenericVectorNode<TEntry>::~GenericVectorNode()
 {
-    iterator it;
-
-    for (it = begin(); it != end(); ++it)
+    for (iterator it = begin(); it != end(); ++it)
         delete *it;
 
     delete m_entries;
@@ -452,17 +450,13 @@ GenericVectorNode<TEntry>::insert(EntryBase* newEntry)
 
     if (!e)
         Msg::wrongEntryType_Error();
-
 #else
     TEntry* e = static_cast<TEntry*>(newEntry);
-
 #endif
 
     // insert entry and update node size
     m_entries->push_back(e);
-
     m_curSize += e->size();
-
     setModified();
 
     // node must not be splitted, if the new entry fits into the
@@ -717,12 +711,15 @@ Method ~memSize~:
 */
 template<class TEntry>
 unsigned
-GenericVectorNode<TEntry>::memSize() const
+GenericVectorNode<TEntry>::memSize(bool recompute) const
 {
-    return
-        m_curSize +
-        sizeof(GenericVectorNode<TEntry>) + // size of all members
-        entryCount() * sizeof(TEntry*);    // size of entry pointers
+    if (recompute)
+    {
+        m_memSize = m_curSize +
+            sizeof(GenericVectorNode<TEntry>) + // size of all members
+            entryCount() * sizeof(TEntry*); // size of entry pointers
+    }
+    return m_memSize;
 }
 
 /*
