@@ -86,6 +86,9 @@ ok : list {
             /* printf("Parser: list ok."); */
             parseNL_list = $1;
           }
+    | atom {
+            parseNL_list = $1;
+          }
    ;
 
 
