@@ -4081,60 +4081,90 @@ QueryProcessor::SetDebugLevel( const int level )
   }
 }
 
-
-
+bool
+    QueryProcessor::ExecuteQuery( const string& queryListStr,
+                                  Word& queryResult)
+{
+  string typeString(""), errorString("");
+  bool correct = false, evaluable = false, defined = false, isFunction = false;
+  ListExpr queryList;
+  NestedList* nli = SecondoSystem::GetNestedList();
+  if(nli->ReadFromString( queryListStr, queryList ))
+  {
+    return ExecuteQuery( queryList,
+                         queryResult,
+                         typeString,
+                         errorString,
+                         correct,
+                         evaluable,
+                         defined,
+                         isFunction);
+  }
+  return false;
+}
 
 bool
-QueryProcessor::ExecuteQuery( const string& queryListStr,
-                              Word& queryResult )
+QueryProcessor::ExecuteQuery( const ListExpr& commandList,
+                              Word& queryResult,
+                              string& typeString,
+                              string& errorString,
+                              bool& correct,
+                              bool& evaluable,
+                              bool& defined,
+                              bool& isFunction)
 {
   OpTree tree = 0;
-  
-  bool correct      = false;
-  bool evaluable    = false;
-  bool defined      = false;
-  bool isFunction   = false;
+  correct      = false;
+  evaluable    = false;
+  defined      = false;
+  isFunction   = false;
+  string errorMessage = "";
   
   NestedList* nli = SecondoSystem::GetNestedList();
   ListExpr resultType = nli->TheEmptyList();
-  ListExpr queryList = nli->TheEmptyList();
-
-  nli->ReadFromString( queryListStr, queryList );
-
+//   ErrorReporter::GetErrorMessage(errorMessage); // clear
   QueryProcessor* qpp = 
     new QueryProcessor( nli, 
                         SecondoSystem::GetAlgebraManager() );
-   
-  qpp->Construct( queryList, correct, 
+  qpp->Construct( commandList, correct,
                   evaluable, defined, isFunction, tree, resultType );
+  nli->WriteToString(typeString,resultType);
   if ( !defined )
   {
-    cout << "object value is undefined" << endl;
+    cout << "Object undefined." << endl;
+//     ErrorReporter::GetErrorMessage(errorMessage);
+//     errorString = "Object query refers to undefined value: " + errorMessage;
+    errorString = "Object query refers to undefined value.";
     delete qpp;
-    return ( false );         
+    return ( false );
   }
   else if ( correct )
   {
     if ( evaluable )
     {
       // evaluate the operator tree
-
       qpp->EvalS( tree, queryResult, OPEN );
       qpp->Destroy( tree, false );
-
+      errorString = "";
     }
     else 
     {
-      cout << "Operator query not evaluable" << endl;
+      cout << "Operator not evaluable." << endl;
+//       ErrorReporter::GetErrorMessage(errorMessage);
+//       errorString = "Operator query not evaluable: " + errorMessage;
+      errorString = "Operator query not evaluable.";
       delete qpp;
-      return ( false );  
+      return ( false );
     }
   }
   else
   { 
-    cout << "Error in operator query" << endl;
+    cout << "Error in operator query." << endl;
+//     ErrorReporter::GetErrorMessage(errorMessage);
+//     errorString = "Error in operator query: " + errorMessage;
+    errorString = "Error in operator query.";
     delete qpp;
-    return ( false );  
+    return ( false );
   }
   delete qpp;
   return ( true );

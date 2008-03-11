@@ -595,7 +595,7 @@ separate functions which should be named Command\_<name>.
       SecParser sp;            // translates SECONDO syntax into nested list
       string listCommand = ""; // buffer for command in list form 
       
-      if ( sp.Text2List( commandText, listCommand ) != 0 )      
+      if ( sp.Text2List( commandText, listCommand ) != 0 )
       {
         // conversion into a textual nested list failed
         errorCode = ERR_SYNTAX_ERROR;  
@@ -604,6 +604,8 @@ separate functions which should be named Command\_<name>.
       {
         errorCode = ERR_SYNTAX_ERROR;
       }
+      cout << "commandText=" << commandText << endl;
+      cout << "listCommand=" << listCommand << endl;
       break;
     }
     default:

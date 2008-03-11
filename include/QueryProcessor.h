@@ -549,9 +549,30 @@ Returns the maximum memory available per operator.
   static bool ExecuteQuery( const string& queryListStr,
                             Word& queryResult);
 /*
-Executes a Secondo query, given in nested list syntax of type string and returns 
-a query result of type Word. This static method can be used for Secondo queries
-within an operator implementation of an algebra.
+  Executes a Secondo query, given in nested list syntax of type string and returns
+  a query result of type Word.
+
+  This static method can be used for Secondo queries within an operator
+  implementation of an algebra.
+
+*/
+
+  static bool ExecuteQuery( const ListExpr& queryList,
+                          Word& queryResult,
+                          string& typeString,
+                          string& errorString,
+                          bool& correct,
+                          bool& evaluable,
+                          bool& defined,
+                          bool& isFunction);
+/*
+Just as before, but if an error occurs, it is written to argument  ~errorString~.
+Also, the result's type expression is in returned in parameter ~typeString~.
+
+~correct~ is "true", iff the expression is correct.
+~defined~ is "false", iff there is an  object with undefined value mentioned in the query.
+~evaluable~, is "false", iff the query is not evaluable.
+~isFunction~ is "true", when the query represents an abstraction.
 
 */
 
