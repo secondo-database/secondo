@@ -242,3 +242,8 @@ Signature: string x string -> stream(int)
 Example  : query find("12345678901234567890123456789012345678901234567890", "1234567890") count
 Result   : 4
 
+Operator : evaluate
+Number   : 1
+Signature: text -> stream(tuple((CmdStr text) (Success bool) (Evaluable bool) (Defined bool) (IsFunction bool) (ResultType text) (Result text) (ErrorMessage text) (ElapsedTimeReal real) (ElapsedTimeCPU real)))
+Example  : query evaluate('ten feed filter[.no > 5] count') filter[.Result = '5'] count = 1
+Result   : TRUE

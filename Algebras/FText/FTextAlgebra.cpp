@@ -40,7 +40,8 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 (ii) ~length~ which give back the length of a text.
 
 
-March 2008, Christian D[ue]ntgen added operators ~getcatalog~
+March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
+~subtext~, ~isempty~, $<$, $<=$, $=$, $>=$, $>$, \#, ~find~, ~evaluate~.
 
 1 Preliminaries
 
@@ -64,6 +65,8 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~
 #include "NList.h"
 #include "LogMsg.h"
 #include "DiceCoeff.h"
+#include "SecParser.h"
+#include "StopWatch.h"
 
 using namespace std;
 
@@ -748,6 +751,43 @@ ListExpr FTextTypeMapComparePred( ListExpr args )
       "or ({text|string} x text).");
 }
 
+/*
+Type Mapping Function for operator ~evaluate~
+
+----
+    text -> stream(tuple((CmdStr text)       // copy of the evaluated command
+                         (Success bool)      // TRUE iff execution succeded
+                         (ResultType text)      // result type expression 
+                         (Result text)          // result as nested list expr
+                         (ErrorMessage text)    // Error messages
+                         (ElapsedTimeReal real) // The execution time in sec
+                         (ElapsedTimeCPU real)  // The CPU time in sec
+                        )
+                  )
+----
+
+*/
+ListExpr FTextTypeMapEvaluate( ListExpr args )
+{
+  NList type(args);
+  if( !type.hasLength(1) || (type.first() != TEXT) )
+  {
+    return NList::typeError("Expected single 'text' argument.");
+  }
+  NList resTupleType = NList(NList("CmdStr"),NList(TEXT)).enclose();
+  resTupleType.append(NList(NList("Success"),NList(BOOL)));
+  resTupleType.append(NList(NList("Correct"),NList(BOOL)));
+  resTupleType.append(NList(NList("Evaluable"),NList(BOOL)));
+  resTupleType.append(NList(NList("Defined"),NList(BOOL)));
+  resTupleType.append(NList(NList("IsFunction"),NList(BOOL)));
+  resTupleType.append(NList(NList("ResultType"),NList(TEXT)));
+  resTupleType.append(NList(NList("Result"),NList(TEXT)));
+  resTupleType.append(NList(NList("ErrorMessage"),NList(TEXT)));
+  resTupleType.append(NList(NList("ElapsedTimeReal"),NList(REAL)));
+  resTupleType.append(NList(NList("ElapsedTimeCPU"),NList(REAL)));
+  NList resulttype(NList(STREAM),NList(NList(TUPLE),resTupleType));
+  return resulttype.listExpr();
+}
 
 /*
 3.3 Value Mapping Functions
@@ -757,6 +797,7 @@ ListExpr FTextTypeMapComparePred( ListExpr args )
 int
 ValMapTextStringBool ( Word* args, Word& result, 
                        int message, Word& local, Supplier s)
+
 /*
 Value Mapping for the ~contains~ operator with the operands text and string.
 
@@ -786,6 +827,7 @@ Value Mapping for the ~contains~ operator with the operands text and string.
 int
 ValMapTextTextBool ( Word* args, Word& result, 
                      int message, Word& local, Supplier s)
+
 /*
 Value Mapping for the ~contains~ operator with two text operands.
 
@@ -1013,9 +1055,6 @@ The length of a string is three characters or more.
 
 int
 ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
-/*
-
-*/
 {
   struct TheText {int start, strlength; const char* subw;}* thetext;
   int textcursor = 0, state = 0;
@@ -1615,6 +1654,202 @@ int FTextSelectFunComparePred( ListExpr args )
   return -1; // error
 }
 
+int FTextValueMapEvaluate( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  FText* CCommand = (FText*)(args[0].addr);
+  bool *finished;
+  string querystring  = "";
+  string querystringParsed = "";
+  string typestring   = "";
+  string resultstring = "";
+  string errorstring  = "";
+  Word queryresultword;
+  bool success        = false;
+  bool correct        = false;
+  bool evaluable      = false;
+  bool defined        = false;
+  bool isFunction     = false;
+  StopWatch myTimer;
+  double myTimeReal   = 0;
+  double myTimeCPU    = 0;
+
+  SecParser mySecParser;
+  ListExpr parsedCommand;
+  TupleType *resultTupleType = 0;
+  Tuple *newTuple            = 0;
+
+  FText  *CcCmdStr           = 0;
+  CcBool *CcSuccess          = 0;
+  CcBool *CcCorrect          = 0;
+  CcBool *CcEvaluable        = 0;
+  CcBool *CcDefined          = 0;
+  CcBool *CcIsFunction       = 0;
+  FText  *CcResultType       = 0;
+  FText  *CcResult           = 0;
+  FText  *CcErrorMessage     = 0;
+  CcReal *CcElapsedTimeReal  = 0;
+  CcReal *CcElapsedTimeCPU   = 0;
+
+  switch(message)
+  {
+    case OPEN:
+      finished = new bool(false);
+      local.addr = finished;
+      *finished = (!CCommand->IsDefined());
+      return 0;
+    case REQUEST:
+      if(local.addr == 0)
+      {
+        result = SetWord(0);
+        return CANCEL;
+      }
+      finished = (bool*)(local.addr);
+      if(*finished)
+      {
+        result = SetWord(0);
+        return CANCEL;
+      }
+      if(!CCommand->IsDefined())
+      {
+        *finished = true;
+        result = SetWord(0);
+        return CANCEL;
+      }
+
+      // call Parser: transform expression to nested-list-string
+      correct = true;
+      querystring = CCommand->GetValue();
+      if(mySecParser.Text2List( "query " + querystring,querystringParsed ) != 0)
+      {
+        errorstring = "ERROR: Text does not contain a "
+            "parsable query expression.";
+        correct = false;
+      }
+      if( correct)
+      { // read nested list: transform nested-list-string to nested list
+        if (!nl->ReadFromString(querystringParsed, parsedCommand) )
+        {
+          errorstring = "ERROR: Text does not produce a "
+              "valid nested list expression.";
+          correct = false;
+          cout << "NLimport: " << errorstring << endl;
+        }
+      }
+      if ( correct )
+      {  // remove the "query" from the list
+        if ( (nl->ListLength(parsedCommand) == 2) )
+        {
+          parsedCommand = nl->Second(parsedCommand);
+          string parsedCommandstr;
+          nl->WriteToString(parsedCommandstr,parsedCommand);
+          //cout << "NLimport: OK. parsedCommand=" << parsedCommandstr  << endl;
+        }
+        else
+        {
+          errorstring = "ERROR: Text does not produce a "
+              "valid nested query list expression.";
+          correct = false;
+          //cout << "NLimport: " << errorstring  << endl;
+        }
+      }
+      if (correct)
+      { // evaluate command
+        myTimer.start();
+        success =
+            QueryProcessor::ExecuteQuery(parsedCommand,
+                                         queryresultword,
+                                         typestring,
+                                         errorstring,
+                                         correct,
+                                         evaluable,
+                                         defined,
+                                         isFunction);
+        myTimeReal = myTimer.diffSecondsReal();
+        myTimeCPU  = myTimer.diffSecondsCPU();
+        cout << "TimeReal = " << myTimeReal << endl;
+        cout << "TimeCPU  = " << myTimeCPU  << endl;
+
+        // handle result
+        ListExpr queryResType;
+        if ( !nl->ReadFromString( typestring, queryResType) )
+        {
+          errorstring = "ERROR: Invalid resulttype. " + errorstring;
+        }
+        else
+        {
+          if(   correct
+                && evaluable
+                && defined
+                && ( typestring != "typeerror"  )
+            )
+          { // yielded a typeerror
+            ListExpr valueList = SecondoSystem::GetCatalog()
+                ->OutObject(queryResType,queryresultword);
+            nl->WriteToString(resultstring,valueList);
+          }
+          // else: typeerror or nonevaluable query
+          //       - Just return retrieved values and let user decide -
+        }
+      }
+      // handle times
+      // create result tuple
+      if(traces){
+        cout << "\n---------------------------------------------------" << endl;
+        cout << "\tsuccess     =" << (success ? "yes" : "no"    ) << endl;
+        cout << "\tevaluable   =" << (evaluable ? "yes" : "no"  ) << endl;
+        cout << "\tdefined     =" << (defined ? "yes" : "no"    ) << endl;
+        cout << "\tisFunction  =" << (isFunction ? "yes" : "no" ) << endl;
+        cout << "\tquerystring =" << querystring  << endl;
+        cout << "\ttypestring  =" << typestring   << endl;
+        cout << "\tresultstring=" << resultstring << endl;
+        cout << "\terrorstring =" << errorstring  << endl;
+        cout << "---------------------------------------------------" << endl;
+      }
+
+      resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      newTuple = new Tuple( resultTupleType );
+
+      CcCmdStr       = new FText(true, querystring);
+      CcSuccess      = new CcBool(true, success);
+      CcCorrect      = new CcBool(true, correct);
+      CcEvaluable    = new CcBool(true, evaluable);
+      CcDefined      = new CcBool(true, defined);
+      CcIsFunction   = new CcBool(true, isFunction);
+      CcResultType   = new FText(true, typestring);
+      CcResult       = new FText(true, resultstring);
+      CcErrorMessage = new FText(true, errorstring);
+      CcElapsedTimeReal = new CcReal(true, myTimeReal);
+      CcElapsedTimeCPU  = new CcReal(true, myTimeCPU);
+
+      newTuple->PutAttribute(  0,(StandardAttribute*)CcCmdStr);
+      newTuple->PutAttribute(  1,(StandardAttribute*)CcSuccess);
+      newTuple->PutAttribute(  2,(StandardAttribute*)CcCorrect);
+      newTuple->PutAttribute(  3,(StandardAttribute*)CcEvaluable);
+      newTuple->PutAttribute(  4,(StandardAttribute*)CcDefined);
+      newTuple->PutAttribute(  5,(StandardAttribute*)CcIsFunction);
+      newTuple->PutAttribute(  6,(StandardAttribute*)CcResultType);
+      newTuple->PutAttribute(  7,(StandardAttribute*)CcResult);
+      newTuple->PutAttribute(  8,(StandardAttribute*)CcErrorMessage);
+      newTuple->PutAttribute(  9,(StandardAttribute*)CcElapsedTimeReal);
+      newTuple->PutAttribute( 10,(StandardAttribute*)CcElapsedTimeCPU);
+
+      result = SetWord(newTuple);
+      resultTupleType->DeleteIfAllowed();
+      *finished = true;
+      return YIELD;
+
+    case CLOSE:
+      if(local.addr != 0)
+      {
+        finished = (bool*)(local.addr);
+        delete finished;
+      }
+      return 0;
+  }
+  return 0;
+}
+
 /*
 3.4 Definition of Operators
 
@@ -1805,6 +2040,22 @@ const string FTextNeqSpec  =
     "<text>query 'TestA' # 'TestB'</text--->"
     ") )";
 
+const string FTextEvaluateSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text -> stream(tuple((CmdStr text) (Success bool) "
+    "(Evaluable bool) (Defined bool) (IsFunction bool)"
+    "(ResultType text) (Result text) (ErrorMessage text) "
+    "(ElapsedTimeReal real) (ElapsedTimeCPU real)))</text--->"
+    "<text>evaluate( _ )</text--->"
+    "<text>Interprets the text argument as a Secondo Executable Language "
+    "query expression and evaluates it. The calculated result returned as a "
+    "nested list expression. Operator's result is a stream containing at most "
+    "1 tuple with a copy of the command, the result, errormessage, runtimes, "
+    "and some more status information.</text--->"
+    "<text>query evaluate('ten feed filter[.No > 5] count') "
+    "filter[.Success] count > 1</text--->"
+    ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -1980,6 +2231,15 @@ Operator ftextneq
     FTextTypeMapComparePred
     );
 
+Operator ftextevaluate
+    (
+    "evaluate",
+    FTextEvaluateSpec,
+    FTextValueMapEvaluate,
+    Operator::SimpleSelect,
+    FTextTypeMapEvaluate
+    );
+
 /*
 5 Creating the algebra
 
@@ -2012,6 +2272,11 @@ public:
     AddOperator( &ftextbiggereq );
     AddOperator( &ftextbigger );
     AddOperator( &ftextneq );
+    AddOperator( &ftextevaluate );
+//     AddOperator( &ftextreplace );
+//     AddOperator( &ftexttoupper );
+//     AddOperator( &ftexttostring );
+//     AddOperator( &ftexttotext );
 
     
     LOGMSG( "FText:Trace",

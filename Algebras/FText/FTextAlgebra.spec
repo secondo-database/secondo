@@ -27,6 +27,11 @@ operator sentences alias SENTENCES pattern _ op
 operator getcatalog alias GETCATALOG pattern op( _ )
 operator subtext alias SUBTEXT pattern op(_, _, _)
 operator find alias FIND pattern op(_, _)
+operator evaluate alias EVALUATE pattern op( _ )
+#operator replace alias REPLACE pattern op(_, _, _)
+#operator toupper alias TOUPPER pattern op(_)
+#operator totext alias TOTEXT pattern op(_)
+#operator tostring alias TOSTRING pattern op(_)
 
 
 #Operators already specified elsewhere:
