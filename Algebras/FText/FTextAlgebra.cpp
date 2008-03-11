@@ -52,6 +52,7 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 
 #include <cstring>
 #include <iostream>
+#include <sstream>
 
 
 #include "FTextAlgebra.h"
@@ -787,6 +788,26 @@ ListExpr FTextTypeMapEvaluate( ListExpr args )
   resTupleType.append(NList(NList("ElapsedTimeCPU"),NList(REAL)));
   NList resulttype(NList(STREAM),NList(NList(TUPLE),resTupleType));
   return resulttype.listExpr();
+}
+
+/*
+Type Mapping Function for operator ~replace~
+
+*/
+
+ListExpr FTextTypeMapReplace( ListExpr args )
+{
+  NList type(args);
+  if(     !type.hasLength(3)
+       || ((type.first() != TEXT) && (type.first() != STRING))
+       || ((type.second() != TEXT) && (type.second() != STRING))
+       || ((type.third() != TEXT) && (type.third() != STRING))
+    )
+  {
+    return NList::typeError("Expected {text|string} x {text|string} x "
+      "{text|string} arguments.");
+  }
+  return NList(TEXT).listExpr();
 }
 
 /*
@@ -1851,6 +1872,101 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
 }
 
 /*
+Value Mapping Function for Operator ~replace~
+
+*/
+template<class T1, class T2, class T3>
+int FTextValMapReplace( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  FText* Res = static_cast<FText*>(result.addr);
+
+  T1* text       = static_cast<T1*>(args[0].addr);
+  T2* patternOld = static_cast<T2*>(args[1].addr);
+  T3* patternNew = static_cast<T3*>(args[2].addr);
+
+  if(    !text->IsDefined()
+      || !patternOld->IsDefined()
+      || !patternNew->IsDefined()
+    )
+  {
+    Res->Set(false, "");
+    return 0;
+  }
+  string textStr       = text->GetValue();
+  string patternOldStr = patternOld->GetValue();
+  string patternNewStr = patternNew->GetValue();
+  string textReplaced = "";
+  if( patternOldStr.length() == 0 )
+  {
+    textReplaced = textStr;
+  }
+  else
+  {
+    stringstream sstextReplaced;
+    size_t lastpos = 0;
+    size_t pos = 0;
+    do
+    {
+      lastpos = pos;
+      pos = textStr.find(patternOldStr, pos);
+      if (pos != string::npos)
+      {
+        size_t len = pos - lastpos;
+        sstextReplaced << textStr.substr(lastpos,len) << patternNewStr;
+        pos += patternOldStr.length();
+      }
+      else
+      {
+        sstextReplaced << textStr.substr(lastpos, textStr.length()-lastpos);
+      }
+    }
+    while ( (pos != string::npos) && (pos < textStr.length()) );
+    textReplaced = sstextReplaced.str();
+  }
+  Res->Set(true, textReplaced);
+  return 0;
+}
+
+/*
+ValueMappingArray for ~replace~
+
+*/
+
+ValueMapping FText_VMMap_Replace[] =
+{
+  FTextValMapReplace<FText,    FText,    FText>,    // 0
+  FTextValMapReplace<FText,    FText,    CcString>, // 1 
+  FTextValMapReplace<FText,    CcString, FText>,    // 2
+  FTextValMapReplace<FText,    CcString, CcString>, // 3
+  FTextValMapReplace<CcString, FText,    FText>,    // 4
+  FTextValMapReplace<CcString, FText,    CcString>, // 5
+  FTextValMapReplace<CcString, CcString, FText>,    // 6
+  FTextValMapReplace<CcString, CcString, CcString>  // 7
+};
+
+
+/*
+Selection function for ~replace~
+
+*/
+
+int FTextSelectFunReplace( ListExpr args )
+{
+  NList type(args);
+  int result = 0;
+  if( type.third() == NList(STRING) )
+    result += 1;
+  if( type.second() == NList(STRING) )
+    result += 2;
+  if( type.first() == NList(STRING) )
+    result += 4;
+  return result;
+}
+
+
+/*
 3.4 Definition of Operators
 
 */
@@ -2056,6 +2172,16 @@ const string FTextEvaluateSpec  =
     "filter[.Success] count > 1</text--->"
     ") )";
 
+const string FTextReplaceSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>{text|string} x {text|string} x {text|string} -> text</text--->"
+    "<text>replace( text , Pold, Pnew )</text--->"
+    "<text>Within 'text', replace all occurencies of pattern 'Pold' by "
+    "pattern 'Pnew'.</text--->"
+    "<text>query replace('Fish! Fresh fish! Fresh fished fish!',"
+    "'Fresh','Rotten')</text--->"
+    ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -2240,6 +2366,16 @@ Operator ftextevaluate
     FTextTypeMapEvaluate
     );
 
+Operator ftextreplace
+    (
+    "replace",
+    FTextReplaceSpec,
+    8,
+    FText_VMMap_Replace,
+    FTextSelectFunReplace,
+    FTextTypeMapReplace
+    );
+
 /*
 5 Creating the algebra
 
@@ -2273,7 +2409,7 @@ public:
     AddOperator( &ftextbigger );
     AddOperator( &ftextneq );
     AddOperator( &ftextevaluate );
-//     AddOperator( &ftextreplace );
+    AddOperator( &ftextreplace );
 //     AddOperator( &ftexttoupper );
 //     AddOperator( &ftexttostring );
 //     AddOperator( &ftexttotext );

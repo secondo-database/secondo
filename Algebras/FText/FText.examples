@@ -247,3 +247,52 @@ Number   : 1
 Signature: text -> stream(tuple((CmdStr text) (Success bool) (Evaluable bool) (Defined bool) (IsFunction bool) (ResultType text) (Result text) (ErrorMessage text) (ElapsedTimeReal real) (ElapsedTimeCPU real)))
 Example  : query evaluate('ten feed filter[.no > 5] count') filter[.Result = '5'] count = 1
 Result   : TRUE
+
+Operator : replace
+Number   : 1
+Signature: text x text x string -> text
+Example  : query replace('abab','a',"c")
+Result   : 'cbcb'
+
+Operator : replace
+Number   : 2
+Signature: text x string x text -> text
+Example  : query replace('abab',"a",'c')
+Result   : 'cbcb'
+
+Operator : replace
+Number   : 3
+Signature: text x string x string -> text
+Example  : query replace('abab',"a","c")
+Result   : 'cbcb'
+
+Operator : replace
+Number   : 4
+Signature: string x text x text -> text
+Example  : query replace("abab",'a','c')
+Result   : 'cbcb'
+
+Operator : replace
+Number   : 5
+Signature: string x text x string -> text
+Example  : query replace("abab",'a',"c")
+Result   : 'cbcb'
+
+Operator : replace
+Number   : 6
+Signature: string x string x text -> text
+Example  : query replace("abab","a",'c')
+Result   : 'cbcb'
+
+Operator : replace
+Number   : 7
+Signature: string x string x string -> text
+Example  : query replace("abab","a","c")
+Result   : 'cbcb'
+
+Operator : replace
+Number   : 8
+Signature: text x text x text -> text
+Example  : query replace('abab','a','c')
+Result   : 'cbcb'
+
