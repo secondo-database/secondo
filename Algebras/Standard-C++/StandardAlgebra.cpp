@@ -2783,6 +2783,7 @@ RelcountFun2( Word* args, Word& result, int message, Word& local, Supplier s )
   char* relname;
   string querystring;
   Word resultword;
+  string errorMessage = "";
 
   result = qp->ResultStorage( s );
 
@@ -2799,7 +2800,7 @@ RelcountFun2( Word* args, Word& result, int message, Word& local, Supplier s )
       ((CcInt *)result.addr)->Set( true,
       ((CcInt*)resultword.addr)->GetIntval() );
     }
-    else cout << "Error in executing operator query" << endl;
+    else cout << "Error in executing operator query: "<< errorMessage << endl;
   }
   else
   {
