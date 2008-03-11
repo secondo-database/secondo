@@ -111,6 +111,8 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
+namespace mp3{
+
 /*
 2 Type Constructor ~mp3~
 
@@ -3533,11 +3535,11 @@ int AuthorFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     if (id3->IsDefined()){
         char newStr[256];
         id3->GetAuthor (newStr);
-        ((CcString *)result.addr)->Set( true, (STRING*) &newStr );
+        ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
     }
     else {
-        ((CcString *)result.addr)->Set( false, (STRING*) "");
+        ((CcString *)result.addr)->Set( false, (STRING_T*) "");
         return 0;
     }
 }
@@ -3613,11 +3615,11 @@ int TitleFun(Word* args, Word& result, int message, Word& local, Supplier s) {
         char newStr[256];
         id3->GetTitle (newStr);
     
-        ((CcString *)result.addr)->Set( true, (STRING*) &newStr );
+        ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
     }  
     else {
-        ((CcString *)result.addr)->Set( false, (STRING*) "");
+        ((CcString *)result.addr)->Set( false, (STRING_T*) "");
         return 0;
     }
 }
@@ -3693,11 +3695,11 @@ int AlbumFun(Word* args, Word& result, int message, Word& local, Supplier s) {
         char newStr[256];
         id3->GetAlbum (newStr);
     
-        ((CcString *)result.addr)->Set( true, (STRING*) &newStr );
+        ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
     }
     else {
-        ((CcString *)result.addr)->Set( false, (STRING*) "");
+        ((CcString *)result.addr)->Set( false, (STRING_T*) "");
         return 0;
     }
 }
@@ -3774,11 +3776,11 @@ int CommentFun(Word* args, Word& result, int message,
         char newStr[256];
         id3->GetComment (newStr);
         
-        ((CcString *)result.addr)->Set( true, (STRING*) &newStr );
+        ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
     }
     else {
-        ((CcString *)result.addr)->Set( false, (STRING*) "");
+        ((CcString *)result.addr)->Set( false, (STRING_T*) "");
         return 0;
     }
     
@@ -3855,11 +3857,11 @@ int GenreFun(Word* args, Word& result, int message, Word& local, Supplier s) {
         char newStr[256];
         id3->GetGenre (newStr);
     
-        ((CcString *)result.addr)->Set( true, (STRING*) &newStr );
+        ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
     }
     else {
-        ((CcString *)result.addr)->Set( false, (STRING*) "");
+        ((CcString *)result.addr)->Set( false, (STRING_T*) "");
         return 0;
     }
 }
@@ -4086,7 +4088,7 @@ int WordsFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 
     /* First we have to check whether the lyrics are defined*/
     if (!lyrics->IsDefined() ){
-        ((CcString *)result.addr)->Set( false, (STRING*) "" );        
+        ((CcString *)result.addr)->Set( false, (STRING_T*) "" );        
         return 0;
     }
 
@@ -4120,12 +4122,12 @@ int WordsFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     }
 
     if (found) {
-        ((CcString *)result.addr)->Set( true, (STRING*) &newStr );
+        ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
     }
     else
         /* This case can occur if the given time stamp is lower than
            the beginning of the text. */
-        ((CcString *)result.addr)->Set( false, (STRING*) &newStr );
+        ((CcString *)result.addr)->Set( false, (STRING_T*) &newStr );
     return 0;
 }
 
@@ -4534,6 +4536,8 @@ public:
 
 MP3Algebra mp3Algebra;
 
+} // end namespace mp3
+
 /*
 7 Initialization
 
@@ -4556,7 +4560,7 @@ Algebra*
 InitializeMP3Algebra( NestedList* nlRef, QueryProcessor* qpRef ) {
     nl = nlRef;
     qp = qpRef;
-    return (&mp3Algebra);
+    return (&mp3::mp3Algebra);
 }
 
 

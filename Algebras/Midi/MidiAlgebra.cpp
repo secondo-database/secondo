@@ -2338,7 +2338,7 @@ CcString* FindMetaEvent(Midi* inMidi, unsigned char searchedValue, int number)
   string temp;
 
   temp.clear();
-  CcString* result    = new CcString(false, (STRING*)temp.c_str());
+  CcString* result    = new CcString(false, (STRING_T*)temp.c_str());
   Track* currentTrack = inMidi->GetTrack(number);
   int numberEvents    = currentTrack->GetNumberOfEvents();
   bool found          = false;
@@ -2351,7 +2351,7 @@ CcString* FindMetaEvent(Midi* inMidi, unsigned char searchedValue, int number)
          currentEvent->GetMetaMessageType() == searchedValue )
     {
       currentEvent->GetTextFromMetaEvent(temp);
-      result->Set(true, (STRING*)temp.c_str());
+      result->Set(true, (STRING_T*)temp.c_str());
       found  = true;
     }
   }
@@ -3734,7 +3734,7 @@ Supplier s)
   string lyS;
   currentMidi->GetLyrics( lyS, all, lyr, any );
 
-  FText :: FText* outText = new FText::FText(false, NULL);
+  FText::FText* outText = new FText::FText(false, NULL);
   outText->Set(true,lyS.c_str());
 
   result = qp->ResultStorage(s);
@@ -4971,7 +4971,7 @@ together.
 
   result = qp->ResultStorage(s);
   ((CcString*)result.addr)->Set(metaEventValue->IsDefined(),
-    (STRING*)signature.c_str());
+    (STRING_T*)signature.c_str());
 /*
 Examination was succesfull [->] return text string
 

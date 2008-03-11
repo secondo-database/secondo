@@ -501,7 +501,7 @@ class URL : public IndexableStandardAttribute
   size_t HashValue(void) const;
   void CopyFrom(const StandardAttribute *arg);
  private:
-   STRING protocol;
+   STRING_T protocol;
   FLOB host;
   FLOB path;
   bool defined;
@@ -4389,7 +4389,7 @@ metainfosFun (Word* args, Word& result, int message, Word& local, Supplier s)
       string key = h->getMetainfo(miAdvance->current++,content);
       //make tuple [Key: string, Content: text]
       Tuple *elem = new Tuple( miAdvance->resultTupleType );
-      STRING skey;
+      STRING_T skey;
       strcpy(skey, key.c_str());
       CcString* cckey = new CcString(true,&skey);
       elem->PutAttribute(0,cckey);
@@ -4528,7 +4528,7 @@ getfilesFun (Word* args, Word& result, int message,
       //make tuple [Source: url, Type: string, File: binfile]
       Tuple *elem = new Tuple( embAdvance->resultTupleType );
       elem->PutAttribute(0,u);
-      STRING stype;
+      STRING_T stype;
       strcpy(stype, type.c_str());
       CcString* cctype = new CcString(true,&stype);
       elem->PutAttribute(1,cctype);
@@ -4728,7 +4728,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
           //make tuple [Source: url, Type: string, File: binfile]
           Tuple *elem = new Tuple( getAdvance->resultTupleType );
           elem->PutAttribute(0,u);
-          STRING stype;
+          STRING_T stype;
           strcpy(stype, type.c_str());
           CcString* cctype = new CcString(true,&stype);
           elem->PutAttribute(1,cctype);
@@ -4865,7 +4865,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       #endif
       Tuple *elem = new Tuple( getAdvance->resultTupleType );
       elem->PutAttribute(0,u);
-      STRING stype;
+      STRING_T stype;
       strcpy(stype, type.c_str());
       CcString* cctype = new CcString(true,&stype);
       elem->PutAttribute(1,cctype);
