@@ -1,37 +1,38 @@
 Database: berlintest
 Restore : No
 
-Operator : createmtree
-Number   : 1
-Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn))) metricName, xi) -> (mtree (tuple ((x1 t1)...(xn tn))) ti)
-Example  : query pictures createmtree [Pic]
-Result   : (mtree)
-
-
 Operator : createmtree2
 Number   : 1
-Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn))) metricName, xi) -> (mtree (tuple ((x1 t1)...(xn tn))) ti)
-Example  : query pictures createmtree2 [Pic, mlbdistHP, euclid]
+Signature: relation/tuple stream x attribute x config_name x metric_name -> mtree
+Example  : query pictures createmtree2 [Pic, mlbdistHP, quadr]
 Result   : (mtree)
 
 
 Operator : createmtree3
 Number   : 1
-Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn))) metric, mtreeconfig, xi) -> (mtree (tuple ((x1 t1)...(xn tn))) ti)
-Example  : query pictures createmtree [Pic, mlbdistHP, euclid, lab256]
+Signature: relation/tuple stream x attribute x config_name x metric_name x distdata_name -> mtree
+Example  : query pictures createmtree [lab, mlbdistHP, quadr, lab256]
 Result   : (mtree)
+
+
+Operator : createmtree
+Number   : 1
+Signature: relation/tuple stream x attribute -> mtree
+Example  : query pictures createmtree [Pic]
+Result   : (mtree)
+
 
 Operator : nnsearch
 Number   : 1
-Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))) x (mtree (tuple ((x1 t1)...(xn tn))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query pictree nnsearch [pictures, pic1, 5]
-Result   : (rel (tuple ((id tid) (x1 t1)...(xn tn))))
+Signature: mtree x relation x data x int -> tuple stream
+Example  : query pictree pictures rangesearch [pic1, 5]
+Result   : (stream (tuple((a1 x1)...(an xn))))
 
 
 Operator : rangesearch
 Number   : 1
-Signature: ( <text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))) x (mtree (tuple ((x1 t1)...(xn tn))) ti) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query pictree rangesearch [pictures, pic1, 0.2]
-Result   : (rel (tuple ((id tid) (x1 t1)...(xn tn))))
+Signature: mtree x relation x data x real -> tuple stream
+Example  : query pictree pictures rangesearch [pic1, 0.2]
+Result   : (stream (tuple((a1 x1)...(an xn))))
 
 
