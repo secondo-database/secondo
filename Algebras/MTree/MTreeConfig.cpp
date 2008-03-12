@@ -126,41 +126,41 @@ Create node configs
 Set default config
 
 */
-  defaultConfigName = "mlbdistHP";
+  defaultConfigName = "mlb_HP";
 
 /*
 Add config objects with unlimited entries per node.
 
 */
-  configs["randomBal"] =  MTreeConfig(
+  configs["random_Bal"] =  MTreeConfig(
       defaultleafConfig, defaultinternalConfig,
       RANDOM, BALANCED);
 
-  configs["mradBal"] =  MTreeConfig(
+  configs["mRad_Bal"] =  MTreeConfig(
       defaultleafConfig, defaultinternalConfig,
       m_RAD, BALANCED);
 
-  configs["mmradBal"] =  MTreeConfig(
+  configs["mMRad_Bal"] =  MTreeConfig(
       defaultleafConfig, defaultinternalConfig,
       mM_RAD, BALANCED);
 
-  configs["mlbBal"] =  MTreeConfig(
+  configs["mlb_Bal"] =  MTreeConfig(
       defaultleafConfig, defaultinternalConfig,
       M_LB_DIST, BALANCED);
 
-  configs["randomHP"] =  MTreeConfig(
+  configs["random_HP"] =  MTreeConfig(
       defaultleafConfig, defaultinternalConfig,
       RANDOM, GENERALIZED_HYPERPLANE);
 
-  configs["mradHP"] =  MTreeConfig(
+  configs["mRad_HP"] =  MTreeConfig(
       defaultleafConfig, defaultinternalConfig,
       m_RAD, GENERALIZED_HYPERPLANE);
 
-  configs["mmradHP"] =  MTreeConfig(
+  configs["mMRad_HP"] =  MTreeConfig(
       defaultleafConfig, defaultinternalConfig,
       mM_RAD, GENERALIZED_HYPERPLANE);
 
-  configs["mlbdistHP"] =  MTreeConfig(
+  configs["mlb_HP"] =  MTreeConfig(
       defaultleafConfig, defaultinternalConfig,
       M_LB_DIST, GENERALIZED_HYPERPLANE);
 
@@ -168,35 +168,35 @@ Add config objects with unlimited entries per node.
 Add config objects with max. 80 entries per node.
 
 */
-  configs["randomBal80"] =  MTreeConfig(
+  configs["random_Bal80"] =  MTreeConfig(
       leafConfig80, internalConfig80,
       RANDOM, BALANCED);
 
-  configs["mradBal80"] =  MTreeConfig(
+  configs["mRad_Bal80"] =  MTreeConfig(
       leafConfig80, internalConfig80,
       m_RAD, BALANCED);
 
-  configs["mmradBal80"] =  MTreeConfig(
+  configs["mMRad_Bal80"] =  MTreeConfig(
       leafConfig80, internalConfig80,
       mM_RAD, BALANCED);
 
-  configs["mlbBal80"] =  MTreeConfig(
+  configs["mlb_Bal80"] =  MTreeConfig(
       leafConfig80, internalConfig80,
       M_LB_DIST, BALANCED);
 
-  configs["randomHP80"] =  MTreeConfig(
+  configs["random_HP80"] =  MTreeConfig(
       leafConfig80, internalConfig80,
       RANDOM, GENERALIZED_HYPERPLANE);
 
-  configs["mradHP80"] =  MTreeConfig(
+  configs["mRad_HP80"] =  MTreeConfig(
       leafConfig80, internalConfig80,
       m_RAD, GENERALIZED_HYPERPLANE);
 
-  configs["mmradHP80"] =  MTreeConfig(
+  configs["mMRad_HP80"] =  MTreeConfig(
       leafConfig80, internalConfig80,
       mM_RAD, GENERALIZED_HYPERPLANE);
 
-  configs["mlbdistHP80"] =  MTreeConfig(
+  configs["mlb_HP80"] =  MTreeConfig(
       leafConfig80, internalConfig80,
       M_LB_DIST, GENERALIZED_HYPERPLANE);
 
@@ -204,35 +204,35 @@ Add config objects with max. 80 entries per node.
 Add config objects with max. 40 entries per node.
 
 */
-  configs["randomBal40"] =  MTreeConfig(
+  configs["random_Bal40"] =  MTreeConfig(
       leafConfig40, internalConfig40,
       RANDOM, BALANCED);
 
-  configs["mradBal40"] =  MTreeConfig(
+  configs["mRad_Bal40"] =  MTreeConfig(
       leafConfig40, internalConfig40,
       m_RAD, BALANCED);
 
-  configs["mmradBal40"] =  MTreeConfig(
+  configs["mMRad_Bal40"] =  MTreeConfig(
       leafConfig40, internalConfig40,
       mM_RAD, BALANCED);
 
-  configs["mlbBal40"] =  MTreeConfig(
+  configs["mlb_Bal40"] =  MTreeConfig(
       leafConfig40, internalConfig40,
       M_LB_DIST, BALANCED);
 
-  configs["randomHP40"] =  MTreeConfig(
+  configs["random_HP40"] =  MTreeConfig(
       leafConfig40, internalConfig40,
       RANDOM, GENERALIZED_HYPERPLANE);
 
-  configs["mradHP40"] =  MTreeConfig(
+  configs["mRad_HP40"] =  MTreeConfig(
       leafConfig40, internalConfig40,
       m_RAD, GENERALIZED_HYPERPLANE);
 
-  configs["mmradHP40"] =  MTreeConfig(
+  configs["mMRad_HP40"] =  MTreeConfig(
       leafConfig40, internalConfig40,
       mM_RAD, GENERALIZED_HYPERPLANE);
 
-  configs["mlbdistHP40"] =  MTreeConfig(
+  configs["mlb_HP40"] =  MTreeConfig(
       leafConfig40, internalConfig40,
       M_LB_DIST, GENERALIZED_HYPERPLANE);
 
