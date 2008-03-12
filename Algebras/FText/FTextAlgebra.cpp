@@ -772,10 +772,8 @@ Type Mapping Function for operator ~evaluate~
 ListExpr FTextTypeMapEvaluate( ListExpr args )
 {
   NList type(args);
-  if( !type.hasLength(1) || (type.first() != TEXT) )
-  {
-    return NList::typeError("Expected single 'text' argument.");
-  }
+  NList st(symbols::STREAM);
+  NList tu(symbols::TUPLE);
   NList resTupleType = NList(NList("CmdStr"),NList(TEXT)).enclose();
   resTupleType.append(NList(NList("Success"),NList(BOOL)));
   resTupleType.append(NList(NList("Correct"),NList(BOOL)));
@@ -787,10 +785,31 @@ ListExpr FTextTypeMapEvaluate( ListExpr args )
   resTupleType.append(NList(NList("ErrorMessage"),NList(TEXT)));
   resTupleType.append(NList(NList("ElapsedTimeReal"),NList(REAL)));
   resTupleType.append(NList(NList("ElapsedTimeCPU"),NList(REAL)));
-  NList st(symbols::STREAM);
-  NList tu(symbols::TUPLE);
+
   NList resulttype(st,NList(tu,resTupleType));
-  return resulttype.listExpr();
+
+  if (    type.hasLength(2)
+       && (type.first()  == symbols::TEXT)
+       && (type.second() == symbols::BOOL)
+     )
+  {
+    return resulttype.listExpr();
+  }
+  else if(    type.hasLength(1)
+           && (type.first() == symbols::TEXT)
+         )
+  {
+    NList resType1 =
+        NList( NList(symbols::APPEND),
+               NList(false, false).enclose(), resulttype );
+    cout << resType1;
+    return resType1.listExpr();
+  }
+  else
+  {
+    return NList::typeError("Expected 'text' as first, and 'bool' as "
+        "optional second argument.");
+  }
 }
 
 /*
@@ -1681,7 +1700,8 @@ int FTextSelectFunComparePred( ListExpr args )
 int FTextValueMapEvaluate( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
-  FText* CCommand = (FText*)(args[0].addr);
+  FText* CCommand     = (FText*)(args[0].addr);
+  CcBool* CcIsNL      = (CcBool*)(args[1].addr);
   bool *finished;
   string querystring  = "";
   string querystringParsed = "";
@@ -1720,7 +1740,7 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
     case OPEN:
       finished = new bool(false);
       local.addr = finished;
-      *finished = (!CCommand->IsDefined());
+      *finished = (!CCommand->IsDefined() || !CcIsNL->IsDefined());
       return 0;
     case REQUEST:
       if(local.addr == 0)
@@ -1741,14 +1761,24 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
         return CANCEL;
       }
 
-      // call Parser: transform expression to nested-list-string
       correct = true;
       querystring = CCommand->GetValue();
-      if(mySecParser.Text2List( "query " + querystring,querystringParsed ) != 0)
+
+      if( !CcIsNL->GetBoolval() ) // Command in SecondoExecutableLanguage
       {
-        errorstring = "ERROR: Text does not contain a "
-            "parsable query expression.";
-        correct = false;
+        // call Parser: add "query" and transform expression
+        //              to nested-list-string
+        if(mySecParser.Text2List( "query " + querystring,
+                                       querystringParsed ) != 0)
+        {
+          errorstring = "ERROR: Text does not contain a "
+              "parsable query expression.";
+          correct = false;
+        }
+      }
+      else // Command is already a nested-list-string: just copy
+      {
+        querystringParsed = querystring;
       }
       if( correct)
       { // read nested list: transform nested-list-string to nested list
@@ -1760,13 +1790,13 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
           cout << "NLimport: " << errorstring << endl;
         }
       }
-      if ( correct )
+      if ( correct && !CcIsNL->GetBoolval() )
       {  // remove the "query" from the list
         if ( (nl->ListLength(parsedCommand) == 2) )
         {
           parsedCommand = nl->Second(parsedCommand);
-          string parsedCommandstr;
-          nl->WriteToString(parsedCommandstr,parsedCommand);
+          //string parsedCommandstr;
+          //nl->WriteToString(parsedCommandstr, parsedCommand);
           //cout << "NLimport: OK. parsedCommand=" << parsedCommandstr  << endl;
         }
         else
@@ -2161,17 +2191,19 @@ const string FTextNeqSpec  =
 
 const string FTextEvaluateSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>text -> stream(tuple((CmdStr text) (Success bool) "
+    "( <text>text [ x bool ] -> stream(tuple((CmdStr text) (Success bool) "
     "(Evaluable bool) (Defined bool) (IsFunction bool)"
     "(ResultType text) (Result text) (ErrorMessage text) "
     "(ElapsedTimeReal real) (ElapsedTimeCPU real)))</text--->"
-    "<text>evaluate( _ )</text--->"
-    "<text>Interprets the text argument as a Secondo Executable Language "
-    "query expression and evaluates it. The calculated result returned as a "
-    "nested list expression. Operator's result is a stream containing at most "
-    "1 tuple with a copy of the command, the result, errormessage, runtimes, "
-    "and some more status information.</text--->"
-    "<text>query evaluate('ten feed filter[.No > 5] count') "
+    "<text>evaluate( query , isNL )</text--->"
+    "<text>Interprets the text argument 'query' as a Secondo Executable "
+    "Language query expression and evaluates it. The calculated result "
+    "returned as a nested list expression. Operator's result is a stream "
+    "containing at most 1 tuple with a copy of the command, the result, "
+    "errormessage, runtimes, and some more status information. If the optional "
+    "second argument 'isNL' (default = FALSE) is set to TRUE, 'query' is "
+    "expected to be in nested list format. </text--->"
+    "<text>query evaluate('ten feed filter[.no > 5] count') "
     "filter[.Success] count > 1</text--->"
     ") )";
 

@@ -232,8 +232,8 @@ ListExpr WithinTypeMap(ListExpr Args)
     
       if (  args.second().hasLength(3) ) 
       {
-        ok = ( args.first() == args.second().second()) 
-               && (args.second().first() == "map"      ); 
+        ok =      ( args.first() == args.second().second())
+               && ((args.second().first()) == string("map") );
       } 
 
       if (!ok) {
@@ -247,7 +247,7 @@ ListExpr WithinTypeMap(ListExpr Args)
 
       if ( args.third().hasLength(4) )
       {
-        ok = (args.third().first() == "map")
+        ok = (args.third().first() == string("map"))
              && (args.first() == args.third().second()) 
              && (args.second() == args.third().third());  
       }

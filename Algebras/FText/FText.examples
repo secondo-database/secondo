@@ -248,6 +248,13 @@ Signature: text -> stream(tuple((CmdStr text) (Success bool) (Evaluable bool) (D
 Example  : query evaluate('ten feed filter[.no > 5] count') filter[.Result = '5'] count = 1
 Result   : TRUE
 
+Operator : evaluate
+Number   : 2
+Signature: text x bool -> stream(tuple((CmdStr text) (Success bool) (Evaluable bool) (Defined bool) (IsFunction bool) (ResultType text) (Result text) (ErrorMessage text) (ElapsedTimeReal real) (ElapsedTimeCPU real)))
+Example  : query evaluate('(count (feed ten))', TRUE) filter[.Result = '10'] count = 1
+Result   : TRUE
+
+
 Operator : replace
 Number   : 1
 Signature: text x text x string -> text
