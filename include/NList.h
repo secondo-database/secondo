@@ -266,6 +266,14 @@ c)~.
     l = nl->ThreeElemList(nl->SymbolAtom(s1), nl->SymbolAtom(s2), e);
   }
 
+
+   NList(const bool b, const bool dummy) :
+       nl(nlGlobal),
+       l( nl->BoolAtom(b) ),
+       e( nl->Empty() ),
+       len(0)
+   {}
+
   NList(const int n) :
     nl(nlGlobal),
     l( nl->IntAtom(n) ),
@@ -279,8 +287,17 @@ c)~.
     e( nl->Empty() ),
     len(0)
   {}
-    
-  inline NList& intAtom(const int val) 
+
+ inline NList& boolAtom(const bool val)
+  {
+    nl = nlGlobal;
+    len = 0;
+    e = nl->Empty();
+    l = nl->BoolAtom(val);
+    return *this;
+  }
+
+  inline NList& intAtom(const int val)
   {
     nl = nlGlobal;
     len = 0;
@@ -306,7 +323,7 @@ c)~.
     l = nl->StringAtom(val);
     return *this;
   } 
-  
+
   inline NList& textAtom(const string& val) 
   {
     nl = nlGlobal;
@@ -448,7 +465,14 @@ Functions applicable for ~symbol/string/text~ atoms.
   inline int intval() const
   {
     return nl->IntValue(l);
-  } 
+  }
+
+  inline int boolval() const
+  {
+    return nl->BoolValue(l);
+  }
+
+  
 /*
 Conversion to C++ strings or a string Atom. The latter conversion can be
 used to convert a symbol or text atom into a string atom.
