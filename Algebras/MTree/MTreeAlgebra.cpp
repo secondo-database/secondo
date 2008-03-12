@@ -1355,8 +1355,7 @@ struct createmtree_Info : OperatorInfo
     {
         name = "createmtree";
         signature =
-        "(<text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
-        " metricName, xi) -> mtree";
+        "relation/tuple stream x attribute -> mtree";
         syntax = "_ createmtree [_]";
         meaning =
             "creates a new mtree from relation or tuple stream in arg1\n"
@@ -1372,8 +1371,8 @@ struct createmtree2_Info : OperatorInfo
     {
         name = "createmtree2";
         signature =
-        "(<text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
-        " metricName, xi) -> mtree";
+        "relation/tuple stream x attribute x config_name x "
+        "metric_name -> mtree";
         syntax = "_ createmtree2 [_, _, _]";
         meaning =
             "creates a new mtree from relation or tuple stream in arg1\n"
@@ -1391,8 +1390,8 @@ struct createmtree3_Info : OperatorInfo
     {
         name = "createmtree3";
         signature =
-        "(<text>(rel (tuple ((id tid) (x1 t1)...(xn tn)))"
-        "metric, mtreeconfig, xi) -> mtree";
+        "relation/tuple stream x attribute x config_name x "
+        "metric_name x distdata_name -> mtree";
         syntax = "_ createmtree3 [_, _, _, _]";
         meaning =
             "creates a new mtree from relation or tuple stream in arg1\n"
@@ -1410,16 +1409,13 @@ struct rangesearch_Info : OperatorInfo
     rangesearch_Info()
     {
         name = "rangesearch";
-        signature =
-        "(<text>mtree x (rel (tuple ((id tid) (x1 t1)...(xn tn)))) "
-        "x attribute x real -> "
-        "(stream (tuple ((x1 t1)...(xn tn))))";
-        syntax = "_ rangesearch [_, _, _]";
-        meaning = "arg1: mtree\n"
-                "arg2: relation, that must contain at "
-                "least all tuple id's that are indized in the mtree\n"
-                "arg3: reference attribute\n"
-                "arg4: maximum distance to arg3";
+        signature = "mtree x relation x data x real -> tuple stream";
+        syntax = "_ _ rangesearch [_, _]";
+        meaning =
+            "data must be of the same type as the type of the "
+            "attributes which are indized in the mtree and is used "
+            "as reference attribute for the search - the real value "
+            "sets the search radius";
         example = "pictree rangesearch [pictures, pic1, 0.2]";
     }
 };
@@ -1429,19 +1425,14 @@ struct nnsearch_Info : OperatorInfo
     nnsearch_Info()
     {
         name = "nnsearch";
-        signature =
-        "(<text>mtree x (rel (tuple ((id tid) (x1 t1)...(xn tn)))) "
-        "x attribute x int -> "
-        "(stream (tuple ((x1 t1)...(xn tn))))";
-        syntax = "_ nnsearch [_, _, _]";
-        meaning = "arg1: mtree\n"
-                "arg2: relation, that must contain at "
-                "least all tuple id's that are indized in the mtree\n"
-                "arg3: reference attribute\n"
-                "arg4: the count of nearest neighbours of arg3 "
-                "which should be returned";
-
-        example = "pictree nnsearch [pictures, pic1, 5]";
+        signature = "mtree x relation x data x int -> tuple stream";
+        syntax = "_ _ nnsearch [_, _]";
+        meaning =
+            "data must be of the same type as the type of the "
+            "attributes which are indized in the mtree and is used "
+            "as reference attribute for the search - the int value "
+            "sets the count of nearest neighbours to data in the result";
+        example = "pictree rangesearch [pictures, pic1, 5]";
     }
 };
 
