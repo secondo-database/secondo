@@ -68,6 +68,7 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 #include "DiceCoeff.h"
 #include "SecParser.h"
 #include "StopWatch.h"
+#include "Symbols.h"
 
 using namespace std;
 
@@ -786,7 +787,9 @@ ListExpr FTextTypeMapEvaluate( ListExpr args )
   resTupleType.append(NList(NList("ErrorMessage"),NList(TEXT)));
   resTupleType.append(NList(NList("ElapsedTimeReal"),NList(REAL)));
   resTupleType.append(NList(NList("ElapsedTimeCPU"),NList(REAL)));
-  NList resulttype(NList(STREAM),NList(NList(TUPLE),resTupleType));
+  NList st(symbols::STREAM);
+  NList tu(symbols::TUPLE);
+  NList resulttype(st,NList(tu,resTupleType));
   return resulttype.listExpr();
 }
 
