@@ -39,6 +39,12 @@ represented by the 9 intersection matrix.
 #include "Tree.h" 
 #include "TreeParser.y.h"
 
+
+void deleteCurrentBuffer(){
+    yy_delete_buffer(YY_CURRENT_BUFFER);
+}
+
+
 %}
 
 %option prefix="tree"

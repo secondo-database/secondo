@@ -80,6 +80,7 @@ result value will be 0.
 
 #define YYERROR_VERBOSE
 
+
 /*
 
 2.2 Some variables holding the return value
@@ -116,7 +117,7 @@ Pushes a new element on the stack.
 
 */
 push(struct tree* entry){
-    struct stack*  newelem = (struct stack*) malloc(sizeof(struct stack));
+    struct stack*  newelem = (struct stack*) (malloc((sizeof(struct stack))));
     newelem->next = treestack;
     newelem->entry= entry;
     treestack=newelem;
@@ -267,6 +268,7 @@ int parseString(const char* argument, struct tree** T){
           last_message=0;
     }
     (*T) = result;
+    deleteCurrentBuffer();
     return parse_success;
 }
 
