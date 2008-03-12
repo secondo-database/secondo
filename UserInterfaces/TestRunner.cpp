@@ -456,9 +456,10 @@ TestRunner::CoverageQuery(const string& algebra)
   cout << "Computing coverage for algebra " << algebra << endl;
   cmd = "query SEC2OPERATORUSAGE feed filter[.Algebra = \"" 
         + algebra 
-        + "\"] filter[.Calls = 0] project[Operator] consume"; 
+        + "\"] filter[.Calls = 0] project[Operator] sortby[Operator]"
+        " groupby[Operator; Cnt: group count] consume"; 
   yieldState = Coverage;
-  string resText = "((rel(tuple((Operator string))))())";
+  string resText = "((rel(tuple((Operator string)(Cnt int))))())";
   bool ok = nl->ReadFromString(resText, expectedResult);
   assert(ok);       
 }
