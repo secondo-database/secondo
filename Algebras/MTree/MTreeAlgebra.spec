@@ -21,5 +21,5 @@ operator createmtree alias CREATEMTREE pattern _ op [_]
 operator createmtree2 alias CREATEMTREE2 pattern _ op [_, _, _]
 operator createmtree3 alias CREATEMTREE3 pattern _ op [_, _, _, _]
 
-operator rangesearch alias RANGESEARCH pattern _ op [_, _, _]
-operator nnsearch alias NNSEARCH pattern _ op [_, _, _]
+operator rangesearch alias RANGESEARCH pattern _ _ op [_, _]
+operator nnsearch alias NNSEARCH pattern _ _ op [_, _]
