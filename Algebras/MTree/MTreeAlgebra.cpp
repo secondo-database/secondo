@@ -1416,7 +1416,7 @@ struct rangesearch_Info : OperatorInfo
             "attributes which are indized in the mtree and is used "
             "as reference attribute for the search - the real value "
             "sets the search radius";
-        example = "pictree rangesearch [pictures, pic1, 0.2]";
+        example = "pictree pictures rangesearch [pic1, 0.2]";
     }
 };
 
@@ -1432,7 +1432,7 @@ struct nnsearch_Info : OperatorInfo
             "attributes which are indized in the mtree and is used "
             "as reference attribute for the search - the int value "
             "sets the count of nearest neighbours to data in the result";
-        example = "pictree rangesearch [pictures, pic1, 5]";
+        example = "pictree pictures rangesearch [pic1, 5]";
     }
 };
 
