@@ -208,10 +208,11 @@ int MappingStreamFeed( Word* args, Word& result, int message,
       return YIELD;
 
     case CLOSE:
-      if ( local.addr == 0 )
+      if ( local.addr )
         {
           linfo = ( SFeedLocalInfo*) local.addr;
           delete linfo;
+          local = SetWord(0);
         }
       return 0;
     }
@@ -802,6 +803,7 @@ int Use_SN( Word* args, Word& result, int message,
           if ( !sli->Xfinished )
             qp->Close( instream.addr );
           delete sli;
+          local = SetWord(0);
         }
 #ifdef GSA_DEBUG
       cout << "Use_SN finished CLOSE" << endl;
@@ -906,6 +908,7 @@ int Use_SS( Word* args, Word& result, int message,
           if ( !sli->Xfinished )
             qp->Close( sli->X.addr );
           delete sli;
+          local = SetWord(0);
         }
       return 0;
     }  // end switch
@@ -982,7 +985,7 @@ int Use_SNN( Word* args, Word& result, int message,
         {
           result.addr = 0;
 #ifdef GSA_DEBUG
-          cout << "Use_SNN finished REQUEST: CLOSE (1)" << endl;
+          cout << "Use_SNN finished REQUEST: CANCEL (1)" << endl;
 #endif
           return CANCEL;
         }
@@ -991,7 +994,7 @@ int Use_SNN( Word* args, Word& result, int message,
         { // stream already exhausted earlier
           result.addr = 0;
 #ifdef GSA_DEBUG
-          cout << "Use_SNN finished REQUEST: CLOSE (2)" << endl;
+          cout << "Use_SNN finished REQUEST: CANCEL (2)" << endl;
 #endif
           return CANCEL;
         }
@@ -1003,7 +1006,7 @@ int Use_SNN( Word* args, Word& result, int message,
           qp->Close( sli->X.addr );
           sli->Xfinished = true;
 #ifdef GSA_DEBUG
-          cout << "Use_SNN finished REQUEST: CLOSE (3)" << endl;
+          cout << "Use_SNN finished REQUEST: CANCEL (3)" << endl;
 #endif
           return CANCEL;
         }
@@ -1042,6 +1045,7 @@ int Use_SNN( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close input
           delete sli;
+          local = SetWord(0);
         }
 #ifdef GSA_DEBUG
       cout << "Use_SNN finished CLOSE" << endl;
@@ -1126,7 +1130,7 @@ int Use_SNS( Word* args, Word& result, int message,
         {
           result.addr = 0;
 #ifdef GSA_DEBUG
-          cout << "Use_SNN finished REQUEST: CLOSE (1)" << endl;
+          cout << "Use_SNN finished REQUEST: CANCEL (1)" << endl;
 #endif
           return CANCEL;
         }
@@ -1142,7 +1146,7 @@ int Use_SNS( Word* args, Word& result, int message,
                 { // stream X exhaused. CANCEL
                   sli->Xfinished = true;
 #ifdef GSA_DEBUG
-                  cout << "Use_SNN finished REQUEST: CLOSE (3)" << endl;
+                  cout << "Use_SNN finished REQUEST: CANCEL (3)" << endl;
 #endif
                   return CANCEL;
                 }
@@ -1180,7 +1184,7 @@ int Use_SNS( Word* args, Word& result, int message,
         } // end while
       result.addr = 0;
 #ifdef GSA_DEBUG
-      cout << "Use_SNN finished REQUEST: CLOSE (4)" << endl;
+      cout << "Use_SNN finished REQUEST: CANCEL (4)" << endl;
 #endif
       return CANCEL;
 
@@ -1197,6 +1201,7 @@ int Use_SNS( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr );   // close outer stream
           delete sli;
+          local = SetWord(0);
         }
 #ifdef GSA_DEBUG
       cout << "Use_SNN finished CLOSE" << endl;
@@ -1275,7 +1280,7 @@ int Use_SSN( Word* args, Word& result, int message,
         {
           result.addr = 0;
 #ifdef GSA_DEBUG
-          cout << "Use_SSN finished REQUEST: CLOSE (1)" << endl;
+          cout << "Use_SSN finished REQUEST: CANCEL (1)" << endl;
 #endif
           return CANCEL;
         }
@@ -1346,6 +1351,7 @@ int Use_SSN( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close outer instream
           delete sli;
+          local = SetWord(0);
         }
       result.addr = 0;
 #ifdef GSA_DEBUG
@@ -1430,7 +1436,7 @@ int Use_SSS( Word* args, Word& result, int message,
         {
           result.addr = 0;
 #ifdef GSA_DEBUG
-          cout << "Use_SSS finished REQUEST: CLOSE (1)" << endl;
+          cout << "Use_SSS finished REQUEST: CANCEL (1)" << endl;
 #endif
           return CANCEL;
         }
@@ -1528,6 +1534,7 @@ int Use_SSS( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close outer instream
           delete sli;
+          local = SetWord(0);
         }
 #ifdef GSA_DEBUG
       cout << "Use_SSS finished CLOSE" << endl;
@@ -2275,6 +2282,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
             qp->Close( args[0].addr );
           sli->resultTupleType->DeleteIfAllowed();
           delete sli;
+          local = SetWord(0);
         }
       return 0;
     }
@@ -2357,6 +2365,7 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
           if (!sli->finished)
             qp->Close( args[0].addr );
           delete sli;
+          local = SetWord(0);
         }
 #ifdef GSA_DEBUG
       cout << "Transformstream_TS_S: CLOSE finished" << endl;
@@ -2539,7 +2548,6 @@ int Projecttransformstream(Word* args, Word& result, int message,
     case CLOSE:
       qp->Close(args[0].addr);
       return 0;
-
     }
   cerr << "Projecttransformstream: UNKNOWN MESSAGE!" << endl;
   return -1;
@@ -2662,8 +2670,8 @@ int Echo_Stream(Word* args, Word& result, int message,
             }
      case CLOSE:
            cout << "CLOSE: ";
-           s1->Print(cout)  << endl;     
-           qp->Close(args[0].addr); 
+           s1->Print(cout)  << endl;
+           qp->Close(args[0].addr);
            return 0;
    }   
    return 0;
@@ -3370,6 +3378,7 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       range_d = ((RangeAndDiff*) local.addr);
       if(range_d){
          delete range_d;
+         local = SetWord(0);
       }
       range_d = 0;
       return 0;

@@ -1287,9 +1287,13 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      localInfo = (IndexQueryLocalInfo*)local.addr;
-      delete localInfo->iter;
-      delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (IndexQueryLocalInfo*)local.addr;
+        delete localInfo->iter;
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -1413,17 +1417,22 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      delete ili->iter;
-
-      ili->completeCalls++;
-      ili->completeReturned += ili->returned;
-      ili->returned = 0;
-
+      if( ili )
+      {
+        delete ili->iter;
+        ili->completeCalls++;
+        ili->completeReturned += ili->returned;
+        ili->returned = 0;
+      }
       return 0;
 
 
     case CLOSEPROGRESS:
-      if ( ili ) delete ili;
+      if ( ili )
+      {
+        delete ili;
+        local = SetWord(0);
+      }
       return 0;
 
 
@@ -1824,10 +1833,14 @@ IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      localInfo = (IndexQuerySLocalInfo*)local.addr;
-      delete localInfo->iter;
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (IndexQuerySLocalInfo*)local.addr;
+        delete localInfo->iter;
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -2260,7 +2273,8 @@ int insertBTreeValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s,1));  
+      qp->SetModified(qp->GetSon(s,1));
+      local = SetWord(0);
       return 0;
   }
   return 0;
@@ -2363,6 +2377,7 @@ int deleteBTreeValueMap(Word* args, Word& result, int message,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
+      local = SetWord(0);
       return 0;
   }
   return 0;
@@ -2473,6 +2488,7 @@ int updateBTreeValueMap(Word* args, Word& result, int message,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
+      local = SetWord(0);
       return 0;
   }
   return 0;
