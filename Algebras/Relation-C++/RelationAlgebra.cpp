@@ -2232,8 +2232,12 @@ Project(Word* args, Word& result, int message,
     }
     case CLOSE :
     {
-      ((TupleType *)local.addr)->DeleteIfAllowed();
       qp->Close(args[0].addr);
+      if(local.addr)
+      {
+        ((TupleType *)local.addr)->DeleteIfAllowed();
+        local = SetWord(0);
+      }
       return 0;
     }
   }

@@ -5193,8 +5193,12 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
     }
     case CLOSE :
     {
-      ((TupleType *)local.addr)->DeleteIfAllowed();
-      qp->Close(args[0].addr);
+      if(local.addr)
+      {
+        ((TupleType *)local.addr)->DeleteIfAllowed();
+        qp->Close(args[0].addr);
+        local = SetWord( 0 );
+      }
       return 0;
     }
   }
@@ -5584,6 +5588,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 )
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
+        local = SetWord( 0 );
       }
       qp->Close( args[0].addr );
       return 0;
