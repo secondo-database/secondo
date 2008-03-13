@@ -25,7 +25,7 @@ November 2006, M. Spiekermann. Start of implementation.
 Dec 2006, M. Spiekermann. Implementation Finished. The example reader can now
 handle multiple examples per operator and supports alias names.
 
-Jan 2007, M. Spiekermann. New result tokens file_platform, bug and crashes added.
+Jan 2007, M. Spiekermann. New result tokens file\_platform, bug and crashes added.
 Moreover the parser reports more kind of errors. 
 
 */
@@ -265,7 +265,9 @@ a*bc* with single characters a,b and c.
       ExampleList& list = it->second;
       ExampleList::iterator it2 = list.begin();
       while (it2 != list.end() ) {
-        //delete *it2;
+        if(*it2){
+           delete *it2;
+        }
         it2++;
       }
       it++;
