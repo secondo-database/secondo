@@ -1145,6 +1145,7 @@ int Use_SNS( Word* args, Word& result, int message,
               if (!qp->Received(sli->X.addr))
                 { // stream X exhaused. CANCEL
                   sli->Xfinished = true;
+                  qp->Close(sli->X.addr);
 #ifdef GSA_DEBUG
                   cout << "Use_SNN finished REQUEST: CANCEL (3)" << endl;
 #endif
@@ -2155,7 +2156,7 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
 /*
 5.27.3 Type Mapping for the ~namedtransformstream~ operator
 
-This operator works as the transformstream operator. It takes a stream 
+This operator works as the transformstream operator. It takes a stream
 of elements with kind data and produces a tuple stream, from it.
 So, the value mapping is Transformstream[_]S[_]TS which is alos used by the
 transformstream operator. The only difference is, additional to the
@@ -2189,19 +2190,19 @@ ListExpr NamedtransformstreamTypemap(ListExpr args){
   if(nl->AtomType(nl->Second(args))!=SymbolType){
      ErrorReporter::ReportError("wrong syntax for an attribute name");
      return nl->TypeError();
-  } 
+  }
   string name = nl->SymbolValue(nl->Second(args));
   if(SecondoSystem::GetCatalog()->IsTypeName(name)){
       ErrorReporter::ReportError(""+name+" is a type and can't be "
                                  "used as an attribute name ");
       return nl->TypeError();
-  } 
+  }
   if(SecondoSystem::GetCatalog()->IsOperatorName(name)){
       ErrorReporter::ReportError(""+name+" is an operator and can't be "
                                  "used as an attribute name ");
       return nl->TypeError();
   }
- 
+
   return nl->TwoElemList(nl->SymbolAtom("stream"),
                          nl->TwoElemList(
                             nl->SymbolAtom("tuple"),
@@ -2460,7 +2461,7 @@ Operator streamtransformstream( "transformstream",
 
 
 /*
-5.28 Operator ~projecttransformstream~ 
+5.28 Operator ~projecttransformstream~
 
 5.28.1 Type Mapping
 
@@ -2484,7 +2485,7 @@ ListExpr ProjecttransformstreamTM(ListExpr args){
       return nl->SymbolAtom("typeerror");
    }
    ListExpr streamtype = nl->Second(arg1);
-   if( (nl->ListLength(streamtype)!=2) || 
+   if( (nl->ListLength(streamtype)!=2) ||
         !nl->IsEqual(nl->First(streamtype),"tuple")){
       ErrorReporter::ReportError("stream(tuple) expected");
       return nl->SymbolAtom("typeerror");
@@ -2507,14 +2508,14 @@ ListExpr ProjecttransformstreamTM(ListExpr args){
       }
       attributes = nl->Rest(attributes);
       pos++;
-   } 
+   }
    ErrorReporter::ReportError("attribute not found in tuple");
    return nl->SymbolAtom("typeerror");
 }
 
 
 /*
-5.28.2 Value Mapping 
+5.28.2 Value Mapping
 
 */
 
@@ -2569,7 +2570,7 @@ const string ProjecttransformstreamSpec =
   ") )";
 
 /*
-5.28.4 Definition of the operator instance 
+5.28.4 Definition of the operator instance
 
 */
 Operator projecttransformstream (
@@ -2603,12 +2604,12 @@ ListExpr EchoTypeMap(ListExpr args){
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if(len==2){  // T x S -> T , T # stream(...)
      // check for kind DATA
-     ListExpr typeToPrint = nl->Second(args);   
+     ListExpr typeToPrint = nl->Second(args);
      if(! SecondoSystem::GetAlgebraManager()
            ->CheckKind("DATA",typeToPrint,errorInfo)){
         ErrorReporter::ReportError("last arg has to be in kind DATA");
         return nl->TypeError();
-     } 
+     }
      // check for T# stream
      if(nl->ListLength(nl->First(args))==2 &&
         nl->IsEqual(nl->First(nl->First(args)),"stream")){
@@ -2629,12 +2630,12 @@ ListExpr EchoTypeMap(ListExpr args){
        ErrorReporter::ReportError("bool expected as second argument.");
        return nl->TypeError();
      }
-     ListExpr typeToPrint = nl->Third(args);   
+     ListExpr typeToPrint = nl->Third(args);
      if(! SecondoSystem::GetAlgebraManager()
            ->CheckKind("DATA",typeToPrint,errorInfo)){
         ErrorReporter::ReportError("last arg has to be in kind DATA");
         return nl->TypeError();
-     } 
+     }
      return nl->First(args);
   }
 }
@@ -2673,7 +2674,7 @@ int Echo_Stream(Word* args, Word& result, int message,
            s1->Print(cout)  << endl;
            qp->Close(args[0].addr);
            return 0;
-   }   
+   }
    return 0;
 }
 
@@ -2723,9 +2724,9 @@ const string EchoSpec =
 
 */
 
-Operator echo( "echo", 
-               EchoSpec, 
-               2, 
+Operator echo( "echo",
+               EchoSpec,
+               2,
                echovm,
                EchoSelect,
                EchoTypeMap);
@@ -3070,7 +3071,7 @@ int
     streamPrintstreamSelect (ListExpr args )
 {
   ListExpr streamType = nl->Second(nl->First(args));
-  
+
   if( (nl->ListLength(streamType) == 2) &&
       (nl->IsEqual(nl->First(streamType),"tuple")))
     return 0;
@@ -3313,7 +3314,7 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
     int iter;
 
     RangeAndDiff(Word* args) {
-      
+
       CcReal* r1 = ((CcReal*)args[0].addr);
       CcReal* r2 = ((CcReal*)args[1].addr);
       CcReal* r3 = ((CcReal*)args[2].addr);
@@ -3333,12 +3334,12 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
     }
   };
-  
+
   RangeAndDiff* range_d = 0;
   double current = 0;
   double cd = 0;
   CcReal* elem = 0;
-  
+
   switch( message )
   {
     case OPEN:
@@ -3373,7 +3374,7 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
          }
       }
       // should never happen
-      return -1; 
+      return -1;
     case CLOSE:
       range_d = ((RangeAndDiff*) local.addr);
       if(range_d){
@@ -3392,11 +3393,11 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 
-struct realstreamInfo : OperatorInfo 
+struct realstreamInfo : OperatorInfo
 {
   realstreamInfo() : OperatorInfo()
   {
-    name      = REALSTREAM; 
+    name      = REALSTREAM;
     signature = REAL + " x " + REAL + " -> stream(real)";
     syntax    = REALSTREAM + "(_ , _, _)";
     meaning   = "Creates a stream of reals containing the numbers "
@@ -3663,7 +3664,7 @@ ListExpr ensure_tm( ListExpr args )
   // check for first arg == stream of something
   nl->WriteToString(argstr, first);
   CHECK_COND( ( nl->ListLength(first) == 2 ) &&
-              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ), 
+              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ),
     "Operator head expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(stream T), where T in kind DATA.\n"
@@ -3680,7 +3681,7 @@ ListExpr ensure_tm( ListExpr args )
 
   // check for correct stream input type
   nl->WriteToString(argstr, first);
-  CHECK_COND( 
+  CHECK_COND(
     ( ( nl->ListLength( nl->Second(first) ) == 2) &&
       ( TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)) ||
     ( (nl->IsAtom(nl->Second(first))) &&
@@ -3693,7 +3694,7 @@ ListExpr ensure_tm( ListExpr args )
   return nl->SymbolAtom(BOOL);
 }
 
-int 
+int
 ensure_sf( ListExpr args )
 {
   NList list(args);
@@ -3702,11 +3703,11 @@ ensure_sf( ListExpr args )
   int num = 0;
   NList attrs;
   if ( list.checkStreamTuple(attrs) ) {
-    num = 0;  
-  } else { 
+    num = 0;
+  } else {
     num = 1;
   }
-  return num;  
+  return num;
 }
 
 /*
@@ -3732,7 +3733,7 @@ int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
   bool ensure = (num == 0);
   result = qp->ResultStorage(s);
-  CcBool* res = static_cast<CcBool*>( result.addr ); 
+  CcBool* res = static_cast<CcBool*>( result.addr );
   res->Set( true, ensure );
   return 0;
 }

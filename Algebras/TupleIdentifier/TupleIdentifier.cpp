@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -70,7 +70,7 @@ bool TupleIdentifier::Adjacent( const Attribute* arg ) const
   return( tid == argTid -1 || tid == argTid + 1 );
 }
 
-TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID) 
+TupleIdentifier::TupleIdentifier(bool DEFINED, TupleId TID)
 {
   defined = DEFINED;
   tid = TID;
@@ -90,10 +90,10 @@ TupleIdentifier::~TupleIdentifier() {}
 
 TupleId TupleIdentifier::GetTid() const {return tid;}
 
-void TupleIdentifier::SetTid(TupleId TID) 
+void TupleIdentifier::SetTid(TupleId TID)
 {tid = TID; defined = true;}
 
-TupleIdentifier* TupleIdentifier::Clone() const 
+TupleIdentifier* TupleIdentifier::Clone() const
 { return new TupleIdentifier( *this ); }
 
 
@@ -217,23 +217,23 @@ void* CastTupleIdentifier( void* addr )
 */
 TypeConstructor tupleIdentifier
 (
- "tid",                                            
+ "tid",
    //name
- TupleIdentifierProperty,               
+ TupleIdentifierProperty,
    //property function describing signature
- OutTupleIdentifier, InTupleIdentifier,            
+ OutTupleIdentifier, InTupleIdentifier,
    //Out and In functions
- 0, 0,                                  
+ 0, 0,
    //SaveToList and RestoreFromList functions
- CreateTupleIdentifier, DeleteTupleIdentifier,     
+ CreateTupleIdentifier, DeleteTupleIdentifier,
    //object creation and deletion
- 0, 0, CloseTupleIdentifier, CloneTupleIdentifier, 
+ 0, 0, CloseTupleIdentifier, CloneTupleIdentifier,
    //object open,save,close,clone
- CastTupleIdentifier,                              
+ CastTupleIdentifier,
    //cast function
- SizeOfTupleIdentifier,                            
+ SizeOfTupleIdentifier,
    //sizeof function
- CheckTupleIdentifier );                           
+ CheckTupleIdentifier );
    //kind checking function
 
 /*
@@ -290,7 +290,7 @@ TIDTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
 3.1.3 Specification of operator ~tupleid~
 
 */
-const string TupleIdSpec  = 
+const string TupleIdSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" \" \" \" \" ) "
   "( <text>(tuple x) -> int</text--->"
@@ -325,7 +325,7 @@ Appends the tuple identifier as an attribute in the stream of tuples.
 Operator ~addtupleid~ accepts a stream of tuples and returns the same stream
 with the tuple identifier attribute in the end.
 
-----    (stream (tuple ((x1 t1) ... (xn tn))))   -> 
+----    (stream (tuple ((x1 t1) ... (xn tn))))   ->
         (stream (tuple ((x1 t1) ... (xn tn) (id tid))))
 ----
 
@@ -371,11 +371,11 @@ AddTupleIdTypeMap(ListExpr args)
       lastNewAttrList = nl->Append(lastNewAttrList, first);
     }
   }
-  lastNewAttrList = nl->Append(lastNewAttrList, 
+  lastNewAttrList = nl->Append(lastNewAttrList,
                                nl->TwoElemList(
                                  nl->SymbolAtom("id"),
                                  nl->SymbolAtom("tid")));
-  
+
   return nl->TwoElemList(
            nl->SymbolAtom("stream"),
            nl->TwoElemList(
@@ -393,19 +393,19 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
   TupleType *resultTupleType;
   ListExpr resultType;
   Word t;
-  
+
   switch (message)
     {
     case OPEN :
-      
+
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
       local = SetWord( resultTupleType );
       return 0;
-      
+
     case REQUEST :
-      
+
       resultTupleType = (TupleType *)local.addr;
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
@@ -415,9 +415,9 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
         assert( newTuple->GetNoAttributes() == tup->GetNoAttributes() + 1 );
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
-        newTuple->PutAttribute( newTuple->GetNoAttributes() - 1, 
+        newTuple->PutAttribute( newTuple->GetNoAttributes() - 1,
                           new TupleIdentifier(true,tup->GetTupleId()));
-        
+
         tup->DeleteIfAllowed();
         result = SetWord(newTuple);
         return YIELD;
@@ -426,9 +426,12 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
 
     case CLOSE :
-
-      ((TupleType *)local.addr)->DeleteIfAllowed();
       qp->Close(args[0].addr);
+      if(local.addr)
+      {
+        ((TupleType *)local.addr)->DeleteIfAllowed();
+        local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -439,7 +442,7 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
 3.2.3 Specification of operator ~addtupleid~
 
 */
-const string AddTupleIdSpec  = 
+const string AddTupleIdSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "( <text>(stream (tuple ((x1 t1) ... (xn tn)))) ->"
@@ -563,7 +566,7 @@ TIDCompareTupleId( Word* args, Word& result,
 
 */
 
-const string EqualTupleIdSpec = 
+const string EqualTupleIdSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Result\" \"Comment\" ) "
   "( <text>(tid tid) -> bool</text--->"
@@ -728,7 +731,7 @@ class TupleIdentifierAlgebra : public Algebra
     AddOperator( &tidleq );
     AddOperator( &tidgreater );
     AddOperator( &tidgeq );
-    
+
   }
   ~TupleIdentifierAlgebra() {};
 };

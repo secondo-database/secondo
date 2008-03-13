@@ -726,7 +726,7 @@ long CcString::stringsDeleted = 0;
 
 bool CcString::Adjacent( const Attribute* arg ) const
 {
-  const STRING_T* a = GetStringval();	
+  const STRING_T* a = GetStringval();
   const STRING_T* b = ((CcString *)arg)->GetStringval();
 
   if( strcmp( *a, *b ) == 0 )
@@ -909,19 +909,19 @@ type - a generic function called ~SimpleMap~ or ~SimpleMaps~ can be used.
 
 */
 
-const string maps_arith[5][3] = 
-{ 
+const string maps_arith[5][3] =
+{
   {INT,    INT,    INT},
   {INT,    REAL,   REAL},
   {REAL,   INT,    REAL},
   {REAL,   REAL,   REAL},
   {STRING, STRING, STRING}
-};  
+};
 
 ListExpr
 CcMathTypeMap( ListExpr args )
 {
-  return SimpleMaps<5,3>(maps_arith, args);	 
+  return SimpleMaps<5,3>(maps_arith, args);
 }
 
 
@@ -945,7 +945,7 @@ is applied to correct arguments.
 int
 CcMathSelectCompute( ListExpr args )
 {
-  return SimpleSelect<5,3>(maps_arith, args);	
+  return SimpleSelect<5,3>(maps_arith, args);
 }
 
 
@@ -960,18 +960,18 @@ of int is called div in this program).
 */
 
 
-const string maps_div[4][3] = 
-{ 
+const string maps_div[4][3] =
+{
   {INT,  INT,  REAL},
   {INT,  REAL, REAL},
   {REAL, INT,  REAL},
   {REAL, REAL, REAL}
-};  
+};
 
 ListExpr
 CcMathTypeMapdiv( ListExpr args )
 {
-  return SimpleMaps<4,3>(maps_div, args);	 
+  return SimpleMaps<4,3>(maps_div, args);
 }
 
 /*
@@ -985,7 +985,7 @@ ListExpr
 CcMathTypeMap1( ListExpr args )
 {
   const string mapping[] = {INT, INT, INT};
-  return SimpleMap(mapping, 3, args);	 
+  return SimpleMap(mapping, 3, args);
 }
 
 /*
@@ -996,24 +996,24 @@ It is for the operators ~intersection~ and ~minus~.
 */
 
 
-const string maps_set[4][3] = 
-{ 
+const string maps_set[4][3] =
+{
   {INT, INT, INT},
   {REAL, REAL, REAL},
   {BOOL, BOOL, BOOL},
   {STRING, STRING, STRING}
-};  
+};
 
 ListExpr
 CcMathTypeMap2( ListExpr args )
 {
-  return SimpleMaps<4,3>(maps_set, args);	 
+  return SimpleMaps<4,3>(maps_set, args);
 }
 
 int
 CcMathSelectSet( ListExpr args )
 {
-  return SimpleSelect<4,3>(maps_set, args);	 
+  return SimpleSelect<4,3>(maps_set, args);
 }
 
 /*
@@ -1028,38 +1028,38 @@ ListExpr
 IntInt( ListExpr args )
 {
   const string mapping[] = {INT, INT};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 RealReal( ListExpr args )
 {
   const string mapping[] = {REAL, REAL};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 RealInt( ListExpr args )
 {
   const string mapping[] = {REAL, INT};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 IntReal( ListExpr args )
 {
   const string mapping[] = {INT, REAL};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 IntBool( ListExpr args )
 {
   const string mapping[] = {INT, BOOL};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
-/* 
+/*
 ~EmptyInt~
 
 Some operators create integer result without any kind of input, they map
@@ -1074,21 +1074,21 @@ ListExpr
 EmptyInt( ListExpr args )
 {
   const string mapping[] = {INT};
-  return SimpleMap(mapping, 1, args);	 
+  return SimpleMap(mapping, 1, args);
 }
 
 ListExpr
 BoolInt( ListExpr args )
 {
   const string mapping[] = {BOOL, INT};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 ListExpr
 IntString( ListExpr args )
 {
   const string mapping[] = {INT, STRING};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 /*
@@ -1098,21 +1098,21 @@ It is for the Compare operators which have ~bool~ as resulttype.
 
 */
 
-const string maps_comp[6][3] = 
-{ 
+const string maps_comp[6][3] =
+{
   {INT,    INT,    BOOL},
   {INT,    REAL,   BOOL},
   {REAL,   INT,    BOOL},
   {REAL,   REAL,   BOOL},
   {BOOL,   BOOL,   BOOL},
   {STRING, STRING, BOOL}
-};  
+};
 
 
 ListExpr
 CcMathTypeMapBool( ListExpr args )
 {
-  return SimpleMaps<6,3>(maps_comp, args);	 
+  return SimpleMaps<6,3>(maps_comp, args);
 }
 
 /*
@@ -1138,7 +1138,7 @@ ListExpr
 CcMathTypeMapBool1( ListExpr args )
 {
   const string mapping[] = {BOOL, BOOL};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 /*
@@ -1152,7 +1152,7 @@ ListExpr
 CcMathTypeMapBool2( ListExpr args )
 {
   const string mapping[] = {BOOL, BOOL, BOOL};
-  return SimpleMap(mapping, 3, args);	 
+  return SimpleMap(mapping, 3, args);
 }
 
 /*
@@ -1166,7 +1166,7 @@ ListExpr
 CcMathTypeMapBool3( ListExpr args )
 {
   const string mapping[] = {STRING, STRING, BOOL};
-  return SimpleMap(mapping, 3, args);	 
+  return SimpleMap(mapping, 3, args);
 }
 
 /*
@@ -1177,18 +1177,18 @@ It is for the  operators ~isempty~ which have ~bool~, ~int~, ~real~, and ~string
 */
 
 
-const string maps_isempty[4][2] = 
-{ 
+const string maps_isempty[4][2] =
+{
   {BOOL,   BOOL},
   {INT,    BOOL},
   {REAL,   BOOL},
   {STRING, BOOL}
-};  
+};
 
 ListExpr
 CcMathTypeMapBool4( ListExpr args )
 {
-  return SimpleMaps<4,2>(maps_isempty, args);	 
+  return SimpleMaps<4,2>(maps_isempty, args);
 }
 
 
@@ -1201,7 +1201,7 @@ It is used for the ~isempty~ operator.
 int
 CcMathSelectIsEmpty( ListExpr args )
 {
-  return SimpleSelect<4,2>(maps_isempty, args);	 
+  return SimpleSelect<4,2>(maps_isempty, args);
 }
 
 
@@ -1216,7 +1216,7 @@ ListExpr
 CcStringMapCcString( ListExpr args )
 {
   const string mapping[] = {STRING, STRING};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 /*
@@ -1230,7 +1230,7 @@ ListExpr
 SubStrTypeMap( ListExpr args )
 {
   const string mapping[] = {STRING, INT, INT, STRING};
-  return SimpleMap(mapping, 4, args);	 
+  return SimpleMap(mapping, 4, args);
 }
 
 
@@ -1245,7 +1245,7 @@ static ListExpr
 CcStringMapCcInt( ListExpr args )
 {
   const string mapping[] = {STRING, INT};
-  return SimpleMap(mapping, 2, args);	 
+  return SimpleMap(mapping, 2, args);
 }
 
 /*
@@ -1315,18 +1315,18 @@ Type mapping for ~between~ is
 
 */
 
-const string maps_between[4][4] = 
-{ 
+const string maps_between[4][4] =
+{
   {INT,    INT,    INT,    BOOL},
   {REAL,   REAL,   REAL,   BOOL},
   {STRING, STRING, STRING, BOOL},
   {BOOL,   BOOL,   BOOL,   BOOL},
-};  
+};
 
 ListExpr
 CcBetweenTypeMap( ListExpr args )
 {
-  return SimpleMaps<4,4>(maps_between, args);	 
+  return SimpleMaps<4,4>(maps_between, args);
 }
 
 /*
@@ -1336,7 +1336,7 @@ CcBetweenTypeMap( ListExpr args )
 int
 CcBetweenSelect( ListExpr args )
 {
-  return SimpleSelect<4,4>(maps_between, args);	 
+  return SimpleSelect<4,4>(maps_between, args);
 }
 
 /*
@@ -1380,7 +1380,7 @@ Type mapping for ~ldistance~ is string x string [->] int
 ListExpr CcLDistTypeMap(ListExpr args)
 {
   const string mapping[] = {STRING, STRING, INT};
-  return SimpleMap(mapping, 3, args);	 
+  return SimpleMap(mapping, 3, args);
 }
 
 /*
@@ -1394,7 +1394,7 @@ ListExpr
 CcRoundTypeMap( ListExpr args )
 {
   const string map[] = { REAL, INT, REAL };
-  return SimpleMap(map, 3, args);	 
+  return SimpleMap(map, 3, args);
 }
 
 /*
@@ -1404,22 +1404,22 @@ For operator ~num2string~
 
 */
 
-const string maps_num2str[2][2] = 
-{ 
-  {REAL, STRING}, 
-  {INT,  STRING}  
+const string maps_num2str[2][2] =
+{
+  {REAL, STRING},
+  {INT,  STRING}
 };
 
 ListExpr
 NumStringTypeMap( ListExpr args )
 {
-  return SimpleMaps<2,2>(maps_num2str, args);	 
+  return SimpleMaps<2,2>(maps_num2str, args);
 }
 
 int
 ccnum2stringSelect( ListExpr args )
 {
-  return SimpleSelect<2,2>(maps_num2str, args);	 
+  return SimpleSelect<2,2>(maps_num2str, args);
 }
 
 /*
@@ -1583,7 +1583,7 @@ CcPlus_ss( Word* args, Word& result, int message, Word& local, Supplier s )
   // compute result value
   if ( wstr1->IsDefined() && wstr2->IsDefined() )
   {
-    wres->Set( true, 
+    wres->Set( true,
 	       (STRING_T*)(str1 + str2).substr(0,MAX_STRINGSIZE).c_str() );
   }
   else
@@ -1613,12 +1613,12 @@ CcMinus_ii( Word* args, Word& result, int message, Word& local, Supplier s )
     if( ((b>0) && (diff>a) ) || ((b<0) && (diff<a)))
     {
        ((CcInt *)result.addr)->Set(false, 0);
-    } 
+    }
     else
     {
        ((CcInt *)result.addr)->Set(true, diff);
     }
-     
+
   }
   else
   {
@@ -1699,7 +1699,7 @@ CcProduct_ii( Word* args, Word& result, int message, Word& local, Supplier s )
     int a = ((CcInt*)args[0].addr)->GetIntval();
     int b = ((CcInt*)args[1].addr)->GetIntval();
     int prod = a*b;
-    if( (b!=0) && ((prod/b)!=a)) 
+    if( (b!=0) && ((prod/b)!=a))
     {
         ((CcInt *)result.addr)->Set( false, 0 );
     }
@@ -2924,9 +2924,13 @@ are separated by a space character.
 
     case CLOSE:
       // cout << "close" << endl;
-      subword = ((Subword*) local.addr);
-      free(subword->subw);
-      delete subword;
+      if(local.addr)
+      {
+        subword = ((Subword*) local.addr);
+        free(subword->subw);
+        delete subword;
+        local = SetWord(0);
+      }
       return 0;
   }
   /* should not happen */
@@ -3118,7 +3122,7 @@ ListExpr
 CcElapsedTypeMap( ListExpr args )
 {
   const string mapping[] = {STRING};
-  return SimpleMap(mapping, 1, args);	 
+  return SimpleMap(mapping, 1, args);
 }
 
 
@@ -3184,7 +3188,7 @@ handling streams of tuples.
 static ListExpr setoption_tm(ListExpr args)
 {
   const string mapping[] = {STRING, INT, BOOL};
-  return SimpleMap(mapping, 3, args);	 
+  return SimpleMap(mapping, 3, args);
 }
 
 int
@@ -3234,10 +3238,10 @@ struct absInfo : OperatorInfo {
 
 const string maps_abs[2][2] = { {REAL, REAL}, {INT, INT} };
 
-static ListExpr 
+static ListExpr
 abs_tm(ListExpr args)
 {
-  return SimpleMaps<2,2>(maps_abs, args);	 
+  return SimpleMaps<2,2>(maps_abs, args);
 }
 
 int
@@ -3340,7 +3344,7 @@ CcReal2intValueMap( Word* args, Word& result, int message,
       if( abs((double)ival - val) >2)
       {
           res->Set(false,0);
-      } 
+      }
       else
       {
           res->Set( true, ival );
@@ -3461,7 +3465,7 @@ int CcCharFun( Word* args, Word& result, int message,
   CcInt* Cccode = (CcInt*) args[0].addr;
   result = qp->ResultStorage( s );
   CcString* res = (CcString*) result.addr;
-  
+
   int code = 0;
   if ( !Cccode->IsDefined() )
     res->SetDefined( false );
@@ -4352,7 +4356,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccoprelcount );
     AddOperator( &ccoprelcount2 );
     AddOperator( &ccopkeywords );
-    AddOperator( &ccopifthenelse );	
+    AddOperator( &ccopifthenelse );
     ccopifthenelse.SetRequestsArguments();
     AddOperator( &ccbetween );
     //AddOperator( &ccelapsedtime );
@@ -4482,9 +4486,9 @@ StdTypes::UpdateBasicOps(bool reset/*=false*/) {
   long& intEqual = Counter::getRef(CTR_INT_EQUAL);
   long& intCompare = Counter::getRef(CTR_INT_COMPARE);
 
-  if (reset) 
+  if (reset)
   {
-    intHash = 0;	  
+    intHash = 0;
     intLess = 0;
     intEqual = 0;
     intCompare = 0;
@@ -4497,11 +4501,11 @@ StdTypes::UpdateBasicOps(bool reset/*=false*/) {
   basicOps += hashOps + compareOps;
 
   return basicOps;
-}	
+}
 
 void
 StdTypes::ResetBasicOps() {
-  UpdateBasicOps(true);	
+  UpdateBasicOps(true);
 }
 
 void

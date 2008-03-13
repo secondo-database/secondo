@@ -1558,19 +1558,19 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   CcInt* pkgNrCcInt = 0;
   int pkgNr = 0;
   int outOfRangePkgNr = 0;
-  
+
   Word actual = SetWord( Address(0) );
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
 
   bool msgPrinted = false;
-  
+
   while(qp->Received(args[0].addr))
   {
     Tuple* tuple = (Tuple*)actual.addr;
     Tuple* tuple2 = new Tuple(tupleType);
- 
+
     // Copy all attributes except the package number from tuple to tuple2.
     int j = 0;
     for (int i=0; i<tuple->GetNoAttributes(); i++) {
@@ -1583,7 +1583,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
     pkgNr = pkgNrCcInt->GetIntval();
 
     tuple->DeleteIfAllowed();
-   
+
     if ( pkgNr > (MAX_OPEN_RELATIONS - 1) ) { // check if pckNr is valid
 
       if ( !msgPrinted )
@@ -1595,21 +1595,21 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
               << "with " << MAX_OPEN_RELATIONS << " relations." << endl;
                msgPrinted = true;
       }
-           
+
       pkgNr = outOfRangePkgNr % MAX_OPEN_RELATIONS;
       outOfRangePkgNr++;
     }
 
     while ( n < pkgNr ) { // enlarge the array if necessary
-      
+
       relPkg.push_back( new Relation(relType) );
       n++;
     }
-    
+
     relPkg[pkgNr]->AppendTuple(tuple2);
-    
+
     tuple2->DeleteIfAllowed(); // free memory
-  
+
     qp->Request(args[0].addr, actual);
   }
   qp->Close(args[0].addr);
@@ -1619,7 +1619,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   Word a[++n];
 
   for (int i=0; i<n; i++) {
-  
+
     a[i] = SetWord(relPkg[i]);
   }
 
@@ -1627,12 +1627,12 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int typeId = 0;
 
   if (sc->GetTypeId("rel", algebraId, typeId)) {
-  
+
     ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
     return 0;
-    
+
   } else {
-  
+
     return 1;
   }
 }
@@ -1715,13 +1715,13 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
     int current;
     Array* array;
     GenericRelationIterator* rit;
-   
+
     // create an Tuple iterater for the next array element
     bool makeNextRelIter()
     {
       if (rit)
         delete rit;
-      
+
       if ( current < array->getSize() )
       {
         Relation* r = static_cast<Relation*>( array->getElement(current).addr );
@@ -1738,18 +1738,18 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
     {
       makeNextRelIter();
     }
-    
+
     ~ArrayIterator()
     {
       if (rit)
         delete rit;
     }
-    
+
     Tuple* getNextTuple() // try to get next tuple
     {
       if (!rit)
         return 0;
-      
+
       Tuple* t = rit->GetNextTuple();
       if ( !t )
       {
@@ -1761,7 +1761,7 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
       return t;
     }
   };
- 
+
   ArrayIterator* ait = 0;
   ait = (ArrayIterator*)local.addr;
 
@@ -1781,8 +1781,12 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
       return CANCEL;
     }
     case CLOSE : {
-      ait = (ArrayIterator*)local.addr;
-      delete ait;
+      if(local.addr)
+      {
+        ait = (ArrayIterator*)local.addr;
+        delete ait;
+        local = SetWord(0);
+      }
       return 0;
     }
     default : {
@@ -2536,7 +2540,7 @@ loopselectFun( Word* args, Word& result, int message, Word& local, Supplier s )
   Word funresult;
   string info;
 
-  
+
   cout << "Processing elements ..." << endl;
   for (int i=0; i<n; i++) {
     info = toString(i);
