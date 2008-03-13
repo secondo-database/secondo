@@ -508,13 +508,13 @@ Algorithm.
     bool GetNextEntry_readFirst;    //controls for GetNextEntry
     bool GetNextEntry_read;
 
-    GenericRelationIterator *outerIter; 
+    GenericRelationIterator *outerIter;
     //iterates OuterRelation in NextResultTuple
 
     SmiRecordId outerActualTupleId; //RecordId of actual Tuple in
                                     //NextResultTuple
     R_TreeEntryPnJ<dim> outerEntry;
-    R_TreeEntryPnJ<dim> foundEntry; 
+    R_TreeEntryPnJ<dim> foundEntry;
       //Next Entry found by First/Next of the R-Tree
 
     Partition* outerRelPart;        //gathering overflows in one partition
@@ -815,7 +815,7 @@ Do some initializing work.
 */
     //the attribute-numbers of the joining attributes
     hdr.outerAttrIndex = (((CcInt*)outerAttrIndexWord.addr)->GetIntval()) - 1;
-    ArrayIndex innerAttrIndexPnJ = 
+    ArrayIndex innerAttrIndexPnJ =
       (((CcInt*)innerAttrIndexWord.addr)->GetIntval())-1;
 
     //some sizes for storing entries in SMI-Records
@@ -975,7 +975,7 @@ Next tuple found in outer Relation.
 */
           SBox = ((StandardSpatialAttribute<dim>*)outerTuple->
                             GetAttribute(hdr.outerAttrIndex))->BoundingBox();
-      
+
           hdr.outerActualTupleId = hdr.outerIter->GetTupleId();
 
           hdr.outerEntry = R_TreeEntryPnJ<dim>(SBox, hdr.outerActualTupleId);
@@ -1065,7 +1065,7 @@ Building S.Part of outerRelation.
           FlushLeavesOverflowed(leavesOverflowed, hdr.outerEntry,
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
-          Tuple* innerTuple = 
+          Tuple* innerTuple =
             ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
           Tuple* resultTuple = new Tuple( resultTupleType );
           Concat(outerTuple, innerTuple, resultTuple);
@@ -1119,11 +1119,11 @@ Building S.Part of outerRelation.
           FlushLeavesOverflowed(leavesOverflowed, hdr.outerEntry,
                                 hdr.outerRelPart, hdr.outerRelInfo);
 
-          Tuple* innerTuple = 
+          Tuple* innerTuple =
             ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
           Tuple* resultTuple = new Tuple( resultTupleType );
 
-          outerTuple = 
+          outerTuple =
             ((TupleBuffer*)hdr.outerRelation)->GetTuple(hdr.outerActualTupleId);
           Concat(outerTuple, innerTuple, resultTuple);
 
@@ -1264,7 +1264,7 @@ the informations needed for building the R-Trees of this instance one by one.
       cout << "============================================================="
            << "===" << endl;
       cout << "Queries which touched a leaf with insertOverflow " << endl;
-      cout << "(LeafNumber NumberOfQueries SmiRecordIDFirst SmiRecordIdNext)" 
+      cout << "(LeafNumber NumberOfQueries SmiRecordIDFirst SmiRecordIdNext)"
            << endl;
       typedef typename  PartitionInfo::const_iterator CI;
       for (CI p=((*hdr.actualMaps).outerInfo)->begin();
@@ -1350,8 +1350,8 @@ are inserted in the Tree.
                                       hdr.actualNodeNo)) != 0 )
       {
         if ( !hdr.rtree->Insert (*entry, nodeNoOverflow) )
-        { 
-          BufferInsert (hdr.innerRelPart, hdr.innerRelInfo, 
+        {
+          BufferInsert (hdr.innerRelPart, hdr.innerRelInfo,
                         nodeNoOverflow, *entry);
         }
       }
@@ -1443,8 +1443,8 @@ Getting the queries and build resultTuples for stream-REQUEST.
     {
       if ( hdr.firstSearchForTuple )
       {
-        if ( hdr.rtree->First (hdr.outerEntry.box, 
-                               hdr.foundEntry, 
+        if ( hdr.rtree->First (hdr.outerEntry.box,
+                               hdr.foundEntry,
                                leavesOverflowed) )
         {
           hdr.firstSearchForTuple = false;
@@ -1555,7 +1555,7 @@ void SpatialJoinLocalInfo<dim>::BufferInsert
 
 */
 template <unsigned dim>
-void 
+void
 SpatialJoinLocalInfo<dim>::FlushAllLeavesToBuffer(Partition* innerRelPart,
                                                   PartitionInfo* innerRelInfo)
 {
@@ -1665,9 +1665,9 @@ void SpatialJoinLocalInfo<dim>::Write
 */
 template <unsigned dim>
 void SpatialJoinLocalInfo<dim>::ReadFirstEntries
-      (PartitionInfo* m, 
+      (PartitionInfo* m,
        ArrayIndex& actualNodeNo,
-       SmiRecordId& nextRecordId, 
+       SmiRecordId& nextRecordId,
        vector < R_TreeEntryPnJ<dim> >& entriesOfRecord )
 {
   //getting number of first record
@@ -1677,8 +1677,8 @@ void SpatialJoinLocalInfo<dim>::ReadFirstEntries
   SmiRecordId firstRecordId = inner_iter->second.firstRId;
 
   //interpreting the record
-  int sizeOfRecord = hdr.recordHeaderSize + 
-                     hdr.maxEntriesInRecord * 
+  int sizeOfRecord = hdr.recordHeaderSize +
+                     hdr.maxEntriesInRecord *
                      sizeof(R_TreeEntryPnJ<dim>);
   char buffer[sizeOfRecord + 1];
   memset ( buffer, 0, sizeOfRecord + 1);
@@ -1706,7 +1706,7 @@ void SpatialJoinLocalInfo<dim>::ReadFirstEntries
   //now read the entries and store in entriesOfRecord
   for (int i = 1; i <= numberOfEntries; i++)
   {
-    R_TreeEntryPnJ<dim> *e = 
+    R_TreeEntryPnJ<dim> *e =
       new ((void *)(buffer + offset)) R_TreeEntryPnJ<dim>;
     entriesOfRecord.push_back(*e);
     offset += sizeof (R_TreeEntryPnJ<dim>);
@@ -1727,7 +1727,7 @@ void SpatialJoinLocalInfo<dim>::ReadNextEntries ( SmiRecordId& nextRecordId,
                            vector < R_TreeEntryPnJ<dim> >&entriesOfRecord )
 {
   //interpreting the record
-  int sizeOfRecord = 
+  int sizeOfRecord =
     hdr.recordHeaderSize + hdr.maxEntriesInRecord * sizeof(R_TreeEntryPnJ<dim>);
   char buffer[sizeOfRecord + 1];
   memset ( buffer, 0, sizeOfRecord + 1);
@@ -1754,7 +1754,7 @@ void SpatialJoinLocalInfo<dim>::ReadNextEntries ( SmiRecordId& nextRecordId,
   //now read the entries and store in entriesOfRecord
   for (int i = 1; i <= numberOfEntries; i++)
   {
-    R_TreeEntryPnJ<dim> *e = 
+    R_TreeEntryPnJ<dim> *e =
       new ((void *)(buffer + offset)) R_TreeEntryPnJ<dim>;
     entriesOfRecord.push_back(*e);
     offset += sizeof (R_TreeEntryPnJ<dim>);
@@ -1793,7 +1793,7 @@ R_TreeEntryPnJ<dim>* SpatialJoinLocalInfo<dim>::GetNextEntry
 
   if ( counter >= 0 )
   {
-    R_TreeEntryPnJ<dim>* entry = 
+    R_TreeEntryPnJ<dim>* entry =
       new R_TreeEntryPnJ<dim> (entriesOfRecord[counter]);
     counter--;
     return entry;
@@ -1812,7 +1812,7 @@ R_TreeEntryPnJ<dim>* SpatialJoinLocalInfo<dim>::GetNextEntry
 
       if ( counter >= 0 )
       {
-        R_TreeEntryPnJ<dim>* entry = 
+        R_TreeEntryPnJ<dim>* entry =
           new R_TreeEntryPnJ<dim> (entriesOfRecord[counter]);
         counter--;
         return entry;
@@ -1880,9 +1880,9 @@ Tuple*  SpatialJoinLocalInfo<dim>::newResultTupleFromEntries (
                                                R_TreeEntryPnJ<dim>& outerEntry,
                                                R_TreeEntryPnJ<dim>& foundEntry)
 {
-  Tuple* innerTuple = 
+  Tuple* innerTuple =
     ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
-  Tuple* outerTuple = 
+  Tuple* outerTuple =
     ((TupleBuffer*)hdr.outerRelation)->GetTuple(outerEntry.pointer);
   Tuple* resultTuple = new Tuple (resultTupleType);
   Concat (outerTuple, innerTuple, resultTuple);
@@ -1917,7 +1917,7 @@ must be used.
 
 */
 int
-spatialjoin2ValueMapping(Word* args, Word& result, int message, 
+spatialjoin2ValueMapping(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
   SpatialJoinLocalInfo<2> *localInfo;
@@ -1936,9 +1936,9 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
       leftAttrIndexWord = args[4];  //APPENDED - Value no 1
       rightAttrIndexWord = args[5]; //APPENDED - Value no 2
 
-      localInfo = new SpatialJoinLocalInfo<2>(rightStreamWord, 
+      localInfo = new SpatialJoinLocalInfo<2>(rightStreamWord,
                                               rightAttrIndexWord,
-                                              leftStreamWord, 
+                                              leftStreamWord,
                                               leftAttrIndexWord);
 
       ListExpr resultType = GetTupleResultType( s );
@@ -1958,11 +1958,14 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
 
     case CLOSE:
     {
-      localInfo = (SpatialJoinLocalInfo<2>*)local.addr;
-      //the TupleBuffers are deleted in the destructor of localInfo
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
-
+      if(local.addr)
+      {
+        localInfo = (SpatialJoinLocalInfo<2>*)local.addr;
+        //the TupleBuffers are deleted in the destructor of localInfo
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
 
@@ -1973,7 +1976,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
 };
 
 int
-spatialjoin3ValueMapping(Word* args, Word& result, int message, 
+spatialjoin3ValueMapping(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
   SpatialJoinLocalInfo<3> *localInfo;
@@ -1993,9 +1996,9 @@ spatialjoin3ValueMapping(Word* args, Word& result, int message,
       rightAttrIndexWord = args[5]; //APPENDED - Value no 2
 
 
-      localInfo = new SpatialJoinLocalInfo<3>(rightStreamWord, 
+      localInfo = new SpatialJoinLocalInfo<3>(rightStreamWord,
                                               rightAttrIndexWord,
-                                              leftStreamWord, 
+                                              leftStreamWord,
                                               leftAttrIndexWord);
 
       ListExpr resultType = GetTupleResultType( s );
@@ -2016,12 +2019,14 @@ spatialjoin3ValueMapping(Word* args, Word& result, int message,
 
     case CLOSE:
     {
-      localInfo = (SpatialJoinLocalInfo<3>*)local.addr;
-
-      //the TupleBuffers are deleted in the destructor of localInfo
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
-
+      if(local.addr)
+      {
+        localInfo = (SpatialJoinLocalInfo<3>*)local.addr;
+        //the TupleBuffers are deleted in the destructor of localInfo
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
 
@@ -2032,7 +2037,7 @@ spatialjoin3ValueMapping(Word* args, Word& result, int message,
 };
 
 int
-spatialjoin4ValueMapping(Word* args, Word& result, int message, 
+spatialjoin4ValueMapping(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
   SpatialJoinLocalInfo<4> *localInfo;
@@ -2052,9 +2057,9 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message,
       rightAttrIndexWord = args[5]; //APPENDED - Value no 2
 
 
-      localInfo = new SpatialJoinLocalInfo<4>(rightStreamWord, 
+      localInfo = new SpatialJoinLocalInfo<4>(rightStreamWord,
                                               rightAttrIndexWord,
-                                              leftStreamWord, 
+                                              leftStreamWord,
                                               leftAttrIndexWord);
 
       ListExpr resultType = GetTupleResultType( s );
@@ -2075,19 +2080,18 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message,
 
     case CLOSE:
     {
-      localInfo = (SpatialJoinLocalInfo<4>*)local.addr;
-
-      //the TupleBuffers are deleted in the destructor of localInfo
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
-
+      if(local.addr)
+      {
+        localInfo = (SpatialJoinLocalInfo<4>*)local.addr;
+        //the TupleBuffers are deleted in the destructor of localInfo
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
-
   }
-
   return 0;
-
 };
 
 /*

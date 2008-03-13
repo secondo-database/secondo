@@ -687,8 +687,12 @@ rangesearch_VM(Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      info = (rangesearchLocalInfo*)local.addr;
-      delete info;
+      if(local.addr)
+      {
+        info = (rangesearchLocalInfo*)local.addr;
+        delete info;
+        local = SetWord(0);
+      }
       return 0;
     }
   }
@@ -765,8 +769,12 @@ rangesearchDD_VM(Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      info = (rangesearchLocalInfo*)local.addr;
-      delete info;
+      if(local.addr)
+      {
+        info = (rangesearchLocalInfo*)local.addr;
+        delete info;
+        local = SetWord(0);
+      }
       return 0;
     }
   }
@@ -885,8 +893,12 @@ nnsearch_VM(Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      info = (nnsearchLocalInfo*)local.addr;
-      delete info;
+      if(local.addr)
+      {
+        info = (nnsearchLocalInfo*)local.addr;
+        delete info;
+        local = SetWord(0);
+      }
       return 0;
     }
   }
@@ -958,8 +970,12 @@ nnsearchDD_VM(Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      info = (nnsearchLocalInfo*)local.addr;
-      delete info;
+      if(local.addr)
+      {
+        info = (nnsearchLocalInfo*)local.addr;
+        delete info;
+        local = SetWord(0);
+      }
       return 0;
     }
   }

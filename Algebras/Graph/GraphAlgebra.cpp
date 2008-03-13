@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -13,7 +13,7 @@ the Free Software Foundation; either version 2 of the License, or
 SECONDO is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
@@ -32,47 +32,47 @@ February 2007, G. Barz, M. Stein, A. Ruloffs, A. Martin
 
 1 Overview
 
-This implementation file essentially contains the implementation of the 
+This implementation file essentially contains the implementation of the
 following operators:
 
   * ~constGraph~
-  
+
   * ~constGraphPoints~
-  
+
   * ~vertices~
-  
+
   * ~edges~
-  
+
   * ~equal~
-  
+
   * ~partOf~
-  
+
   * ~connectedComponents~
-  
+
   * ~merge~
-  
+
   * ~maxDegree~
-  
+
   * ~minDegree~
-  
+
   * ~theVertex~
-  
+
   * ~shortestPath~
-  
+
   * ~circle~
-  
+
   * ~key~
-  
+
   * ~pos~
-  
+
   * ~source~
-  
+
   * ~target~
-  
+
   * ~cost~
-  
+
 Enter
- 
+
 ----list algebra GraphAlgebra
 ----
 
@@ -111,10 +111,10 @@ graph x int $\to$ vertex
 ListExpr theVertexMap ( ListExpr args ) {
 
    if (nl->ListLength(args) == 2) {
-   
+
      ListExpr arg1 = nl->First(args);
      ListExpr arg2 = nl->Second(args);
-     
+
      if (nl->IsEqual(arg1, "graph") && nl->IsEqual(arg2, "int"))
        return nl->SymbolAtom("vertex");
      if ((nl->AtomType(arg1) == SymbolType) &&
@@ -129,7 +129,7 @@ ListExpr theVertexMap ( ListExpr args ) {
    else
      ErrorReporter::ReportError(
                 "Type mapping function got a parameter of length != 2.");
-   
+
    return nl->SymbolAtom("typeerror");
 }
 
@@ -143,10 +143,10 @@ graph $\to$ int
 ListExpr minMaxDegreeMap ( ListExpr args ) {
 
    if (nl->ListLength(args) == 2) {
-   
+
      ListExpr arg1 = nl->First(args);
      ListExpr arg2 = nl->Second(args);
-     
+
      if (nl->IsEqual(arg1, "graph") && nl->IsEqual(arg2, "bool"))
        return nl->SymbolAtom("int");
      if ((nl->AtomType(arg1) == SymbolType) &&
@@ -161,7 +161,7 @@ ListExpr minMaxDegreeMap ( ListExpr args ) {
    else
      ErrorReporter::ReportError(
               "Type mapping function got a parameter of length != 2.");
-   
+
    return nl->SymbolAtom("typeerror");
 }
 
@@ -175,9 +175,9 @@ graph $\to$ stream(tuple([Graph: graph]))
 ListExpr connectedCompMap ( ListExpr args ) {
 
    if (nl->ListLength(args) == 1) {
-   
+
      ListExpr arg1 = nl->First(args);
-     
+
      if (nl->IsEqual(arg1, "graph"))
        return nl->TwoElemList(
                    nl->SymbolAtom("stream"),
@@ -191,7 +191,7 @@ ListExpr connectedCompMap ( ListExpr args ) {
                         )
                    )
               );
-     
+
      if ((nl->AtomType(arg1) == SymbolType))
        ErrorReporter::ReportError(
              "Type mapping function got parameters of type "+
@@ -203,7 +203,7 @@ ListExpr connectedCompMap ( ListExpr args ) {
    else
      ErrorReporter::ReportError(
              "Type mapping function got a parameter of length != 1.");
-   
+
    return nl->SymbolAtom("typeerror");
 }
 
@@ -230,7 +230,7 @@ ListExpr shortestPathMap ( ListExpr args ) {
           ErrorReporter::ReportError(
                  "graph x {int, vertex} x {int, vertex} expected");
           return nl->TypeError();
-        }       
+        }
         string arg2s = nl->SymbolValue(arg2);
         string arg3s = nl->SymbolValue(arg3);
         if( (arg2s != "vertex") && (arg2s!="int")){
@@ -285,7 +285,7 @@ ListExpr edgesMap ( ListExpr args ) {
 
         if ((nl->AtomType(arg1) == SymbolType))
             ErrorReporter::ReportError(
-                   "Type mapping function got parameter of type " + 
+                   "Type mapping function got parameter of type " +
                     nl->SymbolValue(arg1));
         else
             ErrorReporter::ReportError(
@@ -345,7 +345,7 @@ ListExpr verticesMap ( ListExpr args ) {
 /*
 4.1.7 Type mapping function of operator ~constGraph~ \& ~constGraphPoints~
 
-stream(Tuple) x int\_attr x int\_attr x (Tuple $\to$ real) $\to$ graph 
+stream(Tuple) x int\_attr x int\_attr x (Tuple $\to$ real) $\to$ graph
 
 stream(Tuple) x int\_attr x int\_attr x (Tuple $\to$ real) x point\_attr x point\_attr $\to$ graph
 
@@ -353,36 +353,36 @@ stream(Tuple) x int\_attr x int\_attr x (Tuple $\to$ real) x point\_attr x point
 template<int characteristic>
 ListExpr constGraphTypeMap( ListExpr args )
 {
-  ListExpr   inTuple,    //The listexpr for the incoming tuple 
+  ListExpr   inTuple,    //The listexpr for the incoming tuple
         attidx1,    //The listexpr for the first index attribute
         attidx2,     //The listexpr for the second index attribute
         func,      //The listexpr for the costs function
         pointidx1,    //The listexpr for the first point attibute
         pointidx2,     //The listexpr for the first point attibute
-        errorInfo,attrtype;  
+        errorInfo,attrtype;
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   string argstr, argstr2,attrname1,attrname2;
   int j,k,l,m;        //The indices of the attributes in the tuple inTuple
   switch (characteristic)
   {
-    case 0:    
+    case 0:
       CHECK_COND(nl->ListLength(args) == 3,
-      "Operator constGraph expects a list of length three.");    
+      "Operator constGraph expects a list of length three.");
       inTuple = nl->First(args);
       attidx1  = nl->Second(args);
       attidx2  = nl->Third(args);
       break;
-  case 1:    
+  case 1:
       CHECK_COND(nl->ListLength(args) == 4,
-      "Operator constGraph expects a list of length four.");    
+      "Operator constGraph expects a list of length four.");
       inTuple = nl->First(args);
       attidx1  = nl->Second(args);
       attidx2  = nl->Third(args);
        func  = nl->Fourth(args);
        break;
-    case 2:    
+    case 2:
       CHECK_COND(nl->ListLength(args) == 5,
-      "Operator constGraph expects a list of length five.");    
+      "Operator constGraph expects a list of length five.");
       inTuple = nl->First(args);
       attidx1  = nl->Second(args);
       attidx2  = nl->Third(args);
@@ -391,7 +391,7 @@ ListExpr constGraphTypeMap( ListExpr args )
        break;
     case 3:
       CHECK_COND(nl->ListLength(args) == 6,
-      "Operator constGraph expects a list of length six.");    
+      "Operator constGraph expects a list of length six.");
       inTuple = nl->First(args);
       attidx1  = nl->Second(args);
       attidx2  = nl->Third(args);
@@ -423,18 +423,18 @@ ListExpr constGraphTypeMap( ListExpr args )
     else
     {
         nl->WriteToString(argstr, attidx1);
-        ErrorReporter::ReportError("Operator constGraph gets '" + 
+        ErrorReporter::ReportError("Operator constGraph gets '" +
           argstr +", "+argstr2+
           "' as attributenames.\n"
           "Atrribute name may not be the name of a Secondo object!");
         return nl->SymbolAtom("typeerror");
-    }  
+    }
     j = FindAttribute(nl->Second(nl->Second(inTuple)), attrname1, attrtype);
-    if (j)  
+    if (j)
     {
-      nl->WriteToString(argstr, attrtype);       
+      nl->WriteToString(argstr, attrtype);
       CHECK_COND(argstr=="int",
-        "Attribute "+attrname1+" is of type "+argstr+" but schould be int."); 
+        "Attribute "+attrname1+" is of type "+argstr+" but schould be int.");
     }
     else
     {
@@ -445,9 +445,9 @@ ListExpr constGraphTypeMap( ListExpr args )
         return nl->SymbolAtom("typeerror");
     }
      k = FindAttribute(nl->Second(nl->Second(inTuple)), attrname2, attrtype);
-    if (k)     
+    if (k)
     {
-      nl->WriteToString(argstr, attrtype);       
+      nl->WriteToString(argstr, attrtype);
       CHECK_COND(argstr=="int",
         "Attribute "+attrname1+" is of type "+argstr+" but schould be int.");
     }
@@ -460,7 +460,7 @@ ListExpr constGraphTypeMap( ListExpr args )
         return nl->SymbolAtom("typeerror");
     }
     if(characteristic==1||characteristic==3)
-    {         
+    {
       if ( nl->IsAtom(func)
           || !nl->ListLength(func) == 3
            || !nl->IsEqual(nl->First(func), "map")
@@ -474,31 +474,31 @@ ListExpr constGraphTypeMap( ListExpr args )
           return nl->SymbolAtom("typeerror");
       }
     }
-          
+
   if(characteristic==2||characteristic==3)
-  {            
+  {
       nl->WriteToString(argstr, pointidx1);
       nl->WriteToString(argstr2, pointidx2);
       if (nl->AtomType(pointidx1) == SymbolType&&
           nl->AtomType(pointidx2) == SymbolType)
-      {  
+      {
         attrname1 = nl->SymbolValue(pointidx1);
           attrname2 = nl->SymbolValue(pointidx2);
       }
       else
       {
-          ErrorReporter::ReportError("Operator constGraph gets '" + 
+          ErrorReporter::ReportError("Operator constGraph gets '" +
             argstr +", "+argstr2+
             "' as attributenames.\n"
-            "Atrribute name may not be the name of a Secondo object!");      
-      }  
+            "Atrribute name may not be the name of a Secondo object!");
+      }
       l = FindAttribute(nl->Second(nl->Second(inTuple)), attrname1, attrtype);
-      if (l)  
+      if (l)
       {
-         nl->WriteToString(argstr, attrtype);       
+         nl->WriteToString(argstr, attrtype);
          CHECK_COND(argstr=="point",
           "Attribute "+attrname1+" is of type "+
-           argstr+" but schould be point.");                  
+           argstr+" but schould be point.");
       }
       else
       {
@@ -509,9 +509,9 @@ ListExpr constGraphTypeMap( ListExpr args )
           return nl->SymbolAtom("typeerror");
       }
        m = FindAttribute(nl->Second(nl->Second(inTuple)), attrname2, attrtype);
-      if (m)     
+      if (m)
       {
-        nl->WriteToString(argstr, attrtype);       
+        nl->WriteToString(argstr, attrtype);
          CHECK_COND(argstr=="point",
           "Attribute "+attrname1+" is of type "+argstr+
           " but schould be point.");
@@ -526,11 +526,11 @@ ListExpr constGraphTypeMap( ListExpr args )
       }
       return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->FourElemList(nl->IntAtom(j),nl->IntAtom(k),
-                            nl->IntAtom(l),nl->IntAtom(m)),           
-            nl->SymbolAtom("graph"));  
-  }        
+                            nl->IntAtom(l),nl->IntAtom(m)),
+            nl->SymbolAtom("graph"));
+  }
    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-     nl->TwoElemList(nl->IntAtom(j),nl->IntAtom(k)),           
+     nl->TwoElemList(nl->IntAtom(j),nl->IntAtom(k)),
         nl->SymbolAtom("graph"));
 }
 
@@ -544,18 +544,18 @@ graph x vertex x real $\to$ graph
 ListExpr circleMap ( ListExpr args ) {
 
    if (nl->ListLength(args) == 3) {
-   
+
      ListExpr arg1 = nl->First(args);
      ListExpr arg2 = nl->Second(args);
      ListExpr arg3 = nl->Third(args);
-     
+
      if (nl->IsEqual(arg1, "graph") &&
-         nl->IsEqual(arg2, "vertex") && 
+         nl->IsEqual(arg2, "vertex") &&
          nl->IsEqual(arg3, "real"))
        return nl->SymbolAtom("graph");
-     
-     if ((nl->AtomType(arg1) == SymbolType) && 
-         (nl->AtomType(arg2) == SymbolType) && 
+
+     if ((nl->AtomType(arg1) == SymbolType) &&
+         (nl->AtomType(arg2) == SymbolType) &&
          (nl->AtomType(arg3) == SymbolType))
        ErrorReporter::ReportError(
               "Operator 'circle' got parameters of type "
@@ -568,7 +568,7 @@ ListExpr circleMap ( ListExpr args ) {
    else
      ErrorReporter::ReportError(
          "Operator 'circle' got a parameter of length != 3.");
-   
+
    return nl->SymbolAtom("typeerror");
 }
 
@@ -690,8 +690,8 @@ ListExpr EqualTypeMap(ListExpr args){
    ErrorReporter::ReportError(
        "EqualTypeMap: both arguments must have the same type");
    return nl->TypeError();
- } 
- if( (arg1s!="vertex") && (arg1s!="edge") && 
+ }
+ if( (arg1s!="vertex") && (arg1s!="edge") &&
      (arg1s!="path") && (arg1s!="graph")){
    ErrorReporter::ReportError("EqualTypeMap: only arguments vertex, edge,"
                               " path, and graph are allowed");
@@ -712,7 +712,7 @@ ListExpr EqualWayTypeMap(ListExpr args){
   if(!nl->IsEqual(nl->First(args),"path") ||
      !nl->IsEqual(nl->Second(args),"path")){
     ErrorReporter::ReportError("Operator equalway: path x path expected");
-     return nl->TypeError(); 
+     return nl->TypeError();
   }
   return nl->SymbolAtom("bool");
 }
@@ -734,9 +734,9 @@ is applied to correct arguments.
 
 */
 int edgesVerticesSelect(ListExpr args) {
-   
+
    ListExpr arg = nl->First(args);
-   
+
    if (nl->IsEqual(arg,"path"))
      return (0);
    if (nl->IsEqual(arg,"graph"))
@@ -746,7 +746,7 @@ int edgesVerticesSelect(ListExpr args) {
 
 
 /*
-4.2.2 Selection function for the ~shortestPath~ Operator 
+4.2.2 Selection function for the ~shortestPath~ Operator
 
 */
 int shortestPathSelect(ListExpr args){
@@ -782,16 +782,16 @@ int EqualSelect(ListExpr args){
 4.3.1 Value mapping function for operator ~theVertex~
 
 */
-int theVertexFun (Word* args, Word& result, int message, 
+int theVertexFun (Word* args, Word& result, int message,
                   Word& local, Supplier s)
 {
    Graph* g = ((Graph*)args[0].addr);
    int n = ((CcInt*)args[1].addr)->GetIntval();
 
    result = qp->ResultStorage(s);
-   
+
    *((Vertex*)result.addr) = g->GetVertex(n);
-   
+
    return 0;
 }
 
@@ -799,16 +799,16 @@ int theVertexFun (Word* args, Word& result, int message,
 4.3.2 Value mapping function for operator ~maxDegree~
 
 */
-int maxDegreeFun (Word* args, Word& result, 
+int maxDegreeFun (Word* args, Word& result,
                   int message, Word& local, Supplier s)
 {
    Graph* g = ((Graph*)args[0].addr);
    bool b = ((CcBool*)args[1].addr)->GetBoolval();
 
    result = qp->ResultStorage(s);
-   
+
    ((CcInt*)result.addr)->Set(true,g->GetMaxDeg(b));
-   
+
    return 0;
 }
 
@@ -816,16 +816,16 @@ int maxDegreeFun (Word* args, Word& result,
 4.3.3 Value mapping function for operator ~minDegree~
 
 */
-int minDegreeFun (Word* args, Word& result, int message, 
+int minDegreeFun (Word* args, Word& result, int message,
                   Word& local, Supplier s)
 {
    Graph* g = ((Graph*)args[0].addr);
    bool b = ((CcBool*)args[1].addr)->GetBoolval();
 
    result = qp->ResultStorage(s);
-   
+
    ((CcInt*)result.addr)->Set(true,g->GetMinDeg(b));
-   
+
    return 0;
 }
 
@@ -834,25 +834,25 @@ int minDegreeFun (Word* args, Word& result, int message,
 
 */
 struct SccStruct {
-   
+
    vector<Graph*> scc;
    unsigned int index;
    TupleType* tType;
 };
 
 
-int connectedCompFun (Word* args, Word& result, int message, 
+int connectedCompFun (Word* args, Word& result, int message,
                       Word& local, Supplier s) {
-   
+
    SccStruct* localInfo;
    ListExpr resultType;
    Tuple* t;
    Graph* g;
-   
+
    switch(message) {
-     
+
      case OPEN:
-        
+
         g = ((Graph*)args[0].addr);
         resultType = GetTupleResultType(s);
         localInfo = new SccStruct();
@@ -861,56 +861,59 @@ int connectedCompFun (Word* args, Word& result, int message,
         localInfo->scc = g->GetStronglyConnectedComponents();
         localInfo->index = 0;
         local.addr = localInfo;
-        
+
         return 0;
-        
+
      case REQUEST:
 
         localInfo = ((SccStruct*)local.addr);
-        
+
         // no more SCCs to return ?
         if (localInfo->index >= localInfo->scc.size())
           return CANCEL;
-          
+
         t = new Tuple(localInfo->tType);
         t->PutAttribute(0,localInfo->scc[localInfo->index]);
-        
+
         result.addr = t;
         localInfo->index++;
-        
+
         return YIELD;
 
      case CLOSE:
-     
-        localInfo = ((SccStruct*)local.addr);
-        delete localInfo->tType;
-        delete localInfo;
-        
-        return 0;    
+
+       if(local.addr)
+       {
+          localInfo = ((SccStruct*)local.addr);
+          delete localInfo->tType;
+          delete localInfo;
+          local = SetWord(0);
+       }
+       return 0;
    }
-   
+
    return -1;
 }
 /*
 4.3.5 Value mapping function for operator ~circle~
 
 */
-int circleFun (Word* args, Word& result, int message, 
+int circleFun (Word* args, Word& result, int message,
                Word& local, Supplier s) {
 
    Graph* g = ((Graph*)args[0].addr);
    Vertex* v = ((Vertex*)args[1].addr);
    float f = ((CcReal*)args[2].addr)->GetRealval();
-   
+
    if (f < 0.0f)
      f = 0.0f;
-   
+
    result = qp->ResultStorage(s);
-   
+
    Graph* circle = g->GetCircle(v->GetKey(),f);
    ((Graph*)result.addr)->CopyFrom(circle);
    delete circle;
-   
+
    return 0;
 }
 
@@ -920,7 +923,7 @@ int circleFun (Word* args, Word& result, int message,
 */
 
 template <class T1, class T2>
-int shortestPathFun (Word* args, Word& result, 
+int shortestPathFun (Word* args, Word& result,
                     int message, Word& local, Supplier s)
 {
     Graph* g = ((Graph*)args[0].addr);
@@ -928,7 +931,7 @@ int shortestPathFun (Word* args, Word& result,
     T2* target = ((T2*)args[2].addr);
     result = qp->ResultStorage(s);
 
-    g->GetShortestPath(source->GetIntval(), 
+    g->GetShortestPath(source->GetIntval(),
                        target->GetIntval(),
                        (Path*)result.addr);
     return 0;
@@ -951,8 +954,8 @@ struct EdgeStruct {
 
 template<bool isGraph>
 int edgesFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{                               
-    EdgeStruct* localInfo;    
+{
+    EdgeStruct* localInfo;
     ListExpr resultType;
     Tuple* t;
     Path* p;
@@ -965,11 +968,11 @@ int edgesFun (Word* args, Word& result, int message, Word& local, Supplier s)
               g = ((Graph*)args[0].addr);
             else
               p = ((Path*)args[0].addr);
-              
+
             localInfo = new EdgeStruct();
             resultType = GetTupleResultType(s);
             localInfo->tType = new TupleType(nl->Second(resultType));
-            
+
             localInfo->edges = (isGraph) ? g->GetEdges() : p->GetEdges();
             localInfo->index = 0;
             local.addr = localInfo;
@@ -993,12 +996,15 @@ int edgesFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
         case CLOSE:
 
+          if(local.addr)
+          {
             localInfo = ((EdgeStruct*) local.addr);
             delete localInfo->tType;
             delete localInfo->edges;
             delete localInfo;
-
-            return 0;
+            local = SetWord(0);
+          }
+          return 0;
     }
 
     return -1;
@@ -1018,26 +1024,26 @@ struct VertexStruct {
 
 template<bool isGraph>
 int verticesFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{  
+{
     VertexStruct* localInfo;
     ListExpr resultType;
     Tuple* t;
     Graph* g;
-    Path* p;    
+    Path* p;
 
     switch (message) {
         case OPEN:
 
-            if (isGraph) 
+            if (isGraph)
               g = ((Graph*)args[0].addr);
             else
               p = ((Path*)args[0].addr);
-            
+
             p = ((Path*)args[0].addr);
             resultType = GetTupleResultType(s);
             localInfo = new VertexStruct();
             localInfo->tType = new TupleType(nl->Second(resultType));
-            localInfo->vertices = (isGraph) ? g->GetVertices() 
+            localInfo->vertices = (isGraph) ? g->GetVertices()
                                             : p->GetVertices();
             localInfo->index = 0;
             local.addr = localInfo;
@@ -1046,27 +1052,30 @@ int verticesFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
         case REQUEST:
 
-            localInfo = ((VertexStruct*) local.addr);      
+            localInfo = ((VertexStruct*) local.addr);
             // Are all edges be given into the stream ?
             if (localInfo->index >= localInfo->vertices->size())
                 return CANCEL;
 
-            t = new Tuple(localInfo->tType);            
+            t = new Tuple(localInfo->tType);
             t->PutAttribute(0,
                   new Vertex(localInfo->vertices->at(localInfo->index)));
             result.addr = t;
             localInfo->index++;
-            
+
             return YIELD;
 
         case CLOSE:
 
+          if(local.addr)
+          {
             localInfo = ((VertexStruct*) local.addr);
             delete localInfo->tType;
             delete localInfo->vertices;
             delete localInfo;
-
-            return 0;
+            local = SetWord(0);
+          }
+          return 0;
     }
 
     return -1;
@@ -1095,20 +1104,20 @@ int partOfFun (Word* args, Word& result, int message, Word& local, Supplier s)
 This operator has 4 parameter characteristics seperated by the template ~characteristic~:
 
    0: ((stream X) a1 a2)
-   
+
    1: ((stream X) a1 a2 (tuple$\to$real)))
-   
+
    2: ((stream X) a1 a2 p1 p2)
-   
+
    3: ((stream X) a1 a2 (tuple$\to$real) p1 p2)
-     
+
          $\to$ (graph )
 
 */
 template<int characteristic>
-int constGraphFun(Word* args, Word& result, int message, 
+int constGraphFun(Word* args, Word& result, int message,
                  Word& local, Supplier s)
-{  
+{
 //     cout <<"test1 "<<((CcInt*)args[1].addr)->GetIntval() - 1 <<endl;
 //     cout <<"test2 "<<((CcInt*)args[2].addr)->GetIntval() - 1 <<endl;
 //     cout <<"test3 "<<((CcInt*)args[3].addr)->GetIntval() - 1 <<endl;
@@ -1116,49 +1125,49 @@ int constGraphFun(Word* args, Word& result, int message,
 //     cout <<"test5 "<<((CcInt*)args[5].addr)->GetIntval() - 1 <<endl;
 //     cout <<"test6 "<<((CcInt*)args[6].addr)->GetIntval() - 1 <<endl;
 //     cout <<"test7 "<<((CcInt*)args[7].addr)->GetIntval() - 1 <<endl;
-//     cout <<"test8 "<<((CcInt*)args[8].addr)->GetIntval() - 1 <<endl;   
+//     cout <<"test8 "<<((CcInt*)args[8].addr)->GetIntval() - 1 <<endl;
     Word t,funresult;
     Graph* res;       //the graph all is about ;-))
-    Point p1(false);  //the point representations of a vertex, 
-                      //if no point attributes are given, 
+    Point p1(false);  //the point representations of a vertex,
+                      //if no point attributes are given,
                       // an empty point will be used
-    Point p2(false);  //the point representations of a vertex, 
-                      // if no point attributes are given, 
+    Point p2(false);  //the point representations of a vertex,
+                      // if no point attributes are given,
                      // an empty point will be used
-    Tuple* tup;  
-    Point* Start, *Ziel;                //temprary point 
-                                       //variables used to fill p1 and p2 
-    int attributeIndex1,attributeIndex2, //The indices of the index 
-                                         // attributes in the incoming tuple 
+    Tuple* tup;
+    Point* Start, *Ziel;                //temprary point
+                                       //variables used to fill p1 and p2
+    int attributeIndex1,attributeIndex2, //The indices of the index
+                                         // attributes in the incoming tuple
       pointIndex1,pointIndex2;          //The indices of the point attributes
                                         // in the incoming tuple
     ArgVectorPointer funargs;
-    double costs=1.0;          //the costs of an edge, 
-                               // if no cost function is given, 
+    double costs=1.0;          //the costs of an edge,
+                               // if no cost function is given,
                                // 1.0 will be used
     Supplier supplier;
-  qp->Open(args[0].addr);     
-    if (characteristic==0||characteristic==1)  //the typemapping operator 
-                                       // put theseattributes 
-                                       // to different places 
+  qp->Open(args[0].addr);
+    if (characteristic==0||characteristic==1)  //the typemapping operator
+                                       // put theseattributes
+                                       // to different places
     {
       attributeIndex1 = ((CcInt*)args[4].addr)->GetIntval() - 1;
       attributeIndex2 = ((CcInt*)args[5].addr)->GetIntval() - 1;
     }
     else
     {
-      attributeIndex1 = ((CcInt*)args[6].addr)->GetIntval() - 1;  
+      attributeIndex1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
       attributeIndex2 = ((CcInt*)args[7].addr)->GetIntval() - 1;
       pointIndex1=((CcInt*)args[8].addr)->GetIntval() - 1;
       pointIndex2=((CcInt*)args[9].addr)->GetIntval() - 1;
     }
-    res =new Graph(true);    
+    res =new Graph(true);
     qp->Request(args[0].addr,t);
     if(characteristic==1||characteristic==3)
     {
-      supplier = args[3].addr;      
+      supplier = args[3].addr;
         funargs = qp->Argument(supplier);  //Get the argument vector for
-    }    
+    }
     while (qp->Received(args[0].addr))
     {
         tup = (Tuple*)t.addr;
@@ -1167,25 +1176,25 @@ int constGraphFun(Word* args, Word& result, int message,
         int extIndex2=((CcInt*)
                        tup->GetAttribute(attributeIndex2))->GetIntval();
         if(characteristic==1||characteristic==3)
-        {                    
-          (*funargs)[0] = t;     
+        {
+          (*funargs)[0] = t;
             //Supply the argument for the
-            //parameter function.                 
-          qp->Request(supplier, funresult);          
+            //parameter function.
+          qp->Request(supplier, funresult);
             //Ask the parameter function
-            //to be evaluated.     
+            //to be evaluated.
             costs=abs(((CcReal*)funresult.addr)->GetRealval());
-        }                
+        }
         if(characteristic==2||characteristic==3)
         {
-          Start=(Point*)(tup->GetAttribute(pointIndex1));        
-          p1.Set(Start->GetX(),Start->GetY());                         
+          Start=(Point*)(tup->GetAttribute(pointIndex1));
+          p1.Set(Start->GetX(),Start->GetY());
           Ziel=(Point*)(tup->GetAttribute(pointIndex2));
           p2.Set(Ziel->GetX(),Ziel->GetY());
-        }                                 
-        res->AddVertex(extIndex1,p1);        
+        }
+        res->AddVertex(extIndex1,p1);
         res->AddVertex(extIndex2,p2);
-        res->AddEdge(extIndex1,extIndex2,costs);               
+        res->AddEdge(extIndex1,extIndex2,costs);
     qp->Request(args[0].addr,t);
         tup->DeleteIfAllowed();
   }
@@ -1200,7 +1209,7 @@ int constGraphFun(Word* args, Word& result, int message,
 4.3.11 Value mapping function of operator ~placeNodes~
 
 */
-int graphplacenodes(Word* args, Word& result, int message, Word& local, 
+int graphplacenodes(Word* args, Word& result, int message, Word& local,
   Supplier s)
 {
   Graph const * pGraph = static_cast<Graph const *>(args[0].addr);
@@ -1209,7 +1218,7 @@ int graphplacenodes(Word* args, Word& result, int message, Word& local,
   pRet->CopyFrom(pGraph);
   PlaceNodesHelper helper;
   helper.PlaceNodes(pRet);
-  
+
   return 0;
 }
 
@@ -1286,7 +1295,7 @@ int graphmerge(Word* args, Word& result, int message, Word& local, Supplier s)
           ++it2;
         }
       }
-      
+
       //Add the rest
       while (it1 != itEnd1)
       {
@@ -1301,7 +1310,7 @@ int graphmerge(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     else if (pVertices1 != NULL)
     {
-      for (vector<Vertex>::const_iterator it = pVertices1->begin(), 
+      for (vector<Vertex>::const_iterator it = pVertices1->begin(),
         itEnd = pVertices1->end(); it != itEnd; ++it)
       {
         pRet->Add(*it);
@@ -1309,7 +1318,7 @@ int graphmerge(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     else if (pVertices2 != NULL)
     {
-      for (vector<Vertex>::const_iterator it = pVertices2->begin(), 
+      for (vector<Vertex>::const_iterator it = pVertices2->begin(),
         itEnd = pVertices2->end(); it != itEnd; ++it)
       {
         pRet->Add(*it);
@@ -1324,7 +1333,7 @@ int graphmerge(Word* args, Word& result, int message, Word& local, Supplier s)
     vector<Edge> * pEdges1 = pGraph1->GetEdges(false);
     vector<Edge> * pEdges2 = pGraph2->GetEdges(false);
     if (pEdges1 != NULL && pEdges2 != NULL)
-    {      
+    {
       vector<Edge>::const_iterator it1 = pEdges1->begin();
       vector<Edge>::const_iterator it2 = pEdges2->begin();
       vector<Edge>::const_iterator itEnd1 = pEdges1->end();
@@ -1351,7 +1360,7 @@ int graphmerge(Word* args, Word& result, int message, Word& local, Supplier s)
           ++it2;
         }
       }
-      
+
       //Add the rest
       while (it1 != itEnd1)
       {
@@ -1366,7 +1375,7 @@ int graphmerge(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     else if (pEdges1 != NULL)
     {
-      for (vector<Edge>::const_iterator it = pEdges1->begin(), 
+      for (vector<Edge>::const_iterator it = pEdges1->begin(),
         itEnd = pEdges1->end(); it != itEnd; ++it)
       {
         pRet->Add(*it);
@@ -1374,7 +1383,7 @@ int graphmerge(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     else if (pEdges2 != NULL)
     {
-      for (vector<Edge>::const_iterator it = pEdges2->begin(), 
+      for (vector<Edge>::const_iterator it = pEdges2->begin(),
         itEnd = pEdges2->end(); it != itEnd; ++it)
       {
         pRet->Add(*it);
@@ -1413,12 +1422,12 @@ int EqualFun(Word* args, Word& result, int message, Word& local, Supplier s)
      ((CcBool*)result.addr)->SetDefined(false);
   } else {
      bool res = arg1->Compare(arg2)==0;
-     ((CcBool*)result.addr)->Set(true,res);   
-  }       
+     ((CcBool*)result.addr)->Set(true,res);
+  }
   return 0;
 }
 
-int EqualGraphFun(Word* args, Word& result, 
+int EqualGraphFun(Word* args, Word& result,
                  int message, Word& local, Supplier s)
 {
   Graph* pGraph1 = (Graph*)(args[0].addr);
@@ -1436,7 +1445,7 @@ int EqualGraphFun(Word* args, Word& result,
 
 */
 
-int EqualWayFun(Word* args, Word& result, int message, 
+int EqualWayFun(Word* args, Word& result, int message,
                 Word& local, Supplier s)
 {
   Path* arg1 = (Path*)(args[0].addr);
@@ -1525,7 +1534,7 @@ const string SpecVertices  =
        "graph in ascending order.</text--->"
        "<text>query vertices(p1) consume</text--->"
        ") )";
-       
+
 const string SpecPartOf  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
      "( <text>graph x graph -> bool</text---> "
@@ -1535,7 +1544,7 @@ const string SpecPartOf  =
        "<text>query small partof big consume</text--->"
        ") )";
 
-const string constGraphSpec  = 
+const string constGraphSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
    "\"Example\" ) "
     "( <text>(stream(tuple(x)) x a1 x a2 x (fun)"
@@ -1549,8 +1558,8 @@ const string constGraphSpec  =
     " constgraph [poiShapeID_a"
     ",poiShapeID_b,1.0] (Works on the database OSNABRUECK)</text--->"
     ") )";
-    
-const string constGraphPointsSpec  = 
+
+const string constGraphPointsSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
    "\"Example\" ) "
     "( <text>(stream(tuple(x)) x a1 x a2 x(tuple -> real)x p1 x p2"
@@ -1569,7 +1578,7 @@ const string constGraphPointsSpec  =
     "(Works on the database OSNABRUECK)</text--->"
     ") )";
 
-const string EqualSpec  = 
+const string EqualSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
    "\"Example\" ) "
     "( <text> T x T  -> bool , T in {vertex, edge, path, graph}</text---> "
@@ -1578,7 +1587,7 @@ const string EqualSpec  =
     "<text> query g1 equal g1; results TRUE</text--->"
     ") )";
 
-const string EqualWaySpec  = 
+const string EqualWaySpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
    "\"Example\" ) "
     "( <text> path x path -> bool</text---> "
@@ -1588,7 +1597,7 @@ const string EqualWaySpec  =
     "<text> query p1 equalway p2</text--->"
     ") )";
 
-string const placenodesSpec = 
+string const placenodesSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>graph -> graph</text--->"
   "<text>placenodes ( _ )</text--->"
@@ -1596,7 +1605,7 @@ string const placenodesSpec =
   "<text>placenodes(g1)</text---> ) )";
 
 
-string const mergeSpec = 
+string const mergeSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>graph x graph -> graph</text--->"
   "<text>merge ( _, _ )</text--->"
@@ -1625,42 +1634,42 @@ ValueMapping EqualValueMap[] = {EqualGraphFun, EqualFun };
 4.5.2  Operator definitions
 
 */
-Operator theVertex ( 
-  "thevertex", 
-  SpecTheVertex, 
-  theVertexFun, 
+Operator theVertex (
+  "thevertex",
+  SpecTheVertex,
+  theVertexFun,
   Operator::SimpleSelect,
   theVertexMap
 );
 
-Operator maxDegree ( 
-  "maxdegree", 
-  SpecMaxDegree, 
-  maxDegreeFun, 
+Operator maxDegree (
+  "maxdegree",
+  SpecMaxDegree,
+  maxDegreeFun,
   Operator::SimpleSelect,
   minMaxDegreeMap
 );
 
-Operator minDegree ( 
-  "mindegree", 
-  SpecMinDegree, 
-  minDegreeFun, 
+Operator minDegree (
+  "mindegree",
+  SpecMinDegree,
+  minDegreeFun,
   Operator::SimpleSelect,
   minMaxDegreeMap
 );
 
-Operator connectedComp ( 
-  "connectedcomponents", 
-  SpecConnectedComp, 
-  connectedCompFun, 
+Operator connectedComp (
+  "connectedcomponents",
+  SpecConnectedComp,
+  connectedCompFun,
   Operator::SimpleSelect,
   connectedCompMap
 );
 
-Operator circle ( 
-  "circle", 
-  SpecCircle, 
-  circleFun, 
+Operator circle (
+  "circle",
+  SpecCircle,
+  circleFun,
   Operator::SimpleSelect,
   circleMap
 );
@@ -1669,7 +1678,7 @@ Operator shortestPath (
   "shortestpath",
   SpecShortestPath,
   4,
-  shortestPathValueMap, 
+  shortestPathValueMap,
   shortestPathSelect,
   shortestPathMap
 );
@@ -1688,7 +1697,7 @@ Operator vertices (
   SpecVertices,
   2,
   verticesValueMap,
-  edgesVerticesSelect, 
+  edgesVerticesSelect,
   verticesMap
 );
 
@@ -1696,51 +1705,51 @@ Operator vertices (
 Operator partOf (
   "partof",
   SpecPartOf,
-  partOfFun, 
+  partOfFun,
   Operator::SimpleSelect,
   GraphGraphBoolTypeMap
 );
 
 
 Operator constGraph (
-         "constgraph",             
-         constGraphSpec,          
-         constGraphFun<1>,         
-         Operator::SimpleSelect,   
-         constGraphTypeMap<1>      
+         "constgraph",
+         constGraphSpec,
+         constGraphFun<1>,
+         Operator::SimpleSelect,
+         constGraphTypeMap<1>
 );
 
 Operator constGraphPoints (
-         "constgraphpoints",             
-         constGraphPointsSpec,          
-         constGraphFun<3>,         
-         Operator::SimpleSelect,   
-         constGraphTypeMap<3>      
+         "constgraphpoints",
+         constGraphPointsSpec,
+         constGraphFun<3>,
+         Operator::SimpleSelect,
+         constGraphTypeMap<3>
 );
 
 
 Operator graph_placenodes(
-  "placenodes", 
-  placenodesSpec, 
-  graphplacenodes, 
-  Operator::SimpleSelect, 
+  "placenodes",
+  placenodesSpec,
+  graphplacenodes,
+  Operator::SimpleSelect,
   GraphGraphTypeMap
 );
 
 
 Operator graph_merge(
-  "merge", 
-  mergeSpec, 
-  graphmerge, 
-  Operator::SimpleSelect, 
+  "merge",
+  mergeSpec,
+  graphmerge,
+  Operator::SimpleSelect,
   GraphGraphGraphTypeMap
 );
 
 Operator equalway(
-  "equalway", 
-  EqualWaySpec, 
-  EqualWayFun, 
-  Operator::SimpleSelect, 
+  "equalway",
+  EqualWaySpec,
+  EqualWayFun,
+  Operator::SimpleSelect,
   EqualWayTypeMap
 );
 
@@ -1749,7 +1758,7 @@ Operator equalop (
   "=",
   EqualSpec,
   2,
-  EqualValueMap, 
+  EqualValueMap,
   EqualSelect,
   EqualTypeMap
 );
@@ -1768,11 +1777,11 @@ class GraphAlgebra : public Algebra
     AddTypeConstructor( &edgeCon );
     AddTypeConstructor( &graphCon );
     AddTypeConstructor( &pathCon );
-    vertexCon.AssociateKind("DATA");  
-    edgeCon.AssociateKind("DATA"); 
-    graphCon.AssociateKind("DATA");   
+    vertexCon.AssociateKind("DATA");
+    edgeCon.AssociateKind("DATA");
+    graphCon.AssociateKind("DATA");
     pathCon.AssociateKind("DATA");
-    
+
     AddOperator(&theVertex);
     AddOperator(&maxDegree);
     AddOperator(&minDegree);

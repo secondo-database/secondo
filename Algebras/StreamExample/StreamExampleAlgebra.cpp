@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -78,7 +78,7 @@ stream will be empty.
 #include "Symbols.h"
 
 #include <string>
-#include <iostream>    // 
+#include <iostream>    //
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -90,7 +90,7 @@ namespace ste {
 
 /*
 
-2 Algebra Implementation 
+2 Algebra Implementation
 
 2.2 Type Mapping Functions
 
@@ -107,11 +107,11 @@ Type mapping for ~intstream~ is
 */
 ListExpr
 intstreamType( ListExpr args )
-{  
+{
   NList type(args);
   if ( type != NList(INT, INT) ) {
     return NList::typeError("Expecting a list of two integers.");
-  }  
+  }
   return NList(STREAM, INT).listExpr();
 }
 
@@ -128,7 +128,7 @@ countType( ListExpr args )
   NList type(args);
   if ( type.first() != NList(STREAM, INT) ) {
     return NList::typeError("Expecting a stream of integers.");
-  }  
+  }
   return NList(INT).listExpr();
 }
 
@@ -145,7 +145,7 @@ printintstreamType( ListExpr args )
   NList type(args);
   if ( type.first() != NList(STREAM, INT) ) {
     return NList::typeError("Expecting a stream of integers.");
-  }  
+  }
   return NList(STREAM, INT).listExpr();
 }
 
@@ -177,9 +177,9 @@ filterType( ListExpr args )
 		              "as it second argument.");
     }
     // return the type of the first argument
-    return type.first().listExpr(); 
+    return type.first().listExpr();
   }
-  else 
+  else
   { // wrong number of arguments
     return NList::typeError("Expecting two arguments.");
   }
@@ -198,29 +198,29 @@ int
 intstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   // An auxiliary type which keeps the state of this
-  // operation during two requests	
-  struct Range {  
+  // operation during two requests
+  struct Range {
     int current;
     int last;
 
     Range(CcInt* i1, CcInt* i2) {
 
       // Do a proper initialization even if one of the
-      // arguments has an undefined value	    
-      if (i1->IsDefined() && i2->IsDefined()) 
-      {	    
-        current = i1->GetIntval();	    
-        last = i2->GetIntval();	
+      // arguments has an undefined value
+      if (i1->IsDefined() && i2->IsDefined())
+      {
+        current = i1->GetIntval();
+        last = i2->GetIntval();
       }
       else
       {
-	// this initialization will create an empty stream      
+	// this initialization will create an empty stream
         current = 1;
         last = 0;
-      }	
-    }	    
+      }
+    }
   };
-  
+
   Range* range = static_cast<Range*>(local.addr);
 
   switch( message )
@@ -242,27 +242,27 @@ intstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
         result.addr = elem;
         return YIELD;
       }
-      else 
+      else
       {
-	// you should always set the result to null 
-	// before you return a CANCEL      
-        result.addr = 0;       
+	// you should always set the result to null
+	// before you return a CANCEL
+        result.addr = 0;
         return CANCEL;
-      }	
+      }
     }
     case CLOSE: { // free the local storage
 
-      if (range != 0) {			
+      if (range != 0) {
         delete range;
-	local.addr = 0;
-      }	
+        local.addr = 0;
+      }
 
       return 0;
-    }  
+    }
     default: {
       /* should never happen */
       return -1;
-    }		     
+    }
   }
 }
 
@@ -303,13 +303,13 @@ countFun (Word* args, Word& result, int message, Word& local, Supplier s)
 /*
 2.3.3 Value mapping ~printintstream~
 
-The next function prints the elements of a "stream(int)". 
+The next function prints the elements of a "stream(int)".
 An example for a pure stream operator (input and output are streams).
 
 */
 
 int
-printintstreamFun (Word* args, Word& result, 
+printintstreamFun (Word* args, Word& result,
                    int message, Word& local, Supplier s)
 {
   switch( message )
@@ -329,11 +329,11 @@ printintstreamFun (Word* args, Word& result,
         result = elem;
         return YIELD;
       }
-      else 
+      else
       {
-	result.addr = 0;      
-	return CANCEL;
-      }	      
+        result.addr = 0;
+        return CANCEL;
+      }
     }
     case CLOSE: {
 
@@ -343,7 +343,7 @@ printintstreamFun (Word* args, Word& result,
     default: {
       /* should not happen */
       return -1;
-    } 		     
+    }
   }
 }
 
@@ -368,7 +368,7 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST: {
 
       // Get the argument vector for the parameter function.
-      ArgVectorPointer funargs = qp->Argument(args[1].addr);  
+      ArgVectorPointer funargs = qp->Argument(args[1].addr);
 
       // Loop over stream elements until the function yields true.
       Word elem = SetWord(Address(0));
@@ -376,31 +376,31 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
       while ( qp->Received(args[0].addr) )
       {
         // Supply the argument for the parameter function.
-        (*funargs)[0] = elem;     
+        (*funargs)[0] = elem;
 
         // Instruct the parameter function to be evaluated.
         Word funresult = SetWord(Address(0));
         qp->Request(args[1].addr, funresult);
-	CcBool* b = static_cast<CcBool*>( funresult.addr );
+        CcBool* b = static_cast<CcBool*>( funresult.addr );
 
         bool funRes = b->IsDefined() && b->GetBoolval();
 
         if ( funRes )
         {
-	  // TRUE: Element passes the filter condition	
+    // TRUE: Element passes the filter condition
           result = elem;
           return YIELD;
         }
-	else
+        else
         {
            // FALSE: Element is rejected by the filter condition
-	   
-          // consume the stream object (allow deletion)
-          static_cast<CcInt*>( elem.addr )->DeleteIfAllowed(); 
 
-	  // Get next stream element
+          // consume the stream object (allow deletion)
+          static_cast<CcInt*>( elem.addr )->DeleteIfAllowed();
+
+    // Get next stream element
           qp->Request(args[0].addr, elem);
-	}  
+        }
       }
 
       // End of Stream reached
@@ -415,7 +415,7 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
     default: {
       /* should never happen */
       return -1;
-    } 		     
+    }
   }
 }
 
@@ -424,11 +424,11 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 
-struct intstreamInfo : OperatorInfo 
+struct intstreamInfo : OperatorInfo
 {
   intstreamInfo() : OperatorInfo()
   {
-    name      = INTSTREAM; 
+    name      = INTSTREAM;
     signature = INT + " x " + INT + " -> stream(int)";
     syntax    = INTSTREAM + "(_ , _)";
     meaning   = "Creates a stream of integers containing the numbers "
@@ -437,33 +437,33 @@ struct intstreamInfo : OperatorInfo
 };
 
 
-struct countInfo :  OperatorInfo 
+struct countInfo :  OperatorInfo
 {
   countInfo() : OperatorInfo()
   {
-    name      = COUNT; 
+    name      = COUNT;
     signature = "stream(int)  -> " + INT;
     syntax    = "_" + COUNT;
     meaning   = "Counts the number of elements of an int stream.";
   }
 };
 
-struct printintSInfo :  OperatorInfo 
+struct printintSInfo :  OperatorInfo
 {
   printintSInfo() : OperatorInfo()
   {
-    name      = PRINT_INTSTREAM; 
+    name      = PRINT_INTSTREAM;
     signature = "stream(int)  -> stream(int)";
     syntax    = "_" + PRINT_INTSTREAM;
     meaning   = "Prints the elements int stream.";
   }
 };
 
-struct filterInfo :  OperatorInfo 
+struct filterInfo :  OperatorInfo
 {
   filterInfo() : OperatorInfo()
   {
-    name      = FILTER; 
+    name      = FILTER;
     signature = "stream(int) x (int -> bool) -> stream(int)";
     syntax    = "_" + FILTER + "[ function ]";
     meaning   = "Filters the elements of an int stream by a predicate.";
@@ -472,7 +472,7 @@ struct filterInfo :  OperatorInfo
 
 
 /*
-2.4 The algebra class 
+2.4 The algebra class
 
 */
 

@@ -1423,6 +1423,8 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         ili->completeCalls++;
         ili->completeReturned += ili->returned;
         ili->returned = 0;
+        delete ili;
+        local = SetWord(0);
       }
       return 0;
 

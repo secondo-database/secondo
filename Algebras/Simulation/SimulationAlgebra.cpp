@@ -114,7 +114,7 @@ double sim_vmax_freeway    = 70.0;
 double sim_event_param_subsegmentlength = 5.0; // maximum length of subsections
                                                //   in [m]
 double sim_event_param_propconst        = 1.0; // constant c of proportionality
-                                               //   p(event) = c/v_max 
+                                               //   p(event) = c/v_max
 double sim_event_param_probstop         = 0.1; // prob.(event == forced stop)
                                                //   balanced by deceleration
 double sim_event_param_acceleration     =12.0; // acceleration constant:
@@ -147,8 +147,8 @@ template<int N>
       cout << "\targs[" << i << "] " << endl;
       arg1 = nl->First( args2 );
       args2 = nl->Rest( args );
-      if ( !(nl->AtomType( arg1 ) == SymbolType) || 
-             !(nl->SymbolValue( arg1 ) == "real") 
+      if ( !(nl->AtomType( arg1 ) == SymbolType) ||
+             !(nl->SymbolValue( arg1 ) == "real")
          )
       {
         ErrorReporter::ReportError("SimulationAlgebra::sim_realN2bool_TM "
@@ -198,11 +198,11 @@ ListExpr sim_set_rng_TM ( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if ( nl->AtomType( arg1 ) == SymbolType && 
-         nl->SymbolValue( arg1 ) == "int"  && 
-         nl->AtomType( arg2 ) == SymbolType && 
+    if ( nl->AtomType( arg1 ) == SymbolType &&
+         nl->SymbolValue( arg1 ) == "int"  &&
+         nl->AtomType( arg2 ) == SymbolType &&
          nl->SymbolValue( arg2 ) == "int" )
-          
+
     {
       return (nl->SymbolAtom( "bool" ));
     }
@@ -212,7 +212,7 @@ ListExpr sim_set_rng_TM ( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
-int sim_set_rng_VM ( Word* args, Word& result, 
+int sim_set_rng_VM ( Word* args, Word& result,
                         int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -246,7 +246,7 @@ const string sim_set_rng_Spec  =
     "<text>query sim_set_rng( 14, 0 )</text--->"
     ") )";
 
-Operator sim_set_rng( 
+Operator sim_set_rng(
     "sim_set_rng",
     sim_set_rng_Spec,
     sim_set_rng_VM,
@@ -260,7 +260,7 @@ Set parameters for stops at the destination node
 
 */
 
-int sim_set_dest_params_VM ( Word* args, Word& result, 
+int sim_set_dest_params_VM ( Word* args, Word& result,
                      int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -287,7 +287,7 @@ int sim_set_dest_params_VM ( Word* args, Word& result,
     }
   }
   sim_dest_param_mu = dArgs[0]/86400000.0;
-  sim_dest_param_ss = dArgs[1]; 
+  sim_dest_param_ss = dArgs[1];
   sim_dest_param_sm = dArgs[2];
   sim_dest_param_sf = dArgs[3];
   sim_dest_param_ms = dArgs[4];
@@ -325,7 +325,7 @@ const string sim_set_dest_params_Spec  =
     "0.66, 0.05, 0.33, 0.10, 30.0, 50.0, 70.0, 0.5 )</text--->"
     ") )";
 
-Operator sim_set_dest_params( 
+Operator sim_set_dest_params(
     "sim_set_dest_params",
     sim_set_dest_params_Spec,
     sim_set_dest_params_VM,
@@ -339,7 +339,7 @@ Set parameters for enroute-event generation.
 
 */
 
-int sim_set_event_params_VM ( Word* args, Word& result, 
+int sim_set_event_params_VM ( Word* args, Word& result,
                              int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -402,7 +402,7 @@ const string sim_set_event_params_Spec  =
     "<text>sim_set_event_params( 5.0, 1.0, 0.1, 12.0 )</text--->"
     ") )";
 
-Operator sim_set_event_params( 
+Operator sim_set_event_params(
     "sim_set_event_params",
     sim_set_event_params_Spec,
     sim_set_event_params_VM,
@@ -454,7 +454,7 @@ ListExpr sim_create_trip_TM ( ListExpr args )
     return nl->SymbolAtom("typeerror");
   }
 
-  if((nl->ListLength(stype)!=2) || 
+  if((nl->ListLength(stype)!=2) ||
       (!nl->IsEqual(nl->First(stype),"stream" )))
   {
     ErrorReporter::ReportError("stream(tuple(...))"
@@ -464,7 +464,7 @@ ListExpr sim_create_trip_TM ( ListExpr args )
 
   ListExpr ttype = nl->Second(stype);
 
-  if((nl->ListLength(ttype)!=2) || 
+  if((nl->ListLength(ttype)!=2) ||
       (!nl->IsEqual(nl->First(ttype),"tuple" )))
   {
     ErrorReporter::ReportError("stream(tuple(...))"
@@ -525,8 +525,8 @@ ListExpr sim_create_trip_TM ( ListExpr args )
       if(a2type=="real")
       {
         restype = "mpoint";
-      } 
-      else 
+      }
+      else
       {
         ErrorReporter::
             ReportError("seocond attr (maximimum velocity) has to be of"
@@ -535,7 +535,7 @@ ListExpr sim_create_trip_TM ( ListExpr args )
       }
       a2index = pos;
     }
-    pos++; 
+    pos++;
     attributes = nl->Rest(attributes);
   }
 
@@ -562,7 +562,7 @@ ListExpr sim_create_trip_TM ( ListExpr args )
     return (nl->SymbolAtom( "typeerror" ));
   }
 
-  
+
   ListExpr ind;
 
   if (len == 6 )
@@ -600,7 +600,7 @@ struct Subsegment
 
 
 
-int sim_create_trip_VM ( Word* args, Word& result, 
+int sim_create_trip_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
 //   cout << "sim_create_trip_VM received message: ";
@@ -947,7 +947,7 @@ const string sim_create_trip_Spec  =
     "<text>query _ sim_create_trip[ _ ]</text--->"
     ") )";
 
-Operator sim_create_trip( 
+Operator sim_create_trip(
     "sim_create_trip",
     sim_create_trip_Spec,
     sim_create_trip_VM,
@@ -979,7 +979,7 @@ int sim_print_params_VM ( Word* args, Word& result,
 {
   result = qp->ResultStorage( s );
   CcBool *res = ((CcBool*)result.addr);
-  
+
   cout << endl;
   cout << "***********************************************************" <<endl;
   cout << "* SimulationAlgera   Parameter Settings *" << endl;
@@ -1026,7 +1026,7 @@ const string sim_print_params_Spec  =
     "<text>sim_print_params()</text--->"
     ") )";
 
-Operator sim_print_params( 
+Operator sim_print_params(
     "sim_print_params",
     sim_print_params_Spec,
     sim_print_params_VM,
@@ -1042,7 +1042,7 @@ immedeately before/after the ``dark periods''.
 
 ----
     sim_fillup_mpoint: (mpoint x instant x instant x bool x bool x bool) --> mpoint
-    
+
 ----
 
 */
@@ -1058,7 +1058,7 @@ ListExpr sim_fillup_mpoint_TM ( ListExpr args )
     arg4 = nl->Fourth( args );
     arg5 = nl->Fifth( args );
     arg6 = nl->Sixth( args );
-    
+
     if ( nl->AtomType( arg1 ) == SymbolType &&
          nl->SymbolValue( arg1 ) == "mpoint"  &&
          nl->AtomType( arg2 ) == SymbolType &&
@@ -1221,7 +1221,7 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
   }
   else if ( u2.timeInterval.end == *End &&
             !u2.timeInterval.rc &&
-            RC->GetBoolval() 
+            RC->GetBoolval()
           )
   { // extend the last unit by right-closing the timeInterval
     resunit = UPoint( Interval<DateTime>( u2.timeInterval.start,
@@ -1261,7 +1261,7 @@ const string sim_fillup_mpoint_Spec  =
     "</text--->"
     ") )";
 
-Operator sim_fillup_mpoint( 
+Operator sim_fillup_mpoint(
     "sim_fillup_mpoint",
     sim_fillup_mpoint_Spec,
     sim_fillup_mpoint_VM,
@@ -1492,7 +1492,7 @@ int sim_trips_VM ( Word* args, Word& result,
           // This means we just started to process mpoint
           // Do nothing, but move u2 to u1 for next iteration
           sli->u1 = u2;
-        } 
+        }
         else // ELSE: Inside a running trip
         if( sli->u1.timeInterval.end < u2.timeInterval.start ||
             ( (sli->u1.timeInterval.end == u2.timeInterval.start) &&
@@ -1663,6 +1663,7 @@ int sim_trips_VM ( Word* args, Word& result,
         sli = (SplitMpointLocalInfo*) local.addr;
         delete sli;
         sli = 0;
+        local = SetWord(0);
       }
       return 0;
 

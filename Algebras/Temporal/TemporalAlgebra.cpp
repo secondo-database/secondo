@@ -151,14 +151,14 @@ void UReal::TemporalFunction( const Instant& t,
       double res = a * pow( t2, 2 ) +
         b * t2 +
         c;
-      
+
       if( r ){
         if(res>=0.0){
            res = sqrt( res );
         } else {
            if(AlmostEqual(res,0.0)){ // correction of rounding errors
               res = 0.0;
-           } else { 
+           } else {
              assert(false);
            }
         }
@@ -253,13 +253,13 @@ void UReal::TranslateParab(const double& t)
        if( AlmostEqual(c,0.0) )
        {
           c = 0;
-       } else 
+       } else
        {
          bool valid= false;
          assert(valid);
        }
     }
-    c = sqrt(c); 
+    c = sqrt(c);
   }
 }
 
@@ -1116,11 +1116,11 @@ int UReal::Abs(vector<UReal>& result) const
   } // else: r == false
 
   UReal newunit(true);
-  Interval<Instant> 
+  Interval<Instant>
       iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
       ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
   const Interval<Instant> *actIntv;
-  Instant 
+  Instant
       start(instanttype),
       end(instanttype),
       testInst(instanttype);
@@ -1181,9 +1181,9 @@ int UReal::Abs(vector<UReal>& result) const
       ivnew = Interval<Instant>(end, timeInterval.end, lc, timeInterval.rc);
       resPeriods.push_back(ivnew);
     }
-    else if( (end == timeInterval.end) && 
-             !rc && 
-             timeInterval.rc && 
+    else if( (end == timeInterval.end) &&
+             !rc &&
+             timeInterval.rc &&
              (resPeriods.size()>0)
            )
     { // close last interval
@@ -1195,7 +1195,7 @@ int UReal::Abs(vector<UReal>& result) const
   for(i=0; i< (int) resPeriods.size();i++)
   { // for each interval test, whether one has to invert it
     AtInterval(resPeriods[i], newunit);
-    testInst = resPeriods[i].start 
+    testInst = resPeriods[i].start
         + ((resPeriods[i].end - resPeriods[i].start) / 2);
     TemporalFunction(testInst, fccr1, false);
     cmpres = fccr1.Compare( &fccr2 );
@@ -1235,7 +1235,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
     UReal ur1(true);
     UReal ur2(true);
     UReal diff(true);
-    Interval<Instant> 
+    Interval<Instant>
         iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
 
     timeInterval.Intersection(other.timeInterval, iv);
@@ -1836,7 +1836,7 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
       return;
 }
 
-void UPoint::Translate(const double xdiff, const double ydiff, 
+void UPoint::Translate(const double xdiff, const double ydiff,
                        const DateTime& timediff){
 
    p0.Set(p0.GetX()+xdiff,p0.GetY()+ydiff);
@@ -2658,7 +2658,7 @@ bool MPoint::Present( const Periods& t ) const
   assert( IsOrdered() );
   assert( t.IsDefined() );
   assert( t.IsOrdered() );
-  
+
   if(bbox.IsDefined())
   { // do MBR-check
     double MeMin = bbox.MinD(2);
@@ -3239,14 +3239,14 @@ void MPoint::TranslateAppend(MPoint& mp, const DateTime& dur){
        return;
    }
    if(!IsDefined()){
-      return; 
+      return;
    }
    if(GetNoComponents()==0){
        this->CopyFrom(&mp);
        return;
    }
 
-   int newSize = GetNoComponents()+mp.GetNoComponents(); 
+   int newSize = GetNoComponents()+mp.GetNoComponents();
    Resize(newSize);
    const UPoint* lastUnit;
 
@@ -3255,7 +3255,7 @@ void MPoint::TranslateAppend(MPoint& mp, const DateTime& dur){
    const UPoint* firstUnit;
    mp.Get(0,firstUnit);
 
-   // add a staying unit 
+   // add a staying unit
    if(!dur.IsZero() && !dur.LessThanZero()){
      Get(GetNoComponents()-1,lastUnit);
      Interval<Instant> interval = lastUnit->timeInterval;
@@ -3315,14 +3315,14 @@ void MPoint::Reverse(MPoint& result){
 
     for(int i=size-1; i>=0; i--){
        Get(i,unit);
-       Instant newEnd = (end - unit->timeInterval.start) + start;     
-       Instant newStart = (end - unit->timeInterval.end) + start; 
+       Instant newEnd = (end - unit->timeInterval.start) + start;
+       Instant newStart = (end - unit->timeInterval.end) + start;
       Interval<Instant> interval(newStart,newEnd,
-                                  unit->timeInterval.rc,  
+                                  unit->timeInterval.rc,
                                   unit->timeInterval.lc);
        UPoint newUnit(interval,unit->p1,unit->p0);
 
-       result.Add(newUnit); 
+       result.Add(newUnit);
     }
     result.EndBulkLoad(false);
 }
@@ -3373,7 +3373,7 @@ void MPoint::Sample(const DateTime& duration,
                     const bool KeepEndPoint, /*=false*/
                     const bool exactPath /*=false*/    ) const{
 
- 
+
   result.Clear();
   // special case: undefined parameter
   if(!IsDefined() || !duration.IsDefined()){
@@ -3385,8 +3385,8 @@ void MPoint::Sample(const DateTime& duration,
   // special case: empty mpoint
   if(size==0){  // empty
      return;
-  }  
-   
+  }
+
   bool isFirst = true;
   int currentUnit = 0;
   Instant currentTime;
@@ -3410,10 +3410,10 @@ void MPoint::Sample(const DateTime& duration,
      Interval<Instant> interval(unit->timeInterval);
      lastTime = currentTime;
      currentTime += duration; // the next sampling instant
-     
+
      // search the unit having endtime for currentTime
-     while(interval.end < currentTime && 
-           currentUnit < size && 
+     while(interval.end < currentTime &&
+           currentUnit < size &&
            (!cut || !exactPath)){
         currentUnit++;
         if(currentUnit<size){
@@ -3454,7 +3454,7 @@ void MPoint::Sample(const DateTime& duration,
             lastPoint = point;
         }
      }
-     
+
   }
 
   if(KeepEndPoint || exactPath){
@@ -3542,7 +3542,7 @@ bool MPoint::Append(const MPoint& p, const bool autoresize /*=true*/){
     const UPoint* u2;
     this->Get(size1-1,u1);
     p.Get(0,u2);
-    if((u1->timeInterval.end > u2->timeInterval.start) || 
+    if((u1->timeInterval.end > u2->timeInterval.start) ||
        ( (u1->timeInterval.end == u2->timeInterval.start) &&
          (u1->timeInterval.rc  && u2->timeInterval.lc))){
       this->Clear();
@@ -3568,7 +3568,7 @@ bool MPoint::Append(const MPoint& p, const bool autoresize /*=true*/){
   return true;
 }
 
-void MPoint::Disturb(MPoint& result, 
+void MPoint::Disturb(MPoint& result,
                      const double maxDerivation,
                      double maxDerivationPerStep){
 
@@ -3581,32 +3581,32 @@ void MPoint::Disturb(MPoint& result,
    int size = GetNoComponents();
    if(size>0){
       result.Resize(size);
-   } 
+   }
    if(maxDerivationPerStep>maxDerivation){
        maxDerivationPerStep=maxDerivation;
    }
    if(maxDerivationPerStep<=0){
       result.CopyFrom(this);
       return;
-   } 
+   }
 
-    double errx = 2*maxDerivation * (double)rand()/(double)RAND_MAX  - 
-                  maxDerivation;  
-    double erry = 2*maxDerivation * (double)rand()/(double)RAND_MAX  - 
-                  maxDerivation;  
+    double errx = 2*maxDerivation * (double)rand()/(double)RAND_MAX  -
+                  maxDerivation;
+    double erry = 2*maxDerivation * (double)rand()/(double)RAND_MAX  -
+                  maxDerivation;
 
-   
-   
-   const UPoint* unit1; 
+
+
+   const UPoint* unit1;
    Point lastPoint;
    for(int i=0;i<size;i++){
       Get(i,unit1);
       Point p0(true,unit1->p0.GetX()+errx,unit1->p0.GetY()+erry);
 
-      double dx = 2*maxDerivationPerStep * (double)rand()/(double)RAND_MAX  - 
-                  maxDerivationPerStep;  
-      double dy = 2*maxDerivationPerStep * (double)rand()/(double)RAND_MAX  - 
-                  maxDerivationPerStep;  
+      double dx = 2*maxDerivationPerStep * (double)rand()/(double)RAND_MAX  -
+                  maxDerivationPerStep;
+      double dy = 2*maxDerivationPerStep * (double)rand()/(double)RAND_MAX  -
+                  maxDerivationPerStep;
 
       errx += dx;
       erry += dy;
@@ -3624,7 +3624,7 @@ void MPoint::Disturb(MPoint& result,
       }
 
       Point p1(true,unit1->p1.GetX()+errx,unit1->p1.GetY()+erry);
-      UPoint unit(unit1->timeInterval, p0,p1);  
+      UPoint unit(unit1->timeInterval, p0,p1);
       result.MergeAdd(unit);
    }
 }
@@ -5841,7 +5841,7 @@ ListExpr TypeMapApproximate(ListExpr args){
      return nl->SymbolAtom("typeerror");
   }
 
-  if((nl->ListLength(stype)!=2) || 
+  if((nl->ListLength(stype)!=2) ||
      (!nl->IsEqual(nl->First(stype),"stream" ))){
      ErrorReporter::ReportError("stream(tuple(...))"
                                 " expected as the first argument");
@@ -5850,7 +5850,7 @@ ListExpr TypeMapApproximate(ListExpr args){
 
   ListExpr ttype = nl->Second(stype);
 
-  if((nl->ListLength(ttype)!=2) || 
+  if((nl->ListLength(ttype)!=2) ||
      (!nl->IsEqual(nl->First(ttype),"tuple" ))){
      ErrorReporter::ReportError("stream(tuple(...))"
                                 " expected as the first argument");
@@ -5887,7 +5887,7 @@ ListExpr TypeMapApproximate(ListExpr args){
         if(!nl->IsEqual(atl,"instant")){
             ErrorReporter::ReportError("first attr has to be of type instant");
             return nl->SymbolAtom("typeerror");
-        }      
+        }
         a1index = pos;
      }
 
@@ -5908,7 +5908,7 @@ ListExpr TypeMapApproximate(ListExpr args){
         }
         a2index = pos;
      }
-     pos++; 
+     pos++;
      attributes = nl->Rest(attributes);
   }
 
@@ -6182,7 +6182,7 @@ ListExpr TemporalTheRangeTM( ListExpr args )
     if( !nl->IsEqual( arg3, "bool") || !nl->IsEqual( arg4, "bool") )
     {
       ErrorReporter::ReportError("Operator theRange: Third and fourth "
-          "arguments must have type 'bool', but argument list is '" 
+          "arguments must have type 'bool', but argument list is '"
           + argstr + "'.");
       return nl->SymbolAtom( "typeerror" );
     }
@@ -6232,7 +6232,7 @@ ListExpr ReverseTM(ListExpr args){
       return nl->SymbolAtom( "typeerror" );
    }
    if(nl->IsEqual(nl->First(args),"mpoint")){
-      return nl->SymbolAtom("mpoint"); 
+      return nl->SymbolAtom("mpoint");
    }
    ErrorReporter::ReportError("mpoint expected");
    return nl->SymbolAtom( "typeerror" );
@@ -6243,7 +6243,7 @@ ListExpr ReverseTM(ListExpr args){
 
 This operator consumes a stream of tuples having an attribute
 x of type mpoint. The attribute name must be given in the second
-argument. As third argument, a duration is given which determines 
+argument. As third argument, a duration is given which determines
 a break between the two movements.
 
 */
@@ -6260,7 +6260,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
   if(!nl->IsEqual(nl->Third(args),"duration")){
     ErrorReporter::ReportError("the third argument has to be a duration");
     return nl->SymbolAtom("typeerror");
-  } 
+  }
 
   // extract the attribute name
   ListExpr attrlist = nl->Second(args);
@@ -6281,7 +6281,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
      return nl->SymbolAtom("typeerror");
   }
 
-  if((nl->ListLength(stype)!=2) || 
+  if((nl->ListLength(stype)!=2) ||
      (!nl->IsEqual(nl->First(stype),"stream" ))){
      ErrorReporter::ReportError("stream(tuple(...))"
                                 " expected as the first argument");
@@ -6290,7 +6290,7 @@ ListExpr TranslateAppendSTM(ListExpr args){
 
   ListExpr ttype = nl->Second(stype);
 
-  if((nl->ListLength(ttype)!=2) || 
+  if((nl->ListLength(ttype)!=2) ||
      (!nl->IsEqual(nl->First(ttype),"tuple" ))){
      ErrorReporter::ReportError("stream(tuple(...))"
                                 " expected as the first argument");
@@ -6327,10 +6327,10 @@ ListExpr TranslateAppendSTM(ListExpr args){
             ErrorReporter::ReportError("the attribute"
                                        " has to be of type mpoint");
             return nl->SymbolAtom("typeerror");
-        }      
+        }
         a1index = pos;
      }
-     pos++; 
+     pos++;
      attributes = nl->Rest(attributes);
   }
 
@@ -6409,11 +6409,11 @@ ListExpr GPSTypeMap(ListExpr args){
      ErrorReporter::ReportError(" mpoint x duration expected");
      return nl->TypeError();
   }
-  
+
   return nl->TwoElemList(
              nl->SymbolAtom("stream"),
              nl->TwoElemList(
-                 nl->SymbolAtom("tuple"), 
+                 nl->SymbolAtom("tuple"),
                  nl->TwoElemList(
                      nl->TwoElemList(
                          nl->SymbolAtom("Time"),
@@ -7115,7 +7115,7 @@ int IntimeIsEmpty( Word* args, Word& result, int message, Word&
 /*
 16.3.2 Value mapping for operator ~IntimeComparePredicates~
 
-template parameter ~OPType~ gives the character of the operator: 
+template parameter ~OPType~ gives the character of the operator:
 
 ----
 
@@ -7677,17 +7677,18 @@ int Linearize2_ureal(Word* args, Word& result,
           localinfo->finished = true;
           return CANCEL;
         }
-        result = SetWord( 
+        result = SetWord(
             localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
         localinfo->NoOfResultsDelivered++;
         return YIELD;
 
       case CLOSE:
 
-        if(local.addr != 0)
+        if(local.addr)
         {
           localinfo = (Linearize2_ureal_LocalInfo*) local.addr;
           delete localinfo;
+          local = SetWord(0);
         }
         return 0;
     } // end switch
@@ -7695,7 +7696,7 @@ int Linearize2_ureal(Word* args, Word& result,
     return -1; // should not happen
 }
 
-/* 
+/*
 16.2.28 Value Mapping Functions for Approximate
 
 */
@@ -7721,17 +7722,17 @@ int ApproximateMReal(Word* args, Word& result,
    bool first = true;
    while (qp->Received(args[0].addr)) {
      Tuple* tuple = (Tuple*)actual.addr;
-     currentValue =  *((CcReal*)(tuple->GetAttribute(index2))); 
+     currentValue =  *((CcReal*)(tuple->GetAttribute(index2)));
      currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
      if(currentInstant.IsDefined()){ // ignore undefined instants
        if(currentValue.IsDefined()){
          if(!first){
             // check order of instants - ignore wrong ordered elements
             if(currentInstant>lastInstant){
-               Interval<Instant> interval(lastInstant, currentInstant, 
+               Interval<Instant> interval(lastInstant, currentInstant,
                                           true ,false);
                UReal unit(interval,lastValue.GetRealval(),
-                                   currentValue.GetRealval()); 
+                                   currentValue.GetRealval());
                res->MergeAdd(unit);
             }
          } else {
@@ -7772,7 +7773,7 @@ int ApproximateMPoint(Word* args, Word& result,
    bool first = true;
    while (qp->Received(args[0].addr)) {
      Tuple* tuple = (Tuple*)actual.addr;
-     currentValue =  *((Point*)(tuple->GetAttribute(index2))); 
+     currentValue =  *((Point*)(tuple->GetAttribute(index2)));
      currentInstant = *((Instant*)(tuple->GetAttribute(index1)));
      if(currentInstant.IsDefined()){ // ignore undefined instants
        if(currentValue.IsDefined()){
@@ -7781,7 +7782,7 @@ int ApproximateMPoint(Word* args, Word& result,
             if(currentInstant>lastInstant){
                Interval<Instant> interval(lastInstant, currentInstant,
                                            true ,false);
-               UPoint unit(interval,lastValue,currentValue); 
+               UPoint unit(interval,lastValue,currentValue);
                res->MergeAdd(unit);
             }
          } else {
@@ -8075,9 +8076,9 @@ MPointTranslate( Word* args, Word& result, int message, Word&
   qp->Request( son, t );
   DY = (CcReal *)t.addr;
 
-  if( DX->IsDefined() && 
-      DY->IsDefined() && 
-      dd->IsDefined() && 
+  if( DX->IsDefined() &&
+      DY->IsDefined() &&
+      dd->IsDefined() &&
       mp->IsDefined()    )
   {
     dx = DX->GetRealval();
@@ -8436,7 +8437,7 @@ int Box3d_periods( Word* args, Word& result, int message, Word&
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Periods*      per = (Periods*)      args[0].addr;
-   if( !per->IsDefined() ) 
+   if( !per->IsDefined() )
    {
      res->SetDefined(false);
    }
@@ -8466,7 +8467,7 @@ int Box3d_rect_periods( Word* args, Word& result, int message,
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Rectangle<2>* arg1 = (Rectangle<2>*) args[0].addr;
    Periods*      arg2 = (Periods*)      args[1].addr;
-   if( !arg1->IsDefined() || !arg2->IsDefined() ) 
+   if( !arg1->IsDefined() || !arg2->IsDefined() )
    {
      res->SetDefined(false);
    }
@@ -8502,7 +8503,7 @@ int TemporalBox2d( Word* args, Word& result, int message,
   Rectangle<2>* res = (Rectangle<2>*) result.addr;
   Rectangle<3>* arg = (Rectangle<3>*) args[0].addr;
 
-  if( !arg->IsDefined() ) 
+  if( !arg->IsDefined() )
   {
     res->SetDefined(false);
   }
@@ -8579,8 +8580,8 @@ int TemporalTheRangeTM( Word* args, Word& result, int message, Word&
 
   pResult->Clear();
 
-  if( !t1->IsDefined() || !t2->IsDefined() || 
-      !b1->IsDefined() || !b2->IsDefined() 
+  if( !t1->IsDefined() || !t2->IsDefined() ||
+      !b1->IsDefined() || !b2->IsDefined()
     )
   {
     pResult->SetDefined(false); // not effective by now
@@ -8634,11 +8635,11 @@ int TemporalTheRangeTM( Word* args, Word& result, int message, Word&
 
 int TranslateAppendVM( Word* args, Word& result, int message, Word&
     local, Supplier s ){
-    
-   result = qp->ResultStorage(s); 
+
+   result = qp->ResultStorage(s);
    MPoint* res = (MPoint*) result.addr;
    res->CopyFrom( (MPoint*) args[0].addr);
-   res->TranslateAppend(*((MPoint*) args[1].addr), 
+   res->TranslateAppend(*((MPoint*) args[1].addr),
                         *((DateTime*) args[2].addr));
    return 0;
 
@@ -8666,7 +8667,7 @@ int TranslateAppendSVM(Word* args, Word& result,
    qp->Request(args[0].addr, current);
    while (qp->Received(args[0].addr)) {
       Tuple* tuple = (Tuple*)current.addr;
-      mpoint =  (MPoint*)(tuple->GetAttribute(index)); 
+      mpoint =  (MPoint*)(tuple->GetAttribute(index));
       res->TranslateAppend(*mpoint,*duration);
       tuple->DeleteIfAllowed();
       qp->Request(args[0].addr, current);
@@ -8682,8 +8683,8 @@ int TranslateAppendSVM(Word* args, Word& result,
 
 int ReverseVM( Word* args, Word& result, int message, Word&
     local, Supplier s ){
-    
-   result = qp->ResultStorage(s); 
+
+   result = qp->ResultStorage(s);
    MPoint* res = (MPoint*) result.addr;
    ((MPoint*)args[0].addr)->Reverse(*res);
    return 0;
@@ -8695,11 +8696,11 @@ int ReverseVM( Word* args, Word& result, int message, Word&
 
 */
 template <bool keepEndPoint, bool exactPath>
-int SampleMPointVM( Word* args, Word& result, int message, 
+int SampleMPointVM( Word* args, Word& result, int message,
                     Word& local, Supplier s ){
-   
- 
-   result = qp->ResultStorage(s); 
+
+
+   result = qp->ResultStorage(s);
    MPoint* res = (MPoint*) result.addr;
    DateTime* duration = (DateTime*) args[1].addr;
    bool ke = false; // keep end point
@@ -8724,7 +8725,7 @@ int SampleMPointVM( Word* args, Word& result, int message,
    }
 
   ((MPoint*)args[0].addr)->Sample(*duration,*res,ke,ep);
-   
+
    return 0;
 }
 
@@ -8759,7 +8760,7 @@ class GPSLI{
                const UPoint* up;
                mp->Get(0,up);
                instant = up->timeInterval.start;
-            } 
+            }
          }
       }
 
@@ -8800,12 +8801,12 @@ class GPSLI{
        }
        Point p;
        up->TemporalFunction(instant,p,true);
-       // construct the result from instant,p      
+       // construct the result from instant,p
        Tuple* res = new Tuple(tupleType);
        res->PutAttribute(0,instant.Clone());
-       res->PutAttribute(1,p.Clone()); 
+       res->PutAttribute(1,p.Clone());
        instant += *duration;
-       return res;  
+       return res;
       }
 
   private:
@@ -8815,12 +8816,12 @@ class GPSLI{
      int size;
      int unit;
      TupleType* tupleType;
-     
+
 
 };
 
 
-int GPSVM( Word* args, Word& result, int message, 
+int GPSVM( Word* args, Word& result, int message,
                     Word& local, Supplier s ){
   Tuple* t;
   GPSLI* li;
@@ -8838,12 +8839,16 @@ int GPSVM( Word* args, Word& result, int message,
                  return YIELD;
               } else {
                  return CANCEL;
-              }    
+              }
        case CLOSE:
-              li = (GPSLI*) local.addr;
-              delete li;
+              if(local.addr)
+              {
+                li = (GPSLI*) local.addr;
+                delete li;
+                local = SetWord(0);
+              }
               return 0;
-  } 
+  }
   return 0;
 }
 
@@ -9192,12 +9197,12 @@ ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
 
 ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
 
-ValueMapping samplempointmap[] = { SampleMPointVM<false,false>, 
+ValueMapping samplempointmap[] = { SampleMPointVM<false,false>,
                                    SampleMPointVM<true,false>,
                                    SampleMPointVM<true,true>};
 
 ValueMapping temporaltherangemap[] = {
-  TemporalTheRangeTM<Instant>, // 0 
+  TemporalTheRangeTM<Instant>, // 0
   TemporalTheRangeTM<CcInt>,
   TemporalTheRangeTM<CcBool>,
   TemporalTheRangeTM<CcReal>,

@@ -1332,6 +1332,8 @@ int WindowIntersects( Word* args, Word& result,
       {
         localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo->searchBox;
+        delete localInfo;
+        local = SetWord(0);
       }
       return 0;
     }

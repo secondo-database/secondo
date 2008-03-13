@@ -13886,10 +13886,16 @@ SpatialComponents_r( Word* args, Word& result, int message,
 
     case CLOSE:
 
-      localInfo = (ComponentsLocalInfo*)local.addr;
-      while( localInfo->iter != localInfo->components.end() )
-        delete *localInfo->iter++;
-      delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (ComponentsLocalInfo*)local.addr;
+        while( localInfo->iter != localInfo->components.end() )
+        {
+          delete *localInfo->iter++;
+        }
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -13924,8 +13930,12 @@ SpatialComponents_ps( Word* args, Word& result, int message,
     }
 
     case CLOSE:
-      localInfo = (Points*)local.addr;
-      delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (Points*)local.addr;
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -14062,8 +14072,9 @@ SpatialComponents_l( Word* args, Word& result, int message,
        if(local.addr){
           LineComponentsLi* li = (LineComponentsLi*) local.addr;
           delete li;
-          return 0;
+          local = SetWord(0);
        }
+       return 0;
      }
    }
    return 0;
@@ -14511,6 +14522,7 @@ int SpatialPolylines(Word* args, Word& result, int message,
            localinfo = (LineSplitter*) local.addr;
            if(localinfo!=0){
               delete localinfo;
+              local = SetWord(0);
            }
            return 0;
    }
@@ -14577,7 +14589,8 @@ int SpatialSegments(Word* args, Word& result, int message,
     case OPEN:
       local.addr = new SegmentsInfo((Line*)args[0].addr);
       return 0;
-    case REQUEST:
+
+   case REQUEST:
       si = (SegmentsInfo*) local.addr;
       res = si->NextSegment();
       if(res){
@@ -14588,8 +14601,13 @@ int SpatialSegments(Word* args, Word& result, int message,
       }
 
     case CLOSE:
-      si = (SegmentsInfo*) local.addr;
-      delete si;
+      if(local.addr)
+      {
+        si = (SegmentsInfo*) local.addr;
+        delete si;
+        local = SetWord(0);
+      }
+      return 0;
  }
  return 0;
 }

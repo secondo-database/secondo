@@ -1122,7 +1122,7 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    SpatialTemporalUnit( bool is_defined ):TemporalUnit<Alpha>(is_defined) 
+    SpatialTemporalUnit( bool is_defined ):TemporalUnit<Alpha>(is_defined)
     {}
 
 /*
@@ -1240,7 +1240,7 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 */
   ConstTemporalUnit() {}
 
-  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined) 
+  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined)
   {}
 
   ConstTemporalUnit( const Interval<Instant>& interval, const Alpha& a ):
@@ -1456,7 +1456,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
 */
   UReal() {};
 
-  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined) 
+  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined)
   {
     del.refs=1;
     del.isDelete=true;
@@ -1971,10 +1971,10 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
            AlmostEqual( p1, i.p1 );
   }
 
-  void Translate(const double x, const double y, 
+  void Translate(const double x, const double y,
                  const DateTime& duration);
-      
-  
+
+
 
 
 /*
@@ -2633,13 +2633,13 @@ The constructor. Initializes space for ~n~ elements.
 
 /*
 3.12.2 Modifications of Inherited Functions
- 
+
 Overwrites the function defined in Mapping, mostly in order to
 maintain the object's bounding box. Also, some methods can be improved
 using a check on bbox.
 
 */
-  
+
   void Clear();
   void Add( const UPoint& unit );
   void MergeAdd(const UPoint& unit);
@@ -2743,8 +2743,8 @@ using a check on bbox.
 
 Appends the mpoint argument to this moving point. The point will stay on its
 last position for an interval of length dur. If dur is smaller or equals to
-zero, the new movement starts directly after the definition time of the 
-original object. The movement is continued at the last position of this mpoint. 
+zero, the new movement starts directly after the definition time of the
+original object. The movement is continued at the last position of this mpoint.
 
 */
 
@@ -2763,32 +2763,32 @@ Store the reverse of the movement of this instance of a mpoint into result.
 /*
 3.10.5.8 ~Sample~
 
-This operator creates a new mpoint from the original one. 
+This operator creates a new mpoint from the original one.
 All units will have the length of the duration given as
 parameter. The starting time is the same as for the original
 mpoint. If gaps longer than the given duration exist,
 the next unit will also have the starting time of the unit
-directly after the gap. 
+directly after the gap.
 If __KeepEndPoint__ is set to __true__, the last position will be
-part of the resuolt even if at the corresponding time no 
+part of the resuolt even if at the corresponding time no
 sample point exist. If the parameter __exactPath__ is set to
 __true__, additional sample points are inserted to be sure that the
 path of the object is the same as in the original, i.e. no shortcuts
 for corners.
 
 */
-  void Sample(const DateTime& duration, MPoint& result, 
+  void Sample(const DateTime& duration, MPoint& result,
               const bool KeepEndPoint = false,
               const bool exactPath = false  )const;
 
 /*
 3.10.5.8 ~Append~
 
-The ~Append~ function appends all units of the argument to this 
+The ~Append~ function appends all units of the argument to this
 MPoint. If this mpoint or the argument is undefined or if the
 argument starts before this mpoint ends, this mpoint will be set
-to be undefined. The return value is the defined state of this 
-mpoint after the operation (indicating the success). 
+to be undefined. The return value is the defined state of this
+mpoint after the operation (indicating the success).
 
 */
    bool Append(const MPoint& p, const bool autoresize = true);
@@ -2797,10 +2797,10 @@ mpoint after the operation (indicating the success).
 3.10.5.9 ~Disturb~
 
 The ~disturb~ operation changes the position of the moving point
-using a random generator. 
+using a random generator.
 
 */
-   void Disturb(MPoint& result, 
+   void Disturb(MPoint& result,
                 const double maxDerivation,
                 double maxDerivationPerStep);
 
@@ -3140,7 +3140,7 @@ int  Interval<Alpha>::CompareTo( const Interval<Alpha>& i) const{
     return -1;
   }
   return 0;
-  
+
 }
 /*
 4.2 Range
@@ -5078,7 +5078,7 @@ bool Mapping<Unit, Alpha>::IsValid() const
       result = false;
       cerr << "Mapping<Unit, Alpha>::IsValid(): "
               "unit and lastunit not disjoint: i=" << i << endl;
-      cerr << "\n\tlastunit = "; lastunit->timeInterval.Print(cerr); 
+      cerr << "\n\tlastunit = "; lastunit->timeInterval.Print(cerr);
       cerr << "\n\tunit     = "; unit->timeInterval.Print(cerr); cerr << endl;
       break;
     }
@@ -6477,7 +6477,10 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE:
 
       if( local.addr != 0 )
+      {
         delete (UnitsLocalInfo *)local.addr;
+        local = SetWord(0);
+      }
       return 0;
   }
   /* should not happen */
@@ -6555,11 +6558,11 @@ of unit intervals in the respective ~Mapping~ instance.
 
 Runtime is $O(1)$.
 
-You can use 
+You can use
 
----- 
+----
 
-void TemporalUnit<Alpha>::AtInterval(const Interval<Instant> &i, 
+void TemporalUnit<Alpha>::AtInterval(const Interval<Instant> &i,
                                      TemporalUnit<Alpha> &result)
 
 ----

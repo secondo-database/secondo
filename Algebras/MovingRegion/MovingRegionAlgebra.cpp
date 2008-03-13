@@ -2973,7 +2973,7 @@ bool URegionEmb::TU_Adjacent(const URegionEmb& ur) const {
 bool URegionEmb::operator==(const URegionEmb& ur) const {
     return (!defined && !ur.defined) ||
            (defined && ur.defined && timeInterval == ur.timeInterval);
-    
+
 }
 
 /*
@@ -6448,8 +6448,8 @@ MRegion::MRegion(const int n) :
 }
 
 //MRegion::MRegion(MPoint& mp, Region& r) :
-// original signature replaced with 
-// 'call by copy' for 2nd arg due to problems when reading r 
+// original signature replaced with
+// 'call by copy' for 2nd arg due to problems when reading r
 // directly from disk ( raised assert( type == InMemory ) ):
 MRegion::MRegion(MPoint& mp, Region r) :
     Mapping<URegionEmb, Region>(0),
@@ -8393,7 +8393,10 @@ int mraunitsvalmap(Word* args, Word& result,
     case CLOSE:
 
       if( local.addr != 0 )
+      {
         delete (MRAUnitsLocalInfo *)local.addr;
+        local = SetWord(0);
+      }
       return 0;
   }
 
@@ -8585,13 +8588,13 @@ static ValueMapping traversedvaluemap[] =
 #endif // MRA_TRAVERSED
 
 static ValueMapping BboxValueMap[] =
-{ BboxValueMapURegion, 
-  BboxValueMapIRegion, 
+{ BboxValueMapURegion,
+  BboxValueMapIRegion,
   BboxValueMapMRegion };
 
 static ValueMapping Bbox2dValueMap[] =
-{ Bbox2dValueMapURegion, 
-  Bbox2dValueMapIRegion, 
+{ Bbox2dValueMapURegion,
+  Bbox2dValueMapIRegion,
   Bbox2dValueMapMRegion };
 
 /*

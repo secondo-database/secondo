@@ -131,7 +131,7 @@ OK  + and, or: ubool x ubool --> ubool
 OK  +           bool x ubool --> ubool
 OK  +          ubool x  bool --> ubool
 
-      ==, ##, <<, >>, <<==, >>==: 
+      ==, ##, <<, >>, <<==, >>==:
       For T in {bool, int, string, real, point, region}
 Test+                uT x uT --> bool
 
@@ -1097,7 +1097,7 @@ int MappingMakemvalue(Word* args,Word& result,int message,
 
       if(currentAttr == 0)
       {
-        cout << endl << "ERROR in MappingMakemvalue: received Nullpointer!" 
+        cout << endl << "ERROR in MappingMakemvalue: received Nullpointer!"
              << endl;
         assert( false );
       }
@@ -1184,7 +1184,7 @@ int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
 
       if(currentAttr == 0)
       {
-        cout << endl << "ERROR in MappingMakemvalue: received Nullpointer!" 
+        cout << endl << "ERROR in MappingMakemvalue: received Nullpointer!"
              << endl;
         assert( false );
       }
@@ -1787,7 +1787,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
 // #ifdef TUA_DEBUG
 //     cout << "\nMappingUnitAtPeriods: OPEN" << endl;
 // #endif
-    
+
     localinfo = new AtPeriodsLocalInfo;
     localinfo->uWord = args[0];
     localinfo->pWord = args[1];
@@ -1902,7 +1902,10 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
   case CLOSE:
 
     if( local.addr != 0 )
+    {
       delete (AtPeriodsLocalInfo *)local.addr;
+      local = SetWord(0);
+    }
     return 0;
   }
   // should not happen:
@@ -2021,6 +2024,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
             unit->DeleteIfAllowed();   // delete remaining original unit
           }
         delete (AtPeriodsLocalInfoUS *)localinfo;
+        local = SetWord(0);
       }
     return 0;
 
@@ -3718,7 +3722,7 @@ int TUDistance_UReal_UReal( Word* args, Word& result, int message,
         localinfo->finished = true;
         return CANCEL;
       }
-      result = SetWord( 
+      result = SetWord(
           localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
@@ -3726,8 +3730,9 @@ int TUDistance_UReal_UReal( Word* args, Word& result, int message,
     case CLOSE:
       if(local.addr != 0)
       {
-        localinfo = (TUDistanceLocalInfo*) local.addr;
+         localinfo = (TUDistanceLocalInfo*) local.addr;
         delete localinfo;
+        local = SetWord(0);
       }
       return 0;
   }
@@ -3796,7 +3801,7 @@ int TUDistance_UReal_Real( Word* args, Word& result, int message,
     }
     else
     { // calculate  result
-      utemp = 
+      utemp =
         UReal(u->timeInterval, u->a, u->b, (u->c - i->GetRealval() ), false);
       localinfo->NoOfResults = utemp.Abs(localinfo->resultVector);
       localinfo->finished = (localinfo->NoOfResults <= 0);
@@ -3814,7 +3819,7 @@ int TUDistance_UReal_Real( Word* args, Word& result, int message,
         localinfo->finished = true;
         return CANCEL;
       }
-      result = SetWord( 
+      result = SetWord(
           localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
@@ -3824,6 +3829,7 @@ int TUDistance_UReal_Real( Word* args, Word& result, int message,
       {
         localinfo = (TUDistanceLocalInfo*) local.addr;
         delete localinfo;
+        local = SetWord(0);
       }
       return 0;
   }
@@ -3900,7 +3906,7 @@ int temporalunitDistanceSelect( ListExpr args )
 
   else if( nl->IsEqual(first, "real") && nl->IsEqual(second, "ureal") )
     return 5;
-  
+
   else
     cout << "\nERROR in temporalunitDistanceSelect!" << endl;
 
@@ -4033,6 +4039,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 //           for(unsigned int i=0; i< sli->resultUnitVector.size(); i++)
 //             sli->resultUnitVector[i].DeleteIfAllowed();
           delete sli;
+          local = SetWord(0);
         }
       return 0;
 
@@ -4202,12 +4209,13 @@ int atminUReal( Word* args, Word& result, int message,
     case CLOSE :
 
       if (local.addr != 0)
-        {
-          sli = (AtExtrURealLocalInfo*) local.addr;
+      {
+        sli = (AtExtrURealLocalInfo*) local.addr;
 //           for(unsigned int i=0; i< sli->resultUnitVector.size(); i++)
 //             sli->resultUnitVector[i].DeleteIfAllowed();
-          delete sli;
-        }
+        delete sli;
+        local = SetWord(0);
+       }
       return 0;
 
     } // end switch
@@ -4284,7 +4292,7 @@ Moved to ~StreamAlgebra~ and remaned it to ~aggregateS~
 /*
 5.25 Operator ~abs~
 
-The operator returns the absolute function derived from the 
+The operator returns the absolute function derived from the
 input ureal or uint.
 
 */
@@ -4421,7 +4429,7 @@ int TU_VM_Abs_UReal( Word* args, Word& result, int message,
       }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
       {
-        result = SetWord( 
+        result = SetWord(
             sli->resultVector[sli->NoOfResultsDelivered].Clone() );
         sli->NoOfResultsDelivered++;
         return YIELD;
@@ -4435,6 +4443,7 @@ int TU_VM_Abs_UReal( Word* args, Word& result, int message,
       {
         sli = (TUAbsLocalInfo*) local.addr;
         delete sli;
+        local = SetWord(0);
       }
       return 0;
   } // end switch
@@ -4780,6 +4789,7 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
               sli->NoOfResultsDelivered++;
             }
           delete sli;
+          local = SetWord(0);
         }
       return 0;
     } // end switch
@@ -4896,6 +4906,7 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
               sli->NoOfResultsDelivered++;
             }
           delete sli;
+          local = SetWord(0);
         }
       return 0;
     } // end switch
@@ -5030,6 +5041,7 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
       {
         localinfo = (MappingUnitIntersection_rLocalInfo*) local.addr;
         delete localinfo;
+        local = SetWord(0);
       }
       return 0;
     } // end switch
@@ -5106,6 +5118,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
       {
         localinfo = (MappingUnitIntersection_rLocalInfo*) local.addr;
         delete localinfo;
+        local = SetWord(0);
       }
       return 0;
     } // end switch
@@ -5226,6 +5239,7 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
               sli->NoOfResultsDelivered++;
             }
           delete sli;
+          local = SetWord(0);
         }
       return 0;
     } // end switch
@@ -5317,6 +5331,7 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
               sli->NoOfResultsDelivered++;
             }
           delete sli;
+          local = SetWord(0);
         }
       return 0;
     } // end switch
@@ -6071,6 +6086,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
           sli = (TUIntersectionLocalInfo*) local.addr;
           delete sli->mpoint;
           delete sli;
+          local = SetWord(0);
         }
       return 0;
     } // end switch
@@ -6242,6 +6258,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           sli = (TUIntersectionLocalInfo*) local.addr;
           delete sli->mpoint;
           delete sli;
+          local = SetWord(0);
         }
 #ifdef TUA_DEBUG
       cerr << "temporalUnitIntersection_upoint_uregion<"
@@ -7113,8 +7130,8 @@ The predicates are:
 
 ----
 
-  == (equality), 
-  ## (unequality), 
+  == (equality),
+  ## (unequality),
   << (smaller than),
   >> (bigger than),
   <<== (smaller than or equal to),
@@ -7176,7 +7193,7 @@ ListExpr TUComparePredicatesTypeMap( ListExpr args )
 /*
 5.35.2 Value mapping for operator ~ComparePredicates~
 
-template parameter ~OPType~ gives the character of the operator: 
+template parameter ~OPType~ gives the character of the operator:
 
 ----
 
@@ -7642,6 +7659,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           sli = (TUInsideLocalInfo*) local.addr;
           delete sli->mbool;
           delete sli;
+          local = SetWord(0);
         }
 #ifdef TUA_DEBUG
       cerr << "temporalUnitInside_up_ur: Finished CLOSE"<< endl;
@@ -8572,14 +8590,14 @@ Operator temporalunittheivalue( "the_ivalue",
 5.41 Operator ~ComparePredicateValues~
 
 Here, we implement the binary comparison operators/predicates for (uT uT).
-The predicates are 
+The predicates are
 
 ----
 
-   = (equality), 
-   # (unequality), 
+   = (equality),
+   # (unequality),
    < (smaller than),
-   > (bigger than), 
+   > (bigger than),
   <= (smaller than or equal to),
   >= (bigger than or equal to).
 
@@ -8747,6 +8765,7 @@ int TU_VM_ComparePredicateValue_Const(Word* args, Word& result,
       {
         finished = (bool*) local.addr;
         delete finished;
+        local = SetWord(0);
       }
       return 0;
   } // end switch (message)
@@ -8815,7 +8834,7 @@ template <class T, int opcode, int unit_arg>
           compresult = (p1 > -1);  break;
       } // end switch (opcode)
       result = SetWord(
-          new ConstTemporalUnit<CcBool>(u1->timeInterval, 
+          new ConstTemporalUnit<CcBool>(u1->timeInterval,
                                         CcBool(true, compresult) ) );
       *finished = true; // only one result!
       return YIELD;
@@ -8825,6 +8844,7 @@ template <class T, int opcode, int unit_arg>
       {
         finished = (bool*) local.addr;
         delete finished;
+        local = SetWord(0);
       }
       return 0;
   } // end switch (message)
@@ -8968,6 +8988,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
         localinfo = (TUCompareValueLocalInfo*) local.addr;
         delete localinfo->intersectionBool;
         delete localinfo;
+        local = SetWord(0);
       }
       return 0;
   } // end switch (message)
@@ -9013,7 +9034,7 @@ template <int opcode, int unit_arg>
 
       if ( !u1->IsDefined() || !u2->IsDefined() )
       {
-//           cerr << "Undef input" << endl; 
+//           cerr << "Undef input" << endl;
         return 0;
       }
       iv = u1->timeInterval;
@@ -9108,6 +9129,7 @@ template <int opcode, int unit_arg>
         localinfo = (TUCompareValueLocalInfo*) local.addr;
         delete localinfo->intersectionBool;
         delete localinfo;
+        local = SetWord(0);
       }
       return 0;
   } // end switch (message)
@@ -9125,11 +9147,11 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
   const UBool* cu;
   UBool newunit(true);
   TUCompareValueLocalInfo *localinfo;
-  Interval<Instant> 
+  Interval<Instant>
      iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
      ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
   const Interval<Instant> *actIntv;
-  Instant 
+  Instant
      start(instanttype),
      end(instanttype),
      testInst(instanttype);
@@ -9233,7 +9255,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
           ivnew = Interval<Instant>(start, start, true, true);
           newunit = UBool(ivnew, CcBool(true, compresult));
           localinfo->intersectionBool->Add(newunit);
-//        cout << "TU_VM_ComparePredicateValue_UReal: Added initial" 
+//        cout << "TU_VM_ComparePredicateValue_UReal: Added initial"
 //             << i << endl;
           lc = false;
         } // else: equal instant not in interval!
@@ -9250,7 +9272,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
 //        cout << "Something's wrong with actIntv!" << endl;
 //      }
         end = actIntv->start;
-//      cout << "  start=" << start.ToString() 
+//      cout << "  start=" << start.ToString()
 //           << "  end="   << end.ToString()   << endl;
         ivnew = Interval<Instant>(start, end, lc, false);
         testInst = TU_GetMidwayInstant(start, end);
@@ -9293,7 +9315,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
                        (opcode == 5 && cmpres >= 0)    );
         newunit = UBool(ivnew, CcBool(true, compresult));
         localinfo->intersectionBool->MergeAdd(newunit);
-//      cout << "TU_VM_ComparePredicateValue_UReal: Added final res" 
+//      cout << "TU_VM_ComparePredicateValue_UReal: Added final res"
 //           << i << endl;
       }
       localinfo->intersectionBool->EndBulkLoad(true);
@@ -9324,6 +9346,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
         localinfo = (TUCompareValueLocalInfo*) local.addr;
         delete localinfo->intersectionBool;
         delete localinfo;
+        local = SetWord(0);
       }
   }
   return -1;
@@ -9353,11 +9376,11 @@ template<int opcode, int unit_arg>
   const UBool* cu;
   UBool newunit(true);
   TUCompareValueLocalInfo *localinfo;
-  Interval<Instant> 
+  Interval<Instant>
       iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
   ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
   const Interval<Instant> *actIntv;
-  Instant 
+  Instant
       start(instanttype),
   end(instanttype),
   testInst(instanttype);
@@ -9377,7 +9400,7 @@ template<int opcode, int unit_arg>
       localinfo->intersectionBool = new MBool(5);
       localinfo->intersectionBool->Clear();
 
-      if ( !u1->IsDefined() || !r->IsDefined() ) 
+      if ( !u1->IsDefined() || !r->IsDefined() )
       { // no result
 //      cout << "TU_VM_ComparePredicateValue_UReal: No Result." << endl;
         return 0;
@@ -9445,7 +9468,7 @@ template<int opcode, int unit_arg>
           ivnew = Interval<Instant>(start, start, true, true);
           newunit = UBool(ivnew, CcBool(true, compresult));
           localinfo->intersectionBool->Add(newunit);
-//        cout << "TU_VM_ComparePredicateValue_UReal: Added initial" 
+//        cout << "TU_VM_ComparePredicateValue_UReal: Added initial"
 //             << i << endl;
           lc = false;
         } // else: equal instant not in interval!
@@ -9462,7 +9485,7 @@ template<int opcode, int unit_arg>
 //        cout << "Something's wrong with actIntv!" << endl;
 //      }
         end = actIntv->start;
-//      cout << "  start=" << start.ToString() 
+//      cout << "  start=" << start.ToString()
 //           << "  end="   << end.ToString()   << endl;
         ivnew = Interval<Instant>(start, end, lc, false);
         testInst = TU_GetMidwayInstant(start, end);
@@ -9511,7 +9534,7 @@ template<int opcode, int unit_arg>
             (opcode == 5 && cmpres >= 0)    );
         newunit = UBool(ivnew, CcBool(true, compresult));
         localinfo->intersectionBool->MergeAdd(newunit);
-//      cout << "TU_VM_ComparePredicateValue_UReal: Added final res" 
+//      cout << "TU_VM_ComparePredicateValue_UReal: Added final res"
 //           << i << endl;
       }
       localinfo->intersectionBool->EndBulkLoad(true);
@@ -9542,6 +9565,7 @@ template<int opcode, int unit_arg>
         localinfo = (TUCompareValueLocalInfo*) local.addr;
         delete localinfo->intersectionBool;
         delete localinfo;
+        local = SetWord(0);
       }
   }
   return -1;
