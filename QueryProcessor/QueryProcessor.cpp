@@ -3108,6 +3108,13 @@ Deletes an operator tree object.
     {
       case Operator:
       {
+        if( (tree->u.op.local.addr != 0) && RTFlag::isActive("QP:debuglocal"))
+        {
+          cerr << "LocalInfo for operator "
+              << tree->u.op.theOperator->GetName()
+              << " was not destroyed. local=" << tree->u.op.local.addr
+              << endl;
+        }
         for ( int i = 0; i < tree->u.op.noSons; i++ )
         {
           if( tree->u.op.resultAlgId == 0 )
