@@ -239,14 +239,20 @@ c)~.
     len(4)
   {}
 
-  NList(const string& s, const bool isStr = false) :
+  // INSTANTIATION PATTERNS:
+  // (value), (value, false), (value, false, false) : symbolAtom  = DEFAULT1
+  // (value, true),           (value, true,  false) : stringAtom  = DEFAULT2
+  // (value, true,  true )                          : textAtom
+  NList(const string& s, const bool isStr = false, const bool isText = false):
     nl(nlGlobal),
     e( nl->Empty() ),
     len(0)
   {
-    if (isStr)
+    if (isStr && !isText)
       l = nl->StringAtom(s);
-    else 
+    else if (isStr && isText)
+      l = nl->TextAtom(s);
+    else
       l = nl->SymbolAtom(s);
   }
  
