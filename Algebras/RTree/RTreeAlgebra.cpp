@@ -1228,9 +1228,13 @@ int WindowIntersects( Word* args, Word& result,
 
     case CLOSE :
     {
-      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
-      delete localInfo->searchBox;
-      delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
+        delete localInfo->searchBox;
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
   }
@@ -1324,16 +1328,23 @@ int WindowIntersects( Word* args, Word& result,
 
     case CLOSE :
     {
-      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
-      delete localInfo->searchBox;
+      if(local.addr)
+      {
+        localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
+        delete localInfo->searchBox;
+      }
       return 0;
     }
 
 
     case CLOSEPROGRESS :
     {
-      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
-      if ( localInfo ) delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
 
@@ -1730,11 +1741,15 @@ int WindowIntersectsSStandard( Word* args, Word& result,
 
     case CLOSE :
     {
-      WindowIntersectsSLocalInfo<dim, TupleId>* localInfo =
-        (WindowIntersectsSLocalInfo<dim, TupleId>*)local.addr;
-      delete localInfo->searchBox;
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
+      if(local.addr)
+      {
+        WindowIntersectsSLocalInfo<dim, TupleId>* localInfo =
+          (WindowIntersectsSLocalInfo<dim, TupleId>*)local.addr;
+        delete localInfo->searchBox;
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
   }
@@ -1814,12 +1829,16 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
 
     case CLOSE :
     {
-      WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo =
-        (WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>*)
-        local.addr;
-      delete localInfo->searchBox;
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
+      if(local.addr)
+      {
+        WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo =
+          (WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>*)
+          local.addr;
+        delete localInfo->searchBox;
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
   }
@@ -2080,9 +2099,13 @@ template<int TidIndexPos>
     case CLOSE :
     {
       qp->Close(args[0].addr);
-      localInfo = (GetTuplesLocalInfo*)local.addr;
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (GetTuplesLocalInfo*)local.addr;
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
   }
@@ -2608,9 +2631,13 @@ int GetTuplesDbl( Word* args, Word& result, int message,
     case CLOSE :
     {
       qp->Close(args[0].addr);
-      localInfo = (GetTuplesDblLocalInfo*)local.addr;
-      localInfo->resultTupleType->DeleteIfAllowed();
-      delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (GetTuplesDblLocalInfo*)local.addr;
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local = SetWord(0);
+      }
       return 0;
     }
   }
@@ -3745,9 +3772,13 @@ int RTreeNodesVM( Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      lci = (RTreeNodesLocalInfo<dim> *)local.addr;
-      lci->resultTupleType->DeleteIfAllowed();
-      delete lci;
+      if(local.addr)
+      {
+        lci = (RTreeNodesLocalInfo<dim> *)local.addr;
+        lci->resultTupleType->DeleteIfAllowed();
+        delete lci;
+        local = SetWord(0);
+      }
       return 0;
     }
   } // end switch
