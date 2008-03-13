@@ -1034,9 +1034,12 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      rit = (GenericRelationIterator*)local.addr;
-      delete rit;
-      local.addr = 0;
+      if(local.addr)
+      {
+         rit = (GenericRelationIterator*)local.addr;
+         delete rit;
+         local.addr = 0;
+      }
       return 0;
   }
   return 0;
@@ -1095,8 +1098,12 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      fli = (FeedLocalInfo*) local.addr;
-      delete fli->rit;
+      if(local.addr)
+      {
+        fli = (FeedLocalInfo*) local.addr;
+        delete fli->rit;
+        local = SetWord(0);
+      }
       return 0;
 
     case CLOSEPROGRESS: 
@@ -1106,7 +1113,11 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
         qp->CloseProgress(sonOfFeed);
 
       fli = (FeedLocalInfo*) local.addr;
-      if ( fli ) delete fli;
+      if ( fli )
+      {
+         delete fli;
+         local = SetWord(0);
+      }
       return 0;
 
 
@@ -1360,6 +1371,8 @@ Consume(Word* args, Word& result, int message,
 
     qp->Close(args[0].addr);
     cli->state = 1;
+    delete cli;
+    local = SetWord(0);
     return 0;
   }
 
@@ -1771,7 +1784,12 @@ Filter(Word* args, Word& result, int message,
         return CANCEL;
 
     case CLOSE:
-
+       
+      fli = (FilterLocalInfo*) local.addr;
+      if(fli){
+         delete fli;
+         local = SetWord(0);
+      }
       qp->Close(args[0].addr);
       return 0;
 
@@ -1780,7 +1798,11 @@ Filter(Word* args, Word& result, int message,
       qp->CloseProgress(args[0].addr);
 
       fli = (FilterLocalInfo*) local.addr;
-      if ( fli ) delete fli;
+      if ( fli )
+      {
+         delete fli;
+         local = SetWord(0);
+      }
       return 0;
 
 
@@ -2044,7 +2066,10 @@ reduce_vm( Word* args, Word& result, int message,
     case CLOSE:
 
       qp->Close(args[0].addr);
-      delete ri;
+      if(local.addr){
+         delete ri;
+         local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -2310,9 +2335,12 @@ Project(Word* args, Word& result, int message,
       else return CANCEL;
 
     case CLOSE:
-
-      pli = (ProjectLocalInfo*) local.addr;
-      pli->tupleType->DeleteIfAllowed();
+      if(local.addr)
+      {
+         pli = (ProjectLocalInfo*) local.addr;
+         pli->tupleType->DeleteIfAllowed();
+         local = SetWord(0);
+      }
       qp->Close(args[0].addr);
       return 0;
 
@@ -2321,7 +2349,10 @@ Project(Word* args, Word& result, int message,
       qp->CloseProgress(args[0].addr);
 
       pli = (ProjectLocalInfo*) local.addr;
-      if ( pli ) delete pli;
+      if ( pli ){
+         delete pli;
+         local = SetWord(0);
+      }
       return 0;
 
 
@@ -2800,17 +2831,21 @@ Product(Word* args, Word& result, int message,
     case CLOSE :
     {
       pli = (ProductLocalInfo*)local.addr;
-      if(pli->currentTuple != 0)
-        pli->currentTuple->DeleteIfAllowed();
-      if( pli->iter != 0 )
-        delete pli->iter;
-      pli->resultTupleType->DeleteIfAllowed();
-      if( pli->rightRel )
+      if(pli)
       {
-        pli->rightRel->Clear();
-        delete pli->rightRel;
+        if(pli->currentTuple != 0)
+          pli->currentTuple->DeleteIfAllowed();
+        if( pli->iter != 0 )
+          delete pli->iter;
+        pli->resultTupleType->DeleteIfAllowed();
+        if( pli->rightRel )
+        {
+          pli->rightRel->Clear();
+          delete pli->rightRel;
+        }
+        delete pli;
+        local = SetWord(0);
       }
-      delete pli;
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
@@ -2958,15 +2993,20 @@ Product(Word* args, Word& result, int message,
 
     case CLOSE:
     {
-      if(pli->currentTuple != 0)
-        pli->currentTuple->DeleteIfAllowed();
-      if( pli->iter != 0 )
-        delete pli->iter;
-      pli->resultTupleType->DeleteIfAllowed();
-      if( pli->rightRel )
+      if(pli)
       {
-        pli->rightRel->Clear();
-        delete pli->rightRel;
+        if(pli->currentTuple != 0)
+          pli->currentTuple->DeleteIfAllowed();
+        if( pli->iter != 0 )
+          delete pli->iter;
+        pli->resultTupleType->DeleteIfAllowed();
+        if( pli->rightRel )
+        {
+          pli->rightRel->Clear();
+          delete pli->rightRel;
+        }
+        delete pli;
+        local = SetWord(0);
       }
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
@@ -2980,8 +3020,10 @@ Product(Word* args, Word& result, int message,
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      if ( pli ) delete pli;
-
+      if ( pli ){
+         delete pli;
+         local = SetWord(0);
+      }
       return 0;
     }
 
@@ -4342,9 +4384,12 @@ static int sizecounters_vm( Word* args, Word& result, int message,
     }
                   
     case CLOSE: {
-
-      pi->computeSizes();           
-      delete pi;
+      if(pi)
+      {
+        pi->computeSizes();           
+        delete pi;
+        local = SetWord(0);
+      }
       qp->Close(stream);      
       return 0;           
     }
@@ -4542,8 +4587,11 @@ static int dumpstream_vm( Word* args, Word& result, int message,
     }
                   
     case CLOSE: {
-
-      delete pi;
+      if(pi)
+      {
+        delete pi;
+        local = SetWord(0);
+      }
       qp->Close(stream);
       return 0;           
     }
@@ -4974,14 +5022,22 @@ Buffer(Word* args, Word& result, int message,
 
 
     case CLOSE :
-
+      if(bli)
+      {
+        delete bli;
+        local = SetWord(0);
+      }
       qp->Close(args[0].addr);
       return 0;
 
 
     case CLOSEPROGRESS:
 
-      if ( bli ) delete bli;
+      if ( bli )
+      {
+        delete bli;
+        local = SetWord(0);
+      }
       qp->CloseProgress(args[0].addr);
       return 0;
 
@@ -4990,6 +5046,8 @@ Buffer(Word* args, Word& result, int message,
 
       ProgressInfo p1;
       ProgressInfo *pRes;
+
+     if(!bli) return CANCEL;
 
       pRes = (ProgressInfo*) result.addr;
 

@@ -657,15 +657,21 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
       qp->Close(args[0].addr);
-
-      delete li->ptr;
+      if(li){
+         delete li->ptr;
+         delete li;
+         local = SetWord(0);
+      }
       return 0;
 
 
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      if ( li ) delete li;
+      if ( li ){
+         delete li;
+         local = SetWord(0);
+      }
       return 0;
 
 
@@ -1286,6 +1292,11 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
 
+      if ( li ) {
+        delete li->ptr;
+        delete li;
+        local = SetWord(0);
+      }
       //nothing is deleted on close because the substructures are still 
       //needed for progress estimation. Instea/*
       //(repeated) OPEN and on CLOSEPROGRESS
@@ -1300,6 +1311,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( li ) {
         delete li->ptr;
         delete li;
+        local = SetWord(0);
       }
       return 0;
 
@@ -1779,8 +1791,11 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return result.addr != 0 ? YIELD : CANCEL;
 
     case CLOSE:
-
-      delete li->ptr;
+      if(li){
+         delete li->ptr;
+         delete li;
+         local = SetWord(0);
+      }
       return 0;
 
 
@@ -1788,7 +1803,11 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      if ( li ) delete li;
+      if ( li ){
+         delete li->ptr;
+         delete li;
+         local = SetWord(0);
+      }
 
       return 0;
     

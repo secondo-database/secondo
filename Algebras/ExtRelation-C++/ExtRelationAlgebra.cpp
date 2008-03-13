@@ -469,9 +469,12 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE :
-      localInfo = (SampleLocalInfo*)local.addr;
-      delete localInfo->relIter;
-      delete localInfo;
+      if(local.addr){
+         localInfo = (SampleLocalInfo*)local.addr;
+         delete localInfo->relIter;
+         delete localInfo;
+         local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -877,9 +880,12 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
       }
     case CLOSE:
-
-      localInfo = (HeadLocalInfo*)local.addr;
-      delete localInfo;
+      if(local.addr)
+      {
+        localInfo = (HeadLocalInfo*)local.addr;
+        delete localInfo;
+        local = SetWord(0);
+      }
       qp->Close(args[0].addr);
       return 0;
   }
@@ -940,7 +946,11 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE:
-
+      if(local.addr)
+      {
+         delete(hli);
+         local = SetWord(0);
+      }
       qp->Close(args[0].addr);
       return 0;
 
@@ -948,7 +958,11 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSEPROGRESS:
 
       qp->CloseProgress(args[0].addr);
-      if ( hli ) delete hli;
+      if ( hli )
+      { 
+        delete hli;
+        local = SetWord(0);
+      }
       return 0;
 
     case REQUESTPROGRESS:
@@ -1959,6 +1973,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
         return 0;
       finished = (bool*) local.addr;
       delete(finished);
+      local = SetWord(0);
       return 0;
     }
   } // end switch
@@ -2232,9 +2247,11 @@ int KrdupVM(Word* args, Word& result, int message,
         return CANCEL;
       }
     case CLOSE:
-      KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
-      delete localinfo;
-      local = SetWord(0); 
+      if(local.addr) {
+        KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
+        delete localinfo;
+        local = SetWord(0); 
+      }
       qp->Close(args[0].addr);
       return 0;
   }
@@ -2594,7 +2611,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
     case CLOSE: {
       if( local.addr != 0 ){ // check if local is present
          lastOutput = static_cast<RTuple*>(local.addr);
-   delete lastOutput;
+         delete lastOutput;
          local = SetWord(0);
       }
       qp->Close(args[0].addr);
@@ -2711,12 +2728,16 @@ int RdupValueMapping(Word* args, Word& result, int message,
         }
       }
     case CLOSE:
-
-      if (rli->localTuple != 0 )
+      if(rli)
       {
-        rli->localTuple->DecReference();
-        rli->localTuple->DeleteIfAllowed();
-        rli->localTuple = 0;
+        if (rli->localTuple != 0 )
+        {
+          rli->localTuple->DecReference();
+          rli->localTuple->DeleteIfAllowed();
+          rli->localTuple = 0;
+        }
+        delete rli;
+        local = SetWord(0);
       }
       qp->Close(args[0].addr);
       return 0;
@@ -2725,7 +2746,11 @@ int RdupValueMapping(Word* args, Word& result, int message,
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      if ( rli ) delete rli;
+      if ( rli )
+      {
+        delete rli;
+        local = SetWord(0);
+      }
       return 0;
 
 
@@ -3152,8 +3177,11 @@ SetOpValueMapping(Word* args, Word& result, int message,
       result = SetWord(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
-      localInfo = (SetOperation*)local.addr;
-      delete localInfo;
+      if(local.addr){
+         localInfo = (SetOperation*)local.addr;
+         delete localInfo;
+         local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -3709,8 +3737,11 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
 
     case CLOSE :
-
-      ((TupleType *)local.addr)->DeleteIfAllowed();
+      if(local.addr)
+      {
+         ((TupleType *)local.addr)->DeleteIfAllowed();
+         local = SetWord(0);
+      }
       qp->Close(args[0].addr);
       return 0;
   }
@@ -3822,8 +3853,12 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
 
     case CLOSE :
-
-      eli->resultTupleType->DeleteIfAllowed();
+      if(eli)
+      {
+         eli->resultTupleType->DeleteIfAllowed();
+         delete eli;
+         local = SetWord(0);
+      }
       qp->Close(args[0].addr);
       return 0;
 
@@ -3831,7 +3866,10 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      if ( eli ) delete eli;
+      if ( eli ){
+         delete eli;
+         local = SetWord(0);
+      }
       return 0;
 
 
@@ -4151,6 +4189,7 @@ int Loopjoin(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 )
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
+        local = SetWord(0);
       }
       qp->Close(args[0].addr);
       return 0;
@@ -4283,17 +4322,21 @@ int Loopjoin(Word* args, Word& result, int message,
       return YIELD;
 
     case CLOSE:
-
-      if ( lli->tuplex.addr != 0 )
+      if(lli)
       {
-        if( lli->streamy.addr != 0 )
-          qp->Close( lli->streamy.addr );
+         if ( lli->tuplex.addr != 0 )
+         {
+           if( lli->streamy.addr != 0 )
+            qp->Close( lli->streamy.addr );
 
-        if( lli->tuplex.addr != 0 )
-          ((Tuple*)lli->tuplex.addr)->DeleteIfAllowed();
+           if( lli->tuplex.addr != 0 )
+             ((Tuple*)lli->tuplex.addr)->DeleteIfAllowed();
 
-        if( lli->resultTupleType != 0 )
-          lli->resultTupleType->DeleteIfAllowed();
+           if( lli->resultTupleType != 0 )
+              lli->resultTupleType->DeleteIfAllowed();
+         }
+         delete lli;
+         local = SetWord(0);
       }
 
       qp->Close(args[0].addr);
@@ -4302,7 +4345,11 @@ int Loopjoin(Word* args, Word& result, int message,
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      if ( lli ) delete lli;
+      if ( lli )
+      {
+         delete lli;
+         local = SetWord(0);
+      }
       return 0;
 
 
@@ -4580,6 +4627,7 @@ Loopselect(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 ) 
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
+        local = SetWord(0);
       }
       qp->Close(args[0].addr);
       return 0;
@@ -4864,6 +4912,7 @@ int ExtendStream(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 )
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
+        local = SetWord(0);
       }
       qp->Close( args[0].addr );
       return 0;
@@ -5756,7 +5805,10 @@ int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
       if( local.addr != 0 )
+      {
         ((CcInt*)local.addr)->DeleteIfAllowed();
+        local = SetWord(0);
+      }
       return 0;
   }
   return 0;
@@ -6211,6 +6263,7 @@ int GroupByValueMapping
           gbli->t->DeleteIfAllowed();
         }
         delete gbli;
+        local = SetWord(0);
       }
       qp->Close(args[0].addr);
       return 0;
@@ -6450,14 +6503,17 @@ int GroupByValueMapping
     }
     case CLOSE:
     {
-
-
-      if( gbli->resultTupleType != 0 )
-        gbli->resultTupleType->DeleteIfAllowed();
-      if( gbli->t != 0 )
+      if(gbli)
       {
-        gbli->t->DecReference();
-        gbli->t->DeleteIfAllowed();
+        if( gbli->resultTupleType != 0 )
+          gbli->resultTupleType->DeleteIfAllowed();
+        if( gbli->t != 0 )
+        {
+          gbli->t->DecReference();
+          gbli->t->DeleteIfAllowed();
+        }
+        delete gbli;
+        local = SetWord(0);
       }
       qp->Close(args[0].addr);
       return 0;
@@ -6466,7 +6522,11 @@ int GroupByValueMapping
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      if (gbli) delete gbli;
+      if (gbli)
+      {
+        delete gbli;
+        local = SetWord(0);
+      }
       return 0;
 
 
@@ -7233,28 +7293,31 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
     {
       pli = (SymmJoinLocalInfo*)local.addr;
-
-      if( pli->currTuple != 0 )
-        pli->currTuple->DeleteIfAllowed();
-
-      delete pli->leftIter;
-      delete pli->rightIter;
-      if( pli->resultTupleType != 0 )
-        pli->resultTupleType->DeleteIfAllowed();
-
-      if( pli->rightRel != 0 )
+      if(pli)
       {
-        pli->rightRel->Clear();
-        delete pli->rightRel;
-      }
+         if( pli->currTuple != 0 )
+           pli->currTuple->DeleteIfAllowed();
+
+         delete pli->leftIter;
+         delete pli->rightIter;
+         if( pli->resultTupleType != 0 )
+           pli->resultTupleType->DeleteIfAllowed();
+
+         if( pli->rightRel != 0 )
+         {
+           pli->rightRel->Clear();
+           delete pli->rightRel;
+         }
   
-      if( pli->leftRel != 0 )
-      {
-        pli->leftRel->Clear();
-        delete pli->leftRel;
-      }
+         if( pli->leftRel != 0 )
+         {
+           pli->leftRel->Clear();
+           delete pli->leftRel;
+         }
 
-      delete pli;
+         delete pli;
+         local = SetWord(0);
+      }
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
@@ -7500,24 +7563,29 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case CLOSE :
     {
-      if( pli->currTuple != 0 )
-        pli->currTuple->DeleteIfAllowed();
-
-      delete pli->leftIter;
-      delete pli->rightIter;
-      if( pli->resultTupleType != 0 )
-        pli->resultTupleType->DeleteIfAllowed();
-
-      if( pli->rightRel != 0 )
+      if(pli)
       {
-        pli->rightRel->Clear();
-        delete pli->rightRel;
-      }
+        if( pli->currTuple != 0 )
+          pli->currTuple->DeleteIfAllowed();
 
-      if( pli->leftRel != 0 )
-      {
-        pli->leftRel->Clear();
-        delete pli->leftRel;
+        delete pli->leftIter;
+        delete pli->rightIter;
+        if( pli->resultTupleType != 0 )
+          pli->resultTupleType->DeleteIfAllowed();
+
+        if( pli->rightRel != 0 )
+        {
+          pli->rightRel->Clear();
+          delete pli->rightRel;
+        }
+
+        if( pli->leftRel != 0 )
+        {
+          pli->leftRel->Clear();
+          delete pli->leftRel;
+        }
+        delete pli;
+        local = SetWord(0);
       }
 
       qp->Close(args[0].addr);
@@ -7531,7 +7599,11 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      if ( pli ) delete pli;
+      if ( pli )
+      {
+         delete pli;
+         local = SetWord(0);
+      }
       return 0;
 
 
@@ -8044,28 +8116,31 @@ SymmProductExtend(Word* args, Word& result,
     case CLOSE :
     {
       pli = (SymmProductExtendLocalInfo*)local.addr;
-
-      if( pli->currTuple != 0 )
-        pli->currTuple->DeleteIfAllowed();
-
-      delete pli->leftIter;
-      delete pli->rightIter;
-      if( pli->resultTupleType != 0 )
-        pli->resultTupleType->DeleteIfAllowed();
-
-      if( pli->rightRel != 0 )
+      if(pli)
       {
-        pli->rightRel->Clear();
-        delete pli->rightRel;
-      }
+        if( pli->currTuple != 0 )
+          pli->currTuple->DeleteIfAllowed();
+
+        delete pli->leftIter;
+        delete pli->rightIter;
+        if( pli->resultTupleType != 0 )
+          pli->resultTupleType->DeleteIfAllowed();
+
+        if( pli->rightRel != 0 )
+        {
+          pli->rightRel->Clear();
+          delete pli->rightRel;
+        }
   
-      if( pli->leftRel != 0 )
-      {
-        pli->leftRel->Clear();
-        delete pli->leftRel;
-      }
+        if( pli->leftRel != 0 )
+        {
+          pli->leftRel->Clear();
+          delete pli->leftRel;
+        }
 
-      delete pli;
+        delete pli;
+        local = SetWord(0);
+      }
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
@@ -8379,28 +8454,31 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
     {
       pli = (SymmProductLocalInfo*)local.addr;
-
-      if( pli->currTuple != 0 )
-        pli->currTuple->DeleteIfAllowed();
-
-      delete pli->leftIter;
-      delete pli->rightIter;
-      if( pli->resultTupleType != 0 )
-        pli->resultTupleType->DeleteIfAllowed();
-
-      if( pli->rightRel != 0 )
+      if(pli)
       {
-        pli->rightRel->Clear();
-        delete pli->rightRel;
-      }
+        if( pli->currTuple != 0 )
+          pli->currTuple->DeleteIfAllowed();
+
+        delete pli->leftIter;
+        delete pli->rightIter;
+        if( pli->resultTupleType != 0 )
+          pli->resultTupleType->DeleteIfAllowed();
+
+        if( pli->rightRel != 0 )
+        {
+          pli->rightRel->Clear();
+          delete pli->rightRel;
+        }
   
-      if( pli->leftRel != 0 )
-      {
-        pli->leftRel->Clear();
-        delete pli->leftRel;
-      }
+        if( pli->leftRel != 0 )
+        {
+          pli->leftRel->Clear();
+          delete pli->leftRel;
+        }
 
-      delete pli;
+        delete pli;
+        local = SetWord(0);
+      }
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
@@ -8625,9 +8703,12 @@ int AddCounterValueMap(Word* args, Word& result, int message,
     }
     case CLOSE: {
        qp->Close(args[0].addr);
-       AddCounterLocalInfo* acli = (AddCounterLocalInfo*)local.addr;
-       delete acli;
-       local.addr=0;
+       if(local.addr)
+       {
+         AddCounterLocalInfo* acli = (AddCounterLocalInfo*)local.addr;
+         delete acli;
+         local.addr=0;
+       }
        return 0;
     }
     default: assert(false); // unknown message
