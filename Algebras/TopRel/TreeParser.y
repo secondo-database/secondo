@@ -77,6 +77,9 @@ result value will be 0.
 #include "Tree.h"
 #include "TreeParser.y.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 
 #define YYERROR_VERBOSE
 
