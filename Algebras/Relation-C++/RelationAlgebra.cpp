@@ -1017,7 +1017,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       r = (GenericRelation*)args[0].addr;
       rit = r->MakeScan();
 
-      local = SetWord(rit);
+      local.addr = rit;
       return 0;
 
     case REQUEST :
@@ -1062,28 +1062,28 @@ public:
 int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  GenericRelation* r;
-  FeedLocalInfo* fli; 
+  GenericRelation* r=0;
+  FeedLocalInfo* fli=0; 
   Supplier sonOfFeed;  
 
 
   switch (message)
   {
-    case OPEN :
+    case OPEN :{
       r = (GenericRelation*)args[0].addr;
 
       fli = (FeedLocalInfo*) local.addr;
       if ( fli ) delete fli;
       
-      fli = new FeedLocalInfo;
-        fli->returned = 0;
-        fli->total = r->GetNoTuples();
-        fli->rit = r->MakeScan();
-        fli->progressInitialized = false;
+      fli = new FeedLocalInfo();
+      fli->returned = 0;
+      fli->total = r->GetNoTuples();
+      fli->rit = r->MakeScan();
+      fli->progressInitialized = false;
       local = SetWord(fli);
       return 0;
-
-    case REQUEST :
+    }
+    case REQUEST :{
       fli = (FeedLocalInfo*) local.addr;
       Tuple *t;
       if ((t = fli->rit->GetNextTuple()) != 0)
@@ -1096,17 +1096,19 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         return CANCEL;
       }
-
-    case CLOSE :
+    }
+    case CLOSE :{
       if(local.addr)
       {
         fli = (FeedLocalInfo*) local.addr;
         delete fli->rit;
-        local = SetWord(0);
+        delete fli;
+        //local = SetWord(0);
+        local.addr=0;
       }
       return 0;
-
-    case CLOSEPROGRESS: 
+    }
+    case CLOSEPROGRESS:{ 
 
       sonOfFeed = qp->GetSupplierSon(s, 0);
       if ( !qp->IsObjectNode(sonOfFeed) )
@@ -1116,19 +1118,20 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( fli )
       {
          delete fli;
-         local = SetWord(0);
+         //local = SetWord(0);
+         local.addr=0;
       }
       return 0;
 
-
-    case REQUESTPROGRESS :
+    }
+    case REQUESTPROGRESS :{
 
       GenericRelation* rr;
       rr = (GenericRelation*)args[0].addr;
 
 
       ProgressInfo p1;
-      ProgressInfo *pRes;
+      ProgressInfo *pRes=0;
       const double uFeed = 0.00194;    //milliseconds per tuple
       const double vFeed = 0.0000196;  //milliseconds per Byte
 
@@ -1205,7 +1208,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
         }
         else return CANCEL;
       }
-
+    }
   }
   return 0;
 }
@@ -2286,14 +2289,16 @@ int
 Project(Word* args, Word& result, int message, 
         Word& local, Supplier s)
 {
-  ProjectLocalInfo *pli;
-  Word elem1, elem2;
-  int noOfAttrs, index;
+  ProjectLocalInfo *pli=0;
+  Word elem1 = SetWord(0);
+  Word elem2 = SetWord(0);
+  int noOfAttrs= 0;
+  int index= 0;
   Supplier son;
 
   switch (message)
   {
-    case OPEN:
+    case OPEN:{
 
       pli = (ProjectLocalInfo*) local.addr;
       if ( pli ) delete pli;
@@ -2306,8 +2311,8 @@ Project(Word* args, Word& result, int message,
 
       qp->Open(args[0].addr);
       return 0;
-
-    case REQUEST:
+    }
+    case REQUEST:{
 
       pli = (ProjectLocalInfo*) local.addr;
 
@@ -2333,8 +2338,8 @@ Project(Word* args, Word& result, int message,
         return YIELD;
       }
       else return CANCEL;
-
-    case CLOSE:
+    }
+    case CLOSE: {
       if(local.addr)
       {
          pli = (ProjectLocalInfo*) local.addr;
@@ -2346,8 +2351,8 @@ Project(Word* args, Word& result, int message,
       qp->Close(args[0].addr);
       return 0;
 
-
-    case CLOSEPROGRESS:
+    }
+    case CLOSEPROGRESS:{
       qp->CloseProgress(args[0].addr);
 
       pli = (ProjectLocalInfo*) local.addr;
@@ -2356,9 +2361,9 @@ Project(Word* args, Word& result, int message,
          local = SetWord(0);
       }
       return 0;
+    }
 
-
-    case REQUESTPROGRESS:
+    case REQUESTPROGRESS:{
 
       ProgressInfo p1;
       ProgressInfo *pRes;
@@ -2416,6 +2421,9 @@ Project(Word* args, Word& result, int message,
         return YIELD;
       }
       else return CANCEL;
+    }
+    default : cerr << "unknown message" << endl;
+              return 0;
 
   }
   return 0;
