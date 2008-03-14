@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -26,14 +26,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation of the Common Relation Algebra
 
-March 2003 Victor Almeida created the new Relational Algebra 
+March 2003 Victor Almeida created the new Relational Algebra
 organization.
 
-Nov 2004 M. Spiekermann. Implementation of the ~Comparison~ 
-Classes moved to RelationAlgebra.h in order to declare the 
-operator() as inline function. Moreover some uninitialzed 
-variables were set to avoid warning when compiling with 
-optimization flag -O2. 
+Nov 2004 M. Spiekermann. Implementation of the ~Comparison~
+Classes moved to RelationAlgebra.h in order to declare the
+operator() as inline function. Moreover some uninitialzed
+variables were set to avoid warning when compiling with
+optimization flag -O2.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
@@ -48,14 +48,14 @@ stable.
 
 1 Overview
 
-The Relational Algebra basically implements two type constructors, 
+The Relational Algebra basically implements two type constructors,
 namely ~tuple~ and ~rel~.
 
-More information about the Relational Algebra can be found in the 
+More information about the Relational Algebra can be found in the
 RelationAlgebra.h header file.
 
-Some functionalities are the same for both the Main Memory and the 
-Persistent Relational Algebra. These common functionalities belongs 
+Some functionalities are the same for both the Main Memory and the
+Persistent Relational Algebra. These common functionalities belongs
 to this implementation file.
 
 2 Defines, includes, and constants
@@ -82,9 +82,9 @@ extern AlgebraManager *am;
 
 using namespace symbols;
 
-long Tuple::tuplesCreated = 0; 
-long Tuple::tuplesDeleted = 0; 
-long Tuple::maximumTuples = 0; 
+long Tuple::tuplesCreated = 0;
+long Tuple::tuplesDeleted = 0;
+long Tuple::maximumTuples = 0;
 long Tuple::tuplesInMemory = 0;
 
 /*
@@ -92,8 +92,8 @@ These variables are used for tuple statistics.
 
 3 Implementation of the class ~TupleType~
 
-A ~TupleType~ is a collection (an array) of all attribute types 
-(~AttributeType~) of the tuple. This structure contains the 
+A ~TupleType~ is a collection (an array) of all attribute types
+(~AttributeType~) of the tuple. This structure contains the
 metadata of a tuple attributes.
 
 */
@@ -109,7 +109,7 @@ TupleType::TupleType( const ListExpr typeInfo )
     const string errMsg("TupleType: Wrong list format! Line ");
     if ( nl->ListLength(typeInfo) != 2) { // ( <tuple> <attr_list> )
       throw SecondoException(errMsg + int2Str(__LINE__));
-    }  
+    }
     noAttributes = nl->ListLength( nl->Second( typeInfo ) );
     ListExpr rest = nl->Second( typeInfo );
 
@@ -122,7 +122,7 @@ TupleType::TupleType( const ListExpr typeInfo )
       if (nl->ListLength(list) != 2){ //( <attr_name> <attr_desc> )
         throw SecondoException(errMsg + int2Str(__LINE__));
       }
-      
+
       //list = (a b ...)
       ListExpr b = nl->Second( list );
       rest = nl->Rest( rest );
@@ -138,7 +138,7 @@ TupleType::TupleType( const ListExpr typeInfo )
         if ( nl->ListLength(b) < 2 ){
           throw SecondoException(errMsg + int2Str(__LINE__));
         }
-        //b = (algid typeid ...)      
+        //b = (algid typeid ...)
         algId = nl->IntValue( nl->First( b ) ),
         typeId = nl->IntValue( nl->Second( b ) ),
         size = (am->SizeOfObj(algId, typeId))();
@@ -148,7 +148,7 @@ TupleType::TupleType( const ListExpr typeInfo )
         if ( nl->ListLength(b1) < 2 ){
           throw SecondoException(errMsg + int2Str(__LINE__));
         }
-        //b1 = ((algid typeid ...) ...)    
+        //b1 = ((algid typeid ...) ...)
         algId = nl->IntValue( nl->First(b1) );
         typeId = nl->IntValue( nl->Second(b1) );
         size = (am->SizeOfObj(algId, typeId))();
@@ -159,12 +159,12 @@ TupleType::TupleType( const ListExpr typeInfo )
   }
   catch (SecondoException e) {
     cerr << e.msg() << endl;
-    cerr << "Input list: " << nl->ToString(typeInfo) << endl;    
-    cerr << "Assuming list: " 
+    cerr << "Input list: " << nl->ToString(typeInfo) << endl;
+    cerr << "Assuming list: "
          << "(a1 (algid typeid) a2 (algid typeid) ....) or" << endl;
-    cerr << "               " 
+    cerr << "               "
          << "(a1 ((algid typeid)) a2 ((algid typeid)) ....) " << endl;
-  } 
+  }
 }
 
 /*
@@ -190,7 +190,7 @@ void Tuple::InitCounters(const bool val)
   tuplesDeleted = 0;
   maximumTuples = 0;
   tuplesInMemory = 0;
-  
+
   Counter::getRef(CTR_CreatedTuples) = 0;
   Counter::getRef(CTR_DeletedTuples) = 0;
   Counter::getRef(CTR_MaxmemTuples) = 0;
@@ -229,7 +229,7 @@ ostream& operator <<( ostream& o, Tuple& t )
   return o << ">";
 }
 
-Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos, 
+Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
                   ListExpr& errorInfo, bool& correct )
 {
   int  attrno, algebraId, typeId, noOfAttrs;
@@ -257,8 +257,8 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
 
     errorInfo = nl->Append(errorInfo,
       nl->FourElemList(
-        nl->IntAtom(71), 
-        nl->SymbolAtom("tuple"), 
+        nl->IntAtom(71),
+        nl->SymbolAtom("tuple"),
         nl->IntAtom(1),
         nl->IntAtom(errorPos)));
     delete t;
@@ -271,16 +271,16 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
       first = nl->First(attrlist);
       attrlist = nl->Rest(attrlist);
 
-      algebraId = 
+      algebraId =
         t->GetTupleType()->GetAttributeType( attrno ).algId;
-      typeId = 
+      typeId =
         t->GetTupleType()->GetAttributeType( attrno ).typeId;
       attrno++;
       if (nl->IsEmpty(valuelist))
       {
         correct = false;
 
-        cout << "Error in reading tuple: list of values is empty." 
+        cout << "Error in reading tuple: list of values is empty."
              << endl;
         cout << "Tuple no." << errorPos << endl;
         cout << "The tuple is: " << endl;
@@ -288,8 +288,8 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
 
         errorInfo = nl->Append(errorInfo,
           nl->FourElemList(
-            nl->IntAtom(71), 
-            nl->SymbolAtom("tuple"), 
+            nl->IntAtom(71),
+            nl->SymbolAtom("tuple"),
             nl->IntAtom(2),
             nl->IntAtom(errorPos)));
         delete t;
@@ -301,7 +301,7 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
         valuelist = nl->Rest(valuelist);
 
         attr = (am->InObj(algebraId, typeId))
-          (nl->First(nl->Rest(first)), firstvalue, 
+          (nl->First(nl->Rest(first)), firstvalue,
            attrno, errorInfo, valueCorrect);
         if (valueCorrect)
         {
@@ -325,10 +325,10 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
 
           errorInfo = nl->Append(errorInfo,
             nl->FiveElemList(
-              nl->IntAtom(71), 
-              nl->SymbolAtom("tuple"), 
+              nl->IntAtom(71),
+              nl->SymbolAtom("tuple"),
               nl->IntAtom(3),
-              nl->IntAtom(errorPos), 
+              nl->IntAtom(errorPos),
               nl->IntAtom(attrno)));
           delete t;
           return 0;
@@ -347,8 +347,8 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
 
       errorInfo = nl->Append(errorInfo,
         nl->FourElemList(
-          nl->IntAtom(71), 
-          nl->SymbolAtom("tuple"), 
+          nl->IntAtom(71),
+          nl->SymbolAtom("tuple"),
           nl->IntAtom(4),
           nl->IntAtom(errorPos)));
       delete t;
@@ -357,6 +357,12 @@ Tuple *Tuple::In( ListExpr typeInfo, ListExpr value, int errorPos,
   }
   return t;
 }
+
+/*
+Expects a nested List expression with format
+((tuple ((ident type)..(ident type))))
+
+*/
 
 ListExpr Tuple::Out( ListExpr typeInfo )
 {
@@ -404,8 +410,8 @@ Tuple *Relation::GetTuple( const TupleId& id,
   return t;
 }
 
-GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value, 
-                        int errorPos, ListExpr& errorInfo, 
+GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value,
+                        int errorPos, ListExpr& errorInfo,
                         bool& correct, bool tupleBuf /*=false*/)
 {
   ListExpr tuplelist, TupleTypeInfo, first;
@@ -432,8 +438,8 @@ GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value,
     correct = false;
     errorInfo = nl->Append(errorInfo,
     nl->ThreeElemList(
-      nl->IntAtom(70), 
-      nl->SymbolAtom("rel"), 
+      nl->IntAtom(70),
+      nl->SymbolAtom("rel"),
       tuplelist));
     return rel;
   }
@@ -444,7 +450,7 @@ GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value,
       first = nl->First(tuplelist);
       tuplelist = nl->Rest(tuplelist);
       tupleno++;
-      tupleaddr = Tuple::In(TupleTypeInfo, first, tupleno, 
+      tupleaddr = Tuple::In(TupleTypeInfo, first, tupleno,
                             errorInfo, tupleCorrect);
 
       if (tupleCorrect)
@@ -462,10 +468,10 @@ GenericRelation *Relation::In( ListExpr typeInfo, ListExpr value,
 
     if (!correct)
     {
-      errorInfo = 
+      errorInfo =
         nl->Append(errorInfo,
           nl->TwoElemList(
-          nl->IntAtom(72), 
+          nl->IntAtom(72),
           nl->SymbolAtom("rel")));
       delete rel;
       return 0;
@@ -523,7 +529,7 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id,
 6.1 Function ~TypeOfRelAlgSymbol~
 
 Transforms a list expression ~symbol~ into one of the values of
-type ~RelationType~. ~Symbol~ is allowed to be any list. If it is 
+type ~RelationType~. ~Symbol~ is allowed to be any list. If it is
 not one of these symbols, then the value ~error~ is returned.
 
 */
@@ -547,15 +553,15 @@ RelationType TypeOfRelAlgSymbol (ListExpr symbol)
 /*
 6.2 Function ~FindAttribute~
 
-Here ~list~ should be a list of pairs of the form 
-(~name~,~datatype~). The function ~FindAttribute~ determines 
-whether ~attrname~ occurs as one of the names in this list. If so, 
-the index in the list (counting from 1) is returned and the 
-corresponding datatype is returned in ~attrtype~. Otherwise 0 is 
+Here ~list~ should be a list of pairs of the form
+(~name~,~datatype~). The function ~FindAttribute~ determines
+whether ~attrname~ occurs as one of the names in this list. If so,
+the index in the list (counting from 1) is returned and the
+corresponding datatype is returned in ~attrtype~. Otherwise 0 is
 returned. Used in operator ~attr~, for example.
 
 */
-int 
+int
 FindAttribute( ListExpr list, string attrname, ListExpr& attrtype)
 {
   ListExpr first, rest;
@@ -598,7 +604,7 @@ ListExpr ConcatLists( ListExpr list1, ListExpr list2)
   if (nl->IsEmpty(list1))
     return list2;
   else
-    return nl->Cons(nl->First(list1), 
+    return nl->Cons(nl->First(list1),
                     ConcatLists(nl->Rest(list1), list2));
 }
 
@@ -640,7 +646,7 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
       && (nl->IsAtom(nl->Second(current)))
       && (nl->AtomType(nl->Second(current)) == SymbolType))
     {
-      if(aNames.find(nl->SymbolValue(nl->First(current))) != 
+      if(aNames.find(nl->SymbolValue(nl->First(current))) !=
          aNames.end())
         return false;
     }
@@ -669,7 +675,7 @@ bool CompareNames(ListExpr list)
   {
     attrname = nl->SymbolValue(nl->First(nl->First(attrnamelist)));
     attrnamelist = nl->Rest(attrnamelist);
-    unique = std::count(attrnamestrlist.begin(), 
+    unique = std::count(attrnamestrlist.begin(),
                         attrnamestrlist.end(),
                         attrname);
     *it =  attrname;
@@ -715,7 +721,7 @@ bool IsTupleDescription( ListExpr a )
       if(nl->ListLength(current!=2)){
          ErrorReporter::ReportError("Attribut description must have length 2");
       }
-      if(!nl->IsAtom(nl->First(current)) || 
+      if(!nl->IsAtom(nl->First(current)) ||
          !nl->AtomType(nl->First(current)) == SymbolType){
          ErrorReporter::ReportError("Attribute name must be a symbol.");
       }
@@ -849,8 +855,8 @@ ListExpr GetTupleResultType( Supplier s )
     default:
       assert( false );
   }
- 
-  first = nl->First( result ); 
+
+  first = nl->First( result );
   return SecondoSystem::GetCatalog()->NumericType( result );
 }
 
@@ -876,7 +882,7 @@ bool CompareSchemas( ListExpr r1, ListExpr r2 )
     attrList1 = nl->Rest( attrList1 );
     attrList2 = nl->Rest( attrList2 );
 
-    if( nl->SymbolValue( nl->Second( first1 ) ) != 
+    if( nl->SymbolValue( nl->Second( first1 ) ) !=
         nl->SymbolValue( nl->Second( first2 ) ) )
       return false;
   }
