@@ -1435,9 +1435,9 @@ int ValMapSubtext( Word* args, Word& result, int message,
 struct ValMapFindLocalInfo{
   string text;
   string pattern;
-  unsigned textlen;
-  unsigned patternlen;
-  unsigned int lastPosFound;
+  size_t textlen;
+  size_t patternlen;
+  size_t lastPosFound;
   bool finished;
 };
 
