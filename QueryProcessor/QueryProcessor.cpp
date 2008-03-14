@@ -486,7 +486,7 @@ struct OpNode
   OpNodeType   nodetype;
   int          id;
   bool         isRoot;
-  union OpNodeUnion
+  struct OpNodeUnion
   {
     struct OpNodeDirectObject
     {

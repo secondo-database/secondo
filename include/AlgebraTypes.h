@@ -70,7 +70,7 @@ apply an appropriate type cast.
 
 */
 
-union Word
+struct Word
 {
 //  Word()                   : addr( 0 )       {};
 //  Word( Address  newaddr ) : addr( newaddr ) {};
@@ -86,7 +86,48 @@ Therefore some inline initialization functions ("SetWord"[4]) are defined below.
   ListExpr list; // nested list expression
   int      ival; // integer value
   float    rval; // floating point value with single precision
+
+
+  Word(){
+    init();
+  }
+
+  Word(const Word& src){
+     equalize(src);
+  }
+
+  ~Word(){
+     init();
+  }
+
+  Word& operator=(const Word& src){
+     equalize(src);
+     return *this;
+  }
+
+  void setAddr(Address addr){
+    this->addr = addr;
+  }
+
+
+  private:
+
+    inline void equalize(const Word& src){
+     this->addr = src.addr;
+     this->list = src.list;
+     this->ival = src.ival;
+     this->rval = src.rval;
+    }
+
+    inline void init(){
+      addr = 0;
+      list = 0;
+      ival = 0;
+      rval = 0.0f;
+    }
 };
+
+
 /*
 Specifies a generic variant type for a "Word"[4] of memory used for "Secondo"[3]
 objects. To be independent of the underlying processor architecture no
