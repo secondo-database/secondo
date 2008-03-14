@@ -1949,7 +1949,7 @@ The function makes use of four arguments:
       if (local.addr != 0)
       {
         delete (MinMaxBuffer*)local.addr;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       
       return 0;

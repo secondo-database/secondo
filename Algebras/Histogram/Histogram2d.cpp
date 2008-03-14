@@ -2710,7 +2710,7 @@ Argument 0 Histogram2d, 1 real value
       if (local.addr != 0)
       {
         delete (MinMaxBuffer*)local.addr;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
 
       return 0;
