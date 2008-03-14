@@ -6,5 +6,5 @@ operator shortest_path alias SHORTEST_PATH pattern op ( _, _ )
 operator length alias LENGTH pattern op ( _ )
 operator point2gpoint alias POINT2GPOINT pattern op ( _ , _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
-
+operator line2gline alias LINE2GLINE pattern op ( _ , _ )
 

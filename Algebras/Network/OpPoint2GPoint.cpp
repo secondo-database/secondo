@@ -243,7 +243,6 @@ Get and check input values.
 //   int iNetworkId = pNetworkId->GetIntval();
 //   Network* pNetwork = NetworkManager::GetNetwork(iNetworkId);
   Network* pNetwork = (Network*)args[0].addr;
-  int iNetworkId = pNetwork->GetId();
   if (pNetwork == 0 || !pNetwork->isDefined()) {
     string strMessage = "Network is not defined.";
     cerr << strMessage << endl;
@@ -251,6 +250,8 @@ Get and check input values.
     pGPoint->SetDefined(false);
     return 0;
   }
+  int iNetworkId = pNetwork->GetId();
+
   Point* pPoint = (Point*)args[1].addr;
   if(pPoint == NULL || !pPoint->IsDefined()) {
     string strMessage = "Point does not exist.";

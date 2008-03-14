@@ -43,6 +43,48 @@ Signature: mgpoint x gpoint -> bool
 Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gpoint value (1 1 2.4 1)];
 Result   : FALSE
 
+Operator : passes
+Number   : 5
+Signature: mgpoint x gline -> bool
+Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gline value (1 ((1 2.5 3.0)))];
+Result   : FALSE
+
+Operator : passes
+Number   : 6
+Signature: mgpoint x gline -> bool
+Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gline value (1 ((1 0.5 2.4)))];
+Result   : TRUE
+
+Operator : passes
+Number   : 7
+Signature: mgpoint x gline -> bool
+Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gline value (1 ((1 0.1 2.8)))];
+Result   : TRUE
+
+Operator : passes
+Number   : 8
+Signature: mgpoint x gline -> bool
+Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gline value (1 ((1 0.1 1.4)))];
+Result   : TRUE
+
+Operator : passes
+Number   : 9
+Signature: mgpoint x gline -> bool
+Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gline value (1 ((1 1.1 2.6)))];
+Result   : TRUE
+
+Operator : passes
+Number   : 10
+Signature: mgpoint x gline -> bool
+Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gline value (1 ((1 0.5 0.7)))];
+Result   : TRUE
+
+Operator : passes
+Number   : 11
+Signature: mgpoint x gline -> bool
+Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gline value (1 ((1 0.0 0.15)))];
+Result   : FALSE
+
 Operator : trajectory
 Number   : 1
 Signature: mgpoint -> gline

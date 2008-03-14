@@ -39,6 +39,7 @@ Mai-Oktober 2007 Martin Scheppokat
 #include "TemporalAlgebra.h"
 #include "NetworkAlgebra.h"
 #include "GPoint.h"
+#include "GLine.h"
 #include "UGPoint.h"
 #include "MGPoint.h"
 #include "TemporalNetAlgebra.h"
@@ -51,30 +52,176 @@ Mai-Oktober 2007 Martin Scheppokat
 Typemap function of the operator
 
 */
-ListExpr OpPasses::TypeMap(ListExpr in_xArgs)
+ListExpr
+OpPasses:: PassesMap( ListExpr args )
 {
-  if( nl->ListLength(in_xArgs) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
-
-  ListExpr xMGPointDesc = nl->First(in_xArgs);
-  ListExpr xGPointDesc = nl->Second(in_xArgs);
-
-  if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
   {
-    return (nl->SymbolAtom( "typeerror" ));
-  }
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
 
-  if( (!nl->IsAtom( xGPointDesc )) ||
-      nl->AtomType( xGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xGPointDesc ) != "gpoint" )
-  {
-    return (nl->SymbolAtom( "typeerror" ));
+    if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+         nl->SymbolValue(arg1) == "mgpoint" ) {
+      if (nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+         (nl->SymbolValue(arg2) == "gpoint" ||
+          nl->SymbolValue(arg2) == "gline")){
+        return (nl->SymbolAtom("bool"));
+      }
+    }
   }
-
-  return nl->SymbolAtom("bool");
+  return (nl->SymbolAtom( "typeerror" ));
 }
+
+/*
+Value mapping function of operator ~passes~
+
+*/
+int OpPasses::passes_mgpgp(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  CcBool* pPasses = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pPasses);
+  // Get input values
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cout << "MGPoint not Defined" << endl;
+    pPasses->Set(false, false);
+    return 0;
+  }
+  GPoint* pGPoint = (GPoint*)args[1].addr;
+  if(pGPoint == NULL || !pGPoint->IsDefined()) {
+    cout << "GPoint not Defined" << endl;
+    pPasses->Set(false, false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  pMGPoint->Get(0, pCurrentUnit);
+  if (pGPoint->GetNetworkId() != pCurrentUnit->p0.GetNetworkId()) {
+    pPasses->Set(true, false);
+    return 0;
+  }
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++)
+  {
+
+    pMGPoint->Get(i, pCurrentUnit);
+    if (pCurrentUnit->p0.GetRouteId() == pGPoint->GetRouteId()){
+    // p is between p0 and p1
+      if((pCurrentUnit->p0.GetPosition() < pGPoint->GetPosition() &&
+        pGPoint->GetPosition() < pCurrentUnit->p1.GetPosition()) ||
+        (pCurrentUnit->p1.GetPosition() < pGPoint->GetPosition() &&
+        pGPoint->GetPosition() < pCurrentUnit->p0.GetPosition()))
+      {
+        pPasses->Set(true, true);
+        return 0;
+      }
+
+      // If the edge of the interval is included we need to check the exakt
+      // Position too.
+      if((pCurrentUnit->timeInterval.lc &&
+          AlmostEqual(pCurrentUnit->p0.GetPosition(), pGPoint->GetPosition()))||
+          (pCurrentUnit->timeInterval.rc &&
+          AlmostEqual(pCurrentUnit->p1.GetPosition(),pGPoint->GetPosition())))
+      {
+        pPasses->Set(true, true);
+        return 0;
+      }
+    }
+  }
+  pPasses->Set(true, false);
+  return 0;
+};
+
+int OpPasses::passes_mgpgl(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  CcBool* pPasses = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pPasses);
+  double dMGPStart, dMGPEnd;
+  // Get input values
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pPasses->Set(false, false);
+    return 0;
+  }
+  GLine* pGLine = (GLine*)args[1].addr;
+  if(pGLine == NULL || !pGLine->IsDefined()) {
+    cerr << "GLine does not exist." << endl;
+    pPasses->Set(false, false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  pMGPoint->Get(0, pCurrentUnit);
+  if (pGLine->GetNetworkId() != pCurrentUnit->p0.GetNetworkId()) {
+    pPasses->Set(true, false);
+    return 0;
+  }
+  DBArray<RouteInterval> gpRoutes = pGLine->GetRouteIntervals();
+  const RouteInterval *pCurrRInter;
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++)
+  {
+    pMGPoint->Get(i, pCurrentUnit);
+    if (pCurrentUnit->p0.GetPosition() <= pCurrentUnit->p1.GetPosition()) {
+      dMGPStart = pCurrentUnit->p0.GetPosition();
+      dMGPEnd = pCurrentUnit->p1.GetPosition();
+    } else {
+      dMGPStart = pCurrentUnit->p1.GetPosition();
+      dMGPEnd = pCurrentUnit->p0.GetPosition();
+    }
+    for (int j = 0 ; j < gpRoutes.Size(); j ++){
+      gpRoutes.Get(j,pCurrRInter);
+      if (pCurrRInter->m_iRouteId == pCurrentUnit->p0.GetRouteId() &&
+         (!(pCurrRInter->m_dEnd < dMGPStart ||
+            pCurrRInter->m_dStart > dMGPEnd))){
+        pPasses->Set(true, true);
+        return 0;
+      }
+    }
+  }
+  pPasses->Set(true, false);
+  return 0;
+};
+
+/*
+Value mapping function of operator ~passes~
+
+*/
+ValueMapping OpPasses::passesmap[] = {
+  passes_mgpgp,
+  passes_mgpgl
+};
+
+int
+OpPasses::SelectPasses( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->SymbolValue(arg2) == "gpoint")
+    return 0;
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->SymbolValue(arg2) == "gline")
+    return 1;
+  return -1; // This point should never be reached
+}
+
+
+
+
+
+
 
 /*
 Specification of the operator
@@ -82,8 +229,8 @@ Specification of the operator
 */
 const string OpPasses::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x gpoint -> boolean" "</text--->"
+  "( <text>mgpoint x A -> bool for A gpoint or gline " "</text--->"
   "<text>_ passes _</text--->"
-  "<text>Checks whether a moving point passes a fixed point.</text--->"
-  "<text>passes(X_MGPOINT, X_GPOINT)</text--->"
+  "<text>Checks whether a moving point passes a gpoint or a gline.</text--->"
+  "<text>X_MGPOINT passes X_GPOINT </text--->"
   ") )";

@@ -143,6 +143,10 @@ The constructor.
 
     double GetLength ();
 
+    int GetNetworkId();
+
+    DBArray<RouteInterval> GetRouteIntervals();
+
 
   private:
 

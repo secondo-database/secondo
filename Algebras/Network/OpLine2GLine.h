@@ -22,46 +22,49 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Declaration of Operator Passes
+1.1 Declaration of Operator Point2GPoint
 
-This operator checks whether a moving point passes a fixed point or not.
+The operator translates a ~line~ into a network based ~gline~
 
-Mai-Oktober 2007 Martin Scheppokat
+March 2008 Simone Jandt
+
+Defines, includes, and constants
 
 */
 
-#ifndef OPPASSES_H_
-#define OPPASSES_H_
+#ifndef OPLINE2GLINE_H_
+#define OPLINE2GLINE_H_
 
-class OpPasses
+class OpLine2GLine
 {
 public:
 /*
-
-Type Mapping of operator ~passes~
-
-*/
-static ListExpr PassesMap( ListExpr args );
-
-/*
-Value mapping function of operator ~passes~
+Type Mapping of operator ~line2gline~
 
 */
-static int passes_mgpgp(Word* args, Word& result, int message, Word& local,
-                        Supplier in_xSupplier);
-
-static int passes_mgpgl(Word* args, Word& result, int message, Word& local,
-                        Supplier in_xSupplier);
-
-static int SelectPasses(ListExpr args);
-
-static ValueMapping passesmap [];
+static ListExpr TypeMap(ListExpr args);
 
 /*
-4.4.3 Specification of operator ~passes~
+Value mapping function of operator ~line2gline~
+
+*/
+static int ValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s );
+
+/*
+Specification of operator ~line2gline~
 
 */
 static const string Spec;
+
+private:
+
+/*
+Send a message to all clients
+
+*/
+static void sendMessage(string in_strMessage);
+
 };
 
-#endif /*OPPASSES_H_*/
+#endif /*OPLINE2GLINE_H_*/

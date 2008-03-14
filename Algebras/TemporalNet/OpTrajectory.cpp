@@ -58,6 +58,8 @@ struct RITree {
 
   RITree(){};
 
+  ~RITree();
+
   RITree( int ri,double pos1, double pos2, RITree *left = 0, RITree *right = 0){
     m_iRouteId = ri;
     m_dStart = pos1;

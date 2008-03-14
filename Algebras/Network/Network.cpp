@@ -610,14 +610,15 @@ void Network::FillSections()
   int iSectionTid;
   while((pRoute = pRoutesIt->GetNextTuple()) != 0)
   {
+    iSectionTid = 0;
     // Current position on route - starting at the beginning of the route
     double dCurrentPosOnRoute = 0;
     Line* pRouteCurve = (Line*)pRoute->GetAttribute(ROUTE_CURVE);
-    double length = pRouteCurve->Length();
     int iTupleId = pRoute->GetTupleId();
     CcInt* xRouteId = (CcInt*)pRoute->GetAttribute(ROUTE_ID);
     int iRouteId = xRouteId->GetIntval();
     bool bDual = ((CcBool*)pRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
+
     /////////////////////////////////////////////////////////////////////
     //
     // We need to find all junctions belonging to this route
@@ -631,36 +632,36 @@ void Network::FillSections()
     // Now that we found all relevant junctions we can iterate over them.
     //
     JunctionSortEntry xCurrentEntry;
-    JunctionSortEntry xLastEntry;
-    JunctionSortEntry xSecLast;
-    JunctionSortEntry xFirstFirst;
     xCurrentEntry.m_pJunction = 0;
-    xLastEntry.m_pJunction = 0;
-    bool bFirstJunctionOnRoute = true;
-    bool bSecLast = false;
-    bool bFirstFirst = false;
     for(size_t i = 0; i < xJunctions.size(); i++)
     {
       // Get next junction
       xCurrentEntry = xJunctions[i];
+
       // Find values for the new section
       double dStartPos = dCurrentPosOnRoute;
       double dEndPos = xCurrentEntry.getRouteMeas();
 
       // If the first junction is at the very start of the route, no
       // section will be added
-      if(xCurrentEntry.getRouteMeas() == 0 && bFirstJunctionOnRoute)
+      if(xCurrentEntry.getRouteMeas() == 0)
       {
-         bFirstJunctionOnRoute = false;
-        xLastEntry = xCurrentEntry;
-        continue;
-      } else {
-        if (xCurrentEntry.getRouteMeas() == 0 && !bFirstJunctionOnRoute) {
-          xFirstFirst = xLastEntry;
-          xLastEntry = xCurrentEntry;
-          bFirstFirst = true;
-          continue;
+        vector<int> xIndices;
+        vector<Attribute*> xAttrs;
+        if(xCurrentEntry.m_bFirstRoute)
+        {
+          xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
+          xAttrs.push_back(new TupleIdentifier(true, 0));
         }
+        else
+        {
+          xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
+          xAttrs.push_back(new TupleIdentifier(true, 0));
+        }
+        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
+                                  xIndices,
+                                  xAttrs);
+        continue;
       }
 
       /////////////////////////////////////////////////////////////////////
@@ -721,166 +722,55 @@ void Network::FillSections()
         m_pSections->AppendTuple(pNewSection);
         iSectionTid = pNewSection->GetTupleId();
         pNewSection->DeleteIfAllowed();
-       // Update position for next loop
+        // Update position for next loop
         dCurrentPosOnRoute = dEndPos;
-
-
-        /////////////////////////////////////////////////////////////////////
-        //
-        // Store ID of new section in junction behind that section.
-        //
-        vector<int> xIndices;
-        vector<Attribute*> xAttrs;
-        if(xCurrentEntry.m_bFirstRoute)
-        {
-          xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
-          xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-        }
-        else
-        {
-          xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
-          xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-        }
-        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
-                                  xIndices,
-                                  xAttrs);
-        /////////////////////////////////////////////////////////////////////
-        //
-        // Store ID of new section in junction before that section
-        //
-        if (bSecLast) {
-          vector<int> zIndices;
-          vector<Attribute*> zAttrs;
-          if (xSecLast.m_bFirstRoute) {
-            zIndices.push_back(JUNCTION_SECTION_AUP_RC);
-            zAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          } else {
-            zIndices.push_back(JUNCTION_SECTION_BUP_RC);
-            zAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          }
-          m_pJunctions->UpdateTuple(xSecLast.m_pJunction, zIndices, zAttrs);
-          bSecLast = false;
-        }
-        if (bFirstJunctionOnRoute) {
-          xLastEntry = xCurrentEntry;
-          bFirstJunctionOnRoute = false;
-        } else {
-          vector<int> yIndices;
-          vector<Attribute*> yAttrs;
-          if (xLastEntry.m_bFirstRoute) {
-            yIndices.push_back(JUNCTION_SECTION_AUP_RC);
-            yAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          } else {
-            yIndices.push_back(JUNCTION_SECTION_BUP_RC);
-            yAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          }
-          m_pJunctions->UpdateTuple(xLastEntry.m_pJunction, yIndices, yAttrs);
-          xSecLast = xLastEntry;
-          xLastEntry = xCurrentEntry;
-        }
-        if (bFirstFirst) {
-          bFirstFirst = false;
-          vector<int> fIndices;
-          vector<Attribute*> fAttrs;
-          if (xFirstFirst.m_bFirstRoute) {
-            fIndices.push_back(JUNCTION_SECTION_AUP_RC);
-            fAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          } else {
-            fIndices.push_back(JUNCTION_SECTION_BUP_RC);
-            fAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          }
-          m_pJunctions->UpdateTuple(xFirstFirst.m_pJunction, fIndices, fAttrs);
-        }
-      } else {
-        bSecLast = true;
-        /////////////////////////////////////////////////////////////////////
-        //
-        // Store ID of new section in junction behind that section.
-        //
-        vector<int> xIndices;
-        vector<Attribute*> xAttrs;
-        if(xCurrentEntry.m_bFirstRoute)
-        {
-          xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
-          xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-        }
-        else
-        {
-          xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
-          xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-        }
-        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
-                                  xIndices,
-                                  xAttrs);
-        /////////////////////////////////////////////////////////////////////
-        //
-        // Store ID of new section in junction before that section
-        //
-
-        if (dEndPos < length && !AlmostEqual(dEndPos, length)){
-          vector<int> yIndices;
-          vector<Attribute*> yAttrs;
-          if (xLastEntry.m_bFirstRoute) {
-            yIndices.push_back(JUNCTION_SECTION_AUP_RC);
-            yAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          } else {
-            yIndices.push_back(JUNCTION_SECTION_BUP_RC);
-            yAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          }
-          m_pJunctions->UpdateTuple(xLastEntry.m_pJunction, yIndices, yAttrs);
-          xSecLast = xLastEntry;
-          xLastEntry = xCurrentEntry;
-          if (bFirstFirst) {
-            bFirstFirst = false;
-            vector<int> fIndices;
-            vector<Attribute*> fAttrs;
-            if (xFirstFirst.m_bFirstRoute) {
-              fIndices.push_back(JUNCTION_SECTION_AUP_RC);
-              fAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-            } else {
-              fIndices.push_back(JUNCTION_SECTION_BUP_RC);
-              fAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-            }
-            m_pJunctions->UpdateTuple(xFirstFirst.m_pJunction,
-                                      fIndices, fAttrs);
-          }
-        } else {
-          iSectionTid = 0;
-          vector<int> yIndices;
-          vector<Attribute*> yAttrs;
-          if (xLastEntry.m_bFirstRoute) {
-            yIndices.push_back(JUNCTION_SECTION_AUP_RC);
-            yAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          } else {
-            yIndices.push_back(JUNCTION_SECTION_BUP_RC);
-            yAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-          }
-          m_pJunctions->UpdateTuple(xLastEntry.m_pJunction, yIndices, yAttrs);
-          xSecLast = xLastEntry;
-          xLastEntry = xCurrentEntry;
-          if (bFirstFirst) {
-            bFirstFirst = false;
-            vector<int> fIndices;
-            vector<Attribute*> fAttrs;
-            if (xFirstFirst.m_bFirstRoute) {
-              fIndices.push_back(JUNCTION_SECTION_AUP_RC);
-              fAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-            } else {
-              fIndices.push_back(JUNCTION_SECTION_BUP_RC);
-              fAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-            }
-            m_pJunctions->UpdateTuple(xFirstFirst.m_pJunction,
-                                      fIndices, fAttrs);
-          }
-        }
       }
+
+      /////////////////////////////////////////////////////////////////////
+      //
+      // Store ID of new section in junction behind that section.
+      //
+      vector<int> xIndices;
+      vector<Attribute*> xAttrs;
+      if(xCurrentEntry.m_bFirstRoute)
+      {
+        xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
+        xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
+      }
+      else
+      {
+        xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
+        xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
+      }
+      m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
+                                xIndices,
+                                xAttrs);
+      if (pRouteCurve->Length() - xCurrentEntry.getRouteMeas() < 0.01) {
+        vector<int> xIndices;
+        vector<Attribute*> xAttrs;
+        if(xCurrentEntry.m_bFirstRoute)
+        {
+          xIndices.push_back(JUNCTION_SECTION_AUP_RC);
+          xAttrs.push_back(new TupleIdentifier(true, 0));
+        }
+        else
+        {
+          xIndices.push_back(JUNCTION_SECTION_BUP_RC);
+          xAttrs.push_back(new TupleIdentifier(true, 0));
+        }
+        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
+                                  xIndices,
+                                  xAttrs);
+      }
+
     } // End junctions-loop
     /////////////////////////////////////////////////////////////////////
     //
     // The last section of the route is still missing, if the last
     // junction is not at the end of the route.
     //
-    if ( (pRouteCurve->Length() - dCurrentPosOnRoute) > 0.01)
+    if(pRouteCurve->Length() - dCurrentPosOnRoute > 0.01 ||
+       dCurrentPosOnRoute == 0.0)
     {
       // Find values for the new section
       int iRouteId = ((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval();
@@ -933,42 +823,150 @@ void Network::FillSections()
                                 new CcBool(true, bLineStartsSmaller));
       m_pSections->AppendTuple(pNewSection);
       iSectionTid = pNewSection->GetTupleId();
+      pNewSection->DeleteIfAllowed();
       // Store ID of new section in Junction
-      vector<int> xIndicesLast;
-      vector<Attribute*> xAttrsLast;
-      if(xCurrentEntry.m_bFirstRoute)
+      if(xCurrentEntry.m_pJunction != 0)
       {
-        xIndicesLast.push_back(JUNCTION_SECTION_AUP_RC);
-        xAttrsLast.push_back(new TupleIdentifier(true, iSectionTid));
-      }
-      else
-      {
-        xIndicesLast.push_back(JUNCTION_SECTION_BUP_RC);
-        xAttrsLast.push_back(new TupleIdentifier(true, iSectionTid));
-      }
-      m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
+        vector<int> xIndicesLast;
+        vector<Attribute*> xAttrsLast;
+        if(xCurrentEntry.m_bFirstRoute)
+        {
+          xIndicesLast.push_back(JUNCTION_SECTION_AUP_RC);
+          xAttrsLast.push_back(new TupleIdentifier(true,
+                                                   iSectionTid));
+        }
+        else
+        {
+          xIndicesLast.push_back(JUNCTION_SECTION_BUP_RC);
+          xAttrsLast.push_back(new TupleIdentifier(true,
+                                                   iSectionTid));
+        }
+        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
                                   xIndicesLast,
                                   xAttrsLast);
-      if (bSecLast) {
-        vector<int> zIndices;
-        vector<Attribute*> zAttrs;
-        if (xSecLast.m_bFirstRoute) {
-          zIndices.push_back(JUNCTION_SECTION_AUP_RC);
-          zAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-        } else {
-          zIndices.push_back(JUNCTION_SECTION_BUP_RC);
-          zAttrs.push_back(new TupleIdentifier(true, iSectionTid));
-        }
-        m_pJunctions->UpdateTuple(xSecLast.m_pJunction, zIndices, zAttrs);
-        bSecLast = false;
       }
-      pNewSection->DeleteIfAllowed();
+    } // end if
+    ////////////////////////////////////////////////////////////////////
+    //
+    // Fill Up-Pointers of all sections but the last
+    //
+    vector<JunctionSortEntry> yJunctions;
+    GetJunctionsOnRoute(xRouteId,
+                        yJunctions);
+    if (yJunctions.size() > 2) {
+      for(int i = yJunctions.size()-2; i >= 0; i--)
+      {
+        // Get next junction
+        JunctionSortEntry xEntry = yJunctions[i];
+        JunctionSortEntry xEntryBehind = yJunctions[i + 1];
+
+        vector<int> xIndices;
+        if(xEntry.m_bFirstRoute)
+        {
+          xIndices.push_back(JUNCTION_SECTION_AUP_RC);
+        }
+        else
+        {
+          xIndices.push_back(JUNCTION_SECTION_BUP_RC);
+        }
+        vector<Attribute*> xAttrs;
+        if(xEntryBehind.getRouteMeas() - xEntry.getRouteMeas() < 0.01 )
+        {
+          // Two junctions at the same place. In this case they do have
+          // the same up-pointers
+          if(xEntryBehind.m_bFirstRoute)
+          {
+            int iTid = xEntryBehind.getUpSectionId();
+            xAttrs.push_back(new TupleIdentifier(true, iTid));
+          }
+          else
+          {
+            int iTid = xEntryBehind.getUpSectionId();
+            xAttrs.push_back(new TupleIdentifier(true, iTid));
+          }
+        }
+        else
+        {
+          // Junctions not on the same place. The down-pointer of the second is
+          // the up-pointer of the first.
+          if(xEntryBehind.m_bFirstRoute)
+          {
+            int iTid = xEntryBehind.getDownSectionId();
+            xAttrs.push_back(new TupleIdentifier(true, iTid));
+          }
+          else
+          {
+            int iTid = xEntryBehind.getDownSectionId();
+            xAttrs.push_back(new TupleIdentifier(true, iTid));
+          }
+        }
+        m_pJunctions->UpdateTuple(xEntry.m_pJunction,
+                                  xIndices,
+                                  xAttrs);
+      }
+    } else {
+      if (yJunctions.size() == 2) {
+        JunctionSortEntry xEntry = yJunctions[0];
+        JunctionSortEntry xEntryBehind = yJunctions[1];
+        vector<int> xIndices;
+        if(xEntry.m_bFirstRoute)
+        {
+          xIndices.push_back(JUNCTION_SECTION_AUP_RC);
+        }
+        else
+        {
+          xIndices.push_back(JUNCTION_SECTION_BUP_RC);
+        }
+        vector<Attribute*> xAttrs;
+        if (fabs(xEntry.getRouteMeas() - xEntryBehind.getRouteMeas()) < 0.01) {
+          if(xEntryBehind.m_bFirstRoute) {
+            int iTid = xEntryBehind.getUpSectionId();
+            xAttrs.push_back(new TupleIdentifier(true, iTid));
+          } else {
+            int iTid = xEntryBehind.getUpSectionId();
+            xAttrs.push_back(new TupleIdentifier(true, iTid));
+          }
+          m_pJunctions->UpdateTuple(xEntry.m_pJunction,
+                                      xIndices,
+                                      xAttrs);
+        } else {
+          if(xEntryBehind.m_bFirstRoute)
+            {
+              int iTid = xEntryBehind.getDownSectionId();
+              xAttrs.push_back(new TupleIdentifier(true, iTid));
+            }
+            else
+            {
+              int iTid = xEntryBehind.getDownSectionId();
+              xAttrs.push_back(new TupleIdentifier(true, iTid));
+            }
+            m_pJunctions->UpdateTuple(xEntry.m_pJunction,
+                                      xIndices,
+                                      xAttrs);
+        }
+      }
     }
     pRoute->DeleteIfAllowed();
   } // End while Routes
   delete pRoutesIt;
+//   delete m_pBTreeJunctionsByRoute1;
+//   delete m_pBTreeJunctionsByRoute2;
+//   ostringstream xThisJunctionsPtrStream;
+//   xThisJunctionsPtrStream << (long)m_pJunctions;
+//   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
+//                  " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
+//   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+//   assert(QueryExecuted); // no query with side effects, please!
+//   m_pBTreeJunctionsByRoute1 = (BTree*)xResult.addr;
+//
+//   ostringstream xThisJunctionsPtrStream2;
+//   xThisJunctionsPtrStream2 << (long)m_pJunctions;
+//   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
+//                 " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
+//   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+//   assert(QueryExecuted); // no query with side effects, please!
+//   m_pBTreeJunctionsByRoute2 = (BTree*)xResult.addr;
 }
-
 
 /*
 Method FillAdjacencyLists

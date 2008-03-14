@@ -199,11 +199,19 @@ Operator simplify("simplify",
 Operator passes
 
 */
-Operator passes("passes",
-                OpPasses::Spec,
-                MappingPasses<MGPoint, GPoint, GPoint>,
-                Operator::SimpleSelect,
-                OpPasses::TypeMap );
+//  Operator passes("passes",
+//                 OpPasses::Spec,
+//                 OpPasses::ValueMapping,
+//                 Operator::SimpleSelect,
+//                 OpPasses::TypeMap );
+
+Operator tempnetpasses (
+  "passes",
+  OpPasses::Spec,
+  2,
+  OpPasses::passesmap,
+  OpPasses::SelectPasses,
+  OpPasses::PassesMap );
 
 /*
 Operator trajectory
@@ -349,7 +357,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&mpoint2mgpoint);
     AddOperator(&units);
     AddOperator(&simplify);
-    AddOperator(&passes);
+    AddOperator(&tempnetpasses);
     AddOperator(&trajectory);
     AddOperator(&tempnetlength);
     AddOperator(&tempnetatinstant);

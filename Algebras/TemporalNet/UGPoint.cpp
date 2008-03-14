@@ -81,7 +81,6 @@ bool UGPoint::Passes( const GPoint& p ) const
 {
   assert( IsDefined() );
   assert( p.IsDefined() );
-
   // Check if this unit is on the same route as the GPoint
   if(p0.GetRouteId()!= p.GetRouteId())
   {
@@ -89,24 +88,23 @@ bool UGPoint::Passes( const GPoint& p ) const
   }
 
   // p is between p0 and p1
-  if(p0.GetPosition() < p.GetPosition() &&
-     p.GetPosition() < p1.GetPosition() ||
-     p1.GetPosition() < p.GetPosition() &&
-     p.GetPosition() < p0.GetPosition())
+  if((p0.GetPosition() < p.GetPosition() &&
+     p.GetPosition() < p1.GetPosition()) ||
+     (p1.GetPosition() < p.GetPosition() &&
+     p.GetPosition() < p0.GetPosition()))
   {
     return true;
   }
 
   // If the edge of the interval is included we need to check the exakt
   // Position too.
-  if(timeInterval.lc &&
-     AlmostEqual(p0.GetPosition(), p.GetPosition()) ||
-     timeInterval.rc &&
-     AlmostEqual(p1.GetPosition(),p.GetPosition()))
+  if((timeInterval.lc &&
+     AlmostEqual(p0.GetPosition(), p.GetPosition())) ||
+     (timeInterval.rc &&
+     AlmostEqual(p1.GetPosition(),p.GetPosition())))
   {
     return true;
   }
-
   return false;
 }
 

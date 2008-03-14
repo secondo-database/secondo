@@ -70,6 +70,7 @@ Type property of type constructor ~network~
 #include "OpDistance.h"
 #include "OpPoint2GPoint.h"
 #include "OpNetEqual.h"
+#include "OpLine2GLine.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -264,7 +265,18 @@ Operator netgpequal (
           OpNetEqual::TypeMap        // type mapping
 );
 
+/*
+Definition of  operator line2gline
 
+*/
+
+Operator line2gline (
+          "line2gline",               // name
+          OpLine2GLine::Spec,          // specification
+          OpLine2GLine::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpLine2GLine::TypeMap        // type mapping
+);
 /*
 Creating the Algebra
 
@@ -292,6 +304,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networkdistance);
     AddOperator(&point2gpoint);
     AddOperator(&netgpequal);
+    AddOperator(&line2gline);
   }
   ~NetworkAlgebra() {};
 };

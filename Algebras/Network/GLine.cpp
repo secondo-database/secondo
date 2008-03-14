@@ -345,7 +345,7 @@ void GLine::Close(const ListExpr typeInfo,
 Word GLine::Clone(const ListExpr typeInfo,
                   const Word& w )
 {
-  return SetWord( 0 );
+  return SetWord( ((GLine*)w.addr)->Clone() );
 }
 
 /*
@@ -452,6 +452,23 @@ double GLine::GetLength(){
   };
   return length;
 }
+
+
+ int GLine::GetNetworkId() {
+  return  m_iNetworkId;
+ };
+
+  DBArray<RouteInterval> GLine::GetRouteIntervals(){
+    DBArray<RouteInterval> result;
+    const RouteInterval *ri;
+    result.Clear();
+    for (int i = 0; i < m_xRouteIntervals.Size(); i++){
+      m_xRouteIntervals.Get(i,ri);
+      result.Append(*ri);
+    }
+    return result;
+  };
+
 
 /*
 Function describing the signature of the type constructor

@@ -64,3 +64,10 @@ Number   : 2
 Signature: gpoint x gpoint -> bool
 Example  : query X_GPOINT = X_GPOINT
 Result   : TRUE
+
+Operator : line2gline
+Number   : 1
+Signature: line -> gline
+Example  : query line2gline(B_NETWORK, [const line value((8594.0 8773.0 8982.0 8781.0))]);
+Result   : (gline (1 ((1 385.0474775448921 773.1299430080975))))
+Tolerance:%0.01
