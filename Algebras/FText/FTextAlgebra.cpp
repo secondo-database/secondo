@@ -70,6 +70,10 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 #include "StopWatch.h"
 #include "Symbols.h"
 
+extern NestedList *nl;
+extern QueryProcessor *qp;
+extern AlgebraManager *am;
+
 using namespace std;
 
 //extern NestedList* nl;
@@ -107,9 +111,12 @@ void FText::CopyFrom( const StandardAttribute* right )
     cout << '\n' << "Start CopyFrom" << '\n';
 
   const FText* r = (const FText*)right;
-  const char *s = 0;
-  r->theText.Get(0, &s);
-  Set( r->defined, s );
+  string val = "";
+  if(r->IsDefined())
+  {
+    val = r->GetValue();
+  }
+  Set( r->defined, val );
 }
 
 int FText::Compare( const Attribute *arg ) const
@@ -813,11 +820,11 @@ ListExpr FTextTypeMapEvaluate( ListExpr args )
 }
 
 /*
-Type Mapping Function for operator ~replace~
+Type Mapping Function for operators ~replace~, ~createDBobject~
 
 */
 
-ListExpr FTextTypeMapReplace( ListExpr args )
+ListExpr FTextTypeTextual3( ListExpr args )
 {
   NList type(args);
   if(     !type.hasLength(3)
@@ -830,6 +837,87 @@ ListExpr FTextTypeMapReplace( ListExpr args )
       "{text|string} arguments.");
   }
   return NList(TEXT).listExpr();
+}
+
+/*
+Type Mapping for ~getTypeNL~:
+
+---- TypeExpr --> text @text
+----
+
+*/
+
+ListExpr FTextTypeMapExpression2Text( ListExpr args )
+{
+  NList type(args);
+  if(type.hasLength(1))
+  {
+    string firsttype = type.first().convertToString();
+    NList firstType = NList(firsttype, true, true).enclose();
+    NList restype(NList(symbols::APPEND),
+                  firstType,
+                  NList(symbols::TEXT)
+                 );
+    return restype.listExpr();
+  }
+  return NList::typeError("Expected any Expression as single argument.");
+}
+
+/*
+Type Mapping for ~getValueNL~:
+
+----
+     (stream TypeExpr) --> (stream text) @text
+     Expr --> text @text
+----
+
+*/
+
+ListExpr FTextTypeMapGetValueNL( ListExpr args )
+{
+  NList type(args);
+  NList resulttype = NList(Symbols::TYPEERROR());
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+
+  if( !type.hasLength(1) )
+  { // too many arguments
+    return NList::typeError("Expected any Expression as single argument.");
+  }
+  type = type.first();
+  if( IsStreamDescription(type.listExpr()) )
+  { // tuplestream
+    string myType    = type.second().convertToString();
+    NList streamtype = NList(symbols::STREAM, symbols::TEXT);
+    NList typeExpr   = NList(myType, true, true).enclose();
+    resulttype = NList( NList(symbols::APPEND),
+                        NList(myType, true, true).enclose(),
+                        streamtype
+                      );
+  }
+  else if (    type.hasLength(2)
+            && (type.first() == symbols::STREAM)
+            && am->CheckKind("DATA",type.second().listExpr(),errorInfo)
+          )
+  { // datastream
+    string myType    = type.second().convertToString();
+    NList streamtype = NList(symbols::STREAM, symbols::TEXT);
+    NList typeExpr   = NList(myType, true, true).enclose();
+    resulttype = NList( NList(symbols::APPEND),
+                        NList(myType, true, true).enclose(),
+                        streamtype
+                      );
+  }
+  else
+  { // non-stream expression
+    string myType = type.convertToString();
+    NList typeExpr = NList(myType, true, true).enclose();
+    resulttype = NList( NList(symbols::APPEND),
+                        NList(myType, true, true).enclose(),
+                        NList(symbols::TEXT)
+                      );
+  }
+  cout << __PRETTY_FUNCTION__ << ": result = " << resulttype << endl;
+  return resulttype.listExpr();
 }
 
 /*
@@ -1088,8 +1176,12 @@ The length of a string is three characters or more.
        
     case CLOSE:
       //cout << "close ValMapkeywords" << endl;
-      thetext = ((TheText*) local.addr);
-      delete thetext;
+      if(local.addr)
+      {
+        thetext = ((TheText*) local.addr);
+        delete thetext;
+        local = SetWord(Address(0));
+      }
       return 0;
   }
   /* should not happen */
@@ -1205,8 +1297,12 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
       }
     case CLOSE:
       //cout << "close ValMapsentences" << endl;
-      thetext = ((TheText*) local.addr);
-      delete thetext;
+      if(local.addr)
+      {
+        thetext = ((TheText*) local.addr);
+        delete thetext;
+        local = SetWord( Address(0) );
+      }
       return 0;
   }
   /* should not happen */
@@ -1508,6 +1604,7 @@ int FTextValMapFind( Word* args, Word& result, int message,
       {
         li = (ValMapFindLocalInfo*) local.addr;
         delete li;
+        local = SetWord( Address(0) );
       }
       return 0;
   }
@@ -1745,19 +1842,19 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
     case REQUEST:
       if(local.addr == 0)
       {
-        result = SetWord(0);
+        result = SetWord( Address(0) );
         return CANCEL;
       }
       finished = (bool*)(local.addr);
       if(*finished)
       {
-        result = SetWord(0);
+        result = SetWord( Address(0) );
         return CANCEL;
       }
       if(!CCommand->IsDefined())
       {
         *finished = true;
-        result = SetWord(0);
+        result = SetWord( Address(0) );
         return CANCEL;
       }
 
@@ -1837,7 +1934,7 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
                 && defined
                 && ( typestring != "typeerror"  )
             )
-          { // yielded a typeerror
+          { // yielded a result (no typerror)
             ListExpr valueList = SecondoSystem::GetCatalog()
                 ->OutObject(queryResType,queryresultword);
             nl->WriteToString(resultstring,valueList);
@@ -1898,6 +1995,7 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
       {
         finished = (bool*)(local.addr);
         delete finished;
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -1998,6 +2096,266 @@ int FTextSelectFunReplace( ListExpr args )
   return result;
 }
 
+
+/*
+Value Mapping Function for Operator ~getTypeNL~
+
+*/
+int FTextValueMapGetTypeNL( Word* args, Word& result, int message,
+                            Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  FText* Res = static_cast<FText*>(result.addr);
+  FText* myType = static_cast<FText*>(args[1].addr);
+  Res->CopyFrom((StandardAttribute*)myType);
+  return 0;
+}
+
+/*
+Value Mapping Function for Operator ~getValueNL~
+
+*/
+// for single value
+int FTextValueMapGetValueNL_single( Word* args, Word& result, int message,
+                              Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  FText*   Res       = static_cast<FText*>(result.addr);
+  FText*   myTypeFT  = static_cast<FText*>(args[1].addr);
+  string   myTypeStr = "";
+  string   valueStr  = "";
+  ListExpr myTypeNL;
+
+  if( !myTypeFT->IsDefined() )
+  { // Error: undefined type description
+    cerr << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+        << "): ERROR: Undefined resulttype." << endl;
+    Res->Set( false, "" );
+    return 0;
+  }
+  if( args[0].addr == 0 )
+  { // Error: NULL-pointer value
+    cerr << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+        << "): ERROR: NULL-pointer argument." << endl;
+    Res->Set( false, "" );
+    return 0;
+  }
+  myTypeStr = myTypeFT->GetValue();
+  if ( !nl->ReadFromString( myTypeStr, myTypeNL) )
+  { // Error: could not parse type description
+    cerr << __PRETTY_FUNCTION__<< "(" << __FILE__ << __LINE__
+        << "): ERROR: Invalid resulttype." << endl;
+    Res->Set( false, "" );
+    return 0;
+  }
+  else if( myTypeStr != "typeerror"  )
+  {
+    ListExpr valueNL =
+        SecondoSystem::GetCatalog()->OutObject(myTypeNL,args[0]);
+    nl->WriteToString(valueStr,valueNL);
+    Res->Set( true, valueStr);
+    return 0;
+  }
+  Res->Set( false, "" );
+  return 0;
+}
+
+struct FTextValueMapGetValueNL_streamLocalInfo
+{
+  ListExpr myTypeNL;
+  bool finished;
+};
+
+// for data streams
+int FTextValueMapGetValueNL_stream( Word* args, Word& result, int message,
+                             Word& local, Supplier s )
+{
+  result          = qp->ResultStorage( s );
+  FText* Res      = 0;
+  FText* myTypeFT = static_cast<FText*>(args[1].addr);
+  FTextValueMapGetValueNL_streamLocalInfo *li;
+  string   valueStr  = "";
+  Word elem;
+
+  switch( message )
+  {
+    case OPEN:
+      li = new FTextValueMapGetValueNL_streamLocalInfo;
+      li->finished = true;
+      if( myTypeFT->IsDefined() )
+      {
+        string myTypeStr = myTypeFT->GetValue();
+        if (    (myTypeStr != "typeerror")
+             && nl->ReadFromString( myTypeStr, li->myTypeNL)
+           )
+        {
+          li->finished = false;
+        }
+      }
+      qp->Open(args[0].addr);
+      local = SetWord( li );
+      return 0;
+
+    case REQUEST:
+
+      if(local.addr)
+        li = (FTextValueMapGetValueNL_streamLocalInfo*) local.addr;
+      else
+      {
+        return CANCEL;
+      }
+      if(li->finished)
+      {
+        return CANCEL;
+      }
+      qp->Request(args[0].addr, elem);
+      if ( qp->Received(args[0].addr) )
+      {
+        ListExpr valueNL =
+              SecondoSystem::GetCatalog()->OutObject(li->myTypeNL,elem);
+        nl->WriteToString(valueStr,valueNL);
+        Res = new FText(true, valueStr);
+        result = SetWord( Res );
+        ((Attribute*) elem.addr)->DeleteIfAllowed();
+        return YIELD;
+      }
+      // stream exhausted - we are finished
+      result.addr = 0;
+      li->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+
+      qp->Close(args[0].addr);
+      if(local.addr)
+      {
+        li = (FTextValueMapGetValueNL_streamLocalInfo*) local.addr;
+        delete li;
+        local = SetWord(Address(0));
+      }
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+// for tuple-streams 
+int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
+                             Word& local, Supplier s )
+{
+  result          = qp->ResultStorage( s );
+  FText* Res      = 0;
+  FText* myTypeFT = static_cast<FText*>(args[1].addr);
+  FTextValueMapGetValueNL_streamLocalInfo *li;
+  Tuple*          myTuple = 0;
+  string valueStr = "";
+  Word elem;
+
+  switch( message )
+  {
+    case OPEN:
+      li = new FTextValueMapGetValueNL_streamLocalInfo;
+      li->finished = true;
+      if( myTypeFT->IsDefined() )
+      {
+        string myTypeStr = myTypeFT->GetValue();
+        if (    (myTypeStr != "typeerror")
+             && nl->ReadFromString( myTypeStr, li->myTypeNL)
+           )
+        {
+          li->myTypeNL = nl->OneElemList(li->myTypeNL);
+          li->finished = false;
+        }
+      }
+      qp->Open(args[0].addr);
+      local = SetWord( li );
+      return 0;
+
+    case REQUEST:
+
+      if(local.addr)
+        li = (FTextValueMapGetValueNL_streamLocalInfo*) local.addr;
+      else
+      {
+        return CANCEL;
+      }
+      if(li->finished)
+      {
+        return CANCEL;
+      }
+      qp->Request(args[0].addr, elem);
+      if ( qp->Received(args[0].addr) )
+      {
+        myTuple = static_cast<Tuple*>(elem.addr);
+        ListExpr valueNL = myTuple->Out( li->myTypeNL );
+        nl->WriteToString(valueStr,valueNL);
+        Res = new FText(true, valueStr);
+        result = SetWord( Res );
+        myTuple->DeleteIfAllowed();
+        return YIELD;
+      }
+      // stream exhausted - we are finished
+      result.addr = 0;
+      li->finished = true;
+      return CANCEL;
+
+    case CLOSE:
+
+      qp->Close(args[0].addr);
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+/*
+ValueMappingArray for ~replace~
+
+*/
+
+ValueMapping FText_VMMap_GetValueNL[] =
+{
+  FTextValueMapGetValueNL_tuplestream, // 0
+  FTextValueMapGetValueNL_stream,      // 1
+  FTextValueMapGetValueNL_single       // 2
+};
+
+
+/*
+Selection function for ~replace~
+
+*/
+
+int FTextSelectFunGetValueNL( ListExpr args )
+{
+  NList type(args);
+  if(    type.first().hasLength(2)
+      && (type.first().first() == "stream")
+      && (type.first().second().hasLength(2))
+      && (type.first().second().first() == "tuple")
+    )
+  {
+    return 0; // tuplestream
+  }
+  if(     type.first().hasLength(2)
+       && (type.first().first() == "stream")
+    )
+  {
+    return 1; // datastream
+  }
+  return 2;     // normal object
+}
+
+
+/*
+Value Mapping Function for Operator ~getValueNL~
+
+*/
+int FTextValueMapCreateDBObject( Word* args, Word& result, int message,
+                                 Word& local, Supplier s )
+{
+  return 0;
+}
 
 /*
 3.4 Definition of Operators
@@ -2217,6 +2575,38 @@ const string FTextReplaceSpec  =
     "'Fresh','Rotten')</text--->"
     ") )";
 
+const string FTextGetTypeNLSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>Expression -> text</text--->"
+    "<text>_ getTypeNL</text--->"
+    "<text>Retrieves the argument's type as a nested list expression.</text--->"
+    "<text>query int getTypeNL</text--->"
+    ") )";
+
+const string FTextGetValueNLSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>stream(Expression) -> stream(text)\n"
+    "Expression -> text</text--->"
+    "<text>_ getValueNL</text--->"
+    "<text>Returns the argument's nested list value expression as a text "
+    "value. If the argument is a stream, a stream of text values with the "
+    "textual representations for each stream element is produced.</text--->"
+    "<text>query ten feed getValueNL consume</text--->"
+    ") )";
+
+const string FTextCreateDBObjectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>{text|string} x {text|string} x {text|string} -> text</text--->"
+    "<text>createDBobject( value, type, name )</text--->"
+    "<text>Creates a database object named 'name' within the current "
+    "database. The object has type 'type' (which is passed a textual nested "
+    "list type expression) and its value is set according to the nested list "
+    "value expression 'value'. The result is empty, if everything goes well, "
+    "it contains an error message otherwise.</text--->"
+    "<text>query createDBobject('3.141592653589793116', 'real', \"MyPi\") = ''"
+    "</text--->"
+    ") )";
+
 /*
 The Definition of the operators of the type ~text~.
 
@@ -2408,7 +2798,35 @@ Operator ftextreplace
     8,
     FText_VMMap_Replace,
     FTextSelectFunReplace,
-    FTextTypeMapReplace
+    FTextTypeTextual3
+    );
+
+Operator getTypeNL
+    (
+    "getTypeNL",
+    FTextGetTypeNLSpec,
+    FTextValueMapGetTypeNL,
+    Operator::SimpleSelect,
+    FTextTypeMapExpression2Text
+    );
+
+Operator getValueNL
+    (
+    "getValueNL",
+    FTextGetValueNLSpec,
+    3,
+    FText_VMMap_GetValueNL,
+    FTextSelectFunGetValueNL,
+    FTextTypeMapGetValueNL
+    );
+
+Operator createDBobject
+    (
+    "createDBobject",
+    FTextCreateDBObjectSpec,
+    FTextValueMapCreateDBObject,
+    Operator::SimpleSelect,
+    FTextTypeTextual3
     );
 
 /*
@@ -2448,8 +2866,10 @@ public:
 //     AddOperator( &ftexttoupper );
 //     AddOperator( &ftexttostring );
 //     AddOperator( &ftexttotext );
+    AddOperator( &getTypeNL );
+    AddOperator( &getValueNL );
+//     AddOperator( &createDBobject );
 
-    
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
     )

@@ -67,7 +67,7 @@ Signature: text x text -> bool
 Example  : query 'TestA' >= 'TestB'
 Result   : FALSE
 
-Operator : >= 
+Operator : >=
 Number   : 3
 Signature: text x string -> bool
 Example  : query 'TestA' >= "TestB"
@@ -94,7 +94,7 @@ Result   : FALSE
 Operator : #
 Number   : 1
 Signature: string x text -> bool
-Example  : query "TestA" # 'TestB' 
+Example  : query "TestA" # 'TestB'
 Result   : TRUE
 
 Operator : #
@@ -130,7 +130,7 @@ Result   : TRUE
 Operator : contains
 Number   : 4
 Signature: text x text -> bool
-Example  : query 'hello world' contains 'lox' 
+Example  : query 'hello world' contains 'lox'
 Result   : FALSE
 
 Operator : contains
@@ -147,20 +147,20 @@ Result   : TRUE
 
 Operator : dice
 Number   : 1
-Signature: int x text x text -> real 
+Signature: int x text x text -> real
 Example  : query dice(1, 'abc', 'bac')
 Result   : 0.5
 
 Operator : keywords
 Number   : 1
 Signature: text -> stream(string)
-Example  : query 'two keys' keywords count 
-Result   :  2 
+Example  : query 'two keys' keywords count
+Result   :  2
 
 Operator : length
 Number   : 1
 Signature: text -> int
-Example  : query length('hello') 
+Example  : query length('hello')
 Result   : 5
 
 Operator : sentences
@@ -213,30 +213,30 @@ Example  : query ("Hello" + ' world!')
 Result   : 'Hello world!'
 
 Operator : find
-Number   : 1 
+Number   : 1
 Signature: text x text -> stream(int)
 Example  : query find('12345678901234567890123456789012345678901234567890', '12345678901234567890123456789012345678901234567890') count
 Result   : 1
 
-Operator : find 
+Operator : find
 Number   : 2
 Signature: text x text -> stream(int)
 Example  : query find('12345678901234567890123456789012345678901234567890', '1234567890') count
 Result   : 5
 
-Operator : find 
+Operator : find
 Number   : 3
 Signature: text x string -> stream(int)
 Example  : query find('12345678901234567890123456789012345678901234567890', "1234567890") count
 Result   : 5
 
-Operator : find 
+Operator : find
 Number   : 4
 Signature: string x text -> stream(int)
 Example  : query find("12345678901234567890123456789012345678901234567890", '1234567890') count
 Result   : 4
 
-Operator : find 
+Operator : find
 Number   : 5
 Signature: string x string -> stream(int)
 Example  : query find("12345678901234567890123456789012345678901234567890", "1234567890") count
@@ -302,4 +302,28 @@ Number   : 8
 Signature: text x text x text -> text
 Example  : query replace('abab','a','c')
 Result   : 'cbcb'
+
+Operator : getTypeNL
+Number   : 1
+Signature: Expr -> text
+Example  : query (4 * 6) feed transformstream getTypeNL
+Result   : '(stream (tuple ((elem int))))'
+
+Operator : getValueNL
+Number   : 1
+Signature: Object -> text
+Example  : query (4 * 6) getValueNL
+Result   : '24'
+
+Operator : getValueNL
+Number   : 2
+Signature: stream(DATA) -> stream(text)
+Example  : query intstream(1,10) getValueNL transformstream aggregateB[elem; fun(T1: text, T2: text) (T1 + ' ' + T2); '']
+Result   : '1 2 3 4 5 6 7 8 9 10'
+
+Operator : getValueNL
+Number   : 3
+Signature: stream(tuple(X)) -> stream(text)
+Example  : query ten feed getValueNL transformstream aggregateB[elem; fun(T1: text, T2: text) (T1 + T2); '']
+Result   : '(1)(2)(3)(4)(5)(6)(7)(8)(9)(10)'
 
