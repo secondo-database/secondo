@@ -391,7 +391,7 @@ struct SampleLocalInfo
 int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SampleLocalInfo* localInfo = static_cast<SampleLocalInfo*>( local.addr );
-  Word argRelation = SetWord(0);
+  Word argRelation = SetWord(Address(0));
 
   Relation* rel = 0;
   Tuple* tuple = 0;
@@ -473,7 +473,7 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
          localInfo = (SampleLocalInfo*)local.addr;
          delete localInfo->relIter;
          delete localInfo;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
   }
@@ -884,7 +884,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         localInfo = (HeadLocalInfo*)local.addr;
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -949,7 +949,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       if(local.addr)
       {
          delete(hli);
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -961,7 +961,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( hli )
       { 
         delete hli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
 
@@ -1973,7 +1973,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
         return 0;
       finished = (bool*) local.addr;
       delete(finished);
-      local = SetWord(0);
+      local = SetWord(Address(0));
       return 0;
     }
   } // end switch
@@ -2250,7 +2250,7 @@ int KrdupVM(Word* args, Word& result, int message,
       if(local.addr) {
         KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
         delete localinfo;
-        local = SetWord(0); 
+        local = SetWord(Address(0)); 
       }
       qp->Close(args[0].addr);
       return 0;
@@ -2612,7 +2612,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
       if( local.addr != 0 ){ // check if local is present
          lastOutput = static_cast<RTuple*>(local.addr);
          delete lastOutput;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -2737,7 +2737,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
           rli->localTuple = 0;
         }
         delete rli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -2749,7 +2749,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
       if ( rli )
       {
         delete rli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
 
@@ -3180,7 +3180,7 @@ SetOpValueMapping(Word* args, Word& result, int message,
       if(local.addr){
          localInfo = (SetOperation*)local.addr;
          delete localInfo;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
   }
@@ -3740,7 +3740,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       if(local.addr)
       {
          ((TupleType *)local.addr)->DeleteIfAllowed();
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -3857,7 +3857,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       {
          eli->resultTupleType->DeleteIfAllowed();
          delete eli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -3868,7 +3868,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( eli ){
          delete eli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
 
@@ -4159,8 +4159,8 @@ int Loopjoin(Word* args, Word& result, int message,
           }
           else
           {
-            localinfo->streamy = SetWord(0);
-            localinfo->tuplex = SetWord(0);
+            localinfo->streamy = SetWord(Address(0));
+            localinfo->tuplex = SetWord(Address(0));
             return CANCEL;
           }
         }
@@ -4189,7 +4189,7 @@ int Loopjoin(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 )
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -4302,8 +4302,8 @@ int Loopjoin(Word* args, Word& result, int message,
           }
           else
           {
-            lli->streamy = SetWord(0);
-            lli->tuplex = SetWord(0);
+            lli->streamy = SetWord(Address(0));
+            lli->tuplex = SetWord(Address(0));
             return CANCEL;
           }
         }
@@ -4336,7 +4336,7 @@ int Loopjoin(Word* args, Word& result, int message,
               lli->resultTupleType->DeleteIfAllowed();
          }
          delete lli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
 
       qp->Close(args[0].addr);
@@ -4348,7 +4348,7 @@ int Loopjoin(Word* args, Word& result, int message,
       if ( lli )
       {
          delete lli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
 
@@ -4599,8 +4599,8 @@ Loopselect(Word* args, Word& result, int message,
           }
           else
           {
-            localinfo->streamy = SetWord(0);
-            localinfo->tuplex = SetWord(0);
+            localinfo->streamy = SetWord(Address(0));
+            localinfo->tuplex = SetWord(Address(0));
             return CANCEL;
           }
         }
@@ -4627,7 +4627,7 @@ Loopselect(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 ) 
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -4877,7 +4877,7 @@ int ExtendStream(Word* args, Word& result, int message,
           }
           else  //streamx is exausted
           {
-            localinfo->streamY = SetWord(0);
+            localinfo->streamY = SetWord(Address(0));
             localinfo->tupleX = 0;
             return CANCEL;
           }
@@ -4912,7 +4912,7 @@ int ExtendStream(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 )
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close( args[0].addr );
       return 0;
@@ -5246,7 +5246,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       {
         ((TupleType *)local.addr)->DeleteIfAllowed();
         qp->Close(args[0].addr);
-        local = SetWord( 0 );
+        local = SetWord(Address( 0 ));
       }
       return 0;
     }
@@ -5602,7 +5602,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
           }
           else  //streamx is exausted
           {
-            localinfo->streamY = SetWord(0);
+            localinfo->streamY = SetWord(Address(0));
             localinfo->tupleX = 0;
             return CANCEL;
           }
@@ -5637,7 +5637,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 )
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
-        local = SetWord( 0 );
+        local = SetWord(Address( 0) );
       }
       qp->Close( args[0].addr );
       return 0;
@@ -5807,7 +5807,7 @@ int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
       if( local.addr != 0 )
       {
         ((CcInt*)local.addr)->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -6147,7 +6147,7 @@ int GroupByValueMapping
       }
       else
       {
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -6263,7 +6263,7 @@ int GroupByValueMapping
           gbli->t->DeleteIfAllowed();
         }
         delete gbli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -6513,7 +6513,7 @@ int GroupByValueMapping
           gbli->t->DeleteIfAllowed();
         }
         delete gbli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -6525,7 +6525,7 @@ int GroupByValueMapping
       if (gbli)
       {
         delete gbli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
 
@@ -7316,7 +7316,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
          }
 
          delete pli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
 
       qp->Close(args[0].addr);
@@ -7585,7 +7585,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
           delete pli->leftRel;
         }
         delete pli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
 
       qp->Close(args[0].addr);
@@ -7602,7 +7602,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( pli )
       {
          delete pli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
 
@@ -8139,7 +8139,7 @@ SymmProductExtend(Word* args, Word& result,
         }
 
         delete pli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
 
       qp->Close(args[0].addr);
@@ -8477,7 +8477,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
         }
 
         delete pli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
 
       qp->Close(args[0].addr);

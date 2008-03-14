@@ -887,7 +887,7 @@ int connectedCompFun (Word* args, Word& result, int message,
           localInfo = ((SccStruct*)local.addr);
           delete localInfo->tType;
           delete localInfo;
-          local = SetWord(0);
+          local = SetWord(Address(0));
        }
        return 0;
    }
@@ -1002,7 +1002,7 @@ int edgesFun (Word* args, Word& result, int message, Word& local, Supplier s)
             delete localInfo->tType;
             delete localInfo->edges;
             delete localInfo;
-            local = SetWord(0);
+            local = SetWord(Address(0));
           }
           return 0;
     }
@@ -1073,7 +1073,7 @@ int verticesFun (Word* args, Word& result, int message, Word& local, Supplier s)
             delete localInfo->tType;
             delete localInfo->vertices;
             delete localInfo;
-            local = SetWord(0);
+            local = SetWord(Address(0));
           }
           return 0;
     }
