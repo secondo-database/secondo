@@ -2181,7 +2181,7 @@ cout << "ComponentsValueMap" << endl;
             {
               linfo = ( ComponentsLocalInfo*) local.addr;
               delete linfo;
-              local = SetWord(0);
+              local = SetWord(Address(0));
             }
           return 0;
         }

@@ -631,7 +631,7 @@ Word InBTree(ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct)
 {
   correct = false;
-  return SetWord(0);
+  return SetWord(Address(0));
 }
 
 Word RestoreFromListBTree( ListExpr typeInfo, ListExpr value,
@@ -1292,7 +1292,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         localInfo = (IndexQueryLocalInfo*)local.addr;
         delete localInfo->iter;
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -1424,7 +1424,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         ili->completeReturned += ili->returned;
         ili->returned = 0;
         delete ili;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
 
@@ -1433,7 +1433,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( ili )
       {
         delete ili;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
 
@@ -1841,7 +1841,7 @@ IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
         delete localInfo->iter;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -2276,7 +2276,7 @@ int insertBTreeValueMap(Word* args, Word& result, int message,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
-      local = SetWord(0);
+      local = SetWord(Address(0));
       return 0;
   }
   return 0;
@@ -2379,7 +2379,7 @@ int deleteBTreeValueMap(Word* args, Word& result, int message,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
-      local = SetWord(0);
+      local = SetWord(Address(0));
       return 0;
   }
   return 0;
@@ -2490,7 +2490,7 @@ int updateBTreeValueMap(Word* args, Word& result, int message,
     case CLOSE :
       qp->Close(args[0].addr);
       qp->SetModified(qp->GetSon(s,1));
-      local = SetWord(0);
+      local = SetWord(Address(0));
       return 0;
   }
   return 0;

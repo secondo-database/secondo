@@ -1785,7 +1785,7 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
       {
         ait = (ArrayIterator*)local.addr;
         delete ait;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -2904,8 +2904,8 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
   int i = 0;
   int j = 0;
 
-  Word Acum = SetWord(0);
-  Word Bcum = SetWord(0);
+  Word Acum = SetWord(Address(0));
+  Word Bcum = SetWord(Address(0));
 
   // FIRST PART OF THE PARTJOIN ALGORITHM
 
@@ -3159,8 +3159,8 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
   int i = 0;
   int j = 0;
 
-  Word Acum = SetWord(0);
-  Word Bcum = SetWord(0);
+  Word Acum = SetWord(Address(0));
+  Word Bcum = SetWord(Address(0));
 
   cout << "Processing (phase1):" << endl;
   if ((i-j) <= (n-m)) {
@@ -3330,8 +3330,8 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
   int i = 0;
   int j = 0;
 
-  Word Acum = SetWord(0);
-  Word Bcum = SetWord(0);
+  Word Acum = SetWord(Address(0));
+  Word Bcum = SetWord(Address(0));
 
   cout << "Processing (phase 1):" << endl;
   if ((i-j) <= (n-m)) {
