@@ -2585,13 +2585,14 @@ const string FTextGetTypeNLSpec  =
 
 const string FTextGetValueNLSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>stream(Expression) -> stream(text)\n"
-    "Expression -> text</text--->"
+    "( <text>stream(DATA)   -> stream(text)\n"
+    "stream(tuple(X)) -> stream(text)\n"
+    "Expression       -> text</text--->"
     "<text>_ getValueNL</text--->"
     "<text>Returns the argument's nested list value expression as a text "
     "value. If the argument is a stream, a stream of text values with the "
     "textual representations for each stream element is produced.</text--->"
-    "<text>query ten feed getValueNL consume</text--->"
+    "<text>query ten feed getValueNL</text--->"
     ") )";
 
 const string FTextCreateDBObjectSpec  =
