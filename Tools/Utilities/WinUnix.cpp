@@ -123,8 +123,8 @@ WinUnix::stacktrace(const string& fullAppName)
     string address = "";
 
     // extract address information
-    unsigned int p1 = str.find_last_of("[");
-    unsigned int p2 = str.find_last_of("]");
+    size_t p1 = str.find_last_of("[");
+    size_t p2 = str.find_last_of("]");
 
     bool addressFound = (p1 != string::npos) && (p2 != string::npos);
 

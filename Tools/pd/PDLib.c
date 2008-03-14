@@ -24,6 +24,7 @@ File PDLib.c: This file contains some auxiliary functions.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "PDLib.h"
 
 // debugging flags for flex and bison

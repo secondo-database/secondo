@@ -534,7 +534,7 @@ TIDCompareTupleId( Word* args, Word& result,
   const TupleIdentifier* a = static_cast<const TupleIdentifier*>(args[0].addr);
   const TupleIdentifier* b = static_cast<const TupleIdentifier*>(args[1].addr);
 
-  int cmp = a->Compare(b);
+  //int cmp = a->Compare(b);
   switch (op)
   {
     case 0: // <
