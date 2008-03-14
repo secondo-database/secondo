@@ -430,7 +430,7 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
       if(local.addr)
       {
         ((TupleType *)local.addr)->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
