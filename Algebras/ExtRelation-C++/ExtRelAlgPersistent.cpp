@@ -660,7 +660,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
       if(li){
          delete li->ptr;
          delete li;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
 
@@ -670,7 +670,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( li ){
          delete li;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
 
@@ -834,7 +834,7 @@ protected:
   inline Tuple* NextTuple(Word stream, SortByLocalInfo* sli)
   {
     bool yield = false;
-    Word result = SetWord( 0 );
+    Word result = SetWord(Address(0) );
 
     if(!expectSorted)
       return sli->NextResultTuple();
@@ -1295,7 +1295,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( li ) {
         delete li->ptr;
         delete li;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       //nothing is deleted on close because the substructures are still 
       //needed for progress estimation. Instea/*
@@ -1311,7 +1311,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( li ) {
         delete li->ptr;
         delete li;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
 
@@ -1794,7 +1794,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if(li){
          delete li->ptr;
          delete li;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
 
@@ -1806,7 +1806,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( li ){
          delete li->ptr;
          delete li;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
 
       return 0;
