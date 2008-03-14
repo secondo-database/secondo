@@ -1103,8 +1103,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
         fli = (FeedLocalInfo*) local.addr;
         delete fli->rit;
         delete fli;
-        //local = SetWord(0);
-        local.addr=0;
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -1118,8 +1117,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( fli )
       {
          delete fli;
-         //local = SetWord(0);
-         local.addr=0;
+         local = SetWord(Address(0));
       }
       return 0;
 
@@ -1375,7 +1373,7 @@ Consume(Word* args, Word& result, int message,
     qp->Close(args[0].addr);
     cli->state = 1;
     delete cli;
-    local = SetWord(0);
+    local = SetWord(Address(0));
     return 0;
   }
 
@@ -1791,7 +1789,7 @@ Filter(Word* args, Word& result, int message,
       fli = (FilterLocalInfo*) local.addr;
       if(fli){
          delete fli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -1804,7 +1802,7 @@ Filter(Word* args, Word& result, int message,
       if ( fli )
       {
          delete fli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
 
@@ -2071,7 +2069,7 @@ reduce_vm( Word* args, Word& result, int message,
       qp->Close(args[0].addr);
       if(local.addr){
          delete ri;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
   }
@@ -2264,7 +2262,7 @@ Project(Word* args, Word& result, int message,
       if(local.addr)
       {
         ((TupleType *)local.addr)->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -2290,8 +2288,8 @@ Project(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   ProjectLocalInfo *pli=0;
-  Word elem1 = SetWord(0);
-  Word elem2 = SetWord(0);
+  Word elem1 = SetWord(Address(0));
+  Word elem2 = SetWord(Address(0));
   int noOfAttrs= 0;
   int index= 0;
   Supplier son;
@@ -2346,7 +2344,7 @@ Project(Word* args, Word& result, int message,
          pli->tupleType->DeleteIfAllowed();
          pli->tupleType = 0;
          delete pli; 
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -2358,7 +2356,7 @@ Project(Word* args, Word& result, int message,
       pli = (ProjectLocalInfo*) local.addr;
       if ( pli ){
          delete pli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
     }
@@ -2854,7 +2852,7 @@ Product(Word* args, Word& result, int message,
           delete pli->rightRel;
         }
         delete pli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
 
       qp->Close(args[0].addr);
@@ -3016,7 +3014,7 @@ Product(Word* args, Word& result, int message,
           delete pli->rightRel;
         }
         delete pli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
@@ -3032,7 +3030,7 @@ Product(Word* args, Word& result, int message,
 
       if ( pli ){
          delete pli;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       return 0;
     }
@@ -4398,7 +4396,7 @@ static int sizecounters_vm( Word* args, Word& result, int message,
       {
         pi->computeSizes();           
         delete pi;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(stream);      
       return 0;           
@@ -4600,7 +4598,7 @@ static int dumpstream_vm( Word* args, Word& result, int message,
       if(pi)
       {
         delete pi;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(stream);
       return 0;           
@@ -5035,7 +5033,7 @@ Buffer(Word* args, Word& result, int message,
       if(bli)
       {
         delete bli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -5046,7 +5044,7 @@ Buffer(Word* args, Word& result, int message,
       if ( bli )
       {
         delete bli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->CloseProgress(args[0].addr);
       return 0;
