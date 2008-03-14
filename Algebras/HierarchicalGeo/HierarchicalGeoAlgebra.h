@@ -633,7 +633,7 @@ Functions to be part of relations
 
 */  
   
-  ostream& CMPoint::Print( ostream &os ) const;
+  ostream& Print( ostream &os ) const;
   
   virtual Attribute* Clone() const;
   
