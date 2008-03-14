@@ -3138,7 +3138,7 @@ Word InRTree( ListExpr typeInfo, ListExpr value,
               int errorPos, ListExpr& errorInfo, bool& correct )
 {
   correct = false;
-  return SetWord(0);
+  return SetWord(Address(0));
 }
 
 /*

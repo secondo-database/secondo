@@ -2929,7 +2929,7 @@ are separated by a space character.
         subword = ((Subword*) local.addr);
         free(subword->subw);
         delete subword;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }

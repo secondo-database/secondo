@@ -7688,7 +7688,7 @@ int Linearize2_ureal(Word* args, Word& result,
         {
           localinfo = (Linearize2_ureal_LocalInfo*) local.addr;
           delete localinfo;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
         return 0;
     } // end switch
@@ -8845,7 +8845,7 @@ int GPSVM( Word* args, Word& result, int message,
               {
                 li = (GPSLI*) local.addr;
                 delete li;
-                local = SetWord(0);
+                local = SetWord(Address(0));
               }
               return 0;
   }

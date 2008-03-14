@@ -212,7 +212,7 @@ int MappingStreamFeed( Word* args, Word& result, int message,
         {
           linfo = ( SFeedLocalInfo*) local.addr;
           delete linfo;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
       return 0;
     }
@@ -803,7 +803,7 @@ int Use_SN( Word* args, Word& result, int message,
           if ( !sli->Xfinished )
             qp->Close( instream.addr );
           delete sli;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
 #ifdef GSA_DEBUG
       cout << "Use_SN finished CLOSE" << endl;
@@ -908,7 +908,7 @@ int Use_SS( Word* args, Word& result, int message,
           if ( !sli->Xfinished )
             qp->Close( sli->X.addr );
           delete sli;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
       return 0;
     }  // end switch
@@ -1045,7 +1045,7 @@ int Use_SNN( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close input
           delete sli;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
 #ifdef GSA_DEBUG
       cout << "Use_SNN finished CLOSE" << endl;
@@ -1202,7 +1202,7 @@ int Use_SNS( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr );   // close outer stream
           delete sli;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
 #ifdef GSA_DEBUG
       cout << "Use_SNN finished CLOSE" << endl;
@@ -1352,7 +1352,7 @@ int Use_SSN( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close outer instream
           delete sli;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
       result.addr = 0;
 #ifdef GSA_DEBUG
@@ -1535,7 +1535,7 @@ int Use_SSS( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close outer instream
           delete sli;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
 #ifdef GSA_DEBUG
       cout << "Use_SSS finished CLOSE" << endl;
@@ -2283,7 +2283,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
             qp->Close( args[0].addr );
           sli->resultTupleType->DeleteIfAllowed();
           delete sli;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
       return 0;
     }
@@ -2366,7 +2366,7 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
           if (!sli->finished)
             qp->Close( args[0].addr );
           delete sli;
-          local = SetWord(0);
+          local = SetWord(Address(0));
         }
 #ifdef GSA_DEBUG
       cout << "Transformstream_TS_S: CLOSE finished" << endl;
@@ -3379,7 +3379,7 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       range_d = ((RangeAndDiff*) local.addr);
       if(range_d){
          delete range_d;
-         local = SetWord(0);
+         local = SetWord(Address(0));
       }
       range_d = 0;
       return 0;
@@ -3718,7 +3718,7 @@ ensure_sf( ListExpr args )
 template<class T>
 int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem = SetWord( 0 );
+  Word elem = SetWord(Address(0) );
   int num = StdTypes::GetInt(args[1]);
 
   qp->Open(args[0].addr);

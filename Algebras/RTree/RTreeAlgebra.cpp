@@ -1233,7 +1233,7 @@ int WindowIntersects( Word* args, Word& result,
         localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo->searchBox;
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -1333,7 +1333,7 @@ int WindowIntersects( Word* args, Word& result,
         localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo->searchBox;
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -1345,7 +1345,7 @@ int WindowIntersects( Word* args, Word& result,
       {
         localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -1750,7 +1750,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
         delete localInfo->searchBox;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -1839,7 +1839,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
         delete localInfo->searchBox;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -2106,7 +2106,7 @@ template<int TidIndexPos>
         localInfo = (GetTuplesLocalInfo*)local.addr;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -2638,7 +2638,7 @@ int GetTuplesDbl( Word* args, Word& result, int message,
         localInfo = (GetTuplesDblLocalInfo*)local.addr;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -3779,7 +3779,7 @@ int RTreeNodesVM( Word* args, Word& result, int message,
         lci = (RTreeNodesLocalInfo<dim> *)local.addr;
         lci->resultTupleType->DeleteIfAllowed();
         delete lci;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
