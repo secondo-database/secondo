@@ -1964,7 +1964,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
         //the TupleBuffers are deleted in the destructor of localInfo
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -2025,7 +2025,7 @@ spatialjoin3ValueMapping(Word* args, Word& result, int message,
         //the TupleBuffers are deleted in the destructor of localInfo
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -2086,7 +2086,7 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message,
         //the TupleBuffers are deleted in the destructor of localInfo
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }

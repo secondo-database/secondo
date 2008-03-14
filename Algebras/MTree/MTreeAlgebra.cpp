@@ -114,7 +114,7 @@ InMTree(ListExpr type_Info, ListExpr value,
         int errorPos, ListExpr &error_Info, bool &correct)
 {
     correct = false;
-    return SetWord(0);
+    return SetWord(Address(0));
 }
 
 Word
@@ -691,7 +691,7 @@ rangesearch_VM(Word* args, Word& result, int message,
       {
         info = (rangesearchLocalInfo*)local.addr;
         delete info;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -773,7 +773,7 @@ rangesearchDD_VM(Word* args, Word& result, int message,
       {
         info = (rangesearchLocalInfo*)local.addr;
         delete info;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -897,7 +897,7 @@ nnsearch_VM(Word* args, Word& result, int message,
       {
         info = (nnsearchLocalInfo*)local.addr;
         delete info;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }
@@ -974,7 +974,7 @@ nnsearchDD_VM(Word* args, Word& result, int message,
       {
         info = (nnsearchLocalInfo*)local.addr;
         delete info;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
     }

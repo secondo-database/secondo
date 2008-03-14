@@ -7328,7 +7328,7 @@ Word InMRegion(const ListExpr typeInfo,
         correct = false;
         mr->Destroy();
         delete mr;
-        return SetWord(0);
+        return SetWord(Address(0));
     }
 }
 
@@ -8395,7 +8395,7 @@ int mraunitsvalmap(Word* args, Word& result,
       if( local.addr != 0 )
       {
         delete (MRAUnitsLocalInfo *)local.addr;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }

@@ -505,7 +505,7 @@ CcFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       if(rit)
       {
         delete rit;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -796,7 +796,7 @@ CcSample(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         delete localInfo->relIT;
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -1086,8 +1086,8 @@ CcFilterTypeMap(ListExpr args)
 static int
 CcFilter(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem = SetWord(0);
-  Word funresult = SetWord(0);
+  Word elem = SetWord(Address(0));
+  Word funresult = SetWord(Address(0));
 
   bool found = false;
   CcTuple* tuple = 0;
@@ -1849,7 +1849,7 @@ CcProduct(Word* args, Word& result, int message, Word& local, Supplier s)
           (*(pli->iter))->DeleteIfAllowed();
         }
         delete pli;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
@@ -3141,7 +3141,7 @@ CcSortBy(Word* args, Word& result, int message, Word& local, Supplier s)
 
         delete localInfo->tuples;
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -3272,7 +3272,7 @@ CcRdupValueMapping(Word* args, Word& result, int message,
   {
     case OPEN:
       qp->Open(args[0].addr);
-      local = SetWord(0);
+      local = SetWord(Address(0));
       return 0;
     case REQUEST:
       while(true)
@@ -3635,7 +3635,7 @@ CcSetOpValueMapping(Word* args, Word& result, int message,
       if(localInfo)
       {
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -4093,8 +4093,8 @@ public:
     assert(((CcInt*)attrIndexA.addr)->GetIntval() > 0);
     assert(((CcInt*)attrIndexB.addr)->GetIntval() > 0);
 
-    aResult = SetWord(0);
-    bResult = SetWord(0);
+    aResult = SetWord(Address(0));
+    bResult = SetWord(Address(0));
 
     this->expectSorted = expectSorted;
     this->streamA = streamA;
@@ -4183,7 +4183,7 @@ CcMergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if(localInfo)
       {
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -4477,7 +4477,7 @@ CcHashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if(localInfo)
       {
         delete localInfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -4869,7 +4869,7 @@ CcLoopjoin(Word* args, Word& result, int message, Word& local, Supplier s)
       if(localinfo)
       {
         delete localinfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -5076,7 +5076,7 @@ CcLoopselect(Word* args, Word& result, int message, Word& local, Supplier s)
       if(localinfo)
       {
         delete localinfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -5300,7 +5300,7 @@ CcLoopjoinrel(Word* args, Word& result, int message, Word& local, Supplier s)
       if(localinfo)
       {
         delete localinfo;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -5455,7 +5455,7 @@ CcConcat(Word* args, Word& result, int message, Word& local, Supplier s)
       if(local.addr)
       {
         delete (CcInt*)local.addr;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -5526,14 +5526,14 @@ CcGroupByValueMapping(Word* args, Word& result, int message,
 {
   CcTuple *t = 0;
   CcTuple *s = 0;
-  Word sWord = SetWord(0);
-  Word relWord = SetWord(0);
+  Word sWord = SetWord(Address(0));
+  Word relWord = SetWord(Address(0));
   CcRel* tp = 0;
   CcRelIT* relIter = 0;
   int i=0, j=0, k=0;
   int numberatt = 0;
   bool ifequal = false;
-  Word value = SetWord(0);
+  Word value = SetWord(Address(0));
   Supplier  value2;
   Supplier supplier1;
   Supplier supplier2;
@@ -5543,8 +5543,8 @@ CcGroupByValueMapping(Word* args, Word& result, int message,
   const int indexOfCountArgument = 3;
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
   int attribIdx = 0;
-  Word nAttributesWord = SetWord(0);
-  Word attribIdxWord = SetWord(0);
+  Word nAttributesWord = SetWord(Address(0));
+  Word attribIdxWord = SetWord(Address(0));
 
   switch(message)
   {
@@ -5557,7 +5557,7 @@ CcGroupByValueMapping(Word* args, Word& result, int message,
       }
       else
       {
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
 
@@ -5607,7 +5607,7 @@ CcGroupByValueMapping(Word* args, Word& result, int message,
       }
       if(ifequal)
       {
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
 
       t = new CcTuple;
