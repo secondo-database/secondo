@@ -2299,9 +2299,9 @@ Project(Word* args, Word& result, int message,
       if ( pli ) delete pli;
 
       pli = new ProjectLocalInfo;
-        pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
-        pli->read = 0;
-        pli->progressInitialized = false;
+      pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      pli->read = 0;
+      pli->progressInitialized = false;
       local = SetWord(pli);
 
       qp->Open(args[0].addr);
@@ -2339,6 +2339,8 @@ Project(Word* args, Word& result, int message,
       {
          pli = (ProjectLocalInfo*) local.addr;
          pli->tupleType->DeleteIfAllowed();
+         pli->tupleType = 0;
+         delete pli; 
          local = SetWord(0);
       }
       qp->Close(args[0].addr);
