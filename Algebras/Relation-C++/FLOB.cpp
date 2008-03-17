@@ -69,7 +69,7 @@ type( InMemory )
 Deletes the FLOB instance.
 
 Cleans the memory representation of a FLOB. If it is cached, then a
-reference in the cache is removed. If the type is ~Destroyed~ or 
+reference in the cache is removed. If the type is ~Destroyed~ or
 ~InDiskLarge~ nothing happens.
 
 */
@@ -77,38 +77,37 @@ reference in the cache is removed. If the type is ~Destroyed~ or
 FLOB::~FLOB()
 {
   if (debug) {
-    cerr << "FLOB " << (void*)this 
+    cerr << "FLOB " << (void*)this
 	 << ": About to destruct. type = " << stateStr(type)
 	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
   }
 
-  if( type == InMemoryCached ) 
+  if( type == InMemoryCached )
   {
     SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
 					    fd.inMemoryCached.lobId );
-  }  
-  else 
-    if( type == InMemoryPagedCached )
+  }
+  else if( type == InMemoryPagedCached )
+  {
+    assert( fd.inMemoryPagedCached.buffer != 0 );
+    if( fd.inMemoryPagedCached.cached )
     {
-      assert( fd.inMemoryPagedCached.buffer != 0 );
-      if( fd.inMemoryPagedCached.cached ) 
-      { 
-	SecondoSystem::GetFLOBCache()->
-	  Release( fd.inMemoryPagedCached.lobFileId,
-		   fd.inMemoryPagedCached.lobId,
-		   fd.inMemoryPagedCached.pageno );
-      }  
-      else 
-      {
-	free( fd.inMemoryPagedCached.buffer );
-      }  
+      SecondoSystem::GetFLOBCache()->
+          Release(  fd.inMemoryPagedCached.lobFileId,
+                    fd.inMemoryPagedCached.lobId,
+                    fd.inMemoryPagedCached.pageno );
     }
-  else 
-     if ( type == InMemory && 
-	  fd.inMemory.buffer != 0 ) 
-     {
-      free( fd.inMemory.buffer );
-     }  
+    else
+    {
+      free( fd.inMemoryPagedCached.buffer );
+      fd.inMemoryPagedCached.buffer = 0;
+    }
+  }
+  else if ( type == InMemory && fd.inMemory.buffer != 0 )
+  {
+    free( fd.inMemory.buffer );
+    fd.inMemory.buffer = 0;
+  }
 }
 
 void FLOB::Clean()
@@ -117,13 +116,13 @@ void FLOB::Clean()
     cerr << "FLOB " << (void*)this
 	 << ": About to clean. type = " << stateStr(type)
 	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
-  
+
   // SPM 19.06.2007
   //
   // WORK AROUND to make the update relation algebra running
   // more precisely: the queries of file Test/Testspecs/update.test
 
-  // Commenting out the following line is maybe not a general solution !!!  
+  // Commenting out the following line is maybe not a general solution !!!
   // assert( type != Destroyed );
 
   // Open question: what happens if an operator destroys tuples from a relation
@@ -132,8 +131,8 @@ void FLOB::Clean()
   // FLOBs record must be copied into a separate FLOB file maintained by the
   // FlobCache so that other operations which need the full representation are
   // able to access it later if necessary. I'm not sure if the current
-  // implementation will do this 
-  
+  // implementation will do this
+
   if( type == InMemory && size > 0 )
     free( fd.inMemory.buffer );
   else if( type == InMemoryCached )
@@ -161,7 +160,7 @@ void FLOB::Clean()
 
 */
 
-void 
+void
 FLOB::GetPage( size_t page ) const
 {
   assert( type == InDiskLarge ||
@@ -190,8 +189,8 @@ FLOB::GetPage( size_t page ) const
       else
 	free( fd.inMemoryPagedCached.buffer );
     }
-  }  
-  
+  }
+
   const char *buffer = 0;
   bool cached =
     SecondoSystem::GetFLOBCache()->
@@ -213,9 +212,9 @@ offset ~offset~.
 
 */
 
-void 
-FLOB::Get( size_t offset, 
-           const char **target, 
+void
+FLOB::Get( size_t offset,
+           const char **target,
 	   const bool paged /*= false*/ ) const
 {
   assert( type != Destroyed );
@@ -231,7 +230,7 @@ FLOB::Get( size_t offset,
   {
     assert( paged == true );
     if( offset >= fd.inMemoryPagedCached.pageno * PAGE_SIZE &&
-	offset < fd.inMemoryPagedCached.pageno * PAGE_SIZE + PAGE_SIZE ) 
+	offset < fd.inMemoryPagedCached.pageno * PAGE_SIZE + PAGE_SIZE )
     {
       *target = fd.inMemoryPagedCached.buffer + (offset % PAGE_SIZE);
     }
@@ -256,53 +255,53 @@ void*
 FLOB::Malloc(size_t newSize /*= 0*/) {
 
   assert( checkState(InMemory) );
-  
+
   const bool resize = (newSize > 0);
 
   if (!resize) {
-    if (size == 0) 
+    if (size == 0)
     {
       // initialize the buffer pointer
       fd.inMemory.buffer = 0;
     }
     else
-    {	  
+    {
       // allocate a buffer
       fd.inMemory.buffer = (char*)malloc( size );
     }
   }
   else // resize
   {
-    if ( newSize != size )  
+    if ( newSize != size )
     {
       // resize the internal buffer
-      fd.inMemory.buffer = 
+      fd.inMemory.buffer =
         (char *)realloc( fd.inMemory.buffer, newSize );
       size = newSize;
-    }  
+    }
   }
 
-  return fd.inMemory.buffer; 
-}	
+  return fd.inMemory.buffer;
+}
 
 string FLOB::ToString() const{
    stringstream s;
-   s << "FLOB:" 
+   s << "FLOB:"
      << "  type(" << stateStr(type) <<")"
      << "  size(" << size << ")" ;
   if(type==Destroyed) {
-      ; 
+      ;
   } else if(type == InMemory){
-    s << "buffer("<< (void*) fd.inMemory.buffer  <<")" ; 
-  } else if( type == InMemoryCached) { 
-    s << "buffer(" << (void*) fd.inMemoryCached.buffer  <<")"  
+    s << "buffer("<< (void*) fd.inMemory.buffer  <<")" ;
+  } else if( type == InMemoryCached) {
+    s << "buffer(" << (void*) fd.inMemoryCached.buffer  <<")"
       << "lobFileId(" << fd.inMemoryCached.lobFileId << ")"
       << "lobId(" << fd.inMemoryCached.lobId << ")";
-  } else if( type == InMemoryPagedCached){ 
+  } else if( type == InMemoryPagedCached){
     s << "buffer("
       << (void*) fd.inMemoryPagedCached.buffer << ")"
       << " chached (" << fd.inMemoryPagedCached.cached << ")"
-      << " pageno(" << fd.inMemoryPagedCached.pageno << ")" 
+      << " pageno(" << fd.inMemoryPagedCached.pageno << ")"
       << " lobFileId(" << fd.inMemoryPagedCached.lobFileId << ")"
       << " lobId(" << fd.inMemoryPagedCached.lobId << ")";
   } else if (type==InDiskLarge){
@@ -318,10 +317,10 @@ string FLOB::ToString() const{
 ostream& operator<<(ostream& os, const FLOB& flob){
     os << flob.ToString();
     return os;
-} 
+}
 
 /*
- 
+
 Function ~ReadFrom~ should only be called in order to initialize the FLOB
 directly after it was read from disk, therefore it must be in state
 ~InMemory~. It copies the data pointed to
@@ -335,7 +334,7 @@ FLOB::ReadFrom(void* src) {
   assert( checkState( InMemory ) );
 
   Malloc();
-  memcpy(fd.inMemory.buffer, src, size);  
+  memcpy(fd.inMemory.buffer, src, size);
 
   return size;
 }
@@ -344,20 +343,20 @@ FLOB::ReadFrom(void* src) {
 Function ~WriteTo~ will write the data of an ~InMemory~ FLOB to the
 given destination pointer.
 
-*/   
+*/
 
 unsigned int
-FLOB::WriteTo(void* dest) const 
+FLOB::WriteTo(void* dest) const
 {
   assert( checkState(InMemory) );
-  if( size > 0 ) 
+  if( size > 0 )
   {
     memcpy( dest, fd.inMemory.buffer, size);
   }
   else
   {
     assert( fd.inMemory.buffer == 0);
-  }  
+  }
 
   return size;
 }
@@ -370,32 +369,32 @@ Returns true, if value stored in underlying LOB, otherwise false.
 
 */
 
-bool 
+bool
 FLOB::IsLob() const
 {
   assert( type != Destroyed );
-  return ( IsPersistentLob() 
+  return ( IsPersistentLob()
 	   || IsMemoryLob() || IsCachedLob() );
 }
 
-bool 
+bool
 FLOB::IsMemoryLob() const
 {
-  return ( type == InMemory && 
+  return ( type == InMemory &&
 	   size > SWITCH_THRESHOLD );
 }
 
-bool 
+bool
 FLOB::IsPersistentLob() const
 {
-  return ( type == InDiskLarge ); 
+  return ( type == InDiskLarge );
 }
 
 
-bool 
+bool
 FLOB::IsCachedLob() const
 {
-  return ( type == InMemoryCached || 
+  return ( type == InMemoryCached ||
            type == InMemoryPagedCached );
 }
 
@@ -410,16 +409,16 @@ FLOB::BringToMemory() const
 {
   assert( type != Destroyed );
   if (debug)
-    cerr << "FLOB " << (void*)this 
+    cerr << "FLOB " << (void*)this
 	 << ": BringToMemory(). type = " << stateStr(type)
-	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;	
+	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
 
   if( type == InDiskLarge )
   {
     const char* buffer = 0;
-    bool cached =  
-      SecondoSystem::GetFLOBCache()->GetFLOB( fd.inDiskLarge.lobFileId, 
-                                              fd.inDiskLarge.lobId, 
+    bool cached =
+      SecondoSystem::GetFLOBCache()->GetFLOB( fd.inDiskLarge.lobFileId,
+                                              fd.inDiskLarge.lobId,
                                              -1, size, false, buffer );
 
     SmiFileId fileId = fd.inDiskLarge.lobFileId;
@@ -460,7 +459,7 @@ FLOB::BringToMemory() const
     fd.inDiskLarge.lobId = lobId;
     return BringToMemory();
   }
-  
+
   return 0;
 }
 
@@ -469,7 +468,7 @@ FLOB::BringToMemory() const
 
 */
 
-void 
+void
 FLOB::Destroy()
 {
   assert( type != Destroyed );
@@ -483,16 +482,16 @@ FLOB::Destroy()
     }
     else {
       assert( fd.inMemory.buffer == 0 );
-    }      
+    }
   }
   else if( type == InMemoryCached )
   {
-    SecondoSystem::GetFLOBCache()->Destroy( fd.inMemoryCached.lobFileId, 
+    SecondoSystem::GetFLOBCache()->Destroy( fd.inMemoryCached.lobFileId,
                                             fd.inMemoryCached.lobId );
   }
   else if( type == InDiskLarge )
   {
-    SecondoSystem::GetFLOBCache()->Destroy( fd.inDiskLarge.lobFileId, 
+    SecondoSystem::GetFLOBCache()->Destroy( fd.inDiskLarge.lobFileId,
                                             fd.inDiskLarge.lobId );
   }
   else if( type == InMemoryPagedCached )
@@ -505,7 +504,7 @@ FLOB::Destroy()
     else
       free( fd.inMemoryPagedCached.buffer );
 
-    SecondoSystem::GetFLOBCache()->Destroy( fd.inMemoryPagedCached.lobFileId, 
+    SecondoSystem::GetFLOBCache()->Destroy( fd.inMemoryPagedCached.lobFileId,
                                             fd.inMemoryPagedCached.lobId );
   }
 
@@ -518,7 +517,7 @@ FLOB::Destroy()
 
 */
 
-void 
+void
 FLOB::Resize( size_t newSize )
 {
   assert( type != Destroyed );
@@ -535,11 +534,11 @@ FLOB::Resize( size_t newSize )
     // This code cannot be reached because the other
     // cases are not implemented yet.
     assert( false );
-  }  
+  }
 
   if (debug)
-    cerr << "FLOB " << (void*)this << ": resized. size = " << size 
-	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;	
+    cerr << "FLOB " << (void*)this << ": resized. size = " << size
+	 << " inMemory.buffer = " << (void*)fd.inMemory.buffer << endl;
 }
 
 /*
@@ -547,10 +546,10 @@ FLOB::Resize( size_t newSize )
 
 */
 
-void 
+void
 FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId ) const
 {
-  assert( (type == InMemory || type == InMemoryCached ) && 
+  assert( (type == InMemory || type == InMemoryCached ) &&
             size > SWITCH_THRESHOLD ||
           type == InDiskLarge );
 
@@ -559,10 +558,10 @@ FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId ) const
     BringToMemory();
     SaveToLob( lobFileId, lobId );
   }
-  else if( type == InMemory ) 
+  else if( type == InMemory )
   {
-    SecondoSystem::GetFLOBCache()->PutFLOB( lobFileId, lobId, 
-                                            -1, size, false, 
+    SecondoSystem::GetFLOBCache()->PutFLOB( lobFileId, lobId,
+                                            -1, size, false,
                                             fd.inMemory.buffer );
     free( fd.inMemory.buffer );
     fd.inMemory.buffer = 0;
@@ -573,11 +572,11 @@ FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId ) const
   }
   else if( type == InMemoryCached )
   {
-    SecondoSystem::GetFLOBCache()->PutFLOB( lobFileId, lobId, 
-                                            -1, size, false, 
+    SecondoSystem::GetFLOBCache()->PutFLOB( lobFileId, lobId,
+                                            -1, size, false,
                                             fd.inMemoryCached.buffer );
-    SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId, 
-                                            fd.inMemoryCached.lobId ); 
+    SecondoSystem::GetFLOBCache()->Release( fd.inMemoryCached.lobFileId,
+                                            fd.inMemoryCached.lobId );
     fd.inMemoryCached.buffer = 0;
     type = InDiskLarge;
     fd.inDiskLarge.lobFileId = lobFileId;
@@ -585,46 +584,46 @@ FLOB::SaveToLob( SmiFileId& lobFileId, SmiRecordId lobId ) const
   }
 }
 
-bool 
+bool
 FLOB::checkState(const FLOB_Type f) const
 {
   FLOB_Type states[] = { f };
   return checkState(states, 1);
-}	    
+}
 
-bool 
+bool
 FLOB::checkState(const FLOB_Type f[], const int n) const
 {
-  int m = n;	    
-  while (m > 0 && (type != f[m-1])) {;      	      
-    m--;      
-  }       
+  int m = n;
+  while (m > 0 && (type != f[m-1])) {;
+    m--;
+  }
   if (m == 0)
-  { 
+  {
     string states = "";
     for (int i=0; i < n; i++)
     {
-      states += stateStr(f[i]) + " ";	
+      states += stateStr(f[i]) + " ";
     }
     cerr << "Flob " << (const void*)this << ": "
-	 << "Assuming one of the states {" << states << "}" 
+	 << "Assuming one of the states {" << states << "}"
 	 << " but flob has state " << stateStr(type) << endl;
     return false;
   }
-  return true;  
-}  
+  return true;
+}
 
-const 
+const
 string FLOB::stateStr(const FLOB_Type& f) const
-{ 
+{
   switch (f)
-  { 
-   case Destroyed: return "Destroyed"; break;  
-   case InMemory: return "InMemory"; break;  
-   case InMemoryCached: return "InMemoryCached"; break;  
-   case InMemoryPagedCached: return "InMemoryPageCached"; break;  
-   case InDiskLarge: return "InDiskLarge"; break;  
+  {
+   case Destroyed: return "Destroyed"; break;
+   case InMemory: return "InMemory"; break;
+   case InMemoryCached: return "InMemoryCached"; break;
+   case InMemoryPagedCached: return "InMemoryPageCached"; break;
+   case InDiskLarge: return "InDiskLarge"; break;
    default: return "Unknown state!";
-  }    
+  }
 }
 
