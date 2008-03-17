@@ -2650,7 +2650,7 @@ no better solution right now to assure that ~value~ has a valid DBArray.
 */
     Region* tmp = new Region(0);
     memcpy(&value, tmp, sizeof(*tmp));
-    free(tmp);
+    delete(tmp);
 }
 
 IRegion::IRegion(const IRegion& ir) {
@@ -2668,7 +2668,7 @@ no better solution right now to assure that ~value~ has a valid DBArray.
 */
     Region* tmp = new Region(0);
     memcpy(&value, tmp, sizeof(*tmp));
-    free(tmp);
+    delete(tmp);
     if (ir.defined) value.CopyFrom(&ir.value);
 }
 
@@ -8345,9 +8345,7 @@ static int MoveValueMap(Word* args,
                         int message,
                         Word& local,
                         Supplier s) {
-    cout << "MoveValueMap called" << endl;
     result = qp->ResultStorage(s);
-    cout << "Step one ok "<< endl;
     MPoint* mp = (MPoint* ) args[0].addr;
     Region* reg = (Region*) args[1].addr;
     MRegion res(*mp,*reg,0);
