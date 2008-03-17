@@ -1772,11 +1772,13 @@ void specialIntersectionTrapeziumSegment(double t1,
                                          bool& ip1present,
                                          double& ip1x,
                                          double& ip1y,
-                                         double& ip1t,
+                                         double& ip1t,  // sometimes not set!
                                          bool& ip2present,
                                          double& ip2x,
                                          double& ip2y,
-                                         double& ip2t) {
+                                         double& ip2t // sometimes not set!
+                                        )
+{
     if (MRA_DEBUG) {
         cerr << "sITS() called" << endl;
         cerr << "sITS() t1=" << t1
@@ -4617,6 +4619,13 @@ sufficient context to understand this method.
             ip1present, ip1x, ip1y, ip1t,
             ip2present, ip2x, ip2y, ip2t);
 
+// debug::start
+        int i = 0;
+        if (ip1t == 0){i++;}
+        if (1.0 > iv.end.ToDouble()){i++;}
+        if (ip2t == 0){i++;}
+        if ( i > 0 ) cout << "Blahhhh!" << endl;
+// debug::end
         if (ip1t < iv.start.ToDouble() || ip1t > iv.end.ToDouble())
             ip1present = false;
         if (ip2t < iv.start.ToDouble() || ip2t > iv.end.ToDouble())
