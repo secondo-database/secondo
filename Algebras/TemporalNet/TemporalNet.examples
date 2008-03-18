@@ -133,6 +133,20 @@ Example  : query [const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-1
 Result   : (mgpoint((("2007-01-01-10:10" "2007-01-01-10:10" TRUE TRUE)(1 1 1 0.0 0.0))))
 Tolerance: 0.01%
 
+Operator : at
+Number   : 2
+Signature: mpoint x gline -> mgpoint
+Example  : query [const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))] at [const gline value (1 ((1 0.0 1.0)))];
+Result   : (mgpoint((("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01" "2007-01-01-10:10:01" TRUE TRUE)(1 1 1 1.0 1.0))))
+Tolerance: 0.01%
+
+Operator : inside
+Number   : 1
+Signature: mgpoint x gline -> mgpoint
+Example  : query [const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))] inside [const gline value (1 ((1 0.0 1.0)))];
+Result   : (mbool((("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE TRUE) TRUE)(("2007-01-01-10:10:01" "2007-01-01-10:10:02" FALSE TRUE)FALSE)))
+Tolerance: 0.01%
+
 Operator : val
 Number   : 1
 Signature: igpoint -> gpoint

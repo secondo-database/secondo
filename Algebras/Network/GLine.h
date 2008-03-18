@@ -82,14 +82,18 @@ The simple constructor. Should not be used.
 
     GLine(GLine* in_xOther);
 
+    ~GLine() {};
+
+
 /*
 The constructor.
 
 */
-  GLine( ListExpr in_xValue,
+    GLine( ListExpr in_xValue,
          int in_iErrorPos,
          ListExpr& inout_xErrorInfo,
          bool& inout_bCorrect);
+
     void SetNetworkId(int in_iNetworkId);
 
     void AddRouteInterval(int in_iRouteId,
@@ -145,7 +149,9 @@ The constructor.
 
     int GetNetworkId();
 
-    DBArray<RouteInterval> GetRouteIntervals();
+    void Get(const int i, const RouteInterval* &ri) const;
+
+    int NoOfComponents();
 
 
   private:

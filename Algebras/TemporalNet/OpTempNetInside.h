@@ -22,18 +22,19 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Declaration of Operator at
+1.1 Declaration of Operator inside
 
-This operator reduces a moving gpoint to the times he is at a given gpoint.
+This operator returns a moving bool which is true if the moving gpoint is
+inside a given gline, false elsewhere.
 
 March 2008 Simone Jandt
 
 */
 
-#ifndef OPTEMPNETAT_H_
-#define OPTEMPNETAT_H_
+#ifndef OPTEMPNETINSIDE_H_
+#define OPTEMPNETINSIDE_H_
 
-class OpTempNetAt
+class OpTempNetInside
 {
 public:
 /*
@@ -41,28 +42,21 @@ public:
 Type Mapping of operator ~at~
 
 */
-static ListExpr AtMap(ListExpr args);
+static ListExpr TypeMapping(ListExpr args);
 
 /*
 Value mapping function of operator ~at~
 
 */
-static int at_mgpgp(Word* args, Word& result, int message, Word& local,
+static int ValueMapping(Word* args, Word& result, int message, Word& local,
                         Supplier in_xSupplier);
-
-static int at_mgpgl(Word* args, Word& result, int message, Word& local,
-                        Supplier in_xSupplier);
-
-static int SelectAt(ListExpr args);
-
-static ValueMapping atmap [];
 
 
 /*
-4.4.3 Specification of operator ~at~
+4.4.3 Specification of operator ~inside~
 
 */
 static const string Spec;
 };
 
-#endif /*OPTEMPNETAT_H_*/
+#endif /*OPTEMPNETINSIDE_H_*/

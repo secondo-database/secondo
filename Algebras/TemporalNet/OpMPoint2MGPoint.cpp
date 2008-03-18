@@ -956,6 +956,7 @@ start time and the junction as startposition of the new current unit.
   //pRoutes->Delete();
   pAdjacentSections.clear();
   // delete &pAdjacentSections;
+  cout << "Translation ok" << endl;
   return 0;
 } //end ValueMapping
 

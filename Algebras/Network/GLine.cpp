@@ -323,7 +323,7 @@ Word GLine::Create(const ListExpr typeInfo)
 void GLine::Delete(const ListExpr typeInfo,
                    Word& w )
 {
-  delete (GLine*)w.addr;
+  GLine *l = (GLine *)w.addr;
   w.addr = 0;
 }
 
@@ -458,17 +458,15 @@ double GLine::GetLength(){
   return  m_iNetworkId;
  };
 
-  DBArray<RouteInterval> GLine::GetRouteIntervals(){
-    DBArray<RouteInterval> result;
-    const RouteInterval *ri;
-    result.Clear();
-    for (int i = 0; i < m_xRouteIntervals.Size(); i++){
-      m_xRouteIntervals.Get(i,ri);
-      result.Append(*ri);
-    }
-    return result;
+  void GLine::Get(const int i, const RouteInterval* &ri) const{
+    cout << "called Get for routeinterval: " << i << " of gline" << endl;
+    m_xRouteIntervals.Get(i, ri);
+    cout << "got route: " << ri->m_iRouteId << endl;
   };
 
+int GLine::NoOfComponents(){
+  return m_xRouteIntervals.Size();
+};
 
 /*
 Function describing the signature of the type constructor

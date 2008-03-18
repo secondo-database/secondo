@@ -167,7 +167,6 @@ int OpPasses::passes_mgpgl(Word* args,
     pPasses->Set(true, false);
     return 0;
   }
-  DBArray<RouteInterval> gpRoutes = pGLine->GetRouteIntervals();
   const RouteInterval *pCurrRInter;
   for (int i = 0; i < pMGPoint->GetNoComponents(); i++)
   {
@@ -179,8 +178,8 @@ int OpPasses::passes_mgpgl(Word* args,
       dMGPStart = pCurrentUnit->p1.GetPosition();
       dMGPEnd = pCurrentUnit->p0.GetPosition();
     }
-    for (int j = 0 ; j < gpRoutes.Size(); j ++){
-      gpRoutes.Get(j,pCurrRInter);
+    for (int j = 0 ; j < pGLine->NoOfComponents(); j ++){
+      pGLine->Get(j,pCurrRInter);
       if (pCurrRInter->m_iRouteId == pCurrentUnit->p0.GetRouteId() &&
          (!(pCurrRInter->m_dEnd < dMGPStart ||
             pCurrRInter->m_dStart > dMGPEnd))){

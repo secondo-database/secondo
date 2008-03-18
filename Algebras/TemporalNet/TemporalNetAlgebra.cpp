@@ -58,6 +58,7 @@ Defines, includes, and constants
 #include "OpTempNetPresent.h"
 #include "OpTempNetIsEmpty.h"
 #include "OpTempNetNoComp.h"
+#include "OpTempNetInside.h"
 
 #include <iostream>
 #include <sstream>
@@ -199,11 +200,6 @@ Operator simplify("simplify",
 Operator passes
 
 */
-//  Operator passes("passes",
-//                 OpPasses::Spec,
-//                 OpPasses::ValueMapping,
-//                 Operator::SimpleSelect,
-//                 OpPasses::TypeMap );
 
 Operator tempnetpasses (
   "passes",
@@ -213,6 +209,16 @@ Operator tempnetpasses (
   OpPasses::SelectPasses,
   OpPasses::PassesMap );
 
+/*
+Operator at
+
+*/
+Operator tempnetat("at",
+                OpTempNetAt::Spec,
+                2,
+                OpTempNetAt::atmap,
+                OpTempNetAt::SelectAt,
+                OpTempNetAt::AtMap );
 /*
 Operator trajectory
 
@@ -284,15 +290,7 @@ Operator tempnetinst("inst",
                 IntimeInst<GPoint>,
                 Operator::SimpleSelect,
                 OpTempNetInst::TypeMap );
-/*
-Operator at
 
-*/
-Operator tempnetat("at",
-                OpTempNetAt::Spec,
-                MappingAt<MGPoint, UGPoint, GPoint>,
-                Operator::SimpleSelect,
-                OpTempNetAt::TypeMap );
 
 /*
 Operator atinstant
@@ -333,6 +331,17 @@ Operator tempnetnocomp("no_components",
                 OpTempNetNoComp::ValueMapping,
                 Operator::SimpleSelect,
                 OpTempNetNoComp::TypeMap );
+
+/*
+Operator isempty
+
+*/
+Operator tempnetinside("inside",
+                OpTempNetInside::Spec,
+                OpTempNetInside::ValueMapping,
+                Operator::SimpleSelect,
+                OpTempNetInside::TypeMapping );
+
 /*
 Creating the Algebra
 
@@ -370,7 +379,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetpresent);
     AddOperator(&tempnetisempty);
     AddOperator(&tempnetnocomp);
-
+    AddOperator(&tempnetinside);
   }
 
 
