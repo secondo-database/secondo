@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-1 Implementation of Class SmiKey 
+1 Implementation of Class SmiKey
 
 May 2002 Ulrich Telle
 
@@ -70,6 +70,7 @@ SmiKey::SmiKey( const string& key )
 
 SmiKey::SmiKey( const IndexableStandardAttribute* key )
 {
+  keyType = SmiKey::Unknown;
   SetKey( key );
 }
 
@@ -180,7 +181,8 @@ void
 SmiKey::FreeData()
 {
   if ( keyType != SmiKey::Unknown  &&
-       keyLength > SMI_MAX_KEYLEN_LOCAL )
+       keyLength > SMI_MAX_KEYLEN_LOCAL
+     )
   {
     delete []longKeyData;
   }
