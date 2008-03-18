@@ -3447,7 +3447,7 @@ int CcNum2String( Word* args, Word& result, int message,
       ostringstream os;
       os.precision(47);
       os << arg->GetValue();
-      string s = os.str().substr(0,48);
+      string s = os.str().substr(0,MAX_STRINGSIZE);
       STRING_T S;
       strcpy(S,s.c_str());
       res->Set( true, &S);
@@ -3475,7 +3475,7 @@ int CcCharFun( Word* args, Word& result, int message,
     { // Accepted, but mapped Code: 34: map <"> to "''"
       ostringstream os;
       os << "''";
-      string s = os.str().substr(0,48);
+      string s = os.str().substr(0,MAX_STRINGSIZE);
       STRING_T S;
       strcpy(S,s.c_str());
       res->Set( true, &S);
@@ -3491,7 +3491,7 @@ int CcCharFun( Word* args, Word& result, int message,
       char ch = (char) code;
       ostringstream os;
       os << ch;
-      string s = os.str().substr(0,48);
+      string s = os.str().substr(0,MAX_STRINGSIZE);
       STRING_T S;
       strcpy(S,s.c_str());
       res->Set( true, &S);
