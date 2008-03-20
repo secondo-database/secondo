@@ -49,6 +49,9 @@ operator segments alias SEGMENTS pattern  op ( _ )
 operator get alias GET pattern   op ( _, _ )
 operator realminize alias REALMINIZE pattern op ( _ )
 operator makeline alias MAKELINE pattern op (_ , _ )
+operator center alias CENTER pattern op (_)
+operator convexhull alias CONVEXHULL pattern op (_)
+
 
 
 

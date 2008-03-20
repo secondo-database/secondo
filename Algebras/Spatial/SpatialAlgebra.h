@@ -56,9 +56,7 @@ shows examples of these spatial data types.
 #include "StandardAttribute.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
-#include "TopRel.h"
 
-using namespace toprel;
 
 typedef double Coord;
 /*
@@ -603,9 +601,9 @@ Returns ~true~ if this point set contains the ~ps~ point set and
 *Precondition:* ~this.IsOrdered() $\&\&$ ps.IsOrdered()~
 
 */
-    Int9M GetTopRel( const Points& ps ) const;
+
+
 /*
-??? - See the TopRelAlgebra.
 
 5.4 Operations
 
@@ -874,8 +872,26 @@ the size of ~U~ and ~m~ is the size of ~V~.
   void Translate( const Coord& x, const Coord& y, Points& ps ) const;
 
 
+/*
+4.3.15 Operation ~rotate~
+
+Rotates all contained points around the point defined by (x,y) with
+angle ~alpha~.
+
+*/
+
   void Rotate( const Coord& x, const Coord& y, double alpha,
                Points& res ) const;
+
+
+/*
+4.3.16 Operation ~center~
+
+Computes the center of this points object.
+
+*/
+   Point theCenter() const;
+
 
 
 /*

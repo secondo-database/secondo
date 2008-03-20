@@ -358,3 +358,18 @@ Signature: line -> line
 Example  : query trajectory(train1) = realminize(trajectory(train1))
 Result   : TRUE
 Remark   : just a correction of the internal line representation 
+
+
+Operator : center 
+Number   : 1
+Signature: points -> point
+Example  : query center( [const points value ((0 0)(10 10))])
+Result   : (point (5.0 5.0))
+
+Operator : convexhull 
+Number   : 1
+Signature: points -> region
+Example  : query convexhull([const points value ((0 0) (10 0) (10 10) (5 3) )]) 
+Result   : (region ( ( ( (10.0 0.0) (0.0 0.0) (10.0 10.0))))) 
+
+

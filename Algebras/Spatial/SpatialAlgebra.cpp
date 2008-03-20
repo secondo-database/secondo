@@ -67,7 +67,7 @@ using namespace std;
 #include <string.h>
 #include <string>
 #include <cmath>
-
+#include <algorithm>
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
@@ -2415,6 +2415,25 @@ void Points::Rotate( const Coord& x, const Coord& y,
   }
   result.EndBulkLoad( true, false );
 
+}
+
+Point Points::theCenter() const{
+   Point res(true,0,0);
+   if(!IsDefined() || (Size()==0)){
+     res.SetDefined(false);
+   } else {
+     int size = Size();
+     const Point* p;
+     double x = 0.0;
+     double y = 0.0;
+     for(int i=0;i<size;i++){
+         Get(i,p);
+         x += p->GetX();
+         y += p->GetY();
+     } 
+     res.Set(x/size,y/size);
+   }
+   return res;
 }
 
 
@@ -10949,6 +10968,47 @@ SpatialRotateMap( ListExpr args )
   return nl->SymbolAtom(st);
 
 }
+
+/*
+10.1.16 Type Mapping function for center.
+
+The signature is points -> point.
+
+*/
+
+ListExpr SpatialCenterMap(ListExpr args){
+
+  if( (nl->ListLength(args)==1) &&
+      (nl->IsEqual(nl->First(args),"points")) ){
+      return nl->SymbolAtom("point");
+  }
+
+  ErrorReporter::ReportError("points expected");
+  return nl->TypeError();
+
+}
+
+
+/*
+10.1.17 Type Mapping function for convexhull.
+
+The signature is points -> region.
+
+*/
+
+ListExpr SpatialConvexhullMap(ListExpr args){
+
+  if( (nl->ListLength(args)==1) &&
+      (nl->IsEqual(nl->First(args),"points")) ){
+      return nl->SymbolAtom("region");
+  }
+
+  ErrorReporter::ReportError("points expected");
+  return nl->TypeError();
+
+}
+
+
 /*
 10.1.17 Type mapping function for operator ~windowclipping~
 
@@ -13352,6 +13412,337 @@ SpatialTouchPoints_rr( Word* args, Word& result, int message,
 }
 
 /*
+Classes suppoorting the computation of the convex hull of 
+an pointset.
+
+
+*/
+class SimplePoint;
+ostream& operator<<(ostream& o,const SimplePoint& p);
+
+class SimplePoint{
+  public:
+     SimplePoint(const Point* p){
+       this->x = p->GetX();
+       this->y = p->GetY();
+     }
+
+     SimplePoint(){
+        x = 0;
+        y = 0;
+     }
+
+     SimplePoint(double x, double y){
+       this->x = x;
+       this->y = y;
+     }
+
+     SimplePoint(const SimplePoint& p){
+        this->x = p.x;
+        this->y = p.y;
+     }
+
+     SimplePoint& operator=(const SimplePoint& p){
+       this->x = p.x;
+       this->y = p.y;
+       return *this;
+     }  
+
+     ~SimplePoint(){}
+
+     SimplePoint relTo(const SimplePoint& p) const{
+        return SimplePoint(this->x - p.x, this->y-p.y);
+     }
+
+     void makeRelTo(const SimplePoint& p){
+        this->x -= p.x;
+        this->y -= p.y;
+     }
+
+     SimplePoint moved(const double x0, const double y0)const{
+        return SimplePoint(x+x0, y+y0);
+     }
+
+     SimplePoint reversed()const{
+        return SimplePoint(-x,-y);
+     }
+
+     bool isLower(const SimplePoint& p)const{
+        if(!AlmostEqual(y,p.y)){
+           return y < p.y;
+        } 
+        if(AlmostEqual(x,p.x)){ // equal points
+           return false;
+        }
+        return x < p.x;
+     } 
+
+     double mdist()const{ // manhatten distance to (0,0)
+       return abs(x) + abs(y);
+     }
+
+     double mdist(const SimplePoint p)const{
+        return abs(x-p.x) + abs(y-p.y); 
+     }
+
+     bool isFurther(const SimplePoint& p)const{
+        return mdist() > p.mdist();
+     }
+
+     bool isBetween(const SimplePoint& p0, const SimplePoint p1) const{
+        return p0.mdist(p1) >= mdist(p0)+mdist(p1);
+     }
+
+     double cross(const SimplePoint& p)const{
+        return x*p.y - p.x*y;
+     }
+
+     bool isLess(const SimplePoint& p) const{
+        double f = cross(p);
+        bool res;
+        if(AlmostEqual(f,0.0)){
+          res = isFurther(p);
+        } else {
+          res = f>0;
+        }
+        return  res;
+     }
+
+     bool operator<(const SimplePoint& p) const{
+         return isLess(p);
+     }
+    
+     bool operator==(const SimplePoint& p) const{
+         return AlmostEqual(x,p.x)&& AlmostEqual(y,p.y);
+     }
+     
+    bool operator>(const SimplePoint& p) const{
+         return !(AlmostEqual(x,p.x) && AlmostEqual(y,p.y)) && !isLess(p);
+     }
+
+     double area2(const SimplePoint& p0, const SimplePoint& p1) const{
+        return p0.relTo(*this).cross(p1.relTo(*this));
+     }
+
+     bool isConvex(const SimplePoint& p0, const SimplePoint& p1) const {
+        double f = area2(p0,p1);
+        if(AlmostEqual(f,0.0)){
+           bool between = isBetween(p0,p1);
+           return !between;
+        }
+        return f<0;
+     }
+
+     Point getPoint()const {
+        return Point(true,x,y);
+     }
+
+     double getX()const{ return x;}
+     double getY()const{ return y;}
+
+
+  private:
+     double x;
+     double y;
+
+}; // end of class SimplePoint
+     
+
+
+ostream& operator<<(ostream& o,const SimplePoint& p) {
+        o << "(" << p.getX() << ", " << p.getY() << ")";
+        return o;
+}
+
+
+class GrahamScan{
+public:
+  static void convexHull(const Points* ps, Region* result){
+     result->Clear();
+     if(!ps->IsDefined() ){
+         result->SetDefined(false);
+         return;
+     }
+     if(ps->Size()<3){
+        result->SetDefined(false);
+        return;
+     }
+     GrahamScan scan(ps);
+     int size = scan.computeHull();   
+     if(size<3){ // points was on a single line
+        result->SetDefined(false);
+        return;
+     }
+
+
+     result->SetDefined(true);
+     result->StartBulkLoad();
+     for(int i=0;i<size-1; i++){
+        SimplePoint p1(scan.p[i]);
+        SimplePoint p2(scan.p[i+1]);
+        // build the halfsegment 
+        HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+        HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+        hs1.attr.edgeno = i;
+        hs2.attr.edgeno = i;
+        bool ia = isInsideAbove(p1,p2);
+        hs1.attr.insideAbove = ia;
+        hs2.attr.insideAbove = ia;
+        (*result) += hs1;
+        (*result) += hs2;
+     } 
+     // close the polygon 
+     SimplePoint p1(scan.p[size-1]);
+     SimplePoint p2(scan.p[0]);
+     // build the halfsegment 
+     HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+     HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+     hs1.attr.edgeno = size-1;
+     hs2.attr.edgeno = size-1;
+     bool ia = isInsideAbove(p1,p2);
+     hs1.attr.insideAbove = ia;
+     hs2.attr.insideAbove = ia;
+     (*result) += hs1;
+     (*result) += hs2;
+     result->EndBulkLoad();
+  }
+
+
+private:
+   vector<SimplePoint> p;
+   int n;
+   int h;
+
+  
+  GrahamScan(const Points* ps){
+     n = ps->Size();
+     const Point* pt;
+     for(int i=0;i<n;i++){
+        ps->Get(i,pt);
+        p.push_back(SimplePoint(pt));
+     } 
+  }
+
+   int computeHull(){
+    if(n<3){
+      return n;
+    }
+    h = 0;
+    grahamScan();
+    return h;
+  } 
+   void grahamScan(){
+     int min = indexOfLowestPoint();
+
+     exchange(0,min);
+
+
+
+     SimplePoint pl(p[0]);
+     makeRelTo(pl);
+     sort();
+     makeRelTo(pl.reversed());
+
+     int i=3;
+     int k=3;
+     while(k<n){
+        exchange(i,k);
+        while(!isConvex(i-1)){
+           exchange(i-1,i);
+           i--; 
+        }
+        k++;
+        i++;
+     }
+     // remove a possibly last 180 degree angle
+     if(i>=3){
+        if(!p[i-1].isConvex(p[i-2],p[0])){
+            i--;
+        } 
+     }
+
+     h = i;
+   }
+
+   static bool isInsideAbove(const SimplePoint& p1, const SimplePoint& p2){
+     double diffx = p2.getX()-p1.getX();
+     double diffy = p2.getY()-p1.getY();
+
+     if(AlmostEqual(diffx,0.0)){
+        return diffy < 0;
+     }
+     if(AlmostEqual(diffy,0.0)){
+        return diffx > 0;
+     }
+     bool sx = diffx>0;
+     bool sy = diffy>0;
+     return sx == sy; 
+   }
+
+
+   void exchange(const int i, const int j){
+      SimplePoint t(p[i]);
+      p[i] = p[j];
+      p[j] = t;
+   }
+
+   void makeRelTo(const SimplePoint& p0){
+       SimplePoint p1(p0);
+       for(int i=0;i<n;i++){
+          p[i].makeRelTo(p1);
+       }
+   }
+
+   int indexOfLowestPoint()const{
+     unsigned min = 0;
+     for(unsigned int i=1; i<p.size(); i++){
+        if(p[i].isLower(p[min])){
+           min = i;
+        }
+     }
+     return min;
+   }
+    
+   bool isConvex(const int i){
+     return p[i].isConvex(p[i-1],p[i+1]); 
+   }  
+
+   void sort(){
+     vector<SimplePoint>::iterator it= p.begin();
+     it++;
+     std::sort(it,p.end()); // without the first point
+   }
+
+   void quicksort(const int lo, const int hi){
+      int i=lo;
+      int j = hi;
+      if(lo>=hi){
+         return;
+      }
+      SimplePoint q(p[(lo+hi)/2]);
+      while(i<=j){
+         while(p[i].isLess(q)) i++;
+         while(q.isLess(p[j])) j--;
+         if(i<=j){
+            exchange(i,j);
+            i++; 
+            j--;
+         }
+      }
+      if(lo<j){
+        quicksort(lo,j);
+      }
+      if(i<hi){
+        quicksort(i,hi);
+      }
+   }
+
+
+}; // end of class GrahamScan
+
+
+
+/*
 10.4.25 Value mapping functions of operator ~commomborder~
 
 */
@@ -13486,6 +13877,25 @@ int SpatialRotate( Word* args, Word& result, int message,
   return 0;
 }
 
+
+int SpatialCenter( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   Points* ps = static_cast<Points*>(args[0].addr);
+   Point* res = static_cast<Point*>(result.addr);
+   
+   *res = ps->theCenter(); 
+   return 0;
+}
+
+int SpatialConvexhull( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+   result = qp->ResultStorage(s);
+   Points* ps = static_cast<Points*>(args[0].addr);
+   Region* res = static_cast<Region*>(result.addr);
+   GrahamScan::convexHull(ps,res); 
+   return 0;
+}
 
 int
 SpatialLine2Region( Word* args, Word& result, int message,
@@ -15102,6 +15512,22 @@ const string SpatialSpecRotate  =
   "<text> query region1 rotate[3.5, 15.1, 10.0]</text--->"
   ") )";
 
+const string SpatialSpecCenter  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> points -> point </text--->" 
+  "<text> center(_) </text--->"
+  "<text> computes the center of the points value</text--->"
+  "<text> query center(vertices(tiergarten))</text--->"
+  ") )";
+
+const string SpatialSpecConvexhull  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text> points -> region </text--->" 
+  "<text> convexhull(_) </text--->"
+  "<text> computes the convex hull of the points value</text--->"
+  "<text> query convexhull(vertices(tiergarten))</text--->"
+  ") )";
+
 const string SpatialSpecAdd  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>point x point -> point</text--->"
@@ -15473,6 +15899,21 @@ Operator spatialrotate (
   SpatialSelectTranslate,
   SpatialRotateMap );
 
+
+Operator spatialcenter (
+  "center",
+  SpatialSpecCenter,
+  SpatialCenter,
+  Operator::SimpleSelect,
+  SpatialCenterMap );
+
+Operator spatialconvexhull (
+  "convexhull",
+  SpatialSpecConvexhull,
+  SpatialConvexhull,
+  Operator::SimpleSelect,
+  SpatialConvexhullMap );
+
 Operator spatialadd (
   "+",
   SpatialSpecAdd,
@@ -15680,6 +16121,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialbbox);
     AddOperator( &spatialtranslate );
     AddOperator( &spatialrotate );
+    AddOperator( &spatialcenter );
+    AddOperator( &spatialconvexhull );
     AddOperator( &spatialwindowclippingin );
     AddOperator( &spatialwindowclippingout );
     AddOperator( &spatialcomponents );
