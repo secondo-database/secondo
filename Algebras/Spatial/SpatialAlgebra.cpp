@@ -13586,6 +13586,11 @@ public:
         hs1.attr.edgeno = i;
         hs2.attr.edgeno = i;
         bool ia = isInsideAbove(p1,p2);
+     
+         
+        cout << "segment " << p1 << " -> " << p2 << " ia = " << ia <<  endl;
+
+
         hs1.attr.insideAbove = ia;
         hs2.attr.insideAbove = ia;
         (*result) += hs1;
@@ -13600,6 +13605,7 @@ public:
      hs1.attr.edgeno = size-1;
      hs2.attr.edgeno = size-1;
      bool ia = isInsideAbove(p1,p2);
+     cout << "segment " << p1 << " -> " << p2 << " ia = " << ia <<  endl;
      hs1.attr.insideAbove = ia;
      hs2.attr.insideAbove = ia;
      (*result) += hs1;
@@ -13674,9 +13680,11 @@ private:
      if(AlmostEqual(diffy,0.0)){
         return diffx > 0;
      }
+
      bool sx = diffx>0;
-     bool sy = diffy>0;
-     return sx == sy; 
+    // bool sy = diffy>0;
+    // return sx == sy; 
+    return sx;
    }
 
 
@@ -13711,30 +13719,6 @@ private:
      vector<SimplePoint>::iterator it= p.begin();
      it++;
      std::sort(it,p.end()); // without the first point
-   }
-
-   void quicksort(const int lo, const int hi){
-      int i=lo;
-      int j = hi;
-      if(lo>=hi){
-         return;
-      }
-      SimplePoint q(p[(lo+hi)/2]);
-      while(i<=j){
-         while(p[i].isLess(q)) i++;
-         while(q.isLess(p[j])) j--;
-         if(i<=j){
-            exchange(i,j);
-            i++; 
-            j--;
-         }
-      }
-      if(lo<j){
-        quicksort(lo,j);
-      }
-      if(i<hi){
-        quicksort(i,hi);
-      }
    }
 
 
