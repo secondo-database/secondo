@@ -546,8 +546,10 @@ ListExpr WhileDoTypeMap(ListExpr Args)
                            )
            )
     {  // case: T x (T --> bool) x (T --> T) --> T, where T = tuple(X)
-      NList restype(Symbols::STREAM(), args.first());
-      return restype.listExpr();
+//       NList restype(Symbols::STREAM(), args.first());
+//       return restype.listExpr();
+      return NList::typeError("WhileDoTypeMap: tuple(X) x (tuple(x) --> bool) "
+          "x (tuple(x) --> tuple(x)) --> tuple(x) still not implemented!");
     }
     // else: error
   }
@@ -567,6 +569,7 @@ struct WhileDoValueMapLocalInfo{
   bool finished;
 };
 
+// version for DATA object -> stream(object)
 int WhileDoValueMap(Word* args, Word& result,
                     int message, Word& local, Supplier s)
 {
@@ -655,6 +658,7 @@ int WhileDoValueMap(Word* args, Word& result,
   cout << "WhileDoValueMap received UNKNOWN COMMAND" << endl;
   return -1; // should not be reached
 }
+
 /*
 2.5.1 Type Mapping for ~whiledo~
 
@@ -664,7 +668,7 @@ int WhileDoValueMap(Word* args, Word& result,
 const string WhileDoSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>T x (T -> bool) x (T -> T) -> stream(T), where T in kind DATA\n"
-    "tuple(X) x (tuple(X) -> bool) x (tuple(X) -> tuple(X)) -> stream(tuple(X))"
+    "tuple(T) x (tuple(T) -> bool) x (tuple(T) -> tuple(T)) -> stream(tuple(T))"
     "</text--->"
     "<text>obj whiledo[ pred ; func ]</text--->"
     "<text>Operates function 'func' iteratively on an object initialized with "
