@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -30,8 +30,8 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-The sole purpose of this little algebra is to provide a type constructor ~map~ 
-which can be used to store the list expressions defining functions 
+The sole purpose of this little algebra is to provide a type constructor ~map~
+which can be used to store the list expressions defining functions
 (abstractions).
 
 March 2006 M. Spiekermann, operators ~within~ and ~within2~ modified.
@@ -45,6 +45,7 @@ using namespace std;
 #include "NList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
+#include "StandardTypes.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -145,7 +146,7 @@ TypeConstructor functionMap( "map",             FunctionProperty,
                              DummyCast,         NullSize, CheckMap );
 
 /*
-2.3 Type Operator ~ANY~
+2.3 Type Operators ~ANY~ and ~ANY2~
 
 Type operators are used only for inferring argument types of parameter
 functions. They have a type mapping but no evaluation function.
@@ -154,18 +155,24 @@ functions. They have a type mapping but no evaluation function.
 
 The type operator ~ANY~ corresponds to the type of the first argument.
 
-----    (t1 t2 ... tn)      -> t1 
+----    (t1 t2 ... tn)      -> t1
 ----
 
 The type operator ~ANY2~ corresponds to the type of the second argument.
 
-----    (t1 t2 ... tn)      -> t2 
+----    (t1 t2 ... tn)      -> t2
 ----
 
 */
 ListExpr ANYTypeMap( ListExpr args )
 {
-  return nl->First( args );
+  NList type(args);
+  if(type.length() >= 1)
+  {
+    return type.first().listExpr();
+  }
+  return NList::typeError(
+      "Type Map Operator 'ANY' expects a parameter list of length >=1");
 }
 
 const string ANYSpec =
@@ -185,7 +192,13 @@ Operator ANY (
 
 ListExpr ANY2TypeMap( ListExpr args )
 {
-  return nl->Second( args );
+  NList type(args);
+  if(type.length() >= 2)
+  {
+    return type.second().listExpr();
+  }
+  return NList::typeError(
+      "Type Map Operator 'ANY2' expects a parameter list of length >=2");
 }
 
 const string ANY2Spec =
@@ -226,15 +239,15 @@ ListExpr WithinTypeMap(ListExpr Args)
   bool ok = false;
 
   try {
-  switch (args.length()) 
+  switch (args.length())
   {
     case 2: {
-    
-      if (  args.second().hasLength(3) ) 
+
+      if (  args.second().hasLength(3) )
       {
         ok =      ( args.first() == args.second().second())
                && ((args.second().first()) == string("map") );
-      } 
+      }
 
       if (!ok) {
         return NList::typeError("Input list has not structure " + typeA + ".");
@@ -248,10 +261,10 @@ ListExpr WithinTypeMap(ListExpr Args)
       if ( args.third().hasLength(4) )
       {
         ok = (args.third().first() == string("map"))
-             && (args.first() == args.third().second()) 
-             && (args.second() == args.third().third());  
+             && (args.first() == args.third().second())
+             && (args.second() == args.third().third());
       }
-      
+
       if (!ok) {
         return NList::typeError("Input list has not structure " + typeB + ".");
       }
@@ -261,25 +274,26 @@ ListExpr WithinTypeMap(ListExpr Args)
 
     default:
     {
-      return NList::typeError("Input list has not structure " + typeA + 
+      return NList::typeError("Input list has not structure " + typeA +
                               " or " + typeB + ".");
     }
 
-  } 
+  }
 
-  if ( !(args.first() == mapResult) ) 
+  if ( !(args.first() == mapResult) )
   {
-    NList::typeError( 
-      "Operator within expects that the first argument and the argument\n" 
-      "of the mapping function are equal, but gets\n" 
+    NList::typeError(
+      "Operator within expects that the first argument and the argument\n"
+      "of the mapping function are equal, but gets\n"
       "First argument: " + args.first().convertToString() + "\n" +
-      "Mapping argument: " +  mapResult.convertToString() + "." 
+      "Mapping argument: " +  mapResult.convertToString() + "."
     );
   }
 
   } catch ( NListErr e ) {
     return NList::typeError( e.msg() );
   }
+  cout << ":::::::::::: " << mapResult << endl;
   return mapResult.listExpr();
 }
 
@@ -288,7 +302,7 @@ ListExpr WithinTypeMap(ListExpr Args)
 2.4.3 Value mapping function of operator ~within~
 
 */
-int 
+int
 Within_s(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   ArgVectorPointer funArgs;
@@ -317,7 +331,7 @@ Within_s(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-int 
+int
 Within2_s(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   ArgVectorPointer funArgs;
@@ -368,7 +382,8 @@ Within2_o(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-ValueMapping withinmap[] = { Within_o, Within_s, Within2_o, Within2_s };
+ValueMapping withinmap[]  = { Within_o,  Within_s  };
+ValueMapping within2map[] = { Within2_o, Within2_s };
 
 /*
 2.4.2 Selection function of operator ~within~
@@ -382,33 +397,30 @@ WithinSelect( ListExpr Args )
   NList args(Args);
 
   TRACE("WithinSelect")
-  SHOW(args)   
+  SHOW(args)
 
-  try { 
-
-    int funIndex = 0;
+  try {
     NList map;
     NList mapRes;
-   
-    if ( args.length() == 2) 
-    {
+
+    if ( args.length() == 2)
+    { // for within
       map = args.second();
       mapRes = map.third();
     }
-    else 
-    {
+    else
+    { // for within2
       map = args.third();
       mapRes = map.fourth();
-      funIndex += 2;
     }
 
     if( mapRes.isNoAtom() && mapRes.first().str() == "stream" )
     {
-      return funIndex+1;
+      return 1;
     }
     else
     {
-      return funIndex;
+      return 0;
     }
 
   } catch ( NListErr e ) {
@@ -417,14 +429,12 @@ WithinSelect( ListExpr Args )
     return -1;
   }
 
-  cmsg.error() 
+  cmsg.error()
     << "Can't select value mapping function for"
     << " the overloaded operator 'within'.";
   cmsg.send();
   return -1;
 }
-
-
 
 /*
 
@@ -433,29 +443,247 @@ WithinSelect( ListExpr Args )
 */
 const string WithinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                         "\"Example\" ) "
-                        "( <text>a x (a -> b) -> b\n"
-                        " a x b x ( a x b -> c) -> c</text--->"
+                        "( <text>a x (a -> stream(b)) -> stream(b)\n"
+                        " a x ( a -> c) -> c</text--->"
                         "<text>_ within [ fun ]</text--->"
                         "<text>Calls the function passing as argument "
-                        "its own first (and second) argument.</text--->"
+                        "its own first argument.</text--->"
                         "<text>query plz createbtree[Ort] "
                         "within[fun( index: ANY ) "
                         "Orte feed {o} loopjoin[index plz "
                         "exactmatch[.Ort_o]] consume]</text--->))";
 
+const string Within2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>a x b x ( a x b -> c) -> c\n"
+    "a x b x ( a x b -> stream(c)) -> stream(c)</text--->"
+    "<text>_ _ within2[ fun ]</text--->"
+    "<text>Calls the function passing as argument "
+    "its own first and second argument.</text--->"
+    "<text>(1+2) (2+3) within2[fun(I1: ANY, I2: ANY2) I1 + I2]</text--->))";
+
 /*
-2.4.3 Definition of operator ~within~
+2.4.3 Definition of operator ~within~, ~within2~
 
 */
 Operator within (
          "within",               // name
          WithinSpec,             // specification
-         4, 	                 // the number of overloaded functions
+         2, 	                   // the number of overloaded functions
          withinmap,              // value mapping function array
          WithinSelect,           // the selection function
          WithinTypeMap           // type mapping
 );
 
+Operator within2 (
+    "within2",               // name
+     Within2Spec,            // specification
+     2,                      // the number of overloaded functions
+     within2map,             // value mapping function array
+     WithinSelect,           // the selection function
+     WithinTypeMap           // type mapping
+                );
+
+/*
+2.5 Operator ~whiledo~
+
+Performs some while-loop like iteration on an object.
+
+*/
+
+
+/*
+2.5.1 Type Mapping for ~whiledo~
+
+----
+      T x (T --> bool) x (T --> T) --> stream(T)
+      where T in kind DATA or T = tuple(X)
+----
+
+*/
+
+ListExpr WhileDoTypeMap(ListExpr Args)
+{
+  cout << __PRETTY_FUNCTION__ << " called." << endl;
+
+  NList args(Args);
+  static const string typeA =
+      "(T (map T bool) (map T T)), where T in DATA or T = tuple(X)";
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  if(    args.hasLength(3)
+     // second argument
+      && args.second().hasLength(3)
+      && args.second().first()  == Symbols::MAP()
+      && args.second().second() == args.first()
+      && args.second().third()  == Symbols::BOOL()
+     // third argument
+      && args.third().hasLength(3)
+      && args.third().first()  == Symbols::MAP()
+      && args.third().second() == args.first()
+      && args.third().third()  == args.first()
+    )
+  {
+    if( // first argument
+        SecondoSystem::GetAlgebraManager()
+           ->CheckKind("DATA", args.first().listExpr(), errorInfo)
+      )
+    {  // case: T x (T --> bool) x (T --> T) --> T, where T in DATA
+      NList restype(Symbols::STREAM(), args.first());
+      return restype.listExpr();
+    }
+    else if(
+               args.first().hasLength(2)
+            && args.first().first() == Symbols::TUPLE()
+            && (args.first().second().length() > 0)
+            // Only the first attribute is checked!
+            && args.first().second().first().hasLength(2)
+            && args.first().second().first().first().isSymbol()
+            && SecondoSystem::GetAlgebraManager()
+                ->CheckKind("DATA",
+                            args.first().second().first().first().listExpr(),
+                            errorInfo
+                           )
+           )
+    {  // case: T x (T --> bool) x (T --> T) --> T, where T = tuple(X)
+      NList restype(Symbols::STREAM(), args.first());
+      return restype.listExpr();
+    }
+    // else: error
+  }
+  // else: error
+  return NList::typeError("Expected " + typeA + ".");
+}
+
+/*
+2.5.2 Value Mapping for ~whiledo~
+
+*/
+
+struct WhileDoValueMapLocalInfo{
+  Word lastInstance;
+  Word pred;
+  Word fun;
+  bool finished;
+};
+
+int WhileDoValueMap(Word* args, Word& result,
+                    int message, Word& local, Supplier s)
+{
+  Word              predResult, funResult;
+  ArgVectorPointer  predArg,    funArg;
+  WhileDoValueMapLocalInfo* sli = 0;
+
+  switch (message)
+  {
+    case OPEN :
+      sli = new WhileDoValueMapLocalInfo;
+      sli->lastInstance = SetWord(((Attribute*)(args[0].addr))->Copy());
+      sli->pred         = args[1];
+      sli->fun          = args[2];
+      sli->finished     = false;
+      local = SetWord(sli);
+      return 0;
+
+    case REQUEST :
+
+      if( local.addr == 0 )
+      {
+        result = SetWord(Address(0));
+        return CANCEL;
+      }
+      sli = (WhileDoValueMapLocalInfo*)local.addr;
+
+      if (sli->finished)
+      {
+        result = SetWord(Address(0));
+        return CANCEL;
+      }
+      // For each REQUEST, we check if we have already finished,
+      // If not, we pass the last instance to the parameter function
+      // and evalute the latter.
+      // If the new instance is the same as the last one. we have reached a
+      // fixpoint set finished, and return the result (so that the user may
+      // notice that a fixpoint has been reached).
+      // Otherwise, the new instance is passed to the parameter predicate
+      // function. If it evaluates to UNDEF or FALSE, we set finished,
+      // otherwise not.
+      predArg = qp->Argument(sli->pred.addr);   // set argument for the
+      (*predArg)[0] = sli->lastInstance;        //   parameter predicate
+      qp->Request(sli->pred.addr, predResult);  // call predicate function
+      if( !(static_cast<CcBool*>(predResult.addr)->IsDefined()) )
+      { // UNDEF pred result
+        sli->finished = true;
+        result = SetWord(Address(0));
+        return CANCEL;
+      }
+      sli->finished = !(static_cast<CcBool*>(predResult.addr)->GetBoolval());
+      if(sli->finished)
+      { // Does predicate hold on last instance?
+        result = SetWord(Address(0));
+        return CANCEL;
+      }
+      // Create the next instance
+      funArg  = qp->Argument(sli->fun.addr);    // set argument for the
+      (*funArg)[0] = sli->lastInstance;         //   parameter function
+      qp->Request(sli->fun.addr, funResult);    // call parameter function
+      // copy result (and hand it over to the out-stream):
+      result = SetWord(((Attribute*) (funResult.addr))->Clone());
+      if (((Attribute*) (funResult.addr))
+          ->Compare(((Attribute*) (sli->lastInstance.addr))) == 0
+         )
+      { // reached a fixpoint: changeing sli->lastInstance not required
+        sli->finished = true;
+        return YIELD;
+      }
+      ((Attribute*) (sli->lastInstance.addr))->DeleteIfAllowed();
+      sli->lastInstance = SetWord(((Attribute*)(result.addr))->Copy());
+      return YIELD;
+
+    case CLOSE :
+
+      if( local.addr != 0 )
+      {
+        sli = (WhileDoValueMapLocalInfo*)local.addr;
+        ((Attribute*) (sli->lastInstance.addr))->DeleteIfAllowed();
+        delete sli;
+        local = SetWord(Address(0));
+      }
+      return 0;
+
+  }  // end switch
+  cout << "WhileDoValueMap received UNKNOWN COMMAND" << endl;
+  return -1; // should not be reached
+}
+/*
+2.5.1 Type Mapping for ~whiledo~
+
+*/
+
+
+const string WhileDoSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>T x (T -> bool) x (T -> T) -> stream(T), where T in kind DATA\n"
+    "tuple(X) x (tuple(X) -> bool) x (tuple(X) -> tuple(X)) -> stream(tuple(X))"
+    "</text--->"
+    "<text>obj whiledo[ pred ; func ]</text--->"
+    "<text>Operates function 'func' iteratively on an object initialized with "
+    "'obj' while 'pred' evaluates to TRUE on the currect instance of 'obj' "
+    "and returns each instanciation of 'obj' within the result stream. If a "
+    "fixpoint is reached during the evaluation ('obj' does not change), the "
+    "processing is stopped. In this case, the two last results will be "
+    "identical. If 'pred' evaluates to UNDEF, the iteration stops.</text--->"
+    "<text>query 1 whiledo[ . < 10 ; . + 1] count"
+    "</text--->))";
+
+
+Operator whiledo (
+    "whiledo",               // name
+    WhileDoSpec,             // specification
+    WhileDoValueMap,         // value mapping function array
+    Operator::SimpleSelect,  // the selection function
+    WhileDoTypeMap           // type mapping
+);
 
 
 /*
@@ -471,6 +699,8 @@ class FunctionAlgebra : public Algebra
     AddOperator( &ANY );
     AddOperator( &ANY2 );
     AddOperator( &within );
+    AddOperator( &within2 );
+    AddOperator( &whiledo );
   }
   ~FunctionAlgebra() {};
 };
@@ -496,7 +726,7 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeFunctionAlgebra( NestedList* nlRef, 
+InitializeFunctionAlgebra( NestedList* nlRef,
                            QueryProcessor* qpRef,
                            AlgebraManager* amRef )
 {
