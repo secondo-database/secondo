@@ -13586,11 +13586,6 @@ public:
         hs1.attr.edgeno = i;
         hs2.attr.edgeno = i;
         bool ia = isInsideAbove(p1,p2);
-     
-         
-        cout << "segment " << p1 << " -> " << p2 << " ia = " << ia <<  endl;
-
-
         hs1.attr.insideAbove = ia;
         hs2.attr.insideAbove = ia;
         (*result) += hs1;
@@ -13605,7 +13600,6 @@ public:
      hs1.attr.edgeno = size-1;
      hs2.attr.edgeno = size-1;
      bool ia = isInsideAbove(p1,p2);
-     cout << "segment " << p1 << " -> " << p2 << " ia = " << ia <<  endl;
      hs1.attr.insideAbove = ia;
      hs2.attr.insideAbove = ia;
      (*result) += hs1;
