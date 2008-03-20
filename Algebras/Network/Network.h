@@ -503,6 +503,32 @@ struct JunctionSortEntry
 
   }
 
+  double getOtherRouteMeas()
+  {
+    CcReal* pMeas;
+    if(m_bFirstRoute)
+    {
+      pMeas = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
+    }
+    else
+    {
+      pMeas = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
+    }
+    return pMeas->GetRealval();
+
+  }
+
+  int getOtherRouteId() {
+    CcInt* pRouteId;
+    if (m_bFirstRoute) {
+      pRouteId = (CcInt*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_ID);
+    } else {
+      pRouteId = (CcInt*)m_pJunction->GetAttribute(JUNCTION_ROUTE1_ID);
+    }
+    return pRouteId->GetIntval();
+  }
+
+
   int getUpSectionId()
   {
     TupleIdentifier* pTid;

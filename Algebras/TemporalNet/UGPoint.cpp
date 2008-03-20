@@ -55,7 +55,6 @@ void UGPoint::TemporalFunction( const Instant& t,
         result = p1;
         result.SetDefined(true);
       }  else {
-        Instant t1 = timeInterval.end;
         double tStart = timeInterval.start.ToDouble();
         double tEnd = timeInterval.end.ToDouble();
         double tInst = t.ToDouble();
@@ -112,7 +111,7 @@ bool UGPoint::Passes( const GPoint& p ) const
 bool UGPoint::At( const GPoint& p, TemporalUnit<GPoint>& result ) const
 {
   if (!IsDefined() || !p.IsDefined()) {
-    cerr << "mgpoint and gpoint must be defiend." << endl;
+    cerr << "mgpoint and gpoint must be defined." << endl;
     return false;
   }
   assert (IsDefined());

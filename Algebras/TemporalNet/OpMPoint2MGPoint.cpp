@@ -929,6 +929,7 @@ start time and the junction as startposition of the new current unit.
       }
       if (!bNewRouteFound) {
           //should not happen
+          cout << "MPoint is not longer found on network." << endl;
           string strMessage = "MPoint is not longer found on network.";
           cerr << strMessage << endl;
           sendMessage(strMessage);

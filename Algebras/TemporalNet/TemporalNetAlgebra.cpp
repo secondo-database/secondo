@@ -59,6 +59,7 @@ Defines, includes, and constants
 #include "OpTempNetIsEmpty.h"
 #include "OpTempNetNoComp.h"
 #include "OpTempNetInside.h"
+#include "OpTempNetIntersection.h"
 
 #include <iostream>
 #include <sstream>
@@ -333,7 +334,7 @@ Operator tempnetnocomp("no_components",
                 OpTempNetNoComp::TypeMap );
 
 /*
-Operator isempty
+Operator inside
 
 */
 Operator tempnetinside("inside",
@@ -341,6 +342,16 @@ Operator tempnetinside("inside",
                 OpTempNetInside::ValueMapping,
                 Operator::SimpleSelect,
                 OpTempNetInside::TypeMapping );
+
+/*
+Operator intersection
+
+*/
+Operator tempnetintersection("intersection",
+                OpTempNetIntersection::Spec,
+                OpTempNetIntersection::ValueMapping,
+                Operator::SimpleSelect,
+                OpTempNetIntersection::TypeMapping );
 
 /*
 Creating the Algebra
@@ -380,6 +391,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetisempty);
     AddOperator(&tempnetnocomp);
     AddOperator(&tempnetinside);
+    AddOperator(&tempnetintersection);
   }
 
 
