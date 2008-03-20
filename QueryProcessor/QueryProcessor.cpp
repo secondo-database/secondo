@@ -488,9 +488,15 @@ struct OpNode
   bool         isRoot;
   struct OpNodeUnion
   {
+  /*
+     common members of OpNodeDirecObject and OpNodeOperator ~symbol~
+     common members of OpNodeInDirecObject and OpNodeOperator ~received~
+     
+  */
+    ListExpr symbol;
+    bool received;
     struct OpNodeDirectObject
     {
-      ListExpr symbol;
       Word value;
       int  valNo; // needed for testing only 
       bool isConstant;
@@ -509,11 +515,9 @@ arguments. In this case the operator must
 
 */
       //int isStream;
-      bool received;
     } iobj;
     struct OpNodeOperator
     {
-      ListExpr symbol;
       int algebraId;
       int opFunId;
       int noSons;
@@ -526,7 +530,6 @@ arguments. In this case the operator must
       int funNo; // needed for testing only 
       bool isStream;
       Word local;
-      bool received;
       int resultAlgId;
       int resultTypeId;
       Word resultWord;
@@ -560,7 +563,7 @@ OpNode(OpNodeType type = Operator) :
     case Object :
     case Pointer :
     {
-      u.dobj.symbol = 0;
+      u.symbol = 0;
       u.dobj.value = SetWord(Address(0));
       u.dobj.valNo = 0;        
       u.dobj.isConstant = false;
@@ -573,12 +576,12 @@ OpNode(OpNodeType type = Operator) :
       u.iobj.funNumber = 0;   
       u.iobj.argIndex = 0;
       //u.iobj.isStream = 0;
-      u.iobj.received = false;
+      u.received = false;
       break;
     }
     case Operator :
     {
-      u.op.symbol = 0;
+      u.symbol = 0;
       u.op.algebraId = 0;
       u.op.opFunId = 0;
       u.op.noSons = 0;
@@ -589,7 +592,7 @@ OpNode(OpNodeType type = Operator) :
       u.op.funNo  = 0;    
       u.op.isStream = false;
       u.op.local = SetWord(Address(0));
-      u.op.received = false;
+      u.received = false;
       u.op.resultAlgId = 0;
       u.op.resultTypeId = 0;
       u.op.resultWord = SetWord(Address(0));
@@ -629,9 +632,9 @@ ostream& operator<<(ostream& os, const OpNode& node) {
       case Object :
       {
         os << "  Object "; 
-        if ( nl->AtomType(node.u.dobj.symbol) == SymbolType ) 
+        if ( nl->AtomType(node.u.symbol) == SymbolType ) 
         {
-          os << nl->SymbolValue(node.u.dobj.symbol);
+          os << nl->SymbolValue(node.u.symbol);
         }
         else
         {
@@ -658,232 +661,238 @@ ostream& operator<<(ostream& os, const OpNode& node) {
            << "  funNumber = " << node.u.iobj.funNumber << endl   
            << "  argIndex = " << node.u.iobj.argIndex << endl
          //<< "  isStream = " << node.u.iobj.isStream << endl
-           << "  received = " << node.u.iobj.received << endl;
-        break;
-      }
-      case Operator :
-      {
-        int f=2, f2=4; 
-        string t2("\t\t");
-        string t1("\t");
-        os << tab(f) << "Operator "; 
-        if ( nl->AtomType(node.u.op.symbol) == SymbolType ) 
-        {
-          os << nl->SymbolValue(node.u.op.symbol);
+             << "  received = " << node.u.received << endl;
+          break;
         }
-        else
+        case Operator :
         {
-          os << "(unknown!)";
-        } 
-        os << endl;
+          int f=2, f2=4; 
+          string t2("\t\t");
+          string t1("\t");
+          os << tab(f) << "Operator "; 
+          if ( nl->AtomType(node.u.symbol) == SymbolType ) 
+          {
+            os << nl->SymbolValue(node.u.symbol);
+          }
+          else
+          {
+            os << "(unknown!)";
+          } 
+          os << endl;
 
-        map<void*, int>::const_iterator it;
-        os << tab(f2) << "Node(s)[ ";
-        for (int i=0; i<node.u.op.noSons; i++) 
-        {
-           it = OpNodeAddr2Id.find( (void*)node.u.op.sons[i].addr );
-           if ( it != OpNodeAddr2Id.end() ) 
-             os << it->second << " "; 
-           else 
-             os << "error" << " ";
+          map<void*, int>::const_iterator it;
+          os << tab(f2) << "Node(s)[ ";
+          for (int i=0; i<node.u.op.noSons; i++) 
+          {
+             it = OpNodeAddr2Id.find( (void*)node.u.op.sons[i].addr );
+             if ( it != OpNodeAddr2Id.end() ) 
+               os << it->second << " "; 
+             else 
+               os << "error" << " ";
+          }
+          os << "]" << endl;
+          
+          os << tab(f2) << "Addresses[ ";
+          for (int i=0; i<node.u.op.noSons; i++) 
+             os << (void*)node.u.op.sons[i].addr << " ";
+          os << "]" << endl;
+
+          os << tab(f) << "noSons = " 
+             << node.u.op.noSons
+             << t2 << "algebraId = " 
+             << node.u.op.algebraId
+             << t2 << "opFunId = " 
+             << node.u.op.opFunId << endl
+             << tab(f) << "isFun = " 
+             << node.u.op.isFun
+             << t2 << "valueMap = " 
+             << (void*) node.u.op.valueMap
+             << t1 << "funNo = " 
+             << node.u.op.funNo << endl
+             << tab(f) << "isStream = " 
+             << node.u.op.isStream
+             << t2 << "local = " 
+             << (void*)node.u.op.local.addr
+             << t2 << "received = " 
+             << node.u.received << endl
+             << tab(f) << "resultAlgId = " 
+             << node.u.op.resultAlgId
+             << t1 << "resultTypeId = " 
+             << node.u.op.resultTypeId
+             << t1 << "resultWord = " 
+             << (void*)node.u.op.resultWord.addr
+             << t1 << "deleteFun = " 
+             << (void*)node.u.op.deleteFun << endl
+             << tab(f) << "counterNo = " 
+             << node.u.op.counterNo 
+             << t2 << "selectivity = "
+             << node.u.op.selectivity
+             << t1 << "predCost = "
+             << node.u.op.predCost << endl
+             << tab(f) << "supportsProgress = " 
+             << node.u.op.supportsProgress << endl;
+
+          break;
         }
-        os << "]" << endl;
-        
-        os << tab(f2) << "Addresses[ ";
-        for (int i=0; i<node.u.op.noSons; i++) 
-           os << (void*)node.u.op.sons[i].addr << " ";
-        os << "]" << endl;
-
-        os << tab(f) << "noSons = " 
-           << node.u.op.noSons
-           << t2 << "algebraId = " 
-           << node.u.op.algebraId
-           << t2 << "opFunId = " 
-           << node.u.op.opFunId << endl
-           << tab(f) << "isFun = " 
-           << node.u.op.isFun
-           << t2 << "valueMap = " 
-           << (void*) node.u.op.valueMap
-           << t1 << "funNo = " 
-           << node.u.op.funNo << endl
-           << tab(f) << "isStream = " 
-           << node.u.op.isStream
-           << t2 << "local = " 
-           << (void*)node.u.op.local.addr
-           << t2 << "received = " 
-           << node.u.op.received << endl
-           << tab(f) << "resultAlgId = " 
-           << node.u.op.resultAlgId
-           << t1 << "resultTypeId = " 
-           << node.u.op.resultTypeId
-           << t1 << "resultWord = " 
-           << (void*)node.u.op.resultWord.addr
-           << t1 << "deleteFun = " 
-           << (void*)node.u.op.deleteFun << endl
-           << tab(f) << "counterNo = " 
-           << node.u.op.counterNo 
-           << t2 << "selectivity = "
-           << node.u.op.selectivity
-           << t1 << "predCost = "
-           << node.u.op.predCost << endl
-           << tab(f) << "supportsProgress = " 
-           << node.u.op.supportsProgress << endl;
-
-        break;
+        default :
+          assert( false ); 
       }
-      default :
-        assert( false ); 
-    }
-    return os;
-}
-
-
-/*
-
-The fields of the tree have the following meaning:
-
-  * ~evaluable~: True iff this node is an object, an indirect object, or
-an operator which is neither (the root of a subtree representing) a
-function argument nor a stream argument. This means the query evaluator
-can compute the value of this subtree directly. 
-
-  * ~typeExpr~: Any node (subtree) of an operator tree has an associated
-type. This type expression is stored here; it can be looked up by the
-evaluation function of the operator belonging to this node via the
-procedure ~getType~. 
-
-A node can then have one of three forms. It can represent an object (a
-simple value or a pointer to something); in that case 
-
-  * ~value~ contains that object,
-
-  * ~valNo~ is an index into the array ~values~ and ~value~ has been
-copied from that entry. Since ~value~ cannot be printed, a procedure
-showing the structure of the operator tree (~ListOfTree~, see below)
-will print ~valNo~ instead. The entries ~funNumber~ and ~funNo~
-explained below play a similar role. 
-
-  * ~isRoot~ is a flag that tells if the object is the root of a
-query processor tree. It is used to destroy the tree correctly.
-
-  * ~isConstant~ is a flag that tells if the object contains a 
-constant value or a variable value.
-
-It can be an ``indirect object'' which is accessible through an argument
-vector attached to a subtree representing a function argument: 
-
-  * ~vector~ points to that argument vector,
-
-  * ~funNumber~ is an index into global array ~ArgVectors~; that entry
-was used to assign the argument vector here. 
-
-  * ~argIndex~ is the position of the object within the argument vector.
-
-Finally, the node can represent an operator:
-
-  * ~algebraId~ and ~opFunId~ identify the operator's evaluation function,
-
-  * ~noSons~: number of arguments for this operator,
-
-  * ~sons~: pointers to the sons,
-
-  * ~sonresults~: an argument vector used to store results computed by stream operators on the OPEN message, 
-
-  * ~isFun~: true iff the node is the root of a function argument,
-
-  * ~funArgs~: pointer to the argument vector for a function node; only
-used, if ~isFun~ is true, 
-
-  * ~funNo~ is also an index into global array ~ArgVectors~; that entry
-was used to assign the argument vector here. 
-
-  * ~isStream~: true if this operator produces an output stream,
-
-  * ~local~: used to keep the ~local~ parameter of a stream operator
-between calls, 
-
-  * ~received~: true iff the last call of this stream operator returned YIELD.
-
-  * ~resultAlgId~ and ~resultTypeId~ describe the result type of the
-operator application. 
-
-  * ~resultWord~: data structure for the result value.
-
-  * ~counterNo~: the number of a counter associated with this node. If this
-number is greater than 0 (between 1 and MAXCOUNTERS), then for every evaluation
-request received by the node the counter ~counterNo~ is incremented.
-
-  * ~selectivity~: for an operator implementing a selection or join predicate, 
-the selectivity of that predicate. Can be used to observe selectivity during 
-query processing, e.g. for progress estimation. 
-
-  * ~predCost~: similarly the predicate cost, in milliseconds. Selectivity and predicate cost are, for example, obtained by the optimizer in evaluating a sample query. 
-
-  * ~supportsProgress~: whether this operator replies to PROGRESS messages. Can be set by an operator's evaluation function via ~enableProgress~.
-
-
-The three kinds of nodes will be represented graphically as follows:
-
-
-
-                Figure 1: Three kinds of nodes [Figure1.eps]
-
-For an operator node, the top left field shows the operator rather than
-its ~algebraId~ and ~opFunId~. The other fields in the top row are
-~noSons~, ~isFun~, ~funArgs~, and ~isStream~; the last five fields are
-omitted in this representation. The bottom row, of course, shows the
-~sons~ array. 
-
-The structure of the operator tree is illustrated by the representation
-of the following executable query: 
-
-----        (filter (feed cities)
-                (fun (c city)
-                        (> (attribute c pop .)
-                                500000)))
-----
-
-Here ~attribute~ is an operator with three arguments, namely, a tuple,
-an attribute name within that tuple, and a number giving the position of
-the attribute within the tuple. However, the user does not have to
-supply this number; it will be inferred and added in type checking. This
-is what is meant by the dot (the dot is not written, only shown here to
-indicate the missing argument). Note that one has to work with numbers
-rather than names, for two reasons: (1) the argument types, and hence, 
-the tuple type, are not available anymore, and (2) efficiency. 
-
-The operator tree for this query looks as shown in Figure 2.
-
-                Figure 2: Operator Tree [Figure2.eps]
-
-Here oval nodes represent data objects represented externally from the
-operator tree. At the bottom an argument vector is shown. 
-
-The following procedure ~ListOfTree~ is very useful for testing; it maps
-a tree into a list expression which we can then print. 
-
-*/
-
-ListExpr
-QueryProcessor::ListOfTree( void* node, ostream& os )
-{
-/*
-Represents an operator tree through a list expression. Used for testing.
-Additonally more detailed information is printed int ~os~
-
-*/
-  OpTree tree = static_cast<OpTree>( node );
-  ListExpr list = nl->TheEmptyList();
-  ListExpr last = nl->TheEmptyList();
-  int i = 0;
-
-  if ( tree == 0 )
-  {
-    return (nl->SymbolAtom( "NIL" ));
+      return os;
   }
-  else
+
+
+  /*
+
+  The fields of the tree have the following meaning:
+
+    * ~evaluable~: True iff this node is an object, an indirect object, or
+  an operator which is neither (the root of a subtree representing) a
+  function argument nor a stream argument. This means the query evaluator
+  can compute the value of this subtree directly. 
+
+    * ~typeExpr~: Any node (subtree) of an operator tree has an associated
+  type. This type expression is stored here; it can be looked up by the
+  evaluation function of the operator belonging to this node via the
+  procedure ~getType~. 
+
+  A node can then have one of three forms. It can represent an object (a
+  simple value or a pointer to something); in that case 
+
+    * ~value~ contains that object,
+
+    * ~valNo~ is an index into the array ~values~ and ~value~ has been
+  copied from that entry. Since ~value~ cannot be printed, a procedure
+  showing the structure of the operator tree (~ListOfTree~, see below)
+  will print ~valNo~ instead. The entries ~funNumber~ and ~funNo~
+  explained below play a similar role. 
+
+    * ~isRoot~ is a flag that tells if the object is the root of a
+  query processor tree. It is used to destroy the tree correctly.
+
+    * ~isConstant~ is a flag that tells if the object contains a 
+  constant value or a variable value.
+
+  It can be an ``indirect object'' which is accessible through an argument
+  vector attached to a subtree representing a function argument: 
+
+    * ~vector~ points to that argument vector,
+
+    * ~funNumber~ is an index into global array ~ArgVectors~; that entry
+  was used to assign the argument vector here. 
+
+    * ~argIndex~ is the position of the object within the argument vector.
+
+  Finally, the node can represent an operator:
+
+    * ~algebraId~ and ~opFunId~ identify the operator's evaluation function,
+
+    * ~noSons~: number of arguments for this operator,
+
+    * ~sons~: pointers to the sons,
+
+    * ~sonresults~: an argument vector used to store results computed by stream 
+      operators on the OPEN message, 
+
+    * ~isFun~: true iff the node is the root of a function argument,
+
+    * ~funArgs~: pointer to the argument vector for a function node; only
+  used, if ~isFun~ is true, 
+
+    * ~funNo~ is also an index into global array ~ArgVectors~; that entry
+  was used to assign the argument vector here. 
+
+    * ~isStream~: true if this operator produces an output stream,
+
+    * ~local~: used to keep the ~local~ parameter of a stream operator
+  between calls, 
+
+    * ~received~: true iff the last call of this stream operator returned YIELD.
+
+    * ~resultAlgId~ and ~resultTypeId~ describe the result type of the
+  operator application. 
+
+    * ~resultWord~: data structure for the result value.
+
+    * ~counterNo~: the number of a counter associated with this node. If this
+      number is greater than 0 (between 1 and MAXCOUNTERS), then for every 
+      evaluation request received by the node the counter ~counterNo~ is
+      incremented.
+
+    * ~selectivity~: for an operator implementing a selection or join 
+      predicate, the selectivity of that predicate. Can be used to 
+      observe selectivity during query processing, e.g. for progress 
+      estimation. 
+
+    * ~predCost~: similarly the predicate cost, in milliseconds. Selectivity 
+     and predicate cost are, for example, obtained by the optimizer in 
+     evaluating a sample query. 
+
+    * ~supportsProgress~: whether this operator replies to PROGRESS messages.
+       Can be set by an operator's evaluation function via ~enableProgress~.
+
+
+  The three kinds of nodes will be represented graphically as follows:
+
+
+
+                  Figure 1: Three kinds of nodes [Figure1.eps]
+
+  For an operator node, the top left field shows the operator rather than
+  its ~algebraId~ and ~opFunId~. The other fields in the top row are
+  ~noSons~, ~isFun~, ~funArgs~, and ~isStream~; the last five fields are
+  omitted in this representation. The bottom row, of course, shows the
+  ~sons~ array. 
+
+  The structure of the operator tree is illustrated by the representation
+  of the following executable query: 
+
+  ----        (filter (feed cities)
+                  (fun (c city)
+                          (> (attribute c pop .)
+                                  500000)))
+  ----
+
+  Here ~attribute~ is an operator with three arguments, namely, a tuple,
+  an attribute name within that tuple, and a number giving the position of
+  the attribute within the tuple. However, the user does not have to
+  supply this number; it will be inferred and added in type checking. This
+  is what is meant by the dot (the dot is not written, only shown here to
+  indicate the missing argument). Note that one has to work with numbers
+  rather than names, for two reasons: (1) the argument types, and hence, 
+  the tuple type, are not available anymore, and (2) efficiency. 
+
+  The operator tree for this query looks as shown in Figure 2.
+
+                  Figure 2: Operator Tree [Figure2.eps]
+
+  Here oval nodes represent data objects represented externally from the
+  operator tree. At the bottom an argument vector is shown. 
+
+  The following procedure ~ListOfTree~ is very useful for testing; it maps
+  a tree into a list expression which we can then print. 
+
+  */
+
+  ListExpr
+  QueryProcessor::ListOfTree( void* node, ostream& os )
   {
-    os << *tree << endl;
+  /*
+  Represents an operator tree through a list expression. Used for testing.
+  Additonally more detailed information is printed int ~os~
+
+  */
+    OpTree tree = static_cast<OpTree>( node );
+    ListExpr list = nl->TheEmptyList();
+    ListExpr last = nl->TheEmptyList();
+    int i = 0;
+
+    if ( tree == 0 )
+    {
+      return (nl->SymbolAtom( "NIL" ));
+    }
+    else
+    {
+      os << *tree << endl;
     switch (tree->nodetype)
     {
       case Pointer:
@@ -1446,7 +1455,8 @@ function index.
   
   string name="", typeName=""; 
   
-  bool definedValue=false, hasNamedType=false, correct=false, newOperator=false;
+  bool definedValue=false, 
+       hasNamedType=false, correct=false, newOperator=false;
   
   Word value=SetWord(0);
 
@@ -1684,7 +1694,7 @@ function index.
         else if ( GetCatalog()->IsOperatorName( name ) )
         {
      // case (iii-a): operator, return 
-     // ((<op> operator (<algId-1> <opId-1> ... <algId-N> <opId-N>)) typeerror) 
+    // ((<op> operator (<algId-1> <opId-1> ... <algId-N> <opId-N>)) typeerror) 
           ListExpr opList = GetCatalog()->GetOperatorIds( name );
           return (nl->TwoElemList(
                     nl->ThreeElemList(
@@ -2653,7 +2663,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->typeExpr = nl->Second( expr );
       node->nodetype = Object;
       node->isRoot = oldfirst;  
-      node->u.dobj.symbol = symbolForOperatorOrObject;
+      node->u.symbol = symbolForOperatorOrObject;
       node->u.dobj.isConstant = false;
       node->u.dobj.isModified = false;
       node->u.dobj.valNo = nl->IntValue(nl->Third(nl->First(expr)));
@@ -2672,7 +2682,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->typeExpr = nl->Second( expr );
       node->nodetype = Operator;
       node->isRoot = oldfirst;  
-      node->u.op.symbol = symbolForOperatorOrObject;
+      node->u.symbol = symbolForOperatorOrObject;
      
       // Store Pointer to valuemapping function 
       int algebraId = nl->IntValue(nl->Third(nl->First(expr)));
@@ -2694,7 +2704,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.resultAlgId = 0;
       node->u.op.counterNo = 0;
       node->u.op.supportsProgress = 
-	algebraManager->getOperator(algebraId, opId)->SupportsProgress();
+  algebraManager->getOperator(algebraId, opId)->SupportsProgress();
 
       if (traceNodes) 
       {
@@ -2762,7 +2772,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       //
       bool requestsArguments = 
         algebraManager->getOperator(node->u.op.algebraId, opId)
-							->RequestsArguments();
+              ->RequestsArguments();
       node->u.op.noSons = 0;
       list = nl->Rest( nl->Third( nl->First( expr ) ) );
       while ( !nl->IsEmpty( list ) )
@@ -2772,7 +2782,7 @@ QueryProcessor::Subtree( const ListExpr expr,
 
         if ( requestsArguments ) {
           ((OpNode*) node->u.op.sons[node->u.op.noSons].addr)
-						->evaluable = false;
+            ->evaluable = false;
         }
         node->u.op.noSons++;
         list = nl->Rest( list );
@@ -3158,7 +3168,7 @@ Deletes an operator tree object.
               if( tree->u.dobj.isModified ) 
               {
                 string objName = 
-                  nl->SymbolValue(tree->u.dobj.symbol);
+                  nl->SymbolValue(tree->u.symbol);
                 GetCatalog()->ModifyObject( objName, 
                                             tree->u.dobj.value );
               }
@@ -3326,7 +3336,7 @@ request the next element.
         
         if ( (*tree->u.iobj.vector)[MAXARG-argIndex].addr == 0 ) {
           result = (*tree->u.iobj.vector)[argIndex-1];
-	}  
+  }  
         else 
         {
           // A stream! Request next element 
@@ -3345,8 +3355,8 @@ request the next element.
                                             caller->u.op.local, 
                                             caller );
         
-          tree->u.iobj.received = (status == YIELD); 
-	  //cerr << "iobj = " << (status == YIELD) << endl;
+          tree->u.received = (status == YIELD); 
+    //cerr << "iobj = " << (status == YIELD) << endl;
         } 
                         if (traceNodes) 
                         cerr << fn << 
@@ -3377,7 +3387,7 @@ Then call the operator's value mapping function.
             if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable ) 
             {
               if ( !tree->u.op.isStream && message <= CLOSE)  
-			//no stream operator, normal evaluation
+      //no stream operator, normal evaluation
               {
                         if ( traceNodes ) 
                         cerr << fn << "Simple op: compute result for son[" 
@@ -3495,15 +3505,15 @@ Then call the operator's value mapping function.
                             argsPrinted[tree->id] = true;
                           }
                           cerr << fn << "*** Call value mapping for "
-                          << nl->SymbolValue(tree->u.op.symbol) << endl;
+                          << nl->SymbolValue(tree->u.symbol) << endl;
                         }
           tree->u.op.theOperator->incCalls(tree->u.op.opFunId / 65536); 
           status =
             (*(tree->u.op.valueMap))( arg, result, message, 
                                       tree->u.op.local, tree );
 
-          tree->u.op.received = (status == YIELD);
-          if ( status == FAILURE )	//new error code
+          tree->u.received = (status == YIELD);
+          if ( status == FAILURE )  //new error code
           {
                         cerr << fn << "Evaluation of operator failed." 
                         << endl;
@@ -3568,14 +3578,14 @@ QueryProcessor::Request( const Supplier s, Word& result )
   Eval( tree, result, REQUEST );
 
   if (tree->nodetype == Operator) {
-    if (tree->u.op.isStream && !tree->u.op.received) 
+    if (tree->u.op.isStream && !tree->u.received) 
     {
       // no result received, for safeness override 
       // the result pointer with null.
-      result.addr = 0;	  
+      result.addr = 0;    
     }  
     int counterIndex = tree->u.op.counterNo;
-    if ( tree->u.op.received && counterIndex ) 
+    if ( tree->u.received && counterIndex ) 
     {
       // increment counter
       assert ( (counterIndex > 0) || (counterIndex < NO_COUNTERS) );
@@ -3597,12 +3607,12 @@ QueryProcessor::Received( const Supplier s )
 {
   OpTree tree = (OpTree) s;
   if ( tree->nodetype == Operator )
-    return (tree->u.op.received);
+    return (tree->u.received);
   else if ( tree->nodetype == IndirectObject)
-    return (tree->u.iobj.received);
+    return (tree->u.received);
   else
     cerr << "Call of QueryProcessor::Received() not allowed "
-	 << "for this node type" << endl;
+   << "for this node type" << endl;
     abort(); 
 }
 
@@ -3650,7 +3660,7 @@ QueryProcessor::CloseProgress( const Supplier s )
   OpTree tree = (OpTree) s;
   bool trace = false;
 
-	if ( trace ) cout << "CloseProgress called with Supplier = " << 
+  if ( trace ) cout << "CloseProgress called with Supplier = " << 
         (void*) s << endl;
 
   if ( tree->nodetype == Operator )
@@ -3673,9 +3683,9 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
 {
   Word result;
   OpTree tree = (OpTree) s;
-  bool trace = false;	//set to true for tracing
+  bool trace = false;  //set to true for tracing
 
-	if ( trace ) cout << "RequestProgress called with Supplier = " << 
+  if ( trace ) cout << "RequestProgress called with Supplier = " << 
         (void*) s << "  ProgressInfo* = " << (void*) p << endl;
 
   if ( tree->nodetype == Operator )
@@ -3689,37 +3699,37 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
         if (trace)
         {
 
-	  if (tree->u.op.received)
+    if (tree->u.received)
           {
-	    cout << "Return from supplier " << (void*) s << endl;
-	    cout << "Cardinality = " << p->Card << endl;
-	    cout << "Size = " << p->Size << endl;
-	    cout << "SizeExt = " << p->SizeExt << endl;
-	    cout << "noAttrs = " << p->noAttrs << endl;
-            cout << "attrSize[i] = ";		
-	      for ( int i = 0; i < p->noAttrs; i++ ) 
+      cout << "Return from supplier " << (void*) s << endl;
+      cout << "Cardinality = " << p->Card << endl;
+      cout << "Size = " << p->Size << endl;
+      cout << "SizeExt = " << p->SizeExt << endl;
+      cout << "noAttrs = " << p->noAttrs << endl;
+            cout << "attrSize[i] = ";    
+        for ( int i = 0; i < p->noAttrs; i++ ) 
                 cout << p->attrSize[i] << " ";
-	    cout << endl;
-            cout << "attrSizeExt[i] = ";		
-	      for ( int i = 0; i < p->noAttrs; i++ ) 
+      cout << endl;
+            cout << "attrSizeExt[i] = ";    
+        for ( int i = 0; i < p->noAttrs; i++ ) 
                 cout << p->attrSizeExt[i] << " ";
-	    cout << endl;
+      cout << endl;
 
-	    cout << "BlockingTime = " << p->BTime << endl;
-	    cout << "BlockingProgress = " << p->BProgress << endl;
+      cout << "BlockingTime = " << p->BTime << endl;
+      cout << "BlockingProgress = " << p->BProgress << endl;
 
-	    cout << "Time = " << p->Time << endl;
-	    cout << "Progress = " << p->Progress << endl;
+      cout << "Time = " << p->Time << endl;
+      cout << "Progress = " << p->Progress << endl;
 
             cout << "=================" << endl;
           }
           else
           {
-	    cout << "CANCEL from supplier " << (void*) s << endl;
+      cout << "CANCEL from supplier " << (void*) s << endl;
           }
         }
 
-      return (tree->u.op.received);
+      return (tree->u.received);
     }
   }
   else return false;
