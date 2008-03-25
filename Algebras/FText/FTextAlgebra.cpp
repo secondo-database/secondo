@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -30,8 +30,8 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-April 2006, M. Spiekermann. Output format of type text changed! 
-Now it will be only a text atom instead of a one element list containing a text atom.  
+April 2006, M. Spiekermann. Output format of type text changed!
+Now it will be only a text atom instead of a one element list containing a text atom.
 
 The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
@@ -41,7 +41,9 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 
 March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
-~subtext~, ~isempty~, $<$, $<=$, $=$, $>=$, $>$, \#, ~find~, ~evaluate~.
+~subtext~, ~isempty~, $<$, $<=$, $=$, $>=$, $>$, \#, ~find~, ~evaluate~,
+~getTypeNL~, ~getValueNL~, ~replace~, ~tostring~, ~totext~, ~tolower~,
+~toupper~, ~chartext~.
 
 1 Preliminaries
 
@@ -53,7 +55,10 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 #include <cstring>
 #include <iostream>
 #include <sstream>
-
+#include <string>
+#include <algorithm>
+#include <iterator>
+#include <functional>
 
 #include "FTextAlgebra.h"
 #include "StandardAttribute.h"
@@ -69,6 +74,8 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 #include "SecParser.h"
 #include "StopWatch.h"
 #include "Symbols.h"
+#include "SecondoSMI.h"
+
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -105,7 +112,7 @@ size_t FText::HashValue() const
   return size_t(h);
 }
 
-void FText::CopyFrom( const StandardAttribute* right ) 
+void FText::CopyFrom( const StandardAttribute* right )
 {
   if(traces)
     cout << '\n' << "Start CopyFrom" << '\n';
@@ -197,6 +204,36 @@ bool FText::Adjacent(const Attribute *arg) const
 
   return 0;
 }
+
+// This function writes the object value to a string ~dest~.
+// The key must be shorter than SMI_MAX_KEYLEN and is 0-terminated
+// Needed to create an index key
+void FText::WriteTo( char *dest ) const
+{
+  string str = GetValue().substr(0, SMI_MAX_KEYLEN-2);
+  string::size_type length = str.length();
+  str.copy(dest,string::npos);
+  dest[length+1] = 0;
+}
+
+// This function reads the object value from a string ~src~.
+// Needed to create a text object from an index key
+void FText::ReadFrom( const char *src )
+{
+  string myStr(src);
+  Set( true, myStr);
+}
+
+// This function returns the number of bytes of the object's string
+//   representation.
+// Needed for transformation to/from an index key
+SmiSize FText::SizeOfChars() const
+{
+  return (SmiSize) (GetValue().substr(0, SMI_MAX_KEYLEN-2).length()+1);
+}
+
+
+namespace ftext{
 
 /*
 
@@ -312,9 +349,9 @@ OutFText( ListExpr typeInfo, Word value )
 
   if(traces)
     cout <<"pftext->Get()='"<< pftext->Get() <<"'\n";
- 
+
   ListExpr res;
-  if(pftext->IsDefined()){ 
+  if(pftext->IsDefined()){
      res=nl->TextAtom(pftext->Get());
   } else {
      res = nl->SymbolAtom("undef");
@@ -332,7 +369,7 @@ InFText( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   if(traces)
-    cout << '\n' << "Start InFText with ListLength " 
+    cout << '\n' << "Start InFText with ListLength "
          << nl->ListLength( instance );
   ListExpr First;
   if (nl->ListLength( instance ) == 1)
@@ -392,7 +429,7 @@ FTextProperty()
       ),
       nl->FourElemList
       (
-        nl->StringAtom("-> DATA"),
+        nl->StringAtom("-> DATA\n-> INDEXABLE"),
         nl->StringAtom("text"),
         nl->StringAtom("<text>writtentext</text--->"),
         nl->StringAtom("<text>This is an example.</text--->")
@@ -440,7 +477,7 @@ TypeConstructor ftext(
   OutFText,    InFText,         //Out and In functions
   0,           0,               //SaveToList and RestoreFromList functions
   CreateFText, DeleteFText,     //object creation and deletion
-  OpenFText, SaveFText, 
+  OpenFText, SaveFText,
   CloseFText, CloneFText,       //close, and clone
   CastFText,                    //cast function
   SizeOfFText,                  //sizeof function
@@ -538,7 +575,7 @@ TypeMapkeywords( ListExpr args ){
   {
     arg = nl->First(args);
     if ( nl->IsEqual(arg, typeName) )
-      return nl->TwoElemList( nl->SymbolAtom("stream"), 
+      return nl->TwoElemList( nl->SymbolAtom("stream"),
                               nl->SymbolAtom("string"));
   }
   return nl->SymbolAtom("typeerror");
@@ -766,7 +803,7 @@ Type Mapping Function for operator ~evaluate~
 ----
     text -> stream(tuple((CmdStr text)       // copy of the evaluated command
                          (Success bool)      // TRUE iff execution succeded
-                         (ResultType text)      // result type expression 
+                         (ResultType text)      // result type expression
                          (Result text)          // result as nested list expr
                          (ErrorMessage text)    // Error messages
                          (ElapsedTimeReal real) // The execution time in sec
@@ -809,7 +846,6 @@ ListExpr FTextTypeMapEvaluate( ListExpr args )
     NList resType1 =
         NList( NList(symbols::APPEND),
                NList(false, false).enclose(), resulttype );
-    cout << resType1;
     return resType1.listExpr();
   }
   else
@@ -820,23 +856,66 @@ ListExpr FTextTypeMapEvaluate( ListExpr args )
 }
 
 /*
-Type Mapping Function for operators ~replace~, ~createDBobject~
+Type Mapping Function for operator ~createDBobject~
+
+----
+      {text|string} x {text|string} x {text|string} --> text
+----
 
 */
 
 ListExpr FTextTypeTextual3( ListExpr args )
 {
   NList type(args);
-  if(     !type.hasLength(3)
-       || ((type.first() != TEXT) && (type.first() != STRING))
-       || ((type.second() != TEXT) && (type.second() != STRING))
-       || ((type.third() != TEXT) && (type.third() != STRING))
+  if(     type.hasLength(3)
+       && ((type.first()  == TEXT) || (type.first()  == STRING))
+       && ((type.second() == TEXT) || (type.second() == STRING))
+       && ((type.third()  == TEXT) || (type.third()  == STRING))
     )
   {
-    return NList::typeError("Expected {text|string} x {text|string} x "
-      "{text|string} arguments.");
+    return NList(TEXT).listExpr();
   }
-  return NList(TEXT).listExpr();
+  // error
+  return NList::typeError("Expected {text|string} x {text|string} x "
+      "{text|string} arguments.");
+}
+
+/*
+Type Mapping Function for operator ~replace~
+
+----
+      {text|string} x {text|string} x {text|string} --> text
+      {text|string} x int    x int  x {text|string} --> text
+----
+
+*/
+
+ListExpr FTextTypeReplace( ListExpr args )
+{
+  NList type(args);
+  // {text|string} x {text|string} x {text|string} --> text
+  if(     type.hasLength(3)
+          && ((type.first()  == TEXT) || (type.first()  == STRING))
+          && ((type.second() == TEXT) || (type.second() == STRING))
+          && ((type.third()  == TEXT) || (type.third()  == STRING))
+    )
+  {
+    return NList(TEXT).listExpr();
+  }
+  // {text|string} x int    x int  x {text|string} --> text
+  if(     type.hasLength(4)
+          && ((type.first()  == TEXT) || (type.first()  == STRING))
+          && ((type.second() == INT ) || (type.second() == INT   ))
+          && ((type.third()  == INT ) || (type.third()  == INT   ))
+          && ((type.fourth() == TEXT) || (type.fourth() == STRING))
+    )
+  {
+    return NList(TEXT).listExpr();
+  }
+  // error
+  return NList::typeError("Expected ({text|string} x {text|string} x "
+      "{text|string}) or ({text|string} x int x int x {text|string}).");
+
 }
 
 /*
@@ -921,12 +1000,89 @@ ListExpr FTextTypeMapGetValueNL( ListExpr args )
 }
 
 /*
+Type Mapping Function for ~chartext~
+
+----
+     int --> text
+----
+
+*/
+
+ListExpr FTextTypeIntText( ListExpr args )
+{
+  NList type(args);
+  if( type.hasLength(1) && (type.first() == INT) )
+  {
+    return NList(TEXT).listExpr();
+  }
+  return NList::typeError("Expected 'int'.");
+}
+
+
+/*
+Type Mapping Function for ~toupper~, ~tolower~
+
+----
+     text --> text
+----
+
+*/
+
+ListExpr FTextTypeTextText( ListExpr args )
+{
+  NList type(args);
+  if( type.hasLength(1) && (type.first() == TEXT) )
+  {
+    return NList(TEXT).listExpr();
+  }
+  return NList::typeError("Expected 'text'.");
+}
+
+/*
+Type Mapping Function for ~tostring~
+
+----
+     text --> string
+----
+
+*/
+
+ListExpr FTextTypeTextString( ListExpr args )
+{
+  NList type(args);
+  if( type.hasLength(1) && (type.first() == TEXT) )
+  {
+    return NList(STRING).listExpr();
+  }
+  return NList::typeError("Expected 'text'.");
+}
+
+/*
+Type Mapping Function for ~totext~
+
+----
+      string --> text
+----
+
+*/
+
+ListExpr FTextTypeStringText( ListExpr args )
+{
+  NList type(args);
+  if( type.hasLength(1) && (type.first() == STRING) )
+  {
+    return NList(TEXT).listExpr();
+  }
+  return NList::typeError("Expected 'string'.");
+}
+
+/*
 3.3 Value Mapping Functions
 
 */
 
 int
-ValMapTextStringBool ( Word* args, Word& result, 
+ValMapTextStringBool ( Word* args, Word& result,
                        int message, Word& local, Supplier s)
 
 /*
@@ -943,7 +1099,7 @@ Value Mapping for the ~contains~ operator with the operands text and string.
   result = qp->ResultStorage(s); //query processor has provided
           //a CcBool instance to take the result
   ((CcBool*)
-    result.addr)->Set( true, 
+    result.addr)->Set( true,
                        ftext1->SearchString( *string1->GetStringval() ));
           //the first argument says the boolean
           //value is defined, the second is the
@@ -956,7 +1112,7 @@ Value Mapping for the ~contains~ operator with the operands text and string.
 
 
 int
-ValMapTextTextBool ( Word* args, Word& result, 
+ValMapTextTextBool ( Word* args, Word& result,
                      int message, Word& local, Supplier s)
 
 /*
@@ -1017,7 +1173,7 @@ characters from the end of a string.
 int trimstr (char s[])
 {
   int n;
-  
+
   for(n = strlen(s) - 1; n >= 0; n--)
    if ( !isspace(s[n]) ) break;
   s[n+1] = '\0';
@@ -1053,7 +1209,7 @@ The length of a string is three characters or more.
   switch( message )
   {
     case OPEN:
-      //cout << "open ValMapkeywords" << endl;     
+      //cout << "open ValMapkeywords" << endl;
       thetext = new TheText;
       thetext->start = 0;
       thetext->nochr = 0;
@@ -1062,13 +1218,13 @@ The length of a string is three characters or more.
       local.addr = thetext;
       return 0;
 
-    case REQUEST:   
+    case REQUEST:
       //cout << "request ValMapkeywords" << endl;
       thetext = ((TheText*) local.addr);
       textcursor = thetext->start;
       stringcursor = 0;
       state = 0;
-      
+
       while (true) {
         switch ( state ) {
           case 0 : c = thetext->subw[textcursor];
@@ -1132,25 +1288,27 @@ The length of a string is three characters or more.
                    break;
         case 4 : c = thetext->subw[textcursor];
                  //cout << c << " state 4 " << endl;
-                 if ( IsNonStopCharacter( c ) && (stringcursor == 48) ) {
+                 if ( IsNonStopCharacter( c ) &&
+                      (stringcursor == MAX_STRINGSIZE) ) {
                   state = 5;
                   stringcursor = 0;
-                 }         
-                 else if ( IsNonStopCharacter( c ) && (stringcursor < 48) ) {
+                 }
+                 else if ( IsNonStopCharacter( c ) &&
+                           (stringcursor < MAX_STRINGSIZE) ) {
                    outstr[stringcursor] = c;
                    stringcursor++;
                    state = 4;
                  }
                  else {
-                   //if ( c == '\0' ) 
+                   //if ( c == '\0' )
                    //{ outstr[stringcursor] = c; stringcursor ++; }
-                   if ( textcursor == thetext->strlength ) 
+                   if ( textcursor == thetext->strlength )
                    { outstr[stringcursor] = c; stringcursor++; };
                    outstr[stringcursor] = '\0';
-                   stringcursor = 0; 
+                   stringcursor = 0;
                    mystring = new CcString();
                    mystring->Set(true, &outstr);
-                   result = SetWord(mystring);  
+                   result = SetWord(mystring);
                    thetext->start = ++textcursor;
                    local.addr = thetext;
                    return YIELD;
@@ -1170,10 +1328,10 @@ The length of a string is three characters or more.
                  if ( textcursor == thetext->strlength ) { return CANCEL; }
                  textcursor++;
                  break;
-        
+
       }
-    }       
-       
+    }
+
     case CLOSE:
       //cout << "close ValMapkeywords" << endl;
       if(local.addr)
@@ -1200,7 +1358,7 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
   switch( message )
   {
     case OPEN:
-      //cout << "open ValMapsentences" << endl; 
+      //cout << "open ValMapsentences" << endl;
       thetext = new TheText;
       thetext->start = 0;
       thetext->strlength = ((FText*)args[0].addr)->TextLength();
@@ -1208,20 +1366,20 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
       local.addr = thetext;
       return 0;
 
-    case REQUEST:   
+    case REQUEST:
       //cout << "request ValMapsentences" << endl;
       thetext = ((TheText*) local.addr);
       textcursor = thetext->start;
       tmpstr = "";
       state = 0;
-      
+
       while (true) {
         switch ( state ) {
           case 0 : c = thetext->subw[textcursor];
                    if ( (c == '\0') || (textcursor > thetext->strlength) )
                    { return CANCEL; }
                    if ( c == ',' || c == ';' || c ==':' || c ==' '
-                                 || c == '\n' || c == '\t' ) 
+                                 || c == '\n' || c == '\t' )
                    {
                      state = 0;
                    }
@@ -1262,7 +1420,7 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
                    textcursor++;
                    break;
           case 2 : c = thetext->subw[textcursor];
-                   if ( (c == '\0') || (textcursor > thetext->strlength) ) 
+                   if ( (c == '\0') || (textcursor > thetext->strlength) )
                    { return CANCEL; }
                    if ( c == ',' || c == ';' || c ==':' )
                    {
@@ -1285,11 +1443,11 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
                      }
                    }
                    textcursor++;
-                   break;  
+                   break;
           case 3 : if ( (c == '\0') || (textcursor > thetext->strlength) )
                    { return CANCEL; }
                    returnsentence = new FText(true, (char*)tmpstr.c_str());
-                   result = SetWord(returnsentence);  
+                   result = SetWord(returnsentence);
                    thetext->start = textcursor;
                    local.addr = thetext;
                    return YIELD;
@@ -1312,7 +1470,7 @@ ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 int
-ValMapDice_t_t(Word* args, Word& result, int message, 
+ValMapDice_t_t(Word* args, Word& result, int message,
                 Word& local, Supplier s){
   result = qp->ResultStorage(s);
   CcInt* arg1 = (CcInt*) args[0].addr;
@@ -1629,7 +1787,7 @@ int FTextSelectFunFind( ListExpr args )
   if( (type.first() == NList(TEXT)) && (type.second() == NList(TEXT)) )
     return 2;
   if( (type.first() == NList(STRING)) && (type.second() == NList(STRING)) )
-    return 3;  
+    return 3;
   // else: ERROR
   return -1;
 }
@@ -1734,7 +1892,7 @@ int FTextValMapComparePred( Word* args, Word& result, int message,
     case 3: res = (cmp >= 0); break; // >=
     case 4: res = (cmp >  0); break; // >
     case 5: res = (cmp != 0); break; //  #
-    default: assert( false);  break; // illegal mode of operation 
+    default: assert( false);  break; // illegal mode of operation
   }
   CRes->Set( true, res );
   return 0;
@@ -1779,7 +1937,7 @@ ValueMapping FText_VMMap_Neq[] =
 {
   FTextValMapComparePred<CcString, FText, 5>,    //
   FTextValMapComparePred<FText, CcString, 5>,    //
-  FTextValMapComparePred<FText, FText, 5>        // 
+  FTextValMapComparePred<FText, FText, 5>        //
 };
 
 int FTextSelectFunComparePred( ListExpr args )
@@ -1918,8 +2076,6 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
                                          isFunction);
         myTimeReal = myTimer.diffSecondsReal();
         myTimeCPU  = myTimer.diffSecondsCPU();
-        cout << "TimeReal = " << myTimeReal << endl;
-        cout << "TimeCPU  = " << myTimeCPU  << endl;
 
         // handle result
         ListExpr queryResType;
@@ -2006,6 +2162,8 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
 Value Mapping Function for Operator ~replace~
 
 */
+
+// {text|string} x {text|string} x {text|string} --> text
 template<class T1, class T2, class T3>
 int FTextValMapReplace( Word* args, Word& result, int message,
                           Word& local, Supplier s )
@@ -2029,36 +2187,52 @@ int FTextValMapReplace( Word* args, Word& result, int message,
   string patternOldStr = patternOld->GetValue();
   string patternNewStr = patternNew->GetValue();
   string textReplaced = "";
-  if( patternOldStr.length() == 0 )
-  {
-    textReplaced = textStr;
-  }
-  else
-  {
-    stringstream sstextReplaced;
-    size_t lastpos = 0;
-    size_t pos = 0;
-    do
-    {
-      lastpos = pos;
-      pos = textStr.find(patternOldStr, pos);
-      if (pos != string::npos)
-      {
-        size_t len = pos - lastpos;
-        sstextReplaced << textStr.substr(lastpos,len) << patternNewStr;
-        pos += patternOldStr.length();
-      }
-      else
-      {
-        sstextReplaced << textStr.substr(lastpos, textStr.length()-lastpos);
-      }
-    }
-    while ( (pos != string::npos) && (pos < textStr.length()) );
-    textReplaced = sstextReplaced.str();
-  }
+  textReplaced = replaceAll(textStr, patternOldStr, patternNewStr);
   Res->Set(true, textReplaced);
   return 0;
 }
+
+// {text|string} x int    x int  x {text|string} --> text
+template<class T1, class T2>
+int FTextValMapReplace2( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  FText* Res = static_cast<FText*>(result.addr);
+
+  T1*    text    = static_cast<T1*>   (args[0].addr);
+  CcInt* start   = static_cast<CcInt*>(args[1].addr);
+  CcInt* end     = static_cast<CcInt*>(args[2].addr);
+  T2* patternNew = static_cast<T2*>   (args[3].addr);
+
+  if(    !text->IsDefined()
+          || !start->IsDefined()
+          || !end->IsDefined()
+          || !patternNew->IsDefined()
+    )
+  {
+    Res->Set(false, "");
+    return 0;
+  }
+  string textStr        = text->GetValue();
+  string patternNewStr  = patternNew->GetValue();
+  int starti            = start->GetIntval();
+  int endi              = end->GetIntval();
+  unsigned int len      = (unsigned int)(endi-starti);
+  if(    (starti > endi)                             // illegal end pos
+      || (starti < 1)                                // illegal startpos
+      || (unsigned int)starti > textStr.length()    // illegal startpos
+    )
+  { // nothing to do
+    Res->Set(true, textStr);
+    return 0;
+  }
+  string textReplaced = "";
+  textReplaced = textStr.replace(starti-1, len+1, patternNewStr);
+  Res->Set(true, textReplaced);
+  return 0;
+}
+
 
 /*
 ValueMappingArray for ~replace~
@@ -2067,14 +2241,20 @@ ValueMappingArray for ~replace~
 
 ValueMapping FText_VMMap_Replace[] =
 {
-  FTextValMapReplace<FText,    FText,    FText>,    // 0
-  FTextValMapReplace<FText,    FText,    CcString>, // 1 
-  FTextValMapReplace<FText,    CcString, FText>,    // 2
-  FTextValMapReplace<FText,    CcString, CcString>, // 3
-  FTextValMapReplace<CcString, FText,    FText>,    // 4
-  FTextValMapReplace<CcString, FText,    CcString>, // 5
-  FTextValMapReplace<CcString, CcString, FText>,    // 6
-  FTextValMapReplace<CcString, CcString, CcString>  // 7
+  // {text|string} x {text|string} x {text|string} --> text
+  FTextValMapReplace<FText,    FText,    FText>,    //  0
+  FTextValMapReplace<FText,    FText,    CcString>, //  1
+  FTextValMapReplace<FText,    CcString, FText>,    //  2
+  FTextValMapReplace<FText,    CcString, CcString>, //  3
+  FTextValMapReplace<CcString, FText,    FText>,    //  4
+  FTextValMapReplace<CcString, FText,    CcString>, //  5
+  FTextValMapReplace<CcString, CcString, FText>,    //  6
+  FTextValMapReplace<CcString, CcString, CcString>, //  7
+  // {text|string} x int    x int  x {text|string} --> text
+  FTextValMapReplace2<FText,    FText>,             //  8
+  FTextValMapReplace2<FText,    CcString>,          //  9
+  FTextValMapReplace2<CcString, FText>,             // 10
+  FTextValMapReplace2<CcString, CcString>           // 11
 };
 
 
@@ -2087,12 +2267,24 @@ int FTextSelectFunReplace( ListExpr args )
 {
   NList type(args);
   int result = 0;
-  if( type.third() == NList(STRING) )
-    result += 1;
-  if( type.second() == NList(STRING) )
-    result += 2;
-  if( type.first() == NList(STRING) )
-    result += 4;
+  if(type.hasLength(3))
+  { // {text|string} x {text|string} x {text|string} --> text
+    result = 0;
+    if( type.third() == NList(STRING) )
+      result += 1;
+    if( type.second() == NList(STRING) )
+      result += 2;
+    if( type.first() == NList(STRING) )
+      result += 4;
+  }
+  else
+  { // {text|string} x int x int x {text|string} --> text
+    result = 8;
+    if( type.fourth() == NList(STRING) )
+      result += 1;
+    if( type.first() == NList(STRING) )
+      result += 2;
+  }
   return result;
 }
 
@@ -2239,7 +2431,7 @@ int FTextValueMapGetValueNL_stream( Word* args, Word& result, int message,
   return -1;
 }
 
-// for tuple-streams 
+// for tuple-streams
 int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
                              Word& local, Supplier s )
 {
@@ -2348,7 +2540,7 @@ int FTextSelectFunGetValueNL( ListExpr args )
 
 
 /*
-Value Mapping Function for Operator ~getValueNL~
+Value Mapping Function for Operator ~chartext~
 
 */
 int FTextValueMapCreateDBObject( Word* args, Word& result, int message,
@@ -2357,6 +2549,97 @@ int FTextValueMapCreateDBObject( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+Value Mapping Function for ~charT~
+
+*/
+
+int FTextValueMapChartext( Word* args, Word& result, int message,
+                           Word& local, Supplier s )
+{
+  CcInt* Cccode = static_cast<CcInt*>(args[0].addr);
+  result = qp->ResultStorage( s );
+  FText* res = static_cast<FText*>(result.addr);
+
+  int code = 0;
+  if ( !Cccode->IsDefined() )
+    res->SetDefined( false );
+  else{
+    code = Cccode->GetIntval();
+    if( (code >= 0) && (code <= 255) )
+    {
+      char ch = (char) code;
+      ostringstream os;
+      os << ch;
+      string s = os.str();
+      res->Set( true, s );
+    }
+    else
+    { // illegal code --> return undef
+      res->Set( false, "" );
+    }
+  }
+  return 0;
+}
+
+/*
+Value Mapping Function for ~toupper~, ~tolower~
+
+*/
+template<bool isToLower>
+int FTextValueMapChangeCase( Word* args, Word& result, int message,
+                             Word& local, Supplier s )
+{
+  FText* text = static_cast<FText*>(args[0].addr);
+  result = qp->ResultStorage( s );
+  FText* res = static_cast<FText*>(result.addr);
+
+  if ( !text->IsDefined() ){
+    res->Set( false, "" );
+  }else{
+    string str = text->GetValue();
+    if(isToLower){
+      std::transform(str.begin(),str.end(), str.begin(), (int(*)(int)) tolower);
+    }else{
+      std::transform(str.begin(),str.end(), str.begin(), (int(*)(int)) toupper);
+    }
+    res->Set( true, str );
+  }
+  return 0;
+}
+
+
+/*
+Value Mapping Function for ~tostring~, ~totext~
+
+*/
+
+template<bool isTextToString, class T1, class T2>
+int FTextValueMapConvert( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  T1* inSec = static_cast<T1*>(args[0].addr);
+  result = qp->ResultStorage( s );
+  T2* res = static_cast<T2*>(result.addr);
+
+  if( !inSec->IsDefined() )
+  {
+    res->Set( false, "" );
+    return 0;
+  }
+  string inStr = inSec->GetValue();
+  if(isTextToString)
+  {
+    string outStr = inStr.substr(0,MAX_STRINGSIZE);
+    outStr = replaceAll(outStr, "\"", "'");
+    res->Set( true, outStr );
+  }
+  else
+  {
+    res->Set( true, inStr );
+  }
+  return 0;
+}
 /*
 3.4 Definition of Operators
 
@@ -2393,7 +2676,7 @@ const string lengthSpec =
     "<text>length returns the length of "+typeName+".</text--->"
     ")"
   ")";
-  
+
 const string keywordsSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(text) -> (stream string)</text--->"
@@ -2409,7 +2692,7 @@ const string sentencesSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(text) -> (stream text)</text--->"
              "<text>_ sentences</text--->"
-             "<text>Creates a stream of standardized texts containing " 
+             "<text>Creates a stream of standardized texts containing "
              "complete sentences"
              " of the origin text, on the assumption, that sentences "
              "in the text"
@@ -2417,9 +2700,9 @@ const string sentencesSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "<text>let MySentences = documents feed "
              "projectextendstream[title; newattr: .content sentences] "
              "consume</text--->"
-             ") )";  
+             ") )";
 
-const string diceSpec  = 
+const string diceSpec  =
             "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                  "\"Example\" )"
             "( <text> int x text x text -> real </text--->"
@@ -2567,10 +2850,13 @@ const string FTextEvaluateSpec  =
 
 const string FTextReplaceSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>{text|string} x {text|string} x {text|string} -> text</text--->"
-    "<text>replace( text , Pold, Pnew )</text--->"
+    "( <text>{text|string} x {text|string} x {text|string} -> text\n"
+    "{text|string} x int    x int  x {text|string} -> text</text--->"
+    "<text>replace( text , Pold, Pnew )\n replace( text, start, end, Pnew)"
+    "</text--->"
     "<text>Within 'text', replace all occurencies of pattern 'Pold' by "
-    "pattern 'Pnew'.</text--->"
+    "pattern 'Pnew'. Within 'text' replace characters starting at "
+    "position 'start' and ending at position 'end' by pattern 'Pnew')</text--->"
     "<text>query replace('Fish! Fresh fish! Fresh fished fish!',"
     "'Fresh','Rotten')</text--->"
     ") )";
@@ -2605,6 +2891,56 @@ const string FTextCreateDBObjectSpec  =
     "value expression 'value'. The result is empty, if everything goes well, "
     "it contains an error message otherwise.</text--->"
     "<text>query createDBobject('3.141592653589793116', 'real', \"MyPi\") = ''"
+    "</text--->"
+    ") )";
+
+const string FTextChartextSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>int -> text</text--->"
+    "<text>chartext( code )</text--->"
+    "<text>Creates atext of length 1 containing the character specified by "
+    "ASCII symbol code 'code'.</text--->"
+    "<text>query chartext(13)"
+    "</text--->"
+    ") )";
+
+const string FTextToLowerSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text -> text</text--->"
+    "<text>tolower( text )</text--->"
+    "<text>Creates a copy of 'text', where upper case characters are replaced "
+    "by lower case characters.</text--->"
+    "<text>query tolower('Hello World!')"
+    "</text--->"
+    ") )";
+
+const string FTextToUpperSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text -> text</text--->"
+    "<text>toupper( text )</text--->"
+    "<text>Creates a copy of 'text', where lower case characters are replaced "
+    "by upper case characters.</text--->"
+    "<text>query toupper('Hello World!')"
+    "</text--->"
+    ") )";
+
+const string FTextTextToStringSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text -> string</text--->"
+    "<text>tostring( text )</text--->"
+    "<text>Converts 'text' to a string value. One the first 48 characters are "
+    "copied. Any contained doublequote (\") is replaced by a single quote ('). "
+    "</text--->"
+    "<text>query tostring('Hello World!')"
+    "</text--->"
+    ") )";
+
+const string FTextStringToTextSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>string -> text</text--->"
+    "<text>totext( string )</text--->"
+    "<text>Converts 'string' to a text value.</text--->"
+    "<text>query totext(\"Hello World!\")"
     "</text--->"
     ") )";
 
@@ -2796,10 +3132,10 @@ Operator ftextreplace
     (
     "replace",
     FTextReplaceSpec,
-    8,
+    12,
     FText_VMMap_Replace,
     FTextSelectFunReplace,
-    FTextTypeTextual3
+    FTextTypeReplace
     );
 
 Operator getTypeNL
@@ -2830,6 +3166,53 @@ Operator createDBobject
     FTextTypeTextual3
     );
 
+
+Operator chartext
+    (
+    "chartext",
+    FTextChartextSpec,
+    FTextValueMapChartext,
+    Operator::SimpleSelect,
+    FTextTypeIntText
+    );
+
+Operator ftexttoupper
+    (
+    "toupper",
+    FTextToUpperSpec,
+    FTextValueMapChangeCase<false>,
+    Operator::SimpleSelect,
+    FTextTypeTextText
+    );
+
+Operator ftexttolower
+    (
+    "tolower",
+    FTextToLowerSpec,
+    FTextValueMapChangeCase<true>,
+    Operator::SimpleSelect,
+    FTextTypeTextText
+    );
+
+Operator ftexttostring
+    (
+    "tostring",
+    FTextTextToStringSpec,
+    FTextValueMapConvert<true, FText, CcString>,
+    Operator::SimpleSelect,
+    FTextTypeTextString
+    );
+
+Operator ftexttotext
+    (
+    "totext",
+    FTextStringToTextSpec,
+    FTextValueMapConvert<false, CcString, FText>,
+    Operator::SimpleSelect,
+    FTextTypeStringText
+    );
+
+
 /*
 5 Creating the algebra
 
@@ -2844,6 +3227,7 @@ public:
       cout <<'\n'<<"Start FTextAlgebra() : Algebra()"<<'\n';
     AddTypeConstructor( &ftext );
     ftext.AssociateKind("DATA");
+    ftext.AssociateKind("INDEXABLE");
     AddOperator( &containsString );
     AddOperator( &containsText );
     AddOperator( &length );
@@ -2864,12 +3248,15 @@ public:
     AddOperator( &ftextneq );
     AddOperator( &ftextevaluate );
     AddOperator( &ftextreplace );
-//     AddOperator( &ftexttoupper );
-//     AddOperator( &ftexttostring );
-//     AddOperator( &ftexttotext );
+    AddOperator( &ftexttoupper );
+    AddOperator( &ftexttolower );
+    AddOperator( &ftexttostring );
+    AddOperator( &ftexttotext );
     AddOperator( &getTypeNL );
     AddOperator( &getValueNL );
 //     AddOperator( &createDBobject );
+//
+    AddOperator( &chartext );
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
@@ -2879,6 +3266,7 @@ public:
   ~FTextAlgebra() {};
 };
 
+} // end namespace ftext
 
 /*
 6 Initialization
@@ -2896,14 +3284,14 @@ and to the query processor.
 
 extern "C"
 Algebra*
-InitializeFTextAlgebra( NestedList* nlRef, 
+InitializeFTextAlgebra( NestedList* nlRef,
                         QueryProcessor* qpRef,
                         AlgebraManager* amRef )
 {
   if(traces)
     cout << '\n' <<"InitializeFTextAlgebra"<<'\n';
-  FTextAlgebra* ptr = new FTextAlgebra;
-  ptr->Init(nl, qp, am); 
+  ftext::FTextAlgebra* ptr = new ftext::FTextAlgebra;
+  ptr->Init(nl, qp, am);
   return ptr;
 }
 

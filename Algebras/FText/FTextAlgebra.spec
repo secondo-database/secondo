@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -31,11 +31,11 @@ operator evaluate alias EVALUATE pattern op( _ )
 operator replace alias REPLACE pattern op(_, _, _)
 operator getTypeNL alias GETTYPENL pattern _ op
 operator getValueNL alias GETVALUENL pattern _ op
-operator createDBobject alias CREATEDBOBJECT pattern op(_, _, _)
-#operator toupper alias TOUPPER pattern op(_)
-#operator totext alias TOTEXT pattern op(_)
-#operator tostring alias TOSTRING pattern op(_)
-
+#operator createDBobject alias CREATEDBOBJECT pattern op(_, _, _)
+operator chartext alias CHARTEXT pattern op(_)
+operator toupper alias TOUPPER pattern op(_)
+operator tolower alias TOLOWER pattern op(_)
+operator totext alias TOTEXT pattern op(_)
 
 #Operators already specified elsewhere:
 
@@ -48,3 +48,4 @@ operator createDBobject alias CREATEDBOBJECT pattern op(_, _, _)
 #operator > alias GT pattern _ infixop _
 #operator <= alias LE pattern _ infixop _
 #operator >= alias GE pattern _ infixop _
+#operator tostring alias TOSTRING pattern op(_)

@@ -303,6 +303,30 @@ Signature: text x text x text -> text
 Example  : query replace('abab','a','c')
 Result   : 'cbcb'
 
+Operator : replace
+Number   : 9
+Signature: text x int x int x text -> text
+Example  : query replace('abab',2,3,'c')
+Result   : 'acb'
+
+Operator : replace
+Number   : 10
+Signature: text x int x int x string -> text
+Example  : query replace('abab',2,2,"c")
+Result   : 'acab'
+
+Operator : replace
+Number   : 11
+Signature: string x int x int x text -> text
+Example  : query replace("abab",5,10,'c')
+Result   : 'abab'
+
+Operator : replace
+Number   : 12
+Signature: string x int x int x string -> text
+Example  : query replace("abab",4,4,"bcdef")
+Result   : 'ababcdef'
+
 Operator : getTypeNL
 Number   : 1
 Signature: Expr -> text
@@ -326,4 +350,34 @@ Number   : 3
 Signature: stream(tuple(X)) -> stream(text)
 Example  : query ten feed getValueNL transformstream aggregateB[elem; fun(T1: text, T2: text) (T1 + T2); '']
 Result   : '(1)(2)(3)(4)(5)(6)(7)(8)(9)(10)'
+
+Operator : toupper
+Number   : 1
+Signature: text -> text
+Example  : query toupper('Hello World!')
+Result   : 'HELLO WORLD!'
+
+Operator : tolower
+Number   : 1
+Signature: text -> text
+Example  : query tolower('Hello World!')
+Result   : 'hello world!'
+
+Operator : chartext
+Number   : 1
+Signature: int -> text
+Example  : query chartext(39)
+Result   : '\''
+
+Operator : tostring
+Number   : 1
+Signature: text -> string
+Example  : query tostring('I"m so tired...')
+Result   : "I'm so tired..."
+
+Operator : totext
+Number   : 1
+Signature: string -> text
+Example  : query totext("I'm so tired...")
+Result   : 'I\'m so tired...'
 

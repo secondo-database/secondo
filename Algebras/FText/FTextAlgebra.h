@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -42,7 +42,7 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include "StandardAttribute.h"
 #include "FLOB.h"
 
-class FText: public StandardAttribute
+class FText: public IndexableStandardAttribute
 {
 public:
 
@@ -82,6 +82,17 @@ public:
   inline int NumOfFLOBs() const;
   inline FLOB* GetFLOB( const int );
 
+/*************************************************************************
+
+  For use with Btree-Indices, we need text to be in kind INDEXABLE.
+  therefore, we need to inherit from IndexableStandardAttribute
+
+*************************************************************************/
+
+  virtual void WriteTo( char *dest ) const;
+  virtual void ReadFrom( const char *src );
+  virtual SmiSize SizeOfChars() const;
+
 private:
   FLOB theText;
   bool defined;
@@ -104,11 +115,11 @@ inline FText::FText( bool newDefined, const char *newText /* =0*/ ) :
 theText( 0 )
 {
   LOGMSG( "FText:Trace",
-           cout << '\n' 
+           cout << '\n'
                 <<"Start FText(bool newDefined, textType newText)"
                 <<'\n'; )
   Set( newDefined, newText );
-  LOGMSG( "FText:Trace",  
+  LOGMSG( "FText:Trace",
            cout <<"End FText(bool newDefined, textType newText)"
                 <<'\n'; )
 }
@@ -158,8 +169,8 @@ inline bool FText::SearchString( const char* subString )
 
 inline void FText::Set( const char *newString )
 {
-  LOGMSG( "FText:Trace", 
-           cout << '\n' 
+  LOGMSG( "FText:Trace",
+           cout << '\n'
                 << "Start Set with *newString='"<< newString << endl; )
 
   Set( true, newString );
@@ -169,7 +180,7 @@ inline void FText::Set( const char *newString )
 
 inline void FText::Set( bool newDefined, const char *newString )
 {
-  LOGMSG( "FText:Trace", 
+  LOGMSG( "FText:Trace",
           cout << '\n' << "Start Set with *newString='"
                << newString << endl; )
 
@@ -255,6 +266,8 @@ inline FLOB* FText::GetFLOB( const int i )
 }
 
 
+namespace ftext{
+
 Word CreateFText( const ListExpr typeInfo );
 
 void DeleteFText( const ListExpr typeInfo, Word& w );
@@ -272,10 +285,12 @@ ListExpr OutFText( ListExpr typeInfo, Word value );
 Word InFText( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct );
 
-bool OpenFText( SmiRecord& valueRecord, size_t& offset, 
+bool OpenFText( SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo, Word& value );
 
 bool SaveFText( SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo, Word& value );
-#endif 
+
+} // end namespace ftext
+#endif
 
