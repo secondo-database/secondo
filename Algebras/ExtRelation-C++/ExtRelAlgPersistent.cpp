@@ -1512,6 +1512,8 @@ private:
 
   bool FillHashBucketsB()
   {
+
+    bucketsB_Mem = (3 * qp->MemoryAvailableForOperator())/4;
     if( firstPassA )
     {
       qp->Request(streamB.addr, wTupleB);
@@ -1520,7 +1522,6 @@ private:
         // reserve 3/4 of memory for buffering tuples of B;
         // Before retrieving the allowed memory size from the
         // configuration file it was set to 12MB for B and 4MB for A (see below)
-        bucketsB_Mem = (3 * qp->MemoryAvailableForOperator())/4;
         relA_Mem = qp->MemoryAvailableForOperator()/4;
 
 	progress->memoryFirst = relA_Mem;
