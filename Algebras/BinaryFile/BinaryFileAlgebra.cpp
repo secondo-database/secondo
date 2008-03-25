@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -31,8 +31,8 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hibrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
-This is a little example of the usage of the Base 64 converting 
-tool and also FLOBs. The algebra intends to store the contents of 
+This is a little example of the usage of the Base 64 converting
+tool and also FLOBs. The algebra intends to store the contents of
 a binary file.
 
 An operator to save the contents into a file is provided.
@@ -57,6 +57,8 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
+
+using namespace ftext;
 
 /*
 2 Constructor ~binfile~
@@ -99,7 +101,7 @@ inline size_t BinaryFile::HashValue() const
   return 0;
 }
 
-void BinaryFile::CopyFrom(const StandardAttribute* right) 
+void BinaryFile::CopyFrom(const StandardAttribute* right)
 {
   const BinaryFile *r = (const BinaryFile *)right;
   binData.Resize( r->binData.Size() );
@@ -169,7 +171,7 @@ int BinaryFile::GetSize() const{
 }
 
 void BinaryFile::Get(size_t offset,const char** bytes) const{
-   binData.Get(offset,bytes); 
+   binData.Get(offset,bytes);
 }
 
 void BinaryFile::Resize(const int newSize){
@@ -250,7 +252,7 @@ InBinaryFile( const ListExpr typeInfo, const ListExpr instance,
   {
     string encoded;
     nl->Text2String( instance, encoded );
-    //ofstream f; 
+    //ofstream f;
     //f.open("binfile.base64");
     //f << encoded << endl;
     //f.close();
@@ -333,7 +335,7 @@ OpenBinaryFile( SmiRecord& valueRecord,
 {
   // This Open function is implemented in the Attribute class
   // and uses the same method of the Tuple manager to open objects
-  BinaryFile *bf = 
+  BinaryFile *bf =
     (BinaryFile*)Attribute::Open( valueRecord, offset, typeInfo );
   value = SetWord( bf );
   return true;
@@ -400,7 +402,7 @@ void* CastBinaryFile( void* addr )
 /*
 2.14 Kind Checking Function
 
-This function checks whether the type constructor is applied 
+This function checks whether the type constructor is applied
 correctly. Since type constructor ~binfile~ does not have arguments, this is trivial.
 
 */
@@ -452,8 +454,8 @@ Saves the bynary contents of into a file.
 
 5.6.1 Type mapping function of operator ~saveto~
 
-Operator ~saveto~ accepts a binary file object and a string 
-representing the name of the file, and returns a boolean meaning 
+Operator ~saveto~ accepts a binary file object and a string
+representing the name of the file, and returns a boolean meaning
 success or not.
 
 ----    (binfile string)               -> bool
@@ -468,7 +470,7 @@ SaveToTypeMap( ListExpr args )
   {
     arg1 = nl->First(args);
     arg2 = nl->Second(args);
-    if ( nl->IsEqual(arg1, "binfile") && 
+    if ( nl->IsEqual(arg1, "binfile") &&
          nl->IsEqual(arg2, "string") )
     return nl->SymbolAtom("bool");
   }
@@ -481,7 +483,7 @@ SaveToTypeMap( ListExpr args )
 
 */
 int
-SaveToFun(Word* args, Word& result, int message, 
+SaveToFun(Word* args, Word& result, int message,
           Word& local, Supplier s)
 {
   result = qp->ResultStorage( s );
@@ -501,7 +503,7 @@ SaveToFun(Word* args, Word& result, int message,
 4.1.3 Specification of operator ~saveto~
 
 */
-const string SaveToSpec  = 
+const string SaveToSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(binfile string) -> bool"
@@ -539,7 +541,7 @@ class BinaryFileAlgebra : public Algebra
 
     binfile.AssociateKind("DATA");
     binfile.AssociateKind("FILE");
-    
+
     AddTypeConstructor( &filepath );
     filepath.AssociateKind("DATA");
 
@@ -554,23 +556,23 @@ BinaryFileAlgebra binFileAlgebra;
 /*
 6 Initialization
 
-Each algebra module needs an initialization function. The algebra 
-manager has a reference to this function if this algebra is 
-included in the list of required algebras, thus forcing the linker 
+Each algebra module needs an initialization function. The algebra
+manager has a reference to this function if this algebra is
+included in the list of required algebras, thus forcing the linker
 to include this module.
 
-The algebra manager invokes this function to get a reference to the 
-instance of the algebra class and to provide references to the 
-global nested list container (used to store constructor, type, 
+The algebra manager invokes this function to get a reference to the
+instance of the algebra class and to provide references to the
+global nested list container (used to store constructor, type,
 operator and object information) and to the query processor.
 
-The function has a C interface to make it possible to load the 
+The function has a C interface to make it possible to load the
 algebra dynamically at runtime.
 
 */
 extern "C"
 Algebra*
-InitializeBinaryFileAlgebra( NestedList* nlRef, 
+InitializeBinaryFileAlgebra( NestedList* nlRef,
                              QueryProcessor* qpRef,
                              AlgebraManager* amRef )
 {
