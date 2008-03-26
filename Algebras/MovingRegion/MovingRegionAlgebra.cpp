@@ -4624,7 +4624,8 @@ sufficient context to understand this method.
         if (ip1t == 0){i++;}
         if (1.0 > iv.end.ToDouble()){i++;}
         if (ip2t == 0){i++;}
-        if ( i > 0 ) cout << "Blahhhh!" << endl;
+        if ( i > 0 ) cout << __PRETTY_FUNCTION__
+              << " WARNING: Probably uninitialized values!" << endl;
 // debug::end
         if (ip1t < iv.start.ToDouble() || ip1t > iv.end.ToDouble())
             ip1present = false;
