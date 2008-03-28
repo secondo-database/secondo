@@ -60,6 +60,8 @@ in the Eps-range to one of the points in the cluster, this point
 
 #include <iostream>
 #include <string>
+#include <vector>
+#include <algorithm>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -680,6 +682,10 @@ public:
   }
 
 
+  ostream& printTo(ostream& o)const{
+      return (o << "(" << src << " -> " << dest << ", " << cost <<")");
+  }
+
   private:
     void equalize(const Edge& src){
        this->cost = src.cost;
@@ -689,6 +695,11 @@ public:
 
 
 };
+
+
+ostream& operator<<(ostream& o, const Edge& e){
+    return e.printTo(o);
+}
 
 
 class ClusterD_LocalInfo{
@@ -702,23 +713,25 @@ Creates a new localinfo for the cluster[_]d operator.
 The complte clustering is done here.
 
 */
-  ClusterD_LocalInfo(Points* pts, CcReal* eps):usedPositions(){
-    icluster = 0;
+  ClusterD_LocalInfo(Points* pts, CcReal* eps){
     env = 0;
+    currentInitialCluster = 0;
+    currentInitialPos = 0;
     if(pts->IsDefined() && eps->IsDefined()){
       this->defined = true;
       this->eps = eps->GetRealval();
       this->eps2 = this->eps*this->eps;
       this->pts = pts;
       size = pts->Size();
+      icluster = new int[size];
+      for(int i=0;i<size;i++){
+         icluster[i] = -1; // not assigned to an initial cluster
+      }
 
-
-      computeCluster();
+      fcluster = 0;
+      computeEnv();
       currentCNum = 0;
-      currentPos = 0;
-      computeFinalCluster();
-      currentCNum = 0;
-      currentPos = 0;
+      origPos = 0; 
     } else {
        this->defined = 0;
        this->pts = 0;
@@ -754,6 +767,13 @@ Destroys this instance.
          delete[] env;
          env = 0;
       }
+      if(currentInitialCluster){
+         delete currentInitialCluster;
+      }
+      if(origPos){
+         delete [] origPos;
+         origPos = 0;
+      }
    }
 
 
@@ -764,6 +784,7 @@ Returns the next cluster or 0 if no more clusters exist.
   Points* getNext(){
      return getNextFinalCluster();
   }
+
 
 
 private: 
@@ -777,15 +798,14 @@ private:
 
   set<int>** env;
 
-  int currentPos;
+  int currentInitialPos;
   int currentCNum;
-  set<int> usedPositions;
+  set<int>* currentInitialCluster;
 
-
-  void computeCluster(){
-      computeEnv();
-      computeInitialCluster();
-  }
+  map<int, set<int> > currentFinalCluster;
+  map<int, set<int> >::iterator currentFinalPos;
+   
+  int* origPos;
 
 
 /*
@@ -858,166 +878,50 @@ environments cluster.
   }
 
 
-/*
-~computeInitialCluster~
-
-This function computes a clusternumber for each point. A cluster consists of
-all points which are (indirect) reachable from a point.
-
-*/
-  void computeInitialCluster(){
-    icluster = new int[size];
-    for(int i=0;i<size;i++){
-      icluster[i] = -1; // not assigned to a cluster
-    }
-    int clusterNum = 0;
-    for(int i=0;i<size;i++){
-      computeInitialCluster(i,clusterNum);
-    }
-  }
-
 /* 
-~computeInitialCluster~
-
-This fucntion compute sthe initial cluster for for the point at position
-pos. If the point is already assigned to a cluster, this function does 
-nothing. If a new cluster was created, clusternum is incremented
-automatically. Note: the environments of the points is partitially
-destroyed during this function.
-
-*/
-  void computeInitialCluster(const int pos, int& clusterNum){
-     if(icluster[pos]>=0){ // point already assigned to a cluster
-       return;
-     }
-     set<int>* s = env[pos];
-    
-     while(!s->empty()){
-       int p = *(s->begin());
-       if(icluster[p]<0){ // point is "free"
-         icluster[p] = clusterNum;
-         for(set<int>::iterator it=env[p]->begin(); it!= env[p]->end(); it++){
-             if(icluster[*it]<0){
-                s->insert(*it);
-             }
-         }
-       }  
-       s->erase(p);
-     } 
-     clusterNum++;
-  }
-
-/*
 ~getNextInitialCluster~
 
-Return  the next clustera s a points value. If no more clusters 
-exist, NULL is returned.  
+This function extracts the next initial clsuter from the original point.
+If the poinst value is exhausted, null is returned. The caller of this
+function has to delete the returned points value.
+
 
 */
+  set<int>* getNextInitialCluster(){
+        
+    while(currentInitialPos<size && 
+          icluster[currentInitialPos]>=0){
+       currentInitialPos++;
+    }
 
-  Points* getNextInitialCluster(){
-    if(!defined){ // one of the arguments was not defined
+
+    if(currentInitialPos>=size){ // set exhausted
       return 0;
-    } 
+    }
+      
+
+    set<int>* res = new set<int>();
+
     
-    while(currentPos<size && icluster[currentPos]!=currentCNum){
-       currentPos++;
-    }
-
-
-    if(currentPos>=size){ // set exhausted
-      return 0;
-    }
-
-    Points* res = new Points(1);
-    res->StartBulkLoad();
-    int pos = currentPos;
-    while(pos<size){
-      if(icluster[pos]==currentCNum){
-        const Point* pt;
-        pts->Get(pos,pt); 
-        (*res) += *pt;
-      }
-      pos++;
-    } 
-    res->EndBulkLoad(false,false);
-
-
-    currentCNum++;
-    return res;
-  }
-
-/*
-~getNextFinalCluster~
-
-Return  the next cluster a points value. If no more clusters 
-exist, NULL is returned.  
-
-*/
-
-  Points* getNextFinalCluster(){
-    if(!defined){ // one of the arguments was not defined
-      return 0;
-    } 
- 
-    while(currentPos<size && 
-          usedPositions.find(fcluster[currentPos])!=usedPositions.end()){
-       currentPos++;
-    }
-
-    if(currentPos>=size){ // set exhausted
-      return 0;
-    }
-     
-    usedPositions.insert(fcluster[currentPos]);
-    currentCNum = fcluster[currentPos];
-
-    cout << "process cluster " << currentCNum << endl;
-
-    Points* res = new Points(1);
-    res->StartBulkLoad();
-    int pos = currentPos;
-    while(pos<size){
-      if(fcluster[pos]==currentCNum){
-        const Point* pt;
-        pts->Get(pos,pt); 
-        (*res) += *pt;
-      }
-      pos++;
-    } 
-    res->EndBulkLoad(false,false);
-
-    return res;
-  }
-
-/*
-~computeFInalCluster~
-
-Computes the final cluster numbers.
-
-*/
-  void computeFinalCluster(){
-     int cnum = 0; // number for final cluster
-     Points* pts;
-     fcluster = new int[size];
-     while((pts=getNextInitialCluster())){
-        computeFinalCluster(pts,cnum);
-        delete pts;
+    set<int> seed(*env[currentInitialPos]);
+    
+     while(!seed.empty()){
+       int p = *(seed.begin());
+       if(icluster[p]<0){ // point is "free"
+         icluster[p] = 1; // mark as assigned
+         res->insert(p);
+         for(set<int>::iterator it=env[p]->begin(); it!= env[p]->end(); it++){
+             if(icluster[*it]<0){
+                seed.insert(*it);
+           }
+       }
      }  
-     
-   // debug::start
-     int minc = 1000;
-     int maxc = -100;
-     set<int> diff;
-     for(int i=0;i<size;i++){
-        if(fcluster[i]>maxc) maxc = fcluster[i];
-        if(fcluster[i]<minc) minc = fcluster[i];
-        diff.insert(fcluster[i]);
-     }
-     cout << "clusters in range " << minc << ", " << maxc << endl; 
-     cout << "different" << diff.size() << endl;
-   //debug::end
+     seed.erase(p);
+   } 
+
+   return res;
   }
+
 
 
 /*
@@ -1027,40 +931,76 @@ Divides the points value ps into a set of clusters. The
 first number is set to cnum. Cnum is increased automatically.
 
 */
- void computeFinalCluster(const Points* ps, int& cnum){
-    const int size = ps->Size();
-    // we expect a lot of edges in the graph, so 
-    // the implementation is based on a cost matrix
+ void computeFinalCluster(){
 
-    // step 1 buils the graph, negative costs indicate
-    // non-existent  edges   
+    currentFinalCluster.clear();
 
+    const int size = currentInitialCluster->size();
+
+    // store all edges into an vector and
+    // build a single cluster for each point
     const Point* p_i;
     const Point* p_j;
 
     vector<Edge> edges;
     
-    map<int,set<int> > theClusters;
     int tmpfcluster[size];
-
-    for(int i=0;i<size;i++){
-       ps->Get(i,p_i);
-       tmpfcluster[i] = i; // each point builts its own cluster
- 
-       set<int> cl;
-       cl.insert(i);
-       theClusters[i] = cl;
-       for(int j=i;j<size;j++){
-         ps->Get(j,p_j);
-         double dist = qdist(p_i,p_j);
-         if(dist <= eps2){
-            edges.push_back(Edge(i,j,dist));
-         }
-       }
+    if(origPos){
+      delete[] origPos;
     }
+
+    origPos = new int[size];
+
+    // initialize origPos
+    for(int i=0;i<size;i++){
+      origPos[i] = -1;
+    } 
+
+    map<int,int> rev;
+  
+
+   int pos = 0;
+   set<int>::iterator it1;
+
+
+   for(it1=currentInitialCluster->begin(); 
+       it1!=currentInitialCluster->end();
+       it1++){
+      rev[*it1] = pos;
+      pos++;
+   }
+
+   pos = 0;
+   for(it1=currentInitialCluster->begin(); 
+       it1!=currentInitialCluster->end();
+       it1++){
+       origPos[pos] = *it1;
+       tmpfcluster[pos] = pos; //each point builds its own cluster
+       set<int> s;
+       s.insert(pos);
+       currentFinalCluster[pos] = s;
+       pos++;
+       set<int>* e = env[*it1];
+       set<int>::iterator it2;
+       const Point* p1;
+       pts->Get(*it1,p1);
+       for(it2=e->begin();it2!=e->end();it2++){
+          const Point* p2;
+          pts->Get(*it2,p2);
+          double dist = qdist(p1,p2);
+          int src = rev[*it1];
+          int dest = rev[*it2];
+          if(src<dest){
+             edges.push_back(Edge(src,dest,dist));
+          }
+       } 
+   }
 
     // sort the vector of edges
     sort(edges.begin(),edges.end());
+
+
+
     vector<Edge>::iterator it;
     // insert edges and connect clusters
     for(it = edges.begin(); it!=edges.end();it++){
@@ -1071,13 +1011,13 @@ first number is set to cnum. Cnum is increased automatically.
            // compute the maximum distance between points of c1 
            // and points of c2
            set<int>::iterator it1,it2;
-           set<int> s1 = theClusters[c1];
-           set<int> s2 = theClusters[c2];
+           set<int> s1 = currentFinalCluster[c1];
+           set<int> s2 = currentFinalCluster[c2];
            double dist = 0.0;
            for(it1=s1.begin(); it1!=s1.end() && dist <= eps2; it1++){
+             pts->Get(origPos[*it1],p_i);
              for(it2=s2.begin();it2!=s2.end() && dist <= eps2; it2++){
-                ps->Get(*it1,p_i);
-                ps->Get(*it2,p_j);
+                pts->Get(origPos[*it2],p_j);
                 dist = max(dist,qdist(p_i,p_j));
              }
            }
@@ -1086,24 +1026,63 @@ first number is set to cnum. Cnum is increased automatically.
                 s1.insert(*it2);
                 tmpfcluster[*it2] = c1;
              }
-             theClusters.erase(c1);
-             theClusters.erase(c2);
-             theClusters[c1] = s1;
+             currentFinalCluster.erase(c1);
+             currentFinalCluster.erase(c2);
+             currentFinalCluster[c1] = s1;
            }
+
        } 
     }
 
-    // copy cluster numbers into the complete array
-    map<int,set<int> >::iterator mit;
-    for(mit=theClusters.begin();mit!=theClusters.end();mit++){
-      set<int>::iterator sit;
-      for(sit=mit->second.begin();sit!=mit->second.end();sit++){
-          fcluster[*sit] = cnum;
-      }
-      cnum++;
-    } 
-    
+    currentFinalPos = currentFinalCluster.begin();
+
+
+  // at this
+
+
+    currentFinalPos = currentFinalCluster.begin();
+
  }
+
+ Points* getNextFinalCluster(){
+    if(!defined) return 0;
+    if(!currentInitialCluster){
+       currentInitialCluster = getNextInitialCluster();
+       if(currentInitialCluster){
+          computeFinalCluster();
+       } else {
+         return 0;
+       }
+
+    } else if(currentFinalPos == currentFinalCluster.end()){
+       delete currentInitialCluster;
+       currentInitialCluster = getNextInitialCluster();
+       if(currentInitialCluster){
+          computeFinalCluster();
+       } else{
+          return 0;
+       }
+    } 
+
+    set<int> cs = (*currentFinalPos).second;
+
+
+    Points* res = new Points(cs.size());
+    res->StartBulkLoad();
+    const Point* p;
+    set<int>::iterator it;
+    for(it = cs.begin();it!=cs.end();it++){
+        pts->Get(origPos[*it],p);
+        (*res) += *p;
+    }
+    res->EndBulkLoad();   
+    currentFinalPos++;
+
+    return res; 
+
+ }
+
+
 };
 
 
@@ -1468,7 +1447,7 @@ public:
     AddOperator ( &cluster_a );
     AddOperator ( &cluster_b );
     AddOperator ( &cluster_c );
-    //AddOperator ( &cluster_d );
+    AddOperator ( &cluster_d );
                 
     ///// tracefile  /////
    // if ( RTFlag::isActive("ClusterText:Trace") ) {

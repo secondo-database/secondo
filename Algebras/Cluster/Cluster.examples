@@ -17,7 +17,15 @@ Result   : (points ((2.0 3.0)(3.0 2.0)))
 
 Operator : cluster_c
 Number   : 1
-Signature: points  x int x real -> points
+Signature: points  x int x real -> stream(points)
 Example  : query [const points value ( (2.0 3.0) (3.0 2.0) (10.0 11))] cluster_c[2, 3.0] count
 Result   : (int 1)
+
+Operator : cluster_d
+Number   : 1
+Signature: points  x real -> stream(points)
+Example  : query [const points value ( (2.0 3.0) (3.0 2.0) (10.0 11))] cluster_c[2, 3.0] count
+Result   : 2
+
+
 
