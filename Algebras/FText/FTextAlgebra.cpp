@@ -970,9 +970,11 @@ ListExpr FTextTypeMapExpression2Text( ListExpr args )
   {
     string firsttype = type.first().convertToString();
     NList firstType = NList(firsttype, true, true).enclose();
-    NList restype(NList(symbols::APPEND),
+    NList append(symbols::APPEND);
+    NList text(symbols::TEXT);
+    NList restype(append,
                   firstType,
-                  NList(symbols::TEXT)
+                  text
                  );
     return restype.listExpr();
   }
