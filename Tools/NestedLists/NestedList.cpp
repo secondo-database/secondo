@@ -887,8 +887,11 @@ NestedList::WriteAtom( const ListExpr atom,
     case RealType:
       {
         ostringstream os;
+        //os << showpoint ;
+        //os << scientific ; 
         os << setprecision(16) << RealValue( atom );
-        if ( os.str().find( '.' ) == string::npos )
+        if ( (os.str().find( '.' ) == string::npos)  &&
+             (os.str().find('e') == string::npos))
         {
           os << ".0";
         }
