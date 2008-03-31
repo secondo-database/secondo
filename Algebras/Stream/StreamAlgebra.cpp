@@ -161,7 +161,7 @@ TypeMapStreamfeed( ListExpr args )
   ListExpr arg1;
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-  if ( ( nl->ListLength(args) == 1 ) && ( nl->IsAtom(nl->First(args) ) ) )
+  if ( ( nl->ListLength(args) == 1 ) )
     {
       arg1 = nl->First(args);
       if( am->CheckKind("DATA", arg1, errorInfo) )
@@ -318,7 +318,7 @@ TypeMapUse( ListExpr args )
   // check sarg1 to be a (stream T) for T in kind DATA
   // or T of type tuple(X)
   if(    !nl->IsAtom( sarg1Type )
-         && !am->CheckKind("DATA", nl->Second( sarg1Type ), errorInfo) )
+      && !am->CheckKind("DATA", nl->Second( sarg1Type ), errorInfo) )
     {
       nl->WriteToString(outstr1, sarg1Type);
       ErrorReporter::ReportError("Operator use expects its 1st argument "
@@ -1685,12 +1685,10 @@ streamUse2Select( ListExpr args )
 
   // examine first arg
   // check type of sarg1
-  if( nl->IsAtom(X) )
-    { xIsTuple = false; xIsStream = false;}
   if( !nl->IsAtom(X) &&
       TypeOfRelAlgSymbol(nl->First(X)) == tuple )
     { xIsTuple = true; xIsStream = false; }
-  if( !nl->IsAtom(X) &&
+  else if( !nl->IsAtom(X) &&
       TypeOfRelAlgSymbol(nl->First(X)) == stream )
     {
       xIsStream = true;
@@ -1701,14 +1699,14 @@ streamUse2Select( ListExpr args )
       else
         xIsTuple = false;
     }
+  else
+    { xIsTuple = false; xIsStream = false;}
 
   // examine second argument
-  if( nl->IsAtom(Y) )
-    { yIsTuple = false; yIsStream = false;}
   if( !nl->IsAtom(Y) &&
       TypeOfRelAlgSymbol(nl->First(Y)) == tuple )
     { yIsTuple = true; yIsStream = false; }
-  if( !nl->IsAtom(Y) &&
+  else if( !nl->IsAtom(Y) &&
       TypeOfRelAlgSymbol(nl->First(Y)) == stream )
     {
       yIsStream = true;
@@ -1719,14 +1717,14 @@ streamUse2Select( ListExpr args )
       else
         yIsTuple = false;
     }
+  else
+    { yIsTuple = false; yIsStream = false;}
 
   // examine mapping result type
-  if( nl->IsAtom(nl->Fourth(M)) )
-    { resIsTuple = false; resIsStream = false;}
   if( !nl->IsAtom(nl->Fourth(M)) &&
       TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == tuple )
     { resIsTuple = true; resIsStream = false; }
-  if( !nl->IsAtom(nl->Fourth(M)) &&
+  else if( !nl->IsAtom(nl->Fourth(M)) &&
       TypeOfRelAlgSymbol(nl->First(nl->Fourth(M))) == stream )
     {
       resIsStream = true;
@@ -1737,6 +1735,8 @@ streamUse2Select( ListExpr args )
       else
         resIsTuple = false;
     }
+  else
+    { resIsTuple = false; resIsStream = false;}
 
   // calculate appropriate index value
 
@@ -2133,7 +2133,6 @@ ListExpr StreamTransformstreamTypeMap(ListExpr args)
            (nl->ListLength(TupleDescr) == 1) &&
            !nl->IsAtom(nl->First(TupleDescr)) &&
            (nl->ListLength(nl->First(TupleDescr)) == 2) &&
-           (nl->IsAtom(nl->First(nl->First(TupleDescr)))) &&
            am->CheckKind("DATA", nl->Second(nl->First(TupleDescr)), errorInfo))
         {
           T = nl->Second(nl->First(TupleDescr));
@@ -2432,7 +2431,6 @@ int streamTransformstreamSelect( ListExpr args )
   if ( !nl->IsAtom(first) &&
        (nl->ListLength(first) == 2) &&
        (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-       nl->IsAtom(nl->Second(first)) &&
        am->CheckKind("DATA", nl->Second(first), errorInfo) )
     return 0;
   if ( !nl->IsAtom(first) &&
@@ -2766,7 +2764,6 @@ streamCountType( ListExpr args )
     if ( !nl->IsAtom(arg1) && nl->ListLength(arg1) == 2 )
       {
         if ( nl->IsEqual(nl->First(arg1), "stream")
-             && ( nl->IsAtom(nl->Second(arg1) ) )
              && am->CheckKind("DATA", nl->Second(arg1), errorInfo) )
           return nl->SymbolAtom("int");
         else
