@@ -293,7 +293,7 @@ ListExpr WithinTypeMap(ListExpr Args)
   } catch ( NListErr e ) {
     return NList::typeError( e.msg() );
   }
-  cout << ":::::::::::: " << mapResult << endl;
+  // cout << ":::::::::::: " << mapResult << endl;
   return mapResult.listExpr();
 }
 

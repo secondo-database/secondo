@@ -775,20 +775,24 @@ cout << "Create: " << nl->ToString(typeInfo) << endl;
 #endif
     Word w = SetWord(Address(0));
     if(nl->ListLength(typeInfo)!=2) {
-cout << "  Statusbericht Create: Liste != 2!" << endl;
-assert(false);
+      cout << "  Statusbericht Create: Liste != 2!" << endl;
+      assert(false);
       return w;
     }
     ListExpr collTypeInfo;
     if(nl->IsAtom(nl->First(typeInfo))) {
-cout << "  Statusbericht Create: ohne Subtyp!" << endl;
+#ifdef DEBUG
+      cout << "  Statusbericht Create: ohne Subtyp!" << endl;
+#endif
       collTypeInfo = typeInfo;
     } else {
       collTypeInfo = nl->First(typeInfo);
     }
     CollectionType collType = GetCollType(collTypeInfo);
     if(collType==undef) {
-cout << "  Statusbericht Create: undefiniert!" << endl;
+#ifdef DEBUG
+      cout << "  Statusbericht Create: undefiniert!" << endl;
+#endif
       return w;
     }
     Collection* coll;
