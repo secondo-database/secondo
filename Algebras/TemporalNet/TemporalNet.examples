@@ -180,6 +180,18 @@ Signature: mgpoint x periods -> bool
 Example  : query ([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]) present [const periods value (("2008-01-01-10:10:00.000" "2008-01-01-10:10:01.000" TRUE TRUE))];
 Result   : FALSE
 
+Operator : present
+Number   : 3
+Signature: mgpoint x instant -> bool
+Example  : query ([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]) present create_instant(2555.42362);
+Result   : TRUE
+
+Operator : present
+Number   : 4
+Signature: mgpoint x periods -> bool
+Example  : query ([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]) present create_instant(2450.42362);
+Result   : FALSE
+
 Operator : isempty
 Number   : 1
 Signature: mgpoint -> bool
@@ -204,9 +216,21 @@ Signature: mgpoint -> int
 Example  : query no_components([const mgpoint value()]);
 Result   : 0
 
-Operator : instersection
+Operator : intersection
 Number   : 1
 Signature: mgpoint x mgpoint -> mgpoint
 Example  : query intersection([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))],[const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]);
 Result   : (mgpoint((("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01" "2007-01-01-10:10:02" TRUE TRUE)(1 1 1 1.0 15.0))))
 Tolerance: 0.01%
+
+Operator : deftime
+Number   : 1
+Signature: mgpoint -> periods
+Example  : query deftime([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE TRUE)(1 1 1 1.0 15.0)))]);
+Result   : (periods (("2007-01-01-10:10" "2007-01-01-10:10:02" TRUE TRUE)))
+
+Operator : deftime
+Number   : 2
+Signature: mgpoint -> periods
+Example  : query deftime([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0)))]);
+Result   : (periods (("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)))

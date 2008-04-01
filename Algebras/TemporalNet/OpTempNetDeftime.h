@@ -22,47 +22,42 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Declaration of Operator present
+1.1 Declaration of Operator deftime
 
-This operator returns true if a moving gpoint at least once exists in the
-given periods.
+The operator returns the periods of time in which the given moving gpoint is
+defined.
 
 March 2008 Simone Jandt
 
+Defines, includes, and constants
+
 */
 
-#ifndef OPTEMPNETPRESENT_H_
-#define OPTEMPNETPRESENT_H_
+#ifndef OPTEMPNETDEFTIME_H_
+#define OPTEMPNETDEFTIME_H_
 
-class OpTempNetPresent
+class OpTempNetDeftime
 {
 public:
 /*
-
-Type Mapping of operator ~present~
-
-*/
-static ListExpr PresentMap(ListExpr args);
-
-/*
-Value mapping function of operator ~present~
+Type Mapping of operator ~deftime~
 
 */
-static int present_mgpp(Word* args, Word& result, int message, Word& local,
-                        Supplier in_xSupplier);
-
-static int present_mgpi(Word* args, Word& result, int message, Word& local,
-                        Supplier in_xSupplier);
-
-static int SelectPresent(ListExpr args);
-
-static ValueMapping presentmap [];
+static ListExpr TypeMap(ListExpr args);
 
 /*
-4.4.3 Specification of operator ~present~
+Value mapping function of operator ~deftime~
+
+*/
+static int ValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s );
+
+/*
+Specification of operator ~deftime~
 
 */
 static const string Spec;
+
 };
 
-#endif /*OPTEMPNETPRESENT_H_*/
+#endif /*OPTEMPNETDEFTIME_H_*/

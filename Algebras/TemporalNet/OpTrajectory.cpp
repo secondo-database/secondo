@@ -122,6 +122,26 @@ struct RITree {
     }
   };
 
+  void tree2tree (RITree *tnew) {
+    if (this->m_left != 0) {
+      this->m_left->tree2tree (tnew);
+    }
+    tnew->insert(this->m_iRouteId, this->m_dStart, this->m_dEnd);
+    if (this->m_right != 0) {
+      this->m_right->tree2tree (tnew);
+    }
+  };
+
+  RITree* initNewTree() {
+    RITree *akt = this;
+    while (akt->m_left != 0) {
+      akt = akt->m_left;
+    }
+    RITree *tnew =
+        new RITree(akt->m_iRouteId, akt->m_dStart, akt->m_dEnd, 0, 0);
+    return tnew;
+  };
+
   int m_iRouteId;
   double m_dStart, m_dEnd;
   RITree *m_left, *m_right;
@@ -186,14 +206,16 @@ int OpTrajectory::ValueMapping(Word* args,
   }
   const UGPoint *pCurrentUnit;
   pMGPoint->Get(0, pCurrentUnit);
-  pGLine->SetNetworkId(pCurrentUnit->p0.GetNetworkId());
+  int iNetworkId = pCurrentUnit->p0.GetNetworkId();
+  pGLine->SetNetworkId(iNetworkId);
   pGLine->SetDefined(true);
   int aktRouteId = pCurrentUnit->p0.GetRouteId();
   double aktStartPos = pCurrentUnit->p0.GetPosition();
   double aktEndPos = pCurrentUnit->p1.GetPosition();
   chkStartEnd(aktStartPos, aktEndPos);
   double curStartPos, curEndPos;
-  RITree *tree = new RITree(aktRouteId, aktStartPos, aktEndPos,0,0);
+  RITree *tree;
+  tree = new RITree(aktRouteId, aktStartPos, aktEndPos,0,0);
   int curRoute;
   for (int i = 1; i < pMGPoint->GetNoComponents(); i++)
   {
@@ -224,7 +246,14 @@ int OpTrajectory::ValueMapping(Word* args,
     }
   }
   tree->insert(aktRouteId, aktStartPos, aktEndPos);
-  tree->treeToGLine(pGLine);
+  GLine *resG = new GLine(0);
+  RITree *tnew;
+  tnew = tree->initNewTree();
+  tree->tree2tree(tnew);
+  tnew->treeToGLine(resG);
+  result = SetWord(resG);
+  resG->SetDefined(true);
+  resG->SetNetworkId(iNetworkId);
   return 0;
 }
 

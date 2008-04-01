@@ -22,47 +22,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Declaration of Operator present
+1.1 Declaration of Operator distance
 
-This operator returns true if a moving gpoint at least once exists in the
-given periods.
+This operator returns a moving real representing the distance between two
+moving gpoints.
 
-March 2008 Simone Jandt
+April 2008 Simone Jandt
 
 */
 
-#ifndef OPTEMPNETPRESENT_H_
-#define OPTEMPNETPRESENT_H_
+#ifndef OPTEMPNETDISTANCE_H_
+#define OPTEMPNETDISTANCE_H_
 
-class OpTempNetPresent
+class OpTempNetDistance
 {
 public:
 /*
 
-Type Mapping of operator ~present~
+Type Mapping of operator ~distance~
 
 */
-static ListExpr PresentMap(ListExpr args);
+static ListExpr TypeMapping(ListExpr args);
 
 /*
-Value mapping function of operator ~present~
+Value mapping function of operator ~distance~
 
 */
-static int present_mgpp(Word* args, Word& result, int message, Word& local,
+static int ValueMapping(Word* args, Word& result, int message, Word& local,
                         Supplier in_xSupplier);
 
-static int present_mgpi(Word* args, Word& result, int message, Word& local,
-                        Supplier in_xSupplier);
-
-static int SelectPresent(ListExpr args);
-
-static ValueMapping presentmap [];
 
 /*
-4.4.3 Specification of operator ~present~
+4.4.3 Specification of operator ~distance~
 
 */
 static const string Spec;
 };
 
-#endif /*OPTEMPNETPRESENT_H_*/
+#endif /*OPTEMPNETDISTANCE_H_*/

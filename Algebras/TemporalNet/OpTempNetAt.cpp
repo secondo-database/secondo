@@ -254,9 +254,7 @@ int OpTempNetAt::at_mgpgl(Word* args,
                             pCurrentUnit->timeInterval.start) * factor +
                             pCurrentUnit->timeInterval.start;
             }
-            if (interStart == interEnd && (!bInterStart || !bInterEnd)) {
-              continue;
-            } else {
+            if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
               pResult->Add(UGPoint(Interval<Instant> (tInterStart, tInterEnd,
                                 bInterStart, bInterEnd), iNetworkId, iRouteMgp,
                                 pCurrentUnit->p0.GetSide(), interStart,
@@ -293,9 +291,7 @@ int OpTempNetAt::at_mgpgl(Word* args,
                             pCurrentUnit->timeInterval.start) * factor +
                             pCurrentUnit->timeInterval.start;
             }
-            if (interStart == interEnd && (!bInterStart || !bInterEnd)) {
-              continue;
-            } else {
+            if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
               pResult->Add(UGPoint(Interval<Instant> (tInterStart, tInterEnd,
                                 bInterStart, bInterEnd), iNetworkId, iRouteMgp,
                                 pCurrentUnit->p0.GetSide(), interStart,

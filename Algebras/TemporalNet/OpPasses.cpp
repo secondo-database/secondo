@@ -106,17 +106,15 @@ int OpPasses::passes_mgpgp(Word* args,
     pPasses->Set(true, false);
     return 0;
   }
-  for (int i = 0; i < pMGPoint->GetNoComponents(); i++)
-  {
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++) {
 
     pMGPoint->Get(i, pCurrentUnit);
     if (pCurrentUnit->p0.GetRouteId() == pGPoint->GetRouteId()){
-    // p is between p0 and p1
+    // check if p is between p0 and p1
       if((pCurrentUnit->p0.GetPosition() < pGPoint->GetPosition() &&
         pGPoint->GetPosition() < pCurrentUnit->p1.GetPosition()) ||
         (pCurrentUnit->p1.GetPosition() < pGPoint->GetPosition() &&
-        pGPoint->GetPosition() < pCurrentUnit->p0.GetPosition()))
-      {
+        pGPoint->GetPosition() < pCurrentUnit->p0.GetPosition())) {
         pPasses->Set(true, true);
         return 0;
       }
@@ -126,8 +124,7 @@ int OpPasses::passes_mgpgp(Word* args,
       if((pCurrentUnit->timeInterval.lc &&
           AlmostEqual(pCurrentUnit->p0.GetPosition(), pGPoint->GetPosition()))||
           (pCurrentUnit->timeInterval.rc &&
-          AlmostEqual(pCurrentUnit->p1.GetPosition(),pGPoint->GetPosition())))
-      {
+          AlmostEqual(pCurrentUnit->p1.GetPosition(),pGPoint->GetPosition()))) {
         pPasses->Set(true, true);
         return 0;
       }

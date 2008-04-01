@@ -60,6 +60,7 @@ Defines, includes, and constants
 #include "OpTempNetNoComp.h"
 #include "OpTempNetInside.h"
 #include "OpTempNetIntersection.h"
+#include "OpTempNetDeftime.h"
 
 #include <iostream>
 #include <sstream>
@@ -307,11 +308,13 @@ Operator tempnetatperiods("atperiods",
 Operator present
 
 */
-Operator tempnetpresent("present",
+Operator tempnetpresent(
+                "present",
                 OpTempNetPresent::Spec,
-                OpTempNetPresent::ValueMapping,
-                Operator::SimpleSelect,
-                OpTempNetPresent::TypeMap );
+                2,
+                OpTempNetPresent::presentmap,
+                OpTempNetPresent::SelectPresent,
+                OpTempNetPresent::PresentMap );
 
 /*
 Operator isempty
@@ -354,6 +357,16 @@ Operator tempnetintersection("intersection",
                 OpTempNetIntersection::TypeMapping );
 
 /*
+Operator deftime
+
+*/
+Operator tempnetdeftime("deftime",
+                OpTempNetDeftime::Spec,
+                OpTempNetDeftime::ValueMapping,
+                Operator::SimpleSelect,
+                OpTempNetDeftime::TypeMap );
+
+/*
 Creating the Algebra
 
 */
@@ -392,6 +405,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetnocomp);
     AddOperator(&tempnetinside);
     AddOperator(&tempnetintersection);
+    AddOperator(&tempnetdeftime);
   }
 
 

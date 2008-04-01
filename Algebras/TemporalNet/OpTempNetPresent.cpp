@@ -52,7 +52,7 @@ March 2008 Simone Jandt
 Typemap function of the operator
 
 */
-ListExpr OpTempNetPresent::TypeMap(ListExpr in_xArgs)
+ListExpr OpTempNetPresent::PresentMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 2 )
     return (nl->SymbolAtom( "typeerror" ));
@@ -67,19 +67,64 @@ ListExpr OpTempNetPresent::TypeMap(ListExpr in_xArgs)
     return (nl->SymbolAtom( "typeerror" ));
   }
 
-  if (!nl->IsEqual( xPeriods, "periods" ))
+  if (nl->IsEqual( xPeriods, "periods" ) ||
+     nl->IsEqual( xPeriods, "instant" ))
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return (nl->SymbolAtom( "bool" ));
   }
 
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom("typeerror");
 }
 
 /*
 Value mapping function of operator ~present~
 
 */
-int OpTempNetPresent::ValueMapping(Word* args,
+
+
+int OpTempNetPresent::present_mgpi(Word* args, Word& result, int message,
+                                Word& local,Supplier in_xSupplier){
+  CcBool* pPresent = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pPresent );
+  MGPoint* pMGP = (MGPoint*)args[0].addr;
+  if(pMGP == NULL ||!pMGP->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pPresent->Set(false,false);
+    return 0;
+  }
+  const Instant* ins = (Instant*)args[1].addr;
+  if(ins == NULL || !ins->IsDefined()) {
+    cerr << "Instant is not defined." << endl;
+    pPresent->Set(false,false);
+    return 0;
+  }
+  if (pMGP->GetNoComponents() < 1) {
+    pPresent->Set(true,false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  int i = 0;
+  int comp;
+  while( i < pMGP->GetNoComponents()) {
+    pMGP->Get( i, pCurrentUnit );
+    comp = pCurrentUnit->timeInterval.end.CompareTo(ins);
+    if (comp < 0) i++;
+    else {
+      comp = pCurrentUnit->timeInterval.start.CompareTo(ins);
+      if (comp > 0) {
+        pPresent->Set(true, false);
+        return 0;
+      } else {
+        pPresent->Set(true, true);
+        return 0;
+      }
+    }
+  }
+  pPresent->Set(true,false);
+  return 0;
+};
+
+int OpTempNetPresent::present_mgpp(Word* args,
                                    Word& result,
                                    int message,
                                    Word& local,
@@ -87,7 +132,6 @@ int OpTempNetPresent::ValueMapping(Word* args,
 {
   CcBool* pPresent = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pPresent );
-  pPresent->Set(false, false);
   MGPoint* pMGP = (MGPoint*)args[0].addr;
   if(pMGP == NULL ||!pMGP->IsDefined()) {
     cerr << "MGPoint does not exist." << endl;
@@ -104,82 +148,48 @@ int OpTempNetPresent::ValueMapping(Word* args,
     pPresent->Set(true,false);
     return 0;
   }
-  Instant perMinInst;
-  per->Minimum(perMinInst);
-  Instant perMaxInst;
-  per->Maximum(perMaxInst);
-  double permind = perMinInst.ToDouble();
-  double permaxd = perMaxInst.ToDouble();
-  const UGPoint *pFirstUnit, *pLastUnit, *pCurrentUnit;
-  pMGP->Get(0, pFirstUnit);
-  pMGP->Get(pMGP->GetNoComponents()-1, pLastUnit);
-  double mind = (pFirstUnit->timeInterval.start).ToDouble();
-  double maxd = (pLastUnit->timeInterval.end).ToDouble();
-  if( (mind > permaxd && !AlmostEqual(mind,permaxd)) ||
-      (maxd < permind && !AlmostEqual(maxd,permind))) {
-    pPresent->Set(true, false);
-    return 0;
-  }
   const Interval<Instant> *interval;
-  int i = 0, j = 0;
-  pMGP->Get( i, pCurrentUnit );
-  per->Get( j, interval );
-  while( 1 ) {
-    if( pCurrentUnit->timeInterval.Before( *interval)){
-      if( ++i == pMGP->GetNoComponents()) break;
+  const UGPoint *pCurrentUnit;
+  int i, j;
+  j = 0;
+  while (j < per->GetNoComponents()) {
+    per->Get( j, interval );
+    i = 0;
+    while (i < pMGP->GetNoComponents()) {
       pMGP->Get( i, pCurrentUnit );
-    } else {
-      if( interval->Before( pCurrentUnit->timeInterval )) {
-        if( ++j == per->GetNoComponents()) break;
-        per->Get( j, interval );
-      } else { // we have overlapping intervals, now
-        if (!((interval->start == interval->end &&
-           (!interval->lc || !interval->rc)) ||
-           (pCurrentUnit->timeInterval.start == pCurrentUnit->timeInterval.end
-           &&(!pCurrentUnit->timeInterval.lc || !pCurrentUnit->timeInterval.rc))
-           || (interval->end == pCurrentUnit->timeInterval.start &&
-           (!interval->rc || !pCurrentUnit->timeInterval.lc)) ||
-           (interval->start == pCurrentUnit->timeInterval.end &&
-           (!interval->lc || !pCurrentUnit->timeInterval.rc)))) {
+      if (pCurrentUnit->timeInterval.Before(*interval)) i++;
+      else {
+        if (interval->Before(pCurrentUnit->timeInterval)) break;
+        else {
           pPresent->Set(true, true);
           return 0;
-        } else {
-          if( interval->end == pCurrentUnit->timeInterval.end ){
-            // same ending instant
-            if( interval->rc == pCurrentUnit->timeInterval.rc ) {
-              // same ending instant and rightclosedness: Advance both
-              if( ++i == pMGP->GetNoComponents()) break;
-              pMGP->Get( i, pCurrentUnit );
-              if( ++j == per->GetNoComponents()) break;
-              per->Get( j, interval );
-            } else {
-              if( interval->rc == true ) { // Advanve in mapping
-                if( ++i == pMGP->GetNoComponents() ) break;
-                pMGP->Get( i, pCurrentUnit );
-              } else { // Advance in periods
-                assert( pCurrentUnit->timeInterval.rc == true );
-                if( ++j == per->GetNoComponents() ) break;
-                per->Get( j, interval );
-              }
-            }
-          } else {
-            if( interval->end > pCurrentUnit->timeInterval.end ) {
-              // Advance in mpoint
-              if( ++i == pMGP->GetNoComponents() ) break;
-              pMGP->Get( i, pCurrentUnit );
-            } else { // Advance in periods
-              assert( interval->end < pCurrentUnit->timeInterval.end );
-              if( ++j == per->GetNoComponents() ) break;
-              per->Get( j, interval );
-            }
-          }
         }
       }
     }
+    j++;
   }
   pPresent->Set(true,false);
   return 0;
 }
+
+int OpTempNetPresent::SelectPresent(ListExpr args){
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->IsEqual( arg2, "periods" ))
+    return 0;
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->IsEqual( arg2, "instant"))
+    return 1;
+  return -1; // This point should never be reached
+};
+
+ValueMapping OpTempNetPresent::presentmap [] = {
+  present_mgpp,
+  present_mgpi
+};
+
 
 /*
 Specification of the operator
