@@ -1,4 +1,4 @@
-/* 
+/*
 ----
 This file is part of SECONDO.
 
@@ -50,7 +50,7 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
-June 2006, Corrected a bug caused by improper reference counting of tuples observed in  
+June 2006, Corrected a bug caused by improper reference counting of tuples observed in
 operator ~mergesec~.
 
 June 2006, Christian D[ue]ntgen added operators ~symmproduct~ and ~symmproductextend~.
@@ -243,8 +243,8 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
     drawSize = subsetSize;
   }
 
-  // Using Windows RAND_MAX is very small (about 2^15) therefore we 
-  // need to limit the drawSize to 3/4 (to avoid long runtimes) of 
+  // Using Windows RAND_MAX is very small (about 2^15) therefore we
+  // need to limit the drawSize to 3/4 (to avoid long runtimes) of
   // this size.
   int drawMax = 3*RAND_MAX/4;
   const int randMax = RAND_MAX;
@@ -253,9 +253,9 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   static const int f = (intMax / randMax) - 1;
   static long& ctr = Counter::getRef("EXT::sample:randPos");
   static long& ctrMax = Counter::getRef("EXT::sample:maxDrawnRand");
-  
-   
-  if ( drawSize > drawMax ) 
+
+
+  if ( drawSize > drawMax )
   {
     drawSize = drawMax;
     cerr << "Warning: Sample size reduced to 3/4*RAND_MAX." << endl;
@@ -266,11 +266,11 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   SHOW(setSize)
   SHOW(subsetSize)
   SHOW(drawSize)
-  
+
   while(nDrawn < drawSize)
   {
     // 28.04.04 M. Spiekermann.
-    // The calculation of random numbers below is recommended in 
+    // The calculation of random numbers below is recommended in
     // the man page documentation of the rand() function.
     // Moreover, the factor f is used to retrieve values in the
     // range of LONG_MAX
@@ -280,19 +280,19 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
     {
       nextRand += (f * rand());
       randCalls++;
-    } 
+    }
     if (nextRand > ctrMax)
       ctrMax = nextRand;
-    
+
     r = (int) ((double)(setSize + 1) * nextRand/(newMax+1.0));
-    
+
     if ( r != 0) {
       if(drawnNumbers.find(r) == drawnNumbers.end())
       {
         drawnNumbers.insert(r);
         ++nDrawn;
       }
-    }  
+    }
   }
   ctr = randCalls;
   SHOW(drawnNumbers.size())
@@ -309,8 +309,8 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   }
   else
   {
-    for(iter = drawnNumbers.begin(); 
-        iter != drawnNumbers.end(); 
+    for(iter = drawnNumbers.begin();
+        iter != drawnNumbers.end();
         ++iter)
       result.push_back(*iter);
   }
@@ -411,7 +411,7 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
       rel = (Relation*)args[0].addr;
       relSize = rel->GetNoTuples();
       localInfo->relIter = rel->MakeRandomScan();
-      
+
       sampleSize = StdTypes::GetInt(args[1]);
       sampleRate = StdTypes::GetReal(args[2]);
 
@@ -778,7 +778,7 @@ Type mapping for ~head~ is
 ----  ((stream (tuple ((x1 t1)...(xn tn))) int)   ->
               ((stream (tuple ((x1 t1)...(xn tn))))
 
-  or ((stream T) int) -> (stream T)  for T in kind DATA 
+  or ((stream T) int) -> (stream T)  for T in kind DATA
 ----
 
 */
@@ -798,7 +798,7 @@ ListExpr HeadTypeMap( ListExpr args )
   // check for first arg == stream of something
   nl->WriteToString(argstr, first);
   CHECK_COND( ( nl->ListLength(first) == 2 ) &&
-              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ), 
+              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ),
     "Operator head expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(stream T), where T in kind DATA.\n"
@@ -815,11 +815,10 @@ ListExpr HeadTypeMap( ListExpr args )
 
   // check for correct stream input type
   nl->WriteToString(argstr, first);
-  CHECK_COND( 
+  CHECK_COND(
     ( ( nl->ListLength( nl->Second(first) ) == 2) &&
       ( TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)) ||
-    ( (nl->IsAtom(nl->Second(first))) &&
-      (am->CheckKind("DATA", nl->Second(first), errorInfo))),
+    ( am->CheckKind("DATA", nl->Second(first), errorInfo) ),
     "Operator head expects as first argument a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(stream T), where T in kind DATA.\n"
@@ -855,7 +854,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN:
 
       qp->Open(args[0].addr);
-      localInfo = 
+      localInfo =
         new HeadLocalInfo( ((CcInt*)args[1].addr)->GetIntval() );
       local = SetWord( localInfo );
       return 0;
@@ -918,7 +917,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( hli ) delete hli;
 
-      hli = 
+      hli =
         new HeadLocalInfo( ((CcInt*)args[1].addr)->GetIntval() );
       local = SetWord( hli );
 
@@ -959,7 +958,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->CloseProgress(args[0].addr);
       if ( hli )
-      { 
+      {
         delete hli;
         local = SetWord(Address(0));
       }
@@ -969,31 +968,31 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo* pRes;
-      const double uHead = 0.00056;     
+      const double uHead = 0.00056;
 
       pRes = (ProgressInfo*) result.addr;
 
       if ( !hli )  return CANCEL;
-      
+
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
         pRes->Card = (p1.Card < hli->maxTuples ? p1.Card : hli->maxTuples);
         pRes->CopySizes(p1);
 
-        double perTupleTime = 
+        double perTupleTime =
     (p1.Time - p1.BTime) / (p1.Card + 1);
 
         pRes->Time = p1.BTime + (double) pRes->Card * (perTupleTime + uHead);
 
-        pRes->Progress = 
-    (p1.BProgress * p1.BTime 
+        pRes->Progress =
+    (p1.BProgress * p1.BTime
           + (double) hli->numTuples * (perTupleTime + uHead))
           / pRes->Time;
 
         pRes->CopyBlocking(p1);
         return YIELD;
       }
-      else 
+      else
       {
         return CANCEL;
       }
@@ -1002,7 +1001,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
-#endif 
+#endif
 
 
 /*
@@ -1129,12 +1128,12 @@ MaxMinTypeMap( ListExpr args )
 */
 
 template<bool isMax> int
-MaxMinValueMapping(Word* args, Word& result, int message, 
+MaxMinValueMapping(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
   bool definedValueFound = false;
   Word currentTupleWord;
-  StandardAttribute* extremum = 
+  StandardAttribute* extremum =
     (StandardAttribute*)(qp->ResultStorage(s)).addr;
   extremum->SetDefined(false);
   result = SetWord(extremum);
@@ -1266,28 +1265,28 @@ AvgSumTypeMap( ListExpr args )
 {
 
   NList type(args);
-  if ( !type.hasLength(2) ) 
+  if ( !type.hasLength(2) )
   {
     return NList::typeError("Expecting two arguments.");
-  } 
+  }
 
   NList first = type.first();
-  if ( 
+  if (
     !first.hasLength(2)  ||
     !first.first().isSymbol(STREAM) ||
     !first.second().hasLength(2) ||
     !first.second().first().isSymbol(TUPLE) ||
     !IsTupleDescription( first.second().second().listExpr() ) )
-  {    
+  {
     return NList::typeError("Error in first argument!");
   }
 
   NList second = type.second();
-  if ( !second.isSymbol() ) { 
+  if ( !second.isSymbol() ) {
     return NList::typeError( "Second argument must be an attribute name. "
                              "Perhaps the attribute's name may be the name "
            "of a Secondo object!" );
-  }     
+  }
 
   string attrname = type.second().str();
   ListExpr attrtype = nl->Empty();
@@ -1295,12 +1294,12 @@ AvgSumTypeMap( ListExpr args )
 
   if ( j != 0 )
   {
-    if ( nl->SymbolValue(attrtype) != REAL && 
-   nl->SymbolValue(attrtype) != INT ) 
+    if ( nl->SymbolValue(attrtype) != REAL &&
+   nl->SymbolValue(attrtype) != INT )
     {
       return NList::typeError("Attribute type is not of type real or int.");
-    }      
-    NList resType = isAvg ? NList(REAL) : NList(attrtype);     
+    }
+    NList resType = isAvg ? NList(REAL) : NList(attrtype);
     return NList( NList(APPEND), NList(j).enclose(), resType ).listExpr();
   }
   else
@@ -1325,10 +1324,10 @@ AvgSumSelect( ListExpr args )
   ListExpr attrtype = nl->Empty();
   FindAttribute(first.second().second().listExpr(), attrname, attrtype);
 
-  if ( nl->SymbolValue(attrtype) == INT ) 
+  if ( nl->SymbolValue(attrtype) == INT )
   {
     return 0;
-  }      
+  }
   return 1;
 }
 /*
@@ -1345,7 +1344,7 @@ following values:
 
 */
 template<class T, class R> int
-SumValueMapping(Word* args, Word& result, int message, 
+SumValueMapping(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
   T sum = 0;
@@ -1359,7 +1358,7 @@ SumValueMapping(Word* args, Word& result, int message,
   while(qp->Received(args[0].addr))
   {
     Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
-    R* currentAttr = 
+    R* currentAttr =
       static_cast<R*>( currentTuple->GetAttribute(attributeIndex) );
 
     if( currentAttr->IsDefined() ) // process only defined elements
@@ -1378,7 +1377,7 @@ SumValueMapping(Word* args, Word& result, int message,
 }
 
 template<class T, class R> int
-AvgValueMapping(Word* args, Word& result, int message, 
+AvgValueMapping(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
   T sum = 0;
@@ -1392,13 +1391,13 @@ AvgValueMapping(Word* args, Word& result, int message,
   while(qp->Received(args[0].addr))
   {
     Tuple* currentTuple = static_cast<Tuple*>( currentTupleWord.addr );
-    R* currentAttr = 
+    R* currentAttr =
       static_cast<R*>( currentTuple->GetAttribute(attributeIndex) );
 
     if( currentAttr->IsDefined() ) // process only defined elements
     {
       number++;
-      sum += currentAttr->GetValue();     
+      sum += currentAttr->GetValue();
     }
     currentTuple->DeleteIfAllowed();
     qp->Request(args[0].addr, currentTupleWord);
@@ -1407,8 +1406,8 @@ AvgValueMapping(Word* args, Word& result, int message,
 
   result = qp->ResultStorage(s);
   if ( number == 0 ) {
-    static_cast<Attribute*>( result.addr )->SetDefined(false);  
-  }  
+    static_cast<Attribute*>( result.addr )->SetDefined(false);
+  }
   else
   {
     SEC_STD_REAL sumreal = sum;
@@ -1501,8 +1500,8 @@ VarValueMapping(Word* args, Word& result, int message,
 struct avgInfo : OperatorInfo {
 
   avgInfo() : OperatorInfo() {
- 
-    name      = "avg";    
+
+    name      = "avg";
     signature = "((stream (tuple([a1:d1, ...,"
                           " ai:int, ..., an:dn]))) x ai) -> real";
     appendSignature( "((stream (tuple([a1:d1, ...,"
@@ -1510,15 +1509,15 @@ struct avgInfo : OperatorInfo {
     syntax    = "_ avg [ _ ]";
     meaning   = "Returns the average value of attribute "
                 "ai over the input stream. ";
-  }    
+  }
 
 };
 
 struct sumInfo : OperatorInfo {
 
   sumInfo() : OperatorInfo() {
- 
-    name      = "sum";    
+
+    name      = "sum";
     signature = "((stream (tuple([a1:d1, ..., "
                             "ai:int, ..., an:dn]))) x ai) -> int";
     appendSignature( "((stream (tuple([a1:d1, ...,"
@@ -1526,14 +1525,14 @@ struct sumInfo : OperatorInfo {
     syntax    = "_ sum [ _ ]";
     meaning   = "Returns the sum of the values of attribute "
                 "ai over the input stream. ";
-  }    
+  }
 
 };
 
 struct varInfo : OperatorInfo {
 
   varInfo() : OperatorInfo() {
- 
+
     name      = "var";
     signature = "((stream (tuple([a1:d1, ..., "
         "ai:int, ..., an:dn]))) x ai) -> real";
@@ -1768,7 +1767,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
       local.addr = finished;
       return 0;
     }
-    
+
     case REQUEST:
     {
       if(local.addr == 0)
@@ -1966,7 +1965,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
       *finished = true;
       return YIELD;
     }
-    
+
     case CLOSE:
     {
       if(local.addr == 0)
@@ -1988,7 +1987,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
 struct statsInfo : OperatorInfo {
 
   statsInfo() : OperatorInfo() {
- 
+
     name      = "stats";
     signature = "((stream (tuple([a1:d1, ... ,an:dn]))) x ai x aj) -> "
     "stream(tuple( \n"
@@ -2016,7 +2015,7 @@ struct statsInfo : OperatorInfo {
 2.10 Operator ~krdup~
 
 This operator removes duplicates from a tuple stream. In contrast
-to the usual rdup operator, the test of equality of tuples is 
+to the usual rdup operator, the test of equality of tuples is
 done using only the attributes from the given attribute list.
 
 2.10.1 Type mapping of the operator ~krdup~
@@ -2026,7 +2025,7 @@ done using only the attributes from the given attribute list.
 ListExpr krdupTM(ListExpr args){
   if(nl->ListLength(args)<2){
     ErrorReporter::ReportError("minimum of 2 arguments required");
-    return nl->TypeError(); 
+    return nl->TypeError();
   }
 
   ListExpr streamList = nl->First(args);
@@ -2069,14 +2068,14 @@ ListExpr krdupTM(ListExpr args){
      return nl->TypeError();
   }
   ListExpr attrList = nl->Second(tupleList);
- 
+
   if(names.empty()){ // should never occur
     ErrorReporter::ReportError("internal error, no attr names found.");
     return nl->TypeError();
   }
 
   pos = 0;
-  
+
   ListExpr PosList = nl->TheEmptyList();
   ListExpr Last;
   bool first = true;
@@ -2099,7 +2098,7 @@ ListExpr krdupTM(ListExpr args){
            Last = nl->Append(Last,nl->IntAtom(pos));
          }
          names.erase(name);
-     } 
+     }
      pos++;
      attrList = nl->Rest(attrList);
   }
@@ -2108,9 +2107,9 @@ ListExpr krdupTM(ListExpr args){
     ErrorReporter::ReportError("at least one given attribute name is "
                                "not part of the stream");
     return nl->TypeError();
-  }  
+  }
 
-  
+
   ListExpr result =  nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                                       nl->OneElemList(PosList),
                                       streamList);
@@ -2120,11 +2119,11 @@ ListExpr krdupTM(ListExpr args){
 /*
 2.10.2 Value Mapping of the ~krdup~ operator
 
-This value mapping is very similar the this one of the 
+This value mapping is very similar the this one of the
 rdup operator. The only difference is, only specified
 attributes are used for the check of equality.
 
-*/ 
+*/
 
 
 class KrdupLocalInfo{
@@ -2133,7 +2132,7 @@ public:
 ~Constructor~
 
 Creates a localinfo for the krdup operator from the Supplier
-containing the information about the indexes which should be used 
+containing the information about the indexes which should be used
 for the comparison.
 
 */
@@ -2143,10 +2142,10 @@ for the comparison.
        Word elem;
        for(int i=0;i<count; i++){
           Supplier son = qp->GetSon(s,i);
-          qp->Request(son,elem); 
+          qp->Request(son,elem);
           int index = ((CcInt*)elem.addr)->GetIntval();
           indexes.push_back(index);
-       } 
+       }
    }
 
 /*
@@ -2161,7 +2160,7 @@ Destroy this instance.
           lastTuple->DecReference();
           lastTuple->DeleteIfAllowed();
        }
-       lastTuple = 0; 
+       lastTuple = 0;
    }
 
 /*
@@ -2210,7 +2209,7 @@ inline bool Equals(Tuple* tuple){
    }
  }
  return true;
-}   
+}
 
 
    Tuple* lastTuple;
@@ -2218,7 +2217,7 @@ inline bool Equals(Tuple* tuple){
 };
 
 
-int KrdupVM(Word* args, Word& result, int message, 
+int KrdupVM(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word tuple;
@@ -2250,7 +2249,7 @@ int KrdupVM(Word* args, Word& result, int message,
       if(local.addr) {
         KrdupLocalInfo* localinfo = (KrdupLocalInfo*) local.addr;
         delete localinfo;
-        local = SetWord(Address(0)); 
+        local = SetWord(Address(0));
       }
       qp->Close(args[0].addr);
       return 0;
@@ -2338,7 +2337,7 @@ ListExpr SortByTypeMap( ListExpr args )
   CHECK_COND(numberOfSortAttrs > 0,
     "Operator sortby: Attribute list may not be enpty!");
 
-  ListExpr sortOrderDescription = 
+  ListExpr sortOrderDescription =
     nl->OneElemList(nl->IntAtom(numberOfSortAttrs));
   ListExpr sortOrderDescriptionLastElement = sortOrderDescription;
   ListExpr rest = sortSpecification;
@@ -2356,7 +2355,7 @@ ListExpr SortByTypeMap( ListExpr args )
                  " of (attrname [asc, desc])|attrname .");
 
     if(length==2)
-    {    
+    {
        CHECK_COND((nl->IsAtom(nl->First(attributeSpecification))) &&
            (nl->AtomType(nl->First(attributeSpecification)) == SymbolType) &&
            (nl->IsAtom(nl->Second(attributeSpecification))) &&
@@ -2365,7 +2364,7 @@ ListExpr SortByTypeMap( ListExpr args )
            " of (attrname [asc, desc])|attrname .\n"
            "Operator sortby gets a list '" + argstr + "'.");
        attrname = nl->SymbolValue(nl->First(attributeSpecification));
-    } else 
+    } else
     {
          CHECK_COND((nl->AtomType(attributeSpecification) == SymbolType),
             "sortby expects as second argument a list"
@@ -2374,19 +2373,19 @@ ListExpr SortByTypeMap( ListExpr args )
          attrname = nl->SymbolValue(attributeSpecification);
     }
 
-    int j = FindAttribute(nl->Second(nl->Second(streamDescription)), 
+    int j = FindAttribute(nl->Second(nl->Second(streamDescription)),
                           attrname, attrtype);
     if (j > 0)
     {
       if(length==2)
       {
          nl->WriteToString(argstr, nl->Second(attributeSpecification));
-         CHECK_COND( 
-           ((nl->SymbolValue(nl->Second(attributeSpecification)) == 
-             sortAscending) || 
-            (nl->SymbolValue(nl->Second(attributeSpecification)) == 
+         CHECK_COND(
+           ((nl->SymbolValue(nl->Second(attributeSpecification)) ==
+             sortAscending) ||
+            (nl->SymbolValue(nl->Second(attributeSpecification)) ==
              sortDescending)),
-            "Operator sortby: sorting criteria must be asc or desc, not '" + 
+            "Operator sortby: sorting criteria must be asc or desc, not '" +
             argstr + "'!" );
       }
 
@@ -2419,11 +2418,11 @@ ListExpr SortByTypeMap( ListExpr args )
 /*
 2.11.2 Value mapping function of operator ~sortBy~
 
-The argument vector ~args~ contains in the first slot ~args[0]~ the 
-stream and in ~args[2]~ the number of sort attributes. ~args[3]~ 
-contains the index of the first sort attribute, ~args[4]~ a boolean 
-indicating wether the stream is sorted in ascending order with regard 
-to the sort first attribute. ~args[5]~ and ~args[6]~ contain these 
+The argument vector ~args~ contains in the first slot ~args[0]~ the
+stream and in ~args[2]~ the number of sort attributes. ~args[3]~
+contains the index of the first sort attribute, ~args[4]~ a boolean
+indicating wether the stream is sorted in ascending order with regard
+to the sort first attribute. ~args[5]~ and ~args[6]~ contain these
 values for the second sort attribute  and so on.
 
 */
@@ -2549,7 +2548,7 @@ This operator removes duplicates from a sorted stream.
 
 // standard version
 
-int RdupValueMapping(Word* args, Word& result, int message, 
+int RdupValueMapping(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word tuple = SetWord(Address(0));
@@ -2563,7 +2562,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       local.addr = 0;
       return 0;
-    }  
+    }
     case REQUEST: {
       while(true)
       {
@@ -2582,7 +2581,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
               // tuples are not equal. Return the tuple
               // stored in local info and store the current one
               // there.
-              
+
         *lastOutput = RTuple( current );
               result = tuple;
               return YIELD;
@@ -2597,17 +2596,17 @@ int RdupValueMapping(Word* args, Word& result, int message,
           {
             // no last tuple stored
       local.addr = new RTuple( static_cast<Tuple*>(tuple.addr) );
-      result = tuple;       
+      result = tuple;
             return YIELD;
           }
         }
   else
         {
-          result.addr = 0;    
+          result.addr = 0;
           return CANCEL;
         }
       }
-    }  
+    }
     case CLOSE: {
       if( local.addr != 0 ){ // check if local is present
          lastOutput = static_cast<RTuple*>(local.addr);
@@ -2616,7 +2615,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
       }
       qp->Close(args[0].addr);
       return 0;
-    }  
+    }
   }
   return 0;
 }
@@ -2777,7 +2776,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
             pRes->Card =  p1.Card *
               ((double) rli->returned / (double) (rli->read));
 
-            if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+            if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking,
                                                         //use pipelining
               pRes->Progress = p1.Progress;
             else
@@ -2790,7 +2789,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
 
         pRes->Card = p1.Card * wRdup;
 
-        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
@@ -2904,15 +2903,15 @@ SetOpTypeMap( ListExpr args )
   string setOpErrorMessages4[] =
   { "Operator mergesec: Tuple type and attribute names of first"
     " and second argument must be equal.\n"
-    "First argument is '" + argstr + "' and second argument is '" + 
+    "First argument is '" + argstr + "' and second argument is '" +
     argstr2 + "'.",
     "Operator mergediff: Tuple type and attribute names of first and "
     "second argument must be equal.\n"
-    "First argument is '" + argstr + "' and second argument is '" + 
+    "First argument is '" + argstr + "' and second argument is '" +
     argstr2 + "'.",
     "Operator mergeunion: Tuple type and attribute names of first and "
     "second argument must be equal.\n"
-    "First argument is '" + argstr + "' and second argument is '" + 
+    "First argument is '" + argstr + "' and second argument is '" +
     argstr2 + "'." };
 
   CHECK_COND((nl->Equal(first, second)),
@@ -3034,7 +3033,7 @@ public:
           {
             result = currentBTuple;
             NextBTuple(false);
-            while(currentBTuple != 0 && 
+            while(currentBTuple != 0 &&
                   TuplesEqual(result, currentBTuple))
             {
               NextBTuple(true);
@@ -3057,7 +3056,7 @@ public:
           {
             result = currentATuple;
             NextATuple(false);
-            while(currentATuple != 0 && 
+            while(currentATuple != 0 &&
                   TuplesEqual(result, currentATuple))
             {
               NextATuple(true);
@@ -3083,7 +3082,7 @@ public:
 
             Tuple* tmp = currentATuple;
             NextATuple(false);
-            while(currentATuple != 0 && 
+            while(currentATuple != 0 &&
                   TuplesEqual(tmp, currentATuple))
             {
               NextATuple(true);
@@ -3103,7 +3102,7 @@ public:
 
             Tuple* tmp = currentBTuple;
             NextBTuple(false);
-            while(currentBTuple != 0 && 
+            while(currentBTuple != 0 &&
                   TuplesEqual(tmp, currentBTuple))
             {
               NextBTuple(true);
@@ -3125,12 +3124,12 @@ public:
             }
 
             NextATuple(false);
-            while(currentATuple != 0 && 
+            while(currentATuple != 0 &&
                   TuplesEqual(match, currentATuple))
             {
               NextATuple(true);
             }
-            while(currentBTuple != 0 && 
+            while(currentBTuple != 0 &&
                   TuplesEqual(match, currentBTuple))
             {
               NextBTuple(true);
@@ -3153,11 +3152,11 @@ public:
 
 */
 
-template<bool outputAWithoutB, 
-         bool outputBWithoutA, 
-         bool outputMatches> 
+template<bool outputAWithoutB,
+         bool outputBWithoutA,
+         bool outputMatches>
 int
-SetOpValueMapping(Word* args, Word& result, int message, 
+SetOpValueMapping(Word* args, Word& result, int message,
                   Word& local, Supplier s)
 {
   SetOperation* localInfo;
@@ -3249,7 +3248,7 @@ Operator extrelmergediff(
 2.14.8 Specification of Operator ~mergeunion~
 
 */
-const string 
+const string
 MergeUnionSpec = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream (tuple ((x1 t1) ... (xn tn))))"
@@ -3283,23 +3282,23 @@ This operator computes the equijoin two streams.
 
 Type mapping for ~mergejoin~ is
 
-----  ((stream (tuple ((x1 t1) ... (xn tn)))) 
+----  ((stream (tuple ((x1 t1) ... (xn tn))))
        (stream (tuple ((y1 d1) ... (ym dm)))) xi yj)
-         -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)))) 
+         -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
             APPEND (i j)
 ----
 
 Type mapping for ~hashjoin~ is
 
-----  ((stream (tuple ((x1 t1) ... (xn tn)))) 
+----  ((stream (tuple ((x1 t1) ... (xn tn))))
        (stream (tuple ((y1 d1) ... (ym dm)))) xi yj int)
-         -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)))) 
+         -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
             APPEND (i j)
 ----
 
 
 */
-template<bool expectIntArgument, int errorMessageIdx> 
+template<bool expectIntArgument, int errorMessageIdx>
 ListExpr JoinTypeMap (ListExpr args)
 {
   ListExpr attrTypeA, attrTypeB, joinAttrDescription;
@@ -3388,32 +3387,32 @@ ListExpr JoinTypeMap (ListExpr args)
 
   string attrAName = nl->SymbolValue(nl->Third(args));
   string attrBName = nl->SymbolValue(nl->Fourth(args));
-  int attrAIndex = 
+  int attrAIndex =
     FindAttribute(nl->Second(nl->Second(streamA)), attrAName, attrTypeA);
-  int attrBIndex = 
+  int attrBIndex =
     FindAttribute(nl->Second(nl->Second(streamB)), attrBName, attrTypeB);
   nl->WriteToString(argstr, nl->Second(nl->Second(streamA)));
   string joinErrorMessages6[] =
-  { "Operator mergejoin: First join attribute '" + 
+  { "Operator mergejoin: First join attribute '" +
     attrAName + "' is not in "
     "first argument list '" + argstr +"'.\n",
-    "Operator sortmergejoin: First join attribute '" + 
+    "Operator sortmergejoin: First join attribute '" +
     attrAName + "' is not in "
     "first argument list '" + argstr +"'.\n",
-    "Operator hashjoin: First join attribute '" + 
+    "Operator hashjoin: First join attribute '" +
     attrAName + "' is not in "
     "first argument list '" + argstr +"'.\n" };
   CHECK_COND( attrAIndex > 0,
     joinErrorMessages6[errorMessageIdx]);
   nl->WriteToString(argstr, nl->Second(nl->Second(streamB)));
   string joinErrorMessages7[] =
-  { "Operator mergejoin: Second join attribute '" + 
+  { "Operator mergejoin: Second join attribute '" +
     attrBName + "'is not in "
     "second argument list '" + argstr +".\n",
-    "Operator sortmergejoin: Second join attribute '" + 
+    "Operator sortmergejoin: Second join attribute '" +
     attrBName + "'is not in "
     "second argument list '" + argstr +".\n",
-    "Operator hashjoin: Second join attribute '" + 
+    "Operator hashjoin: Second join attribute '" +
     attrBName + "'is not in "
     "second argument list '" + argstr +".\n" };
   CHECK_COND( attrBIndex > 0,
@@ -3445,16 +3444,16 @@ ListExpr JoinTypeMap (ListExpr args)
 
 */
 
-extern int 
-mergejoin_vm( Word* args, Word& result, 
+extern int
+mergejoin_vm( Word* args, Word& result,
 	      int message, Word& local, Supplier s );
 
-extern int 
-sortmergejoin_vm( Word* args, Word& result, 
+extern int
+sortmergejoin_vm( Word* args, Word& result,
 		  int message, Word& local, Supplier s );
 
-extern int 
-sortmergejoinr_vm( Word* args, Word& result, 
+extern int
+sortmergejoinr_vm( Word* args, Word& result,
 		   int message, Word& local, Supplier s );
 
 /*
@@ -3716,7 +3715,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         for( int i = 0; i < tup->GetNoAttributes(); i++ ) {
           //cout << (void*) tup << endl;
           newTuple->CopyAttribute( i, tup, i );
-        }  
+        }
         supplier = args[1].addr;
         nooffun = qp->GetNoSons(supplier);
         for (int i=0; i < nooffun;i++)
@@ -3726,7 +3725,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           funargs = qp->Argument(supplier3);
           (*funargs)[0] = SetWord(tup);
           qp->Request(supplier3,value);
-          newTuple->PutAttribute( tup->GetNoAttributes()+i, 
+          newTuple->PutAttribute( tup->GetNoAttributes()+i,
                                   ((StandardAttribute*)value.addr)->Clone() );
         }
         tup->DeleteIfAllowed();
@@ -3917,7 +3916,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             eli->attrSize[j + eli->noOldAttrs] = eli->attrSizeTmp[j] /
               eli->stableValue;
-            eli->attrSizeExt[j + eli->noOldAttrs] = eli->attrSizeExtTmp[j] / 
+            eli->attrSizeExt[j + eli->noOldAttrs] = eli->attrSizeExtTmp[j] /
               eli->stableValue;
             eli->Size += eli->attrSize[j + eli->noOldAttrs];
             eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
@@ -3932,7 +3931,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->Time = p1.Time + p1.Card * (uExtend + eli->noNewAttrs * vExtend);
 
 
-        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
@@ -3987,22 +3986,22 @@ Operator extrelextend (
 /*
 2.19 Operator ~loopjoin~
 
-This operator will fulfill a join of two relations. Tuples in the 
-cartesian product which satisfy certain conditions are passed on 
+This operator will fulfill a join of two relations. Tuples in the
+cartesian product which satisfy certain conditions are passed on
 to the output stream.
 
 For instance,
 
-----    query Staedte feed {s1} loopjoin[ fun(t1: TUPLE) plz feed 
+----    query Staedte feed {s1} loopjoin[ fun(t1: TUPLE) plz feed
           filter [ attr(t1, SName_s1) = .Ort]] count;
 
-        (query (count (loopjoin (rename (feed Staedte) s1) 
+        (query (count (loopjoin (rename (feed Staedte) s1)
           (fun (t1 TUPLE) (filter (feed plz)
           (fun (tuple1 TUPLE) (= (attr t1 SName_s1) (attr tuple1 Ort))))))))
 ----
 
-The renaming is necessary whenever the underlying relations have at 
-least one common attribute name in order to assure that the output 
+The renaming is necessary whenever the underlying relations have at
+least one common attribute name in order to assure that the output
 tuple stream consists of different named attributes.
 
 The type mapping function of the loopjoin operation is as follows:
@@ -4087,7 +4086,7 @@ struct LoopjoinLocalInfo
   TupleType *resultTupleType;
 };
 
-int Loopjoin(Word* args, Word& result, int message, 
+int Loopjoin(Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   ArgVectorPointer funargs = 0;
@@ -4117,7 +4116,7 @@ int Loopjoin(Word* args, Word& result, int message,
 
         localinfo = new LoopjoinLocalInfo;
         ListExpr resultType = GetTupleResultType( s );
-        localinfo->resultTupleType = 
+        localinfo->resultTupleType =
           new TupleType( nl->Second( resultType ) );
         localinfo->tuplex = tuplex;
         localinfo->streamy = streamy;
@@ -4216,7 +4215,7 @@ public:
 };
 
 
-int Loopjoin(Word* args, Word& result, int message, 
+int Loopjoin(Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   ArgVectorPointer funargs = 0;
@@ -4244,7 +4243,7 @@ int Loopjoin(Word* args, Word& result, int message,
 
       lli = new LoopjoinLocalInfo;
         resultType = GetTupleResultType( s );
-        lli->resultTupleType = 
+        lli->resultTupleType =
           new TupleType( nl->Second( resultType ) );
 
       local = SetWord(lli);
@@ -4370,10 +4369,10 @@ int Loopjoin(Word* args, Word& result, int message,
 
 
 
-        if (lli->returned > enoughSuccessesJoin) 
+        if (lli->returned > enoughSuccessesJoin)
         {
           pRes->Card = p1.Card  *
-            ((double) (lli->returned) / 
+            ((double) (lli->returned) /
               (double) (lli->readFirst));
         }
         else
@@ -4384,7 +4383,7 @@ int Loopjoin(Word* args, Word& result, int message,
         pRes->Time = p1.Time + p1.Card * p2.Time;
 
 
-        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
@@ -4443,17 +4442,17 @@ Operator extrelloopjoin (
 
 2.20 Operator ~loopselect~
 
-This operator is similar to the ~loopjoin~ operator except that it 
-only returns the inner tuple (instead of the concatination of two 
-tuples). Tuples in the cartesian product which satisfy certain conditions 
+This operator is similar to the ~loopjoin~ operator except that it
+only returns the inner tuple (instead of the concatination of two
+tuples). Tuples in the cartesian product which satisfy certain conditions
 are passed on to the output stream.
 
 For instance,
 
-----    query Staedte feed loopsel [ fun(t1: TUPLE) plz feed 
+----    query Staedte feed loopsel [ fun(t1: TUPLE) plz feed
           filter [ attr(t1, SName) = .Ort ]] count;
 
-        (query (count (loopsel (feed Staedte) 
+        (query (count (loopsel (feed Staedte)
           (fun (t1 TUPLE) (filter (feed plz)
           (fun (tuple1 TUPLE) (= (attr t1 SName) (attr tuple1 Ort))))))))
 
@@ -4527,7 +4526,7 @@ struct LoopselectLocalInfo
 };
 
 int
-Loopselect(Word* args, Word& result, int message, 
+Loopselect(Word* args, Word& result, int message,
            Word& local, Supplier s)
 {
   ArgVectorPointer funargs;
@@ -4553,7 +4552,7 @@ Loopselect(Word* args, Word& result, int message,
         // put the information of tuplex and rely into local
         localinfo = new LoopselectLocalInfo;
         ListExpr resultType = GetTupleResultType( s );
-        localinfo->resultTupleType = 
+        localinfo->resultTupleType =
           new TupleType( nl->Second( resultType ) );
         localinfo->tuplex=tuplex;
         localinfo->streamy=streamy;
@@ -4573,7 +4572,7 @@ Loopselect(Word* args, Word& result, int message,
       tuplex = localinfo->tuplex;
       ctuplex = (Tuple*)tuplex.addr;
       streamy = localinfo->streamy;
-      // prepare tuplex and tupley for processing. 
+      // prepare tuplex and tupley for processing.
       // if rely is exausted: fetch next tuplex.
       tupley=SetWord(Address(0));
       while (tupley.addr==0)
@@ -4624,7 +4623,7 @@ Loopselect(Word* args, Word& result, int message,
         if( localinfo->tuplex.addr != 0 )
           ((Tuple*)localinfo->tuplex.addr)->DeleteIfAllowed();
 
-        if( localinfo->resultTupleType != 0 ) 
+        if( localinfo->resultTupleType != 0 )
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
         local = SetWord(Address(0));
@@ -4682,7 +4681,7 @@ The type mapping function of the extendstream operation is as follows:
 
 ----    ((stream (tuple x)) ( (b1 (map (tuple x) (stream (y)))))
           -> (stream (tuple x * y))
-  where x = ((x1 t1) ... (xn tn)) and 
+  where x = ((x1 t1) ... (xn tn)) and
         y is a simple data type such as string, integer, or real ...
 ----
 
@@ -4714,14 +4713,14 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
      return NList::typeError("first argument is not a tuple stream");
   }
 
-  // second argument must be a list of length one 
+  // second argument must be a list of length one
   NList Second = Args.second();
   if(!Second.isNoAtom() ||
      !Second.hasLength(1)){
      return NList::typeError("error in second argument");
   }
 
-  // check for ( <attrname> <map> ) 
+  // check for ( <attrname> <map> )
   NList  NameMap = Second.first();
   if(!NameMap.hasLength(2)){
     return NList::typeError("expecting (attrname map) as second argument");
@@ -4731,8 +4730,8 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
   if(!NameMap.first().isSymbol()){
     return NList::typeError("invalid representation of <attrname>");
   }
-  
-  // check map 
+
+  // check map
   NList Map = NameMap.second();
 
   // Map must have format (map <tuple> <stream>)
@@ -4768,7 +4767,7 @@ ListExpr ExtendStreamTypeMap(ListExpr args)
   if(index){ // attrname already used
     return NList::typeError("attrname already used in the original stream");
   }
- 
+
   ListExpr attrlist = ConcatLists(Stream.second().second().listExpr(),
                                   nl->OneElemList(
                                     nl->TwoElemList(
@@ -4791,7 +4790,7 @@ struct ExtendStreamLocalInfo
   TupleType *resultTupleType;
 };
 
-int ExtendStream(Word* args, Word& result, int message, 
+int ExtendStream(Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   ArgVectorPointer funargs;
@@ -4814,7 +4813,7 @@ int ExtendStream(Word* args, Word& result, int message,
       if( qp->Received( args[0].addr ) )
       {
         //2. compute the result "stream y" from tuple x
-        //funargs = qp->Argument(args[1].addr);   
+        //funargs = qp->Argument(args[1].addr);
         //here should be changed to the following...
         supplier = args[1].addr;
         supplier2 = qp->GetSupplier( supplier, 0 );
@@ -4827,7 +4826,7 @@ int ExtendStream(Word* args, Word& result, int message,
         //3. save the local information
         localinfo = new ExtendStreamLocalInfo;
         resultType = GetTupleResultType( s );
-        localinfo->resultTupleType = 
+        localinfo->resultTupleType =
           new TupleType( nl->Second( resultType ) );
         localinfo->tupleX = (Tuple*)wTupleX.addr;
         localinfo->streamY = SetWord( supplier3 );
@@ -4848,7 +4847,7 @@ int ExtendStream(Word* args, Word& result, int message,
       localinfo=(ExtendStreamLocalInfo *) local.addr;
       resultTupleType = (TupleType *)localinfo->resultTupleType;
 
-      //2. prepare tupleX and wValueY. 
+      //2. prepare tupleX and wValueY.
       //If wValueY is empty, then get next tupleX
       wValueY = SetWord(Address(0));
       while( wValueY.addr == 0 )
@@ -4890,7 +4889,7 @@ int ExtendStream(Word* args, Word& result, int message,
       for( int i = 0; i < localinfo->tupleX->GetNoAttributes(); i++ )
         tupleXY->CopyAttribute( i, localinfo->tupleX, i );
 
-      tupleXY->PutAttribute( localinfo->tupleX->GetNoAttributes(), 
+      tupleXY->PutAttribute( localinfo->tupleX->GetNoAttributes(),
                              (StandardAttribute*)wValueY.addr );
 
       // setting the result
@@ -4925,7 +4924,7 @@ int ExtendStream(Word* args, Word& result, int message,
 2.19.3 Specification of operator ~extendstream~
 
 */
-const string ExtendStreamSpec  = 
+const string ExtendStreamSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream tuple1) (map tuple1 "
@@ -4951,12 +4950,12 @@ Operator extrelextendstream (
          ExtendStreamTypeMap            // type mapping
 );
 
-/* 
+/*
 2.20 Operator ~projectextend~
 
 This operator does the same as a combination of ~extend~ with subsequent
 ~project~, but in a single operation. This will saves a lot of time, because
-attributes are only copied once and attributes to be removed will not be 
+attributes are only copied once and attributes to be removed will not be
 copied at all!
 
 The signature of the ~projectextend~ operation is as follows:
@@ -4965,7 +4964,7 @@ The signature of the ~projectextend~ operation is as follows:
 
       stream(tuple((a1 t1) ... (an tn)))
     x (ai1, ... aij)
-    x ( (bk1 (tuple((a1 t1) ... (an tn)) --> tk1)) 
+    x ( (bk1 (tuple((a1 t1) ... (an tn)) --> tk1))
         ...
         (bkm (tuple((a1 t1) ... (an tn)) --> tkm))
       )
@@ -4978,9 +4977,9 @@ The signature of the ~projectextend~ operation is as follows:
 For instance,
 
 ----
-  query people feed 
-  projectext[id; 
-             wood_perimeter: perimeter(.wood), 
+  query people feed
+  projectext[id;
+             wood_perimeter: perimeter(.wood),
              wood_size: area(.wood)
             ]
   consume;
@@ -5022,7 +5021,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
              nl->ListLength(nl->Second(nl->Second(first))) >0,
     "Operator projecttextend expects a first list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator projectextend gets a first list with structure '" 
+    "Operator projectextend gets a first list with structure '"
     + argstr + "'.");
 
   // check whether second is a list of attribute names, that all occur in first
@@ -5031,7 +5030,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
     nl->ListLength(second) >= 0,
     "Operator projectextend expects as second argument a "
     "list of attribute names\n"
-    "Operator projectextend gets as second argument '" + 
+    "Operator projectextend gets as second argument '" +
     argstr + "'.\n" );
 
   if( nl->IsEmpty(second) )
@@ -5056,14 +5055,14 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
           "Attributename in the list is not of symbol type.");
         return nl->SymbolAtom("typeerror");
       }
-      j = FindAttribute(nl->Second(nl->Second(first)), 
+      j = FindAttribute(nl->Second(nl->Second(first)),
                         attrname, attrtype);
       if (j)
       {
         if (firstcall)
         {
           firstcall = false;
-          newAttrList = 
+          newAttrList =
             nl->OneElemList(nl->TwoElemList(first2, attrtype));
           lastNewAttrList = newAttrList;
           numberList = nl->OneElemList(nl->IntAtom(j));
@@ -5072,7 +5071,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
         else
         {
           lastNewAttrList =
-            nl->Append(lastNewAttrList, 
+            nl->Append(lastNewAttrList,
                        nl->TwoElemList(first2, attrtype));
           lastNumberList =
             nl->Append(lastNumberList, nl->IntAtom(j));
@@ -5081,16 +5080,16 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
       else
       {
         ErrorReporter::ReportError(
-          "Operator projectextend: Attributename '" + attrname + 
+          "Operator projectextend: Attributename '" + attrname +
           "' is not a known attributename in the tuple stream.");
             return nl->SymbolAtom("typeerror");
       }
-    } 
+    }
   }
-  // Now, we have all projection attrs in newAttrList and their 
+  // Now, we have all projection attrs in newAttrList and their
   // indexes within the tuple within *numberList
 
-  // check whether third is a list of pairs (attrname map), where attrname is 
+  // check whether third is a list of pairs (attrname map), where attrname is
   // not in first and map has type (map T Ti) for T is the tupletype from first
   CHECK_COND(!(nl->IsAtom(third)) &&
              (nl->ListLength(third) >= 0),
@@ -5121,7 +5120,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
                 (am->CheckKind("DATA", nl->Third(second2), errorInfo)),
       "Operator projectextend expects a mapping function with list "
       "structure (<attrname> (map tuple(X) ti) ).\n"
-      "Operator projectextend gets a list '" + argstr + "'.\n" 
+      "Operator projectextend gets a list '" + argstr + "'.\n"
       "The third list element ('ti') for such a 'ccmap' must "
       "be of kind 'DATA'.\n" );
 
@@ -5136,14 +5135,14 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
     if (firstcall)
     {
       firstcall = false;
-      newAttrList = 
+      newAttrList =
         nl->OneElemList(nl->TwoElemList(first2, nl->Third(second2)));
       lastNewAttrList = newAttrList;
     }
     else
-    { 
+    {
       lastNewAttrList =
-      nl->Append(lastNewAttrList, 
+      nl->Append(lastNewAttrList,
                   nl->TwoElemList(first2, nl->Third(second2)));
     }
   }
@@ -5167,7 +5166,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
           nl->SymbolAtom("tuple"),
           newAttrList)));
   //   nl->WriteToString(argstr, reslist);
-  //   cout << "ExtProjectExtendTypeMap(): " 
+  //   cout << "ExtProjectExtendTypeMap(): "
   //        << "reslist = " << argstr << endl;
   return reslist;
 }
@@ -5178,7 +5177,7 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
 */
 
 int
-ExtProjectExtendValueMap(Word* args, Word& result, int message, 
+ExtProjectExtendValueMap(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
   //  cout << "ExtProjectExtendValueMap() called." << endl;
@@ -5228,10 +5227,10 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           qp->Request(supplier3,value);              // call extattr mapping
 //  The original implementation tried to avoid copying the function result,
 //  but somehow, this results in a strongly growing tuplebuffer on disk:
-//           resultTuple->PutAttribute( 
+//           resultTuple->PutAttribute(
 //             noOfAttrs + i, (StandardAttribute*)value.addr );
 //           qp->ReInitResultStorage( supplier3 );
-          resultTuple->PutAttribute( noOfAttrs + i, 
+          resultTuple->PutAttribute( noOfAttrs + i,
                 ((StandardAttribute*)value.addr)->Clone() );
         }
         currTuple->DeleteIfAllowed();
@@ -5258,7 +5257,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
 2.20.3 Specification of operator ~projectextend~
 
 */
-const string ExtProjectExtendSpec = 
+const string ExtProjectExtendSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>"
@@ -5296,15 +5295,15 @@ Operator extrelprojectextend (
 /*
 2.21 Operator ~projectextendstream~
 
-This operator does the same as ~extendstream~ with a projection on some 
-attributes. It is very often that a big attribute is converted into a 
-stream of a small pieces, for example, a text into keywords. When 
-applying the ~extendstream~ operator, the big attribute belongs to the 
-result type, and is copied for every occurrence of its smaller pieces. 
-A projection is a normal operation after such operation. To avoid this 
+This operator does the same as ~extendstream~ with a projection on some
+attributes. It is very often that a big attribute is converted into a
+stream of a small pieces, for example, a text into keywords. When
+applying the ~extendstream~ operator, the big attribute belongs to the
+result type, and is copied for every occurrence of its smaller pieces.
+A projection is a normal operation after such operation. To avoid this
 copying, the projection operation is now built in the operation.
 
-The type mapping function of the ~projectextendstream~ operation is 
+The type mapping function of the ~projectextendstream~ operation is
 as follows:
 
 ----  ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)
@@ -5316,8 +5315,8 @@ as follows:
 
 For instance,
 
-----  query people feed 
-        projectextendstream [id, age; parts : .name keywords] 
+----  query people feed
+        projectextendstream [id, age; parts : .name keywords]
         consume;
 ----
 
@@ -5344,7 +5343,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
     (IsTupleDescription(nl->Second(nl->Second(first)))),
     "Operator projectextendstream expects as first argument a "
     "list with structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator projectextendstream gets as first argument '" + 
+    "Operator projectextendstream gets as first argument '" +
     argstr + "'." );
 
   nl->WriteToString(argstr, second);
@@ -5352,7 +5351,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
       || (nl->ListLength(second) == 0),
     "Operator projectextendstream expects as second argument a "
     "list of attribute names\n"
-    "Operator projectextendstream gets as second argument '" + 
+    "Operator projectextendstream gets as second argument '" +
     argstr + "'.\n" );
 
 
@@ -5373,7 +5372,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
                      "argument a list with length two and structure "
                      "(<attrname>(map (tuple (...)) (stream <type(DATA)>))).");
   }
-  
+
   third = nl->First(third);
 
   ListExpr secondRest = second;
@@ -5402,14 +5401,14 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
       return nl->SymbolAtom("typeerror");
     }
 
-    int j = FindAttribute( nl->Second(nl->Second(first)), 
+    int j = FindAttribute( nl->Second(nl->Second(first)),
                            attrName, attrType );
     if( j )
     {
       if( firstCall )
       {
         firstCall = false;
-        newAttrList = 
+        newAttrList =
           nl->OneElemList(nl->TwoElemList(secondFirst, attrType));
         lastNewAttrList = newAttrList;
         numberList = nl->OneElemList(nl->IntAtom(j));
@@ -5418,7 +5417,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
       else
       {
         lastNewAttrList =
-          nl->Append( lastNewAttrList, 
+          nl->Append( lastNewAttrList,
                       nl->TwoElemList(secondFirst, attrType) );
         lastNumberList =
           nl->Append( lastNumberList, nl->IntAtom(j) );
@@ -5430,7 +5429,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
       ErrorReporter::ReportError(
         "Operator projectextendstream expects as second argument a "
         "list of attribute names\n"
-        " Attribute name '" + attrName + 
+        " Attribute name '" + attrName +
         "' does not belong to the tuple stream: \n"
         "'" + argstr + "'.\n" );
       return nl->SymbolAtom("typeerror");
@@ -5445,8 +5444,7 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
 
   nl->WriteToString(argstr,
                     nl->Second(nl->Third(nl->Second(third))));
-  CHECK_COND((nl->IsAtom(nl->Second(nl->Third(nl->Second(third)))))  &&
-             (am->CheckKind("DATA",
+  CHECK_COND((am->CheckKind("DATA",
                nl->Second(nl->Third(nl->Second(third))), errorInfo)),
     "Operator projectextendstream: the return stream value in the "
     "third argument\n"
@@ -5460,15 +5458,15 @@ ListExpr ProjectExtendStreamTypeMap(ListExpr args)
   nl->WriteToString(argstr, newAttrList);
   nl->WriteToString(argstr2, appendAttr);
 // Original code did not allow to use a removed attribute name:
-//  CHECK_COND( AttributesAreDisjoint( nl->Second(nl->Second(first)), 
+//  CHECK_COND( AttributesAreDisjoint( nl->Second(nl->Second(first)),
 //                                     nl->OneElemList(appendAttr) ),
-//    "Operator projectextendstream: new attribute name '" + 
+//    "Operator projectextendstream: new attribute name '" +
 //    argstr2 + "' must be different\n"
 //    "from the attribute names in first argument list.\n"
 //    "First argument list: '" + argstr + "'.\n" );
-  CHECK_COND( AttributesAreDisjoint( newAttrList, 
+  CHECK_COND( AttributesAreDisjoint( newAttrList,
                                      nl->OneElemList(appendAttr) ),
-    "Operator projectextendstream: new attribute name '" + 
+    "Operator projectextendstream: new attribute name '" +
     argstr2 + "' must be different\n"
     "from the attribute names in projection list.\n"
     "Projection list: '" + argstr + "'.\n" );
@@ -5507,7 +5505,7 @@ struct ProjectExtendStreamLocalInfo
   vector<long> attrs;
 };
 
-int ProjectExtendStream(Word* args, Word& result, int message, 
+int ProjectExtendStream(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   ArgVectorPointer funargs;
@@ -5541,7 +5539,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
         //3. save the local information
         localinfo = new ProjectExtendStreamLocalInfo;
         resultType = GetTupleResultType( s );
-        localinfo->resultTupleType = 
+        localinfo->resultTupleType =
           new TupleType( nl->Second( resultType ) );
         localinfo->tupleX = (Tuple*)wTupleX.addr;
         localinfo->streamY = SetWord( supplier3 );
@@ -5573,7 +5571,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
       localinfo=(ProjectExtendStreamLocalInfo *) local.addr;
       resultTupleType = (TupleType *)localinfo->resultTupleType;
 
-      //2. prepare tupleX and wValueY. 
+      //2. prepare tupleX and wValueY.
       //If wValueY is empty, then get next tupleX
       wValueY = SetWord(Address(0));
       while( wValueY.addr == 0 )
@@ -5650,7 +5648,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
 2.19.3 Specification of operator ~projectextendstream~
 
 */
-const string ProjectExtendStreamSpec = 
+const string ProjectExtendStreamSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream tuple1) (ai1 ... aik) (map tuple1 "
@@ -5683,7 +5681,7 @@ Operator extrelprojectextendstream (
 
 Type mapping for ~concat~ is
 
-----    ((stream (tuple (a1:d1 ... an:dn))) 
+----    ((stream (tuple (a1:d1 ... an:dn)))
          (stream (tuple (b1:d1 ... bn:dn))))
             -> (stream (tuple (a1:d1 ... an:dn)))
 ----
@@ -5852,13 +5850,13 @@ Result type of ~groupby~ operation.
 
        ( (stream X) (xi1 ... xik) ( (y1 (map R T1)) ... (ym (map R Tm)) ) )
 
-        -> ( APPEND (m p1 ... pm) 
+        -> ( APPEND (m p1 ... pm)
                (stream (tuple (xj1 tj1)... (xjl tjl) (y1 T1) ... (ym Tm))))
 
        with tj,Ti in kind DATA, xi <> xj and k+l=n, pi <> pj and 1 <= pi <= m.
-       This means attributes xi ... xik are removed from the stream and 
-       attributes y1 ... ym are appended. These new attributes represent 
-       aggregated values computed by maps of R -> Ti which must have a 
+       This means attributes xi ... xik are removed from the stream and
+       attributes y1 ... ym are appended. These new attributes represent
+       aggregated values computed by maps of R -> Ti which must have a
        result type of kind DATA.
 ----
 
@@ -5918,7 +5916,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
            (TypeOfRelAlgSymbol(nl->First(first) == stream)) &&
            (nl->ListLength(nl->Second(first)) == 2 ) &&
            (nl->IsEqual(nl->First(nl->Second(first)),tupleSymbolStr)) &&
-           (IsTupleDescription(nl->Second(nl->Second(first))));        
+           (IsTupleDescription(nl->Second(nl->Second(first))));
 
   if ( !listOk ) {
 
@@ -5940,7 +5938,7 @@ ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
     ListExpr first2 = nl->First(rest);
     if(nl->AtomType(first2)!=SymbolType){
       ErrorReporter::ReportError("Wrong format for an attribute name");
-      return nl->TypeError();  
+      return nl->TypeError();
     }
 
     string attrname = nl->SymbolValue(first2);
@@ -6138,10 +6136,10 @@ int GroupByValueMapping
         gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
         local = SetWord(gbli);
 
-        cmsg.info("ERA:ShowMemInfo") 
-          << "GroupBy.MAX_MEMORY (" 
-          << gbli->MAX_MEMORY / 1024 << " MB): = " 
-          << gbli->MAX_MEMORY / gbli->t->GetExtSize() 
+        cmsg.info("ERA:ShowMemInfo")
+          << "GroupBy.MAX_MEMORY ("
+          << gbli->MAX_MEMORY / 1024 << " MB): = "
+          << gbli->MAX_MEMORY / gbli->t->GetExtSize()
           << " Tuples" << endl;
         cmsg.send();
       }
@@ -6154,7 +6152,7 @@ int GroupByValueMapping
     case REQUEST:
     {
       Counter::getRef("GroupBy:Request")++;
-      if(local.addr == 0) 
+      if(local.addr == 0)
         return CANCEL;
       else
       {
@@ -6178,7 +6176,7 @@ int GroupByValueMapping
         for (k = 0; k < numberatt; k++) // check if  tuples t = s
         {
           // loop over all grouping attributes
-          attribIdx = 
+          attribIdx =
             ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
           j = attribIdx - 1;
           if (((Attribute*)gbli->t->GetAttribute(j))->
@@ -6193,19 +6191,19 @@ int GroupByValueMapping
         {
           tp->AppendTuple(s);
           s->DeleteIfAllowed();
-          qp->Request(args[0].addr, sWord); 
+          qp->Request(args[0].addr, sWord);
           // get next tuple
         }
         else
-        { 
+        {
           // store tuple pointer in local info
           gbli->t->DecReference();
           gbli->t->DeleteIfAllowed();
-          gbli->t = s; 
+          gbli->t = s;
           gbli->t->IncReference();
         }
       }
-      if (ifequal) 
+      if (ifequal)
       // last group finished, stream ends
       {
         gbli->t->DecReference();
@@ -6221,7 +6219,7 @@ int GroupByValueMapping
       // copy in grouping attributes
       for(i = 0; i < numberatt; i++)
       {
-        attribIdx = 
+        attribIdx =
           ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
         t->CopyAttribute(attribIdx - 1, s, i);
       }
@@ -6237,7 +6235,7 @@ int GroupByValueMapping
         supplier2 = qp->GetSupplier(supplier1, 1);
         vector = qp->Argument(supplier2);
         // The group was stored in a relation identified by symbol group
-        // which is a typemap operator. Here it is stored in the 
+        // which is a typemap operator. Here it is stored in the
         // argument vector
         (*vector)[0] = SetWord(tp);
 
@@ -6295,12 +6293,12 @@ public:
   double *attrSizeExtTmp;
 
   // initialization
-  GroupByLocalInfo() : ProgressLocalInfo(), 
-    t(0), resultTupleType(0), MAX_MEMORY(0),  
+  GroupByLocalInfo() : ProgressLocalInfo(),
+    t(0), resultTupleType(0), MAX_MEMORY(0),
     stableValue(0), stableState(0),
     noGroupAttrs(0), noAggrAttrs(0),
-    attrSizeTmp(0), attrSizeExtTmp(0) 
-  {}                    
+    attrSizeTmp(0), attrSizeExtTmp(0)
+  {}
 };
 
 int GroupByValueMapping
@@ -6379,14 +6377,14 @@ int GroupByValueMapping
         gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
 
 
-        cmsg.info("ERA:ShowMemInfo") 
-          << "GroupBy.MAX_MEMORY (" 
-          << gbli->MAX_MEMORY / 1024 << " MB): = " 
-          << gbli->MAX_MEMORY / gbli->t->GetExtSize() 
+        cmsg.info("ERA:ShowMemInfo")
+          << "GroupBy.MAX_MEMORY ("
+          << gbli->MAX_MEMORY / 1024 << " MB): = "
+          << gbli->MAX_MEMORY / gbli->t->GetExtSize()
           << " Tuples" << endl;
         cmsg.send();
       }
-      else 
+      else
       {
         gbli->t = 0;
       }
@@ -6397,7 +6395,7 @@ int GroupByValueMapping
     {
       Counter::getRef("GroupBy:Request")++;
 
-      if(gbli->t == 0) 
+      if(gbli->t == 0)
         return CANCEL;
       else
       {
@@ -6418,7 +6416,7 @@ int GroupByValueMapping
         for (k = 0; k < numberatt; k++) // check if  tuples t = s
         {
           // loop over all grouping attributes
-          attribIdx = 
+          attribIdx =
             ((CcInt*)args[startIndexOfExtraArguments+k].addr)->GetIntval();
           j = attribIdx - 1;
           if (((Attribute*)gbli->t->GetAttribute(j))->
@@ -6433,19 +6431,19 @@ int GroupByValueMapping
         {
           tp->AppendTuple(s);
           s->DeleteIfAllowed();
-          qp->Request(args[0].addr, sWord); 
+          qp->Request(args[0].addr, sWord);
           // get next tuple
         }
         else
-        { 
+        {
           // store tuple pointer in local info
           gbli->t->DecReference();
           gbli->t->DeleteIfAllowed();
-          gbli->t = s; 
+          gbli->t = s;
           gbli->t->IncReference();
         }
       }
-      if (ifequal) 
+      if (ifequal)
       // last group finished, stream ends
       {
         gbli->t->DecReference();
@@ -6461,7 +6459,7 @@ int GroupByValueMapping
       // copy in grouping attributes
       for(i = 0; i < numberatt; i++)
       {
-        attribIdx = 
+        attribIdx =
           ((CcInt*)args[startIndexOfExtraArguments+i].addr)->GetIntval();
         t->CopyAttribute(attribIdx - 1, s, i);
       }
@@ -6477,7 +6475,7 @@ int GroupByValueMapping
         supplier2 = qp->GetSupplier(supplier1, 1);
         vector = qp->Argument(supplier2);
         // The group was stored in a relation identified by symbol group
-        // which is a typemap operator. Here it is stored in the 
+        // which is a typemap operator. Here it is stored in the
         // argument vector
         (*vector)[0] = SetWord(tp);
 
@@ -6489,7 +6487,7 @@ int GroupByValueMapping
 
       if ( gbli->returned < gbli->stableValue )
       {
-        for (int i = 0; i < gbli->noAttrs; i++) 
+        for (int i = 0; i < gbli->noAttrs; i++)
         {
           gbli->attrSizeTmp[i] += t->GetSize(i);
           gbli->attrSizeExtTmp[i] += t->GetExtSize(i);
@@ -6554,7 +6552,7 @@ int GroupByValueMapping
           for (int j = 0; j < gbli->noAggrAttrs; j++)
           {        //guessing int attributes
             gbli->attrSize[j + gbli->noGroupAttrs] = 12;
-            gbli->attrSizeExt[j + gbli->noGroupAttrs] = 12; 
+            gbli->attrSizeExt[j + gbli->noGroupAttrs] = 12;
 
           }
 
@@ -6575,7 +6573,7 @@ int GroupByValueMapping
           for (int i = 0; i < gbli->noAttrs; i++)
           {
             gbli->attrSize[i] = gbli->attrSizeTmp[i] / gbli->stableValue;
-            gbli->attrSizeExt[i] = gbli->attrSizeExtTmp[i] / 
+            gbli->attrSizeExt[i] = gbli->attrSizeExtTmp[i] /
               gbli->stableValue;
             gbli->Size += gbli->attrSize[i];
             gbli->SizeExt += gbli->attrSizeExt[i];
@@ -6583,17 +6581,17 @@ int GroupByValueMapping
           gbli->stableState = true;
         }
 
-  //As long as we have not seen 5 result tuples (groups), we guess groups 
+  //As long as we have not seen 5 result tuples (groups), we guess groups
   //of size 10
 
-        pRes->Card = (gbli->returned < 5 ? p1.Card/10.0 : 
+        pRes->Card = (gbli->returned < 5 ? p1.Card/10.0 :
           p1.Card * (double) gbli->returned / (double) gbli->read);
 
         pRes->CopySizes(gbli);
 
         pRes->Time = p1.Time + p1.Card * gbli->noAggrAttrs * uGroup;
 
-        pRes->Progress = (p1.Progress * p1.Time 
+        pRes->Progress = (p1.Progress * p1.Time
           + gbli->read * gbli->noAggrAttrs * uGroup)
           / pRes->Time;
 
@@ -6657,12 +6655,12 @@ Operator extrelgroupby (
 
 Type mapping for ~aggregate~ is
 
-----    ((stream (tuple ((x1 T1) ... (xn Tn)))) 
+----    ((stream (tuple ((x1 T1) ... (xn Tn))))
           xi (map Ti Ti Tx) Tx                   ->
 
         (APPEND i Tx)
 ----
- 
+
 */
 ListExpr AggregateTypeMap( ListExpr args )
 {
@@ -6697,13 +6695,13 @@ ListExpr AggregateTypeMap( ListExpr args )
   string attrName = nl->SymbolValue(second);
   ListExpr attrType;
   int j;
-  if( !(j = FindAttribute(nl->Second(nl->Second(first)), 
+  if( !(j = FindAttribute(nl->Second(nl->Second(first)),
                           attrName, attrType)) )
   {
     nl->WriteToString(argstr, nl->Second(nl->Second(first)));
     ErrorReporter::ReportError(
       "Operator aggregate expects as second argument an attribute name.\n"
-      "Attribute name '" + attrName + 
+      "Attribute name '" + attrName +
       "' does not belong to the tuple of the first argument.\n"
       "Known Attribute(s): " + argstr + "\n");
     return nl->SymbolAtom("typeerror");
@@ -6719,10 +6717,10 @@ ListExpr AggregateTypeMap( ListExpr args )
     " and structure (map t1 t1 t1).\n"
     " Operator aggregate gets as third argument '" + argstr + "'.\n" );
 
-  nl->WriteToString(argstr, nl->TwoElemList(nl->Second(third), 
+  nl->WriteToString(argstr, nl->TwoElemList(nl->Second(third),
                     nl->Third(third)) );
   nl->WriteToString(argstr2, attrType);
-  CHECK_COND(nl->Equal(nl->Second(third), attrType), 
+  CHECK_COND(nl->Equal(nl->Second(third), attrType),
     "Operator aggregate expects that the input types for the mapping "
     "and the type of the attribute\n"
     "passed as first argument have the same description.\n"
@@ -6756,7 +6754,7 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
   // args[3] = zero value
   // args[4] = attribute index added by APPEND
 
-  Word t = SetWord( Address(0) ); 
+  Word t = SetWord( Address(0) );
   ArgVectorPointer vector;
 
   qp->Open(args[0].addr);
@@ -6783,9 +6781,9 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
   }
 
   ((StandardAttribute*)result.addr)->
-    CopyFrom( (const StandardAttribute*)tmpres ); 
-  
-  delete tmpres; 
+    CopyFrom( (const StandardAttribute*)tmpres );
+
+  delete tmpres;
   qp->Close(args[0].addr);
 
   return 0;
@@ -6941,7 +6939,7 @@ int AggregateB(Word* args, Word& result, int message,
 2.18.3 Specification of operator ~aggregate~
 
 */
-const string AggregateSpec  = 
+const string AggregateSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stream(tuple((a1 t1) ... (an tn))) ai"
@@ -6959,7 +6957,7 @@ const string AggregateSpec  =
 2.18.3 Specification of operator ~aggregateB~
 
 */
-const string AggregateBSpec  = 
+const string AggregateBSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stream(tuple((a1 t1) ... (an tn))) ai"
@@ -7103,7 +7101,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
-      cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY (" 
+      cmsg.info("ERA:ShowMemInfo") << "SymmJoin.MAX_MEMORY ("
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
       pli = new SymmJoinLocalInfo;
@@ -7133,7 +7131,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         // This loop will end in some of the returns.
       {
         if( pli->right )
-          // Get the tuple from the right stream and match it with the 
+          // Get the tuple from the right stream and match it with the
           // left stored buffer
         {
           if( pli->currTuple == 0 )
@@ -7157,17 +7155,17 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             }
           }
 
-          // Now we have a tuple from the right stream in currTuple 
+          // Now we have a tuple from the right stream in currTuple
           // and an open iterator on the left stored buffer.
           Tuple *leftTuple = pli->leftIter->GetNextTuple();
 
           if( leftTuple == 0 )
-            // There are no more tuples in the left iterator. We then 
-            // store the current tuple in the right buffer and close the 
+            // There are no more tuples in the left iterator. We then
+            // store the current tuple in the right buffer and close the
             // left iterator.
           {
             if( !pli->leftFinished )
-              // We only need to keep track of the right tuples if the 
+              // We only need to keep track of the right tuples if the
               // left stream is not finished.
             {
               pli->rightRel->AppendTuple( pli->currTuple );
@@ -7210,8 +7208,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             }
           }
         }
-        else 
-          // Get the tuple from the left stream and match it with the 
+        else
+          // Get the tuple from the left stream and match it with the
           // right stored buffer
         {
           if( pli->currTuple == 0 )
@@ -7235,17 +7233,17 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             }
           }
 
-          // Now we have a tuple from the left stream in currTuple and 
+          // Now we have a tuple from the left stream in currTuple and
           // an open iterator on the right stored buffer.
           Tuple *rightTuple = pli->rightIter->GetNextTuple();
 
           if( rightTuple == 0 )
-            // There are no more tuples in the right iterator. We then 
-            // store the current tuple in the left buffer and close 
+            // There are no more tuples in the right iterator. We then
+            // store the current tuple in the left buffer and close
             // the right iterator.
           {
             if( !pli->rightFinished )
-              // We only need to keep track of the left tuples if the 
+              // We only need to keep track of the left tuples if the
               // right stream is not finished.
             {
               pli->leftRel->AppendTuple( pli->currTuple );
@@ -7308,7 +7306,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
            pli->rightRel->Clear();
            delete pli->rightRel;
          }
-  
+
          if( pli->leftRel != 0 )
          {
            pli->leftRel->Clear();
@@ -7625,7 +7623,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
         pRes->CopySizes(pli);
 
-        double predCost = 
+        double predCost =
           (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
 
     //the default value of 0.1 is only suitable for selections
@@ -7642,7 +7640,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         if (pli->returned > enoughSuccessesJoin )   // stable state assumed now
         {
           pRes->Card = p1.Card * p2.Card *
-            ((double) pli->returned / 
+            ((double) pli->returned /
               (double) (pli->readFirst * pli->readSecond));
         }
         else
@@ -7672,7 +7670,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 5.10.3 Specification of operator ~symmjoin~
 
 */
-const string SymmJoinSpec  = 
+const string SymmJoinSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream (tuple (x1 ... xn))) (stream "
@@ -7703,30 +7701,30 @@ Operator extrelsymmjoin (
 
 
 
-/* 
+/*
 
 5.10.5 Operator ~symmproductextend~
 
 02.06.2006 Christian Duentgen
 
-In queries, it is advantageous to avoid the multiple evaluation of common 
+In queries, it is advantageous to avoid the multiple evaluation of common
 subexpressions (CSE). One way is to evaluate a CSE when it is needed for
 the first time, and append a new attribute with the CSE's value to the tuple,
 using operator ~extend~. When a CSE first appears within a join condition, and
 the CSE depends on attributes from both input streams to join, this method
-fails. To cope with such situations and optimize the benefit of CSE 
+fails. To cope with such situations and optimize the benefit of CSE
 substitution, we implement the ~symmproductextend~ operator.
 
-The operator has three arguments, the first and second being the input tuple 
-streams. The third argument is a function list (i.e. a list of pairs 
-(attributename function), where ~attributename~ is a new identifier and 
+The operator has three arguments, the first and second being the input tuple
+streams. The third argument is a function list (i.e. a list of pairs
+(attributename function), where ~attributename~ is a new identifier and
 ~function~ is a function calculating the new attribute's value from a pair
-of tuples, one taken from each input tuple stream. 
+of tuples, one taken from each input tuple stream.
 
 Subsequent to a ~symmproductextend~, a ~filter~ can be applied, e.g. to express
 a ``join condition'' using the attributes extended (representing CSEs).
 
-The operator works similar to 
+The operator works similar to
 
 ---- stream(tuple(X)) stream(tuple(Y)) symmjoin[TRUE] extend[ funlist ].
 ----
@@ -7734,8 +7732,8 @@ The operator works similar to
 5.10.5.1 Typemapping for operator ~symmproductextend~
 
 ----
-    (stream (tuple (A))) 
-  x (stream (tuple (B))) 
+    (stream (tuple (A)))
+  x (stream (tuple (B)))
   x ( ( c1 (map tuple(A) tuple(B) tc1))
           ...
 
@@ -7756,7 +7754,7 @@ Typemapping operator for operator ~symmproductextend~
 
 ListExpr SymmProductExtendTypeMap(ListExpr args)
 {
-  ListExpr first, second, third, 
+  ListExpr first, second, third,
            lastlistn, listn, rest, errorInfo,
            first2, second2, firstr;
   string   argstr, argstr2;
@@ -7777,7 +7775,7 @@ ListExpr SymmProductExtendTypeMap(ListExpr args)
              TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
     "Operator symmproductextend expects a first list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator symmproductextend gets a first list with structure '" 
+    "Operator symmproductextend gets a first list with structure '"
     + argstr + "'.");
 
   nl->WriteToString(argstr, second);
@@ -7787,7 +7785,7 @@ ListExpr SymmProductExtendTypeMap(ListExpr args)
              TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
     "Operator symmproductextend expects a second list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator symmproductextend gets a second list with structure '" 
+    "Operator symmproductextend gets a second list with structure '"
     + argstr + "'.");
 
   CHECK_COND(!(nl->IsAtom(third)) &&
@@ -7837,7 +7835,7 @@ ListExpr SymmProductExtendTypeMap(ListExpr args)
                 (am->CheckKind("DATA", nl->Fourth(second2), errorInfo)),
       "Operator symmproductextend expects a mapping function with list "
       "structure (<attrname> (map (tuple ( tuple(X) tuple(Y) )) ti) ).\n"
-      "Operator symmproductextend gets a list '" + argstr + "'.\n" 
+      "Operator symmproductextend gets a list '" + argstr + "'.\n"
       "The fourth list element ('ti') for such a 'ccmap' must "
       "be of kind 'DATA'.\n" );
 
@@ -7905,7 +7903,7 @@ SymmProductExtend(Word* args, Word& result,
     case OPEN :
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
-      cmsg.info("ERA:ShowMemInfo") << "SymmProductExtend.MAX_MEMORY (" 
+      cmsg.info("ERA:ShowMemInfo") << "SymmProductExtend.MAX_MEMORY ("
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
       pli = new SymmProductExtendLocalInfo;
@@ -7934,7 +7932,7 @@ SymmProductExtend(Word* args, Word& result,
         // This loop will end in some of the returns.
       {
         if( pli->right )
-          // Get the tuple from the right stream and match it with the 
+          // Get the tuple from the right stream and match it with the
           // left stored buffer
         {
           if( pli->currTuple == 0 )
@@ -7958,17 +7956,17 @@ SymmProductExtend(Word* args, Word& result,
             }
           }
 
-          // Now we have a tuple from the right stream in currTuple 
+          // Now we have a tuple from the right stream in currTuple
           // and an open iterator on the left stored buffer.
           Tuple *leftTuple = pli->leftIter->GetNextTuple();
 
           if( leftTuple == 0 )
-            // There are no more tuples in the left iterator. We then 
-            // store the current tuple in the right buffer and close the 
+            // There are no more tuples in the left iterator. We then
+            // store the current tuple in the right buffer and close the
             // left iterator.
           {
             if( !pli->leftFinished )
-              // We only need to keep track of the right tuples if the 
+              // We only need to keep track of the right tuples if the
               // left stream is not finished.
             {
               pli->rightRel->AppendTuple( pli->currTuple );
@@ -8005,12 +8003,12 @@ SymmProductExtend(Word* args, Word& result,
               qp->Request(supplier3,value);              // call extattr mapping
 //  The original implementation tried to avoid copying the function result,
 //  but somehow, this results in a strongly growing tuplebuffer on disk:
-//               resultTuple->PutAttribute( 
+//               resultTuple->PutAttribute(
 //                 leftTuple->GetNoAttributes()
 //                 + pli->currTuple->GetNoAttributes()
 //                 + i, (StandardAttribute*)value.addr);
 //               qp->ReInitResultStorage( supplier3 );
-              resultTuple->PutAttribute( 
+              resultTuple->PutAttribute(
                 leftTuple->GetNoAttributes()
                 + pli->currTuple->GetNoAttributes()
                 + i, ((StandardAttribute*)value.addr)->Clone() );
@@ -8022,8 +8020,8 @@ SymmProductExtend(Word* args, Word& result,
             return YIELD;
           }
         }
-        else 
-          // Get the tuple from the left stream and match it with the 
+        else
+          // Get the tuple from the left stream and match it with the
           // right stored buffer
         {
           if( pli->currTuple == 0 )
@@ -8047,17 +8045,17 @@ SymmProductExtend(Word* args, Word& result,
             }
           }
 
-          // Now we have a tuple from the left stream in currTuple and 
+          // Now we have a tuple from the left stream in currTuple and
           // an open iterator on the right stored buffer.
           Tuple *rightTuple = pli->rightIter->GetNextTuple();
 
           if( rightTuple == 0 )
-            // There are no more tuples in the right iterator. We then 
-            // store the current tuple in the left buffer and close 
+            // There are no more tuples in the right iterator. We then
+            // store the current tuple in the left buffer and close
             // the right iterator.
           {
             if( !pli->rightFinished )
-              // We only need to keep track of the left tuples if the 
+              // We only need to keep track of the left tuples if the
               // right stream is not finished.
             {
               pli->leftRel->AppendTuple( pli->currTuple );
@@ -8092,14 +8090,14 @@ SymmProductExtend(Word* args, Word& result,
               qp->Request(supplier3,value);              // call extattr mapping
 //  The original implementation tried to avoid copying the function result,
 //  but somehow, this results in a strongly growing tuplebuffer on disk:
-//               resultTuple->PutAttribute( 
+//               resultTuple->PutAttribute(
 //                 pli->currTuple->GetNoAttributes()
 //                 + rightTuple->GetNoAttributes()
 //                 + i, (StandardAttribute*)value.addr);
 //               // extend effective left tuple
 //               qp->ReInitResultStorage( supplier3 );
 
-              resultTuple->PutAttribute( 
+              resultTuple->PutAttribute(
                 pli->currTuple->GetNoAttributes()
                 + rightTuple->GetNoAttributes()
                 + i, ((StandardAttribute*)value.addr)->Clone() );
@@ -8131,7 +8129,7 @@ SymmProductExtend(Word* args, Word& result,
           pli->rightRel->Clear();
           delete pli->rightRel;
         }
-  
+
         if( pli->leftRel != 0 )
         {
           pli->leftRel->Clear();
@@ -8159,7 +8157,7 @@ SymmProductExtend(Word* args, Word& result,
 5.10.5.3 Specification of operator ~symmproductextend~
 
 */
-const string SymmProductExtendSpec  = 
+const string SymmProductExtendSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stream (tuple(X))) (stream (tuple(Y))) "
@@ -8196,17 +8194,17 @@ Operator extrelsymmproductextend (
 5.10.6 Operator ~symmproduct~
 
 This operator calculates the cartesian product of two tuplestreams in a symmetrical and
-non-blocking manner. It behaves like 
+non-blocking manner. It behaves like
 
 ---- _ _ symmjoin [ TRUE ]
 ----
-but does not evaluate a predictate. 
+but does not evaluate a predictate.
 
 5.10.6.1 Typemapping for operator ~symmproduct~
 
 ----
-    (stream (tuple (A))) 
-  x (stream (tuple (B))) 
+    (stream (tuple (A)))
+  x (stream (tuple (B)))
  -> (stream (tuple(A*B)))
 
 where A = (ta1 a1) ... (tan an)
@@ -8298,7 +8296,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN :
     {
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
-      cmsg.info("ERA:ShowMemInfo") << "SymmProduct.MAX_MEMORY (" 
+      cmsg.info("ERA:ShowMemInfo") << "SymmProduct.MAX_MEMORY ("
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
       pli = new SymmProductLocalInfo;
@@ -8328,7 +8326,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
         // This loop will end in some of the returns.
       {
         if( pli->right )
-          // Get the tuple from the right stream and match it with the 
+          // Get the tuple from the right stream and match it with the
           // left stored buffer
         {
           if( pli->currTuple == 0 )
@@ -8352,17 +8350,17 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
             }
           }
 
-          // Now we have a tuple from the right stream in currTuple 
+          // Now we have a tuple from the right stream in currTuple
           // and an open iterator on the left stored buffer.
           Tuple *leftTuple = pli->leftIter->GetNextTuple();
 
           if( leftTuple == 0 )
-            // There are no more tuples in the left iterator. We then 
-            // store the current tuple in the right buffer and close the 
+            // There are no more tuples in the left iterator. We then
+            // store the current tuple in the right buffer and close the
             // left iterator.
           {
             if( !pli->leftFinished )
-              // We only need to keep track of the right tuples if the 
+              // We only need to keep track of the right tuples if the
               // left stream is not finished.
             {
               pli->rightRel->AppendTuple( pli->currTuple );
@@ -8388,8 +8386,8 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
             return YIELD;
           }
         }
-        else 
-          // Get the tuple from the left stream and match it with the 
+        else
+          // Get the tuple from the left stream and match it with the
           // right stored buffer
         {
           if( pli->currTuple == 0 )
@@ -8413,17 +8411,17 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
             }
           }
 
-          // Now we have a tuple from the left stream in currTuple and 
+          // Now we have a tuple from the left stream in currTuple and
           // an open iterator on the right stored buffer.
           Tuple *rightTuple = pli->rightIter->GetNextTuple();
 
           if( rightTuple == 0 )
-            // There are no more tuples in the right iterator. We then 
-            // store the current tuple in the left buffer and close 
+            // There are no more tuples in the right iterator. We then
+            // store the current tuple in the left buffer and close
             // the right iterator.
           {
             if( !pli->rightFinished )
-              // We only need to keep track of the left tuples if the 
+              // We only need to keep track of the left tuples if the
               // right stream is not finished.
             {
               pli->leftRel->AppendTuple( pli->currTuple );
@@ -8469,7 +8467,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
           pli->rightRel->Clear();
           delete pli->rightRel;
         }
-  
+
         if( pli->leftRel != 0 )
         {
           pli->leftRel->Clear();
@@ -8495,7 +8493,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
 5.10.6.3 Specification of operator ~symmproduct~
 
 */
-const string SymmProductSpec  = 
+const string SymmProductSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stream (tuple(X))) (stream (tuple(Y))) "
@@ -8528,7 +8526,7 @@ Operator extrelsymmproduct (
 /*
 5.10.7 Operator ~addCounter~
 
-5.10.7.1 Type Mapping function 
+5.10.7.1 Type Mapping function
 
 This operator receives a tuple stream, an attribute name
 as well as an initial value. It extends each tuple by
@@ -8554,10 +8552,10 @@ if(!nl->IsEqual(init,"int")){
 if(nl->AtomType(nameL)!=SymbolType){
   ErrorReporter::ReportError("The second argument can't be used as an"
                              "attribute name.");
-  return nl->TypeError();   
+  return nl->TypeError();
 }
 string name = nl->SymbolValue(nameL);
- // check for usualibity 
+ // check for usualibity
 if(SecondoSystem::GetCatalog()->IsTypeName(name)){
    ErrorReporter::ReportError(""+name+" is a type and can't be "
                               "used as an attribute name ");
@@ -8606,7 +8604,7 @@ while(!nl->IsEmpty(attributes)){
 
 if(usednames.find(name)!=usednames.end()){
   ErrorReporter::ReportError("Name" + name +" is already used.");
-  return  nl->TypeError(); 
+  return  nl->TypeError();
 }
 
 // all fine, construct the result
@@ -8621,7 +8619,7 @@ if(nl->IsEmpty(last)){ // stream without attributes
                                      nl->SymbolAtom("int")))));
 }
 
-// make a copy of the attributes 
+// make a copy of the attributes
   attributes = nl->Second(tuple);
   ListExpr reslist = nl->OneElemList(nl->First(attributes));
   ListExpr lastlist = reslist;
@@ -8666,7 +8664,7 @@ public:
     }
     result->PutAttribute(size, new CcInt(true,value));
     value++;
-    return result;  
+    return result;
   }
 
 
@@ -8677,7 +8675,7 @@ private:
 };
 
 
-int AddCounterValueMap(Word* args, Word& result, int message, 
+int AddCounterValueMap(Word* args, Word& result, int message,
                Word& local, Supplier s){
 
    Word orig;
@@ -8685,7 +8683,7 @@ int AddCounterValueMap(Word* args, Word& result, int message,
     case OPEN: {
        CcInt* Init = ((CcInt*)args[2].addr);
        qp->Open(args[0].addr);
-       local.addr = new AddCounterLocalInfo(Init,s); 
+       local.addr = new AddCounterLocalInfo(Init,s);
        break;
     }
     case REQUEST: {
@@ -8698,7 +8696,7 @@ int AddCounterValueMap(Word* args, Word& result, int message,
           ((Tuple*)orig.addr)->DeleteIfAllowed();
           result = SetWord(tmp);
           return YIELD;
-       }     
+       }
 
     }
     case CLOSE: {
@@ -8722,7 +8720,7 @@ int AddCounterValueMap(Word* args, Word& result, int message,
 5.10.7.3 Specification of operator ~addcounter~
 
 */
-const string AddCounterSpec  = 
+const string AddCounterSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stream (tuple(X))) x name x int "
@@ -8752,33 +8750,33 @@ struct printrefsInfo : OperatorInfo {
 
   printrefsInfo()
   {
-    name      = PRINTREFS; 
+    name      = PRINTREFS;
 
     signature = REL_TUPLE + " -> " + REL_TUPLE;
     syntax    = "_" + PRINTREFS + "_";
     meaning   = "Prints out the values of the tuple's "
 	        "and attribute's reference counter";
   }
-};  
+};
 
 static ListExpr printrefs_tm(ListExpr args)
 {
   NList l(args);
-  
+
   static const string err1 = "printrefs expects stream(tuple(...))!";
-  
+
   if ( !l.hasLength(1) )
     return l.typeError(err1);
- 
-  NList attrs; 
+
+  NList attrs;
   if ( l.checkStreamTuple( attrs ) )
     return NList::typeError(err1);
-  
+
   return l.first().listExpr();
 }
 
 
-int printrefs_vm( Word* args, Word& result, int message, 
+int printrefs_vm( Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   Word w = SetWord(Address(0));
@@ -8798,18 +8796,18 @@ int printrefs_vm( Word* args, Word& result, int message,
         Tuple* t = static_cast<Tuple*>( w.addr );
         int tRefs = t->GetNumOfRefs();
 	cout << (void*)t << ": " << tRefs << "(";
-	for(int i = 0; i < t->GetNoAttributes(); i++) 
+	for(int i = 0; i < t->GetNoAttributes(); i++)
 	{
-	  cout << " " << t->GetAttribute(i)->NoRefs();	
-	}       	
+	  cout << " " << t->GetAttribute(i)->NoRefs();
+	}
         cout << " )" << endl;
 
         result.addr = t;
 	return YIELD;
       }
       result.addr = 0;
-      return CANCEL;       
-      
+      return CANCEL;
+
     case CLOSE :
 
       qp->Close(args[0].addr);
@@ -8823,7 +8821,7 @@ struct sortmergejoinrInfo : OperatorInfo {
 
   sortmergejoinrInfo()
   {
-    name      = SMJ_R; 
+    name      = SMJ_R;
 
     signature = STREAM_TUPLE + " x " + STREAM_TUPLE + " -> " + STREAM_TUPLE;
     syntax    = "_ _" + SMJ_R + "[an, bm]";
@@ -8832,7 +8830,7 @@ struct sortmergejoinrInfo : OperatorInfo {
 
     supportsProgress = true;
   }
-};  
+};
 
 
 
@@ -8842,10 +8840,10 @@ struct sortmergejoinrInfo : OperatorInfo {
 
 A new subclass ~ExtRelationAlgebra~ of class ~Algebra~ is declared. The only
 specialization with respect to class ~Algebra~ takes place within the
-constructor: all type constructors and operators are registered at the 
+constructor: all type constructors and operators are registered at the
 actual algebra.
 
-After declaring the new class, its only instance ~extendedRelationAlgebra~ 
+After declaring the new class, its only instance ~extendedRelationAlgebra~
 is defined.
 
 */
@@ -8864,10 +8862,10 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelconcat);
     AddOperator(&extrelmin);
     AddOperator(&extrelmax);
-    
-    ValueMapping avgFuns[] = { AvgValueMapping<int,CcInt>, 
+
+    ValueMapping avgFuns[] = { AvgValueMapping<int,CcInt>,
                          AvgValueMapping<SEC_STD_REAL,CcReal>, 0 };
-    ValueMapping sumFuns[] = { SumValueMapping<int,CcInt>, 
+    ValueMapping sumFuns[] = { SumValueMapping<int,CcInt>,
                          SumValueMapping<SEC_STD_REAL,CcReal>, 0 };
     ValueMapping varFuns[] = { VarValueMapping<int,CcInt>,
                          VarValueMapping<SEC_STD_REAL,CcReal>, 0 };
@@ -8878,7 +8876,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(printrefsInfo(), printrefs_vm, printrefs_tm);
 
     AddOperator(varInfo(), varFuns, AvgSumSelect, AvgSumTypeMap<true>);
-    
+
     ValueMapping statsFuns[] =
     {
       StatsValueMapping<int,CcInt,int,CcInt>,
@@ -8887,7 +8885,7 @@ class ExtRelationAlgebra : public Algebra
       StatsValueMapping<SEC_STD_REAL,CcReal,SEC_STD_REAL,CcReal>, 0
     };
     AddOperator(statsInfo(), statsFuns, StatsSelect, StatsTypeMap);
-    
+
     AddOperator(&extrelhead);
     AddOperator(&extrelsortby);
     AddOperator(&extrelsort);
@@ -8896,10 +8894,10 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergediff);
     AddOperator(&extrelmergeunion);
     AddOperator(&extrelmergejoin);
-    
+
     AddOperator(&extrelsortmergejoin);
-    AddOperator(sortmergejoinrInfo(), 
-		    sortmergejoinr_vm, 
+    AddOperator(sortmergejoinrInfo(),
+		    sortmergejoinr_vm,
 		    JoinTypeMap<false, 1> );
 
     AddOperator(&extrelhashjoin);
@@ -8928,7 +8926,7 @@ class ExtRelationAlgebra : public Algebra
    extrelsortmergejoin.EnableProgress();
    extrelhashjoin.EnableProgress();
    extrelloopjoin.EnableProgress();
-   extrelgroupby.EnableProgress();  
+   extrelgroupby.EnableProgress();
    extrelsymmjoin.EnableProgress();
 #endif
   }
@@ -8958,7 +8956,7 @@ dynamically at runtime.
 
 extern "C"
 Algebra*
-InitializeExtRelationAlgebra( NestedList* nlRef, 
+InitializeExtRelationAlgebra( NestedList* nlRef,
                               QueryProcessor* qpRef,
                               AlgebraManager* amRef )
 {
