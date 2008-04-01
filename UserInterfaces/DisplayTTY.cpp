@@ -24,7 +24,7 @@ December 2005, Victor Almeida deleted the deprecated algebra levels (~executable
 ~descriptive~, and ~hibrid~). Only the executable level remains.
 
 April 2006, M. Spiekermann. Display function for type text changed since its output
-format was changed. Moreover, the word wrapping of text atoms was improved. 
+format was changed. Moreover, the word wrapping of text atoms was improved.
 
 \def\CC{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +}\xs
 pace}
@@ -211,7 +211,7 @@ void
   {
     cout << endl;
     string s = nl->ToString( nl->First( nl->First( numType ) ) );
-    string attr = string( maxNameLen-s.length() , ' ' ) + s + string(":");
+    string attr = string( maxNameLen-s.length() , ' ' ) + s + string(" : ");
     cout << attr;
     maxIndent = attr.length();
 
@@ -230,7 +230,7 @@ void
                            nl->First( value ) );
     }
     maxIndent = 0;
-    
+
     type    = nl->Rest( type );
     numType = nl->Rest( numType );
     value   = nl->Rest( value );
@@ -1199,7 +1199,7 @@ void
         return;
       }
       cout <<"---"<<cost<<"--->"<<endl;
- 
+
       int key = (int) getNumeric(nl->First(nl->Second(value)),err);
       if(err){
         cout << "Incorrect Data Format";
@@ -1278,7 +1278,7 @@ void
         cout << key<<": (" << x << "," << y << ")"<<endl;
       }
       vertices = nl->Rest(vertices);
-  
+
     }
     cout <<"**********************EDGES******************************"<<endl;
     while (!nl->IsEmpty( edges ))
@@ -1292,7 +1292,7 @@ void
           cout << "Incorrect Data Format";
           return;
         }
- 
+
         int key2 = (int)getNumeric(nl->Second(nl->First(edges)),err);
         if(err){
           cout << "Incorrect Data Format";
@@ -1515,7 +1515,7 @@ void
   {
     NList ranges = val.first();
     NList bins = val.second();
-    
+
 		// Maximum ermitteln, zur Skalierung
     NList elem, temp = NList();
     double maxRange = 0;
@@ -1536,7 +1536,7 @@ void
       temp.append(elem);
     }
     ranges = temp;
-	  
+
     // Maximum ermitteln, zur Skalierung
     /*NList elem,*/ temp = NList();
                     double maxBin = 1;
@@ -1546,7 +1546,7 @@ void
                       elem = bins.first();
                       d = getNumeric(elem.listExpr(), err);
                       maxBin = maxBin > d ? maxBin : d;
-        
+
                       bins.rest(); // erstes Element entfernen
                       temp.append(elem);
                     }
@@ -1563,9 +1563,9 @@ void
                     while ( !(ranges.isEmpty()) ){
                       double lastRange = range;
                       range = getNumeric(ranges.first().listExpr(), err);
-			
+
                       double bin = getNumeric(bins.first().listExpr(), err);
-			
+
 			// only scale, if bin greater than 80
                       if (maxBin <= 80)
                       {
@@ -1576,26 +1576,26 @@ void
                             ((bin+1)/maxBin*80.0/(range-lastRange)*minRange);
                       }
                       string space = "";
-			
+
                       for (int i = 0; i < height;++i)
                       {
                         cout << "_";
                         space += " ";
                       }
-			
+
                       cout << endl;
-			
+
                       string binStr = "";
-      
+
                       stringstream ss(stringstream::in | stringstream::out);
                       ss << bin;
                       ss >> binStr;
-      
+
                       int numLen = binStr.length();
-			
+
                       width =
                           static_cast<int>((range-lastRange)*7.0/maxRange);
-			
+
                       for (int i = 0; i < width - 1;i++)
                       {
                         if (i == 0)
@@ -1606,7 +1606,7 @@ void
                         else
                           cout << space << "|" << endl;
                       }
-			
+
                       if (width < 2)
                         if (numLen < static_cast<int>(space.length()))
                           cout << bin << space.substr(numLen) << "|" << endl;
@@ -1614,7 +1614,7 @@ void
                         cout << space << "|" << bin << endl;
                       else
                         cout << space << "|" << endl;
-			
+
                       for (int i = 0; i < height;++i)
                       {
                         cout << "_";
@@ -1831,7 +1831,7 @@ void
       cout << " (Check!)" << endl;
     else
       cout << endl;
-    
+
     cout << agent << " moves from "
         << startfile << startrow << " to " << endfile << endrow;
 
@@ -1840,7 +1840,7 @@ void
     else
       cout << endl;
 
-    
+
     cout << endl;
   }
 }
@@ -1892,7 +1892,7 @@ void
     cout << errMsg;
     return;
   }
-   
+
   if ( !(labels.length() == entries.length()) )
   {
     cout << "Error: Length of the label list does not "
@@ -1900,7 +1900,7 @@ void
     cout << errMsg << endl;
     return;
   }
-   
+
   cout << endl;
   string name = nameSymbol.str();
   string blanks = "";
@@ -1950,7 +1950,7 @@ ListExpr
 
 /*
 The function below is not a display function but used to display
-lists starting with (inquiry ...). It is called directly by 
+lists starting with (inquiry ...). It is called directly by
 SecondoTTY.
 
 */
@@ -2154,10 +2154,10 @@ void
   InsertDisplayFunction( "edge",  &DisplayEdge);
   InsertDisplayFunction( "path",  &DisplayPath);
   InsertDisplayFunction( "graph",  &DisplayGraph);
-  
+
   InsertDisplayFunction( "histogram1d", &DisplayHistogram1d);
   InsertDisplayFunction( "histogram2d", &DisplayHistogram2d);
-  
+
   InsertDisplayFunction( "position", &DisplayPosition );
   InsertDisplayFunction( "move", &DisplayMove );
 }
