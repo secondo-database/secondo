@@ -7,4 +7,6 @@ operator length alias LENGTH pattern op ( _ )
 operator point2gpoint alias POINT2GPOINT pattern op ( _ , _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator line2gline alias LINE2GLINE pattern op ( _ , _ )
+operator = alias EQUAL pattern _ infixop _
+operator inside alias INSIDE pattern _ infixop _
 

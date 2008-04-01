@@ -45,32 +45,34 @@ Defines, includes, and constants
 #include "Messages.h"
 
 /*
-TypeMap Function of the operator distance
+TypeMap Function of the operator ~distance~
 
 */
 
-ListExpr OpDistance::TypeMap(ListExpr args){
+ListExpr OpDistance::DistanceTypeMap(ListExpr args){
   if (nl->ListLength(args) != 2) {
     return (nl->SymbolAtom("typeerror"));
   }
   ListExpr param1 = nl->First(args);
   ListExpr param2 = nl->Second(args);
 
-  if (!nl->IsAtom(param1) || nl->AtomType(param1) != SymbolType ||
-       nl->SymbolValue(param1) != "gpoint" || !nl->IsAtom(param2) ||
-       nl->AtomType(param2) != SymbolType ||
-       nl->SymbolValue(param2) != "gpoint" ){
-    return (nl->SymbolAtom("typeerror"));
+  if ((nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType) &&
+     ((nl->SymbolValue(param1) == "gpoint" &&
+     nl->SymbolValue(param2) == "gpoint") ||
+     (nl->SymbolValue(param1) == "gline" &&
+     nl->SymbolValue(param2) == "gline"))) {
+    return nl->SymbolAtom("real");
   }
-  return nl->SymbolAtom("real");
+  return nl->SymbolAtom("typeerror");
 }
 
 /*
-ValueMapping function of the operator distance
+ValueMapping function of the operator ~distance~
 
 */
 
-int OpDistance::ValueMapping (Word* args, Word& result, int message,
+int OpDistance::distance_gpgp (Word* args, Word& result, int message,
       Word& local, Supplier in_pSupplier){
   GPoint* pFromGPoint = (GPoint*) args[0].addr;
   GPoint* pToGPoint = (GPoint*) args[1].addr;
@@ -82,7 +84,38 @@ int OpDistance::ValueMapping (Word* args, Word& result, int message,
   };
   pResult-> Set(true, pFromGPoint->distance(pToGPoint));
   return 1;
-}
+};
+
+int OpDistance::distance_glgl (Word* args, Word& result, int message,
+      Word& local, Supplier in_pSupplier){
+  GLine* pGLine1 = (GLine*) args[0].addr;
+  GLine* pGLine2 = (GLine*) args[1].addr;
+  result = qp->ResultStorage(in_pSupplier);
+  CcReal* pResult = (CcReal*) result.addr;
+  if (!(pGLine1->IsDefined()) || !(pGLine2->IsDefined())) {
+    cmsg.inFunError("Both gpoint must be defined!");
+    return 0;
+  };
+  pResult-> Set(true, pGLine1->distance(pGLine2));
+  return 1;
+};
+
+ValueMapping OpDistance::distancemap[] = {
+  distance_gpgp,
+  distance_glgl
+};
+
+int OpDistance::selectDistance (ListExpr args){
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if ( nl->SymbolValue(arg1) == "gpoint" &&
+       nl->SymbolValue(arg2) == "gpoint")
+    return 0;
+  if ( nl->SymbolValue(arg1) == "gline" &&
+       nl->SymbolValue(arg2) == "gline")
+    return 1;
+  return -1; // This point should never be reached
+};
 /*
 Specification of operator distance:
 

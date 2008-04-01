@@ -27,19 +27,25 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-January 2008 Simone Jandt (distance)
+January 2008 Simone Jandt distance operator added
+
+March 2008 Simone Jandt compare operator added
 
 Defines, includes, and constants
 
 */
 
+
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
-#include "TupleIdentifier.h"
-#include "SpatialAlgebra.h"
 #include "StandardTypes.h"
+#include "TupleIdentifier.h"
 #include "GPoint.h"
 #include "GLine.h"
+#include "RelationAlgebra.h"
+#include "BTreeAlgebra.h"
+#include "DBArray.h"
+#include "SpatialAlgebra.h"
 #include "Network.h"
 #include "NetworkManager.h"
 #include "OpShortestPath.h"
@@ -206,6 +212,8 @@ from GLine.
 double GPoint::distance (GPoint* pToGPoint){
   GPoint* pFromGPoint = (GPoint*) this;
   GLine* pGLine = new GLine(0);
+  cout << *pFromGPoint;
+  cout << *pToGPoint << endl;
   if (pFromGPoint->GetNetworkId() != pToGPoint->GetNetworkId()) {
     cmsg.inFunError("Both gpoints belong to different networks.");
     return 0.0;
@@ -220,13 +228,11 @@ double GPoint::distance (GPoint* pToGPoint){
   Tuple* pToSection = pNetwork->GetSectionOnRoute(pToGPoint);
   Point* pToPoint = pNetwork->GetPointOnRoute(pToGPoint);
   if (pToSection == 0 || pFromSection == 0) {
-    cmsg.inFunError("Start or End not found.");
-    if (pFromSection != 0 )
-      pFromSection->DeleteIfAllowed();
-    if (pToSection != 0)
-      pToSection->DeleteIfAllowed();
-    NetworkManager::CloseNetwork(pNetwork);
-    return 0.0;
+     cmsg.inFunError("Start or End not found.");
+     if (pFromSection != 0 ) pFromSection->DeleteIfAllowed();
+     if (pToSection != 0) pToSection->DeleteIfAllowed();
+     NetworkManager::CloseNetwork(pNetwork);
+     return 0.0;
   }
   OpShortestPath::Dijkstra(pNetwork, pFromSection->GetTupleId(), pFromGPoint,
                            pToSection->GetTupleId(), pToGPoint, pToPoint,
@@ -258,3 +264,4 @@ bool GPoint::operator== (const GPoint& p) const{
   }
   return false;
 }
+

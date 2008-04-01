@@ -29,6 +29,8 @@ Mai-Oktober 2007 Martin Scheppokat
 
 Dezember 2007 Simone Jandt
 
+March 2008 Simone Jandt added distance operation for two glines
+
 Defines, includes, and constants
 
 */
@@ -152,6 +154,8 @@ The constructor.
     void Get(const int i, const RouteInterval* &ri) const;
 
     int NoOfComponents();
+
+    double distance(GLine* pgl2);
 
 
   private:

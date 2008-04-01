@@ -1906,7 +1906,7 @@ void Network::GetJunctionMeasForRoutes(CcInt *pRoute1Id, CcInt *pRoute2Id,
   CcInt *pCurrJuncR2id, *pCurrJuncR1id;
   int iCurrJuncTupleR2id, iCurrJuncR1id, iRoute1Id, iRoute2Id;
   CcReal *pRid1Meas, *pRid2Meas;
-  bool r1smallerr2;
+  bool r1smallerr2, found;
   BTreeIterator *pJunctionsIt;
   if (pRoute1Id->GetIntval() <= pRoute2Id->GetIntval()) {
     pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch(pRoute1Id);
@@ -1919,7 +1919,7 @@ void Network::GetJunctionMeasForRoutes(CcInt *pRoute1Id, CcInt *pRoute2Id,
     iRoute2Id = pRoute1Id->GetIntval();
     r1smallerr2 = false;
   }
-  bool found = false;
+  found = false;
   while (!found && pJunctionsIt->Next()){
     Tuple *pCurrJuncTuple = m_pJunctions->GetTuple(pJunctionsIt->GetId());
     pCurrJuncR2id = (CcInt*) pCurrJuncTuple->GetAttribute(JUNCTION_ROUTE2_ID);
@@ -1944,8 +1944,6 @@ void Network::GetJunctionMeasForRoutes(CcInt *pRoute1Id, CcInt *pRoute2Id,
   }
   delete pJunctionsIt;
   if (!found) {
-    cerr << "Error. No junction for " << iRoute1Id
-        << " and " << iRoute2Id << " found!" << endl;
     rid1meas = 0.0;
     rid2meas = 0.0;
   }

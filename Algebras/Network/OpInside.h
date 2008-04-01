@@ -21,50 +21,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1.1 Declaration of Operator Distance
+1.1 Declaration of Operator inside
 
-January 2008 Simone Jandt distance for two gpoints.
-
-March 2008 Simone Jandt distance of two glines.
+March 2008 Simone Jandt
 
 Defines, includes, and constants
 
 */
-#ifndef OPDISTANCE_H
-#define OPDISTANCE_H
+#ifndef OPINSIDE_H
+#define OPINSIDE_H
 
 /*
-Distance computes the distance of two given gpoints.
+Inside returns true if a gpoint is in a given gline, false elswhere.
 
 */
 
-class OpDistance {
+class OpInside {
   public:
 
 /*
-TypeMap Function of the operator ~distance~
+TypeMap Function of the operator ~inside~
 
 */
 
-    static ListExpr DistanceTypeMap(ListExpr args);
+    static ListExpr TypeMap(ListExpr args);
 
 /*
-ValueMapping function of the operator ~distance~
+ValueMapping function of the operator ~inside~
 
 */
 
-    static int distance_gpgp (Word* in_pArgs, Word& in_pResult, int in_iMessage,
+    static int ValueMapping (Word* in_pArgs, Word& in_pResult, int in_iMessage,
       Word& in_pLocal, Supplier in_pSupplier);
 
-    static int distance_glgl(Word* in_pArgs, Word& in_pResult, int in_iMessage,
-                             Word& in_pLocal, Supplier in_pSupplier);
-
-    static int selectDistance (ListExpr args);
-
-    static ValueMapping distancemap [];
-
 /*
-Specification of operator ~distance~
+Specification of operator ~inside~
 
 */
 
@@ -72,4 +63,4 @@ Specification of operator ~distance~
 
 };
 
-#endif /*OPDISTANCE_H*/
+#endif /*OPINSIDE_H*/

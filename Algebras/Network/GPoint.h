@@ -197,7 +197,41 @@ Returns the side on the route of the graph point.
 
     int Compare( const Attribute* arg ) const
     {
-      return 0;
+      const GPoint *p = (const GPoint*) arg;
+      if (m_iNetworkId < p->GetNetworkId()) {
+        return -1;
+      } else {
+        if (m_iNetworkId > p->GetNetworkId()) {
+          return 1;
+        } else { // same network
+          if (m_xRouteLocation.rid < p->GetRouteId()){
+            return -1;
+          }else {
+            if (m_xRouteLocation.rid > p->GetRouteId()){
+              return 1;
+            } else{ //same route
+              if (m_xRouteLocation.d < p->GetPosition()){
+                return -1;
+              } else {
+                if (m_xRouteLocation.d > p->GetPosition()){
+                  return 1;
+                } else { //same Position
+                  if (m_xRouteLocation.side == 2 || p->GetSide() == 2 ||
+                      m_xRouteLocation.side == p->GetSide()){
+                    return 0;
+                  } else {
+                    if (m_xRouteLocation.side < p->GetSide()) {
+                      return -1;
+                    } else {
+                      return 1;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     bool Adjacent( const Attribute *arg ) const
@@ -212,7 +246,10 @@ Returns the side on the route of the graph point.
 
     ostream& Print( ostream& os ) const
     {
-      os << "GPoint::Print" << endl;
+      os << "NetworkId: " << m_iNetworkId
+          << " RouteId: " << m_xRouteLocation.rid
+          << "  Position: " << m_xRouteLocation.d
+          << " Side: " << m_xRouteLocation.side << endl;
       return os;
     }
 
@@ -240,6 +277,7 @@ Returns the side on the route of the graph point.
     double distance (GPoint* toGPoint);
 
     bool operator== (const GPoint& p) const;
+
 
 
   private:

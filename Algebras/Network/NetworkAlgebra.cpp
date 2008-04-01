@@ -71,6 +71,7 @@ Type property of type constructor ~network~
 #include "OpPoint2GPoint.h"
 #include "OpNetEqual.h"
 #include "OpLine2GLine.h"
+#include "OpInside.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -227,6 +228,19 @@ Operator networklength (
 );
 
 /*
+Definition of  operator inside
+
+*/
+
+Operator networkinside (
+          "inside",               // name
+          OpInside::Spec,          // specification
+          OpInside::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpInside::TypeMap        // type mapping
+);
+
+/*
 Definition of  operator distance
 
 */
@@ -234,9 +248,10 @@ Definition of  operator distance
 Operator networkdistance (
           "distance",               // name
           OpDistance::Spec,          // specification
-          OpDistance::ValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpDistance::TypeMap        // type mapping
+          2,
+          OpDistance::distancemap,  // value mapping
+          OpDistance::selectDistance,        // selection function
+          OpDistance::DistanceTypeMap        // type mapping
 );
 
 /*
@@ -305,6 +320,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&point2gpoint);
     AddOperator(&netgpequal);
     AddOperator(&line2gline);
+    AddOperator(&networkinside);
   }
   ~NetworkAlgebra() {};
 };

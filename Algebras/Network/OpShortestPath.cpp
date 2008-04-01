@@ -207,6 +207,7 @@ void OpShortestPath::Dijkstra(Network* in_pNetwork,
 
     double dx = pPoint->GetX() - in_pToPoint->GetX();
     double dy = pPoint->GetY() - in_pToPoint->GetY();
+    delete pPoint;
     double dHeuristicDistanceToEnd = sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
 
 //    // Use Dijkstra instead of A*
