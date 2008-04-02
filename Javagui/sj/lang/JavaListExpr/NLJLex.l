@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -145,6 +145,7 @@ class NLToken extends Symbol implements NLSymbol{
 %}
 
 %state TEXTATOM_STATE
+%state TEXTATOM_SIMPLE
 %state COMMENT_STATE
 
 
@@ -156,12 +157,11 @@ digit       =   [0-9]
 ident       =   {letter}({letter}|{digit}|_)*
 math        =   {otherChar}{otherChar}*
 symbol      =   {math}|{ident}
-string      =   \"[^\"]*\"
-simpletext  =   "'"[^']*"'"
+string      =   \"([^\"]|\\\")*\"
 filename    =   "<file>".*"</file--->"
 commentstart =  "_!"
 commentend   =  "!_"
-
+double_bs    = \\\\
 
 
 %%
@@ -236,18 +236,14 @@ commentend   =  "!_"
 <YYINITIAL> {string} {
                   // If it finds an ~stringAtom~, it returns its content,
                   // without the doble quotes at the start and end.
+                  String s = yytext().substring(1,yytext().length()-1);
+                  s = ListExpr.replaceAll(s,"\\\"","\"");
+                  s = ListExpr.replaceAll(s,"\\\\","\\");
                   return(new NLToken(NLToken.TT_STRING_ATOM,
-                         ListExpr.stringAtom(yytext().substring(1,yytext().length() - 1)),
+                         ListExpr.stringAtom(s),
                          yychar+1, yyline+1));
                 }
 
-<YYINITIAL> {simpletext} {
-                  // If it finds an ~textAtom~, it returns its content,
-                  // without the  quotes at the start and end.
-                  return(new NLToken(NLToken.TT_TEXT_ATOM,
-                         ListExpr.textAtom(yytext().substring(1,yytext().length() - 1)),
-                         yychar+1, yyline+1));
-                }
 
 <YYINITIAL> {filename} {
                      // first extract the real filename
@@ -310,7 +306,7 @@ commentend   =  "!_"
                            }
 
 
-<YYINITIAL> "<text>" {
+<YYINITIAL>"<text>" {
                   // If it finds the ~start of textAtom~ label, it changes the
                   // state to TEXTATOM_STATE. In this state characters are
                   // readed until the end of textatom label "</text--->" is
@@ -319,18 +315,15 @@ commentend   =  "!_"
                   // the buffer for the content is set to the empty string.
                   this.textContent.setLength(0);
                 }
-<TEXTATOM_STATE> "</text--->" {
-                  // if it finds the ~end of textAtom~ label, it restores the
-                  // state to the initial state (YYINITIAL) and returns the
-                  // read string.
-                  yybegin(YYINITIAL);
-                  String completeText =  this.textContent.toString();
-                  // Erases the content of ~textContent~.
-                  this.textContent.setLength(0);
-                  return(new NLToken(NLToken.TT_TEXT_ATOM,
-                         ListExpr.textAtom(completeText),
-                         yychar+1, yyline+1));
-                }
+
+
+<TEXTATOM_STATE>"\\</text--->" {
+                  this.textContent.append("</text--->");
+}
+
+<TEXTATOM_STATE>{double_bs} {
+                  this.textContent.append("\\");
+             }
 
 <TEXTATOM_STATE> .|\n|\r {
                   // For any character, given that it has not detected the ~end
@@ -338,6 +331,49 @@ commentend   =  "!_"
                   // content of the textatom. So, it stores the character.
                   this.textContent.append(yytext());
                 }
+
+<TEXTATOM_STATE> "</text--->" {
+                  // if it finds the ~end of textAtom~ label, it restores the
+                  // state to the initial state (YYINITIAL) and returns the
+                  // read string.
+                    yybegin(YYINITIAL);
+                String completeText =  this.textContent.toString();
+                  // Erases the content of ~textContent~.
+                      this.textContent.setLength(0);
+                  return(new NLToken(NLToken.TT_TEXT_ATOM,
+                         ListExpr.textAtom(completeText),
+                         yychar+1, yyline+1));
+}
+
+<YYINITIAL>"'" { yybegin(TEXTATOM_SIMPLE);
+                  this.textContent.setLength(0);
+               }
+
+<TEXTATOM_SIMPLE>{double_bs} {
+                       this.textContent.append("\\");
+}
+
+<TEXTATOM_SIMPLE>[^']|\n|\r {
+  this.textContent.append(yytext());
+}
+
+<TEXTATOM_SIMPLE>\\' {
+  this.textContent.append("'");
+}
+
+
+<TEXTATOM_SIMPLE>"'" {
+                    yybegin(YYINITIAL);
+                    String completeText = this.textContent.toString();
+                    this.textContent.setLength(0);
+                    return(new NLToken(NLToken.TT_TEXT_ATOM,
+                           ListExpr.textAtom(completeText),
+                           yychar+1, yyline+1));
+                }
+
+
+
+
 
 
 <YYINITIAL> "(" {
@@ -353,7 +389,7 @@ commentend   =  "!_"
                 }
 
 
-<YYINITIAL> .   {
+<YYINITIAL>.  {
                   // If an unknown token is read.
                   if (NLTokenizer.DEBUG_MODE){
                     Reporter.writeError("DEBUG MODE: Error: Unknown token found when scanning the input in the NLTokenizer class.");

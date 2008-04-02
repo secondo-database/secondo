@@ -57,7 +57,7 @@ import tools.Reporter;
 public class ListExpr{
 
 /*
-1 Constructors 
+1 Constructors
 
 */
 
@@ -75,7 +75,7 @@ public ListExpr () {
 
 
 #ifdef PERSISTENT
-/** This function initialized the cache for persistent 
+/** This function initialized the cache for persistent
   * storing of list nodes. This method must be called
   * before the first list is created. After calling this
   * method or after creating an instance of ListExpr, this
@@ -124,8 +124,8 @@ public static String getDirectory(){
   * main memory based version of nested lists
   **/
 #else
-/** Sets the directory where big text atoms are stored 
-  */ 
+/** Sets the directory where big text atoms are stored
+  */
 #endif
 public static void setTempDir(String DirName){
 #ifndef PERSISTENT
@@ -145,8 +145,64 @@ public static void setTempDir(String DirName){
 #endif
 }
 
+
+
+/** Replaces in textStr all occurences of patternOldString by
+    patternNewString. The patters is gives as a string NOT by a
+    regular expression.
+**/
+
+public static String replaceAll(String textStr,
+                  String patternOldStr,
+                  String patternNewStr)
+{
+  StringBuffer sstextReplaced = new StringBuffer();
+  int lastpos = 0;
+  int pos = 0;
+  if( patternOldStr.length() == 0 )
+  {
+    return textStr;
+  }
+  do {
+    lastpos = pos;
+    pos = textStr.indexOf(patternOldStr, pos);
+    if (pos >= 0)
+    {
+      sstextReplaced.append(textStr.substring(lastpos,pos));
+      sstextReplaced.append(patternNewStr);
+      pos += patternOldStr.length();
+    }
+    else
+    {
+      sstextReplaced.append(textStr.substring(lastpos, textStr.length()));
+    }
+  } while ( (pos >=0) && (pos < textStr.length()) );
+  return sstextReplaced.toString();
+}
+
+
+
+/** Replaces all occurences of '\' by '\\' and all included '"' by '\"'.
+ **/
+
+private static String transform2Outstring(String theString){
+   String s = replaceAll(theString,"\\","\\\\");
+   return replaceAll(s,"\"","\\\"");
+}
+
+/** Replaces all occurences of '\' by '\\' and all included '</text--->'
+    by '\</text--->'.
+ **/
+
+private static String transform2Outtext(String theString){
+  String s = replaceAll(theString,"\\","\\\\");
+  return replaceAll(s,END_TEXT,"\\" + END_TEXT);
+    }
+
+
+
 #ifdef PERSISTENT
- /** This method is only for compatibility with the 
+ /** This method is only for compatibility with the
    * main memory based version of nested lists
    **/
 #else
@@ -161,11 +217,11 @@ public static void usePersistentText(boolean enabled){
 }
 
 #ifdef PERSISTENT
- /** This method is for compatibility with main memory based 
+ /** This method is for compatibility with main memory based
   * nested lists.
   **/
 #else
-  /** Sets the value of the maximum text length handled in main memory 
+  /** Sets the value of the maximum text length handled in main memory
     */
 #endif
 public static boolean setMaxInternalTextLength(int length){
@@ -240,7 +296,7 @@ public void setValueTo (ListExpr list) {
 }
 
 
-/** This method returns an empty ListExpr. It will return the same as creating 
+/** This method returns an empty ListExpr. It will return the same as creating
   * a new ListExpr directly using the class constructor.
   */
 public static ListExpr theEmptyList () {
@@ -276,7 +332,7 @@ public static ListExpr cons (ListExpr left, ListExpr right) {
 #endif
 }
 
-/** Appends newSon to the list ending with lastElement. 
+/** Appends newSon to the list ending with lastElement.
   **/
 public static ListExpr append (ListExpr lastElement, ListExpr newSon) {
     if(DEBUG_MODE){
@@ -476,7 +532,9 @@ private final static int writeAppeningToString (ListExpr list, StringBuffer char
           }
         case ListExpr.STRING_ATOM:
           {
-            chars.append("\"" + list.stringValue() + "\"");
+            chars.append("\"" +
+                transform2Outstring(list.stringValue()) +
+                    "\"");
             return  0;
           }
         case ListExpr.SYMBOL_ATOM:
@@ -486,7 +544,7 @@ private final static int writeAppeningToString (ListExpr list, StringBuffer char
           }
        case ListExpr.TEXT_ATOM:
           {
-            chars.append("<text>" + list.textValue() + "</text--->");
+            chars.append("<text>" + transform2Outtext(list.textValue()) + "</text--->");
             return  0;
           }
       }
@@ -582,7 +640,7 @@ public ListExpr rest () {
 
 /** This method reads a ListExpr from the file "fileName" and assigns it to
   * this ListExpr object.
-  * It returns 0 if reading was succesful. Otherwise, 
+  * It returns 0 if reading was succesful. Otherwise,
   * returns READ\_FROM\_FILE\_ERROR (-1) if the file
   * could not be accessed, or the line number in the file where an error was
   * detected.
@@ -592,7 +650,7 @@ public int readFromFile (String fileName) {
     if(LE==null)
         return READ_FROM_FILE_ERROR;
     setValueTo(LE);
-    return NO_ERROR_CODE;    
+    return NO_ERROR_CODE;
 }
 
 /** This method returns the ListExpr stored in the file given by fileName.
@@ -601,7 +659,7 @@ public int readFromFile (String fileName) {
 public static ListExpr getListExprFromFile(String fileName){
     long startTime=0;
     if(gui.Environment.MEASURE_TIME){
-      startTime = System.currentTimeMillis(); 
+      startTime = System.currentTimeMillis();
     }
     long usedMemory = 0;
     if(gui.Environment.MEASURE_MEMORY){
@@ -624,15 +682,15 @@ public static ListExpr getListExprFromFile(String fileName){
                          null);
       }else {
           if(gui.Environment.MEASURE_TIME){
-                Reporter.writeInfo("Building nested List from File " + fileName+" has taken "+ 
+                Reporter.writeInfo("Building nested List from File " + fileName+" has taken "+
                               (System.currentTimeMillis()-startTime) + " milliseconds");
            }
            if(gui.Environment.MEASURE_MEMORY){
                long md = (gui.Environment.usedMemory()-usedMemory);
                Reporter.writeInfo("memory difference:"+gui.Environment.formatMemory(md) );
                gui.Environment.printMemoryUsage();
-            }   
-      } 
+            }
+      }
       return (ListExpr)result.value;
     } catch (FileNotFoundException except) {
         Reporter.debug(except);
@@ -659,7 +717,7 @@ public int writeToFile (String fileName) {
          return NO_ERROR_CODE;
      } else{
         return WRITE_TO_FILE_ERROR;
-     } 
+     }
   } catch(Exception e){
       Reporter.debug(e);
       return WRITE_TO_FILE_ERROR;
@@ -928,13 +986,13 @@ private void writeToRec(Writer out,boolean OnlyRationals,String indent) throws I
                              out.write(" FALSE ");
                           break;
                         }
-       case STRING_ATOM: { out.write(" \""+stringValue()+"\" ");
+                        case STRING_ATOM: { out.write(" \""+transform2Outstring(stringValue())+"\" ");
                            break;
                          }
         case SYMBOL_ATOM:{ out.write(" "+symbolValue()+" ");
                            break;
                          }
-        case TEXT_ATOM:  { out.write(" "+BEGIN_TEXT+textValue()+END_TEXT+" ");
+        case TEXT_ATOM:  { out.write(" "+BEGIN_TEXT+transform2Outtext(textValue()) + END_TEXT + " ");
                            break;
                          }
        case NO_ATOM:    { out.write("\n"+indent+"(");
@@ -1057,7 +1115,7 @@ private final static void writeListExprAppeningToString (ListExpr list, StringBu
           }
         case ListExpr.STRING_ATOM:
           {
-            chars.append("\"" + list.stringValue() + "\"");
+            chars.append("\"" + transform2Outstring(list.stringValue()) + "\"");
             return;
           }
         case ListExpr.SYMBOL_ATOM:
@@ -1067,7 +1125,7 @@ private final static void writeListExprAppeningToString (ListExpr list, StringBu
           }
         case ListExpr.TEXT_ATOM:
           {
-            chars.append(BEGIN_TEXT+list.textValue()+END_TEXT);
+            chars.append(BEGIN_TEXT + transform2Outtext(list.textValue()) + END_TEXT);
             return;
           }
       }
@@ -1151,7 +1209,7 @@ private final static void writeListExpr (ListExpr list, PrintStream out,
           }
         case ListExpr.STRING_ATOM:
           {
-            out.print("\"" + list.stringValue() + "\"");
+            out.print("\"" + transform2Outstring(list.stringValue()) + "\"");
             return;
           }
         case ListExpr.SYMBOL_ATOM:
@@ -1161,7 +1219,7 @@ private final static void writeListExpr (ListExpr list, PrintStream out,
           }
         case ListExpr.TEXT_ATOM:
           {
-            out.print(BEGIN_TEXT+list.textValue()+END_TEXT);
+            out.print(BEGIN_TEXT + transform2Outtext(list.textValue()) + END_TEXT);
             return;
           }
       }
@@ -1279,11 +1337,13 @@ public static ListExpr stringAtom(String value){
    if( value.length() > MAX_STRING_LENGTH){
       value = value.substring(0,MAX_STRING_LENGTH);
    }
+   /*
+   // former required because double quotes was not alloed
    if(value.indexOf("\"")>0){
        Reporter.writeWarning("Warning: String of a string-atom contains doublequotes");
        Reporter.writeWarning("         replace it by single quotes");
        value = value.replace('\"','\'');
-   }
+   }*/
 #ifdef PERSISTENT
     return stringValuedAtom(value,STRING_ATOM);
 #else
@@ -1571,7 +1631,7 @@ public String textValue () {
 
 /** Returns the length of the text contained in this ListExpr*/
 public int textLength(){
-   return getTextLength(); 
+   return getTextLength();
 }
 
 
@@ -1586,7 +1646,7 @@ public boolean equals(Object o){
     if(!(o instanceof ListExpr))
        return false;
     return equals((ListExpr)o,0.0,true);
-} 
+}
 
 
 
@@ -1653,9 +1713,9 @@ private static boolean similar(double a, double b,double epsilon, boolean isAbso
      return diff<=epsilon;
   }
   // non absolute
-  double epsilon2 = a>0?epsilon*a/100:-epsilon*a/100; 
+  double epsilon2 = a>0?epsilon*a/100:-epsilon*a/100;
   return diff<=epsilon2;
-} 
+}
 
 
 /**
@@ -1764,7 +1824,7 @@ private ListExpr nThElement(int n) throws IllegalArgumentException{
    return new ListExpr(tmp.getValue());
 #else
    return (ListExpr) tmp.value;
-#endif 
+#endif
 }
 
 
@@ -1992,7 +2052,7 @@ public int atomType () {
       return data[0];
 #else
     return  this.type;
-#endif 
+#endif
 }
 
 
@@ -2145,7 +2205,7 @@ private void setNext(long v){
     if(DEBUG_MODE){
       if(getNext()!=v){
          Reporter.writeError("Error in setNext Method ");
-      } 
+      }
     }
 }
 
@@ -2198,7 +2258,7 @@ private void destroyValue(){
           break;
       }
       case NO_ATOM:{
-         long v = getValue(); 
+         long v = getValue();
          if(v!=0){ // destros inner list if present
             (new ListExpr(v)).destroyrec();
          }
@@ -2288,9 +2348,9 @@ private static long getNextKey(){
 
 
 /*
-1 Public fields 
+1 Public fields
 
-1.1 Definition of atom types 
+1.1 Definition of atom types
 
 */
 public final static byte NO_ATOM = 0;          // not an atom.
@@ -2326,7 +2386,7 @@ public final static int BIN_DOUBLE=20;
 
 
 /*
-2 Private Fields 
+2 Private Fields
 
 2.1 Some control variables and constants
 
@@ -2353,7 +2413,7 @@ private static boolean USE_PERSISTENT_TEXT = false;
 
 
 /*
-2.2 Representation of a single node 
+2.2 Representation of a single node
 
 */
 #ifndef PERSISTENT

@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -39,11 +39,12 @@ October 14, 2004 RHG Added text and file tokens.
 January 10, 2006 Victor Almeida removed the ~model~ token.
 
 */
-			
+
 %p 8000
 %n 2000
 %e 4000
 %x TEXT_SP
+%x TEXT_SIMPLE
 
 %option yylineno
 %option noyywrap
@@ -64,12 +65,11 @@ ostringstream* text_sp = 0;
 
 letter         	[a-zA-Z]
 digit          	[0-9]
-ident          	{letter}({letter}|{digit}|_)*  
+ident          	{letter}({letter}|{digit}|_)*
 num1	       	[-+]?{digit}+\.?([eE][-+]?{digit}+)?
 num2	       	[-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
 number	       	{num1}|{num2}
-string         	\"[^\"]*\"   
-simpletext	"'"[^']*"'"
+string         	\"([^\"]|\\\")*\"
 textstart       "<text>"
 textend         "</text--->"
 file	  	"<file>"[^<\n]+"</file--->"
@@ -121,12 +121,24 @@ counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZINFIXOP;}
+
 {textstart}	{if(text_sp)
                    delete text_sp;
-                 text_sp = new ostringstream(); 
+                 text_sp = new ostringstream();
                  (*text_sp) << "<text>";
                  BEGIN(TEXT_SP);
                 }
+
+<TEXT_SP>"\\"{textend}  {
+                    (*text_sp) << "\\</text--->";
+                   }
+
+<TEXT_SP>.|\n      { text_sp->put(yytext[0]); }
+
+<TEXT_SP>"\\\\" { text_sp->put(yytext[0]);
+                text_sp->put(yytext[1]);
+              }
+
 <TEXT_SP>{textend} {  (*text_sp) << "</text--->";
                    string tmp = text_sp->str();
                    char* tmp2 = new char[tmp.length()+1];
@@ -139,8 +151,38 @@ value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
                    BEGIN(INITIAL);
                    return ZZTEXT;
                 }
-<TEXT_SP>.|\n      { text_sp->put(yytext[0]); }
+
+<INITIAL>"'" {if(text_sp)
+                   delete text_sp;
+                 text_sp = new ostringstream();
+                 (*text_sp) << "'";
+                 BEGIN(TEXT_SIMPLE);
+                }
+
+<TEXT_SIMPLE>"\\'"  {
+                    (*text_sp) << "\\'";
+                   }
+
+<TEXT_SIMPLE>[^']|\n  { text_sp->put(yytext[0]); }
+
+<TEXT_SIMPLE>"\\\\" { text_sp->put(yytext[0]);
+                text_sp->put(yytext[1]);
+              }
+
+<TEXT_SIMPLE>"'" {  (*text_sp) << "'";
+                   string tmp = text_sp->str();
+                   char* tmp2 = new char[tmp.length()+1];
+                   memcpy(tmp2,tmp.c_str(),tmp.length());
+                   tmp2[tmp.length()]=0;
+                   yylval = NestedText::Atom(tmp2,tmp.length());
+                   delete [] tmp2;
+                   delete text_sp;
+                   text_sp = 0;
+                   BEGIN(INITIAL);
+                   return ZZTEXT;
+                }
+
 
 {file}		{yylval = NestedText::Atom( yytext, yyleng ); return ZZFILE;}
 
-{simpletext}	{yylval = NestedText::Atom( yytext, yyleng ); return ZZTEXT;}
+

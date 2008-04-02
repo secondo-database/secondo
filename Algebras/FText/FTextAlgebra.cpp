@@ -95,33 +95,33 @@ REMOVE, after new NList has been checked in
 
 */
 
-string replaceAll(const string& textStr,
-                  const string& patternOldStr,
-                  const string& patternNewStr)
-{
-  stringstream sstextReplaced;
-  size_t lastpos = 0;
-  size_t pos = 0;
-  if( patternOldStr.length() == 0 )
-  {
-    return textStr;
-  }
-  do {
-    lastpos = pos;
-    pos = textStr.find(patternOldStr, pos);
-    if (pos != string::npos)
-    {
-      size_t len = pos - lastpos;
-      sstextReplaced << textStr.substr(lastpos,len) << patternNewStr;
-      pos += patternOldStr.length();
-    }
-    else
-    {
-      sstextReplaced << textStr.substr(lastpos, textStr.length()-lastpos);
-    }
-  } while ( (pos != string::npos) && (pos < textStr.length()) );
-  return sstextReplaced.str();
-}
+// string replaceAll(const string& textStr,
+//                   const string& patternOldStr,
+//                   const string& patternNewStr)
+// {
+//   stringstream sstextReplaced;
+//   size_t lastpos = 0;
+//   size_t pos = 0;
+//   if( patternOldStr.length() == 0 )
+//   {
+//     return textStr;
+//   }
+//   do {
+//     lastpos = pos;
+//     pos = textStr.find(patternOldStr, pos);
+//     if (pos != string::npos)
+//     {
+//       size_t len = pos - lastpos;
+//       sstextReplaced << textStr.substr(lastpos,len) << patternNewStr;
+//       pos += patternOldStr.length();
+//     }
+//     else
+//     {
+//       sstextReplaced << textStr.substr(lastpos, textStr.length()-lastpos);
+//     }
+//   } while ( (pos != string::npos) && (pos < textStr.length()) );
+//   return sstextReplaced.str();
+// }
 
 
 /*
