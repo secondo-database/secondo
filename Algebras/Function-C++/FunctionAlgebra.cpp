@@ -567,6 +567,7 @@ struct WhileDoValueMapLocalInfo{
   Word pred;
   Word fun;
   bool finished;
+  bool isInitial;
 };
 
 // version for DATA object -> stream(object)
@@ -585,6 +586,7 @@ int WhileDoValueMap(Word* args, Word& result,
       sli->pred         = args[1];
       sli->fun          = args[2];
       sli->finished     = false;
+      sli->isInitial    = true;
       local = SetWord(sli);
       return 0;
 
@@ -597,10 +599,17 @@ int WhileDoValueMap(Word* args, Word& result,
       }
       sli = (WhileDoValueMapLocalInfo*)local.addr;
 
-      if (sli->finished)
+      if(sli->finished)
       {
         result = SetWord(Address(0));
         return CANCEL;
+      }
+      // At first request, forward a copy of the initial instance
+      if(sli->isInitial)
+      {
+        result = SetWord(((Attribute*)(sli->lastInstance.addr))->Clone());
+        sli->isInitial = false;
+        return YIELD;
       }
       // For each REQUEST, we check if we have already finished,
       // If not, we pass the last instance to the parameter function
@@ -671,12 +680,15 @@ const string WhileDoSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "tuple(T) x (tuple(T) -> bool) x (tuple(T) -> tuple(T)) -> stream(tuple(T))"
     "</text--->"
     "<text>obj whiledo[ pred ; func ]</text--->"
-    "<text>Operates function 'func' iteratively on an object initialized with "
-    "'obj' while 'pred' evaluates to TRUE on the currect instance of 'obj' "
-    "and returns each instanciation of 'obj' within the result stream. If a "
-    "fixpoint is reached during the evaluation ('obj' does not change), the "
+    "<text>Always copies the first paramter into the result stream. Then, "
+    "it copies 'obj' to its internal loop variable and starts a pre-check "
+    "loop: as long as 'pred' evaluates to TRUE on the loop variable, function "
+    "'func' is evaluated for the current loop variable. "
+    "Each result is copied into the result stream. If a fixpoint is reached "
+    "during the evaluation (loop variable does not change), the "
     "processing is stopped. In this case, the two last results will be "
-    "identical. If 'pred' evaluates to UNDEF, the iteration stops.</text--->"
+    "identical. If 'pred' evaluates to UNDEF, the iteration stops immediately "
+    "(without creating any further result objects).</text--->"
     "<text>query 1 whiledo[ . < 10 ; . + 1] count"
     "</text--->))";
 
