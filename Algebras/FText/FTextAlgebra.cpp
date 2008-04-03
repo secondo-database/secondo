@@ -893,28 +893,28 @@ ListExpr FTextTypeMapEvaluate( ListExpr args )
 }
 
 /*
-Type Mapping Function for operator ~createDBobject~
+Type Mapping Function for operator ~FTextTypeTextData\_Data~
 
 ----
-      {text|string} x {text|string} x {text|string} --> text
+      {text|string} x T --> T
 ----
 
 */
 
-ListExpr FTextTypeTextual3( ListExpr args )
+ListExpr FTextTypeTextData_Data( ListExpr args )
 {
   NList type(args);
-  if(     type.hasLength(3)
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+
+  if(     type.hasLength(2)
        && ((type.first()  == TEXT) || (type.first()  == STRING))
-       && ((type.second() == TEXT) || (type.second() == STRING))
-       && ((type.third()  == TEXT) || (type.third()  == STRING))
+       && (am->CheckKind("DATA",type.second().listExpr(),errorInfo))
     )
   {
-    return NList(TEXT).listExpr();
+    return type.second().listExpr();
   }
   // error
-  return NList::typeError("Expected {text|string} x {text|string} x "
-      "{text|string} arguments.");
+  return NList::typeError("Expected {text|string} x T, where T in DATA.");
 }
 
 /*
@@ -1034,7 +1034,7 @@ ListExpr FTextTypeMapGetValueNL( ListExpr args )
                         NList(symbols::TEXT)
                       );
   }
-  cout << __PRETTY_FUNCTION__ << ": result = " << resulttype << endl;
+//   cout << __PRETTY_FUNCTION__ << ": result = " << resulttype << endl;
   return resulttype.listExpr();
 }
 
@@ -1678,9 +1678,9 @@ int ValMapSubstr( Word* args, Word& result, int message,
   int n = min(min( (end-begin), (txtlen-begin) ),
               static_cast<int>(MAX_STRINGSIZE));
   string mytxt = static_cast<const char*>( Ctxt->Get() );
-  cout << "mytxt=\"" << mytxt << "\"" << endl;
+//   cout << "mytxt=\"" << mytxt << "\"" << endl;
   string mysubstring = mytxt.substr(begin-1, n+1);
-  cout << "mysubstring=\"" << mysubstring << "\"" << endl;
+//   cout << "mysubstring=\"" << mysubstring << "\"" << endl;
   CRes->Set( true, mysubstring );
   return 0;
 }
@@ -2579,13 +2579,128 @@ int FTextSelectFunGetValueNL( ListExpr args )
 
 
 /*
-Value Mapping Function for Operator ~chartext~
+Value Mapping Function for Operator ~toobject~
 
 */
-int FTextValueMapCreateDBObject( Word* args, Word& result, int message,
+
+// Auxiliary function to get AlgebraId and Type ID from a Type-ListExpr
+void FTextGetIds(int& algebraId, int& typeId, const ListExpr typeInfo)
+{
+  if(nl->IsAtom(typeInfo)) {
+    return;
+  }
+
+  ListExpr b1 = nl->First(typeInfo);
+  if(nl->IsAtom(b1)) {
+    //typeInfo = type = (algId ...)
+    if (nl->ListLength(typeInfo)!=2) {
+      return;
+    }
+      //list = (algid typeid)
+    algebraId = nl->IntValue(nl->First(typeInfo));
+    typeId = nl->IntValue(nl->Second(typeInfo));
+  } else {
+    //typeInfo = (type1 type2).
+    //We only need type1 since a collection can only be of one type.
+    //type1 is b1 (nl->First(typeInfo)), so b1 is (algId typeId).
+    if (nl->ListLength(b1)!=2) {
+      return;
+    }
+      //b1 = (algId typeId)
+    algebraId = nl->IntValue(nl->First(b1));
+    typeId = nl->IntValue(nl->Second(b1));
+  }
+}
+
+template<class T>
+int FTextValueMapToObject( Word* args, Word& result, int message,
                                  Word& local, Supplier s )
 {
+  T* InText= static_cast<T*>(args[0].addr);
+  result = qp->ResultStorage( s );
+  Attribute* Res = static_cast<Attribute*>(result.addr);
+
+  if(!InText->IsDefined())
+  { // undefined text -> return undefined object
+//     cout << __PRETTY_FUNCTION__ << " (" << __FILE__ << " line "
+//          << __LINE__ << "): Text is undefined -> Undefined object."  << endl;
+    Res->SetDefined(false);
+    return 0;
+  }
+  // extract the text
+  string myText = InText->GetValue();
+  // read nested list: transform nested-list-string to nested list
+  ListExpr myTextNL;
+  if (!nl->ReadFromString(myText, myTextNL) )
+  {
+//     cout << __PRETTY_FUNCTION__ << " (" << __FILE__ << " line "
+//         << __LINE__ << "): Text does not produce a "
+//         "valid nested list expression -> Undefined object."  << endl;
+    Res->SetDefined(false);
+    return 0;
+  }
+  // get information on resulttype
+  ListExpr myTypeNL = qp->GetType( s );
+  // call InFunction
+  Word myRes = SetWord( 0 );
+  int errorPos = 0;
+  ListExpr& errorInfo = nl->GetErrorList();
+  bool correct = true;
+  myRes = SecondoSystem::GetCatalog()->InObject( myTypeNL,
+                                                 myTextNL,
+                                                 errorPos,
+                                                 errorInfo,
+                                                 correct
+                                               );
+  if(!correct)
+  {
+//     cout << __PRETTY_FUNCTION__ << " (" << __FILE__ << " line "
+//          << __LINE__ << "): InFunction failed -> Undefined object."  << endl;
+//     cout << "\tmyTypeNL  = " << nl->ToString(myTypeNL) << endl;
+//     cout << "\tmyTextNL  = " << nl->ToString(myTextNL) << endl;
+//     cout << "\terrorInfo = " << nl->ToString(errorInfo) << endl;
+//     cout << "\tErrorPos  = " << errorPos << endl;
+    Res->SetDefined(false);
+    return 0;
+  }
+//   else
+//   {
+//     cout << __PRETTY_FUNCTION__ << " (" << __FILE__ << " line "
+//         << __LINE__ << "): InFunction succeeded:"  << endl;
+//     cout << "\tmyTypeNL  = " << nl->ToString(myTypeNL) << endl;
+//     cout << "\tmyTextNL  = " << nl->ToString(myTextNL) << endl;
+//     cout << "\tObject    = ";
+//     ((Attribute*)(myRes.addr))->Print(cout); cout << endl;
+//   }
+  // Pass the Result
+  result = myRes;
   return 0;
+}
+
+/*
+ValueMappingArray for ~toobject~
+
+*/
+
+ValueMapping FText_VMMap_ToObject[] =
+{
+  FTextValueMapToObject<CcString>,   // 0
+  FTextValueMapToObject<FText>,      // 1
+};
+
+/*
+Selection function for ~toobject~
+
+*/
+
+int FTextSelectFunToObject( ListExpr args )
+{
+  NList type(args);
+  if( type.first() == "string" )
+    return 0;
+  if ( type.first() == "text" )
+    return 1;
+  return -1; // should not happen!
 }
 
 /*
@@ -2920,17 +3035,16 @@ const string FTextGetValueNLSpec  =
     "<text>query ten feed getValueNL</text--->"
     ") )";
 
-const string FTextCreateDBObjectSpec  =
+const string FTextToObjectSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>{text|string} x {text|string} x {text|string} -> text</text--->"
-    "<text>createDBobject( value, type, name )</text--->"
-    "<text>Creates a database object named 'name' within the current "
-    "database. The object has type 'type' (which is passed a textual nested "
-    "list type expression) and its value is set according to the nested list "
-    "value expression 'value'. The result is empty, if everything goes well, "
-    "it contains an error message otherwise.</text--->"
-    "<text>query createDBobject('3.141592653589793116', 'real', \"MyPi\") = ''"
-    "</text--->"
+    "( <text>{text|string} x T -> T, T in DATA>/text--->"
+    "<text>toobject( list, type )</text--->"
+    "<text>Creates an object of type T from a nested list expression 'list'. "
+    "Argument 'type' is only needed for the type mapping, its value will be "
+    "ignored. 'list' is a textual nested list value expression. If the value "
+    "expression does not match the type of 'type', the result will be an "
+    "undefined object of that type.</text--->"
+    "<text>query toobject('3.141592653589793116', 1.0)</text--->"
     ") )";
 
 const string FTextChartextSpec  =
@@ -3196,15 +3310,15 @@ Operator getValueNL
     FTextTypeMapGetValueNL
     );
 
-Operator createDBobject
+Operator ftexttoobject
     (
-    "createDBobject",
-    FTextCreateDBObjectSpec,
-    FTextValueMapCreateDBObject,
-    Operator::SimpleSelect,
-    FTextTypeTextual3
+    "toobject",
+    FTextToObjectSpec,
+    2,
+    FText_VMMap_ToObject,
+    FTextSelectFunToObject,
+    FTextTypeTextData_Data
     );
-
 
 Operator chartext
     (
@@ -3293,7 +3407,7 @@ public:
     AddOperator( &ftexttotext );
     AddOperator( &getTypeNL );
     AddOperator( &getValueNL );
-//     AddOperator( &createDBobject );
+    AddOperator( &ftexttoobject );
 //
     AddOperator( &chartext );
 

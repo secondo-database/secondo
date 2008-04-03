@@ -31,7 +31,7 @@ operator evaluate alias EVALUATE pattern op( _ )
 operator replace alias REPLACE pattern op(_, _, _)
 operator getTypeNL alias GETTYPENL pattern _ op
 operator getValueNL alias GETVALUENL pattern _ op
-#operator createDBobject alias CREATEDBOBJECT pattern op(_, _, _)
+operator toobject alias TOOBJECT pattern op(_, _)
 operator chartext alias CHARTEXT pattern op(_)
 operator toupper alias TOUPPER pattern op(_)
 operator tolower alias TOLOWER pattern op(_)
