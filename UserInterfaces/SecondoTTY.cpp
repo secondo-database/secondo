@@ -380,8 +380,11 @@ SecondoTTY::GetCommand()
     line = "";
     ShowPrompt( first );
     #ifdef READLINE
-      if(isStdInput)
-         line = string(readline(prompt.c_str()));
+      if(isStdInput){
+         char* cline = readline(prompt.c_str());
+         line = string(cline);
+         free(cline);
+      }
       else
     #endif
          getline( cin, line );
