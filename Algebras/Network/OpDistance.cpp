@@ -124,9 +124,9 @@ Specification of operator distance:
 const string OpDistance::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>gpoint x gpoint -> real" "</text--->"
+  "( <text>A x A -> real with A = gpoint or gline" "</text--->"
   "<text>distance(_,_)</text--->"
-  "<text>Calculates the network distance of two gpoint.</text--->"
-  "<text>let d = distance(p1,p2)</text--->"
+  "<text>Calculates the network distance of two gpoints resp. glines.</text--->"
+  "<text>query distance(p1,p2)</text--->"
   ") )";
 

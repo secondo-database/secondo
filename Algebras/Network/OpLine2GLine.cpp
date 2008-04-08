@@ -360,7 +360,7 @@ const string OpLine2GLine::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>line -> gline" "</text--->"
-  "<text>line2gline(networkobject, line)</text--->"
+  "<text>line2gline(_,_)</text--->"
   "<text>Translates a line to a gline value.</text--->"
   "<text>line2gline(B_NETWORK, line)</text--->"
   ") )";

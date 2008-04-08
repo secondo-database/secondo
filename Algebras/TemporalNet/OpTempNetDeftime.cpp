@@ -126,7 +126,7 @@ Specification of operator ~deftime~
 const string OpTempNetDeftime::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mgpoint -> periods" "</text--->"
-  "<text>deftime(mgpoint)</text--->"
+  "<text>deftime(_)</text--->"
   "<text>Returns the periods in which the moving gpoint is defined.</text--->"
   "<text>deftime(mgpoint)</text--->"
   ") )";

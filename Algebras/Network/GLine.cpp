@@ -542,6 +542,38 @@ double GLine::distance (GLine* pgl2){
   int i, j;
   size_t k;
   i = 0;
+  j = 0;
+  while (i < pgl1->NoOfComponents()) {
+    pgl1->Get(i, pCurrRInterval1);
+    while (j < pgl2->NoOfComponents()){
+      pgl2->Get(j, pCurrRInterval2);
+      if (pCurrRInterval1->m_iRouteId == pCurrRInterval2->m_iRouteId) {
+        if ((pCurrRInterval1->m_dStart <= pCurrRInterval2->m_dStart &&
+           pCurrRInterval2->m_dStart <= pCurrRInterval1->m_dEnd) ||
+           (pCurrRInterval2->m_dStart <= pCurrRInterval1->m_dStart &&
+           pCurrRInterval1->m_dStart <= pCurrRInterval2->m_dEnd) ||
+           (pCurrRInterval1->m_dStart <= pCurrRInterval2->m_dEnd &&
+           pCurrRInterval2->m_dEnd <= pCurrRInterval1->m_dEnd) ||
+           (pCurrRInterval2->m_dStart <= pCurrRInterval1->m_dEnd &&
+           pCurrRInterval1->m_dEnd <= pCurrRInterval2->m_dEnd)) {
+          minDist = 0.0;
+          return minDist;
+        } else {
+          aktDist = fabs(pCurrRInterval1->m_dStart - pCurrRInterval2->m_dStart);
+          if (aktDist < minDist) minDist = aktDist;
+          aktDist = fabs(pCurrRInterval1->m_dEnd - pCurrRInterval2->m_dStart);
+          if (aktDist < minDist) minDist = aktDist;
+          aktDist = fabs(pCurrRInterval1->m_dStart - pCurrRInterval2->m_dEnd);
+          if (aktDist < minDist) minDist = aktDist;
+          aktDist = fabs(pCurrRInterval1->m_dStart - pCurrRInterval2->m_dEnd);
+          if (aktDist < minDist) minDist = aktDist;
+        }
+      }
+      j++;
+    }
+    i++;
+  }
+  i = 0;
   while (i < pgl1->NoOfComponents()) {
     pgl1->Get(i, pCurrRInterval1);
     gpointlistgline1.push_back(GPoint(true, pgl1->GetNetworkId(),
@@ -594,38 +626,6 @@ double GLine::distance (GLine* pgl2){
                                    pCurrRInterval2->m_iRouteId,
                                    pCurrRInterval2->m_dEnd));
     j++;
-  }
-  i = 0;
-  j = 0;
-  while (i < pgl1->NoOfComponents()) {
-    pgl1->Get(i, pCurrRInterval1);
-    while (j < pgl2->NoOfComponents()){
-      pgl2->Get(j, pCurrRInterval2);
-      if (pCurrRInterval1->m_iRouteId == pCurrRInterval2->m_iRouteId) {
-        if ((pCurrRInterval1->m_dStart <= pCurrRInterval2->m_dStart &&
-           pCurrRInterval2->m_dStart <= pCurrRInterval1->m_dEnd) ||
-           (pCurrRInterval2->m_dStart <= pCurrRInterval1->m_dStart &&
-           pCurrRInterval1->m_dStart <= pCurrRInterval2->m_dEnd) ||
-           (pCurrRInterval1->m_dStart <= pCurrRInterval2->m_dEnd &&
-           pCurrRInterval2->m_dEnd <= pCurrRInterval1->m_dEnd) ||
-           (pCurrRInterval2->m_dStart <= pCurrRInterval1->m_dEnd &&
-           pCurrRInterval1->m_dEnd <= pCurrRInterval2->m_dEnd)) {
-          minDist = 0.0;
-          return minDist;
-        } else {
-          aktDist = fabs(pCurrRInterval1->m_dStart - pCurrRInterval2->m_dStart);
-          if (aktDist < minDist) minDist = aktDist;
-          aktDist = fabs(pCurrRInterval1->m_dEnd - pCurrRInterval2->m_dStart);
-          if (aktDist < minDist) minDist = aktDist;
-          aktDist = fabs(pCurrRInterval1->m_dStart - pCurrRInterval2->m_dEnd);
-          if (aktDist < minDist) minDist = aktDist;
-          aktDist = fabs(pCurrRInterval1->m_dStart - pCurrRInterval2->m_dEnd);
-          if (aktDist < minDist) minDist = aktDist;
-        }
-      }
-      j++;
-    }
-    i++;
   }
   for (size_t l = 0; l < gpointlistgline1.size(); l++){
     lastDist = numeric_limits<double>::max();

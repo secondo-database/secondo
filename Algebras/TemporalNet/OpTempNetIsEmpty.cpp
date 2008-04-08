@@ -96,8 +96,8 @@ Specification of the operator
 */
 const string OpTempNetIsEmpty::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x periods -> bool" "</text--->"
-  "<text> isemtpy _ </text--->"
-  "<text>Returns true if the moving gpoint is empty or undefined.</text--->"
-  "<text>isempty MGPOINT </text--->"
+  "( <text>mgpoint -> bool" "</text--->"
+  "<text> isemtpy (_) </text--->"
+  "<text>Returns true if the moving gpoint is empty, false elsewhere.</text--->"
+  "<text>isempty (MGPOINT) </text--->"
   ") )";

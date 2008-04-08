@@ -90,3 +90,10 @@ Number   : 2
 Signature: gpoint x gline -> bool
 Example  : query [const gpoint value (1 1 5.2 2)] inside [const gline value (1 ((1 0.0 5.0)))];
 Result   : FALSE
+
+Operator : no_components
+Number   : 1
+Signature: gline -> int
+Example  : query no_components([const gline value(1((1 0.0 0.5)))]);
+Result   : 1
+

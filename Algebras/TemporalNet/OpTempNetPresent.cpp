@@ -197,9 +197,9 @@ Specification of the operator
 */
 const string OpTempNetPresent::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x periods -> bool" "</text--->"
+  "( <text>mgpoint x A -> bool with A = instant or periods" "</text--->"
   "<text> _ present _</text--->"
-  "<text>Returns true if the moving gpoint at least once exists in the given"
-    "periods.</text--->"
+  "<text>Returns true if the moving gpoint at least once exists in the given "
+    "instant or one of the periods.</text--->"
   "<text>X_MGPOINT present PERIODS </text--->"
   ") )";

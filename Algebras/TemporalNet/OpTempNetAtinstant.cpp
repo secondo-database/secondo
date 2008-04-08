@@ -80,7 +80,7 @@ Specification of the operator
 */
 const string OpTempNetAtinstant::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint x instant -> gpoint" "</text--->"
+  "( <text>mgpoint x instant -> igpoint" "</text--->"
   "<text> _ atinstant _</text--->"
   "<text>Computes the position of a moving gpoint at a given instant.</text--->"
   "<text>X_MGPOINT atinstant TIME </text--->"

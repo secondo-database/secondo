@@ -131,13 +131,13 @@ int OpTempNetAtperiods::ValueMapping(Word* args,
   int i = 0, j = 0;
   pMGP->Get( i, pCurrentUnit );
   per->Get( j, interval );
-  while( 1 ) {
+  while(1) {
     if( pCurrentUnit->timeInterval.Before( *interval)){
-      if( ++i == pMGP->GetNoComponents()) break;
+      if( ++i >= pMGP->GetNoComponents()) break;
       pMGP->Get( i, pCurrentUnit );
     } else {
       if( interval->Before( pCurrentUnit->timeInterval )) {
-        if( ++j == per->GetNoComponents()) break;
+        if( ++j >= per->GetNoComponents()) break;
         per->Get( j, interval );
       } else { // we have overlapping intervals, now
         if (pCurrentUnit->timeInterval.start == interval->start) {
@@ -202,28 +202,28 @@ int OpTempNetAtperiods::ValueMapping(Word* args,
           // same ending instant
           if( interval->rc == pCurrentUnit->timeInterval.rc ) {
             // same ending instant and rightclosedness: Advance both
-            if( ++i == pMGP->GetNoComponents()) break;
+            if( ++i >= pMGP->GetNoComponents()) break;
             pMGP->Get( i, pCurrentUnit );
-            if( ++j == per->GetNoComponents()) break;
+            if( ++j >= per->GetNoComponents()) break;
             per->Get( j, interval );
           } else {
             if( interval->rc == true ) { // Advanve in mapping
-              if( ++i == pMGP->GetNoComponents() ) break;
+              if( ++i >= pMGP->GetNoComponents() ) break;
               pMGP->Get( i, pCurrentUnit );
             } else { // Advance in periods
               assert( pCurrentUnit->timeInterval.rc == true );
-              if( ++j == per->GetNoComponents() ) break;
+              if( ++j >= per->GetNoComponents() ) break;
               per->Get( j, interval );
             }
           }
         } else {
           if( interval->end > pCurrentUnit->timeInterval.end ) {
             // Advance in mpoint
-            if( ++i == pMGP->GetNoComponents() ) break;
+            if( ++i >= pMGP->GetNoComponents() ) break;
             pMGP->Get( i, pCurrentUnit );
           } else { // Advance in periods
             assert( interval->end < pCurrentUnit->timeInterval.end );
-            if( ++j == per->GetNoComponents() ) break;
+            if( ++j >= per->GetNoComponents() ) break;
             per->Get( j, interval );
           }
         }

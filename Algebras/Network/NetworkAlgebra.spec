@@ -9,4 +9,4 @@ operator distance alias DISTANCE pattern op ( _ , _ )
 operator line2gline alias LINE2GLINE pattern op ( _ , _ )
 operator = alias EQUAL pattern _ infixop _
 operator inside alias INSIDE pattern _ infixop _
-
+operator no_components alias NO_COMPONENTS pattern op ( _ )

@@ -949,23 +949,6 @@ void Network::FillSections()
     pRoute->DeleteIfAllowed();
   } // End while Routes
   delete pRoutesIt;
-//   delete m_pBTreeJunctionsByRoute1;
-//   delete m_pBTreeJunctionsByRoute2;
-//   ostringstream xThisJunctionsPtrStream;
-//   xThisJunctionsPtrStream << (long)m_pJunctions;
-//   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-//                  " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
-//   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-//   assert(QueryExecuted); // no query with side effects, please!
-//   m_pBTreeJunctionsByRoute1 = (BTree*)xResult.addr;
-//
-//   ostringstream xThisJunctionsPtrStream2;
-//   xThisJunctionsPtrStream2 << (long)m_pJunctions;
-//   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-//                 " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
-//   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-//   assert(QueryExecuted); // no query with side effects, please!
-//   m_pBTreeJunctionsByRoute2 = (BTree*)xResult.addr;
 }
 
 /*

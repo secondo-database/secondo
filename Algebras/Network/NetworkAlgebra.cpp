@@ -28,7 +28,7 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-February 2008 Simone Jandt added OpPoint2GPoint
+February 2008 -  Simone Jandt added several operators.
 
 
 This file contains the implementation of the type constructors ~network~,
@@ -72,6 +72,7 @@ Type property of type constructor ~network~
 #include "OpNetEqual.h"
 #include "OpLine2GLine.h"
 #include "OpInside.h"
+#include "OpNoComponents.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -292,6 +293,20 @@ Operator line2gline (
           Operator::SimpleSelect,        // selection function
           OpLine2GLine::TypeMap        // type mapping
 );
+
+/*
+Definition of  operator nocomponents
+
+*/
+
+Operator networknocomponents (
+          "no_components",               // name
+          OpNoComponents::Spec,          // specification
+          OpNoComponents::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpNoComponents::TypeMap        // type mapping
+);
+
 /*
 Creating the Algebra
 
@@ -321,6 +336,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&netgpequal);
     AddOperator(&line2gline);
     AddOperator(&networkinside);
+    AddOperator(&networknocomponents);
   }
   ~NetworkAlgebra() {};
 };
