@@ -57,6 +57,9 @@ in the Eps-range to one of the points in the cluster, this point
 #include "../Temporal/TemporalAlgebra.h"
 #include "LogMsg.h"
 #include "RelationAlgebra.h"
+#include "PlugJoinAlgebra.h"
+
+#include "MMRTree.h"
 
 #include <iostream>
 #include <string>
@@ -383,6 +386,13 @@ return 0;
 
 class ClusterC_LocalInfo{
 public:
+/*
+~Constructor~
+
+Creates a new local info from the value coming from the value mapping.
+
+*/
+
   ClusterC_LocalInfo(Points* pts, CcInt* minPts, CcReal* eps){
      if(!pts->IsDefined() || !minPts->IsDefined() || !eps->IsDefined()){
          defined = false;
@@ -395,31 +405,39 @@ public:
      defined = true;
      size = pts->Size();
      no = new int[size];
-     env = new set<int>*[size];
+     env1 = new set<int>*[size];
      pos = 0;
-
      // set all points to be  UNCLASSIFIED
      // and clean all sets
      for(int i=0;i<size;i++){
        no[i] = UNCLASSIFIED;
-       env[i] = new set<int>();
+       env1[i] = new set<int>();
      }
      computeEnv();
      pos = 0;
      clusterId = 1;
   }
 
+/*
+~Destructor~
+
+*/
  ~ClusterC_LocalInfo(){
     if(defined){
        for(int i=0;i<size;i++){
-          delete env[i];
+          delete env1[i];
        }
-       delete[] env;
+       delete[] env1;
        delete[] no;
      }
   }
 
+/*
+~getNext~
 
+Returns the next cluster as points value.
+
+*/
  Points* getNext(){
     if(!defined){ // no next cluster available
         return 0;
@@ -428,7 +446,7 @@ public:
     while(pos<size){
        if(no[pos] >= 0 ){ // point already classified
          pos++;
-       } else if ( env[pos]->size()<minPts){
+       } else if ( env1[pos]->size()<minPts){
          no[pos] = -2; // mark as NOISE
          pos++;
        } else {
@@ -444,153 +462,139 @@ public:
 
 
 private:
-  Points* pts; // source points value
-  unsigned int minPts;
-  double eps;
-  double eps2;
-  bool  defined;
-  int* no;  // cluster number
-  set<int>** env; // environments;
-  int size;
-  int pos;
-  int clusterId;
+/*
+~Members~
+
+*/
+
+  Points* pts;         // source points value
+  unsigned int minPts; // minimum size for core points
+  double eps;          // epsilon
+  double eps2;         // epsilon * epsilon
+  bool  defined;       
+  int* no;             // cluster number
+  set<int>** env1;     // environments;
+  int size;            // number of points
+  int pos;             // current position
+  int clusterId;       // current cluster id
 
   static const int UNCLASSIFIED = -1;
   static const int NOISE = -2;
 
-  /* computes the epsilon environment for each point.
-   *  takes quadratical runtime, should be changed later.
-   */
+/*
+~computeEnv~
+
+This function computes the epsilon environment for each point
+contained in pts;
+
+*/
   void computeEnv(){
-    // debug::start  :: enforce a sorted input !!
-     //   pts->StartBulkLoad();
-     //   pts->EndBulkLoad();
-    // debug::end
-      for(int i=0;i<size;i++){
-         computeEnv(i);
-      }
-  }
-
-  /** computes the square of the distance between two points **/
-  double qdist(const Point* p1, const Point* p2){
-    double x1 = p1->GetX();
-    double x2 = p2->GetX();
-    double y1 = p1->GetY();
-    double y2 = p2->GetY();
-    double dx = x1-x2;
-    double dy = y1-y2;
-    return dx*dx + dy*dy;
-
-  }
-
-  /** compute the environment for the point at the given position
-    * requires quadratic runtime, should be changed later
-    */
-  void computeEnv(const int pos){
-      const Point* p;
-      pts->Get(pos,p);
-
-
-     /**
-      // complete naive implementation
-      for(int i=0;i<size;i++){
-         const Point* p2;
-         pts->Get(i,p2);
-         if(qdist(p,p2)<=eps2){
-            env[pos]->insert(i);
-         }
-      }
-     **/
-
-     // better implementation ; pts must be sorted
-     double x = p->GetX();
-
-     bool done = false;
-     for(int i=pos; i>=0 && !done; i--){
-        const Point* p2;
-        pts->Get(i,p2);
-        double x2 = p2->GetX();
-        if( (x-x2) > eps){
-          done = true;
-        } else {
-          if(qdist(p,p2)<=eps2){
-           env[pos]->insert(i);
-          }
-        }
-     }
-
-     done = false;
-     for(int i=pos+1; i<size && !done; i++){
-        const Point* p2;
-        pts->Get(i,p2);
-        double x2 = p2->GetX();
-        if( (x2-x) > eps){
-          done = true;
-        } else {
-          if(qdist(p,p2)<=eps2){
-           env[pos]->insert(i);
-          }
-        }
-     }
-
-
-  }
-
-  /** expands a cluster */
-  Points* expand(int pos){
-
-
-    Points* result = new Points(minPts);
-    result->StartBulkLoad();
-
-    /*
-      // Note : the following code does not implement the expand
-      // function of dbscan.
-      // its just for checking the correct computed environment of each point
-
-      set<int>::iterator it;
-      for(it =  env[pos]->begin(); it!=env[pos]->end();it++){
-         const Point* p;
-         pts->Get(*it,p);
-         (*result) += (*p);
-      }
-    */
-
-
-     // implementing the dbscan expand
-     set<int> seeds = *env[pos];
-     no[pos] = clusterId;
+     myrtree::Rtree<2> tree(10,30);
      const Point* p;
-     pts->Get(pos,p);
-     (*result) += (*p);
-     seeds.erase(pos);
+     double min1[2];
+     double max1[2];
 
-     while(!seeds.empty()){
-       int cpos = *(seeds.begin());
-       if(no[cpos]<0){ // not classified by another cluster
-          no[cpos] = clusterId;
-          pts->Get(cpos,p);
-          (*result) += (*p);
-          set<int>::iterator it;
-          for(it = env[cpos]->begin();it!=env[cpos]->end(); it++){
-             if(no[*it]<0){
-                if(env[*it]->size()>=minPts){ // a core point
-                   seeds.insert(*it);
-                } else { // border point
-                   no[*it] = clusterId;
-                   pts->Get(*it,p);
-                   (*result) += *p;
-                }
+     /* insert all contained points into an R- tree */
+     for(int i=0;i<pts->Size();i++){
+        pts->Get(i,p);
+        double x = p->GetX();
+        double y = p->GetY();
+        min1[0] = x - FACTOR;
+        min1[1] = y - FACTOR;
+        max1[0] = x + FACTOR;
+        max1[1] = y - FACTOR;
+        Rectangle<2> box(true,min1,max1);
+        tree.insert(box, i);
+     }
+    
+     
+     /* compute environments using filter /refine */
+     for(int i=0;i<pts->Size();i++){
+        pts->Get(i,p);
+        set<long> cands;
+        double x = p->GetX();
+        double y = p->GetY();
+        min1[0] = x-eps;
+        min1[1] = y-eps;
+        max1[0] = x+eps;
+        max1[1] = y+eps;
+        Rectangle<2> searchbox(true, min1,max1);
+        tree.findAll(searchbox,cands);
+        set<long>::iterator it;
+        for(it = cands.begin(); it!=cands.end(); it++){
+          const Point* p2;
+          int cand = static_cast<int>(*it);
+          pts->Get(cand,p2);
+          if(qdist(p,p2)<eps2){
+             env1[i]->insert(cand);
+          }
+        }
+     }
+  }
+
+
+
+/* 
+~qdist~
+
+This function computes the square of the distance between two point value.
+
+
+*/
+double qdist(const Point* p1, const Point* p2){
+  double x1 = p1->GetX();
+  double x2 = p2->GetX();
+  double y1 = p1->GetY();
+  double y2 = p2->GetY();
+  double dx = x1-x2;
+  double dy = y1-y2;
+  return dx*dx + dy*dy;
+}
+
+
+/* 
+~expand~
+
+This function implements the expand algorithm of dbscan.
+
+*/
+
+Points* expand(int pos){
+  Points* result = new Points(minPts);
+  result->StartBulkLoad();
+
+  set<int> seeds = *env1[pos];
+  no[pos] = clusterId;
+  const Point* p;
+  pts->Get(pos,p);
+  (*result) += (*p);
+  seeds.erase(pos);
+
+  while(!seeds.empty()){
+    int cpos = *(seeds.begin());
+    if(no[cpos]<0){ // not classified by another cluster
+       no[cpos] = clusterId;
+       pts->Get(cpos,p);
+       (*result) += (*p);
+       set<int>::iterator it;
+       for(it = env1[cpos]->begin();it!=env1[cpos]->end(); it++){
+          if(no[*it]<0){
+             if(env1[*it]->size()>=minPts){ // a core point
+                seeds.insert(*it);
+             } else { // border point
+                no[*it] = clusterId;
+                pts->Get(*it,p);
+                (*result) += *p;
              }
           }
        }
-       seeds.erase(cpos);
-     }
-
-
-     result->EndBulkLoad();
-     return result;
+    }
+    seeds.erase(cpos);
   }
+  result->EndBulkLoad();
+  return result;
+}
+
 };
 
 
@@ -702,21 +706,43 @@ ostream& operator<<(ostream& o, const Edge& e){
 }
 
 
+ostream& operator<<(ostream& o, const set<int>& e){
+  set<int>::iterator it;
+  o << "{";
+  for(it = e.begin(); it!=e.end();it++){
+     if(it!=e.begin()){
+       o << ", ";
+     }
+     o << *it;
+  }
+  o << "}";   
+  return o;
+}
+
+
+struct cCluster{ double cx;
+                 double cy;
+                 set<int> member;
+                 bool forbidden;
+       };
+
+
+
 class ClusterD_LocalInfo{
 public:
 
 /*
 ~Constructor~
 
-
 Creates a new localinfo for the cluster[_]d operator.
-The complte clustering is done here.
+The complete clustering is done here.
 
 */
   ClusterD_LocalInfo(Points* pts, CcReal* eps){
     env = 0;
     currentInitialCluster = 0;
     currentInitialPos = 0;
+    pts->Copy();
     if(pts->IsDefined() && eps->IsDefined()){
       this->defined = true;
       this->eps = eps->GetRealval();
@@ -749,6 +775,7 @@ Destroys this instance.
 */
 
   ~ClusterD_LocalInfo(){
+      pts->DeleteIfAllowed();
       if(icluster){
          delete[] icluster;
          icluster=0;
@@ -781,8 +808,8 @@ Destroys this instance.
 Returns the next cluster or 0 if no more clusters exist.
 
 */
-  Points* getNext(){
-     return getNextFinalCluster();
+  Points* getNext(int i){
+     return getNextFinalCluster(i);
   }
 
 
@@ -811,20 +838,63 @@ private:
 /*
 ~computeEnv~
 
-Computes the sets of points which are in a environment of each 
-point in __pts__. The indexes of the points are store in the
-environments cluster.
+This function computes the epsilon environment for each point
+contained in pts;
 
 */
-
   void computeEnv(){
-      env = new set<int>*[size];
-      for(int i=0;i<size;i++){
-         computeEnv(i);
-      }
-  }
 
-  /** computes the square of the distance between two points **/
+     env = new set<int>*[size];
+
+     myrtree::Rtree<2> tree(10,30);
+     const Point* p;
+     double min1[2];
+     double max1[2];
+
+     /* insert all contained points into an R- tree */
+     for(int i=0;i<pts->Size();i++){
+        pts->Get(i,p);
+        double x = p->GetX();
+        double y = p->GetY();
+        min1[0] = x - FACTOR;
+        min1[1] = y - FACTOR;
+        max1[0] = x + FACTOR;
+        max1[1] = y - FACTOR;
+        Rectangle<2> box(true,min1,max1);
+        tree.insert(box, i);
+     }
+    
+     
+     /* compute environments using filter /refine */
+     for(int i=0;i<pts->Size();i++){
+        env[i] = new set<int>();
+        pts->Get(i,p);
+        set<long> cands;
+        double x = p->GetX();
+        double y = p->GetY();
+        min1[0] = x-eps;
+        min1[1] = y-eps;
+        max1[0] = x+eps;
+        max1[1] = y+eps;
+        Rectangle<2> searchbox(true, min1,max1);
+        tree.findAll(searchbox,cands);
+        set<long>::iterator it;
+        for(it = cands.begin(); it!=cands.end(); it++){
+          const Point* p2;
+          int cand = static_cast<int>(*it);
+          pts->Get(cand,p2);
+          if(qdist(p,p2)<eps2){
+             env[i]->insert(cand);
+          }
+        }
+     }
+  }
+/*
+~qdist~
+
+~qdist~  computes the square of the distance between two points 
+
+*/
   double qdist(const Point* p1, const Point* p2){
     double x1 = p1->GetX();
     double x2 = p2->GetX();
@@ -836,55 +906,19 @@ environments cluster.
 
   }
 
-  /** compute the environment for the point at the given position
-    * requires quadratic runtime, should be changed later
-    */
-  void computeEnv(const int pos){
-      env[pos] = new set<int>();
-      const Point* p;
-      pts->Get(pos,p);
+  double qdist(double x1, double y1, double x2, double y2){
+    double dx = x1-x2;
+    double dy = y1-y2;
+    return dx*dx + dy*dy;
 
-     // naive implementation, should be replaced
-     // by using an RTree 
-     double x = p->GetX();
-
-     bool done = false;
-     for(int i=pos; i>=0 && !done; i--){
-        const Point* p2;
-        pts->Get(i,p2);
-        double x2 = p2->GetX();
-        if( (x-x2) > eps){
-          done = true;
-        } else {
-          if(qdist(p,p2)<=eps2){
-           env[pos]->insert(i);
-          }
-        }
-     }
-
-     done = false;
-     for(int i=pos+1; i<size && !done; i++){
-        const Point* p2;
-        pts->Get(i,p2);
-        double x2 = p2->GetX();
-        if( (x2-x) > eps){
-          done = true;
-        } else {
-          if(qdist(p,p2)<=eps2){
-           env[pos]->insert(i);
-          }
-        }
-     }
   }
-
 
 /* 
 ~getNextInitialCluster~
 
 This function extracts the next initial clsuter from the original point.
 If the poinst value is exhausted, null is returned. The caller of this
-function has to delete the returned points value.
-
+function has to delete the returned value.
 
 */
   set<int>* getNextInitialCluster(){
@@ -922,16 +956,14 @@ function has to delete the returned points value.
    return res;
   }
 
-
-
 /*
-~computeFinalCluster~
+~computeFinalCluster0~
 
 Divides the points value ps into a set of clusters. The 
 first number is set to cnum. Cnum is increased automatically.
 
 */
- void computeFinalCluster(){
+ void computeFinalCluster0(){
 
     currentFinalCluster.clear();
 
@@ -1044,12 +1076,217 @@ first number is set to cnum. Cnum is increased automatically.
 
  }
 
- Points* getNextFinalCluster(){
+/*
+Another method for dividing a group into several subgroups.
+
+*/
+void insertPoint(vector<cCluster>& clusters, int pos){
+
+  const Point* p;
+  pts->Get(pos,p);
+  double x = p->GetX();
+  double y = p->GetY();
+
+  // first cluster
+  if(clusters.empty()){
+     cCluster cl;
+     cl.cx = x;
+     cl.cy = y;
+     cl.forbidden = false;
+     cl.member.insert(pos);
+     clusters.push_back(cl);
+     return;
+  }
+
+  int index = -1;
+  double bestDist=eps2+10;
+
+  for(unsigned int i=0;i<clusters.size();i++){
+    if(!clusters[i].forbidden){
+       double dist = qdist(x,y,clusters[i].cx,clusters[i].cy);
+       if(index < 0 || 
+          ((dist < bestDist) ||
+           ((dist == bestDist) && 
+            (clusters[index].member.size() > clusters[i].member.size())))){
+          index = i;
+          bestDist = dist;
+       } 
+    }
+  } 
+
+  if((index < 0) || (bestDist > eps2)){ // no cluster found, produce a new one
+     cCluster cl;
+     cl.cx = x;
+     cl.cy = y;
+     cl.forbidden = false;
+     cl.member.insert(pos);
+     clusters.push_back(cl);
+     return;
+  }
+
+  // insert the point into the best cluster
+  clusters[index].cx = (clusters[index].cx * 
+                        clusters[index].member.size() + x ) /  
+                       (clusters[index].member.size() +1);
+ 
+  clusters[index].cy = (clusters[index].cy * 
+                        clusters[index].member.size() + y ) /  
+                       (clusters[index].member.size() +1 );
+
+  clusters[index].member.insert(pos);
+
+  // check whether some points are outside the cluster
+  Point pc(true,clusters[index].cx, clusters[index].cy);
+
+  set<int> removed;
+  set<int>::iterator it;
+  const Point* p2;
+  for(it = clusters[index].member.begin();
+      it != clusters[index].member.end();
+      it++){
+      pts->Get(*it,p2);
+      if(qdist(&pc,p2) > eps2){
+         removed.insert(*it);
+      }
+  } 
+
+  // remove 'bad' points from the cluster
+  double sx = 0.0;
+  double sy = 0.0;
+  for(it = removed.begin(); it!=removed.end();it++){
+     const Point* p3;
+     pts->Get(*it,p3);
+     sx += p3->GetX();
+     sy += p3->GetY();
+     clusters[index].member.erase(*it);
+  }
+
+  /*
+  // we avoid to correct the center again because of this correction
+  // further points may go out from the cluster
+  // thiy may lead to long running times
+
+  // correct the center
+  clusters[index].cx = ((clusters[index].cx * 
+                        (clusters[index].member.size() + removed.size())) -
+                       sx) / clusters[index].member.size();
+  clusters[index].cy = ((clusters[index].cy * 
+                        (clusters[index].member.size() + removed.size())) -
+                       sy) / clusters[index].member.size();
+
+  */
+
+
+  // inserts the points again
+  clusters[index].forbidden = true; 
+  for(it = removed.begin(); it!=removed.end();it++){
+    insertPoint(clusters,*it); 
+  }
+  clusters[index].forbidden = false;
+
+}
+
+void insertPointSimple(vector<cCluster>& clusters, int pos){
+
+  const Point* p;
+  pts->Get(pos,p);
+  double x = p->GetX();
+  double y = p->GetY();
+
+  // clusters has to be non-empty 
+
+  int index = 0;
+  int size = clusters.size();
+  double bestDist = qdist(x,y,clusters[index].cx,clusters[index].cy);
+
+  for(int i=1;i<size;i++){
+     double dist = qdist(x,y,clusters[i].cx,clusters[i].cy);
+     if( (dist < bestDist) ||
+         ((dist == bestDist) && 
+          (clusters[index].member.size() > clusters[i].member.size()))){
+        index = i;
+        bestDist = dist;
+     } 
+  } 
+
+  if(!(bestDist <= eps2)){
+     cout << "Error a point was not assigned to a cluster " << endl;
+     cout << "The position of the point was " << pos << endl;
+     cout << "The dist is " << bestDist << endl;
+     cout << "Allowed dist " << eps2 << endl;
+     cout << "Best cluster " << index << endl;
+     cout << "#cluster " << size << endl;
+     assert(false); 
+
+  }
+
+  clusters[index].member.insert(pos);
+}
+
+void computeFinalCluster1(){
+  
+  currentFinalCluster.clear();
+  
+  vector<cCluster> currentCluster;
+
+  // insert the points
+  set<int>::iterator it1;
+  for( it1 = currentInitialCluster->begin(); 
+       it1 != currentInitialCluster->end(); 
+       it1++){
+     insertPoint(currentCluster,*it1);  
+  }
+  
+
+  // by the movement of the center, some 
+  // clusters may have unhandsome overlappings
+  // we will redistribute the points located in such 
+  // overlappings
+
+ // redistribute the points
+  vector<cCluster>::iterator it3;
+  for(it3 = currentCluster.begin(); it3 != currentCluster.end(); it3++){
+      ((*it3).member).clear(); 
+  }
+  
+  for( it1 = currentInitialCluster->begin(); 
+       it1 != currentInitialCluster->end(); 
+       it1++){
+     insertPointSimple(currentCluster,*it1);  
+  }
+
+  // copy the result into currentFinalCluster
+  int i = 0;
+  vector<cCluster>::iterator it2;
+  for(it2 = currentCluster.begin();
+      it2 != currentCluster.end(); 
+      it2++){
+      currentFinalCluster[i++] = (*it2).member;
+  }
+
+  currentFinalPos = currentFinalCluster.begin();
+
+}
+
+
+
+
+/*
+Returns the next cluster
+
+*/
+
+
+ Points* getNextFinalCluster(int method=0){
     if(!defined) return 0;
     if(!currentInitialCluster){
        currentInitialCluster = getNextInitialCluster();
        if(currentInitialCluster){
-          computeFinalCluster();
+         switch(method){
+           case 0:  computeFinalCluster0(); break;
+           case 1:  computeFinalCluster1(); break;
+           default: assert(false);
+         } 
        } else {
          return 0;
        }
@@ -1058,21 +1295,27 @@ first number is set to cnum. Cnum is increased automatically.
        delete currentInitialCluster;
        currentInitialCluster = getNextInitialCluster();
        if(currentInitialCluster){
-          computeFinalCluster();
+         switch(method){
+           case 0:  computeFinalCluster0(); break;
+           case 1:  computeFinalCluster1(); break;
+           default: assert(false);
+         } 
        } else{
           return 0;
        }
     } 
 
     set<int> cs = (*currentFinalPos).second;
-
-
     Points* res = new Points(cs.size());
     res->StartBulkLoad();
     const Point* p;
     set<int>::iterator it;
     for(it = cs.begin();it!=cs.end();it++){
-        pts->Get(origPos[*it],p);
+        switch(method){
+          case 0 : pts->Get(origPos[*it],p); break;
+          case 1 : pts->Get(*it,p); break;
+          default : assert(false);
+        }
         (*res) += *p;
     }
     res->EndBulkLoad();   
@@ -1085,7 +1328,7 @@ first number is set to cnum. Cnum is increased automatically.
 
 };
 
-
+template<int i>
 int cluster_dFun (Word* args, Word& result, int message, Word& local, 
                 Supplier s) {     
  switch(message){
@@ -1101,7 +1344,7 @@ int cluster_dFun (Word* args, Word& result, int message, Word& local,
         ClusterD_LocalInfo* linfo = 
                static_cast<ClusterD_LocalInfo*>(local.addr);
         
-        Points* hasNext = linfo->getNext();
+        Points* hasNext = linfo->getNext(i);
         result = SetWord(hasNext);
         if(hasNext){
            return YIELD;
@@ -1220,11 +1463,18 @@ Operator cluster_c (
 Operator cluster_d (
         "cluster_d",            //name
         cluster_dSpec,          //specification
-        cluster_dFun,           //value mapping
+        cluster_dFun<0>,           //value mapping
         Operator::SimpleSelect, //trivial selection function
         cluster_d_TM          //type mapping
 );
 
+Operator cluster_e (
+        "cluster_e",            //name
+        cluster_dSpec,          //specification
+        cluster_dFun<1>,           //value mapping
+        Operator::SimpleSelect, //trivial selection function
+        cluster_d_TM          //type mapping
+);
 
 /*
 10.1    class DBscan (cluster algorithm)
@@ -1448,6 +1698,7 @@ public:
     AddOperator ( &cluster_b );
     AddOperator ( &cluster_c );
     AddOperator ( &cluster_d );
+    AddOperator ( &cluster_e );
                 
     ///// tracefile  /////
    // if ( RTFlag::isActive("ClusterText:Trace") ) {
