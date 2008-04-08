@@ -64,8 +64,77 @@ struct RITree {
 
   ~RITree();
 
+  double checkTree(RITree& father, int rid, double pos1, double pos2,
+                   bool bleft) {
+    if (rid < this->m_iRouteId) {
+      if (this->m_left != 0) {
+        return this->m_left->checkTree(*this, rid, pos1, pos2, bleft);
+      } else {
+        if (bleft) return pos1;
+        else return pos2;
+      }
+    } else {
+      if (rid > this->m_iRouteId) {
+        if (this->m_right != 0) {
+          return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+        } else {
+          if (bleft) return pos1;
+          else return pos2;
+        }
+      } else {
+        if (pos2 < this->m_dStart) {
+          if (this->m_left != 0) {
+            return this->m_left->checkTree(*this, rid, pos1, pos2,bleft);
+          } else {
+            if (bleft) return pos1;
+            else return pos2;
+          }
+        } else {
+          if (pos1 > this->m_dEnd) {
+            if (this->m_right != 0 ) {
+              return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+            } else {
+              if (bleft) return pos1;
+              else return pos2;
+            }
+          } else {
+/*
+Overlapping interval found. Rebuild Tree and return new interval limit.
+
+*/
+            double result;
+            if (bleft) {
+              if (this->m_dStart <= pos1) {
+                result = this->m_dStart;
+                if (father.m_left == this) {
+                  father.m_left = this->m_left;
+                } else {
+                  father.m_right = this->m_left;
+                }
+                return result;
+              }
+            } else {
+              if (this->m_dEnd >= pos2) {
+                result = this->m_dEnd;
+                if (father.m_right == this) {
+                  father.m_right = this->m_right;
+                } else {
+                  father.m_left = this->m_right;
+                }
+                return result;
+              }
+            }
+          }
+        }
+      }
+    }
+    if (bleft) return pos1;
+    else return pos2;
+  };
+
 
   void insert (int rid, double pos1, double pos2) {
+    double test;
     if (rid < this->m_iRouteId) {
       if (this->m_left != 0) {
         this->m_left->insert(rid, pos1, pos2);
@@ -96,11 +165,29 @@ struct RITree {
                     new RITree(rid, pos1, pos2,0,0);
               }
             } else {
+/*
+Overlapping route intervals merge and check sons if they need to be corrected.
+
+*/
               if (this->m_dStart > pos1) {
                 this->m_dStart = pos1;
+                if (this->m_left != 0) {
+                  test = this->m_left->checkTree(*this, rid, this->m_dStart,
+                                                this->m_dEnd, true);
+                  if (this->m_dStart > test) {
+                    this->m_dStart = test;
+                  }
+                }
               }
               if (this->m_dEnd < pos2) {
                 this->m_dEnd = pos2;
+                if (this->m_right != 0) {
+                  test = this->m_right->checkTree(*this, rid, this->m_dStart,
+                                                  this->m_dEnd, false);
+                  if (this->m_dEnd < test) {
+                    this->m_dEnd = test;
+                  }
+                }
               }
             }
           }
@@ -341,10 +428,11 @@ Get and check input values.
     delete pRoutesIt;
   } // end for pLine-Components
   GLine *resG = new GLine(0);
-  RITree *tnew;
-  tnew = tree->initNewTree();
-  tree->tree2tree(tnew);
-  tnew->treeToGLine(resG);
+//   RITree *tnew;
+//   tnew = tree->initNewTree();
+//   tree->tree2tree(tnew);
+//   tnew->treeToGLine(resG);
+  tree->treeToGLine(resG);
   result =  SetWord(resG);
   resG->SetDefined(true);
   resG->SetNetworkId(pNetwork->GetId());
