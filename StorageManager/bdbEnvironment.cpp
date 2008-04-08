@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-1 Implementation of SmiEnvironment using the Berkeley-DB 
+1 Implementation of SmiEnvironment using the Berkeley-DB
 
 May 2002 Ulrich Telle
 
@@ -33,11 +33,11 @@ April 2003 Ulrich Telle, implemented temporary SmiFiles
 October 2003 M. Spiekermann Startup modified. SecondoHome directory will be created if the
 configuration file contains no or a non-existent directory.
 
-April 2004 Hoffmann Changed some implementation details, so that the list databases 
+April 2004 Hoffmann Changed some implementation details, so that the list databases
 command is available under Windows XP.
 
-August 2004 M. Spiekermann, A new parameter ~dontSyncDiskCache~ has been introduced to speed 
-up closing files at the end of a query. The problem arised in the ~Array~ algebra. Since big arrays 
+August 2004 M. Spiekermann, A new parameter ~dontSyncDiskCache~ has been introduced to speed
+up closing files at the end of a query. The problem arised in the ~Array~ algebra. Since big arrays
 open many files a remarkable delay between the end of a query and the representation of the result
 was detected. Since a query changes no data on disk syncronisation is not neccessary.
 
@@ -71,11 +71,18 @@ using namespace std;
 #include "StopWatch.h"
 #include "CacheInfo.h"
 #include "WinUnix.h"
-
 #ifndef SECONDO_WIN32
 #include <libgen.h>
 #include <unistd.h>
 #endif
+
+/* For sending messages */
+#include<iostream>
+#include "NestedList.h"
+#include "Messages.h"
+
+
+static MessageCenter* smi_msg = MessageCenter::GetInstance();
 
 /* --- Prototypes of internal functions --- */
 
@@ -98,7 +105,7 @@ string         SmiEnvironment::database;
 string         SmiEnvironment::registrar;
 SmiEnvironment::SmiType SmiEnvironment::smiType = SmiEnvironment::SmiBerkeleyDB;
 
-u_int32_t      
+u_int32_t
 SmiEnvironment::Implementation::AutoCommitFlag = DB_AUTO_COMMIT;
 
 SmiEnvironment::Implementation::Implementation()
@@ -112,7 +119,7 @@ SmiEnvironment::Implementation::Implementation()
   SmiDbHandleEntry dummy = { 0, false, 0 };
   dbHandles.push_back( dummy );
   firstFreeDbHandle = 0;
-  
+
 }
 
 SmiEnvironment::Implementation::~Implementation()
@@ -133,14 +140,14 @@ DbHandleIndex
 SmiEnvironment::Implementation::AllocateDbHandle()
 {
   DbHandleIndex idx = instance.impl->firstFreeDbHandle;
-  
+
   if ( idx == 0 )
   {
     // --- Allocate new handle entry
     if ( instance.impl->dbHandles.size() >=
          instance.impl->dbHandles.capacity() )
     {
-      instance.impl->dbHandles.reserve( instance.impl->dbHandles.size() 
+      instance.impl->dbHandles.reserve( instance.impl->dbHandles.size()
                                         + DEFAULT_DBHANDLE_ALLOCATION_COUNT );
     }
     SmiDbHandleEntry dummy = { 0, false, 0 };
@@ -153,7 +160,7 @@ SmiEnvironment::Implementation::AllocateDbHandle()
     instance.impl->firstFreeDbHandle = instance.impl->dbHandles[idx].nextFree;
   }
 
-  instance.impl->dbHandles[idx].handle   = 
+  instance.impl->dbHandles[idx].handle   =
   new Db( instance.impl->bdbEnv, DB_CXX_NO_EXCEPTIONS );
   instance.impl->dbHandles[idx].inUse    = true;
   instance.impl->dbHandles[idx].nextFree = 0;
@@ -175,8 +182,8 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 void
 SmiEnvironment::Implementation::CloseDbHandles()
 {
-  static bool traceHandles = 
-	        RTFlag::isActive("SMI:traceHandles") ? true : false; 
+  static bool traceHandles =
+	        RTFlag::isActive("SMI:traceHandles") ? true : false;
   SmiEnvironment::Implementation& env = (*(instance.impl));
   unsigned int size = env.dbHandles.size();
   int closed = 0;
@@ -186,7 +193,7 @@ SmiEnvironment::Implementation::CloseDbHandles()
     flag = DB_NOSYNC;
   }
 
-  if (traceHandles) 
+  if (traceHandles)
     cerr << "CloseDbHandles (size = " << size << ")" << endl;
   for ( DbHandleIndex idx = 1; idx < size; idx++ )
   {
@@ -195,39 +202,51 @@ SmiEnvironment::Implementation::CloseDbHandles()
     {
       closed++;
 
-      if (traceHandles) 
-      { 
+      if (traceHandles)
+      {
         const char* f;
         const char* d;
         instance.impl->dbHandles[idx].handle->get_dbname(&f, &d);
-        cerr << "closing handle for idx = " 
+        cerr << "closing handle for idx = "
              << idx << " (" << f << ")" << endl;
-      }	
+      }
       int rc = instance.impl->dbHandles[idx].handle->close( flag );
       SetBDBError(rc);
       delete instance.impl->dbHandles[idx].handle;
       instance.impl->dbHandles[idx].handle = 0;
-      instance.impl->dbHandles[idx].nextFree = 
+      instance.impl->dbHandles[idx].nextFree =
 	                              instance.impl->firstFreeDbHandle;
       instance.impl->firstFreeDbHandle = idx;
     }
   }
 
   if ( traceHandles ) {
-    cerr << "CloseDbHandles() - Report: size = " << size 
-         << ", closed = " << closed 
+    cerr << "CloseDbHandles() - Report: size = " << size
+         << ", closed = " << closed
          << ", nosync = " << dontSyncDiskCache << endl;
-  } 
+  }
 }
 
-SmiFileId 
+SmiFileId
 SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
 {
   SmiFileId newFileId = 0;
 
   if ( isTemporary )
   {
-    return (newFileId = ++instance.impl->tmpId);
+    newFileId = ++instance.impl->tmpId;
+    if ( RTFlag::isActive("SMI:LogFileCreation") )
+    {
+      // build a two elem list (simple count)
+      stringstream s;
+      s << newFileId;
+      NList msgList( NList("simple"), NList("GetFileId: " + s.str()));
+      // send the message, the message center will call
+      // the registered handlers. Normally the client applications
+      // will register them.
+      smi_msg->Send(msgList);
+    }
+    return newFileId;
   }
 
 
@@ -251,7 +270,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     db_recno_t seqno = SMI_SEQUENCE_FILEID;
     Dbt key( &seqno, sizeof(seqno) );
     Dbt data;
-    
+
     data.set_flags( DB_DBT_USERMEM );
     data.set_data( &newFileId );
     data.set_ulen( sizeof( newFileId ) );
@@ -306,7 +325,17 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
       SetBDBError(rc);
     }
   }
-
+  if ( RTFlag::isActive("SMI:LogFileCreation") )
+  {
+      // build a two elem list (simple count)
+    stringstream s;
+    s << newFileId;
+    NList msgList( NList("simple"), NList("GetFileId: " + s.str()));
+      // send the message, the message center will call
+      // the registered handlers. Normally the client applications
+      // will register them.
+    smi_msg->Send(msgList);
+  }
   return (newFileId);
 }
 
@@ -314,7 +343,7 @@ bool
 SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
                                                SmiCatalogEntry& entry )
 {
-  TRACE_ENTER	
+  TRACE_ENTER
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
@@ -340,7 +369,7 @@ SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
       SetBDBError( rc );
     }
 
-    // transaction initialized, lookup file 
+    // transaction initialized, lookup file
     if ( rc == 0 )
     {
       rc = dbidx->get( tid, &key, &data, 0 );
@@ -370,13 +399,13 @@ SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
       SetBDBError( rc );
     }
   }
-  else 
+  else
   {
     SetError2( E_SMI_CATALOG_LOOKUP, "Catalog Index not present!" );
     rc = E_SMI_CATALOG_LOOKUP;
   }
 
-  TRACE_LEAVE	
+  TRACE_LEAVE
   return (rc == 0);
 }
 
@@ -387,7 +416,7 @@ SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
 {
   Dbt key( (void*) fileName.c_str(), fileName.length() );
   return LookUpCatalog(key, entry);
-}    
+}
 
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
@@ -398,7 +427,7 @@ SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
 }
 
 bool
-SmiEnvironment::Implementation::InsertIntoCatalog( 
+SmiEnvironment::Implementation::InsertIntoCatalog(
                                    const SmiCatalogEntry& entry, DbTxn* tid )
 {
   if ( !dbOpened )
@@ -442,7 +471,7 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
 }
 
 bool
-SmiEnvironment::Implementation::DeleteFromCatalog( const string& fileName, 
+SmiEnvironment::Implementation::DeleteFromCatalog( const string& fileName,
                                                    DbTxn* tid )
 {
   if ( !dbOpened )
@@ -496,7 +525,7 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
 
   if ( rc == 0 )
   {
-    map<string,SmiCatalogFilesEntry>::iterator it = 
+    map<string,SmiCatalogFilesEntry>::iterator it =
       instance.impl->bdbFilesToCatalog.begin();
     for ( ; ok && it != instance.impl->bdbFilesToCatalog.end(); ++it )
     {
@@ -556,7 +585,7 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
     {
       Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
       int ret;
-      if ( (ret = dbp->remove( ConstructFileName( 
+      if ( (ret = dbp->remove( ConstructFileName(
                                      entry.fileId ).c_str(), 0, 0 )) != 0 )
       {
 	SetBDBError(ret);
@@ -577,7 +606,7 @@ SmiEnvironment::ListDatabases( string& dbname )
   dbname     = "";
 
   if ( dbctl )
-  { 
+  {
     try {
       // Acquire a cursor for the table.
       Dbc *dbcp;
@@ -607,7 +636,7 @@ SmiEnvironment::ListDatabases( string& dbname )
 }
 
 string
-SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId, 
+SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId,
                                                    const bool isTemporary )
 {
   ostringstream os;
@@ -619,21 +648,30 @@ SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId,
   {
     os << "t" << fileId << ".sdb";
   }
+  if ( RTFlag::isActive("SMI:LogFileCreation") )
+  {
+      // build a two elem list (simple count)
+    NList msgList( NList("simple"), NList("ConstructFileName: " + os.str()));
+      // send the message, the message center will call
+      // the registered handlers. Normally the client applications
+      // will register them.
+    smi_msg->Send(msgList);
+  }
   return (os.str());
 }
 
 bool
 SmiEnvironment::Implementation::LookUpDatabase( const string& dbname )
 {
-  const int MAX = 1024;	
-  bool  ok = false;   
+  const int MAX = 1024;
+  bool  ok = false;
   int  rc = 0, len = 0;
   char buf[MAX+1];
   Db*    dbctl = instance.impl->bdbDatabases;
 
   if ( dbctl )
-  { 
-    // truncate string if necessary	  
+  {
+    // truncate string if necessary
     len = dbname.length();
     if (len > MAX)
       len = MAX;
@@ -644,9 +682,9 @@ SmiEnvironment::Implementation::LookUpDatabase( const string& dbname )
     Dbt data(buf, len + 1);
     rc = dbctl->get( 0, &key, &data, 0 );
     if ( !(rc == 0 || rc == DB_NOTFOUND || rc == DB_KEYEMPTY) )
-      SetBDBError( rc );	    
+      SetBDBError( rc );
     // the operation is only successful if the key was found
-    ok = (rc == 0); 
+    ok = (rc == 0);
   }
   return (ok);
 }
@@ -654,12 +692,12 @@ SmiEnvironment::Implementation::LookUpDatabase( const string& dbname )
 bool
 SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
 {
-  const int MAX = 1024;	
-  bool  ok = false;   
+  const int MAX = 1024;
+  bool  ok = false;
   int  rc = 0;
 
   Db*  dbctl = instance.impl->bdbDatabases;
-  
+
   int len;
   char buf[MAX+1];
   len = dbname.length();
@@ -672,7 +710,7 @@ SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
   Dbt key(buf, len + 1);
   Dbt data(buf, len + 1);
   rc = dbctl->put(0, &key, &data, DB_NOOVERWRITE | AutoCommitFlag);
-  SetBDBError( rc );	    
+  SetBDBError( rc );
 
   ok = (rc == 0);
   return (ok);
@@ -681,7 +719,7 @@ SmiEnvironment::Implementation::InsertDatabase( const string& dbname )
 bool
 SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 {
-  const int MAX = 1024;	
+  const int MAX = 1024;
   bool   ok = false;
   int    rc = 0, len;
   char buf[MAX+1];
@@ -699,7 +737,7 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
     Dbt key(buf, len + 1);
 
     rc = dbctl->del( 0, &key, AutoCommitFlag );
-    SetBDBError( rc );	    
+    SetBDBError( rc );
 
     ok = (rc == 0);
   }
@@ -718,7 +756,7 @@ SmiEnvironment::~SmiEnvironment()
 }
 
 void
-SmiEnvironment::SetSmiError( const SmiError smiErr, 
+SmiEnvironment::SetSmiError( const SmiError smiErr,
 		             const int sysErr, const string& file, int pos )
 {
   if ( sysErr != 0 )
@@ -739,20 +777,20 @@ SmiEnvironment::SetHomeDir(const string& parmFile)
                                      FileSystem::GetCurrentFolder(), 2 );
     FileSystem::AppendSlash(parentDir);
     string defaultHome = parentDir + "secondo-databases";
-    string secondoHome = SmiProfile::GetParameter( "Environment", 
-                                                   "SecondoHome", 
+    string secondoHome = SmiProfile::GetParameter( "Environment",
+                                                   "SecondoHome",
                                                    "", parmFile.c_str() );
 
     bool useDefaultHome = false;
     if ( secondoHome == "" ) {
       cerr << "Warning: Missing definition of "
-           << "SecondoHome in the configuration file!" << endl; 
+           << "SecondoHome in the configuration file!" << endl;
       useDefaultHome = true;
 
     } else { // SecondoHome is defined
 
       if (!FileSystem::FileOrFolderExists(secondoHome)) {
-        cerr << "Warning: The folder SecondoHome='" << secondoHome 
+        cerr << "Warning: The folder SecondoHome='" << secondoHome
              << "' does not exist!" << endl;
         useDefaultHome = true;
       }
@@ -763,9 +801,9 @@ SmiEnvironment::SetHomeDir(const string& parmFile)
       secondoHome = defaultHome;
 
       if (!FileSystem::FileOrFolderExists(secondoHome)) {
-        cerr << "Creating default directory ..." << endl; 
+        cerr << "Creating default directory ..." << endl;
         if (!FileSystem::CreateFolder(secondoHome)) {
-          cerr << "Error: Could not create folder '" << secondoHome 
+          cerr << "Error: Could not create folder '" << secondoHome
                <<"'." << endl;
           return false;
         }
@@ -773,9 +811,9 @@ SmiEnvironment::SetHomeDir(const string& parmFile)
         cerr << "Using default directory ..." << endl;
       }
     }
-    // Tests for a bug concerning assert, refer to 
+    // Tests for a bug concerning assert, refer to
     // SecondoConfig.ini for details!
-    //assert(false); -> aborts as expected! 
+    //assert(false); -> aborts as expected!
     cerr << "Database directory: SecondoHome='" << secondoHome << "'." << endl;
     //assert(false); ** call of __assert_fail causes a SIGSEGV!
     instance.impl->bdbHome = secondoHome;
@@ -790,11 +828,11 @@ SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
 
     DbEnv* dbtmp = instance.impl->tmpEnv;
     assert(dbtmp);
-   
+
     // define a prefix for additional error messages
     dbtmp->set_error_stream( &errStream );
     dbtmp->set_errpfx( "DbEnv-Tmp" );
-    
+
     // define a temporary directory
     string oldHome = FileSystem::GetCurrentFolder();
     FileSystem::SetCurrentFolder( instance.impl->bdbHome );
@@ -804,7 +842,7 @@ SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
 
     instance.impl->tmpHome = tmpHome.str();
     string bdbTmpHome = instance.impl->bdbHome + PATH_SLASH + tmpHome.str();
-                
+
     rc = dbtmp->set_cachesize( 0, 32*1024*1024, 0);
     SetBDBError(rc);
 
@@ -812,7 +850,7 @@ SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
                       DB_PRIVATE | DB_INIT_MPOOL | DB_CREATE, 0 );
     SetBDBError(rc);
     FileSystem::SetCurrentFolder( oldHome );
-    
+
     return rc;
 }
 
@@ -829,7 +867,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
   if ( RTFlag::isActive("SMI:NoTransactions") ) {
     SmiEnvironment::Implementation::AutoCommitFlag = 0;
     cout << endl << "Transactions: unused" << endl;
-  } 
+  }
 
   int rc = 0;
   int errors = GetNumOfErrors();
@@ -840,9 +878,9 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   // --- Set the name of the registrar for registering and locking databases
 
-  registrar = SmiProfile::GetParameter( "Environment", 
-                                        "RegistrarName", 
-                                        "SECONDO_REGISTRAR", parmFile ); 
+  registrar = SmiProfile::GetParameter( "Environment",
+                                        "RegistrarName",
+                                        "SECONDO_REGISTRAR", parmFile );
 
   // --- Set output stream for error messages from Berkeley DB
   //     and the prefix string for these messages
@@ -857,8 +895,8 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   // --- Set cache size
 
-  u_int32_t cachesize = 
-    SmiProfile::GetParameter( "BerkeleyDB", 
+  u_int32_t cachesize =
+    SmiProfile::GetParameter( "BerkeleyDB",
                               "CacheSize", CACHE_SIZE_STD, parmFile );
   if ( cachesize < CACHE_SIZE_STD )
   {
@@ -875,24 +913,24 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
   // --- Set locking configuration
 
     u_int32_t lockValue;
-    lockValue = SmiProfile::GetParameter( "BerkeleyDB", 
-                                          "MaxLockers", 
+    lockValue = SmiProfile::GetParameter( "BerkeleyDB",
+                                          "MaxLockers",
                                           0, parmFile.c_str() );
     if ( lockValue > 0 )
     {
       rc = dbenv->set_lk_max_lockers( lockValue );
       SetBDBError(rc);
     }
-    lockValue = SmiProfile::GetParameter( "BerkeleyDB", 
-                                          "MaxLocks", 
+    lockValue = SmiProfile::GetParameter( "BerkeleyDB",
+                                          "MaxLocks",
                                           0, parmFile.c_str() );
     if ( lockValue > 0 )
     {
       rc = dbenv->set_lk_max_locks( lockValue );
       SetBDBError(rc);
     }
-    lockValue = SmiProfile::GetParameter( "BerkeleyDB", 
-                                          "MaxLockObjects", 
+    lockValue = SmiProfile::GetParameter( "BerkeleyDB",
+                                          "MaxLockObjects",
                                           0, parmFile.c_str() );
     if ( lockValue > 0 )
     {
@@ -904,8 +942,8 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   // --- Set log directory, if requested
 
-    string logDir = SmiProfile::GetParameter( "BerkeleyDB", 
-                                              "LogDir", 
+    string logDir = SmiProfile::GetParameter( "BerkeleyDB",
+                                              "LogDir",
                                               "", parmFile.c_str() );
     if ( logDir.length() > 0 )
     {
@@ -915,11 +953,11 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   // --- Set log buffer size
   u_int32_t lBufSize = 0;
-  lBufSize = SmiProfile::GetParameter( "BerkeleyDB", 
-                                       "LogBufSize", 
+  lBufSize = SmiProfile::GetParameter( "BerkeleyDB",
+                                       "LogBufSize",
                                        0 , parmFile.c_str() );
   if ( lBufSize > 0 )
-  {	  
+  {
     cout << "Log buffer size: " << lBufSize << " kb." << endl;
     rc = dbenv->set_lg_max( 4 * lBufSize * 1024 );
     SetBDBError(rc);
@@ -932,8 +970,8 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
   if ( rc == 0 )
   {
     if ( !SetHomeDir(parmFile) )
-      return false;         
-    
+      return false;
+
     u_int32_t flags = 0;
     switch ( mode )
     {
@@ -992,12 +1030,12 @@ Transactions, logging and locking are enabled.
     }
     rc = dbenv->open( instance.impl->bdbHome.c_str(), flags, 0 );
     SetBDBError(rc);
-    
+
     if (rc == 0) {
     // --- Open Database Catalog
 
     Db* dbctlg = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-    rc = dbctlg->open( 0, "databases", 0, DB_BTREE, 
+    rc = dbctlg->open( 0, "databases", 0, DB_BTREE,
                        DB_CREATE | Implementation::AutoCommitFlag, 0 );
     SetBDBError(rc);
     if ( rc == 0 )
@@ -1013,7 +1051,7 @@ Transactions, logging and locking are enabled.
       instance.impl->bdbDatabases = 0;
     }
   }
-  }  
+  }
 
   db_timeout_t microSeconds = 0;
   rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
@@ -1024,15 +1062,15 @@ Transactions, logging and locking are enabled.
 
   // --- Create temporary Berkeley DB environment
 
-  rc = CreateTmpEnvironment(errStream); 
+  rc = CreateTmpEnvironment(errStream);
   smiStarted = smiStarted && (rc == 0);
 
   if (GetNumOfErrors() > errors) {
     cout << "Some errors happend during startup!" << endl;
-    string errorStack="";	    
+    string errorStack="";
     GetLastErrorCode(errorStack);
-    cout << errorStack << endl;    
-  }	  
+    cout << errorStack << endl;
+  }
 
   return smiStarted;
 }
@@ -1120,7 +1158,7 @@ SmiEnvironment::CreateDatabase( const string& dbname )
           RegisterDatabase( database );
           dbOpened = ok = true;
           SetError( E_SMI_OK );
-        }        
+        }
         else
         {
           SetError( E_SMI_DB_CREATE );
@@ -1148,7 +1186,7 @@ SmiEnvironment::CreateDatabase( const string& dbname )
 SI_Error
 SmiEnvironment::OpenDatabase( const string& dbname )
 {
-  TRACE_ENTER	
+  TRACE_ENTER
   SI_Error ok = ERR_NO_ERROR;
 
   if ( dbOpened )
@@ -1173,7 +1211,7 @@ SmiEnvironment::OpenDatabase( const string& dbname )
     ok = ERR_IDENT_UNKNOWN_DB_NAME;
   }
 
-  TRACE_LEAVE	
+  TRACE_LEAVE
   return (ok);
 }
 
@@ -1212,7 +1250,7 @@ SmiEnvironment::CloseDatabase()
     delete dbseq;
     instance.impl->bdbSeq = 0;
   }
-  
+
 
   // --- Close Berkely DB filecatalog and associated index
 
@@ -1351,12 +1389,12 @@ SmiEnvironment::CommitTransaction()
       }
       SetBDBError( rc );
     }
-                
+
     StopWatch closeTime; // measure time for closing DbHandles
     LOGMSG( "SMI:DbHandles",
            cerr << "Calling CloseDbHandles() ..." << endl;
     )
-                
+
     if ( rc == 0 )
     {
       SmiEnvironment::Implementation::CloseDbHandles();
@@ -1367,11 +1405,11 @@ SmiEnvironment::CommitTransaction()
       SmiEnvironment::Implementation::CloseDbHandles();
       SmiEnvironment::Implementation::EraseFiles( false );
     }
-                
+
     LOGMSG( "SMI:DbHandles",
       cerr << "Time for CloseDbHandles(): " << closeTime.diffTimes() << endl;
     )
-                
+
     instance.impl->txnStarted = false;
     instance.impl->txnMustAbort = false;
     instance.impl->usrTxn = 0;
@@ -1426,7 +1464,7 @@ SmiEnvironment::AbortTransaction()
 bool
 SmiEnvironment::InitializeDatabase()
 {
-  TRACE_ENTER	
+  TRACE_ENTER
 
   int rc = 0;
   string prefix = database+PATH_SLASH;
@@ -1441,12 +1479,12 @@ SmiEnvironment::InitializeDatabase()
 
   Db* dbseq = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
   dbseq->set_re_len( sizeof( SmiFileId ) );
-  rc = dbseq->open( 0, dbseqFileName.c_str(), 0, DB_QUEUE, 
+  rc = dbseq->open( 0, dbseqFileName.c_str(), 0, DB_QUEUE,
                     DB_CREATE | Implementation::AutoCommitFlag, 0 );
   if ( rc == 0 )
   {
     instance.impl->bdbSeq = dbseq;
-  } 
+  }
   else
   {
     instance.impl->bdbSeq = 0;
@@ -1461,7 +1499,7 @@ SmiEnvironment::InitializeDatabase()
     dbctl = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
     dbidx = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 
-    rc = dbctl->open( 0, dbctlFileName.c_str(), 0, DB_BTREE, 
+    rc = dbctl->open( 0, dbctlFileName.c_str(), 0, DB_BTREE,
                       DB_CREATE | Implementation::AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
@@ -1474,7 +1512,7 @@ SmiEnvironment::InitializeDatabase()
         SetBDBError(rc);
     }
 
-    rc = dbidx->open( 0, dbidxFileName.c_str(), 0, DB_BTREE, 
+    rc = dbidx->open( 0, dbidxFileName.c_str(), 0, DB_BTREE,
                       DB_CREATE | Implementation::AutoCommitFlag, 0 );
     if ( rc == 0 )
     {
@@ -1490,7 +1528,7 @@ SmiEnvironment::InitializeDatabase()
     // --- Associate the secondary key with the primary key
     if ( rc == 0 )
     {
-      rc = dbctl->associate( 0, dbidx, getfilename, 
+      rc = dbctl->associate( 0, dbidx, getfilename,
                              Implementation::AutoCommitFlag );
       SetBDBError(rc);
     }
@@ -1538,7 +1576,7 @@ SmiEnvironment::InitializeDatabase()
     }
   }
 
-  TRACE_LEAVE	
+  TRACE_LEAVE
   return (rc == 0);
 }
 
@@ -1547,11 +1585,11 @@ SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
 {
 
   DbEnv* dbenv = instance.impl->bdbEnv;
-  
+
   DB_MPOOL_STAT* gsp;
-  DB_MPOOL_FSTAT** fsp; 
+  DB_MPOOL_FSTAT** fsp;
   int rc = dbenv->memp_stat( &gsp, &fsp, DB_STAT_CLEAR);
-  
+
   ci.bytes = gsp->st_bytes;
   ci.regsize = gsp->st_regsize;
   ci.cache_hit = gsp->st_cache_hit;
@@ -1562,13 +1600,13 @@ SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
   ci.pages = gsp->st_pages;
 
   // copy the number of file statistics
-  if (fsp != 0) 
+  if (fsp != 0)
   {
-     while (*fsp != 0) 
+     while (*fsp != 0)
      {
        FileInfo* fstat = new FileInfo;
-       DB_MPOOL_FSTAT& fs = **fsp; 
-       
+       DB_MPOOL_FSTAT& fs = **fsp;
+
        fstat->file_name = fs.file_name;
        fstat->pagesize = fs.st_pagesize;
        fstat->cache_hit = fs.st_cache_hit;
@@ -1576,12 +1614,12 @@ SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
        fstat->page_create = fs.st_page_create;
        fstat->page_in = fs.st_page_in;
        fstat->page_out = fs.st_page_out;
-      
+
        fi.push_back( fstat );
        fsp++;
-     }  
+     }
   }
-  
+
   return (rc == 0);
 }
 

@@ -1,6 +1,6 @@
 # This file is part of SECONDO.
 
-# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Copyright (C) 2004, University in Hagen, Department of Computer Science,
 # Database Systems for New Applications.
 
 # SECONDO is free software;  you can redistribute it and/or modify
@@ -22,19 +22,19 @@
 # This is an example file. copy or rename it to SecondoConfig.ini
 #
 # Note: every parameter explained below can be overruled by an environment
-# variable with name SECONDO_PARAM_<keyname>, 
+# variable with name SECONDO_PARAM_<keyname>,
 # e.g.: export SECONDO_PARAM_SecondoHome="/tmp/databases"
 
 [Environment]
 # Home directory of Secondo database, in fact the place where the Berkeley DB will
 # store all record files used by Secondo. Note: By default, the directory /home/secondo-databases
-# is used for the Berkeley DB files. A directory different from this will be used iff it is 
+# is used for the Berkeley DB files. A directory different from this will be used iff it is
 # specified below AND it exists!
 # Note: On windows you need absolute path names, e.g.
-# C:\msys\1.0\home\user\secondo-dbtest 
+# C:\msys\1.0\home\user\secondo-dbtest
 SecondoHome=/home/databases1
 
-# Algebralevel after startup (Executable|Descriptive|Hybrid). 
+# Algebralevel after startup (Executable|Descriptive|Hybrid).
 AlgebraLevel=Executable
 
 # Name of the local socket of the Secondo registrar
@@ -52,9 +52,9 @@ SecondoHost=127.0.0.1
 # Port of the Secondo server (default: )
 SecondoPort=1234
 
-# Runtime Flags (refer to class RTFlags). This key can be used to define 
-# a comma separated list of runtime flags which switch on some special messages 
-# (for debugging or profiling) or some features like creating binary 
+# Runtime Flags (refer to class RTFlags). This key can be used to define
+# a comma separated list of runtime flags which switch on some special messages
+# (for debugging or profiling) or some features like creating binary
 # list formats for CS-communication. Please document new flags otherwise
 # this mechanism is not useful. Note: a += assignment will extend the list.
 # It is also possible to change flags interactively by typing
@@ -77,26 +77,26 @@ SecondoPort=1234
 RTFlags += SI:PrintCmdTimes
 
 # Supress to measure cpu-time, real-time
-# for all steps of query processing 
-RTFlags += SI:NoQueryTimers 
+# for all steps of query processing
+RTFlags += SI:NoQueryTimers
 
 # Suppress the output of the command in NL format before execution
-RTFlags += SI:NoCommandEcho 
+RTFlags += SI:NoCommandEcho
 
 # Various statistical information about tuples and relations.
-#RTFlags += SI:RelStatistics 
+#RTFlags += SI:RelStatistics
 
-# Print out nested list of the result before copying it into 
+# Print out nested list of the result before copying it into
 # the applications list memory.
 #RTFlags += SI:ResultList
 
 
-# passwords: uncomment this line if you want to 
-# restrict the access to secondo 
+# passwords: uncomment this line if you want to
+# restrict the access to secondo
 #RTFlags += SI:UsePasswd
 
 #File containing the passwords, default is "passwd"
- 
+
 #PASSWD_FILE=passwd
 
 
@@ -110,12 +110,12 @@ RTFlags +=  Server:BinaryTransfer
 # If set, a result.bnl file is created on the server side.
 #RTFlags += Server:ResultFile
 
-# Measure the time for writing the result list to the socket object. 
+# Measure the time for writing the result list to the socket object.
 #RTFlags += Server:SendTimeMsg
 
 
 ###
-### SMI 
+### SMI
 ###
 
 # Switch off the transaction and logging subsystem of Berkeley-DB
@@ -123,15 +123,19 @@ RTFlags += SMI:NoTransactions
 
 #RTFlags += SMI:DbHandles
 
-# Show how often the requested buffersize could not be 
-# transferred and the number of sleep calls; 
+# Show how often the requested buffersize could not be
+# transferred and the number of sleep calls;
 #RTFlags += Socket:SendStat
+
+# Send a "simple" message to the message center, when requesting for a new file
+# id or construnction of a filename
+#RTFlags += SMI:LogFileCreation
 
 ###
 ### ALGEBRA SPECIFIC SWITCHES
 ###
 
-# Print out messages in methods of the FTextAlgebra. 
+# Print out messages in methods of the FTextAlgebra.
 #RTFlags += FText:Trace
 
 # Print extra output in the ExtRelationAlgebra
@@ -157,7 +161,7 @@ RTFlags += SMI:NoTransactions
 #RTFlags += NLParser:Debug
 #RTFlags += NL:BinaryListDebug
 
-# Uncomment the next line if you don't want 
+# Uncomment the next line if you don't want
 # to see a stack trace when Secondo chrashes.
 # Note: The stack trace is not available on windows!
 RTFlags += DEBUG:DemangleStackTrace
@@ -185,11 +189,11 @@ ProgProt=0
 # in the bin-folder (1 enables, 0 disables)
 ProgLog=1
 
-# ProgTypeCard controls the progress estimation by using the message 
+# ProgTypeCard controls the progress estimation by using the message
 # CARDINALITY (1 enables, 0 disables)
 ProgTypeCard = 0
 
-# ProgTypeProg controls the progress estimation by using the message 
+# ProgTypeProg controls the progress estimation by using the message
 # PROGRESS (1 enables, 0 disables)
 ProgTypeProg = 1
 
@@ -227,5 +231,5 @@ MaxLockObjects=3000000
 [Default]
 #Bdbxxx=
 
-######### End of Secondo Configuration ########### 
+######### End of Secondo Configuration ###########
 
