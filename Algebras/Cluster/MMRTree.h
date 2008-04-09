@@ -1,3 +1,4 @@
+
 /*
 ----
 This file is part of SECONDO.
@@ -64,7 +65,6 @@ class.
 
 template<unsigned dim> class Rtree;
 
-
 template<unsigned dim>
 class Node{
 friend class Rtree<dim>;
@@ -130,6 +130,35 @@ array managing the sons are removed.
       }
    }
 
+/*
+1.4 getLabel
+
+*/
+  string getLabel() const{
+    stringstream s; 
+    if(max <0){
+      s << "' o: " << count << "'";  
+    } else {
+      s << "' (";
+      for(unsigned int i=0;i<dim;i++){
+        if(i!=0){
+           s << ", ";
+        }
+        s << box.MinD(i);
+      }
+      s << " ) -> (";
+      for(unsigned int i=0;i<dim;i++){
+        if(i!=0){
+           s << ", ";
+        }
+        s << box.MaxD(i);
+      }
+      s << ") '";
+    }
+    return s.str();
+  }
+
+
    
 
 private:
@@ -171,10 +200,6 @@ the result will be false.
 */
   bool append(Node* entry){
    assert(count <= max);
-
-   //cout << "try to insert an entry into" ;    
-   //Print(cout); 
-   //cout << endl;
 
    assert(entry->box.IsDefined());
    sons[count] = entry;
@@ -235,6 +260,20 @@ bool checkBox(bool print = true) const{
   return res;
 }
 
+
+void recomputeBox() {
+  if(max<0){ // an object node
+     return;
+  }
+  if(count == 0){
+    box.SetDefined(false);
+  } else {
+    box = sons[0]->box;
+    for(int i=0;i<count;i++){
+      box =  box.Union(sons[i]->box);
+    }
+  }
+}
 
 /*
 ~selectFittestSon~
@@ -352,7 +391,7 @@ Removes the entry at position entry from this node.
 If there is an underflow, the result will be false.
 
 */
-bool remove(int index,bool updateBox = false){
+bool remove(int index, bool updateBox = false){
    for(int i=index;i<count-1;i++){
      sons[i] = sons[i+1];
    }
@@ -367,7 +406,7 @@ bool remove(int index,bool updateBox = false){
          }
       }
    }
-   return count > min;
+   return count >= min;
 }
 
 /*
@@ -478,7 +517,7 @@ parameters for the minimum/ maximum number of entries within a node.
    Rtree(int min, int max){
       assert(max>=2);
       assert(min>0);
-      assert(min<max);
+      assert(min<=max/2);
       this->min=min;
       this->max = max;
       root = 0;
@@ -507,14 +546,46 @@ Inserts a box together with an id into the R-Tree.
 /*
 2.3 ~findAll~
 
-Resturns all object's ids stored in the tree where the box 
+Returns all object's ids stored in the tree where the box 
 intersects ~box~. 
 
 */
-  void findAll(const Rectangle<dim> box, set<long>& res){
+  void findAll(const Rectangle<dim> box, set<long>& res)const{
      res.clear();
      findAllRec(root,box,res);
   } 
+
+
+/*
+2.4 ~erase~
+
+Erases the entries of ~id~ found at positions intersecting by box.
+
+*/
+  void erase(const Rectangle<dim> box, long id){
+
+     set<pair < int , Node<dim>*> > Q;
+     Q.clear();
+     if(eraseRec(root,box,id, Q,0)){
+        if(root->count==0  && root->isLeaf()){ // last entry removed
+           root = 0;
+        }
+
+
+        if(Q.size() > 0){
+           insert(Q);
+        }
+        if((root!=0) && (root->count == 1) &&(!root->isLeaf())){
+           Node<dim>* victim = root;
+           root = root->sons[0];
+           delete victim;
+           
+        } 
+     }
+  }
+
+
+
 
 /*
 2.4 ~printStats~
@@ -620,6 +691,40 @@ Prints the content of the subtree given by root as relation to o.
        }
 
    } 
+
+/*
+~printAsTree~
+
+
+
+*/
+
+void printAsTree(ostream& o) const {
+   o << "( tree " << endl;
+   printAsTreeRec(root,o);
+   o << ")"; 
+}
+
+
+void printAsTreeRec(const Node<dim>* root, ostream& o)const {
+   if(!root){
+      o << "()" << endl;
+   } else {
+      o << "(" 
+        << root->getLabel() << "  " ;
+     if(root->max >0){ // not an object node
+        o << "(";
+        for(int i=0;i<root->count ; i++){
+          printAsTreeRec(root->sons[i],o);
+        }
+        o << ")"; 
+     } else {
+       o << "()" ; 
+     }
+     o << ")" << endl;
+   }
+}
+
 
 
 /*
@@ -748,13 +853,95 @@ returned as result. In the other case, the result will be 0.
    }
 
 /*
+~insert~
+
+Inserts a  set of subtrees at the specified levels. This function supports the
+~erase~ function. 
+
+*/
+void insert(const set<pair < int , Node<dim>* > >&  Q){
+   int levelDiff = 0; // store the grow of the tree
+   typename set<pair < int , Node<dim>*> >::iterator it;
+   for(it = Q.begin(); it!=Q.end(); it++){
+      pair<int, Node<dim>*> node = *it;     
+      int level = node.first<0?node.first:node.first+levelDiff;
+      if(insertNodeAtLevel(level, node.second)){
+        levelDiff++;
+      }
+   }
+}
+
+/*
+Inserts a node at the specified level. If the tree grows, true is 
+returned.
+
+*/
+bool insertNodeAtLevel(int level, Node<dim>* node){
+  if(!root){
+     root = new Node<dim>(min,max);
+  }
+  pair<Node<dim>*, Node<dim>* >* res = insertRecAtLevel(root,node, level,0); 
+  if(!res){ // tree does not grow
+     return false;
+  } else {
+    delete root;
+    root = new Node<dim>(min,max);
+    root->append(res->first);
+    root->append(res->second);
+    delete res;
+    return true;
+  }
+}
+
+
+pair<Node<dim>*, Node<dim>* >* 
+  insertRecAtLevel(Node<dim>*& root,  Node<dim>* node, 
+                   const int targetLevel, const int currentLevel){
+    if(root->isLeaf() || (targetLevel == currentLevel) ){
+      if(root->append(node)){ // no overflow
+        return 0;
+      } else { // overflow
+        pair<Node<dim>*, Node<dim>*> res = root->split();
+        delete root;
+        root = 0;
+        return new pair<Node<dim>*, Node<dim>*>(res);
+      }
+    } else { // not the target node
+      int index = root->selectFittestSon(node->box);
+      pair<Node<dim>*, Node<dim>*>* res;
+      res  = insertRecAtLevel(root->sons[index], node,
+                              targetLevel, currentLevel+1);
+      if(!res){ // son was not split
+        root->box = root->box.Union(node->box);
+        return 0;   
+      }else {
+        root->sons[index] = res->first; // replace old son by a split node
+        root->box = root->box.Union(res->first->box); 
+        if(root->append(res->second)){ // no overflow
+           delete res;
+           return 0;
+        } else { 
+           delete res;
+           res = new pair<Node<dim>*, Node<dim>*>(root->split());
+           delete root;
+           root = 0;
+           return res;
+        }
+      }
+    }
+ }
+
+
+/*
 ~findAllRec~
 
 Searches in the subtree givben by root for objects whose
 bounding box intersects ~box~ and collect them in ~res~.
 
 */   
-   void findAllRec(Node<dim>* root,const Rectangle<dim>& box, set<long>& res){
+   void findAllRec(const Node<dim>* root,
+                   const Rectangle<dim>& box,
+                   set<long>& res)const{
      if(!root){
         return;
      } else if(root->isLeaf()){
@@ -771,7 +958,192 @@ bounding box intersects ~box~ and collect them in ~res~.
        }
      }
    }
+
+
+/* 
+Erases one occurence of id.
+
+If ~root~ is 0, nothing is doed. Otherwise, if root is underflowed by
+erasing the entry, root is deleted and the remaining subtrees are
+inserted into Q. An exception is the root of the tree which is not
+removed even if  0 entries  left in the root.
+
+*/
+bool eraseRec(Node<dim>*& root,const Rectangle<dim>& box, const long id,
+              set<pair < int, Node<dim>*> >& Q, int level){
+
+    if(!root){ // tree is empty, doe nothing
+       return false;
+    } else if(root->isLeaf()){
+       // try find the object node having the corresponding id
+       int index = -1;
+       for(int i=0;i<root->count && index < 0;i++){
+          if(root->sons[i]->count == id){
+              index = i;
+          }
+       }
+       if(index < 0){  // id not found within this node
+          return false;
+       }
+       bool under = !root->remove(index,true);
+       if( under && (root != this->root)){ // an underflow
+          // insert all remaining leaves into Q
+          for(int i=0;i<root->count; i++){
+             Q.insert(make_pair(-1, root->sons[i]));
+          }
+          delete root; // delete the underflowed node
+          root = 0;
+       }
+       return true;  // deletion successful
+    } else { // root is an inner node
+      int index = -1;
+      for(int i=0;i<root->count && index <0 ; i++){
+         if(root->sons[i]->box.Intersects(box)){
+            if(eraseRec(root->sons[i], box, id, Q, level + 1)){
+               index = i;
+            }
+         }
+      } 
+      if(index < 0){ // id not found in this subtree
+        return false;  
+      }
+      if(root->sons[index]){ // no underflow
+         root->recomputeBox();
+         return true;
+      }
+      bool under = !root->remove(index,true);
+      if( !under || (root == this->root)){ // no underflow 
+         return true;
+      }
+      // an underflow in root because deletion of son[index]
+      // insert remaining subtrees into Q
+      for(int i=0;i<root->count;i++){
+         Q.insert(make_pair(level, root->sons[i]));
+      }
+      delete root;
+      root = 0;
+      return true;
+    }
+}
+
+
+/*
+~checkTree~
+
+This function checks the complete tree for RTree properties. 
+ - all leaves are on the same level
+ - all nodes have at most max sons
+ - all nodes without the root have at least min nodes 
+ - the bounding box a each node is the union of the boxes of its sons
+
+
+*/
+bool checkTree(const bool print = true)const{
+  return checkLeafLevel(root, print) &&
+         checkSonNumber (root,print,0 ) &&
+         checkBox(root,print,0);
+}
+
+bool checkBox(const Node<dim>* root, const bool print,const int level)const{
+   if(!root) {
+     return true;
+   } else {
+     if(!root->checkBox(print)){
+        if(print){
+           cout << "Wrong boxes at level " << level << endl;
+           cout << "There are " << root->count << "entries" << endl;
+        }
+        return false;
+     } 
+     if(!root->isLeaf()){
+        bool wrong = true;
+        for(int i=0;i<root->count && wrong;i++){
+           wrong = checkBox(root->sons[i],print,level+1);
+        } 
+        return wrong;
+     }
+     return true;
+   }
+}
+
+bool checkSonNumber(const Node<dim>* root,  
+                    const bool print,
+                    const int level) const{
+  if(!root){ // empty tree all ok
+    return true;
+  } else {
+
+    if(root->count > max){ // too much entries
+      if(print){
+          cout << "Node with more than " << max << " entries found " << endl;
+          cout << " problem at level " << level << endl;
+      }
+      return false;
+    }
+    if((level>0) ){ // not the root node
+      if((root->count) < (this->min)  ){ // too less entries
+        if(print){
+          cout << "Node with less than " << min << " entries found " << endl;
+          cout << "Problem at Level " << level << endl;
+        }
+        return false;
+      }
+    } 
+    if(!root->isLeaf()){
+       bool ok = true;
+       for(int i=0;i<root->count && ok; i++){
+          ok = checkSonNumber(root->sons[i],print,level + 1);
+       }
+       return ok;
+    }
+    return true;
+  }
+}
+
+
+
+
+bool checkLeafLevel(const Node<dim>* root, const bool print) const{
+  if(!root) { // empty tree
+    return true;
+  } else if(root->isLeaf()){ // a leave has correct height
+    return true;
+  } else { // not a leaf
+
+    int h = getHeight(root->sons[0]);
+    bool ok = true;
+    for(int i=1; i<root->count && ok ; i++){
+       ok = h == getHeight(root->sons[i]);
+    }
+    for(int i=0;i<root->count && ok; i++){
+       ok = checkLeafLevel(root->sons[i],print);
+    }
+    if(!ok && print){
+       cout << "Leaves on different levels found " << endl;
+    }
+    return ok;
+  }
+}
+
+int getHeight(const Node<dim>* root)const{
+   if(!root){
+     return -1;
+   }
+   int h = 0;
+   const Node<dim>* node =  root;
+   if(node->isLeaf()){
+      h++;
+      node = node->sons[0];
+   }
+   return h;
+}
+
+
+
+
 }; 
+
+
 
 
 

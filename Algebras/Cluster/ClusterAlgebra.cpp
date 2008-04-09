@@ -57,7 +57,6 @@ in the Eps-range to one of the points in the cluster, this point
 #include "../Temporal/TemporalAlgebra.h"
 #include "LogMsg.h"
 #include "RelationAlgebra.h"
-#include "PlugJoinAlgebra.h"
 
 #include "MMRTree.h"
 
@@ -1363,7 +1362,270 @@ int cluster_dFun (Word* args, Word& result, int message, Word& local,
 
 }
 
+/*
+1.3 Value Mapping for cluster[_]f
 
+Cluster[_]f implements the same slgoithms as cluster[_]e. 
+The difference is that this algoritms avoids the preprocessing step 
+to avoid large allocations of memory. Instead of that, an R-tree is
+used to manage the centers.
+
+*/
+
+class ClusterF_LocalInfo{
+
+public:
+/*
+~Constructor~
+
+Here, the complete work is done.
+
+*/
+  ClusterF_LocalInfo(Points* pts, CcReal* eps){
+    this->pts = static_cast<Points*>(pts->Copy());
+    if(!pts->IsDefined() || !eps->IsDefined()){
+      defined = false;
+      cluster = 0;
+      size = 0;
+    } else {
+      defined = true;   
+      size = pts->Size();
+      this->eps = max(FACTOR,eps->GetRealval());
+      this->eps2 = this->eps * this->eps;
+      cluster = new vector<cCluster>();
+      computeCluster();
+      pos=0;
+      no_cluster = cluster->size();
+    }
+  }  
+
+/*
+~Destructor~
+
+Destroys this structure.
+
+*/
+  ~ClusterF_LocalInfo(){
+      pts->DeleteIfAllowed();
+      if(cluster){
+        delete cluster;
+      }
+   }
+
+   Points* getNext(){
+     if(!defined){
+       return 0;
+     } else if (pos>= no_cluster){
+       return 0;
+     } else {
+       Points* res = new Points((*cluster)[pos].member.size());
+       res->StartBulkLoad();
+       set<int>::iterator it;
+       const Point* p;
+       for(it = (*cluster)[pos].member.begin(); 
+           it != (*cluster)[pos].member.end(); it++){
+         pts->Get(*it,p);
+         (*res) += *p;
+       }
+       res->EndBulkLoad();
+       pos++;
+       return res;
+     }
+   }
+
+/*
+2 Private Part
+
+
+*/
+private:
+/*
+~data members~
+
+*/
+
+  Points* pts;
+  double eps;
+  double eps2;
+  bool defined;
+  int size;
+  int pos;
+  int no_cluster;
+  vector<cCluster >* cluster;
+
+double qdist(const double x1,const  double y1, 
+             const double x2, const double y2) const{
+  double dx = x2-x1;
+  double dy = y2-y1;
+  return dx*dx + dy * dy;
+}
+
+
+int indexOfNearestCluster(const myrtree::Rtree<2>& tree, const Point& p) const{
+    int res = -1;
+    double bestDist = eps2 + 10.0;
+    double min[2];
+    double max[2];
+    double x = p.GetX();
+    double y = p.GetY();
+    min[0] = x - eps - FACTOR;
+    min[1] = y - eps - FACTOR;
+    max[0] = x + eps + FACTOR;
+    max[1] = y + eps + FACTOR;
+    Rectangle<2> searchbox(true,min,max);
+    set<long> cands;
+    tree.findAll(searchbox,cands);
+    set<long>::iterator it;
+    for(it = cands.begin(); it != cands.end(); it++){
+      cCluster c = (*cluster)[*it];
+      double d = qdist(c.cx,c.cy,x,y);
+      if(d <= eps2 & d < bestDist && !c.forbidden){
+        bestDist = d;
+        res = *it;
+      }
+    }
+    return res;
+}
+
+void insertPointSimple(const myrtree::Rtree<2>& tree, const int pos){
+   const Point* p;
+   pts->Get(pos,p);
+   int index = indexOfNearestCluster(tree,*p);
+    assert(index >= 0);
+    (*cluster)[index].member.insert(pos);
+}
+
+void insertPoint(myrtree::Rtree<2>& tree, const int pos){
+  const Point* p;
+  pts->Get(pos,p);
+  int index = indexOfNearestCluster(tree,*p);
+  double min[2];
+  double max[2];
+  double x = p->GetX();
+  double y = p->GetY();
+  if(index <0){ // no appropriate cluster found, build a new one
+     cCluster c;
+     c.cx = x;
+     c.cy = y;
+     c.member.insert(pos);
+     c.forbidden = false;
+     cluster->push_back(c);
+     min[0] = x - FACTOR;
+     min[1] = y - FACTOR;
+     max[0] = x + FACTOR;
+     max[1] = y + FACTOR;
+     Rectangle<2> box(true,min,max);
+     tree.insert(box,cluster->size()-1);
+     return;
+  }
+  
+  (*cluster)[index].member.insert(pos);
+  double cx = (*cluster)[index].cx;
+  double cy = (*cluster)[index].cy;
+  int s = (*cluster)[index].member.size();
+  (*cluster)[index].cx = ( (cx * (s - 1.0) + x) / s);
+  (*cluster)[index].cy = ( (cy * (s - 1.0) + y) / s); 
+
+  min[0] = cx - FACTOR;
+  min[1] = cy - FACTOR;
+  max[0] = cx + FACTOR;
+  max[1] = cy + FACTOR;
+  Rectangle<2> erasebox(true,min,max);
+  tree.erase(erasebox, index);
+
+  min[0] = (*cluster)[index].cx - FACTOR;
+  min[1] = (*cluster)[index].cy - FACTOR;
+  max[0] = (*cluster)[index].cx + FACTOR;
+  max[1] = (*cluster)[index].cy + FACTOR;
+  Rectangle<2> newCenter(true,min,max);
+  tree.insert(newCenter,index);
+  
+  repairClusterAt(index,tree);
+}
+
+void repairClusterAt(const int index, myrtree::Rtree<2>& tree){
+  (*cluster)[index].forbidden = true;
+  double cx = (*cluster)[index].cx;
+  double cy = (*cluster)[index].cy;
+  set<int> wrong;
+  set<int>::iterator it;
+  const Point * p;
+  for(it = (*cluster)[index].member.begin(); 
+      it!= (*cluster)[index].member.end(); it++){
+      pts->Get(*it,p);
+      double d = qdist(cx,cy, p->GetX(),p->GetY());
+      if(d>eps2){
+        wrong.insert(*it);
+      }  
+  }
+
+  for( it=wrong.begin(); it!=wrong.end(); it++){
+     (*cluster)[index].member.erase(*it);
+  }
+      
+  for( it=wrong.begin(); it!=wrong.end(); it++){
+     insertPoint(tree,*it);
+  }
+
+
+  (*cluster)[index].forbidden = false;
+
+
+}
+
+
+void computeCluster(){
+   myrtree::Rtree<2> tree(10,30);
+   for(int i=0;i<size;i++){
+      insertPoint(tree, i);
+   }
+
+   // redistribute the points
+   for(unsigned int i=0;i<cluster->size();i++){
+      (*cluster)[i].member.clear();
+   }
+
+   for(int i=0;i<size;i++){
+      insertPointSimple(tree, i);
+   }
+}
+
+}; 
+
+
+int cluster_fFun (Word* args, Word& result, int message, Word& local, 
+                Supplier s) {     
+ switch(message){
+      case OPEN : {
+        Points* pts = static_cast<Points*>(args[0].addr);
+        CcReal* eps = static_cast<CcReal*>(args[1].addr);
+        local = SetWord(new ClusterF_LocalInfo(pts,eps));
+        return 0;
+    } case REQUEST : {
+        if(local.addr==0){
+          return CANCEL;
+        }
+        ClusterF_LocalInfo* linfo = 
+               static_cast<ClusterF_LocalInfo*>(local.addr);
+        
+        Points* hasNext = linfo->getNext();
+        result = SetWord(hasNext);
+        if(hasNext){
+           return YIELD;
+        } else {
+           return CANCEL;
+        }
+    } case CLOSE : {
+        if(local.addr!=0){
+           delete static_cast<ClusterF_LocalInfo*>(local.addr);
+           local.addr = 0;
+        }    
+        return 0;
+    }                       
+ }
+ return -1; // should never be reached
+
+}
 
 
 
@@ -1472,6 +1734,15 @@ Operator cluster_e (
         "cluster_e",            //name
         cluster_dSpec,          //specification
         cluster_dFun<1>,           //value mapping
+        Operator::SimpleSelect, //trivial selection function
+        cluster_d_TM          //type mapping
+);
+
+
+Operator cluster_f (
+        "cluster_f",            //name
+        cluster_dSpec,          //specification
+        cluster_fFun,           //value mapping
         Operator::SimpleSelect, //trivial selection function
         cluster_d_TM          //type mapping
 );
@@ -1699,6 +1970,7 @@ public:
     AddOperator ( &cluster_c );
     AddOperator ( &cluster_d );
     AddOperator ( &cluster_e );
+    AddOperator ( &cluster_f );
                 
     ///// tracefile  /////
    // if ( RTFlag::isActive("ClusterText:Trace") ) {
