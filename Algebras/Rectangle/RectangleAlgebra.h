@@ -764,6 +764,12 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
       {
         min[i] = nl->RealValue( nl->First( l ) );
         l = nl->Rest( l );
+      } 
+      else if( nl->IsAtom(nl->First(l)) &&
+               nl->AtomType(nl->First(l)) == IntType)
+      {
+        min[i] = nl->IntValue(nl->First(l));
+        l = nl->Rest(l);
       }
       else
       {
@@ -776,6 +782,12 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
       {
         max[i] = nl->RealValue( nl->First( l ) );
         l = nl->Rest( l );
+      }
+      else if(nl->IsAtom(nl->First(l)) &&
+              nl->AtomType(nl->First(l)) == IntType )
+      {
+        max[i] = nl->IntValue(nl->First(l));
+        l = nl->Rest(l);
       }
       else
       {
