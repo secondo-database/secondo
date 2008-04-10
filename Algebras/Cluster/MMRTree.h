@@ -47,11 +47,291 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RectangleAlgebra.h"
 
 
-namespace myrtree {
-
+namespace mmrtree {
 
 
 /*
+1 The Class ~Node~
+
+
+This class is only used internal by the mmrtree. 
+Thus, here only a forward declaration is required.
+
+*/
+
+
+template<unsigned dim> class Node;
+
+
+/*
+2 The class RTree
+
+*/
+
+template<unsigned dim> class Rtree{
+
+public:
+/*
+2.1 Constructor
+
+This coinstructor creates a new empty RTRee with ~min~ and ~max~ as
+parameters for the minimum/ maximum number of entries within a node.
+
+*/
+   Rtree(int min, int max);
+
+/*
+2.2 ~insert~
+
+Inserts a box together with an id into the R-Tree.
+
+*/
+   void insert(Rectangle<dim> box, long id);
+
+/*
+2.3 ~findAll~
+
+Returns all object's ids stored in the tree where the box 
+intersects ~box~. 
+
+*/
+  void findAll(const Rectangle<dim> box, set<long>& res)const;
+
+/*
+2.4 ~erase~
+
+Erases an  entries of ~id~ found at positions intersecting by box.
+If the object id is multiple stored, only the first instance will
+removed from the tree. If an object was deleted, the result 
+will be __true__; otherwise (i.e.
+if no object with given id was present at the specified position),
+the result will be __false__.
+
+
+*/
+  bool erase(const Rectangle<dim> box, const long id);
+
+/*
+2.4 ~printStats~
+
+Prints some statistical information about this tree to ~o~.
+
+*/
+  ostream& printStats(ostream& o)const;
+
+/*
+2.5 ~printAsRel~
+
+This function writes the nodes of the tree into ~o~
+as a relation in nested list format. 
+
+*/
+  void printAsRel(ostream& o)const;
+
+/*
+2.6 ~printAsTree~
+
+This function writes the content of the tree into ~o~.
+The result can be read from Secondo's Javagui.
+
+*/
+void printAsTree(ostream& o) const;
+
+/*
+~noNodes~
+
+Computes the number of non-object-nodes within the tree.
+
+*/
+   int noNodes() const;
+
+  
+/*
+~noLeaves~
+
+Returns the number of leaves within the tree.
+
+*/
+   int noLeaves() const;
+
+/*
+~noObjects~
+
+Computes the number of stored objects. If an objects is
+multiple stored, each instance is count.
+
+*/
+   int noObjects() const;
+
+/*
+~height~
+
+Computes the height of the treei rooted by ~root~.
+
+*/
+   int height() const;
+
+/*
+2.6 private part
+
+*/
+
+private:
+
+/*
+~Data Members~
+
+*/
+   int min; // minimum number of entries within a node
+   int max; // maximum number of entries within a node
+   Node<dim>* root; // root node
+
+/*
+~getListString~
+
+This function produces a string according to the nested list
+representation of a rectangle.
+
+*/
+   string getListString(const Rectangle<dim>& rect) const ;
+
+/*
+~printAsRelRec~
+
+Prints the content of the subtree given by root as relation to 
+~o~.
+
+*/
+
+   void printAsRelRec(Node<dim>* root, ostream& o,
+                      const int level, int& id, const int father) const;
+
+
+/*
+~printAsTreeRec~
+
+Function supporting the public function ~printAsTree~.
+
+
+*/
+
+void printAsTreeRec(const Node<dim>* root, ostream& o)const;
+
+/*
+~noNodes~
+
+Computes the number of non-object-nodes within the tree.
+
+*/
+   int noNodes(const Node<dim>* root) const;
+
+  
+/*
+~noLeaves~
+
+Returns the number of leaves within the tree rooted by ~root~.
+
+*/
+   int noLeaves(const Node<dim>* root) const;
+
+/*
+~noObjects~
+
+Computes the number of stored objects. If an objects is
+multiple stored, each instance is count.
+
+*/
+   int noObjects(const Node<dim>* root) const;
+
+/*
+~height~
+
+Computes the height of the treei rooted by ~root~.
+
+*/
+   int height(const Node<dim>* root) const;
+
+/*
+~insert~
+
+Inserts a  set of subtrees at the specified levels.
+This function supports the ~erase~ function. 
+
+*/
+void insert(const set<pair < int , Node<dim>* > >&  Q);
+
+/*
+Inserts a node at the specified level. If the tree grows, true is 
+returned. If a leaf should be inserted, just set level to -1.
+
+*/
+bool insertNodeAtLevel(int level, Node<dim>* node);
+
+/*
+~insertRecAtLevel~
+
+Function supporting the ~insertNodeAtLevel~ function.
+
+*/
+pair<Node<dim>*, Node<dim>* >* 
+  insertRecAtLevel(Node<dim>*& root,  Node<dim>* node, 
+                   const int targetLevel, const int currentLevel);
+
+
+/*
+~findAllRec~
+
+Searches in the subtree givben by root for objects whose
+bounding box intersects ~box~ and collect them in ~res~.
+
+*/   
+   void findAllRec(const Node<dim>* root,
+                   const Rectangle<dim>& box,
+                   set<long>& res)const;
+
+
+/* 
+Erases one occurence of id.
+
+If ~root~ is 0, nothing is doed. Otherwise, if root is underflowed by
+erasing the entry, root is deleted and the remaining subtrees are
+inserted into Q. An exception is the root of the tree which is not
+removed even if  0 entries  left in the root.
+
+*/
+bool eraseRec(Node<dim>*& root,const Rectangle<dim>& box, const long id,
+              set<pair < int, Node<dim>*> >& Q, int level);
+
+
+/*
+~checkTree~
+
+This function checks the complete tree for RTree properties. 
+ - all leaves are on the same level
+ - all nodes have at most max sons
+ - all nodes without the root have at least min nodes 
+ - the bounding box a each node is the union of the boxes of its sons
+
+
+*/
+bool checkTree(const bool print = true)const;
+
+bool checkBox(const Node<dim>* root, const bool print,const int level)const;
+
+bool checkSonNumber(const Node<dim>* root,  
+                    const bool print,
+                    const int level) const;
+
+bool checkLeafLevel(const Node<dim>* root, const bool print) const;
+
+int getHeight(const Node<dim>* root)const;
+
+}; 
+
+/*
+
+Implementation of the classes
+
 1 The Class ~Node~
 
 
@@ -62,11 +342,8 @@ class.
 
 */
 
+template<unsigned dim> class Node{
 
-template<unsigned dim> class Rtree;
-
-template<unsigned dim>
-class Node{
 friend class Rtree<dim>;
 public:
 /*
@@ -157,9 +434,6 @@ array managing the sons are removed.
     }
     return s.str();
   }
-
-
-   
 
 private:
 
@@ -260,7 +534,12 @@ bool checkBox(bool print = true) const{
   return res;
 }
 
+/*
+~recomputeBox~
 
+Sets the box to the union of all boxes of the sons.
+
+*/
 void recomputeBox() {
   if(max<0){ // an object node
      return;
@@ -499,29 +778,23 @@ void Print( ostream& o){
 
 
 /*
-2 The class RTree
+2 Implementation of the class RTree
 
-*/
-
-template<unsigned dim>
-class Rtree{
-
-public:
-/*
 2.1 Constructor
 
-This coinstructor creates a new empty RTRee with ~min~ and ~max~ as
+This constructor creates a new empty RTRee with ~min~ and ~max~ as
 parameters for the minimum/ maximum number of entries within a node.
 
 */
-   Rtree(int min, int max){
-      assert(max>=2);
-      assert(min>0);
-      assert(min<=max/2);
-      this->min=min;
-      this->max = max;
-      root = 0;
-   }
+template<unsigned dim>
+Rtree<dim>::Rtree(const int min, const int max){
+   assert(max>=2);
+   assert(min>0);
+   assert(min<=max/2);
+   this->min=min;
+   this->max = max;
+   root = 0;
+}
 
 /*
 2.2 ~insert~
@@ -529,19 +802,14 @@ parameters for the minimum/ maximum number of entries within a node.
 Inserts a box together with an id into the R-Tree.
 
 */
-   void insert(Rectangle<dim> box, long id){
-      if(!root){
-        root = new Node<dim>(min,max);
-      } 
-      Node<dim>* obj = new Node<dim>(box,id);
-      pair<Node<dim>*, Node<dim>* >* res = insertRec(root,obj);
-      if(res){
-         root = new Node<dim>(min,max);
-         root->append(res->first);
-         root->append(res->second);
-         delete res;
-      }    
-   }
+template<unsigned dim>
+void Rtree<dim>::insert(Rectangle<dim> box, long id){
+   if(!root){
+     root = new Node<dim>(min,max);
+   } 
+   Node<dim>* obj = new Node<dim>(box,id);
+   insertNodeAtLevel(-1,obj);
+}
 
 /*
 2.3 ~findAll~
@@ -550,11 +818,11 @@ Returns all object's ids stored in the tree where the box
 intersects ~box~. 
 
 */
-  void findAll(const Rectangle<dim> box, set<long>& res)const{
-     res.clear();
-     findAllRec(root,box,res);
-  } 
-
+template<unsigned dim>
+void Rtree<dim>::findAll(const Rectangle<dim> box, set<long>& res)const{
+  res.clear();
+  findAllRec(root,box,res);
+} 
 
 /*
 2.4 ~erase~
@@ -562,30 +830,28 @@ intersects ~box~.
 Erases the entries of ~id~ found at positions intersecting by box.
 
 */
-  void erase(const Rectangle<dim> box, long id){
-
-     set<pair < int , Node<dim>*> > Q;
-     Q.clear();
-     if(eraseRec(root,box,id, Q,0)){
-        if(root->count==0  && root->isLeaf()){ // last entry removed
-           root = 0;
-        }
-
-
-        if(Q.size() > 0){
-           insert(Q);
-        }
-        if((root!=0) && (root->count == 1) &&(!root->isLeaf())){
-           Node<dim>* victim = root;
-           root = root->sons[0];
-           delete victim;
-           
-        } 
+template<unsigned dim>
+bool Rtree<dim>::erase(const Rectangle<dim> box, const long id){
+  set<pair < int , Node<dim>*> > Q;
+  Q.clear();
+  if(eraseRec(root,box,id, Q,0)){
+     if(root->count==0  && root->isLeaf()){ // last entry removed
+        root = 0;
      }
+
+     if(Q.size() > 0){
+        insert(Q);
+     }
+     if((root!=0) && (root->count == 1) &&(!root->isLeaf())){
+        Node<dim>* victim = root;
+        root = root->sons[0];
+        delete victim;
+     } 
+     return true;
+  } else {
+     return false;
   }
-
-
-
+}
 
 /*
 2.4 ~printStats~
@@ -593,17 +859,18 @@ Erases the entries of ~id~ found at positions intersecting by box.
 Prints some statistical information about this tree to ~o~.
 
 */
-  ostream& printStats(ostream& o){
-     o << "Tree[" << endl
-       << "  min = " << min << endl
-       << "  max = " << max << endl
-       << "  nodes = " << noNodes(root) << endl
-       << "  leafs = " << noLeafs(root) << endl
-       << " height = " << height(root) << endl
-       << " objects = " << noObjects(root) << endl
-       << " ] ";
-       return o;
-  }
+template<unsigned dim>
+ostream& Rtree<dim>::printStats(ostream& o)const{
+  o << "Tree[" << endl
+    << "  min = " << min << endl
+    << "  max = " << max << endl
+    << "  nodes = " << noNodes(root) << endl
+    << "  leafs = " << noLeafs(root) << endl
+    << " height = " << height(root) << endl
+    << " objects = " << noObjects(root) << endl
+    << " ] ";
+    return o;
+}
 
 /*
 2.5 ~printAsRel~
@@ -611,35 +878,21 @@ Prints some statistical information about this tree to ~o~.
 This function writes the nested List representation of this tree to ~o~.
 
 */
-  void printAsRel(ostream& o){
-     o << "  ( (rel (tuple ("
-       << "      ( level int )"
-       << "      ( box rectangle) "               
-       << "      ( id  int )"
-       << "      ( father int) "
-       << "      )))"
-       << " ( ";
-       int level = 0;
-       int id = 0;
-       int father = -1;
-       printAsRelRec(root,o,level, id, father);
-       o << " ))";
-  }
-
-/*
-2.6 private part
-
-*/
-
-private:
-/*
-~Data Members~
-
-*/
-
-   int min; // minimum number of entries within a node
-   int max; // maximum number of entries within a node
-   Node<dim>* root; // root node
+template<unsigned dim>
+void Rtree<dim>::printAsRel(ostream& o) const{
+  o << "  ( (rel (tuple ("
+    << "      ( level int )"
+    << "      ( box rectangle) "               
+    << "      ( id  int )"
+    << "      ( father int) "
+    << "      )))"
+    << " ( ";
+    int level = 0;
+    int id = 0;
+    int father = -1;
+    printAsRelRec(root,o,level, id, father);
+    o << " ))";
+}
 
 /*
 ~getListString~
@@ -648,15 +901,16 @@ This function produces a string according to the nested list
 representation of a rectangle.
 
 */
-   string getListString(const Rectangle<dim>& rect){
-      stringstream res;
-      res <<   "(" ;
-      for(unsigned int i=0;i<dim; i++){
-         res << " " << rect.MinD(i) << " " << rect.MaxD(i);
-      }
-      res << ")";
-      return res.str();
+template<unsigned dim>
+string Rtree<dim>::getListString(const Rectangle<dim>& rect)const{
+   stringstream res;
+   res <<   "(" ;
+   for(unsigned int i=0;i<dim; i++){
+      res << " " << rect.MinD(i) << " " << rect.MaxD(i);
    }
+   res << ")";
+   return res.str();
+}
 
 /*
 ~printAsRelRec~
@@ -665,48 +919,48 @@ Prints the content of the subtree given by root as relation to o.
 
 */
 
-   void printAsRelRec(Node<dim>* root, ostream& o,
-                      int level, int& id, int father){
-       if(!root){
-          return;
-       } else if (root->max<0){
-         o << "("
-           << level << " "
-           << getListString(root->box) << " "
-           << id++ << " " 
-           << father 
-           << " )" << endl;
-       } else {
-          int myId = id;
-          id++;
-          o << "("
-            << level << " "
-            << getListString(root->box) << " "
-            << myId  << " "
-            << father
-            << " )" << endl;
-          for(int i=0;i<root->count; i++){
-             printAsRelRec( root->sons[i],o, level+1, id, myId);
-          }
-       }
-
-   } 
+template<unsigned dim>
+void Rtree<dim>::printAsRelRec(Node<dim>* root, ostream& o,
+                      const int level, int& id, const int father) const{
+  if(!root){
+     return;
+  } else if (root->max<0){
+    o << "("
+      << level << " "
+      << getListString(root->box) << " "
+      << id++ << " " 
+      << father 
+      << " )" << endl;
+  } else {
+    int myId = id;
+    id++;
+    o << "("
+      << level << " "
+      << getListString(root->box) << " "
+      << myId  << " "
+      << father
+      << " )" << endl;
+    for(int i=0;i<root->count; i++){
+       printAsRelRec( root->sons[i],o, level+1, id, myId);
+    }
+  }
+} 
 
 /*
 ~printAsTree~
 
-
-
 */
 
-void printAsTree(ostream& o) const {
+template<unsigned dim>
+void Rtree<dim>::printAsTree(ostream& o) const {
    o << "( tree " << endl;
    printAsTreeRec(root,o);
    o << ")"; 
 }
 
 
-void printAsTreeRec(const Node<dim>* root, ostream& o)const {
+template<unsigned dim>
+void Rtree<dim>::printAsTreeRec(const Node<dim>* root, ostream& o)const{
    if(!root){
       o << "()" << endl;
    } else {
@@ -726,27 +980,32 @@ void printAsTreeRec(const Node<dim>* root, ostream& o)const {
 }
 
 
-
 /*
 ~noNodes~
 
 Computes the number of non-object-nodes within the tree.
 
 */
-   int noNodes(Node<dim>* root){
-       if(!root){
-         return 0;
-       }
-       if(root->isLeaf()){
-         return 1;
-       }else {
-          int sum = 1;
-          for(int i=0;i<root->count;i++){
-             sum += noNodes(root->sons[i]);
-          }
-         return sum;
-       }
+template<unsigned dim>
+int Rtree<dim>::noNodes()const{
+   return noNodes(root);
+}
+
+template<unsigned dim>
+int Rtree<dim>::noNodes(const Node<dim>* root) const{
+   if(!root){
+     return 0;
    }
+   if(root->isLeaf()){
+     return 1;
+   }else {
+     int sum = 1;
+     for(int i=0;i<root->count;i++){
+        sum += noNodes(root->sons[i]);
+     }
+     return sum;
+   }
+}
   
 /*
 ~noLeaves~
@@ -754,20 +1013,27 @@ Computes the number of non-object-nodes within the tree.
 Returns the number of leaves within the tree.
 
 */
-   int noLeaves(Node<dim>* root){
-       if(!root){
-          return 0;
-       }
-       if(root->isLeaf()){
-         return 1;
-       }else {
-          int sum = 0;
-          for(int i=0;i<root->count;i++){
-             sum += noLeafs(root->sons[i]);
-          }
-         return sum;
-       }
-   }
+
+template<unsigned dim>
+int Rtree<dim>::noLeaves()const {
+  return noLeaves(root);
+}
+
+template<unsigned dim>
+int Rtree<dim>::noLeaves(const Node<dim>* root)const{
+  if(!root){
+     return 0;
+  }
+  if(root->isLeaf()){
+    return 1;
+  }else {
+    int sum = 0;
+    for(int i=0;i<root->count;i++){
+       sum += noLeafs(root->sons[i]);
+    }
+    return sum;
+  }
+}
 
 /*
 ~noObjects~
@@ -776,20 +1042,27 @@ Computes the number of stored objects. If an objects is
 multiple stored, each instance is count.
 
 */
-   int noObjects(Node<dim>* root){
-       if(!root){
-          return 0; 
-       }
-       if(root->isLeaf()){
-         return root->count;
-       }else {
-          int sum = 0;
-          for(int i=0;i<root->count;i++){
-             sum += noObjects(root->sons[i]);
-          }
-         return sum;
-       }
-   }
+
+template<unsigned dim>
+int Rtree<dim>::noObjects()const{
+   return noObjects(root);
+}
+
+template<unsigned dim>
+int Rtree<dim>::noObjects(const Node<dim>* root)const{
+  if(!root){
+     return 0; 
+  }
+  if(root->isLeaf()){
+    return root->count;
+  }else {
+    int sum = 0;
+    for(int i=0;i<root->count;i++){
+        sum += noObjects(root->sons[i]);
+    }
+    return sum;
+  }
+}
 
 /*
 ~height~
@@ -797,60 +1070,25 @@ multiple stored, each instance is count.
 Computes the height of the tree.
 
 */
-   int height(Node<dim>* root){
-       if(!root){
-          return -1;
-       }
-       if(root->isLeaf()){
-         return 0;
-       } else {
-         return 1 + height(root->sons[0]);
-       }
-   }
+template<unsigned dim>
+int Rtree<dim>::height() const{
+  return height(root);
+}
 
-/*
-~insertRec~
 
-Inserts the objects node ~obj~ into the subtree given by ~root~.
-If ~root~ must be split, it is destroyed and the split parts are
-returned as result. In the other case, the result will be 0.
-
-*/
-
-   pair<Node<dim>*, Node<dim>* >* 
-     insertRec(Node<dim>*& root, Node<dim>* obj){
-
-      if(root->isLeaf()){
-         if(root->append(obj)){ // no overflow
-            return 0;
-         } else { // overflow
-            pair<Node<dim>*, Node<dim>*> res = root->split();
-            delete root;
-            root = 0;
-            return new pair<Node<dim>*, Node<dim>*>(res);
-         }
-      } else { // not a leaf node
-         int index = root->selectFittestSon(obj->box);
-         pair<Node<dim>*, Node<dim>*>* res = insertRec(root->sons[index],obj);
-         if(!res){ // son was not split
-           root->box = root->box.Union(obj->box);
-           return 0;   
-         }else {
-           root->sons[index] = res->first; // replace old son by a split node
-           root->box = root->box.Union(res->first->box); 
-           if(root->append(res->second)){ // no overflow
-              delete res;
-              return 0;
-           } else { 
-              delete res;
-              res = new pair<Node<dim>*, Node<dim>*>(root->split());
-              delete root;
-              root = 0;
-              return res;
-           }
-         }
-      }
-   }
+template<unsigned dim>
+int Rtree<dim>::height(const Node<dim>* root) const{
+  if(!root){
+    return -1;
+  }
+  int h = 0;
+  const Node<dim>* node =  root;
+  if(node->isLeaf()){
+     h++;
+     node = node->sons[0];
+  }
+  return h;
+}
 
 /*
 ~insert~
@@ -859,7 +1097,8 @@ Inserts a  set of subtrees at the specified levels. This function supports the
 ~erase~ function. 
 
 */
-void insert(const set<pair < int , Node<dim>* > >&  Q){
+template<unsigned dim>
+void Rtree<dim>::insert(const set<pair < int , Node<dim>* > >&  Q){
    int levelDiff = 0; // store the grow of the tree
    typename set<pair < int , Node<dim>*> >::iterator it;
    for(it = Q.begin(); it!=Q.end(); it++){
@@ -876,7 +1115,8 @@ Inserts a node at the specified level. If the tree grows, true is
 returned.
 
 */
-bool insertNodeAtLevel(int level, Node<dim>* node){
+template<unsigned dim>
+bool Rtree<dim>::insertNodeAtLevel(int level, Node<dim>* node){
   if(!root){
      root = new Node<dim>(min,max);
   }
@@ -894,8 +1134,9 @@ bool insertNodeAtLevel(int level, Node<dim>* node){
 }
 
 
+template<unsigned dim>
 pair<Node<dim>*, Node<dim>* >* 
-  insertRecAtLevel(Node<dim>*& root,  Node<dim>* node, 
+  Rtree<dim>::insertRecAtLevel(Node<dim>*& root,  Node<dim>* node, 
                    const int targetLevel, const int currentLevel){
     if(root->isLeaf() || (targetLevel == currentLevel) ){
       if(root->append(node)){ // no overflow
@@ -939,25 +1180,26 @@ Searches in the subtree givben by root for objects whose
 bounding box intersects ~box~ and collect them in ~res~.
 
 */   
-   void findAllRec(const Node<dim>* root,
-                   const Rectangle<dim>& box,
-                   set<long>& res)const{
-     if(!root){
-        return;
-     } else if(root->isLeaf()){
-       for(int i = 0; i<root->count; i++){
-          if(root->sons[i]->box.Intersects(box)){
-            res.insert(root->sons[i]->count);
-          }
+template<unsigned dim>
+void Rtree<dim>::findAllRec(const Node<dim>* root,
+                       const Rectangle<dim>& box,
+                       set<long>& res)const{
+  if(!root){
+     return;
+  } else if(root->isLeaf()){
+    for(int i = 0; i<root->count; i++){
+       if(root->sons[i]->box.Intersects(box)){
+         res.insert(root->sons[i]->count);
        }
-     } else {
-       for(int i =0; i < root->count; i++){
-          if(root->sons[i]->box.Intersects(box)){
-            findAllRec(root->sons[i],box,res);
-          }
+    }
+  } else {
+    for(int i =0; i < root->count; i++){
+       if(root->sons[i]->box.Intersects(box)){
+         findAllRec(root->sons[i],box,res);
        }
-     }
-   }
+    }
+  }
+}
 
 
 /* 
@@ -969,63 +1211,66 @@ inserted into Q. An exception is the root of the tree which is not
 removed even if  0 entries  left in the root.
 
 */
-bool eraseRec(Node<dim>*& root,const Rectangle<dim>& box, const long id,
-              set<pair < int, Node<dim>*> >& Q, int level){
+template<unsigned dim>
+bool Rtree<dim>::eraseRec(Node<dim>*& root,
+                     const Rectangle<dim>& box, 
+                     const long id,
+                     set<pair < int, Node<dim>*> >& Q, 
+                     int level){
 
-    if(!root){ // tree is empty, doe nothing
-       return false;
-    } else if(root->isLeaf()){
-       // try find the object node having the corresponding id
-       int index = -1;
-       for(int i=0;i<root->count && index < 0;i++){
-          if(root->sons[i]->count == id){
-              index = i;
-          }
+ if(!root){ // tree is empty, doe nothing
+    return false;
+ } else if(root->isLeaf()){
+    // try find the object node having the corresponding id
+    int index = -1;
+    for(int i=0;i<root->count && index < 0;i++){
+       if(root->sons[i]->count == id){
+           index = i;
        }
-       if(index < 0){  // id not found within this node
-          return false;
-       }
-       bool under = !root->remove(index,true);
-       if( under && (root != this->root)){ // an underflow
-          // insert all remaining leaves into Q
-          for(int i=0;i<root->count; i++){
-             Q.insert(make_pair(-1, root->sons[i]));
-          }
-          delete root; // delete the underflowed node
-          root = 0;
-       }
-       return true;  // deletion successful
-    } else { // root is an inner node
-      int index = -1;
-      for(int i=0;i<root->count && index <0 ; i++){
-         if(root->sons[i]->box.Intersects(box)){
-            if(eraseRec(root->sons[i], box, id, Q, level + 1)){
-               index = i;
-            }
-         }
-      } 
-      if(index < 0){ // id not found in this subtree
-        return false;  
-      }
-      if(root->sons[index]){ // no underflow
-         root->recomputeBox();
-         return true;
-      }
-      bool under = !root->remove(index,true);
-      if( !under || (root == this->root)){ // no underflow 
-         return true;
-      }
-      // an underflow in root because deletion of son[index]
-      // insert remaining subtrees into Q
-      for(int i=0;i<root->count;i++){
-         Q.insert(make_pair(level, root->sons[i]));
-      }
-      delete root;
-      root = 0;
-      return true;
     }
+    if(index < 0){  // id not found within this node
+       return false;
+    }
+    bool under = !root->remove(index,true);
+    if( under && (root != this->root)){ // an underflow
+       // insert all remaining leaves into Q
+       for(int i=0;i<root->count; i++){
+          Q.insert(make_pair(-1, root->sons[i]));
+       }
+       delete root; // delete the underflowed node
+       root = 0;
+    }
+    return true;  // deletion successful
+ } else { // root is an inner node
+   int index = -1;
+   for(int i=0;i<root->count && index <0 ; i++){
+      if(root->sons[i]->box.Intersects(box)){
+         if(eraseRec(root->sons[i], box, id, Q, level + 1)){
+            index = i;
+         }
+      }
+   } 
+   if(index < 0){ // id not found in this subtree
+     return false;  
+   }
+   if(root->sons[index]){ // no underflow
+      root->recomputeBox();
+      return true;
+   }
+   bool under = !root->remove(index,true);
+   if( !under || (root == this->root)){ // no underflow 
+      return true;
+   }
+   // an underflow in root because deletion of son[index]
+   // insert remaining subtrees into Q
+   for(int i=0;i<root->count;i++){
+      Q.insert(make_pair(level, root->sons[i]));
+   }
+   delete root;
+   root = 0;
+   return true;
+ }
 }
-
 
 /*
 ~checkTree~
@@ -1038,13 +1283,17 @@ This function checks the complete tree for RTree properties.
 
 
 */
-bool checkTree(const bool print = true)const{
+template<unsigned dim>
+bool Rtree<dim>::checkTree(const bool print/* = true*/)const{
   return checkLeafLevel(root, print) &&
          checkSonNumber (root,print,0 ) &&
          checkBox(root,print,0);
 }
 
-bool checkBox(const Node<dim>* root, const bool print,const int level)const{
+template<unsigned dim>
+bool Rtree<dim>::checkBox(const Node<dim>* root, 
+                     const bool print,
+                     const int level)const{
    if(!root) {
      return true;
    } else {
@@ -1066,9 +1315,10 @@ bool checkBox(const Node<dim>* root, const bool print,const int level)const{
    }
 }
 
-bool checkSonNumber(const Node<dim>* root,  
-                    const bool print,
-                    const int level) const{
+template<unsigned dim>
+bool Rtree<dim>::checkSonNumber(const Node<dim>* root,  
+                           const bool print,
+                           const int level) const{
   if(!root){ // empty tree all ok
     return true;
   } else {
@@ -1103,17 +1353,18 @@ bool checkSonNumber(const Node<dim>* root,
 
 
 
-bool checkLeafLevel(const Node<dim>* root, const bool print) const{
+template<unsigned dim>
+bool Rtree<dim>::checkLeafLevel(const Node<dim>* root, const bool print) const{
   if(!root) { // empty tree
     return true;
   } else if(root->isLeaf()){ // a leave has correct height
     return true;
   } else { // not a leaf
 
-    int h = getHeight(root->sons[0]);
+    int h = height(root->sons[0]);
     bool ok = true;
     for(int i=1; i<root->count && ok ; i++){
-       ok = h == getHeight(root->sons[i]);
+       ok = h == height(root->sons[i]);
     }
     for(int i=0;i<root->count && ok; i++){
        ok = checkLeafLevel(root->sons[i],print);
@@ -1124,26 +1375,6 @@ bool checkLeafLevel(const Node<dim>* root, const bool print) const{
     return ok;
   }
 }
-
-int getHeight(const Node<dim>* root)const{
-   if(!root){
-     return -1;
-   }
-   int h = 0;
-   const Node<dim>* node =  root;
-   if(node->isLeaf()){
-      h++;
-      node = node->sons[0];
-   }
-   return h;
-}
-
-
-
-
-}; 
-
-
 
 
 
