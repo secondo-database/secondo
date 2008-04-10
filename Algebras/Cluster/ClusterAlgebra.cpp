@@ -488,7 +488,7 @@ contained in pts;
 
 */
   void computeEnv(){
-     myrtree::Rtree<2> tree(10,30);
+     mmrtree::Rtree<2> tree(10,30);
      const Point* p;
      double min1[2];
      double max1[2];
@@ -845,7 +845,7 @@ contained in pts;
 
      env = new set<int>*[size];
 
-     myrtree::Rtree<2> tree(10,30);
+     mmrtree::Rtree<2> tree(10,30);
      const Point* p;
      double min1[2];
      double max1[2];
@@ -1461,7 +1461,7 @@ double qdist(const double x1,const  double y1,
 }
 
 
-int indexOfNearestCluster(const myrtree::Rtree<2>& tree, const Point& p) const{
+int indexOfNearestCluster(const mmrtree::Rtree<2>& tree, const Point& p) const{
     int res = -1;
     double bestDist = eps2 + 10.0;
     double min[2];
@@ -1487,7 +1487,7 @@ int indexOfNearestCluster(const myrtree::Rtree<2>& tree, const Point& p) const{
     return res;
 }
 
-void insertPointSimple(const myrtree::Rtree<2>& tree, const int pos){
+void insertPointSimple(const mmrtree::Rtree<2>& tree, const int pos){
    const Point* p;
    pts->Get(pos,p);
    int index = indexOfNearestCluster(tree,*p);
@@ -1495,7 +1495,7 @@ void insertPointSimple(const myrtree::Rtree<2>& tree, const int pos){
     (*cluster)[index].member.insert(pos);
 }
 
-void insertPoint(myrtree::Rtree<2>& tree, const int pos){
+void insertPoint(mmrtree::Rtree<2>& tree, const int pos){
   const Point* p;
   pts->Get(pos,p);
   int index = indexOfNearestCluster(tree,*p);
@@ -1543,7 +1543,7 @@ void insertPoint(myrtree::Rtree<2>& tree, const int pos){
   repairClusterAt(index,tree);
 }
 
-void repairClusterAt(const int index, myrtree::Rtree<2>& tree){
+void repairClusterAt(const int index, mmrtree::Rtree<2>& tree){
   (*cluster)[index].forbidden = true;
   double cx = (*cluster)[index].cx;
   double cy = (*cluster)[index].cy;
@@ -1575,7 +1575,7 @@ void repairClusterAt(const int index, myrtree::Rtree<2>& tree){
 
 
 void computeCluster(){
-   myrtree::Rtree<2> tree(10,30);
+   mmrtree::Rtree<2> tree(10,30);
    for(int i=0;i<size;i++){
       insertPoint(tree, i);
    }
