@@ -237,14 +237,15 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
     newFileId = ++instance.impl->tmpId;
     if ( RTFlag::isActive("SMI:LogFileCreation") )
     {
-      // build a two elem list (simple count)
-      stringstream s;
-      s << newFileId;
-      NList msgList( NList("simple"), NList("GetFileId: " + s.str()));
-      // send the message, the message center will call
-      // the registered handlers. Normally the client applications
-      // will register them.
-      smi_msg->Send(msgList);
+//       // build a two elem list (simple count)
+//       stringstream s;
+//       s << newFileId;
+//       NList msgList( NList("simple"), NList("GetFileId: " + s.str()));
+//       // send the message, the message center will call
+//       // the registered handlers. Normally the client applications
+//       // will register them.
+//       smi_msg->Send(msgList);
+      cout << "SMI:LogFileCreation: GetFileId: " << newFileId << endl;
     }
     return newFileId;
   }
@@ -327,14 +328,15 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
   }
   if ( RTFlag::isActive("SMI:LogFileCreation") )
   {
-      // build a two elem list (simple count)
-    stringstream s;
-    s << newFileId;
-    NList msgList( NList("simple"), NList("GetFileId: " + s.str()));
-      // send the message, the message center will call
-      // the registered handlers. Normally the client applications
-      // will register them.
-    smi_msg->Send(msgList);
+//       // build a two elem list (simple count)
+//     stringstream s;
+//     s << newFileId;
+//     NList msgList( NList("simple"), NList("GetFileId: " + s.str()));
+//       // send the message, the message center will call
+//       // the registered handlers. Normally the client applications
+//       // will register them.
+//     smi_msg->Send(msgList);
+    cout << "SMI:LogFileCreation: GetFileId: " << newFileId << endl;;
   }
   return (newFileId);
 }
@@ -650,12 +652,13 @@ SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId,
   }
   if ( RTFlag::isActive("SMI:LogFileCreation") )
   {
-      // build a two elem list (simple count)
-    NList msgList( NList("simple"), NList("ConstructFileName: " + os.str()));
-      // send the message, the message center will call
-      // the registered handlers. Normally the client applications
-      // will register them.
-    smi_msg->Send(msgList);
+//       // build a two elem list (simple count)
+//     NList msgList( NList("simple"), NList("ConstructFileName: " + os.str()));
+//       // send the message, the message center will call
+//       // the registered handlers. Normally the client applications
+//       // will register them.
+//     smi_msg->Send(msgList);
+    cout << "SMI:LogFileCreation: ConstructFileName: " << os.str() << endl;
   }
   return (os.str());
 }
