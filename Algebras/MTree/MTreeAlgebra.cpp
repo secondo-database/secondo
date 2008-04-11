@@ -79,34 +79,34 @@ OutMTree(ListExpr type_Info, Word w)
     if (mtree->isInitialized())
     {
         NList assignments(
-            NList("assignments:"),
+            NList("assignments"),
             NList(
-                NList(NList("type constructor:"),
+                NList(NList("type_constructor"),
                     NList(mtree->typeName(), true)),
-                NList(NList("metric:"),
+                NList(NList("metric"),
                     NList(mtree->distfunName(), true)),
-                NList(NList("distdata type:"),
+                NList(NList("distdata_type"),
                     NList(mtree->dataName(), true)),
-                NList(NList("mtree-config:"),
+                NList(NList("config"),
                     NList(mtree->configName(), true))));
 
         NList statistics(
-            NList("statistics:"),
+            NList("statistics"),
             NList(
-                NList(NList("height:"),
+                NList(NList("height"),
                     NList((int)mtree->height())),
-                NList(NList("# of internal nodes:"),
+                NList(NList("internal_nodes"),
                     NList((int)mtree->internalCount())),
-                NList(NList("# of leaf nodes:"),
+                NList(NList("leaf_nodes"),
                     NList((int)mtree->leafCount())),
-                NList(NList("# of leaf entries:"),
+                NList(NList("leaf_entries"),
                     NList((int)mtree->entryCount()))));
 
         NList result(assignments, statistics);
         return result.listExpr();
     }
     else
-        return nl->SymbolAtom( "undef" );
+        return nl->SymbolAtom("undef");
 }
 
 Word
@@ -1205,7 +1205,7 @@ rangesearch_TM(ListExpr args)
   CHECK_COND(arg2.checkRel(attrs), errmsg);
 
   // check fourth argument
-  errmsg = "Expecting an int value as fourth argument, but got '" +
+  errmsg = "Expecting an real value as fourth argument, but got '" +
            arg4.convertToString() + "'.";
   CHECK_COND(arg4.isEqual(REAL), errmsg);
 
