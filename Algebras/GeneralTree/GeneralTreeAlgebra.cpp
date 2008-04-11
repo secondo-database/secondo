@@ -120,6 +120,10 @@ OutDistData(ListExpr type_Info, Word value)
 
     string name = info.name();
     string type = info.typeName();
+
+    // remove lf from b64string
+    b64string = b64string.substr(0, b64string.size() - 1);
+
     return nl->ThreeElemList(
                nl->StringAtom(type),
                nl->StringAtom(name),
