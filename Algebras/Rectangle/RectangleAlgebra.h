@@ -52,6 +52,8 @@ using namespace std;
 
 #include <cmath>
 #include "stdarg.h"
+#include "Attribute.h"
+#include "StandardAttribute.h"
 
 #include <stdio.h>
 
