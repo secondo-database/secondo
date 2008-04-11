@@ -25,14 +25,12 @@ Result   : 3.0
 Operator : getdistdata2
 Number   : 1
 Signature: attribute x distdataName -> distdata
-Example  : query getdistdata(5, native)
-Result   : (distdata)
+Example  : query getdistdata2(5, native)
+Result   : (distdata ("int" "native" 'BQAAAA=='))
 
 
 Operator : getdistdata
 Number   : 1
 Signature: attribute -> distdata
 Example  : query getdistdata(5)
-Result   : (distdata)
-
-
+Result   : (distdata ("int" "native" 'BQAAAA=='))

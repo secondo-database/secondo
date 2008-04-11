@@ -4,35 +4,33 @@ Restore : No
 Operator : createmtree2
 Number   : 1
 Signature: relation/tuple stream x attribute x config_name x metric_name -> mtree
-Example  : query pictures createmtree2 [Pic, mlbdistHP, quadr]
-Result   : (mtree)
+Example  : query Orte createmtree2 [Ort, mlb_HP, edit]
+Result   : (mtree ( (assignments ( (type_constructor "string") (metric "edit") (distdata_type "native") (config "mlb_HP"))) (statistics ( (height 2) (internal_nodes 1) (leaf_nodes 36) (leaf_entries 506)))))
 
 
 Operator : createmtree3
 Number   : 1
 Signature: relation/tuple stream x attribute x config_name x metric_name x distdata_name -> mtree
-Example  : query pictures createmtree [lab, mlbdistHP, quadr, lab256]
-Result   : (mtree)
+Example  : query Orte createmtree3 [Ort, mlb_HP, edit, native]
+Result   : (mtree ( (assignments ( (type_constructor "string") (metric "edit") (distdata_type "native") (config "mlb_HP"))) (statistics ( (height 2) (internal_nodes 1) (leaf_nodes 36) (leaf_entries 506)))))
 
 
 Operator : createmtree
 Number   : 1
 Signature: relation/tuple stream x attribute -> mtree
-Example  : query pictures createmtree [Pic]
-Result   : (mtree)
+Example  : query Orte createmtree [Ort]
+Result   : (mtree ( (assignments ( (type_constructor "string") (metric "edit") (distdata_type "native") (config "mlb_HP"))) (statistics ( (height 2) (internal_nodes 1) (leaf_nodes 36) (leaf_entries 506)))))
 
 
 Operator : nnsearch
 Number   : 1
 Signature: mtree x relation x data x int -> tuple stream
-Example  : query pictree pictures rangesearch [pic1, 5]
-Result   : (stream (tuple((a1 x1)...(an xn))))
+Example  : query Orte createmtree [Ort] Orte nnsearch ["Hagen", 5] count
+Result   : 5
 
 
 Operator : rangesearch
 Number   : 1
 Signature: mtree x relation x data x real -> tuple stream
-Example  : query pictree pictures rangesearch [pic1, 0.2]
-Result   : (stream (tuple((a1 x1)...(an xn))))
-
-
+Example  : query Orte createmtree [Ort] Orte rangesearch ["Hagen", 2.0] count
+Result   : 4
