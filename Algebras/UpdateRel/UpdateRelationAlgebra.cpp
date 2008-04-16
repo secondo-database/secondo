@@ -3882,9 +3882,10 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
   CHECK_COND(nl->AtomType(rtreeSymbol) == SymbolType,
     "Operator " + opName +
     ": First part of the rtree-description has to be 'rtree' ");
-  CHECK_COND(nl->SymbolValue(rtreeSymbol) == "rtree",
+  CHECK_COND((nl->SymbolValue(rtreeSymbol) == "rtree")
+	|| (nl->SymbolValue(rtreeSymbol) == "rtree3"),
     "Operator " + opName +
-    ": First part of the rtree-description has to be 'rtree' ");
+    ": First part of the rtree-description has to be 'rtree' or 'rtree3' ");
   /* handle btree tuple description */
   CHECK_COND(!nl->IsEmpty(rtreeTupleDescription),
     "Operator " + opName +
