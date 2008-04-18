@@ -28,13 +28,13 @@ Signature:((stream T)) -> int
 Example  : query intstream (1,10) count
 Result   : 10
 
-Operator : echo 
+Operator : echo
 Number   : 1
 Signature:stream(T) x bool x string  -> stream(T)
 Example  : query intstream (1,10) echo [TRUE, "Test"]  count
 Result   : 10
 
-Operator : echo 
+Operator : echo
 Number   : 2
 Signature: T x string  -> T , T # stream
 Example  : query  3 + 5 echo["Test"]
@@ -139,27 +139,65 @@ Signature: ((stream X) (map X (stream Y))) -> (stream Y)
 Example  : query intstream(1,5) use[ fun(i:int) intstream(i,5) ] count;
 Result   : 15
 
-Operator : ensure 
+Operator : ensure
 Number   : 1
-Signature: stream(T) -> bool 
+Signature: stream(T) -> bool
 Example  : query intstream(1,5) ensure[5];
-Result   : TRUE 
+Result   : TRUE
 
-Operator : ensure 
+Operator : ensure
 Number   : 3
-Signature: stream(tuple(T))) -> bool 
+Signature: stream(tuple(T))) -> bool
 Example  : query intstream(1,5) transformstream ensure[5];
-Result   : TRUE 
+Result   : TRUE
 
-Operator : ensure 
+Operator : ensure
 Number   : 2
-Signature: stream(T) -> bool 
+Signature: stream(T) -> bool
 Example  : query intstream(1,5) ensure[6];
-Result   : FALSE 
+Result   : FALSE
 
 
-Operator : realstream 
+Operator : realstream
 Number   : 1
 Signature: real x real x real -> stream(real)
 Example  : query realstream(0.0, 1.0, 0.1) count
 Result   : 11
+
+
+Operator : tail
+Number   : 1
+Signature: stream(tuple X) [x bool] -> stream(tuple X)
+Example  : query plz feed tail[10, FALSE] extract[Ort]
+Result   : "Koerner"
+
+Operator : tail
+Number   : 2
+Signature: stream(tuple X) [x bool] -> stream(tuple X)
+Example  : query plz feed tail[10, TRUE] extract[Ort]
+Result   : "Marolterode"
+
+Operator : tail
+Number   : 3
+Signature: stream(tuple X) [x bool] -> stream(tuple X)
+Example  : query plz feed tail[100] count
+Result   : 100
+
+
+Operator : tail
+Number   : 4
+Signature: stream(T) [x bool] -> stream(T), T in DATA
+Example  : query intstream(1,100) tail[10, FALSE] transformstream extract[elem]
+Result   : 100
+
+Operator : tail
+Number   : 5
+Signature: stream(T) [x bool] -> stream(T), T in DATA
+Example  : query intstream(1,100) tail[10, TRUE] transformstream extract[elem]
+Result   : 91
+
+Operator : tail
+Number   : 6
+Signature: stream(T) [x bool] -> stream(T), T in DATA
+Example  : query realstream(1.0,1050000.0,1.0) tail[666] count
+Result   : 666

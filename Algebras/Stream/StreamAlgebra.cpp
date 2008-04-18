@@ -115,6 +115,7 @@ This file contains the implementation of the stream operators.
 
 #include <cmath>
 #include <stack>
+#include <deque>
 #include <limits>
 #include <sstream>
 #include <vector>
@@ -127,12 +128,16 @@ This file contains the implementation of the stream operators.
 #include "RelationAlgebra.h"
 #include "SecondoSystem.h"
 #include "Symbols.h"
+#include "NList.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 // #define GSA_DEBUG
+#define STRALG_DEBUG false
+#define DEBUGMESSAGE(MESSAGE) if(STRALG_DEBUG) cout << __PRETTY_FUNCTION__ \
+         << " (" << __FILE__ << ":" << __LINE__ << ") " << MESSAGE << endl
 
 using namespace symbols;
 
@@ -3405,110 +3410,6 @@ struct realstreamInfo : OperatorInfo
 
 
 
-/*
-5.41 Operator ~~
-
-----
-     (insert signature here)
-
-----
-
-*/
-
-/*
-5.42.1 Type mapping function for ~~
-
-*/
-
-/*
-5.42.2 Value mapping for operator ~~
-
-*/
-
-/*
-5.42.3 Specification for operator ~~
-
-*/
-
-/*
-5.42.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.42.5 Definition of operator ~~
-
-*/
-
-/*
-5.41 Operator ~~
-
-----
-     (insert signature here)
-
-----
-
-*/
-
-/*
-5.43.1 Type mapping function for ~~
-
-*/
-
-/*
-5.43.2 Value mapping for operator ~~
-
-*/
-
-/*
-5.43.3 Specification for operator ~~
-
-*/
-
-/*
-5.43.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.43.5 Definition of operator ~~
-
-*/
-
-/*
-5.41 Operator ~~
-
-----
-     (insert signature here)
-
-----
-
-*/
-
-/*
-5.44.1 Type mapping function for ~~
-
-*/
-
-/*
-5.44.2 Value mapping for operator ~~
-
-*/
-
-/*
-5.44.3 Specification for operator ~~
-
-*/
-
-/*
-5.44.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.44.5 Definition of operator ~~
-
-*/
 
 
 /*
@@ -3743,6 +3644,386 @@ ValueMapping ensure_vms[] =
   0
 };
 
+
+/*
+6.4 Operator ~tail~
+
+*/
+
+/*
+6.4.1 Type Mapping for Operator ~tail~:
+
+---
+      (stream (tuple X)) x int        ---> (append TRUE (stream (tuple X)))
+      (stream (tuple X)) x int x bool ---> (stream (tuple X))
+      (stream T)         x int        ---> (append TRUE (stream T))
+      (stream (T))       x int x bool ---> (stream T)
+---
+
+*/
+ListExpr streamTypeMapTail( ListExpr args )
+{
+  NList type(args);
+  bool doAppend = false;
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
+
+  if(type.length() < 2 || type.length() > 3){
+    return NList::typeError( "Expected 2 or 3 arguments.");
+  }
+  if(type.hasLength(3)){
+    if(type.third() != NList(BOOL)){
+      return NList::typeError( "Optional 3rd argument must be "
+          "'bool', if specified!");
+    }
+  }else{ // appending the default for unspecified optional 3rd argument required
+    doAppend = true;
+  }
+  if(type.second() != NList(INT)){
+    return NList::typeError( "Expected 'int' for 2nd argument!");
+  }
+  // 1st argument must be a stream...
+  if(!(   type.first().hasLength(2)
+       && type.first().first().isSymbol(sym.STREAM()))){
+    return NList::typeError( "Expected a stream as 1st argument!");
+  }
+  NList streamtype = type.first().second();
+  // stream elements must be in kind DATA or (tuple X)
+  if(   !(   streamtype.hasLength(2)
+          && streamtype.first().isSymbol(sym.TUPLE())
+          && IsTupleDescription(streamtype.second().listExpr())
+         )
+     && !(am->CheckKind("DATA",streamtype.listExpr(),errorInfo))){
+    return NList::typeError( "Expected a stream of DATA or TUPLE.");
+  }
+  if(doAppend){
+    NList resType1 =NList( NList(symbols::APPEND),
+                           NList(true, false).enclose(),
+                          type.first()
+                         );
+    return resType1.listExpr();
+  }else{
+    DEBUGMESSAGE("Resulttype = " << type.first().convertToString());
+    return type.first().listExpr();
+  }
+}
+
+// localinfo used within
+// value mapping for stream(tuple(X)) x int [ x bool ]--> stream(tuple(X))
+class TailLocalInfo
+{
+  public:
+    TailLocalInfo(const int mN,
+                  const bool mKeepOrder)
+      : n              ( mN ),
+        keepOrder      ( mKeepOrder ),
+        finished       ( true ),
+        bufferSize     ( 0 ),
+        returnedResults( 0 ),
+        buffer         ( qp->MemoryAvailableForOperator() )
+      {
+        // member translationTable initialized automatically
+      };
+
+      ~TailLocalInfo()
+      {
+    // destructor for members buffer, it and
+    // translationTable will be called automatically
+      };
+
+      // Store 'tuple' within the local buffer and delete it, if allowed.
+      void AppendTuple(Tuple *tuple)
+      {
+        buffer.AppendTuple( tuple ); // append current stream elem
+        if(bufferSize == 0){
+//           DEBUGMESSAGE(" Inserting the first tuple...");
+          finished = false;
+        }
+        bufferSize++;                   // increase element counter
+//         DEBUGMESSAGE(" Inserting tuple " << bufferSize << "/" << n);
+        if(bufferSize > n){
+//           DEBUGMESSAGE(" Queue full. Pop front.");
+          translationTable.pop_front(); // remove head of buffer
+        }
+        // The tuplebuffer should use subsequent tupleids starting with 0 and
+        // proceeding up to bufferSize.
+        translationTable.push_back((TupleId)(bufferSize-1)); // append tupleId
+        tuple->DeleteIfAllowed(); // delete appended element from memory
+        return;
+      };
+
+      // Get the next tuple from the local buffer
+      // set member ~finished~ when done
+      // return 0, iff no further result exists
+      Tuple* GetNextTuple()
+      {
+        TupleId Id;
+        // Since TupeId is defined as a long. and the tuplebuffer uses
+        // subsequent long values as TupleIds (starting with 0), we can simply
+        // enumerate all used TupleIds starting with the first one needed.
+        if(finished || returnedResults >= n){
+//           DEBUGMESSAGE(" Finished " << returnedResults << "/" << n);
+          finished = true;
+          return ((Tuple*) 0);
+        }
+        if(keepOrder){
+          // get first elem first
+//           DEBUGMESSAGE(" Getting from front");
+          Id = translationTable.front();
+          translationTable.pop_front();
+        }else{
+          // get last elem first
+//           DEBUGMESSAGE(" Getting from back");
+          Id = translationTable.back();
+          translationTable.pop_back();
+        }
+        returnedResults++;
+//         DEBUGMESSAGE(" Getting tuple " << returnedResults << "/" << n);
+        finished = translationTable.empty();
+        return buffer.GetTuple( Id );
+      };
+
+      int n;
+      bool keepOrder;
+      bool finished;
+
+  protected:
+    long bufferSize;
+    long returnedResults;
+    TupleBuffer buffer;
+    deque<TupleId> translationTable;
+};
+
+// value mapping for stream(tuple(X)) x int [ x bool ]--> stream(tuple(X))
+int StreamTailTupleTreamVM(Word* args, Word& result,
+                           int message, Word& local, Supplier s)
+{
+  TailLocalInfo* li;
+  Word    InputStream = args[0];
+  CcInt*  CcN         = static_cast<CcInt*>(args[1].addr);
+  CcBool* CcKeepOrder = static_cast<CcBool*>(args[2].addr);
+
+  Word elem;
+
+  switch( message )
+  {
+    case OPEN:{
+      DEBUGMESSAGE("Start OPEN");
+      if(     !CcN->IsDefined()
+           || !CcKeepOrder->IsDefined()
+           || !InputStream.addr
+           || CcN->GetIntval() <= 0
+        )
+      {
+        local = SetWord( Address(0) );
+        DEBUGMESSAGE("End OPEN 1");
+        return 0;
+      } // else: consume the InputStream
+      li = new TailLocalInfo( CcN->GetIntval(),
+                              CcKeepOrder->GetBoolval()
+                            );
+      local = SetWord(li);
+
+      // open and consume the input stream
+      qp->Open(InputStream.addr);
+      qp->Request(InputStream.addr, elem); // get first stream elem
+      while (qp->Received(args[0].addr))
+      {
+        Tuple *tuple = static_cast<Tuple*>(elem.addr);
+        li->AppendTuple(tuple);
+        qp->Request(InputStream.addr, elem); // get next stream elem
+      }
+      // InputStream will be closed when calling CLOSE
+      DEBUGMESSAGE("End OPEN 2");
+      return 0;
+    }
+
+    case REQUEST:{
+      DEBUGMESSAGE("Start REQUEST");
+      if(!local.addr){ DEBUGMESSAGE("End REQUEST: CANCEL1 "); return CANCEL; }
+      li = static_cast<TailLocalInfo*>(local.addr);
+      if(li->finished){ DEBUGMESSAGE("End REQUEST: CANCEL2 "); return CANCEL; }
+      Tuple *restuple = li->GetNextTuple();
+      if(!restuple){ DEBUGMESSAGE("End REQUEST: CANCEL3 "); return CANCEL; }
+      result = SetWord( restuple );
+      DEBUGMESSAGE("End REQUEST: YIELD");
+      return YIELD;
+    }
+
+    case CLOSE:{
+      DEBUGMESSAGE("Start CLOSE");
+      qp->Close(InputStream.addr);
+      if(local.addr){
+        li = static_cast<TailLocalInfo*>(local.addr);
+        delete li;
+        local = SetWord( Address(0) );
+      }
+      DEBUGMESSAGE("End CLOSE");
+      return 0;
+    }
+  }
+  return 0;
+}
+
+// localinfo used within value mapping for
+// stream T x int [ x bool ]--> stream T, T in DATA
+// This is a specialization of TailLocalInfo.
+class DataTailLocalInfo: public TailLocalInfo
+{
+  public:
+
+    DataTailLocalInfo(const int mN,
+                      const bool mKeepOrder,
+                      const ListExpr elemType)
+
+    : TailLocalInfo( mN, mKeepOrder )
+    {
+      ListExpr numericElemType =
+          SecondoSystem::GetCatalog()->NumericType( elemType );
+      ListExpr attrExpr =
+          nl->TwoElemList(nl->SymbolAtom("elem"),numericElemType);
+      ListExpr tupleExpr =
+          nl->TwoElemList(nl->SymbolAtom("tuple"),nl->OneElemList(attrExpr));
+      bufferTupleType = new TupleType(tupleExpr);
+    };
+
+    ~DataTailLocalInfo()
+    {
+      if(bufferTupleType)
+        bufferTupleType->DeleteIfAllowed();
+    };
+
+    // move elem into internal tuplebuffer
+    void AppendElem(StandardAttribute *elem)
+    {
+      Tuple *tuple = new Tuple(bufferTupleType);
+      tuple->PutAttribute( 0, elem );
+      AppendTuple(tuple);
+      // AppendTuple(...) already calls tuple->DeleteIfAllowed()!
+    };
+
+    // return the next element from the local tuplebuffer
+    Attribute* GetNextElem(){
+      Tuple *tuple = GetNextTuple();
+      if(tuple){
+        Attribute *elem = (tuple->GetAttribute(0))->Copy();
+        tuple->DeleteIfAllowed();
+        return elem;
+      } // else: No elem left!
+      return static_cast<Attribute*>(0);
+    };
+
+  private:
+    TupleType *bufferTupleType;
+};
+
+// value mapping for stream T x int [ x bool ]--> stream T, T in DATA
+int StreamTailDataStreamVM(Word* args, Word& result,
+                           int message, Word& local, Supplier s)
+{
+  DataTailLocalInfo* li;
+  Word    InputStream = args[0];
+  CcInt*  CcN         = static_cast<CcInt*>(args[1].addr);
+  CcBool* CcKeepOrder = static_cast<CcBool*>(args[2].addr);
+
+  Word elem;
+
+  switch( message )
+  {
+    case OPEN:{
+      DEBUGMESSAGE("Start OPEN");
+      if(     !CcN->IsDefined()
+               || !CcKeepOrder->IsDefined()
+               || !InputStream.addr
+               || CcN->GetIntval() <= 0
+        )
+      {
+        local = SetWord( Address(0) );
+        DEBUGMESSAGE("End OPEN 1");
+        return 0;
+      } // else: consume the InputStream
+      ListExpr elemTypeNL = nl->Second(qp->GetType( s ));
+      li = new DataTailLocalInfo( CcN->GetIntval(),
+                                  CcKeepOrder->GetBoolval(),
+                                  elemTypeNL
+                                );
+      local = SetWord(li);
+
+      // open and consume the input stream
+      qp->Open(InputStream.addr);
+      qp->Request(InputStream.addr, elem); // get first stream elem
+      while (qp->Received(args[0].addr))
+      {
+        StandardAttribute *myObj = static_cast<StandardAttribute*>(elem.addr);
+        li->AppendElem(myObj);           // store the tuple in a tuplebuffer
+        qp->Request(InputStream.addr, elem); // get next stream elem
+      }
+      // InputStream will be closed when calling CLOSE
+      DEBUGMESSAGE("End OPEN 2");
+      return 0;
+    }
+
+    case REQUEST:{
+      DEBUGMESSAGE("Start REQUEST");
+      if(!local.addr){ DEBUGMESSAGE("End REQUEST: CANCEL1 "); return CANCEL; }
+      li = static_cast<DataTailLocalInfo*>(local.addr);
+      if(li->finished){ DEBUGMESSAGE("End REQUEST: CANCEL2 "); return CANCEL; }
+      result = SetWord(li->GetNextElem());    // extract the object
+      if(!result.addr){
+        DEBUGMESSAGE("End REQUEST: CANCEL3 ");
+        return CANCEL;
+      }
+      DEBUGMESSAGE("End REQUEST: YIELD");
+      return YIELD;
+    }
+
+    case CLOSE:{
+      DEBUGMESSAGE("Start CLOSE");
+      qp->Close(InputStream.addr);
+      if(local.addr){
+        li = static_cast<DataTailLocalInfo*>(local.addr);
+        delete li;
+        local = SetWord( Address(0) );
+      }
+      DEBUGMESSAGE("End CLOSE");
+      return 0;
+    }
+  }
+  return 0;
+}
+
+ValueMapping streamtailmap[] =
+{ StreamTailTupleTreamVM,
+  StreamTailDataStreamVM
+};
+
+int streamTailSelect( ListExpr args )
+{
+  NList type(args);
+  if(   type.first().second().hasLength(2)
+     && type.first().second().first() == "tuple")
+    return 0;
+  return 1;
+}
+
+const string StreamSpecTail  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>stream(tuple(X)) x int [ x bool] -> stream(tuple(X))\n"
+    "stream(T)) x int [ x bool] -> stream(T), T in DATA</text--->"
+    "<text>_ tail[ n ], _ tail[ n, keepOrder ]</text--->"
+    "<text>Delivers only the last 'n' stream elements. Optional parameter "
+    "'keepOrder' controls the ordering of the result. If set to TRUE (default) "
+    "the original ordering is maintained. Otherwise, the tuples are returned "
+    "in reverse order.</text--->"
+    "<text>query ten feed head[6] tail[2] tconsume</text--->"
+    ") )";
+
+Operator streamtail( "tail",
+                     StreamSpecTail,
+                     2,
+                     streamtailmap,
+                     streamTailSelect,
+                     streamTypeMapTail);
+
 /*
 7 Creating the Algebra
 
@@ -3768,6 +4049,7 @@ public:
     AddOperator( realstreamInfo(), realstreamFun, realstreamTypeMap );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
+    AddOperator( &streamtail );
   }
   ~StreamAlgebra() {};
 };
