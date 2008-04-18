@@ -81,7 +81,7 @@ Currently implemented:
   * postfixbrackets, 2 or 3 arguments, of which the last one is put into
 the brackets: \_ \# [ \_ ] or \_ \_ \# [ \_ ]
 
-  * postfixbrackets2: \_ \# [\_ , \_] 
+  * postfixbrackets2: \_ \# [\_ , \_]
 
   * prefix, 2 arguments: \# (\_, \_)
 
@@ -128,6 +128,7 @@ secondoOp(tuplesize, postfix, 1).
 secondoOp(exttuplesize, postfix, 1).
 secondoOp(attrsize, postfixbrackets, 2).
 secondoOp(head, postfixbrackets, 2).
+secondoOp(tail, postfixbrackets, 2).
 secondoOp(windowintersects, postfixbrackets, 3).
 secondoOp(windowintersectsS, postfixbrackets, 2).
 secondoOp(gettuples, postfix, 2).

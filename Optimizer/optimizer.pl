@@ -254,7 +254,7 @@ Example call:
 
 createPredicateFacts(Preds) :-
   optimizerOption(adaptiveJoin),
-  storePredicates(Preds), 
+  storePredicates(Preds),
   !.
 
 createPredicateFacts(_).
@@ -998,10 +998,10 @@ plan_to_atom(res(N), Result) :-
   !.
 
 plan_to_atom(pr(P,_), Result) :-
-   plan_to_atom(P, Result).	
+   plan_to_atom(P, Result).
 
 plan_to_atom(pr(P,_,_), Result) :-
-   plan_to_atom(P, Result).	
+   plan_to_atom(P, Result).
 
 plan_to_atom([], '').
 
@@ -1389,7 +1389,7 @@ plan_to_atom(aggregate(Term, AttrName, AggrFunction, DefaultVal), Result) :-
   plan_to_atom( Term, TermRes ),
   plan_to_atom( AttrName, AttrNameRes ),
   plan_to_atom( AggrFunction, AggrFunRes ),
-  concat_atom( [ TermRes, ' aggregateB[ ', AttrNameRes, ' ; ', AggrFunRes, 
+  concat_atom( [ TermRes, ' aggregateB[ ', AttrNameRes, ' ; ', AggrFunRes,
                  ' ; ', DefaultVal, ' ] ' ], Result ),
   !.
 
@@ -1733,7 +1733,7 @@ indexselect(arg(N), pr(Pred, _)) =>
 %Old:  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), Pred)
   filter(windowintersects(IndexName, rel(Name, *, Case), Y), Pred)
   :-
-  (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y] 
+  (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
   isBBoxPredicate(OP),
   argument(N, rel(Name, *, Case)),
@@ -2164,11 +2164,11 @@ The following two rules are used for the ~adaptiveJoin~ extension. If used, the 
 */
 
 join00(Arg1S, Arg2S, pr(X = Y, Rel1, Rel2)) => pjoin2(Arg1S, Arg2S, Fields) :-
-  optimizerOption(adaptiveJoin), 
+  optimizerOption(adaptiveJoin),
   try_pjoin2(X, Y, Rel1, Rel2, Fields).
 
 
-  /* 
+  /*
   join00(Arg1S, Arg2S, pr(X = Y, _, _)) => pjoin2_smj(Arg1S, Arg2S, Fields) :-
   fail,
   try_pjoin2_smj(X, Y, Fields).
@@ -2509,8 +2509,8 @@ writeEdgeSels :-
 
 
 /*
-The dynamic predicates below are used to display 
-the edge selectivites and estimated sizes of the 
+The dynamic predicates below are used to display
+the edge selectivites and estimated sizes of the
 last computed best plan which is stored in ~path/1~.
 
 Moreover if option ~useCounters~ is switched on, the real
@@ -2565,20 +2565,20 @@ createPathInfo([H|T]) :-
   %showValue('SelReal: ', SizeReal),
   relativeError(SizeEstInt, SizeReal, SizeErr),
   assert(pathInfo(Src, Tgt, C1c, C2c, SelEst, SelReal, SelErr, SizeEstInt, SizeReal, SizeErr)),
-  createPathInfo(T). 
+  createPathInfo(T).
 
 createPathInfo([]).
 
 relativeError(A, B, Err) :-
-  B > 0, A >= B,	
+  B > 0, A >= B,
   Err is round((A / B) * 100 - 100),
-  %showValue('err: ', Err), 
+  %showValue('err: ', Err),
   !.
 
 relativeError(A, B, Err) :-
-  A > 0, B >= A,	
+  A > 0, B >= A,
   Err is round((B / A) * 100 - 100),
-  %showValue('err: ', Err), 
+  %showValue('err: ', Err),
   !.
 
 relativeError(_, 0, inf).
@@ -2592,17 +2592,17 @@ checkSizes :-
   Format = [ ['Edge', 'l'],
              ['Arg1', 'l'],
 	     ['Arg2', 'l'],
-	     ['Sel-Est', 'l'], 
-	     ['Sel-Real', 'l'], 
-	     ['E1', 'l'], 
-             ['Sz-Est', 'l'], 
-             ['Sz-Real', 'l'], 
-             ['E2', 'l'] 
+	     ['Sel-Est', 'l'],
+	     ['Sel-Real', 'l'],
+	     ['E1', 'l'],
+             ['Sz-Est', 'l'],
+             ['Sz-Real', 'l'],
+             ['E2', 'l']
              ],
   current_prolog_flag(float_format, FF),
-  set_prolog_flag(float_format, '%.7f'),  
+  set_prolog_flag(float_format, '%.7f'),
   showTuples(L, Format),
-  set_prolog_flag(float_format, FF).  
+  set_prolog_flag(float_format, FF).
 
 
 
@@ -2645,7 +2645,7 @@ showPredOrder :-
 
 edgePredicate(Source, Target, PlanFragment, Op) :-
   pathInfo(Source, Target, _, _, _, _, _, _, _, _),
-  path(X), 
+  path(X),
   %showValue('X:', X),
   member(costEdge(Source,Target,Term,_,_,_),X),
   firstOp(Term, Op),
@@ -2659,10 +2659,10 @@ firstOp(Term, F1) :-
 
 firstOp(Term, F1) :-
   Term =.. [ F1 | _ ].
- 
+
 
 explainPlan :-
-  checkSizes, showPredOrder.	
+  checkSizes, showPredOrder.
 
 
 /*
@@ -3075,7 +3075,7 @@ writeCostEdges2(Src) :-
   costEdgeInfo(Src, Target, Plan, Result, Size, Cost), nl,
   fail.
 
-writeCostEdges(Src) :- not(writeCostEdges2(Src)). 
+writeCostEdges(Src) :- not(writeCostEdges2(Src)).
 
 
 /*
@@ -3385,19 +3385,19 @@ traversePath(Path) :-
   optimizerOption(entropy),
   traversePath2(Path), !.
 
-% insert counters 
+% insert counters
 traversePath(Path) :-
-  optimizerOption(useCounters), !, 
+  optimizerOption(useCounters), !,
   resetCounter(nodeSizeCtr),
   traversePathX(Path).
 
-% default 
+% default
 traversePath([]).
 
 traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   edgeSelectivity(Source, Target, Sel),
   edgeInfoProgress(Source, Target, BBoxSel, ExpPET),
-  markupProgress(Term, Sel, BBoxSel, ExpPET, Term2),  
+  markupProgress(Term, Sel, BBoxSel, ExpPET, Term2),
   embedSubPlans(Term2, Term3),
   assert(nodePlan(Result, Term3)),
   traversePath(Path).
@@ -3413,17 +3413,17 @@ Attach progress information to the right operators in a term.
 
 markupProgress(Term, _, _, _, Term) :- optimizerOption(noprogress).
 
-markupProgress(project(Stream, Attrs), Sel, BBoxSel, ExpPET, 
+markupProgress(project(Stream, Attrs), Sel, BBoxSel, ExpPET,
 	project(Stream2, Attrs)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
-markupProgress(remove(Stream, Attrs), Sel, BBoxSel, ExpPET, 
+markupProgress(remove(Stream, Attrs), Sel, BBoxSel, ExpPET,
 	remove(Stream2, Attrs)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
-markupProgress(rename(Stream, Var), Sel, BBoxSel, ExpPET, 
+markupProgress(rename(Stream, Var), Sel, BBoxSel, ExpPET,
 	rename(Stream2, Var)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
@@ -3455,7 +3455,7 @@ markupProgress(filter(loopjoin(Stream, Expr), Pred), Sel, BBoxSel, ExpPET,
   Sel2 is (Sel / BBoxSel) * 0.999,
   markupProgressBBoxIndex(Expr, BBoxSel, Expr2),
   !.
-  
+
 
 markupProgress(Stream, Sel, _, ExpPET, predinfo(Sel2, ExpPET, Stream)) :-
   Sel2 is Sel * 0.999.              %must be real
@@ -3475,7 +3475,7 @@ markupProgressBBoxIndex(rename(Stream, Var), Sel, rename(Stream2, Var)) :-
   markupProgressBBoxIndex(Stream, Sel, Stream2),
   !.
 
-markupProgressBBoxIndex(windowintersects(Index, Rel, Arg), Sel, 
+markupProgressBBoxIndex(windowintersects(Index, Rel, Arg), Sel,
   predinfo(Sel, 0.01, windowintersects(Index, Rel, Arg)) ).
 
 
@@ -3733,7 +3733,7 @@ When using ~groupby~, the ~select list~ may contain
     ~sum~). Also, user defined aggregation functions can be applied using the
     ~aggregate~ functor (explained below).
 
-Example using a user defined aggregation function: 
+Example using a user defined aggregation function:
 
 ----  select
         aggregate((distinct b:no*1), (*), 'int', '[const int value 0]' ) as fac
@@ -3788,7 +3788,7 @@ attribute to aggregate over (possibly with preceding ~all~ or ~distinct~), ~Aggr
 is a associative and commutative bijection operator name (infix operator must be passed in
 round paranthesis), ~Type~ is the datatype of  ~Attr~, and ~DefaultValue~ is the value that
 will be returned, if the query yields no value for ~Attr~.
-Note: If using an expression instead of an attribute, ensure that $<$Type$>$ and 
+Note: If using an expression instead of an attribute, ensure that $<$Type$>$ and
 $<$Defaultvalue$>$ match the evaluated expression's type!
 
 Examples:
@@ -3818,6 +3818,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(988,  fx, with).
 :- op(987, xfx, in).
 :- op(986, xfx, first).
+:- op(986, xfx, last).
 %:- op(985, xfx, >>).         % XRIS: what's that operator for?
 :- op(980, xfx, orderby).
 :- op(970, xfx, groupby).
@@ -3943,6 +3944,9 @@ lookup(Query groupby Attrs, Query2 groupby Attrs3) :-
   lookupAttrs(Attrs2, Attrs3).
 
 lookup(Query first N, Query2 first N) :-
+  lookup(Query, Query2).
+
+lookup(Query last N, Query2 last N) :-
   lookup(Query, Query2).
 
 
@@ -4478,7 +4482,7 @@ from a relation into a stream. The system predicate ~setof~ is used
 to find all goal for query ~usedAttr(Rel,X)~.
 
 */
-%   usedAttrList(+Rel, -ResList) 
+%   usedAttrList(+Rel, -ResList)
 usedAttrList(Rel, ResList) :-
   setof(X, usedAttr(Rel, X), R1),
   %nl, write('AttrList: '), write(R1), nl,
@@ -4670,7 +4674,7 @@ translateFields([Term | Select], GroupAttrs, Fields, Select2) :-
 
 /*
 Generic rules for user defined aggregation functions, using
-~aggregate~. 
+~aggregate~.
 
 The SQL-syntax is as follows:
 
@@ -4680,8 +4684,8 @@ The SQL-syntax is as follows:
   use preceeding ~all~ or ~distinct~ to aggregate over all resp. only distinct
   attribute resp. expression values.
 
-  FUNCTION is the operator name (only the name!) used as the aggregation 
-  function. The operator must have signature TYPE x TYPE [->] TYPE. It must 
+  FUNCTION is the operator name (only the name!) used as the aggregation
+  function. The operator must have signature TYPE x TYPE [->] TYPE. It must
   be a commutative and associative function. If you want to use
   an infix operator, you must enclose it in round parentheses, eg. ([star]) for
   the multiplication [star]: TYPE x TYPE [->] TYPE.
@@ -4692,7 +4696,7 @@ The SQL-syntax is as follows:
   you should enclose the list expression in single quotes, eg.
   '[const region value ()]'.
 
-  Otherwise, you can use user defined aggregation in the select clause of 
+  Otherwise, you can use user defined aggregation in the select clause of
   a query, just like ordinary aggregation operator, like ~sum~, ~avg~, ~var~,
   ~min~, or ~max~.
 
@@ -4701,7 +4705,7 @@ The SQL-syntax is as follows:
   (e.g. ~not(isempty(ARGUMENT))~).
 
   As usual for SQL, aggregation is only allowed in the context of grouping!
-  
+
 */
 
 % case: complex/user defined arbitrary aggregation functions
@@ -4716,10 +4720,10 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   newVariable(Var2),
   AggrFun =.. [FunOp, Var1, Var2],
   attrnames([attr(Name, Var, Case)], AttrName),
-  Term2 =..[AggrOp, 
+  Term2 =..[AggrOp,
             rdup(sort(project(feed(group), AttrName))),
-            attrname(attr(Name, Var, Case)), 
-            fun([ param(Var1, Type), param(Var2, Type)], AggrFun), 
+            attrname(attr(Name, Var, Case)),
+            fun([ param(Var1, Type), param(Var2, Type)], AggrFun),
             Default],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
@@ -4737,10 +4741,10 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   newVariable(Var1),
   newVariable(Var2),
   AggrFun =.. [FunOp, Var1, Var2],
-  Term2 =..[AggrOp, 
-            feed(group), 
-            attrname(attr(Name, Var, Case)), 
-            fun([ param(Var1, Type), param(Var2, Type)], AggrFun), 
+  Term2 =..[AggrOp,
+            feed(group),
+            attrname(attr(Name, Var, Case)),
+            fun([ param(Var1, Type), param(Var2, Type)], AggrFun),
             Default],
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
@@ -4761,7 +4765,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   attrnames([attr(ExprAttr, 0, l)], ExprAttrName),
   ExtStream  = extend(feed(group), field(attr(ExprAttr, 0, l), Expr)),
   AggrStream = rdup(sort(project(ExtStream, ExprAttrName) ) ),
-  Term2 =.. [AggrOp, 
+  Term2 =.. [AggrOp,
              AggrStream,
              attrname(attr(ExprAttr, 0, l)),
              fun([param(Var1, Type),param(Var2, Type)],AggrFun),
@@ -4784,7 +4788,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   newVariable(Var1),
   newVariable(Var2),
   AggrFun =.. [FunOp, Var1, Var2],
-  Term2 =.. [AggrOp, 
+  Term2 =.. [AggrOp,
              extend(feed(group), field(attr(ExpAttrName, 0, l), Expr)),
              attrname(attr(ExpAttrName, 0, l)),
              fun([param(Var1, Type),param(Var2, Type)],AggrFun),
@@ -4870,6 +4874,7 @@ countQuery(select distinct count(_) from _) :- !. % This is deprecated!
 countQuery(Query groupby _) :- countQuery(Query).
 countQuery(Query orderby _) :- countQuery(Query).
 countQuery(Query first _)   :- countQuery(Query).
+countQuery(Query last _)   :- countQuery(Query).
 
 /*
 ----    aggrQuery(+Query, -Op, -Query1, -AggrAttr)
@@ -4911,6 +4916,8 @@ aggrQuery(Query groupby G, _, _, _) :-
 aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
   aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
 aggrQuery(Query first N, AggrOp, Query1 first N, AggrExpr)   :-
+  aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
+aggrQuery(Query last N, AggrOp, Query1 last N, AggrExpr)   :-
   aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
 
 
@@ -4971,6 +4978,8 @@ userDefAggrQuery(Query orderby Order, Query1 orderby Order, AggrExpr, Fun, Defau
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
 userDefAggrQuery(Query first N, Query1 first N, AggrExpr, Fun, Default) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
+userDefAggrQuery(Query last N, Query1 last N, AggrExpr, Fun, Default) :-
+  userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
 
 
 /*
@@ -4983,6 +4992,10 @@ Same as ~queryToPlan~, but returns a stream plan, if possible.
 */
 
 queryToStream(Query first N, head(Stream, N), Cost) :-
+  queryToStream(Query, Stream, Cost),
+  !.
+
+queryToStream(Query last N, tail(Stream, N), Cost) :-
   queryToStream(Query, Stream, Cost),
   !.
 
