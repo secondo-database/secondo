@@ -857,6 +857,9 @@ public void removeObject(SecondoObject o){
    SObjects.removeElementAt(index);
    Trees.removeElementAt(index);
    ChoiceBox.removeItemAt(index);
+   if(SObjects.size()==0){
+      TPP.setTree(null);
+   }
 }
 
 public void removeAll(){
