@@ -1496,6 +1496,9 @@ public boolean execGuiCommand(String command){
             success=false;
        }  
      }
+  } else if(command.startsWith("display ")){
+    OList.displayObject(command.substring(8));  
+    ComPanel.showPrompt();
   } else {
     ComPanel.appendText("unknown gui command \n show help to get a list of available commands");
     ComPanel.showPrompt();

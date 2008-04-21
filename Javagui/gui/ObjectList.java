@@ -487,6 +487,25 @@ public int loadObject(){
        return number;
 }
 
+public boolean displayObject(String obj){
+  ListExpr le= new ListExpr();
+  if(le.readFromString(obj)!=0){
+    Reporter.showError("Cannot parse list");
+    return false;
+  } else {
+   SecondoObject SO = new SecondoObject(IDManager.getNextID());
+   SO.setName("UserDef ");
+   SO.fromList(le);
+   addEntry(SO);
+   showObject(SO.getName());
+   return true;
+  }
+
+    
+
+}
+
+
 /** add the objects stored in the list **/
 private boolean addObject(ListExpr LE){
    // check object representation
