@@ -563,11 +563,19 @@ class BTreeNode implements PNode{
     int len2 = 0;
     if(!isLeaf){
        len2 = list.second().listLength();
+       if(len2<1){
+          return false; // sons must be inside a list
+       }
+
        sons = new BTreeNode[len2];
        if(len1 != len2-1){
          System.out.println("wrong length len1 = " + len1 + " len2=" + len2);
          return false;
        }
+    }
+
+    if(len1 < 0){ // error not an list for the entries
+       return false;
     }
 
     
@@ -682,8 +690,10 @@ class BTreeNode implements PNode{
      g.drawRect(xs,y, w, nodeHeight);
      // paint labels , separators and connections to the sons
      // paint first separator:
+     int y1 =  y+nodeHeight;
+
      g.drawLine(xs+sep/2,y, xs+sep/2,y + nodeHeight);
-     g.drawLine(xs+sep/4, y+nodeHeight, 
+     g.drawLine(xs+sep/4,y1, 
                ((Integer)v.get(0)).intValue(),y+nodeHeight+vDist     );
 
      for(int i=0; i < labels.length;i++){
@@ -694,7 +704,7 @@ class BTreeNode implements PNode{
         if(i<labels.length-1){
            g.drawLine(x2+sep/3, y , x2+sep/3, y + nodeHeight);
         }
-        g.drawLine(x2,y+nodeHeight, ((Integer)v.get(i+1)).intValue(), y+nodeHeight+vDist);
+        g.drawLine(x2, y1 , ((Integer)v.get(i+1)).intValue(), y+nodeHeight+vDist);
       }
 
       return x1-x;
