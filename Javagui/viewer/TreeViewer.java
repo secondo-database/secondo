@@ -31,11 +31,20 @@ import java.io.*;
 import tools.Reporter;
 
 
+
+interface PNode{
+  void computeBounds(Graphics2D g);
+  Rectangle2D getBounds();
+  void paint(Graphics2D g);
+  boolean saveAsLatex(File f);
+}
+
+
 /** This class provides a datastructure for representing a Tree.
   * Using the paint method we can draw the tree on a graphic context.
   */
 
-class Node{
+class TreeNode implements PNode{
 
    /** Reads the Label of this Node from a nested list atom
      *
@@ -106,17 +115,17 @@ class Node{
             Sons = LE.rest();
        }
        if(Sons.atomType()!=ListExpr.NO_ATOM){ // a single leaf
-           sons = new Node[1];
-           sons[0] = new Node("",null); 
+           sons = new TreeNode[1];
+           sons[0] = new TreeNode("",null); 
            sons[0].readFrom(Sons);
        }else{ // a list of sons
            if(Sons.isEmpty()){ // non sons in list
               sons = null;
               return true;
            } else{ // a proper list of sons
-              sons = new Node[Sons.listLength()];
+              sons = new TreeNode[Sons.listLength()];
               for(int i=0;i<sons.length;i++){
-                 sons[i] = new Node("",null);
+                 sons[i] = new TreeNode("",null);
                  if(!sons[i].readFrom(Sons.first())){ // error in reading son
                     sons = null;
                     Label = "Error";
@@ -153,8 +162,8 @@ class Node{
               return false;
           }
           Label = "T " + subtype.second().stringValue();
-          sons = new Node[1];
-          sons[0] =new Node("",null);
+          sons = new TreeNode[1];
+          sons[0] =new TreeNode("",null);
           return sons[0].readFromPMType(value.second());
       }else{      
         Reporter.debug("wrong type"+subtype);
@@ -183,8 +192,8 @@ class Node{
               return  false;
           }
           Label = "P["+r.intValue()+"]";
-          sons = new Node[1];
-          sons[0] = new Node("",null);
+          sons = new TreeNode[1];
+          sons[0] = new TreeNode("",null);
           if(len==2){
              return sons[0].readFromPMType(value.second());
           } else{
@@ -195,9 +204,9 @@ class Node{
           value = value.second();
           int len = value.listLength();
           Label = "C";
-          sons = new Node[len];
+          sons = new TreeNode[len];
           for(int i=0;i<len;i++){
-             sons[i] = new Node("",null);
+             sons[i] = new TreeNode("",null);
              if(!sons[i].readFromPMType(value.first())){
                return false;
              }
@@ -211,7 +220,7 @@ class Node{
 
 
    /** Sets the Label and the Sons of this tree. **/
-   Node(String Label, Node[] Sons){
+   TreeNode(String Label, TreeNode[] Sons){
       this.Label = Label;
       this.sons=Sons;
       if(!arrowDone)
@@ -298,7 +307,7 @@ class Node{
     The tree is painted from (0,0). The size depends on the
     used fontsize.
    */
-   public void paint(Graphics g){
+   public void paint(Graphics2D g){
        paint(g,0,0);
    }
 
@@ -410,7 +419,7 @@ class Node{
      * The output goes wrong when label contain any latex 
      * commands
      **/
-    boolean saveAsLatex(File F){
+    public boolean saveAsLatex(File F){
       if(F.exists())
          return false;
       try{
@@ -453,7 +462,7 @@ class Node{
    } 
 
    String Label;
-   Node[] sons;
+   TreeNode[] sons;
    double sonswidth =0;
    Rectangle2D bounds=null;   // bounds for this node and all subtrees
    static int nodesep = 10;   // distance between nodes
@@ -461,6 +470,240 @@ class Node{
    static Shape arrow;
    static boolean arrowDone= false;
 }
+
+
+class BTreeNode implements PNode{
+
+ private String[] labels;
+ private BTreeNode[] sons;
+ private boolean isLeaf;
+ boolean defined;
+ Rectangle2D bounds;
+ private static final int vDist = 30;
+ private static final int hDist = 5;
+ private static final int nodeHeight = 15;
+
+ public boolean saveAsLatex(File f){
+    Reporter.showError("not implemented for a btree");
+    return false;
+ }
+
+
+ public BTreeNode(){
+    defined = false;
+    labels = null;
+    sons = null;
+    bounds = null;
+ }
+
+ public int getHeight(){
+   if(!defined){
+     return 0;
+   } else {
+     int h = 0;
+     BTreeNode n = this;
+     while(!n.isLeaf){
+        h++;
+        n = n.sons[0];
+     }
+     return h;  
+   }
+ }
+
+ private int getWidth(Graphics2D g){
+    return getWidth(determineEntryWidth(g.getFontMetrics())); 
+ }
+
+ private int getWidth(int entryWidth){
+    if(isLeaf){
+      int sep = 10;
+      int w = (entryWidth + sep )* labels.length;
+      return  w;
+    } else {
+     int x1 = 0;
+     for(int i=0;i<sons.length;i++){
+       int sw =  sons[i].getWidth(entryWidth);
+       x1 += hDist + sw;
+     }
+     x1 -= hDist;
+     return x1;
+    }
+ }
+
+ public Rectangle2D getBounds(){
+   return bounds;
+ }
+
+ public void  computeBounds(Graphics2D g){
+   int h = getHeight();
+
+   h = h*(nodeHeight+vDist) + nodeHeight;
+
+   bounds = new Rectangle2D.Double(0,0,getWidth(g),h);
+
+ }
+
+
+
+ /** The list must be formated as (l1, l2, ...l_n ( s_1 ... s_n+1)
+   * where l1...l_n are of type string or symbol or int
+   */
+ public boolean readFrom(ListExpr list){
+    if(list.atomType()!=ListExpr.NO_ATOM){
+      System.out.println(" not a list");
+      return false;
+    }
+    int len = list.listLength();
+    if(len!=1 && len != 2){
+      System.out.println("wrong length len = " + len);
+      return false;
+    }
+    int len1 = list.first().listLength();
+    isLeaf = len==1;
+    int len2 = 0;
+    if(!isLeaf){
+       len2 = list.second().listLength();
+       sons = new BTreeNode[len2];
+       if(len1 != len2-1){
+         System.out.println("wrong length len1 = " + len1 + " len2=" + len2);
+         return false;
+       }
+    }
+
+    
+    // read the entries
+    labels = new String[len1];
+    ListExpr rest = list.first();
+    ListExpr first;
+    for(int i=0;i<len1; i++){
+      first = rest.first();
+      rest = rest.rest();
+      switch(first.atomType()){
+         case ListExpr.INT_ATOM : labels[i] = "" + first.intValue();break;
+         case ListExpr.STRING_ATOM : labels[i] = first.stringValue(); break;
+         case ListExpr.SYMBOL_ATOM : labels[i] = first.symbolValue(); break;
+         default: labels = null; sons = null; return false;
+      }
+    }
+    if(isLeaf){
+      defined = true;
+      return true;
+    } else {
+      rest = list.second();
+      for(int i=0;i<len2;i++){
+        first = rest.first();
+        rest = rest.rest();
+        sons[i] = new BTreeNode();
+        if(!sons[i].readFrom(first)){
+          labels = null;
+          sons = null;
+          return false;
+        } 
+      }
+      defined = true;
+      return true;
+    }   
+ } 
+
+ private int determineEntryWidth(FontMetrics fm){
+   int last = isLeaf?labels.length:labels.length-1;
+   int max = 0;
+   for(int i=0;i<last;i++){
+      int d = fm.stringWidth(labels[i]);
+      if(d>max){
+        max = d;
+      }
+   }
+   if(!isLeaf){
+      for(int i=0;i<sons.length;i++){
+         int d = sons[i].determineEntryWidth(fm);
+         if(d>max){
+           max = d;
+         }
+      }
+   }
+   return max;
+ }
+
+ public void paint(Graphics2D g){
+    if(!defined){
+       g.drawString("not defined",10,10);
+       return;
+    }
+    int entryWidth = determineEntryWidth(g.getFontMetrics());
+    paintRec(g, 0,0, entryWidth); 
+ }
+
+ private static void drawStringAt(Graphics2D g, String s, int x, int y){
+    int w = g.getFontMetrics().stringWidth(s);
+    g.drawString(s, x - w/2 , y);
+
+ }
+
+ int paintRec(Graphics2D g, int x, int y, int entryWidth){
+    if(isLeaf){
+      int sep = 10;
+      int w = (entryWidth + sep )* labels.length;
+      // draw a rectangle
+      g.drawRect(x,y, w, nodeHeight);
+
+      int xl = 0;
+      int xs = 0;
+      // draw the entries and separators
+      for(int i=0; i < labels.length;i++){
+        xl = x + i * (entryWidth+sep) + sep/2 + entryWidth/2;
+        drawStringAt(g,labels[i], xl , y + nodeHeight -2);
+        if(i < labels.length-1){
+          xs = x + (i+1) *(entryWidth+sep) ; 
+          g.drawLine(xs, y , xs, y + nodeHeight);
+        }
+      }
+      return  w;
+    } else {
+ 
+     int sep = 14; 
+
+     int w = (entryWidth + sep)* labels.length + sep -sep/3;
+
+     // paint sons, store middles
+     Vector v = new Vector();
+     int x1 = x;
+     for(int i=0;i<sons.length;i++){
+       int sw =  sons[i].paintRec(g,x1, y + nodeHeight + vDist, entryWidth);
+       v.add(new Integer(x1 + sw/2));
+       x1 += hDist + sw;
+     }
+
+     x1 -= hDist;
+
+     // paint box
+     int xs = (x+x1)/2 - w / 2;
+ 
+     g.drawRect(xs,y, w, nodeHeight);
+     // paint labels , separators and connections to the sons
+     // paint first separator:
+     g.drawLine(xs+sep/2,y, xs+sep/2,y + nodeHeight);
+     g.drawLine(xs+sep/4, y+nodeHeight, 
+               ((Integer)v.get(0)).intValue(),y+nodeHeight+vDist     );
+
+     for(int i=0; i < labels.length;i++){
+        int xl =  xs + sep + entryWidth/2 + i*(entryWidth + sep);
+        drawStringAt(g,labels[i], xl, y+nodeHeight -2);
+        int x2 = xs + (i+1)*(entryWidth+sep) + sep /2; 
+        g.drawLine(x2-sep/3, y , x2-sep/3, y + nodeHeight);
+        if(i<labels.length-1){
+           g.drawLine(x2+sep/3, y , x2+sep/3, y + nodeHeight);
+        }
+        g.drawLine(x2,y+nodeHeight, ((Integer)v.get(i+1)).intValue(), y+nodeHeight+vDist);
+      }
+
+      return x1-x;
+    } 
+ }
+}
+
+
+
 
 
 /** This class provides a panel drawing a single tree.
@@ -614,7 +857,7 @@ class TreePainterPanel extends JPanel{
 
 
   // sets the tree to paint
-   void setTree(Node Tree){
+   void setTree(PNode Tree){
      this.Tree=Tree;
      AT.setToIdentity();
      firstPaint=true;
@@ -629,7 +872,7 @@ class TreePainterPanel extends JPanel{
  // scale for one single click
  double scalefactor = 1.5;
  // the Tree to paint
- Node Tree=null;
+ PNode Tree=null;
  // the bounding box of this tree
  Rectangle2D TreeBounds=null;
  // paint without manual zoomung 
@@ -765,7 +1008,7 @@ public TreeViewer(){
                 TPP.setTree(null);
                 return; 
              }
-             TPP.setTree((Node)Trees.get(i));
+             TPP.setTree((PNode)Trees.get(i));
      }
  
   });
@@ -820,17 +1063,27 @@ public boolean addObject(SecondoObject o){
     }
     ListExpr type = o.toListExpr().first();
     ListExpr LE = o.toListExpr().second(); // we need only the value
-
-    Node N = new Node("",null);
-    if(isPMType(type)){
-       if(!N.readFromPMType(LE)){
+    
+    PNode pN;
+    if(type.atomType()==ListExpr.SYMBOL_ATOM && type.symbolValue().equals("tree")){
+       TreeNode N = new TreeNode("",null);
+       if(isPMType(type)){
+         if(!N.readFromPMType(LE)){
            return false;
-       }
-    }else if(!N.readFrom(LE)){ // error in valueList
-       return false;
+         }
+       } else if(!N.readFrom(LE)){ // error in valueList
+         return false;
+       } 
+       pN = N;
+    } else { // b-tree
+      BTreeNode bN = new BTreeNode();
+      if(!bN.readFrom(LE)){
+         return false;
+      }
+      pN = bN;
     }
     // values are correct
-    Trees.add(N);
+    Trees.add(pN);
     SObjects.add(o);
     ChoiceBox.addItem(o.getName());
     ChoiceBox.setSelectedIndex(Trees.size()-1);
@@ -876,7 +1129,7 @@ public boolean canDisplay(SecondoObject o){
    LE = LE.first();
    if(LE.atomType()!=ListExpr.SYMBOL_ATOM)
       return false;
-   if(!LE.symbolValue().equals("tree") && !isPMType(LE)){
+   if(!LE.symbolValue().equals("tree") && !isPMType(LE) && !LE.symbolValue().equals("btree")){
       return  false;
    }
    return true;
