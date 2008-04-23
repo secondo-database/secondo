@@ -37,6 +37,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef MYRTREE_H
 #define MYRTREE_H
 
+/*
+1 Preparations
+
+This section contains  __includes__, __namespaces__, and __forward declarations__.
+
+
+*/
+
 
 #include <string.h>
 #include <iostream>
@@ -50,21 +58,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace mmrtree {
 
 
-/*
-1 The Class ~Node~
-
-
-This class is only used internal by the mmrtree. 
-Thus, here only a forward declaration is required.
-
-*/
-
 
 template<unsigned dim> class Node;
 
 
 /*
-2 The class RTree
+2 Declaration of class RTree
 
 */
 
@@ -74,7 +73,7 @@ public:
 /*
 2.1 Constructor
 
-This coinstructor creates a new empty RTRee with ~min~ and ~max~ as
+This constructor creates a new empty RTRee with ~min~ and ~max~ as
 parameters for the minimum/ maximum number of entries within a node.
 
 */
@@ -100,9 +99,9 @@ intersects ~box~.
 /*
 2.4 ~erase~
 
-Erases an  entries of ~id~ found at positions intersecting by box.
+Erases an  entry of ~id~ found at positions intersecting by box.
 If the object id is multiple stored, only the first instance will
-removed from the tree. If an object was deleted, the result 
+be removed from the tree. If an object was deleted, the result 
 will be __true__; otherwise (i.e.
 if no object with given id was present at the specified position),
 the result will be __false__.
@@ -166,7 +165,7 @@ multiple stored, each instance is count.
 /*
 ~height~
 
-Computes the height of the treei rooted by ~root~.
+Computes the height of the tree rooted by ~root~.
 
 */
    int height() const;
@@ -237,7 +236,7 @@ Returns the number of leaves within the tree rooted by ~root~.
 /*
 ~noObjects~
 
-Computes the number of stored objects. If an objects is
+Computes the number of stored objects. If an object is
 multiple stored, each instance is count.
 
 */
@@ -246,7 +245,7 @@ multiple stored, each instance is count.
 /*
 ~height~
 
-Computes the height of the treei rooted by ~root~.
+Computes the height of the tree rooted by ~root~.
 
 */
    int height(const Node<dim>* root) const;
@@ -281,7 +280,7 @@ pair<Node<dim>*, Node<dim>* >*
 /*
 ~findAllRec~
 
-Searches in the subtree givben by root for objects whose
+Searches in the subtree given by root for objects whose
 bounding box intersects ~box~ and collect them in ~res~.
 
 */   
@@ -293,9 +292,9 @@ bounding box intersects ~box~ and collect them in ~res~.
 /* 
 Erases one occurence of id.
 
-If ~root~ is 0, nothing is doed. Otherwise, if root is underflowed by
+If ~root~ is 0, nothing is do. Otherwise, if root is underflowed by
 erasing the entry, root is deleted and the remaining subtrees are
-inserted into Q. An exception is the root of the tree which is not
+inserted into ~Q~. An exception is the root of the tree which is not
 removed even if  0 entries  left in the root.
 
 */
@@ -330,22 +329,23 @@ int getHeight(const Node<dim>* root)const;
 
 /*
 
-Implementation of the classes
-
-1 The Class ~Node~
+1 Definition of the Class ~Node~
 
 
 This class represents a single node within an R-tree.
 There is no distinction between nodes holding the objects ids,
 leafs nodes and inner nodes. All nodes are represented by this 
-class.
+class. This class should only be used within the R-tree class.
+For this reason, all members are private and the R-Tree class
+is declared as a friend of this class.
+
 
 */
 
 template<unsigned dim> class Node{
 
 friend class Rtree<dim>;
-public:
+private:
 /*
 1.1 Constructors
 
@@ -397,7 +397,7 @@ Copy constructor.
 1.3 Destructor
 
 The destructor does not remove any sons of the node. Just the 
-array managing the sons are removed.
+array managing the sons is removed.
 
 */
   
@@ -434,8 +434,6 @@ array managing the sons are removed.
     }
     return s.str();
   }
-
-private:
 
 /*
 1.4 Data members
@@ -875,7 +873,7 @@ ostream& Rtree<dim>::printStats(ostream& o)const{
 /*
 2.5 ~printAsRel~
 
-This function writes the nested List representation of this tree to ~o~.
+This function writes the nested list representation of this tree to ~o~.
 
 */
 template<unsigned dim>
@@ -1038,7 +1036,7 @@ int Rtree<dim>::noLeaves(const Node<dim>* root)const{
 /*
 ~noObjects~
 
-Computes the number of stored objects. If an objects is
+Computes the number of stored objects. If an object is
 multiple stored, each instance is count.
 
 */
@@ -1176,7 +1174,7 @@ pair<Node<dim>*, Node<dim>* >*
 /*
 ~findAllRec~
 
-Searches in the subtree givben by root for objects whose
+Searches in the subtree given by root for objects whose
 bounding box intersects ~box~ and collect them in ~res~.
 
 */   
@@ -1203,9 +1201,9 @@ void Rtree<dim>::findAllRec(const Node<dim>* root,
 
 
 /* 
-Erases one occurence of id.
+Erases one occurence of ~id~.
 
-If ~root~ is 0, nothing is doed. Otherwise, if root is underflowed by
+If ~root~ is 0, nothing is do. Otherwise, if root is underflowed by
 erasing the entry, root is deleted and the remaining subtrees are
 inserted into Q. An exception is the root of the tree which is not
 removed even if  0 entries  left in the root.
