@@ -86,6 +86,7 @@ file.
 #include "PolySolver.h"
 #include "RelationAlgebra.h"
 #include <math.h>
+#include "MMRTree.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -3326,6 +3327,62 @@ void MPoint::Reverse(MPoint& result){
     }
     result.EndBulkLoad(false);
 }
+
+
+
+/*
+1.2 ~EqualizeUnits~
+
+This function tries to equalize the units contained within this mpoint,
+
+
+*/
+double qdist(const Point& p1, const Point& p2){
+   double x1 = p1.GetX();
+   double y1 = p1.GetY();
+   double x2 = p2.GetX();
+   double y2 = p2.GetY();
+   double dx = x2-x1;
+   double dy = y2-y1;
+   return dx*dx + dy*dy;
+}
+
+struct cluster { 
+   double cx;
+   double cy;
+   set <int > member ;
+   bool forbidden ;
+};
+
+void MPoint::EqualizeUnits(const double epsilon, 
+                           const DateTime&  dur, 
+                           MPoint& result) const{
+   result.Clear();
+
+   int size = GetNoComponents();
+   if(size<2){ // no or a single unit 
+      return;
+   }
+
+   // step 1: collect all unit-endpoints within a set
+   set<Point> endPoints;
+   const UPoint* unit;
+   for(int i=0;i< GetNoComponents(); i++){
+       Get(i,unit);
+       endPoints.insert(unit->p0);
+       endPoints.insert(unit->p1); 
+   }
+   // step 2: build cluster and move the endpoints to the centers
+   //         of them
+   //double eps = epsilon * epsilon;
+//   vector<cluster> 
+      
+ 
+
+
+}
+
+
 
 
 /*

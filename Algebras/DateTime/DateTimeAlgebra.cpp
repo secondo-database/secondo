@@ -1590,7 +1590,6 @@ void DateTime::ReadFrom( const char *src )
   ReadFrom( string(src) );
 }
 
-
 /*
 ~Stream Operator~
 
@@ -2974,6 +2973,7 @@ class DateTimeAlgebra : public Algebra
     AddTypeConstructor( &instant );
     instant.AssociateKind("DATA");
     instant.AssociateKind("INDEXABLE");
+    instant.AssociateKind("CSVEXPORTABLE");
     AddTypeConstructor( &duration );
     duration.AssociateKind("DATA");
 

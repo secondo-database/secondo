@@ -596,6 +596,9 @@ delta in [0,1].
   bool Split(const double delta, DateTime& Rest);
 
 
+  virtual string getCsvStr() const {
+     return ToString();
+  }
 
   private:
     // the data-part of datetime

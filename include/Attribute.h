@@ -413,6 +413,15 @@ Print the delete reference info to a string (for debugging)
   static void InitCounters(bool show);
   static void SetCounterValues(bool show);
 
+
+  virtual string getCsvStr() const{
+    return "";
+  }
+/*
+ returns a string representation for csv export
+
+*/
+
   protected:
 
     AttrDelete del;

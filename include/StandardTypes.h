@@ -66,6 +66,7 @@ by the ~StandardAlgebra~:
 #define STANDARDTYPES_H
 
 #include <string>
+#include <sstream>
 #include "StandardAttribute.h"
 #include "NestedList.h"
 #include "Counter.h"
@@ -245,6 +246,16 @@ class CcInt : public StandardAttribute
     intval = rhs.intval;
     defined = rhs.defined;
   }
+
+  virtual string getCsvStr() const{
+    if(!defined){
+       return "-";
+    } else {
+       stringstream o;
+       o << intval;
+       return o.str();
+    }
+  }
   
   static long intsCreated;
   static long intsDeleted;
@@ -399,6 +410,16 @@ class CcReal : public StandardAttribute
     return realval < rhs.realval;
   } 
 
+  virtual string getCsvStr() const{
+    if(!defined){
+       return "-";
+    } else {
+       stringstream o;
+       o << realval;
+       return o.str();
+    }
+  }
+
  private:
   bool  defined;
   SEC_STD_REAL  realval;
@@ -518,6 +539,13 @@ class CcBool : public StandardAttribute
   static long boolsCreated;
   static long boolsDeleted;
 
+  virtual string getCsvStr() const{
+    if(!defined){
+       return "-";
+    } else {
+      return boolval?"true":"false";
+    }
+  }
  private:
   bool defined;
   bool boolval;
@@ -668,6 +696,14 @@ class CcString : public StandardAttribute
 
   static long stringsCreated;
   static long stringsDeleted;
+
+  virtual string getCsvStr() const{
+    if(!defined){
+       return "-";
+    } else {
+      return stringval;
+    }
+  }
 
  private:
   bool   defined;

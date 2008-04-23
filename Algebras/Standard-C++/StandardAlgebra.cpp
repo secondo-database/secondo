@@ -4320,6 +4320,11 @@ class CcAlgebra1 : public Algebra
     ccBool.AssociateKind( "BASE" );
     ccString.AssociateKind( "BASE" );
 
+    ccInt.AssociateKind( "CSVEXPORTABLE" );
+    ccReal.AssociateKind( "CSVEXPORTABLE" );
+    ccBool.AssociateKind( "CSVEXPORTABLE" );
+    ccString.AssociateKind( "CSVEXPORTABLE" );
+
     AddOperator( &ccplus );
     AddOperator( &ccminus );
     AddOperator( &ccproduct );

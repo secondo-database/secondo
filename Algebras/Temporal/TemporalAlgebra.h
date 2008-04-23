@@ -2826,6 +2826,13 @@ Returns the MPoint's minimum bounding rectangle
   // recompute bbox, if necessary
   void RestoreBoundingBox(const bool force = false);
 
+
+void EqualizeUnits(const double epsilon, 
+                   const DateTime& dur, 
+                   MPoint& result) const;
+
+
+
 private:
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,
