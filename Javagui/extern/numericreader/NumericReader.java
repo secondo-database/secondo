@@ -23,6 +23,30 @@ package extern.numericreader;
 /** class to extract numbers from a byte array*/
 public class NumericReader{
 
+static long toBig(long i){
+   long x = i;
+   x = (x>>56) |
+       ((x<<40) & 0x00FF000000000000l) |
+       ((x<<24) & 0x0000FF0000000000l) |
+       ((x<<8)  & 0x000000FF00000000l) |
+       ((x>>8)  & 0x00000000FF000000) |
+       ((x>>24) & 0x0000000000FF0000) |
+       ((x>>40) & 0x000000000000FF00) |
+       (x<<56);
+       return x;
+ }
+ 
+ static double toBig(double d){
+   return Double.longBitsToDouble( toBig(Double.doubleToLongBits(d)));
+ }
+
+static int toBig(int i){
+   return((i&0xff)<<24)+((i&0xff00)<<8)+((i&0xff0000)>>8)+((i>>24)&0xff);
+}
+
+
+
+
 public static int getInt(byte b){
 int res = (int) b;
 if(b<0)
@@ -43,26 +67,13 @@ public static int getIntBig(byte[] a,int offset){
 
 
 public static int getIntLittle(byte[] a,int offset){
-  if(a.length-offset<4) return -1;
-  int res = 0;
-  int last = offset+4;
-  for(int i=0;i<4;i++)
-     res = 256*res + getInt(a[last-i-1]);
-  return res;
+   return toBig(getIntBig(a,offset));
 }
 
 
 public static long getLongLittle(byte[] a,int offset){
-  if(a.length-offset<8) return -1;
-  long res = 0;
-  int last = offset+8;
-  for(int i=0;i<8;i++){
-     res = 256*res + getInt(a[last-i-1]); 
-  }   
-       
-  return res;
+   return toBig(getLongBig(a,offset));
 }
-
 
 
 public static long getLongBig(byte[] a,int offset){

@@ -128,8 +128,9 @@ private boolean readPolyLine(byte[] Buffer){
   int NumParts = NumericReader.getIntLittle(Buffer,36);
   int NumPoints = NumericReader.getIntLittle(Buffer,40);
   int[] Parts = new int[NumParts];
-  for(int i=0;i<NumParts;i++)
+  for(int i=0;i<NumParts;i++){
      Parts[i] = NumericReader.getIntLittle(Buffer,44+4*i);
+  }
   double[][] Points = new double[2][NumPoints];
   for(int i=0;i<NumPoints;i++){
       Points[0][i] = NumericReader.getDoubleLittle(Buffer,44+4*NumParts+16*i);
@@ -141,29 +142,27 @@ private boolean readPolyLine(byte[] Buffer){
  ListExpr TMP =null;
  ListExpr Last = null;
  int PartNum = 0;
- for(int i=0;i<NumPoints-1;i++){
-       if(i+1==Parts[PartNum])
-          PartNum++;
-       else{
-          double x1 = Points[0][i];
-          double y1 = Points[1][i];
-          double x2 = Points[0][i+1];
-          double y2 = Points[1][i+1];
-          if(x1!=x2 | y1!=y2){
-             ListExpr Seg = ListExpr.fourElemList(ListExpr.realAtom(x1),
-	                                          ListExpr.realAtom(y1),
-					          ListExpr.realAtom(x2),
-					          ListExpr.realAtom(y2));
-             if(TMP==null){
-   	        TMP = ListExpr.oneElemList(Seg);
-                Last = TMP;
+ for(int i=0; i< Parts.length; i++){
+   int end = i<Parts.length-1?Parts[i+1] : Points[0].length;
+   for(int p= Parts[i]; p < end-1; p++){
+     double x1 = Points[0][p];
+     double y1 = Points[1][p];
+     double x2 = Points[0][p+1];
+     double y2 = Points[1][p+1];
+     if(x1!=x2 | y1!=y2){ // segment is correct
+       ListExpr Seg = ListExpr.fourElemList(ListExpr.realAtom(x1),
+                                            ListExpr.realAtom(y1),
+                                            ListExpr.realAtom(x2),
+                                            ListExpr.realAtom(y2));
+       if(TMP==null){
+         TMP = ListExpr.oneElemList(Seg);
+         Last = TMP;
 	     }else{
-	        Last = ListExpr.append(Last,Seg);
+	       Last = ListExpr.append(Last,Seg);
 	     }
-
-          }
-       }
-    }
+     } // end correct segment
+   } // end for points in part
+ } // end for all parts
 
   if(TMP!=null)
       LE = TMP;
