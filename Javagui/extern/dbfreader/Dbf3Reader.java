@@ -151,6 +151,15 @@ public boolean readFrom(byte[] Buffer){
    RecordLength = NumericReader.getShortLittle(Buffer,10);
    return true;
 }
+
+public void printInfo(PrintStream o){
+    o.println("version       = " + version);
+    o.println("hasMemo       = " + hasMemo());
+    o.println("# records     = " + NumberOfRecords);
+    o.println("headerlength  = " + HeaderLength);
+    o.println("record length = " + RecordLength);
+}
+
 public int getVersion(){ return version;}
 public boolean hasMemo(){ return version==131;}
 public int getRecordNumber(){ return NumberOfRecords;}
@@ -303,6 +312,7 @@ private DB3FieldDescription[] FDs=null;
 private class DB3Record{
 
 public boolean readFrom(byte[] Buffer,DB3RecordHeader RH){
+
    int MaxField = RH.getFieldNumber();
    if(MaxField<0)
       return false;
