@@ -1,0 +1,77 @@
+open database berlingraph;
+#############################################################
+### Delete the Representation-dependent Objects from Disk ###
+###            But keep the Raw Data Objects              ###
+#############################################################
+
+# OBA/CR
+dataSCcar;
+delete dataSCcar;
+delete dataSCcar_Licence;
+delete dataSCcar_Journey_object_space;
+delete dataSCcar_Journey_object_time;
+delete dataSCcar_Journey_object_d3;
+
+# TBA/CR
+delete dataMCcar;
+delete dataMCtrip;
+delete dataMCtrip;
+delete dataMCcar_Licence;
+delete dataMCcar_Moid;
+delete dataMCtrip_Moid;
+delete dataMCtrip_Trip_object_space;
+delete dataMCtrip_Trip_object_time;
+delete dataMCtrip_Trip_object_d3;
+
+# OBA/UR
+delete dataSUcar;
+delete dataSUcar_Licence;
+delete dataSUcar_Moid;
+delete dataSUcar_JourneyUnit_object_space;
+delete dataSUcar_JourneyUnit_object_time;
+delete dataSUcar_JourneyUnit_object_d3;
+
+# TBA/UR
+delete dataMUcar;
+delete dataMUunit;
+delete dataMUcar_Licence;
+delete dataMUcar_Moid;
+delete dataMUcar_Tripid;
+delete dataMUunit_Tripid;
+delete dataMUunit_TripUnit_object_space;
+delete dataMUunit_TripUnit_object_time;
+delete dataMUunit_TripUnit_object_d3;
+
+# OBA/HR
+delete dataSHcar;
+delete dataSHunit;
+delete dataSHcar_Licence;
+delete dataSHcar_Moid;
+delete dataSHunit_Moid;
+delete dataSHcar_JourneyMBR_object_d3;
+delete dataSHcar_JourneyMBR_object_space;
+delete dataSHcar_JourneyMBR_object_time;
+delete dataSHunit_JourneyUnit_object_space;
+delete dataSHunit_JourneyUnit_object_time;
+delete dataSHunit_JourneyUnit_object_d3;
+
+# TBA/HR
+delete dataMHcar;
+delete dataMHtrip;
+delete dataMHunit;
+delete dataMHcar_Licence;
+delete dataMHcar_Moid;
+delete dataMHtrip_Moid;
+delete dataMHtrip_Tripid;
+delete dataMHunit_Tripid;
+delete dataMHunit_TripUnit_object_space;
+delete dataMHunit_TripUnit_object_time;
+delete dataMHunit_TripUnit_object_d3;
+delete dataMHtrip_TripMBR_object_space;
+delete dataMHtrip_TripMBR_object_time;
+delete dataMHtrip_TripMBR_object_d3;
+
+#############################################################
+close database;
+#############################################################
+
