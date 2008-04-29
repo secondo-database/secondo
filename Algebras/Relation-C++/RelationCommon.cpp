@@ -218,7 +218,7 @@ ostream &operator<< (ostream &os, Attribute &attrib)
   return attrib.Print(os);
 }
 
-ostream& operator <<( ostream& o, Tuple& t )
+ostream& operator <<( ostream& o, const Tuple& t )
 {
   o << "<";
   for( int i = 0; i < t.GetNoAttributes(); i++)
@@ -744,7 +744,7 @@ Checks wether a ListExpression is of the form
 (rel (tuple ((a1 t1) ... (ai ti)))).
 
 */
-bool IsRelDescription( ListExpr relDesc )
+bool IsRelDescription( ListExpr relDesc, bool trel /*=false*/ )
 {
   if( nl->ListLength(relDesc) != 2 ){
     ErrorReporter::ReportError("Relation description must have length 2.");
@@ -754,10 +754,12 @@ bool IsRelDescription( ListExpr relDesc )
   ListExpr relSymbol = nl->First(relDesc);
   ListExpr tupleDesc = nl->Second(relDesc);
 
+  const string relStr = trel ? "trel" : "rel";
+
   if( !nl->IsAtom(relSymbol) ||
       nl->AtomType(relSymbol) != SymbolType ||
-      nl->SymbolValue(relSymbol) != "rel" ){
-    ErrorReporter::ReportError("Symbol 'rel' expected");
+      nl->SymbolValue(relSymbol) != relStr ){
+    ErrorReporter::ReportError("Symbol '" + relStr + "' expected");
     return false;
   }
 

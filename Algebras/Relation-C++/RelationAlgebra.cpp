@@ -3162,6 +3162,41 @@ TCountTypeMap(ListExpr args)
 }
 
 
+struct CountBothInfo : OperatorInfo {
+ 
+  CountBothInfo() : OperatorInfo()
+  { 
+    name =      "countboth";
+    signature = "stream(tuple(y)) x stream(tuple(z)) -> int";
+    syntax =    "_ countboth";
+    meaning =   "Counts the number of tuples of two input streams. "
+	        "The streams are requested alternately. The purpose of "
+		"this operator is to expose the overhead of the seek time."; 
+    example =   "plz feed orte feed countboth";
+  }
+
+};
+
+
+
+ListExpr
+countboth_tm(ListExpr args)
+{
+  CHECK_COND(nl->ListLength(args) == 2,
+  "Operator countboth expects a list of length two.");
+
+  bool ok = IsStreamDescription( nl->First(args) );
+  ok = ok && IsStreamDescription( nl->Second(args) );
+
+  if (ok) {
+    return nl->SymbolAtom("int");
+  } else {
+    return nl->TypeError();
+  }        
+}
+
+
+
 /*
 5.11.2 Value mapping functions of operator ~count~
 
@@ -3300,6 +3335,60 @@ TCountRel(Word* args, Word& result, int message,
   return 0;
 }
 
+int
+countboth_vm( Word* args, Word& result, int message, 
+              Word& local, Supplier s )
+{
+  Word elemA;
+  Word elemB;
+
+  struct Counter 
+  {
+    Counter() : count(0) {}
+
+    inline bool request(void* addr)
+    {
+       Word elem;	    
+       qp->Request(addr, elem);
+       bool ok = qp->Received(addr);
+       if (ok) { 
+	 count++; 
+         static_cast<Tuple*>(elem.addr)->DeleteIfAllowed();
+       }
+       return ok;
+    }	    
+
+    int count;
+
+  };
+
+  qp->Open(args[0].addr);
+  qp->Open(args[1].addr);
+
+  Counter c;
+ 
+  bool recA = c.request(args[0].addr); 
+  bool recB = c.request(args[1].addr); 
+
+  while ( recA || recB )
+  {
+    if (recA) {	  
+      recA = c.request(args[0].addr); 
+    }
+    if (recB) {  
+      recB = c.request(args[1].addr); 
+    }  
+  }
+  result = qp->ResultStorage(s);
+  static_cast<CcInt*>(result.addr)->Set(true, c.count);
+
+  qp->Close(args[0].addr);
+  qp->Close(args[1].addr);
+  return 0;
+}
+
+
+
 #endif
 
 
@@ -3401,7 +3490,9 @@ const string TCountSpec2  =
 "( '((stream (tuple x))) -> int'"
 "'_ count2'"
 "'Count number of tuples within a stream "
-"or a relation of tuples. During computation example messages are sent.'"
+"or a relation of tuples. During computation messages are sent to the "
+"client. The purpose of this operator is to demonstrate the "
+"programming interfaces only.'"
 "'query plz feed count2'"
 ") )";
 
@@ -5142,20 +5233,16 @@ class RelationAlgebra : public Algebra
     AddTypeConstructor( &cpprel );
     AddTypeConstructor( &cpptrel );
 
-#ifndef USE_PROGRESS
-
-// no support for progress queries
-
-    AddOperator(&relalgfeed);
-    AddOperator(&relalgconsume);
+    AddOperator(&relalgfeed);		    
+    AddOperator(&relalgconsume);	
     AddOperator(&relalgTUPLE);
     AddOperator(&relalgTUPLE2);
     AddOperator(&relalgattr);
-    AddOperator(&relalgfilter);
-    AddOperator(&relalgproject);
-    AddOperator(&relalgremove);
-    AddOperator(&relalgproduct);
-    AddOperator(&relalgcount);
+    AddOperator(&relalgfilter);		
+    AddOperator(&relalgproject);	    
+    AddOperator(&relalgremove);		
+    AddOperator(&relalgproduct);	
+    AddOperator(&relalgcount);		
     AddOperator(&relalgcount2);
     AddOperator(&relalgroottuplesize);
     AddOperator(&relalgexttuplesize);
@@ -5163,70 +5250,36 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgrootattrsize);
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
-    AddOperator(&relalgrename);
+    AddOperator(&relalgrename);		
+    AddOperator(&relalgbuffer);		
 
-#else
-
-// support for progress queries
-
-    AddOperator(&relalgfeed);		relalgfeed.EnableProgress();
-    AddOperator(&relalgconsume);	relalgconsume.EnableProgress();
-    AddOperator(&relalgTUPLE);
-    AddOperator(&relalgTUPLE2);
-    AddOperator(&relalgattr);
-    AddOperator(&relalgfilter);		relalgfilter.EnableProgress();
-    AddOperator(&relalgproject);	relalgproject.EnableProgress();
-    AddOperator(&relalgremove);		relalgremove.EnableProgress();
-    AddOperator(&relalgproduct);	relalgproduct.EnableProgress();
-    AddOperator(&relalgcount);		relalgcount.EnableProgress();
-    AddOperator(&relalgcount2);
-    AddOperator(&relalgroottuplesize);
-    AddOperator(&relalgexttuplesize);
-    AddOperator(&relalgtuplesize);
-    AddOperator(&relalgrootattrsize);
-    AddOperator(&relalgextattrsize);
-    AddOperator(&relalgattrsize);
-    AddOperator(&relalgrename);		relalgrename.EnableProgress();
-    AddOperator(&relalgbuffer);		relalgbuffer.EnableProgress();
-
-#endif
-
-/*
-its important to declare the Operator variable below
-as static otherwise it is just a temporary variable and
-cannot be accessed by the algebra manager.
-
-*/
-    static SizeCountersInfo sizecounters_oi;
-    static Operator sizecounters_op( sizecounters_oi, 
-                                     sizecounters_vm, 
-                                     sizecounters_tm );
-    AddOperator(&sizecounters_op);
-
-
-    static DumpStreamInfo dumpstream_oi;
-    static Operator dumpstream_op( dumpstream_oi, 
-                                   dumpstream_vm, 
-                                   dumpstream_tm );
-    AddOperator(&dumpstream_op);
-
-    static ReduceInfo reduce_oi;
-    static Operator reduce_op( reduce_oi, 
-                               reduce_vm, 
-                               reduce_tm );
-    AddOperator(&reduce_op);
-
-
-    static TConsumeInfo tconsume_oi;
-    static Operator tconsume_op( tconsume_oi, 
-                                 tconsume_vm, 
-                                 tconsume_tm );
-    AddOperator(&tconsume_op);
-    
+    // More recent programming interface for registering operators 
+    AddOperator( SizeCountersInfo(), sizecounters_vm, sizecounters_tm );
+    AddOperator( DumpStreamInfo(), dumpstream_vm, dumpstream_tm );
+    AddOperator( ReduceInfo(), reduce_vm, reduce_tm );
+    AddOperator( TConsumeInfo(), tconsume_vm, tconsume_tm );
+    AddOperator( CountBothInfo(), countboth_vm, countboth_tm );
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );
     cpptrel.AssociateKind( "REL" );
+
+
+/*
+Register operators which are able to handle progress messages
+
+*/   
+#ifdef USE_PROGRESS
+    relalgfeed.EnableProgress();
+    relalgconsume.EnableProgress();
+    relalgfilter.EnableProgress();
+    relalgproject.EnableProgress();
+    relalgremove.EnableProgress();
+    relalgproduct.EnableProgress();
+    relalgcount.EnableProgress();
+    relalgrename.EnableProgress();
+    relalgbuffer.EnableProgress();
+#endif
 
   }
   ~RelationAlgebra() {};

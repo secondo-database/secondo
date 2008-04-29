@@ -160,13 +160,20 @@ Remark   : On Linux and Windows this operator returns different values. Maybe it
 
 Operator : tconsume
 Number   : 1
-Signature: (stream x) -> (trel x)
+Signature: (stream(tuple(x)) -> (trel x)
 Example  : query Orte feed tconsume count
 Result   : 506
 
 Operator : tconsume
 Number   : 2
-Signature: (stream x) -> (trel x)
+Signature: (stream(tuple(x)) -> (trel x)
 Example  : query plz feed tconsume feed filter[.Ort = "Unna"] count
 Result   : 16
+
+
+Operator : countboth 
+Number   : 1
+Signature: (stream(tuple(x)) (stream(tuple(y)) -> int 
+Example  : query plz feed Orte feed countboth
+Result   : 41773 
 
