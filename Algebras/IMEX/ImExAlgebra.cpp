@@ -1949,15 +1949,16 @@ public:
         return 0;
       }
       Tuple* ResultTuple = BasicTuple->Clone();
-      unsigned int offset = 0;
 
+      unsigned int offset = 1; // ignore a deleted flag
       for(int i=0;i<noAttributes;i++){
         if(!store(types[i], ResultTuple, i, buffer,offset, fieldLength[i])){
             delete ResultTuple;
             defined = false;
             return 0;
         }
-        offset += fieldLength[i];
+        int fl = fieldLength[i];
+        offset += fl;
       } 
       return ResultTuple;
    }
@@ -2071,7 +2072,6 @@ private:
   bool store(string type, Tuple* tuple, int index, 
              unsigned char* buffer, int offset, int length){
      stringstream ss;
-
      for(int i=offset; i<offset+length;i++){
        if(buffer[i]!=0){
           ss << buffer[i];
