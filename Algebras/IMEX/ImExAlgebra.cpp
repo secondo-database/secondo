@@ -91,18 +91,18 @@ ListExpr csvexportTM(ListExpr args){
   }
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if(len == 3){ // stream(CSV) x string x bool
-    if(!nl->IsEqual(nl->Second(args),"string") || 
+    if(!nl->IsEqual(nl->Second(args),"text") || 
        !nl->IsEqual(nl->Third(args),"bool")){
-       ErrorReporter::ReportError("stream x string x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
     ListExpr stream = nl->First(args);
     if(nl->ListLength(stream)!=2){
-       ErrorReporter::ReportError("stream x string x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
     if(!nl->IsEqual(nl->First(stream),"stream")){
-       ErrorReporter::ReportError("stream x string x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
     if(!am->CheckKind("CSVEXPORTABLE",nl->Second(stream),errorInfo)){
@@ -111,27 +111,27 @@ ListExpr csvexportTM(ListExpr args){
     }
     return stream;
   } else { // stream(tuple(...) )
-    if( !nl->IsEqual(nl->Second(args),"string") ||
+    if( !nl->IsEqual(nl->Second(args),"text") ||
         !nl->IsEqual(nl->Third(args),"bool") ||
         !nl->IsEqual(nl->Fourth(args),"bool")  ){
-       ErrorReporter::ReportError("stream x string x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
     ListExpr stream = nl->First(args);
     if(nl->ListLength(stream)!=2 ||
        !nl->IsEqual(nl->First(stream),"stream")){ 
-       ErrorReporter::ReportError("stream x string x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
     ListExpr tuple = nl->Second(stream);
     if(nl->ListLength(tuple)!=2 ||
        !nl->IsEqual(nl->First(tuple),"tuple")){ 
-       ErrorReporter::ReportError("stream x string x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
     ListExpr attrList = nl->Second(tuple);
     if(nl->ListLength(attrList) < 1 ){
-       ErrorReporter::ReportError("stream x string x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
     // check attrList
@@ -230,13 +230,13 @@ int CsvExportVM(Word* args, Word& result,
   {
     case OPEN:{
       qp->Open(args[0].addr);
-      CcString* fname = static_cast<CcString*>(args[1].addr);
+      FText* fname = static_cast<FText*>(args[1].addr);
       CcBool* append = static_cast<CcBool*>(args[2].addr);
       if(!fname->IsDefined() || !append->IsDefined()){
          local = SetWord(Address(0));
       } else {
          CsvExportLocalInfo* linfo; 
-         linfo = (new CsvExportLocalInfo(*fname->GetStringval(), 
+         linfo = (new CsvExportLocalInfo(fname->GetValue(), 
                                          append->GetBoolval()));
          if(!linfo->isOk()){
             delete linfo;
@@ -288,14 +288,14 @@ int CsvExportVM2(Word* args, Word& result,
   {
     case OPEN:{
       qp->Open(args[0].addr);
-      CcString* fname = static_cast<CcString*>(args[1].addr);
+      FText* fname = static_cast<FText*>(args[1].addr);
       CcBool* append  = static_cast<CcBool*>(args[2].addr);
       CcBool* names   = static_cast<CcBool*>(args[3].addr);
       if(!fname->IsDefined() || !append->IsDefined() || !names->IsDefined()){
          local = SetWord(Address(0));
       } else {
          CsvExportLocalInfo* linfo; 
-         linfo = (new CsvExportLocalInfo(*fname->GetStringval(), 
+         linfo = (new CsvExportLocalInfo(fname->GetValue(), 
                                          append->GetBoolval(),
                                          names->GetBoolval(),
                                          qp->GetType(s)));
@@ -395,9 +395,9 @@ ListExpr shpexportTM(ListExpr args){
     ErrorReporter::ReportError("wrong number of arguments");
     return nl->TypeError();
   } 
-  string err = "   stream(SHPEXPORTABLE) x string \n "
-               " or stream(tuple(...)) x string x attrname expected"; 
-  if(!nl->IsEqual(nl->Second(args),"string")){
+  string err = "   stream(SHPEXPORTABLE) x text \n "
+               " or stream(tuple(...)) x text x attrname expected"; 
+  if(!nl->IsEqual(nl->Second(args),"text")){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -464,13 +464,13 @@ ListExpr shpexportTM(ListExpr args){
 
 class shpLInfo{
  public:
-    shpLInfo(CcString* name){
+    shpLInfo(FText* name){
       if(!name->IsDefined()){
          defined = false;
       } else {
          defined = true;
          first = true;
-         baseName = *(name->GetStringval());
+         baseName = (name->GetValue());
          recno = 1;
          boxdef = false;
          xMin = 0;
@@ -596,7 +596,7 @@ int shpexportVM1(Word* args, Word& result,
   {
     case OPEN:{
        qp->Open(args[0].addr);
-       CcString* fname = static_cast<CcString*>(args[1].addr);
+       FText* fname = static_cast<FText*>(args[1].addr);
        local = SetWord(new shpLInfo(fname));
        return 0; 
     }
@@ -646,7 +646,7 @@ int shpexportVM2(Word* args, Word& result,
   {
     case OPEN:{
        qp->Open(args[0].addr);
-       CcString* fname = static_cast<CcString*>(args[1].addr);
+       FText* fname = static_cast<FText*>(args[1].addr);
        shpLInfo* linfo  = new shpLInfo(fname);
        int attrPos = (static_cast<CcInt*>(args[3].addr))->GetIntval();
        linfo->setIndex( attrPos);
@@ -1285,7 +1285,7 @@ class shpimportInfo{
        defined = false;
      } else {
        defined = true;
-       string name = fname->GetValue();
+       string name = fname->GetValue()+".shp";
        file.open(name.c_str(),ios::binary);
        if(!file.good()){
          defined = false;
