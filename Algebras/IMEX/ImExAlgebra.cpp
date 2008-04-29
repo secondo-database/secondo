@@ -805,19 +805,20 @@ public:
           }
           unsigned char len = attr->getDB3Length();
           if(ismemo){
-             recSize += 10;
-          } else {
-             recSize += len;
-          }
+            len = 10;
+          } 
+          recSize += len;
           exps.push_back(true);
           lengths.push_back(len);
           dbtypes.push_back(attr->getDB3Type());
           decCnts.push_back(attr->getDB3DecimalCount());
+          isMemo.push_back(ismemo);
         } else {
           exps.push_back(false);
           lengths.push_back(0);
           dbtypes.push_back('L');
           decCnts.push_back(0);
+          isMemo.push_back(false);
         }
       }
       if(exportable == 0){ // no exportable attributes found
@@ -954,7 +955,8 @@ public:
         if(exps[i]){
           unsigned char len = lengths[i];
           string s = (tuple->GetAttribute(i))->getDB3String();
-          if(len>0){
+          bool ismemo = isMemo[i];
+          if(!ismemo){
             s = extendString(s,len);
             f << s;
           } else {
@@ -1007,6 +1009,7 @@ private:
   vector<bool> exps;     // flags whether the attribute is exportable
   vector<unsigned char> dbtypes;
   vector<unsigned char> decCnts;
+  vector<bool> isMemo;
   string fname;
 
   uint32_t recNumber;        // number of contained records
@@ -1929,17 +1932,16 @@ public:
      }
      if(found){
         memofile.open((name+".dbt").c_str(),ios::binary);
+        if(!memofile.good()){
+           cerr << "cannot open dbt file " + name + ".dbt" << endl;
+        }
      }
-
    }
 
    Tuple* getNext(){
-
       if(!defined || current==noRecords  || file.eof() || !file.good()){
          return 0;
       }
-
-      
       unsigned char buffer[recordSize];
       // read buffer
       file.read(reinterpret_cast<char*>(buffer),recordSize);
@@ -2050,6 +2052,11 @@ private:
                    break;
         case 'M' : type = "text";
                    isMemo.push_back(true);
+                   if(len!=10){
+                      cerr << "Invalid field length for memo detected ,"
+                           << " correct to 10" << endl;
+                      len = 10;
+                   }
                    break;
         case 'N' : type = dc==0?"int":"real";
                    isMemo.push_back(false);
@@ -2067,14 +2074,26 @@ private:
     }
     return true;
   }
-  
+
+  void trim(string& str) {
+    string::size_type pos = str.find_last_not_of(' ');
+    if(pos != string::npos) {
+      str.erase(pos + 1);
+      pos = str.find_first_not_of(' ');
+      if(pos != string::npos){
+         str.erase(0, pos);
+      }
+    } else {
+     str.erase(str.begin(), str.end());
+    }
+}
 
   bool store(string type, Tuple* tuple, int index, 
-             unsigned char* buffer, int offset, int length){
+             unsigned char* buf, int offset, int length){
      stringstream ss;
      for(int i=offset; i<offset+length;i++){
-       if(buffer[i]!=0){
-          ss << buffer[i];
+       if(buf[i]!=0){
+          ss << buf[i];
        }
      }
      string s = ss.str();
@@ -2082,6 +2101,7 @@ private:
         if(s.size()==0){
           tuple->PutAttribute(index, new CcInt(false,0));
         } else {
+            trim(s);
             istringstream buffer(s);
             int res_int;
             buffer >> res_int;
@@ -2091,10 +2111,11 @@ private:
         if(s.size()==0){
           tuple->PutAttribute(index, new CcReal(false,0));
         } else {
-            istringstream buffer(s);
-            double res_double;
-            buffer >> res_double;
-            tuple->PutAttribute(index, new CcReal(true,res_double));
+          trim(s);
+          istringstream buffer(s);
+          double res_double;
+          buffer >> res_double;
+          tuple->PutAttribute(index, new CcReal(true,res_double));
         }
      } else if(type=="string"){
         if(s.size()==0){
@@ -2103,6 +2124,7 @@ private:
           tuple->PutAttribute(index, new CcString(true,s));
         }
      } else if(type=="bool"){
+        trim(s);
         if(s.size()==0 || s=="?"){
            tuple->PutAttribute(index, new CcBool(false,false));
         }
@@ -2110,9 +2132,37 @@ private:
         tuple->PutAttribute(index,new CcBool(true,res_bool));
         
      } else if(type=="text"){
-        if(isMemo[index]){
-            cerr << "memos not supported yet" << endl;
-            tuple->PutAttribute(index,new FText(true,"Error"));
+        bool ismemo = isMemo[index];
+        if(ismemo){
+           if(s.size()==0){
+              tuple->PutAttribute(index, new FText(false,""));
+           } else {
+              trim(s);
+              if(s.size() ==0){
+                tuple->PutAttribute(index,new FText(true,""));
+              } else { // need access to dbt file
+                // compute block number
+                istringstream buffer(s);
+                int bn;
+                buffer >> bn;
+                memofile.seekg(512*bn,ios::beg);
+                if(memofile.good()){
+                   char c;
+                   stringstream text;
+                   memofile.read(&c,1);
+                   while(memofile.good() && c!=0x1A){
+                      text << c;
+                      memofile.read(&c,1);
+                   }
+                   if(!memofile.good()){
+                     cerr << "Error in reading memo file";
+                   }
+                   tuple->PutAttribute(index,new FText(true,text.str()));
+                } else {
+                   tuple->PutAttribute(index,new FText(false,""));
+                }
+              }
+           }
         } else {
            if(s.size()==0){
              tuple->PutAttribute(index, new FText(false,""));
