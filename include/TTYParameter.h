@@ -64,6 +64,7 @@ struct TTYParameter
   string iFileName;
   string oFileName;
   string num;
+  bool coverage;
   
   typedef enum {Test, Optimizer, Server, TTY} RunMode;
   RunMode runMode;

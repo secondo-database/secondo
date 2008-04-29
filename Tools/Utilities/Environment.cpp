@@ -141,6 +141,7 @@ TTYParameter::TTYParameter(const int argc, char** argv)
   iFileName     = "";
   oFileName     = "";
   num           = "0";
+  coverage      = false;
 
   numArgs = argc;
   argValues = argv;
@@ -217,6 +218,7 @@ TTYParameter::CheckConfiguration()
   "Mode -test only:\n" <<
   "-----------------------------------------------------------------------\n" <<
   "  -num N     : run only the specified test number \n" <<
+  "  -coverage  : check if all overloaded value mappings are called \n" <<
   "\n" <<
   "Mode -pl only:\n" <<
   "-----------------------------------------------------------------------\n" <<
@@ -276,6 +278,10 @@ TTYParameter::CheckConfiguration()
     else if ( argOk && argSwitch == "-num" )  // Number of test case
     {
       num = argValue;
+    }
+    else if ( argOk && argSwitch == "-coverage" )  // Number of test case
+    {
+      coverage = true;
     }
     else if ( argSwitch == "-e" )  // Expecting example file 
     {

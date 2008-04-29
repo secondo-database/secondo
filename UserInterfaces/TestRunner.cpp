@@ -167,6 +167,7 @@ class TestRunner : public Application
   bool              useResultFile;
   NestedList*       nl;
   bool              isQuery;
+  bool              coverageTest;
   SecondoInterface* si;
 
   typedef list< pair<int,int> > ErrorInfo; 
@@ -236,6 +237,8 @@ TestRunner::TestRunner( const TTYParameter& tp )
   
   skipToTearDown = false;
   useResultFile = false;
+  coverageTest = tp.coverage;
+
   resultFile = "";
 
   state = START;
@@ -1077,12 +1080,14 @@ TestRunner::ProcessExamples()
   } // end of list iteration 
   } // end of operator iteration 
 
-  testCaseNumber++;
-  testCaseName = "Coverage test for " + algebra;
-  testCaseLine = 0;
-  yieldState = Coverage;
-  CoverageQuery(algebra); 
-  CallSecondo2(); 
+  if (coverageTest) {
+    testCaseNumber++;
+    testCaseName = "Coverage test for " + algebra;
+    testCaseLine = 0;
+    yieldState = Coverage;
+    CoverageQuery(algebra); 
+    CallSecondo2(); 
+  }
 }
 
 
