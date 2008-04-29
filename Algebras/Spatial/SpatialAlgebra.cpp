@@ -16075,6 +16075,11 @@ class SpatialAlgebra : public Algebra
     line.AssociateKind("SPATIAL2D");
     region.AssociateKind("SPATIAL2D");
 
+
+    point.AssociateKind("SHPEXPORTABLE");
+    points.AssociateKind("SHPEXPORTABLE");
+    line.AssociateKind("SHPEXPORTABLE");
+
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
     AddOperator( &spatialnotequal );

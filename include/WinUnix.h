@@ -65,10 +65,25 @@ public:
    static inline bool isUnix() { return !win32; }
 
    static string getPlatformStr();
+
+   static void writeBigEndian(ostream& o, const uint32_t number);
+   
+   static void writeLittleEndian(ostream& o, const uint32_t number);
+   
+   static void writeLittleEndian(ostream& o, const uint16_t number);
+
+   static void writeLittle64(ostream& o, const double number);
+
+   static void writeLittleEndian(ostream& o, const unsigned char b);
+
+   static uint32_t convertEndian(const uint32_t n);
+   static uint16_t convertEndian(const uint16_t n);
+   static uint64_t convertEndian(const uint64_t n);
+   
+
    
 private:
    static const int endian_detect;
-
 };
 
 /*

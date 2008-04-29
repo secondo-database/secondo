@@ -98,6 +98,97 @@ WinUnix::getPlatformStr() {
   return env.getString("SECONDO_PLATFORM", "unknown");
 }
 
+void WinUnix::writeBigEndian(ostream& o, const uint32_t number){
+  uint32_t x = number;
+  if(isLittleEndian()){
+    x = (x>>24) | ((x<<8) & 0x00FF0000) |
+        ((x>>8) & 0x0000FF00) |
+        (x<<24);
+  }
+  char* num = (char*) &x;
+  for(int i=0;i<4;i++){
+    o << (num[i]);
+  }
+}
+
+void WinUnix::writeLittleEndian(ostream& o, const uint32_t number){
+  uint32_t x = number;
+  if(!isLittleEndian()){
+    x = (x>>24) | ((x<<8) & 0x00FF0000) |
+        ((x>>8) & 0x0000FF00) |
+        (x<<24);
+  }
+  char* num = (char*) &x;
+  for(int i=0;i<4;i++){
+    o << (num[i]);
+  }
+}
+
+
+void WinUnix::writeLittleEndian(ostream& o, const uint16_t number){
+  uint16_t x = number;
+  if(!isLittleEndian()){
+    x =  (x & 0x0F << 1 ) || ( x & 0xF0 >> 1);
+  }
+  char* num = (char*) &x;
+  for(int i=0;i<2;i++){
+    o << (num[i]);
+  }
+}
+
+
+void WinUnix::writeLittle64(ostream& o, const double number){
+   double number2 = number;
+   uint64_t x = *(reinterpret_cast<uint64_t*>(&number2));
+   if(!isLittleEndian()){
+        x = (x>>56) | 
+        ((x<<40) & 0x00FF000000000000ull) |
+        ((x<<24) & 0x0000FF0000000000ull) |
+        ((x<<8)  & 0x000000FF00000000ull) |
+        ((x>>8)  & 0x00000000FF000000) |
+        ((x>>24) & 0x0000000000FF0000) |
+        ((x>>40) & 0x000000000000FF00) |
+        (x<<56);
+   }
+   char* num = (char*) &x;
+   for(int i=0;i<8;i++){
+       o << num[i];
+   }
+
+}
+
+
+void WinUnix::writeLittleEndian(ostream& o, const unsigned char b){
+   o << b;
+}
+
+
+uint32_t WinUnix::convertEndian(const uint32_t n){
+  uint32_t x = n;
+  return (x>>24) | ((x<<8) & 0x00FF0000) |
+        ((x>>8) & 0x0000FF00) |
+        (x<<24);
+}
+
+
+uint16_t WinUnix::convertEndian(const uint16_t number){
+  uint16_t x = number;
+  return  (x & 0x0F << 1 ) || ( x & 0xF0 >> 1);
+}
+
+
+uint64_t WinUnix::convertEndian(const uint64_t n){
+   uint64_t x = n;
+   return (x>>56) | 
+          ((x<<40) & 0x00FF000000000000ull) |
+          ((x<<24) & 0x0000FF0000000000ull) |
+          ((x<<8)  & 0x000000FF00000000ull) |
+          ((x>>8)  & 0x00000000FF000000) |
+          ((x>>24) & 0x0000000000FF0000) |
+          ((x>>40) & 0x000000000000FF00) |
+          (x<<56);
+}
+
     
 /* Obtain a backtrace and print it to stdout. */
 #ifdef SECONDO_LINUX

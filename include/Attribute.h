@@ -58,7 +58,7 @@ derived attribute class must implement.
 #include "Counter.h"
 //#include "AlgebraManager.h"
 #include "FLOB.h"
-//#include "WinUnix.h"
+#include "WinUnix.h"
 
 
 extern const double FACTOR;
@@ -421,6 +421,35 @@ Print the delete reference info to a string (for debugging)
  returns a string representation for csv export
 
 */
+
+  virtual bool hasBox() const { return false; }
+
+  virtual void writeShape(ostream& o, uint32_t RecNo) const{
+    // first, write the record header
+    WinUnix::writeBigEndian(o,RecNo);
+    uint32_t length = 2;
+    WinUnix::writeBigEndian(o,length);
+    uint32_t type = 0;
+    WinUnix::writeLittleEndian(o,type);
+  }
+  
+  virtual double getMinX() const{return 0;}
+  virtual double getMaxX() const{return 0;}
+  virtual double getMinY() const{return 0;}
+  virtual double getMaxY() const{return 0;}
+  virtual double getMinZ() const { return 0.0; }
+  virtual double getMaxZ() const{ return 0.0; }
+  virtual double getMinM() const { return 0.0; }
+  virtual double getMaxM() const{ return 0.0; }
+  virtual uint32_t getshpType() const{ return 0; }
+
+  virtual bool hasDB3Representation() const {return false;}
+  virtual unsigned char getDB3Type() const { return 'L'; }
+  virtual unsigned char getDB3Length() const { return 1; }
+  virtual unsigned char getDB3DecimalCount(){ return 0; }
+  virtual string getDB3String() const { return "?"; } 
+
+
 
   protected:
 

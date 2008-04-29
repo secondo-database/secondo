@@ -203,16 +203,3 @@ Example  : query realstream(1.0,1050000.0,1.0) tail[666] count
 Result   : 666
 
 
-Operator : csvexport
-Number   : 1
-Signature: stream(tuple (a1 t1)...(an tn)) x string x bool x bool  -> stream(tuple X), ti in CVSEXPORTABLE
-Example  : query ten feed csvexport["ten.csv", TRUE, TRUE] count
-Result   : 10
-
-
-Operator : csvexport
-Number   : 2
-Signature: stream(T) x string x bool -> stream(T), T in CSVEXPORTABLE
-Example  : query intstream(1,10) csvexport["ten.csv", FALSE] count
-Result   : 10
-

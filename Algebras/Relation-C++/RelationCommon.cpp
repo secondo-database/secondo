@@ -177,7 +177,8 @@ Tuple *Tuple::Clone() const
   Tuple *result = new Tuple( this->GetTupleType() );
   for( int i = 0; i < this->GetNoAttributes(); i++ )
   {
-    Attribute *attr = GetAttribute( i )->Clone();
+    Attribute* tmp = GetAttribute(i); 
+    Attribute *attr = tmp?tmp->Clone():0;
     result->PutAttribute( i, attr );
   }
   return result;

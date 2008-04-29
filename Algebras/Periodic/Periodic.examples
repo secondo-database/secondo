@@ -41,6 +41,7 @@ Number   : 1
 Signature: pmpoint x point -> pmreal
 Example  : query distance(createpmpoint(train7),[const point value (0.0 0.0)]) 
 Result   : file
+Tolerance: 0.05
 
 
 Operator : end

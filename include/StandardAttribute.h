@@ -74,6 +74,7 @@ in the algebras.
 The reference counter if this attribute should not be affected.
 
 */
+ 
 };
 
 /*
@@ -108,7 +109,9 @@ This function reads the object value from a string ~src~.
 /*
 This function returns the number of bytes of the object's string representation.
 
-*/ 
+*/
+
+
 };
 
 #endif

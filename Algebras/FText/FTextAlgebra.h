@@ -93,6 +93,13 @@ public:
   virtual void ReadFrom( const char *src );
   virtual SmiSize SizeOfChars() const;
 
+  virtual bool hasDB3Representation() const {return true;}
+  virtual unsigned char getDB3Type() const { return 'M'; }
+  virtual unsigned char getDB3Length() const { return 0; }
+  virtual unsigned char getDB3DecimalCount(){ return 0; }
+  virtual string getDB3String() const { return GetValue(); }
+
+
 private:
   FLOB theText;
   bool defined;

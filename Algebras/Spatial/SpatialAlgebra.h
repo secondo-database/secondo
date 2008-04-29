@@ -52,10 +52,12 @@ shows examples of these spatial data types.
 #ifndef __SPATIAL_ALGEBRA_H__
 #define __SPATIAL_ALGEBRA_H__
 
+#include <fstream>
 #include <stack>
 #include "StandardAttribute.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
+#include "WinUnix.h"
 
 
 typedef double Coord;
@@ -417,6 +419,48 @@ as an attribute.
     }
 
     ostream& Print( ostream &os ) const;
+
+    virtual uint32_t getshpType() const{
+       return 1; // Point Type
+    }
+
+    virtual bool hasBox(){
+       return defined;
+    }
+
+    virtual double getMinX() const{ 
+      return x;
+    }
+    virtual double getMaxX() const{
+      return x;
+    }
+    virtual double getMinY() const{
+      return y;
+    }
+    virtual double getMaxY() const{
+      return y;
+    }
+
+    virtual void writeShape(ostream& o, uint32_t RecNo) const{
+
+       // first, write the record header
+       WinUnix::writeBigEndian(o,RecNo);
+
+       if(!defined){
+         uint32_t length = 2;
+         WinUnix::writeBigEndian(o,length);
+         uint32_t type = 0;
+         WinUnix::writeLittleEndian(o,type);
+       } else {
+         uint32_t length = 10;
+         WinUnix::writeBigEndian(o,length);
+         uint32_t type = 1;
+         WinUnix::writeLittleEndian(o,type);
+         WinUnix::writeLittle64(o,x);
+         WinUnix::writeLittle64(o,y); 
+       }
+    }
+
 
   protected:
 /*
@@ -944,6 +988,63 @@ as an attribute.
     bool Adjacent( const Attribute *arg ) const;
     virtual Points* Clone() const;
     ostream& Print( ostream &os ) const;
+
+
+    virtual uint32_t getshpType() const{
+       return 8; // Point Type
+    }
+
+    virtual bool hasBox(){
+       return IsDefined();
+    }
+
+    virtual double getMinX() const{ 
+      return bbox.MinD(0);
+    }
+    virtual double getMaxX() const{
+      return bbox.MaxD(0);
+    }
+    virtual double getMinY() const{
+      return bbox.MinD(1);
+    }
+    virtual double getMaxY() const{
+      return bbox.MaxD(1);
+    }
+
+    virtual void writeShape(ostream& o, uint32_t RecNo) const{
+
+       // first, write the record header
+       WinUnix::writeBigEndian(o,RecNo);
+       uint32_t size = points.Size();
+       if(!IsDefined() || size==0){
+         uint32_t length = 2;
+         WinUnix::writeBigEndian(o,length);
+         uint32_t type = 0;
+         WinUnix::writeLittleEndian(o,type);
+       } else {
+         // length = 20 w for header
+         // + 8* w for eacxh two doubles
+         // w = 16 bit word
+         uint32_t length = 20 + 8*size;
+         WinUnix::writeBigEndian(o,length);
+         WinUnix::writeLittleEndian(o,getshpType());
+         WinUnix::writeLittle64(o,getMinX()); 
+         WinUnix::writeLittle64(o,getMinY()); 
+         WinUnix::writeLittle64(o,getMaxX()); 
+         WinUnix::writeLittle64(o,getMaxY()); 
+         WinUnix::writeLittleEndian(o,size);
+         const Point* p;
+         for(uint32_t i=0;i<size;i++){
+            points.Get(i,p);
+            WinUnix::writeLittle64(o,p->GetX());
+            WinUnix::writeLittle64(o,p->GetY());
+         }
+       }
+    }
+
+
+
+
 
   private:
 /*
@@ -1999,6 +2100,81 @@ bool IsSimple();
 Returns the simple value of the line.
 
 */
+
+    virtual uint32_t getshpType() const{
+       return 3; // PolyLine Type
+    }
+
+    virtual bool hasBox(){
+       return IsDefined();
+    }
+
+    virtual double getMinX() const{ 
+      return bbox.MinD(0);
+    }
+    virtual double getMaxX() const{
+      return bbox.MaxD(0);
+    }
+    virtual double getMinY() const{
+      return bbox.MinD(1);
+    }
+    virtual double getMaxY() const{
+      return bbox.MaxD(1);
+    }
+
+    virtual void writeShape(ostream& o, uint32_t RecNo) const{
+
+       // first, write the record header
+       WinUnix::writeBigEndian(o,RecNo);
+       int size = line.Size();
+       if(!IsDefined() || size==0){
+         uint32_t length = 2;
+         WinUnix::writeBigEndian(o,length);
+         uint32_t type = 0;
+         WinUnix::writeLittleEndian(o,type);
+       } else {
+
+         // first version: store each halfsegment as a single
+         // polyline
+         uint32_t segs = line.Size()/2;
+
+         uint32_t length =  (44 + segs*4 + segs*4 * 8 )/ 2;
+
+         WinUnix::writeBigEndian(o,length);
+         // header end
+         
+         // type
+         WinUnix::writeLittleEndian(o,getshpType());
+         // box
+         WinUnix::writeLittle64(o,getMinX()); 
+         WinUnix::writeLittle64(o,getMinY()); 
+         WinUnix::writeLittle64(o,getMaxX()); 
+         WinUnix::writeLittle64(o,getMaxY()); 
+         // numparts
+         WinUnix::writeLittleEndian(o,segs);
+         // numpoints
+         WinUnix::writeLittleEndian(o,2*segs);
+         // parts
+         for(uint32_t i=0;i<segs;i++){
+            WinUnix::writeLittleEndian(o,i*2);
+         }
+         // points
+         const HalfSegment* hs;
+         for(int i=0;i<line.Size();i++){
+           line.Get(i,hs);
+           if(hs->IsLeftDomPoint()){
+              Point p = hs->GetLeftPoint();
+              WinUnix::writeLittle64(o,p.GetX());
+              WinUnix::writeLittle64(o,p.GetY());
+              p = hs->GetRightPoint();
+              WinUnix::writeLittle64(o,p.GetX());
+              WinUnix::writeLittle64(o,p.GetY());
+           }  
+         }
+         
+
+       }
+    }
   private:
 /*
 6.10 Private member functions

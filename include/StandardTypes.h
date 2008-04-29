@@ -256,7 +256,24 @@ class CcInt : public StandardAttribute
        return o.str();
     }
   }
+ 
+
+  virtual bool hasDB3Representation() const {return true;}
+  virtual unsigned char getDB3Type() const { return 'N'; }
+  virtual unsigned char getDB3Length() const { return 15; }
+  virtual unsigned char getDB3DecimalCount(){ return 0; }
+  virtual string getDB3String() const {
+      if(!defined){
+        return "";
+      } 
+      stringstream s;
+      s << intval;
+      return s.str();
+  } 
   
+
+
+ 
   static long intsCreated;
   static long intsDeleted;
 
@@ -419,6 +436,23 @@ class CcReal : public StandardAttribute
        return o.str();
     }
   }
+  
+
+  virtual bool hasDB3Representation() const {return true;}
+  virtual unsigned char getDB3Type() const { return 'N'; }
+  virtual unsigned char getDB3Length() const { return 15; }
+  virtual unsigned char getDB3DecimalCount(){ return 6; }
+  virtual string getDB3String() const {
+      if(!defined){
+        return "";
+      } 
+      stringstream s;
+      s << ios::fixed << ios::showpoint << setw(15) << setprecision(6);
+      s << realval;
+       
+      s.flush();
+      return s.str();
+  } 
 
  private:
   bool  defined;
@@ -546,6 +580,20 @@ class CcBool : public StandardAttribute
       return boolval?"true":"false";
     }
   }
+
+  virtual bool hasDB3Representation() const {return true;}
+  virtual unsigned char getDB3Type() const { return 'L'; }
+  virtual unsigned char getDB3Length() const { return 1; }
+  virtual unsigned char getDB3DecimalCount(){ return 0; }
+  virtual string getDB3String() const {
+      if(!defined){
+        return "?";
+      } 
+      return boolval?"T":"F";
+  } 
+
+
+
  private:
   bool defined;
   bool boolval;
@@ -705,6 +753,17 @@ class CcString : public StandardAttribute
     }
   }
 
+  virtual bool hasDB3Representation() const {return true;}
+  virtual unsigned char getDB3Type() const { return 'C'; }
+  virtual unsigned char getDB3Length() const { return MAX_STRINGSIZE; }
+  virtual unsigned char getDB3DecimalCount(){ return 0; }
+  virtual string getDB3String() const {
+      if(!defined){
+        return "";
+      } 
+      return string(stringval);
+  }
+ 
  private:
   bool   defined;
   STRING_T stringval;
