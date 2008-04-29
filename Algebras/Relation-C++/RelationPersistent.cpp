@@ -838,7 +838,7 @@ TupleBuffer::~TupleBuffer()
   updateDataStatistics();	
   clearAll();
   if( !inMemory ) {
-    diskBuffer->Delete();
+    diskBuffer->DeleteAndTruncate();
     diskBuffer = 0;
   }  
 }
@@ -870,6 +870,15 @@ int TupleBuffer::GetNoTuples() const
   else
     return diskBuffer->GetNoTuples();
 }
+
+size_t TupleBuffer::FreeBytes() const
+{
+  if (MAX_MEMORY_SIZE > totalExtSize) {
+    return MAX_MEMORY_SIZE - static_cast<size_t>( ceil(totalExtSize) );
+  } else {
+    return 0;
+  }    
+}	
 
 double TupleBuffer::GetTotalRootSize() const
 {
@@ -962,7 +971,7 @@ void TupleBuffer::Clear()
   }
   else
   {
-    diskBuffer->Delete();
+    diskBuffer->DeleteAndTruncate();
     diskBuffer = 0;
     inMemory = true;
   }
@@ -1388,11 +1397,18 @@ Relation::Save( SmiRecord& valueRecord, size_t& offset,
   return true;
 }
 
-void Relation::Close()
+void Relation::ErasePointer()
 {
   if( pointerTable.find( privateRelation->relDesc ) !=
-                         pointerTable.end() )
+                         pointerTable.end() ) 
+  {	  
     pointerTable.erase( privateRelation->relDesc );  
+  }
+}	
+
+void Relation::Close()
+{
+  ErasePointer();	
   delete this;
 }
 
@@ -1405,12 +1421,26 @@ void Relation::Delete()
     privateRelation->relDesc.lobFileId, 
     privateRelation->isTemp );
 
-  if( pointerTable.find( privateRelation->relDesc ) !=
-                         pointerTable.end() )
-    pointerTable.erase( privateRelation->relDesc );  
+  ErasePointer(); 
 
   delete this;
 }
+
+void Relation::DeleteAndTruncate()
+{
+  privateRelation->tupleFile.Remove();
+  privateRelation->tupleFile.Drop();
+
+  SecondoSystem::GetFLOBCache()->Drop( 
+    privateRelation->relDesc.lobFileId, 
+    privateRelation->isTemp );
+
+  ErasePointer();
+
+  delete this;
+}
+
+
 
 Relation *Relation::Clone()
 {

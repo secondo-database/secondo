@@ -708,7 +708,7 @@ because at the construction time, the tuple does not know its ~id~.
 */
     inline Attribute* GetAttribute( int index ) const 
     {
-      return (Attribute *)attributes[index];
+      return attributes[index];
     }
 /*
 Returns the attribute at position ~index~ inside the tuple.
@@ -811,6 +811,18 @@ Returns the total size of an attribute of the tuple taking
 into account the FLOBs.
 
 */
+    inline size_t HashValue(int i)
+    {
+      return static_cast<StandardAttribute*>( GetAttribute(i) )->HashValue();
+    }
+
+/*
+Returns the hash value for attribute number i.
+
+*/
+
+
+
     inline int GetNoAttributes() const 
     {
       return noAttributes;
@@ -1090,7 +1102,7 @@ Debugging stuff
 };
 
 ostream& operator<<(ostream &os, Attribute &attrib);
-ostream& operator<<( ostream& o, Tuple& t );
+ostream& operator<<( ostream& o, const Tuple& t );
 /*
 The print function for tuples. Used for debugging purposes
 
@@ -1127,6 +1139,18 @@ class LexicographicalTupleCompare
       return false;
     }
 };
+
+class LexicographicalTupleCompare_Reverse : public LexicographicalTupleCompare
+{
+  public:
+    inline bool operator()( const Tuple* a, 
+                            const Tuple* b ) const
+    {
+      return !LexicographicalTupleCompare::operator()(a, b);
+    }
+};
+
+
 
 // use this one to remove duplicates
 class LexicographicalTupleCompareAlmost
@@ -1211,6 +1235,23 @@ class TupleCompareBy
     SortOrderSpecification spec;
     const size_t len;
 };
+
+
+class TupleCompareBy_Reverse : public TupleCompareBy
+{
+  public:
+    TupleCompareBy_Reverse( const SortOrderSpecification& spec ) 
+    : TupleCompareBy(spec)
+    {}	
+
+    inline bool operator()( const Tuple* a, 
+                            const Tuple* b ) const
+    {
+      return !TupleCompareBy::operator()(a, b);
+    }
+};
+
+
 
 // use this one to remove duplicates
 class TupleCompareByAlmost
@@ -1523,6 +1564,11 @@ Positions start at zero.
 Checks if the tuple buffer is empty or not.
 
 */
+    size_t FreeBytes() const;
+/*
+Returns the number of Free Bytes
+
+*/     
 
     inline bool InMemory() const { return inMemory; }
 /*
@@ -1821,6 +1867,12 @@ Deletes a relation.
 Corresponds to the ~Delete~-function of type constructor ~rel~.
 
 */
+    void DeleteAndTruncate();
+/*
+Deletes a relation and truncates the corresponding record files.
+This releases used disk memory.
+
+*/
     Relation *Clone();
 /*
 Clones a relation.
@@ -1903,6 +1955,12 @@ relation class.
     friend struct PrivateRelationIterator;
 
   private:
+
+    void ErasePointer(); 
+/*
+Removes the current Relation from the table of opened relations.
+
+*/    
 
     PrivateRelation *privateRelation;
 /*
@@ -1994,10 +2052,10 @@ bool IsTupleDescription( ListExpr tupleDesc );
 5.6 Function ~IsRelDescription~
 
 Checks whether a ~ListExpr~ is of the form
-(rel (tuple ((a1 t1) ... (ai ti)))).
+( {rel|trel} (tuple ((a1 t1) ... (ai ti)))).
 
 */
-bool IsRelDescription( ListExpr relDesc );
+bool IsRelDescription( ListExpr relDesc, bool trel = false );
 
 /*
 

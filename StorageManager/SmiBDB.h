@@ -403,7 +403,7 @@ class SmiFile::Implementation
     string        bdbName;
     bool          isSystemCatalogFile;
     bool          isTemporaryFile;
-		bool					noHandle;
+    bool	  noHandle;
 /*
 Flags an ~SmiFile~ as a system catalog file. This distinction is needed,
 since transactional read operations on system catalog files could lead 
@@ -517,10 +517,10 @@ support this state maintenance.
     
   bool NewPrefetch();
   SmiSize BulkCopy(void* data, size_t dataLength, 
-    void* userBuffer, SmiSize nBytes, SmiSize offset);
+  void* userBuffer, SmiSize nBytes, SmiSize offset);
   bool RightBoundaryExceeded();
   void Init(Dbc* dbc, const size_t bufferLength,
-    bool isBTreeIterator);
+  bool isBTreeIterator);
 
 protected:
   virtual void GetKeyAddressAndLength(void** addr, SmiSize& length);

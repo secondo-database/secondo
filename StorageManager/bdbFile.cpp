@@ -124,8 +124,10 @@ of the enclosing transaction the handle will be closed.
   }
   else
   {
-    int rc = bdbFile->close( 0 );
-    SmiEnvironment::SetBDBError(rc);
+    if (bdbFile) {	  
+      int rc = bdbFile->close( 0 );
+      SmiEnvironment::SetBDBError(rc);
+    }  
   }
 }
 
@@ -647,6 +649,24 @@ SmiFile::Truncate()
   u_int32_t countp = 0;
   int rc = impl->bdbFile->truncate( tid, &countp, 0 );
   SmiEnvironment::SetBDBError(rc);	  
+  return rc == 0;
+}
+
+bool 
+SmiFile::Remove()
+{
+  //cerr << endl << "removing " <<  impl->bdbName << endl;
+
+  int rc = 0;
+  bool ok = Close();
+  if (ok = true) {
+    rc = impl->bdbFile->remove( impl->bdbName.c_str(), 0, 0 );
+    SmiEnvironment::SetBDBError(rc);	  
+    if ( rc == 0 ) {
+      impl->bdbFile = 0;	    
+    }	    
+  } 
+  //cerr << endl << "End removing " <<  impl->bdbName << endl;
   return rc == 0;
 }
 

@@ -498,6 +498,13 @@ Truncates a ~SmiFile~. It is necessary to close any record iterators or record
 handles before truncating a ~SmiFile~.
 
 */
+  bool Remove();
+/*
+Removes a ~SmiFile~ from disk. It is necessary to close any record iterators or record
+handles before calling this function.
+
+*/
+
   string GetContext();
 /*
 Returns the context of the ~SmiFile~.
