@@ -34,6 +34,7 @@ dependent code should be isolated in this class.
 
 #include <string>
 #include <fstream>
+#include <inttypes.h>
 
 using namespace std;
 
