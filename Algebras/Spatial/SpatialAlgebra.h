@@ -156,7 +156,7 @@ The destructor.
 4.2 Member functions
 
 */
-    inline const Coord& (GetX)() const
+    inline const Coord& GetX() const
     {
       return x;
     }
@@ -1028,16 +1028,23 @@ as an attribute.
          uint32_t length = 20 + 8*size;
          WinUnix::writeBigEndian(o,length);
          WinUnix::writeLittleEndian(o,getshpType());
-         WinUnix::writeLittle64(o,getMinX()); 
-         WinUnix::writeLittle64(o,getMinY()); 
-         WinUnix::writeLittle64(o,getMaxX()); 
-         WinUnix::writeLittle64(o,getMaxY()); 
+         double minX = getMinX();
+         double maxX = getMaxX();
+         double minY = getMinY();
+         double maxY = getMaxY();
+         WinUnix::writeLittle64(o,minX); 
+         WinUnix::writeLittle64(o,minY); 
+         WinUnix::writeLittle64(o,maxX); 
+         WinUnix::writeLittle64(o,maxY);
+         // number of points 
          WinUnix::writeLittleEndian(o,size);
          const Point* p;
          for(uint32_t i=0;i<size;i++){
             points.Get(i,p);
-            WinUnix::writeLittle64(o,p->GetX());
-            WinUnix::writeLittle64(o,p->GetY());
+            double x = p->GetX();
+            double y = p->GetY();
+            WinUnix::writeLittle64(o,x);
+            WinUnix::writeLittle64(o,y);
          }
        }
     }
@@ -3125,6 +3132,31 @@ The region must be defined!
 
 */
 
+  virtual bool hasBox() const { 
+     return IsDefined() && !IsEmpty(); 
+  }
+
+  virtual void writeShape(ostream& o, uint32_t RecNo) const{
+     saveShape(o,RecNo);
+   }
+
+   virtual double getMinX() const{
+     return bbox.MinD(0);
+   }
+   virtual double getMaxX() const{
+     return bbox.MaxD(0);
+   }
+   virtual double getMinY() const{
+     return bbox.MinD(1);
+   }
+   virtual double getMaxY() const{
+     return bbox.MaxD(1);
+   }
+   
+   virtual uint32_t getshpType() const{ 
+     return 5; 
+   }
+
   private:
 /*
 7.17 Private member functions
@@ -3140,7 +3172,16 @@ sorts (quick-sort algorithm) the persistent array of half segments in the region
 /*
 searches (binary search algorithm) for a half segment in the region value and
 returns its position. Returns -1 if the half segment is not found.
+
 */
+
+  void saveShape(ostream& o, uint32_t RecNo) const;
+
+/*
+Saves the region in shape format to o.
+
+*/
+
 
 /*
 7.18 Atrtibutes

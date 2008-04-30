@@ -68,6 +68,7 @@ using namespace std;
 #include <string>
 #include <cmath>
 #include <algorithm>
+#include <ctime>
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
@@ -2786,16 +2787,16 @@ void* CastPoints(void* addr)
 
 */
 TypeConstructor points(
-        "points",                       //name
-        PointsProperty,                 //property function describing signature
-        OutPoints,      InPoints,       //Out and In functions
-        0,              0,              //SaveTo and RestoreFrom List functions
-        CreatePoints,   DeletePoints,   //object creation and deletion
-        OpenPoints,     SavePoints,     // object open and save
-        ClosePoints,    ClonePoints,    //object close and clone
-        CastPoints,                     //cast function
-        SizeOfPoints,                   //sizeof function
-        CheckPoints );                  //kind checking function
+        "points",                     //name
+        PointsProperty,               //property function describing signature
+        OutPoints,      InPoints,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreatePoints,   DeletePoints, //object creation and deletion
+        OpenPoints,     SavePoints,   // object open and save
+        ClosePoints,    ClonePoints,  //object close and clone
+        CastPoints,                   //cast function
+        SizeOfPoints,                 //sizeof function
+        CheckPoints );                //kind checking function
 
 /*
 6 Type Constructor ~halfsegment~
@@ -9340,6 +9341,199 @@ of different cycles can intersect each other;
 
 8)  It is allowed that one face is inside another provided that their edges do not intersect.
 
+*/
+
+static vector<Point> getCycle(const bool isHole, 
+                              const vector<HalfSegment>& vhs){
+
+  // first extract the cycle
+  bool used[vhs.size()];
+  for(unsigned int i=0;i<vhs.size();i++){
+    used[i] = false;
+  } 
+  if(vhs.size() < 3 ){
+    assert(false);
+  }
+  // trivial n^2 implementation
+  HalfSegment hs = vhs[0];
+  Point sp = hs.GetDomPoint();
+  Point cp = hs.GetSecPoint();
+  vector<Point> vp;
+
+  vp.push_back(sp);
+  vp.push_back(cp);
+ 
+  used[0] = true;
+  for(unsigned int i=1; i< vhs.size();i++){
+    for(unsigned int j=1; j<vhs.size(); j++){
+       if(!used[j]){
+          Point p0 = vhs[j].GetDomPoint();
+          Point p1 = vhs[j].GetSecPoint();
+          if(AlmostEqual(p0,cp)){
+             used[j] = true;
+             cp = p1;
+             vp.push_back(cp);
+          } else if(AlmostEqual(p1,cp)){
+             used[j] = true;
+             cp = p0;
+             vp.push_back(cp);
+          }
+       }
+    }
+  } 
+  vp.push_back(cp);
+  // debugging only
+  for(unsigned int i=0;i<vhs.size();i++){
+     if(!used[i]){
+        cerr << "Unused halfsegment found" << endl;
+     }
+  }
+  // determine the direction of the cycle
+  int min = 0;
+  for(unsigned int i=1;i<vp.size();i++){
+    if(vp[i] < vp[min]){
+       min = i;
+    }
+  }
+  
+
+  bool cw;
+  int s = vp.size();
+  Point a = vp[ (min - 1 + s ) % s ];
+  Point p = vp[min];
+  Point b = vp[ (min+1) % s];
+  if(AlmostEqual(a.GetX(),p.GetX())){ // a -> p vertical
+    if(a.GetY()>p.GetY()){
+       cw = false;
+    } else {
+       cw = true;
+    } 
+  } else if(AlmostEqual(p.GetX(), b.GetX())){ //p -> b vertical
+    if(p.GetY()>b.GetY()){
+       cw = false;
+    } else {
+       cw = true;
+    }
+  } else { // both segments are non-vertical
+    double m_p_a = (a.GetY() - p.GetY()) / (a.GetX() - p.GetX());
+    double m_p_b = (b.GetY() - p.GetY()) / (b.GetX() - p.GetX());
+    if(m_p_a > m_p_b){
+        cw = false;
+    } else {
+        cw = true;
+    }
+  }
+
+
+  if(!(( isHole && cw ) || (!isHole && !cw))){
+    vector<Point> vp2;
+    for(int i= vp.size()-1; i>=0; i--){
+       vp2.push_back(vp[i]);
+    }
+    return vp2;
+  } else {
+    return vp;
+  }
+}
+
+
+static vector< vector <Point> > getCycles(const Region& reg){
+      // first step , map halsfsegment according to faceno and cycleno
+
+      map< pair<int, int> , vector<HalfSegment> > m;
+      
+      const HalfSegment* hs;
+      for(int i=0;i<reg.Size(); i++){
+         reg.Get(i,hs);
+         if(hs->IsLeftDomPoint()){
+            int faceno = hs->attr.faceno;
+            int cycleno = hs->attr.cycleno;
+            m[make_pair(faceno, cycleno)].push_back(*hs);
+         }
+      }
+
+      vector< vector <Point> > result;
+      map< pair<int, int> , vector<HalfSegment> >::iterator it;
+      for(it=m.begin(); it!=m.end(); it++){
+        pair< pair<int, int> , vector<HalfSegment> > cycleDesc = *it;
+        bool isHole = cycleDesc.first.second > 0;
+        result.push_back(getCycle(isHole, cycleDesc.second));         
+      }
+      return result;
+
+   }
+
+
+   void Region::saveShape(ostream& o, uint32_t RecNo) const{
+     // first, write the record header
+     WinUnix::writeBigEndian(o,RecNo);
+     // an empty region
+     if(!IsDefined() || IsEmpty()){
+        uint32_t length = 2;
+        WinUnix::writeBigEndian(o,length);
+        uint32_t type = 0;
+        WinUnix::writeLittleEndian(o,type);
+     } else {
+
+        vector<vector < Point> > cycles = getCycles(*this);
+
+        uint32_t numParts = cycles.size();
+
+
+        uint32_t  numPoints = 0; 
+
+        vector<vector < Point> >::iterator it;
+        for(it = cycles.begin(); it!=cycles.end(); it++){
+           numPoints += it->size();
+        }
+
+        uint32_t  numBytes = 44 + 4 * numParts + 16*numPoints;
+
+        uint32_t length = numBytes / 2;
+
+
+        WinUnix::writeBigEndian(o,length);
+        WinUnix::writeLittleEndian(o,getshpType()); // 4
+        double minX = getMinX();
+        double maxX = getMaxX();
+        double minY = getMinY();
+        double maxY = getMaxY();
+        // write the boundig box
+        WinUnix::writeLittle64(o,minX);        // 8 * 4
+        WinUnix::writeLittle64(o,minY);
+        WinUnix::writeLittle64(o,maxX);
+        WinUnix::writeLittle64(o,maxY);
+
+        WinUnix::writeLittleEndian(o,numParts);
+        WinUnix::writeLittleEndian(o,numPoints);
+
+        // write the parts
+        uint32_t pos = 0;
+        for(unsigned int i=0; i<numParts; i++){
+           WinUnix::writeLittleEndian(o,pos);
+           pos += cycles[i].size();
+        }
+        // write the points
+        for(unsigned int i=0;i<numParts; i++){
+           vector<Point> cycle = cycles[i];
+           for(unsigned int j=0;j<cycle.size(); j++){
+              Point p = cycle[j];
+              double x = p.GetX();
+              double y = p.GetY();
+              WinUnix::writeLittle64(o,x);
+              WinUnix::writeLittle64(o,y);
+           }
+        }
+
+
+
+     }
+  }
+
+
+
+
+/*
 
 8.2 List Representation
 
@@ -9351,6 +9545,11 @@ The list representation of a region is
   cyclei= (vertex1, vertex2,  .....)
                 where each vertex is a point.
 ----
+
+
+
+
+
 
 8.3 ~Out~-function
 
@@ -16079,6 +16278,7 @@ class SpatialAlgebra : public Algebra
     point.AssociateKind("SHPEXPORTABLE");
     points.AssociateKind("SHPEXPORTABLE");
     line.AssociateKind("SHPEXPORTABLE");
+    region.AssociateKind("SHPEXPORTABLE");
 
     AddOperator( &spatialisempty );
     AddOperator( &spatialequal );
