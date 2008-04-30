@@ -25,15 +25,14 @@ public class NumericReader{
 
 static long toBig(long i){
    long x = i;
-   x = (x>>56) |
-       ((x<<40) & 0x00FF000000000000l) |
-       ((x<<24) & 0x0000FF0000000000l) |
-       ((x<<8)  & 0x000000FF00000000l) |
-       ((x>>8)  & 0x00000000FF000000) |
-       ((x>>24) & 0x0000000000FF0000) |
-       ((x>>40) & 0x000000000000FF00) |
-       (x<<56);
-       return x;
+    return   ((x& 0xFFl) << 56) |
+             (((x >> 8) & 0xFFl) << 48 ) |
+             (((x >> 16) & 0xFFl) << 40 ) |
+             (((x >> 24) & 0xFFl) << 32 ) |
+             (((x >> 32) & 0xFFl) << 24 ) |
+             (((x >> 40) & 0xFFl) << 16 ) |
+             (((x >> 48) & 0xFFl) << 8 ) |
+             ((x >> 56) & 0xFFl);
  }
  
  static double toBig(double d){
@@ -41,7 +40,13 @@ static long toBig(long i){
  }
 
 static int toBig(int i){
-   return((i&0xff)<<24)+((i&0xff00)<<8)+((i&0xff0000)>>8)+((i>>24)&0xff);
+   //return((i&0xff)<<24)+((i&0xff00)<<8)+((i&0xff0000)>>8)+((i>>24)&0xff);
+
+ return ((i & 0xFF) << 24) |
+        (((i >> 8) & 0xFF) << 16) |
+        (((i >> 16) & 0xFF) << 8 ) |
+        (((i >> 24) & 0xFF));
+
 }
 
 
