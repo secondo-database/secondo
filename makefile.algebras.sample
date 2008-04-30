@@ -126,6 +126,9 @@ ALGEBRAS     += PlugJoinAlgebra
 ALGEBRA_DIRS += UpdateRel
 ALGEBRAS     += UpdateRelationAlgebra
 
+ALGEBRA_DIRS += IMEX
+ALGEBRAS     += ImExAlgebra
+
 #ALGEBRA_DIRS += PointSequence
 #ALGEBRAS     += PointSequenceAlgebra
 
