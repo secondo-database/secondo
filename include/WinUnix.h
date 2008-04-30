@@ -72,10 +72,16 @@ public:
    static void writeLittleEndian(ostream& o, const uint32_t number);
    
    static void writeLittleEndian(ostream& o, const uint16_t number);
+   
+   static void writeBigEndian(ostream& o, const uint16_t number);
 
    static void writeLittle64(ostream& o, const double number);
+   
+   static void writeBig64(ostream& o, const double number);
 
    static void writeLittleEndian(ostream& o, const unsigned char b);
+   
+   static void writeBigEndian(ostream& o, const unsigned char b);
 
    static uint32_t convertEndian(const uint32_t n);
    static uint16_t convertEndian(const uint16_t n);

@@ -105,10 +105,7 @@ void WinUnix::writeBigEndian(ostream& o, const uint32_t number){
         ((x>>8) & 0x0000FF00) |
         (x<<24);
   }
-  char* num = (char*) &x;
-  for(int i=0;i<4;i++){
-    o << (num[i]);
-  }
+  o.write(reinterpret_cast<char*>(&x),4);
 }
 
 void WinUnix::writeLittleEndian(ostream& o, const uint32_t number){
@@ -118,10 +115,7 @@ void WinUnix::writeLittleEndian(ostream& o, const uint32_t number){
         ((x>>8) & 0x0000FF00) |
         (x<<24);
   }
-  char* num = (char*) &x;
-  for(int i=0;i<4;i++){
-    o << (num[i]);
-  }
+  o.write(reinterpret_cast<char*>(&x),4);
 }
 
 
@@ -130,10 +124,16 @@ void WinUnix::writeLittleEndian(ostream& o, const uint16_t number){
   if(!isLittleEndian()){
     x =  (x & 0x0F << 1 ) || ( x & 0xF0 >> 1);
   }
-  char* num = (char*) &x;
-  for(int i=0;i<2;i++){
-    o << (num[i]);
+  o.write(reinterpret_cast<char*>(&x),2);
+}
+
+
+void WinUnix::writeBigEndian(ostream& o, const uint16_t number){
+  uint16_t x = number;
+  if(isLittleEndian()){
+    x =  (x & 0x0F << 1 ) || ( x & 0xF0 >> 1);
   }
+  o.write(reinterpret_cast<char*>(&x),2);
 }
 
 
@@ -141,26 +141,31 @@ void WinUnix::writeLittle64(ostream& o, const double number){
    double number2 = number;
    uint64_t x = *(reinterpret_cast<uint64_t*>(&number2));
    if(!isLittleEndian()){
-        x = (x>>56) | 
-        ((x<<40) & 0x00FF000000000000ull) |
-        ((x<<24) & 0x0000FF0000000000ull) |
-        ((x<<8)  & 0x000000FF00000000ull) |
-        ((x>>8)  & 0x00000000FF000000) |
-        ((x>>24) & 0x0000000000FF0000) |
-        ((x>>40) & 0x000000000000FF00) |
-        (x<<56);
+       x = convertEndian(x);
    }
-   char* num = (char*) &x;
-   for(int i=0;i<8;i++){
-       o << num[i];
-   }
+   o.write(reinterpret_cast<char*>(&x),8);
+}
 
+void WinUnix::writeBig64(ostream& o, const double number){
+   double number2 = number;
+   uint64_t x = *(reinterpret_cast<uint64_t*>(&number2));
+   if(isLittleEndian()){
+       x = convertEndian(x);
+   }
+   o.write(reinterpret_cast<char*>(&x),8);
 }
 
 
 void WinUnix::writeLittleEndian(ostream& o, const unsigned char b){
-   o << b;
+   unsigned char b1 = b;
+   o.write(reinterpret_cast<char*>(&b1),1);
 }
+
+void WinUnix::writeBigEndian(ostream& o, const unsigned char b){
+   unsigned char b1 = b;
+   o.write(reinterpret_cast<char*>(&b1),1);
+}
+
 
 
 uint32_t WinUnix::convertEndian(const uint32_t n){
@@ -183,9 +188,9 @@ uint64_t WinUnix::convertEndian(const uint64_t n){
           ((x<<40) & 0x00FF000000000000ull) |
           ((x<<24) & 0x0000FF0000000000ull) |
           ((x<<8)  & 0x000000FF00000000ull) |
-          ((x>>8)  & 0x00000000FF000000) |
-          ((x>>24) & 0x0000000000FF0000) |
-          ((x>>40) & 0x000000000000FF00) |
+          ((x>>8)  & 0x00000000FF000000ull) |
+          ((x>>24) & 0x0000000000FF0000ull) |
+          ((x>>40) & 0x000000000000FF00ull) |
           (x<<56);
 }
 
