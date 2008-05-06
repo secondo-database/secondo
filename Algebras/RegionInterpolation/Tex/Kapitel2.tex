@@ -36,9 +36,28 @@ Bilde einen gewichteten Graphen, in dem die Cycles Knoten sind, und dessen Kante
 
 \anmerkung{Hier gebe ich eine Inhaltsangabe des Papers, und gehe speziell auf die Auswirkungen ein, die diese auf meine Matchingideen haben.}
 
+Als eine sehr interessante Quelle erwieß sich das Paper \cite{AAR}, dessen Inhalt ich hier kurz wiedergeben möchte:
+
+In ihrer Arbeit betrachten die Autoren Ähnlichkeiten von Objekten, die als Punktmengen repäsentiert werden. Diese Betrachtungen haben besondere Relevanz in Anwendungen der Mustererkennung. Als Maß für die Ähnlichkeit von zwei Objekten wird hier, wie auch in den meisten anderen Arbeiten zu diesen Themen, der Hausdorff-Abstand benutzt, den ich unter \ref{Hausdorff} näher beschreibe.
+
+Um die Ähnlichkeit von zwei Objekten: $A$ und $B$ aus $\mathbb{R}^2$ oder aus $\mathbb{R}^3$ zu bestimmen, reicht es nicht den Hausdorff-Abstand $\delta_H(A,B)$ zu bestimmen, sondern man sucht die Abbildung $T\in\mathcal{T}$ unter der $\delta_H(A,T(B))$ minimal ist. $\mathcal{T}$ ist hierbei die Menge aller ,,erlaubten'' Abbildungen. Solche Abbildungen sind üblicherweise Rotationen, Verschiebungen, Skallierungen und Kombinationen aus solchen. Also sucht man:
+
+$$\min_{T\in\mathcal{T}}\delta_H(A,T(B))$$
+
+Die Suche nach dem optimalen $T$ ist im allgemeinen sehr kompliziert und aufwendig. Desshalb versuchen die Autoren keine optimale Abbildung $T_{OPT}$ zu finden, sondern sie suchen nach einer einfach und schnell berechenbaren Näherung, also einer Abbildung $T_{Approx}$, die $T_{OPT}$ zuverlässig und gut annähert.
+
+Die Autoren definieren eine solche Abbildung als ,,pseudooptimales-Match mit Fehlerfaktor $\alpha$'' ( $\alpha\geq 1$, $\delta$ ist der optimale Hausdorff-Abstand)
+
+$$\delta_H(A,T(B))\leq \alpha \delta$$
+
+Der Versuch ein solches pseudo-optimales Matching zu finden unternehmen die Autoren über Referenzpunkte. Als $\mathcal{T}$ respektierenden Referenzpunkt definieren sie eine Abbildung $s:C_d\longrightarrow\mathbb{R}^d$, für die gilt:
+
+$$s(T(A))=T(s(A))\text{ und}$$
+$$\Vert s(A)-s(B)\Vert\leq c\delta_H(A,B)$$
+
 In den Arbeiten \cite{AAR} und  \cite{AFRW} wurden der Schwerpunkt und der Steinerpunkt als m"ogliche Referenzpunkte gefunden. Ich fasse die Ergebnisse hier noch einmal zusammen:
 
-\subsection{\index{Hausdorff-Abstand}Hausdorff-Abstand}
+\subsection{\index{Hausdorff-Abstand}Hausdorff-Abstand}\label{Hausdorff} 
 
 Seien $A$ und $B$ zwei kompakte Teilmengen des $\mathbb{R}^2$ und sei $\Vert\centerdot\Vert$ die Euklidische Norm.
 Dann definieren wir eine Hilfsfunktion $ \widetilde{\delta_H}  $, den einseitige Hausdoff-Abstand, wie folgt:
