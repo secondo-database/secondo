@@ -37,6 +37,7 @@ Defines, includes, and constants
 #include "GPoint.h"
 #include "UGPoint.h"
 #include "MGPoint.h"
+// #include "GLine.h"
 
 /*
 The simple constructor. This constructor should not be used.
@@ -52,6 +53,8 @@ The constructor. Initializes space for ~n~ elements.
 */
 MGPoint::MGPoint( const int n ) : Mapping< UGPoint, GPoint >( n )
 {
+ // m_trajectory = new GLine(0);
+ // m_deftim = new Period(0);
 }
 
 
@@ -80,5 +83,18 @@ bool MGPoint::Check(ListExpr type,
   return (nl->IsEqual( type, "mgpoint" ));
 }
 
-
-
+// GLine MGPoint::GetTrajectory(){
+//   return m_trajectory;
+// }
+//
+// Periods MGPoint::GetDeftime(){
+//   return m_deftim;
+// }
+//
+// void MGPoint::SetTrajectory(GLine in_Gline){
+//   m_trajectory = in_Gline;
+// }
+//
+// void MGPoint::SetDeftime(Periods in_Periods){
+//   m_deftim = in_Periods;
+// }

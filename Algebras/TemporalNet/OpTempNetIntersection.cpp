@@ -729,7 +729,8 @@ int OpTempNetIntersection::ValueMapping(Word* args,
             pCurrJunct.getRouteMeas() <= pCurr1->p0.GetPosition()) &&
             pCurrJunct.getOtherRouteId() == pCurr2->p0.GetRouteId()) {
           found = true;
-          interPosition = pCurrJunct.getOtherRouteMeas();
+          interPosition = pCurrJunct.getRouteMeas();
+          // interPosition = pCurrJunct.getOtherRouteMeas();
           if ((pCurr2->p0.GetPosition() <= interPosition &&
              interPosition <= pCurr2->p1.GetPosition()) ||
              (pCurr2->p1.GetPosition() <= interPosition &&

@@ -159,7 +159,7 @@ int OpTempNetAtperiods::ValueMapping(Word* args,
                           pCurrentUnit->timeInterval.start.ToDouble());
               uGPstart = GPoint(true, pCurrentUnit->p0.GetNetworkId(),
                              pCurrentUnit->p0.GetRouteId(),
-                             fabs(pCurrentUnit->p1.GetPosition() -
+                             (pCurrentUnit->p1.GetPosition() -
                                  pCurrentUnit->p0.GetPosition()) *
                                  factor + pCurrentUnit->p0.GetPosition(),
                              pCurrentUnit->p0.GetSide());
@@ -184,7 +184,7 @@ int OpTempNetAtperiods::ValueMapping(Word* args,
                         pCurrentUnit->timeInterval.start.ToDouble());
               uGPend = GPoint(true, pCurrentUnit->p1.GetNetworkId(),
                              pCurrentUnit->p1.GetRouteId(),
-                             fabs(pCurrentUnit->p1.GetPosition() -
+                             (pCurrentUnit->p1.GetPosition() -
                                  pCurrentUnit->p0.GetPosition()) *
                                  factor + pCurrentUnit->p0.GetPosition(),
                                 pCurrentUnit->p0.GetSide());
@@ -232,7 +232,6 @@ int OpTempNetAtperiods::ValueMapping(Word* args,
   }
   pMGPres->EndBulkLoad();
   if (pMGPres->GetNoComponents() == 0) pMGPres->SetDefined(false);
-  else pMGPres->SetDefined(true);
   return 0;
 }
 

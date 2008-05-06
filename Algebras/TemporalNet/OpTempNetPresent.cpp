@@ -103,17 +103,21 @@ int OpTempNetPresent::present_mgpi(Word* args, Word& result, int message,
     return 0;
   }
   const UGPoint *pCurrentUnit;
-  int i = 0;
-  int comp;
-  while( i < pMGP->GetNoComponents()) {
-    pMGP->Get( i, pCurrentUnit );
-    comp = pCurrentUnit->timeInterval.end.CompareTo(ins);
-    if (comp < 0) i++;
-    else {
-      comp = pCurrentUnit->timeInterval.start.CompareTo(ins);
-      if (comp > 0) {
-        pPresent->Set(true, false);
-        return 0;
+  int mid;
+  int first = 0;
+  int last = pMGP->GetNoComponents() - 1;
+  while (first <= last) {
+    mid = (first+last)/2;
+    if (mid<0 || mid >= pMGP->GetNoComponents()) {
+      pPresent->Set(true, false);
+      return 0;
+    }
+    pMGP->Get(mid, pCurrentUnit);
+    if (pCurrentUnit->timeInterval.end.CompareTo(ins) < 0) {
+      first = mid + 1;
+    } else {
+      if (pCurrentUnit->timeInterval.start.CompareTo(ins) >0 ) {
+        last = mid - 1;
       } else {
         pPresent->Set(true, true);
         return 0;
@@ -150,16 +154,22 @@ int OpTempNetPresent::present_mgpp(Word* args,
   }
   const Interval<Instant> *interval;
   const UGPoint *pCurrentUnit;
-  int i, j;
+  int j;
   j = 0;
+  int mid, first, last;
   while (j < per->GetNoComponents()) {
     per->Get( j, interval );
-    i = 0;
-    while (i < pMGP->GetNoComponents()) {
-      pMGP->Get( i, pCurrentUnit );
-      if (pCurrentUnit->timeInterval.Before(*interval)) i++;
+    first = 0;
+    last = pMGP->GetNoComponents() -1;
+    while (first <= last) {
+      mid = (first + last) /2;
+      if (mid < 0 || mid >= pMGP->GetNoComponents()){
+        break;
+      }
+      pMGP->Get( mid, pCurrentUnit );
+      if (pCurrentUnit->timeInterval.Before(*interval)) first = mid + 1;
       else {
-        if (interval->Before(pCurrentUnit->timeInterval)) break;
+        if (interval->Before(pCurrentUnit->timeInterval)) last = mid - 1;
         else {
           pPresent->Set(true, true);
           return 0;

@@ -44,7 +44,7 @@ Please include in *.cpp-File.
 Please include in *.cpp-File.
 #endif
 
-
+#include "GLine.h"
 
 
 /*
@@ -78,6 +78,21 @@ Kind Checking Function
 */
     static bool Check(ListExpr type,
                       ListExpr& errorInfo);
+
+//     GLine GetTrajectory();
+//
+//     Periods GetDeftime();
+//
+//     void SetTrajectory(GLine in_Gline);
+//
+//     void SetDeftime(Periods in_Periods);
+//
+//
+//   private:
+//
+//     GLine m_trajectory;
+//
+//     Periods m_deftim;
 
 };
 

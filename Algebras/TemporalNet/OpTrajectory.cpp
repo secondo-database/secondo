@@ -106,28 +106,61 @@ double checkTree(RITree& father, int rid, double pos1, double pos2,
 Overlapping interval found. Rebuild Tree and return new interval limit.
 
 */
-            double result;
+/////////////////////////////////////////////////
             if (bleft) {
               if (this->m_dStart <= pos1) {
-                result = this->m_dStart;
-                if (father.m_left == this) {
-                  father.m_left = this->m_left;
-                } else {
-                  father.m_right = this->m_left;
-                }
-                return result;
+                  pos1 = this->m_dStart;
+              }
+              if (father.m_left == this) {
+                father.m_left = this->m_left;
+              } else {
+                father.m_right = this->m_left;
+              }
+              if (father.m_left != 0) {
+                //delete this;
+                return father.m_left->checkTree(father, rid, pos1, pos2, bleft);
+              } else {
+                return pos1;
               }
             } else {
               if (this->m_dEnd >= pos2) {
-                result = this->m_dEnd;
-                if (father.m_right == this) {
-                  father.m_right = this->m_right;
-                } else {
-                  father.m_left = this->m_right;
-                }
-                return result;
+                pos2 = this->m_dEnd;
+              }
+              if (father.m_left == this) {
+                father.m_left = this->m_right;
+              } else {
+                father.m_right = this->m_right;
+              }
+              if (father.m_right != 0 ) {
+                //delete this;
+                return father.m_right->checkTree(father, rid, pos1, pos2,bleft);
+              } else {
+                return pos2;
               }
             }
+////////////////////////////////////////////////
+//             if (bleft) {
+//               if (this->m_dStart <= pos1) {
+//                 result = this->m_dStart;
+//                 if (father.m_left == this) {
+//                   father.m_left = this->m_left;
+//                 } else {
+//                   father.m_right = this->m_left;
+//                 }
+//                 return result;
+//               }
+//             } else {
+//               if (this->m_dEnd >= pos2) {
+//                 result = this->m_dEnd;
+//                 if (father.m_right == this) {
+//                   father.m_right = this->m_right;
+//                 } else {
+//                   father.m_left = this->m_right;
+//                 }
+//                 return result;
+//               }
+//             }
+////////////////////////////////////////////////
           }
         }
       }
@@ -139,7 +172,6 @@ Overlapping interval found. Rebuild Tree and return new interval limit.
 
 
   void insert (int rid, double pos1, double pos2) {
-    cout << "insert: " << rid << ", " <<pos1 << ", " << pos2 << endl;
     double test;
     if (rid < this->m_iRouteId) {
       if (this->m_left != 0) {
@@ -303,10 +335,10 @@ int OpTrajectory::ValueMapping(Word* args,
   double aktStartPos = pCurrentUnit->p0.GetPosition();
   double aktEndPos = pCurrentUnit->p1.GetPosition();
   chkStartEnd(aktStartPos, aktEndPos);
-  double curStartPos, curEndPos;
   RITree *tree;
   tree = new RITree(aktRouteId, aktStartPos, aktEndPos,0,0);
   int curRoute;
+  double curStartPos, curEndPos;
   for (int i = 1; i < pMGPoint->GetNoComponents(); i++)
   {
     // Get start and end of current unit
@@ -345,6 +377,7 @@ int OpTrajectory::ValueMapping(Word* args,
   result = SetWord(resG);
   resG->SetDefined(true);
   resG->SetNetworkId(iNetworkId);
+  resG->SetSorted(true);
   return 0;
 }
 

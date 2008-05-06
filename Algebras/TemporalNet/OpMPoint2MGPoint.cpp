@@ -969,7 +969,7 @@ Specification of operator ~mpoint2mgpoint~
 const string OpMPoint2MGPoint::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>mpoint -> mgpoint" "</text--->"
+  "( <text>network x mpoint -> mgpoint" "</text--->"
   "<text>mpoint2mgpoint(Networkobject, mpoint)</text--->"
   "<text>Finds a path in a network for a moving point.</text--->"
   "<text>mpoint2mgpoint(B_NETWORK, x)</text--->"

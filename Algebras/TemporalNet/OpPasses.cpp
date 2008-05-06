@@ -48,6 +48,44 @@ Mai-Oktober 2007 Martin Scheppokat
 
 #include "OpPasses.h"
 
+bool searchUnit(GLine *pGLine, size_t low, size_t high,
+                int unitRouteId, double dMGPStart,
+                double dMGPEnd) {
+  const RouteInterval *rI;
+  if (low <= high) {
+    size_t mid = (high + low) / 2;
+    int imid = mid;
+    if ((mid < 0) || (imid >= pGLine->NoOfComponents())) {
+      return false;
+    }else {
+      pGLine->Get(mid, rI);
+      if (rI->m_iRouteId < unitRouteId) {
+        return searchUnit(pGLine, mid+1, high, unitRouteId, dMGPStart, dMGPEnd);
+      } else {
+        if (rI->m_iRouteId > unitRouteId){
+          return searchUnit(pGLine, low, mid-1, unitRouteId, dMGPStart,
+                            dMGPEnd);
+        } else {
+          if (rI->m_dStart > dMGPEnd) {
+            return searchUnit(pGLine, low, mid-1, unitRouteId, dMGPStart,
+                              dMGPEnd);
+          } else {
+            if (rI->m_dEnd < dMGPStart){
+              return searchUnit(pGLine, mid+1, high, unitRouteId, dMGPStart,
+                                dMGPEnd);
+            } else {
+              return true;
+            }
+          }
+        }
+      }
+    }
+  } else {
+    return false;
+  }
+  return false;
+}
+
 /*
 Typemap function of the operator
 
@@ -107,7 +145,6 @@ int OpPasses::passes_mgpgp(Word* args,
     return 0;
   }
   for (int i = 0; i < pMGPoint->GetNoComponents(); i++) {
-
     pMGPoint->Get(i, pCurrentUnit);
     if (pCurrentUnit->p0.GetRouteId() == pGPoint->GetRouteId()){
     // check if p is between p0 and p1
@@ -175,13 +212,21 @@ int OpPasses::passes_mgpgl(Word* args,
       dMGPStart = pCurrentUnit->p1.GetPosition();
       dMGPEnd = pCurrentUnit->p0.GetPosition();
     }
-    for (int j = 0 ; j < pGLine->NoOfComponents(); j ++){
-      pGLine->Get(j,pCurrRInter);
-      if (pCurrRInter->m_iRouteId == pCurrentUnit->p0.GetRouteId() &&
-         (!(pCurrRInter->m_dEnd < dMGPStart ||
-            pCurrRInter->m_dStart > dMGPEnd))){
+    if (pGLine->IsSorted()){
+      if (searchUnit(pGLine, 0, pGLine->NoOfComponents()-1,
+                     pCurrentUnit->p0.GetRouteId(), dMGPStart, dMGPEnd)){
         pPasses->Set(true, true);
         return 0;
+      };
+    } else {
+      for (int j = 0 ; j < pGLine->NoOfComponents(); j ++){
+        pGLine->Get(j,pCurrRInter);
+        if (pCurrRInter->m_iRouteId == pCurrentUnit->p0.GetRouteId() &&
+           (!(pCurrRInter->m_dEnd < dMGPStart ||
+              pCurrRInter->m_dStart > dMGPEnd))){
+          pPasses->Set(true, true);
+          return 0;
+        }
       }
     }
   }

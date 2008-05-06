@@ -49,6 +49,64 @@ March 2008 Simone Jandt
 
 #include "OpTempNetInside.h"
 
+void getRouteInterval(GLine *pGLine, int iRouteId, double mgpstart,
+                       double mgpend, int low, int high,
+                       vector<RouteInterval> &vRI) {
+  vRI.clear();
+  const RouteInterval *aktRI;
+  bool found;
+  int mid, i;
+  if (low <= high) {
+    mid = (high + low) / 2;
+    if  (!(mid < 0 || mid >= pGLine->NoOfComponents())) {
+      pGLine->Get(mid, aktRI);
+      if (aktRI->m_iRouteId < iRouteId) {
+        getRouteInterval(pGLine, iRouteId, mgpstart, mgpend, low, mid-1, vRI);
+      } else {
+        if (aktRI->m_iRouteId > iRouteId) {
+          getRouteInterval(pGLine, iRouteId, mgpstart, mgpend, mid+1, high,
+                            vRI);
+        } else {
+          if (aktRI->m_dStart > mgpend) {
+            getRouteInterval(pGLine, iRouteId, mgpstart, mgpend, mid-1, mid-1,
+                              vRI);
+          } else {
+            if (aktRI->m_dEnd < mgpstart) {
+              getRouteInterval(pGLine, iRouteId, mgpstart, mgpend, mid+1,
+                                mid+1, vRI);
+            } else {
+              i = mid - 1;
+              while (i >= 0 && !found) {
+                pGLine->Get(i, aktRI);
+                if (aktRI->m_iRouteId == iRouteId &&
+                    aktRI->m_dEnd >= mgpstart) {
+                  i--;
+                } else {
+                  found = true;
+                  i++;
+                  pGLine->Get(i, aktRI);
+                }
+              }
+              vRI.push_back(*aktRI);
+              i++;
+              found = false;
+              while (!found && i < pGLine->NoOfComponents() ){
+                pGLine->Get(i, aktRI);
+                if (aktRI->m_iRouteId == iRouteId &&
+                    aktRI->m_dStart <= mgpend) {
+                  vRI.push_back(*aktRI);
+                  i++;
+                } else {
+                  found = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 
 void checkEndOfUGPoint(double startPos, double endPos, Instant startTime,
                        bool bstart, Instant endTime, bool bend, int actRoutInt,
@@ -245,6 +303,200 @@ void checkEndOfUGPoint(double startPos, double endPos, Instant startTime,
   }
 }
 
+void checkEndOfUGPoint(double startPos, double endPos, Instant startTime,
+                       bool bstart, Instant endTime, bool bend,
+                       size_t actRoutInt, vector<RouteInterval> &vRI,
+                       MBool* &pResult, int iRouteId){
+  RouteInterval *pCurrInt;
+  UBool interbool(true);
+  double help, factor;
+  bool swapped = false;
+  if (endPos < startPos) {
+    help = startPos;
+    startPos = endPos;
+    endPos = help;
+    swapped = true;
+  }
+  bool found = false;
+  Instant tInterStart, tInterEnd;
+  size_t k = actRoutInt + 1;
+  while ( k < vRI.size()) {
+    pCurrInt = &vRI[k];
+    if (pCurrInt->m_iRouteId == iRouteId) {
+      if (!(endPos < pCurrInt->m_dStart || startPos > pCurrInt->m_dEnd ||
+            startPos == endPos || pCurrInt->m_dStart == pCurrInt->m_dEnd)){
+          //intersection exists compute intersecting part and timevalues for
+          //resulting unit
+        if (!swapped) {
+          if (pCurrInt->m_dStart <= startPos) {
+            found = true;
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            interbool.constValue.Set(true, true);
+          } else {
+            found = true;
+            // compute and write unit befor mgpoint inside gline
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            factor = fabs(pCurrInt->m_dStart - startPos) /
+                     fabs(endPos - startPos);
+            tInterStart = (endTime - startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterStart;
+            interbool.timeInterval.rc = false;
+            interbool.constValue.Set(true,false);
+            pResult->MergeAdd(interbool);
+            //compute start of unit inside
+            interbool.timeInterval.start = tInterStart;
+            interbool.timeInterval.lc = true;
+            interbool.constValue.Set(true, true);
+          }
+          if (pCurrInt->m_dEnd >= endPos) {
+            interbool.timeInterval.end = endTime;
+            interbool.timeInterval.rc = bend;
+            pResult->MergeAdd(interbool);
+          } else {
+            // compute end of mgpoint at end of gline.and add result unit
+            interbool.timeInterval.rc = true;
+            factor = fabs(pCurrInt->m_dEnd - startPos) /
+                     fabs(endPos -startPos);
+            tInterEnd = (endTime -startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterEnd;
+            pResult->MergeAdd(interbool);
+            // the rest of the current unit is not in the current
+            // routeinterval.
+            checkEndOfUGPoint(pCurrInt->m_dEnd, endPos, tInterEnd, false,
+                              endTime, bend, k, vRI, pResult, iRouteId);
+          }
+        } else {
+          help = startPos;
+          startPos = endPos;
+          endPos = help;
+          if (pCurrInt->m_dEnd >= startPos) {
+            found = true;
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            interbool.constValue.Set(true, true);
+          } else {
+            found = true;
+            // compute and write unit befor mgpoint inside gline
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            factor =  fabs(pCurrInt->m_dEnd - startPos) /
+                      fabs(endPos - startPos);
+            tInterStart = (endTime - startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterStart;
+            interbool.timeInterval.rc = false;
+            interbool.constValue.Set(true,false);
+            pResult->MergeAdd(interbool);
+            //compute start of unit inside
+            interbool.timeInterval.start = tInterStart;
+            interbool.timeInterval.lc = true;
+            interbool.constValue.Set(true, true);
+          }
+          if (pCurrInt->m_dStart <= endPos) {
+              interbool.timeInterval.end = endTime;
+              interbool.timeInterval.rc = bend;
+              pResult->MergeAdd(interbool);
+          } else {
+              // compute end of mgpoint at end of gline.and add result unit
+              interbool.timeInterval.rc = true;
+              factor = fabs(pCurrInt->m_dStart - startPos) /
+                       fabs(endPos - startPos);
+              tInterEnd = (endTime - startTime) * factor + startTime;
+              interbool.timeInterval.end = tInterEnd;
+              pResult->MergeAdd(interbool);
+              // the rest of the current unit is not in the current
+              // routeinterval.
+              checkEndOfUGPoint(pCurrInt->m_dEnd, endPos, tInterEnd, false,
+                                endTime, bend, k, vRI, pResult, iRouteId);
+          }
+        }
+      }else{
+        if (startPos == endPos && bstart && bend){
+          found = true;
+          interbool.timeInterval.start = startTime;
+          interbool.timeInterval.lc = bstart;
+          interbool.timeInterval.end = endTime;
+          interbool.timeInterval.rc = bend;
+          interbool.constValue.Set(true,true);
+          pResult->MergeAdd(interbool);
+        } else {
+          if (pCurrInt->m_dStart == pCurrInt->m_dEnd) {
+            found = true;
+            if ((pCurrInt->m_dStart > startPos && pCurrInt->m_dStart < endPos)||
+              (pCurrInt->m_dStart < startPos && pCurrInt->m_dStart > endPos)) {
+              // compute and write unit befor mgpoint inside gline
+              interbool.timeInterval.start = startTime;
+              interbool.timeInterval.lc = bstart;
+              factor = fabs(pCurrInt->m_dStart - startPos) /
+                       fabs(endPos -startPos);
+              tInterStart = (endTime - startTime) * factor + startTime;
+              interbool.timeInterval.end = tInterStart;
+              interbool.timeInterval.rc = false;
+              interbool.constValue.Set(true,false);
+              pResult->MergeAdd(interbool);
+              interbool.timeInterval.start = tInterStart;
+              interbool.timeInterval.rc = true;
+              interbool.timeInterval.lc = true;
+              interbool.constValue.Set(true, true);
+              pResult->MergeAdd(interbool);
+              checkEndOfUGPoint(pCurrInt->m_dEnd, endPos, tInterEnd, false,
+                                endTime, bend, k, vRI, pResult, iRouteId);
+            } else {
+              if (pCurrInt->m_dStart == startPos && bstart) {
+                found = true;
+                interbool.timeInterval.start = startTime;
+                interbool.timeInterval.lc = bstart;
+                interbool.timeInterval.end = startTime;
+                interbool.timeInterval.rc = true;
+                interbool.constValue.Set(true,true);
+                pResult->MergeAdd(interbool);
+                checkEndOfUGPoint(pCurrInt->m_dEnd, endPos, tInterEnd, false,
+                                  endTime, bend, k, vRI, pResult, iRouteId);
+              } else {
+                if (pCurrInt->m_dStart == endPos && bend) {
+                  found = true;
+                  interbool.timeInterval.start = startTime;
+                  interbool.timeInterval.lc = bstart;
+                  interbool.timeInterval.end = endTime;
+                  interbool.timeInterval.rc = false;
+                  interbool.constValue.Set(true,false);
+                  pResult->MergeAdd(interbool);
+                  interbool.timeInterval.start = endTime;
+                  interbool.timeInterval.rc = bend;
+                  interbool.timeInterval.lc = true;
+                  interbool.constValue.Set(true, true);
+                  pResult->MergeAdd(interbool);
+                }
+              }
+            }
+          } else {
+            if ((startPos == pCurrInt->m_dStart && endPos == pCurrInt->m_dEnd)||
+               (startPos == pCurrInt->m_dEnd && endPos == pCurrInt->m_dStart)){
+              found = true;
+              interbool.timeInterval.start = startTime;
+              interbool.timeInterval.end = endTime;
+              interbool.timeInterval.lc = bstart;
+              interbool.timeInterval.rc = bend;
+              interbool.constValue.Set(true, true);
+              pResult->MergeAdd(interbool);
+            }
+          }
+        }
+      }
+    } // end if routeid==
+    k++;
+  } // end while
+  if (!found) {
+      interbool.timeInterval.start = startTime;
+      interbool.timeInterval.lc = bstart;
+      interbool.timeInterval.end = endTime;
+      interbool.timeInterval.rc = bend;
+      interbool.constValue.Set(true,false);
+      pResult->MergeAdd(interbool);
+  }
+}
+
 /*
 Typemap function of the operator
 
@@ -302,53 +554,49 @@ int OpTempNetInside::ValueMapping(Word* args,
   }
   double mgStart, mgEnd, lStart, lEnd, factor;
   const RouteInterval *pCurrRInter = new RouteInterval (0, 0.0, 0.0);
-  bool swapped, found;
+  bool swapped, found, bInterStart, bInterEnd;
   Instant tInterStart, tInterEnd;
   UBool interbool(true);
   int iRouteMgp;
+  double interStart, interEnd;
   pResult->StartBulkLoad();
   for (int i = 0; i < pMGPoint->GetNoComponents(); i++){
     pMGPoint->Get(i, pCurrentUnit);
     int j = 0;
     iRouteMgp = pCurrentUnit->p0.GetRouteId();
     swapped = false;
-    found = false;
-    while (j < pGLine->NoOfComponents()) {
-      pGLine->Get(j, pCurrRInter);
-      if (iRouteMgp == pCurrRInter->m_iRouteId){
-        mgStart = pCurrentUnit->p0.GetPosition();
-        mgEnd = pCurrentUnit->p1.GetPosition();
-        if (mgEnd < mgStart) {
-          mgStart = pCurrentUnit->p1.GetPosition();
-          mgEnd = pCurrentUnit->p0.GetPosition();
-          swapped = true;
-        }
-        lStart = pCurrRInter->m_dStart;
-        lEnd = pCurrRInter->m_dEnd;
-        if (lStart > lEnd) {
-          lStart = pCurrRInter->m_dEnd;
-          lEnd = pCurrRInter->m_dStart;
-        }
-        if (!(mgEnd < lStart || mgStart > lEnd || mgStart == mgEnd ||
-             lStart == lEnd)){
-          //intersection exists compute intersecting part and timevalues for
-          //resulting unit
-          found = true;
-          if (!swapped) {
-            if (lStart <= mgStart) {
+    mgStart = pCurrentUnit->p0.GetPosition();
+    mgEnd = pCurrentUnit->p1.GetPosition();
+    if (mgEnd < mgStart) {
+      mgStart = pCurrentUnit->p1.GetPosition();
+      mgEnd = pCurrentUnit->p0.GetPosition();
+      swapped = true;
+    }
+    if (pGLine->IsSorted()){
+      vector<RouteInterval> vRI;
+      const RouteInterval *currRInter;
+      vRI.clear();
+      getRouteInterval(pGLine, iRouteMgp, mgStart, mgEnd, 0,
+                        pGLine->NoOfComponents(), vRI);
+      if (vRI.size() > 0) {
+        size_t k = 0;
+        while (k < vRI.size()) {
+          currRInter = &vRI[k];
+          if (pCurrentUnit->p0.GetPosition() < pCurrentUnit->p1.GetPosition()){
+            if (pCurrentUnit->p0.GetPosition() >= currRInter->m_dStart) {
               interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
               interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
               interbool.constValue.Set(true, true);
             } else {
-              // compute and write unit befor mgpoint inside gline
               interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
               interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
-              factor =  fabs(lStart - pCurrentUnit->p0.GetPosition())/
+              factor =  fabs(currRInter->m_dStart -
+                             pCurrentUnit->p0.GetPosition())/
                         fabs(pCurrentUnit->p1.GetPosition() -
-                        pCurrentUnit->p0.GetPosition());
+                             pCurrentUnit->p0.GetPosition());
               tInterStart = (pCurrentUnit->timeInterval.end -
-                            pCurrentUnit->timeInterval.start) * factor +
-                            pCurrentUnit->timeInterval.start;
+                             pCurrentUnit->timeInterval.start) * factor +
+                             pCurrentUnit->timeInterval.start;
               interbool.timeInterval.end = tInterStart;
               interbool.timeInterval.rc = false;
               interbool.constValue.Set(true,false);
@@ -358,16 +606,17 @@ int OpTempNetInside::ValueMapping(Word* args,
               interbool.timeInterval.lc = true;
               interbool.constValue.Set(true, true);
             }
-            if (lEnd >= mgEnd) {
+            if (pCurrentUnit->p1.GetPosition() <= currRInter->m_dEnd) {
               interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
               interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
               pResult->MergeAdd(interbool);
             } else {
               // compute end of mgpoint at end of gline.and add result unit
               interbool.timeInterval.rc = true;
-              factor = fabs(lEnd - pCurrentUnit->p0.GetPosition())/
-                        fabs(pCurrentUnit->p1.GetPosition() -
-                        pCurrentUnit->p0.GetPosition());
+              factor = fabs(currRInter->m_dEnd -
+                            pCurrentUnit->p0.GetPosition())/
+                       fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
               tInterEnd = (pCurrentUnit->timeInterval.end -
                            pCurrentUnit->timeInterval.start) * factor +
                            pCurrentUnit->timeInterval.start;
@@ -375,75 +624,82 @@ int OpTempNetInside::ValueMapping(Word* args,
               pResult->MergeAdd(interbool);
               // the rest of the current unit is not in the current
               // routeinterval.
-              checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(), tInterEnd,
-                               false, pCurrentUnit->timeInterval.end,
-                               pCurrentUnit->timeInterval.rc, j, pGLine,
-                               pResult, iRouteMgp);
+              checkEndOfUGPoint(currRInter->m_dEnd,
+                                pCurrentUnit->p1.GetPosition(), tInterEnd,
+                                false, pCurrentUnit->timeInterval.end,
+                                pCurrentUnit->timeInterval.rc, k, vRI,
+                                pResult, iRouteMgp);
+            }
+            if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
+              pResult->MergeAdd(interbool);
             }
           } else {
-            mgStart = pCurrentUnit->p0.GetPosition();
-            mgEnd = pCurrentUnit->p1.GetPosition();
-            if (lEnd >= mgStart) {
-              interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
-              interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
-              interbool.constValue.Set(true, true);
+            if (currRInter->m_dEnd >= pCurrentUnit->p0.GetPosition()) {
+              interStart = pCurrentUnit->p0.GetPosition();
+              tInterStart = pCurrentUnit->timeInterval.start;
+              bInterStart = pCurrentUnit->timeInterval.lc;
             } else {
-              // compute and write unit befor mgpoint inside gline
-              interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
-              interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
-              factor =  fabs(lEnd - pCurrentUnit->p0.GetPosition())/
+              interStart = currRInter->m_dEnd;
+              bInterStart = true;
+              factor =fabs(currRInter->m_dEnd -
+                          pCurrentUnit->p0.GetPosition())/
                         fabs(pCurrentUnit->p1.GetPosition() -
-                        pCurrentUnit->p0.GetPosition());
+                             pCurrentUnit->p0.GetPosition());
               tInterStart = (pCurrentUnit->timeInterval.end -
                             pCurrentUnit->timeInterval.start) * factor +
                             pCurrentUnit->timeInterval.start;
-              interbool.timeInterval.end = tInterStart;
-              interbool.timeInterval.rc = false;
-              interbool.constValue.Set(true,false);
-              pResult->MergeAdd(interbool);
-              //compute start of unit inside
-              interbool.timeInterval.start = tInterStart;
-              interbool.timeInterval.lc = true;
-              interbool.constValue.Set(true, true);
             }
-            if (lStart <= mgEnd) {
-              interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
-              interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
-              pResult->MergeAdd(interbool);
+            if (currRInter->m_dStart <= pCurrentUnit->p1.GetPosition()) {
+              interEnd = pCurrentUnit->p1.GetPosition();
+              tInterEnd = pCurrentUnit->timeInterval.end;
+              bInterEnd = pCurrentUnit->timeInterval.rc;
             } else {
-              // compute end of mgpoint at end of gline.and add result unit
-              interbool.timeInterval.rc = true;
-              factor = fabs(lStart - pCurrentUnit->p0.GetPosition())/
-                        fabs(pCurrentUnit->p1.GetPosition() -
-                        pCurrentUnit->p0.GetPosition());
+              interEnd = currRInter->m_dStart;
+              bInterEnd = true;
+              factor = fabs(currRInter->m_dStart -
+                           pCurrentUnit->p0.GetPosition())/
+                       fabs(pCurrentUnit->p1.GetPosition() -
+                            pCurrentUnit->p0.GetPosition());
               tInterEnd = (pCurrentUnit->timeInterval.end -
                            pCurrentUnit->timeInterval.start) * factor +
                            pCurrentUnit->timeInterval.start;
-              interbool.timeInterval.end = tInterEnd;
+            }
+            if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
               pResult->MergeAdd(interbool);
-              // the rest of the current unit is not in the current
-              // routeinterval.
-              checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(), tInterEnd,
-                               false, pCurrentUnit->timeInterval.end,
-                               pCurrentUnit->timeInterval.rc, j, pGLine,
-                               pResult, iRouteMgp);
             }
           }
-        }else{
-          if (mgStart == mgEnd && pCurrentUnit->timeInterval.lc &&
-            pCurrentUnit->timeInterval.rc){
+          k++;
+        }
+      }
+    } else {
+      found = false;
+      while (j < pGLine->NoOfComponents()) {
+        pGLine->Get(j, pCurrRInter);
+        if (iRouteMgp == pCurrRInter->m_iRouteId){
+          mgStart = pCurrentUnit->p0.GetPosition();
+          mgEnd = pCurrentUnit->p1.GetPosition();
+          if (mgEnd < mgStart) {
+            mgStart = pCurrentUnit->p1.GetPosition();
+            mgEnd = pCurrentUnit->p0.GetPosition();
+            swapped = true;
+          }
+          lStart = pCurrRInter->m_dStart;
+          lEnd = pCurrRInter->m_dEnd;
+          if (lStart > lEnd) {
+            lStart = pCurrRInter->m_dEnd;
+            lEnd = pCurrRInter->m_dStart;
+          }
+          if (!(mgEnd < lStart || mgStart > lEnd || mgStart == mgEnd ||
+              lStart == lEnd)){
+            //intersection exists compute intersecting part and timevalues for
+            //resulting unit
             found = true;
-            interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
-            interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
-            interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
-            interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
-            interbool.constValue.Set(true,true);
-            pResult->MergeAdd(interbool);
-          } else {
-            if (lStart == lEnd) {
-              if ((lStart > mgStart && lStart < mgEnd) ||
-                  (lStart < mgStart && lStart > mgEnd)) {
-                found = true;
+            if (!swapped) {
+              if (lStart <= mgStart) {
+                interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                interbool.constValue.Set(true, true);
+              } else {
                 // compute and write unit befor mgpoint inside gline
                 interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
                 interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
@@ -451,31 +707,123 @@ int OpTempNetInside::ValueMapping(Word* args,
                           fabs(pCurrentUnit->p1.GetPosition() -
                           pCurrentUnit->p0.GetPosition());
                 tInterStart = (pCurrentUnit->timeInterval.end -
-                            pCurrentUnit->timeInterval.start) * factor +
-                            pCurrentUnit->timeInterval.start;
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
                 interbool.timeInterval.end = tInterStart;
                 interbool.timeInterval.rc = false;
                 interbool.constValue.Set(true,false);
                 pResult->MergeAdd(interbool);
+                //compute start of unit inside
                 interbool.timeInterval.start = tInterStart;
-                interbool.timeInterval.rc = true;
                 interbool.timeInterval.lc = true;
                 interbool.constValue.Set(true, true);
+              }
+              if (lEnd >= mgEnd) {
+                interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+                interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
                 pResult->MergeAdd(interbool);
+              } else {
+                // compute end of mgpoint at end of gline.and add result unit
+                interbool.timeInterval.rc = true;
+                factor = fabs(lEnd - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterEnd = (pCurrentUnit->timeInterval.end -
+                            pCurrentUnit->timeInterval.start) * factor +
+                            pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.end = tInterEnd;
+                pResult->MergeAdd(interbool);
+                // the rest of the current unit is not in the current
+                // routeinterval.
                 checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(),
                                   tInterEnd, false,
                                   pCurrentUnit->timeInterval.end,
-                                  pCurrentUnit->timeInterval.rc, j, pGLine,
-                                  pResult, iRouteMgp);
+                                pCurrentUnit->timeInterval.rc, j, pGLine,
+                                pResult, iRouteMgp);
+              }
+            } else {
+              mgStart = pCurrentUnit->p0.GetPosition();
+              mgEnd = pCurrentUnit->p1.GetPosition();
+              if (lEnd >= mgStart) {
+                interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                interbool.constValue.Set(true, true);
               } else {
-                if (lStart == mgStart && pCurrentUnit->timeInterval.lc) {
+                // compute and write unit befor mgpoint inside gline
+                interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                factor =  fabs(lEnd - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterStart = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.end = tInterStart;
+                interbool.timeInterval.rc = false;
+                interbool.constValue.Set(true,false);
+                pResult->MergeAdd(interbool);
+                //compute start of unit inside
+                interbool.timeInterval.start = tInterStart;
+                interbool.timeInterval.lc = true;
+                interbool.constValue.Set(true, true);
+              }
+              if (lStart <= mgEnd) {
+                interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+                interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+                pResult->MergeAdd(interbool);
+              } else {
+                // compute end of mgpoint at end of gline.and add result unit
+                interbool.timeInterval.rc = true;
+                factor = fabs(lStart - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterEnd = (pCurrentUnit->timeInterval.end -
+                            pCurrentUnit->timeInterval.start) * factor +
+                            pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.end = tInterEnd;
+                pResult->MergeAdd(interbool);
+                // the rest of the current unit is not in the current
+                // routeinterval.
+                checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(),
+                                  tInterEnd, false,
+                                  pCurrentUnit->timeInterval.end,
+                                pCurrentUnit->timeInterval.rc, j, pGLine,
+                                pResult, iRouteMgp);
+              }
+            }
+          }else{
+            if (mgStart == mgEnd && pCurrentUnit->timeInterval.lc &&
+              pCurrentUnit->timeInterval.rc){
+              found = true;
+              interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+              interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+              interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+              interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+              interbool.constValue.Set(true,true);
+              pResult->MergeAdd(interbool);
+            } else {
+              if (lStart == lEnd) {
+                if ((lStart > mgStart && lStart < mgEnd) ||
+                    (lStart < mgStart && lStart > mgEnd)) {
                   found = true;
+                  // compute and write unit befor mgpoint inside gline
                   interbool.timeInterval.start =
                       pCurrentUnit->timeInterval.start;
                   interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
-                  interbool.timeInterval.end = pCurrentUnit->timeInterval.start;
+                  factor =  fabs(lStart - pCurrentUnit->p0.GetPosition())/
+                            fabs(pCurrentUnit->p1.GetPosition() -
+                            pCurrentUnit->p0.GetPosition());
+                  tInterStart = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+                  interbool.timeInterval.end = tInterStart;
+                  interbool.timeInterval.rc = false;
+                  interbool.constValue.Set(true,false);
+                  pResult->MergeAdd(interbool);
+                  interbool.timeInterval.start = tInterStart;
                   interbool.timeInterval.rc = true;
-                  interbool.constValue.Set(true,true);
+                  interbool.timeInterval.lc = true;
+                  interbool.constValue.Set(true, true);
                   pResult->MergeAdd(interbool);
                   checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(),
                                     tInterEnd, false,
@@ -483,51 +831,69 @@ int OpTempNetInside::ValueMapping(Word* args,
                                     pCurrentUnit->timeInterval.rc, j, pGLine,
                                     pResult, iRouteMgp);
                 } else {
-                  if (lStart == mgEnd && pCurrentUnit->timeInterval.rc) {
+                  if (lStart == mgStart && pCurrentUnit->timeInterval.lc) {
                     found = true;
                     interbool.timeInterval.start =
-                      pCurrentUnit->timeInterval.start;
-                    interbool.timeInterval.lc =
-                        pCurrentUnit->timeInterval.lc;
+                        pCurrentUnit->timeInterval.start;
+                    interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
                     interbool.timeInterval.end =
-                        pCurrentUnit->timeInterval.end;
-                    interbool.timeInterval.rc = false;
-                    interbool.constValue.Set(true,false);
+                        pCurrentUnit->timeInterval.start;
+                    interbool.timeInterval.rc = true;
+                    interbool.constValue.Set(true,true);
                     pResult->MergeAdd(interbool);
-                    interbool.timeInterval.start =
-                        pCurrentUnit->timeInterval.end;
-                    interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
-                    interbool.timeInterval.lc = true;
-                    interbool.constValue.Set(true, true);
-                    pResult->MergeAdd(interbool);
+                    checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(),
+                                      tInterEnd, false,
+                                      pCurrentUnit->timeInterval.end,
+                                      pCurrentUnit->timeInterval.rc, j, pGLine,
+                                      pResult, iRouteMgp);
+                  } else {
+                    if (lStart == mgEnd && pCurrentUnit->timeInterval.rc) {
+                      found = true;
+                      interbool.timeInterval.start =
+                        pCurrentUnit->timeInterval.start;
+                      interbool.timeInterval.lc =
+                          pCurrentUnit->timeInterval.lc;
+                      interbool.timeInterval.end =
+                          pCurrentUnit->timeInterval.end;
+                      interbool.timeInterval.rc = false;
+                      interbool.constValue.Set(true,false);
+                      pResult->MergeAdd(interbool);
+                      interbool.timeInterval.start =
+                          pCurrentUnit->timeInterval.end;
+                      interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+                      interbool.timeInterval.lc = true;
+                      interbool.constValue.Set(true, true);
+                      pResult->MergeAdd(interbool);
+                    }
                   }
                 }
-              }
-            } else {
-              if ((mgStart == lStart && mgEnd == lEnd) ||
-                 (mgStart == lEnd && mgEnd == lStart)) {
-                found = true;
-                interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
-                interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
-                interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
-                interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
-                interbool.constValue.Set(true, true);
-                pResult->MergeAdd(interbool);
+              } else {
+                if ((mgStart == lStart && mgEnd == lEnd) ||
+                  (mgStart == lEnd && mgEnd == lStart)) {
+                  found = true;
+                  interbool.timeInterval.start =
+                      pCurrentUnit->timeInterval.start;
+                  interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+                  interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                  interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+                  interbool.constValue.Set(true, true);
+                  pResult->MergeAdd(interbool);
+                }
               }
             }
           }
         }
+        j++;
+      } // end while
+      if (!found) {
+          //no intersection found mgpoint not inside gline
+        interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+        interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+        interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+        interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+        interbool.constValue.Set(true,false);
+        pResult->MergeAdd(interbool);
       }
-      j++;
-    } // end while
-    if (!found) {
-        //no intersection found mgpoint not inside gline
-      interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
-      interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
-      interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
-      interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
-      interbool.constValue.Set(true,false);
-      pResult->MergeAdd(interbool);
     }
   } // end for
   pResult->EndBulkLoad();
