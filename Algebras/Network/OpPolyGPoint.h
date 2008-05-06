@@ -22,37 +22,38 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Declaration of Operator Point2GPoint
+1.1 Declaration of Operator PolyGPoint
 
-The operator translates a given point to a gpoint value in the network.
+The operator checks if a GPoint is on a junction and returns the GPoint and the
+other GPoint values defining the same junction as stream of GPoints.
 
-February2008 Simone Jandt
+April 2008 Simone Jandt
 
 Defines, includes, and constants
 
 */
 
-#ifndef OPPOINT2GPOINT_H_
-#define OPPOINT2GPOINT_H_
+#ifndef OPPOLYGPOINT_H_
+#define OPPOLYGPOINT_H_
 
-class OpPoint2GPoint
+class OpPolyGPoint
 {
 public:
 /*
-Type Mapping of operator ~point2gpoint~
+Type Mapping of operator ~polygpoint~
 
 */
 static ListExpr TypeMap(ListExpr args);
 
 /*
-Value mapping function of operator ~point2gpoint~
+Value mapping function of operator ~polygpoint~
 
 */
 static int ValueMapping( Word* args, Word& result, int message,
                              Word& local, Supplier s );
 
 /*
-Specification of operator ~point2gpoint~
+Specification of operator ~polygpoint~
 
 */
 static const string Spec;
@@ -67,4 +68,4 @@ static void sendMessage(string in_strMessage);
 
 };
 
-#endif /*OPPOINT2GPOINT_H_*/
+#endif /*OPPOLYGPOINT_H_*/

@@ -239,9 +239,6 @@ Initialize return value
 Get and check input values.
 
 */
-//   CcInt* pNetworkId = (CcInt*)args[0].addr;
-//   int iNetworkId = pNetworkId->GetIntval();
-//   Network* pNetwork = NetworkManager::GetNetwork(iNetworkId);
   Network* pNetwork = (Network*)args[0].addr;
   if (pNetwork == 0 || !pNetwork->isDefined()) {
     string strMessage = "Network is not defined.";
@@ -309,12 +306,8 @@ Compute Position in Network for the ~point~
     string strMessage = "Point not found in network.";
     cerr << strMessage << endl;
     sendMessage(strMessage);
- //   delete pRoutes;
-//    NetworkManager::CloseNetwork(pNetwork);
     return 0;
   }
- // pRoutes->Delete();
-//   NetworkManager::CloseNetwork(pNetwork);
   return 0;
 } //end ValueMapping
 

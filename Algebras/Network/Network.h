@@ -873,8 +873,8 @@ isDefined
  int isDefined();
 
 /*
-Computes the junction of the two given routes and returns the routemeasvalues
-of the junction on this route.
+Computes the junction of the two given routes and returns the route measure
+values of the junction on this routes.
 
 */
 

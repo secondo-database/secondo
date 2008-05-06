@@ -157,6 +157,10 @@ The constructor.
 
     double distance(GLine* pgl2);
 
+    bool IsSorted();
+
+    void SetSorted(bool);
+
 
   private:
 
@@ -172,6 +176,18 @@ True if all members are defined
 
 */
 
+    bool m_bSorted;
+/*
+True if route intervals of the gline are sorted.
+
+*/
+
+    double m_dLength;
+
+/*
+Length of the gline is stored in parameter length
+
+*/
     DBArray<RouteInterval> m_xRouteIntervals;
 
 /*

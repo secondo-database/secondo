@@ -41,7 +41,6 @@ Defines, includes, and constants
 //#endif
 
 
-
 enum Side { Down, Up, None };
 
 struct RLoc
@@ -277,8 +276,6 @@ Returns the side on the route of the graph point.
     double distance (GPoint* toGPoint);
 
     bool operator== (const GPoint& p) const;
-
-
 
   private:
 

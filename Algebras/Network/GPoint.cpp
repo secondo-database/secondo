@@ -27,9 +27,7 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-January 2008 Simone Jandt distance operator added
-
-March 2008 Simone Jandt compare operator added
+January 2008 - April 2008 Simone Jandt operators distance, compare and == added
 
 Defines, includes, and constants
 
@@ -40,11 +38,11 @@ Defines, includes, and constants
 #include "BTreeAlgebra.h"
 #include "StandardTypes.h"
 #include "TupleIdentifier.h"
-#include "GPoint.h"
 #include "GLine.h"
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
 #include "DBArray.h"
+#include "GPoint.h"
 #include "SpatialAlgebra.h"
 #include "Network.h"
 #include "NetworkManager.h"
@@ -254,14 +252,12 @@ bool GPoint::operator== (const GPoint& p) const{
     if (m_iNetworkId == p.GetNetworkId() &&
       m_xRouteLocation.rid == p.GetRouteId() &&
       m_xRouteLocation.d == p.GetPosition() &&
-      (m_xRouteLocation.side == p.GetSide() ||
-       m_xRouteLocation.side == 2 ||
+      (m_xRouteLocation.side == p.GetSide() || m_xRouteLocation.side == 2 ||
        p.GetSide() == 2)) {
       return true;
     } else {
       return false;
     }
   }
-  return false;
 }
 

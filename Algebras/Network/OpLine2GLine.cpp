@@ -102,26 +102,57 @@ struct RITree {
 Overlapping interval found. Rebuild Tree and return new interval limit.
 
 */
-            double result;
+//             double result;
+//             if (bleft) {
+//               if (this->m_dStart <= pos1) {
+//                 result = this->m_dStart;
+//                 if (father.m_left == this) {
+//                   father.m_left = this->m_left;
+//                 } else {
+//                   father.m_right = this->m_left;
+//                 }
+//                 return result;
+//               }
+//             } else {
+//               if (this->m_dEnd >= pos2) {
+//                 result = this->m_dEnd;
+//                 if (father.m_right == this) {
+//                   father.m_right = this->m_right;
+//                 } else {
+//                   father.m_left = this->m_right;
+//                 }
+//                 return result;
+//               }
+//             }
             if (bleft) {
               if (this->m_dStart <= pos1) {
-                result = this->m_dStart;
-                if (father.m_left == this) {
-                  father.m_left = this->m_left;
-                } else {
-                  father.m_right = this->m_left;
-                }
-                return result;
+                  pos1 = this->m_dStart;
+              }
+              if (father.m_left == this) {
+                father.m_left = this->m_left;
+              } else {
+                father.m_right = this->m_left;
+              }
+              if (father.m_left != 0) {
+                //delete this;
+                return father.m_left->checkTree(father, rid, pos1, pos2, bleft);
+              } else {
+                return pos1;
               }
             } else {
               if (this->m_dEnd >= pos2) {
-                result = this->m_dEnd;
-                if (father.m_right == this) {
-                  father.m_right = this->m_right;
-                } else {
-                  father.m_left = this->m_right;
-                }
-                return result;
+                pos2 = this->m_dEnd;
+              }
+              if (father.m_left == this) {
+                father.m_left = this->m_right;
+              } else {
+                father.m_right = this->m_right;
+              }
+              if (father.m_right != 0 ) {
+                //delete this;
+                return father.m_right->checkTree(father, rid, pos1, pos2,bleft);
+              } else {
+                return pos2;
               }
             }
           }
@@ -436,6 +467,7 @@ Get and check input values.
   result =  SetWord(resG);
   resG->SetDefined(true);
   resG->SetNetworkId(pNetwork->GetId());
+  resG->SetSorted(true);
   return 0;
 } //end ValueMapping
 
@@ -447,7 +479,7 @@ Specification of operator ~line2gline~
 const string OpLine2GLine::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>line -> gline" "</text--->"
+  "( <text>network x line -> gline" "</text--->"
   "<text>line2gline(_,_)</text--->"
   "<text>Translates a line to a gline value.</text--->"
   "<text>line2gline(B_NETWORK, line)</text--->"

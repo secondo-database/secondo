@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1.1 Declaration of Operator Inside
 
-March 2008 Simone Jandt
+March-April 2008 Simone Jandt
 
 Defines, includes, and constants
 
@@ -42,6 +42,43 @@ Defines, includes, and constants
 
 #include "OpInside.h"
 #include "Messages.h"
+
+bool searchRouteInterval(GPoint *pGPoint, GLine *pGLine, size_t low,
+                         size_t high) {
+  const RouteInterval *rI;
+  if (low <= high) {
+    size_t mid = (high + low) / 2;
+    int imid = mid;
+    if ((imid < 0) || (imid >= pGLine->NoOfComponents())) {
+      return false;
+    }else {
+      pGLine->Get(mid, rI);
+      if (rI->m_iRouteId < pGPoint->GetRouteId()) {
+        return searchRouteInterval(pGPoint, pGLine, mid+1, high);
+      } else {
+        if (rI->m_iRouteId > pGPoint->GetRouteId()){
+          return searchRouteInterval(pGPoint, pGLine, low, mid-1);
+        } else {
+          if (fabs(pGPoint->GetPosition() - rI->m_dStart) < 0.01 ||
+              fabs(pGPoint->GetPosition() - rI->m_dEnd) < 0.01) {
+            return true;
+          } else {
+            if (rI->m_dStart > pGPoint->GetPosition()) {
+              return searchRouteInterval(pGPoint, pGLine, low, mid-1);
+            } else {
+              if (rI->m_dEnd < pGPoint->GetPosition()){
+                return searchRouteInterval(pGPoint, pGLine, mid+1, high);
+              } else {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
 
 /*
 TypeMap Function of the operator ~inside~
@@ -68,7 +105,7 @@ ValueMapping function of the operator ~inside~
 */
 
 int OpInside::ValueMapping (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
+      Word& local, Supplier in_pSupplier) {
   GPoint* pGPoint = (GPoint*) args[0].addr;
   GLine* pGLine = (GLine*) args[1].addr;
   result = qp->ResultStorage(in_pSupplier);
@@ -83,23 +120,33 @@ int OpInside::ValueMapping (Word* args, Word& result, int message,
     return 1;
   }
   const RouteInterval *pCurrRInter;
-  int i = 0;
-  while (i < pGLine->NoOfComponents()) {
-    pGLine->Get(i, pCurrRInter);
-    if (pCurrRInter->m_iRouteId == pGPoint->GetRouteId()){
-      if ((pCurrRInter->m_dStart <= pGPoint->GetPosition() &&
-          pCurrRInter->m_dEnd >= pGPoint->GetPosition()) ||
-         (pCurrRInter->m_dEnd <= pGPoint->GetPosition() &&
-          pCurrRInter->m_dStart >= pGPoint->GetPosition())) {
-        pResult->Set(true, true);
-        return 0;
-      }
+  if (pGLine->IsSorted()) {
+    if (searchRouteInterval(pGPoint, pGLine, 0, pGLine->NoOfComponents()-1)){
+       pResult->Set(true, true);
+       return 0;
     }
-    i++;
+    pResult->Set(true, false);
+    return 0;
+  } else {
+    int i = 0;
+    while (i < pGLine->NoOfComponents()) {
+      pGLine->Get(i, pCurrRInter);
+      if (pCurrRInter->m_iRouteId == pGPoint->GetRouteId()){
+        if ((pCurrRInter->m_dStart <= pGPoint->GetPosition() &&
+            pCurrRInter->m_dEnd >= pGPoint->GetPosition()) ||
+          (pCurrRInter->m_dEnd <= pGPoint->GetPosition() &&
+            pCurrRInter->m_dStart >= pGPoint->GetPosition())) {
+          pResult->Set(true, true);
+          return 0;
+        }
+      }
+      i++;
+    }
+    pResult->Set(true, false);
+    return 0;
   }
-  pResult->Set(true, false);
-  return 1;
 }
+
 /*
 Specification of operator ~inside~:
 

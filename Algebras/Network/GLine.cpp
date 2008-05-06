@@ -70,6 +70,8 @@ Empty constructor
   GLine::GLine(int in_iSize):
     m_xRouteIntervals(in_iSize)
   {
+    m_bSorted = false;
+    m_dLength = 0;
   }
 
 /*
@@ -80,9 +82,11 @@ Construktor used internally
   m_xRouteIntervals(0)
   {
     m_bDefined = in_xOther->m_bDefined;
+    m_bSorted = in_xOther->m_bSorted;
     m_iNetworkId = in_xOther->m_iNetworkId;
+    m_dLength = 0.0;
     // Iterate over all RouteIntervalls
-    for (int i = 0; i < in_xOther->m_xRouteIntervals.Size(); ++i)
+    for (int i = 0; i < in_xOther->m_xRouteIntervals.Size(); i++)
     {
       // Get next Interval
       const RouteInterval* pCurrentInterval;
@@ -116,6 +120,7 @@ Construktor from list
                                   nl->StringAtom(strErrorMessage));
     inout_bCorrect = false;
     m_bDefined = false;
+    m_bSorted = false;
     return;
   }
 
@@ -131,11 +136,13 @@ Construktor from list
         inout_xErrorInfo = nl->Append(inout_xErrorInfo,
                                       nl->StringAtom(strErrorMessage));
     m_bDefined = false;
+    m_bSorted = false;
     inout_bCorrect = false;
     return;
   }
 
   m_iNetworkId = nl->IntValue(xNetworkIdList);
+  m_dLength = 0.0;
 
   // Iterate over all routes
   while( !nl->IsEmpty( xRouteIntervalList) )
@@ -156,6 +163,7 @@ Construktor from list
                                         nl->StringAtom(strErrorMessage));
       inout_bCorrect = false;
       m_bDefined = false;
+      m_bSorted = false;
       return;
     }
 
@@ -172,6 +180,7 @@ Construktor from list
   }
   inout_bCorrect = true;
   m_bDefined = true;
+  m_bSorted = false;
 }
 
 /*
@@ -195,6 +204,7 @@ void GLine::AddRouteInterval(int in_iRouteId,
   m_xRouteIntervals.Append(RouteInterval(in_iRouteId,
                                          in_dStart,
                                          in_dEnd));
+  m_dLength = m_dLength + fabs(in_dEnd - in_dStart);
 }
 
 
@@ -214,6 +224,14 @@ Checks if the GLine is defined
 void GLine::SetDefined( bool in_bDefined )
 {
   m_bDefined = in_bDefined;
+}
+
+bool GLine::IsSorted() {
+  return m_bSorted;
+}
+
+void GLine::SetSorted(bool in_bSorted) {
+  m_bSorted = in_bSorted;
 }
 
 /*
@@ -443,9 +461,9 @@ FLOB* GLine::GetFLOB(const int i)
   return &m_xRouteIntervals;
 }
 
-
 void GLine::CopyFrom(const StandardAttribute* right)
 {
+  m_xRouteIntervals.Clear();
   *this = *(const GLine *)right;
 }
 
@@ -456,15 +474,16 @@ Returns the length of the given GLine as double value
 */
 
 double GLine::GetLength(){
-  double length = 0.0;
-  for (int i= 0; i<m_xRouteIntervals.Size(); ++i) {
-    const RouteInterval* pCurrentInterval;
-    m_xRouteIntervals.Get(i,pCurrentInterval);
-    double posStart = pCurrentInterval->m_dStart;
-    double posEnd = pCurrentInterval->m_dEnd;
-    length = length + fabs(posEnd - posStart);
-  };
-  return length;
+  return m_dLength;
+//   double length = 0.0;
+//   for (int i= 0; i<m_xRouteIntervals.Size(); ++i) {
+//     const RouteInterval* pCurrentInterval;
+//     m_xRouteIntervals.Get(i,pCurrentInterval);
+//     double posStart = pCurrentInterval->m_dStart;
+//     double posEnd = pCurrentInterval->m_dEnd;
+//     length = length + fabs(posEnd - posStart);
+//   };
+//   return length;
 }
 
 

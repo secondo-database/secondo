@@ -1204,13 +1204,18 @@ Tuple* Network::GetSectionOnRoute(GPoint* in_xGPoint)
 
   // Now that we found all relevant junctions we can iterate over them.
   int iSectionId = 0;
+  double juncpos;
   for(size_t i = 0; i < xJunctions.size(); i++)
   {
     // Get next junction
     JunctionSortEntry xCurrentEntry = xJunctions[i];
     iSectionId = xCurrentEntry.getDownSectionId();
-    if(xCurrentEntry.getRouteMeas() > in_xGPoint->GetPosition())
+    juncpos = xCurrentEntry.getRouteMeas();
+    if(juncpos > in_xGPoint->GetPosition())
     {
+      break;
+    }
+    if (juncpos != 0 && fabs(juncpos - in_xGPoint->GetPosition()) < 0.01){
       break;
     }
     iSectionId = xCurrentEntry.getUpSectionId();
@@ -1577,7 +1582,8 @@ Word Network::CreateNetwork(const ListExpr typeInfo)
 */
 void Network::CloseNetwork(const ListExpr typeInfo, Word& w)
 {
-  delete (Network*)w.addr;
+  delete static_cast<Network*> (w.addr);
+  w.addr = 0;
 }
 
 /*

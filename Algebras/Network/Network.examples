@@ -97,3 +97,9 @@ Signature: gline -> int
 Example  : query no_components([const gline value(1((1 0.0 0.5)))]);
 Result   : 1
 
+Operator : polygpoints
+Number   : 1
+Signature: gpoint x network -> stream(gpoint)
+Example  : query polygpoints(X_GPOINT, B_NETWORK) count;
+Result   : 1
+

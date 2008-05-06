@@ -73,6 +73,7 @@ Type property of type constructor ~network~
 #include "OpLine2GLine.h"
 #include "OpInside.h"
 #include "OpNoComponents.h"
+#include "OpPolyGPoint.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -269,6 +270,19 @@ Operator point2gpoint (
 );
 
 /*
+Definition of  operator polygpoints
+
+*/
+
+Operator polygpoints (
+          "polygpoints",               // name
+          OpPolyGPoint::Spec,          // specification
+          OpPolyGPoint::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpPolyGPoint::TypeMap        // type mapping
+);
+
+/*
 Definition of  operator equal
 
 */
@@ -337,6 +351,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&line2gline);
     AddOperator(&networkinside);
     AddOperator(&networknocomponents);
+    AddOperator(&polygpoints);
   }
   ~NetworkAlgebra() {};
 };
