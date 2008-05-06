@@ -61,10 +61,10 @@ void getRouteInterval(GLine *pGLine, int iRouteId, double mgpstart,
     if  (!(mid < 0 || mid >= pGLine->NoOfComponents())) {
       pGLine->Get(mid, aktRI);
       if (aktRI->m_iRouteId < iRouteId) {
-        getRouteInterval(pGLine, iRouteId, mgpstart, mgpend, low, mid-1, vRI);
+        getRouteInterval(pGLine, iRouteId, mgpstart, mgpend, mid+1, high, vRI);
       } else {
         if (aktRI->m_iRouteId > iRouteId) {
-          getRouteInterval(pGLine, iRouteId, mgpstart, mgpend, mid+1, high,
+          getRouteInterval(pGLine, iRouteId, mgpstart, mgpend, low, mid-1,
                             vRI);
         } else {
           if (aktRI->m_dStart > mgpend) {
