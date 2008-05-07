@@ -1677,6 +1677,16 @@ void UPoint::UTrajectory( Line& line ) const
   line.EndBulkLoad();
 }
 
+void UPoint::Length( CcReal& result ) const
+{
+  if( !this->IsDefined() || !p0.IsDefined() || !p0.IsDefined() ){
+    result.Set(false, 0.0);
+    return;
+  }
+  result.Set(true, p0.Distance(p1));
+  return;
+}
+
 // This function will return the intersection of two upoint values as
 // an upoint value. If the common timeInterval iv if open bounded, and
 // both units would intersect at the open interval limit, there WILL
@@ -3347,20 +3357,20 @@ double qdist(const Point& p1, const Point& p2){
    return dx*dx + dy*dy;
 }
 
-struct cluster { 
+struct cluster {
    double cx;
    double cy;
    set <int > member ;
    bool forbidden ;
 };
 
-void MPoint::EqualizeUnits(const double epsilon, 
-                           const DateTime&  dur, 
+void MPoint::EqualizeUnits(const double epsilon,
+                           const DateTime&  dur,
                            MPoint& result) const{
    result.Clear();
 
    int size = GetNoComponents();
-   if(size<2){ // no or a single unit 
+   if(size<2){ // no or a single unit
       return;
    }
 
@@ -3370,14 +3380,14 @@ void MPoint::EqualizeUnits(const double epsilon,
    for(int i=0;i< GetNoComponents(); i++){
        Get(i,unit);
        endPoints.insert(unit->p0);
-       endPoints.insert(unit->p1); 
+       endPoints.insert(unit->p1);
    }
    // step 2: build cluster and move the endpoints to the centers
    //         of them
    //double eps = epsilon * epsilon;
-//   vector<cluster> 
-      
- 
+//   vector<cluster>
+
+
 
 
 }

@@ -2093,6 +2093,16 @@ Calculates the distance between 2 upoints as a real value.
 
 */
 
+  void Length( CcReal& result ) const;
+/*
+Calculates the spatial length of the unit
+
+*Precondition*: none
+
+*Result*: the distance of the unit's initial and final value
+
+*/
+
 /*
 3.8.4 Attributes
 
@@ -2827,8 +2837,8 @@ Returns the MPoint's minimum bounding rectangle
   void RestoreBoundingBox(const bool force = false);
 
 
-void EqualizeUnits(const double epsilon, 
-                   const DateTime& dur, 
+void EqualizeUnits(const double epsilon,
+                   const DateTime& dur,
                    MPoint& result) const;
 
 

@@ -166,6 +166,8 @@ OK               (stream ubool) --> bool
 OK  + always:    (       ubool) --> bool
 OK               (stream ubool) --> bool
 
+    length: (upoint) --> real
+
 COMMENTS:
 
 (*):  These operators have been implemented for
@@ -9869,39 +9871,90 @@ Operator temporalunitvalbiggereq
 
 
 /*
-5.44 Operator ~~
+5.44 Operator ~length~
+
+Calculate the spatial length of the movement.
 
 ----
-     (insert signature here)
+     length: upoint --> real
 
 ----
 
 */
 
 /*
-5.44.1 Type mapping function for ~~
+5.44.1 Type mapping function for ~length~
 
+*/
+ListExpr TUTypeMapLength( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+    if( nl->IsEqual( arg1, "upoint" )  )
+      return nl->SymbolAtom( "real" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.44.2 Value mapping for operator ~length~
+
+*/
+int TUUnitLength(Word* args,Word& result,int message,Word& local,Supplier s)
+{
+  result = qp->ResultStorage( s );
+  CcReal  *res   = (CcReal*)result.addr;
+  UPoint *input = (UPoint*)args[0].addr;
+
+  if ( input->IsDefined() )
+  { // call member function:
+    input->Length( *res );
+#ifdef TUA_DEBUG
+    cout << "TUUnitLength(): input def" << endl;
+#endif
+  }
+  else
+  {
+    res->SetDefined(false);
+#ifdef TUA_DEBUG
+    cout << "TUUnitLength(): input undef" << endl;
+#endif
+  }
+  return 0;
+}
+
+/*
+5.44.3 Specification for operator ~length~
+
+*/
+const string TULengthSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> upoint -> real</text--->"
+    "<text> length( _ )</text--->"
+    "<text>The operator returns the distance of the unit's initial and final"
+    "position.</text--->"
+    "<text>query units(Trains feed extract[Trip]) use[fun(U:upoint) "
+    "length(U)] transformstream sum[elem]</text--->"
+    ") )";
+
+/*
+5.44.4 Selection Function of operator ~length~
+
+none - uses simpleselect
 */
 
 /*
-5.44.2 Value mapping for operator ~~
+5.44.5 Definition of operator ~length~
 
 */
 
-/*
-5.44.3 Specification for operator ~~
+Operator temporalunitlength( "length",
+                             TULengthSpec,
+                             TUUnitLength,
+                             Operator::SimpleSelect,
+                             TUTypeMapLength);
 
-*/
-
-/*
-5.44.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.44.5 Definition of operator ~~
-
-*/
 
 /*
 5.45 Operator ~~
@@ -10033,6 +10086,7 @@ public:
     AddOperator( &temporalunituint2ureal );
     AddOperator( &temporalunittheupoint );
     AddOperator( &temporalunittheivalue );
+    AddOperator( &temporalunitlength );
   }
   ~TemporalUnitAlgebra() {};
 };

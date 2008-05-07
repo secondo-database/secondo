@@ -664,3 +664,9 @@ Example  : query units(velocity(Trains feed extract[Trip]) at makepoint(0, 0)) c
 Result   : 23
 
 
+Operator : length
+Number   : 1
+Signature: upoint -> real
+Example  : query (units(Trains feed extract[Trip]) use[fun(U:upoint) length(U)] transformstream sum[elem]) = length(Trains feed extract[Trip])
+Result   : TRUE
+

@@ -52,6 +52,7 @@ operator >>== alias VGE pattern _ infixop _
 
 #operator no_components alias NO_COMPONENTS pattern op ( _ )
 #operator isempty alias ISEMPTY pattern op ( _ )
+#operator length alias LENGTH pattern op ( _ )
 #operator not alias NOT pattern op ( _ )
 #operator and alias AND pattern _ infixop _
 #operator or alias OR pattern _ infixop _
