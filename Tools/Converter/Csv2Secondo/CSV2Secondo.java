@@ -125,7 +125,7 @@ private boolean printLine(String Line){
            }
         }
       }else if(Type.equals("int")){
-         Value1 = ((String)Values.get(ValuePos)).trim();
+         Value1 = ((String)Values.get(ValuePos)).replaceAll("[^0-9+-]", "");
          ValuePos++;
          System.out.print(" "+Value1+" ");
          if(checknumeric){
@@ -138,14 +138,14 @@ private boolean printLine(String Line){
          }
       }   
       else if(Type.equals("string")){
-        Value1=(String)Values.get(ValuePos);
+        Value1=((String)Values.get(ValuePos)).replaceAll("\"", "");
         ValuePos++;
         if(Value1.length()>MAXSTRINGLENGTH){
              System.err.println("Warning: String too long");
              System.err.println("Line :"+Line);
              System.err.println("Attr :"+Names.get(i));
         }       
-         System.out.print("\""+Value1+"\"");
+         System.out.print(" \""+Value1+"\" ");
       }   
       else if(Type.equals("text")){
          Value1 = (String)Values.get(ValuePos);
@@ -153,7 +153,7 @@ private boolean printLine(String Line){
          System.out.print(" (<text>"+Value1+"</text--->) ");
       }   
       else if(Type.equals("real")){
-        Value1=((String)Values.get(ValuePos)).trim();
+        Value1=((String)Values.get(ValuePos)).replaceAll("[^0-9+-\\.]", "");
         ValuePos++;
         if(checknumeric){
              try{
@@ -274,6 +274,7 @@ public void convert(String CfgFile,String SourceFile){
       else
           System.out.println(") )");
       CSVin.close();
+      System.err.print("\n");
   }catch(Exception e){
     e.printStackTrace();
   }
