@@ -6,21 +6,37 @@
 \section{Vor"uberlegungen \anmerkung{7 Seiten}}
 Im folgenden werde ich die Vorschl"age aus der Literatur, die ich oben beschrieben habe, bewerten und einige Gedanken ausführen, die ich mir zum Theme Matching gemacht habe. Ausserdem gebe ich an, welche dieser Vorschläge ich verwirklicht habe, und welche noch auf ihre Implementierung warten.
 
-\subsection{Bewertung der Vorschl"age aus ,,Creating Repesentations for Continuously Moving Regions from Observations''\cite{TG}}
+\subsection[Bewertung der Vorschl"age aus \cite{TG}]{Bewertung der Vorschl"age aus ,,Creating Repesentations for Continuously Moving Regions from Observations''\cite{TG}}
 \begin{enumerate}
 \item Position of centroid
 
 In dem Paper wurde diese M"oglichkeit nicht weiter betrachtet, da die Autoren davon ausgehen, dass ein Referenzpunkt, der auch au"serhalb des Polygons liegen kann nicht zu guten Matchings f"uhren kann. Hierzu muss angemerkt werden, dass im Rahmen der vorliegenden Arbeit das Matching auf Ebene des ConvexHullTrees durchgef"uhrt wird, und lediglich mit konvexen H"ullen von Polygone gearbeitet wird. Der Schwerpunkt einer konvexen H"ulle liegt nat"urlich aber wieder innerhalb dieser (wenngleich nicht zwangsl"aufig auch innerhalb des repr"asentierten Polygons). Au"serdem erscheint es plausibel, dass ein Referenzpunkt-Verfahren seine St"arke gerade dort haben wird, wo die "Uberlappungsalgorithmen ihre Schw"achen haben (bei sich schnell bewegenden, kleinen Objekten).
 
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption[Beispiel für den Vorteil von Referenzpunktverfahren]{Beispiel für viele kleine Flächen, die sich relativ schnell bewegen. Wie man sehen kann, würde ein Überlappungsverfahren hier kein einziges Match, Referenzpunktverfahren aber eventuell alle möglichen finden.}
+	\label{fig:SchnelleBewegung}
+\end{figure}
+
+
 Ausserdem ermutigte mich die Arbeit \cite{AFRW} darin diesen Ansatz weiterzuverfolgen.
 
-Der Vorschlag, "`N"achste Nachbarn"' zu benutzen, hat den Nachteil, dass man so nur 1:1 Matches finden kann. Im Rahmen der vorliegenden Arbeit wurde stattdessen Schwellwert-Verfahren gew"ahlt, in dem zu einem Element der einen Seite, alle Elemente der Anderen gematcht werden, deren Schwerpunkte weniger als "`Schwellwert"' entfernt sind. 
+Der Vorschlag, "`N"achste Nachbarn"' zu benutzen, hat den Nachteil, dass man so nur 1:1 Matches finden kann. Im Rahmen der vorliegenden Arbeit wurde stattdessen Schwellwert-Verfahren gew"ahlt. Siehe hierzu \ref{Schwellwert}.
 
 \item Fixend threshold (set of cycles)
 
 Das Verfahren wurde analog zur Beschreibung Erlend T\o{}ssebros "ubernommen und implementiert. 
 
 Klar ist, dass dieses Verfahren dann Schwächen aufweisen wird, wenn sich kleine Flächen so stark bewegen, dass diese sich nicht mehr, oder nur noch wenig überlappen. Bei kompliziert aufgebauten Flächen, die sich relativ wenig bewegen wird dieses Verfahren aber den Vorteil aufweisen, dass relativ wenige falsche Flächen gematcht werden.
+
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption[Beispiel für den Vorteil des Overlaping-Match]{Beispiel eine Matches von komplitzierten Regionen. Wie man sehen kann, würde ein Überlappungsmatch nur die richtigen Übereinstimmungen zurückgeben, ein Referenzpunktverfahren aber deutlich mehr.}
+	\label{fig:OverlapVorteil}
+\end{figure}
+
 
 \item Maximize Overlap (set of cycles)
 
@@ -49,11 +65,19 @@ Nachteilig an diesem Verfahren ist, dass die Laufzeit dieses Verfahrens hoch ist
 
 Aufgrund der oben benannten schlechten Laufzeit und unter dem Aspekt, dass kein geeignetes Verfahren zur Verfügung steht, wird in der vorliegenden Arbeit diesem Ansatz keine weitere Beachtung geschenkt. Eine weitere Betrachtung dieses Verfahrens könnte dennoch interesannt sein.
 
-\subsubsection*{Schwellwertverfahren}
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption[Beispiel für eine statistische Analyse]{Beispiel für den Grapfen aller Entfernungslängen eines Matches mit eingezeichneter Schwelle}
+	\label{fig:statistik}
+\end{figure}
+
+
+\subsubsection*{Schwellwertverfahren}\label{Schwellwert}
 
 Das Schwellwertverfahren kann wie folgt formuliert kann: ,,Matche zwei Cycle, wenn der Abstand ihrer Referenzpunkte kleiner als der Schwellwert ist.''
 
-Die Laufzeit dieses Verfahrens ist wesentlich besser. Zu jedem der $m\times n$ verschiedenen  Referenzpunkte wird der  Abstand (in konstanter Zeit) berechnet und mit dem Schwellwert vergleichen. Also ist die Laufzeit$O(n\times n)$.
+Die Laufzeit dieses Verfahrens ist wesentlich besser. Zu jedem der $m\times n$ verschiedenen  Referenzpunkte wird der  Abstand (in konstanter Zeit) berechnet und mit dem Schwellwert vergleichen. Also ist die Laufzeit$O(m\times n)$.
 
 Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird. Man berechnent $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\times m)$. Praktisch wird desshalb ein Algorithmus verwendet, der in $O((n+m)\log{n+m})$ einen sehr "ahnlich Wert berechnet. Siehe hierzu \ref{maxDist}.
 
@@ -69,7 +93,9 @@ Falls es ein 1:n Matching gibt, dann muss diese aufgel"ost werden. Hierbei exist
 \begin{itemize}
 \item Alle $n$ Targets sind Kinder einer einzigen ConvexHullTreeNode
 
-Dieser Fall ist der einfachere, seine Behandlung wurde schon von Herrn T\o{}ssebro beschrieben. Kurz gesagt geht es darum, die konvexe H"ulle aller Targets zu bilden, und das Matching von den $n$ Targets auf diese neue H"ulle umzuleiten.
+Dieser Fall ist der einfachere, seine Behandlung wurde schon in \cite{TG} beschrieben. Kurz gesagt geht es darum, die konvexe H"ulle aller Targets zu bilden, und das Matching von den $n$ Targets auf diese neue H"ulle umzuleiten.
+
+Leider versagt dieses Verfahren, falls die gematchten Polygone sich nicht ähnlich genug sind. Leider gelang es mir nicht, genau zu analysieren, in welchen Fällen genau die Probleme auftauchen. Desshalb musste ich auf die Implementierung dieses Verfahrens verzichten.
 
 \item Alle n Targets haben unterschiedliche V"ater
 
@@ -91,15 +117,29 @@ Dies ist zum Beispiel dann nicht der Fall, wenn wir uns als Quellpolygon ein "`U
 
 Die, das Matching abschlie"sende, Funktion kann solche F"alle erkenne, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater, sowie die beiden Nachbarkanten des Vaters, mit der x-Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, so liegt der Fall vor, dass das Verfahren nicht funktioniert.
 
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption[Beispiel für gedrehte Polygone]{Beispiel für gedrehte Polygone bei denen das ,,rotating pane'' Vefahren versagt, da die Öffnungen der Konkativitäten kein Trapez bilden.}
+	\label{fig:gedrehteMatches}
+\end{figure}
+
+
 Wenn ein solcher Fall erkannt wird, so gibt es zwei M"oglichkeiten zu reagieren:
 \begin{itemize}
 \item Beide Konkativit"aten werden gegen $null$ gematcht
 
-In diesem Fall verschwindet die Konkativit"at auf der einen Seite  und zeitgleich entsteht auf der anderen Seite eine Neue entsteht. Obwohl dieses Verfahren das deutlich Einfachere ist, zeigt sich in der praktischen Anwendung, dass das Resultat den Erwartungen weitestgehend entspricht.
+In diesem Fall verschwindet die Konkativit"at auf der einen Seite  und zeitgleich entsteht auf der anderen Seite eine Neue. Obwohl dieses Verfahren das deutlich Einfachere ist, zeigt sich in der praktischen Anwendung, dass das Resultat den Erwartungen weitestgehend entspricht.
 
 \item Die beiden Konkativit"aten werden zu L"ochern umgewandelt
 
-In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueinander gematcht werden. Im Resultat w"urde sich die Konkativit"at von der einen Seite abl"osen, und zu der anderen Seite wandern. M"oglicherweise sieht dieses Verfahren nat"urlicher aus, es ist aber nicht absehbar, was passiert, wenn der Weg zwischen den beiden Positionen nicht "`frei"' ist (etwa weil sich hier ein weiteres Loch oder eine Konkativit"at befindet).
+In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueinander gematcht werden. Im Resultat w"urde sich die Konkativit"at von der einen Seite abl"osen, und zu der anderen Seite wandern. M"oglicherweise sieht dieses Verfahren nat"urlicher aus, es ist aber nicht absehbar, was passiert, wenn der Weg zwischen den beiden Positionen nicht "`frei"' ist (etwa weil sich hier ein weiteres Loch oder eine Konkativit"at befindet). Aus diesen Gründen habe ich mich für die Implementierung des ersten Verfahrrens entschieden.
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption[Schnappschüsse von den gedrehten Polygonen]{Zwei Schnappschüsse von dem Match aus Abbildung  \ref{fig:gedrehteMatches}, in dem die Konkativitäten gegen $null$ gematcht wurden.}
+	\label{fig:gedrehteMatches2}
+\end{figure}
 
 \end{itemize}
 
@@ -112,20 +152,35 @@ Es ist festzustellen, das unter der Betrachtung der bereits erstellten Matchings
 Es scheint also ein verfolgenswerter Ansatz zu sein, beide Matches (und vielleicht noch andere, etwa Overlapping mit mehreren Schwellwerten), zu berechnen, und aus diesen das beste Matching zu bestimmen. 
 
 Zur Bestimung der G"ute eines gegebenen Matchings sind folgende Verfahren angedacht. Damit die verschiedenen Bewertungen vergleichbar sind, sind diese auf 1 normiert.
+
 \begin{itemize}
 \item Die \index{Bewertung!Overlap}Overlap-Bewertung: 
 
 Ein gro"ser Durchschnitt der "Uberlappungen wirkt sich positiv auf die Bewertung aus.
 
-Dieses Bewertungsverfahren korrespondiert zwar direkt mit dem Overlaping-Match, da es aber in \cite{AFRW} verwendet wird, wird es in dieser Arbeit benutzt. Die Berechnung l"auft so:
+Dieses Bewertungsverfahren korrespondiert zwar direkt mit dem Overlaping-Match wird aber trotzdem in dieser Arbeit benutzt, da die Überlappung sich als sehr interesanntes Kriterium erwiesen hat. Die Berechnung l"auft so:
 
 $$r_O=\frac{\sum_{m\in M} \frac{A_{overlap}}{A_{source}+A_{target}}}{|M|}$$
 
-\item Die \index{Bewertung!Schwerpunkt}Schwerpunkt-Bewertung:
+\item Die \index{Bewertung!Hausdorff}Hausdorff-Bewertung:
 
-Ein kleiner Durchschnitt der Entfernungen der zueinander gematchten Schwerpunkte wirkt sich positiv auf die Bewertung aus.
+In \cite{AAR} wird die,  oben bereits eingef"uhrte, Hausdorff-Norm benutzt, um Matchings zu bewerten. 
 
-Da dieses Verfahren direkt mit dem Schwerpunkt-Match korrespondiert, und ausserdem nach \cite{AFRW} nicht zu erwarten steht, dass dieses Verfahren eine deutlich andere Werte als die Overlap-Bewertung liefert, verfolge ich dieses nicht weiter.
+Bei der Implementierung dieser Norm stellt sich die Frage der Normierung. Mangels Alternative habe ich mich dazu entschlossen, alle einzelnen Hausdorff--Abst"ande duch den Duchmesser $d$ der Ausgangsregionen zu teilen.  Durchmesser bezeichne hierbei den Gr"o"sten Abstand, den zwei Punkte zueinander haben. Dieses Vorgehen bedeutet aber leider, dass die Abst"ande von kleinen Konkavit"aten relativ wenig in die Gesamtbewertung eingehen. Die Berechnung lautet:
+
+$$r_H=\frac{\sum_{m\in M}\delta_H(m)}{|M|\times d}$$
+
+\item Bewertung durch Minimierung einer Norm duch geeignete Abbildungen
+
+\cite{AAR} und \cite{AFRW} enthalten beide die Bewertung:
+$$\min_{T\in\mathcal{T}}\delta(A,T(B))$$
+$\delta$ kann hierbei entweder der Hausdorff-Abstand oder die symetrische Differenz sein. Das Problem an diesem Ansatz ist die Berechnung der minimierenden Abbildung $T$. Algorithmen zur Findung dieser Abbildung werden zwar angegeben, die Implementierung dieser würden aber den Umfang dieser Arbeit sprengen.
+
+\item Die \index{Bewertung!Referenzpunkt}Referenzpunkt-Bewertung:
+
+Ein kleiner Durchschnitt der Entfernungen der zueinander gematchten Referenzpunkte wirkt sich positiv auf die Bewertung aus.
+
+Da dieses Verfahren direkt mit dem Schwerpunkt-Match, bzw. dem Steinerpunkt-Match korrespondiert, und ausserdem nach \cite{AFRW} und \cite{AAR} nicht zu erwarten steht, dass dieses Verfahren deutlich andere Werte als die Overlap-Bewertung, bzw. die Hausdorf-Bewertung liefert, verfolge ich dieses nicht weiter.
 
 \item Die \index{Bewertung!Flächensummen}Summen-Bewertung:
 
@@ -137,20 +192,13 @@ Es steht zu erwarten, dass zueinander geh"orige F"achen etwa gleich gross sind. 
 $$A_{target}=\sum_{t\in Target}A_t$$
 $$r_A=\frac {\sum_{m\in M}\frac{\min{A_{source},A_{target}}}{\max{A_{source},A_{target}}}}{|M|}$$
 
-\item Die \index{Bewertung!Hausdorff}Hausdorff-Bewertung:
-
-In \cite{AAR} wird die,  oben bereits eingef"uhrte, Hausdorff-Norm benutzt, um Matchings zu bewerten. 
-
-Bei der Implementierung dieser Norm stellt sich die Frage der Normierung. Mangels Alternative habe ich mich dazu entschlossen, alle einzelnen Hausdorff--Abst"ande duch den Duchmesser $d$ der Ausgangsregionen zu teilen.  Durchmesser bezeichne hierbei den Gr"o"sten Abstand, den zwei Punkte zueinander haben. Dieses Vorgehen bedeutet aber leider, dass die Abst"ande von kleinen Konkavit"aten relativ wenig in die Gesamtbewertung eingehen. Die Berechnung lautet:
-
-$$r_H=\frac{\sum_{m\in M}\delta_H(m)}{|M|\times d}$$
 
 
 \item Die \index{Bewertung!linear}Linear-Bewertung
 
-Bei der Implementierung der obigen Verfahren zeigte sich, dass die Verfahren eine Tendenz zu "ubertriebenen Zersplitterungen aufweisen. Unter der Pr"amisse, dass dies in den allermeisten F"allen eher selten der Fall ist, f"urte ich diesen Bewertungsfaktor ein, um dieses Verhalten abzuschw"achen.
+Bei der Implementierung der obigen Verfahren zeigte sich, dass die Verfahren eine Tendenz zu "ubertriebenen Zersplitterungen aufweisen. Unter der Pr"amisse, dass dies in den allermeisten F"allen eher unerwünscht ist, f"urte ich diesen Bewertungsfaktor ein, um dieses Verhalten abzuschw"achen.
 
-F"uhrt das Matching zu einer geringen Anzahl an Zersplitterungen, so ist das gut.
+F"uhrt das Matching zu einer geringen Anzahl an Zersplitterungen, so wirkt sich das positiv auf die Bewertung aus.
 
 Die Berechnung l"auft so:
 
@@ -167,12 +215,12 @@ $$r_L=\frac{\sum_{m\in M}L(m)}{|M|}$$
 
 Stimmen die aufeinander gematchten Cycles strukturell weit "uberein, so wirkt sich das positiv auf die Bewertung aus (eventuell kann man hier die Struktur der jeweiligen ConvexHullTrees heranziehen).
 
-Diese Norm finde ich nach wie vor interesant, habe sie aber noch nicht weiter verfolgt. Nach der Betrachtung der Ergebnisse aus den anderen Normen, scheint eine weitere Verfolgung auch nicht notwendig. Zur Struktur der ConvexHullTrees ist zu sagen, dass in \cite{TG} der Umstand beschrieben ist , das "ahnliche Polygone teilweise recht unterschiedliche ConvexHullTree-Repr"asentationen aufweisen k"onnen, was eine solche Bewertung nat"urlich negativ beweinflussen kann\footnote{Dieses ist aber weniger schlimm als es klingt, Herr T\o{}ssebro macht in diesem Artikel plausiebel, dass dieses Problem eher ein Problem von kleinen, k"unstlichen Testdatens"atzen als von realen Daten ist}.
+Diese Norm finde ich nach wie vor interesant, habe sie aber noch nicht weiter verfolgt. Zur Struktur der ConvexHullTrees ist zu sagen, dass in \cite{TG} der Umstand beschrieben ist , das "ahnliche Polygone teilweise recht unterschiedliche ConvexHullTree-Repr"asentationen aufweisen k"onnen, was eine solche Bewertung nat"urlich negativ beweinflussen kann\footnote{Dieses ist aber weniger schlimm als es klingt, Herr T\o{}ssebro macht in diesem Artikel plausiebel, dass dieses Problem eher ein Problem von kleinen, k"unstlichen Testdatens"atzen als von realen Daten ist}.
 
 
 \end{itemize} 
 
-Wie man am Beispiel der Summen-Norm sehen kann, gibt es mehr M"oglichkeiten zu bewerten, als es effiziente Matchings gibt. Das Summen-Matching, das lauten k"onnte: "`Matche ein Cycle mit  einer Menge von Anderen, wenn die Summe der Fl"acheninhalte fast gleich ist zu dem Fl"acheninhalt des einen Cycles"', entspricht dem Rucksack-Problem und ist daher nicht effizient l"osbar. Die Bewertung, wie gut ein gegebenes Matching ist, sollte mit diesem Verfahren aber effizient m"oglich sein.
+Wie man am Beispiel der Summen-Norm sehen kann, gibt es mehr M"oglichkeiten zu bewerten, als es effiziente Matchings gibt. Das Summen-Matching, das lauten k"onnte: "`Matche ein Cycle mit  einer Menge von Anderen, wenn die Summe der Fl"acheninhalte fast gleich ist zu dem Fl"acheninhalt des einen Cycles"', entspricht dem Rucksack-Problem und ist daher nicht effizient l"osbar. Die Bewertung, wie gut ein gegebenes Matching ist, ist mit diesem Verfahren aber effizient m"oglich.
 
 \section{Gemeinsame Grundlagen \anmerkung{20 Seiten}}
 \anmerkung{Hier beschreibe ich ausf"uhrlicher die gemeinsame Grundlage der beiden Implementierungen, einschlie"slich einer Beschreibng der verwendeten Klassen.}
