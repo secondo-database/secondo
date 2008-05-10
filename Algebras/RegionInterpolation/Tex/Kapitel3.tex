@@ -4,12 +4,15 @@
 \minitoc
 \newpage
 \section{Vor"uberlegungen \anmerkung{7 Seiten}}
-\anmerkung{Hier beschreibe ich welche Gedanken ich mir zum Theme Matching gemacht habe, und welche davon ich verwirklicht habe. Ausserdem bewerte ich die Vorschl"age aus der Literatur, die ich oben bereits erw"ahnt habe.}
-\subsection{Bewertung der Vorschl"age von Herr  T\o{}ssebro}
+Im folgenden werde ich die Vorschl"age aus der Literatur, die ich oben beschrieben habe, bewerten und einige Gedanken ausführen, die ich mir zum Theme Matching gemacht habe. Ausserdem gebe ich an, welche dieser Vorschläge ich verwirklicht habe, und welche noch auf ihre Implementierung warten.
+
+\subsection{Bewertung der Vorschl"age aus ,,Creating Repesentations for Continuously Moving Regions from Observations''\cite{TG}}
 \begin{enumerate}
 \item Position of centroid
 
 In dem Paper wurde diese M"oglichkeit nicht weiter betrachtet, da die Autoren davon ausgehen, dass ein Referenzpunkt, der auch au"serhalb des Polygons liegen kann nicht zu guten Matchings f"uhren kann. Hierzu muss angemerkt werden, dass im Rahmen der vorliegenden Arbeit das Matching auf Ebene des ConvexHullTrees durchgef"uhrt wird, und lediglich mit konvexen H"ullen von Polygone gearbeitet wird. Der Schwerpunkt einer konvexen H"ulle liegt nat"urlich aber wieder innerhalb dieser (wenngleich nicht zwangsl"aufig auch innerhalb des repr"asentierten Polygons). Au"serdem erscheint es plausibel, dass ein Referenzpunkt-Verfahren seine St"arke gerade dort haben wird, wo die "Uberlappungsalgorithmen ihre Schw"achen haben (bei sich schnell bewegenden, kleinen Objekten).
+
+Ausserdem ermutigte mich die Arbeit \cite{AFRW} darin diesen Ansatz weiterzuverfolgen.
 
 Der Vorschlag, "`N"achste Nachbarn"' zu benutzen, hat den Nachteil, dass man so nur 1:1 Matches finden kann. Im Rahmen der vorliegenden Arbeit wurde stattdessen Schwellwert-Verfahren gew"ahlt, in dem zu einem Element der einen Seite, alle Elemente der Anderen gematcht werden, deren Schwerpunkte weniger als "`Schwellwert"' entfernt sind. 
 
@@ -17,27 +20,48 @@ Der Vorschlag, "`N"achste Nachbarn"' zu benutzen, hat den Nachteil, dass man so 
 
 Das Verfahren wurde analog zur Beschreibung Erlend T\o{}ssebros "ubernommen und implementiert. 
 
+Klar ist, dass dieses Verfahren dann Schwächen aufweisen wird, wenn sich kleine Flächen so stark bewegen, dass diese sich nicht mehr, oder nur noch wenig überlappen. Bei kompliziert aufgebauten Flächen, die sich relativ wenig bewegen wird dieses Verfahren aber den Vorteil aufweisen, dass relativ wenige falsche Flächen gematcht werden.
+
 \item Maximize Overlap (set of cycles)
 
-Dieses Verfahren k"onnte interesannt sein, ist aber noch nicht implementiert.
+Dieses Verfahren k"onnte interesannt sein, da es mir aber im  Rahmen dieser Arbeit nicht möglich ist alle interesannten Matches zu implementieren, habe ich auf die Implementierung dieses Matches verzichtet.
 
-\item Matching mit dem Steiner-Punkt
-
-In dem Aufsatz \cite{AAR} wurde das Matching mit dem Steiner-Punkt als Referenzpunkt durchgef"uhrt. Auch wenn die Grundausrichtung dieser Arbeit von meiner verschieden ist, so ist es doch m"oglicherweise interessant, diese Spur weiterzuverfolgen. Zu dem eigentlichen Ablauf des Matchings gilt dasselbe, wie f"ur das Schwerpunktverfahren.
 \end{enumerate}
+
+\subsection[Bewertung der Vorschl"age aus \cite{AAR}]{Bewertung der Vorschl"age aus ,,Matching Shapes with a Reference Point'' \cite{AAR}}
+
+Wie ich unter \ref{BedeutungAAR} bereits ausgeführt habe, habe ich den Algorithmus $S$, den allgemeinsten aus dieser Arbeit, nicht implementiert. Die Idee ein Match auf Basis des Steinerpunktes zu implementieren brachte mich dazu, einen Match zu implementieren, dass simultan zu dem Verfahren ,,Position of centroid'' aus \cite{TG} funktioniert, aber den Steinerpunkt als Referenzpunkt benutzt.
+
+\subsection[Bewertung der Vorschl"age aus\cite{AFRW}]{Bewertung der Vorschl"age aus ,,Matching Convex Shapes with Respect to Symmetric Difference'' \cite{AFRW}}
+
+Es gilt im Wesentlichen das Selbe, dass ich schon im letzten Absatz sagte. Ich habe den Algorithmus aus der Arbeit nicht imlementiert, aber ich habe die beiden Verfahren ,,Fixend threshold'' und ,,Position of centroid'' aus \cite{TG} implementiert. Wie ich unter \ref{BedeutungAFRW} ausführe weisen beide Verfahren  eine gewisse Verwandschaft zu dem einfachsten Algorithmus dieser Arbeit auf. 
+
 
 \subsection{Matching mit Referenzpunkten}
 
-Unter der Annahme, dass es möglich ist zu jedem Polygon, das gematcht wird ein Referenzpunkt zuberechnen, kann ein Feld aufgebaut werden, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen werden kann. Wird dieses Feld aufsteigend nach den Entfernungen geordnet, steht zu erwarten,
-dass es zwischen den erwünschten und den unerwünschten Matches einen Sprung in dem Graphen geben wird.  Diesen Sprung m"u"ste mit geeigneten statistischen Verfahren berechnet werden k"onnen. 
+Die meisten Matching-Verfahren basieren auf Referenzpunkten. Unter \ref{AARR} und \ref{AFRWW} wurden Verfahren angegeben, die zu bestimmten Referenzpunkten Matchings mit garantierter Qualität liefern. Ich habe mir einige Gedanken gemacht, wie man Referenzpunktverfahren im Allgemeinen durchführen könnte.
+
+\subsubsection*{statistische Analyse}
+
+Zunächst kann man ein Feld aufgebauen, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen wird. Sortiert man dieses Feld aufsteigend nach den Entfernungen, so steht zu erwarten, dass es zwischen den erwünschten und den unerwünschten Beziehungen einen Sprung in dem Graphen geben wird.  Diesen Sprung m"u"ste mit geeigneten statistischen Verfahren bestimmt werden werden k"onnen. 
 
 Nachteilig an diesem Verfahren ist, dass die Laufzeit dieses Verfahrens hoch ist. Finden sich auf den beiden Seiten des Matchings $n$ beziehungsweise $m$ Referenzpunkte, so hat das resultierende Feld die Dimension $n\times m$. Dieses Feld kann in $O(n\times m)$aufgebaut werden. Zum Sortieren des Feldes wird dann $O((n\times m)\log(n\times m))$ verwendet. Also ist dieses Verfahren mindestens vom Typ $O((n\times m)\log(n\times m))$ (je nach dem verwendeten statistischen Verfahren k"onnte die Laufzeit sogar schlechter sein).
 
-Aufgrund der oben benannten schlechten Laufzeit und unter dem Aspekt, dass kein vergleichbar geeignetes Verfahren gefunden wurde/zur Verfügung stand, wird in der vorliegenden Arbeit das wesentlich einfachere Schwellwertverfahren verwendet, dass wie folgt formuliert werden kann: \flqq Matche zwei Cycle, wenn der Abstand ihrer Referenzpunkte kleiner als der Schwellwert ist.\frqq
+Aufgrund der oben benannten schlechten Laufzeit und unter dem Aspekt, dass kein geeignetes Verfahren zur Verfügung steht, wird in der vorliegenden Arbeit diesem Ansatz keine weitere Beachtung geschenkt. Eine weitere Betrachtung dieses Verfahrens könnte dennoch interesannt sein.
+
+\subsubsection*{Schwellwertverfahren}
+
+Das Schwellwertverfahren kann wie folgt formuliert kann: ,,Matche zwei Cycle, wenn der Abstand ihrer Referenzpunkte kleiner als der Schwellwert ist.''
 
 Die Laufzeit dieses Verfahrens ist wesentlich besser. Zu jedem der $m\times n$ verschiedenen  Referenzpunkte wird der  Abstand (in konstanter Zeit) berechnet und mit dem Schwellwert vergleichen. Also ist die Laufzeit$O(n\times n)$.
 
-Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird. Man berechnent $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\times m)$. Praktisch wird desshalb ein Algorithmus verwendet, der in $O((n+m)\log{n+m})$ einen sehr "ahnlich Wert berechnet. Siehe hierzu: "`Spezielle Algorithmen"'.
+Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird. Man berechnent $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\times m)$. Praktisch wird desshalb ein Algorithmus verwendet, der in $O((n+m)\log{n+m})$ einen sehr "ahnlich Wert berechnet. Siehe hierzu \ref{maxDist}.
+
+\subsubsection*{neuronale Netze}
+
+Man kann die Problematik, Matches von Referenzpunkten zu finden auch wie folgt beschreiben. In einer Menge von Punkten im $\mathbb{R}^2$ werden Klassen von zusammengehörigen Punkten gesucht.
+
+Solche Klassifizierungsaufgaben sind genau das klassische Einsatzgebiet von neuronalen Netzen. Es steht zu erwarten, dass ein Lernverfahren auf Basis von neuronalen Netzen sehr gute Ergebnisse liefern wird. Der Rahmen dieser Arbeit würde aber von einem solchen deutlich überschritten.
 
 \subsection{Beseitigung von 1:n Matches}
 
@@ -507,7 +531,7 @@ Schlie"slich wird diser Algorithmus rekursiv f"ur alle diese Linienz"uge aufgeru
 }
  \end{algorithm}
 \clearpage
-\subsubsection{Bestimmung der maximalen Distanz mehrerer Polygone}
+\subsubsection{Bestimmung der maximalen Distanz mehrerer Polygone}\}\label{maxDist}
 \begin{algorithm}
 	\SetKwFunction{gLDFP}{l"angste\_Entfernung\_von\_Punkt}
 	\SetKwFunction{dist}{Quadrat\_der\_Entfernung}
