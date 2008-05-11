@@ -8,7 +8,7 @@ Im folgenden werde ich die Vorschl"age aus der Literatur, die ich oben beschrieb
 
 \subsection[Bewertung der Vorschl"age aus \cite{TG}]{Bewertung der Vorschl"age aus ,,Creating Repesentations for Continuously Moving Regions from Observations''\cite{TG}}
 \begin{enumerate}
-\item Position of centroid
+\item Position of centroid\index{Match!Schwerpunkt}
 
 In dem Paper wurde diese M"oglichkeit nicht weiter betrachtet, da die Autoren davon ausgehen, dass ein Referenzpunkt, der auch au"serhalb des Polygons liegen kann nicht zu guten Matchings f"uhren kann. Hierzu muss angemerkt werden, dass im Rahmen der vorliegenden Arbeit das Matching auf Ebene des ConvexHullTrees durchgef"uhrt wird, und lediglich mit konvexen H"ullen von Polygone gearbeitet wird. Der Schwerpunkt einer konvexen H"ulle liegt nat"urlich aber wieder innerhalb dieser (wenngleich nicht zwangsl"aufig auch innerhalb des repr"asentierten Polygons). Au"serdem erscheint es plausibel, dass ein Referenzpunkt-Verfahren seine St"arke gerade dort haben wird, wo die "Uberlappungsalgorithmen ihre Schw"achen haben (bei sich schnell bewegenden, kleinen Objekten).
 
@@ -24,7 +24,7 @@ Ausserdem ermutigte mich die Arbeit \cite{AFRW} darin diesen Ansatz weiterzuverf
 
 Der Vorschlag, "`N"achste Nachbarn"' zu benutzen, hat den Nachteil, dass man so nur 1:1 Matches finden kann. Im Rahmen der vorliegenden Arbeit wurde stattdessen Schwellwert-Verfahren gew"ahlt. Siehe hierzu \ref{Schwellwert}.
 
-\item Fixend threshold (set of cycles)
+\item Fixend threshold (set of cycles)\item{Match!Überlappung}
 
 Das Verfahren wurde analog zur Beschreibung Erlend T\o{}ssebros "ubernommen und implementiert. 
 
@@ -48,12 +48,12 @@ Dieses Verfahren k"onnte interesannt sein, da es mir aber im  Rahmen dieser Arbe
 
 Wie ich unter \ref{BedeutungAAR} bereits ausgeführt habe, habe ich den Algorithmus $S$, den allgemeinsten aus dieser Arbeit, nicht implementiert. Die Idee ein Match auf Basis des Steinerpunktes zu implementieren brachte mich dazu, einen Match zu implementieren, dass simultan zu dem Verfahren ,,Position of centroid'' aus \cite{TG} funktioniert, aber den Steinerpunkt als Referenzpunkt benutzt.
 
-\subsection[Bewertung der Vorschl"age aus\cite{AFRW}]{Bewertung der Vorschl"age aus ,,Matching Convex Shapes with Respect to Symmetric Difference'' \cite{AFRW}}
+\subsection[Bewertung der Vorschl"age aus \cite{AFRW}]{Bewertung der Vorschl"age aus ,,Matching Convex Shapes with Respect to Symmetric Difference'' \cite{AFRW}}
 
 Es gilt im Wesentlichen das Selbe, dass ich schon im letzten Absatz sagte. Ich habe den Algorithmus aus der Arbeit nicht imlementiert, aber ich habe die beiden Verfahren ,,Fixend threshold'' und ,,Position of centroid'' aus \cite{TG} implementiert. Wie ich unter \ref{BedeutungAFRW} ausführe weisen beide Verfahren  eine gewisse Verwandschaft zu dem einfachsten Algorithmus dieser Arbeit auf. 
 
 
-\subsection{Matching mit Referenzpunkten}
+\subsection{\index{Match!Refenrzpunkt}Matching mit Referenzpunkten}
 
 Die meisten Matching-Verfahren basieren auf Referenzpunkten. Unter \ref{AARR} und \ref{AFRWW} wurden Verfahren angegeben, die zu bestimmten Referenzpunkten Matchings mit garantierter Qualität liefern. Ich habe mir einige Gedanken gemacht, wie man Referenzpunktverfahren im Allgemeinen durchführen könnte.
 
@@ -73,7 +73,7 @@ Aufgrund der oben benannten schlechten Laufzeit und unter dem Aspekt, dass kein 
 \end{figure}
 
 
-\subsubsection*{Schwellwertverfahren}\label{Schwellwert}
+\subsubsection*{\index{Match!Schwellwert}Schwellwertverfahren}\label{Schwellwert}
 
 Das Schwellwertverfahren kann wie folgt formuliert kann: ,,Matche zwei Cycle, wenn der Abstand ihrer Referenzpunkte kleiner als der Schwellwert ist.''
 
@@ -87,7 +87,7 @@ Man kann die Problematik, Matches von Referenzpunkten zu finden auch wie folgt b
 
 Solche Klassifizierungsaufgaben sind genau das klassische Einsatzgebiet von neuronalen Netzen. Es steht zu erwarten, dass ein Lernverfahren auf Basis von neuronalen Netzen sehr gute Ergebnisse liefern wird. Der Rahmen dieser Arbeit würde aber von einem solchen deutlich überschritten.
 
-\subsection{Beseitigung von 1:n Matches}
+\subsection{Beseitigung von 1:n Matches}\label{1zuN}
 
 Falls es ein 1:n Matching gibt, dann muss diese aufgel"ost werden. Hierbei existieren 2 M"oglichkeiten:
 \begin{itemize}
@@ -110,12 +110,12 @@ In diesem Fallist die Vereinigung der Targets, wie oben beschrieben, nicht zielf
 
 \end{itemize} 
 \end{itemize} 
-\subsection{Beseitigung von "`gedrehten Konkavit"aten"'}
+\subsection{Beseitigung von "`gedrehten Konkavit"aten"'}\label{gedrehtKon}
 In manchen F"allen versagt das in \cite{TG} genannte Verfahren, um aus Matchings Moving-Regions zu erzeugen. Dieses, in Kapitel "`6 Interpolating between two arbitray polygones"' beschriebene Verfahren setzt voraus, dass die beiden gematchten Kinderpolygone ein gemeinsames, aus zwei Dreiecken zusammengesetztes Trapez in der Aussenh"ulle der beider Vaterpolygone besitzen. 
 
 Dies ist zum Beispiel dann nicht der Fall, wenn wir uns als Quellpolygon ein "`U"', und als Zielpolygon ein um 90$\degree$ gedrehtes "`U"' vorstellen. Auch wenn die Konkativit"aten richtig zueinander gematcht sind, versagt das bekannte Verfahren.
 
-Die, das Matching abschlie"sende, Funktion kann solche F"alle erkenne, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater, sowie die beiden Nachbarkanten des Vaters, mit der x-Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, so liegt der Fall vor, dass das Verfahren nicht funktioniert.
+Die, das Matching abschlie"sende, Funktion kann solche F"alle erkenne, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater, sowie die beiden Nachbarkanten des Vaters, mit der x"-Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, so liegt der Fall vor, dass das Verfahren nicht funktioniert.
 
 \begin{figure}
 	\centering
@@ -137,14 +137,14 @@ In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueina
 \begin{figure}
 	\centering
 	\includegraphics{feu_logo2.eps}
-	\caption[Schnappschüsse von den gedrehten Polygonen]{Zwei Schnappschüsse von dem Match aus Abbildung  \ref{fig:gedrehteMatches}, in dem die Konkativitäten gegen $null$ gematcht wurden.}
+	\caption[Schnappschüsse von den gedrehten Polygonen]{Zwei Schnappschüsse von dem Match aus Abbildung~\ref{fig:gedrehteMatches}, in dem die Konkativitäten gegen $null$ gematcht wurden.}
 	\label{fig:gedrehteMatches2}
 \end{figure}
 
 \end{itemize}
 
 
-\subsection{Erstellung eines Matchings aus mehreren Anderen}
+\subsection{\index{Match!optimales}Erstellung eines Matchings aus mehreren Anderen}\label{bewertung}
 
 
 Es ist festzustellen, das unter der Betrachtung der bereits erstellten Matchings, dass das Overlapping-Match besser auf Vereinigungen und Aufsplitterungen von Cycles reagiert, und dass das Schwerpunkt-Verfahren besser auf kleine und schnelle Cycles abgestimmt ist. 
@@ -180,7 +180,7 @@ $\delta$ kann hierbei entweder der Hausdorff-Abstand oder die symetrische Differ
 
 Ein kleiner Durchschnitt der Entfernungen der zueinander gematchten Referenzpunkte wirkt sich positiv auf die Bewertung aus.
 
-Da dieses Verfahren direkt mit dem Schwerpunkt-Match, bzw. dem Steinerpunkt-Match korrespondiert, und ausserdem nach \cite{AFRW} und \cite{AAR} nicht zu erwarten steht, dass dieses Verfahren deutlich andere Werte als die Overlap-Bewertung, bzw. die Hausdorf-Bewertung liefert, verfolge ich dieses nicht weiter.
+Da dieses Verfahren direkt mit dem Schwerpunkt-Match, bzw. dem Steinerpunkt"=Match korrespondiert, und ausserdem nach \cite{AFRW} und \cite{AAR} nicht zu erwarten steht, dass dieses Verfahren deutlich andere Werte als die Overlap-Bewertung, bzw. die Hausdorf-Bewertung liefert, verfolge ich dieses nicht weiter.
 
 \item Die \index{Bewertung!Flächensummen}Summen-Bewertung:
 
@@ -223,11 +223,510 @@ Diese Norm finde ich nach wie vor interesant, habe sie aber noch nicht weiter ve
 Wie man am Beispiel der Summen-Norm sehen kann, gibt es mehr M"oglichkeiten zu bewerten, als es effiziente Matchings gibt. Das Summen-Matching, das lauten k"onnte: "`Matche ein Cycle mit  einer Menge von Anderen, wenn die Summe der Fl"acheninhalte fast gleich ist zu dem Fl"acheninhalt des einen Cycles"', entspricht dem Rucksack-Problem und ist daher nicht effizient l"osbar. Die Bewertung, wie gut ein gegebenes Matching ist, ist mit diesem Verfahren aber effizient m"oglich.
 
 \section{Gemeinsame Grundlagen \anmerkung{20 Seiten}}
-\anmerkung{Hier beschreibe ich ausf"uhrlicher die gemeinsame Grundlage der beiden Implementierungen, einschlie"slich einer Beschreibng der verwendeten Klassen.}
-\subsection{Beschreibung der Klassen}
-\subsubsection{RegionTreeNode}
 
-Dieses Interface dient dazu, Region, Faces und ConvexHullTreeNodes gleichbehandeln zu k"onnen. Implementiert sind nur hashCode und equals, zum Auffinden von SingleMatches in HashSets.
+\subsection{Beschreibung von verwendeten Algorithmen}
+In disem Abschnitt werde ich Algorithmen vorstellen, die entweder sehr zentral f"ur die L"osung des Interpolationsproblems sind, oder Algorithmen, die keine Standard-Algorithemen sind. Diese Algorithmen musste ich also selbst entwickeln.
+
+\subsubsection{\index{Rotaring Pane}Rotaring Pane} \label{rotPane}
+In \cite{TG} wurde bereits der Algorithmus ,,rotating Pane'' vorgestellt. I, Laufe meiner Arbeit musste ich diesen Algorithmus nachprogrammieren, und habe hierbei eine Version gefunden, die etwas einfacher ist und erheblich weniger Fallunterscheidungen benutzen muss.
+
+Die Idee dieses Algorithmusses ist es zu jeder Kante den Winkel zu bestimmen, den dieser mit der x"~Achse einnimmt. Zu zwei Ecken, die eine gemeinsame Kante bilden konstruiert man ein Dreieck mit dem Startpunkt der Kante des anderen Polygones zu bilden, dessen Winkel zwischen den Winkeln des Startpolygones liegt.
+
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption[Tabellendarstellung des ,,rotating Pane'']{Diese Abbildung zeigt die beiden Felder zweier Vierecke und zeigt, welche Punkte zusammen ein movingsegment bilden.}
+	\label{fig:RotatinPane}
+\end{figure}
+
+
+Hierzu werden zwei Felder von Punkten gebildet, für jeder Polygon eines. Zu Punkt jedem Punkt wird dann der Winkel hinzugefügt, den die Linie hat, welche von diesem Punkt ausgeht. Die Felder werden dann nach diesen Winkel sortiert. Zu zwei aufeinanderfolgenden Punkten der ersten Polygones wird dann der passende Punkt aus dem anderen Polygon gesucht. Hierzu wird die Funktion ,,finde\_passenden\_Index'' benutzt, die weiter unten erklärt wird. Das so entstandene Dreieck (als movingsegment) wird dann der Rückgabestruktur hinzugefügt.
+
+\begin{algorithm}[!ht]
+		\SetKwFunction{fMI}{finde\_passenden\_Index}
+	\caption{Rotaring Pane Allgorithmus, um aus zwei konvexen H"ullen moving segments zu erstellen}
+	\Ein{KH"ulle1 und KH"ulle2, zwei konvexe H"ullenb"aume}
+	\Ergebnis{Eine Menge von moving segments, die die Interpolation der beiden Polygone darstellt}
+	\Begin{
+		Bestimme $KH1$ und $KH2$ die konvexen H"ullen der Polygone als Feld von LineWAs\;
+		Berechne die Winkel in jedem Eckpunkt von $KH1$ und $KH2$\;
+		Sortiere $KH1$ und $KH2$ aufsteigend nach diesen Winkeln\;
+		$j:=0$\;
+		\Fuer{$i<KH1.l"ange$}{
+			$j:=\fMI{KH2, j, KH1[i].winkel, \text{false}}$\;
+			F"uge das moving segment:$(KH1[i],KH1[i+1],KH2[j]$ dem Ergebnis-Feld hinzu\;
+}			
+		$j:=0$\;
+		\Fuer{$i<KH2.l"ange$}{
+			$j:=\fMI{KH1, j, KH2[i].winkel,\text{true}}$\;
+			F"uge das moving segment:$(KH2[i],KH2[i+1],KH[j]$ dem Ergebnis-Feld hinzu\;
+}			
+}
+\end{algorithm}
+
+
+Diese Funktion durchsucht ein Feld, dass ein konvexes Polygon in der Form wie oben darstellt, nach dem übergebenen Winkel. Die Suche startet bei dem Index ,,Startindex''. Je nach dem Wert des Winkels an der angegebenen Stelle wird nach linkls oder rechts rekursiv weitergeangen. Sollten zwei Winkel exakt gleich sein, die Kanten also parallel sein, so muss man das Ergebniss unterschiedlich behandeln. Dieses leistet der Wert ,,Gleiche\_Winkel''.
+
+\begin{function}[!ht]
+	\caption{finde\_passenden\_Index(Polygon, Startindex, Winkel, Gleiche\_Winkel)}
+	
+	\Ein{\begin{tabular}{ll}
+		Polygon: &Das zu durchsuchende konvexe Polygon als Feld\\
+ 			&von LineWAs\\
+		Startindex: &Der Index, an dem die Suche beginnen\\
+ 				&soll\\
+		Winkel: &Der Winkel, zu dem der passende Index gesucht\\
+ 			&wird\\
+		Gleiche\_Winkel: &Dieser boolsche Parameter gibt an, \\
+				&wie mit parallelen Kanten verfahren werden soll
+	     \end{tabular}
+}
+	\BlankLine
+	\Ergebnis{Der Index des Punktes, an dem die Linie anf"angt, mit der die Ecke mit dem "ubergebenen Winkel gematched wird}
+	\Begin{	
+        	\uWenn {$Winkel<Polygon[0].Winkel$}	{
+        		Gebe den Index 0 zur"uck\;
+}
+        	\uWenn{$Polygon[0].Winkel=Winkel$ und $Gleiche\_Winkel$}{
+        			Gebe den Index 0 zur"uck\;
+}        
+        	\Wenn{$Winkel>Polygon[letzer\_Index].Winkel$}{
+        		Gebe den Index 0 zur"uck\;
+}
+	
+        	\Solange{Nicht $(Polygon[j].Winkel\geq Winkel$ und $Polygon[j-1].Winkel\leq Winkel)$}{
+        		\uWenn{$(j\neq0$ und $Winkel<Polygon[j-1].Winkel$}{
+        			$j:=j-1$\;
+}	
+ 	           	\Sonst{
+				\Wenn{$Polygon[0].Winkel\neq Winkel$}{
+		                 	$j:=j+1$\;
+}
+}
+}
+		\Wenn{$Polygon[j].Winkel=Winkel$ und $Gleiche\_Winkel$}{
+	        	$j:=j+1$\;
+}
+		Gebe den Index $j$ zur"uck\;
+}		
+\end{function}
+
+\clearpage
+
+\subsubsection{Zerlegung von einfachen Polygonen in konvexe Polygone}
+
+Um beliebige Polygone in VRML-Dateien exportieren zu können, musste ich einen Algorithmus finden, der beliebige, einfache Polygone in konvexe zerlegen kann. Natürlich hätte ich einfach eine Dreieckszerlegung vornehmen können, diese Zerlegung wäre aber möglicherweise erheblich kleinteiliger, als ich das eigentlich brauchte. Die Idee des Algorithmusses ist auch ganz einfach:
+
+Ecken, deren Wickel größer als 180\degree\/ sind, so genannte konvexe Ecken, stören und müssen beseitigt werden. Teile ich ein Polygon an einem Winkel, so wird dieser kleiner. Also kann man Polygon solage, an konvexen Ecken,  zerteilen, bis es in keinem der Ergebnisspolygone noch einen konvexen Winkel gibt.
+
+Teilen kann man ein Polygon an zwei Ecken $A$ und $B$, falls die Verbindung von $A$ und $B$ innerhalb des Polygones liegt, und keine unbeteiligte Kante geschnitten wird.
+
+Verbessen kann man diesen Ansatz noch dardurch, dass man zuerst versucht das Polygon an zwei konvexen Ecken zu teilen.
+
+Dieser Algorithmus funktioniert nicht nur für einfache Polygone, sondern auch für solche, in denen eine Kante zweifach durchlaufen wird. Damit kann man auch Faces mit Holes zerlegen.
+
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption{Ein Beispiel, wie ein Face mit einem Hole in konvexe Polygone zerfällt.}
+	\label{fig:ZerlegungFace}
+\end{figure}
+
+
+\begin{algorithm} [!ht]
+	\SetKwFunction{gCV}{liefere\_konvexe\_Ecken}
+	\SetKwFunction{iSA}{ist\_teilbar}
+	\caption{Zerlegung von einfachen Polygonen in konvexe Polygone}
+	\Ein{Eine Menge $Polygone$ von einfachen Polygonen, repr"asentiert durch geordnete Punktlisten}
+	\Ergebnis{Die Menge $Polygone$ besteht nur noch aus konvexen Polygonen}
+	\Begin{
+		$aktuell:=0$\;
+		$konvexe\_Ecken=\emptyset$\;
+		\Wiederh{$|konvexe\_Ecken|=0$ und $aktuell=|Polygone|$}{
+            		$aktuelles\_Polygon=Polygone[aktuell]$\;
+			$konvexe\_Ecken=aktuelles\_Polygon.\gCV{}$\;
+			\uWenn{$|konvexe\_Ecken|>0$}{
+				\Wenn{$|konvexe\_Ecken|>1$}{
+					\Fuer{$i<|konvexe\_Ecken|$}{
+						\Fuer{$j:=i+1$ \KwTo $j<|konvexe\_Ecken|$}{
+							\Wenn{$aktuelles\_Polygon.\iSA{konv\_Eck[i],konv\_Eck[j]}$}{
+								Teile $aktuelles\_Polygon$ an den Ecken $konvexe\_Ecken[i]$ und $konvexe\_Ecken[j]$\;
+								Ersetzt $aktuelles\_Polygon$ in $Polygone$ durch die beiden neuen Polygone\;
+								Durchlaufe alle Scheifen von neuem\;
+}
+}
+}
+}
+                		$Index1:=konvexe\_Ecken[0]$\;
+				$Index2:=Index1+\frac{|aktuelles\_Polygon|}{2}$\;
+				\Fuer{$i<|aktuelles\_Polygon|$}{
+					$split\_Index=Index2+\frac{(-1)^i i}{2}$\;
+		                    	\Wenn{$aktuelles\_Polygon.\iSA{Index1,split\_Index}$}{
+		                    	Teile $aktuelles\_Polygon$ an den Ecken $Index1$ und $split\_Index$\;
+								Ersetzt $aktuelles\_Polygon$ in $Polygone$ durch die beiden neuen Polygone\;
+}
+}
+}
+			\Sonst{
+				$aktuell:=aktuell+1$\;
+}
+
+}
+}
+\end{algorithm}
+
+\clearpage
+
+\subsubsection{\index{ConvexHullTreeNode!Konstruktion}Aufbau eines ConvexHullTrees}\label{constCHTN}
+Der Algorithmus zum Aufbau eines ConvexHullTrees wurde in \cite{TG} bereits erl"autert. Da dieser aber von zentraler Bedeutung zur L"osung des Problems ist, bespreche ich den Algorithmus an dieser Stelle noch einmal.
+
+Als Beispiel dient mir ein Polygon aus der GERMANY-Datenbank. Bei diesem Polygon handelt es sich um die Gemeinde Sandershausen, die als Enklave zu dem Stadtkreis Kassel geh"ort. Abbildung~\ref{fig:Sanders} zeigt dieses Polygon in dem dazugeh"origen Luftbild, dass ich aus der Applikation Google-Earth entnommen habe. 
+
+Der erste Schritt, bei der Erzeugung eines ConvexHullTree-Kontens, ist die Ereugung der konvexen H"ulle des Polygons. In den Abbildungen~\ref{fig:sand2} ist diese in Rotbraun eingezeichnet. Der Allgorithmus, der zur Erzeugung der H"ulle benutzt wird ist der \index{Graham Scan}Graham Scan Algorithmus, der zu den Standard-Allgorithem zu z"ahlen ist. In \cite{G72} wurde dieser Algorithmus das erste Mal beschrieben. Eine gute Beschreibung finden Sie \anmerkung{hier Literaturstelle einf"ugen}.
+
+Im Anschu"s daran wird das Ausgangspolygon nach zusammenh"angenden Linienz"ugen durchsucht, die nicht in der konvexen H"ulle enthalten sind. Diese Suche wird mittels eines parallelen Durchlaufs duch beide Linienz"uge realisiert.
+
+Schlie"slich wird diser Algorithmus rekursiv f"ur alle diese Linienz"uge aufgerufen und die Ergebnisse werden an die entsprechenden Stellen in den Vaterknoten eingeh"angt.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=10cm]{Sandershausen.eps}
+	\caption{Die Gemeinde Sandershausen als Beispiel eines ConvexHullTrees}
+	\label{fig:Sanders}
+\end{figure}
+\begin{figure}
+\subfigure[die Nodes der Level 0-1]{\includegraphics[width=0.45\textwidth]{Sandershausen2.eps}}\hfill
+\subfigure[kompletter ConvexHullTree]{\includegraphics[width=0.45\textwidth]{Sandershausen3.eps}}
+\caption{Ausschnitt von Sandershausen mit verschieden detailierten ConvexHullTrees}
+\label{fig:sand2}
+\end{figure}
+%\begin{figure}%
+	%\centering
+	%\includegraphics[width=5cm]{Sandershausen2.eps}
+	%\caption{Ausschnitt von Sandershausen mit den Nodes der Level 0-1}
+	%\label{fig:sand2}
+%\end{figure}
+%\begin{figure}
+%	\centering%
+	%\includegraphics[width=5cm]{Sandershausen3.eps}
+	%\caption{Ausschnitt von Sandershausen mit dem kompletten ConvexHullTree}
+	%\label{fig:sanders3}
+%\end{figure}
+
+\begin{algorithm}[!ht]
+
+\SetKwFunction{cH}{berechne\_konvexe\_H"ulle}
+	\caption{Erzeuge einen konvexen H"ullenbaum aus einem Polygon}
+	\Ein{\begin{tabular}{ll}
+		Polygon: &Ein Polygon,rep"asentiert duch eine geordnete Liste von \\
+			&Eckpunkten\\
+		Ebene:	&Die Ebene des zu Erzeugenden Elementes\\
+		ist\_Loch: &Ein boolscher Parameter der angibt, ob das neue Element \\
+			&zu einem Loch geh"ort\\
+		Vater:	&Das Vaterelement des Neuen\\
+		\end{tabular}
+}
+	\BlankLine
+	\Ergebnis{Ein konvexer H"ullenbaum, der das "ubergebene Poygon beschreibt}
+	\Begin{
+	
+%         LineWA[] tmplist, convhull, childlist;
+	Setze die Klassen-Variabeleln $ist\_Loch$ und $Vater$\;
+
+%         int node;
+%         int index1, index2, length, lastindex, noiterations;
+%         int indexll1, indexll2;
+%         this.linelist = new Vector();
+%         smallesty = Integer.MAX_VALUE;
+%         smallestx = Integer.MAX_VALUE;
+%         smallestpoint = -1;       
+	$konvexeH"ulle:=\cH(Polygon)$\;
+%         // Find where the first node in linelist is in the convex hull
+%         // (Or the earliest possible if the first node is not on the hull)
+%         // This is to preserve the order in the linelist in the ordering of
+%         // points in the convex hull tree node.
+	$startindex:=0$\;
+	$endindex:=konvexeH"ulle.L"ange$\;
+	Finde den Index, in der konvexen H"ulle, der dem niedrigsten Index in dem Polygon entspricht, und speichere Ihn in $startindex$\;
+	Finde den Index, in der konvexen H"ulle, der dem h"ochsten Index in dem Polygon entspricht, und speichere Ihn in $endindex$\;
+         %for (int a=0;a<linelist.length;a++)
+% {
+%             index1 = TriRepUtil.indexOf(convhull, linelist[a]);
+%             if (index1 != -1) break;
+% }
+%         for (int a=linelist.length-1;a>=0;a--)
+% {
+%             lastindex = TriRepUtil.indexOf(convhull, linelist[a]);
+%             if (lastindex != -1) break;
+% }
+	\uWenn{$startindex<endindex$}{
+		\Fuer{$i:=startindex$ \KwTo $i\leq endindex$}{	
+			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
+}
+}
+	\Sonst{
+		
+        	\Fuer{$i:=index1$ \KwTo $konvexeH"ulle.L"ange$}
+{
+			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
+}
+		\Fuer{$i:=0$ \KwTo $endindex$}
+{
+			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
+}
+}
+%         // Check lines in convex hull with lines in line list. Whenever two points
+%         // which are neighbours in the convex hull are not neighbours in the line
+%         // list, create a child node from the points between them.
+%         
+%         noiterations = numberOfLines();
+%         index1 = 0;
+%         indexll1 = 0;
+%         while (!(linelist[indexll1].equals(getLine(index1))))
+% {
+%             indexll1++;
+% }
+	\Fuer{$i<konvexeH"ulle.L"ange$}
+{
+%             index2 = index1+1;
+%             indexll2 = indexll1+1;
+%             while (!(linelist[indexll2 % linelist.length].equals(getLine(index2 % noiterations))))
+% {
+%                 indexll2++;
+% }
+%             
+%             if ((indexll2 != indexll1+1) && ((level == 0) ||
+%                     ((indexll2 != linelist.length) && (indexll1 != linelist.length-1)))
+%                     && (indexll2 != indexll1-1))
+% {
+%                 // create child node
+%                 length = indexll2-indexll1+1;
+%                 childlist = new LineWA[length];
+%                 for (int b=0;b<length;b++)
+% {
+%                     if ((b+indexll1) < linelist.length)
+% {
+%                         childlist[length-b-1] = linelist[b+indexll1];
+% }
+%                     else
+% {
+%                         childlist[length-b-1] = linelist[b+indexll1-linelist.length];
+% }
+% }
+%                 insertChild(index1, new ConvexHullTreeNode(childlist, level+1,this.isHole,this));
+% }
+%             index1 = index2;
+%             indexll1 = indexll2;
+}
+}
+ \end{algorithm}
+
+\clearpage
+\subsubsection{Bestimmung der maximalen Distanz mehrerer Polygone}\label{maxDist}
+\label{gmD}
+Die Berechnung der größten Abstandes den zwei Punkte aus verschiedenen Polygonen ist eine relativ aufwendige Operation, mit quadratischem Aufwand. Dieser Algorithmus liefert einen sehr ähnlichen Wert in $O(n\log(n))$. Dieser Wert ist der Durchmesser der konvexen Hülle der Punkte beider Polygone. 
+
+Zur Berechnung dieses Wertes wird zuerst die gemeinsame konvexe Hülle der beiden Polygone berechnet. Dann wird von jedem Punkt der konvexen Hülle die maximale quadratische Distanz berechnet und die Wurzel der größten Distanz zurückgegeben.
+
+\begin{algorithm}[!ht]
+	\SetKwFunction{gLDFP}{l"angste\_Entfernung\_von\_Punkt}
+	\SetKwFunction{dist}{Quadrat\_der\_Entfernung}
+	\caption{Bestimmung der maximalen Distanz mehrerer Polygone}
+	\Ein{Mehrere Polygone repr"asentiert duch ihre Punktlisten}
+	\Aus{Der maximale Abstand von zwei Punkten}
+	\Begin{
+		Bilde eine gemeinsame Punktliste durch konkatenieren der Eingangslisten\;
+		Bilde $CH$ die konvexe H"ulle der Eingangsdaten\;
+		$i:=0$\; 
+		$tmpdist:=0$\;
+		$pos:=\frac{CH.length}{2}$\;
+		\Fuer{$i<CH.length$}{
+			$pos:=\gLDFP{CH[i],CH,pos}$\;
+			$distxy:=\dist{CH[i],CH[pos]}$\;
+		        \Wenn{$distxy>tmpdist$}
+{			
+			           $tmpdist:=distxy$\;
+}			
+}    
+		Das Ergebnis ist $\sqrt{tmpdist}$\;
+}
+\end{algorithm}
+\clearpage
+
+Diese Funktion sucht in einem konvexen Polygon den Punkt, der am weitesten von dem übergebenen Punkt entfernt ist. Der Punkt an dem Index Startindex ist der Punkt, mit dem zuerst verglichen wird. Die Suche läuft danach rekursiv weiter. 
+
+\begin{function}[!ht]
+	\SetKwFunction{dist}{Quadrat\_der\_Entfernung}
+	\SetKwFunction{gLDFP}{l"angste\_Entfernung\_von\_Punkt}
+	\caption{l"angste\_Entfernung\_von\_Punkt(Punkt, Polygon, Startindex)}
+	\Ein{\begin{tabular}{ll}
+Punkt: &Der Punkt, zu dem der Abstand gemessen wird,\\
+	     Polygon: &Das konvexe Polygon, in dem der am weitesten \\
+			&entfernte Punkt gesucht wird\\
+	
+	     Startindex: &Der Index an dem die Suche begonnen wird\end{tabular}}
+	\BlankLine
+	\Ergebnis{Der Index des Polygonpunktes, der von dem Punkt den maximalen Abstand hat.}
+	\Begin{
+		$distpos:=\dist{Punkt,Polygon[pos]}$\;
+		$distposlinks:=\dist{Punkt,Polygon[pos+1]}$\;
+		$distposrechts:=\dist{Punkt,Polygon[pos-1]}$\;
+		\uWenn{$distpos\geq distposlinks$ und $distpos\geq distposrechts$}{
+			Gebe $pos$ als Ergebnis zur"uck\;
+}
+		\Sonst{
+			\uWenn{$distposlinks>distpos$}{
+				Gebe $\gLDFP{Punkt, Polygon, (pos+1)}$ zur"uck\;
+}		
+			\Sonst{Gebe $\gLDFP{Punkt, Polygon, (pos-1)}$ zur"uck\;}
+}
+}
+\end{function}
+
+\label{getdist}
+Diese Funktion liefert den Wert der quadratischen Entfernung von zwei Punkten zurück. Die Berechnung erfolgt nummerisch stabiler als die einfache Formel $(x_2-x_1)^2+(y_2-y_1)^2$. Besonders im Umgang mit geografischen Koordinaten ist dies wichtig.
+
+\begin{function}[!ht]
+	\caption{Quadrat\_der\_Entfernung(Punkt1, Punkt2)}
+	\Ein{Die beiden Punkte, deren Abstand berechnet werden soll}
+	\Ergebnis{Das Quadrat des Abstandes der beiden Punkte}
+	\Begin{
+		Berechne $x_1^2$ $x_2^2$, $y_1^2$, $y_2^2$, $x_1x_2$ und $y_1y_2$ in doppelter Genauigkeit\;
+		Gebe $x_1^2+x_2^2+y_1^2+y_2^2-2(x_1x_2+y_1y_2)$ in einfacher Genauigkeit zur"uck\;
+}
+\end{function}
+
+
+\clearpage
+\subsection{Beschreibung der Klassen}
+
+\subsubsection{\index{LineWA}LineWA}
+
+Diese Klasse repräsentiert einen zweidimensionalen Punkt, der durch eine Winkelangabe ergäntzt ist. Somit kann man ein Polygon speichern indem man alle seine Punkte speichert, und zu jedem Punkt noch den Winkel, den die Kante, die von dem Punkt ausgeht, mit der x"~Achse hat. Die Klasse ist so implementiert, dass mehrere LineWAs automatisch aufsteigen nach ihren Winkeln sortiert werden können.
+
+\subsubsection{\index{CHLine}CHLine}
+
+Die CHLine ist eine LineWA in einem ConvexHullTreeNode. Zusätzlich zu den bekannten Attributen kann diese auch noch einen ConvexHullTreeNode als Kind enthalten. Diese Klasse trägt quasi die rekursive Struktur des ConvexHullTrees.
+
+\subsubsection{\index{LineDist}LineDist}
+
+Diese Klasse dient dazu, Kombinationen von Punkten und Entfernungen speichern zu können. Wie bei der LineWA ist die Sortierung nach Entfernung möglich.
+
+\subsubsection{\index{PointWNL}PointWNL}
+
+Diese Klasse dient dazu Punkte im dreidimensionalen darstellen zu können.
+
+\subsubsection{\index{ConvexHullTreeNode}ConvexHullTreeNode}
+
+Diese Klasse repräsentiert den ,,konvexen Hüllenbaum'', der bereits öfter erwähnt wurde. Der ConvexHullTreeNode enthält an Attributen:
+
+\begin{itemize}
+\item linelist
+
+Die linelist ist ein Feld von CHLines, enthält also alle Punkte der konvexen Hülle und die dazugehörigen Kinder.
+
+\item level
+
+Hiermit kann man feststellen, in welcher Tiefe sich ein ConvexHullTreeNode in dem ConvexHullTree befindet.
+
+\item hole
+
+Dieses boolsche Attribut legt fest, ob das Objekt zu einem Cycle,oder zu einem hole gehört.
+
+\item myParent
+
+Dieses Attribut zeigt auf das Vaterelement des Objektes in dem RegionTree. Der Vater kann entweder ein face, oder ein anderer ConvexHullTreeNode sein.
+
+\end{itemize}
+
+Die wichtigsten, nicht trivialen Methoden dieser Klasse sind:
+
+\begin{itemize}
+\item Konstruktor
+
+Der Konstruktor ist näher unter \ref{constCHTN} beschrieben.
+
+\item getLines
+
+diese Funktion liefert die Punkte des Polygons zurück, die dieser ConvexHullTree beschreibt.
+
+\item getCenter
+
+liefert den Schwerpunkt der konvexen Hülle.
+
+\item getSteinerPoint
+
+liefert den Steinerpunkt der konvexen Hülle.
+
+\item getSplitLine
+
+liefert einen Linienzug, an dem das Objekt geteilt werden kann. Die beiden übergebenen konvexen Hüllenbäume dienen hierbei als Anleitung. \anmerkung{Ref einfügen}
+
+\item getSplitNodes
+
+diese Funktion teilt das Objekt an dem übergebenen Linienzug und liefert ein zweidimensionales Feld von Punkten zurück, die die beiden neuen ConvexHullTreeNodes repräsentieren.  \anmerkung{Ref einfügen}
+
+\end{itemize}
+
+
+\subsubsection{\index{Face}Face}
+
+Ein Face besteht aus einem Cycle und mehreren, oder keinem Hole. Sowohl der Cycle, als auch die Holes sind durch ConvexHullTrees gegeben. Die Attribute des Faces sind:
+
+\begin{itemize}
+\item Cycle
+
+ein ConvexHullTreeNode, der das begrenzende Polygon dieses Faces beschreibt.
+
+\item Holes
+
+ein Feld von ConvexHullTreeNodes, das die Holes des Faces beinhalten.
+
+\item parent
+
+ein Verweis auf die Region (bzw. RegionForInterpolation), zu der dieses Face gehört.
+
+\end{itemize}
+
+Die wichtigsten, nicht trivialen Methoden dieser Klasse sind:
+
+\begin{itemize}
+
+\item getHolesAndConcavities
+
+diese Funktion liefert alle Konkativitäten des Cycles, und alle Holes des Faces. Diese Funktion wird beim Matchen benötigt, da die Holes, und die Konkativitäten des Cycles zueinander gematcht werden können.
+
+\item splitOnLine
+
+diese Funktion teilt das Face, entlang des übergebenen Linienzuges, in zwei neue Faces. Das eine neue Face wird zurückgegeben, das andere ersetzt das vorherige Face. Mißlingt die Teilung, so wird $null$ zurückgegeben, und das Face selbst bleibt unverändert.
+
+\end{itemize}
+
+\subsubsection{\index{Region}\index{RegionForInterpolation}Region oder RegionForInterpolation}
+
+Eine Region enthält ein oder mehrere Faces. In Secondo war der Name ,,Region'' leider schon für die Region in der SpatialAlgebra vergeben. Desshalb musste ich die Klasse dort in RegionForInterpolation umbenennen.
+
+An Attributen enthält eine Region im Wesentlichen nur ein Feld von Faces.
+
+Die einzige Methode, die nicht nur der Verwaltung der Faces dient, und etwas interesannter ist, ist 
+\begin{itemize}
+\item splitOnLine
+
+diese Funktion versucht alle Faces an dem übergebenen Linienzug zu teilen, und ergäntzt die Liste der Faces um eventuell auftauchende Neue. Die Funktion liefert ausserdem eine Liste aller neuhinzugefügten Faces als Rückgabe, so dass direkt erkennbar ist, inwieweit diese Operation die Region verändert hat.
+
+\end{itemize}
+
+\subsubsection{\index{RegionTreeNode}RegionTreeNode}
+
+Dieses Interface dient dazu, Region, Faces und ConvexHullTreeNodes gleichbehandeln zu k"onnen. Implementiert sind nur hashCode und equals, zum Auffinden von SingleMatches in HashSets. Die Berechnung des Hashwertes wird von den Klassen so implementiert, wie unter \anmerkung{Ref einfügen} beschrieben.
+
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption{Der strukturelle Aufbau eines RegionTreeNodes}
+	\label{fig:RegionTreeNode}
+\end{figure}
+
 
 \subsubsection{\index{SingleMatch}SingleMatch}
 Diese Klasse repr"asentiert eine einzelnes Teilmatch.  Es enth"alt eine Source-Kom"-ponente und ein Feld von Target-Komponenten. Alle Komponenten sind RegionTreeNodes.
@@ -269,7 +768,7 @@ Liefert den Hashwert des Matches.
 Die beiden letzten Methoden dienen dazu, SingleMatches in einem HashSet ablegen zu k"onnen, wobei nur die source-Komponente f"ur das Auffinden des Matches herangezogen wird.
 
 \subsubsection{\index{Match!Klasse}Die abstrakte Klasse Match}
-Diese Klasse stellt die wesentlichen Mechanismen zur Verf"ugung, um einfach Matches programmieren zu k"onnen. Es enth"alt die Eigenschaften:
+Diese abstakte Klasse stellt die wesentlichen Mechanismen zur Verf"ugung, um einfach Matches programmieren zu k"onnen. Es enth"alt die Eigenschaften:
 \begin{itemize}
 \item source
 
@@ -290,6 +789,8 @@ Der Name des Matches.
 \item description
 
 Eine Beschreibung, wie das Matching funktioniert.
+
+\item einige Attribute, die der Berechnung der Bewertungen dienen.
 \end{itemize} 
 
 Diese Klasse verf"ugt "uber einige Methoden, die wichtigen davon  sind:
@@ -308,17 +809,21 @@ Diese Methode f"ugt ein neues Match von Source nach Target ein. Sollte es noch k
 
 Diese Methode liefert ein Feld mit allen Targets, die von Source aus gematcht sind.
 
+\item removeMatches
+
+Diese Methode löscht den übergebenen RegionTreeNode aus der Match-Struktur. Hierbei wird nicht nur das Single-Match gelöscht, dass das übergebene Objekt als Source hat, sondern es werden auch alle Targets durchsucht.
+
 \item getTargetChildren
 
 Diese Methode liefert alle Kinder der Targets als Feld aus. Falls ein Target ein ConvexHullTreeNode ist, dann finden sich im R"uckgabefeld alle seine Kinder  wieder, falls Target ein Face ist, dann werden alle Holes und die Kinder des Cycles zur"uckgegeben. Diese Sonderbehandlung des Faces ist n"otig, da man ein Face mit seinem Cycle identifizieren kann, und die L"ocher also quasi Kinder des Cycles sind.
 
-\item fertig
+\item finalize
 
-Die Erzeugung von Dreiecken bzw. MovingLines mit der Klasse mLineRep funktioniert nur, falls nur 1:1 Matchings vorkommen. Nach der Erzeugung des Matchings ist das im Allgemeinen nicht gew"ahrleistet, desshalb muss man am Ende der Erzeugung diese Methode aufrufen, die sich darum k"ummert. Auch die Beseitigung von zu stark gedrehten Konkativit"aten findet hier statt. N"aheres zum Ablauf dieser Funktion folgt weiter unten.
+Die Erzeugung von Dreiecken bzw. MovingLines mit der Klasse mLineRep funktioniert nur, falls auschließlich 1:1 Matchings vorkommen. Nach der Erzeugung des Matchings ist das im Allgemeinen nicht gew"ahrleistet, deshalb muss man am Ende der Erzeugung diese Methode aufrufen, die sich darum k"ummert (siehe \ref{1zuN}). Auch die Beseitigung von zu stark gedrehten Konkativit"aten (siehe \ref{gedrehtKon}) findet hier statt.
 
 \item Die Bewertungsfunktionen
 
-In dieser Klasse sind auch einige der Bewertungsverfahren implementiert, die in dem allgemeinen Matching-Teil beschrieben sind. Im einzelnen sind dass:
+In dieser Klasse sind auch einige der Bewertungsverfahren implementiert, die ich unter \ref{bewertung} beschrieben habe. Im einzelnen sind dass:
 \begin{itemize}
 \item Das Area-Rating
 \item Das Hausdorff-Rating
@@ -326,323 +831,139 @@ In dieser Klasse sind auch einige der Bewertungsverfahren implementiert, die in 
 \item Das Overlap-Rating
 \end{itemize}
 
+\item getRating
+
+diese Funktion bekommt vier Gewichte, multipliziert jedes Rating mit seinem Gewicht, und liefert diese gewichtete Summe zurück.
+
 \end{itemize}
 
-\subsection{Beschreibung von verwendeten Algorithmen}
-In disem Abschnitt werde ich Algorithmen vorstellen, die entweder sehr zentral f"ur die L"osung des Interpolationsproblems sind, oder Algorithmen, die keine Standard-Algorithemen sind. Diese Algorithmen musste ich also selbst entwickeln.
 
-\subsubsection{Rotaring Pane}
-\begin{algorithm}
-		\SetKwFunction{fMI}{finde\_passenden\_Index}
-	\caption{Rotaring Pane Allgorithmus, um aus zwei konvexen H"ullen moving segments zu erstellen}
-	\Ein{KH"ulle1 und KH"ulle2, zwei konvexe H"ullenb"aume}
-	\Ergebnis{Eine Menge von moving segments, die die Interpolation der beiden Polygone darstellt}
-	\Begin{
-		Bestimme $KH1$ und $KH2$ die konvexen H"ullen der Polygone als Feld von LineWAs\;
-		Berechne die Winkel in jedem Eckpunkt von $KH1$ und $KH2$\;
-		Sortiere $KH1$ und $KH2$ aufsteigend nach diesen Winkeln\;
-		$j:=0$\;
-		\Fuer{$i<KH1.l"ange$}{
-			$j:=\fMI{KH2, j, KH1[i].winkel, \text{false}}$\;
-			F"uge das moving segment:$(KH1[i],KH1[i+1],KH2[j]$ dem Ergebnis-Feld hinzu\;
-		}			
-		$j:=0$\;
-		\Fuer{$i<KH2.l"ange$}{
-			$j:=\fMI{KH1, j, KH2[i].winkel,\text{true}}$\;
-			F"uge das moving segment:$(KH2[i],KH2[i+1],KH[j]$ dem Ergebnis-Feld hinzu\;
-		}			
-	}
-\end{algorithm}
+Folgende abstrakte Methoden müssen von abgeleiteten Matches implementiert werden:
 
-\begin{function}
-	\caption{finde\_passenden\_Index(Polygon, Startindex, Winkel, Gleiche\_Winkel)}
-	
-	\Ein{\begin{tabular}{ll}
-		Polygon: &Das zu durchsuchende konvexe Polygon als Feld\\
- 			&von LineWAs\\
-		Startindex: &Der Index, an dem die Suche beginnen\\
- 				&soll\\
-		Winkel: &Der Winkel, zu dem der passende Index gesucht\\
- 			&wird\\
-		Gleiche\_Winkel: &Dieser boolsche Parameter gibt an, \\
-				&wie mit parallelen Kanten verfahren werden soll
-	     \end{tabular}
-	}
-	\BlankLine
-	\Ergebnis{Der Index des Punktes, an dem die Linie anf"angt, mit der die Ecke mit dem "ubergebenen Winkel gematched wird}
-	\Begin{	
-        	\uWenn {$Winkel<Polygon[0].Winkel$}	{
-        		Gebe den Index 0 zur"uck\;
-		}
-        	\uWenn{$Polygon[0].Winkel=Winkel$ und $Gleiche\_Winkel$}{
-        			Gebe den Index 0 zur"uck\;
-		}        
-        	\Wenn{$Winkel>Polygon[letzer\_Index].Winkel$}{
-        		Gebe den Index 0 zur"uck\;
-		}
-	
-        	\Solange{Nicht $(Polygon[j].Winkel\geq Winkel$ und $Polygon[j-1].Winkel\leq Winkel)$}{
-        		\uWenn{$(j\neq0$ und $Winkel<Polygon[j-1].Winkel$}{
-        			$j:=j-1$\;
-			}	
- 	           	\Sonst{
-				\Wenn{$Polygon[0].Winkel\neq Winkel$}{
-		                 	$j:=j+1$\;
-				}
-			}
-		}
-		\Wenn{$Polygon[j].Winkel=Winkel$ und $Gleiche\_Winkel$}{
-	        	$j:=j+1$\;
-		}
-		Gebe den Index $j$ zur"uck\;
-	}		
-\end{function}
-\clearpage
-\subsubsection{Zerlegung von einfachen Polygonen in konvexe Polygone}
-\begin{algorithm}
-	\SetKwFunction{gCV}{liefere\_konvexe\_Ecken}
-	\SetKwFunction{iSA}{ist\_teilbar}
-	\caption{Zerlegung von einfachen Polygonen in konvexe Polygone}
-	\Ein{Eine Menge $Polygone$ von einfachen Polygonen, repr"asentiert durch geordnete Punktlisten}
-	\Ergebnis{Die Menge $Polygone$ besteht nur noch aus konvexen Polygonen}
-	\Begin{
-		$aktuell:=0$\;
-		$konvexe\_Ecken=\emptyset$\;
-		\Wiederh{$|konvexe\_Ecken|=0$ und $aktuell=|Polygone|$}{
-            		$aktuelles\_Polygon=Polygone[aktuell]$\;
-			$konvexe\_Ecken=aktuelles\_Polygon.\gCV{}$\;
-			\uWenn{$|konvexe\_Ecken|>0$}{
-				\Wenn{$|konvexe\_Ecken|>1$}{
-					\Fuer{$i<|konvexe\_Ecken|$}{
-						\Fuer{$j:=i+1$ \KwTo $j<|konvexe\_Ecken|$}{
-							\Wenn{$aktuelles\_Polygon.\iSA{konvexe\_Ecken[i],konvexe\_Ecken[j]}$}{
-								Teile $aktuelles\_Polygon$ an den Ecken $konvexe\_Ecken[i]$ und $konvexe\_Ecken[j]$\;
-								Ersetzt $aktuelles\_Polygon$ in $Polygone$ durch die beiden neuen Polygone\;
-								Durchlaufe alle Scheifen von neuem\;
-							}
-						}
-					}
-				}
-                		$Index1:=konvexe\_Ecken[0]$\;
-				$Index2:=Index1+\frac{|aktuelles\_Polygon|}{2}$\;
-				\Fuer{$i<|aktuelles\_Polygon|$}{
-					$split\_Index=Index2+\frac{(-1)^i i}{2}$\;
-		                    	\Wenn{$aktuelles\_Polygon.\iSA{Index1,split\_Index}$}{
-		                    	Teile $aktuelles\_Polygon$ an den Ecken $Index1$ und $split\_Index$\;
-								Ersetzt $aktuelles\_Polygon$ in $Polygone$ durch die beiden neuen Polygone\;
-					}
-				}
-			}
-			\Sonst{
-				$aktuell:=aktuell+1$\;
-			}
+\begin{itemize}
 
-		}
-	}
-\end{algorithm}
-\clearpage
-\subsubsection{Aufbau eines ConvexHullTrees}
-Der Algorithmus zum Aufbau eines ConvexHullTrees wurde in \cite{TG} bereits erl"autert. Da dieser aber von zentraler Bedeutung zur L"osung des Problems ist, bespreche ich den Algorithmus an dieser Stelle noch einmal.
+\item matchFaces
 
-Als Beispiel dient mir ein Polygon aus der GERMANY-Datenbank. Bei diesem Polygon handelt es sich um die Gemeinde Sandershausen, die als Enklave zu dem Stadtkreis Kassel geh"ort. Abbildung \ref{fig:Sanders} zeigt dieses Polygon in dem dazugeh"origen Luftbild, dass ich aus der Applikation Google-Earth entnommen habe. 
+diese Funktion bekommt zwei Felder von Faces, eines von der Source und eines von der Targetseite und muss sich darum kümmern, die Faces zu finden, die zu matchen sind. Dann muss die Funktion addMatch aufrufen, und matchCHTNs für die zu matchenden Cycles und Holes aufzurufen.
 
-Der erste Schritt, bei der Erzeugung eines ConvexHullTree-Kontens, ist die Ereugung der konvexen H"ulle des Polygons. In den Abbildungen \ref{fig:sand2} und \ref{fig:sanders3} ist diese in Rotbraun eingezeichnet. Der Allgorithmus, der zur Erzeugung der H"ulle benutzt wird ist der \index{Graham Scan}Graham Scan Algorithmus, der zu den Standard-Allgorithem zu z"ahlen ist. In \cite{G72} wurde dieser Algorithmus das erste Mal beschrieben. Eine gute Beschreibung finden Sie \anmerkung{hier Literaturstelle einf"ugen}.
+\item matchCHTNs
 
-Im Anschu"s daran wird das Ausgangspolygon nach zusammenh"angenden Linienz"ugen durchsucht, die nicht in der konvexen H"ulle enthalten sind. Diese Suche wird mittels eines parallelen Durchlaufs duch beide Linienz"uge realisiert.
+auch diese Funktion bekommt zwei Felder, disesmal aber von ConvexHullTreeNodes und muss sich darum kümmern diese richtig zu matchen. Für die Kinder dieser gematchen ConvexHullTreeNodes muss die Funktion dann rekursiv aufgerufen werden.
 
-Schlie"slich wird diser Algorithmus rekursiv f"ur alle diese Linienz"uge aufgerufen und die Ergebnisse werden an die entsprechenden Stellen in den Vaterknoten eingeh"angt.
+\item getBestMatch
 
-\begin{figure}
-	\centering
-	\includegraphics[height=5cm]{Sandershausen.eps}
-	\caption{Die Gemeinde Sandershausen als Beispiel eines ConvexHullTrees}
-	\label{fig:Sanders}
-\end{figure}
-\begin{figure}
-	\centering
-	\includegraphics[width=5cm]{Sandershausen2.eps}
-	\caption{Ausschnitt von Sandershausen mit den Nodes der Level 0-1}
-	\label{fig:sand2}
-\end{figure}
-\begin{figure}
-	\centering
-	\includegraphics[width=5cm]{Sandershausen3.eps}
-	\caption{Ausschnitt von Sandershausen mit dem kompletten ConvexHullTree}
-	\label{fig:sanders3}
-\end{figure}
+diese beiden Funktionen, die eine operiert auf Faces und die andere auf ConvexHullTreeNodes, bekommt ein Source-Objekt, und ein Feld von Target-Objekten. Zurückliefern muss die Funktion das Target, welches am besten zu dem Source-Objekt passt.
 
-\begin{algorithm}
+\end{itemize}
 
-\SetKwFunction{cH}{berechne\_konvexe\_H"ulle}
-	\caption{Erzeuge einen konvexen H"ullenbaum aus einem Polygon}
-	\Ein{\begin{tabular}{ll}
-		Polygon: &Ein Polygon,rep"asentiert duch eine geordnete Liste von \\
-			&Eckpunkten\\
-		Ebene:	&Die Ebene des zu Erzeugenden Elementes\\
-		ist\_Loch: &Ein boolscher Parameter der angibt, ob das neue Element \\
-			&zu einem Loch geh"ort\\
-		Vater:	&Das Vaterelement des Neuen\\
-		\end{tabular}
-	}
-	\BlankLine
-	\Ergebnis{Ein konvexer H"ullenbaum, der das "ubergebene Poygon beschreibt}
-	\Begin{
-	
-%         LineWA[] tmplist, convhull, childlist;
-	Setze die Klassen-Variabeleln $ist\_Loch$ und $Vater$\;
+\subsubsection{\index{CentroidMatch}CentroidMatch}
 
-%         int node;
-%         int index1, index2, length, lastindex, noiterations;
-%         int indexll1, indexll2;
-%         this.linelist = new Vector();
-%         smallesty = Integer.MAX_VALUE;
-%         smallestx = Integer.MAX_VALUE;
-%         smallestpoint = -1;       
-	$konvexeH"ulle:=\cH(Polygon)$\;
-%         // Find where the first node in linelist is in the convex hull
-%         // (Or the earliest possible if the first node is not on the hull)
-%         // This is to preserve the order in the linelist in the ordering of
-%         // points in the convex hull tree node.
-	$startindex:=0$\;
-	$endindex:=konvexeH"ulle.L"ange$\;
-	Finde den Index, in der konvexen H"ulle, der dem niedrigsten Index in dem Polygon entspricht, und speichere Ihn in $startindex$\;
-	Finde den Index, in der konvexen H"ulle, der dem h"ochsten Index in dem Polygon entspricht, und speichere Ihn in $endindex$\;
-         %for (int a=0;a<linelist.length;a++)
-% {
-%             index1 = TriRepUtil.indexOf(convhull, linelist[a]);
-%             if (index1 != -1) break;
-% }
-%         for (int a=linelist.length-1;a>=0;a--)
-% {
-%             lastindex = TriRepUtil.indexOf(convhull, linelist[a]);
-%             if (lastindex != -1) break;
-% }
-	\uWenn{$startindex<endindex$}{
-		\Fuer{$i:=startindex$ \KwTo $i\leq endindex$}{	
-			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
-		}
-	}
-	\Sonst{
-		
-        	\Fuer{$i:=index1$ \KwTo $konvexeH"ulle.L"ange$}
-		{
-			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
-		}
-		\Fuer{$i:=0$ \KwTo $endindex$}
-		{
-			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Konten\;
-		}
-	}
-%         // Check lines in convex hull with lines in line list. Whenever two points
-%         // which are neighbours in the convex hull are not neighbours in the line
-%         // list, create a child node from the points between them.
-%         
-%         noiterations = numberOfLines();
-%         index1 = 0;
-%         indexll1 = 0;
-%         while (!(linelist[indexll1].equals(getLine(index1))))
-% {
-%             indexll1++;
-% }
-	\Fuer{$i<konvexeH"ulle.L"ange$}
-	{
-%             index2 = index1+1;
-%             indexll2 = indexll1+1;
-%             while (!(linelist[indexll2 % linelist.length].equals(getLine(index2 % noiterations))))
-% {
-%                 indexll2++;
-% }
-%             
-%             if ((indexll2 != indexll1+1) && ((level == 0) ||
-%                     ((indexll2 != linelist.length) && (indexll1 != linelist.length-1)))
-%                     && (indexll2 != indexll1-1))
-% {
-%                 // create child node
-%                 length = indexll2-indexll1+1;
-%                 childlist = new LineWA[length];
-%                 for (int b=0;b<length;b++)
-% {
-%                     if ((b+indexll1) < linelist.length)
-% {
-%                         childlist[length-b-1] = linelist[b+indexll1];
-% }
-%                     else
-% {
-%                         childlist[length-b-1] = linelist[b+indexll1-linelist.length];
-% }
-% }
-%                 insertChild(index1, new ConvexHullTreeNode(childlist, level+1,this.isHole,this));
-% }
-%             index1 = index2;
-%             indexll1 = indexll2;
-	}
-}
- \end{algorithm}
-\clearpage
-\subsubsection{Bestimmung der maximalen Distanz mehrerer Polygone}\}\label{maxDist}
-\begin{algorithm}
-	\SetKwFunction{gLDFP}{l"angste\_Entfernung\_von\_Punkt}
-	\SetKwFunction{dist}{Quadrat\_der\_Entfernung}
-	\caption{Bestimmung der maximalen Distanz mehrerer Polygone}
-	\Ein{Mehrere Polygone repr"asentiert duch ihre Punktlisten}
-	\Aus{Der maximale Abstand von zwei Punkten}
-	\Begin{
-		Bilde eine gemeinsame Punktliste durch konkatenieren der Eingangslisten\;
-		Bilde $CH$ die konvexe H"ulle der Eingangsdaten\;
-		$i:=0$\; 
-		$tmpdist:=0$\;
-		$pos:=frac{CH.length}{2}$\;
-		\Fuer{$i<CH.length$}{
-			$pos:=\gLDFP{CH[i],CH,pos}$\;
-			$distxy:=\dist{CH[i],CH[pos]}$\;
-		        \Wenn{$distxy>tmpdist$}
-			{			
-			           $tmpdist:=distxy$\;
-			}			
-		}    
-		Das Ergebnis ist $\sqrt{tmpdist}$\;
-	}
-\end{algorithm}
+diese Klasse implementiert das Schwerpunkt-Match mit Schwellenwert. Der relative Schwellenwert muss bei der Konstruktion mit angegeben werden.
 
-\begin{function}
-	\SetKwFunction{dist}{Quadrat\_der\_Entfernung}
-	\SetKwFunction{gLDFP}{l"angste\_Entfernung\_von\_Punkt}
-	\caption{l"angste\_Entfernung\_von\_Punkt(Punkt, Polygon, Startindex)}
-	\Ein{\begin{tabular}{ll}
-Punkt: &Der Punkt, zu dem der Abstand gemessen wird,\\
-	     Polygon: &Das Polygon, in dem der am weitesten \\
-			&entfernte Punkt gesucht wird\\
-	
-	     Startindex: &Der Index an dem die Suche begonnen wird\end{tabular}}
-	\BlankLine
-	\Ergebnis{Der Index des Polygonpunktes, der von dem Punkt den maximalen Abstand hat.}
-	\Begin{
-		$distpos:=\dist{Punkt,Polygon[pos]}$\;
-		$distposlinks:=\dist{Punkt,Polygon[pos+1]}$\;
-		$distposrechts:=\dist{Punkt,Polygon[pos-1]}$\;
-		\uWenn{$distpos\geq distposlinks$ und $distpos\geq distposrechts$}{
-			Gebe $pos$ als Ergebnis zur"uck\;
-		}
-		\Sonst{
-			\uWenn{$distposlinks>distpos$}{
-				Gebe $\gLDFP{Punkt, Polygon, (pos+1)}$ zur"uck\;
-			}		
-			\Sonst{Gebe $\gLDFP{Punkt, Polygon, (pos-1)}$ zur"uck\;}
-		}
-	}
-\end{function}
+\subsubsection{\index{SteinerPointMatch}SteinerPointMatch}
 
-\begin{function}
-	\caption{Quadrat\_der\_Entfernung(Punkt1, Punkt2)}
-	\Ein{Die beiden Punkte, deren Abstand berechnet werden soll}
-	\Ergebnis{Das Quadrat des Abstandes der beiden Punkte}
-	\Begin{
-		Berechne $x_1^2$ $x_2^2$, $y_1^2$, $y_2^2$, $x_1x_2$ und $y_1y_2$ in doppelter Genauigkeit\;
-		Gebe $x_1^2+x_2^2+y_1^2+y_2^2-2(x_1x_2+y_1y_2)$ in einfacher Genauigkeit zur"uck\;
-	}
-\end{function}
+diese Klasse implementiert das Steinerpunkt-Match mit Schwellenwert.
 
-\clearpage
+\subsubsection{\index{OverlapingMatch}OverlapingMatch}
+
+diese Klasse implementiert das Überlapungs-Match mit Schwellenwert.
+
+\subsubsection{\index{OptimalMatch}OptimalMatch}
+
+diese Klasse implementiert das zusammengesetzte Match, das unter \ref{bewertung} beschrieben ist. Hierbei werden mehrere Matches der obigen Drei, mit verschiedenen Schwellwerten, berechnet, und dann wird das am besten Bewertete benutzt. Bei der Konstruktion diese Matches können vier Gewichte mitangegeben werden, die angeben, mit welchem Gewicht die einzelnen Bewertungen in die Gesamtbewertung eingehen. Da die finalize-Methode niemals von dieser Klasse aus ausgeführt wird fehlen die Implementationen der abstrkten Methoden der Match-Klasse hier.
+
+\subsubsection{\index{mLineRep}mLineRep}
+
+Diese Klasse dient dazu, aus einem Match eine Menge von MovingSegments zu erzeugen. Die einzigen Attribute dieser Klasse sind
+\begin{itemize}
+
+\item  myMatch
+
+das Match, aus dem die MovingSegments erzeugt werden sollen und
+
+\item triangles
+
+ein Feld, das die erzeugten Segmente aufnimmt.
+
+\end{itemize}
+
+Ruft man den Konstruktor mit einem Match auf, so erzeut dieser die gewünschten Segmente. Unter \ref{rotPane} und \anmerkung{Ref einfügen} wird das Vorgehen hierbei näher erläutert.
+
+Die einzige interesannte Methode der Klasse ist getTriangles, mit deren Hilfe man auf das Ergebnis zugreifen kann.
+
+\subsubsection{\index{Utils}Utils}
+
+Die Klasse Utils stellt einige statische Methoden zur Verfügung, welche ich aus den anderen Klassen heraus aufrufe.
+
+\begin{itemize}
+
+\item getArea
+
+Diese Methode liefert die Fläche des übergebenen Polygones zurück und ist so implementiert, dass die Fläche negativ wird, falls die Punkte des Polygones nicht in mathematisch positiver Drehrichtung (gegen den Uhrzeigersinn) angeordnet sind. Dieses Vorgehen ist auch unter \cite{BW} beschrieben.
+
+\item convexHull
+
+Diese Methode wendet einen Graham-Scan Algorithmus auf das, als Punktliste, übergebene Polygon an.
+
+\item sameSide
+
+Hier wird entschieden, ob sich der übergebene Punkt ($p$) links oder rechts der Linie befindet, die durch die beiden andere Punkte  ($l_1$ und $l_2$) gegeben ist. Die Blickrichtung ist hierbei von $l_1$ zu $l_2$. Hierzu wird die Drehrichtung des Dreiecks $\bigtriangleup(l_1,l_2,p)$ bestimmt. Dieser Vorgang passiert analog zu  dem Verfahren von $getArea$.
+
+\item getHausdorfDistance
+
+Der Rückgabewert dieser Funktion ist der Hausdorff-Abstand(siehe~\ref{Hausdorff}) der beiden übergebenen Polygone. 
+
+\item getDiameter
+
+Diese Funktion liefert den Duchmesser des übegeben Polygons, und nutzt hierzu die Funktion $getMaxDistance$.
+
+\item getMaxDistance
+
+Diese Methode berechnet den Durchmesser der gemeinsamen konvexen Hülle der übergebenen Punkte, wie unter \ref{gmD} beschrieben. Ruft man diese Methode mit einem einzigen Polygon auf, so erhält man dessen Durchmesser.
+
+\item getSquareDistance
+
+Wie in \ref{getdist} beschrieben, wird hier das Quadrat des Abstandes von zwei übergebenen Punkten berechnet.
+
+\item computeLineAngles
+
+Diese Funtion berechnet zu jedem Punkt, vom Typ LineWA, in dem übergebenen Feld, den Winkel, den die Kante von diesem Punkt zu dem nächsten  mit der x"~Achse einnimmt. 
+
+\item getOverlap
+
+Diese Funktion liefert den Flächeninhalt der Überlappung der beiden übergebenen Polygone. In der Java Implementierung greift diese Funktion auf Methoden von java.geom zurück. In der Secondo-Implementierung wird stattdessen auf MakeOp.Intersection aus der PlaneSweep-Algebra zurückgegriffen.
+
+\item convert2Region
+
+Diese Methode, die es nur in der Secondo-Implementierung gibt, erzeugt aus einer Punktliste eine Spatail-Algebra-Region.
+
+\item getIntersections
+
+Hier werden alle Schnittpunkte berechnet, die das übergebene Liniensegment mit Liniensegmenten des Polygons hatt. 
+
+\item getIntersection
+
+Diese Funktion bestimmt den Schnittpunkt zweier Liniensegmente, gegeben durch ihr vier Endpunkte. Die Berechnung erfolgt, wie in \cite{BW} beschrieben.
+
+\item getRectangularDistance
+
+Diese Funktion liefert 0, falls der Übergebene Punkt ausserhalb des Streifens liegt, der sich rechtwinkelig zu dem Liniensegment erstreckt. Liegt der Punkt innerhalb, so wird der kürzeste Abstand des Punktes zu der Linie zurückgegeben. Diese merkwürdige Funktion wird ausschließlich von $getSplitLine$ benutzt, und dort näher beschrieben \anmerkung{Ref einfügen}. Das Verfahren zur Berechnung dieses Wertes habe ich wiederum aus \cite{BW} entnommen.
+
+\item joinLinelists
+
+Diese Funktion dient dazu, zu einem übergebenen Polygon, das der Cycle eines Faces ist, und einem zweiten Polygon, das durch die Teilung eines Holes entstand, ein gemeinsames Polygon zu bilden. All diese  Polygone werden durch Punktlisten dargestellt. Näher ist dieses Vorgehen in \anmerkung{Ref einfügen} beschrieben.
+
+\item getClosestBoundaryPoint
+
+Diese Methode liefert denjenigen Eckpunkt des übergebenen Polygones zurück, der auf dem Liniensegment $(l_1,l_2)$ liegt und dessen Abstand zu $l_1$ minimal unter all diesen Punkten ist.
+
+\item PointsOnLine
+
+Diese Methode überprüft, ob mindestens einer der übergebenen Punkte auf dem übergebenen Liniensegment liegt.
+
+\end{itemize}
+
+
 
 \section{Die Java-Application \anmerkung{3 Seiten}}
 \anmerkung{Hier beschreibe ich kurz, welche "Anderungen ich an der gegebenen Java-Applikation vorgenommen habe. Hier betrachte ich haupts"achlich die GUI-Komponenten.}
