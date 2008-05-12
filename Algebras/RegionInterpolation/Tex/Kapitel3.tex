@@ -89,27 +89,44 @@ Solche Klassifizierungsaufgaben sind genau das klassische Einsatzgebiet von neur
 
 \subsection{Beseitigung von 1:n Matches}\label{1zuN}
 
-Falls es ein 1:n Matching gibt, dann muss diese aufgel"ost werden. Hierbei existieren 2 M"oglichkeiten:
-\begin{itemize}
-\item Alle $n$ Targets sind Kinder einer einzigen ConvexHullTreeNode
+Der Algorithmes, welcher aus dem Match movingSegments erzeugt, kann ausschließlich mit Matches umgehen, wo es zu jedem Source maximal ein Target gibt. Taucht ein 1:n Matching auf, dann muss diese also aufgel"ost werden. 
 
-Dieser Fall ist der einfachere, seine Behandlung wurde schon in \cite{TG} beschrieben. Kurz gesagt geht es darum, die konvexe H"ulle aller Targets zu bilden, und das Matching von den $n$ Targets auf diese neue H"ulle umzuleiten.
+\subsubsection*{Alle $n$ Targets sind Kinder einer einzigen ConvexHullTreeNode}
 
-Leider versagt dieses Verfahren, falls die gematchten Polygone sich nicht ähnlich genug sind. Leider gelang es mir nicht, genau zu analysieren, in welchen Fällen genau die Probleme auftauchen. Desshalb musste ich auf die Implementierung dieses Verfahrens verzichten.
+Sind alle $n$ Targets Kinder einer einzigen ConvexHullTreeNode, so gibt es einen Algorithmus, der schon in \cite{TG} beschrieben wurde. Kurz gesagt geht es darum, die konvexe H"ulle aller Targets zu bilden, und das Matching von den $n$ Targets auf diese neue H"ulle umzuleiten.
 
-\item Alle n Targets haben unterschiedliche V"ater
+Leider versagt dieses Verfahren, falls die gematchten Polygone sich nicht ähnlich genug sind. Es gelang mir nicht, genau zu analysieren, in welchen Fällen genau die Probleme auftauchen. Deshalb musste ich auf die Implementierung dieses Verfahrens verzichten. Falls das Verfahren funktionierte, sahen die Ergebnisse aber sehr gut aus. Es erscheit daher lohnenswert diesem Verfahren weiter nachzugehen.
 
-In diesem Fallist die Vereinigung der Targets, wie oben beschrieben, nicht zielf"uhrend, sondern es muss versucht werden den Source aufzuteilen. Hierbei ist folgendes zu beachten:
+\subsubsection*{Source ist ein Face, oder ein Hole}
+
+Ist die Source ein Face, oder ein Hole,  so muss versucht werden den Source aufzuteilen. Ich habe einige Überlegungen angestellt, wie es möglich ist diese Zerteilung möglichst schonend, will meinen ohne das man das zu teilende Objekt und alle Matches von diesem neu berechen muss, vornahmen kann.
 \begin{itemize}
 \item Eine ConvexHullTreeNode ist nur an Eckpunkten, oder an Punkten auf Linien zu teilen, die keine Kinder haben, da sonst die ConvexHullTree zerst"ort w"urden.
 
 \item Eine ConvexHullTreeNode ist nur an zwei Punkten zu teilen, wenn das beschriebene Polygon auch nur in zwei Teile zerf"allt.
-\item Wird in Face zerteilt , sollte m"oglichst kein Hole zerteilt werden. Falls sich das nicht verhindern l"asst, so zerf"allt das Loch in zwei Konkavit"aten, was eine Neuberechnung der entsprechenden Matchings zur Folge hat.
 
 \item Die Zerteilung der Source-Komponente sollte die Lage und das Verh"altnis der Fl"acheninhalte der Target-Komponenten weitestgehend wiederspiegeln.
 
 \end{itemize} 
-\end{itemize} 
+
+Nach Rücksprache mit Herr Professor Ralf Hartmut G"uting habe ich diesen schonenden Ansatz nicht weiterverfolgt, sondern ein Verfahren gefunden, dass bei dem Zerteilen schönere Ergebnisse findet. Der Preis davon ist, dass die erzeugten Objekte und alle Matches dieses Objekten komplett neu berechnet werden müssen. Bei der Neuberechnung der neuen Matches ist zu beachten, dass man hier in keine Endlosschleife laufen darf. So eine Endlosschleife kann entstehen, wie das folgende Beispiel zeigt.
+
+Nehmen wir an, dass das Polygon $A$ gegen zwei Polygone $B_1$ und $B_2$ gematcht wird. Deshalb wird $A$ in $A_1$ und $A_2$ geteilt. Bei der Neuberechnung des Matches wird nun $A_1$ wieder gegen $B_1$  und $B_2$ gematcht. Also muß $A_1$ in $A_{1_1}$ und $A_{1_2}$ geteilt werden, die leider wieder gegen $B_1$ und $B_2$ gematcht werden. ...
+
+Um solche Effekte zu umgehen, darf man für $A_1, A_2,B_1$ und $B_2$ nicht ein normales Match berechen, sonden man darf $A_1$ und $A_2$ nur gegen das eine $B_i$ matchen, das am besten passt. 
+
+Wird in Face zerteilt, so kann es passieren, daß ein Hole zerteilt werden. Falls sich das nicht verhindern l"asst, so zerf"allt das Loch in zwei neue Konkavit"aten, die den neuen Faces hinzugefügt werden müssen. Ein Algorithmus der dieses Leistet findet sich unter \ref{JoinLL} Nichtzerteilte Holes müssen demjenigen neuen Face zugeordnet werden, in dem diese liegen.
+
+Um ein optisch möglichst ansprechendes Resultat zu erzeugen, müssen sich Form und Lage der Targetobjekte in der Aufsplittung wiederfinden. Ein Algortihmus der dieses liefert findet sich unter \ref{ZerteilungsAlgo}. Bei diesem Algorithmus gehen nur zwei Polygone auf der Targetseite in die Zerteilung ein. Weitergehende Zersplitterungen lassen sich durch die mehrfache Anwendung dieses Algorithmusses erzeugen.
+
+\subsubsection*{Source ist ein untergeorneter ConvexHullTreeNode}
+
+Da man in diesem Fall das oben beschriebene Verfahren nicht anwenden kann, muss man auf folgenden, sehr einfachen Algorithmus zurückgreifen, der analog zu dem Verfahren funktioneiert, mit welchem im letzen Abschnitt Endlosschleifen vermieden wurden:
+
+Wird $A$ auf  $B_1,B_2, \hdots ,B_n$ gematcht, so lösche alle Matches, außer dem einen, welches die höchste Bewertung aus allen Einzelmatches von $A$ auf $B_i$ hat.
+
+Obwohl dieses Verfahren sehr einfach ist, sehen die Ergebnisse überraschen gut aus. Eine Verbesserung könnte hier allenfalls duch den Algorithmus von T\o{}ssebro erreicht werden, wenn man dessen unerwünschte Verhalten abstellen könnte.
+
 \subsection{Beseitigung von "`gedrehten Konkavit"aten"'}\label{gedrehtKon}
 In manchen F"allen versagt das in \cite{TG} genannte Verfahren, um aus Matchings Moving-Regions zu erzeugen. Dieses, in Kapitel "`6 Interpolating between two arbitray polygones"' beschriebene Verfahren setzt voraus, dass die beiden gematchten Kinderpolygone ein gemeinsames, aus zwei Dreiecken zusammengesetztes Trapez in der Aussenh"ulle der beider Vaterpolygone besitzen. 
 
@@ -227,6 +244,35 @@ Wie man am Beispiel der Summen-Norm sehen kann, gibt es mehr M"oglichkeiten zu b
 \subsection{Beschreibung von verwendeten Algorithmen}
 In disem Abschnitt werde ich Algorithmen vorstellen, die entweder sehr zentral f"ur die L"osung des Interpolationsproblems sind, oder Algorithmen, die keine Standard-Algorithemen sind. Diese Algorithmen musste ich also selbst entwickeln.
 
+\subsubsection{\index{splitline!Berechnung}Berechnung einer Zerlegungslinie für ein ConvexHullTreeNode aus zwei Anderen}\label{ZerteilungsAlgo}
+
+Dieser Algorithmus bekommt ein zu zerteilendes ConvexHullTreeNode ($A$) und zwei andereConvexHullTreeNodes ($B_1$ und $B_2$). Berechnet werden soll nun ein Linienzug, der die Lage und Form von $B_1$ und $B_2$ möglichst gut wiedergeben soll, und an dem sich $A$ zerteilen lassen kann.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{ZuZersplitten.eps}
+	\caption[Zu teilendes Polygon mit Referenzpolygonen]{Die Polygone $A$ (gelb), $B_1$ (blau) und $B_2$ (rot).}
+	\label{fig:ZuZersplitten}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{RectDist.eps}
+	\caption{Alle Punkte von $B_1$ und $B_2$, die in dem Streifen zwischen den beiden Schwerpunkten liegen.}
+	\label{fig:RectDist}		
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{Mittelpunkte.eps}
+	\caption{Alle gefilterten Punkte aus $B_1$ und $B_2$, die zulässigen Vergindungslinien und deren Mittelpunkte.}
+	\label{fig:Mittelpunkte}
+\end{figure}
+
+
+
+\subsubsection{Zerteilete Löcher als Konkativitäten in ein Cycle einbauen}\label{JoinLL}
+
 \subsubsection{\index{Rotaring Pane}Rotaring Pane} \label{rotPane}
 In \cite{TG} wurde bereits der Algorithmus ,,rotating Pane'' vorgestellt. I, Laufe meiner Arbeit musste ich diesen Algorithmus nachprogrammieren, und habe hierbei eine Version gefunden, die etwas einfacher ist und erheblich weniger Fallunterscheidungen benutzen muss.
 
@@ -313,7 +359,7 @@ Diese Funktion durchsucht ein Feld, dass ein konvexes Polygon in der Form wie ob
 
 \clearpage
 
-\subsubsection{Zerlegung von einfachen Polygonen in konvexe Polygone}
+\subsubsection{Zerlegung von einfachen Polygonen in konvexe Polygone}\label{Zerlegung}
 
 Um beliebige Polygone in VRML-Dateien exportieren zu können, musste ich einen Algorithmus finden, der beliebige, einfache Polygone in konvexe zerlegen kann. Natürlich hätte ich einfach eine Dreieckszerlegung vornehmen können, diese Zerlegung wäre aber möglicherweise erheblich kleinteiliger, als ich das eigentlich brauchte. Die Idee des Algorithmusses ist auch ganz einfach:
 
@@ -660,7 +706,7 @@ liefert den Steinerpunkt der konvexen Hülle.
 
 \item getSplitLine
 
-liefert einen Linienzug, an dem das Objekt geteilt werden kann. Die beiden übergebenen konvexen Hüllenbäume dienen hierbei als Anleitung. \anmerkung{Ref einfügen}
+liefert einen Linienzug, an dem das Objekt geteilt werden kann. Die beiden übergebenen konvexen Hüllenbäume dienen hierbei als Anleitung. Der entsprechende Algorithmus findet sich unter \ref{ZerteilungsAlgo}
 
 \item getSplitNodes
 
@@ -947,7 +993,7 @@ Diese Funktion bestimmt den Schnittpunkt zweier Liniensegmente, gegeben durch ih
 
 \item getRectangularDistance
 
-Diese Funktion liefert 0, falls der Übergebene Punkt ausserhalb des Streifens liegt, der sich rechtwinkelig zu dem Liniensegment erstreckt. Liegt der Punkt innerhalb, so wird der kürzeste Abstand des Punktes zu der Linie zurückgegeben. Diese merkwürdige Funktion wird ausschließlich von $getSplitLine$ benutzt, und dort näher beschrieben \anmerkung{Ref einfügen}. Das Verfahren zur Berechnung dieses Wertes habe ich wiederum aus \cite{BW} entnommen.
+Diese Funktion liefert 0, falls der Übergebene Punkt ausserhalb des Streifens liegt, der sich rechtwinkelig zu dem Liniensegment erstreckt. Liegt der Punkt innerhalb, so wird der kürzeste Abstand des Punktes zu der Linie zurückgegeben. Diese merkwürdige Funktion wird ausschließlich von $getSplitLine$ benutzt, und dort (\ref{ZerteilungsAlgo} näher beschrieben \anmerkung{Ref einfügen}. Das Verfahren zur Berechnung dieses Wertes habe ich wiederum aus \cite{BW} entnommen.
 
 \item joinLinelists
 
@@ -966,7 +1012,101 @@ Diese Methode überprüft, ob mindestens einer der übergebenen Punkte auf dem �
 
 
 \section{Die Java-Application \anmerkung{3 Seiten}}
-\anmerkung{Hier beschreibe ich kurz, welche "Anderungen ich an der gegebenen Java-Applikation vorgenommen habe. Hier betrachte ich haupts"achlich die GUI-Komponenten.}
+Im Folgenden  beschreibe ich, welche Klassen die Java-Applikation auszeichnen, die diese also von den allgemeinen Klassen (siehe oben) unterscheiden. Naturgemäß finden sich hier im Wesentlich die GUI-Klassen und die Klassen für den VRML-Export wieder.
+
+Der folgende Abschnitt dient nur der Beschreibung der Klassen und stellt kein Handbuch zur Benutzung der Java-Applikation dar. Ein solches finden Sie unter dem Anhang~\ref{Handbuch}.
+
+\begin{itemize}
+\item Convexer
+Diese Klasse dient dazu, den Algorithmus zum Zerteilen eines Faces in mehrere konvexe Polygone, wie unter \ref{Zerlegung} beschrieben, zu realisieren. Diese Klasse nutzt zwei Hilfsklassen, die ich nicht näher beschreiben möchte:
+\begin{itemize}
+
+\item ConPoygon
+
+Diese Klasse repräsentiert ein zu bearbeitendes Polygon.
+\item ConVertex
+
+Diese Klasse repräsentiert eine Ecke eines zu bearbeitenden Polygons.
+\end{itemize}
+
+Nachdem man ein Convexer-Objekt angelegt hat, indem man ihm das zu bearbeitende Face übergeben hat, kann man dieses mit der Funktion \textbf{writePolygone} in eine VRML-Datei schreiben.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.8]{MatchViewer.eps}
+	\caption[Ein MatchViewer mit allen Unteklassen] {Hier sieht man die Komponenten MatchViewer, ConvexHullTreeViewer (CHTV), ConvexHullTreeTreeViewer (CHTTV) und ConvexHullPolygonViewer (CHTPV) zusammen.}
+	\label{fig:MatchViewer}
+\end{figure}
+
+\item ConvexHullTreePolygonViewer
+
+Diese Klasse dient dazu, einen RegionTree als Polygon darzustellen. Faces sind hier grün gefärbt, Holes rot und tierferliegende ConvexHullTreeNodes blau. Zu jedem ConvexHullTreeNode wird nicht nur der eigentliche Umfang des Polygons, sondern die Konvexe Hülle dargestellt.
+
+Zusätzlich beinhaltet diese Klasse ein Attribut actual, das ein Feld von RegionTreeNodes ist. Diese Elemente werden organge dargestellt, und ermöglicht das Auswählen von Elementen, falls der ConvexHullTreePolygonViewer in einen höheren Kontext eingebunden wird.
+
+\item ConvexHullTreeTreeViewer
+
+Diese Klasse dient dazu, einen RegionTree als Baum darzustellen. Die Darstellung dieses Baumes orientiert sich an der Darstellung, win man sie von Verzeichnissbäumen in verschiedenen Betriebsystemen kennt.
+
+Diese Klasse benutzt zwei Hilfsklassen:
+\begin{itemize}
+\item ConvexHullTreeTreeViewerNode
+
+Diese Klasse repräsentiert einen Element des RegionTrees und kümmert sich zum einen um die textuelle Beschreibung dieses, und zum anderen darum, den Baum rekursiv aufzubauen.
+\item ConvexHullTreeTreeViewerRenderer
+
+Diese Hilfsklasse kümmert sich darum, die Darstellung der einzelnen Elemente farblich zu unterscheiden. Die Farben bei der Darstellung entsprechen denen im ConvexHullTreePolygonViewer, nur das zusätzlich noch die Farbe gelb, für das Vaterelement, die Region, benutzt wird.
+\end{itemize}
+
+Nachdem man ein Objekt dieser Klasse angelegt hat und ihm dabei den gewünschten RegionTree übergeben hat, läßt sich dieses wie jedes andere JPanel benutzen.
+
+\item ConvexHullTreeViewer
+
+Diese Klasse fasst die beiden Darstellungen als Baum und als Polygon zusammen. Auf der linken Seite dieser GUI-Komponente findet sich die Baum-Darstellung, und auf der rechten die Darstellung als Polygon. Die Verbindung zwischen den beiden wird hergestellt, so dass es möglich ist, in der Baumdarstellung ein, oder mehrere Nodes zu selektieren, die dann auch in der Polygondarstellung gesondert markiert werden.
+
+\item MatchViewer
+
+Dieses Control zeigt ein Match an, indem zwei ConvexHullTreeViewer, für die Source- und die Target-Region, übereinander dargestellt werden. Die Verbindung dieser beiden wird so umgeleitet, dass die Selektion eienes Elementes, in einem der beiden ConvexHullTreeTreeViewer die Selkektion in dem gematchten Element zu Folge hat. Konstruiert wird diese Komponente, indem man einfach ein Match übergibt. Auch diese Komponente ist von JPanel abgeleitet, und läßt sich entsprechend einsetzen.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{Sectionviewer.eps}
+	\caption{Ein SectionViewer, bestehend aus drei oneSectionViewern.}
+	\label{fig:SectionViewer}
+\end{figure}
+
+
+\item SectionViewer
+
+Diese Klasse stellt das Ergebniss des Matchings, die erzeugten dreidimensionalen Dreiecke dar, indem eine Menge von unterschiedlichen Schnittbildern dargestellt werden. Über ein Control läßt sich die gewünschte Anzahl der Schnittbilder einstellen und dann erscheinen diese im unteren Bereich der GUI-Komponente. Die einzelenen Schnittbilder werden von der Hilfsklasse  \textbf{oneSectionViewer} gezeichnet.
+
+Konstruiert wird der Section-Viewer einfach, indem man diesem ein Objekt vom Typ mLineRep übergibt.
+
+
+\item TriRepOutPutCanvas
+
+Auch diese Klasse stellt ein mLineRep-Objekt dar. Allerdings erfolgt die Darstellung hier isometrisch. Die Source- und die Target-Region werden parallel zur Monitorebene dargestellt, wobei das target nach rechtsoben verschoben wird. Die Linien des Sources sind blau, die des Targets rot. Die Linien dazwischen, also die Linien der Dreiecke sind in grauer Farbe markiert.
+
+Diese Komponente bekommt neben dem mLineRep-Objekt noch eine Ganzzahl, die den Grad der Verschiebung angibt. Diese läßt sich mittels der Methode \textbf{setTimeShift} auch nachträglich ändern. Auch wenn der Name der Klasse anderes vermuten läßt, ist diese Klasse kein Canvas sondern ein JPanel. Der Name ist noch ein Relikt von der T\o{}ssebroschen-Applikation.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.7]{TriRepOutPutCanvas.eps}
+	\caption{Ein TriRepOutputCanvas.}
+	\label{fig:TriRepOutputCanvas}
+\end{figure}
+
+
+
+
+\item tegnecanvas
+
+Diese Klasse bildet die Zeichenfläche der Applikation. In dieser kann der Benutzer seine beiden Regionen malen. Nachdem der Benutzer dies getan hat, kann man mit den Funktionen getFirstSnapshot und getSecondSnapshot die Regionen auslesen. 
+
+\item MCIContents
+
+Diese Klasse vereinigt alle anderen Klassen zu der eigentlichen Applikation. Diese Klasse läßst sich entweder als Applet benutzen, oder in ein JFrame einbinden, der damit eine Standalone-Applikation bildet.
+\end{itemize}
 \section{Die Secondo-Algebra \anmerkung{3 Seiten}}
 \anmerkung{Hier beschreibe ich kurz, wie ich die Secondo-Algebra implementiert habe. Speziell die Einbettung in das Secondo soll hier betrachtet werden.}
 
