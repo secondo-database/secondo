@@ -8851,13 +8851,21 @@ void Region::ComputeCycle( HalfSegment &hs,
           edgeno--;
        }while(sCycleVector.size()>1);
        delete s; //when s is deleted, the critical point is also deleted.
+       s = 0;
        if (sCycleVector.size()==1)
        {
          sCycleVector.pop_back();
+         if(s){
+           delete s;
+         }
          s = new SCycle(firstSCycle);
        }
-       else
+       else{
+         if(s){
+           delete s;
+         }
          s= new SCycle(sAux);
+       }
        hs = s->hs1;
        currentCriticalPoint=s->criticalPoint;
        nextPoint=s->nextPoint;
@@ -8895,6 +8903,10 @@ void Region::ComputeCycle( HalfSegment &hs,
      s=NULL;
   }
   while(1);
+  if(s){
+    delete s;
+    s = 0;
+  }
 
 }
 
@@ -9013,7 +9025,9 @@ void Region::ComputeRegion()
         }
       }
       else
+      {
         isFirstCHS = false;
+      }
       ComputeCycle(aux, faceno,cycleno, edgeno, cycle);
     }
   }
@@ -9319,6 +9333,59 @@ face is not clear. In the following we do this kind of check.
   return true;
 }
 
+
+/*
+~getDir~
+
+This fucntion will return true iff the cycle given as a 
+vector of points is in clockwise order.
+ 
+
+*/
+
+bool getDir(const vector<Point>& vp){
+  // determine the direction of cycle
+  int min = 0;
+  for(unsigned int i=1;i<vp.size();i++){
+    if(vp[i] < vp[min]){
+       min = i;
+    }
+  }
+
+  bool cw;
+  int s = vp.size();
+  if(AlmostEqual(vp[0],vp[vp.size()-1])){
+    s--;
+  }
+
+  Point a = vp[ (min - 1 + s ) % s ];
+  Point p = vp[min];
+  Point b = vp[ (min+1) % s];
+  if(AlmostEqual(a.GetX(),p.GetX())){ // a -> p vertical
+    if(a.GetY()>p.GetY()){
+       cw = false;
+    } else {
+       cw = true;
+    } 
+  } else if(AlmostEqual(p.GetX(), b.GetX())){ //p -> b vertical
+    if(p.GetY()>b.GetY()){
+       cw = false;
+    } else {
+       cw = true;
+    }
+  } else { // both segments are non-vertical
+    double m_p_a = (a.GetY() - p.GetY()) / (a.GetX() - p.GetX());
+    double m_p_b = (b.GetY() - p.GetY()) / (b.GetX() - p.GetX());
+    if(m_p_a > m_p_b){
+        cw = false;
+    } else {
+        cw = true;
+    }
+  }
+  return cw;
+}
+
+
 /*
 This function check whether a region value is valid after thr insertion of a new half segment.
 Whenever a half segment is about to be inserted, the state of the region is checked.
@@ -9388,42 +9455,9 @@ static vector<Point> getCycle(const bool isHole,
         cerr << "Unused halfsegment found" << endl;
      }
   }
-  // determine the direction of the cycle
-  int min = 0;
-  for(unsigned int i=1;i<vp.size();i++){
-    if(vp[i] < vp[min]){
-       min = i;
-    }
-  }
-  
 
-  bool cw;
-  int s = vp.size();
-  Point a = vp[ (min - 1 + s ) % s ];
-  Point p = vp[min];
-  Point b = vp[ (min+1) % s];
-  if(AlmostEqual(a.GetX(),p.GetX())){ // a -> p vertical
-    if(a.GetY()>p.GetY()){
-       cw = false;
-    } else {
-       cw = true;
-    } 
-  } else if(AlmostEqual(p.GetX(), b.GetX())){ //p -> b vertical
-    if(p.GetY()>b.GetY()){
-       cw = false;
-    } else {
-       cw = true;
-    }
-  } else { // both segments are non-vertical
-    double m_p_a = (a.GetY() - p.GetY()) / (a.GetX() - p.GetX());
-    double m_p_b = (b.GetY() - p.GetY()) / (b.GetX() - p.GetX());
-    if(m_p_a > m_p_b){
-        cw = false;
-    } else {
-        cw = true;
-    }
-  }
 
+  bool cw = getDir(vp);
 
   if(!(( isHole && cw ) || (!isHole && !cw))){
     vector<Point> vp2;

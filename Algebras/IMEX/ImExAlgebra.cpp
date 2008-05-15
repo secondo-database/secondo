@@ -67,6 +67,8 @@ This file contains the implementation import / export operators.
 #include "FTextAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "DateTime.h"
+#include "TopOpsAlgebra.h"
+#include "DBArray.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1284,6 +1286,13 @@ class shpimportInfo{
  public:
 
    shpimportInfo(int allowedType, FText* fname){
+
+     cout << "shpimportInfo::INIT() called" << endl; 
+     cout << "allowedType =" << allowedType 
+          << ", FName = " 
+          << fname->GetValue() << endl;
+
+
      if(!fname->IsDefined()){
        defined = false;
      } else {
@@ -1504,7 +1513,7 @@ class shpimportInfo{
      readBigInt32();
      uint32_t len = readBigInt32();
      uint32_t type = readLittleInt32();
-     if(type==2){
+     if(type==0){
        if(len!=2){
           cerr << "Error in file detected" << endl;
           file.close();
@@ -1579,11 +1588,758 @@ class shpimportInfo{
      return line;
    }
 
+
+/*
+~getNextPolygon~
+
+This function read the next region value from the file and returns it.
+In case of an error or if no more regions are available, the return value
+will be 0.
+
+*/
+
+
    Attribute* getNextPolygon(){
-       cerr << "getNextMultiPoint not implemented" << endl;
+     cout << "**************************** " 
+          << "getNextPolygon ************************" << endl;
+     if(file.tellg()==fileend){ // end of file reached
        return 0;
+     }
+
+     readBigInt32(); // ignore record number
+     uint32_t len = readBigInt32();
+     uint32_t type = readLittleInt32();
+     if(type==0){
+       if(len!=2){
+          cerr << "Error in file detected" << __LINE__  <<  endl;
+          file.close();
+          defined = false;
+          return 0;
+       } else { // NULL shape, return an empty region
+         return new Region(0);
+       }
+     }
+     if(type!=5){ // different shapes are not allowed
+       cerr << "Error in file detected" << __LINE__ << endl;
+       cerr << "Expected Type = 5, but got type: " << type << endl;
+       file.close();
+       defined = false;
+       return 0;
+     }
+     // ignore box
+     readLittleDouble();
+     readLittleDouble();
+     readLittleDouble();
+     readLittleDouble();
+     uint32_t numParts  = readLittleInt32();
+     uint32_t numPoints = readLittleInt32();
+     // for debugging the file
+     uint32_t clen = (44 + 4*numParts + 16*numPoints)/2;
+     if(clen!=len){
+        cerr << "File invalid: length given in header seems to be wrong" 
+             << endl;
+        file.close();
+        defined = false;
+        return 0;
+     }
+     // read the starts of the cycles
+     vector<uint32_t> parts;
+     for(unsigned int i=0;i<numParts;i++){
+       uint32_t p = readLittleInt32();
+       parts.push_back(p);
+     }
+
+     // read the cycles
+     vector<vector <Point> > cycles;
+     uint32_t pos = 0;
+     for(unsigned int p=0;p<parts.size(); p++){
+        vector<Point> cycle;
+        uint32_t start = pos;
+        uint32_t end = p< (parts.size()-1) ? parts[p+1]:numPoints;
+        Point lastPoint(true,0.0,0.0);
+        // read a single cycle
+        for(unsigned int c=start; c< end; c++){
+            double x = readLittleDouble();
+            double y = readLittleDouble();
+            Point point(true,x,y);
+            if(c==start){ // the first point
+               cycle.push_back(point);
+               lastPoint = point;
+            } else if(!AlmostEqual(lastPoint,point)){
+               cycle.push_back(point);
+               lastPoint = point;
+            }
+            pos++;
+        }
+        cycles.push_back(cycle);
+     }
+     return buildRegion(cycles); 
    }
+
+
+/*
+~buildRegion~
+
+Builds a region from a set of cycles.
+
+*/
+   Region* buildRegion(vector< vector<Point> >& cycles){
+     // first step create a single region from each cycle
+     vector<pair<Region*, bool> > sc_regions; // single cycle regions
+     for(unsigned int i=0;i<cycles.size(); i++){
+        vector<Point> cycle = cycles[i];
+        addRegion(sc_regions,cycle);
+     }
+
+     // split the vector into faces and holes
+     vector<Region*> faces;
+     vector<Region*> holes;
+
+     for(unsigned int i=0;i<sc_regions.size();i++){
+       if(sc_regions[i].second){
+          faces.push_back(sc_regions[i].first);
+       } else {
+          holes.push_back(sc_regions[i].first);
+       }
+     }
+
+     // subtract all holes from each face if nessecary
+     vector<Region*> faces2;
+     for(unsigned int i=0;i<faces.size();i++){
+        Region* face = faces[i];
+        for(unsigned int j=0; j< holes.size(); j++){
+           Region* hole = holes[j];
+           if(face->BoundingBox().Intersects(hole->BoundingBox())){
+              if(!topops::wcontains(hole,face)){ // may be an island
+                 Region* tmp = topops::SetOp(*face,*hole,topops::difference_op);
+                 delete face;
+                 face = tmp;
+              }
+           }
+        }
+        if((face->Size())!=0){
+           faces2.push_back(face);
+        } else { // face was removed completely
+           delete face;
+        }
+     }
+
+     // the hole regions are not longer needed, delete them
+     for(unsigned int i=0;i<holes.size();i++){
+      delete holes[i];
+     }
+
+     if(faces2.size()<1){
+         cerr << "no face found within the cycles" << endl;
+         return new Region(1);
+     } 
+     // build the union of all faces
+     Region* reg = faces2[0];
+     for(unsigned int i=1;i<faces2.size();i++){
+       Region* face2 = faces2[i];
+       Region* tmp = topops::SetOp(*reg, *face2, topops::union_op);
+       delete reg;
+       delete face2;
+       reg = tmp;
+     }
+     return reg;
+  }
+
+
+
+
+
+/*
+~SetPartnerno~
+
+Sets the partner for the halfsegments if the edegno is set correct.  
+
+*/
+void SetPartnerNo(DBArray<HalfSegment>& segs){
+  if(segs.Size()==0){
+     return;
+  }
+  int TMP[(segs.Size()+1)/2];
+  const HalfSegment* hs1;
+  const HalfSegment* hs2;
+  for(int i=0; i<segs.Size(); i++){
+     segs.Get(i,hs1);
+     if(hs1->IsLeftDomPoint()){
+       TMP[hs1->attr.edgeno] = i;
+     } else {
+       int leftpos = TMP[hs1->attr.edgeno];
+       HalfSegment right = *hs1;
+       right.attr.partnerno = leftpos;
+       segs.Get(leftpos,hs2);
+       HalfSegment left = *hs2;
+       left.attr.partnerno = i;
+       segs.Put(i,right);
+       segs.Put(leftpos,left); 
+     }
+  }  
+}
+
+
+/*
+~numOfNeighbours~
+
+Returns the number of halfsegments having the same dominating point
+like the halfsegment at positition pos (exclusive that segment). 
+The DBArray has to be sorted.
+
+*/
+int numOfNeighbours1(const DBArray<HalfSegment>& segs,const int pos){
+   const HalfSegment* hs1;
+   const HalfSegment* hs2;
+   segs.Get(pos,hs1);
+   Point dp(hs1->GetDomPoint());
+   int num = 0;
+   bool done= false;
+   int pos2 = pos-1;
+   while(pos2>0 && !done){
+     segs.Get(pos2,hs2);
+     if(AlmostEqual(dp,hs2->GetDomPoint())){
+       num++;
+       pos2--;
+     }else {
+       done = true;
+     }
+   }
+   done = false;
+   pos2 = pos+1;
+   while(!done && pos2<segs.Size()){
+     segs.Get(pos2,hs2);
+     if(AlmostEqual(dp,hs2->GetDomPoint())){
+       num++;
+       pos2++;
+     }else {
+       done = true;
+     }
+   }
+   return num;
+}
+// slower implementation
+int numOfNeighbours(const DBArray<HalfSegment>& segs,const int pos){
+   const HalfSegment* hs1;
+   const HalfSegment* hs2;
+   segs.Get(pos,hs1);
+	 Point dp = hs1->GetDomPoint();
+   double dpx = dp.GetX();
+   int num = 0;
+   bool done= false;
+   int pos2 = pos-1;
+   while(pos2>0 && !done){
+     segs.Get(pos2,hs2);
+     if(AlmostEqual(dp,hs2->GetDomPoint())){
+       num++;
+       pos2--;
+     }else {
+       double dpx2 = hs2->GetDomPoint().GetX();
+       if(AlmostEqual(dpx,dpx2)){
+         pos2--;
+       }else{
+         done = true;
+       }
+     }
+   }
+   done = false;
+   pos2 = pos+1;
+   while(!done && pos2<segs.Size()){
+     segs.Get(pos2,hs2);
+     if(AlmostEqual(dp,hs2->GetDomPoint())){
+       num++;
+       pos2++;
+     }else {
+       double dpx2 = hs2->GetDomPoint().GetX();
+       if(AlmostEqual(dpx,dpx2)){
+         pos2++;
+       } else {
+         done = true;
+       }
+     }
+   }
+   return num;
+}
+
+/*
+~numOfUnusedNeighbours~
+
+Returns the number of halfsegments having the same dominating point
+like the halfsegment at positition pos (exclusive that segment). 
+The DBArray has to be sorted.
+
+*/
+int numOfUnusedNeighbours1(const DBArray<HalfSegment>& segs,
+                          const int pos, 
+                          const bool* used){
+   const HalfSegment* hs1;
+   const HalfSegment* hs2;
+   segs.Get(pos,hs1);
+   Point dp = hs1->GetDomPoint();
+   int num = 0;
+   bool done= false;
+   int pos2 = pos-1;
+   while(pos2>0 && !done){
+     segs.Get(pos2,hs2);
+     if(AlmostEqual(dp,hs2->GetDomPoint())){
+       if(!used[pos2]){
+         num++;
+       }
+       pos2--;
+     }else {
+       done = true;
+     }
+   }
+   done = false;
+   pos2 = pos+1;
+   while(!done && pos2<segs.Size()){
+     segs.Get(pos2,hs2);
+     if(AlmostEqual(dp,hs2->GetDomPoint())){
+       if(!used[pos2]){
+         num++;
+       }
+       pos2++;
+     }else {
+       done = true;
+     }
+   }
+   return num;
+}
+
+// slow, but more saved alternative
+int numOfUnusedNeighbours(const DBArray<HalfSegment>& segs,
+                          const int pos, 
+                          const bool* used){
+   const HalfSegment* hs1;
+   const HalfSegment* hs2;
+   segs.Get(pos,hs1);
+   Point dp = hs1->GetDomPoint();
+   double dpx = dp.GetX();
+   int num = 0;
+   bool done= false;
+   int pos2 = pos-1;
+   while(pos2>0 && !done){
+     segs.Get(pos2,hs2);
+     if(AlmostEqual(dp,hs2->GetDomPoint())){
+       if(!used[pos2]){
+         num++;
+       }
+       pos2--;
+     }else {
+       double dpx2 = hs2->GetDomPoint().GetX();
+       if(AlmostEqual(dpx,dpx2)){
+         pos2--;
+       } else {
+         done = true;
+       }
+     }
+   }
+   done = false;
+   pos2 = pos+1;
+   while(!done && pos2<segs.Size()){
+     segs.Get(pos2,hs2);
+     if(AlmostEqual(dp,hs2->GetDomPoint())){
+       if(!used[pos2]){
+         num++;
+       }
+       pos2++;
+     }else {
+       double dpx2 = hs2->GetDomPoint().GetX();
+       if(AlmostEqual(dpx,dpx2)){
+          pos2++;
+       } else {
+         done = true;
+       }
+     }
+   }
+   return num;
+}
+
+/*
+~getUnusedExtension~
+
+Returns the position of an unused extension of the segemnt at position pos.
+If no such segment exist, -1 is returned.
+
+*/
+
+// old, faster but unsave version
+int getUnusedExtension1(const DBArray<HalfSegment>& segs,
+                       const int pos,
+                       const bool* used){
+     const HalfSegment* hs;
+     segs.Get(pos,hs);
+     Point dp = hs->GetDomPoint();
+     bool done = false;
+     int pos2=pos-1;
+     while(pos2>=0 & !done){
+       if(used[pos2]){
+         pos2--;
+       } else {
+         segs.Get(pos2,hs);
+         if(AlmostEqual(dp,hs->GetDomPoint())){
+            return pos2;
+         } else {
+            done = true;
+         }
+       }
+     } 
+     pos2 = pos+1;
+     while(pos2<segs.Size() ){
+        if(used[pos2]){
+            pos2++;
+        }else {
+           segs.Get(pos2,hs);
+           if(AlmostEqual(dp,hs->GetDomPoint())){
+             return pos2;
+           } else {
+             return -1;
+           }
+        }
+     }
+     return -1;
+}
+
+// slow version
+int getUnusedExtension(const DBArray<HalfSegment>& segs,
+                        const int pos,
+                        const bool* used){
+      const HalfSegment* hs;
+      segs.Get(pos,hs);
+      Point dp = hs->GetDomPoint();
+      double dpx = dp.GetX();
+      bool done = false;
+      int pos2=pos-1;
+      while(pos2>=0 & !done){
+        if(used[pos2]){
+          pos2--;
+        } else {
+          segs.Get(pos2,hs);
+          if(AlmostEqual(dp,hs->GetDomPoint())){
+             return pos2;
+          } else {
+             double dpx2 = hs->GetDomPoint().GetX();
+             if(AlmostEqual(dpx,dpx2)){
+               pos2--;
+             } else { // outside the X-Range
+               done = true;
+             }
+          }
+        }
+      }
+      pos2 = pos+1;
+      while(pos2<segs.Size() ){
+         if(used[pos2]){
+             pos2++;
+         }else {
+            segs.Get(pos2,hs);
+            if(AlmostEqual(dp,hs->GetDomPoint())){
+              return pos2;
+            } else {
+              double dpx2 = hs->GetDomPoint().GetX();
+              if(AlmostEqual(dpx,dpx2)){
+                pos2++;
+              }else{
+                return -1;
+              }
+            }
+         }
+      }
+      return -1;
+}
+
+
+void removeDeadEnd(DBArray<HalfSegment>* segments, 
+                   vector<Point>& path, vector<int>& positions,
+                   const bool* used){
+
+   int pos = positions.size()-1;
+   while((pos>=0) && 
+         (numOfUnusedNeighbours(*segments,positions[pos],used) < 1)){
+       pos--;
+   }
+   if(pos<=0){ // no extension found
+      positions.clear();
+      path.clear();
+   } else {
+     cout << "Remove path from " << pos << " until its end" << endl;
+     positions.erase(positions.begin()+pos, positions.end());
+     path.erase(path.begin()+pos,path.end());
+   }
+
+}
+
+
+
+
+
+/*
+Adds a single cycle region to regs if cycle is valid.
+
+*/
+void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
+
+  cout << " ---------------------- addRegion called " 
+       << " -----------------------" << endl;
+  if(cycle.size()<4){ // at least 3 points
+    cerr << "Cycle with less than 3 different points detected" << endl;
+    cout << "------------------------ addRegion finished " 
+         << "-------------------------" << __LINE__ << endl;
+    return;
+  }
+
+  cout << "addRegion with a 'cycle' having " 
+       << cycle.size() << " Points called" << endl;
+
+  bool isFace = getDir(cycle);
+
+  // Build a DBArray of HalfSegments
+  DBArray<HalfSegment> segments1(0);
+ 
+  for(unsigned int i=0;i<cycle.size()-1;i++){
+    Point p1 = cycle[i];
+    Point p2 = cycle[i+1];
+    Point lp(0.0,0.0);
+    Point rp(0.0,0.0);
+    if(p1<p2){
+       lp = p1;
+       rp = p2;
+    } else {
+       lp = p2;
+       rp = p1;
+    }
+
+    HalfSegment hs1(true,lp,rp);
+    
+    hs1.attr.edgeno = i;
+    hs1.attr.faceno = 0;
+    hs1.attr.cycleno =0;
+    hs1.attr.coverageno = 0;
+    hs1.attr.insideAbove = false;
+    hs1.attr.partnerno = -1;
+
+    HalfSegment hs2 = hs1;
+    hs2.SetLeftDomPoint(false);  
+
+    segments1.Append(hs1);
+    segments1.Append(hs2);
+  }
+
+  segments1.Sort(HalfSegmentCompare);
+
+  cout << "There was an DBArray containing " << segments1.Size() 
+        << " Halfsegments created." << endl;  
+
+  DBArray<HalfSegment>* segments = topops::Realminize(segments1);
+
+
+  cout << "After split, the number of halfsegments is " 
+       << segments->Size() << endl;
+
+  SetPartnerNo(*segments);
+
+
+  bool used[segments->Size()];
+  for(int i=0;i<segments->Size();i++){
+    used[i] = false;
+  } 
+
+  // try to find cycles
+
+  vector< vector<Point> > cycles; // corrected (simple) cycles
+
+  for(int i=0; i< segments->Size(); i++){
+    if(!used[i]){ // start of a new path found
+       int pos = i;
+       vector<Point> path;     // current path
+       set<Point>  points;     // index for points in path
+       vector<int> positions;  // positions within the seg array
+                               // corresponding to path
+
+       bool done = false;
+       cout << "Start finding a cycle" << endl;
+       while(!done){
+          const HalfSegment* hs1=0;
+          segments->Get(pos,hs1);
+          Point dp = hs1->GetDomPoint();
+          Point ndp = hs1->GetSecPoint();
+          int partner = hs1->attr.partnerno;
+          path.push_back(dp);
+          positions.push_back(pos);
+          points.insert(dp);
+          used[pos] = true;
+          used[partner] = true;
+          if(points.find(ndp)!=points.end()){ // (sub) cycle found
+
+             cout << "cycle found" << endl;
+
+             path.push_back(ndp);
+             if(AlmostEqual(path[0],ndp)){ // whole path found
+               cout << "The cycle covers the whole part :-)) " << endl;
+               vector<Point> cycle = path;
+               cycles.push_back(cycle);
+               done = true;
+             } else {
+               cout << "Processing subcycle starts " << endl;
+               // we have found a close subcycle, i.e.
+               // path = p_o ... p_k .... p_k
+               
+               // first, find and build a single cycle p_k ... p_k
+               int pos2 = path.size()-2; 
+               vector<Point> cycle;
+               cycle.push_back(ndp);
+               while(pos2>=0  && !AlmostEqual(path[pos2],ndp)){
+                 cycle.push_back(path[pos2]);
+                 pos2--;
+               }
+               if(pos2<0){
+                 cout << "internal error," 
+                      << " ndp contained in set but not in path" << endl;
+                 done = true;
+               } else {
+                 // close cycle
+                 cycle.push_back(ndp);
+                
+                 if(cycle.size()>3){
+                    cycles.push_back(cycle);
+                 } else {
+                    cout << "remove cycle of length " 
+                         << (cycle.size()-1) << endl;
+                 }
+
+                 // remove p_k++ .. p_k from the path
+                 pos = positions[pos2];
+               
+                 positions.erase(positions.begin()+pos2+1, positions.end());
+                 path.erase(path.begin()+pos2+1, path.end());
+
+                  const HalfSegment* last; 
+                  segments->Get(pos,last);
+                  partner = last->attr.partnerno;
+                  int nb = getUnusedExtension(*segments,partner,used); 
+                  if(nb>=0){
+                     cout << "sub path starts at a critical point " << endl;
+                     // sub path ends at a critial point
+                     pos = nb;
+                  } else {
+                     cout << "removing a sub path produces a dead end :-((" 
+                          << endl;
+                     // removing the sub path produces a dead end
+                     removeDeadEnd(segments,path,positions,used);
+                     if(path.size()==0){
+                        cout << "The complete path has been removed" << endl;
+                        done = true;
+                     } else {
+                        cout << "subpath has been removed" << endl;
+                        int nb = getUnusedExtension(*segments,
+                                        positions[positions.size()-1],
+                                        used);
+                        if(nb<0){
+                            cout << "removal of dead end erronous" << endl;
+                            cout << "positions.size() = " 
+                                 << positions.size() << endl;
+                            cout << "path.size() = " << path.size() << endl;
+                            assert(false);
+                        }
+                        pos = nb;
+                     }
+                  }
+                  cout << "processing sub cycle ends " << endl;
+               }
+             }
+          } else {
+            // no cycle, try to extend
+            int nb = getUnusedExtension(*segments,partner,used);
+            if(nb>=0){ 
+              pos = nb;            
+            } else { // dead end found, track back
+
+              cout << "found a dead end" << endl;
+ 
+              int btPos = path.size()-1;
+              bool found = false;
+              int numOfNeighbours = -1;
+              while((btPos>0) && !found){
+                 numOfNeighbours = numOfUnusedNeighbours(*segments,btPos,used);
+                 if(numOfNeighbours>0){
+                    found = true;
+                 } else{
+                    btPos--;
+                 }
+              }
+
+              
+              if(!found){
+                cout << "The complete path of length " << path.size() 
+                     << " must be removed " << endl;
+                done = true;
+              } else {
+                cout << "The dead end starts at " << btPos 
+                     << " and ends at " << path.size() << endl;
+                // remove points
+                for(unsigned int j=btPos+1;j<path.size();j++){
+                    points.erase(path[j]);
+                }
+                path.erase(path.begin()+btPos,path.end());
+                positions.erase(positions.begin()+btPos, positions.end());
+                pos = getUnusedExtension(*segments,btPos,used);
+              } 
+            }
+          }  
+       }
+    }
+  }
+  delete segments;
+
+  // build the region from the corrected cycles
+  Region* result = 0;
+
+  for(unsigned int i = 0; i< cycles.size();i++){
+    vector<Point> cycle = cycles[i];
+    bool cw = getDir(cycle);
+    Region* reg = new Region(0);
+    reg->StartBulkLoad();
+    for(unsigned int j=0;j<cycle.size()-1;j++){
+       Point lp,rp;
+       bool small = cycle[j] < cycle[j+1];
+       if(small){
+         lp = cycle[j];
+         rp = cycle[j+1];
+       } else {
+         lp = cycle[j+1];
+         rp = cycle[j];
+       }
+       HalfSegment hs(true,lp,rp);
+       hs.attr.edgeno = j;
+       hs.attr.insideAbove = (cw && !small) || (!cw && small);
+       hs.attr.faceno=0;
+       hs.attr.cycleno = 0;
+       hs.attr.coverageno = 0;
+       HalfSegment hs2(hs);
+       hs2.SetLeftDomPoint(false);
+       *reg += hs;
+       *reg += hs2;
+    } 
+    reg->EndBulkLoad();
+    if(!result){
+      result = reg;
+    } else {
+      Region* tmp = topops::SetOp(*result,*reg,topops::union_op);
+      delete result;
+      result = tmp;
+      delete reg;
+    }
+  }
+  regs.push_back(make_pair(result,isFace)); 
+
+  cout << "------------------------ addRegion finished " 
+       << " -------------------------" << __LINE__ << endl;
+} 
+
 };
+
+
+
 
 template<int type>
 int shpimportVM(Word* args, Word& result,

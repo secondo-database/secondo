@@ -73,7 +73,7 @@ intersection2, difference2, commonborder2) are implemented.
 #include "LogMsg.h"
 #include "AvlTree.h"
 
-
+#include "TopOpsAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "TopRel.h"
 #include "StandardTypes.h"
@@ -693,7 +693,15 @@ Compares this with s. The x intervals must overlap.
  }
 
 
+/*
+~SetOwner~
 
+This function changes the owner of this segment.
+
+*/
+  void setOwner(ownertype o){
+    this->owner = o;
+  }
 
 /*
 3.7 Some ~Get~ Functions
@@ -863,12 +871,16 @@ provided by (x, y). The point must be on the interior of this segment.
                AVLSegment& left, 
                AVLSegment& right)const{
 
+  /*
+    // debug::start
     if(!ininterior(x,y)){
          cout << "ininterior check failed (may be an effect" 
               << " of rounding errors !!!" << endl;
          cout << "The segment is " << *this << endl;
          cout << "The point is (" <<  x << " , " << y << ")" << endl;
      }
+     // debug::end
+   */
 
      left.x1=x1;
      left.y1=y1;
@@ -4060,6 +4072,232 @@ void Realminize2(const Line& src, Line& result){
 } // Realminize2
 
 
+ownertype selectNext(const DBArray<HalfSegment>& src, int& pos,
+                     priority_queue<HalfSegment,  
+                     vector<HalfSegment>, 
+                     greater<HalfSegment> >& q,
+                     HalfSegment& result){
+
+ int size = src.Size();
+ if(size<=pos){
+    if(q.empty()){
+      return none;
+    } else {
+      result = q.top();
+      q.pop();
+      return first;
+    }
+ } else {
+   const HalfSegment* hs;
+   src.Get(pos,hs);
+   if(q.empty()){
+      result = *hs;      
+      pos++;
+      return first;
+   } else{
+      HalfSegment hsq = q.top();
+      if(hsq<*hs){
+         result = hsq;
+         q.pop();
+         return first;
+      } else {
+         pos++;
+         result = *hs;
+         return first;
+      }
+   }
+ }
+}
+
+DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
+  
+  DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
+
+  if(segments.Size()==0){ // no halfsegments, nothing to realminize
+    res->TrimToSize();
+    return res;
+  }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  AVLTree<AVLSegment> sss;
+
+  int pos = 0;
+
+  HalfSegment nextHS;
+  const AVLSegment* member=0;
+  const AVLSegment* leftN  = 0;
+  const AVLSegment* rightN = 0;
+
+  AVLSegment left1, right1,left2,right2;
+  
+  int edgeno = 0;
+  AVLSegment tmpL,tmpR;
+  while(selectNext(segments,pos,q,nextHS)!=none) {
+      AVLSegment current(&nextHS,first);
+      member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
+      if(nextHS.IsLeftDomPoint()){
+         if(member){ // overlapping segment found in sss
+            double xm = member->getX2();
+            double xc = current.getX2();
+            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+               current.splitAt(xm,member->getY2(),left1,right1);
+               insertEvents(right1,true,true,q,q);
+            }
+         } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q,q);
+            splitByNeighbour(sss,current,rightN,q,q);
+            sss.insert(current);
+         }
+      } else {  // nextHS rightDomPoint
+          if(member && member->exactEqualsTo(current)){
+             // insert the halfsegments
+             HalfSegment hs1 = current.convertToHs(true);
+             HalfSegment hs2 = current.convertToHs(false);
+             hs1.attr.edgeno = edgeno;
+             hs2.attr.edgeno = edgeno;
+             res->Append(hs1);
+             res->Append(hs2);
+             splitNeighbours(sss,leftN,rightN,q,q);
+             edgeno++;
+             sss.remove(*member);
+          }
+      }      
+  }
+  res->Sort(HalfSegmentCompare);
+  res->TrimToSize();
+  return res;
+} 
+
+/*
+~Split~
+
+This function works similar to the realminize function. The difference is,
+that overlapping parts of segments are keept, instead to remove them.
+But at all crossing points and so on, the segments will be split.
+
+*/
+DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments, 
+                            const bool remove){
+  
+  DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
+
+  if(segments.Size()==0){ // no halfsegments, nothing to split 
+    res->TrimToSize();
+    return res;
+  }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  AVLTree<AVLSegment> sss;
+
+  int pos = 0;
+
+  HalfSegment nextHS;
+  const AVLSegment* member=0;
+  const AVLSegment* leftN  = 0;
+  const AVLSegment* rightN = 0;
+
+  AVLSegment left1, right1,left2,right2;
+  
+  int edgeno = 0;
+  AVLSegment tmpL,tmpR;
+
+  while(selectNext(segments,pos,q,nextHS)!=none) {
+      AVLSegment current(&nextHS,first);
+      member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
+      if(nextHS.IsLeftDomPoint()){
+         if(member){ // overlapping segment found in sss
+            double xm = member->getX2();
+            double xc = current.getX2();
+
+            if(!remove){ 
+               // insert the common part into res
+               AVLSegment tmp_left, tmp_common, tmp_right;
+               AVLSegment tmp_mem(*member);
+               tmp_mem.setOwner(second);
+               tmp_mem.split(current,tmp_left,tmp_common,tmp_right);
+               Point pl(true,tmp_common.getX1(),tmp_common.getY1());
+               Point pr(true,tmp_common.getX2(),tmp_common.getY2());
+               if(!AlmostEqual(pl,pr)){
+                 tmp_common.setOwner(first);
+                 //cout << "Insert a multiple store  segment " 
+                 // << tmp_common << endl;
+                 HalfSegment hs1 = tmp_common.convertToHs(true);
+                 HalfSegment hs2 = tmp_common.convertToHs(false);
+                 hs1.attr.edgeno = edgeno;
+                 hs2.attr.edgeno = edgeno;
+                 res->Append(hs1);
+                 res->Append(hs2);
+                 edgeno++;
+               } else {
+                 cout << "Problem: little overlapping part found" << endl;
+               }
+               if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+                 current.splitAt(xm,member->getY2(),left1,right1);
+                 insertEvents(right1,true,true,q,q);
+               }
+            } else { // removal of multiple stored segments
+               if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+                 current.splitAt(xm,member->getY2(),left1,right1);
+                 insertEvents(right1,true,true,q,q);
+                 AVLSegment tmpmem = *member;
+                 tmpmem.con_below = -1;
+                 sss.remove(*member);
+                 sss.insert(tmpmem);
+               } else {
+                 member->splitAt(xc,current.getY2(),left1,right1);
+                 sss.remove(*member);
+                 insertEvents(right1,true,true,q,q);
+                 left1.con_below = -1;
+                 sss.insert(left1); 
+               }
+            }
+
+
+         } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q,q);
+            splitByNeighbour(sss,current,rightN,q,q);
+            current.con_below = 0;
+            sss.insert(current);
+         }
+      } else {  // nextHS rightDomPoint
+          if(member && member->exactEqualsTo(current)){
+             // insert the halfsegments
+             if(!remove || member->con_below>=0){
+                HalfSegment hs1 = current.convertToHs(true);
+                HalfSegment hs2 = current.convertToHs(false);
+                hs1.attr.edgeno = edgeno;
+                hs2.attr.edgeno = edgeno;
+                res->Append(hs1);
+                res->Append(hs2);
+             }
+             splitNeighbours(sss,leftN,rightN,q,q);
+             edgeno++;
+             sss.remove(*member);
+          }
+      }      
+  }
+  res->Sort(HalfSegmentCompare);
+  res->TrimToSize();
+  return res;
+} 
+
+
 /*
 9 Set Operations (union, intersection, difference)
 
@@ -4068,11 +4306,8 @@ The following functions implement the operations ~union~,
 ~intersection~ and ~difference~ for some combinations of spatial types.
 
 
-9.1 Definition of Possible Operations
-
 */
 
-enum SetOperation{union_op, intersection_op, difference_op};
 
 
 /*
@@ -4219,6 +4454,14 @@ void SetOp(const Line& line1,
   } 
   result.EndBulkLoad(true,false,true,true);
 } // setop line x line -> line
+
+
+Line* SetOp(const Line& line1, const Line& line2, SetOperation op){
+  Line* result = new Line(1);
+  SetOp(line1,line2,*result,op);
+  return result;
+}
+
 
 /*
 
@@ -4471,6 +4714,12 @@ void SetOp(const Region& reg1,
   }
   result.EndBulkLoad();
 } // setOP region x region -> region
+
+Region* SetOp(const Region& reg1, const Region& reg2, SetOperation op){
+  Region* result = new Region(1);
+  SetOp(reg1,reg2,*result,op);
+  return result;
+}
 
 
 
@@ -5275,6 +5524,8 @@ static Cluster cl_inside;
 static Cluster cl_contains;
 static Cluster cl_equal;
 
+static Cluster cl_wcontains; // contains || covers
+
 
 /*
 Value Mappings for standard predicates
@@ -5461,6 +5712,10 @@ static void initClusters(){
   assert(cl);
   cl_equal = *cl;
   delete cl;
+
+  cl_wcontains = cl_contains;
+  cl_wcontains.Union(&cl_covers);
+
 }
 
 
@@ -5972,8 +6227,19 @@ class TopOpsAlgebra : public Algebra {
      ~TopOpsAlgebra(){}
 } topOpsAlgebra;
 
+/* 
+Functions exported in the header file.
+
+*/
+bool wcontains(const Region* reg1, const Region* reg2){
+   Int9M dummy;
+   return topops::GetInt9M(reg1, reg2, dummy, true, topops::cl_wcontains); 
+}
 
 } // end of namespace topops
+
+
+
 
 /*
 8.8 Initialization of the Algebra

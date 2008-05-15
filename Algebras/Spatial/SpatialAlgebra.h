@@ -54,6 +54,7 @@ shows examples of these spatial data types.
 
 #include <fstream>
 #include <stack>
+#include <vector>
 #include "StandardAttribute.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
@@ -110,6 +111,11 @@ inline int CompareDouble(const double a, const double b){
    }
    return 1;
 }
+
+bool getDir(const vector<Point>& vp);
+
+
+int HalfSegmentCompare(const void *a, const void *b);
 
 /*
 4 Struct Point
