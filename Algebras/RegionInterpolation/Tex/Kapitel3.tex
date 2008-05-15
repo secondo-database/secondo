@@ -3,7 +3,7 @@
 }
 \minitoc
 \newpage
-\section{Vor"uberlegungen \anmerkung{7 Seiten}}
+\section{Vor"uberlegungen \anmerkung{7 Seiten}} \label{vorueberlegungen}
 Im folgenden werde ich die Vorschl"age aus der Literatur, die ich oben beschrieben habe, bewerten und einige Gedanken ausführen, die ich mir zum Theme Matching gemacht habe. Ausserdem gebe ich an, welche dieser Vorschläge ich verwirklicht habe, und welche noch auf ihre Implementierung warten.
 
 \subsection[Bewertung der Vorschl"age aus \cite{TG}]{Bewertung der Vorschl"age aus ,,Creating Repesentations for Continuously Moving Regions from Observations''\cite{TG}}
@@ -91,7 +91,7 @@ Solche Klassifizierungsaufgaben sind genau das klassische Einsatzgebiet von neur
 
 Der Algorithmes, welcher aus dem Match movingSegments erzeugt, kann ausschließlich mit Matches umgehen, wo es zu jedem Source maximal ein Target gibt. Taucht ein 1:n Matching auf, dann muss diese also aufgel"ost werden. 
 
-\subsubsection*{Alle $n$ Targets sind Kinder einer einzigen ConvexHullTreeNode}
+\subsubsection*{Alle $n$ Targets sind Kinder einer einzigen ConvexHullTreeNode}\label{JoinConc}
 
 Sind alle $n$ Targets Kinder einer einzigen ConvexHullTreeNode, so gibt es einen Algorithmus, der schon in \cite{TG} beschrieben wurde. Kurz gesagt geht es darum, die konvexe H"ulle aller Targets zu bilden, und das Matching von den $n$ Targets auf diese neue H"ulle umzuleiten.
 
@@ -241,12 +241,46 @@ Wie man am Beispiel der Summen-Norm sehen kann, gibt es mehr M"oglichkeiten zu b
 
 \section{Gemeinsame Grundlagen \anmerkung{20 Seiten}}
 
-\subsection{Beschreibung von verwendeten Algorithmen}
+\subsection{Beschreibung von verwendeten Algorithmen} \label{Algorithmen}
 In disem Abschnitt werde ich Algorithmen vorstellen, die entweder sehr zentral f"ur die L"osung des Interpolationsproblems sind, oder Algorithmen, die keine Standard-Algorithemen sind. Diese Algorithmen musste ich also selbst entwickeln.
+
+\subsubsection{\index{Hashwerte!Berechnung}effiziente Berechnung von Hashwerten aus RegionTreeNodes}\label{berechenHashwerte}
+
+Um RegionTrees als Schlüssel in der Hash-Table benutzen zu können muß aus diesen ein Hashwert berechnet werden können. In die Berechnung des Hashwertes muss jede einzelne Ecke des RegionTrees eingehen. Damit ist die Ermittelung dieses Wertes leider eine recht aufwendige Operation, zumal auf diesen Wert im Verlauf eines Matching-Verfahrens sehr oft zugegriffen werden muss. Desshalb ist es nötig, die Hashwerte dieser Objekte zu cachen. 
+
+Um sicherzustellen, dass ein Hashwert immer aktuell ist und keine überflüssigen Neuberechnungen notwendig sind habe ich ein Chachingverfahern gewählt, dass analog zu einem bekannten Verfahren aus der technischen Informatik abläuft. Jedes Objekt des RegionTrees verfügt über ein ,,Dirty-Flag''. Dieses Flag gibt an, ob der gecachte Wert noch aktuell ist. Dieses Flag wird bei jeder Operation gesetzt, die das Objekt so verändert, dass sich der Hashwert auch ändern müsste. Bei jedem lesenden Zugriff auf den Hashwert wird 
+\begin{itemize}
+\item der gecachte Wert zurückgegeben, falls das Dirty-Flag nicht gesetzt ist,
+\item ist das Dirty-Flag gesetzt, so wird der Hashwert neu berechnet, das Dirty-Flag gelöscht und der neuberechnete Wert gelöscht.
+\end{itemize}
+
+Beim Setzen des Dirty-Flags ist darauf zu achten, dass auch bei dem Vaterelement und alle Vorfahren des Vaterelements dieses gesetz werden muss.
+
+Dieses Verfahren stellt sicher, dass die Berechnung des Hashwertes wirklich nur dann erfolgt, wenn dies notwendig ist.
+
+Die Berechnung geht wie folgt von statten:
+
+\begin{itemize}
+\item Konvexer Hüllenbaum
+
+Die Berechnung startet mit einem zufällig  gewählten, fixen Wert. Zu diesem wird dann die kummulierte Summe gebildet, $HV=\lfloor HV+x_i*321+y_i*312\rfloor$. Die Zahl 312 ist wieder wilkürlich gewählt. Da sich aber Geographische Koordinaten oft nur wenig unterscheiden, und eine Unterscheidung etwa von Dreiecken, die nahe beieinander liegen gewährleistet sein muss, darf dieser Wert nicht zu klein gewählt sein. 
+
+In die Berechnung gehen auch noch ein vielfaches des Levels und eine feste Zahl ein, die nur zum tragen kommt, falls das Objekt ein Hole ist.
+
+\item Face
+
+Der Wert für ein Face wird berechnet, indem man zu dem Hashwert des Cycles alle Hashwerte der Löcher hinzuaddiert. Dem Ergebnis wird noch ein weiterer konstanter Summand beigebracht. Somit ist sichergestellt, das der Hashwert eines Faces, welches nur aus einem einzigen Cycle besteht, sich von dem Hashwert des Cycles unterscheidet.
+
+\item Region
+
+Der Hashwert einer Region setzt sich wiederum aus den Hashwerten seiner Faces und einem weiteren konstanten Summanden zusammen.
+\end{itemize}
 
 \subsubsection{\index{splitline!Berechnung}Berechnung einer Zerlegungslinie für ein ConvexHullTreeNode aus zwei Anderen}\label{ZerteilungsAlgo}
 
 Dieser Algorithmus bekommt ein zu zerteilendes ConvexHullTreeNode ($A$) und zwei andereConvexHullTreeNodes ($B_1$ und $B_2$). Berechnet werden soll nun ein Linienzug, der die Lage und Form von $B_1$ und $B_2$ möglichst gut wiedergeben soll, und an dem sich $A$ zerteilen lassen kann.
+
+Die weitere Besprechung dieses Algorithmuses werde ich am Beispiel von drei Polygonen vornehmen. Diese Drei sind in Abbildung~\ref{fig:ZuZersplitten} zu sehen.
 
 \begin{figure}
 	\centering
@@ -255,23 +289,175 @@ Dieser Algorithmus bekommt ein zu zerteilendes ConvexHullTreeNode ($A$) und zwei
 	\label{fig:ZuZersplitten}
 \end{figure}
 
+Zuerst werden die Schwerpunkte $M_1$ und $M_2$  von $B_1$ und $B_2$ berechnet. Dann werden die Eckpunkte der beiden Polygone nach solchen Punkten gefiltert, die auf einer Orthogonalen zu der Strecke zwischen $M_1$ und $M_2$ liegen Die beiden Ergebnislisten werden nach dem Abstand von dem Punkt zu der Linie sortiert, wobei die Abstände auf einer Seite der Linie negativ gewertet werden.
+
+Die beiden Listen der Endpunkte sehen für unser Beispiel au, wie folgende Tabellen. Abbildung~\ref{fig:RectDist} zeigt die ensprechenden Punkte.
+
+\begin{tabular}{|c|r|r|r|r|r|r|r|r|}
+
+\multicolumn{9}{c}{Die Punkte von $B_1$} \\
+\hline
+Punkt&
+ 102&
+ 103&
+ 104&
+ 106&
+ 105&
+ 107&
+ 108&
+ 109\\
+\hline
+Entfernung&
+   88&
+   44&
+   35&
+   16&
+   -1&
+  -29&
+  -49&
+ -111\\
+\hline
+\end{tabular} 
+
+\begin{tabular}{|c|r|r|r|r|r|r|r|}
+
+
+\multicolumn{8}{c}{Die Punkte von $B_2$} \\
+\hline
+Punkt&
+ 206&
+ 205&
+ 204&
+ 203&
+ 202&
+ 201&
+ 200
+\\
+\hline
+Entfernung&
+   75&
+   42&
+   25&
+  -18&
+  -42&
+  -63&
+ -121
+\\
+\hline
+\end{tabular} 
+
+
+
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.6]{RectDist.eps}
-	\caption{Alle Punkte von $B_1$ und $B_2$, die in dem Streifen zwischen den beiden Schwerpunkten liegen.}
+	\caption[Punkte mit einem rechtwinkeligen Abstand zur Schwerpunktlinie]{Alle Punkte von $B_1$ und $B_2$, die in dem Streifen zwischen den beiden Schwerpunkten liegen.}
 	\label{fig:RectDist}		
 \end{figure}
+
+
+Nun nimmt man aus jeder Liste die beiden oberen Punkte und betrachtet sich die Linie, die sich zwischen diesen Punkten aufspannt. Schneidet diese Linie keines der beiden Polygone (außer an den Endpunkten), so merkt man sich den Mittelpunkt der Linie in der Liste: $Mittelpunktlinie$. Aus den Listen wird nun der größere der beiden Punkte gelöscht, falls dieser nicht der letzte in der Punktliste ist. Dieses Vorgehen wird solage vortgesetzt, bis beide Listen nur noch ein einziges Element haben. Die fiktiven Verbindungslinien und ihre Mittelpunkte sind auf der Abbildung~\ref{fig:Mittelpunkte} zu sehen.
 
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.6]{Mittelpunkte.eps}
-	\caption{Alle gefilterten Punkte aus $B_1$ und $B_2$, die zulässigen Vergindungslinien und deren Mittelpunkte.}
+	\caption[Verbindungslinien und deren Mittelpunkte]{Alle gefilterten Punkte aus $B_1$ und $B_2$, die zulässigen Vergindungslinien und deren Mittelpunkte.}
 	\label{fig:Mittelpunkte}
+\end{figure}
+
+Der Linienzug, der nun in der Liste $Mittelpunktlinie$ liegt, liegt genau zwischen den beiden Polygonen und bildet die Struktur der Polygone an der Stelle ab, wo die beiden Polygone einander zugewant sind. Dieser Linienzug ist unter Abbildung~\ref{fig:MittelpunktLinie} zu sehen.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{MittelpunktLinie.eps}
+	\caption{$B_1$ und $B_2$ mit dem berechneten Linienzug.}
+	\label{fig:MittelpunktLinie}
+\end{figure}
+
+In der Regel teilt diese Linie  nun aber $A$ nicht, wie man an dem Beispiel gut sehen kann. Damit diese Linie nun wirklich duch $A$ geht, $A$ komplett geteilt wird und die Lage von $B_1$ und $B_2$ trotzdem noch wiedergespiegelt werden, führe ich folgende Schritte aus:
+
+\begin{enumerate}
+\item Berechne die Schwerpunkte $M_L$ der Linieneckpunkte, $M_A$ von $A$ und $M_B$ aller Eckpunkte von $B_1$ und $B_2$.
+\item Berechne den Skallierungsfaktor $s_1=\frac{|A|}{|B_1|+|B_2|}$. 
+\item Berechne das Maximum der Entfernungen von $M_L$ zu den beiden Endpunkten des Linienzuges, $d_L$ 
+\item Berechne die maximale Entfernung von $M_A$ zu den Eckpunkten von $A$, $d_A$.
+\item Berechne den Skallierungsfaktor $s_2=\frac{d_A}{d_l} * 1,05$. Die 5\% sind wilkürlich gewählt, und sollen die Warscheinlichkeit erhöhen, dass beide Endpunkte des neuen Linienzuges außerhalb von $A$ liegen. 5\% haben sich duchaus bewährt.
+\item Berechne den neuen Linienzug $l'_1,l'_2,\hdots ,l'_n$ durch $l'_i=M_A+(l_i-M_l)*s_1+(M_l-M_B)*s_2$.
+\end{enumerate}
+
+
+Abbildung~\ref{fig:SplitLine} zeigt das Ergebniss an unserem Beispiel. 
+
+Wie man schon an dem wilkürlichen Faktor 5\% sehen kann, liefert dieser Algorithmus bestimmt nicht in allen Fällen ein zulässiges Ergebnis. Die Erfolgsquote scheint aber sehr hoch zu liegen, in allen Beispielen, die ich beim Entwickeln durchgespielt habe tauchte kein einziger Fall auf, wo der Splitt versagte. Die Ergebnisse sahen auch alle sehr natürlich aus.
+
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{Ergebnis.eps}
+	\caption{Das Polygon $A$ mit der berechneten SplitLine.}
+	\label{fig:SplitLine}
+\end{figure}
+
+
+\subsubsection{Zerteilete Löcher als Konkativitäten in ein Cycle einbauen}\label{JoinLL}
+
+Wenn es bei der Teilung eines Faces dazu kommt, dass auch ein Hole geteilt wird, so werden aus den beiden neuen Polygonen Konkavitäten in den beiden neuen Faces. Zunächst muss jede dieser Konkativitäten dem passenden Face zugeordnet werden. Hierzu sucht man sich einfach einen Punkt des neuen Polygons der nicht auf dem Rand eines Faces liegt. Das passende Face ist dann dasjenige, in welchem der gewählte Punkt liegt. 
+
+Als Beispiel betrachen wir das Polygon $A$ aus dem letzten Abschnitt als Face und ergänzen dieses durch ein Hole. Als Schnittlinie wird die eben berechnete benutzt. (siehe Abbildung~\ref{fig:JLL1})
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{JLL1.svg.eps}
+	\caption[EinFace mit einem Hole wird geteilt]{$A$ aus dem letzten Beispiel, jetzt um ein zu teilendes Hole ergäntzt.}
+	\label{fig:JLL1}
+\end{figure}
+
+Der Algorithmus zum Vereinigen der Polygone bekommt nun also zwei Polygone, als geordnete Listen von Eckpunkten, das neue Face und ein passendes Bruckstück eines Holes. Diese Punktlisten werden zunächst sortiert. Die Punkte des Face werden wie gewöhnlich gegen den Uhrzeigersinn  angeordnet, die des Holes hingegen im Uhrzeigersinn. Zunächst suchen wir einen Punkt auf dem Rand des Faces, der nicht auf dem gemeinsamen Rand von Hole und Face liegt. Im Beispiel wählen wir Punkt 0.
+
+Jetzt gehen wir die Punkte des Faces durch, solange auf der Linie zwischen dem aktuellen Punkt und dem Nächsten kein Punkt des Holes liegt. Alldiese Punkte fügen wir der Ergebnissliste $res$ hinzu.
+
+Also: $rs=(0, 1, 2, 3, 4, 5)$.
+
+Dann suchen wir aus allen Punkten des Holes, die auf der Linie von 5 zu 6 liegen, den Punkt der am nächstn zu 5 liegt. In unserem Fall ist das 107, den wir wieder an $res$ anhängen. Dieses etwas kompliziert klingende Vorgehen deckt eine Reihe von Sonderfällen ab, die hier auftauchen können. Abbildung~\ref{fig:SonderfaelleJLL} zeigt diese exemplarisch.
+
+$res=(0, 1, 2, 3, 4, 5, 107)$
+
+Nun durchlaufen wir die Punkte des Holes, beginnend mit 100, solange, bis der aktuelle Punkt auf dem Rand des Faces liegt (hier 103). Alle besuchten Punkte werden an $res$ angehängt.
+
+Daraus folgt: $res=(0, 1, 2, 3, 4, 5, 107, 100, 101, 102, 103)$
+
+Anschließend durchlaufen wir wieder das Face, wobei wir bei 6 beginnen, und suchen den ersten Punkt, der nicht auf dem Hole liegt. Im Beispiel ist dies Punkt 9.
+
+Abschließend hängen wir an $res$ alle Punkte an, bis wir wieder am Ausgangspunkt angelangt sind.
+
+Schließlich ist $res=(0, 1, 2, 3, 4, 5, 107, 100, 101, 102, 103, 9, 10, 11, 12)$. Abbildung~\ref{fig:JLL3} zeigt das Ergebniss als Polygon.
+
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{JLL2.svg.eps}
+	\caption{Die beiden neuentstandenen Polygone sollen verbunden werden.}
+	\label{fig:JLL2}
+\end{figure}
+
+
+\begin{figure}
+\subfigure[Beide Berührungspunkte liegen auf der selben Facelinie.]{\includegraphics[width=0.35\textwidth]{Sonderfall1JLL.svg.eps}}\hfill
+\subfigure[Der erste Punkt des Holes ist auch ein Punkt des Faces]{\includegraphics[width=0.35\textwidth]{Sonderfall2JLL.svg.eps}}
+\caption[Sonderfälle, die bei der Vereinigung auftreten können]{Sonderfälle, die bei der Vereinigung auftreten können und wegen denen man die Funktion $getClosestBoundaryPoint$ benötigt.}
+\label{fig:SonderfaelleJLL}
 \end{figure}
 
 
 
-\subsubsection{Zerteilete Löcher als Konkativitäten in ein Cycle einbauen}\label{JoinLL}
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.6]{JLL3.svg.eps}
+	\caption{Das fertig zusammengesetzte Polygon.}
+	\label{fig:JLL3}
+\end{figure}
+
+
 
 \subsubsection{\index{Rotaring Pane}Rotaring Pane} \label{rotPane}
 In \cite{TG} wurde bereits der Algorithmus ,,rotating Pane'' vorgestellt. I, Laufe meiner Arbeit musste ich diesen Algorithmus nachprogrammieren, und habe hierbei eine Version gefunden, die etwas einfacher ist und erheblich weniger Fallunterscheidungen benutzen muss.
@@ -644,7 +830,7 @@ Diese Funktion liefert den Wert der quadratischen Entfernung von zwei Punkten zu
 
 
 \clearpage
-\subsection{Beschreibung der Klassen}
+\subsection{Beschreibung der Klassen}\label{klassen}
 
 \subsubsection{\index{LineWA}LineWA}
 
@@ -710,7 +896,7 @@ liefert einen Linienzug, an dem das Objekt geteilt werden kann. Die beiden über
 
 \item getSplitNodes
 
-diese Funktion teilt das Objekt an dem übergebenen Linienzug und liefert ein zweidimensionales Feld von Punkten zurück, die die beiden neuen ConvexHullTreeNodes repräsentieren.  \anmerkung{Ref einfügen}
+diese Funktion teilt das Objekt an dem übergebenen Linienzug und liefert ein zweidimensionales Feld von Punkten zurück, die die beiden neuen ConvexHullTreeNodes repräsentieren.  
 
 \end{itemize}
 
@@ -764,7 +950,7 @@ diese Funktion versucht alle Faces an dem übergebenen Linienzug zu teilen, und 
 
 \subsubsection{\index{RegionTreeNode}RegionTreeNode}
 
-Dieses Interface dient dazu, Region, Faces und ConvexHullTreeNodes gleichbehandeln zu k"onnen. Implementiert sind nur hashCode und equals, zum Auffinden von SingleMatches in HashSets. Die Berechnung des Hashwertes wird von den Klassen so implementiert, wie unter \anmerkung{Ref einfügen} beschrieben.
+Dieses Interface dient dazu, Region, Faces und ConvexHullTreeNodes gleichbehandeln zu k"onnen. Implementiert sind nur hashCode und equals, zum Auffinden von SingleMatches in HashSets. Die Berechnung des Hashwertes wird von den Klassen so implementiert, wie unter \ref{berechenHashwerte} beschrieben.
 
 \begin{figure}
 	\centering
@@ -993,11 +1179,11 @@ Diese Funktion bestimmt den Schnittpunkt zweier Liniensegmente, gegeben durch ih
 
 \item getRectangularDistance
 
-Diese Funktion liefert 0, falls der Übergebene Punkt ausserhalb des Streifens liegt, der sich rechtwinkelig zu dem Liniensegment erstreckt. Liegt der Punkt innerhalb, so wird der kürzeste Abstand des Punktes zu der Linie zurückgegeben. Diese merkwürdige Funktion wird ausschließlich von $getSplitLine$ benutzt, und dort (\ref{ZerteilungsAlgo} näher beschrieben \anmerkung{Ref einfügen}. Das Verfahren zur Berechnung dieses Wertes habe ich wiederum aus \cite{BW} entnommen.
+Diese Funktion liefert 0, falls der Übergebene Punkt ausserhalb des Streifens liegt, der sich rechtwinkelig zu dem Liniensegment erstreckt. Liegt der Punkt innerhalb, so wird der kürzeste Abstand des Punktes zu der Linie zurückgegeben. Diese merkwürdige Funktion wird ausschließlich von $getSplitLine$ benutzt, und dort (\ref{ZerteilungsAlgo} näher beschrieben. Das Verfahren zur Berechnung dieses Wertes habe ich wiederum aus \cite{BW} entnommen.
 
 \item joinLinelists
 
-Diese Funktion dient dazu, zu einem übergebenen Polygon, das der Cycle eines Faces ist, und einem zweiten Polygon, das durch die Teilung eines Holes entstand, ein gemeinsames Polygon zu bilden. All diese  Polygone werden durch Punktlisten dargestellt. Näher ist dieses Vorgehen in \anmerkung{Ref einfügen} beschrieben.
+Diese Funktion dient dazu, zu einem übergebenen Polygon, das der Cycle eines Faces ist, und einem zweiten Polygon, das durch die Teilung eines Holes entstand, ein gemeinsames Polygon zu bilden. All diese  Polygone werden durch Punktlisten dargestellt. Näher ist dieses Vorgehen in \ref{JoinLL} beschrieben.
 
 \item getClosestBoundaryPoint
 
@@ -1011,7 +1197,7 @@ Diese Methode überprüft, ob mindestens einer der übergebenen Punkte auf dem �
 
 
 
-\section{Die Java-Application \anmerkung{3 Seiten}}
+\section{Die Java-Application \anmerkung{3 Seiten}}\label{java}
 Im Folgenden  beschreibe ich, welche Klassen die Java-Applikation auszeichnen, die diese also von den allgemeinen Klassen (siehe oben) unterscheiden. Naturgemäß finden sich hier im Wesentlich die GUI-Klassen und die Klassen für den VRML-Export wieder.
 
 Der folgende Abschnitt dient nur der Beschreibung der Klassen und stellt kein Handbuch zur Benutzung der Java-Applikation dar. Ein solches finden Sie unter dem Anhang~\ref{Handbuch}.
@@ -1107,7 +1293,7 @@ Diese Klasse bildet die Zeichenfläche der Applikation. In dieser kann der Benut
 
 Diese Klasse vereinigt alle anderen Klassen zu der eigentlichen Applikation. Diese Klasse läßst sich entweder als Applet benutzen, oder in ein JFrame einbinden, der damit eine Standalone-Applikation bildet.
 \end{itemize}
-\section{Die Secondo-Algebra \anmerkung{3 Seiten}}
+\section{Die Secondo-Algebra \anmerkung{3 Seiten}}\label{rialgebra}
 \anmerkung{Hier beschreibe ich kurz, wie ich die Secondo-Algebra implementiert habe. Speziell die Einbettung in das Secondo soll hier betrachtet werden.}
 
 

@@ -6,21 +6,140 @@ MovingRegion,
 T\o{}ssebro)}\anmerkung{30-40 Seiten}} \label{Kapitel2}
 \minitoc
 \newpage
-\section{Secondo \anmerkung{10 Seiten}}
+\section{Secondo \anmerkung{10 Seiten}}\label{SecondoEinfuehrung}
 \anmerkung{Eine ausf"uhlichere Beschreibung von Secono, speziell des Konzeptes der Algebren, und eine Beschreibung der Algebren ,,Spatial-Algebra'' und ,Moving-Region-Algebra''.}
 \subsection{Das Konzept der Secondo-Algebren}
 \subsection{Spatial-Algebra}
 \subsection{Moving-Region-Algebra}
 
-\section{Das Paper von Erlend T\o{}ssebro \anmerkung{10 Seiten}}
-\anmerkung{Hier beschreibe ich den Inhalt des Papers}
+\section{Das Paper von Erlend T\o{}ssebro \anmerkung{10 Seiten}}\label{Tossebro}
 
 Eine der wichtigsten Grundlagen der vorliegenden Arbeit ist das Paper: ,,Creating Repesentations for Continuously Moving Regions from Observations'' \cite{TG} von Erlend T\o{}ssebro und Ralf Hartmund G"uting \cite{TG}, in dem die Autoren sich mit den theoretischen Grundlagen des Problems besch"aftigt, und L"osungsvorschl"age zu vielen der vorkommenden Teilprobleme gemacht haben.
 
-\subsection{Matching-Strategien}\label{MatchSchwer}
-In ihrem Paper nannten die Autoren drei verschiedene Matching-Strategien, die im folgenden kurz aufgef"uhrt werden:
+Im Rahmen dieses Projektes ist auch eine Java-Applikation entstanden, welche im Rahmen meiner Arbeit erweitert wurde.
+
+\subsection{Die zugrundeligenden Datentypen}
+Nach der allgemeinen Einleitung skizzierten die Autoren kurz die Datentypen, wie diese in \cite{FGNS} beschrieben sind.
+
+Zuerst die nicht beweglichen Daten:
+$$Seg=\{(u,v)|u,v\in Point, u<v\}$$
+
+Ein Segment ist also ein Liniensegment zwischen zwei Punkten. 
+
+$$Cycle=\{S\subset S\}$$
+
+Ein Cycle ist eine Menge von Liniensegmenten, die zusammen ein einfaches Polygon bilden müssen.
+
+$$Face=\{(c,H)|c\in Cycle, H \subset Cycle\}$$
+
+Ein Face setzt sich aus einem Cycle, der äußeren Begrenzungslinie, und einer Menge von anderen Cycles, den Löchern oder Holes zusammen. Jedes Hole muss komplett innerhalb des äußeren Cycles liegen, und zwei Holes dürfen sich nicht überschneiden. 
+
+$$Region=\{F\subset Face|f_1,f_2\in F \wedge (f_1\neq f_2) \Rightarrow \text{Kanten von }f_1\text{ und } f_2 \text{ sind disjunkt. } \}$$
+
+Eine Region schließlich setzt sich aus mehreren Faces zusammen, wobei sich diese nicht überschneiden dürfen. 
+
+Nun skizzieren die Autoren die beweglichen Datentypen:
+
+$$MPoint=\{(x_0,x_1,y_0,y_1)|x_0,x_1,y_0,y_1\in \mathbb{R}\}$$
+
+Ein MovingPoint setzt sich aus zwei Punkten, dem Start- und dem Endpunkt zusammen.
+
+$$MSeg=\{(s,e)|s,e\in MPoint\}$$
+
+Ein MovingSegment setzt sich aus zwei MovingPoints zusammen, wobei aber alle vier beteiligten Start- und Endpunkte auf einer Ebene liegen müssen. Ein wichtiger Sonderfall des MovingSegemnts ist der, wenn beide Start- oder beide End-punkte zusammenfallen. In diesem Fall repräsentiert ein MovingSegment ein Dreick in drei Dimensionen.
+
+$$MCycle=\{(s_0,s_1,\hdots ,s_{n-1})|n\geq3, s_i\in MSeg\}$$
+
+Ein MovingCycle ist die bewegliche Version eines Cycles. Die beteiligten MovingSegemnts müssen zusammen eine geschlossene, dreidimmensionale Struktur bilden.
+
+$$MFace=\{(c,H)|c\in MCycle, H\subset MCycle\}$$
+
+Ein MovingFace ist die dreidimensionale Version eines Faces, und setzt sich analog zu diesem zusammen.
+
+$$URegion=\{(i,F)|i\in Intervall, F\subset MFace\}$$
+
+Eine RegionUnit schließlich besteht aus einer Menge von MovingFaces und einem Zeitintervall. 
+
+Eine MovingRegion schließlich besteht aus mehreren RegionUnits, bei denen die Zeitintervalle paarweise disjunkt sind.
+
+\subsection{Der Rotating-Pane-Algorithmus}
+
+Die Autoren entwickeln einen Algorithmus, mit dessen Hilfe sich MovingCycles aus zwei konvexen Polygonen berechnen lassen. Anschaulich funktioniert dieser Algorithmus wie folgt:
+
+Wähle eine Kante $s$ des einen Polygons, und lasse die Grundebene des Polygons entlang dieser Achse rotieren. Die Ebene wird dann auf das andere Polygon treffen. Trifft die Ebene zuerst auf einen einzigen Punkt $T$, so gehört das Dreick aus den beiden Punkten von $s$ und $T$ zu dem MovingCycle.
+
+Trifft die Ebene aber auf eine Kante $t$, so gehört das MovingSegment von $s$ zu $t$ zu dem MovingCycle.
+
+Dieses Verfahren wende auf alle Kanten aus beiden Polygonen an.
+
+Die Autoren geben auch noch einen Algorithmus an, der diese Idee weiterverfolgt, der aber technisch einfacher zu implementieren ist. Eine leicht veränderte Version dieses Algorithmuses beschreibe ich unter \ref{rotPane} genauer.
+
+Die Autoren geben noch die Laufzeit des Verfahrens an und sagen, dass der Algorithmus zu zwei Polygonen, welche zusammen $n$ Ecken haben, ein MovingCycle berechnet und hierfür $O(n*\log{n})$ Zeit benötigt. Liegen die Punkte der Polygone bereits sortiert vor, so sinkt die Laufzeit auf $O(n)$.
+
+Die Autoren räumen ein, dass dieses Verfahren nicht gut mit Rotationen umgehen kann. Lassen wir etwa zwei dünne Rechteck durch diesen Algorithmus laufen, die um 90\degree gedreht sind, so wird die Interpolation nach der Hälfe der Zeit ungefähr quadratisch  sein und einen zu großen Flächeninhalt aufweisen. Abbildung~\ref{fig:BeispielschlechteRot} zeigt dieses Beispiel. Eine Lösung dieses Problems können die Autoren nicht angeben, bei Rotationen sollten also die Unterschiede zwischen den Schnappschüssen nicht zu groß sein.
+
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption{Ein Beispiel in dem man die Schwäche des Verfahrens bei großen Rotationen zeigt.}
+	\label{fig:BeispielschlechteRot}
+\end{figure}
+
+\subsection{Der Konvexe Hüllenbaum}
+
+Das obige Verfahren kann nur mit konvexen Polygonen umgehen. Um im Allgemeinen einfache Polygone bearbeiten zu können führen die Autoren den ConvexHullTree ein. Die Idee hinter diesen ist es, einfache Polygone als konvexe Polygone mit konvexen Löchern aufzufassen. 
+
+Ein ConvexHullTreeNode ist ein konvexes Polygon, bei dem jeder Kante wiederum ein ConvexHullTreeNode zugeordnet werden kann. Diese Kinderelemente werden von dem Vaterelement abgezogen. Abbildung~\ref{fig:ConHullTree} zeigt einen solches Konstrukt.
+
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption{Ein Beispiel für einen ConvexHullTree.}
+	\label{fig:ConHullTree}
+\end{figure}
+
+Die Autoren beschreiben, wie man einen solchen Baum aufbaut. Dieses Verfahren ist näher unter \ref{constCHTN} beschrieben.
+
+Die Komplexität der Konstuktion eines Hüllenbaumes wird mit $O(dn*\log(n))$ angegeben, wobei $d$ die Tiefe des resultierenden Baumes ist.
+
+Der umgekehrte Weg, also aus einem ConvexHullTee wieder ein Polygon zu erzeugen funktioniert so:
+
+\begin{itemize}
+\item Gebe jedes Segment zurück, für das es kein Kindelement gibt.
+\item Für jedes Segment, welches ein Kindelement hat benutze diese Funktion rekursiv.
+\end{itemize}
+
+\subsection{Matching zweier Regionen}
+
+Im Weiteren beschäftigen sich die Autoren mit der Frage, wie man zu gegebenen Polygonen, welche die beiden Schnappschüsse einer MovingRegion darstellen sollen, ein Match bestimmen kann. Ein Match ist eine Menge von Paaren von Cyclen, die zusammengehören.
+
+Die Autoren unterscheiden drei unterschiedliche Arten von Matches:
+
+\begin{itemize}
+\item Wenn beide Regionen aus mehreren Faces zusammengesetzt sind, welche Faces auf der einen Seite passen dann zu welchen Faces auf der anderen Seite?
+\item Falls ein Face mehrere Holes hat, welches Hole auf der einen Seite passt dann zu welchem Hole auf der anderen Seite?
+\item Hat ein Cycle mehrere Konkativitäten, welche Konkativitäten auf der einen Seite passen dann zu welchen Konkavitäten auf der anseren Seite?
+\end{itemize}
+
+In all diesen Fällen ist auch noch zu beachten, dass einzelne Objekte verschwienden können, oder das mehrere auf der einen Seite zu einem Objekt auf der anderen Seite verschmelzen können.
+
+Um die Qualität eines Matches bestimmen zu können, geben die Autoren einige Kriterien an:
+
 \begin{enumerate}
-\item Position of centroid
+\item Ein matching-Verfahren sollte das korrekte Ergebnis liefern, falls beide Schnappschüsse übereinstimmen.
+\item Komponenten, die sich relativ zu ihrer Größe wenig bewegt haben, sollten korrekt gematcht werden können.
+\item Komponenten die nur kleine Änderungen an Größe und Form erfahren haben sollten korrekt gematcht werden.
+\item Ein Matching-Verfahren sollte Komponenten erkennen, die sich in mehrere neue aufgesplittet haben, oder solche die sich vereinigen.
+\item Ein Matching-Verfahren sollte Kriterien anbieten um zu entscheiden, ob zwei Momentaufnahmen gut zueinander passen, oder ob der zeitliche Abstand zwischen diesen zu groß gewählt ist.
+\end{enumerate}
+
+Die Autoren führen den Begriff des ,,sicheren'' Matches an:
+
+Sei $mr$ eine MovingRegion und seien $S_1$ und $S_2$ zwei Schnappschüsse dieser MRegion zu den Zeitpunkten $t$ und $t+\Delta t$. Ein Matching-Verfahren ist sicher zu nennen, falls es ein $\epsilon >0$ gibt, so dass das Match korrekte Ergebnisse liefert, für alle $\Delta t < \epsilon$.
+
+Die Autoren finden drei verschiedene Matching-Strategien, die im folgenden kurz aufgef"uhrt werden:
+\begin{enumerate}
+\item Position of centroid \label{MatchSchwer}
 
 Bestimme den Schwerpunkt jedes Cycles,  bilde aus diesem einen gewichteten Graphen, mit den Entfernungen als Kantengewichte und suche in diesem "`N"achste Nachbarn"'.
 \item Fixed threshold (set of cycles)
@@ -31,6 +150,24 @@ Matche zwei Cycles, wenn sie sich wechselseitig  mehr als threshold (in \%) "ube
 
 Bilde einen gewichteten Graphen, in dem die Cycles Knoten sind, und dessen Kanten mit dem Grad der "Uberlappung gewichtet sind. Matche dann ein Cycle $c$ mit demjenigen, mit dem er die gr"o"ste "Uberlappung aufweist, und mit allen, f"ur die $c$ der Cycle mit der gr"o"sten "Uberlappung ist.
 \end{enumerate} 
+
+Die Autoren kommen zu dem Schluß, dass das Schwerpunktverfahren kein sicheres Verfahren sei, da der Schwerpunkt eines Polygones außerhalb dieses liegen kann.
+
+Im weiteren Verlauf betrachten die Autoren nur noch einzelne Cycles, Betrachtungen von Faces und Regions werden nicht mehr angestellt.
+
+\subsection{Interpolation zwischen zwei ConvexHullTrees}
+
+Nun beschäftigen sich die Autoren damit, einen Algorithmus zu erarbeiten, mit dessen Hilfe sich eine Interpolation zwischen zwei einfachen Polygonen berechnen lassen. Dieser Algorithmus beruht darauf, den Rotating-Pane-Algorithmus für alle konvexen Hüllen duchlaufen zu lassen, und hierbei die Darstellung des Polygones als ConvexHullTree zu benutzen.
+
+Gegeben seien also zwei einfache Polygone, $A$ und $B$, dargestellt als ConvexHullTrees. Das Matching zwischen diesen sei berechnet, so dass man für alle Elemente von $A$ bestimmen kann, welche Elemente von $B$ dazu passen.
+
+Wir nehmen an, dass $A$ auf $B$ gematcht wird, und berechen für die konvexen Hüllen von $A$ und $B$ die MSegments mit dem  Rotating-Pane. 
+
+Nehmen wir nun an, dass eine Konkativität von $A$ keiner Konkativität von $B$ zugeordnet wird. Die Punkte, an denen diese Konkativität die konvexe Hülle des Vater berührt, nenn wir $p$ und $e$. In diesem Fall bestimmen wir das MSegment aus den bereits Berechneten, dass $p$ und $e$ enthält. Diesem MSegment, dessen dritten Punkt wir $t$ nennen, löschen wir. Falls dieses MSegement kein Dreieck ist, so müssen wir dieses zuerst in zwei Dreicke spalten. Nun bilden wir für alle Kanten der konvexen Hülle der Konkativität, außer $pe$, MSegmente mit dem Punkt $t$ und fügen diese dem Ergebnis hinzu.
+
+Wird eine Konkativität von $A$ gegen eine Konkativität von $B$ gematcht, so bilden wir mittels Rotating-Pane die MSegmente zwischen diesen und fügen sie der Ergebnisliste an. In dieser Liste werden jetzt zwei oder vier paarweise gleiche MSegmente vorkommen\footnote{Bei der praktischen Anwendung dieses Algorithmuses zeigte sich, dass dies durchaus nicht immer der Fall ist. Außnahmen diskutiere ich unter \ref{gedrehtKon}.}. Diese Segmente, die die Schnittstelle zwischen den Vater- und Kind konvexer-Hülle bilden, werden alle gelöscht. 
+
+Der dritte, kompliziertest Fall tritt dann auf, wenn mehrere Konkativitäten auf der einen Seite zu Einer auf der anderen Seite verschmelzen. Für diesen Fall erarbeiten die Autoren einen Algorithmus, der darauf beruht, von den mehreren Konkativitäten die konvexe Hülle zu berechnen und diese auf die eine Konkativität der anderen Seite zu matchen. Damit das Verfahren danach weiterlaufen kann, wird der ConvexHullTree uaf der mehrdeutigen Seite umgebaut, so dass die Kinder der Konkativitäten geeignet an die neue konvexe Hülle gehängt werden\footnote{Leider funktionert dieses Verfahren nicht in allen Fällen. Unter \ref{JoinConc} diskutiere ich dieses Verhalten näher.}.
 
 \section[Matching Shapes with a Reference Point]{Das Paper: ,,Matching Shapes with a Reference Point'' }\label{AARR}
 
