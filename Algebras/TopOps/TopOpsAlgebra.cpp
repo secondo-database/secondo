@@ -4184,8 +4184,7 @@ that overlapping parts of segments are keept, instead to remove them.
 But at all crossing points and so on, the segments will be split.
 
 */
-DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments, 
-                            const bool remove){
+DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
   
   DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
 
@@ -4225,50 +4224,27 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments,
             double xm = member->getX2();
             double xc = current.getX2();
 
-            if(!remove){ 
-               // insert the common part into res
-               AVLSegment tmp_left, tmp_common, tmp_right;
-               AVLSegment tmp_mem(*member);
-               tmp_mem.setOwner(second);
-               tmp_mem.split(current,tmp_left,tmp_common,tmp_right);
-               Point pl(true,tmp_common.getX1(),tmp_common.getY1());
-               Point pr(true,tmp_common.getX2(),tmp_common.getY2());
-               if(!AlmostEqual(pl,pr)){
-                 tmp_common.setOwner(first);
-                 //cout << "Insert a multiple store  segment " 
-                 // << tmp_common << endl;
-                 HalfSegment hs1 = tmp_common.convertToHs(true);
-                 HalfSegment hs2 = tmp_common.convertToHs(false);
-                 hs1.attr.edgeno = edgeno;
-                 hs2.attr.edgeno = edgeno;
-                 res->Append(hs1);
-                 res->Append(hs2);
-                 edgeno++;
-               } else {
-                 cout << "Problem: little overlapping part found" << endl;
-               }
-               if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-                 current.splitAt(xm,member->getY2(),left1,right1);
-                 insertEvents(right1,true,true,q,q);
-               }
-            } else { // removal of multiple stored segments
-               if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-                 current.splitAt(xm,member->getY2(),left1,right1);
-                 insertEvents(right1,true,true,q,q);
-                 AVLSegment tmpmem = *member;
-                 tmpmem.con_below = -1;
-                 sss.remove(*member);
-                 sss.insert(tmpmem);
-               } else {
-                 member->splitAt(xc,current.getY2(),left1,right1);
-                 sss.remove(*member);
-                 insertEvents(right1,true,true,q,q);
-                 left1.con_below = -1;
-                 sss.insert(left1); 
-               }
+            // insert the common part into res
+            AVLSegment tmp_left, tmp_common, tmp_right;
+            AVLSegment tmp_mem(*member);
+            tmp_mem.setOwner(second);
+            tmp_mem.split(current,tmp_left,tmp_common,tmp_right);
+            Point pl(true,tmp_common.getX1(),tmp_common.getY1());
+            Point pr(true,tmp_common.getX2(),tmp_common.getY2());
+            if(!AlmostEqual(pl,pr)){
+              tmp_common.setOwner(first);
+              HalfSegment hs1 = tmp_common.convertToHs(true);
+              HalfSegment hs2 = tmp_common.convertToHs(false);
+              hs1.attr.edgeno = edgeno;
+              hs2.attr.edgeno = edgeno;
+              res->Append(hs1);
+              res->Append(hs2);
+              edgeno++;
             }
-
-
+            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+               current.splitAt(xm,member->getY2(),left1,right1);
+               insertEvents(right1,true,true,q,q);
+            }
          } else { // no overlapping segment found
             splitByNeighbour(sss,current,leftN,q,q);
             splitByNeighbour(sss,current,rightN,q,q);
@@ -4278,14 +4254,12 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments,
       } else {  // nextHS rightDomPoint
           if(member && member->exactEqualsTo(current)){
              // insert the halfsegments
-             if(!remove || member->con_below>=0){
-                HalfSegment hs1 = current.convertToHs(true);
-                HalfSegment hs2 = current.convertToHs(false);
-                hs1.attr.edgeno = edgeno;
-                hs2.attr.edgeno = edgeno;
-                res->Append(hs1);
-                res->Append(hs2);
-             }
+             HalfSegment hs1 = current.convertToHs(true);
+             HalfSegment hs2 = current.convertToHs(false);
+             hs1.attr.edgeno = edgeno;
+             hs2.attr.edgeno = edgeno;
+             res->Append(hs1);
+             res->Append(hs2);
              splitNeighbours(sss,leftN,rightN,q,q);
              edgeno++;
              sss.remove(*member);
