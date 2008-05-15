@@ -1,0 +1,10 @@
+Database : opt 
+Restore  : NO 
+
+Operator : predcounts 
+Number   : 1
+Signature: xpoint x xrectangle -> bool
+Example  : query plz feed predcounts[b1: .PLZ > 10000, b2: .PLZ < 50000, b3: (.PLZ div 2) = 0] tconsume 
+Result   : (rel(tuple(Atom: int, Count: int) ((0 0)(1 1)(2 2)(3 3)))) 
+
+
