@@ -7,11 +7,127 @@ T\o{}ssebro)}\anmerkung{30-40 Seiten}} \label{Kapitel2}
 \minitoc
 \newpage
 \section{Secondo \anmerkung{10 Seiten}}\label{SecondoEinfuehrung}
-\anmerkung{Eine ausf"uhlichere Beschreibung von Secono, speziell des Konzeptes der Algebren, und eine Beschreibung der Algebren ,,Spatial-Algebra'' und ,Moving-Region-Algebra''.}
-\subsection{Das Konzept der Secondo-Algebren}
-\subsection{Spatial-Algebra}
-\subsection{Moving-Region-Algebra}
 
+\subsection{Einführung}
+SECONDO ist ein erweiterbares Datenbak-Management-System (DBMS), das vom Lehrgebiet Praktische Informatik IV, ,,Datenbanksysteme für neue Anwendungen'' in der Fakultät Mathematik und Informatik der Fernuniversität Hagen entwickelt wurde, und wird.
+
+Das Ziel von SECONDO ist, einen ,,allgemeinen'' Datenbanksystemrahmen zur Verfügung zu stellen, der mit Implementierungen von verschiedenen DBMS Datenmodellen gefüllt werden kann.
+
+Zum Beispiel sollte es möglich sein, relationale, objektorientierte, zeitliche, oder XML-Modelle zu implementieren und Datentypen für räumliche Daten, bewegte Objekte, graphenteoretische Strukturen oder Schachspiele unterzubringen. Die Möglichkeit zur Änderung des grundlegenden Datenmodelle sind eine Besonderheit von SECONDO. Für die Erweiterbarkeit des System sind die ,,SECODO-Algebren'' zuständig, deren Konzept ich weiter unter näher beleuchte.
+
+Das SECONDO-System setzt sich im wesentlichen aus drei Komponenten zusammen.
+\begin{enumerate}
+\item Der Kernel
+
+Der Kernel ist für die Datenhaltung und für die Abfragebearbeitung in dem speziellen SECONDO-Systax zuständig. Datenpersistenz erreicht der Kernel duch das Zusammenspiel mit einer BerkleyDB. Die Algebren zur Unterstützung verschiedener Datentypen werden in den Kernel gehängt. Der Kernel, und die meisten Algebren sind in C++ geschrieben, es gibt aber auch die Möglichkeit Algebren in Java zu kodieren.
+
+\item Der Optimizer
+
+Der Optimizer bietet die Möglichkeit Datenbankanfragen in einem eigenen, SQL-ähnlichen Syntax zu formulieren. Der Optimizer findet für diese Abfragen eine optimale Ausführung, indem er etwa den besten Join-Typ einer Abfrage findet, oder die Reihenfolge der Abarbeitungen optimiert. Der Optimizer ist in PROLOG geschrieben. Die vorliegende Arbeit benötigt die Möglichkeiten des Optimizers nicht.
+
+\item Das GUI
+
+Das SECONDO-GUI bietet eine komfortable Möglichkeit entweder direkt, oder  über den Optimizer  auf den Kernel zuzugreifen. Analog zu der Erweiterbarkeit des Kernels durch Algebren ist auch die GUI, durch so genannte Viewer, erweiterbar. Diese Viewer bieten die Möglichkeit, neue Datentypen auch darzustellen. Da in dieser Arbeit keine neuen Datentypen eingeführt werden und sich die verwendeten Datentypen alle im ,,Hoese-Viewer'' darstellen lassen, war eine Erweiterung des Viewers nicht notwendig. Man wird jedoch im Laufe dieser Arbeit öfter Grafiken finden, die unter Zuhilfenahme des GUI entstanden sind. Das GUI ist in Java geschrieben, und auch in dieser Sprache erweiterbar.
+
+\end{enumerate}
+NestedList
+
+\subsection{Das Konzept der Secondo-Algebren}
+
+Eine SECONDO-Algebra erweitert das System um neue Datentypen, und die Operationen, welche auf diesen durchführbar sind. D
+
+
+\subsection{Einige wichtige Algebren}
+
+Im folgenden stelle ich einige Algebren vor, die im Laufe der Arbeit von besonderem Interesse sind. 
+
+\subsubsection{StandardAlgebra}
+Die Standart-Algebra beinhaltet die Unterstützung einiger wichtiger grundlegenden Datentypen. Diese sind:
+\begin{itemize}
+\item int
+
+Der Datentyp für Ganzzahlen.
+\item real
+
+Der Datentyp für Fließkommazahlen. Hier ist zu beachten, dass SECONDO zwischen ganzen Zahlen und Fließkommazahlen streng unterscheidet. Möchte man etwa 1 als Fließkommazahl behandel, so muß man zwingend 1.0 schreiben.
+\item bool
+
+Der Datentyp für Wahrheitswerte. Diese werden als ,,TRUE'' oder ,,FALSE'' ausgedrückt.
+\item string
+
+Eine Zeichenkette mit höchstens 48 Zeichen. Eine Unterstützung von regionalen Zeichensätzen ist nicht gegeben.
+\end{itemize}
+
+Für die nummerischen Datentypen stehen grundlegende nummerische Operationen, wie Addition, Division oder auch Logarithmenbildung oder die Quadratwurzelfunktion zur Verfügung.
+
+An elementaren Stringoperationen stehen zum Beispiel Konkatenierung, Vergleich, Suchen in Strings oder Extraktionen, bereit.
+
+\subsubsection{RelationAlgebra}
+\begin{itemize}
+\item tuple
+\item rel
+\item trel
+\end{itemize}
+Grundlagen Tabellen          Projektion Erweiterung Kartesische Produkt Selektion
+
+\subsubsection{ExtRelationAlgebra}
+
+Gruppieren Sortieren union join aggregieren
+
+
+\subsubsection{SpatialAlgebra}
+\begin{itemize}
+\item point
+\item points
+\item line
+\item region
+\end{itemize}
+
+Enthalten sein, Schnitte Abstände
+Flächenberechnung Skallieren Verschieben
+
+\subsubsection{DateTimeAlgebra}
+\begin{itemize}
+\item instant
+\item duration
+\end{itemize}
+Datumsaritmetik
+
+\subsubsection{PlaneSweepAlgebra}
+SpatialDaten
+Vereinigung, Durchschnitt, Differenzen, Schnitte
+
+\subsubsection{StreamAlgebra}
+
+\subsubsection{GraphAlgebra}
+\begin{itemize}
+\item vertex
+\item edge
+\item graph
+\item path
+
+\end{itemize}
+
+constgraph, connectedcomponents Djikstra
+
+\subsubsection{PlugJoinAlgebra}
+
+spatialjoin
+
+ ses the Plug\&Join-Algorithm to find all pairs of intersecting
+           tuples in the given relations. The joining tuples are reported.
+           
+\subsection{Die MovingRegionAlgebra}
+Da diese Algebra für meine Arbeit besonders wichtig ist, beschreibe ich diese sehr viel ausführlicher.
+
+Diese Klasse wurde im Zuge einer Abschlußarbeit \cite{Mue} im Studiengang Bachelor of Science im Fach Informatik  erstellt.
+
+\begin{itemize}
+\item intimeregion
+\item uregion
+\item movingregion
+\end{itemize}
+ 
 \section{Das Paper von Erlend T\o{}ssebro \anmerkung{10 Seiten}}\label{Tossebro}
 
 Eine der wichtigsten Grundlagen der vorliegenden Arbeit ist das Paper: ,,Creating Repesentations for Continuously Moving Regions from Observations'' \cite{TG} von Erlend T\o{}ssebro und Ralf Hartmund G"uting \cite{TG}, in dem die Autoren sich mit den theoretischen Grundlagen des Problems besch"aftigt, und L"osungsvorschl"age zu vielen der vorkommenden Teilprobleme gemacht haben.
@@ -80,8 +196,8 @@ Die Autoren räumen ein, dass dieses Verfahren nicht gut mit Rotationen umgehen 
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption{Ein Beispiel in dem man die Schwäche des Verfahrens bei großen Rotationen zeigt.}
+	\includegraphics[scale=0.6]{Rotation.eps}
+	\caption{Ein Beispiel in dem man die Schwäche des Verfahrens bei großen Rotationen sehen kann.}
 	\label{fig:BeispielschlechteRot}
 \end{figure}
 
@@ -168,6 +284,30 @@ Nehmen wir nun an, dass eine Konkativität von $A$ keiner Konkativität von $B$ 
 Wird eine Konkativität von $A$ gegen eine Konkativität von $B$ gematcht, so bilden wir mittels Rotating-Pane die MSegmente zwischen diesen und fügen sie der Ergebnisliste an. In dieser Liste werden jetzt zwei oder vier paarweise gleiche MSegmente vorkommen\footnote{Bei der praktischen Anwendung dieses Algorithmuses zeigte sich, dass dies durchaus nicht immer der Fall ist. Außnahmen diskutiere ich unter \ref{gedrehtKon}.}. Diese Segmente, die die Schnittstelle zwischen den Vater- und Kind konvexer-Hülle bilden, werden alle gelöscht. 
 
 Der dritte, kompliziertest Fall tritt dann auf, wenn mehrere Konkativitäten auf der einen Seite zu Einer auf der anderen Seite verschmelzen. Für diesen Fall erarbeiten die Autoren einen Algorithmus, der darauf beruht, von den mehreren Konkativitäten die konvexe Hülle zu berechnen und diese auf die eine Konkativität der anderen Seite zu matchen. Damit das Verfahren danach weiterlaufen kann, wird der ConvexHullTree uaf der mehrdeutigen Seite umgebaut, so dass die Kinder der Konkativitäten geeignet an die neue konvexe Hülle gehängt werden\footnote{Leider funktionert dieses Verfahren nicht in allen Fällen. Unter \ref{JoinConc} diskutiere ich dieses Verhalten näher.}.
+
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption{Interpolation zwischen nicht konvexen Polygonen.}
+	\label{fig:Interpolationnonconvex}
+\end{figure}
+
+\subsection{Die Bedeutung für meine Arbeit}
+
+Diese Veröffentlichung war der Ausgangspunkt meiner Arbeit, und als solcher von zentraler Bedeutung.
+
+Die Java-Appliaktion, die im Rahmen des Papers erstellt wurde, wurde von mir in einem ersten Arbeitsschritt ausgebaut, so dass diese auch mit Regionen mehrere Faces, und mit Löchern umgehen kann. In einem nächsten Schritt habe ich diese neue Applikation dann in das SECONDO-System integriert.
+
+An dieser Stelle möchte ich den Begriff des RegionTrees definieren, da er zum Verständniss der weiteren Arbeit unerläßlich ist. Der RegionTree ist eine Erweiterung des ConvexHullTrees, so dass dieser ganze Regionen abbilden kann. 
+
+Ein RegionTree besteht aus einem oder mehreren Faces als RegionTreeNodes. Ein Face als RegionTreeNode besteht aus einem Cycle und einer Menge von Holes, die alle durch ConvexHullTrees dargestellt werden. Abbildung~\ref{fig:RegionTreeNode} zeigt den Aufbau dieses Baumes. Regions, Faces und ConvexHullTreeNodes bezeichne ich als RegionTreeNodes.
+
+\begin{figure}
+	\centering
+	\includegraphics{feu_logo2.eps}
+	\caption{Der strukturelle Aufbau eines RegionTreeNodes}
+	\label{fig:RegionTreeNode}
+\end{figure}
 
 \section[Matching Shapes with a Reference Point]{Das Paper: ,,Matching Shapes with a Reference Point'' }\label{AARR}
 

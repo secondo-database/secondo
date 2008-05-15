@@ -950,14 +950,9 @@ diese Funktion versucht alle Faces an dem übergebenen Linienzug zu teilen, und 
 
 \subsubsection{\index{RegionTreeNode}RegionTreeNode}
 
-Dieses Interface dient dazu, Region, Faces und ConvexHullTreeNodes gleichbehandeln zu k"onnen. Implementiert sind nur hashCode und equals, zum Auffinden von SingleMatches in HashSets. Die Berechnung des Hashwertes wird von den Klassen so implementiert, wie unter \ref{berechenHashwerte} beschrieben.
+Dieses Interface dient dazu, Region, Faces und ConvexHullTreeNodes gleichbehandeln zu k"onnen. Implementiert sind nur hashCode und equals, zum Auffinden von SingleMatches in HashSets. Die Berechnung des Hashwertes wird von den Klassen so implementiert, wie unter \ref{berechenHashwerte} beschrieben. Abbildung~\ref{fig:RegionTreeNode} zeigt den Aufbau eines RegionTrees schematisch.
 
-\begin{figure}
-	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption{Der strukturelle Aufbau eines RegionTreeNodes}
-	\label{fig:RegionTreeNode}
-\end{figure}
+
 
 
 \subsubsection{\index{SingleMatch}SingleMatch}
@@ -1296,22 +1291,11 @@ Diese Klasse vereinigt alle anderen Klassen zu der eigentlichen Applikation. Die
 \section{Die Secondo-Algebra \anmerkung{3 Seiten}}\label{rialgebra}
 \anmerkung{Hier beschreibe ich kurz, wie ich die Secondo-Algebra implementiert habe. Speziell die Einbettung in das Secondo soll hier betrachtet werden.}
 
+\subsection{MovingRegionAlgebra}
 
-%\chapter{Vom Matching zum MovingRegion}
+\subsection{PlaneSweepAlgebra}
 
-%\printindex
+\subsection{SpatialAlgebra}
 
-%\nocite{KOP}
-%\nocite{AAR}
-%\nocite{Sch}
-%\nocite{AHS}
-%\nocite{BW}
-%\nocite{Doe1}
-%\nocite{Doe1a}
-%\nocite{Doe2}
-%\nocite{Schi}
-%\nocite{Ber}
-%\nocite{Lei}
-%\nocite{Gru}
-%\nocite{AFRW}
-\nocite{FGNS}
+\subsection{RegionInterpolationAlgebra}
+
