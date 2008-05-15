@@ -4223,15 +4223,16 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
          if(member){ // overlapping segment found in sss
             double xm = member->getX2();
             double xc = current.getX2();
-
             // insert the common part into res
             AVLSegment tmp_left, tmp_common, tmp_right;
-            AVLSegment tmp_mem(*member);
+            AVLSegment tmp_mem = *member;
             tmp_mem.setOwner(second);
             tmp_mem.split(current,tmp_left,tmp_common,tmp_right);
             Point pl(true,tmp_common.getX1(),tmp_common.getY1());
             Point pr(true,tmp_common.getX2(),tmp_common.getY2());
+            cout << "Find overlapping segments" << endl;
             if(!AlmostEqual(pl,pr)){
+              cout << "Insert common part" << endl;
               tmp_common.setOwner(first);
               HalfSegment hs1 = tmp_common.convertToHs(true);
               HalfSegment hs2 = tmp_common.convertToHs(false);
@@ -4248,7 +4249,6 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
          } else { // no overlapping segment found
             splitByNeighbour(sss,current,leftN,q,q);
             splitByNeighbour(sss,current,rightN,q,q);
-            current.con_below = 0;
             sss.insert(current);
          }
       } else {  // nextHS rightDomPoint
