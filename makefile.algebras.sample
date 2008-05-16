@@ -126,8 +126,10 @@ ALGEBRAS     += PlugJoinAlgebra
 ALGEBRA_DIRS += UpdateRel
 ALGEBRAS     += UpdateRelationAlgebra
 
-ALGEBRA_DIRS += IMEX
-ALGEBRAS     += ImExAlgebra
+# to use the import/export algebra, also the
+# topops and the toprel algebras has to be included
+#ALGEBRA_DIRS += IMEX
+#ALGEBRAS     += ImExAlgebra
 
 #ALGEBRA_DIRS += PointSequence
 #ALGEBRAS     += PointSequenceAlgebra
