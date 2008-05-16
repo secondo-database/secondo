@@ -3163,6 +3163,11 @@ The region must be defined!
      return 5; 
    }
 
+  const DBArray<HalfSegment>& GetHalfSegments(){
+      return region;
+  }
+
+
   private:
 /*
 7.17 Private member functions

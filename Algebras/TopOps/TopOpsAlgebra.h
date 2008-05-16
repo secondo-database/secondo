@@ -45,6 +45,11 @@ namespace topops{
   DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments);
   
   DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments);
+
+  bool hasOverlaps(const DBArray<HalfSegment>& segments, 
+                   const bool ignoreEqual=false);
+
+
 }
 
 #endif

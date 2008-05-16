@@ -1287,12 +1287,6 @@ class shpimportInfo{
 
    shpimportInfo(int allowedType, FText* fname){
 
-     cout << "shpimportInfo::INIT() called" << endl; 
-     cout << "allowedType =" << allowedType 
-          << ", FName = " 
-          << fname->GetValue() << endl;
-
-
      if(!fname->IsDefined()){
        defined = false;
      } else {
@@ -1600,8 +1594,6 @@ will be 0.
 
 
    Attribute* getNextPolygon(){
-     cout << "**************************** " 
-          << "getNextPolygon ************************" << endl;
      if(file.tellg()==fileend){ // end of file reached
        return 0;
      }
@@ -1731,7 +1723,7 @@ Builds a region from a set of cycles.
 
      if(faces2.size()<1){
          cerr << "no face found within the cycles" << endl;
-         return new Region(1);
+         return new Region(0);
      } 
      // build the union of all faces
      Region* reg = faces2[0];
@@ -1828,7 +1820,7 @@ int numOfNeighbours(const DBArray<HalfSegment>& segs,const int pos){
    int num = 0;
    bool done= false;
    int pos2 = pos-1;
-   while(pos2>0 && !done){
+   while(pos2>=0 && !done){
      segs.Get(pos2,hs2);
      if(AlmostEqual(dp,hs2->GetDomPoint())){
        num++;
@@ -1869,44 +1861,6 @@ like the halfsegment at positition pos (exclusive that segment).
 The DBArray has to be sorted.
 
 */
-int numOfUnusedNeighbours1(const DBArray<HalfSegment>& segs,
-                          const int pos, 
-                          const bool* used){
-   const HalfSegment* hs1;
-   const HalfSegment* hs2;
-   segs.Get(pos,hs1);
-   Point dp = hs1->GetDomPoint();
-   int num = 0;
-   bool done= false;
-   int pos2 = pos-1;
-   while(pos2>0 && !done){
-     segs.Get(pos2,hs2);
-     if(AlmostEqual(dp,hs2->GetDomPoint())){
-       if(!used[pos2]){
-         num++;
-       }
-       pos2--;
-     }else {
-       done = true;
-     }
-   }
-   done = false;
-   pos2 = pos+1;
-   while(!done && pos2<segs.Size()){
-     segs.Get(pos2,hs2);
-     if(AlmostEqual(dp,hs2->GetDomPoint())){
-       if(!used[pos2]){
-         num++;
-       }
-       pos2++;
-     }else {
-       done = true;
-     }
-   }
-   return num;
-}
-
-// slow, but more saved alternative
 int numOfUnusedNeighbours(const DBArray<HalfSegment>& segs,
                           const int pos, 
                           const bool* used){
@@ -1963,44 +1917,6 @@ If no such segment exist, -1 is returned.
 
 */
 
-// old, faster but unsave version
-int getUnusedExtension1(const DBArray<HalfSegment>& segs,
-                       const int pos,
-                       const bool* used){
-     const HalfSegment* hs;
-     segs.Get(pos,hs);
-     Point dp = hs->GetDomPoint();
-     bool done = false;
-     int pos2=pos-1;
-     while(pos2>=0 & !done){
-       if(used[pos2]){
-         pos2--;
-       } else {
-         segs.Get(pos2,hs);
-         if(AlmostEqual(dp,hs->GetDomPoint())){
-            return pos2;
-         } else {
-            done = true;
-         }
-       }
-     } 
-     pos2 = pos+1;
-     while(pos2<segs.Size() ){
-        if(used[pos2]){
-            pos2++;
-        }else {
-           segs.Get(pos2,hs);
-           if(AlmostEqual(dp,hs->GetDomPoint())){
-             return pos2;
-           } else {
-             return -1;
-           }
-        }
-     }
-     return -1;
-}
-
-// slow version
 int getUnusedExtension(const DBArray<HalfSegment>& segs,
                         const int pos,
                         const bool* used){
@@ -2071,6 +1987,58 @@ void removeDeadEnd(DBArray<HalfSegment>* segments,
 
 
 
+/*
+~separateCycles~
+
+Finds simple subcycles within ~path~ and inserts each of them into
+~cycles~.
+
+*/
+void separateCycles(const vector<Point>& path, vector <vector<Point> >& cycles){
+
+  if(path.size()<4){ // path too short for a polyon
+    return; 
+  }
+
+  if(!AlmostEqual(path[0], path[path.size()-1])){
+    cout << "Ignore Dead end" << endl;
+    return;
+  }
+
+  set<Point> visitedPoints;
+  vector<Point> cycle;
+  
+  for(unsigned int i=0;i<path.size(); i++){
+    Point p = path[i];
+    if(visitedPoints.find(p)!=visitedPoints.end()){ // subpath found
+      vector<Point> subpath;
+      subpath.clear();
+      subpath.push_back(p);
+      int pos = cycle.size()-1;
+      while(pos>=0 && !AlmostEqual(cycle[pos],p)){
+         subpath.push_back(cycle[pos]);
+         visitedPoints.erase(cycle[pos]);
+         pos--;
+      } 
+      if(pos<0){
+        cerr << "internal error during searching a subpath" << endl;
+        return;
+      } else {
+        subpath.push_back(p); // close path;
+        if(subpath.size()>3){
+          cycles.push_back(subpath);
+        } 
+        cycle.erase(cycle.begin()+(pos+1), cycle.end());
+      }
+    } else {
+      cycle.push_back(p);
+      visitedPoints.insert(p);
+    }
+  }
+  if(cycle.size()>3){
+    cycles.push_back(cycle);
+  } 
+} 
 
 
 /*
@@ -2079,21 +2047,13 @@ Adds a single cycle region to regs if cycle is valid.
 */
 void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
 
-  cout << " ---------------------- addRegion called " 
-       << " -----------------------" << endl;
   if(cycle.size()<4){ // at least 3 points
     cerr << "Cycle with less than 3 different points detected" << endl;
-    cout << "------------------------ addRegion finished " 
-         << "-------------------------" << __LINE__ << endl;
     return;
   }
-
-  cout << "addRegion with a 'cycle' having " 
-       << cycle.size() << " Points called" << endl;
-
   bool isFace = getDir(cycle);
 
-  // Build a DBArray of HalfSegments
+  // create a DBArray of halfsegments representing this cycle 
   DBArray<HalfSegment> segments1(0);
  
   for(unsigned int i=0;i<cycle.size()-1;i++){
@@ -2127,15 +2087,10 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
 
   segments1.Sort(HalfSegmentCompare);
 
-  cout << "There was an DBArray containing " << segments1.Size() 
-        << " Halfsegments created." << endl;  
+  // split the segments at crossings and overlappings
+  DBArray<HalfSegment>* segments = topops::Split(segments1);
 
-  DBArray<HalfSegment>* segments = topops::Realminize(segments1);
-
-
-  cout << "After split, the number of halfsegments is " 
-       << segments->Size() << endl;
-
+  
   SetPartnerNo(*segments);
 
 
@@ -2148,152 +2103,59 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
 
   vector< vector<Point> > cycles; // corrected (simple) cycles
 
+  vector<Point> path;     // current path
+  set<Point>  points;     // index for points in path
+  bool subcycle;          // a multiple point within the path?
   for(int i=0; i< segments->Size(); i++){
     if(!used[i]){ // start of a new path found
-       int pos = i;
-       vector<Point> path;     // current path
-       set<Point>  points;     // index for points in path
-       vector<int> positions;  // positions within the seg array
-                               // corresponding to path
-
-       bool done = false;
-       cout << "Start finding a cycle" << endl;
-       while(!done){
-          const HalfSegment* hs1=0;
-          segments->Get(pos,hs1);
-          Point dp = hs1->GetDomPoint();
-          Point ndp = hs1->GetSecPoint();
-          int partner = hs1->attr.partnerno;
-          path.push_back(dp);
-          positions.push_back(pos);
-          points.insert(dp);
-          used[pos] = true;
-          used[partner] = true;
-          if(points.find(ndp)!=points.end()){ // (sub) cycle found
-
-             cout << "cycle found" << endl;
-
+      int pos = i;
+      path.clear();
+      points.clear();
+      bool done = false;
+      subcycle = false;
+      while(!done){
+        const HalfSegment* hs1=0;
+        segments->Get(pos,hs1);
+        Point dp = hs1->GetDomPoint();
+        Point ndp = hs1->GetSecPoint();
+        int partner = hs1->attr.partnerno;
+        path.push_back(dp);
+        points.insert(dp);
+        used[pos] = true;
+        used[partner] = true;
+        if(points.find(ndp)!=points.end()){ // (sub) cycle found
+          if(AlmostEqual(path[0],ndp)){ // cycle closed
              path.push_back(ndp);
-             if(AlmostEqual(path[0],ndp)){ // whole path found
-               cout << "The cycle covers the whole part :-)) " << endl;
-               vector<Point> cycle = path;
-               cycles.push_back(cycle);
-               done = true;
-             } else {
-               cout << "Processing subcycle starts " << endl;
-               // we have found a close subcycle, i.e.
-               // path = p_o ... p_k .... p_k
-               
-               // first, find and build a single cycle p_k ... p_k
-               int pos2 = path.size()-2; 
-               vector<Point> cycle;
-               cycle.push_back(ndp);
-               while(pos2>=0  && !AlmostEqual(path[pos2],ndp)){
-                 cycle.push_back(path[pos2]);
-                 pos2--;
-               }
-               if(pos2<0){
-                 cout << "internal error," 
-                      << " ndp contained in set but not in path" << endl;
-                 done = true;
-               } else {
-                 // close cycle
-                 cycle.push_back(ndp);
-                
-                 if(cycle.size()>3){
-                    cycles.push_back(cycle);
-                 } else {
-                    cout << "remove cycle of length " 
-                         << (cycle.size()-1) << endl;
-                 }
-
-                 // remove p_k++ .. p_k from the path
-                 pos = positions[pos2];
-               
-                 positions.erase(positions.begin()+pos2+1, positions.end());
-                 path.erase(path.begin()+pos2+1, path.end());
-
-                  const HalfSegment* last; 
-                  segments->Get(pos,last);
-                  partner = last->attr.partnerno;
-                  int nb = getUnusedExtension(*segments,partner,used); 
-                  if(nb>=0){
-                     cout << "sub path starts at a critical point " << endl;
-                     // sub path ends at a critial point
-                     pos = nb;
-                  } else {
-                     cout << "removing a sub path produces a dead end :-((" 
-                          << endl;
-                     // removing the sub path produces a dead end
-                     removeDeadEnd(segments,path,positions,used);
-                     if(path.size()==0){
-                        cout << "The complete path has been removed" << endl;
-                        done = true;
-                     } else {
-                        cout << "subpath has been removed" << endl;
-                        int nb = getUnusedExtension(*segments,
-                                        positions[positions.size()-1],
-                                        used);
-                        if(nb<0){
-                            cout << "removal of dead end erronous" << endl;
-                            cout << "positions.size() = " 
-                                 << positions.size() << endl;
-                            cout << "path.size() = " << path.size() << endl;
-                            assert(false);
-                        }
-                        pos = nb;
-                     }
-                  }
-                  cout << "processing sub cycle ends " << endl;
-               }
-             }
-          } else {
-            // no cycle, try to extend
-            int nb = getUnusedExtension(*segments,partner,used);
-            if(nb>=0){ 
-              pos = nb;            
-            } else { // dead end found, track back
-
-              cout << "found a dead end" << endl;
- 
-              int btPos = path.size()-1;
-              bool found = false;
-              int numOfNeighbours = -1;
-              while((btPos>0) && !found){
-                 numOfNeighbours = numOfUnusedNeighbours(*segments,btPos,used);
-                 if(numOfNeighbours>0){
-                    found = true;
-                 } else{
-                    btPos--;
-                 }
-              }
-
-              
-              if(!found){
-                cout << "The complete path of length " << path.size() 
-                     << " must be removed " << endl;
-                done = true;
-              } else {
-                cout << "The dead end starts at " << btPos 
-                     << " and ends at " << path.size() << endl;
-                // remove points
-                for(unsigned int j=btPos+1;j<path.size();j++){
-                    points.erase(path[j]);
-                }
-                path.erase(path.begin()+btPos,path.end());
-                positions.erase(positions.begin()+btPos, positions.end());
-                pos = getUnusedExtension(*segments,btPos,used);
-              } 
-            }
+             done = true; 
+          } else { // subcycle found
+             subcycle = true;
+          }
+        }
+        if(!done){
+          // no cycle, try to extend
+          int nb = getUnusedExtension(*segments,partner,used);
+          if(nb>=0){ // extension found, continue 
+            pos = nb;            
+          } else { // dead end found, track back
+            cout << " ----> DEAD END FOUND <--- " << endl;
+            done = true; // should never occur
           }  
-       }
-    }
-  }
+        }
+      }
+      if(subcycle){
+        separateCycles(path,cycles);
+      } else if( (path.size()>3 ) && AlmostEqual(path[0],path[path.size()-1])){
+        vector<Point> cycle = path;
+        cycles.push_back(cycle);  
+      } else {
+        cout << "remove invalid path of lengthh " << path.size() << endl;
+      }
+    }// new path found
+  } // for
   delete segments;
 
   // build the region from the corrected cycles
   Region* result = 0;
-
   for(unsigned int i = 0; i< cycles.size();i++){
     vector<Point> cycle = cycles[i];
     bool cw = getDir(cycle);
@@ -2321,6 +2183,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
        *reg += hs2;
     } 
     reg->EndBulkLoad();
+
     if(!result){
       result = reg;
     } else {
@@ -2330,10 +2193,9 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
       delete reg;
     }
   }
-  regs.push_back(make_pair(result,isFace)); 
-
-  cout << "------------------------ addRegion finished " 
-       << " -------------------------" << __LINE__ << endl;
+  if(result){
+    regs.push_back(make_pair(result,isFace)); 
+  }
 } 
 
 };
