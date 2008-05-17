@@ -205,8 +205,8 @@ public:
   static bool FreezeMessage;
   static bool TypeMapError;
   static void Reset() { TypeMapError=false; message=""; }
-  static void ReportError(string msg);
-  static void ReportError(char* msg);
+  static void ReportError(const string msg);
+  static void ReportError(const char* msg);
   static void GetErrorMessage(string& msg);
 };
 

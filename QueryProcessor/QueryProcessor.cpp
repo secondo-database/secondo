@@ -4198,7 +4198,7 @@ bool ErrorReporter::TypeMapError = false;
 
 string ErrorReporter::message = "";
 
-void ErrorReporter::ReportError(string msg)
+void ErrorReporter::ReportError(const string msg)
 {
   if(!receivedMessage)
   {
@@ -4208,7 +4208,7 @@ void ErrorReporter::ReportError(string msg)
 };
 
 
-void ErrorReporter::ReportError(char* msg)
+void ErrorReporter::ReportError(const char* msg)
 {
   if(!receivedMessage)
   {
