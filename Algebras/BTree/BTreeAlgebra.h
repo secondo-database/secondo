@@ -156,7 +156,7 @@ Deletes in the B-Tree the pair <~key~, ~recordid~>.
 
 */
 
-    SmiKeyedFile* GetFile() const;
+    SmiBtreeFile* GetFile() const;
 /*
 Returns the B-Tree file.
 
@@ -207,8 +207,22 @@ Performs a complete scan returning an iterator.
   private:
 
     bool temporary;
-    SmiKeyedFile* file;
+    SmiBtreeFile* file;
     bool opened;
 };
+
+/*
+Funcion headers
+
+*/
+bool ReadRecordId(SmiRecord& record, SmiRecordId& id);
+bool WriteRecordId(SmiRecord& record, SmiRecordId id);
+SmiKey::KeyDataType ExtractKeyTypeFromTypeInfo( ListExpr typeInfo );
+void KeyToAttr( StandardAttribute* attr, SmiKey& key, 
+                SmiKey::KeyDataType keyType);
+void AttrToKey( StandardAttribute* attr, SmiKey& key, 
+                SmiKey::KeyDataType keyType);
+
+
 
 #endif

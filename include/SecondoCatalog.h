@@ -615,17 +615,17 @@ The function below test if a name is reserved for system use.
       algebraId(0), typeId(0), typeExpr(""), state(Undefined) {}
 
     ostream& print(ostream& os) const {
-      os << "algId  :" << algebraId << endl;	    
-      os << "typId  :" << typeId << endl;	    
-      os << "typExpr:" << typeExpr << endl;	    
-      os << "state  :" << state << endl;	    
+      os << "algId  :" << algebraId << endl;    
+      os << "typId  :" << typeId << endl;    
+      os << "typExpr:" << typeExpr << endl;    
+      os << "state  :" << state << endl;    
       return os;
-    }	    
+    }    
 
   };
   typedef map<string,TypesCatalogEntry> TypesCatalog;
   TypesCatalog types;
-  SmiKeyedFile typeCatalogFile;
+  SmiBtreeFile typeCatalogFile;
 
   struct ObjectsCatalogEntry
   {
@@ -644,21 +644,21 @@ The function below test if a name is reserved for system use.
       state(Undefined) {}
 
     ostream& print(ostream& os) const {
-      os << "algId       :" << algebraId << endl;	    
-      os << "typId       :" << typeId << endl;	    
-      os << "typName     :" << typeName << endl;	    
-      os << "typExpr     :" << typeExpr << endl;	    
-      os << "value       :" << (void*) value.addr << endl;	    
-      os << "valueDefined:" << valueDefined << endl;	    
-      os << "valueRecId  :" << valueRecordId << endl;	    
-      os << "state       :" << state << endl;	    
+      os << "algId       :" << algebraId << endl;    
+      os << "typId       :" << typeId << endl;    
+      os << "typName     :" << typeName << endl;    
+      os << "typExpr     :" << typeExpr << endl;    
+      os << "value       :" << (void*) value.addr << endl;    
+      os << "valueDefined:" << valueDefined << endl;    
+      os << "valueRecId  :" << valueRecordId << endl;    
+      os << "state       :" << state << endl;    
       return os;
-    }	    
+    }    
   };
 
   typedef map<string,ObjectsCatalogEntry> ObjectsCatalog;
   ObjectsCatalog objects;
-  SmiKeyedFile   objCatalogFile;
+  SmiBtreeFile   objCatalogFile;
   SmiRecordFile  objValueFile;
 
   bool testMode;

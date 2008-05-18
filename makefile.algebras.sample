@@ -210,6 +210,9 @@ ALGEBRA_DEPS += gsl gslcblas
 #ALGEBRA_DIRS += UGrid 
 #ALGEBRAS     += UGridAlgebra
 
+#ALGEBRA_DIRS += Hash 
+#ALGEBRAS     += HashAlgebra
+
 # JNI Algebras - Java code will be called from C++ code.
 
 #JNI_ALGEBRA_DIRS := Fuzzy

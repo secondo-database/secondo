@@ -28,6 +28,9 @@ September 2002 Ulrich Telle, fixed flag (DB\_DIRTY\_READ) in Berkeley DB calls f
 
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
+May 2008, Victor Almeida created the two sons of the ~SmiKeyedFile~ class, namely ~SmiBtreeFile~ and  
+~SmiHashFile~, for B-Tree and hash access methods, respectively.
+
 */
 
 using namespace std;
@@ -48,12 +51,13 @@ using namespace std;
 
 /* --- Implementation of class SmiKeyedFile --- */
 
-SmiKeyedFile::SmiKeyedFile( const SmiKey::KeyDataType keyType,
+SmiKeyedFile::SmiKeyedFile( const SmiFile::FileType fileType,
+                            const SmiKey::KeyDataType keyType,
                             const bool hasUniqueKeys /* = true */,
                             const bool isTemporary /* = false */ )
   : SmiFile( isTemporary )
 {
-  fileType    = Keyed;
+  this->fileType = fileType;
   keyDataType = keyType;
   uniqueKeys  = hasUniqueKeys;
 }
@@ -77,7 +81,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   int rc=0;
   Dbc* dbc = 0;
   DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+               SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
@@ -100,7 +104,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
     iterator.searchKey        = &iterator.firstKey;
   }
 
-  if (rc != DB_NOTFOUND)	  
+  if (rc != DB_NOTFOUND)  
     SmiEnvironment::SetBDBError(rc);
   return (rc == 0);
 }
@@ -119,7 +123,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
   DbTxn* tid = !impl->isTemporaryFile ? 
-	                 SmiEnvironment::instance.impl->usrTxn : 0;
+               SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( uniqueKeys && accessType == SmiFile::Update )
   {
@@ -159,267 +163,12 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    if (rc != DB_NOTFOUND)	  
+    if (rc != DB_NOTFOUND)  
       SmiEnvironment::SetBDBError(rc);
     record.initialized     = false;
   }
 
   return (record.initialized);
-}
-
-bool
-SmiKeyedFile::SelectRange( const SmiKey& fromKey, 
-                           const SmiKey& toKey, 
-                           SmiKeyedFileIterator& iterator,
-                           const SmiFile::AccessType accessType
-                             /* = SmiFile::ReadOnly */,
-                           const bool reportDuplicates /* = false */ )
-{
-  int rc = 0;
-  Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
-
-  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
-  {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
-  }
-  else
-  {
-//    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
-    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
-  }
-  if ( rc == 0 )
-  {
-    iterator.smiFile          = this;
-    iterator.opened           = true;
-    iterator.impl->bdbCursor  = dbc;
-    iterator.solelyDuplicates = false;
-    iterator.ignoreDuplicates = !reportDuplicates;
-    iterator.rangeSearch      = true;
-    iterator.firstKey         = fromKey;
-    iterator.lastKey          = toKey;
-    iterator.searchKey        = &iterator.firstKey;
-  }
-
-  if (rc != DB_NOTFOUND)
-    SmiEnvironment::SetBDBError( rc );
-
-  return (rc == 0);
-}
-
-PrefetchingIterator* 
-SmiKeyedFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
-{
-  int rc = 0;
-  Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
-
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
-  if(rc == 0)
-  {
-    return new PrefetchingIteratorImpl(dbc, keyDataType, 
-      (const char*)fromKey.GetAddr(), fromKey.keyLength, 
-      (const char*)toKey.GetAddr(), toKey.keyLength, 
-      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
-  }
-  else
-  {
-    SmiEnvironment::SetBDBError(rc);
-    return 0;
-  }
-}
-
-bool
-SmiKeyedFile::SelectLeftRange( const SmiKey& toKey, 
-                               SmiKeyedFileIterator& iterator,
-                               const SmiFile::AccessType accessType
-                                 /* = SmiFile::ReadOnly */,
-                               const bool reportDuplicates /* = false */ )
-{
-  int rc = 0;
-  Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
-
-  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
-  {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
-  }
-  else
-  {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
-    rc = impl->bdbFile->cursor( 0, &dbc, flags );
-  }
-  if ( rc == 0 )
-  {
-    iterator.smiFile          = this;
-    iterator.opened           = true;
-    iterator.impl->bdbCursor  = dbc;
-    iterator.solelyDuplicates = false;
-    iterator.ignoreDuplicates = !reportDuplicates;
-    iterator.rangeSearch      = false;
-    iterator.firstKey         = SmiKey();
-    iterator.lastKey          = toKey;
-    iterator.searchKey        = &iterator.firstKey;
-  }
-  else
-  {
-    SmiEnvironment::SetBDBError( rc );
-  }
-  return (rc == 0);
-}
-
-PrefetchingIterator* 
-SmiKeyedFile::SelectLeftRangePrefetched(const SmiKey& toKey)
-{
-  int rc = 0;
-  Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
-  if(rc == 0)
-  {
-    return new PrefetchingIteratorImpl(dbc, keyDataType, 
-      0, 0, (const char*)toKey.GetAddr(), toKey.keyLength, 
-      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
-  }
-  else
-  {
-    SmiEnvironment::SetBDBError(rc);
-    return 0;
-  }
-}
-
-
-bool
-SmiKeyedFile::SelectRightRange( const SmiKey& fromKey, 
-                                SmiKeyedFileIterator& iterator,
-                                const SmiFile::AccessType accessType
-                                  /* = SmiFile::ReadOnly */,
-                                const bool reportDuplicates /* = false */ )
-{
-  int rc = 0;
-  Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
-
-  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
-  {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
-  }
-  else
-  {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
-    rc = impl->bdbFile->cursor( 0, &dbc, flags );
-  }
-  if ( rc == 0 )
-  {
-    iterator.smiFile          = this;
-    iterator.opened           = true;
-    iterator.impl->bdbCursor  = dbc;
-    iterator.solelyDuplicates = false;
-    iterator.ignoreDuplicates = !reportDuplicates;
-    iterator.rangeSearch      = true;
-    iterator.firstKey         = fromKey;
-    iterator.lastKey          = SmiKey();
-    iterator.searchKey        = &iterator.firstKey;
-  }
-  else
-  {
-    SmiEnvironment::SetBDBError( rc );
-  }
-  return (rc == 0);
-}
-
-PrefetchingIterator* 
-SmiKeyedFile::SelectRightRangePrefetched(const SmiKey& fromKey)
-{
-  int rc = 0;
-  Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
-
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
-  if(rc == 0)
-  {
-    return new PrefetchingIteratorImpl(dbc, keyDataType, 
-      (const char*)fromKey.GetAddr(), fromKey.keyLength, 0, 0, 
-      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
-  }
-  else
-  {
-    SmiEnvironment::SetBDBError(rc);
-    return 0;
-  }
-}
-
-bool
-SmiKeyedFile::SelectAll( SmiKeyedFileIterator& iterator,
-                         const SmiFile::AccessType accessType
-                           /* = SmiFile::ReadOnly */,
-                         const bool reportDuplicates /* = false */ )
-{
-  TRACE_ENTER
-
-  int rc = 0;
-  Dbc* dbc = 0;
-
-  DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
-  
-  if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
-  {
-    rc = impl->bdbFile->cursor( tid, &dbc, 0 );
-  }
-  else
-  {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
-    rc = impl->bdbFile->cursor( 0, &dbc, flags );
-  }
-  if ( rc == 0 )
-  {
-    iterator.smiFile          = this;
-    iterator.opened           = true;
-    iterator.impl->bdbCursor  = dbc;
-    iterator.solelyDuplicates = false;
-    iterator.ignoreDuplicates = !reportDuplicates;
-    iterator.rangeSearch      = false;
-    
-    SmiKey dummy;
-    iterator.firstKey         = dummy;
-    iterator.lastKey          = dummy;
-    iterator.searchKey        = &iterator.firstKey;
-  }
-  else
-  {
-    SmiEnvironment::SetBDBError( rc );
-  }
-
-  SHOW(iterator.opened);
-  TRACE_LEAVE
-  return (rc == 0);
-}
-
-PrefetchingIterator* SmiKeyedFile::SelectAllPrefetched()
-{
-  int rc = 0;
-  Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
-	                 SmiEnvironment::instance.impl->usrTxn : 0;
-
-  rc = impl->bdbFile->cursor(tid, &dbc, 0);
-  if(rc == 0)
-  {
-    return new PrefetchingIteratorImpl(dbc, keyDataType, 
-      PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH, true);
-  }
-  else
-  {
-    SmiEnvironment::SetBDBError(rc);
-    return 0;
-  }
 }
 
 bool
@@ -433,7 +182,7 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   Dbt data( &buffer, 0 );
   data.set_dlen( 0 );
   DbTxn* tid = !impl->isTemporaryFile ? 
-	                SmiEnvironment::instance.impl->usrTxn : 0;
+               SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( uniqueKeys )
   {
@@ -487,10 +236,10 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   }
   return (record.initialized);
 }
- 
+
 bool
 SmiKeyedFile::DeleteRecord( const SmiKey& key, 
-		            const bool all, const SmiRecordId recordId )
+                            const bool all, const SmiRecordId recordId )
 {
   if( all )
   {
@@ -498,7 +247,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key,
 
     Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
     DbTxn* tid = !impl->isTemporaryFile ? 
-	                   SmiEnvironment::instance.impl->usrTxn : 0;
+                 SmiEnvironment::instance.impl->usrTxn : 0;
 
     rc = impl->bdbFile->del( tid, &bdbKey, 0 );
     SmiEnvironment::SetBDBError( rc );
@@ -507,20 +256,16 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key,
   else
   {
     SmiKeyedFileIterator iter;
-    if( SelectRange( key, key, iter, SmiFile::ReadOnly, true ) )
+    if( SelectRecord( key, iter, SmiFile::Update ) ) 
     {
       SmiRecord record;
       while( iter.Next( record ) )
       {
-        SmiRecordId id;
         SmiSize bytesRead;
-        SmiRecordId ids[2];
+        SmiRecordId id;
         SmiSize idSize = sizeof(SmiRecordId);
-        bytesRead = record.Read(ids, 2 * idSize);
-        id = ids[0];
-        assert( bytesRead == idSize );
-
-        if( id == recordId )
+        bytesRead = record.Read(&id, idSize);
+        if( bytesRead == idSize && id == recordId )
           return iter.DeleteCurrent();
       }
     }

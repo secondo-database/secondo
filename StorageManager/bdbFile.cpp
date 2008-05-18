@@ -215,7 +215,7 @@ SmiFile::Create( const string& context /* = "Default" */ )
       DBTYPE bdbType;
       switch ( fileType )
       {
-        case Keyed:
+        case KeyedBtree:
           bdbType = DB_BTREE;
           if ( !uniqueKeys )
           {
@@ -231,6 +231,14 @@ SmiFile::Create( const string& context /* = "Default" */ )
           {
             rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
 	    SmiEnvironment::SetBDBError(rc);
+          }
+          break;
+        case KeyedHash:
+          bdbType = DB_HASH;
+          if ( !uniqueKeys )
+          {
+            rc = impl->bdbFile->set_flags( DB_DUP );
+            SmiEnvironment::SetBDBError(rc);
           }
           break;
         case FixedLength:
@@ -354,7 +362,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       DBTYPE bdbType;
       switch ( fileType )
       {
-        case Keyed:
+        case KeyedBtree:
           bdbType = DB_BTREE;
           if ( !uniqueKeys )
           {
@@ -370,6 +378,14 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           {
             rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
             SmiEnvironment::SetBDBError( rc );
+          }
+          break;
+        case KeyedHash:
+          bdbType = DB_HASH;
+          if ( !uniqueKeys )
+          {
+            rc = impl->bdbFile->set_flags( DB_DUP );
+            SmiEnvironment::SetBDBError(rc);
           }
           break;
         case FixedLength:
@@ -418,7 +434,8 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           BdbInitCatalogEntry( catalogEntry.entry );
           catalogEntry.entry.fileId = fileId;
           newName.copy( catalogEntry.entry.fileName, 2*SMI_MAX_NAMELEN+1 );
-          catalogEntry.entry.isKeyed = fileType == Keyed;
+          catalogEntry.entry.isKeyed = fileType == KeyedBtree || 
+                                       fileType == KeyedHash;
           catalogEntry.entry.isFixed = fileType == FixedLength;
           catalogEntry.updateOnCommit = true;
           SmiEnvironment::instance.impl->bdbFilesToCatalog[newName] 
@@ -496,7 +513,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       DBTYPE bdbType;
       switch ( fileType )
       {
-        case Keyed:
+        case KeyedBtree:
           bdbType = DB_BTREE;
           if ( !uniqueKeys )
           {
@@ -512,6 +529,14 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
           {
             rc = impl->bdbFile->set_bt_compare( BdbCompareFloat );
             SmiEnvironment::SetBDBError( rc );
+          }
+          break;
+        case KeyedHash:
+          bdbType = DB_HASH;
+          if ( !uniqueKeys )
+          {
+            rc = impl->bdbFile->set_flags( DB_DUP );
+            SmiEnvironment::SetBDBError(rc);
           }
           break;
         case FixedLength:
@@ -631,7 +656,8 @@ SmiFile::Drop()
       BdbInitCatalogEntry( catalogEntry.entry );
       catalogEntry.entry.fileId = fileId;
       newName.copy( catalogEntry.entry.fileName, 2*SMI_MAX_NAMELEN+1 );
-      catalogEntry.entry.isKeyed = fileType == Keyed;
+      catalogEntry.entry.isKeyed = fileType == KeyedBtree || 
+                                   fileType == KeyedHash;
       catalogEntry.entry.isFixed = fileType == FixedLength;
       catalogEntry.updateOnCommit = false;
       SmiEnvironment::instance.impl->bdbFilesToCatalog[newName] = catalogEntry;

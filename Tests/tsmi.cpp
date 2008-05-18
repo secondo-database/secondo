@@ -209,13 +209,13 @@ void TestFileScan( )
   }
 
  
-  SmiKeyedFile kf( SmiKey::Integer, true );
+  SmiBtreeFile kf( SmiKey::Integer, true );
   int FKcreated = kf.Create();
   assert( FKcreated ); 
   SmiKey key;
-  cout << "Integer KeyedFile created FileId=" << kf.GetFileId() << endl;
-  cout << "KeyedFile name   =" << kf.GetName() << endl;
-  cout << "KeyedFile context=" << kf.GetContext() << endl;
+  cout << "Integer BtreeFile created FileId=" << kf.GetFileId() << endl;
+  cout << "BtreeFile name   =" << kf.GetName() << endl;
+  cout << "BtreeFile context=" << kf.GetContext() << endl;
 
   //cout << "Insert: " << kf.InsertRecord( SmiKey( 4711l ), r ) << endl;
   //cout << "Insert (4711,Emilio1): " << r.Write( "Emilio1", 8 ) << endl;
@@ -256,15 +256,15 @@ void TestFileScan( )
 */
 
 
-void TestKeyedFiles( bool makeUnique )
+void TestBtreeFiles( bool makeUnique )
 {
   char buffer[30];
-  SmiKeyedFile kf( SmiKey::String, makeUnique );
+  SmiBtreeFile kf( SmiKey::String, makeUnique );
   if ( kf.Create() )
   {
-    cout << "String KeyedFile created FileId=" << kf.GetFileId() << endl;
-    cout << "KeyedFile name   =" << kf.GetName() << endl;
-    cout << "KeyedFile context=" << kf.GetContext() << endl;
+    cout << "String BtreeFile created FileId=" << kf.GetFileId() << endl;
+    cout << "BtreeFile name   =" << kf.GetName() << endl;
+    cout << "BtreeFile context=" << kf.GetContext() << endl;
     cout << "(Returncodes: 1 = ok, 0 = error )" << endl;
     SmiKeyedFileIterator it;
     SmiRecord r;
@@ -391,20 +391,20 @@ void TestKeyedFiles( bool makeUnique )
   }
   else
   {
-    cout << "KeyedFile create failed:" 
+    cout << "BtreeFile create failed:" 
          << SmiEnvironment::GetLastErrorCode() << endl;
   }
 }
 
-void TestIntegerKeyedFiles( bool makeUnique )
+void TestIntegerBtreeFiles( bool makeUnique )
 {
   char buffer[30];
-  SmiKeyedFile kf( SmiKey::Integer, makeUnique );
+  SmiBtreeFile kf( SmiKey::Integer, makeUnique );
   if ( kf.Create() )
   {
-    cout << "Integer KeyedFile created FileId=" << kf.GetFileId() << endl;
-    cout << "KeyedFile name   =" << kf.GetName() << endl;
-    cout << "KeyedFile context=" << kf.GetContext() << endl;
+    cout << "Integer BtreeFile created FileId=" << kf.GetFileId() << endl;
+    cout << "BtreeFile name   =" << kf.GetName() << endl;
+    cout << "BtreeFile context=" << kf.GetContext() << endl;
     cout << "(Returncodes: 1 = ok, 0 = error )" << endl;
     SmiKeyedFileIterator it;
     SmiRecord r;
@@ -528,20 +528,20 @@ void TestIntegerKeyedFiles( bool makeUnique )
   }
   else
   {
-    cout << "KeyedFile create failed:" 
+    cout << "BtreeFile create failed:" 
          << SmiEnvironment::GetLastErrorCode() << endl;
   }
 }
 
-void TestFloatKeyedFiles( bool makeUnique )
+void TestFloatBtreeFiles( bool makeUnique )
 {
   char buffer[30];
-  SmiKeyedFile kf( SmiKey::Float, makeUnique );
+  SmiBtreeFile kf( SmiKey::Float, makeUnique );
   if ( kf.Create() )
   {
-    cout << "Float KeyedFile created FileId=" << kf.GetFileId() << endl;
-    cout << "KeyedFile name   =" << kf.GetName() << endl;
-    cout << "KeyedFile context=" << kf.GetContext() << endl;
+    cout << "Float BtreeFile created FileId=" << kf.GetFileId() << endl;
+    cout << "BtreeFile name   =" << kf.GetName() << endl;
+    cout << "BtreeFile context=" << kf.GetContext() << endl;
     Pause();
     SmiKeyedFileIterator it;
     SmiRecord r;
@@ -664,7 +664,7 @@ void TestFloatKeyedFiles( bool makeUnique )
   }
   else
   {
-    cout << "KeyedFile create failed:" 
+    cout << "BtreeFile create failed:" 
          << SmiEnvironment::GetLastErrorCode() << endl;
   }
 }
@@ -701,7 +701,7 @@ void EasyMapping( const void*    inKey,
 
 */
 
-void TestCompKeyedFiles( bool makeUnique )
+void TestCompBtreeFiles( bool makeUnique )
 {
   cout << "Interface has been changed!. Code must be revised." << endl;
 
@@ -716,12 +716,12 @@ void TestCompKeyedFiles( bool makeUnique )
   SmiKey key4( comp4 );
   
   char buffer[30];
-  SmiKeyedFile kf( SmiKey::Composite, makeUnique );
+  SmiBtreeFile kf( SmiKey::Composite, makeUnique );
   if ( kf.Create() )
   {
-    cout << "Composite KeyedFile created, FileId=" << kf.GetFileId() << endl;
-    cout << "KeyedFile name   =" << kf.GetName() << endl;
-    cout << "KeyedFile context=" << kf.GetContext() << endl;
+    cout << "Composite BtreeFile created, FileId=" << kf.GetFileId() << endl;
+    cout << "BtreeFile name   =" << kf.GetName() << endl;
+    cout << "BtreeFile context=" << kf.GetContext() << endl;
     cout << "(Returncodes: 1 = ok, 0 = error )" << endl;
     SmiKeyedFileIterator it;
     SmiRecord r;
@@ -857,7 +857,7 @@ void TestCompKeyedFiles( bool makeUnique )
   }
   else
   {
-    cout << "KeyedFile create failed:" << SmiEnvironment::GetLastErrorCode() 
+    cout << "BtreeFile create failed:" << SmiEnvironment::GetLastErrorCode() 
          << endl;
   }
 #endif
@@ -874,11 +874,11 @@ int main( int argc, char* argv[] )
          << "options are listed below:" << endl 
          << "  -1:  Test SmiRecordFiles (fixed record length)" << endl 
          << "  -2:  Test SmiRecordFiles (variable record length)" << endl 
-         << "  -3:  Test SmiKeyedFiles (String unique keys)" << endl 
-         << "  -4:  Test SmiKeyedFiles (String duplicate keys)" << endl 
-         << "  -5:  Test SmiKeyedFiles (Integer duplicate keys)" << endl 
-         << "  -6:  Test SmiKeyedFiles (Float duplicate keys)" << endl 
-         << "  -7:  Test SmiKeyedFiles (Composite duplicate keys)" << endl
+         << "  -3:  Test SmiBtreeFiles (String unique keys)" << endl 
+         << "  -4:  Test SmiBtreeFiles (String duplicate keys)" << endl 
+         << "  -5:  Test SmiBtreeFiles (Integer duplicate keys)" << endl 
+         << "  -6:  Test SmiBtreeFiles (Float duplicate keys)" << endl 
+         << "  -7:  Test SmiBtreeFiles (Composite duplicate keys)" << endl
          << "  -8 [REC_SIZE MAX_RECORDS]:  " 
          << "Performance tests for scanning RecordFiles" << endl;
     exit(1); 
@@ -964,27 +964,27 @@ int main( int argc, char* argv[] )
       }
       case 3 : {
       cout << "*** Test String Keyed Files (Unique keys) ***" << endl;
-      TestKeyedFiles( true );
+      TestBtreeFiles( true );
       break;
       }
       case 4 : {
       cout << "*** Test String Keyed Files (Duplicate keys) ***" << endl;
-      TestKeyedFiles( false );
+      TestBtreeFiles( false );
       break;
       }
       case 5 : {
       cout << "*** Test Integer Keyed Files (Duplicate keys) ***" << endl;
-      TestIntegerKeyedFiles( false );
+      TestIntegerBtreeFiles( false );
       break;
       }
       case 6 : {
       cout << "*** Test Float Keyed Files (Duplicate keys) ***" << endl;
-      TestFloatKeyedFiles( false );
+      TestFloatBtreeFiles( false );
       break; 
       }
       case 7 : {
       cout << "*** Test Composite Keyed Files (Duplicate keys) ***" << endl;
-      TestCompKeyedFiles( false );
+      TestCompBtreeFiles( false );
       break;
       }
       case 8 : {

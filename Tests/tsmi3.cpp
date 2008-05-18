@@ -93,7 +93,7 @@ void Transaction(TMode m)
 }    
 
 
-void InsertRec(SmiKeyedFile& kf, const string& key, const string& val)
+void InsertRec(SmiBtreeFile& kf, const string& key, const string& val)
 { 
  
   cout << "Create new record for key " << key << endl;
@@ -114,7 +114,7 @@ void InsertRec(SmiKeyedFile& kf, const string& key, const string& val)
 }
 
 
-void SelectRec(SmiKeyedFile& kf, SmiRecord& r, const string& key, bool update)
+void SelectRec(SmiBtreeFile& kf, SmiRecord& r, const string& key, bool update)
 { 
   cout << "Select Record with key = '" << key << "'" << endl;
   bool rc = false;
@@ -150,36 +150,36 @@ void ReadRec(SmiRecord& r)
 
 void Initialize()
 {
-  SmiKeyedFile kf( SmiKey::String, true );
+  SmiBtreeFile kf( SmiKey::String, true );
   if ( kf.Open( "SecondoCatalog" ) )
   {
     Transaction(begin);
-    cout << "String KeyedFile created FileId=" << kf.GetFileId() << endl;
-    cout << "KeyedFile name   =" << kf.GetName() << endl;
-    cout << "KeyedFile context=" << kf.GetContext() << endl;
+    cout << "String BtreeFile created FileId=" << kf.GetFileId() << endl;
+    cout << "BtreeFile name   =" << kf.GetName() << endl;
+    cout << "BtreeFile context=" << kf.GetContext() << endl;
     
     InsertRec(kf, "Anton", "Antonia");
     InsertRec(kf, "Berta", "Bernhard");
     InsertRec(kf, "Ceasar", "Cecilie");
     
     Transaction(commit);
-    cout << "SmiKeyedFile:.Close: rc=" << kf.Close() << endl;
+    cout << "SmiBtreeFile:.Close: rc=" << kf.Close() << endl;
   }
   else
   {
-    cerr << "SmiKeyedFile::Open failed:" << endl;
+    cerr << "SmiBtreeFile::Open failed:" << endl;
     CheckSmiError();
   }
 }
 
-void TestKeyedFiles()
+void TestBtreeFiles()
 {
-  SmiKeyedFile kf( SmiKey::String, true );
+  SmiBtreeFile kf( SmiKey::String, true );
   if ( kf.Open( "SecondoCatalog" ) )
   {
-    cout << "String KeyedFile created FileId=" << kf.GetFileId() << endl;
-    cout << "KeyedFile name   =" << kf.GetName() << endl;
-    cout << "KeyedFile context=" << kf.GetContext() << endl;
+    cout << "String BtreeFile created FileId=" << kf.GetFileId() << endl;
+    cout << "BtreeFile name   =" << kf.GetName() << endl;
+    cout << "BtreeFile context=" << kf.GetContext() << endl;
     cout << "(Returncodes: 1 = ok, 0 = error )" << endl;
     
     SmiKeyedFileIterator it;
@@ -241,7 +241,7 @@ void TestKeyedFiles()
   }
   else
   {
-    cout << "KeyedFile open failed:" << endl;
+    cout << "BtreeFile open failed:" << endl;
     CheckSmiError();
   }
 }
@@ -307,7 +307,7 @@ int main( int argc, char* argv[] )
         Initialize();
 
       cout << "*** Test String Keyed Files ***" << endl;
-      TestKeyedFiles();
+      TestBtreeFiles();
       Pause();
       cout << "*** Closing Database ***" << endl;
       if ( SmiEnvironment::CloseDatabase() )

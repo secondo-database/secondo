@@ -107,7 +107,9 @@ but can be accessed for reading, update or deletion in random order using their
 record number. An iterator for sequential access to all records of an ~SmiFile~ is
 provided.
 
-An ~SmiFile~ for key oriented access is called ~SmiKeyedFile~. An ~SmiKeyFile~ is
+An ~SmiFile~ for key oriented access is called ~SmiKeyedFile~, which is itself
+divided into two kinds, called ~SmiBtreeFile~ and ~SmiHashFile~, depending on
+the storage method, a B-Tree and a Hash, respectively. An ~SmiKeyFile~ is
 capable of holding pairs of keys and data. Both keys and data may be of variable
 size. While the size of the data is only restricted by physical limits of the
 available hardware, the size of keys is restricted to at most 4000 bytes.
@@ -185,10 +187,23 @@ The class ~SmiKeyedFile~ provides the following methods:
 [23]    Creation/Removal    & Record Selection & Record Modification \\
         [--------]
         SmiKeyedFile        & SelectRecord     & InsertRecord \\
-        [tilde]SmiKeyedFile & SelectRange      & DeleteRecord \\
-                            & SelectLeftRange  & \\
-                            & SelectRightRange & \\
-                            & SelectAll        & \\
+        [tilde]SmiKeyedFile &                  & DeleteRecord \\
+
+The class ~SmiBtreeFile~ provides the following methods:
+
+[23]    Creation/Removal    & Record Selection  \\
+        [--------]
+        SmiBtreeFile        & SelectRange       \\
+        [tilde]SmiBtreeFile & SelectLeftRange   \\
+                            & SelectRightRange  \\
+
+The class ~SmiBtreeFile~ provides only the creation and removal functions, since
+all its functionality is provided in the ~SmiKeyedFile~:
+
+[23]    Creation/Removal    \\
+        [--------]
+        SmiHashFile        \\
+        [tilde]SmiHashFile \\
 
 The class ~SmiRecord~ provides the following methods:
 
@@ -419,6 +434,7 @@ Sets the internal key value to the passed key value, setting also the key type.
   friend class SmiFileIterator;
   friend class SmiRecordFile;
   friend class SmiKeyedFile;
+  friend class SmiBtreeFile;
   friend class SmiKeyedFileIterator;
   friend class SmiRecord;
   friend class PrefetchingIterator;
@@ -435,7 +451,7 @@ This class provides the methods common to both ~SmiRecordFiles~ and
 class SMI_EXPORT SmiFile
 {
  public:
-  enum FileType   { FixedLength, VariableLength, Keyed };
+  enum FileType   { FixedLength, VariableLength, KeyedBtree, KeyedHash };
 /*
 Is an enumeration of possible file types:
 
@@ -751,9 +767,9 @@ Optionally the accompanying error message is returned.
 
 */
   static void SetSmiError( const SmiError smiErr, 
-		              const string& file, int pos ); 
+                           const string& file, int pos ); 
   static void SetSmiError( const SmiError smiErr, 
-		              const int sysErr, const string& file, int pos ); 
+                           const int sysErr, const string& file, int pos ); 
   static void ResetSmiErrors();
 
 #define SetError(code) SetSmiError(code, __FILE__, __LINE__)  
@@ -836,7 +852,7 @@ or if the application runs in single user mode.
 
 */
   static void SetSmiError( const SmiError smiErr, 
-		            const string& errMsg, const string& file, int pos );
+                           const string& errMsg, const string& file, int pos );
 
   static const string Err2Msg( SmiError code );
 /*
@@ -871,6 +887,7 @@ Translate an SMI error code into a message!
   friend class SmiFileIterator;
   friend class SmiRecordFile;
   friend class SmiKeyedFile;
+  friend class SmiBtreeFile;
   friend class SmiRecord;
 };
 
@@ -1056,16 +1073,17 @@ class SmiKeyedFileIterator;  // Forward declaration
 class SMI_EXPORT SmiKeyedFile : public SmiFile
 {
  public:
-  SmiKeyedFile( const SmiKey::KeyDataType keyType,
-                const bool hasUniqueKeys = true,
-                const bool isTemporary = false );
+  SmiKeyedFile( const SmiFile::FileType fileType,
+                const SmiKey::KeyDataType keyType,
+                const bool hasUniqueKeys,
+                const bool isTemporary );
 /*
 Creates a ~SmiFile~ handle for keyed access. The keys have to be of the
 specified type ~keyType~. If ~hasUniqueKeys~ is true, then for each key
 only one record can be stored. Otherwise duplicate records are allowed.
 
 */
-  ~SmiKeyedFile();
+  virtual ~SmiKeyedFile() = 0;
 /*
 Destroys a file handle.
 
@@ -1078,7 +1096,7 @@ Returns the key type of the file.
   bool SelectRecord( const SmiKey& key,
                      SmiKeyedFileIterator& iterator,
                      const SmiFile::AccessType accessType =
-                           SmiFile::ReadOnly );
+                       SmiFile::ReadOnly );
 /*
 Selects the data record with the given key. It is required to specify
 whether the select takes place for read only or update of the record.
@@ -1092,7 +1110,7 @@ The function returns "true"[4] when at least one record exists for the given key
   bool SelectRecord( const SmiKey& key,
                      SmiRecord& record,
                      const SmiFile::AccessType accessType =
-                           SmiFile::ReadOnly );
+                       SmiFile::ReadOnly );
 /*
 Selects the data record with the given key and initializes a ~SmiRecord~
 handle for processing the record. In is required to specify whether the select
@@ -1101,6 +1119,79 @@ duplicates only the first record is returned with access type ~ReadOnly~,
 regardless of the specified access type!
 
 The function returns "true"[4] when a record exists for the given key.
+
+*/
+  bool InsertRecord( const SmiKey& key, SmiRecord& record );
+/*
+Inserts a new record for the given key.
+An ~SmiRecord~ handle is initialized on return to write the record.
+
+The function returns "true"[4] when the record was created successfully.
+
+*/
+  bool DeleteRecord( const SmiKey& key, 
+                     const bool all = true, 
+                     const SmiRecordId = 0 );
+/*
+Deletes all records having the given key.
+
+The function returns "true"[4] when the records were successfully deleted.
+
+*/
+};
+
+/**************************************************************************
+1.3 Class "SmiHashFile"[1]
+
+The class ~SmiHashFile~ uses hashing as access method for the ~SmiKeyedFile~.
+It does not provide any method, since all its functionality is 
+implemented in the parent class.
+
+*/
+
+class SMI_EXPORT SmiHashFile : public SmiKeyedFile
+{
+ public:
+  SmiHashFile( const SmiKey::KeyDataType keyType,
+                const bool hasUniqueKeys = true,
+                const bool isTemporary = false );
+/*
+Creates a ~SmiFile~ handle for keyed access using hashing as access method. 
+The keys have to be of the specified type ~keyType~. If ~hasUniqueKeys~ is 
+true, then for each key only one record can be stored. Otherwise duplicate 
+records are allowed.
+
+*/
+  ~SmiHashFile();
+/*
+Destroys a file handle.
+
+*/
+};
+
+/**************************************************************************
+1.3 Class "SmiBtreeFile"[1]
+
+The class ~SmiBtreeFile~ uses B-Tree as access method for the 
+~SmiKeyedFile~. Additionally to the selection methods provided by 
+the parent class, it provides several range selection methods.
+
+*/
+class SMI_EXPORT SmiBtreeFile : public SmiKeyedFile
+{
+ public:
+  SmiBtreeFile( const SmiKey::KeyDataType keyType,
+                const bool hasUniqueKeys = true,
+                const bool isTemporary = false );
+/*
+Creates a ~SmiFile~ handle for keyed access. The keys have to be of the
+specified type ~keyType~. If ~hasUniqueKeys~ is true, then for each key
+only one record can be stored. Otherwise duplicate records are allowed.
+
+*/
+  ~SmiBtreeFile();
+/*
+Destroys a file handle.
 
 */
   bool SelectRange( const SmiKey& fromKey, const SmiKey& toKey,
@@ -1187,7 +1278,7 @@ reported.
                         SmiFile::ReadOnly,
                   const bool reportDuplicates = false );
 /*
-Selects all records of the associated ~SmiKeyedFile~.
+Selects all records of the associated ~SmiBtreeFile~.
 A record iterator for processing the selected records
 is initialized on return.
 
@@ -1207,23 +1298,6 @@ reported.
 
 */
 
-  bool InsertRecord( const SmiKey& key, SmiRecord& record );
-/*
-Inserts a new record for the given key.
-An ~SmiRecord~ handle is initialized on return to write the record.
-
-The function returns "true"[4] when the record was created successfully.
-
-*/
-  bool DeleteRecord( const SmiKey& key, 
-                     const bool all = true, 
-                     const SmiRecordId = 0 );
-/*
-Deletes all records having the given key.
-
-The function returns "true"[4] when the records were successfully deleted.
-
-*/
  protected:
  private:
   friend class PrefetchingIterator;
@@ -1390,6 +1464,7 @@ be created as "SmiKey key( keyMappingFunction );"[4].
   SmiKey lastKey;        // End of selected key range
 
   friend class SmiKeyedFile;
+  friend class SmiBtreeFile;
 };
 
 /**************************************************************************

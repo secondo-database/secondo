@@ -328,7 +328,7 @@ opened( false )
 {
   if( keyType != SmiKey::Unknown )
   {
-    file = new SmiKeyedFile( keyType,false, temporary );
+    file = new SmiBtreeFile( keyType, false, temporary );
     if( file->Create() )
       opened = true;
     else
@@ -348,7 +348,7 @@ opened( false )
   if( record.Read( &fileId, sizeof(SmiFileId), offset ) != sizeof(SmiFileId) )
     return;
     
-  this->file = new SmiKeyedFile( keyType,false );
+  this->file = new SmiBtreeFile( keyType, false );
   if( file->Open( fileId ) )
   {
     opened = true;
@@ -367,7 +367,7 @@ opened( false )
 {
   if( keyType != SmiKey::Unknown )
   {
-    file = new SmiKeyedFile( keyType );
+    file = new SmiBtreeFile( keyType );
     if( file->Open( fileId ) )
       opened = true;
     else
@@ -437,7 +437,7 @@ bool BTree::Delete( const SmiKey& smiKey, const SmiRecordId id )
   return false;
 }
 
-SmiKeyedFile* BTree::GetFile() const
+SmiBtreeFile* BTree::GetFile() const
 {
   return this->file;
 }
@@ -1341,7 +1341,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       //local info kept over many calls of OPEN!
       //useful for loopjoin
 
-      if ( !ili ) 	//first time
+      if ( !ili ) //first time
       {
         ili = new IndexQueryLocalInfo;
         ili->completeCalls = 0;
@@ -1442,8 +1442,8 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       ProgressInfo *pRes;
       pRes = (ProgressInfo*) result.addr;
 
-      const double uIndexQuery = 0.15;	//ms per search
-      const double vIndexQuery = 0.018;	//ms per result tuple
+      const double uIndexQuery = 0.15;  //ms per search
+      const double vIndexQuery = 0.018; //ms per result tuple
 
       if ( !ili ) return CANCEL;
       else
@@ -1480,7 +1480,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
             (double) ili->completeReturned / (double) ili->completeCalls;
           
         }
-        else	//single or first call
+        else  //single or first call
         {
           if ( fabs(qp->GetSelectivity(s) - 0.1) < 0.000001 ) // default
             pRes->Card = (double) ili->defaultValue;
@@ -1502,8 +1502,8 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->Time = uIndexQuery + pRes->Card * vIndexQuery;
 
         pRes->Progress = 
-	  (uIndexQuery + (double) ili->returned * vIndexQuery)
-	  / pRes->Time;
+          (uIndexQuery + (double) ili->returned * vIndexQuery)
+          / pRes->Time;
 
         return YIELD;
       }
@@ -2560,12 +2560,12 @@ class BTreeAlgebra : public Algebra
 
     AddOperator(&createbtree);
     AddOperator(&exactmatch);
-    AddOperator(&leftrange);		leftrange.EnableProgress();
+    AddOperator(&leftrange);    leftrange.EnableProgress();
     AddOperator(&rightrange);
-    AddOperator(&cpprange);		cpprange.EnableProgress();
-    AddOperator(&exactmatchs);		exactmatch.EnableProgress();
+    AddOperator(&cpprange);     cpprange.EnableProgress();
+    AddOperator(&exactmatchs);  exactmatch.EnableProgress();
     AddOperator(&leftranges);
-    AddOperator(&rightranges);		rightrange.EnableProgress();
+    AddOperator(&rightranges);  rightrange.EnableProgress();
     AddOperator(&cppranges);
     AddOperator(&insertbtree);
     AddOperator(&deletebtree);

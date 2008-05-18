@@ -309,7 +309,7 @@ whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
   static string ConstructFileName( SmiFileId fileId, 
-		                   const bool isTemporary = false );
+                                   const bool isTemporary = false );
 /*
 Constructs a valid file name using the file identifier ~fileId~.
 
@@ -378,6 +378,7 @@ Are needed to support listing the names of all existing "Secondo"[3] databases.
   friend class SmiFile;
   friend class SmiRecordFile;
   friend class SmiKeyedFile;
+  friend class SmiBtreeFile;
   friend class SmiRecord;
 };
 
@@ -396,14 +397,15 @@ class SmiFile::Implementation
     Implementation();
     Implementation( bool isTemp );
     ~Implementation();
+
   private:
-	  void CheckDbHandles();   // reallocate Db-Handles if necessary
+    void CheckDbHandles();   // reallocate Db-Handles if necessary
     DbHandleIndex bdbHandle; // Index in handle array
     Db*           bdbFile;   // Berkeley DB handle
     string        bdbName;
     bool          isSystemCatalogFile;
     bool          isTemporaryFile;
-    bool	  noHandle;
+    bool          noHandle;
 /*
 Flags an ~SmiFile~ as a system catalog file. This distinction is needed,
 since transactional read operations on system catalog files could lead 
@@ -416,6 +418,7 @@ catalog files should not be protected by transactions.
   friend class SmiFileIterator;
   friend class SmiRecordFile;
   friend class SmiKeyedFile;
+  friend class SmiBtreeFile;
   friend class SmiRecord;
 };
 
@@ -441,6 +444,7 @@ class SmiFileIterator::Implementation
   friend class SmiRecordFile;
   friend class SmiRecordFileIterator;
   friend class SmiKeyedFile;
+  friend class SmiBtreeFile;
   friend class SmiKeyedFileIterator;
 };
 

@@ -436,80 +436,86 @@
                         (usedObjs text)))) 
             (
                 ("StaedteD" 
-                    <text>(createdeleterel Staedte)</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(createdeleterel Staedte)' 
+                    '( Staedte )') 
                 ("Kinos_Ort" 
-                    <text>(creatertree Kinos Ort)</text---> 
-                    <text>( Kinos )</text--->) 
+                    '(creatertree Kinos Ort)' 
+                    '( Kinos )') 
                 ("Kinos1" 
-                    <text>(consume (feed Kinos))</text---> 
-                    <text>( Kinos )</text--->) 
+                    '(consume (feed Kinos))' 
+                    '( Kinos )') 
                 ("Kinos1_Ort" 
-                    <text>(creatertree Kinos1 Ort)</text---> 
-                    <text>( Kinos1 )</text--->) 
+                    '(creatertree Kinos1 Ort)' 
+                    '( Kinos1 )') 
                 ("KinosOhneUCI1" 
-                    <text>(consume (feed KinosOhneUCI))</text---> 
-                    <text>( KinosOhneUCI )</text--->) 
+                    '(consume (feed KinosOhneUCI))' 
+                    '( KinosOhneUCI )') 
                 ("KinosOhneUCI1_Ort" 
-                    <text>(creatertree KinosOhneUCI1 Ort)</text---> 
-                    <text>( KinosOhneUCI1 )</text--->) 
+                    '(creatertree KinosOhneUCI1 Ort)' 
+                    '( KinosOhneUCI1 )') 
                 ("KleinstaedteI" 
-                    <text>(createinsertrel Kleinstaedte)</text---> 
-                    <text>( Kleinstaedte )</text--->) 
+                    '(createinsertrel Kleinstaedte)' 
+                    '( Kleinstaedte )') 
                 ("Kleinstaedte1" 
-                    <text>(consume (feed Kleinstaedte))</text---> 
-                    <text>( Kleinstaedte )</text--->) 
+                    '(consume (feed Kleinstaedte))' 
+                    '( Kleinstaedte )') 
                 ("Kleinstaedte2" 
-                    <text>(consume (feed Kleinstaedte))</text---> 
-                    <text>( Kleinstaedte )</text--->) 
+                    '(consume (feed Kleinstaedte))' 
+                    '( Kleinstaedte )') 
                 ("Kleinstaedte3" 
-                    <text>(consume (feed Kleinstaedte))</text---> 
-                    <text>( Kleinstaedte )</text--->) 
+                    '(consume (feed Kleinstaedte))' 
+                    '( Kleinstaedte )') 
                 ("Kleinstaedte4" 
-                    <text>(consume (feed Kleinstaedte))</text---> 
-                    <text>( Kleinstaedte )</text--->) 
+                    '(consume (feed Kleinstaedte))' 
+                    '( Kleinstaedte )') 
                 ("Staedte1" 
-                    <text>(consume (feed Staedte))</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(consume (feed Staedte))' 
+                    '( Staedte )') 
                 ("Staedte2" 
-                    <text>(consume (feed Staedte))</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(consume (feed Staedte))' 
+                    '( Staedte )') 
                 ("Staedte3" 
-                    <text>(consume (feed Staedte))</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(consume (feed Staedte))' 
+                    '( Staedte )') 
                 ("Staedte4" 
-                    <text>(consume (feed Staedte))</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(consume (feed Staedte))' 
+                    '( Staedte )') 
                 ("Staedte5" 
-                    <text>(consume (feed Staedte))</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(consume (feed Staedte))' 
+                    '( Staedte )') 
                 ("Staedte6" 
-                    <text>(consume (feed Staedte))</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(consume (feed Staedte))' 
+                    '( Staedte )') 
                 ("Staedte7" 
-                    <text>(consume (feed Staedte))</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(consume (feed Staedte))' 
+                    '( Staedte )') 
                 ("Staedte8" 
-                    <text>(consume (feed Staedte))</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(consume (feed Staedte))' 
+                    '( Staedte )') 
                 ("ten1" 
-                    <text>(consume (feed ten))</text---> 
-                    <text>( ten )</text--->) 
+                    '(consume (feed ten))' 
+                    '( ten )') 
                 ("ten2" 
-                    <text>(consume (feed ten))</text---> 
-                    <text>( ten )</text--->) 
+                    '(consume (feed ten))' 
+                    '( ten )') 
                 ("Kinos2" 
-                    <text>(consume (feed Kinos))</text---> 
-                    <text>( Kinos )</text--->) 
+                    '(consume (feed Kinos))' 
+                    '( Kinos )') 
                 ("Kinos2_Ort" 
-                    <text>(creatertree Kinos2 Ort)</text---> 
-                    <text>( Kinos2 )</text--->) 
+                    '(creatertree Kinos2 Ort)' 
+                    '( Kinos2 )') 
                 ("staedte_SName" 
-                    <text>(createbtree Staedte SName)</text---> 
-                    <text>( Staedte )</text--->) 
+                    '(createbtree Staedte SName)' 
+                    '( Staedte )') 
                 ("staedte_Bev" 
-                    <text>(createbtree Staedte Bev)</text---> 
-                    <text>( Staedte )</text--->))) 
+                    '(createbtree Staedte Bev)' 
+                    '( Staedte )') 
+                ("staedte_SName_h" 
+                    '(createhash Staedte SName)' 
+                    '( Staedte )') 
+                ("staedte_Bev_h" 
+                    '(createhash Staedte Bev)' 
+                    '( Staedte )'))) 
         (OBJECT Staedte 
             (StaedteRel) 
             (rel 
