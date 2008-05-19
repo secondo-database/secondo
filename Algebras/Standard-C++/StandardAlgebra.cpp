@@ -3006,7 +3006,10 @@ ifthenelse2Fun(Word* args, Word& result, int message, Word& local, Supplier s)
     qp->Request(args[index].addr, res);
     result.addr = res.addr; // ???
 
-   // qp->ReInitResultStorage(qp->GetSon(s,index));
+    //qp->ReInitResultStorage(qp->GetSon(s,index));
+    //Supplier son = qp->GetSon(s,index);
+    //son->result.addr=0;
+    qp->ChangeResultStorage(qp->GetSon(s,index),SetWord(0));
 
     return 0;
 }
