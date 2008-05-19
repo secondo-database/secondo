@@ -423,6 +423,16 @@ Checks if this segment consists only of a single point.
      return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
   }
 
+/*
+~length~
+
+Returns the length of this segment.
+
+*/
+  double length(){
+    return sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+  }
+
 
 /*
 ~InnerDisjoint~
@@ -765,11 +775,13 @@ earlier.
 */
 
   int split(const AVLSegment& s, AVLSegment& left, AVLSegment& common, 
-            AVLSegment& right) const{
+            AVLSegment& right, const bool checkOwner = true) const{
 
      assert(overlaps(s));
-     assert( (this->owner==first && s.owner==second) ||
-             (this->owner==second && s.owner==first));
+     if(checkOwner){
+       assert( (this->owner==first && s.owner==second) ||
+               (this->owner==second && s.owner==first));
+     }
 
 
      int result = 0;
@@ -4221,30 +4233,33 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
       }
       if(nextHS.IsLeftDomPoint()){
          if(member){ // overlapping segment found in sss
-            double xm = member->getX2();
-            double xc = current.getX2();
             // insert the common part into res
             AVLSegment tmp_left, tmp_common, tmp_right;
-            AVLSegment tmp_mem = *member;
-            tmp_mem.setOwner(second);
-            tmp_mem.split(current,tmp_left,tmp_common,tmp_right);
+            int sr = member->split(current,tmp_left,tmp_common,tmp_right,false);
+
+            tmp_left.setOwner(first);
+            tmp_common.setOwner(first);
+            tmp_right.setOwner(first);
             Point pl(true,tmp_common.getX1(),tmp_common.getY1());
             Point pr(true,tmp_common.getX2(),tmp_common.getY2());
-            cout << "Find overlapping segments" << endl;
-            if(!AlmostEqual(pl,pr)){
-              cout << "Insert common part" << endl;
-              tmp_common.setOwner(first);
-              HalfSegment hs1 = tmp_common.convertToHs(true);
-              HalfSegment hs2 = tmp_common.convertToHs(false);
-              hs1.attr.edgeno = edgeno;
-              hs2.attr.edgeno = edgeno;
-              res->Append(hs1);
-              res->Append(hs2);
-              edgeno++;
+
+            HalfSegment hs1 = tmp_common.convertToHs(true);
+            HalfSegment hs2 = tmp_common.convertToHs(false);
+            hs1.attr.edgeno = edgeno;
+            hs2.attr.edgeno = edgeno;
+            res->Append(hs1);
+            res->Append(hs2);
+            edgeno++;
+
+
+            sss.remove(*member);
+            if(sr & LEFT){
+              sss.insert(tmp_left);
+              insertEvents(tmp_left,false,true,q,q);
             }
-            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-               current.splitAt(xm,member->getY2(),left1,right1);
-               insertEvents(right1,true,true,q,q);
+            insertEvents(tmp_common,true,true,q,q);
+            if(sr & RIGHT){
+              insertEvents(tmp_right,true,true,q,q);
             }
          } else { // no overlapping segment found
             splitByNeighbour(sss,current,leftN,q,q);
@@ -4268,7 +4283,72 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
   }
   res->Sort(HalfSegmentCompare);
   res->TrimToSize();
+  // work around because problems with overlapping segments
+  if(hasOverlaps(*res,true)){
+    DBArray<HalfSegment>* tmp = Split(*res);
+    delete res;
+    res = tmp;
+  }
+
   return res;
+} 
+
+bool hasOverlaps(const DBArray<HalfSegment>& segments,
+                 const bool ignoreEqual){
+  if(segments.Size()<2){ // no overlaps possible 
+    return false;
+  }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  AVLTree<AVLSegment> sss;
+
+  int pos = 0;
+
+  HalfSegment nextHS;
+  const AVLSegment* member=0;
+  const AVLSegment* leftN  = 0;
+  const AVLSegment* rightN = 0;
+
+  AVLSegment left1, right1,left2,right2;
+  
+  AVLSegment tmpL,tmpR;
+
+  while(selectNext(segments,pos,q,nextHS)!=none) {
+      AVLSegment current(&nextHS,first);
+      member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
+      if(nextHS.IsLeftDomPoint()){
+         if(member){ // overlapping segment found in sss
+            if(!ignoreEqual || !member->exactEqualsTo(current)){ 
+              return true;
+            }
+            double xm = member->getX2();
+            double xc = current.getX2();
+            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+               current.splitAt(xm,member->getY2(),left1,right1);
+               insertEvents(right1,true,true,q,q);
+            }
+         } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q,q);
+            splitByNeighbour(sss,current,rightN,q,q);
+            sss.insert(current);
+         }
+      } else {  // nextHS rightDomPoint
+          if(member && member->exactEqualsTo(current)){
+             // insert the halfsegments
+             splitNeighbours(sss,leftN,rightN,q,q);
+             sss.remove(*member);
+          }
+      }      
+  }
+  return false;
 } 
 
 
@@ -4548,8 +4628,21 @@ void SetOp(const Region& reg1,
        }
        if(nextHs.IsLeftDomPoint()){
           if(member){ // overlapping segment found
-            assert(member->getOwner()!=both);   
-            assert(member->getOwner()!=owner); 
+            if((member->getOwner()==both) ||    
+               (member->getOwner()==owner)){
+               cerr << "overlapping segments detected within a single region"
+                    << endl;
+               cerr << "the argument is " << (owner==first?"first":"second") 
+                    << endl;
+               cerr.precision(16);
+               cerr << "stored is " << *member << endl;
+               cerr << "current = " << current << endl;
+               AVLSegment tmp_left, tmp_common, tmp_right;
+               member->split(current,tmp_left, tmp_common, tmp_right, false);
+               cout << "The common part is " << tmp_common << endl;
+               cout << "The lenth = " << tmp_common.length() << endl;
+               assert(false);
+            } 
             int parts = member->split(current,left1,common1,right1);
             sss.remove(*member);
             if(parts & LEFT){
