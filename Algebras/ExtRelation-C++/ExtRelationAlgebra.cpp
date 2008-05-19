@@ -8650,7 +8650,7 @@ public:
      tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
   }
   ~AddCounterLocalInfo(){
-     delete tupleType;
+     tupleType->DeleteIfAllowed();
      tupleType = 0;
   }
   Tuple* createTuple(Tuple* orig){
