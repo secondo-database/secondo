@@ -1306,6 +1306,36 @@ ListExpr ifthenelseType(ListExpr args)
 }
 
 /*
+4.2.14 Type mapping function for the ~ifthenelse2~ operator:
+
+Type mapping for ~ifthenelse2~ is
+
+----    (bool x T x T)) -> T
+----
+
+*/
+ListExpr ifthenelse2Type(ListExpr args)
+{
+  ListExpr arg1, arg2, arg3,
+           errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+  if ( nl->ListLength( args ) == 3 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    arg3 = nl->Third( args );
+    errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+
+    if (nl->Equal(arg2, arg3) && nl->IsEqual(arg1,"bool"))
+    {
+      return arg2;
+    }
+  }
+  ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+/*
 4.2.14 Type mapping function for the ~between~ operator:
 
 Type mapping for ~between~ is
@@ -2962,6 +2992,24 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
     return 0;
 }
 
+int
+ifthenelse2Fun(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+    result = qp->ResultStorage( s );
+
+    Word res;
+
+    qp->Request(args[0].addr, res);
+    CcBool* arg1 = (CcBool*) res.addr;
+
+    int index = ((arg1->IsDefined() &&  arg1->GetBoolval()) ? 1 : 2 );
+    qp->Request(args[index].addr, res);
+    result.addr = res.addr; // ???
+
+   // qp->ReInitResultStorage(qp->GetSon(s,index));
+
+    return 0;
+}
 
 /*
 4.21 Value mapping functions of operator ~between~
@@ -3968,6 +4016,21 @@ const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                 "[const string value \"greater\"])</text--->"
              ") )";
 
+const string CCSpecIfthenelse2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" )"
+                             "( <text>(bool x T x T) ->  T </text--->"
+             "<text>ifthenelse2(P, R1, R1)</text--->"
+             "<text>Evalutes and returns the second argument R1, if the "
+             "boolean value expression, given as a first argument P, can be "
+             "evaluated to TRUE. If P evaluates to FALSE or it is undefined, "  
+             "the third argument "
+             "R2 is evaluated and returned.  "
+             "NOTE: The second and the third argument must be of the "
+             "same type T.</text--->"
+             "<text>query ifthenelse2(3 < 5,[const string value \"less\"],"
+                "[const string value \"greater\"])</text--->"
+             ") )";
+
 const string CCSpecBetween  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(T x T x T) ->  bool</text--->"
@@ -4234,6 +4297,9 @@ Operator ccopkeywords( "keywords", CCSpecKeywords, 1, cckeywordsmap,
 Operator ccopifthenelse( "ifthenelse", CCSpecIfthenelse, ifthenelseFun,
                          Operator::SimpleSelect, ifthenelseType );
 
+Operator ccopifthenelse2( "ifthenelse2", CCSpecIfthenelse2, ifthenelse2Fun,
+                         Operator::SimpleSelect, ifthenelse2Type );
+
 Operator ccbetween( "between", CCSpecBetween, 4, ccbetweenmap,
                     CcBetweenSelect, CcBetweenTypeMap );
 
@@ -4363,6 +4429,8 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccopkeywords );
     AddOperator( &ccopifthenelse );
     ccopifthenelse.SetRequestsArguments();
+    AddOperator( &ccopifthenelse2 );
+    ccopifthenelse2.SetRequestsArguments();
     AddOperator( &ccbetween );
     //AddOperator( &ccelapsedtime );
     AddOperator( &ccldistance );

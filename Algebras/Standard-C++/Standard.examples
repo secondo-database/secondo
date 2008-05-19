@@ -136,6 +136,11 @@ Signature: (bool x T x T) ->  T
 Example  : query ifthenelse(3 < 5,[const string value "less"],[const string value "greater"])
 Result   : "less"
 
+Operator : ifthenelse2
+Number   : 1
+Signature: (bool x T x T) ->  T
+Example  : query ifthenelse2(3 < 5,[const string value "less"],[const string value "greater"])
+Result   : "less"
 
 Operator : intersection
 Number   : 1
