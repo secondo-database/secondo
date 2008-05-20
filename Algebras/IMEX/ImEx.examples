@@ -86,3 +86,9 @@ Example  : query  [const region value ()] shpimport['kinos'] count
 Result   : 0
 
 
+Operator : saveObject 
+Number   : 1
+Signature: T x string x text -> bool
+Example  : query (3 + 4) saveObject["seven",'seven.obj']
+Result   : TRUE
+

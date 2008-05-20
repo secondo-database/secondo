@@ -2859,8 +2859,104 @@ Operator dbimport( "dbimport",
                    dbimportTM);
 
 
+
 /*
-8 Creating the Algebra
+8 Operator saveObject
+
+8.1 TypeMapping
+
+The Type mapping is T x string x text -> bool
+
+*/
+
+ListExpr saveObjectTM(ListExpr args){
+  string err = "T x string x text  expected";
+  if(nl->ListLength(args)!=3){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(!nl->IsEqual(nl->Second(args),"string") |
+     !nl->IsEqual(nl->Third(args),"text")){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  ListExpr obj = nl->First(args);
+
+  if(!nl->IsAtom(obj) &&
+     !nl->IsEmpty(obj) &&
+     nl->IsEqual(nl->First(obj),"stream")){
+    ErrorReporter::ReportError("stream not allowes as first argument");
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom("bool");
+}
+
+/*
+8.2 Specification
+
+*/
+const string saveObjectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> T x string x text -> bool </text--->"
+    "<text> _  saveObject[objName, fileName] </text--->"
+    "<text> saves an object to a file in nested list format</text--->"
+    "<text> query (3 + 4) saveObject[\"seven\",'seven.obj']  </text--->"
+    ") )";
+
+/*
+8.3 Value Mapping
+
+*/
+
+int saveObjectVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  CcString* objName = static_cast<CcString*>(args[1].addr);
+  FText* fileName = static_cast<FText*>(args[2].addr);
+  if(!objName->IsDefined() || !fileName->IsDefined()){
+    res->Set(true,false);
+    return 0;
+  }
+  ListExpr type = qp->GetType(qp->GetSon(s,0));
+  int algId;
+  int typeId;
+  string tname;
+  if(! SecondoSystem::GetCatalog()->LookUpTypeExpr(type,tname,algId,typeId)){
+    res->Set(true,false);
+    return 0;
+  }
+  
+  ListExpr value = (am->OutObj(algId,typeId))(type,args[0]);  
+
+  string oname = objName->GetValue();
+ 
+  ListExpr objList = nl->FiveElemList(
+                        nl->SymbolAtom("OBJECT"),
+                        nl->SymbolAtom(oname),
+                        nl->TheEmptyList(),
+                        type,
+                        value);
+  bool success = nl->WriteToFile(fileName->GetValue(),objList);
+  res->Set(true,success);  
+  return 0;
+}
+
+/*
+8.4 Operator Instance
+
+*/
+Operator saveObject( "saveObject",
+                   saveObjectSpec,
+                   saveObjectVM,
+                   Operator::SimpleSelect,
+                   saveObjectTM);
+
+/*
+9 Creating the Algebra
 
 */
 
@@ -2876,6 +2972,7 @@ public:
     AddOperator( &shpimport );
     AddOperator( &dbtype );
     AddOperator( &dbimport);
+    AddOperator( &saveObject);
   }
   ~ImExAlgebra() {};
 };
