@@ -275,7 +275,7 @@ Der Wert für ein \textit{Face} wird berechnet, indem man zu dem Hashwert des \t
 Der Hashwert einer \textit{Region} setzt sich wiederum aus den Hashwerten seiner \textit{Faces} und einem weiteren konstanten Summanden zusammen.
 \end{itemize}
 
-\subsubsection{\index{splitline!Berechnung}Berechnung einer Zerlegungslinie für einen \textit{ConvexHullTreeNode} aus zwei anderen}\label{ZerteilungsAlgo}
+\subsubsection{\index{splitline}Berechnung einer Zerlegungslinie für einen \textit{ConvexHullTreeNode} aus zwei anderen}\label{ZerteilungsAlgo}
 
 Dieser Algorithmus bekommt ein zu zerteilendes ConvexHullTreeNode ($A$) und zwei andere ConvexHullTreeNodes ($B_1$ und $B_2$). Berechnet werden soll nun ein Linienzug, der die Lage und Form von $B_1$ und $B_2$ möglichst gut wiedergeben soll und an dem sich $A$ zerteilen lassen kann.
 
@@ -462,7 +462,7 @@ Schließlich ist $res=(0, 1, 2, 3, 4, 5, 107, 100, 101, 102, 103, 9, 10, 11, 12)
 
 
 
-\subsubsection{\index{Rotaring Pane}Rotating Plane} \label{rotPane}
+\subsubsection{\index{Rotaring Plane}Rotating Plane} \label{rotPane}
 In \cite{TG} wurde bereits der Algorithmus ,,rotating Plane'' vorgestellt. Im Laufe der forliegenden Arbeit wurde eine andrere Implementierung dieses Algorithmus entwickelt und hierbei eine Version gefunden, die sowohl einfacher ist als auch erheblich weniger Fallunterscheidungen benötigt.
 
 Die Idee dieses Algorithmus ist es, zu jeder Kante den Winkel zu bestimmen, den dieser mit der x"~Achse bildet. Zu zwei Ecken, die sich eine gemeinsame Kante teilen, konstruiert man ein Dreieck mit dem Startpunkt der Kante des anderen Polygons, dessen Winkel zwischen den Winkeln des Startpolygons liegt.
@@ -632,7 +632,7 @@ Schlie"slich wird dieser Algorithmus rekursiv f"ur alle diese Linienz"uge aufger
 \begin{figure}
 \subfigure[die Nodes der Level 0-1]{\includegraphics[width=0.45\textwidth]{Sandershausen2.eps}}\hfill
 \subfigure[kompletter ConvexHullTree]{\includegraphics[width=0.45\textwidth]{Sandershausen3.eps}}
-\caption{Ausschnitt von Sandershausen mit verschieden detaillierten ConvexHullTrees}
+\caption[verschieden detaillierte \textit{ConvexHullTrees}]{Ausschnitt von Sandershausen mit verschieden detaillierten \textit{ConvexHullTrees}}
 \label{fig:sand2}
 \end{figure}
 %\begin{figure}%
@@ -852,7 +852,7 @@ Diese Klasse dient dazu, Kombinationen von Punkten und Entfernungen zu  speicher
 
 Diese Klasse dient dazu, Punkte im Dreidimensionalen darstellen zu können.
 
-\subsubsection{\index{ConvexHullTreeNode}ConvexHullTreeNode}
+\subsubsection{\index{ConvexHullTreeNode!Klasse}ConvexHullTreeNode}
 
 Diese Klasse repräsentiert den ,,konvexen Hüllenbaum'', der bereits öfter erwähnt wurde. Der ConvexHullTreeNode enthält an Attributen:
 
@@ -905,7 +905,7 @@ Diese Funktion teilt das Objekt an dem übergebenen Linienzug und liefert ein zw
 \end{itemize}
 
 
-\subsubsection{\index{Face}Face}
+\subsubsection{\index{Face!Klasse}Face}
 
 Ein Face besteht aus einem \textit{Cycle} und keinem bis mehreren \textit{Holes}. Sowohl der \textit{Cycle}, als auch die \textit{Holes} sind durch \textit{ConvexHullTrees} gegeben. Die Attribute des \textit{Faces} sind:
 
@@ -938,7 +938,7 @@ Diese Funktion teilt das Face entlang des übergebenen Linienzugs in zwei neue F
 
 \end{itemize}
 
-\subsubsection{\index{Region}\index{RegionForInterpolation}Region oder RegionForInterpolation}
+\subsubsection{\index{Region!Klasse}\index{RegionForInterpolation}Region oder RegionForInterpolation}
 
 Eine \textit{Region} enthält ein oder mehrere \textit{Faces}. In SECONDO war der Name ,,Region'' leider schon für die Region in der SpatialAlgebra vergeben. Deshalb musste die Klasse dort in ,,RegionForInterpolation'' umbenannt werden.
 

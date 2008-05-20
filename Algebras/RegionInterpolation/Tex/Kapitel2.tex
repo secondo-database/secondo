@@ -1,103 +1,101 @@
 
-\chapter[Darstellung der Grundlagen \anmerkung{30-40 Seiten}]{Darstellung der Grundlagen\\
-\normalsize{(nicht selbstgemachtes
-SECONDO,
-MovingRegion,
-T\o{}ssebro)}\anmerkung{30-40 Seiten}} \label{Kapitel2}
+\chapter[Darstellung der Grundlagen ]{Darstellung der Grundlagen} \label{Kapitel2}
 \minitoc
 \newpage
-\section{SECONDO \anmerkung{10 Seiten}}\label{SecondoEinfuehrung}
+\section{SECONDO}\label{SecondoEinfuehrung}
 
 \subsection{Einführung}
-SECONDO ist ein erweiterbares Datenbank"-management-System (DBMS), das von dem Lehrgebiet Praktische Informatik IV, ,,Datenbanksysteme für neue Anwendungen'' in der Fakultät Mathematik und Informatik der Fernuniversität Hagen entwickelt wurde, und wird.
+SECONDO ist ein erweiterbares Datenbank"-management-System (DBMS), das vom Lehrgebiet Praktische Informatik IV, ,,Datenbanksysteme für neue Anwendungen'', in der Fakultät Mathematik und Informatik der Fernuniversität Hagen entwickelt wurde und kontinuierlich weiterentwickelt wird.
 
-Das Ziel von SECONDO ist es, einen ,,allgemeinen'' Datenbanksystemrahmen zur Verfügung zu stellen, der mit Implementierungen von verschiedenen DBMS Datenmodellen gefüllt werden kann.
+Das Ziel von SECONDO ist es, ein ,,allgemeines'' Datenbanksystem--Framework zur Verfügung zu stellen, dass mit Implementierungen von verschiedenen DBMS--Datenmodellen gefüllt werden kann.
 
-Zum Beispiel sollte es möglich sein, relationale, objektorientierte, zeitliche, oder XML-Modelle zu implementieren und Datentypen für räumliche Daten, bewegte Objekte, graphentheoretische Strukturen oder Schachspiele unterzubringen. Die Möglichkeit zur Änderung des grundlegenden Datenmodelle sind eine Besonderheit von SECONDO. Für die Erweiterbarkeit des System sind die ,,SECONDO-Algebren'' zuständig, deren Konzept ich weiter unter näher beleuchte.
+Mit diesem soll es möglich sein, relationale, objektorientierte, zeitliche oder XML-Modelle zu implementieren und Datentypen für räumliche Daten, bewegte Objekte, graphentheoretische Strukturen oder Schachspiele zu speiichern und Operationen darauf durchzuführen. Die Möglichkeit zur Änderung des grundlegenden Datenmodells ist eine Besonderheit von SECONDO. Für die Erweiterbarkeit des Systems sind die ,,SECONDO-Algebren'' zuständig, deren Konzept weiter unten näher beleuchtet wird.
 
-Das SECONDO-System setzt sich im wesentlichen aus drei Komponenten zusammen.
+Das SECONDO-System setzt sich im Wesentlichen aus drei Komponenten zusammen:
 \begin{enumerate}
 \item Der Kernel
 
-Der Kernel ist für die Datenhaltung und für die Abfragebearbeitung in dem speziellen SECONDO-Syntax zuständig. Datenpersistenz erreicht der Kernel durch das Zusammenspiel mit einer BerkleyDB. Die Algebren zur Unterstützung verschiedener Datentypen werden in den Kernel gehängt. Der Kernel, und die meisten Algebren sind in C++ geschrieben, es gibt aber auch die Möglichkeit Algebren in Java zu kodieren.
+Der Kernel ist für die Datenhaltung und für die Abfragebearbeitung in der speziellen SECONDO--Syntax zuständig. Datenpersistenz erreicht der Kernel durch das Zusammenspiel mit einer BerkleyDB. Die Algebren zur Unterstützung verschiedener Datentypen werden in den Kernel gelinkt. Der Kernel und die meisten Algebren sind in C++ geschrieben, es gibt aber auch die Möglichkeit, Algebren in Java zu kodieren.
 
 \item Der Optimizer
 
-Der Optimizer bietet die Möglichkeit Datenbankanfragen in einem eigenen, SQL-ähnlichen Syntax zu formulieren. Der Optimizer findet für diese Abfragen eine optimale Ausführung, indem er etwa den besten Join-Typ einer Abfrage findet, oder die Reihenfolge der Abarbeitungen optimiert. Der Optimizer ist in PROLOG geschrieben. Die vorliegende Arbeit benötigt die Möglichkeiten des Optimizers nicht.
+Der Optimizer bietet die Möglichkeit, Datenbankanfragen in einer eigenen, SQL--ähnlichen Syntax zu formulieren. Der Optimizer findet für diese Abfragen eine optimale Ausführung, indem er etwa den besten Join--Typ einer Abfrage bestimmt oder die Reihenfolge der Abarbeitungen ändert. Der Optimizer ist in PROLOG geschrieben. Die vorliegende Arbeit verwendet die Möglichkeiten des Optimizers nicht.
 
 \item Das GUI
 
-Das SECONDO-GUI bietet eine komfortable Möglichkeit entweder direkt, oder  über den Optimizer  auf den Kernel zuzugreifen. Analog zu der Erweiterbarkeit des Kernels durch Algebren ist auch das GUI, durch so genannte Viewer, erweiterbar. Diese Viewer bieten die Möglichkeit, neue Datentypen auch darzustellen. Da in dieser Arbeit keine neuen Datentypen eingeführt werden und sich die verwendeten Datentypen alle im ,,Hoese-Viewer'' darstellen lassen, war eine Erweiterung des GUI nicht notwendig. Man wird jedoch im Laufe dieser Arbeit öfter Grafiken finden, die unter Zuhilfenahme des GUI entstanden sind. Das GUI ist in Java geschrieben, und auch in dieser Sprache erweiterbar.
+Das SECONDO-GUI bietet eine komfortabele Möglichkeit, entweder direkt oder  über den Optimizer  auf den Kernel zuzugreifen. Analog zu der Erweiterbarkeit des Kernels durch Algebren ist auch das GUI, durch so genannte Viewer erweiterbar. Diese Viewer bieten die Möglichkeit, neue Datentypen nicht nur zu speichern, oder Berechnungen auf diesen auszuführen, sondern diese auch darzustellen. Da in dieser Arbeit keine neuen Datentypen eingeführt werden und sich die verwendeten Datentypen alle im ,,Hoese-Viewer'' darstellen lassen, war eine Erweiterung des GUIs nicht notwendig. In dieser Arbeit sind einige Grafiken enthalten die unter Zuhilfenahme des GUIs entstanden sind. Das GUI ist in Java geschrieben und auch in dieser Sprache erweiterbar.
 
 \end{enumerate}
 
-Eine Datenbank in SECONDO ist nichts weiteres als eine Menge von SECONDO-Obje"-kten. Nur wenn der Anwender diese Objekte in Relationen verwaltet, was meistens der Fall ist, weißt die Datenbank eine Form auf, wie man diese von relationalen Datenbanken gewohnt ist.
+Eine Datenbank in SECONDO repräsentiert eine Menge von SECONDO--Objek"-ten. Nur wenn der Anwender diese Objekte in Relationen verwaltet, was meistens der Fall ist, weist die Datenbank eine Form auf, wie man diese von relationalen Datenbanken gewohnt ist.
 
-Um Daten zwischen den einzelnen Komponenten austauschen zu können, wird das NestedList-Format benutzt. Eine NestedList ist eine geschachtelte Liste von elementaren Datentypen, deren Schachtelungstiefe unbegrenzt ist. Eine große NestedList wird zum Beispiel auch benutzt, um eine Datenbank in eine Datei zu exportieren, beziehungsweise eine solche Datei wieder einzulesen. Das Framework rund um SECONDO bietet dem Programmieren die Möglichkeiten NestedLists relativ einfach handhaben zu können.
+Um Daten zwischen den einzelnen Komponenten austauschen zu können, wird das \textit{NestedList}-Format benutzt. Eine \textit{NestedList} ist eine geschachtelte Liste von elementaren Datentypen, deren Schachtelungstiefe unbegrenzt ist. Eine weitere Anwendung von großen \textit{NestedLists} ist der Export einer Datenbank in eine Datei, beziehungsweise das Wiedereinlesen einer solche Datei. Das Framework rund um SECONDO bietet dem Programmierer die Möglichkeit, \textit{NestedLists} relativ einfach handhaben zu können.
 
 \subsection{Das Konzept der SECONDO-Algebren}
 
-Eine SECONDO-Algebra erweitert das System um neue Datentypen, und die Operationen, welche auf diesen durchführbar sind. Es kann aber auch Algebren geben, die entweder nur Datentypen, oder nur Operatoren bereitstellen. Die Algebra, welche im Zuge dieser Arbeit erstellt wird besteht zum Beispiel nur aus einem einzigen Operator.
+Eine SECONDO-Algebra erweitert das System um neue Datentypen und die Operationen, welche auf diesen durchführbar sind. Es kann aber auch Algebren geben, die entweder nur Datentypen oder nur Operatoren bereitstellen. Die Algebra, welche im Zuge dieser Arbeit erstellt wird, besteht zum Beispiel nur aus einem einzigen Operator.
 
-Bei der Herstellung von Datenpersistenz und der Einbettung in das SECONDO-System nehmen dem Programmierer einige Schnittstellen den Großteil der Arbeit ab.
+Einige Schnittstellen nehmen dem Programmierer bei der Herstellung von Datenpersistenz und der Einbettung in das SECONDO-System  einen großen Teil der Arbeit ab.
 
-Möchte dieser einen neuen Datentyp implementieren, so muss er sich zuerst eine Repräsentation seiner Daten in einer NestedList überlegen, und Methoden implementieren, diese aus seinen Objekten zu erzeugen, beziehungsweise Objekte aus der NestedList wiederherzustellen\footnote{Es gibt sogar die Möglichkeit zwei  verschiedene NestedList Formate für die Kommunikation mit den anderen Komponenten und für die interne Speicherung zu definieren. Das ist aber im Rahmen dieser Arbeit nicht weiter von Belang.}. Hierdurch ist bereits die Datenpersistenz gewährleistet.
+Möchte dieser einen neuen Datentyp implementieren, so muss er sich zuerst eine Repräsentation seiner Daten in einer \textit{NestedList} überlegen und Methoden implementieren, diese aus seinen Objekten zu erzeugen, beziehungsweise Objekte aus der \textit{NestedList} wiederherzustellen\footnote{Es gibt sogar die Möglichkeit zwei verschiedene \textit{NestedList} Formate für die Kommunikation mit den anderen Komponenten und für die interne Speicherung zu definieren. Das ist aber im Rahmen dieser Arbeit nicht weiter von Belang.}. Hierdurch ist bereits die Datenpersistenz gewährleistet.
 
-Wichtiger für diese Arbeit jedoch ist die Implementierung eines neuen Operators. Um einen Operator zu schreiben muss man im Wesentlichen zwei Funktionen schreiben, die TypeMapping-Funktion und die ValueMapping-Funktion. Zusätzlich kann es es noch eine Selection-Funktion geben, die die Implementierung von überladenen Operatoren ermöglicht.
+Wichtiger für diese Arbeit jedoch ist die Implementierung eines neuen Operators. Für einen Operator sind im Wesentlichen zwei Funktionen notwendig, die TypeMapping-Funktion und die ValueMapping-Funktion. Zusätzlich kann es noch eine Selection-Funktion geben, die die Implementierung von überladenen Operatoren ermöglicht.
 
-Die TypeMapping-Funktion überprüft ob die eingehenden Daten der Funktionsspezifikation entsprechen, und gibt den Typ des noch zu berechnenden Ergebnisses zurück, falls dies der Fall ist. Sollten die eingehenden Daten nicht das erwartete Format haben, kann die TypeMapping-Funktion die weitere Abarbeitung abbrechen, indem sie dem System einen ,,typeerror'' liefert.
+Die TypeMapping-Funktion überprüft, ob die eingehenden Daten der Funktionsspezifikation entsprechen, und gibt den Typ des noch zu berechnenden Ergebnisses zurück, falls dies der Fall ist. Sollten die eingehenden Daten nicht das erwartete Format haben, kann die TypeMapping-Funktion die weitere Abarbeitung abbrechen, indem sie dem System einen ,,typeerror'' liefert.
 
-Ist die Type"-Mapping-Funktion erfolgreich ausgeführt worden, so kann man in der Value"-Mapping-Funktion die eingehenden Daten lesen, und aus diesen das gewünschte Ergebnis berechnen.
+Ist die Type"-Mapping--Funktion erfolgreich ausgeführt worden, dann ermittelt im Falle von überladenen Operatoren, die Selection-Funktion die passende Value"-Mapping--Funktion. Bei nicht überladenen Operatoren, wird die Value"-Mapping--Funktion direkt aufgerufen.
+
+ Diese Value"-Mapping--Funktion ließt die eingehenden Daten und berechnet aus diesen das gewünschte Ergebnis.
 
 
 \subsection{Einige wichtige Algebren}
 
-Im folgenden stelle ich einige Algebren vor, die im Laufe der Arbeit von besonderem Interesse sind. 
+Im Folgenden werden einige Algebren vorgestellt, die im Laufe der Arbeit von besonderem Interesse sind. 
 
-\subsubsection{StandardAlgebra}
-Die Standart-Algebra beinhaltet die Unterstützung einiger wichtiger grundlegenden Datentypen. Diese sind:
+\subsubsection{Standard--Algebra}
+Die Standard--Algebra beinhaltet die Unterstützung einiger wichtiger grundlegenden Datentypen. Diese sind:
 \begin{itemize}
 \item int
 
 Der Datentyp für Ganzzahlen.
 \item real
 
-Der Datentyp für Fließkommazahlen. Hier ist zu beachten, dass SECONDO zwischen ganzen Zahlen und Fließkommazahlen streng unterscheidet. Möchte man etwa 1 als Fließkommazahl behandeln, so muss man zwingend 1.0 schreiben.
+Der Datentyp für Fließkommazahlen. Hier ist zu beachten, dass SECONDO zwischen ganzen Zahlen und Fließkommazahlen streng unterscheidet. Möchte man etwa 1 als Fließkommazahl behandeln, muss man zwingend 1.0 schreiben.
 \item bool
 
 Der Datentyp für Wahrheitswerte. Diese werden als ,,TRUE'' oder ,,FALSE'' ausgedrückt.
 \item string
 
-Eine Zeichenkette mit höchstens 48 Zeichen. Eine Unterstützung von regionalen Zeichensätzen ist nicht gegeben.
+Eine Zeichenkette mit höchstens 48 Zeichen. 
 \end{itemize}
 
-Für die nummerischen Datentypen stehen grundlegende nummerische Operationen, wie Addition, Division oder auch Logarithmenbildung oder die Quadratwurzelfunktion zur Verfügung.
+Für die nummerischen Datentypen stehen grundlegende Operationen, wie Addition, Division, Logarithmenbildung oder die Quadratwurzelfunktion zur Verfügung.
 
-An elementaren Stringoperationen stehen zum Beispiel Konkatenierung, Vergleich, Suchen in Strings oder Extraktionen, bereit.
+An elementaren Stringoperationen stehen zum Beispiel Konkatenation, Vergleich, Suche oder Extraktionen bereit.
 
-\subsubsection{RelationAlgebra}
+\subsubsection{Relation--Algebra}
 
-Diese Algebra stellt einige der wichtigsten Datentypen und Operationen bereit, welche man von relationalen Datenbanksystemen kennt.
+Diese Algebra stellt einige der wichtigsten Datentypen und Operationen relationaler Datenbanksysteme bereit.
  
 \begin{itemize}
 \item tuple
 
-Ein Datentyp für ein Tupple von Objekten. Etwa das Tuppel:\\ \verb+(tuple((name string)(age int)))+ kann mit den Daten \verb+("Myers" 53)+ gefüllt werden.
+Der Datentyp für ein Tuple von Objekten. Beispielsweise kann das Tuppel\\ \verb+(tuple((name string)(age int)))+ mit den Daten \verb+("Myers" 53)+ gefüllt werden.
 \item rel
 
-Ein Datentyp für eine Relation von Tuppeln. Das Beispiel von oben kann man erweitern, zu \verb+(rel(tuple((name string)(age int))))+. Diese Relation kann mit den Daten \verb+(("Myers" 53)("Smith" 21))+ gefüllt werden.
+Ein Datentyp für eine Relation von Tupeln. Das oben genannte Beispiel kann man zu \verb+(rel(tuple((name string)(age int))))+ erweitern. Diese Relation kann mit den Daten \verb+(("Myers" 53)("Smith" 21))+ gefüllt werden.
 \end{itemize}
-Die Operationen, die diese Algebra bereitstellt sind die, welche man von relationalen Datenbanken kennt, und die nur eine einzige Tabelle betreffen.
+Die Operationen, die diese Algebra bereitstellt, sind die welche man von relationalen Datenbanken kennt, und die nur eine einzige Tabelle betreffen.
 
-Dies sind zum Beispiel Projektion, Erweiterung um ein Attribut, Selektion oder Kartesische Produkt \footnote{Dies passt hier nicht so ganz, da hier mehrere Tabellen betroffen sind, der Operator ist aber trotzdem in dieser Algebra zu finden.}.
+Dies sind zum Beispiel Projektion, Erweiterung um ein Attribut, Selektion oder Kartesisches Produkt.
 
-\subsubsection{ExtRelationAlgebra}
+\subsubsection{Ext--Relation--Algebra}
 
-Diese Algebra stellt keine weiteren Datentypen zur Verfügung, sondern ergänzt das System um weitere Operationen auf Relationen und Tuppeln. Tendenziell finden sich in dieser Algebra diejenigen Operationen, welche auf mehreren Relationen agieren.
+Diese Algebra stellt keine weiteren Datentypen zur Verfügung, sondern ergänzt das System um weitere Operationen auf Relationen und Tupeln. 
 
 Speziell verschiedene Join- und Union-Verfahren, aber auch Operationen zum Gruppieren, Sortieren und Aggregieren von Daten sind hier zu finden.
 
-\subsubsection{SpatialAlgebra}
+\subsubsection{Spatial--Algebra}
 In dieser Algebra werden geometrische und geographische Objekte verwaltet.
 \begin{itemize}
 \item point
@@ -105,55 +103,55 @@ In dieser Algebra werden geometrische und geographische Objekte verwaltet.
 Dieser Datentyp beschreibt einen Punkt im $\mathbb{R}^2$ oder im $\mathbb{N}^2$.
 \item points
 
-Dieser Datentyp beschreibt eine Menge von unverbundenen, zweidimensionalen Punkten. 
+Der Datentyp für eine Menge von unverbundenen, zweidimensionalen Punkten. 
 \item line
 
 Dieser Datentyp beschreibt ein Liniensegment zwischen zwei Punkten.
 \item region
 
-Dieser Datentyp repräsentiert eine Region. Eine Region ist eine, durch mehrere Polygone beschriebene, Fläche.
+Dieser Datentyp repräsentiert eine Region. Eine Region ist eine durch mehrere Polygone beschriebene Fläche.
 \end{itemize}
 
 In dieser Algebra finden sich Operationen auf den geometrischen Objekten. Zum Beispiel sind das:
-,,enthalten sein'', Schnitte, Abstände, Flächenberechnung, Skalieren oder Verschieben.
+ Schnitte, Abstände, Flächenberechnung, Skalieren und Verschieben.
  
-Die interne Repräsentation dieser Daten besteht aus Halbsegmenten, einem Datentyp welcher sich besonders gut zur Verarbeitung durch Sweep-Line-Verfahren eignet.
+Die interne Repräsentation dieser Daten besteht aus Halbsegmenten, einem Datentyp, welcher sich besonders gut zur Verarbeitung durch Sweep-Line-Verfahren eignet.
 
-\subsubsection{PlaneSweepAlgebra}
+\subsubsection{Plane--Sweep--Algebra}
 
-Diese Algebra stellt keine eigenen Datentypen zur Verfügung, sondern bietet weitere Operationen auf den Datentypen der SpatialAlgebra an.
+Diese Algebra stellt keine eigenen Datentypen zur Verfügung, sondern bietet weitere Operationen auf den Datentypen der \textit{SpatialAlgebra}.
 
-Die Operationen sind solche, die sich mittels eines Sweep-Line-Verfahrens lösen lassen. Etwa Vereinigungen, Durchschnitte und Differenzen von Regionen oder Schnittpunktberechnungen.
+Die Operationen sind solche, die sich mittels eines Sweep-Line-Verfahrens lösen lassen: etwa Vereinigungen, Durchschnitte und Differenzen von Regionen oder Schnittpunktberechnungen.
 
-\subsubsection{PlugJoinAlgebra}
+\subsubsection{Plug--Join--Algebra}
 
 Auch diese Algebra stellt keine Datentypen zur Verfügung, sondern ergänzt einen einzigen Operator, nämlich ,,spatialjoin''.
 
-Dieser dient dazu, ein Join zwischen geometrischen Daten herzustellen. Das Kriterium zum Erstellen des Joins ist hierbei die Überlappung der geometrischen Daten. 
+Dieser dient dazu, einen Join zwischen geometrischen Daten herzustellen. Das Kriterium zum Erstellen des Joins ist hierbei die Überlappung der geometrischen Daten. 
 
-\subsubsection{DateTimeAlgebra}
+\subsubsection{Date--Time--Algebra}
 \begin{itemize}
 \item instant
 
-Dies ist ein Datentyp, mit welchem sich ein Zeitpunkt definieren lässt. Man kann in verschieden Genauigkeitsstufen ein Datum angeben (von Jahr-genau bis zu Millisekunden-genau).
+Dies ist ein Datentyp, mit welchem sich ein Zeitpunkt definieren lässt. Man kann in verschiedenen Genauigkeitsstufen ein Datum angeben (von Jahr-genau bis zu Millisekunden-genau).
 \item duration
 
 Dieser Datentyp dient der Verwaltung von Zeitdauern.
 \end{itemize}
 
-An Operationen bietet diese Algebra verschiedene Möglichkeiten der Datumserzeugung und der Datumsaritmetik an. Zum Beispiel die Extraktion von Datumteilen, oder die Addition von Tagen auf ein Datum.
+Diese Algebra bietet verschiedene Möglichkeiten der Datumserzeugung und der Datumsarithmetik an. Zum Beispiel die Extraktion von Datumsteilen oder die Addition von Tagen auf ein Datum.
 
-\subsubsection{GraphAlgebra}
+\subsubsection{Graph--Algebra}
 
-Diese Algebra ergänzt SECONDO um die Möglichkeit Graphen zu verwalten. Die dazugehörigen Datentypen sind:
+Diese Algebra ergänzt SECONDO um die Möglichkeit, Graphen zu verwalten. Die dazugehörigen Datentypen sind:
 
 \begin{itemize}
 \item vertex
 
-Eine Ecke in eines Graphen oder eines Pfads.
+Ein Vertex ist eine Ecke in eines Graphen oder eines Pfads.
 \item edge
 
-Dieser Datentyp repräsentiert eine Kante eines Graphen oder eines Pfades.
+Dieser Datentyp repräsentiert eine Kante eines Graphen oder eines Pfads.
 \item graph
 
 Mit Hilfe dieses Datentyps lassen sich Graphen verwalten.
@@ -162,11 +160,11 @@ Mit Hilfe dieses Datentyps lassen sich Graphen verwalten.
 Dieser Datentyp repräsentiert einen Pfad.
 \end{itemize}
 
-Die Algebra enthält Operatoren, mit deren Hilfe sich zum Beispiel Graphen konstruieren lassen, kürzeste Pfade mittels des Djiksta-Algorithmuses finden lassen oder Zusammenhangskomponenten finden lassen.
+Die Algebra enthält Operatoren, mit deren Hilfe sich zum Beispiel Graphen konstruieren, kürzeste Pfade mittels des Djiksta-Algorithmus oder Zusammenhangskomponenten finden lassen.
 
-\subsubsection{TemporalAlgebra}
+\subsubsection{Temporal--Algebra}
 
-Diese Algebra dient dazu einige einfache sich verändernde Datentypen zu verwalten. Eine Beschreibung dieser Datentypen findet sich unter \cite{FGNS}.
+Mit Hilfe dieser Algebra lassen sich einige einfache, sich verändernde Datentypen verwalten. Eine ausführlicherer Beschreibung dieser Datentypen findet sich unter \cite{FGNS}.
 \begin{itemize}
 \item rint
 
@@ -179,16 +177,16 @@ Dieser Datentyp repräsentiert Mengen von Intervallen auf Fließkommazahlen.
 Dieser Datentyp repräsentiert Mengen von Zeitintervallen.
 \item ibool
 
-Mit Hilfe dieses Datentyps lassen sich Paare von einem boolschen Werte und einem Zeitpunkt verwalten.
+Mit Hilfe dieses Datentyps lassen sich Paare von einem boolschen Wert und einem Zeitpunkt verwalten.
 \item iint
 
-Mit Hilfe dieses Datentyps lassen sich Paare von einer ganzen Zahl und einem Zeitpunkt verwalten.
+Datentyp zur Verwaltung von Paaren einer ganzen Zahl und einem Zeitpunkt.
 \item ireal
 
 Mit Hilfe dieses Datentyps lassen sich Paare von einer Fließkommazahl und einem Zeitpunkt verwalten.
 \item ipoint
 
-Mit Hilfe dieses Datentyps lassen sich Paare von einem Punkt und einem Zeitpunkt verwalten.
+Der Datentyp für Paare von einem Punkt und einem Zeitpunkt.
 \item ubool
 
 \item uint
@@ -205,110 +203,139 @@ Mit Hilfe dieses Datentyps lassen sich Paare von einem Punkt und einem Zeitpunkt
 
 \item mpoint
 
-Dieser Datentyp dient der Verarbeitung eines Punktes, der sich über der Zeit verändert.
+Dieser Datentyp dient der Verarbeitung eines Punktes, der seine Position über der Zeit verändert.
 \end{itemize}
 
 
 
-\subsection{Die MovingRegionAlgebra}
-Da diese Algebra für meine Arbeit besonders wichtig ist, beschreibe ich diese ausführlicher.
+\subsection{Moving--Region--Algebra}
+Aufgrund der großen Bedeutung, für diese Arbeit, ist diese Algebra besonders hervorzuheben.
 
-Diese Klasse wurde im Zuge einer Abschlussarbeit \cite{Mue} im Studiengang Bachelor of Science im Fach Informatik  erstellt.
+Sie wurde im Zuge einer Abschlussarbeit \cite{Mue} im Studiengang Bachelor of Science im Fach Informatik  erstellt und umfaßt folgende Datentypen:
 
 \begin{itemize}
 \item intimeregion
 
-Dieser Datentyp dient dazu Paare von Regionen und Zeitpunkten zu verwalten. Dieses Konstrukt dient besonders zur Verwaltung von Schnappschüssen zu bestimmten Zeitpunkten.
+Dieser Datentyp dient der Verwaltung von Paaren von Regionen und Zeitpunkten zu verwalten. Dieses Konstrukt dient besonders zur Verwaltung von Schnappschüssen zu bestimmten Zeitpunkten.
 \item uregion
 
-Mit Hilfe dieses Datentyps lassen sich Regionunits verwalten. Eine Regionunit dient dazu, eine kontinuierliche Bewegung einer Region zu einem Zeitpunkt in eine andere Region zu einem späteren Zeitpunkt darzustellen. 
+Mit Hilfe dieses Datentyps lassen sich \textit{RegionUnits} verwalten. Eine \textit{RegionUnit} dient dazu, eine kontinuierliche Bewegung einer \textit{Region} zu einem Zeitpunkt in eine andere \textit{Region} zu einem späteren Zeitpunkt darzustellen. 
 \item movingregion
 
-Dies ist die Repräsentation einer MovingRegion. Eine MovingRegion ist eine Menge von Regionunits, bei denen alle Zeitintervalle paarweise disjunkt sind. 
+Dies ist die Repräsentation einer \textit{MovingRegion}. Eine \textit{MovingRegion} ist eine Menge von \textit{RegionUnits}, bei denen alle Zeitintervalle paarweise disjunkt sind. 
 \end{itemize}
 
-Eine formelle Definition von MovingRegion und Regionunit werde ich etwas später, unter \ref{DatenMoving}, geben.
+Eine formelle Definition von \textit{MovingRegion} und \textit{RegionUnit} folgt unter~\vref{DatenMoving}.
 
-Es existieren Operationen, mit deren Hilfe man Fragen zu bestehenden MovingRegion und Regionunits beantworten kann, etwa ob ein MovingRegion irgendwann einen Punkt berührt, oder wann ein Movingpoint sich in einer MovingRegion befindet, es fehlen aber noch Methoden um einfach MovingRegions zu erzeugen. 
+Es existieren Operationen, mit deren Hilfe man Fragen zu bestehenden \textit{MovingRegions} und \textit{RegionUnits} beantworten kann, ob ein MovingRegion irgendwann einen Punkt berührt oder wann ein \textit{MovingPoint} sich in einer \textit{MovingRegion} befindet. Es fehlen allerdings noch Methoden, um\textit{MovingRegions}  einfach zu erzeugen. 
  
-\section{Das Paper von Erlend T\o{}ssebro \anmerkung{10 Seiten}}\label{Tossebro}
+\section{Creating Repesentations for Continuously Moving Regions from Observations}\label{Tossebro}
 
-Eine der wichtigsten Grundlagen der vorliegenden Arbeit ist das Paper: ,,Creating Repesentations for Continuously Moving Regions from Observations'' \cite{TG} von Erlend T\o{}ssebro und Ralf Hartmund G"uting \cite{TG}, in dem die Autoren sich mit den theoretischen Grundlagen des Problems besch"aftigt, und L"osungsvorschl"age zu vielen der vorkommenden Teilprobleme gemacht haben.
+Eine der wichtigsten Grundlagen der vorliegenden Arbeit ist das Paper ,,Creating Repesentations for Continuously Moving Regions from Observations'' \cite{TG} von Erlend T\o{}ssebro und Ralf Hartmund G"uting \cite{TG}, in dem sich die Autoren mit den theoretischen Grundlagen des Problems der Interpolation zwischen \textit{Regionen} besch"aftigen und L"osungsvorschl"age zu vielen der vorkommenden Teilprobleme gemacht haben.
 
-Im Rahmen dieses Projektes ist auch eine Java-Applikation entstanden, welche im Rahmen meiner Arbeit erweitert wurde.
+Im Rahmen dieses Projektes ist auch eine Java-Applikation zur Verfügung gestellt worden, welche im Rahmen der vorliegenden Arbeit erweitert wurde. Die JAva-Applikation stellt ein ,,proof of concept'' dar, und bietet die Möglichkeit, einfache \textit{Regionen} zu matchen.
 
-\subsection{Die zugrundeligenden Datentypen}\label{DatenMoving}
+\subsection{zugrundeliegende Datentypen}\label{DatenMoving}
 Nach der allgemeinen Einleitung skizzierten die Autoren kurz die Datentypen, wie diese in \cite{FGNS} beschrieben sind.
 
-Zuerst die nicht beweglichen Daten:
+Zuerst die fixen Daten:
+
+\begin{itemize}
+
+\item Das Segment\index{Segment}
 $$Seg=\{(u,v)|u,v\in Point, u<v\}$$
 
-Ein Segment ist also ein Liniensegment zwischen zwei Punkten. 
+Ein \textit{Segment} ist eine Strecke zwischen zwei Punkten. 
 
-$$Cycle=\{S\subset S\}$$
+\item Der Cycle \index{Cycle}
 
-Ein Cycle ist eine Menge von Liniensegmenten, die zusammen ein einfaches Polygon bilden müssen.
+$$Cycle=\{S\subset Seg\}$$
+
+Ein \textit{Cycle} ist eine Menge von Liniensegmenten, die zusammen ein einfaches Polygon bilden müssen.
+
+\item Das Face\index{Face! als Datentyp}
 
 $$Face=\{(c,H)|c\in Cycle, H \subset Cycle\}$$
 
-Ein Face setzt sich aus einem Cycle, der äußeren Begrenzungslinie, und einer Menge von anderen Cycles, den Löchern oder Holes zusammen. Jedes Hole muss komplett innerhalb des äußeren Cycles liegen, und zwei Holes dürfen sich nicht überschneiden. 
+Ein \textit{Face} setzt sich aus einem \textit{Cycle}, der äußeren Begrenzungslinie und einer Menge von anderen \textit{Cycles}, den \textit{Löchern} oder \textit{Holes}, zusammen. Jedes \textit{Hole} muss komplett innerhalb des äußeren \textit{Cycles} liegen und zwei \textit{Holes} dürfen sich nicht überschneiden. 
+
+\item Die Region\index{Region!als Datentyp}
 
 $$Region=\{F\subset Face|f_1,f_2\in F \wedge (f_1\neq f_2) \Rightarrow \text{Kanten von }f_1\text{ und } f_2 \text{ sind disjunkt. } \}$$
 
-Eine Region schließlich setzt sich aus mehreren Faces zusammen, wobei sich diese nicht überschneiden dürfen. 
+Eine \textit{Region} setzt sich aus mehreren \textit{Faces} zusammen, wobei sich diese nicht überschneiden dürfen. Genauergesagt müssen die Faces kantendisjunkt sein, dürfen also gemeinsame Punkte, aber keine gemeinsamen Kanten haben.
+\end{itemize}
 
 Nun skizzieren die Autoren die beweglichen Datentypen:
 
+\begin{itemize}
+
+\item Der MovingPoint\index{MovingPoint}
+
 $$MPoint=\{(x_0,x_1,y_0,y_1)|x_0,x_1,y_0,y_1\in \mathbb{R}\}$$
 
-Ein MovingPoint setzt sich aus zwei Punkten, dem Start- und dem Endpunkt zusammen.
+Ein \textit{MovingPoint} setzt sich aus zwei Punkten, nämlich dem Start- und dem Endpunkt zusammen.
+
+\item Das MovingSegment \index{MovingSegment}
 
 $$MSeg=\{(s,e)|s,e\in MPoint\}$$
 
-Ein MovingSegment setzt sich aus zwei MovingPoints zusammen, wobei aber alle vier beteiligten Start- und Endpunkte auf einer Ebene liegen müssen. Ein wichtiger Sonderfall des MovingSegements ist der, wenn beide Start- oder beide End-punkte zusammenfallen. In diesem Fall repräsentiert ein MovingSegment ein Dreieck in drei Dimensionen.
+Ein \textit{MovingSegment} setzt sich aus zwei \textit{MovingPoints} zusammen, wobei alle vier beteiligten Start- und Endpunkte auf einer Ebene liegen müssen. Ein wichtiger Sonderfall des \textit{MovingSegements} liegt vor, wenn beide Start- oder beide Endpunkte zusammenfallen. In diesem Fall repräsentiert ein \textit{MovingSegment} ein Dreieck in drei Dimensionen.
+
+\item Der MovingCycle \index{MovingCycle}
 
 $$MCycle=\{(s_0,s_1,\hdots ,s_{n-1})|n\geq3, s_i\in MSeg\}$$
 
-Ein MovingCycle ist die bewegliche Version eines Cycles. Die beteiligten MovingSegements müssen zusammen eine geschlossene, dreidimensionale Struktur bilden.
+Ein \textit{MovingCycle} ist die bewegliche Version eines \textit{Cycles}. Die beteiligten \textit{MovingSegements} müssen zusammen eine geschlossene, dreidimensionale Struktur bilden.
+
+\item Das Moving Face \index{MovingFace}
 
 $$MFace=\{(c,H)|c\in MCycle, H\subset MCycle\}$$
 
-Ein MovingFace ist die dreidimensionale Version eines Faces, und setzt sich analog zu diesem zusammen.
+Ein \textit{MovingFace} ist die dreidimensionale Version eines \textit{Faces} und setzt sich analog zu diesem zusammen.
+
+\item Die RegionUnit \index{RegionUnit}
 
 $$URegion=\{(i,F)|i\in Intervall, F\subset MFace\}$$
 
-Eine RegionUnit schließlich besteht aus einer Menge von MovingFaces und einem Zeitintervall. 
+Eine \textit{RegionUnit} besteht aus einer Menge von \textit{MovingFaces} und einem Zeitintervall. 
 
-Eine MovingRegion schließlich besteht aus mehreren RegionUnits, bei denen die Zeitintervalle paarweise disjunkt sind.
+\item Die MovingRegion \index{MovingRegion}
 
-\subsection{Der Rotating-Pane-Algorithmus}
+$$MRegion=\{U|U\subset URegion\}$$
 
-Die Autoren entwickeln einen Algorithmus, mit dessen Hilfe sich MovingCycles aus zwei konvexen Polygonen berechnen lassen. Anschaulich funktioniert dieser Algorithmus wie folgt:
+Eine \textit{MovingRegion} schließlich besteht aus mehreren \textit{RegionUnits}, bei denen die Zeitintervalle paarweise disjunkt sind.
+\end{itemize}
+\subsection{\index{Rotating--Plane--Algorithmus}Rotating--Plane--Algorithmus}
 
-Wähle eine Kante $s$ des einen Polygons, und lasse die Grundebene des Polygons entlang dieser Achse rotieren. Die Ebene wird dann auf das andere Polygon treffen. Trifft die Ebene zuerst auf einen einzigen Punkt $T$, so gehört das Dreieck aus den beiden Punkten von $s$ und $T$ zu dem MovingCycle.
+Die Autoren entwickeln einen Algorithmus, mit dessen Hilfe sich \textit{MovingCycles} aus zwei konvexen Polygonen berechnen lassen. Anschaulich funktioniert dieser Algorithmus wie folgt:
 
-Trifft die Ebene aber auf eine Kante $t$, so gehört das MovingSegment von $s$ zu $t$ zu dem MovingCycle.
+\begin{enumerate}
 
-Dieses Verfahren wende auf alle Kanten aus beiden Polygonen an.
+\item Wähle eine Kante $s$ des einen Polygons und lasse die Grundebene des Polygons entlang dieser Achse rotieren. Die Ebene wird dann auf das andere Polygon treffen. Trifft die Ebene zuerst auf einen einzigen Punkt $T$, so gehört das Dreieck aus den beiden Punkten von $s$ und $T$ zu dem MovingCycle.
 
-Die Autoren geben auch noch einen Algorithmus an, der diese Idee weiterverfolgt, der aber technisch einfacher zu implementieren ist. Eine leicht veränderte Version dieses Algorithmuses beschreibe ich unter \ref{rotPane} genauer.
+\item Trifft die Ebene aber auf eine Kante $t$, so gehört das \textit{MovingSegment} von $s$ zu $t$ zu dem MovingCycle.
 
-Die Autoren geben noch die Laufzeit des Verfahrens an und sagen, dass der Algorithmus zu zwei Polygonen, welche zusammen $n$ Ecken haben, ein MovingCycle berechnet und hierfür $O(n*\log{n})$ Zeit benötigt. Liegen die Punkte der Polygone bereits sortiert vor, so sinkt die Laufzeit auf $O(n)$.
+\item Dieses Verfahren wird auf alle Kanten aus beiden Polygonen angewendet.
+\end{enumerate}
+Die Autoren geben auch noch einen Algorithmus an, der diese Idee weiterverfolgt, der aber technisch einfacher zu implementieren ist. Eine leicht veränderte Version dieses Algorithmus wird unter \vref{rotPane} näher beschrieben.
 
-Die Autoren räumen ein, dass dieses Verfahren nicht gut mit Rotationen umgehen kann. Lassen wir etwa zwei dünne Rechteck durch diesen Algorithmus laufen, die um 90\degree gedreht sind, so wird die Interpolation nach der Hälfte der Zeit ungefähr quadratisch  sein und einen zu großen Flächeninhalt aufweisen. Abbildung~\ref{fig:BeispielschlechteRot} zeigt dieses Beispiel. Eine Lösung dieses Problems können die Autoren nicht angeben, bei Rotationen sollten also die Unterschiede zwischen den Schnappschüssen nicht zu groß sein.
+Die Autoren haben die Laufzeit des Verfahrens untersucht und herausgefunden, dass der Algorithmus zu zwei Polygonen, welche zusammen $n$ Ecken haben, ein \textit{MovingCycle} berechnet und hierfür $O(n*\log{n})$ Zeit benötigt. Liegen die Punkte der Polygone bereits sortiert vor, so sinkt die Laufzeit auf $O(n)$.
+
+Die Autoren räumen ein, dass dieses Verfahren nicht gut mit Rotationen umgehen kann. Läßt man etwa zwei schmale Rechtecke, die um 90\degree gedreht sind, durch diesen Algorithmus laufen, so wird die Interpolation nach der Hälfte der Zeit ungefähr quadratisch  sein und einen zu großen Flächeninhalt aufweisen. Abbildung~\vref{fig:BeispielschlechteRot} zeigt dieses Beispiel. Eine Lösung dieses Problems wird durch die Autoren nicht angeben. Bei Rotationen sollten also die Unterschiede zwischen den einzelnen Schnappschüssen nicht zu groß sein.
 
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.6]{Rotation.eps}
-	\caption{Ein Beispiel in dem man die Schwäche des Verfahrens bei großen Rotationen sehen kann.}
+	\caption[Die Schwächen des Verfahrens für große Rotationen]{Ein Beispiel, in dem man die Schwäche des Verfahrens bei großen Rotationen sehen kann.}
 	\label{fig:BeispielschlechteRot}
 \end{figure}
 
-\subsection{Der Konvexe Hüllenbaum}
+\subsection{Konvexer Hüllenbaum\index{ConvexHullTreeNode!Konzept}}
 
-Das obige Verfahren kann nur mit konvexen Polygonen umgehen. Um im Allgemeinen einfache Polygone bearbeiten zu können führen die Autoren den ConvexHullTree ein. Die Idee hinter diesen ist es, einfache Polygone als konvexe Polygone mit konvexen Löchern aufzufassen. 
+Das obige Verfahren kann nur mit konvexen Polygonen umgehen. Um einfache Polygone bearbeiten zu können, führen die Autoren den \textit{ConvexHullTree} ein. Die Idee hinter diesem ist es, einfache Polygone als konvexe Polygone mit konvexen Löchern aufzufassen. 
 
-Ein ConvexHullTreeNode ist ein konvexes Polygon, bei dem jeder Kante wiederum ein ConvexHullTreeNode zugeordnet werden kann. Diese Kinderelemente werden von dem Vaterelement abgezogen. Abbildung~\ref{fig:ConHullTree} zeigt einen solches Konstrukt.
+Ein \textit{ConvexHullTreeNode} ist ein konvexes Polygon, bei dem jeder Kante wiederum ein \textit{ConvexHullTreeNode} zugeordnet werden kann. Diese Kindelemente werden von dem Vaterelement abgezogen. Abbildung~\vref{fig:ConHullTree} zeigt einen solches Konstrukt.
 
 \begin{figure}
 	\centering
@@ -317,76 +344,87 @@ Ein ConvexHullTreeNode ist ein konvexes Polygon, bei dem jeder Kante wiederum ei
 	\label{fig:ConHullTree}
 \end{figure}
 
-Die Autoren beschreiben, wie man einen solchen Baum aufbaut. Dieses Verfahren ist näher unter \ref{constCHTN} beschrieben.
+Die Veröffentlichung beschreibt, wie man einen solchen Baum aufbaut. Dieses Verfahren ist näher unter \vref{constCHTN} beschrieben.
 
 Die Komplexität der Konstruktion eines Hüllenbaumes wird mit $O(dn*\log(n))$ angegeben, wobei $d$ die Tiefe des resultierenden Baumes ist.
 
-Der umgekehrte Weg, also aus einem ConvexHullTree wieder ein Polygon zu erzeugen funktioniert so:
+Der umgekehrte Weg, also aus einem \textit{ConvexHullTree} wieder ein Polygon zu erzeugen, funktioniert so:
 
 \begin{itemize}
 \item Gebe jedes Segment zurück, für das es kein Kindelement gibt.
-\item Für jedes Segment, welches ein Kindelement hat benutze diese Funktion rekursiv.
+\item Für jedes Segment, welches ein Kindelement hat, benutze diese Funktion rekursiv.
 \end{itemize}
 
 \subsection{Matching zweier Regionen}
 
-Im Weiteren beschäftigen sich die Autoren mit der Frage, wie man zu gegebenen Polygonen, welche die beiden Schnappschüsse einer MovingRegion darstellen sollen, ein Match bestimmen kann. Ein Match ist eine Menge von Paaren von Cyclen, die zusammengehören.
+Im Weiteren beschäftigen sich die Autoren mit der Frage, wie man zu gegebenen Polygonen, welche die beiden Schnappschüsse einer MovingRegion darstellen sollen, ein \textit{Match} bestimmen kann. Ein \textit{Match} ist eine Menge von Paaren zusammengehörender \textit{Cycles}. Die erste Komponente der einzelenen Paare werden im Folgenden ,,Sourceen''\index{Source}, die zweiten ,,Targets''\index{Target} genannt.
 
-Die Autoren unterscheiden drei unterschiedliche Arten von Matches:
+Die Autoren unterscheiden drei verschiedene Arten von \textit{Matches}:
 
-\begin{itemize}
-\item Wenn beide Regionen aus mehreren Faces zusammengesetzt sind, welche Faces auf der einen Seite passen dann zu welchen Faces auf der anderen Seite?
-\item Falls ein Face mehrere Holes hat, welches Hole auf der einen Seite passt dann zu welchem Hole auf der anderen Seite?
-\item Hat ein Cycle mehrere Konkativitäten, welche Konkativitäten auf der einen Seite passen dann zu welchen Konkavitäten auf der anderen Seite?
-\end{itemize}
+\begin{enumerate}
+\item Beide \textit{Regionen} sind aus mehreren \textit{Faces} zusammengesetzt.
+ 
+Welche \textit{Faces} auf der einen Seite passt dann zu welchen \textit{Faces} auf der anderen Seite?
+\item Ein \textit{Face} hat mehrere \textit{Holes}.
+ 
+Welches \textit{Hole} auf der einen Seite passt dann zu welchem \textit{Hole} auf der anderen Seite?
+\item Ein \textit{Cycle} hat mehrere Konkativitäten.
+ 
+Welche Konkavitäten auf der einen Seite passen zu welchen Konkavitäten auf der anderen Seite?
+\end{enumerate}
 
-In all diesen Fällen ist auch noch zu beachten, dass einzelne Objekte verschwinden können, oder das mehrere auf der einen Seite zu einem Objekt auf der anderen Seite verschmelzen können.
+In all diesen Fällen ist auch noch zu beachten, dass einzelne Objekte verschwinden können oder dass mehrere Objekte auf der einen Seite zu einem Objekt auf der anderen Seite verschmelzen können.
 
 Um die Qualität eines Matches bestimmen zu können, geben die Autoren einige Kriterien an:
 
 \begin{enumerate}
-\item Ein matching-Verfahren sollte das korrekte Ergebnis liefern, falls beide Schnappschüsse übereinstimmen.
+\item Ein Matching-Verfahren sollte das korrekte Ergebnis liefern, falls beide Schnappschüsse übereinstimmen.
 \item Komponenten, die sich relativ zu ihrer Größe wenig bewegt haben, sollten korrekt gematcht werden können.
-\item Komponenten die nur kleine Änderungen an Größe und Form erfahren haben sollten korrekt gematcht werden.
-\item Ein Matching-Verfahren sollte Komponenten erkennen, die sich in mehrere neue aufgesplittet haben, oder solche die sich vereinigen.
-\item Ein Matching-Verfahren sollte Kriterien anbieten um zu entscheiden, ob zwei Momentaufnahmen gut zueinander passen, oder ob der zeitliche Abstand zwischen diesen zu groß gewählt ist.
+\item Komponenten, die nur kleine Änderungen an Größe und Form erfahren haben, sollten korrekt gematcht werden.
+\item Ein Matching-Verfahren sollte Komponenten erkennen, die sich in mehrere neue aufgesplittet haben oder solche, die sich vereinigen.
+\item Ein Matching-Verfahren sollte Kriterien anbieten um zu entscheiden, ob zwei Momentaufnahmen gut zueinander passen oder ob der zeitliche Abstand zwischen diesen zu groß gewählt ist.
 \end{enumerate}
 
-Die Autoren führen den Begriff des ,,sicheren'' Matches an:
+Die Autoren führen den Begriff des ,,sicheren'' Matches ein:
 
-Sei $mr$ eine MovingRegion und seien $S_1$ und $S_2$ zwei Schnappschüsse dieser MRegion zu den Zeitpunkten $t$ und $t+\Delta t$. Ein Matching-Verfahren ist sicher zu nennen, falls es ein $\epsilon >0$ gibt, so dass das Match korrekte Ergebnisse liefert, für alle $\Delta t < \epsilon$.
+\par
+\begingroup
+\leftskip=2em 
+Sei $mr$ eine \textit{MovingRegion} und seien $S_1$ und $S_2$ zwei Schnappschüsse dieser \textit{MovingRegion} zu den Zeitpunkten $t$ und $t+\Delta t$. Ein Matching-Verfahren ist sicher zu nennen, falls es ein $\epsilon >0$ gibt, so dass das Match korrekte Ergebnisse liefert, für alle $\Delta t < \epsilon$.
+\par
+\endgroup
 
-Die Autoren finden drei verschiedene Matching-Strategien, die im folgenden kurz aufgef"uhrt werden:
+Die Autoren finden drei verschiedene Matching-Strategien, die im Folgenden kurz aufgef"uhrt werden:
 \begin{enumerate}
 \item Position of centroid \label{MatchSchwer}
 
-Bestimme den Schwerpunkt jedes Cycles,  bilde aus diesem einen gewichteten Graphen, mit den Entfernungen als Kantengewichte und suche in diesem "`N"achste Nachbarn"'.
+Bestimme den Schwerpunkt jedes \textit{Cycles},  bilde aus diesem einen gewichteten Graphen mit den Entfernungen als Kantengewichte und suche in diesem "`n"achste Nachbarn"'.
 \item Fixed threshold (set of cycles)\label{fixedThre}
 
-Matche zwei Cycles, wenn sie sich wechselseitig  mehr als threshold (in \%) überlappen.
+Gegeben sei ein Schwellwert, threshold. Matche zwei \textit{Cycles}, wenn sie sich wechselseitig  mehr als threshold (in \%) überlappen.
 
 \item Maximize Overlap (set of cycles)
 
-Bilde einen gewichteten Graphen, in dem die Cycles Knoten sind, und dessen Kanten mit dem Grad der Überlappung gewichtet sind. Matche dann ein Cycle $c$ mit demjenigen, mit dem er die gr"o"ste Überlappung aufweist, und mit allen, f"ur die $c$ der Cycle mit der gr"o"sten Überlappung ist.
+Bilde einen gewichteten Graphen, in dem die \textit{Cycles} Knoten sind und dessen Kanten mit dem Grad der Überlappung gewichtet sind. Matche dann ein \textit{Cycle} $c$ mit demjenigen, mit dem er die gr"o"ste Überlappung aufweist und mit allen, f"ur die $c$ der \textit{Cycle} mit der gr"o"sten Überlappung ist.
 \end{enumerate} 
 
-Die Autoren kommen zu dem Schluss, dass das Schwerpunktverfahren kein sicheres Verfahren sei, da der Schwerpunkt eines Polygons außerhalb dieses liegen kann.
+Die Autoren kommen zu dem Schluss, dass das Schwerpunktverfahren kein sicheres Verfahren sei, da der Schwerpunkt eines Polygons auch außerhalb liegen kann.
 
-Im weiteren Verlauf betrachten die Autoren nur noch einzelne Cycles, Betrachtungen von Faces und Regions werden nicht mehr angestellt.
+Im weiteren Verlauf betrachten die Autoren nur noch einzelne \textit{Cycles}; Betrachtungen von \textit{Faces} und \textit{Regions} werden nicht mehr angestellt.
 
-\subsection{Interpolation zwischen zwei ConvexHullTrees}
+\subsection{Interpolation zwischen zwei \textit{ConvexHullTrees}}
 
-Nun beschäftigen sich die Autoren damit, einen Algorithmus zu erarbeiten, mit dessen Hilfe sich eine Interpolation zwischen zwei einfachen Polygonen berechnen lassen. Dieser Algorithmus beruht darauf, den Rotating-Pane-Algorithmus für alle konvexen Hüllen durchlaufen zu lassen, und hierbei die Darstellung des Polygons als ConvexHullTree zu benutzen.
+Im weiteren beschäftigen sich die Autoren damit, einen Algorithmus zu erarbeiten, mit dessen Hilfe sich eine Interpolation zwischen zwei einfachen Polygonen berechnen läßt. Dieser Algorithmus beruht darauf, den Rotating--Plane--Algorithmus für alle konvexen Hüllen durchlaufen zu lassen und hierbei die Darstellung des Polygons als \textit{ConvexHullTree} zu benutzen.
 
-Gegeben seien also zwei einfache Polygone, $A$ und $B$, dargestellt als ConvexHullTrees. Das Matching zwischen diesen sei berechnet, so dass man für alle Elemente von $A$ bestimmen kann, welche Elemente von $B$ dazu passen.
+Gegeben seien  zwei einfache Polygone $A$ und $B$ dargestellt als \textit{ConvexHullTrees}. Das Matching zwischen diesen sei so berechnet, dass man für alle Elemente von $A$ bestimmen kann, welche Elemente von $B$ dazu passen.
 
-Wir nehmen an, dass $A$ auf $B$ gematcht wird, und berechnen für die konvexen Hüllen von $A$ und $B$ die MSegments mit dem  Rotating-Pane. 
+Wir nehmen an, dass $A$ auf $B$ gematcht wird, und berechnen für die konvexen Hüllen von $A$ und $B$ die \textit{MovingSegments} mit dem  Rotating--Plane. 
 
-Nehmen wir nun an, dass eine Konkativität von $A$ keiner Konkativität von $B$ zugeordnet wird. Die Punkte, an denen diese Konkativität die konvexe Hülle des Vater berührt, nennen wir $p$ und $e$. In diesem Fall bestimmen wir das MSegment aus den bereits Berechneten, dass $p$ und $e$ enthält. Diesem MSegment, dessen dritten Punkt wir $t$ nennen, löschen wir. Falls dieses MSegement kein Dreieck ist, so müssen wir dieses zuerst in zwei Dreiecke spalten. Nun bilden wir für alle Kanten der konvexen Hülle der Konkativität, außer $pe$, MSegmente mit dem Punkt $t$ und fügen diese dem Ergebnis hinzu.
+Nehmen wir nun an, dass eine Konkavität von $A$ keiner Konkavität von $B$ zugeordnet wird. Abbildung~\vref{fig:Interpolationnonconvex} zeigt ein solches Beispiel. Die Punkte, an denen diese Konkavität die konvexe Hülle des Vaters berührt, nennen wir $p$ und $e$. In diesem Fall bestimmen wir das \textit{MovingSegment} aus den bereits Berechneten, das $p$ und $e$ enthält. Dieses \textit{MovingSegment}, dessen dritten Punkt wir $t$ nennen, löschen wir. Falls dieses MSegement kein Dreieck ist,dann muss es ein Viereck sein, so dass wir dieses zuerst in zwei Dreiecke spalten. Nun bilden wir für alle Kanten der konvexen Hülle der Konkavität, außer $\bar{pe}$, \textit{MovingSegmente} mit dem Punkt $t$ und fügen diese dem Ergebnis hinzu.
 
-Wird eine Konkativität von $A$ gegen eine Konkativität von $B$ gematcht, so bilden wir mittels Rotating-Pane die MSegmente zwischen diesen und fügen sie der Ergebnisliste an. In dieser Liste werden jetzt zwei oder vier paarweise gleiche MSegmente vorkommen\footnote{Bei der praktischen Anwendung dieses Algorithmuses zeigte sich, dass dies durchaus nicht immer der Fall ist. Ausnahmen diskutiere ich unter \ref{gedrehtKon}.}. Diese Segmente, die die Schnittstelle zwischen den Vater- und Kind konvexer-Hülle bilden, werden alle gelöscht. 
+Wird eine Konkavität von $A$ gegen eine Konkavität von $B$ gematcht, so bilden wir mittels Rotating-Plane, die \textit{MovingSegmente} zwischen diesen und fügen sie der Ergebnisliste an. In dieser Liste werden jetzt zwei oder vier paarweise gleiche \textit{MovingSegmente} vorkommen\footnote{Bei der praktischen Anwendung dieses Algorithmuss zeigte sich, dass dies durchaus nicht immer der Fall ist (siehe~\vref{gedrehtKon}).}. Diese Segmente, die die Schnittstelle zwischen der Vater und der konvexen Hülle des Kindes bilden, werden gelöscht. 
 
-Der dritte, kompliziertest Fall tritt dann auf, wenn mehrere Konkativitäten auf der einen Seite zu Einer auf der anderen Seite verschmelzen. Für diesen Fall erarbeiten die Autoren einen Algorithmus, der darauf beruht, von den mehreren Konkativitäten die konvexe Hülle zu berechnen und diese auf die eine Konkativität der anderen Seite zu matchen. Damit das Verfahren danach weiterlaufen kann, wird der ConvexHullTree auf der mehrdeutigen Seite umgebaut, so dass die Kinder der Konkativitäten geeignet an die neue konvexe Hülle gehängt werden\footnote{Leider funktioniert dieses Verfahren nicht in allen Fällen. Unter \ref{JoinConc} diskutiere ich dieses Verhalten näher.}.
+Der dritte, komplizierteste Fall tritt auf, wenn mehrere Konkavitäten auf der einen Seite zu einer auf der anderen Seite verschmelzen. Für diesen Fall erarbeiten die Autoren einen Algorithmus der darauf beruht, von mehreren Konkavitäten die konvexe Hülle zu berechnen und diese auf die eine Konkativität der anderen Seite zu matchen. Damit das Verfahren danach weiterlaufen kann, wird der ConvexHullTree auf der mehrdeutigen Seite umgebaut, so dass die Kinder der Konkavitäten geeignet an die neue konvexe Hülle gehängt werden\footnote{Leider funktioniert dieses Verfahren nicht in allen Fällen (siehe~\vref{JoinConc}).}.
 
 \begin{figure}
 	\centering
@@ -395,99 +433,99 @@ Der dritte, kompliziertest Fall tritt dann auf, wenn mehrere Konkativitäten auf
 	\label{fig:Interpolationnonconvex}
 \end{figure}
 
-\subsection{Die Bedeutung für meine Arbeit}
+\subsection{Bedeutung für die vorliegende Arbeit}
 
-Diese Veröffentlichung war der Ausgangspunkt meiner Arbeit, und als solcher von zentraler Bedeutung.
+Die zitierte Veröffentlichung war der Ausgangspunkt dieser Arbeit und ist als solcher von zentraler Bedeutung.
 
-Die Java-Applikation, die im Rahmen des Papers erstellt wurde, wurde von mir in einem ersten Arbeitsschritt ausgebaut, so dass diese auch mit Regionen mehrere Faces, und mit Löchern umgehen kann. In einem nächsten Schritt habe ich diese neue Applikation dann in das SECONDO-System integriert.
+Die Java-Applikation, die im Rahmen des Papers vorgestellt wurde, wurde in der vorliegenden Arbeit in einem ersten Arbeitsschritt ausgebaut, so dass diese auch mit \textit{Regionen}, bestehend aus mehreren \textit{Faces} und mit \textit{Löchern} umgehen kann. In einem nächsten Schritt wurde diese neue Applikation dann in das SECONDO-System integriert.
 
-An dieser Stelle möchte ich den Begriff des RegionTrees definieren, da er zum Verständnis der weiteren Arbeit unerlässlich ist. Der RegionTree ist eine Erweiterung des ConvexHullTrees, so dass dieser ganze Regionen abbilden kann. 
+An dieser Stelle soll der Begriff des \textit{RegionTrees} definiert werden, da er zum Verständnis der weiteren Arbeit unerlässlich ist. Der \textit{RegionTree} ist eine Erweiterung des \textit{ConvexHullTrees}, so dass dieser ganze Regionen abbilden kann. 
 
-Ein RegionTree besteht aus einem oder mehreren Faces als RegionTreeNodes. Ein Face als RegionTreeNode besteht aus einem Cycle und einer Menge von Holes, die alle durch ConvexHullTrees dargestellt werden. Abbildung~\ref{fig:RegionTreeNode} zeigt den Aufbau dieses Baumes. Regions, Faces und ConvexHullTreeNodes bezeichne ich als RegionTreeNodes.
+\index{RegionTree}Ein \textit{RegionTree} besteht aus einem oder mehreren \textit{Faces} als \textit{RegionTreeNodes}. Ein \textit{Face} als \textit{RegionTreeNode} besteht aus einem \textit{Cycle} und einer Menge von \textit{Holes}, die alle durch \textit{ConvexHullTrees} dargestellt werden. Abbildung~\vref{fig:RegionTreeNode} zeigt den Aufbau dieses Baumes. \textit{Regions}, \textit{Faces} und \textit{ConvexHullTreeNodes} werdem im Folgenden als \textit{RegionTreeNodes} bezeichnet.
 
 \begin{figure}
 	\centering
 	\includegraphics{feu_logo2.eps}
-	\caption{Der strukturelle Aufbau eines RegionTreeNodes}
+	\caption{Der strukturelle Aufbau eines RegionTrees}
 	\label{fig:RegionTreeNode}
 \end{figure}
 
 \section[Matching Shapes with a Reference Point]{Das Paper: ,,Matching Shapes with a Reference Point'' }\label{AARR}
 
-Als eine sehr interessante Quelle erwies sich das Paper \cite{AAR}, dessen Inhalt ich hier kurz wiedergeben möchte:
+Als eine sehr interessante Quelle erwies sich das Paper \cite{AAR}, dessen Inhalt hier kurz zusammengefasst werden soll.
 
-\subsection{Einleitung}
+\subsection{Metrik und Ähnlichkeit}
 
-In ihrer Arbeit betrachten die Autoren Ähnlichkeiten von Objekten, die als Punktmengen repräsentiert werden. Diese Betrachtungen haben besondere Relevanz in Anwendungen der Mustererkennung. Als Maß für die Ähnlichkeit von zwei Objekten wird hier, wie auch in den meisten anderen Arbeiten zu diesen Themen, der Hausdorff-Abstand\index{Hausdorff-Abstand!als Norm} benutzt, den ich unter \ref{Hausdorff} näher beschreibe.
+In ihrer Arbeit betrachten die Autoren Ähnlichkeiten von Objekten, die als Punktmengen repräsentiert werden. Diese Betrachtungen haben besondere Relevanz in Anwendungen der Mustererkennung. Als Maß für die Ähnlichkeit von zwei Objekten wird hier wie auch in den meisten anderen Arbeiten zu diesen Themen der Hausdorff--Abstand\index{Hausdorff--Abstand!als Norm} benutzt, der unter \vref{Hausdorff} näher beschrieben wird.
 
-Um die Ähnlichkeit von zwei Objekten: $A$ und $B$ aus $\mathbb{R}^2$ oder aus $\mathbb{R}^3$ zu bestimmen, reicht es nicht den Hausdorff-Abstand $\delta_H(A,B)$ zu bestimmen, sondern man sucht die Abbildung $T\in\mathcal{T}$ unter der $\delta_H(A,T(B))$ minimal ist. $\mathcal{T}$ ist hierbei die Menge aller ,,erlaubten'' Abbildungen. Solche Abbildungen sind üblicherweise Rotationen, Verschiebungen, Skalierungen und Kombinationen aus solchen. Also sucht man:
+Um die Ähnlichkeit  zweier Objekte $A$ und $B$ aus $\mathbb{R}^2$ oder aus $\mathbb{R}^3$ zu bestimmen, reicht es nicht, den Hausdorff-Abstand $\delta_H(A,B)$ zu bestimmen, sondern man sucht die Abbildung $T\in\mathcal{T}$ unter der $\delta_H(A,T(B))$ minimal ist. $\mathcal{T}$ ist hierbei die Menge aller ,,erlaubten'' Abbildungen. Solche Abbildungen sind üblicherweise Rotationen, Verschiebungen, Skalierungen und Kombinationen aus solchen. Also sucht man:
 
 $$\min_{T\in\mathcal{T}}\delta_H(A,T(B))$$
 
-Die Suche nach dem optimalen $T$ ist im allgemeinen sehr kompliziert und aufwendig. Deshalb versuchen die Autoren keine optimale Abbildung $T_{OPT}$ zu finden, sondern sie suchen nach einer einfach und schnell berechenbaren Näherung, also einer Abbildung $T_{Approx}$, die $T_{OPT}$ zuverlässig und gut annähert.
+Die Suche nach dem optimalen $T$ kann im Allgemeinen sehr kompliziert und aufwändig. Deshalb versuchen die Autoren keine optimale Abbildung $T_{OPT}$ zu finden, sondern sie suchen nach einer einfach und schnell berechenbaren Näherung, also einer Abbildung $T_{Approx}$, die $T_{OPT}$ zuverlässig und hinreichend gut annähert.
 
-\subsection{\index{Match!pseudooptimales}Das pseudooptimale Match}
+\subsection{\index{Match!pseudo--optimales}Pseudo--optimales Match}
 
-Die Autoren definieren eine solche Abbildung als ,,pseudooptimales-Match mit Fehlerfaktor $\alpha$'' ( $\alpha\geq 1$, $\delta$ ist der optimale Hausdorff-Abstand)
+Die Autoren definieren eine Abbildung als ,,pseudo--optimales Match mit Fehlerfaktor $\alpha$''  ($\alpha\geq 1$, $\delta$ ist der optimale Hausdorff--Abstand), falls gilt:
 
 $$\delta_H(A,T(B))\leq \alpha \delta$$
 
-\subsection{\index{Referenzpunkt!Definition}Die Definition des Refenenzpunktes}
+\subsection{\index{Referenzpunkt!Definition}Definition des Refenenzpunktes}
 
-Der Versuch ein solches pseudo-optimales Matching zu finden unternehmen die Autoren über Referenzpunkte. Als $\mathcal{T}$ respektierenden Referenzpunkt definieren sie eine Abbildung $s:C_d\longrightarrow\mathbb{R}^d$, für die gilt:
-$$\forall A, B\in C^d \text{ und } \forall T\in\mathcal{T}\Rightarrow$$
+Den Versuch ein solches pseudo--optimales Matching zu finden, unternehmen die Autoren über Referenzpunkte. Als Referenzpunkt im Bezug auf $\mathcal{T}$ definieren sie eine Abbildung $s:C^d\longrightarrow\mathbb{R}^d$, für die gilt:
+$$\forall A, B\in C^d  \:\wedge\: \forall\: T\in\mathcal{T}\Rightarrow$$
 $$s(T(A))=T(s(A))\text{ (s ist äquivariant) und}$$
-$$\exists c\geq0 \text{, so dass } \forall A, B \in C^d\Rightarrow$$
-$$\Vert s(A)-s(B)\Vert\leq c\times\delta_H(A,B)\text{ (s ist Lipschitz-stetig mit Konstante c)}.$$
+$$\exists c\geq0 \: :\: \forall A, B \in C^d\Rightarrow$$
+$$\Vert s(A)-s(B)\Vert\leq c\cdot\delta_H(A,B)\text{ (s ist Lipschitz--stetig mit Konstante c)}.$$
 
-$c$ nennen die Autoren auch die Qualität von $s$.
+Die Autoren nennen $c$ auch die Qualität von $s$.
 
-\subsection{Algorithmen zum Finden von pseudooptimalen Lösungen}
+\subsection{Algorithmen zum Finden pseudo--optimaler Lösungen}
 
-Unter der Annahme, dass das ein solcher Referenzpunkt gefunden wurde, entwickeln die Autoren drei Algorithmen:
+Unter der Annahme, dass ein geeigneter Referenzpunkt gefunden wurde, entwickeln die Autoren drei Algorithmen:
 \begin{itemize}
 \item Algorithmus $T$
 \begin{enumerate}
 \item Berechne $s(A)$ und $s(B)$.
-\item Die pseudooptimale Lösung ist die Verschiebung um den Vektor $s(A)-s(B)$. Das Bild von $B$ nenne $B'$
+\item Die pseudo--optimale Lösung ist die Verschiebung um den Vektor $s(A)-s(B)$. Das Bild von $B$ nenne $B'$.
 \end{enumerate}
 
 \item Algorithmus $R$
 \begin{enumerate}
 \item Wie in $T$.
-\item Finde die optimale Rotation von $B'$ um $s(A)$. Diese Rotation, verknüpft mit der Verschiebung aus $T$, ist die pseudooptimale Lösung. Das Bild dieser nenne im Weiteren $B''$.
+\item Finde die optimale Rotation von $B'$ um $s(A)$. Diese Rotation, verknüpft mit der Verschiebung aus $T$, ist die pseudo--optimale Lösung. Das Bild dieser nenne im Weiteren $B''$.
 
 \end{enumerate}
 \item Algorithmus $S$
 \begin{enumerate}
 \item Wie in $R$.
 \item Bestimme die Durchmesser $d(A)$ und $d(B)$ und skaliere $B'$ um den Faktor $\alpha =\frac{d(A)}{d(B)}$.
-\item Wie Schritt 2 in $R$ 
+\item Wie Schritt 2 in $R$.
 \end{enumerate}
 \end{itemize}
 
 Dann beweisen die Autoren:
 \begin{enumerate}
-\item Algorithmus $T$ findet eine pseudooptimale Abbildung für Verschiebungen. Der Verlustfaktor ist $\alpha=c+1$
-\item Algorithmus $R$ findet eine pseudooptimale Abbildung für Kompositionen aus Verschiebungen und Rotationen.  Der Verlustfaktor ist $\alpha=c+1$
-\item Algorithmus $S$ findet eine pseudooptimale Abbildung für Kompositionen aus Verschiebungen, Rotationen und Skalierungen. Der Verlustfaktor ist $\alpha=c+3$
+\item Algorithmus $T$ findet eine pseudo--optimale Abbildung für Verschiebungen. Der Fehlerfaktor ist $\alpha=c+1$.
+\item Algorithmus $R$ findet eine pseudo--optimale Abbildung für Kompositionen aus Verschiebungen und Rotationen.  Der Verlustfaktor ist $\alpha=c+1$.
+\item Algorithmus $S$ findet eine pseudo--optimale Abbildung für Kompositionen aus Verschiebungen, Rotationen und Skalierungen. Der Verlustfaktor ist $\alpha=c+3$.
 \end{enumerate}
 
-\subsection{\index{Referenzpunkt!SteinerPunkt}\index{Steinerpunkt!als Referenzpunkt}Die Wahl des richtigen Referenzpunktes}
+\subsection{\index{Referenzpunkt!Steiner--Punkt}\index{Steiner--Punkt!als Referenzpunkt}Wahl des richtigen Referenzpunktes}
 
-Im weiteren Verlauf werden verschiedene Referenzpunkte untersucht. Der Schwerpunkt der konvexen Hüllen ist ein Referenzpunkt mit der Qualität $c=4\pi+3$. Der beste Referenzpunkt, den die Autoren finden konnten ist der Steinerpunkt, den ich in \ref{Steinerpunkt} beschreibe. Die Autoren zeigen, dass der Steinerpunkt ein Referenzpunkt für alle untersuchten Abbildungen ist und zeigen, dass dessen Qualität im zweidimensionalen $c=\frac{4}{\pi}$ ist. 
+Im weiteren Verlauf werden verschiedene Referenzpunkte untersucht. Der Schwerpunkt der konvexen Hüllen der Polygone ist ein Referenzpunkt mit der Qualität $c=4\pi+3$. Der beste Referenzpunkt, den die Autoren finden konnten, ist der Steiner--Punkt, der in \vref{Steinerpunkt} beschrieben wird. Die Autoren zeigen, dass der Steiner--Punkt ein Referenzpunkt für alle untersuchten Abbildungen ist und zeigen, dass dessen Qualität im zweidimensionalen $c=\frac{4}{\pi}$ ist. 
 
 \subsection{Untere Schranke für die Qualitäten von Referenzpunkten}
 
-Zuletzt finden die Autoren eine untere Schranke für die Qualität eines Referenzpunktes im Zweidimensionalen, unter Verschiebungen. Die Qualität eines Referenzpunktes unter diesen Abbildungen kann nicht besser sein als $\sqrt{\frac{4}{3}}$. Diese Behauptung wird bewiesen. 
+Zuletzt finden die Autoren eine untere Schranke für die Qualität eines zweidimensionalen Referenzpunktes, unter Verschiebungen. Die Qualität eines Referenzpunktes unter diesen Abbildungen kann nicht besser sein als $\sqrt{\frac{4}{3}}$. Diese Behauptung wird bewiesen. 
 
-Vergleicht man die Qualität des Steinerpunktes ($\frac{4}{\pi}\thickapprox 1,155$) mit diesem theoretischen minimalen Wert ($\sqrt{\frac{4}{3}}\thickapprox 1,27$), so stellt man fest, dass der Abstand der Qualitäten sehr gering ist. Der Steienerpunkt ist also wahrscheinlich der beste mögliche Referenzpunkt (für die Norm ,,Hausdorff-Abstand'').
+Vergleicht man die Qualität des Steiner--Punktes ($\frac{4}{\pi}\thickapprox 1,155$) mit diesem theoretischen minimalen Wert ($\sqrt{\frac{4}{3}}\thickapprox 1,27$) stellt man fest, dass der Abstand der Qualitäten sehr gering ist. Der Steiner--Punkt ist also wahrscheinlich der beste mögliche Referenzpunkt (für die Norm ,,Hausdorff--Abstand'').
 
-\subsection{Die Bedeutung für meine Arbeit}\label{BedeutungAAR}
+\subsection{Bedeutung für diese Arbeit}\label{BedeutungAAR}
 
-Zwar habe ich dieses Matching nicht so implementiert, wie es hier beschrieben wurde, ich habe aber ein Match programmiert, dass simultan zu dem Schwerpunkt-Match mit Schwellenwert von Herr T\o{}ssebro (siehe \ref{MatchSchwer}) funktioniert, nur dass hierbei der Schwerpunkt durch der Steinerpunkt ersetzt wird.
+Zwar habe wurde dieses Matching nicht so implementiert, wie es hier beschrieben wird, stattdessen wurde aber ein Match programmiert das simultan zu dem Schwerpunkt-Match mit Schwellenwert von Erlend T\o{}ssebro (siehe \vref{MatchSchwer}) funktioniert, nur dass hierbei der Schwerpunkt durch der Steinerpunkt ersetzt wird.
 
-Betrachtet man sich den T\o{}ssebroschen Algorithmus, so stellt man fest, dass dieser starke Ähnlichkeit zu dem Algorithmus $R$ aus diesem Paper aufweist. Es steht also zu erwarten, dass dieser Algorithmus Matches finden wird, die gute Ergebnisse bezüglich des Hausdorff-Abstands liefern werden. Die hier beschriebenen Algorithmen konkret umzusetzen wäre eventuell eine gute Idee, die aber über den Umfang dieser Arbeit hinausgeht.
+Betrachtet man den T\o{}ssebro'schen Algorithmus, so stellt man fest, dass dieser starke Ähnlichkeit zu dem Algorithmus $T$ aus diesem Paper aufweist. Es steht also zu erwarten, dass dieser Algorithmus Matches finden wird, die gute Ergebnisse bezüglich des Hausdorff-Abstands liefern werden. Die hier beschriebenen Algorithmen konkret umzusetzen wäre zwar sinnvoll, überschreitet aber den Umfang dieser Arbeit.
 
 \section[Matching Shapes with Symmetric Difference]{Das Paper: ,,Matching Convex Shapes with Respect to Symmetric Difference'' }\label{AFRWW}
 
@@ -499,11 +537,11 @@ Zunächst klären die Autoren die Grundlagen dieser Arbeit. Da dieses Paper auf 
 
 \subsection{\index{symmetrische Differenz!als Norm}Die symmetrische Differenz als Norm}
 
-Als neue Norm für die Ähnlichkeit zweier Objekte wird die symmetrische Differenz beschrieben. Diese ist unter  \ref{symDiff} näher beschrieben. Die Autoren machen darauf aufmerksam, dass diese Norm ein ,,gutmütigeres'' Verhalten an den Tag legt, wenn die zu matchenden Polygone ,,gestört'' sind. Gestört soll in diesem Zusammenhang heißen, dass an sich an dem Rand des eigentlichen Polygons schmale, lange Dreiecke befinden. Unter \ref{symDiff} wird auch dieser Zusammenhang näher erläutert.
+Als neue Norm für die Ähnlichkeit zweier Objekte wird die symmetrische Differenz beschrieben. Diese ist unter  \vref{symDiff} näher beschrieben. Die Autoren machen darauf aufmerksam, dass diese Norm ein ,,gutmütigeres'' Verhalten an den Tag legt, wenn die zu matchenden Polygone ,,gestört'' sind. Gestört soll in diesem Zusammenhang heißen, dass an sich an dem Rand des eigentlichen Polygons schmale, lange Dreiecke befinden. Unter \vref{symDiff} wird auch dieser Zusammenhang näher erläutert.
 
 \subsection{\index{Schwerpunkt!als Referenzpunkt}\index{Referenzpunkt!Schwerpunkt}Der Schwerpunkt als Referenzpunkt für Verschiebungen}
 
-Als Referenzpunkt für Abbildungen unter dieser Norm wird der Schwerpunkt der Polygone betrachtet. Dieser wird in dem Paper  nicht näher erläutert, er wird hiertrotzdem unter \ref{Schwerp} beschrieben. 
+Als Referenzpunkt für Abbildungen unter dieser Norm wird der Schwerpunkt der Polygone betrachtet. Dieser wird in dem Paper  nicht näher erläutert, er wird hiertrotzdem unter \vref{Schwerp} beschrieben. 
 
 Für $A, B \in \mathbb{R}^2$ und  die Menge der Verschiebungen $\mathcal{T}$ wird der Satz
 
@@ -518,7 +556,7 @@ Um diesen Referenzpunkt auch auf andere Abbildungen anwenden zu können, wird fo
 
 \par
 \begingroup
-\leftskip=2em % ggf. verstellen
+\leftskip=2em 
 
 Gilt für eine Menge $\mathcal{T}$  von Abbildungen 
 \begin{enumerate}
@@ -580,7 +618,7 @@ Der einseitige Hausdorff-Abstand von Polygon $A$ zu Polygon $B$ ist so definiert
 	\caption[Der Hausdorff--Abstand zweier Polygone]{Der Hausdorff--Abstand zweier Polygone (grün und blau) ist das Paar mit dem größten Abstand (rot) unter allen Paaren.}
 	\label{fig:HausdorffAbstand}
 \end{figure}
-Nimmt man also von zwei Polygonen zu jedem Punkt der einen Menge den nächsten Punkt der anderen Menge (und umgekehrt) und sucht dann das Paar mit dem größten Abstand, so ist dieser der Hausdorff--Abstand. Abbildung~\ref{HausdorffAbstand} zeigt das beispielhaft.
+Nimmt man also von zwei Polygonen zu jedem Punkt der einen Menge den nächsten Punkt der anderen Menge (und umgekehrt) und sucht dann das Paar mit dem größten Abstand, so ist dieser der Hausdorff--Abstand. Abbildung~\vref{fig:HausdorffAbstand} zeigt das beispielhaft.
 
 
 
@@ -588,7 +626,7 @@ Nimmt man also von zwei Polygonen zu jedem Punkt der einen Menge den nächsten P
 \begin{figure}
 	\centering
 	\includegraphics[scale=.6]{SymDiff.eps}
-	\caption[Die symmetrische Differenz zweier Polygone]{Die symmetrische Differenz der beiden Polygone aus dem Schaubild~\ref{fig:HausdorffAbstand} ist der Flächeninhalt der roten Fläche.}
+	\caption[Die symmetrische Differenz zweier Polygone]{Die symmetrische Differenz der beiden Polygone aus dem Schaubild~\vref{fig:HausdorffAbstand} ist der Flächeninhalt der roten Fläche.}
 	\label{fig:SymDiffBild}
 \end{figure}
 
@@ -600,7 +638,7 @@ In \cite{TG} schlagen die Autoren vor, die Überlappung $A\cap B$ als Maß für 
 $$|A\bigtriangleup B|+|A\cap B|=|A\cup B|$$
 ist ersichtlich, dass ein Match, welches die symmetrische Differenz minimiert, zu dem selben Ergebnis kommen wird wie ein Match, das die Überlappung maximiert.
 
-In \cite{AFRW} wurde beschrieben, dass das Verhalten der symmetrischen Differenz relativ ,,gutmütig'' im Bezug auf gestörte Daten ist. Die Zeichnung~\ref{fig:VergleichMetrik} illustriert diesen Zusammenhang. Die beiden Polygone sehen den Polygonen aus den Bildern~\ref{fig:HausdorffAbstand} und \ref{fig:SymDiffBild} recht ähnlich, nur zwei Punkte sind in jedem Polygon ergänzt worden. Dennoch ist der Hausdorff--Abstand um 100\% gestiegen, die Fläche der symmetrischen Differenz hingegen nur etwa um 8\%.
+In \cite{AFRW} wurde beschrieben, dass das Verhalten der symmetrischen Differenz relativ ,,gutmütig'' im Bezug auf gestörte Daten ist. Die Zeichnung~\vref{fig:VergleichMetrik} illustriert diesen Zusammenhang. Die beiden Polygone sehen den Polygonen aus den Bildern~\vref{fig:HausdorffAbstand} und \vref{fig:SymDiffBild} recht ähnlich, nur zwei Punkte sind in jedem Polygon ergänzt worden. Dennoch ist der Hausdorff--Abstand um 100\% gestiegen, die Fläche der symmetrischen Differenz hingegen nur etwa um 8\%.
 
 \begin{figure}
 	\centering
@@ -614,16 +652,16 @@ In \cite{AFRW} wurde beschrieben, dass das Verhalten der symmetrischen Differenz
 
 In \cite{Sch} wird der Steiner--Punkt beschrieben \textit{"`als Schwerpunkt der Massenverteilung, die bei einem konvexen Polygon durch Belegung der Ecken mit den "au"seren Winkeln als Massen [...] gegeben ist"'}. Folglich kann der Steiner--Punkt eines konvexen Polygons $P$, das aus den $n$ Eckpunkten $v_i$ besteht, berechnet werden ($\alpha_i$ ist hierbei der Innenwinkel von $v_i$) durch:
 \[p_2(P)=\sum^n_{i=1}v_i (\pi-\alpha_i).\]
-In der Zeichnung~\ref{fig:Referenzpunkte} ist der Steiner-Punkt grün eingezeichnet.
+In der Zeichnung~\vref{fig:Referenzpunkte} ist der Steiner-Punkt grün eingezeichnet.
 
 
 \subsection{\index{Schwerpunkt!Definition}Der Schwerpunkt}\label{Schwerp}
 
 Der Schwerpunkt eines Polygons ist der Schwerpunkt der Massenverteilung, die entsteht, wenn man allen Eckpunkten die gleiche Masse zuordnet. Er berechnet sich f"ur ein Polygon $P$ mit $n$ Eckpunkten $v_i$:
 \[p_0(P)=\sum^n_{i=1}v_i \frac{1}{n}.\]
-In der Zeichnung~\ref{fig:Referenzpunkte} ist der Schwerpunkt rot markiert. 
+In der Zeichnung~\vref{fig:Referenzpunkte} ist der Schwerpunkt rot markiert. 
 
-Vergleicht man die beiden Referenzpunkte, so kann man sehen, dass der Schwerpunkt etwas ,,träger'' auf Punkte reagiert, die sich stark von den anderen unterscheiden (in dem dargestellten Beispiel der Punkt ganz rechts). In einem regelmäßigen n"~Eck stimmen entsprechend beide Referenzpunkte überein. Vergleicht man dieses Verhalten der Referenzpunkte mit dem Verhalten der Normen für gestörte Werte (siehe Abbildung \ref{fig:VergleichMetrik}), so erscheint der Zusammenhang vom ,,empfindlicheren'' Hausdorff--Abstand und dem  Steiner--Punkt, sowie der Zusammenhang zwischen den beiden ,,Gutmütigeren'' plausibel.
+Vergleicht man die beiden Referenzpunkte, so kann man sehen, dass der Schwerpunkt etwas ,,träger'' auf Punkte reagiert, die sich stark von den anderen unterscheiden (in dem dargestellten Beispiel der Punkt ganz rechts). In einem regelmäßigen n"~Eck stimmen entsprechend beide Referenzpunkte überein. Vergleicht man dieses Verhalten der Referenzpunkte mit dem Verhalten der Normen für gestörte Werte (siehe Abbildung \vref{fig:VergleichMetrik}), so erscheint der Zusammenhang vom ,,empfindlicheren'' Hausdorff--Abstand und dem  Steiner--Punkt, sowie der Zusammenhang zwischen den beiden ,,Gutmütigeren'' plausibel.
 
 \begin{figure}
 	\centering
