@@ -917,7 +917,7 @@ public:
      // write block number to f 
      stringstream ss;
      ss << memNumber;
-     no = extendString(ss.str(),10);
+     no = extendString(ss.str(),10,0);
      f << no;
      // write data to fmemo
      fmemo << memo;
@@ -959,7 +959,8 @@ public:
           string s = (tuple->GetAttribute(i))->getDB3String();
           bool ismemo = isMemo[i];
           if(!ismemo){
-            s = extendString(s,len);
+            char e = dbtypes[i]=='C'?0:' ';
+            s = extendString(s,len,e);
             f << s;
           } else {
             writeMemo(s);
@@ -968,14 +969,13 @@ public:
       }
    }
 
-   string extendString(string s, int len){
+   string extendString(string s, int len,const char c){
       s = s.substr(0,len); // shrink to maximum length
       int e = len-s.length();
       stringstream ss;
       ss << s;
-      unsigned char zero = 0;
       for(int i=0;i<e; i++){
-       ss << zero;
+       ss << c;
       }
       return ss.str();
    }

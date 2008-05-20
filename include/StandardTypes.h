@@ -446,10 +446,13 @@ class CcReal : public StandardAttribute
       if(!defined){
         return "";
       } 
-      stringstream s;
-      s << ios::fixed << ios::showpoint << setw(15) << setprecision(6);
+      ostringstream s;
+      s.setf(ios::fixed);
+      s.setf(ios::showpoint);
+      s.setf(ios::left);
+      s.width(15);
+      s.precision(6);
       s << realval;
-       
       s.flush();
       return s.str();
   } 

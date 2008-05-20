@@ -600,6 +600,13 @@ delta in [0,1].
      return ToString();
   }
 
+  virtual bool hasDB3Representation() const {return true;}
+  virtual unsigned char getDB3Type() const { return 'C'; }
+  virtual unsigned char getDB3Length() const { return 30; }
+  virtual unsigned char getDB3DecimalCount(){ return 0; }
+  virtual string getDB3String() const { return ToString(); }
+
+
   private:
     // the data-part of datetime
     LONGTYPE day;
