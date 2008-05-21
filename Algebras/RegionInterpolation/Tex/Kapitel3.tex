@@ -5,10 +5,13 @@
 Im Folgenden werden die Vorschl"age aus der Literatur, die oben beschrieben worden sind, bewertet und einige Gedanken ausgeführt, die zum Thema Matching gemacht wurden. Außerdem wird  angegeben, welche dieser Vorschläge verwirklicht wurden und welche noch auf ihre Implementierung warten.
 
 \subsection[Bewertung der Vorschl"age aus \cite{TG}]{Bewertung der Vorschl"age aus ,,Creating Representations for Continuously Moving Regions from Observations''\cite{TG}}
+
+Zu den Matchingverfahren, die die Autoren in \cite{TG} vorgestellt haben, wurden folgende Überlegungen angestellt:
+
 \begin{enumerate}
 \item Position of centroid\index{Match!Schwerpunkt}
 
-In dem Paper wurde die M"oglichkeit des Matchens mit dem Schwerpunkt nicht weiter betrachtet, da die Autoren davon ausgehen, dass ein Referenzpunkt, der auch au"serhalb des Polygons liegen kann, nicht zu guten Matchings f"uhren kann. Hierzu muss angemerkt werden, dass im Rahmen der vorliegenden Arbeit das Matching auf Ebene des \textit{ConvexHullTrees} durchgef"uhrt wird und lediglich mit konvexen H"ullen von Polygonen gearbeitet wird. Der Schwerpunkt einer konvexen H"ulle liegt nat"urlich aber wieder innerhalb dieser. Wenngleich der Punkt nicht zwangsl"aufig auch innerhalb des repr"asentierten Polygons liegt. Au"serdem erscheint es plausibel, dass ein Referenzpunkt--Verfahren seine St"arke gerade dort haben wird, wo die "Uberlappungsalgorithmen ihre Schw"achen haben, nämlich bei sich relativ schnell bewegenden, kleinen Objekten.
+In dem Paper wurde die M"oglichkeit des Matchens mit dem Schwerpunkt nicht weiter betrachtet, da die Autoren davon ausgehen, dass ein Referenzpunkt, der auch au"serhalb des Polygons liegen kann, nicht zu guten Matchings f"uhren kann. Hierzu muss angemerkt werden, dass im Rahmen der vorliegenden Arbeit das Matching auf Ebene des \textit{ConvexHullTrees} durchgef"uhrt wird und lediglich mit konvexen H"ullen von Polygonen gearbeitet wird. Der Schwerpunkt einer konvexen H"ulle liegt aber wieder innerhalb dieser. Wenngleich der Punkt nicht zwangsl"aufig auch innerhalb des repr"asentierten Polygons liegt. Au"serdem erscheint es plausibel, dass ein Referenzpunkt--Verfahren seine St"arke gerade dort haben wird, wo die "Uberlappungsalgorithmen ihre Schw"achen haben, nämlich bei sich relativ schnell bewegenden, kleinen Objekten.
 
 \begin{figure}
 	\centering
@@ -26,7 +29,7 @@ Der Vorschlag, "`n"achste Nachbarn"' zu benutzen, hat den Nachteil, dass so nur 
 
 Das Verfahren wurde analog zur Beschreibung Erlend T\o{}ssebros, wie in \vref{fixedThre} kurz dargestellt, "ubernommen und implementiert. 
 
-Nach kurzer Überlegung kommt man zu dem Schluß, dass dieses Verfahren Schwächen aufweisen wird, wenn sich kleine Flächen so stark bewegen, dass diese sich nicht mehr, oder nur noch wenig überlappen. Bei kompliziert aufgebauten Flächen, die sich relativ wenig bewegen, wird dieses Verfahren aber den Vorteil aufweisen, dass relativ wenige falsche Flächen gematcht werden.
+Nach kurzer Überlegung kommt man zu dem Schluss, dass dieses Verfahren Schwächen aufweisen wird, wenn sich kleine Flächen so stark bewegen, dass diese sich nicht mehr, oder nur noch wenig überlappen. Bei kompliziert aufgebauten Flächen, die sich relativ wenig bewegen, wird dieses Verfahren aber den Vorteil aufweisen, dass relativ wenige falsche Flächen gematcht werden.
 
 \begin{figure}
 	\centering
@@ -44,21 +47,21 @@ Dieses Verfahren k"onnte interessant sein, da es aber im  Rahmen dieser Arbeit n
 
 \subsection[Bewertung der Vorschl"age aus \cite{AAR}]{Bewertung der Vorschl"age aus ,,Matching Shapes with a Reference Point'' \cite{AAR}}
 
-Wie unter \vref{BedeutungAAR} bereits ausgeführt wurde, wudre der Algorithmus $S$, der allgemeinste dieser Arbeit, nicht implementiert. Die Idee ein Match auf Basis des Steinerpunktes zu implementieren, führte aber dazu, einen Match zu implementieren, das simultan zu dem Verfahren ,,Position of centroid'' aus \cite{TG} funktioniert, aber den Steinerpunkt als Referenzpunkt benutzt.
+Wie unter \vref{BedeutungAAR} bereits ausgeführt wurde, wurde der Algorithmus $S$, der allgemeinste dieser Arbeit, nicht implementiert. Die Idee, ein Match auf Basis des Steiner--Punktes zu implementieren, führte aber dazu, ein Match zu implementieren, das simultan zu dem Verfahren ,,Position of centroid'' aus \cite{TG} funktioniert, aber den SteinerPunkt als Referenzpunkt benutzt.
 
 \subsection[Bewertung der Vorschl"age aus \cite{AFRW}]{Bewertung der Vorschl"age aus ,,Matching Convex Shapes with Respect to Symmetric Difference'' \cite{AFRW}}
 
-Es gilt im Wesentlichen dasselbe, wie  im letzten Absatz. Nicht die Algorithmen aus der Arbeit, sondern die beiden Verfahren ,,Fixend threshold'' und ,,Position of centroid'' aus \cite{TG}, wurden implementiert. Wie unter \vref{BedeutungAFRW} ausgeführt wird, weisen beide Verfahren  eine gewisse Verwandtschaft zu dem einfachsten Algorithmus diesen Arbeiten auf. 
+Es gilt im Wesentlichen dasselbe wie  im letzten Absatz. Nicht die Algorithmen aus der Arbeit, sondern die beiden Verfahren ,,Fixend threshold'' und ,,Position of centroid'' aus \cite{TG}, wurden implementiert. Wie unter \vref{BedeutungAFRW} ausgeführt wird, weisen beide Verfahren  eine gewisse Verwandtschaft zu dem einfachsten Algorithmus dieser Arbeiten auf. 
 
 
 \subsection{\index{Match!Refenrzpunkt}Matching mit Referenzpunkten}
 
-Die meisten Matching-Verfahren basieren auf Referenzpunkten. Unter \vref{AARR} und \vref{AFRWW} wurden Verfahren angegeben, die zu bestimmten Referenzpunkten Matchings mit garantierter Qualität liefern. Es folgten nun einige Gedankendarüber, wie man Referenzpunktverfahren durchführen könnte.
+Die meisten Matching-Verfahren basieren auf Referenzpunkten. Unter \vref{AARR} und \vref{AFRWW} wurden Verfahren angegeben, die zu bestimmten Referenzpunkten Matchings mit garantierter Qualität liefern. Es folgten nun einige Gedanken darüber, wie man Referenzpunktverfahren durchführen könnte.
 
 
 \subsubsection*{Statistische Analyse}
 
-Zunächst kann man ein Feld aufgebauen, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen wird. Sortiert man dieses Feld aufsteigend nach den Entfernungen, steht zu erwarten, dass es zwischen den erwünschten und den unerwünschten Beziehungen einen Sprung in dem Graphen geben wird.  Dieser Sprung m"u"ste mit geeigneten statistischen Verfahren bestimmt werden k"onnen. 
+Zunächst kann man ein Feld aufgebauen, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen wird. Sortiert man dieses Feld aufsteigend nach den Entfernungen, steht zu erwarten, dass es zwischen den erwünschten und den unerwünschten Beziehungen einen Sprung in dem Graphen geben wird.  Dieser Sprung m"usste mit geeigneten statistischen Verfahren bestimmt werden k"onnen. 
 
 Nachteilig an diesen Verfahren ist, dass die Laufzeit hoch ist. Finden sich auf den beiden Seiten des Matchings $n$, beziehungsweise $m$ Referenzpunkte, so hat das resultierende Feld die Dimension $n\cdot m$. Dieses Feld kann in $O(n\cdot m)$ aufgebaut werden. Zum Sortieren des Feldes wird dann $O((n\cdot m)\log(n\cdot m))$ verwendet. Also ist dieses Verfahren mindestens vom Typ $O((n\cdot m)\log(n\cdot m))$, je nach dem verwendeten statistischen Verfahren k"onnte die Laufzeit sogar schlechter sein.
 
@@ -76,13 +79,13 @@ Aufgrund der oben benannten schlechten Laufzeit und unter dem Aspekt, dass kein 
 
 Das Schwellwertverfahren kann wie folgt formuliert werden: ,,Matche zwei Cycles, wenn der Abstand ihrer Referenzpunkte kleiner als der Schwellwert ist.''
 
-Die Laufzeit dieses Verfahrens ist wesentlich besser. Zu jedem der $m\times n$ verschiedenen  Referenzpunkte wird der  Abstand (in konstanter Zeit) berechnet und mit dem Schwellwert vergleichen. Also ist die Laufzeit $O(m\cdot n)$.
+Die Laufzeit dieses Verfahrens ist wesentlich besser. Zu jedem der $m\times n$ verschiedenen  Referenzpunkte wird der  Abstand (in konstanter Zeit) berechnet und mit dem Schwellwert verglichen. Also ist die Laufzeit $O(m\cdot n)$.
 
-Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird: Man berechnet $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\cdot m)$. Praktisch wird deshalb ein Algorithmus verwendet, der in $O((n+m)\log{(n+m)})$ einen sehr "ahnlich Wert berechnet. (Siehe hierzu \vref{maxDist}).
+Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird: Man berechnet $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\cdot m)$. Praktisch wird deshalb ein Algorithmus verwendet, der in $O((n+m)\log{(n+m)})$ einen sehr "ahnlichen Wert berechnet. (Siehe hierzu \vref{maxDist}).
 
 \subsubsection*{Neuronale Netze}
 
-Man kann die Problematik, Matches von Referenzpunkten zu finden, auch wie folgt beschreiben: In einer Menge von Punkten im $\mathbb{R}^2$ werden Klassen von zusammengehörende Punkten gesucht.
+Man kann die Problematik, Matches von Referenzpunkten zu finden, auch wie folgt beschreiben: In einer Menge von Punkten im $\mathbb{R}^2$ werden Klassen von zusammengehörenden Punkten gesucht.
 
 Solche Klassifizierungsaufgaben sind genau das klassische Einsatzgebiet von neuronalen Netzen. Es steht zu vermuten, dass ein Lernverfahren auf Basis von neuronalen Klassifikatoren sehr gute Ergebnisse liefern wird. Der Rahmen dieser Arbeit würde aber von einem solchen deutlich überschritten.
 
@@ -94,11 +97,11 @@ Der Algorithmus, welcher aus dem Match \textit{MovingSegments} erzeugt, kann aus
 
 Gehören alle $n$ Targets zu einem einzigen \textit{ConvexHullTreeNode}, gibt es einen Algorithmus, der schon in \cite{TG} beschrieben wurde, in dem es darum geht, die konvexe H"ulle aller Targets zu bilden und das Matching von den $n$ Targets auf diese neue H"ulle umzuleiten.
 
-Leider versagt dieses Verfahren, falls die gematchten Polygone sich nicht ähnlich genug sind. Es gelang im Rahmen dieser Arbeit leider nicht, das Problem ausreichend einzugrenzen, weshalb auf die Implementierung dieses Verfahrens verzichtet werden mußte. Wenn das Verfahren funktioniert, sehen die Ergebnisse aber sehr gut aus. Es erscheint daher lohnenswert, diesem Verfahren weiter nachzugehen.
+Leider versagt dieses Verfahren, falls die gematchten Polygone sich nicht ähnlich genug sind. Es gelang im Rahmen dieser Arbeit leider nicht, das Problem ausreichend einzugrenzen, weshalb auf die Implementierung dieses Verfahrens verzichtet werden musste. Wenn das Verfahren funktioniert, sehen die Ergebnisse aber sehr gut aus. Es erscheint daher lohnenswert, diesem Verfahren weiter nachzugehen.
 
-\subsubsection*{Source ist ein Face, oder ein Hole}
+\subsubsection*{Source ist ein Face oder ein Hole}
 
-Ist die Source--KOmponente ein \textit{Face} oder ein \textit{Hole},  so muss der Source aufgeteilt werden. Es wurden einige Überlegungen angestellt, wie es möglich ist, diese Zerteilung möglichst schonend, also ohne dass man das zu teilende Objekt und alle Matches von diesem neu berechnen muss, vornehmen kann. Die Überlegungen lauten:
+Ist die Source--Komponente ein \textit{Face} oder ein \textit{Hole},  so muss der Source aufgeteilt werden. Es wurden einige Überlegungen angestellt, wie es möglich ist, diese Zerteilung möglichst schonend, also ohne dass man das zu teilende Objekt und alle Matches von diesem neu berechnen muss, vornehmen zu können. Die Überlegungen lauten:
 \begin{itemize}
 \item Ein \textit{ConvexHullTreeNode} ist nur an Eckpunkten oder an Punkten auf Linien zu teilen, die keine Kinder haben, da sonst der \textit{ConvexHullTree} zerst"ort werden.
 
@@ -108,13 +111,13 @@ Ist die Source--KOmponente ein \textit{Face} oder ein \textit{Hole},  so muss de
 
 \end{itemize} 
 
-Es wude entschieden diesen schonenden Ansatz nicht weiterzuverfolgen, sondern ein Verfahren zu bnutzen, dass bei dem Zerteilen schönere Ergebnisse findet. Die Nachteile dieses Ansatzes sind die Neuberechnung aller erzeugten Objekte und alle Matches dieses Objekten. Bei der Neuberechnung der neuen Matches ist zu beachten, dass man hier in keine Endlosschleife laufen darf. Eine Endlosschleife kann wie folgt entstehen:
+Es wude entschieden diesen schonenden Ansatz nicht weiterzuverfolgen, sondern ein Verfahren zu bnutzen, dass bei dem Zerteilen schönere Ergebnisse findet. Die Nachteile dieses Ansatzes sind die Neuberechnung aller erzeugten Objekte und alle Matches dieser Objekte. Bei der Neuberechnung der neuen Matches ist zu beachten, dass man hier in keine Endlosschleife laufen darf. Eine Endlosschleife kann wie folgt entstehen:
 
 Polygon $A$ wird gegen zwei Polygone $B_1$ und $B_2$ gematcht. Deshalb wird $A$ in $A_1$ und $A_2$ geteilt. Bei der Neuberechnung des Matches wird nun $A_1$ wieder gegen $B_1$  und $B_2$ gematcht. Also muss $A_1$ in $A_{1_1}$ und $A_{1_2}$ geteilt werden, die leider wieder gegen $B_1$ und $B_2$ gematcht werden ...
 
 Um solche Effekte zu umgehen, darf man für $A_1, A_2,B_1$ und $B_2$ nicht ein normales Match berechnen, sondern darf $A_1$ und $A_2$ nur gegen das eine $B_i$ matchen, das am besten passt. 
 
-Wird ein \textit{Face} zerteilt, so kann es passieren, dass dabei ein \textit{Hole} zerteilt wird. Falls sich das nicht verhindern l"asst, zerf"allt das Loch in zwei neue Konkavit"aten, die den neuen \textit{Faces} hinzugefügt werden müssen. Ein Algorithmus, der dieses leistet findet sich unter \vref{JoinLL}, nichtzerteilte \textit{Holes} müssen demjenigen neuen \textit{Face} zugeordnet werden, in dem diese liegen.
+Wird ein \textit{Face} zerteilt, so kann es passieren, dass dabei ein \textit{Hole} zerteilt wird. Falls sich das nicht verhindern l"asst, zerf"allt das Loch in zwei neue Konkavit"aten, die den neuen \textit{Faces} hinzugefügt werden müssen. Ein Algorithmus, der dieses leistet findet sich unter \vref{JoinLL}. Nichtzerteilte \textit{Holes} müssen demjenigen neuen \textit{Face} zugeordnet werden, in dem diese liegen.
 
 Um ein optisch möglichst ansprechendes Resultat zu erzeugen, müssen sich Form und Lage der Targetobjekte in der Aufsplittung wiederfinden. Ein Algorithmus der dieses liefert, findet sich unter \vref{ZerteilungsAlgo}. Bei diesem Algorithmus gehen nur zwei Polygone auf der Targetseite in die Zerteilung ein. Weitergehende Zersplitterungen lassen sich durch die mehrfache Anwendung dieses Algorithmus erzeugen.
 
@@ -122,16 +125,22 @@ Um ein optisch möglichst ansprechendes Resultat zu erzeugen, müssen sich Form 
 
 Da man in diesem Fall das oben beschriebene Verfahren nicht anwenden kann, muss man auf folgenden, sehr einfachen Algorithmus zurückgreifen. Dieser  funktioniert analog zu dem Verfahren, mit welchem im letzten Abschnitt Endlosschleifen vermieden wurden.
 
+\par
+\begingroup
+\leftskip=2em 
 Wird $A$ auf  $B_1,B_2, \hdots ,B_n$ gematcht, so lösche alle Matches, außer des einen, welches die höchste Bewertung aus allen Einzelmatches von $A$ auf $B_i$ hat.
+\par
+\endgroup
+
 
 Obwohl dieses Verfahren sehr einfach ist, sehen die Ergebnisse überraschend gut aus. Eine Verbesserung könnte hier allenfalls durch den Algorithmus von T\o{}ssebro erreicht werden, wenn man dessen unerwünschte Verhalten abstellen könnte.
 
 \subsection{Beseitigung von "`gedrehten Konkavit"aten"'}\label{gedrehtKon}
-In manchen F"allen versagt das in \cite{TG} genannte Verfahren, um aus Matchings \textit{MovingRegions} zu erzeugen. Dieses, im Kapitel "`6 Interpolating between two arbitray polygones"' beschriebene Verfahren, setzt voraus, dass die beiden gematchten Kinderpolygone ein gemeinsames, aus zwei Dreiecken zusammengesetztes ,,Trapez'' in der Aussenh"ulle der beider Vaterpolygone besitzen. 
+In manchen F"allen versagt das in \cite{TG} genannte Verfahren, um aus Matchings \textit{Moving"=Regions} zu erzeugen. Dieses, im Kapitel "`6 Interpolating between two arbitray polygones"' beschriebene Verfahren, setzt voraus, dass die beiden gematchten Kinderpolygone ein gemeinsames, aus zwei Dreiecken zusammengesetztes ,,Trapez'' in der Aussenh"ulle der beiden Vaterpolygone besitzen. 
 
 Dies ist zum Beispiel nicht der Fall, wenn wir uns als Quellpolygon ein "`U"' und als Zielpolygon ein um 90$\degree$ gedrehtes "`U"' vorstellen. Auch wenn die Konkavit"aten richtig zueinander gematcht sind, versagt das bekannte Verfahren.
 
-Die das Matching abschlie"sende Funktion kann solche F"alle erkennen, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater, sowie die beiden Nachbarkanten des Vaters mit der x"~Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, funktioniert das Verfahren nicht mehr.
+Die das Matching abschlie"sende Funktion kann solche F"alle erkennen, indem es die Winkel betrachtet, die die gemeinsame Kante von Kind und Vater sowie die beiden Nachbarkanten des Vaters mit der x"~Achse haben. Ist der Winkel der gemeinsamen Kante auf der einen Seite nicht im  Intervall der Winkel der Nachbarkanten der anderen Seite, funktioniert das Verfahren nicht mehr.
 
 \begin{figure}
 	\centering
@@ -163,7 +172,7 @@ In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueina
 \subsection{\index{Match!optimales}Erstellung eines Matches aus mehreren anderen}\label{bewertung}
 
 
-Es ist festzustellen, dass unter der Betrachtung der bereits erstellten Matchings das Overlapping--Match besser auf Vereinigungen und Aufsplitterungen von Cycles reagiert und dass das Schwerpunkt-Verfahren besser auf kleine und schnelle Cycles abgestimmt ist. 
+Es ist festzustellen, dass unter der Betrachtung der bereits erstellten Matchings das Overlapping--Match besser auf Vereinigungen und Aufsplitterungen von \textit{Cycles} reagiert und dass das Schwerpunkt-Verfahren besser auf kleine und schnelle \textit{Cycles} abgestimmt ist. 
 
 Es scheint also ein verfolgenswerter Ansatz zu sein, beide Matches (und vielleicht noch andere, etwa Overlapping mit mehreren Schwellwerten) zu berechnen und aus diesen das beste Matching zu bestimmen. 
 
@@ -174,7 +183,7 @@ Zur Bestimmung der G"ute eines gegebenen Matchings sind nachfolgende Verfahren a
 
 Ein gro"ser Durchschnitt der "Uberlappungen wirkt sich positiv auf die Bewertung aus.
 
-Dieses Bewertungsverfahren korrespondiert zwar direkt mit dem Overlapping--Match und ist deshalb als alleiniges Vergleichskriterium abzulehenen.Trotzdem wird es in dieser Arbeit als einer von mehrere Bewertungsansätzen benutzt, da die Überlappung sich als sehr interessantes Kriterium erwiesen hat. Die Berechnung l"auft so:
+Dieses Bewertungsverfahren korrespondiert zwar direkt mit dem Overlapping--Match und ist deshalb als alleiniges Vergleichskriterium abzulehenen. Trotzdem wird es in dieser Arbeit als einer von mehrere Bewertungsansätzen benutzt, da die Überlappung sich als sehr interessantes Kriterium erwiesen hat. Die Berechnung l"auft so:
 
 $$r_O=\frac{\sum_{m\in M} \frac{A_{overlap}}{A_{source}+A_{target}}}{|M|}$$
 
@@ -186,7 +195,7 @@ Bei der Implementierung dieser Norm stellt sich die Frage der Normierung. Mangel
 
 $$r_H=\frac{1}{|M| \cdot d}\sum_{m\in M}\delta_H(m)$$
 
-\item Die Bewertungen durch Minimierung einer Norm über geeigneten Abbildungen
+\item Die Bewertungen durch Minimierung einer Norm über geeignete Abbildungen
 
 \cite{AAR} und \cite{AFRW} enthalten beide die Bewertung:
 $$\min_{T\in\mathcal{T}}\: \delta(A,T(B))$$
@@ -203,14 +212,14 @@ Da dieses Verfahren direkt mit dem Schwerpunkt-Match bzw. dem Steinerpunkt"=Matc
 
 Etwa gleich gro"se, zueinander gematchte Fl"achen wirken sich positiv auf die Bewertung aus.
 
-Es steht zu erwarten, dass zueinander geh"orige Fl"achen etwa gleich groß sind. Auch wenn sich eine Fl"ache in mehrere andere teilt, wird die Summe der Fl"acheninhalte in etwa so gro"s sein wie der Fl"acheninhalt der Ursprungsfl"ache. Zur Normierung teile man den kleineren durch den gr"o"seren Fl"acheninhalt und bekomme somit die Abweichung in Prozent. Die Berechnung l"auft nach folgender Formel:
+Es steht zu erwarten, dass zueinander geh"orige Fl"achen etwa gleich groß sind. Auch wenn sich eine Fl"ache in mehrere andere teilt, wird die Summe der Fl"acheninhalte in etwa so gro"s sein wie der Fl"acheninhalt der Ursprungsfl"ache. Zur Normierung teilt man den kleineren durch den gr"o"seren Fl"acheninhalt und bekommt somit die Abweichung in Prozent. Die Berechnung l"auft nach folgender Formel:
 
 $$A_{target}=\sum_{t\in Target}A_t$$
-$$r_A=\frac {\sum_{m\in M}\frac{\min{A_{source},A_{target}}}{\max{A_{source},A_{target}}}}{|M|}$$
+$$r_A=\frac {\sum_{m\in M}\frac{\min({A_{source},A_{target}})}{\max({A_{source},A_{target}})}}{|M|}$$
 
 
 
-\item Die \index{Bewertung!linear}Linear-Bewertung
+\item Die \index{Bewertung!linear}Linear-Bewertung:
 
 Bei der Implementierung der obigen Verfahren zeigte sich, dass die Verfahren eine Tendenz zu "ubertriebenen Zersplitterungen aufweisen. Unter der Pr"amisse, dass dies in den allermeisten F"allen eher unerwünscht ist, wurde dieser Bewertungsfaktor eingef"uhrt, um dieses Verhalten abzuschw"achen.
 
@@ -236,18 +245,22 @@ Diese Norm wird im Rahmen der vorliegenden Arbeit nicht weiterverfolgt, bietet a
 
 \end{enumerate} 
 
-Wie man am Beispiel der Summen-Norm sehen kann, gibt es mehr M"oglichkeiten zu bewerten als es effiziente Matchings gibt. Das Summen-Matching, das lauten k"onnte: "`Matche ein Cycle mit  einer Menge von anderen, wenn die Summe der Fl"acheninhalte fast gleich ist zu dem Fl"acheninhalt des Cycles"', entspricht dem Rucksack-Problem und ist daher nicht effizient l"osbar. Die Bewertung, wie gut ein gegebenes Matching ist, ist mit diesem Verfahren aber effizient m"oglich.
+Wie man am Beispiel der Summen-Norm sehen kann, gibt es mehr M"oglichkeiten zu bewerten als es effiziente Matchings gibt. Das Summen-Matching, das lauten k"onnte, "`Matche ein Cycle mit  einer Menge von anderen, wenn die Summe der Fl"acheninhalte fast gleich ist zu dem Fl"acheninhalt des Cycles"', entspricht dem Rucksack-Problem und ist daher nicht effizient l"osbar. Die Bewertung, wie gut ein gegebenes Matching ist, ist mit diesem Verfahren aber effizient m"oglich.
+
+\index{Rucksackproblem}Bei einer Variante des Rucksackproblems geht es um die Frage, ob sich eine Zahl $c$ aus einer Teilmenge von gegebenen Zahlen $C=\{c_1,c_1,\hdots,c_n\}$ additiv zusammensetzen läßt. Also 
+ $$\exists \tilde{C}\subset C$$ 
+$$\sum_{i=0}^{|\tilde{C}|} c_i\quad = c.$$ Beschrieben wird dieses Problem in \cite{Ruck}.
 
 \section{Gemeinsame Grundlagen}
 
 \subsection{Beschreibung von verwendeten Algorithmen} \label{Algorithmen}
-In diesem Abschnitt werden Algorithmen vorgestellt, die entweder sehr zentral f"ur die L"osung des Interpolationsproblems oder die keine Standard-Algorithmen sind. Diese Algorithmen müssend demnach selbst entwickelt werden.
+In diesem Abschnitt werden Algorithmen vorgestellt, die entweder sehr zentral f"ur die L"osung des Interpolationsproblems oder die keine Standard-Algorithmen sind. Diese Algorithmen müssen demnach selbst entwickelt werden.
 
 \subsubsection{\index{Hashwerte!Berechnung}Effiziente Berechnung von Hashwerten aus \textit{RegionTreeNodes}}\label{berechenHashwerte}
 
 Um \textit{RegionTrees} als Schlüssel in der Hash-Table benutzen zu können, muss aus diesen ein Hashwert berechnet werden können. In die Berechnung des Hashwertes muss jede einzelne Ecke des RegionTrees eingehen. Damit ist die Ermittlung dieses Wertes leider eine aufwendige Operation, zumal auf diesen Wert im Verlauf eines Matching-Verfahrens sehr oft zugegriffen werden muss. Deshalb ist es sinnvoll, die Hashwerte dieser Objekte zu cachen. 
 
-Um sicherzustellen, dass ein Hashwert immer aktuell ist und keine überflüssigen Neuberechnungen notwendig sind wurde ein Cachingverfahren gewählt, das analog zu einem bekannten Verfahren aus der technischen Informatik abläuft. Jedes Objekt des RegionTrees verfügt über ein ,,Dirty-Flag''. Dieses Flag gibt an, ob der gecachte Wert noch aktuell ist. Es wird bei jeder Operation gesetzt, die das Objekt so verändert, dass sich der Hashwert auch ändern müsste. Bei jedem lesenden Zugriff auf den Hashwert wird 
+Um sicherzustellen, dass ein Hashwert immer aktuell ist und keine überflüssigen Neuberechnungen notwendig sind, wurde ein Cachingverfahren gewählt, das analog zu einem bekannten Verfahren aus der technischen Informatik abläuft. Jedes Objekt des RegionTrees verfügt über ein ,,Dirty-Flag''. Dieses Flag gibt an, ob der gecachte Wert noch aktuell ist. Es wird bei jeder Operation gesetzt, die das Objekt so verändert, dass sich der Hashwert auch ändern müsste. Bei jedem lesenden Zugriff auf den Hashwert wird 
 \begin{itemize}
 \item der gecachte Wert zurückgegeben, falls das Dirty-Flag nicht gesetzt ist.
 \item Ist das Dirty-Flag gesetzt, so wird der Hashwert neu berechnet, das Dirty-Flag gelöscht und der neuberechnete Wert zurückgegeben.
@@ -264,11 +277,11 @@ Die Berechnung geht wie folgt vonstatten:
 
 Die Berechnung startet mit einem zufällig  gewählten, fixen Wert. Zu diesem wird dann die kumulierte Summe gebildet, $HV=\lfloor HV+x_i*321+y_i*321\rfloor$. Die Zahl 321 ist wieder willkürlich gewählt. Da sich aber geographische Koordinaten oft nur wenig unterscheiden und eine Unterscheidung, etwa von Dreiecken, die nahe beieinander liegen, gewährleistet sein muss, darf dieser Wert nicht zu klein gewählt sein. 
 
-In die Berechnung gehen auch noch ein Vielfaches der Ebene ein, auf der sich der Konten in dem Baum  befindet. Außerdem geht noch eine feste Zahl ein, die nur zum Tragen kommt, falls das Objekt ein \textit{Hole} ist.
+In die Berechnung geht auch noch ein Vielfaches der Ebene ein, auf der sich der Konten in dem Baum  befindet. Außerdem geht noch eine feste Zahl ein, die nur zum Tragen kommt, falls das Objekt ein \textit{Hole} ist.
 
 \item Face
 
-Der Wert für ein \textit{Face} wird berechnet, indem man zu dem Hashwert des \textit{Cycles} alle Hashwerte der Löcher hinzuaddiert. Dem Ergebnis wird noch ein weiterer konstanter Summand beigebracht. Dadurch ist sichergestellt, dass der Hashwert eines \textit{Faces}, welches nur aus einem einzigen \textit{Cycle} besteht, sich von dem Hashwert des \textit{Cycles} unterscheidet.
+Der Wert für ein \textit{Face} wird berechnet, indem man zu dem Hashwert des \textit{Cycles} alle Hashwerte der Löcher hinzuaddiert. Dem Ergebnis wird noch ein weiterer, konstanter Summand hinzugefügt. Dadurch ist sichergestellt, dass der Hashwert eines \textit{Faces}, welches nur aus einem einzigen \textit{Cycle} besteht, sich von dem Hashwert des \textit{Cycles} unterscheidet.
 
 \item Region
 
@@ -279,7 +292,7 @@ Der Hashwert einer \textit{Region} setzt sich wiederum aus den Hashwerten seiner
 
 Dieser Algorithmus bekommt ein zu zerteilendes ConvexHullTreeNode ($A$) und zwei andere ConvexHullTreeNodes ($B_1$ und $B_2$). Berechnet werden soll nun ein Linienzug, der die Lage und Form von $B_1$ und $B_2$ möglichst gut wiedergeben soll und an dem sich $A$ zerteilen lassen kann.
 
-Die weitere Besprechung dieses Algorithmus wird am Beispiel von drei Polygonen vorgenomen. Diese drei sind in Abbildung~\vref{fig:ZuZersplitten} zu sehen.
+Die weitere Besprechung dieses Algorithmus wird am Beispiel von drei Polygonen vorgenommen. Diese drei sind in Abbildung~\vref{fig:ZuZersplitten} zu sehen.
 
 \begin{figure}
 	\centering
@@ -359,7 +372,7 @@ Entfernung&
 \end{figure}
 
 
-Nun nimmt man aus jeder Liste die beiden oberen Punkte und betrachtet die Linie, zwischen diesen Punkten. Schneidet diese Linie keines der beiden Polygone (außer an den Endpunkten), merkt man sich den Mittelpunkt der Linie in der neuen Liste  $Mittelpunktlinie$. Aus den Listen wird nun der größere der beiden Punkte gelöscht, falls dieser nicht der letzte in der Punktliste ist. Dieses Vorgehen wird solange fortgesetzt, bis beide Listen nur noch ein einziges Element haben. Die fiktiven Verbindungslinien und ihre Mittelpunkte sind in Abbildung~\vref{fig:Mittelpunkte} zu sehen.
+Nun nimmt man aus jeder Liste die beiden oberen Punkte und betrachtet die Linie zwischen diesen Punkten. Schneidet diese Linie keines der beiden Polygone (außer an den Endpunkten), merkt man sich den Mittelpunkt der Linie in der neuen Liste  $Mittelpunktlinie$. Aus den Listen wird nun der größere der beiden Punkte gelöscht, falls dieser nicht der letzte in der Punktliste ist. Dieses Vorgehen wird solange fortgesetzt, bis beide Listen nur noch ein einziges Element haben. Die fiktiven Verbindungslinien und ihre Mittelpunkte sind in Abbildung~\vref{fig:Mittelpunkte} zu sehen.
 
 \begin{figure}
 	\centering
@@ -385,13 +398,13 @@ In der Regel teilt diese Linie aber nicht $A$, wie man an dem Beispiel gut sehen
 \item Berechne das Maximum der Entfernungen $d_L$ von $M_L$ zu den beiden Endpunkten des Linienzuges 
 \item Berechne die maximale Entfernung $d_A$ von $M_A$ zu den Eckpunkten von $A$.
 \item Berechne den Skalierungsfaktor $s_2=\frac{d_A}{d_l} * 1,05$. Die 5\% sind willkürlich gewählt und sollen die Wahrscheinlichkeit erhöhen, dass beide Endpunkte des neuen Linienzuges außerhalb von $A$ liegen. 5\% haben sich in praktischen Versuchen bewährt.
-\item Berechne den neuen Linienzug $l'_1,l'_2,\hdots ,l'_n$ durch $l'_i=M_A+(l_i-M_l)*s_1+(M_l-M_B)*s_2$.
+\item Berechne den neuen Linienzug $l'_1,l'_2,\hdots ,l'_n$ durch $\:l'_i=M_A+(l_i-M_l)*s_1+(M_l-M_B)*s_2$.
 \end{enumerate}
 
 
 Abbildung~\vref{fig:SplitLine} zeigt das Ergebnis dieses Beispiels. 
 
-Wie man schon an dem willkürlichen Faktor 5\% sehen kann, liefert dieser Algorithmus nicht in allen Fällen ein zulässiges Ergebnis. Die Erfolgsquote scheint aber sehr hoch zu liegen, in allen Beispielen, die im Laufe der Entwickeln aufgelaufen sind, tauchte kein einziger Fall auf, wo der Split versagte. Die Ergebnisse sahen auch alle sehr natürlich aus.
+Wie man schon an dem willkürlichen Faktor 5\% sehen kann, liefert dieser Algorithmus nicht in allen Fällen ein zulässiges Ergebnis. Die Erfolgsquote scheint aber sehr hoch zu liegen, in allen Beispielen, die im Laufe der Entwicklung aufgelaufen sind, tauchte kein einziger Fall auf, wo der Split versagte. Die Ergebnisse sahen auch alle sehr natürlich aus.
 
 
 \begin{figure}
@@ -415,17 +428,17 @@ Als Beispiel betrachten wir das Polygon $A$ aus dem letzten Abschnitt als \texti
 	\label{fig:JLL1}
 \end{figure}
 
-Der Algorithmus zum Vereinigen der Polygone bekommt nun also zwei Polygone als geordnete Listen von Eckpunkten, das neue Face und ein passendes Bruchstück eines Holes. Diese Punktlisten werden zunächst sortiert. Die Punkte des Face werden wie gewöhnlich gegen den Uhrzeigersinn  angeordnet, die des Holes hingegen im Uhrzeigersinn. Zunächst suchen wir einen Punkt auf dem Rand des Faces, der nicht auf dem gemeinsamen Rand von Hole und Face liegt. Im Beispiel wird Punkt 0 gewählt.
+Der Algorithmus zum Vereinigen der Polygone bekommt nun also zwei Polygone als geordnete Listen von Eckpunkten, das neue Face und ein passendes Bruchstück eines Holes. Diese Punktlisten werden zunächst sortiert. Die Punkte des Face werden wie gewöhnlich gegen den Uhrzeigersinn  angeordnet, die des Holes hingegen im Uhrzeigersinn. Zunächst wird  ein Punkt auf dem Rand des Faces gesucht, der nicht auf dem gemeinsamen Rand von Hole und Face liegt. Im Beispiel wird Punkt 0 gewählt.
 
 Jetzt werden die Punkte des Faces durchgegangen, solange auf der Linie zwischen dem aktuellen Punkt und dem nächsten kein Punkt des Holes liegt. All diese Punkte werden der Ergebnisliste $res$ hinzugefügt.
 
 Also: $res=(0, 1, 2, 3, 4, 5)$.
 
-Dann wird aus allen Punkten des Holes, die auf der Linie von 5 zu 6 liegen, der Punkt der am nächsten zu 5 liegt,  gesucht. Im vorliegenden Fall ist das 107, der wieder an $res$ anhänget wird. Dieses etwas kompliziert klingende Vorgehen deckt eine Reihe von Sonderfällen ab, die hier auftauchen können. Abbildung~\vref{fig:SonderfaelleJLL} zeigt diese exemplarisch.
+Dann wird aus allen Punkten des Holes, die auf der Linie von 5 zu 6 liegen, der Punkt, der am nächsten zu 5 liegt,  gesucht. Im vorliegenden Fall ist das 107, der wieder an $res$ anhänget wird. Dieses etwas kompliziert klingende Vorgehen deckt eine Reihe von Sonderfällen ab, die hier auftauchen können. Abbildung~\vref{fig:SonderfaelleJLL} zeigt diese exemplarisch.
 
 $res=(0, 1, 2, 3, 4, 5, 107)$
 
-Nun werden die Punkte des Holes,  mit 100 beginnend, solange durchlaufen bis der aktuelle Punkt auf dem Rand des Faces liegt (hier 103). Alle besuchten Punkte werden an $res$ angehängt.
+Nun werden die Punkte des Holes,  mit 100 beginnend, solange durchlaufen, bis der aktuelle Punkt auf dem Rand des Faces liegt (hier 103). Alle besuchten Punkte werden an $res$ angehängt.
 
 Daraus folgt: $res=(0, 1, 2, 3, 4, 5, 107, 100, 101, 102, 103)$
 
@@ -463,7 +476,7 @@ Schließlich ist $res=(0, 1, 2, 3, 4, 5, 107, 100, 101, 102, 103, 9, 10, 11, 12)
 
 
 \subsubsection{\index{Rotaring Plane}Rotating Plane} \label{rotPane}
-In \cite{TG} wurde bereits der Algorithmus ,,rotating Plane'' vorgestellt. Im Laufe der forliegenden Arbeit wurde eine andrere Implementierung dieses Algorithmus entwickelt und hierbei eine Version gefunden, die sowohl einfacher ist als auch erheblich weniger Fallunterscheidungen benötigt.
+In \cite{TG} wurde bereits der Algorithmus ,,rotating Plane'' vorgestellt. Im Laufe der vorliegenden Arbeit wurde eine andrere Implementierung dieses Algorithmus entwickelt und hierbei eine Version gefunden, die sowohl einfacher ist als auch erheblich weniger Fallunterscheidungen benötigt.
 
 Die Idee dieses Algorithmus ist es, zu jeder Kante den Winkel zu bestimmen, den dieser mit der x"~Achse bildet. Zu zwei Ecken, die sich eine gemeinsame Kante teilen, konstruiert man ein Dreieck mit dem Startpunkt der Kante des anderen Polygons, dessen Winkel zwischen den Winkeln des Startpolygons liegt.
 
@@ -475,7 +488,7 @@ Die Idee dieses Algorithmus ist es, zu jeder Kante den Winkel zu bestimmen, den 
 \end{figure}
 
 
-Hierzu werden zwei Felder von Punkten gebildet, für jedes Polygon eines. Zu jedem Punkt wird dann der Winkel hinzugefügt, den die Linie mit der x"~Axhse hat, welche von diesem Punkt ausgeht. Die einzelnen Elemente dieses Feldes sind Objekte der Klasse \textit{LineWA}. Diese Klasse, die unter \vref{LineWA} dargestellt wird, ermöglicht die Verwaltung eines Punktes mit einem Winkel.  Die Felder werden dann nach diesen Winkeln sortiert. Zu zwei aufeinanderfolgenden Punkten des ersten Polygons wird dann der passende Punkt aus dem zweiten Polygon gesucht. Hierzu wird die Funktion \textbf{finde\_passenden\_Index()} benutzt, die weiter unten erklärt wird. Das so entstandene Dreieck (als \textit{MovingSegment}) wird dann der Rückgabestruktur hinzugefügt.
+Hierzu werden zwei Felder von Punkten gebildet, für jedes Polygon eines. Zu jedem Punkt wird dann der Winkel hinzugefügt, den die Linie mit der x"~Axhse hat, welche von diesem Punkt ausgeht. Die einzelnen Elemente dieses Feldes sind Objekte der Klasse \textit{LineWA}. Diese Klasse, die unter \vref{LineWA} dargestellt wird, ermöglicht die Verwaltung eines Punktes mit einem Winkel.  Die Felder werden dann nach diesem Winkeln sortiert. Zu zwei aufeinanderfolgenden Punkten des ersten Polygons wird dann der passende Punkt aus dem zweiten Polygon gesucht. Hierzu wird die Funktion \textbf{finde\_passenden\_Index()} benutzt, die weiter unten erklärt wird. Das so entstandene Dreieck (als \textit{MovingSegment}) wird dann der Rückgabestruktur hinzugefügt.
 
 \begin{algorithm}[!ht]
 		\SetKwFunction{fMI}{finde\_passenden\_Index}
@@ -484,7 +497,7 @@ Hierzu werden zwei Felder von Punkten gebildet, für jedes Polygon eines. Zu jed
 	\Ergebnis{Eine Menge von \textit{MovingSegments}, die die Interpolation der beiden Polygone darstellt}
 	\Begin{
 		Bestimme $KH1$ und $KH2$, die konvexen H"ullen der Polygone als Feld von LineWAs\;
-		Berechne die Winkel in jedem Eckpunkt von $KH1$ und $KH2$ (mit der x"5~Achse)\;
+		Berechne die Winkel in jedem Eckpunkt von $KH1$ und $KH2$ (mit der x"~Achse)\;
 		Sortiere $KH1$ und $KH2$ aufsteigend nach diesen Winkeln\;		
 		$j:=0$\;
 		\Fuer{$i:=0$; $i<KH1.l"ange$; $i:=i+1$}{
@@ -550,9 +563,9 @@ Die Funktion \textbf{finde\_passenden\_Index()} durchsucht ein Feld, das ein kon
 
 \subsubsection{Zerlegung von einfachen Polygonen in konvexe Polygone}\label{Zerlegung}
 
-Um beliebige Polygone in VRML-Dateien exportieren zu können, musste ein Algorithmus gefunden werden, der beliebige, einfache Polygone in konvexe zerlegen kann. Die Alternative der Triangulierung hätte eine zu hohe Kleiteiligkeit zur Folge gehabt. Die Idee des Algorithmus ist auch ganz einfach:
+Um beliebige Polygone in VRML-Dateien exportieren zu können, musste ein Algorithmus gefunden werden, der beliebige, einfache Polygone in konvexe zerlegen kann. Die Alternative der Triangulierung hätte eine zu hohe Kleinteiligkeit zur Folge gehabt. Die Idee des Algorithmus ist auch ganz einfach:
 
-Ecken, deren Winkel größer als 180\degree\/ sind (so genannte konvexe Ecken) stören und müssen beseitigt werden. Durch Teilung eines Polygons an einem Winkel wird dieser kleiner. Also kann man Polygone solange an konvexen Ecken zerteilen bis es in keinem der Ergebnispolygone noch einen konvexe Ecke gibt. In dem Algorithmus~3.3 wird diese Liste durch die Funktion \textbf{liefere\_konvexe\_Ecken()} geliefert.
+Ecken, deren Winkel größer als 180\degree\/ sind (so genannte konvexe Ecken) stören und müssen beseitigt werden. Durch Teilung eines Polygons an einem Winkel wird dieser kleiner. Also kann man Polygone solange an konvexen Ecken zerteilen, bis es in keinem der Ergebnispolygone noch eine konvexe Ecke gibt. In dem Algorithmus~3.3 wird diese Liste durch die Funktion \textbf{liefere\_konvexe\_Ecken()} geliefert.
 
 Teilen kann man ein Polygon an zwei Ecken $A$ und $B$, falls die Verbindung von $A$ und $B$ innerhalb des Polygons liegt und keine unbeteiligte Kante geschnitten wird. Diese Logik wird durch die Funktion \textbf{ist\_teilbar()} beschrieben.
 
@@ -820,7 +833,7 @@ Punkt: &Der Punkt, zu dem der Abstand gemessen wird\\
 \end{function}
 
 \label{getdist}
-Diese Funktion liefert den Wert der quadratischen Entfernung von zwei Punkten zurück. Die Berechnung erfolgt numerisch stabiler als die einfache Formel $(x_2-x_1)^2+(y_2-y_1)^2$. Besonders im Umgang mit geographischen Koordinaten ist dies wichtig.
+Diese Funktion liefert den Wert der quadratischen Entfernung von zwei Punkten zurück. Die Berechnung erfolgt nummerisch stabiler als die einfache Formel $(x_2-x_1)^2+(y_2-y_1)^2$. Besonders im Umgang mit geographischen Koordinaten ist dies wichtig.
 
 \begin{function}[!ht]
 	\caption{Quadrat\_der\_Entfernung(Punkt1, Punkt2)}
@@ -838,7 +851,7 @@ Diese Funktion liefert den Wert der quadratischen Entfernung von zwei Punkten zu
 
 \subsubsection{\index{LineWA}LineWA}\label{LineWA}
 
-Diese Klasse repräsentiert einen zweidimensionalen Punkt, der durch eine Winkel angabe ergänzt ist. Somit kann man ein Polygon speichern, indem man alle seine Punkte speichert und zu jedem Punkt noch den Winkel, den die Kante, die von dem Punkt ausgeht, mit der x"~Achse hat. Die Klasse ist so implementiert, dass mehrere LineWAs automatisch aufsteigend nach ihren Winkeln sortiert werden können.
+Diese Klasse repräsentiert einen zweidimensionalen Punkt, der durch eine Winkel"=angabe ergänzt ist. Somit kann man ein Polygon speichern, indem man alle seine Punkte speichert und zu jedem Punkt noch den Winkel, den die Kante, die von dem Punkt ausgeht, mit der x"~Achse hat. Die Klasse ist so implementiert, dass mehrere LineWAs automatisch aufsteigend nach ihren Winkeln sortiert werden können.
 
 \subsubsection{\index{CHLine}CHLine}
 
@@ -867,7 +880,7 @@ Hiermit kann man feststellen, in welcher Tiefe sich ein ConvexHullTreeNode in de
 
 \item hole
 
-Dieses boolesche Attribut legt fest, ob das Objekt zu einem \textit{Cycle}, oder zu einem \textit{Hole} gehört.
+Dieses boolesche Attribut legt fest, ob das Objekt zu einem \textit{Cycle} oder zu einem \textit{Hole} gehört.
 
 \item myParent
 
@@ -875,7 +888,7 @@ Dieses Attribut zeigt auf das Vaterelement des Objektes in dem \textit{RegionTre
 
 \end{itemize}
 
-Die wichtigsten, nicht trivialen Methoden dieser Klasse sind:
+Die wichtigsten, nicht-trivialen Methoden dieser Klasse sind:
 
 \begin{itemize}
 \item Konstruktor
@@ -924,7 +937,7 @@ Parent ist ein Verweis auf die Region (bzw. RegionForInterpolation), zu der dies
 
 \end{itemize}
 
-Die wichtigsten, nicht trivialen Methoden dieser Klasse sind:
+Die wichtigsten, Methoden dieser Klasse sind:
 
 \begin{itemize}
 
@@ -940,21 +953,21 @@ Diese Funktion teilt das Face entlang des übergebenen Linienzugs in zwei neue F
 
 \subsubsection{\index{Region!Klasse}\index{RegionForInterpolation}Region oder RegionForInterpolation}
 
-Eine \textit{Region} enthält ein oder mehrere \textit{Faces}. In SECONDO war der Name ,,Region'' leider schon für die Region in der SpatialAlgebra vergeben. Deshalb musste die Klasse dort in ,,RegionForInterpolation'' umbenannt werden.
+Eine \textit{Region} enthält ein oder mehrere \textit{Faces}. In SECONDO war der Name \textit{Region} leider schon für die \textit{Region} in der \textit{SpatialAlgebra} vergeben. Deshalb musste die Klasse dort in \textit{RegionForInterpolation} umbenannt werden.
 
-An Attributen enthält eine Region im Wesentlichen nur ein Feld von Faces.
+An Attributen enthält eine \textit{Region} im Wesentlichen nur ein Feld von \textit{Faces}.
 
-Die einzige interessante Methode, die nicht nur der Verwaltung der Faces dient, lautet 
+Die einzige interessante Methode, die nicht nur der Verwaltung der \textit{Faces} dient, lautet 
 \begin{itemize}
 \item splitOnLine
 
-Diese Funktion versucht alle Faces an dem übergebenen Linienzug zu teilen und ergänzt die Liste der Faces um eventuell auftauchende neue. Die Funktion liefert außerdem eine Liste aller neu hinzugefügten Faces als Rückgabe, so dass direkt erkennbar ist, in wie weit diese Operation die Region verändert hat.
+Diese Funktion versucht alle \textit{Faces} an dem übergebenen Linienzug zu teilen und ergänzt die Liste der \textit{Faces} um eventuell auftauchende neue. Die Funktion liefert außerdem eine Liste aller neu hinzugefügten \textit{Faces} als Rückgabe, so dass direkt erkennbar ist, inwieweit diese Operation die \textit{Region} verändert hat.
 
 \end{itemize}
 
 \subsubsection{\index{RegionTreeNode}RegionTreeNode}
 
-Dieses Interface dient dazu, \textit{Region}, \textit{Faces} und \textit{ConvexHullTreeNodes} gleichbehandeln zu k"onnen. Implementiert sind nur \textbf{hashCode} und \textbf{equals} zum Auffinden von \textit{SingleMatches} in HashSets. Die Berechnung des Hashwertes wird von den Klassen so implementiert, wie unter \vref{berechenHashwerte} beschrieben. Abbildung~\vref{fig:RegionTreeNode} zeigt den Aufbau eines \textit{RegionTrees} schematisch.
+Dieses Interface dient dazu, \textit{Region}, \textit{Faces} und \textit{ConvexHullTreeNodes} gleich behandeln zu k"onnen. Implementiert sind nur \textbf{hashCode} und \textbf{equals} zum Auffinden von \textit{SingleMatches} in HashSets. Die Berechnung des Hashwertes wird von den Klassen so implementiert, wie unter \vref{berechenHashwerte} beschrieben. Abbildung~\vref{fig:RegionTreeNode} zeigt den Aufbau eines \textit{RegionTrees} schematisch.
 
 
 
@@ -1011,7 +1024,7 @@ Diese liefert die Region zum Ausgangszeitpunkt.
 
 \item maps
 
-Eine Hashtable, in der die einzelnen Teilmatches abgelegt werden. Der Schl"ussel, um auf die Elemente dieser Tables zugreifen zu k"onnen, ist die Quell-Komponente vom Typ RegionTreeNode.
+Eine Hashtable, in der die einzelnen Teilmatches abgelegt werden. Der Schl"ussel, um auf die Elemente dieser Table zugreifen zu k"onnen, ist die Quell-Komponente vom Typ \textit{RegionTreeNode}.
 
 \item name
 
@@ -1030,11 +1043,11 @@ Diese Klasse verf"ugt "uber einige Methoden, die wichtigen davon  sind:
 
 \item Konstruktor
 
-Sie setzt Name, Beschreibung, Source und Target auf die angegebenen Werte und initialisiert eine leere Hashtable.
+Er setzt Name, Beschreibung, Source und Target auf die angegebenen Werte und initialisiert eine leere Hashtable.
 
 \item addMatch
 
-Diese Methode f"ugt ein neues Match von Source nach Target ein. Sollte es noch kein Match von Source aus geben, legt sie ein neues Match an, und erweitert anderenfalls das vorhandene.
+Diese Methode f"ugt ein neues Match von Source nach Target ein. Sollte es noch kein Match von Source aus geben, legt sie ein neues Match an, anderenfalls wird  das Vorhandene erweitert.
 
 \item getMatches
 
@@ -1054,17 +1067,17 @@ Die Erzeugung von Dreiecken bzw. \textit{MovingLines} mit der Klasse \textit{mLi
 
 \item Die Bewertungsfunktionen
 
-In dieser Klasse sind auch einige der Bewertungsverfahren implementiert, die unter \vref{bewertung} beschrieben werden. Im einzelnen sind das
+In dieser Klasse sind auch einige der Bewertungsverfahren implementiert, die unter \vref{bewertung} beschrieben werden. Im einzelnen sind das:
 \begin{itemize}
-\item Das Area-Rating
-\item Das Hausdorff-Rating
-\item Das Linear-Rating
-\item Das Overlap-Rating
+\item  Area-Rating
+\item  Hausdorff-Rating
+\item  Linear-Rating
+\item  Overlap-Rating
 \end{itemize}
 
 \item getRating
 
-diese Funktion bekommt vier Gewichte, multipliziert jedes Rating mit seinem Gewicht und liefert diese gewichtete Summe zurück.
+Diese Funktion bekommt vier Gewichte, multipliziert jedes Rating mit seinem Gewicht und liefert diese gewichtete Summe zurück.
 
 \end{itemize}
 
@@ -1083,7 +1096,7 @@ Auch diese Funktion bekommt zwei Felder, diesesmal aber von \textit{ConvexHullTr
 
 \item getBestMatch
 
-Diese beiden Funktionen, die eine operiert auf Faces und die andere auf ConvexHullTreeNodes, bekommen ein Source-Objekt und ein Feld von Target-Objekten. Zurückliefern muss die Funktion das Target, welches am besten zu dem Source-Objekt passt.
+Diese zweifach überladene Funktion, die eine operiert auf Faces und die andere auf ConvexHullTreeNodes, bekommen ein Source-Objekt und ein Feld von Target-Objekten. Zurückliefern muss die Funktion das Target, welches am besten zu dem Source-Objekt passt.
 
 \end{itemize}
 
@@ -1146,7 +1159,7 @@ Der Rückgabewert dieser Funktion ist der Hausdorff-Abstand (siehe~\vref{Hausdor
 
 \item getDiameter
 
-Diese Funktion liefert den Durchmesser des übergeben Polygons und nutzt hierzu die Funktion \textbf{getMaxDistance}.
+Diese Funktion liefert den Durchmesser des übergebenen Polygons und nutzt hierzu die Funktion \textbf{getMaxDistance}.
 
 \item getMaxDistance
 
@@ -1197,7 +1210,7 @@ Diese Methode überprüft, ob mindestens einer der übergebenen Punkte auf dem �
 
 
 \section{Die Java-Applikation}\label{java}
-Im Folgenden  wird beschrieben, welche Klassen die Java-Applikation auszeichnen, die diese also von den allgemeinen Klassen (siehe oben) unterscheiden. Naturgemäß finden sich hier im Wesentlich die GUI-Klassen und die Klassen für den VRML-Export wieder.
+Im Folgenden  wird beschrieben, welche Klassen die Java-Applikation auszeichnen, die diese also von den allgemeinen Klassen (siehe oben) unterscheiden. Naturgemäß finden sich hier im Wesentlichen die GUI-Klassen und die Klassen für den VRML-Export wieder.
 
 Der folgende Abschnitt dient nur der Beschreibung der Klassen und stellt keine Referenz zur Benutzung der Java-Applikation dar. Ein solches findet sich unter Anhang~\vref{Handbuch}.
 
@@ -1266,14 +1279,14 @@ Dieses Control zeigt einen Match an, indem zwei ConvexHullTreeViewer für die So
 
 Diese Klasse stellt das Ergebnis des Matchings, die erzeugten dreidimensionalen Dreiecke dar, indem eine Menge von unterschiedlichen Schnittbildern dargestellt werden. Über ein Control lässt sich die gewünschte Anzahl der Schnittbilder einstellen und dann erscheinen diese im unteren Bereich der GUI-Komponente. Die einzelnen Schnittbilder werden von der Hilfsklasse  \textbf{oneSectionViewer} gezeichnet.
 
-Konstruiert wird der Section-Viewer, indem man diesem ein Objekt vom Typ \textit{mLineRep} übergibt.
+Konstruiert wird der Section-Viewer, indem man diesem ein Objekt vom Typ \textit{mLine"=Rep} übergibt.
 
 
 \item TriRepOutPutCanvas
 
 Auch diese Klasse stellt ein mLineRep-Objekt dar. Allerdings erfolgt die Darstellung hier isometrisch. Die Source- und die Target-Region werden parallel zur Monitorebene dargestellt, wobei das Target nach rechtsoben verschoben wird. Die Linien des Sources sind blau, die des Targets rot. Die Linien dazwischen, also die Linien der Dreiecke, sind in grauer Farbe darghestellt.
 
-Diese Komponente bekommt neben dem mLineRep-Objekt noch eine Ganzzahl, die den Grad der Verschiebung angibt. Diese lässt sich mittels der Methode \textbf{setTimeShift} auch nachträglich ändern. Auch wenn der Name der Klasse anderes vermuten lässt, ist diese Klasse kein Canvas sondern ein JPanel. Der Name ist noch ein Relikt der T\o{}ssebroschen-Applikation.
+Diese Komponente bekommt neben dem mLineRep-Objekt noch eine Ganzzahl, die den Grad der Verschiebung angibt. Diese lässt sich mittels der Methode \textbf{setTimeShift} auch nachträglich ändern. Auch wenn der Name der Klasse anderes vermuten lässt, ist diese Klasse kein Canvas, sondern ein JPanel. Der Name ist noch ein Relikt der T\o{}ssebroschen-Applikation.
 
 \begin{figure}
 	\centering
@@ -1291,7 +1304,7 @@ Diese Klasse bildet die Zeichenfläche der Applikation. In dieser kann der Benut
 
 \item MCIContents
 
-Diese Klasse vereinigt alle anderen Klassen zu der eigentlichen Applikation. Diese Klasse lässst sich entweder als Applet benutzen, oder in ein JFrame einbinden, der damit eine Standalone-Applikation bildet.
+Diese Klasse vereinigt alle anderen Klassen zu der eigentlichen Applikation. Diese Klasse lässst sich entweder als Applet benutzen oder in ein JFrame einbinden, der damit eine Standalone-Applikation bildet.
 \end{itemize}
 \section{Die SECONDO-Algebra \anmerkung{3 Seiten}}\label{rialgebra}
 
@@ -1299,15 +1312,15 @@ Im Laufe der Arbeit mussten folgende Algebren verändert werden:
 
 \subsection{PlaneSweepAlgebra}
 
-Diese Algebra musste verwendet werden, um die Überlappung von Regionen zu berechnen. Leider konnte diese Algebra nicht im Quellcode verwendet werden, da es keine Trennung von h- und cpp-Dateien gab. Deshalb musste aus der gegebene cpp-Datei eine Quellcode- und eine Header-Datei extrahiert werden.
+Diese Algebra musste verwendet werden, um die Überlappung von Regionen zu berechnen. Leider konnte diese Algebra nicht im Quellcode verwendet werden, da es keine Trennung von h- und cpp-Dateien gab. Deshalb musste aus der gegebenen cpp-Datei eine Quellcode- und eine Header-Datei extrahiert werden.
 
 \subsection{SpatialAlgebra}
 
-Bei dem Versuch eine Region über den Quellcode zu erzeugen, gab es das Problem, der nicht automatischen Mitsetzung der Bounding-Box. Außerdem fehlte eine Methode, mit deren Hilfe die Bounding-Box einer Region gesetzt werden konnte. Deshalb wurde hier die Methode \textbf{SetBoundingBox} ergänzt.
+Bei dem Versuch eine Region über den Quellcode zu erzeugen, gab es das Problem der nicht automatischen Mitsetzung der Bounding-Box. Außerdem fehlte eine Methode, mit deren Hilfe die Bounding-Box einer Region gesetzt werden konnte. Deshalb wurde hier die Methode \textbf{SetBoundingBox} ergänzt.
 
 \subsection{MovingRegionAlgebra}
 
-Es gab bislang keine Möglichkeit, \textit{RegionUnits} aus gegebenen \textit{MovingSegments} zu erzeugen. Da abereine solche Möglichkeit  unbedingt  benötigt wird, musste ein neuer Konstruktor angelegt werden, dem man einen Vektor von \textit{MovingSegments} und ein Zeitintervall übergibt. Dieser neue Konstruktor sorgt dafür, dass die \textit{MovingSegments} in der richtigen Reihenfolge in der internen Datenstruktur abgelegt werden und sorgt dafür, dass die BoundingBox auf den richtigen Wert gesetzt wird.
+Es gab bislang keine Möglichkeit, \textit{RegionUnits} aus gegebenen \textit{MovingSegments} zu erzeugen. Da aber eine solche Möglichkeit  unbedingt  benötigt wird, musste ein neuer Konstruktor angelegt werden, dem man einen Vektor von \textit{MovingSegments} und ein Zeitintervall übergibt. Dieser neue Konstruktor sorgt dafür, dass die \textit{MovingSegments} in der richtigen Reihenfolge in der internen Datenstruktur abgelegt werden und dass die BoundingBox auf den richtigen Wert gesetzt wird.
 
 Um mehrere \textit{RegionUnits} zu vereinigen, musste ein neuer Operator geschrieben werden. Dieser wird \textbf{union(uregion $u_1$,uregion $u_2$)$\rightarrow$ uregion} genannt. Dieser Operator überprüft zunächst, ob die Zeitintervalle von $u_1$ und $u_2$ gleich sind und vereinigt anschließend die beiden \textit{RegionUnits} zu einer neuen.
 

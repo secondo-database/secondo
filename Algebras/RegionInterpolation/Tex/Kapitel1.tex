@@ -1,18 +1,18 @@
 
-\chapter[Einleitung \anmerkung{ca. 5 Seiten}]{Einleitung} \label{Kapitel1}
+\chapter[Einleitung]{Einleitung} \label{Kapitel1}
 
 
-Heute sind Geodaten und deren Verarbeitung  in Geographischen Informationssystemen (GIS) allgegenwärtig. Geodaten helfen uns, sicher und schnell von einem Ort zu einem Anderen zu kommen, sie unterstützen bei der schnellen Bewältigung von Krisen- und Katastrophenfällen und sind nützlich, um globale Veränderungen anschaulich erfassen zu können.
+Heute sind Geodaten und deren Verarbeitung  in Geographischen Informationssystemen (GIS) allgegenwärtig. Geodaten helfen uns, sicher und schnell von einem Ort zu einem anderen zu kommen, sie unterstützen bei der schnellen Bewältigung von Krisen- und Katastrophenfällen und sind nützlich, um globale Veränderungen anschaulich erfassen zu können.
 
 Auch der Zuspruch, den Dienste wie etwa ,,Google-Earth'' mit ihren vielfältigen benutzergenerierten Inhalten haben, zeigt, dass GIS ein Thema ist, das den Sprung in das Bewusstsein einer breiten Öffentlichkeit geschafft hat. 
 
-Betrachtet man all diese Anwendungen, so fällt auf, dass Geodaten immer als statische Daten begriffen werden. Dies kann einerseits angesichts der Komplexität der Verarbeitung von dynamischen Geodaten nicht verwundern, wird aber andererseits den vielen Daten mit geografischem Bezug nicht gerecht, denn alles bewegt sich. Zwar sind die großen Bewegungen der Erde im Universum oder der Kontinente zueinander in den meisten Anwendungsfällen nicht relevant, die Modellierung der Routen von Bussen durch Linien auf einem Stadtplan ist aber nur ein Notbehelf. Busse sind sich bewegende Punkte und sollten, je nach Problemstellung, auch so modelliert werden. Wer eine gut gemachte Applikation sehen möchte, die genau diese Fragestellung löst,dem sei der Besuch der Webseite \cite{swR} empfohlen.
+Betrachtet man all diese Anwendungen, so fällt auf, dass Geodaten immer als statische Daten begriffen werden. Dies kann einerseits angesichts der Komplexität der Verarbeitung von dynamischen Geodaten nicht verwundern, wird aber andererseits den vielen Daten mit geografischem Bezug nicht gerecht, denn alles bewegt sich. Zwar sind die großen Bewegungen der Erde im Universum oder der Kontinente zueinander in den meisten Anwendungsfällen nicht relevant, die Modellierung der Routen von Bussen durch Linien auf einem Stadtplan ist aber bereits nur ein Notbehelf. Busse sind sich bewegende Objekte und sollten, je nach Problemstellung, auch durch sich bewegende Punkte modelliert werden. Wer eine gut gemachte Applikation sehen möchte, die genau diese Fragestellung löst, dem sei der Besuch der Webseite \cite{swR} empfohlen.
 
-Auch die Modellierung von anderen Datem im Logistikbereich (etwa LKW oder Container, die bewegt werden), von meteorologischen Daten (Luftdruckgebiete, die über das Land ziehen) oder etwa die Ausbreitung von Entwaldungsgebieten im Amazonasgebiet sind Beispiele für Geodaten, die sich mit der Zeit bewegen oder auch Form ändern. Die Erfassung dieser  Daten erfolgt meistens in Form von Schnappschüssen, aus denen stetige Bewegungen berechnet werden müssen. 
+Auch die Modellierung von anderen Daten im Logistikbereich (etwa LKW oder Container, die bewegt werden), von meteorologischen Daten (Luftdruckgebiete, die über das Land ziehen) oder etwa die Ausbreitung von Entwaldungsgebieten im Amazonasgebiet sind Beispiele für Geodaten, die sich mit der Zeit bewegen oder auch in der Form verändern. Die Erfassung dieser  Daten erfolgt meistens in Form von Schnappschüssen, aus denen stetige Bewegungen berechnet werden müssen. 
 
-Bei den logistischen Daten ist diese Berechnung vergleichsweise  einfach. Das Objekt, welches punktförmig modelliert werden kann, erfasst in festen Intervallen,zum Beispiel durch einen eingebauten GPS-Empfänger, seine Position.  Die Interpolation zwischen diesen Schnappschüssen wird in der Regel linear erfolgen. 
+Bei den logistischen Daten ist diese Berechnung vergleichsweise  einfach. Das Objekt, welches punktförmig modelliert werden kann, erfasst in festen Intervallen, zum Beispiel durch einen eingebauten GPS-Empfänger, seine Position.  Die Interpolation zwischen diesen Schnappschüssen wird in der Regel linear erfolgen. 
 
-Bei nicht punktförmigen Objekten hingegen ist die Fragestellung deutlich schwieriger. Aber wofür braucht man derart komplizierten, sich bewegende Daten? Im Folgenden werden hierzu zwei Beispiele betrachten.
+Bei nicht--punktförmigen Objekten hingegen ist die Fragestellung deutlich schwieriger. Aber wofür braucht man derart komplizierte, sich bewegende Daten? Im Folgenden werden hierzu zwei Beispiele betrachten.
 
 \subsection*{Flugzeugwartung}
 
@@ -24,7 +24,7 @@ Glücklicherweise kennt der Betriebsinformatiker das SECONDO-System, mit welchem
 
 Die Erfassung der Flugzeugpositionen und die Berechnung sich bewegender Punkte aus diesen Daten stellen wie bei dem genannten Logistikbeispiel kein Problem dar. Jedoch haben die Versuche, die Wetterdienste dazu zu bewegen, ihre Daten als bewegende Regionen in dem entsprechenden SECONDO-Format zur Verfügung zu stellen, erwartungsgemäß keine Früchte getragen. Diese liefern nur  Polygone, die Lage und Form der Gebiete zu einigen wenigen Zeitpunkten beschreiben.
 
-Das Ziel dieser Arbeit ist es dem  Informatiker zu helfen die Unwettergebiete kontinuierlich moddelieren zu können.
+Das Ziel dieser Arbeit ist es, dem  Informatiker zu helfen die Unwettergebiete kontinuierlich modellieren zu können.
 
 \begin{figure}
 	\centering
@@ -41,7 +41,7 @@ Diese Daten sind durch die Auswertung von Satelitenphotos entstanden. \anmerkung
 
 Dass die Abholzung der Regenwälder in Südamerika ein ernstes Problem darstellt, ist allgemein bekannt. Ein vollständiges Bild dieser Entwicklung kann man sich aber nur machen, wenn man das Fortschreiten der Entwaldung auf einer kartographischen Darstellung verfolgt. 
 
-Die Daten der Entwaldung stellen wieder eine kontinuierliche Bewegung dar. Die Daten zeigen wiederum nur Momentaufnahmen dieser Entwicklung. Eindrucksvoller wäre es, die Ausbreitungen auch kontinuierlich betrachten zu können. Auch ließen sich Fragen näherungsweise beantworten, wie ,,Seit wann liegt der Punkt $x$ nicht mehr im Wald?''.
+Die Daten der Entwaldung stellen wieder eine kontinuierliche Bewegung dar. Die Daten zeigen wiederum nur Momentaufnahmen dieser Entwicklung. Eindrucksvoller wäre es, die Ausbreitungen auch kontinuierlich betrachten zu können. Auch ließen sich Fragen näherungsweise beantworten, wie ,,Seit wann ist der Punkt $x$ nicht mehr bewaldet?''.
 
 Die Aufgabe, diese zeitdiskreten Daten in eine kontinuierliche Form zu überführen, ist auch ein Aspekt der vorliegenden Arbeit (siehe Kapitel~\vref{Kapitel5}).
 
@@ -53,13 +53,13 @@ Die Aufgabe, diese zeitdiskreten Daten in eine kontinuierliche Form zu überfüh
 \end{figure}
 
 
-\subsection*{Das weitere Vorgehen}
+\subsection*{weiteres Vorgehen}
 
 Zunächst wird in der vorliegenden Arbeit das SECONDO--System, das die Grundlage der Implementierung bildet, näher  beschrieben. Hierbei wird besonders auf die Aspekte eingegangen, welche zur Lösung des Problems benutzt wurden (siehe~\vref{SecondoEinfuehrung}).
 
 Dann wird ein Überblick über die Literatur zu den Themen Interpolation und Ähnlichkeitsbetrachtung von Regionen gegeben. Besonders drei ausgewählte Veröffentlichungen werden näher betrachtet (\vref{Tossebro}, \vref{AARR} und \vref{AFRWW}).
 
-Im nächsten Kapitel werden einige eigene Überlegungen, wie man das Problem lösen könnte,  aufgezeigt und auf Grundlage der vorgestellten Paper auf ihre Eignung zur Lösung des Problems untersucht (siehe~\vref{vorueberlegungen}).
+Im nächsten Kapitel werden einige eigene Überlegungen zur Problemlösung aufgezeigt und auf Grundlage der vorgestellten Paper auf ihre Eignung zur Lösung des Problems untersucht (siehe~\vref{vorueberlegungen}).
  
 Bevor die Lösung implementiert werden konnte, mussten die benötigten Algorithmen entwickelt werden (siehe~\vref{Algorithmen}). Anschließend werden einzelne Details aus der Programmierung näher beleuchtet (\vref{klassen}, \vref{java} und \vref{rialgebra}).
 
