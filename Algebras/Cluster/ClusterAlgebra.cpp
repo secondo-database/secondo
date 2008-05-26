@@ -1370,6 +1370,8 @@ The difference is that this algoritms avoids the preprocessing step
 to avoid large allocations of memory. Instead of that, an R-tree is
 used to manage the centers.
 
+1.3.1 LocalInfo
+
 */
 
 class ClusterF_LocalInfo{
@@ -1412,6 +1414,12 @@ Destroys this structure.
       }
    }
 
+/*
+~getNext~
+
+This function returns the next cluster as a points value.
+
+*/
    Points* getNext(){
      if(!defined){
        return 0;
@@ -1444,15 +1452,22 @@ private:
 
 */
 
-  Points* pts;
-  double eps;
-  double eps2;
-  bool defined;
-  int size;
-  int pos;
-  int no_cluster;
-  vector<cCluster >* cluster;
+ Points* pts;     // source points value
+  double eps;     // maximum deviation
+  double eps2;    // = eps * eps
+  bool defined;   // true if the inputs are correct
+  int size;       // = pts->Size()
+  int pos;        // the current cluster
+  int no_cluster; // number of clusters
+  vector<cCluster >* cluster; // the clusters
 
+/*
+~qdist~
+
+Returns the square of the Euclidean distance between the points defined
+by (x1, y1) and (x2,y2). 
+
+*/
 double qdist(const double x1,const  double y1, 
              const double x2, const double y2) const{
   double dx = x2-x1;
@@ -1460,7 +1475,15 @@ double qdist(const double x1,const  double y1,
   return dx*dx + dy * dy;
 }
 
+/*
+~indexOfNearestCluster~
 
+Computes the index of the cluster whose center is closest to p within
+the cluster vector. If all clusters have a minimum distance larger than
+eps, -1 will be returned. The r-tree is used as index and has to contain
+all cluster centers.
+
+*/
 int indexOfNearestCluster(const mmrtree::Rtree<2>& tree, const Point& p) const{
     int res = -1;
     double bestDist = eps2 + 10.0;
@@ -1479,7 +1502,7 @@ int indexOfNearestCluster(const mmrtree::Rtree<2>& tree, const Point& p) const{
     for(it = cands.begin(); it != cands.end(); it++){
       cCluster c = (*cluster)[*it];
       double d = qdist(c.cx,c.cy,x,y);
-      if(d <= eps2 & d < bestDist && !c.forbidden){
+      if(d <= eps2 && d < bestDist && !c.forbidden){
         bestDist = d;
         res = *it;
       }
@@ -1487,6 +1510,14 @@ int indexOfNearestCluster(const mmrtree::Rtree<2>& tree, const Point& p) const{
     return res;
 }
 
+/*
+~insertPointSimple~
+
+This function assigns the point at position ~pos~ in the ~pts~ member
+variable to the nearest cluster w.r.t. its center. The cluster itself remains unchanged, i.e.
+the center is not moved.
+
+*/
 void insertPointSimple(const mmrtree::Rtree<2>& tree, const int pos){
    const Point* p;
    pts->Get(pos,p);
@@ -1495,6 +1526,16 @@ void insertPointSimple(const mmrtree::Rtree<2>& tree, const int pos){
     (*cluster)[index].member.insert(pos);
 }
 
+/*
+~insertPoint~
+
+Inserts a point to the nearest cluster. If no appropriate cluster is found, a new one 
+is created. The center of the cluster is changed to be the center of all points
+within the cluster including that one at positon ~pos~. Thereby, some points of the
+cluster may exceed the maximum distance to the cluster's center. Such points are 
+reinserted recursively but the source cluster is locked.
+
+*/
 void insertPoint(mmrtree::Rtree<2>& tree, const int pos){
   const Point* p;
   pts->Get(pos,p);
@@ -1543,6 +1584,13 @@ void insertPoint(mmrtree::Rtree<2>& tree, const int pos){
   repairClusterAt(index,tree);
 }
 
+/*
+~repairClusterAt~
+
+Removes all points exceeding the maximum allowed distance to the cluster's 
+center from the cluster at ~index~. Such points are reinserted.
+
+*/
 void repairClusterAt(const int index, mmrtree::Rtree<2>& tree){
   (*cluster)[index].forbidden = true;
   double cx = (*cluster)[index].cx;
@@ -1573,7 +1621,13 @@ void repairClusterAt(const int index, mmrtree::Rtree<2>& tree){
 
 }
 
+/*
+~computeCluster~
 
+This function divides a points value into a set of clusters.
+
+
+*/
 void computeCluster(){
    mmrtree::Rtree<2> tree(10,30);
    for(int i=0;i<size;i++){
@@ -1592,6 +1646,11 @@ void computeCluster(){
 
 }; 
 
+
+/*
+1.3.2  The actual Value Mapping
+
+*/
 
 int cluster_fFun (Word* args, Word& result, int message, Word& local, 
                 Supplier s) {     
