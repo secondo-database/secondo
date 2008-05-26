@@ -26,47 +26,40 @@
 # include global definitions
 include ../../makefile.env
 
-DOCU_FILES = GeneralTreeAlgebra.cpp
+DOCU_FILES = GeneralTreeAlgebra.pd \
+	GeneralTreeAlgebra.h \
+	GTA_Config.h \
+	GTA_Spatial.h \
+	GTA_SpatialAttr.h \
+	HPointReg.h \
+	BBoxReg.h \
+	DistDataReg.h \
+	DistfunReg.h \
+	GTree/GTree.h \
+	GTree/GTree_Config.h \
+	GTree/GTree_EntryBase.h \
+	GTree/GTree_InternalEntry.h \
+	GTree/GTree_LeafEntry.h \
+	GTree/GTree_NodeConfig.h \
+	GTree/GTree_NodeBase.h \
+	GTree/GTree_GenericNodeBase.h \
+	GTree/GTree_LeafNode.h \
+	GTree/GTree_InternalNode.h \
+	GTree/GTree_NodeManager.h \
+	GTree/GTree_FileNode.h \
+	GTree/GTree_TreeManager.h \
+	GTree/GTree_Header.h \
+	GTree/GTree_Tree.h
 
-GTAF_DOCU_FILES = GTAF/GTAF.pd
-
-GTAF_DOCU_EXT_FILES = $(GTAF_DOCU_FILES) \
-	GTAF/GTAF2.pd \
-	GTAF/GTAF.h \
-	GTAF/GTAF_Types.h \
-	GTAF/GTAF_Config.h \
-	GTAF/GTAF_NodeConfig.h \
-	GTAF/GTAF_NodeSupp.h \
-	GTAF/GTAF_FileNode.h \
-	GTAF/GTAF_Base.h \
-	GTAF/GTAF_Entries.h \
-	GTAF/GTAF_Nodes.h \
-	GTAF/GTAF_Manager.h \
-	GTAF/GTAF_Errors.h \
-	GTAF/GTAF3.pd \
-	GTAF/GTAF_NodeConfig.cpp \
-	GTAF/GTAF_NodeSupp.cpp \
-	GTAF/GTAF_FileNode.cpp \
-	GTAF/GTAF_Manager.cpp \
-	GTAF/GTAF_Errors.cpp
-
-# names of the generated documentation files ("make docu" will
-# generate the respective .pdf files)
-DOCU = GeneralTree
-GTAF_DOCU = gtaf
-GTAF_DOCU_EXT = gtaf_ext
-
-# This is the only macro which must be changed in order to
-# define a module name for an algebra. The rest of this makefile
-# should work for nearly every algebra.
-MODNAME = GTAFAlgebra
+DOCU = gta_docu
+MODNAME = GeneralTreeAlgebra
 
 # Use the mace CCFLAGS to add special compiler flags if needed.
 # In this case the defaults are sufficient
 CCFLAGS += $(ALG_INC_DIRS)
 
 # add cpp files in the defined subdirectories
-GTREE_DIRS := Common GTAF
+GTREE_DIRS := GTree
 GTREE_FILES := $(foreach dir,$(GTREE_DIRS),$(wildcard $(dir)/*.cpp))
 OBJECTS += $(patsubst %.cpp, %.o, $(GTREE_FILES))
 
@@ -99,27 +92,9 @@ endif
 # remove all generated stuff
 .PHONY: clean
 clean:
-	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ) $(DOCU).pdf $(GTAF_DOCU).pdf $(GTAF_DOCU_EXT).pdf $(DOCU).dvi $(GTAF_DOCU).dvi $(GTAF_DOCU_EXT).dvi
+	$(RM) $(DEP_FILES) $(OBJECTS) $(LIBOBJ) $(DOCU)
 
 
 
-#build docu as pdf $(DOCU_COMPLETE).pdf also contains all implementation files
-.PHONY: pdf
-docu: $(DOCU).pdf $(GTAF_DOCU).pdf $(GTAF_DOCU_EXT).pdf
-$(DOCU).pdf: $(DOCU_FILES)
+docu:
 	cat $(DOCU_FILES) > $(DOCU)
-	pd2dvi $(DOCU)
-	pd2pdf $(DOCU)
-	rm $(DOCU) $(DOCU).toc $(DOCU).log $(DOCU).aux $(DOCU).tex
-
-$(GTAF_DOCU).pdf: $(GTAF_DOCU_FILES)
-	cat $(GTAF_DOCU_FILES) > $(GTAF_DOCU)
-	pd2dvi $(GTAF_DOCU)
-	pd2pdf $(GTAF_DOCU)
-	rm $(GTAF_DOCU) $(GTAF_DOCU).toc $(GTAF_DOCU).log $(GTAF_DOCU).aux $(GTAF_DOCU).tex
-
-$(GTAF_DOCU_EXT).pdf: $(GTAF_DOCU_EXT_FILES)
-	cat $(GTAF_DOCU_EXT_FILES) > $(GTAF_DOCU_EXT)
-	pd2dvi $(GTAF_DOCU_EXT)
-	pd2pdf $(GTAF_DOCU_EXT)
-	rm $(GTAF_DOCU_EXT) $(GTAF_DOCU_EXT).toc $(GTAF_DOCU_EXT).log $(GTAF_DOCU_EXT).aux $(GTAF_DOCU_EXT).tex
