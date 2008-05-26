@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Headerfile "MTreeSplitpol.h"[4]
 
-January-February 2008, Mirko Dibbert
+January-May 2008, Mirko Dibbert
 
 1.1 Overview
 
@@ -41,76 +41,40 @@ The partition functions must store the promoted elements as first elements in th
 1.1 Includes and defines
 
 */
-#ifndef SPLITPOL_H
-#define SPLITPOL_H
+#ifndef __SPLITPOL_H__
+#define __SPLITPOL_H__
 
-#include <vector>
 #include "MTreeBase.h"
 
-namespace mtreeAlgebra {
+namespace mtreeAlgebra
+{
 
-enum PROMOTE
-{ RANDOM, m_RAD, mM_RAD, M_LB_DIST };
-/*
-Enumeration of the implemented promote functions:
-
-  * "RANDOM"[4] : Promotes two random entries.
-
-  * "m[_]RAD"[4] : Promotes the entries which minimizes the sum of
-  both covering radii.
-
-  * "mM[_]RAD:"[4] Promotes the entries which minimizes the maximum of
-  both covering radii.
-
-  * "M[_]LB[_]DIST"[4] : Promotes as first entry the previously promoted
-  element, which should be equal to the parent entry. As second entry, the one
-  with maximum distance to parent would be promoted.
-
-*/
-
-enum PARTITION
-{ GENERALIZED_HYPERPLANE, BALANCED };
-/*
-Enumeration of the implemented partition functions.
-
-Let "p_1"[2], "p_2"[2] be the promoted items and "N_1"[2], "N_2"[2] be the nodes
-containing "p_1"[2] and "p_2"[2]:
-
-  * "GENERALIZED[_]HYPERPLANE"[4] The algorithm assign an entry "e"[2] as
-  follows: if "d(e,p_1) \leq d(e,p_2)"[2], "e"[2] is assigned to "N_1"[2],
-  otherwhise it is assigned to "N_2"[2].
-
-  * "BALANCED"[4] : This algorithm alternately assigns the nearest neighbour
-  of "p_1"[2] and "p_2"[2], which has not yet been assigned, to "N_1"[2] and
-  "N_2"[2], respectively.
-
-*/
 
 /*
 This struct is used in Balanced[_]Part as entry in the entry-list.
 
 */
-template<class EntryT>
+template<class TEntry>
 struct BalancedPromEntry
 {
-  EntryT* entry;
-  DFUN_RESULT distToL, distToR;
+  TEntry* entry;
+  double distToL, distToR;
 
   BalancedPromEntry(
-      EntryT* entry_, DFUN_RESULT distToL_, DFUN_RESULT distToR_)
+      TEntry* entry_, double distToL_, double distToR_)
   : entry(entry_), distToL(distToL_), distToR(distToR_) {}
 };
 
 
 
-class Splitpol; // forwar declaration
+class Splitpol; // forward declaration
 /*
 Class "GenericSplitpol"[4]:
 
 This template class contains the defined promote- and partitions functions and is desinged as template class to avoid typecasts for every access to the nodes.
 
 */
-template<class NodeT, class EntryT>
+template<class TNode, class TEntry>
 class GenericSplitpol
 {
 friend class Splitpol;
@@ -125,7 +89,7 @@ Constructor.
 This function applies the split policy, which had been selected in the constructor. After that, the nodes "[_]lhs"[4] and "[_]rhs"[4] contain the entries. The promoted entries are stored in the "promL"[4] and "promR"[4] members, which are accessed from the "Splitpol::apply"[4] method after the split.
 
 */
-  inline void apply(SmartPtr<NodeT> _lhs, SmartPtr<NodeT> _rhs,
+  inline void apply(TNode* _lhs, TNode* _rhs,
                     SmiRecordId lhs_id, SmiRecordId rhs_id,
                     bool _isLeaf)
   {
@@ -134,7 +98,7 @@ This function applies the split policy, which had been selected in the construct
     rhs = _rhs;
 
     // create empty vector and swap it with current entry vector
-    entries = new vector<EntryT*>();
+    entries = new vector<TEntry*>();
     entries->swap(*lhs->entries());
 
     entriesL = lhs->entries();
@@ -148,9 +112,9 @@ This function applies the split policy, which had been selected in the construct
     delete entries;
   }
 
-  vector<EntryT*>* entries;  // contains the original entry-vector
-  vector<EntryT*>* entriesL; // new entry vector for left node
-  vector<EntryT*>* entriesR; // new entry vector for right node
+  vector<TEntry*>* entries;  // contains the original entry-vector
+  vector<TEntry*>* entriesL; // new entry vector for left node
+  vector<TEntry*>* entriesR; // new entry vector for right node
 
   unsigned promLId; // index of the left promoted entry
   unsigned promRId; // index of the right promoted entry
@@ -158,12 +122,12 @@ This function applies the split policy, which had been selected in the construct
   InternalEntry* promL; // promoted Entry for left node
   InternalEntry* promR; // promoted Entry for right node
 
-  DFUN_RESULT radL, radR; // covering radii of the prom-entries
-  DFUN_RESULT* distances; // array of precmputed distances
+  double radL, radR; // covering radii of the prom-entries
+  double* distances; // array of precmputed distances
 
   bool isLeaf; // true, if the splitted node is a leaf node
 
-  SmartPtr<NodeT> lhs, rhs; // contains the origin and the new node
+  TNode *lhs, *rhs; // contains the origin and the new node
 
   Distfun metric; // selected metric.
   void (GenericSplitpol::*promFun)(); // selected promote function
@@ -290,13 +254,12 @@ private:
 1.1 Implementation part for "GenericSplitpol"[4] methods
 
 ********************************************************************/
-
 /*
 GenericSplitpol Constructor:
 
 */
-template<class NodeT, class EntryT>
-GenericSplitpol<NodeT, EntryT>::GenericSplitpol(
+template<class TNode, class TEntry>
+GenericSplitpol<TNode, TEntry>::GenericSplitpol(
     PROMOTE promId, PARTITION partId, Distfun _metric)
 : distances(0)
 {
@@ -340,8 +303,8 @@ GenericSplitpol<NodeT, EntryT>::GenericSplitpol(
 Method ~RandProm~ :
 
 */
-template<class NodeT, class EntryT>
-void GenericSplitpol<NodeT, EntryT>::Rand_Prom()
+template<class TNode, class TEntry>
+void GenericSplitpol<TNode, TEntry>::Rand_Prom()
 {
   unsigned pos1 = rand() % entries->size();
   unsigned pos2 = rand() % entries->size();
@@ -361,18 +324,18 @@ void GenericSplitpol<NodeT, EntryT>::Rand_Prom()
 Method ~MRad[_]Prom~ :
 
 */
-template<class NodeT, class EntryT>
-void GenericSplitpol<NodeT, EntryT>::MRad_Prom()
+template<class TNode, class TEntry>
+void GenericSplitpol<TNode, TEntry>::MRad_Prom()
 {
   // precompute distances
-  distances = new DFUN_RESULT[entries->size() * entries->size()];
+  distances = new double[entries->size() * entries->size()];
   for (unsigned i=0; i< entries->size(); i++)
     distances[i*entries->size() + i] = 0;
 
   for (unsigned i=0; i < (entries->size()-1); i++)
     for (unsigned j=(i+1); j < entries->size(); j++)
     {
-      DFUN_RESULT dist;
+      double dist;
       (*metric)((*entries)[i]->data(),
                   (*entries)[j]->data(), dist);
       distances[i*entries->size() + j] = dist;
@@ -380,7 +343,7 @@ void GenericSplitpol<NodeT, EntryT>::MRad_Prom()
     }
 
   bool first = true;
-  DFUN_RESULT minRadSum;
+  double minRadSum;
   unsigned bestPromLId = 0;
   unsigned bestPromRId = 1;
 
@@ -420,18 +383,18 @@ void GenericSplitpol<NodeT, EntryT>::MRad_Prom()
 Method ~MMRadProm~ :
 
 */
-template<class NodeT, class EntryT>
-void GenericSplitpol<NodeT, EntryT>::MMRad_Prom()
+template<class TNode, class TEntry>
+void GenericSplitpol<TNode, TEntry>::MMRad_Prom()
 {
   // precompute distances
-  distances = new DFUN_RESULT[entries->size() * entries->size()];
+  distances = new double[entries->size() * entries->size()];
   for (unsigned i=0; i< entries->size(); i++)
     distances[i*entries->size() + i] = 0;
 
   for (unsigned i=0; i < (entries->size()-1); i++)
     for (unsigned j=(i+1); j < entries->size(); j++)
     {
-      DFUN_RESULT dist;
+      double dist;
       (*metric)((*entries)[i]->data(),
                   (*entries)[j]->data(), dist);
       distances[i*entries->size() + j] = dist;
@@ -439,7 +402,7 @@ void GenericSplitpol<NodeT, EntryT>::MMRad_Prom()
     }
 
   bool first = true;
-  DFUN_RESULT minMaxRad;
+  double minMaxRad;
   unsigned bestPromLId = 0;
   unsigned bestPromRId = 1;
 
@@ -479,19 +442,19 @@ void GenericSplitpol<NodeT, EntryT>::MMRad_Prom()
 Method ~MLBProm~ :
 
 */
-template<class NodeT, class EntryT>
-void GenericSplitpol<NodeT, EntryT>::MLB_Prom()
+template<class TNode, class TEntry>
+void GenericSplitpol<TNode, TEntry>::MLB_Prom()
 {
-  #ifdef MTREE_DEBUG
+  #ifdef __MTREE_DEBUG
   assert ((*entries)[0]->dist() == 0);
   #endif
 
   promLId = 0;
   promRId = 1;
-  DFUN_RESULT maxDistToParent = (*entries)[1]->dist();
+  double maxDistToParent = (*entries)[1]->dist();
   for (unsigned i=2; i < entries->size(); i++)
   {
-    DFUN_RESULT dist = (*entries)[i]->dist();
+    double dist = (*entries)[i]->dist();
     if (dist > maxDistToParent)
     {
       maxDistToParent = dist;
@@ -504,8 +467,8 @@ void GenericSplitpol<NodeT, EntryT>::MLB_Prom()
 Method ~HyperplanePart~ :
 
 */
-template<class NodeT, class EntryT>
-void GenericSplitpol<NodeT, EntryT>::Hyperplane_Part()
+template<class TNode, class TEntry>
+void GenericSplitpol<TNode, TEntry>::Hyperplane_Part()
 {
   entriesL->clear();
   entriesR->clear();
@@ -524,7 +487,7 @@ void GenericSplitpol<NodeT, EntryT>::Hyperplane_Part()
     if ((i != promLId) && (i != promRId))
     {
       // determine distances to promoted elements
-      DFUN_RESULT distL, distR;
+      double distL, distR;
       if (distances)
       {
           unsigned distArrOffset = i * entries->size();
@@ -569,8 +532,8 @@ void GenericSplitpol<NodeT, EntryT>::Hyperplane_Part()
 Method ~BalancedPart~ :
 
 */
-template<class NodeT, class EntryT>
-void GenericSplitpol<NodeT, EntryT>::Balanced_Part()
+template<class TNode, class TEntry>
+void GenericSplitpol<TNode, TEntry>::Balanced_Part()
 {
   entriesL->clear();
   entriesR->clear();
@@ -586,12 +549,12 @@ void GenericSplitpol<NodeT, EntryT>::Balanced_Part()
 
   /* copy entries into entries (the list contains the entries
      together with its distances to the promoted elements */
-  list<BalancedPromEntry<EntryT> > entriesCpy;
+  list<BalancedPromEntry<TEntry> > entriesCpy;
   for (size_t i=0; i < entries->size(); i++)
   {
     if ((i != promLId) && (i != promRId))
     {
-      DFUN_RESULT distL, distR;
+      double distL, distR;
       if (distances)
       {
           unsigned distArrOffset = i * entries->size();
@@ -608,7 +571,7 @@ void GenericSplitpol<NodeT, EntryT>::Balanced_Part()
       }
 
       entriesCpy.push_back(
-          BalancedPromEntry<EntryT> (((*entries)[i]), distL, distR));
+          BalancedPromEntry<TEntry> (((*entries)[i]), distL, distR));
     }
   }
 
@@ -620,10 +583,10 @@ void GenericSplitpol<NodeT, EntryT>::Balanced_Part()
   {
     if (assignLeft)
     {
-      typename list<BalancedPromEntry<EntryT> >::iterator
+      typename list<BalancedPromEntry<TEntry> >::iterator
           nearestPos = entriesCpy.begin();
 
-      typename list<BalancedPromEntry<EntryT> >::iterator
+      typename list<BalancedPromEntry<TEntry> >::iterator
           iter = entriesCpy.begin();
 
       while (iter  != entriesCpy.end())
@@ -635,7 +598,7 @@ void GenericSplitpol<NodeT, EntryT>::Balanced_Part()
         iter++;
       }
 
-      DFUN_RESULT distL = (*nearestPos).distToL;
+      double distL = (*nearestPos).distToL;
       if (isLeaf)
         radL = max(radL, distL);
       else
@@ -647,10 +610,10 @@ void GenericSplitpol<NodeT, EntryT>::Balanced_Part()
     }
     else
     {
-      typename list<BalancedPromEntry<EntryT> >::iterator
+      typename list<BalancedPromEntry<TEntry> >::iterator
           nearestPos = entriesCpy.begin();
 
-      typename list<BalancedPromEntry<EntryT> >::iterator
+      typename list<BalancedPromEntry<TEntry> >::iterator
           iter = entriesCpy.begin();
 
       while (iter  != entriesCpy.end())
@@ -661,7 +624,7 @@ void GenericSplitpol<NodeT, EntryT>::Balanced_Part()
         }
         iter++;
       }
-      DFUN_RESULT distR = (*nearestPos).distToR;
+      double distR = (*nearestPos).distToR;
       if (isLeaf)
         radR = max(radR, distR);
       else
@@ -676,4 +639,4 @@ void GenericSplitpol<NodeT, EntryT>::Balanced_Part()
 }
 
 } // namespace mtreeAlgebra
-#endif
+#endif // #ifndef __SPLITPOL_H__
