@@ -17,4 +17,34 @@
 [TOC]
 \newpage
 
+1 Overview
+
+This algebra provides the "mtree"[4] type constructor and the following operators ("DATA"[4] could be any other type constructor).
+
+  * "[_] createmtree [[_]]"[4]\\
+    Creates a new mtree from a relation or tuple stream.\\[1ex]
+    Signature: "relation/tuple-stream x <attr-name> -> mtree"[4]\\
+    Example: "pictures createmtree[Pic]"[4]
+
+  * "[_] createmtree2 [[_], [_]]"[4]\\
+    Like createmtree, but additionally allows to select a mtree-config object.\\[1ex]
+    Signature: "relation/tuple-stream x <attr-name> x <config-name> -> mtree"[4]\\
+    Example: "pictures createmtree2[Pic, limit80e]"[4]
+
+
+  * "[_] createmtree3 [[_], [_]]"[4]\\
+    Like createmtree2, but additionally allows to select the distance function and distdata type.\\[1ex]
+    Signature: "relation/tuple-stream x <attr-name> x <config-name> x <distfun-name> x <distdata-name> -> mtree"[4]\\
+    Example: "pictures createmtree3[Pic, limit80e, euclid, lab256]"[4]
+
+  * "[_] [_] rangesearch [[_], [_]]"[4]\\
+    Returns all tuples of the relation, for which the indized entries lies inside the query range around the query attribute .\\[1ex]
+    Signature: "mtree relation x DATA x real -> tuple stream"[4]\\
+    Example: "pictree pictures rangesearch[pic, 0.2] count"[4]
+
+  * "[_] [_] nnsearch [[_], [_]]"[4]\\
+    Returns all tuples of the relation, which for which the indized entries are the n nearest neigthbours of the query attribute .\\[1ex]
+    Signature: "mtree relation x DATA x real -> tuple stream"[4]\\
+    Example: "pictree pictures nnsearch[p1, 5] count"[4]
+
 */
