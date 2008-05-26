@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Headerfile "MTree.h"[4]
 
-January-March 2008, Mirko Dibbert
+January-May 2008, Mirko Dibbert
 
 1.1 Overview
 
@@ -39,8 +39,8 @@ This file contains the "MTree"[4] class and some auxiliary structures.
 1.1 Includes and defines
 
 */
-#ifndef __MTREE_H
-#define __MTREE_H
+#ifndef __MTREE_H__
+#define __MTREE_H__
 
 #include "MTreeBase.h"
 #include "MTreeSplitpol.h"
@@ -63,48 +63,48 @@ This struct is needed in the "insert"[4] method of "mtree"[4].
 struct SearchBestPathEntry
 {
     SearchBestPathEntry(
-            InternalEntry* _entry, DFUN_RESULT _dist,
+            InternalEntry* _entry, double _dist,
             unsigned _index) :
         entry(_entry), dist(_dist), index(_index)
     {}
 
     mtreeAlgebra::InternalEntry* entry;
-    DFUN_RESULT dist;
+    double dist;
     unsigned index;
 };
 
-/*
-1.1 Struct "RemainingNodesEntry"[4]:
+/********************************************************************
+1.1.1 Struct "SearchBestPathEntry"[4]:
 
-This struct is used in the "rangeSearch"[4] method of "mtree"[4].
+This struct is needed in the "mtree::rangeSearch"[4] method.
 
-*/
+********************************************************************/
 struct RemainingNodesEntry
 {
     SmiRecordId nodeId;
-    DFUN_RESULT dist;
+    double dist;
 
     RemainingNodesEntry(
-            SmiRecordId _nodeId, DFUN_RESULT _dist) :
+            SmiRecordId _nodeId, double _dist) :
         nodeId(_nodeId), dist (_dist)
     {}
 };
 
-/*
-1.1 Struct "RemainingNodesEntryNNS"[4]:
+/********************************************************************
+1.1.1 Struct "SearchBestPathEntry"[4]:
 
-This struct is needed in the "nnSearch"[4] method of "mtree"[4].
+This struct is needed in the "mtree::nnSearch"[4] method.
 
-*/
+********************************************************************/
 struct RemainingNodesEntryNNS
 {
     SmiRecordId nodeId;
-    DFUN_RESULT minDist;
-    DFUN_RESULT distQueryParent;
+    double minDist;
+    double distQueryParent;
 
     RemainingNodesEntryNNS(
-            SmiRecordId _nodeId, DFUN_RESULT _distQueryParent,
-            DFUN_RESULT _minDist) :
+            SmiRecordId _nodeId, double _distQueryParent,
+            double _minDist) :
         nodeId(_nodeId), minDist(_minDist),
         distQueryParent(_distQueryParent)
     {}
@@ -113,18 +113,18 @@ struct RemainingNodesEntryNNS
     { return (minDist > op2.minDist); }
 };
 
-/*
-1.1 Struct "NNEntry"[4]:
+/********************************************************************
+1.1.1 Struct "NNEntry"[4]:
 
-This struct is needed in the "nnSearch"[4] method of "mtree"[4].
+This struct is needed in the "mtree::nnSearch"[4] method.
 
-*/
+********************************************************************/
 struct NNEntry
 {
     TupleId tid;
-    DFUN_RESULT dist;
+    double dist;
 
-    NNEntry(TupleId _tid, DFUN_RESULT _dist)
+    NNEntry(TupleId _tid, double _dist)
     : tid(_tid), dist(_dist)
     {}
 
@@ -150,10 +150,11 @@ struct NNEntry
 1.1 Struct "Header"[4]
 
 ********************************************************************/
-struct Header : public gtaf::Header
+struct Header
+    : public gtree::Header
 {
-    Header() :
-        gtaf::Header(), initialized(false)
+    Header()
+        : gtree::Header(), initialized(false)
     {
         distfunName[0] = '\0';
         configName[0] = '\0';
@@ -169,27 +170,44 @@ struct Header : public gtaf::Header
 1.1 Class "MTree"[4]
 
 ********************************************************************/
-class MTree : public gtaf::Tree<Header>
+class MTree
+    : public gtree::Tree<Header>
 {
 
 public:
 /*
-Default cConstructor, creates a new m-tree.
+Default Constructor, creates a new m-tree.
 
 */
-    MTree(bool temporary = false);
+    inline MTree(bool temporary = false)
+        : gtree::Tree<Header>(temporary), splitpol(false)
+    {}
 
 /*
 Constructor, opens an existing tree.
 
 */
-    MTree(const SmiFileId fileId);
+    inline MTree(const SmiFileId fileId)
+        : gtree::Tree<Header>(fileId), splitpol(false)
+    {
+        if (header.initialized)
+        {
+            initialize();
+            registerNodePrototypes();
+        }
+    }
+
 
 /*
 Default copy constructor
 
 */
-    MTree(const MTree& mtree);
+    inline MTree(const MTree& mtree)
+        : gtree::Tree<Header>(mtree), splitpol(false)
+    {
+        if (mtree.isInitialized())
+            initialize();
+    }
 
 /*
 Destructor
@@ -205,14 +223,16 @@ Destructor
 Initializes a new created m-tree. This method must be called, before a new tree could be used.
 
 */
-    void initialize(DistDataId dataId, const string& distfunName,
-                    const string& configName);
+    void initialize(
+            DistDataId dataId,
+            const string &distfunName,
+            const string &configName);
 
 /*
 Creates a new LeafEntry from "attr "[4] and inserts it into the mtree.
 
 */
-    void insert(Attribute* attr, TupleId tupleId);
+    void insert(Attribute *attr, TupleId tupleId);
 
 /*
 Creates a new LeafEntry from "data"[4] and inserts it into the mtree.
@@ -228,41 +248,37 @@ Inserts a new entry into the mtree.
 
 
 /*
-Returns all entries, wich have a maximum distance of "searchRad"[4] to the given "Attribute"[4] object in the result list.
+Returns all entries, wich have a maximum distance of "rad"[4] to the given "Attribute"[4] object in the result list.
 
 */
-    inline void rangeSearch(Attribute* attr,
-                            const DFUN_RESULT& searchRad,
-                            list<TupleId>* results)
-    {
-        rangeSearch(df_info.getData(attr), searchRad, results);
-    }
+    inline void rangeSearch(
+            Attribute *attr, const double &rad,
+            list<TupleId> *results)
+    { rangeSearch(df_info.getData(attr), rad, results); }
 
 /*
-Returns all entries, wich have a maximum distance of "searchRad"[4] to the given "DistData"[4] object in the result list.
+Returns all entries, wich have a maximum distance of "rad"[4] to the given "DistData"[4] object in the result list.
 
 */
-    void rangeSearch(DistData* data,
-                     const DFUN_RESULT& searchRad,
-                     list<TupleId>* results);
+    void rangeSearch(
+            DistData *data, const double &rad,
+            list<TupleId> *results);
 
 
 /*
 Returns the "nncount"[4] nearest neighbours ot the "Attribute"[4] object in the result list.
 
 */
-    inline void nnSearch(Attribute* attr, int nncount,
-                  list<TupleId>* results)
-    {
-        nnSearch(df_info.getData(attr), nncount, results);
-    }
+    inline void nnSearch(
+            Attribute *attr, int nncount, list<TupleId> *results)
+    { nnSearch(df_info.getData(attr), nncount, results); }
 
 /*
 Returns the "nncount"[4] nearest neighbours ot the "DistData"[4] object in the result list.
 
 */
-    void nnSearch(DistData* data, int nncount,
-                  list<TupleId>* results);
+    void nnSearch(
+            DistData *data, int nncount, list<TupleId> *results);
 
 /*
 Returns the name of the assigned type constructor.
@@ -306,6 +322,24 @@ Returns true, if the m-tree has already been initialized.
     inline bool isInitialized() const
     { return header.initialized; }
 
+/*
+Prints some infos about the tree to cmsg.info().
+
+*/
+    void printTreeInfos()
+    {
+        cmsg.info() << endl
+            << "<mtree infos>" << endl
+            << "   entries         : " << header.entryCount << endl
+            << "   height          : " << header.height << endl
+            << "   internal nodes  : " << header.internalCount << endl
+            << "   leaf nodes      : " << header.leafCount << endl
+            << "   assigned config : " << configName() << endl
+            << "   assigned type   : " << typeName () << endl
+            << endl;
+        cmsg.send();
+    }
+
 private:
     Splitpol* splitpol;  // reference to chosen split policy
     DistfunInfo df_info; // assigned DistfunInfo object
@@ -330,5 +364,5 @@ Splits an node by applying the split policy defined in the MTreeConfing object.
     void split();
 }; // MTree
 
-} // namespace mteeAlgebra
-#endif // ifdef __MTREE_H
+} // namespace mrteeAlgebra
+#endif // ifdef __MTREE_H__

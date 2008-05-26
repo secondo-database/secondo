@@ -1,6 +1,4 @@
 /*
-\newpage
-
 ----
 This file is part of SECONDO.
 
@@ -28,18 +26,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //characters      [3]   capital:    [\textsc{]  [}]
 //characters      [4]   teletype:   [\texttt{]  [}]
 
-January-March 2008, Mirko Dibbert
-
 1 Implementation file "MTree.cpp"[4]
 
-January-February 2008, Mirko Dibbert
-
-1.1 Overview
-
-This file contains the implementation of the "MTree"[4] class.
+January-May 2008, Mirko Dibbert
 
 */
-#include <stack>
 #include "MTree.h"
 
 using namespace mtreeAlgebra;
@@ -65,50 +56,14 @@ inline bool nearlyEqual(FloatType a, FloatType b)
 }
 
 /*
-Default Constructor:
-
-*/
-MTree::MTree(bool temporary) :
-        gtaf::Tree<Header>(temporary), splitpol(false)
-{}
-
-/*
-Constructor (load m-tree):
-
-*/
-MTree::MTree(const SmiFileId fileId) :
-        gtaf::Tree<Header>(fileId), splitpol(false)
-{
-    if (header.initialized)
-    {
-        initialize();
-        registerNodePrototypes();
-    }
-}
-
-/*
-Copy constructor:
-
-*/
-MTree::MTree(const MTree& mtree) :
-        gtaf::Tree<Header>(mtree), splitpol(false)
-{
-    if (mtree.isInitialized())
-        initialize();
-}
-
-/*
 Method ~registerNodePrototypes~:
 
 */
-void
-MTree::registerNodePrototypes()
+void MTree::registerNodePrototypes()
 {
-    // add internal node prototype
     addNodePrototype(new InternalNode(
         new NodeConfig(config.internalNodeConfig)));
 
-    // add leaf node prototype
     addNodePrototype(new LeafNode(
         new NodeConfig(config.leafNodeConfig)));
 }
@@ -117,49 +72,36 @@ MTree::registerNodePrototypes()
 Method ~initialize~:
 
 */
-void
-MTree::initialize()
+void MTree::initialize()
 {
-    // init DistfunInfo object
-    df_info = DistfunReg::getInfo(header.distfunName, header.dataId);
-
-    // init MTreeConfig object
-    config = MTreeConfigReg::getConfig(header.configName);
-
-    // init Splitpol object
-    splitpol = new Splitpol(
-        config.promoteFun, config.partitionFun, df_info.distfun());
-
     if (nodeCacheEnabled)
         treeMngr->enableCache();
+
+    config = MTreeConfigReg::getConfig(header.configName);
+    df_info = DistfunReg::getInfo(header.distfunName, header.dataId);
+    splitpol = new Splitpol(
+        config.promoteFun, config.partitionFun, df_info.distfun());
 }
 
 /*
 Method ~initialize~ :
 
 */
-void
-MTree::initialize(DistDataId dataId, const string& distfunName,
-                  const string& configName)
+void MTree::initialize(
+        DistDataId dataId,
+        const string &distfunName,
+        const string &configName)
 {
     if (isInitialized())
         return;
 
-    // copy values to header
     header.dataId = dataId;
     strcpy(header.distfunName, distfunName.c_str());
     strcpy(header.configName, configName.c_str());
-
     initialize();
     header.initialized = true;
-
     registerNodePrototypes();
-
-    //create root node
-    NodePtr root(createLeaf(Leaf));
-    header.root = root->getNodeId();
-    ++header.leafCount;
-    ++header.height;
+    createRoot(LEAF);
 }
 
 /*
@@ -173,19 +115,12 @@ void MTree::split()
     {
         // create new node on current level
         NodePtr newNode(createNeighbourNode(
-            treeMngr->curNode()->isLeaf() ? Leaf : Internal));
+            treeMngr->curNode()->isLeaf() ? LEAF : INTERNAL));
 
         // update node count, split node
-        if (treeMngr->curNode()->isLeaf())
-        {
-            ++header.leafCount;
-            splitpol->apply(treeMngr->curNode(), newNode, true);
-        }
-        else
-        {
-            ++header.internalCount;
-            splitpol->apply(treeMngr->curNode(), newNode, false);
-        }
+        splitpol->apply(
+                treeMngr->curNode(), newNode,
+                treeMngr->curNode()->isLeaf());
 
         #ifdef MTREE_PRINT_SPLIT_INFO
         cmsg.info() << "\nsplit: splitted nodes contain "
@@ -215,7 +150,7 @@ void MTree::split()
             if (treeMngr->hasParent())
             {
                 // update dist from promoted entries to their parents
-                DFUN_RESULT distL, distR;
+                double distL, distR;
                 DistData* data =
                     treeMngr->parentEntry<InternalNode>()->data();
                 df_info.dist(promL->data(), data, distL);
@@ -226,12 +161,7 @@ void MTree::split()
         }
         else
         {   // insert new root
-            NodePtr newRoot(createRoot(Internal));
-            ++header.height;
-            ++header.internalCount;
-            treeMngr->insert(newRoot, promL);
-            treeMngr->insert(newRoot, promR);
-            header.root = newRoot->getNodeId();
+            createRoot(INTERNAL, promL, promR);
             done = true;
         }
     } // while
@@ -311,21 +241,20 @@ MTree::insert(DistData* data, TupleId tupleId)
 Method ~insert~ ("LeafEntry"[4] objects):
 
 */
-void MTree::insert(LeafEntry* entry, TupleId tupleId)
+void MTree::insert(LeafEntry *entry, TupleId tupleId)
 {
-    #ifdef MTREE_DEBUG
+    #ifdef __MTREE_DEBUG
     assert(isInitialized());
     #endif
 
-    #ifdef MTREE_PRINT_INSERT_INFO
+    #ifdef __MTREE_PRINT_INSERT_INFO
     if ((header.entryCount % insertInfoInterval) == 0)
     {
         const string clearline = "\r" + string(70, ' ') + "\r";
         cmsg.info() << clearline
-                    << "entries: " << header.entryCount
-                    << ", routing/leaf nodes: "
+                    << header.entryCount << " entries, "
                     << header.internalCount << "/"
-                    << header.leafCount;
+                    << header.leafCount << " dir/leaf nodes";
         if(nodeCacheEnabled)
         {
             cmsg.info() << ", cache used: "
@@ -335,8 +264,7 @@ void MTree::insert(LeafEntry* entry, TupleId tupleId)
     }
     #endif
 
-    // init path
-    treeMngr->initPath(header.root, header.height-1);
+    initPath();
 
     // descent tree until leaf level
     while (!treeMngr->curNode()->isLeaf())
@@ -345,12 +273,17 @@ void MTree::insert(LeafEntry* entry, TupleId tupleId)
         list<SearchBestPathEntry> entriesIn;
         list<SearchBestPathEntry> entriesOut;
 
+        #ifdef __MTREE_DEBUG
+        if (treeMngr->curNode()->isLeaf())
+            assert(treeMngr->curLevel() == 0);
+        #endif
+
         InternalNodePtr node =
             treeMngr->curNode()->cast<InternalNode>();
 
-        for(unsigned i=0; i<node->entryCount(); ++i)
+        for(unsigned i = 0; i < node->entryCount(); ++i)
         {
-            DFUN_RESULT dist;
+            double dist;
             df_info.dist(node->entry(i)->data(), entry->data(), dist);
             if (dist <= node->entry(i)->rad())
             {
@@ -378,19 +311,19 @@ void MTree::insert(LeafEntry* entry, TupleId tupleId)
         }
         else
         { // select entry with minimal radius increase
-            DFUN_RESULT dist;
+            double dist;
             df_info.dist(entriesOut.front().entry->data(),
                     entry->data(), dist);
-            DFUN_RESULT minIncrease =
+            double minIncrease =
                     dist - entriesOut.front().entry->rad();
-            DFUN_RESULT minDist = dist;
+            double minDist = dist;
 
             best = entriesOut.begin();
             list<SearchBestPathEntry>::iterator it;
             for (it = entriesIn.begin(); it != entriesIn.end(); ++it)
             {
                 df_info.dist(it->entry->data(), entry->data(), dist);
-                DFUN_RESULT increase = dist - it->entry->rad();
+                double increase = dist - it->entry->rad();
                 if (increase < minIncrease)
                 {
                     minIncrease = increase;
@@ -409,7 +342,7 @@ void MTree::insert(LeafEntry* entry, TupleId tupleId)
     //   compute distance from entry to parent node, if exist
     if (treeMngr->hasParent())
     {
-        DFUN_RESULT dist;
+        double dist;
         df_info.dist(entry->data(),
                 treeMngr->parentEntry<InternalNode>()->data(), dist);
         entry->setDist(dist);
@@ -426,24 +359,23 @@ void MTree::insert(LeafEntry* entry, TupleId tupleId)
 Method ~rangeSearch~ :
 
 */
-void MTree::rangeSearch(DistData* data,
-                        const DFUN_RESULT& searchRad,
-                        list<TupleId>* results)
+void MTree::rangeSearch(
+        DistData *data, const double &rad,
+        list<TupleId> *results)
 {
-  #ifdef MTREE_DEBUG
+  #ifdef __MTREE_DEBUG
   assert(isInitialized());
   #endif
-    cout << treeMngr->cacheSize()/1024 << " kb, open nodes: "
-         << openNodes() << "/" << openEntries() << "\t";
 
   results->clear();
-  list< pair<DFUN_RESULT, TupleId> > resultList;
+  list< pair<double, TupleId> > resultList;
 
   stack<RemainingNodesEntry> remainingNodes;
   remainingNodes.push(RemainingNodesEntry(header.root, 0));
 
-  #ifdef MTREE_PRINT_SEARCH_INFO
+  #ifdef __MTREE_ANALYSE_STATS
   unsigned entryCount = 0;
+  unsigned pageCount = 0;
   unsigned nodeCount = 0;
   unsigned distComputations = 0;
   #endif
@@ -452,13 +384,14 @@ void MTree::rangeSearch(DistData* data,
 
   while(!remainingNodes.empty())
   {
-    #ifdef MTREE_PRINT_SEARCH_INFO
-    nodeCount++;
-    #endif
-
     node = getNode(remainingNodes.top().nodeId);
-    DFUN_RESULT distQueryParent = remainingNodes.top().dist;
+    double distQueryParent = remainingNodes.top().dist;
     remainingNodes.pop();
+
+    #ifdef __MTREE_ANALYSE_STATS
+    pageCount += node->pagecount();
+    ++nodeCount;
+    #endif
 
     if(node->isLeaf())
     {
@@ -466,22 +399,22 @@ void MTree::rangeSearch(DistData* data,
       for(LeafNode::iterator it = curNode->begin();
           it != curNode->end(); ++it)
       {
-        DFUN_RESULT dist = (*it)->dist();
-        DFUN_RESULT distDiff = fabs(distQueryParent - dist);
-        if ((distDiff  < searchRad) ||
-             nearlyEqual<DFUN_RESULT>(distDiff, searchRad))
+        double dist = (*it)->dist();
+        double distDiff = fabs(distQueryParent - dist);
+        if ((distDiff  < rad) ||
+             nearlyEqual<double>(distDiff, rad))
         {
-          #ifdef MTREE_PRINT_SEARCH_INFO
-          entryCount++;
-          distComputations++;
+          #ifdef __MTREE_ANALYSE_STATS
+          ++entryCount;
+          ++distComputations;
           #endif
 
-          DFUN_RESULT distQueryCurrent;
+          double distQueryCurrent;
           df_info.dist(data, (*it)->data(), distQueryCurrent);
-          if ((distQueryCurrent < searchRad) ||
-              nearlyEqual<DFUN_RESULT>(distQueryCurrent, searchRad))
+          if ((distQueryCurrent < rad) ||
+              nearlyEqual<double>(distQueryCurrent, rad))
           {
-            resultList.push_back(pair<DFUN_RESULT, TupleId>(
+            resultList.push_back(pair<double, TupleId>(
                 distQueryCurrent, (*it)->tid()));
           }
         } // if
@@ -492,20 +425,20 @@ void MTree::rangeSearch(DistData* data,
       for(InternalNode::iterator it = curNode->begin();
           it != curNode->end(); ++it)
       {
-        DFUN_RESULT dist = (*it)->dist();
-        DFUN_RESULT radSum = searchRad + (*it)->rad();
-        DFUN_RESULT distDiff = fabs(distQueryParent - dist);
+        double dist = (*it)->dist();
+        double radSum = rad + (*it)->rad();
+        double distDiff = fabs(distQueryParent - dist);
         if ((distDiff  < radSum) ||
-             nearlyEqual<DFUN_RESULT>(distDiff, radSum))
+             nearlyEqual<double>(distDiff, radSum))
         {
-          #ifdef MTREE_PRINT_SEARCH_INFO
-          distComputations++;
+          #ifdef __MTREE_ANALYSE_STATS
+          ++distComputations;
           #endif
 
-          DFUN_RESULT newDistQueryParent;
+          double newDistQueryParent;
           df_info.dist(data, (*it)->data(), newDistQueryParent);
           if ((newDistQueryParent < radSum) ||
-              nearlyEqual<DFUN_RESULT>(newDistQueryParent, radSum))
+              nearlyEqual<double>(newDistQueryParent, radSum))
           {
             remainingNodes.push(RemainingNodesEntry(
                 (*it)->chield(), newDistQueryParent));
@@ -518,14 +451,25 @@ void MTree::rangeSearch(DistData* data,
   delete data;
 
   resultList.sort();
-  list<pair<DFUN_RESULT, TupleId> >::iterator it = resultList.begin();
+  list<pair<double, TupleId> >::iterator it = resultList.begin();
   while (it != resultList.end())
   {
     results->push_back(it->second);
-    it++;
+    ++it;
   }
 
-  #ifdef MTREE_PRINT_SEARCH_INFO
+  #ifdef __MTREE_PRINT_STATS_TO_FILE
+  cmsg.file("mtree.log")
+      << "nnsearch" << ";"
+      << rad << ";"
+      << distComputations << ";"
+      << nodeCount << ";"
+      << entryCount << "\t"
+      << results->size() << "\t\n";
+  cmsg.send();
+  #endif
+
+  #ifdef __MTREE_PRINT_SEARCH_INFO
   unsigned maxNodes = header.internalCount + header.leafCount;
   unsigned maxEntries = header.entryCount;
   unsigned maxDistComputations = maxNodes + maxEntries - 1;
@@ -544,10 +488,10 @@ void MTree::rangeSearch(DistData* data,
 Method ~nnSearch~ :
 
 */
-void MTree::nnSearch(DistData* data, int nncount,
-                          list<TupleId>* results)
+void MTree::nnSearch(
+        DistData *data, int nncount, list<TupleId> *results)
 {
-  #ifdef MTREE_DEBUG
+  #ifdef __MTREE_DEBUG
   assert(isInitialized());
   #endif
 
@@ -555,16 +499,17 @@ void MTree::nnSearch(DistData* data, int nncount,
 
   // init nearest neighbours array
   list< NNEntry > nearestNeighbours;
-  for (int i=0; i<nncount; i++)
+  for (int i = 0; i < nncount; ++i)
   {
     nearestNeighbours.push_back(
-        NNEntry(0, numeric_limits<DFUN_RESULT>::infinity()));
+        NNEntry(0, numeric_limits<double>::infinity()));
   }
 
   vector< RemainingNodesEntryNNS > remainingNodes;
 
-  #ifdef MTREE_PRINT_SEARCH_INFO
+  #ifdef __MTREE_ANALYSE_STATS
   unsigned entryCount = 0;
+  unsigned pageCount = 0;
   unsigned nodeCount = 0;
   unsigned distComputations = 0;
   #endif
@@ -575,15 +520,16 @@ void MTree::nnSearch(DistData* data, int nncount,
 
   while(!remainingNodes.empty())
   {
-    #ifdef MTREE_PRINT_SEARCH_INFO
-    nodeCount++;
-    #endif
-
     // read node with smallest minDist
     NodePtr node = getNode(remainingNodes.front().nodeId);
-    DFUN_RESULT distQueryParent =
+    double distQueryParent =
             remainingNodes.front().distQueryParent;
-    DFUN_RESULT searchRad = nearestNeighbours.back().dist;
+    double rad = nearestNeighbours.back().dist;
+
+    #ifdef __MTREE_ANALYSE_STATS
+    pageCount += node->pagecount();
+    ++nodeCount;
+    #endif
 
     // remove entry from remainingNodes heap
     pop_heap(remainingNodes.begin(), remainingNodes.end(),
@@ -596,20 +542,20 @@ void MTree::nnSearch(DistData* data, int nncount,
       for(LeafNode::iterator it = curNode->begin();
                              it != curNode->end(); ++it)
       {
-        DFUN_RESULT distDiff = fabs(distQueryParent - (*it)->dist());
-        if ((distDiff < searchRad) ||
-             nearlyEqual<DFUN_RESULT>(distDiff, searchRad))
+        double distDiff = fabs(distQueryParent - (*it)->dist());
+        if ((distDiff < rad) ||
+             nearlyEqual<double>(distDiff, rad))
         {
-          #ifdef MTREE_PRINT_SEARCH_INFO
-          entryCount++;
-          distComputations++;
+          #ifdef __MTREE_ANALYSE_STATS
+          ++entryCount;
+          ++distComputations;
           #endif
 
-          DFUN_RESULT distQueryCurrent;
+          double distQueryCurrent;
           df_info.dist(data, (*it)->data(), distQueryCurrent);
 
-          if ((distQueryCurrent < searchRad) ||
-               nearlyEqual<DFUN_RESULT>(distQueryCurrent, searchRad))
+          if ((distQueryCurrent < rad) ||
+               nearlyEqual<double>(distQueryCurrent, rad))
           {
 
             list<NNEntry>::iterator nnIter;
@@ -618,14 +564,14 @@ void MTree::nnSearch(DistData* data, int nncount,
             while ((distQueryCurrent > nnIter->dist) &&
                     (nnIter != nearestNeighbours.end()))
             {
-              nnIter++;
+              ++nnIter;
             }
 
             bool done = false;
             if (nnIter != nearestNeighbours.end())
             {
               TupleId tid = (*it)->tid();
-              DFUN_RESULT dist = distQueryCurrent;
+              double dist = distQueryCurrent;
 
               while (!done && (nnIter != nearestNeighbours.end()))
               {
@@ -640,24 +586,24 @@ void MTree::nnSearch(DistData* data, int nncount,
                   swap(dist, nnIter->dist);
                   swap(tid, nnIter->tid);
                 }
-                nnIter++;
+                ++nnIter;
               }
             }
 
-            searchRad = nearestNeighbours.back().dist;
+            rad = nearestNeighbours.back().dist;
 
             vector<RemainingNodesEntryNNS>::iterator
                 it = remainingNodes.begin();
 
             while (it != remainingNodes.end())
             {
-              if ((*it).minDist > searchRad)
+              if ((*it).minDist > rad)
               {
                 swap(*it, remainingNodes.back());
                 remainingNodes.pop_back();
               }
               else
-                it++;
+                ++it;
             }
             make_heap(remainingNodes.begin(),
                        remainingNodes.end(),
@@ -673,25 +619,25 @@ void MTree::nnSearch(DistData* data, int nncount,
       for(InternalNode::iterator it = curNode->begin();
           it != curNode->end(); ++it)
       {
-        DFUN_RESULT distDiff = fabs(distQueryParent - (*it)->dist());
-        DFUN_RESULT radSum = searchRad + (*it)->rad();
+        double distDiff = fabs(distQueryParent - (*it)->dist());
+        double radSum = rad + (*it)->rad();
         if ((distDiff < radSum) ||
-             nearlyEqual<DFUN_RESULT>(distDiff, radSum))
+             nearlyEqual<double>(distDiff, radSum))
         {
-          #ifdef MTREE_PRINT_SEARCH_INFO
-          distComputations++;
+          #ifdef __MTREE_ANALYSE_STATS
+          ++distComputations;
           #endif
 
-          DFUN_RESULT newDistQueryParent;
+          double newDistQueryParent;
           df_info.dist(data, (*it)->data(), newDistQueryParent);
 
-          DFUN_RESULT minDist, maxDist;
+          double minDist, maxDist;
           minDist = max(newDistQueryParent - (*it)->rad(),
-                        static_cast<DFUN_RESULT>(0));
+                        static_cast<double>(0));
           maxDist = newDistQueryParent + (*it)->rad();
 
-          if ((minDist < searchRad) ||
-               nearlyEqual<DFUN_RESULT>(minDist, searchRad))
+          if ((minDist < rad) ||
+               nearlyEqual<double>(minDist, rad))
           {
             // insert new entry into remainingNodes heap
             remainingNodes.push_back(RemainingNodesEntryNNS(
@@ -699,7 +645,7 @@ void MTree::nnSearch(DistData* data, int nncount,
             push_heap(remainingNodes.begin(), remainingNodes.end(),
                 greater<RemainingNodesEntryNNS>());
 
-            if (maxDist < searchRad)
+            if (maxDist < rad)
             {
               // update nearesNeighbours
               list<NNEntry>::iterator nnIter;
@@ -708,13 +654,13 @@ void MTree::nnSearch(DistData* data, int nncount,
               while ((maxDist > (*nnIter).dist) &&
                       (nnIter != nearestNeighbours.end()))
               {
-                nnIter++;
+                ++nnIter;
               }
 
               if (((*nnIter).tid == 0) &&
                    (nnIter != nearestNeighbours.end()))
               {
-                if (!nearlyEqual<DFUN_RESULT>(
+                if (!nearlyEqual<double>(
                         maxDist, (*nnIter).dist))
                 {
                   nearestNeighbours.insert(
@@ -723,19 +669,19 @@ void MTree::nnSearch(DistData* data, int nncount,
                 }
               }
 
-              searchRad = nearestNeighbours.back().dist;
+              rad = nearestNeighbours.back().dist;
 
               vector<RemainingNodesEntryNNS>::iterator it =
                   remainingNodes.begin();
 
               while (it != remainingNodes.end())
               {
-                if ((*it).minDist > searchRad)
+                if ((*it).minDist > rad)
                 {
                   it = remainingNodes.erase(it);
                 }
                 else
-                  it++;
+                  ++it;
               }
               make_heap(remainingNodes.begin(),
                          remainingNodes.end(),
@@ -750,7 +696,7 @@ void MTree::nnSearch(DistData* data, int nncount,
   delete data;
   list< NNEntry >::iterator it;
   for (it = nearestNeighbours.begin();
-        it != nearestNeighbours.end(); it++)
+        it != nearestNeighbours.end(); ++it)
   {
     if ((*it).tid != 0)
     {
@@ -758,17 +704,29 @@ void MTree::nnSearch(DistData* data, int nncount,
     }
   }
 
-  #ifdef MTREE_PRINT_SEARCH_INFO
+  #ifdef __MTREE_PRINT_STATS_TO_FILE
+  cmsg.file("mtree.log")
+      << "rangesearch" << "\t"
+      << nncount << "\t"
+      << distComputations << "\t"
+      << pageCount << "\t"
+      << nodeCount << "\t"
+      << entryCount << "\t"
+      << results->size() << "\t\n";
+  cmsg.send();
+  #endif
+
+  #ifdef __MTREE_PRINT_SEARCH_INFO
   unsigned maxNodes = header.internalCount + header.leafCount;
   unsigned maxEntries = header.entryCount;
   unsigned maxDistComputations = maxNodes + maxEntries - 1;
   cmsg.info()
       << "Distance computations : " << distComputations << "\t(max "
-      << maxDistComputations << ")" << endl
+      << maxDistComputations << ")\n"
       << "Nodes analyzed        : " << nodeCount << "\t(max "
-      << maxNodes << ")" << endl
+      << maxNodes << ")\n"
       << "Entries analyzed      : " << entryCount << "\t(max "
-      << maxEntries << ")" << endl << endl;
+      << maxEntries << ")\n\n";
   cmsg.send();
   #endif
 }

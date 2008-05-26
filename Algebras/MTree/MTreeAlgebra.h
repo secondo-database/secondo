@@ -30,35 +30,41 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Headerfile "MTreeAlgebra.h"[4]
 
-January-February 2008, Mirko Dibbert
+January-May 2008, Mirko Dibbert
 
 1.1 Overview
 
-This file contains some defines and constants, which could be used to configurate the mtree algebra.
-
-1.1 Includes and defines
+This file contains some defines and constants, which could be used to configurate this algebra.
 
 */
-#ifndef __MTREE_ALGEBRA_H
-#define __MTREE_ALGEBRA_H
+#ifndef __MTREE_ALGEBRA_H__
+#define __MTREE_ALGEBRA_H__
+
+#include "GeneralTreeAlgebra.h"
+
+using namespace gta;
+using gtree::NodeConfig;
+using gtree::NodeTypeId;
+
+
 
 /////////////////////////////////////////////////////////////////////
 // enables debugging mode for the mtree-algebra:
 /////////////////////////////////////////////////////////////////////
-// #define MTREE_DEBUG
-
-
-/////////////////////////////////////////////////////////////////////
-// enables debugging mode for general tree algebra framework:
-/////////////////////////////////////////////////////////////////////
-// #define GTAF_DEBUG
+//#define __MTREE_DEBUG
 
 
 /////////////////////////////////////////////////////////////////////
 // enables print of statistic infos in the insert method:
-// (should be replaced by progress operator version)
 /////////////////////////////////////////////////////////////////////
-#define MTREE_PRINT_INSERT_INFO
+#define __MTREE_PRINT_INSERT_INFO
+
+
+/////////////////////////////////////////////////////////////////////
+// enables print of mtree statistics in the out function:
+/////////////////////////////////////////////////////////////////////
+#define __MTREE_OUTFUN_PRINT_STATISTICS
+
 
 /////////////////////////////////////////////////////////////////////
 // enables print of count of objects in leaf/right node after split:
@@ -69,64 +75,128 @@ This file contains some defines and constants, which could be used to configurat
 /////////////////////////////////////////////////////////////////////
 // enables print of statistic infos in the search methods:
 /////////////////////////////////////////////////////////////////////
-// #define MTREE_PRINT_SEARCH_INFO
+// #define __MTREE_PRINT_SEARCH_INFO
+
+
+/////////////////////////////////////////////////////////////////////
+// enables print of statistic infos in the search methods
+// to file "mtree.log"
+/////////////////////////////////////////////////////////////////////
+// #define __MTREE_PRINT_STATS_TO_FILE
 
 
 
-#include "GTAF.h"
-#include "DistfunReg.h" // also includes distdata
+namespace mtreeAlgebra
+{
 
-namespace mtreeAlgebra {
+enum PROMOTE
+{ RANDOM, m_RAD, mM_RAD, M_LB_DIST };
+/*
+Enumeration of the implemented promote functions:
+
+  * "RANDOM"[4] : Promotes two random entries.
+
+  * "m[_]RAD"[4] : Promotes the entries which minimizes the sum of both covering radii.
+
+  * "mM[_]RAD:"[4] Promotes the entries which minimizes the maximum of both covering radii.
+
+  * "M[_]LB[_]DIST"[4] : Promotes as first entry the previously promoted element, which is equal to the parent entry. As second entry, the one with maximum distance to the parent entry would be promoted.
+
+*/
+
+enum PARTITION
+{ GENERALIZED_HYPERPLANE, BALANCED };
+/*
+Enumeration of the implemented partition functions.
+
+Let "p_1"[2], "p_2"[2] be the promoted items and "N_1"[2], "N_2"[2] be the nodes containing "p_1"[2] and "p_2"[2]:
+
+  * "GENERALIZED[_]HYPERPLANE"[4] The algorithm assign an entry "e"[2] as follows: if "d(e,p_1) \leq d(e,p_2)"[2], "e"[2] is assigned to "N_1"[2], otherwhise it is assigned to "N_2"[2].
+
+  * "BALANCED"[4] : This algorithm alternately assigns the nearest neighbour of "p_1"[2] and "p_2"[2], which has not yet been assigned, to "N_1"[2] and "N_2"[2], respectively.
+
+*/
+
+/////////////////////////////////////////////////////////////////////
 // en-/disable caching for all node types
+/////////////////////////////////////////////////////////////////////
 const bool nodeCacheEnabled = true;
 
-// en-/disable caching seperately for each node type
-const bool leafCacheable = true;
-const bool internalCacheable = true;
 
+/////////////////////////////////////////////////////////////////////
 // intevall of printing statistic infos in the insert method
-// (does only work, if MTREE_PRINT_INSERT_INFO has been defined)
+// (only used, if __MTREE_PRINT_INSERT_INFO has been defined)
+/////////////////////////////////////////////////////////////////////
 const int insertInfoInterval = 100;
 
 
 
 /********************************************************************
-Default values for the node config objects (used in the MTreeConfig class):
+The following constants are only default values for the mtree-config objects, that could be changed in some configurations. See the initialize method of the "MTreeConfigReg"[4] class for details.
 
 ********************************************************************/
-// min. count of pages for leaf / internal nodes
-const unsigned minLeafPages   = 1;
-const unsigned minIntPages    = 1;
 
+/////////////////////////////////////////////////////////////////////
+// default split policy
+/////////////////////////////////////////////////////////////////////
+const PROMOTE defaultPromoteFun = M_LB_DIST;
+const PARTITION defaultPartitionFun = BALANCED;
+
+
+/////////////////////////////////////////////////////////////////////
+// en-/disable caching seperately for each node type
+/////////////////////////////////////////////////////////////////////
+const bool leafCacheable     = true;
+const bool internalCacheable = true;
+
+
+/////////////////////////////////////////////////////////////////////
 // max. count of pages for leaf / internal nodes
+/////////////////////////////////////////////////////////////////////
 const unsigned maxLeafPages   = 1;
 const unsigned maxIntPages    = 1;
 
+
+/////////////////////////////////////////////////////////////////////
 // min. count of entries for leaf / internal nodes
+/////////////////////////////////////////////////////////////////////
 const unsigned minLeafEntries = 3;
 const unsigned minIntEntries  = 3;
 
+
+/////////////////////////////////////////////////////////////////////
 // max. count of entries for leaf / internal nodes
+/////////////////////////////////////////////////////////////////////
 const unsigned maxLeafEntries = numeric_limits<unsigned>::max();
 const unsigned maxIntEntries = numeric_limits<unsigned>::max();
 
 
-
-/********************************************************************
-The following constants should not be changed:
-
-********************************************************************/
-using namespace generalTree;
-using gtaf::NodeConfig;
-using gtaf::NodeTypeId;
-
-// constants for the node types
-const NodeTypeId Leaf = 0;
-const NodeTypeId Internal = 1;
-
+/////////////////////////////////////////////////////////////////////
 // priorities of the node types
-const unsigned leafPrio       = 0; // default = 0
-const unsigned internalPrio   = 1; // default = 1
+// (higher priorities result into a higher probablility for
+// nodes of the respective type to remain in the node cache)
+/////////////////////////////////////////////////////////////////////
+const unsigned leafPrio     = 0; // default = 0
+const unsigned internalPrio = 1; // default = 1
+
+
+/////////////////////////////////////////////////////////////////////
+// constants for the node type id's
+/////////////////////////////////////////////////////////////////////
+const NodeTypeId LEAF = 0;
+const NodeTypeId INTERNAL = 1;
+
+
+
+// define __MTREE_ANALYSE_STATS if __MTREE_PRINT_SEARCH_INFO or
+// __MTREE_PRINT_STATS_TO_FILE has been defined
+#ifdef __MTREE_PRINT_SEARCH_INFO
+  #define __MTREE_ANALYSE_STATS
+#else
+  #ifdef __MTREE_PRINT_STATS_TO_FILE
+  #define __MTREE_ANALYSE_STATS
+  #endif
+#endif
 
 } // namespace mtreeAlgebra
-#endif // #ifndef __MTREE_ALGEBRA_H
+#endif // #ifndef __MTREE_ALGEBRA_H__
