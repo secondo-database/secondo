@@ -17,17 +17,15 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator getdistdata alias GETDISTDATA pattern op(_)
-# attr -> distdata
+operator gethpoint alias GETHPOINT pattern op(_)
+operator gethpoint2 alias GETHPOINT2 pattern op(_, _)
 
+operator getbbox alias GETBBOX pattern op(_)
+operator getbbox2 alias GETBBOX2 pattern op(_, _)
+
+operator getdistdata alias GETDISTDATA pattern op(_)
 operator getdistdata2 alias GETDISTDATA2 pattern op(_, _)
-# attr x distdata_name -> distdata
 
 operator gdistance alias GDISTANCE pattern op (_, _)
-# attr x attr -> real
-
 operator gdistance2 alias GDISTANCE2 pattern op (_, _, _)
-# attr x attr x distfun_name -> real
-
 operator gdistance3 alias GDISTANCE3 pattern op (_, _, _, _)
-# attr x attr x distfun_name x distdata_name -> real
