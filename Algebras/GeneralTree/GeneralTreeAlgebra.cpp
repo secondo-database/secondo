@@ -1,4 +1,6 @@
 /*
+\newpage
+
 ----
 This file is part of SECONDO.
 
@@ -25,75 +27,388 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //characters      [2]   formula:    [$]   [$]
 //characters      [3]   capital:    [\textsc{]  [}]
 //characters      [4]   teletype:   [\texttt{]  [}]
-//paragraph [11] Title: [{\Large \bf \begin{center}] [\end{center}}]
-//paragraph [23]  table3columns:    [\begin{quote}\begin{tabular}{lll}] [\end{tabular}\end{quote}]
-//[--------]      [\hline]
-//[TOC] [\tableofcontents]
 
-[11] General Tree Algebra
+1 Implementation file "GeneralTreeAlgebra.cpp"[4]
 
-January-February 2008, Mirko Dibbert
+January-May 2008, Mirko Dibbert
 
-[TOC]
+This file implements the GeneralTreeAlgebra.
 
-1 Overview
-
-This algebra provides the "distdata"[4] type constructor and the following operators:
-
-  * "getdistdata(attr)"[4]
-
-  * "getdistdata2(attr, data[_]name)"[4]
-
-  * "gdistance(attr, attr)"[4]
-
-  * "gdistance2(attr, attr, distfun[_]name)"[4]
-
-  * "gdistance3(attr, attr, distfun[_]name, data[_]name)"[4]
-
-The "distdata"[4] type constructor could be used to store precomputed data for faster computation of the respective distance functions. These attributes could e.g. be used in the "gdistance"[4] (general distance) and "gdistance2"[4] operators or in the "rangesearch"[4] and "nnsearch"[4] operators of the m-tree and x-tree algebra. This is useful, if the same attribute is needed multiple time for distance computeations, in particular if the computation is relatively complex, like the computation of picture histograms.
-
-The "getdistdata"[4] and "getdistdata2"[4] operators could be used to create a new "distdata"[4] attribute for the respective data type. The first operator uses the default data type for the respective type constructor, whereas the second operator expects the name of a defined type as second parameter.
-
-The currently registered distance functions and distdata types are curently only shown on the first call of the getdistdata2, gdistance2 or gdistance3 operator.
-TODO: A "list distfuns"[4] command or an operator which shows the defined distance functions needs to be implemented, since the current way to do this is only a temporary solution)
-
-Using "DFUN[_]DEFAULT"[4] resp. "DDATA[_]DEFAULT"[4] as name for the distance function or distdata type will select the default distance function / data type. Appending "[_]ncompr"[4] to the picture data type names (e.g. "hsv128[_]ncompr"[4]) uses uncompressed histograms, whereas the default data types store the histograms in a compressed manner.
-
-The quardatic distance with the lab256 data type need the most time to be computed, but also returns the best results, since the lab-colorspace has been designed to approximate human vision (the fastest combination is euclid with hsv128 data).
-
-The "gdistance"[4] operators expects two attributes of the same type as first and second parameter and the name of a defined distance function (only "gdistance2"[4] and "gdistance3"[4]) and distdata type (only "gdistance3"[4]) as third and fourth parameter.
-
-The "gdistance3"[4] operator could not be used with "distdata"[4] attributes, since the data type is stored within these attributes.
-
-1 Includes and defines
+1.1 Includes and defines.
 
 */
 #include "Algebra.h"
+#include "RelationAlgebra.h"
+#include "SecondoInterface.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Base64.h"
-#include "DistfunReg.h"
 
-extern NestedList* nl;
-extern QueryProcessor* qp;
-extern AlgebraManager* am;
+#include "GeneralTreeAlgebra.h"
 
-namespace generalTree
-{
+extern NestedList *nl;
+extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
-/* comment out this define to disable printing a list of all defined
-   distance functions, when calling the distdata2, gdistance2 or
-   gdistance3 operator first time */
-#define PRINT_DISTFUN_INFOS
+namespace gta {
 
 /********************************************************************
-1 Type constructors
+1.1. Type constructors
 
+1.1.1 Type constructor "hpoint"[4]
+
+********************************************************************/
+static ListExpr HPointProp()
+{
+  return (
+        nl->TwoElemList(
+            nl->FourElemList(
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List")),
+            nl->FourElemList(
+                nl->StringAtom("-> DATA"),
+                nl->StringAtom("hpoint"),
+                nl->StringAtom("(<dim> (<c_1> ... <c_n>) "),
+                nl->StringAtom("(2 (0.5 2.5))"))));
+}
+
+ListExpr OutHPoint(ListExpr type_Info, Word value)
+{
+    HPoint* point = static_cast<HPointAttr*>(value.addr)->hpoint();
+    NList coord_list;
+
+    for (unsigned i = 0; i < point->dim(); ++i)
+        coord_list.append(NList(point->coord(i)));
+
+    NList dim_list(static_cast<int>(point->dim()));
+    NList result(dim_list, coord_list);
+    delete point;
+    return result.listExpr();
+}
+
+Word InHPoint(
+        ListExpr type_Info, ListExpr value,
+        int errorPos, ListExpr &_error_Info, bool &corect)
+{
+    NList valueList(value);
+
+    if (valueList.length() != 2)
+    {
+        corect = false;
+        ErrorReporter::ReportError(
+          "Excepted a two elemental list, but got" +
+            valueList.convertToString());
+        return SetWord(Address(0));
+    }
+
+    NList dim_list = valueList.first();
+    NList coords_list = valueList.second();
+
+    unsigned dim;
+    if (!dim_list.isInt())
+    {
+        corect = false;
+        ErrorReporter::ReportError(
+        "Excepted an int atom as first list element, but got " +
+            dim_list.convertToString());
+        return SetWord(Address(0));
+    }
+    else
+        dim = dim_list.intval();
+
+    if (coords_list.length() != dim)
+    {
+        corect = false;
+        ostringstream error;
+        error <<  "Excepted a list with " << dim
+              << " real values as second list element, but got "
+              << coords_list.convertToString();
+        ErrorReporter::ReportError(error.str());
+        return SetWord(Address(0));
+    }
+
+    GTA_SPATIAL_DOM coords[dim];
+    int pos = 0;
+    while (!coords_list.isEmpty())
+    {
+        NList coord = coords_list.first();
+        coords_list.rest();
+
+        if (!coord.isReal())
+        {
+            corect = false;
+            ErrorReporter::ReportError(
+            "Excepted an real atom as list element, but got " +
+                coord.convertToString());
+            return SetWord(Address(0));
+        }
+        else
+            coords[pos] = nl->RealValue(coord.listExpr());
+
+        pos++;
+    }
+
+    corect = true;
+    return SetWord(new HPointAttr(dim, coords));
+}
+
+Word createHPoint(const ListExpr type_Info)
+{ return SetWord(new HPointAttr(0)); }
+
+void DeleteHPoint(const ListExpr type_Info, Word &w)
+{
+    HPointAttr* attr = static_cast<HPointAttr*>(w.addr);
+    attr->deleteFLOB();
+    delete attr;
+    w.addr = 0;
+}
+
+bool OpenHPoint(
+        SmiRecord &valueRecord, size_t &offset,
+        const ListExpr type_Info, Word &value)
+{
+    value = SetWord(Attribute::Open(valueRecord, offset, type_Info));
+    return true;
+}
+
+bool SaveHPoint(
+        SmiRecord &valueRecord, size_t &offset,
+        const ListExpr type_Info, Word &value)
+{
+    Attribute::Save(
+            valueRecord, offset, type_Info,
+            static_cast<Attribute*>(value.addr));
+    return true;
+}
+
+void CloseHPoint(const ListExpr type_Info, Word &w)
+{ delete(HPointAttr*)w.addr; }
+
+Word CloneHPoint(const ListExpr type_Info, const Word &w)
+{
+    HPointAttr *src = static_cast<HPointAttr*>(w.addr);
+    HPointAttr *cpy = new HPointAttr(*src);
+    return SetWord(cpy);
+}
+
+void * CastHPoint(void *addr)
+{ return new(addr) HPointAttr; }
+
+int SizeOfHPoint()
+{ return sizeof(HPointAttr); }
+
+bool CheckHPoint(ListExpr typeName, ListExpr &error_Info)
+{ return (nl->IsEqual(typeName, "hpoint")); }
+
+TypeConstructor hpoint_tc(
+        "hpoint",     HPointProp,
+        OutHPoint,    InHPoint,
+        0, 0,
+        createHPoint, DeleteHPoint,
+        OpenHPoint,   SaveHPoint,
+        CloseHPoint,  CloneHPoint,
+        CastHPoint,   SizeOfHPoint,
+        CheckHPoint);
+
+
+
+/********************************************************************
+1.1.1 Type constructor "hrect"[4]
+
+********************************************************************/
+static ListExpr HRectProp()
+{
+  return (
+        nl->TwoElemList(
+            nl->FourElemList(
+                nl->StringAtom("Signature"),
+                nl->StringAtom("Example Type List"),
+                nl->StringAtom("List Rep"),
+                nl->StringAtom("Example List")),
+            nl->FourElemList(
+                nl->StringAtom("-> DATA"),
+                nl->StringAtom("hrect"),
+                nl->StringAtom("(<dim> (<lb_1> ... <lb_n>) "
+                                      "(<ub_1> ... <ub_n>))"),
+                nl->StringAtom("(2 (0.0 0.0) (1.0 1.0))"))));
+}
+
+ListExpr OutHRect(ListExpr type_Info, Word value)
+{
+    HRect *rect = static_cast<HRectAttr*>(value.addr)->hrect();
+    NList lb_list, ub_list;
+
+    for (unsigned i = 0; i < rect->dim(); ++i)
+    {
+        lb_list.append(NList(rect->lb(i)));
+        ub_list.append(NList(rect->ub(i)));
+    }
+
+    NList dim_list(static_cast<int>(rect->dim()));
+    NList result(dim_list, lb_list, ub_list);
+    delete rect;
+    return result.listExpr();
+}
+
+Word InHRect(
+        ListExpr type_Info, ListExpr value,
+        int errorPos, ListExpr &_error_Info, bool &corect)
+{
+    NList valueList(value);
+
+    if (valueList.length() != 3)
+    {
+        corect = false;
+        ErrorReporter::ReportError(
+          "Excepted a three elemental list, but got" +
+            valueList.convertToString());
+        return SetWord(Address(0));
+    }
+
+    NList dim_list = valueList.first();
+    NList lb_list = valueList.second();
+    NList ub_list = valueList.third();
+
+    unsigned dim;
+    if (!dim_list.isInt())
+    {
+        corect = false;
+        ErrorReporter::ReportError(
+        "Excepted an int atom as first list element, but got " +
+            dim_list.convertToString());
+        return SetWord(Address(0));
+    }
+    else
+        dim = dim_list.intval();
+
+    if (lb_list.length() != dim)
+    {
+        corect = false;
+        ostringstream error;
+        error <<  "Excepted a list with " << dim
+              << " real values as second list element, but got "
+              << lb_list.convertToString();
+        ErrorReporter::ReportError(error.str());
+        return SetWord(Address(0));
+    }
+
+    if (ub_list.length() != dim)
+    {
+        corect = false;
+        ostringstream error;
+        error <<  "Excepted a list with " << dim
+              << " real values as third list element, but got "
+              << ub_list.convertToString();
+        ErrorReporter::ReportError(error.str());
+        return SetWord(Address(0));
+    }
+
+    GTA_SPATIAL_DOM lbVector[dim], ubVector[dim];
+    int pos = 0;
+    while (!lb_list.isEmpty())
+    {
+        NList lb = lb_list.first();
+        NList ub = ub_list.first();
+        lb_list.rest();
+        ub_list.rest();
+
+        if (!lb.isReal())
+        {
+            corect = false;
+            ErrorReporter::ReportError(
+            "Excepted an real atom as list element, but got " +
+                lb.convertToString());
+            return SetWord(Address(0));
+        }
+        else
+            lbVector[pos] = nl->RealValue(lb.listExpr());
+
+        if (!ub.isReal())
+        {
+            corect = false;
+            ErrorReporter::ReportError(
+            "Excepted an real atom as list element, but got " +
+                ub.convertToString());
+            return SetWord(Address(0));
+        }
+        else
+            ubVector[pos] = nl->RealValue(ub.listExpr());
+
+        pos++;
+    }
+
+    corect = true;
+    return SetWord(new HRectAttr(dim, lbVector, ubVector));
+}
+
+Word createHRect(const ListExpr type_Info)
+{ return SetWord(new HRectAttr(0)); }
+
+void DeleteHRect(const ListExpr type_Info, Word &w)
+{
+    HRectAttr *attr =
+        static_cast<HRectAttr*>(w.addr);
+    attr->deleteFLOB();
+    delete attr;
+    w.addr = 0;
+}
+
+bool OpenHRect(
+        SmiRecord &valueRecord, size_t &offset,
+        const ListExpr type_Info, Word &value)
+{
+    value = SetWord(Attribute::Open(valueRecord, offset, type_Info));
+    return true;
+}
+
+bool SaveHRect(
+        SmiRecord &valueRecord, size_t &offset,
+        const ListExpr type_Info, Word &value)
+{
+    Attribute::Save(
+            valueRecord, offset, type_Info,
+            static_cast<Attribute*>(value.addr));
+    return true;
+}
+
+void CloseHRect(const ListExpr type_Info, Word &w)
+{ delete(HRectAttr*)w.addr; }
+
+Word CloneHRect(const ListExpr type_Info, const Word &w)
+{
+    HRectAttr *src = static_cast<HRectAttr*>(w.addr);
+    HRectAttr *cpy = new HRectAttr(*src);
+    return SetWord(cpy);
+}
+
+void * CastHRect(void *addr)
+{ return new(addr) HRectAttr; }
+
+int SizeOfHRect()
+{ return sizeof(HRectAttr); }
+
+bool CheckHRect(ListExpr typeName, ListExpr &error_Info)
+{ return (nl->IsEqual(typeName, "hrect")); }
+
+TypeConstructor hrect_tc(
+        "hrect",     HRectProp,
+        OutHRect,    InHRect,
+        0, 0,
+        createHRect, DeleteHRect,
+        OpenHRect,   SaveHRect,
+        CloseHRect,  CloneHRect,
+        CastHRect,   SizeOfHRect,
+        CheckHRect);
+
+
+
+/********************************************************************
 1.1 Type constructor "distdata"[4]
 
 ********************************************************************/
-static ListExpr
-DistDataProp()
+static ListExpr DistDataProp()
 {
     ListExpr examplelist = nl->TextAtom();
     nl->AppendText(examplelist, "getdistdata(<attr>)");
@@ -103,12 +418,10 @@ DistDataProp()
                 nl->StringAtom("Creation"),
                 nl->StringAtom("Example Creation")),
             nl->TwoElemList(examplelist,
-                nl->TextAtom("let datarel = images feed extend "
-                             "[data: getdistdata(.pic)] consume")));
+                nl->TextAtom("let dd = getdistdata(5)")));
 }
 
-ListExpr
-OutDistData(ListExpr type_Info, Word value)
+ListExpr OutDistData(ListExpr type_Info, Word value)
 {
     DistDataAttribute* ddAttr =
             static_cast<DistDataAttribute*>(value.addr);
@@ -130,15 +443,18 @@ OutDistData(ListExpr type_Info, Word value)
                nl->TextAtom(b64string));
 }
 
-Word
-InDistData(ListExpr type_Info, ListExpr value,
-           int errorPos, ListExpr &error_Info, bool &correct)
+Word InDistData(
+        ListExpr type_Info, ListExpr value,
+        int errorPos, ListExpr &error_Info, bool &correct)
 {
     NList valueList(value);
 
     if (valueList.length() != 3)
     {
         correct = false;
+        ErrorReporter::ReportError(
+          "Excepted a three elemental list, but got" +
+            valueList.convertToString());
         return SetWord(Address(0));
     }
 
@@ -172,13 +488,13 @@ InDistData(ListExpr type_Info, ListExpr value,
     else
         type = typeNL.str();
 
-    // get data strinc
+    // get data string
     string data;
     if (!dataNL.isText())
     {
         correct = false;
         ErrorReporter::ReportError(
-          "Excepted a string atom as third list element, but got " +
+          "Excepted a text atom as third list element, but got " +
             dataNL.convertToString());
         return SetWord(Address(0));
     }
@@ -191,7 +507,7 @@ InDistData(ListExpr type_Info, ListExpr value,
     char bindata[b64.sizeDecoded(data.size())];
     int size = b64.decode(data, bindata);
 
-    DistDataId id = DistDataReg::getDataId(type, name);
+    DistDataId id = DistDataReg::getId(type, name);
     ddAttr->set(true, bindata, size, id);
 
     correct = true;
@@ -199,12 +515,10 @@ InDistData(ListExpr type_Info, ListExpr value,
     return SetWord(ddAttr);
 }
 
-Word
-createDistData(const ListExpr type_Info)
+Word createDistData(const ListExpr type_Info)
 { return SetWord(new DistDataAttribute(0)); }
 
-void
-DeleteDistData(const ListExpr type_Info, Word& w)
+void DeleteDistData(const ListExpr type_Info, Word& w)
 {
     DistDataAttribute* ddAttr =
         static_cast<DistDataAttribute*>(w.addr);
@@ -213,104 +527,140 @@ DeleteDistData(const ListExpr type_Info, Word& w)
     w.addr = 0;
 }
 
-bool
-OpenDistData(SmiRecord &valueRecord, size_t &offset,
-             const ListExpr type_Info, Word& value)
+bool OpenDistData(
+        SmiRecord &valueRecord, size_t &offset,
+        const ListExpr type_Info, Word& value)
 {
     value = SetWord(Attribute::Open(valueRecord, offset, type_Info));
     return true;
 }
 
-bool
-SaveDistData(SmiRecord &valueRecord, size_t &offset,
-             const ListExpr type_Info, Word& value)
+bool SaveDistData(
+        SmiRecord &valueRecord, size_t &offset,
+        const ListExpr type_Info, Word& value)
 {
     Attribute::Save(valueRecord, offset, type_Info,
                     static_cast<Attribute*>(value.addr));
     return true;
 }
 
-void
-CloseDistData(const ListExpr type_Info, Word& w)
-{
-    delete(DistDataAttribute*)w.addr;
-}
+void CloseDistData(const ListExpr type_Info, Word& w)
+{ delete(DistDataAttribute*)w.addr; }
 
-Word
-CloneDistData(const ListExpr type_Info, const Word& w)
+Word CloneDistData(const ListExpr type_Info, const Word& w)
 {
     DistDataAttribute* src = static_cast<DistDataAttribute*>(w.addr);
     DistDataAttribute* cpy = new DistDataAttribute(*src);
     return SetWord(cpy);
 }
 
-void*
-CastDistData(void *addr)
-{
-    return new(addr) DistDataAttribute;
-}
+void* CastDistData(void *addr)
+{ return new(addr) DistDataAttribute; }
 
-int
-SizeOfDistData()
-{
-    return sizeof(DistDataAttribute);
-}
+int SizeOfDistData()
+{ return sizeof(DistDataAttribute); }
 
-bool
-CheckDistData(ListExpr typeName, ListExpr &error_Info)
-{
-    return (nl->IsEqual(typeName, "distdata"));
-}
+bool CheckDistData(ListExpr typeName, ListExpr &error_Info)
+{ return (nl->IsEqual(typeName, "distdata")); }
 
-TypeConstructor
-distDataTC("distdata",    DistDataProp,
-           OutDistData,   InDistData,
-           0, 0,
-           createDistData, DeleteDistData,
-           OpenDistData,   SaveDistData,
-           CloseDistData,  CloneDistData,
-           CastDistData,   SizeOfDistData,
-           CheckDistData);
+TypeConstructor distdata_tc(
+        "distdata",    DistDataProp,
+        OutDistData,   InDistData,
+        0, 0,
+        createDistData, DeleteDistData,
+        OpenDistData,   SaveDistData,
+        CloseDistData,  CloneDistData,
+        CastDistData,   SizeOfDistData,
+        CheckDistData);
+
+
 
 /********************************************************************
-1 Operators
+1.1. Operators
 
-1.1 Value mappings
-
-1.1.1 getdistdata[_]VM
-
-Value mapping for operators "getdistdata"[4] and "getdistdata2"[4].
+1.1.1 Value mappings
 
 ********************************************************************/
 template <unsigned paramCnt> int
-getdistdata_VM(Word* args, Word& result,
-               int message, Word& local, Supplier s)
+gethpoint_VM(
+        Word* args, Word& result,
+        int message, Word& local, Supplier s)
 {
     result = qp->ResultStorage(s);
-    DistDataAttribute* ddAttr =
-        static_cast<DistDataAttribute*>(result.addr);
+    HPointAttr* hpointAttr =
+            static_cast<HPointAttr*>(result.addr);
 
     Attribute* attr = static_cast<Attribute*>(args[0].addr);
 
     string typeName = static_cast<CcString*>(
-        args[paramCnt].addr)->GetValue();
+            args[paramCnt].addr)->GetValue();
+
+    string hpointName = static_cast<CcString*>(
+            args[paramCnt+1].addr)->GetValue();
+
+    HPointInfo info = HPointReg::getInfo(typeName, hpointName);
+    HPoint *p = info.getHPoint(attr);
+    hpointAttr->set(true, p);
+    delete p;
+    return 0;
+} // gethpoint_VM
+
+
+
+template <unsigned paramCnt> int
+getbbox_VM(
+        Word* args, Word& result,
+        int message, Word& local, Supplier s)
+{
+    result = qp->ResultStorage(s);
+    HRectAttr* hrectAttr =
+            static_cast<HRectAttr*>(result.addr);
+
+    Attribute* attr = static_cast<Attribute*>(args[0].addr);
+
+    string typeName = static_cast<CcString*>(
+            args[paramCnt].addr)->GetValue();
+
+    string hrectName = static_cast<CcString*>(
+            args[paramCnt+1].addr)->GetValue();
+
+    BBoxInfo info = BBoxReg::getInfo(typeName, hrectName);
+    HRect *r = info.getBBox(attr);
+    hrectAttr->set(true, r);
+    delete r;
+    return 0;
+} // getbbox_VM
+
+
+
+template <unsigned paramCnt> int
+getdistdata_VM(
+        Word* args, Word& result,
+        int message, Word& local, Supplier s)
+{
+    result = qp->ResultStorage(s);
+    DistDataAttribute* ddAttr =
+            static_cast<DistDataAttribute*>(result.addr);
+
+    Attribute* attr = static_cast<Attribute*>(args[0].addr);
+
+    string typeName = static_cast<CcString*>(
+            args[paramCnt].addr)->GetValue();
 
     string dataName = static_cast<CcString*>(
-        args[paramCnt+1].addr)->GetValue();
+            args[paramCnt+1].addr)->GetValue();
 
-    DistDataId id = DistDataReg::getDataId(typeName, dataName);
+    DistDataId id = DistDataReg::getId(typeName, dataName);
     DistDataInfo info = DistDataReg::getInfo(id);
-    ddAttr->set(true, info.getData(attr), id);
+    DistData *ddata = info.getData(attr);
+    ddAttr->set(true, ddata, id);
+    delete ddata;
 
     return 0;
-}
+} // getdistdata_VM
 
-/********************************************************************
-1.1.1 gdistance[_]VM
 
-Value mapping for the "gdistance"[4] operators (no distdata attributes).
 
-********************************************************************/
 template <unsigned paramCnt> int
 gdistance_VM(Word* args, Word& result,
              int message, Word& local, Supplier s)
@@ -333,20 +683,21 @@ gdistance_VM(Word* args, Word& result,
     string dataName =
         static_cast<CcString*>(args[paramCnt+2].addr)->GetValue();
 
-    DFUN_RESULT dist;
-    DistfunReg::getInfo(distfunName, typeName, dataName).
-                                            dist(attr1, attr2, dist);
+    double dist;
+    DistfunInfo df_info = DistfunReg::
+            getInfo(distfunName, typeName, dataName);
+    DistData *data1 = df_info.getData(attr1);
+    DistData *data2 = df_info.getData(attr2);
+    df_info.dist(data1, data2, dist);
+    delete data1;
+    delete data2;
     resultValue->Set(true, dist);
 
     return 0;
-}
+} // gdistance_VM
 
-/********************************************************************
-1.1.1 gdistanceDD[_]VM
 
-Value mapping for the "gdistance"[4] operators (distdata attributes).
 
-********************************************************************/
 template <unsigned paramCnt> int
 gdistanceDD_VM(Word* args, Word& result,
                int message, Word& local, Supplier s)
@@ -371,8 +722,8 @@ gdistanceDD_VM(Word* args, Word& result,
         DistDataInfo info2 = DistDataReg::getInfo(id2);
         const string seperator = "\n" + string(70, '-') + "\n";
 
-        if ((id1.algebraId != id2.algebraId) ||
-            (id1.typeId != id2.typeId))
+        if ((id1.algebraId() != id2.algebraId()) ||
+            (id1.typeId() != id2.typeId()))
         { // type constructors not equal
             cmsg.error() << seperator
             << "Operator gdistance got distdata attributes for \n"
@@ -419,97 +770,119 @@ gdistanceDD_VM(Word* args, Word& result,
         return 0;
     }
 
-    DFUN_RESULT dist;
+    double dist;
     DistData dd1(ddAttr1->size(), ddAttr1->value());
     DistData dd2(ddAttr2->size(), ddAttr2->value());
     info.dist(&dd1, &dd2, dist);
     resultValue->Set(true, dist);
 
     return 0;
-}
+} // gdistanceDD_VM
+
 
 /********************************************************************
-1.1 Type mappings
-
-1.1.1 getdistdata[_]TM
-
-Type mapping for operator "getdistdata"[4].
+1.1.1 Type mappings
 
 ********************************************************************/
+template<unsigned paramCnt>
+ListExpr gethpoint_TM(ListExpr args)
+{
+    if (!HPointReg::isInitialized())
+        HPointReg::initialize();
+
+    NList args_NL(args);
+    CHECK_LIST_LENGTH(paramCnt, args_NL);
+    NList data_NL = args_NL.first();
+
+    CHECK_SYMBOL(data_NL, 1)
+    string typeName = data_NL.str();
+
+    // select bbox type
+    string funName;
+    if (paramCnt == 2)
+        GET_HPOINT_NAME(args_NL.second(), funName, 2)
+    else
+        funName = HPOINT_DEFAULT;
+
+    // check, if selected get-hpoint function is defined
+    CHECK_HPOINT_DEFINED(funName);
+
+    NList res1(APPEND);
+    NList res2(NList(typeName, true), NList(funName, true));
+    NList res3("hpoint");
+    NList result(res1, res2, res3);
+    return result.listExpr();
+}
+
+
+
+template<unsigned paramCnt>
+ListExpr getbbox_TM(ListExpr args)
+{
+    if (!BBoxReg::isInitialized())
+        BBoxReg::initialize();
+
+    NList args_NL(args);
+    CHECK_LIST_LENGTH(paramCnt, args_NL);
+    NList data_NL = args_NL.first();
+
+    CHECK_SYMBOL(data_NL, 1)
+    string typeName = data_NL.str();
+
+    // select bbox type
+    string funName;
+    if (paramCnt == 2)
+        GET_BBOX_NAME(args_NL.second(), funName, 2)
+    else
+        funName = BBOX_DEFAULT;
+
+    // check, if selected get-hrect function is defined
+    CHECK_BBOX_DEFINED(funName);
+
+    NList res1(APPEND);
+    NList res2(NList(typeName, true), NList(funName, true));
+    NList res3("hrect");
+    NList result(res1, res2, res3);
+    return result.listExpr();
+}
+
+
+
+template<unsigned paramCnt>
 ListExpr getdistdata_TM(ListExpr args)
 {
-    // initialize distance functions and distdata types
-    if (!DistfunReg::isInitialized())
-        DistfunReg::initialize();
-
-    string errmsg;
-    NList nl_args(args);
-
-    errmsg = "Expecting one argument.";
-    CHECK_COND(nl_args.length() == 1, errmsg);
-
-    string typeName = nl_args.first().str();
-    string dataName = DistDataReg::defaultName(typeName);
-
-    // check if a default distdata type exists
-    errmsg = "No default distdata type defined for attribute type \""
-             + typeName + "\"!";
-    CHECK_COND(dataName != DDATA_UNDEFINED, errmsg);
-
-    NList res1(APPEND);
-    NList res2(NList(typeName, true), NList(dataName, true));
-    NList res3(DISTDATA);
-    NList result(res1, res2, res3);
-    return result.listExpr();
-}
-
-/********************************************************************
-1.1.1 getdistdata2[_]TM
-
-Type mapping for operator "getdistdata2"[4].
-
-********************************************************************/
-ListExpr getdistdata2_TM(ListExpr args)
-{
-    // initialize distance functions and distdata types
-    if (!DistfunReg::isInitialized())
-        DistfunReg::initialize();
-
     #ifdef PRINT_DISTFUN_INFOS
-    DistfunReg::printDistfuns();
+    if (!distfuninfos_shown)
+    {
+        distfuninfos_shown = true;
+        string distfun_str = DistfunReg::printDistfuns();
+        cmsg.info() << distfun_str;
+        cmsg.info() << "(this info is only shown once on the first "
+                    << "call of the getdistdata or gdistance "
+                    << "operator)" << endl;
+        cmsg.send();
+    }
     #endif
 
-    string errmsg;
-    NList nl_args(args);
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
 
-    errmsg = "Expecting two arguments.";
-    CHECK_COND(nl_args.length() == 2, errmsg);
+    NList args_NL(args);
+    CHECK_LIST_LENGTH(paramCnt, args_NL);
+    NList data_NL = args_NL.first();
+    CHECK_SYMBOL(data_NL, 1)
+    string typeName = data_NL.str();
 
-    string typeName = nl_args.first().str();
+    // select distdata type
+    string dataName;
+    if (paramCnt == 2)
+        GET_DISTDATA_NAME(args_NL.second(), dataName, 2)
+    else
+        dataName = DDATA_DEFAULT;
 
-    // check if the distdata type given in second argument is defined
-    errmsg = "Expecting the name of a registered distdata type as "
-            "second argument, but got a list with structure '" +
-            nl_args.second().convertToString() +
-            "'!";
-    CHECK_COND(nl_args.second().isSymbol(), errmsg);
-    string dataName = nl_args.second().str();
-    if (dataName == DDATA_DEFAULT)
-    {
-        errmsg =
-            "No default distdata type defined for type \"" +
-            typeName + "\"!";
-        dataName = DistDataReg::defaultName(typeName);
-        CHECK_COND(dataName != DDATA_UNDEFINED, errmsg);
-    }
-    else if(!DistDataReg::isDefined(typeName, dataName))
-    {
-        errmsg =
-            "Distdata type \"" + dataName + "\" for type \"" +
-            typeName + "\" is not defined! Defined names: \n\n" +
-            DistDataReg::definedNames(typeName);
-        CHECK_COND(false, errmsg);
-    }
+    // check, if selected distdata type is defined
+    CHECK_DISTDATA_DEFINED(dataName);
 
     NList res1(APPEND);
     NList res2(NList(typeName, true), NList(dataName, true));
@@ -518,107 +891,51 @@ ListExpr getdistdata2_TM(ListExpr args)
     return result.listExpr();
 }
 
-/********************************************************************
-1.1.1 gdistance[_]TM
 
-Type mapping for operator "gdistance"[4]
-
-********************************************************************/
+template<unsigned paramCnt>
 ListExpr gdistance_TM(ListExpr args)
 {
-    // initialize distance functions and distdata types
-    if (!DistfunReg::isInitialized())
-        DistfunReg::initialize();
-
-    string errmsg;
-    NList nl_args(args);
-
-    errmsg = "Expecting two arguments.";
-    CHECK_COND(nl_args.length() == 2, errmsg);
-
-    NList arg1 = nl_args.first();
-    NList arg2 = nl_args.second();
-
-    errmsg = "Expecting two attributes of the same type!";
-    CHECK_COND(arg1 == arg2, errmsg);
-
-    string typeName = arg1.str();
-
-    if(typeName == DISTDATA)
-    {   // further type checkings for distdata attributes are done in
-        // the value mapping function, since they need the name of
-        // the assigned type constructor, which is stored within the
-        // attribute objects.
-        NList res1(APPEND);
-        NList res2(DFUN_DEFAULT, true); res2.enclose();
-        NList res3(REAL);
-        NList result(res1, res2, res3);
-        return result.listExpr();
-    }
-    else
-    {
-        string distfunName = DistfunReg::defaultName(typeName);
-        string dataName = DistDataReg::defaultName(typeName);
-        if (distfunName == DFUN_UNDEFINED)
-        {
-            errmsg =
-                "No default distance function defined for type \""
-                + typeName + "\"!" + " Defined names: \n\n" +
-                distfunName;
-            CHECK_COND(false, errmsg);
-        }
-
-        NList res1(APPEND);
-        NList res2(NList(
-            typeName, true),
-            NList(distfunName, true),
-            NList(dataName, true));
-        NList res3(REAL);
-        NList result(res1, res2, res3);
-        return result.listExpr();
-    }
-}
-
-/********************************************************************
-1.1.1 gdistance2[_]TM
-
-Type mapping for operator "gdistance"[4]
-
-********************************************************************/
-ListExpr gdistance2_TM(ListExpr args)
-{
-    // initialize distance functions and distdata types
-    if (!DistfunReg::isInitialized())
-        DistfunReg::initialize();
-
     #ifdef PRINT_DISTFUN_INFOS
-    DistfunReg::printDistfuns();
+    if (!distfuninfos_shown)
+    {
+        distfuninfos_shown = true;
+        string distfun_str = DistfunReg::printDistfuns();
+        cmsg.info() << distfun_str;
+        cmsg.info() << "(this info is only shown once on the first "
+                    << "call of the getdistdata or gdistance "
+                    << "operator)" << endl;
+        cmsg.send();
+    }
     #endif
 
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
+    NList args_NL(args);
+
+    CHECK_LIST_LENGTH(paramCnt, args_NL);
+
+    NList data1_NL = args_NL.first();
+    NList data2_NL = args_NL.second();
+
+    CHECK_SYMBOL(data1_NL, 1)
+    CHECK_SYMBOL(data2_NL, 2)
+
     string errmsg;
-    NList nl_args(args);
+    errmsg = "Expecting two data attributes of the same type!";
+    CHECK_COND(data1_NL == data2_NL, errmsg);
 
-    errmsg = "Expecting three arguments.";
-    CHECK_COND(nl_args.length() == 3, errmsg);
+    string typeName = data1_NL.str();
 
-    NList arg1 = nl_args.first();
-    NList arg2 = nl_args.second();
-    NList arg3 = nl_args.third();
+    // select distfun name
+    string distfunName;
+    if (paramCnt >= 3)
+        GET_DISTFUN_NAME(args_NL.third(), distfunName, 3)
+    else
+        distfunName = DFUN_DEFAULT;
 
-    errmsg = "Expecting two attributes of the same type!";
-    CHECK_COND(arg1 == arg2, errmsg);
-
-    string typeName = arg1.str();
-
-    errmsg =
-        "Expecting the name of a registered distance function as "
-        "third argument, but got a list with structure '" +
-        arg3.convertToString() + "'!";
-    CHECK_COND(arg3.isSymbol(), errmsg);
-    string distfunName = arg3.str();
-    string dataName = DistDataReg::defaultName(typeName);
-
-    if (typeName == DISTDATA)
+    if(typeName == DISTDATA)
     {   // further type checkings for distdata attributes are done in
         // the value mapping function, since they need the name of
         // the assigned type constructor, which is stored within the
@@ -630,132 +947,16 @@ ListExpr gdistance2_TM(ListExpr args)
         return result.listExpr();
     }
 
-    if (distfunName == DFUN_DEFAULT)
-    {
-        distfunName = DistfunReg::defaultName(typeName);
-        errmsg =
-            "No default distance function defined for type \""
-            + typeName + "\"!";
-        CHECK_COND(distfunName != DFUN_UNDEFINED, errmsg);
-    }
+    // select distdata type
+    string dataName;
+    if (paramCnt >= 4)
+        GET_DISTDATA_NAME(args_NL.fourth(), dataName, 4)
     else
-    { // search distfun
-        if (!DistfunReg::isDefined(
-                distfunName, typeName, dataName))
-        {
-            errmsg =
-                "Distance function \"" + distfunName +
-                "\" not defined for type \"" +
-                typeName + "\" and data type \"" +
-                dataName + "\"! " +
-                "Defined names: \n\n" +
-                DistfunReg::definedNames(typeName);
-            CHECK_COND(false, errmsg);
-        }
-    }
-
-        NList res1(APPEND);
-        NList res2(NList(
-            typeName, true),
-            NList(distfunName, true),
-            NList(dataName, true));
-        NList res3(REAL);
-        NList result(res1, res2, res3);
-        return result.listExpr();
-    return result.listExpr();
-}
-
-/********************************************************************
-1.1.1 gdistance3[_]TM
-
-Type mapping for operator "gdistance3"[4]
-
-********************************************************************/
-ListExpr gdistance3_TM(ListExpr args)
-{
-    // initialize distance functions and distdata types
-    if (!DistfunReg::isInitialized())
-        DistfunReg::initialize();
-
-    #ifdef PRINT_DISTFUN_INFOS
-    DistfunReg::printDistfuns();
-    #endif
-
-    string errmsg;
-    NList nl_args(args);
-
-    errmsg = "Expecting four arguments.";
-    CHECK_COND(nl_args.length() == 4, errmsg);
-
-    NList arg1 = nl_args.first();
-    NList arg2 = nl_args.second();
-    NList arg3 = nl_args.third();
-    NList arg4 = nl_args.fourth();
-
-    errmsg = "Expecting two attributes of the same type!";
-    CHECK_COND(arg1 == arg2, errmsg);
-
-    string typeName = arg1.str();
-
-    errmsg =
-        "Expecting the name of a registered distance function as "
-        "third argument, but got a list with structure '" +
-        arg3.convertToString() + "'!";
-    CHECK_COND(arg3.isSymbol(), errmsg);
-    string distfunName = arg3.str();
-
-    errmsg =
-        "Operator gdistance3 could not be used with distdata "
-        "attributes! Use gdistance or gdistance2 instead.";
-    CHECK_COND(typeName != DISTDATA, errmsg);
-
-    // check if the distdata type given in second argument is defined
-    errmsg = "Expecting the name of a registered distdata type as "
-            "second argument, but got a list with structure '" +
-            arg4.str() + "'!";
-    CHECK_COND(arg4.isSymbol(), errmsg);
-    string dataName = arg4.str();
-
-    if (dataName == DDATA_DEFAULT)
-    {
-        errmsg =
-            "No default distdata type defined for type \"" +
-            typeName + "\"!";
         dataName = DistDataReg::defaultName(typeName);
-        CHECK_COND(dataName != DDATA_UNDEFINED, errmsg);
-    }
-    else if(!DistDataReg::isDefined(typeName, dataName))
-    {
-        errmsg =
-            "Distdata type \"" + dataName + "\" for type \"" +
-            typeName + "\" is not defined! Defined names: \n\n" +
-            DistDataReg::definedNames(typeName);
-        CHECK_COND(false, errmsg);
-    }
 
-    if (distfunName == DFUN_DEFAULT)
-    {
-        distfunName = DistfunReg::defaultName(typeName);
-        errmsg =
-            "No default distance function defined for type \""
-            + typeName + "\"!";
-        CHECK_COND(distfunName != DFUN_UNDEFINED, errmsg);
-    }
-    else
-    { // search distfun
-        if (!DistfunReg::isDefined(
-                distfunName, typeName, dataName))
-        {
-            errmsg =
-                "Distance function \"" + distfunName +
-                "\" not defined for type \"" +
-                typeName + "\" and data type \"" +
-                dataName + "\"! " +
-                "Defined names: \n\n" +
-                DistfunReg::definedNames(typeName);
-            CHECK_COND(false, errmsg);
-        }
-    }
+    // check, if selected distdata type is defined
+    CHECK_DISTDATA_DEFINED(dataName);
+    CHECK_DISTFUN_DEFINED(distfunName, typeName, dataName);
 
     NList res1(APPEND);
     NList res2(NList(
@@ -766,6 +967,8 @@ ListExpr gdistance3_TM(ListExpr args)
     NList result(res1, res2, res3);
     return result.listExpr();
 }
+
+
 
 /********************************************************************
 1.1 Selection functions
@@ -782,6 +985,8 @@ int gdistance_Select(ListExpr args)
     return 0;
 }
 
+
+
 /********************************************************************
 1.1 Value mapping arrays
 
@@ -796,19 +1001,77 @@ ValueMapping gdistance2_Map[] = {
     gdistanceDD_VM<3>
 };
 
+ValueMapping gdistance3_Map[] = {
+    gdistance_VM<4>,
+    gdistanceDD_VM<4>
+};
+
+
 /********************************************************************
-1.1 Operator infos
+1.1.1 Operator Infos
 
 ********************************************************************/
+struct gethpoint_Info : OperatorInfo
+{
+    gethpoint_Info()
+    {
+    name      = "gethpoint";
+    signature = "DATA -> hpoint";
+    syntax    = "gethpoint(_)";
+    meaning   = "maps DATA to a hpoint, using the default "
+                "get-hpoint function";
+    example  =  "gethpoint(5)";
+  }
+};
+
+struct gethpoint2_Info : OperatorInfo
+{
+  gethpoint2_Info()
+  {
+    name      = "gethpoint2";
+    signature = "DATA x symbol -> hpoint";
+    syntax    = "gethpoint2(_, _)";
+    meaning   = "maps DATA to a hpoint, using the get-hpoint "
+                "function specified in arg2";
+    example   = "gethpoint2(5, native)";
+  }
+};
+
+struct getbbox_Info : OperatorInfo
+{
+    getbbox_Info()
+    {
+    name      = "getbbox";
+    signature = "DATA -> hrect";
+    syntax    = "getbbox(_)";
+    meaning   = "maps DATA to a hpoint, using the default "
+                "get-hrect function";
+    example  =  "getbbox(5)";
+  }
+};
+
+struct getbbox2_Info : OperatorInfo
+{
+  getbbox2_Info()
+  {
+    name      = "getbbox2";
+    signature = "DATA x symbol -> hrect";
+    syntax    = "getbbox2(_, _)";
+    meaning   = "maps DATA to a hpoint, using the get-hrect "
+                "function specified in arg2";
+    example   = "getbbox2(5, native)";
+  }
+};
+
 struct getdistdata_Info : OperatorInfo
 {
   getdistdata_Info()
   {
     name      = "getdistdata";
-    signature = "attribute -> distdata";
+    signature = "DATA -> distdata";
     syntax    = "getdistdata(_)";
-    meaning   = "returns the distdata attribute for the given "
-                "attribute, using the default distdata type";
+    meaning   = "maps DATA to a distdata attribute of the default "
+                "type for type constructor of DATA";
     example   = "getdistdata(5)";
   }
 };
@@ -818,11 +1081,11 @@ struct getdistdata2_Info : OperatorInfo
   getdistdata2_Info()
   {
     name      = "getdistdata2";
-    signature = "attribute x distdataName -> distdata";
-    syntax    = "getdistdata(_, _)";
-    meaning   = "returns the distdata attribute for the given "
-                "attribute, using the specified distdata type";
-    example   = "getdistdata(5, native)";
+    signature = "DATA x symbol -> distdata";
+    syntax    = "getdistdata2(_, _)";
+    meaning   = "maps DATA to a distdata attribute of the specified "
+                "distdata-type (arg2).";
+    example   = "getdistdata2(5, native)";
   }
 };
 
@@ -831,14 +1094,14 @@ struct gdistance_Info : OperatorInfo
   gdistance_Info()
   {
     name      = "gdistance";
-    signature = "attribute x attribute -> real";
+    signature = "DATA x DATA -> real";
     syntax    = "gdistance(_, _)";
     meaning   = "computes the distance between arg1 and arg2, "
                 "using the default distance function and default "
-                "datatype (distdata attributes use the assigned "
-                "datatype)";
+                "distdata-type (distdata attributes use the "
+                "assigned distdata-type)";
     example   = "gdistance(5, 2)";
-    remark    = "arg1 and arg2 must be of the same type";
+    remark    = "arg1 and arg2 must be of the same distdata-type";
   }
 };
 
@@ -847,14 +1110,14 @@ struct gdistance2_Info : OperatorInfo
   gdistance2_Info()
   {
     name      = "gdistance2";
-    signature = "attribute x attribute x distfunName -> real";
+    signature = "attribute x attribute x symbol -> real";
     syntax    = "gdistance2(_, _, _)";
     meaning   = "computes the distance between arg1 and arg2, "
-                "using the specified distance function and default "
-                "datatype (distdata attributes use the assigned "
-                "datatype)";
+                "using the specified distance function (arg3) and "
+                "the default distdata-type (distdata attributes use "
+                "the assigned datatype)";
     example   = "gdistance2(5, 2, euclid)";
-    remark    = "arg1 and arg2 must be of the same type";
+    remark    = "arg1 and arg2 must be of the same distdata-type, ";
   }
 };
 
@@ -863,68 +1126,94 @@ struct gdistance3_Info : OperatorInfo
   gdistance3_Info()
   {
     name      = "gdistance3";
-    signature = "attribute x attribute x distfunName x "
-                "distdataName -> real";
+    signature = "attribute x attribute x symbol x symbol -> real";
     syntax    = "gdistance3(_, _, _, _)";
     meaning   = "computes the distance between arg1 and arg2, "
-                "using the specified distance function and datatype";
+                "using the specified distance function (arg3) and "
+                "the the specified distdata-type (arg4) ";
     example   = "gdistance3(5, 2, euclid, native)";
     remark    = "arg1 and arg2 must be of the same type, "
-                "no distdata attributes";
+                "no distdata attributes allowed";
   }
 };
 
 /********************************************************************
-1 Create and initialize the Algebra
+1.1 Create and initialize the Algebra
 
 ********************************************************************/
-
-class GeneralTreeAlgebra : public Algebra
+class GeneralTreeAlgebra
+    : public Algebra
 {
-
-public:
+  public:
     GeneralTreeAlgebra() : Algebra()
     {
-        AddTypeConstructor(&distDataTC);
-        distDataTC.AssociateKind("DATA");
+        AddTypeConstructor(&hpoint_tc);
+        AddTypeConstructor(&hrect_tc);
+        AddTypeConstructor(&distdata_tc);
+
+        hpoint_tc.AssociateKind("DATA");
+        hrect_tc.AssociateKind("DATA");
+        distdata_tc.AssociateKind("DATA");
+
+        AddOperator(
+            gethpoint_Info(),
+            gethpoint_VM<1>,
+            gethpoint_TM<1>);
+
+        AddOperator(
+            gethpoint2_Info(),
+            gethpoint_VM<2>,
+            gethpoint_TM<2>);
+
+
+        AddOperator(
+            getbbox_Info(),
+            getbbox_VM<1>,
+            getbbox_TM<1>);
+
+        AddOperator(
+            getbbox2_Info(),
+            getbbox_VM<2>,
+            getbbox_TM<2>);
 
         AddOperator(
             getdistdata_Info(),
             getdistdata_VM<1>,
-            getdistdata_TM);
+            getdistdata_TM<1>);
 
         AddOperator(
             getdistdata2_Info(),
             getdistdata_VM<2>,
-            getdistdata2_TM);
+            getdistdata_TM<2>);
 
         AddOperator(
             gdistance_Info(),
             gdistance_Map,
             gdistance_Select,
-            gdistance_TM);
+            gdistance_TM<2>);
 
         AddOperator(
             gdistance2_Info(),
             gdistance2_Map,
             gdistance_Select,
-            gdistance2_TM);
+            gdistance_TM<3>);
 
-        AddOperator(
+       AddOperator(
             gdistance3_Info(),
-            gdistance_VM<4>,
-            gdistance3_TM);
+            gdistance3_Map,
+            gdistance_Select,
+            gdistance_TM<4>);
     }
 
     ~GeneralTreeAlgebra() {};
-};
+}; // class GeneralTreeAlgebra
 
-} // generalTree
+} // namespace gta
 
-generalTree::GeneralTreeAlgebra generalTreeAlgebra;
+gta::GeneralTreeAlgebra generalTreeAlgebra;
 
 extern "C"
-    Algebra* InitializeGeneralTreeAlgebra(
+Algebra* InitializeGeneralTreeAlgebra(
         NestedList *nlRef, QueryProcessor *qpRef)
 {
     nl = nlRef;
