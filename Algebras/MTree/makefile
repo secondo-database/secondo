@@ -22,9 +22,8 @@
 # makefile for MTreeAlgebra module
 #
 ########################################################################
-DOCU_FILES = MT1 MTreeAlgebra.h\
-	MTree.h MTreeBase.h MTreeConfig.h MTreeSplitpol.h\
-	MTreeAlgebra.cpp MTree.cpp MTreeConfig.cpp
+DOCU_FILES = MT1 MTreeAlgebra.h \
+	MTree.h MTreeBase.h MTreeConfig.h MTreeSplitpol.h
 
 DOCU = docu
 
@@ -52,4 +51,4 @@ clean:
 	$(clean-algebra)
 
 docu:	$(DOCU_FILES)
-	cat $^ > docu_mtree
+	cat $^ > mtree_docu
