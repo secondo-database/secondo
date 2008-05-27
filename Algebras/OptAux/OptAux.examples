@@ -3,8 +3,8 @@ Restore  : NO
 
 Operator : predcounts 
 Number   : 1
-Signature: xpoint x xrectangle -> bool
-Example  : query plz feed predcounts[b1: .PLZ > 10000, b2: .PLZ < 50000, b3: (.PLZ div 2) = 0] tconsume 
-Result   : (rel(tuple(Atom: int, Count: int) ((0 0)(1 1)(2 2)(3 3)))) 
+Signature: (stream(tuple(x)) x ( tuple(x) -> bool, ..., tuple(x) -> bool ) -> stream(tuple((Atom int)(Count int))))
+Example  : query ten feed predcounts [ a: .no<4 , b: .no>7 , c:.no=10 ] tconsume
+Result   : ( (trel (tuple ( (Atom int) (Count int) ))) ( (7 0) (6 1) (5 0) (4 0) (3 0) (2 2) (1 3) (0 4) ))
 
 
