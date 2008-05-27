@@ -207,6 +207,11 @@ template<unsigned paramCnt> int
         tuple->DeleteIfAllowed();
     }
     delete iter;
+
+    #ifdef __MTREE_PRINT_INSERT_INFO
+    cout << endl;
+    #endif
+
     return 0;
 }
 
@@ -262,6 +267,11 @@ int createmtreeStream_VM(
         qp->Request(stream, wTuple);
     }
     qp->Close(stream);
+
+    #ifdef __MTREE_PRINT_INSERT_INFO
+    cout << endl;
+    #endif
+
     return 0;
 }
 
@@ -387,6 +397,11 @@ int createmtreeDDRel_VM(
         tuple->DeleteIfAllowed();
     }
     delete iter;
+
+    #ifdef __MTREE_PRINT_INSERT_INFO
+    cout << endl;
+    #endif
+
     return 0;
 }
 
@@ -512,13 +527,18 @@ int createmtreeDDStream_VM(
     }
 
     qp->Close(stream);
+
+    #ifdef __MTREE_PRINT_INSERT_INFO
+    cout << endl;
+    #endif
+
     return 0;
 }
 
 /********************************************************************
 1.1.1.1 Search[_]LI
 
-Local Info object for the search classes.
+Local Info object for the search value mappings.
 
 ********************************************************************/
 struct search_LI
