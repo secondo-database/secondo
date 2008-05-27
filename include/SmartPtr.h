@@ -76,12 +76,8 @@ Both smart pointers classes provide the following methods:
      bool defined() const
      void reset()
      (Save)SmartPtr& clone()
-     template<class Base2T> (Save)SmartPtr<Base2T,CntrT> dynamicCast()
-     template<class Base2T> (Save)SmartPtr<Base2T,CntrT> staticCast()
 ----
 The "refs"[4] and "maxRefs"[4] methods could be used to return the current count of references and the maximum count of references, that the reference counter could store, unless it overflows. The "defined"[4] method returns "true"[4] if the smart pointer curently refers to an object. The "reset"[4] method removes the reference to the object (if no reference exists, nothing happens). The "clone"[4] method returns a new smart pointer, which refers to a copy of the refered object, that means, the refered object will also be copied. If only the reference counter should be increased, use the copy constructor instead.
-
-The cast methods are implemented as template methods and could be used to return a smart pointer of the template type. For this, the refered object is casted to the respective type by using "static[_]cast"[4] or "dynamic[_]cast"[4]. The new smart pointer refers to the same object and use the same reference counter.
 
 Beyond the mentioned methods, the following operators are avaliable:
 
@@ -95,8 +91,8 @@ The "="[4] operator could be used to assign a regular pointer, a "SmartPointer"[
 2 Includes and defines
 
 */
-#ifndef __SMART_PTR_H
-#define __SMART_PTR_H
+#ifndef __SMART_PTR_H____
+#define __SMART_PTR_H__
 
 #include <limits>
 
@@ -115,37 +111,27 @@ class SmartPtr; // forward declaration
 
 This class is used in the "SmartPtr"[4] and the "SaveSmartPtr"[4] class to provide a reference counter for a "BaseT"[4] instance. The type of the counter could be selected by the "CntrT"[4] template paremeter.
 
-The counter reference could be initiated with another counter reference, which is needed from the cast methods of the smart pointer classes to use the same counter for different "BaseT"[4] objects.
-
 ********************************************************************/
 template <typename BaseT, typename CntrT>
 class RCHandle
 {
 public:
-  inline RCHandle(BaseT* _ptr)
-  : cntr(new CntrT(1)), ptr(_ptr)
-  {}
 /*
 Constructor (creates a new RCHandle with one reference).
 
 */
+  inline RCHandle(BaseT* _ptr)
+    : cntr(1), ptr(_ptr)
+  {}
 
-  inline RCHandle(BaseT* _ptr, CntrT* _cntr)
-  : cntr(_cntr), ptr(_ptr)
-  { ++*cntr; }
-/*
-Constructor (creates a new RCHandle and increases the given reference counter).
-
-*/
-
-  inline ~RCHandle()
-  { delete cntr; delete ptr;}
 /*
 Destructor (removes the reference counter and pointer).
 
 */
+  inline ~RCHandle()
+  { delete ptr;}
 
-  CntrT* cntr; // the reference counter
+  CntrT cntr;       // the reference counter
   BaseT* const ptr; // pointer to refered object
 };
 
@@ -160,63 +146,58 @@ public:
   friend class SaveSmartPtr<BaseT, CntrT>;
   typedef CntrT counterType;
 
-  inline SmartPtr()
-  : rcHandle(0)
-  {}
 /*
 Constructor (creates a undefined smart pointer).
 
 */
+  inline SmartPtr()
+    : rcHandle(0)
+  {}
 
+/*
+Constructor (assigns "ptr"[4] to the new "SmartPtr"[4] instance).
+
+*/
   inline SmartPtr(BaseT* ptr)
-  : rcHandle(ptr ? new RCHandle<BaseT, CntrT>(ptr) : 0)
+    : rcHandle(ptr ? new RCHandle<BaseT, CntrT>(ptr) : 0)
   {}
-/*
-Constructor (assigns "ptr"[4] to the new "SmartPtr"[4] instance).
 
-*/
-
-  inline SmartPtr(BaseT* ptr, CntrT* cntr)
-  : rcHandle(ptr ? new RCHandle<BaseT, CntrT>(ptr, cntr) : 0)
-  {}
-/*
-Constructor (assigns "ptr"[4] to the new "SmartPtr"[4] instance).
-
-*/
-
-  inline SmartPtr(const SmartPtr<BaseT, CntrT>& ptr)
-  {
-    rcHandle = ptr.rcHandle;
-    if (defined())
-      ++*rcHandle->cntr;
-  }
 /*
 Copy constructor (increases reference counter).
 
 */
-
-
-  inline SmartPtr(const SaveSmartPtr<BaseT, CntrT>& ptr)
+  inline SmartPtr(const SmartPtr<BaseT, CntrT>& ptr)
   {
     rcHandle = ptr.rcHandle;
     if (defined())
-      ++*rcHandle->cntr;
+      ++rcHandle->cntr;
   }
+
 /*
 Copy constructor for "SaveSmartPtr"[4] (increases reference counter).
 
 */
-
-  inline ~SmartPtr()
+  inline SmartPtr(const SaveSmartPtr<BaseT, CntrT>& ptr)
   {
-    if (defined() && (--*rcHandle->cntr == 0))
-      delete rcHandle;
+    rcHandle = ptr.rcHandle;
+    if (defined())
+      ++rcHandle->cntr;
   }
+
 /*
 Destructor (decreases reference counter and deletes the assigned object, if no further references exist).
 
 */
+  inline ~SmartPtr()
+  {
+    if (defined() && (--rcHandle->cntr == 0))
+      delete rcHandle;
+  }
 
+/*
+Returns a new "SmartPointer"[4], which points to a deep copy of the refered object. The new pointer will have a reference count of 1.
+
+*/
   inline SmartPtr& clone() const
   {
     if (!defined())
@@ -224,37 +205,11 @@ Destructor (decreases reference counter and deletes the assigned object, if no f
     else
       return new SmartPtr(rcHandle->ptr->clone());
   }
+
 /*
-Returns a new "SmartPointer"[4], which points to a deep copy of the refered object. The new pointer will have a reference count of 1.
+Reference operator.
 
 */
-
-  template<class Base2T>
-  inline SmartPtr<Base2T,CntrT> staticCast() const
-  {
-    SmartPtr<Base2T, CntrT> result(
-        static_cast<Base2T*>(rcHandle->ptr), rcHandle->cntr);
-    return result;
-  }
-/*
-Returns a new SmartPtr, which uses the same ref. counter as the current one, but refers to a "Base2T"[4] object instead of a "BaseT"[4] object ("BaseT"[4] must be castable to "Base2T"[4]).
-
-*/
-
-  template<class Base2T>
-  inline SmartPtr<Base2T,CntrT> dynamicCast() const
-  {
-    SmartPtr<Base2T, CntrT> result(
-        dynamic_cast<Base2T*>(rcHandle->ptr), rcHandle->cntr);
-    return result;
-  }
-/*
-Returns a new "SmartPtr"[4], which uses the same ref. counter as the current one, but refers to a "Base2T"[4] object instead of a "BaseT"[4] object.
-
-"BaseT"[4] must be castable to "Base2T"[4], otherwhise the result will be set to undefined, which could be used to determine that the "dynamic[_]cast"[4] has been failed.
-
-*/
-
   inline BaseT* operator->()
   {
     if (!defined())
@@ -262,11 +217,11 @@ Returns a new "SmartPtr"[4], which uses the same ref. counter as the current one
     else
       return rcHandle->ptr;
   }
+
 /*
-Reference operator.
+Constant reference operator.
 
 */
-
   inline const BaseT* operator->() const
   {
     if (!defined())
@@ -274,43 +229,43 @@ Reference operator.
     else
       return rcHandle->ptr;
   }
-/*
-Constant reference operator.
 
-*/
-
-  inline SmartPtr<BaseT, CntrT>& operator=(
-      const SmartPtr<BaseT, CntrT>& rhs)
-  {
-    if (rhs.defined())
-      ++*rhs.rcHandle->cntr;
-
-    reset();
-
-    rcHandle = rhs.rcHandle;
-    return *this;
-  }
 /*
 Assignment operator (assigns another "SmartPtr"[4] instance to the current smart pointer).
 
 */
-
   inline SmartPtr<BaseT, CntrT>& operator=(
-      const SaveSmartPtr<BaseT, CntrT>& rhs)
+      const SmartPtr<BaseT, CntrT>& rhs)
   {
     if (rhs.defined())
-      ++*rhs.rcHandle->cntr;
+      ++rhs.rcHandle->cntr;
 
     reset();
 
     rcHandle = rhs.rcHandle;
     return *this;
   }
+
 /*
 Assignment operator (assigns a "SaveSmartPtr"[4] instance to the current pointer instance).
 
 */
+  inline SmartPtr<BaseT, CntrT>& operator=(
+      const SaveSmartPtr<BaseT, CntrT>& rhs)
+  {
+    if (rhs.defined())
+      ++rhs.rcHandle->cntr;
 
+    reset();
+
+    rcHandle = rhs.rcHandle;
+    return *this;
+  }
+
+/*
+Assignment operator (assigns a new "BaseT"[4] object to the current smart pointer).
+
+*/
   inline SmartPtr<BaseT, CntrT>& operator=(BaseT* rhs)
   {
     reset();
@@ -320,11 +275,11 @@ Assignment operator (assigns a "SaveSmartPtr"[4] instance to the current pointer
 
     return *this;
   }
+
 /*
-Assignment operator (assigns a new "BaseT"[4] object to the current smart pointer).
+Returns a reference to the reference counter.
 
 */
-
   inline CntrT* getRefCntr() const
   {
     if (rcHandle)
@@ -332,11 +287,11 @@ Assignment operator (assigns a new "BaseT"[4] object to the current smart pointe
     else
       return 0;
   }
+
 /*
-Returns a reference to the reference counter.
+Returns current count of references to the object.
 
 */
-
   inline CntrT refs() const
   {
     if (rcHandle)
@@ -344,21 +299,21 @@ Returns a reference to the reference counter.
     else
       return CntrT();
   }
-/*
-Returns current count of references to the object.
 
-*/
-
-  inline CntrT maxRefs() const
-  {
-    return numeric_limits<CntrT>::max();
-  }
 /*
 Returns the maximum number of referencses, which the counter can hold.
 
 
 */
+  inline CntrT maxRefs() const
+  {
+    return numeric_limits<CntrT>::max();
+  }
 
+/*
+Equal operator for assigned object references.
+
+*/
   friend inline bool operator==(
       const SmartPtr<BaseT, CntrT>& lhs,
       const SmartPtr<BaseT, CntrT>& rhs)
@@ -370,38 +325,34 @@ Returns the maximum number of referencses, which the counter can hold.
     else
       return lhs.rcHandle->ptr == rhs.rcHandle->ptr;
   }
-/*
-Equal operator for assigned object references.
 
-*/
-
-  friend inline bool operator!=(
-      const SmartPtr<BaseT, CntrT>& lhs,
-      const SmartPtr<BaseT, CntrT>& rhs)
-  { return !(lhs == rhs); }
 /*
 Unequal operator for assigned object references.
 
 */
+  friend inline bool operator!=(
+      const SmartPtr<BaseT, CntrT>& lhs,
+      const SmartPtr<BaseT, CntrT>& rhs)
+  { return !(lhs == rhs); }
 
-  inline bool defined() const
-  { return (rcHandle != 0); }
 /*
 Returns "true"[4], if an object has been assigned to the pointer.
 
 */
+  inline bool defined() const
+  { return (rcHandle != 0); }
 
-  inline void reset()
-  {
-    if (defined() && --*rcHandle->cntr == 0)
-      delete rcHandle;
-    rcHandle = 0;
-  }
 /*
 Removes object assignment and deletes the assigned object,
 if no further references exist.
 
 */
+  inline void reset()
+  {
+    if (defined() && --rcHandle->cntr == 0)
+      delete rcHandle;
+    rcHandle = 0;
+  }
 
 protected:
   RCHandle<BaseT, CntrT>* rcHandle;
@@ -421,22 +372,26 @@ public:
   friend class SmartPtr<BaseT, CntrT>;
   typedef CntrT counterType;
 
-  inline SaveSmartPtr()
-  : rcHandle(0)
-  {}
 /*
 Constructor (creates a undefined "SaveSmartPtr"[4] instance):
 
 */
-
-  inline SaveSmartPtr(BaseT* ptr)
-  : rcHandle(ptr ? new RCHandle<BaseT, CntrT>(ptr) : 0)
+  inline SaveSmartPtr()
+  : rcHandle(0)
   {}
+
 /*
 Constructor (assigns "ptr"[4] to the new "SaveSmartPtr"[4] instance).
 
 */
+  inline SaveSmartPtr(BaseT* ptr)
+  : rcHandle(ptr ? new RCHandle<BaseT, CntrT>(ptr) : 0)
+  {}
 
+/*
+Copy constructor (increases the reference counter. If neccesary, a copy of the refered object would be created instead).
+
+*/
   SaveSmartPtr(const SaveSmartPtr<BaseT, CntrT>& ptr)
   {
     /* increment reference counter of ptr - in case of counter
@@ -446,7 +401,7 @@ Constructor (assigns "ptr"[4] to the new "SaveSmartPtr"[4] instance).
       if(ptr.refs() < maxRefs())
       {
         rcHandle = ptr.rcHandle;
-        ++*rcHandle->cntr;
+        ++rcHandle->cntr;
       }
       else
       {
@@ -457,21 +412,21 @@ Constructor (assigns "ptr"[4] to the new "SaveSmartPtr"[4] instance).
     else
       rcHandle = 0;
   }
-/*
-Copy constructor (increases the reference counter. If neccesary, a copy of the refered object would be created instead).
 
-*/
-
-  inline ~SaveSmartPtr()
-  {
-    if (defined() && (--*rcHandle->cntr == 0))
-      delete rcHandle;
-  }
 /*
 Destructor (decreases reference counter and deletes the assigned object, if no further references exist).
 
 */
+  inline ~SaveSmartPtr()
+  {
+    if (defined() && (--rcHandle->cntr == 0))
+      delete rcHandle;
+  }
 
+/*
+Returns a new smart pointer, which points to a deep copy of the refered object. The new pointer will have a reference count of 1.
+
+*/
   inline SaveSmartPtr& clone() const
   {
     if (!defined())
@@ -479,37 +434,11 @@ Destructor (decreases reference counter and deletes the assigned object, if no f
     else
       return new SaveSmartPtr(rcHandle->ptr->clone());
   }
+
 /*
-Returns a new smart pointer, which points to a deep copy of the refered object. The new pointer will have a reference count of 1.
+Reference operator.
 
 */
-
-  template<class Base2T>
-  inline SmartPtr<Base2T,CntrT> staticCast() const
-  {
-    SmartPtr<Base2T, CntrT> result(
-        static_cast<Base2T*>(rcHandle->ptr), rcHandle->cntr);
-    return result;
-  }
-/*
-Returns a new SmartPtr, which uses the same ref. counter as the current one, but refers to a "Base2T"[4] object instead of a "BaseT"[4] object. ("BaseT"[4] must be castable to "Base2T"[4]).
-
-*/
-
-  template<class Base2T>
-  inline SmartPtr<Base2T,CntrT> dynamicCast() const
-  {
-    SmartPtr<Base2T, CntrT> result(
-        dynamic_cast<Base2T*>(rcHandle->ptr), rcHandle->cntr);
-    return result;
-  }
-/*
-Returns a new "SaveSmartPtr"[4], which uses the same ref. counter as the current one, but refers to a "Base2T"[4] object instead of a "BaseT"[4] object.
-
-"BaseT"[4] must be castable to "Base2T"[4], otherwhise the result will be set to undefined, which could be used to determine that the "dynamic[_]cast"[4] has been failed.
-
-*/
-
   inline BaseT* operator->()
   {
     if (!defined())
@@ -517,11 +446,11 @@ Returns a new "SaveSmartPtr"[4], which uses the same ref. counter as the current
     else
       return rcHandle->ptr;
   }
+
 /*
-Reference operator.
+Constant reference oparator.
 
 */
-
   inline const BaseT* operator->() const
   {
     if (!defined())
@@ -529,11 +458,11 @@ Reference operator.
     else
       return rcHandle->ptr;
   }
+
 /*
-Constant reference oparator.
+Assignment operator (assigns another "SaveSmartPtr"[4] instance to the current pointer instance).
 
 */
-
   SaveSmartPtr<BaseT, CntrT>& operator=(
       const SaveSmartPtr<BaseT, CntrT>& rhs)
   {
@@ -544,7 +473,7 @@ Constant reference oparator.
     {
       if(rhs.refs() < maxRefs())
       {
-        ++*rhs.rcHandle->cntr;
+        ++rhs.rcHandle->cntr;
         newRCHandle = rhs.rcHandle;
       }
       else
@@ -557,18 +486,18 @@ Constant reference oparator.
        newRCHandle = 0;
 
     // remove currently stored reference
-    if (defined() && (--*rcHandle->cntr == 0))
+    if (defined() && (--rcHandle->cntr == 0))
       delete rcHandle;
 
     // assign new reference counter
     rcHandle = newRCHandle;
     return *this;
   }
+
 /*
-Assignment operator (assigns another "SaveSmartPtr"[4] instance to the current pointer instance).
+Assignment operator (assigns a "SmartPtr"[4] instance to the current pointer instance).
 
 */
-
   SaveSmartPtr<BaseT, CntrT>& operator=(
       const SmartPtr<BaseT, CntrT>& rhs)
   {
@@ -579,7 +508,7 @@ Assignment operator (assigns another "SaveSmartPtr"[4] instance to the current p
     {
       if(rhs.refs() < maxRefs())
       {
-        ++*rhs.rcHandle->cntr;
+        ++rhs.rcHandle->cntr;
         newRCHandle = rhs.rcHandle;
       }
       else
@@ -592,21 +521,21 @@ Assignment operator (assigns another "SaveSmartPtr"[4] instance to the current p
        newRCHandle = 0;
 
     // remove currently stored reference
-    if (defined() && (--*rcHandle->cntr == 0))
+    if (defined() && (--rcHandle->cntr == 0))
       delete rcHandle;
 
     // assign new reference counter
     rcHandle = newRCHandle;
     return *this;
   }
+
 /*
-Assignment operator (assigns a "SmartPtr"[4] instance to the current pointer instance).
+Assignment operator (assigns a new object reference to the current pointer instance).
 
 */
-
   inline SaveSmartPtr<BaseT, CntrT>& operator=(BaseT* rhs)
   {
-    if (defined() && (--*rcHandle->cntr == 0))
+    if (defined() && (--rcHandle->cntr == 0))
       delete rcHandle;
 
     if (rhs)
@@ -614,11 +543,11 @@ Assignment operator (assigns a "SmartPtr"[4] instance to the current pointer ins
 
     return *this;
   }
+
 /*
-Assignment operator (assigns a new object reference to the current pointer instance).
+Returns a reference to the reference counter.
 
 */
-
   inline CntrT* getRefCntr() const
   {
     if (rcHandle)
@@ -626,11 +555,11 @@ Assignment operator (assigns a new object reference to the current pointer insta
     else
       return 0;
   }
+
 /*
-Returns a reference to the reference counter.
+Returns current count of references to the object.
 
 */
-
   inline CntrT refs() const
   {
     if (rcHandle)
@@ -638,20 +567,20 @@ Returns a reference to the reference counter.
     else
       return CntrT();
   }
-/*
-Returns current count of references to the object.
 
-*/
-
-  inline CntrT maxRefs() const
-  {
-    return numeric_limits<CntrT>::max();
-  }
 /*
 Returns the maximum number of referencses, which the counter can hold.
 
 */
+  inline CntrT maxRefs() const
+  {
+    return numeric_limits<CntrT>::max();
+  }
 
+/*
+Equal operator for assigned object references.
+
+*/
   friend inline bool operator==(
       const SaveSmartPtr<BaseT, CntrT>& lhs,
       const SaveSmartPtr<BaseT, CntrT>& rhs)
@@ -663,91 +592,37 @@ Returns the maximum number of referencses, which the counter can hold.
     else
       return lhs.rcHandle->ptr == rhs.rcHandle->ptr;
   }
-/*
-Equal operator for assigned object references.
 
-*/
-
-  friend inline bool operator!=(
-      const SaveSmartPtr<BaseT, CntrT>& lhs,
-      const SaveSmartPtr<BaseT, CntrT>& rhs)
-  { return !(lhs == rhs); }
 /*
 Unequal operator for assigned object references.
 
 */
+  friend inline bool operator!=(
+      const SaveSmartPtr<BaseT, CntrT>& lhs,
+      const SaveSmartPtr<BaseT, CntrT>& rhs)
+  { return !(lhs == rhs); }
 
-  inline bool defined() const
-  { return rcHandle != 0; }
 /*
 Returns "true"[4], if an object has been assigned to the pointer.
 
 */
+  inline bool defined() const
+  { return rcHandle != 0; }
 
-  inline void reset()
-  {
-    if (defined() && --*rcHandle->cntr == 0)
-      delete rcHandle;
-    rcHandle = 0;
-  }
 /*
 Removes object assignment and deletes the assigned object, if no further references exist.
 
 */
+  inline void reset()
+  {
+    if (defined() && --rcHandle->cntr == 0)
+      delete rcHandle;
+    rcHandle = 0;
+  }
 
 protected:
   RCHandle<BaseT, CntrT>* rcHandle;
   // reference counter and ref. to object
 };
 
-/*
-4 Cast methods
-
-The following methods could be used, if the cast method of the smart pointer classes could not be used, e.g. if they are needed within template classes (calling template member methods from template classes seems curently not to work when compiling secondo under windows).
-
-The "SrcT"[4] and "TargetT"[4] template parameter must be the "BaseT"[4] type of the "node"[4] and the result object, respectively. The "CntrT"[4] must be the common counter type of both objects, which could be obtained from the "counterType"[4] typedef in the smart pointer classes.
-
-*/
-namespace smart_pointer
-{
-  template<class SrcT, class TargetT, class CntrT>
-  inline SmartPtr<TargetT, CntrT> staticCast(
-      SmartPtr<SrcT, CntrT> node)
-  {
-    SmartPtr<TargetT, CntrT> result(static_cast<TargetT*>(
-        node.operator->()), node.getRefCntr());
-    return result;
-  }
-
-  template<class SrcT, class TargetT, class CntrT>
-  inline SmartPtr<TargetT, CntrT> dynamicCast(
-      SmartPtr<SrcT, CntrT> node)
-  {
-    SmartPtr<TargetT, CntrT> result(dynamic_cast<TargetT*>(
-        node.operator->()), node.getRefCntr());
-    return result;
-  }
-} // namespace smart_pointer
-
-namespace save_smart_pointer
-{
-  template<class SrcT, class TargetT, class CntrT>
-  inline SaveSmartPtr<TargetT, CntrT> staticCast(
-      SaveSmartPtr<SrcT, CntrT> node)
-  {
-    SaveSmartPtr<TargetT, CntrT> result(static_cast<TargetT*>(
-        node.operator->()), node.getRefCntr());
-    return result;
-  }
-
-  template<class SrcT, class TargetT, class CntrT>
-  inline SaveSmartPtr<TargetT, CntrT> dynamicCast(
-      SaveSmartPtr<SrcT, CntrT> node)
-  {
-    SaveSmartPtr<TargetT, CntrT> result(dynamic_cast<TargetT*>(
-        node.operator->()), node.getRefCntr());
-    return result;
-  }
-} // namespace save_smart_pointer
-
-#endif // #ifndef __SMART_PTR_H
+#endif // #ifndef __SMART_PTR_H__
