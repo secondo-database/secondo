@@ -317,9 +317,24 @@ Returns the size of the entry on disc.
         }
     }
 
+/*
+Returns the Euclidean distance between "p"[4] and the entry data (if the data is no point, the distance to the center of the bounding box is returned).
+
+*/
+    double dist(HPoint *p)
+    {
+        if (m_isPoint)
+            return SpatialDistfuns::euclDist(p, m_point);
+        else
+        {
+            HPoint c = m_bbox->center();
+            return SpatialDistfuns::euclDist(p, &c);
+        }
+    }
+
 private:
     TupleId   m_tid;      // tuple-id of the entry
-    bool      m_isPoint; // true, if m_spatial is a HPoint
+    bool      m_isPoint;  // true, if data is point data
     HRect     *m_bbox;    // bounding box of the entry
     HPoint    *m_point;   // used for point data
 }; // class LeafEntry
