@@ -318,6 +318,17 @@ of the rectangle.
       return 0;  
     }
 
+    inline const Rectangle<dim>& Extend(const double b);
+/*
+~Extend~
+
+Enlarges this rectangle with a border of size ~b~. The function 
+changes the ~this~ object and returns it.
+
+*/
+  
+
+    
 
 
     inline bool Adjacent( const Attribute *arg ) const
@@ -628,6 +639,17 @@ inline Rectangle<dim>& Rectangle<dim>::Translate( const double t[dim] )
   }
   return *this;
 }
+
+template <unsigned dim>
+inline const Rectangle<dim>& Rectangle<dim>::Extend(const double b){
+   assert(b>=0.0);
+   for(unsigned int i=0;i<dim;i++){
+      min[i] -=b;
+      max[i] +=b;
+   }
+   return  *this;
+}
+
 
 /*
 Returns the bounding box of the rectangle; this bounding Box is a clone

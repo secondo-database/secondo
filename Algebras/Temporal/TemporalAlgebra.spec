@@ -64,3 +64,9 @@ operator samplempoint alias SAMPLEMPOINT pattern op ( _ , _ )
 operator gps alias GPS pattern op(_, _)
 operator disturb alias DISTURB pattern _ op [_, _]
 operator length alias LENGTH pattern op ( _ )
+
+
+operator equalizeU alias EQUALIZEU pattern _ op [_]
+operator vertices alias VERTICES pattern op( _ )
+
+

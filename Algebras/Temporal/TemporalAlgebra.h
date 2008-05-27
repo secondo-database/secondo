@@ -73,6 +73,7 @@ The type system of the Temporal Algebra can be seen below.
 #define _TEMPORAL_ALGEBRA_H_
 
 #include <iostream>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include "NestedList.h"
@@ -287,6 +288,9 @@ A flag indicating that the interval is right-closed.
 */
 
 };
+
+template<class alpha>
+ostream& operator<<(ostream& o, const Interval<alpha>& u);
 
 /*
 3.3 Range
@@ -1099,6 +1103,8 @@ ostream& operator<<(ostream& o, const StandardTemporalUnit<Alpha> u)
 {
   return  u.Print(o);
 }
+
+
 
 /*
 3.7 SpatialTemporalUnit
@@ -2110,6 +2116,9 @@ Calculates the spatial length of the unit
   Point p0, p1;
 };
 
+
+ostream& operator<<(ostream& o, const UPoint& u);
+
 /*
 3.9 Mapping
 
@@ -2748,6 +2757,19 @@ using a check on bbox.
 */
     void BreakPoints(Points& result, const DateTime& dur) const;
 
+
+/*
+3.10.5.5 Operation ~Vertices~
+
+
+This operations stores the ends of the units into a ~points~ value.
+
+*/
+
+   void Vertices(Points& result) const;
+
+
+
 /*
 3.10.5.6 Operation ~TranslateAppend~
 
@@ -2837,9 +2859,9 @@ Returns the MPoint's minimum bounding rectangle
   void RestoreBoundingBox(const bool force = false);
 
 
-void EqualizeUnits(const double epsilon,
-                   const DateTime& dur,
-                   MPoint& result) const;
+void EqualizeUnitsSpatial(const double epsilon,
+                          MPoint& result, 
+                          const bool skipSplit = false) const;
 
 
 

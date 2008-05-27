@@ -134,6 +134,21 @@ const double MINDOUBLE = numeric_limits<double>::min();
 3.1 Class ~UReal~
 
 */
+
+template<class alpha>
+ostream& operator<<(ostream& o, const Interval<alpha>& u){
+   return u.Print(o);
+}
+
+ostream& operator<<(ostream& o, const UPoint& u){
+   if(!u.IsDefined()){
+       o << "Undefined";
+   } else {
+       o << "UPoint[" << u.timeInterval << ", " << u.p0 << ", " << u.p1 << "]";
+   }
+   return o;
+}
+
 void UReal::TemporalFunction( const Instant& t,
                               CcReal& result,
                               bool ignoreLimits ) const
@@ -3357,6 +3372,13 @@ double qdist(const Point& p1, const Point& p2){
    return dx*dx + dy*dy;
 }
 
+double qdist(const double& x1, const double& y1,
+             const double& x2, const double& y2){
+   double dx = x2-x1;
+   double dy = y2-y1;
+   return dx*dx + dy*dy;
+}
+
 struct cluster {
    double cx;
    double cy;
@@ -3364,9 +3386,389 @@ struct cluster {
    bool forbidden ;
 };
 
-void MPoint::EqualizeUnits(const double epsilon,
-                           const DateTime&  dur,
-                           MPoint& result) const{
+
+int indexOfNearestCluster( const mmrtree::Rtree<2>& tree, 
+                           const Point& p,
+                           const vector<cluster>& clusters,
+                           const double& eps){
+  double eps2 = eps*eps;
+  int res = -1;
+  double bestDist = eps2 + 10.0;  // a value greater than eps2
+  // build a rectangle around p
+  double min[2];
+  double max[2];
+  double x = p.GetX();
+  double y = p.GetY();
+  min[0] = x - eps - FACTOR;
+  min[1] = y - eps - FACTOR;
+  max[0] = x + eps + FACTOR;
+  max[1] = y + eps + FACTOR;
+  Rectangle<2> searchbox(true,min,max);
+
+  set<long> cands;
+  tree.findAll(searchbox, cands);
+  set<long>::iterator it;
+  for(it = cands.begin(); it!=cands.end(); it++){
+   cluster c = clusters[*it];
+   double d = qdist(c.cx,c.cy,x,y);
+   if((d <= eps2) && (d < bestDist) && !c.forbidden){
+     bestDist = d;
+     res = *it;
+   }
+  }
+  return res;
+}
+
+
+// forward declaration
+void insertPoint(mmrtree::Rtree<2>& tree, 
+                 const vector<Point>& points,
+                 const int pos,
+                 vector<cluster>& clusters,
+                 const double& eps);
+
+void repairClusterAt(const int index,
+                     mmrtree::Rtree<2>& tree,
+                     vector<cluster>& clusters,
+                     const vector<Point>& points,
+                     const double& eps){
+  double eps2 = eps*eps;
+  clusters[index].forbidden = true;
+  double cx = clusters[index].cx;
+  double cy = clusters[index].cy;
+  // store all invalid points to wrong
+  set<int>wrong;
+  set<int>::iterator it;
+  for(it = clusters[index].member.begin();
+      it != clusters[index].member.end();
+      it++){
+    Point p = points[*it];
+    double d = qdist(cx,cy,p.GetX(),p.GetY());
+    if(d>eps2){
+      wrong.insert(*it); 
+    }
+  }
+  // remove invalid points
+  for(it=wrong.begin();it!=wrong.end();it++){
+    clusters[index].member.erase(*it);
+  } 
+
+  // insert points again
+  for(it =wrong.begin(); it!=wrong.end(); it++){
+    insertPoint(tree,points,*it,clusters,eps);
+  }  
+  
+  clusters[index].forbidden = false;
+
+}
+
+
+void insertPoint(mmrtree::Rtree<2>& tree, 
+                 const vector<Point>& points,
+                 const int pos,
+                 vector<cluster>& clusters,
+                 const double& eps){
+
+   Point p = points[pos];
+   int index = indexOfNearestCluster(tree, p, clusters, eps);
+   double x = p.GetX();
+   double y = p.GetY();
+   double min[2];
+   double max[2];
+   if(index < 0){ // no matching cluster exists, create a new one
+      cluster c;
+      c.cx = x;
+      c.cy = y;
+      c.member.insert(pos);
+      c.forbidden = false;
+      clusters.push_back(c);
+      min[0] = x - FACTOR;
+      max[0] = x + FACTOR;
+      min[1] = y - FACTOR;
+      max[1] = y + FACTOR;
+      Rectangle<2> box(true,min,max);
+      tree.insert(box, clusters.size()-1);
+      return;
+   }
+
+   clusters[index].member.insert(pos);
+   double cx = clusters[index].cx;
+   double cy = clusters[index].cy;
+   int s = clusters[index].member.size();
+   clusters[index].cx = ((cx * (s - 1.0) + x) / s);
+   clusters[index].cy = ((cy * (s - 1.0) + y) / s);
+
+   min[0] = cx - FACTOR;
+   min[1] = cy - FACTOR;
+   max[0] = cx + FACTOR;
+   max[1] = cy + FACTOR;
+   Rectangle<2> erasebox(true,min,max);
+   tree.erase(erasebox,index);
+
+   min[0] = clusters[index].cx - FACTOR;
+   min[1] = clusters[index].cy - FACTOR;
+   max[0] = clusters[index].cx + FACTOR;
+   max[1] = clusters[index].cy + FACTOR;
+
+   Rectangle<2> newCenter(true,min,max);
+   tree.insert(newCenter,index);
+   repairClusterAt(index, tree, clusters, points, eps);
+}
+
+void insertPointSimple(mmrtree::Rtree<2>& tree, 
+                       const vector<Point>& points,
+                       const int pos,
+                       vector<cluster>& clusters,
+                       const double& eps ){
+    Point p = points[pos];
+    int index = indexOfNearestCluster(tree, p, clusters, eps);
+    assert(index>=0);
+    clusters[index].member.insert(pos);
+}
+
+void getCenter(const set<int>& indexes, 
+               const vector<Point>& points, 
+               double& x, double& y){
+ x = 0;
+ y = 0;
+ int size = indexes.size();
+ if(size==0){
+   cout << "indexes smaller than zero" << endl;
+   return;
+ }
+ set<int>::const_iterator it;
+ for(it=indexes.begin();it!=indexes.end();it++){
+     x += points[*it].GetX();
+     y += points[*it].GetY();
+ }
+ x = x / size;
+ y = y / size;
+
+}
+
+
+/*
+~recomputeCenter~
+
+Computes the center of a cluster from the members.
+
+*/
+void recomputeCenters(vector<cluster>& clusters, 
+                      const vector<Point>& points){
+  vector<cluster>::iterator it;
+  for(it = clusters.begin(); it!=clusters.end();it++){
+     getCenter(it->member,points,it->cx,it->cy);
+  }
+}
+
+
+
+map<Point, Point>* assignCluster(const vector<Point>& points, 
+                                 const double& eps,
+                                 vector<Point>& centers){
+
+  vector<cluster> clusters;
+
+  mmrtree::Rtree<2> tree(10,30);
+  for(unsigned int i=0;i<points.size();i++){
+    insertPoint(tree, points, i, clusters,eps);
+  }
+
+  // redistribute points
+  for(unsigned int i = 0; i< clusters.size();i++){
+    clusters[i].member.clear();
+  }
+
+  for(unsigned int i=0;i<points.size();i++){
+    insertPointSimple(tree,points,i,clusters,eps);
+  }
+
+  // correct the centers
+  recomputeCenters(clusters,points);
+
+  // store as a map
+  map<Point, Point>* result= new map<Point, Point>();
+  for(unsigned int i=0;i<clusters.size();i++){
+    cluster c = clusters[i];
+    Point center(true,c.cx,c.cy);
+    set<int>::iterator it;
+    centers.push_back(center);
+    for(it=clusters[i].member.begin(); it!=clusters[i].member.end(); it++){
+       Point p = points[*it];
+       (*result)[p] = center;
+    }
+  }
+  return result;
+}
+
+
+const double NinetyDegree = PI/2.0;
+
+class DoublePoint{
+ public:
+  DoublePoint(const double d1, const Point p1):d(d1),p(p1){}
+
+  DoublePoint(const DoublePoint& dp):d(dp.d),p(dp.p){}
+
+  DoublePoint& operator=(const DoublePoint& dp){
+    this->d = dp.d;
+    this->p = dp.p;
+    return *this;
+  }
+
+
+  bool operator<(const DoublePoint& dp)const{
+    return !AlmostEqual(d,dp.d) && d < dp.d;
+  }
+  bool operator==(const DoublePoint& dp)const{
+    return AlmostEqual(d,dp.d);
+  }
+
+
+  double d;
+  Point p;
+};
+
+
+/*
+~Split~
+
+Determines such points within ~cands~ whose distance to the 
+trajectory (a segment) of the unit is smaller than ~eps~ div 2. If so, the 
+foot of the point to the segment is determined. If the foot is located
+on the segment, the unit is split at those positions and the parts are
+inserted into result. If no such point is found, the complete unit is inserted
+into the result.
+
+*/
+void split(const UPoint unit, 
+           const set<long>& cands, 
+           const vector<Point>& points, 
+           MPoint& result, 
+           const double eps){
+
+   // special case, not a segment
+   if(AlmostEqual(unit.p0, unit.p1)){ 
+     // nothing to split, just copy the unit
+     result.Add(unit);
+     return;
+   }
+
+   // at least the end points must be contained in cands
+   if(cands.size() < 3 ){ // only the two endpoints
+     result.Add(unit);
+     return;
+   }
+
+   set<DoublePoint> splitElements;
+
+   Point p0 = unit.p0;
+   Point p1 = unit.p1;
+   HalfSegment hs(true,unit.p0,unit.p1);
+
+   double len = p0.Distance(p1); 
+    
+   // determine the split positions as set of double values
+
+   set<long>::iterator cit;
+
+   for(cit=cands.begin(); cit!=cands.end(); cit++){
+      // check this computation
+      Point R = points[*cit];
+
+      if(hs.Contains(R)){
+        if(!AlmostEqual(R,p0)){
+          double splitPos = p0.Distance(R) / len;
+          DoublePoint dp(splitPos,R);
+          splitElements.insert(dp);
+        } 
+      } else {
+        double x = p0.GetX();
+        double y = p0.GetY();
+        double dx = p1.GetX()-x;
+        double dy = p1.GetY()-y;
+
+        double dx2,dy2;
+        if(AlmostEqual(dy,0)){
+           dx2 = 0;
+           dy2 = 1;
+        } else if(AlmostEqual(dx,0)){ 
+          dx2 = 1;
+          dy2 = 0;
+        } else {
+          dx2 = 1; 
+          dy2 = -dx/dy;
+        }     
+        double x2 = R.GetX();
+        double y2 = R.GetY();
+        double t1,t2;
+        if(!AlmostEqual(dx,0)){
+           t2 = (y2*dx + x*dy -x2*dy - dx*y) / (dx2*dy - dy2*dx);
+           t1 = (x2+t2*dx2-x)/dx;
+        } else {
+           t1 = (y2*dx2 + x*dy2 -x2*dy2 - y*dx2) / (dy*dx2 - dx*dy2);
+           t2 = (x+t1*dx-x2)/dx2;
+        }
+        double fx = x + t1*dx;
+        double fy = y + t1*dy;
+        Point f(true,fx,fy);
+        if( (R.Distance(f) < eps/2) && (t1>=0) && (t1<=1)){
+          DoublePoint dp(t1,R);
+          splitElements.insert(dp);
+        } // foot outside hs
+      } // point outside hs
+   } // for all candidates
+
+
+
+   if(splitElements.size()<2){ // only the endpoint is member of splitPoints
+     result.Add(unit);
+     return;
+   }
+
+   set<DoublePoint>::iterator it;
+   
+
+   // split the unit  
+   bool      lastLC = unit.timeInterval.lc;
+   double    lastSplit = 0;
+   Point     lastPoint = p0;
+   Instant   lastTime = unit.timeInterval.start;
+   Instant   startTime = unit.timeInterval.start;
+   DateTime dur = unit.timeInterval.end - unit.timeInterval.start;
+   DateTime tmp(durationtype);
+  
+   for(it = splitElements.begin(); it!=splitElements.end();it++){
+      DoublePoint dp = *it;
+      double sE = dp.d;
+      if(!AlmostEqual(lastSplit,sE)){
+        // compute the splitPoint
+        Point sP = dp.p;
+        if(!AlmostEqual(sP,lastPoint)){
+           DateTime copy(dur);
+           copy.Split(sE,tmp);
+           if(!copy.IsZero()){
+              DateTime end = startTime + copy;
+              Interval<Instant> interval(lastTime,end,
+                                         lastLC, !lastLC);
+              if(AlmostEqual(sP,p1)){
+                interval.rc = (unit.timeInterval.rc);
+              }
+              UPoint u(interval,lastPoint,sP);
+              result.Add(u);
+              lastSplit = sE;
+              lastPoint = sP;
+              lastTime = end;
+           } 
+        }
+      }
+   }
+}
+
+
+void MPoint::EqualizeUnitsSpatial(const double epsilon,
+                                  MPoint& result,
+                                  bool skipSplit/* = false*/) const{
    result.Clear();
 
    int size = GetNoComponents();
@@ -3375,19 +3777,76 @@ void MPoint::EqualizeUnits(const double epsilon,
    }
 
    // step 1: collect all unit-endpoints within a set
-   set<Point> endPoints;
+   set<Point> endPoints1;
    const UPoint* unit;
    for(int i=0;i< GetNoComponents(); i++){
        Get(i,unit);
-       endPoints.insert(unit->p0);
-       endPoints.insert(unit->p1);
+       endPoints1.insert(unit->p0);
+       endPoints1.insert(unit->p1);
    }
+   // copy points from the set to a vector
+   vector<Point>  endPoints;
+
+   set<Point>::iterator it;
+   for(it=endPoints1.begin(); it!=endPoints1.end(); it++){
+     endPoints.push_back(*it);
+   }  
+
    // step 2: build cluster and move the endpoints to the centers
-   //         of them
-   //double eps = epsilon * epsilon;
-//   vector<cluster>
+   vector<Point> centers;
+   map<Point , Point>* clusters = assignCluster(endPoints,epsilon,centers);
 
+  if(skipSplit){
+    UPoint resUnit(0);
+    //result.StartBulkLoad();   
+    for(int i=0;i<GetNoComponents(); i++){
+      Get(i,unit);
+      resUnit = *unit;
+      Point p = unit->p0;
+      resUnit.p0 = (*clusters)[p];
+      resUnit.p1 = (*clusters)[unit->p1];
+      result.MergeAdd(resUnit);
+    }
+    //result.EndBulkLoad();
+    delete clusters;
+    return;
+  }
+   
 
+   MPoint tmp(GetNoComponents());
+   UPoint resUnit(0);
+   tmp.StartBulkLoad();   
+   for(int i=0;i<GetNoComponents(); i++){
+      Get(i,unit);
+      resUnit = *unit;
+      Point p = unit->p0;
+      resUnit.p0 = (*clusters)[p];
+      resUnit.p1 = (*clusters)[unit->p1];
+      tmp.MergeAdd(resUnit);
+   }
+   tmp.EndBulkLoad();
+
+   // split units at center
+   mmrtree::Rtree<2> tree(10,30);
+   for(unsigned int i=0;i<centers.size();i++){
+       tree.insert(centers[i].BoundingBox(),i);
+   }  
+
+   set<long> cands;
+   result.StartBulkLoad();
+   for(int i=0;i<tmp.GetNoComponents();i++){
+       tmp.Get(i,unit);
+       if(AlmostEqual(unit->p0,unit->p1)){
+          result.MergeAdd(*unit);
+       } else {
+          HalfSegment hs(true,unit->p0,unit->p1);
+          Rectangle<2> box = hs.BoundingBox();
+          tree.findAll(box.Extend(epsilon),cands);
+          split(*unit,cands,centers,result,epsilon);
+       }
+   }
+   result.EndBulkLoad();
+   delete clusters;
 
 
 }
@@ -3709,6 +4168,27 @@ double MPoint::Length() const{
   }
   return res;
 }
+
+
+   void MPoint::Vertices(Points& result) const{
+     result.Clear();
+     if(!IsDefined()){
+        result.SetDefined(false);
+        return;
+     }
+
+     result.StartBulkLoad();
+     const UPoint* unit;
+     int size = units.Size();
+     for(int i=0;i<size;i++){
+        units.Get(i,unit);
+        result += unit->p0;
+        result += unit->p1;
+     } 
+     result.EndBulkLoad();
+   }
+
+
 
 /*
 4 Type Constructors
@@ -5793,6 +6273,24 @@ ListExpr MovingTypeMapBreakPoints(ListExpr args){
 }
 
 /*
+16.1.12 Type mapping for the ~vertices~  operator
+
+*/
+
+ListExpr MovingTypeMapVertices(ListExpr args){
+   if(nl->ListLength(args)!=1){
+       ErrorReporter::ReportError("mpoint expected");
+       return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   if(nl->IsEqual(arg1,"mpoint")){
+       return nl->SymbolAtom("points");
+   }
+   ErrorReporter::ReportError("mpoint expected");
+   return nl->TypeError();
+}
+
+/*
 16.1.12 Type mapping function of the ~integrate~ Operator
 
 */
@@ -6535,6 +7033,53 @@ ListExpr LengthTypeMap(ListExpr args){
 }
 
 
+/*
+~TypeMapping mpoint x real -> mpoint ~
+
+
+*/
+ListExpr MPointRealTypeMapMPoint(ListExpr args){
+   string err = "mpoint x real expected";
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"mpoint") &&
+      nl->IsEqual(nl->Second(args),"real")){
+      return nl->SymbolAtom("mpoint");
+   } 
+   ErrorReporter::ReportError(err);
+   return nl->TypeError();
+}
+
+
+/*
+~TypeMapping~ for operator equalizeU
+
+ Signature is mpoint x real [ x bool] -> mpoint
+
+
+*/
+ListExpr EqualizeUTM(ListExpr args){
+   string err = "mpoint x real [x bool] expected";
+   int len = nl->ListLength(args);
+   if((len!=2) && (len!=3)){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"mpoint") &&
+      nl->IsEqual(nl->Second(args),"real")){
+      if(len==2){
+         return nl->SymbolAtom("mpoint");
+      } else { // len ==3
+        if(nl->IsEqual(nl->Third(args),"bool")){
+           return nl->SymbolAtom("mpoint");
+        }
+      }
+   } 
+   ErrorReporter::ReportError(err);
+   return nl->TypeError();
+}
 
 /*
 16.2 Selection function
@@ -7915,6 +8460,18 @@ int MPointBreakPoints(Word* args, Word& result,
 }
 
 /*
+16.3.29 Value mapping function for the operator ~vertices~
+
+*/
+int Vertices(Word* args, Word& result,
+                   int message, Word& local,
+                   Supplier s){
+  result = qp->ResultStorage( s );
+  ((MPoint*)args[0].addr)->Vertices(*((Points*)result.addr));
+  return 0;
+}
+
+/*
 16.3.31 Value mapping functions of operator ~bbox~
 
 */
@@ -9054,6 +9611,27 @@ int MPointAtPeriods( Word* args, Word& result, int message,
   return 0;
 }
 
+
+int MPointEqualize( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+
+   result = qp->ResultStorage(s);
+   MPoint* res = static_cast<MPoint*>(result.addr);
+   MPoint* p = static_cast<MPoint*>(args[0].addr);
+   CcReal* eps = static_cast<CcReal*>(args[1].addr);
+   CcBool skipUnits(true,false);
+   if(qp->GetNoSons(s)==3){
+      skipUnits = * (static_cast<CcBool*>(args[2].addr)); 
+   }
+
+   if(!p->IsDefined() || !eps->IsDefined() || !skipUnits.IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   p->EqualizeUnitsSpatial(eps->GetValue(),*res,skipUnits.GetBoolval());
+   return 0;
+}
+
 /*
 16.4 Definition of operators
 
@@ -9610,6 +10188,15 @@ const string TemporalSpecBreakPoints =
   "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
   ") )";
 
+const string TemporalSpecVertices =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpoint -> points</text--->"
+  "<text> vertices( _ ) </text--->"
+  "<text> stores the end points of all contained units"
+  " into a points value</text--->"
+  "<text> vertices( train7 )</text--->"
+  ") )";
+
 const string TemporalSpecUnits  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>For T in {bool, int, real, point}:\n"
@@ -9846,6 +10433,17 @@ const string LengthSpec =
     "<text> length(_) </text--->"
     "<text>computes the length of the movement </text--->"
     "<text>query length(train6) </text--->"
+    ") )";
+
+
+const string EqualizeUSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x real [ x bool] -> mpoint </text---> "
+    "<text> _ equalizeU[ _, _] </text--->"
+    "<text>changes units to have the same spatial properties, "
+    " the optional boolean value determines whether units" 
+    " should be split </text--->"
+    "<text>query train6 equalizeU[20.0]  </text--->"
     ") )";
 /*
 16.4.3 Operators
@@ -10143,6 +10741,12 @@ Operator temporalbreakpoints( "breakpoints",
                            Operator::SimpleSelect,
                            MovingTypeMapBreakPoints );
 
+Operator temporalvertices( "vertices",
+                           TemporalSpecVertices,
+                           Vertices,
+                           Operator::SimpleSelect,
+                           MovingTypeMapVertices );
+
 Operator temporalunits( "units",
                         TemporalSpecUnits,
                         5,
@@ -10263,6 +10867,11 @@ Operator temporalreverse("reverse",
                        Operator::SimpleSelect,
                        ReverseTM );
 
+Operator equalizeU( "equalizeU",
+                       EqualizeUSpec,
+                       MPointEqualize,
+                       Operator::SimpleSelect,
+                       EqualizeUTM );
 
 /*
 6 Creating the Algebra
@@ -10371,6 +10980,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalminimum );
     AddOperator( &temporalmaximum );
     AddOperator( &temporalbreakpoints );
+    AddOperator( &temporalvertices );
     AddOperator( &temporaltranslate );
 
     AddOperator( &temporaltheyear );
@@ -10393,6 +11003,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporalgps);
     AddOperator(&temporaldisturb);
     AddOperator(&temporallength);
+    AddOperator(&equalizeU);
   }
   ~TemporalAlgebra() {};
 };
