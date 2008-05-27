@@ -460,10 +460,14 @@ void MTree::rangeSearch(
 
   #ifdef __MTREE_PRINT_STATS_TO_FILE
   cmsg.file("mtree.log")
-      << "nnsearch" << ";"
-      << rad << ";"
-      << distComputations << ";"
-      << nodeCount << ";"
+      << "rangesearch" << "\t"
+      << header.internalCount << "\t"
+      << header.leafCount << "\t"
+      << header.entryCount << "\t"
+      << nncount << "\t"
+      << distComputations << "\t"
+      << pageCount << "\t"
+      << nodeCount << "\t"
       << entryCount << "\t"
       << results->size() << "\t\n";
   cmsg.send();
@@ -472,14 +476,15 @@ void MTree::rangeSearch(
   #ifdef __MTREE_PRINT_SEARCH_INFO
   unsigned maxNodes = header.internalCount + header.leafCount;
   unsigned maxEntries = header.entryCount;
-  unsigned maxDistComputations = maxNodes + maxEntries - 1;
+  unsigned maxDistComputations = maxEntries + (maxNodes-1);
   cmsg.info()
-      << "Distance computations : " << distComputations << "\t(max "
-      << maxDistComputations << ")" << endl
-      << "Nodes analyzed        : " << nodeCount << "\t(max "
-      << maxNodes << ")" << endl
-      << "Entries analyzed      : " << entryCount << "\t(max "
-      << maxEntries << ")" << endl << endl;
+      << "pages accessed        : " << pageCount << "\n"
+      << "distance computations : " << distComputations << "\t(max "
+      << maxDistComputations << ")\n"
+      << "nodes analyzed        : " << nodeCount << "\t(max "
+      << maxNodes << ")\n"
+      << "entries analyzed      : " << entryCount << "\t(max "
+      << maxEntries << ")\n\n";
   cmsg.send();
   #endif
 }
@@ -498,14 +503,14 @@ void MTree::nnSearch(
   results->clear();
 
   // init nearest neighbours array
-  list< NNEntry > nearestNeighbours;
+  list<NNEntry> nearestNeighbours;
   for (int i = 0; i < nncount; ++i)
   {
     nearestNeighbours.push_back(
         NNEntry(0, numeric_limits<double>::infinity()));
   }
 
-  vector< RemainingNodesEntryNNS > remainingNodes;
+  vector<RemainingNodesEntryNNS> remainingNodes;
 
   #ifdef __MTREE_ANALYSE_STATS
   unsigned entryCount = 0;
@@ -516,7 +521,6 @@ void MTree::nnSearch(
 
   remainingNodes.push_back(
       RemainingNodesEntryNNS(header.root, 0, 0));
-
 
   while(!remainingNodes.empty())
   {
@@ -533,14 +537,14 @@ void MTree::nnSearch(
 
     // remove entry from remainingNodes heap
     pop_heap(remainingNodes.begin(), remainingNodes.end(),
-              greater< RemainingNodesEntryNNS >());
+              greater<RemainingNodesEntryNNS>());
     remainingNodes.pop_back();
 
     if (node->isLeaf())
     {
       LeafNodePtr curNode = node->cast<LeafNode>();
-      for(LeafNode::iterator it = curNode->begin();
-                             it != curNode->end(); ++it)
+      LeafNode::iterator it;
+      for(it = curNode->begin(); it != curNode->end(); ++it)
       {
         double distDiff = fabs(distQueryParent - (*it)->dist());
         if ((distDiff < rad) ||
@@ -706,7 +710,10 @@ void MTree::nnSearch(
 
   #ifdef __MTREE_PRINT_STATS_TO_FILE
   cmsg.file("mtree.log")
-      << "rangesearch" << "\t"
+      << "nnsearch" << "\t"
+      << header.internalCount << "\t"
+      << header.leafCount << "\t"
+      << header.entryCount << "\t"
       << nncount << "\t"
       << distComputations << "\t"
       << pageCount << "\t"
@@ -719,13 +726,14 @@ void MTree::nnSearch(
   #ifdef __MTREE_PRINT_SEARCH_INFO
   unsigned maxNodes = header.internalCount + header.leafCount;
   unsigned maxEntries = header.entryCount;
-  unsigned maxDistComputations = maxNodes + maxEntries - 1;
+  unsigned maxDistComputations = maxEntries + (maxNodes-1);
   cmsg.info()
-      << "Distance computations : " << distComputations << "\t(max "
+      << "pages accessed        : " << pageCount << "\n"
+      << "distance computations : " << distComputations << "\t(max "
       << maxDistComputations << ")\n"
-      << "Nodes analyzed        : " << nodeCount << "\t(max "
+      << "nodes analyzed        : " << nodeCount << "\t(max "
       << maxNodes << ")\n"
-      << "Entries analyzed      : " << entryCount << "\t(max "
+      << "entries analyzed      : " << entryCount << "\t(max "
       << maxEntries << ")\n\n";
   cmsg.send();
   #endif
