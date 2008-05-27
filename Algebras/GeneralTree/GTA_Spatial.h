@@ -409,7 +409,7 @@ Returns the i-th coordinate of the center vector of the hyper rectangle.
         assert(m_ubVect[i] >= m_ubVect[i]);
         #endif
 
-        return (m_ubVect[i] - m_lbVect[i]) / 2;
+        return (m_ubVect[i] + m_lbVect[i]) / 2;
     }
 
 /*
