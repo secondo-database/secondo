@@ -1,0 +1,37 @@
+Database: berlintest
+Restore : No
+
+
+Operator : creatextree
+Number   : 1
+Signature: relation/tuple stream x attribute -> xtree
+Example  : query strassen creatextree[geoData]
+Result   : (xtree ())
+
+
+Operator : creatextree2
+Number   : 1
+Signature: relation/tuple stream x attribute x config_name x bbox_name -> xtree
+Example  : query strassen creatextree2[geoData, limit80e]
+Result   : (xtree ())
+
+
+Operator : rangesearch
+Number   : 1
+Signature: xtree x relation x hpoint x real -> tuple stream
+Example  : query strassen creatextree[geoData] strassen rangesearch[[const hpoint value (2 (0.0 0.0))], 1000.0] count
+Result   : 0
+
+
+Operator : nnsearch
+Number   : 1
+Signature: xtree x relation x hpoint x int -> tuple stream
+Example  : query strassen creatextree[geoData] strassen nnsearch[[const hpoint value (2 (0.0 0.0))], 5] count
+Result   : 0
+
+
+Operator : windowintersects
+Number   : 1
+Signature: xtree x relation x hrect -> tuple stream
+Example  : query strassen creatextree[geoData] strassen windowintersects[[const hrect value (2 (0.0 0.0) (1000.0 1000.0))]] count
+Result   : 0
