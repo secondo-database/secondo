@@ -142,8 +142,19 @@ Returns "true"[4] if the node could be cached.
     inline bool cacheable() const
     { return m_cacheable; }
 
+/*
+Returns a reference to the user extension object.
+
+*/
     inline void *userext() const
     { return m_userext; }
+
+/*
+Sets a new user extension object.
+
+*/
+    inline void setUserext(void* ext)
+    { m_userext = ext; }
 
 private:
     NodeTypeId m_type;     // id of the node type
