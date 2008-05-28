@@ -318,19 +318,20 @@ Returns the size of the entry on disc.
     }
 
 /*
-Returns the Euclidean distance between "p"[4] and the entry data (if the data is no point, the distance to the center of the bounding box is returned).
+Returns the square of the Euclidean distance between "p"[4] and the entry data (if the data is no point, the distance to the center of the bounding box is returned).
 
 */
     double dist(HPoint *p)
     {
         if (m_isPoint)
-            return SpatialDistfuns::euclDist(p, m_point);
+            return SpatialDistfuns::euclDist2(p, m_point);
         else
         {
             HPoint c = m_bbox->center();
-            return SpatialDistfuns::euclDist(p, &c);
+            return SpatialDistfuns::euclDist2(p, &c);
         }
     }
+
 
 private:
     TupleId   m_tid;      // tuple-id of the entry
