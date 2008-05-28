@@ -279,7 +279,8 @@ int firstVjohn_vm(Word* args, Word& result, int message,
 
       // allocate temporary memory to store local data
       tempData = (struct PredcountsLocalData *) 
-         calloc(1, sizeof(struct PredcountsLocalData));
+         new (struct PredcountsLocalData);
+         //calloc(1, sizeof(struct PredcountsLocalData));
       local = SetWord( tempData );
 
       // get the predicate list
