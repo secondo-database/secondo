@@ -152,7 +152,7 @@ TypeConstructor xtreeTC(
 
 1.1.1 Value mappings
 
-1.1.1.1 creatextreeRel[_]VM
+1.1.1.1 creatextreeHPointRel[_]VM
 
 This value mapping function is used for all "creatextree"[4] operators, which expects a relation and the name of a hpoint attribute as parameter. It is designed as template function, which expects the count of arguments as template paremeter.
 
@@ -206,7 +206,9 @@ int creatextreeHPointRel_VM(
             else
             {  // initialize xtree
                 dim = attr->dim();
-                xtree->initialize(dim, configName);
+                xtree->initialize(
+                        dim, configName, "hpoint", 0,
+                        HPointReg::defaultName("hpoint"));
             }
 
             // insert attribute into xtree
@@ -281,13 +283,98 @@ int creatextreeHRectRel_VM(
             else
             {  // initialize xtree
                 dim = attr->dim();
-                xtree->initialize(dim, configName);
+                xtree->initialize(
+                        dim, configName, "hrect", 0,
+                        BBoxReg::defaultName("hrect"));
             }
 
             // insert attribute into xtree
             xtreeAlgebra::LeafEntry *e =
                     new xtreeAlgebra::LeafEntry(
                             tuple->GetTupleId(), attr->hrect());
+            xtree->insert(e);
+        }
+        tuple->DeleteIfAllowed();
+    }
+    delete iter;
+
+    #ifdef __XTREE_PRINT_INSERT_INFO
+    cout << endl;
+    #endif
+
+    return 0;
+}
+
+/********************************************************************
+1.1.1.1 creatextreeRel[_]VM
+
+This value mapping function is used for all "creatextree"[4] operators, which expects a relation and the name of a non hpoint and non hrect attribute as parameter. It is designed as template function, which expects the count of arguments as template paremeter.
+
+********************************************************************/
+template<unsigned paramCnt>
+int creatextreeRel_VM(
+        Word *args, Word &result, int message,
+        Word &local, Supplier s)
+{
+    result = qp->ResultStorage(s);
+    XTree *xtree = static_cast<XTree*>(result.addr);
+
+    Relation *relation =
+        static_cast<Relation*>(args[0].addr);
+
+    int attrIndex =
+        static_cast<CcInt*>(args[paramCnt].addr)->GetIntval();
+
+    string configName =
+        static_cast<CcString*>(args[paramCnt+1].addr)->GetValue();
+
+    string typeName =
+        static_cast<CcString*>(args[paramCnt+2].addr)->GetValue();
+
+    int getdataType =
+        static_cast<CcInt*>(args[paramCnt+3].addr)->GetIntval();
+
+    string getdataName =
+        static_cast<CcString*>(args[paramCnt+4].addr)->GetValue();
+
+    HPointInfo hpoint_info;
+    BBoxInfo bbox_info;
+
+    // init hpoint_info or bbox_info
+    if (getdataType == 0)
+        hpoint_info = HPointReg::getInfo(typeName, getdataName);
+    else
+        bbox_info = BBoxReg::getInfo(typeName, getdataName);
+
+    Tuple *tuple;
+    GenericRelationIterator *iter = relation->MakeScan();
+
+    while ((tuple = iter->GetNextTuple()))
+    {
+        Attribute *attr = tuple->GetAttribute(attrIndex);
+        if(attr->IsDefined())
+        {
+            xtreeAlgebra::LeafEntry *e;
+            if (getdataType == 0)
+            {
+                e = new xtreeAlgebra::LeafEntry(
+                        tuple->GetTupleId(),
+                        hpoint_info.getHPoint(attr));
+            }
+            else
+            {
+                e = new xtreeAlgebra::LeafEntry(
+                        tuple->GetTupleId(),
+                        bbox_info.getBBox(attr));
+            }
+
+            if (!xtree->isInitialized())
+            {  // initialize xtree
+                xtree->initialize(
+                        e->bbox()->dim(), configName, typeName,
+                        getdataType, getdataName);
+            }
+
             xtree->insert(e);
         }
         tuple->DeleteIfAllowed();
@@ -358,7 +445,9 @@ int creatextreeHPointStream_VM(
             else
             {  // initialize xtree
                 dim = attr->dim();
-                xtree->initialize(dim, configName);
+                xtree->initialize(
+                        dim, configName, "hpoint", 0,
+                        HPointReg::defaultName("hpoint"));
             }
 
             // insert attribute into xtree
@@ -436,13 +525,102 @@ int creatextreeHRectStream_VM(
             else
             {  // initialize xtree
                 dim = attr->dim();
-                xtree->initialize(dim, configName);
+                xtree->initialize(
+                        dim, configName, "hrect", 0,
+                        BBoxReg::defaultName("hrect"));
             }
 
             // insert attribute into xtree
             xtreeAlgebra::LeafEntry *e =
                     new xtreeAlgebra::LeafEntry(
                             tuple->GetTupleId(), attr->hrect());
+            xtree->insert(e);
+        }
+        tuple->DeleteIfAllowed();
+        qp->Request(stream, wTuple);
+    }
+    qp->Close(stream);
+
+    #ifdef __XTREE_PRINT_INSERT_INFO
+    cout << endl;
+    #endif
+
+    return 0;
+}
+
+/********************************************************************
+1.1.1.1 creatextreeStream[_]VM
+
+This value mapping function is used for all "creatextree"[4] operators, which expects a tuple stream and the name of a non hpoint and non hrect attribute as parameter. It is designed as template function, which expects the count of arguments as template paremeter.
+
+********************************************************************/
+template<unsigned paramCnt>
+int creatextreeStream_VM(
+        Word *args, Word &result, int message,
+        Word &local, Supplier s)
+{
+    result = qp->ResultStorage(s);
+    XTree *xtree = static_cast<XTree*>(result.addr);
+
+    void *stream =
+        static_cast<Relation*>(args[0].addr);
+
+    int attrIndex =
+        static_cast<CcInt*>(args[paramCnt].addr)->GetIntval();
+
+    string configName =
+        static_cast<CcString*>(args[paramCnt+1].addr)->GetValue();
+
+    string typeName =
+        static_cast<CcString*>(args[paramCnt+2].addr)->GetValue();
+
+    int getdataType =
+        static_cast<CcInt*>(args[paramCnt+3].addr)->GetIntval();
+
+    string getdataName =
+        static_cast<CcString*>(args[paramCnt+4].addr)->GetValue();
+
+    HPointInfo hpoint_info;
+    BBoxInfo bbox_info;
+
+    // init hpoint_info or bbox_info
+    if (getdataType == 0)
+        hpoint_info = HPointReg::getInfo(typeName, getdataName);
+    else
+        bbox_info = BBoxReg::getInfo(typeName, getdataName);
+
+    Word wTuple;
+    qp->Open(stream);
+    qp->Request(stream, wTuple);
+
+    while (qp->Received(stream))
+    {
+        Tuple *tuple = static_cast<Tuple*>(wTuple.addr);
+        Attribute *attr = tuple->GetAttribute(attrIndex);
+
+        if(attr->IsDefined())
+        {
+            xtreeAlgebra::LeafEntry *e;
+            if (getdataType == 0)
+            {
+                e = new xtreeAlgebra::LeafEntry(
+                        tuple->GetTupleId(),
+                        hpoint_info.getHPoint(attr));
+            }
+            else
+            {
+                e = new xtreeAlgebra::LeafEntry(
+                        tuple->GetTupleId(),
+                        bbox_info.getBBox(attr));
+            }
+
+            if (!xtree->isInitialized())
+            {  // initialize xtree
+                xtree->initialize(
+                        e->bbox()->dim(), configName, typeName,
+                        getdataType, getdataName);
+            }
+
             xtree->insert(e);
         }
         tuple->DeleteIfAllowed();
@@ -503,10 +681,10 @@ struct Search_LI
 };
 
 /********************************************************************
-1.1.1.1 rangesearch[_]VM
+1.1.1.1 rangesearchHPoint[_]VM
 
 ********************************************************************/
-int rangesearch_VM(
+int rangesearchHPoint_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
@@ -533,14 +711,172 @@ int rangesearch_VM(
         cmsg.error() << seperator
             << "Operator rangesearch:" << endl
             << "The given hpoint has the dimension "
-            << attr->dim() << ", but the xtree contains"
+            << attr->dim() << ", but the xtree contains "
             << xtree->dim() << "-dimensional data!"
             << seperator << endl;
         cmsg.send();
         return CANCEL;
       }
 
+      // compute square of searchRad, since the current
+      // implementation of the xtree uses the square of the eucledean
+      // metric as distance function
+      searchRad *= searchRad;
+
       xtree->rangeSearch(attr->hpoint(), searchRad, info->results);
+      info->initResultIterator();
+
+      assert(info->relation != 0);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      info = (Search_LI*)local.addr;
+      if(!info->defined)
+        return CANCEL;
+
+      TupleId tid = info->next();
+      if(tid)
+      {
+        Tuple *tuple = info->relation->GetTuple(tid);
+        result = SetWord(tuple);
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      info = (Search_LI*)local.addr;
+      delete info;
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/********************************************************************
+1.1.1.1 rangesearch[_]VM
+
+********************************************************************/
+int rangesearch_VM(
+        Word *args, Word &result, int message,
+        Word &local, Supplier s)
+{
+  Search_LI *info;
+  switch (message)
+  {
+    case OPEN :
+    {
+      XTree *xtree = static_cast<XTree*>(args[0].addr);
+
+      info = new Search_LI(
+          static_cast<Relation*>(args[1].addr));
+      local = SetWord(info);
+
+      Attribute *attr =
+          static_cast<Attribute*>(args[2].addr);
+
+      double searchRad =
+            static_cast<CcReal*>(args[3].addr)->GetValue();
+
+      {
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+            << "Operator rangesearch:" << endl
+            << "The given hpoint has the dimension "
+            << attr->dim() << ", but the xtree contains "
+            << xtree->dim() << "-dimensional data!"
+            << seperator << endl;
+        cmsg.send();
+        return CANCEL;
+      }
+
+      // compute square of searchRad, since the current
+      // implementation of the xtree uses the square of the eucledean
+      // metric as distance function
+      searchRad *= searchRad;
+
+      xtree->rangeSearch(attr->hpoint(), searchRad, info->results);
+      info->initResultIterator();
+
+      assert(info->relation != 0);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      info = (Search_LI*)local.addr;
+      if(!info->defined)
+        return CANCEL;
+
+      TupleId tid = info->next();
+      if(tid)
+      {
+        Tuple *tuple = info->relation->GetTuple(tid);
+        result = SetWord(tuple);
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      info = (Search_LI*)local.addr;
+      delete info;
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/********************************************************************
+1.1.1.1 nnsearchHPoint[_]VM
+
+********************************************************************/
+int nnsearchHPoint_VM(
+        Word *args, Word &result, int message,
+        Word &local, Supplier s)
+{
+  Search_LI *info;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      XTree *xtree = static_cast<XTree*>(args[0].addr);
+
+      info = new Search_LI(
+          static_cast<Relation*>(args[1].addr));
+      local = SetWord(info);
+
+      HPointAttr *attr =
+          static_cast<HPointAttr*>(args[2].addr);
+
+      int nnCount =
+            static_cast<CcInt*>(args[3].addr)->GetValue();
+
+      if (attr->dim() != xtree->dim())
+      {
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+            << "Operator nnsearch:" << endl
+            << "The given hpoint has the dimension "
+            << attr->dim() << ", but the xtree contains "
+            << xtree->dim() << "-dimensional data!"
+            << seperator << endl;
+        cmsg.send();
+        return CANCEL;
+      }
+
+      xtree->nnSearch(attr->hpoint(), nnCount , info->results);
       info->initResultIterator();
 
       assert(info->relation != 0);
@@ -596,8 +932,8 @@ int nnsearch_VM(
           static_cast<Relation*>(args[1].addr));
       local = SetWord(info);
 
-      HPointAttr *attr =
-          static_cast<HPointAttr*>(args[2].addr);
+      Attribute *attr =
+          static_cast<Attribute*>(args[2].addr);
 
       int nnCount =
             static_cast<CcInt*>(args[3].addr)->GetValue();
@@ -608,7 +944,7 @@ int nnsearch_VM(
         cmsg.error() << seperator
             << "Operator nnsearch:" << endl
             << "The given hpoint has the dimension "
-            << attr->dim() << ", but the xtree contains"
+            << attr->dim() << ", but the xtree contains "
             << xtree->dim() << "-dimensional data!"
             << seperator << endl;
         cmsg.send();
@@ -681,7 +1017,7 @@ int windowintersects_VM(
         cmsg.error() << seperator
             << "Operator windowintersects:" << endl
             << "The given hrect has the dimension "
-            << attr->dim() << ", but the xtree contains"
+            << attr->dim() << ", but the xtree contains "
             << xtree->dim() << "-dimensional data!"
             << seperator << endl;
         cmsg.send();
@@ -748,16 +1084,11 @@ ListExpr creatextree_TM(ListExpr args)
     string attrName = attr_NL.str();
     string typeName;
     int attrIndex;
-    CHECK_ATTRIBUTE(attrs, attrName, typeName, attrIndex, 2)
-
-    string error = "The specified attributes are not of type "
-                   "\"hpoint\" or \"hrect\"!";
-    CHECK_COND(((typeName == "hpoint") ||
-                (typeName == "hrect")), error)
+    CHECK_ATTRIBUTE(attrs, attrName, typeName, attrIndex, 2);
 
     // get config name
     string configName;
-    if (paramCnt == 3)
+    if (paramCnt > 2)
         GET_CONFIG_NAME(args_NL.third(), configName, 3)
     else
         configName = CONFIG_DEFAULT;
@@ -771,13 +1102,77 @@ ListExpr creatextree_TM(ListExpr args)
         CHECK_COND(false, errmsg);
     }
 
+    if ((typeName == "hpoint") || (typeName == "hrect"))
+    {
+        NList res1(APPEND);
+        NList res2;
+        res2.append(NList(attrIndex));
+        res2.append(NList(configName, true));
+        NList res3(XTREE);
+        NList result(res1, res2, res3);
+        return result.listExpr();
+    }
+
+    // attribut is no hpoint and no hrect, try to find getpoint or
+    // getbbox function:
+
+    // get name of getdata-function
+    string getdataName;
+    int getdataType; // 0 = gethpoint, 1 = gethrect
+    if (paramCnt > 3) // creatextree3
+    {
+        NList getdataName_NL = args_NL.fourth();
+        string errmsg;;
+        errmsg = "Argument 4 must be the name of an existing "
+                 "gethrect or getdata function!";
+        CHECK_COND(getdataName_NL.isSymbol(), errmsg);
+        getdataName = getdataName_NL.str();
+        getdataType = 0;
+        if (!HPointReg::isDefined(typeName, getdataName))
+        { // getdataName is no defined gethpoint function
+          // search in HRectReg
+            getdataType = 1;
+            string errmsg;
+            errmsg = "No gethpoint or getbbox function with name \""
+                     + getdataName + "\" for type constructor \"" +
+                     typeName + "\" found! Possible names:"
+                     "\ngethpoint: " +
+                     HPointReg::definedNames(typeName) +
+                     "\ngetbbox  : " +
+                     BBoxReg::definedNames(typeName);
+            CHECK_COND(BBoxReg::isDefined(typeName, getdataName),
+                       errmsg);
+        }
+    }
+    else // creatextree, creatextree2
+    {   // try default gethpoint function
+        getdataName = HPointReg::defaultName(typeName);
+        getdataType = 0;
+        if (getdataName == HPOINT_UNDEFINED)
+        { // no default gethpoint function found
+          // try default getbbox function
+            getdataName = BBoxReg::defaultName(typeName);
+            getdataType = 1;
+            string errmsg;
+            errmsg = "No default gethpoint or getbbox function "
+                     "defined for type constructor \"" +
+                     typeName + "\"!";
+            CHECK_COND(getdataName != BBOX_UNDEFINED, errmsg);
+        }
+    }
+
     NList res1(APPEND);
     NList res2;
     res2.append(NList(attrIndex));
     res2.append(NList(configName, true));
+    res2.append(NList(typeName, true));
+    res2.append(NList(getdataType));
+    res2.append(NList(getdataName, true));
     NList res3(XTREE);
     NList result(res1, res2, res3);
     return result.listExpr();
+
+
 }
 
 /********************************************************************
@@ -894,21 +1289,43 @@ int creatextree_Select(ListExpr args)
     NList attrType(attrTypeLE);
 
     if (arg1.first().isEqual(REL))
-    {
+    { // relation
         if (attrType.isEqual("hpoint"))
             return 0;
+        else if (attrType.isEqual("hrect"))
+            return 1;
         else
             return 2;
     }
-    else if (arg1.first().isEqual(STREAM))
-    {
-        if (attrType.isEqual("hpoint"))
-            return 1;
-        else
-            return 3;
-    }
     else
-        return -1;
+    { // stream
+        if (attrType.isEqual("hpoint"))
+            return 3;
+        else if (attrType.isEqual("hrect"))
+            return 4;
+        else
+            return 5;
+    }
+}
+
+int creatextree3_Select(ListExpr args)
+{
+    NList argsNL(args);
+    NList arg1 = argsNL.first();
+    if (arg1.first().isEqual(REL))
+        return 0;
+    else
+        return 1;
+}
+
+int search_Select(ListExpr args)
+{
+    NList argsNL(args);
+    NList arg3 = argsNL.third();
+    if (arg3.isEqual("hpoint"))
+        return 0;
+    else
+        return 1;
 }
 
 /********************************************************************
@@ -917,16 +1334,35 @@ int creatextree_Select(ListExpr args)
 ********************************************************************/
 ValueMapping creatextree_Map[] = {
     creatextreeHPointRel_VM<2>,
-    creatextreeHPointStream_VM<2>,
     creatextreeHRectRel_VM<2>,
-    creatextreeHRectStream_VM<2>
+    creatextreeRel_VM<2>,
+    creatextreeHPointStream_VM<2>,
+    creatextreeHRectStream_VM<2>,
+    creatextreeStream_VM<2>,
 };
 
 ValueMapping creatextree2_Map[] = {
     creatextreeHPointRel_VM<3>,
-    creatextreeHPointStream_VM<3>,
     creatextreeHRectRel_VM<3>,
-    creatextreeHRectStream_VM<3>
+    creatextreeRel_VM<3>,
+    creatextreeHPointStream_VM<3>,
+    creatextreeHRectStream_VM<3>,
+    creatextreeStream_VM<3>,
+};
+
+ValueMapping creatextree3_Map[] = {
+    creatextreeRel_VM<4>,
+    creatextreeStream_VM<4>,
+};
+
+ValueMapping rangesearch_Map[] = {
+    rangesearchHPoint_VM,
+    rangesearch_VM,
+};
+
+ValueMapping nnsearch_Map[] = {
+    nnsearchHPoint_VM,
+    nnsearch_VM,
 };
 
 /********************************************************************
@@ -939,16 +1375,14 @@ struct creatextree_Info : OperatorInfo
     {
         name = "creatextree";
         signature =
-        "relation x attribute -> xtree";
+        "rel/tuple stream x attribute -> xtree";
         syntax = "_ creatextree [_]";
         meaning =
-            "Creates a new xtree from the relation "
+            "Creates a new xtree from the relation or tuple stream "
             "in argument 1. Argument 2 must be the name of the "
             "attribute in the relation/tuple stream, that should "
             "be indexed in the xtree. "
-            "This operator uses the default xtree config and the "
-            "default distdata type for the type constructor of "
-            "the specified attribute.";
+            "This operator uses the default xtree config.";
         example = "strassen creatextree[geoData]";
     }
 };
@@ -959,17 +1393,29 @@ struct creatextree2_Info : OperatorInfo
     {
         name = "creatextree2";
         signature =
-        "relation x attribute x xtree-config -> xtree";
-        syntax = "_ creatextree [_, _]";
+        "rel/tuple stream x attribute x config-name -> xtree";
+        syntax = "_ creatextree2 [_, _]";
         meaning =
-            "Creates a new xtree from the relation "
-            "in argument 1. Argument 2 must be the name of the "
-            "attribute in the relation/tuple stream, that should "
-            "be indexed in the xtree. "
-            "This operator uses the default xtree config and the "
-            "default gethpoint or getbbox function the type constructor of "
-            "the specified attribute.";
+            "Like creatextree, but additionaly allows to specify "
+            "another than the default xtree config.";
         example = "strassen creatextree2[geoData, limit80e]";
+    }
+};
+
+struct creatextree3_Info : OperatorInfo
+{
+    creatextree3_Info()
+    {
+        name = "creatextree3";
+        signature =
+        "rel/tuple stream x attribute x config-name x getdatafun-name -> xtree";
+        syntax = "_ creatextree3 [_, _, _]";
+        meaning =
+        "Like creatextree2, but additionaly allows to specify "
+        "another than the default gethpoint or getbbox function "
+        "(if a gethpoint and a getbbox function with the same name "
+       "are defined, the gethpoint function will be used).";
+       example = "strassen creatextree3[geoData, limit80e, native]";
     }
 };
 
@@ -986,7 +1432,7 @@ struct rangesearch_Info : OperatorInfo
             "(argument 4, using the Euclidean metric) to the query "
             "point. The relation must contain at least the same "
             "tuples, that had been used to create the xtree.";
-        example = "xt rel rangesearch [p, 0.1]";
+        example = "xt strassen rangesearch [p, 5000.0]";
     }
 };
 
@@ -1002,7 +1448,7 @@ struct nnsearch_Info : OperatorInfo
             "neighbours of the query point. The relation must "
             "contain at least the same tuples, that had been used "
             "to create the xtree.";
-        example = "xt rel nnsearch [p, 5]";
+        example = "xt strassen nnsearch [p, 20]";
     }
 };
 
@@ -1018,7 +1464,7 @@ struct windowintersects_Info : OperatorInfo
             "that intersects the search windows. The relation must "
             "contain at least the same tuples, that had been used "
             "to create the xtree.";
-        example = "xt rel windowintersects [r]";
+        example = "xt strassen windowintersects [r]";
     }
 };
 
@@ -1047,12 +1493,19 @@ public:
                     creatextree_Select,
                     creatextree_TM<3>);
 
+        AddOperator(creatextree3_Info(),
+                    creatextree3_Map,
+                    creatextree3_Select,
+                    creatextree_TM<4>);
+
         AddOperator(rangesearch_Info(),
-                    rangesearch_VM,
+                    rangesearch_Map,
+                    search_Select,
                     rangesearch_TM);
 
         AddOperator(nnsearch_Info(),
-                    nnsearch_VM,
+                    nnsearch_Map,
+                    search_Select,
                     nnsearch_TM);
 
         AddOperator(windowintersects_Info(),
