@@ -227,8 +227,8 @@ The type is a stream of tuples. Each tuple is composed of two integer attributes
    resultType = nl->TwoElemList(nl->SymbolAtom("stream"),
       nl->TwoElemList(nl->SymbolAtom("tuple"),
          nl->TwoElemList(
-            nl->TwoElemList(nl->SymbolAtom("pattern"),nl->SymbolAtom("int")),
-            nl->TwoElemList(nl->SymbolAtom("counter"),nl->SymbolAtom("int")))));
+            nl->TwoElemList(nl->SymbolAtom("Atom"),nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("Count"),nl->SymbolAtom("int")))));
    return resultType;
 }
 
@@ -266,7 +266,8 @@ int firstVjohn_vm(Word* args, Word& result, int message,
    Tuple *newTuple;
    PredcountsLocalData *tempData;
    int predicateCount, maxSaveEvaluableRows, maxPredicateCount;
-   Supplier predicateList, predicate, *funStructure;
+   Supplier predicateList, predicate; 
+   Supplier* funStructure;
    ArgVectorPointer *funArguments;
    Tuple *currentTuple;
    int predNumber, resultIndex;
@@ -315,7 +316,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
 
       // allocate memory to store structures for handling 
       // mapping functions itself and their parameters
-      funStructure = (Supplier *) calloc(predicateCount, sizeof(Supplier));
+      funStructure = new Supplier[predicateCount];
       if (funStructure==0) {
          cerr << "ERROR: konnte Speicher " << 
             (predicateCount*sizeof(Supplier)) << 
@@ -397,7 +398,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
       qp->Close(args[0].addr);
 
       // deallocate memory
-      if (funStructure) free(funStructure);
+      if (funStructure) delete [] funStructure;
       if (funArguments) free(funArguments);
 
       return 0;
