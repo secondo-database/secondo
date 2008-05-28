@@ -108,11 +108,11 @@ for the parser not for the predicate itself.
 
 An example for calling the operator is shown in file "OptAlg.example".
 
-At first two macros "INDEX\_TYPE" and "RESULT\_TYPE" have
-to be defined. The macro "INDEX\_TYPE" defines the data type to be
-used for the index of the temporary result array. By defining this macro one
-determine the maximum number of predicates evaluable by the operator
-predcounts, too.  The maximum number is determined by the length of the data
+At first two macros "INDEX\_TYPE" and "RESULT\_TYPE" have 
+to be defined. The macro "INDEX\_TYPE" defines the data type to be 
+used for the index of the temporary result array. By defining this macro one 
+determine the maximum number of predicates evaluable by the operator 
+predcounts, too.  The maximum number is determined by the length of the data 
 type (in bit) decremented by 1.
 
 */
@@ -121,13 +121,7 @@ type (in bit) decremented by 1.
 #define INDEX_TYPE int
 
 /*
- 
-The macro RESULT???UNDERLINE???TYPE defines the data type of counters which
-counts the tuples meeting the set of predicates identified by the index of the
-counter. This data type determines the maximum number of tuples processable by
-the operator predcounts. The selected data type for RESULT???UNDERLINE???TYPE
-have to be int, long, long or similiar. For savety reasons the maximum count is
-limited to "2^(sizeof(RESULT???UNDERLINE???TYPE)-1)".
+The macro "RESULT\_TYPE" defines the data type of counters which counts the tuples meeting the set of predicates identified by the index of the counter. This data type determines the maximum number of tuples processable by the operator predcounts. The selected data type for "RESULT\_TYPE" have to be int, long, long or similiar. For savety reasons the maximum count is limited to 2\^(sizeof("RESULT\_TYPE")-1).
 
 */
 
@@ -140,103 +134,102 @@ The value mapping function now checks count and types of the parameters.
 
 ListExpr firstVjohn_tm(ListExpr args)
 {
-  	ListExpr resultType;
-	ListExpr predicateAlias, mapping, 
-		streamDeclaration, predicateDeclaration, 
-		rest, predicateDeclarations, 
-		streamTupleDeclaration, mappingInputType;
-	string argstr, argstr2;
-	// we expect an input stream and 
-	// at least one additional parameter
-	CHECK_COND(nl->ListLength(args) == 2,
-		"Operator predcounts expects a list of length two.");
+     ListExpr resultType;
+   ListExpr predicateAlias, mapping, 
+      streamDeclaration, predicateDeclaration, 
+      rest, predicateDeclarations, 
+      streamTupleDeclaration, mappingInputType;
+   string argstr, argstr2;
+   // we expect an input stream and 
+   // at least one additional parameter
+   CHECK_COND(nl->ListLength(args) == 2,
+      "Operator predcounts expects a list of length two.");
 
-	streamDeclaration = nl->First(args);
-	predicateDeclarations = nl->Second(args);
-	streamTupleDeclaration = nl->Second(streamDeclaration);
+   streamDeclaration = nl->First(args);
+   predicateDeclarations = nl->Second(args);
 
-	// check type of input stream
-	nl->WriteToString(argstr, streamDeclaration);
-	CHECK_COND(nl->ListLength(streamDeclaration) == 2  &&
-		(TypeOfRelAlgSymbol(nl->First(streamDeclaration)) 
-			== stream) &&
-		(nl->ListLength(nl->Second(streamDeclaration)) 
-			== 2) &&
-		(TypeOfRelAlgSymbol(nl->First(
-			nl->Second(streamDeclaration))) == tuple) &&
-		(nl->ListLength(nl->Second(streamDeclaration)) 
-			== 2) &&
-		(IsTupleDescription(nl->Second(
-			nl->Second(streamDeclaration)))),
-		"Operator predcounts expects as "
-		"first argument a list with structure "
-		"(stream (tuple ((a1 t1)...(an tn))))\n"
-		"Operator predcounts gets as first argument '" +
-		argstr + "'." );
+   // check type of input stream
+   nl->WriteToString(argstr, streamDeclaration);
+   CHECK_COND(nl->ListLength(streamDeclaration) == 2  &&
+      (TypeOfRelAlgSymbol(nl->First(streamDeclaration)) 
+         == stream) &&
+      (nl->ListLength(nl->Second(streamDeclaration)) 
+         == 2) &&
+      (TypeOfRelAlgSymbol(nl->First(
+         nl->Second(streamDeclaration))) == tuple) &&
+      (nl->ListLength(nl->Second(streamDeclaration)) 
+         == 2) &&
+      (IsTupleDescription(nl->Second(
+         nl->Second(streamDeclaration)))),
+      "Operator predcounts expects as " 
+      "first argument a list with structure "
+      "(stream (tuple ((a1 t1)...(an tn))))\n"
+      "Operator predcounts gets as first argument '" + 
+      argstr + "'." );
 
-	// check predicate list - it should be a not empty list
-	CHECK_COND(!(nl->IsAtom(predicateDeclarations)) &&
-		(nl->ListLength(predicateDeclarations) > 0),
-		"Operator predcounts: Second argument list may"
-		" not be empty or an atom" );
+   streamTupleDeclaration = nl->Second(streamDeclaration);
 
-	// check predicate list - check the list more detailed
-	rest = predicateDeclarations;
-	while ( !(nl->IsEmpty(rest)) ) {
-		
-		predicateDeclaration = nl->First(rest);
-		rest = nl->Rest(rest);
+   // check predicate list - it should be a not empty list
+   CHECK_COND(!(nl->IsAtom(predicateDeclarations)) &&
+      (nl->ListLength(predicateDeclarations) > 0),
+      "Operator predcounts: Second argument list may" 
+      " not be empty or an atom" );
 
-		// check the predicate alias
-		predicateAlias = nl->First(predicateDeclaration);
-		nl->WriteToString(argstr, predicateAlias);
-		CHECK_COND( (nl->IsAtom(predicateAlias)) &&
-			(nl->AtomType(predicateAlias) == SymbolType),
-			"Operator predcounts: predicate alias '" + 
-			argstr +
-			"' is not an atom or not of type SymbolType" );
+   // check predicate list - check the list more detailed
+   rest = predicateDeclarations;
+   while ( !(nl->IsEmpty(rest)) ) {
+      
+      predicateDeclaration = nl->First(rest);
+      rest = nl->Rest(rest);
 
-		// check type of mapping function
-		mapping = nl->Second(predicateDeclaration);
-		mappingInputType = nl->Second(mapping);
-		nl->WriteToString(argstr, mapping);
-		CHECK_COND( (nl->ListLength(mapping) == 3) &&
-			(TypeOfRelAlgSymbol(nl->First(mapping)) 
-				== ccmap) &&
-			(TypeOfRelAlgSymbol(nl->Third(mapping)) 
-				== ccbool),
-			"Operator predcounts expects a mapping "
-			"function with list structure"
-			" (<attrname> (map (tuple ( (a1 t1)...(an tn) )) bool) )\n. Operator"
-			" predcounts gets a list '" + argstr + "'.\n" );
+      // check the predicate alias
+      predicateAlias = nl->First(predicateDeclaration);
+      nl->WriteToString(argstr, predicateAlias);
+      CHECK_COND( (nl->IsAtom(predicateAlias)) &&
+         (nl->AtomType(predicateAlias) == SymbolType),
+         "Operator predcounts: predicate alias '" + 
+         argstr +
+         "' is not an atom or not of " +
+         "type SymbolType" );
 
-		// check tuple type supplied by stream and requested by predicate
-		nl->WriteToString(argstr, streamTupleDeclaration);
-		nl->WriteToString(argstr2, mappingInputType);
-		CHECK_COND( (nl->Equal(streamTupleDeclaration, mappingInputType)),
-			"Operator predcounts: Tuple type in first argument '" + argstr +
-			"' is different from the argument tuple type '" + argstr2 +
-			"' in the mapping function" );
-	
-	}
+      // check type of mapping function
+      mapping = nl->Second(predicateDeclaration);
+      mappingInputType = nl->Second(mapping);
+      nl->WriteToString(argstr, mapping);
+      CHECK_COND( (nl->ListLength(mapping) == 3) &&
+         (TypeOfRelAlgSymbol(nl->First(mapping)) 
+            == ccmap) &&
+         (TypeOfRelAlgSymbol(nl->Third(mapping)) 
+            == ccbool),
+         "Operator predcounts expects a mapping " 
+         "function with list structure"
+         " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) bool) )\n. Operator"
+         " predcounts gets a list '" + argstr + "'.\n" );
+
+      // check tuple type supplied by stream and requested by predicate
+      nl->WriteToString(argstr, streamTupleDeclaration);
+      nl->WriteToString(argstr2, mappingInputType);
+      CHECK_COND( (nl->Equal(streamTupleDeclaration, mappingInputType)),
+         "Operator predcounts: Tuple type in first argument '" + argstr +
+         "' is different from the argument tuple type '" + argstr2 +
+         "' in the mapping function" );
+   
+   }
 
 /*
+The type of the result of the operator precounts is always the same. Consequently this type could be contructed statically at the end of the type mapping function.
 
-The type of the result of the operator predcounts is always the same.
-Consequently this type could be contructed statically at the end of the type
-mapping function.
-
-The type is a stream of tuples. Each tuple is composed of two integer
-attributes named pattern and count.
+The type is a stream of tuples. Each tuple is composed of two integer attributes named pattern and count.
 
 */
-	// Zieltyp zusammensetzen
-	// ??? die hardcodierten Literale muessen raus
-	resultType = nl->TwoElemList(nl->SymbolAtom("stream"),nl->TwoElemList(nl->SymbolAtom("tuple"),
-			nl->TwoElemList(
-				nl->TwoElemList(nl->SymbolAtom("Atom"),nl->SymbolAtom("int")),
-				nl->TwoElemList(nl->SymbolAtom("Count"),nl->SymbolAtom("int")))));
-	return resultType;
+   // Zieltyp zusammensetzen
+   // ??? die hardcodierten Literale muessen raus
+   resultType = nl->TwoElemList(nl->SymbolAtom("stream"),
+      nl->TwoElemList(nl->SymbolAtom("tuple"),
+         nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("pattern"),nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("counter"),nl->SymbolAtom("int")))));
+   return resultType;
 }
 
 /*
@@ -246,33 +239,21 @@ attributes named pattern and count.
 
 */
 struct PredcountsLocalData {
-	TupleType *resultTupleType;
-	INDEX_TYPE predicateCombinations;
-	RESULT_TYPE *resultCounters;
+   TupleType *resultTupleType;
+   INDEX_TYPE predicateCombinations;
+   RESULT_TYPE *resultCounters;
+   char firstCall;
 };
 
 /*
-
-The structure PredcountsLocalData is used to structure local data supplied by
-parameter local of value mapping function. The element resultTupleType contains
-the type of tuple to be returned by value mapping function. The element
-predicateCombinations is used to store the count of predicate combinations
-checked by the operator predcounts at first. During the REQUEST phase the
-element is used to store the last responsed (pattern, count) tuple. The element
-resultCounters is a dynamically allocated array. It's temporary used to count
-up and store the occurrence of predicate combinations met by tuples of the
-input stream.
+The structure PredcountsLocalData is used to structure local data supplied by parameter local of value mapping function. The element resultTupleType contains the type of tuple to be returned by value mapping function. The element predicateCombinations is used to store the count of predicate combinations checked by the operator predcounts at first. During the REQUEST phase the element is used to store the last responsed (pattern, count) tuple. The element resultCounters is a dynamically allocated array. It's temporary used to count up and store the occurrence of predicate combinations met by tuples of the input stream.
 
 The value mapping function handles three phases:
-	OPEN	to prepare the operator for using
-	REQUEST	to return the result stream step by step (one tuple at one call)
-	CLOSE	to clean up the function environment
+   OPEN   to prepare the operator for using
+   REQUEST   to return the result stream step by step (one tuple at one call)
+   CLOSE   to clean up the function environment
 
-At the OPEN phase the function allocates temporary memory, reads the input
-stream completly, counts up and stores the counters for predicate combinations,
-deletes the tuples of input stream and construct the type of the result tuples.
-At the REQUEST phase it returns the result tuples (pattern, count) step by
-step. At the CLOSE phase it deallocates temporary memory. 
+At the OPEN phase the function allocates temporary memory, reads the input stream completly, counts up and stores the counters for predicate combinations, deletes the tuples of input stream and construct the type of the result tuples. At the REQUEST phase it returns the result tuples (pattern, count) step by step. At the CLOSE phase it deallocates temporary memory. 
 
 */
 
@@ -280,172 +261,207 @@ step. At the CLOSE phase it deallocates temporary memory.
 int firstVjohn_vm(Word* args, Word& result, int message,
               Word& local, Supplier s)
 {
-	int count, predicateNumber;
-	Word elem, funResult;
-	Tuple *newTuple;
-	PredcountsLocalData *tempData;
-	int predicateCount, maxSaveEvaluableRows, maxPredicateCount;
-	Supplier predicateList, predicate, *funStructure;
-	ArgVectorPointer *funArguments;
-	Tuple *currentTuple;
-	int predNumber, resultIndex;
-	CcInt *attr;
+   int count, predicateNumber;
+   Word elem, funResult;
+   Tuple *newTuple;
+   PredcountsLocalData *tempData;
+   int predicateCount, maxSaveEvaluableRows, maxPredicateCount;
+   Supplier predicateList, predicate, *funStructure;
+   ArgVectorPointer *funArguments;
+   Tuple *currentTuple;
+   int predNumber, resultIndex;
+   CcInt *attr;
 
 
   switch (message)
     {
         case OPEN : 
 
-		// allocate temporary memory to store local data
-		tempData = (struct PredcountsLocalData *) calloc(1, sizeof(struct PredcountsLocalData));
-		local = SetWord( tempData );
+      // allocate temporary memory to store local data
+      tempData = (struct PredcountsLocalData *) 
+         calloc(1, sizeof(struct PredcountsLocalData));
+      local = SetWord( tempData );
 
-		// get the predicate list
-		predicateList = args[1].addr;
+      // get the predicate list
+      predicateList = args[1].addr;
 
-		// calculate the limitations of operator predcounts and check them
-		maxPredicateCount = sizeof(INDEX_TYPE)*8 - 1;
-		predicateCount = qp->GetNoSons(predicateList); 
-		if (predicateCount>maxPredicateCount) {
-			fprintf(stderr,
-				"ERROR: Anzahl der Praedikate (=%i) ist zu hoch fuer predcounts - max. %i\n", 
-				predicateCount, maxPredicateCount); // ??? sicherlich sollte hier C++-Funktional nutzen
-			return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
-		}
-		tempData->predicateCombinations = 1 << predicateCount; // =2^predicateCount
-		tempData->resultCounters = (RESULT_TYPE *) calloc(tempData->predicateCombinations, sizeof(RESULT_TYPE)); 
-		if (tempData->resultCounters==0) {
-			fprintf(stderr,
-				"ERROR: konnte Speicher %i Bytes nicht allokieren (predicateCount=%i combinations=%i)\n",
-				(tempData->predicateCombinations * sizeof(RESULT_TYPE)), predicateCount, 
-				tempData->predicateCombinations); // ??? C++-Funktional nutzen
-			return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
-		}
-		maxSaveEvaluableRows = (1 << sizeof(int)*8-1 ) - 1; // aequivalent zu 2^(sizeof(int)*8-1) - 1
+      // calculate the limitations of operator predcounts and check them
+      maxPredicateCount = sizeof(INDEX_TYPE)*8 - 1;
+      predicateCount = qp->GetNoSons(predicateList); 
+      if (predicateCount>maxPredicateCount) {
+         fprintf(stderr,
+            "ERROR: Anzahl der Praedikate (=%i) ist zu hoch fuer predcounts - "
+               "max. %i\n", predicateCount, maxPredicateCount); // ???
+         return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+      }
+      tempData->predicateCombinations = 
+         1 << predicateCount; // =2\^predicateCount
+      tempData->resultCounters = (RESULT_TYPE *) 
+         calloc(tempData->predicateCombinations, sizeof(RESULT_TYPE)); 
+      if (tempData->resultCounters==0) {
+         fprintf(stderr,
+            "ERROR: konnte Speicher %i Bytes nicht allokieren "
+            "(predicateCount=%i combinations=%i)\n",
+            (tempData->predicateCombinations * sizeof(RESULT_TYPE))
+	    , predicateCount, 
+            tempData->predicateCombinations); // ??? C++-Funktional nutzen
+         return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+      }
+      maxSaveEvaluableRows = (1 << sizeof(int)*8-1 ) - 1; 
+         // aequivalent zu 2\^(sizeof(int)*8-1) - 1
 
-		// construct type of result tuples
-      		tempData->resultTupleType = new TupleType( nl->Second( GetTupleResultType(s) ));
-		
-		// allocate memory to store structures for handling mapping functions itself and their parameters
-		funStructure = (Supplier *) calloc(predicateCount, sizeof(Supplier));
-		if (funStructure==0) {
-			fprintf(stderr,
-				"ERROR: konnte Speicher %i Bytes nicht allokieren (predicateCount=%i sizeof(Supplier)=%i)\n",
-				(predicateCount*sizeof(Supplier)), predicateCount, sizeof(Supplier)); // ??? C++-Funktional nutzen
-				return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
-		}
-		funArguments = (ArgVectorPointer *) calloc(predicateCount, sizeof(ArgVectorPointer));
-		if (funArguments==0) {
-			fprintf(stderr,
-				"ERROR: konnte Speicher %i Bytes nicht allokieren (predicateCount=%i sizeof(ArgVectorPointer)=%i)\n",
-					(predicateCount*sizeof(ArgVectorPointer)), 
-					predicateCount, 
-					sizeof(ArgVectorPointer)); // ??? C++-Funktional nutzen
-					return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
-		}
+      // construct type of result tuples
+            tempData->resultTupleType = 
+         new TupleType( nl->Second( GetTupleResultType(s) ));
 
-		// initialize array which stores structures for handling mapping functions itself and their parameters
-		for (predicateNumber=0; predicateNumber<predicateCount; predicateNumber++) {
-			predicate = qp->GetSupplier(predicateList, predicateNumber);
-			funStructure[predicateNumber] = qp->GetSupplier(predicate, 1);
-			funArguments[predicateNumber] = qp->Argument(funStructure[predicateNumber]);
-		}
+      //YYtempData->firstCall=1;
+//YY      return 0;
+   
+   //XX
+   //YYcase REQUEST :
+      //XX get local data
+      //YYtempData = (struct PredcountsLocalData *) local.addr;
 
-		// open input stream
-		qp->Open(args[0].addr);
-		// read all tuples of the input stream
-		count = 0;
-		qp->Request(args[0].addr, elem);
-		while ( qp->Received(args[0].addr) )
-		{
-			// check that only maxSaveEvaluableRows are read
-			count++;
-			if (count > maxSaveEvaluableRows) {
-				fprintf(stderr,
-					"ERROR: es koennen nur max. %i Zeilen des Eingabestromes sicher verarbeitet werden, dannach besteht die Gefahr eines Ueberlaufes\n", 
-					maxSaveEvaluableRows); // ??? C++-Funktional nutzen
-				return 1; // welcher Wert muss hier zurueckgegeben werden ?
-			}
+   //YYif (tempData->firstCall) {
 
-			// some local variables
-			resultIndex = 0;
-			currentTuple = (Tuple *) elem.addr;
+      //YYtempData->firstCall=0;
 
-			//  fuer alle Praedikate: Ergebnis des Praedikates ermitteln und speichern
-			//  for each predicate: calculate and store the result predicate for each tuple
-			for (predNumber=0; predNumber<predicateCount; predNumber++) {
+      // allocate memory to store structures for handling 
+      // mapping functions itself and their parameters
+      funStructure = (Supplier *) calloc(predicateCount, sizeof(Supplier));
+      if (funStructure==0) {
+         fprintf(stderr,
+            "ERROR: konnte Speicher %i Bytes nicht allokieren "
+            "(predicateCount=%i sizeof(Supplier)=%i)\n",
+            (predicateCount*sizeof(Supplier)), predicateCount, 
+            sizeof(Supplier)); // ??? 
+            return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+      }
+      funArguments = (ArgVectorPointer *) 
+         calloc(predicateCount, sizeof(ArgVectorPointer));
+      if (funArguments==0) {
+         fprintf(stderr,
+            "ERROR: konnte Speicher %i Bytes nicht allokieren "
+            "(predicateCount=%i sizeof(ArgVectorPointer)=%i)\n",
+               (predicateCount*sizeof(ArgVectorPointer)), 
+               predicateCount, 
+               sizeof(ArgVectorPointer)); // ??? C++-Funktional nutzen
+               return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+      }
 
-				// set the tuple to be used by evaluation and evaluate predicate
-				(*(funArguments[predNumber]))[0] = elem;
-				qp->Request( funStructure[predNumber], funResult);
-				if (((StandardAttribute*)funResult.addr)->IsDefined()) {
-					if (((CcBool*)funResult.addr)->GetBoolval()) {
-						// if the predicate is true for the tuple, set the corresponding bit
-						resultIndex = (1 << predNumber) | resultIndex;
-					}
-				} else {
-					//??? Was ist das fuer ein Fall?
-				}
-			}
+      // initialize array which stores structures for 
+      // handling mapping functions itself and their parameters
+      for (predicateNumber=0; predicateNumber<predicateCount; 
+         predicateNumber++) {
+         predicate = qp->GetSupplier(predicateList, predicateNumber);
+         funStructure[predicateNumber] = qp->GetSupplier(predicate, 1);
+         funArguments[predicateNumber] = 
+	    qp->Argument(funStructure[predicateNumber]);
+      }
 
-			// increase the counter which reflects the set of met predicates
-			(tempData->resultCounters[resultIndex])++;
+      // open input stream
+      qp->Open(args[0].addr);
+      // read all tuples of the input stream
+      count = 0;
+      qp->Request(args[0].addr, elem);
+      while ( qp->Received(args[0].addr) )
+      {
+         // check that only maxSaveEvaluableRows are read
+         count++;
+         if (count > maxSaveEvaluableRows) {
+            fprintf(stderr,
+               "ERROR: es koennen nur max. %i Zeilen des Eingabestromes "
+               "sicher verarbeitet werden, dannach besteht die Gefahr eines "
+               "Ueberlaufes\n", 
+               maxSaveEvaluableRows); // ??? 
+            return 1; // welcher Wert muss hier zurueckgegeben werden ?
+         }
 
-			// delete the current tuple
-			currentTuple->DeleteIfAllowed();
+         // some local variables
+         resultIndex = 0;
+         currentTuple = (Tuple *) elem.addr;
 
-			// get the next tuple
-			qp->Request(args[0].addr, elem);
-		}
-		// close input stream
-		qp->Close(args[0].addr);
+         //  fuer alle Praedikate: Ergebnis des Praedikates 
+	 //  ermitteln und speichern
+         //  for each predicate: calculate and store the result predicate 
+         //  for each tuple
+         for (predNumber=0; predNumber<predicateCount; predNumber++) {
 
-		// deallocate memory
-		if (funStructure) free(funStructure);
-		if (funArguments) free(funArguments);
+            // set the tuple to be used by evaluation and evaluate predicate
+            (*(funArguments[predNumber]))[0] = elem;
+            qp->Request( funStructure[predNumber], funResult);
+            if (((StandardAttribute*)funResult.addr)->IsDefined()) {
+               if (((CcBool*)funResult.addr)->GetBoolval()) {
+                  // if the predicate is true for the tuple, 
+		  // set the corresponding bit
+                  resultIndex = (1 << predNumber) | resultIndex;
+               }
+            } else {
+               //??? Was ist das fuer ein Fall?
+            }
+         }
 
-		return 0;
+         // increase the counter which reflects the set of met predicates
+         (tempData->resultCounters[resultIndex])++;
 
-	case REQUEST :
+         // delete the current tuple
+         currentTuple->DeleteIfAllowed();
 
-		// get local data
-		tempData = (struct PredcountsLocalData *) local.addr;
+         // get the next tuple
+         qp->Request(args[0].addr, elem);
+      }
+      // close input stream
+      qp->Close(args[0].addr);
 
-		// if no more result tuples are left - finish REQUEST phase
-		if (tempData->predicateCombinations==0) {
-			return CANCEL;
-		}
-		tempData->predicateCombinations--;
-			
-		// create a new tuple
-		newTuple = new Tuple( tempData->resultTupleType );
-		//newTuple->IncReference(); ??? wird nicht noetig sein - oder doch ?
+      // deallocate memory
+      if (funStructure) free(funStructure);
+      if (funArguments) free(funArguments);
 
-		// put values into new tuple
-		attr = new CcInt(true, tempData->predicateCombinations); // ??? korrekt? deallocierung erfolgt durch anderen code?
-		newTuple->PutAttribute( 0, attr );
-		attr = 
-		  new CcInt(true, 
-			    (tempData->resultCounters)[tempData
-				                        ->predicateCombinations]); // korrekt?
-		newTuple->PutAttribute( 1,  attr);
+      return 0;
 
-		// return the tuple
-		result = SetWord(newTuple);
-		return YIELD;
+   case REQUEST :
 
-	case CLOSE :
-		if (tempData) {
-			if (tempData->resultCounters) 
-				free((RESULT_TYPE *) tempData->resultCounters);
-			free((struct PredcountsLocalData *) tempData);
-		}
-		local = SetWord(Address(0));
-		return 0;
+      // get local data
+      tempData = (struct PredcountsLocalData *) local.addr;
+
+   //YY}
+
+      // if no more result tuples are left - finish REQUEST phase
+      if (tempData->predicateCombinations==0) {
+         return CANCEL;
+      }
+      tempData->predicateCombinations--;
+         
+      // create a new tuple
+      newTuple = new Tuple( tempData->resultTupleType );
+      //newTuple->IncReference(); ??? wird nicht noetig sein - oder doch ?
+
+      // put values into new tuple
+      attr = new CcInt(true, tempData->predicateCombinations); 
+         // ??? korrekt? deallocierung erfolgt durch anderen code?
+      newTuple->PutAttribute( 0, attr );
+      attr = new CcInt(true, 
+         (tempData->resultCounters)[tempData->predicateCombinations]); 
+         // korrekt?
+      newTuple->PutAttribute( 1,  attr);
+
+      // return the tuple
+      result = SetWord(newTuple);
+      return YIELD;
+
+   case CLOSE :
+      if (tempData) {
+         if (tempData->resultCounters) 
+            free((RESULT_TYPE *) tempData->resultCounters);
+         free((struct PredcountsLocalData *) tempData);
+      }
+      local = SetWord(Address(0));
+      return 0;
      }
 
-     return 1; // this point should never be arrived ??? warum in 
-     //anderen Implementierungen 0 - keine Fehlererkennung, aber Komptibilitaet
+     return 1; // this point should never be arrived ??? 
+     // warum in anderen Implementierungen 0 - keine Fehlererkennung, 
+     // aber Komptibilitaet
 }
 
 /*
@@ -463,15 +479,16 @@ struct predcountsInfo : OperatorInfo {
   {
     name      = "predcounts";
     signature = "stream(tuple(y)) x ( tuple(y) -> bool, ..., tuple(y) "
-	        "-> bool ) -> stream(tuple((Atom int)(Counter int)))";
+       "-> bool ) -> stream(tuple((Atom int)(Counter int)))";
     syntax    = " predcounts [ funlist ]";
     meaning   = "returns for each possible evaluation subset (called atoms) "
-	        "of the function list the count of tuples "
-	        "which exactly met these. An evaluation subset is encoded as "
-		"integer in binary representation, e.g. a pattern value of "
-		"\"101\" = 5 in the result stream indicates the number of "
-		"tuples for which the first and third predicate is evaluated "
-		" to TRUE and the second is evaluated to FALSE.";
+       "of the function list the count of tuples "
+       "which exactly met these. An evaluation subset is encoded as "
+       "integer in binary representation, e.g. a pattern value of "
+       "\"101\" = 5 in the result stream indicates the number of "
+       "tuples for which the first and third predicate is evaluated "
+       " to TRUE and the second is evaluated to FALSE.";
+
   }
 
 }; // Don't forget the semicolon here. Otherwise the compiler 
