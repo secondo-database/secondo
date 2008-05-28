@@ -19,6 +19,7 @@
 
 operator creatextree alias CREATEXTREE pattern _ op [_]
 operator creatextree2 alias CREATEXTREE2 pattern _ op [_, _]
+operator creatextree3 alias CREATEXTREE3 pattern _ op [_, _, _]
 
 operator rangesearch alias RANGESEARCH pattern _ _ op [_, _]
 operator nnsearch alias NNSEARCH pattern _ _ op [_, _]
