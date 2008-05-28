@@ -330,12 +330,22 @@ Prints some infos about the tree to cmsg.info().
     {
         cmsg.info() << endl
             << "<mtree infos>" << endl
-            << "   entries         : " << header.entryCount << endl
-            << "   height          : " << header.height << endl
-            << "   internal nodes  : " << header.internalCount << endl
-            << "   leaf nodes      : " << header.leafCount << endl
-            << "   assigned config : " << configName() << endl
-            << "   assigned type   : " << typeName () << endl
+            << "   entries                : "
+            << entryCount() << endl
+            << "   height                 : "
+            << height() << endl
+            << "   internal nodes         : "
+            << internalCount() << endl
+            << "   leaf nodes             : "
+            << leafCount() << endl
+            << "   assigned config        : "
+            << configName() << endl
+            << "   assigned type          : "
+            << typeName() << endl
+            << "   assigned distfun       : "
+            << header.distfunName << endl
+            << "   assigned distdata type : "
+            << df_info.data().name() << endl
             << endl;
         cmsg.send();
     }
