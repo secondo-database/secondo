@@ -1533,18 +1533,6 @@ plan_to_atom(InTerm,OutTerm) :-
   concat_atom(ArgsOut, ', ', ArgsOutAtom),
   concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm).
 
-/*
-plan_to_atom(Term, Result) :-
-  functor(Term, Op, 3),
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  arg(3, Term, Arg3),
-  plan_to_atom(Arg1, Res1),
-  plan_to_atom(Arg2, Res2),
-  plan_to_atom(Arg3, Res3),
-  concat_atom([Op, '(', Res1, ', ', Res2, ', ', Res3, ')'], '', Result).
-*/
-
 /* Standard translation of atomic terms */
 plan_to_atom(X, Result) :-
   atomic(X),
