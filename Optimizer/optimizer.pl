@@ -1495,7 +1495,6 @@ plan_to_atom(Term, Result) :-
   concat_atom([Op, '(', Res1, ',', Res2, ') '], '', Result),
   !.
 
-
 /*
 Generic rules. Operators that are not
 recognized are assumed to be:
@@ -1504,16 +1503,18 @@ recognized are assumed to be:
 
   * 2 arguments: infix
 
-  * 3 arguments: prefix
+  * 3+ arguments: prefix
 
 */
 
+% 1 argument: prefix */
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 1),
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
   concat_atom([Op, '(', Res1, ')'], '', Result).
 
+/* 2 arguments: infix */
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 2),
   arg(1, Term, Arg1),
@@ -1522,6 +1523,17 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg2, Res2),
   concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result).
 
+/* 3+ arguments: prefix */
+
+
+plan_to_atom(InTerm,OutTerm) :-
+  compound(InTerm),
+  InTerm =.. [Op|ArgsIn],
+  plan_to_atom_2(ArgsIn,ArgsOut),
+  concat_atom(ArgsOut, ', ', ArgsOutAtom),
+  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm).
+
+/*
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 3),
   arg(1, Term, Arg1),
@@ -1531,16 +1543,26 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg2, Res2),
   plan_to_atom(Arg3, Res3),
   concat_atom([Op, '(', Res1, ', ', Res2, ', ', Res3, ')'], '', Result).
+*/
 
+/* Standard translation of atomic terms */
 plan_to_atom(X, Result) :-
   atomic(X),
   term_to_atom(X, Result),
   !.
 
+/* Error case */
 plan_to_atom(X, _) :-
   write('Error while converting term: '),
   write(X),
   nl.
+
+/* auxiliary predicate */
+plan_to_atom_2([],[]).
+
+plan_to_atom_2([InHead|InRest],[OutHead|OutRest]) :-
+  plan_to_atom(InHead,OutHead),
+  plan_to_atom_2(InRest,OutRest).
 
 /*
 Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
