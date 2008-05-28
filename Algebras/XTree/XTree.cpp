@@ -86,13 +86,21 @@ void XTree::initialize()
 Method ~initialize~ :
 
 */
-void XTree::initialize(unsigned dim, const string &configName)
+void XTree::initialize(
+        unsigned dim,
+        const string &configName,
+        const string &typeName,
+        int getdataType,
+        const string &getdataName)
 {
     if (isInitialized())
         return;
 
     header.dim = dim;
     strcpy(header.configName, configName.c_str());
+    strcpy(header.typeName, typeName.c_str());
+    strcpy(header.getdataName, getdataName.c_str());
+    header.getdataType = getdataType;
     initialize();
     header.initialized = true;
     registerNodePrototypes();
@@ -922,4 +930,220 @@ Method ~nnSearch~:
 */
 void XTree::nnSearch(HPoint *p, int nncount, list<TupleId> *results)
 {
+    #ifdef __XTREE_DEBUG
+    assert(isInitialized());
+    #endif
+
+    #ifdef __XTREE_ANALYSE_STATS
+    unsigned entryCount = 0;
+    unsigned pageCount = 0;
+    unsigned nodeCount = 0;
+    unsigned distComputations = 0;
+    #endif
+
+    results->clear();
+
+    // init nearest neighbours array
+    list<NNEntry> nearestNeighbours;
+    for (int i = 0; i < nncount; ++i)
+    {
+        nearestNeighbours.push_back(
+            NNEntry(0, numeric_limits<double>::infinity()));
+    }
+
+    vector<RemainingNodesEntryNNS> remainingNodes;
+
+
+    remainingNodes.push_back(
+        RemainingNodesEntryNNS(header.root, 0));
+
+    while(!remainingNodes.empty())
+    {
+        // read node with smallest minDist
+        NodePtr node = getNode(remainingNodes.front().nodeId);
+        double rad = nearestNeighbours.back().dist;
+
+        #ifdef __XTREE_ANALYSE_STATS
+        pageCount += node->pagecount();
+        ++nodeCount;
+        #endif
+
+        // remove entry from remainingNodes heap
+        pop_heap(remainingNodes.begin(), remainingNodes.end(),
+                greater<RemainingNodesEntryNNS>());
+        remainingNodes.pop_back();
+
+        if (node->isLeaf())
+        { // leaf node
+            LeafNodePtr curNode = node->cast<LeafNode>();
+            LeafNode::iterator it;
+            for(it = curNode->begin(); it != curNode->end(); ++it)
+            {
+                #ifdef __XTREE_ANALYSE_STATS
+                ++entryCount;
+                ++distComputations;
+                #endif
+                double dist = (*it)->dist(p);
+                if (dist <= rad)
+                {
+                    // insert entry into nn-array
+                    list<NNEntry>::iterator nnIter;
+                    nnIter = nearestNeighbours.begin();
+                    while ((dist > nnIter->dist) &&
+                            (nnIter != nearestNeighbours.end()))
+                    {
+                        ++nnIter;
+                    }
+
+                    bool done = false;
+                    if (nnIter != nearestNeighbours.end())
+                    {
+                        TupleId tid = (*it)->tid();
+                        while (!done && (nnIter != nearestNeighbours.end()))
+                        {
+                            if (nnIter->tid == 0)
+                            {
+                                nnIter->dist = dist;
+                                nnIter->tid = tid;
+                                done = true;
+                            }
+                            else
+                            {
+                                swap(dist, nnIter->dist);
+                                swap(tid, nnIter->tid);
+                            }
+                            ++nnIter;
+                        } // while
+                    } // if
+
+                    rad = nearestNeighbours.back().dist;
+                    vector<RemainingNodesEntryNNS>::iterator it
+                            = remainingNodes.begin();
+
+                    while (it != remainingNodes.end())
+                    {
+                        if ((*it).minDist > rad)
+                        {
+                            swap(*it, remainingNodes.back());
+                            remainingNodes.pop_back();
+                        }
+                        else
+                            ++it;
+                    }
+                    make_heap(remainingNodes.begin(),
+                            remainingNodes.end(),
+                            greater<RemainingNodesEntryNNS>());
+                } // if (dist <= rad)
+            } // for
+        }
+        else
+        { // internal node
+            InternalNodePtr curNode = node->cast<InternalNode>();
+            InternalNode::iterator it;
+            for(it = curNode->begin(); it != curNode->end(); ++it)
+            {
+                #ifdef __XTREE_ANALYSE_STATS
+                ++distComputations;
+                #endif
+                double minDist = SpatialDistfuns::
+                        minDist(p, (*it)->bbox());
+                double minMaxDist = SpatialDistfuns::
+                        minMaxDist(p, (*it)->bbox());
+                if (minDist <= rad)
+                {
+                    // insert new entry into remainingNodes heap
+                    remainingNodes.push_back(RemainingNodesEntryNNS(
+                        (*it)->chield(), minDist));
+                    push_heap(
+                            remainingNodes.begin(),
+                            remainingNodes.end(),
+                            greater<RemainingNodesEntryNNS>());
+
+                    if (minMaxDist < rad)
+                    {
+                        // update nearesNeighbours
+                        list<NNEntry>::iterator nnIter;
+                        nnIter = nearestNeighbours.begin();
+
+                        while ((minMaxDist > (*nnIter).dist) &&
+                                (nnIter != nearestNeighbours.end()))
+                        {
+                            ++nnIter;
+                        }
+
+                        if (((*nnIter).tid == 0) &&
+                            (nnIter != nearestNeighbours.end()))
+                        {
+                            if (minMaxDist != (*nnIter).dist)
+                            {
+                                nearestNeighbours.insert(
+                                    nnIter, NNEntry(0, minMaxDist));
+                                nearestNeighbours.pop_back();
+                            }
+                        }
+
+                        rad = nearestNeighbours.back().dist;
+
+                        vector<RemainingNodesEntryNNS>::iterator it =
+                            remainingNodes.begin();
+
+                        while (it != remainingNodes.end())
+                        {
+                            if ((*it).minDist > rad)
+                            {
+                                it = remainingNodes.erase(it);
+                            }
+                            else
+                            ++it;
+                        }
+                            make_heap(
+                                    remainingNodes.begin(),
+                                    remainingNodes.end(),
+                                    greater<RemainingNodesEntryNNS>());
+                    }
+                }
+            }
+        }
+    } // while
+
+    list<NNEntry>::iterator it;
+    for (it = nearestNeighbours.begin();
+         it != nearestNeighbours.end(); ++it)
+    {
+        if ((*it).tid != 0)
+        {
+            results->push_back((*it).tid);
+        }
+    }
+
+    delete p;
+    #ifdef __XTREE_PRINT_STATS_TO_FILE
+    cmsg.file("xtree.log")
+        << "nnsearch" << "\t"
+        << header.internalCount << "\t"
+        << header.leafCount << "\t"
+        << header.entryCount << "\t"
+        << nncount << "\t"
+        << distComputations << "\t"
+        << pageCount << "\t"
+        << nodeCount << "\t"
+        << entryCount << "\t"
+        << results->size() << "\t\n";
+    cmsg.send();
+    #endif
+
+    #ifdef __XTREE_PRINT_SEARCH_INFO
+    unsigned maxNodes = header.internalCount + header.leafCount;
+    unsigned maxEntries = header.entryCount;
+    unsigned maxDistComputations = maxEntries + (maxNodes-1);
+    cmsg.info()
+        << "pages accessed        : " << pageCount << "\n"
+        << "distance computations : " << distComputations
+        << "\t(max " << maxDistComputations << ")\n"
+        << "nodes analyzed        : " << nodeCount
+        << "\t(max " << maxNodes << ")\n"
+        << "entries analyzed      : " << entryCount
+        << "\t(max " << maxEntries << ")\n\n";
+    cmsg.send();
+    #endif
 } // nnSearch
