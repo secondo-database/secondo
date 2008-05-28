@@ -695,8 +695,7 @@ int rangesearchHPoint_VM(
     {
       XTree *xtree = static_cast<XTree*>(args[0].addr);
 
-      info = new Search_LI(
-          static_cast<Relation*>(args[1].addr));
+      info = new Search_LI( static_cast<Relation*>(args[1].addr));
       local = SetWord(info);
 
       HPointAttr *attr =
@@ -767,73 +766,90 @@ int rangesearch_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-//   Search_LI *info;
-//   switch (message)
-//   {
-//     case OPEN :
-//     {
-//       XTree *xtree = static_cast<XTree*>(args[0].addr);
-//
-//       info = new Search_LI(
-//           static_cast<Relation*>(args[1].addr));
-//       local = SetWord(info);
-//
-//       Attribute *attr =
-//           static_cast<Attribute*>(args[2].addr);
-//
-//       double searchRad =
-//             static_cast<CcReal*>(args[3].addr)->GetValue();
-//
-//       {
-//         const string seperator = "\n" + string(70, '-') + "\n";
-//         cmsg.error() << seperator
-//             << "Operator rangesearch:" << endl
-//             << "The given hpoint has the dimension "
-//             << attr->dim() << ", but the xtree contains "
-//             << xtree->dim() << "-dimensional data!"
-//             << seperator << endl;
-//         cmsg.send();
-//         return CANCEL;
-//       }
-//
-//       // compute square of searchRad, since the current
-//       // implementation of the xtree uses the square of the eucledean
-//       // metric as distance function
-//       searchRad *= searchRad;
-//
-//       xtree->rangeSearch(attr->hpoint(), searchRad, info->results);
-//       info->initResultIterator();
-//
-//       assert(info->relation != 0);
-//       return 0;
-//     }
-//
-//     case REQUEST :
-//     {
-//       info = (Search_LI*)local.addr;
-//       if(!info->defined)
-//         return CANCEL;
-//
-//       TupleId tid = info->next();
-//       if(tid)
-//       {
-//         Tuple *tuple = info->relation->GetTuple(tid);
-//         result = SetWord(tuple);
-//         return YIELD;
-//       }
-//       else
-//       {
-//         return CANCEL;
-//       }
-//     }
-//
-//     case CLOSE :
-//     {
-//       info = (Search_LI*)local.addr;
-//       delete info;
-//       return 0;
-//     }
-//   }
+  Search_LI *info;
+  switch (message)
+  {
+    case OPEN :
+    {
+      XTree *xtree = static_cast<XTree*>(args[0].addr);
+
+      info = new Search_LI( static_cast<Relation*>(args[1].addr));
+      local = SetWord(info);
+
+      Attribute *attr = static_cast<Attribute*>(args[2].addr);
+
+      double searchRad =
+            static_cast<CcReal*>(args[3].addr)->GetValue();
+
+      string typeName =
+           static_cast<CcString*>(args[4].addr)->GetValue();
+
+      // compute square of searchRad, since the current
+      // implementation of the xtree uses the square of the eucledean
+      // metric as distance function
+      searchRad *= searchRad;
+
+      if (xtree->typeName() != typeName)
+      {
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+            << "Operator rangesearch:" << endl
+            << "Got an \"" << typeName << "\" attribute, but the "
+            << "xtree contains \"" << xtree->typeName()
+            << "\" attriubtes!" << seperator << endl;
+        cmsg.send();
+        return CANCEL;
+      }
+
+      HPoint *p;
+      if (xtree->getdataType() == 0)
+      { // use gethpoint function
+        HPointInfo info = HPointReg::getInfo(
+                typeName, xtree->getdataName());
+        p = info.getHPoint(attr);
+      }
+      else
+      { // use getbbox function
+        BBoxInfo info = BBoxReg::getInfo(
+                typeName, xtree->getdataName());
+        HRect *r = info.getBBox(attr);
+        p = new HPoint(r->center());
+        delete r;
+      }
+
+      xtree->rangeSearch(p, searchRad, info->results);
+      info->initResultIterator();
+
+      assert(info->relation != 0);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      info = (Search_LI*)local.addr;
+      if(!info->defined)
+        return CANCEL;
+
+      TupleId tid = info->next();
+      if(tid)
+      {
+        Tuple *tuple = info->relation->GetTuple(tid);
+        result = SetWord(tuple);
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      info = (Search_LI*)local.addr;
+      delete info;
+      return 0;
+    }
+  }
   return 0;
 }
 
@@ -853,15 +869,11 @@ int nnsearchHPoint_VM(
     {
       XTree *xtree = static_cast<XTree*>(args[0].addr);
 
-      info = new Search_LI(
-          static_cast<Relation*>(args[1].addr));
+      info = new Search_LI( static_cast<Relation*>(args[1].addr));
       local = SetWord(info);
 
-      HPointAttr *attr =
-          static_cast<HPointAttr*>(args[2].addr);
-
-      int nnCount =
-            static_cast<CcInt*>(args[3].addr)->GetValue();
+      HPointAttr *attr = static_cast<HPointAttr*>(args[2].addr);
+      int nnCount = static_cast<CcInt*>(args[3].addr)->GetValue();
 
       if (attr->dim() != xtree->dim())
       {
@@ -920,70 +932,84 @@ int nnsearch_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-//   Search_LI *info;
-//
-//   switch (message)
-//   {
-//     case OPEN :
-//     {
-//       XTree *xtree = static_cast<XTree*>(args[0].addr);
-//
-//       info = new Search_LI(
-//           static_cast<Relation*>(args[1].addr));
-//       local = SetWord(info);
-//
-//       Attribute *attr =
-//           static_cast<Attribute*>(args[2].addr);
-//
-//       int nnCount =
-//             static_cast<CcInt*>(args[3].addr)->GetValue();
-//
-//       if (attr->dim() != xtree->dim())
-//       {
-//         const string seperator = "\n" + string(70, '-') + "\n";
-//         cmsg.error() << seperator
-//             << "Operator nnsearch:" << endl
-//             << "The given hpoint has the dimension "
-//             << attr->dim() << ", but the xtree contains "
-//             << xtree->dim() << "-dimensional data!"
-//             << seperator << endl;
-//         cmsg.send();
-//         return CANCEL;
-//       }
-//
-//       xtree->nnSearch(attr->hpoint(), nnCount , info->results);
-//       info->initResultIterator();
-//
-//       assert(info->relation != 0);
-//       return 0;
-//     }
-//
-//     case REQUEST :
-//     {
-//       info = (Search_LI*)local.addr;
-//       if(!info->defined)
-//         return CANCEL;
-//
-//       TupleId tid = info->next();
-//       if(tid)
-//       {
-//         Tuple *tuple = info->relation->GetTuple(tid);
-//         result = SetWord(tuple);
-//         return YIELD;
-//       }
-//       else
-//       {
-//         return CANCEL;
-//       }
-//     }
-//
-//     case CLOSE :
-//     {
-//       info = (Search_LI*)local.addr;
-//       delete info;
-//       return 0;
-//     }
-//   }
+  Search_LI *info;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      XTree *xtree = static_cast<XTree*>(args[0].addr);
+
+      info = new Search_LI( static_cast<Relation*>(args[1].addr));
+      local = SetWord(info);
+
+      Attribute *attr = static_cast<Attribute*>(args[2].addr);
+      int nnCount = static_cast<CcInt*>(args[3].addr)->GetValue();
+
+      string typeName =
+           static_cast<CcString*>(args[4].addr)->GetValue();
+
+      if (xtree->typeName() != typeName)
+      {
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+            << "Operator rangesearch:" << endl
+            << "Got an \"" << typeName << "\" attribute, but the "
+            << "xtree contains \"" << xtree->typeName()
+            << "\" attriubtes!" << seperator << endl;
+        cmsg.send();
+        return CANCEL;
+      }
+
+      HPoint *p;
+      if (xtree->getdataType() == 0)
+      { // use gethpoint function
+        HPointInfo info = HPointReg::getInfo(
+                typeName, xtree->getdataName());
+        p = info.getHPoint(attr);
+      }
+      else
+      { // use getbbox function
+        BBoxInfo info = BBoxReg::getInfo(
+                typeName, xtree->getdataName());
+        HRect *r = info.getBBox(attr);
+        p = new HPoint(r->center());
+        delete r;
+      }
+
+      xtree->nnSearch(p, nnCount , info->results);
+      info->initResultIterator();
+
+      assert(info->relation != 0);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      info = (Search_LI*)local.addr;
+      if(!info->defined)
+        return CANCEL;
+
+      TupleId tid = info->next();
+      if(tid)
+      {
+        Tuple *tuple = info->relation->GetTuple(tid);
+        result = SetWord(tuple);
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      info = (Search_LI*)local.addr;
+      delete info;
+      return 0;
+    }
+  }
   return 0;
 }
 
@@ -1181,30 +1207,37 @@ ListExpr creatextree_TM(ListExpr args)
 ********************************************************************/
 ListExpr rangesearch_TM(ListExpr args)
 {
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
     NList args_NL(args);
 
     CHECK_LIST_LENGTH(4, args_NL);
 
     NList attrs;
-    NList xtree_NL = args_NL.first();
+    NList mtree_NL = args_NL.first();
     NList rel_NL = args_NL.second();
-    NList hpoint_NL = args_NL.third();
+    NList data_NL = args_NL.third();
     NList searchRad_NL = args_NL.fourth();
 
     CHECK_COND(
-            xtree_NL.isEqual(XTREE),
+            mtree_NL.isEqual(XTREE),
             "First argument must be a xtree!");
     CHECK_REL(rel_NL, attrs, 2);
-    CHECK_SYMBOL(hpoint_NL, 3);
+    CHECK_SYMBOL(data_NL, 3);
     CHECK_REAL(searchRad_NL, 4);
 
-    string typeName = hpoint_NL.str();
-    string error = "Expecting a \"hpoint\" attribute as third "
-                   "parameter!";
-    CHECK_COND(typeName == "hpoint", error);
+    /* further type checkings for the data parameter will be done
+       in the value mapping function, since that needs some data from
+       the xtree object */
 
-    NList stream_NL(STREAM);
-    NList result(stream_NL, rel_NL.second());
+    NList append(APPEND);
+    NList result (
+        append,
+        NList(data_NL.str(), true).enclose(),
+        NList(NList(STREAM), rel_NL.second()));
+
     return result.listExpr();
 }
 
@@ -1214,30 +1247,37 @@ ListExpr rangesearch_TM(ListExpr args)
 ********************************************************************/
 ListExpr nnsearch_TM(ListExpr args)
 {
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
     NList args_NL(args);
 
     CHECK_LIST_LENGTH(4, args_NL);
 
     NList attrs;
-    NList xtree_NL = args_NL.first();
+    NList mtree_NL = args_NL.first();
     NList rel_NL = args_NL.second();
-    NList hpoint_NL = args_NL.third();
+    NList data_NL = args_NL.third();
     NList nnCount_NL = args_NL.fourth();
 
     CHECK_COND(
-            xtree_NL.isEqual(XTREE),
+            mtree_NL.isEqual(XTREE),
             "First argument must be a xtree!");
     CHECK_REL(rel_NL, attrs, 2);
-    CHECK_SYMBOL(hpoint_NL, 3);
+    CHECK_SYMBOL(data_NL, 3);
     CHECK_INT(nnCount_NL, 4);
 
-    string typeName = hpoint_NL.str();
-    string error = "Expecting a \"hpoint\" attribute as third "
-                   "parameter!";
-    CHECK_COND(typeName == "hpoint", error);
+    /* further type checkings for the data parameter will be done
+       in the value mapping function, since that needs some data from
+       the xtree object */
 
-    NList stream_NL(STREAM);
-    NList result(stream_NL, rel_NL.second());
+    NList append(APPEND);
+    NList result (
+        append,
+        NList(data_NL.str(), true).enclose(),
+        NList(NList(STREAM), rel_NL.second()));
+
     return result.listExpr();
 }
 
