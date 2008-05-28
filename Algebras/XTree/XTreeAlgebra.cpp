@@ -767,73 +767,73 @@ int rangesearch_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  Search_LI *info;
-  switch (message)
-  {
-    case OPEN :
-    {
-      XTree *xtree = static_cast<XTree*>(args[0].addr);
-
-      info = new Search_LI(
-          static_cast<Relation*>(args[1].addr));
-      local = SetWord(info);
-
-      Attribute *attr =
-          static_cast<Attribute*>(args[2].addr);
-
-      double searchRad =
-            static_cast<CcReal*>(args[3].addr)->GetValue();
-
-      {
-        const string seperator = "\n" + string(70, '-') + "\n";
-        cmsg.error() << seperator
-            << "Operator rangesearch:" << endl
-            << "The given hpoint has the dimension "
-            << attr->dim() << ", but the xtree contains "
-            << xtree->dim() << "-dimensional data!"
-            << seperator << endl;
-        cmsg.send();
-        return CANCEL;
-      }
-
-      // compute square of searchRad, since the current
-      // implementation of the xtree uses the square of the eucledean
-      // metric as distance function
-      searchRad *= searchRad;
-
-      xtree->rangeSearch(attr->hpoint(), searchRad, info->results);
-      info->initResultIterator();
-
-      assert(info->relation != 0);
-      return 0;
-    }
-
-    case REQUEST :
-    {
-      info = (Search_LI*)local.addr;
-      if(!info->defined)
-        return CANCEL;
-
-      TupleId tid = info->next();
-      if(tid)
-      {
-        Tuple *tuple = info->relation->GetTuple(tid);
-        result = SetWord(tuple);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    }
-
-    case CLOSE :
-    {
-      info = (Search_LI*)local.addr;
-      delete info;
-      return 0;
-    }
-  }
+//   Search_LI *info;
+//   switch (message)
+//   {
+//     case OPEN :
+//     {
+//       XTree *xtree = static_cast<XTree*>(args[0].addr);
+//
+//       info = new Search_LI(
+//           static_cast<Relation*>(args[1].addr));
+//       local = SetWord(info);
+//
+//       Attribute *attr =
+//           static_cast<Attribute*>(args[2].addr);
+//
+//       double searchRad =
+//             static_cast<CcReal*>(args[3].addr)->GetValue();
+//
+//       {
+//         const string seperator = "\n" + string(70, '-') + "\n";
+//         cmsg.error() << seperator
+//             << "Operator rangesearch:" << endl
+//             << "The given hpoint has the dimension "
+//             << attr->dim() << ", but the xtree contains "
+//             << xtree->dim() << "-dimensional data!"
+//             << seperator << endl;
+//         cmsg.send();
+//         return CANCEL;
+//       }
+//
+//       // compute square of searchRad, since the current
+//       // implementation of the xtree uses the square of the eucledean
+//       // metric as distance function
+//       searchRad *= searchRad;
+//
+//       xtree->rangeSearch(attr->hpoint(), searchRad, info->results);
+//       info->initResultIterator();
+//
+//       assert(info->relation != 0);
+//       return 0;
+//     }
+//
+//     case REQUEST :
+//     {
+//       info = (Search_LI*)local.addr;
+//       if(!info->defined)
+//         return CANCEL;
+//
+//       TupleId tid = info->next();
+//       if(tid)
+//       {
+//         Tuple *tuple = info->relation->GetTuple(tid);
+//         result = SetWord(tuple);
+//         return YIELD;
+//       }
+//       else
+//       {
+//         return CANCEL;
+//       }
+//     }
+//
+//     case CLOSE :
+//     {
+//       info = (Search_LI*)local.addr;
+//       delete info;
+//       return 0;
+//     }
+//   }
   return 0;
 }
 
@@ -920,70 +920,70 @@ int nnsearch_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  Search_LI *info;
-
-  switch (message)
-  {
-    case OPEN :
-    {
-      XTree *xtree = static_cast<XTree*>(args[0].addr);
-
-      info = new Search_LI(
-          static_cast<Relation*>(args[1].addr));
-      local = SetWord(info);
-
-      Attribute *attr =
-          static_cast<Attribute*>(args[2].addr);
-
-      int nnCount =
-            static_cast<CcInt*>(args[3].addr)->GetValue();
-
-      if (attr->dim() != xtree->dim())
-      {
-        const string seperator = "\n" + string(70, '-') + "\n";
-        cmsg.error() << seperator
-            << "Operator nnsearch:" << endl
-            << "The given hpoint has the dimension "
-            << attr->dim() << ", but the xtree contains "
-            << xtree->dim() << "-dimensional data!"
-            << seperator << endl;
-        cmsg.send();
-        return CANCEL;
-      }
-
-      xtree->nnSearch(attr->hpoint(), nnCount , info->results);
-      info->initResultIterator();
-
-      assert(info->relation != 0);
-      return 0;
-    }
-
-    case REQUEST :
-    {
-      info = (Search_LI*)local.addr;
-      if(!info->defined)
-        return CANCEL;
-
-      TupleId tid = info->next();
-      if(tid)
-      {
-        Tuple *tuple = info->relation->GetTuple(tid);
-        result = SetWord(tuple);
-        return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    }
-
-    case CLOSE :
-    {
-      info = (Search_LI*)local.addr;
-      delete info;
-      return 0;
-    }
-  }
+//   Search_LI *info;
+//
+//   switch (message)
+//   {
+//     case OPEN :
+//     {
+//       XTree *xtree = static_cast<XTree*>(args[0].addr);
+//
+//       info = new Search_LI(
+//           static_cast<Relation*>(args[1].addr));
+//       local = SetWord(info);
+//
+//       Attribute *attr =
+//           static_cast<Attribute*>(args[2].addr);
+//
+//       int nnCount =
+//             static_cast<CcInt*>(args[3].addr)->GetValue();
+//
+//       if (attr->dim() != xtree->dim())
+//       {
+//         const string seperator = "\n" + string(70, '-') + "\n";
+//         cmsg.error() << seperator
+//             << "Operator nnsearch:" << endl
+//             << "The given hpoint has the dimension "
+//             << attr->dim() << ", but the xtree contains "
+//             << xtree->dim() << "-dimensional data!"
+//             << seperator << endl;
+//         cmsg.send();
+//         return CANCEL;
+//       }
+//
+//       xtree->nnSearch(attr->hpoint(), nnCount , info->results);
+//       info->initResultIterator();
+//
+//       assert(info->relation != 0);
+//       return 0;
+//     }
+//
+//     case REQUEST :
+//     {
+//       info = (Search_LI*)local.addr;
+//       if(!info->defined)
+//         return CANCEL;
+//
+//       TupleId tid = info->next();
+//       if(tid)
+//       {
+//         Tuple *tuple = info->relation->GetTuple(tid);
+//         result = SetWord(tuple);
+//         return YIELD;
+//       }
+//       else
+//       {
+//         return CANCEL;
+//       }
+//     }
+//
+//     case CLOSE :
+//     {
+//       info = (Search_LI*)local.addr;
+//       delete info;
+//       return 0;
+//     }
+//   }
   return 0;
 }
 
