@@ -291,8 +291,8 @@ int firstVjohn_vm(Word* args, Word& result, int message,
       predicateCount = qp->GetNoSons(predicateList); 
       if (predicateCount>maxPredicateCount) {
          cerr << "ERROR: Anzahl der Praedikate (=" << predicateCount << 
-	    ") ist zu hoch fuer predcounts - max. " << 
-	    maxPredicateCount << endl;
+            ") ist zu hoch fuer predcounts - max. " << 
+            maxPredicateCount << endl;
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
       tempData->predicateCombinations = 
@@ -301,9 +301,9 @@ int firstVjohn_vm(Word* args, Word& result, int message,
          calloc(tempData->predicateCombinations, sizeof(RESULT_TYPE)); 
       if (tempData->resultCounters==0) {
          cerr << "ERROR: konnte Speicher " << 
-	    (tempData->predicateCombinations * sizeof(RESULT_TYPE)) << 
-	    " Bytes nicht allokieren (predicateCount=" << predicateCount << 
-	    " combinations=" << tempData->predicateCombinations << ")" << endl;
+            (tempData->predicateCombinations * sizeof(RESULT_TYPE)) << 
+            " Bytes nicht allokieren (predicateCount=" << predicateCount << 
+            " combinations=" << tempData->predicateCombinations << ")" << endl;
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
       maxSaveEvaluableRows = (1 << sizeof(int)*8-1 ) - 1; 
@@ -318,19 +318,19 @@ int firstVjohn_vm(Word* args, Word& result, int message,
       funStructure = (Supplier *) calloc(predicateCount, sizeof(Supplier));
       if (funStructure==0) {
          cerr << "ERROR: konnte Speicher " << 
-	    (predicateCount*sizeof(Supplier)) << 
-	    " Bytes nicht allokieren (predicateCount=" << predicateCount << 
-	    " sizeof(Supplier)=" << sizeof(Supplier) << ")" << endl;
+            (predicateCount*sizeof(Supplier)) << 
+            " Bytes nicht allokieren (predicateCount=" << predicateCount << 
+            " sizeof(Supplier)=" << sizeof(Supplier) << ")" << endl;
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
       funArguments = (ArgVectorPointer *) 
          calloc(predicateCount, sizeof(ArgVectorPointer));
       if (funArguments==0) {
          cerr << "ERROR: konnte Speicher " << 
-	    (predicateCount*sizeof(ArgVectorPointer)) << 
-	    " Bytes nicht allokieren (predicateCount=" << predicateCount << 
-	    " sizeof(ArgVectorPointer)=" << sizeof(ArgVectorPointer) << 
-	    ")" << endl;
+            (predicateCount*sizeof(ArgVectorPointer)) << 
+            " Bytes nicht allokieren (predicateCount=" << predicateCount << 
+            " sizeof(ArgVectorPointer)=" << sizeof(ArgVectorPointer) << 
+            ")" << endl;
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
 
@@ -355,8 +355,8 @@ int firstVjohn_vm(Word* args, Word& result, int message,
          count++;
          if (count > maxSaveEvaluableRows) {
             cerr << "ERROR: es koennen nur max. " << maxSaveEvaluableRows << 
-	       " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
-	       "dannach besteht die Gefahr eines Ueberlaufes" << endl; 
+               " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
+               "dannach besteht die Gefahr eines Ueberlaufes" << endl; 
             return 1; // welcher Wert muss hier zurueckgegeben werden ?
          }
 
