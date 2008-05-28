@@ -303,7 +303,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
             "ERROR: konnte Speicher %i Bytes nicht allokieren "
             "(predicateCount=%i combinations=%i)\n",
             (tempData->predicateCombinations * sizeof(RESULT_TYPE))
-	    , predicateCount, 
+            , predicateCount, 
             tempData->predicateCombinations); // ??? C++-Funktional nutzen
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
@@ -356,7 +356,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
          predicate = qp->GetSupplier(predicateList, predicateNumber);
          funStructure[predicateNumber] = qp->GetSupplier(predicate, 1);
          funArguments[predicateNumber] = 
-	    qp->Argument(funStructure[predicateNumber]);
+         qp->Argument(funStructure[predicateNumber]);
       }
 
       // open input stream
@@ -382,7 +382,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
          currentTuple = (Tuple *) elem.addr;
 
          //  fuer alle Praedikate: Ergebnis des Praedikates 
-	 //  ermitteln und speichern
+         //  ermitteln und speichern
          //  for each predicate: calculate and store the result predicate 
          //  for each tuple
          for (predNumber=0; predNumber<predicateCount; predNumber++) {
@@ -393,7 +393,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
             if (((StandardAttribute*)funResult.addr)->IsDefined()) {
                if (((CcBool*)funResult.addr)->GetBoolval()) {
                   // if the predicate is true for the tuple, 
-		  // set the corresponding bit
+                  // set the corresponding bit
                   resultIndex = (1 << predNumber) | resultIndex;
                }
             } else {
