@@ -290,9 +290,9 @@ int firstVjohn_vm(Word* args, Word& result, int message,
       maxPredicateCount = sizeof(INDEX_TYPE)*8 - 1;
       predicateCount = qp->GetNoSons(predicateList); 
       if (predicateCount>maxPredicateCount) {
-         fprintf(stderr,
-            "ERROR: Anzahl der Praedikate (=%i) ist zu hoch fuer predcounts - "
-               "max. %i\n", predicateCount, maxPredicateCount); // ???
+         cerr << "ERROR: Anzahl der Praedikate (=" << predicateCount << 
+	    ") ist zu hoch fuer predcounts - max. " << 
+	    maxPredicateCount << endl;
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
       tempData->predicateCombinations = 
@@ -300,12 +300,10 @@ int firstVjohn_vm(Word* args, Word& result, int message,
       tempData->resultCounters = (RESULT_TYPE *) 
          calloc(tempData->predicateCombinations, sizeof(RESULT_TYPE)); 
       if (tempData->resultCounters==0) {
-         fprintf(stderr,
-            "ERROR: konnte Speicher %i Bytes nicht allokieren "
-            "(predicateCount=%i combinations=%i)\n",
-            (tempData->predicateCombinations * sizeof(RESULT_TYPE))
-            , predicateCount, 
-            tempData->predicateCombinations); // ??? C++-Funktional nutzen
+         cerr << "ERROR: konnte Speicher " << 
+	    (tempData->predicateCombinations * sizeof(RESULT_TYPE)) << 
+	    " Bytes nicht allokieren (predicateCount=" << predicateCount << 
+	    " combinations=" << tempData->predicateCombinations << ")" << endl;
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
       maxSaveEvaluableRows = (1 << sizeof(int)*8-1 ) - 1; 
@@ -315,39 +313,25 @@ int firstVjohn_vm(Word* args, Word& result, int message,
             tempData->resultTupleType = 
          new TupleType( nl->Second( GetTupleResultType(s) ));
 
-      //YYtempData->firstCall=1;
-//YY      return 0;
-   
-   //XX
-   //YYcase REQUEST :
-      //XX get local data
-      //YYtempData = (struct PredcountsLocalData *) local.addr;
-
-   //YYif (tempData->firstCall) {
-
-      //YYtempData->firstCall=0;
-
       // allocate memory to store structures for handling 
       // mapping functions itself and their parameters
       funStructure = (Supplier *) calloc(predicateCount, sizeof(Supplier));
       if (funStructure==0) {
-         fprintf(stderr,
-            "ERROR: konnte Speicher %i Bytes nicht allokieren "
-            "(predicateCount=%i sizeof(Supplier)=%i)\n",
-            (predicateCount*sizeof(Supplier)), predicateCount, 
-            sizeof(Supplier)); // ??? 
-            return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+         cerr << "ERROR: konnte Speicher " << 
+	    (predicateCount*sizeof(Supplier)) << 
+	    " Bytes nicht allokieren (predicateCount=" << predicateCount << 
+	    " sizeof(Supplier)=" << sizeof(Supplier) << ")" << endl;
+         return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
       funArguments = (ArgVectorPointer *) 
          calloc(predicateCount, sizeof(ArgVectorPointer));
       if (funArguments==0) {
-         fprintf(stderr,
-            "ERROR: konnte Speicher %i Bytes nicht allokieren "
-            "(predicateCount=%i sizeof(ArgVectorPointer)=%i)\n",
-               (predicateCount*sizeof(ArgVectorPointer)), 
-               predicateCount, 
-               sizeof(ArgVectorPointer)); // ??? C++-Funktional nutzen
-               return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+         cerr << "ERROR: konnte Speicher " << 
+	    (predicateCount*sizeof(ArgVectorPointer)) << 
+	    " Bytes nicht allokieren (predicateCount=" << predicateCount << 
+	    " sizeof(ArgVectorPointer)=" << sizeof(ArgVectorPointer) << 
+	    ")" << endl;
+         return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
 
       // initialize array which stores structures for 
@@ -370,11 +354,9 @@ int firstVjohn_vm(Word* args, Word& result, int message,
          // check that only maxSaveEvaluableRows are read
          count++;
          if (count > maxSaveEvaluableRows) {
-            fprintf(stderr,
-               "ERROR: es koennen nur max. %i Zeilen des Eingabestromes "
-               "sicher verarbeitet werden, dannach besteht die Gefahr eines "
-               "Ueberlaufes\n", 
-               maxSaveEvaluableRows); // ??? 
+            cerr << "ERROR: es koennen nur max. " << maxSaveEvaluableRows << 
+	       " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
+	       "dannach besteht die Gefahr eines Ueberlaufes" << endl; 
             return 1; // welcher Wert muss hier zurueckgegeben werden ?
          }
 
