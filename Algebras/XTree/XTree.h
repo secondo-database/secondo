@@ -77,8 +77,8 @@ struct RemainingNodesEntryNNS
     double minDist;
 
     RemainingNodesEntryNNS(
-            SmiRecordId _nodeId, double _minDist) :
-        nodeId(_nodeId), minDist(_minDist)
+            SmiRecordId _nodeId, double _minDist)
+        : nodeId(_nodeId), minDist(_minDist)
     {}
 
     bool operator > (const RemainingNodesEntryNNS& op2) const
@@ -129,10 +129,15 @@ struct Header
           supernodeCount(0), dim(0), initialized(false)
     {
         configName[0] = '\0';
+        typeName[0] = '\0';
+        getdataName[0] = '\0';
     }
 
     unsigned supernodeCount;
     STRING_T configName;
+    STRING_T typeName;
+    int getdataType;
+    STRING_T getdataName;
     unsigned dim;
     bool initialized;
 }; // struct Header
@@ -189,7 +194,12 @@ Destructor
 Initializes a new created x-tree. This method must be called, before a new tree could be used.
 
 */
-    void initialize(unsigned dim, const string &configName);
+    void initialize(
+        unsigned dim,
+        const string &configName,
+        const string &typeName,
+        int getdataType,
+        const string &getdataName);
 
 /*
 Creates a new LeafEntry from "bbox"[4] and inserts it into the xtree.
@@ -238,6 +248,27 @@ Returns the name of the used "XTreeConfig"[4] object.
     { return header.configName; }
 
 /*
+Returns the name of the assigned type constructor
+
+*/
+    inline string typeName()
+    { return header.typeName; }
+
+/*
+Returns the type of the assigned getdata function (gethpoint or gethrect).
+
+*/
+    inline int getdataType()
+    { return header.getdataType; }
+
+/*
+Returns the name of the assigned getdata function.
+
+*/
+    inline string getdataName()
+    { return header.getdataName; }
+
+/*
 Returns true, if the x-tree has already been initialized.
 
 */
@@ -252,13 +283,24 @@ Prints some infos about the tree to cmsg.info().
     {
         cmsg.info() << endl
             << "<xtree infos>" << endl
-            << "   dimension       : " << dim() << endl
-            << "   entries         : " << entryCount() << endl
-            << "   height          : " << height() << endl
-            << "   directory nodes : " << internalCount() << endl
-            << "   leaf nodes      : " << leafCount() << endl
-            << "   supernodes      : " << supernodeCount() << endl
-            << "   (directory node count includes supernode count)"
+            << "   dimension                 : "
+            << dim() << endl
+            << "   entries                   : "
+            << entryCount() << endl
+            << "   height                    : "
+            << height() << endl
+            << "   directory nodes           : "
+            << internalCount() << endl
+            << "   leaf nodes                : "
+            << leafCount() << endl
+            << "   supernodes                : "
+            << supernodeCount() << endl
+            << "   assigned config           : "
+            << configName() << endl
+            << "   assigned type             : "
+            << header.typeName << endl
+            << "   assigned getdata function : "
+            << header.getdataName << endl
             << endl << endl;
         cmsg.send();
     }
