@@ -80,6 +80,19 @@ parameters for the minimum/ maximum number of entries within a node.
    Rtree(int min, int max);
 
 /*
+2.2 Destructor 
+
+*/
+  ~Rtree(){
+      if(root){
+         root->destroy();
+         delete root;
+         root = 0;
+      }
+   }
+
+
+/*
 2.2 ~insert~
 
 Inserts a box together with an id into the R-Tree.
@@ -397,7 +410,8 @@ Copy constructor.
 1.3 Destructor
 
 The destructor does not remove any sons of the node. Just the 
-array managing the sons is removed.
+array managing the sons is removed. If the complete subtree should
+be removed, use a combination of destroy and delete.
 
 */
   
@@ -434,6 +448,26 @@ array managing the sons is removed.
     }
     return s.str();
   }
+
+/*
+1.4 ~destroy~
+
+Deletes the subtrees rooted by this node.
+
+*/
+
+  void destroy(){
+     if(sons){
+        for(int i=0;i<count; i++){
+           sons[i]->destroy();
+           delete sons[i];
+        }
+        delete[] sons;
+        count = 0;
+        sons = 0;
+     }
+  }
+
 
 /*
 1.4 Data members
@@ -672,6 +706,7 @@ bool remove(int index, bool updateBox = false){
    for(int i=index;i<count-1;i++){
      sons[i] = sons[i+1];
    }
+   sons[count-1] = 0;
    count--;
    if(updateBox){
       if(count==0){
@@ -834,6 +869,7 @@ bool Rtree<dim>::erase(const Rectangle<dim> box, const long id){
   Q.clear();
   if(eraseRec(root,box,id, Q,0)){
      if(root->count==0  && root->isLeaf()){ // last entry removed
+        delete root;
         root = 0;
      }
 
@@ -1229,7 +1265,9 @@ bool Rtree<dim>::eraseRec(Node<dim>*& root,
     if(index < 0){  // id not found within this node
        return false;
     }
+    Node<dim>* victim = root->sons[index];
     bool under = !root->remove(index,true);
+    delete victim;
     if( under && (root != this->root)){ // an underflow
        // insert all remaining leaves into Q
        for(int i=0;i<root->count; i++){
