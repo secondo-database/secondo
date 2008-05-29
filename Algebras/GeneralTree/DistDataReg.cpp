@@ -278,9 +278,9 @@ DistData* DistDataReg::getDataHPoint(const void* attr)
     GTA_SPATIAL_DOM *coords = p->coords();
     char buffer[p->size()];
     memcpy(buffer, &dim, sizeof(unsigned));
-    memcpy(buffer+sizeof(unsigned), &coords, p->vectorlen());
+    memcpy(buffer+sizeof(unsigned), coords, p->vectorlen());
     delete p;
-    return new DistData(sizeof(p->size()), buffer);
+    return new DistData(p->size(), buffer);
 }
 
 /*
