@@ -304,7 +304,7 @@ void DistfunReg::EuclideanHPoint(
     {
         cmsg.error()
             << "Tried to compute Euclidean distance between hpoints "
-            << "of different dimensions!";
+            << "of different dimensions!" << endl;
         cmsg.send();
         return;
     }
