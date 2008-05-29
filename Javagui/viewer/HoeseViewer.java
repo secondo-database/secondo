@@ -43,6 +43,7 @@ import  viewer.hoese.algebras.Dsplpointsequence;
 import javax.swing.plaf.basic.*;
 import tools.Reporter;
 import sj.lang.ServerErrorCodes;
+import java.util.TreeSet;
 
 /**
  * this is a viewer for spatial and temporal spatial objects
@@ -117,6 +118,10 @@ public class HoeseViewer extends SecondoViewer {
 
   /** The main configuration parameter hash-table */
   public static Properties configuration;
+
+
+  /** Set of known types **/
+  private TreeSet validTypes = new TreeSet();
 
  /* File-Menu */
   private javax.swing.JMenu jMenu1;
@@ -1717,8 +1722,6 @@ public void removeAll(){
 
 /** return true if o is displayed false otherwise */
 public boolean isDisplayed(SecondoObject o){
-   if(!canDisplay(o))
-      return false;
    int index = getQueryIndex(o);
    return index>=0;
 }
@@ -1742,19 +1745,27 @@ public boolean canDisplay(SecondoObject o){
   if(LE==null)
      return false;
   else{
-     if(LE.listLength()!=2)
+     if(LE.listLength()!=2){
         return false;
+     }
      ListExpr Type = LE.first();
      while(Type.atomType()==ListExpr.NO_ATOM){
-       if(Type.listLength()<1)
+       if(Type.isEmpty()){
            return false;
+       }
        Type = Type.first();
      }
 
-     if(Type.atomType()!=ListExpr.SYMBOL_ATOM)
+     if(Type.atomType()!=ListExpr.SYMBOL_ATOM){
         return false;
+     }
+     String type = Type.symbolValue();
+     if(validTypes.contains(type)){
+        return true;
+     }
      try{
-        Class.forName("viewer.hoese.algebras.Dspl"+Type.symbolValue());
+        Class.forName("viewer.hoese.algebras.Dspl"+type);
+        validTypes.add(type);
         return true;
      }
      catch(ClassNotFoundException e){
