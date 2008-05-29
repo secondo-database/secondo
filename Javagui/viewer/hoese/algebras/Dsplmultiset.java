@@ -34,6 +34,7 @@ import org.jpedal.*;
 import tools.Reporter;
 import java.io.*;
 import java.util.*;
+import gui.SecondoObject;
 
 /**
  * The display class for multisets. It extends the general DisplayCollection to
@@ -152,7 +153,7 @@ private void initMultiset(ListExpr value, ListExpr type){
     graphVector.addElement(o);
     String name = "";
     System.out.println(type + "  " + value.first().first());
-    o.init(name,0,type,value.first().first(),new QueryResult("nix",value.first().first(),true));
+    o.init(name,0,type,value.first().first(),new QueryResult(new SecondoObject("nix",value.first().first()),true));
     System.out.println("Der aktuelle Vector List Wert ist "+value.first());
     value=value.rest();
    }
@@ -206,7 +207,7 @@ public MultisetFrame(){
 
 /** Sets the Dsplmultiset from which the multiset data comes. **/
 public void setSource(Dsplmultiset S){
-   qrNEW= new QueryResult("Test",tempVal,true);
+   qrNEW= new QueryResult(new SecondoObject("Test",tempVal),true);
    getContentPane().add(textDspl,BorderLayout.CENTER);
    textDspl.setViewportView(qrNEW);
    Source = S;

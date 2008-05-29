@@ -1597,13 +1597,25 @@ public class HoeseViewer extends SecondoViewer {
 /** returns the index of qr in TextDisplay-ComboBox, 
   * if qr not in this box then -1 is returned
   **/
-private int getQueryIndex(QueryResult qr){
+private int getQueryIndex1(QueryResult qr){
    JComboBox CB = TextDisplay.getQueryCombo();
    int count = CB.getItemCount();
    int pos = -1;
    boolean found =false;
    for(int i=0;i<count&&!found;i++)
       if (qr.equals(CB.getItemAt(i))) {pos = i;found=true;}
+   return pos;
+}
+
+
+private int getQueryIndex(SecondoObject so){
+   JComboBox CB = TextDisplay.getQueryCombo();
+   int count = CB.getItemCount();
+   int pos = -1;
+   boolean found =false;
+   ID id = so.getID();
+   for(int i=0;i<count&&!found;i++)
+      if (((QueryResult)(CB.getItemAt(i))).hasId(id)) {pos = i;found=true;}
    return pos;
 }
 
@@ -1632,11 +1644,12 @@ public void removeObject(SecondoObject o){
         return;
    }
 
-   QueryResult qr = new QueryResult(o.getName(),o.toListExpr());
-   int index = getQueryIndex(qr);
+   //QueryResult qr = new QueryResult(o);
+   int index = getQueryIndex(o);
    if (index>=0){
+       
        JComboBox CB = TextDisplay.getQueryCombo();
-       qr = (QueryResult) CB.getItemAt(index);  // we need the original
+       QueryResult qr = (QueryResult) CB.getItemAt(index);  // we need the original
 
        qr.clearSelection();
 
@@ -1706,16 +1719,14 @@ public void removeAll(){
 public boolean isDisplayed(SecondoObject o){
    if(!canDisplay(o))
       return false;
-   QueryResult q = new QueryResult(o.getName(),o.toListExpr());
-   int index = getQueryIndex(q);
+   int index = getQueryIndex(o);
    return index>=0;
 }
 
 
 /** select o */
 public boolean selectObject(SecondoObject o){
-    QueryResult q = new QueryResult(o.getName(),o.toListExpr());
-    int index = getQueryIndex(q);
+    int index = getQueryIndex(o);
     if(index <0)
        return false;
     else{
@@ -1786,10 +1797,10 @@ public boolean canDisplay(SecondoObject o){
  /** adds a new SecondoObject to this Viewer **/
   public boolean addObject(SecondoObject o){
 
-    QueryResult qr= new QueryResult(o.getName(),o.toListExpr()); 
-    if(getQueryIndex(qr)>=0)
+    if(getQueryIndex(o)>=0)
       return false;
     else {
+      QueryResult qr= new QueryResult(o); 
       if (addQueryResult(qr)) {
         if (!CurrentQueryResult.getGraphObjects().isEmpty()){
           addSwitch(GraphDisplay.addLayerObjects(CurrentQueryResult.getGraphObjects()),-1);

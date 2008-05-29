@@ -34,6 +34,7 @@ import org.jpedal.*;
 import tools.Reporter;
 import java.io.*;
 import java.util.*;
+import gui.SecondoObject;
 
 /**
  * The display class for sets. It extends the general DisplayCollection to
@@ -147,7 +148,7 @@ private void initSet(ListExpr value, ListExpr type){
     }
     DsplGraph o = (DsplGraph)t.newInstance();
    graphVector.addElement(o);
-   o.init(type.toString(),0,type,value.first(),new QueryResult("nix",value.first(),true));
+   o.init(type.toString(),0,type,value.first(),new QueryResult(new SecondoObject("nix",value.first()),true));
    System.out.println("Der aktuelle List Wert ist "+value.first());
    value=value.rest();
    }
@@ -201,7 +202,7 @@ public SetFrame(){
 
 /** Sets the Dsplset from which the set data comes. **/
 public void setSource(Dsplset S){
-   qrNEW= new QueryResult("Test",tempVal,true);
+   qrNEW= new QueryResult(new SecondoObject("Test",tempVal),true);
    getContentPane().add(textDspl,BorderLayout.CENTER);
    textDspl.setViewportView(qrNEW);
    Source = S;

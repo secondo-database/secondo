@@ -34,6 +34,7 @@ import org.jpedal.*;
 import tools.Reporter;
 import java.io.*;
 import java.util.*;
+import gui.SecondoObject;
 
 /**
  * The display class for vectors. It extends the general DisplayCollection to
@@ -150,7 +151,7 @@ private void initVector(ListExpr value, ListExpr type){
     DsplGraph o = (DsplGraph)t.newInstance();
    graphVector.addElement(o);
    String name = type.toString();
-   o.init(name,0,type,value.first(),new QueryResult("nix",value.first(),true));
+   o.init(name,0,type,value.first(),new QueryResult(new SecondoObject("nix",value.first()),true));
    //System.out.println("Der aktuelle Vector List Wert ist "+value.first());
    value=value.rest();
    }
@@ -205,7 +206,7 @@ public VectorFrame(){
 
 /** Sets the Dsplvector from which the vector data comes. **/
 public void setSource(Dsplvector S){
-   qrNEW= new QueryResult("Test",tempVal,true);
+   qrNEW= new QueryResult(new SecondoObject("Test",tempVal),true);
    getContentPane().add(textDspl,BorderLayout.CENTER);
    textDspl.setViewportView(qrNEW);
    Source = S;

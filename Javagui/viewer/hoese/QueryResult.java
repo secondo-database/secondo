@@ -27,6 +27,8 @@ import java.awt.event.*;
 import viewer.HoeseViewer;
 import tools.Reporter;
 import java.io.*;
+import gui.idmanager.ID;
+import gui.SecondoObject;
 
 
 /**
@@ -44,7 +46,8 @@ public class QueryResult extends JList {
   private int TupelCount, AttrCount;
 /** FileChosser for storing a file **/
   private JFileChooser filechooser = new JFileChooser();
-  
+/** The id of the stored Secondo-Object */  
+  private ID id;
 
 
 
@@ -63,8 +66,11 @@ public class QueryResult extends JList {
    * @param   String acommand
    * @param   ListExpr aLEResult
    */
-  public QueryResult (String acommand, ListExpr aLEResult) {
+  public QueryResult (SecondoObject so) {
     super();
+    String acommand = so.getName();
+    ListExpr aLEResult = so.toListExpr();
+    this.id = so.getID();
     interval = null;
     setFont(new Font("Monospaced",Font.PLAIN,12));
 
@@ -143,11 +149,13 @@ public class QueryResult extends JList {
    * @param   ListExpr aLEResult
    * @param   boolean isColl
    */
- public QueryResult (String acommand, ListExpr aLEResult,boolean isColl) {
+ public QueryResult (SecondoObject so,boolean isColl) {
     super();
     interval = null;
     setFont(new Font("Monospaced",Font.PLAIN,12));
-
+    String acommand = so.getName();
+    ListExpr aLEResult = so.toListExpr();
+    this.id = so.getID();
     // processing double clicks
     addMouseListener(new MouseAdapter() {
       public void mouseClicked (MouseEvent e) {
@@ -197,7 +205,7 @@ public class QueryResult extends JList {
     });
 
 
-   setModel(new DefaultListModel());
+    setModel(new DefaultListModel());
     setCellRenderer(new QueryRenderer());
     setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     setBackground(Color.lightGray);
@@ -207,6 +215,10 @@ public class QueryResult extends JList {
   }
 
 
+
+  public boolean hasId(ID id){
+    return this.id.equals(id);
+  }
 
 
   /** get the ViewConfigs for this query */

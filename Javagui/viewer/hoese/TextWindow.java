@@ -30,6 +30,7 @@ import java.util.*;
 import javax.swing.event.*;
 import viewer.HoeseViewer;
 import tools.Reporter;
+import gui.SecondoObject;
 
 
 /**
@@ -472,7 +473,7 @@ public class TextWindow extends JPanel {
       }
       // create the corresponding queryresult
 
-      QueryResult qr = new QueryResult(qrName, Current.second());
+      QueryResult qr = new QueryResult(new SecondoObject(qrName, Current.second()));
 
 
 

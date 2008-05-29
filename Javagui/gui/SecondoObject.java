@@ -34,6 +34,11 @@ public SecondoObject(ID aID){
    myID.equalize(aID);
 }
 
+public SecondoObject(String name, ListExpr list){
+   this.Name = name;
+   this.value = list;
+}
+
 public void setID(ID aID){
    myID.equalize(aID);
 }
