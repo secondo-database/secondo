@@ -208,7 +208,7 @@ unsigned XTree::overlapMinimalSplit(
     /////////////////////////////////////////////////////////////////
     // chose split index
     /////////////////////////////////////////////////////////////////
-    unsigned split_index = 0;
+    unsigned split_index = minEntries;
     double overlap;
     double minOverlap = numeric_limits<double>::infinity();
     bool lb;
