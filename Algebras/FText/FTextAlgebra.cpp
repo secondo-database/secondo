@@ -76,6 +76,15 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 #include "Symbols.h"
 #include "SecondoSMI.h"
 
+// for operatoes sendtext, receivetext
+#include "SocketIO.h"      //used for web access
+#include "Base64.h"        //to en-/ decode binary data
+#include "../BinaryFile/BinaryFileAlgebra.h"
+#ifdef SECONDO_WIN32
+#include "../../ClientServer/Win32Socket.h"
+#else //Linux
+#include "../../ClientServer/UnixSocket.h"
+#endif
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -956,6 +965,25 @@ ListExpr FTextTypeReplace( ListExpr args )
 }
 
 /*
+Type Mapping for ~isDBObject~:
+
+---- TypeExpr --> bool
+----
+
+*/
+ListExpr FTextTypeMapString2Bool( ListExpr args )
+{
+  NList type(args);
+  if(type.hasLength(1) && (type.first()  == STRING))
+  {
+
+    NList restype(symbols::BOOL, false);
+    return restype.listExpr();
+  }
+  return NList::typeError("Expected 'string' as single argument.");
+}
+
+/*
 Type Mapping for ~getTypeNL~:
 
 ---- TypeExpr --> text @text
@@ -1113,6 +1141,33 @@ ListExpr FTextTypeStringText( ListExpr args )
     return NList(TEXT).listExpr();
   }
   return NList::typeError("Expected 'string'.");
+}
+
+ListExpr FTextTypeSendText( ListExpr args )
+{
+  NList type(args);
+  if( type.hasLength(3) &&
+      (type.first() == STRING || type.first() == TEXT) &&
+      (type.second() == STRING || type.first() == TEXT) &&
+      type.third() == INT
+    )
+  {
+    return NList(TEXT).listExpr();
+  }
+  return NList::typeError("Expected {string|text} x {string|text} x int.");
+}
+
+ListExpr FTextTypeReceiveText( ListExpr args )
+{
+  NList type(args);
+  if( type.hasLength(1) &&
+      type.first() == INT
+    )
+  {
+    return NList(TEXT).listExpr();
+  }
+  return NList::typeError("Expected int.");
+
 }
 
 /*
@@ -2327,6 +2382,28 @@ int FTextSelectFunReplace( ListExpr args )
   return result;
 }
 
+/*
+Value Mapping Function for Operator ~isDBObject~
+
+*/
+int FTextValueMapIsDBObject( Word* args, Word& result, int message,
+                            Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool* Res = static_cast<CcBool*>(result.addr);
+  CcString* objName=static_cast<CcString*>(args[0].addr);
+  if(!objName->IsDefined()){
+     Res->Set(false,false);
+  } else {
+     string oname = objName->GetValue();
+     SecondoCatalog* ctl = SecondoSystem::GetCatalog();
+     Res->Set(true,ctl->IsObjectName(oname));
+  }
+
+
+  return 0;
+}
+
 
 /*
 Value Mapping Function for Operator ~getTypeNL~
@@ -2631,7 +2708,7 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
   string myText = InText->GetValue();
   // read nested list: transform nested-list-string to nested list
   ListExpr myTextNL;
-  if (!nl->ReadFromString(myText, myTextNL) )
+  if (!nl->ReadFromString(myText, myTextNL) ) // HIER SPEICHERLOCH!
   {
 //     cout << __PRETTY_FUNCTION__ << " (" << __FILE__ << " line "
 //         << __LINE__ << "): Text does not produce a "
@@ -2794,6 +2871,133 @@ int FTextValueMapConvert( Word* args, Word& result, int message,
   }
   return 0;
 }
+
+/*
+Operator ~sendtext~
+
+Send the text to a given host:port
+
+Any status and error messages from the session are appended to the result text
+
+*/
+
+template<class T1, class T2, class T3>
+int FTextValueMapSendText( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+//   T1* CcMessage = static_cast<T1*>(args[0].addr);
+//   T2* CcHost    = static_cast<T2*>(args[1].addr);
+//   T3* CcPort    = static_cast<T3*>(args[2].addr);
+//   FText* Res    = static_cast<FText*>(result.addr);
+//   string myMessage("");
+//   string myHost("");
+//   string myPort("");
+//   ostringstream status;
+//   string myStatusReport("");
+//   bool correct = true;
+//
+//   if(!CcMessage->IsDefined()){
+//     status << "ERROR: Message undefined." << endl;
+//     correct = false;
+//   }else{
+//     myMessage = CcMessage->GetValue();
+//   }
+//   if (!CcHost->IsDefined()){
+//     status << "ERROR: Host undefined." << endl;
+//     correct = false;
+//   }else{
+//     myHost = CcHost->GetValue();
+//   }
+//   if(!CcPort->IsDefined()){
+//     status << "ERROR: Port undefined." << endl;
+//     correct = false;
+//   }else{
+//     myPort = CcPort->GetValue();
+//   }
+//   // connect to a server
+//   status << "Trying to connect to " << myHost << ":"
+//          << myPort << "..." << endl;
+//   if(correct)
+//     Socket *s = Socket::Connect(myHost, myPort /*,
+//       SocketDomain = SocketAnyDomain, maxAttempts = 1, timeout = 1 */);
+//   if(correct){
+//     correct = s->IsOk();
+//   }
+//   if(!correct){
+//     status << "ERROR: " << s->GetErrorText() << endl;
+//   }
+//   if(correct){// send the message
+//     iostream& io = s->GetSocketStream();
+//     io << myMessage << endl;
+//     correct = s->IsOk();
+//     if(correct){
+//       status << "Sent message= '" << myMessage << "' (" << myMessage.length()
+//              << ") characters." << endl;
+//     }else{
+//       status << "ERROR: " << s->GetErrorText() << endl;
+//     }
+//     status << "Closing connection..."
+//     correct = s->Close();
+//     if(correct){
+//     }else{
+//       status << "ERROR: " << s->GetErrorText() << endl;
+//     }
+//   }
+//   // return status
+//   Res->Set( true, status );
+  return 0;
+}
+
+/*
+ValueMappingArray for ~sendtext~
+
+*/
+
+ValueMapping FText_VMMap_MapSendText[] =
+{
+  FTextValueMapSendText<CcString,CcString,CcString>,      // 0
+  FTextValueMapSendText<CcString,CcString,FText   >,      // 1
+  FTextValueMapSendText<CcString,FText,   CcString>,      // 2
+  FTextValueMapSendText<CcString,FText,   FText   >,      // 3
+  FTextValueMapSendText<FText,   CcString,CcString>,      // 4
+  FTextValueMapSendText<FText,   CcString,FText   >,      // 5
+  FTextValueMapSendText<FText,   FText,   CcString>,      // 6
+  FTextValueMapSendText<FText,   FText,   FText   >       // 7
+};
+
+/*
+Selection function for ~sendtext~
+
+*/
+
+int FTextSelectSendText( ListExpr args )
+{
+  NList type(args);
+  int index = 0;
+  if( type.first() == "text" )
+    index += 4;
+  if( type.first() == "text" )
+    index += 2;
+  if( type.second() == "text" )
+    index += 1;
+  return index;
+}
+
+/*
+Operator ~receivetext~
+
+Receive text from a given port
+
+*/
+
+int FTextValueMapReceiveText( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
+{
+  return 0;
+}
+
+
 /*
 3.4 Definition of Operators
 
@@ -3015,6 +3219,14 @@ const string FTextReplaceSpec  =
     "'Fresh','Rotten')</text--->"
     ") )";
 
+const string FTextIsDBObjectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>string -> bool</text--->"
+    "<text>isDBObject( Name )</text--->"
+    "<text>Returns true iff Name is the name of a database object.</text--->"
+    "<text>query isDBObject(\"blubb\")</text--->"
+    ") )";
+
 const string FTextGetTypeNLSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>Expression -> text</text--->"
@@ -3094,6 +3306,32 @@ const string FTextStringToTextSpec  =
     "<text>totext( string )</text--->"
     "<text>Converts 'string' to a text value.</text--->"
     "<text>query totext(\"Hello World!\")"
+    "</text--->"
+    ") )";
+
+const string FTextSendTextSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>{string | text} x {string | text} x int [ x duration] -> "
+    "text</text--->"
+    "<text>sendtext( message, ip, port [, timeout] )</text--->"
+    "<text>Sends message 'message' to 'port' on host 'ip' and returns"
+    "a text with the send status report. Optional parameter 'timeout' "
+    "specifies a duration to wait before terminationg the transmission with "
+    "an timeout error.</text--->"
+    "<text>query sendtext(\"Hello World!\", '127.0.0.0, 2626)"
+    "</text--->"
+    ") )";
+
+const string FTextReceiveTextSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>{string | text} x {string | text} x int [ x duration] "
+    "-> text</text--->"
+    "<text>receivetext( port [, timeout] )</text--->"
+    "<text>Receives a message from 'port' on localhostand returns"
+    "it a text value. Optional parameter 'timeout' "
+    "specifies a duration to wait before terminationg the transmission with "
+    "an timeout error.</text--->"
+    "<text>query receivetext( 2626 )"
     "</text--->"
     ") )";
 
@@ -3291,6 +3529,15 @@ Operator ftextreplace
     FTextTypeReplace
     );
 
+Operator isDBObject
+    (
+    "isDBObject",
+    FTextIsDBObjectSpec,
+    FTextValueMapIsDBObject,
+    Operator::SimpleSelect,
+    FTextTypeMapString2Bool
+    );
+
 Operator getTypeNL
     (
     "getTypeNL",
@@ -3365,6 +3612,24 @@ Operator ftexttotext
     FTextTypeStringText
     );
 
+Operator ftsendtext
+    (
+    "sendtext",
+    FTextSendTextSpec,
+    4,
+    FText_VMMap_MapSendText,
+    FTextSelectSendText,
+    FTextTypeSendText
+    );
+
+Operator ftreceivetext
+    (
+    "receivetext",
+    FTextReceiveTextSpec,
+    FTextValueMapReceiveText,
+    Operator::SimpleSelect,
+    FTextTypeReceiveText
+    );
 
 /*
 5 Creating the algebra
@@ -3405,11 +3670,13 @@ public:
     AddOperator( &ftexttolower );
     AddOperator( &ftexttostring );
     AddOperator( &ftexttotext );
+    AddOperator( &isDBObject);
     AddOperator( &getTypeNL );
     AddOperator( &getValueNL );
     AddOperator( &ftexttoobject );
-//
     AddOperator( &chartext );
+//     AddOperator( &ftsendtext );
+//     AddOperator( &ftreceivetext);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';

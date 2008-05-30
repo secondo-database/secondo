@@ -36,16 +36,18 @@ operator chartext alias CHARTEXT pattern op(_)
 operator toupper alias TOUPPER pattern op(_)
 operator tolower alias TOLOWER pattern op(_)
 operator totext alias TOTEXT pattern op(_)
+operator sendtext alias SENDTEXT pattern op(_, _, _, _)
+operator receivetext alias RECEIVETEXT pattern op(_, _, _)
+operator isDBObject alias ISDBOBJECT pattern op( _ )
 
-#Operators already specified elsewhere:
 
-#operator substr alias SUBSTR pattern op(_, _, _)
-#operator isempty alias ISEMPTY pattern op( _ )
-#operator + alias PLUS pattern _ infixop  _
-#operator = alias EQ pattern _ infixop _
-#operator # alias NE pattern _ infixop _
-#operator < alias LT pattern _ infixop _
-#operator > alias GT pattern _ infixop _
-#operator <= alias LE pattern _ infixop _
-#operator >= alias GE pattern _ infixop _
-#operator tostring alias TOSTRING pattern op(_)
+operator substr alias SUBSTR pattern op(_, _, _)
+operator isempty alias ISEMPTY pattern op( _ )
+operator + alias PLUS pattern _ infixop  _
+operator = alias EQ pattern _ infixop _
+operator # alias NE pattern _ infixop _
+operator < alias LT pattern _ infixop _
+operator > alias GT pattern _ infixop _
+operator <= alias LE pattern _ infixop _
+operator >= alias GE pattern _ infixop _
+operator tostring alias TOSTRING pattern op(_)
