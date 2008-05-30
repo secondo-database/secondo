@@ -4456,8 +4456,8 @@ TypeConstructor intimebool(
         0,     //SaveToList and RestoreFromList functions
         CreateIntime<CcBool>,
         DeleteIntime<CcBool>,           //object creation and deletion
-        0,
-        0,                              // object open and save
+        OpenAttribute<Intime<CcBool> >,
+        SaveAttribute<Intime<CcBool> >,  // object open and save
         CloseIntime<CcBool>,
         CloneIntime<CcBool>,            //object close and clone
         CastIntime<CcBool>,             //cast function
@@ -4521,8 +4521,8 @@ TypeConstructor intimeint(
         0,    //SaveToList and RestoreFromList functions
         CreateIntime<CcInt>,
         DeleteIntime<CcInt>,           //object creation and deletion
-        0,
-        0,                        // object open and save
+        OpenAttribute<Intime<CcInt> >,
+        SaveAttribute<Intime<CcInt> >,  // object open and save
         CloseIntime<CcInt>,
         CloneIntime<CcInt>,            //object close and clone
         CastIntime<CcInt>,             //cast function
@@ -4588,8 +4588,8 @@ TypeConstructor intimereal(
         0,    //SaveToList and RestoreFromList functions
         CreateIntime<CcReal>,
         DeleteIntime<CcReal>,              //object creation and deletion
-        0,
-        0,                                // object open and save
+        OpenAttribute<Intime<CcReal> >,
+        SaveAttribute<Intime<CcReal> >,  // object open and save
         CloseIntime<CcReal>,
         CloneIntime<CcReal>,               //object close and clone
         CastIntime<CcReal>,                //cast function
@@ -4653,8 +4653,8 @@ TypeConstructor intimepoint(
         0,       //SaveToList and RestoreFromList functions
         CreateIntime<Point>,
         DeleteIntime<Point>,              //object creation and deletion
-        0,
-        0,                           // object open and save
+        OpenAttribute<Intime<Point> >,
+        SaveAttribute<Intime<Point> >,  // object open and save
         CloseIntime<Point>,
         CloneIntime<Point>,               //object close and clone
         CastIntime<Point>,                //cast function
@@ -4717,7 +4717,8 @@ TypeConstructor unitbool(
         0,     0,  //SaveToList and RestoreFromList functions
         CreateConstTemporalUnit<CcBool>,
         DeleteConstTemporalUnit<CcBool>,          //object creation and deletion
-        0,                      0,                // object open and save
+        OpenAttribute<UBool>,
+        SaveAttribute<UBool>,  // object open and save
         CloseConstTemporalUnit<CcBool>,
         CloneConstTemporalUnit<CcBool>,           //object close and clone
         CastConstTemporalUnit<CcBool>,            //cast function
@@ -4780,7 +4781,8 @@ TypeConstructor unitint(
         0,                      0,//SaveToList and RestoreFromList functions
         CreateConstTemporalUnit<CcInt>,
         DeleteConstTemporalUnit<CcInt>, //object creation and deletion
-        0,                      0,     // object open and save
+        OpenAttribute<UInt>,
+        SaveAttribute<UInt>,  // object open and save
         CloseConstTemporalUnit<CcInt>,
         CloneConstTemporalUnit<CcInt>, //object close and clone
         CastConstTemporalUnit<CcInt>,       //cast function
@@ -5041,7 +5043,8 @@ TypeConstructor unitreal(
         0,            0,   //SaveToList and RestoreFromList functions
         CreateUReal,
         DeleteUReal, //object creation and deletion
-        0,            0,   // object open and save
+        OpenAttribute<UReal>,
+        SaveAttribute<UReal>,  // object open and save
         CloseUReal,   CloneUReal, //object close and clone
         CastUReal, //cast function
         SizeOfUReal, //sizeof function
@@ -5293,7 +5296,8 @@ TypeConstructor unitpoint(
         0,             0,  //SaveToList and RestoreFromList functions
         CreateUPoint,
         DeleteUPoint, //object creation and deletion
-        0,             0,        // object open and save
+        OpenAttribute<UPoint>,
+        SaveAttribute<UPoint>,  // object open and save
         CloseUPoint,   CloneUPoint, //object close and clone
         CastUPoint, //cast function
         SizeOfUPoint, //sizeof function
@@ -5364,8 +5368,8 @@ TypeConstructor movingbool(
         0,    //SaveToList and RestoreFromList functions
         CreateMapping<MBool>,
         DeleteMapping<MBool>,        //object creation and deletion
-        0,
-        0,                // object open and save
+        OpenAttribute<MBool>,
+        SaveAttribute<MBool>,          // object open and save
         CloseMapping<MBool>,
         CloneMapping<MBool>,     //object close and clone
         CastMapping<MBool>,     //cast function
@@ -5437,8 +5441,8 @@ TypeConstructor movingint(
         0,            //SaveToList and RestoreFromList functions
         CreateMapping<MInt>,
         DeleteMapping<MInt>,   //object creation and deletion
-        0,
-        0,           // object open and save
+        OpenAttribute<MInt>,
+        SaveAttribute<MInt>,           // object open and save
         CloseMapping<MInt>,
         CloneMapping<MInt>, //object close and clone
         CastMapping<MInt>,  //cast function
@@ -5507,8 +5511,8 @@ TypeConstructor movingreal(
         0,      //SaveToList and RestoreFromList functions
         CreateMapping<MReal>,
         DeleteMapping<MReal>,    //object creation and deletion
-        0,
-        0,        // object open and save
+        OpenAttribute<MReal>,
+        SaveAttribute<MReal>,        // object open and save
         CloseMapping<MReal>,
         CloneMapping<MReal>,    //object close and clone
         CastMapping<MReal>,    //cast function
@@ -5577,8 +5581,8 @@ TypeConstructor movingpoint(
         0,                 //SaveToList and RestoreFromList functions
         CreateMapping<MPoint>,
         DeleteMapping<MPoint>,     //object creation and deletion
-        0,
-        0,      // object open and save
+        OpenAttribute<MPoint>,
+        SaveAttribute<MPoint>,      // object open and save
         CloseMapping<MPoint>,
         CloneMapping<MPoint>, //object close and clone
         CastMapping<MPoint>,    //cast function
@@ -10421,8 +10425,9 @@ const string GPSSpec =
 const string DisturbSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real x real  -> mpoint </text---> "
-    "<text> _ disturb [ _ , _ ]</text--->"
-    "<text>disturbs an existing mpoint </text--->"
+    "<text> P disturb [ MD , SD ]</text--->"
+    "<text>disturbs an existing mpoint 'P', using a total maximum deviation of "
+    "'M' and a maximun deviation of 'S' per step</text--->"
     "<text>query train 6 disturb [200.0 , 10.0] </text--->"
     ") )";
 

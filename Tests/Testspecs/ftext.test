@@ -118,12 +118,25 @@ query tt101 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz /*
 #yields (bool TRUE)
 query (tt12 = tt13) and (tt13 = 'Test\\')
 
-
 ###########################
 # Operators               #
 ###########################
 
+#testcase getTypeNL
+#yields (int 100000)
+query intstream(1, 100000) use[fun(II: int) num2string(II) getTypeNL] transformstream tconsume count
 
+#testcase toobject1
+#yields ((vector(vector int)) ((9 8 7 6 5 4 3 2 1)()(-1 -2 -3 -4 5 6)(6956356 -64841)))
+query toobject('((9 8 7 6 5 4 3 2 1)()(-1 -2 -3 -4 5 6)(6956356 -64841))',[const vector(vector(int)) value ()])
+
+#testcase evaluate1
+#yields (int 500500)
+query intstream(1,1000) transformstream extend[myQuery: 'intstream(1, ' + num2string(.elem) + ') count'] projecttransformstream[myQuery] use[fun(MQ: text) evaluate(MQ) projecttransformstream[Result] ] use[fun(MR: text) toobject(MR,0)] transformstream sum[elem]
+
+#testcase combinedTest_getVlaueNL_getTypeNL
+#yields (int 10000)
+query intstream(1, 10000) use[fun(II: int) num2string(II) within[ (. getTypeNL) + ": " +  (. getValueNL)]] transformstream tconsume count
 
 ############################
 # mopping up test database #

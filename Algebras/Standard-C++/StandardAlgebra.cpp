@@ -427,7 +427,9 @@ TypeConstructor ccInt( "int",            CcIntProperty,
                        OutCcInt,         InCcInt,
                        0,                0,
                        CreateCcInt,      DeleteCcInt,
-                       0,        0,      CloseCcInt, CloneCcInt,
+                       OpenAttribute<CcInt>,
+                       SaveAttribute<CcInt>,  // object open and save
+                       CloseCcInt, CloneCcInt,
                        CastInt,          SizeOfCcInt, CheckInt );
 
 /*
@@ -563,7 +565,8 @@ TypeConstructor ccReal( "real",       CcRealProperty,
                         OutCcReal,    InCcReal,
                         0,            0,
                         CreateCcReal, DeleteCcReal,
-                        0,            0,
+                        OpenAttribute<CcReal>,
+                        SaveAttribute<CcReal>,  // object open and save
                         CloseCcReal, CloneCcReal,
                         CastReal,   SizeOfCcReal, CheckReal );
 
@@ -713,7 +716,8 @@ TypeConstructor ccBool( "bool",             CcBoolProperty,
                         OutCcBool,          InCcBool,
                         0,                  0,
                         CreateCcBool,       DeleteCcBool,
-                        0,                  0,
+                        OpenAttribute<CcBool>,
+                        SaveAttribute<CcBool>,  // object open and save
                         CloseCcBool,        CloneCcBool,
                         CastBool,           SizeOfCcBool,  CheckBool );
 
@@ -883,7 +887,8 @@ TypeConstructor ccString( "string",       CcStringProperty,
                           OutCcString,    InCcString,
                           0,              0,
                           CreateCcString, DeleteCcString,
-                          0,              0,
+                          OpenAttribute<CcString>,
+                          SaveAttribute<CcString>,  // object open and save
                           CloseCcString,  CloneCcString,
                           CastString,     SizeOfCcString, CheckString );
 
@@ -4025,7 +4030,7 @@ const string CCSpecIfthenelse2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "<text>ifthenelse2(P, R1, R1)</text--->"
              "<text>Evalutes and returns the second argument R1, if the "
              "boolean value expression, given as a first argument P, can be "
-             "evaluated to TRUE. If P evaluates to FALSE or it is undefined, "  
+             "evaluated to TRUE. If P evaluates to FALSE or it is undefined, "
              "the third argument "
              "R2 is evaluated and returned.  "
              "NOTE: The second and the third argument must be of the "

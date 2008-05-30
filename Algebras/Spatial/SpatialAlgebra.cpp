@@ -1545,7 +1545,8 @@ TypeConstructor point(
   OutPoint,      InPoint,     //Out and In functions
   0,             0,           //SaveToList and RestoreFromList functions
   CreatePoint,   DeletePoint, //object creation and deletion
-  0,             0,           //open and save functions
+  OpenAttribute<Point>,
+  SaveAttribute<Point>,  // object open and save
   ClosePoint,    ClonePoint,  //object close, and clone
   CastPoint,                  //cast function
   SizeOfPoint,                //sizeof function
@@ -2431,7 +2432,7 @@ Point Points::theCenter() const{
          Get(i,p);
          x += p->GetX();
          y += p->GetY();
-     } 
+     }
      res.Set(x/size,y/size);
    }
    return res;
@@ -9337,9 +9338,9 @@ face is not clear. In the following we do this kind of check.
 /*
 ~getDir~
 
-This fucntion will return true iff the cycle given as a 
+This fucntion will return true iff the cycle given as a
 vector of points is in clockwise order.
- 
+
 
 */
 
@@ -9366,7 +9367,7 @@ bool getDir(const vector<Point>& vp){
        cw = false;
     } else {
        cw = true;
-    } 
+    }
   } else if(AlmostEqual(p.GetX(), b.GetX())){ //p -> b vertical
     if(p.GetY()>b.GetY()){
        cw = false;
@@ -9410,14 +9411,14 @@ of different cycles can intersect each other;
 
 */
 
-static vector<Point> getCycle(const bool isHole, 
+static vector<Point> getCycle(const bool isHole,
                               const vector<HalfSegment>& vhs){
 
   // first extract the cycle
   bool used[vhs.size()];
   for(unsigned int i=0;i<vhs.size();i++){
     used[i] = false;
-  } 
+  }
   if(vhs.size() < 3 ){
     assert(false);
   }
@@ -9429,7 +9430,7 @@ static vector<Point> getCycle(const bool isHole,
 
   vp.push_back(sp);
   vp.push_back(cp);
- 
+
   used[0] = true;
   for(unsigned int i=1; i< vhs.size();i++){
     for(unsigned int j=1; j<vhs.size(); j++){
@@ -9447,7 +9448,7 @@ static vector<Point> getCycle(const bool isHole,
           }
        }
     }
-  } 
+  }
   vp.push_back(cp);
   // debugging only
   for(unsigned int i=0;i<vhs.size();i++){
@@ -9475,7 +9476,7 @@ static vector< vector <Point> > getCycles(const Region& reg){
       // first step , map halsfsegment according to faceno and cycleno
 
       map< pair<int, int> , vector<HalfSegment> > m;
-      
+
       const HalfSegment* hs;
       for(int i=0;i<reg.Size(); i++){
          reg.Get(i,hs);
@@ -9491,7 +9492,7 @@ static vector< vector <Point> > getCycles(const Region& reg){
       for(it=m.begin(); it!=m.end(); it++){
         pair< pair<int, int> , vector<HalfSegment> > cycleDesc = *it;
         bool isHole = cycleDesc.first.second > 0;
-        result.push_back(getCycle(isHole, cycleDesc.second));         
+        result.push_back(getCycle(isHole, cycleDesc.second));
       }
       return result;
 
@@ -9514,7 +9515,7 @@ static vector< vector <Point> > getCycles(const Region& reg){
         uint32_t numParts = cycles.size();
 
 
-        uint32_t  numPoints = 0; 
+        uint32_t  numPoints = 0;
 
         vector<vector < Point> >::iterator it;
         for(it = cycles.begin(); it!=cycles.end(); it++){
@@ -13645,7 +13646,7 @@ SpatialTouchPoints_rr( Word* args, Word& result, int message,
 }
 
 /*
-Classes suppoorting the computation of the convex hull of 
+Classes suppoorting the computation of the convex hull of
 an pointset.
 
 
@@ -13679,7 +13680,7 @@ class SimplePoint{
        this->x = p.x;
        this->y = p.y;
        return *this;
-     }  
+     }
 
      ~SimplePoint(){}
 
@@ -13703,19 +13704,19 @@ class SimplePoint{
      bool isLower(const SimplePoint& p)const{
         if(!AlmostEqual(y,p.y)){
            return y < p.y;
-        } 
+        }
         if(AlmostEqual(x,p.x)){ // equal points
            return false;
         }
         return x < p.x;
-     } 
+     }
 
      double mdist()const{ // manhatten distance to (0,0)
        return abs(x) + abs(y);
      }
 
      double mdist(const SimplePoint p)const{
-        return abs(x-p.x) + abs(y-p.y); 
+        return abs(x-p.x) + abs(y-p.y);
      }
 
      bool isFurther(const SimplePoint& p)const{
@@ -13744,11 +13745,11 @@ class SimplePoint{
      bool operator<(const SimplePoint& p) const{
          return isLess(p);
      }
-    
+
      bool operator==(const SimplePoint& p) const{
          return AlmostEqual(x,p.x)&& AlmostEqual(y,p.y);
      }
-     
+
     bool operator>(const SimplePoint& p) const{
          return !(AlmostEqual(x,p.x) && AlmostEqual(y,p.y)) && !isLess(p);
      }
@@ -13779,7 +13780,7 @@ class SimplePoint{
      double y;
 
 }; // end of class SimplePoint
-     
+
 
 
 ostream& operator<<(ostream& o,const SimplePoint& p) {
@@ -13801,7 +13802,7 @@ public:
         return;
      }
      GrahamScan scan(ps);
-     int size = scan.computeHull();   
+     int size = scan.computeHull();
      if(size<3){ // points was on a single line
         result->SetDefined(false);
         return;
@@ -13813,7 +13814,7 @@ public:
      for(int i=0;i<size-1; i++){
         SimplePoint p1(scan.p[i]);
         SimplePoint p2(scan.p[i+1]);
-        // build the halfsegment 
+        // build the halfsegment
         HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
         HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
         hs1.attr.edgeno = i;
@@ -13823,11 +13824,11 @@ public:
         hs2.attr.insideAbove = ia;
         (*result) += hs1;
         (*result) += hs2;
-     } 
-     // close the polygon 
+     }
+     // close the polygon
      SimplePoint p1(scan.p[size-1]);
      SimplePoint p2(scan.p[0]);
-     // build the halfsegment 
+     // build the halfsegment
      HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
      HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
      hs1.attr.edgeno = size-1;
@@ -13846,14 +13847,14 @@ private:
    int n;
    int h;
 
-  
+
   GrahamScan(const Points* ps){
      n = ps->Size();
      const Point* pt;
      for(int i=0;i<n;i++){
         ps->Get(i,pt);
         p.push_back(SimplePoint(pt));
-     } 
+     }
   }
 
    int computeHull(){
@@ -13863,7 +13864,7 @@ private:
     h = 0;
     grahamScan();
     return h;
-  } 
+  }
    void grahamScan(){
      int min = indexOfLowestPoint();
 
@@ -13882,7 +13883,7 @@ private:
         exchange(i,k);
         while(!isConvex(i-1)){
            exchange(i-1,i);
-           i--; 
+           i--;
         }
         k++;
         i++;
@@ -13891,7 +13892,7 @@ private:
      if(i>=3){
         if(!p[i-1].isConvex(p[i-2],p[0])){
             i--;
-        } 
+        }
      }
 
      h = i;
@@ -13910,7 +13911,7 @@ private:
 
      bool sx = diffx>0;
     // bool sy = diffy>0;
-    // return sx == sy; 
+    // return sx == sy;
     return sx;
    }
 
@@ -13937,10 +13938,10 @@ private:
      }
      return min;
    }
-    
+
    bool isConvex(const int i){
-     return p[i].isConvex(p[i-1],p[i+1]); 
-   }  
+     return p[i].isConvex(p[i-1],p[i+1]);
+   }
 
    void sort(){
      vector<SimplePoint>::iterator it= p.begin();
@@ -14094,8 +14095,8 @@ int SpatialCenter( Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    Points* ps = static_cast<Points*>(args[0].addr);
    Point* res = static_cast<Point*>(result.addr);
-   
-   *res = ps->theCenter(); 
+
+   *res = ps->theCenter();
    return 0;
 }
 
@@ -14104,7 +14105,7 @@ int SpatialConvexhull( Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    Points* ps = static_cast<Points*>(args[0].addr);
    Region* res = static_cast<Region*>(result.addr);
-   GrahamScan::convexHull(ps,res); 
+   GrahamScan::convexHull(ps,res);
    return 0;
 }
 
@@ -15725,7 +15726,7 @@ const string SpatialSpecRotate  =
 
 const string SpatialSpecCenter  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> points -> point </text--->" 
+  "( <text> points -> point </text--->"
   "<text> center(_) </text--->"
   "<text> computes the center of the points value</text--->"
   "<text> query center(vertices(tiergarten))</text--->"
@@ -15733,7 +15734,7 @@ const string SpatialSpecCenter  =
 
 const string SpatialSpecConvexhull  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> points -> region </text--->" 
+  "( <text> points -> region </text--->"
   "<text> convexhull(_) </text--->"
   "<text> computes the convex hull of the points value</text--->"
   "<text> query convexhull(vertices(tiergarten))</text--->"

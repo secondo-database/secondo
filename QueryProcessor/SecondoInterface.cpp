@@ -2026,6 +2026,8 @@ SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
     }
     else
     {
+      cout << __PRETTY_FUNCTION__ << "errorCode = " << errorCode << "errMsg="
+          << errMsg << "(" << GetErrorMessage(errorCode) << ")" << endl;
       if ( !SecondoSystem::AbortTransaction() )
       {
         errMsg = errMsg

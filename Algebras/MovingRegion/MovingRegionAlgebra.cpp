@@ -2761,7 +2761,8 @@ static TypeConstructor intimeregion(
     0, 0, // SaveToList, RestoreFromList
     CreateIRegion,
     DeleteIntime<Region>,
-    0, 0, // open, save
+    OpenAttribute<Intime<Region> >,
+    SaveAttribute<Intime<Region> >,  // object open and save
     CloseIntime<Region>,
     CloneIntime<Region>,
     CastIntime<Region>,

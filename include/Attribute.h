@@ -1,5 +1,5 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
 Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and
@@ -26,8 +26,8 @@ May 1998 Stefan Dieker
 
 April 2002 Ulrich Telle Adjustments for the new Secondo version
 
-Oct 2004 M. Spiekermann. Adding some more detailed documentation and some 
-thoughts about redesign and performance. 
+Oct 2004 M. Spiekermann. Adding some more detailed documentation and some
+thoughts about redesign and performance.
 
 January 2006, M. Spiekermann. Some template functions which could be used as default
 for some type constructor functions were moved to ConstructorTemplates.h
@@ -94,7 +94,7 @@ struct AttrDelete
 
 */
 // forward declaration
-class Tuple; 
+class Tuple;
 
 class Attribute
 {
@@ -136,17 +136,17 @@ Returns the ~sizeof~ of the attribute class.
     virtual int Compare( const Attribute *rhs ) const = 0;
 
 /*
-This function should define an order on the attribute values. 
+This function should define an order on the attribute values.
 The implementation must also consider that values may be undefined.
-Hence there are four cases of defined/undefined combinations which are 
+Hence there are four cases of defined/undefined combinations which are
 below referred as 11, 00, 01, 10.
 
-Case 11 (both values are defined) is the ~normal~ comparison 
+Case 11 (both values are defined) is the ~normal~ comparison
 of attribute values
 
 ----
-    -1: *this < *rhs 
-     0: *this = *rhs 
+    -1: *this < *rhs
+     0: *this = *rhs
      1: *this > *rhs
 ----
 
@@ -169,10 +169,10 @@ Thus the result of a comparison of attribute values is never undefined!
     }
 
 /*
-This function is for unprecise datatypes like ~real~ or ~point~, where one 
+This function is for unprecise datatypes like ~real~ or ~point~, where one
 needs to distinguish the ordinary ~Compare~, which will be used for sorting
 and precise comparison/lookup in DBArrays, and the fuzzy version, which employs
-~AlmostEqual~ instead of ~Equal~. It will be used to remove duplicates, gouping 
+~AlmostEqual~ instead of ~Equal~. It will be used to remove duplicates, gouping
 etc.
 
 For unprecise datatypes, you should always overwrite ~CompareAlmost~.
@@ -194,9 +194,9 @@ For examples refer to the ~StandardAlgebra~.
 */
 
     template<class T>
-    static inline int GenericCompare( const T* left, 
+    static inline int GenericCompare( const T* left,
                                       const T* right,
-                                      const bool lDef, 
+                                      const bool lDef,
                                       const bool rDef    )
     {
       static long& ctr = Counter::getRef("ATTR::GenericCompare");
@@ -207,7 +207,7 @@ For examples refer to the ~StandardAlgebra~.
           return 0;
         else
           return ( *right < *left ) ? 1 : -1;
-      } 
+      }
       // compare only the defined flags
       if( !lDef ) {
         if ( !rDef )  // case 00
@@ -215,11 +215,11 @@ For examples refer to the ~StandardAlgebra~.
         else          // case 01
           return -1;
       }
-      return 1;       // case 10  
+      return 1;       // case 10
     }
 
 /*
-In some cases it makes sense to offer more specialized comparisons since 
+In some cases it makes sense to offer more specialized comparisons since
 some algorithms like sorting or duplicate removal need only $<$ or $=$.
 
 If it helps to increase performance one could think about to implement the
@@ -233,12 +233,12 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
       static long& ctr = Counter::getRef("ATTR::Equal");
       ctr++;
       return Compare(rhs) == 0;
-    } 
+    }
 
     template<class T>
-    static inline bool GenericEqual( const T* left, 
+    static inline bool GenericEqual( const T* left,
                                      const T* right,
-                                     const bool lDef, 
+                                     const bool lDef,
                                      const bool rDef    )
     {
       static long& ctr = Counter::getRef("ATTR::GenericEqual");
@@ -254,19 +254,19 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
       static long& ctr = Counter::getRef("ATTR::Less");
       ctr++;
       return Compare(rhs) < 0;
-    } 
+    }
 
     inline virtual bool LessAlmost(const Attribute* rhs) const
     {
       static long& ctr = Counter::getRef("ATTR::LessAlmost");
       ctr++;
       return CompareAlmost(rhs) < 0;
-    } 
+    }
 
     template<class T>
-    static inline bool GenericLess( const T* left, 
+    static inline bool GenericLess( const T* left,
                                     const T* right,
-                                    const bool lDef, 
+                                    const bool lDef,
                                     const bool rDef    )
     {
       static long& ctr = Counter::getRef("ATTR::GenericLess");
@@ -306,7 +306,7 @@ does not contain any FLOBs (the default), this function should not
 be called.
 
 */
-    inline virtual 
+    inline virtual
     void Restrict( const vector< pair<int, int> >& interval )
     {}
 /*
@@ -334,18 +334,19 @@ functions.
 Prints the attribute. Used for debugging purposes.
 
 */
-    static void Save( SmiRecord& valueRecord, size_t& offset, 
+    static void Save( SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Attribute *elem );
 /*
 Default save function.
 
 */
-    static Attribute *Open( SmiRecord& valueRecord, 
+    static Attribute *Open( SmiRecord& valueRecord,
                             size_t& offset, const ListExpr typeInfo );
 /*
 Default open function.
 
 */
+
     bool DeleteIfAllowed();
 /*
 Decreases the Attribute's reference counter ~refs~. If ~refs~ becomes 0,
@@ -399,11 +400,11 @@ Returns the number of references for this attribute.
 
 
     template<class S, class T>
-    static T GetValue(Word w) 
+    static T GetValue(Word w)
     {
       S* ptr = static_cast<S*>(w.addr);
-      return ptr->GetValue(); 
-    } 
+      return ptr->GetValue();
+    }
 
     string AttrDelete2string();
 /*
@@ -432,7 +433,7 @@ Print the delete reference info to a string (for debugging)
     uint32_t type = 0;
     WinUnix::writeLittleEndian(o,type);
   }
-  
+
   virtual double getMinX() const{return 0;}
   virtual double getMaxX() const{return 0;}
   virtual double getMinY() const{return 0;}
@@ -447,7 +448,7 @@ Print the delete reference info to a string (for debugging)
   virtual unsigned char getDB3Type() const { return 'L'; }
   virtual unsigned char getDB3Length() const { return 1; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
-  virtual string getDB3String() const { return "?"; } 
+  virtual string getDB3String() const { return "?"; }
 
 
 
@@ -463,7 +464,7 @@ Stores the way this attribute is deleted.
      inline void InitRefs(){
           del.refs=1;
      }
-/* 
+/*
 Set the reference counter to 1
 
 */
@@ -472,10 +473,41 @@ Set the reference counter to 1
 Counters for basic operations. Useful for verifying cost formulas and determining
 cost factors.
 
-*/   
+*/
     static void counters(bool reset, bool show);
 
 };
+
+/*
+Generic ~Open~-function
+
+*/
+
+template<class T>
+bool OpenAttribute(  SmiRecord& valueRecord,
+                     size_t& offset,
+                     const ListExpr typeInfo,
+                     Word& value )
+{
+  T *bf = static_cast<T*>(Attribute::Open( valueRecord, offset, typeInfo ));
+  value = SetWord( bf );
+  return true;
+}
+
+/*
+Generic ~Save~-function
+
+*/
+template<class T>
+bool SaveAttribute( SmiRecord& valueRecord,
+                    size_t& offset,
+                    const ListExpr typeInfo,
+                    Word& value )
+{
+  T *bf = static_cast<T*>(value.addr);
+  Attribute::Save( valueRecord, offset, typeInfo, bf );
+  return true;
+}
 
 #endif
 

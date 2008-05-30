@@ -1,9 +1,9 @@
- 
+
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -22,11 +22,11 @@ Foundation, Inc., 59 Templelet page1 = [const page value ((html ((instant (10 10
 ----
 
 [1] /Web Algebra
- 
+
 November 2006
 
 1 Preliminaries
- 
+
 1.1 Includes
 
 */
@@ -35,7 +35,7 @@ November 2006
 
 #define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__
 //#define TRACEON
-#ifdef TRACEON 
+#ifdef TRACEON
 #define __TRACE__ cout << __POS__ << endl;
 #else
 #define __TRACE__
@@ -93,17 +93,17 @@ WebLex::WebLex(istream *is) : yyFlexLexer (is) {switchState=-1;}
 
 int WebLex::nextToken(){
   int symbol=0;
-  
+
 //__TRACE__
   symbol=yylex(switchState);
 //__TRACE__
   switchState=-1;
-  
+
   tokenVal= YYText();
 
   if (tokenVal.length() == 0)
     return symbol;
-  
+
   if (tokenVal[0]=='"' && tokenVal[tokenVal.length()-1]=='"'){
     if (tokenVal.length() > 2){
       tokenVal.erase(0,1);
@@ -112,10 +112,10 @@ int WebLex::nextToken(){
       tokenVal="";
     }
   }
-  
-  
+
+
   return symbol;
-}  
+}
 
 void WebLex::switchStartCond(int ns){
   switchState=ns;
@@ -124,11 +124,11 @@ void WebLex::switchStartCond(int ns){
 string WebLex::getVal() {
   return tokenVal;
 }
-  
+
 int WebLex::yylex(){return 0;}
 
  int WebLex::startElement (string& element){
-  
+
   int symbol=0;
   switchStartCond(FINDELEMSTART);
   symbol=nextToken();
@@ -139,7 +139,7 @@ int WebLex::yylex(){return 0;}
   }
    //cout << "ENDE startelement  " << getVal() << endl;
    element= getVal();
-  
+
   if (symbol){
     return symbol;
   }
@@ -158,11 +158,11 @@ Looking for the attribute in the input stream of WebLex. Param ~value~ contains 
 
 */
 bool WebLex::findAttribute(string attribute, string& value){
-  
+
   value="";
   int symbol;
-  
-  
+
+
   __TRACE__
   symbol=nextToken();
 
@@ -188,13 +188,13 @@ bool WebLex::findAttribute(string attribute, string& value){
         symbol=nextToken();
         if (symbol == ATTVALUE){
           value = getVal();
-          
+
           return true;
-        
+
         }else{
           return true;
         }
-      }      
+      }
     }
     //__TRACE__
     symbol=nextToken();
@@ -216,19 +216,19 @@ Looking for the attribute in the input stream of WebLex. Param ~value~ contains 
 
 */
 
-bool WebLex::findAttribute(vector<string>& attributes, 
+bool WebLex::findAttribute(vector<string>& attributes,
                            string& value, string& attribute){
-  
+
   value="";
   int symbol;
-  
-  
+
+
   //__TRACE__
   symbol=nextToken();
 
   //__TRACE__
   while (symbol && symbol != CLOSE_TAG){
-    
+
     if (symbol == ERROR){
       cout << "findAttribute Es ist ein Fehler aufgetreten" << endl;
       return false;
@@ -239,7 +239,7 @@ bool WebLex::findAttribute(vector<string>& attributes,
 //__TRACE__
       //is this the attribute we are looking for?
       vector<string>::iterator it = attributes.begin();
-      
+
       while (it != attributes.end()){
         //cout << "FINDATTR " << *it << endl;
         if (isEqual(*it,getVal())){
@@ -253,18 +253,18 @@ bool WebLex::findAttribute(vector<string>& attributes,
           symbol=nextToken();
           if (symbol == ATTVALUE){
             value = getVal();
-            
+
             return true;
-          
+
           }else{
             return true;
           }
-          
-          
+
+
         }
-        
+
         it++;
-      }      
+      }
     }
     //__TRACE__
     symbol=nextToken();
@@ -284,24 +284,24 @@ flobindex WebLex::setPos(string value, const string& content){
   unsigned long tmp;
   flobindex i;
 
-//__TRACE__  
+//__TRACE__
   i.offset= 0;
   i.len=0;
 
 //cout << value << pos << endl;
-  
-  
+
+
   tmp= (unsigned long) strstr(content.c_str() + pos, value.c_str()) ;
-  
-  
+
+
   if (!tmp)
     return i;
-  
-  
+
+
   pos = tmp - (unsigned long) content.c_str();
   i.offset=pos;
   i.len=value.length();
-  
+
   return i;
 
 }
@@ -314,7 +314,7 @@ read content of a html element
 int WebLex::readContent(){
   int symbol=0;
   string value="";
-  
+
 //  __TRACE__
 
   symbol= nextToken();
@@ -325,9 +325,9 @@ int WebLex::readContent(){
     symbol= nextToken();
   }
 
-  //cout << "readcontent: " << endl;  
+  //cout << "readcontent: " << endl;
 
-  
+
   if (symbol){
     value += getVal();
     tokenVal= value;
@@ -340,23 +340,23 @@ int WebLex::readContent(){
 int WebLex::readContentTmp(){
   int symbol=0;
   string v="";
-  
-  
+
+
   __TRACE__
 //cout << "**********TMP **************" << endl;
 
-  
+
   symbol= nextToken();
   //cout << getVal()  << " " << symbol << endl;
   v += getVal();
-  
-  
+
+
   while (symbol == CONTENT){
     symbol= nextToken();
     v += getVal();
     //cout << ":" << getVal()  << " " << symbol << "  " << v << endl;
   }
-  
+
   //cout << "---" << v << endl;
   return 0;
 
@@ -372,13 +372,13 @@ int WebLex::readContentTmp(){
 bool isEqual (string s1, string s2){
   transform(s1.begin(), s1.end(), s1.begin(), ::tolower);
   transform(s2.begin(), s2.end(), s2.begin(), ::tolower);
-  
+
   return s1 == s2;
 }
 
 //Taken from http://www.codeproject.com/string/stringsplit.asp
-int SplitString(const string& input, 
-       const string& delimiter, vector<string>& results, 
+int SplitString(const string& input,
+       const string& delimiter, vector<string>& results,
        bool includeEmpties)
 {
     int iPos = 0;
@@ -386,7 +386,7 @@ int SplitString(const string& input,
     int sizeS2 = (int)delimiter.size();
     int isize = (int)input.size();
 
-    if( 
+    if(
         ( isize == 0 )
         ||
         ( sizeS2 == 0 )
@@ -400,8 +400,8 @@ int SplitString(const string& input,
     newPos = input.find (delimiter, 0);
 
     if( newPos < 0 )
-    { 
-        return 0; 
+    {
+        return 0;
     }
 
     int numFound = 0;
@@ -422,9 +422,9 @@ int SplitString(const string& input,
     for( int i=0; i <= (int)positions.size(); ++i )
     {
         string s("");
-        if( i == 0 ) 
-        { 
-            s = input.substr( i, positions[i] ); 
+        if( i == 0 )
+        {
+            s = input.substr( i, positions[i] );
         }
         int offset = positions[i-1] + sizeS2;
         if( offset < isize )
@@ -435,7 +435,7 @@ int SplitString(const string& input,
             }
             else if( i > 0 )
             {
-                s = input.substr( positions[i-1] + sizeS2, 
+                s = input.substr( positions[i-1] + sizeS2,
                       positions[i] - positions[i-1] - sizeS2 );
             }
         }
@@ -531,7 +531,7 @@ URL::URL(const string& u)
   string p;
   string h;
   string pa;
-  
+
   if (!isValidURL(u, p, h, pa)){
   __TRACE__
     defined=false;
@@ -539,12 +539,12 @@ URL::URL(const string& u)
   }
 //  __TRACE__
   //cout << p << " " << h << " " << pa << endl;
-  defined = true;  
+  defined = true;
   setProtocol (p);
   setHost(h);
   setPath(pa);
 
-  
+
 }
 
 URL::URL(const string &prot, const string &h, const string &p)
@@ -552,15 +552,15 @@ URL::URL(const string &prot, const string &h, const string &p)
 //: host(h.length()+1), path(p.length()+1)
 {
    __TRACE__
-  
+
   if (prot.length() > MAX_STRINGSIZE){
     defined=false;
     return;
   }
-    
+
   __TRACE__
   //cout << "*************" << prot +  h + p << endl;
-  
+
 
   if (!isValidURL(prot + "://" + h + p)){
     defined=false;
@@ -573,32 +573,32 @@ URL::URL(const string &prot, const string &h, const string &p)
   setHost(h);
   setPath(p);
 }
-  
+
 URL::URL(const URL& u)
 :host(u.getHost().length()+1),path(u.getPath().length()+1)
 {
 //  __TRACE__
-  
+
   if (!u.IsDefined()){
     defined=false;
     return;
   }
-  
+
   defined=true;
   //cout << "url: " << u.getPath() << "  " << defined << endl;
   setProtocol ( u.getProtocol());
   setHost(u.getHost());
   setPath(u.getPath());
   //cout << "url: " << getPath() << endl;
-    
+
 }
 
 URL* URL::Clone() const
-{ 
+{
   __TRACE__
-    
+
   URL *pUrl = new URL(getProtocol(),getHost(),getPath());
-   return pUrl; 
+   return pUrl;
 }
 
 string URL::getProtocol() const
@@ -608,7 +608,7 @@ string URL::getProtocol() const
     return "";
   return protocol;
 }
-  
+
 
 void URL::setProtocol(string p)
 {
@@ -625,10 +625,10 @@ string URL::getHost() const
 //  __TRACE__
   if (!defined)
     return "";
-  
+
   const char* s = 0;
   host.Get(0, &s);
-  
+
   //cout << "getHost " << s << endl;
   return s;
 }
@@ -656,7 +656,7 @@ string URL::getPath() const
 void URL::setPath(string p)
 {
 //  __TRACE__
-  
+
   if (!defined)
     return;
 
@@ -681,7 +681,7 @@ ostream& operator<<(ostream& s, URL u)
 
 ListExpr URL::ToListExpr(bool typeincluded)const {
   __TRACE__
- 
+
   ListExpr value;
   if( defined )
   {
@@ -726,7 +726,7 @@ int URL::Compare(const Attribute*) const
 bool URL::Adjacent(const Attribute*) const
 {
   __TRACE__
-  
+
   return 0;
 }
 
@@ -734,7 +734,7 @@ void URL::Set( bool d, URL& u)
 {
   __TRACE__
   defined = d;
-  
+
   if (!d || !u.IsDefined())
     return;
 
@@ -765,59 +765,59 @@ bool URL::urlFromString (const string& url,URL& myurl){
   string path;
 
 //  __TRACE__
-  
+
   if (!isValidURL(url, protocol, host, path)){
     myurl.SetDefined(false);
     return false;
   }
-  
-  
+
+
   myurl.SetDefined(true);
   myurl.setPath(path);
   myurl.setProtocol (protocol);
   myurl.setHost(host);
-  
-  
+
+
   return true;
-  
+
 }
 
 
-bool URL::isValidURL(const string& url, string& protocol, 
+bool URL::isValidURL(const string& url, string& protocol,
                      string& host, string& path){
   stringstream is (url);
   WebLex lexer(&is);
-  
+
 //   __TRACE__
-  
+
   lexer.switchStartCond(MSCHEME);
   //cout << url << endl;
   if (lexer.nextToken() != SCHEME){
 //     __TRACE__
     return false;
   }
-  
+
   protocol= lexer.getVal();
   protocol= protocol.erase(protocol.length()-1);
 //  __TRACE__
   //cout << protocol << endl;
-  
+
   if (lexer.nextToken() != AUTHORITY){
 //     __TRACE__
     return false;
   }
-  
+
   host= lexer.getVal();
   host=host.erase(0,2);
 //  __TRACE__
   //cout  << host << endl;
-  
-  
+
+
   if (lexer.nextToken() == PATH){
     path= lexer.getVal();
   }else{
     path="";
-  }  
+  }
   //__TRACE__
   //cout << lexer.getVal() << endl;
 
@@ -826,21 +826,21 @@ bool URL::isValidURL(const string& url, string& protocol,
 
 bool URL::isValidURL(const string& url){
   string x,y,z;
-  
+
   __TRACE__
   return isValidURL(url, x,y,z);
 }
 
 FLOB *URL::GetFLOB(const int i){
 //  __TRACE__
-  
-  
+
+
   if ( i == 0 )
     return &host;
-  
+
   if ( i == 1 )
     return &path;
-  
+
   return NULL;
 }
 
@@ -858,41 +858,41 @@ SmiSize URL::SizeOfChars()const {
 void URL::ReadFrom ( const char *src){
   __TRACE__
   int erg;
-  string url (src);    
+  string url (src);
   stringstream is (url);
-  
+
   WebLex lexer (&is);
   lexer.switchStartCond(MURI);
-  
+
   string protocol;
   string host;
   string path;
-  
+
   erg= lexer.nextToken();
   if (erg==ERROR)
     return;
-  
+
   protocol= lexer.getVal();
-  
+
   erg= lexer.nextToken();
   if (erg==ERROR)
     return;
-  
+
   host= lexer.getVal();
-  
+
   erg= lexer.nextToken();
   if (erg==ERROR)
     return;
-  
+
   path= lexer.getVal();
-  
+
   setProtocol ( protocol);
   setHost (host);
   setPath (path);
 }
 
 
-size_t URL::HashValue(void) const{ 
+size_t URL::HashValue(void) const{
   __TRACE__
   return SizeOfChars();
 }
@@ -906,8 +906,8 @@ void URL::CopyFrom(const StandardAttribute *arg){
 }
 
 bool URL::operator== (const URL& url) const{
-  return (isEqual(url.getProtocol(),getProtocol()) && 
-          isEqual(url.getHost(), getHost()) && 
+  return (isEqual(url.getProtocol(),getProtocol()) &&
+          isEqual(url.getHost(), getHost()) &&
           isEqual(url.getPath(), getPath()));
 }
 
@@ -958,14 +958,14 @@ class HTML : public StandardAttribute
   const DBArray<FlobIndex>* getMetainfoKeys()const;
   const DBArray<FlobIndex>* getMetainfoContents()const;
   const DBArray<FlobIndex>* getEmbededURLS() const;
-  
+
   bool IsValid() const;
   void CopyFrom(const StandardAttribute *arg);
   size_t HashValue(void) const;
 
 
 
-  
+
  private:
   DateTime lastChange;
   FLOB source;
@@ -1005,18 +1005,18 @@ tiefe(0), valid(true)
   defined = true;
   source.Put(0,s.length()+1,s.c_str());
   //tiefe=0;
-  
+
 
 
   //source.Put(0,s.length()+1,s.c_str());
-  
+
   valid=true;
-  
+
   getMetaInfos(s);
   getUrls(s);
-  
+
   __TRACE__
-  
+
   //creates an HTML object without lastChange and sourceURL.
   // If ~isValidHTML~ returns false, the object is not defined.
 }
@@ -1030,14 +1030,14 @@ tiefe(0),valid(true)
   __TRACE__
   //cout << "V2" << endl;
   source.Put(0,s.length()+1,s.c_str());
-  
+
   //jps: Only Debug must be removed!!!!!!!!!!!
   //cout << d.ToString() << " , " << u << endl;
-  //cout << "|" << s << "|" << endl; 
+  //cout << "|" << s << "|" << endl;
 
   valid=true;
 
-  
+
   // __TRACE__
   getMetaInfos(s);
   // __TRACE__
@@ -1055,17 +1055,17 @@ metainfoContents(0), sourceURL(h.getSource()),
 defined(h.IsDefined()),tiefe(0),valid(h.IsValid())
 {
   __TRACE__
-  
+
   //cout << "V3" << endl;
   const FlobIndex *tmp=0;
   const DBArray<FlobIndex> *tmpArray=0;
-  
+
   int i=0;
-//__TRACE__    
+//__TRACE__
   string c = h.getContent();
   source.Resize (c.length() +1 );
   source.Put(0,c.length()+1,c.c_str());
-  
+
 //  __TRACE__
   tmpArray=h.getURLS();
   for (i=0; i < tmpArray->Size();i++){
@@ -1073,44 +1073,44 @@ defined(h.IsDefined()),tiefe(0),valid(h.IsValid())
     urls.Put(i,  *tmp);
   }
 
-//__TRACE__  
+//__TRACE__
   tmpArray=h.getMetainfoKeys();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
     metainfoKeys.Put( i, *tmp);
   }
-//__TRACE__  
+//__TRACE__
   tmpArray=h.getMetainfoContents();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
     metainfoContents.Put( i, *tmp);
   }
 //  __TRACE__
- /*  
+ /*
   tmpArray=h.getEmbededURLS();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
     emburls.Put( i, *tmp);
-  }  
+  }
  */
 //    __TRACE__
 }
 
 
 HTML* HTML::Clone() const
-{ 
+{
   __TRACE__
-  return new HTML( *this ); 
+  return new HTML( *this );
 }
 
 bool HTML::operator== (const HTML& h) const
 {
   __TRACE__
-  return  (h.getContent() ==  this->getContent() && 
-           h.getSource() == this->getSource() && 
+  return  (h.getContent() ==  this->getContent() &&
+           h.getSource() == this->getSource() &&
            h.getLastModified() == this->getLastModified());
 }
-  
+
 datetime::DateTime HTML::getLastModified() const
 {
   __TRACE__
@@ -1128,7 +1128,7 @@ string HTML::getContent() const
   __TRACE__
   if (!defined)
     return "";
-  
+
   const char* s = 0;
   source.Get(0, &s);
   return s;
@@ -1142,14 +1142,14 @@ string HTML::getContent() const
 string HTML::getText() const
 {
   //returns the content without tags, only text
-  
-  
+
+
   __TRACE__
   if (!valid)
   return "";
-  
-  
-  
+
+
+
   int symbol=0;
   string content;
 
@@ -1158,28 +1158,28 @@ string HTML::getText() const
   //char out[content.length()+1];
   string out="";
   stringstream is (getContent());
-  
-  
+
+
   lexer.yyrestart(&is);
-  
+
   lexer.switchStartCond (RELEM_WA);
   symbol = lexer.nextToken();
-  
+
   while (symbol){
     //cout << lexer.getVal() << endl;
     if (symbol == ERROR){
       cout << "Fehler" << endl;
       return "";
     }
-    
+
     if (symbol == CONTENT){
       out += lexer.getVal();
     } else{
       //cout << "Token: " << symbol << ": " << lexer.getVal() << endl;
     }
-    
+
     if (symbol == ELEMENT){
-      if (isEqual(lexer.getVal(), "script") || 
+      if (isEqual(lexer.getVal(), "script") ||
           isEqual(lexer.getVal(), "style")){
         symbol = lexer.nextToken();
         while (symbol == CONTENT)
@@ -1188,7 +1188,7 @@ string HTML::getText() const
     }
     symbol= lexer.nextToken();
   }
-  
+
   //cout << "*******" << content << endl;
   return out;
 }
@@ -1200,7 +1200,7 @@ URL HTML::getSource() const
 }
 
 ListExpr HTML::ToListExpr(bool typeincluded)const {
- 
+
    __TRACE__
   if (!defined)
     return HTML("").ToListExpr(typeincluded);
@@ -1209,7 +1209,7 @@ ListExpr HTML::ToListExpr(bool typeincluded)const {
   string content = getContent();
   string textBytes;
   b.encode( content.c_str(), content.size(), textBytes );
-  
+
   ListExpr value = nl->ThreeElemList(
     getLastModified().ToListExpr(true),
     nl->TextAtom(textBytes),
@@ -1234,12 +1234,12 @@ void HTML::getUrls(const string& content){
   lexer.yyrestart(&ss);
   flobindex i;
   URL url("");
-  
+
    __TRACE__
 
-  
+
   findNextURI (lexer, i, content,url);
-  
+
 
 
   while (url.IsDefined()){
@@ -1250,7 +1250,7 @@ void HTML::getUrls(const string& content){
     //url=findNextURI(lexer, i, content);
     findNextURI (lexer, i, content, url);
   }
-  
+
    __TRACE__
 }
 
@@ -1264,17 +1264,17 @@ void HTML::filterEmbUrls (URL& u, flobindex& i){
   __TRACE__
   string name = u.getPath();
   //cout << "---" << u.getPath() << endl;
-  
+
   int first =name.rfind(".");
   if (first>0){
     name= name.substr(first +1);
     //cout << name << endl;
-    
-    if (name == "jpg" || name == "jpeg" || name == "gif" || name == "bmp" || 
+
+    if (name == "jpg" || name == "jpeg" || name == "gif" || name == "bmp" ||
         name == "png" || name =="tif")
       emburls.Append(i);
   }
-  
+
 }
 
 int HTML::getNumberOfUrls() const
@@ -1284,7 +1284,7 @@ int HTML::getNumberOfUrls() const
   //cout << urls.Size() << endl;
 }
 
-URL HTML::getUrl( int i) 
+URL HTML::getUrl( int i)
 {
   __TRACE__
   const flobindex* ind=0;
@@ -1297,11 +1297,11 @@ URL HTML::getUrl( int i)
     string tmp (s+ind->offset, ind->len);
     content= tmp;
 
-    
+
     if (checkURI( content, url))
       return URL(url);
   }
-  
+
   return URL("");
 }
 
@@ -1310,7 +1310,7 @@ int HTML::getNumberOfEmbUrls() const{
   return emburls.Size();
 }
 
-URL HTML::getEmbUrl( int i) 
+URL HTML::getEmbUrl( int i)
 {
   __TRACE__
   const flobindex* ind=0;
@@ -1323,26 +1323,26 @@ URL HTML::getEmbUrl( int i)
     string tmp (s+ind->offset, ind->len);
     content= tmp;
 
-    
+
     if (checkURI( content, url))
       return URL(url);
   }
-  
+
   return URL("");
 }
 
 /*
-checks, wether the host of getUrl(i) is equal to 
+checks, wether the host of getUrl(i) is equal to
 one of hosts in the parameter ~hosts~
 
 */
 
 URL HTML::getUrlHosts(int i, string hosts, bool& contains){
-  
+
   vector<string> vhosts;
   vector<string>::const_iterator it;
   string host="";
-  
+
   hosts+=",";
   URL url= getUrl (i);
   //cout << "Hosts übergeben: " << hosts << endl;
@@ -1351,18 +1351,18 @@ URL HTML::getUrlHosts(int i, string hosts, bool& contains){
     contains = true;
     return url;
   }
-  
+
   contains=false;
   if (!url.IsDefined() || !valid)
     return url;
-  
+
   /*for (j=0;j < hosts.length();j++){
     if (isWhite (hosts.at(j)))
       hosts.erase(j,1);
   }*/
-  
+
   SplitString( hosts,",",vhosts,false);
-  
+
   it= vhosts.begin();
   host= url.getHost();
   //cout << "Host enthalten: " << host << vhosts.size() << endl;
@@ -1373,26 +1373,26 @@ URL HTML::getUrlHosts(int i, string hosts, bool& contains){
       contains =true;
       return url;
     }
-    
+
     it++;
   }
-  
+
   return url;
-  
+
 }
 
 
-  
+
 bool HTML::containsURL(const URL *url){
   string href;
   int i=0;
 
   __TRACE__
-  
+
   while (i < getNumberOfUrls()){
     if (*url == getUrl (i))
       return true;
-    
+
     i++;
   }
 
@@ -1407,26 +1407,26 @@ bool HTML::checkURI(string value,URL& url){
   WebLex lexer(0);
   stringstream ss;
   int symbol;
-  
+
 //  __TRACE__
   //cout << "Prfe URL " << value << endl;
   url.SetDefined(false);
-  
+
   //check if this is a complete url
   if (URL::urlFromString(value,url))
       return true;
-  
-  
-  
+
+
+
    __TRACE__
   //match a URL
   lexer.switchStartCond (MURI);
   ss << value;
   lexer.yyrestart(&ss);
   symbol= lexer.nextToken();
-  
-  
-  
+
+
+
   // we have the Path from a URL ~value~ and the source URL
   //Now we try to build a valid url with protocol, host and path
    __TRACE__
@@ -1436,18 +1436,18 @@ bool HTML::checkURI(string value,URL& url){
   string mypath="";
   int pos=0;
 
-  // 
+  //
   pos = urlpath.find("./");
   if (pos == 0){
     //Unterverzeichnis der source url
     pos= path.rfind("/");
     mypath=path.substr(0,pos );
-    
+
     urlpath= urlpath.substr (2);
   } else{
     pos= urlpath.find("/");
     if (pos == 0){
-      //im Wurzelverzeichnis des Webservers 
+      //im Wurzelverzeichnis des Webservers
       mypath="";
     } else {
       //Unterverzeichnis der source url
@@ -1489,11 +1489,11 @@ bool HTML::checkURI(string value,URL& url){
   url.SetDefined(true);
   url.setProtocol (getSource().getProtocol());
   url.setHost(getSource().getHost());
-  
+
   //cout << "checkuri " << mypath << "  " << myurl;
   url.setPath(mypath + "/" + myurl);
-  
-  //cout << "Neue URL :" << url.getPath() << endl;    
+
+  //cout << "Neue URL :" << url.getPath() << endl;
   //__TRACE__
   return true;
 }
@@ -1512,28 +1512,28 @@ find NextUri in the stream of ~lexer~
 
 
 
-URL HTML::findNextURI(WebLex& lexer, flobindex& i, 
+URL HTML::findNextURI(WebLex& lexer, flobindex& i,
                       const string& content, URL& url ){
   string element, value;
   int symbol=0;
-  
+
   //URL url("");
-  
+
 //  __TRACE__
   url.SetDefined(false);
   //vector<string> attributes;
-  
+
   //attributes.push_back("src");
   //attributes.push_back("href");
-  
-  
-  
+
+
+
   symbol= lexer.startElement(element);
   while (symbol){
     __TRACE__
-    
 
-      
+
+
     if (isEqual(element, "img")){
       if (lexer.findAttribute("src",value)){
         if (checkURI(value,url)){
@@ -1542,9 +1542,9 @@ URL HTML::findNextURI(WebLex& lexer, flobindex& i,
         }
       }
     }
-    
+
     /*if (!isEqual(element,"script")){
-      
+
 //      __TRACE__
       if (lexer.findAttribute(attributes,value)){
         __TRACE__
@@ -1557,7 +1557,7 @@ URL HTML::findNextURI(WebLex& lexer, flobindex& i,
       }
     }*/
 
-    
+
 //    __TRACE__
     if (lexer.findAttribute("href",value)){
         //__TRACE__
@@ -1574,10 +1574,10 @@ URL HTML::findNextURI(WebLex& lexer, flobindex& i,
       if (lexer.findAttribute("src",value)){
         if (checkURI(value,url)){
           i= lexer.setPos(value,content);
-          
+
         }
       }
-      
+
 //      __TRACE__
       symbol= lexer.nextToken();
       element=lexer.getVal();
@@ -1588,14 +1588,14 @@ URL HTML::findNextURI(WebLex& lexer, flobindex& i,
       //cout << "------------" << lexer.getVal() << symbol << endl;
       if (url.IsDefined())
         return url;
-      
+
     }else{
       __TRACE__
-      symbol=lexer.startElement(element);    
+      symbol=lexer.startElement(element);
     }
 
   }
-  
+
   return url;
 }
 
@@ -1611,12 +1611,12 @@ string HTML::getMetainfo( int i, string& pContent) const
    __TRACE__
   //returns the key of metainfo number ii
   //fills pContent with the content of the metainfo number ii
-  
+
   const flobindex *ind=0;
   const char* content;
-  
+
   source.Get(0, &content);
-  
+
   if (i < metainfoKeys.Size()){
     metainfoContents.Get (i, ind);
     string tmp (content+ind->offset, ind->len);
@@ -1636,7 +1636,7 @@ string HTML::getMetaInfo(string name){
       return content;
     }
   }
-  
+
   return "";
 }
 
@@ -1659,9 +1659,9 @@ void HTML::getMetaInfos(const string& content){
   vector<string> attributes;
   attributes.push_back("content");
   attributes.push_back("name");
-  
+
   //cout << "getMeta Content " << content << endl;
-  
+
   symbol=lexer.startElement(attname);
 //   __TRACE__
   while (symbol){
@@ -1670,7 +1670,7 @@ void HTML::getMetaInfos(const string& content){
       return;
     if (symbol== EIDENTIFIER && isEqual (attname, "meta")){
 //      __TRACE__
-      
+
       string tmp("");
       if (lexer.findAttribute(attributes,value,tmp)){
           //cout << "--" << value << endl;
@@ -1686,22 +1686,22 @@ void HTML::getMetaInfos(const string& content){
 
             if (isEqual(tmp,"name")){
               ikey= lexer.setPos(value, content);
-              
+
             }else{
               icontent= lexer.setPos(value, content);
             }
-            
+
             metainfoContents.Append (icontent);
             metainfoKeys.Append (ikey);
 
 
-        
-        
+
+
           }
       }
     }
-    
-  
+
+
     if (isEqual(attname,"script")){
       //cout << "******* Treffer **********" << endl;
       lexer.switchStartCond(RSCRIPT);
@@ -1712,12 +1712,12 @@ void HTML::getMetaInfos(const string& content){
         attname=lexer.getVal();
       }
     }else{
-      symbol=lexer.startElement(attname);    
+      symbol=lexer.startElement(attname);
     }
   }
-    
 
-  
+
+
 }
 
 /*
@@ -1732,83 +1732,83 @@ int HTML::getNumberOf(string element){
   int symbol;
   stringstream ss (getContent());
   WebLex lexer (&ss);
-  
+
   //cout << getContent << endl;
   if (!valid)
     return 0;
-  
+
   lexer.switchStartCond(RELEM_WA);
   symbol = lexer.nextToken();
-    
+
   while (symbol){
     e= lexer.getVal();
-    
+
    //read content
     __TRACE__
     lexer.readContent();
-    
+
     if (isEqual (e, element))
       count++;
-    
+
     //next element
     symbol= lexer.nextToken();
   }
-  
-  return count;  
-  
+
+  return count;
+
 }
 
 /*
   analyse Structure of html object
 */
-void HTML::analyseStructure(WebLex& lexer, int maxdepth, int& depth, 
+void HTML::analyseStructure(WebLex& lexer, int maxdepth, int& depth,
                             AnalyseList& al, int& error, int& symbol){
-  
+
 //  __TRACE__
   int sym1=0;
   string element;
   lexer.switchStartCond (RELEM_WA);
-  
+
 
   //cout << "*****  Rein " << tiefe << " ********* " << endl;
   depth++;
-  
+
   //cout << "nextToken 1" << endl;
   symbol= lexer.nextToken();
   //cout << "analyse: " << symbol << endl;
 
-  
+
   while (symbol == 10000){
     symbol= lexer.nextToken();
     //cout << "analyse: " << symbol << endl;
   }
-  
-  
+
+
   while (symbol && !error){
     //cout << "TAG Name: " << lexer.getVal() << "  " << symbol <<  endl;
-    if (symbol != ELEMENT && symbol !=COMMENT && 
+    if (symbol != ELEMENT && symbol !=COMMENT &&
         symbol != ELEMENT_SA && symbol !=ELEMENT_CLOSE){
       error=-1;
       cout << "1 ERROR " << lexer.getVal() << symbol << endl;
       return ;
     }
-    
+
     if (symbol != ELEMENT_CLOSE && lexer.getVal()[0] == '/'){
       cout << " 2 ERROR " << lexer.getVal() << "  " << symbol << endl;
       error=-1;
       return ;
     }
-      
-    
+
+
     element= lexer.getVal();
-        
+
     if (isEqual(element, "/html")){
       symbol=0;
       return;
     }else{
       //cout << "endetest:" << element << endl;
     }
-      
+
     //Read content of current element <tag>content<....
     //  it is maby empty <tag><tag>
     //cout << "nextToken 2" << endl;
@@ -1820,9 +1820,9 @@ void HTML::analyseStructure(WebLex& lexer, int maxdepth, int& depth,
       error =-1;
       return ;
     }
-    
+
     //cout << "Content " << lexer.getVal() << endl;
-    
+
     if (symbol == ELEMENT_CLOSE){
       //cout << "nextToken 3" << endl;
       symbol=lexer.nextToken();
@@ -1831,28 +1831,28 @@ void HTML::analyseStructure(WebLex& lexer, int maxdepth, int& depth,
 
       break;
     }
-    
+
     if (symbol == ELEMENT){
-      
-      
+
+
       //we have to check every single standalone html attribute
-      if (isEqual (element,"area") || isEqual (element,"base") || 
+      if (isEqual (element,"area") || isEqual (element,"base") ||
           isEqual (element,"basefont") || isEqual (element,"br") ||
-          isEqual (element,"col") || isEqual (element,"frame") || 
+          isEqual (element,"col") || isEqual (element,"frame") ||
           isEqual (element,"hr") || isEqual (element,"img") ||
-          isEqual (element,"img") || isEqual (element,"input") || 
+          isEqual (element,"img") || isEqual (element,"input") ||
           isEqual (element,"isindex") || isEqual (element,"link") ||
-          isEqual (element,"meta") || isEqual (element,"param") || 
+          isEqual (element,"meta") || isEqual (element,"param") ||
           isEqual (element,"param")){
-        
+
         //cout << "SA Element " << element << endl;
         //cout << "nextToken 4" << endl;
         symbol= lexer.nextToken();
-        
-        
+
+
       }else{
         if ((depth <= maxdepth) ||maxdepth < 0)
-          al.push_back ( element );  
+          al.push_back ( element );
         analyseStructure(lexer, maxdepth, depth, al, error, symbol);
         //cout << "Zurck " << symbol << endl;
 
@@ -1860,7 +1860,7 @@ void HTML::analyseStructure(WebLex& lexer, int maxdepth, int& depth,
     } else if (symbol == ELEMENT_SA || symbol == COMMENT){
       //cout << "SA Element " << element << endl;
       if ((depth <= maxdepth) || maxdepth < 0)
-        al.push_back ( element );  
+        al.push_back ( element );
       //cout << "nextToken 5" << endl;
       symbol= lexer.nextToken();
     }
@@ -1887,11 +1887,11 @@ double HTML::similar(HTML *html, int maxdepth, bool respectOrder){
   int error=0;
   int symbol=0;
   AnalyseList::const_iterator it1,it2;
-  
-  
+
+
   if (!valid || !html->IsValid())
     return 0;
-  
+
   al1= new AnalyseList();
   string tmp1=getContent();
 
@@ -1901,7 +1901,7 @@ double HTML::similar(HTML *html, int maxdepth, bool respectOrder){
 
   WebLex lexer (&ss1);
   analyseStructure(lexer, maxdepth, depth, *al1, error, symbol);
-  
+
 
 
   depth=0;
@@ -1912,45 +1912,45 @@ double HTML::similar(HTML *html, int maxdepth, bool respectOrder){
   stringstream ss2(tmp2);
   lexer.yyrestart(&ss2);
   analyseStructure(lexer, maxdepth, depth, *al2,error, symbol);
-  
+
   if (respectOrder){
     if (al2->size() > al1->size()){
       __TRACE__
       al= al2;
       al2= al1;
       al1= al;
-    }  
-    
-    
+    }
+
+
     it1= al1->begin();
     it2= al2->begin();
 
     //cout << al1->size() << "  " << al2->size() << endl;
-    
+
     while ((it1 != al1->end() && it2 !=al2->end())){
       if (isEqual(it1->getElement(), it2->getElement())){
         //cout << "treffer" << it1->getElement() << endl;
         counter++;
         if (!(it1 != al1->end() && it2 !=al2->end())){
           break;
-          
+
         }
         it1++;
         it2++;
       }else {
-        
-        
+
+
         if (!al1->find( it1, it2->getElement())){
           //cout << "nicht gefunden " << it2->getElement() << endl;
           if (!(it1 != al1->end() && it2 !=al2->end())){
             break;
-            
+
           }
           it2++;
         }else {
           if (!(it1 != al1->end() && it2 !=al2->end())){
             break;
-            
+
           }
           it1++;
           //cout << "gefunden " << it2->getElement() << endl;
@@ -1961,31 +1961,31 @@ double HTML::similar(HTML *html, int maxdepth, bool respectOrder){
     //cout << "-------" << counter << endl;
     if ((double) al1->size() == 0)
       return 0;
-    return (double) counter / (double) al1->size();  
-    
+    return (double) counter / (double) al1->size();
+
   }
 
   al3= new AnalyseList();
   al4= new AnalyseList();
   it1 = al1->begin();
   it2 = al2->begin();
-  
-  
+
+
   while (it1 != al1->end()){
     al3->add(it1->getElement());
     it1++;
   }
-  
-  
+
+
   while (it2 != al2->end()){
     al4->add(it2->getElement());
     it2++;
   }
-  
-  
+
+
   al1=al3;
   al2=al4;
-  
+
   if (al2->size() > al1->size()){
     __TRACE__
     al= al2;
@@ -1994,8 +1994,8 @@ double HTML::similar(HTML *html, int maxdepth, bool respectOrder){
   }
 
   it1= al1->begin();
-  it2= al2->begin();  
-  
+  it2= al2->begin();
+
   //cout << al1->size() << "  " << al2->size() << endl;
 
   while ((it1 != al1->end() && it2 !=al2->end())){
@@ -2004,37 +2004,37 @@ double HTML::similar(HTML *html, int maxdepth, bool respectOrder){
       counter++;
       if (!(it1 != al1->end() && it2 !=al2->end())){
         break;
-        
+
       }
       it1++;
       it2++;
     }else {
-      
-      
+
+
       if (!al1->find( it1, it2->getElement())){
         //cout << "nicht gefunden " << it2->getElement() << endl;
         if (!(it1 != al1->end() && it2 !=al2->end())){
           break;
-          
+
         }
         it2++;
       }else {
         if (!(it1 != al1->end() && it2 !=al2->end())){
           break;
-          
+
         }
         it1++;
         //cout << "gefunden " << it2->getElement() << endl;
       }
     }
   }
-  
+
   __TRACE__
-  
+
   if (al1->size() == 0)
     return (double) 0;
-  
-  return (double) counter / (double) al1->size();  
+
+  return (double) counter / (double) al1->size();
 
 }
 
@@ -2042,10 +2042,10 @@ void HTML::Set(const HTML &h)
 {
     const FlobIndex *tmp=0;
   const DBArray<FlobIndex> *tmpArray=0;
-  
+
   int i=0;
-  
-  
+
+
 
   __TRACE__
   if (!h.IsDefined())
@@ -2054,7 +2054,7 @@ void HTML::Set(const HTML &h)
   defined=true;
   DateTime d = h.getLastModified();
   lastChange.SetType(instanttype);
-  lastChange.Set(d.GetYear(),d.GetMonth(), d.GetGregDay(), d.GetHour(), 
+  lastChange.Set(d.GetYear(),d.GetMonth(), d.GetGregDay(), d.GetHour(),
                  d.GetMinute(), d.GetSecond(),d.GetMillisecond());
 
   URL u(h.getSource());
@@ -2062,36 +2062,36 @@ void HTML::Set(const HTML &h)
   string s = h.getContent();
   source.Resize( s.length() + 1 );
   source.Put( 0, s.length() + 1, s.c_str() );
-  
-  
+
+
   string c = h.getContent();
   source.Resize (c.length() +1 );
   source.Put(0,c.length()+1,c.c_str());
-  
+
 
   tmpArray=h.getURLS();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
     urls.Put(i,  *tmp);
   }
-    
+
   tmpArray=h.getMetainfoKeys();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
     metainfoKeys.Put( i, *tmp);
   }
-  
+
   tmpArray=h.getMetainfoContents();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
     metainfoContents.Put( i, *tmp);
   }
-  
-  
-  
+
+
+
 }
 
-  
+
 int HTML::NumOfFLOBs() const{
   __TRACE__
     return 7;
@@ -2105,22 +2105,22 @@ FLOB *HTML::GetFLOB(const int i){
     return &source;
   if (i==1)
     return &urls;
-  
+
   if (i==2)
     return &metainfoKeys;
-  
+
   if (i==3)
     return &metainfoContents;
-  
+
   if (i==4)
     return &emburls;
-    
+
   if (i==5)
     return sourceURL.GetFLOB(0);
-  
+
   if (i==6)
     return sourceURL.GetFLOB(1);
-  
+
   return NULL;
 }
 
@@ -2143,7 +2143,7 @@ void HTML::SetDefined(bool d) {
 
 const DBArray<FlobIndex>* HTML::getURLS() const{
   return &urls;
-  
+
 }
 
 const DBArray<FlobIndex>* HTML::getMetainfoKeys()const{
@@ -2158,7 +2158,7 @@ bool HTML::IsValid() const{
   return valid;
 }
 
-void HTML::CopyFrom(const StandardAttribute* right) 
+void HTML::CopyFrom(const StandardAttribute* right)
 {
   __TRACE__
   const HTML *r = (const HTML *)right;
@@ -2212,7 +2212,7 @@ class Page : public HTML
     Page(const HTML &);
     Page(const Page &);
     Page(const URL &url, string &mime, string &binFile, DateTime &dt);
-    
+
     bool operator== (const Page& h) const;
     HTML extractHTML();
     int numOfFiles() const;
@@ -2233,14 +2233,14 @@ class Page : public HTML
 
 
   private:
-  
+
     /*Class ~HTTPSocket~
-     
+
       This Page classes inner class is designed to capsulate all details
-      of the socket´s implementation and the page request, depending on the 
-      http protocol. It is an inner private class because, up to now, the 
-      page class is the only object connecting to the web. 
-    
+      of the socket´s implementation and the page request, depending on the
+      http protocol. It is an inner private class because, up to now, the
+      page class is the only object connecting to the web.
+
      */
     class HTTPSocket
     {
@@ -2249,10 +2249,10 @@ class Page : public HTML
         HTTPSocket(string webAddr, string filePath, HTTPProtocol proto,
                    string port);
         inline const string getServerAddress() {return WebAddr;}
-        
+
         //returns the string represantation of an valid http get request
         const string getGetRequest();
-        inline Socket * getSocket() {return s;} 
+        inline Socket * getSocket() {return s;}
         bool parseHTTPResponse(vector<string> serverResponse);
         inline string getContentType() {return contentType;}
         inline int getContentLength() {return contentLength;}
@@ -2270,7 +2270,7 @@ class Page : public HTML
         int contentLength;
         DateTime lastModified;
         DateTime responseDate;
-        bool successResponded; 
+        bool successResponded;
         bool isChunked;
 
         Socket *s;
@@ -2278,9 +2278,9 @@ class Page : public HTML
         bool setResponseDate(string s);
         DateTime setDateTime(string s);
         string getMonthNumFromName(string monthName);
-    };    
-  public:  
-    static string getFromWeb(URL url, string &mime, bool &MimeIsEqual,  
+    };
+  public:
+    static string getFromWeb(URL url, string &mime, bool &MimeIsEqual,
                              DateTime &dt, bool onlyHtml = false);
   private:
     struct FLOBIndex
@@ -2323,7 +2323,7 @@ FLOB* Page::GetFLOB(const int i)
     cout << NumOfFLOBs() << endl;
    #endif
   if (i < (NumOfFLOBs() - HTML::NumOfFLOBs())){
-    switch (i) 
+    switch (i)
     {
       case 0: return &embUrlIds;
       case 1: return &embUrls;
@@ -2366,17 +2366,17 @@ bool Page::Adjacent (const Attribute*)const
 }
 
 Page* Page::Clone() const
-{ 
+{
   __TRACE__
-  return new Page( *this ); 
+  return new Page( *this );
 }
 
-void Page::CopyFrom(const StandardAttribute* right) 
+void Page::CopyFrom(const StandardAttribute* right)
 {
   __TRACE__
   const Page *r = (const Page *)right;
   HTML::CopyFrom(right);
-  
+
   numOfEmbeddedObjects = 0;
   for( int ii = 0; ii < r->numOfFiles(); ++ii)
   {
@@ -2389,7 +2389,7 @@ void Page::CopyFrom(const StandardAttribute* right)
 
 */
 Page::Page(const string &s)
-: HTML(s), numOfEmbeddedObjects(0), embUrlIds(0), embUrls(0), 
+: HTML(s), numOfEmbeddedObjects(0), embUrlIds(0), embUrls(0),
   binIDs(0), binFiles(0), mimeIDs(0), mimeTypes(0)
 {
     #ifdef _DEBUG_JPS_3
@@ -2397,9 +2397,9 @@ Page::Page(const string &s)
   #endif
   __TRACE__
 }
- 
+
 Page::Page(const HTML &h)
-: HTML(h), numOfEmbeddedObjects(0), embUrlIds(0), embUrls(0), 
+: HTML(h), numOfEmbeddedObjects(0), embUrlIds(0), embUrls(0),
   binIDs(0), binFiles(0), mimeIDs(0), mimeTypes(0)
 {
   //NOT USED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2412,7 +2412,7 @@ Page::Page(const HTML &h)
 }
 
 Page::Page(const Page &p)
-: HTML(p), numOfEmbeddedObjects(0), embUrlIds(0), embUrls(0), 
+: HTML(p), numOfEmbeddedObjects(0), embUrlIds(0), embUrls(0),
  binIDs(0), binFiles(0), mimeIDs(0), mimeTypes(0)
 {
  __TRACE__
@@ -2422,15 +2422,15 @@ Page::Page(const Page &p)
   }
 }
 
-Page::Page(const URL &url, string &mime, string &binFile, DateTime &dt) 
-: HTML(dt, binFile, url), 
-  numOfEmbeddedObjects(0), embUrlIds(0), embUrls(0), 
+Page::Page(const URL &url, string &mime, string &binFile, DateTime &dt)
+: HTML(dt, binFile, url),
+  numOfEmbeddedObjects(0), embUrlIds(0), embUrls(0),
   binIDs(0), binFiles(0), mimeIDs(0), mimeTypes(0)
 {
   __TRACE__
   #ifdef _DEBUG_JPS
     cout << "Page::Page(const URL &url, string &mime,"
-            " string &binFile, DateTime &dt) "  
+            " string &binFile, DateTime &dt) "
          << HTML::getNumberOfUrls() << endl;
     #endif
   for (int i= 0; i < HTML::getNumberOfUrls(); i++)
@@ -2447,7 +2447,7 @@ Page::Page(const URL &url, string &mime, string &binFile, DateTime &dt)
       bool mustBeEqual = false;
       if (embUrl.getHost() != "error")
       {
-      
+
       string embCont = getFromWeb(embUrl, theMime, mustBeEqual, dt);
       addEmbObject(embUrl, theMime, embCont);
       }
@@ -2461,8 +2461,8 @@ bool Page::checkEmbUrl(URL &u)
   int first =filename.rfind(".");
   if (first>0){
     string name = filename.substr(first +1);
-    
-    if (name == "jpg" || name == "jpeg" || name == "gif" || 
+
+    if (name == "jpg" || name == "jpeg" || name == "gif" ||
         name == "bmp" || name == "png" || name =="tif"){
       return true;
     }
@@ -2473,7 +2473,7 @@ bool Page::checkEmbUrl(URL &u)
 bool Page::operator== (const Page& h) const
 {
   __TRACE__
-  if (this->numOfFiles() == h.numOfFiles()) 
+  if (this->numOfFiles() == h.numOfFiles())
   {
     for (int i = 0; i < this->numOfFiles(); i++)
     {
@@ -2519,7 +2519,7 @@ URL Page::getUrl(int i) const
     embUrls.Get((*getThisUrl).offset, &c);
     string result(c);
     #ifdef _DEBUG_JPS_3
-    //cout <<"getUrl: >1ind:" << i << " >2url: " << result << 
+    //cout <<"getUrl: >1ind:" << i << " >2url: " << result <<
      // " >3offset: " << (*getThisUrl).offset <<endl;
     #endif
     return getURLFromString(result);
@@ -2538,13 +2538,13 @@ string Page::getText( int i) const
     //Get the right bin index..
     const FLOBIndex *getThisBin;
     binIDs.Get(i, getThisBin);
-    
+
     //..and get the bin data..
     const char* c;
     binFiles.Get((*getThisBin).offset, &c);
     string result(c);
     #ifdef _DEBUG_JPS_3
-    //cout <<"getMime: >1ind:" << i << " >2mime: " <<  
+    //cout <<"getMime: >1ind:" << i << " >2mime: " <<
       //" >3offset: " << (*getThisMime).offset <<endl;
     #endif
     //result.erase((*getThisMime).len, result.size());
@@ -2562,13 +2562,13 @@ string Page::getMime( int i) const
     //Get the right bin index..
     const FLOBIndex *getThisMime;
     mimeIDs.Get(i, getThisMime);
-    
+
     //..and get the bin data..
     const char* c;
     mimeTypes.Get((*getThisMime).offset, &c);
     string result(c);
     #ifdef _DEBUG_JPS_3
-    //cout <<"getMime: >1ind:" << i << " >2mime: " << result << 
+    //cout <<"getMime: >1ind:" << i << " >2mime: " << result <<
       //" >3offset: " << (*getThisMime).offset <<endl;
     #endif
     //result.erase((*getThisMime).len, result.size());
@@ -2582,31 +2582,31 @@ string Page::getMime( int i) const
 void Page::addEmbObject(const URL &u, const string &mime, const string &s)
 {
   __TRACE__
-  
+
   //If the new object is valdid..
   if (u.IsDefined() && (s.size() > 0) && (mime.size() > 0))
   {
     //Create an easy to use string represantation of the url
     string s_url = u.getProtocol() + "://" + u.getHost() + u.getPath();
-    
+
     if (allocateOneElem(s.size() +1, s_url.size()+1, mime.size()+1))
     {
       /******************URL**********************/
       const FLOBIndex *insertUrlHere;
       embUrlIds.Get(numOfEmbeddedObjects - 1, insertUrlHere);
-      embUrls.Put((*insertUrlHere).offset, 
+      embUrls.Put((*insertUrlHere).offset,
                   (*insertUrlHere).len + 1, s_url.c_str());
-      
+
       /******************MIME**********************/
       const FLOBIndex *insertMimeHere;
       mimeIDs.Get(numOfEmbeddedObjects - 1, insertMimeHere);
-      mimeTypes.Put((*insertMimeHere).offset, 
+      mimeTypes.Put((*insertMimeHere).offset,
                     (*insertMimeHere).len + 1, mime.c_str());
-      
+
       /******************BINARY**********************/
       const FLOBIndex *insertBinHere;
       binIDs.Get(numOfEmbeddedObjects - 1, insertBinHere);
-      binFiles.Put((*insertBinHere).offset, 
+      binFiles.Put((*insertBinHere).offset,
                    (*insertBinHere).len + 1, s.c_str());
     }
   }
@@ -2617,7 +2617,7 @@ bool Page::allocateOneElem(int BytesOfData, int BytesOfURL, int BytesOfMime)
   //Inc the number of embedded objects
   __TRACE__
   ++numOfEmbeddedObjects;
-  
+
   //Prepare the bin and url DBArrays to take the new object..
   __TRACE__
   if (allocateSpaceInArray(&binIDs, BytesOfData)
@@ -2632,14 +2632,14 @@ bool Page::allocateOneElem(int BytesOfData, int BytesOfURL, int BytesOfMime)
     const FLOBIndex *resizeBinIndex;
     binIDs.Get(numOfEmbeddedObjects - 1, resizeBinIndex);
     binFiles.Resize(binFiles.Size() + (*resizeBinIndex).len + 1);
-    
+
     const FLOBIndex *resizeMimeIndex;
     mimeIDs.Get(numOfEmbeddedObjects - 1, resizeMimeIndex);
     mimeTypes.Resize(mimeTypes.Size() + (*resizeMimeIndex).len + 1);
-    
+
     return true;
   }
-  
+
   //Something went wrong - no element can be added (should not occur)!
   --numOfEmbeddedObjects;
   return false;
@@ -2654,12 +2654,12 @@ bool Page::allocateSpaceInArray(DBArray<FLOBIndex> *dba, int numOfBytes)
   if (numOfEmbeddedObjects > 1)
   {
   __TRACE__
-    const FLOBIndex *prevIndex;  
+    const FLOBIndex *prevIndex;
     dba->Get(numOfEmbeddedObjects - 2, prevIndex);
     pIndex.offset = (*prevIndex).offset;
     pIndex.len = (*prevIndex).len;
   }
-  
+
   //..or set index and length to 0 if the element is the first!
   else
   {
@@ -2667,13 +2667,13 @@ bool Page::allocateSpaceInArray(DBArray<FLOBIndex> *dba, int numOfBytes)
     pIndex.offset = 0;
     pIndex.len = 0;
   }
-  
+
   //Now we can calculate the new offset and length..
   __TRACE__
   FLOBIndex newIndex;
   newIndex.offset = pIndex.offset + pIndex.len;
   newIndex.len = numOfBytes;
-  
+
   //..and append it to the DBArray!
   dba->Append(newIndex);
   __TRACE__
@@ -2708,7 +2708,7 @@ the data will be used to fill the instance as html object. Elsewise everything i
 TODO: The return type must be defined - it will not be a string!!!!!
 
 */
-string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual, 
+string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual,
                        DateTime &dt, bool onlyHtml)
 {
   __TRACE__
@@ -2716,15 +2716,15 @@ string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual,
   //Set the HTTP Protocol
   HTTPSocket::HTTPProtocol httpProt;
   httpProt = HTTPSocket::HTTP_11;
-  
+
   //Get an Instance of the HTTPSocket class..
-  HTTPSocket httpSock(url.getHost(), url.getPath(), httpProt, "80"); 
+  HTTPSocket httpSock(url.getHost(), url.getPath(), httpProt, "80");
   //TODO: only http supported!
-  
-  //..and use the os independent socket! 
+
+  //..and use the os independent socket!
   Socket *s = httpSock.getSocket();
-  
-  //Get the corresponding http GET request as a string.. 
+
+  //Get the corresponding http GET request as a string..
   string req = httpSock.getGetRequest();
   string result("");
   //cout << "http request: " << req << " , " << req.size() << endl;
@@ -2735,23 +2735,23 @@ string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual,
   //..and write it to the socket!
   iostream& io = s->GetSocketStream();
   io << req << endl;
-  
+
   string line("");
   bool readyForBinData = false;
   vector<string> serverResponse;
   int size = 0;
   int packetsize = 0;
   char byte = 0x00;
-  
+
   while(s->IsOk())
   {
     if (!readyForBinData) //Server http response not completly received yet..
     {
-      getline(io,line); 
+      getline(io,line);
 //      cout << "Line: " << line << endl;
-      //..response finalized.. 
+      //..response finalized..
       if (line.find("\r") == 0) //..parse it!
-      { 
+      {
         readyForBinData = httpSock.parseHTTPResponse(serverResponse);
         if (!readyForBinData)
         {
@@ -2801,7 +2801,7 @@ string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual,
     //  if (size%1000 == 0) cout << "1000 Zeichen gelesen!" << endl;
       if(httpSock.getChunked() && packetsize<=0)
       {
-        getline(io,line); 
+        getline(io,line);
 //        cout << line << endl;
         if(line.length()>1)  //perhaps empty line
         {
@@ -2821,14 +2821,14 @@ string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual,
           size++;
           if(httpSock.getChunked()) --packetsize;
         }
-        else 
+        else
         {
           //cout << "TIMEOUT nach " << size -1 << " Zeichen!" << endl;
           httpSock.Close();
           break;
         }
-        if ((httpSock.getContentLength() > 0) && 
-          (size >= httpSock.getContentLength())) {break;} 
+        if ((httpSock.getContentLength() > 0) &&
+          (size >= httpSock.getContentLength())) {break;}
       }
     }
    }
@@ -2869,14 +2869,14 @@ string Page::getFromWeb(URL url, string &mime, bool &MimeIsEqual,
 abstract Socket type, hiding the os dependancy.
 
 */
-Page::HTTPSocket::HTTPSocket(string webAddr, string filePath, 
+Page::HTTPSocket::HTTPSocket(string webAddr, string filePath,
                             HTTPProtocol proto, string port):
-  WebAddr(webAddr), FilePath(filePath), Protocol(proto), 
-          Port(port), contentType(""), contentLength(-1), 
+  WebAddr(webAddr), FilePath(filePath), Protocol(proto),
+          Port(port), contentType(""), contentLength(-1),
           successResponded(false), isChunked(false)
 {
   lastModified.SetType(instanttype);
-  responseDate.SetType(instanttype);  
+  responseDate.SetType(instanttype);
   s = Socket::Connect(webAddr , port);
 }
 
@@ -2884,7 +2884,7 @@ Page::HTTPSocket::HTTPSocket(string webAddr, string filePath,
 3.2.1.2 Returns the http get request as const string.
 
 */
-const string Page::HTTPSocket::getGetRequest() 
+const string Page::HTTPSocket::getGetRequest()
 {
   string result("");
   result += "GET " + FilePath;
@@ -2895,7 +2895,7 @@ const string Page::HTTPSocket::getGetRequest()
 
 /*
 3.2.1.3 Extracts the relevant items out of the strings given
-by the vector. Will return true if there is no error transmitted 
+by the vector. Will return true if there is no error transmitted
 by the server.
 
 Example:
@@ -2921,16 +2921,16 @@ bool Page::HTTPSocket::parseHTTPResponse(vector<string> serverResponse)
     //cout << (*iter) << endl;
     //Protocol and error code..
     if ((*iter).find("HTTP/1.0", 0) != string::npos)
-    { 
+    {
       #ifdef _DEBUG_JPS
       cout << "found HTTP/1.0 " << endl;
       #endif
     }
- 
+
     else if ((*iter).find("HTTP/1.1", 0) != string::npos)
-    { 
+    {
       #ifdef _DEBUG_JPS
-      cout << "found HTTP/1.1 " << endl; 
+      cout << "found HTTP/1.1 " << endl;
       #endif
     }
 
@@ -2969,10 +2969,10 @@ bool Page::HTTPSocket::parseHTTPResponse(vector<string> serverResponse)
     else if ((*iter).find("Content-Type:", 0) != string::npos)
     {
       if ((*iter).find("text/html", 13) != string::npos)
-      { 
+      {
         contentType = "text/html";
         #ifdef _DEBUG_JPS
-        cout << "contentType = text/html" << endl; 
+        cout << "contentType = text/html" << endl;
         #endif
       }
 
@@ -2983,10 +2983,10 @@ bool Page::HTTPSocket::parseHTTPResponse(vector<string> serverResponse)
 
     }
     else if ((*iter).find("Connection:", 0) != string::npos)
-    { //TODO! 
+    { //TODO!
       if ((*iter).find("close", 11) != string::npos)
       {}
-      
+
       else if ((*iter).find("keep-alive", 11) != string::npos)
       {}
 
@@ -3002,19 +3002,19 @@ bool Page::HTTPSocket::parseHTTPResponse(vector<string> serverResponse)
       gotDate = setResponseDate(*iter);
     }
 
-  } 
+  }
   if (successResponded && ((contentType.size() > 0) || isChunked) && gotDate)
   {
     if (!gotLastMod) lastModified = responseDate;
     __TRACE__
     #ifdef _DEBUG_JPS
-    cout << "parseHTTPResponse E N D E true!" << endl; 
+    cout << "parseHTTPResponse E N D E true!" << endl;
     #endif
     //cout << "serverresponse ende - true:" << endl;
     return true;
   }
   #ifdef _DEBUG_JPS
-  cout << "parseHTTPResponse E N D E false!" << endl; 
+  cout << "parseHTTPResponse E N D E false!" << endl;
   #endif
   //cout << "serverresponse ende - false:" << endl;
   return false;
@@ -3031,7 +3031,7 @@ bool Page::HTTPSocket::setResponseDate(string s)
 
 DateTime Page::HTTPSocket::setDateTime(string s)
 {
-  /*Convert DayName, day monthName year[4 nums] hh:mm:ss GMT to 
+  /*Convert DayName, day monthName year[4 nums] hh:mm:ss GMT to
     YEAR-MONTH-DAY-HOUR:MIN:SECOND to store it as an DateTime instance!
   */
   DateTime result;
@@ -3053,7 +3053,7 @@ DateTime Page::HTTPSocket::setDateTime(string s)
   dtElem.assign(dtStr, 7, 4);
   dtFormattedString += dtElem + "-";
   #ifdef _DEBUG_JPS_4
-  cout << "year: |" << dtElem << "|" << endl; 
+  cout << "year: |" << dtElem << "|" << endl;
   #endif
 
   //..2nd the month..
@@ -3061,7 +3061,7 @@ DateTime Page::HTTPSocket::setDateTime(string s)
   dtElem = getMonthNumFromName(dtStr);
   dtFormattedString += dtElem + "-";
   #ifdef _DEBUG_JPS_4
-  cout << "month: |" << dtElem << "|" << endl; 
+  cout << "month: |" << dtElem << "|" << endl;
   #endif
 
   //1st store the day..
@@ -3069,17 +3069,17 @@ DateTime Page::HTTPSocket::setDateTime(string s)
   dtElem.assign(dtStr, 0, 2);
   dtFormattedString += dtElem + "-";
   #ifdef _DEBUG_JPS_4
-  cout << "day: |" << dtElem << "|" << endl; 
+  cout << "day: |" << dtElem << "|" << endl;
   #endif
-  
+
   //..4th the hour::minutes:seconds
   dtElem = "";
   dtElem.assign(dtStr, 12, 8);
   dtFormattedString += dtElem;
   result.ReadFrom(dtFormattedString);
   #ifdef _DEBUG_JPS_4
-  cout << "h:m:s: |" << dtElem << "|" << endl; 
-  cout << "secondo datetime: |" << dtFormattedString << "|" << endl; 
+  cout << "h:m:s: |" << dtElem << "|" << endl;
+  cout << "secondo datetime: |" << dtFormattedString << "|" << endl;
   cout << "dateTime: " << result.ToString() << endl;
   #endif
   return result;
@@ -3111,7 +3111,7 @@ string Page::HTTPSocket::getMonthNumFromName(string monthName)
   return "";
 }
 
-   
+
 /*
 4 In/Out, Checking Functions and Type Construction of URL
 
@@ -3226,7 +3226,7 @@ SizeOfURL()
 
 4.2 Kind Checking Function and Property of ~URL~
 
-This function checks whether the type constructor is applied correctly. 
+This function checks whether the type constructor is applied correctly.
 
 */
 bool
@@ -3265,7 +3265,7 @@ TypeConstructor url(   "url",
                 OutURL, InURL,
                 0, 0,
                 CreateURL, DeleteURL,
-                0, 0,
+                OpenAttribute<URL>, SaveAttribute<URL>,
                 CloseURL, CloneURL,
                 CastURL, SizeOfURL,
                 CheckURL );
@@ -3305,8 +3305,8 @@ InHTML( const ListExpr typeInfo, const ListExpr instance,
     ListExpr First = nl->First(instance);    //DateTime
     ListExpr Second = nl->Second(instance);  //Text (FLOB)
     ListExpr Third = nl->Third(instance);    //URL
-   
-    if ( nl->ListLength( First ) == 2 
+
+    if ( nl->ListLength( First ) == 2
      && nl->IsEqual(nl->First(First), "instant")
       && nl->IsAtom(Second) && nl->AtomType(Second) == TextType
       && nl->ListLength( Third ) == 2 && nl->IsEqual(nl->First(Third), "url"))
@@ -3316,13 +3316,13 @@ InHTML( const ListExpr typeInfo, const ListExpr instance,
       string text = nl->Text2String(Second);
 //    cout << "Text: " << text << endl;
   __TRACE__
-  
+
     Base64 b;
     int sizeDecoded = b.sizeDecoded( text.size() );
     char *bytes = (char *)malloc( sizeDecoded + 1);
-    
+
     int result = b.decode( text, bytes );
-    
+
     assert( result <= sizeDecoded );
     bytes[result] = 0;
     //cout << "Size: " << result << endl;
@@ -3340,7 +3340,7 @@ InHTML( const ListExpr typeInfo, const ListExpr instance,
     URL *url;
     if( correct)
     {
-      url = (URL*)u.addr;  
+      url = (URL*)u.addr;
       {
         //cout << " in html " << url->IsDefined() << endl;
         HTML* newHtml = new HTML(date, text, *url);
@@ -3356,11 +3356,11 @@ InHTML( const ListExpr typeInfo, const ListExpr instance,
    else
    {
   __TRACE__
-    if( !nl->ListLength( First ) == 2 ) 
+    if( !nl->ListLength( First ) == 2 )
              ErrorReporter::ReportError("First not an list of length 2");
-    else if( !nl->IsAtom(Second)) 
+    else if( !nl->IsAtom(Second))
              ErrorReporter::ReportError("Second not an atom");
-    else if( !nl->ListLength( Third ) == 2) 
+    else if( !nl->ListLength( Third ) == 2)
              ErrorReporter::ReportError("Third not a list of length 2");
     else if (!(nl->IsEqual(nl->First(First), "instant")))
         ErrorReporter::ReportError("First not an instant");
@@ -3420,7 +3420,7 @@ SizeOfHTML()
 
 5.2 Kind Checking Function and Property of ~HTML~
 
-This function checks whether the type constructor is applied correctly. 
+This function checks whether the type constructor is applied correctly.
 
 */
 bool
@@ -3458,7 +3458,7 @@ TypeConstructor html(   "html",
                 OutHTML, InHTML,
                 0, 0,
                 CreateHTML, DeleteHTML,
-                0, 0,
+                OpenAttribute<HTML>, SaveAttribute<HTML>,
                 CloseHTML, CloneHTML,
                 CastHTML, SizeOfHTML,
                 CheckHTML );
@@ -3496,7 +3496,7 @@ OutPage( ListExpr typeInfo, Word value )
      pPage->getUrl(ii).ToListExpr(true),
      nl->TextAtom(pPage->getText( ii)),
       nl->StringAtom(pPage->getMime( ii))));
-  
+
   }
   __TRACE__
   return pageStart;
@@ -3507,7 +3507,7 @@ InPage( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   __TRACE__
-  if ( nl->ListLength( instance ) >= 1 
+  if ( nl->ListLength( instance ) >= 1
         && nl->ListLength( nl->First(instance) ) == 2
         && nl->IsEqual(nl->First(nl->First(instance)), "html"))
   {
@@ -3525,12 +3525,12 @@ InPage( const ListExpr typeInfo, const ListExpr instance,
     {
       ListExpr emblist = nl->First(First);
       First = nl->Rest(First);
-      
-      if ( nl->ListLength( emblist ) == 3 
+
+      if ( nl->ListLength( emblist ) == 3
         && nl->IsEqual(nl->First(nl->First(emblist)), "url")
-        && nl->IsAtom(nl->Second(emblist)) 
+        && nl->IsAtom(nl->Second(emblist))
         && nl->AtomType(nl->Second(emblist)) == TextType
-        && nl->IsAtom(nl->Third(emblist)) 
+        && nl->IsAtom(nl->Third(emblist))
         && nl->AtomType(nl->Third(emblist)) == StringType)
       {
         Word u = InURL( nl->First(emblist),
@@ -3616,7 +3616,7 @@ SizeOfPage()
 
 5.2 Kind Checking Function and Property of ~Page~
 
-This function checks whether the type constructor is applied correctly. 
+This function checks whether the type constructor is applied correctly.
 
 */
 bool
@@ -3654,7 +3654,7 @@ TypeConstructor page(   "page",
                 OutPage, InPage,
                 0, 0,
                 CreatePage, DeletePage,
-                0, 0,
+                OpenAttribute<Page>, SaveAttribute<Page>,
                 ClosePage, ClonePage,
                 CastPage, SizeOfPage,
                 CheckPage );
@@ -3816,12 +3816,12 @@ metainfosTypeMap( ListExpr args)
     ListExpr arg1 = nl->First(args);
     if ( nl->IsEqual(arg1, "html"))
    {
-     ListExpr attrList = 
+     ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Key"),
         nl->SymbolAtom("string")));
       nl->Append(attrList,nl->TwoElemList(nl->SymbolAtom("Content"),
-        nl->SymbolAtom("text")));    
-    
+        nl->SymbolAtom("text")));
+
       return nl->TwoElemList(nl->SymbolAtom("stream"),
      nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
     }
@@ -3915,16 +3915,16 @@ getfilesTypeMap( ListExpr args)
     ListExpr arg1 = nl->First(args);
     if ( nl->IsEqual(arg1, "page"))
    {
-     ListExpr attrList = 
+     ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Source"),
         nl->SymbolAtom("url")));
     ListExpr lastAttrList = attrList;
     lastAttrList =
       nl->Append(lastAttrList,nl->TwoElemList(nl->SymbolAtom("Type"),
-        nl->SymbolAtom("string")));    
+        nl->SymbolAtom("string")));
     nl->Append(lastAttrList,nl->TwoElemList(nl->SymbolAtom("File"),
-        nl->SymbolAtom("binfile")));    
-    
+        nl->SymbolAtom("binfile")));
+
       return nl->TwoElemList(nl->SymbolAtom("stream"),
      nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
     }
@@ -3964,23 +3964,23 @@ wgetTypeMap( ListExpr args)
       return nl->SymbolAtom("typeerror");
     }
   }
-   
+
   __TRACE__
-    
+
     if ( nl->IsEqual(arg1, "url") && nl->IsEqual(arg2, "bool")
      && nl->IsEqual(arg3, "int") && nl->IsEqual(arg4, "text"))
    {
   __TRACE__
-     ListExpr attrList = 
+     ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Source"),
         nl->SymbolAtom("url")));
     ListExpr lastAttrList = attrList;
     lastAttrList =
       nl->Append(lastAttrList,nl->TwoElemList(nl->SymbolAtom("Type"),
-        nl->SymbolAtom("string")));    
+        nl->SymbolAtom("string")));
     nl->Append(lastAttrList,nl->TwoElemList(nl->SymbolAtom("File"),
-        nl->SymbolAtom("binfile")));    
-    
+        nl->SymbolAtom("binfile")));
+
       return nl->TwoElemList(nl->SymbolAtom("stream"),
      nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
     }
@@ -4021,19 +4021,19 @@ pagegetTypeMap( ListExpr args)
       return nl->SymbolAtom("typeerror");
     }
   }
-   
+
   __TRACE__
-    
+
     if ( nl->IsEqual(arg1, "url") && nl->IsEqual(arg2, "bool")
      && nl->IsEqual(arg3, "int") && nl->IsEqual(arg4, "text"))
    {
   __TRACE__
-     ListExpr attrList = 
+     ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Source"),
         nl->SymbolAtom("url")));
       nl->Append(attrList,nl->TwoElemList(nl->SymbolAtom("Page"),
-        nl->SymbolAtom("page")));    
-    
+        nl->SymbolAtom("page")));
+
       return nl->TwoElemList(nl->SymbolAtom("stream"),
      nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
     }
@@ -4074,19 +4074,19 @@ htmlgetTypeMap( ListExpr args)
       return nl->SymbolAtom("typeerror");
     }
   }
-   
+
   __TRACE__
-    
+
     if ( nl->IsEqual(arg1, "url") && nl->IsEqual(arg2, "bool")
      && nl->IsEqual(arg3, "int") && nl->IsEqual(arg4, "text"))
    {
   __TRACE__
-     ListExpr attrList = 
+     ListExpr attrList =
       nl->OneElemList(nl->TwoElemList(nl->SymbolAtom("Source"),
         nl->SymbolAtom("url")));
       nl->Append(attrList,nl->TwoElemList(nl->SymbolAtom("Html"),
-        nl->SymbolAtom("html")));    
-    
+        nl->SymbolAtom("html")));
+
       return nl->TwoElemList(nl->SymbolAtom("stream"),
      nl->TwoElemList(nl->SymbolAtom("tuple"),attrList));
     }
@@ -4107,7 +4107,7 @@ webequalTypeMap( ListExpr args)
   {
     ListExpr arg1 = nl->First(args);
     ListExpr arg2 = nl->Second(args);
-    if ( (nl->IsEqual(arg1, "url") && nl->IsEqual(arg2,"url")) 
+    if ( (nl->IsEqual(arg1, "url") && nl->IsEqual(arg2,"url"))
      || (nl->IsEqual(arg1, "html") && nl->IsEqual(arg2,"html"))
        || (nl->IsEqual(arg1, "page")&& nl->IsEqual(arg2,"page")))
       return nl->SymbolAtom("bool");
@@ -4131,7 +4131,7 @@ protocolFun (Word* args, Word& result, int message, Word& local, Supplier s)
             //a result instance to take the result
 
   ((FText*)result.addr)->Set(true, u->getProtocol().c_str());
-            //the first argument says the 
+            //the first argument says the
             //value is defined, the second is the
             //real value)
   return 0;
@@ -4151,7 +4151,7 @@ hostFun (Word* args, Word& result, int message, Word& local, Supplier s)
             //a result instance to take the result
 
   ((FText*)result.addr)->Set(true, u->getHost().c_str());
-            //the first argument says the 
+            //the first argument says the
             //value is defined, the second is the
             //real value)
   return 0;
@@ -4221,7 +4221,7 @@ createurlFun (Word* args, Word& result, int message, Word& local, Supplier s)
   //the function has to return a url. From every string
   //it has to return a valid url
   ((URL*)result.addr)->Set(erg, u);
-            //the first argument says the 
+            //the first argument says the
             //value is defined, the second is the
             //real value)
   return 0;
@@ -4241,7 +4241,7 @@ contentFun (Word* args, Word& result, int message, Word& local, Supplier s)
             //a result instance to take the result
 
   ((FText*)result.addr)->Set(true, h->getText().c_str());
-            //the first argument says the 
+            //the first argument says the
             //value is defined, the second is the
             //real value)
   return 0;
@@ -4319,7 +4319,7 @@ containsurlFun (Word* args, Word& result, int message,
 
 */
 int
-lastmodifiedFun (Word* args, Word& result, int message, 
+lastmodifiedFun (Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   __TRACE__
@@ -4365,7 +4365,7 @@ metainfosFun (Word* args, Word& result, int message, Word& local, Supplier s)
                     TupleType *resultTupleType;}* miAdvance;
 
   ListExpr resultType;
-  
+
   switch( message )
   {
     case OPEN:
@@ -4455,7 +4455,7 @@ similarFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 */
 int
-extracthtmlFun (Word* args, Word& result, int message, 
+extracthtmlFun (Word* args, Word& result, int message,
                 Word& local, Supplier s)
 {
   __TRACE__
@@ -4474,7 +4474,7 @@ extracthtmlFun (Word* args, Word& result, int message,
 
 */
 int
-numoffilesFun (Word* args, Word& result, int message, 
+numoffilesFun (Word* args, Word& result, int message,
                Word& local, Supplier s)
 {
   __TRACE__
@@ -4492,13 +4492,13 @@ numoffilesFun (Word* args, Word& result, int message,
 
 */
 int
-getfilesFun (Word* args, Word& result, int message, 
+getfilesFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   __TRACE__
   ListExpr resultType;
   Page* p = ((Page*)args[0].addr);
-  struct EmbAdvance {int numberOf, current; 
+  struct EmbAdvance {int numberOf, current;
                      TupleType *resultTupleType;}* embAdvance;
 
   switch( message )
@@ -4524,7 +4524,7 @@ getfilesFun (Word* args, Word& result, int message,
       URL *u = new URL((p->getUrl(embAdvance->current)));
       string type = p->getMime( embAdvance->current);
       string src = p->getText( embAdvance->current++);
-      
+
       //make tuple [Source: url, Type: string, File: binfile]
       Tuple *elem = new Tuple( embAdvance->resultTupleType );
       elem->PutAttribute(0,u);
@@ -4577,7 +4577,7 @@ private:
 
   void ClearBucketsU()
   {
-  
+
     vector< vector<string*> >::iterator iterBuckets = bucketsU->begin();
 
     while(iterBuckets != bucketsU->end() )
@@ -4607,9 +4607,9 @@ public:
   bool IsDuplicate( string &s)
   {
     //prüft ob sring schon im Hash ist
-    //Wenn ja wird true returnt, 
+    //Wenn ja wird true returnt,
     //sonst false und der übergeb.String wird eingefügt
-   
+
    char* str = new char[s.length() + 1];
    char *pstr = str;
    const char* ps = s.c_str();
@@ -4619,7 +4619,7 @@ public:
 
     size_t hashVal = GetHashVal(hashstring);
    //cout << "Wert: " << hashVal << "Hash: " << *hashstring << endl;
-    vector<string*>::iterator iter = (*bucketsU)[hashVal].begin(); 
+    vector<string*>::iterator iter = (*bucketsU)[hashVal].begin();
     while(iter != (*bucketsU)[hashVal].end())
     {
      //cout << "iter: " << **iter << endl;
@@ -4654,20 +4654,20 @@ int webwget_pagegetSelect( ListExpr args)
 
 */
 
-struct PageAdvance {int numberOfEmb, currentEmb, 
+struct PageAdvance {int numberOfEmb, currentEmb,
                 numberOfLinks,currentLink; Page *p;};
-    
+
 int
 wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
   bool hasFunction)
 {
   ListExpr resultType;
-  
-  struct GetAdvance {stack<PageAdvance*>* myDepthStack; 
+
+  struct GetAdvance {stack<PageAdvance*>* myDepthStack;
                 HashUrl *myHash; TupleType *resultTupleType;
               int depth; bool isnew;; string *host;}* getAdvance;
   __TRACE__
-  
+
   switch( message )
   {
     case OPEN:
@@ -4683,7 +4683,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       FText* t = ((FText*)args[3].addr);
       URL* u = ((URL*)args[0].addr);
       string s = t->Get();
-      if( s.length() > 0) 
+      if( s.length() > 0)
       {
         getAdvance->host = new string(u->getHost() + "," + t->Get());
       }
@@ -4691,7 +4691,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       {
         getAdvance->host = new string(u->getHost());
       }
-      
+
       local.addr = getAdvance;
     }
       return 0;
@@ -4719,8 +4719,8 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
         URL *u = new URL((pa->p->getUrl(pa->currentEmb)));
         string type = pa->p->getMime( pa->currentEmb);
         string src = pa->p->getText( pa->currentEmb++);
-        
-        string hashstring = u->getProtocol() + ":" 
+
+        string hashstring = u->getProtocol() + ":"
           + u->getHost() + u->getPath();
         if( !getAdvance->myHash->IsDuplicate(hashstring) )
         {
@@ -4749,19 +4749,19 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       //after the emb obj. are handelt
       while( !exturl && pa && pa->currentLink < pa->numberOfLinks  )
       {
-        //check if the right host und check if the 
-        //url is not loaded before with the hash. 
+        //check if the right host und check if the
+        //url is not loaded before with the hash.
         //Also check of the function
         bool hostOk = true;
         URL *checkUrl = new URL((pa->p->getUrlHosts(pa->currentLink++,
             *getAdvance->host,hostOk)));
         cout << *checkUrl << endl;
-        
+
 
         if( checkUrl->IsDefined() && hostOk)
         {
   __TRACE__
-          string hashstring = checkUrl->getProtocol() + "://" 
+          string hashstring = checkUrl->getProtocol() + "://"
             + checkUrl->getHost() + checkUrl->getPath();
           if(!getAdvance->myHash->IsDuplicate(hashstring))
           {
@@ -4779,7 +4779,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
               }
               else
                 funerg = false;
-                
+
               if( funerg)
               {
                 exturl = checkUrl;
@@ -4840,14 +4840,14 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
           }
           else
             funerg = false;
-            
+
           if( !funerg)
           {
             return CANCEL;
           }
         }*/
-        
-        string hashstring = u->getProtocol() + "://" 
+
+        string hashstring = u->getProtocol() + "://"
           + u->getHost() + u->getPath();
         getAdvance->myHash->IsDuplicate(hashstring);
         getAdvance->isnew = false;
@@ -4858,7 +4858,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       bool isHtml = false;
       DateTime dt;
       cout << "load url from web" << endl;
-      string src = Page::getFromWeb(*u, type, isHtml, dt); 
+      string src = Page::getFromWeb(*u, type, isHtml, dt);
       //cout << "ready loading url" << endl;
       #ifdef _DEBUG_JPS_2
       cout << "DEBUG_JPS_2" << src  << "DEBUG_JPS_2 ends"<< endl;
@@ -4886,7 +4886,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       }
       elem->PutAttribute(2,file);
       result.addr = elem;
-      
+
       if( isHtml)
       {
   __TRACE__
@@ -4911,9 +4911,9 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       }
       return YIELD;
     }
-      else 
+      else
       return CANCEL;
-      
+
     }
 
     case CLOSE:
@@ -4946,13 +4946,13 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
 }
 
 int
-ISWebWgetFourParam (Word* args, Word& result, int message, 
+ISWebWgetFourParam (Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   return wgetFun(args,result,message,local,s,false);
 }
 int
-ISWebWgetFiveParam (Word* args, Word& result, int message, 
+ISWebWgetFiveParam (Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   return wgetFun(args,result,message,local,s,true);
@@ -4963,17 +4963,17 @@ ISWebWgetFiveParam (Word* args, Word& result, int message,
 
 */
 int
-pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s, 
+pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
   bool hasFunction, bool onlyhtml)
 {
 //to check with map not ready
   ListExpr resultType;
-  
-  struct GetAdvance {stack<PageAdvance*>* myDepthStack; 
+
+  struct GetAdvance {stack<PageAdvance*>* myDepthStack;
                 HashUrl *myHash; TupleType *resultTupleType;
               int depth; bool isnew; string *host;}* getAdvance;
   __TRACE__
-  
+
   switch( message )
   {
     case OPEN:
@@ -4989,7 +4989,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       FText* t = ((FText*)args[3].addr);
       URL* u = ((URL*)args[0].addr);
       string s = t->Get();
-      if( s.length() > 0) 
+      if( s.length() > 0)
       {
         getAdvance->host = new string(u->getHost() + "," + t->Get());
       }
@@ -4997,7 +4997,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
       {
         getAdvance->host = new string(u->getHost());
       }
-      
+
       local.addr = getAdvance;
     }
       return 0;
@@ -5016,7 +5016,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
   __TRACE__
       if( !getAdvance->myDepthStack->empty() )
         pa = getAdvance->myDepthStack->top();
-      
+
       while( !exturl && pa)
       {
     __TRACE__
@@ -5024,8 +5024,8 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
         //after the emb obj. are handelt
         while( !exturl && pa->currentLink < pa->numberOfLinks)
         {
-          //check if the right host und check if the 
-          //url is not loaded before with the hash. 
+          //check if the right host und check if the
+          //url is not loaded before with the hash.
           //Also check of the function
           bool hostOk = true;
           URL *checkUrl = new URL((pa->p->getUrlHosts(pa->currentLink++,
@@ -5034,7 +5034,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
           cout << ".";
           if( checkUrl->IsDefined() && hostOk)
           {
-            string hashstring = checkUrl->getProtocol() + "://" 
+            string hashstring = checkUrl->getProtocol() + "://"
               + checkUrl->getHost() + checkUrl->getPath();
             if(!getAdvance->myHash->IsDuplicate(hashstring))
             {
@@ -5053,7 +5053,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
                 }
                 else
                   funerg = false;
-                  
+
                 if( funerg)
                 {
                   exturl = checkUrl;
@@ -5115,15 +5115,15 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
             }
             else
               funerg = false;
-              
+
             if( !funerg)
             {
   __TRACE__
               return CANCEL;
             }
           }*/
-          
-          string hashstring = u->getProtocol() + "://" 
+
+          string hashstring = u->getProtocol() + "://"
             + u->getHost() + u->getPath();
           getAdvance->myHash->IsDuplicate(hashstring);
           getAdvance->isnew = false;
@@ -5136,25 +5136,25 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
           DateTime dt(instanttype);
     __TRACE__
         cout << "load url from web" << endl;
-        string src = Page::getFromWeb(*u, type, isHtml, dt, true);  
+        string src = Page::getFromWeb(*u, type, isHtml, dt, true);
         //cout << "ready loading url" << endl;
-        
+
 //    __TRACE__
         if( !isHtml && (int)type.find("html") != -1)
           isHtml = true;
         cout << "isHTML: " << isHtml << ", " << type << endl;
-        
+
         if( isHtml)
         {
     __TRACE__
-          //make page or html object depends on value onlyhtml 
+          //make page or html object depends on value onlyhtml
           //of the html data
           Page *p;
           PageAdvance *pa = new PageAdvance();
-          if( onlyhtml ) 
+          if( onlyhtml )
           {
             HTML h(dt, src, *u);
-            
+
             p = new Page( h );
             //cout << "Inhalt" << p->getContent() << endl;
              pa->numberOfEmb = 0;
@@ -5174,7 +5174,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
           pa->p = p;
           ++getAdvance->depth;
           getAdvance->myDepthStack->push(pa);
-          
+
           Tuple *elem = new Tuple( getAdvance->resultTupleType );
           if( onlyhtml )
           {
@@ -5187,7 +5187,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
             elem->PutAttribute(0,u);
             elem->PutAttribute(1,new Page(*p));
           }
-    
+
           result.addr = elem;
           return YIELD;
         }
@@ -5199,9 +5199,9 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
         }
       }
     }
-    
+
     return CANCEL;
-      
+
     }
 
     case CLOSE:
@@ -5235,25 +5235,25 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
 }
 
 int
-ISWebPagegetFourParam (Word* args, Word& result, int message, 
+ISWebPagegetFourParam (Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
   return pagegetFun(args,result,message,local,s,false,false);
 }
 int
-ISWebPagegetFiveParam (Word* args, Word& result, int message, 
+ISWebPagegetFiveParam (Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
   return pagegetFun(args,result,message,local,s,true,false);
 }
 int
-ISWebHtmlgetFourParam (Word* args, Word& result, int message, 
+ISWebHtmlgetFourParam (Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
   return pagegetFun(args,result,message,local,s,false,true);
 }
 int
-ISWebHtmlgetFiveParam (Word* args, Word& result, int message, 
+ISWebHtmlgetFiveParam (Word* args, Word& result, int message,
                        Word& local, Supplier s)
 {
   return pagegetFun(args,result,message,local,s,true,true);
@@ -5281,7 +5281,7 @@ int webequalSelect( ListExpr args)
 
 */
 int
-ISWebequalUrlFun (Word* args, Word& result, int message, 
+ISWebequalUrlFun (Word* args, Word& result, int message,
                   Word& local, Supplier s)
 {
   __TRACE__
@@ -5296,7 +5296,7 @@ ISWebequalUrlFun (Word* args, Word& result, int message,
 }
 
 int
-ISWebequalHtmlFun (Word* args, Word& result, int message, 
+ISWebequalHtmlFun (Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
   __TRACE__
@@ -5311,7 +5311,7 @@ ISWebequalHtmlFun (Word* args, Word& result, int message,
 }
 
 int
-ISWebequalPageFun (Word* args, Word& result, int message, 
+ISWebequalPageFun (Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
   __TRACE__
@@ -5329,13 +5329,13 @@ ISWebequalPageFun (Word* args, Word& result, int message,
 6.2.21 Value Mapping Array for Operators ~webequal, wget, pageget,htmlget~
 
 */
-ValueMapping webequalMap[] = 
+ValueMapping webequalMap[] =
 {ISWebequalUrlFun,ISWebequalHtmlFun,ISWebequalPageFun};
-ValueMapping webwgetMap[] = 
+ValueMapping webwgetMap[] =
 {ISWebWgetFourParam,ISWebWgetFiveParam};
-ValueMapping webpagegetMap[] = 
+ValueMapping webpagegetMap[] =
 {ISWebPagegetFourParam,ISWebPagegetFiveParam};
-ValueMapping webhtmlgetMap[] = 
+ValueMapping webhtmlgetMap[] =
 {ISWebHtmlgetFourParam,ISWebHtmlgetFiveParam};
 
 
@@ -5864,12 +5864,12 @@ class WebAlgebra : public Algebra
   WebAlgebra() : Algebra()
   {
     AddTypeConstructor( &url );
-    url.AssociateKind("DATA");       
+    url.AssociateKind("DATA");
     AddTypeConstructor( &html );
-    html.AssociateKind("DATA");       
+    html.AssociateKind("DATA");
     AddTypeConstructor( &page );
-    page.AssociateKind("DATA");       
-  
+    page.AssociateKind("DATA");
+
     AddOperator( &webprotocol );
     AddOperator( &webhost );
     AddOperator( &webfilename );
@@ -5893,7 +5893,7 @@ class WebAlgebra : public Algebra
   }
   ~WebAlgebra() {};
 };
- 
+
 WebAlgebra webAlgebra;
 
 
@@ -5915,7 +5915,7 @@ dynamically at runtime.
 
 */
 
-extern "C" 
+extern "C"
 Algebra*
 InitializeWebAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {

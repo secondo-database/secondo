@@ -110,13 +110,14 @@ CheckRectangle2( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor rect(
         "rect",                                  //name
-        Rectangle2Property,                      //property function 
+        Rectangle2Property,                      //property function
                                                  //describing signature
         OutRectangle<2>,     InRectangle<2>,     //Out and In functions
-        0,                   0,                  //SaveToList and 
+        0,                   0,                  //SaveToList and
                                                  //RestoreFromList functions
         CreateRectangle<2>,  DeleteRectangle<2>, //object creation and deletion
-        0,               0,                      //open and save functions
+        OpenAttribute<Rectangle<2> >,
+        SaveAttribute<Rectangle<2> >,            //open and save functions
         CloseRectangle<2>,   CloneRectangle<2>,  //object close, and clone
         CastRectangle<2>,                        //cast function
         SizeOfRectangle<2>,                      //sizeof function
@@ -181,13 +182,14 @@ CheckRectangle3( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor rect3(
         "rect3",                                 //name
-        Rectangle3Property,                      //property function 
+        Rectangle3Property,                      //property function
                                                  //describing signature
         OutRectangle<3>,     InRectangle<3>,     //Out and In functions
-        0,                   0,                  //SaveToList and 
+        0,                   0,                  //SaveToList and
                                                  //RestoreFromList functions
         CreateRectangle<3>,  DeleteRectangle<3>, //object creation and deletion
-        0,                   0,                  //open and save functions
+        OpenAttribute<Rectangle<3> >,
+        SaveAttribute<Rectangle<3> >,            //open and save functions
         CloseRectangle<3>,   CloneRectangle<3>,  //object close, and clone
         CastRectangle<3>,                        //cast function
         SizeOfRectangle<3>,                      //sizeof function
@@ -253,13 +255,14 @@ CheckRectangle4( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor rect4(
         "rect4",                                 //name
-        Rectangle4Property,                      //property function 
+        Rectangle4Property,                      //property function
                                                  //describing signature
         OutRectangle<4>,     InRectangle<4>,     //Out and In functions
-        0,                   0,                  //SaveToList and 
+        0,                   0,                  //SaveToList and
                                                  //RestoreFromList functions
         CreateRectangle<4>,  DeleteRectangle<4>, //object creation and deletion
-        0,                   0,                  //open and save functions
+        OpenAttribute<Rectangle<4> >,
+        SaveAttribute<Rectangle<4> >,            //open and save functions
         CloseRectangle<4>,   CloneRectangle<4>,  //object close, and clone
         CastRectangle<4>,                        //cast function
         SizeOfRectangle<4>,                      //sizeof function
@@ -327,13 +330,14 @@ CheckRectangle8( ListExpr type, ListExpr& errorInfo )
 */
 TypeConstructor rect8(
         "rect8",                                 //name
-        Rectangle8Property,                      //property function 
+        Rectangle8Property,                      //property function
                                                  //describing signature
         OutRectangle<8>,     InRectangle<8>,     //Out and In functions
-        0,                   0,                  //SaveToList and 
+        0,                   0,                  //SaveToList and
                                                  //RestoreFromList functions
         CreateRectangle<8>,  DeleteRectangle<8>, //object creation and deletion
-        0,                   0,                  //open and save functions
+        OpenAttribute<Rectangle<8> >,
+        SaveAttribute<Rectangle<8> >,            //open and save functions
         CloseRectangle<8>,   CloneRectangle<8>,  //object close, and clone
         CastRectangle<8>,                        //cast function
         SizeOfRectangle<8>,                      //sizeof function
@@ -435,7 +439,7 @@ ListExpr TranslateTypeMap( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if( nl->IsEqual( arg1, "rect" ) && 
+    if( nl->IsEqual( arg1, "rect" ) &&
         nl->ListLength( arg2 ) == 2 &&
         nl->IsEqual( nl->First( arg2 ), "real" ) &&
         nl->IsEqual( nl->Second( arg2 ), "real" ) )
@@ -481,10 +485,10 @@ ListExpr RectangleTypeMap( ListExpr args )
       if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
     }
 
-    for(int k = 0; k < 2*dim; k++) { 
+    for(int k = 0; k < 2*dim; k++) {
      if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
    }
-   
+
    if( checkint ||  checkreal )
      switch(dim) {
        case 2: return nl->SymbolAtom( "rect" );
@@ -520,11 +524,11 @@ ListExpr Rectangle8TypeMap( ListExpr args )
       if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
     }
 
-    for(int k = 0; k < dim; k++) { 
+    for(int k = 0; k < dim; k++) {
      if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
    }
 
-   if ( (checkint ||  checkreal) && nl->IsEqual( arg[dim], "real" ) ) 
+   if ( (checkint ||  checkreal) && nl->IsEqual( arg[dim], "real" ) )
      return nl->SymbolAtom( "rect8" );
    else ErrorReporter::ReportError("All argument types must be either"
                                    " int or real!");
@@ -582,7 +586,7 @@ RectProjectTypeMap( ListExpr args )
   else if( nl->IsEqual( arg1, "rect4" ) ) dim = 4;
   else if( nl->IsEqual( arg1, "rect8" ) ) dim = 8;
   else dim = -1;
-  if ( !(dim > 0) || 
+  if ( !(dim > 0) ||
        !nl->IsEqual( arg2,  "int" ) ||
        !nl->IsEqual( arg3,  "int" )
      )
@@ -620,17 +624,17 @@ ListExpr
   }
   arg1 = nl->First( args );
   arg2 = nl->Second( args );
-  if( nl->IsEqual( arg1,  "rect" ) || 
+  if( nl->IsEqual( arg1,  "rect" ) ||
       am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 2;
   else if( nl->IsEqual( arg1, "rect3" ) ||
            am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 3;
-  else if( nl->IsEqual( arg1, "rect4" ) || 
+  else if( nl->IsEqual( arg1, "rect4" ) ||
            am->CheckKind("SPATIAL2D", arg1, errorInfo) ) dim = 4;
   else if( nl->IsEqual( arg1, "rect8" ) ||
            am->CheckKind("SPATIAL2D", arg1, errorInfo)) dim = 8;
   else dim = -1;
-  if ( !(dim > 0) || 
-         !nl->IsEqual( arg2,  "int" ) 
+  if ( !(dim > 0) ||
+         !nl->IsEqual( arg2,  "int" )
      )
   {
     nl->WriteToString (argstr, args);
@@ -712,19 +716,19 @@ int RectangleSelect( ListExpr args )
 {
   ListExpr arg[2*dim];
   bool checkint = true, checkreal = true;
-  
+
   for(unsigned int i = 1; i <= 2*dim; i++)
   {
     arg[i-1] = nl->Nth(i,args);
   }
 
   for(int j = 0; j < 2*dim; j++)
-  { 
+  {
     if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
   }
 
    for(int k = 0; k < 2*dim; k++)
-  { 
+  {
     if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
   }
 
@@ -732,7 +736,7 @@ int RectangleSelect( ListExpr args )
 
   if( checkreal ) return 1;
 
-  return -1; // should never occur 
+  return -1; // should never occur
 }
 
 /*
@@ -754,12 +758,12 @@ int Rectangle8Select( ListExpr args )
   }
 
   for(int j = 0; j < dim; j++)
-  { 
+  {
     if( !(nl->IsEqual( arg[j], "int" )) ) { checkint = false; break; }
   }
 
    for(int k = 0; k < dim; k++)
-  { 
+  {
     if( !(nl->IsEqual( arg[k], "real" )) ) { checkreal = false; break; }
   }
 
@@ -767,7 +771,7 @@ int Rectangle8Select( ListExpr args )
 
   if( checkreal ) return 1;
 
-  return -1; // should never occur 
+  return -1; // should never occur
 }
 
 /*
@@ -800,13 +804,13 @@ int RectangleMinMaxDSelect( ListExpr args )
   ListExpr arg1 = nl->First(args);
   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  if(nl->IsEqual(arg1, "rect" ) || 
+  if(nl->IsEqual(arg1, "rect" ) ||
      am->CheckKind("SPATIAL2D", arg1, errorInfo) ) return 0;
-  if(nl->IsEqual(arg1, "rect3") || 
+  if(nl->IsEqual(arg1, "rect3") ||
      am->CheckKind("SPATIAL3D", arg1, errorInfo) ) return 1;
-  if(nl->IsEqual(arg1, "rect4") || 
+  if(nl->IsEqual(arg1, "rect4") ||
      am->CheckKind("SPATIAL4D", arg1, errorInfo) ) return 2;
-  if(nl->IsEqual(arg1, "rect8") || 
+  if(nl->IsEqual(arg1, "rect8") ||
      am->CheckKind("SPATIAL8D", arg1, errorInfo) ) return 3;
 
   return -1; // should never occur
@@ -825,7 +829,7 @@ parameter types.
 
 */
 template <unsigned dim>
-int RectangleIsEmpty( Word* args, Word& result, int message, 
+int RectangleIsEmpty( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -845,7 +849,7 @@ int RectangleIsEmpty( Word* args, Word& result, int message,
 
 */
 template <unsigned dim>
-int RectangleEqual( Word* args, Word& result, int message, 
+int RectangleEqual( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -853,7 +857,7 @@ int RectangleEqual( Word* args, Word& result, int message,
        ((Rectangle<dim>*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, *((Rectangle<dim>*)args[0].addr) == 
+      Set( true, *((Rectangle<dim>*)args[0].addr) ==
       *((Rectangle<dim>*)args[1].addr) );
   }
   else
@@ -868,7 +872,7 @@ int RectangleEqual( Word* args, Word& result, int message,
 
 */
 template <unsigned dim>
-int RectangleNotEqual( Word* args, Word& result, int message, 
+int RectangleNotEqual( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -876,7 +880,7 @@ int RectangleNotEqual( Word* args, Word& result, int message,
        ((Rectangle<dim>*)args[1].addr)->IsDefined() )
   {
     ((CcBool *)result.addr)->
-      Set( true, *((Rectangle<dim>*)args[0].addr) != 
+      Set( true, *((Rectangle<dim>*)args[0].addr) !=
       *((Rectangle<dim>*)args[1].addr) );
   }
   else
@@ -891,7 +895,7 @@ int RectangleNotEqual( Word* args, Word& result, int message,
 
 */
 template <unsigned dim>
-int RectangleIntersects( Word* args, Word& result, int message, 
+int RectangleIntersects( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -915,7 +919,7 @@ int RectangleIntersects( Word* args, Word& result, int message,
 
 */
 template <unsigned dim>
-int RectangleInside( Word* args, Word& result, int message, 
+int RectangleInside( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -938,11 +942,11 @@ int RectangleInside( Word* args, Word& result, int message,
 
 */
 template <unsigned dim>
-int RectangleUnion( Word* args, Word& result, int message, 
+int RectangleUnion( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  *((Rectangle<dim> *)result.addr) = 
+  *((Rectangle<dim> *)result.addr) =
       ((Rectangle<dim>*)args[1].addr)->
       Union( *((Rectangle<dim>*)args[0].addr) );
   return (0);
@@ -953,7 +957,7 @@ int RectangleUnion( Word* args, Word& result, int message,
 
 */
 template <unsigned dim>
-int RectangleIntersection( Word* args, Word& result, int message, 
+int RectangleIntersection( Word* args, Word& result, int message,
                            Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -968,7 +972,7 @@ int RectangleIntersection( Word* args, Word& result, int message,
 
 */
 template <unsigned dim>
-int RectangleTranslate( Word* args, Word& result, int message, 
+int RectangleTranslate( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1003,7 +1007,7 @@ int RectangleTranslate( Word* args, Word& result, int message,
 
 */
 template<class T, unsigned int dim>
-int RectangleValueMap( Word* args, Word& result, int message, 
+int RectangleValueMap( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   double min[dim];
@@ -1042,7 +1046,7 @@ int RectangleValueMap( Word* args, Word& result, int message,
 
 */
 template<class T, unsigned int dim>
-int Rectangle8ValueMap( Word* args, Word& result, int message, 
+int Rectangle8ValueMap( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   double min[dim+1];
@@ -1061,7 +1065,7 @@ int Rectangle8ValueMap( Word* args, Word& result, int message,
       max[j] = ((double)(((T*)args[j].addr)->GetValue())) +
                ((double)(((CcReal*)args[dim].addr)->GetValue()));
     }
-    ((Rectangle<dim> *)result.addr)->Set( true, min, max );       
+    ((Rectangle<dim> *)result.addr)->Set( true, min, max );
   }
   else
   {
@@ -1075,7 +1079,7 @@ int Rectangle8ValueMap( Word* args, Word& result, int message,
 
 */
 template<unsigned int dim>
-int RectangleDistanceValueMap( Word* args, Word& result, int message, 
+int RectangleDistanceValueMap( Word* args, Word& result, int message,
                                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1098,7 +1102,7 @@ int RectangleDistanceValueMap( Word* args, Word& result, int message,
 
 */
 template<unsigned int dim>
-int RectangleRectprojectValueMap( Word* args, Word& result, int message, 
+int RectangleRectprojectValueMap( Word* args, Word& result, int message,
                                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1138,12 +1142,12 @@ int RectangleRectprojectValueMap( Word* args, Word& result, int message,
 
 */
 template<unsigned int dim>
-    int RectangleMinDValueMap( Word* args, Word& result, int message, 
+    int RectangleMinDValueMap( Word* args, Word& result, int message,
                                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   CcReal *res = (CcReal *) result.addr;
-  StandardSpatialAttribute<dim> *r 
+  StandardSpatialAttribute<dim> *r
       = (StandardSpatialAttribute<dim> *) args[0].addr;
   CcInt *ci1 = (CcInt*) args[1].addr;
 
@@ -1169,12 +1173,12 @@ template<unsigned int dim>
 
 */
 template<unsigned int dim>
-    int RectangleMaxDValueMap( Word* args, Word& result, int message, 
+    int RectangleMaxDValueMap( Word* args, Word& result, int message,
                                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
   CcReal *res = (CcReal *) result.addr;
-  StandardSpatialAttribute<dim> *r 
+  StandardSpatialAttribute<dim> *r
       = (StandardSpatialAttribute<dim> *) args[0].addr;
   CcInt *ci1 = (CcInt*) args[1].addr;
 
@@ -1257,23 +1261,23 @@ ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
                                         RectangleDistanceValueMap<3>,
                                         RectangleDistanceValueMap<4> };
 
-ValueMapping rectanglerectprojectmap[] = 
-{ 
+ValueMapping rectanglerectprojectmap[] =
+{
   RectangleRectprojectValueMap<2>,
   RectangleRectprojectValueMap<3>,
   RectangleRectprojectValueMap<4>,
   RectangleRectprojectValueMap<8>};
 
-ValueMapping rectangleMaxDmap[] = 
-{ 
+ValueMapping rectangleMaxDmap[] =
+{
   RectangleMaxDValueMap<2>,
   RectangleMaxDValueMap<3>,
   RectangleMaxDValueMap<4>,
   RectangleMaxDValueMap<8>
 };
 
-ValueMapping rectangleMinDmap[] = 
-{ 
+ValueMapping rectangleMinDmap[] =
+{
   RectangleMinDValueMap<2>,
   RectangleMinDValueMap<3>,
   RectangleMinDValueMap<4>,

@@ -6,6 +6,21 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2007-05-30  Added Generic Open and Save Functions for Attribute Types
+===============================================================================
+We added Template Functions OpenAttribute<T> and SaveAttribute<T> to
+file "Attribute.h".
+You can use these functions in TypeConstructors for attribute types, so that
+you no longer need to implement them yourself.
+
+We used this method to provide OPEN and SAVE methods to all MAPPING and some 
+further types. Therefore 
+
+YOU NEED TO RESTORE ALL YOUR DATABASES!
+
+Enjoy!
+Thomas & Christian
+
 2007-09-10  Changes in representation of type movingregion and uregion
 ===============================================================================
 
