@@ -294,6 +294,7 @@ query tenRows feed tenRows feed product predcounts [ .ID > 2 ] consume;
 # delete database
 close database;
 delete database optauxtest;
+delete tmp;
 
 
 
