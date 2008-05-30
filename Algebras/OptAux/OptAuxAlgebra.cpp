@@ -133,12 +133,7 @@ ListExpr predcounts_tm(ListExpr args)
       streamDeclaration, predicateDeclaration, 
       rest, predicateDeclarations, 
       streamTupleDeclaration, mappingInputType;
-   //ZZZint maxPredicateCount;
    string argstr, argstr2;
-
-   //ZZZ// the upper limit of predicates is defined 
-   //ZZZ//by the count of bit of INDEX\_TYPE
-   //ZZZmaxPredicateCount = sizeof(INDEX_TYPE)*8 - 1;
 
    // we expect an input stream and 
    // at least one additional parameter
@@ -174,15 +169,6 @@ ListExpr predcounts_tm(ListExpr args)
       (nl->ListLength(predicateDeclarations) > 0),
       "Operator predcounts: Second argument list may" 
       " not be empty or an atom" );
-
-   //ZZZ// if there are more then maxPredicateCount predicate declarations
-   //ZZZ// return a type error - its necessary too increase 
-   //ZZZ// the count of bits of INDEX_TYPE
-   //ZZZWriteIntToString(&argstr, nl->ListLength(predicateDeclarations));
-   //ZZZWriteIntToString(&argstr2, maxPredicateCount);
-   //ZZZCHECK_COND(nl->ListLength(predicateDeclarations)<=maxPredicateCount,
-   //ZZZ   "Operator predcounts is just able to handle up to " + argstr2
-   //ZZZ   + " predicates - given predicates: " + argstr);
 
    // check predicate list - check the list more detailed
    rest = predicateDeclarations;
@@ -322,7 +308,7 @@ class GeneralPredcountsLocalData {
      } else {
 
        for(int i=0; i<predicateCombinations; i++) {
-    resultCounters[i] = 0;       
+          resultCounters[i] = 0;       
        }          
 
      }        
