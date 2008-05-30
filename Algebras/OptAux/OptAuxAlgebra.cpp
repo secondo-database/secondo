@@ -110,21 +110,36 @@ An example for calling the operator is shown in file "OptAlg.example".
 
 */
 
+/*
+The helper function WriteIntToString writes an Integer (unsigned int) into a string
 
+*/
+void WriteIntToString(string *p_str, unsigned int value) {
+	char buffer[13];
+	sprintf(buffer, "%i", value);
+	(*p_str).erase(0);
+	(*p_str) += buffer;
+}
 
 /* 
 The value mapping function now checks count and types of the parameters.
 
 */
 
-ListExpr firstVjohn_tm(ListExpr args)
+ListExpr predcounts_tm(ListExpr args)
 {
-     ListExpr resultType;
+   ListExpr resultType;
    ListExpr predicateAlias, mapping, 
       streamDeclaration, predicateDeclaration, 
       rest, predicateDeclarations, 
       streamTupleDeclaration, mappingInputType;
+   //ZZZint maxPredicateCount;
    string argstr, argstr2;
+
+   //ZZZ// the upper limit of predicates is defined 
+   //ZZZ//by the count of bit of INDEX\_TYPE
+   //ZZZmaxPredicateCount = sizeof(INDEX_TYPE)*8 - 1;
+
    // we expect an input stream and 
    // at least one additional parameter
    CHECK_COND(nl->ListLength(args) == 2,
@@ -160,10 +175,19 @@ ListExpr firstVjohn_tm(ListExpr args)
       "Operator predcounts: Second argument list may" 
       " not be empty or an atom" );
 
+   //ZZZ// if there are more then maxPredicateCount predicate declarations
+   //ZZZ// return a type error - its necessary too increase 
+   //ZZZ// the count of bits of INDEX_TYPE
+   //ZZZWriteIntToString(&argstr, nl->ListLength(predicateDeclarations));
+   //ZZZWriteIntToString(&argstr2, maxPredicateCount);
+   //ZZZCHECK_COND(nl->ListLength(predicateDeclarations)<=maxPredicateCount,
+   //ZZZ   "Operator predcounts is just able to handle up to " + argstr2
+   //ZZZ   + " predicates - given predicates: " + argstr);
+
    // check predicate list - check the list more detailed
    rest = predicateDeclarations;
    while ( !(nl->IsEmpty(rest)) ) {
-      
+     
       predicateDeclaration = nl->First(rest);
       rest = nl->Rest(rest);
 
@@ -244,7 +268,6 @@ long, long or similiar. For safety reasons the maximum count is limited to
 
 */
 
-
 template <class INDEX_TYPE, class RESULT_TYPE>
 class GeneralPredcountsLocalData {
 
@@ -281,9 +304,10 @@ class GeneralPredcountsLocalData {
      // calculate the limitations of operator predcounts and check them
      if ( predCount > maxPredicateCount() ) 
      {
-       cerr << "ERROR: Anzahl der Praedikate (=" << predCount << 
+        cerr << "ERROR: Anzahl der Praedikate (=" << predCount << 
                ") ist zu hoch fuer predcounts - max. " << 
                maxPredicateCount() << endl;
+        return false;
      }	 
      predicateCombinations = 1 << predCount; // =2\^predCount
      resultCounters = new RESULT_TYPE[predicateCombinations]; 
@@ -293,7 +317,7 @@ class GeneralPredcountsLocalData {
         cerr << "ERROR: konnte Speicher " << 
                 " nicht allokieren (predicateCount=" << predCount << 
                 " combinations=" << predicateCombinations << ")" << endl;
-
+        return false;
    
      } else {
 
@@ -303,8 +327,7 @@ class GeneralPredcountsLocalData {
 
      }	     
 
-
-     return (resultCounters != 0);
+     return true;
    }  
 
    
@@ -352,11 +375,10 @@ step. At the CLOSE phase it deallocates temporary memory.
 
 */
 
-
-int firstVjohn_vm(Word* args, Word& result, int message,
+int predcounts_vm(Word* args, Word& result, int message,
               Word& local, Supplier s)
 {
-   // get local data
+   // get local data (only useful in phases REQUEST or CLOSE
    PredcountsLocalData*
      tempData = static_cast<PredcountsLocalData*>( local.addr );
 
@@ -364,9 +386,11 @@ int firstVjohn_vm(Word* args, Word& result, int message,
   {
       case OPEN : { 
 
+      // local==0 means: there was an error occured in OPEN phase
+      local = SetWord(0);
+
       // allocate temporary memory to store local data
       tempData = new PredcountsLocalData;
-      local = SetWord( tempData );
 
       // get the predicate list
       Supplier predicateList = args[1].addr;
@@ -374,13 +398,12 @@ int firstVjohn_vm(Word* args, Word& result, int message,
 
       // try to allocate memory for counters
       bool ok = tempData->allocate(predicateCount);
-
       if (!ok) {
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
 
       // construct type of result tuples
-            tempData->resultTupleType = 
+      tempData->resultTupleType = 
          new TupleType( nl->Second( GetTupleResultType(s) ));
 
       // allocate memory to store structures for handling 
@@ -465,11 +488,19 @@ int firstVjohn_vm(Word* args, Word& result, int message,
       if (funStructure) delete [] funStructure;
       if (funArguments) delete [] funArguments;
 
-      return 0; 
+      // set local only if this point will be reached
+      local = SetWord( tempData );
+      return 0;
    }
 
    case REQUEST : {
 
+      // for savety reasons
+      if (tempData==0) {
+         cerr << "ERROR: no local data are found in REQUEST phase "
+	 << "- abort" << endl;
+	 return CANCEL; // ??? sollte anderer Fehlercode sein
+      }
 
       // if no more result tuples are left - finish REQUEST phase
       if (tempData->predicateCombinations==0) {
@@ -507,6 +538,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
    default: {	
      
      // this point should never be reached, if so return an error
+     cerr << "ERROR: this point should never be reached" << endl;
      return 1; 
    }  
    } // end of switch	    
@@ -561,7 +593,7 @@ class OptAuxAlgebra : public Algebra
 
 */
 
-    AddOperator( predcountsInfo(), firstVjohn_vm, firstVjohn_tm );
+    AddOperator( predcountsInfo(), predcounts_vm, predcounts_tm );
     
   }
   ~OptAuxAlgebra() {};
