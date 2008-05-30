@@ -115,10 +115,10 @@ The helper function WriteIntToString writes an Integer (unsigned int) into a str
 
 */
 void WriteIntToString(string *p_str, unsigned int value) {
-	char buffer[13];
-	sprintf(buffer, "%i", value);
-	(*p_str).erase(0);
-	(*p_str) += buffer;
+   char buffer[13];
+   sprintf(buffer, "%i", value);
+   (*p_str).erase(0);
+   (*p_str) += buffer;
 }
 
 /* 
@@ -277,16 +277,16 @@ class GeneralPredcountsLocalData {
   public:
 
    GeneralPredcountsLocalData() :
-     counter(0),	   
+     counter(0),      
      resultTupleType(0),
-     predicateCombinations(0),	
+     predicateCombinations(0),   
      resultCounters(0) 
    {}
 
    ~GeneralPredcountsLocalData() 
    {
      resultTupleType->DeleteIfAllowed(); // produced tuples may have still 
-	                                 // references to it;	     
+                                    // references to it;        
      delete [] resultCounters;
    }
 
@@ -308,7 +308,7 @@ class GeneralPredcountsLocalData {
                ") ist zu hoch fuer predcounts - max. " << 
                maxPredicateCount() << endl;
         return false;
-     }	 
+     }    
      predicateCombinations = 1 << predCount; // =2\^predCount
      resultCounters = new RESULT_TYPE[predicateCombinations]; 
 
@@ -322,10 +322,10 @@ class GeneralPredcountsLocalData {
      } else {
 
        for(int i=0; i<predicateCombinations; i++) {
-	 resultCounters[i] = 0;       
-       }	       
+    resultCounters[i] = 0;       
+       }          
 
-     }	     
+     }        
 
      return true;
    }  
@@ -340,7 +340,7 @@ class GeneralPredcountsLocalData {
             cerr << "ERROR: es koennen nur max. " << ctrMax << 
                " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
                "dannach besteht die Gefahr eines Ueberlaufes" << endl;
-       return false;	    
+       return false;       
      }
      return true;
    }
@@ -444,7 +444,7 @@ int predcounts_vm(Word* args, Word& result, int message,
       while ( qp->Received(args[0].addr) )
       {
          // check that only maxSaveEvaluableRows are read
-	 if ( !tempData->checkOverFlow() )
+    if ( !tempData->checkOverFlow() )
             return 1; // welcher Wert muss hier zurueckgegeben werden ?
 
          // some local variables
@@ -459,7 +459,7 @@ int predcounts_vm(Word* args, Word& result, int message,
 
             // set the tuple to be used by evaluation and evaluate predicate
             (*(funArguments[predNumber]))[0] = elem;
-	    Word funResult;
+       Word funResult;
             qp->Request( funStructure[predNumber], funResult);
             if (((StandardAttribute*)funResult.addr)->IsDefined()) {
                if (((CcBool*)funResult.addr)->GetBoolval()) {
@@ -498,8 +498,8 @@ int predcounts_vm(Word* args, Word& result, int message,
       // for savety reasons
       if (tempData==0) {
          cerr << "ERROR: no local data are found in REQUEST phase "
-	 << "- abort" << endl;
-	 return CANCEL; // ??? sollte anderer Fehlercode sein
+    << "- abort" << endl;
+    return CANCEL; // ??? sollte anderer Fehlercode sein
       }
 
       // if no more result tuples are left - finish REQUEST phase
@@ -529,19 +529,19 @@ int predcounts_vm(Word* args, Word& result, int message,
    case CLOSE: {
 
       if (tempData) {
-        delete tempData;	      
+        delete tempData;         
       }
       local = SetWord(Address(0));
       return 0;
    }
 
-   default: {	
+   default: {   
      
      // this point should never be reached, if so return an error
      cerr << "ERROR: this point should never be reached" << endl;
      return 1; 
    }  
-   } // end of switch	    
+   } // end of switch       
 }
 
 /*
