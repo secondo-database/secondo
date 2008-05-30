@@ -108,24 +108,9 @@ for the parser not for the predicate itself.
 
 An example for calling the operator is shown in file "OptAlg.example".
 
-At first two macros "INDEX\_TYPE" and "RESULT\_TYPE" have 
-to be defined. The macro "INDEX\_TYPE" defines the data type to be 
-used for the index of the temporary result array. By defining this macro one 
-determine the maximum number of predicates evaluable by the operator 
-predcounts, too.  The maximum number is determined by the length of the data 
-type (in bit) decremented by 1.
-
 */
 
 
-#define INDEX_TYPE int
-
-/*
-The macro "RESULT\_TYPE" defines the data type of counters which counts the tuples meeting the set of predicates identified by the index of the counter. This data type determines the maximum number of tuples processable by the operator predcounts. The selected data type for "RESULT\_TYPE" have to be int, long, long or similiar. For savety reasons the maximum count is limited to 2\^(sizeof("RESULT\_TYPE")-1).
-
-*/
-
-#define RESULT_TYPE int
 
 /* 
 The value mapping function now checks count and types of the parameters.
@@ -217,9 +202,13 @@ ListExpr firstVjohn_tm(ListExpr args)
    }
 
 /*
-The type of the result of the operator precounts is always the same. Consequently this type could be contructed statically at the end of the type mapping function.
+ 
+The type of the result of the operator precounts is always the same.
+Consequently this type could be contructed statically at the end of the type
+mapping function.
 
-The type is a stream of tuples. Each tuple is composed of two integer attributes named pattern and count.
+The type is a stream of tuples. Each tuple is composed of two integer
+attributes named pattern and count.
 
 */
    // Zieltyp zusammensetzen
@@ -237,23 +226,129 @@ The type is a stream of tuples. Each tuple is composed of two integer attributes
 
 5.3.1 The ~predcounts~ operator
 
+5.3.1.1 The Local Info Datatype
+
+The Local Info Datatype is a template class with parameters "INDEX\_TYPE" and
+"RESULT\_TYPE". The parameter "INDEX\_TYPE" defines the data type to be used
+for the index of the temporary result array. By defining this one determine the
+maximum number of predicates evaluable by the operator predcounts, too. The
+maximum number is determined by the length of the data type (in bit)
+decremented by 1.
+
+The parameter "RESULT\_TYPE" defines the data type of counters which counts the
+tuples meeting the set of predicates identified by the index of the counter.
+This data type determines the maximum number of tuples processable by the
+operator predcounts. The selected data type for "RESULT\_TYPE" have to be int,
+long, long or similiar. For safety reasons the maximum count is limited to
+2\^(sizeof("RESULT\_TYPE")-1).
+
 */
-struct PredcountsLocalData {
-   TupleType *resultTupleType;
-   INDEX_TYPE predicateCombinations;
-   RESULT_TYPE *resultCounters;
-   char firstCall;
+
+
+template <class INDEX_TYPE, class RESULT_TYPE>
+class GeneralPredcountsLocalData {
+
+  private: 
+    RESULT_TYPE counter; 
+
+  public:
+
+   GeneralPredcountsLocalData() :
+     counter(0),	   
+     resultTupleType(0),
+     predicateCombinations(0),	
+     resultCounters(0) 
+   {}
+
+   ~GeneralPredcountsLocalData() 
+   {
+     resultTupleType->DeleteIfAllowed(); // produced tuples may have still 
+	                                 // references to it;	     
+     delete [] resultCounters;
+   }
+
+   TupleType*   resultTupleType;
+   INDEX_TYPE   predicateCombinations;
+   RESULT_TYPE* resultCounters;
+
+   inline static size_t maxPredicateCount() 
+   { 
+      return (sizeof(INDEX_TYPE)*8 - 1); 
+   }
+
+   bool allocate(size_t predCount) 
+   {
+     // calculate the limitations of operator predcounts and check them
+     if ( predCount > maxPredicateCount() ) 
+     {
+       cerr << "ERROR: Anzahl der Praedikate (=" << predCount << 
+               ") ist zu hoch fuer predcounts - max. " << 
+               maxPredicateCount() << endl;
+     }	 
+     predicateCombinations = 1 << predCount; // =2\^predCount
+     resultCounters = new RESULT_TYPE[predicateCombinations]; 
+
+     if (resultCounters==0) 
+     {
+        cerr << "ERROR: konnte Speicher " << 
+                " nicht allokieren (predicateCount=" << predCount << 
+                " combinations=" << predicateCombinations << ")" << endl;
+
+   
+     } else {
+
+       for(int i=0; i<predicateCombinations; i++) {
+	 resultCounters[i] = 0;       
+       }	       
+
+     }	     
+
+
+     return (resultCounters != 0);
+   }  
+
+   
+   inline bool checkOverFlow()
+   {
+
+     const RESULT_TYPE ctrMax = ((1 << sizeof(RESULT_TYPE)*8-1 ) - 1); 
+
+     if ( counter > ctrMax ) {
+            cerr << "ERROR: es koennen nur max. " << ctrMax << 
+               " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
+               "dannach besteht die Gefahr eines Ueberlaufes" << endl;
+       return false;	    
+     }
+     return true;
+   }
+
 };
 
+typedef GeneralPredcountsLocalData<int, int> PredcountsLocalData;
+
+
 /*
-The structure PredcountsLocalData is used to structure local data supplied by parameter local of value mapping function. The element resultTupleType contains the type of tuple to be returned by value mapping function. The element predicateCombinations is used to store the count of predicate combinations checked by the operator predcounts at first. During the REQUEST phase the element is used to store the last responsed (pattern, count) tuple. The element resultCounters is a dynamically allocated array. It's temporary used to count up and store the occurrence of predicate combinations met by tuples of the input stream.
+ 
+The structure PredcountsLocalData is used to structure local data supplied by
+parameter local of value mapping function. The element resultTupleType contains
+the type of tuple to be returned by value mapping function. The element
+predicateCombinations is used to store the count of predicate combinations
+checked by the operator predcounts at first. During the REQUEST phase the
+element is used to store the last responsed (pattern, count) tuple. The element
+resultCounters is a dynamically allocated array. It's temporary used to count
+up and store the occurrence of predicate combinations met by tuples of the
+input stream.
 
 The value mapping function handles three phases:
    OPEN   to prepare the operator for using
    REQUEST   to return the result stream step by step (one tuple at one call)
    CLOSE   to clean up the function environment
 
-At the OPEN phase the function allocates temporary memory, reads the input stream completly, counts up and stores the counters for predicate combinations, deletes the tuples of input stream and construct the type of the result tuples. At the REQUEST phase it returns the result tuples (pattern, count) step by step. At the CLOSE phase it deallocates temporary memory. 
+At the OPEN phase the function allocates temporary memory, reads the input
+stream completly, counts up and stores the counters for predicate combinations,
+deletes the tuples of input stream and construct the type of the result tuples.
+At the REQUEST phase it returns the result tuples (pattern, count) step by
+step. At the CLOSE phase it deallocates temporary memory. 
 
 */
 
@@ -261,54 +356,28 @@ At the OPEN phase the function allocates temporary memory, reads the input strea
 int firstVjohn_vm(Word* args, Word& result, int message,
               Word& local, Supplier s)
 {
-   int count, predicateNumber;
-   Word elem, funResult;
-   Tuple *newTuple;
-   PredcountsLocalData *tempData;
-   int predicateCount, maxSaveEvaluableRows, maxPredicateCount;
-   Supplier predicateList, predicate; 
-   Supplier* funStructure;
-   ArgVectorPointer *funArguments;
-   Tuple *currentTuple;
-   int predNumber, resultIndex;
-   CcInt *attr;
-
+   // get local data
+   PredcountsLocalData*
+     tempData = static_cast<PredcountsLocalData*>( local.addr );
 
   switch (message)
-    {
-        case OPEN : 
+  {
+      case OPEN : { 
 
       // allocate temporary memory to store local data
-      tempData = (struct PredcountsLocalData *) 
-         new (struct PredcountsLocalData);
-         //calloc(1, sizeof(struct PredcountsLocalData));
+      tempData = new PredcountsLocalData;
       local = SetWord( tempData );
 
       // get the predicate list
-      predicateList = args[1].addr;
+      Supplier predicateList = args[1].addr;
+      int predicateCount = qp->GetNoSons(predicateList);
 
-      // calculate the limitations of operator predcounts and check them
-      maxPredicateCount = sizeof(INDEX_TYPE)*8 - 1;
-      predicateCount = qp->GetNoSons(predicateList); 
-      if (predicateCount>maxPredicateCount) {
-         cerr << "ERROR: Anzahl der Praedikate (=" << predicateCount << 
-            ") ist zu hoch fuer predcounts - max. " << 
-            maxPredicateCount << endl;
+      // try to allocate memory for counters
+      bool ok = tempData->allocate(predicateCount);
+
+      if (!ok) {
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
-      tempData->predicateCombinations = 
-         1 << predicateCount; // =2\^predicateCount
-      tempData->resultCounters = (RESULT_TYPE *) 
-         calloc(tempData->predicateCombinations, sizeof(RESULT_TYPE)); 
-      if (tempData->resultCounters==0) {
-         cerr << "ERROR: konnte Speicher " << 
-            (tempData->predicateCombinations * sizeof(RESULT_TYPE)) << 
-            " Bytes nicht allokieren (predicateCount=" << predicateCount << 
-            " combinations=" << tempData->predicateCombinations << ")" << endl;
-         return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
-      }
-      maxSaveEvaluableRows = (1 << sizeof(int)*8-1 ) - 1; 
-         // aequivalent zu 2\^(sizeof(int)*8-1) - 1
 
       // construct type of result tuples
             tempData->resultTupleType = 
@@ -316,7 +385,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
 
       // allocate memory to store structures for handling 
       // mapping functions itself and their parameters
-      funStructure = new Supplier[predicateCount];
+      Supplier* funStructure = new Supplier[predicateCount];
       if (funStructure==0) {
          cerr << "ERROR: konnte Speicher " << 
             (predicateCount*sizeof(Supplier)) << 
@@ -324,8 +393,7 @@ int firstVjohn_vm(Word* args, Word& result, int message,
             " sizeof(Supplier)=" << sizeof(Supplier) << ")" << endl;
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
-      funArguments = (ArgVectorPointer *) 
-         calloc(predicateCount, sizeof(ArgVectorPointer));
+      ArgVectorPointer* funArguments = new ArgVectorPointer[predicateCount];
       if (funArguments==0) {
          cerr << "ERROR: konnte Speicher " << 
             (predicateCount*sizeof(ArgVectorPointer)) << 
@@ -337,9 +405,9 @@ int firstVjohn_vm(Word* args, Word& result, int message,
 
       // initialize array which stores structures for 
       // handling mapping functions itself and their parameters
-      for (predicateNumber=0; predicateNumber<predicateCount; 
+      for (int predicateNumber=0; predicateNumber<predicateCount; 
          predicateNumber++) {
-         predicate = qp->GetSupplier(predicateList, predicateNumber);
+         Supplier predicate = qp->GetSupplier(predicateList, predicateNumber);
          funStructure[predicateNumber] = qp->GetSupplier(predicate, 1);
          funArguments[predicateNumber] = 
          qp->Argument(funStructure[predicateNumber]);
@@ -348,31 +416,27 @@ int firstVjohn_vm(Word* args, Word& result, int message,
       // open input stream
       qp->Open(args[0].addr);
       // read all tuples of the input stream
-      count = 0;
+      Word elem;
       qp->Request(args[0].addr, elem);
       while ( qp->Received(args[0].addr) )
       {
          // check that only maxSaveEvaluableRows are read
-         count++;
-         if (count > maxSaveEvaluableRows) {
-            cerr << "ERROR: es koennen nur max. " << maxSaveEvaluableRows << 
-               " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
-               "dannach besteht die Gefahr eines Ueberlaufes" << endl; 
+	 if ( !tempData->checkOverFlow() )
             return 1; // welcher Wert muss hier zurueckgegeben werden ?
-         }
 
          // some local variables
-         resultIndex = 0;
-         currentTuple = (Tuple *) elem.addr;
+         int resultIndex = 0;
+         Tuple* currentTuple = static_cast<Tuple*>( elem.addr );
 
          //  fuer alle Praedikate: Ergebnis des Praedikates 
          //  ermitteln und speichern
          //  for each predicate: calculate and store the result predicate 
          //  for each tuple
-         for (predNumber=0; predNumber<predicateCount; predNumber++) {
+         for (int predNumber=0; predNumber<predicateCount; predNumber++) {
 
             // set the tuple to be used by evaluation and evaluate predicate
             (*(funArguments[predNumber]))[0] = elem;
+	    Word funResult;
             qp->Request( funStructure[predNumber], funResult);
             if (((StandardAttribute*)funResult.addr)->IsDefined()) {
                if (((CcBool*)funResult.addr)->GetBoolval()) {
@@ -399,29 +463,26 @@ int firstVjohn_vm(Word* args, Word& result, int message,
 
       // deallocate memory
       if (funStructure) delete [] funStructure;
-      if (funArguments) free(funArguments);
+      if (funArguments) delete [] funArguments;
 
-      return 0;
+      return 0; 
+   }
 
-   case REQUEST :
+   case REQUEST : {
 
-      // get local data
-      tempData = (struct PredcountsLocalData *) local.addr;
-
-   //YY}
 
       // if no more result tuples are left - finish REQUEST phase
       if (tempData->predicateCombinations==0) {
          return CANCEL;
       }
       tempData->predicateCombinations--;
-         
+
       // create a new tuple
-      newTuple = new Tuple( tempData->resultTupleType );
+      Tuple* newTuple = new Tuple( tempData->resultTupleType );
       //newTuple->IncReference(); ??? wird nicht noetig sein - oder doch ?
 
       // put values into new tuple
-      attr = new CcInt(true, tempData->predicateCombinations); 
+      CcInt* attr = new CcInt(true, tempData->predicateCombinations); 
          // ??? korrekt? deallocierung erfolgt durch anderen code?
       newTuple->PutAttribute( 0, attr );
       attr = new CcInt(true, 
@@ -431,21 +492,24 @@ int firstVjohn_vm(Word* args, Word& result, int message,
 
       // return the tuple
       result = SetWord(newTuple);
-      return YIELD;
+      return YIELD; 
+   }
 
-   case CLOSE :
+   case CLOSE: {
+
       if (tempData) {
-         if (tempData->resultCounters) 
-            free((RESULT_TYPE *) tempData->resultCounters);
-         free((struct PredcountsLocalData *) tempData);
+        delete tempData;	      
       }
       local = SetWord(Address(0));
       return 0;
-     }
+   }
 
-     return 1; // this point should never be arrived ??? 
-     // warum in anderen Implementierungen 0 - keine Fehlererkennung, 
-     // aber Komptibilitaet
+   default: {	
+     
+     // this point should never be reached, if so return an error
+     return 1; 
+   }  
+   } // end of switch	    
 }
 
 /*
@@ -539,34 +603,4 @@ InitializeOptAuxAlgebra( NestedList* nlRef,
   // The C++ scope-operator :: must be used to qualify the full name 
   return new optaux::OptAuxAlgebra; 
 }
-
-/*
-7 Examples and Tests
-
-The file "PointRectangle.examples" contains for every operator one example.
-This allows one to verify that the examples are running and to provide a coarse
-regression test for all algebra modules. The command "Selftest <file>" will
-execute the examples. Without any arguments, the examples for all active
-algebras are executed. This helps to detect side effects, if you have touched
-central parts of Secondo or existing types and operators. 
-
-In order to setup more comprehensive automated test procedures one can write a
-test specification for the ~TestRunner~ application. You will find the file
-"example.test" in directory "bin" and others in the directory "Tests/Testspecs".
-There is also one for this algebra. 
-
-Accurate testing is often treated as an unpopular daunting task. But it is
-absolutely inevitable if you want to provide a reliable algebra module. 
-
-Try to write tests covering every signature of your operators and consider
-special cases, as undefined arguments, illegal argument values and critical
-argument value combinations, etc.
-
-
-*/
-
-
-
-
-
 
