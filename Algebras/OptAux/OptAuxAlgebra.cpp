@@ -89,14 +89,130 @@ namespace optaux {
 /*
 5 Creating Operators
 
-5.1 Type Mapping Functions
+5.1 The Local Info Datatype
+
+The Local Info Datatype is a template class with parameters "INDEX\_TYPE" and
+"RESULT\_TYPE". The parameter "INDEX\_TYPE" defines the data type to be used
+for the index of the temporary result array. By defining this one determine the
+maximum number of predicates evaluable by the operator predcounts, too. The
+maximum number is determined by the length of the data type (in bit)
+decremented by 1.
+
+The parameter "RESULT\_TYPE" defines the data type of counters which counts the
+tuples meeting the set of predicates identified by the index of the counter.
+This data type determines the maximum number of tuples processable by the
+operator predcounts. The selected data type for "RESULT\_TYPE" have to be int,
+long, long or similiar. For safety reasons the maximum count is limited to
+2\^(sizeof("RESULT\_TYPE")-1).
+
+*/
+
+template <class INDEX_TYPE, class RESULT_TYPE>
+class GeneralPredcountsLocalData {
+
+  private: 
+    RESULT_TYPE counter; 
+
+  public:
+
+   GeneralPredcountsLocalData() :
+     counter(0),      
+     resultTupleType(0),
+     predicateCombinations(0),   
+     resultCounters(0) 
+   {}
+
+   ~GeneralPredcountsLocalData() 
+   {
+     resultTupleType->DeleteIfAllowed(); // produced tuples may have still 
+                                    // references to it;        
+     delete [] resultCounters;
+   }
+
+   TupleType*   resultTupleType;
+   INDEX_TYPE   predicateCombinations;
+   RESULT_TYPE* resultCounters;
+
+   inline static size_t maxPredicateCount() 
+   { 
+      return (sizeof(INDEX_TYPE)*8 - 1); 
+   }
+
+   bool allocate(size_t predCount) 
+   {
+     // calculate the limitations of operator predcounts and check them
+     if ( predCount > maxPredicateCount() ) 
+     {
+        cerr << "ERROR: Anzahl der Praedikate (=" << predCount << 
+               ") ist zu hoch fuer predcounts - max. " << 
+               maxPredicateCount() << endl;
+        return false;
+     }    
+     predicateCombinations = 1 << predCount; // =2\^predCount
+     resultCounters = (RESULT_TYPE *) 
+        calloc(predicateCombinations, sizeof(RESULT_TYPE)); 
+
+     if (resultCounters==0) 
+     {
+        cerr << "ERROR: konnte Speicher " << 
+                (sizeof(RESULT_TYPE) * predicateCombinations) <<
+                " nicht allokieren (predicateCount=" << predCount << 
+                " combinations=" << predicateCombinations << ")" << endl;
+        return false;
+   
+     } else {
+
+       for(unsigned int i=0; i<predicateCombinations; i++) {
+          resultCounters[i] = 0;       
+       }          
+
+     }        
+
+     return true;
+   }  
+
+   
+   inline bool checkOverFlow()
+   {
+
+     const RESULT_TYPE ctrMax = 
+        ((((RESULT_TYPE) 1) << sizeof(RESULT_TYPE)*8-1 ) - 1); 
+
+     if ( counter > ctrMax ) {
+            cerr << "ERROR: es koennen nur max. " << ctrMax << 
+               " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
+               "dannach besteht die Gefahr eines Ueberlaufes" << endl;
+       return false;       
+     }
+     return true;
+   }
+
+};
+
+typedef GeneralPredcountsLocalData<unsigned int, unsigned int> 
+   PredcountsLocalData;
+
+
+/*
+ 
+The structure PredcountsLocalData is used to structure local data supplied by
+parameter local of value mapping function. The element resultTupleType contains
+the type of tuple to be returned by value mapping function. The element
+predicateCombinations is used to store the count of predicate combinations
+checked by the operator predcounts at first. During the REQUEST phase the
+element is used to store the last responsed (pattern, count) tuple. The element
+resultCounters is a dynamically allocated array. It's temporary used to count
+up and store the occurrence of predicate combinations met by tuples of the
+input stream.
+
+5.2 Type Mapping Functions
 
 A type mapping function checks whether the correct argument types are supplied
 for an operator; if so, it returns a list expression for the result type,
 otherwise the symbol ~typeerror~. Again we use interface ~NList.h~ for
 manipulating list expressions.
 
-5.1.1 The ~predcounts~ operator
+5.2.1 The ~predcounts~ operator
 
 The predcounts operator have to be called with two or more parameters. 
 The type of the first parameter have to be a stream of tuples. 
@@ -134,6 +250,11 @@ ListExpr predcounts_tm(ListExpr args)
       rest, predicateDeclarations, 
       streamTupleDeclaration, mappingInputType;
    string argstr, argstr2;
+   int maxPredicateCount;
+
+   // the upper limit of predicates is defined
+   //by the count of bit of INDEX\_TYPE
+   maxPredicateCount = PredcountsLocalData::maxPredicateCount();
 
    // we expect an input stream and 
    // at least one additional parameter
@@ -169,6 +290,15 @@ ListExpr predcounts_tm(ListExpr args)
       (nl->ListLength(predicateDeclarations) > 0),
       "Operator predcounts: Second argument list may" 
       " not be empty or an atom" );
+
+   // if there are more then maxPredicateCount predicate declarations
+   // return a type error - its necessary too increase
+   // the count of bits of INDEX_TYPE
+   WriteIntToString(&argstr, nl->ListLength(predicateDeclarations));
+   WriteIntToString(&argstr2, maxPredicateCount);
+   CHECK_COND(nl->ListLength(predicateDeclarations)<=maxPredicateCount,
+      "Operator predcounts is just able to handle up to " + argstr2
+      + " predicates - given predicates: " + argstr);
 
    // check predicate list - check the list more detailed
    rest = predicateDeclarations;
@@ -235,121 +365,6 @@ attributes named pattern and count.
 5.3 Value Mapping Functions
 
 5.3.1 The ~predcounts~ operator
-
-5.3.1.1 The Local Info Datatype
-
-The Local Info Datatype is a template class with parameters "INDEX\_TYPE" and
-"RESULT\_TYPE". The parameter "INDEX\_TYPE" defines the data type to be used
-for the index of the temporary result array. By defining this one determine the
-maximum number of predicates evaluable by the operator predcounts, too. The
-maximum number is determined by the length of the data type (in bit)
-decremented by 1.
-
-The parameter "RESULT\_TYPE" defines the data type of counters which counts the
-tuples meeting the set of predicates identified by the index of the counter.
-This data type determines the maximum number of tuples processable by the
-operator predcounts. The selected data type for "RESULT\_TYPE" have to be int,
-long, long or similiar. For safety reasons the maximum count is limited to
-2\^(sizeof("RESULT\_TYPE")-1).
-
-*/
-
-template <class INDEX_TYPE, class RESULT_TYPE>
-class GeneralPredcountsLocalData {
-
-  private: 
-    RESULT_TYPE counter; 
-
-  public:
-
-   GeneralPredcountsLocalData() :
-     counter(0),      
-     resultTupleType(0),
-     predicateCombinations(0),   
-     resultCounters(0) 
-   {}
-
-   ~GeneralPredcountsLocalData() 
-   {
-     resultTupleType->DeleteIfAllowed(); // produced tuples may have still 
-                                    // references to it;        
-     delete [] resultCounters;
-   }
-
-   TupleType*   resultTupleType;
-   INDEX_TYPE   predicateCombinations;
-   RESULT_TYPE* resultCounters;
-
-   inline static size_t maxPredicateCount() 
-   { 
-      return (sizeof(INDEX_TYPE)*8 - 1); 
-   }
-
-   bool allocate(size_t predCount) 
-   {
-     // calculate the limitations of operator predcounts and check them
-     if ( predCount > maxPredicateCount() ) 
-     {
-        cerr << "ERROR: Anzahl der Praedikate (=" << predCount << 
-               ") ist zu hoch fuer predcounts - max. " << 
-               maxPredicateCount() << endl;
-        return false;
-     }    
-     predicateCombinations = 1 << predCount; // =2\^predCount
-     resultCounters = (RESULT_TYPE *) 
-        calloc(predicateCombinations, sizeof(RESULT_TYPE)); 
-
-     if (resultCounters==0) 
-     {
-        cerr << "ERROR: konnte Speicher " << 
-                " nicht allokieren (predicateCount=" << predCount << 
-                " combinations=" << predicateCombinations << ")" << endl;
-        return false;
-   
-     } else {
-
-       for(unsigned int i=0; i<predicateCombinations; i++) {
-          resultCounters[i] = 0;       
-       }          
-
-     }        
-
-     return true;
-   }  
-
-   
-   inline bool checkOverFlow()
-   {
-
-     const RESULT_TYPE ctrMax = 
-        ((((RESULT_TYPE) 1) << sizeof(RESULT_TYPE)*8-1 ) - 1); 
-
-     if ( counter > ctrMax ) {
-            cerr << "ERROR: es koennen nur max. " << ctrMax << 
-               " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
-               "dannach besteht die Gefahr eines Ueberlaufes" << endl;
-       return false;       
-     }
-     return true;
-   }
-
-};
-
-typedef GeneralPredcountsLocalData<unsigned int, unsigned int> 
-   PredcountsLocalData;
-
-
-/*
- 
-The structure PredcountsLocalData is used to structure local data supplied by
-parameter local of value mapping function. The element resultTupleType contains
-the type of tuple to be returned by value mapping function. The element
-predicateCombinations is used to store the count of predicate combinations
-checked by the operator predcounts at first. During the REQUEST phase the
-element is used to store the last responsed (pattern, count) tuple. The element
-resultCounters is a dynamically allocated array. It's temporary used to count
-up and store the occurrence of predicate combinations met by tuples of the
-input stream.
 
 The value mapping function handles three phases:
    OPEN   to prepare the operator for using
