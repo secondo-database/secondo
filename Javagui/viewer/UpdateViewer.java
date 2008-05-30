@@ -1208,13 +1208,13 @@ Returns true if this dialog was closed by pressing 'cancel'.
          area = new JTextPane();
          //area.setLineWrap(true);
          area.setEditable(true);
-         setLayout(new BorderLayout());
+         getContentPane().setLayout(new BorderLayout());
          JPanel command = new JPanel();
          JButton accept = new JButton("accept");
          JButton cancel = new JButton("cancel");
          command.add(accept);
          command.add(cancel);
-         add(command,BorderLayout.SOUTH);
+         getContentPane().add(command,BorderLayout.SOUTH);
          accept.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent evt){
                 retVal = area.getText();
@@ -1230,7 +1230,7 @@ Returns true if this dialog was closed by pressing 'cancel'.
             }
          });
          JScrollPane sp = new JScrollPane(area);
-         add(sp,BorderLayout.CENTER);
+         getContentPane().add(sp,BorderLayout.CENTER);
       }
 
       public String editText(String origtext){
