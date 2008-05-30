@@ -718,12 +718,80 @@ ostream& operator<<(ostream& o, const set<int>& e){
   return o;
 }
 
+struct intset{
+  intset():member(),refs(1){}
+  
+  void deleteIfAllowed(){
+     refs--;
+     if(refs<1){
+        delete this;
+     }
+  } 
 
-struct cCluster{ double cx;
-                 double cy;
-                 set<int> member;
-                 bool forbidden;
-       };
+  set<int> member;
+  int refs;
+};
+
+
+struct cCluster{
+    cCluster(){
+      cx = 0.0;
+      cy = 0.0;
+      member = new intset();
+      forbidden = false; 
+    }
+ 
+    cCluster(const cCluster& c){
+       cx = c.cx;
+       cy = c.cy;
+       forbidden = c.forbidden;
+       member = c.member;
+       member->refs++;
+    }
+
+    cCluster& operator=(const cCluster& c){
+       cx = c.cx;
+       cy = c.cy;
+       forbidden = c.forbidden;
+       member = c.member;
+       member->refs++;
+       return *this;
+    }
+
+    ~cCluster(){
+      member->deleteIfAllowed();
+    }
+
+    set<int>::iterator begin(){
+      return member->member.begin();
+    }
+
+    set<int>::iterator end(){
+      return member->member.end();
+    }
+
+    size_t size(){
+      return member->member.size();
+    }
+    
+    void insert(int i){
+      member->member.insert(i);
+    }
+
+    void erase(int i){
+       member->member.erase(i);
+    }
+   
+    void clear(){
+       member->member.clear();
+    }
+
+ 
+    double cx;
+    double cy;
+    intset* member; // avoid copying of this set !!!!
+    bool forbidden;
+};
 
 
 
@@ -1092,7 +1160,7 @@ void insertPoint(vector<cCluster>& clusters, int pos){
      cl.cx = x;
      cl.cy = y;
      cl.forbidden = false;
-     cl.member.insert(pos);
+     cl.insert(pos);
      clusters.push_back(cl);
      return;
   }
@@ -1106,7 +1174,7 @@ void insertPoint(vector<cCluster>& clusters, int pos){
        if(index < 0 || 
           ((dist < bestDist) ||
            ((dist == bestDist) && 
-            (clusters[index].member.size() > clusters[i].member.size())))){
+            (clusters[index].size() > clusters[i].size())))){
           index = i;
           bestDist = dist;
        } 
@@ -1118,21 +1186,21 @@ void insertPoint(vector<cCluster>& clusters, int pos){
      cl.cx = x;
      cl.cy = y;
      cl.forbidden = false;
-     cl.member.insert(pos);
+     cl.insert(pos);
      clusters.push_back(cl);
      return;
   }
 
   // insert the point into the best cluster
   clusters[index].cx = (clusters[index].cx * 
-                        clusters[index].member.size() + x ) /  
-                       (clusters[index].member.size() +1);
+                        clusters[index].size() + x ) /  
+                       (clusters[index].size() +1);
  
   clusters[index].cy = (clusters[index].cy * 
-                        clusters[index].member.size() + y ) /  
-                       (clusters[index].member.size() +1 );
+                        clusters[index].size() + y ) /  
+                       (clusters[index].size() +1 );
 
-  clusters[index].member.insert(pos);
+  clusters[index].insert(pos);
 
   // check whether some points are outside the cluster
   Point pc(true,clusters[index].cx, clusters[index].cy);
@@ -1140,8 +1208,8 @@ void insertPoint(vector<cCluster>& clusters, int pos){
   set<int> removed;
   set<int>::iterator it;
   const Point* p2;
-  for(it = clusters[index].member.begin();
-      it != clusters[index].member.end();
+  for(it = clusters[index].begin();
+      it != clusters[index].end();
       it++){
       pts->Get(*it,p2);
       if(qdist(&pc,p2) > eps2){
@@ -1157,7 +1225,7 @@ void insertPoint(vector<cCluster>& clusters, int pos){
      pts->Get(*it,p3);
      sx += p3->GetX();
      sy += p3->GetY();
-     clusters[index].member.erase(*it);
+     clusters[index].erase(*it);
   }
 
   /*
@@ -1202,7 +1270,7 @@ void insertPointSimple(vector<cCluster>& clusters, int pos){
      double dist = qdist(x,y,clusters[i].cx,clusters[i].cy);
      if( (dist < bestDist) ||
          ((dist == bestDist) && 
-          (clusters[index].member.size() > clusters[i].member.size()))){
+          (clusters[index].size() > clusters[i].size()))){
         index = i;
         bestDist = dist;
      } 
@@ -1219,7 +1287,7 @@ void insertPointSimple(vector<cCluster>& clusters, int pos){
 
   }
 
-  clusters[index].member.insert(pos);
+  clusters[index].insert(pos);
 }
 
 void computeFinalCluster1(){
@@ -1245,7 +1313,7 @@ void computeFinalCluster1(){
  // redistribute the points
   vector<cCluster>::iterator it3;
   for(it3 = currentCluster.begin(); it3 != currentCluster.end(); it3++){
-      ((*it3).member).clear(); 
+      ((*it3)).clear(); 
   }
   
   for( it1 = currentInitialCluster->begin(); 
@@ -1260,7 +1328,7 @@ void computeFinalCluster1(){
   for(it2 = currentCluster.begin();
       it2 != currentCluster.end(); 
       it2++){
-      currentFinalCluster[i++] = (*it2).member;
+      currentFinalCluster[i++] = (*it2).member->member;
   }
 
   currentFinalPos = currentFinalCluster.begin();
@@ -1426,12 +1494,12 @@ This function returns the next cluster as a points value.
      } else if (pos>= no_cluster){
        return 0;
      } else {
-       Points* res = new Points((*cluster)[pos].member.size());
+       Points* res = new Points((*cluster)[pos].size());
        res->StartBulkLoad();
        set<int>::iterator it;
        const Point* p;
-       for(it = (*cluster)[pos].member.begin(); 
-           it != (*cluster)[pos].member.end(); it++){
+       for(it = (*cluster)[pos].begin(); 
+           it != (*cluster)[pos].end(); it++){
          pts->Get(*it,p);
          (*res) += *p;
        }
@@ -1500,7 +1568,7 @@ int indexOfNearestCluster(const mmrtree::Rtree<2>& tree, const Point& p) const{
     tree.findAll(searchbox,cands);
     set<long>::iterator it;
     for(it = cands.begin(); it != cands.end(); it++){
-      cCluster c = (*cluster)[*it];
+      cCluster c = cluster->at(*it);
       double d = qdist(c.cx,c.cy,x,y);
       if(d <= eps2 && d < bestDist && !c.forbidden){
         bestDist = d;
@@ -1523,7 +1591,7 @@ void insertPointSimple(const mmrtree::Rtree<2>& tree, const int pos){
    pts->Get(pos,p);
    int index = indexOfNearestCluster(tree,*p);
     assert(index >= 0);
-    (*cluster)[index].member.insert(pos);
+    (*cluster)[index].insert(pos);
 }
 
 /*
@@ -1548,7 +1616,7 @@ void insertPoint(mmrtree::Rtree<2>& tree, const int pos){
      cCluster c;
      c.cx = x;
      c.cy = y;
-     c.member.insert(pos);
+     c.insert(pos);
      c.forbidden = false;
      cluster->push_back(c);
      min[0] = x - FACTOR;
@@ -1560,10 +1628,10 @@ void insertPoint(mmrtree::Rtree<2>& tree, const int pos){
      return;
   }
   
-  (*cluster)[index].member.insert(pos);
+  (*cluster)[index].insert(pos);
   double cx = (*cluster)[index].cx;
   double cy = (*cluster)[index].cy;
-  int s = (*cluster)[index].member.size();
+  int s = (*cluster)[index].size();
   (*cluster)[index].cx = ( (cx * (s - 1.0) + x) / s);
   (*cluster)[index].cy = ( (cy * (s - 1.0) + y) / s); 
 
@@ -1598,8 +1666,8 @@ void repairClusterAt(const int index, mmrtree::Rtree<2>& tree){
   set<int> wrong;
   set<int>::iterator it;
   const Point * p;
-  for(it = (*cluster)[index].member.begin(); 
-      it!= (*cluster)[index].member.end(); it++){
+  for(it = (*cluster)[index].begin(); 
+      it!= (*cluster)[index].end(); it++){
       pts->Get(*it,p);
       double d = qdist(cx,cy, p->GetX(),p->GetY());
       if(d>eps2){
@@ -1608,7 +1676,7 @@ void repairClusterAt(const int index, mmrtree::Rtree<2>& tree){
   }
 
   for( it=wrong.begin(); it!=wrong.end(); it++){
-     (*cluster)[index].member.erase(*it);
+     (*cluster)[index].erase(*it);
   }
       
   for( it=wrong.begin(); it!=wrong.end(); it++){
@@ -1629,14 +1697,14 @@ This function divides a points value into a set of clusters.
 
 */
 void computeCluster(){
-   mmrtree::Rtree<2> tree(10,30);
+   mmrtree::Rtree<2> tree(3,6);
    for(int i=0;i<size;i++){
       insertPoint(tree, i);
    }
 
    // redistribute the points
    for(unsigned int i=0;i<cluster->size();i++){
-      (*cluster)[i].member.clear();
+      (*cluster)[i].clear();
    }
 
    for(int i=0;i<size;i++){
