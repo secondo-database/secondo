@@ -76,6 +76,9 @@ public class UpdateViewer extends SecondoViewer implements TableModelListener {
 	private JButton reset;
 
 	private JButton commit;
+  
+  private JButton popup;
+  private EditDialog editDialog;
 
 	// the controller decides which action shall be taken next and listens to all buttons
 	// for user-input
@@ -157,6 +160,15 @@ Builds the viewer and sets the intital values
 		commit = new JButton("Commit");
 		commit.addActionListener(controller);
 		actionPanel.add(commit);
+    editDialog=new EditDialog();
+    popup = new JButton("Popup");
+    popup.addActionListener(new ActionListener(){
+        public void actionPerformed(ActionEvent evt){
+           UpdateViewer.this.editField();
+        }
+     }); 
+		actionPanel.add(popup);
+
 		add(actionPanel, BorderLayout.NORTH);
 		renderer = new DefaultTableCellRenderer();
 		renderer.setBackground(Color.YELLOW);
@@ -381,6 +393,37 @@ will be lost.
 		this.repaint();
 	}
 
+/** Pops up a new window for editing the current field.
+  */
+  private void editField(){
+     if(relTable==null){
+       Reporter.showError("No table load.");
+       return;
+     }
+     int row = relTable.getSelectedRow();
+     int col = relTable.getSelectedColumn();
+     if(row<0 || col<0){
+        row = relTable.getEditingRow();
+        col = relTable.getEditingRow();
+     }
+     int er = relTable.getEditingRow();
+     int ec = relTable.getEditingColumn();
+     if(er>=0 && ec >=0){
+        relTable.getCellEditor(er,ec).stopCellEditing();
+     }
+     relTable.removeEditor();
+     if(row<0 || col<0){
+        Reporter.showError("Select a field first");
+        return;
+     }
+     String res = editDialog.editText(relTable.getValueAt(row,col).toString());
+     if(res!=null){
+        relTable.setValueAt(res,row,col);
+     }   
+ 
+  }
+
+
 	
 /*
 For each mode and state the viewer is in only certain operations and choices are possible.
@@ -399,6 +442,7 @@ This method assures only the actually allowed actions can be executed or chosen.
 			update.setEnabled(false);
 			reset.setEnabled(false);
 			commit.setEnabled(false);
+      popup.setEnabled(false);
 			break;
 		}
 		case ActionController.LOADED: {
@@ -411,6 +455,7 @@ This method assures only the actually allowed actions can be executed or chosen.
 			update.setEnabled(true);
 			reset.setEnabled(false);
 			commit.setEnabled(false);
+      popup.setEnabled(false);
 			break;
 		}
 		case ActionController.INSERT: {
@@ -422,6 +467,7 @@ This method assures only the actually allowed actions can be executed or chosen.
 			relTable.setRowSelectionAllowed(false);
 			relTable.setColumnSelectionAllowed(false);
 			relEditable = false;
+      popup.setEnabled(false);
 			break;
 		}
 		case ActionController.DELETE: {
@@ -433,6 +479,7 @@ This method assures only the actually allowed actions can be executed or chosen.
 			commit.setEnabled(true);
 			relTable.setRowSelectionAllowed(true);
 			relEditable = false;
+      popup.setEnabled(false);
 			break;
 		}
 		case ActionController.UPDATE: {
@@ -445,6 +492,7 @@ This method assures only the actually allowed actions can be executed or chosen.
 			relTable.setRowSelectionAllowed(false);
 			relTable.setColumnSelectionAllowed(false);
 			relEditable = true;
+      popup.setEnabled(true);
 			for (int i = 0; i < relData.length; i++) {
 				for (int j = 0; j < relData[0].length; j++) {
 					changedCells[i][j] = false;
@@ -957,7 +1005,7 @@ criteria he wants to apply.
 			else
 				loadDialog.clear();
 			loadDialog.setSize(600, 500);
-			loadDialog.show();
+			loadDialog.setVisible(true);
 		}
 
 
@@ -1048,7 +1096,7 @@ load an which filter-criteria he wants to apply.
            public void keyPressed(KeyEvent evt){
               if(evt.getKeyCode()==KeyEvent.VK_ENTER){
                    LoadDialog.this.cancelled=false;
-                   LoadDialog.this.hide();
+                   LoadDialog.this.setVisible(false);
               }
            }
        });
@@ -1086,11 +1134,11 @@ Is called if any of the buttons of the dialog was pressed.
 				}
 				if (e.getSource() == commit) {
 					cancelled = false;
-					this.hide();
+					this.setVisible(false);
 				}
 				if (e.getSource() == cancel) {
 					cancelled = true;
-					this.hide();
+					this.setVisible(false);
 				}
 				
 			}
@@ -1154,6 +1202,54 @@ Returns true if this dialog was closed by pressing 'cancel'.
 			}
 
 		}
+
+   private class EditDialog extends JDialog{
+      public EditDialog(){
+         area = new JTextPane();
+         //area.setLineWrap(true);
+         area.setEditable(true);
+         setLayout(new BorderLayout());
+         JPanel command = new JPanel();
+         JButton accept = new JButton("accept");
+         JButton cancel = new JButton("cancel");
+         command.add(accept);
+         command.add(cancel);
+         add(command,BorderLayout.SOUTH);
+         accept.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent evt){
+                retVal = area.getText();
+                area.setText("");
+                EditDialog.this.setVisible(false);
+            }
+         });
+         cancel.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent evt){
+                retVal = null;
+                area.setText("");
+                EditDialog.this.setVisible(false);
+            }
+         });
+         JScrollPane sp = new JScrollPane(area);
+         add(sp,BorderLayout.CENTER);
+      }
+
+      public String editText(String origtext){
+        if(origtext==null){
+          origtext="";
+        }
+        area.setText(origtext);
+        setSize(640,480); 
+        setModal(true);
+        setVisible(true);
+        return retVal;
+      }
+
+      private JTextPane area;
+      private String retVal;
+
+
+   } 
+
 
 
 }
