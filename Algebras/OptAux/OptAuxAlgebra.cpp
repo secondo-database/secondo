@@ -296,7 +296,8 @@ class GeneralPredcountsLocalData {
         return false;
      }    
      predicateCombinations = 1 << predCount; // =2\^predCount
-     resultCounters = new RESULT_TYPE[predicateCombinations]; 
+     resultCounters = (RESULT_TYPE *) 
+        calloc(predicateCombinations, sizeof(RESULT_TYPE)); 
 
      if (resultCounters==0) 
      {
@@ -307,7 +308,7 @@ class GeneralPredcountsLocalData {
    
      } else {
 
-       for(int i=0; i<predicateCombinations; i++) {
+       for(unsigned int i=0; i<predicateCombinations; i++) {
           resultCounters[i] = 0;       
        }          
 
@@ -320,7 +321,8 @@ class GeneralPredcountsLocalData {
    inline bool checkOverFlow()
    {
 
-     const RESULT_TYPE ctrMax = ((1 << sizeof(RESULT_TYPE)*8-1 ) - 1); 
+     const RESULT_TYPE ctrMax = 
+        ((((RESULT_TYPE) 1) << sizeof(RESULT_TYPE)*8-1 ) - 1); 
 
      if ( counter > ctrMax ) {
             cerr << "ERROR: es koennen nur max. " << ctrMax << 
@@ -333,7 +335,8 @@ class GeneralPredcountsLocalData {
 
 };
 
-typedef GeneralPredcountsLocalData<int, int> PredcountsLocalData;
+typedef GeneralPredcountsLocalData<unsigned int, unsigned int> 
+   PredcountsLocalData;
 
 
 /*
@@ -394,7 +397,8 @@ int predcounts_vm(Word* args, Word& result, int message,
 
       // allocate memory to store structures for handling 
       // mapping functions itself and their parameters
-      Supplier* funStructure = new Supplier[predicateCount];
+      Supplier* funStructure = (Supplier *) 
+         calloc(predicateCount, sizeof(Supplier));
       if (funStructure==0) {
          cerr << "ERROR: konnte Speicher " << 
             (predicateCount*sizeof(Supplier)) << 
@@ -402,7 +406,8 @@ int predcounts_vm(Word* args, Word& result, int message,
             " sizeof(Supplier)=" << sizeof(Supplier) << ")" << endl;
          return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
       }
-      ArgVectorPointer* funArguments = new ArgVectorPointer[predicateCount];
+      ArgVectorPointer* funArguments = (ArgVectorPointer *) 
+         calloc(predicateCount, sizeof(ArgVectorPointer));
       if (funArguments==0) {
          cerr << "ERROR: konnte Speicher " << 
             (predicateCount*sizeof(ArgVectorPointer)) << 
