@@ -5,11 +5,11 @@
 \section{SECONDO}\label{SecondoEinfuehrung}
 
 \subsection{Einführung}
-SECONDO ist ein erweiterbares Datenbank"-management-System (DBMS), das vom Lehrgebiet Praktische Informatik IV, ,,Datenbanksysteme für neue Anwendungen'', in der Fakultät Mathematik und Informatik der Fernuniversität Hagen entwickelt wurde und kontinuierlich weiterentwickelt wird.
+SECONDO ist ein erweiterbares Datenbank"-management--System (DBMS), das vom Lehrgebiet Praktische Informatik IV, ,,Datenbanksysteme für neue Anwendungen'', in der Fakultät Mathematik und Informatik der Fernuniversität Hagen entwickelt wurde und kontinuierlich weiterentwickelt wird.
 
 Das Ziel von SECONDO ist es, ein ,,allgemeines'' Datenbanksystem--Framework zur Verfügung zu stellen, dass mit Implementierungen von verschiedenen DBMS--Datenmodellen gefüllt werden kann.
 
-Mit diesem soll es möglich sein, relationale, objektorientierte, zeitliche oder XML-Modelle zu implementieren und Datentypen für räumliche Daten, bewegte Objekte, graphentheoretische Strukturen oder Schachspiele zu speichern und Operationen darauf durchzuführen. Die Möglichkeit zur Änderung des grundlegenden Datenmodells ist eine Besonderheit von SECONDO. Für die Erweiterbarkeit des Systems sind die ,,SECONDO-Algebren'' zuständig, deren Konzept weiter unten näher beleuchtet wird.
+Mit diesem soll es möglich sein, relationale, objektorientierte, zeitliche oder XML--Modelle zu implementieren und Datentypen für räumliche Daten, bewegte Objekte, graphentheoretische Strukturen oder Schachspiele zu speichern und Operationen darauf durchzuführen. Die Möglichkeit zur Änderung des grundlegenden Datenmodells ist eine Besonderheit von SECONDO. Für die Erweiterbarkeit des Systems sind die ,,SECONDO-Algebren'' zuständig, deren Konzept weiter unten näher beleuchtet wird.
 
 Das SECONDO-System setzt sich im Wesentlichen aus drei Komponenten zusammen, wie auch Abbildung~\vref{fig:AufbauSec} illustriert:
 \begin{enumerate}
@@ -28,8 +28,8 @@ Das SECONDO-GUI bietet eine komfortable Möglichkeit, entweder direkt oder  übe
 \end{enumerate}
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption{Schematischer Aufbau des SECONDO-Systems}
+	\includegraphics[scale=0.4]{SECONDO.eps}
+	\caption[Schematischer Aufbau des SECONDO-Systems]{Schematischer Aufbau des SECONDO-Systems\\\textit{Quelle: Eigene Darstellung nach \cite{Mue}}}
 	\label{fig:AufbauSec}
 \end{figure}
 
@@ -136,7 +136,16 @@ Die interne Repräsentation dieser Daten besteht aus Halbsegmenten, einem Datent
 
 Diese Algebra stellt keine eigenen Datentypen zur Verfügung, sondern bietet weitere Operationen auf den Datentypen der \textit{SpatialAlgebra}.
 
-Die Operationen sind solche, die sich mittels eines Sweep-Line-Verfahrens lösen lassen, wie etwa Vereinigungen, Durchschnitte und Differenzen von Regionen oder Schnittpunktberechnungen.
+Die Operationen sind solche, die sich mittels eines Plane--Sweep--Verfahrens lösen lassen.
+
+In \cite{Guet} wird ein Plane--Sweep--Verfahren charakterisiert:
+\begin{quotation}
+Plane--Sweep reduziert ein $k$--dimensionales Mengenproblem auf ein $(k-1)$--dimensionales Suchproblem.
+\end{quotation} 
+In diesen Verfahren wird eine Hyperebene, \textit{Sweep--Line} oder \textit{Sweep--Pane}, über den untersuchten Raum geführt, und jedesmal, wenn diese auf ein Objekt trifft wird diese verarbeitet.
+Zur Verarbeitung der gefundenen Objekte wird eine \textit{Sweep--Line--Statusstruktur} benutzt.
+
+Fragestellungen, die sich mit solchen Algorithmen lösen lassen sind etwa Vereinigungen, Durchschnitte und Differenzen von Regionen oder Schnittpunktberechnungen. Diese Operationen sind in dieser Algebra anthalten.
 
 \subsubsection{Plug--Join--Algebra}
 
@@ -194,7 +203,7 @@ Dieser Datentyp repräsentiert Mengen von Intervallen auf Fließkommazahlen.
 Dieser Datentyp repräsentiert Mengen von Zeitintervallen.
 \item ibool, iint, ireal, ipoint
 
-Mit Hilfe dieser Datentyps lassen sich Paare von einem Datentypen und einem Zeitpunkt verwalten. Ein \textit{iint}, zum Beispiel ist ein ganzzahliger Wert zu einem bestimmten Zeitpunkt.
+Mit Hilfe dieser Datentypen lassen sich Paare von einem Datentyp und einem Zeitpunkt verwalten. Ein \textit{iint}, zum Beispiel ist ein ganzzahliger Wert zu einem bestimmten Zeitpunkt.
 
 \item ubool, uint, ureal, upoint
 
@@ -261,7 +270,7 @@ Ein \textit{Face}, hier mit ,,Fläche'' zu übersetzen, setzt sich aus einem \te
 
 \item Die Region\index{Region!als Datentyp}
 
-$$Region=\{F\subset Face|f_1,f_2\in F \wedge (f_1\neq f_2) \Rightarrow \text{Kanten von }f_1\text{ und } f_2 \text{ sind disjunkt. } \}$$
+$$Region=\{F\subset Face|f_1,f_2\in F \wedge (f_1\neq f_2) \Rightarrow \text{Kanten von }f_1\text{ und } f_2 \text{ sind disjunkt}\}$$
 
 Eine \textit{Region} setzt sich aus mehreren \textit{Faces} zusammen, wobei sich diese nicht überschneiden dürfen. Genauergesagt müssen die Faces kantendisjunkt sein, dürfen also gemeinsame Punkte, aber keine gemeinsamen Kanten haben.
 \end{itemize}
@@ -322,12 +331,13 @@ Die Autoren geben auch noch einen Algorithmus an, der diese Idee weiterverfolgt,
 
 Die Autoren haben die Laufzeit des Verfahrens untersucht und herausgefunden, dass der Algorithmus zu zwei Polygonen, welche zusammen $n$ Ecken haben, ein \textit{MovingCycle} berechnet und hierfür $O(n*\log{n})$ Zeit benötigt. Liegen die Punkte der Polygone bereits sortiert vor, so sinkt die Laufzeit auf $O(n)$.
 
-Die Autoren räumen ein, dass dieses Verfahren nicht gut mit Rotationen umgehen kann. Läßt man etwa zwei schmale Rechtecke, die um 90\degree$\:$ gedreht sind, durch diesen Algorithmus laufen, so wird die Interpolation nach der Hälfte der Zeit ungefähr quadratisch  sein und einen zu großen Flächeninhalt aufweisen. Abbildung~\vref{fig:BeispielschlechteRot} zeigt dieses Beispiel. Eine Lösung dieses Problems wird durch die Autoren nicht angegeben. Bei Rotationen sollten also die Unterschiede zwischen den einzelnen Schnappschüssen nicht zu groß sein.
+
+\label{ProblemeRotation}Die Autoren räumen ein, dass dieses Verfahren nicht gut mit Rotationen umgehen kann. Läßt man etwa zwei schmale Rechtecke, die um 90\degree$\:$ gedreht sind, durch diesen Algorithmus laufen, so wird die Interpolation nach der Hälfte der Zeit ungefähr quadratisch  sein und einen zu großen Flächeninhalt aufweisen. Abbildung~\vref{fig:BeispielschlechteRot} zeigt dieses Beispiel. Eine Lösung dieses Problems wird durch die Autoren nicht angegeben. Bei Rotationen sollten also die Unterschiede zwischen den einzelnen Schnappschüssen nicht zu groß sein.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.6]{Rotation.eps}
-	\caption[Veranschaulichung der Schwächen des Verfahrens für große Rotationen]{Veranschaulichung der Schwäche des Verfahrens bei großen Rotationen.}
+	\includegraphics[width=0.9 \textwidth]{Rotation.eps}
+	\caption[Veranschaulichung der Schwächen des Verfahrens für große Rotationen]{Veranschaulichung der Schwäche des Verfahrens bei großen Rotationen.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:BeispielschlechteRot}
 \end{figure}
 
@@ -339,8 +349,8 @@ Ein \textit{ConvexHullTreeNode} ist ein konvexes Polygon, bei dem jeder Kante wi
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption{Ein Beispiel für einen ConvexHullTree.}
+	\includegraphics[scale=0.65]{2.2.eps}
+	\caption[Beispiel für einen ConvexHullTree]{Ein Beispiel für einen ConvexHullTree.\\\textit{Quelle: Eigene Darstellung nach \cite{TG}}}
 	\label{fig:ConHullTree}
 \end{figure}
 
@@ -357,7 +367,7 @@ Der umgekehrte Weg, also aus einem \textit{ConvexHullTree} wieder ein Polygon zu
 
 \subsection{Matching zweier Regionen}
 
-Im Weiteren beschäftigen sich die Autoren mit der Frage, wie man zu gegebenen Polygonen, welche die beiden Schnappschüsse einer MovingRegion darstellen sollen, ein \textit{Match} bestimmen kann. Ein \textit{Match} ist eine Menge von Paaren zusammengehörender \textit{Cycles}. Die erste Komponente der einzelenen Paare wird im Folgenden ,,Sourceen''\index{Source}, die zweite ,,Targets''\index{Target} genannt.
+Im Weiteren beschäftigen sich die Autoren mit der Frage, wie man zu gegebenen Polygonen, welche die beiden Schnappschüsse einer MovingRegion darstellen sollen, ein \textit{Match} bestimmen kann. Ein \textit{Match} ist eine Menge von Paaren zusammengehörender \textit{Cycles}. Die erste Komponente der einzelnen Paare wird im Folgenden ,,Sourceen''\index{Source}, die zweite ,,Targets''\index{Target} genannt.
 
 Die Autoren unterscheiden drei verschiedene Arten von \textit{Matches}:
 
@@ -403,7 +413,7 @@ Bestimme den Schwerpunkt jedes \textit{Cycles},  bilde aus diesem einen gewichte
 
 Gegeben sei ein Schwellwert, threshold. Matche zwei \textit{Cycles}, wenn sie sich wechselseitig  mehr als threshold (in \%) überlappen.
 
-\item Maximize Overlap (set of cycles)
+\item Maximize Overlap (set of cycles)\label{MaxOver}
 
 Bilde einen gewichteten Graphen, in dem die \textit{Cycles} Knoten sind und dessen Kanten mit dem Grad der Überlappung gewichtet sind. Matche dann ein \textit{Cycle} $c$ mit demjenigen, mit dem er die gr"o"ste Überlappung aufweist und mit allen, f"ur die $c$ der \textit{Cycle} mit der gr"o"sten Überlappung ist.
 \end{enumerate} 
@@ -428,8 +438,8 @@ Der dritte, komplizierteste Fall tritt auf, wenn mehrere Konkavitäten auf der e
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption{Interpolation zwischen nicht konvexen Polygonen.}
+	\includegraphics[width=0.9 \textwidth]{2.3.jpg.eps}
+	\caption[Interpolation zwischen nicht konvexen Polygonen]{Interpolation zwischen nicht konvexen Polygonen.\\\textit{Quelle: Eigene Darstellung nach \cite{TG}}}
 	\label{fig:Interpolationnonconvex}
 \end{figure}
 
@@ -445,8 +455,8 @@ An dieser Stelle soll der Begriff des \textit{RegionTrees} definiert werden, da 
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption{Der strukturelle Aufbau eines RegionTrees}
+	\includegraphics[scale=0.7]{2_1.4a.eps}
+	\caption[Strukturelle Aufbau eines RegionTrees]{Der strukturelle Aufbau eines RegionTrees.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:RegionTreeNode}
 \end{figure}
 
@@ -593,7 +603,7 @@ Auch hier wird zunächst $B'$ durch Verschiebung, wie oben, gebildet. Nun wird d
 
 \subsection{Fazit}
 
-Falls man die symmetrische Differenz als Norm benutzt, kann man  zusammenfassend sagen:
+Unter der Voraussetzung die symmetrische Differenz als Norm zu benutzen, kann folgendes zusammengefasst werden:
 \begin{itemize}
 \item Schwerpunkte sind Referenzpunkte für alle relevanten Abbildungen.
 \item Das Matching auf dieser Grundlage für alle Kombinationen aus Verschiebungen und Skalierungen liefert ein pseudooptimales Matching mit der Qualität $\frac{11}{3}$. 
@@ -615,7 +625,7 @@ Der einseitige Hausdorff-Abstand von Polygon $A$ zu Polygon $B$ ist so definiert
 \begin{figure}
 	\centering
 	\includegraphics[scale=.6]{Hausdorff.eps}
-	\caption[Der Hausdorff--Abstand zweier Polygone]{Der Hausdorff--Abstand zweier Polygone (grün und blau) ist das Paar mit dem größten Abstand (rot) unter allen Paaren.}
+	\caption[Hausdorff--Abstand zweier Polygone]{Der Hausdorff--Abstand zweier Polygone (grün und blau) ist das Paar mit dem größten Abstand (rot) unter allen Paaren.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:HausdorffAbstand}
 \end{figure}
 Nimmt man also von zwei Polygonen zu jedem Punkt der einen Menge den nächsten Punkt der anderen Menge (und umgekehrt) und sucht dann das Paar mit dem größten Abstand, so ist dieser der Hausdorff--Abstand. Abbildung~\vref{fig:HausdorffAbstand} zeigt das beispielhaft.
@@ -626,7 +636,7 @@ Nimmt man also von zwei Polygonen zu jedem Punkt der einen Menge den nächsten P
 \begin{figure}
 	\centering
 	\includegraphics[scale=.6]{SymDiff.eps}
-	\caption[Die symmetrische Differenz zweier Polygone]{Die symmetrische Differenz der beiden Polygone aus dem Schaubild~\vref{fig:HausdorffAbstand} ist der Flächeninhalt der roten Fläche.}
+	\caption[Symmetrische Differenz zweier Polygone]{Die symmetrische Differenz der beiden Polygone aus dem Schaubild~\vref{fig:HausdorffAbstand} ist der Flächeninhalt der roten Fläche.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:SymDiffBild}
 \end{figure}
 
@@ -643,7 +653,7 @@ In \cite{AFRW} wurde beschrieben, dass das Verhalten der symmetrischen Differenz
 \begin{figure}
 	\centering
 	\includegraphics[scale=.6]{Metrikengestoert.eps}
-	\caption{Hausdorff-Abstand und symmetrische Differenz im Vergleich}
+	\caption[Vergleich von Hausdorff--Abstand und symmetrischer Differenz]{Hausdorff-Abstand und symmetrische Differenz im Vergleich\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:VergleichMetrik}
 \end{figure}
 
@@ -666,7 +676,7 @@ Vergleicht man die beiden Referenzpunkte, so kann man sehen, dass der Schwerpunk
 \begin{figure}
 	\centering
 	\includegraphics[scale=.8]{Referenzpunkte.eps}
-	\caption[Vergleich beider Referenzpunkte]{Hier kann man beide Referenzpunkte im Vergleich sehen (der Schwerpunkt der Massenverteilung ist rot, der Steiner--Punkt grün) }
+	\caption[Vergleich beider Referenzpunkte]{Hier kann man beide Referenzpunkte im Vergleich sehen (der Schwerpunkt der Massenverteilung ist rot, der Steiner--Punkt grün) \\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:Referenzpunkte}
 \end{figure}
 

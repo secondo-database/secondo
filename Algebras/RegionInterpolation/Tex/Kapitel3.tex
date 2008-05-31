@@ -11,12 +11,12 @@ Zu den Matchingverfahren, die die Autoren in \cite{TG} vorgestellt haben, wurden
 \begin{enumerate}
 \item Position of centroid\index{Match!Schwerpunkt}
 
-In dem Paper wurde die M"oglichkeit des Matchens mit dem Schwerpunkt nicht weiter betrachtet, da die Autoren davon ausgehen, dass ein Referenzpunkt, der auch au"serhalb des Polygons liegen kann, nicht zu guten Matchings f"uhren kann. Hierzu muss angemerkt werden, dass im Rahmen der vorliegenden Arbeit das Matching auf Ebene des \textit{ConvexHullTrees} durchgef"uhrt wird und lediglich mit konvexen H"ullen von Polygonen gearbeitet wird. Der Schwerpunkt einer konvexen H"ulle liegt aber wieder innerhalb dieser. Wenngleich der Punkt nicht zwangsl"aufig auch innerhalb des repr"asentierten Polygons liegt. Au"serdem erscheint es plausibel, dass ein Referenzpunkt--Verfahren seine St"arke gerade dort haben wird, wo die "Uberlappungsalgorithmen ihre Schw"achen haben, nämlich bei sich relativ schnell bewegenden, kleinen Objekten.
+In dem Paper wurde die M"oglichkeit des Matchens mit dem Schwerpunkt nicht weiter betrachtet, da die Autoren davon ausgehen, dass ein Referenzpunkt, der auch au"serhalb des Polygons liegen kann, nicht zu guten Matchings f"uhren kann. Hierzu muss angemerkt werden, dass im Rahmen der vorliegenden Arbeit das Matching auf Ebene des \textit{ConvexHullTrees} durchgef"uhrt wird und lediglich mit konvexen H"ullen von Polygonen gearbeitet wird. Der Schwerpunkt einer konvexen H"ulle liegt aber wieder innerhalb dieser. Wenngleich der Punkt nicht zwangsl"aufig auch innerhalb des repr"asentierten Polygons liegt. Au"serdem erscheint es plausibel, dass ein Referenzpunkt--Verfahren seine St"arke gerade dort haben wird, wo die "Uberlappungsalgorithmen ihre Schw"achen haben, nämlich bei sich relativ schnell bewegenden, kleinen Objekten. Ein Beispiel für solche Objekte wird in Abbildung~\vref{fig:SchnelleBewegung} skizziert.
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption[Beispiel für den Vorteil von Referenzpunktverfahren]{Beispiel für viele kleine Flächen, die sich relativ schnell bewegen. Wie man sehen kann, würde ein Überlappungsverfahren hier kein einziges Match, das Referenzpunktverfahren aber eventuell alle möglichen finden.}
+	\includegraphics[scale=0.8]{3_1.1.eps}
+	\caption[Beispiel für den Vorteil von Referenzpunktverfahren]{Beispiel für viele kleine Flächen, die sich relativ schnell bewegen. Wie man sehen kann, würde ein Überlappungsverfahren hier kein einziges \textit{Match}, das Referenzpunktverfahren aber eventuell alle möglichen finden.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:SchnelleBewegung}
 \end{figure}
 
@@ -29,17 +29,17 @@ Der Vorschlag, "`n"achste Nachbarn"' zu benutzen, hat den Nachteil, dass so nur 
 
 Das Verfahren wurde analog zur Beschreibung Erlend T\o{}ssebros, wie in \vref{fixedThre} kurz dargestellt, "ubernommen und implementiert. 
 
-Nach kurzer Überlegung kommt man zu dem Schluss, dass dieses Verfahren Schwächen aufweisen wird, wenn sich kleine Flächen so stark bewegen, dass diese sich nicht mehr, oder nur noch wenig überlappen. Bei kompliziert aufgebauten Flächen, die sich relativ wenig bewegen, wird dieses Verfahren aber den Vorteil aufweisen, dass relativ wenige falsche Flächen gematcht werden.
+Nach kurzer Überlegung kommt man zu dem Schluss, dass dieses Verfahren Schwächen aufweisen wird, wenn sich kleine Flächen so stark bewegen, dass diese sich nicht mehr, oder nur noch wenig überlappen. Bei kompliziert aufgebauten Flächen, die sich relativ wenig bewegen, wird dieses Verfahren aber den Vorteil aufweisen, dass relativ wenige falsche Flächen gematcht werden. Ein Beispiel für solche Flächen wird in Abbildung~\vref{fig:OverlapVorteil} gezeigt.
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption[Beispiel für den Vorteil des Overlaping-Match]{Beispiel eine Matches von komplizierten Regionen. Wie man sehen kann, würde ein Überlappungsmatch nur die richtigen Übereinstimmungen zurückgeben, ein Referenzpunktverfahren aber deutlich mehr.}
+	\includegraphics[scale=0.6]{3.2.eps}
+	\caption[Beispiel für den Vorteil des Overlaping-Match]{Beispiel eine \textit{Matches} von komplizierten Regionen. Wie man sehen kann, würde ein Überlappungsmatch nur die richtigen Übereinstimmungen zurückgeben, ein Referenzpunktverfahren aber deutlich mehr.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:OverlapVorteil}
 \end{figure}
 
 
-\item Maximize Overlap (set of cycles)
+\item Maximize Overlap (set of cycles) 
 
 Dieses Verfahren k"onnte interessant sein, da es aber im  Rahmen dieser Arbeit nicht möglich ist, alle interessanten Matchings zu implementieren, wurde auf die Implementierung dieses Matchings verzichtet.
 
@@ -54,12 +54,12 @@ Wie unter \vref{BedeutungAAR} bereits ausgeführt wurde, wurde der Algorithmus $
 Es gilt im Wesentlichen dasselbe wie  im letzten Absatz. Nicht die Algorithmen aus der Arbeit, sondern die beiden Verfahren ,,Fixend threshold'' und ,,Position of centroid'' aus \cite{TG}, wurden implementiert. Wie unter \vref{BedeutungAFRW} ausgeführt wird, weisen beide Verfahren  eine gewisse Verwandtschaft zu dem einfachsten Algorithmus dieser Arbeiten auf. 
 
 
-\subsection{\index{Match!Refenrzpunkt}Matching mit Referenzpunkten}
+\subsection{\index{Match!Referenzpunkt}Matching mit Referenzpunkten}
 
 Die meisten Matching-Verfahren basieren auf Referenzpunkten. Unter \vref{AARR} und \vref{AFRWW} wurden Verfahren angegeben, die zu bestimmten Referenzpunkten Matchings mit garantierter Qualität liefern. Es folgten nun einige Gedanken darüber, wie man Referenzpunktverfahren durchführen könnte.
 
 
-\subsubsection*{Statistische Analyse}
+\subsubsection*{Statistische Analyse}\label{StatistikAlgo}
 
 Zunächst kann man ein Feld aufgebauen, in dem zu jeder Kombination von Cycles die Entfernung der Referenzpunkte eingetragen wird. Sortiert man dieses Feld aufsteigend nach den Entfernungen, steht zu erwarten, dass es zwischen den erwünschten und den unerwünschten Beziehungen einen Sprung in dem Graphen geben wird.  Dieser Sprung m"usste mit geeigneten statistischen Verfahren bestimmt werden k"onnen. 
 
@@ -69,10 +69,36 @@ Aufgrund der oben benannten schlechten Laufzeit und unter dem Aspekt, dass kein 
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption[Beispiel für eine statistische Analyse]{Beispiel für den Graphen aller Entfernungslängen eines Matches mit eingezeichneter Schwelle}
-	\label{fig:statistik}
+	\includegraphics[scale=0.65]{Statistik.eps}
+	\caption[Flächen als Beispiel einer statistischen Analyse]{Diese Flächen bilden ein Beispiel zu dem eine statistische Analyse die korreke Matches finden soll. Zusätzlich sind die Schwerpunkte der Flächen eingetragen. \\\textit{Quelle: Eigene Darstellung}}
+	\label{fig:StatistikFla}
 \end{figure}
+
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.7]{StatistikDia.eps}
+	\caption[Diagramm einer statistischen Analyse]{Ein Diagramm aller Entfernungslängen eines \textit{Matches} der Regionen aus \vref{fig:StatistikFla}. Zwischen dem fünften und dem sechsten Wert kann man einen deutlichen Sprung sehen.\\\textit{Quelle: Eigene Darstellung}}
+\label{fig:statistik}
+\end{figure}
+
+\begin{table}
+\caption{Diese Tabelle zeigt alle Entfernungen zwischen den Schwerpunkten der Flächen aus \vref{fig:StatistikFla}. Die Entfernungen, die über der Schwelle, die in \vref{fig:statistik} gefunden wurde, liegen sind markiert.}
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+&\textbf{(-103 ; 25)}&\textbf{(-37 ; 55)}&\textbf{(13 ; 73)}&\textbf{(86 ; 43)}&\textbf{(14 ; -14)}\\
+\hline
+\textbf{(-87 ; 29)}&\textbf{\textit{16,49}}&56,36&109,25&173,57&109,77\\
+\hline
+\textbf{(-11 ; 67)}&101,13&\textbf{\textit{28,64}}&\textbf{\textit{24,74}}&99,92&84,77\\
+\hline
+\textbf{(-4 ; -3)}&102,88&66,73&77,88&101,07&\textbf{\textit{21,1}}\\
+\hline
+\textbf{(79 ; 30)}&182,07&118,66&78,77&\textbf{\textit{14,76}}&78,49\\
+\hline
+
+\end{tabular} 
+\end{table}
 
 
 \subsubsection*{\index{Match!Schwellwert}Schwellwertverfahren}\label{Schwellwert}
@@ -83,11 +109,15 @@ Die Laufzeit dieses Verfahrens ist wesentlich besser. Zu jedem der $m\times n$ v
 
 Aufgrund der Verschiedenheit der m"oglichen Daten ist ein solcher absoluter Schwellwert $t_{abs}$ nat"urlich nicht handhabbar, so dass die Matchingfunktion mit einem relativen Schwellwert $t_{rel}$ (in \%) arbeiten muss. Aus diesem wird dann intern ein absoluter Schwellwert berechnet, der dann wie oben verwendet wird: Man berechnet $t_{abs}$, indem man $t_{rel}$ mit dem gr"o"sten Abstand multipliziert, den die beiden Regionen voneinander haben. Leider ben"otigt man f"ur die Berechnung dieses Wertes $O(n\cdot m)$. Praktisch wird deshalb ein Algorithmus verwendet, der in $O((n+m)\log{(n+m)})$ einen sehr "ahnlichen Wert berechnet. (Siehe hierzu \vref{maxDist}).
 
-\subsubsection*{Neuronale Netze}
+\subsubsection*{Neuronale Netze}\label{neuroNetz}
 
 Man kann die Problematik, Matches von Referenzpunkten zu finden, auch wie folgt beschreiben: In einer Menge von Punkten im $\mathbb{R}^2$ werden Klassen von zusammengehörenden Punkten gesucht.
 
-Solche Klassifizierungsaufgaben sind genau das klassische Einsatzgebiet von neuronalen Netzen. Es steht zu vermuten, dass ein Lernverfahren auf Basis von neuronalen Klassifikatoren sehr gute Ergebnisse liefern wird. Der Rahmen dieser Arbeit würde aber von einem solchen deutlich überschritten.
+Solche Klassifizierungsaufgaben sind genau das klassische Einsatzgebiet von neuronalen Netzen. Es steht zu vermuten, dass ein Lernverfahren auf Basis von neuronalen Klassifikatoren sehr gute Ergebnisse liefern wird. 
+
+Auch \textit{Support--Vektor--Maschinen},\index{Support--Vektor--Maschine} wie sie in \cite{SchSm} beschieben werden könnten bei dieser Klassifikation hilfreich sein. Die Idee dieser Maschinen ist es, die Klassifikation durch eine Hyperebene vorzunehmen, deren Rand, in welchem sich keine zu klassifizierenden Objekte befinden, möglichst breit ist. Damit man eine solche Hyperebene benutzen kann, muss der Vektorraum der Objekte in einen geeigneten höherdimensionalen Vektorraum transformiert werden. 
+
+Der Rahmen dieser Arbeit würde aber von beiden Verfahren deutlich überschritten.
 
 \subsection{Beseitigung von 1:n Matches}\label{1zuN}
 
@@ -144,8 +174,8 @@ Die das Matching abschlie"sende Funktion kann solche F"alle erkennen, indem es d
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption[Beispiel für gedrehte Polygone]{Beispiel für gedrehte Polygone bei denen das ,,rotating plane'' Vefahren versagt, da die Öffnungen der Konkavitäten kein Trapez bilden.}
+	\includegraphics[width=.8 \textwidth]{dreh1.eps}
+	\caption[Beispiel für gedrehte Polygone]{Beispiel für gedrehte Polygone bei denen das \textit{rotating plane} Vefahren versagt, da die Öffnungen der Konkavitäten kein Trapez bilden.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:gedrehteMatches}
 \end{figure}
 
@@ -161,8 +191,8 @@ In diesem Fall verschwindet die Konkavit"at auf der einen Seite  und zeitgleich 
 In diesem Fall werden beide Konkavit"aten in L"ocher verwandelt, die dann zueinander gematcht werden. Im Resultat w"urde sich die Konkavit"at von der einen Seite abl"osen und zu der anderen Seite wandern. M"oglicherweise sieht dieses Verfahren nat"urlicher aus, es ist aber nicht absehbar, was passiert, wenn der Weg zwischen den beiden Positionen nicht "`frei"' ist (etwa weil sich hier ein weiteres Loch oder eine Konkavit"at befindet). Aus diesen Gründen wurde das erste Verfahren implementiert.
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption[Schnappschüsse von den gedrehten Polygonen]{Zwei Schnappschüsse von dem Match aus Abbildung~\vref{fig:gedrehteMatches}, in dem die Konkavitäten gegen $null$ gematcht wurden.}
+	\includegraphics[width=.8 \textwidth]{dreh2.eps}
+	\caption[Schnappschüsse von gedrehten Polygonen]{Zwei Schnappschüsse von dem \textit{Match} aus Abbildung~\vref{fig:gedrehteMatches}, in dem die Konkavitäten gegen $null$ gematcht wurden.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:gedrehteMatches2}
 \end{figure}
 
@@ -287,7 +317,7 @@ Der Wert für ein \textit{Face} wird berechnet, indem man zu dem Hashwert des \t
 
 Der Hashwert einer \textit{Region} setzt sich wiederum aus den Hashwerten seiner \textit{Faces} und einem weiteren konstanten Summanden zusammen.
 \end{itemize}
-
+\newpage
 \subsubsection{\index{splitline}Berechnung einer Zerlegungslinie für einen \textit{ConvexHullTreeNode} aus zwei anderen}\label{ZerteilungsAlgo}
 
 Dieser Algorithmus bekommt ein zu zerteilendes ConvexHullTreeNode ($A$) und zwei andere ConvexHullTreeNodes ($B_1$ und $B_2$). Berechnet werden soll nun ein Linienzug, der die Lage und Form von $B_1$ und $B_2$ möglichst gut wiedergeben soll und an dem sich $A$ zerteilen lassen kann.
@@ -296,8 +326,8 @@ Die weitere Besprechung dieses Algorithmus wird am Beispiel von drei Polygonen v
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.6]{ZuZersplitten.eps}
-	\caption[Zu teilendes Polygon mit Referenzpolygonen]{Die Polygone $A$ (gelb), $B_1$ (blau) und $B_2$ (rot).}
+	\includegraphics[scale=0.45]{ZuZersplitten.eps}
+	\caption[Zu teilendes Polygon mit Referenzpolygonen]{Die Polygone $A$ (gelb), $B_1$ (blau) und $B_2$ (rot).\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:ZuZersplitten}
 \end{figure}
 
@@ -366,8 +396,8 @@ Entfernung&
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.6]{RectDist.eps}
-	\caption[Punkte mit einem rechtwinkeligen Abstand zur Schwerpunktlinie]{Alle Punkte von $B_1$ und $B_2$, die in dem Streifen zwischen den beiden Schwerpunkten von $B_1$ und $B_2$ (namens $M_1$ und $M_2$) liegen.}
+	\includegraphics[scale=0.5]{RectDist.eps}
+	\caption[Punkte mit einem rechtwinkeligen Abstand zur Schwerpunktlinie]{Alle Punkte von $B_1$ und $B_2$, die in dem Streifen zwischen den beiden Schwerpunkten von $B_1$ und $B_2$ (namens $M_1$ und $M_2$) liegen.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:RectDist}		
 \end{figure}
 
@@ -377,7 +407,7 @@ Nun nimmt man aus jeder Liste die beiden oberen Punkte und betrachtet die Linie 
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.6]{Mittelpunkte.eps}
-	\caption[Verbindungslinien und deren Mittelpunkte]{Alle gefilterten Punkte aus $B_1$ und $B_2$, die zulässigen Verbindungslinien und deren Mittelpunkte.}
+	\caption[Verbindungslinien und deren Mittelpunkte]{Alle gefilterten Punkte aus $B_1$ und $B_2$, die zulässigen Verbindungslinien und deren Mittelpunkte.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:Mittelpunkte}
 \end{figure}
 
@@ -385,8 +415,8 @@ Der Linienzug, der sich nun aus der Liste $Mittelpunktlinie$ ergibt, liegt genau
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.6]{MittelpunktLinie.eps}
-	\caption{$B_1$ und $B_2$ mit dem berechneten Linienzug.}
+	\includegraphics[scale=0.4]{MittelpunktLinie.eps}
+	\caption[Polygone mit dem berechneten Linienzug]{$B_1$ und $B_2$ mit dem berechneten Linienzug.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:MittelpunktLinie}
 \end{figure}
 
@@ -410,11 +440,11 @@ Wie man schon an dem willkürlichen Faktor 5\% sehen kann, liefert dieser Algori
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.6]{Ergebnis.eps}
-	\caption{Das Polygon $A$ mit der berechneten SplitLine.}
+	\caption[Polygon mit der berechneten SplitLine]{Das Polygon $A$ mit der berechneten \textit{SplitLine}.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:SplitLine}
 \end{figure}
 
-
+\clearpage
 \subsubsection{Zerteilte Löcher als Konkavitäten in ein \textit{Cycle} einbauen}\label{JoinLL}
 
 Wenn durch die Teilung eines \textit{Faces} auch die Teilung eines \textit{Holes} verursacht wird, so werden aus den beiden neuen Polygonen Konkavitäten in den beiden neuen \textit{Faces}. Zunächst muss jede dieser Konkavitäten dem passenden \textit{Face} zugeordnet werden. Hierzu sucht man einen Punkt des neuen Polygons, der nicht auf dem Rand eines \textit{Faces} liegt. Das passende \textit{Face} ist dann dasjenige, in welchem der gewählte Punkt liegt. 
@@ -423,8 +453,8 @@ Als Beispiel betrachten wir das Polygon $A$ aus dem letzten Abschnitt als \texti
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.6]{JLL1.svg.eps}
-	\caption[Ein Face mit einem Hole wird geteilt]{$A$ aus dem letzten Beispiel, jetzt um ein zu teilendes Hole ergänzt.}
+	\includegraphics[width=0.5\textwidth]{JLL1.svg.eps}
+	\caption[Face mit einem Hole wird geteilt]{$A$ aus dem letzten Beispiel, jetzt um ein zu teilendes \textit{Hole} ergänzt.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:JLL1}
 \end{figure}
 
@@ -451,8 +481,8 @@ Schließlich ist $res=(0, 1, 2, 3, 4, 5, 107, 100, 101, 102, 103, 9, 10, 11, 12)
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.6]{JLL2.svg.eps}
-	\caption{Die beiden neu entstandenen Polygone sollen verbunden werden.}
+	\includegraphics[width=0.5 \textwidth]{JLL2.svg.eps}
+	\caption[Verbindung zweier Polygone] {Die beiden neu entstandenen Polygone sollen verbunden werden.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:JLL2}
 \end{figure}
 
@@ -460,7 +490,7 @@ Schließlich ist $res=(0, 1, 2, 3, 4, 5, 107, 100, 101, 102, 103, 9, 10, 11, 12)
 \begin{figure}
 \subfigure[Beide Berührungspunkte liegen auf der selben Facelinie.]{\includegraphics[width=0.35\textwidth]{Sonderfall1JLL.svg.eps}}\hfill
 \subfigure[Der erste Punkt des Holes ist auch ein Punkt des Faces]{\includegraphics[width=0.35\textwidth]{Sonderfall2JLL.svg.eps}}
-\caption[Sonderfälle, die bei der Vereinigung auftreten können]{Sonderfälle, die bei der Vereinigung auftreten können und wegen denen man die Funktion $getClosestBoundaryPoint$ benötigt.}
+\caption[Sonderfälle die bei der Vereinigung auftreten können]{Sonderfälle, die bei der Vereinigung auftreten können und wegen denen man die Funktion \textit{getClosestBoundaryPoint} benötigt.\\\textit{Quelle: Eigene Darstellung}}
 \label{fig:SonderfaelleJLL}
 \end{figure}
 
@@ -468,22 +498,23 @@ Schließlich ist $res=(0, 1, 2, 3, 4, 5, 107, 100, 101, 102, 103, 9, 10, 11, 12)
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.6]{JLL3.svg.eps}
-	\caption{Das fertig zusammengesetzte Polygon.}
+	\includegraphics[width=0.6\textwidth]{JLL3.svg.eps}
+	\caption[Fertig zusammengesetztes Polygon]{Das fertig zusammengesetzte Polygon.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:JLL3}
 \end{figure}
 
 
-
+\clearpage
 \subsubsection{\index{Rotaring Plane}Rotating Plane} \label{rotPane}
 In \cite{TG} wurde bereits der Algorithmus ,,rotating Plane'' vorgestellt. Im Laufe der vorliegenden Arbeit wurde eine andrere Implementierung dieses Algorithmus entwickelt und hierbei eine Version gefunden, die sowohl einfacher ist als auch erheblich weniger Fallunterscheidungen benötigt.
 
 Die Idee dieses Algorithmus ist es, zu jeder Kante den Winkel zu bestimmen, den dieser mit der x"~Achse bildet. Zu zwei Ecken, die sich eine gemeinsame Kante teilen, konstruiert man ein Dreieck mit dem Startpunkt der Kante des anderen Polygons, dessen Winkel zwischen den Winkeln des Startpolygons liegt.
 
 \begin{figure}
-	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption[Tabellendarstellung des ,,rotating Plane'']{Diese Abbildung zeigt die beiden Felder zweier Vierecke und zeigt, welche Punkte zusammen ein \textit{MovingSegment} bilden.}
+\centering
+\subfigure[Zwei Vierecke, die als Beispiel betrachtet werden.]{\includegraphics[width=0.4\textwidth]{RotatingPlane2.svg.eps}}
+\subfigure[Die Tabelle zeigt welche Kanten auf welche Ecken gematcht werden.]{\includegraphics[width=0.7\textwidth]{RotatingPlane.eps}}
+	\caption[Tabellendarstellung des rotating Plane]{Diese Abbildung zeigt die beiden Felder zweier Vierecke und zeigt, welche Punkte zusammen ein \textit{MovingSegment} bilden.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:RotatinPane}
 \end{figure}
 
@@ -537,7 +568,9 @@ Die Funktion \textbf{finde\_passenden\_Index()} durchsucht ein Feld, das ein kon
 }
         	\uWenn{$Polygon[0].Winkel=Winkel$ und $Gleiche\_Winkel$}{
         			Gebe den Index 0 zur"uck\;
-}        
+}        	\uWenn{$Polygon[0].Winkel=Winkel$ und nicht $Gleiche\_Winkel$}{
+        			Gebe den Index 1 zur"uck\;
+}
         	\Wenn{$Winkel>Polygon[letzer\_Index].Winkel$}{
         		Gebe den Index 0 zur"uck\;
 }
@@ -575,8 +608,8 @@ Dieser Algorithmus funktioniert nicht nur für einfache Polygone, sondern auch f
 
 \begin{figure}
 	\centering
-	\includegraphics{feu_logo2.eps}
-	\caption{Ein Beispiel, wie ein Face mit einem Hole in konvexe Polygone zerfällt.}
+	\includegraphics[scale=.9]{Convexer2.svg.eps}
+	\caption[Face mit einem Hole das in konvexe Polygone zerfällt]{Ein Beispiel, wie ein \textit{Face} mit einem \textit{Hole} in konvexe Polygone zerfällt. Gut zu sehen ist, dass der linke Teil des \textit{Faces} nicht in Dreiecke zerfällt, sondern in größere konvexe Polygone.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:ZerlegungFace}
 \end{figure}
 
@@ -636,16 +669,51 @@ Im Anschuss daran wird das Ausgangspolygon nach zusammenh"angenden Linienz"ugen 
 
 Schlie"slich wird dieser Algorithmus rekursiv f"ur alle diese Linienz"uge aufgerufen und die Ergebnisse werden an die entsprechenden Stellen des Vaterknoten eingeh"angt.
 
+\begin{algorithm}[!ht]
+
+\SetKwFunction{cH}{berechne\_konvexe\_H"ulle}
+	\caption{Erzeuge einen konvexen H"ullenbaum aus einem Polygon}
+	\Ein{\begin{tabular}{ll}
+		Polygon: &Ein Polygon, repr"asentiert durch eine geordnete Liste von \\
+			&Eckpunkten\\
+		Ebene:	&Die Ebene des zu erzeugenden Elementes\\
+		ist\_Loch: &Ein boolescher Parameter, der angibt, ob das neue Element \\
+			&zu einem Loch geh"ort\\
+		Vater:	&Das Vaterelement des neuen Hüllenbaums\\
+		\end{tabular}}
+	\BlankLine
+	\Ergebnis{Ein konvexer H"ullenbaum, der das "ubergebene Polygon beschreibt}
+	\Begin{	
+		Setze die Klassen-Variablen $ist\_Loch$ und $Vater$\;
+		$konvexeH"ulle:=\cH(Polygon)$\;
+		\FuerJedes{$kH_i\in konvexeH"ulle$}{
+			Speichere $konvexeH"ulle_i$ in der $linelist$ des neuen Kontens\;
+			Ermittle $P_{i+1}$, den Punkt des Polygons, der auf $kH_i$ folgt\;
+			\Wenn{$P_{i+1}\not\in konvexeH"ulle$}{
+				Ermittle $linelistChild$, das Feld, welches alle folgenden Punkte aus $Polygon$ enthält die nicht zu $konvexeH"ulle$ gehören\;
+				$kH_i.Kind:=\cH(linelistChild,Ebene+1,ist\_Loch,this)$\;
+}
+}
+}
+ \end{algorithm}
+
+
 \begin{figure}
 	\centering
-	\includegraphics[width=10cm]{Sandershausen.eps}
-	\caption{Die Gemeinde Sandershausen als Beispiel eines ConvexHullTrees}
+	\includegraphics[width=8cm]{Sandershausen.eps}
+	\caption[Gemeinde Sandershausen als Beispiel eines ConvexHullTrees]{Die Gemeinde Sandershausen als Beispiel eines ConvexHullTrees.\\\textit{\begin{tabular}{ll}
+Quelle: &Luftbild: Google Earth\\
+&Zeichnung: Eigene Darstellung
+\end{tabular} }}
 	\label{fig:Sanders}
 \end{figure}
 \begin{figure}
-\subfigure[die Nodes der Level 0-1]{\includegraphics[width=0.45\textwidth]{Sandershausen2.eps}}\hfill
-\subfigure[kompletter ConvexHullTree]{\includegraphics[width=0.45\textwidth]{Sandershausen3.eps}}
-\caption[verschieden detaillierte \textit{ConvexHullTrees}]{Ausschnitt von Sandershausen mit verschieden detaillierten \textit{ConvexHullTrees}}
+\subfigure{\includegraphics[width=0.45\textwidth]{Sandershausen2.eps}}\hfill
+\subfigure{\includegraphics[width=0.45\textwidth]{Sandershausen3.eps}}
+\caption[Verschieden detaillierte ConvexHullTrees]{Ausschnitt von Sandershausen mit verschieden detaillierten \textit{ConvexHullTrees}. Links sieht man die Nodes der Level 0--1, rechts den kompletten Baum\\\textit{\begin{tabular}{ll}
+Quelle: &Luftbild: Google Earth\\
+&Zeichnung: Eigene Darstellung
+\end{tabular} }}
 \label{fig:sand2}
 \end{figure}
 %\begin{figure}%
@@ -661,113 +729,6 @@ Schlie"slich wird dieser Algorithmus rekursiv f"ur alle diese Linienz"uge aufger
 	%\label{fig:sanders3}
 %\end{figure}
 
-\begin{algorithm}[!ht]
-
-\SetKwFunction{cH}{berechne\_konvexe\_H"ulle}
-	\caption{Erzeuge einen konvexen H"ullenbaum aus einem Polygon}
-	\Ein{\begin{tabular}{ll}
-		Polygon: &Ein Polygon, rep"asentiert durch eine geordnete Liste von \\
-			&Eckpunkten\\
-		Ebene:	&Die Ebene des zu erzeugenden Elementes\\
-		ist\_Loch: &Ein boolescher Parameter, der angibt, ob das neue Element \\
-			&zu einem Loch geh"ort\\
-		Vater:	&Das Vaterelement des neuen Hüllenbaums\\
-		\end{tabular}
-}
-	\BlankLine
-	\Ergebnis{Ein konvexer H"ullenbaum, der das "ubergebene Polygon beschreibt}
-	\Begin{
-	
-%         LineWA[] tmplist, convhull, childlist;
-	Setze die Klassen-Variablen $ist\_Loch$ und $Vater$\;
-
-%         int node;
-%         int index1, index2, length, lastindex, noiterations;
-%         int indexll1, indexll2;
-%         this.linelist = new Vector();
-%         smallesty = Integer.MAX_VALUE;
-%         smallestx = Integer.MAX_VALUE;
-%         smallestpoint = -1;       
-	$konvexeH"ulle:=\cH(Polygon)$\;
-%         // Find where the first node in linelist is in the convex hull
-%         // (Or the earliest possible if the first node is not on the hull)
-%         // This is to preserve the order in the linelist in the ordering of
-%         // points in the convex hull tree node.
-	$startindex:=0$\;
-	$endindex:=konvexeH"ulle.L"ange$\;
-	Finde den Index in der konvexen H"ulle, der dem niedrigsten Index in dem Polygon entspricht und speichere diesen in $startindex$\;
-	Finde den Index in der konvexen H"ulle, der dem h"ochsten Index in dem Polygon entspricht und speichere diesen in $endindex$\;
-         %for (int a=0;a<linelist.length;a++)
-% {
-%             index1 = TriRepUtil.indexOf(convhull, linelist[a]);
-%             if (index1 != -1) break;
-% }
-%         for (int a=linelist.length-1;a>=0;a--)
-% {
-%             lastindex = TriRepUtil.indexOf(convhull, linelist[a]);
-%             if (lastindex != -1) break;
-% }
-	\uWenn{$startindex<endindex$}{
-		\Fuer{$i:=startindex$ \KwTo $i\leq endindex$}{	
-			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Kontens\;
-}
-}
-	\Sonst{
-		
-        	\Fuer{$i:=index1$ \KwTo $konvexeH"ulle.L"ange$}
-{
-			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Kontens\;
-}
-		\Fuer{$i:=0$ \KwTo $endindex$}
-{
-			Speichere $konvexeH"ulle[i]$ in der linelist des neuen Kontens\;
-}
-}
-%         // Check lines in convex hull with lines in line list. Whenever two points
-%         // which are neighbours in the convex hull are not neighbours in the line
-%         // list, create a child node from the points between them.
-%         
-%         noiterations = numberOfLines();
-%         index1 = 0;
-%         indexll1 = 0;
-%         while (!(linelist[indexll1].equals(getLine(index1))))
-% {
-%             indexll1++;
-% }
-	\Fuer{$i<konvexeH"ulle.L"ange$}
-{
-%             index2 = index1+1;
-%             indexll2 = indexll1+1;
-%             while (!(linelist[indexll2 % linelist.length].equals(getLine(index2 % noiterations))))
-% {
-%                 indexll2++;
-% }
-%             
-%             if ((indexll2 != indexll1+1) && ((level == 0) ||
-%                     ((indexll2 != linelist.length) && (indexll1 != linelist.length-1)))
-%                     && (indexll2 != indexll1-1))
-% {
-%                 // create child node
-%                 length = indexll2-indexll1+1;
-%                 childlist = new LineWA[length];
-%                 for (int b=0;b<length;b++)
-% {
-%                     if ((b+indexll1) < linelist.length)
-% {
-%                         childlist[length-b-1] = linelist[b+indexll1];
-% }
-%                     else
-% {
-%                         childlist[length-b-1] = linelist[b+indexll1-linelist.length];
-% }
-% }
-%                 insertChild(index1, new ConvexHullTreeNode(childlist, level+1,this.isHole,this));
-% }
-%             index1 = index2;
-%             indexll1 = indexll2;
-}
-}
- \end{algorithm}
 
 \clearpage
 \subsubsection{Bestimmung der maximalen Distanz mehrerer Polygone}\label{maxDist}
@@ -961,7 +922,7 @@ Die einzige interessante Methode, die nicht nur der Verwaltung der \textit{Faces
 \begin{itemize}
 \item splitOnLine
 
-Diese Funktion versucht alle \textit{Faces} an dem übergebenen Linienzug zu teilen und ergänzt die Liste der \textit{Faces} um eventuell auftauchende neue. Die Funktion liefert außerdem eine Liste aller neu hinzugefügten \textit{Faces} als Rückgabe, so dass direkt erkennbar ist, inwieweit diese Operation die \textit{Region} verändert hat.
+Diese Funktion versucht alle \textit{Faces} an dem übergebenen Linienzug zu teilen und ergänzt die Liste der \textit{Faces} um eventuell auftauchende Neue. Die Funktion liefert außerdem eine Liste aller neu hinzugefügten \textit{Faces} als Rückgabe, so dass direkt erkennbar ist, inwieweit diese Operation die \textit{Region} verändert hat.
 
 \end{itemize}
 
@@ -1011,7 +972,7 @@ Diese "Uberpr"uft zwei Komponenten auf Gleichheit.
 
 Die beiden letzten Methoden dienen dazu, SingleMatches in einem HashSet ablegen zu k"onnen, wobei nur die Source-Komponente f"ur das Auffinden des Matches herangezogen wird.
 
-\subsubsection{\index{Match!Klasse}Die abstrakte Klasse Match}
+\subsubsection{\index{Match!Klasse}Die abstrakte Klasse Match}\label{MatchKlasse}
 Diese abstrakte Klasse stellt die wesentlichen Mechanismen zur Verf"ugung, um einfach Matches programmieren zu k"onnen. Es enth"alt die Eigenschaften:
 \begin{itemize}
 \item source
@@ -1037,7 +998,7 @@ Eine Beschreibung der Funktionsweise des Matchings.
 \item Einige Attribute, die der Berechnung der Bewertungen dienen.
 \end{itemize} 
 
-Diese Klasse verf"ugt "uber einige Methoden, die wichtigen davon  sind:
+Diese Klasse verf"ugt "uber einige Methoden. Im Folgenden werdenlediglich die Wichtigen aufgeführt:
 
 \begin{itemize}
 
@@ -1059,7 +1020,7 @@ Diese Methode löscht den übergebenen RegionTreeNode aus der Match-Struktur. Hi
 
 \item getTargetChildren
 
-Diese Methode liefert alle Kinder der Targets als Feld zurück. Falls ein Target ein ConvexHullTreeNode ist, finden sich im R"uckgabefeld alle seine Kinder  wieder; falls Target ein Face ist, werden alle Holes und die Kinder des Cycles zur"uckgegeben. Diese Sonderbehandlung des Faces ist n"otig, da man ein Face mit seinem Cycle identifizieren kann; die L"ocher also quasi Kinder des Cycles sind.
+Diese Methode liefert alle Kinder der Targets als Feld zurück. Ist ein Target ein ConvexHullTreeNode, finden sich im R"uckgabefeld alle seine Kinder  wieder; ist Target ein Face, werden alle Holes und die Kinder des Cycles zur"uckgegeben. Diese Sonderbehandlung des Faces ist n"otig, da man ein Face mit seinem Cycle identifizieren kann; die L"ocher folglich Kinder des Cycles sind.
 
 \item finalize
 
@@ -1131,13 +1092,13 @@ ein Feld, das die erzeugten Segmente aufnimmt.
 
 \end{itemize}
 
-Ruft man den Konstruktor mit einem Match auf, so erzeut dieser die gewünschten Segmente. Unter \vref{rotPane} und \anmerkung{Ref einfügen} wird das Vorgehen hierbei näher erläutert.
+Ruft man den Konstruktor mit einem Match auf, so erzeugt dieser die gewünschten Segmente. Unter \vref{rotPane} und \anmerkung{Ref einfügen} wird das Vorgehen hierbei näher erläutert.
 
 Die einzige Methode der Klasse, die hier von Interesse ist, ist \textbf{getTriangles}, mit deren Hilfe man auf das Ergebnis zugreifen kann.
 
 \subsubsection{\index{Utils}Utils}
 
-Die Klasse Utils stellt einige statische Methoden zur Verfügung, welche aus den anderen Klassen heraus aufrufen werden können.
+Die Klasse Utils stellt einige statische Methoden zur Verfügung, welche aus den anderen Klassen heraus aufgerufen werden können.
 
 \begin{itemize}
 
@@ -1212,7 +1173,7 @@ Diese Methode überprüft, ob mindestens einer der übergebenen Punkte auf dem �
 \section{Die Java-Applikation}\label{java}
 Im Folgenden  wird beschrieben, welche Klassen die Java-Applikation auszeichnen, die diese also von den allgemeinen Klassen (siehe oben) unterscheiden. Naturgemäß finden sich hier im Wesentlichen die GUI-Klassen und die Klassen für den VRML-Export wieder.
 
-Der folgende Abschnitt dient nur der Beschreibung der Klassen und stellt keine Referenz zur Benutzung der Java-Applikation dar. Ein solches findet sich unter Anhang~\vref{Handbuch}.
+Der folgende Abschnitt dient lediglich der Beschreibung der Klassen und stellt keine Referenz zur Benutzung der Java-Applikation dar. Ein solches findet sich unter Anhang~\vref{Handbuch}.
 
 \begin{itemize}
 \item Convexer
@@ -1233,7 +1194,7 @@ Nachdem man ein \textit{Convexer}-Objekt angelegt hat, indem man ihm das zu bear
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.8]{MatchViewer.eps}
-	\caption[Ein MatchViewer mit allen Unteklassen] {Hier sieht man die Komponenten MatchViewer, ConvexHullTreeViewer (CHTV), ConvexHullTreeTreeViewer (CHTTV) und ConvexHullPolygonViewer (CHTPV) zusammen.}
+	\caption[MatchViewer mit allen Unteklassen] {Hier sieht man die Komponenten \textit{MatchViewer}, \textit{ConvexHullTreeViewer} (CHTV), \textit{ConvexHullTreeTreeViewer} (CHTTV) und \textit{ConvexHullPolygonViewer} (CHTPV) zusammen.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:MatchViewer}
 \end{figure}
 
@@ -1261,7 +1222,7 @@ Nachdem man ein Objekt dieser Klasse angelegt hat und ihm dabei den gewünschten
 
 \item ConvexHullTreeViewer
 
-Diese Klasse fasst die beiden Darstellungen als Baum und als Polygon zusammen. Auf der linken Seite dieser GUI-Komponente findet sich die Baum-Darstellung und auf der rechten die Darstellung als Polygon. Die Verbindung zwischen den beiden wird so hergestellt, dass es möglich ist, in der Baumdarstellung ein oder mehrere Nodes zu selektieren, die dann auch in der Polygondarstellung gesondert markiert werden.
+Diese Klasse fasst die beiden Darstellungen als Baum und als Polygon zusammen. Auf der linken Seite dieser GUI-Komponente findet sich die Baum--Darstellung und auf der rechten Seite die Darstellung als Polygon. Die Verbindung zwischen den beiden wird so hergestellt, dass es möglich ist, in der Baumdarstellung ein oder mehrere Nodes zu selektieren, die dann auch in der Polygondarstellung gesondert markiert werden.
 
 \item MatchViewer
 
@@ -1270,7 +1231,7 @@ Dieses Control zeigt einen Match an, indem zwei ConvexHullTreeViewer für die So
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.5]{Sectionviewer.eps}
-	\caption{Ein SectionViewer, bestehend aus drei oneSectionViewern.}
+	\caption[SectionViewer bestehend aus drei oneSectionViewern]{Ein \textit{SectionViewer}, bestehend aus drei \textit{oneSectionViewern}.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:SectionViewer}
 \end{figure}
 
@@ -1291,7 +1252,7 @@ Diese Komponente bekommt neben dem mLineRep-Objekt noch eine Ganzzahl, die den G
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.7]{TriRepOutPutCanvas.eps}
-	\caption{Ein TriRepOutputCanvas.}
+	\caption[TriRepOutputCanvas]{Ein \textit{TriRepOutputCanvas}.\\\textit{Quelle: Eigene Darstellung}}
 	\label{fig:TriRepOutputCanvas}
 \end{figure}
 
@@ -1304,9 +1265,9 @@ Diese Klasse bildet die Zeichenfläche der Applikation. In dieser kann der Benut
 
 \item MCIContents
 
-Diese Klasse vereinigt alle anderen Klassen zu der eigentlichen Applikation. Diese Klasse lässst sich entweder als Applet benutzen oder in ein JFrame einbinden, der damit eine Standalone-Applikation bildet.
+Diese Klasse vereinigt alle anderen Klassen zu der eigentlichen Applikation. Diese Klasse lässt sich entweder als Applet benutzen oder in ein JFrame einbinden, der damit eine Standalone-Applikation bildet.
 \end{itemize}
-\section{Die SECONDO-Algebra \anmerkung{3 Seiten}}\label{rialgebra}
+\section{Die SECONDO-Algebra }\label{rialgebra}
 
 Im Laufe der Arbeit mussten folgende Algebren verändert werden:
 
@@ -1326,5 +1287,6 @@ Um mehrere \textit{RegionUnits} zu vereinigen, musste ein neuer Operator geschri
 
 \subsection{RegionInterpolationAlgebra}
 
-Dieses ist die Algebra, die speziell für diese Arbeit  angelegt wurde. Sie besteht nur aus einem einzigen Operator, der \textbf{interpolate(region  $r_1$,region $r_2$, periods $p$, real $b_1$, real $b_2$, real $b_3$,real $b_4$)$\rightarrow$ uregion} heißt. $r_1$ und $r_2$ geben die Schnappschüsse der zu erzeugenden Region"-Unit an und $p$ das zugeordnete Zeitintervall. Die optionalen Parameter $b_1,\hdots ,b_4$ geben die Gewichtungen für die Berechnung des optimales Matches an. Werden diese nicht angegeben, so benutzt der Operator die in Kapitel~\vref{Kapitel4} bestimmten Werte.
+Dieses ist die Algebra, die speziell für diese Arbeit  angelegt wurde. Sie besteht nur aus einem einzigen Operator, der \textbf{interpolate(region  $r_1$,region $r_2$, periods $p$, real $b_1$, real $b_2$, real $b_3$,real $b_4$)$\rightarrow$ uregion} heißt. $r_1$ und $r_2$ geben die Schnappschüsse der zu erzeugenden Region"-Unit an und $p$ das zugeordnete Zeitintervall. Die optionalen Parameter $b_1,\hdots ,b_4$ geben die Gewichtungen für die Berechnung des optimales Matches an.
+ %Werden diese nicht angegeben, so benutzt der Operator die in Kapitel~\vref{Kapitel4} bestimmten Werte.
 

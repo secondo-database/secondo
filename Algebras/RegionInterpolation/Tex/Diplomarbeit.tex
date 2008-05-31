@@ -1,22 +1,29 @@
-\includeonly{settings,HandbuchInc,titel,Kapitel1,Kapitel2,Kapitel3,Kapitel4,Kapitel5,Kapitel6,Quelltexte,ErstellungEigenerMatches}
+\includeonly{settings,HandbuchInc,titel,Kapitel1,Kapitel2,Kapitel3,Kapitel4,Kapitel5,Kapitel6,Quelltexte,ErstellungEigenerMatches,Erklaerung}
 \include{settings}
 \begin{document}
 \include{titel}
 
-\begin{abstract}
-Diplomarbeit halt
-\end{abstract}
+%\begin{abstract}
+%Diplomarbeit halt
+%\end{abstract}
 \dominitoc[e]
 \doparttoc
 
 \tableofcontents 
-
+%\vfill
+%\begin{verse}
+%Oftmals wollt ich schon verzagen,\\
+%und ich dacht ich trüg es nie,\\
+%und ich hab es doch getragen,\\
+%aber fragt mich nur nicht wie!\\
+%\end{verse} 
+%\textbf{Heinrich Heine}
 %
 
 \include{Kapitel1}
 \include{Kapitel2}
 \include{Kapitel3}
-\include{Kapitel4}
+%\include{Kapitel4}
 \include{Kapitel5}
 \include{Kapitel6}
 
@@ -30,36 +37,14 @@ Diplomarbeit halt
  \include{ErstellungEigenerMatches}
  \chapter{Klassendiagramm}
  \begin{landscape}
+ 
  \begin{figure}	
 	\includegraphics{Klassen.1}
 	\caption{Klassendiagramm mit allen Klassen}
 	\label{fig:UML_Klassendiagramm}
 \end{figure}
 
- \begin{figure}	
-	\includegraphics{Klassen.2}
-	\caption{Die Klasse ConvexHullTreeNode}
-	\label{fig:UML_CHTN}
-\end{figure}
-
- \begin{figure}	
-	\includegraphics{Klassen.3}
-	\caption{Die Klasse RegionTreeNode}
-	\label{fig:UML_RTN}
-\end{figure}
-
- \begin{figure}	
-	\includegraphics{Klassen.4}
-	\caption{Die Klasse Face}
-	\label{fig:UML_Face}
-\end{figure}
-
- \begin{figure}	
-	\includegraphics{Klassen.5}
-	\caption{Die Klasse Region}
-	\label{fig:UML_Region}
-\end{figure}
-
+\end{landscape}
  \begin{figure}	
 	\includegraphics{Klassen.6}
 	\caption{Die Klasse LineWA}
@@ -78,6 +63,37 @@ Diplomarbeit halt
 	\label{fig:UML_LineDist}
 \end{figure}
 
+ \begin{figure}	
+	\includegraphics{Klassen.13}
+	\caption{Die Klasse PointWNL}
+	\label{fig:UML_PWNL}
+\end{figure}
+
+ \begin{figure}	
+	\includegraphics{Klassen.2}
+	\caption{Die Klasse ConvexHullTreeNode}
+	\label{fig:UML_CHTN}
+\end{figure}
+
+
+ \begin{figure}	
+	\includegraphics{Klassen.4}
+	\caption{Die Klasse Face}
+	\label{fig:UML_Face}
+\end{figure}
+
+ \begin{figure}	
+	\includegraphics{Klassen.5}
+	\caption{Die Klasse Region}
+	\label{fig:UML_Region}
+\end{figure}
+
+ \begin{figure}	
+	\includegraphics{Klassen.3}
+	\caption{Die Klasse RegionTreeNode}
+	\label{fig:UML_RTN}
+\end{figure}
+
 \begin{figure}	
 	\includegraphics{Klassen.9}
 	\caption{Die statische Hilfs-Klasse Utils}
@@ -90,7 +106,46 @@ Diplomarbeit halt
 	\label{fig:UML_SingleMatch}
 \end{figure}
 
-\end{landscape}
+\begin{figure}	
+	\includegraphics{Klassen.11}
+	\caption{Die Klasse Match}
+	\label{fig:UML_Match}
+\end{figure}
+
+\begin{figure}	
+	\includegraphics{Klassen.12}
+	\caption{Die Klasse CentroidMatch}
+	\label{fig:UML_CMatch}
+\end{figure}
+
+
+\begin{figure}	
+	\includegraphics{Klassen.14}
+	\caption{Die Klasse SteinerPointMatch}
+	\label{fig:UML_SMatch}
+\end{figure}
+
+\begin{figure}	
+	\includegraphics{Klassen.15}
+	\caption{Die Klasse OverlapingMatch}
+	\label{fig:UML_OMMatch}
+\end{figure}
+
+\begin{figure}	
+	\includegraphics{Klassen.17}
+	\caption{Die Klasse OptimalMatch}
+	\label{fig:UML_OptimalMatch}
+\end{figure}
+
+
+\begin{figure}	
+	\includegraphics{Klassen.16}
+	\caption{Die Klasse mLineRep}
+	\label{fig:UML_mLineRep}
+\end{figure}
+
+
+
  \include{Quelltexte} 
   
  \printindex
@@ -100,6 +155,7 @@ Diplomarbeit halt
 
 \bibliographystyle{geralpha}
 \listoffigures
+\include{Erklaerung}
  \end{appendix}
 
 

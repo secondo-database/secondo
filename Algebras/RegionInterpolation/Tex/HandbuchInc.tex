@@ -5,32 +5,34 @@
 \section{Einleitung}
 Im Rahmen dieser Diplomarbeit entstand neben einer neuen Algebra f"ur SECONDO, auch eine Java-Anwendung, die dieselbe Arbeitsweise wie die Algebra aufweist. Die Benutzung dieses Tools wird im Folgenden erl"autert.
 
-Das Tool dient in erster Line dem besseren Verst"andnis, wie die Algebra funktioniert. Ein Import oder Export mit SECONDO ist nicht m"oglich.
+Das Tool dient dabei in erster Line dem besseren Verst"andnis, wie die Algebra funktioniert. Ein Import oder Export mit SECONDO ist nicht m"oglich.
 
 \section{Starten des Tools}
 Das Tool ist in Java geschrieben und liegt als Jar-Datei vor. Um das Programm ausf"uhren zu k"onnen, muss deshalb eine Java Laufzeitumgebung ab Version~1.4 vorhanden sein. Ist dies der Fall, so l"asst sich das Programm mittels \begin{verbatim}
 java -jar MCInterpolator.jar
 \end{verbatim}  starten.
 
-Es erscheint der Startbildschirm, der in Abbildung~\vref{fig:start}dargestellt wird.
+Es erscheint der Startbildschirm, der in Abbildung~\vref{fig:start} dargestellt wird.
+
+\begin{figure}[ht]
+   \centering
+   \includegraphics[scale=.8]{/home/java/Documents/Tex/Tex/start.eps}
+   \caption[Startbildschirm]{Der Startbildschirm \\\textit{Quelle: Eigene Darstellung}}
+   \label{fig:start}
+\end{figure}
 
 Dieser l"asst sich in vier Bereiche unterteilen:
 \begin{itemize}
 \item Eine Toolbar, die den VRML-Export Button und den Zeit-Einsteller beinhaltet. 
 \item Die Zeichen-Toolbar wozu sich nähere Informationen im Kapitel ,,Zeichnen einer Region`` finden.
 \item Der Zeichenbereich wo man neue Regionen zeichnen kann und importierte Regions betrachtet.
-\item Die Umschaltfl"achen  mit denen zwischen den verschiedenen Werkzeugen gewechselt werden kann. Nach dem Starten findet sich hier neben der Zeichenf"ache nur Konfigurationsschaltfl"ache, die im Kapitel ,,Konfigurieren des Matchings`` n"aher beschrieben werden. Schlie"st man die Zeichnung von zwei Regions ab, tauchen weitere Schaltfl"achen auf, die im Kapitel ,,Die verschiedenen Ergebnisansichten`` erl"autert werden.
+\item Die Umschaltfl"achen  mit denen zwischen den verschiedenen Werkzeugen gewechselt werden kann. Nach dem Starten findet sich hier neben der Zeichenfl"ache eine Konfigurationsschaltfl"ache, die im Kapitel ,,Konfigurieren des Matchings`` n"aher beschrieben werden. Schlie"st man die Zeichnung von zwei Regionen ab, erscheinen weitere Schaltfl"achen, die im Kapitel ,,Die verschiedenen Ergebnisansichten`` erl"autert werden.
 \end{itemize} 
 
-\begin{figure}
-   \centering
-   \includegraphics[scale=.8]{/home/java/Documents/Tex/Tex/start.eps}
-   \caption{Der Startbildschirm}
-   \label{fig:start}
-\end{figure}
+
 
 \section{Zeichnen einer Region}
-Direkt nach dem Starten der Anwendung kann man anfangen, das erste Face zu zeichnen.  Das Zeichnen geht immer so vor sich, dass man die Punkte des Polygons nacheinander mit der Maus anklickt. Der neue Punkt und die dazugeh"orige Linie werden direkt dargestellt. 
+Nach dem Starten der Anwendung kann direkt begonnen werden, das erste Face zu zeichnen. Durch Betätigen der linken Maustaste werden die einzelnen Punkte des Polygons nacheinander gezeichnet. Der neue Punkt und die dazugeh"orige Linie werden automatisch dargestellt. 
 
 Das Polygon muss nicht geschlossen werden, aber es ist zu beachten, dass alle Polygone einfache Polygone sein m"ussen. Eine entsprechende "Uberpr"ufung findet nicht statt.
 
@@ -42,11 +44,11 @@ Dieser Button l"oscht alle bereits eingegebenen Zeichnungen und hinterl"asst ein
 
 \item addHole
 
-Hiermit kann man dem letzten Face ein Hole hinzuf"ugen. Holes unterscheiden sich von Faces darin, dass sie nicht blau sondern rot sind. Ein Hole muss komplett innerhalb seines Faces liegen. Dies sicherzustellen ist die Aufgabe des Benutzers, eine "Uberpr"ufung findet nicht statt.
+Dieser Button fügt dem zuletzt erstellten Face ein Hole hinzu. Holes unterscheiden sich von Faces darin, dass sie nicht blau sondern rot sind. Ein Hole muss in seiner Gesamtheit innerhalb seines Faces liegen. Dies sicherzustellen ist die Aufgabe des Benutzers, eine "Uberpr"ufung findet nicht statt.
 
 \item StoreSnapshot
 
-Soll die Zeichnung einer Region beendet werden, so muss auf diesen Button geklickt werden. Falls es der erste Schnappschuss ist, der beendet wird, so f"arbt sich dieser blasser, und man  kann den n"achsten zeichnen. Wird aber der zweite beendet, so wird das passende Match berechnet und in den zus"atzlichen Schaltfl"achen dargestellt, die sich in ,,Die verschiedenen Ergebnisansichten`` finden.
+Dieser Button beendet die Zeichnung einer Region. Falls es der erste Schnappschuss ist, der beendet wird, so f"arbt sich dieser blasser, und man  kann den n"achsten zeichnen. Wird aber der zweite beendet, so wird das passende Match berechnet und in den zus"atzlichen Schaltfl"achen dargestellt, die sich in ,,Die verschiedenen Ergebnisansichten`` finden.
 \end{itemize} 
 
 \section{Importieren / Exportieren}
@@ -54,9 +56,10 @@ Zum Importieren und Exportieren von Schnappsch"ussen, die mit diesem Programm er
 
 ,,Save First``, ,,Save Sec`` und ,,Load``. Wird auf einen der beiden Save-Buttons gedrückt, so "offnet sich ein Dateiauswahl-Dialog, in dem ein Dateiname f"ur die Schnappschuss-Datei angeben werde kann.
 
-Mit Hilfe des Load-Buttons k"onnen dann diese Schnappsch"usse einzeln wieder geladen werden. Falls bereits zwei Schnappsch"usse in dem Programm sind, so muss man ,,Draw`` dr"ucken, bevor neue Dateien einlesen.
+Mit Hilfe des Load-Buttons k"onnen dann di jeweiligen Schnappsch"usse einzeln wieder geladen werden. Falls bereits zwei Schnappsch"usse in dem Programm sind, ist das erneute Betätigen des Draw--Button notwendig, bevor neue Dateien eingelesen werden können.
+
 \section{Konfigurieren des Matchings}
-Hinter der Schaltfl"ache ,,Config`` verbirgt sich ein Dialogfenster (siehe Abbildung \vref{fig:Config}), in dem einige Einstellungen vorgenommen werden k"onnen:
+Hinter der Schaltfl"ache ,,Config`` verbirgt sich ein Dialogfenster (siehe Abbildung~\vref{fig:Config}), in dem folgende Einstellungen vorgenommen werden k"onnen:
 
 \begin{itemize}
 \item VRML Filename und VRML Application
@@ -65,7 +68,7 @@ Erl"auterungen zu diesen Feldern befinden sich in dem Unterkapitel ,,Die verschi
 
 \item Auswahlfeld f"ur die Art des Matchings
 
-Hier kann man ausw"ahlen, welches Matching man gerne ausf"uhren m"ochte. Die zur Zeit verf"ugbaren Matching-Methoden werden in der Arbeit ausf"uhrlich erl"autert.
+Hier kann ausgewählt werden, welches Matching  ausgeführt werden soll. Die zur Zeit verf"ugbaren Matching-Methoden werden in der Arbeit ausf"uhrlich erl"autert.
 
 \item Schieber f"ur die Parameter der Einzelmatches
 
@@ -81,8 +84,8 @@ In diesen Feldern sind die Bewertungen des aktuellen Matches,nach den einzelnen 
 \end{itemize} 
 \begin{figure}
    \centering
-   \includegraphics[scale=.65]{/home/java/Documents/Tex/Tex/Config.eps}
-   \caption{Der Config-Dialog}
+   \includegraphics[width=0.9 \textwidth]{/home/java/Documents/Tex/Tex/Config.eps}
+   \caption[Config--Dialog]{Der Config--Dialog\\\textit{Quelle: Eigene Darstellung}}
    \label{fig:Config}
 \end{figure}
 \section{Die verschiedenen Ergebnisansichten}
@@ -92,7 +95,7 @@ Bei den Erl"auterungen dieser Schaltfl"achen werden die Schnappsch"usse, die in 
 \begin{figure}
    \centering
    \includegraphics[scale=.8]{/home/java/Documents/Tex/Tex/Splits.eps}
-   \caption{Das Beispiel}
+   \caption[Zeichnung von Flächen]{Das Beispiel\\\textit{Quelle: Eigene Darstellung}}
    \label{fig:Splits}
 \end{figure}
 \subsection{Match}
@@ -104,7 +107,7 @@ In der rechten oberen Ecke des Fensters befindet sich der Name des \textit{Match
 \begin{figure}
    \centering
    \includegraphics[scale=.8]{/home/java/Documents/Tex/Tex/Match.eps}
-   \caption{Die Match-Darstellung}
+   \caption[Match--Darstellung]{Die Match--Darstellung \\\textit{Quelle: Eigene Darstellung}}
    \label{fig:Match}
 \end{figure}
 
@@ -116,7 +119,7 @@ Mit Hilfe des Zeit-Einstellers in der obersten Toolbar kann der zweite Schnappsc
 \begin{figure}
    \centering
    \includegraphics[scale=.6]{/home/java/Documents/Tex/Tex/Result.eps}
-   \caption{Die Result-Darstellung}
+   \caption[Result--Darstellung]{Die Result--Darstellung\\\textit{Quelle: Eigene Darstellung}}
    \label{fig:Result}
 \end{figure}
 \subsection{First und Second}
@@ -138,7 +141,7 @@ Rechts befindet sich eine Darstellung des Baumes als Menge von Polygonen. Die Fa
 \begin{figure}
    \centering
    \includegraphics[scale=.8]{/home/java/Documents/Tex/Tex/Second.eps}
-   \caption{Die ConvexHullTree-Darstellung des zweiten Schnappschusses}
+   \caption[ConvexHullTree--Darstellung]{Die \textit{ConvexHullTree}--Darstellung des zweiten Schnappschusses\\\textit{Quelle: Eigene Darstellung}}
    \label{fig:Second}
 \end{figure}
 \subsection{Sections}
@@ -147,8 +150,8 @@ In dieser Darstellung (Abbildung \vref{fig:Sections}) befinden  sich interpolier
 Diese tauchen dann in dem Zeichenbereich dieser Seite auf. Der erste und der letzte entsprechen dem ersten und dem zweiten Schnappschuss.
 \begin{figure}
    \centering
-   \includegraphics[scale=.8]{/home/java/Documents/Tex/Tex/Sections.eps}
-   \caption{Drei Sections unseres Beispieles}
+   \includegraphics[scale=.6]{/home/java/Documents/Tex/Tex/Sections.eps}
+   \caption[Sections]{Drei Sections des Beispieles\\\textit{Quelle: Eigene Darstellung}}
    \label{fig:Sections}
 \end{figure}
 \subsection{VRML-Export}
@@ -169,8 +172,8 @@ Mit diesem Control kann die ,,H"ohe`` der 3D-Darstellung bestimmt werden. Kleine
 Durch den Klick auf diesen Button wird der Export ausgel"ost. Die VRML--Datei der gew"unschten H"ohe und mit dem gew"ahlten Namen wird erzeugt und direkt in dem Viewer der Wahl ge"offnet.
 \begin{figure}
    \centering
-   \includegraphics[scale=1]{/home/java/Documents/Tex/Tex/vrml.eps}
-   \caption{Das Beispiel in einem VRML--Viewer}
+   \includegraphics[scale=0.7]{/home/java/Documents/Tex/Tex/vrml.eps}
+   \caption[VRML--Viewer]{Das Beispiel in einem VRML--Viewer\\\textit{Quelle: Eigene Darstellung}}
    \label{fig:vrml}
 \end{figure}
 \end{itemize}
