@@ -1598,12 +1598,15 @@ void Points::StartBulkLoad()
 
 void Points::EndBulkLoad( bool sort, bool remDup )
 {
-  if( sort )
+  if( sort ){
     Sort();
-  else
+  }
+  else{
     ordered = true;
-  if( remDup )
+  }
+  if( remDup ){
     RemoveDuplicates();
+  }
   points.TrimToSize();
 }
 
@@ -1857,34 +1860,46 @@ The search is restricted to the range in array given
 by the indices __min__ and __max__.
 
 */
-bool AlmostContains( const Point* points, const Point& p,
+bool AlmostContains( const DBArray<Point>& points, const Point& p,
                      int min, int max, int size){
 
   if(min>max){
      return false;
   }
+  const Point* pa;
   if(min==max){ // search around the position found
      // search left of min
      int pos = min;
      double x = p.GetX();
-     while(pos>=0 && AlmostEqual(points[pos].GetX(),x)){
-        if(AlmostEqual(points[pos],p)){
+     points.Get(pos,pa);
+     while(pos>=0 && AlmostEqual(pa->GetX(),x)){
+        if(AlmostEqual(pa,p)){
            return true;
         }
         pos--;
+        if(pos>=0){
+          points.Get(pos,pa);
+        }
      }
      // search right of min
      pos=min+1;
-     while(pos<size &&AlmostEqual(points[pos].GetX(),x)){
-        if(AlmostEqual(points[pos],p)){
+     if(pos<size){
+        points.Get(pos,pa);
+     }
+     while(pos<size &&AlmostEqual(pa->GetX(),x)){
+        if(AlmostEqual(pa,p)){
           return  true;
         }
         pos++;
+        if(pos<size){
+           points.Get(pos,pa);
+        }
     }
     return false; // no matching point found
   } else {
       int mid = (min+max)/2;
-      double x = points[mid].GetX();
+      points.Get(mid,pa);
+      double x = pa->GetX();
       double cx = p.GetX();
       if(AlmostEqual(x,cx)){
          return AlmostContains(points,p,mid,mid,size);
@@ -1901,25 +1916,28 @@ bool AlmostContains( const Point* points, const Point& p,
 void Points::RemoveDuplicates()
 {
  assert(IsOrdered());
- Point allPoints[points.Size()];
+ //Point allPoints[points.Size()];
+ DBArray<Point> allPoints(points.Size());
  const Point* pp;
  Point p;
- int elems=0;
  for(int i=0;i<points.Size();i++){
     points.Get(i,pp);
     p = *pp;
-    bool found = AlmostContains(allPoints,p,0,elems-1,elems);
+    bool found = AlmostContains(allPoints,p,0,
+                                allPoints.Size()-1,
+                                allPoints.Size());
     if(!found){
-      allPoints[elems] = p;
-      elems++;
+      allPoints.Append(p);
     }
  }
- if(elems!=Size()){
+ if(allPoints.Size()!=Size()){
      points.Clear();
-     for(int i=0;i < elems; i++){
-        points.Append(allPoints[i]);
+     for(int i=0;i < allPoints.Size(); i++){
+        allPoints.Get(i,pp);
+        points.Append(*pp);
      }
  }
+ allPoints.Destroy();
 }
 
 bool Points::Contains( const Point& p ) const
