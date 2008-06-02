@@ -37,7 +37,7 @@ January-May 2008, Mirko Dibbert
 #include "SpatialAlgebra.h"
 
 using namespace gta;
-
+using namespace symbols;
 /*
 Initialize static members:
 

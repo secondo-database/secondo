@@ -34,6 +34,8 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 //#include "Secondo.cpp"
 //#include "../../Spatial/SpatialAlgebra.h"
 
+using namespace symbols;
+
 //#define DEBUGMESSAGES
 //---------------------------------------------------------------------------
 bool ClipCel::clippedSegmentOnEdge(Segment &s)

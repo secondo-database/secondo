@@ -36,6 +36,7 @@ January-May 2008, Mirko Dibbert
 #include "PictureFuns.h"
 
 using namespace gta;
+using namespace symbols;
 
 /*
 Initialize static members:

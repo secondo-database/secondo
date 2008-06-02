@@ -35,6 +35,7 @@ January-May 2008, Mirko Dibbert
 #include "DistfunReg.h"
 
 using namespace gta;
+using namespace symbols;
 
 /*
 initialize static members:

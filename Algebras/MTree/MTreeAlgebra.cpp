@@ -51,6 +51,8 @@ extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+using namespace symbols;
+
 namespace mtreeAlgebra {
 
 /********************************************************************

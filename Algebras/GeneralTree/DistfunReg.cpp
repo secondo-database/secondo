@@ -37,6 +37,7 @@ January-May 2008, Mirko Dibbert
 #include "GTA_SpatialAttr.h"
 
 using namespace gta;
+using namespace symbols;
 
 /*
 Initialize static members:

@@ -64,25 +64,25 @@ typedef void (*Distfun)(
 Refers the default distance function for the each type constructor.
 
 */
-Sym DFUN_DEFAULT("default");
+symbols::Sym DFUN_DEFAULT("default");
 
 /*
 This value is returned from "DistfunReg::defaultName()"[4], if no default distance function has been found for the resp. type constructor.
 
 */
-Sym DFUN_UNDEFINED("n/a");
+symbols::Sym DFUN_UNDEFINED("n/a");
 
 /////////////////////////////////////////////////////////////////////
 // Name and short descriprions for the defined distance functions:
 /////////////////////////////////////////////////////////////////////
-Sym DFUN_EUCLID("euclid");
-Sym DFUN_EUCLID_DESCR("euclidean distance function");
+symbols::Sym DFUN_EUCLID("euclid");
+symbols::Sym DFUN_EUCLID_DESCR("euclidean distance function");
 
-Sym DFUN_EDIT_DIST("edit");
-Sym DFUN_EDIT_DIST_DESCR("edit distance function");
+symbols::Sym DFUN_EDIT_DIST("edit");
+symbols::Sym DFUN_EDIT_DIST_DESCR("edit distance function");
 
-Sym DFUN_QUADRATIC("quadratic");
-Sym DFUN_QUADRATIC_DESCR(
+symbols::Sym DFUN_QUADRATIC("quadratic");
+symbols::Sym DFUN_QUADRATIC_DESCR(
     "quadratic distance function using a similarity matrix");
 
 /////////////////////////////////////////////////////////////////////
