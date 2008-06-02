@@ -179,8 +179,8 @@ ALGEBRA_DEPS += gsl gslcblas
 #ALGEBRA_DIRS += Histogram
 #ALGEBRAS     += HistogramAlgebra
 
-#ALGEBRA_DIRS += Collection
-#ALGEBRAS     += CollectionAlgebra
+ALGEBRA_DIRS += Collection
+ALGEBRAS     += CollectionAlgebra
 
 #ALGEBRA_DIRS  += Midi
 #ALGEBRAS      += MidiAlgebra
