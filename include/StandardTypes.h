@@ -77,8 +77,6 @@ by the ~StandardAlgebra~:
 
 */
 
-using namespace symbols;
-
 
 
 class CcInt : public StandardAttribute
@@ -148,7 +146,7 @@ class CcInt : public StandardAttribute
   
   inline size_t HashValue() const
   { 
-    static long& ctr = Counter::getRef(CTR_INT_HASH);
+    static long& ctr = Counter::getRef(symbols::CTR_INT_HASH);
     ctr++;
     return (defined ? intval : 0); 
   }
@@ -163,7 +161,7 @@ class CcInt : public StandardAttribute
   inline int Compare(const Attribute* arg) const
   {
     const CcInt* rhs = dynamic_cast<const CcInt*>( arg );
-    static long& ctr = Counter::getRef(CTR_INT_COMPARE);
+    static long& ctr = Counter::getRef(symbols::CTR_INT_COMPARE);
     ctr++;
 
     return Attribute::GenericCompare<CcInt>(this, rhs, defined, rhs->defined);
@@ -171,7 +169,7 @@ class CcInt : public StandardAttribute
 
   inline virtual bool Equal(const CcInt* rhs) const
   {
-    static long& ctr = Counter::getRef(CTR_INT_EQUAL);
+    static long& ctr = Counter::getRef(symbols::CTR_INT_EQUAL);
     ctr++;
 
     return Attribute::GenericEqual<CcInt>(this, rhs, defined, rhs->defined);
@@ -179,7 +177,7 @@ class CcInt : public StandardAttribute
 
   inline virtual bool Less(const CcInt* rhs) const
   {
-    static long& ctr = Counter::getRef(CTR_INT_LESS);
+    static long& ctr = Counter::getRef(symbols::CTR_INT_LESS);
     ctr++;
 
     return Attribute::GenericLess<CcInt>(this, rhs, defined, rhs->defined);
@@ -188,7 +186,7 @@ class CcInt : public StandardAttribute
   
   inline bool Adjacent(const Attribute* arg) const
   {
-    static long& ctr = Counter::getRef(CTR_INT_ADJACENT);
+    static long& ctr = Counter::getRef(symbols::CTR_INT_ADJACENT);
     ctr++;
 
     int a = GetIntval(),
