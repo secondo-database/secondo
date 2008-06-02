@@ -98,7 +98,7 @@ parameters for the minimum/ maximum number of entries within a node.
 Inserts a box together with an id into the R-Tree.
 
 */
-   void insert(Rectangle<dim> box, long id);
+   void insert(const Rectangle<dim>& box, long id);
 
 /*
 2.3 ~findAll~
@@ -107,7 +107,7 @@ Returns all object's ids stored in the tree where the box
 intersects ~box~. 
 
 */
-  void findAll(const Rectangle<dim> box, set<long>& res)const;
+  void findAll(const Rectangle<dim>& box, set<long>& res)const;
 
 /*
 2.4 ~erase~
@@ -121,7 +121,7 @@ the result will be __false__.
 
 
 */
-  bool erase(const Rectangle<dim> box, const long id);
+  bool erase(const Rectangle<dim>& box, const long id);
 
 /*
 2.4 ~printStats~
@@ -366,7 +366,7 @@ private:
 This constructor creates a leaf node.
 
 */
-  Node(Rectangle<dim> abox, long id):
+  Node(const Rectangle<dim>& abox, long id):
     min(-1), max(-1),count(id), box(abox), sons(0){ }  
 
 
@@ -594,7 +594,7 @@ Returns the index of the son which is the best one for
 searching further the leaf for including ~box~.
 
 */
-unsigned int selectFittestSon(const Rectangle<dim> box)const{
+unsigned int selectFittestSon(const Rectangle<dim>& box)const{
   assert(max>0 && count >0);
   // initialize best fit index to be 0
   double area = sons[0]->box.Area();
@@ -836,7 +836,7 @@ Inserts a box together with an id into the R-Tree.
 
 */
 template<unsigned dim>
-void Rtree<dim>::insert(Rectangle<dim> box, long id){
+void Rtree<dim>::insert(const Rectangle<dim>& box, long id){
    if(!root){
      root = new Node<dim>(min,max);
    } 
@@ -852,7 +852,7 @@ intersects ~box~.
 
 */
 template<unsigned dim>
-void Rtree<dim>::findAll(const Rectangle<dim> box, set<long>& res)const{
+void Rtree<dim>::findAll(const Rectangle<dim>& box, set<long>& res)const{
   res.clear();
   findAllRec(root,box,res);
 } 
@@ -864,7 +864,7 @@ Erases the entries of ~id~ found at positions intersecting by box.
 
 */
 template<unsigned dim>
-bool Rtree<dim>::erase(const Rectangle<dim> box, const long id){
+bool Rtree<dim>::erase(const Rectangle<dim>& box, const long id){
   set<pair < int , Node<dim>*> > Q;
   Q.clear();
   if(eraseRec(root,box,id, Q,0)){
