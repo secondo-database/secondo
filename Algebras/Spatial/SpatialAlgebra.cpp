@@ -1873,7 +1873,7 @@ bool AlmostContains( const DBArray<Point>& points, const Point& p,
      double x = p.GetX();
      points.Get(pos,pa);
      while(pos>=0 && AlmostEqual(pa->GetX(),x)){
-        if(AlmostEqual(pa,p)){
+        if(AlmostEqual(*pa,p)){
            return true;
         }
         pos--;
@@ -1887,7 +1887,7 @@ bool AlmostContains( const DBArray<Point>& points, const Point& p,
         points.Get(pos,pa);
      }
      while(pos<size &&AlmostEqual(pa->GetX(),x)){
-        if(AlmostEqual(pa,p)){
+        if(AlmostEqual(*pa,p)){
           return  true;
         }
         pos++;
