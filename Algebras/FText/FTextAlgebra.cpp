@@ -76,15 +76,15 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 #include "Symbols.h"
 #include "SecondoSMI.h"
 
-// for operatoes sendtext, receivetext
-#include "SocketIO.h"      //used for web access
-#include "Base64.h"        //to en-/ decode binary data
-#include "../BinaryFile/BinaryFileAlgebra.h"
-#ifdef SECONDO_WIN32
-#include "../../ClientServer/Win32Socket.h"
-#else //Linux
-#include "../../ClientServer/UnixSocket.h"
-#endif
+// for operators sendtext, receivetext
+//#include "SocketIO.h"      //used for web access
+//#include "Base64.h"        //to en-/ decode binary data
+//#include "../BinaryFile/BinaryFileAlgebra.h"
+//#ifdef SECONDO_WIN32
+//#include "../../ClientServer/Win32Socket.h"
+//#else //Linux
+//#include "../../ClientServer/UnixSocket.h"
+//#endif
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -679,11 +679,13 @@ ListExpr TypeGetCatalog( ListExpr args )
   NList type(args);
 
   if ( type.hasLength(0) ){
-    NList resTupleType = NList(NList("ObjectName"),NList(STRING)).enclose();
-    resTupleType.append(NList(NList("Type"),NList(TEXT)));
-    resTupleType.append(NList(NList("TypeExpr"),NList(TEXT)));
+    NList resTupleType = NList(NList("ObjectName"),
+                       NList(symbols::STRING)).enclose();
+    resTupleType.append(NList(NList("Type"),NList(symbols::TEXT)));
+    resTupleType.append(NList(NList("TypeExpr"),NList(symbols::TEXT)));
     NList resType =
-        NList(NList(NList(STREAM),NList(NList(TUPLE),resTupleType)));
+        NList(NList(NList(symbols::STREAM),
+            NList(NList(symbols::TUPLE),resTupleType)));
     return resType.listExpr();
   }
   return NList::typeError( "No argument expected!");
@@ -701,15 +703,15 @@ ListExpr TypeFTextSubstr( ListExpr args )
   if ( !type.hasLength(3) ){
     return NList::typeError( "Three arguments expected");
   }
-  if (    type.second() != NList(INT)
-       || type.third()  != NList(INT)
+  if (    type.second() != NList(symbols::INT)
+       || type.third()  != NList(symbols::INT)
      )
   {
     return NList::typeError( "Boundary arguments must be of type int.");
   }
-  if ( type.first() == NList(TEXT) )
+  if ( type.first() == NList(symbols::TEXT) )
   {
-    return NList(STRING).listExpr();
+    return NList(symbols::STRING).listExpr();
   }
   return NList::typeError( "Expected text as first argument type.");
 }
@@ -726,15 +728,15 @@ ListExpr TypeFTextSubtext( ListExpr args )
   if ( !type.hasLength(3) ){
     return NList::typeError( "Three arguments expected");
   }
-  if (    type.second() != NList(INT)
-          || type.third()  != NList(INT)
+  if (    type.second() != NList(symbols::INT)
+          || type.third()  != NList(symbols::INT)
      )
   {
     return NList::typeError( "Boundary arguments must be of type int.");
   }
-  if ( type.first() == NList(TEXT) )
+  if ( type.first() == NList(symbols::TEXT) )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   return NList::typeError( "Expected text as first argument type.");
 }
@@ -750,14 +752,14 @@ ListExpr FTextTypeMapFind( ListExpr args )
 
   if ( type.hasLength(2) &&
        (
-          (type == NList(STRING, STRING))
-       || (type == NList(TEXT,   TEXT  ))
-       || (type == NList(STRING, TEXT  ))
-       || (type == NList(TEXT,   STRING))
+          (type == NList(symbols::STRING, symbols::STRING))
+       || (type == NList(symbols::TEXT,   symbols::TEXT  ))
+       || (type == NList(symbols::STRING, symbols::TEXT  ))
+       || (type == NList(symbols::TEXT,   symbols::STRING))
        )
      )
   {
-    return NList(STREAM, INT).listExpr();
+    return NList(symbols::STREAM, symbols::INT).listExpr();
   }
   return NList::typeError("Expected {text|string} x {text|string}.");
 }
@@ -773,10 +775,10 @@ ListExpr FTextTypeMapTextBool( ListExpr args )
   NList type(args);
 
   if ( type.hasLength(1)
-       &&( (type.first() == NList(TEXT)) )
+       &&( (type.first() == NList(symbols::TEXT)) )
      )
   {
-    return NList(BOOL).listExpr();
+    return NList(symbols::BOOL).listExpr();
   }
   return NList::typeError("Expected single text argument.");
 }
@@ -801,12 +803,12 @@ ListExpr FTextTypeMapPlus( ListExpr args )
   }
   NList first = type.first();
   NList second = type.second();
-  if(    (type == NList(STRING, TEXT  ))
-      || (type == NList(TEXT,   TEXT  ))
-      || (type == NList(TEXT,   STRING))
+  if(    (type == NList(symbols::STRING, symbols::TEXT  ))
+      || (type == NList(symbols::TEXT,   symbols::TEXT  ))
+      || (type == NList(symbols::TEXT,   symbols::STRING))
     )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   return NList::typeError("Expected (text x {text|string}) "
       "or ({text|string} x text).");
@@ -832,12 +834,12 @@ ListExpr FTextTypeMapComparePred( ListExpr args )
   }
   NList first = type.first();
   NList second = type.second();
-  if(    (type == NList(STRING, TEXT  ))
-          || (type == NList(TEXT,   TEXT  ))
-          || (type == NList(TEXT,   STRING))
+  if(    (type == NList(symbols::STRING, symbols::TEXT  ))
+          || (type == NList(symbols::TEXT,   symbols::TEXT  ))
+          || (type == NList(symbols::TEXT,   symbols::STRING))
     )
   {
-    return NList(BOOL).listExpr();
+    return NList(symbols::BOOL).listExpr();
   }
   return NList::typeError("Expected (text x {text|string}) "
       "or ({text|string} x text).");
@@ -864,17 +866,17 @@ ListExpr FTextTypeMapEvaluate( ListExpr args )
   NList type(args);
   NList st(symbols::STREAM);
   NList tu(symbols::TUPLE);
-  NList resTupleType = NList(NList("CmdStr"),NList(TEXT)).enclose();
-  resTupleType.append(NList(NList("Success"),NList(BOOL)));
-  resTupleType.append(NList(NList("Correct"),NList(BOOL)));
-  resTupleType.append(NList(NList("Evaluable"),NList(BOOL)));
-  resTupleType.append(NList(NList("Defined"),NList(BOOL)));
-  resTupleType.append(NList(NList("IsFunction"),NList(BOOL)));
-  resTupleType.append(NList(NList("ResultType"),NList(TEXT)));
-  resTupleType.append(NList(NList("Result"),NList(TEXT)));
-  resTupleType.append(NList(NList("ErrorMessage"),NList(TEXT)));
-  resTupleType.append(NList(NList("ElapsedTimeReal"),NList(REAL)));
-  resTupleType.append(NList(NList("ElapsedTimeCPU"),NList(REAL)));
+  NList resTupleType = NList(NList("CmdStr"),NList(symbols::TEXT)).enclose();
+  resTupleType.append(NList(NList("Success"),NList(symbols::BOOL)));
+  resTupleType.append(NList(NList("Correct"),NList(symbols::BOOL)));
+  resTupleType.append(NList(NList("Evaluable"),NList(symbols::BOOL)));
+  resTupleType.append(NList(NList("Defined"),NList(symbols::BOOL)));
+  resTupleType.append(NList(NList("IsFunction"),NList(symbols::BOOL)));
+  resTupleType.append(NList(NList("ResultType"),NList(symbols::TEXT)));
+  resTupleType.append(NList(NList("Result"),NList(symbols::TEXT)));
+  resTupleType.append(NList(NList("ErrorMessage"),NList(symbols::TEXT)));
+  resTupleType.append(NList(NList("ElapsedTimeReal"),NList(symbols::REAL)));
+  resTupleType.append(NList(NList("ElapsedTimeCPU"),NList(symbols::REAL)));
 
   NList resulttype(st,NList(tu,resTupleType));
 
@@ -916,7 +918,8 @@ ListExpr FTextTypeTextData_Data( ListExpr args )
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   if(     type.hasLength(2)
-       && ((type.first()  == TEXT) || (type.first()  == STRING))
+       && ((type.first()  == symbols::TEXT) || 
+       (type.first()  == symbols::STRING))
        && (am->CheckKind("DATA",type.second().listExpr(),errorInfo))
     )
   {
@@ -941,22 +944,29 @@ ListExpr FTextTypeReplace( ListExpr args )
   NList type(args);
   // {text|string} x {text|string} x {text|string} --> text
   if(     type.hasLength(3)
-          && ((type.first()  == TEXT) || (type.first()  == STRING))
-          && ((type.second() == TEXT) || (type.second() == STRING))
-          && ((type.third()  == TEXT) || (type.third()  == STRING))
+          && ((type.first()  == symbols::TEXT) || 
+          (type.first()  == symbols::STRING))
+          && ((type.second() == symbols::TEXT) || 
+          (type.second() == symbols::STRING))
+          && ((type.third()  == symbols::TEXT) || 
+              (type.third()  == symbols::STRING))
     )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   // {text|string} x int    x int  x {text|string} --> text
   if(     type.hasLength(4)
-          && ((type.first()  == TEXT) || (type.first()  == STRING))
-          && ((type.second() == INT ) || (type.second() == INT   ))
-          && ((type.third()  == INT ) || (type.third()  == INT   ))
-          && ((type.fourth() == TEXT) || (type.fourth() == STRING))
+          && ((type.first()  == symbols::TEXT) || 
+          (type.first()  == symbols::STRING))
+          && ((type.second() == symbols::INT ) || 
+          (type.second() == symbols::INT   ))
+          && ((type.third()  == symbols::INT ) || 
+          (type.third()  == symbols::INT   ))
+          && ((type.fourth() == symbols::TEXT) || 
+          (type.fourth() == symbols::STRING))
     )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   // error
   return NList::typeError("Expected ({text|string} x {text|string} x "
@@ -967,14 +977,14 @@ ListExpr FTextTypeReplace( ListExpr args )
 /*
 Type Mapping for ~isDBObject~:
 
----- TypeExpr --> bool
+---- string --> bool
 ----
 
 */
 ListExpr FTextTypeMapString2Bool( ListExpr args )
 {
   NList type(args);
-  if(type.hasLength(1) && (type.first()  == STRING))
+  if(type.hasLength(1) && (type.first()  == symbols::STRING))
   {
 
     NList restype(symbols::BOOL, false);
@@ -1078,9 +1088,9 @@ Type Mapping Function for ~chartext~
 ListExpr FTextTypeIntText( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(1) && (type.first() == INT) )
+  if( type.hasLength(1) && (type.first() == symbols::INT) )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   return NList::typeError("Expected 'int'.");
 }
@@ -1098,9 +1108,9 @@ Type Mapping Function for ~toupper~, ~tolower~
 ListExpr FTextTypeTextText( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(1) && (type.first() == TEXT) )
+  if( type.hasLength(1) && (type.first() == symbols::TEXT) )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   return NList::typeError("Expected 'text'.");
 }
@@ -1117,9 +1127,9 @@ Type Mapping Function for ~tostring~
 ListExpr FTextTypeTextString( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(1) && (type.first() == TEXT) )
+  if( type.hasLength(1) && (type.first() == symbols::TEXT) )
   {
-    return NList(STRING).listExpr();
+    return NList(symbols::STRING).listExpr();
   }
   return NList::typeError("Expected 'text'.");
 }
@@ -1136,9 +1146,9 @@ Type Mapping Function for ~totext~
 ListExpr FTextTypeStringText( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(1) && (type.first() == STRING) )
+  if( type.hasLength(1) && (type.first() == symbols::STRING) )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   return NList::typeError("Expected 'string'.");
 }
@@ -1147,12 +1157,12 @@ ListExpr FTextTypeSendText( ListExpr args )
 {
   NList type(args);
   if( type.hasLength(3) &&
-      (type.first() == STRING || type.first() == TEXT) &&
-      (type.second() == STRING || type.first() == TEXT) &&
-      type.third() == INT
+      (type.first() == symbols::STRING || type.first() == symbols::TEXT) &&
+      (type.second() == symbols::STRING || type.first() == symbols::TEXT) &&
+      type.third() == symbols::INT
     )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   return NList::typeError("Expected {string|text} x {string|text} x int.");
 }
@@ -1161,10 +1171,10 @@ ListExpr FTextTypeReceiveText( ListExpr args )
 {
   NList type(args);
   if( type.hasLength(1) &&
-      type.first() == INT
+      type.first() == symbols::INT
     )
   {
-    return NList(TEXT).listExpr();
+    return NList(symbols::TEXT).listExpr();
   }
   return NList::typeError("Expected int.");
 
@@ -1441,7 +1451,8 @@ The length of a string is three characters or more.
 }
 
 int
-ValMapsentences (Word* args, Word& result, int message, Word& local, Supplier s)
+ValMapsentences (Word* args, Word& result, int message, 
+         Word& local, Supplier s)
 {
   struct TheText {int start, strlength; const char* subw;}* thetext;
   int textcursor = 0, state = 0;
@@ -1874,13 +1885,17 @@ ValueMapping FText_VMMap_Find[] =
 int FTextSelectFunFind( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(STRING)) && (type.second() == NList(TEXT)) )
+  if( (type.first() == NList(symbols::STRING)) && 
+      (type.second() == NList(symbols::TEXT)) )
     return 0;
-  if( (type.first() == NList(TEXT)) && (type.second() == NList(STRING)) )
+  if( (type.first() == NList(symbols::TEXT)) && 
+      (type.second() == NList(symbols::STRING)) )
     return 1;
-  if( (type.first() == NList(TEXT)) && (type.second() == NList(TEXT)) )
+  if( (type.first() == NList(symbols::TEXT)) && 
+      (type.second() == NList(symbols::TEXT)) )
     return 2;
-  if( (type.first() == NList(STRING)) && (type.second() == NList(STRING)) )
+  if( (type.first() == NList(symbols::STRING)) && 
+      (type.second() == NList(symbols::STRING)) )
     return 3;
   // else: ERROR
   return -1;
@@ -1940,11 +1955,14 @@ ValueMapping FText_VMMap_Plus[] =
 int FTextSelectFunPlus( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(STRING)) && (type.second() == NList(TEXT)) )
+  if( (type.first() == NList(symbols::STRING)) && 
+      (type.second() == NList(symbols::TEXT)) )
     return 0;
-  if( (type.first() == NList(TEXT)) && (type.second() == NList(STRING)) )
+  if( (type.first() == NList(symbols::TEXT)) && 
+      (type.second() == NList(symbols::STRING)) )
     return 1;
-  if( (type.first() == NList(TEXT)) && (type.second() == NList(TEXT)) )
+  if( (type.first() == NList(symbols::TEXT)) && 
+      (type.second() == NList(symbols::TEXT)) )
     return 2;
   // else: ERROR
   return -1;
@@ -2037,11 +2055,14 @@ ValueMapping FText_VMMap_Neq[] =
 int FTextSelectFunComparePred( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(STRING)) && (type.second() == NList(TEXT)) )
+  if( (type.first() == NList(symbols::STRING)) && 
+      (type.second() == NList(symbols::TEXT)) )
     return 0;
-  else if( (type.first() == NList(TEXT)) && (type.second() == NList(STRING)) )
+  else if( (type.first() == NList(symbols::TEXT)) && 
+           (type.second() == NList(symbols::STRING)) )
     return 1;
-  else if( (type.first() == NList(TEXT)) && (type.second() == NList(TEXT)) )
+  else if( (type.first() == NList(symbols::TEXT)) && 
+       (type.second() == NList(symbols::TEXT)) )
     return 2;
   return -1; // error
 }
@@ -2364,19 +2385,19 @@ int FTextSelectFunReplace( ListExpr args )
   if(type.hasLength(3))
   { // {text|string} x {text|string} x {text|string} --> text
     result = 0;
-    if( type.third() == NList(STRING) )
+    if( type.third() == NList(symbols::STRING) )
       result += 1;
-    if( type.second() == NList(STRING) )
+    if( type.second() == NList(symbols::STRING) )
       result += 2;
-    if( type.first() == NList(STRING) )
+    if( type.first() == NList(symbols::STRING) )
       result += 4;
   }
   else
   { // {text|string} x int x int x {text|string} --> text
     result = 8;
-    if( type.fourth() == NList(STRING) )
+    if( type.fourth() == NList(symbols::STRING) )
       result += 1;
-    if( type.first() == NList(STRING) )
+    if( type.first() == NList(symbols::STRING) )
       result += 2;
   }
   return result;
