@@ -36,6 +36,7 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 */
 #include "Histogram2d.h"
 
+using namespace symbols;
 using namespace std;
 
 namespace hgr

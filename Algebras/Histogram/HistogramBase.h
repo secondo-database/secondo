@@ -303,7 +303,7 @@ one common range, its bin value will be 300.0.
   inline int TranslateSelect(ListExpr args)
   {
     NList type(args);
-    if (type.first().isSymbol(HISTOGRAM2D) )
+    if (type.first().isSymbol(symbols::HISTOGRAM2D) )
       return 1;
     else
       return 0;
@@ -408,7 +408,7 @@ of all bins having minimum resp. maximum values.
   {
     NList type(args);
     
-    if (type.first().isSymbol(HISTOGRAM1D))
+    if (type.first().isSymbol(symbols::HISTOGRAM1D))
       return 0;
     else
       return 1;
@@ -469,10 +469,10 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
   struct is_undefinedInfo : OperatorInfo {
     // constructor
     is_undefinedInfo() : OperatorInfo() {
-      name = IS_UNDEFINED;
+      name = symbols::IS_UNDEFINED;
       signature = "histogram1d -> bool";
       appendSignature( "histogram2d -> bool" );
-      syntax = IS_UNDEFINED + "(_)";
+      syntax = symbols::IS_UNDEFINED + "(_)";
       meaning = "Returns TRUE if the histogram is undefined.";
     } // is_undefinedInfo() : OperatorInfo() {
   }; // struct is_undefinedInfo : OperatorInfo {    
@@ -487,8 +487,10 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "is_refinement";
-      signature = HISTOGRAM1D + " x " + HISTOGRAM1D + " -> " + BOOL;
-      appendSignature(HISTOGRAM2D + " x " + HISTOGRAM2D + " -> " + BOOL);
+      signature = symbols::HISTOGRAM1D + " x " + symbols::HISTOGRAM1D + 
+	          " -> " + symbols::BOOL;
+      appendSignature(symbols::HISTOGRAM2D + " x " + symbols::HISTOGRAM2D + 
+		      " -> " + symbols::BOOL);
       syntax = "is_refinement(_, _)";
       meaning = "Returns true, if the first histogram is a refinement "
         "of the second histogram.";
@@ -506,8 +508,12 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "=";
-      signature = HISTOGRAM1D + " x " + HISTOGRAM1D + " -> " + BOOL;
-      appendSignature(HISTOGRAM2D + " x " + HISTOGRAM2D + " -> " + BOOL);
+      signature = symbols::HISTOGRAM1D + " x " + 
+	          symbols::HISTOGRAM1D + " -> " + 
+		  symbols::BOOL;
+      appendSignature(symbols::HISTOGRAM2D + " x " + 
+		      symbols::HISTOGRAM2D + " -> " + 
+		      symbols::BOOL);
       syntax = "_ = _";
       meaning = "Equals predicate.";
       example = "";
@@ -524,8 +530,12 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "<";
-      signature = HISTOGRAM1D + " x " + HISTOGRAM1D + " -> " + BOOL;
-      appendSignature(HISTOGRAM2D + " x " + HISTOGRAM2D + " -> " + BOOL);
+      signature = symbols::HISTOGRAM1D + " x " + 
+	          symbols::HISTOGRAM1D + " -> " + 
+		  symbols::BOOL;
+      appendSignature(symbols::HISTOGRAM2D + " x " + 
+		      symbols::HISTOGRAM2D + " -> " + 
+		      symbols::BOOL);
       syntax = "_ < _";
       meaning = "Less predicate.";
       example = "";
@@ -561,10 +571,10 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "usehistogram";
-      signature = "For T in kind DATA: " + HISTOGRAM1D
-          + " x (real x T* -> real) -> " + HISTOGRAM1D;
-      appendSignature(HISTOGRAM2D + " x (real x T* -> real) -> "
-          + HISTOGRAM2D);
+      signature = "For T in kind DATA: " + symbols::HISTOGRAM1D
+          + " x (real x T* -> real) -> " + symbols::HISTOGRAM1D;
+      appendSignature(symbols::HISTOGRAM2D + " x (real x T* -> real) -> "
+          + symbols::HISTOGRAM2D);
       syntax = "_ use[ list; fun ]";
       meaning = "Apply the function fun "
         "to each bin of the first argument.";
@@ -582,10 +592,12 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "usehistogram2";
-      signature = "For T in kind DATA: " + HISTOGRAM1D + " x " + HISTOGRAM1D
-          + " x (real x real x T* -> real) -> " + HISTOGRAM1D;
-      appendSignature(HISTOGRAM2D + " x (real x real x T* -> real) -> "
-          + HISTOGRAM2D);
+      signature = "For T in kind DATA: " + symbols::HISTOGRAM1D + 
+	          " x " + symbols::HISTOGRAM1D
+          + " x (real x real x T* -> real) -> " + symbols::HISTOGRAM1D;
+      appendSignature(symbols::HISTOGRAM2D + 
+		      " x (real x real x T* -> real) -> "
+          + symbols::HISTOGRAM2D);
       syntax = "_ _ use2[ list; fun ]";
       meaning = "Apply the function fun "
         "to each bin of the first and the second argument.";
@@ -640,9 +652,11 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "find_minbin";
-      signature = HISTOGRAM1D + " -> " + STREAM + "(" + INT + ")";
-      appendSignature(HISTOGRAM2D + " -> " + STREAM + "(" + TUPLE + "((" + "x "
-          + INT + ")(" + "y " + INT + ")))");
+      signature = symbols::HISTOGRAM1D + " -> " + 
+	          symbols::STREAM + "(" + symbols::INT + ")";
+      appendSignature(symbols::HISTOGRAM2D + " -> " + 
+		      symbols::STREAM + "(" + symbols::TUPLE + "((" + "x "
+          + symbols::INT + ")(" + "y " + symbols::INT + ")))");
       syntax = "_ find_minbin";
       meaning = "Returns a stream of the indices of all bins "
         "with minimal value.";
@@ -660,9 +674,12 @@ Represents the local storage of the operators find[_]minbin and find[_]maxbin.
       OperatorInfo()
     {
       name = "find_maxbin";
-      signature = HISTOGRAM1D + " -> " + STREAM + "(" + INT + ")";
-      appendSignature(HISTOGRAM2D + " -> " + STREAM + "(" + TUPLE + "((" + "x "
-          + INT + ")(" + "y " + INT + ")))");
+      signature = symbols::HISTOGRAM1D + " -> " + 
+	          symbols::STREAM + "(" + symbols::INT + ")";
+      appendSignature(symbols::HISTOGRAM2D + " -> " + 
+		      symbols::STREAM + "(" + 
+		      symbols::TUPLE + "((" + "x "
+          + symbols::INT + ")(" + "y " + symbols::INT + ")))");
       syntax = "_ find_maxbin";
       meaning = "Returns a stream of the indices of all bins "
         "with maximal value.";

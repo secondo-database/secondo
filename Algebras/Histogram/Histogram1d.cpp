@@ -51,6 +51,8 @@ and comment the second one. To switch off test output, uncomment the line
 
 #include "Histogram1d.h"
 
+using namespace symbols;
+
 namespace hgr
 {
   

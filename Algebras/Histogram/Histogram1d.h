@@ -462,7 +462,7 @@ private:
 5.11 Mean
 
 */
-  int MeanFun(Word* args, Word& result, int message, Word& local, Supplier s);  
+  int MeanFun(Word* args, Word& result, int message, Word& local, Supplier s);
   
 /*  
 5.11 Shrink1d
@@ -493,7 +493,7 @@ private:
       OperatorInfo()
     {
       name = "set_histogram1d";
-      signature = "(stream real) -> " + HISTOGRAM1D;
+      signature = "(stream real) -> " + symbols::HISTOGRAM1D;
       syntax = "_ set_histogram1d";
       meaning = "Creates a histogram1d from an ordered stream of real";
       example = "";
@@ -510,7 +510,7 @@ private:
       OperatorInfo()
     {
       name = "no_components";
-      signature = HISTOGRAM1D + " -> " + INT;
+      signature = symbols::HISTOGRAM1D + " -> " + symbols::INT;
       syntax = "no_components(_)";
       meaning = "Returns number of components.";
       example = "";
@@ -527,9 +527,9 @@ private:
     inline binrange_minInfo() :
       OperatorInfo()
     {
-      name = BINRANGE_MIN;
+      name = symbols::BINRANGE_MIN;
       signature = "histogram1d x int -> real";
-      syntax = BINRANGE_MIN + "(_, _)";
+      syntax = symbols::BINRANGE_MIN + "(_, _)";
       meaning = "Returns the histogram's lower range of the given interval.";
     } // binrange_minInfo() : OperatorInfo() {
   }; // struct binrange_minInfo : OperatorInfo {
@@ -544,9 +544,9 @@ private:
     inline binrange_maxInfo() :
       OperatorInfo()
     {
-      name = BINRANGE_MAX;
+      name = symbols::BINRANGE_MAX;
       signature = "histogram1d x int -> real";
-      syntax = BINRANGE_MAX + "(_, _)";
+      syntax = symbols::BINRANGE_MAX + "(_, _)";
       meaning = "Returns the histogram's upper range of the given interval.";
     } // binrange_minInfo() : OperatorInfo() {
   }; // struct binrange_minInfo : OperatorInfo {
@@ -562,7 +562,7 @@ private:
     {
       name = "create_histogram1d";
       signature = "stream(tuple(X)) x ai x " + 
-      HISTOGRAM1D + " -> " + HISTOGRAM1D;
+      symbols::HISTOGRAM1D + " -> " + symbols::HISTOGRAM1D;
       syntax = "_ create_histogram1d [_, _]";
       meaning = "Fills a histogram1d from an ordered stream of tuples";
       example = "";
@@ -579,7 +579,7 @@ private:
       OperatorInfo()
     {
       name = "create_histogram1d_equicount";
-      signature = "stream(tuple(X)) x ai x int -> " + HISTOGRAM1D;
+      signature = "stream(tuple(X)) x ai x int -> " + symbols::HISTOGRAM1D;
       syntax = "_ create_histogram1d_equicount [_, _]";
       meaning = "Creates a histogram1d from a stream of tuples;"
         " all categories will have equal height";
@@ -616,7 +616,7 @@ private:
       OperatorInfo()
     {
       name = "findbin";
-      signature = HISTOGRAM1D + " x real -> int";
+      signature = symbols::HISTOGRAM1D + " x real -> int";
       syntax = "findbin(_, _)";
       meaning = "Returns the index of the bin, in which the value would fall";
       example = "";
@@ -633,7 +633,8 @@ private:
       OperatorInfo()
     {
       name = "getcount1d";
-      signature = HISTOGRAM1D + " x " + INT + " -> " + REAL;
+      signature = symbols::HISTOGRAM1D + " x " + symbols::INT + 
+	          " -> " + symbols::REAL;
       syntax = "getcount1d(_, _)";
       meaning = "Return the count of the specified bin.";
       example = "";
@@ -650,7 +651,7 @@ private:
       OperatorInfo()
     {
       name = "insert1d";
-      signature = HISTOGRAM1D + " x real -> " + HISTOGRAM1D;
+      signature = symbols::HISTOGRAM1D + " x real -> " + symbols::HISTOGRAM1D;
       syntax = "insert1d (_, _)";
       meaning = "Increments the bin corresponding to the value by 1.0";
       example = "";
@@ -667,7 +668,8 @@ private:
       OperatorInfo()
     {
       name = "insert1dvalue";
-      signature = HISTOGRAM1D + " x real x real -> " + HISTOGRAM1D;
+      signature = symbols::HISTOGRAM1D + " x real x real -> " + 
+	          symbols::HISTOGRAM1D;
       syntax = "insert1dvalue (_, _, _)";
       meaning = "Increments the bin corresponding to the value by val";
       example = "";
@@ -685,7 +687,7 @@ private:
       OperatorInfo()
     {
       name = "mean";
-      signature = HISTOGRAM1D + " -> " + REAL;
+      signature = symbols::HISTOGRAM1D + " -> " + symbols::REAL;
       syntax = "_ mean";
       meaning = "Compute the bin-weighted arithmetic mean.";
       example = "";
@@ -703,7 +705,8 @@ private:
       OperatorInfo()
     {
       name = "shrink_eager";
-      signature = HISTOGRAM1D + " x real x real -> " + HISTOGRAM1D;
+      signature = symbols::HISTOGRAM1D + " x real x real -> " + 
+	          symbols::HISTOGRAM1D;
       syntax = "shrink_eager(_, _, _)";
       meaning = "constricts the value range to bins "
         "completely contained in [lower;upper[";
@@ -721,7 +724,8 @@ private:
       OperatorInfo()
     {
       name = "shrink_lazy";
-      signature = HISTOGRAM1D + " x real x real -> " + HISTOGRAM1D;
+      signature = symbols::HISTOGRAM1D + " x real x real -> " + 
+	          symbols::HISTOGRAM1D;
       syntax = "shrink_lazy(_, _, _)";
       meaning = "constricts the value range to bins "
         "so that [lower;upper[ is completely contained";
@@ -739,7 +743,7 @@ private:
       OperatorInfo()
     {
       name = "variance";
-      signature = HISTOGRAM1D + " -> " + REAL;
+      signature = symbols::HISTOGRAM1D + " -> " + symbols::REAL;
       syntax = "_ variance";
       meaning = "Compute the variance.";
       example = "";
