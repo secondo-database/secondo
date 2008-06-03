@@ -89,6 +89,7 @@ namespace symbols {
  Sym STREAM_TUPLE("stream(tuple(...))");
  Sym PRINTREFS("printrefs");
  Sym SMJ_R("sortmergejoin_r");
+ Sym SMJ_R2("sortmergejoin_r2");
 
  // chess algebra
 #undef MATERIAL 
