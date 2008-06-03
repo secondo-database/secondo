@@ -46,6 +46,7 @@ Environment::Environment()
   keyMap["SEC_pScale"] = Float; 
   keyMap["SEC_pMinRead"] = Int;
   keyMap["SEC_pMaxRead"] = Int;
+  keyMap["SEC_pAllowHints"] = Bool;
   keyMap["SECONDO_PLATFORM"] = String; 
 
   init(); 
@@ -71,8 +72,10 @@ Environment::init() {
 		    floatMap[key] = v;
 		    break; }
 
-      case Bool:  { bool v = (value == "true" || value == "TRUE") ? true 
-			                                          : false;
+      case Bool:  { string val(value);
+		    bool v = (val == "true" || val == "TRUE") ? true 
+			                                      : false; 
+                    cout << "Bool: " << key << ", " << value << endl;
 		    boolMap[key] = v;
 		    break; }
 
