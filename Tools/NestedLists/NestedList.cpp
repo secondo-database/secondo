@@ -1362,12 +1362,12 @@ NestedList::GetBinaryType(const ListExpr list) const {
 */
 
 
-long
+int32_t
 NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
 
   static bool debug = RTFlag::isActive("NL:BinaryListDebug");
   static char buffer[4] = { 0, 0, 0, 0 };
-  long result = 0;
+  int32_t result = 0;
 
   in.read(buffer,len);
 
@@ -1400,9 +1400,9 @@ NestedList::ReadInt(istream& in, const int len /*= 4*/) const{
 */
 
 
-long
+int32_t
 NestedList::ReadShort(istream& in) const {
-  long result = ReadInt(in, 2);
+  int32_t result = ReadInt(in, 2);
   if((result & 0x8000)  == 0x8000) {
      //result is negativ, adjust first bytes
      result |= ((~0l) ^ 0xffff) ;

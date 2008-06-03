@@ -1200,8 +1200,8 @@ prototypes for functions used for the binary encoding/decoding of lists
   bool  WriteBinaryRec( ListExpr list, ostream& os ) const;
   bool  ReadBinaryRec( ListExpr& result, istream& in );
   bool  ReadBinarySubLists( ListExpr& LE, istream& in, unsigned long length );
-  long  ReadShort( istream& in ) const;
-  long  ReadInt( istream& in, const int len = 4 ) const;
+  int32_t  ReadShort( istream& in ) const;
+  int32_t  ReadInt( istream& in, const int len = 4 ) const;
   void  ReadString( istream& in, string& outStr, unsigned long length ) const;
 
   byte  GetBinaryType(const ListExpr list) const;
