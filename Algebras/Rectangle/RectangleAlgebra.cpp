@@ -647,6 +647,23 @@ ListExpr
   return nl->SymbolAtom( "real" );
 }
 
+ListExpr  RectangleTypeMapRectRect( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if( nl->IsEqual( arg1, "rect" )  ||
+        nl->IsEqual( arg1, "rect3" ) ||
+        nl->IsEqual( arg1, "rect4" ) ||
+        nl->IsEqual( arg1, "rect8" )
+      )
+      return (arg1);
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
 /*
 4.2 Selection functions
 
@@ -1199,6 +1216,21 @@ template<unsigned int dim>
   return 0;
 }
 
+/*
+4.4.10 Value mapping functions of operator ~bbox~
+
+*/
+template<unsigned int dim>
+    int RectangleBboxValueMap( Word* args, Word& result, int message,
+                               Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<dim> *arg = static_cast<Rectangle<dim> *>(args[0].addr);
+  Rectangle<dim> *res = static_cast<Rectangle<dim> *>(result.addr);
+  *res = arg->BoundingBox();
+  return 0;
+}
+
 
 /*
 4.5 Definition of operators
@@ -1284,6 +1316,13 @@ ValueMapping rectangleMinDmap[] =
   RectangleMinDValueMap<8>
 };
 
+ValueMapping rectangleBboxmap[] =
+{
+  RectangleBboxValueMap<2>,
+  RectangleBboxValueMap<3>,
+  RectangleBboxValueMap<4>,
+  RectangleBboxValueMap<8>
+};
 
 /*
 4.5.2 Definition of specification strings
@@ -1451,6 +1490,16 @@ const string RectangleSpecMaxD  =
     "<text></text--->"
     ") )";
 
+const string RectangleSpecBbox  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+    "( <text>rect<d> -> rect<d></text--->"
+    "<text>bbox( rect )</text--->"
+    "<text>Returns the minimum bounding box of the n-dimensional rectangle "
+    "'rect', which is a clone of the argument.</text--->"
+    "<text>query bbox([const rect3 value "
+    "(1.0 2.0 3.0 4.0 5.0 6.0) ], 2)</text--->"
+    "<text></text--->"
+    ") )";
 
 /*
 4.5.3 Definition of the operators
@@ -1568,6 +1617,13 @@ Operator rectanglemaxD( "maxD",
                         RectangleMinMaxDSelect,
                         RectangleMinMaxTypeMap );
 
+Operator rectanglebbox( "bbox",
+                        RectangleSpecBbox,
+                        4,
+                        rectangleBboxmap,
+                        RectangleRectprojectSelect,
+                        RectangleTypeMapRectRect );
+
 /*
 5 Creating the Algebra
 
@@ -1604,6 +1660,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglerectproject );
     AddOperator( &rectangleminD );
     AddOperator( &rectanglemaxD );
+    AddOperator( &rectanglebbox );
 
   }
   ~RectangleAlgebra() {};

@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -31,3 +31,4 @@ operator distance alias DISTANCE pattern op ( _ , _ )
 operator rectproject alias RECTPROJECT pattern op ( _ , _ , _ )
 operator minD alias MIND pattern op ( _ , _ )
 operator maxD alias MAXD pattern op ( _ , _ )
+operator bbox alias BBOX pattern op( _ )

@@ -38,7 +38,7 @@ October, 2004 Schoenhammer Herbert, (virtual) method BoundingBox() added
 This header file essentially contains the definition of the struct ~Rectangle~.
 This class corresponds to the memory representation for the type constructor
 ~rect~, ~rect3~ and ~rect4~ which are 2-dimensional, 3-dimensional, 4-dimensional
-or 8-dimensional rectangles alligned with the axes of each dimension. A rectangle 
+or 8-dimensional rectangles alligned with the axes of each dimension. A rectangle
 in such a way can be represented by four, six or eight numbers (two for each dimension).
 
 
@@ -54,6 +54,7 @@ using namespace std;
 #include "stdarg.h"
 #include "Attribute.h"
 #include "StandardAttribute.h"
+#include "Messages.h"
 
 #include <stdio.h>
 
@@ -96,7 +97,7 @@ the coordinates can be set.
 
 */
 
-    inline Rectangle( const bool defined, 
+    inline Rectangle( const bool defined,
                       const double *min, const double *max );
 /*
 The second constructor. First one can set if the rectangle is defined, and if it is,
@@ -138,7 +139,7 @@ must be defined.
     inline bool IntersectsUD( const Rectangle<dim>& r ) const;
 /*
 Checks if the rectangle intersects with rectangle ~r~. If one of the
-involved rectangles is not defined, the result will be false; 
+involved rectangles is not defined, the result will be false;
 
 
 */
@@ -224,7 +225,7 @@ of the rectangle.
     }
 
     inline size_t HashValue() const
-    { 
+    {
       size_t h = 0;
       for( unsigned i = 0; i < dim; i++ )
         h += size_t(4 * min[dim] + max[dim]);
@@ -275,7 +276,7 @@ of the rectangle.
 
       for (unsigned j = 0; j < dim; j++)
       {
-        thismin[j] = (unsigned) fabs(min[j]);  
+        thismin[j] = (unsigned) fabs(min[j]);
         rmin[j] = (unsigned) fabs(r->min[j]);
       }
 
@@ -300,7 +301,7 @@ of the rectangle.
 
       // if no conclusion on z-order (based on integer coordinates) can be
       // reached, we fall back to the standard comparison
- 
+
       for( unsigned i = 0; i < dim; i++ )
       {
         if( this->min[i] < r->min[i] )
@@ -315,20 +316,20 @@ of the rectangle.
         if( this->max[i] > r->max[i] )
           return 1;
       }
-      return 0;  
+      return 0;
     }
 
     inline const Rectangle<dim>& Extend(const double b);
 /*
 ~Extend~
 
-Enlarges this rectangle with a border of size ~b~. The function 
+Enlarges this rectangle with a border of size ~b~. The function
 changes the ~this~ object and returns it.
 
 */
-  
 
-    
+
+
 
 
     inline bool Adjacent( const Attribute *arg ) const
@@ -394,7 +395,14 @@ defined( defined )
   }
   va_end( ap );
 
-  assert( Proper() );
+  if( !Proper() )
+  {
+    static MessageCenter* msg = MessageCenter::GetInstance();
+    NList msgList( NList("simple"),
+                   NList("Rectangle built with invalid dimensions!") );
+    msg->Send(msgList);
+    SetDefined(false);
+  }
 }
 
 /*
@@ -403,7 +411,7 @@ the coordinates can be set.
 
 */
 template <unsigned dim>
-inline Rectangle<dim>::Rectangle( const bool defined, const double *min, 
+inline Rectangle<dim>::Rectangle( const bool defined, const double *min,
                                   const double *max ):
 defined( defined )
 {
@@ -431,7 +439,7 @@ Sets the values of this rectangle.
 
 */
 template <unsigned dim>
-inline void Rectangle<dim>::Set(const bool defined, const double *min, 
+inline void Rectangle<dim>::Set(const bool defined, const double *min,
                            const double *max){
   this->defined = defined;
   for( unsigned i = 0; i < dim; i++ )
@@ -439,7 +447,14 @@ inline void Rectangle<dim>::Set(const bool defined, const double *min,
     this->min[i] = min[i];
     this->max[i] = max[i];
   }
-  assert( Proper() );
+  if( !Proper() )
+  {
+    static MessageCenter* msg = MessageCenter::GetInstance();
+    NList msgList( NList("simple"),
+                   NList("Rectangle built with invalid dimensions!") );
+    msg->Send(msgList);
+    SetDefined(false);
+  }
 }
 
 
@@ -670,11 +685,11 @@ Returns the intersection between this and the rectangle ~r~.
 
 */
 template <unsigned dim>
-inline Rectangle<dim> 
+inline Rectangle<dim>
       Rectangle<dim>::Intersection( const Rectangle<dim>& r ) const
 {
   if( !defined || !r.defined || !Intersects( r ) )
-    return Rectangle<dim>( false ); 
+    return Rectangle<dim>( false );
 
   double auxmin[dim], auxmax[dim];
   for( unsigned i = 0; i < dim; i++ )
@@ -726,9 +741,9 @@ inline double Rectangle<dim>::Distance(const Rectangle<dim>& r) const
     else
     {
       cout << "Rectangle<dim>::Distance(): Missing case!" << endl
-          << "   min[" << i << "] = " <<   min[i] 
+          << "   min[" << i << "] = " <<   min[i]
           << "   max[" << i << "] = " <<   max[i] << endl
-          << " r.min[" << i << "] = " << r.min[i] 
+          << " r.min[" << i << "] = " << r.min[i]
           << " r.max[" << i << "] = " << r.max[i] << endl;
       assert( 0 );
     }
@@ -783,12 +798,12 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
 
     for( unsigned i = 0; i < dim; i++ )
     {
-      if( nl->IsAtom( nl->First( l ) ) && 
+      if( nl->IsAtom( nl->First( l ) ) &&
           nl->AtomType( nl->First( l ) ) == RealType )
       {
         min[i] = nl->RealValue( nl->First( l ) );
         l = nl->Rest( l );
-      } 
+      }
       else if( nl->IsAtom(nl->First(l)) &&
                nl->AtomType(nl->First(l)) == IntType)
       {
@@ -801,7 +816,7 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
         break;
       }
 
-      if( nl->IsAtom( nl->First( l ) ) && 
+      if( nl->IsAtom( nl->First( l ) ) &&
           nl->AtomType( nl->First( l ) ) == RealType )
       {
         max[i] = nl->RealValue( nl->First( l ) );
@@ -822,6 +837,12 @@ Word InRectangle( const ListExpr typeInfo, const ListExpr instance,
     if( correct )
     {
       Rectangle<dim> *r = new Rectangle<dim>( true, min, max );
+      if( !r->IsDefined() )
+      {
+        correct = false;
+        delete r;
+        return SetWord(Address(0));
+      }
       return SetWord( r );
     }
   }
