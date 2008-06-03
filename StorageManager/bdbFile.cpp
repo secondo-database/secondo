@@ -51,6 +51,7 @@ using namespace std;
 #include <cstring>
 #include <sstream>
 #include <cassert>
+#include <limits.h>
 
 //#define TRACE_ON 1
 #include "LogMsg.h"
@@ -596,7 +597,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     return true;
   }
   else {
-    fileId = -1;	  
+    fileId = ULONG_MAX;	  
     return false;
   }
 }
