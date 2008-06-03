@@ -2,8 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -2776,7 +2776,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
             pRes->Card =  p1.Card *
               ((double) rli->returned / (double) (rli->read));
 
-            if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking,
+            if ( p1.BTime < 0.1 && pipelinedProgress )  //non-blocking,
                                                         //use pipelining
               pRes->Progress = p1.Progress;
             else
@@ -2789,7 +2789,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
 
         pRes->Card = p1.Card * wRdup;
 
-        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking,
+        if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
@@ -3440,21 +3440,29 @@ ListExpr JoinTypeMap (ListExpr args)
               joinAttrDescription, outlist);
 }
 /*
-2.15.2 Value mapping function of operator ~mergejoin~
+2.15.2 Value mapping functions of operator ~mergejoin~
 
 */
 
 extern int
 mergejoin_vm( Word* args, Word& result,
-	      int message, Word& local, Supplier s );
+              int message, Word& local, Supplier s );
 
 extern int
 sortmergejoin_vm( Word* args, Word& result,
-		  int message, Word& local, Supplier s );
+                  int message, Word& local, Supplier s );
 
 extern int
 sortmergejoinr_vm( Word* args, Word& result,
-		   int message, Word& local, Supplier s );
+                   int message, Word& local, Supplier s );
+
+extern int 
+sortmergejoinr2_vm( Word* args, Word& result, 
+                    int message, Word& local, Supplier s );
+
+extern int 
+sortmergejoinr3_vm( Word* args, Word& result, 
+                    int message, Word& local, Supplier s );
 
 /*
 
@@ -3931,7 +3939,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         pRes->Time = p1.Time + p1.Card * (uExtend + eli->noNewAttrs * vExtend);
 
 
-        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking,
+        if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
@@ -4383,7 +4391,7 @@ int Loopjoin(Word* args, Word& result, int message,
         pRes->Time = p1.Time + p1.Card * p2.Time;
 
 
-        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking,
+        if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
@@ -8755,7 +8763,7 @@ struct printrefsInfo : OperatorInfo {
     signature = REL_TUPLE + " -> " + REL_TUPLE;
     syntax    = "_" + PRINTREFS + "_";
     meaning   = "Prints out the values of the tuple's "
-	        "and attribute's reference counter";
+                "and attribute's reference counter";
   }
 };
 
@@ -8795,15 +8803,15 @@ int printrefs_vm( Word* args, Word& result, int message,
       {
         Tuple* t = static_cast<Tuple*>( w.addr );
         int tRefs = t->GetNumOfRefs();
-	cout << (void*)t << ": " << tRefs << "(";
-	for(int i = 0; i < t->GetNoAttributes(); i++)
-	{
-	  cout << " " << t->GetAttribute(i)->NoRefs();
-	}
+        cout << (void*)t << ": " << tRefs << "(";
+        for(int i = 0; i < t->GetNoAttributes(); i++)
+        {
+          cout << " " << t->GetAttribute(i)->NoRefs();
+        }
         cout << " )" << endl;
 
         result.addr = t;
-	return YIELD;
+        return YIELD;
       }
       result.addr = 0;
       return CANCEL;
@@ -8819,20 +8827,22 @@ int printrefs_vm( Word* args, Word& result, int message,
 
 struct sortmergejoinrInfo : OperatorInfo {
 
-  sortmergejoinrInfo()
+  sortmergejoinrInfo(const string& _name)
   {
-    name      = SMJ_R;
+    name      = _name; 
 
     signature = STREAM_TUPLE + " x " + STREAM_TUPLE + " -> " + STREAM_TUPLE;
     syntax    = "_ _" + SMJ_R + "[an, bm]";
-    meaning   = "Computes the sortmergejoin but returns the result "
-	        "starting with a random subset.";
+    meaning   = "Computes a join by sorting the inputs but returns the result "
+                "R = S1 u S2 with a random subset S1 and a sorted subset S2. "
+                "The variant _r does this by generating all output tuples "
+                "two times, the variant _r2 does this in a more sophisticated "
+                "way with less and variant _r3 outputs only the random "
+                "sample S1";
 
     supportsProgress = true;
   }
 };
-
-
 
 /*
 
@@ -8896,9 +8906,17 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergejoin);
 
     AddOperator(&extrelsortmergejoin);
-    AddOperator(sortmergejoinrInfo(),
-		    sortmergejoinr_vm,
-		    JoinTypeMap<false, 1> );
+    AddOperator(sortmergejoinrInfo("sortmergejoin_r"), 
+                    sortmergejoinr_vm, 
+                    JoinTypeMap<false, 1> );
+
+    AddOperator(sortmergejoinrInfo("sortmergejoin_r2"), 
+                    sortmergejoinr2_vm, 
+                    JoinTypeMap<false, 1> );
+
+    AddOperator(sortmergejoinrInfo("sortmergejoin_r3"),
+                    sortmergejoinr3_vm, 
+                    JoinTypeMap<false, 1> );
 
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
