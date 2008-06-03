@@ -40,22 +40,22 @@ class RTuple {
   public:	
   RTuple() : tuple(0) {}
 
-  RTuple(Tuple* p) : tuple(p) 
+  inline RTuple(Tuple* p) : tuple(p) 
   {
     holdTuple();	  
   }	
   	
-  RTuple(const RTuple& r) : tuple(r.tuple) 
+  inline RTuple(const RTuple& r) : tuple(r.tuple) 
   {
     holdTuple();	  
   }	  
 
-  ~RTuple() 
+  inline ~RTuple() 
   {
     releaseTuple();	  
   }	    
 
-  RTuple& operator=(const RTuple& r) 
+  inline RTuple& operator=(const RTuple& r) 
   {
     releaseTuple();	  
     tuple = r.tuple;
