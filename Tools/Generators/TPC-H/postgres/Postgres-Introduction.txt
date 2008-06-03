@@ -77,7 +77,7 @@ In order to set up the storage area run the following commands:
 */
   export PGDATA=/data/postgres-databases
   mkdir $PGDATA
-  chmod go-rwx $PDATA
+  chmod go-rwx $PGDATA
   initdb -D$PGDATA
 
 /* 
@@ -115,9 +115,12 @@ establishes a connection to the "tpch" database. The command prompt now
 includes the used database: 
 
 */
-  tpch# \dt     % display tables
-  tpch# \di     % display indexes
-  tpch# \q      % disconnect and exit
+  tpch# \dt       % display tables
+  tpch# \di       % display indexes
+  tpch# \q        % disconnect and exit
+  tpch# \i <file> % run query from file
+  tpch# \s <file> % save the cmd history 
+  tpch# \h select % explain the syntax of the select statement
 /*  
 
 5 Creating Objects
@@ -194,4 +197,124 @@ stores the results in the system table "pg_statistic".
 In normal PostgreSQL operation, tuples that are deleted or obsoleted by an
 update are not physically removed from their table; they remain present until
 the command "vaccum" is called.  This procedure reclaims storage occupied by deleted
-tuples.
+tuples. Hence the administrator should run
+
+*/
+  vacuum analyze
+/*
+
+after remarkable updates.
+
+8 Tuning
+
+By using the set command the admin can set various runtime parameters.
+This can be useful to force or to disable some evaluation methods for
+relational algebra expressions. For example, the statement below disables the use
+of indexes. 
+
+*/
+set enable_indexscan = off;
+/*
+8.1 Adjusting cost factors 
+
+SQL statements can be translated into different execution plans which compute
+the same result. The Planner (or Optimizer) module uses data statistics, cost functions
+and some basic cost factors to rate such plans. The optimization algorithms sytematically
+procudes subplans and prunes non-efficient solutions. The result of this process might be
+the best available plan. However, error factors are
+
+(1) Imprecise statistics
+(2) Imprecise cost functions
+(3) Imprecise cost factors
+
+Some important cost factors are:
+
+*/
+cpu_tuple_cost;
+cpu_operator_cost;
+/*
+Those are expressed as float values which define the ratio of time they need compared
+with a sequential access of a memory page. The costs can be determined by running
+some queries.
+
+First you need to create relations $R_1, R_2$ with different tuple sizes but
+the same number of tuples and pages. Hence the time difference for scanning
+those relations can be used to compute the time for a page fetch. Moreover, the
+size of the relations should be bigger than the main memory. Hence we have
+$|t_{q1} - t_{q2}| = T_{pc} |P_1 - P_2|$ where $t_{qi}$ is the runtime for a
+query which scans relation $R_i$.
+
+Afterwards one can mesaure the time for processing a tuple $T_{tc}$by constructing
+relations with the same number of pages but a different number of tuples. Again
+the run time difference for a scan can be utilized to compute the processing
+overhead for a single tuple.
+
+Finally queries applying a different number of operators are used to compute the
+time needed for a single operator $T_{oc}$.
+
+
+9 Understanding the Postgres Planner
+
+Below there are three similar queries which result in different plans.
+
+*/
+
+Q1: explain select count(*) from m1, m2 where m1.a = m2.a and m1.a = 1;
+ Aggregate  (cost=22128.85..22128.85 rows=1 width=0)
+   ->  Nested Loop  (cost=8543.55..22119.35 rows=949638 width=0)
+         ->  Seq Scan on m2  (cost=0.00..8542.72 rows=978 width=4)
+               Filter: (1 = a)
+         ->  Materialize  (cost=8543.55..8546.12 rows=971 width=4)
+               ->  Seq Scan on m1  (cost=0.00..8543.29 rows=971 width=4)
+                     Filter: (a = 1)
+
+Q2: explain select count(*) from m1, m2 where m1.a = m2.a and m2.a < 10;
+ Aggregate  (cost=99334.22..99334.23 rows=1 width=0)
+   ->  Merge Join  (cost=53549.54..99163.39 rows=17083708 width=0)
+         Merge Cond: ("outer".a = "inner".a)
+         ->  Sort  (cost=8547.57..8547.74 rows=17246 width=4)
+               Sort Key: m2.a
+               ->  Seq Scan on m2  (cost=0.00..8542.72 rows=17246 width=4)
+                     Filter: (a < 10)
+         ->  Sort  (cost=45001.97..45011.97 rows=1000110 width=4)
+               Sort Key: m1.a
+               ->  Seq Scan on m1  (cost=0.00..8533.29 rows=1000110 width=4)
+
+Q3 explain select count(*) from m1, m2 where m1.a = m2.a and m1.a < 10;
+ Aggregate  (cost=80644.17..80644.17 rows=1 width=0)
+   ->  Hash Join  (cost=8543.39..80543.07 rows=10109754 width=0)
+         Hash Cond: ("outer".a = "inner".a)
+         ->  Seq Scan on m2  (cost=0.00..8532.72 rows=999894 width=4)
+         ->  Hash  (cost=8543.29..8543.29 rows=10208 width=4)
+               ->  Seq Scan on m1  (cost=0.00..8543.29 rows=10208 width=4)
+                     Filter: (a < 10)
+
+/*
+Note that in Q1 the planner rewrites the query and adds an additional predicate m2.a = 0.
+This is possible since an equi-join essentially needs the same values to produce matches.
+Moreover, it seems that hashjoins and mergejoins are prevented since they are never chosen, even with
+configuration option "enable_nestloop = off" which raises the total costs up to 100.000.000.  
+ 
+Extraordinarily, this technique is not applied for queries "Q2" and "Q3" even
+though it could reduce costs. Moreover, one can observe, that the estimates for
+"m1.a < 10" and "m2.a < 10" vary in a wide range despite the fact that relation "m2"
+is a copy of "m1". After each command which updates statistics samples, e.g.
+analyze m1, the estimate changes. Note: the sttistics about data distributions
+can be confiured on a per column basis or for globally by the parameter
+"default_statistics_target".
+
+Adding a redundant (totally correlated) predicate "m2.b = 2" misguides the planner since it
+chooses a very expensive plan based on the estimate that the scan on "m2" will return only
+1 tuple (actually 1000 tuples). This leads to a nested loop-join without materialization
+of the intermediate result, hence m2 will be scanned 1000 times. This is a good demonstration
+for the needs of robust query optimization as claimed in [xxx]. 
+ 
+*/
+Q4: Q3 and m2.b = 2
+Aggregate  (cost=17099.17..17099.17 rows=1 width=0)
+   ->  Nested Loop  (cost=0.00..17099.16 rows=971 width=0)
+         ->  Seq Scan on m2  (cost=0.00..8553.29 rows=1 width=4)
+               Filter: ((b = 2) AND (1 = a))
+         ->  Seq Scan on m1  (cost=0.00..8543.29 rows=971 width=4)
+               Filter: (a = 1)
+
