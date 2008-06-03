@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
+Copyright (C) 2004-2008, University in Hagen, Faculty Mathematics and Computer
+Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -2121,7 +2121,7 @@ The probe join will be stopped if
       return (cpu1 + cpu2 + cpu3 + cpu4);
     }  
 
-    // By default 0,25% of the cartesian product will
+    // By default 0,05% of the cartesian product will
     // be used as input for the probe join
     int computeProbeSize( int est, double scaleP, int minVal, int maxVal  ) 
     {
@@ -2151,7 +2151,7 @@ The probe join will be stopped if
       int leftEst = leftBuf->maxInputCard();
       int rightEst = rightBuf->maxInputCard();
 
-      // Define 0.2% of the square as sample size
+      // Define 0.05% of the cartesian product as sample size
       Environment& env = Environment::getInstance();
       double pScale = env.getFloat("SEC_pScale", 0.05);
       int pMinRead = env.getInt("SEC_pMinRead", 500);
@@ -2324,8 +2324,14 @@ The probe join will be stopped if
       const CostInfo ci = costFuns->findBest(cp);
       SHOW(ci)
       bestPos = ci.cf->index;
-      if (useHint) {
+
+      bool pAllowHints = 
+	       Environment::getInstance().getBool("SEC_pAllowHints", false);
+      SHOW(pAllowHints)
+      
+      if (pAllowHints && useHint) {
         bestPos = useIndex;   	      
+        cout << "Using hint with index " << useIndex << endl;
       }	      
       assert( bestPos < (int)evalFuns->size() );
       
@@ -3192,7 +3198,7 @@ Operator ~shuffle~
 struct ShuffleInfo {
 
   ShuffleInfo(int maxMem = 4 * 1024 * 1024, int maxTuples = 100000 )
-    : persBuf(3/4 * maxMem), 
+    : persBuf(maxMem), 
       memBuf(maxMem),
       memTuples(500),	
       skip(maxTuples/500),
@@ -3348,62 +3354,54 @@ Operator ~shuffle~
 
 struct ShuffleInfoRAND : public ShuffleInfo {
 
-  ShuffleInfoRAND() : ShuffleInfo(), run(0)
+  ShuffleInfoRAND() : ShuffleInfo(),
+		      lastTuple(0)
   {}
 
   ~ShuffleInfoRAND()
   {}     
 
-  void append(Tuple* t) {
-	  
-    int i = streamPos % memTuples;  	  
-    if ( i == 0 ) {
-     run++;
 
-     if (trace) {
-
-       cerr << endl
-	    << "memTuples: " << memTuples   
-	    << ", run: " << run
-	    << ", replaced slots:" 
-	    << endl;
-     }  
-    }	     
-
-    if (run == 1) {
-      // fill buffer the first time	    
-      memBuf.AppendTuple(t);	    
-    }	    
-    else { // run > 1
-
-    size_t r = WinUnix::rand(run); 
-    assert( (r >= 1) && (r <= run) );
-
-    if ( r == run )
+  void append(Tuple* t) 
+  {
+    size_t i = 0;
+    bool replaced = false;
+    Tuple* v = rtBuf.ReplacedByRandom(t, i, replaced);
+    
+    if ( replaced )
     { 
-      if (trace) {
-        cerr << i << " ";	
+      // v was replaced by t
+      if (v != 0) {
+        persBuf.AppendTuple(v);	    
+        v->DeleteIfAllowed();
       }	
-
-      // tuple will be selected for the	front part 
-      // of the output stream.
-      Tuple* s = memBuf.GetTupleAtPos(i);
-      s->DecReference();
-      persBuf.AppendTuple(s);
-      t->IncReference();       
-      memBuf.SetTupleAtPos(i, t);
-    } 
-    else
-    {
-      persBuf.AppendTuple(t);	    
     }
-
-    } // end of run > 1
-
-    streamPos++; 
+    else 
+    { 
+      assert(v == 0);
+      // v == 0, and t was not stored in buffer
+      persBuf.AppendTuple(t);
+    }
   }
 
-  size_t run;  
+  inline size_t freeBytes() const {
+    return persBuf.FreeBytes();	  
+  }	  
+
+  void finish() 
+  {
+
+    RandomTBuf::iterator it = rtBuf.begin();
+    for(; it != rtBuf.end(); it++) {
+      (*it)->DecReference();	    
+      memBuf.AppendTuple(*it);
+    }	    
+  }	  
+
+  Tuple* lastTuple;
+
+  private:
+    RandomTBuf rtBuf;
 
 };	
 
@@ -3430,6 +3428,7 @@ static int shuffle_vm( Word* args,
         info->append(t);
         t = nextTuple(stream);
       } 
+      info->finish();
       local.addr = info;
        
       return 0;
@@ -3462,6 +3461,87 @@ static int shuffle_vm( Word* args,
   }  
   return 0;
 }   
+
+static int shuffle3_vm( Word* args, 
+                        Word& result, int message, 
+                        Word& local, Supplier s    )
+{
+  //args[0]: stream(tuple(y))  
+  
+  static const string pre = "shuffle: ";
+  
+  ShuffleInfoRAND* info = static_cast<ShuffleInfoRAND*>( local.addr );
+  Word stream = args[0];
+  
+  switch (message)
+  {
+    case OPEN :
+    { 
+      info = new ShuffleInfoRAND();	    
+      qp->Open(stream.addr);
+      Tuple* t = nextTuple(stream);
+      size_t ctr = 0;
+      while( t != 0 )
+      {
+	if ( (size_t)t->GetExtSize() < info->freeBytes() ) {     
+          info->append(t);
+          t = nextTuple(stream);
+	  ctr++;
+	} else {
+	  info->lastTuple = t;	
+	  break;
+        }	
+      } 
+      cout << "ctr = " << ctr << endl;
+      info->finish();
+      local.addr = info;
+       
+      return 0;
+    } 
+    
+    case REQUEST :
+    {
+      Tuple* t = info->getNext();
+      if ( t != 0 )
+      {
+        result.addr = t;
+        return YIELD;
+      }
+      else
+      {
+	t = info->lastTuple;
+        if (t != 0) {
+          info->lastTuple = 0;
+	} else {	
+	  t = nextTuple(stream);
+	}  
+
+        if ( t != 0) 
+	{
+          result.addr = t;
+          return YIELD;
+        }
+	else 
+	{	
+          result.addr = 0;
+          return CANCEL;
+        }
+      }	
+    }
+    
+    case CLOSE :
+    {
+      qp->Close(stream.addr);
+      delete info;
+      
+      return 0;
+    }
+
+    default : { assert(false); }  
+  }  
+  return 0;
+}   
+
 
 static ListExpr memshuffle_tm(ListExpr args)
 {
@@ -3551,7 +3631,7 @@ static ListExpr runtime_tm(ListExpr list)
   if ( !args.elem(6).isSymbol(REAL) )
     return NList::typeError("Expecting a real as sixth argument"); 
   if ( !args.elem(7).isSymbol(INT) )
-    return NList::typeError("Expecting an int as seventh argument"); 
+   return NList::typeError("Expecting an int as seventh argument"); 
 
   return NList(INT).listExpr();  
 }
@@ -3896,6 +3976,25 @@ class PartStreamAlgebra : public Algebra
       );
 
       AddOperator( op );
+
+
+        oi.name =      "shuffle3";
+        oi.signature = "stream(tuple(y)) -> stream(tuple(y))";
+        oi.syntax =    "_ shuffle3";
+        oi.meaning =   "Tuples up to the max. allowed memory per operator"
+	               "are read into a buffer. Out of this buffer a random "
+		       "sample of 500 tuples is drawn and returned first. "
+		       "Afterwards all remaining tuples of the buffer and "
+		       "stream are returned.";
+      
+      op = new Operator(
+        oi,  
+        psm::shuffle3_vm,    
+        psm::shuffle_tm     
+      );
+
+      AddOperator( op );
+
 
         oi.name =      "memshuffle";
         oi.signature = "stream(ptuple(y)) -> stream(ptuple(y)), "
