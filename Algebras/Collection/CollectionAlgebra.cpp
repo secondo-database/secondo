@@ -419,7 +419,7 @@ GetComponent(pos) or GetComponentCount(pos).
 
 
     private:
-    inline Collection() {}
+    Collection() {}
 
     static void GetIds(int& algebraId, int& typeId, const ListExpr typeInfo);
 /*
@@ -1682,7 +1682,8 @@ cout << "MultisetProperty" << endl;
 
 */
   template<bool contains> ListExpr ContainsInTypeMap(ListExpr args) {
-    ListExpr* errorInfo;
+
+    ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 #ifdef DEBUGHEAD
 cout << "ContainsTypeMapping:" << nl->ToString(args) << endl;
 #endif
@@ -1696,7 +1697,7 @@ cout << "ContainsTypeMapping:" << nl->ToString(args) << endl;
     }
     ListExpr coll = (contains?nl->First(args):nl->Second(args));
     ListExpr elem = (contains?nl->Second(args):nl->First(args));
-    if(!Collection::KindCheck(coll, *errorInfo)) {
+    if(!Collection::KindCheck(coll, errorInfo)) {
       ErrorReporter::ReportError("Operator " + opName + " expects a vector, "
                                 + "set or multiset as " + pos1 + " argument.");
       return nl->TypeError();
@@ -1778,7 +1779,7 @@ cout << "ContainsInValueMap" << endl;
 
 */
   template<bool insert> ListExpr InsertTypeMap(ListExpr args) {
-    ListExpr* errorInfo;
+    ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 #ifdef DEBUGHEAD
 cout << "InsertTypeMapping:" << nl->ToString(args) << endl;
 #endif
@@ -1790,7 +1791,7 @@ cout << "InsertTypeMapping:" << nl->ToString(args) << endl;
     }
     ListExpr coll = nl->First(args);
     ListExpr elem = nl->Second(args);
-    if(!Collection::KindCheck(coll, *errorInfo)) {
+    if(!Collection::KindCheck(coll, errorInfo)) {
       if(insert) {
         ErrorReporter::ReportError("Operator " + opName + " expects a "
                                   + "set or multiset as first argument.");
