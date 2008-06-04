@@ -388,3 +388,16 @@ void* UGPoint::Cast(void* addr)
 {
   return new (addr) UGPoint;
 }
+
+int UGPoint::GetUnitRid(){
+  return p0.GetRouteId();
+}
+
+double UGPoint::GetUnitStartPos(){
+  return p0.GetPosition();
+}
+
+double UGPoint::GetUnitEndPos(){
+  return p1.GetPosition();
+}
+

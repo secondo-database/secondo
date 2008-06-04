@@ -234,6 +234,12 @@ Kind Checking Function
     static void* Cast(void* addr);
 
 
+int GetUnitRid();
+
+double GetUnitStartPos();
+
+double GetUnitEndPos();
+
 /*
 Attributes
 

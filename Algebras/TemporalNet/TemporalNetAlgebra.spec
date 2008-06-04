@@ -17,4 +17,6 @@ operator present alias PRESENT pattern _ infixop _
 operator isempty alias ISEMPTY pattern op ( _ )
 operator no_components alias NO_COMPONENTS pattern op ( _ )
 operator deftime alias DEFTIME pattern op ( _ )
-
+operator unitrid alias UNITRID pattern  op ( _ )
+operator unitstartpos alias UNITSTARTPOS pattern op ( _ )
+operator unitendpos alias UNITENDPOS pattern op ( _ )

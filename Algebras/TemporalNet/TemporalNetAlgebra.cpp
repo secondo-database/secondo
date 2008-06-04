@@ -61,6 +61,9 @@ Defines, includes, and constants
 #include "OpTempNetInside.h"
 #include "OpTempNetIntersection.h"
 #include "OpTempNetDeftime.h"
+#include "OpUnitRid.h"
+#include "OpUnitStartPos.h"
+#include "OpUnitEndPos.h"
 
 #include <iostream>
 #include <sstream>
@@ -367,6 +370,36 @@ Operator tempnetdeftime("deftime",
                 OpTempNetDeftime::TypeMap );
 
 /*
+Operator unitrid
+
+*/
+Operator tempnetunitrid("unitrid",
+                OpUnitRid::Spec,
+                OpUnitRid::ValueMapping,
+                Operator::SimpleSelect,
+                OpUnitRid::TypeMap );
+
+/*
+Operator unitstartpos
+
+*/
+Operator tempnetunitstartpos("unitstartpos",
+                OpUnitStartPos::Spec,
+                OpUnitStartPos::ValueMapping,
+                Operator::SimpleSelect,
+                OpUnitStartPos::TypeMap );
+
+/*
+Operator unitendpos
+
+*/
+Operator tempnetunitendpos("unitendpos",
+                OpUnitEndPos::Spec,
+                OpUnitEndPos::ValueMapping,
+                Operator::SimpleSelect,
+                OpUnitEndPos::TypeMap );
+
+/*
 Creating the Algebra
 
 */
@@ -406,6 +439,9 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetinside);
     AddOperator(&tempnetintersection);
     AddOperator(&tempnetdeftime);
+    AddOperator(&tempnetunitrid);
+    AddOperator(&tempnetunitstartpos);
+    AddOperator(&tempnetunitendpos);
   }
 
 

@@ -76,6 +76,7 @@ void getRouteIntervals(GLine *pGLine, int iRouteId, double mgpstart,
             } else {
               if (mid > 0) {
                 mid--;
+                found = false;
                 while (mid >= 0 && !found) {
                   pGLine->Get(mid, aktRI);
                   if (aktRI->m_iRouteId == iRouteId &&
@@ -201,47 +202,65 @@ int OpTempNetAt::at_mgpgp(Word* args,
         }
       } else {
         if(fabs(pGPoint->GetPosition()-pCurrentUnit->p1.GetPosition())<0.01) {
-          if (pCurrentUnit->timeInterval.rc){
-            i++;
-            pMGPoint->Get(i,pCheckUnit);
-            if (pCheckUnit->p0.GetRouteId() == pCurrentUnit->p1.GetRouteId() &&
-                pCheckUnit->p0.GetPosition() == pCurrentUnit->p1.GetPosition()&&
-              pCheckUnit->timeInterval.start == pCurrentUnit->timeInterval.end){
-              if (pCheckUnit->p0.GetPosition() != pCheckUnit->p1.GetPosition()){
-                pResult->Add(UGPoint(Interval<Instant>(
-                           pCurrentUnit->timeInterval.end,
-                           pCurrentUnit->timeInterval.end,
-                           true, true),
-                           pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
-                           pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
-                          pGPoint->GetPosition()));
-              } else {
-                pResult->Add(UGPoint(Interval<Instant>(
-                            pCheckUnit->timeInterval.start,
-                            pCheckUnit->timeInterval.end,
-                            pCheckUnit->timeInterval.lc,
-                            pCheckUnit->timeInterval.rc),
-                     pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
-                     pCheckUnit->p0.GetSide(), pGPoint->GetPosition(),
-                     pGPoint->GetPosition()));
+          if (pCurrentUnit->timeInterval.rc) {
+            if (i < pMGPoint->GetNoComponents()-1){
+              i++;
+              pMGPoint->Get(i,pCheckUnit);
+              if (pCheckUnit->p0.GetRouteId() ==
+                  pCurrentUnit->p1.GetRouteId() &&
+                  pCheckUnit->p0.GetPosition() ==
+                  pCurrentUnit->p1.GetPosition()&&
+                  pCheckUnit->timeInterval.start ==
+                  pCurrentUnit->timeInterval.end){
+                if (pCheckUnit->p0.GetPosition() !=
+                    pCheckUnit->p1.GetPosition()){
+                  pResult->Add(UGPoint(Interval<Instant>(
+                            pCurrentUnit->timeInterval.end,
+                            pCurrentUnit->timeInterval.end,
+                            true, true),
+                            pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                            pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
+                            pGPoint->GetPosition()));
+                } else {
+                  pResult->Add(UGPoint(Interval<Instant>(
+                              pCheckUnit->timeInterval.start,
+                              pCheckUnit->timeInterval.end,
+                              pCheckUnit->timeInterval.lc,
+                              pCheckUnit->timeInterval.rc),
+                              pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                              pCheckUnit->p0.GetSide(), pGPoint->GetPosition(),
+                              pGPoint->GetPosition()));
+                }
               }
+            } else {
+              pResult->Add(UGPoint(Interval<Instant>(
+                            pCurrentUnit->timeInterval.end,
+                            pCurrentUnit->timeInterval.end,
+                            true, true),
+                            pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                            pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
+                            pGPoint->GetPosition()));
             }
           } else {
-            i++;
-            pMGPoint->Get(i,pCheckUnit);
-            if (pCheckUnit->p0.GetRouteId() == pCurrentUnit->p1.GetRouteId() &&
-                pCheckUnit->p0.GetPosition() == pCurrentUnit->p1.GetPosition()&&
-              pCheckUnit->timeInterval.start == pCurrentUnit->timeInterval.end){
-              if (pCheckUnit->p0.GetPosition() != pCheckUnit->p1.GetPosition()){
-                pResult->Add(UGPoint(Interval<Instant>(
+            if (i < pMGPoint->GetNoComponents()-1) {
+              i++;
+              pMGPoint->Get(i,pCheckUnit);
+              if (pCheckUnit->p0.GetRouteId() == pCurrentUnit->p1.GetRouteId()
+                  && pCheckUnit->p0.GetPosition() ==
+                  pCurrentUnit->p1.GetPosition() &&
+                  pCheckUnit->timeInterval.start ==
+                  pCurrentUnit->timeInterval.end){
+                if (pCheckUnit->p0.GetPosition() !=
+                    pCheckUnit->p1.GetPosition()){
+                  pResult->Add(UGPoint(Interval<Instant>(
                            pCurrentUnit->timeInterval.end,
                            pCurrentUnit->timeInterval.end,
                            true, true),
                            pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
                            pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
                           pGPoint->GetPosition()));
-              } else {
-                pResult->Add(UGPoint(Interval<Instant>(
+                } else {
+                  pResult->Add(UGPoint(Interval<Instant>(
                             pCheckUnit->timeInterval.start,
                             pCheckUnit->timeInterval.end,
                             pCheckUnit->timeInterval.lc,
@@ -249,6 +268,7 @@ int OpTempNetAt::at_mgpgp(Word* args,
                      pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
                      pCheckUnit->p0.GetSide(), pGPoint->GetPosition(),
                      pGPoint->GetPosition()));
+                }
               }
             }
           }

@@ -106,6 +106,16 @@ int OpTempNetPresent::present_mgpi(Word* args, Word& result, int message,
   int mid;
   int first = 0;
   int last = pMGP->GetNoComponents() - 1;
+  pMGP->Get(first,pCurrentUnit);
+  if (pCurrentUnit->timeInterval.start.CompareTo(ins) >0) {
+    pPresent->Set(true, false);
+    return 0;
+  }
+  pMGP->Get(last,pCurrentUnit);
+  if (pCurrentUnit->timeInterval.end.CompareTo(ins) < 0) {
+    pPresent->Set(true, false);
+    return 0;
+  }
   while (first <= last) {
     mid = (first+last)/2;
     if (mid<0 || mid >= pMGP->GetNoComponents()) {
@@ -161,18 +171,24 @@ int OpTempNetPresent::present_mgpp(Word* args,
     per->Get( j, interval );
     first = 0;
     last = pMGP->GetNoComponents() -1;
-    while (first <= last) {
-      mid = (first + last) /2;
-      if (mid < 0 || mid >= pMGP->GetNoComponents()){
-        break;
-      }
-      pMGP->Get( mid, pCurrentUnit );
-      if (pCurrentUnit->timeInterval.Before(*interval)) first = mid + 1;
-      else {
-        if (interval->Before(pCurrentUnit->timeInterval)) last = mid - 1;
-        else {
-          pPresent->Set(true, true);
-          return 0;
+    pMGP->Get(first, pCurrentUnit);
+    if(!(interval->Before(pCurrentUnit->timeInterval))){
+      pMGP->Get(last, pCurrentUnit);
+      if (!pCurrentUnit->timeInterval.Before(*interval)){
+        while (first <= last) {
+          mid = (first + last) /2;
+          if (mid < 0 || mid >= pMGP->GetNoComponents()){
+            break;
+          }
+          pMGP->Get( mid, pCurrentUnit );
+          if (pCurrentUnit->timeInterval.Before(*interval)) first = mid + 1;
+          else {
+            if (interval->Before(pCurrentUnit->timeInterval)) last = mid - 1;
+            else {
+              pPresent->Set(true, true);
+              return 0;
+            }
+          }
         }
       }
     }
