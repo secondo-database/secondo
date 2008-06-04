@@ -895,6 +895,24 @@ restore(Query) :-
   atom_concat('restore ', Query, QueryText), !,
   secondo(QueryText).
 
+/*
+The keywords open and close are already assigned with operations
+on streams. Hence we provide ~openDB~ and closeDB to close a database.
+
+*/
+
+closedb :- closeDB.
+closeDB :-
+  secondo('close database').	
+
+
+openDB(Name) :-
+  atom_concat('open database ', Name, Cmd),
+  secondo(Cmd).
+
+openDB(_).
+
+
 :-
   op(800, fx, query),
   op(800, fx, delete),
