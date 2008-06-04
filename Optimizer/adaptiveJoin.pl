@@ -83,6 +83,11 @@ matchExpr(Pred, Rel, Term, AttrRel2, AttrStream) :-
   showValue('AttrStream-2', AttrStream),
   Term = exactmatch(IndexName, implicitArg(2), AttrStream).
 
+encodeJoinPred(Attr1, Attr2, FunctionName) :-
+  plan_to_atom(attrname(Attr1), Atom1),
+  plan_to_atom(attrname(Attr2), Atom2),
+  concat_atom(['pj_', Atom1, '_X_', Atom2], FunctionName).
+
   
 createpjoin1(AttrStream, AttrRel, FilterOps, ProbeOps, MatchOps, Ctr, [F1, F2, F3, F4]) :-   
  %showValue('AttrStream', AttrStream),
@@ -92,10 +97,14 @@ createpjoin1(AttrStream, AttrRel, FilterOps, ProbeOps, MatchOps, Ctr, [F1, F2, F
  %showValue('MatchOps', ProbeOps),
   Ctr2 is Ctr + 1,
   Ctr3 is Ctr + 2,
-  F1 = field( attr(symj, _, l), 
-              symmjoin( implicitArg(1), 
-                        counter(head(ProbeOps, 500),Ctr2),
-                        AttrStream = AttrRel )),
+  encodeJoinPred(AttrStream, AttrRel, FunName1),
+  showValue('FunName1', FunName1),
+  F1 = field( attr(FunName1, _, l), 
+  %symmjoin( implicitArg(1), 
+  %                     counter(head(ProbeOps, 500),Ctr2),
+  %                     AttrStream = AttrRel )),
+   hashjoin( implicitArg(1), counter(head(ProbeOps, 500), Ctr2),
+	     attrname(AttrStream), attrname(AttrRel), 9997) ),
   F2 = field( attr(hj, _, l), 
               hashjoin( implicitArg(1), 
                         counter(FilterOps,Ctr3),
@@ -119,18 +128,18 @@ try_pjoin2(X, Y, Rel1, Rel2, [F1, F2, F3]) :-
   %not( possibleIndexJoin(Pred,_) ),
   rel_to_atom(Rel1, Atom1),
   rel_to_atom(Rel2, Atom2),
-  concat_atom(['pj_', Atom1, '_', Atom2], FunName1),
+  concat_atom(['pj_', Atom1, '_X_', Atom2], FunName1),
   %F1 = field( attr(FunName1, _, l), 
   %            symmjoin(implicitArg(1), implicitArg(2), X = Y)),
   F1 = field( attr(FunName1, _, l), 
               hashjoin( implicitArg(1), implicitArg(2), 
                         attrname(Attr1), attrname(Attr2), 9997)),
   F2 = field( attr(hj, _, l), 
-              memshuffle(hashjoin( implicitArg(1), implicitArg(2), 
+              shuffle3(hashjoin( implicitArg(1), implicitArg(2), 
                         attrname(Attr1), attrname(Attr2), 9997))),
   F3 = field( attr(smj, _, l), 
-              sortmergejoin( implicitArg(1), implicitArg(2), 
-                             attrname(Attr1), attrname(Attr2))).
+              shuffle3(sortmergejoin_r2( implicitArg(1), implicitArg(2), 
+                             attrname(Attr1), attrname(Attr2)))).
 
 
 try_pjoin2_smj(X, Y, [F1, F3]) :- 
@@ -380,7 +389,8 @@ checkForIndex2(Rel, Attr, P, Arg) :-
   hasIndex(Rel, Attr, _, _),
   getCounter(pjoin1, Val),
   assert( possibleIndexJoin(P, Val, Arg) ),
-  Val is Val + 3.
+  Val2 is Val + 3,
+  resetCounter(pjoin1, Val2).
 
 registerPossibleIndexJoins(L) :-
   nl, writeln('*** Register possible Index Joins ***'),
