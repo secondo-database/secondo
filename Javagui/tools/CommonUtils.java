@@ -1,5 +1,7 @@
 package tools;
 
+import java.io.*;
+
 /** 
  *  
  **/
@@ -31,6 +33,25 @@ public static String expandVar(String source){
  return source;
 }
 
+
+/** simulates the __PRETTY_FUNCTION__ of C **/
+
+public static String WHERE()
+{
+    //create exception and write its stack trace to a String
+    StringWriter sw =new StringWriter();
+    PrintWriter pw =new PrintWriter(sw);
+    new Exception("printWhereAmI()").printStackTrace(pw);
+    pw.close();
+    String exceptionText = sw.toString();
+
+    //skip through first two "at ..."
+    for(int i=0;i<2;i++) {
+    exceptionText = exceptionText.substring(exceptionText.indexOf("at ",1));
+    }
+    //clip off remaining stack trace
+    return  exceptionText.substring(0,exceptionText.indexOf("at ",1));
+}
  
 
 }
