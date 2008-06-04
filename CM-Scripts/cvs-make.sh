@@ -30,6 +30,8 @@
 
 # Configuration Options
 
+export OSTYPE=linux
+
 # root for created local directories and files
 opt_rootDir="/tmp"
 
@@ -37,7 +39,7 @@ opt_rootDir="/tmp"
 opt_gccVersion=".undefined"
 
 # cvs configuration
-cvsDir=/home/cvsroot
+cvsDir=/home/spieker/tmp-cvs
 opt_coTag="HEAD"
 opt_cvsServer="zeppelin"
 #opt_logRoot="/home/secondo/testrun-errors"
@@ -54,7 +56,7 @@ opt_earlyExit="no"
 # options for automatic mails  
 LU_SENDMAIL="true"
 LU_SENDMAIL_FROM="spieker@bassi"
-failedBuild_DefaultRecipients="spieker@bassi behr@bassi"
+failedBuild_DefaultRecipients="spieker@bassi behr@bassi duentgen@bassi"
 
 LU_LOG_SCREEN="true"
 
@@ -402,7 +404,6 @@ if [ "$opt_gccVersion" != "" ]; then
   gccMailSubject="(using gcc $opt_gccVersion)" 
 fi
 
-
 # set up environment for secondo
 source ~/.bashrc # this is needed when started by cron
 
@@ -422,6 +423,7 @@ export SECONDO_SDK=$opt_sdkRootDir/$opt_sdkDir
 
 showValue SECONDO_SDK 
 
+echo "OSTYPE <$OSTYPE>"
 if ! source $SECONDO_SDK/secondorc; then exit 1; fi
 
 # derive some other important directories
@@ -570,6 +572,12 @@ showValue subject
 makeModule "$logFile" "$subject"  
 mk_rc=$?
 
+if [ $mk_rc -ne 0 ]; then
+  echo "*** Error during build! ***"
+  cleanModule
+  exit $mk_rc
+fi
+
 ## run tests
 
 if [[ ($mk_rc -eq 0) && ($opt_runTests == "yes") ]]; then
@@ -598,42 +606,36 @@ $(find $opt_logRoot -name "_failed_*" -exec cat {} \;)
 
   fi
 
+  cleanModule
+
+  if [[ ($[errors] == 0) 
+	&& ("$opt_runTests" == "yes") && ("$opt_mkStable" == "yes") ]]; then	
+
+    # Move label for stable version
+    cd $cbuildDir
+    tagSym="LAST_STABLE"
+    tagMsg="Moving CVS tag $tagSym"
+    printSep $tagMsg
+    echo -e "Automatic regression test was successful. ${tagMsg}!" >> $cvsHistFile
+    cvs -Q tag -d $tagSym 
+    cvs -Q tag $tagSym
+    make tag=$tagSym src-archives
+    #Backup to /www switched of since the server has problems
+    #cp /tmp/make-$USER/secondo-$tagSym* $HOME/Backup 
+
+    # send a notification
+    archive="/tmp/make-$USER/secondo-$tagSym.tar.gz"
+    mkMailStr2 "$mailBody4" $archive
+    sendMail "New public version source archives created" "$mailRecipients" "$MAIL_STR"
+
+    # clean up
+    rm -rf $cbuildDir
+    rm -rf $tmpDir
+    rm -rf /tmp/make-$USER
+  fi
+
+  echo "*** The regression test finished with  $errors errors ***"
+  exit $errors
+
 fi
 
-if [ $[errors] != 0 ]; then
-
-  printf "\n *** There were $errors errors in the automatic tests! ***\n"
-  
-fi
-
-cleanModule
-
-if [[ ($[errors] == 0) 
-      && ("$opt_runTests" == "yes") && ("$opt_mkStable" == "yes") ]]; then	
-
-  # Move label for stable version
-  cd $cbuildDir
-  tagSym="LAST_STABLE"
-  tagMsg="Moving CVS tag $tagSym"
-  printSep $tagMsg
-  echo -e "Automatic regression test was successful. ${tagMsg}!" >> $cvsHistFile
-  cvs -Q tag -d $tagSym 
-  cvs -Q tag $tagSym
-  make tag=$tagSym src-archives
-  #Backup to /www switched of since the server has problems
-  #cp /tmp/make-$USER/secondo-$tagSym* $HOME/Backup 
-
-  # send a notification
-  archive="/tmp/make-$USER/secondo-$tagSym.tar.gz"
-  mkMailStr2 "$mailBody4" $archive
-  sendMail "New public version source archives created" "$mailRecipients" "$MAIL_STR"
-
-  # clean up
-  rm -rf $cbuildDir
-  rm -rf $tmpDir
-  rm -rf /tmp/make-$USER
-fi
-
-echo "*** The regression test finished with  $errors errors."
-
-exit $errors
