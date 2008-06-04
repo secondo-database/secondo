@@ -145,34 +145,31 @@ class TreeNode implements PNode{
       }
       ListExpr subtype = value.first();
       String st = null;
-      if(subtype.atomType()==ListExpr.SYMBOL_ATOM){ // an usual submove
-          st = subtype.symbolValue();
-      }else if(subtype.atomType()==ListExpr.NO_ATOM){ // may be the total move
-         if(subtype.listLength()!=2){
-             Reporter.debug("wrong length for total move ");
-             return false;
-         }
-         if(subtype.first().atomType()!=ListExpr.SYMBOL_ATOM || 
-            !subtype.first().symbolValue().equals("instant")){
-            Reporter.debug("invalid format for start time"); 
-            return false;
-         }
-         if(subtype.second().atomType()!=ListExpr.STRING_ATOM){
-              Reporter.debug("invalid format for start time ");
-              return false;
-          }
-          Label = "T " + subtype.second().stringValue();
-          sons = new TreeNode[1];
-          sons[0] =new TreeNode("",null);
-          return sons[0].readFromPMType(value.second());
-      }else{      
-        Reporter.debug("wrong type"+subtype);
-        return false;
-      }   
-      if(!arrowDone){
-        computeArrow();
-      }   
+      if(subtype.atomType()!=ListExpr.SYMBOL_ATOM){ // an usual submove
+          Reporter.debug("Invalid list for the submove" + subtype );
+          return false; 
+      }
       st = subtype.symbolValue();
+
+      if(TreeViewer.isPMType(subtype)){ // the total move
+         value = value.second();
+         if(value.listLength()!=2){ // Instant SubMove
+           Reporter.debug("Invalid Length");
+           return false;
+         }  
+         Double time = viewer.hoese.LEUtils.readInstant(value.first());
+         if(time==null){
+            Reporter.debug("invalid representation of the start time");
+            return false;
+         } else {
+           Label = st + " " + viewer.hoese.LEUtils.convertTimeToString(time.doubleValue());
+           System.out.println("MyLabel = " + Label);
+           sons = new TreeNode[1];
+           sons[0] = new TreeNode("",null);
+           return sons[0].readFromPMType(value.second());
+         }
+      }
+            
       if(st.equals("linear")){
           Label = "L";
           sons = null;
@@ -180,6 +177,7 @@ class TreeNode implements PNode{
       } 
 
       if(st.equals("period")){
+          System.out.println("Period found");
           value = value.second();
           int len = value.listLength();
           if(len!=2 && len!=4){ // (reps submove)
@@ -1099,10 +1097,11 @@ public boolean addObject(SecondoObject o){
     ListExpr LE = o.toListExpr().second(); // we need only the value
     
     PNode pN;
-    if(type.atomType()==ListExpr.SYMBOL_ATOM && type.symbolValue().equals("tree")){
+    if(type.atomType()==ListExpr.SYMBOL_ATOM && 
+      (type.symbolValue().equals("tree") || isPMType(type))){
        TreeNode N = new TreeNode("",null);
        if(isPMType(type)){
-         if(!N.readFromPMType(LE)){
+         if(!N.readFromPMType(o.toListExpr())){
            return false;
          }
        } else if(!N.readFrom(LE)){ // error in valueList
@@ -1126,7 +1125,7 @@ public boolean addObject(SecondoObject o){
 }
 
 /** returns true if the type represents a periodic moving type **/
-private boolean isPMType(ListExpr list){
+static boolean isPMType(ListExpr list){
    if(list.atomType()!=ListExpr.SYMBOL_ATOM){
        return false;
    }
@@ -1157,6 +1156,7 @@ public void removeAll(){
 }
 
 public boolean canDisplay(SecondoObject o){
+
    ListExpr LE = o.toListExpr();
    if(LE.listLength()!=2){ // not an secondo object (type value)
      return false;
