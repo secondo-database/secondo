@@ -255,3 +255,17 @@ Signature: ugpoint -> real
 Example  : query unitendpos(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head [1] extract [elem]);
 Result   : 1.5
 Tolerance: 0.01%
+
+Operator : unitstarttime
+Number   : 1
+Signature: ugpoint -> real
+Example  : query unitstarttime(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head [1] extract [elem]);
+Result   : 2555.4236111111
+Tolerance: 0.01%
+
+Operator : unitendtime
+Number   : 1
+Signature: ugpoint -> real
+Example  : query unitendtime(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head [1] extract [elem]);
+Result   : 2555.4236226852
+Tolerance: 0.01%

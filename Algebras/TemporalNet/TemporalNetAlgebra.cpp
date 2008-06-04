@@ -31,6 +31,9 @@ May 2007 Martin Scheppokat
 March 2008 Simone Jandt Added type constructor igpoint and operators: length,
 initial, atinstant and final.
 
+June 2008 Simone Jandt added operators to return ugpointparts in secondo as
+doubel values.
+
 Defines, includes, and constants
 
 */
@@ -64,6 +67,8 @@ Defines, includes, and constants
 #include "OpUnitRid.h"
 #include "OpUnitStartPos.h"
 #include "OpUnitEndPos.h"
+#include "OpUnitEndTime.h"
+#include "OpUnitStartTime.h"
 
 #include <iostream>
 #include <sstream>
@@ -120,8 +125,8 @@ TypeConstructor intimegpoint(
         0,       //SaveToList and RestoreFromList functions
         CreateIntime<GPoint>,
         DeleteIntime<GPoint>,              //object creation and deletion
-        0,
-        0,                           // object open and save
+        OpenAttribute<GPoint>,
+        OpenAttribute<GPoint>,             // object open and save
         CloseIntime<GPoint>,
         CloneIntime<GPoint>,               //object close and clone
         CastIntime<GPoint>,                //cast function
@@ -140,7 +145,7 @@ TypeConstructor unitgpoint(
                                                 // from list functions
         UGPoint::Create,                        // Object creation
         UGPoint::Delete,                        // and deletion
-        0,             0,                       // Object open and save
+        OpenAttribute<UGPoint>,SaveAttribute<GPoint>, //Object open and save
         UGPoint::Close, UGPoint::Clone,         // Object close and clone
         UGPoint::Cast,                          // Cast function
         UGPoint::SizeOf,                        // Sizeof function
@@ -160,8 +165,8 @@ TypeConstructor movinggpoint(
         0,                                          // RestoreFromList
         CreateMapping<MGPoint>,                     // Object creation and
         DeleteMapping<MGPoint>,                     // deletion
-        0,                                          // Object open and save
-        0,
+        OpenAttribute<MGPoint>,                     // Object open and save
+        SaveAttribute<MGPoint>,
         CloseMapping<MGPoint>,                      // Object close and clone
         CloneMapping<MGPoint>,
         CastMapping<MGPoint>,                       // Cast function
@@ -400,6 +405,26 @@ Operator tempnetunitendpos("unitendpos",
                 OpUnitEndPos::TypeMap );
 
 /*
+Operator unitstarttime
+
+*/
+Operator tempnetunitstarttime("unitstarttime",
+                OpUnitStartTime::Spec,
+                OpUnitStartTime::ValueMapping,
+                Operator::SimpleSelect,
+                OpUnitStartTime::TypeMap );
+
+/*
+Operator unitendtime
+
+*/
+Operator tempnetunitendtime("unitendtime",
+                OpUnitEndTime::Spec,
+                OpUnitEndTime::ValueMapping,
+                Operator::SimpleSelect,
+                OpUnitEndTime::TypeMap );
+
+/*
 Creating the Algebra
 
 */
@@ -442,6 +467,8 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetunitrid);
     AddOperator(&tempnetunitstartpos);
     AddOperator(&tempnetunitendpos);
+    AddOperator(&tempnetunitstarttime);
+    AddOperator(&tempnetunitendtime);
   }
 
 

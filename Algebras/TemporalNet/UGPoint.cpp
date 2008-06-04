@@ -401,3 +401,11 @@ double UGPoint::GetUnitEndPos(){
   return p1.GetPosition();
 }
 
+double UGPoint::GetUnitStartTime(){
+  return timeInterval.start.ToDouble();
+}
+
+double UGPoint::GetUnitEndTime(){
+  return timeInterval.end.ToDouble();
+}
+

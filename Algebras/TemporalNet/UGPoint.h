@@ -240,6 +240,10 @@ double GetUnitStartPos();
 
 double GetUnitEndPos();
 
+double GetUnitStartTime();
+
+double GetUnitEndTime();
+
 /*
 Attributes
 
