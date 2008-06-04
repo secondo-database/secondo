@@ -1,9 +1,9 @@
 /*
 
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -160,7 +160,7 @@ show([Type, Value]) :-
   display(Type, Value).
 
 show(Y) :-
-  write(Y), 
+  write(Y),
   pretty_print(Y),
   nl.
 
@@ -179,32 +179,32 @@ type constructors are added to Secondo.
 
 
 display(int, N) :-
-  !, 
+  !,
   write(N).
 
 display(real, N) :-
-  !, 
+  !,
   write(N).
 
 display(bool, N) :-
-  !, 
+  !,
   write(N).
 
 display(string, N) :-
   !,
-  term_to_atom(String, N), 
+  term_to_atom(String, N),
   displayString(String).
 
 display(date, N) :-
   !,
-  term_to_atom(String, N), 
+  term_to_atom(String, N),
   displayString(String).
-  
+
 display(instant, N) :-
   !,
-  term_to_atom(String, N), 
+  term_to_atom(String, N),
   displayString(String).
-  
+
 display(text, N) :-
   !,
   write_elements([N], 0).
@@ -234,8 +234,8 @@ display(Type, Value) :-
 
 displayString([]).
 
-displayString([Char | Rest]) :- 
-  put(Char), 
+displayString([Char | Rest]) :-
+  put(Char),
   displayString(Rest).
 
 displayTuples(_, [], _).
@@ -271,12 +271,12 @@ and error message are printed.
 */
 
 % Such facts are used to mark a file has been considered by some predicate:
-:- dynamic(tempConsideredFile/1). 
+:- dynamic(tempConsideredFile/1).
 
 
 % atom_postfix(+Atom, +PrefixLength, ?Post)
 % succeeds iff Post is a postfix of Atom starting after PrefixLength
-atom_postfix(Atom, PrefixLength, Post) :- 
+atom_postfix(Atom, PrefixLength, Post) :-
   atom_length(Atom, Length),
   PostLength is Length - PrefixLength,
   sub_atom(Atom, PrefixLength, PostLength, 0, Post).
@@ -285,13 +285,15 @@ atom_postfix(Atom, PrefixLength, Post) :-
 indexType(btree).
 indexType(rtree).
 indexType(rtree3).
+indexType(rtree4).
+indexType(rtree8).
 
 /*
----- getSmallIndexCreateQuery(+Granularity, +BBoxType, +Type, +Rel, +Attr, 
+---- getSmallIndexCreateQuery(+Granularity, +BBoxType, +Type, +Rel, +Attr,
                               +IndexName, -QueryAtom)
 ----
 Create a ~QueryAtom~ that is a executable Secondo command string, that will create the
-appropriate specialized R-Tree index from relation ~Rel~ for key attribute ~Attr~, with 
+appropriate specialized R-Tree index from relation ~Rel~ for key attribute ~Attr~, with
 bounding boxes of type ~BBoxType~ and granularity of the bounding boxes set to ~Granularity~,
 where the index is named ~IndexName~.
 
@@ -308,33 +310,33 @@ getSmallIndexCreateQuery(Granularity,BBoxType,Type,Rel,Attr,IndexName,QueryAtom)
 % Rules to create index queries
 
 % rules to build specialized R-tree indices:
-indexCreateQuery(object, time, _, Rel, Attr, IndexName, 
-  ['let ', IndexName, '_small = ', Rel, 
+indexCreateQuery(object, time, _, Rel, Attr, IndexName,
+  ['let ', IndexName, '_small = ', Rel,
    '_small feed addid extend[ p: point2d( deftime( .', Attr,
    ' ) ) ] creatertree[ p ]']) :- !.
 indexCreateQuery(object, space, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel, 
+  ['let ', IndexName, '_small = ', Rel,
    '_small feed addid extend[ t: trajectory( .', Attr,
    ' ) ] creatertree[ t ]']) :- !.
-indexCreateQuery(object, d3, _, Rel, Attr, IndexName, 
-  ['let ', IndexName, '_small = ', Rel, 
+indexCreateQuery(object, d3, _, Rel, Attr, IndexName,
+  ['let ', IndexName, '_small = ', Rel,
    '_small feed addid extend[ b: box3d( bbox( trajectory( .', Attr,
    ' ) ), deftime( .', Attr, ' ) ) ]',
    ' creatertree[ b ]']) :- !.
 
 indexCreateQuery(unit, time, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel, 
-   '_small feed addid extendstream[ Unit: units( .', Attr, 
+  ['let ', IndexName, '_small = ', Rel,
+   '_small feed addid extendstream[ Unit: units( .', Attr,
    ' ) ] extend[ p: point2d( deftime( .Unit ) ) ]',
    ' creatertree[ p ]']) :- !.
 indexCreateQuery(unit, space, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel, 
-   '_small feed addid extendstream[ Unit: units( .', Attr, 
+  ['let ', IndexName, '_small = ', Rel,
+   '_small feed addid extendstream[ Unit: units( .', Attr,
    ' ) ] extend[ t: trajectory( .Unit ) ]',
    ' creatertree[ t ]']) :- !.
-indexCreateQuery(unit, d3, _, Rel, Attr, IndexName, 
-  ['let ', IndexName, '_small = ', Rel, 
-   '_small feed addid extendstream[ Unit: units( .', Attr, 
+indexCreateQuery(unit, d3, _, Rel, Attr, IndexName,
+  ['let ', IndexName, '_small = ', Rel,
+   '_small feed addid extendstream[ Unit: units( .', Attr,
    ' ) ] creatertree[ Unit ]']) :- !.
 
 % for later extensions:
@@ -345,34 +347,34 @@ indexCreateQuery(group10, d3,    _, _, _, _, _) :- fail, !.
 % the standard indices must go last:
 
 % all types 'rtree<n>' are created with 'creatertree':
-indexCreateQuery(none, none, Type, Rel, Attr, IndexName, 
-  ['let ', IndexName, '_small = ', Rel, 
+indexCreateQuery(none, none, Type, Rel, Attr, IndexName,
+  ['let ', IndexName, '_small = ', Rel,
    '_small creatertree[ ', Attr, ' ]']) :-
   sub_atom(Type, 0, _, _, rtree), !.
 
 % all other standard indices are created as follows:
-indexCreateQuery(none, none, Type, Rel, Attr, IndexName, 
-  ['let ', IndexName, '_small = ', Rel, 
+indexCreateQuery(none, none, Type, Rel, Attr, IndexName,
+  ['let ', IndexName, '_small = ', Rel,
    '_small create', Type, '[ ', Attr, ' ]']) :- !.
 
 /*
----- createIndexSmall(+Rel, +ObjList, +IndexName, 
+---- createIndexSmall(+Rel, +ObjList, +IndexName,
                       +LogicalIndexType, +Attr, +Granularity, +BBoxType)
 ----
 
-Test, if a \_small index has to be created (is not a member of ~ObjList~) and 
-create it if necessary. The index is specified by the relation ~Rel~ and key 
-attribute ~Attr~, the index' name ~IndexName~, its type ~LogicalIndexType~, 
+Test, if a \_small index has to be created (is not a member of ~ObjList~) and
+create it if necessary. The index is specified by the relation ~Rel~ and key
+attribute ~Attr~, the index' name ~IndexName~, its type ~LogicalIndexType~,
 the index' ~Granularity~ and type of bounding box ~BBoxType~.
 
 Also, add a \_small relation, if it is still not available.
 
 */
 
-createIndexSmall(_, _, _, _, _, _, _) :- 
+createIndexSmall(_, _, _, _, _, _, _) :-
   not(optimizerOption(entropy)),!.
-  
-createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr, 
+
+createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr,
                                             Granularity, BBoxType) :-
   optimizerOption(entropy),
   member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
@@ -380,27 +382,28 @@ createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr,
   concat_atom([IndexName, 'small'], '_', IndexSmallName),
   % create _small relation if not present (needed to create _small index)
   ( not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList))
-    -> tryCreateSmallRelation(Rel, ObjList) 
+    -> tryCreateSmallRelation(Rel, ObjList)
     ;  true
   ),
   % create _small index if not present
   (   ( indexType(LogicalIndexType),
         LogicalIndexType = PhysicalIndexType
       )
-    ; ( optimizerOption(rtreeIndexRules), 
+    ; ( optimizerOption(rtreeIndexRules),
         member([LogicalIndexType, PhysicalIndexType],
                [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3], 
+%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3],
 %               for later extensions
-                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3],
+                [object_d4,rtree4],  [object_d8,rtree8]
                ])
       )
   ),
   ( not(member(['OBJECT',IndexSmallName,_ ,[[PhysicalIndexType | _]]],ObjList))
     *-> ( dm(index,['\nIn createIndexSmall: getSmallIndexCreateQuery(',
-                    Granularity, ',', BBoxType, ',', PhysicalIndexType, ',', 
+                    Granularity, ',', BBoxType, ',', PhysicalIndexType, ',',
                     Rel, ',', Attr, ',', IndexName, ',', QueryAtom, ')\n']),
-          getSmallIndexCreateQuery(Granularity, BBoxType, PhysicalIndexType, 
+          getSmallIndexCreateQuery(Granularity, BBoxType, PhysicalIndexType,
                                    Rel, Attr, IndexName, QueryAtom),
           tryCreate(QueryAtom)
         )
@@ -412,7 +415,7 @@ createIndexSmall(Rel, ObjList, _, _, _, _, _) :-
   not(member(['OBJECT', Rel, _ , [[rel | _]]], ObjList)),
   write('ERROR: missing relation '),
   write(Rel),
-  write(' cannot create small relation and an index on small relation!'), !, 
+  write(' cannot create small relation and an index on small relation!'), !,
   fail.
 
 % Test, if there is a _small-relation for relation Rel, otherwise create it
@@ -423,7 +426,7 @@ checkIfSmallRelationExists(Rel, ObjList) :-
   downcase_atom(Rel, RelD),
   tryCreateSmallRelation(RelD, ObjList), !.
 
-% Test if for each relation in ObjList there also is a _small-relation, 
+% Test if for each relation in ObjList there also is a _small-relation,
 % otherwise create it
 checkIfSmallRelationsExist(ObjList) :-
   optimizerOption(entropy),
@@ -439,8 +442,8 @@ checkIfSmallRelationsExist(ObjList) :-
 checkIfSmallRelationsExist(_) :-
   not(optimizerOption(entropy)), !.
 
-  
-% checkIfIndexIsStored(_, _, LFRel, LFAttr, Granularity, BBoxType, 
+
+% checkIfIndexIsStored(_, _, LFRel, LFAttr, Granularity, BBoxType,
 %                                            IndexType, IndexName, _) :-
 %  (   ( % standard index
 %        Granularity = none,
@@ -454,8 +457,8 @@ checkIfSmallRelationsExist(_) :-
 %  databaseName(DB),
 %  storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName), !.
 
-checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, 
-                     Granularity, BBoxType, IndexType, 
+checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr,
+                     Granularity, BBoxType, IndexType,
                      IndexName, ObjList) :-
   databaseName(DB),
   storedNoIndex(DB, LFRel, LFAttr),
@@ -468,22 +471,22 @@ checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr,
   retractall(storedNoIndex(DB, LFRel, LFAttr)),
   retractall(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
   assert(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
-  createIndexSmall(Rel,ObjList,IndexName,LogicalIndexType,Attr, 
+  createIndexSmall(Rel,ObjList,IndexName,LogicalIndexType,Attr,
                                               Granularity,BBoxType), !.
 
-checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, 
-                     Granularity, BBoxType, IndexType, 
+checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr,
+                     Granularity, BBoxType, IndexType,
                      IndexName, ObjList) :-
-  ( (Granularity = none, BBoxType = none) 
+  ( (Granularity = none, BBoxType = none)
     -> LogicalIndexType = IndexType % standard index
        % specialized R-Tree index
-    ;  concat_atom([Granularity, BBoxType], '_', LogicalIndexType) 
+    ;  concat_atom([Granularity, BBoxType], '_', LogicalIndexType)
   ),
   databaseName(DB),
   retractall(storedNoIndex(DB, LFRel, LFAttr)),
   retractall(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
   assert(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
-  createIndexSmall(Rel,ObjList,IndexName,LogicalIndexType,Attr, 
+  createIndexSmall(Rel,ObjList,IndexName,LogicalIndexType,Attr,
                                               Granularity,BBoxType), !.
 
 checkForAddedIndex(ObjList) :-
@@ -496,25 +499,25 @@ checkForAddedIndex(ObjList) :-
         L = [LFRel, Attr, Granularity, BBoxType],
         member(Granularity, [object, unit, group10]),
         member(BBoxType, [time, space, d3])
-       ) 
+       )
   ),
   not(Attr = small),
   not(Attr = sample),
   not(tempConsideredFile(IndexName)),
   relname(LFRel, Rel),
   lowerfl(Attr, LFAttr),
-  checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, Granularity, 
+  checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, Granularity,
                               BBoxType, IndexType, IndexName, ObjList),
   assert(tempConsideredFile(IndexName)).
 
 relname(LFRel, LFRel) :-
-  spelled(LFRel, _, l), 
+  spelled(LFRel, _, l),
   !.
 
 relname(LFRel, Rel) :-
   spelled(LFRel, _, u),
   upper(LFRel, Rel).
-  
+
 checkForAddedIndices(ObjList) :-
   retractall(tempConsideredFile(_)),
   findall(_, checkForAddedIndex(ObjList), _), !.
@@ -525,12 +528,13 @@ checkForRemovedIndex(ObjList) :-
   (   ( indexType(LogicalIndexType),
         LogicalIndexType = PhysicalIndexType
       )
-    ; ( optimizerOption(rtreeIndexRules), 
+    ; ( optimizerOption(rtreeIndexRules),
         member([LogicalIndexType, PhysicalIndexType],
               [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3], 
+%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3],
 %              for later extensions
-               [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+               [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3],
+               [object_d4,rtree4], [object_d8, rect8]
               ])
       )
   ),
@@ -552,7 +556,7 @@ checkIfIndex(X, ObjList) :-
   checkForAddedIndices(ObjList),!.
 
 checkIfIndex(_, _) :-
-  true.	
+  true.
 
 checkIsInList(X, ObjList, Type) :-
   sub_atom(X, _, _, _, Name),
@@ -562,11 +566,11 @@ checkIsInList(_, _, _) :-
   fail.
 
 
-/* 
+/*
 Some facts which store important state information
 
 */
- 
+
 :- dynamic storeupdateRel/1.
 :- dynamic storeupdateIndex/1.
 :- dynamic storedDatabaseOpen/1.
@@ -584,7 +588,7 @@ secondoResultSucceeded(Result) :-
   nl, nl,
   show(Result), !.
 
-secondoResultFailed :- 
+secondoResultFailed :-
   secondo_error_info(ErrorCode, ErrorString),
   write('Command failed with error code : '),
   write(ErrorCode), nl,
@@ -595,10 +599,10 @@ secondoResultFailed :-
 
 secondo(X) :-
   sub_atom(X,0,4,_,S),
-  atom_prefix(S,'open'),	
+  atom_prefix(S,'open'),
   atom_postfix(X, 14, DB1),
   downcase_atom(DB1, DB), !,
-  ( secondo(X, Y) 
+  ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y), !,
           retractall(storedDatabaseOpen(_)),
           assert(storedDatabaseOpen(1)),
@@ -619,7 +623,7 @@ secondo(X) :-
 
 secondo(X) :-
   sub_atom(X,0,5,_,S),
-  atom_prefix(S,'close'), !,	
+  atom_prefix(S,'close'), !,
   ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y),
           retract(storedDatabaseOpen(_)),
@@ -631,7 +635,7 @@ secondo(X) :-
           fail
         )
   ), !.
-  
+
 secondo(X) :-
   sub_atom(X,0,6,_,S),
   atom_prefix(S,'update'),
@@ -644,7 +648,7 @@ secondo(X) :-
           fail
         )
   ), !.
-    
+
 secondo(X) :-
   sub_atom(X,0,6,_,S),
   atom_prefix(S,'derive'),
@@ -661,7 +665,7 @@ secondo(X) :-
 secondo(X) :-
   sub_atom(X,0,3,_,S),
   atom_prefix(S,'let'),
-  isDatabaseOpen, !, 
+  isDatabaseOpen, !,
   ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y),
           retractall(storedSecondoList(_)),
@@ -672,13 +676,13 @@ secondo(X) :-
           fail
         )
   ), !.
-  
+
 secondo(X) :-
   sub_atom(X,0,6,_,S),
   atom_prefix(S,'create'),
   sub_atom(X,0,15,_,S),
   not(atom_prefix(S,'create database')),
-  isDatabaseOpen,  
+  isDatabaseOpen,
   ( secondo(X, Y)
     *-> ( retractall(storedSecondoList(_)),
           secondoResultSucceeded(Y)
@@ -693,7 +697,7 @@ secondo(X) :-
   notIsDatabaseOpen,
   downcase_atom(DB1, DB), !,
   ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y), 
+    *-> ( secondoResultSucceeded(Y),
           retractall(storedDatabaseOpen(_)),
           assert(storedDatabaseOpen(1)),
           retractall(databaseName(_)),
@@ -720,7 +724,7 @@ secondo(X) :-
 secondo(X) :- % variant to use during updateRel is processed
   concat_atom([Command, _],' ',X),
   Command = 'delete',
-  storeupdateRel(1),  
+  storeupdateRel(1),
   isDatabaseOpen,
   getSecondoList(ObjList),
   checkIsInList(X, ObjList, rel),
@@ -735,17 +739,17 @@ secondo(X) :- % normal variant to delete a relation
   getSecondoList(ObjList),
   checkIsInList(X, ObjList, rel),
   databaseName(DB),
-  storedRel(DB, Name, _), 
+  storedRel(DB, Name, _),
   secondo(X, Y),
   retractall(storedSecondoList(_)),
   downcase_atom(Name, DCName),
-  updateRel(DCName),  
+  updateRel(DCName),
   secondoResultSucceeded(Y), !.
 
 secondo(X) :- % variant used when updating indexes
   concat_atom([Command, _],' ',X),
   Command = 'delete',
-  storeupdateIndex(1), 
+  storeupdateIndex(1),
   isDatabaseOpen,
   getSecondoList(ObjList),
   indexType(Type),
@@ -763,10 +767,10 @@ secondo(X) :- % normal variant to delete an index
   getSecondoList(ObjList),
   indexType(Type),
   checkIsInList(X, ObjList, Type),
-  storedIndex(DB, _, _, Type, Name),  
+  storedIndex(DB, _, _, Type, Name),
   secondo(X, Y),
   retractall(storedSecondoList(_)),
-  updateIndex,  
+  updateIndex,
   secondoResultSucceeded(Y), !.
 
 secondo(X) :-
@@ -781,16 +785,16 @@ secondo(X) :-
   sub_atom(X,0,5,_,S),
   atom_prefix(S,'query'),
   isDatabaseOpen, !,
-  ( secondo(X, Y) 
+  ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y), !
         )
     ;   ( secondoResultFailed,
           fail
         )
   ), !.
-  
+
 secondo(X) :-
-  ( secondo(X, Y) 
+  ( secondo(X, Y)
     *-> ( secondoResultSucceeded(Y), !,
           retractall(storedSecondoList(_))
         )
@@ -821,7 +825,7 @@ in the PROLOG interface via the ~query~ operator. The operators
 */
 isDatabaseOpen :-
   storedDatabaseOpen(1), !.
-  
+
 isDatabaseOpen :-
   storedDatabaseOpen(0),
   write('No database open.'), nl,
@@ -834,7 +838,7 @@ notIsDatabaseOpen :-
 
 query(Query) :-
   query(Query, _).
- 
+
 query(Query, Time) :-
   isDatabaseOpen,
   atom(Query),
@@ -870,7 +874,7 @@ update(Query) :-
   atom(Query),
   atom_concat('update ', Query, QueryText), !,
   secondo(QueryText).
-    
+
 delete(Query) :-
   notIsDatabaseOpen,
   atom(Query),
@@ -903,7 +907,7 @@ on streams. Hence we provide ~openDB~ and closeDB to close a database.
 
 closedb :- closeDB.
 closeDB :-
-  secondo('close database').	
+  secondo('close database').
 
 
 openDB(Name) :-
@@ -922,20 +926,20 @@ openDB(_).
   op(800, fx, derive),
   op(800, fx, update),
   op(800, fx, restore).
- 
+
 /*
 Useful for debugging
 
 */
- 
+
 showValue(Name, Var) :-
   write(Name), write(': '), write(Var), nl, nl.
 
- 
-/*
-2.1 Generic display for printing formatted tables 
 
-Sometimes we want to collect some information and to print it 
+/*
+2.1 Generic display for printing formatted tables
+
+Sometimes we want to collect some information and to print it
 as a table, e.g. predicate ~writeSizes/0~. Below there are some
 predicates which display lists of well defined tuples as specified
 by a header list. If the data is presented in a prolog list
@@ -944,19 +948,19 @@ each value will be printed in a separate column. Example application:
 
 ----
     findall(X, createMyTuples(_, X), L ),
-    TupFormat = [ ['Size', 'c'], 
-                  ['Time', 'l'], 
+    TupFormat = [ ['Size', 'c'],
+                  ['Time', 'l'],
                   ['Error', 'l'] ],
-    showTuples(L, TupFormat). 
+    showTuples(L, TupFormat).
 ----
 
 */
- 
+
 showTuples(L, TupFormat) :-
-  nl, nl, 
-  showHeader(TupFormat, WriteSpec),  
+  nl, nl,
+  showHeader(TupFormat, WriteSpec),
   showTuplesRec(L, WriteSpec).
- 
+
 showTuplesRec([], _).
 
 showTuplesRec([H|T], WriteSpec) :-
@@ -966,7 +970,7 @@ showTuplesRec([H|T], WriteSpec) :-
 
 showTupleRec([], _).
 
-showTupleRec([H|T], [Wh|Wt]) :- 
+showTupleRec([H|T], [Wh|Wt]) :-
   %showValue('Wh', Wh),
   writef(Wh, [H]),
   %format('~p~t ~+~p~t ~+~p~t~ +~p',[H]),
@@ -977,9 +981,9 @@ showHeader(L, WriteSpec) :-
   showTuplesRec([HeadList], WriteSpec),
   Len2 is Len + 2,
   writef('%r', ['-', Len2]), nl.
- 
+
 showHeaderRec([], L1, L1, L2, L2, N, N).
- 
+
 showHeaderRec([H|T], Tmp1, Res1, Tmp2, Res2, Tmp3, Res3 ) :-
   H = [Attr, Adjust],
   atom_length(Attr, Len),
@@ -999,12 +1003,12 @@ Terms should be typed. We use this to add spaces for prefix infix and postfix
 operators.
 
 */
- 
+
 portray(Term) :-
   Term =.. [F | [Arg1, Arg2] ],
   current_op(_, xfx, F),
   print(Arg1), write(' '), write(F), write(' '), print(Arg2).
-  
+
 portray(Term) :-
   Term =.. [F | Arg1],
   current_op(_, fx, Term),

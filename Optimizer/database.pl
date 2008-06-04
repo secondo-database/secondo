@@ -4,10 +4,10 @@
 //[%] [\%]
 //[->] [$\rightarrow$]
 
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -33,22 +33,22 @@ The Secondo optimizer module needs database dependent information to
 compute the best query plan. In particular information about the
 cardinality and the schema of a relation is needed by the optimizer.
 Furthermore the spelling of relation and attribute names must be
-known to send a Secondo query or command.  Finally the optimizer has 
-to be informed, if an index exists for the pair (~relationname~, 
-~attributename~). All this information look up is provided by this 
+known to send a Secondo query or command.  Finally the optimizer has
+to be informed, if an index exists for the pair (~relationname~,
+~attributename~). All this information look up is provided by this
 module. There are two assumptions about naming conventions for index
 objects and sample relation objects. These are
 
-  * ~relationname~\_~attributename~ and 
-    ~relationname~\_~attributename~\_~indextype~ for index objects. 
-    Note, that the first letter of the relationname is written in 
+  * ~relationname~\_~attributename~ and
+    ~relationname~\_~attributename~\_~indextype~ for index objects.
+    Note, that the first letter of the relationname is written in
     lower case.
 
   * ~relationname~\_~sample~ for sample relation objects.
 
 You should avoid naming your objects in this manner. Relation- and
 attibute names are written the same way as they are written in the
-Secondo database, with the single exception for index objects 
+Secondo database, with the single exception for index objects
 (see above).
 
 
@@ -56,7 +56,7 @@ Secondo database, with the single exception for index objects
 
 1.1.1 Auxiliary Rules
 
-Rule ~extractlist~ finds a complete list for one Secondo object within 
+Rule ~extractlist~ finds a complete list for one Secondo object within
 a list of object lists. The result is unified with the second list.
 
 */
@@ -66,47 +66,47 @@ extractList([[First, _] | Rest], [First | Rest2]) :-
 
 
 /*
-Rule ~extractAttrTypes(Rel, AttrList)~ builds a table of facts 
-~storedAttrSize(Database, Rel, Attribute, Type, CoreTupleSize, InFlobSize, 
-ExtFlobSize)~ describing the ~Type~ and tuple sizes of all ~Attribute~s 
-found in ~AttrList~. To determine ~InFlobSize~, a query should be send to 
+Rule ~extractAttrTypes(Rel, AttrList)~ builds a table of facts
+~storedAttrSize(Database, Rel, Attribute, Type, CoreTupleSize, InFlobSize,
+ExtFlobSize)~ describing the ~Type~ and tuple sizes of all ~Attribute~s
+found in ~AttrList~. To determine ~InFlobSize~, a query should be send to
 Secondo, but that operator is still not implemented.
 
 Operators to determine attribute sizes in Secondo:
 
   * ~ attrsize ~
-   ( stream | rel(tuple X) x ident [->] real ), 
-   Return the size of the attribute within a stream or a 
+   ( stream | rel(tuple X) x ident [->] real ),
+   Return the size of the attribute within a stream or a
    relation taking into account the FLOBs.
 
   * ~exattrsize~ -
-   ( stream(tuple X) | rel(tuple X) x identifier [->] real ), 
-   Return the size of the attribute within a stream or a 
+   ( stream(tuple X) | rel(tuple X) x identifier [->] real ),
+   Return the size of the attribute within a stream or a
    relation taking into account the small FLOBs.
 
-  * ~rootattrsize~ - 
-   ( stream(tuple X) | rel(tuple X) x identifier [->]  int ), 
-   Return the size of the attributes root part within a 
+  * ~rootattrsize~ -
+   ( stream(tuple X) | rel(tuple X) x identifier [->]  int ),
+   Return the size of the attributes root part within a
    stream or a relation (without small FLOBs).
 
   * ~tuplesize~ -
-   ( stream | rel (tuple x) [->] real ), 
-   Return the average size of the tuples within a stream or a 
+   ( stream | rel (tuple x) [->] real ),
+   Return the average size of the tuples within a stream or a
    relation taking into account the FLOBs.
 
-  * ~exttuplesize~ - 
-   ( stream(tuple X) | rel(tuple X) [->] real ), 
-   Return the average size of the tuples within a stream 
+  * ~exttuplesize~ -
+   ( stream(tuple X) | rel(tuple X) [->] real ),
+   Return the average size of the tuples within a stream
    or a relation taking into account the small FLOBs.
 
-  * ~roottuplesize~ - 
-   ( stream(tuple X) | rel(tuple X) [->]  int ), 
-   Return the size of the attributes root part within a 
+  * ~roottuplesize~ -
+   ( stream(tuple X) | rel(tuple X) [->]  int ),
+   Return the size of the attributes root part within a
    stream or a relation (without small FLOBs).
 
-Simple datatypes ~X~, that have no FLOBs and for which ~noFlobType(X)~ 
+Simple datatypes ~X~, that have no FLOBs and for which ~noFlobType(X)~
 in file ``operators.pl'' is defined, will be assumed to have no FLOBs.
-Instead of querying Secondo for the attribute sizes, the rootsizes stored 
+Instead of querying Secondo for the attribute sizes, the rootsizes stored
 in file ``storedTypeSizes.pl'' for each Secondo datatype are used.
 
 */
@@ -165,11 +165,11 @@ extAttrQuery(RelE, AttrE, QueryAtom) :-
   concat_atom(['query ', RelE, ' extattrsize[ ', AttrE, ' ]'],QueryAtom).
 
 % query Secondo for the extattrsize of an attribute
-getExtAttrSize(Rel, Attr, ExtAttrSize) :- 
+getExtAttrSize(Rel, Attr, ExtAttrSize) :-
   convertNames(Rel, Attr, RelE, AttrE),
   extAttrQuery(RelE, AttrE, QueryAtom),
   secondo(QueryAtom, [real, ExtAttrSize]), !.
-getExtAttrSize(Rel, Attr, _) :- 
+getExtAttrSize(Rel, Attr, _) :-
   write('\nERROR: Something\'s wrong in getExtAttrSize('), write(Rel),
   write(','), write(Attr), write(').'),   %' (avoiding error in syntax-markup)
   fail, !.
@@ -179,7 +179,7 @@ getExtAttrSize(Rel, Attr, _) :-
 extractAttrTypes(_, []) :- !.
 
 extractAttrTypes(Rel, [[Attr, Type] | Rest]) :-
-  ( noFlobType(Type) 
+  ( noFlobType(Type)
     *-> ( secDatatype(Type, CoreAttrSize),
           InFlobSize   is 0,
           ExtFlobSize  is 0
@@ -196,18 +196,18 @@ extractAttrTypes(Rel, [[Attr, Type] | Rest]) :-
   databaseName(DBName),
   downcase_atom(Attr, AttrD),
   assert(storedAttrSize(DBName, Rel, AttrD, Type, CoreAttrSize, InFlobSize,
-    ExtFlobSize)), !, 
+    ExtFlobSize)), !,
   extractAttrTypes(Rel, Rest), !.
 
-extractAttrTypes(Rel, List) :- 
-  write('ERROR in optimizer: extractAttrTypes('), write(Rel), 
-  write(', '), write(List), write(') failed.\nl'), 
+extractAttrTypes(Rel, List) :-
+  write('ERROR in optimizer: extractAttrTypes('), write(Rel),
+  write(', '), write(List), write(') failed.\nl'),
   fail.
 
 
 
 /*
-Sets all letters of all atoms of the first list into lower case. The 
+Sets all letters of all atoms of the first list into lower case. The
 result is in the second list.
 
 */
@@ -249,7 +249,7 @@ classifyRel(Rel, SizeClass) :-
 
 createSmallRelation(Rel, ObjList) :- % case: small relation already present
   spelling(Rel, Rel2),
-  ( Rel2 = lc(Rel3) 
+  ( Rel2 = lc(Rel3)
     *-> sampleNameSmall(Rel3, Small)                        % Rel in lc
     ;   ( upper(Rel2, URel), sampleNameSmall(URel, Small) ) % Rel in uc
   ),
@@ -260,7 +260,7 @@ createSmallRelation(Rel, _)  :- % case: need to create small relation
   member([SizeClass, MinSize, Percent], % lookup sampling parameters in list:
          [ [small, 0, 1], [medium, 1000, 0.1], [large, 10000, 0.01] ]),
   spelling(Rel, Rel2),
-  ( Rel2 = lc(Rel3) 
+  ( Rel2 = lc(Rel3)
     *-> ( RelLC = Rel3, RelSec = Rel3 )      % Rel in lc
     ;   ( RelLC = Rel2, upper(Rel2,RelSec) ) % Rel in uc
   ),
@@ -276,9 +276,9 @@ Build a small relation where ~RelLC~ is the relation name with a lower case firs
 buildSmallRelation(RelLC, RelName, 0, _) :-
   sampleNameSmall(RelName, Small),
   atom_concat('xxxID', RelLC, IDAttr),
-  concat_atom(['let ', Small, ' = ', RelName, 
+  concat_atom(['let ', Small, ' = ', RelName,
     ' feed extend[', IDAttr, ': seqnext()] consume'], '',
-    QueryAtom), 
+    QueryAtom),
   tryCreate(QueryAtom),
   card(RelLC, SmallCard),
   lowerfl(Small, LSmall),
@@ -291,10 +291,10 @@ buildSmallRelation(RelLC, RelName, 0, _) :-
 buildSmallRelation(RelLC, RelName, MinSize, Percent) :-
   sampleNameSmall(RelName, Small),
   atom_concat('xxxID', RelLC, IDAttr),
-  concat_atom(['let ', Small, ' = ', RelName, 
-    ' sample[', MinSize, ', ', Percent, '] extend[', IDAttr, 
+  concat_atom(['let ', Small, ' = ', RelName,
+    ' sample[', MinSize, ', ', Percent, '] extend[', IDAttr,
     ': seqnext()] consume'], '',
-    QueryAtom), 
+    QueryAtom),
   tryCreate(QueryAtom),
   card(RelLC, Card),
   SmallCard is truncate(min(Card, max(MinSize, Card * Percent))),
@@ -328,9 +328,9 @@ createSmall(Rel, Size)  :-  % Rel in uc
 
 
 /*
-Creates a sample relation, for determining the selectivity of a relation 
-object for a given predicate. The first two rules consider the case, that 
-there is a sample relation already available and the last two ones create 
+Creates a sample relation, for determining the selectivity of a relation
+object for a given predicate. The first two rules consider the case, that
+there is a sample relation already available and the last two ones create
 new relations by sending a Secondo ~let~-command.
 
 */
@@ -381,7 +381,7 @@ createSampleJ(Rel) :- %Rel in lc
   createSample(Sample, Rel3, JoinSize, SampleCard),
   databaseName(DB),
   assert(storedCard(DB, Sample, SampleCard)),
-  downcase_atom(Sample, DCSample),  
+  downcase_atom(Sample, DCSample),
   assert(storedSpell(DB, DCSample, lc(Sample))).
 
 createSampleJ(Rel) :- %Rel in uc
@@ -404,7 +404,7 @@ createSampleS(Rel) :- %Rel in lc
   createSample(Sample, Rel3, SelectionSize, SampleCard),
   databaseName(DB),
   assert(storedCard(DB, Sample, SampleCard)),
-  downcase_atom(Sample, DCSample),  
+  downcase_atom(Sample, DCSample),
   assert(storedSpell(DB, DCSample, lc(Sample))).
 
 createSampleS(Rel) :- %Rel in uc
@@ -434,16 +434,16 @@ Create a random order sample ~Sample~ for relation ~Rel~ with desired sample siz
 
 sampleQuery(Sample, Rel, SampleSize, QueryAtom) :-
   sub_atom(Rel, _, _, _, 'SEC2'),
-  concat_atom(['let ', Sample, ' = ', Rel, 
-    ' feed head[', SampleSize, '] 
+  concat_atom(['let ', Sample, ' = ', Rel,
+    ' feed head[', SampleSize, ']
       extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
-      consume'], '', QueryAtom).    
+      consume'], '', QueryAtom).
 
 sampleQuery(Sample, Rel, SampleSize, QueryAtom) :-
-  concat_atom(['let ', Sample, ' = ', Rel, 
-    ' sample[', SampleSize, ', 0.00001] 
+  concat_atom(['let ', Sample, ' = ', Rel,
+    ' sample[', SampleSize, ', 0.00001]
       extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
-      consume'], '', QueryAtom).    
+      consume'], '', QueryAtom).
 
 createSample(Sample, Rel, SampleSize, SampleCard) :-
   sampleQuery(Sample, Rel, SampleSize, QueryAtom),
@@ -504,7 +504,7 @@ createSampleRelation2(Rel, Size, MemorySize) :-
   getSizeSampleJ(Rel, Size),
   thresholdMainMemorySizeSampleJ(MemorySize).
 
-% Case 1  
+% Case 1
 createSampleRelation(Rel) :-
   hasSampleS(Rel),
   hasSampleJ(Rel),!.
@@ -516,7 +516,7 @@ createSampleRelation(Rel) :-
 % Case 3
 createSampleRelation(Rel) :-
   createSampleRelation2(Rel, Size, MemorySize),
-  Size > MemorySize, 
+  Size > MemorySize,
   writeErrorSampleFileJ(Rel, MemorySize),!,fail.
 % Case 4
 createSampleRelation(Rel) :-
@@ -533,7 +533,7 @@ createSampleRelation(Rel) :-
   createSampleRelation3(Rel, _, _),
   createSampleRelation4(Rel, Size, MemorySize),
   Size > MemorySize,
-  writeErrorSampleFileJ(Rel, MemorySize),!,fail.  
+  writeErrorSampleFileJ(Rel, MemorySize),!,fail.
 % Case 8
 createSampleRelation(Rel) :-
   not(hasSampleS(Rel)),
@@ -571,8 +571,8 @@ createSampleRelationIfNotDynamic(_) :-
   optimizerOption(dynamicSample), !.
 
 /*
-Checks, if an index exists for ~Rel~ and ~Attr~ and stores the 
-respective values to the dynamic predicates ~storedIndex/5~ or 
+Checks, if an index exists for ~Rel~ and ~Attr~ and stores the
+respective values to the dynamic predicates ~storedIndex/5~ or
 ~storedNoIndex/3~.
 
 */
@@ -583,7 +583,7 @@ lookupIndex(Rel, Attr) :-
   hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _).
 
 /*
-Gets the spelling of each attribute name of a relation and stores 
+Gets the spelling of each attribute name of a relation and stores
 the result to ~storedSpells~. The index checking for every attribute
 over the given relation ~Rel~ is also called.
 
@@ -609,11 +609,11 @@ are executed furthermore by this rule.
 
 */
 
-tryCreateSmallRelation(Rel, ObjList) :- 
+tryCreateSmallRelation(Rel, ObjList) :-
   optimizerOption(entropy),
   createSmallRelation(Rel, ObjList),!.
 
-tryCreateSmallRelation(_, _) :- 
+tryCreateSmallRelation(_, _) :-
   not(optimizerOption(entropy)).
 
 relation(Rel, AttrList) :-
@@ -631,13 +631,13 @@ relation(Rel, AttrList) :-
   spelling(Rel, _),
   card(Rel, _),
   tuplesize(Rel, _),
-  ( ( not(sub_atom(Rel, _, _, 0, '_small')), 
+  ( ( not(sub_atom(Rel, _, _, 0, '_small')),
       not(sub_atom(Rel, _, _, 1, '_sample_')) )
     -> ( createSampleRelationIfNotDynamic(Rel),
          tryCreateSmallRelation(Rel, ObjList)
        )
   ),
-  extractAttrTypes(Rel, AttrList2),  
+  extractAttrTypes(Rel, AttrList2),
   databaseName(DB),
   assert(storedRel(DB, Rel, AttrList)),
   createAttrSpelledAndIndexLookUp(Rel, AttrList3), !.
@@ -652,13 +652,13 @@ relation(Rel, AttrList) :-
   spelling(Rel, _),
   card(Rel, _),
   tuplesize(Rel, _),
-  ( ( not(sub_atom(Rel, _, _, 0, '_small')), 
+  ( ( not(sub_atom(Rel, _, _, 0, '_small')),
       not(sub_atom(Rel, _, _, 1, '_sample_')) )
     -> ( createSampleRelationIfNotDynamic(Rel),
          tryCreateSmallRelation(Rel, ObjList)
        )
   ),
-  extractAttrTypes(Rel, AttrList2),  
+  extractAttrTypes(Rel, AttrList2),
   databaseName(DB),
   assert(storedRel(DB, Rel, AttrList)),
   createAttrSpelledAndIndexLookUp(Rel, AttrList3), !.
@@ -669,7 +669,7 @@ relation(Rel, AttrList) :-
 */
 readStoredRels :-
   retractall(storedRel(_, _, _)),
-  [storedRels].  
+  [storedRels].
 
 writeStoredRels :-
   open('storedRels.pl', write, FD),
@@ -686,7 +686,7 @@ showStoredRel :-
   storedRel(N, X, Y),
   write(N), write('.'), write(X), write(':\t'), write(Y), nl.
 
-showStoredRels :- 
+showStoredRels :-
   nl, write('Stored relation schemas:\n'),
   findall(_, showStoredRel, _).
 
@@ -708,12 +708,12 @@ the actually used relations.
 */
 
 showRelationAttrs([]).
-showRelationAttrs([[AttrD, Type] | Rest]) :- 
+showRelationAttrs([[AttrD, Type] | Rest]) :-
   % prints a list of [attributes,datatype]-pairs
   write(' '), write(AttrD), write(':'), write(Type), write(' '),
   showRelationAttrs(Rest), !.
 
-showRelationSchemas([]).         
+showRelationSchemas([]).
   % filters all relation opbjects from the database schema
 showRelationSchemas([Obj | ObjList]) :-
   Obj = ['OBJECT',Rel,_ | [[[_ | [[_ | [AttrList2]]]]]]],
@@ -733,14 +733,14 @@ showDatabaseSchema :-
   write('\nAll relation-schemas of database \''), write(DB), write('\':\n'),
   showRelationSchemas(ObjList),
   nl,
-  write('(Type \'showDatabase.\' to see meta data 
+  write('(Type \'showDatabase.\' to see meta data
          collected by the optimizer.)\n'),
-  !. 
+  !.
 
 /*
 1.2 Spelling of Relation and Attribute Names
 
-Due to the facts, that PROLOG interprets words beginning with a capital 
+Due to the facts, that PROLOG interprets words beginning with a capital
 letter as varibales and that Secondo allows arbitrary writing of
 relation and attribute names, we have to find a convention. So, for
 Secondo names beginning with a small letter, the PROLOG notation will be
@@ -748,7 +748,7 @@ lc(name), which means, leaver the first letter as it is. If the first
 letter of a Secondo name is written in upper case, then it is set to lower
 case. E.G.
 
-The PROLOG notation for ~pLz~ is ~lc(pLz)~ and for ~EMPLOYEE~ it'll be ~eMPLOYEE~. 
+The PROLOG notation for ~pLz~ is ~lc(pLz)~ and for ~EMPLOYEE~ it'll be ~eMPLOYEE~.
 
 1.2.1 Auxiliary Rules
 
@@ -762,7 +762,7 @@ is_lowerfl(Rel) :-
 /*
 Sets the first letter of ~Upper~ to lower case. Result is ~Lower~.
 
-*/  
+*/
 lowerfl(Upper, Lower) :-
   atom_chars(Upper, [First | Rest]),
   char_type(First2, to_lower(First)),
@@ -772,10 +772,10 @@ lowerfl(Upper, Lower) :-
 /*
 Returns a list of Secondo objects, if available in the knowledge
 base, otherwise a Secondo command is issued to get the list. The
-second rule ensures in addition, that the object list is stored 
+second rule ensures in addition, that the object list is stored
 into local memory by the dynamic predicate ~storedSecondoList/1~.
 
-If you want ~storedSecondoList/1~ to be updated, use 
+If you want ~storedSecondoList/1~ to be updated, use
 ~retractall(storedSecondoList(\_))~. A ``list objects''- query will be started
 when calling ~getSecondoList/1~ the nest time. You should do this whenever you
 have changed the database.
@@ -786,7 +786,7 @@ getSecondoList(ObjList) :-
   storedSecondoList(ObjList), !.
 
 getSecondoList(ObjList) :-
-  secondo('list objects',[_, [_, [_ | ObjList]]]), 
+  secondo('list objects',[_, [_, [_ | ObjList]]]),
   retractall(storedSecondoList(_)),
   assert(storedSecondoList(ObjList)), !.
 
@@ -811,7 +811,7 @@ Returns the spelling of attribute name ~Attr~, if the first letter of
 the attribute name is written in lower case. ~Spelled~ returns a term
 lc(attrnanme).
 
-*/ 
+*/
 spelling(Rel:Attr, Spelled) :-
   getSecondoList(ObjList),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [AttrList]]]]]]], ObjList),
@@ -851,7 +851,7 @@ The spelling of relation ~Rel~ is ~Spelled~.
 
 ~Spelled~ is available via the dynamic predicate ~storedSpell/3~.
 
-*/  
+*/
 spelling(Rel, Spelled) :-
   databaseName(DB),
   storedSpell(DB, Rel, Spelled),
@@ -876,7 +876,7 @@ Returns the spelling of relation name ~Rel~, if the first letter
 of the relation name is written in upper case. ~Spelled~ returns just
 the relation name with the first letter written in lower case.
 
-*/  
+*/
 spelling(Rel, Spelled) :-
   getSecondoList(ObjList),
   member(['OBJECT',ORel,_ | [[[_ | [[_ | [_]]]]]]], ObjList),
@@ -888,10 +888,10 @@ spelling(Rel, Spelled) :-
 /*
 1.2.4 Storing And Loading Of Spelling
 
-*/  
+*/
 readStoredSpells :-
   retractall(storedSpell(_, _, _)),
-  [storedSpells]. 
+  [storedSpells].
 
 writeStoredSpells :-
   open('storedSpells.pl', write, FD),
@@ -920,7 +920,7 @@ The cardinality of relation ~Rel~ is ~Size~.
 
 1.3.1 Get Cardinalities
 
-If ~card~ is called, it tries to look up the cardinality via the 
+If ~card~ is called, it tries to look up the cardinality via the
 dynamic predicate ~storedCard/3~ (automatically stored).
 If this fails, a Secondo query is issued, which determines the
 cardinality. This cardinality is then stored in local memory.
@@ -955,7 +955,7 @@ card(_, _) :- fail.
 */
 readStoredCards :-
   retractall(storedCard(_, _, _)),
-  [storedCards].  
+  [storedCards].
 
 writeStoredCards :-
   open('storedCards.pl', write, FD),
@@ -985,7 +985,7 @@ is ~IndexName~. The type of the index is ~IndexType~.
 
 Checks whether an index exists for ~Rel~ and ~Attr~ in the currently
 opened database. Depending on this result the dynamic predicate
-~storedIndex/5~ or ~storedNoIndex/3~ is set. 
+~storedIndex/5~ or ~storedNoIndex/3~ is set.
 
 */
 verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
@@ -996,11 +996,12 @@ verifyIndexAndStoreIndex(Rel, Attr, Index, LogicalIndexType) :- % Index exists
   (   ( indexType(LogicalIndexType),
         LogicalIndexType = PhysicalIndexType
       )
-    ; ( optimizerOption(rtreeIndexRules), 
+    ; ( optimizerOption(rtreeIndexRules),
         member([LogicalIndexType, PhysicalIndexType],
                [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
 %               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3],
-                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3]
+                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3],
+                [object_d4,rtree4],  [object_d8,rtree8]
                ])
       )
   ),
@@ -1025,13 +1026,13 @@ verifyIndexAndStoreNoIndex(Rel, Attr) :-      % No index
 /*
 1.4.2 Look up Index
 
-The first rule simply reduces an attribute of the form e.g. p:ort just 
+The first rule simply reduces an attribute of the form e.g. p:ort just
 to its attribute name e.g. ort.
 
 ---- hasIndex(+Rel, +Attr, -IndexName, ?IndexType)
 ----
- 
-There is an index named ~IndexName~ of type ~IndexType~ on relation 
+
+There is an index named ~IndexName~ of type ~IndexType~ on relation
 ~Rel~ with key ~Attr~ in the opened database.
 
 */
@@ -1063,7 +1064,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   fail.
 
 /*
-We have to differentiate the next rules, if the first letter of attribute 
+We have to differentiate the next rules, if the first letter of attribute
 name ~Attr~ is written in lower or in upper case and if there is an
 index available for relation ~Rel~ and attribute ~Attr~.
 
@@ -1071,8 +1072,8 @@ index available for relation ~Rel~ and attribute ~Attr~.
 
 % cases: Attr in lc, Rel in lc or uc succeeds (index found)
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
-  not(Attr = _:_), 
-  spelled(Rel:Attr, attr(Attr2, 0, l)),              
+  not(Attr = _:_),
+  spelled(Rel:Attr, attr(Attr2, 0, l)),
   ( ( spelled(Rel, _, l), URel = Rel ) % Rel in lc
     *-> true
     ; ( % Rel in uc
@@ -1089,8 +1090,8 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   !.
 
 %attr in lc fails (no index)
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-  
-  not(Attr = _:_),                                   
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
+  not(Attr = _:_),
   spelled(Rel:Attr, attr(_, 0, l)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
   !,
@@ -1099,8 +1100,8 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
 
 % cases: Attr in uc, Rel in lc or uc succeeds (index found)
 hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
-  not(Attr = _:_), 
-  spelled(Rel:Attr, attr(Attr2, 0, u)),             
+  not(Attr = _:_),
+  spelled(Rel:Attr, attr(Attr2, 0, u)),
   ( ( spelled(Rel, _, l), URel = Rel ) % Rel in lc
     *-> true
     ; ( % Rel in uc
@@ -1119,7 +1120,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
 
 
 %attr in uc fails (no index)
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :- 
+hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   not(Attr = _:_),
   spelled(Rel:Attr, attr(_, 0, u)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
@@ -1129,14 +1130,14 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
 /*
 1.4.3 Storing And Loading About Existing Indexes
 
-Storing and reading of  the two dynamic predicates ~storedIndex/5~ and 
+Storing and reading of  the two dynamic predicates ~storedIndex/5~ and
 ~storedNoIndex/3~ in the file ~storedIndexes~.
 
 */
 readStoredIndexes :-
   retractall(storedIndex(_, _, _, _, _)),
   retractall(storedNoIndex(_, _, _)),
-  [storedIndexes].  
+  [storedIndexes].
 
 writeStoredIndexes :-
   open('storedIndexes.pl', write, FD),
@@ -1163,8 +1164,8 @@ writeStoredNoIndex(Stream) :-
 /*
 1.5 Update Indexes And Relations
 
-The next two predicates provide an update about known indexes and 
-an update for informations about relations, which are stored in local 
+The next two predicates provide an update about known indexes and
+an update for informations about relations, which are stored in local
 memory.
 
 1.5.1 Update Indexes
@@ -1172,7 +1173,7 @@ memory.
 ---- updateIndex(Rel, Attr) :-
 ----
 
-The knowledge about an existing index for ~Rel~ and ~Attr~ in local memory 
+The knowledge about an existing index for ~Rel~ and ~Attr~ in local memory
 is updated, if an index has been added or an index has been deleted. Note,
 that all letters of ~Rel~ and ~Attr~ must be written in lower case.
 
@@ -1198,7 +1199,7 @@ All information stored in local memory about relation ~Rel~ will
 be deleted. The next query, issued on relation ~Rel~, will update
 all needed information in local memory about ~Rel~. Note, that all
 letters of relation ~Rel~ must be written in lower case.
- 
+
 */
 getRelAttrName(Rel, Arg) :-
   Arg = Rel:_.
@@ -1271,10 +1272,10 @@ tryDeleteFile(Name, ObjList) :-
   concat_atom(['delete ', Name], '', QueryAtom),
   secondo(QueryAtom).
 
-tryDeleteFile(Name, ObjList) :- 
+tryDeleteFile(Name, ObjList) :-
   not(member(['OBJECT', Name, _ , [[rel | _]]], ObjList)).
 
-tryDeleteFile(Name, ObjList) :- 
+tryDeleteFile(Name, ObjList) :-
   not(member(['OBJECT', Name, _ , [[trel | _]]], ObjList)).
 
 deleteSampleAndSmallFiles(SpelledRel, ObjList) :-
@@ -1286,11 +1287,11 @@ deleteSampleAndSmallFiles(SpelledRel, ObjList) :-
   tryDeleteFile(Small, ObjList).
 
 /*
-NOTE: more predicates to delete \_small and \_sample objects 
+NOTE: more predicates to delete \_small and \_sample objects
 (even with derived indices), where no spelled name is needed, are:
 
   * deleteSmallRel/1
-  
+
   * deleteSamples/1
 
   * deleteSmallRelAll/0
@@ -1305,7 +1306,7 @@ retractStoredInformation(SpelledRel) :-
   sampleNameS(SpelledRel, SampleS),
   sampleNameJ(SpelledRel, SampleJ),
   lowerfl(SpelledRel,LFSpelledRel),
-  downcase_atom(SpelledRel, DCSpelledRel),  
+  downcase_atom(SpelledRel, DCSpelledRel),
   lowerfl(SampleS, LFSampleS),
   downcase_atom(SampleS, DCSampleS),
   lowerfl(SampleJ, LFSampleJ),
@@ -1321,7 +1322,7 @@ retractStoredInformation(SpelledRel) :-
   retractall(storedSpell(DB, DCSpelledRel, _)),
   retractall(storedSpell(DB, DCSpelledRel:_, _)),
   retractall(storedSpell(DB, DCSampleS, _)),
-  retractall(storedSpell(DB, DCSampleJ, _)),  
+  retractall(storedSpell(DB, DCSampleJ, _)),
   retractall(storedSpell(DB, DCSmall, _)),
   retractSels(Rel),
   retractPETs(Rel),
@@ -1365,14 +1366,14 @@ in order to make the optimizer create new ones.
   deleteSamples(Rel)
   deleteSamplesAll
 ----
-~deleteSmallRel(Rel)~ will delete the \_small database for relation ~Rel~ and any \_small 
+~deleteSmallRel(Rel)~ will delete the \_small database for relation ~Rel~ and any \_small
 index referring to it from the database. ~deleteSmallRelAll~ will do this for all relations
 of the database.
 
 ~deleteSamples(Rel)~ will delete the \_sample\_s and \_sample\_j objects for relation ~Rel~.
-~deleteSamplesAll~ do this for all relations of the opened database. 
+~deleteSamplesAll~ do this for all relations of the opened database.
 
-To avoid some problems, ~updateRel(Rel)~ is called. This will update stored metadata on 
+To avoid some problems, ~updateRel(Rel)~ is called. This will update stored metadata on
 indices, selectivities, PETs, etc.
 
 */
@@ -1389,14 +1390,14 @@ deleteSmallRel(_) :- !.
 
 deleteSmallRelAll :-
   getSecondoList(ObjList),
-  findall( X, 
-           ( 
+  findall( X,
+           (
              member(['OBJECT', X1, _ , [[rel | _]]], ObjList),
              not(sub_atom(X1, _, _, 0, '_small')),
              not(sub_atom(X1, _, _, 1, '_sample_')),
-             downcase_atom(X1, X),             
+             downcase_atom(X1, X),
              deleteSmallRel1(X, ObjList)
-           ), 
+           ),
            _),
   write('\nNOTE: All \'_small\'-objects have been deleted from the database.'),
   write('\n      To recreate all \'_small\'-objects, call '),
@@ -1427,13 +1428,13 @@ deleteSamples(_) :- !.
 
 deleteSamplesAll :-
   getSecondoList(ObjList),
-  findall( X, 
+  findall( X,
            ( member(['OBJECT', X1, _ , [[Type | _]]], ObjList),
              member(Type, [rel, trel]),
              downcase_atom(X1,X),
-             deleteSampleS(X,ObjList), 
+             deleteSampleS(X,ObjList),
              deleteSampleJ(X,ObjList)
-           ), 
+           ),
            _),
   write('\nNOTE: All \'_sample_{j|s}\'-objects have been deleted from the '),
   write('database.'),
@@ -1445,7 +1446,7 @@ deleteSampleJ(Rel, ObjList) :-
   member(['OBJECT', Obj, _ , [[Type | _]]], ObjList),
   member(Type, [rel, trel]),
   downcase_atom(Obj, ObjS),
-  concat_atom([Rel, 'sample_j'], '_', ObjS), 
+  concat_atom([Rel, 'sample_j'], '_', ObjS),
   tryDeleteFile(Obj, ObjList), !.
 deleteSampleJ(_, _) :- !.
 
@@ -1453,7 +1454,7 @@ deleteSampleS(Rel, ObjList) :-
   member(['OBJECT', Obj, _ , [[Type | _]]], ObjList),
   member(Type, [rel, trel]),
   downcase_atom(Obj, ObjS),
-  concat_atom([Rel, 'sample_s'], '_', ObjS), 
+  concat_atom([Rel, 'sample_s'], '_', ObjS),
   tryDeleteFile(Obj, ObjList), !.
 deleteSampleS(_, _) :- !.
 
@@ -1465,7 +1466,7 @@ deleteSampleS(_, _) :- !.
 
 ----
 
-The average size of a tuple in Bytes of relation ~Rel~ 
+The average size of a tuple in Bytes of relation ~Rel~
 is ~Size~.
 
 1.6.1 Get The Tuple Size
@@ -1491,7 +1492,7 @@ tuplesize(Rel, Size) :-
 
 tuplesize(Rel, Size) :-
   secRelation(Rel, RelE),
-  tupleSizeQuery(RelE, QueryAtom), 
+  tupleSizeQuery(RelE, QueryAtom),
   secondo(QueryAtom, [real, Size]),
   databaseName(DB),
   spelled(Rel, Rel2, _),
@@ -1500,13 +1501,13 @@ tuplesize(Rel, Size) :-
 
 tuplesize(_, _) :- fail.
 
-/* 
+/*
 The following version of the predicate,
 
 ---- tupleSizeSplit(+Rel, -Size)
 ----
 
-returns the average tuplesize in a more detailed format, namely as term 
+returns the average tuplesize in a more detailed format, namely as term
 ~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~.
 
 */
@@ -1519,7 +1520,7 @@ tupleSizeSplit(Rel, Size) :-
 
 tupleSizeSplit(Rel, _) :-
   throw(sql_ERROR(database_tupleSizeSplit(Rel, undefined))),
-  fail, !.  
+  fail, !.
 
 tupleSizeSplit2(_, _, [], sizeTerm(0,0,0)) :- !.
 tupleSizeSplit2(DB, DCRel, [Attr|Rest], TupleSize) :-
@@ -1533,7 +1534,7 @@ tupleSizeSplit2(DB, DCRel, [Attr|Rest], TupleSize) :-
 */
 readStoredTupleSizes :-
   retractall(storedTupleSize(_, _, _)),
-  [storedTupleSizes].  
+  [storedTupleSizes].
 
 writeStoredTupleSizes :-
   open('storedTupleSizes.pl', write, FD),
@@ -1553,27 +1554,27 @@ writeStoredTupleSize(Stream) :-
 
 % try to create/delete samples and ignore error codes.
 
-tryCreate(QueryAtom) :- 
-  write('tryCreate: '), write(QueryAtom), nl,	
+tryCreate(QueryAtom) :-
+  write('tryCreate: '), write(QueryAtom), nl,
   secondo(QueryAtom), !.
-  
+
 tryCreate(_) :-
   write('tryCreate: Using existing object!' ), nl.
 
-tryDelete(QueryAtom) :- 
+tryDelete(QueryAtom) :-
   secondo(QueryAtom), !.
-  
+
 tryDelete(_).
 
 
 /*
 1.6.3 Loading Datatype Core Tuple Sizes
 
-To calculate the proper sizes of attributes, the optimizer needs information 
+To calculate the proper sizes of attributes, the optimizer needs information
 on how much memory the representation of available Secondo datatypes need.
 To get this information, a systemtable with this information is queried whenever
 a database is opened (see file ~auxiliary.pl~). The systemtable is a relation
-contaning (among others) two attributes ~Type~ (containing the name of a 
+contaning (among others) two attributes ~Type~ (containing the name of a
 datatype) and ~Size~ (containing its size in byte).
 
 */
@@ -1610,7 +1611,7 @@ Deprecated version:
 ----
 readStoredTypeSizes :-
   retractall(secDatatype(_, _)),
-  [storedTypeSizes].  
+  [storedTypeSizes].
 
 :-  readStoredTypeSizes.
 
@@ -1621,7 +1622,7 @@ readStoredTypeSizes :-
 /*
 1.6.4 Showing, Loading, Storing and Looking-Up Attribute Sizes and Types
 
-Together with the attributes` type, this information is stored as facts 
+Together with the attributes` type, this information is stored as facts
 ~storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize)~ in memory. between sessions information is stored in file ~storedAttrSizes.pl~.
 
 Throughout the optimizer, attribute sizes are passed in terms ~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~.
@@ -1633,7 +1634,7 @@ attrSize(Rel:Attr, sizeTerm(CoreSize, InFlobSize, ExtFlobSize)) :-
   storedAttrSize(DBName, Rel, Attr, _, CoreSize, InFlobSize, ExtFlobSize),
   !.
 
-attrSize(X, _) :- 
+attrSize(X, _) :-
   throw(sql_ERROR(database_attrSize(X, undefined))),
   fail, !.
 
@@ -1642,13 +1643,13 @@ attrType(Rel:Attr, Type) :-
   databaseName(DBName),
   storedAttrSize(DBName, Rel, Attr, Type, _, _, _), !.
 
-attrType(X, _) :- 
+attrType(X, _) :-
   throw(sql_ERROR(database_attrType(X, undefined))),
   fail, !.
 
 readStoredAttrSizes :-
   retractall(storedAttrSize(_, _, _, _, _, _, _)),
-  [storedAttrSizes].  
+  [storedAttrSizes].
 
 writeStoredAttrSizes :-
   open('storedAttrSizes.pl', write, FD),
@@ -1658,15 +1659,15 @@ writeStoredAttrSizes :-
 
 writeStoredAttrSize(Stream) :-
   storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
-  write(Stream, storedAttrSize(Database, Rel, Attr, Type, CoreSize, 
+  write(Stream, storedAttrSize(Database, Rel, Attr, Type, CoreSize,
                                InFlobSize, ExtFlobSize)),
   write(Stream, '.\n').
 
 showStoredAttrSize :-
   storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
-  write(Database), write('.'), write(Rel), write('.'), 
-  write(Attr), write(': \t'), write(Type), 
-  write(' ('), write(CoreSize), write('/'), 
+  write(Database), write('.'), write(Rel), write('.'),
+  write(Attr), write(': \t'), write(Type),
+  write(' ('), write(CoreSize), write('/'),
   write(InFlobSize), write('/'), write(ExtFlobSize), write(')\n').
 
 showStoredAttrSizes :-
@@ -1685,7 +1686,7 @@ addSizeTerms([sizeTerm(X1,Y1,Z1)|Rest], sizeTerm(Res1, Res2, Res3)) :-
   addSizeTerms(Rest, sizeTerm(X2,Y2,Z2)),
   Res1 is X1 + X2,
   Res2 is Y1 + Y2,
-  Res3 is Z1 + Z2, !.  
+  Res3 is Z1 + Z2, !.
 addSizeTerms(X, _) :-
   throw(sql_ERROR(database_addSizeTerms(X, undefined))),
   fail, !.
@@ -1695,7 +1696,7 @@ addSizeTerms(X, _) :-
 
 The ``interesting orders'' extension processes information on the ordering of
 stored relations to exploit orderings by using the efficient ~mergejoin~
-operator. 
+operator.
 
 Additionally, the ``adaptive join'' extension needs shuffled relations for
 proper operation.
@@ -1711,7 +1712,7 @@ ordered (by means of the Secondo standard ordering schema). If ~Attribute~ is
 ~none~, the relation are either not ordered, or no information on its ordering
 is available.
 
-If ~Attribute~ is ~shuffled~, the tuples of the relation have explicitly been 
+If ~Attribute~ is ~shuffled~, the tuples of the relation have explicitly been
 shuffled and can be used with the adaptive ~pjoin~ operator.
 
 At the moment, ordering information must be maintained by hand. It will be
@@ -1722,7 +1723,7 @@ automatically updated.
 
 readStoredOrders :-
   retractall(storedOrder(_,_,_)),
-  [storedOrderings].  
+  [storedOrderings].
 
 writeStoredOrders :-
   open('storedOrderings.pl', write, FD),
@@ -1740,16 +1741,16 @@ The order can be defined for only one of a relations' attributes.
 Even if it is sorted according to more than one attributes. The
 sort order is assumed to be ascending. The database, relation and
 attribute names will be stored with the first character in lowercase
-spelling. 
+spelling.
 
 */
- 
+
 hasStoredOrder(DB, Rel, Attr) :-
   lowerfl(DB, LowDB),
   lowerfl(Rel, LowRel),
   lowerfl(Attr, LowAttr),
   storedOrder(LowDB, LowRel, LowAttr).
- 
+
 changeStoredOrder(DB, Rel, Attr) :-
   lowerfl(DB, LowDB),
   lowerfl(Rel, LowRel),
@@ -1762,14 +1763,14 @@ changeStoredOrder(DB, Rel, Attr) :-
   lowerfl(Rel, LowRel),
   lowerfl(Attr, LowAttr),
   assert(storedOrder(LowDB, LowRel, LowAttr)).
- 
+
 showStoredOrders(_) :-
   storedOrder(Database, Rel, Attr),
-  write(Database), write('.'), write(Rel), write(': \t\t'), 
+  write(Database), write('.'), write(Rel), write(': \t\t'),
   write(Attr), nl.
 
 showStoredOrders :-
-  write('Stored orders'), nl, 
+  write('Stored orders'), nl,
   write('Database.Rel: \t\tAttr'), nl,
   write('--------------------------------------'), nl,
   findall(X, showStoredOrders(X), _).
