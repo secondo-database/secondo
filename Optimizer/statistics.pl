@@ -228,14 +228,14 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
 	FilterResCard) :-
   Pred =.. [OP|_],
   isBBoxPredicate(OP),     % spatial predicate with bbox-checking
-  transformPred(Pred, t, 1, Pred2),
+  transformPred(Pred, txx1, 1, Pred2),
   Pred2 =.. [_, Arg1, Arg2],
   Pred3 =.. [intersects, bbox(Arg1), bbox(Arg2)],
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
          Query = count(filter(counter(loopjoin(Rel1Query, 
-           fun([param(t, tuple)], filter(Rel2Query, Pred3))),1),Pred2) )
+           fun([param(txx1, tuple)], filter(Rel2Query, Pred3))),1),Pred2) )
        )
     ;  ( sampleS(Rel1, Rel1S),
          sampleJ(Rel2, Rel2S),
@@ -244,7 +244,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
          Rel2S = rel(BaseName, _, _),
          card(BaseName, JoinSize),
          Query = count(filter(counter(loopjoin(head(Rel1Query, JoinSize), 
-                       fun([param(t, tuple)],
+                       fun([param(txx1, tuple)],
                        filter(Rel2Query, Pred3))),1), Pred2) )
        )
   ),
@@ -258,11 +258,11 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   Pred =.. [OP|_],
   not(isBBoxPredicate(OP)), % normal predicate
-  transformPred(Pred, t, 1, Pred2),
+  transformPred(Pred, txx1, 1, Pred2),
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
-         Query = count(loopsel(Rel1Query, fun([param(t, tuple)], 
+         Query = count(loopsel(Rel1Query, fun([param(txx1, tuple)], 
                        filter(Rel2Query, Pred2))))
        )
     ;  ( sampleS(Rel1, Rel1S),
@@ -273,7 +273,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
          possiblyRename(Rel2S, Rel2Query),
          card(BaseName, JoinSize),
          Query = count(loopsel(head(Rel1Query, JoinSize), 
-           fun([param(t, tuple)], filter(Rel2Query, Pred2))))
+           fun([param(txx1, tuple)], filter(Rel2Query, Pred2))))
        )
    ),
   plan_to_atom(Query, QueryAtom1),
