@@ -139,11 +139,6 @@ openTPC :-
 openTPC :-
   openDB('adapOpt').
  
-openDB(Name) :-
-  atom_concat('database ', Name, Cmd),
-  open Cmd.
- 
-openDB(_).
 
 
 runQueries(List, NumOfErrors, N) :-
