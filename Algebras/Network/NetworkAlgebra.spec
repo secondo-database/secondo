@@ -11,3 +11,4 @@ operator = alias EQUAL pattern _ infixop _
 operator inside alias INSIDE pattern _ infixop _
 operator no_components alias NO_COMPONENTS pattern op ( _ )
 operator polygpoints alias POLYGPOINTS pattern op ( _ , _ )
+operator routeintervals alias ROUTEINTERVALS pattern op ( _ )

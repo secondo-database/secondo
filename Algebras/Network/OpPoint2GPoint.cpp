@@ -319,10 +319,10 @@ Specification of operator ~mpoint2mgpoint~
 const string OpPoint2GPoint::Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>point -> gpoint" "</text--->"
+  "( <text>network x point -> gpoint" "</text--->"
   "<text>point2gpoint(networkobject, point)</text--->"
   "<text>Translates a point to a gpoint.</text--->"
-  "<text>point2gpoint(B_NETWORK, point)</text--->"
+  "<text>point2gpoint(b_network, point)</text--->"
   ") )";
 
 /*

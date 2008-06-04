@@ -103,3 +103,14 @@ Signature: gpoint x network -> stream(gpoint)
 Example  : query polygpoints(X_GPOINT, B_NETWORK) count;
 Result   : 1
 
+Operator : routeintervals
+Number   : 1
+Signature: gline -> stream(rect)
+Example  : query routeintervals([const gline value(1((1 0.0 0.5)))]) count;
+Result   : 1
+
+Operator : routeintervals
+Number   : 2
+Signature: gline -> stream(rect)
+Example  : query routeintervals([const gline value(1((1 0.0 0.5)(2 0.1 6.5)(4 2.4 3.5)))]) count;
+Result   : 3

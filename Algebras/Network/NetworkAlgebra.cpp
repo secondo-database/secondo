@@ -74,6 +74,7 @@ Type property of type constructor ~network~
 #include "OpInside.h"
 #include "OpNoComponents.h"
 #include "OpPolyGPoint.h"
+#include "OpRouteIntervals.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -322,6 +323,19 @@ Operator networknocomponents (
 );
 
 /*
+Definition of  operator routeintervals
+
+*/
+
+Operator networkrouteintervals (
+          "routeintervals",               // name
+          OpRouteIntervals::Spec,          // specification
+          OpRouteIntervals::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpRouteIntervals::TypeMap        // type mapping
+);
+
+/*
 Creating the Algebra
 
 */
@@ -352,6 +366,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networkinside);
     AddOperator(&networknocomponents);
     AddOperator(&polygpoints);
+    AddOperator(&networkrouteintervals);
   }
   ~NetworkAlgebra() {};
 };
