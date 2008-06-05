@@ -1740,18 +1740,19 @@ filter is used.
 % Generic indexselect translation for predicates checking on mbbs
 
 indexselect(arg(N), pr(Pred, _)) =>
-%Old:  filter(windowintersects(IndexName, rel(Name, *, Case), bbox(Y)), Pred)
   filter(windowintersects(IndexName, rel(Name, *, Case), Y), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
   isBBoxPredicate(OP),
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+  (   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree)
+      ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree3)
+      ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree4)
+      ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree8)
+  ).
 
 indexselect(arg(N), pr(Pred, _)) =>
-%Old:  filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),
-%         RelAlias), Pred)
   filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias),
          Pred)
   :-
@@ -1759,7 +1760,11 @@ indexselect(arg(N), pr(Pred, _)) =>
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)]),
   isBBoxPredicate(OP),
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= *,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree).
+  (   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree)
+    ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree3)
+    ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree4)
+    ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree8)
+  ).
 
 % exploit commutativity of operators (additional cases)
 indexselect(arg(N), pr(Pred, Rel)) => X :-
@@ -1989,7 +1994,12 @@ join(Arg1, arg(N), pr(Pred, _, _))
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
   argument(N, RelDescription),% get info on 2nd relation
-  hasIndex(RelDescription, Attr2, IndexName, rtree), % the relation has an index on Attr2
+  (                           % the relation has an index on Attr2:
+      hasIndex(RelDescription, Attr2, IndexName, rtree)
+    ;   hasIndex(RelDescription, Attr2, IndexName, rtree3)
+    ;   hasIndex(RelDescription, Attr2, IndexName, rtree4)
+    ;   hasIndex(RelDescription, Attr2, IndexName, rtree8)
+  ),
   Arg1 => Arg1S,
   rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
 
@@ -2000,7 +2010,11 @@ join(arg(N), Arg2, pr(Pred, _, _))
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
-  hasIndex(RelDescription, Attr1, IndexName, rtree),
+  (   hasIndex(RelDescription, Attr1, IndexName, rtree)
+    ; hasIndex(RelDescription, Attr1, IndexName, rtree3)
+    ; hasIndex(RelDescription, Attr1, IndexName, rtree4)
+    ; hasIndex(RelDescription, Attr1, IndexName, rtree8)
+  ),
   Arg2 => Arg2S,
   rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
 
