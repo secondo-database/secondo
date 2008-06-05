@@ -114,3 +114,22 @@ Number   : 2
 Signature: gline -> stream(rect)
 Example  : query routeintervals([const gline value(1((1 0.0 0.5)(2 0.1 6.5)(4 2.4 3.5)))]) count;
 Result   : 3
+
+Operator : intersects
+Number   : 1
+Signature: gline x gline -> bool
+Example  : query [const gline value(1((1 0.0 0.5)))] intersects [const gline value(1((1 0.7 1.5)))];
+Result   : FALSE
+
+Operator : intersects
+Number   : 2
+Signature: gline x gline -> bool
+Example  : query [const gline value(1((1 0.0 0.5)))] intersects [const gline value(1((1 0.2 1.5)))];
+Result   : TRUE
+
+Operator : gpoint2rect
+Number   : 1
+Signature: gpoint -> rect
+Example  : query gpoint2rect([const gpoint value (1 1 0.8 2)]);
+Result   : (rect(1.0 1.0 0.8 0.8))
+Tolerance: 0.01%

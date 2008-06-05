@@ -75,6 +75,8 @@ Type property of type constructor ~network~
 #include "OpNoComponents.h"
 #include "OpPolyGPoint.h"
 #include "OpRouteIntervals.h"
+#include "OpNetIntersects.h"
+#include "OpGPoint2Rect.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -116,7 +118,7 @@ TypeConstructor gpoint(
         0,                   0,                     //SaveToList and
                                                     //RestoreFromList functions
         GPoint::CreateGPoint, GPoint::DeleteGPoint, //object creation/deletion
-        0,                   0,                     //open and save functions
+        OpenAttribute<GPoint>,SaveAttribute<GPoint>,//open and save functions
         GPoint::CloseGPoint, GPoint::CloneGPoint,   //object close, and clone
         GPoint::CastGPoint,                         //cast function
         GPoint::SizeOfGPoint,                       //sizeof function
@@ -133,7 +135,7 @@ TypeConstructor gline(
         0, 0,                          //SaveToList and
                                        //RestoreFromList functions
         GLine::Create, GLine::Delete,  //object creation and deletion
-        0, 0,                          //open and save functions
+        OpenAttribute<GLine>, SaveAttribute<GLine>,  //open and save functions
         GLine::Close, GLine::Clone,    //object close, and clone
         GLine::Cast,                   //cast function
         GLine::SizeOf,                 //sizeof function
@@ -336,6 +338,32 @@ Operator networkrouteintervals (
 );
 
 /*
+Definition of  operator intersects
+
+*/
+
+Operator networkintersects (
+          "intersects",               // name
+          OpNetIntersects::Spec,          // specification
+          OpNetIntersects::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpNetIntersects::TypeMap        // type mapping
+);
+
+/*
+Definition of  operator gpoint2rect
+
+*/
+
+Operator networkgpoint2rect (
+          "gpoint2rect",               // name
+          OpGPoint2Rect::Spec,          // specification
+          OpGPoint2Rect::ValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpGPoint2Rect::TypeMap        // type mapping
+);
+
+/*
 Creating the Algebra
 
 */
@@ -367,6 +395,8 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networknocomponents);
     AddOperator(&polygpoints);
     AddOperator(&networkrouteintervals);
+    AddOperator(&networkintersects);
+    AddOperator(&networkgpoint2rect);
   }
   ~NetworkAlgebra() {};
 };
