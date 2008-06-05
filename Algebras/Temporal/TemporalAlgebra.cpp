@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
+//[bl] [\\]
 
 [1] Implementation of Module
 
@@ -87,6 +88,7 @@ file.
 #include "RelationAlgebra.h"
 #include <math.h>
 #include "MMRTree.h"
+#include <time.h>
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -3361,6 +3363,10 @@ void MPoint::Reverse(MPoint& result){
 This function tries to equalize the units contained within this mpoint,
 
 
+~qdist~
+
+This funtion returns the square of the distance between ~p1~ and ~p2~.
+
 */
 double qdist(const Point& p1, const Point& p2){
    double x1 = p1.GetX();
@@ -3372,6 +3378,14 @@ double qdist(const Point& p1, const Point& p2){
    return dx*dx + dy*dy;
 }
 
+/*
+~qdist~
+
+This function returns teh square of the distance of the points defined by (~x1~, ~y1~)
+and (~x2~, ~y2~).
+
+*/
+
 double qdist(const double& x1, const double& y1,
              const double& x2, const double& y2){
    double dx = x2-x1;
@@ -3379,13 +3393,190 @@ double qdist(const double& x1, const double& y1,
    return dx*dx + dy*dy;
 }
 
-struct cluster {
-   double cx;
-   double cy;
-   set <int > member ;
-   bool forbidden ;
+
+/*
+struct ~intset~
+
+This class allows reference counting for a set of integers.
+
+*/
+struct intset{
+  intset():member(),refs(1){}
+  
+  void deleteIfAllowed(){
+     refs--;
+     if(refs<1){
+        delete this;
+     }
+  } 
+
+  set<int> member;
+  int refs;
 };
 
+
+/*
+~cluster~
+
+A cluster is defined by the contained points (stored in ~member~), 
+the center (defined by (~cx~, ~cy~) ) and a flag ~forbidden~ indicating
+whether it's allowed to change the content of this cluster. 
+To save memory, instead points only indexes of the points to an externally
+point vector or similar are stored.
+Members are always copyied by reference. 
+
+*/
+struct cluster{
+/*
+~Default constructor~
+
+*/
+    cluster(){
+      cx = 0.0;
+      cy = 0.0;
+      member = new intset();
+      forbidden = false; 
+    }
+ 
+/*
+~Copy Constructor~
+
+*/
+    cluster(const cluster& c){
+       cx = c.cx;
+       cy = c.cy;
+       forbidden = c.forbidden;
+       member = c.member;
+       member->refs++;
+    }
+
+/*
+~Assignment Operator~
+
+*/
+    cluster& operator=(const cluster& c){
+       cx = c.cx;
+       cy = c.cy;
+       forbidden = c.forbidden;
+       member = c.member;
+       member->refs++;
+       return *this;
+    }
+
+/*
+~Destructor~
+
+*/
+    ~cluster(){
+      member->deleteIfAllowed();
+    }
+
+/*
+~begin~
+
+This function returns an iterator pointing to the begin of the
+contained intset.
+
+*/
+    set<int>::iterator begin() const{
+      return member->member.begin();
+    }
+
+/*
+~end~
+
+This function returns an iterator pointing to the end of the contained intset.
+
+*/
+    set<int>::iterator end() const {
+      return member->member.end();
+    }
+
+/*
+~size~
+
+Tells, how many integers are contained in this cluster.
+
+*/
+    size_t size() const {
+      return member->member.size();
+    }
+
+/*
+~insert~
+
+Inserts a new point index into the cluster. 
+There is no correction of the center.
+
+*/    
+    void insert(int i){
+      member->member.insert(i);
+    }
+
+/*
+~erase~
+
+Erases a point index without correcting the center.
+
+*/
+    void erase(int i){
+       member->member.erase(i);
+    }
+ 
+/*
+~clear~
+
+Removes all point indexes.
+
+*/  
+    void clear(){
+       member->member.clear();
+    }
+
+/*
+~recomputeCenter~
+
+Recomputes the cluster's center.
+
+*/
+   void recomputeCenter(const vector<Point>& points){
+      set<int>::iterator it;
+      double x = 0.0;
+      double y = 0.0;
+      for(it=begin();it!=end();it++){
+         Point p = points[*it];
+         x += p.GetX();
+         y += p.GetY();
+      }
+      double s = size();
+      cx = x / s;
+      cy = y / s;
+   }
+
+
+/*
+~Data Members~
+
+(cx, cy)   : center of the cluster [nl]
+member     : intset storing the iindexes of the contained points [nl]
+forbidding : flag indicating whether changes are allowed
+
+*/ 
+    double cx;
+    double cy;
+    intset* member; // avoid copying of this set !!!!
+    bool forbidden;
+};
+
+/*
+~indexOfNearestCluster~
+
+Returns the index of the cluster closest to ~p~ within ~clusters~
+within a range of ~eps~. If no center of any cluster
+ios nearer than ~eps~ to ~p~ , -1 is returned. To accelerate the
+search, the centers of the clusters are stored in the rtree ~tree~.
+
+*/
 
 int indexOfNearestCluster( const mmrtree::Rtree<2>& tree, 
                            const Point& p,
@@ -3407,6 +3598,7 @@ int indexOfNearestCluster( const mmrtree::Rtree<2>& tree,
 
   set<long> cands;
   tree.findAll(searchbox, cands);
+
   set<long>::iterator it;
   for(it = cands.begin(); it!=cands.end(); it++){
    cluster c = clusters[*it];
@@ -3427,6 +3619,14 @@ void insertPoint(mmrtree::Rtree<2>& tree,
                  vector<cluster>& clusters,
                  const double& eps);
 
+/*
+~repairClusterAt~
+
+This function removes all points from the cluster, whose distance to the
+cluster's center is greater than ~eps~.
+
+
+*/
 void repairClusterAt(const int index,
                      mmrtree::Rtree<2>& tree,
                      vector<cluster>& clusters,
@@ -3439,8 +3639,8 @@ void repairClusterAt(const int index,
   // store all invalid points to wrong
   set<int>wrong;
   set<int>::iterator it;
-  for(it = clusters[index].member.begin();
-      it != clusters[index].member.end();
+  for(it = clusters[index].begin();
+      it != clusters[index].end();
       it++){
     Point p = points[*it];
     double d = qdist(cx,cy,p.GetX(),p.GetY());
@@ -3450,7 +3650,7 @@ void repairClusterAt(const int index,
   }
   // remove invalid points
   for(it=wrong.begin();it!=wrong.end();it++){
-    clusters[index].member.erase(*it);
+    clusters[index].erase(*it);
   } 
 
   // insert points again
@@ -3462,7 +3662,16 @@ void repairClusterAt(const int index,
 
 }
 
+/*
+~insertPoint~
 
+This function searches the nearest cluster withing ~clusters~.
+If the center's distance is greater than ~eps~, a new cluster
+is created containing exactly this point. Otherwise, the point is 
+inserted into this cluster. The cluster's center is corrected and all
+'bad points' are moved into other clusters.
+
+*/
 void insertPoint(mmrtree::Rtree<2>& tree, 
                  const vector<Point>& points,
                  const int pos,
@@ -3479,7 +3688,7 @@ void insertPoint(mmrtree::Rtree<2>& tree,
       cluster c;
       c.cx = x;
       c.cy = y;
-      c.member.insert(pos);
+      c.insert(pos);
       c.forbidden = false;
       clusters.push_back(c);
       min[0] = x - FACTOR;
@@ -3491,12 +3700,16 @@ void insertPoint(mmrtree::Rtree<2>& tree,
       return;
    }
 
-   clusters[index].member.insert(pos);
+   clusters[index].insert(pos);
+
    double cx = clusters[index].cx;
    double cy = clusters[index].cy;
-   int s = clusters[index].member.size();
+   int s = clusters[index].size();
    clusters[index].cx = ((cx * (s - 1.0) + x) / s);
    clusters[index].cy = ((cy * (s - 1.0) + y) / s);
+
+//   clusters[index].recomputeCenter(points); 
+
 
    min[0] = cx - FACTOR;
    min[1] = cy - FACTOR;
@@ -3515,29 +3728,25 @@ void insertPoint(mmrtree::Rtree<2>& tree,
    repairClusterAt(index, tree, clusters, points, eps);
 }
 
-void insertPointSimple(mmrtree::Rtree<2>& tree, 
-                       const vector<Point>& points,
-                       const int pos,
-                       vector<cluster>& clusters,
-                       const double& eps ){
-    Point p = points[pos];
-    int index = indexOfNearestCluster(tree, p, clusters, eps);
-    assert(index>=0);
-    clusters[index].member.insert(pos);
-}
+/*
+~getCenter~
 
-void getCenter(const set<int>& indexes, 
+Computes the center of the cluster and stored it in ~x~ and ~y~.
+
+*/
+
+void getCenter(const cluster& cl, 
                const vector<Point>& points, 
                double& x, double& y){
  x = 0;
  y = 0;
- int size = indexes.size();
+ int size = cl.size();
  if(size==0){
    cout << "indexes smaller than zero" << endl;
    return;
  }
  set<int>::const_iterator it;
- for(it=indexes.begin();it!=indexes.end();it++){
+ for(it=cl.begin();it!=cl.end();it++){
      x += points[*it].GetX();
      y += points[*it].GetY();
  }
@@ -3557,53 +3766,106 @@ void recomputeCenters(vector<cluster>& clusters,
                       const vector<Point>& points){
   vector<cluster>::iterator it;
   for(it = clusters.begin(); it!=clusters.end();it++){
-     getCenter(it->member,points,it->cx,it->cy);
+     getCenter(*it,points,it->cx,it->cy);
   }
 }
 
+/*
+This class is only needed, because the Point class of Secondo 
+does no initialisation stuff in the Standard costructor which is
+required to use a class within an STL set instance.
+
+*/
+class DefPoint:public Point{
+public: 
+  DefPoint(){ 
+    SetDefined(false); 
+    del.refs=1; 
+    del.isDelete=true; 
+  }
+  DefPoint(const Point& p){
+    Set(p.IsDefined(),p.GetX(),p.GetY());
+  }
+  DefPoint(const DefPoint& p){
+    Set(p.IsDefined(),p.GetX(),p.GetY());
+    del.refs=1;del.isDelete=true;
+  }
+  ~DefPoint(){}
+  DefPoint& operator=(const DefPoint& p){
+    Set(p.IsDefined(),p.GetX(),p.GetY());
+    return *this;
+  }
+
+  inline void Set(bool def, const Coord& x, const Coord& y){
+     if(def){
+       Point::Set(x,y);
+     } else {
+       SetDefined(false);
+     }
+  }
+  inline Point GetPoint(){
+     Point p(IsDefined(),GetX(),GetY());
+     return p;
+  }
+};
+
+/*
+~assignCluster~
 
 
-map<Point, Point>* assignCluster(const vector<Point>& points, 
+Creates a map point -> point where each point within the points vector
+is assigned to the nearest cluster center.
+
+*/
+map<DefPoint, DefPoint>* assignCluster(const vector<Point>& points, 
                                  const double& eps,
                                  vector<Point>& centers){
 
   vector<cluster> clusters;
 
-  mmrtree::Rtree<2> tree(10,30);
+  mmrtree::Rtree<2> tree(2,5);
   for(unsigned int i=0;i<points.size();i++){
     insertPoint(tree, points, i, clusters,eps);
   }
 
   // redistribute points
   for(unsigned int i = 0; i< clusters.size();i++){
-    clusters[i].member.clear();
+    clusters[i].clear();
   }
-
+  
   for(unsigned int i=0;i<points.size();i++){
-    insertPointSimple(tree,points,i,clusters,eps);
+    int index = indexOfNearestCluster(tree, points[i], clusters, eps);
+    clusters[index].insert(i);
   }
 
   // correct the centers
   recomputeCenters(clusters,points);
 
+
   // store as a map
-  map<Point, Point>* result= new map<Point, Point>();
+  map<DefPoint, DefPoint>* result= new map<DefPoint, DefPoint>();
   for(unsigned int i=0;i<clusters.size();i++){
     cluster c = clusters[i];
     Point center(true,c.cx,c.cy);
     set<int>::iterator it;
     centers.push_back(center);
-    for(it=clusters[i].member.begin(); it!=clusters[i].member.end(); it++){
-       Point p = points[*it];
-       (*result)[p] = center;
+    for(it=clusters[i].begin(); it!=clusters[i].end(); it++){
+       Point p = points.at(*it);
+       DefPoint p1(p);
+       DefPoint c1(center);
+       (*result)[p1] = c1;
     }
   }
   return result;
 }
 
 
-const double NinetyDegree = PI/2.0;
+/*
+~DoublePoint~
 
+This class collects a Point and a double.
+
+*/
 class DoublePoint{
  public:
   DoublePoint(const double d1, const Point p1):d(d1),p(p1){}
@@ -3712,7 +3974,7 @@ void split(const UPoint unit,
         double fx = x + t1*dx;
         double fy = y + t1*dy;
         Point f(true,fx,fy);
-        if( (R.Distance(f) < eps/2) && (t1>=0) && (t1<=1)){
+        if( (R.Distance(f) < eps) && (t1>=0) && (t1<=1)){
           DoublePoint dp(t1,R);
           splitElements.insert(dp);
         } // foot outside hs
@@ -3720,7 +3982,7 @@ void split(const UPoint unit,
    } // for all candidates
 
 
-
+   
    if(splitElements.size()<2){ // only the endpoint is member of splitPoints
      result.Add(unit);
      return;
@@ -3749,16 +4011,20 @@ void split(const UPoint unit,
            copy.Split(sE,tmp);
            if(!copy.IsZero()){
               DateTime end = startTime + copy;
-              Interval<Instant> interval(lastTime,end,
+              if(lastTime!=end ||
+                 (AlmostEqual(sP,p1) &&
+                  lastLC != unit.timeInterval.rc)){
+                 Interval<Instant> interval(lastTime,end,
                                          lastLC, !lastLC);
-              if(AlmostEqual(sP,p1)){
-                interval.rc = (unit.timeInterval.rc);
-              }
-              UPoint u(interval,lastPoint,sP);
-              result.Add(u);
-              lastSplit = sE;
-              lastPoint = sP;
-              lastTime = end;
+                 if(AlmostEqual(sP,p1)){
+                   interval.rc = (unit.timeInterval.rc);
+                 }
+                 UPoint u(interval,lastPoint,sP);
+                 result.Add(u);
+                 lastSplit = sE;
+                 lastPoint = sP;
+                 lastTime = end;
+             }
            } 
         }
       }
@@ -3766,6 +4032,15 @@ void split(const UPoint unit,
 }
 
 
+/*
+~EqualizeUnitsSpatial~
+
+This function tries to equalize similar units in spatial dimension.
+This means if the segments of two (or more) units are similiar, the
+endpoints of the units are changed  to cover the same segment.
+
+
+*/
 void MPoint::EqualizeUnitsSpatial(const double epsilon,
                                   MPoint& result,
                                   bool skipSplit/* = false*/) const{
@@ -3781,9 +4056,13 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
    const UPoint* unit;
    for(int i=0;i< GetNoComponents(); i++){
        Get(i,unit);
-       endPoints1.insert(unit->p0);
-       endPoints1.insert(unit->p1);
+       Point p0(unit->p0);
+       endPoints1.insert(p0);
+       Point p1(unit->p1);
+       endPoints1.insert(p1);
    }
+
+
    // copy points from the set to a vector
    vector<Point>  endPoints;
 
@@ -3792,9 +4071,10 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
      endPoints.push_back(*it);
    }  
 
-   // step 2: build cluster and move the endpoints to the centers
+  // step 2: build cluster and move the endpoints to the centers
    vector<Point> centers;
-   map<Point , Point>* clusters = assignCluster(endPoints,epsilon,centers);
+   map<DefPoint , DefPoint>* clusters;
+   clusters = assignCluster(endPoints,epsilon,centers);
 
   if(skipSplit){
     UPoint resUnit(0);
@@ -3803,13 +4083,12 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
       Get(i,unit);
       resUnit = *unit;
       Point p = unit->p0;
-      resUnit.p0 = (*clusters)[p];
-      resUnit.p1 = (*clusters)[unit->p1];
+      resUnit.p0 = (*clusters)[p].GetPoint();
+      resUnit.p1 = (*clusters)[unit->p1].GetPoint();
       result.MergeAdd(resUnit);
     }
     //result.EndBulkLoad();
     delete clusters;
-    return;
   }
    
 
@@ -3820,18 +4099,18 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
       Get(i,unit);
       resUnit = *unit;
       Point p = unit->p0;
-      resUnit.p0 = (*clusters)[p];
-      resUnit.p1 = (*clusters)[unit->p1];
+      resUnit.p0 = (*clusters)[p].GetPoint();
+      resUnit.p1 = (*clusters)[unit->p1].GetPoint();
       tmp.MergeAdd(resUnit);
    }
    tmp.EndBulkLoad();
-
+   
    // split units at center
    mmrtree::Rtree<2> tree(10,30);
    for(unsigned int i=0;i<centers.size();i++){
        tree.insert(centers[i].BoundingBox(),i);
    }  
-
+   
    set<long> cands;
    result.StartBulkLoad();
    for(int i=0;i<tmp.GetNoComponents();i++){
@@ -3845,10 +4124,9 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
           split(*unit,cands,centers,result,epsilon);
        }
    }
+
    result.EndBulkLoad();
    delete clusters;
-
-
 }
 
 
@@ -4182,9 +4460,11 @@ double MPoint::Length() const{
      int size = units.Size();
      for(int i=0;i<size;i++){
         units.Get(i,unit);
-        result += unit->p0;
-        result += unit->p1;
-     } 
+        Point p0(unit->p0);
+        Point p1(unit->p1);
+        result += p0;
+        result += p1;
+     }
      result.EndBulkLoad();
    }
 
