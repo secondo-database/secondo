@@ -1,6 +1,8 @@
 #create test database
+delete database optauxtest;
 create database optauxtest;
 
+# setup
 # open database 
 open database optauxtest;
 
@@ -134,7 +136,7 @@ query thousandRows feed predcounts [
          (4    1) \
          (2    1) \
          (1    1) \
-         (0    9990) \
+         (0    990) \
       ) \
    )
 query thousandRows feed predcounts [ 
@@ -174,7 +176,8 @@ query thousandRows feed predcounts [
          (8       1) \
          (4       1) \
          (2       1) \
-         (0       9980) \
+         (1       1) \
+         (0       980) \
       ) \
    )
 query thousandRows feed predcounts [ 
@@ -291,11 +294,6 @@ query tenRows feed predcounts [
 # yields error
 query tenRows feed tenRows feed product predcounts [ .ID > 2 ] consume;
 
+# teardown
 # delete database
 close database;
-delete database optauxtest;
-delete tmp;
-
-
-
-
