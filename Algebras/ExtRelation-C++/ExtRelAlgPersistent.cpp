@@ -538,8 +538,6 @@ In this case we need to delete also all tuples stored in memory.
 
     ~SortByLocalInfo()
     {
-      cerr << endl << "calling  ~SortByLocalInfo()" << endl;
-  
       while( !mergeTuples.empty() )
       {
         mergeTuples.pop();
@@ -552,8 +550,6 @@ In this case we need to delete also all tuples stored in memory.
           queue[i].pop();
         }
       }
-
-      cerr << endl << "sorted runs:  " << relations.size() << endl;
       // delete information about sorted runs
       for( size_t i = 0; i < relations.size(); i++ )
       {
