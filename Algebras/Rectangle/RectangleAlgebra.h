@@ -150,6 +150,13 @@ Redefinition of operator ~==~.
 
 */
 
+    inline bool AlmostEqual( const Rectangle<dim>& r ) const;
+/*
+Fuzzy version of the operator ~==~.
+
+*/
+
+
     inline bool operator != ( const Rectangle<dim>& r ) const;
 /*
 Redefinition of operator ~!=~.
@@ -551,6 +558,26 @@ inline bool Rectangle<dim>::operator == ( const Rectangle<dim>& r ) const
     if( min[i] != r.min[i] || max[i] != r.max[i] )
       return false;
 
+  return true;
+}
+
+/*
+Fuzzy check for equality.
+
+*/
+template <unsigned dim>
+inline bool Rectangle<dim>::AlmostEqual( const Rectangle<dim>& r ) const
+{
+  if(!IsDefined() && !r.IsDefined()){
+     return true;
+  } else if(!IsDefined() || !r.IsDefined()){
+     return false;
+  }
+  for( unsigned i = 0; i < dim; i++ ){
+    if( !::AlmostEqual(min[i] , r.min[i]) || 
+        !::AlmostEqual(max[i] , r.max[i]) ){
+    }
+  }
   return true;
 }
 
