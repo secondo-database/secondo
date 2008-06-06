@@ -92,8 +92,6 @@ Forward declarations.
 // const double FACTOR = 0.00000001; // moved to Attribute.h
 
 inline double ApplyFactor( const double d );
-inline bool AlmostEqual( const double d1,
-                         const double d2 );
 inline bool AlmostEqual( const Point& p1,
                          const Point& p2 );
 inline bool AlmostEqual( const HalfSegment& hs1,
@@ -4331,23 +4329,6 @@ inline void Region::TrimToSize(){
 11.4 Auxiliary functions
 
 */
-inline bool AlmostEqual( const double d1, const double d2 )
-{
-  double diff = fabs(d1-d2);
-  return ( diff < FACTOR );
-//   double i1, i2;
-//   double dd1 = modf( d1, &i1 ),
-//          dd2 = modf( d2, &i2 );
-//   long ii1 = (long)i1,
-//        ii2 = (long)i2;
-//
-//   if( abs(ii1 - ii2) > 1 )
-//     return false;
-
-//   int d = abs(ii1) - abs(ii2);
-//   return fabs(dd1 - dd2 - d) < FACTOR;
-}
-
 inline bool AlmostEqual( const Point& p1, const Point& p2 )
 {
   return AlmostEqual( p1.GetX(), p2.GetX() ) &&
