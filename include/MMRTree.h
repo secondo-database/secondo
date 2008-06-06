@@ -110,6 +110,17 @@ intersects ~box~.
   void findAll(const Rectangle<dim>& box, set<long>& res)const;
 
 /*
+2.4 ~findAllExact~
+
+Returns all object ids stored within the tree whose corresponding 
+rectangle is AlmostEqual to ~box~
+
+*/
+  void findAllExact(const Rectangle<dim>& box, set<long>& res)const;
+
+
+
+/*
 2.4 ~erase~
 
 Erases an  entry of ~id~ found at positions intersecting by box.
@@ -301,6 +312,17 @@ bounding box intersects ~box~ and collect them in ~res~.
                    const Rectangle<dim>& box,
                    set<long>& res)const;
 
+/*
+~findAllRecExact~
+
+Searches in the subtree given by root for objects whose
+bounding box contains ~box~ and collect the object ids
+whose corresponding rectangle is equals to ~box~.
+
+*/   
+   void findAllRecExact(const Node<dim>* root,
+                   const Rectangle<dim>& box,
+                   set<long>& res)const;
 
 /* 
 Erases one occurence of id.
@@ -858,6 +880,19 @@ void Rtree<dim>::findAll(const Rectangle<dim>& box, set<long>& res)const{
 } 
 
 /*
+2.3 ~findAllExact~
+
+Returns all object's ids stored in the tree where the box 
+is equals to ~box~. 
+
+*/
+template<unsigned dim>
+void Rtree<dim>::findAllExact(const Rectangle<dim>& box, set<long>& res)const{
+  res.clear();
+  findAllRecExact(root,box,res);
+} 
+
+/*
 2.4 ~erase~
 
 Erases the entries of ~id~ found at positions intersecting by box.
@@ -1235,6 +1270,33 @@ void Rtree<dim>::findAllRec(const Node<dim>* root,
   }
 }
 
+/*
+~findAllRecExact~
+
+Searches in the subtree given by root for objects whose
+bounding box is equals to ~box~ and collect them in ~res~.
+
+*/   
+template<unsigned dim>
+void Rtree<dim>::findAllRecExact(const Node<dim>* root,
+                       const Rectangle<dim>& box,
+                       set<long>& res)const{
+  if(!root){
+     return;
+  } else if(root->isLeaf()){
+    for(int i = 0; i<root->count; i++){
+       if(root->sons[i]->box.AlmostEqual(box)){
+         res.insert(root->sons[i]->count);
+       }
+    }
+  } else {
+    for(int i =0; i < root->count; i++){
+       if(root->sons[i]->box.Contains(box)){
+         findAllRec(root->sons[i],box,res);
+       }
+    }
+  }
+}
 
 /* 
 Erases one occurence of ~id~.
