@@ -117,6 +117,30 @@ optimizerOptionInfo(useCounters, none, no,
                     true
                    ).
 
+optimizerOptionInfo(noHashjoin, none, yes,
+                    'Disables hashjoin.',
+                    true,
+                    true
+                   ).
+
+optimizerOptionInfo(noSymmjoin, none, yes,
+                    'Disables symmjoin.',
+                    true,
+                    true
+                   ).
+
+optimizerOptionInfo(noIndex, none, yes,
+                    'Disables the utilization of indexes.',
+                    true,
+                    true
+                   ).
+
+optimizerOptionInfo(useRandomSMJ, none, no,
+                    'Uses sortmergejoin_r2 instead of sortmergejoin.',
+                    true,
+                    true
+                   ).
+
 
 optimizerOptionInfo(allOff, none, no,
                     'Turn off really ALL options.',
@@ -475,6 +499,15 @@ loadFiles(entropy) :-
   )
   ; true.
 
+
+% Optional files for the correlations options 
+loadFiles(correlations) :-
+  ( not(loadedModule(correlations)),
+    ['./Correlations/correlations'],
+    assert(loadedModule(correlations))
+  )
+  ; true.
+
 % Optional files for the immediate plan extension
 loadFiles(immediatePlan) :-
   ( not(loadedModule(immediatePlan)),
@@ -596,6 +629,9 @@ to disk automatically on system halt.
 defaultOptions :-
   setOption(standard),
   delOption(useCounters),
+  setOption(useHashjoin),
+  setOption(useSymmjoin),
+  delOption(useRandomSMJ),
   setOption(debug),
   debugLevel(selectivity),
   setOption(autosave).
