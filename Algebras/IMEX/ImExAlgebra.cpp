@@ -69,6 +69,7 @@ This file contains the implementation import / export operators.
 #include "DateTime.h"
 #include "TopOpsAlgebra.h"
 #include "DBArray.h"
+#include "Symbols.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -189,7 +190,7 @@ public:
         rest = nl->Rest(rest);
         f << nl->SymbolValue(nl->First(first));
         while(!nl->IsEmpty(rest)){
-           f << " , ";
+           f << ",";
            first = nl->First(rest);
            rest = nl->Rest(rest);
            f << nl->SymbolValue(nl->First(first));
@@ -214,7 +215,7 @@ public:
      int s = tuple->GetNoAttributes();
      for(int i=0;i<s;i++){
         if(i>0){
-          f << " , ";
+          f << ",";
         }
         f << tuple->GetAttribute(i)->getCsvStr();
      }
@@ -365,7 +366,7 @@ const string CsvExportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(X) x  string x bool -> stream(X)\n"
     "stream(tuple(...))) x string x bool x bool -> stream(tuple...)</text--->"
-    "<text> stream cvsexport [ file , append [writenames]]</text--->"
+    "<text> stream csvexport [ file , append [writenames]]</text--->"
     "<text> Exports stream content to a csv file </text--->"
     "<text>query ten feed exportcsv[\"ten.csv\", FALSE] count</text--->"
     ") )";
@@ -382,6 +383,258 @@ Operator csvexport( "csvexport",
                      csvExportSelect,
                      csvexportTM);
 
+
+
+/*
+1 CSV Import
+
+1.1 Type Mapping
+
+  rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x int x string -> stream(tuple(...))
+
+  where t[_]i is CVSIMPORTABLE.
+
+  text   :  indicates the filename containing the csv data
+  int    :  number of lines to ignore (header)
+  string :  ignore Lines starting with this string (comment)
+            use an empty string for disable this feature
+
+*/
+
+ListExpr csvimportTM(ListExpr args){
+  string err = " rel(tuple(a_1 : t_1)...(a_n : t_n)) x "
+               "text x int x string expected";
+  if(nl->ListLength(args)!=4){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!IsRelDescription(nl->First(args)) ||
+     !nl->IsEqual(nl->Second(args),symbols::TEXT) ||
+     !nl->IsEqual(nl->Third(args),symbols::INT) ||
+     !nl->IsEqual(nl->Fourth(args),symbols::STRING)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  // check attribute types for csv importable
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+ 
+  ListExpr attrlist = nl->Second(nl->Second(nl->First(args)));
+  if(nl->IsEmpty(attrlist)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  while(!nl->IsEmpty(attrlist)){
+     ListExpr type = nl->Second(nl->First(attrlist));
+     if(!am->CheckKind("CSVIMPORTABLE",type,errorInfo)){
+        ErrorReporter::ReportError("attribute type not in kind CVSEXPORTABLE");
+        return nl->TypeError();
+     }
+     attrlist = nl->Rest(attrlist);
+  }
+  return nl->TwoElemList( nl->SymbolAtom(symbols::STREAM),
+                          nl->Second(nl->First(args))); 
+}
+
+
+/*
+1.2 Specification
+
+
+*/
+
+
+const string csvimportSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> rel(tuple(...) x text x int x string "
+    "-> stream (tuple(...))</text--->"
+    "<text> rel csvimport[filename, headersize, comment] </text--->"
+    "<text> returns the content of the file as a stream </text--->"
+    "<text> not tested !!!</text--->"
+    ") )";
+/*
+1.3 Value Mapping for csvimport
+
+*/
+class CsvImportInfo{
+public:
+  CsvImportInfo(ListExpr type, FText* filename, 
+                CcInt* hSize , CcString* comment){
+
+      BasicTuple = 0;
+      tupleType = 0;
+      defined = filename->IsDefined() && hSize->IsDefined() &&
+                comment->IsDefined();
+      if(!defined){
+          return;
+      }
+      string name = filename->GetValue();
+      file.open(name.c_str());
+      if(!file.good()){
+         defined = false;
+         return;
+      } 
+      // skip header
+      int skip = hSize->GetIntval();
+      string buffer;
+      for(int i=0;i<skip && file.good(); i++){
+         getline(file,buffer);
+      }       
+      if(!file.good()){
+        defined=false;
+        return;
+      }
+      this->comment = comment->GetValue();
+      useComment = this->comment.size()>0;
+      ListExpr numType = nl->Second(
+                         SecondoSystem::GetCatalog()->NumericType((type)));
+      tupleType = new TupleType(numType);
+      BasicTuple = new Tuple(tupleType);
+      // build instances for each type
+      ListExpr attrList = nl->Second(nl->Second(type));
+      while(!nl->IsEmpty(attrList)){
+         ListExpr attrType = nl->Second(nl->First(attrList));
+         attrList = nl->Rest(attrList);
+         int algId; 
+         int typeId;
+         string tname;
+         if(! ((SecondoSystem::GetCatalog())->LookUpTypeExpr(attrType,
+                                               tname, algId, typeId))){
+           defined = false;
+           return;
+         }
+         Word w = am->CreateObj(algId,typeId)(attrType);
+         instances.push_back(static_cast<Attribute*>(w.addr));
+      }
+  } 
+
+  
+
+  ~CsvImportInfo(){
+     if(BasicTuple){
+       delete BasicTuple;
+       BasicTuple = 0;
+     }
+     if(tupleType){
+        tupleType->DeleteIfAllowed();
+        tupleType = 0;
+     }
+     for(unsigned int i=0; i<instances.size();i++){
+        delete instances[i];
+     }
+     instances.clear();
+     file.close();
+   }
+
+
+   bool isComment(string line){
+      if(!useComment){
+        return false;
+      } else {
+        return line.find(comment)==0;
+      }
+   }
+  
+   Tuple* getNext(){
+     if(!defined){
+        return 0;
+     }
+     if(!file.good() || file.eof()){
+        return 0;
+     }
+     string buf;
+     do{
+       getline(file,buf);
+     } while(file.good() && !file.eof() && isComment(buf));
+     if(file.good()){
+        return createTuple(buf);
+     }
+     return 0;
+   } 
+
+
+private:
+  bool defined;
+  ifstream file;
+  bool useComment;
+  string comment;
+  TupleType* tupleType;
+  Tuple* BasicTuple;
+  vector<Attribute*> instances;
+  Tuple* createTuple(string line){
+      string sep = ",";
+      Tuple* result = BasicTuple->Clone();
+      string::size_type lastPos = 0;
+      bool end = false;
+      for(unsigned int i=0;i<instances.size();i++){
+         Attribute* attr = instances[i]->Clone();
+         string::size_type pos  = line.find_first_of(sep, lastPos);
+         if(pos!=string::npos  || lastPos != string::npos && !end){
+            if(pos==string::npos){
+               pos = line.size();
+               end=true;
+            }
+            string attrstr = line.substr(lastPos,pos -lastPos);
+            attr->ReadFromString(attrstr);
+            result->PutAttribute(i,attr);
+            lastPos = pos+1;
+            pos = line.find_first_of(sep, lastPos);
+         } else {
+            attr->SetDefined(false);
+            result->PutAttribute(i,attr);
+         }
+      }
+      return result;
+  }
+};
+
+
+int csvimportVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  switch(message){
+    case OPEN: {
+      ListExpr type = qp->GetType(qp->GetSon(s,0));
+      FText* fname = static_cast<FText*>(args[1].addr);
+      CcInt* skip = static_cast<CcInt*>(args[2].addr);
+      CcString* comment = static_cast<CcString*>(args[3].addr);
+      local  = SetWord(new CsvImportInfo(type,fname,skip,comment));
+      return 0;
+    }
+    case REQUEST: {
+      CsvImportInfo* info = static_cast<CsvImportInfo*>(local.addr);
+      if(!info){
+        return CANCEL;
+      } else {
+        Tuple* tuple = info->getNext();
+        result.addr = tuple;
+        return tuple==0?CANCEL:YIELD;
+      }
+    }
+    case CLOSE: {
+      CsvImportInfo* info = static_cast<CsvImportInfo*>(local.addr);
+      if(info){
+        delete info;
+        local.addr=0;
+      }
+       
+    }
+    default: {
+     return 0;
+    }
+  }
+}
+
+
+/*
+1.4 Operator Instance
+
+*/
+Operator csvimport( "csvimport",
+                    csvimportSpec,
+                    csvimportVM,
+                    Operator::SimpleSelect,
+                    csvimportTM);
 
 
 /*
@@ -2417,7 +2670,7 @@ int dbtypeVM(Word* args, Word& result,
       }
      } 
      if(i>0){
-       attrList << " , ";
+       attrList << ",";
      }
      attrList << name << " : " << type ;
   }
@@ -2509,6 +2762,7 @@ public:
 */
    DbimportInfo(ListExpr type, FText* fname){
      BasicTuple = 0;
+     tupleType = 0;
      ListExpr attrList = nl->Second(nl->Second(type));
      while(!nl->IsEmpty(attrList)){
         ListExpr type = nl->Second(nl->First(attrList));
@@ -2541,6 +2795,7 @@ public:
      defined = true;
      ListExpr numType = nl->Second(
                        SecondoSystem::GetCatalog()->NumericType((type)));
+     tupleType = new TupleType(numType); 
      BasicTuple = new Tuple(numType);
      current = 0;
      file.seekg(headerLength,ios::beg);
@@ -2588,6 +2843,10 @@ public:
         delete BasicTuple;
         BasicTuple = 0;
      }
+     if(tupleType){
+       tupleType->DeleteIfAllowed();
+       tupleType=0;
+     }
    }
 
    void close(){
@@ -2608,6 +2867,7 @@ private:
   vector<bool> isMemo;
   vector<unsigned char> fieldLength;
   Tuple* BasicTuple;
+  TupleType* tupleType;
   unsigned int current;
  
   bool checkFile(){
@@ -2973,6 +3233,7 @@ public:
     AddOperator( &dbtype );
     AddOperator( &dbimport);
     AddOperator( &saveObject);
+    AddOperator( &csvimport);
   }
   ~ImExAlgebra() {};
 };

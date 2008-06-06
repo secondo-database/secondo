@@ -72,6 +72,18 @@ by the ~StandardAlgebra~:
 #include "Counter.h"
 #include "Symbols.h"
 
+
+/*
+~Auxilraly Functions~
+
+~trim~
+
+This function removes whitespaces from the start and the end of ~value~.
+
+*/
+ void trimstring(string& str);
+
+
 /*
 2.1 CcInt
 
@@ -269,7 +281,17 @@ class CcInt : public StandardAttribute
       return s.str();
   } 
   
-
+  virtual void ReadFromString(string value){
+      trimstring(value);
+      if(value.size()==0){
+         SetDefined(false);
+      } else {
+         stringstream ss(value);
+         int v=0;
+         ss >> v;
+         Set(true,v);
+      }
+  }
 
  
   static long intsCreated;
@@ -455,6 +477,18 @@ class CcReal : public StandardAttribute
       return s.str();
   } 
 
+  virtual void ReadFromString(string value){
+      trimstring(value);
+      if(value.size()==0){
+         SetDefined(false);
+      } else {
+         stringstream ss(value);
+         double v=0.0;
+         ss >> v;
+         Set(true,v);
+      }
+  }
+
  private:
   bool  defined;
   SEC_STD_REAL  realval;
@@ -593,6 +627,19 @@ class CcBool : public StandardAttribute
       return boolval?"T":"F";
   } 
 
+  virtual void ReadFromString(string value){
+     string::size_type p = value.find_first_not_of(" \t");
+     if(p==string::npos){
+       SetDefined(false);
+     } else {
+       char c = value[p];
+       if(c=='F' || c=='f' || c=='0'){
+          Set(true,false);
+       } else{
+          Set(true,true);
+       }
+     }
+  }
 
 
  private:
@@ -764,6 +811,14 @@ class CcString : public StandardAttribute
       } 
       return string(stringval);
   }
+
+  virtual void ReadFromString(string value){
+     if(value.size()>MAX_STRINGSIZE){
+        value = value.substr(0,MAX_STRINGSIZE);
+     }
+     Set(true,value);
+  }
+
  
  private:
   bool   defined;

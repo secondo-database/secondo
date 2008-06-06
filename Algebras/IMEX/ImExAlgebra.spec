@@ -27,4 +27,5 @@ operator shpimport alias SHPIMPORT pattern _ op [ _ ]
 operator dbtype alias dbTYPE pattern op( _ )
 operator dbimport alias DBIMPORT pattern _ op [ _ ]
 operator saveObject alias SAVEOBJECT pattern _ op [ _ , _ ]
+operator csvimport  alias csvimport pattern _ op [ _ , _ , _ ]
 

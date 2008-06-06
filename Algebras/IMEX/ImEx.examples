@@ -14,6 +14,12 @@ Signature: stream(tuple(...)) x text x bool -> stream[t]
 Example  : query intstream(1,10) transformstream csvexport['ten.csv', FALSE, TRUE] count 
 Result   : 10
 
+Operator  : csvimport
+Number    : 1
+Signature : rel(tuple(a_1 t1)..(a_n t_n)) x text x int x string -> stream(tuple(...)), t_i in CSVIMPORTABLE
+Example   : query ten csvimport['ten.csv',1,""] count
+Result    : 10
+
 
 
 Operator : db3export 

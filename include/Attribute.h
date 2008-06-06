@@ -62,6 +62,7 @@ derived attribute class must implement.
 
 
 extern const double FACTOR;
+bool AlmostEqual( const double d1, const double d2 );
 /*
 3.5 Struct ~AttrDelete~
 
@@ -451,6 +452,9 @@ Print the delete reference info to a string (for debugging)
   virtual string getDB3String() const { return "?"; }
 
 
+   virtual void ReadFromString(string value){
+       SetDefined(false);
+   }
 
   protected:
 
@@ -477,6 +481,27 @@ cost factors.
     static void counters(bool reset, bool show);
 
 };
+
+/*
+~Auxilary function to compare Double values for equality~
+
+*/
+inline bool AlmostEqual( const double d1, const double d2 )
+{
+  double diff = fabs(d1-d2);
+  return ( diff < FACTOR );
+//   double i1, i2;
+//   double dd1 = modf( d1, &i1 ),
+//          dd2 = modf( d2, &i2 );
+//   long ii1 = (long)i1,
+//        ii2 = (long)i2;
+//
+//   if( abs(ii1 - ii2) > 1 )
+//     return false;
+
+//   int d = abs(ii1) - abs(ii2);
+//   return fabs(dd1 - dd2 - d) < FACTOR;
+}
 
 /*
 Generic ~Open~-function
