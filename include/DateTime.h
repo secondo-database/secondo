@@ -51,6 +51,7 @@ will change the type of the this object to a {\tt duration}.
 #include <ostream>
 #include "NestedList.h"
 #include "StandardAttribute.h"
+#include "StandardTypes.h"
 #include "BigInt.h"
 
 namespace datetime {
@@ -262,6 +263,20 @@ This function is only defined for instants.
 
 */
      bool ReadFrom(const string Time);
+
+/*
+~ReadFromString~
+
+This function just calls ~ReadFrom~(__string__). Its added for
+the CSV import.
+
+*/
+   virtual void ReadFromString(string time){
+        trimstring(time);
+        if(!ReadFrom(time)){
+          SetDefined(false);
+        }
+    }
 
 /*
 ~ReadFrom~

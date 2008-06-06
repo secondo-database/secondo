@@ -2974,6 +2974,7 @@ class DateTimeAlgebra : public Algebra
     instant.AssociateKind("DATA");
     instant.AssociateKind("INDEXABLE");
     instant.AssociateKind("CSVEXPORTABLE");
+    instant.AssociateKind("CSVIMPORTABLE");
     AddTypeConstructor( &duration );
     duration.AssociateKind("DATA");
 
