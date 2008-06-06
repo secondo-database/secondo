@@ -164,17 +164,20 @@ This struct contains the private attributes of the class ~Tuple~.
                     << " del.refs = " << (int)attributes[i]->del.refs)
 
         attributes[i]->DeleteIfAllowed();
+        attributes[i] = 0;
       } 
       else {
 	DEBUG(this, "attributes[" << i << "] == 0")
       }	      
     }
     tupleType->DeleteIfAllowed();
+    tupleType = 0;
 
     tuplesDeleted++;
     tuplesInMemory--;
-    if (noAttributes > MAX_NUM_OF_ATTR)
+    if (noAttributes > MAX_NUM_OF_ATTR){
       delete [] attributes;
+    }
   }
 /*
 The destructor.

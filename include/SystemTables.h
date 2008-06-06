@@ -481,14 +481,13 @@ class OperatorUsageTuple : public InfoTuple
    int    vmid;
    int    calls;
    
-   OperatorUsageTuple() {}
-   virtual ~OperatorUsageTuple() {
-
+   OperatorUsageTuple() {
      name = "";
      algebra = "";
      calls = 0;
      vmid = 0;
-   } 
+   }
+   virtual ~OperatorUsageTuple() {} 
 
    virtual NList valueList() const
    {

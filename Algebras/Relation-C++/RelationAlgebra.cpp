@@ -405,7 +405,9 @@ instance of ~tuple~.
 Word
 CreateTuple(const ListExpr typeInfo)
 {
-  Tuple *tup = new Tuple( nl->Second( typeInfo ) );
+  TupleType* tt = new TupleType(nl->Second(typeInfo));
+  Tuple *tup = new Tuple( tt );
+  tt->DeleteIfAllowed();
   return (SetWord(tup));
 }
 

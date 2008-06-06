@@ -556,7 +556,6 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
     tupleFile( false, 0, isTemp ),
     isTemp( isTemp )
     {
-      tupleType->IncReference();
       if( !tupleFile.Create() )
       {
         string error;
@@ -1559,7 +1558,7 @@ Positions start at zero.
 
 */
 
-    inline bool IsEmpty() const;
+    bool IsEmpty() const;
 /*
 Checks if the tuple buffer is empty or not.
 
