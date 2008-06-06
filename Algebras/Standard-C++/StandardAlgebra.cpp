@@ -261,6 +261,23 @@ file "TypeMapUtils.h" which defines a namespace mappings.
 using namespace symbols;
 using namespace mappings;
 
+
+ void trimstring(string& str) {
+     string ws = " \t";
+     string::size_type pos = str.find_last_not_of(ws);
+     if(pos != string::npos) {
+       str.erase(pos + 1);
+       pos = str.find_first_not_of(ws);
+       if(pos != string::npos){
+         str.erase(0, pos);
+       }
+     } else {
+       str.erase(str.begin(), str.end());
+     }
+ }
+
+
+
 /*
 3 Type constructors
 
@@ -4399,6 +4416,11 @@ class CcAlgebra1 : public Algebra
     ccBool.AssociateKind( "CSVEXPORTABLE" );
     ccString.AssociateKind( "CSVEXPORTABLE" );
 
+    ccInt.AssociateKind( "CSVIMPORTABLE" );
+    ccReal.AssociateKind( "CSVIMPORTABLE" );
+    ccBool.AssociateKind( "CSVIMPORTABLE" );
+    ccString.AssociateKind( "CSVIMPORTABLE" );
+    
     AddOperator( &ccplus );
     AddOperator( &ccminus );
     AddOperator( &ccproduct );
