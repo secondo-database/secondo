@@ -905,16 +905,23 @@ on streams. Hence we provide ~openDB~ and closeDB to close a database.
 
 */
 
+cdb :- closeDB.
 closedb :- closeDB.
 closeDB :-
   secondo('close database').
 
-
+odb(Name) :- openDB(Name).
 openDB(Name) :-
   atom_concat('open database ', Name, Cmd),
   secondo(Cmd).
 
-openDB(_).
+ldb :- listDB.
+listDB :-
+  secondo('list databases').
+
+lo :- listObj.
+listObj :-
+  secondo('list objects').	
 
 
 :-
