@@ -122,6 +122,7 @@ secondoOp(sum, postfixbrackets, 2).
 secondoOp(min, postfixbrackets, 2).
 secondoOp(max, postfixbrackets, 2).
 secondoOp(memshuffle, postfix, 1).
+secondoOp(shuffle3, postfix, 1).
 secondoOp(avg, postfixbrackets, 2).
 secondoOp(extract, postfixbrackets, 2).
 secondoOp(tuplesize, postfix, 1).
