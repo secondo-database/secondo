@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# TestRunner Startup Script
+#
+# 07.03.2007, M. Spiekermann
+
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,SMI:NoTransactions,CTLG:SkipExamples"
+
+# adjust the defaults if you have more
+# memory available
+export SECONDO_PARAM_NodeMem=32000
+export SECONDO_PARAM_StringMem=8000
+export SECONDO_PARAM_TextMem=8000
+
+cmdOpts="-pl -L 8M -G 8M $* pl -g true"
+
+# check if nice command is present
+ncmd=$(which nice)
+if [ $? -ne 0 ]; then
+   ../bin/SecondoBDB $cmdOpts 
+else
+  nice -n 19  ../bin/SecondoBDB $cmdOpts
+fi
+
+rc=$?
+
+exit $rc
