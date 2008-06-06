@@ -1288,16 +1288,13 @@ The algorithm is taken from
 
     CHECK_COND(hist.isSymbol(HISTOGRAM1D), "Histogram1d has wrong type");
 
-    NList result = NList();
-    result.append(NList("APPEND", false));
-    NList idx = NList();
-    idx.append(NList(index));
-    result.append(idx);
-    result.append(HISTOGRAM1D);
+    ListExpr result = nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+                                         nl->OneElemList(nl->IntAtom(index)),
+                                         nl->SymbolAtom(symbols::HISTOGRAM1D));
 
-    TEST("Result of type mapping of CreateHistogram1d: ", result)
+    TEST("Result of type mapping of CreateHistogram1d: ", NList(result))
     
-    return result.listExpr();
+    return result;
   } // CreateHistogram1dTypeMap(ListExpr args)    
   
 /*  
@@ -2048,12 +2045,13 @@ The function makes use of four arguments:
         void *tupleCmp ):
     stream( stream ),
     currentIndex( 0 ),
-    count( 0 ),
     lexiTupleCmp( lexicographic ?
         (LexicographicalTupleCompare*)tupleCmp :
         0 ),
     tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
-    lexicographic( lexicographic )
+    lexicographic( lexicographic ),
+    count( 0 ),
+    MAX_MEMORY(8)
     {
       // Note: Is is not possible to define a Cmp object using the 
       // constructor 
@@ -2299,23 +2297,6 @@ The function makes use of four arguments:
 
   private:
 
-    void ShowPartitionInfo( int c, int a, int n,
-        int m, int r, GenericRelation* rel )
-    {
-      int rs = (rel != 0) ? rel->GetNoTuples() : 0;
-      if ( RTFlag::isActive("ERA:Sort:PartitionInfo") )
-      {
-        cmsg.info() << "Current run finished: "
-        << "  processed tuples=" << c
-        << ", append minimum=" << m
-        << ", append next=" << n << endl
-        << "  materialized runs=" << r
-        << ", last partition's tuples=" << rs << endl
-        << "  Runs in memory: queue1= " << queue[0].size()
-        << ", queue2= " << queue[1].size() << endl;
-        cmsg.send();
-      }
-    }
 
     Word stream;
     size_t currentIndex;
@@ -2335,6 +2316,23 @@ The function makes use of four arguments:
     typedef priority_queue<TupleAndRelPos> TupleQueue;
     TupleQueue queue[2];
     TupleQueue mergeTuples;
+    void ShowPartitionInfo( int c, int a, int n,
+        int m, int r, GenericRelation* rel )
+    {
+      int rs = (rel != 0) ? rel->GetNoTuples() : 0;
+      if ( RTFlag::isActive("ERA:Sort:PartitionInfo") )
+      {
+        cmsg.info() << "Current run finished: "
+        << "  processed tuples=" << c
+        << ", append minimum=" << m
+        << ", append next=" << n << endl
+        << "  materialized runs=" << r
+        << ", last partition's tuples=" << rs << endl
+        << "  Runs in memory: queue1= " << queue[0].size()
+        << ", queue2= " << queue[1].size() << endl;
+        cmsg.send();
+      }
+    }
   };
 
   /*
@@ -2528,16 +2526,11 @@ The function makes use of four arguments:
     CHECK_COND(maxCategories.isSymbol(INT),
         "Number of categories is not an int");
 
-    NList result = NList();
-    result.append(NList("APPEND", false));
-    NList idx = NList();
-    idx.append(NList(index));
-    result.append(idx);
-    result.append(HISTOGRAM1D);
 
-    //cout << "Result of CreateHistogram1dEquicount:\n\t" << result << endl;
-
-    return result.listExpr();
+    ListExpr result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                                        nl->OneElemList(nl->IntAtom(index)),
+                                        nl->SymbolAtom(symbols::HISTOGRAM1D));
+    return result;
 
   } // CreateHistogram1dEquicountTypeMap(ListExpr args)
   

@@ -1928,20 +1928,11 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
 
     CHECK_COND(hist.isSymbol(HISTOGRAM2D), "Histogram2d has wrong type");
 
-    NList result = NList();
-    result.append(NList("APPEND", false));
-    NList idx = NList();
-    idx.append(NList(indexX));
-    idx.append(NList(indexY));
-/*    result.append(idx);
-    idx = NList();
-    idx.append(NList(indexY));*/
-    result.append(idx);
-    result.append(HISTOGRAM2D);
-
-    cout << "Result of CreateHistogram2d:\n\t" << result << endl;
-
-    return result.listExpr();
+    ListExpr result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                                        nl->TwoElemList(nl->IntAtom(indexX),
+                                                        nl->IntAtom(indexY)),
+                                        nl->SymbolAtom(symbols::HISTOGRAM2D));
+    return result;
   } // CreateHistogram2dTypeMap(ListExpr args)  
 
 /*   
@@ -2832,12 +2823,12 @@ Argument 0 Histogram2d, 1 real value
         void *tupleCmp ):
     stream( stream ),
     currentIndex( 0 ),
-    count( 0 ),
     lexiTupleCmp( lexicographic ?
         (LexicographicalTupleCompare*)tupleCmp :
         0 ),
     tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
-    lexicographic( lexicographic )
+    lexicographic( lexicographic ),
+    count( 0 )
     {
       // Note: Is is not possible to define a Cmp object using the 
       // constructor 
@@ -3140,12 +3131,12 @@ Argument 0 Histogram2d, 1 real value
         void *tupleCmp ):
     stream( stream ),
     currentIndex( 0 ),
-    count( 0 ),
     lexiTupleCmp( lexicographic ?
         (LexicographicalTupleCompare*)tupleCmp :
         0 ),
     tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
-    lexicographic( lexicographic )
+    lexicographic( lexicographic ),
+    count( 0 )
     {
       // Note: Is is not possible to define a Cmp object using the 
       // constructor 
@@ -3772,18 +3763,11 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
     CHECK_COND(maxCategoriesY.isSymbol(INT),
         "Number of categories for y is not an int");
 
-    NList result = NList();
-    result.append(NList("APPEND", false));
-    NList idx = NList();
-    idx.append(NList(idX));
-    idx.append(NList(idY));
-    result.append(idx);
-    result.append(HISTOGRAM2D);
-
-    //cout << "Result of CreateHistogram2dEquicount:\n\t" << result << endl;
-
-    return result.listExpr();
-
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                             nl->TwoElemList(nl->IntAtom(idX),
+                                             nl->IntAtom(idY)),
+                             nl->SymbolAtom(symbols::HISTOGRAM2D));
+    
   } // CreateHistogram2dEquicountTypeMap(ListExpr args)
 
 /*  
