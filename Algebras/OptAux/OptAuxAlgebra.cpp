@@ -156,9 +156,9 @@ class GeneralPredcountsLocalData {
      }    
      predicateCombinations = 1 << predCount; // =2\^predCount
      try {
-     	resultCounters = new RESULT_TYPE[predicateCombinations];
+       resultCounters = new RESULT_TYPE[predicateCombinations];
      } catch (bad_alloc &e) {
-        cerr << "ERROR: konnte Speicher " << 
+       cerr << "ERROR: konnte Speicher " << 
                 (sizeof(RESULT_TYPE) * predicateCombinations) <<
                 " nicht allokieren (predicateCount=" << predCount << 
                 " combinations=" << predicateCombinations << ")" << endl;
@@ -396,7 +396,7 @@ int predcounts_vm(Word* args, Word& result, int message,
 
       // allocate temporary memory to store local data
       try {
-      	tempData = new PredcountsLocalData;
+        tempData = new PredcountsLocalData;
       } catch (bad_alloc&) {
         cerr << "ERROR: konnte Speicher " <<
           sizeof(PredcountsLocalData) <<
@@ -560,10 +560,10 @@ int predcounts_vm(Word* args, Word& result, int message,
       // put values into new tuple
       CcInt* attr = 0;
       try {
-      	attr = new CcInt(true, tempData->predicateCombinations); 
+        attr = new CcInt(true, tempData->predicateCombinations); 
       } catch (bad_alloc&) {
          cerr << "ERROR: konnte Speicher " << sizeof(CcInt) 
-	   << " Bytes nicht allokieren" << endl;
+           << " Bytes nicht allokieren" << endl;
          return 1; // if return codes will be evaluated
           // replace 1 by the code of critical errors
       }
@@ -576,7 +576,7 @@ int predcounts_vm(Word* args, Word& result, int message,
           (tempData->resultCounters)[tempData->predicateCombinations]); 
       } catch (bad_alloc&) {
          cerr << "ERROR: konnte Speicher " << sizeof(CcInt) 
-	   << " Bytes nicht allokieren" << endl;
+           << " Bytes nicht allokieren" << endl;
          return 1; // if return codes will be evaluated
           // replace 1 by the code of critical errors
       }
