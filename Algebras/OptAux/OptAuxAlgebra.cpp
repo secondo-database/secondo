@@ -135,7 +135,13 @@ class GeneralPredcountsLocalData {
 
    inline static size_t maxPredicateCount() 
    { 
-      return (sizeof(INDEX_TYPE)*8 - 1); 
+      // the maximum count are equal to the count of bits of INDEX_TYPE
+      // for savety reasons (usage of int instead of unsigned int anywhere) 
+      // decrement by 1 the memory to be allocated for the counter array 
+      // is the product of 2\^maxPredicateCount * 2\^sizeof(RESULT_TYPE)
+      // this value must not greater than 2\^32 (2\^32 at 64 bit libs)
+      // that's why reduce maxPredicateCount by ld(2\^sizeof(RESULT_TYPE))
+      return (sizeof(INDEX_TYPE)*8 - sizeof(RESULT_TYPE) - 1); 
    }
 
    bool allocate(size_t predCount) 
@@ -149,23 +155,18 @@ class GeneralPredcountsLocalData {
         return false;
      }    
      predicateCombinations = 1 << predCount; // =2\^predCount
-     resultCounters = (RESULT_TYPE *) 
-        calloc(predicateCombinations, sizeof(RESULT_TYPE)); 
-
-     if (resultCounters==0) 
-     {
+     try {
+     	resultCounters = new RESULT_TYPE[predicateCombinations];
+     } catch (bad_alloc &e) {
         cerr << "ERROR: konnte Speicher " << 
                 (sizeof(RESULT_TYPE) * predicateCombinations) <<
                 " nicht allokieren (predicateCount=" << predCount << 
                 " combinations=" << predicateCombinations << ")" << endl;
         return false;
-   
-     } else {
+     } 
 
-       for(unsigned int i=0; i<predicateCombinations; i++) {
-          resultCounters[i] = 0;       
-       }          
-
+     for(INDEX_TYPE i=0; i<predicateCombinations; i++) {
+        resultCounters[i] = 0;       
      }        
 
      return true;
@@ -227,7 +228,7 @@ An example for calling the operator is shown in file "OptAlg.example".
 */
 
 /*
-The helper function WriteIntToString writes an Integer (unsigned int) into a string
+The helper function WriteIntToString writes an Integer (unsigned int) into a string.
 
 */
 void WriteIntToString(string *p_str, unsigned int value) {
@@ -394,7 +395,15 @@ int predcounts_vm(Word* args, Word& result, int message,
       local = SetWord(0);
 
       // allocate temporary memory to store local data
-      tempData = new PredcountsLocalData;
+      try {
+      	tempData = new PredcountsLocalData;
+      } catch (bad_alloc&) {
+        cerr << "ERROR: konnte Speicher " <<
+          sizeof(PredcountsLocalData) <<
+          " fuer PredcountsLocalData" <<
+          " nicht allokieren" << endl;
+        return 1;
+      }
 
       // get the predicate list
       Supplier predicateList = args[1].addr;
@@ -403,33 +412,47 @@ int predcounts_vm(Word* args, Word& result, int message,
       // try to allocate memory for counters
       bool ok = tempData->allocate(predicateCount);
       if (!ok) {
-         return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+         return 1; // if return codes will be evaluated
+          // replace 1 by the code of critical errors
       }
 
       // construct type of result tuples
-      tempData->resultTupleType = 
-         new TupleType( nl->Second( GetTupleResultType(s) ));
+      try {
+        tempData->resultTupleType = 
+          new TupleType( nl->Second( GetTupleResultType(s) ));
+      } catch (bad_alloc&) {
+        cerr << "ERROR: konnte Speicher " <<
+          sizeof(TupleType) <<
+          " fuer TupleType" <<
+          " nicht allokieren" << endl;
+        return 1;// if return codes will be evaluated
+          // replace 1 by the code of critical errors
+      }
 
       // allocate memory to store structures for handling 
       // mapping functions itself and their parameters
-      Supplier* funStructure = (Supplier *) 
-         calloc(predicateCount, sizeof(Supplier));
-      if (funStructure==0) {
+      Supplier *funStructure = 0;
+      try {
+        funStructure = new Supplier[predicateCount];
+      } catch (bad_alloc&) {
          cerr << "ERROR: konnte Speicher " << 
             (predicateCount*sizeof(Supplier)) << 
             " Bytes nicht allokieren (predicateCount=" << predicateCount << 
             " sizeof(Supplier)=" << sizeof(Supplier) << ")" << endl;
-         return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+         return 1; // if return codes will be evaluated
+          // replace 1 by the code of critical errors
       }
-      ArgVectorPointer* funArguments = (ArgVectorPointer *) 
-         calloc(predicateCount, sizeof(ArgVectorPointer));
-      if (funArguments==0) {
+      ArgVectorPointer *funArguments = 0;
+      try {
+        funArguments = new ArgVectorPointer[predicateCount];
+      } catch (bad_alloc&) {
          cerr << "ERROR: konnte Speicher " << 
             (predicateCount*sizeof(ArgVectorPointer)) << 
             " Bytes nicht allokieren (predicateCount=" << predicateCount << 
             " sizeof(ArgVectorPointer)=" << sizeof(ArgVectorPointer) << 
             ")" << endl;
-         return 1; // ??? welcher Wert muss hier zurueckgegeben werden ?
+         return 1; // if return codes will be evaluated
+          // replace 1 by the code of critical errors
       }
 
       // initialize array which stores structures for 
@@ -450,17 +473,23 @@ int predcounts_vm(Word* args, Word& result, int message,
       while ( qp->Received(args[0].addr) )
       {
          // check that only maxSaveEvaluableRows are read
-    if ( !tempData->checkOverFlow() )
-            return 1; // welcher Wert muss hier zurueckgegeben werden ?
+         if ( !tempData->checkOverFlow() )
+            return 1; // if return codes will be evaluated
+              // replace 1 by the code of critical errors
+              // ALTERNATIVELY: It's possible to use just a warning
+              // warning here - SKIPping increasing the counter and
+              // continue with the next tuple of input stream.
+              // In that case the result of predcounts is
+              // no longer exactly, but this way could be 
+              // more useful than aborting the query.
 
          // some local variables
          int resultIndex = 0;
          Tuple* currentTuple = static_cast<Tuple*>( elem.addr );
 
-         //  fuer alle Praedikate: Ergebnis des Praedikates 
-         //  ermitteln und speichern
-         //  for each predicate: calculate and store the result predicate 
-         //  for each tuple
+         // for each predicate: calculate the result
+         // of the predicate for the current tuple
+         // and set the corresponding bit in resultIndex
          for (int predNumber=0; predNumber<predicateCount; predNumber++) {
 
             // set the tuple to be used by evaluation and evaluate predicate
@@ -504,8 +533,9 @@ int predcounts_vm(Word* args, Word& result, int message,
       // for savety reasons
       if (tempData==0) {
          cerr << "ERROR: no local data are found in REQUEST phase "
-    << "- abort" << endl;
-    return CANCEL; // ??? sollte anderer Fehlercode sein
+           << "- abort" << endl;
+         return CANCEL; // if return codes will be evaluated
+           // replace 1 by the code of critical errors
       }
 
       // if no more result tuples are left - finish REQUEST phase
@@ -515,16 +545,42 @@ int predcounts_vm(Word* args, Word& result, int message,
       tempData->predicateCombinations--;
 
       // create a new tuple
-      Tuple* newTuple = new Tuple( tempData->resultTupleType );
+      Tuple* newTuple = 0;
+      try {
+        newTuple = new Tuple( tempData->resultTupleType );
+      } catch (bad_alloc&) {
+         cerr << "ERROR: konnte Speicher " << 
+            sizeof(Tuple) << " Bytes nicht allokieren" << 
+            endl;
+         return 1; // if return codes will be evaluated
+          // replace 1 by the code of critical errors
+      }
       //newTuple->IncReference(); ??? wird nicht noetig sein - oder doch ?
 
       // put values into new tuple
-      CcInt* attr = new CcInt(true, tempData->predicateCombinations); 
-         // ??? korrekt? deallocierung erfolgt durch anderen code?
+      CcInt* attr = 0;
+      try {
+      	attr = new CcInt(true, tempData->predicateCombinations); 
+      } catch (bad_alloc&) {
+         cerr << "ERROR: konnte Speicher " << sizeof(CcInt) 
+	   << " Bytes nicht allokieren" << endl;
+         return 1; // if return codes will be evaluated
+          // replace 1 by the code of critical errors
+      }
+      // ??? korrekt? deallocierung erfolgt durch anderen code?
       newTuple->PutAttribute( 0, attr );
-      attr = new CcInt(true, 
-         (tempData->resultCounters)[tempData->predicateCombinations]); 
-         // korrekt?
+
+      attr = 0;
+      try {
+        attr = new CcInt(true, 
+          (tempData->resultCounters)[tempData->predicateCombinations]); 
+      } catch (bad_alloc&) {
+         cerr << "ERROR: konnte Speicher " << sizeof(CcInt) 
+	   << " Bytes nicht allokieren" << endl;
+         return 1; // if return codes will be evaluated
+          // replace 1 by the code of critical errors
+      }
+      // korrekt?
       newTuple->PutAttribute( 1,  attr);
 
       // return the tuple
@@ -545,7 +601,8 @@ int predcounts_vm(Word* args, Word& result, int message,
      
      // this point should never be reached, if so return an error
      cerr << "ERROR: this point should never be reached" << endl;
-     return 1; 
+     return 1; // if return codes will be evaluated
+       // replace 1 by the code of critical errors
    }  
    } // end of switch       
 }
