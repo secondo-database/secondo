@@ -2086,6 +2086,14 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
                                timeInterval.start.ToDouble(),
                                timeInterval.end.ToDouble() );
   }
+  
+  const Rectangle<2> BoundingBoxSpatial() const
+  {
+    return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() ),
+                               MAX( p0.GetX(), p1.GetX() ),
+                               MIN( p0.GetY(), p1.GetY() ),
+                               MAX( p0.GetY(), p1.GetY() ));
+  }
 
   void Distance( const UPoint& up, UReal& result ) const;
 
