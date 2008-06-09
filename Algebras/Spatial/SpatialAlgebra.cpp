@@ -11636,7 +11636,7 @@ ListExpr MakeLineTypeMap(ListExpr args){
      nl->IsEqual(nl->Second(args),"point")){
      return nl->SymbolAtom("line");
   } else {
-    ErrorReporter::ReportError("line x line expected");
+    ErrorReporter::ReportError("point x point expected");
     return nl->TypeError();
   }
 }
