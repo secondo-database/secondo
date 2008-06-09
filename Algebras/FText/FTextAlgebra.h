@@ -99,6 +99,10 @@ public:
   virtual unsigned char getDB3DecimalCount(){ return 0; }
   virtual string getDB3String() const { return GetValue(); }
 
+  virtual void ReadFromString(string value){
+    Set(true,value);
+  }
+
 
 private:
   FLOB theText;

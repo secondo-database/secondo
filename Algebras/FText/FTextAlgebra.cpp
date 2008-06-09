@@ -3667,6 +3667,7 @@ public:
     AddTypeConstructor( &ftext );
     ftext.AssociateKind("DATA");
     ftext.AssociateKind("INDEXABLE");
+    ftext.AssociateKind("CSVIMPORTABLE");
     AddOperator( &containsString );
     AddOperator( &containsText );
     AddOperator( &length );
