@@ -27,7 +27,7 @@ Additionally some specialized functions are provided.
 
 using namespace std;
 
-
+namespace avltree{
 
 
 /*
@@ -1658,8 +1658,11 @@ AvlNode<contenttype>*  root;
 
 } ;
 
+
+} // end of namespace avltree
+
 template<class T>
-ostream& operator<<(ostream& o,const AVLTree<T>& tree){
+ostream& operator<<(ostream& o,const avltree::AVLTree<T>& tree){
     tree.Print(o);
     return o;
 }

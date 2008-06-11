@@ -60,6 +60,7 @@ using namespace std;
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "SecondoConfig.h"
+#include "AvlTree.h"
 #include <vector>
 #include <queue>
 #include <stdexcept>
@@ -69,6 +70,9 @@ using namespace std;
 #include <cmath>
 #include <algorithm>
 #include <ctime>
+#include <queue>
+#include <iterator>
+#include <sstream>
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
@@ -9354,6 +9358,2671 @@ face is not clear. In the following we do this kind of check.
 
 
 /*
+~Shift~ Operator for ~ownertype~
+
+*/
+
+ostream& avlseg::operator<<(ostream& o, const avlseg::ownertype& owner){
+   switch(owner){
+      case avlseg::none   : o << "none" ; break;
+      case avlseg::first  : o << "first"; break;
+      case avlseg::second : o << "second"; break;
+      case avlseg::both   : o << "both"; break;
+      default     : assert(false);
+   }
+   return o;
+}
+
+
+/*
+3 Implementation of ~AVLSegment~
+
+*/
+
+
+/*
+3.1 Constructors
+
+~Standard Constructor~
+
+*/
+  avlseg::AVLSegment::AVLSegment(){
+    x1 = 0;
+    x2 = 0;
+    y1 = 0;
+    y2 = 0;
+    owner = none;
+    insideAbove_first = false;
+    insideAbove_second = false;
+    con_below = 0;
+    con_above = 0;
+  }
+
+
+/*
+~Constructor~
+
+This constructor creates a new segment from the given HalfSegment.
+As owner only __first__ and __second__ are the allowed values.
+
+*/
+
+  avlseg::AVLSegment::AVLSegment(const HalfSegment* hs, ownertype owner){
+     x1 = hs->GetLeftPoint().GetX();
+     y1 = hs->GetLeftPoint().GetY();
+     x2 = hs->GetRightPoint().GetX();
+     y2 = hs->GetRightPoint().GetY();
+     if( (AlmostEqual(x1,x2) && (y2<y2) ) || (x2<x2) ){// swap the entries
+        double tmp = x1;
+        x1 = x2;
+        x2 = tmp;
+        tmp = y1;
+        y1 = y2;
+        y2 = tmp;
+     }
+     this->owner = owner;
+     switch(owner){
+        case first: { 
+             insideAbove_first = hs->GetAttr().insideAbove; 
+             insideAbove_second = false;
+             break;
+        } case second: {
+             insideAbove_second = hs->GetAttr().insideAbove; 
+             insideAbove_first = false;
+             break;
+        } default: {
+             assert(false);
+        }
+     }
+     con_below = 0;
+     con_above = 0;
+  }
+
+/*
+~Constructor~
+
+Create a Segment only consisting of a single point.
+
+*/
+
+  avlseg::AVLSegment::AVLSegment(const Point* p, ownertype owner){
+      x1 = p->GetX();
+      x2 = x1;
+      y1 = p->GetY();
+      y2 = y1;
+      this->owner = owner;
+      insideAbove_first = false;
+      insideAbove_second = false;
+      con_below = 0;
+      con_above = 0;
+  }
+
+
+/*
+~Copy Constructor~
+
+*/
+   avlseg::AVLSegment::AVLSegment(const AVLSegment& src){
+      Equalize(src);
+   }
+
+
+
+/*
+3.3 Operators
+
+*/
+
+  avlseg::AVLSegment& avlseg::AVLSegment::operator=(
+                                         const avlseg::AVLSegment& src){
+    Equalize(src);
+    return *this;
+  }
+
+  bool avlseg::AVLSegment::operator==(const avlseg::AVLSegment& s) const{
+    return compareTo(s)==0;
+  }
+
+  bool avlseg::AVLSegment::operator<(const avlseg::AVLSegment& s) const{
+     return compareTo(s)<0;
+  }
+
+  bool avlseg::AVLSegment::operator>(const avlseg::AVLSegment& s) const{
+     return compareTo(s)>0;
+  }
+
+/*
+3.3 Further Needful Functions
+
+~Print~
+
+This function writes this segment to __out__.
+
+*/
+  void avlseg::AVLSegment::Print(ostream& out)const{
+    out << "Segment("<<x1<<", " << y1 << ") -> (" << x2 << ", " << y2 <<") " 
+        << owner << " [ " << insideAbove_first << ", " 
+        << insideAbove_second << "] con("
+        << con_below << ", " << con_above << ")";
+
+  }
+  
+/*
+
+~Equalize~
+
+The value of this segment is taken from the argument.
+
+*/
+
+  void avlseg::AVLSegment::Equalize( const avlseg::AVLSegment& src){
+     x1 = src.x1;
+     x2 = src.x2;
+     y1 = src.y1;
+     y2 = src.y2;
+     owner = src.owner;
+     insideAbove_first = src.insideAbove_first;
+     insideAbove_second = src.insideAbove_second;    
+     con_below = src.con_below;
+     con_above = src.con_above; 
+  }
+
+
+
+
+/*
+3.5 Geometric Functions
+
+~crosses~
+
+Checks whether this segment and __s__ have an intersection point of their
+interiors.  
+
+*/
+ bool avlseg::AVLSegment::crosses(const avlseg::AVLSegment& s) const{
+   double x,y;
+   return crosses(s,x,y);
+ }
+
+/*
+~crosses~
+
+This function checks whether the interiors of the related 
+segments are crossing. If this function returns true,
+the parameters ~x~ and ~y~ are set to the intersection point.
+
+*/
+ bool avlseg::AVLSegment::crosses(const avlseg::AVLSegment& s,
+                                  double& x, double& y) const{
+    if(isPoint() || s.isPoint()){
+      return false;
+    }
+
+    if(!xOverlaps(s)){
+       return false;
+    }
+    if(overlaps(s)){ // a common line
+       return false;
+    }
+    if(compareSlopes(s)==0){ // parallel or disjoint lines
+       return false;
+    } 
+    
+    if(isVertical()){
+        x = x1; // compute y for s
+        y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        return !AlmostEqual(y1,y) && !AlmostEqual(y2,y) &&
+               (y>y1)  && (y<y2)
+               && !AlmostEqual(s.x1,x) && !AlmostEqual(s.x2,x) ;
+    }
+
+    if(s.isVertical()){
+       x = s.x1;
+       y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+       return !AlmostEqual(y,s.y1) && !AlmostEqual(y,s.y2) && 
+              (y>s.y1) && (y<s.y2) && 
+              !AlmostEqual(x1,x) && !AlmostEqual(x2,x);
+    }
+    // avoid problems with rounding errors during computation of
+    // the intersection point
+    if(pointEqual(x1,y1,s.x1,s.y1)){
+      return false;
+    }
+    if(pointEqual(x2,y2,s.x1,s.y1)){
+      return false;
+    }
+    if(pointEqual(x1,y1,s.x2,s.y2)){
+      return false;
+    }
+    if(pointEqual(x2,y2,s.x2,s.y2)){
+      return false;
+    }
+
+    
+    // both segments are non vertical 
+    double m1 = (y2-y1)/(x2-x1);
+    double m2 = (s.y2-s.y1)/(s.x2-s.x1);
+    double c1 = y1 - m1*x1;
+    double c2 = s.y1 - m2*s.x1;
+    double xs = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
+     
+    x = xs;
+    y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+
+    return !AlmostEqual(x1,xs) && !AlmostEqual(x2,xs) && // not an endpoint   
+           !AlmostEqual(s.x1,xs) && !AlmostEqual(s.x2,xs) && // of any segment
+           (x1<xs) && (xs<x2) && (s.x1<xs) && (xs<s.x2);
+}
+
+/*
+~extends~
+
+This function returns true, iff this segment is an extension of 
+the argument, i.e. if the right point of ~s~ is the left point of ~this~
+and the slopes are equal.
+
+*/
+  bool avlseg::AVLSegment::extends(const avlseg::AVLSegment& s)const{
+     return pointEqual(x1,y1,s.x2,s.y2) &&
+            compareSlopes(s)==0;
+  }
+
+/*
+~exactEqualsTo~
+
+This function checks if s has the same geometry like this segment, i.e.
+if both endpoints are equal.  
+ 
+*/
+bool avlseg::AVLSegment::exactEqualsTo(const avlseg::AVLSegment& s)const{
+  return pointEqual(x1,y1,s.x1,s.y1) &&
+         pointEqual(x2,y2,s.x2,s.y2);
+}
+
+/*
+~isVertical~
+
+Checks whether this segment is vertical.
+
+*/
+
+ bool avlseg::AVLSegment::isVertical() const{
+     return AlmostEqual(x1,x2);
+ }
+
+/*
+~isPoint~
+
+Checks if this segment consists only of a single point.
+
+*/
+  bool avlseg::AVLSegment::isPoint() const{
+     return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
+  }
+
+/*
+~length~
+
+Returns the length of this segment.
+
+*/
+  double avlseg::AVLSegment::length(){
+    return sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+  }
+
+
+/*
+~InnerDisjoint~
+
+This function checks whether this segment and s have at most a 
+common endpoint. 
+
+*/
+
+  bool avlseg::AVLSegment::innerDisjoint(const avlseg::AVLSegment& s)const{
+      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
+        return true; 
+      }
+      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
+        return true;
+      }
+      if(overlaps(s)){ // a common line
+         return false;
+      }
+      if(compareSlopes(s)==0){ // parallel or disjoint lines
+         return true;
+      }
+      if(ininterior(s.x1,s.y1)){
+         return false;
+      }
+      if(ininterior(s.x2,s.y2)){
+         return false;
+      }
+      if(s.ininterior(x1,y1)){
+        return false;
+      }
+      if(s.ininterior(x2,y2)){
+        return false;
+      }
+      if(crosses(s)){
+         return false;
+      }
+      return true;
+    
+  }
+/*
+~Intersects~
+
+This function checks whether this segment and ~s~ have at least a 
+common point. 
+
+*/
+
+  bool avlseg::AVLSegment::intersects(const avlseg::AVLSegment& s)const{
+      if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
+        return true; 
+      }
+      if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
+        return true;
+      }
+      if(overlaps(s)){ // a common line
+         return true;
+      }
+      if(compareSlopes(s)==0){ // parallel or disjoint lines
+         return false;
+      } 
+    
+      if(isVertical()){
+        double x = x1; // compute y for s
+        double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
+        return  ( (contains(x,y) && s.contains(x,y) ) );
+
+      }
+      if(s.isVertical()){
+         double x = s.x1;
+         double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+         return ((contains(x,y) && s.contains(x,y)));
+      }
+    
+      // both segments are non vertical 
+      double m1 = (y2-y1)/(x2-x1);
+      double m2 = (s.y2-s.y1)/(s.x2-s.x1);
+      double c1 = y1 - m1*x1;
+      double c2 = s.y1 - m2*s.x1;
+      double x = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
+      double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
+      return ( (contains(x,y) && s.contains(x,y) ) );
+  }
+
+/*
+~overlaps~
+
+Checks whether this segment and ~s~ have a common segment.
+
+*/
+   bool avlseg::AVLSegment::overlaps(const avlseg::AVLSegment& s) const{
+      if(isPoint() || s.isPoint()){
+         return false;
+      }
+
+      if(compareSlopes(s)!=0){
+          return false;
+      } 
+      // one segment is a extension of the other one
+      if(pointEqual(x1,y1,s.x2,s.y2)){
+          return false;
+      }
+      if(pointEqual(x2,y2,s.x1,s.y1)){
+         return false;
+      }
+      return contains(s.x1,s.y1) || contains(s.x2,s.y2);
+   }
+
+/*
+~ininterior~
+
+This function checks whether the point defined by (x,y) is
+part of the interior of this segment.
+
+*/
+   bool avlseg::AVLSegment::ininterior(const double x,const  double y)const{
+     if(isPoint()){ // a point has no interior
+       return false;
+     }
+
+     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){ // an endpoint
+        return false;
+     }
+
+     if(!AlmostEqual(x,x1) && x < x1){ // (x,y) left of this
+         return false; 
+     }     
+     if(!AlmostEqual(x,x2) && x > x2){ // (X,Y) right of this
+        return false;
+     }
+     if(isVertical()){
+       return (!AlmostEqual(y,y1) && (y>y1) &&
+               !AlmostEqual(y,y2) && (y<y2));
+     }
+     double ys = getY(x);
+     return AlmostEqual(y,ys);
+   }
+
+
+/*
+~contains~
+
+Checks whether the point defined by (x,y) is located anywhere on this
+segment.
+
+*/
+   bool avlseg::AVLSegment::contains(const double x,const  double y)const{
+     if(pointEqual(x,y,x1,y1) || pointEqual(x,y,x2,y2)){
+        return true;
+     }
+     if(isPoint()){
+       return false;
+     }
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        return (y>=y1) && (y <= y2);
+     } 
+     // check if (x,y) is located on the line 
+     double res1 = (x-x1)*(y2-y1);
+     double res2 = (y-y1)*(x2-x1);
+     if(!AlmostEqual(res1,res2)){
+         return false;
+     }
+
+     return ((x>x1) && (x<x2)) ||
+            AlmostEqual(x,x1) ||
+            AlmostEqual(x,x2);
+   }
+
+/*
+3.6 Comparison
+
+Compares this with s. The x intervals must overlap.
+
+*/
+
+ int avlseg::AVLSegment::compareTo(const avlseg::AVLSegment& s) const{
+ 
+    if(!xOverlaps(s)){
+      cerr << "Warning: compare AVLSegments with disjoint x intervals" << endl;
+      cerr << "This may be a problem of roundig errors!" << endl;
+    }
+
+    if(isPoint()){
+      if(s.isPoint()){
+        return comparePoints(x1,y1,s.x1,s.y1);
+      } else {
+        if(s.contains(x1,y1)){
+           return 0;
+        } else {
+           double y = s.getY(x1);
+           if(y1<y){
+             return -1;
+           } else {
+             return 1;
+           }
+        }
+      }
+    }
+    if(s.isPoint()){
+      if(contains(s.x1,s.y1)){
+        return 0;
+      } else {
+        double y = getY(s.x1);
+        if(y<s.y1){
+          return -1;
+        } else {
+          return 1;
+        }
+      }
+    }
+
+
+   if(overlaps(s)){
+     return 0; 
+   }
+
+    bool v1 = isVertical();
+    bool v2 = s.isVertical();
+   
+    if(!v1 && !v2){ 
+       double x = max(x1,s.x1); // the right one of the left coordinates
+       double y_this = getY(x);
+       double y_s = s.getY(x);
+       if(!AlmostEqual(y_this,y_s)){
+          if(y_this<y_s){
+            return -1;
+          } else  {
+            return 1;
+          }
+       } else {
+         int cmp = compareSlopes(s);
+         if(cmp!=0){
+           return cmp;
+         }
+         // if the segments are connected, the left segment 
+         // is the smaller one
+         if(AlmostEqual(x2,s.x1)){
+             return -1;
+         }
+         if(AlmostEqual(s.x2,x1)){
+             return 1;
+         }
+         // the segments have an proper overlap
+         return 0;
+       }  
+   } else if(v1 && v2){ // both are vertical
+      if(AlmostEqual(y1,s.y2) || (y1>s.y2)){ // this is above s
+        return 1;
+      } 
+      if(AlmostEqual(s.y1,y2) || (s.y1>y2)){ // s above this
+        return 1;
+      }
+      // proper overlapping part
+      return 0;
+  } else { // one segment is vertical
+
+    double x = v1? x1 : s.x1; // x coordinate of the vertical segment
+    double y1 = getY(x);
+    double y2 = s.getY(x);
+    if(AlmostEqual(y1,y2)){
+        return v1?1:-1; // vertical segments have the greatest slope
+    } else if(y1<y2){
+       return -1;
+    } else {
+       return 1;
+    }
+  }
+ }
+
+
+/*
+~SetOwner~
+
+This function changes the owner of this segment.
+
+*/
+  void avlseg::AVLSegment::setOwner(avlseg::ownertype o){
+    this->owner = o;
+  }
+
+/*
+3.7 Some ~Get~ Functions
+
+~getInsideAbove~
+
+Returns the insideAbove value for such segments for which this value is unique,
+e.g. for segments having owner __first__ or __second__.
+
+*/
+  bool avlseg::AVLSegment::getInsideAbove() const{
+      switch(owner){
+        case first : return insideAbove_first;
+        case second: return insideAbove_second;
+        default : assert(false);
+      }
+  }
+
+/*
+3.8 Split Functions
+
+~split~
+
+This function splits two overlapping segments.
+Preconditions:
+
+1) this segment and ~s~ have to overlap.
+
+2) the owner of this and ~s~ must be different 
+
+~left~, ~common~ and ~right~ will contain the
+explicitely left part, a common part, and 
+an explecitely right part. The left and/or right part
+my be empty. The existence can be checked using the return
+value of this function. Let ret the return value. It holds:
+
+  __ret | LEFT__: the left part exists
+
+  __ret | COMMON__: the common part exist (always true)
+
+  __ret | RIGHT__: the right part exists
+
+
+The constants LEFT, COMMON, and RIGHT have been defined
+earlier.
+
+*/
+
+  int avlseg::AVLSegment::split(const avlseg::AVLSegment& s, 
+                               avlseg::AVLSegment& left, 
+                               avlseg::AVLSegment& common, 
+                               avlseg::AVLSegment& right, 
+                               const bool checkOwner/* = true*/) const{
+
+     assert(overlaps(s));
+     if(checkOwner){
+       assert( (this->owner==first && s.owner==second) ||
+               (this->owner==second && s.owner==first));
+     }
+
+
+     int result = 0;
+
+
+
+     int cmp = comparePoints(x1,y1,s.x1,s.y1);
+     if(cmp==0){
+        left.x1 = x1;
+        left.y1 = y1;
+        left.x2 = x1;
+        left.y2 = y1; 
+     } else { // there is a left part
+       result = result | LEFT;
+       if(cmp<0){ // this is smaller
+         left.x1 = x1;
+         left.y1 = y1;
+         left.x2 = s.x1;
+         left.y2 = s.y1;
+         left.owner = this->owner;
+         left.con_above = this->con_above;
+         left.con_below = this->con_below;
+         left.insideAbove_first = this->insideAbove_first;
+         left.insideAbove_second = this->insideAbove_second;
+       } else { // s is smaller than this
+         left.x1 = s.x1;
+         left.y1 = s.y1;
+         left.x2 = this->x1;
+         left.y2 = this->y1; 
+         left.owner = s.owner;
+         left.con_above = s.con_above;
+         left.con_below = s.con_below;
+         left.insideAbove_first = s.insideAbove_first;
+         left.insideAbove_second = s.insideAbove_second;
+       } 
+     }
+
+    // there is an overlapping part
+    result = result | COMMON;
+    cmp = comparePoints(x2,y2,s.x2,s.y2);
+    common.owner = both;
+    common.x1 = left.x2;
+    common.y1 = left.y2;
+    if(this->owner==first){
+      common.insideAbove_first  = insideAbove_first;
+      common.insideAbove_second = s.insideAbove_second;
+    } else {
+      common.insideAbove_first = s.insideAbove_first;
+      common.insideAbove_second = insideAbove_second;
+    }
+    common.con_above = this->con_above;
+    common.con_below = this->con_below;
+
+    if(cmp<0){
+       common.x2 = x2;
+       common.y2 = y2;
+    } else {
+       common.x2 = s.x2;
+       common.y2 = s.y2;
+    }
+    if(cmp==0){ // common right endpoint
+        return result;
+    }
+
+    result = result | RIGHT;
+    right.x1 = common.x2;
+    right.y1 = common.y2;
+    if(cmp<0){ // right part comes from s
+       right.owner = s.owner;
+       right.x2 = s.x2;
+       right.y2 = s.y2;
+       right.insideAbove_first = s.insideAbove_first;
+       right.insideAbove_second = s.insideAbove_second;
+       right.con_below = s.con_below;
+       right.con_above = s.con_above;
+    }  else { // right part comes from this
+       right.owner = this->owner;
+       right.x2 = this->x2;
+       right.y2 = this->y2;
+       right.insideAbove_first = this->insideAbove_first;
+       right.insideAbove_second = this->insideAbove_second;
+       right.con_below = this->con_below;
+       right.con_above = this->con_above;
+    }
+   return result;
+
+
+  }
+
+/*
+~splitAt~
+
+This function divides a segment into two parts at the point 
+provided by (x, y). The point must be on the interior of this segment.
+
+*/
+
+  void avlseg::AVLSegment::splitAt(const double x, const double y, 
+               avlseg::AVLSegment& left, 
+               avlseg::AVLSegment& right)const{
+
+  /*
+    // debug::start
+    if(!ininterior(x,y)){
+         cout << "ininterior check failed (may be an effect" 
+              << " of rounding errors !!!" << endl;
+         cout << "The segment is " << *this << endl;
+         cout << "The point is (" <<  x << " , " << y << ")" << endl;
+     }
+     // debug::end
+   */
+
+     left.x1=x1;
+     left.y1=y1;
+     left.x2 = x;
+     left.y2 = y;
+     left.owner = owner;
+     left.insideAbove_first = insideAbove_first;
+     left.insideAbove_second = insideAbove_second;
+     left.con_below = con_below;
+     left.con_above = con_above;
+
+     right.x1=x;
+     right.y1=y;
+     right.x2 = x2;
+     right.y2 = y2;
+     right.owner = owner;
+     right.insideAbove_first = insideAbove_first;
+     right.insideAbove_second = insideAbove_second;
+     right.con_below = con_below;
+     right.con_above = con_above;
+
+  }
+
+/*
+~splitCross~
+
+Splits two crossing segments into the 4 corresponding parts. 
+Both segments have to cross each other.
+
+*/
+void avlseg::AVLSegment::splitCross(const avlseg::AVLSegment& s, 
+                                          avlseg::AVLSegment& left1,
+                                          avlseg::AVLSegment& right1,
+                                          avlseg::AVLSegment& left2, 
+                                          avlseg::AVLSegment& right2) const{
+
+    double x,y;
+    bool cross = crosses(s,x,y);
+    assert(cross);
+    splitAt(x, y, left1, right1);
+    s.splitAt(x, y, left2, right2);
+}
+
+/*
+3.9 Converting Functions
+
+~ConvertToHs~
+
+This functions creates a ~HalfSegment~ from this segment.
+The owner must be __first__ or __second__.
+
+*/
+HalfSegment avlseg::AVLSegment::convertToHs(bool lpd, 
+                            avlseg::ownertype owner/* = both*/)const{
+   assert( owner!=both || this->owner==first || this->owner==second);
+   assert( owner==both || owner==first || owner==second);
+ 
+   bool insideAbove;
+   if(owner==both){
+      insideAbove = this->owner==first?insideAbove_first
+                                  :insideAbove_second;
+   } else {
+      insideAbove = owner==first?insideAbove_first
+                                  :insideAbove_second;
+   }
+   
+   HalfSegment hs(lpd, Point(true,x1,y1), Point(true,x2,y2)); 
+   hs.attr.insideAbove = insideAbove;
+   return hs;
+}
+
+/*
+~pointequal~
+
+This function checks if the points defined by (x1, y1) and 
+(x2,y2) are equals using the ~AlmostEqual~ function.
+
+*/
+  bool avlseg::AVLSegment::pointEqual(const double x1, const double y1,
+                         const double x2, const double y2){
+    return AlmostEqual(x1,x2) && AlmostEqual(y1,y2);
+  }
+
+/*
+~pointSmaller~
+
+This function checks if the point defined by (x1, y1) is
+smaller than the point defined by (x2, y2).
+
+*/
+
+ bool avlseg::AVLSegment::pointSmaller(const double x1, const double y1,
+                          const double x2, const double y2){
+
+    return comparePoints(x1,y1,x2,y2) < 0;
+ }
+
+
+/*
+~comparePoints~
+
+*/
+  int avlseg::AVLSegment::comparePoints(const double x1,const  double y1,
+                            const double x2,const double y2){
+     if(AlmostEqual(x1,x2)){
+       if(AlmostEqual(y1,y2)){
+          return 0;
+       } else if(y1<y2){
+          return -1;
+       } else {
+          return 1;
+       }
+     } else if(x1<x2){
+       return -1;
+     } else {
+       return 1;
+     }
+  }
+
+/*
+~compareSlopes~
+
+compares the slopes of __this__ and __s__. The slope of a vertical
+segment is greater than all other slopes. 
+
+*/
+   int avlseg::AVLSegment::compareSlopes(const avlseg::AVLSegment& s) const{
+      assert(!isPoint() && !s.isPoint());
+      bool v1 = AlmostEqual(x1,x2);
+      bool v2 = AlmostEqual(s.x1,s.x2);
+      if(v1 && v2){ // both segments are vertical
+        return 0;
+      }
+      if(v1){
+        return 1;  // this is vertical, s not
+      }
+      if(v2){
+        return -1; // s is vertical
+      }
+
+      // both segments are non-vertical
+      double res1 = (y2-y1)/(x2-x1);
+      double res2 = (s.y2-s.y1)/(s.x2-s.x1);
+      int result = -3;
+      if( AlmostEqual(res1,res2)){
+         result = 0; 
+      } else if(res1<res2){
+         result =  -1;
+      } else { // res1>res2
+         result = 1;
+      }
+      return result;
+   }
+
+/*
+~XOverlaps~
+
+Checks whether the x interval of this segment overlaps the
+x interval of ~s~.
+
+*/
+
+  bool avlseg::AVLSegment::xOverlaps(const avlseg::AVLSegment& s) const{
+    if(!AlmostEqual(x1,s.x2) && x1 > s.x2){ // left of s
+        return false;
+    }
+    if(!AlmostEqual(x2,s.x1) && x2 < s.x1){ // right of s
+        return false;
+    }
+    return true;
+  }
+
+/*
+~XContains~
+
+Checks if the x coordinate provided by the parameter __x__ is contained
+in the x interval of this segment;
+
+*/
+  bool avlseg::AVLSegment::xContains(const double x) const{
+    if(!AlmostEqual(x1,x) && x1>x){
+      return false;
+    }
+    if(!AlmostEqual(x2,x) && x2<x){
+      return false;
+    }
+    return true;
+  }
+
+/*
+~GetY~
+
+Computes the y value for the specified  __x__. 
+__x__ must be contained in the x-interval of this segment. 
+If the segment is vertical, the minimum y value of this 
+segment is returned.
+
+*/  
+  double avlseg::AVLSegment::getY(const double x) const{
+
+     if(!xContains(x)){
+       cerr << "Warning: compute y value for a x outside the x interval!" 
+            << endl;
+       double diff1 = x1 - x;
+       double diff2 = x - x2;
+       cerr << "difference to x is " << (diff1>diff2?diff1:diff2) << endl;
+     }
+     if(isVertical()){
+        return y1;
+     }
+     double d = (x-x1)/(x2-x1);
+     return y1 + d*(y2-y1);
+  }
+
+
+/*
+3.12 Shift Operator 
+
+*/
+ostream& avlseg::operator<<(ostream& o, const avlseg::AVLSegment& s){
+    s.Print(o);
+    return o;
+}
+
+
+
+/*
+~insertEvents~
+
+Creates events for the ~AVLSegment~ and insert them into ~q1~ and/ or ~q1~.
+The target queue(s) is (are) determined by the owner of ~seg~.
+The flags ~createLeft~ and ~createRight~ determine
+whether the left and / or the right events should be created.
+
+*/
+
+void insertEvents(const avlseg::AVLSegment& seg,
+                  const bool createLeft,
+                  const bool createRight,
+                  priority_queue<HalfSegment,
+                                 vector<HalfSegment>,
+                                 greater<HalfSegment> >& q1,
+                  priority_queue<HalfSegment,
+                                 vector<HalfSegment>,
+                                 greater<HalfSegment> >& q2){
+   switch(seg.getOwner()){
+      case avlseg::first: {
+           if(createLeft){
+              q1.push(seg.convertToHs(true, avlseg::first));
+           }
+           if(createRight){
+              q1.push(seg.convertToHs(false, avlseg::first));
+           }
+           break;
+      } case avlseg::second:{
+           if(createLeft){
+              q2.push(seg.convertToHs(true, avlseg::second));
+           }
+           if(createRight){
+              q2.push(seg.convertToHs(false, avlseg::second));
+           }
+           break;
+      } case avlseg::both : {
+           if(createLeft){
+              q1.push(seg.convertToHs(true, avlseg::first));
+              q2.push(seg.convertToHs(true, avlseg::second));
+           }
+           if(createRight){
+              q1.push(seg.convertToHs(false, avlseg::first));
+              q2.push(seg.convertToHs(false, avlseg::second));
+           }
+           break;
+      } default: {
+           assert(false);
+      }
+   }
+}
+
+
+/*
+~splitByNeighbour~
+
+
+~neighbour~ has to be an neighbour from ~current~ within ~sss~.
+
+*/
+
+void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
+                      avlseg::AVLSegment& current,
+                      avlseg::AVLSegment const*& neighbour,
+                      priority_queue<HalfSegment,  
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q1,
+                      priority_queue<HalfSegment,  
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q2){
+    avlseg::AVLSegment left1, right1, left2, right2;
+
+    if(neighbour && !neighbour->innerDisjoint(current)){
+       if(neighbour->ininterior(current.getX1(),current.getY1())){
+          neighbour->splitAt(current.getX1(),current.getY1(),left1,right1);
+          sss.remove(*neighbour);
+          neighbour = sss.insert2(left1);
+          insertEvents(left1,false,true,q1,q2);
+          insertEvents(right1,true,true,q1,q2);
+       } else if(neighbour->ininterior(current.getX2(),current.getY2())){
+          neighbour->splitAt(current.getX2(),current.getY2(),left1,right1);
+          sss.remove(*neighbour);
+          neighbour = sss.insert2(left1);
+          insertEvents(left1,false,true,q1,q2);
+          insertEvents(right1,true,true,q1,q2);
+       } else if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
+          current.splitAt(neighbour->getX2(),neighbour->getY2(),left1,right1);
+          current = left1; 
+          insertEvents(left1,false,true,q1,q2);
+          insertEvents(right1,true,true,q1,q2);
+       } else if(current.crosses(*neighbour)){
+          neighbour->splitCross(current,left1,right1,left2,right2);
+          sss.remove(*neighbour);
+          neighbour = sss.insert2(left1);
+          current = left2;
+          insertEvents(left1,false,true,q1,q2);
+          insertEvents(right1,true,true,q1,q2);
+          insertEvents(left2,false,true,q1,q2);
+          insertEvents(right2,true,true,q1,q2);
+       } else {  // forgotten case or wrong order of halfsegments
+          cerr.precision(16);
+          cerr << "Warning wrong order in halfsegment array detected" << endl;
+
+          cerr << "current" << current << endl
+               << "neighbour " << (*neighbour) << endl;
+          if(current.overlaps(*neighbour)){ // a common line
+              cerr << "1 : The segments overlaps" << endl;
+           }
+           if(neighbour->ininterior(current.getX1(),current.getY1())){
+              cerr << "2 : neighbour->ininterior(current.x1,current.y1)" 
+                   << endl;
+           }
+           if(neighbour->ininterior(current.getX2(),current.getY2())){
+              cerr << "3 : neighbour->ininterior(current.getX2()"
+                   << ",current.getY2()" << endl;
+           }
+          if(current.ininterior(neighbour->getX1(),neighbour->getY1())){
+             cerr << " case 4 : current.ininterior(neighbour->getX1(),"
+                  << "neighbour.getY1()" << endl;  
+             cerr << "may be an effect of rounding errors" << endl;
+
+             cerr << "remove left part from current" << endl;
+             current.splitAt(neighbour->getX1(),neighbour->getY1(),
+                             left1,right1);
+             cerr << "removed part is " << left1 << endl;
+             current = right1;
+             insertEvents(current,false,true,q1,q2);
+             return;  
+
+          }
+          if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
+            cerr << " 5 : current.ininterior(neighbour->getX2(),"
+                 << "neighbour->getY2())" << endl;
+          }
+          if(current.crosses(*neighbour)){
+             cerr << "6 : crosses" << endl;
+          }
+          assert(false);
+       }
+    } 
+}
+
+
+/*
+~splitNeighbours~
+
+Checks if the left and the right neighbour are intersecting in their
+interiors and performs the required actions.
+
+
+*/
+
+void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
+                     avlseg::AVLSegment const*& leftN,
+                     avlseg::AVLSegment const*& rightN,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2){
+  if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
+    avlseg::AVLSegment left1, right1, left2, right2;
+    if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
+       leftN->splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
+       sss.remove(*leftN);
+       leftN = sss.insert2(left1);
+       insertEvents(left1,false,true,q1,q2);
+       insertEvents(right1,true,true,q1,q2);
+    } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
+       rightN->splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
+       sss.remove(*rightN);
+       rightN = sss.insert2(left1);
+       insertEvents(left1,false,true,q1,q2);
+       insertEvents(right1,true,true,q1,q2);
+    } else if (rightN->crosses(*leftN)){
+         leftN->splitCross(*rightN,left1,right1,left2,right2);
+         sss.remove(*leftN);
+         sss.remove(*rightN);
+         leftN = sss.insert2(left1);
+         rightN = sss.insert2(left2);
+         insertEvents(left1,false,true,q1,q2);
+         insertEvents(left2,false,true,q1,q2);
+         insertEvents(right1,true,true,q1,q2);
+         insertEvents(right2,true,true,q1,q2);
+    } else { // forgotten case
+       assert(false);
+    }
+  } // intersecting neighbours
+}
+/*
+
+~selectNext~
+
+Selects the minimum halfsegment from ~v~1, ~v~2, ~q~1, and ~q~2.
+If no values are available, the return value will be __none__. 
+In this case, __result__ remains unchanged. Otherwise, __result__
+is set to the minimum value found. In this case, the return value
+will be ~first~ or ~second~.
+If some halfsegments are equal, the one
+from  ~v~1 is selected. 
+Note: ~pos~1 and ~pos~2 are increased automatically. In the same way, 
+      the topmost element of the selected queue is deleted. 
+
+The template parameter can be instantiated with ~Region~ or ~Line~
+
+*/
+template<class T1, class T2>
+avlseg::ownertype selectNext(T1 const* const v1,
+                     int& pos1,
+                     T2 const* const v2,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result,
+                     int& src = 0
+                    ){
+
+
+  const HalfSegment* values[4];
+  int number = 0; // number of available values
+  // read the available elements
+  if(pos1<v1->Size()){
+     v1->Get(pos1,values[0]);
+     number++;
+  }  else {
+     values[0] = 0;   
+  }
+  if(q1.empty()){
+    values[1] = 0; 
+  } else {
+    values[1] = &q1.top();
+    number++;   
+  }
+  if(pos2<v2->Size()){
+     v2->Get(pos2,values[2]);
+     number++;
+  }  else {
+     values[2] = 0;   
+  }
+  if(q2.empty()){
+    values[3] = 0; 
+  } else {
+    values[3] = &q2.top();
+    number++;   
+  }
+  // no halfsegments found
+
+  if(number == 0){
+     return avlseg::none;
+  }
+  // search for the minimum.
+  int index = -1; 
+  for(int i=0;i<4;i++){
+    if(values[i]){
+       if(index<0 || (result > *values[i])){
+          result = *values[i];
+          index = i;
+       }
+    }
+  }
+  src = index +  1;
+  switch(index){
+    case 0: pos1++; return avlseg::first; 
+    case 1: q1.pop();  return avlseg::first;
+    case 2: pos2++;  return avlseg::second;
+    case 3: q2.pop();  return avlseg::second;
+    default: assert(false);   
+  }
+  return avlseg::none;
+}
+
+/*
+Instantiation of the ~selectNext~ Function.
+
+*/
+
+avlseg::ownertype selectNext(Region const* const reg1,
+                     int& pos1,
+                     Region const* const reg2,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result,
+                     int& src // for debugging only
+                    ){
+   return selectNext<Region,Region>(reg1,pos1,reg2,pos2,q1,q2,result,src);
+}
+
+/* 
+7.8 ~line~ [x] ~line~
+
+
+Instantiation of the ~selectNext~ function.
+
+*/
+avlseg::ownertype selectNext(Line const* const line1,
+                     int& pos1,
+                     Line const* const line2,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result,
+                     int& src
+                    ){
+
+   return selectNext<Line,Line>(line1,pos1,line2,pos2,q1,q2,result, src);
+}
+
+/*
+7.9 ~line~ [x] ~region~
+
+
+~selectNext~
+
+Instantiation of the ~selectNext~ function for ~line~ [x] ~region~.
+
+*/
+
+avlseg::ownertype selectNext(Line const* const line,
+                     int& pos1,
+                     Region const* const region,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result,
+                     int& src
+                    ){
+
+   return selectNext<Line,Region>(line,pos1,region,pos2,q1,q2,result,src);
+}
+
+/*
+~SelectNext~ line [x] point
+
+This function looks which event from the line or from the point
+is smaller. The line is divided into the original line part
+at position ~posLine~ and possible splitted segments stored
+in ~q~. The return value of the function will be ~first~ if the
+next event comes from the line value and ~second~ if the next
+event comes from the point value. Depending of the return value,
+one of the arguments ~resHs~ or ~resPoint~ is set the the value of 
+this event. 
+The positions are increased automatically by this function.
+
+*/
+avlseg::ownertype selectNext( Line const* const line,
+                      priority_queue<HalfSegment, 
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q,
+                      int& posLine,
+                      Point const* const point,
+                      int& posPoint, // >0: point already used
+                      HalfSegment& resHs,
+                      Point& resPoint){
+
+
+   int size = line->Size();
+   const HalfSegment* hsl = 0;
+   const HalfSegment* hsq = 0;
+   const HalfSegment* hsmin = 0;
+   HalfSegment hstmp;
+   int src = 0;  
+   if(posLine < size){
+      line->Get(posLine,hsl);
+   }
+   if(!q.empty()){
+       hstmp = q.top();
+       hsq = &hstmp;
+   }
+   if(hsl){
+      src = 1;
+      hsmin = hsl;
+   }
+   if(hsq){
+     if(!hsl || (*hsq < *hsl)){
+       src = 2;
+       hsmin = hsq;
+     }
+   }
+  
+   if(posPoint==0){  // point not already used
+     if(!hsmin){
+       src = 3;
+     } else {
+       Point p = hsmin->GetDomPoint();
+       if(*point < p){
+            src = 3;
+        }
+     }
+   }
+
+   switch(src){
+    case 0: return avlseg::none;
+    case 1: posLine++;
+            resHs = *hsmin;
+            return avlseg::first;
+    case 2: q.pop();
+            resHs = *hsmin;
+            return avlseg::first;
+    case 3: resPoint = *point;
+            posPoint++;
+            return avlseg::second;
+    default: assert(false); 
+             return avlseg::none;
+   }
+}
+
+/*
+~selectNext~ line [x] points
+
+This function works like the function above but instead for a point, a 
+points value is used.
+
+*/
+
+  
+avlseg::ownertype selectNext( Line const* const line,
+                      priority_queue<HalfSegment, 
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q,
+                      int& posLine,
+                      Points const* const point,
+                      int& posPoint, 
+                      HalfSegment& resHs,
+                      Point& resPoint){
+
+   int sizeP = point->Size();
+   int sizeL = line->Size();
+
+  
+   const HalfSegment* hsl = 0;
+   const HalfSegment* hsq = 0;
+   const HalfSegment* hsmin = 0;
+   HalfSegment hstmp;
+   int src = 0;  
+   if(posLine < sizeL){
+      line->Get(posLine,hsl);
+   }
+   if(!q.empty()){
+       hstmp = q.top();
+       hsq = &hstmp;
+   }
+   if(hsl){
+      src = 1;
+      hsmin = hsl;
+   }
+   if(hsq){
+     if(!hsl || (*hsq < *hsl)){
+       src = 2;
+       hsmin = hsq;
+     }
+   }
+  
+   const Point * cp;
+   if(posPoint<sizeP){  // point not already used
+     point->Get(posPoint,cp);
+     if(!hsmin){
+       src = 3;
+     } else {
+       Point p = hsmin->GetDomPoint();
+       if(*cp < p){
+            src = 3;
+        }
+     }
+   }
+
+   switch(src){
+    case 0: return avlseg::none;
+    case 1: posLine++;
+            resHs = *hsmin;
+            return avlseg::first;
+    case 2: q.pop();
+            resHs = *hsmin;
+            return avlseg::first;
+    case 3: resPoint = *cp;
+            posPoint++;
+            return avlseg::second;
+    default: assert(false); 
+             return avlseg::none;
+   }
+
+}
+
+
+/*
+9 Set Operations (union, intersection, difference)
+
+
+The following functions implement the operations ~union~, 
+~intersection~ and ~difference~ for some combinations of spatial types.
+
+
+*/
+/*
+8 ~Realminize~
+
+This function converts  a line given as ~src~ into a realminized version
+stored in ~result~.
+
+*/
+avlseg::ownertype selectNext(const Line& src, int& pos,
+                            priority_queue<HalfSegment,  
+                                           vector<HalfSegment>, 
+                                           greater<HalfSegment> >& q,
+                            HalfSegment& result){
+
+ int size = src.Size();
+ if(size<=pos){
+    if(q.empty()){
+      return avlseg::none;
+    } else {
+      result = q.top();
+      q.pop();
+      return avlseg::first;
+    }
+ } else {
+   const HalfSegment* hs;
+   src.Get(pos,hs);
+   if(q.empty()){
+      result = *hs;      
+      pos++;
+      return avlseg::first;
+   } else{
+      HalfSegment hsq = q.top();
+      if(hsq<*hs){
+         result = hsq;
+         q.pop();
+         return avlseg::first;
+      } else {
+         pos++;
+         result = *hs;
+         return avlseg::first;
+      }
+   }
+ }
+}
+
+
+void Realminize2(const Line& src, Line& result){
+
+  result.Clear();
+  if(!src.IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  if(src.Size()==0){ // empty line, nothing to realminize
+    return;
+  }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  avltree::AVLTree<avlseg::AVLSegment> sss;
+
+  int pos = 0;
+
+  HalfSegment nextHS;
+  const avlseg::AVLSegment* member=0;
+  const avlseg::AVLSegment* leftN  = 0;
+  const avlseg::AVLSegment* rightN = 0;
+
+  avlseg::AVLSegment left1, right1,left2,right2;
+  
+  result.StartBulkLoad();
+  int edgeno = 0;
+  avlseg::AVLSegment tmpL,tmpR;
+
+
+  while(selectNext(src,pos,q,nextHS)!=avlseg::none) {
+      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
+      if(nextHS.IsLeftDomPoint()){
+         if(member){ // overlapping segment found in sss
+            double xm = member->getX2();
+            double xc = current.getX2();
+            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+               current.splitAt(xm,member->getY2(),left1,right1);
+               insertEvents(right1,true,true,q,q);
+            }
+         } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q,q);
+            splitByNeighbour(sss,current,rightN,q,q);
+            sss.insert(current);
+         }
+      } else {  // nextHS rightDomPoint
+          if(member && member->exactEqualsTo(current)){
+             // insert the halfsegments
+             HalfSegment hs1 = current.convertToHs(true);
+             HalfSegment hs2 = current.convertToHs(false);
+             hs1.attr.edgeno = edgeno;
+             hs2.attr.edgeno = edgeno;
+             result += hs1;
+             result += hs2;
+             splitNeighbours(sss,leftN,rightN,q,q);
+             edgeno++;
+             sss.remove(*member);
+          }
+      }      
+  }
+  result.EndBulkLoad();
+} // Realminize2
+
+
+avlseg::ownertype selectNext(const DBArray<HalfSegment>& src, int& pos,
+                     priority_queue<HalfSegment,  
+                     vector<HalfSegment>, 
+                     greater<HalfSegment> >& q,
+                     HalfSegment& result){
+
+ int size = src.Size();
+ if(size<=pos){
+    if(q.empty()){
+      return avlseg::none;
+    } else {
+      result = q.top();
+      q.pop();
+      return avlseg::first;
+    }
+ } else {
+   const HalfSegment* hs;
+   src.Get(pos,hs);
+   if(q.empty()){
+      result = *hs;      
+      pos++;
+      return avlseg::first;
+   } else{
+      HalfSegment hsq = q.top();
+      if(hsq<*hs){
+         result = hsq;
+         q.pop();
+         return avlseg::first;
+      } else {
+         pos++;
+         result = *hs;
+         return avlseg::first;
+      }
+   }
+ }
+}
+
+
+
+
+
+DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
+  
+  DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
+
+  if(segments.Size()==0){ // no halfsegments, nothing to realminize
+    res->TrimToSize();
+    return res;
+  }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  avltree::AVLTree<avlseg::AVLSegment> sss;
+
+  int pos = 0;
+
+  HalfSegment nextHS;
+  const avlseg::AVLSegment* member=0;
+  const avlseg::AVLSegment* leftN  = 0;
+  const avlseg::AVLSegment* rightN = 0;
+
+  avlseg::AVLSegment left1, right1,left2,right2;
+  
+  int edgeno = 0;
+  avlseg::AVLSegment tmpL,tmpR;
+  while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
+      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
+      if(nextHS.IsLeftDomPoint()){
+         if(member){ // overlapping segment found in sss
+            double xm = member->getX2();
+            double xc = current.getX2();
+            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+               current.splitAt(xm,member->getY2(),left1,right1);
+               insertEvents(right1,true,true,q,q);
+            }
+         } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q,q);
+            splitByNeighbour(sss,current,rightN,q,q);
+            sss.insert(current);
+         }
+      } else {  // nextHS rightDomPoint
+          if(member && member->exactEqualsTo(current)){
+             // insert the halfsegments
+             HalfSegment hs1 = current.convertToHs(true);
+             HalfSegment hs2 = current.convertToHs(false);
+             hs1.attr.edgeno = edgeno;
+             hs2.attr.edgeno = edgeno;
+             res->Append(hs1);
+             res->Append(hs2);
+             splitNeighbours(sss,leftN,rightN,q,q);
+             edgeno++;
+             sss.remove(*member);
+          }
+      }      
+  }
+  res->Sort(HalfSegmentCompare);
+  res->TrimToSize();
+  return res;
+} 
+
+/*
+~Split~
+
+This function works similar to the realminize function. The difference is,
+that overlapping parts of segments are keept, instead to remove them.
+But at all crossing points and so on, the segments will be split.
+
+*/
+DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
+  
+  DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
+
+  if(segments.Size()==0){ // no halfsegments, nothing to split 
+    res->TrimToSize();
+    return res;
+  }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  avltree::AVLTree<avlseg::AVLSegment> sss;
+
+  int pos = 0;
+
+  HalfSegment nextHS;
+  const avlseg::AVLSegment* member=0;
+  const avlseg::AVLSegment* leftN  = 0;
+  const avlseg::AVLSegment* rightN = 0;
+
+  avlseg::AVLSegment left1, right1,left2,right2;
+  
+  int edgeno = 0;
+  avlseg::AVLSegment tmpL,tmpR;
+
+  while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
+      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
+      if(nextHS.IsLeftDomPoint()){
+         if(member){ // overlapping segment found in sss
+            // insert the common part into res
+            avlseg::AVLSegment tmp_left, tmp_common, tmp_right;
+            int sr = member->split(current,tmp_left,tmp_common,tmp_right,false);
+
+            tmp_left.setOwner(avlseg::first);
+            tmp_common.setOwner(avlseg::first);
+            tmp_right.setOwner(avlseg::first);
+            Point pl(true,tmp_common.getX1(),tmp_common.getY1());
+            Point pr(true,tmp_common.getX2(),tmp_common.getY2());
+
+            HalfSegment hs1 = tmp_common.convertToHs(true);
+            HalfSegment hs2 = tmp_common.convertToHs(false);
+            hs1.attr.edgeno = edgeno;
+            hs2.attr.edgeno = edgeno;
+            res->Append(hs1);
+            res->Append(hs2);
+            edgeno++;
+
+
+            sss.remove(*member);
+            if(sr & avlseg::LEFT){
+              sss.insert(tmp_left);
+              insertEvents(tmp_left,false,true,q,q);
+            }
+            insertEvents(tmp_common,true,true,q,q);
+            if(sr & avlseg::RIGHT){
+              insertEvents(tmp_right,true,true,q,q);
+            }
+         } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q,q);
+            splitByNeighbour(sss,current,rightN,q,q);
+            sss.insert(current);
+         }
+      } else {  // nextHS rightDomPoint
+          if(member && member->exactEqualsTo(current)){
+             // insert the halfsegments
+             HalfSegment hs1 = current.convertToHs(true);
+             HalfSegment hs2 = current.convertToHs(false);
+             hs1.attr.edgeno = edgeno;
+             hs2.attr.edgeno = edgeno;
+             res->Append(hs1);
+             res->Append(hs2);
+             splitNeighbours(sss,leftN,rightN,q,q);
+             edgeno++;
+             sss.remove(*member);
+          }
+      }      
+  }
+  res->Sort(HalfSegmentCompare);
+  res->TrimToSize();
+  // work around because problems with overlapping segments
+  if(hasOverlaps(*res,true)){
+    DBArray<HalfSegment>* tmp = Split(*res);
+    delete res;
+    res = tmp;
+  }
+
+  return res;
+} 
+
+bool hasOverlaps(const DBArray<HalfSegment>& segments,
+                 const bool ignoreEqual){
+  if(segments.Size()<2){ // no overlaps possible 
+    return false;
+  }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  avltree::AVLTree<avlseg::AVLSegment> sss;
+
+  int pos = 0;
+
+  HalfSegment nextHS;
+  const avlseg::AVLSegment* member=0;
+  const avlseg::AVLSegment* leftN  = 0;
+  const avlseg::AVLSegment* rightN = 0;
+
+  avlseg::AVLSegment left1, right1,left2,right2;
+  
+  avlseg::AVLSegment tmpL,tmpR;
+
+  while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
+      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      member = sss.getMember(current,leftN,rightN);
+      if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+      }
+      if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+      }
+      if(nextHS.IsLeftDomPoint()){
+         if(member){ // overlapping segment found in sss
+            if(!ignoreEqual || !member->exactEqualsTo(current)){ 
+              return true;
+            }
+            double xm = member->getX2();
+            double xc = current.getX2();
+            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+               current.splitAt(xm,member->getY2(),left1,right1);
+               insertEvents(right1,true,true,q,q);
+            }
+         } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q,q);
+            splitByNeighbour(sss,current,rightN,q,q);
+            sss.insert(current);
+         }
+      } else {  // nextHS rightDomPoint
+          if(member && member->exactEqualsTo(current)){
+             // insert the halfsegments
+             splitNeighbours(sss,leftN,rightN,q,q);
+             sss.remove(*member);
+          }
+      }      
+  }
+  return false;
+} 
+
+
+
+
+
+/*
+9.2 ~line~ [x] ~line~ [->] ~line~
+
+This combination can be used for all possible set operations.
+
+
+*/
+
+void SetOp(const Line& line1,
+           const Line& line2,
+           Line& result,
+           avlseg::SetOperation op){
+
+   result.Clear();
+   if(!line1.IsDefined() || !line2.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(line1.Size()==0){
+       switch(op){
+         case avlseg::union_op : result = line2;
+                         return;
+         case avlseg::intersection_op : return; // empty line
+         case avlseg::difference_op : return; // empty line
+         default : assert(false);
+       }
+   }
+   if(line2.Size()==0){
+      switch(op){
+         case avlseg::union_op: result = line1;
+                        return;
+         case avlseg::intersection_op: return;
+         case avlseg::difference_op: result = line1;
+                             return;
+         default : assert(false);
+      }
+   }
+
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  avltree::AVLTree<avlseg::AVLSegment> sss;
+  avlseg::ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  const avlseg::AVLSegment* member=0;
+  const avlseg::AVLSegment* leftN = 0;
+  const avlseg::AVLSegment* rightN = 0;
+
+  avlseg::AVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+  avlseg::AVLSegment tmpL,tmpR;
+
+  result.StartBulkLoad();
+  while( (owner=selectNext(&line1,pos1,
+                           &line2,pos2,
+                           q1,q2,nextHs,src))!=avlseg::none){
+       avlseg::AVLSegment current(&nextHs,owner);
+       member = sss.getMember(current,leftN,rightN);
+       if(leftN){
+         tmpL = *leftN;
+         leftN = &tmpL;
+       }
+       if(rightN){
+         tmpR = *rightN;
+         rightN = &tmpR;
+       }
+       if(nextHs.IsLeftDomPoint()){
+          if(member){ // found an overlapping segment
+             if(member->getOwner()==current.getOwner() ||
+                member->getOwner()==avlseg::both){ // same source
+                 double xm = member->getX2();
+                 double xc = current.getX2();
+                 if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+                    current.splitAt(xm,member->getY2(),left1,right1);
+                    insertEvents(right1,true,true,q1,q2);
+                 }
+             }  else { // member and current come from different sources
+                 int parts = member->split(current,left1,common1,right1);
+                 sss.remove(*member);
+                 member = &common1;
+                 if(parts & avlseg::LEFT){
+                     sss.insert(left1);
+                     insertEvents(left1,false,true,q1,q2);
+                 }
+                 assert(parts & avlseg::COMMON);
+                 sss.insert(common1);
+                 insertEvents(common1,false,true,q1,q2);
+                 if(parts & avlseg::RIGHT){
+                    insertEvents(right1,true,true,q1,q2);
+                 }
+             }
+          } else { // no overlapping segment found
+            splitByNeighbour(sss,current,leftN,q1,q2);
+            splitByNeighbour(sss,current,rightN,q1,q2);
+            sss.insert(current);
+          }
+       } else { // nextHS rightDomPoint
+         if(member && member->exactEqualsTo(current)){
+             // insert the segments into the result
+             switch(op){
+                case avlseg::union_op : { 
+                     HalfSegment hs1 = member->convertToHs(true,avlseg::first);
+                     hs1.attr.edgeno = edgeno; 
+                     result += hs1;
+                     hs1.SetLeftDomPoint(false);
+                     result += hs1;
+                     edgeno++;
+                     break;
+                } case avlseg::intersection_op : {
+                     if(member->getOwner()==avlseg::both){
+                        HalfSegment hs1 = 
+                           member->convertToHs(true,avlseg::first);
+                        hs1.attr.edgeno = edgeno; 
+                        result += hs1;
+                        hs1.SetLeftDomPoint(false);
+                        result += hs1;
+                        edgeno++;
+                      } 
+                      break;
+                } case avlseg::difference_op :{
+                      if(member->getOwner()==avlseg::first){
+                        HalfSegment hs1 = 
+                            member->convertToHs(true,avlseg::first);
+                        hs1.attr.edgeno = edgeno; 
+                        result += hs1;
+                        hs1.SetLeftDomPoint(false);
+                        result += hs1;
+                        edgeno++;
+                      } 
+                      break;
+                } default : {
+                      assert(false);
+                }
+             }
+             sss.remove(*member);
+             splitNeighbours(sss,leftN,rightN,q1,q2);
+         }
+       }
+  } 
+  result.EndBulkLoad(true,false,true,true);
+} // setop line x line -> line
+
+
+Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op){
+  Line* result = new Line(1);
+  SetOp(line1,line2,*result,op);
+  return result;
+}
+
+
+/*
+
+9.3 ~region~ [x] ~region~ [->] ~region~
+
+*/
+
+void SetOp(const Region& reg1,
+           const Region& reg2,
+           Region& result,
+           avlseg::SetOperation op){
+
+   result.Clear();
+   if(!reg1.IsDefined() || !reg2.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(reg1.Size()==0){
+       switch(op){
+         case avlseg::union_op : result = reg2;
+                         return;
+         case avlseg::intersection_op : return; // empty region
+         case avlseg::difference_op : return; // empty region
+         default : assert(false);
+       }
+   }
+   if(reg2.Size()==0){
+      switch(op){
+         case avlseg::union_op: result = reg1;
+                        return;
+         case avlseg::intersection_op: return;
+         case avlseg::difference_op: result = reg1;
+                             return;
+         default : assert(false);
+      }
+   }
+
+   if(!reg1.BoundingBox().Intersects(reg2.BoundingBox())){
+      switch(op){
+        case avlseg::union_op: {
+          result.StartBulkLoad();
+          int edgeno=0;
+          int s = reg1.Size();
+          const HalfSegment* hs;
+          for(int i=0;i<s;i++){
+              reg1.Get(i,hs);
+              if(hs->IsLeftDomPoint()){
+                 HalfSegment HS(*hs);
+                 HS.attr.edgeno = edgeno;
+                 result += HS;
+                 HS.SetLeftDomPoint(false);
+                 result += HS;
+                 edgeno++;
+              }
+          }
+          s = reg2.Size(); 
+          for(int i=0;i<s;i++){
+              reg2.Get(i,hs);
+              if(hs->IsLeftDomPoint()){
+                 HalfSegment HS(*hs);
+                 HS.attr.edgeno = edgeno;
+                 result += HS;
+                 HS.SetLeftDomPoint(false);
+                 result += HS;
+                 edgeno++;
+              }
+          }
+          result.EndBulkLoad();
+          return;
+        } case avlseg::difference_op: {
+           result = reg1;
+           return; 
+        } case avlseg::intersection_op:{
+           return;
+        } default: assert(false);
+      }
+   }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  avltree::AVLTree<avlseg::AVLSegment> sss;
+  avlseg::ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  const avlseg::AVLSegment* member=0;
+  const avlseg::AVLSegment* leftN = 0;
+  const avlseg::AVLSegment* rightN = 0;
+
+  avlseg::AVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+  avlseg::AVLSegment tmpL,tmpR;
+
+  result.StartBulkLoad();
+  while( (owner=selectNext(&reg1,pos1,
+                           &reg2,pos2,
+                           q1,q2,nextHs,src))!=avlseg::none){
+       avlseg::AVLSegment current(&nextHs,owner);
+       member = sss.getMember(current,leftN,rightN);
+       if(leftN){
+          tmpL = *leftN;
+          leftN = &tmpL;
+       }
+       if(rightN){
+          tmpR = *rightN;
+          rightN = &tmpR;
+       }
+       if(nextHs.IsLeftDomPoint()){
+          if(member){ // overlapping segment found
+            if((member->getOwner()==avlseg::both) ||    
+               (member->getOwner()==owner)){
+               cerr << "overlapping segments detected within a single region"
+                    << endl;
+               cerr << "the argument is " 
+                    << (owner==avlseg::first?"first":"second") 
+                    << endl;
+               cerr.precision(16);
+               cerr << "stored is " << *member << endl;
+               cerr << "current = " << current << endl;
+               avlseg::AVLSegment tmp_left, tmp_common, tmp_right;
+               member->split(current,tmp_left, tmp_common, tmp_right, false);
+               cout << "The common part is " << tmp_common << endl;
+               cout << "The lenth = " << tmp_common.length() << endl;
+               assert(false);
+            } 
+            int parts = member->split(current,left1,common1,right1);
+            sss.remove(*member);
+            if(parts & avlseg::LEFT){
+              sss.insert(left1);
+              insertEvents(left1,false,true,q1,q2);
+            }
+            assert(parts & avlseg::COMMON);
+            // update coverage numbers
+            if(current.getInsideAbove()){
+               common1.con_above++;
+            }  else {
+               common1.con_above--;
+            }
+            sss.insert(common1);
+            insertEvents(common1,false,true,q1,q2);
+            if(parts & avlseg::RIGHT){
+               insertEvents(right1,true,true,q1,q2);
+            }
+          } else { // there is no overlapping segment
+            // try to split segments if required
+            splitByNeighbour(sss,current,leftN,q1,q2);
+            splitByNeighbour(sss,current,rightN,q1,q2);
+
+
+            // update coverage numbers
+            bool iac = current.getOwner()==avlseg::first
+                            ?current.getInsideAbove_first()
+                            :current.getInsideAbove_second();
+
+            iac = current.getOwner()==avlseg::first
+                                           ?current.getInsideAbove_first()
+                                           :current.getInsideAbove_second();
+
+            if(leftN && current.extends(*leftN)){
+              current.con_below = leftN->con_below;
+              current.con_above = leftN->con_above;
+            }else{
+              if(leftN && leftN->isVertical()){
+                 current.con_below = leftN->con_below;
+              } else if(leftN){
+                 current.con_below = leftN->con_above;
+              } else {
+                 current.con_below = 0;
+              }
+              if(iac){
+                 current.con_above = current.con_below+1;
+              } else {
+                 current.con_above = current.con_below-1;
+              }
+            }
+            // insert element
+            sss.insert(current); 
+          }
+       } else {  // nextHs.IsRightDomPoint
+          if(member && member->exactEqualsTo(current)){
+              switch(op){
+                case avlseg::union_op :{
+                   if( (member->con_above==0) || (member->con_below==0)) {
+                      HalfSegment hs1 = member->getOwner()==avlseg::both
+                                      ?member->convertToHs(true,avlseg::first)
+                                      :member->convertToHs(true);
+                      hs1.attr.edgeno = edgeno;
+                      result += hs1;
+                      hs1.SetLeftDomPoint(false);
+                      result += hs1;
+                      edgeno++;
+                   }
+                   break;
+                }
+                case avlseg::intersection_op: {
+                  if(member->con_above==2 || member->con_below==2){
+                      HalfSegment hs1 = member->getOwner()==avlseg::both
+                                      ?member->convertToHs(true,avlseg::first)
+                                      :member->convertToHs(true);
+                      hs1.attr.edgeno = edgeno;
+                      hs1.attr.insideAbove = (member->con_above==2);
+                      result += hs1;
+                      hs1.SetLeftDomPoint(false);
+                      result += hs1;
+                      edgeno++;
+                  } 
+                  break;
+                }
+                case avlseg::difference_op : {
+                  switch(member->getOwner()){
+                    case avlseg::first:{
+                      if(member->con_above + member->con_below == 1){
+                         HalfSegment hs1 = member->getOwner()==avlseg::both
+                                      ?member->convertToHs(true,avlseg::first)
+                                      :member->convertToHs(true);
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    case avlseg::second:{
+                      if(member->con_above + member->con_below == 3){
+                         HalfSegment hs1 = member->getOwner()==avlseg::both
+                                      ?member->convertToHs(true,avlseg::second)
+                                      :member->convertToHs(true);
+                         hs1.attr.insideAbove = ! hs1.attr.insideAbove;
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    case avlseg::both: {
+                      if((member->con_above==1) && (member->con_below== 1)){
+                         HalfSegment hs1 = member->getOwner()==avlseg::both
+                                      ?member->convertToHs(true,avlseg::first)
+                                      :member->convertToHs(true);
+                         hs1.attr.insideAbove = member->getInsideAbove_first();
+                         hs1.attr.edgeno = edgeno;
+                         result += hs1;
+                         hs1.SetLeftDomPoint(false);
+                         result += hs1;
+                         edgeno++;
+                      }
+                      break;
+                    }
+                    default : assert(false);
+                  } // switch member->getOwner
+                  break;
+                } // case difference
+                default : assert(false);
+              } // end of switch
+              sss.remove(*member);
+              splitNeighbours(sss,leftN,rightN,q1,q2);
+          } // current found in sss
+       } // right endpoint
+  }
+  result.EndBulkLoad();
+} // setOP region x region -> region
+
+Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op){
+  Region* result = new Region(1);
+  SetOp(reg1,reg2,*result,op);
+  return result;
+}
+
+
+
+/*
+9.4 ~region~ [x] ~line~ [->] ~region~  
+
+This combination can only be used for the operations
+~union~ and ~difference~. In both cases, the result will be
+the original region value.
+
+*/
+
+void SetOp(const Region& region,
+           const Line& line,
+           Region& result,
+           avlseg::SetOperation op){
+
+   assert(op == avlseg::union_op || op == avlseg::difference_op);
+   result.Clear();
+   if(!line.IsDefined() || !region.IsDefined()){
+      result.SetDefined(false);
+      return;
+   }
+   result.SetDefined(true);
+   result.CopyFrom(&region);
+}
+
+/*
+9.5  ~line~ [x] ~region~ [->] ~line~
+
+Here, only the ~difference~ and ~intersection~ operation are applicable.
+
+
+*/
+void SetOp(const Line& line,
+           const Region& region,
+           Line& result,
+           avlseg::SetOperation op){
+
+  assert(op==avlseg::intersection_op || op == avlseg::difference_op);
+
+  result.Clear();
+  if(!line.IsDefined() || !region.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(line.Size()==0){ // empty line -> empty result
+       switch(op){
+         case avlseg::intersection_op : return; // empty region
+         case avlseg::difference_op : return; // empty region
+         default : assert(false);
+       }
+   }
+   if(region.Size()==0){
+      switch(op){
+         case avlseg::intersection_op: return; 
+         case avlseg::difference_op: result = line;
+                             return;
+         default : assert(false);
+      }
+   }
+
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  avltree::AVLTree<avlseg::AVLSegment> sss;
+  avlseg::ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  int size1= line.Size();
+  HalfSegment nextHs;
+  int src = 0;
+
+  const avlseg::AVLSegment* member=0;
+  const avlseg::AVLSegment* leftN = 0;
+  const avlseg::AVLSegment* rightN = 0;
+
+  avlseg::AVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+  avlseg::AVLSegment tmpL,tmpR;
+  bool done = false;
+
+  result.StartBulkLoad();
+  // perform a planesweeo
+  while( ((owner=selectNext(&line,pos1,
+                            &region,pos2,
+                            q1,q2,nextHs,src))!=avlseg::none)
+         && ! done){
+     avlseg::AVLSegment current(&nextHs,owner);
+     member = sss.getMember(current,leftN,rightN);
+     if(leftN){
+        tmpL = *leftN;
+        leftN = &tmpL;
+     }
+     if(rightN){
+        tmpR = *rightN;
+        rightN = &tmpR;
+     }
+     if(nextHs.IsLeftDomPoint()){
+        if(member){ // there is an overlapping segment in sss
+           if(member->getOwner()==owner ||
+              member->getOwner()==avlseg::both     ){
+              if(current.ininterior(member->getX2(),member->getY2())){
+                 current.splitAt(member->getX2(),member->getY2(),left1,right1);
+                 insertEvents(right1,true,true,q1,q2);
+              }
+           } else { // member and source come from difference sources
+             int parts = member->split(current,left1,common1,right1);
+             sss.remove(*member);
+             member = &common1;
+             if(parts & avlseg::LEFT){
+                sss.insert(left1);
+                insertEvents(left1,false,true,q1,q2);
+             }
+             assert(parts & avlseg::COMMON);
+             if(owner==avlseg::second) {  // the region
+               if(current.getInsideAbove()){
+                  common1.con_above++;
+               } else {
+                  common1.con_above--;
+               }
+             } // for a line is nothing to do
+             sss.insert(common1);
+             insertEvents(common1,false,true,q1,q2);
+             if(parts & avlseg::RIGHT){
+                 insertEvents(right1,true,true,q1,q2);
+             }
+           }
+        } else { // no overlapping segment in sss found
+          splitByNeighbour(sss,current,leftN,q1,q2);
+          splitByNeighbour(sss,current,rightN,q1,q2); 
+          // update coverage numbers
+          if(owner==avlseg::second){ // the region
+            bool iac = current.getInsideAbove();
+            if(leftN && current.extends(*leftN)){
+              current.con_below = leftN->con_below;
+              current.con_above = leftN->con_above;
+            }else{
+              if(leftN && leftN->isVertical()){
+                 current.con_below = leftN->con_below;
+              } else if(leftN){
+                 current.con_below = leftN->con_above;
+              } else {
+                 current.con_below = 0;
+              }
+              if(iac){
+                 current.con_above = current.con_below+1;
+              } else {
+                 current.con_above = current.con_below-1;
+              }
+            }
+          } else { // the line
+            if(leftN){
+               if(leftN->isVertical()){
+                  current.con_below = leftN->con_below;
+               } else {
+                  current.con_below = leftN->con_above;
+               }
+            }
+            current.con_above = current.con_below; 
+          }
+          // insert element
+          sss.insert(current); 
+        }
+     } else { // nextHs.IsRightDomPoint()
+       if(member && member->exactEqualsTo(current)){
+
+          switch(op){
+              case avlseg::intersection_op: {
+                if( (member->getOwner()==avlseg::both) ||
+                    (member->getOwner()==avlseg::first && member->con_above>0)){
+                    HalfSegment hs1 = member->convertToHs(true,avlseg::first);
+                    hs1.attr.edgeno = edgeno;
+                    result += hs1;
+                    hs1.SetLeftDomPoint(false);
+                    result += hs1;
+                    edgeno++;
+                }
+                break;
+              }
+              case avlseg::difference_op: {
+                if( (member->getOwner()==avlseg::first) &&  
+                    (member->con_above==0)){
+                    HalfSegment hs1 = member->convertToHs(true,avlseg::first);
+                    hs1.attr.edgeno = edgeno;
+                    result += hs1;
+                    hs1.SetLeftDomPoint(false);
+                    result += hs1;
+                    edgeno++;
+                }
+                break;
+              }
+              default : assert(false);
+          }
+          sss.remove(*member);
+          splitNeighbours(sss,leftN,rightN,q1,q2);
+       }
+       if(pos1>=size1 && q1.empty()){ // line is processed
+          done = true;
+       }
+     }
+  }
+  result.EndBulkLoad();
+} // setOP(line x region -> line)
+
+
+/*
+9  ~CommonBorder~
+
+Signature: ~region~ [x] ~region~ [->] ~line~
+
+*/
+
+void CommonBorder(
+           const Region& reg1,
+           const Region& reg2,
+           Line& result){
+
+   result.Clear();
+   if(!reg1.IsDefined() || !reg2.IsDefined()){
+       result.SetDefined(false);
+       return;
+   }
+   result.SetDefined(true);
+   if(reg1.Size()==0 || reg2.Size()==0){
+       // a region is empty -> the common border is also empty
+       return;
+   }
+   if(!reg1.BoundingBox().Intersects(reg2.BoundingBox())){
+      // no common border possible
+      return;
+   }
+
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
+  avltree::AVLTree<avlseg::AVLSegment> sss;
+  avlseg::ownertype owner;
+  int pos1 = 0;
+  int pos2 = 0;
+  HalfSegment nextHs;
+  int src = 0;
+
+  const avlseg::AVLSegment* member=0;
+  const avlseg::AVLSegment* leftN = 0;
+  const avlseg::AVLSegment* rightN = 0;
+
+  avlseg::AVLSegment left1,right1,common1,
+             left2,right2;
+
+  int edgeno =0;
+  avlseg::AVLSegment tmpL,tmpR;
+
+  result.StartBulkLoad();
+  bool done = false;
+  int size1 = reg1.Size();
+  int size2 = reg2.Size();
+
+  while( ((owner=selectNext(&reg1,pos1,
+                            &reg2,pos2,
+                            q1,q2,nextHs,src))!=avlseg::none)
+         && !done  ){
+       avlseg::AVLSegment current(&nextHs,owner);
+       member = sss.getMember(current,leftN,rightN);
+       if(leftN){
+          tmpL = *leftN;
+          leftN = &tmpL;
+       }
+       if(rightN){
+          tmpR = *rightN;
+          rightN = &tmpR;
+       }
+       if(nextHs.IsLeftDomPoint()){
+          if(member){ // overlapping segment found
+            assert(member->getOwner()!=avlseg::both);   
+            assert(member->getOwner()!=owner); 
+            int parts = member->split(current,left1,common1,right1);
+            sss.remove(*member);
+            if(parts & avlseg::LEFT){
+              sss.insert(left1);
+              insertEvents(left1,false,true,q1,q2);
+            }
+            assert(parts & avlseg::COMMON);
+            sss.insert(common1);
+            insertEvents(common1,false,true,q1,q2);
+            if(parts & avlseg::RIGHT){
+               insertEvents(right1,true,true,q1,q2);
+            }
+          } else { // there is no overlapping segment
+            // try to split segments if required
+            splitByNeighbour(sss,current,leftN,q1,q2);
+            splitByNeighbour(sss,current,rightN,q1,q2);
+
+            sss.insert(current); 
+          }
+       } else {  // nextHs.IsRightDomPoint
+          if(member && member->exactEqualsTo(current)){
+              if(member->getOwner()==avlseg::both){
+                 HalfSegment hs = member->convertToHs(true,avlseg::first);
+                 hs.attr.edgeno = edgeno;
+                 result += hs;
+                 hs.SetLeftDomPoint(false);
+                 result += hs;
+                 edgeno++; 
+              }
+              sss.remove(*member);
+              splitNeighbours(sss,leftN,rightN,q1,q2);
+          } // current found in sss
+          if(((pos1 >= size1) && q1.empty())  || 
+             ((pos2 >= size2) && q2.empty())){
+             done = true;
+          } 
+       } // right endpoint
+  }
+  result.EndBulkLoad();
+} // commonborder 
+
+/*
+~IsSpatialType~
+
+This function checks whether the type given as a ListExpr is one of
+~point~, ~points~, ~line~, or ~region~.
+
+*/
+
+bool IsSpatialType(ListExpr type){
+   if(!nl->IsAtom(type)){
+      return false;
+   }
+   if(nl->AtomType(type)!=SymbolType){
+      return false;
+   }
+   string t = nl->SymbolValue(type);
+   if(t=="point") return true;
+   if(t=="points") return true;
+   if(t=="line") return true;
+   if(t=="region") return true;
+   return false;
+}
+
+
+
+/*
 ~getDir~
 
 This fucntion will return true iff the cycle given as a
@@ -11640,6 +14309,186 @@ ListExpr MakeLineTypeMap(ListExpr args){
     return nl->TypeError();
   }
 }
+/*
+~Realminize2TypeMap~
+
+Signature: line [->] line.
+
+*/
+ListExpr Realminize2TypeMap(ListExpr args){
+  if(nl->ListLength(args)==1 &&
+     nl->IsEqual(nl->First(args),"line")){
+     return nl->SymbolAtom("line");
+  }else {
+     ErrorReporter::ReportError("line expected");
+     return nl->TypeError();
+  }
+}
+
+/*
+~Union2TypeMap~
+
+Signatures:  
+ 
+  line [x] line [->] line
+
+  line [x] region [->] region 
+
+  region [x] line [->] region
+
+  region [x] region [->] region
+
+*/
+
+
+ListExpr Union2TypeMap(ListExpr args){
+
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("2 arguments expected.");
+     return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+
+   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
+     ErrorReporter::ReportError("two spatial type expected");
+     return nl->TypeError();
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("line");
+   }
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("region");
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("region");
+   }
+
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("region");
+   }
+   ErrorReporter::ReportError("combination not implemented yet");
+   return nl->TypeError();
+}
+
+/*
+~Intersection2TypeMap~
+
+Signatures:   
+
+  line [x] line [->] line
+
+  line [x] region [->] line 
+
+  region [x] line [->] line
+
+  region [x] region [->] region
+
+*/
+ListExpr Intersection2TypeMap(ListExpr args){
+
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("2 arguments expected.");
+     return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+
+   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
+     ErrorReporter::ReportError("two spatial type expected");
+     return nl->TypeError();
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("line");
+   }
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("region");
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("line");
+   }
+
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("line");
+   }
+   ErrorReporter::ReportError("combination not implemented yet");
+   return nl->TypeError();
+}
+
+
+/*
+~Difference2TypeMap~
+
+Signatures:   
+
+  line [x] line [->] line
+
+  line [x] region [->] line 
+
+  region [x] line [->] region
+
+  region [x] region [->] region
+
+*/
+
+ListExpr Difference2TypeMap(ListExpr args){
+
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("2 arguments expected.");
+     return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+
+   if(!IsSpatialType(arg1) || !IsSpatialType(arg2)){
+     ErrorReporter::ReportError("two spatial type expected");
+     return nl->TypeError();
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("line");
+   }
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("region");
+   }
+
+   if(nl->IsEqual(arg1,"line") && nl->IsEqual(arg2,"region")){
+     return nl->SymbolAtom("line");
+   }
+
+   if(nl->IsEqual(arg1,"region") && nl->IsEqual(arg2,"line")){
+     return nl->SymbolAtom("region");
+   }
+   ErrorReporter::ReportError("combination not implemented yet");
+   return nl->TypeError();
+}
+
+
+/*
+~CommonBorder2TypeMap~
+
+Signature: ~region~ [x] ~region~ [->] ~line~
+
+*/
+
+ListExpr CommonBorder2TypeMap(ListExpr args){
+
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("Wrong number of arguments,"
+                                " region x region expected");
+     return nl->TypeError();
+  }
+  if(nl->IsEqual(nl->First(args),"region") &&
+     nl->IsEqual(nl->Second(args),"region")){
+     return nl->SymbolAtom("line");
+  }
+  ErrorReporter::ReportError(" region x region expected");
+  return nl->TypeError();
+}
 
 
 /*
@@ -12342,6 +15191,24 @@ int SpatialSimplifySelect(ListExpr args){
 
 }
 
+static int SetOpSelect(ListExpr args){
+   string type1 = nl->SymbolValue(nl->First(args));
+   string type2 = nl->SymbolValue(nl->Second(args));
+   
+  if( (type1=="line") && (type2=="line")){
+      return 0;
+   }
+  if( (type1=="region") && (type2=="region")){
+      return 1;
+   }
+   if( (type1=="region") && (type2=="line")){
+      return 2;
+   }
+   if( (type1=="line") && (type2=="region")){
+      return 3;
+   }
+   return -1;
+}
 
 
 /*
@@ -15354,6 +18221,62 @@ int SpatialMakeLine(Word* args, Word& result, int message,
   res->EndBulkLoad();
   return 0;
 }
+/*
+~Realminize2~
+
+*/
+int Realminize2VM(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+
+   Line* arg = static_cast<Line*>(args[0].addr);
+   result = qp->ResultStorage(s);
+   Line* res = static_cast<Line*>(result.addr);
+   Realminize2(*arg,*res);
+   return 0;
+}
+
+
+/*
+Value mapping for set operations
+
+*/
+
+template<class t1, class t2, class tres, avlseg::SetOperation op>
+int SetOpVM(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   t1* arg1 = static_cast<t1*>(args[0].addr);
+   t2* arg2 = static_cast<t2*>(args[1].addr); 
+   tres* res = static_cast<tres*>(result.addr);
+   SetOp(*arg1,*arg2,*res,op);
+   return 0;
+}
+
+template<class t1, class t2, class tres, avlseg::SetOperation op>
+int SetOpVMSym(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   t1* arg1 = static_cast<t1*>(args[0].addr);
+   t2* arg2 = static_cast<t2*>(args[1].addr); 
+   tres* res = static_cast<tres*>(result.addr);
+   SetOp(*arg2,*arg1,*res,op);
+   return 0;
+}
+
+
+/*
+Value Mapping for ~CommonBorder2~
+
+*/
+int CommonBorder2VM(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Region* arg1 = static_cast<Region*>(args[0].addr);
+   Region* arg2 = static_cast<Region*>(args[1].addr); 
+   Line* res = static_cast<Line*>(result.addr);
+   CommonBorder(*arg2,*arg1,*res);
+   return 0;
+}
 
 
 /*
@@ -15534,6 +18457,26 @@ ValueMapping spatialgetymap[] = { SpatialGetY_p };
 
 ValueMapping spatialsimplifymap[] = { SpatialSimplify_LReal,
                                       SpatialSimplify_LRealPs };
+ValueMapping Union2Map[] = {
+       SetOpVM<Line,Line,Line,avlseg::union_op>,
+       SetOpVM<Region,Region,Region,avlseg::union_op>,
+       SetOpVM<Region,Line,Region,avlseg::union_op>,
+       SetOpVMSym<Line,Region,Region,avlseg::union_op>
+       };
+
+ValueMapping Intersection2Map[] = {
+       SetOpVM<Line,Line,Line,avlseg::intersection_op>,
+       SetOpVM<Region,Region,Region,avlseg::intersection_op>,
+       SetOpVMSym<Region,Line,Line,avlseg::intersection_op>,
+       SetOpVM<Line,Region,Line,avlseg::intersection_op>
+      };
+
+ValueMapping Difference2Map[] = {
+       SetOpVM<Line,Line,Line,avlseg::difference_op>,
+       SetOpVM<Region,Region,Region,avlseg::difference_op>,
+       SetOpVM<Region,Line,Region,avlseg::difference_op>,
+       SetOpVM<Line,Region,Line,avlseg::difference_op>
+      };
 
 /*
 10.5.2 Definition of specification strings
@@ -15940,6 +18883,43 @@ const string SpatialSpecMakeLine  =
     "<text>query makeline([const point value (0 0)],"
            " [ const point value (100 40)])</text--->"
     ") )";
+const string Realminize2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> line -> line </text--->"
+ " \" realminize2() \" "
+ "  <text>removes crossings and overlapping"
+        " segments from a line value </text---> "
+"  \" query realminize2(trajectory(Train2)) \" ))";
+
+const string Union2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> t1 x t2 -> tx, ti in {line, region}  </text--->"
+ " \"  _ union2 _ \" "
+ "  \" computes the union of two spatial values \" "
+  "  \" query l1 union2 l2 \" ))";
+
+const string Intersection2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> {line,region} x {line,region} -> {line,region} </text--->"
+ " \"  _ intersection2 _ \" "
+ "  <text> computes the intersection of two spatial values </text---> "
+  "  \" query l1 intersection2 l2 \" ))";
+
+const string Difference2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> {line,region} x {line,region} -> {line,region} </text--->"
+ " \"  _ difference2 _ \" "
+ "  \" computes the difference of two spatial values \" "
+  "  \" query l1 difference2 l2 \" ))";
+
+const string CommonBorder2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+ " ( <text> region x region -> line </text--->"
+ " \"  _ commonborder2  _ \" "
+ "  <text> computes the common part of the"
+ " boundaries of the arguments </text---> "
+  "  \" query r1 commonborder2 r2 \" ))";
+
 
 /*
 10.5.3 Definition of the operators
@@ -16302,6 +19282,54 @@ Operator makeline (
   Operator::SimpleSelect,
   MakeLineTypeMap );
 
+Operator realminize2(
+     "realminize2",           //name
+     Realminize2Spec,   //specification
+     Realminize2VM, //value mapping
+     Operator::SimpleSelect,         //trivial selection function
+     Realminize2TypeMap //type mapping
+);
+
+
+Operator union2(
+        "union2",     // name
+         Union2Spec,   // specification
+         sizeof(Union2Map)/sizeof(ValueMapping),  // number of functions
+         Union2Map,    // array of value mappings
+         SetOpSelect,
+         Union2TypeMap
+         );
+
+
+Operator intersection2(
+        "intersection2",     // name
+         Intersection2Spec,   // specification
+         sizeof(Intersection2Map)/sizeof(ValueMapping),  // number of functions
+         Intersection2Map,    // array of value mappings
+         SetOpSelect,
+         Intersection2TypeMap
+         );
+
+Operator difference2(
+        "difference2",     // name
+         Difference2Spec,   // specification
+         sizeof(Difference2Map)/sizeof(ValueMapping),  // number of functions
+         Difference2Map,    // array of value mappings
+         SetOpSelect,
+         Difference2TypeMap
+         );
+
+
+Operator commonborder2(
+         "commonborder2",           //name
+          CommonBorder2Spec,   //specification
+          CommonBorder2VM, //value mapping
+          Operator::SimpleSelect,         //trivial selection function
+          CommonBorder2TypeMap //type mapping
+);
+
+
+
 /*
 11 Creating the Algebra
 
@@ -16380,6 +19408,11 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialsimplify);
     AddOperator( &realminize);
     AddOperator( &makeline);
+    AddOperator(&realminize2);
+    AddOperator(&union2);
+    AddOperator(&intersection2);
+    AddOperator(&difference2);
+    AddOperator(&commonborder2);
   }
   ~SpatialAlgebra() {};
 };

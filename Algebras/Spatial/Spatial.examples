@@ -373,3 +373,98 @@ Example  : query convexhull([const points value ((0 0) (10 0) (10 10) (5 3) )])
 Result   : (region ( ( ( (10.0 0.0) (0.0 0.0) (10.0 10.0))))) 
 
 
+Operator : realminize2
+Number   : 1
+Signature: line -> line 
+Example  : query (realminize2(trajectory(train7))) = trajectory(train7)
+Result   : (bool TRUE)
+
+Operator  : union2
+Number    : 1
+Signature : line x line -> line
+Example   : query  (trajectory(train7) union2 trajectory(train7))=trajectory(train7)
+Result    : (bool TRUE)
+
+
+Operator  : union2
+Number    : 2
+Signature : region x region -> region
+Example   : query  (thecenter union2 thecenter) = thecenter
+Result    : (bool TRUE)
+
+
+Operator  : union2
+Number    : 3
+Signature : line x region -> region
+Example   : query  (trajectory(train7) union2 thecenter) = thecenter
+Result    : (bool TRUE)
+
+
+Operator  : union2
+Number    : 4
+Signature : region x line -> region
+Example   : query  (thecenter union2 trajectory(train7)) = thecenter
+Result    : (bool TRUE)
+
+
+
+Operator  : intersection2
+Number    : 1
+Signature : line x line -> line
+Example   : query  (trajectory(train7) intersection2 trajectory(train7))=trajectory(train7)
+Result    : (bool TRUE)
+
+
+Operator  : intersection2
+Number    : 2
+Signature : region x region -> region
+Example   : query  (thecenter intersection2 thecenter) = thecenter
+Result    : (bool TRUE)
+
+
+Operator  : intersection2
+Number    : 3
+Signature : line x region -> region
+Example   : query  isempty(trajectory(train7) intersection2 thecenter) 
+Result    : FALSE
+Remark    : returns the part of the line which are in interior or on boundary of the region
+
+Operator  : intersection2
+Number    : 4
+Signature : region x line -> region
+Example   : query  isempty(thecenter intersection2 trajectory(train7))
+Result    : FALSE
+
+Operator  : difference2
+Number    : 1
+Signature : line x line -> line
+Example   : query trajectory(train7) difference2 trajectory(train7)
+Result    : (line ())
+
+
+Operator  : difference2
+Number    : 2
+Signature : region x region -> region
+Example   : query thecenter difference2 thecenter
+Result    : (region ())
+
+
+Operator  : difference2
+Number    : 3
+Signature : region x line -> region
+Example   : query (thecenter difference2 trajectory(train7)) = thecenter
+Result    : (bool TRUE)
+
+
+Operator  : difference2
+Number    : 4
+Signature : line x region -> line
+Example   : query isempty(trajectory(train7) difference2 thecenter)
+Result    : FALSE
+
+
+Operator  : commonborder2
+Number    : 1
+Signature : region x region -> line
+Example   : query (thecenter commonborder2 thecenter) = boundary(thecenter)
+Result    : (bool TRUE)

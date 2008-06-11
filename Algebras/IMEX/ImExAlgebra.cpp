@@ -1956,7 +1956,7 @@ Builds a region from a set of cycles.
            Region* hole = holes[j];
            if(face->BoundingBox().Intersects(hole->BoundingBox())){
               if(!topops::wcontains(hole,face)){ // may be an island
-                 Region* tmp = topops::SetOp(*face,*hole,topops::difference_op);
+                 Region* tmp = SetOp(*face,*hole,avlseg::difference_op);
                  delete face;
                  face = tmp;
               }
@@ -1982,7 +1982,7 @@ Builds a region from a set of cycles.
      Region* reg = faces2[0];
      for(unsigned int i=1;i<faces2.size();i++){
        Region* face2 = faces2[i];
-       Region* tmp = topops::SetOp(*reg, *face2, topops::union_op);
+       Region* tmp = SetOp(*reg, *face2, avlseg::union_op);
        delete reg;
        delete face2;
        reg = tmp;
@@ -2341,7 +2341,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
   segments1.Sort(HalfSegmentCompare);
 
   // split the segments at crossings and overlappings
-  DBArray<HalfSegment>* segments = topops::Split(segments1);
+  DBArray<HalfSegment>* segments = Split(segments1);
 
   
   SetPartnerNo(*segments);
@@ -2440,7 +2440,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
     if(!result){
       result = reg;
     } else {
-      Region* tmp = topops::SetOp(*result,*reg,topops::union_op);
+      Region* tmp = SetOp(*result,*reg,avlseg::union_op);
       delete result;
       result = tmp;
       delete reg;

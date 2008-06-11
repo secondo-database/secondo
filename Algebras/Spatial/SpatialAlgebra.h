@@ -55,10 +55,12 @@ shows examples of these spatial data types.
 #include <fstream>
 #include <stack>
 #include <vector>
+#include <queue>
 #include "StandardAttribute.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
 #include "WinUnix.h"
+#include "AvlTree.h"
 
 
 typedef double Coord;
@@ -4347,5 +4349,568 @@ inline double ApplyFactor( const double d )
     return FACTOR * fabs(d);
   return FACTOR;
 }
+
+
+/*
+5 Auxiliary structures for plane sweep algorithms
+
+5.1 Definition of ~ownertype~
+
+This enumeration is used to indicate the source of an ~AVLSegment~.
+
+*/
+namespace avlseg{
+
+enum ownertype{none, first, second, both};
+
+enum SetOperation{union_op, intersection_op, difference_op};
+
+ostream& operator<<(ostream& o, const ownertype& owner);
+
+
+const int LEFT      = 1;
+const int RIGHT     = 2;
+const int COMMON = 4;
+
+/*
+3.2 The Class ~AVLSegment~
+
+This class is used for inserting into an avl tree during a plane sweep.
+
+
+*/
+
+class AVLSegment{
+
+public:
+
+/*
+3.1.1 Constructors
+
+~Standard Constructor~
+
+*/
+  AVLSegment();
+
+
+/*
+~Constructor~
+
+This constructor creates a new segment from the given HalfSegment.
+As owner only __first__ and __second__ are the allowed values.
+
+*/
+
+  AVLSegment(const HalfSegment* hs, ownertype owner);
+
+
+/*
+~Constructor~
+
+Create a Segment only consisting of a single point.
+
+*/
+
+  AVLSegment(const Point* p, ownertype owner);
+
+
+/*
+~Copy Constructor~
+
+*/
+   AVLSegment(const AVLSegment& src);
+
+
+/*
+3.2.1 Destructor
+
+*/
+   ~AVLSegment() {}
+
+
+/*
+3.3.1 Operators
+
+*/
+
+  AVLSegment& operator=(const AVLSegment& src);
+
+  bool operator==(const AVLSegment& s) const;
+
+  bool operator<(const AVLSegment& s) const;
+
+  bool operator>(const AVLSegment& s) const;
+
+/*
+3.3.1 Further Needful Functions
+
+~Print~
+
+This function writes this segment to __out__.
+
+*/
+  void Print(ostream& out)const;
+  
+/*
+
+~Equalize~
+
+The value of this segment is taken from the argument.
+
+*/
+
+  void Equalize( const AVLSegment& src);
+
+
+/*
+3.5.1 Geometric Functions
+
+~crosses~
+
+Checks whether this segment and __s__ have an intersection point of their
+interiors.  
+
+*/
+ bool crosses(const AVLSegment& s) const;
+
+/*
+~crosses~
+
+This function checks whether the interiors of the related 
+segments are crossing. If this function returns true,
+the parameters ~x~ and ~y~ are set to the intersection point.
+
+*/
+ bool crosses(const AVLSegment& s,double& x, double& y) const;
+
+/*
+~extends~
+
+This function returns true, iff this segment is an extension of 
+the argument, i.e. if the right point of ~s~ is the left point of ~this~
+and the slopes are equal.
+
+*/
+  bool extends(const AVLSegment& s) const;
+
+
+/*
+~exactEqualsTo~
+
+This function checks if s has the same geometry like this segment, i.e.
+if both endpoints are equal.  
+ 
+*/
+bool exactEqualsTo(const AVLSegment& s)const;
+
+/*
+~isVertical~
+
+Checks whether this segment is vertical.
+
+*/
+
+ bool isVertical() const;
+
+
+/*
+~isPoint~
+
+Checks if this segment consists only of a single point.
+
+*/
+  bool isPoint() const;
+
+/*
+~length~
+
+Returns the length of this segment.
+
+*/
+  double length();
+
+/*
+~InnerDisjoint~
+
+This function checks whether this segment and s have at most a 
+common endpoint. 
+
+*/
+
+  bool innerDisjoint(const AVLSegment& s)const;
+
+/*
+~Intersects~
+
+This function checks whether this segment and ~s~ have at least a 
+common point. 
+
+*/
+
+  bool intersects(const AVLSegment& s)const;
+
+
+/*
+~overlaps~
+
+Checks whether this segment and ~s~ have a common segment.
+
+*/
+   bool overlaps(const AVLSegment& s) const;
+
+/*
+~ininterior~
+
+This function checks whether the point defined by (x,y) is
+part of the interior of this segment.
+
+*/
+   bool ininterior(const double x,const  double y)const;
+
+
+/*
+~contains~
+
+Checks whether the point defined by (x,y) is located anywhere on this
+segment.
+
+*/
+   bool contains(const double x,const  double y)const;
+
+
+/*
+3.6.1 Comparison
+
+Compares this with s. The x intervals must overlap.
+
+*/
+
+ int compareTo(const AVLSegment& s) const;
+
+/*
+~SetOwner~
+
+This function changes the owner of this segment.
+
+*/
+  void setOwner(ownertype o);
+
+
+/*
+3.7.1 Some ~Get~ Functions
+
+~getInsideAbove~
+
+Returns the insideAbove value for such segments for which this value is unique,
+e.g. for segments having owner __first__ or __second__.
+
+*/
+  bool getInsideAbove() const;
+
+
+  inline double getX1() const { return x1; }
+
+  inline double getX2() const { return x2; }
+
+  inline double getY1() const { return y1; }
+
+  inline double getY2() const { return y2; }
+
+  inline ownertype getOwner() const { return owner; }
+
+  inline bool getInsideAbove_first() const { return insideAbove_first; }
+
+  inline bool getInsideAbove_second() const { return insideAbove_second; }
+
+
+/*
+3.8.1 Split Functions
+
+~split~
+
+This function splits two overlapping segments.
+Preconditions:
+
+1) this segment and ~s~ have to overlap.
+
+2) the owner of this and ~s~ must be different 
+
+~left~, ~common~ and ~right~ will contain the
+explicitely left part, a common part, and 
+an explecitely right part. The left and/or right part
+my be empty. The existence can be checked using the return
+value of this function. Let ret the return value. It holds:
+
+  __ret | LEFT__: the left part exists
+
+  __ret | COMMON__: the common part exist (always true)
+
+  __ret | RIGHT__: the right part exists
+
+
+The constants LEFT, COMMON, and RIGHT have been defined
+earlier.
+
+*/
+
+  int split(const AVLSegment& s, AVLSegment& left, AVLSegment& common, 
+            AVLSegment& right, const bool checkOwner = true) const;
+
+
+/*
+~splitAt~
+
+This function divides a segment into two parts at the point 
+provided by (x, y). The point must be on the interior of this segment.
+
+*/
+
+  void splitAt(const double x, const double y, 
+               AVLSegment& left, 
+               AVLSegment& right)const;
+
+
+/*
+~splitCross~
+
+Splits two crossing segments into the 4 corresponding parts. 
+Both segments have to cross each other.
+
+*/
+void splitCross(const AVLSegment& s, AVLSegment& left1, AVLSegment& right1,
+                AVLSegment& left2, AVLSegment& right2) const;
+
+
+/*
+3.9.1 Converting Functions
+
+~ConvertToHs~
+
+This functions creates a ~HalfSegment~ from this segment.
+The owner must be __first__ or __second__.
+
+*/
+HalfSegment convertToHs(bool lpd, ownertype owner = both )const;
+
+
+/*
+3.10.1 Public Data Members 
+
+These members are not used in this class. So the user of
+this class can change them without any problems within this
+class itself.
+
+*/
+ int con_below;  // should be used as a coverage number
+ int con_above;  // should be used as a coverage number
+
+
+/*
+3.11.1 Private Part
+
+Here the data members as well as some auxiliary functions are
+collected.
+
+*/
+
+
+private:
+  /* data members  */
+  double x1,y1,x2,y2; // the geometry of this segment
+  bool insideAbove_first;
+  bool insideAbove_second;
+  ownertype owner;    // who is the owner of this segment
+
+
+/*
+~pointequal~
+
+This function checks if the points defined by (x1, y1) and 
+(x2,y2) are equals using the ~AlmostEqual~ function.
+
+*/
+  static bool pointEqual(const double x1, const double y1,
+                         const double x2, const double y2);
+
+
+/*
+~pointSmaller~
+
+This function checks if the point defined by (x1, y1) is
+smaller than the point defined by (x2, y2).
+
+*/
+
+ static bool pointSmaller(const double x1, const double y1,
+                          const double x2, const double y2);
+
+/*
+~comparePoints~
+
+*/
+  static int comparePoints(const double x1,const  double y1,
+                            const double x2,const double y2);
+
+/*
+~compareSlopes~
+
+compares the slopes of __this__ and __s__. The slope of a vertical
+segment is greater than all other slopes. 
+
+*/
+   int compareSlopes(const AVLSegment& s) const;
+
+
+/*
+~XOverlaps~
+
+Checks whether the x interval of this segment overlaps the
+x interval of ~s~.
+
+*/
+
+  bool xOverlaps(const AVLSegment& s) const;
+
+
+/*
+~XContains~
+
+Checks if the x coordinate provided by the parameter __x__ is contained
+in the x interval of this segment;
+
+*/
+  bool xContains(const double x) const;
+
+
+/*
+~GetY~
+
+Computes the y value for the specified  __x__. 
+__x__ must be contained in the x-interval of this segment. 
+If the segment is vertical, the minimum y value of this 
+segment is returned.
+
+*/  
+  double getY(const double x) const;
+};
+
+ostream& operator<<(ostream& o, const AVLSegment& s);
+
+}
+
+void insertEvents(const avlseg::AVLSegment& seg,
+                  const bool createLeft,
+                  const bool createRight,
+                  priority_queue<HalfSegment,
+                                 vector<HalfSegment>,
+                                 greater<HalfSegment> >& q1,
+                  priority_queue<HalfSegment,
+                                 vector<HalfSegment>,
+                                 greater<HalfSegment> >& q2);
+
+
+void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
+                      avlseg::AVLSegment& current,
+                      avlseg::AVLSegment const*& neighbour,
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
+                                     greater<HalfSegment> >& q1,
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
+                                     greater<HalfSegment> >& q2);
+
+void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
+                     avlseg::AVLSegment const*& leftN,
+                     avlseg::AVLSegment const*& rightN,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2);
+
+void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
+                      avlseg::AVLSegment& current,
+                      avlseg::AVLSegment const*& neighbour,
+                      priority_queue<HalfSegment,  
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q1,
+                      priority_queue<HalfSegment,  
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q2);
+
+Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op);
+Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op);
+
+DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments);
+
+DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments);
+
+bool hasOverlaps(const DBArray<HalfSegment>& segments, 
+                 const bool ignoreEqual=false);
+
+bool IsSpatialType(ListExpr type);
+avlseg::ownertype selectNext(Region const* const reg1,
+                     int& pos1,
+                     Region const* const reg2,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result,
+                     int& src // for debugging only
+                    );
+
+avlseg::ownertype selectNext(Line const* const line1,
+                     int& pos1,
+                     Line const* const line2,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result,
+                     int& src
+                    );
+
+avlseg::ownertype selectNext(Line const* const line,
+                     int& pos1,
+                     Region const* const region,
+                     int& pos2,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q1,
+                     priority_queue<HalfSegment,  
+                                    vector<HalfSegment>, 
+                                    greater<HalfSegment> >& q2,
+                     HalfSegment& result,
+                     int& src
+                    );
+
+avlseg::ownertype selectNext( Line const* const line,
+                      priority_queue<HalfSegment, 
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q,
+                      int& posLine,
+                      Points const* const point,
+                      int& posPoint, 
+                      HalfSegment& resHs,
+                      Point& resPoint);
+
+avlseg::ownertype selectNext( Line const* const line,
+                      priority_queue<HalfSegment, 
+                                     vector<HalfSegment>, 
+                                     greater<HalfSegment> >& q,
+                      int& posLine,
+                      Point const* const point,
+                      int& posPoint, // >0: point already used
+                      HalfSegment& resHs,
+                      Point& resPoint);
+
 
 #endif // __SPATIAL_ALGEBRA_H__

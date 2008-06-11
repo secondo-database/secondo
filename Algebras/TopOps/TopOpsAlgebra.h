@@ -35,21 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace topops{
 
-  enum SetOperation{union_op, intersection_op, difference_op};
-
   bool wcontains(const Region* reg1, const Region* reg2);
-  
-  Line* SetOp(const Line& line1, const Line& line2, SetOperation op);
-  Region* SetOp(const Region& reg1, const Region& reg2, SetOperation op);
-
-  DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments);
-  
-  DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments);
-
-  bool hasOverlaps(const DBArray<HalfSegment>& segments, 
-                   const bool ignoreEqual=false);
-
-
 }
 
 #endif
