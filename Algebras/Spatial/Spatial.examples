@@ -373,11 +373,6 @@ Example  : query convexhull([const points value ((0 0) (10 0) (10 10) (5 3) )])
 Result   : (region ( ( ( (10.0 0.0) (0.0 0.0) (10.0 10.0))))) 
 
 
-Operator : realminize2
-Number   : 1
-Signature: line -> line 
-Example  : query (realminize2(trajectory(train7))) = trajectory(train7)
-Result   : (bool TRUE)
 
 Operator  : union2
 Number    : 1

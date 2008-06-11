@@ -4991,5 +4991,6 @@ avlseg::ownertype selectNext( Line const* const line,
                       HalfSegment& resHs,
                       Point& resPoint);
 
+void Realminize2(const Line& src, Line& result);
 
 #endif // __SPATIAL_ALGEBRA_H__
