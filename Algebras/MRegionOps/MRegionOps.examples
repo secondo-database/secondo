@@ -1,0 +1,24 @@
+Database : berlintest
+Restore  : NO
+
+
+Operator : intersection
+Number   : 1
+Signature: 
+Example  : query TRUE
+Result   : TRUE
+
+Operator : union
+Number   : 1
+Signature: 
+Example  : query TRUE
+Result   : TRUE
+
+Operator : minus
+Number   : 1
+Signature: 
+Example  : query TRUE
+Result   : TRUE
+
+
+
