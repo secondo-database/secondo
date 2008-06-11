@@ -4798,6 +4798,17 @@ ostream& operator<<(ostream& o, const AVLSegment& s);
 
 }
 
+
+/*
+~insertEvents~
+
+This function is used to realize plane sweep algorithms.
+It inserts the Halfsegmsnts for ~seg~ into ~q~1 and
+~q~2 depending on the owner of ~seg~. The flags ~createLeft~
+and ~createRight~ control which Halfsegments (LeftDomPoint or not)
+should be inserted. 
+
+*/
 void insertEvents(const avlseg::AVLSegment& seg,
                   const bool createLeft,
                   const bool createRight,
@@ -4808,6 +4819,16 @@ void insertEvents(const avlseg::AVLSegment& seg,
                                  vector<HalfSegment>,
                                  greater<HalfSegment> >& q2);
 
+/*
+~splitByNeighbour~
+
+This function splits current (and neigbour) if required. neigbour
+is replaces in ~sss~ by its left part (the part before the crossing)
+and current is shortened to its left part. The remainding parts (the right parts)
+are inserted into the corresponding queues depending on the woner of ~current~ and 
+~neighbour~.
+
+*/
 
 void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                       avlseg::AVLSegment& current,
@@ -4819,6 +4840,14 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                                      vector<HalfSegment>,
                                      greater<HalfSegment> >& q2);
 
+/*
+~splitByNeighbours~
+
+Splits the segments ~leftN~ and ~rightN~ at their crossing point and 
+replaces them by their left parts in ~sss~. The right parts are 
+inserted into the queues.
+
+*/
 void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                      avlseg::AVLSegment const*& leftN,
                      avlseg::AVLSegment const*& rightN,
@@ -4829,26 +4858,62 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                                     vector<HalfSegment>, 
                                     greater<HalfSegment> >& q2);
 
-void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
-                      avlseg::AVLSegment& current,
-                      avlseg::AVLSegment const*& neighbour,
-                      priority_queue<HalfSegment,  
-                                     vector<HalfSegment>, 
-                                     greater<HalfSegment> >& q1,
-                      priority_queue<HalfSegment,  
-                                     vector<HalfSegment>, 
-                                     greater<HalfSegment> >& q2);
+/*
+~SetOp~
 
+This function realizes some set operations on two line objects. 
+~op~ may be instantiated with avlseg::union[_]op, avlseg::difference[_]op,
+or avlseg::intersection[_]op.
+
+*/
 Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op);
+
+/*
+~SetOp~
+
+This function realizes some set operations on two region objects. 
+~op~ may be instantiated with avlseg::union[_]op, avlseg::difference[_]op,
+or avlseg::intersection[_]op.
+
+*/
 Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op);
 
+/*
+~Realminize~
+
+Creates a reamlinized representation of the HalfSegments in ~segments~. This means,
+if halfsegments overlap, only one of the segments left. If halfsegments are crossing
+or touching at their interior, their are split. 
+
+*/
 DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments);
 
+/*
+~Split~
+
+This function is similar to Realminize. In contrast to that function, segments covering the
+same space left instead to replace by a single segment. 
+
+*/
 DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments);
 
+/*
+~hasOverlaps~
+
+This function checks whether in ~segments~ at least two segments overlap.
+
+*/
 bool hasOverlaps(const DBArray<HalfSegment>& segments, 
                  const bool ignoreEqual=false);
 
+
+/*
+~isSpatialType~
+
+This function checks whether ~type~ represents a spatial type, i.e. point, points,
+line, region.
+
+*/
 bool IsSpatialType(ListExpr type);
 avlseg::ownertype selectNext(Region const* const reg1,
                      int& pos1,
@@ -4864,6 +4929,20 @@ avlseg::ownertype selectNext(Region const* const reg1,
                      int& src // for debugging only
                     );
 
+/*
+~selectNext~
+
+The following set of functions determines the smallest Halfsegment from the
+arguments  HalfSegment at position ~pos1~ of ~line1~, HalfSegment at position
+~pos2~ of ~line2~ and the heads of the queues. The smallest halfsegment is 
+returned in result. The return value is __avlseg::first__ iff the Halfsegment
+comes from ~line1~ or ~q1~, __avlseg::second__ if the HalfSegment comes from
+~line2~ or ~q2~ and __avlseg::none__ if all arguments are exhausted.
+The argument ~src~ is used for debugging purposed and returns the exact source 
+of the smallest halfSegment. 
+
+
+*/
 avlseg::ownertype selectNext(Line const* const line1,
                      int& pos1,
                      Line const* const line2,
