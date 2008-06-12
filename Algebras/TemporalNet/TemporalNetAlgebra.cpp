@@ -24,138 +24,1544 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-1.1 Implementation of Algebra TemporalNet
+1 Implementation of Algebra TemporalNet
 
-May 2007 Martin Scheppokat
+May 2007 - October 2007 Martin Scheppokat
 
-March 2008 Simone Jandt Added type constructor igpoint and operators: length,
-initial, atinstant and final.
-
-June 2008 Simone Jandt added operators to return ugpointparts in secondo as
-doubel values.
+February 2008 - June 2008 Simone Jandt
 
 Defines, includes, and constants
 
 */
 #include "NestedList.h"
+#include "RelationAlgebra.h"
+#include "BTreeAlgebra.h"
 #include "TupleIdentifier.h"
 #include "DBArray.h"
-
-#include "GPoint.h"
+#include "StandardTypes.h"
 #include "NetworkAlgebra.h"
 #include "TemporalAlgebra.h"
 #include "TemporalNetAlgebra.h"
-#include "OpMPoint2MGPoint.h"
-#include "OpUnits.h"
-#include "OpSimplify.h"
-#include "OpPasses.h"
-#include "OpTrajectory.h"
-#include "OpTempNetLength.h"
-#include "OpTempNetAtinstant.h"
-#include "OpTempNetAtperiods.h"
-#include "OpTempNetInitial.h"
-#include "OpTempNetFinal.h"
-#include "OpTempNetAt.h"
-#include "OpTempNetVal.h"
-#include "OpTempNetInst.h"
-#include "OpTempNetPresent.h"
-#include "OpTempNetIsEmpty.h"
-#include "OpTempNetNoComp.h"
-#include "OpTempNetInside.h"
-#include "OpTempNetIntersection.h"
-#include "OpTempNetDeftime.h"
-#include "OpUnitRid.h"
-#include "OpUnitStartPos.h"
-#include "OpUnitEndPos.h"
-#include "OpUnitEndTime.h"
-#include "OpUnitStartTime.h"
+#include "NetworkManager.h"
 
 #include <iostream>
 #include <sstream>
 #include <string>
 #include "QueryProcessor.h"
 #include "Algebra.h"
-
 #include "DateTime.h"
-#include "UGPoint.h"
-#include "MGPoint.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-
 /*
-Intime GPoint Property
+
+1.1 Additional Methods
+
+1.1.1 ~setMoveAndSide~
+
+Sets parameter movingUp and side for the given Unit. Used by ~mpoint2mgpoint~.
 
 */
-ListExpr
-IntimeGPointProperty()
+
+void setMoveAndSide(double startPos, double endPos, bool &MovingUp, bool dual,
+                Side &side){
+  if (MovingUp && startPos <= endPos) { MovingUp = true;}
+  else {
+    if (MovingUp && startPos > endPos) { MovingUp = false;}
+    else {
+      if (!MovingUp && startPos < endPos) { MovingUp = true;}
+      else {
+        if (!MovingUp && startPos >= endPos) { MovingUp = false;}
+      }
+    }
+  }
+  if (dual && MovingUp) { side = Up;}
+  else {
+    if (dual && !MovingUp) { side = Down;}
+    else { side = None;}
+  }
+}
+
+/*
+1.1.2 ~getUnitValues~
+
+Gets the parameter Values of the given Unit. Used by ~mpoint2mgpoint~
+
+*/
+void getUnitValues(const UPoint *curUnit, Point &endPoint, Point &startPoint,
+                   Instant &startTime, Instant &endTime,
+                   double &lStartTime, double &lEndTime, double &duration)
+{
+  startPoint = curUnit->p0;
+  endPoint = curUnit->p1;
+  startTime = curUnit->timeInterval.start;
+  lStartTime = startTime.ToDouble();
+  endTime = curUnit->timeInterval.end;
+  lEndTime = endTime.ToDouble();
+  duration = lEndTime - lStartTime;
+
+}
+
+/*
+1.1.3 ~checkPoint~
+
+Checks linevalue for the point and computes the position from the point on
+the line including difference value if not exactly on the line. Returns true if
+the ~point~ is on the line false elsewhere. Used by ~mpoint2mgpoint~.
+
+*/
+
+  bool checkPoint (Line *route, Point point, bool startSmaller, double &pos,
+                 double &difference){
+  bool result = false;
+  const HalfSegment *hs;
+  double k1, k2;
+  Point left, right;
+  for (int i = 0; i < route->Size()-1; i++) {
+    route->Get(i, hs);
+    left = hs->GetLeftPoint();
+    right = hs->GetRightPoint();
+    Coord xl = left.GetX(),
+          yl = left.GetY(),
+          xr = right.GetX(),
+          yr = right.GetY(),
+          x = point.GetX(),
+          y = point.GetY();
+    if ((fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01) ||
+       (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01)){
+      difference = 0.0;
+      result = true;
+    } else {
+      if (xl != xr && xl != x) {
+        k1 = (y - yl) / (x - xl);
+        k2 = (yr - yl) / (xr - xl);
+        if ((fabs(k1-k2) < 0.01) &&
+           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
+           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
+           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
+           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
+           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
+           (y > yr || fabs(y-yr)<0.01)))) {
+              difference = fabs(k1-k2);
+              result = true;
+        } else {result = false;}
+      } else {
+        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
+           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
+           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
+           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
+              difference = 0.0;
+              result = true;
+        } else {result = false;}
+      }
+    }
+    if (result) {
+      if (!(route->IsSimple())) {
+        return false;
+      } else {
+        const LRS *lrs;
+        route->Get( hs->attr.edgeno, lrs );
+        route->Get( lrs->hsPos, hs );
+        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
+        if( startSmaller != route->GetStartSmaller())
+          pos = route->Length() - pos;
+        if( fabs(pos-0.0) < 0.01)
+          pos = 0.0;
+        else if (fabs(pos-route->Length())<0.01)
+              pos = route->Length();
+        return result;
+      }
+    }
+  }
+  return result;
+}
+
+/*
+1.1.4 ~checkPoint03~
+
+Almost Equal to ~checkPoint~ but allows bigger differences. Used by
+~mpoint2mgpoint~.
+
+*/
+
+bool checkPoint03 (Line *route, Point point, bool startSmaller, double &pos,
+                 double &difference){
+  bool result = false;
+  const HalfSegment *hs;
+  double k1, k2;
+  Point left, right;
+  for (int i = 0; i < route->Size()-1; i++) {
+    route->Get(i, hs);
+    left = hs->GetLeftPoint();
+    right = hs->GetRightPoint();
+    Coord xl = left.GetX(),
+          yl = left.GetY(),
+          xr = right.GetX(),
+          yr = right.GetY(),
+          x = point.GetX(),
+          y = point.GetY();
+    if ((fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01) ||
+        (fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01)) {
+      difference = 0.0;
+      result = true;
+    } else {
+      if (xl != xr && xl != x) {
+        k1 = (y - yl) / (x - xl);
+        k2 = (yr - yl) / (xr - xl);
+        if ((fabs(k1-k2) < 1.2) &&
+           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
+           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
+           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
+           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
+           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
+           (y > yr || fabs(y-yr)<0.01)))) {
+              difference = fabs(k1-k2);
+              result = true;
+        } else {result = false;}
+      } else {
+        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
+           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
+           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
+           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
+              difference = 0.0;
+              result = true;
+        } else {result = false;}
+      }
+    }
+    if (result) {
+      if (!(route->IsSimple())) {
+        return false;
+      } else {
+        const LRS *lrs;
+        route->Get( hs->attr.edgeno, lrs );
+        route->Get( lrs->hsPos, hs );
+        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
+        if( startSmaller != route->GetStartSmaller())
+          pos = route->Length() - pos;
+        if( fabs(pos-0.0) < 0.01)
+          pos = 0.0;
+        else if (fabs(pos-route->Length())<0.01)
+              pos = route->Length();
+        return result;
+      }
+    }
+  }
+  return result;
+}
+
+/*
+1.1.5 ~searchUnit~
+
+Returns true if there is a ~RouteInterval~ in the sorted ~GLine~ which
+intersects the given ~RouteInterval~ false elsewhere. Used by operator
+~passes~.
+
+*/
+
+bool searchUnit(GLine *pGLine, size_t low, size_t high,
+                int unitRouteId, double dMGPStart,
+                double dMGPEnd) {
+  const RouteInterval *rI;
+  if (low <= high) {
+    size_t mid = (high + low) / 2;
+    int imid = mid;
+    if ((mid < 0) || (imid >= pGLine->NoOfComponents())) {
+      return false;
+    }else {
+      pGLine->Get(mid, rI);
+      if (rI->m_iRouteId < unitRouteId) {
+        return searchUnit(pGLine, mid+1, high, unitRouteId, dMGPStart, dMGPEnd);
+      } else {
+        if (rI->m_iRouteId > unitRouteId){
+          return searchUnit(pGLine, low, mid-1, unitRouteId, dMGPStart,
+                            dMGPEnd);
+        } else {
+          if (rI->m_dStart > dMGPEnd) {
+            return searchUnit(pGLine, low, mid-1, unitRouteId, dMGPStart,
+                              dMGPEnd);
+          } else {
+            if (rI->m_dEnd < dMGPStart){
+              return searchUnit(pGLine, mid+1, high, unitRouteId, dMGPStart,
+                                dMGPEnd);
+            } else {
+              return true;
+            }
+          }
+        }
+      }
+    }
+  } else {
+    return false;
+  }
+  return false;
+}
+
+/*
+1.1.6 ~checkEndOfUGPoint~
+
+Used by operator ~inside~ to check the rest of the ~UGPoint~ if there is a
+further intersection.
+
+Two different parameter lists are possible.
+
+*/
+void checkEndOfUGPoint(double startPos, double endPos, Instant startTime,
+                       bool bstart, Instant endTime, bool bend, int actRoutInt,
+                       GLine* pGLine, MBool* &pResult,
+                       int iRouteId){
+  const RouteInterval *pCurrInt;
+  UBool interbool(true);
+  bool swapped = false;
+  bool found = false;
+  double lStart, lEnd, factor, help;
+  Instant tInterStart, tInterEnd;
+  int k = actRoutInt + 1;
+  while ( k < pGLine->NoOfComponents()) {
+    pGLine->Get(k, pCurrInt);
+    if (pCurrInt->m_iRouteId == iRouteId) {
+      if (endPos < startPos) {
+          help = startPos;
+          startPos = endPos;
+          endPos = help;
+          swapped = true;
+      }
+      lStart = pCurrInt->m_dStart;
+      lEnd = pCurrInt->m_dEnd;
+      if (lStart > lEnd) {
+        lStart = pCurrInt->m_dEnd;
+        lEnd = pCurrInt->m_dStart;
+      }
+      if (!(endPos < lStart || startPos > lEnd || startPos == endPos ||
+             lStart == lEnd)){
+          //intersection exists compute intersecting part and timevalues for
+          //resulting unit
+        if (!swapped) {
+          if (lStart <= startPos) {
+            found = true;
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            interbool.constValue.Set(true, true);
+          } else {
+            found = true;
+            // compute and write unit befor mgpoint inside gline
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            factor =  fabs(lStart - startPos) / fabs(endPos - startPos);
+            tInterStart = (endTime - startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterStart;
+            interbool.timeInterval.rc = false;
+            interbool.constValue.Set(true,false);
+            pResult->MergeAdd(interbool);
+            //compute start of unit inside
+            interbool.timeInterval.start = tInterStart;
+            interbool.timeInterval.lc = true;
+            interbool.constValue.Set(true, true);
+          }
+          if (lEnd >= endPos) {
+            interbool.timeInterval.end = endTime;
+            interbool.timeInterval.rc = bend;
+            pResult->MergeAdd(interbool);
+          } else {
+            // compute end of mgpoint at end of gline.and add result unit
+            interbool.timeInterval.rc = true;
+            factor = fabs(lEnd - startPos) / fabs(endPos -startPos);
+            tInterEnd = (endTime -startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterEnd;
+            pResult->MergeAdd(interbool);
+            // the rest of the current unit is not in the current
+            // routeinterval.
+            checkEndOfUGPoint(lEnd, endPos, tInterEnd, false, endTime, bend,
+                                k, pGLine, pResult, iRouteId);
+          }
+        } else {
+          help = startPos;
+          startPos = endPos;
+          endPos = help;
+          if (lEnd >= startPos) {
+            found = true;
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            interbool.constValue.Set(true, true);
+          } else {
+            found = true;
+            // compute and write unit befor mgpoint inside gline
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            factor =  fabs(lEnd - startPos) / fabs(endPos - startPos);
+            tInterStart = (endTime - startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterStart;
+            interbool.timeInterval.rc = false;
+            interbool.constValue.Set(true,false);
+            pResult->MergeAdd(interbool);
+            //compute start of unit inside
+            interbool.timeInterval.start = tInterStart;
+            interbool.timeInterval.lc = true;
+            interbool.constValue.Set(true, true);
+          }
+          if (lStart <= endPos) {
+              interbool.timeInterval.end = endTime;
+              interbool.timeInterval.rc = bend;
+              pResult->MergeAdd(interbool);
+          } else {
+              // compute end of mgpoint at end of gline.and add result unit
+              interbool.timeInterval.rc = true;
+              factor = fabs(lStart - startPos) / fabs(endPos - startPos);
+              tInterEnd = (endTime - startTime) * factor + startTime;
+              interbool.timeInterval.end = tInterEnd;
+              pResult->MergeAdd(interbool);
+              // the rest of the current unit is not in the current
+              // routeinterval.
+              checkEndOfUGPoint(lEnd, endPos, tInterEnd, false, endTime, bend,
+                                k, pGLine, pResult, iRouteId);
+          }
+        }
+      }else{
+        if (startPos == endPos && bstart && bend){
+          found = true;
+          interbool.timeInterval.start = startTime;
+          interbool.timeInterval.lc = bstart;
+          interbool.timeInterval.end = endTime;
+          interbool.timeInterval.rc = bend;
+          interbool.constValue.Set(true,true);
+          pResult->MergeAdd(interbool);
+        } else {
+          if (lStart == lEnd) {
+            found = true;
+            if ((lStart > startPos && lStart < endPos) ||
+                  (lStart < startPos && lStart > endPos)) {
+              // compute and write unit befor mgpoint inside gline
+              interbool.timeInterval.start = startTime;
+              interbool.timeInterval.lc = bstart;
+              factor =  fabs(lStart - startPos) / fabs(endPos -startPos);
+              tInterStart = (endTime - startTime) * factor + startTime;
+              interbool.timeInterval.end = tInterStart;
+              interbool.timeInterval.rc = false;
+              interbool.constValue.Set(true,false);
+              pResult->MergeAdd(interbool);
+              interbool.timeInterval.start = tInterStart;
+              interbool.timeInterval.rc = true;
+              interbool.timeInterval.lc = true;
+              interbool.constValue.Set(true, true);
+              pResult->MergeAdd(interbool);
+              checkEndOfUGPoint(lEnd, endPos, tInterEnd, false, endTime, bend,
+                                 k, pGLine, pResult, iRouteId);
+            } else {
+              if (lStart == startPos && bstart) {
+                found = true;
+                interbool.timeInterval.start = startTime;
+                interbool.timeInterval.lc = bstart;
+                interbool.timeInterval.end = startTime;
+                interbool.timeInterval.rc = true;
+                interbool.constValue.Set(true,true);
+                pResult->MergeAdd(interbool);
+                checkEndOfUGPoint(lEnd, endPos, tInterEnd, false, endTime, bend,
+                                  k, pGLine, pResult, iRouteId);
+              } else {
+                if (lStart == endPos && bend) {
+                  found = true;
+                  interbool.timeInterval.start = startTime;
+                  interbool.timeInterval.lc = bstart;
+                  interbool.timeInterval.end = endTime;
+                  interbool.timeInterval.rc = false;
+                  interbool.constValue.Set(true,false);
+                  pResult->MergeAdd(interbool);
+                  interbool.timeInterval.start = endTime;
+                  interbool.timeInterval.rc = bend;
+                  interbool.timeInterval.lc = true;
+                  interbool.constValue.Set(true, true);
+                  pResult->MergeAdd(interbool);
+                }
+              }
+            }
+          } else {
+            if ((startPos == lStart && endPos == lEnd)||
+               (startPos == lEnd && endPos == lStart)){
+              found = true;
+              interbool.timeInterval.start = startTime;
+              interbool.timeInterval.end = endTime;
+              interbool.timeInterval.lc = bstart;
+              interbool.timeInterval.rc = bend;
+              interbool.constValue.Set(true, true);
+              pResult->MergeAdd(interbool);
+            }
+          }
+        }
+      }
+    } // end if routeid==
+    k++;
+  } // end while
+  if (!found) {
+      interbool.timeInterval.start = startTime;
+      interbool.timeInterval.lc = bstart;
+      interbool.timeInterval.end = endTime;
+      interbool.timeInterval.rc = bend;
+      interbool.constValue.Set(true,false);
+      pResult->MergeAdd(interbool);
+  }
+}
+
+void checkEndOfUGPoint(double startPos, double endPos, Instant startTime,
+                       bool bstart, Instant endTime, bool bend,
+                       size_t actRoutInt, vector<RouteInterval> &vRI,
+                       MBool* &pResult, int iRouteId){
+  RouteInterval *pCurrInt;
+  UBool interbool(true);
+  double help, factor;
+  bool swapped = false;
+  if (endPos < startPos) {
+    help = startPos;
+    startPos = endPos;
+    endPos = help;
+    swapped = true;
+  }
+  bool found = false;
+  Instant tInterStart, tInterEnd;
+  size_t k = actRoutInt + 1;
+  while ( k < vRI.size()) {
+    pCurrInt = &vRI[k];
+    if (pCurrInt->m_iRouteId == iRouteId) {
+      if (!(endPos < pCurrInt->m_dStart || startPos > pCurrInt->m_dEnd ||
+            startPos == endPos || pCurrInt->m_dStart == pCurrInt->m_dEnd)){
+          //intersection exists compute intersecting part and timevalues for
+          //resulting unit
+        if (!swapped) {
+          if (pCurrInt->m_dStart <= startPos) {
+            found = true;
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            interbool.constValue.Set(true, true);
+          } else {
+            found = true;
+            // compute and write unit befor mgpoint inside gline
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            factor = fabs(pCurrInt->m_dStart - startPos) /
+                     fabs(endPos - startPos);
+            tInterStart = (endTime - startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterStart;
+            interbool.timeInterval.rc = false;
+            interbool.constValue.Set(true,false);
+            pResult->MergeAdd(interbool);
+            //compute start of unit inside
+            interbool.timeInterval.start = tInterStart;
+            interbool.timeInterval.lc = true;
+            interbool.constValue.Set(true, true);
+          }
+          if (pCurrInt->m_dEnd >= endPos) {
+            interbool.timeInterval.end = endTime;
+            interbool.timeInterval.rc = bend;
+            pResult->MergeAdd(interbool);
+          } else {
+            // compute end of mgpoint at end of gline.and add result unit
+            interbool.timeInterval.rc = true;
+            factor = fabs(pCurrInt->m_dEnd - startPos) /
+                     fabs(endPos -startPos);
+            tInterEnd = (endTime -startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterEnd;
+            pResult->MergeAdd(interbool);
+            // the rest of the current unit is not in the current
+            // routeinterval.
+            checkEndOfUGPoint(pCurrInt->m_dEnd, endPos, tInterEnd, false,
+                              endTime, bend, k, vRI, pResult, iRouteId);
+          }
+        } else {
+          help = startPos;
+          startPos = endPos;
+          endPos = help;
+          if (pCurrInt->m_dEnd >= startPos) {
+            found = true;
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            interbool.constValue.Set(true, true);
+          } else {
+            found = true;
+            // compute and write unit befor mgpoint inside gline
+            interbool.timeInterval.start = startTime;
+            interbool.timeInterval.lc = bstart;
+            factor =  fabs(pCurrInt->m_dEnd - startPos) /
+                      fabs(endPos - startPos);
+            tInterStart = (endTime - startTime) * factor + startTime;
+            interbool.timeInterval.end = tInterStart;
+            interbool.timeInterval.rc = false;
+            interbool.constValue.Set(true,false);
+            pResult->MergeAdd(interbool);
+            //compute start of unit inside
+            interbool.timeInterval.start = tInterStart;
+            interbool.timeInterval.lc = true;
+            interbool.constValue.Set(true, true);
+          }
+          if (pCurrInt->m_dStart <= endPos) {
+              interbool.timeInterval.end = endTime;
+              interbool.timeInterval.rc = bend;
+              pResult->MergeAdd(interbool);
+          } else {
+              // compute end of mgpoint at end of gline.and add result unit
+              interbool.timeInterval.rc = true;
+              factor = fabs(pCurrInt->m_dStart - startPos) /
+                       fabs(endPos - startPos);
+              tInterEnd = (endTime - startTime) * factor + startTime;
+              interbool.timeInterval.end = tInterEnd;
+              pResult->MergeAdd(interbool);
+              // the rest of the current unit is not in the current
+              // routeinterval.
+              checkEndOfUGPoint(pCurrInt->m_dEnd, endPos, tInterEnd, false,
+                                endTime, bend, k, vRI, pResult, iRouteId);
+          }
+        }
+      }else{
+        if (startPos == endPos && bstart && bend){
+          found = true;
+          interbool.timeInterval.start = startTime;
+          interbool.timeInterval.lc = bstart;
+          interbool.timeInterval.end = endTime;
+          interbool.timeInterval.rc = bend;
+          interbool.constValue.Set(true,true);
+          pResult->MergeAdd(interbool);
+        } else {
+          if (pCurrInt->m_dStart == pCurrInt->m_dEnd) {
+            found = true;
+            if ((pCurrInt->m_dStart > startPos && pCurrInt->m_dStart < endPos)||
+              (pCurrInt->m_dStart < startPos && pCurrInt->m_dStart > endPos)) {
+              // compute and write unit befor mgpoint inside gline
+              interbool.timeInterval.start = startTime;
+              interbool.timeInterval.lc = bstart;
+              factor = fabs(pCurrInt->m_dStart - startPos) /
+                       fabs(endPos -startPos);
+              tInterStart = (endTime - startTime) * factor + startTime;
+              interbool.timeInterval.end = tInterStart;
+              interbool.timeInterval.rc = false;
+              interbool.constValue.Set(true,false);
+              pResult->MergeAdd(interbool);
+              interbool.timeInterval.start = tInterStart;
+              interbool.timeInterval.rc = true;
+              interbool.timeInterval.lc = true;
+              interbool.constValue.Set(true, true);
+              pResult->MergeAdd(interbool);
+              checkEndOfUGPoint(pCurrInt->m_dEnd, endPos, tInterEnd, false,
+                                endTime, bend, k, vRI, pResult, iRouteId);
+            } else {
+              if (pCurrInt->m_dStart == startPos && bstart) {
+                found = true;
+                interbool.timeInterval.start = startTime;
+                interbool.timeInterval.lc = bstart;
+                interbool.timeInterval.end = startTime;
+                interbool.timeInterval.rc = true;
+                interbool.constValue.Set(true,true);
+                pResult->MergeAdd(interbool);
+                checkEndOfUGPoint(pCurrInt->m_dEnd, endPos, tInterEnd, false,
+                                  endTime, bend, k, vRI, pResult, iRouteId);
+              } else {
+                if (pCurrInt->m_dStart == endPos && bend) {
+                  found = true;
+                  interbool.timeInterval.start = startTime;
+                  interbool.timeInterval.lc = bstart;
+                  interbool.timeInterval.end = endTime;
+                  interbool.timeInterval.rc = false;
+                  interbool.constValue.Set(true,false);
+                  pResult->MergeAdd(interbool);
+                  interbool.timeInterval.start = endTime;
+                  interbool.timeInterval.rc = bend;
+                  interbool.timeInterval.lc = true;
+                  interbool.constValue.Set(true, true);
+                  pResult->MergeAdd(interbool);
+                }
+              }
+            }
+          } else {
+            if ((startPos == pCurrInt->m_dStart && endPos == pCurrInt->m_dEnd)||
+               (startPos == pCurrInt->m_dEnd && endPos == pCurrInt->m_dStart)){
+              found = true;
+              interbool.timeInterval.start = startTime;
+              interbool.timeInterval.end = endTime;
+              interbool.timeInterval.lc = bstart;
+              interbool.timeInterval.rc = bend;
+              interbool.constValue.Set(true, true);
+              pResult->MergeAdd(interbool);
+            }
+          }
+        }
+      }
+    } // end if routeid==
+    k++;
+  } // end while
+  if (!found) {
+      interbool.timeInterval.start = startTime;
+      interbool.timeInterval.lc = bstart;
+      interbool.timeInterval.end = endTime;
+      interbool.timeInterval.rc = bend;
+      interbool.constValue.Set(true,false);
+      pResult->MergeAdd(interbool);
+  }
+}
+
+/*
+1.1.7 ~sendMessage~
+
+Sending a message via the message-center
+
+*/
+
+void sendMessages(string in_strMessage)
+{
+  // Get message-center and initialize message-list
+  static MessageCenter* xMessageCenter= MessageCenter::GetInstance();
+  NList xMessage;
+  xMessage.append(NList("error"));
+
+  xMessage.append(NList().textAtom(in_strMessage));
+  xMessageCenter->Send(xMessage);
+}
+
+
+/*
+1.1.8 ~getRouteIntervals~
+
+Returns the ~RouteIntervals~ of a route between mgpstart and mgpend.
+
+Used by operators ~at~ and ~inside~.
+
+*/
+
+void getRouteIntervals(GLine *pGLine, int iRouteId, double mgpstart,
+                       double mgpend, int low, int high,
+                       vector<RouteInterval> &vRI){
+  vRI.clear();
+  const RouteInterval *aktRI;
+  bool found;
+  int mid;
+  if (low <= high) {
+    mid = (high + low) / 2;
+    if  (!(mid < 0 || mid >= pGLine->NoOfComponents())) {
+      pGLine->Get(mid, aktRI);
+      if (aktRI->m_iRouteId < iRouteId) {
+        getRouteIntervals(pGLine, iRouteId, mgpstart, mgpend, mid+1, high, vRI);
+      } else {
+        if (aktRI->m_iRouteId > iRouteId) {
+          getRouteIntervals(pGLine, iRouteId, mgpstart, mgpend, low, mid-1,
+                            vRI);
+        } else {
+          if (aktRI->m_dStart > mgpend) {
+            getRouteIntervals(pGLine, iRouteId, mgpstart, mgpend, low, mid-1,
+                              vRI);
+          } else {
+            if (aktRI->m_dEnd < mgpstart) {
+              getRouteIntervals(pGLine, iRouteId, mgpstart, mgpend, mid+1, high,
+                                vRI);
+            } else {
+              if (mid > 0) {
+                mid--;
+                found = false;
+                while (mid >= 0 && !found) {
+                  pGLine->Get(mid, aktRI);
+                  if (aktRI->m_iRouteId == iRouteId &&
+                      aktRI->m_dEnd >= mgpstart) {
+                    mid--;
+                  } else {
+                    found = true;
+                    mid++;
+                    pGLine->Get(mid, aktRI);
+                  }
+                }
+              } else {
+                pGLine->Get(0, aktRI);
+              }
+              vRI.push_back(*aktRI);
+              mid++;
+              found = false;
+              while (!found && mid < pGLine->NoOfComponents() ){
+                pGLine->Get(mid, aktRI);
+                if (aktRI->m_iRouteId == iRouteId &&
+                    aktRI->m_dStart <= mgpend) {
+                  vRI.push_back(*aktRI);
+                  mid++;
+                } else {
+                  found = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/*
+1.1.9 ~intervalCheck~
+
+Compares two time intervals and returns  a case number describing their
+intersection.
+
+Used by ~refinementMovingGPoint~.
+
+*/
+int intervalCheck (Interval<Instant> i1, Interval<Instant> i2) {
+  if (i1.start > i2.end) return 1;
+  if (i1.end < i2.start ) return 16;
+  if (i1.start == i1.end && i1.start < i2.start) return 19;
+  if (i1.start == i1.end && i1.start > i2.end) return 21;
+  if (i1.start > i2.start && i1.start == i2.end) return 2;
+  if (i1.start > i2.start && i1.start < i2.end && i1.end < i2.end) return 3;
+  if (i1.start > i2.start && i1.end == i2.end) return 4;
+  if (i1.start > i2.start && i1.end > i2.end && i2.end > i2.start) return 5;
+  if (i1.start == i2.start && i1.end > i2.end) return 6;
+  if (i1.start == i2.start && i1.end == i2.end) return 7;
+  if (i1.start == i2.start && i1.end < i2.end) return 8;
+  if (i1.start == i2.start && i1.start == i2.end) return 9;
+  if (i1.start < i2.start && i1.end > i2.end) return 10;
+  if (i1.start < i2.start && i1.end == i2.end) return 11;
+  if (i1.start < i2.start && i1.end < i2.end && i1.end > i2.start) return 12;
+  if (i1.start < i2.start && i1.end > i2.end && i2.start == i2.end) return 13;
+  if (i1.end == i2.start && i2.start == i2.end) return 14;
+  if (i1.end == i2.start && i1.end < i2.end) return 15;
+  if (i1.start == i1.end && i1.start == i2.start) return 17;
+  if (i1.start == i1.end && i1.start == i2.end) return 18;
+  if (i1.start == i1.end && i1.start > i2.start && i1.start < i2.end) return 20;
+  return -1; //should never be reached
+};
+
+/*
+1.1.10 ~refinementMovingGPoint~
+
+Translates two given ~MGPoint~ to two ~MGPoint~ which have a identical number
+of units with identical time intervals. Used by operator ~intersection~ and
+later on ~netdistance~.
+
+*/
+
+void refinementMovingGPoint (MGPoint *a, MGPoint *b,
+                             MGPoint *&resA, MGPoint *&resB){
+  const UGPoint *ua, *ub;
+  GPoint pos1, pos2;
+  int i = 0;
+  int j = 0;
+  a->Get(i,ua);
+  b->Get(j,ub);
+  resA->StartBulkLoad();
+  resB->StartBulkLoad();
+  while (i < a->GetNoComponents() && j < b->GetNoComponents()) {
+    switch (intervalCheck(ua->timeInterval, ub->timeInterval)) {
+      case 1: //no units to add
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 2:
+        if (ua->timeInterval.lc && ub->timeInterval.rc) {
+          resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.start,
+                                             true, true),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p0.GetPosition()));
+          resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.start,
+                                             true, true),
+                                             ub->p1.GetNetworkId(),
+                                             ub->p1.GetRouteId(),
+                                             ub->p1.GetSide(),
+                                             ub->p1.GetPosition(),
+                                             ub->p1.GetPosition()));
+        }
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 3:
+        ub->TemporalFunction(ua->timeInterval.start, pos1, false);
+        ub->TemporalFunction(ua->timeInterval.end, pos2, false);
+        resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ua->timeInterval.lc,
+                                           ua->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                            ua->timeInterval.end,
+                                            ua->timeInterval.lc,
+                                            ua->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             pos1.GetPosition(),
+                                             pos2.GetPosition()));
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        break;
+      case 4:
+        ub->TemporalFunction(ua->timeInterval.start, pos2, false);
+        resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ua->timeInterval.lc,
+                                           ua->timeInterval.rc &&
+                                           ub->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ua->timeInterval.lc,
+                                           ua->timeInterval.rc &&
+                                           ub->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             pos2.GetPosition(),
+                                             ub->p1.GetPosition()));
+        if (ua->timeInterval.rc && ub->timeInterval.rc) {
+          i++;
+          if (i < a->GetNoComponents()) a->Get(i, ua);
+          j++;
+          if (j < b->GetNoComponents()) b->Get(j, ub);
+        } else {
+          if (!ua->timeInterval.rc) {
+            i++;
+            if (i < a->GetNoComponents()) a->Get(i, ua);
+          }
+          if (!ub->timeInterval.rc) {
+            j++;
+            if (j < b->GetNoComponents()) b->Get(j, ub);
+          }
+        }
+        break;
+      case 5:
+        ua->TemporalFunction(ub->timeInterval.end, pos1, false);
+        ub->TemporalFunction(ua->timeInterval.start, pos2, false);
+        resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ub->timeInterval.end,
+                                             ua->timeInterval.lc,
+                                             ub->timeInterval.rc),
+                                            ua->p0.GetNetworkId(),
+                                            ua->p0.GetRouteId(),
+                                            ua->p0.GetSide(),
+                                            ua->p0.GetPosition(),
+                                            pos1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ub->timeInterval.end,
+                                             ua->timeInterval.lc,
+                                             ub->timeInterval.rc),
+                                            ub->p0.GetNetworkId(),
+                                            ub->p0.GetRouteId(),
+                                            ub->p0.GetSide(),
+                                            pos2.GetPosition(),
+                                            ub->p1.GetPosition()));
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 6:
+        ua->TemporalFunction(ub->timeInterval.end, pos1, false);
+        resA->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                           ub->timeInterval.end,
+                                           ub->timeInterval.lc &&
+                                           ua->timeInterval.lc,
+                                           ub->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             pos1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                           ub->timeInterval.end,
+                                           ub->timeInterval.lc &&
+                                           ua->timeInterval.lc,
+                                           ub->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             ub->p1.GetPosition()));
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 7:
+        resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ua->timeInterval.lc &&
+                                           ub->timeInterval.lc,
+                                           ua->timeInterval.rc &&
+                                           ub->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ua->timeInterval.lc &&
+                                           ub->timeInterval.lc,
+                                           ua->timeInterval.rc &&
+                                           ub->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             ub->p1.GetPosition()));
+        if (ua->timeInterval.rc && ub->timeInterval.rc) {
+          i++;
+          if (i < a->GetNoComponents()) a->Get(i, ua);
+          j++;
+          if (j < b->GetNoComponents()) b->Get(j, ub);
+        } else {
+          if (!ua->timeInterval.rc) {
+            i++;
+            if (i < a->GetNoComponents()) a->Get(i, ua);
+          }
+          if (!ub->timeInterval.rc) {
+            j++;
+            if (j < b->GetNoComponents()) b->Get(j, ub);
+          }
+        }
+        break;
+      case 8:
+        ub->TemporalFunction(ua->timeInterval.end, pos2, false);
+        resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ua->timeInterval.lc &&
+                                           ub->timeInterval.lc,
+                                           ua->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ua->timeInterval.lc &&
+                                           ub->timeInterval.lc,
+                                           ua->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             pos2.GetPosition()));
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        break;
+      case 9:
+        if (ua->timeInterval.lc && ub->timeInterval.lc && ub->timeInterval.rc) {
+          resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                           ua->timeInterval.start,
+                                           true, true),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p1.GetPosition()));
+          resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.start,
+                                             true, true),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             ub->p0.GetPosition()));
+        }
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 10:
+        ua->TemporalFunction(ub->timeInterval.start, pos1, false);
+        ua->TemporalFunction(ub->timeInterval.end, pos2, false);
+        resA->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                             ub->timeInterval.end,
+                                             ub->timeInterval.lc,
+                                             ub->timeInterval.rc),
+                                            ua->p0.GetNetworkId(),
+                                            ua->p0.GetRouteId(),
+                                            ua->p0.GetSide(),
+                                            pos1.GetPosition(),
+                                            pos2.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                             ub->timeInterval.end,
+                                             ub->timeInterval.lc,
+                                             ub->timeInterval.rc),
+                                            ub->p0.GetNetworkId(),
+                                            ub->p0.GetRouteId(),
+                                            ub->p0.GetSide(),
+                                            ub->p0.GetPosition(),
+                                            ub->p1.GetPosition()));
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 11:
+        ua->TemporalFunction(ub->timeInterval.start, pos1, false);
+        resA->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                           ub->timeInterval.end,
+                                           ub->timeInterval.lc,
+                                           ua->timeInterval.rc &&
+                                           ub->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             pos1.GetPosition(),
+                                             ua->p1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                           ub->timeInterval.end,
+                                           ub->timeInterval.lc,
+                                           ua->timeInterval.rc &&
+                                           ub->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             ub->p1.GetPosition()));
+        if (ua->timeInterval.rc && ub->timeInterval.rc) {
+          i++;
+          if (i < a->GetNoComponents()) a->Get(i, ua);
+          j++;
+          if (j < b->GetNoComponents()) b->Get(j, ub);
+        } else {
+          if (!ua->timeInterval.rc) {
+            i++;
+            if (i < a->GetNoComponents()) a->Get(i, ua);
+          }
+          if (!ub->timeInterval.rc) {
+            j++;
+            if (j < b->GetNoComponents()) b->Get(j, ub);
+          }
+        }
+        break;
+      case 12:
+        ua->TemporalFunction(ub->timeInterval.start, pos1, false);
+        ub->TemporalFunction(ua->timeInterval.end, pos2, false);
+        resA->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ub->timeInterval.lc,
+                                           ua->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             pos1.GetPosition(),
+                                             ua->p1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                           ua->timeInterval.end,
+                                           ub->timeInterval.lc,
+                                           ua->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             pos2.GetPosition()));
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        break;
+      case 13:
+        if (ub->timeInterval.lc && ub->timeInterval.rc) {
+          ua->TemporalFunction(ub->timeInterval.start, pos1, false);
+          resA->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                             ub->timeInterval.end,
+                                             ub->timeInterval.lc,
+                                             ub->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             pos1.GetPosition(),
+                                             pos1.GetPosition()));
+          resB->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                             ub->timeInterval.end,
+                                             ub->timeInterval.lc,
+                                             ub->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             ub->p0.GetPosition()));
+        }
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 14:
+        resA->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                             ub->timeInterval.end,
+                                             ub->timeInterval.lc,
+                                             ub->timeInterval.rc),
+                                            ua->p0.GetNetworkId(),
+                                            ua->p0.GetRouteId(),
+                                            ua->p0.GetSide(),
+                                            ua->p1.GetPosition(),
+                                            ua->p1.GetPosition()));
+        resB->Add(UGPoint(Interval<Instant>(ub->timeInterval.start,
+                                             ub->timeInterval.end,
+                                             ub->timeInterval.lc,
+                                             ub->timeInterval.rc),
+                                            ub->p0.GetNetworkId(),
+                                            ub->p0.GetRouteId(),
+                                            ub->p0.GetSide(),
+                                            ub->p0.GetPosition(),
+                                            ub->p0.GetPosition()));
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 15:
+        if (ua->timeInterval.rc && ub->timeInterval.lc) {
+          resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.end,
+                                              ua->timeInterval.end,
+                                              true, true),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p1.GetPosition(),
+                                             ua->p1.GetPosition()));
+          resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.end,
+                                              ua->timeInterval.end,
+                                              true, true),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             ub->p0.GetPosition()));
+        }
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        break;
+      case 16: //nothing to add
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        break;
+      case 17:
+        if (ua->timeInterval.lc && ua->timeInterval.rc && ub->timeInterval.lc){
+          resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.end,
+                                             true, true),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p0.GetPosition()));
+          resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.end,
+                                             true, true),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p0.GetPosition(),
+                                             ub->p0.GetPosition()));
+        }
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        break;
+      case 18:
+        if (ua->timeInterval.lc && ua->timeInterval.rc && ub->timeInterval.rc){
+          resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.end,
+                                             true, true),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p0.GetPosition()));
+          resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.end,
+                                             true, true),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             ub->p1.GetPosition(),
+                                             ub->p1.GetPosition()));
+        }
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      case 19:
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        break;
+      case 20:
+        if (ua->timeInterval.lc && ua->timeInterval.rc) {
+          ub->TemporalFunction(ua->timeInterval.start, pos2, false);
+          resA->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.end,
+                                             ua->timeInterval.lc,
+                                             ua->timeInterval.rc),
+                                             ua->p0.GetNetworkId(),
+                                             ua->p0.GetRouteId(),
+                                             ua->p0.GetSide(),
+                                             ua->p0.GetPosition(),
+                                             ua->p0.GetPosition()));
+          resB->Add(UGPoint(Interval<Instant>(ua->timeInterval.start,
+                                             ua->timeInterval.end,
+                                             ua->timeInterval.lc,
+                                             ua->timeInterval.rc),
+                                             ub->p0.GetNetworkId(),
+                                             ub->p0.GetRouteId(),
+                                             ub->p0.GetSide(),
+                                             pos2.GetPosition(),
+                                             pos2.GetPosition()));
+        }
+        i++;
+        if (i < a->GetNoComponents()) a->Get(i, ua);
+        break;
+      case 21:
+        j++;
+        if (j < b->GetNoComponents()) b->Get(j, ub);
+        break;
+      default: //should never happen
+        cerr << "an error occured while checking the time interval." << endl;
+        resA->EndBulkLoad();
+        resB->EndBulkLoad();
+        resA->SetDefined(false);
+        resB->SetDefined(false);
+        return;
+    } // end switch
+  }//end while
+  resA->EndBulkLoad();
+  resB->EndBulkLoad();
+  resA->SetDefined(true);
+  resB->SetDefined(true);
+  return;
+}
+
+/*
+1.1.11 struct ~RITree~
+
+Sorts and compresses ~RouteIntervals~. Used by operator ~trajectory~
+
+*/
+struct RITree {
+
+  RITree(){};
+
+  ~RITree();
+
+  RITree( int ri,double pos1, double pos2, RITree *left = 0, RITree *right = 0){
+    m_iRouteId = ri;
+    m_dStart = pos1;
+    m_dEnd = pos2;
+    m_left = left;
+    m_right = right;
+  };
+
+double checkTree(RITree& father, int rid, double pos1, double pos2,
+                   bool bleft) {
+    if (rid < this->m_iRouteId) {
+      if (this->m_left != 0) {
+        return this->m_left->checkTree(*this, rid, pos1, pos2, bleft);
+      } else {
+        if (bleft) return pos1;
+        else return pos2;
+      }
+    } else {
+      if (rid > this->m_iRouteId) {
+        if (this->m_right != 0) {
+          return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+        } else {
+          if (bleft) return pos1;
+          else return pos2;
+        }
+      } else {
+        if (pos2 < this->m_dStart) {
+          if (this->m_left != 0) {
+            return this->m_left->checkTree(*this, rid, pos1, pos2,bleft);
+          } else {
+            if (bleft) return pos1;
+            else return pos2;
+          }
+        } else {
+          if (pos1 > this->m_dEnd) {
+            if (this->m_right != 0 ) {
+              return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+            } else {
+              if (bleft) return pos1;
+              else return pos2;
+            }
+          } else {
+            // Overlapping interval found. Rebuild Tree and return new interval
+            //limit.
+            if (bleft) {
+              if (this->m_dStart <= pos1) {
+                  pos1 = this->m_dStart;
+              }
+              if (father.m_left == this) {
+                father.m_left = this->m_left;
+              } else {
+                father.m_right = this->m_left;
+              }
+              if (father.m_left != 0) {
+                //delete this;
+                return father.m_left->checkTree(father, rid, pos1, pos2, bleft);
+              } else {
+                return pos1;
+              }
+            } else {
+              if (this->m_dEnd >= pos2) {
+                pos2 = this->m_dEnd;
+              }
+              if (father.m_left == this) {
+                father.m_left = this->m_right;
+              } else {
+                father.m_right = this->m_right;
+              }
+              if (father.m_right != 0 ) {
+                //delete this;
+                return father.m_right->checkTree(father, rid, pos1, pos2,bleft);
+              } else {
+                return pos2;
+              }
+            }
+          }
+        }
+      }
+    }
+    if (bleft) return pos1;
+    else return pos2;
+  };
+
+  void insert (int rid, double pos1, double pos2) {
+    double test;
+    if (rid < this->m_iRouteId) {
+      if (this->m_left != 0) {
+        this->m_left->insert(rid, pos1, pos2);
+      } else {
+        this->m_left = new RITree(rid, pos1, pos2,0,0);
+      }
+    } else {
+      if (rid > this->m_iRouteId) {
+        if (this->m_right != 0) {
+          this->m_right->insert(rid, pos1, pos2);
+        } else {
+          this->m_right = new RITree(rid, pos1, pos2,0,0);
+        }
+      }else{
+        if(rid == this->m_iRouteId) {
+          if (pos2 < this->m_dStart) {
+            if (this->m_left != 0) {
+               this->m_left->insert(rid, pos1, pos2);
+            } else {
+                this->m_left = new RITree(rid, pos1, pos2,0,0);
+            }
+          } else {
+            if (pos1 > this->m_dEnd) {
+              if (this->m_right != 0) {
+                this->m_right->insert(rid, pos1, pos2);
+              } else {
+                this->m_right =
+                    new RITree(rid, pos1, pos2,0,0);
+              }
+            } else {
+              // Overlapping route intervals merge and check sons if they need
+              //to be corrected.
+              if (this->m_dStart > pos1) {
+                this->m_dStart = pos1;
+                if (this->m_left != 0) {
+                  test = this->m_left->checkTree(*this, rid, this->m_dStart,
+                                                this->m_dEnd, true);
+                  if (this->m_dStart > test) {
+                    this->m_dStart = test;
+                  }
+                }
+              }
+              if (this->m_dEnd < pos2) {
+                this->m_dEnd = pos2;
+                if (this->m_right != 0) {
+                  test = this->m_right->checkTree(*this, rid, this->m_dStart,
+                                                  this->m_dEnd, false);
+                  if (this->m_dEnd < test) {
+                    this->m_dEnd = test;
+                  }
+                }
+              }
+            }
+          }
+        } // endif rid=rid
+      }
+    }
+  };
+
+  void treeToGLine (GLine *gline) {
+    if (this->m_left != 0) {
+      this->m_left->treeToGLine (gline);
+    }
+    gline->AddRouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd);
+    if (this->m_right != 0) {
+      this->m_right->treeToGLine (gline);
+    }
+  };
+
+  void tree2tree (RITree *tnew) {
+    if (this->m_left != 0) {
+      this->m_left->tree2tree (tnew);
+    }
+    tnew->insert(this->m_iRouteId, this->m_dStart, this->m_dEnd);
+    if (this->m_right != 0) {
+      this->m_right->tree2tree (tnew);
+    }
+  };
+
+  RITree* initNewTree() {
+    RITree *akt = this;
+    while (akt->m_left != 0) {
+      akt = akt->m_left;
+    }
+    RITree *tnew =
+        new RITree(akt->m_iRouteId, akt->m_dStart, akt->m_dEnd, 0, 0);
+    return tnew;
+  };
+
+  int m_iRouteId;
+  double m_dStart, m_dEnd;
+  RITree *m_left, *m_right;
+
+};
+
+/*
+1.1.12 ~chkStarEnd~
+
+Checks if StartPos <= EndPos if not changes StartPos and EndPos. Used by
+operator ~trajectory~.
+
+*/
+void chkStartEnd(double &StartPos, double &EndPos){
+  double help;
+  if (StartPos > EndPos) {
+    help = StartPos;
+    StartPos = EndPos;
+    EndPos = help;
+  }
+};
+
+/*
+1.2 Class definitions
+
+1.2.1 class ~MGPoint~
+
+The simple constructor should not be used.
+
+*/
+
+MGPoint::MGPoint(){}
+
+MGPoint::MGPoint( const int n ) : Mapping< UGPoint, GPoint >( n ){}
+
+ListExpr MGPoint::Property()
 {
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
                              nl->StringAtom("List Rep"),
                              nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
-                             nl->StringAtom("(igpoint) "),
-                             nl->StringAtom("(instant gpoint-value)"),
-                             nl->StringAtom("((instant) (1 1 1.0 2))"))));
+            nl->FourElemList(nl->StringAtom("-> MAPPING"),
+                             nl->StringAtom("(mgpoint) "),
+                             nl->StringAtom("( u1 ... un ) "),
+                             nl->StringAtom("(((i1 i2 TRUE FALSE) "
+                                            "(1 1 0 0.1 2.4)) ...)"))));
 }
 
-/*
-Kind checking Function for ~igpoint~
-
-*/
-bool
-CheckIntimeGPoint( ListExpr type, ListExpr& errorInfo )
+bool MGPoint::Check(ListExpr type,
+                    ListExpr& errorInfo)
 {
-  return (nl->IsEqual( type, "igpoint" ));
+  return (nl->IsEqual( type, "mgpoint" ));
 }
 
-/*
-Creation of the type constructor  ~igpoint~
-
-*/
-TypeConstructor intimegpoint(
-        "igpoint",                    //name
-        IntimeGPointProperty,  //property function describing signature
-        OutIntime<GPoint, GPoint::OutGPoint>,
-        InIntime<GPoint, GPoint::InGPoint>,         //Out and In functions
-        0,
-        0,       //SaveToList and RestoreFromList functions
-        CreateIntime<GPoint>,
-        DeleteIntime<GPoint>,              //object creation and deletion
-        OpenAttribute<GPoint>,
-        OpenAttribute<GPoint>,             // object open and save
-        CloseIntime<GPoint>,
-        CloneIntime<GPoint>,               //object close and clone
-        CastIntime<GPoint>,                //cast function
-        SizeOfIntime<GPoint>,              //sizeof function
-        CheckIntimeGPoint );               //kind checking function
-
-/*
-Creation of the type constructor ~upoint~
-
-*/
-TypeConstructor unitgpoint(
-        "ugpoint",                              // Name
-        UGPoint::Property,                      // Property function
-        UGPoint::Out, UGPoint::In,              // Out and In functions
-        0,             0,                       // Save to and restore
-                                                // from list functions
-        UGPoint::Create,                        // Object creation
-        UGPoint::Delete,                        // and deletion
-        OpenAttribute<UGPoint>,SaveAttribute<GPoint>, //Object open and save
-        UGPoint::Close, UGPoint::Clone,         // Object close and clone
-        UGPoint::Cast,                          // Cast function
-        UGPoint::SizeOf,                        // Sizeof function
-        UGPoint::Check);                        // Kind checking function
-
-
-/*
-Creation of the type constructor ~mpoint~
-
-*/
 TypeConstructor movinggpoint(
         "mgpoint",                                  // Name
         MGPoint::Property,                          // Property function
@@ -174,258 +1580,3845 @@ TypeConstructor movinggpoint(
         MGPoint::Check);                            // Kind checking function
 
 
+
 /*
-Operator mpoint2mgpoint
+1.2.2 Classe UGPoint
+
+Temporal Function
 
 */
+void UGPoint::TemporalFunction( const Instant& t,
+                                GPoint& result,
+                                bool ignoreLimits ) const
+{
+  if( !IsDefined() ||
+      !t.IsDefined() ||
+      (!timeInterval.Contains( t ) && !ignoreLimits) ){
+      result.SetDefined(false);
+  } else {
+    if( t == timeInterval.start ){
+      result = p0;
+      result.SetDefined(true);
+    } else {
+      if( t == timeInterval.end ) {
+        result = p1;
+        result.SetDefined(true);
+      }  else {
+        double tStart = timeInterval.start.ToDouble();
+        double tEnd = timeInterval.end.ToDouble();
+        double tInst = t.ToDouble();
+        double posStart = p0.GetPosition();
+        double posEnd = p1.GetPosition();
+        double posInst = fabs(posEnd-posStart) * (tInst-tStart) /
+                        (tEnd - tStart) + posStart;
+        result = GPoint(true, p0.GetNetworkId(), p0.GetRouteId(), posInst,
+                        p0.GetSide());
+        result.SetDefined(true);
+      }
+    }
+  }
+  return;
+}
+
+
+/*
+Checks wether a unit passes a fixed point in the network
+
+*/
+
+bool UGPoint::Passes( const GPoint& p ) const
+{
+  assert( IsDefined() );
+  assert( p.IsDefined() );
+  // Check if this unit is on the same route as the GPoint
+  if(p0.GetRouteId()!= p.GetRouteId())
+  {
+    return false;
+  }
+
+  // p is between p0 and p1
+  if((p0.GetPosition() < p.GetPosition() &&
+     p.GetPosition() < p1.GetPosition()) ||
+     (p1.GetPosition() < p.GetPosition() &&
+     p.GetPosition() < p0.GetPosition()))
+  {
+    return true;
+  }
+
+  // If the edge of the interval is included we need to check the exakt
+  // Position too.
+  if((timeInterval.lc &&
+     AlmostEqual(p0.GetPosition(), p.GetPosition())) ||
+     (timeInterval.rc &&
+     AlmostEqual(p1.GetPosition(),p.GetPosition())))
+  {
+    return true;
+  }
+  return false;
+}
+
+/*
+Restricts the ~UGPoint~ to the times he was at a given ~GPoint~.
+
+*/
+
+bool UGPoint::At( const GPoint& p, TemporalUnit<GPoint>& result ) const
+{
+  if (!IsDefined() || !p.IsDefined()) {
+    cerr << "mgpoint and gpoint must be defined." << endl;
+    return false;
+  }
+  assert (IsDefined());
+  assert (p.IsDefined());
+  UGPoint *pResult = (UGPoint*) &result;
+  if (p0.GetNetworkId() != p.GetNetworkId()) {
+    return false;
+  } else {
+    if (p0.GetRouteId() != p.GetRouteId()){
+      return false;
+    } else {
+      if (p.GetSide() != p0.GetSide() &&
+          !(p.GetSide() == 2 || p0.GetSide() == 2)) {
+            return false;
+      } else {
+        double start = p0.GetPosition();
+        double end = p1.GetPosition();
+        double pos = p.GetPosition();
+        if (AlmostEqual(start,pos) && timeInterval.lc) {
+          Interval<Instant> interval(timeInterval.start,
+                                     timeInterval.start, true, true);
+          UGPoint aktunit(interval, p,p);
+          *pResult = aktunit;
+          return true;
+        } else {
+          if (AlmostEqual(end,pos) && timeInterval.rc) {
+            Interval<Instant> interval(timeInterval.end,
+                                       timeInterval.end, true, true);
+            UGPoint aktunit(interval, p,p);
+            *pResult = aktunit;
+            return true;
+          } else {
+            if ((start < pos && pos < end) || (end < pos && pos < start)) {
+              double factor = fabs(pos-start) / fabs(end-start);
+              Instant tpos = (timeInterval.end - timeInterval.start) * factor +
+                              timeInterval.start;
+              Interval<Instant> interval(tpos, tpos, true, true);
+              UGPoint aktunit(interval, p, p);
+              *pResult = aktunit;
+              return true;
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+ListExpr UGPoint::Property()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> UNIT"),
+                             nl->StringAtom("(ugpoint) "),
+nl->TextAtom("( timeInterval (<nid> <rid> <side> <pos1> <pos2> ) ) "),
+nl->StringAtom("((i1 i2 TRUE FALSE) (1 1 0 0.0 0.3))"))));
+}
+
+bool UGPoint::Check(ListExpr type, ListExpr& errorInfo)
+{
+  return (nl->IsEqual( type, "ugpoint" ));
+}
+
+ListExpr UGPoint::Out(ListExpr typeInfo,
+                      Word value)
+{
+  UGPoint* ugpoint = (UGPoint*)(value.addr);
+
+  if( !(((UGPoint*)value.addr)->IsDefined()) )
+  {
+    return (nl->SymbolAtom("undef"));
+  }
+  else
+  {
+    ListExpr timeintervalList =
+        nl->FourElemList(OutDateTime( nl->TheEmptyList(),
+                                      SetWord(&ugpoint->timeInterval.start) ),
+                         OutDateTime( nl->TheEmptyList(),
+                                      SetWord(&ugpoint->timeInterval.end) ),
+                         nl->BoolAtom( ugpoint->timeInterval.lc ),
+                         nl->BoolAtom( ugpoint->timeInterval.rc));
+
+    ListExpr pointsList =
+         nl->FiveElemList(nl->IntAtom( ugpoint->p0.GetNetworkId() ),
+                          nl->IntAtom( ugpoint->p0.GetRouteId() ),
+                          nl->IntAtom( ugpoint->p0.GetSide() ),
+                          nl->RealAtom( ugpoint->p0.GetPosition()),
+                          nl->RealAtom( ugpoint->p1.GetPosition()));
+      return nl->TwoElemList( timeintervalList, pointsList );
+  }
+}
+
+Word UGPoint::In(const ListExpr typeInfo,
+                 const ListExpr instance,
+                 const int errorPos,
+                 ListExpr& errorInfo,
+                 bool& correct)
+{
+  string errmsg;
+  if ( nl->ListLength( instance ) == 2 )
+  {
+    ListExpr first = nl->First( instance );
+
+    if( nl->ListLength( first ) == 4 &&
+        nl->IsAtom( nl->Third( first ) ) &&
+        nl->AtomType( nl->Third( first ) ) == BoolType &&
+        nl->IsAtom( nl->Fourth( first ) ) &&
+        nl->AtomType( nl->Fourth( first ) ) == BoolType )
+    {
+      correct = true;
+      Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->First( first ),
+        errorPos, errorInfo, correct ).addr;
+
+      if( !correct )
+      {
+        errmsg = "InUGPoint(): Error in first instant.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete start;
+        return SetWord( Address(0) );
+      }
+
+      Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
+       nl->Second( first ),
+       errorPos, errorInfo, correct ).addr;
+
+      if( !correct )
+      {
+        errmsg = "InUPoint(): Error in second instant.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete start;
+        delete end;
+        return SetWord( Address(0) );
+      }
+
+      Interval<Instant> tinterval( *start, *end,
+                                   nl->BoolValue( nl->Third( first ) ),
+                                   nl->BoolValue( nl->Fourth( first ) ) );
+      delete start;
+      delete end;
+
+      correct = tinterval.IsValid();
+      if (!correct)
+        {
+          errmsg = "InUPoint(): Non valid time interval.";
+          errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+          return SetWord( Address(0) );
+        }
+
+      ListExpr second = nl->Second( instance );
+      if( nl->ListLength( second ) == 5 &&
+          nl->IsAtom( nl->First( second ) ) &&
+          nl->AtomType( nl->First( second ) ) == IntType &&
+          nl->IsAtom( nl->Second( second ) ) &&
+          nl->AtomType( nl->Second( second ) ) == IntType &&
+          nl->IsAtom( nl->Third( second ) ) &&
+          nl->AtomType( nl->Third( second ) ) == IntType &&
+          nl->IsAtom( nl->Fourth( second ) ) &&
+          nl->AtomType( nl->Fourth( second ) ) == RealType &&
+          nl->IsAtom( nl->Fifth( second ) ) &&
+          nl->AtomType( nl->Fifth( second ) ) == RealType )
+      {
+        UGPoint *ugpoint = new UGPoint(tinterval,
+                                     nl->IntValue( nl->First( second ) ),
+                                     nl->IntValue( nl->Second( second ) ),
+                                     (Side)nl->IntValue( nl->Third( second ) ),
+                                     nl->RealValue( nl->Fourth( second ) ),
+                                     nl->RealValue( nl->Fifth( second ) ));
+
+        correct = ugpoint->IsValid();
+        if( correct )
+          return SetWord( ugpoint );
+
+        errmsg = "InUGPoint(): Error in start/end point.";
+        errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+        delete ugpoint;
+      }
+    }
+  }
+  else if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
+            && nl->SymbolValue( instance ) == "undef" )
+    {
+      UGPoint *ugpoint = new UGPoint(true);
+      ugpoint->SetDefined(false);
+      ugpoint->timeInterval=
+        Interval<DateTime>(DateTime(instanttype),
+                           DateTime(instanttype),true,true);
+      correct = ugpoint->timeInterval.IsValid();
+      if ( correct )
+        return (SetWord( ugpoint ));
+    }
+  errmsg = "InUGPoint(): Error in representation.";
+  errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
+  correct = false;
+  return SetWord( Address(0) );
+}
+
+Word UGPoint::Create(const ListExpr typeInfo)
+{
+  return (SetWord( new UGPoint() ));
+}
+
+void UGPoint::Delete(const ListExpr typeInfo,
+                     Word& w)
+{
+  delete (UGPoint *)w.addr;
+  w.addr = 0;
+}
+
+void UGPoint::Close(const ListExpr typeInfo,
+                    Word& w)
+{
+  delete (UGPoint *)w.addr;
+  w.addr = 0;
+}
+
+Word UGPoint::Clone(const ListExpr typeInfo,
+                    const Word& w )
+{
+  UGPoint *ugpoint = (UGPoint *)w.addr;
+  return SetWord( new UGPoint( *ugpoint ) );
+}
+
+int UGPoint::SizeOf()
+{
+  return sizeof(UGPoint);
+}
+
+void* UGPoint::Cast(void* addr)
+{
+  return new (addr) UGPoint;
+}
+
+int UGPoint::GetUnitRid(){
+  return p0.GetRouteId();
+}
+
+double UGPoint::GetUnitStartPos(){
+  return p0.GetPosition();
+}
+
+double UGPoint::GetUnitEndPos(){
+  return p1.GetPosition();
+}
+
+double UGPoint::GetUnitStartTime(){
+  return timeInterval.start.ToDouble();
+}
+
+double UGPoint::GetUnitEndTime(){
+  return timeInterval.end.ToDouble();
+}
+
+TypeConstructor unitgpoint(
+        "ugpoint",                              // Name
+        UGPoint::Property,                      // Property function
+        UGPoint::Out, UGPoint::In,              // Out and In functions
+        0,             0,                       // Save to and restore
+                                                // from list functions
+        UGPoint::Create,                        // Object creation
+        UGPoint::Delete,                        // and deletion
+        OpenAttribute<UGPoint>,SaveAttribute<GPoint>, //Object open and save
+        UGPoint::Close, UGPoint::Clone,         // Object close and clone
+        UGPoint::Cast,                          // Cast function
+        UGPoint::SizeOf,                        // Sizeof function
+        UGPoint::Check);                        // Kind checking function
+
+/*
+1.2.3 ~igpoint~
+
+*/
+
+ListExpr IntimeGPointProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> TEMPORAL"),
+                             nl->StringAtom("(igpoint) "),
+                             nl->StringAtom("(instant gpoint-value)"),
+                             nl->StringAtom("((instant) (1 1 1.0 2))"))));
+}
+
+
+bool CheckIntimeGPoint( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "igpoint" ));
+}
+
+
+TypeConstructor intimegpoint(
+        "igpoint",                    //name
+        IntimeGPointProperty,  //property function describing signature
+        OutIntime<GPoint, GPoint::OutGPoint>,
+        InIntime<GPoint, GPoint::InGPoint>,         //Out and In functions
+        0,
+        0,       //SaveToList and RestoreFromList functions
+        CreateIntime<GPoint>,
+        DeleteIntime<GPoint>,              //object creation and deletion
+        OpenAttribute<GPoint>,
+        OpenAttribute<GPoint>,             // object open and save
+        CloseIntime<GPoint>,
+        CloneIntime<GPoint>,               //object close and clone
+        CastIntime<GPoint>,                //cast function
+        SizeOfIntime<GPoint>,              //sizeof function
+        CheckIntimeGPoint );               //kind checking function
+
+/*
+1.3 Operators
+
+1.3.1 Operator ~mpoint2mgpoint~
+
+Translates a spatial ~MPoint~ into a network based ~MGPoint~.
+
+*/
+
+
+ListExpr OpMPoint2MGPointTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 2 ){
+    sendMessages("Expects a list of length 2.");
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+  ListExpr xNetworkIdDesc = nl->First(in_xArgs);
+  ListExpr xMPointDesc = nl->Second(in_xArgs);
+
+  if( (!nl->IsAtom(xNetworkIdDesc)) ||
+      !nl->IsEqual(xNetworkIdDesc, "network"))
+  {
+    sendMessages("Expected network as first argument.");
+    return (nl->SymbolAtom("typeerror"));
+  }
+
+  if( (!nl->IsAtom( xMPointDesc )) ||
+      nl->AtomType( xMPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMPointDesc ) != "mpoint" )
+  {
+    sendMessages("Expected mpoint as second argument.");
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom( "mgpoint" );
+}
+/*
+Value mapping function of operator ~mpoint2mgpoint~
+
+The method will first look for a segment at the start of the mpoint.
+
+Preconditions:
+- The moving point has to be exactly over the routes of the network.
+- The trajectory of the mpoint must not be disjoint i.e. each unit starts
+  where the one before ended.
+- If the mpoint changes the route at the crossing a new unit has to be started
+- A change of the direction on a route is only allowed at crossings (and only
+  if the opposite lane can be reached at the crossing e.g. a u-turn is allowed).
+
+*/
+int OpMPoint2MGPointValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+/*
+Initialize return value
+
+*/
+  MGPoint* pMGPoint = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pMGPoint );
+  pMGPoint->Clear();
+  pMGPoint->SetDefined(true);
+  // Get and check input values.
+  Network *pNetwork = (Network*)args[0].addr;
+  if (pNetwork->isDefined() < 1) {
+    string strMessage = "Network is not defined.";
+    cerr << strMessage << endl;
+    sendMessages(strMessage);
+    pMGPoint->SetDefined(false);
+    return 0;
+  }
+  int iNetworkId = pNetwork->GetId();
+  MPoint* pMPoint = (MPoint*)args[1].addr;
+  if(pMPoint == NULL || pMPoint->GetNoComponents() < 1 ||
+     !pMPoint->IsDefined()) {
+    string strMessage = "MPoint does not exist.";
+    cerr << strMessage << endl;
+    sendMessages(strMessage);
+    pMGPoint->SetDefined(false);
+    return 0;
+  }
+  // Some initialisations
+  const UPoint *pCurrentUnit;
+  Point uStartPoint, uEndPoint, juncPoint, uFirstEndPoint;
+  bool bStartFound, bEndFound, bMovingUp, bNewRouteFound, bDual;
+  bool bMGPointCurrMovingUp, bSecondEndCheck, bSecCheckDual,bAdjSecCheck;
+  bool bAdjAddCheck, bAdjSecCheckDual;
+  CcBool *pDual;
+  double dStartPosOld, difference, firstDifference, aktDifference, dFirstEndPos;
+  double dStartPos, dEndPos, speedDifference, dAktUnitSpeed, dAktUnitDistance;
+  double dMGPointCurrDistance, dMGPointCurrEndPos, dMGPointCurrStartPos;
+  double dMGPointCurrSpeed, rid1meas, rid2meas, dSecondCheckEndPos, dSecDiff;
+  double dAdjSecCheckEndPos, dFirstAdjSecCheckDiff, dAdjAddCheckEndPos;
+  double dAdjSecCheckDiff;
+  int iRouteTid, iRouteId, iOldSectionTid, iCurrentSectionTid, iLastRouteId;
+  int iCurrentSectionRid, iCurrentSectionRTid, iMGPointCurrRId;
+  int iSecCheckRouteId, iAdjSecCheckRid;
+  CcInt *pCurrentSectionRid, *pCurrentSectionRTid, *pRouteId;
+  Tuple *pCurrentRoute, *pOldSectionTuple, *pCurrentSectionT, *pTestRoute;
+  Line *pRouteCurve, *pLastRouteCurve, *pTestRouteCurve;
+  Relation* pRoutes = pNetwork->GetRoutes();
+  Relation* pSections = pNetwork->GetSectionsInternal();
+  GPoint *pStartPos;
+  Side side, sMGPointCurrSide;
+  vector<DirectedSection> pAdjacentSections;
+  Instant tMGPointCurrStartTime, tMGPointCurrEndTime, aktUnitStartTime;
+  Instant aktUnitEndTime, tPassJunction;
+  Instant correcture(0,1,durationtype);
+  double lMGPointCurrStartTime, lMGPointCurrEndTime, lMGPointCurrDuration;
+  double lAktUnitStartTime, lAktUnitEndTime, lAktUnitDuration;
+  // Translate every Unit of MPoint to MGPoint Units.
+  // Compute Position in Network for the (start) of the first Unit of MGPoint
+  pMGPoint->StartBulkLoad();
+  pMPoint->Get(0, pCurrentUnit);
+  getUnitValues(pCurrentUnit, uEndPoint, uStartPoint, aktUnitStartTime,
+                  aktUnitEndTime, lAktUnitStartTime, lAktUnitEndTime,
+                  lAktUnitDuration);
+  GenericRelationIterator* pRoutesIt = pRoutes->MakeScan();
+  while( (pCurrentRoute = pRoutesIt->GetNextTuple()) != 0 ) {
+    iRouteTid = -1;
+    pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
+    iRouteId = pRouteId->GetIntval();
+    pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+    bStartFound = checkPoint(pRouteCurve, uStartPoint, true, dStartPos,
+                             difference);
+    if (bStartFound) {
+      bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos, difference);
+      if (bEndFound) {
+        iRouteTid = pCurrentRoute->GetTupleId();
+        pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
+        bDual = pDual->GetBoolval();
+        if (dStartPos < dEndPos) { bMovingUp = true;}
+        else { bMovingUp = false;}
+        if (bDual && bMovingUp) { side = Up;}
+        else {
+            if (bDual && !bMovingUp) { side = Down;}
+            else { side = None;}
+        }
+        pCurrentRoute->DeleteIfAllowed();
+        break;
+      }
+    }
+    pCurrentRoute->DeleteIfAllowed();
+  }
+
+  delete pRoutesIt;
+  if (iRouteTid == -1 ) {
+    string strMessage = "First Unit of mpoint not found in network.";
+    cerr << strMessage << endl;
+    sendMessages(strMessage);
+    pMGPoint->EndBulkLoad();
+    //delete pRoutes;
+
+    return 0;
+  }
+  pCurrentRoute = pRoutes->GetTuple(iRouteTid);
+  pTestRoute = pRoutes->GetTuple(iRouteTid);
+  pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+  dAktUnitDistance = fabs (dEndPos - dStartPos);
+  dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
+  iMGPointCurrRId = iRouteId;
+  sMGPointCurrSide = side;
+  dMGPointCurrSpeed = dAktUnitSpeed;
+  tMGPointCurrStartTime = aktUnitStartTime;
+  tMGPointCurrEndTime = aktUnitEndTime;
+  dMGPointCurrStartPos = dStartPos;
+  dMGPointCurrEndPos = dEndPos;
+  bMGPointCurrMovingUp = bMovingUp;
+  dMGPointCurrDistance = dAktUnitDistance;
+  lMGPointCurrStartTime = lAktUnitStartTime;
+  lMGPointCurrEndTime= lAktUnitEndTime;
+  lMGPointCurrDuration = lAktUnitDuration;
+  dStartPos = dEndPos;
+  uStartPoint = uEndPoint;
+  for (int i=1; i < pMPoint->GetNoComponents() ; i++){
+    bSecondEndCheck = false;
+    bAdjSecCheck = false;
+    bAdjAddCheck = false;
+    bNewRouteFound = false;
+    pMPoint->Get(i, pCurrentUnit);
+    getUnitValues(pCurrentUnit, uEndPoint, uStartPoint, aktUnitStartTime,
+                  aktUnitEndTime, lAktUnitStartTime, lAktUnitEndTime,
+                  lAktUnitDuration);
+    if (aktUnitStartTime < tMGPointCurrEndTime) {
+       aktUnitStartTime = tMGPointCurrEndTime;
+       lAktUnitStartTime = aktUnitStartTime.ToDouble();
+       if (aktUnitEndTime < aktUnitStartTime) {
+         aktUnitEndTime = aktUnitStartTime + correcture;
+         lAktUnitEndTime = aktUnitEndTime.ToDouble();
+       }
+       lAktUnitDuration = lAktUnitEndTime - lAktUnitStartTime;
+    }
+    bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos,
+                           firstDifference);
+    if (!bEndFound) {
+      bSecondEndCheck = checkPoint03(pRouteCurve, uEndPoint, true,
+                                   dSecondCheckEndPos, dSecDiff);
+      if (bSecondEndCheck) {
+        bSecCheckDual = bDual;
+        iSecCheckRouteId = pCurrentRoute->GetTupleId();
+      }
+    }
+    if (bEndFound) {
+/*
+Moving point stays on the same route.
+Check if the direction,speed and side are the same as before. If this is the
+case expand the current unit of the mgpoint for the current unit of the mpoint.
+In the other case close and write the open unit of the mgpoint and start a new
+mgpoint unit with the values of the actual mpoint unit as start values.
+
+*/
+          bNewRouteFound = true;
+          setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
+          dAktUnitDistance = fabs (dEndPos - dStartPos);
+          dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
+          speedDifference = fabs (dAktUnitSpeed - dMGPointCurrSpeed);
+          if (bMGPointCurrMovingUp == bMovingUp &&
+              sMGPointCurrSide == side &&
+              speedDifference < 0.0000000001){
+            tMGPointCurrEndTime = aktUnitEndTime;
+            dMGPointCurrEndPos = dEndPos;
+            dMGPointCurrDistance =
+                fabs(dMGPointCurrEndPos - dMGPointCurrStartPos);
+            lMGPointCurrEndTime= tMGPointCurrEndTime.ToDouble();
+            lMGPointCurrDuration = lMGPointCurrEndTime - lMGPointCurrStartTime;
+            dMGPointCurrSpeed = dMGPointCurrDistance / lMGPointCurrDuration;
+            dStartPos = dEndPos;
+            uStartPoint = uEndPoint;
+          } else {
+            pMGPoint->Add(UGPoint(Interval<Instant>(tMGPointCurrStartTime,
+                                               tMGPointCurrEndTime,
+                                               true,
+                                               false),
+                             iNetworkId,
+                             iMGPointCurrRId,
+                             sMGPointCurrSide,
+                             dMGPointCurrStartPos,
+                             dMGPointCurrEndPos));
+            tMGPointCurrStartTime = aktUnitStartTime;
+            tMGPointCurrEndTime = aktUnitEndTime;
+            dMGPointCurrStartPos = dStartPos;
+            dMGPointCurrEndPos = dEndPos;
+            bMGPointCurrMovingUp = bMovingUp;
+            dMGPointCurrDistance = dAktUnitDistance;
+            lMGPointCurrStartTime= lAktUnitStartTime;
+            lMGPointCurrEndTime= lAktUnitEndTime;
+            lMGPointCurrDuration = lAktUnitDuration;
+            iMGPointCurrRId = iRouteId;
+            sMGPointCurrSide = side;
+            dMGPointCurrSpeed = dAktUnitSpeed;
+            dStartPos = dEndPos;
+            uStartPoint = uEndPoint;
+            continue;
+          }
+
+        continue;
+    } else {
+/*
+End not on the  same Route!
+The ~mpoint~ changed route at the start of the unit.
+Write the open unit to the mgpoint and compute the start of the new mgpoint
+unit. To find the new route use the adjacent segments of the actual segment. If
+the new Route is found compute the new values for the next mgpoint unit.
+
+*/
+
+        pMGPoint->Add(UGPoint(Interval<Instant>(tMGPointCurrStartTime,
+                                                tMGPointCurrEndTime,
+                                                true,
+                                                false),
+                                iNetworkId,
+                                iMGPointCurrRId,
+                                sMGPointCurrSide,
+                                dMGPointCurrStartPos,
+                                dMGPointCurrEndPos));
+        bNewRouteFound = false;
+        if (bMovingUp && dStartPos > 0.1) {
+          pStartPos = new GPoint(true, iNetworkId, iRouteId, dStartPos-0.1);}
+        else {
+          if (!bMovingUp && dStartPos < pRouteCurve->Length()- 0.1){
+            pStartPos = new GPoint(true, iNetworkId, iRouteId, dStartPos+0.1);}
+          else {
+            if (!bMovingUp && fabs(dStartPos-pRouteCurve->Length())<0.1) {
+              pStartPos = new GPoint(true, iNetworkId, iRouteId, dStartPos-0.1);
+              if (dMGPointCurrSpeed == 0) bMovingUp = true;
+            }
+            else {
+              if (bMovingUp && fabs(dStartPos - 0.0) < 0.1) {
+                pStartPos =
+                    new GPoint(true, iNetworkId, iRouteId, dStartPos+0.1);
+                if (dMGPointCurrSpeed == 0) bMovingUp = false;
+              }
+              else {
+              pStartPos = new GPoint(true, iNetworkId, iRouteId, dStartPos);}
+            }
+          }
+        }
+        pOldSectionTuple = pNetwork->GetSectionOnRoute(pStartPos);
+        pStartPos->DeleteIfAllowed();
+        if (pOldSectionTuple == NULL) {
+            string strMessage = "No last section for adjacent sections found.";
+            cerr << strMessage << endl;
+            sendMessages(strMessage);
+            pMGPoint->EndBulkLoad();
+            pCurrentRoute->DeleteIfAllowed();
+            pTestRoute->DeleteIfAllowed();
+            //delete pRoutes;
+            return 0;
+        }
+        iOldSectionTid = pOldSectionTuple->GetTupleId();
+        pLastRouteCurve = pRouteCurve;
+        iLastRouteId = iMGPointCurrRId;
+        dStartPosOld = dStartPos;
+        pOldSectionTuple->DeleteIfAllowed();
+        pAdjacentSections.clear();
+        pNetwork->GetAdjacentSections(iOldSectionTid,
+                                      bMovingUp,
+                                      pAdjacentSections);
+        if (pAdjacentSections.size() == 0 && pRouteCurve->IsCycle()) {
+          pAdjacentSections.clear();
+          pStartPos = new GPoint(true, iNetworkId, iRouteId, 0.1);
+          pOldSectionTuple = pNetwork->GetSectionOnRoute(pStartPos);
+          pStartPos->DeleteIfAllowed();
+          if (pOldSectionTuple == NULL) {
+            string strMessage = "No section on cylce found";
+            cerr << strMessage << endl;
+            sendMessages(strMessage);
+            pMGPoint->EndBulkLoad();
+            pCurrentRoute->DeleteIfAllowed();
+            pTestRoute->DeleteIfAllowed();
+            //delete pRoutes;
+            return 0;
+          }
+          iOldSectionTid = pOldSectionTuple->GetTupleId();
+          pOldSectionTuple->DeleteIfAllowed();
+          pNetwork->GetAdjacentSections(iOldSectionTid, false,
+                                        pAdjacentSections);
+        }
+        for (size_t i = 0; i < pAdjacentSections.size(); i++) {
+          DirectedSection pCurrentDirectedSection = pAdjacentSections[i];
+          iCurrentSectionTid = pCurrentDirectedSection.getSectionTid();
+          pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
+          pCurrentSectionRid =
+              (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RID);
+          iCurrentSectionRid = pCurrentSectionRid->GetIntval();
+          pCurrentSectionRTid =
+              (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RRC);
+          iCurrentSectionRTid = pCurrentSectionRTid->GetIntval();
+          pCurrentSectionT->DeleteIfAllowed();
+
+          if (iCurrentSectionRid != iRouteId) {
+            pCurrentRoute->DeleteIfAllowed();
+            pCurrentRoute = pRoutes->GetTuple(iCurrentSectionRTid);
+            pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+            bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos,
+                                  aktDifference);
+            if (!bEndFound) {
+              if (!bAdjSecCheck) {
+                bAdjSecCheck = checkPoint03(pRouteCurve, uEndPoint, true,
+                                   dAdjSecCheckEndPos, dFirstAdjSecCheckDiff);
+                if (bAdjSecCheck) {
+                  bAdjSecCheckDual = bDual;
+                  iAdjSecCheckRid = pCurrentRoute->GetTupleId();
+                }
+              } else {
+                bAdjAddCheck = checkPoint03(pRouteCurve, uEndPoint, true,
+                                          dAdjAddCheckEndPos, dAdjSecCheckDiff);
+                if (bAdjAddCheck && dFirstAdjSecCheckDiff > dAdjSecCheckDiff) {
+                  dAdjSecCheckEndPos = dAdjAddCheckEndPos;
+                  dFirstAdjSecCheckDiff = dAdjSecCheckDiff;
+                  bAdjSecCheckDual = bDual;
+                  iAdjSecCheckRid = pCurrentRoute->GetTupleId();
+                }
+              }
+            }
+            if (bEndFound) {
+              bStartFound =
+                  checkPoint(pRouteCurve, uStartPoint, true, dStartPos,
+                             difference);
+              if (bStartFound) {
+                  bNewRouteFound = true;
+                  pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
+                  bDual = pDual->GetBoolval();
+                  setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
+                  iRouteId = iCurrentSectionRid;
+                  pTestRoute->DeleteIfAllowed();
+                  pTestRoute = pRoutes->GetTuple(iCurrentSectionRTid);
+                  pTestRouteCurve =
+                      (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+                  firstDifference = aktDifference;
+                  dAktUnitDistance = fabs (dEndPos - dStartPos);
+                  dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
+                  iMGPointCurrRId = iRouteId;
+                  sMGPointCurrSide = side;
+                  dMGPointCurrSpeed = dAktUnitSpeed;
+                  tMGPointCurrStartTime = aktUnitStartTime;
+                  tMGPointCurrEndTime = aktUnitEndTime;
+                  dMGPointCurrStartPos = dStartPos;
+                  dMGPointCurrEndPos = dEndPos;
+                  bMGPointCurrMovingUp = bMovingUp;
+                  dMGPointCurrDistance = dAktUnitDistance;
+                  lMGPointCurrStartTime = lAktUnitStartTime;
+                  lMGPointCurrEndTime= lAktUnitEndTime;
+                  lMGPointCurrDuration = lAktUnitDuration;
+                  dFirstEndPos = dEndPos;
+                  uFirstEndPoint = uEndPoint;
+/*
+If a route splits up into two routes it might be that in the beginning
+the difference between the two new routes is very small, So it can happen
+that the checkPoint-Function first computes the false new route. Because of this
+we have to check the other adjacent routes if there is one with a lower
+difference than the first found route. If a route with a lower difference value
+is found. This route has to be taken instead of the first computed route.
+
+*/
+                  for (size_t j = i ; j < pAdjacentSections.size(); j++) {
+                    DirectedSection pCurrentDirectedSection =
+                        pAdjacentSections[j];
+                    iCurrentSectionTid =
+                        pCurrentDirectedSection.getSectionTid();
+                    pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
+                    pCurrentSectionRid =
+                        (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RID);
+                    iCurrentSectionRid = pCurrentSectionRid->GetIntval();
+                    pCurrentSectionRTid =
+                        (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RRC);
+                    iCurrentSectionRTid = pCurrentSectionRTid->GetIntval();
+                    pCurrentSectionT->DeleteIfAllowed();
+                    if (iCurrentSectionRid != iMGPointCurrRId) {
+                      pTestRoute->DeleteIfAllowed();
+                      pTestRoute = pRoutes->GetTuple(iCurrentSectionRTid);
+                      pTestRouteCurve =
+                          (Line*) pTestRoute->GetAttribute(ROUTE_CURVE);
+                      bEndFound = checkPoint(pTestRouteCurve, uEndPoint, true,
+                                            dEndPos, aktDifference);
+                      if (bEndFound) {
+                        bStartFound = checkPoint(pTestRouteCurve, uStartPoint,
+                                                true, dStartPos, difference);
+                        if (bStartFound) {
+                          if (firstDifference > aktDifference) {
+                            pDual =
+                              (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
+                            bDual = pDual->GetBoolval();
+                            setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual,
+                                          side);
+                            iRouteId = iCurrentSectionRid;
+                            pCurrentRoute->DeleteIfAllowed();
+                            pCurrentRoute =
+                                pRoutes->GetTuple(iCurrentSectionRTid);
+                            pRouteCurve =
+                               (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+                            firstDifference = aktDifference;
+                            dAktUnitDistance = fabs (dEndPos - dStartPos);
+                            dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
+                            iMGPointCurrRId = iRouteId;
+                            sMGPointCurrSide = side;
+                            dMGPointCurrSpeed = dAktUnitSpeed;
+                            dMGPointCurrStartPos = dStartPos;
+                            dMGPointCurrEndPos = dEndPos;
+                            bMGPointCurrMovingUp = bMovingUp;
+                            dMGPointCurrDistance = dAktUnitDistance;
+                            dFirstEndPos = dEndPos;
+                            uFirstEndPoint = uEndPoint;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  dStartPos = dFirstEndPos;
+                  uStartPoint = uFirstEndPoint;
+                  break;
+              } else {
+/*
+Specialcase; ~mpoint~ passes junction within unit changing the route.
+Might happen if old Route and new Route have the same direction.
+Compute additional Unit for MGPoint from end last Unit to junction and correct
+values for next unit of MGPoint taking the time of passing the junction as
+start time and the junction as startposition of the new current unit.
+
+*/
+
+                CcInt pRouteId1(true, iLastRouteId);
+                CcInt pRouteId2(true, iCurrentSectionRid);
+                pNetwork->GetJunctionMeasForRoutes(&pRouteId1,
+                                                  &pRouteId2,
+                                                  rid1meas,
+                                                  rid2meas);
+                double factor = fabs(rid1meas - dStartPosOld) /
+                                (uEndPoint.Distance(uStartPoint));
+                tPassJunction = (aktUnitEndTime - aktUnitStartTime) * factor +
+                                aktUnitStartTime;
+                if (tPassJunction == aktUnitStartTime) {
+                    tPassJunction = tPassJunction + correcture;
+                }
+                pMGPoint->Add(UGPoint(Interval<Instant>(aktUnitStartTime,
+                                                tPassJunction,
+                                                true,
+                                                false),
+                                iNetworkId,
+                                iLastRouteId,
+                                sMGPointCurrSide,
+                                dMGPointCurrEndPos,
+                                rid1meas));
+                bNewRouteFound = true;
+                pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
+                bDual = pDual->GetBoolval();
+                setMoveAndSide(rid2meas, dEndPos, bMovingUp, bDual, side);
+                iRouteId = iCurrentSectionRid;
+                dAktUnitDistance = fabs (dEndPos - rid2meas);
+                if (tPassJunction == aktUnitEndTime) {
+                    aktUnitEndTime = aktUnitEndTime + correcture;
+                }
+                lAktUnitEndTime = aktUnitEndTime.ToDouble();
+                lAktUnitDuration = lAktUnitEndTime -
+                                            tPassJunction.ToDouble();
+                dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
+                iMGPointCurrRId = iRouteId;
+                sMGPointCurrSide = side;
+                dMGPointCurrSpeed = dAktUnitSpeed;
+                tMGPointCurrStartTime = tPassJunction;
+                tMGPointCurrEndTime = aktUnitEndTime;
+                dMGPointCurrStartPos = rid2meas;
+                dMGPointCurrEndPos = dEndPos;
+                bMGPointCurrMovingUp = bMovingUp;
+                dMGPointCurrDistance = dAktUnitDistance;
+                lMGPointCurrStartTime= tPassJunction.ToDouble();
+                lMGPointCurrEndTime= lAktUnitEndTime;
+                lMGPointCurrDuration = lAktUnitDuration;
+                dStartPos = dEndPos;
+                uStartPoint = uEndPoint;
+                break;
+              }//end ifelse bStartFound
+            } // end if bEndFound
+          } //end if CurrentRid != RouteId
+        } //end for AdjacentSections
+      } //end ifelse bEndFound
+      if (!bNewRouteFound && bSecondEndCheck) {
+          pCurrentRoute->DeleteIfAllowed();
+          pCurrentRoute = pRoutes->GetTuple(iSecCheckRouteId);
+          pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+          pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
+          iRouteId = pRouteId->GetIntval();
+          pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
+          bDual = pDual->GetBoolval();
+          bNewRouteFound = true;
+          dEndPos = dSecondCheckEndPos;
+          setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
+          dAktUnitDistance = fabs (dEndPos - dStartPos);
+          dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
+          iMGPointCurrRId = iRouteId;
+          sMGPointCurrSide = side;
+          dMGPointCurrSpeed = dAktUnitSpeed;
+          tMGPointCurrStartTime = aktUnitStartTime;
+          tMGPointCurrEndTime = aktUnitEndTime;
+          dMGPointCurrStartPos = dStartPos;
+          dMGPointCurrEndPos = dEndPos;
+          bMGPointCurrMovingUp = bMovingUp;
+          dMGPointCurrDistance = dAktUnitDistance;
+          lMGPointCurrStartTime = lAktUnitStartTime;
+          lMGPointCurrEndTime= lAktUnitEndTime;
+          lMGPointCurrDuration = lAktUnitDuration;
+          dStartPos = dEndPos;
+          uStartPoint = uEndPoint;
+          continue;
+        }
+        if (!bNewRouteFound && bAdjSecCheck) {
+          pCurrentRoute->DeleteIfAllowed();
+          pCurrentRoute = pRoutes->GetTuple(iAdjSecCheckRid);
+          pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+          pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
+          iRouteId = pRouteId->GetIntval();
+          pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
+          bDual = pDual->GetBoolval();
+          bNewRouteFound = true;
+          dEndPos = dAdjSecCheckEndPos;
+          bStartFound = checkPoint(pRouteCurve, uStartPoint,
+                                                true, dStartPos, difference);
+          if (!bStartFound) {
+            checkPoint03(pRouteCurve, uStartPoint, true, dStartPos, difference);
+          }
+          setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
+          dAktUnitDistance = fabs (dEndPos - dStartPos);
+          dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
+          iMGPointCurrRId = iRouteId;
+          sMGPointCurrSide = side;
+          dMGPointCurrSpeed = dAktUnitSpeed;
+          tMGPointCurrStartTime = aktUnitStartTime;
+          tMGPointCurrEndTime = aktUnitEndTime;
+          dMGPointCurrStartPos = dStartPos;
+          dMGPointCurrEndPos = dEndPos;
+          bMGPointCurrMovingUp = bMovingUp;
+          dMGPointCurrDistance = dAktUnitDistance;
+          lMGPointCurrStartTime = lAktUnitStartTime;
+          lMGPointCurrEndTime= lAktUnitEndTime;
+          lMGPointCurrDuration = lAktUnitDuration;
+          dStartPos = dEndPos;
+          uStartPoint = uEndPoint;
+          continue;
+        }
+      if (!bNewRouteFound) {
+        pAdjacentSections.clear();
+        pNetwork->GetAdjacentSections(iOldSectionTid, !bMovingUp,
+                                        pAdjacentSections);
+        for (size_t i = 0; i < pAdjacentSections.size(); i++) {
+          DirectedSection pCurrentDirectedSection = pAdjacentSections[i];
+          iCurrentSectionTid = pCurrentDirectedSection.getSectionTid();
+          pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
+          pCurrentSectionRid =
+            (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RID);
+          iCurrentSectionRid = pCurrentSectionRid->GetIntval();
+          pCurrentSectionRTid =
+            (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RRC);
+          iCurrentSectionRTid = pCurrentSectionRTid->GetIntval();
+          pCurrentSectionT->DeleteIfAllowed();
+          if (iCurrentSectionRid != iRouteId) {
+            pCurrentRoute->DeleteIfAllowed();
+            pCurrentRoute = pRoutes->GetTuple(iCurrentSectionRTid);
+            pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+            bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos,
+                                 aktDifference);
+            if (bEndFound) {
+              bNewRouteFound = true;
+              CcInt pRouteId1(true, iLastRouteId);
+              CcInt pRouteId2(true, iCurrentSectionRid);
+              pNetwork->GetJunctionMeasForRoutes(&pRouteId1,
+                                                  &pRouteId2,
+                                                  rid1meas,
+                                                  rid2meas);
+              double factor = fabs(rid1meas - dStartPosOld) /
+                                (uEndPoint.Distance(uStartPoint));
+              tPassJunction = (aktUnitEndTime - aktUnitStartTime) * factor +
+                                aktUnitStartTime;
+              if (tPassJunction <= aktUnitStartTime) {
+                if (tPassJunction < aktUnitStartTime) {
+                  tPassJunction = aktUnitStartTime + correcture;
+                } else {
+                  tPassJunction = tPassJunction + correcture;
+                }
+              }
+              pMGPoint->Add(UGPoint(Interval<Instant>(aktUnitStartTime,
+                                                tPassJunction,
+                                                true,
+                                                false),
+                                iNetworkId,
+                                iLastRouteId,
+                                sMGPointCurrSide,
+                                dMGPointCurrEndPos,
+                                rid1meas));
+              bNewRouteFound = true;
+              pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
+              bDual = pDual->GetBoolval();
+              setMoveAndSide(rid2meas, dEndPos, bMovingUp, bDual, side);
+              iRouteId = iCurrentSectionRid;
+              dAktUnitDistance = fabs (dEndPos - rid2meas);
+              if (tPassJunction >= aktUnitEndTime) {
+                if (tPassJunction > aktUnitEndTime) {
+                  aktUnitEndTime = tPassJunction + correcture;
+                } else {
+                    aktUnitEndTime = aktUnitEndTime + correcture;
+                }
+              }
+              lAktUnitEndTime = aktUnitEndTime.ToDouble();
+              lAktUnitDuration = lAktUnitEndTime -
+                                          tPassJunction.ToDouble();
+              dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
+              iMGPointCurrRId = iRouteId;
+              sMGPointCurrSide = side;
+              dMGPointCurrSpeed = dAktUnitSpeed;
+              tMGPointCurrStartTime = tPassJunction;
+              tMGPointCurrEndTime = aktUnitEndTime;
+              dMGPointCurrStartPos = rid2meas;
+              dMGPointCurrEndPos = dEndPos;
+              bMGPointCurrMovingUp = bMovingUp;
+              dMGPointCurrDistance = dAktUnitDistance;
+              lMGPointCurrStartTime= tPassJunction.ToDouble();
+              lMGPointCurrEndTime= lAktUnitEndTime;
+              lMGPointCurrDuration = lAktUnitDuration;
+              dStartPos = dEndPos;
+              uStartPoint = uEndPoint;
+              break;
+            }
+          }
+        } //end for adjacentSections
+      }
+      if (!bNewRouteFound) {
+          //should not happen
+          cout << "MPoint is not longer found on network." << endl;
+          string strMessage = "MPoint is not longer found on network.";
+          cerr << strMessage << endl;
+          sendMessages(strMessage);
+          pMGPoint->EndBulkLoad();
+          pCurrentRoute->DeleteIfAllowed();
+          pTestRoute->DeleteIfAllowed();
+          //delete pRoutes;
+          return 0;
+      }
+  } //end for units MPoint
+  pMGPoint->Add(UGPoint(Interval<Instant>(tMGPointCurrStartTime,
+                                                tMGPointCurrEndTime,
+                                                true,
+                                                false),
+                              iNetworkId,
+                              iMGPointCurrRId,
+                              sMGPointCurrSide,
+                              dMGPointCurrStartPos,
+                              dMGPointCurrEndPos));
+  pMGPoint->EndBulkLoad();
+  pCurrentRoute->DeleteIfAllowed();
+  pTestRoute->DeleteIfAllowed();
+  //pRoutes->Delete();
+  pAdjacentSections.clear();
+  // delete &pAdjacentSections;
+  cout << "Translation ok" << endl;
+  return 0;
+} //end ValueMapping
+
+
+const string OpMPoint2MGPointSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>network x mpoint -> mgpoint" "</text--->"
+  "<text>mpoint2mgpoint(Networkobject, mpoint)</text--->"
+  "<text>Finds a path in a network for a moving point.</text--->"
+  "<text>mpoint2mgpoint(B_NETWORK, x)</text--->"
+  ") )";
+
 Operator mpoint2mgpoint (
           "mpoint2mgpoint",                // name
-          OpMPoint2MGPoint::Spec,          // specification
-          OpMPoint2MGPoint::ValueMapping,  // value mapping
+          OpMPoint2MGPointSpec,          // specification
+          OpMPoint2MGPointValueMapping,  // value mapping
           Operator::SimpleSelect,          // trivial selection function
-          OpMPoint2MGPoint::TypeMap        // type mapping
+          OpMPoint2MGPointTypeMap        // type mapping
 );
 
 /*
-Operator units
+1.3.2 Operator ~passes~
+
+Returns true if a ~MGPoint~ passes a given ~GPoint~ or ~GLine~.
 
 */
-Operator units("units",
-               OpUnits::Spec,
-               MappingUnits<MGPoint, UGPoint>,
-               Operator::SimpleSelect,
-               OpUnits::TypeMap );
 
-/*
-Operator simplify
+ListExpr OpPassesTypeMap( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
 
-*/
-Operator simplify("simplify",
-                  OpSimplify::Spec,
-                  OpSimplify::ValueMapping,
-                  Operator::SimpleSelect,
-                  OpSimplify::TypeMap );
+    if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+         nl->SymbolValue(arg1) == "mgpoint" ) {
+      if (nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+         (nl->SymbolValue(arg2) == "gpoint" ||
+          nl->SymbolValue(arg2) == "gline")){
+        return (nl->SymbolAtom("bool"));
+      }
+    }
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
 
-/*
-Operator passes
+int OpPasses_mgpgp(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  CcBool* pPasses = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pPasses);
+  // Get input values
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cout << "MGPoint not Defined" << endl;
+    pPasses->Set(false, false);
+    return 0;
+  }
+  GPoint* pGPoint = (GPoint*)args[1].addr;
+  if(pGPoint == NULL || !pGPoint->IsDefined()) {
+    cout << "GPoint not Defined" << endl;
+    pPasses->Set(false, false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  pMGPoint->Get(0, pCurrentUnit);
+  if (pGPoint->GetNetworkId() != pCurrentUnit->p0.GetNetworkId()) {
+    pPasses->Set(true, false);
+    return 0;
+  }
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++) {
+    pMGPoint->Get(i, pCurrentUnit);
+    if (pCurrentUnit->p0.GetRouteId() == pGPoint->GetRouteId()){
+    // check if p is between p0 and p1
+      if((pCurrentUnit->p0.GetPosition() < pGPoint->GetPosition() &&
+        pGPoint->GetPosition() < pCurrentUnit->p1.GetPosition()) ||
+        (pCurrentUnit->p1.GetPosition() < pGPoint->GetPosition() &&
+        pGPoint->GetPosition() < pCurrentUnit->p0.GetPosition())) {
+        pPasses->Set(true, true);
+        return 0;
+      }
 
-*/
+      // If the edge of the interval is included we need to check the exakt
+      // Position too.
+      if((pCurrentUnit->timeInterval.lc &&
+          AlmostEqual(pCurrentUnit->p0.GetPosition(), pGPoint->GetPosition()))||
+          (pCurrentUnit->timeInterval.rc &&
+          AlmostEqual(pCurrentUnit->p1.GetPosition(),pGPoint->GetPosition()))) {
+        pPasses->Set(true, true);
+        return 0;
+      }
+    }
+  }
+  pPasses->Set(true, false);
+  return 0;
+};
+
+int OpPasses_mgpgl(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  CcBool* pPasses = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pPasses);
+  double dMGPStart, dMGPEnd;
+  // Get input values
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pPasses->Set(false, false);
+    return 0;
+  }
+  GLine* pGLine = (GLine*)args[1].addr;
+  if(pGLine == NULL || !pGLine->IsDefined()) {
+    cerr << "GLine does not exist." << endl;
+    pPasses->Set(false, false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  pMGPoint->Get(0, pCurrentUnit);
+  if (pGLine->GetNetworkId() != pCurrentUnit->p0.GetNetworkId()) {
+    pPasses->Set(true, false);
+    return 0;
+  }
+  const RouteInterval *pCurrRInter;
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++)
+  {
+    pMGPoint->Get(i, pCurrentUnit);
+    if (pCurrentUnit->p0.GetPosition() <= pCurrentUnit->p1.GetPosition()) {
+      dMGPStart = pCurrentUnit->p0.GetPosition();
+      dMGPEnd = pCurrentUnit->p1.GetPosition();
+    } else {
+      dMGPStart = pCurrentUnit->p1.GetPosition();
+      dMGPEnd = pCurrentUnit->p0.GetPosition();
+    }
+    if (pGLine->IsSorted()){
+      if (searchUnit(pGLine, 0, pGLine->NoOfComponents()-1,
+                     pCurrentUnit->p0.GetRouteId(), dMGPStart, dMGPEnd)){
+        pPasses->Set(true, true);
+        return 0;
+      };
+    } else {
+      for (int j = 0 ; j < pGLine->NoOfComponents(); j ++){
+        pGLine->Get(j,pCurrRInter);
+        if (pCurrRInter->m_iRouteId == pCurrentUnit->p0.GetRouteId() &&
+           (!(pCurrRInter->m_dEnd < dMGPStart ||
+              pCurrRInter->m_dStart > dMGPEnd))){
+          pPasses->Set(true, true);
+          return 0;
+        }
+      }
+    }
+  }
+  pPasses->Set(true, false);
+  return 0;
+};
+
+ValueMapping OpPassesvaluemap[] = {
+  OpPasses_mgpgp,
+  OpPasses_mgpgl
+};
+
+int OpPassesSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->SymbolValue(arg2) == "gpoint")
+    return 0;
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->SymbolValue(arg2) == "gline")
+    return 1;
+  return -1; // This point should never be reached
+}
+
+const string OpPassesSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x A -> bool for A gpoint or gline " "</text--->"
+  "<text>_ passes _</text--->"
+  "<text>Checks whether a moving point passes a gpoint or a gline.</text--->"
+  "<text>X_MGPOINT passes X_GPOINT </text--->"
+  ") )";
 
 Operator tempnetpasses (
   "passes",
-  OpPasses::Spec,
+  OpPassesSpec,
   2,
-  OpPasses::passesmap,
-  OpPasses::SelectPasses,
-  OpPasses::PassesMap );
+  OpPassesvaluemap,
+  OpPassesSelect,
+  OpPassesTypeMap );
+
 
 /*
-Operator at
+1.3.3 Operator ~simplify~
+
+Reduces units of a ~MGPoint~ by concatenation if the speed difference is
+smaller than a given value.
 
 */
+
+ListExpr OpSimplifyTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 2 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMPointDesc = nl->First(in_xArgs);
+  ListExpr xEpsilonDesc = nl->Second(in_xArgs);
+
+  if( (!nl->IsAtom( xMPointDesc )) ||
+      nl->AtomType( xMPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  if( (!nl->IsAtom( xEpsilonDesc)) ||
+      nl->AtomType( xEpsilonDesc ) != SymbolType ||
+      nl->SymbolValue( xEpsilonDesc ) != "real" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom( "mgpoint" );
+}
+
+int OpSimplifyValueMapping(Word* args,
+                             Word& result,
+                             int message,
+                             Word& local,
+                             Supplier in_xSupplier)
+{
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  CcReal* pEpsilon = (CcReal*)args[1].addr;
+  double dEpsilon = pEpsilon->GetRealval();
+
+  // Get (empty) return value
+  MGPoint* pMGPointSimplified = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pMGPointSimplified );
+
+  if(pMGPoint->GetNoComponents() == 0)
+  {
+    string strMessage = "MPoint is Empty.";
+    cerr << endl << strMessage << endl << endl;
+    return 0;
+  }
+
+  pMGPointSimplified->Clear();
+  pMGPointSimplified->StartBulkLoad();
+
+  int iNetworkId;
+  int iStartRouteId = 0;
+  Side xStartSide;
+  double dStartSpeed;
+
+  Instant xStartStartTime;
+  double dStartStartPosition;
+  double dLastEndPosition;
+  Instant xLastEndTime;
+
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++)
+  {
+    //////////////////////////////
+    //
+    // Get values for current unit
+    //
+    //////////////////////////////
+    const UGPoint *pCurrentUnit;
+    pMGPoint->Get(i, pCurrentUnit);
+
+    // Duration
+    Instant xCurrentStartTime = pCurrentUnit->timeInterval.start;
+    LONGTYPE lCurrentStartTime = xCurrentStartTime.GetAllMilliSeconds();
+    Instant xCurrentEndTime = pCurrentUnit->timeInterval.end;
+    LONGTYPE lCurrentEndTime = xCurrentEndTime.GetAllMilliSeconds();
+    LONGTYPE lCurrentDuration = lCurrentEndTime - lCurrentStartTime;
+
+    // Distance
+    GPoint xCurrentStart = pCurrentUnit->p0;
+    GPoint xCurrentEnd = pCurrentUnit->p1;
+    iNetworkId = xCurrentStart.GetNetworkId();
+    int iCurrentRouteId = xCurrentStart.GetRouteId();
+    Side xCurrentSide = xCurrentStart.GetSide();
+    double dCurrentStartPosition = xCurrentStart.GetPosition();
+    double dCurrentEndPosition = xCurrentEnd.GetPosition();
+    double dCurrentDistance = dCurrentEndPosition - dCurrentStartPosition;
+
+    // Speed
+    double dCurrentSpeed = dCurrentDistance / lCurrentDuration;
+    //////////////////////////////
+    //
+    // Set start values if this
+    // is the first unit-start
+    //
+    //////////////////////////////
+    if(iStartRouteId == 0)
+    {
+      iStartRouteId = iCurrentRouteId;
+      xStartSide = xCurrentSide;
+      dStartSpeed = dCurrentSpeed;
+      xStartStartTime = xCurrentStartTime;
+      dStartStartPosition = dCurrentStartPosition;
+    }
+
+    //////////////////////////////
+    //
+    // Check if this units differs
+    // from the ones before.
+    // If so create unit for all
+    // units before this.
+    //
+    //////////////////////////////
+    double dSpeedDifference = dCurrentSpeed > dStartSpeed ?
+                              dCurrentSpeed - dStartSpeed :
+                              dStartSpeed - dCurrentSpeed;
+
+    if( iCurrentRouteId != iStartRouteId ||
+        xCurrentSide != xStartSide ||
+        dSpeedDifference > dEpsilon)
+    {
+      // Create new unit
+      pMGPointSimplified->Add(UGPoint(Interval<Instant>(xStartStartTime,
+                                                        xLastEndTime,
+                                                        true,
+                                                        false),
+                              iNetworkId,
+                              iStartRouteId,
+                              xStartSide,
+                              dStartStartPosition,
+                              dLastEndPosition));
+      // Set new Start-Values
+      iStartRouteId = iCurrentRouteId;
+      xStartSide = xCurrentSide;
+      dStartSpeed = dCurrentSpeed;
+      xStartStartTime = xCurrentStartTime;
+      dStartStartPosition = dCurrentStartPosition;
+    }
+
+    if( i == pMGPoint->GetNoComponents() -1)
+    {
+      // Last loop - create last unit
+      pMGPointSimplified->Add(UGPoint(Interval<Instant>(xStartStartTime,
+                                                        xCurrentEndTime,
+                                                        true,
+                                                        false),
+                              iNetworkId,
+                              iStartRouteId,
+                              xStartSide,
+                              dStartStartPosition,
+                              dCurrentEndPosition));
+
+    }
+
+    // Set Last-Values for next loop
+    dLastEndPosition = dCurrentEndPosition;
+    xLastEndTime = xCurrentEndTime;
+  }
+
+
+  // Units were added to the moving point. They are sorted and
+  // the bulk-load is ended:
+  pMGPointSimplified->EndBulkLoad();
+  return 0;
+}
+
+const string OpSimplifySpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x real -> mgpoint" "</text--->"
+  "<text>simplify(0.0001, mgpoint)</text--->"
+  "<text>Removes unecessary units from a mgpoint.</text--->"
+  "<text>simplify(0.0001, mgpoint)</text--->"
+  ") )";
+
+Operator simplify("simplify",
+                  OpSimplifySpec,
+                  OpSimplifyValueMapping,
+                  Operator::SimpleSelect,
+                  OpSimplifyTypeMap );
+
+
+/*
+1.3.4 Operator ~at~
+
+Restricts the ~MGPoint~ to the times it was at a given ~GPoint~ or ~GLine~.
+
+*/
+
+ListExpr OpAtTypeMap(ListExpr in_xArgs)
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength(  in_xArgs ) == 2 )
+  {
+    arg1 = nl->First( in_xArgs );
+    arg2 = nl->Second( in_xArgs );
+
+    if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+         nl->SymbolValue(arg1) == "mgpoint" ) {
+      if (nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+         (nl->SymbolValue(arg2) == "gpoint" ||
+          nl->SymbolValue(arg2) == "gline")){
+        return (nl->SymbolAtom("mgpoint"));
+      }
+    }
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+int OpAt_mgpgp(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  MGPoint* pResult = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult);
+  pResult->Clear();
+  // Get input values
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cout << "MGPoint not Defined" << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  GPoint* pGPoint = (GPoint*)args[1].addr;
+  if(pGPoint == NULL || !pGPoint->IsDefined()) {
+    cout << "GPoint not Defined" << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  Instant tPos;
+  double factor;
+  const UGPoint *pCurrentUnit,*pCheckUnit;
+  pMGPoint->Get(0, pCurrentUnit);
+  if (pGPoint->GetNetworkId() != pCurrentUnit->p0.GetNetworkId()) {
+    pResult->SetDefined(false);
+    return 0;
+  }
+  pResult->StartBulkLoad();
+  int i= 0;
+  while (i < pMGPoint->GetNoComponents()) {
+    pMGPoint->Get(i, pCurrentUnit);
+    if (pCurrentUnit->p0.GetRouteId() == pGPoint->GetRouteId() &&
+        (pCurrentUnit->p0.GetSide() == pGPoint->GetSide() ||
+        pCurrentUnit->p0.GetSide() ==2 || pGPoint->GetSide()== 2)){
+      if (fabs(pGPoint->GetPosition()-pCurrentUnit->p0.GetPosition()) < 0.01){
+        if (pCurrentUnit->p0.GetPosition() == pCurrentUnit->p1.GetPosition()){
+          pResult->Add(UGPoint(Interval<Instant>(
+                            pCurrentUnit->timeInterval.start,
+                            pCurrentUnit->timeInterval.end,
+                            pCurrentUnit->timeInterval.lc,
+                            pCurrentUnit->timeInterval.rc),
+                     pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                     pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
+                     pGPoint->GetPosition()));
+        } else {
+          if(pCurrentUnit->timeInterval.lc) {
+            pResult->Add(UGPoint(Interval<Instant>(
+                            pCurrentUnit->timeInterval.start,
+                            pCurrentUnit->timeInterval.start,
+                            true, true),
+                            pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                            pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
+                            pGPoint->GetPosition()));
+          }
+        }
+      } else {
+        if(fabs(pGPoint->GetPosition()-pCurrentUnit->p1.GetPosition())<0.01) {
+          if (pCurrentUnit->timeInterval.rc) {
+            if (i < pMGPoint->GetNoComponents()-1){
+              i++;
+              pMGPoint->Get(i,pCheckUnit);
+              if (pCheckUnit->p0.GetRouteId() ==
+                  pCurrentUnit->p1.GetRouteId() &&
+                  pCheckUnit->p0.GetPosition() ==
+                  pCurrentUnit->p1.GetPosition()&&
+                  pCheckUnit->timeInterval.start ==
+                  pCurrentUnit->timeInterval.end){
+                if (pCheckUnit->p0.GetPosition() !=
+                    pCheckUnit->p1.GetPosition()){
+                  pResult->Add(UGPoint(Interval<Instant>(
+                            pCurrentUnit->timeInterval.end,
+                            pCurrentUnit->timeInterval.end,
+                            true, true),
+                            pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                            pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
+                            pGPoint->GetPosition()));
+                } else {
+                  pResult->Add(UGPoint(Interval<Instant>(
+                              pCheckUnit->timeInterval.start,
+                              pCheckUnit->timeInterval.end,
+                              pCheckUnit->timeInterval.lc,
+                              pCheckUnit->timeInterval.rc),
+                              pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                              pCheckUnit->p0.GetSide(), pGPoint->GetPosition(),
+                              pGPoint->GetPosition()));
+                }
+              }
+            } else {
+              pResult->Add(UGPoint(Interval<Instant>(
+                            pCurrentUnit->timeInterval.end,
+                            pCurrentUnit->timeInterval.end,
+                            true, true),
+                            pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                            pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
+                            pGPoint->GetPosition()));
+            }
+          } else {
+            if (i < pMGPoint->GetNoComponents()-1) {
+              i++;
+              pMGPoint->Get(i,pCheckUnit);
+              if (pCheckUnit->p0.GetRouteId() == pCurrentUnit->p1.GetRouteId()
+                  && pCheckUnit->p0.GetPosition() ==
+                  pCurrentUnit->p1.GetPosition() &&
+                  pCheckUnit->timeInterval.start ==
+                  pCurrentUnit->timeInterval.end){
+                if (pCheckUnit->p0.GetPosition() !=
+                    pCheckUnit->p1.GetPosition()){
+                  pResult->Add(UGPoint(Interval<Instant>(
+                           pCurrentUnit->timeInterval.end,
+                           pCurrentUnit->timeInterval.end,
+                           true, true),
+                           pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                           pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
+                          pGPoint->GetPosition()));
+                } else {
+                  pResult->Add(UGPoint(Interval<Instant>(
+                            pCheckUnit->timeInterval.start,
+                            pCheckUnit->timeInterval.end,
+                            pCheckUnit->timeInterval.lc,
+                            pCheckUnit->timeInterval.rc),
+                     pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                     pCheckUnit->p0.GetSide(), pGPoint->GetPosition(),
+                     pGPoint->GetPosition()));
+                }
+              }
+            }
+          }
+        } else {
+          if((pCurrentUnit->p0.GetPosition() < pGPoint->GetPosition() &&
+              pGPoint->GetPosition() < pCurrentUnit->p1.GetPosition()) ||
+             (pCurrentUnit->p1.GetPosition() < pGPoint->GetPosition() &&
+              pGPoint->GetPosition() < pCurrentUnit->p0.GetPosition())) {
+            factor = fabs(pCurrentUnit->p1.GetPosition() -
+                       pCurrentUnit->p0.GetPosition()) /
+                  fabs(pGPoint->GetPosition() - pCurrentUnit->p0.GetPosition());
+            Instant tPos = (pCurrentUnit->timeInterval.end -
+                            pCurrentUnit->timeInterval.start) * factor +
+                            pCurrentUnit->timeInterval.start;
+            pResult->Add(UGPoint(Interval<Instant>(tPos, tPos, true, true),
+                     pGPoint->GetNetworkId(), pGPoint->GetRouteId(),
+                     pCurrentUnit->p0.GetSide(), pGPoint->GetPosition(),
+                     pGPoint->GetPosition()));
+          }
+        }
+      }
+    }
+    i++;
+  }
+  pResult->EndBulkLoad();
+  pResult->SetDefined(true);
+  return 0;
+};
+
+
+
+int OpAt_mgpgl(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  MGPoint* pResult = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult);
+  pResult->Clear();
+  // Get input values
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  GLine* pGLine = (GLine*)args[1].addr;
+  if(pGLine == NULL || !pGLine->IsDefined() || pGLine->NoOfComponents() <= 0) {
+    cerr << "GLine does not exist or is empty." << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  pMGPoint->Get(0, pCurrentUnit);
+  if (pGLine->GetNetworkId() != pCurrentUnit->p0.GetNetworkId()) {
+    pResult->SetDefined(false);
+    return 0;
+  }
+  int iNetworkId = pGLine->GetNetworkId();
+  double mgStart, mgEnd, lStart, lEnd, factor, interStart, interEnd;
+  const RouteInterval *pCurrRInter;
+  Instant tInterStart, tInterEnd;
+  bool bInterStart, bInterEnd, swapped;
+  int iRouteMgp;
+  pResult->StartBulkLoad();
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++)
+  {
+    pMGPoint->Get(i, pCurrentUnit);
+    iRouteMgp = pCurrentUnit->p0.GetRouteId();
+    mgStart = pCurrentUnit->p0.GetPosition();
+    mgEnd = pCurrentUnit->p1.GetPosition();
+    if (mgEnd < mgStart) {
+      mgStart = pCurrentUnit->p1.GetPosition();
+      mgEnd = pCurrentUnit->p0.GetPosition();
+      swapped = true;
+    }
+    if (pGLine->IsSorted()){
+      vector<RouteInterval> vRI;
+      const RouteInterval *currRInter;
+      vRI.clear();
+      getRouteIntervals(pGLine, iRouteMgp, mgStart, mgEnd, 0,
+                        pGLine->NoOfComponents(), vRI);
+      if (vRI.size() > 0) {
+        size_t k = 0;
+        while (k < vRI.size()) {
+          currRInter = &vRI[k];
+          if (pCurrentUnit->p0.GetPosition() == pCurrentUnit->p1.GetPosition()
+                && ((currRInter->m_dStart <= pCurrentUnit->p0.GetPosition() &&
+                currRInter->m_dEnd >= pCurrentUnit->p0.GetPosition())||
+                (currRInter->m_dStart >= pCurrentUnit->p0.GetPosition() &&
+                currRInter->m_dEnd <= pCurrentUnit->p0.GetPosition()))) {
+            pResult->Add(UGPoint(Interval<Instant> (
+                                pCurrentUnit->timeInterval.start,
+                                pCurrentUnit->timeInterval.end,
+                                pCurrentUnit->timeInterval.lc,
+                                pCurrentUnit->timeInterval.rc),
+                                iNetworkId, iRouteMgp,
+                                pCurrentUnit->p0.GetSide(),
+                                pCurrentUnit->p0.GetPosition(),
+                                pCurrentUnit->p0.GetPosition()));
+          } else {
+            if(pCurrentUnit->p0.GetPosition() < pCurrentUnit->p1.GetPosition()){
+              if (pCurrentUnit->p0.GetPosition() >= currRInter->m_dStart) {
+                interStart = pCurrentUnit->p0.GetPosition();
+                tInterStart = pCurrentUnit->timeInterval.start;
+                bInterStart = pCurrentUnit->timeInterval.lc;
+              } else {
+                interStart = currRInter->m_dStart;
+                bInterStart = true;
+                factor = fabs(currRInter->m_dStart -
+                         pCurrentUnit->p0.GetPosition())/
+                         fabs(pCurrentUnit->p1.GetPosition() -
+                         pCurrentUnit->p0.GetPosition());
+                tInterStart = (pCurrentUnit->timeInterval.end -
+                             pCurrentUnit->timeInterval.start) * factor +
+                             pCurrentUnit->timeInterval.start;
+              }
+              if (pCurrentUnit->p1.GetPosition() <= currRInter->m_dEnd) {
+                interEnd = pCurrentUnit->p1.GetPosition();
+                tInterEnd = pCurrentUnit->timeInterval.end;
+                bInterEnd = pCurrentUnit->timeInterval.rc;
+              } else {
+                interEnd = currRInter->m_dEnd;
+                bInterEnd = true;
+                factor = fabs(currRInter->m_dEnd -
+                         pCurrentUnit->p0.GetPosition())/
+                         fabs(pCurrentUnit->p1.GetPosition() -
+                         pCurrentUnit->p0.GetPosition());
+                tInterEnd = (pCurrentUnit->timeInterval.end -
+                           pCurrentUnit->timeInterval.start) * factor +
+                           pCurrentUnit->timeInterval.start;
+              }
+              if (interStart != interEnd || (bInterStart && bInterEnd)) {
+                pResult->Add(UGPoint(Interval<Instant> (tInterStart, tInterEnd,
+                               bInterStart, bInterEnd), iNetworkId, iRouteMgp,
+                               pCurrentUnit->p0.GetSide(), interStart,
+                               interEnd));
+              }
+            } else {
+              if(pCurrentUnit->p0.GetPosition()>pCurrentUnit->p1.GetPosition()){
+                if (currRInter->m_dEnd >= pCurrentUnit->p0.GetPosition()) {
+                  interStart = pCurrentUnit->p0.GetPosition();
+                  tInterStart = pCurrentUnit->timeInterval.start;
+                  bInterStart = pCurrentUnit->timeInterval.lc;
+                } else {
+                  interStart = currRInter->m_dEnd;
+                  bInterStart = true;
+                  factor =fabs(currRInter->m_dEnd -
+                          pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                  tInterStart = (pCurrentUnit->timeInterval.end -
+                                pCurrentUnit->timeInterval.start) * factor +
+                                pCurrentUnit->timeInterval.start;
+                }
+                if (currRInter->m_dStart <= pCurrentUnit->p1.GetPosition()) {
+                  interEnd = pCurrentUnit->p1.GetPosition();
+                  tInterEnd = pCurrentUnit->timeInterval.end;
+                  bInterEnd = pCurrentUnit->timeInterval.rc;
+                } else {
+                  interEnd = currRInter->m_dStart;
+                  bInterEnd = true;
+                  factor = fabs(currRInter->m_dStart -
+                          pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                  tInterEnd = (pCurrentUnit->timeInterval.end -
+                           pCurrentUnit->timeInterval.start) * factor +
+                           pCurrentUnit->timeInterval.start;
+                }
+                if (interStart != interEnd || (bInterStart && bInterEnd)) {
+                  pResult->Add(UGPoint(Interval<Instant> (tInterStart,
+                               tInterEnd, bInterStart, bInterEnd), iNetworkId,
+                               iRouteMgp, pCurrentUnit->p0.GetSide(),
+                               interStart, interEnd));
+                }
+              }
+            }
+          }
+          k++;
+        }
+      }
+    } else {
+      int j = 0;
+      while (j < pGLine->NoOfComponents()) {
+        pGLine->Get(j,pCurrRInter);
+        if (iRouteMgp == pCurrRInter->m_iRouteId){
+          mgStart = pCurrentUnit->p0.GetPosition();
+          mgEnd = pCurrentUnit->p1.GetPosition();
+          if (mgEnd < mgStart) {
+            mgStart = pCurrentUnit->p1.GetPosition();
+            mgEnd = pCurrentUnit->p0.GetPosition();
+            swapped = true;
+          }
+          lStart = pCurrRInter->m_dStart;
+          lEnd = pCurrRInter->m_dEnd;
+          if (lStart > lEnd) {
+            lStart = pCurrRInter->m_dEnd;
+            lEnd = pCurrRInter->m_dStart;
+          }
+          if (!(mgEnd < lStart || mgStart > lEnd)){
+            //intersection exists compute intersecting part and timevalues for
+            //resulting unit
+            if (!swapped) {
+              if (lStart <= mgStart) {
+                interStart = pCurrentUnit->p0.GetPosition();
+                tInterStart = pCurrentUnit->timeInterval.start;
+                bInterStart = pCurrentUnit->timeInterval.lc;
+              } else {
+                interStart = lStart;
+                bInterStart = true;
+                factor =  fabs(lStart - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterStart = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+              }
+              if (lEnd >= mgEnd) {
+                interEnd = pCurrentUnit->p1.GetPosition();
+                tInterEnd = pCurrentUnit->timeInterval.end;
+                bInterEnd = pCurrentUnit->timeInterval.rc;
+              } else {
+                interEnd = lEnd;
+                bInterEnd = true;
+                factor = fabs(lEnd - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterEnd = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+              }
+              if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
+                pResult->Add(UGPoint(Interval<Instant> (tInterStart, tInterEnd,
+                                 bInterStart, bInterEnd), iNetworkId, iRouteMgp,
+                                  pCurrentUnit->p0.GetSide(), interStart,
+                                  interEnd));
+              } else {
+                if (pCurrentUnit->p0.GetPosition() ==
+                  pCurrentUnit->p1.GetPosition() && interStart == interEnd) {
+                  pResult->Add(UGPoint(Interval<Instant> (
+                                pCurrentUnit->timeInterval.start,
+                                pCurrentUnit->timeInterval.end,
+                                pCurrentUnit->timeInterval.lc,
+                                pCurrentUnit->timeInterval.rc),
+                                iNetworkId, iRouteMgp,
+                                pCurrentUnit->p0.GetSide(),
+                                pCurrentUnit->p0.GetPosition(),
+                                pCurrentUnit->p0.GetPosition()));
+                }
+              }
+            } else {
+              mgStart = pCurrentUnit->p0.GetPosition();
+              mgEnd = pCurrentUnit->p1.GetPosition();
+              if (lEnd >= mgStart) {
+                interStart = pCurrentUnit->p0.GetPosition();
+                tInterStart = pCurrentUnit->timeInterval.start;
+                bInterStart = pCurrentUnit->timeInterval.lc;
+              } else {
+                interStart = lEnd;
+                bInterStart = true;
+                factor =fabs(lEnd - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterStart = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+              }
+              if (lStart <= mgEnd) {
+                interEnd = pCurrentUnit->p1.GetPosition();
+                tInterEnd = pCurrentUnit->timeInterval.end;
+                bInterEnd = pCurrentUnit->timeInterval.rc;
+              } else {
+                interEnd = lStart;
+                bInterEnd = true;
+                factor =fabs(lStart - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterEnd = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+              }
+              if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
+                pResult->Add(UGPoint(Interval<Instant> (tInterStart, tInterEnd,
+                                  bInterStart, bInterEnd), iNetworkId,
+                                  iRouteMgp, pCurrentUnit->p0.GetSide(),
+                                  interStart, interEnd));
+              } else {
+                if (pCurrentUnit->p0.GetPosition() ==
+                    pCurrentUnit->p1.GetPosition() && interStart == interEnd) {
+                  pResult->Add(UGPoint(Interval<Instant> (
+                                pCurrentUnit->timeInterval.start,
+                                pCurrentUnit->timeInterval.end,
+                                pCurrentUnit->timeInterval.lc,
+                                pCurrentUnit->timeInterval.rc),
+                                iNetworkId, iRouteMgp,
+                                pCurrentUnit->p0.GetSide(),
+                                pCurrentUnit->p0.GetPosition(),
+                                pCurrentUnit->p0.GetPosition()));
+                }
+              }
+            }
+          }
+        }
+        j++;
+      }
+    }
+  }
+  pResult->EndBulkLoad();
+  pResult->SetDefined(true);
+  return 0;
+};
+
+ValueMapping OpAtValueMap[] = {
+  OpAt_mgpgp,
+  OpAt_mgpgl
+};
+
+int OpAtSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->SymbolValue(arg2) == "gpoint")
+    return 0;
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->SymbolValue(arg2) == "gline")
+    return 1;
+  return -1; // This point should never be reached
+}
+
+const string OpAtSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x A -> mgpoint if A is gpoint or gline" "</text--->"
+  "<text> _ at _ </text--->"
+  "<text>Restricts the moving gpoint to the times he was at"
+    " the gpoint or gline.</text--->"
+  "<text> X_MGPOINT at X_GPOINT</text--->"
+  ") )";
+
 Operator tempnetat("at",
-                OpTempNetAt::Spec,
+                OpAtSpec,
                 2,
-                OpTempNetAt::atmap,
-                OpTempNetAt::SelectAt,
-                OpTempNetAt::AtMap );
-/*
-Operator trajectory
-
-*/
-Operator trajectory("trajectory",
-                    OpTrajectory::Spec,
-                    OpTrajectory::ValueMapping,
-                    Operator::SimpleSelect,
-                    OpTrajectory::TypeMap );
+                OpAtValueMap,
+                OpAtSelect,
+                OpAtTypeMap );
 
 /*
-Operator length
+1.3.5 Operator ~atinstant~
+
+Restricts the ~MGPoint~ to a given time instant.
 
 */
-Operator tempnetlength("length",
-                    OpTempNetLength::Spec,
-                    OpTempNetLength::ValueMapping,
-                    Operator::SimpleSelect,
-                    OpTempNetLength::TypeMap );
 
-/*
-Operator atinstant
+ListExpr OpAtinstantTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 2 )
+    return (nl->SymbolAtom( "typeerror" ));
 
-*/
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  ListExpr xInstant = nl->Second(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  if (!nl->IsEqual( xInstant, "instant" ))
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom("igpoint");
+}
+
+const string OpAtinstantSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x instant -> igpoint" "</text--->"
+  "<text> _ atinstant _</text--->"
+  "<text>Computes the position of a moving gpoint at a given instant.</text--->"
+  "<text>X_MGPOINT atinstant TIME </text--->"
+  ") )";
+
 Operator tempnetatinstant("atinstant",
-                OpTempNetAtinstant::Spec,
+                OpAtinstantSpec,
                 MappingAtInstant<MGPoint, GPoint>,
                 Operator::SimpleSelect,
-                OpTempNetAtinstant::TypeMap );
+                OpAtinstantTypeMap );
+
 
 /*
-Operator initial
+1.3.6 Operator ~atperiods~
+
+Restricts a ~MGPoint~ to the given periods.
 
 */
-Operator tempnetinitial("initial",
-                OpTempNetInitial::Spec,
-                MappingInitial<MGPoint, UGPoint, GPoint>,
+
+ListExpr OpAtperiodsTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 2 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  ListExpr xPeriods = nl->Second(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  if (!nl->IsEqual( xPeriods, "periods" ))
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom("mgpoint");
+}
+
+int OpAtperiodsValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  MGPoint* pMGPres = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pMGPres );
+  pMGPres->Clear();
+  pMGPres->SetDefined(true);
+
+  MGPoint* pMGP = (MGPoint*)args[0].addr;
+  if(pMGP == NULL ||!pMGP->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pMGPres->SetDefined(false);
+    return 0;
+  }
+
+  Periods* per = (Periods*)args[1].addr;
+  if(per == NULL || !per->IsDefined()) {
+    cerr << "Periods are not defined." << endl;
+    pMGPres->SetDefined(false);
+    return 0;
+  }
+  if (pMGP->GetNoComponents() < 1 || per->IsEmpty()) {
+    pMGPres->SetDefined(true);
+    return 0;
+  }
+  Instant perMinInst;
+  per->Minimum(perMinInst);
+  Instant perMaxInst;
+  per->Maximum(perMaxInst);
+  Instant utstart, utend;
+  GPoint uGPstart, uGPend;
+  bool ulc, urc;
+  double permind = perMinInst.ToDouble();
+  double permaxd = perMaxInst.ToDouble();
+  const UGPoint *pFirstUnit, *pLastUnit, *pCurrentUnit;
+  pMGP->Get(0, pFirstUnit);
+  pMGP->Get(pMGP->GetNoComponents()-1, pLastUnit);
+  double mind = (pFirstUnit->timeInterval.start).ToDouble();
+  double maxd = (pLastUnit->timeInterval.end).ToDouble();
+  double factor;
+  if( (mind > permaxd && !AlmostEqual(mind,permaxd)) ||
+      (maxd < permind && !AlmostEqual(maxd,permind))) {
+    pMGPres->SetDefined(true);
+    return 0;
+  }
+  pMGPres->StartBulkLoad();
+  const Interval<Instant> *interval;
+  int i = 0, j = 0;
+  pMGP->Get( i, pCurrentUnit );
+  per->Get( j, interval );
+  while(1) {
+    if( pCurrentUnit->timeInterval.Before( *interval)){
+      if( ++i >= pMGP->GetNoComponents()) break;
+      pMGP->Get( i, pCurrentUnit );
+    } else {
+      if( interval->Before( pCurrentUnit->timeInterval )) {
+        if( ++j >= per->GetNoComponents()) break;
+        per->Get( j, interval );
+      } else { // we have overlapping intervals, now
+        if (pCurrentUnit->timeInterval.start == interval->start) {
+          utstart = interval->start;
+          uGPstart = pCurrentUnit->p0;
+          ulc = pCurrentUnit->timeInterval.lc && interval->lc;
+        } else {
+          if (pCurrentUnit->timeInterval.start > interval->start) {
+            utstart = pCurrentUnit->timeInterval.start;
+            uGPstart = pCurrentUnit->p0;
+            ulc = pCurrentUnit->timeInterval.lc;
+          } else {
+            if (pCurrentUnit->timeInterval.start < interval->start) {
+              utstart = interval->start;
+              ulc = interval->lc;
+              factor = (interval->start.ToDouble() -
+                      pCurrentUnit->timeInterval.start.ToDouble())/
+                        (pCurrentUnit->timeInterval.end.ToDouble() -
+                          pCurrentUnit->timeInterval.start.ToDouble());
+              uGPstart = GPoint(true, pCurrentUnit->p0.GetNetworkId(),
+                             pCurrentUnit->p0.GetRouteId(),
+                             (pCurrentUnit->p1.GetPosition() -
+                                 pCurrentUnit->p0.GetPosition()) *
+                                 factor + pCurrentUnit->p0.GetPosition(),
+                             pCurrentUnit->p0.GetSide());
+            }
+          }
+        }
+        if (pCurrentUnit->timeInterval.end == interval->end) {
+          utend = interval->end;
+          uGPend = pCurrentUnit->p1;
+          urc = pCurrentUnit->timeInterval.rc && interval->rc;
+        } else {
+          if (pCurrentUnit->timeInterval.end < interval->end) {
+            utend = pCurrentUnit->timeInterval.end;
+            urc = pCurrentUnit->timeInterval.rc;
+            uGPend = pCurrentUnit->p1;
+          } else {
+            if (pCurrentUnit->timeInterval.end > interval->end) {
+              utend = interval->end;
+              factor = (interval->end.ToDouble() -
+                        pCurrentUnit->timeInterval.start.ToDouble())/
+                        (pCurrentUnit->timeInterval.end.ToDouble() -
+                        pCurrentUnit->timeInterval.start.ToDouble());
+              uGPend = GPoint(true, pCurrentUnit->p1.GetNetworkId(),
+                             pCurrentUnit->p1.GetRouteId(),
+                             (pCurrentUnit->p1.GetPosition() -
+                                 pCurrentUnit->p0.GetPosition()) *
+                                 factor + pCurrentUnit->p0.GetPosition(),
+                                pCurrentUnit->p0.GetSide());
+              urc = interval->rc;
+            }
+          }
+        }
+        pMGPres->Add(UGPoint(Interval<Instant>(utstart, utend, ulc, urc),
+                             uGPstart.GetNetworkId(),
+                             uGPstart.GetRouteId(),
+                             uGPstart.GetSide(),
+                             uGPstart.GetPosition(),
+                             uGPend.GetPosition()));
+        if( interval->end == pCurrentUnit->timeInterval.end ){
+          // same ending instant
+          if( interval->rc == pCurrentUnit->timeInterval.rc ) {
+            // same ending instant and rightclosedness: Advance both
+            if( ++i >= pMGP->GetNoComponents()) break;
+            pMGP->Get( i, pCurrentUnit );
+            if( ++j >= per->GetNoComponents()) break;
+            per->Get( j, interval );
+          } else {
+            if( interval->rc == true ) { // Advanve in mapping
+              if( ++i >= pMGP->GetNoComponents() ) break;
+              pMGP->Get( i, pCurrentUnit );
+            } else { // Advance in periods
+              assert( pCurrentUnit->timeInterval.rc == true );
+              if( ++j >= per->GetNoComponents() ) break;
+              per->Get( j, interval );
+            }
+          }
+        } else {
+          if( interval->end > pCurrentUnit->timeInterval.end ) {
+            // Advance in mpoint
+            if( ++i >= pMGP->GetNoComponents() ) break;
+            pMGP->Get( i, pCurrentUnit );
+          } else { // Advance in periods
+            assert( interval->end < pCurrentUnit->timeInterval.end );
+            if( ++j >= per->GetNoComponents() ) break;
+            per->Get( j, interval );
+          }
+        }
+      }
+    }
+  }
+  pMGPres->EndBulkLoad();
+  if (pMGPres->GetNoComponents() == 0) pMGPres->SetDefined(false);
+  return 0;
+}
+
+const string OpAtperiodsSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x periods -> mgpoint" "</text--->"
+  "<text> _ atperiods _</text--->"
+  "<text>Restricts the moving gpoint to the given periods.</text--->"
+  "<text>X_MGPOINT atperiods PERIODS </text--->"
+  ") )";
+
+Operator tempnetatperiods("atperiods",
+                OpAtperiodsSpec,
+                OpAtperiodsValueMapping,
                 Operator::SimpleSelect,
-                OpTempNetInitial::TypeMap );
+                OpAtperiodsTypeMap );
+
 
 /*
-Operator final
+1.3.7 Operator ~deftime~
+
+Returns the deftime of a ~MGPoint~ as ~periods~ value.
 
 */
+
+ListExpr OpDeftimeTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom( "periods" );
+}
+
+int OpDeftimeValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  Periods* pResult = (Periods*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult );
+  MGPoint* pMGP = (MGPoint*) args[0].addr;
+  pResult->Clear();
+  if (!pMGP->IsDefined() || pMGP->GetNoComponents() < 1) {
+    return 0;
+  }
+  const UGPoint *unit;
+  pMGP->Get(0, unit );
+  Instant start, end;
+  bool bstart, bend;
+  start = unit->timeInterval.start;
+  end = unit->timeInterval.end;
+  bstart = unit->timeInterval.lc;
+  bend = unit->timeInterval.rc;
+  pResult->StartBulkLoad();
+  for( int i = 1; i < pMGP->GetNoComponents(); i++ ) {
+    pMGP->Get( i, unit );
+    if (unit->timeInterval.start == end && (bend || unit->timeInterval.lc)){
+      end = unit->timeInterval.end;
+      bend = unit->timeInterval.rc;
+    } else {
+      pResult->Add(Interval<Instant> (start, end, bstart, bend));
+      start = unit->timeInterval.start;
+      end = unit->timeInterval.end;
+      bstart = unit->timeInterval.lc;
+      bend = unit->timeInterval.rc;
+    }
+  }
+  pResult->Add(Interval<Instant> (start, end, bstart, bend));
+  pResult->EndBulkLoad();
+  return 0;
+}
+
+const string OpDeftimeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint -> periods" "</text--->"
+  "<text>deftime(_)</text--->"
+  "<text>Returns the periods in which the moving gpoint is defined.</text--->"
+  "<text>deftime(mgpoint)</text--->"
+  ") )";
+
+Operator tempnetdeftime("deftime",
+                OpDeftimeSpec,
+                OpDeftimeValueMapping,
+                Operator::SimpleSelect,
+                OpDeftimeTypeMap );
+
+/*
+1.3.8 Operator ~final~
+
+Returns the final time and position of the ~MGPoint~ as ~IGPoint~
+
+TypeMapping see operator ~final~.
+
+*/
+
+ListExpr OpFinalInitialTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+  return nl->SymbolAtom("igpoint");
+}
+
+const string OpFinalSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint -> igpoint" "</text--->"
+  "<text> final (_)</text--->"
+  "<text>Computes the final instant of a moving gpoint.</text--->"
+  "<text>final (C_MGPOINT)</text--->"
+  ") )";
+
 Operator tempnetfinal("final",
-                OpTempNetFinal::Spec,
+                OpFinalSpec,
                 MappingFinal<MGPoint,UGPoint, GPoint>,
                 Operator::SimpleSelect,
-                OpTempNetFinal::TypeMap );
+                OpFinalInitialTypeMap );
+
 
 /*
+1.3.9 Operator ~initial~
 
-Operator val
+Returns the start point and time of the ~MGPoint~ as ~IGPoint~.
 
 */
-Operator tempnetval("val",
-                OpTempNetVal::Spec,
-                IntimeVal<GPoint>,
+
+const string OpInitialSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint -> igpoint" "</text--->"
+  "<text> initial (_)</text--->"
+  "<text>Computes the initial position of a moving gpoint.</text--->"
+  "<text>initial (C_MGPOINT)</text--->"
+  ") )";
+
+Operator tempnetinitial("initial",
+                OpInitialSpec,
+                MappingInitial<MGPoint, UGPoint, GPoint>,
                 Operator::SimpleSelect,
-                OpTempNetVal::TypeMap );
+                OpFinalInitialTypeMap );
 
 /*
+1.3.10 Operator ~inside~
 
-Operator inst
+Returns a ~mbool~ which is true for the times the ~MGPoint~ is inside a ~GLine~
+false elsewhere.
 
 */
+
+ListExpr OpInsideTypeMapping(ListExpr in_xArgs)
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength(  in_xArgs ) == 2 )
+  {
+    arg1 = nl->First( in_xArgs );
+    arg2 = nl->Second( in_xArgs );
+
+    if ( nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+         nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
+         nl->AtomType(arg2) == SymbolType && nl->SymbolValue(arg2) == "gline"){
+        return (nl->SymbolAtom("mbool"));
+    }
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+int OpInsideValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  MBool* pResult = (MBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult);
+  pResult->Clear();
+  // Get input values
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  GLine* pGLine = (GLine*)args[1].addr;
+  if(pGLine == NULL || !pGLine->IsDefined()) {
+    cerr << "GLine does not exist." << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  pMGPoint->Get(0, pCurrentUnit);
+  if (pGLine->GetNetworkId() != pCurrentUnit->p0.GetNetworkId()) {
+    pResult->SetDefined(false);
+    return 0;
+  }
+  double mgStart, mgEnd, lStart, lEnd, factor;
+  const RouteInterval *pCurrRInter = new RouteInterval (0, 0.0, 0.0);
+  bool swapped, found, bInterStart, bInterEnd;
+  Instant tInterStart, tInterEnd;
+  UBool interbool(true);
+  int iRouteMgp;
+  double interStart, interEnd;
+  pResult->StartBulkLoad();
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++){
+    pMGPoint->Get(i, pCurrentUnit);
+    int j = 0;
+    iRouteMgp = pCurrentUnit->p0.GetRouteId();
+    swapped = false;
+    mgStart = pCurrentUnit->p0.GetPosition();
+    mgEnd = pCurrentUnit->p1.GetPosition();
+    if (mgEnd < mgStart) {
+      mgStart = pCurrentUnit->p1.GetPosition();
+      mgEnd = pCurrentUnit->p0.GetPosition();
+      swapped = true;
+    }
+    if (pGLine->IsSorted()){
+      vector<RouteInterval> vRI;
+      const RouteInterval *currRInter;
+      vRI.clear();
+      getRouteIntervals(pGLine, iRouteMgp, mgStart, mgEnd, 0,
+                        pGLine->NoOfComponents(), vRI);
+      if (vRI.size() > 0) {
+        size_t k = 0;
+        while (k < vRI.size()) {
+          currRInter = &vRI[k];
+          if (pCurrentUnit->p0.GetPosition() < pCurrentUnit->p1.GetPosition()){
+            if (pCurrentUnit->p0.GetPosition() >= currRInter->m_dStart) {
+              interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+              interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+              interbool.constValue.Set(true, true);
+            } else {
+              interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+              interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+              factor =  fabs(currRInter->m_dStart -
+                             pCurrentUnit->p0.GetPosition())/
+                        fabs(pCurrentUnit->p1.GetPosition() -
+                             pCurrentUnit->p0.GetPosition());
+              tInterStart = (pCurrentUnit->timeInterval.end -
+                             pCurrentUnit->timeInterval.start) * factor +
+                             pCurrentUnit->timeInterval.start;
+              interbool.timeInterval.end = tInterStart;
+              interbool.timeInterval.rc = false;
+              interbool.constValue.Set(true,false);
+              pResult->MergeAdd(interbool);
+              //compute start of unit inside
+              interbool.timeInterval.start = tInterStart;
+              interbool.timeInterval.lc = true;
+              interbool.constValue.Set(true, true);
+            }
+            if (pCurrentUnit->p1.GetPosition() <= currRInter->m_dEnd) {
+              interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+              interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+              pResult->MergeAdd(interbool);
+            } else {
+              // compute end of mgpoint at end of gline.and add result unit
+              interbool.timeInterval.rc = true;
+              factor = fabs(currRInter->m_dEnd -
+                            pCurrentUnit->p0.GetPosition())/
+                       fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+              tInterEnd = (pCurrentUnit->timeInterval.end -
+                           pCurrentUnit->timeInterval.start) * factor +
+                           pCurrentUnit->timeInterval.start;
+              interbool.timeInterval.end = tInterEnd;
+              pResult->MergeAdd(interbool);
+              // the rest of the current unit is not in the current
+              // routeinterval.
+              checkEndOfUGPoint(currRInter->m_dEnd,
+                                pCurrentUnit->p1.GetPosition(), tInterEnd,
+                                false, pCurrentUnit->timeInterval.end,
+                                pCurrentUnit->timeInterval.rc, k, vRI,
+                                pResult, iRouteMgp);
+            }
+            if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
+              pResult->MergeAdd(interbool);
+            }
+          } else {
+            if (currRInter->m_dEnd >= pCurrentUnit->p0.GetPosition()) {
+              interStart = pCurrentUnit->p0.GetPosition();
+              tInterStart = pCurrentUnit->timeInterval.start;
+              bInterStart = pCurrentUnit->timeInterval.lc;
+            } else {
+              interStart = currRInter->m_dEnd;
+              bInterStart = true;
+              factor =fabs(currRInter->m_dEnd -
+                          pCurrentUnit->p0.GetPosition())/
+                        fabs(pCurrentUnit->p1.GetPosition() -
+                             pCurrentUnit->p0.GetPosition());
+              tInterStart = (pCurrentUnit->timeInterval.end -
+                            pCurrentUnit->timeInterval.start) * factor +
+                            pCurrentUnit->timeInterval.start;
+            }
+            if (currRInter->m_dStart <= pCurrentUnit->p1.GetPosition()) {
+              interEnd = pCurrentUnit->p1.GetPosition();
+              tInterEnd = pCurrentUnit->timeInterval.end;
+              bInterEnd = pCurrentUnit->timeInterval.rc;
+            } else {
+              interEnd = currRInter->m_dStart;
+              bInterEnd = true;
+              factor = fabs(currRInter->m_dStart -
+                           pCurrentUnit->p0.GetPosition())/
+                       fabs(pCurrentUnit->p1.GetPosition() -
+                            pCurrentUnit->p0.GetPosition());
+              tInterEnd = (pCurrentUnit->timeInterval.end -
+                           pCurrentUnit->timeInterval.start) * factor +
+                           pCurrentUnit->timeInterval.start;
+            }
+            if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
+              pResult->MergeAdd(interbool);
+            }
+          }
+          k++;
+        }
+      }
+    } else {
+      found = false;
+      while (j < pGLine->NoOfComponents()) {
+        pGLine->Get(j, pCurrRInter);
+        if (iRouteMgp == pCurrRInter->m_iRouteId){
+          mgStart = pCurrentUnit->p0.GetPosition();
+          mgEnd = pCurrentUnit->p1.GetPosition();
+          if (mgEnd < mgStart) {
+            mgStart = pCurrentUnit->p1.GetPosition();
+            mgEnd = pCurrentUnit->p0.GetPosition();
+            swapped = true;
+          }
+          lStart = pCurrRInter->m_dStart;
+          lEnd = pCurrRInter->m_dEnd;
+          if (lStart > lEnd) {
+            lStart = pCurrRInter->m_dEnd;
+            lEnd = pCurrRInter->m_dStart;
+          }
+          if (!(mgEnd < lStart || mgStart > lEnd || mgStart == mgEnd ||
+              lStart == lEnd)){
+            //intersection exists compute intersecting part and timevalues for
+            //resulting unit
+            found = true;
+            if (!swapped) {
+              if (lStart <= mgStart) {
+                interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                interbool.constValue.Set(true, true);
+              } else {
+                // compute and write unit befor mgpoint inside gline
+                interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                factor =  fabs(lStart - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterStart = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.end = tInterStart;
+                interbool.timeInterval.rc = false;
+                interbool.constValue.Set(true,false);
+                pResult->MergeAdd(interbool);
+                //compute start of unit inside
+                interbool.timeInterval.start = tInterStart;
+                interbool.timeInterval.lc = true;
+                interbool.constValue.Set(true, true);
+              }
+              if (lEnd >= mgEnd) {
+                interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+                interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+                pResult->MergeAdd(interbool);
+              } else {
+                // compute end of mgpoint at end of gline.and add result unit
+                interbool.timeInterval.rc = true;
+                factor = fabs(lEnd - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterEnd = (pCurrentUnit->timeInterval.end -
+                            pCurrentUnit->timeInterval.start) * factor +
+                            pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.end = tInterEnd;
+                pResult->MergeAdd(interbool);
+                // the rest of the current unit is not in the current
+                // routeinterval.
+                checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(),
+                                  tInterEnd, false,
+                                  pCurrentUnit->timeInterval.end,
+                                pCurrentUnit->timeInterval.rc, j, pGLine,
+                                pResult, iRouteMgp);
+              }
+            } else {
+              mgStart = pCurrentUnit->p0.GetPosition();
+              mgEnd = pCurrentUnit->p1.GetPosition();
+              if (lEnd >= mgStart) {
+                interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                interbool.constValue.Set(true, true);
+              } else {
+                // compute and write unit befor mgpoint inside gline
+                interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                factor =  fabs(lEnd - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterStart = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.end = tInterStart;
+                interbool.timeInterval.rc = false;
+                interbool.constValue.Set(true,false);
+                pResult->MergeAdd(interbool);
+                //compute start of unit inside
+                interbool.timeInterval.start = tInterStart;
+                interbool.timeInterval.lc = true;
+                interbool.constValue.Set(true, true);
+              }
+              if (lStart <= mgEnd) {
+                interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+                interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+                pResult->MergeAdd(interbool);
+              } else {
+                // compute end of mgpoint at end of gline.and add result unit
+                interbool.timeInterval.rc = true;
+                factor = fabs(lStart - pCurrentUnit->p0.GetPosition())/
+                          fabs(pCurrentUnit->p1.GetPosition() -
+                          pCurrentUnit->p0.GetPosition());
+                tInterEnd = (pCurrentUnit->timeInterval.end -
+                            pCurrentUnit->timeInterval.start) * factor +
+                            pCurrentUnit->timeInterval.start;
+                interbool.timeInterval.end = tInterEnd;
+                pResult->MergeAdd(interbool);
+                // the rest of the current unit is not in the current
+                // routeinterval.
+                checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(),
+                                  tInterEnd, false,
+                                  pCurrentUnit->timeInterval.end,
+                                pCurrentUnit->timeInterval.rc, j, pGLine,
+                                pResult, iRouteMgp);
+              }
+            }
+          }else{
+            if (mgStart == mgEnd && pCurrentUnit->timeInterval.lc &&
+              pCurrentUnit->timeInterval.rc){
+              found = true;
+              interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+              interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+              interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+              interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+              interbool.constValue.Set(true,true);
+              pResult->MergeAdd(interbool);
+            } else {
+              if (lStart == lEnd) {
+                if ((lStart > mgStart && lStart < mgEnd) ||
+                    (lStart < mgStart && lStart > mgEnd)) {
+                  found = true;
+                  // compute and write unit befor mgpoint inside gline
+                  interbool.timeInterval.start =
+                      pCurrentUnit->timeInterval.start;
+                  interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                  factor =  fabs(lStart - pCurrentUnit->p0.GetPosition())/
+                            fabs(pCurrentUnit->p1.GetPosition() -
+                            pCurrentUnit->p0.GetPosition());
+                  tInterStart = (pCurrentUnit->timeInterval.end -
+                              pCurrentUnit->timeInterval.start) * factor +
+                              pCurrentUnit->timeInterval.start;
+                  interbool.timeInterval.end = tInterStart;
+                  interbool.timeInterval.rc = false;
+                  interbool.constValue.Set(true,false);
+                  pResult->MergeAdd(interbool);
+                  interbool.timeInterval.start = tInterStart;
+                  interbool.timeInterval.rc = true;
+                  interbool.timeInterval.lc = true;
+                  interbool.constValue.Set(true, true);
+                  pResult->MergeAdd(interbool);
+                  checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(),
+                                    tInterEnd, false,
+                                    pCurrentUnit->timeInterval.end,
+                                    pCurrentUnit->timeInterval.rc, j, pGLine,
+                                    pResult, iRouteMgp);
+                } else {
+                  if (lStart == mgStart && pCurrentUnit->timeInterval.lc) {
+                    found = true;
+                    interbool.timeInterval.start =
+                        pCurrentUnit->timeInterval.start;
+                    interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                    interbool.timeInterval.end =
+                        pCurrentUnit->timeInterval.start;
+                    interbool.timeInterval.rc = true;
+                    interbool.constValue.Set(true,true);
+                    pResult->MergeAdd(interbool);
+                    checkEndOfUGPoint(lEnd, pCurrentUnit->p1.GetPosition(),
+                                      tInterEnd, false,
+                                      pCurrentUnit->timeInterval.end,
+                                      pCurrentUnit->timeInterval.rc, j, pGLine,
+                                      pResult, iRouteMgp);
+                  } else {
+                    if (lStart == mgEnd && pCurrentUnit->timeInterval.rc) {
+                      found = true;
+                      interbool.timeInterval.start =
+                        pCurrentUnit->timeInterval.start;
+                      interbool.timeInterval.lc =
+                          pCurrentUnit->timeInterval.lc;
+                      interbool.timeInterval.end =
+                          pCurrentUnit->timeInterval.end;
+                      interbool.timeInterval.rc = false;
+                      interbool.constValue.Set(true,false);
+                      pResult->MergeAdd(interbool);
+                      interbool.timeInterval.start =
+                          pCurrentUnit->timeInterval.end;
+                      interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+                      interbool.timeInterval.lc = true;
+                      interbool.constValue.Set(true, true);
+                      pResult->MergeAdd(interbool);
+                    }
+                  }
+                }
+              } else {
+                if ((mgStart == lStart && mgEnd == lEnd) ||
+                  (mgStart == lEnd && mgEnd == lStart)) {
+                  found = true;
+                  interbool.timeInterval.start =
+                      pCurrentUnit->timeInterval.start;
+                  interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+                  interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+                  interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+                  interbool.constValue.Set(true, true);
+                  pResult->MergeAdd(interbool);
+                }
+              }
+            }
+          }
+        }
+        j++;
+      } // end while
+      if (!found) {
+          //no intersection found mgpoint not inside gline
+        interbool.timeInterval.start = pCurrentUnit->timeInterval.start;
+        interbool.timeInterval.lc = pCurrentUnit->timeInterval.lc;
+        interbool.timeInterval.end = pCurrentUnit->timeInterval.end;
+        interbool.timeInterval.rc = pCurrentUnit->timeInterval.rc;
+        interbool.constValue.Set(true,false);
+        pResult->MergeAdd(interbool);
+      }
+    }
+  } // end for
+  pResult->EndBulkLoad();
+  return 0;
+};
+
+
+const string OpTInsideSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x gline -> mbool" "</text--->"
+  "<text> _ inside _ </text--->"
+  "<text>Returns true for the times the mgpoint is at the gline."
+    " False elsewhere.</text--->"
+  "<text> X_MGPOINT inside GLINE</text--->"
+  ") )";
+
+Operator tempnetinside("inside",
+                OpTInsideSpec,
+                OpInsideValueMapping,
+                Operator::SimpleSelect,
+                OpInsideTypeMapping );
+
+
+/*
+1.3.11 Operator ~inst~
+
+Returns the time instant of the ~IGPoint~
+
+*/
+
+ListExpr OpInstTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xIGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xIGPointDesc )) ||
+      nl->AtomType( xIGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xIGPointDesc ) != "igpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom( "instant" );
+}
+
+const string OpInstSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>igpoint -> instant" "</text--->"
+  "<text>inst(igpoint)</text--->"
+  "<text>Returns the timeinstant value of the igpoint.</text--->"
+  "<text>inst(igpoint)</text--->"
+  ") )";
+
 Operator tempnetinst("inst",
-                OpTempNetInst::Spec,
+                OpInstSpec,
                 IntimeInst<GPoint>,
                 Operator::SimpleSelect,
-                OpTempNetInst::TypeMap );
-
+                OpInstTypeMap );
 
 /*
-Operator atinstant
+1.3.12 Operator ~intersection~
+
+Computes a ~MGPoint~ representing the intersection of two ~MGPoint~.
 
 */
-Operator tempnetatperiods("atperiods",
-                OpTempNetAtperiods::Spec,
-                OpTempNetAtperiods::ValueMapping,
+
+ListExpr OpIntersectionTypeMapping(ListExpr in_xArgs)
+{
+  ListExpr arg1, arg2;
+  if( nl->ListLength(in_xArgs) == 2 ){
+    arg1 = nl->First(in_xArgs);
+    arg2 = nl->Second(in_xArgs);
+    if (nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+        nl->SymbolValue(arg1) == "mgpoint" && nl->IsAtom(arg2) &&
+        nl->AtomType(arg2) == SymbolType &&
+        nl->SymbolValue(arg2) == "mgpoint"){
+        return (nl->SymbolAtom("mgpoint"));
+    }
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+int OpIntersectionValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  MGPoint* pResult = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult);
+  pResult->Clear();
+  pResult->SetDefined(true);
+  // Get input values
+  MGPoint* pMGPoint1 = (MGPoint*)args[0].addr;
+  if(pMGPoint1 == NULL || pMGPoint1->GetNoComponents() < 1 ||
+      !pMGPoint1->IsDefined()) {
+    cerr << "First mgpoint does not exist." << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  MGPoint* pMGPoint2 = (MGPoint*)args[1].addr;
+  if(pMGPoint2 == NULL || pMGPoint2->GetNoComponents() < 1 ||
+      !pMGPoint2->IsDefined()) {
+    sendMessages("Seecond mgpoint does not exist.");
+    pResult->SetDefined(false);
+    return 0;
+  }
+  const UGPoint *pCurr1, *pCurr2;
+  pMGPoint1->Get(0, pCurr1);
+  pMGPoint2->Get(0, pCurr2);
+  Network *pNetwork = NetworkManager::GetNetwork(pCurr1->p0.GetNetworkId());
+  if (!pNetwork->isDefined() || pNetwork == NULL) {
+    sendMessages("Network does not exist.");
+    pResult->SetDefined(false);
+    NetworkManager::CloseNetwork(pNetwork);
+    return 0;
+  }
+  if (pCurr1->p0.GetNetworkId() != pNetwork->GetId() ||
+      pCurr2->p0.GetNetworkId() != pNetwork->GetId()) {
+    sendMessages("mgpoints belong to different networks.");
+    pResult->SetDefined(false);
+    NetworkManager::CloseNetwork(pNetwork);
+    return 0;
+  }
+  MGPoint *resA = new MGPoint(0);
+  MGPoint *resB = new MGPoint(0);
+  resA->Clear();
+  resB->Clear();
+  refinementMovingGPoint (pMGPoint1, pMGPoint2, resA, resB);
+  if (resA == NULL || !resA->IsDefined() ||
+      resB == NULL || !resB->IsDefined() ||
+      resA->GetNoComponents() != resB->GetNoComponents ()){
+    pResult->SetDefined(false);
+    NetworkManager::CloseNetwork(pNetwork);
+    return 0;
+  }
+  if (resA->GetNoComponents() < 1) {
+    pResult->SetDefined(true);
+    NetworkManager::CloseNetwork(pNetwork);
+    return 0;
+  }
+  pResult->StartBulkLoad();
+  double interPosition, factor, factor2;
+  Instant tinter, tinter2;
+  for (int i = 0; i < resA->GetNoComponents() ; i++) {
+    resA->Get(i,pCurr1);
+    resB->Get(i,pCurr2);
+    if (pCurr1->p0.GetNetworkId() == pCurr2->p0.GetNetworkId() &&
+        pCurr1->p0.GetRouteId() == pCurr2->p0.GetRouteId() &&
+        pCurr1->p0.GetSide() == pCurr2->p0.GetSide()) {;
+      if (pCurr1->p0.GetPosition() == pCurr2->p0.GetPosition() &&
+          pCurr1->p1.GetPosition() == pCurr2->p1.GetPosition()) {
+        pResult->Add(UGPoint(Interval<Instant> (pCurr1->timeInterval.start,
+                                               pCurr1->timeInterval.end,
+                                              pCurr1->timeInterval.lc,
+                                              pCurr1->timeInterval.rc),
+                                              pCurr1->p0.GetNetworkId(),
+                                              pCurr1->p0.GetRouteId(),
+                                              pCurr1->p0.GetSide(),
+                                              pCurr1->p0.GetPosition(),
+                                              pCurr1->p1.GetPosition()));
+      } else {
+        tinter = (pCurr1->timeInterval.end - pCurr1->timeInterval.start) *
+                 ((pCurr2->p0.GetPosition() - pCurr1->p0.GetPosition()) /
+                  (pCurr1->p1.GetPosition() - pCurr1->p0.GetPosition() -
+                  pCurr2->p1.GetPosition() + pCurr2->p0.GetPosition())) +
+                 pCurr1->timeInterval.start;
+        if (pCurr1->timeInterval.start <= tinter &&
+            tinter <= pCurr1->timeInterval.end) {
+          interPosition = pCurr1->p0.GetPosition() +
+                    ((pCurr1->p1.GetPosition() - pCurr1->p0.GetPosition()) *
+                    ((tinter.ToDouble() - pCurr1->timeInterval.start.ToDouble())
+                    / (pCurr1->timeInterval.end.ToDouble() -
+                       pCurr1->timeInterval.start.ToDouble())));
+          if (!(fabs(interPosition - pCurr1->p0.GetPosition()) < 0.01||
+              fabs(interPosition - pCurr1->p1.GetPosition()) < 0.01 ||
+              fabs(interPosition - pCurr2->p0.GetPosition()) < 0.01 ||
+              fabs(interPosition - pCurr2->p1.GetPosition()) < 0.01)) {
+            pResult->Add(UGPoint(Interval<Instant> (tinter, tinter, true, true),
+                                                pCurr1->p0.GetNetworkId(),
+                                                pCurr1->p0.GetRouteId(),
+                                                pCurr1->p0.GetSide(),
+                                                interPosition,
+                                                interPosition));
+          } else {
+            if (pCurr1->timeInterval.lc == true &&
+                fabs(interPosition - pCurr1->p0.GetPosition()) < 0.01){
+              pResult->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                                true, true),
+                                                pCurr1->p0.GetNetworkId(),
+                                                pCurr1->p0.GetRouteId(),
+                                                pCurr1->p0.GetSide(),
+                                                interPosition,
+                                                interPosition));
+            } else {
+              if (pCurr1->timeInterval.rc == true &&
+                fabs(interPosition - pCurr1->p1.GetPosition()) < 0.01){
+               pResult->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                                true, true),
+                                                pCurr1->p0.GetNetworkId(),
+                                                pCurr1->p0.GetRouteId(),
+                                                pCurr1->p0.GetSide(),
+                                                interPosition,
+                                                interPosition));
+              }
+            }
+          }
+        }
+      }
+    } else {
+      vector<JunctionSortEntry> junctions;
+      JunctionSortEntry pCurrJunct;
+      pCurrJunct.m_pJunction = 0;
+      junctions.clear();
+      int rid = pCurr1->p0.GetRouteId();
+      CcInt pRid = rid;
+      pNetwork->GetJunctionsOnRoute(&pRid, junctions);
+      size_t k = 0;
+      bool found = false;
+      while (k < junctions.size() && !found){
+        pCurrJunct = junctions[k];
+        if ((pCurr1->p0.GetPosition() <= pCurrJunct.getRouteMeas() &&
+            pCurrJunct.getRouteMeas() <= pCurr1->p1.GetPosition()) ||
+            (pCurr1->p1.GetPosition() <= pCurrJunct.getRouteMeas() &&
+            pCurrJunct.getRouteMeas() <= pCurr1->p0.GetPosition()) &&
+            pCurrJunct.getOtherRouteId() == pCurr2->p0.GetRouteId()) {
+          found = true;
+          interPosition = pCurrJunct.getRouteMeas();
+          // interPosition = pCurrJunct.getOtherRouteMeas();
+          if ((pCurr2->p0.GetPosition() <= interPosition &&
+             interPosition <= pCurr2->p1.GetPosition()) ||
+             (pCurr2->p1.GetPosition() <= interPosition &&
+             interPosition <= pCurr2->p0.GetPosition())) {
+            factor = fabs(pCurrJunct.getRouteMeas() -
+                          pCurr1->p0.GetPosition()) /
+                    fabs(pCurr1->p1.GetPosition() - pCurr1->p0.GetPosition());
+            tinter = (pCurr1->timeInterval.end - pCurr1->timeInterval.start) *
+                     factor + pCurr1->timeInterval.start;
+            factor2 = fabs(interPosition - pCurr2->p0.GetPosition()) /
+                    fabs(pCurr2->p1.GetPosition() - pCurr2->p0.GetPosition());
+            tinter2 = (pCurr1->timeInterval.end - pCurr1->timeInterval.start) *
+                     factor + pCurr1->timeInterval.start;
+            if (tinter == tinter2) {
+              pResult->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                                  true, true),
+                                                  pCurr1->p0.GetNetworkId(),
+                                                  pCurr1->p0.GetRouteId(),
+                                                  pCurr1->p0.GetSide(),
+                                                  pCurrJunct.getRouteMeas(),
+                                                  pCurrJunct.getRouteMeas()));
+            }
+          }
+        };
+        k++;
+      }
+    }// end if else same route and side
+  }// end for
+  pResult->EndBulkLoad();
+  pResult->SetDefined(true);
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
+const string OpIntersectionSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x mgpoint -> mgpoint" "</text--->"
+  "<text>intersection(mgpoint, mgpoint)</text--->"
+  "<text>Returns a moving gpoint representing the intersection of the two "
+    " given moving gpoint.</text--->"
+  "<text>intersection(mgpoint, mgpoint)</text--->"
+  ") )";
+
+Operator tempnetintersection("netintersection",
+                OpIntersectionSpec,
+                OpIntersectionValueMapping,
                 Operator::SimpleSelect,
-                OpTempNetAtperiods::TypeMap );
+                OpIntersectionTypeMapping );
+
 
 /*
-Operator present
+1.3.13 Operator ~isempty~
+
+Returns true if the ~MGPoint~ has no units.
 
 */
+
+ListExpr OpIsEmptyTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom("bool");
+}
+
+int OpIsEmptyValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  CcBool* pEmpty = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pEmpty );
+  MGPoint* pMGP = (MGPoint*)args[0].addr;
+  pEmpty->Set(false, false);
+  if(pMGP == NULL ||!pMGP->IsDefined() || pMGP->GetNoComponents() == 0) {
+    pEmpty->Set(true,true);
+  } else {
+    pEmpty->Set(true, false);
+  }
+  return 0;
+}
+
+const string OpIsEmptySpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint -> bool" "</text--->"
+  "<text> isemtpy (_) </text--->"
+  "<text>Returns true if the moving gpoint is empty, false elsewhere.</text--->"
+  "<text>isempty (MGPOINT) </text--->"
+  ") )";
+
+Operator tempnetisempty("isempty",
+                OpIsEmptySpec,
+                OpIsEmptyValueMapping,
+                Operator::SimpleSelect,
+                OpIsEmptyTypeMap );
+
+/*
+1.3.14 Operator ~length~
+
+Returns the length of the trip of the ~MGPoint~.
+
+*/
+
+ListExpr OpLengthTypeMapping(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom( "real" );
+}
+
+int OpLengthValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  result = qp->ResultStorage(in_xSupplier);
+  CcReal* pResult = (CcReal*) result.addr;
+  // Get input value
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cmsg.inFunError("MGPoint does not exist.");
+    pResult->Set(false, 0.0);
+    return 0;
+  }
+  double dLength = 0.0;
+  const UGPoint *pCurrentUnit;
+  double curStartPos, curEndPos;
+  for (int i = 0; i < pMGPoint->GetNoComponents(); i++)
+  {
+    // Get start and end of current unit
+    pMGPoint->Get(i, pCurrentUnit);
+    curStartPos = pCurrentUnit->p0.GetPosition();
+    curEndPos = pCurrentUnit->p1.GetPosition();
+    dLength = dLength + fabs(curEndPos - curStartPos);
+  }
+  pResult-> Set(true, dLength);
+  return 1;
+}
+
+const string OpTLengthSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint -> real" "</text--->"
+  "<text>length(mgpoint)</text--->"
+  "<text>Calculates the length of the pass passed by a moving gpoint.</text--->"
+  "<text>length(mgpoint)</text--->"
+  ") )";
+
+Operator tempnetlength("length",
+                    OpTLengthSpec,
+                    OpLengthValueMapping,
+                    Operator::SimpleSelect,
+                    OpLengthTypeMapping );
+
+
+/*
+1.3.15 Operator ~no\_components~
+
+Returns the number of units of a ~MGPoint~.
+
+*/
+
+ListExpr OpNoCompTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom("int");
+}
+
+int OpNoCompValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  CcInt* pNumber = (CcInt*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pNumber );
+  MGPoint* pMGP = (MGPoint*)args[0].addr;
+  pNumber->Set(false, 0);
+  if(pMGP == NULL ||!pMGP->IsDefined()) {
+    pNumber->Set(false,0);
+    cerr << "MGPoint is not defined." << endl;
+  } else {
+    pNumber->Set(true, pMGP->GetNoComponents());
+  }
+  return 0;
+}
+
+const string OpNoCompSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint -> int" "</text--->"
+  "<text> no_components (_) </text--->"
+  "<text>Returns the number of components of the moving gpoint.</text--->"
+  "<text>no_components(MGPOINT) </text--->"
+  ") )";
+
+Operator tempnetnocomp("no_components",
+                OpNoCompSpec,
+                OpNoCompValueMapping,
+                Operator::SimpleSelect,
+                OpNoCompTypeMap );
+
+/*
+1.3.16 Operator ~present~
+
+Returns true if the ~MGPoint~ has at least almost one unit with the time instant
+respectively one of the periods.
+
+*/
+
+ListExpr OpPresentTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 2 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+  ListExpr xPeriods = nl->Second(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  if (nl->IsEqual( xPeriods, "periods" ) ||
+     nl->IsEqual( xPeriods, "instant" ))
+  {
+    return (nl->SymbolAtom( "bool" ));
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+int OpPresent_mgpi(Word* args, Word& result, int message,
+                                Word& local,Supplier in_xSupplier){
+  CcBool* pPresent = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pPresent );
+  MGPoint* pMGP = (MGPoint*)args[0].addr;
+  if(pMGP == NULL ||!pMGP->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pPresent->Set(false,false);
+    return 0;
+  }
+  const Instant* ins = (Instant*)args[1].addr;
+  if(ins == NULL || !ins->IsDefined()) {
+    cerr << "Instant is not defined." << endl;
+    pPresent->Set(false,false);
+    return 0;
+  }
+  if (pMGP->GetNoComponents() < 1) {
+    pPresent->Set(true,false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  int mid;
+  int first = 0;
+  int last = pMGP->GetNoComponents() - 1;
+  pMGP->Get(first,pCurrentUnit);
+  if (pCurrentUnit->timeInterval.start.CompareTo(ins) >0) {
+    pPresent->Set(true, false);
+    return 0;
+  }
+  pMGP->Get(last,pCurrentUnit);
+  if (pCurrentUnit->timeInterval.end.CompareTo(ins) < 0) {
+    pPresent->Set(true, false);
+    return 0;
+  }
+  while (first <= last) {
+    mid = (first+last)/2;
+    if (mid<0 || mid >= pMGP->GetNoComponents()) {
+      pPresent->Set(true, false);
+      return 0;
+    }
+    pMGP->Get(mid, pCurrentUnit);
+    if (pCurrentUnit->timeInterval.end.CompareTo(ins) < 0) {
+      first = mid + 1;
+    } else {
+      if (pCurrentUnit->timeInterval.start.CompareTo(ins) >0 ) {
+        last = mid - 1;
+      } else {
+        pPresent->Set(true, true);
+        return 0;
+      }
+    }
+  }
+  pPresent->Set(true,false);
+  return 0;
+};
+
+int OpPresent_mgpp(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  CcBool* pPresent = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pPresent );
+  MGPoint* pMGP = (MGPoint*)args[0].addr;
+  if(pMGP == NULL ||!pMGP->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pPresent->Set(false,false);
+    return 0;
+  }
+  Periods* per = (Periods*)args[1].addr;
+  if(per == NULL || !per->IsDefined()) {
+    cerr << "Periods are not defined." << endl;
+    pPresent->Set(false,false);
+    return 0;
+  }
+  if (pMGP->GetNoComponents() < 1 || per->IsEmpty()) {
+    pPresent->Set(true,false);
+    return 0;
+  }
+  const Interval<Instant> *interval;
+  const UGPoint *pCurrentUnit;
+  int j;
+  j = 0;
+  int mid, first, last;
+  while (j < per->GetNoComponents()) {
+    per->Get( j, interval );
+    first = 0;
+    last = pMGP->GetNoComponents() -1;
+    pMGP->Get(first, pCurrentUnit);
+    if(!(interval->Before(pCurrentUnit->timeInterval))){
+      pMGP->Get(last, pCurrentUnit);
+      if (!pCurrentUnit->timeInterval.Before(*interval)){
+        while (first <= last) {
+          mid = (first + last) /2;
+          if (mid < 0 || mid >= pMGP->GetNoComponents()){
+            break;
+          }
+          pMGP->Get( mid, pCurrentUnit );
+          if (pCurrentUnit->timeInterval.Before(*interval)) first = mid + 1;
+          else {
+            if (interval->Before(pCurrentUnit->timeInterval)) last = mid - 1;
+            else {
+              pPresent->Set(true, true);
+              return 0;
+            }
+          }
+        }
+      }
+    }
+    j++;
+  }
+  pPresent->Set(true,false);
+  return 0;
+}
+
+int OpPresentSelect(ListExpr args){
+  ListExpr arg1 = nl->First( args );
+  ListExpr arg2 = nl->Second( args );
+
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->IsEqual( arg2, "periods" ))
+    return 0;
+  if ( nl->SymbolValue(arg1) == "mgpoint" &&
+       nl->IsEqual( arg2, "instant"))
+    return 1;
+  return -1; // This point should never be reached
+};
+
+ValueMapping OpPresentValueMap [] = {
+  OpPresent_mgpp,
+  OpPresent_mgpi
+};
+
+const string OpPresentSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint x A -> bool with A = instant or periods" "</text--->"
+  "<text> _ present _</text--->"
+  "<text>Returns true if the moving gpoint at least once exists in the given "
+    "instant or one of the periods.</text--->"
+  "<text>X_MGPOINT present PERIODS </text--->"
+  ") )";
+
 Operator tempnetpresent(
                 "present",
-                OpTempNetPresent::Spec,
+                OpPresentSpec,
                 2,
-                OpTempNetPresent::presentmap,
-                OpTempNetPresent::SelectPresent,
-                OpTempNetPresent::PresentMap );
+                OpPresentValueMap,
+                OpPresentSelect,
+                OpPresentTypeMap );
+
 
 /*
-Operator isempty
+1.3.17 Operator ~val~
+
+Returns the ~GPoint~ value of a ~IGPoint~
 
 */
-Operator tempnetisempty("isempty",
-                OpTempNetIsEmpty::Spec,
-                OpTempNetIsEmpty::ValueMapping,
+
+ListExpr OpValTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xIGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xIGPointDesc )) ||
+      nl->AtomType( xIGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xIGPointDesc ) != "igpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom( "gpoint" );
+}
+
+const string OpValSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>igpoint -> gpoint" "</text--->"
+  "<text>val(igpoint)</text--->"
+  "<text>Returns the gpoint value of the igpoint.</text--->"
+  "<text>val(igpoint)</text--->"
+  ") )";
+
+Operator tempnetval("val",
+                OpValSpec,
+                IntimeVal<GPoint>,
                 Operator::SimpleSelect,
-                OpTempNetIsEmpty::TypeMap );
+                OpValTypeMap );
 
 /*
-Operator nocomponents
+1.3.18 Operator ~trajectory~
+
+Returns the sorted ~GLine~ passed by a ~MGPoint~.
 
 */
-Operator tempnetnocomp("no_components",
-                OpTempNetNoComp::Spec,
-                OpTempNetNoComp::ValueMapping,
-                Operator::SimpleSelect,
-                OpTempNetNoComp::TypeMap );
+
+ListExpr OpTrajectoryTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom( "gline" );
+}
+
+int OpTrajectoryValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  GLine* pGLine = (GLine*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pGLine);
+  // Get input values
+  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
+      !pMGPoint->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pGLine->SetDefined(false);
+    return 0;
+  }
+  const UGPoint *pCurrentUnit;
+  pMGPoint->Get(0, pCurrentUnit);
+  int iNetworkId = pCurrentUnit->p0.GetNetworkId();
+  pGLine->SetNetworkId(iNetworkId);
+  pGLine->SetDefined(true);
+  int aktRouteId = pCurrentUnit->p0.GetRouteId();
+  double aktStartPos = pCurrentUnit->p0.GetPosition();
+  double aktEndPos = pCurrentUnit->p1.GetPosition();
+  chkStartEnd(aktStartPos, aktEndPos);
+  RITree *tree;
+  tree = new RITree(aktRouteId, aktStartPos, aktEndPos,0,0);
+  int curRoute;
+  double curStartPos, curEndPos;
+  for (int i = 1; i < pMGPoint->GetNoComponents(); i++)
+  {
+    // Get start and end of current unit
+    pMGPoint->Get(i, pCurrentUnit);
+    curRoute = pCurrentUnit->p0.GetRouteId();
+    curStartPos = pCurrentUnit->p0.GetPosition();
+    curEndPos = pCurrentUnit->p1.GetPosition();
+    chkStartEnd(curStartPos, curEndPos);
+    if (curRoute != aktRouteId) {
+      tree->insert(aktRouteId, aktStartPos, aktEndPos);
+      aktRouteId = curRoute;
+      aktStartPos = curStartPos;
+      aktEndPos = curEndPos;
+    } else { // curRoute == aktRouteId concat pieces if possible
+      if (AlmostEqual(aktStartPos,curEndPos)) {
+        aktStartPos = curStartPos;
+      } else {
+        if (AlmostEqual(aktEndPos,curStartPos)) {
+          aktEndPos = curEndPos;
+        } else { //concat impossible start new routeInterval for gline.
+          tree->insert(aktRouteId, aktStartPos, aktEndPos);
+          aktRouteId = curRoute;
+          aktStartPos = curStartPos;
+          aktEndPos = curEndPos;
+        }
+      }
+    }
+  }
+  tree->insert(aktRouteId, aktStartPos, aktEndPos);
+  GLine *resG = new GLine(0);
+  tree->treeToGLine(resG);
+  result = SetWord(resG);
+  resG->SetDefined(true);
+  resG->SetNetworkId(iNetworkId);
+  resG->SetSorted(true);
+  return 0;
+}
+
+const string OpTrajectorySpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint -> gline" "</text--->"
+  "<text>trajectory(mgpoint)</text--->"
+  "<text>Calculates the trajectory for a moving gpoint.</text--->"
+  "<text>trajectory(mgpoint)</text--->"
+  ") )";
+
+Operator trajectory("trajectory",
+                    OpTrajectorySpec,
+                    OpTrajectoryValueMapping,
+                    Operator::SimpleSelect,
+                    OpTrajectoryTypeMap );
 
 /*
-Operator inside
+1.3.19 Operator ~units~
+
+Returns the stream of ~UGPoint~ from the given ~MGPoint~.
 
 */
-Operator tempnetinside("inside",
-                OpTempNetInside::Spec,
-                OpTempNetInside::ValueMapping,
-                Operator::SimpleSelect,
-                OpTempNetInside::TypeMapping );
+
+ListExpr OpUnitsTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMPointDesc )) ||
+      nl->AtomType( xMPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMPointDesc ) != "mgpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->TwoElemList(nl->SymbolAtom("stream"),
+                         nl->SymbolAtom("ugpoint"));
+}
+
+const string OpUnitsSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mgpoint -> (stream ugpoint)" "</text--->"
+  "<text>units(mgpoint)</text--->"
+  "<text>get the stream of units of the moving value.</text--->"
+  "<text>units(mgpoint)</text--->"
+  ") )";
+
+Operator units("units",
+               OpUnitsSpec,
+               MappingUnits<MGPoint, UGPoint>,
+               Operator::SimpleSelect,
+               OpUnitsTypeMap );
 
 /*
-Operator intersection
+1.3.20 Operator ~unitendpos~
+
+Returns the end position of the ~UGPoint~ as ~real~.
+
+TypeMapping for ~unitendpos~, ~unitstartpos~, ~unitendtime~, ~unitstarttime~
+and ~unitrid~.
 
 */
-Operator tempnetintersection("intersection",
-                OpTempNetIntersection::Spec,
-                OpTempNetIntersection::ValueMapping,
-                Operator::SimpleSelect,
-                OpTempNetIntersection::TypeMapping );
 
-/*
-Operator deftime
+ListExpr OpUnitPosTimeTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
 
-*/
-Operator tempnetdeftime("deftime",
-                OpTempNetDeftime::Spec,
-                OpTempNetDeftime::ValueMapping,
-                Operator::SimpleSelect,
-                OpTempNetDeftime::TypeMap );
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
 
-/*
-Operator unitrid
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+  return nl->SymbolAtom("real");
+}
 
-*/
-Operator tempnetunitrid("unitrid",
-                OpUnitRid::Spec,
-                OpUnitRid::ValueMapping,
-                Operator::SimpleSelect,
-                OpUnitRid::TypeMap );
+int OpUnitEndPosValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s ){
+  CcReal* pNumber = (CcReal*)qp->ResultStorage(s).addr;
+  result = SetWord( pNumber );
+  UGPoint* pUGP = (UGPoint*)args[0].addr;
+  pNumber->Set(false, 0.0);
+  if(pUGP == NULL ||!pUGP->IsDefined()) {
+    pNumber->Set(false,0.0);
+    cerr << "UGPoint is not defined." << endl;
+  } else {
+    pNumber->Set(true, pUGP->GetUnitEndPos());
+  }
+  return 0;
+}
 
-/*
-Operator unitstartpos
+const string OpUnitEndPosSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>ugpoint -> double" "</text--->"
+  "<text> unitendpos (_)</text--->"
+  "<text>Returns the end position of a given ugpoint.</text--->"
+  "<text>unitendpos(UGPOINT)</text--->"
+  ") )";
 
-*/
-Operator tempnetunitstartpos("unitstartpos",
-                OpUnitStartPos::Spec,
-                OpUnitStartPos::ValueMapping,
-                Operator::SimpleSelect,
-                OpUnitStartPos::TypeMap );
-
-/*
-Operator unitendpos
-
-*/
 Operator tempnetunitendpos("unitendpos",
-                OpUnitEndPos::Spec,
-                OpUnitEndPos::ValueMapping,
+                OpUnitEndPosSpec,
+                OpUnitEndPosValueMapping,
                 Operator::SimpleSelect,
-                OpUnitEndPos::TypeMap );
+                OpUnitPosTimeTypeMap );
 
 /*
-Operator unitstarttime
+1.3.21 Operator ~unitstartpos~
+
+Returns the start position of the ~UGPoint~ as ~real~.
+
+TypeMapping see operator ~unitendpos~
 
 */
-Operator tempnetunitstarttime("unitstarttime",
-                OpUnitStartTime::Spec,
-                OpUnitStartTime::ValueMapping,
+
+int OpUnitStartPosValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s ){
+  CcReal* pNumber = (CcReal*)qp->ResultStorage(s).addr;
+  result = SetWord( pNumber );
+  UGPoint* pUGP = (UGPoint*)args[0].addr;
+  pNumber->Set(false, 0.0);
+  if(pUGP == NULL ||!pUGP->IsDefined()) {
+    pNumber->Set(false,0.0);
+    cerr << "UGPoint is not defined." << endl;
+  } else {
+    pNumber->Set(true, pUGP->GetUnitStartPos());
+  }
+  return 0;
+}
+
+const string OpUnitStartPosSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>ugpoint -> double" "</text--->"
+  "<text> unitstartpos (_)</text--->"
+  "<text>Returns the start position of a given ugpoint.</text--->"
+  "<text>unitstartpos(UGPOINT)</text--->"
+  ") )";
+
+Operator tempnetunitstartpos("unitstartpos",
+                OpUnitStartPosSpec,
+                OpUnitStartPosValueMapping,
                 Operator::SimpleSelect,
-                OpUnitStartTime::TypeMap );
+                OpUnitPosTimeTypeMap );
+
+
 
 /*
-Operator unitendtime
+1.3.22 Operator ~unitendtime~
+
+Returns the last time instant of the ~UGPoint~ as ~real~.
+
+TypeMapping see operator ~unitendpos~
 
 */
+int OpUnitEndTimeValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s ){
+  CcReal* pNumber = (CcReal*)qp->ResultStorage(s).addr;
+  result = SetWord( pNumber );
+  UGPoint* pUGP = (UGPoint*)args[0].addr;
+  pNumber->Set(false, 0.0);
+  if(pUGP == NULL ||!pUGP->IsDefined()) {
+    pNumber->Set(false,0.0);
+    cerr << "UGPoint is not defined." << endl;
+  } else {
+    pNumber->Set(true, (double) pUGP->GetUnitEndTime());
+  }
+  return 0;
+}
+
+const string OpUnitEndTimeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>ugpoint -> real" "</text--->"
+  "<text> unitendtime (_)</text--->"
+  "<text>Returns the double value representing the end time instant of the"
+  " given ugpoint.</text--->"
+  "<text>unitendtime(UGPOINT)</text--->"
+  ") )";
+
 Operator tempnetunitendtime("unitendtime",
-                OpUnitEndTime::Spec,
-                OpUnitEndTime::ValueMapping,
+                OpUnitEndTimeSpec,
+                OpUnitEndTimeValueMapping,
                 Operator::SimpleSelect,
-                OpUnitEndTime::TypeMap );
+                OpUnitPosTimeTypeMap );
+
 
 /*
-Creating the Algebra
+1.3.23 Operator ~unitstarttime~
+
+Returns the starting time instant of the ~UGPoint~ as ~real~.
+
+TypeMapping see operator ~unitendpos~
+
+*/
+
+int OpUnitStartTimeValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s ){
+  CcReal* pNumber = (CcReal*)qp->ResultStorage(s).addr;
+  result = SetWord( pNumber );
+  UGPoint* pUGP = (UGPoint*)args[0].addr;
+  pNumber->Set(false, 0.0);
+  if(pUGP == NULL ||!pUGP->IsDefined()) {
+    pNumber->Set(false,0.0);
+    cerr << "UGPoint is not defined." << endl;
+  } else {
+    pNumber->Set(true, (double) pUGP->GetUnitStartTime());
+  }
+  return 0;
+}
+
+const string OpUnitStartTimeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>ugpoint -> real" "</text--->"
+  "<text> unitstarttime (_)</text--->"
+  "<text>Returns the double value representing the start time instant of the"
+  " given ugpoint.</text--->"
+  "<text>unitstarttime(UGPOINT)</text--->"
+  ") )";
+
+Operator tempnetunitstarttime("unitstarttime",
+                OpUnitStartTimeSpec,
+                OpUnitStartTimeValueMapping,
+                Operator::SimpleSelect,
+                OpUnitPosTimeTypeMap );
+
+/*
+1.3.24 Operator ~unitrid~
+
+Returns the route id of the ~UGPoint~ as ~real~.
+
+TypeMapping see operator ~unitendpos~
+
+*/
+
+int OpUnitRidValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s ){
+  CcReal* pNumber = (CcReal*)qp->ResultStorage(s).addr;
+  result = SetWord( pNumber );
+  UGPoint* pUGP = (UGPoint*)args[0].addr;
+  pNumber->Set(false, 0.0);
+  if(pUGP == NULL ||!pUGP->IsDefined()) {
+    pNumber->Set(false,0.0);
+    cerr << "UGPoint is not defined." << endl;
+  } else {
+    pNumber->Set(true, (double) pUGP->GetUnitRid());
+  }
+  return 0;
+}
+
+const string OpUnitRidSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>ugpoint -> real" "</text--->"
+  "<text> unitrid (_)</text--->"
+  "<text>Returns the route id of a given ugpoint.</text--->"
+  "<text>unitrid(UGPOINT)</text--->"
+  ") )";
+
+Operator tempnetunitrid("unitrid",
+                OpUnitRidSpec,
+                OpUnitRidValueMapping,
+                Operator::SimpleSelect,
+                OpUnitPosTimeTypeMap );
+
+/*
+1.4 Creating the Algebra
 
 */
 
