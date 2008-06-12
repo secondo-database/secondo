@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -33,8 +33,8 @@ Defines, includes, and constants
 #ifndef NETWORKMANAGER_H_
 #define NETWORKMANAGER_H_
 
-#ifndef NETWORK_H_
-#error Network.h is needed by NetworkManager.h. \
+#ifndef __NETWORK_ALGEBRA_H__
+#error NetworkAlgebra.h is needed by NetworkManager.h. \
 Please include in *.cpp-File.
 #endif
 
@@ -45,7 +45,7 @@ Please include in *.cpp-File.
 class NetworkManager
 {
 public:
-  
+
 /*
 Loads a network with a given id.
 

@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -36,10 +36,9 @@ Defines, includes, and constants
 #include "NestedList.h"
 #include "BTreeAlgebra.h"
 #include "DBArray.h"
-#include "GPoint.h"
 #include "RelationAlgebra.h"
 #include "SpatialAlgebra.h"
-#include "Network.h"
+#include "NetworkAlgebra.h"
 #include "NetworkManager.h"
 
 extern NestedList* nl;
@@ -59,7 +58,7 @@ Network* NetworkManager::GetNetwork(int in_iNetworkId)
     // Next element in list
     ListExpr xCurrent = nl->First(xObjectList);
     xObjectList = nl->Rest(xObjectList);
-    
+
     // Type of object is at fourth position in list
     ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
     if(nl->IsAtom(xObjectType) &&
@@ -68,7 +67,7 @@ Network* NetworkManager::GetNetwork(int in_iNetworkId)
       // Get name of the network
       ListExpr xObjectName = nl->Second(xCurrent);
       string strObjectName = nl->SymbolValue(xObjectName);
-      
+
       // Load object to find out the id of the network. Normally their
       // won't be to much networks in one database giving us a good
       // chance to load only the wanted network.
@@ -82,17 +81,17 @@ Network* NetworkManager::GetNetwork(int in_iNetworkId)
         // Undefined network
         continue;
       }
-  
+
       Network* pNetwork = (Network*)xValue.addr;
       if(pNetwork->GetId() == in_iNetworkId)
       {
         // This is the network we have been looking for
         return pNetwork;
       }
-      
+
       SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("network"),
                                                xValue);
-    } 
+    }
   }
   return 0;
 }

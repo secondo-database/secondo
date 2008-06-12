@@ -39,17 +39,17 @@ Example  : query length(shortest_path(X_GPOINT, X_GPOINT2));
 Result   : 773.1299430081
 Tolerance:%0.01
 
-Operator : distance
+Operator : netdistance
 Number   : 1
 Signature: gpoint x gpoint -> real
-Example  : query distance(X_GPOINT, X_GPOINT2);
+Example  : query netdistance(X_GPOINT, X_GPOINT2);
 Result   : 773.1299430081
 Tolerance:%0.01
 
-Operator : distance
+Operator : netdistance
 Number   : 2
 Signature: gline x gline -> real
-Example  : query distance([const gline value(1((1 0.0 0.5)))], [const gline value(1((1 0.7 1.5)))]);
+Example  : query netdistance([const gline value(1((1 0.0 0.5)))], [const gline value(1((1 0.7 1.5)))]);
 Result   : 0.2
 Tolerance:%0.01
 
