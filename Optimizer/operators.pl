@@ -55,7 +55,7 @@ removeTC(0.6).
 projectTC(0.71).
 renameTC(0.1).
 windowintersectsTC(0.1).
-spatialjoinTC(10.0, 0.7).
+spatialjoinTC(20.0, 0.7).
 
 /*
 1.2 General Constants
