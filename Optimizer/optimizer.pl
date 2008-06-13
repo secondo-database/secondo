@@ -2785,7 +2785,9 @@ predicates - so we should consider both selectivities in the minimization of the
 */
 
 cost(filter(X, _), Sel, S, C) :-
-  X = spatialjoin(_, _, _, _),
+  isPrefilter(X),			% holds for spatialjoin or loopjoin
+					% isPrefilter defindad after cost clauses.
+
 %  X = spatialjoin(_, _, attrname(attr(Attr1, ArgNr1, Case1)),
 %                        attrname(attr(Attr2, ArgNr2, Case2))),
 %  getSimplePred(P, PSimple),
@@ -2797,6 +2799,8 @@ cost(filter(X, _), Sel, S, C) :-
   filterTC(A),
   S is SizeX,
   C is CostX + A * SizeX, !.
+
+
 
 cost(filter(X, _), Sel, S, C) :- 	% 'normal' filter
   cost(X, 1, SizeX, CostX),
@@ -2942,11 +2946,9 @@ cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   cost(Y, 1, SizeY, CostY),
   spatialjoinTC(A, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                  % producing the arguments
-  A * SizeX * log(SizeX + 1) +          % building the R-Tree
-  %SizeY * log(SizeX + 1) +             % look up in the R-Tree for each
-                                        % element of the second stream
-  Sel * SizeX * SizeY * log(SizeX + 1) +
+  C is CostX + CostY + 
+  A * (SizeX + SizeY) +                	% effort is essentially proportional to the
+					% sizes of argument streams
   B * S.                                % cost to produce result tuples
 
 
@@ -3023,6 +3025,17 @@ cost(gettuples(X, _), Sel, Size, Cost) :-
   Cost is   CostX            % expected to include cost of 'windowintersectsS'
           + Size * C * 0.75. % other 0.25 applied in 'windowintersectsS'
 
+
+
+isPrefilter(X) :- 
+  X = spatialjoin(_, _, _, _).
+
+isPrefilter(X) :-
+  X = loopjoin(_, _).
+
+
+
+
 /*
 The following code fragment may be needed, when also the non-conjunctive
 part of the query will be assigned with costs. At the moment, it is obsolete
@@ -3038,6 +3051,7 @@ cost(simpleUserAggrNoGroupby(Stream, _, _, _),
   Sel, Size, Cost) :- cost(Stream, Sel, Size, Cost).
 
 ----
+
 
 */
 
