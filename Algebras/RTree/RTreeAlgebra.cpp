@@ -1075,9 +1075,13 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   ListExpr attrList = nl->Second(tupleDescription);
 
   /* check that rtree and rel have the same associated tuple type */
-  CHECK_COND(nl->Equal(attrList, rtreeAttrList),
-   "Operator windowintersects: The tuple type of the R-tree\n"
-   "differs from the tuple type of the relation.");
+  //
+  // This test is omitted so that an R-tree built by bulk load
+  // can be used with this operator. (RHG 13.6.2008)
+  //
+  //CHECK_COND(nl->Equal(attrList, rtreeAttrList),
+  // "Operator windowintersects: The tuple type of the R-tree\n"
+  // "differs from the tuple type of the relation.");
 
   string attrTypeRtree_str, attrTypeWindow_str;
   nl->WriteToString (attrTypeRtree_str, rtreeKeyType);
