@@ -268,7 +268,9 @@ public:
 
     inline void AddMate(IntersectionSegment* s) {
 
-        matesOfThis->push_back(s);
+        // Note: We compare pointers here!
+        if (matesOfThis->empty() || matesOfThis->back() != s)
+            matesOfThis->push_back(s);
     }
 
     inline IntersectionSegment* GetActiveLeftMate() const {
@@ -382,7 +384,7 @@ private:
     bool resultFaceIsLeft;
     bool isLeftBoundary;
     TouchingMode relationToRightBoundary;
-
+    
     inline IntersectionSegment() {
 
         relationToRightBoundary = UNDEFINED;
@@ -586,146 +588,6 @@ private:
     vector<URegion>* result;
 };
 
-class ActiveIntSegList {
-
-public:
-
-    inline ActiveIntSegList() {
-
-        minEndT.push(numeric_limits<double>::max());
-    }
-
-    inline void InitNewTimeLevel(const double _t) {
-
-        t = _t;
-        iter = intSegList.begin();
-        segInsertedAtT = false;
-    }
-
-    inline double GetMinEndT() const {
-
-        return minEndT.top();
-    }
-
-    void RemoveIntSegs() {
-
-        iter = intSegList.begin();
-
-        if (iter == intSegList.end())
-            return;
-
-        while (iter != intSegList.end()) {
-
-            if (NumericUtil::NearlyEqual((*iter)->GetEndT(), t))
-                iter = intSegList.erase(iter);
-            else
-                iter++;
-        }
-
-        // Update minEndT:
-        minEndT.pop();
-
-        iter = intSegList.begin();
-    }
-
-    void Insert(IntersectionSegment* intSeg) {
-
-        UpdateMinEndT(intSeg);
-
-        bool inserted = false;
-
-        while (!inserted) {
-
-            if (iter == intSegList.end() || intSeg->LessByStartWEndW(*iter)) {
-                // ordered by (startW, endW, IsLeft)
-
-                insertedSegIter = intSegList.insert(iter, intSeg);
-                // TODO: is this working for: iter == intSegList.end()?
-                inserted = true;
-
-                IntersectionSegment* insertedSeg = *insertedSegIter;
-                IntersectionSegment* predOfInsertedSeg;
-                bool hasPred = false;
-
-                if (insertedSegIter != intSegList.begin()) {
-
-                    insertedSegIter--;
-                    predOfInsertedSeg = *insertedSegIter;
-                    hasPred = true;
-                    insertedSegIter++;
-                }
-
-                if (!hasPred || predOfInsertedSeg->IsRightBoundary()) {
-
-                    insertedSeg->MarkAsLeftBoundary();
-
-                } else { // predOfInsertedSeg->IsLeftBoundary()
-
-                    insertedSeg->MarkAsRightBoundary();
-                    insertedSeg->AddMate(predOfInsertedSeg);
-                    predOfInsertedSeg->AddMate(insertedSeg);
-                }
-
-            } else {
-
-                // activeSegList has more elements and
-                // *newSegIter > *activeSegIter, 
-                // ordered by (startW, endW, IsLeft).
-
-                iter++;
-            }
-        }
-
-        segInsertedAtT = true;
-    }
-
-    void Finalize() {
-
-        // Find the mate of the last inserted segment,
-        // if it is a left boundary:
-
-        IntersectionSegment* lastInsertedSeg = *insertedSegIter;
-
-        if (segInsertedAtT && lastInsertedSeg->IsLeftBoundary()) {
-
-            insertedSegIter++;
-
-            assert(insertedSegIter != intSegList.end());
-
-            IntersectionSegment* succOfLastInsertedSeg = *insertedSegIter;
-
-            lastInsertedSeg->AddMate(succOfLastInsertedSeg);
-            succOfLastInsertedSeg->AddMate(lastInsertedSeg);
-        }
-    }
-
-private:
-
-    void RemoveIfOutOfRange() {
-
-        if (iter != intSegList.end() && 
-            NumericUtil::NearlyEqual((*iter)->GetEndT(), t))
-            iter = intSegList.erase(iter);
-
-        // Now, iter is pointing to the element that followed the last element
-        // erased by the function call, which is the list end if the operation
-        // erased the last element in the sequence.
-    }
-
-    inline void UpdateMinEndT(IntersectionSegment* intSeg) {
-
-        if (intSeg->GetEndT() < minEndT.top())
-            minEndT.push(intSeg->GetEndT());
-    }
-
-    list<IntersectionSegment*> intSegList;
-    list<IntersectionSegment*>::iterator iter;
-    list<IntersectionSegment*>::iterator insertedSegIter;
-    double t;
-    stack<double> minEndT;
-    bool segInsertedAtT;
-};
-
 struct GeneralIntSegSetCompare {
 
     bool operator()(const IntersectionSegment* const& s1,
@@ -737,6 +599,119 @@ struct RightIntSegSetCompare {
     bool operator()(const IntersectionSegment* const& s1,
             const IntersectionSegment* const& s2) const;
 };
+
+class MateEngine {
+
+public:
+
+    inline MateEngine(set<IntersectionSegment*,
+    GeneralIntSegSetCompare>* _source) :
+
+        source(_source) {
+        
+        sourceIter = source->begin();
+    }
+    
+    void ComputeTimeLevel(const double _t) {
+        
+        t = _t;
+        activeIter = active.begin();
+        
+        while (activeIter != active.end()) {
+            
+            bool removedOrInserted = false;
+            
+            while (activeIter != active.end() && IsOutOfRange(*activeIter)) {
+                
+                activeIter = active.erase(activeIter);
+                removedOrInserted = true;
+            }
+            
+            if (activeIter == active.end())
+                break;
+            
+            if (HasMoreSegsToInsert()) {
+                
+                IntersectionSegment* newSeg = *sourceIter;
+                
+                if (newSeg->LessByStartWEndW(*activeIter)) {
+                    
+                    activeIter = active.insert(activeIter, newSeg);
+                    sourceIter++;
+                    removedOrInserted = true;
+                }
+                
+            }
+            
+            if (removedOrInserted) {
+                
+                DoMating();
+            }
+            
+            activeIter++;
+        }
+        
+        assert(activeIter == active.end());
+        
+        // Add the tail, if there is one:
+        while (HasMoreSegsToInsert()) {
+            
+            IntersectionSegment* newSeg = *sourceIter;
+            activeIter = active.insert(activeIter, newSeg);
+            DoMating();
+            sourceIter++;
+        }
+    }
+
+    inline bool IsOutOfRange(IntersectionSegment* seg) const {
+        
+        return NumericUtil::NearlyEqual(seg->GetEndT(), t);
+    }
+    
+    inline bool HasMoreSegsToInsert() const {
+
+        return sourceIter != source->end() && NumericUtil::NearlyEqual(
+                (*sourceIter)->GetStartT(), t);
+    }
+    
+    void DoMating() {
+
+        IntersectionSegment* current = *activeIter;
+        IntersectionSegment* pred;
+        bool hasPred = false;
+
+        if (activeIter != active.begin()) {
+
+            activeIter--;
+            pred = *activeIter;
+            hasPred = true;
+            activeIter++;
+        }
+
+        if (!hasPred || pred->IsRightBoundary()) {
+
+            current->MarkAsLeftBoundary();
+
+        } else { // pred->IsLeftBoundary() == true
+
+            current->MarkAsRightBoundary();
+            current->AddMate(pred);
+            pred->AddMate(current);
+        }
+    }
+
+private:
+
+    set<IntersectionSegment*, GeneralIntSegSetCompare>* source;
+    list<IntersectionSegment*> active;
+    
+    list<IntersectionSegment*>::iterator activeIter;
+    set<IntersectionSegment*, GeneralIntSegSetCompare>::iterator sourceIter;
+    
+    double t;
+};
+
+
 
 class PFace {
 
