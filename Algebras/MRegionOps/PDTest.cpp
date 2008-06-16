@@ -1208,4 +1208,37 @@ void PFace::AddBoundaryIntSegs(IntersectionSegment* intSeg) {
     hasBoundaryIntSegs = true;
 }
 
+/*
+
+blah
+
+*/
+
+const IntersectionSegment* PFace::GetIntSegMaxW() {
+
+    // Note: We can ignore orthogonal segments, since 
+    // we find always a non-orthogonal segment
+    // with equal w-coord.
+
+    assert(!generalIntSegSet.empty());
+
+    if (intSegMaxW == 0) { 
+
+        set<IntersectionSegment*>::iterator iter;
+        iter = generalIntSegSet.begin();
+        intSegMaxW = *iter;
+
+        iter++;
+
+        while (iter != generalIntSegSet.end()) {
+
+            if ((*iter)->GetMaxW() > intSegMaxW->GetMaxW())
+                intSegMaxW = *iter;
+
+            iter++;
+        }
+    }
+
+    return intSegMaxW;
+}
 
