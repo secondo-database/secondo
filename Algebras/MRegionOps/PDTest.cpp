@@ -455,3 +455,247 @@ vector<URegion>* PUnitPair::Minus() {
     
     return result;
 }
+
+void PUnitPair::ComputeOverlapRect() {
+    
+    overlapRect = unitA.GetBoundingRect().Intersection(unitB.GetBoundingRect());
+}
+
+void PUnitPair::CreatePFaces() {
+    
+    unitA.CreatePFaces();
+    unitB.CreatePFaces();
+}
+
+void PUnitPair::ComputeInnerIntSegs(const SetOp op) {
+
+    for (list<PFace*>::iterator iterA = unitA.pFacesReduced.begin(); iterA
+            != unitA.pFacesReduced.end(); iterA++) {
+
+        for (list<PFace*>::iterator iterB = unitB.pFacesReduced.begin(); iterB
+                != unitB.pFacesReduced.end(); iterB++) {
+
+            (*iterA)->Intersection(**iterB, op);
+        }
+    }
+}
+
+void PUnitPair::AddBoundarySegments(const SetOp op) {
+
+    unitA.AddBoundarySegments(op);
+    unitB.AddBoundarySegments(op);
+}
+
+void PUnitPair::FindMates() {
+
+    unitA.FindMates();
+    unitB.FindMates();
+}
+
+void PUnitPair::CollectIntSegs() {
+
+    unitA.CollectIntSegs(this);
+    unitB.CollectIntSegs(this);
+}
+
+void PUnitPair::FindMatesAndCollectIntSegs() {
+    
+    unitA.FindMatesAndCollectIntSegs(this);
+    unitB.FindMatesAndCollectIntSegs(this);
+}
+
+void PUnitPair::ConstructResultURegions() {
+
+    list<IntersectionSegment*> activeIntSegList;
+    list<IntersectionSegment*>::iterator activeSegIter;
+    
+    list<IntersectionSegment*> movingSegList;
+    list<IntersectionSegment*>::iterator movingSegIter;
+
+    set<IntersectionSegment*>::iterator iter = globalIntSegSet.begin();
+    
+    // Append to activeIntSegList all intersection segments with 
+    // segment.GetStartT() == this->GetStartTime():
+    
+    double t = this->GetStartTime();
+    
+    while (iter != globalIntSegSet.end() && 
+            NumericUtil::NearlyEqual((*iter)->GetStartT(), t)) {
+
+        activeIntSegList.push_back(*iter);
+        iter++;
+    }
+    
+    
+
+    while (iter != globalIntSegSet.end()) { // For each relevant timevalue...
+
+        t = (*iter)->GetStartT();
+
+        // Append to activeIntSegList all segments with segment.GetStartT() == t
+
+        while (iter != globalIntSegSet.end() && 
+                NumericUtil::NearlyEqual((*iter)->GetStartT(), t)) {
+
+            activeIntSegList.push_back(*iter);
+            iter++;
+        }
+        
+        // For each segment in activeIntSegList...
+        activeSegIter = activeIntSegList.begin();
+        while (activeSegIter != activeIntSegList.end()) {  
+            
+            IntersectionSegment* activeMate = 
+                (*activeSegIter)->GetActiveLeftMate();
+        }
+    }
+}
+
+void PUnitPair::PrintPFaceCycles() {
+
+    cout << endl;
+    cout << "*********************************************" << endl;
+    cout << "PFaces of Unit A:" << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
+
+    unitA.PrintPFaceCycles();
+
+    cout << endl;
+    cout << "*********************************************" << endl;
+    cout << "PFaces of Unit B:" << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
+
+    unitB.PrintPFaceCycles();
+
+}
+
+void PUnitPair::PrintPFacePairs() {
+
+    cout << endl;
+    cout << "*********************************************" << endl;
+    cout << "PFacePairs of Unit A:" << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
+
+    unitA.PrintPFacePairs();
+
+    cout << endl;
+    cout << "*********************************************" << endl;
+    cout << "PFacePairs of Unit B:" << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
+
+    unitB.PrintPFacePairs();
+
+}
+
+void PUnitPair::PrintIntSegsOfPFaces() {
+    
+    cout << endl;
+        cout << "*********************************************" << endl;
+        cout << "IntSegs of Unit A:" << endl;
+        cout << "*********************************************" << endl;
+        cout << endl;
+
+        unitA.PrintIntSegsOfPFaces();
+
+        cout << endl;
+        cout << "*********************************************" << endl;
+        cout << "IntSegs of Unit B:" << endl;
+        cout << "*********************************************" << endl;
+        cout << endl;
+
+        unitB.PrintIntSegsOfPFaces();
+}
+
+void PUnitPair::PrintIntSegsOfGlobalList() {
+
+    cout << "*********************************************" << endl;
+    cout << "globalIntSegSet:" << endl;
+    cout << globalIntSegSet.size() << " segments" << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
+    
+    multiset<IntersectionSegment*>::iterator iter;
+    for (iter = globalIntSegSet.begin(); iter != globalIntSegSet.end();++iter) {
+
+        (*iter)->Print();
+        cout << endl;
+    }
+}
+
+void PUnitPair::PrintIntSegsOfGlobalListAsVRML(ofstream& target, 
+                                               const string& color) {
+
+    const double scale = VRML_SCALE_FACTOR;
+    
+    target << "Transform {" << endl;
+    target << "\tscale " << scale << " " << scale << " " << scale << endl;
+    target << "\tchildren [" << endl;
+    target << "\t\tShape {" << endl;
+    target << "\t\t\tgeometry IndexedLineSet {" << endl;
+    target << "\t\t\t\tcoord Coordinate {" << endl;
+    target << "\t\t\t\t\tpoint [" << endl;
+
+    multiset<IntersectionSegment*>::iterator iter;
+    for (iter = globalIntSegSet.begin(); iter != globalIntSegSet.end();++iter) {
+
+        target << "\t\t\t\t\t\t" << (*iter)->GetVRMLDesc() << endl;
+    }
+
+    target << "\t\t\t\t\t]  # end point" << endl;
+    target << "\t\t\t\t} # end coord" << endl;
+    target << "\t\t\t\tcoordIndex [" << endl;
+    
+    const int noPoints = globalIntSegSet.size() * 2;
+
+    for (int i = 0; i < noPoints; i += 2) {
+
+        target << "\t\t\t\t\t" << i << ", " << i + 1 << ", " << "-1," << endl;
+    }
+
+    target << "\t\t\t\t] # end coordIndex" << endl;
+    
+    target << "\t\t\t\tcolor Color { color [ " << color << " ] }" << endl;
+    
+    target << "\t\t\t} # end geometry" << endl;
+    target << "\t\t} # end shape" << endl;
+    target << "\t] # end children" << endl;
+    target << "} # end Transform" << endl;
+}
+
+void PUnitPair::PrintUnitsAsVRML() {
+    
+    const string colorA = "1 1 0";
+    const string colorB = "0 0.6 1";
+    const string colorIntSegs = "1 0 0";
+    
+    ofstream target(VRML_OUTFILE);
+    
+    if (!target.is_open()) {
+        
+        cerr << "Unable to open file: " << VRML_OUTFILE << endl;
+        return;
+    }
+        
+    target << "#VRML V2.0 utf8" << endl;
+    
+    target << endl;
+    target << "# Unit A:" << endl;
+    target << endl;
+    unitA.PrintVRMLDesc(target, colorA);
+    
+    target << endl;
+    target << "# Unit B:" << endl;
+    target << endl;
+    unitB.PrintVRMLDesc(target, colorB);
+    
+    target << endl;
+    target << "# Intersection segments of global list:" << endl;
+    target << endl;
+    this->PrintIntSegsOfGlobalListAsVRML(target, colorIntSegs);
+    
+    target.close();
+}
