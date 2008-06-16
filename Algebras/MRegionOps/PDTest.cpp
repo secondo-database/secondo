@@ -28,3 +28,27 @@ void PUnit::ComputeBoundingRect() {
     
     boundingRect = Rectangle<2>(true, minX, maxX, minY, maxY);
 }
+
+void PUnit::ComputeMedianRegion() {
+    
+    //Region _medianRegion(0);
+    
+    GetURegionEmb()->TemporalFunction(array, medianTime, medianRegion);
+    
+    // medianRegion.Print(cout);
+    
+    // Reduce the median region, if possible:
+    
+    // double minX = parent->GetOverlapRect().MinD(0);
+    // double maxX = parent->GetOverlapRect().MaxD(0);
+    // double minY = uRegion->BoundingBox().MinD(1);
+    // double maxY = uRegion->BoundingBox().MaxD(1);
+    
+    // const Rectangle<2> clippingWindow(true, minX, maxX, minY, maxY);
+    
+    // medianRegion.WindowClippingIn(clippingWindow, medianRegion);
+    
+    
+    hasMedianRegion = true;
+}
+
