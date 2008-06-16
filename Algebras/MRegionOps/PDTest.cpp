@@ -929,3 +929,204 @@ bool RightIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
         return NumericUtil::Lower(t1, t3);
 }
 
+PFace::PFace(PUnit* _unit, 
+             const MSegmentData* _mSeg, 
+             bool _initialStartPointIsA) :
+                 
+    unit(_unit), mSeg(_mSeg), initialStartPointIsA(_initialStartPointIsA) {
+
+    hasIntSegs = false;
+    hasBoundaryIntSegs = false;
+    entirelyInsideOutside = UNKNOWN;
+    intSegMaxW = 0;
+    
+    ComputeBoundingRect();
+    ComputeNormalVector();
+    ComputeWTCoords();
+}
+
+bool PFace::IntersectionPlaneSegment(const Segment3D& seg, Point3D& result) {
+
+    // Precondition: 
+
+    // We compute the intersection point
+    // of the plane - defined by the PFace - and the segment.
+
+    Vector3D u = seg.GetEnd() - seg.GetStart();
+    Vector3D w = seg.GetStart() - this->GetA_XYT();
+
+    double d = this->GetNormalVector() * u;
+    double n = -this->GetNormalVector() * w;
+
+    if (NumericUtil::NearlyEqual(d, 0.0)) // Segment is parallel to plane.
+        return false;
+
+    double s = n / d;
+
+    //if (NumericUtil::Lower(s, 0.0) || NumericUtil::Lower(1.0, s)) 
+    // No intersection point, if s < -eps or s > 1 + eps.
+    if (s < 0.0 || s > 1.0)
+        return false;
+
+    // Compute segment intersection point:
+    result = seg.GetStart() + s * u;
+
+    return true;
+}
+
+bool PFace::Intersection(PFace& other, const SetOp op) {
+    
+    if (!this->GetBoundingRect().Intersects(other.GetBoundingRect()))
+        return false;
+
+    if (this->IsParallelTo(other)) // The PFaces are parallel.
+        return false;
+
+    // We store all edges of this PFace as 3DSegments in the vector edgesPFaceA:
+    vector<Segment3D> edgesPFaceA;
+
+    edgesPFaceA.push_back(Segment3D(this->GetA_XYT(), this->GetC_XYT()));
+    edgesPFaceA.push_back(Segment3D(this->GetB_XYT(), this->GetD_XYT()));
+
+    if (!this->GetMSeg()->GetPointInitial())
+        edgesPFaceA.push_back(Segment3D(this->GetA_XYT(), this->GetB_XYT()));
+
+    if (!this->GetMSeg()->GetPointFinal())
+        edgesPFaceA.push_back(Segment3D(this->GetC_XYT(), this->GetD_XYT()));
+
+    // We store all edges of the other PFace as 3DSegments
+    // in the vector edgesPFaceB:
+    vector<Segment3D> edgesPFaceB;
+
+    edgesPFaceB.push_back(Segment3D(other.GetA_XYT(), other.GetC_XYT()));
+    edgesPFaceB.push_back(Segment3D(other.GetB_XYT(), other.GetD_XYT()));
+
+    if (!other.GetMSeg()->GetPointInitial())
+        edgesPFaceB.push_back(Segment3D(other.GetA_XYT(), other.GetB_XYT()));
+
+    if (!other.GetMSeg()->GetPointFinal())
+        edgesPFaceB.push_back(Segment3D(other.GetC_XYT(), other.GetD_XYT()));
+
+    PointExtSet intPointSet;
+    Point3DExt intPoint;
+
+    // Intersect the plane - defined by the other PFace - 
+    // with all edges of this PFace:
+    unsigned int i = 0;
+    while (intPointSet.Size() < 2 && i < edgesPFaceA.size()) {
+
+        if (other.IntersectionPlaneSegment(edgesPFaceA[i], intPoint)) {
+
+            intPoint.sourceFlag = PFACE_A;
+            intPointSet.Insert(intPoint);
+        }
+        
+        i++;
+    }
+
+    if (intPointSet.Size() != 2) // We need exactly two intersection points.
+        return false;
+
+    // Intersect the plane - defined by this PFace - 
+    // with all edges of the other PFace:
+    unsigned int j = 0;
+    while (intPointSet.Size() < 4 && j < edgesPFaceB.size()) {
+
+        if (this->IntersectionPlaneSegment(edgesPFaceB[j], intPoint)) {
+
+            intPoint.sourceFlag = PFACE_B;
+            intPointSet.Insert(intPoint);
+        }
+
+        j++;
+    }
+
+    pair<IntersectionSegment*, IntersectionSegment*> result =
+            intPointSet.GetIntersectionSegment();
+
+    if (result.first == 0 || result.second == 0) // There is no intersection.
+        return false;
+
+    // We got an intersection segment buddy pair
+    // and compute the w-coords of each segment:
+    result.first->SetWCoords(*this);
+    result.second->SetWCoords(other);
+    
+    // Check, on which side of the segment the result face is:
+    result.first->SetSideOfResultFace(*this, other, op);
+    result.second->SetSideOfResultFace(other, *this, op);
+    
+    // Add one of them to each PFace:
+    this->AddInnerIntSeg(result.first);
+    other.AddInnerIntSeg(result.second);
+
+    return true;
+}
+
+void PFace::ComputeBoundingRect() {
+
+    pair<double, double> x = NumericUtil::MinMax4(mSeg->GetInitialStartX(),
+                                                  mSeg->GetInitialEndX(), 
+                                                  mSeg->GetFinalStartX(),
+                                                  mSeg->GetFinalEndX());
+    
+    pair<double, double> y = NumericUtil::MinMax4(mSeg->GetInitialStartY(),
+                                                  mSeg->GetInitialEndY(), 
+                                                  mSeg->GetFinalStartY(),
+                                                  mSeg->GetFinalEndY());
+
+    boundingRect = Rectangle<2>(true, x.first, x.second, y.first, y.second);
+}
+
+void PFace::ComputeWTCoords() {
+
+    // The vector w is the normalized exterior cross product 
+    // of the t-unit-vector and the normal vector of the PFace:
+
+    // wVector = Vector3D(0.0, 0.0, 1.0) ^ GetNormalVector();
+    // wVector.Normalize();
+
+    // This can be simplified to:
+    wVector = Vector3D(-GetNormalVector().GetY(), 
+                        GetNormalVector().GetX(), 
+                        0.0);
+    wVector.Normalize();
+
+    // For the sake of efficency, we cache the w-coords of some points:
+    aW = TransformToW(this->GetA_XYT());
+    bW = TransformToW(this->GetB_XYT());
+    cW = TransformToW(this->GetC_XYT());
+    dW = TransformToW(this->GetD_XYT());
+}
+
+void PFace::ComputeNormalVector() {
+
+    if (!AEqualsB()) {
+        
+        // Cross product of vector AB and AC:
+        normalVector = (GetB_XYT() - GetA_XYT()) ^ (GetC_XYT() - GetA_XYT());
+        
+    } else { // A == B
+        
+        // Cross product of vector DC and DB:
+        normalVector = (GetC_XYT() - GetD_XYT()) ^ (GetB_XYT() - GetD_XYT());
+    }
+
+    normalVector.Normalize();
+}
+
+void PFace::DeleteOrthogonalIntSegs() {
+
+    list<IntersectionSegment*>::iterator iter;
+    for (iter = orthogonalIntSegList.begin(); iter
+            != orthogonalIntSegList.end(); ++iter)
+        (*iter)->Delete();
+}
+
+void PFace::DeleteGeneralIntSegs() {
+
+    set<IntersectionSegment*>::iterator iter;
+    for (iter = generalIntSegSet.begin(); iter != generalIntSegSet.end();++iter)
+        (*iter)->Delete();
+}
+
