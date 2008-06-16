@@ -85,6 +85,8 @@ class Points;
 class HalfSegment;
 class Line;
 class Region;
+class SimpleLine;
+
 /*
 Forward declarations.
 
@@ -116,6 +118,10 @@ bool getDir(const vector<Point>& vp);
 
 
 int HalfSegmentCompare(const void *a, const void *b);
+int PointHalfSegmentCompare( const void *a, const void *b );
+int PointHalfSegmentCompareAlmost( const void *a, const void *b );
+int LRSCompare( const void *a, const void *b );
+
 
 /*
 4 Struct Point
@@ -352,6 +358,10 @@ with a degree of alpha. The result is stored in res.
 
 */
     inline Point Add( const Point& p ) const;
+
+    inline bool IsEmpty()const{
+      return !IsDefined();
+    }
 
 /*
 4.4 Functions needed to import the the ~point~ data type to tuple
@@ -1575,6 +1585,10 @@ Sets the number of components with the given argument value ~noComponents~.
 
 */
     inline double Length() const;
+
+    inline double SpatialSize() const{
+      return Length();
+    }
 /*
 Returns the length of the line, i.e. the sum of the lengths of all segments.
 
@@ -2325,6 +2339,476 @@ a ~simple~ line.
 
 */
 ostream& operator<<( ostream& o, const Line& cl );
+
+
+/*
+7 The class ~SimpleLine~
+
+This class represents a line building a simple polyline, i.e. a line
+without branches and zero or one components.
+
+*/
+class SimpleLine: public StandardSpatialAttribute<2>
+{
+  public:
+/*
+7.1 Constructors
+
+~Constructor~
+
+This constructor creates an undefined SimpleLine object and initializes the
+contained arrays to have ~size~ number od slots.
+
+*/
+  SimpleLine(int size): 
+            segments(size),lrsArray(size),
+            isdefined(false),startSmaller(true),
+            isCycle(false),isOrdered(true),length(0.0),
+            bbox(false),currentHS(-1){
+     del.refs=1;
+     del.isDelete=true;
+    }
+
+/*
+~Constructor~
+
+
+Constructs a ~SimpleLine~ froma complex one.
+ 
+*/
+  SimpleLine(const Line& src);  
+
+/*
+~CopyConstructor~
+
+*/  
+  SimpleLine(const SimpleLine& src):
+    segments(src.Size()),lrsArray(src.Size()){
+    Equalize(src);
+  }
+
+/*
+~Destructor~
+
+*/
+  ~SimpleLine() {}
+
+/*
+~Assignment Operator~
+
+*/
+  SimpleLine& operator=(const SimpleLine& src){
+     Equalize(src);
+     return *this;
+  }
+
+/*
+~Destroy~
+
+*/
+  void Destroy(){
+     segments.Destroy();
+     lrsArray.Destroy();
+  } 
+
+
+/*
+~BulkLoading~
+
+*/
+  void StartBulkLoad();
+
+  bool EndBulkLoad();
+
+  SimpleLine& operator+=( const HalfSegment& hs);
+
+  inline bool IsOrdered() const{
+    return isOrdered;
+  }
+
+/*
+~Length~
+
+Returns the length of this SimpleLine;
+
+*/
+  inline double Length() const{
+    return length;
+  }
+
+  inline double SpatialSize() const{
+     return Length();
+  }
+
+
+/*
+~BoundingBox~
+
+Returns the MBR of this SimpleLine object.
+
+*/
+  inline const Rectangle<2> BoundingBox() const{
+    return bbox;
+  }
+
+/*
+~IsEmpty~
+
+Checks wether this line has no geometry.
+
+*/
+  inline bool IsEmpty() const{
+    return segments.Size() == 0;
+  }
+
+/*
+~Size~
+
+This function returns the number of halfsegments within this SimpleLine value.
+
+*/
+  inline int Size() const{
+    return segments.Size();
+  }
+
+/*
+~StartPoint~
+
+Returns the start point of this simple line.
+
+*/
+  Point StartPoint(const bool startSmaller) const;
+
+/*
+~EndPoint~
+
+Returns the end point of this simple line.
+
+*/  
+  Point EndPoint(const bool startSmaller) const;
+
+/*
+~Contains~
+
+Checks whether ~p~ is located on this line.
+
+*/
+  bool Contains(const Point& p) const;
+
+/*
+~TrimToSize~
+
+Changes the capacities of the contained arrays to the required size. 
+
+*/
+  inline void TrimToSize(){
+     segments.TrimToSize();
+     lrsArray.TrimToSize();
+  }
+
+/*
+~Comparison~
+
+The operator __==__ checks whether the structure of two simple lines are equals.
+This operator may return a __false__ result even if the lines have the same
+geometry.
+
+*/
+  bool operator==(const SimpleLine& sl) const{
+     if(!isdefined && !sl.isdefined){
+       return true;
+     }
+     if(!isdefined || !sl.isdefined){
+       return false;
+     }
+     if(bbox != sl.bbox){
+       return false;
+     }
+     if(segments.Size() != sl.segments.Size()){
+        return false;
+     }
+     if(startSmaller!=sl.startSmaller){
+        return false;
+     }
+     if(!AlmostEqual(length,sl.length)){
+       return false;
+     }
+     const HalfSegment* hs1;
+     const HalfSegment* hs2;
+     for(int i=0;i<segments.Size();i++){
+       segments.Get(i,hs1);
+       sl.segments.Get(i,hs2);
+       if(!AlmostEqual(*hs1,*hs2)){
+         return false;
+       }
+     }
+     // the lrsArray is equals if the segments are equals
+     return  true;
+  }  
+
+  bool operator!=(const SimpleLine& sl) const{
+     return !(*this == sl);
+  }
+
+/*
+~Distance Operators~
+
+*/
+  double Distance(const Point& p )const;
+
+  double Distance(const Points& ps ) const;
+
+  double Distance(const SimpleLine& sl) const;
+
+
+
+
+
+/*
+~AtPosition~
+
+
+*/ 
+  bool AtPosition(double pos, const bool startsSmaller,
+                  Point& p) const;
+
+/*
+~AtPoint~
+
+*/
+
+  bool AtPoint(const Point& p, const bool startsSmaller,
+               double& result) const;
+
+
+/*
+~SubLine~
+
+*/
+  void SubLine(const double pos1, const double pos2,
+               bool startsSmaller, SimpleLine& l) const;
+
+
+
+/*
+~Attribute Functions~
+
+The following functions are needed to act as an attribute type.
+
+*/
+  inline int NumOfFLOBs() const{
+    return 2;   
+  }
+  
+  inline FLOB* GetFLOB(const int i){
+    if(i==0)
+       return &segments;
+    return &lrsArray;
+  }
+
+  inline bool IsDefined() const{
+    return isdefined;
+  }
+
+  inline void SetDefined(bool defined){
+     isdefined = defined;
+  }
+
+  inline size_t Sizeof() const{
+     return sizeof(*this);
+  }
+
+  inline bool Adjacent(const Attribute* arg) const{
+    return false;
+  }
+  size_t HashValue() const{
+    return bbox.HashValue() + segments.Size();
+  }  
+
+  void CopyFrom(const StandardAttribute* right){
+     Equalize(*(static_cast<const SimpleLine*>(right)));
+  }
+
+  int Compare(const Attribute* arg) const;
+
+  virtual SimpleLine* Clone() const{
+     SimpleLine* res =  new SimpleLine(*this);
+     return  res;
+  }
+
+  ostream& Print(ostream& os) const;
+
+  void Clear(){
+     segments.Clear();
+     lrsArray.Clear();
+     isdefined = true;
+     bbox.SetDefined(false);
+     length=0.0;
+     isOrdered=true;
+     currentHS = -1;
+  }
+
+  bool SelectInitialSegment( const Point& startPoint,
+                             const double tolerance = 1.0);
+
+  bool SelectSubsequentSegment();
+
+  bool getWaypoint(Point& destination) const;
+
+  inline bool GetStartSmaller() const{
+    return startSmaller;
+  }
+
+  bool IsCycle()const {
+    return isCycle;
+  }
+
+  void toLine(Line& result) const;
+  
+  void fromLine(const Line& src);
+  
+  static void* Cast(void* addr){
+    return new (addr) SimpleLine;
+  }
+
+  inline void Get( const int i, const HalfSegment*& hs ) const{
+    segments.Get(i,hs);
+  }
+  
+  inline void Put(const int i, const HalfSegment& hs){
+    segments.Put(i,hs);
+  }
+
+  
+  inline void Get( const int i, const LRS*& lrs ) const{
+    lrsArray.Get(i,lrs);
+  }
+  
+  inline void Put(const int i, const LRS& lrs){
+    lrsArray.Put(i,lrs);
+  }
+ 
+
+  private:
+    DBArray<HalfSegment> segments;
+    DBArray<LRS> lrsArray;
+    bool isdefined;
+    bool startSmaller;
+    bool isCycle;
+    bool isOrdered;
+    double length;
+    Rectangle<2> bbox;
+    int currentHS;
+
+    void Equalize(const SimpleLine& src){
+        const HalfSegment* seg;
+        segments.Clear();
+        lrsArray.Clear();
+        
+        int size = src.segments.Size();
+        if(size>0){
+          segments.Resize(size);
+        }
+        for(int i=0;i<size;i++){
+           src.segments.Get(i,seg);
+           segments.Append(*seg);
+        }
+
+        size = src.lrsArray.Size();
+        if(size>0){
+          lrsArray.Resize(size);
+        }
+        const LRS* lrs;
+        for(int i=0;i<size;i++){
+           src.lrsArray.Get(i,lrs);
+           lrsArray.Append(*lrs);
+        }
+        this->isdefined = src.isdefined;
+        this->startSmaller = src.startSmaller;
+        this->isCycle = src.isCycle; 
+        this->isOrdered = src.isOrdered;
+        this->length = src.length;
+        this->bbox = src.bbox;
+        this->currentHS = src.currentHS;
+    }
+/*
+~StandardConstructor~
+
+Only for use within the Cast function.
+
+*/
+    SimpleLine() {}
+
+/*
+~Find~
+
+*/
+bool Find( const Point& p, int& pos, const bool& exact = false ) const {
+  assert( IsOrdered() );
+  if( exact ){
+    return segments.Find( &p, PointHalfSegmentCompare, pos );
+  } else {
+    return segments.Find( &p, PointHalfSegmentCompareAlmost, pos );
+  }
+}
+
+ bool Find( const LRS& lrs, int& pos ) const {
+   assert( IsOrdered() );
+ 
+   if( IsEmpty()  || ! isdefined){
+     return false;
+   }
+ 
+   if( lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 ) &&
+       lrs.lrsPos > Length() && !AlmostEqual( lrs.lrsPos, Length() ) ){
+     return false;
+   }
+
+   lrsArray.Find( &lrs, LRSCompare, pos );
+   if( pos > 0 ){
+     pos--;
+   }
+ 
+   return true;
+ }
+
+/*
+~Sort~
+
+Sorts the array of HalfSegments.
+
+*/
+ void Sort(){
+   segments.Sort(HalfSegmentCompare);
+   isOrdered = true;
+ }
+
+/*
+~SetPartnerNo~
+
+Changes the partnerno of each HalfSegment to the index of the reverse
+segment within the halfsegmenst array.
+
+*/
+ void SetPartnerNo();
+
+/*
+~computePolyline~
+
+This function searches for a polyline within the halfsegment array and
+creates the lrsarray. Additionally, the edge number of each segment is set 
+to the corresponding entry within the lrs array. If the segments does not
+represent a simple polyLine, i.e. several components or branches, the result
+of this function will be __false__. 
+
+*/
+bool computePolyline();
+
+   
+};
+
+
+ostream& operator<<(ostream& o, const SimpleLine& cl);
 
 /*
 7 Class Region
@@ -3132,6 +3616,11 @@ is a hole of an existing face, or if it is a cycle of a new face.
    int GetNewFaceNo(HalfSegment &chsS,bool *cycle);
 
    double Area() const;
+
+   double SpatialSize() const{
+     return Area();
+   }
+
 /*
 Returns the region's area.
 The region must be defined!
@@ -3531,7 +4020,12 @@ inline Point& Point::operator=( const Point& p )
 
 inline bool Point::operator==( const Point& p ) const
 {
-  assert( defined && p.defined );
+  if(!defined && !p.defined){
+    return true;
+  }
+  if(!defined || !p.defined){
+    return false;
+  }
   return AlmostEqual(x, p.x) && AlmostEqual(y, p.y); // changed by TB
   //  return x == p.x && y == p.y;
 }

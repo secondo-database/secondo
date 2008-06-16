@@ -96,7 +96,8 @@ declare an enumeration, ~SpatialType~, containing the four types, and a function
 corresponding ~SpatialType~ type name.
 
 */
-enum SpatialType { stpoint, stpoints, stline, stregion, stbox, sterror };
+enum SpatialType { stpoint, stpoints, stline, stregion, 
+                   stbox, sterror, stsline };
 
 SpatialType
 SpatialTypeOfSymbol( ListExpr symbol )
@@ -109,6 +110,7 @@ SpatialTypeOfSymbol( ListExpr symbol )
     if ( s == "line"   ) return (stline);
     if ( s == "region" ) return (stregion);
     if ( s == "rect"   ) return (stbox);
+    if ( s == "sline"   ) return (stsline);
   }
   return (sterror);
 }
@@ -5358,6 +5360,836 @@ TypeConstructor line(
         CastLine,                       //cast function
         SizeOfLine,                     //sizeof function
         CheckLine );                    //kind checking function
+
+
+/*
+7 The type SimpleLine
+
+7.1 Constructor 
+
+This constructor coinstructs a simple line from ~src~
+
+If ~src~ is not simple, the simple line will be invalidated, i.e.
+isdefined is set to false;
+
+*/
+SimpleLine::SimpleLine(const Line& src):segments(1),lrsArray(1){
+  fromLine(src);
+  del.refs = 1;
+  del.isDelete = true; 
+}
+
+/*
+7.2 Bulk Loading Functions
+
+*/
+void SimpleLine::StartBulkLoad(){
+  isOrdered = false;
+  isdefined = true;
+}
+
+/*
+~Operator +=~
+
+Appends an HalfSegment during BulkLoading.
+
+*/
+SimpleLine& SimpleLine::operator+=(const HalfSegment& hs){
+  assert(!isOrdered && isdefined);
+  segments.Append(hs);
+  return *this;
+}
+
+bool SimpleLine::EndBulkLoad(){
+  // Sort the segments
+  Sort();
+  // Realminize the segments
+  DBArray<HalfSegment>* tmp;
+  tmp = Realminize(segments);
+  segments.Clear();
+  //segments = *tmp; // does not work correctly
+  const HalfSegment* hs;
+  for(int i=0;i<tmp->Size();i++){
+     tmp->Get(i,hs);
+     segments.Append(*hs);
+  }
+  //tmp->Destroy();
+  delete tmp;
+  SetPartnerNo();
+
+  // recompute Bounding box;
+  if(segments.Size()>0){
+    const HalfSegment* hs;  
+    segments.Get(0,hs);
+    bbox = hs->BoundingBox();
+    for(int i=1; i< segments.Size();i++){
+      segments.Get(i,hs);
+      bbox = bbox.Union(hs->BoundingBox());
+    }
+  }else{
+    bbox.SetDefined(false);
+  }
+ 
+  if(!computePolyline()){
+     segments.Clear();
+     lrsArray.Clear();
+     SetDefined(false);
+     return false;
+  } else {
+     TrimToSize();
+     return true;
+  } 
+}
+
+/*
+~StartPoint~
+
+Determines the startPoint of this simple line.
+
+*/
+Point SimpleLine::StartPoint( bool startsSmaller ) const {
+  if( IsEmpty() || !isdefined ){
+    return Point( false );
+  }
+
+  // Find out which end should be the start of the line. This
+  // depends on the orientation of the curve and the parameter
+  // to this function.
+  bool startPointSmaller = startsSmaller && this->startSmaller;
+  int pos;
+  if( startPointSmaller ) {
+    // Start is at the smaller end of the array
+    pos = 0;
+   } else {
+    // Start is at the bigger end of the array
+    pos = lrsArray.Size()-1;
+   }
+
+   // Read entry from linear referencing system.
+   const LRS *lrs;
+   lrsArray.Get( pos, lrs );
+   // Get half-segment
+   const HalfSegment* hs;
+   segments.Get( lrs->hsPos, hs );
+
+   // Return one end of the half-segment depending
+   // on the start.
+   return startPointSmaller ?  hs->GetDomPoint() : hs->GetSecPoint();
+}
+
+/*
+~EndPoint~
+
+Returns the endpoint of this simple Line.
+
+*/
+Point SimpleLine::EndPoint( bool startsSmaller ) const {
+  // The end is opposite to the start.
+  return StartPoint(!startsSmaller);
+}
+
+bool SimpleLine::Contains( const Point& p ) const {
+ if( IsEmpty()  || !isdefined){
+   return false;
+ }
+ int pos;
+ if( segments.Find( &p, PointHalfSegmentCompareAlmost, pos )){
+   // p is a dominating point of a line
+   return true;
+ }
+ if( pos >= Size() ){
+    return false;
+ }
+ const HalfSegment *hs;
+ for( ; pos >= 0; pos-- ){
+   segments.Get( pos, hs );
+   if( hs->IsLeftDomPoint() ) {
+     if( hs->Contains( p ) ){
+       return true;
+     }
+   }
+ }
+ return false;
+}
+
+double SimpleLine::Distance(const Point& p)const {
+  const HalfSegment *hs;
+  double result = numeric_limits<double>::max();
+  for( int i = 0; i < Size(); i++ ) {
+    Get( i, hs );
+    if( hs->IsLeftDomPoint() ) {
+      if( hs->Contains( p ) ){
+        return 0.0;
+      }
+      result = MIN( result, hs->Distance( p ) );
+    }
+  }
+  return result;
+}
+
+
+double SimpleLine::Distance(const Points& ps)const{
+  const HalfSegment *hs;
+  const Point *p;
+  double result = numeric_limits<double>::max();
+
+  for( int i = 0; i < Size(); i++ ) {
+    Get( i, hs );
+
+    if( hs->IsLeftDomPoint() ) {
+      for( int j = 0; j < ps.Size(); j++ ) {
+        ps.Get( j, p );
+        if( hs->Contains( *p ) ){
+          return 0;
+        }
+        result = MIN( result, hs->Distance( *p ) );
+      }
+    }
+  }
+  return result;
+}
+
+double SimpleLine::Distance(const SimpleLine& sl)const{
+  const HalfSegment *hs1, *hs2;
+  double result = numeric_limits<double>::max();
+
+  for( int i = 0; i < Size(); i++ ) {
+    Get( i, hs1 );
+
+    if( hs1->IsLeftDomPoint() ) {
+      for( int j = 0; j < sl.Size(); j++ ) {
+        sl.Get( j, hs2 );
+
+        if( hs1->Intersects( *hs2 ) ){
+          return 0.0;
+        }
+        result = MIN( result, hs1->Distance( *hs2 ) );
+      }
+    }
+  }
+  return result;
+}
+
+
+
+bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
+ if(!isdefined){
+    return false;
+ }
+ if( startsSmaller != this->startSmaller ){
+   pos = length - pos;
+ }
+ LRS lrs( pos, 0 );
+ int lrsPos;
+ if( !Find( lrs,lrsPos ) ){
+    return false;
+ }
+ 
+ const LRS *lrs2;
+ lrsArray.Get( lrsPos, lrs2 );
+ 
+ const HalfSegment *hs;
+ segments.Get( lrs2->hsPos, hs );
+
+ p = hs->AtPosition( pos - lrs2->lrsPos );
+ return true;
+}
+
+/*
+~AtPoint~
+
+*/
+bool SimpleLine::AtPoint( const Point& p,
+                          bool startsSmaller,
+                          double& result ) const {
+ if( IsEmpty() || !isdefined ){
+   return false;
+ }
+
+ bool found = false;
+ const HalfSegment *hs;
+ int pos;
+ if( Find( p, pos ) ) {
+   found = true;
+   segments.Get( pos, hs );
+  } else if( pos < Size() ) {
+   for( ; pos >= 0; pos-- ) {
+     segments.Get( pos, hs );
+     if( hs->IsLeftDomPoint() && hs->Contains( p ) ) {
+       found = true;
+       break;
+     }
+   }
+  }
+ 
+  if( found ){
+    const LRS *lrs;
+    lrsArray.Get( hs->attr.edgeno, lrs );
+    segments.Get( lrs->hsPos, hs );
+    result = lrs->lrsPos + p.Distance( hs->GetDomPoint() );
+ 
+    if( startsSmaller != this->startSmaller ){
+      result = length - result;
+    }
+ 
+    if( AlmostEqual( result, 0.0 ) ){
+      result = 0;
+    } else if( AlmostEqual( result, length ) ){
+      result = length;
+    }
+ 
+    assert( result >= 0.0 && result <= length );
+ 
+    return true;
+  }
+  return false;
+}
+
+void SimpleLine::SubLine( double pos1, double pos2,
+                         bool startsSmaller, SimpleLine& l ) const {
+  if( IsEmpty() || !isdefined){
+     return;
+  }
+ 
+  if( pos1 < 0 ){
+    pos1 = 0;
+  } else if( pos1 > length ){
+    pos1 = length;
+  }
+
+  if( pos2 < 0 ){
+    pos2 = 0;
+  } else if( pos2 > length ){
+    pos2 = length;
+  }
+ 
+  if( AlmostEqual( pos1, pos2 ) || pos1 > pos2 ){
+    return;
+  }
+ 
+  if( startsSmaller != this->startSmaller ) {
+    double aux = length - pos1;
+    pos1 = length - pos2;
+    pos2 = aux;
+  }
+ 
+  // First search for the first half segment
+  LRS lrs( pos1, 0 );
+  int lrsPos;
+  Find( lrs, lrsPos );
+ 
+  const LRS *lrs2;
+  lrsArray.Get( lrsPos, lrs2 );
+
+  const HalfSegment *hs;
+  segments.Get( lrs2->hsPos, hs );
+ 
+  l.Clear();
+  l.StartBulkLoad();
+  int edgeno = 0;
+
+  HalfSegment auxHs;
+  if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs ) ) {
+     auxHs.attr.edgeno = ++edgeno;
+     l += auxHs;
+     auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
+     l += auxHs;
+   }
+ 
+   while( lrsPos < lrsArray.Size() - 1 &&
+          ( lrs2->lrsPos + hs->Length() < pos2 ||
+            AlmostEqual( lrs2->lrsPos + hs->Length(), pos2 ) ) ) {
+     // Get the next half segment in the sequence
+     lrsArray.Get( ++lrsPos, lrs2 );
+     segments.Get( lrs2->hsPos, hs );
+ 
+     if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs)){
+       auxHs.attr.edgeno = ++edgeno;
+       l += auxHs;
+       auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
+       l += auxHs;
+     }
+   }
+ 
+   l.EndBulkLoad();
+}
+
+bool SimpleLine::SelectInitialSegment( const Point &startPoint,
+                                       const double tolerance ){
+  assert( IsDefined() );
+  assert( startPoint.IsDefined() );
+  if(isCycle ){
+     return false;
+  }
+  bool success = Find(startPoint, currentHS, false);
+  if ( !success || currentHS < 0 || currentHS >= Size() ){
+     currentHS = -1;
+     if (tolerance > 0.0) { 
+       // try to find the point with minimum distance to startPoint,
+       // where the distance is smaller than tolerance
+       double minDist = tolerance; // currentHS is -1
+       double distance = 0.0;
+       for(int pos=0; pos<Size(); pos++) { 
+         // scan all dominating point, save the index of the HalfSegment with
+         // the currently smallest distance to startPoint to currentHS and the
+         // current minimum distance to minDist
+         const HalfSegment* hs;
+         segments.Get( pos, hs );
+         distance = hs->GetDomPoint().Distance(startPoint);
+         if (distance <= minDist) {
+           minDist   = distance;
+           currentHS = pos;
+         }
+       }
+       if (currentHS != -1) {
+         return true;
+       }
+     }
+     return false;
+   }
+   return true;
+}
+
+bool SimpleLine::SelectSubsequentSegment() {
+  assert( isdefined );
+
+  const HalfSegment* hs;
+
+  if( isCycle || currentHS < 0 ){
+     return false;
+  }
+  segments.Get(currentHS, hs);
+  int partner = hs->attr.partnerno;
+  const HalfSegment* nexths;
+
+  // look at position before currentHS's partner
+  if( partner>0 ) {
+    currentHS = partner - 1;
+    segments.Get(currentHS, nexths);
+    if ( AlmostEqual(nexths->GetDomPoint(), hs->GetSecPoint()) ) {
+       return true;
+    }
+  }
+  // look at position after currentHS's partner
+  if( partner < Size()-1 ) {
+     currentHS = partner + 1;
+     segments.Get(currentHS, nexths);
+     if ( AlmostEqual(nexths->GetDomPoint(), hs->GetSecPoint()) ) {
+       return true;
+     }
+   }
+   // No subsequent HalfSegment found:
+   currentHS = -1;
+   return false;
+}
+
+
+bool SimpleLine::getWaypoint( Point &destination ) const{
+   assert( IsDefined() );
+   if( isCycle || currentHS < 0 || currentHS >= Size() ) {
+     destination.SetDefined( false );
+     return false;
+   }
+   const HalfSegment* hs;
+   segments.Get(currentHS, hs);
+   destination = hs->GetSecPoint();
+   destination.SetDefined( true );
+   return true;
+}
+
+void SimpleLine::fromLine(const Line& src){
+  Clear(); // remove all old segments
+  if(!src.IsDefined()){
+     SetDefined(false);
+     return;
+  } 
+  SetDefined(true);
+  if(src.IsEmpty()){
+    return;
+  }
+  StartBulkLoad();
+  int edgeno = 0;
+  const HalfSegment* hs;
+  for(int i=0;i<src.Size();i++){
+    src.Get(i,hs);
+    if(hs->IsLeftDomPoint()){
+       HalfSegment hs2 = *hs;  
+       hs2.attr.edgeno = edgeno;
+       edgeno++;
+       (*this) += hs2;
+       hs2.SetLeftDomPoint(false);
+       (*this) += hs2;
+    }
+  }
+  EndBulkLoad();
+}
+
+
+void SimpleLine::toLine(Line& result)const{
+  result.Clear();
+  if(!isdefined){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  const HalfSegment* hs;
+  result.StartBulkLoad();
+  for(int i=0;i<segments.Size();i++){
+    segments.Get(i,hs);
+    result +=  *hs;
+  }
+  result.EndBulkLoad();
+}
+
+
+void SimpleLine::SetPartnerNo(){
+  if(segments.Size()==0){
+    return;
+  }
+  DBArray<int> TMP((segments.Size()+1)/2);
+
+  const HalfSegment* hs1;
+  const HalfSegment* hs2;
+  for(int i=0; i<segments.Size(); i++){
+     segments.Get(i,hs1);
+     if(hs1->IsLeftDomPoint()){
+        TMP.Put(hs1->attr.edgeno, i);
+      } else {
+        const int* lpp;
+        TMP.Get(hs1->attr.edgeno,lpp);
+        int leftpos = *lpp;
+        HalfSegment right = *hs1;
+        right.attr.partnerno = leftpos;
+        right.attr.insideAbove = false;
+        right.attr.coverageno = 0;
+        right.attr.cycleno = 0;
+        right.attr.faceno = 0;
+        segments.Get(leftpos,hs2);
+        HalfSegment left = *hs2;
+        left.attr.partnerno = i;
+        left.attr.insideAbove = false;
+        left.attr.coverageno = 0;
+        left.attr.cycleno = 0;
+        left.attr.faceno = 0;
+        segments.Put(i,right);
+        segments.Put(leftpos,left);
+      }
+   }
+   TMP.Destroy();
+ }
+
+ bool SimpleLine::computePolyline(){
+  lrsArray.Clear();
+  isCycle = false;
+  length = 0;
+  if(segments.Size()==0){ // an empty line
+     return true;
+  }
+
+  // the halfsegment array has to be sorted, realminized and 
+  // the partnernumber must be set correctly
+
+  // step 1: try to find the start of the polyline and check for branches
+  int size = segments.Size();
+  int start = -1;
+  int end = -1;
+  int count = 0; 
+  int pos = 0;
+  const HalfSegment* hs;
+  Point p1;
+  Point p2;
+  while(pos<size){
+    count = 1;
+    segments.Get(pos,hs);
+    p1 = hs->GetDomPoint();
+    pos++;
+    if(pos<size){
+      segments.Get(pos,hs);
+      p2 = hs->GetDomPoint();
+    }
+    while(pos<size && AlmostEqual(p1,p2)){
+      count++;
+      if(count>2){  // branch detected
+        return false;
+      } else {
+        pos++;
+        p1 = p2;
+        if(pos<size){
+           segments.Get(pos,hs);
+           p2 = hs->GetDomPoint();
+        }
+      }
+    }
+    if(count==1){
+       if(start<0){
+         start = pos - 1;
+       } else if(end < 0){
+         end = pos - 1;
+       } else { // third end detected
+         return false;
+       }
+    } 
+  }
+
+  if(start<0 && end>=0){ // loop detected
+      return false;
+  }
+
+  pos = 0;
+  if(start<0){ // line is a cycle
+    isCycle=true;
+  } else {
+    isCycle = false;
+    pos = start;
+  }
+
+  // the line has two or zero endpoints, may be several components 
+  vector<bool> used(size,false);
+  int noUnused = size;
+  const HalfSegment* hs1;
+  const HalfSegment* hs2;
+  lrsArray.Resize(segments.Size()/2 + 1);
+  double lrsPos = 0.0;
+  int hsPos = pos;
+  int edge = 0;
+  while(noUnused > 0){
+    segments.Get(hsPos,hs1);
+    used[hsPos]=true; // segment is used
+    noUnused--;
+    int partnerpos = hs1->attr.partnerno;
+    segments.Get(partnerpos,hs2);
+    used[partnerpos] = true; // partner is used
+    noUnused--;
+    // store edgenumber
+    HalfSegment HS1 = *hs1;
+    HalfSegment HS2 = *hs2;
+    HS1.attr.edgeno = edge;
+    HS2.attr.edgeno = edge;
+    edge++;
+    segments.Put(hsPos,HS1);
+    segments.Put(partnerpos,HS2);
+
+    lrsArray.Append(LRS(lrsPos,hsPos));
+    lrsPos += hs1->Length();
+    Point p1 = hs2->GetDomPoint();
+    if(noUnused > 0){
+       bool found = false;
+       if(partnerpos > 0 && !used[partnerpos-1]){ // check left side
+         segments.Get(partnerpos-1,hs2);
+         Point p2 = hs2->GetDomPoint();
+         if(AlmostEqual(p1,p2)){ // extension found
+           found = true;
+           hsPos = partnerpos-1;
+         }
+       }     
+       if(!found  && (partnerpos < (size-1) && !used[partnerpos+1])){
+           segments.Get(partnerpos+1,hs2);
+           Point p2 = hs2->GetDomPoint();
+           if(AlmostEqual(p1,p2)){
+              found = true;
+              hsPos = partnerpos+1;
+           }
+       }
+       if(!found){  // no extension found
+         return false;
+       }
+    }  
+  }
+  lrsArray.Append(LRS(lrsPos,hsPos));
+  length = lrsPos;
+  return true;
+}
+
+
+int SimpleLine::Compare(const Attribute* arg)const{
+  const SimpleLine* line = static_cast<const SimpleLine*>(arg);
+  if(!isdefined && !line->isdefined){
+     return true;
+  }
+  if(!isdefined){
+    return -1;
+  }
+  if(!line->isdefined){
+     return 1;
+  }
+  if(segments.Size() < line->segments.Size()){
+    return -1;
+  }
+  if(segments.Size() > line->segments.Size()){
+    return 1;
+  }
+  int cmp;
+  const HalfSegment* hs1;
+  const HalfSegment* hs2;
+  for(int i=0;i<segments.Size();i++){
+     segments.Get(i,hs1);
+     line->segments.Get(i,hs2);
+     if( (cmp = hs1->Compare(*hs2)) !=0){
+       return cmp;
+     }
+  }
+  return 0;
+}
+
+ostream& SimpleLine::Print(ostream& o)const{
+  o << "SimpleLine def =" << isdefined 
+    << " size = " << Size() << endl;
+  return o; 
+}
+
+ostream& operator<<(ostream& o, const SimpleLine& cl){
+   cl.Print(o);
+   return o;
+}
+
+Word
+ InSimpleLine( const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct ){
+
+ correct = true;
+ if(nl->AtomType(instance)!=NoAtom){
+    correct=false;
+    return SetWord(Address(0));
+ }
+ HalfSegment* hs;
+ SimpleLine* line= new SimpleLine(10);
+ int edgeno = 0;
+ ListExpr rest = instance;
+ line->StartBulkLoad();
+ while(!nl->IsEmpty(rest)){
+   ListExpr segment = nl->First(rest);
+   if(!nl->HasLength(segment,4)){
+      correct=false;
+      delete line;
+      return SetWord(Address(0));
+   }
+   ListExpr halfSegment = nl->TwoElemList(
+                                 nl->BoolAtom(true),
+                                 nl->TwoElemList(
+                                    nl->TwoElemList(nl->First(segment),
+                                                    nl->Second(segment)),
+                                    nl->TwoElemList(nl->Third(segment),
+                                                    nl->Fourth(segment))));
+   hs = static_cast<HalfSegment*>(
+           InHalfSegment( nl->TheEmptyList(), halfSegment, 
+                          0, errorInfo, correct ).addr);
+   if(!correct){
+      delete hs;
+      return SetWord(Address(0));
+   }
+   hs->attr.edgeno = edgeno++;
+   *line += *hs;
+   hs->SetLeftDomPoint( !hs->IsLeftDomPoint() );
+   *line += *hs;
+   delete hs;
+   rest = nl->Rest(rest);
+ }
+ if(!line->EndBulkLoad()){
+   delete line;
+   return SetWord(Address(0));
+ }else{
+   return SetWord(line);
+ }
+}
+
+
+ ListExpr OutSimpleLine( ListExpr typeInfo, Word value ) {
+   ListExpr result, last;
+   const HalfSegment *hs;
+   ListExpr halfseg, halfpoints, flatseg;
+   SimpleLine* l = static_cast<SimpleLine*>(value.addr);
+ 
+   if( l->IsEmpty() ){
+     return nl->TheEmptyList();
+   }
+
+   result = nl->TheEmptyList();
+   last = result;
+   bool first = true;
+ 
+   for( int i = 0; i < l->Size(); i++ ) {
+      l->Get( i, hs );
+      if( hs->IsLeftDomPoint() ){
+        halfseg = OutHalfSegment( nl->TheEmptyList(), SetWord( (void*)hs ) );
+        halfpoints = nl->Second( halfseg );
+        flatseg = nl->FourElemList(
+                    nl->First( nl->First( halfpoints ) ),
+                    nl->Second( nl->First( halfpoints ) ),
+                    nl->First( nl->Second( halfpoints ) ),
+                    nl->Second( nl->Second( halfpoints ) ) );
+        if( first == true ) {
+          result = nl->OneElemList( flatseg );
+          last = result;
+          first = false;
+        } else {
+          last = nl->Append( last, flatseg );
+        }
+      }
+   }
+   return result;
+}
+
+ Word CreateSimpleLine( const ListExpr typeInfo ) {
+   return SetWord( new SimpleLine( 0 ) );
+ }
+
+void DeleteSimpleLine( const ListExpr typeInfo, Word& w ) {
+  SimpleLine *l = static_cast<SimpleLine*>(w.addr);
+  l->Destroy();
+  l->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+
+void CloseSimpleLine( const ListExpr typeInfo, Word& w ) {
+ (static_cast<SimpleLine*>(w.addr))->DeleteIfAllowed();
+ w.addr = 0;
+}
+
+Word CloneSimpleLine( const ListExpr typeInfo, const Word& w ) {
+  return SetWord( new SimpleLine( *((SimpleLine *)w.addr) ) );
+}
+
+int SizeOfSimpleLine() {
+   return sizeof(SimpleLine);
+}
+
+ ListExpr SimpleLineProperty() {
+   return nl->TwoElemList(
+            nl->FourElemList(
+              nl->StringAtom("Signature"),
+              nl->StringAtom("Example Type List"),
+              nl->StringAtom("List Rep"),
+              nl->StringAtom("Example List")),
+            nl->FourElemList(
+              nl->StringAtom("-> DATA"),
+              nl->StringAtom("line"),
+              nl->StringAtom("(<segment>*) where segment is "
+                             "(<x1><y1><x2><y2>)"),
+              nl->StringAtom("( (1 1 2 2)(2 2 1 4) )")));
+}
+
+bool CheckSimpleLine( ListExpr type, ListExpr& errorInfo ){
+   return nl->IsEqual( type, "sline" );
+}
+
+void* CastSimpleLine(void* addr) {
+  return SimpleLine::Cast(addr);;
+}
+
+TypeConstructor sline(
+     "sline",                         //name
+     SimpleLineProperty,                   //describing signature
+     OutSimpleLine,  InSimpleLine,         //Out and In functions
+     0,              0,              //SaveTo and RestoreFrom List functions
+     CreateSimpleLine, DeleteSimpleLine,     //object creation and deletion
+     OpenAttribute<SimpleLine>,
+     SaveAttribute<SimpleLine>,       // object open and save
+     CloseSimpleLine,    CloneSimpleLine,      //object close and clone
+     CastSimpleLine,                       //cast function
+     SizeOfSimpleLine,                     //sizeof function
+     CheckSimpleLine );
+
 
 /*
 8 Type Constructor ~region~
@@ -11682,6 +12514,31 @@ SpatialTypeMapBool( ListExpr args )
 }
 
 
+ListExpr SpatialTypeMapCompare(ListExpr args){
+   string err = " st x st expected, with"
+                " st in {point, points, line, region, sline)";
+   if(!nl->HasLength(args,2)){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(!nl->Equal(arg1,arg2)){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+   }
+   SpatialType st = SpatialTypeOfSymbol(arg1);
+   if( st ==  stpoint ||
+       st == stpoints ||
+       st == stline   ||
+       st == stregion ||
+       st == stsline){
+     return nl->SymbolAtom("bool");
+   }  
+   ErrorReporter::ReportError(err);
+   return nl->TypeError();
+}
+
 /*
 10.1.2 Type mapping function GeoGeoMapBool
 
@@ -11923,6 +12780,8 @@ SpatialTypeMapBool1( ListExpr args )
     if ( SpatialTypeOfSymbol( arg1 ) == stline )
       return (nl->SymbolAtom( "bool" ));
     if ( SpatialTypeOfSymbol( arg1 ) == stregion )
+      return (nl->SymbolAtom( "bool" ));
+    if ( SpatialTypeOfSymbol( arg1 ) == stsline )
       return (nl->SymbolAtom( "bool" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -12179,64 +13038,51 @@ SpatialDistanceMap( ListExpr args )
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
 
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "real" ));
+    SpatialType t1 = SpatialTypeOfSymbol(arg1);
+    SpatialType t2 = SpatialTypeOfSymbol(arg2);
+    ListExpr erg = nl->SymbolAtom("real");
 
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stpoint )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stpoints )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-         SpatialTypeOfSymbol( arg2 ) == stline )
-      return (nl->SymbolAtom( "real" ));
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-         SpatialTypeOfSymbol( arg2 ) == stregion )
-      return (nl->SymbolAtom( "real" ));
+    if ( (t1 == stpoint) && (t2 == stpoint) ){
+      return erg;
+    }else if ( (t1  == stpoint) && (t2 == stpoints) ){
+      return erg;
+    }else if ( (t1 == stpoints) && (t2 == stpoint )) {
+      return erg;
+    } else if ( (t1 == stpoint) && (t2 == stline ) ){
+      return erg;
+    } else if( (t1 == stline) && ( t2 ==  stpoint )){
+      return erg;
+    } else if( (t1  == stpoint) && (t2 == stregion )) {
+      return erg;
+    } else if ( (t1  == stregion) && ( t2 == stpoint )){
+      return erg;
+    } else if ( ( t1 == stpoints) && ( t2 == stpoints )){
+      return erg;
+    } else if ( (t1 == stpoints) && (t2 == stline )){
+      return erg;
+    } else  if ( ( t1 == stline )&&( t2  == stpoints )){
+      return erg;
+    } else if ( (t1 == stpoints) && ( t2  == stregion )){
+      return erg;
+    } else if ( (t1  == stregion) && (t2 == stpoints )){
+      return erg;
+    } else if ( (t1 == stline) && (t2 == stline )){
+      return erg;
+    } else if ( ( t1 == stregion) && ( t2 == stregion )){
+      return erg;
+    } else if ( (t1 == stsline) && (t2 == stpoint)){
+      return erg;
+    } else if( ( t1 == stpoint) && (t2 == stsline)){
+      return erg;
+    } else if(( t1 == stsline) && ( t2 == stpoints)){
+      return erg;
+    } else if((t1==stpoints) && (t2==stsline)){
+      return erg;
+    } else if((t1==stsline) && (t2==stsline)){
+      return erg;
+    }
   }
-
-  return (nl->SymbolAtom( "typeerror" ));
+  return nl->TypeError();
 }
 
 /*
@@ -12305,7 +13151,8 @@ SpatialNoSegmentsMap( ListExpr args )
     arg1 = nl->First( args );
 
     if ((SpatialTypeOfSymbol( arg1 ) == stline)||
-        (SpatialTypeOfSymbol( arg1 ) == stregion))
+        (SpatialTypeOfSymbol( arg1 ) == stregion)||
+        (SpatialTypeOfSymbol(arg1) == stsline))
         return (nl->SymbolAtom( "int" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -12326,9 +13173,10 @@ SpatialSizeMap( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-
-    if (SpatialTypeOfSymbol( arg1 ) == stline)
+    SpatialType st = SpatialTypeOfSymbol(arg1);
+    if(st==stregion || st==stline || st==stsline){
       return (nl->SymbolAtom( "real" ));
+    }
   }
 
   return (nl->SymbolAtom( "typeerror" ));
@@ -12479,7 +13327,8 @@ SpatialBBoxMap( ListExpr args )
     if ( SpatialTypeOfSymbol( arg1 ) == stregion ||
          SpatialTypeOfSymbol( arg1 ) == stpoint ||
          SpatialTypeOfSymbol( arg1 ) == stline ||
-         SpatialTypeOfSymbol( arg1 ) == stpoints )
+         SpatialTypeOfSymbol( arg1 ) == stpoints ||
+         SpatialTypeOfSymbol( arg1 ) == stsline )
       return (nl->SymbolAtom( "rect" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -12688,7 +13537,7 @@ SpatialAtPointMap( ListExpr args )
     arg2 = nl->Second( args );
     arg3 = nl->Third( args );
 
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
+    if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
          SpatialTypeOfSymbol( arg2 ) == stpoint &&
          nl->IsEqual( arg3, "bool" ) )
       return (nl->SymbolAtom( "real" ));
@@ -12713,7 +13562,7 @@ SpatialAtPositionMap( ListExpr args )
     arg2 = nl->Second( args );
     arg3 = nl->Third( args );
 
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
+    if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
          nl->IsEqual( arg2, "real" ) &&
          nl->IsEqual( arg3, "bool" ) )
       return (nl->SymbolAtom( "point" ));
@@ -12740,7 +13589,7 @@ SpatialSubLineMap( ListExpr args )
     arg3 = nl->Third( args );
     arg4 = nl->Fourth( args );
 
-    if ( SpatialTypeOfSymbol( arg1 ) == stline &&
+    if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
          nl->IsEqual( arg2, "real" ) &&
          nl->IsEqual( arg3, "real" ) &&
          nl->IsEqual( arg4, "bool" ) )
@@ -13149,6 +13998,67 @@ ListExpr CommonBorder2TypeMap(ListExpr args){
   return nl->TypeError();
 }
 
+/*
+~toLineTypeMap~
+
+Signature is :  sline [->] line
+
+*/
+
+ListExpr toLineTypeMap(ListExpr args){
+  const string err = "sline expected";
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();   
+  }
+  if(nl->IsEqual(nl->First(args),"sline")){
+    return nl->SymbolAtom("line");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();   
+}
+
+
+/*
+~fromLineTypeMap~
+
+Signature is :  line [->] sline
+
+*/
+
+ListExpr fromLineTypeMap(ListExpr args){
+  const string err = "line expected";
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();   
+  }
+  if(nl->IsEqual(nl->First(args),"line")){
+    return nl->SymbolAtom("sline");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();   
+}
+
+/*
+~isCycleTypeMap~
+
+Signature is :  sline [->] bool
+
+*/
+
+ListExpr isCycleTypeMap(ListExpr args){
+  const string err = "sline expected";
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();   
+  }
+  if(nl->IsEqual(nl->First(args),"sline")){
+    return nl->SymbolAtom("bool");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();   
+}
+
 
 /*
 10.3 Selection functions
@@ -13184,6 +14094,10 @@ SpatialSelectIsEmpty( ListExpr args )
   if ( SpatialTypeOfSymbol( arg1 ) == stregion )
     return 3;
 
+  if(nl->IsEqual(arg1,"sline")){
+    return 4;
+  } 
+
   return -1; // This point should never be reached
 }
 
@@ -13214,6 +14128,10 @@ SpatialSelectCompare( ListExpr args )
   if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
        SpatialTypeOfSymbol( arg2 ) == stregion )
     return 3;
+
+  if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
+       SpatialTypeOfSymbol( arg2 ) == stsline )
+    return 4;
 
   return -1; // This point should never be reached
 }
@@ -13579,61 +14497,46 @@ SpatialSelectDistance( ListExpr args )
   ListExpr arg1 = nl->First( args );
   ListExpr arg2 = nl->Second( args );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 0;
+  SpatialType st1 = SpatialTypeOfSymbol( arg1 );
+  SpatialType st2 = SpatialTypeOfSymbol( arg2 );
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 1;
+  if ( st1 == stpoint && st2 == stpoint ) return 0;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 2;
+  if ( st1  == stpoint && st2 == stpoints ) return 1;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoint &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
-    return 3;
+  if ( st1 == stpoint && st2 == stline ) return 2;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 4;
+  if ( st1 == stpoint && st2 == stregion ) return 3;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 5;
+  if ( st1 == stpoints && st2 == stpoint ) return 4;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 6;
+  if ( st1 == stpoints && st2 == stpoints ) return 5;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stpoints &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
-    return 7;
+  if ( st1 == stpoints && st2 == stline ) return 6;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 8;
+  if ( st1 == stpoints && st2 == stregion ) return 7;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 9;
+  if ( st1 == stline && st2 == stpoint ) return 8;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stline &&
-       SpatialTypeOfSymbol( arg2 ) == stline )
-    return 10;
+  if ( st1 == stline && st2 == stpoints ) return 9;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoint )
-    return 11;
+  if ( st1 == stline && st2 == stline ) return 10;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stpoints )
-    return 12;
+  if ( st1 == stregion && st2 == stpoint ) return 11;
 
-  if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
-       SpatialTypeOfSymbol( arg2 ) == stregion )
-    return 13;
+  if ( st1 == stregion && st2 == stpoints ) return 12;
+
+  if ( st1 == stregion && st2 == stregion ) return 13;
+
+  if( st1 == stsline && st2 == stpoint ) return 14;
+ 
+  if( st1 == stpoint && st2 == stsline) return 15;
+  
+  if( st1 == stsline && st2 == stpoints) return 16;
+
+  if( st1 == stpoints && st2 == stsline ) return 17;
+
+  if( st1 == stsline && st2 == stsline) return  18;
 
   return -1; // This point should never be reached
 }
@@ -13677,6 +14580,9 @@ SpatialSelectNoSegments( ListExpr args )
 
   if (SpatialTypeOfSymbol( arg1 ) == stregion)
     return 1;
+  
+  if (SpatialTypeOfSymbol( arg1 ) == stsline)
+    return 2;
 
   return -1; // This point should never be reached
 }
@@ -13704,6 +14610,9 @@ SpatialSelectBBox( ListExpr args )
   if (SpatialTypeOfSymbol( arg1 ) == stregion)
     return 3;
 
+  if (SpatialTypeOfSymbol( arg1 ) == stsline)
+    return 4;
+  
   return -1; // This point should never be reached
 }
 
@@ -13869,6 +14778,21 @@ static int SetOpSelect(ListExpr args){
    return -1;
 }
 
+static int SpatialSelectSize(ListExpr args){
+   SpatialType st = SpatialTypeOfSymbol(nl->First(args));
+   if(st==stline){
+     return 0;
+   }
+   if(st==stregion){
+     return 1;
+   }
+   if(st==stsline){
+     return 2;
+   }
+   return -1; 
+}
+
+
 
 /*
 10.4 Value mapping functions
@@ -13882,149 +14806,57 @@ parameter types.
 10.4.1 Value mapping functions of operator ~isempty~
 
 */
-int
-SpatialIsEmpty_p( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
+template<class T>
+int SpatialIsEmpty(Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
   result = qp->ResultStorage( s );
-  if( ((Point*)args[0].addr)->IsDefined() )
-    ((CcBool*)result.addr)->Set( true, false );
-  else
-    ((CcBool *)result.addr)->Set( true, true );
+  (static_cast<CcBool*>(result.addr))->Set(true,
+              static_cast<T*>(args[0].addr)->IsEmpty());
   return 0;
 }
 
-int
-SpatialIsEmpty_ps( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((Points*)args[0].addr)->IsEmpty() )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
-
-int
-SpatialIsEmpty_l( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  if( ((Line*)args[0].addr)->IsEmpty() )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
-
-int
-SpatialIsEmpty_r( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  if( ((Region*)args[0].addr)->IsEmpty() )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
 
 /*
 10.4.2 Value mapping functions of operator ~$=$~
 
 */
+template<class T>
 int
-SpatialEqual_pp( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
+SpatialEqual( Word* args, Word& result, int message,
+              Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if ( ((Point*)args[0].addr)->IsDefined() &&
-       ((Point*)args[1].addr)->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true, *((Point*)args[0].addr) == *((Point*)args[1].addr) );
-  else
-    ((CcBool *)result.addr)->Set( false, false );
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T* a1 = static_cast<T*>(args[0].addr);
+  T* a2 = static_cast<T*>(args[1].addr);
+  if(!a1->IsDefined() || !a2->IsDefined()){
+     res->Set(false,false);
+     return 0;
+  }
+  bool e = (*a1) == (*a2);
+  res->Set(true,e); 
   return 0;
 }
 
-int
-SpatialEqual_psps( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true, *((Points*)args[0].addr) == *((Points*)args[1].addr) );
-  return 0;
-}
-
-int
-SpatialEqual_ll( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true, *((Line*)args[0].addr) == *((Line*)args[1].addr) );
-  return 0;
-}
-
-int
-SpatialEqual_rr( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true, *((Region*)args[0].addr) == *((Region*)args[1].addr) );
-  return 0;
-}
 
 /*
 10.4.3 Value mapping functions of operator ~$\neq$~
 
 */
+template<class T>
 int
-SpatialNotEqual_pp( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if ( ((Point*)args[0].addr)->IsDefined() &&
-       ((Point*)args[1].addr)->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true, *((Point*)args[0].addr) != *((Point*)args[1].addr) );
-  else
-    ((CcBool *)result.addr)->Set( false, false );
-  return 0;
-}
-
-int
-SpatialNotEqual_psps( Word* args, Word& result, int message,
+SpatialNotEqual( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true, *((Points*)args[0].addr) != *((Points*)args[1].addr) );
-  return 0;
-}
-
-int
-SpatialNotEqual_ll( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true, *((Line*)args[0].addr) != *((Line*)args[1].addr));
-  return 0;
-}
-
-int
-SpatialNotEqual_rr( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true, *((Region*)args[0].addr) != *((Region*)args[1].addr));
+  T* a1 = static_cast<T*>(args[0].addr);
+  T* a2 = static_cast<T*>(args[1].addr);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  if(!a1->IsDefined() || !a2->IsDefined()){
+     res->Set(false,false);
+     return 0;
+  }
+  res->Set(true, (*a1) != (*a2));
   return 0;
 }
 
@@ -14779,240 +15611,31 @@ SpatialSingle_ps( Word* args, Word& result, int message,
 10.4.20 Value mapping functions of operator ~distance~
 
 */
-int
-SpatialDistance_pp( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Point *p1 = ((Point*)args[0].addr),
-        *p2 = ((Point*)args[1].addr);
-
-  if( p1->IsDefined() && p2->IsDefined() )
-    ((CcReal *)result.addr)->Set( true, p1->Distance( *p2 ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-  return 0;
+template<class A, class B,bool symm>
+int SpatialDistance( Word* args, Word& result, int message,
+                     Word& local, Supplier s ){
+  
+   result = qp->ResultStorage( s );
+   CcReal* res = static_cast<CcReal*>(result.addr);
+   A* arg1=0; 
+   B* arg2=0; 
+   if(symm){
+     arg1 = static_cast<A*>(args[1].addr);  
+     arg2 = static_cast<B*>(args[0].addr);
+   } else {
+     arg1 = static_cast<A*>(args[0].addr);  
+     arg2 = static_cast<B*>(args[1].addr);
+   }
+   if(!arg1->IsDefined() || !arg2->IsDefined() ||
+      arg1->IsEmpty() || arg2->IsEmpty()){
+      res->SetDefined(false);
+   } else {
+     double dist = arg1->Distance(*arg2);
+     res->Set(true,dist);
+   }
+   return 0;
 }
 
-int
-SpatialDistance_pps( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Point *p = ((Point*)args[0].addr);
-  Points *ps = ((Points*)args[1].addr);
-
-  if( p->IsDefined() && !ps->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, ps->Distance( *p ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialDistance_psp( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Point *p = ((Point*)args[1].addr);
-  Points *ps = ((Points*)args[0].addr);
-
-  if( p->IsDefined() && !ps->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, ps->Distance( *p ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialDistance_pl( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Point *p=((Point*)args[0].addr);
-  Line *cl=((Line*)args[1].addr);
-
-  if( p->IsDefined() && !cl->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, cl->Distance( *p ) );
-  else
-    ((CcReal *)result.addr)->Set( false, 0 );
-
-  return 0;
-}
-
-int
-SpatialDistance_lp( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Point *p=((Point*)args[1].addr);
-  Line *cl=((Line*)args[0].addr);
-
-  if( p->IsDefined() && !cl->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, cl->Distance( *p ) );
-  else
-    ((CcReal *)result.addr)->Set( false, 0 );
-
-  return 0;
-}
-
-int
-SpatialDistance_pr( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Point *p=((Point*)args[0].addr);
-  Region *r=((Region*)args[1].addr);
-
-  if( p->IsDefined() && !r->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, r->Distance( *p ) );
-  else
-    ((CcReal *)result.addr)->Set( false, 0 );
-
-  return 0;
-}
-
-int
-SpatialDistance_rp( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Point *p=((Point*)args[1].addr);
-  Region *r=((Region*)args[0].addr);
-
-  if( p->IsDefined() && !r->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, r->Distance( *p ) );
-  else
-    ((CcReal *)result.addr)->Set( false, 0 );
-
-  return 0;
-}
-
-int
-SpatialDistance_psps( Word* args, Word& result, int message,
-                      Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Points *ps1 = ((Points*)args[0].addr),
-         *ps2 = ((Points*)args[1].addr);
-
-  if( !ps1->IsEmpty() && !ps2->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, ps1->Distance( *ps2 ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-
-  return 0;
-}
-
-int
-SpatialDistance_psl( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Points *ps=((Points*)args[0].addr);
-  Line *cl=((Line*)args[1].addr);
-
-  if( !ps->IsEmpty() && !cl->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, cl->Distance( *ps ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-
-  return 0;
-}
-
-int
-SpatialDistance_lps( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Points *ps=((Points*)args[1].addr);
-  Line *cl=((Line*)args[0].addr);
-
-  if( !ps->IsEmpty() && !cl->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, cl->Distance( *ps ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-
-  return 0;
-}
-
-int
-SpatialDistance_psr( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Points *ps=((Points*)args[0].addr);
-  Region *r=((Region*)args[1].addr);
-
-  if( !ps->IsEmpty() && !r->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, r->Distance( *ps ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-
-  return 0;
-}
-
-int
-SpatialDistance_rps( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Points *ps=((Points*)args[1].addr);
-  Region *r=((Region*)args[0].addr);
-
-  if( !ps->IsEmpty() && !r->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, r->Distance( *ps ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-
-  return 0;
-}
-
-int
-SpatialDistance_ll( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Line *cl1=((Line*)args[0].addr),
-       *cl2=((Line*)args[1].addr);
-
-  if( !cl1->IsEmpty() && !cl2->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, cl1->Distance( *cl2 ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-
-  return 0;
-}
-
-int
-SpatialDistance_rr( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-
-  Region *r1=((Region*)args[0].addr),
-         *r2=((Region*)args[1].addr);
-
-  if( !r1->IsEmpty() && !r2->IsEmpty() )
-    ((CcReal *)result.addr)->Set( true, r1->Distance( *r2 ) );
-  else
-    ((CcReal *)result.addr)->SetDefined( false );
-
-  return 0;
-}
 
 /*
 10.4.21 Value mapping functions of operator ~direction~
@@ -15071,70 +15694,35 @@ SpatialNoComponents_r( Word* args, Word& result, int message,
 10.4.22 Value mapping functions of operator ~no\_segments~
 
 */
+template<class T>
 int
-SpatialNoSegments_l( Word* args, Word& result, int message,
+SpatialNoSegments( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Line *cl=((Line*)args[0].addr);
+  T *cl=((T*)args[0].addr);
   assert( cl->Size() % 2 == 0 );
   ((CcInt *)result.addr)->Set( true, cl->Size() / 2 );
   return 0;
 }
 
-int
-SpatialNoSegments_r( Word* args, Word& result, int message,
-                     Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Region *cr=((Region*)args[0].addr);
-  assert( cr->Size() % 2 == 0 );
-  ((CcInt *)result.addr)->Set( true, cr->Size() / 2 );
-  return 0;
-}
 
 /*
 10.4.22 Value mapping functions of operator ~bbox~
 
 */
-int
-SpatialBBox_p( Word* args, Word& result, int message,
-               Word& local, Supplier s )
-{
+template<class T>
+int SpatialBBox(Word* args, Word& result, int message,
+            Word& local, Supplier s ){
+
   result = qp->ResultStorage( s );
-
-  if( ((Point*)args[0].addr)->IsDefined() )
-    *((Rectangle<2>*)result.addr) = ((Point*)args[0].addr)->BoundingBox();
-  else
-    ((Rectangle<2>*)result.addr)->SetDefined( false );
-
-  return 0;
-}
-
-int
-SpatialBBox_ps( Word* args, Word& result, int message,
-                Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  *((Rectangle<2>*)result.addr) = ((Points*)args[0].addr)->BoundingBox();
-  return 0;
-}
-
-int
-SpatialBBox_l( Word* args, Word& result, int message,
-               Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  *((Rectangle<2>*)result.addr) = ((Line*)args[0].addr)->BoundingBox();
-  return 0;
-}
-
-int
-SpatialBBox_r( Word* args, Word& result, int message,
-               Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  *((Rectangle<2>*)result.addr) = ((Region*)args[0].addr)->BoundingBox();
+  Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
+  T* arg = static_cast<T*>(args[0].addr);
+  if(!arg->IsDefined()){
+    box->SetDefined(false);
+  } else {
+    (*box) = arg->BoundingBox();
+  }
   return 0;
 }
 
@@ -15143,12 +15731,19 @@ SpatialBBox_r( Word* args, Word& result, int message,
 10.4.23 Value mapping functions of operator ~size~
 
 */
+template<class T>
 int
-SpatialSize_l( Word* args, Word& result, int message,
+SpatialSize( Word* args, Word& result, int message,
                Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcReal *)result.addr)->Set( true, ((Line*)args[0].addr)->Length() );
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  T* a = (static_cast<T*>(args[0].addr));
+  if(!a->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    res->Set(true,a->SpatialSize());   
+  }
   return 0;
 }
 
@@ -16303,7 +16898,7 @@ SpatialAtPoint( Word* args, Word& result, int message,
                 Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Line *l = (Line*)args[0].addr;
+  SimpleLine *l = (SimpleLine*)args[0].addr;
   Point *p = (Point*)args[1].addr;
   CcBool *startsSmaller = (CcBool*)args[2].addr;
   double res;
@@ -16326,7 +16921,7 @@ SpatialAtPosition( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Line *l = (Line*)args[0].addr;
+  SimpleLine *l = (SimpleLine*)args[0].addr;
   CcReal *pos = (CcReal*)args[1].addr;
   CcBool *startsSmaller = (CcBool*)args[2].addr;
   Point *p = (Point*)result.addr;
@@ -16342,7 +16937,7 @@ SpatialAtPosition( Word* args, Word& result, int message,
 }
 
 /*
-10.4.23 Value mapping functions of operator ~atposition~
+10.4.23 Value mapping functions of operator ~subline~
 
 */
 int
@@ -16350,11 +16945,11 @@ SpatialSubLine( Word* args, Word& result, int message,
                 Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Line *l = (Line*)args[0].addr;
+  SimpleLine *l = (SimpleLine*)args[0].addr;
   CcReal *pos1 = (CcReal*)args[1].addr,
          *pos2 = (CcReal*)args[2].addr;
   CcBool *startsSmaller = (CcBool*)args[3].addr;
-  Line *rLine = (Line*)result.addr;
+  SimpleLine *rLine = (SimpleLine*)result.addr;
 
   rLine->Clear();
 
@@ -16918,6 +17513,47 @@ int CommonBorder2VM(Word* args, Word& result, int message,
    return 0;
 }
 
+/*
+Value Mapping for ~toLine~
+
+*/
+int toLineVM(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   SimpleLine* sline = static_cast<SimpleLine*>(args[0].addr);
+   Line* res = static_cast<Line*>(result.addr);
+   sline->toLine(*res);
+   return 0;
+}
+
+
+/*
+Value Mapping for ~fromLine~
+
+*/
+int fromLineVM(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Line* line = static_cast<Line*>(args[0].addr);
+   SimpleLine* res = static_cast<SimpleLine*>(result.addr);
+   res->fromLine(*line);
+   return 0;
+}
+
+
+/*
+Value Mapping for ~isCycle~
+
+*/
+int isCycleVM(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   SimpleLine* sline = static_cast<SimpleLine*>(args[0].addr);
+   CcBool* res = static_cast<CcBool*>(result.addr);
+   res->Set(true,sline->IsCycle());
+   return 0;
+}
+
 
 /*
 10.5 Definition of operators
@@ -16933,22 +17569,25 @@ defined, so it easier to make them overloaded.
 
 */
 ValueMapping spatialisemptymap[] = {
-  SpatialIsEmpty_p,
-  SpatialIsEmpty_ps,
-  SpatialIsEmpty_l,
-  SpatialIsEmpty_r };
+  SpatialIsEmpty<Point>,
+  SpatialIsEmpty<Points>,
+  SpatialIsEmpty<Line>,
+  SpatialIsEmpty<Region>,
+  SpatialIsEmpty<SimpleLine> };
 
 ValueMapping spatialequalmap[] = {
-  SpatialEqual_pp,
-  SpatialEqual_psps,
-  SpatialEqual_ll,
-  SpatialEqual_rr };
+  SpatialEqual<Point>,
+  SpatialEqual<Points>,
+  SpatialEqual<Line>,
+  SpatialEqual<Region>,
+  SpatialEqual<SimpleLine>};
 
 ValueMapping spatialnotequalmap[] = {
-  SpatialNotEqual_pp,
-  SpatialNotEqual_psps,
-  SpatialNotEqual_ll,
-  SpatialNotEqual_rr };
+  SpatialNotEqual<Point>,
+  SpatialNotEqual<Points>,
+  SpatialNotEqual<Line>,
+  SpatialNotEqual<Region>,
+  SpatialNotEqual<SimpleLine> };
 
 ValueMapping spatialintersectsmap[] = {
   SpatialIntersects_psps,
@@ -17015,20 +17654,25 @@ ValueMapping spatialunionmap[] = {
   SpatialUnion_psps };
 
 ValueMapping spatialdistancemap[] = {
-  SpatialDistance_pp,
-  SpatialDistance_pps,
-  SpatialDistance_pl,
-  SpatialDistance_pr,
-  SpatialDistance_psp,
-  SpatialDistance_psps,
-  SpatialDistance_psl,
-  SpatialDistance_psr,
-  SpatialDistance_lp,
-  SpatialDistance_lps,
-  SpatialDistance_ll,
-  SpatialDistance_rp,
-  SpatialDistance_rps,
-  SpatialDistance_rr };
+  SpatialDistance<Point,Point,false>,
+  SpatialDistance<Points,Point,true>,
+  SpatialDistance<Line,Point,true>,
+  SpatialDistance<Region,Point,true>,
+  SpatialDistance<Points,Point,false>,
+  SpatialDistance<Points,Points,false>,
+  SpatialDistance<Line,Points,true>,
+  SpatialDistance<Region,Points,true>,
+  SpatialDistance<Line,Point,false>,
+  SpatialDistance<Line,Points,false>,
+  SpatialDistance<Line,Line,false>,
+  SpatialDistance<Region,Point,false>,
+  SpatialDistance<Region,Points,false>,
+  SpatialDistance<Region,Region,false>,
+  SpatialDistance<SimpleLine,Point,false>,
+  SpatialDistance<SimpleLine,Point, true>,
+  SpatialDistance<SimpleLine, Points, false>,
+  SpatialDistance<SimpleLine, Points, true>,
+  SpatialDistance<SimpleLine, SimpleLine, false> };
 
 ValueMapping spatialnocomponentsmap[] = {
   SpatialNoComponents_ps,
@@ -17036,14 +17680,16 @@ ValueMapping spatialnocomponentsmap[] = {
   SpatialNoComponents_r };
 
 ValueMapping spatialnosegmentsmap[] = {
-  SpatialNoSegments_l,
-  SpatialNoSegments_r };
+  SpatialNoSegments<Line>,
+  SpatialNoSegments<Region>,
+  SpatialNoSegments<SimpleLine> };
 
 ValueMapping spatialbboxmap[] = {
-  SpatialBBox_p,
-  SpatialBBox_ps,
-  SpatialBBox_l,
-  SpatialBBox_r };
+  SpatialBBox<Point>,
+  SpatialBBox<Points>,
+  SpatialBBox<Line>,
+  SpatialBBox<Region>,
+  SpatialBBox<SimpleLine> };
 
 ValueMapping spatialtouchpointsmap[] = {
   SpatialTouchPoints_lr,
@@ -17097,6 +17743,14 @@ ValueMapping spatialgetymap[] = { SpatialGetY_p };
 
 ValueMapping spatialsimplifymap[] = { SpatialSimplify_LReal,
                                       SpatialSimplify_LRealPs };
+
+ValueMapping spatialsizemap[] = {
+      SpatialSize<Line>,
+      SpatialSize<Region>,
+      SpatialSize<SimpleLine>
+  };
+
+
 ValueMapping Union2Map[] = {
        SetOpVM<Line,Line,Line,avlseg::union_op>,
        SetOpVM<Region,Region,Region,avlseg::union_op>,
@@ -17118,6 +17772,9 @@ ValueMapping Difference2Map[] = {
        SetOpVM<Line,Region,Line,avlseg::difference_op>
       };
 
+
+
+
 /*
 10.5.2 Definition of specification strings
 
@@ -17125,7 +17782,8 @@ ValueMapping Difference2Map[] = {
 const string SpatialSpecIsEmpty  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
      "( <text>point -> bool, points -> bool, line -> bool,"
-       "region -> bool</text---> <text>isempty ( _ )</text--->"
+       "region -> bool, sline -> bool</text---> "
+       "<text>isempty ( _ )</text--->"
        "<text>Returns whether the value is defined or not.</text--->"
        "<text>query isempty ( line1 )</text--->"
        ") )";
@@ -17133,7 +17791,8 @@ const string SpatialSpecIsEmpty  =
 const string SpatialSpecEqual  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(point point) -> bool, (points points) -> bool, "
-  "(line line) -> bool, (region region) -> bool</text--->"
+  "(line line) -> bool, (region region) -> bool,"
+  " (sline sline) -> bool </text--->"
   "<text>_ = _</text--->"
   "<text>Equal.</text--->"
   "<text>query point1 = point2</text--->"
@@ -17142,7 +17801,8 @@ const string SpatialSpecEqual  =
 const string SpatialSpecNotEqual  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(point point) -> bool, (points points) -> bool, "
-  "(line line) -> bool, (region region) -> bool</text--->"
+  "(line line) -> bool, (region region) -> bool,"
+  "(sline sline) -> bool</text--->"
   "<text>_ # _</text--->"
   "<text>Not equal.</text--->"
   "<text>query point1 # point2</text--->"
@@ -17243,7 +17903,8 @@ const string SpatialSpecSingle  =
 
 const string SpatialSpecDistance  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line x point||points||line) -> real</text--->"
+  "( <text>(point||points||line||sline x "
+  "point||points||line||sline) -> real</text--->"
   "<text>distance(_, _)</text--->"
   "<text>compute distance between two spatial objects.</text--->"
   "<text>query distance(point, line)</text--->"
@@ -17268,7 +17929,7 @@ const string SpatialSpecNocomponents  =
 
 const string SpatialSpecNoSegments  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(region) -> int</text--->"
+  "( <text>{line, region, sline} -> int</text--->"
   "<text> no_segments( _ )</text--->"
   "<text>return the number of half segments of a region.</text--->"
   "<text>query no_segments(region)</text--->"
@@ -17276,7 +17937,7 @@ const string SpatialSpecNoSegments  =
 
 const string SpatialSpecBbox  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||region) -> rect</text--->"
+  "( <text>(point||points||line||region||sline) -> rect</text--->"
   "<text> bbox( _ )</text--->"
   "<text>return the bounding box of a spatial type.</text--->"
   "<text>query bbox(region)</text--->"
@@ -17284,7 +17945,7 @@ const string SpatialSpecBbox  =
 
 const string SpatialSpecSize  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(line) -> real</text--->"
+  "( <text>(line, region, sline) -> real</text--->"
   "<text> size( _ )</text--->"
   "<text> return the size (length, area) of a spatial object.</text--->"
   "<text> query size(line)</text--->"
@@ -17403,7 +18064,7 @@ const string SpatialSpecBoundary  =
 
 const string SpatialSpecAtPoint  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>line x point x bool -> real</text--->"
+  "( <text>sline x point x bool -> real</text--->"
   "<text>atpoint(_, _, _)</text--->"
   "<text>Returns the relative position of the point in the line."
   "The boolean flag indicates where the positions start, i.e. "
@@ -17413,7 +18074,7 @@ const string SpatialSpecAtPoint  =
 
 const string SpatialSpecAtPosition  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>line x real x bool -> point</text--->"
+  "( <text>sline x real x bool -> point</text--->"
   "<text>atposition(_, _, _)</text--->"
   "<text>Returns the point at a relative position in the line."
   "The boolean flag indicates where the positions start, i.e. "
@@ -17423,7 +18084,7 @@ const string SpatialSpecAtPosition  =
 
 const string SpatialSpecSubLine  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>line x real x real x bool -> line</text--->"
+  "( <text>sline x real x real x bool -> line</text--->"
   "<text>subline(_, _, _, _)</text--->"
   "<text>Returns the sub-line inside the two relative positions."
   "The boolean flag indicates where the positions start, i.e. "
@@ -17555,6 +18216,30 @@ const string SpatialSpecRealminize  =
      "<text>query realminize(train7sections)</text--->"
      ") )";
 
+const string SpatialSpecToLine  =
+     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+     "( <text>sline -> line </text--->"
+     "<text> toline( _ )  </text--->"
+     "<text>Converts an sline into a line</text--->"
+     "<text>query toline(fromline(trajectory(train7))</text--->"
+     ") )";
+
+const string SpatialSpecFromLine  =
+     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+     "( <text>line -> sline </text--->"
+     "<text> fromline( _ )  </text--->"
+     "<text>Converts a line into an sline</text--->"
+     "<text>query toline(fromline(trajectory(train7))</text--->"
+     ") )";
+
+const string SpatialSpecIsCycle  =
+     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+     "( <text>sline -> bool </text--->"
+     "<text> iscycle( _ )  </text--->"
+     "<text>check for cycle</text--->"
+     "<text>query iscycle(fromline(trajectory(train7))</text--->"
+     ") )";
+
 
 /*
 10.5.3 Definition of the operators
@@ -17563,7 +18248,7 @@ const string SpatialSpecRealminize  =
 Operator spatialisempty (
   "isempty",
   SpatialSpecIsEmpty,
-  4,
+  5,
   spatialisemptymap,
   SpatialSelectIsEmpty,
   SpatialTypeMapBool1 );
@@ -17571,18 +18256,18 @@ Operator spatialisempty (
 Operator spatialequal (
   "=",
   SpatialSpecEqual,
-  4,
+  5,
   spatialequalmap,
   SpatialSelectCompare,
-  SpatialTypeMapBool );
+  SpatialTypeMapCompare );
 
 Operator spatialnotequal (
   "#",
   SpatialSpecNotEqual,
-  4,
+  5,
   spatialnotequalmap,
   SpatialSelectCompare,
-  SpatialTypeMapBool );
+  SpatialTypeMapCompare );
 
 Operator spatialintersects (
   "intersects",
@@ -17670,7 +18355,7 @@ Operator spatialsingle (
 Operator spatialdistance (
   "distance",
   SpatialSpecDistance,
-  14,
+  19,
   spatialdistancemap,
   SpatialSelectDistance,
   SpatialDistanceMap );
@@ -17693,7 +18378,7 @@ Operator spatialnocomponents (
 Operator spatialnosegments (
   "no_segments",
   SpatialSpecNoSegments,
-  2,
+  3,
   spatialnosegmentsmap,
   SpatialSelectNoSegments,
   SpatialNoSegmentsMap );
@@ -17701,7 +18386,7 @@ Operator spatialnosegments (
 Operator spatialbbox (
   "bbox",
   SpatialSpecBbox,
-  4,
+  5,
   spatialbboxmap,
   SpatialSelectBBox,
   SpatialBBoxMap );
@@ -17709,8 +18394,9 @@ Operator spatialbbox (
 Operator spatialsize (
   "size",
   SpatialSpecSize,
-  SpatialSize_l,
-  Operator::SimpleSelect,
+  3,
+  spatialsizemap,
+  SpatialSelectSize,
   SpatialSizeMap );
 
 Operator spatialtouchpoints (
@@ -17957,6 +18643,26 @@ Operator commonborder2(
 );
 
 
+Operator spatialtoline (
+  "toline",
+  SpatialSpecToLine,
+  toLineVM,
+  Operator::SimpleSelect,
+  toLineTypeMap );
+
+Operator spatialfromline (
+  "fromline",
+  SpatialSpecFromLine,
+  fromLineVM,
+  Operator::SimpleSelect,
+  fromLineTypeMap );
+
+Operator spatialiscycle (
+  "iscycle",
+  SpatialSpecIsCycle,
+  isCycleVM,
+  Operator::SimpleSelect,
+  isCycleTypeMap );
 
 /*
 11 Creating the Algebra
@@ -17973,15 +18679,19 @@ class SpatialAlgebra : public Algebra
     AddTypeConstructor( &line );
     AddTypeConstructor( &region );
 
+    AddTypeConstructor( &sline);
+
     point.AssociateKind("DATA");
     points.AssociateKind("DATA");
     line.AssociateKind("DATA");
     region.AssociateKind("DATA");
+    sline.AssociateKind("DATA");
 
     point.AssociateKind("SPATIAL2D");
     points.AssociateKind("SPATIAL2D");
     line.AssociateKind("SPATIAL2D");
     region.AssociateKind("SPATIAL2D");
+    sline.AssociateKind("SPATIAL2D");
 
 
     point.AssociateKind("SHPEXPORTABLE");
@@ -18040,6 +18750,9 @@ class SpatialAlgebra : public Algebra
     AddOperator(&intersection2);
     AddOperator(&difference2);
     AddOperator(&commonborder2);
+    AddOperator(&spatialtoline);
+    AddOperator(&spatialfromline);
+    AddOperator(&spatialiscycle);
   }
   ~SpatialAlgebra() {};
 };
@@ -18074,4 +18787,4 @@ InitializeSpatialAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 
 
 
-///////////////////
+
