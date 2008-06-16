@@ -1207,3 +1207,5 @@ void PFace::AddBoundaryIntSegs(IntersectionSegment* intSeg) {
     hasIntSegs = true;
     hasBoundaryIntSegs = true;
 }
+
+
