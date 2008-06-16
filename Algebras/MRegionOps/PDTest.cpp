@@ -699,3 +699,233 @@ void PUnitPair::PrintUnitsAsVRML() {
     
     target.close();
 }
+
+pair<IntersectionSegment*, IntersectionSegment*> 
+IntersectionSegment::createBuddyPair(const Point3D& a, const Point3D& b) {
+
+    IntersectionSegment* first = new IntersectionSegment();
+    IntersectionSegment* second = new IntersectionSegment();
+
+    // The startpoint's t-coord is always lower or equal to the
+    // endpoint's t-coord.
+    // Note: We don't care for x and y!
+
+    if (a.GetT() <= b.GetT()) {
+
+        first->startXYT = second->startXYT = new Point3D(a);
+        first->endXYT = second->endXYT = new Point3D(b);
+
+    } else { // a.GetT() > b.GetT()
+
+        first->startXYT = second->startXYT = new Point3D(b);
+        first->endXYT = second->endXYT = new Point3D(a);
+    }
+
+    first->matesOfThis = new deque<IntersectionSegment*>();
+    second->matesOfBuddy = first->matesOfThis;
+    
+    second->matesOfThis = new deque<IntersectionSegment*>();
+    first->matesOfBuddy = second->matesOfThis;
+            
+    first->inserted = second->inserted = new bool(false);
+    first->hasReference = second->hasReference = new bool(true);
+
+    return pair<IntersectionSegment*, IntersectionSegment*>(first, second);
+}
+
+bool IntersectionSegment::LessByStartWEndW(IntersectionSegment* s) const {
+
+        if (NumericUtil::Lower(this->GetStartW(), s->GetStartW()))
+            return true;
+        else 
+            if (NumericUtil::Greater(this->GetStartW(), s->GetStartW()))
+                return false;
+            else // this->GetStartW() == s->GetStartW()         
+                if (NumericUtil::Lower(this->GetEndW(), s->GetEndW()))
+                    return true;
+                else 
+                    if (NumericUtil::Greater(this->GetEndW(), s->GetEndW()))
+                        return false;
+                    else // this->GetEndW() == s->GetEndW() 
+                        return this->GetStartWT().IsLeft(s->GetStartWT(), 
+                                                         s->GetEndWT());    
+}
+
+void IntersectionSegment::SetWCoords(const PFace& pFace) {
+
+    this->SetStartW(pFace.TransformToW(*this->GetStartXYT()));
+    this->SetEndW(pFace.TransformToW(*this->GetEndXYT()));
+}
+
+void IntersectionSegment::SetSideOfResultFace(const PFace& self, 
+                                              const PFace& other, 
+                                              const SetOp op) {
+
+    // First, we compute the normalized cross product of the normal vectors of 
+    // PFaces self and other:
+    Vector3D cross = self.GetNormalVector() ^ other.GetNormalVector();
+    cross.Normalize();
+    
+    // Second, we compute the normalized vector from the startpoint to
+    // the endpoint of this intersection segment:
+    Vector3D startToEnd = *GetEndXYT() - *GetStartXYT();
+    startToEnd.Normalize();
+    
+    // Third, we calculate the cosinus of the angle between cross and startToEnd
+    // Note that both vectors have unit length and the angle 
+    // must be either 0 or pi. Hence the cosinus equals 1 or -1.
+    double cos = startToEnd * cross;
+    
+    //cout << "cos = " << cos << endl;
+    assert(NumericUtil::NearlyEqual(cos, 1.0) || 
+           NumericUtil::NearlyEqual(cos, -1.0));
+    
+    // If cos equals 1, 
+    // the normal vector of other points to the right side of this segment.
+    // If cos equals -1, 
+    // the normal vector of other points to the left side of this segment.
+
+    if (op == INTERSECTION || (op == MINUS && other.IsPartOfUnitA())) {
+
+        if (cos > 0.0) // normalOfOther points to the right side of startToEnd.
+            this->SetResultFaceIsLeft();
+        else
+            // normalOfOther points to the left side of startToEnd.
+            this->SetResultFaceIsRight();
+
+    } else { // op == UNION || (op == MINUS && self.IsPartOfUnitA())
+
+        if (cos > 0.0) // normalOfOther points to the right side of startToEnd.
+            this->SetResultFaceIsRight();
+        else
+            // normalOfOther points to the left side of startToEnd.
+            this->SetResultFaceIsLeft();
+    }
+}
+
+
+void IntersectionSegment::Print() {
+    
+    
+    cout << "Start_XYT: " << GetStartXYT()->GetX() << " | "
+                          << GetStartXYT()->GetY() << " | "
+                          << GetStartXYT()->GetT() << endl;
+    
+    cout << "End_XYT: " << GetEndXYT()->GetX() << " | "
+                        << GetEndXYT()->GetY() << " | "
+                        << GetEndXYT()->GetT() << endl;
+                   
+    
+    //cout << "Start_WT: " << GetStartW() << " | " << GetStartT() << endl;
+    //cout << "End_WT: " << GetEndW() << " | " << GetEndT() << endl;
+    
+    //cout << "IsRightBoundary() == " << this->IsRightBoundary() << endl;
+    
+    //cout << "ResultFaceIsLeft: " << ResultFaceIsLeft() << endl;
+    //cout << "RelationToRightBoundary: " 
+    // << GetRelationToRightBoundaryOfPFace() << endl;
+    
+    //cout << "inserted:" << *inserted << endl;
+    //cout << "matesOfThis->size() == " << matesOfThis->size() << endl;
+    
+        
+}
+
+string IntersectionSegment::GetVRMLDesc() {
+    
+    return GetStartXYT()->GetVRMLDesc() + GetEndXYT()->GetVRMLDesc();
+}
+
+void IntersectionSegment::PrintMates() {
+    
+    //cout << "Welcome to IntersectionSegment::PrintMates()" << endl;
+    
+    //cout << "inserted:" << *inserted << endl;
+    //cout << "matesOfThis->size() == " << matesOfThis->size() << endl;
+    
+    if (matesOfThis->empty()) {
+        
+        cout << "matesOfThis is empty." << endl;
+        cout << "*********************************************" << endl;
+        return;
+    }
+    
+    deque<IntersectionSegment*> mates = *matesOfThis;
+    
+    deque<IntersectionSegment*>::iterator iter;
+    for (iter = mates.begin(); iter != mates.end(); ++iter) {
+        
+        (*iter)->Print();
+    }
+    
+}
+
+bool GeneralIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
+        const IntersectionSegment* const& s2) const {
+    
+    // We sort by (t_start, w_start, w_end, IsLeft())
+
+    // Precondition: s1->GetStartT() < s1->GetEndT() && 
+    //               s2->GetStartT() < s2->GetEndT()
+
+    if (NumericUtil::Lower(s1->GetStartT(), s2->GetStartT()))
+        return true;
+    else
+        if (NumericUtil::Greater(s1->GetStartT(), s2->GetStartT()))
+            return false;
+        else // s1->GetStartT() == s2->GetStartT()
+            if (NumericUtil::Lower(s1->GetStartW(), s2->GetStartW()))
+                return true;
+            else
+                if (NumericUtil::Greater(s1->GetStartW(), s2->GetStartW()))
+                    return false;
+                else // s1->GetStartW() == s2->GetStartW()
+                    if (NumericUtil::Lower(s1->GetEndW(), s2->GetEndW()))
+                        return true;
+                    else
+                        if (NumericUtil::Greater(s1->GetEndW(), s2->GetEndW()))
+                            return false;
+                        else  // s1->GetEndW() == s2->GetEndW()
+                            return s1->GetStartWT().IsLeft(s2->GetStartWT(), 
+                                                           s2->GetEndWT());
+}
+
+bool RightIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
+        const IntersectionSegment* const& s2) const {
+
+    assert(s1->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_STARTPOINT || 
+           s1->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_ENDPOINT);
+    
+    assert(s2->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_STARTPOINT || 
+           s2->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_ENDPOINT);
+    
+    double t1, t2, t3, t4;
+
+    if (s1->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_STARTPOINT) {
+
+        t1 = s1->GetStartT();
+        t2 = s1->GetEndT();
+
+    } else { // TOUCH_IN_ENDPOINT
+
+        t1 = s1->GetEndT();
+        t2 = s1->GetStartT();
+    }
+
+    if (s2->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_STARTPOINT) {
+
+        t3 = s2->GetStartT();
+        t4 = s2->GetEndT();
+
+    } else { // TOUCH_IN_ENDPOINT
+
+        t3 = s2->GetEndT();
+        t4 = s2->GetStartT();
+    }
+
+    if (NumericUtil::NearlyEqual(t1, t3))
+        return NumericUtil::Lower(t2, t4);
+    else
+        return NumericUtil::Lower(t1, t3);
+}
+
