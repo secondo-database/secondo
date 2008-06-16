@@ -1130,3 +1130,80 @@ void PFace::DeleteGeneralIntSegs() {
         (*iter)->Delete();
 }
 
+void PFace::FindMates() {
+
+    MateEngine mateEngine(&generalIntSegSet);
+    set<double>::iterator timeIter;
+    int count = 0;
+    // Find mates for each relevant time value:
+
+    for (timeIter = relevantTimeValueSet.begin(); timeIter
+            != relevantTimeValueSet.end(); timeIter++) {
+
+        //cout << count << endl;
+        cout << *timeIter << endl;
+        cout << "relevantTimeValueSet.size() == "
+                << relevantTimeValueSet.size() << endl;
+        mateEngine.ComputeTimeLevel(*timeIter);
+
+        //if (++count == 10)
+        //break;
+    }
+
+}
+
+void PFace::CollectIntSegs(PUnitPair* target) const {
+
+    set<IntersectionSegment*>::iterator iter;
+    for (iter = generalIntSegSet.begin(); iter != generalIntSegSet.end();++iter)
+        target->AddIntSeg(*iter);
+}
+
+bool PFace::IsParallelTo(const PFace& pf) const {
+
+    Vector3D cross = GetNormalVector() ^ pf.GetNormalVector();
+
+    return NumericUtil::NearlyEqual(cross.GetX(), 0.0)
+            && NumericUtil::NearlyEqual(cross.GetY(), 0.0)
+            && NumericUtil::NearlyEqual(cross.GetT(), 0.0);
+}
+
+void PFace::AddInnerIntSeg(IntersectionSegment* intSeg) {
+
+    // Precondition: w-coords and resultFaceIsLeft are already set.
+
+    if (IntersectsRightBoundary(intSeg)) {
+
+        rightIntSegSet.insert(intSeg);
+    }
+
+    if (!intSeg->IsOrthogonalToTAxis()) {
+
+        generalIntSegSet.insert(intSeg);
+
+    } else {
+
+        orthogonalIntSegList.push_back(intSeg);
+    }
+
+    relevantTimeValueSet.insert(intSeg->GetStartT());
+    relevantTimeValueSet.insert(intSeg->GetEndT());
+
+    hasIntSegs = true;
+    hasInnerIntSegs = true;
+}
+
+void PFace::AddBoundaryIntSegs(IntersectionSegment* intSeg) {
+
+    // Set the w-coords of the intersection segment, 
+    // depending of this PFace:
+    intSeg->SetStartW(this->TransformToW(*intSeg->GetStartXYT()));
+    intSeg->SetEndW(this->TransformToW(*intSeg->GetEndXYT()));
+
+    generalIntSegSet.insert(intSeg);
+    relevantTimeValueSet.insert(intSeg->GetStartT());
+    relevantTimeValueSet.insert(intSeg->GetEndT());
+
+    hasIntSegs = true;
+    hasBoundaryIntSegs = true;
+}
