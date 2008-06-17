@@ -90,7 +90,6 @@ Number   : 1
 Signature: stream(tuple(y)) -> stream(tuple(y))
 Example  : query plz feed shuffle count
 Result   : 41267
-Remark   : This implementation materializes a stream and guarantees that the first 500 Tuples are a random subset!
 
 
 Operator : shuffle
@@ -105,9 +104,13 @@ Number   : 1
 Signature: stream(tuple(y)) -> stream(tuple(y))
 Example  : query plz feed shuffle2[41267] count
 Result   : 41267
-Remark   : This implementation materializes a stream and guarantees that the first 500 Tuples are a random subset!
 
 
+Operator : shuffle3
+Number   : 1
+Signature: stream(tuple(y)) -> stream(tuple(y))
+Example  : query plz feed shuffle3 count
+Result   : 41267
 
 Operator : runtime
 Number   : 1
