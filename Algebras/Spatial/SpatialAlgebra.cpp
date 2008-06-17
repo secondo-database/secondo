@@ -5748,6 +5748,39 @@ void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
   result.EndBulkLoad(true, true); // sort and remove duplicates
 }
 
+bool SimpleLine::Intersects(const SimpleLine& l) const{
+   if(!IsDefined() || ! l.IsDefined()){
+      return false;
+   }
+   if(IsEmpty() || l.IsEmpty()){
+      return false;
+   }
+
+   if(!BoundingBox().Intersects(l.BoundingBox())){
+      return false;
+   }
+
+  const HalfSegment *hs1, *hs2;
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hs1 );
+    if( hs1->IsLeftDomPoint() )
+    {
+      for( int j = 0; j < l.Size(); j++ )
+      {
+        l.Get( j, hs2 );
+        if (hs2->IsLeftDomPoint())
+        {
+          if( hs1->Intersects( *hs2 ) )
+            return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+
 
 bool SimpleLine::SelectInitialSegment( const Point &startPoint,
                                        const double tolerance ){
@@ -12612,22 +12645,26 @@ sets, .i.e all types except point.
 */
 
 ListExpr
-SetSetMapBool( ListExpr args )
+IntersectsTM( ListExpr args )
 {
   ListExpr arg1, arg2;
   if ( nl->ListLength( args ) == 2 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if (((SpatialTypeOfSymbol( arg1 ) == stpoints) ||
-         (SpatialTypeOfSymbol( arg1 ) == stline)     ||
-         (SpatialTypeOfSymbol( arg1 ) == stregion)) &&
-        ((SpatialTypeOfSymbol( arg2 ) == stpoints) ||
-         (SpatialTypeOfSymbol( arg2 ) == stline)     ||
-         (SpatialTypeOfSymbol( arg2 ) == stregion)))
+    SpatialType st1 = SpatialTypeOfSymbol( arg1 );
+    SpatialType st2 = SpatialTypeOfSymbol( arg2 );
+    if ( ((st1 == stpoints) || (st1 == stline) || (st1 == stregion)) &&
+         ((st2 == stpoints) || (st2 == stline) || (st2 == stregion)))
     {
       return (nl->SymbolAtom( "bool" ));
-    } else {
+    } 
+    else if(st1==stsline && st2==stsline)
+    {
+      return (nl->SymbolAtom( "bool" ));
+    }
+    else 
+    {
       ErrorReporter::ReportError(" t_1 x t_2 expected,"
                                  " with t_1, t_2 in {points,line,region}");
     }
@@ -14221,6 +14258,10 @@ SpatialSelectIntersects( ListExpr args )
   if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
        SpatialTypeOfSymbol( arg2 ) == stregion )
     return 8;
+  
+  if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
+       SpatialTypeOfSymbol( arg2 ) == stsline )
+    return 9;
 
   return -1; // This point should never be reached
 }
@@ -14912,112 +14953,30 @@ SpatialNotEqual( Word* args, Word& result, int message,
 10.4.8 Value mapping functions of operator ~intersects~
 
 */
-int
-SpatialIntersects_psps( Word* args, Word& result, int message,
-                        Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true, ((Points*)args[0].addr)->
-      Intersects( *((Points*)args[1].addr) ) );
-  return 0;
-}
-
-int
-SpatialIntersects_psl( Word* args, Word& result, int message,
+template<class A, class B,bool symm>
+int SpatialIntersectsVM( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Points*)args[0].addr)->Intersects( *((Line*)args[1].addr) ) )
-    ((CcBool *)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  A* a;
+  B* b;
+  if(symm){
+    a = static_cast<A*>(args[1].addr);
+    b = static_cast<B*>(args[0].addr);
+  } else {
+    a = static_cast<A*>(args[0].addr);
+    b = static_cast<B*>(args[1].addr);
+  }
+
+  if(!a->IsDefined() || !b->IsDefined()){
+     res->Set(false,false);
+  } else {
+     res->Set(true,a->Intersects(*b));
+  }
   return 0;
 }
 
-int
-SpatialIntersects_lps( Word* args, Word& result, int message,
-                       Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((Points*)args[1].addr)->Intersects( *((Line*)args[0].addr) ) )
-    ((CcBool *)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
-
-int
-SpatialIntersects_psr( Word* args, Word& result, int message,
-                       Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((Points*)args[0].addr)->Intersects( *((Region*)args[1].addr) ) )
-    ((CcBool *)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
-
-int
-SpatialIntersects_rps( Word* args, Word& result, int message,
-                       Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((Points*)args[1].addr)->Intersects( *((Region*)args[0].addr) ) )
-    ((CcBool *)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
-
-int
-SpatialIntersects_ll( Word* args, Word& result, int message,
-                      Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((Line*)args[0].addr)->Intersects( *((Line*)args[1].addr) ) )
-    ((CcBool *)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
-
-int
-SpatialIntersects_lr( Word* args, Word& result, int message,
-                      Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((Line*)args[0].addr)->Intersects( *((Region*)args[1].addr) ) )
-    ((CcBool *)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
-
-int
-SpatialIntersects_rl( Word* args, Word& result, int message,
-                      Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((Line*)args[1].addr)->Intersects( *((Region*)args[0].addr) ) )
-    ((CcBool *)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
-
-int
-SpatialIntersects_rr( Word* args, Word& result, int message,
-                      Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  if( ((Region*)args[0].addr)->Intersects( *((Region*)args[1].addr) ) )
-    ((CcBool *)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
-  return 0;
-}
 
 /*
 10.4.9 Value mapping functions of operator ~inside~
@@ -17638,15 +17597,17 @@ ValueMapping spatialnotequalmap[] = {
   SpatialNotEqual<SimpleLine> };
 
 ValueMapping spatialintersectsmap[] = {
-  SpatialIntersects_psps,
-  SpatialIntersects_psl,
-  SpatialIntersects_psr,
-  SpatialIntersects_lps,
-  SpatialIntersects_ll,
-  SpatialIntersects_lr,
-  SpatialIntersects_rps,
-  SpatialIntersects_rl,
-  SpatialIntersects_rr };
+  SpatialIntersectsVM<Points,Points,false>,
+  SpatialIntersectsVM<Points,Line,false>,
+  SpatialIntersectsVM<Points,Region,false>,
+  SpatialIntersectsVM<Points,Line,true>,
+  SpatialIntersectsVM<Line,Line,false>,
+  SpatialIntersectsVM<Line,Region,false>,
+  SpatialIntersectsVM<Points,Region,true>,
+  SpatialIntersectsVM<Line,Region,true>,
+  SpatialIntersectsVM<Region,Region,false>,
+  SpatialIntersectsVM<SimpleLine,SimpleLine,false> 
+};
 
 ValueMapping spatialinsidemap[] = {
   SpatialInside_pps,
@@ -17861,7 +17822,8 @@ const string SpatialSpecNotEqual  =
 
 const string SpatialSpecIntersects  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>(points||line||region x points||line||region) -> bool </text--->"
+  "( <text>(points||line||region x points||line||region) -> bool ||"
+  " sline x sline -> bool  </text--->"
   "<text>_ intersects _</text--->"
   "<text>Intersects.</text--->"
   "<text>query region1 intersects region2</text--->"
@@ -18323,10 +18285,10 @@ Operator spatialnotequal (
 Operator spatialintersects (
   "intersects",
   SpatialSpecIntersects,
-  9,
+  10,
   spatialintersectsmap,
   SpatialSelectIntersects,
-  SetSetMapBool );
+  IntersectsTM );
 
 Operator spatialinside (
   "inside",

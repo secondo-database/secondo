@@ -2594,6 +2594,11 @@ geometry.
 */
  void Crossings(const SimpleLine& l, Points& result) const;
 
+/*
+~Union~
+
+*/
+bool Intersects(const SimpleLine& l) const;
 
 
 /*
