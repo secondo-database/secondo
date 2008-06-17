@@ -3388,17 +3388,19 @@ struct ShuffleInfoRAND : public ShuffleInfo {
     return persBuf.FreeBytes();	  
   }	  
 
+/*
+Copy all tuples of the random buffer into the memory buffer of
+the parent class.
+
+*/
   void finish() 
   {
-
-    RandomTBuf::iterator it = rtBuf.begin();
-    for(; it != rtBuf.end(); it++) {
-      (*it)->DecReference();	    
-      memBuf.AppendTuple(*it);
-    }	    
+    rtBuf.copy2TupleBuf( memBuf );
   }	  
 
-  Tuple* lastTuple;
+  Tuple* lastTuple; 
+  // Will be used to store the last tuple which could not be hold 
+  // in memory. Refer to shuffle3_vm.
 
   private:
     RandomTBuf rtBuf;
@@ -3483,11 +3485,13 @@ static int shuffle3_vm( Word* args,
       size_t ctr = 0;
       while( t != 0 )
       {
+	// check if the tuple fits into the buffer      
 	if ( (size_t)t->GetExtSize() < info->freeBytes() ) {     
           info->append(t);
           t = nextTuple(stream);
 	  ctr++;
 	} else {
+	  // store last tuple for the next REQUEST message	
 	  info->lastTuple = t;	
 	  break;
         }	
@@ -3504,11 +3508,13 @@ static int shuffle3_vm( Word* args,
       Tuple* t = info->getNext();
       if ( t != 0 )
       {
+	// iterate over the memory buffer      
         result.addr = t;
         return YIELD;
       }
       else
       {
+	// continue iterating the input stream     
 	t = info->lastTuple;
         if (t != 0) {
           info->lastTuple = 0;
@@ -3951,7 +3957,7 @@ class PartStreamAlgebra : public Algebra
         oi.name =      "shuffle";
         oi.signature = "stream(tuple(y)) -> stream(tuple(y))";
         oi.syntax =    "_ shuffle";
-        oi.meaning =   "Materializes a stream "
+        oi.meaning =   "Randomizes its input: Materializes a stream "
                        "returns the first 500 tuples in random order.";
       
       op = new Operator(
@@ -3964,10 +3970,11 @@ class PartStreamAlgebra : public Algebra
 
         oi.name =      "shuffle2";
         oi.signature = "stream(tuple(y)) x int -> stream(tuple(y))";
-        oi.syntax =    "_ shuffle2[ i ]";
-        oi.meaning =   "Every i-th tuple is passed directly to the output "
-	               "(non-blocking). The other tuples are materialized "
-		       "and returned afterwards.";
+        oi.syntax =    "_ shuffle2[ n ]";
+        oi.meaning =   "Randomizes its input: Every n/500-th tuple is passed "
+		       "directly to the output (non-blocking). The other "
+		       "tuples are buffered or materialized if necessary and "
+		       "returned afterwards.";
       
       op = new Operator(
         oi,  
@@ -3981,11 +3988,11 @@ class PartStreamAlgebra : public Algebra
         oi.name =      "shuffle3";
         oi.signature = "stream(tuple(y)) -> stream(tuple(y))";
         oi.syntax =    "_ shuffle3";
-        oi.meaning =   "Tuples up to the max. allowed memory per operator"
-	               "are read into a buffer. Out of this buffer a random "
-		       "sample of 500 tuples is drawn and returned first. "
-		       "Afterwards all remaining tuples of the buffer and "
-		       "stream are returned.";
+        oi.meaning =   "Randomizes its input: Tuples up to the maximum allowed "
+		       "memory per operator are read into a buffer. Out of "
+		       "this a random sample of 500 tuples is drawn and "
+		       "returned first. Afterwards all remaining tuples of "
+		       "the buffer and stream are returned.";
       
       op = new Operator(
         oi,  
