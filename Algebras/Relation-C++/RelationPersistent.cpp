@@ -1201,8 +1201,10 @@ Tuple* RandomTBuf::ReplacedByRandom(Tuple* s, size_t& i, bool& replaced)
 void RandomTBuf::copy2TupleBuf(TupleBuffer& tb)
 {
     for(iterator it = begin(); it != end(); it++) {
-      (*it)->DecReference();	    
-      tb.AppendTuple(*it);
+      if (*it != 0) {
+        (*it)->DecReference();	    
+        tb.AppendTuple(*it);
+      }	
     }	
 }	
 
