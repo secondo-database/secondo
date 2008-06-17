@@ -2588,6 +2588,12 @@ geometry.
   void SubLine(const double pos1, const double pos2,
                bool startsSmaller, SimpleLine& l) const;
 
+/*
+~Crossings~
+
+*/
+ void Crossings(const SimpleLine& l, Points& result) const;
+
 
 
 /*

@@ -5714,6 +5714,41 @@ void SimpleLine::SubLine( double pos1, double pos2,
    l.EndBulkLoad();
 }
 
+
+void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
+{
+  assert( IsOrdered() && l.IsOrdered() );
+  result.Clear();
+
+  if( IsEmpty() || l.IsEmpty() )
+    return;
+
+  const HalfSegment *hs1, *hs2;
+  Point p;
+
+  result.StartBulkLoad();
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hs1 );
+
+    if( hs1->IsLeftDomPoint() )
+    {
+      for( int j = 0; j < l.Size(); j++ )
+      {
+        l.Get( j, hs2 );
+
+        if( hs2->IsLeftDomPoint() )
+        {
+          if( hs1->Intersection( *hs2, p ) )
+            result += p;
+        }
+      }
+    }
+  }
+  result.EndBulkLoad(true, true); // sort and remove duplicates
+}
+
+
 bool SimpleLine::SelectInitialSegment( const Point &startPoint,
                                        const double tolerance ){
   assert( IsDefined() );
@@ -12986,7 +13021,7 @@ compute the crossing point of two lines so that the result type is a set of poin
 
 */
 ListExpr
-SpatialCrossingsMap( ListExpr args )
+SpatialCrossingsTM( ListExpr args )
 {
   ListExpr arg1, arg2;
   if ( nl->ListLength( args ) == 2 )
@@ -12996,6 +13031,9 @@ SpatialCrossingsMap( ListExpr args )
 
     if ( SpatialTypeOfSymbol( arg1 ) == stline &&
          SpatialTypeOfSymbol( arg2 ) == stline )
+      return (nl->SymbolAtom( "points" ));
+    if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
+         SpatialTypeOfSymbol( arg2 ) == stsline )
       return (nl->SymbolAtom( "points" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
@@ -14792,6 +14830,16 @@ static int SpatialSelectSize(ListExpr args){
    return -1; 
 }
 
+static int SpatialSelectCrossings(ListExpr args){
+   SpatialType st = SpatialTypeOfSymbol(nl->First(args));
+   if(st==stline){
+     return 0;
+   }
+   if(st==stsline){
+     return 1;
+   }
+   return -1;
+}
 
 
 /*
@@ -15570,15 +15618,15 @@ SpatialUnion_psps( Word* args, Word& result, int message,
 10.4.18 Value mapping functions of operator ~crossings~
 
 */
-
+template<class Ltype>
 int
-SpatialCrossings_ll( Word* args, Word& result, int message,
+SpatialCrossings( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
 
-  Line *cl1=((Line*)args[0].addr),
-       *cl2=((Line*)args[1].addr);
+  Ltype *cl1=((Ltype*)args[0].addr),
+       *cl2=((Ltype*)args[1].addr);
   cl1->Crossings( *cl2, *(Points*)result.addr );
   return 0;
 }
@@ -17772,7 +17820,10 @@ ValueMapping Difference2Map[] = {
        SetOpVM<Line,Region,Line,avlseg::difference_op>
       };
 
-
+ValueMapping SpatialCrossingsMap[] = {
+          SpatialCrossings<Line>,
+          SpatialCrossings<SimpleLine>
+      };
 
 
 /*
@@ -17887,7 +17938,7 @@ const string SpatialSpecUnion  =
 
 const string SpatialSpecCrossings  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(line x line) -> points</text--->"
+  "( <text>(line x line) -> points || sline x sline -> points</text--->"
   "<text>crossings(_,_)</text--->"
   "<text>crossing points of two lines.</text--->"
   "<text>query crossings(line1, line2)</text--->"
@@ -18341,9 +18392,10 @@ Operator spatialunion (
 Operator spatialcrossings (
   "crossings",
   SpatialSpecCrossings,
-  SpatialCrossings_ll,
-  Operator::SimpleSelect,
-  SpatialCrossingsMap );
+  2,
+  SpatialCrossingsMap,
+  SpatialSelectCrossings,
+  SpatialCrossingsTM );
 
 Operator spatialsingle (
   "single",
