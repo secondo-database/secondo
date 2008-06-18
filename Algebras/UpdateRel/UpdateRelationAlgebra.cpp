@@ -2386,6 +2386,7 @@ int UpdateSearch(Word* args, Word& result, int message,
                   new Tuple(localTransport->resultTupleType);
                 assert( newTuple->GetNoAttributes() ==
                         2 * nextTup->GetNoAttributes() + 1);
+
                 for (int i = 0; i < nextTup->GetNoAttributes(); i++)
                   newTuple->PutAttribute(
                     nextTup->GetNoAttributes()+i,
@@ -2792,7 +2793,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
           newTuple->PutAttribute( index, newAttribute );
         }
 
-	// store tid in outpur tuple
+	// store tid in output tuple
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute(
@@ -2898,6 +2899,7 @@ ListExpr updateSearchSaveRelTypeMap(ListExpr args)
 /*
 2.31.2 Value mapping function of operator ~updatesearchsave~
 
+
 */
 int UpdateSearchSave(Word* args, Word& result, int message,
                      Word& local, Supplier s)
@@ -2922,7 +2924,8 @@ int UpdateSearchSave(Word* args, Word& result, int message,
   struct LocalTransport
   {
 
-    LocalTransport( int buckets = 997 ):
+    LocalTransport(size_t bucks = 997 ):
+    buckets(bucks),	
     updatedTuples( new Bucket() ),
     hashTable( new vector<Bucket*>(buckets) ),
     resultTupleType( 0 )
@@ -2951,10 +2954,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
              j != (*i)->end();
              j++ )
         {
-          //(*j)->DecReference();
-	  // SPM: There seems to be a reference counting problem in this
-	  // implementation. As a hot fix I commented out the line above
-	  // but I'm not shure if it is the whole story.
+          (*j)->DecReference();
           (*j)->DeleteIfAllowed();
         }
         delete (*i);
@@ -2964,6 +2964,33 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       resultTupleType->DeleteIfAllowed();
     }
 
+    inline Bucket* getBucket(size_t hashvalue) 
+    {
+      return (*hashTable)[hashvalue % buckets];
+    }	    
+
+    inline void newUpdate(Tuple* t) 
+    {
+      t->IncReference();
+      updatedTuples->push_back(t);
+    }	    
+
+    inline Tuple* lastUpdate()
+    {	    
+      if ( updatedTuples->empty() ) {
+        return 0;
+      }       
+
+      Tuple* t = updatedTuples->back();
+      t->DecReference();
+      updatedTuples->pop_back();
+
+      return t;
+    }
+
+    private: size_t buckets;
+
+    public:	     
     Bucket* updatedTuples;
     vector<Bucket*>* hashTable;
     TupleType* resultTupleType;
@@ -2977,13 +3004,14 @@ int UpdateSearchSave(Word* args, Word& result, int message,
   {
     case OPEN :
 
-      qp->Open(args[0].addr);
       localTransport = new LocalTransport();
+      qp->Open(args[0].addr);
       relation = (Relation*)(args[1].addr);
       assert(relation != 0);
+
+      // fill hashtable
       iter = new RelationIterator(*relation);
       nextTup = iter->GetNextTuple();
-      // fill hashtable
       while (!iter->EndOfScan())
       {
         hashValue = 0;
@@ -2992,43 +3020,47 @@ int UpdateSearchSave(Word* args, Word& result, int message,
             ((StandardAttribute*)
               (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
-          localTransport->hashTable->operator[](hashValue % 256);
+          localTransport->getBucket(hashValue);
         nextTup->IncReference();
         nextBucket->push_back(nextTup);
+
         nextTup = iter->GetNextTuple();
       }
       delete iter;
+
       resultType = GetTupleResultType( s );
       localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
       local = SetWord( localTransport );
       return 0;
 
-    case REQUEST :
+    case REQUEST : {
 
       localTransport =  (LocalTransport*) local.addr;
+
       // Check if an already updated duplicate of the last
-      // input tuples has to be send to the outputstream first
-      if (!localTransport->updatedTuples->empty())
+      // input tuples has to be sent to the outputstream first
+      Tuple* lt = localTransport->lastUpdate();
+      if ( lt != 0 )
       {
-        newTuple = localTransport->updatedTuples->back();
-        newTuple->IncReference();
-        localTransport->updatedTuples->pop_back();
-        result = SetWord(newTuple);
+        result = SetWord(lt);
         return YIELD;
       }
-      // No more duplicates to be send to the outputstream
+
+      // No more duplicates to be sent to the outputstream
       relation = (Relation*) args[1].addr;
       auxRelation = (Relation*)(args[2].addr);
       assert(auxRelation != 0);
-      tupleFound = false;
+
       // tupleFound will stay false until a tuple with the same
-      // values as one of the inputtuples was found
-      while (! tupleFound)
+      // values as one of the input tuples was found
+      tupleFound = false;
+      while ( !tupleFound )
       {
         qp->Request(args[0].addr,t);
         if (qp->Received(args[0].addr))
         {
+	  // process a tuple of the input stream	
           tup = (Tuple*)t.addr;
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
@@ -3039,14 +3071,16 @@ int UpdateSearchSave(Word* args, Word& result, int message,
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
             full.push_back(pair<int,bool> (i+1,false));
           TupleCompareBy compare(full);
-          // Get the right bucket
+
+          // look up the hash table for the correct bucket 
           nextBucket =
-            localTransport->hashTable->operator[](hashValue % 256);
+            localTransport->getBucket(hashValue);
+
           // Look for all tuples in the bucket if they have the
           // same attribute values
           for (size_t j = 0; j < nextBucket->size(); j++)
           {
-            nextTup = nextBucket->operator[](j);
+            nextTup = (*nextBucket)[j];
             if (nextTup != 0)
             {
               if(!compare(nextTup,tup) && !compare(tup,nextTup))
@@ -3087,6 +3121,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 		  // change attribute value for the output tuple
 		  newTuple->PutAttribute(index, newAttribute);
                 }
+		nextTup->IncReference();
                 relation->UpdateTuple( nextTup,*changedIndices,*newAttrs);
 
 		// add tid to newTuple
@@ -3107,28 +3142,29 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                 auxTuple->DeleteIfAllowed();
                 delete changedIndices;
                 delete newAttrs;
-                newTuple->IncReference();
-                localTransport->updatedTuples->push_back(newTuple);
+                localTransport->newUpdate(newTuple);
               }
             }
           }
           // Check if at least one updated tuple has to be send to
           // the outputstream
-          if (!localTransport->updatedTuples->empty())
+	  Tuple* t = localTransport->lastUpdate();
+          if ( t != 0 )
           {
-            newTuple = localTransport->updatedTuples->back();
-            newTuple->DecReference();
-            localTransport->updatedTuples->pop_back();
-            result = SetWord(newTuple);
+            result = SetWord(t);
             tupleFound = true;
           }
           tup->DeleteIfAllowed();
         }
-        else// if (qp->Received(args[0].addr))
+        else {
+	  // if (qp->Received(args[0].addr))
           return CANCEL;
-      }// while (! tupleFound);
+	}  
+      }// while ( !tupleFound );
       return YIELD;
 
+    } // case REQUEST
+   	
     case CLOSE :
 
       qp->Close(args[0].addr);
