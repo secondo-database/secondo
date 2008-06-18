@@ -106,14 +106,17 @@ void getUnitValues(const UPoint *curUnit, Point &endPoint, Point &startPoint,
 /*
 1.1.3 ~checkPoint~
 
-Checks linevalue for the point and computes the position from the point on
-the line including difference value if not exactly on the line. Returns true if
-the ~point~ is on the line false elsewhere. Used by ~mpoint2mgpoint~.
+Checks sline value for the point and computes the position from the point on
+the sline including difference value if not exactly on the sline. The problem
+is caused by the gps value simulation which is mostly not exactly on the sline.
+So that AtPosition and AtPoint could not find the point on the sline.
+Returns true if the ~point~ is on the sline false elsewhere.
+Used by ~mpoint2mgpoint~.
 
 */
 
-  bool checkPoint (Line *route, Point point, bool startSmaller, double &pos,
-                 double &difference){
+  bool checkPoint (SimpleLine *route, Point point, bool startSmaller,
+                   double &pos, double &difference){
   bool result = false;
   const HalfSegment *hs;
   double k1, k2;
@@ -157,10 +160,7 @@ the ~point~ is on the line false elsewhere. Used by ~mpoint2mgpoint~.
       }
     }
     if (result) {
-      if (!(route->IsSimple())) {
-        return false;
-      } else {
-        const LRS *lrs;
+       const LRS *lrs;
         route->Get( hs->attr.edgeno, lrs );
         route->Get( lrs->hsPos, hs );
         pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
@@ -171,7 +171,7 @@ the ~point~ is on the line false elsewhere. Used by ~mpoint2mgpoint~.
         else if (fabs(pos-route->Length())<0.01)
               pos = route->Length();
         return result;
-      }
+
     }
   }
   return result;
@@ -185,8 +185,8 @@ Almost Equal to ~checkPoint~ but allows bigger differences. Used by
 
 */
 
-bool checkPoint03 (Line *route, Point point, bool startSmaller, double &pos,
-                 double &difference){
+bool checkPoint03 (SimpleLine *route, Point point, bool startSmaller,
+                   double &pos, double &difference){
   bool result = false;
   const HalfSegment *hs;
   double k1, k2;
@@ -230,10 +230,7 @@ bool checkPoint03 (Line *route, Point point, bool startSmaller, double &pos,
       }
     }
     if (result) {
-      if (!(route->IsSimple())) {
-        return false;
-      } else {
-        const LRS *lrs;
+       const LRS *lrs;
         route->Get( hs->attr.edgeno, lrs );
         route->Get( lrs->hsPos, hs );
         pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
@@ -244,7 +241,6 @@ bool checkPoint03 (Line *route, Point point, bool startSmaller, double &pos,
         else if (fabs(pos-route->Length())<0.01)
               pos = route->Length();
         return result;
-      }
     }
   }
   return result;
@@ -1321,197 +1317,200 @@ void refinementMovingGPoint (MGPoint *a, MGPoint *b,
   return;
 }
 
-/*
-1.1.11 struct ~RITree~
-
-Sorts and compresses ~RouteIntervals~. Used by operator ~trajectory~
-
-*/
-struct RITree {
-
-  RITree(){};
-
-  ~RITree();
-
-  RITree( int ri,double pos1, double pos2, RITree *left = 0, RITree *right = 0){
-    m_iRouteId = ri;
-    m_dStart = pos1;
-    m_dEnd = pos2;
-    m_left = left;
-    m_right = right;
-  };
-
-double checkTree(RITree& father, int rid, double pos1, double pos2,
-                   bool bleft) {
-    if (rid < this->m_iRouteId) {
-      if (this->m_left != 0) {
-        return this->m_left->checkTree(*this, rid, pos1, pos2, bleft);
-      } else {
-        if (bleft) return pos1;
-        else return pos2;
-      }
-    } else {
-      if (rid > this->m_iRouteId) {
-        if (this->m_right != 0) {
-          return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
-        } else {
-          if (bleft) return pos1;
-          else return pos2;
-        }
-      } else {
-        if (pos2 < this->m_dStart) {
-          if (this->m_left != 0) {
-            return this->m_left->checkTree(*this, rid, pos1, pos2,bleft);
-          } else {
-            if (bleft) return pos1;
-            else return pos2;
-          }
-        } else {
-          if (pos1 > this->m_dEnd) {
-            if (this->m_right != 0 ) {
-              return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
-            } else {
-              if (bleft) return pos1;
-              else return pos2;
-            }
-          } else {
-            // Overlapping interval found. Rebuild Tree and return new interval
-            //limit.
-            if (bleft) {
-              if (this->m_dStart <= pos1) {
-                  pos1 = this->m_dStart;
-              }
-              if (father.m_left == this) {
-                father.m_left = this->m_left;
-              } else {
-                father.m_right = this->m_left;
-              }
-              if (father.m_left != 0) {
-                //delete this;
-                return father.m_left->checkTree(father, rid, pos1, pos2, bleft);
-              } else {
-                return pos1;
-              }
-            } else {
-              if (this->m_dEnd >= pos2) {
-                pos2 = this->m_dEnd;
-              }
-              if (father.m_left == this) {
-                father.m_left = this->m_right;
-              } else {
-                father.m_right = this->m_right;
-              }
-              if (father.m_right != 0 ) {
-                //delete this;
-                return father.m_right->checkTree(father, rid, pos1, pos2,bleft);
-              } else {
-                return pos2;
-              }
-            }
-          }
-        }
-      }
-    }
-    if (bleft) return pos1;
-    else return pos2;
-  };
-
-  void insert (int rid, double pos1, double pos2) {
-    double test;
-    if (rid < this->m_iRouteId) {
-      if (this->m_left != 0) {
-        this->m_left->insert(rid, pos1, pos2);
-      } else {
-        this->m_left = new RITree(rid, pos1, pos2,0,0);
-      }
-    } else {
-      if (rid > this->m_iRouteId) {
-        if (this->m_right != 0) {
-          this->m_right->insert(rid, pos1, pos2);
-        } else {
-          this->m_right = new RITree(rid, pos1, pos2,0,0);
-        }
-      }else{
-        if(rid == this->m_iRouteId) {
-          if (pos2 < this->m_dStart) {
-            if (this->m_left != 0) {
-               this->m_left->insert(rid, pos1, pos2);
-            } else {
-                this->m_left = new RITree(rid, pos1, pos2,0,0);
-            }
-          } else {
-            if (pos1 > this->m_dEnd) {
-              if (this->m_right != 0) {
-                this->m_right->insert(rid, pos1, pos2);
-              } else {
-                this->m_right =
-                    new RITree(rid, pos1, pos2,0,0);
-              }
-            } else {
-              // Overlapping route intervals merge and check sons if they need
-              //to be corrected.
-              if (this->m_dStart > pos1) {
-                this->m_dStart = pos1;
-                if (this->m_left != 0) {
-                  test = this->m_left->checkTree(*this, rid, this->m_dStart,
-                                                this->m_dEnd, true);
-                  if (this->m_dStart > test) {
-                    this->m_dStart = test;
-                  }
-                }
-              }
-              if (this->m_dEnd < pos2) {
-                this->m_dEnd = pos2;
-                if (this->m_right != 0) {
-                  test = this->m_right->checkTree(*this, rid, this->m_dStart,
-                                                  this->m_dEnd, false);
-                  if (this->m_dEnd < test) {
-                    this->m_dEnd = test;
-                  }
-                }
-              }
-            }
-          }
-        } // endif rid=rid
-      }
-    }
-  };
-
-  void treeToGLine (GLine *gline) {
-    if (this->m_left != 0) {
-      this->m_left->treeToGLine (gline);
-    }
-    gline->AddRouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd);
-    if (this->m_right != 0) {
-      this->m_right->treeToGLine (gline);
-    }
-  };
-
-  void tree2tree (RITree *tnew) {
-    if (this->m_left != 0) {
-      this->m_left->tree2tree (tnew);
-    }
-    tnew->insert(this->m_iRouteId, this->m_dStart, this->m_dEnd);
-    if (this->m_right != 0) {
-      this->m_right->tree2tree (tnew);
-    }
-  };
-
-  RITree* initNewTree() {
-    RITree *akt = this;
-    while (akt->m_left != 0) {
-      akt = akt->m_left;
-    }
-    RITree *tnew =
-        new RITree(akt->m_iRouteId, akt->m_dStart, akt->m_dEnd, 0, 0);
-    return tnew;
-  };
-
-  int m_iRouteId;
-  double m_dStart, m_dEnd;
-  RITree *m_left, *m_right;
-
-};
+//
+// 1.1.11 struct ~RITree~
+//
+// Sorts and compresses ~RouteIntervals~. Used by operator ~trajectory~
+//
+//
+//
+// struct RITree {
+//
+//   RITree(){};
+//
+//   ~RITree();
+//
+// RITree( int ri,double pos1, double pos2, RITree *left = 0,
+//         RITree *right = 0){
+//     m_iRouteId = ri;
+//     m_dStart = pos1;
+//     m_dEnd = pos2;
+//     m_left = left;
+//     m_right = right;
+//   };
+//
+// double checkTree(RITree& father, int rid, double pos1, double pos2,
+//                    bool bleft) {
+//     if (rid < this->m_iRouteId) {
+//       if (this->m_left != 0) {
+//         return this->m_left->checkTree(*this, rid, pos1, pos2, bleft);
+//       } else {
+//         if (bleft) return pos1;
+//         else return pos2;
+//       }
+//     } else {
+//       if (rid > this->m_iRouteId) {
+//         if (this->m_right != 0) {
+//           return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+//         } else {
+//           if (bleft) return pos1;
+//           else return pos2;
+//         }
+//       } else {
+//         if (pos2 < this->m_dStart) {
+//           if (this->m_left != 0) {
+//             return this->m_left->checkTree(*this, rid, pos1, pos2,bleft);
+//           } else {
+//             if (bleft) return pos1;
+//             else return pos2;
+//           }
+//         } else {
+//           if (pos1 > this->m_dEnd) {
+//             if (this->m_right != 0 ) {
+//               return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+//             } else {
+//               if (bleft) return pos1;
+//               else return pos2;
+//             }
+//           } else {
+//           // Overlapping interval found. Rebuild Tree and return new interval
+//           //limit.
+//             if (bleft) {
+//               if (this->m_dStart <= pos1) {
+//                   pos1 = this->m_dStart;
+//               }
+//               if (father.m_left == this) {
+//                 father.m_left = this->m_left;
+//               } else {
+//                 father.m_right = this->m_left;
+//               }
+//               if (father.m_left != 0) {
+//                 //delete this;
+//             return father.m_left->checkTree(father, rid, pos1, pos2, bleft);
+//               } else {
+//                 return pos1;
+//               }
+//             } else {
+//               if (this->m_dEnd >= pos2) {
+//                 pos2 = this->m_dEnd;
+//               }
+//               if (father.m_left == this) {
+//                 father.m_left = this->m_right;
+//               } else {
+//                 father.m_right = this->m_right;
+//               }
+//               if (father.m_right != 0 ) {
+//                 //delete this;
+//             return father.m_right->checkTree(father, rid, pos1, pos2,bleft);
+//               } else {
+//                 return pos2;
+//               }
+//             }
+//           }
+//         }
+//       }
+//     }
+//     if (bleft) return pos1;
+//     else return pos2;
+//   };
+//
+//   void insert (int rid, double pos1, double pos2) {
+//     double test;
+//     if (rid < this->m_iRouteId) {
+//       if (this->m_left != 0) {
+//         this->m_left->insert(rid, pos1, pos2);
+//       } else {
+//         this->m_left = new RITree(rid, pos1, pos2,0,0);
+//       }
+//     } else {
+//       if (rid > this->m_iRouteId) {
+//         if (this->m_right != 0) {
+//           this->m_right->insert(rid, pos1, pos2);
+//         } else {
+//           this->m_right = new RITree(rid, pos1, pos2,0,0);
+//         }
+//       }else{
+//         if(rid == this->m_iRouteId) {
+//           if (pos2 < this->m_dStart) {
+//             if (this->m_left != 0) {
+//                this->m_left->insert(rid, pos1, pos2);
+//             } else {
+//                 this->m_left = new RITree(rid, pos1, pos2,0,0);
+//             }
+//           } else {
+//             if (pos1 > this->m_dEnd) {
+//               if (this->m_right != 0) {
+//                 this->m_right->insert(rid, pos1, pos2);
+//               } else {
+//                 this->m_right =
+//                     new RITree(rid, pos1, pos2,0,0);
+//               }
+//             } else {
+//             // Overlapping route intervals merge and check sons if they need
+//               //to be corrected.
+//               if (this->m_dStart > pos1) {
+//                 this->m_dStart = pos1;
+//                 if (this->m_left != 0) {
+//                   test = this->m_left->checkTree(*this, rid, this->m_dStart,
+//                                                 this->m_dEnd, true);
+//                   if (this->m_dStart > test) {
+//                     this->m_dStart = test;
+//                   }
+//                 }
+//               }
+//               if (this->m_dEnd < pos2) {
+//                 this->m_dEnd = pos2;
+//                 if (this->m_right != 0) {
+//                   test = this->m_right->checkTree(*this, rid, this->m_dStart,
+//                                                   this->m_dEnd, false);
+//                   if (this->m_dEnd < test) {
+//                     this->m_dEnd = test;
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         } // endif rid=rid
+//       }
+//     }
+//   };
+//
+//   void treeToGLine (GLine *gline) {
+//     if (this->m_left != 0) {
+//       this->m_left->treeToGLine (gline);
+//     }
+//     gline->AddRouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd);
+//     if (this->m_right != 0) {
+//       this->m_right->treeToGLine (gline);
+//     }
+//   };
+//
+//   void tree2tree (RITree *tnew) {
+//     if (this->m_left != 0) {
+//       this->m_left->tree2tree (tnew);
+//     }
+//     tnew->insert(this->m_iRouteId, this->m_dStart, this->m_dEnd);
+//     if (this->m_right != 0) {
+//       this->m_right->tree2tree (tnew);
+//     }
+//   };
+//
+//   RITree* initNewTree() {
+//     RITree *akt = this;
+//     while (akt->m_left != 0) {
+//       akt = akt->m_left;
+//     }
+//     RITree *tnew =
+//         new RITree(akt->m_iRouteId, akt->m_dStart, akt->m_dEnd, 0, 0);
+//     return tnew;
+//   };
+//
+//   int m_iRouteId;
+//   double m_dStart, m_dEnd;
+//   RITree *m_left, *m_right;
+//
+// };
+//
 
 /*
 1.1.12 ~chkStarEnd~
@@ -1520,6 +1519,7 @@ Checks if StartPos <= EndPos if not changes StartPos and EndPos. Used by
 operator ~trajectory~.
 
 */
+
 void chkStartEnd(double &StartPos, double &EndPos){
   double help;
   if (StartPos > EndPos) {
@@ -2080,7 +2080,7 @@ Initialize return value
   int iSecCheckRouteId, iAdjSecCheckRid;
   CcInt *pCurrentSectionRid, *pCurrentSectionRTid, *pRouteId;
   Tuple *pCurrentRoute, *pOldSectionTuple, *pCurrentSectionT, *pTestRoute;
-  Line *pRouteCurve, *pLastRouteCurve, *pTestRouteCurve;
+  SimpleLine *pRouteCurve, *pLastRouteCurve, *pTestRouteCurve;
   Relation* pRoutes = pNetwork->GetRoutes();
   Relation* pSections = pNetwork->GetSectionsInternal();
   GPoint *pStartPos;
@@ -2103,7 +2103,7 @@ Initialize return value
     iRouteTid = -1;
     pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
     iRouteId = pRouteId->GetIntval();
-    pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+    pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
     bStartFound = checkPoint(pRouteCurve, uStartPoint, true, dStartPos,
                              difference);
     if (bStartFound) {
@@ -2138,7 +2138,7 @@ Initialize return value
   }
   pCurrentRoute = pRoutes->GetTuple(iRouteTid);
   pTestRoute = pRoutes->GetTuple(iRouteTid);
-  pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+  pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
   dAktUnitDistance = fabs (dEndPos - dStartPos);
   dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
   iMGPointCurrRId = iRouteId;
@@ -2334,7 +2334,8 @@ the new Route is found compute the new values for the next mgpoint unit.
           if (iCurrentSectionRid != iRouteId) {
             pCurrentRoute->DeleteIfAllowed();
             pCurrentRoute = pRoutes->GetTuple(iCurrentSectionRTid);
-            pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+            pRouteCurve =
+                (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
             bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos,
                                   aktDifference);
             if (!bEndFound) {
@@ -2369,7 +2370,7 @@ the new Route is found compute the new values for the next mgpoint unit.
                   pTestRoute->DeleteIfAllowed();
                   pTestRoute = pRoutes->GetTuple(iCurrentSectionRTid);
                   pTestRouteCurve =
-                      (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+                      (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
                   firstDifference = aktDifference;
                   dAktUnitDistance = fabs (dEndPos - dStartPos);
                   dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
@@ -2413,7 +2414,7 @@ is found. This route has to be taken instead of the first computed route.
                       pTestRoute->DeleteIfAllowed();
                       pTestRoute = pRoutes->GetTuple(iCurrentSectionRTid);
                       pTestRouteCurve =
-                          (Line*) pTestRoute->GetAttribute(ROUTE_CURVE);
+                          (SimpleLine*) pTestRoute->GetAttribute(ROUTE_CURVE);
                       bEndFound = checkPoint(pTestRouteCurve, uEndPoint, true,
                                             dEndPos, aktDifference);
                       if (bEndFound) {
@@ -2431,7 +2432,8 @@ is found. This route has to be taken instead of the first computed route.
                             pCurrentRoute =
                                 pRoutes->GetTuple(iCurrentSectionRTid);
                             pRouteCurve =
-                               (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+                              (SimpleLine*) pCurrentRoute->
+                                GetAttribute(ROUTE_CURVE);
                             firstDifference = aktDifference;
                             dAktUnitDistance = fabs (dEndPos - dStartPos);
                             dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
@@ -2520,7 +2522,7 @@ start time and the junction as startposition of the new current unit.
       if (!bNewRouteFound && bSecondEndCheck) {
           pCurrentRoute->DeleteIfAllowed();
           pCurrentRoute = pRoutes->GetTuple(iSecCheckRouteId);
-          pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+          pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
           pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
           iRouteId = pRouteId->GetIntval();
           pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
@@ -2549,7 +2551,7 @@ start time and the junction as startposition of the new current unit.
         if (!bNewRouteFound && bAdjSecCheck) {
           pCurrentRoute->DeleteIfAllowed();
           pCurrentRoute = pRoutes->GetTuple(iAdjSecCheckRid);
-          pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+          pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
           pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
           iRouteId = pRouteId->GetIntval();
           pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
@@ -2598,7 +2600,8 @@ start time and the junction as startposition of the new current unit.
           if (iCurrentSectionRid != iRouteId) {
             pCurrentRoute->DeleteIfAllowed();
             pCurrentRoute = pRoutes->GetTuple(iCurrentSectionRTid);
-            pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+            pRouteCurve =
+                (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
             bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos,
                                  aktDifference);
             if (bEndFound) {
@@ -4649,7 +4652,7 @@ const string OpIntersectionSpec  =
   "<text>intersection(mgpoint, mgpoint)</text--->"
   ") )";
 
-Operator tempnetintersection("netintersection",
+Operator tempnetintersection("intersection",
                 OpIntersectionSpec,
                 OpIntersectionValueMapping,
                 Operator::SimpleSelect,
@@ -5416,6 +5419,90 @@ Operator tempnetunitrid("unitrid",
                 OpUnitRidValueMapping,
                 Operator::SimpleSelect,
                 OpUnitPosTimeTypeMap );
+
+
+//1.3.25 Operator ~mgpoint2mpoint~
+//
+//Returns the ~mpoint~ value of the given ~MGPoint~.
+//
+//
+//
+//ListExpr OpMGPoint2MPointTypeMap(ListExpr in_xArgs)
+//{
+//  if( nl->ListLength(in_xArgs) != 1 ){
+//    sendMessage("Expects a list of length 1.");
+//    return (nl->SymbolAtom( "typeerror" ));
+//  }
+//
+//  ListExpr xsource = nl->First(in_xArgs);
+//
+//  if( (!nl->IsAtom(xsource)) ||
+//      !nl->IsEqual(xsource, "mgpoint"))
+//  {
+//    sendMessage("Element must be of type gline.");
+//    return (nl->SymbolAtom("typeerror"));
+//  }
+//  return nl->SymbolAtom( "mpoint" );
+//}
+//
+//int OpMGPoint2MPointValueMapping(Word* args,
+//                                   Word& result,
+//                                  int message,
+//                                   Word& local,
+//                                   Supplier in_xSupplier)
+//{
+//  MPoint* pMPoint = (Line*) qp->ResultStorage(in_xSupplier).addr;
+//  result = SetWord(pMPoint);
+//  pMPoint->SetDefined(true);
+//  MGPoint* pMGPoint = (MGPoint*)args[0].addr;
+//  if (pMGPoint == NULL || !pMGPoint->IsDefined()) {
+//    sendMessage("MGPoint must be defined!");
+//    pMPoint->SetDefined(false);
+//    return 0;
+//  }
+//  Network* pNetwork = NetworkManager::GetNetwork(pMGPoint->GetNetworkId());
+//  const UGPoint *pCurrUnit;
+//  const UPoint *pResUnit;
+//  MPoint *resMPoint = new MPoint(1);
+//  resMPoint->StartBulkLoad();
+//  for (int i=0; i < pMGPoint->NoOfComponents(); i++) {
+//    pMGPoint->Get(i,pCurrUnit);
+//    SimpleLine pSubline = *new SimpleLine(1);
+//   pNetwork->GetLineValueOfRouteInterval(pCurrUnit, pSubline);
+//    if (pSubLine.Size() == 1) {
+//      pSubLine.Get(0,hs);
+//      pMPoint->Add(UPoint(pMGPoint->timeInterval.start,
+//                          pMGPoint->timeInterval.end, ,
+//    for (int j = 0; j < pSubline.Size(); j++) {
+//      pSubline.Get(j,hs);
+//      resLine->operator+=(*hs);
+//    }
+//  }
+//  resLine->EndBulkLoad();
+//  result = SetWord(resLine);
+//  resLine->SetDefined(true);
+//  NetworkManager::CloseNetwork(pNetwork);
+//  return 0;
+//}
+//
+//const string OpMGPoint2MPointSpec  =
+//  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+//  "\"Example\" ) "
+//  "( <text>mgpoint -> mpoint" "</text--->"
+//  "<text>mgpoint2mpoint(MGPOINT)</text--->"
+//  "<text>Returns the mpoint value of the mgpoint.</text--->"
+//  "<text> mgpoint2mpoint(mgpoint) </text--->"
+//  ") )";
+//
+// Operator tempnetmgpoint2mpoint (
+//           "mgpoint2mpoint",               // name
+//           OpMGPoint2MPointSpec,          // specification
+//           OpMGPoint2MPointValueMapping,  // value mapping
+//           Operator::SimpleSelect,        // selection function
+//           OpMGPoint2MPointTypeMap        // type mapping
+// );
+
+
 
 /*
 1.4 Creating the Algebra
