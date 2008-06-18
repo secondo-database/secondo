@@ -162,7 +162,7 @@
                     (
                         (id int) 
                         (lengt real) 
-                        (geometry line) 
+                        (geometry sline) 
                         (dual bool) 
                         (startSmaller bool)))) 
             (
@@ -410,7 +410,7 @@
                     (
                         (id int) 
                         (length real) 
-                        (curve line) 
+                        (curve sline) 
                         (dual bool) 
                         (startsSmaller bool)))) 
             (
@@ -514,7 +514,7 @@
                         (meas1 real) 
                         (meas2 real) 
                         (dual bool) 
-                        (curve line) 
+                        (curve sline) 
                         (curveStartsSmaller bool) 
                         (rrc int)))) 
             (

@@ -5,7 +5,7 @@
             (
                 (id int)
                 (length real)
-                (curve line)
+                (curve sline)
                 (dual bool)
                 (startsSmaller bool))))
     (

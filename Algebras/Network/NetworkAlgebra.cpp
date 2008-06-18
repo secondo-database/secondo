@@ -1190,7 +1190,7 @@ m_xSubAdjacencyList(0)
     // Read values from table
     int iRouteId = nl->IntValue(nl->First(xCurrentRoute));
     double dLength  = nl->RealValue(nl->Second(xCurrentRoute));
-    Word xLineWord = InLine(nl->TheEmptyList(),
+    Word xLineWord = InSimpleLine(nl->TheEmptyList(),
                             nl->Third(xCurrentRoute),
                             in_iErrorPos,
                             inout_xErrorInfo,
@@ -2205,7 +2205,7 @@ ListExpr Network::Out(ListExpr typeInfo)
     double dLength  = pLength->GetRealval();
     SimpleLine *pCurve = (SimpleLine*)pCurrentRoute->GetAttribute(ROUTE_CURVE);
     // The list for the curve contains all segments of the curve.
-    ListExpr xCurve = OutLine(nl->TheEmptyList(), SetWord(pCurve));
+    ListExpr xCurve = OutSimpleLine(nl->TheEmptyList(), SetWord(pCurve));
     CcBool* pDual = (CcBool*)pCurrentRoute->GetAttribute(ROUTE_DUAL);
     bool bDual= pDual->GetBoolval();
     CcBool* pStartsSmaller;

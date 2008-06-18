@@ -647,7 +647,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
     Point       startPoint(true,0,0);
     Point         endPoint(true,0,0);
     DateTime dummyDuration(0,0,durationtype);
-    Line*      currentLine = NULL;
+    Line* currentLineC = 0;
+    SimpleLine   currentLine(0);
     Word      wActualTuple;
     qp->Open(args[0].addr);
     qp->Request(args[0].addr, wActualTuple);
@@ -657,22 +658,23 @@ int sim_create_trip_VM ( Word* args, Word& result,
       // speed == 0.0 signals to wait for a random duration before the
       // movement may be continued!
       Tuple* tuple         = (Tuple*) (wActualTuple.addr);
-      currentLine          = (Line*)  (tuple->GetAttribute(lineIndex));
+      currentLineC         = (Line*)  (tuple->GetAttribute(lineIndex));
+      currentLine.fromLine(*currentLineC);  
       CcReal *CcurrentVmax = (CcReal*)(tuple->GetAttribute(VmaxIndex));
 
       // search for the first segment (starts with point currentPosition)
       assert( currentPosition.IsDefined() );
-      if( currentLine->IsDefined()  &&
+      if( currentLine.IsDefined()  &&
           CcurrentVmax->IsDefined() &&
-          !currentLine->IsEmpty()   &&
-          currentLine->SelectInitialSegment(currentPosition,
+          !currentLine.IsEmpty()   &&
+          currentLine.SelectInitialSegment(currentPosition,
                                             sim_startpoint_tolerance) )
       {// all args defined and current position found in currentLine
         tuplesAccepted++;
         currentVmax = CcurrentVmax->GetRealval();
         startPoint = currentPosition;
         endPoint = currentPosition;
-        while( currentLine->getWaypoint(endPoint) )
+        while( currentLine.getWaypoint(endPoint) )
         { // for each line segment:
           assert( endPoint.IsDefined() );
           Subsegment s;
@@ -703,7 +705,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
           assert( endPoint.IsDefined() );
           subsegments.push_back(s);
           startPoint = endPoint;
-          currentLine->SelectSubsequentSegment();
+          currentLine.SelectSubsequentSegment();
         }
         // iterate vector to determine the speed at the end of each subsegment:
         for(unsigned int i=0 ; i<subsegments.size(); i++)

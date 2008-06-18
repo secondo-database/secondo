@@ -7,7 +7,7 @@
                 (meas1 real)
                 (meas2 real)
                 (dual bool)
-                (curve line)
+                (curve sline)
                 (curveStartsSmaller bool)
                 (rrc int))))
     (
