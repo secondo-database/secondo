@@ -114,210 +114,157 @@ bool searchRouteInterval(GPoint *pGPoint, GLine *pGLine, size_t low,
 }
 
 /*
-1.2.3 ~struct RITree~
+1.2.6 ~chkPoint~
 
-Used to compress and sort resulting ~gline~ values. For example used by operator
-line2gline.
+Almost similar to operator ~checkPoint~ but additional returning a difference
+value if the point is not exactly on the ~sline~.
+
+Used by operator ~point2gpoint~
 
 */
 
-struct RITree {
-
-  RITree(){};
-
-  RITree( int ri,double pos1, double pos2, RITree *left = 0, RITree *right = 0){
-    m_iRouteId = ri;
-    m_dStart = pos1;
-    m_dEnd = pos2;
-    m_left = left;
-    m_right = right;
-  };
-
-  ~RITree();
-
-  double checkTree(RITree& father, int rid, double pos1, double pos2,
-                   bool bleft) {
-    if (rid < this->m_iRouteId) {
-      if (this->m_left != 0) {
-        return this->m_left->checkTree(*this, rid, pos1, pos2, bleft);
-      } else {
-        if (bleft) return pos1;
-        else return pos2;
-      }
+bool chkPoint (SimpleLine *route, Point point, bool startSmaller, double &pos,
+                 double &difference){
+  bool result = false;
+  const HalfSegment *hs;
+  double k1, k2;
+  Point left, right;
+  for (int i = 0; i < route->Size()-1; i++) {
+    route->Get(i, hs);
+    left = hs->GetLeftPoint();
+    right = hs->GetRightPoint();
+    Coord xl = left.GetX(),
+          yl = left.GetY(),
+          xr = right.GetX(),
+          yr = right.GetY(),
+          x = point.GetX(),
+          y = point.GetY();
+    if ((fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01) ||
+       (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01)){
+      difference = 0.0;
+      result = true;
     } else {
-      if (rid > this->m_iRouteId) {
-        if (this->m_right != 0) {
-          return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
-        } else {
-          if (bleft) return pos1;
-          else return pos2;
-        }
+      if (xl != xr && xl != x) {
+        k1 = (y - yl) / (x - xl);
+        k2 = (yr - yl) / (xr - xl);
+        if ((fabs(k1-k2) < 0.01) &&
+           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
+           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
+           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
+           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
+           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
+           (y > yr || fabs(y-yr)<0.01)))) {
+              difference = fabs(k1-k2);
+              result = true;
+        } else {result = false;}
       } else {
-        if (pos2 < this->m_dStart) {
-          if (this->m_left != 0) {
-            return this->m_left->checkTree(*this, rid, pos1, pos2,bleft);
-          } else {
-            if (bleft) return pos1;
-            else return pos2;
-          }
-        } else {
-          if (pos1 > this->m_dEnd) {
-            if (this->m_right != 0 ) {
-              return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
-            } else {
-              if (bleft) return pos1;
-              else return pos2;
-            }
-          } else {
-            // Overlapping interval found. Rebuild Tree and return new interval
-            // limit.
-            if (bleft) {
-              if (this->m_dStart <= pos1) {
-                  pos1 = this->m_dStart;
-              }
-              if (father.m_left == this) {
-                father.m_left = this->m_left;
-              } else {
-                father.m_right = this->m_left;
-              }
-              if (father.m_left != 0) {
-                //delete this;
-                return father.m_left->checkTree(father, rid, pos1, pos2, bleft);
-              } else {
-                return pos1;
-              }
-            } else {
-              if (this->m_dEnd >= pos2) {
-                pos2 = this->m_dEnd;
-              }
-              if (father.m_left == this) {
-                father.m_left = this->m_right;
-              } else {
-                father.m_right = this->m_right;
-              }
-              if (father.m_right != 0 ) {
-                //delete this;
-                return father.m_right->checkTree(father, rid, pos1, pos2,bleft);
-              } else {
-                return pos2;
-              }
-            }
-          }
-        }
+        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
+           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
+           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
+           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
+              difference = 0.0;
+              result = true;
+        } else {result = false;}
       }
     }
-    if (bleft) return pos1;
-    else return pos2;
-  };
+    if (result) {
+        const LRS *lrs;
+        route->Get( hs->attr.edgeno, lrs );
+        route->Get( lrs->hsPos, hs );
+        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
+        if( startSmaller != route->GetStartSmaller())
+          pos = route->Length() - pos;
+        if( fabs(pos-0.0) < 0.01)
+          pos = 0.0;
+        else if (fabs(pos-route->Length())<0.01)
+              pos = route->Length();
+        return result;
+    }
+  }
+  return result;
+}
 
+/*
+1.2.7 ~chkPoint~
 
-  void insert (int rid, double pos1, double pos2) {
-    double test;
-    if (rid < this->m_iRouteId) {
-      if (this->m_left != 0) {
-        this->m_left->insert(rid, pos1, pos2);
-      } else {
-        this->m_left = new RITree(rid, pos1, pos2,0,0);
-      }
+Almost similar to operator ~chkPoint~ but allowing a greater difference if the
+point is not exactly on the ~sline~.
+
+Used by operator ~point2gpoint~
+
+*/
+
+bool chkPoint03 (SimpleLine *route, Point point, bool startSmaller, double &pos,
+                 double &difference){
+  bool result = false;
+  const HalfSegment *hs;
+  double k1, k2;
+  Point left, right;
+  for (int i = 0; i < route->Size()-1; i++) {
+    route->Get(i, hs);
+    left = hs->GetLeftPoint();
+    right = hs->GetRightPoint();
+    Coord xl = left.GetX(),
+          yl = left.GetY(),
+          xr = right.GetX(),
+          yr = right.GetY(),
+          x = point.GetX(),
+          y = point.GetY();
+    if ((fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01) ||
+        (fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01)) {
+      difference = 0.0;
+      result = true;
     } else {
-      if (rid > this->m_iRouteId) {
-        if (this->m_right != 0) {
-          this->m_right->insert(rid, pos1, pos2);
-        } else {
-          this->m_right = new RITree(rid, pos1, pos2,0,0);
-        }
-      }else{
-        if(rid == this->m_iRouteId) {
-          if (pos2 < this->m_dStart) {
-            if (this->m_left != 0) {
-               this->m_left->insert(rid, pos1, pos2);
-            } else {
-                this->m_left = new RITree(rid, pos1, pos2,0,0);
-            }
-          } else {
-            if (pos1 > this->m_dEnd) {
-              if (this->m_right != 0) {
-                this->m_right->insert(rid, pos1, pos2);
-              } else {
-                this->m_right =
-                    new RITree(rid, pos1, pos2,0,0);
-              }
-            } else {
-              // Overlapping route intervals merge and check sons if they need
-              // to be corrected too.
-              if (this->m_dStart > pos1) {
-                this->m_dStart = pos1;
-                if (this->m_left != 0) {
-                  test = this->m_left->checkTree(*this, rid, this->m_dStart,
-                                                this->m_dEnd, true);
-                  if (this->m_dStart > test) {
-                    this->m_dStart = test;
-                  }
-                }
-              }
-              if (this->m_dEnd < pos2) {
-                this->m_dEnd = pos2;
-                if (this->m_right != 0) {
-                  test = this->m_right->checkTree(*this, rid, this->m_dStart,
-                                                  this->m_dEnd, false);
-                  if (this->m_dEnd < test) {
-                    this->m_dEnd = test;
-                  }
-                }
-              }
-            }
-          }
-        } // endif rid=rid
+      if (xl != xr && xl != x) {
+        k1 = (y - yl) / (x - xl);
+        k2 = (yr - yl) / (xr - xl);
+        if ((fabs(k1-k2) < 1.2) &&
+           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
+           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
+           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
+           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
+           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
+           (y > yr || fabs(y-yr)<0.01)))) {
+              difference = fabs(k1-k2);
+              result = true;
+        } else {result = false;}
+      } else {
+        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
+           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
+           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
+           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
+              difference = 0.0;
+              result = true;
+        } else {result = false;}
       }
     }
-  };
-
-  void treeToGLine (GLine *gline) {
-    if (this->m_left != 0) {
-      this->m_left->treeToGLine (gline);
+    if (result) {
+        const LRS *lrs;
+        route->Get( hs->attr.edgeno, lrs );
+        route->Get( lrs->hsPos, hs );
+        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
+        if( startSmaller != route->GetStartSmaller())
+          pos = route->Length() - pos;
+        if( fabs(pos-0.0) < 0.01)
+          pos = 0.0;
+        else if (fabs(pos-route->Length())<0.01)
+              pos = route->Length();
+        return result;
     }
-    gline->AddRouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd);
-    if (this->m_right != 0) {
-      this->m_right->treeToGLine (gline);
-    }
-  };
-
-
-
-  void tree2tree (RITree *tnew) {
-    if (this->m_left != 0) {
-      this->m_left->tree2tree (tnew);
-    }
-    tnew->insert(this->m_iRouteId, this->m_dStart, this->m_dEnd);
-    if (this->m_right != 0) {
-      this->m_right->tree2tree (tnew);
-    }
-  };
-
-  RITree* initNewTree() {
-    RITree *akt = this;
-    while (akt->m_left != 0) {
-      akt = akt->m_left;
-    }
-    RITree *tnew =
-        new RITree(akt->m_iRouteId, akt->m_dStart, akt->m_dEnd, 0, 0);
-    return tnew;
-  };
-
-  int m_iRouteId;
-  double m_dStart, m_dEnd;
-  RITree *m_left, *m_right;
-};
+  }
+  return result;
+}
 
 /*
 1.2.4 ~checkPoint~
 
-Returns true if a ~point~ is part of a ~line~, false elsewhere. If the point
-is part of the line his distance from the start is computed also. Used by
-operator line2gline.
+Returns true if a ~point~ is part of a ~sline~, false elsewhere. If the point
+is part of the sline his distance from the start is computed also. Used by
+operator ~sline2gline~.
 
 */
-bool checkPoint (Line *route, Point point, bool startSmaller, double &pos){
+bool checkPoint (SimpleLine *route, Point point, bool startSmaller,
+                 double &pos){
   bool result = false;
   const HalfSegment *hs;
   double k1, k2;
@@ -358,9 +305,6 @@ bool checkPoint (Line *route, Point point, bool startSmaller, double &pos){
       }
     }
     if (result) {
-      if (!(route->IsSimple())) {
-        return false;
-      } else {
         const LRS *lrs;
         route->Get( hs->attr.edgeno, lrs );
         route->Get( lrs->hsPos, hs );
@@ -372,7 +316,7 @@ bool checkPoint (Line *route, Point point, bool startSmaller, double &pos){
         else if (fabs(pos-route->Length())<0.01)
               pos = route->Length();
         return result;
-      }
+
     }
   }
   return result;
@@ -425,155 +369,6 @@ bool searchUnit(GLine *pGLine, size_t low, size_t high,
   return false;
 }
 
-/*
-1.2.6 ~chkPoint~
-
-Almost similar to operator ~checkPoint~ but additional returning a difference
-value if the point is not exactly on the line.
-
-Used by operator ~point2gpoint~
-
-*/
-
-bool chkPoint (Line *route, Point point, bool startSmaller, double &pos,
-                 double &difference){
-  bool result = false;
-  const HalfSegment *hs;
-  double k1, k2;
-  Point left, right;
-  for (int i = 0; i < route->Size()-1; i++) {
-    route->Get(i, hs);
-    left = hs->GetLeftPoint();
-    right = hs->GetRightPoint();
-    Coord xl = left.GetX(),
-          yl = left.GetY(),
-          xr = right.GetX(),
-          yr = right.GetY(),
-          x = point.GetX(),
-          y = point.GetY();
-    if ((fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01) ||
-       (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01)){
-      difference = 0.0;
-      result = true;
-    } else {
-      if (xl != xr && xl != x) {
-        k1 = (y - yl) / (x - xl);
-        k2 = (yr - yl) / (xr - xl);
-        if ((fabs(k1-k2) < 0.01) &&
-           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
-              difference = fabs(k1-k2);
-              result = true;
-        } else {result = false;}
-      } else {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
-              difference = 0.0;
-              result = true;
-        } else {result = false;}
-      }
-    }
-    if (result) {
-      if (!(route->IsSimple())) {
-        return false;
-      } else {
-        const LRS *lrs;
-        route->Get( hs->attr.edgeno, lrs );
-        route->Get( lrs->hsPos, hs );
-        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
-        if( startSmaller != route->GetStartSmaller())
-          pos = route->Length() - pos;
-        if( fabs(pos-0.0) < 0.01)
-          pos = 0.0;
-        else if (fabs(pos-route->Length())<0.01)
-              pos = route->Length();
-        return result;
-      }
-    }
-  }
-  return result;
-}
-
-/*
-1.2.7 ~chkPoint~
-
-Almost similar to operator ~chkPoint~ but allowing a greater difference if the
-point is not exactly on the line.
-
-Used by operator ~point2gpoint~
-
-*/
-
-bool chkPoint03 (Line *route, Point point, bool startSmaller, double &pos,
-                 double &difference){
-  bool result = false;
-  const HalfSegment *hs;
-  double k1, k2;
-  Point left, right;
-  for (int i = 0; i < route->Size()-1; i++) {
-    route->Get(i, hs);
-    left = hs->GetLeftPoint();
-    right = hs->GetRightPoint();
-    Coord xl = left.GetX(),
-          yl = left.GetY(),
-          xr = right.GetX(),
-          yr = right.GetY(),
-          x = point.GetX(),
-          y = point.GetY();
-    if ((fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01) ||
-        (fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01)) {
-      difference = 0.0;
-      result = true;
-    } else {
-      if (xl != xr && xl != x) {
-        k1 = (y - yl) / (x - xl);
-        k2 = (yr - yl) / (xr - xl);
-        if ((fabs(k1-k2) < 1.2) &&
-           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
-              difference = fabs(k1-k2);
-              result = true;
-        } else {result = false;}
-      } else {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
-              difference = 0.0;
-              result = true;
-        } else {result = false;}
-      }
-    }
-    if (result) {
-      if (!(route->IsSimple())) {
-        return false;
-      } else {
-        const LRS *lrs;
-        route->Get( hs->attr.edgeno, lrs );
-        route->Get( lrs->hsPos, hs );
-        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
-        if( startSmaller != route->GetStartSmaller())
-          pos = route->Length() - pos;
-        if( fabs(pos-0.0) < 0.01)
-          pos = 0.0;
-        else if (fabs(pos-route->Length())<0.01)
-              pos = route->Length();
-        return result;
-      }
-    }
-  }
-  return result;
-}
 
 /*
 1.2.8 class ~GPointList~
@@ -961,7 +756,7 @@ void Dijkstra(Network* in_pNetwork,
     double dMeas1 = xMeas1->GetRealval();
     CcReal* xMeas2 = (CcReal*)pSection->GetAttribute(SECTION_MEAS2);
     double dMeas2 = xMeas2->GetRealval();
-    Line* pLine = (Line*)pSection->GetAttribute(SECTION_CURVE);
+    SimpleLine* pLine = (SimpleLine*)pSection->GetAttribute(SECTION_CURVE);
     Point* pPoint = new Point(false);
     pLine->AtPosition(0, true, *pPoint);
 
@@ -1164,10 +959,10 @@ void Dijkstra(Network* in_pNetwork,
 
 */
 string Network::routesTypeInfo =
-      "(rel (tuple ((id int) (length real) (curve line) "
+      "(rel (tuple ((id int) (length real) (curve sline) "
       "(dual bool) (startsSmaller bool))))";
 string Network::routesBTreeTypeInfo =
-      "(btree (tuple ((id int) (length real) (curve line) "
+      "(btree (tuple ((id int) (length real) (curve sline) "
       "(dual bool) (startsSmaller bool))) int)";
 string Network::junctionsTypeInfo =
       "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
@@ -1182,7 +977,7 @@ string Network::junctionsBTreeTypeInfo =
       "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))) int)";
 string Network::sectionsInternalTypeInfo =
       "(rel (tuple ((rid int) (meas1 real) (meas2 real) "
-      "(dual bool) (curve line)(curveStartsSmaller bool) (rrc int))))";
+      "(dual bool) (curve sline)(curveStartsSmaller bool) (rrc int))))";
 
 
 /*
@@ -1400,7 +1195,7 @@ m_xSubAdjacencyList(0)
                             in_iErrorPos,
                             inout_xErrorInfo,
                             inout_bCorrect);
-    Line* pLine = (Line*)(xLineWord.addr);
+    SimpleLine* pLine = (SimpleLine*)(xLineWord.addr);
     bool bDual= nl->BoolValue(nl->Fourth(xCurrentRoute));
     bool bStartsSmaller  = nl->BoolValue(nl->Fifth(xCurrentRoute));
 
@@ -1609,7 +1404,7 @@ void Network::FillJunctions(const Relation *in_pJunctions)
     // Calculate and store the exakt location of the junction.
     Tuple* pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
     assert(pRoute != 0);
-    Line* pLine = (Line*)pRoute->GetAttribute(ROUTE_CURVE);
+    SimpleLine* pLine = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
     assert(pLine != 0);
     CcReal* pMeas = (CcReal*)pNewJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
     Point* pPoint = new Point(false);
@@ -1712,7 +1507,7 @@ void Network::FillSections()
     iSectionTid = 0;
     // Current position on route - starting at the beginning of the route
     double dCurrentPosOnRoute = 0;
-    Line* pRouteCurve = (Line*)pRoute->GetAttribute(ROUTE_CURVE);
+    SimpleLine* pRouteCurve = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
     int iTupleId = pRoute->GetTupleId();
     CcInt* xRouteId = (CcInt*)pRoute->GetAttribute(ROUTE_ID);
     int iRouteId = xRouteId->GetIntval();
@@ -1771,8 +1566,8 @@ void Network::FillSections()
       // one before remains valid.
       if(dEndPos - dStartPos > 0.01)
       {
-        // A line for the section
-        Line* pLine = new Line(0);
+        // A sline for the section
+        SimpleLine* pLine = new SimpleLine(0);
 
         // Take start from the route
         bool bStartSmaller = ((CcBool*)pRoute->GetAttribute(
@@ -1877,7 +1672,7 @@ void Network::FillSections()
       int iTupleId = pRoute->GetTupleId();
 
       // Calculate line
-      Line* pLine = new Line(0);
+      SimpleLine* pLine = new SimpleLine(0);
       bool bStartSmaller = ((CcBool*)pRoute->GetAttribute(
                                 ROUTE_STARTSSMALLER))->GetBoolval();
       pRouteCurve->SubLine(dStartPos,
@@ -1886,7 +1681,7 @@ void Network::FillSections()
                            *pLine);
 
       // Find out, if the orientation of the subline differs from the position
-      // of the line. If so, the direction has to be changed.
+      // of the sline. If so, the direction has to be changed.
       bool bLineStartsSmaller;
       Point* pStartPoint = new Point(false);
       pRouteCurve->AtPosition(dStartPos, bStartSmaller, *pStartPoint);
@@ -2333,7 +2128,7 @@ Point* Network::GetPointOnRoute(GPoint* in_pGPoint)
   assert(NextSuccess); // No ASSERT with side effect, please!
   Tuple* pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
   assert(pRoute != 0);
-  Line* pLine = (Line*)pRoute->GetAttribute(ROUTE_CURVE);
+  SimpleLine* pLine = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
   assert(pLine != 0);
   Point* pPoint = new Point(false);
   pLine->AtPosition(in_pGPoint->GetPosition(),true, *pPoint);
@@ -2408,7 +2203,7 @@ ListExpr Network::Out(ListExpr typeInfo)
     int iRouteId = pRouteId->GetIntval();
     CcReal* pLength = (CcReal*)pCurrentRoute->GetAttribute(ROUTE_LENGTH);
     double dLength  = pLength->GetRealval();
-    Line *pCurve = (Line*)pCurrentRoute->GetAttribute(ROUTE_CURVE);
+    SimpleLine *pCurve = (SimpleLine*)pCurrentRoute->GetAttribute(ROUTE_CURVE);
     // The list for the curve contains all segments of the curve.
     ListExpr xCurve = OutLine(nl->TheEmptyList(), SetWord(pCurve));
     CcBool* pDual = (CcBool*)pCurrentRoute->GetAttribute(ROUTE_DUAL);
@@ -2984,6 +2779,29 @@ void Network::GetJunctionMeasForRoutes(CcInt *pRoute1Id, CcInt *pRoute2Id,
     rid1meas = 0.0;
     rid2meas = 0.0;
   }
+}
+
+/*
+Return sLine Value from RouteId
+
+*/
+
+void Network::GetLineValueOfRouteInterval (const RouteInterval *in_ri,
+                                           SimpleLine &out_Line){
+  CcInt* pRouteId = new CcInt(true, in_ri->m_iRouteId);
+  BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
+  delete pRouteId;
+  int NextSuccess = pRoutesIter->Next();
+  assert(NextSuccess); // No ASSERT with side effect, please!
+  Tuple* pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
+  assert(pRoute != 0);
+  SimpleLine* pLine = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
+  assert(pLine != 0);
+  bool startSmaller =
+      ((CcBool*) pRoute->GetAttribute(ROUTE_STARTSSMALLER))->GetBoolval();
+  pLine->SubLine(in_ri->m_dStart, in_ri->m_dEnd, startSmaller, out_Line);
+  pRoute->DeleteIfAllowed();
+  delete pRoutesIter;
 }
 
 /*
@@ -3860,7 +3678,7 @@ ListExpr OpGPoint2RectTypeMap(ListExpr in_xArgs)
   if( (!nl->IsAtom(xsource)) ||
       !nl->IsEqual(xsource, "gpoint"))
   {
-    sendMessage("First Element must be of type gline.");
+    sendMessage("Element must be of type gpoint.");
     return (nl->SymbolAtom("typeerror"));
   }
   return (nl->SymbolAtom("rect"));
@@ -4019,7 +3837,7 @@ const string OpLengthSpec  =
   "( <text>gline -> real" "</text--->"
   "<text>length(_)</text--->"
   "<text>Calculates the length of the gline.</text--->"
-  "<text>let n = length(line)</text--->"
+  "<text>query length(gline)</text--->"
   ") )";
 
 Operator networklength (
@@ -4031,9 +3849,9 @@ Operator networklength (
 );
 
 /*
-1.4.5 Operator ~line2gline~
+1.4.5 Operator ~sline2gline~
 
-Translates a spatial ~line~ value into a network ~GLine~ value.
+Translates a spatial ~sline~ value into a network ~GLine~ value.
 
 */
 
@@ -4056,9 +3874,9 @@ ListExpr OpLine2GLineTypeMap(ListExpr in_xArgs)
 
   if( (!nl->IsAtom( xLineDesc )) ||
       nl->AtomType( xLineDesc ) != SymbolType ||
-      nl->SymbolValue( xLineDesc ) != "line" )
+      nl->SymbolValue( xLineDesc ) != "sline" )
   {
-    sendMessage("Second element must be of type line.");
+    sendMessage("Second element must be of type sline.");
     return (nl->SymbolAtom( "typeerror" ));
   }
 
@@ -4084,9 +3902,9 @@ int OpLine2GLineValueMapping(Word* args,
     return 0;
   }
   pGLine->SetNetworkId(pNetwork->GetId());
-  Line* pLine = (Line*)args[1].addr;
+  SimpleLine* pLine = (SimpleLine*)args[1].addr;
   if(pLine == NULL || !pLine->IsDefined()) {
-    string strMessage = "Line does not exist.";
+    string strMessage = "sline does not exist.";
     cerr << strMessage << endl;
     sendMessage(strMessage);
     pGLine->SetDefined(false);
@@ -4103,7 +3921,7 @@ int OpLine2GLineValueMapping(Word* args,
   Tuple *pCurrentRoute;
   int iRouteTid, iRouteId;
   CcInt *pRouteId;
-  Line *pRouteCurve;
+  SimpleLine *pRouteCurve;
   bool bLeftFound, bRightFound;
   double leftPos, rightPos;
   GenericRelationIterator* pRoutesIt = pRoutes->MakeScan();
@@ -4112,7 +3930,7 @@ int OpLine2GLineValueMapping(Word* args,
     iRouteTid = -1;
     pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
     iRouteId = pRouteId->GetIntval();
-    pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+    pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
     bLeftFound = checkPoint(pRouteCurve, hs->GetLeftPoint(), true, leftPos);
     if (bLeftFound) {
       bRightFound =
@@ -4137,7 +3955,7 @@ int OpLine2GLineValueMapping(Word* args,
       iRouteTid = -1;
       pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
       iRouteId = pRouteId->GetIntval();
-      pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+      pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
       bLeftFound = checkPoint(pRouteCurve, hs->GetLeftPoint(), true, leftPos);
       if (bLeftFound) {
         bRightFound =
@@ -4167,14 +3985,14 @@ int OpLine2GLineValueMapping(Word* args,
 const string OpLine2GLineSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>network x line -> gline" "</text--->"
-  "<text>line2gline(_,_)</text--->"
-  "<text>Translates a line to a gline value.</text--->"
-  "<text>line2gline(B_NETWORK, line)</text--->"
+  "( <text>network x sline -> gline" "</text--->"
+  "<text>sline2gline(_,_)</text--->"
+  "<text>Translates a sline to a gline value.</text--->"
+  "<text>sline2gline(B_NETWORK, sline)</text--->"
   ") )";
 
-Operator line2gline (
-          "line2gline",               // name
+Operator sline2gline (
+          "sline2gline",               // name
           OpLine2GLineSpec,          // specification
           OpLine2GLineValueMapping,  // value mapping
           Operator::SimpleSelect,        // selection function
@@ -4405,7 +4223,7 @@ const string OpNetworkJunctionsSpec  =
   "( <text>network -> rel" "</text--->"
   "<text>junctions(_)</text--->"
   "<text>Return the junctions of a network.</text--->"
-  "<text>let j = junctions(n)</text--->"
+  "<text>query junctions(network)</text--->"
   ") )";
 
 Operator networkjunctions (
@@ -4460,7 +4278,7 @@ const string OpNetworkRoutesSpec  =
   "( <text>network -> rel" "</text--->"
   "<text>routes(_)</text--->"
   "<text>Return the routes of a network.</text--->"
-  "<text>let r = routes(n)</text--->"
+  "<text>query routes(network)</text--->"
   ") )";
 
 Operator networkroutes (
@@ -4515,7 +4333,7 @@ const string OpNetworkSectionsSpec  =
   "( <text>network -> rel" "</text--->"
   "<text>sections(_)</text--->"
   "<text>Return the sections of a network.</text--->"
-  "<text>let j = sections(n)</text--->"
+  "<text>query sections(network)</text--->"
   ") )";
 
 Operator networksections (
@@ -4595,7 +4413,7 @@ const string OpNetworkTheNetworkSpec  =
   "(<text>int x rel x rel -> network" "</text--->"
   "<text>thenetwork(_, _, _)</text--->"
   "<text>Creates a network.</text--->"
-  "<text>let n = thenetwork(int, r, j)</text--->"
+  "<text>let n = thenetwork(int, routes, junctions)</text--->"
   "))";
 
 Operator networkthenetwork (
@@ -4721,14 +4539,14 @@ int OpPoint2GPointValueMapping(Word* args,
   double dPos, difference;
   int iRouteTid;
   Tuple *pCurrentRoute;
-  Line *pRouteCurve;
+  SimpleLine *pRouteCurve;
   Relation* pRoutes = pNetwork->GetRoutes();
   // Compute Position in Network for the ~point~
   Point uPoint = *pPoint;
   GenericRelationIterator* pRoutesIt = pRoutes->MakeScan();
   while( (pCurrentRoute = pRoutesIt->GetNextTuple()) != 0 ) {
     iRouteTid = -1;
-    pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+    pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
     bPointFound = chkPoint(pRouteCurve, uPoint, true, dPos, difference);
     if (bPointFound) {
       iRouteTid = pCurrentRoute->GetTupleId();
@@ -4743,7 +4561,7 @@ int OpPoint2GPointValueMapping(Word* args,
     GenericRelationIterator* pRoutesIt = pRoutes->MakeScan();
     while( (pCurrentRoute = pRoutesIt->GetNextTuple()) != 0 ) {
       iRouteTid = -1;
-      pRouteCurve = (Line*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+      pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
       bPointFound = chkPoint03(pRouteCurve, uPoint, true, dPos, difference);
       if (bPointFound) {
         iRouteTid = pCurrentRoute->GetTupleId();
@@ -5061,7 +4879,7 @@ const string OpShortestPathSpec  =
   "( <text>gpoint x gpoint -> gline" "</text--->"
   "<text>shortest_path( _ , _)</text--->"
   "<text>Calculates the shortest path between two gpoints.</text--->"
-  "<text>let n = shortest_path(x, y)</text--->"
+  "<text>query shortest_path(x, y)</text--->"
   ") )";
 
 Operator shortest_path (
@@ -5070,6 +4888,84 @@ Operator shortest_path (
           OpShortestPathValueMapping,  // value mapping
           Operator::SimpleSelect,        // trivial selection function
           OpShortestPathTypeMap        // type mapping
+);
+
+/*
+1.4.17 Operator ~gline2sline~
+
+Returns the ~sline~ value of the given ~GLine~.
+
+*/
+
+ListExpr OpGLine2LineTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 ){
+    sendMessage("Expects a list of length 1.");
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  ListExpr xsource = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom(xsource)) ||
+      !nl->IsEqual(xsource, "gline"))
+  {
+    sendMessage("Element must be of type gline.");
+    return (nl->SymbolAtom("typeerror"));
+  }
+  return nl->SymbolAtom( "sline" );
+}
+
+int OpGLine2LineValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  SimpleLine* pLine = (SimpleLine*) qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord(pLine);
+  pLine->SetDefined(true);
+  GLine* pGLine = (GLine*)args[0].addr;
+  if (pGLine == NULL || !pGLine->IsDefined()) {
+    sendMessage("GLine must be defined!");
+    pLine->SetDefined(false);
+    return 0;
+  }
+  Network* pNetwork = NetworkManager::GetNetwork(pGLine->GetNetworkId());
+  const RouteInterval *rI;
+  const HalfSegment *hs;
+  SimpleLine *resLine = new SimpleLine(1);
+  resLine->StartBulkLoad();
+  for (int i=0; i < pGLine->NoOfComponents(); i++) {
+    pGLine->Get(i,rI);
+    SimpleLine pSubline = *new SimpleLine(1);
+    pNetwork->GetLineValueOfRouteInterval(rI, pSubline);
+    for (int j = 0; j < pSubline.Size(); j++) {
+      pSubline.Get(j,hs);
+      resLine->operator+=(*hs);
+    }
+  }
+  resLine->EndBulkLoad();
+  result = SetWord(resLine);
+  resLine->SetDefined(true);
+  NetworkManager::CloseNetwork(pNetwork);
+  return 0;
+}
+
+const string OpGLine2LineSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>gline -> sline" "</text--->"
+  "<text>gline2sline(GLINE)</text--->"
+  "<text>Returns the line value of the gline.</text--->"
+  "<text> gline2sline(gline) </text--->"
+  ") )";
+
+Operator networkgline2sline (
+          "gline2sline",               // name
+          OpGLine2LineSpec,          // specification
+          OpGLine2LineValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpGLine2LineTypeMap        // type mapping
 );
 
 
@@ -5101,13 +4997,14 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networkdistance);
     AddOperator(&point2gpoint);
     AddOperator(&netgpequal);
-    AddOperator(&line2gline);
+    AddOperator(&sline2gline);
     AddOperator(&networkinside);
     AddOperator(&networknocomponents);
     AddOperator(&polygpoints);
     AddOperator(&networkrouteintervals);
     AddOperator(&networkintersects);
     AddOperator(&networkgpoint2rect);
+    AddOperator(&networkgline2sline);
   }
   ~NetworkAlgebra() {};
 };

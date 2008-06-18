@@ -325,6 +325,57 @@ Defined flag.
 };
 
 /*
+3 GLine
+
+3.1 struct RouteInterval
+
+*/
+
+
+struct RouteInterval
+{
+  RouteInterval()
+  {
+  }
+
+  RouteInterval(int in_iRouteId,
+                double in_dStart,
+                double in_dEnd):
+    m_iRouteId(in_iRouteId),
+    m_dStart(in_dStart),
+    m_dEnd(in_dEnd)
+  {
+  }
+
+/*
+The route id.
+
+*/
+
+  int m_iRouteId;
+
+/*
+Start position on route.
+
+*/
+
+  double m_dStart;
+
+/*
+End position on route.
+
+*/
+
+  double m_dEnd;
+/*
+The distance interval in the route.
+
+*/
+};
+
+
+
+/*
 2.1 Network
 
 2.1.1 Enumerations of columns for relations
@@ -996,6 +1047,7 @@ This function is used in the ~junctions~ operator.
 /*
 GetJunctionsOnRoute
 
+Returns the junction from the start of the route to the end.
 
 */
     void GetJunctionsOnRoute(CcInt* in_pRouteId,
@@ -1004,17 +1056,29 @@ GetJunctionsOnRoute
 /*
 GetSectionOnRoute
 
+Returns the section ~tuple~ of the network which includes the ~GPoint~
 
 */
+
     Tuple* GetSectionOnRoute(GPoint* in_xGPoint);
 
 /*
 GetPointOnRoute
 
+Returns the point value of the GPoint on the route.
+
 */
     Point* GetPointOnRoute(GPoint* in_xGPoint);
 
+/*
+GetLineValueOfRouteInterval
 
+Returns the ~sline~ representing the ~RouteInterval~ in spatial data.
+
+*/
+
+  void GetLineValueOfRouteInterval(const RouteInterval* in_rI,
+                                   SimpleLine &out_line);
 
 /*
 GetSections
@@ -1281,55 +1345,6 @@ The adjacency lists of sections.
 };
 
 /*
-3 GLine
-
-3.1 struct RouteInterval
-
-*/
-
-
-struct RouteInterval
-{
-  RouteInterval()
-  {
-  }
-
-  RouteInterval(int in_iRouteId,
-                double in_dStart,
-                double in_dEnd):
-    m_iRouteId(in_iRouteId),
-    m_dStart(in_dStart),
-    m_dEnd(in_dEnd)
-  {
-  }
-
-/*
-The route id.
-
-*/
-
-  int m_iRouteId;
-
-/*
-Start position on route.
-
-*/
-
-  double m_dStart;
-
-/*
-End position on route.
-
-*/
-
-  double m_dEnd;
-/*
-The distance interval in the route.
-
-*/
-};
-
-/*
 3.2 class ~gline~
 
 */
@@ -1479,5 +1494,178 @@ The array of route intervals.
 
 
 
+/*
+1.2.3 ~struct RITree~
+
+Used to compress and sort resulting ~gline~ values. For example used by operator
+~sline2gline~ and ~trajectory~.
+
+*/
+
+struct RITree {
+
+  RITree(){};
+
+  RITree( int ri,double pos1, double pos2, RITree *left = 0, RITree *right = 0){
+    m_iRouteId = ri;
+    m_dStart = pos1;
+    m_dEnd = pos2;
+    m_left = left;
+    m_right = right;
+  };
+
+  ~RITree();
+
+  double checkTree(RITree& father, int rid, double pos1, double pos2,
+                   bool bleft) {
+    if (rid < this->m_iRouteId) {
+      if (this->m_left != 0) {
+        return this->m_left->checkTree(*this, rid, pos1, pos2, bleft);
+      } else {
+        if (bleft) return pos1;
+        else return pos2;
+      }
+    } else {
+      if (rid > this->m_iRouteId) {
+        if (this->m_right != 0) {
+          return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+        } else {
+          if (bleft) return pos1;
+          else return pos2;
+        }
+      } else {
+        if (pos2 < this->m_dStart) {
+          if (this->m_left != 0) {
+            return this->m_left->checkTree(*this, rid, pos1, pos2,bleft);
+          } else {
+            if (bleft) return pos1;
+            else return pos2;
+          }
+        } else {
+          if (pos1 > this->m_dEnd) {
+            if (this->m_right != 0 ) {
+              return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+            } else {
+              if (bleft) return pos1;
+              else return pos2;
+            }
+          } else {
+            // Overlapping interval found. Rebuild Tree and return new interval
+            // limit.
+            if (bleft) {
+              if (this->m_dStart <= pos1) {
+                  pos1 = this->m_dStart;
+              }
+              if (father.m_left == this) {
+                father.m_left = this->m_left;
+              } else {
+                father.m_right = this->m_left;
+              }
+              if (father.m_left != 0) {
+                //delete this;
+                return father.m_left->checkTree(father, rid, pos1, pos2, bleft);
+              } else {
+                return pos1;
+              }
+            } else {
+              if (this->m_dEnd >= pos2) {
+                pos2 = this->m_dEnd;
+              }
+              if (father.m_left == this) {
+                father.m_left = this->m_right;
+              } else {
+                father.m_right = this->m_right;
+              }
+              if (father.m_right != 0 ) {
+                //delete this;
+                return father.m_right->checkTree(father, rid, pos1, pos2,bleft);
+              } else {
+                return pos2;
+              }
+            }
+          }
+        }
+      }
+    }
+    if (bleft) return pos1;
+    else return pos2;
+  };
+
+
+  void insert (int rid, double pos1, double pos2) {
+    double test;
+    if (rid < this->m_iRouteId) {
+      if (this->m_left != 0) {
+        this->m_left->insert(rid, pos1, pos2);
+      } else {
+        this->m_left = new RITree(rid, pos1, pos2,0,0);
+      }
+    } else {
+      if (rid > this->m_iRouteId) {
+        if (this->m_right != 0) {
+          this->m_right->insert(rid, pos1, pos2);
+        } else {
+          this->m_right = new RITree(rid, pos1, pos2,0,0);
+        }
+      }else{
+        if(rid == this->m_iRouteId) {
+          if (pos2 < this->m_dStart) {
+            if (this->m_left != 0) {
+               this->m_left->insert(rid, pos1, pos2);
+            } else {
+                this->m_left = new RITree(rid, pos1, pos2,0,0);
+            }
+          } else {
+            if (pos1 > this->m_dEnd) {
+              if (this->m_right != 0) {
+                this->m_right->insert(rid, pos1, pos2);
+              } else {
+                this->m_right =
+                    new RITree(rid, pos1, pos2,0,0);
+              }
+            } else {
+              // Overlapping route intervals merge and check sons if they need
+              // to be corrected too.
+              if (this->m_dStart > pos1) {
+                this->m_dStart = pos1;
+                if (this->m_left != 0) {
+                  test = this->m_left->checkTree(*this, rid, this->m_dStart,
+                                                this->m_dEnd, true);
+                  if (this->m_dStart > test) {
+                    this->m_dStart = test;
+                  }
+                }
+              }
+              if (this->m_dEnd < pos2) {
+                this->m_dEnd = pos2;
+                if (this->m_right != 0) {
+                  test = this->m_right->checkTree(*this, rid, this->m_dStart,
+                                                  this->m_dEnd, false);
+                  if (this->m_dEnd < test) {
+                    this->m_dEnd = test;
+                  }
+                }
+              }
+            }
+          }
+        } // endif rid=rid
+      }
+    }
+  };
+
+  void treeToGLine (GLine *gline) {
+    if (this->m_left != 0) {
+      this->m_left->treeToGLine (gline);
+    }
+    gline->AddRouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd);
+    if (this->m_right != 0) {
+      this->m_right->treeToGLine (gline);
+    }
+  };
+
+  int m_iRouteId;
+  double m_dStart, m_dEnd;
+  RITree *m_left, *m_right;
+};
 
 #endif // __NETWORK_ALGEBRA_H__
