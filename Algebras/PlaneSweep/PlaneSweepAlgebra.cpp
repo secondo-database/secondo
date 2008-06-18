@@ -3541,7 +3541,7 @@ void MakeRealm::REALM2(const T* obj1, const U* obj2, const bool isline1,
    vector<HalfSegment> vl1, vl2, vl1res, vl2res;
    int counter;
    
-   if ( !obj1->BoundingBox().Intersects(obj2->BoundingBox()) )
+   if ( !obj1->BoundingBox().IntersectsUD(obj2->BoundingBox()) )
    {
      if ( PSA_DEBUG ) cout << "Bounding boxes do not intersect." << endl;
      *result1 = *obj1;
