@@ -3537,59 +3537,46 @@ void Line::StartBulkLoad()
 void Line::EndBulkLoad( bool sort, bool remDup,
                         bool setPartnerNo, bool setNoComponents )
 {
- if( sort )
-    Sort();
-
-  if( remDup )
-    RemoveDuplicates();
-
-  if( setPartnerNo )
-    SetPartnerNo();
-
-  if( setNoComponents )
-    SetNoComponents();
-
-  line.TrimToSize();
-  lrsArray.TrimToSize();
-  ordered = true;
+  Sort();
+  if(Size()>0){
+     DBArray<HalfSegment>* line2 = ::Realminize(line);
+     const HalfSegment* hs;
+     line2->Sort(HalfSegmentCompare);
+     line.Clear();
+     for(int i=0;i<line2->Size();i++){
+        line2->Get(i,hs);
+        line.Append(*hs);
+     } 
+     line2->Destroy();
+     delete line2;
+     SetPartnerNo();
+  }
+ 
+  computeComponents();
+  TrimToSize();
 }
 
 Line& Line::operator=( const Line& l )
 {
   assert( l.ordered );
-
   line.Clear();
-  lrsArray.Clear();
   if( !l.IsEmpty() )
   {
     line.Resize( l.Size() );
     const HalfSegment *hs;
     for( int i = 0; i < l.Size(); i++ )
     {
-      l.Get( i, hs );
-      line.Put( i, *hs );
-    }
-
-    if( l.lrsArray.Size() > 0 )
-      lrsArray.Resize( l.lrsArray.Size() );
-    const LRS *lrs;
-    for( int i = 0; i < l.lrsArray.Size(); i++ )
-    {
-      l.Get( i, lrs );
-      lrsArray.Put( i, *lrs );
+      l.line.Get( i, hs );
+      line.Append(*hs );
     }
   }
 
   bbox = l.bbox;
   length = l.length;
   noComponents = l.noComponents;
-  simple = l.simple;
-  cycle = l.cycle;
-  startsSmaller = l.startsSmaller;
   ordered = true;
   currentHS = l.currentHS;
-  del.refs=1;
-  del.isDelete=true;
+
   return *this;
 }
 
@@ -4020,7 +4007,6 @@ double Line::Distance( const Line& l ) const
 
 int Line::NoComponents() const
 {
-  assert( IsOrdered() );
   return noComponents;
 }
 
@@ -4028,19 +4014,17 @@ void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
 {
   assert( IsOrdered() );
 
+  result = *this;
+
   const HalfSegment *hs;
-  result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
 
     HalfSegment auxhs( *hs );
     auxhs.Translate( x, y );
-    result += auxhs;
+    result.Put(i,auxhs);
   }
-  result.SetNoComponents( NoComponents() );
-  result.SetLineType( simple, cycle, startsSmaller );
-  result.EndBulkLoad( false, false, false, false );
 }
 
 void Line::Rotate( const Coord& x, const Coord& y,
@@ -4353,15 +4337,7 @@ void Line::Simplify(Line& result, const double epsilon,
      }
    }
    result.EndBulkLoad();
-
-   // TODO:
-   // recomputing realmization to avoid selfcuts
 }
-
-
-
-
-
 
 
 void Line::Realminize(){
@@ -4376,167 +4352,9 @@ void Line::Realminize(){
   *this = tmp;
 }
 
-
-
-
-bool Line::AtPosition( double pos, bool startsSmaller, Point& p ) const
-{
-  if( startsSmaller != this->startsSmaller )
-    pos = length - pos;
-
-  LRS lrs( pos, 0 );
-  int lrsPos;
-  if( !Find( lrs, lrsPos ) )
-    return false;
-
-  const LRS *lrs2;
-  Get( lrsPos, lrs2 );
-
-  const HalfSegment *hs;
-  Get( lrs2->hsPos, hs );
-
-  p = hs->AtPosition( pos - lrs2->lrsPos );
-  return true;
-}
-
-bool Line::GetStartSmaller() {
-  return startsSmaller;
-}
-
-bool Line::IsCycle() {
-  return cycle;
-}
-
-bool Line::IsSimple(){
-  return simple;
-}
-
-bool Line::AtPoint( const Point& p,
-                    bool startsSmaller,
-                    double& result ) const
-{
-  if( IsEmpty() || !simple )
-    return false;
-
-  bool found = false;
-  const HalfSegment *hs;
-  int pos;
-  if( Find( p, pos ) )
-  {
-    found = true;
-    Get( pos, hs );
-  }
-  else if( pos < Size() )
-  {
-    for( ; pos >= 0; pos-- )
-    {
-      Get( pos, hs );
-      if( hs->IsLeftDomPoint() && hs->Contains( p ) )
-      {
-        found = true;
-        break;
-      }
-    }
-  }
-
-  if( found )
-  {
-    const LRS *lrs;
-    Get( hs->attr.edgeno, lrs );
-    Get( lrs->hsPos, hs );
-    result = lrs->lrsPos + p.Distance( hs->GetDomPoint() );
-
-    if( startsSmaller != this->startsSmaller )
-      result = length - result;
-
-    if( AlmostEqual( result, 0.0 ) )
-      result = 0;
-    else if( AlmostEqual( result, length ) )
-      result = length;
-
-    assert( result >= 0.0 && result <= length );
-
-    return true;
-  }
-  return false;
-}
-
-void Line::SubLine( double pos1, double pos2,
-                    bool startsSmaller, Line& l ) const
-{
-  if( IsEmpty() ||
-      !simple )
-    return;
-
-  if( pos1 < 0 )
-    pos1 = 0;
-  else if( pos1 > length )
-    pos1 = length;
-
-  if( pos2 < 0 )
-    pos2 = 0;
-  else if( pos2 > length )
-    pos2 = length;
-
-  if( AlmostEqual( pos1, pos2 ) ||
-      pos1 > pos2 )
-    return;
-
-  if( startsSmaller != this->startsSmaller )
-  {
-    double aux = length - pos1;
-    pos1 = length - pos2;
-    pos2 = aux;
-  }
-
-  // First search for the first half segment
-  LRS lrs( pos1, 0 );
-  int lrsPos;
-  Find( lrs, lrsPos );
-
-  const LRS *lrs2;
-  Get( lrsPos, lrs2 );
-
-  const HalfSegment *hs;
-  Get( lrs2->hsPos, hs );
-
-  l.StartBulkLoad();
-  int edgeno = 0;
-
-  HalfSegment auxHs;
-  if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs ) )
-  {
-    auxHs.attr.edgeno = ++edgeno;
-    l += auxHs;
-    auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
-    l += auxHs;
-  }
-
-  while( lrsPos < lrsArray.Size() - 1 &&
-         ( lrs2->lrsPos + hs->Length() < pos2 ||
-           AlmostEqual( lrs2->lrsPos + hs->Length(), pos2 ) ) )
-  {
-    // Get the next half segment in the sequence
-    Get( ++lrsPos, lrs2 );
-    Get( lrs2->hsPos, hs );
-
-    if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs ) )
-    {
-      auxHs.attr.edgeno = ++edgeno;
-      l += auxHs;
-      auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
-      l += auxHs;
-    }
-  }
-
-  l.EndBulkLoad();
-}
-
 void Line::Vertices( Points* result ) const
 {
-
   assert( IsOrdered() );
-
   result->Clear();
 
   if(!IsDefined()){
@@ -4614,51 +4432,40 @@ bool Line::Find( const Point& p, int& pos, const bool& exact ) const
   return line.Find( &p, PointHalfSegmentCompareAlmost, pos );
 }
 
-bool Line::Find( const LRS& lrs, int& pos ) const
-{
-  assert( IsOrdered() );
+void Line::SetPartnerNo() {
+ if(line.Size()==0){
+   return;
+ }
+ DBArray<int> TMP((line.Size()+1)/2);
 
-  if( IsEmpty() )
-    return false;
-
-  if( !simple )
-    return false;
-
-  if( lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 ) &&
-      lrs.lrsPos > Length() && !AlmostEqual( lrs.lrsPos, Length() ) )
-    return false;
-
-  lrsArray.Find( &lrs, LRSCompare, pos );
-  if( pos > 0 )
-    pos--;
-
-  return true;
-}
-
-void Line::SetPartnerNo()
-{
-  int size = Size();
-  int tmp[size/2];
-  const HalfSegment* hs;
-  for( int i = 0; i < size; i++ )
-  {
-    Get( i, hs );
-    if( hs->IsLeftDomPoint() )
-    {
-      tmp[hs->attr.edgeno] = i;
+ const HalfSegment* hs1;
+ const HalfSegment* hs2;
+ for(int i=0; i<line.Size(); i++){
+    line.Get(i,hs1);
+    if(hs1->IsLeftDomPoint()){
+      TMP.Put(hs1->attr.edgeno, i);
+    } else {
+      const int* lpp;
+      TMP.Get(hs1->attr.edgeno,lpp);
+      int leftpos = *lpp;
+      HalfSegment right = *hs1;
+      right.attr.partnerno = leftpos;
+      right.attr.insideAbove = false;
+      right.attr.coverageno = 0;
+      right.attr.cycleno = 0;
+      right.attr.faceno = 0;
+      line.Get(leftpos,hs2);
+      HalfSegment left = *hs2;
+      left.attr.partnerno = i;
+      left.attr.insideAbove = false;
+      left.attr.coverageno = 0;
+      left.attr.cycleno = 0;
+      left.attr.faceno = 0;
+      line.Put(i,right);
+      line.Put(leftpos,left);
+     }
     }
-    else
-    {
-      int p = tmp[hs->attr.edgeno];
-      HalfSegment hs1( *hs );
-      hs1.attr.partnerno = p;
-      Put( i, hs1 );
-      Get( p, hs );
-      hs1 = *hs;
-      hs1.attr.partnerno = i;
-      Put( p, hs1 );
-    }
-  }
+    TMP.Destroy();
 }
 
 bool Line::GetNextSegment( const int poshs, const HalfSegment& hs,
@@ -4738,128 +4545,167 @@ bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
   return !first;
 }
 
-void
-Line::VisitHalfSegments( int& poshs, const HalfSegment*& hs,
-                         double& lrspos,
-                         int& edgeno, int cycleno, int faceno,
-                         stack< pair<int, const HalfSegment*> >& nexthss,
-                         vector<bool>& visited )
-{
-  visited[poshs] = true;
-  visited[hs->attr.partnerno] = true;
+/*
+~computeComponents~
 
-  lrsArray.Append( LRS( lrspos, poshs ) );
-  lrspos += hs->Length();
+Computes FaceNo, edgeno of each halfsegment.
+Sets length,noComponents, and bbox of the line.
 
-  HalfSegment auxhs( *hs );
-  auxhs.attr.edgeno = edgeno;
-  auxhs.attr.cycleno = cycleno;
-  auxhs.attr.faceno = faceno;
-  line.Put( poshs, auxhs );
 
-  const HalfSegment *nexths;
-  int posnexths;
+*/
 
-  poshs = hs->attr.partnerno;
-  Get( poshs, hs );
-  auxhs = *hs;
-  auxhs.attr.edgeno = edgeno++;
-  auxhs.attr.cycleno = cycleno;
-  auxhs.attr.faceno = faceno;
-  line.Put( poshs, auxhs );
+int Line::getUnusedExtension(int startPos,const DBArray<bool>& used)const{
+  const HalfSegment* hs;
+  line.Get(startPos,hs);
+  Point p = hs->GetDomPoint();
+  int pos = startPos-1; 
+  bool done = false;
+  const bool* u;
+  // search on the left side
+  while(pos>=0 && !done){
+     line.Get(pos,hs);
+     Point p2 = hs->GetDomPoint();
+     if(!AlmostEqual(p,p2)){
+       done = true;
+     }else {
+       used.Get(pos,u);
+       if(!*u){
+         return pos;
+       } else {
+         pos--;
+       }
+     }
+  }  
+  // search on the right side 
+  done = false;
+  pos = startPos+1;
+  int size = line.Size();
+  while(!done && pos<size){
+     line.Get(pos,hs);
+     Point p2 = hs->GetDomPoint();
+     if(!AlmostEqual(p,p2)){
+       done = true;
+     } else {
+       used.Get(pos,u);
+       if(!*u){
+         return pos;
+       } else {
+        pos++;
+       }
+     }
+  }
+  return -1;
+}
 
-  while( GetNextSegments( poshs, *hs, visited,
-                          posnexths, nexths, nexthss ) )
-  {
-    auxhs = *nexths;
-    auxhs.attr.edgeno = edgeno;
-    auxhs.attr.cycleno = cycleno;
-    auxhs.attr.faceno = faceno;
-    line.Put( posnexths, auxhs );
+void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
+  set<int> extensionPos;
 
-    lrsArray.Append( LRS( lrspos, posnexths ) );
-    lrspos += nexths->Length();
+  used.Put(startPos,true);
+  const HalfSegment* hs1;
+  const HalfSegment* hs2;
 
-    poshs = nexths->attr.partnerno;
-    Get( poshs, hs );
+  int pos = startPos;
+  line.Get(startPos,hs1);
+  HalfSegment Hs1 = *hs1;
+  int edgeno = 0;
+  Hs1.attr.insideAbove=false;
+  Hs1.attr.coverageno = 0;
+  Hs1.attr.cycleno=0;
+  Hs1.attr.faceno=faceno;
+  Hs1.attr.edgeno = edgeno;
+  line.Put(pos,Hs1);
+  used.Put(pos,true);
 
-    auxhs = *hs;
-    auxhs.attr.edgeno = edgeno++;
-    auxhs.attr.cycleno = cycleno;
-    auxhs.attr.faceno = faceno;
-    line.Put( poshs, auxhs );
+  // get and Set the Partner
+  int partner = Hs1.attr.partnerno;
+  line.Get(partner,hs2);
+  HalfSegment Hs2 = *hs2;
+  Hs2.attr.insideAbove=false;
+  Hs2.attr.coverageno = 0;
+  Hs2.attr.cycleno=0;
+  Hs2.attr.faceno=faceno;
+  Hs2.attr.edgeno = edgeno;
+  used.Put(partner,true);
+  line.Put(partner,Hs2);
 
-    visited[posnexths] = true;
-    visited[poshs] = true;
+  if(!bbox.IsDefined()){
+    bbox = hs1->BoundingBox();
+  } else {
+    bbox = bbox.Union(hs1->BoundingBox()); 
+  }
+  length += hs1->Length();
+
+  if(getUnusedExtension(pos,used)>=0){
+     extensionPos.insert(pos);
+  }
+  if(getUnusedExtension(partner,used)>=0){
+     extensionPos.insert(partner);
+  }
+  
+  edgeno++;
+  while(!extensionPos.empty()){
+
+    int spos =  *(extensionPos.begin());
+    pos = getUnusedExtension(spos,used);
+    if(pos < 0){
+      extensionPos.erase(spos);
+    } else { // extension found at position pos
+      line.Get(pos,hs1);
+      Hs1 = (*hs1);
+      Hs1.attr.insideAbove=false;
+      Hs1.attr.coverageno = 0;
+      Hs1.attr.cycleno=0;
+      Hs1.attr.faceno=faceno;
+      Hs1.attr.edgeno = edgeno;
+      used.Put(pos,true);
+      line.Put(pos,Hs1);
+      
+      partner = Hs1.attr.partnerno;
+      line.Get(partner,hs2);
+      Hs2 = (*hs2);
+      Hs2.attr.insideAbove=false;
+      Hs2.attr.coverageno = 0;
+      Hs2.attr.cycleno=0;
+      Hs2.attr.faceno=faceno;
+      Hs2.attr.edgeno = edgeno;
+      used.Put(partner,true);
+      line.Put(partner,Hs2);
+      if(getUnusedExtension(partner,used)>=0){
+        extensionPos.insert(partner);
+      }
+      length += hs1->Length();
+      bbox = bbox.Union(hs1->BoundingBox());
+      edgeno++;
+    }
   }
 }
 
-void Line::SetNoComponents()
-{
-  // First we go to the beginning
-  const HalfSegment *hs, *nexths;
-
-  // hs contains the beginning half segment
-  double lrspos = 0.0;
-  int edgeno = 0, cycleno = 0, faceno = 0;
-  vector<bool> visited( Size(), false );
-  stack< pair<int, const HalfSegment*> > nexthss;
-  Point start(false), end(false);
-
-  int poshs = 0, posnexths;
-  while( poshs < Size() )
-  {
-    Get( poshs, hs );
-
-    vector<bool> visited2( Size(), false );
-    visited2[poshs] = true;
-    while( GetNextSegment( poshs, *hs, posnexths, nexths ) )
-    {
-      if( visited2[posnexths] )
-        break;
-      visited2[posnexths] = true;
-      poshs = nexths->attr.partnerno;
-      Get( poshs, hs );
-      if( visited2[poshs] )
-        break;
-      visited2[poshs] = true;
-    }
-    start = hs->GetDomPoint();
-
-    cycleno = 0;
-    VisitHalfSegments( poshs, hs, lrspos, edgeno, cycleno++,
-                       faceno, nexthss, visited );
-
-    while( !nexthss.empty() )
-    {
-      poshs = nexthss.top().first;
-      hs = nexthss.top().second;
-      nexthss.pop();
-
-      VisitHalfSegments( poshs, hs, lrspos, edgeno, cycleno++,
-                         faceno, nexthss, visited );
-    }
-    for( poshs = 0; poshs < Size() && visited[poshs]; poshs++ );
-
-    end = hs->GetDomPoint();
-    faceno++;
+void Line::computeComponents() {
+  length = 0.0;
+  noComponents = 0;
+  bbox.SetDefined(false);
+ 
+  if(Size()==0){
+    return;
   }
 
-  this->noComponents = faceno;
-  this->length = lrspos;
-  this->simple = faceno == 0 && cycleno == 0 ||
-                 faceno == 1 && cycleno == 1;
-  this->cycle = this->simple &&
-                start.IsDefined() &&
-                end.IsDefined() &&
-                AlmostEqual( start, end );
-  this->startsSmaller = this->simple &&
-                        !this->cycle &&
-                        start.IsDefined() &&
-                        end.IsDefined() &&
-                        start < end;
-  if( !simple )
-    lrsArray.Clear();
+  DBArray<bool> used(line.Size());
+
+  for(int i=0;i<line.Size();i++){
+    used.Append(false);
+  }
+
+  int faceno = 0;
+
+  for(int i=0;i<line.Size();i++){
+    const bool* u;
+    used.Get(i,u);
+    if(!(*u)){ // an unused halfsegment
+      collectFace(faceno,i,used);    
+      faceno++; 
+    }
+  }
+  noComponents = faceno;
 }
 
 void Line::Sort()
@@ -5342,7 +5188,7 @@ CheckLine( ListExpr type, ListExpr& errorInfo )
 */
 void* CastLine(void* addr)
 {
-  return new (addr) Line;
+  return Line::Cast(addr);
 }
 
 /*
@@ -5373,7 +5219,7 @@ If ~src~ is not simple, the simple line will be invalidated, i.e.
 isdefined is set to false;
 
 */
-SimpleLine::SimpleLine(const Line& src):segments(1),lrsArray(1){
+SimpleLine::SimpleLine(const Line& src):segments(0),lrsArray(0){
   fromLine(src);
   del.refs = 1;
   del.isDelete = true; 
@@ -6198,7 +6044,7 @@ Word
 }
 
  Word CreateSimpleLine( const ListExpr typeInfo ) {
-   return SetWord( new SimpleLine( 0 ) );
+   return SetWord( new SimpleLine( 1 ) );
  }
 
 void DeleteSimpleLine( const ListExpr typeInfo, Word& w ) {
@@ -6253,7 +6099,7 @@ TypeConstructor sline(
      CreateSimpleLine, DeleteSimpleLine,     //object creation and deletion
      OpenAttribute<SimpleLine>,
      SaveAttribute<SimpleLine>,       // object open and save
-     CloseSimpleLine,    CloneSimpleLine,      //object close and clone
+     CloseSimpleLine, CloneSimpleLine,      //object close and clone
      CastSimpleLine,                       //cast function
      SizeOfSimpleLine,                     //sizeof function
      CheckSimpleLine );
@@ -13668,7 +13514,7 @@ SpatialSubLineMap( ListExpr args )
          nl->IsEqual( arg2, "real" ) &&
          nl->IsEqual( arg3, "real" ) &&
          nl->IsEqual( arg4, "bool" ) )
-      return (nl->SymbolAtom( "line" ));
+      return (nl->SymbolAtom( "sline" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
 }

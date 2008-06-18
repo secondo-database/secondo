@@ -1523,11 +1523,6 @@ class Line: public StandardSpatialAttribute<2>
 6.1 Constructors and Destructor
 
 */
-    inline Line() {}
-/*
-This constructor should not be used.
-
-*/
     inline Line( const int n );
 /*
 Constructs an empty line allocating space for ~n~ half segments.
@@ -1579,7 +1574,7 @@ Marks the end of a bulk load and sorts the half segments set if the argument ~so
 6.2 Member functions
 
 */
-    inline void SetNoComponents( int noComponents );
+//    inline void SetNoComponents( int noComponents );
 /*
 Sets the number of components with the given argument value ~noComponents~.
 
@@ -1593,14 +1588,9 @@ Sets the number of components with the given argument value ~noComponents~.
 Returns the length of the line, i.e. the sum of the lengths of all segments.
 
 */
-    inline void SetLength( double length );
+//    inline void SetLength( double length );
 /*
 Sets the length of the line.
-
-*/
-    inline void SetLineType( bool simple, bool cycle, bool startsSmaller );
-/*
-Sets the flags that indicate the line type.
 
 */
     inline const Rectangle<2> BoundingBox() const;
@@ -1608,7 +1598,7 @@ Sets the flags that indicate the line type.
 Returns the bounding box of the line.
 
 */
-    inline void SetBoundingBox( const Rectangle<2>& bbox );
+  //  inline void SetBoundingBox( const Rectangle<2>& bbox );
 /*
 Sets the bounding box of the line.
 
@@ -1621,16 +1611,6 @@ Returns whether the line value is empty.
     inline int Size() const;
 /*
 Returns the number of half segments in the line value.
-
-*/
-    inline Point StartPoint( bool startsSmaller ) const;
-/*
-Returns the starting point of the line.
-
-*/
-    inline Point EndPoint( bool startsSmaller ) const;
-/*
-Returns the end point of the line.
 
 */
     bool Contains( const Point& p ) const;
@@ -1662,21 +1642,11 @@ amount really required.
 Writes the the half segment ~hs~ to the ith position.
 
 */
-    inline void Get( const int i, const LRS*& lrs ) const;
-/*
-Reads the ith ~lrs~ from the line value.
-
-*/
-    inline void Put( const int i, const LRS& lrs );
-/*
-Writes the the ~lrs~ to the ith position.
-
-*/
     Line& operator=( const Line& cl );
 /*
 Assignement operator redefinition.
 
-6.4 Opearations
+6.4 Operations
 
 6.4.1 Operation $=$ (~equal~)
 
@@ -1912,45 +1882,6 @@ many parts in the result.
    void Realminize();
 
 
-
-
-/*
-
-6.4.6 Operation ~atposition~
-
-*Precondition:* ~U.IsOrdered()~
-
-*Semantics:* translates the line
-
-*Complexity:* $O(n)$, where ~n~ is the size of ~U~
-
-*/
-    bool
-    AtPosition( double pos, bool startsSmaller, Point& p ) const;
-/*
-6.4.6 Operation ~atpoint~
-
-*Precondition:* ~U.IsOrdered() and v.IsDefined()~
-
-*Semantics:*
-
-*Complexity:* $O(n)$, where ~n~ is the size of ~U~
-
-*/
-    bool
-    AtPoint( const Point& p, bool startsSmaller, double& result ) const;
-/*
-6.4.6 Operation ~subline~
-
-*Precondition:* ~U.IsOrdered() and v.IsDefined() and w.IsDefined~
-
-*Semantics:*
-
-*Complexity:* $O(n)$, where ~n~ is the size of ~U~
-
-*/
-    void SubLine( double pos1, double pos2,
-                  bool startsSmaller, Line& l ) const;
 /*
 6.4.6 Operation ~vertices~
 
@@ -2041,14 +1972,12 @@ as an attribute.
 */
     inline int NumOfFLOBs() const
     {
-      return 2;
+      return 1;
     }
 
     inline FLOB *GetFLOB( const int i )
     {
-      if( i == 0 )
         return &line;
-      return &lrsArray;
     }
 
     inline bool IsDefined() const
@@ -2077,56 +2006,7 @@ as an attribute.
     ostream& Print( ostream &os ) const;
     void Clear();
 
-/*
 
-6.9 Functions for accessing a simple line's segments in linear order
-
-*/
-
-    inline bool SelectInitialSegment( const Point &startPoint,
-                                      const double tolerance = -1.0 );
-/*
-Selects the segment, that starts with the given point (whose dominating
-point equals ~startPoint~). Returns ~true~ if such a segement exists, ~false~
-otherwise.
-
-If tolerance is >0 and ~startPoint~ is not found, the point with the minimum
-distance ~d~ to ~startPoint~ will be used as startimg point,
-if ~d~ <= ~tolerance~.
-
-*/
-
-    inline bool SelectSubsequentSegment() ;
-/*
-Selects the segment, that is subsequent to the currently selected Segment.
-Returns ~true~, if such a segment exists, rezurns ~false~ otherwise.
-
-*/
-
-    inline bool getWaypoint( Point &destination ) const;
-/*
-Returns ~true~, iff there is a selected segment.  In this case,
-~destination~ is set to the non-dominating point of the half segment.
-
-*/
-
-bool GetStartSmaller();
-/*
-Returns the startSmaller value of the line.
-
-*/
-
-bool IsCycle();
-/*
-Returns the cycle value of the line.
-
-*/
-
-bool IsSimple();
-/*
-Returns the simple value of the line.
-
-*/
 
     virtual uint32_t getshpType() const{
        return 3; // PolyLine Type
@@ -2202,7 +2082,15 @@ Returns the simple value of the line.
 
        }
     }
+
+   static void* Cast(void* addr){
+      return new (addr) Line();
+   }
+
   private:
+
+   inline Line() {} // This constructor should only be used 
+                    // within the Cast function.
 /*
 6.10 Private member functions
 
@@ -2232,12 +2120,6 @@ less than or equal to ~p~. Returns true if the half segment dominating
 point is equal to ~p~ and false otherwise.
 
 */
-    bool Find( const LRS& lrs, int& pos ) const;
-/*
-Searches (binary search algorithm) for a ~lrs~ in the ~lrsArray~ value and
-returns its position. Returns false if the ~lrs~ is not found.
-
-*/
     void SetPartnerNo();
 /*
 Sets the partnerno attribute for all half segments of the line. The left half segment partnerno
@@ -2255,12 +2137,11 @@ to the left one.
                      int& posnexths,
                      const HalfSegment*& nexths,
                      stack< pair<int, const HalfSegment*> >& nexthss );
-    void
-    VisitHalfSegments( int& poshs, const HalfSegment*& hs, double& lrspos,
-                       int& edgeno, int cycleno, int faceno,
-                       stack< pair<int, const HalfSegment*> >& nexthss,
-                       vector<bool>& visited );
-    void SetNoComponents();
+    void computeComponents();
+
+    void collectFace(int faceno, int startPos, DBArray<bool>& used);
+    int getUnusedExtension(int startPos, const DBArray<bool>& used) const;
+
 /*
 Calculates and sets the number of components for the line. For every half segment, the following
 information is stored: faceno contains the number of the component, cycleno contains the
@@ -2275,11 +2156,6 @@ The method ~VisitHalfSegments~ is a recursive function that does the job for
     DBArray<HalfSegment> line;
 /*
 The persisten array of half segments.
-
-*/
-    DBArray<LRS> lrsArray;
-/*
-The persistent array containing the Linear Referencing System ordering.
 
 */
     Rectangle<2> bbox;
@@ -2305,24 +2181,6 @@ The number of components for the line.
     double length;
 /*
 The length of the line.
-
-*/
-    bool simple;
-/*
-Tells whether this is a simple line, which means it has only one components and no branches.
-This is sometimes called a ~line string~. We only have the linear referencing system
-for simple lines, it makes no sense for the other cases.
-
-*/
-    bool cycle;
-/*
-Tells whether this is a simple line and a cycle.
-
-*/
-    bool startsSmaller;
-/*
-For simple lines without cycles, tells whether the starting point of the linear
-referencing system is smaller (lexicographic order) than the end point.
 
 */
 
@@ -2361,7 +2219,7 @@ contained arrays to have ~size~ number od slots.
 
 */
   SimpleLine(int size): 
-            segments(size),lrsArray(size),
+            segments(size),lrsArray(size/2),
             isdefined(false),startSmaller(true),
             isCycle(false),isOrdered(true),length(0.0),
             bbox(false),currentHS(-1){
@@ -2385,6 +2243,8 @@ Constructs a ~SimpleLine~ froma complex one.
   SimpleLine(const SimpleLine& src):
     segments(src.Size()),lrsArray(src.Size()){
     Equalize(src);
+    del.refs=1;
+    del.isDelete=true;
   }
 
 /*
@@ -2679,7 +2539,7 @@ The following functions are needed to act as an attribute type.
   void fromLine(const Line& src);
   
   static void* Cast(void* addr){
-    return new (addr) SimpleLine;
+    return new (addr) SimpleLine();
   }
 
   inline void Get( const int i, const HalfSegment*& hs ) const{
@@ -2748,7 +2608,7 @@ The following functions are needed to act as an attribute type.
 Only for use within the Cast function.
 
 */
-    SimpleLine() {}
+   SimpleLine() { }
 
 /*
 ~Find~
@@ -3750,6 +3610,12 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 ListExpr
 OutRegion( ListExpr typeInfo, Word value );
 
+Word
+InSimpleLine( const ListExpr typeInfo, const ListExpr instance,
+        const int errorPos, ListExpr& errorInfo, bool& correct ) ;
+ListExpr
+OutSimpleLine( ListExpr typeInfo, Word value );
+
 /*
 10 Auxiliary classes used by window clipping functions
 
@@ -4242,6 +4108,8 @@ ldp( ldp ),
 lp( lp ),
 rp( rp )
 {
+  assert(lp.IsDefined());
+  assert(rp.IsDefined());
   assert( !AlmostEqual( lp, rp ) );
 
   if( lp > rp )
@@ -4258,6 +4126,8 @@ lp( hs.lp ),
 rp( hs.rp ),
 attr( hs.attr )
 {
+  assert(lp.IsDefined());
+  assert(rp.IsDefined());
 }
 
 inline const Point&
@@ -4386,14 +4256,10 @@ HalfSegment::SubHalfSegment( double pos1, double pos2,
 */
 inline Line::Line( const int n ) :
 line( n ),
-lrsArray( n / 2 ),
 bbox( false ),
 ordered( true ),
 noComponents( 0 ),
 length( 0.0 ),
-simple( true ),
-cycle( false ),
-startsSmaller( false ),
 currentHS( -1 )
 { del.refs=1;
   del.isDelete=true;
@@ -4401,14 +4267,10 @@ currentHS( -1 )
 
 inline Line::Line( const Line& cl ) :
 line( cl.Size() ),
-lrsArray( cl.lrsArray.Size() ),
 bbox( cl.bbox ),
 ordered( true ),
 noComponents( cl.noComponents ),
 length( cl.length ),
-simple( cl.simple ),
-cycle( cl.cycle ),
-startsSmaller( cl.startsSmaller ),
 currentHS ( cl.currentHS)
 {
   assert( cl.IsOrdered());
@@ -4419,13 +4281,6 @@ currentHS ( cl.currentHS)
     cl.Get( i, hs );
     line.Put( i, *hs );
   }
-
-  const LRS *lrs;
-  for( int i = 0; i < cl.lrsArray.Size(); i++ )
-  {
-    cl.lrsArray.Get( i, lrs );
-    lrsArray.Put( i, *lrs );
-  }
   del.refs=1;
   del.isDelete=true;
 }
@@ -4433,8 +4288,10 @@ currentHS ( cl.currentHS)
 inline void Line::Destroy()
 {
   line.Destroy();
-  lrsArray.Destroy();
 }
+
+  /*
+   // unsave code
 
 inline void Line::SetNoComponents( int noComponents )
 {
@@ -4446,28 +4303,29 @@ inline void Line::SetLength( double length )
   this->length = length;
 }
 
+
+ */
+
+
 inline double Line::Length() const
 {
   return length;
 }
 
-inline void
-Line::SetLineType( bool simple, bool cycle, bool startsSmaller )
-{
-  this->simple = simple;
-  this->cycle = cycle;
-  this->startsSmaller = startsSmaller;
-}
 
 inline const Rectangle<2> Line::BoundingBox() const
 {
   return bbox;
 }
 
-inline void Line::SetBoundingBox( const Rectangle<2>& bbox )
-{
-  this->bbox = bbox;
-}
+  /*
+  // unsave code
+
+  inline void Line::SetBoundingBox( const Rectangle<2>& bbox )
+  {
+    this->bbox = bbox;
+  }
+  */
 
 inline bool Line::IsOrdered() const
 {
@@ -4482,94 +4340,6 @@ inline bool Line::IsEmpty() const
 inline int Line::Size() const
 {
   return line.Size();
-}
-
-// Original Implementation:
-// inline Point Line::StartPoint( bool startsSmaller ) const
-// {
-//   if( IsEmpty() )
-//     return Point( false );
-//
-//   if( startsSmaller && this->startsSmaller )
-//     pos = 0;
-//   else
-//     pos = Size() - 1;
-//
-//   const LRS *lrs;
-//   Get( pos, lrs );
-//
-//   const HalfSegment* hs;
-//   Get( lrs->hsPos, hs );
-//
-//   return pos == 0 ?
-//          hs->GetDomPoint() :
-//          hs->GetSecPoint();
-// }
-
-// Changes proposed by M. Scheppokat:
-inline Point Line::StartPoint( bool startsSmaller ) const
-{
-  if( IsEmpty() )
-    return Point( false );
-
-  // Find out which end should be the start of the line. This
-  // depends on the orientation of the curve and the parameter
-  // to this function.
-  bool startPointSmaller = startsSmaller && this->startsSmaller;
-
-  if( startPointSmaller )
-  {
-    // Start is at the smaller end of the array
-    pos = 0;
-  }
-  else
-  {
-    // Start is at the bigger end of the array
-    pos = lrsArray.Size()-1;
-  }
-
-  // Read entry from linear referencing system.
-  const LRS *lrs;
-  Get( pos, lrs );
-
-  // Get half-segment
-  const HalfSegment* hs;
-  Get( lrs->hsPos, hs );
-
-  // Return one end of the half-segment depending
-  // on the start.
-  return startPointSmaller ?
-         hs->GetDomPoint() :
-      hs->GetSecPoint();
-}
-
-// Original Implementation:
-// inline Point Line::EndPoint( bool startsSmaller ) const
-// {
-//   if( IsEmpty() )
-//     return Point( false );
-//
-//   if( startsSmaller && this->startsSmaller )
-//     pos = Size()-1;
-//   else
-//     pos = 0;
-//
-//   const LRS *lrs;
-//   Get( pos, lrs );
-//
-//   const HalfSegment* hs;
-//   Get( lrs->hsPos, hs );
-//
-//   return pos == 0 ?
-//          hs->GetDomPoint() :
-//          hs->GetSecPoint();
-// }
-
-// Changes proposed by M. Scheppokat:
-inline Point Line::EndPoint( bool startsSmaller ) const
-{
-  // The end is opposite to the start.
-  return StartPoint(!startsSmaller);
 }
 
 inline void Line::Get( const int i, const HalfSegment*& hs ) const
@@ -4592,16 +4362,6 @@ inline void Line::TrimToSize(){
 inline void Line::Put( const int i, const HalfSegment& hs )
 {
   line.Put( i, hs );
-}
-
-inline void Line::Get( const int i, const LRS*& lrs ) const
-{
-  lrsArray.Get( i, lrs );
-}
-
-inline void Line::Put( const int i, const LRS& lrs )
-{
-  lrsArray.Put( i, lrs );
 }
 
 inline void Line::SelectFirst() const
@@ -4633,105 +4393,6 @@ inline bool Line::GetHs( const HalfSegment*& hs ) const
   return false;
 }
 
-inline bool Line::SelectInitialSegment( const Point &startPoint,
-                                        const double tolerance )
-{
-  assert( IsDefined() );
-  assert( startPoint.IsDefined() );
-  if( !simple || cycle )
-    return false;
-  bool success = Find(startPoint, currentHS, false);
-  if ( !success || currentHS < 0 || currentHS >= Size() )
-  {
-    currentHS = -1;
-    if (tolerance > 0.0)
-    { // try to find the point with minimum distance to startPoint,
-      // where the distance is smaller than tolerance
-      double minDist = tolerance; // currentHS is -1
-      double distance = 0.0;
-      for(int pos=0; pos<Size(); pos++)
-      { // scan all dominating point, save the index of the HalfSegment with
-        // the currently smallest distance to startPoint to currentHS and the
-        // current minimum distance to minDist
-        const HalfSegment* hs;
-        line.Get( pos, hs );
-        distance = hs->GetDomPoint().Distance(startPoint);
-        if (distance <= minDist)
-        {
-          minDist   = distance;
-          currentHS = pos;
-        }
-      }
-      if (currentHS != -1)
-      {
-        return true;
-      }
-    }
-    return false;
-  }
-  return true;
-}
-
-inline bool Line::SelectSubsequentSegment()
-{
-  assert( IsDefined() );
-
-  const HalfSegment* hs;
-
-  if( !simple || cycle || currentHS < 0 )
-    return false;
-  Get(currentHS, hs);
-  //  Point p( true, 0.0, 0.0 );
-  // The naive approach requires O(n) time to find the subsequnet HalfSegment:
-  //   p = hs->GetSecPoint();
-  //   return SelectInitialSegment( p );
-
-  // test both neighbours of the partner. As the line is simple and acyclic,
-  // one of both must be the subsequent HalfSegment!
-  // this requires only O(1) time:
-  int partner = hs->attr.partnerno;
-  const HalfSegment* nexths;
-
-  // look at position before currentHS's partner
-  if( partner>0 )
-  {
-    currentHS = partner - 1;
-    Get(currentHS, nexths);
-    if ( AlmostEqual(nexths->GetDomPoint(), hs->GetSecPoint()) )
-    {
-      return true;
-    }
-  }
-  // look at position after currentHS's partner
-  if( partner < Size()-1 )
-  {
-    currentHS = partner + 1;
-    Get(currentHS, nexths);
-    if ( AlmostEqual(nexths->GetDomPoint(), hs->GetSecPoint()) )
-    {
-      return true;
-    }
-  }
-  // No subsequent HalfSegment found:
-  currentHS = -1;
-  return false;
-}
-
-inline bool Line::getWaypoint( Point &destination ) const
-{
-  assert( IsDefined() );
-  if( !simple || cycle || currentHS < 0 || currentHS >= Size() )
-  {
-    destination.SetDefined( false );
-    return false;
-    cout << "Line::getWaypoint(): Illegal kind of line!";
-  }
-  const HalfSegment* hs;
-  Get(currentHS, hs);
-  destination = hs->GetSecPoint();
-  destination.SetDefined( true );
-  return true;
-}
 
 /*
 11.4 Class ~Region~

@@ -6,6 +6,27 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+
+2007-05-30 lrsArray removed from the line type 
+===============================================================================
+In order to make the line type more simple, the lrsArray and further members 
+has been removed from the Line class. Thereby, some functions are not longer 
+available. For compensating that, a new type sline with a corresponding
+class SimpleLine has been introduced. A Simple line represents a simple
+polyline (i.e. with at most one component and without any branches). 
+There are some functions (and operators) for converting between the types
+provided.
+
+By the changes at the line type:
+
+ YOU NEED TO RESTORE ALL YOUR DATABASES CONTAINING LINES! 
+
+
+Have fun!
+  Thomas
+
+
+
 2007-05-30  Added Generic Open and Save Functions for Attribute Types
 ===============================================================================
 We added Template Functions OpenAttribute<T> and SaveAttribute<T> to
