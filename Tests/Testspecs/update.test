@@ -21,8 +21,15 @@
 # run with : Runner -c MyConfig.config <relalgtest
 # (Runner can be found in directory UserInterfaces)
 
-#setup
 open database germany;
+
+delete Kreis2;
+delete Kreis3;
+delete Kreis3I;
+delete hagen;
+delete berlin;
+
+#setup
 
 let Kreis2 = Kreis feed head[0] consume;
 let Kreis3 = Kreis feed head[0] consume;
