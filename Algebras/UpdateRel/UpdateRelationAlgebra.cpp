@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
 Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -33,6 +33,10 @@ Relational Algebra and fixed some memory leaks.
 
 October 2007, M. Spiekermann fixed bugs in the implementations of the operators
 ~updatedirectsave~ and ~updatedirectsearch~.
+
+June 2008, M. Spiekermann bug fix for operator ~updatesearchsave~. However, the
+implementation is still limited since the code expects that the relation to be
+searched on can be hold in an random memory based hash table.
 
 [TOC]
 
@@ -2492,25 +2496,25 @@ Operator extrelupdatesearch (
 /*
 2.18 Operator ~updatedirectsave~
 
-Updates each input tuple by  replacing the attributevalues of the attributes
+Updates each input tuple by  replacing the attribute values of the attributes
 given by their names in the function-argumentlist with the new values received
-from the functions. Precondition is that the tuples of the inputstream
+from the functions. Precondition is that the tuples of the input stream
 originally belong to the relation that shall be updated.  The updated tuple is
 made persistent and as the resultstream tuples are returned that contain the
-new values in first places, then all old values and finally the TupleIdentifier
-of the updated tuple. Additionally the resulttuples are stored in an auxiliary
+new values in first places, then all old values and finally the tuple identifier (TID)
+of the updated tuple. Additionally, the resulting tuples are stored in an auxiliary
 relation given as the third argument
 
 2.18.0  General Type mapping functions of operators ~updatedirectsave~ and ~updatesearchsave~
 
-Type mapping for ~updatedirectsave~ and ~updatesearchsave~is
+Type mapping for ~updatedirectsave~ and ~updatesearchsave~ is
 
 ----     (stream X) (rel X) (rel(tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn)(TID tid))))
      ((ai1 (map x xi1)) ... (aij (map x xij)))
 
         -> (stream (tuple ((a1 x1) ... (an xn) (a1_old x1) ... (an_old xn)(TID tid))))
 
-        where X = (tuple ((a1 x1) ... (an xn))) and ai1 - aij in (a1 .. an)
+        where X = (tuple ((a1 x1) ... (an xn))) and i1, ..., ij in {1, ... , n}
 ----
 
 */
@@ -2874,13 +2878,13 @@ Operator extrelupdatedirectsave (
 /*
 2.31 Operator ~updatesearchsave~
 
-Updates each tuple of the relation that has the same values as one of the input-tuples by
-replacing the attributevalues of the attributes given by their names in the
-function-argumentlist with the new values received from the functions.
-The updated tuple is made persistent and as
-the resultstream tuples are returned that contain the new values in first places, then all old values and finally
-the TupleIdentifier of the updated tuple. Additionally the resulttuples are stored in an auxiliary relation
-given as the third argument
+Updates each tuple of the relation that has the same values as one of the
+input-tuples by replacing the attributevalues of the attributes given by their
+names in the function-argumentlist with the new values received from the
+functions.  The updated tuple is made persistent and as the resultstream tuples
+are returned that contain the new values in first places, then all old values
+and finally the TupleIdentifier of the updated tuple. Additionally the
+resulttuples are stored in an auxiliary relation given as the third argument
 
 2.31.1 Type mapping function of operator ~updatesearchsave~
 
@@ -2911,21 +2915,27 @@ int UpdateSearchSave(Word* args, Word& result, int message,
   Relation* auxRelation = 0;
   RelationIterator* iter = 0;
   Attribute* newAttribute = 0;
-  vector<Tuple*>* nextBucket = 0;
+
+  typedef vector<Tuple*> Bucket;
+  Bucket* nextBucket = 0;
+
   struct LocalTransport
   {
-    LocalTransport():
-    updatedTuples( new vector<Tuple*>() ),
-    hashTable( new vector<vector<Tuple*>*>(256) ),
+
+    LocalTransport( int buckets = 997 ):
+    updatedTuples( new Bucket() ),
+    hashTable( new vector<Bucket*>(buckets) ),
     resultTupleType( 0 )
     {
-      for (int i = 0; i < 256; i++)
-        (*hashTable)[i] = new vector<Tuple*>();
+      vector<Bucket*>::iterator i = hashTable->begin();	    
+      for (; i != hashTable->end(); i++) {
+        *i = new Bucket();
+      }	
     }
 
     ~LocalTransport()
     {
-      for( vector<Tuple*>::iterator i = updatedTuples->begin();
+      for( Bucket::iterator i = updatedTuples->begin();
            i != updatedTuples->end();
            i++ )
       {
@@ -2934,10 +2944,11 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       }
       delete updatedTuples;
 
-      for (int i = 0; i < 256; i++)
+      vector<Bucket*>::iterator i = hashTable->begin();	    
+      for (; i != hashTable->end(); i++)
       {
-        for( vector<Tuple*>::iterator j = (*hashTable)[i]->begin();
-             j != (*hashTable)[i]->end();
+        for( Bucket::iterator j = (*i)->begin();
+             j != (*i)->end();
              j++ )
         {
           //(*j)->DecReference();
@@ -2946,17 +2957,19 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 	  // but I'm not shure if it is the whole story.
           (*j)->DeleteIfAllowed();
         }
-        delete (*hashTable)[i];
+        delete (*i);
       }
       delete hashTable;
 
       resultTupleType->DeleteIfAllowed();
     }
 
-    vector<Tuple*>* updatedTuples;
-    vector<vector<Tuple*>*>* hashTable;
+    Bucket* updatedTuples;
+    vector<Bucket*>* hashTable;
     TupleType* resultTupleType;
-  } *localTransport;
+  };
+ 
+  LocalTransport* localTransport;
   size_t hashValue ;
   bool tupleFound;
 
@@ -2995,7 +3008,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 
       localTransport =  (LocalTransport*) local.addr;
       // Check if an already updated duplicate of the last
-      // inputtuples has to be send to the outputstream first
+      // input tuples has to be send to the outputstream first
       if (!localTransport->updatedTuples->empty())
       {
         newTuple = localTransport->updatedTuples->back();
@@ -3030,7 +3043,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
           nextBucket =
             localTransport->hashTable->operator[](hashValue % 256);
           // Look for all tuples in the bucket if they have the
-          // same attributevalues
+          // same attribute values
           for (size_t j = 0; j < nextBucket->size(); j++)
           {
             nextTup = nextBucket->operator[](j);
@@ -3278,7 +3291,6 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
   }
   return 0;
 }
-
 
 
 /*
