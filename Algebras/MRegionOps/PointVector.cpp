@@ -17,10 +17,33 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 */
 
 #include "PointVector.h"
+#include "Segment.h"
+
+namespace mregionops {
 
 Point2D::Point2D(const Point3D& p) :
 	x(p.GetX()), y(p.GetY()) {
 
+}
+
+double Point2D::WhichSide(const Segment2D& s) const {
+
+    return WhichSide(s.GetStart(), s.GetEnd());
+}
+
+bool Point2D::IsLeft(const Segment2D& s) const {
+
+    return IsLeft(s.GetStart(), s.GetEnd());
+}
+
+bool Point2D::IsRight(const Segment2D& s) const {
+
+    return IsRight(s.GetStart(), s.GetEnd());
+}
+
+bool Point2D::IsColinear(const Segment2D& s) const {
+
+    return IsColinear(s.GetStart(), s.GetEnd());
 }
 
 Point3D::Point3D(const Point2D& p) :
@@ -37,3 +60,5 @@ Vector3D::Vector3D(const Vector2D& v) :
 	x(v.GetX()), y(v.GetY()), z(0.0) {
 
 }
+
+} // end of namespace mregionops

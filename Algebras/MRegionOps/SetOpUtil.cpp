@@ -19,6 +19,8 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 
 #include "SetOpUtil.h"
 
+namespace mregionops {
+
 /*
 
 Class Point3DExt
@@ -77,17 +79,7 @@ PointExtSet::GetIntersectionSegment() const {
 	return IntersectionSegment::createBuddyPair(p2, p3);
 }
 
-/*
 
-Class Segment2D
-
-*/
-
-bool Segment2D::IsAbove(const Point2D& p) const {
-
-	// TODO:
-	
-}
 
 /*
 
@@ -981,20 +973,28 @@ IntersectionSegment::createBuddyPair(const Point3D& a, const Point3D& b) {
 	return pair<IntersectionSegment*, IntersectionSegment*>(first, second);
 }
 
-bool IntersectionSegment::LessByStartWEndW(IntersectionSegment* s) const {
+bool IntersectionSegment::IsLeftOf(const IntersectionSegment* intSeg) const {
+    
+    // TODO: Avoid multiple computation of the same value.
+    
+    Segment2D s(intSeg->GetStartWT(), intSeg->GetEndWT());
 
-    if (NumericUtil::Lower(this->GetStartW(), s->GetStartW()))
+    if (this->GetStartWT().IsLeft(s))
         return true;
-    else if (NumericUtil::Greater(this->GetStartW(), s->GetStartW()))
-        return false;
-    else // this->GetStartW() == s->GetStartW()			
-    if (NumericUtil::Lower(this->GetEndW(), s->GetEndW()))
-        return true;
-    else if (NumericUtil::Greater(this->GetEndW(), s->GetEndW()))
-        return false;
     else
-        // this->GetEndW() == s->GetEndW()	
-        return this->GetStartWT().IsLeft(s->GetStartWT(), s->GetEndWT());
+        if (this->GetStartWT().IsRight(s))
+            return false;
+        else // Startpoint of this is colinear to intSeg.
+            if (this->GetEndWT().IsLeft(s))
+                return true;
+            else
+                if (this->GetEndWT().IsRight(s))
+                    return false;
+                //else // this is colinear to intSeg.
+                    //if (op == INTERSECTION)
+                        //return this->ResultFaceIsLeft();
+                    //else // op == UNION | MINUS
+                        //return this->ResultFaceIsRight();    
 }
 
 void IntersectionSegment::SetWCoords(const PFace& pFace) {
@@ -1106,31 +1106,25 @@ void IntersectionSegment::PrintMates() {
 bool GeneralIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
         const IntersectionSegment* const& s2) const {
 
-    // We sort by (t_start, w_start, w_end, IsLeft())
+    // We sort by (t_start, w_start, IsLeft())
 
     // Precondition: s1->GetStartT() < s1->GetEndT() && 
     //               s2->GetStartT() < s2->GetEndT()
 
     if (NumericUtil::Lower(s1->GetStartT(), s2->GetStartT()))
-    return true;
+        return true;
     else
-    if (NumericUtil::Greater(s1->GetStartT(), s2->GetStartT()))
-    return false;
-    else // s1->GetStartT() == s2->GetStartT()
-    if (NumericUtil::Lower(s1->GetStartW(), s2->GetStartW()))
-    return true;
-    else
-    if (NumericUtil::Greater(s1->GetStartW(), s2->GetStartW()))
-    return false;
-    else // s1->GetStartW() == s2->GetStartW()
-    if (NumericUtil::Lower(s1->GetEndW(), s2->GetEndW()))
-    return true;
-    else
-    if (NumericUtil::Greater(s1->GetEndW(), s2->GetEndW()))
-    return false;
-    else // s1->GetEndW() == s2->GetEndW()
-    return s1->GetStartWT().IsLeft(s2->GetStartWT(),
-            s2->GetEndWT());
+        if (NumericUtil::Greater(s1->GetStartT(), s2->GetStartT()))
+            return false;
+        else // s1->GetStartT() == s2->GetStartT()
+            if (NumericUtil::Lower(s1->GetStartW(), s2->GetStartW()))
+                return true;
+            else
+                if (NumericUtil::Greater(s1->GetStartW(), s2->GetStartW()))
+                    return false;
+                else // s1->GetStartW() == s2->GetStartW()
+                    return s1->GetEndWT().IsLeft(s2->GetStartWT(),
+                                                 s2->GetEndWT());
 }
 
 bool RightIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
@@ -1170,6 +1164,89 @@ bool RightIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
     return NumericUtil::Lower(t2, t4);
     else
     return NumericUtil::Lower(t1, t3);
+}
+
+/*
+
+ Class MateEngine
+
+*/
+
+
+void MateEngine::ComputeTimeLevel(const double _t) {
+
+    t = _t;
+    activeIter = active.begin();
+
+    while (activeIter != active.end()) {
+
+        bool removedOrInserted = false;
+
+        while (activeIter != active.end() && IsOutOfRange(*activeIter)) {
+
+            activeIter = active.erase(activeIter);
+            removedOrInserted = true;
+        }
+
+        if (activeIter == active.end())
+        break;
+
+        if (HasMoreSegsToInsert()) {
+
+            IntersectionSegment* newSeg = *sourceIter;
+
+            if (newSeg->IsLeftOf(*activeIter)) {
+
+                activeIter = active.insert(activeIter, newSeg);
+                sourceIter++;
+                removedOrInserted = true;
+            }
+        }
+
+        if (removedOrInserted) {
+
+            DoMating();
+        }
+
+        activeIter++;
+    }
+
+    assert(activeIter == active.end());
+
+    // Add the tail, if there is one:
+    while (HasMoreSegsToInsert()) {
+
+        IntersectionSegment* newSeg = *sourceIter;
+        activeIter = active.insert(activeIter, newSeg);
+        DoMating();
+        sourceIter++;
+    }
+}
+
+void MateEngine::DoMating() {
+
+    IntersectionSegment* current = *activeIter;
+    IntersectionSegment* pred;
+    bool hasPred = false;
+
+    if (activeIter != active.begin()) {
+
+        activeIter--;
+        pred = *activeIter;
+        hasPred = true;
+        activeIter++;
+    }
+
+    if (!hasPred || pred->IsRightBoundary()) {
+
+        current->MarkAsLeftBoundary();
+
+    } else { // pred->IsLeftBoundary() == true
+
+        current->MarkAsRightBoundary();
+        current->AddMate(pred);
+        pred->AddMate(current);
+    }
 }
 
 /*
@@ -1464,14 +1541,11 @@ bool PFace::IntersectsRightBoundary(IntersectionSegment* intSeg) const {
 
     if (intSeg->GetRelationToRightBoundaryOfPFace() == NO_TOUCH)
         return false;
-
-    const double s = intSeg->GetStartWT().IsLeftValue(this->GetB_WT(), 
-                                                      this->GetD_WT());
-    const bool startOnBoundary = NumericUtil::NearlyEqual(s, 0.0);
-
-    const double e = intSeg->GetEndWT().IsLeftValue(this->GetB_WT(), 
-                                                    this->GetD_WT());
-    const bool endOnBoundary = NumericUtil::NearlyEqual(e, 0.0);
+    
+    const Segment2D rightBoundary(this->GetB_WT(), this->GetD_WT());
+    
+    const bool startOnBoundary = intSeg->GetStartWT().IsColinear(rightBoundary);
+    const bool endOnBoundary = intSeg->GetEndWT().IsColinear(rightBoundary);
 
     if (startOnBoundary && !endOnBoundary) {
 
@@ -1725,4 +1799,4 @@ PFaceCycleIterator PFaceCycle::GetPFaceCycleIterator() {
 	return PFaceCycleIterator(this);
 }
 
-
+} // end of namespace mregionops

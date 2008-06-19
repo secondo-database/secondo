@@ -20,6 +20,10 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 #ifndef NUMERICUTIL_H_
 #define NUMERICUTIL_H_
 
+using namespace std;
+
+namespace mregionops {
+
 class NumericUtil {
 	
 public:
@@ -132,6 +136,8 @@ private:
 		
 	}
 };
+
+} // end of namespace mregionops
 
 #endif /*NUMERICUTIL_H_*/
 

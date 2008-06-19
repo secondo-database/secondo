@@ -25,16 +25,21 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 #include <iomanip>
 #include <sstream>
 #include <iostream>
+#include "NumericUtil.h"
+//#include "Segment.h"
+
+using namespace std;
+
+namespace mregionops {
 
 #define VRML_SCALE_FACTOR 0.3
 #define VRML_DOUBLE_PRECISION 2
-
-using namespace std;
 
 class Point2D;
 class Point3D;
 class Vector2D;
 class Vector3D;
+class Segment2D;
 
 class Vector3D {
 
@@ -380,15 +385,33 @@ public:
         return res;
     }
 
-    inline double IsLeftValue(const Point2D& start, const Point2D& end) const {
+    inline double WhichSide(const Point2D& start, const Point2D& end) const {
 
         return (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
     }
+    
+    double WhichSide(const Segment2D& s) const;
 
     inline bool IsLeft(const Point2D& start, const Point2D& end) const {
 
-        return IsLeftValue(start, end) > 0.0;
+        return NumericUtil::Greater(WhichSide(start, end), 0.0);
     }
+    
+    inline bool IsRight(const Point2D& start, const Point2D& end) const {
+
+        return NumericUtil::Lower(WhichSide(start, end), 0.0);
+    }
+    
+    inline bool IsColinear(const Point2D& start, const Point2D& end) const {
+
+        return NumericUtil::NearlyEqual(WhichSide(start, end), 0.0);
+    }
+    
+    bool IsLeft(const Segment2D& s) const;
+
+    bool IsRight(const Segment2D& s) const;
+
+    bool IsColinear(const Segment2D& s) const;
 
 private:
 
@@ -493,5 +516,7 @@ private:
     double y;
     double z;
 };
+
+} // end of namespace mregionops
 
 #endif // POINTVECTOR_H_

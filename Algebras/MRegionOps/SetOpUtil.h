@@ -24,11 +24,14 @@
 //#include "vector.h"
 #include "NumericUtil.h"
 #include "PointVector.h"
+#include "Segment.h"
 #include <vector>
 #include <set>
 #include <list>
 #include <queue>
 #include <deque>
+
+namespace mregionops {
 
 #define REDUCE_PFACES_BY_BOUNDING_RECT
 
@@ -62,8 +65,6 @@ enum InsideOutside {
 
 class Point3DExt;
 class PointExtSet;
-class Segment2D;
-class Segment3D;
 class IntersectionSegment;
 class PFace;
 class PFaceCycle;
@@ -125,63 +126,7 @@ private:
     set<Point3DExt, PointExtCompare> s;
 };
 
-class Segment2D {
 
-public:
-
-    inline Segment2D() {
-    }
-
-    inline Segment2D(Point2D _start, Point2D _end) :
-        start(_start), end(_end) {
-
-        // TODO: Sort Points by x, y.
-    }
-
-    inline Point2D GetStart() const {
-
-        return start;
-    }
-
-    inline Point2D GetEnd() const {
-
-        return end;
-    }
-
-    bool IsAbove(const Point2D& p) const;
-
-private:
-
-    Point2D start, end;
-};
-
-class Segment3D {
-
-public:
-
-    inline Segment3D() {
-    }
-
-    inline Segment3D(Point3D _start, Point3D _end) :
-        start(_start), end(_end) {
-
-        // TODO: Sort Points by t, x, y.
-    }
-
-    inline Point3D GetStart() const {
-
-        return start;
-    }
-
-    inline Point3D GetEnd() const {
-
-        return end;
-    }
-
-private:
-
-    Point3D start, end;
-};
 
 class IntersectionSegment {
 
@@ -325,8 +270,20 @@ public:
 
         return NumericUtil::NearlyEqual(GetStartT(), GetEndT());
     }
+    /*
+    
+    inline bool IsLeftOf(const Point2D& pointWT) {
+        
+        return pointWT.IsLeft(GetStartWT(), GetEndWT());
+    }
+    
+    inline bool IsRightOf(const Point2D& pointWT) {
 
-    bool LessByStartWEndW(IntersectionSegment* s) const;
+        return pointWT.IsRight(GetStartWT(), GetEndWT());
+    }
+    
+    */
+    bool IsLeftOf(const IntersectionSegment* s) const;
 
     void SetWCoords(const PFace& pFace);
 
@@ -612,56 +569,7 @@ public:
         sourceIter = source->begin();
     }
     
-    void ComputeTimeLevel(const double _t) {
-        
-        t = _t;
-        activeIter = active.begin();
-        
-        while (activeIter != active.end()) {
-            
-            bool removedOrInserted = false;
-            
-            while (activeIter != active.end() && IsOutOfRange(*activeIter)) {
-                
-                activeIter = active.erase(activeIter);
-                removedOrInserted = true;
-            }
-            
-            if (activeIter == active.end())
-                break;
-            
-            if (HasMoreSegsToInsert()) {
-                
-                IntersectionSegment* newSeg = *sourceIter;
-                
-                if (newSeg->LessByStartWEndW(*activeIter)) {
-                    
-                    activeIter = active.insert(activeIter, newSeg);
-                    sourceIter++;
-                    removedOrInserted = true;
-                }
-                
-            }
-            
-            if (removedOrInserted) {
-                
-                DoMating();
-            }
-            
-            activeIter++;
-        }
-        
-        assert(activeIter == active.end());
-        
-        // Add the tail, if there is one:
-        while (HasMoreSegsToInsert()) {
-            
-            IntersectionSegment* newSeg = *sourceIter;
-            activeIter = active.insert(activeIter, newSeg);
-            DoMating();
-            sourceIter++;
-        }
-    }
+    void ComputeTimeLevel(const double _t);
 
     inline bool IsOutOfRange(IntersectionSegment* seg) const {
         
@@ -674,31 +582,7 @@ public:
                 (*sourceIter)->GetStartT(), t);
     }
     
-    void DoMating() {
-
-        IntersectionSegment* current = *activeIter;
-        IntersectionSegment* pred;
-        bool hasPred = false;
-
-        if (activeIter != active.begin()) {
-
-            activeIter--;
-            pred = *activeIter;
-            hasPred = true;
-            activeIter++;
-        }
-
-        if (!hasPred || pred->IsRightBoundary()) {
-
-            current->MarkAsLeftBoundary();
-
-        } else { // pred->IsLeftBoundary() == true
-
-            current->MarkAsRightBoundary();
-            current->AddMate(pred);
-            pred->AddMate(current);
-        }
-    }
+    void DoMating();
 
 private:
 
@@ -1116,7 +1000,7 @@ private:
     deque<PFace*>::iterator iter;
 };
 
-//} // end of namespace mra
+} // end of namespace mregionops
 
 
 #endif /*SETOPUTIL_H_*/
