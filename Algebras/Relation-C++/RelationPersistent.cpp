@@ -819,7 +819,8 @@ TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
   diskBuffer( 0 ),
   inMemory( true ),
   traceFlag( RTFlag::isActive("RA:TupleBufferInfo") ),
-  totalExtSize( 0 ),
+  totalMemSize( 0 ),
+  totalExtSize( 0),
   totalSize( 0 )
   {
     if (traceFlag) 
@@ -876,8 +877,8 @@ int TupleBuffer::GetNoTuples() const
 
 size_t TupleBuffer::FreeBytes() const
 {
-  if (MAX_MEMORY_SIZE > totalExtSize) {
-    return MAX_MEMORY_SIZE - static_cast<size_t>( ceil(totalExtSize) );
+  if (MAX_MEMORY_SIZE > totalMemSize) {
+    return MAX_MEMORY_SIZE - static_cast<size_t>( ceil(totalMemSize) );
   } else {
     return 0;
   }    
@@ -985,13 +986,14 @@ void TupleBuffer::AppendTuple( Tuple *t )
   
   if( inMemory )
   {
-    if( totalExtSize + t->GetExtSize() <= 
+    if( totalMemSize + t->GetMemSize() <= 
         MAX_MEMORY_SIZE )
     {
       t->IncReference();
       memoryBuffer.push_back( t );
-      totalExtSize += t->GetExtSize();
+      totalMemSize += t->GetMemSize();
       totalSize += t->GetSize();
+      totalExtSize += t->GetExtSize();
     }
     else
     {
@@ -1014,6 +1016,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
         iter++;
       }
       memoryBuffer.clear();
+      totalMemSize = 0;
       totalExtSize = 0;
       totalSize = 0;
       diskBuffer->AppendTupleNoLOBs( t );

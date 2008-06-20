@@ -780,6 +780,29 @@ part, i.e. the small FLOBs.
 Returns the size of attribute i including its extension part.
 
 */
+   inline size_t GetMemSize() const{
+      size_t tupleMemSize = sizeof(*this);
+      for( int i = 0; i < noAttributes; i++)
+      {
+        tupleMemSize += GetMemSize(i);
+      }
+      return tupleMemSize;
+   }
+
+   // returns the size in memory of attribute i
+   inline size_t  GetMemSize(int i) const {
+      size_t attrMemSize = GetRootSize(i);
+      for(int j=0; j< attributes[i]->NumOfFLOBs(); j++){
+          FLOB* tmpFLOB = attributes[i]->GetFLOB(j);
+          if(tmpFLOB->IsInMemory()){
+              attrMemSize += tmpFLOB->Size();
+          }
+      }
+      return attrMemSize;
+   } 
+
+
+
     inline int GetSize() const
     {
       if ( !recomputeSize ) 
@@ -1605,7 +1628,15 @@ A flag that tells if the buffer fit in memory or not.
 Switch trace messages on or off
 
 */  
+  double totalMemSize;
+/*
+The total size of occupied main memory;
+
+*/
+
+
   double totalExtSize;
+
 /*
 The total size occupied by the tuples in the buffer,
 taking into account the small FLOBs.

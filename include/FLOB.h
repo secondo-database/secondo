@@ -325,6 +325,19 @@ This function may be helpful for debugging purposes.
     string ToString() const;
 
 
+/*
+3.15 ~IsInMemory~
+
+This function returns true if the flob data are part of the main 
+memory.
+
+*/
+  bool IsInMemory(){
+     return (type==InMemory) ||
+            (type==InMemoryCached) ||
+            (type==InMemoryPagedCached);
+  }
+
   protected:
 
 /*
