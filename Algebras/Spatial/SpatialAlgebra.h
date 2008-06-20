@@ -1566,17 +1566,27 @@ Marks the begin of a bulk load of half segments relaxing the condition that the 
 ordered.
 
 */
-     void EndBulkLoad( bool sort = true, bool remDup = true,
-                       bool setPartnerNo = true, bool setNoComponents = true );
+     void EndBulkLoad (bool sort = true, 
+                       bool realminize = true);
 /*
-Marks the end of a bulk load and sorts the half segments set if the argument ~sort~ is set to true.
 
-6.2 Member functions
+Marks the end of a bulk load for this line.
+If all parameters are set to __true__, the only condition to the content
+of the Halfsegment array is that for each segment both corresponding Halfsegments are 
+included.
+
+If ~sort~ is set to __false__, the halfsegments must be sorted using the 
+halfsegment order. 
+
+If ~realminize~ is set to __false__, the halfsegments has to be realminized. This means
+each pair of different halfsegments has at most a common endpoint.
+Furthermore, the edge numbers of the halfsegments must be the same for the 
+two halfsegments of a segment. The allowed range for the edge numbers is [0..Size()/2-1].
 
 */
-//    inline void SetNoComponents( int noComponents );
+
 /*
-Sets the number of components with the given argument value ~noComponents~.
+6.2 Member functions
 
 */
     inline double Length() const;

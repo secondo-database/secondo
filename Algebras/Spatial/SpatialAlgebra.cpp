@@ -3534,24 +3534,51 @@ void Line::StartBulkLoad()
   ordered = false;
 }
 
-void Line::EndBulkLoad( bool sort, bool remDup,
-                        bool setPartnerNo, bool setNoComponents )
-{
-  Sort();
+/*
+~EndBulkLoad~
+
+Finishs the bulkload for a line. If this function is called, 
+both HalfSegments assigned to a segment of the line must be part 
+of this line. 
+
+The parameter ~sort~ can be set to __false__ if the Halfsegments are
+already ordered using the HalfSegment order.
+
+The parameter ~realminize~ can be set to __false__ if the line is 
+already realminized, meaning each pair of different Segments has
+at most a common endpoint. Furthermore, the two halgsegments belonging
+to a segment must have the same edge number. The edge numbers mut be 
+in Range [0..Size()-1]. HalfSegments belonging to different segments 
+must have different edge numbers.
+
+Only change one of the parameters if you exacly know what you do. 
+Changing such parameters without fulifilling the conditions stated 
+above may construct invalid line representations which again may
+produce a system crash within some operators.
+ 
+*/
+
+void Line::EndBulkLoad( bool sort /* = true */, 
+                        bool realminize /* = true */
+                      ){
+  if(sort){
+    Sort();
+  }
   if(Size()>0){
-     DBArray<HalfSegment>* line2 = ::Realminize(line);
-     const HalfSegment* hs;
-     line2->Sort(HalfSegmentCompare);
-     line.Clear();
-     for(int i=0;i<line2->Size();i++){
-        line2->Get(i,hs);
-        line.Append(*hs);
-     } 
-     line2->Destroy();
-     delete line2;
+     if(realminize){
+       DBArray<HalfSegment>* line2 = ::Realminize(line);
+       const HalfSegment* hs;
+       line2->Sort(HalfSegmentCompare);
+       line.Clear();
+       for(int i=0;i<line2->Size();i++){
+         line2->Get(i,hs);
+         line.Append(*hs);
+       } 
+       line2->Destroy();
+       delete line2;
+     }
      SetPartnerNo();
   }
- 
   computeComponents();
   TrimToSize();
 }
@@ -4679,6 +4706,17 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
     }
   }
 }
+
+/*
+~ComputeComponents~
+
+Computes the length of this lines as well as its bounding box and the number 
+of components of this line. Each Halfsegment is assigned to a face number 
+(the component) and an egde number within this face. 
+
+
+
+*/
 
 void Line::computeComponents() {
   length = 0.0;
@@ -10813,7 +10851,8 @@ void SetOp(const Line& line1,
          }
        }
   } 
-  result.EndBulkLoad(true,false,true,true);
+  result.EndBulkLoad(true,false);
+  result.EndBulkLoad();
 } // setop line x line -> line
 
 
