@@ -10852,7 +10852,6 @@ void SetOp(const Line& line1,
        }
   } 
   result.EndBulkLoad(true,false);
-  result.EndBulkLoad();
 } // setop line x line -> line
 
 
