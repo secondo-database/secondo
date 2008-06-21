@@ -1211,6 +1211,7 @@ void MateEngine::ComputeTimeLevel(const double _t) {
 
     t = _t;
     activeIter = active.begin();
+    nextT = numeric_limits<double>::max();
 
     while (activeIter != active.end()) {
 
@@ -1241,6 +1242,8 @@ void MateEngine::ComputeTimeLevel(const double _t) {
 
             DoMating();
         }
+        
+        UpdateNextT();
 
         activeIter++;
     }
@@ -1253,6 +1256,7 @@ void MateEngine::ComputeTimeLevel(const double _t) {
         IntersectionSegment* newSeg = *sourceIter;
         activeIter = active.insert(activeIter, newSeg);
         DoMating();
+        UpdateNextT();
         sourceIter++;
     }
 }
@@ -1495,8 +1499,15 @@ void PFace::DeleteGeneralIntSegs() {
 void PFace::FindMates() {
 
     MateEngine mateEngine(&generalIntSegSet);
+    
+    mateEngine.Start();
+    
+    return;
+    
+    
+
     set<double>::iterator timeIter;
-    int count = 0;
+    //int count = 0;
     // Find mates for each relevant time value:
 
     for (timeIter = relevantTimeValueSet.begin(); timeIter
@@ -1511,7 +1522,7 @@ void PFace::FindMates() {
         //if (++count == 10)
         //break;
     }
-
+    
 }
 
 void PFace::CollectIntSegs(PUnitPair* target) const {

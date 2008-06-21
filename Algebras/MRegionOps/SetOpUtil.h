@@ -578,6 +578,16 @@ public:
         source(_source) {
         
         sourceIter = source->begin();
+        nextT = numeric_limits<double>::max();
+    }
+    
+    void Start() {
+        
+        while (sourceIter != source->end()) {
+            
+            t = min((*sourceIter)->GetStartT(), nextT);
+            ComputeTimeLevel(t);
+        }
     }
     
     void ComputeTimeLevel(const double _t);
@@ -593,6 +603,11 @@ public:
                 (*sourceIter)->GetStartT(), t);
     }
     
+    inline void UpdateNextT() {
+        
+        nextT = min((*activeIter)->GetEndT(), nextT);
+    }
+    
     void DoMating();
 
 private:
@@ -604,6 +619,7 @@ private:
     set<IntersectionSegment*, GeneralIntSegSetCompare>::iterator sourceIter;
     
     double t;
+    double nextT;
 };
 
 
