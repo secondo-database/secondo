@@ -1048,6 +1048,40 @@ void IntersectionSegment::SetSideOfResultFace(const PFace& self,
     }
 }
 
+Point3D IntersectionSegment::Evaluate(const double t) const {
+
+    // We compute the intersection point
+    // of the horizontal plane, defined by t, and this segment.
+    
+    // Precondition:
+    // t is between t_start and t_end.
+    assert(NumericUtil::Between(this->GetStartT(), t, this->GetEndT()));
+
+    // Point3D pointInPlane(0.0, 0.0, t);
+    // Vector3D normalVectorOfPlane(0.0, 0.0, 1.0);
+    // Vector3D u = *this->GetEndXYT() - *this->GetStartXYT();
+    // Vector3D w = this->GetStartXYT() - pointInPlane;
+    // double d = normalVectorOfPlane * u;
+    // double n = -normalVectorOfPlane * w;
+    
+    // This can be simplified to:
+
+    const Vector3D u = *this->GetEndXYT() - *this->GetStartXYT();
+    const double d = this->GetEndT() - this->GetStartT();
+    const double n = t - this->GetStartT();
+
+    // This segment must not be parallel to plane:
+    assert(!NumericUtil::NearlyEqual(d, 0.0));
+
+    const double s = n / d;
+
+    // This segment intersects the plane:
+    assert(NumericUtil::Between(0.0, s, 1.0));
+
+    // Compute segment intersection point:
+    return *this->GetStartXYT() + s * u;
+}
+
 
 void IntersectionSegment::Print() {
 
@@ -1161,9 +1195,9 @@ bool RightIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
     }
 
     if (NumericUtil::NearlyEqual(t1, t3))
-    return NumericUtil::Lower(t2, t4);
+        return NumericUtil::Lower(t2, t4);
     else
-    return NumericUtil::Lower(t1, t3);
+        return NumericUtil::Lower(t1, t3);
 }
 
 /*

@@ -123,7 +123,7 @@ public:
         return v;
     }
 
-    inline Vector3D operator +(const Vector3D& w) {
+    inline Vector3D operator +(const Vector3D& w) const {
 
         Vector3D v;
         v.x = x + w.x;
@@ -132,7 +132,7 @@ public:
         return v;
     }
 
-    inline Vector3D operator -(const Vector3D& w) {
+    inline Vector3D operator -(const Vector3D& w)const  {
 
         Vector3D v;
         v.x = x - w.x;
@@ -142,13 +142,13 @@ public:
     }
 
     // Inner Dot Product
-    inline double operator *(const Vector3D& w) {
+    inline double operator *(const Vector3D& w) const {
 
         return (x * w.x + y * w.y + z * w.z);
     }
 
     // 3D Exterior Cross Product
-    inline Vector3D operator ^(const Vector3D& w) {
+    inline Vector3D operator ^(const Vector3D& w) const {
 
         Vector3D v;
         v.x = y * w.z - z * w.y;
@@ -257,7 +257,7 @@ public:
         return v;
     }
 
-    inline Vector2D operator +(const Vector2D& w) {
+    inline Vector2D operator +(const Vector2D& w) const {
 
         Vector2D v;
         v.x = x + w.x;
@@ -265,7 +265,7 @@ public:
         return v;
     }
 
-    inline Vector2D operator -(const Vector2D& w) {
+    inline Vector2D operator -(const Vector2D& w) const {
 
         Vector2D v;
         v.x = x - w.x;
@@ -274,19 +274,19 @@ public:
     }
 
     // Inner Dot Product
-    inline double operator *(const Vector2D& w) {
+    inline double operator *(const Vector2D& w) const {
 
         return (x * w.x + y * w.y);
     }
 
     // 2D Exterior Perp Product
-    inline double operator |(const Vector2D& w) {
+    inline double operator |(const Vector2D& w) const {
 
         return (x * w.y - y * w.x);
     }
 
     // 3D Exterior Cross Product
-    inline Vector3D operator ^(const Vector2D& w) {
+    inline Vector3D operator ^(const Vector2D& w) const {
 
         return Vector3D(0.0, 0.0, x * w.y - y * w.x);
     }
@@ -353,7 +353,7 @@ public:
         return Vector2D(x - p.x, y - p.y);
     }
 
-    inline Point2D operator +(const Vector2D& v) // +ve translation
+    inline Point2D operator +(const Vector2D& v) const // +ve translation
     {
         Point2D p;
         p.x = x + v.GetX();
@@ -361,7 +361,7 @@ public:
         return p;
     }
 
-    inline Point2D operator -(const Vector2D& v) // -ve translation
+    inline Point2D operator -(const Vector2D& v) const // -ve translation
     {
         Point2D p;
         p.x = x - v.GetX();
@@ -369,7 +369,7 @@ public:
         return p;
     }
 
-    inline Point2D operator +(const Point2D& p) // affine sum
+    inline Point2D operator +(const Point2D& p)const  // affine sum
     {
         Point2D sum;
         sum.x = x + p.x;
@@ -377,7 +377,7 @@ public:
         return sum;
     }
 
-    inline Point2D operator *(const double& f) {
+    inline Point2D operator *(const double& f) const {
 
         Point2D res;
         res.x = x * f;
@@ -474,7 +474,7 @@ public:
         return Vector3D(x - p.x, y - p.y, z - p.z);
     }
 
-    inline Point3D operator +(const Vector3D& v) // +ve translation
+    inline Point3D operator +(const Vector3D& v) const // +ve translation
     {
         Point3D p;
         p.x = x + v.GetX();
@@ -483,7 +483,7 @@ public:
         return p;
     }
 
-    inline Point3D operator -(const Vector3D& v) // -ve translation
+    inline Point3D operator -(const Vector3D& v) const // -ve translation
     {
         Point3D p;
         p.x = x - v.GetX();
@@ -492,7 +492,7 @@ public:
         return p;
     }
 
-    inline Point3D operator +(const Point3D& p) // affine sum
+    inline Point3D operator +(const Point3D& p) const // affine sum
     {
         Point3D sum;
         sum.x = x + p.x;
@@ -501,7 +501,7 @@ public:
         return sum;
     }
 
-    inline Point3D operator *(const double& f) {
+    inline Point3D operator *(const double& f) const {
 
         Point3D res;
         res.x = x * f;

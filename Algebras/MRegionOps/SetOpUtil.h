@@ -34,6 +34,7 @@
 namespace mregionops {
 
 #define REDUCE_PFACES_BY_BOUNDING_RECT
+#define VRML_OUTFILE "out.wrl"
 
 enum SetOp {
 
@@ -214,8 +215,16 @@ public:
     inline void AddMate(IntersectionSegment* s) {
 
         // Note: We compare pointers here!
-        if (matesOfThis->empty() || matesOfThis->back() != s)
+        if (matesOfThis->empty() || matesOfThis->back() != s) {
+            
             matesOfThis->push_back(s);
+            
+        } else { // matesOfThis->back() == s
+            
+            // s is already a mate of this.
+            // nothing to do...
+        }
+            
     }
 
     inline IntersectionSegment* GetActiveLeftMate() const {
@@ -289,6 +298,8 @@ public:
 
     void SetSideOfResultFace(const PFace& self, const PFace& other,
             const SetOp op);
+    
+    Point3D Evaluate(const double t) const;
 
     static pair<IntersectionSegment*, IntersectionSegment*> createBuddyPair(
             const Point3D& a, const Point3D& b);
@@ -463,7 +474,7 @@ struct GlobalIntSegSetCompare {
     }
 };
 
-#define VRML_OUTFILE "out.wrl"
+
 
 class PUnitPair {
 
