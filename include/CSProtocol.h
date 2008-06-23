@@ -341,7 +341,7 @@ struct CSProtocol {
  const string startMessage;
  const string endMessage;
  const string startError;
- //const string errorTag = "<SendFileError/>"; 
+ const string sendFileError; 
  
  CSProtocol(NestedList* instance, iostream& ios, bool server = false) : 
    iosock(ios), 
@@ -356,7 +356,8 @@ struct CSProtocol {
    endResponse("</SecondoResponse>"),
    startMessage("<Message>"),
    endMessage("</Message>"),
-   startError("<Error>")
+   startError("<Error>"),
+   sendFileError("<SendFileError/>")
  {
    ignoreMsg = true;
    nl = instance;
@@ -421,15 +422,20 @@ struct CSProtocol {
   string line = "";  
   
   //cout << "Begin SendFile()" << endl;
-  cout << "Transmitting file: " << filename;
+//  cout << "Transmitting file: " << filename;
+
+
+  ifstream restoreFile( filename.c_str() );
+  if ( ! restoreFile ){
+     iosock <<  sendFileError << endl;
+     return false;
+  }
   
   // send begin file sequence
   iosock << startFileData << endl;
   
   try {
 
-    ifstream restoreFile( filename.c_str() );
-    if ( restoreFile )
     {
       const int bufSize =512;
       static char buf[bufSize];       

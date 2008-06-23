@@ -345,8 +345,6 @@ SecondoServer::CallRestore(const string& tag, bool database/*=false*/)
   string errorMessage="";
   ListExpr commandLE = nl->TheEmptyList();
   ListExpr resultList = nl->TheEmptyList();
-  bool readLastLine=false;
-
   
   // read in object or database name
   iostream& iosock = client->GetSocketStream();
@@ -377,8 +375,6 @@ SecondoServer::CallRestore(const string& tag, bool database/*=false*/)
     si->Secondo( cmdText, commandLE, 0, true, false, 
                  resultList, errorCode, errorPos, errorMessage );
     NList::setNLRef(nl);
-    
-    readLastLine=true;
   }
   else
   {
@@ -386,10 +382,9 @@ SecondoServer::CallRestore(const string& tag, bool database/*=false*/)
     errorCode = ERR_IN_SECONDO_PROTOCOL;
     errorMessage = "Protocol-Error: File not received correctly."; 
     resultList = nl->TheEmptyList();
-    readLastLine=false;
   }
   
-  if ( readLastLine && !csp->nextLine("</"+tag+">", errorMessage) )
+  if (!csp->nextLine("</"+tag+">", errorMessage) )
   {
     errorCode = ERR_IN_SECONDO_PROTOCOL;
   }

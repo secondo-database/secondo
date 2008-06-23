@@ -321,10 +321,18 @@ For an explanation of the error codes refer to SecondoInterface.h
            nl->IsEqual( nl->Second( list ), "database" ) &&
            nl->IsEqual( nl->Third( list ), "to" ) &&
            nl->IsAtom( nl->Fourth( list )) && 
-          (nl->AtomType( nl->Fourth( list )) == SymbolType) )
+           ((nl->AtomType( nl->Fourth( list )) == SymbolType) ||
+            (nl->AtomType( nl->Fourth( list )) == SymbolType) ||
+            (nl->AtomType( nl->Fourth( list )) == SymbolType) ))
       {
-        filename = nl->SymbolValue( nl->Fourth( list ) );
-
+        switch(nl->AtomType(nl->Fourth(list))){
+          case SymbolType : filename = nl->SymbolValue(nl->Fourth(list));
+                             break;
+          case StringType : filename = nl->StringValue(nl->Fourth(list));
+                             break;
+          case TextType : nl->Text2String(nl->Fourth(list),filename);
+                             break;
+        }
         // request for save database
         iosock << "<DbSave/>" << endl;
         
@@ -366,9 +374,19 @@ For an explanation of the error codes refer to SecondoInterface.h
           (nl->AtomType( nl->Fourth( list )) == SymbolType) &&
            nl->IsEqual( nl->Third( list ), "to" ) &&
            nl->IsAtom( nl->Fourth( list )) && 
-          (nl->AtomType( nl->Fourth( list )) == SymbolType) )
+          ((nl->AtomType( nl->Fourth( list )) == SymbolType) ||
+           (nl->AtomType( nl->Fourth( list )) == StringType) ||
+           (nl->AtomType( nl->Fourth( list )) == TextType)))
       {
-        filename = nl->SymbolValue( nl->Fourth( list ) );
+        switch(nl->AtomType(nl->Fourth(list))){
+         case SymbolType : filename = nl->SymbolValue(nl->Fourth(list));
+                           break;
+         case StringType : filename = nl->StringValue(nl->Fourth(list));
+                           break;
+         case TextType : nl->Text2String(nl->Fourth(list),filename);
+                           break;
+        }
+
         objName = nl->SymbolValue( nl->Second( list ) );
         
         // request list representation for object
@@ -416,14 +434,25 @@ For an explanation of the error codes refer to SecondoInterface.h
           (nl->AtomType( nl->Second( list )) == SymbolType) &&
            nl->IsEqual( nl->Third( list ), "from" ) &&
            nl->IsAtom( nl->Fourth( list )) && 
-          (nl->AtomType( nl->Fourth( list )) == SymbolType) )
+          ((nl->AtomType( nl->Fourth( list )) == SymbolType) ||
+           (nl->AtomType( nl->Fourth( list )) == StringType) ||
+           (nl->AtomType( nl->Fourth( list )) == TextType))   )
       {
         // send object symbol 
+        string filename ="";
+        switch(nl->AtomType(nl->Fourth(list))){
+           case SymbolType : filename = nl->SymbolValue(nl->Fourth(list));
+                             break;
+           case StringType : filename = nl->StringValue(nl->Fourth(list));
+                             break;
+           case TextType :  nl->Text2String(nl->Fourth(list),filename);
+                             break;
+           default : assert(false);
+        }
         iosock << csp->startObjectRestore << endl
                << nl->SymbolValue( nl->Second( list ) ) << endl;
 
         // send file data
-        filename = nl->SymbolValue( nl->Fourth( list ) ); 
         csp->SendFile(filename);
         
         // send end tag
@@ -464,14 +493,25 @@ For an explanation of the error codes refer to SecondoInterface.h
           (nl->AtomType( nl->Third( list )) == SymbolType) &&
            nl->IsEqual( nl->Fourth( list ), "from" ) &&
            nl->IsAtom( nl->Fifth( list )) && 
-          (nl->AtomType( nl->Fifth( list )) == SymbolType) )
+          ((nl->AtomType( nl->Fifth( list )) == SymbolType) ||
+           (nl->AtomType( nl->Fifth( list )) == StringType) ||
+           (nl->AtomType( nl->Fifth( list )) == TextType))   )
       {
         // send object symbol 
         iosock << csp->startDbRestore << endl
                << nl->SymbolValue( nl->Third( list ) ) << endl;
 
         // send file data
-        filename = nl->SymbolValue( nl->Fifth( list ) ); 
+        filename =  "";
+        switch(nl->AtomType(nl->Fifth(list))){
+          case SymbolType : filename = nl->SymbolValue(nl->Fifth(list));
+                            break;
+          case StringType : filename = nl->StringValue(nl->Fifth(list));
+                            break;
+          case TextType : nl->Text2String(nl->Fifth(list),filename);
+                            break;
+          default : assert(false);
+        }
         csp->SendFile(filename);
         
         // send end tag
