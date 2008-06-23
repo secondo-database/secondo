@@ -57,8 +57,8 @@ void Intersection(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
 	mrA.Get(0, a);
 	mrB.Get(0, b);
 	
-	PUnitPair unitPair = PUnitPair(a, aArray, b, bArray);
-	unitPair.Intersection();
+	SetOperator so = SetOperator(a, aArray, b, bArray);
+	so.Intersection();
 	
 	/*
 	//Compute the refinement partition:
@@ -129,8 +129,8 @@ void Union(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
 	mrA.Get(0, a);
 	mrB.Get(0, b);
 	
-	PUnitPair unitPair = PUnitPair(a, aArray, b, bArray);
-	unitPair.Union();
+	SetOperator so = SetOperator(a, aArray, b, bArray);
+	so.Union();
 }
 
 void Minus(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
@@ -147,8 +147,8 @@ void Minus(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
 	mrA.Get(0, a);
 	mrB.Get(0, b);
 	
-	PUnitPair unitPair = PUnitPair(a, aArray, b, bArray);
-	unitPair.Minus();
+	SetOperator so = SetOperator(a, aArray, b, bArray);
+	so.Minus();
 }
 
 /*

@@ -71,8 +71,8 @@ class PFace;
 class PFaceCycle;
 class PFaceIterator;
 class PFacePair;
-class PUnit;
-class PUnitPair;
+class SourceUnit;
+class SourceUnitPair;
 
 class Point3DExt : public Point3D {
 
@@ -359,21 +359,57 @@ private:
     }
 };
 
-class PUnit {
+class ResultUnit {
+    
+    
+};
 
-    friend class PUnitPair;
+struct GlobalIntSegSetCompare {
+
+    bool operator()(const IntersectionSegment* const& s1,
+            const IntersectionSegment* const& s2) const {
+
+        return NumericUtil::Lower(s1->GetStartT(), s2->GetStartT());
+    }
+};
+
+class ResultUnitFactory {
+    
+public:
+    
+    inline void AddIntSeg(IntersectionSegment* intSeg) {
+
+        if (!intSeg->IsInserted()) {
+
+            globalIntSegSet.insert(intSeg);
+            intSeg->MarkAsInserted();
+        }
+    }
+    
+    void PrintIntSegsOfGlobalList();
+    void PrintIntSegsOfGlobalListAsVRML(ofstream& target, const string& color);
+    
+private:
+    
+    multiset<IntersectionSegment*, GlobalIntSegSetCompare> globalIntSegSet;
+    
+};
+
+class SourceUnit {
+
+    friend class SourceUnitPair;
 
 public:
 
-    PUnit(const bool _isUnitA, const URegionEmb* const _uRegion,
-            const DBArray<MSegmentData>* _array, PUnitPair* const _parent);
+    SourceUnit(const bool _isUnitA, const URegionEmb* const _uRegion,
+           const DBArray<MSegmentData>* _array, SourceUnitPair* const _parent);
 
-    inline void SetPartner(PUnit* _partner) {
+    inline void SetPartner(SourceUnit* _partner) {
 
         partner = _partner;
     }
 
-    inline PUnitPair* GetParent() const {
+    inline SourceUnitPair* GetParent() const {
 
         return parent;
     }
@@ -431,8 +467,8 @@ public:
     void CreatePFaces();
     void AddBoundarySegments(const SetOp op);
     void FindMates();
-    void CollectIntSegs(PUnitPair* target);
-    void FindMatesAndCollectIntSegs(PUnitPair* target);
+    void CollectIntSegs(ResultUnitFactory* receiver);
+    void FindMatesAndCollectIntSegs(ResultUnitFactory* receiver);
 
     bool IsEntirelyOutside(const PFace* pFace);
 
@@ -450,8 +486,8 @@ private:
 
     const URegionEmb* const uRegion;
     const DBArray<MSegmentData>* const array;
-    PUnit* partner;
-    PUnitPair* const parent;
+    SourceUnit* partner;
+    SourceUnitPair* const parent;
     const double startTime;
     const double endTime;
     Instant medianTime;
@@ -465,43 +501,29 @@ private:
     const bool isUnitA;
 };
 
-struct GlobalIntSegSetCompare {
-
-    bool operator()(const IntersectionSegment* const& s1,
-            const IntersectionSegment* const& s2) const {
-
-        return NumericUtil::Lower(s1->GetStartT(), s2->GetStartT());
-    }
-};
 
 
 
-class PUnitPair {
 
-    friend class PUnit;
+class SourceUnitPair {
+
+    friend class SourceUnit;
 
 public:
 
-    PUnitPair(const URegionEmb* a, const DBArray<MSegmentData>* aArray,
+    SourceUnitPair(const URegionEmb* a, const DBArray<MSegmentData>* aArray,
             const URegionEmb* b, const DBArray<MSegmentData>* bArray);
 
-    ~PUnitPair() {
+    ~SourceUnitPair() {
 
-        delete result;
+        //delete result;
     }
 
-    vector<URegion>* Intersection();
-    vector<URegion>* Union();
-    vector<URegion>* Minus();
+    //vector<URegion>* Intersection();
+    //vector<URegion>* Union();
+    //vector<URegion>* Minus();
 
-    inline void AddIntSeg(IntersectionSegment* intSeg) {
-
-        if (!intSeg->IsInserted()) {
-
-            globalIntSegSet.insert(intSeg);
-            intSeg->MarkAsInserted();
-        }
-    }
+    
 
     inline Rectangle<2> GetOverlapRect() const {
 
@@ -528,32 +550,59 @@ public:
         return unitA.GetEndTime();
     }
 
-private:
+
 
     void ComputeOverlapRect();
     void CreatePFaces();
     void ComputeInnerIntSegs(const SetOp op);
     void AddBoundarySegments(const SetOp op);
-    void FindMatesAndCollectIntSegs();
-    void ConstructResultURegions();
+    void FindMatesAndCollectIntSegs(ResultUnitFactory* receiver);
+    //void ConstructResultURegions();
 
     void FindMates();
-    void CollectIntSegs();
+    void CollectIntSegs(ResultUnitFactory* receiver);
 
     void PrintPFaceCycles();
     void PrintPFacePairs();
     void PrintIntSegsOfPFaces();
-    void PrintIntSegsOfGlobalList();
-    void PrintIntSegsOfGlobalListAsVRML(ofstream& target, const string& color);
-    void PrintUnitsAsVRML();
+    //void PrintIntSegsOfGlobalList();
+   //void PrintIntSegsOfGlobalListAsVRML(ofstream& target, const string& color);
+    void PrintUnitsAsVRML(ResultUnitFactory& ruf);
     //void PrintMatesOfIntSegs();
+    
+private:
 
-    PUnit unitA;
-    PUnit unitB;
+    SourceUnit unitA;
+    SourceUnit unitB;
     Rectangle<2> overlapRect;
 
-    multiset<IntersectionSegment*, GlobalIntSegSetCompare> globalIntSegSet;
-    vector<URegion>* result;
+    //multiset<IntersectionSegment*, GlobalIntSegSetCompare> globalIntSegSet;
+    //vector<URegion>* result;
+};
+
+class SetOperator {
+    
+public:
+    
+    SetOperator(const URegionEmb* a, const DBArray<MSegmentData>* aArray,
+                const URegionEmb* b, const DBArray<MSegmentData>* bArray) :
+
+        sourceUnitPair(a, aArray, b, bArray) {
+
+        resultUnits = new vector<ResultUnit>();
+    }
+    
+    const vector<ResultUnit>* Intersection();
+    const vector<ResultUnit>* Union();
+    const vector<ResultUnit>* Minus();
+    
+    //void PrintUnitsAsVRML();
+    
+private:
+    
+    SourceUnitPair sourceUnitPair;
+    ResultUnitFactory resultUnitFactory;
+    vector<ResultUnit>* resultUnits;
 };
 
 struct GeneralIntSegSetCompare {
@@ -572,25 +621,27 @@ class MateEngine {
 
 public:
 
-    inline MateEngine(set<IntersectionSegment*,
-    GeneralIntSegSetCompare>* _source) :
+    inline MateEngine(const set<IntersectionSegment*,
+    GeneralIntSegSetCompare>* const _source) :
 
         source(_source) {
         
         sourceIter = source->begin();
-        nextT = numeric_limits<double>::max();
+        minEndT = MAX_DOUBLE;
     }
     
     void Start() {
         
         while (sourceIter != source->end()) {
             
-            t = min((*sourceIter)->GetStartT(), nextT);
-            ComputeTimeLevel(t);
+            t = min((*sourceIter)->GetStartT(), minEndT);
+            ComputeCurrentTimeLevel();
         }
     }
     
-    void ComputeTimeLevel(const double _t);
+private:
+    
+    void ComputeCurrentTimeLevel();
 
     inline bool IsOutOfRange(IntersectionSegment* seg) const {
         
@@ -603,23 +654,22 @@ public:
                 (*sourceIter)->GetStartT(), t);
     }
     
-    inline void UpdateNextT() {
+    inline void UpdateMinEndT() {
         
-        nextT = min((*activeIter)->GetEndT(), nextT);
+        minEndT = min((*activeIter)->GetEndT(), minEndT);
     }
     
     void DoMating();
 
-private:
-
-    set<IntersectionSegment*, GeneralIntSegSetCompare>* source;
+    const set<IntersectionSegment*, GeneralIntSegSetCompare>* const source;
     list<IntersectionSegment*> active;
     
     list<IntersectionSegment*>::iterator activeIter;
-    set<IntersectionSegment*, GeneralIntSegSetCompare>::iterator sourceIter;
+    set<IntersectionSegment*, GeneralIntSegSetCompare>::const_iterator 
+        sourceIter;
     
     double t;
-    double nextT;
+    double minEndT;
 };
 
 
@@ -630,7 +680,9 @@ class PFace {
 
 public:
 
-    PFace(PUnit* _unit, const MSegmentData* _mSeg, bool _initialStartPointIsA);
+    PFace(SourceUnit* _unit, 
+          const MSegmentData* _mSeg, 
+          bool _initialStartPointIsA);
 
     ~PFace() {
 
@@ -838,7 +890,7 @@ public:
     }
 
     void FindMates();
-    void CollectIntSegs(PUnitPair* target) const;
+    void CollectIntSegs(ResultUnitFactory* receiver) const;
 
     string GetVRMLDesc();
 
@@ -856,7 +908,7 @@ private:
     void DeleteOrthogonalIntSegs();
     void DeleteGeneralIntSegs();
 
-    PUnit* const unit;
+    SourceUnit* const unit;
     const MSegmentData* const mSeg;
     Rectangle<2> boundingRect;
     Vector3D normalVector;
@@ -865,7 +917,7 @@ private:
     set<IntersectionSegment*, GeneralIntSegSetCompare> generalIntSegSet;
     set<IntersectionSegment*, RightIntSegSetCompare> rightIntSegSet;
     list<IntersectionSegment*> orthogonalIntSegList;
-    set<double> relevantTimeValueSet;
+    //set<double> relevantTimeValueSet;
 
     //Point3D a, b, c, d;
 

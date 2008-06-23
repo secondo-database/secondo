@@ -24,6 +24,9 @@ using namespace std;
 
 namespace mregionops {
 
+const double MAX_DOUBLE = numeric_limits<double>::max();
+const double MIN_DOUBLE = numeric_limits<double>::min();
+
 class NumericUtil {
 	
 public:
