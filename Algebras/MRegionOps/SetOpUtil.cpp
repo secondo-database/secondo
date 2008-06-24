@@ -79,11 +79,165 @@ PointExtSet::GetIntersectionSegment() const {
 	return IntersectionSegment::createBuddyPair(p2, p3);
 }
 
+/*
 
+ Class ResultUnitFactory
+
+*/
+
+
+void ResultUnitFactory::ComputeCurrentTimeLevel() {
+    
+    // Precondition of this first version: 
+    // A ResultUnit contains only one face with one cycle!
+    
+    UpdateActiveSegList();
+    
+    // Construct the resultUnit:
+    DateTime start(instanttype);
+    DateTime end(instanttype);
+    start.ReadFrom(t1);
+    end.ReadFrom(t2);
+    Interval<Instant> interval(start, end, true, true);
+    URegionEmb resultUnit(interval, 0);
+    
+    
+    const IntersectionSegment* const firstSegInCycle = active.begin();
+    IntersectionSegment* seg = firstSegInCycle;
+    IntersectionSegment* rightMate;
+    
+    unsigned int faceNo = 0;
+    unsigned int cycleNo = 0;
+    unsigned int segmentNo = 0;
+    bool insideAbove = true;
+    
+    do {
+        
+        rightMate = seg->GetActiveRightMate();
+        
+        Point2D initialStart(seg->Evaluate(t1));
+        Point2D initialEnd(rightMate->Evaluate(t1));
+        Point2D finalStart(seg->Evaluate(t2));
+        Point2D finalEnd(rightMate->Evaluate(t2));
+        
+        MSegmentData mSeg(faceNo,
+                          cycleNo,
+                          segmentNo,
+                          insideAbove,
+                          initialStart.GetX(),
+                          initialStart.GetY(),
+                          initialEnd.GetX(),
+                          initialEnd.GetY(),
+                          finalStart.GetX(),
+                          finalStart.GetY(),
+                          finalEnd.GetX(),
+                          finalEnd.GetY());
+        
+        //resultUnit.PutSegment(segmentNo, );
+        
+        segmentNo++;
+        
+        seg = rightMate;
+        
+    } while (seg != firstSegInCycle);
+}
+
+void ResultUnitFactory::UpdateActiveSegList() {
+
+    activeIter = active.begin();
+    minEndT = MAX_DOUBLE;
+
+    while (activeIter != active.end()) {
+
+        // Remove segments from active, if out of range:
+        if (IsOutOfRange(*activeIter)) {
+
+            activeIter = active.erase(activeIter);
+
+        } else { // segment remains in list.
+
+            UpdateMinEndT();
+            (*activeIter)->UpdateMateList(t1);
+            activeIter++;
+        }
+    }
+    
+    // Append new segments from source at the end of active:
+    while (HasMoreSegsToInsert()) {
+
+        IntersectionSegment* newSeg = *sourceIter;
+        activeIter = active.insert(activeIter, newSeg);
+        UpdateMinEndT();
+        (*activeIter)->UpdateMateList(t1);
+        sourceIter++;
+    }
+    
+    // Set next relevant time value:
+    t2 = min((*sourceIter)->GetStartT(), minEndT);
+}
+
+
+void ResultUnitFactory::PrintIntSegsOfGlobalList() {
+
+    cout << "*********************************************" << endl;
+    cout << "globalIntSegSet:" << endl;
+    cout << source.size() << " segments" << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
+
+    multiset<IntersectionSegment*>::iterator iter;
+    for (iter = source.begin(); 
+         iter != source.end(); ++iter) {
+
+        (*iter)->Print();
+        cout << endl;
+    }
+}
+
+void ResultUnitFactory::PrintIntSegsOfGlobalListAsVRML(ofstream& target,
+        const string& color) {
+
+    const double scale = VRML_SCALE_FACTOR;
+
+    target << "Transform {" << endl;
+    target << "\tscale " << scale << " " << scale << " " << scale << endl;
+    target << "\tchildren [" << endl;
+    target << "\t\tShape {" << endl;
+    target << "\t\t\tgeometry IndexedLineSet {" << endl;
+    target << "\t\t\t\tcoord Coordinate {" << endl;
+    target << "\t\t\t\t\tpoint [" << endl;
+
+    multiset<IntersectionSegment*>::iterator iter;
+    for (iter = source.begin(); 
+         iter != source.end(); ++iter) {
+
+        target << "\t\t\t\t\t\t" << (*iter)->GetVRMLDesc() << endl;
+    }
+
+    target << "\t\t\t\t\t]  # end point" << endl;
+    target << "\t\t\t\t} # end coord" << endl;
+    target << "\t\t\t\tcoordIndex [" << endl;
+
+    const int noPoints = source.size() * 2;
+
+    for (int i = 0; i < noPoints; i += 2) {
+
+        target << "\t\t\t\t\t" << i << ", " << i + 1 << ", " << "-1," << endl;
+    }
+
+    target << "\t\t\t\t] # end coordIndex" << endl;
+
+    target << "\t\t\t\tcolor Color { color [ " << color << " ] }" << endl;
+
+    target << "\t\t\t} # end geometry" << endl;
+    target << "\t\t} # end shape" << endl;
+    target << "\t] # end children" << endl;
+    target << "} # end Transform" << endl;
+}
 
 /*
 
-Class PUnit
+Class SourceUnit
 
 */
 
@@ -640,63 +794,7 @@ void SourceUnitPair::PrintIntSegsOfPFaces() {
     unitB.PrintIntSegsOfPFaces();
 }
 
-void ResultUnitFactory::PrintIntSegsOfGlobalList() {
 
-    cout << "*********************************************" << endl;
-    cout << "globalIntSegSet:" << endl;
-    cout << globalIntSegSet.size() << " segments" << endl;
-    cout << "*********************************************" << endl;
-    cout << endl;
-
-    multiset<IntersectionSegment*>::iterator iter;
-    for (iter = globalIntSegSet.begin(); 
-         iter != globalIntSegSet.end(); ++iter) {
-
-        (*iter)->Print();
-        cout << endl;
-    }
-}
-
-void ResultUnitFactory::PrintIntSegsOfGlobalListAsVRML(ofstream& target,
-        const string& color) {
-
-    const double scale = VRML_SCALE_FACTOR;
-
-    target << "Transform {" << endl;
-    target << "\tscale " << scale << " " << scale << " " << scale << endl;
-    target << "\tchildren [" << endl;
-    target << "\t\tShape {" << endl;
-    target << "\t\t\tgeometry IndexedLineSet {" << endl;
-    target << "\t\t\t\tcoord Coordinate {" << endl;
-    target << "\t\t\t\t\tpoint [" << endl;
-
-    multiset<IntersectionSegment*>::iterator iter;
-    for (iter = globalIntSegSet.begin(); 
-         iter != globalIntSegSet.end(); ++iter) {
-
-        target << "\t\t\t\t\t\t" << (*iter)->GetVRMLDesc() << endl;
-    }
-
-    target << "\t\t\t\t\t]  # end point" << endl;
-    target << "\t\t\t\t} # end coord" << endl;
-    target << "\t\t\t\tcoordIndex [" << endl;
-
-    const int noPoints = globalIntSegSet.size() * 2;
-
-    for (int i = 0; i < noPoints; i += 2) {
-
-        target << "\t\t\t\t\t" << i << ", " << i + 1 << ", " << "-1," << endl;
-    }
-
-    target << "\t\t\t\t] # end coordIndex" << endl;
-
-    target << "\t\t\t\tcolor Color { color [ " << color << " ] }" << endl;
-
-    target << "\t\t\t} # end geometry" << endl;
-    target << "\t\t} # end shape" << endl;
-    target << "\t] # end children" << endl;
-    target << "} # end Transform" << endl;
-}
 
 void SourceUnitPair::PrintUnitsAsVRML(ResultUnitFactory& ruf) {
 
@@ -734,7 +832,7 @@ void SourceUnitPair::PrintUnitsAsVRML(ResultUnitFactory& ruf) {
 
 /*
 
- Class SetOp
+ Class SetOperator
 
 */
 

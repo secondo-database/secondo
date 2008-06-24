@@ -25,6 +25,7 @@
 #include "NumericUtil.h"
 #include "PointVector.h"
 #include "Segment.h"
+#include "DateTime.h"
 #include <vector>
 #include <set>
 #include <list>
@@ -227,9 +228,9 @@ public:
             
     }
 
-    inline IntersectionSegment* GetActiveLeftMate() const {
+    inline IntersectionSegment* GetActiveRightMate() const {
 
-        if (this->IsRightBoundary())
+        if (this->IsLeftBoundary())
             return matesOfThis->front();
         else
             return matesOfBuddy->front();
@@ -333,6 +334,22 @@ public:
 
         resultFaceIsLeft = false;
     }
+    
+    inline void UpdateMateList(const double t) {
+        
+        assert(!matesOfThis->empty());
+        assert(!matesOfBuddy->empty());
+
+        if (NumericUtil::NearlyEqual(matesOfThis->front()->GetEndT(), t)) {
+
+            matesOfThis->pop_front();
+        }
+
+        if (NumericUtil::NearlyEqual(matesOfBuddy->front()->GetEndT(), t)) {
+
+            matesOfBuddy->pop_front();
+        }
+    }
 
     string GetVRMLDesc();
     void Print();
@@ -359,9 +376,28 @@ private:
     }
 };
 
+class ResultCycle {
+    
+    
+};
+
 class ResultUnit {
     
+    inline void AddMSegment(const MSegmentData& mseg) {
+
+        mSegments.push_back(mseg);
+    }
     
+    inline void SetInterval(const double start, const double end) {
+        
+        //interval = Interval<Instant>();
+    }
+    
+private:
+    
+    vector<MSegmentData> mSegments;
+    Interval<Instant> interval;
+    //vector<ResultCycle> cycles;
 };
 
 struct GlobalIntSegSetCompare {
@@ -374,25 +410,72 @@ struct GlobalIntSegSetCompare {
 };
 
 class ResultUnitFactory {
-    
+
 public:
-    
+
+    ResultUnitFactory() {
+
+        sourceIter = source->begin();
+        minEndT = MAX_DOUBLE;
+    }
+
+    void Start() {
+
+        while (sourceIter != source->end()) {
+
+            t1 = min((*sourceIter)->GetStartT(), minEndT);
+            ComputeCurrentTimeLevel();
+        }
+    }
+
     inline void AddIntSeg(IntersectionSegment* intSeg) {
 
         if (!intSeg->IsInserted()) {
 
-            globalIntSegSet.insert(intSeg);
+            source.insert(intSeg);
             intSeg->MarkAsInserted();
         }
     }
-    
+
     void PrintIntSegsOfGlobalList();
     void PrintIntSegsOfGlobalListAsVRML(ofstream& target, const string& color);
-    
+
 private:
+
+    void ComputeCurrentTimeLevel();
+    void UpdateActiveSegList();
+
+    inline bool IsOutOfRange(IntersectionSegment* seg) const {
+
+        return NumericUtil::NearlyEqual(seg->GetEndT(), t1);
+    }
+
+    inline bool HasMoreSegsToInsert() const {
+
+        return sourceIter != source->end() && 
+        NumericUtil::NearlyEqual((*sourceIter)->GetStartT(), t1);
+    }
+
+    inline void UpdateMinEndT() {
+
+        minEndT = min((*activeIter)->GetEndT(), minEndT);
+    }
+
+    multiset<IntersectionSegment*, GlobalIntSegSetCompare> source;
+    multiset<IntersectionSegment*, GlobalIntSegSetCompare>::iterator sourceIter;
+
+    list<IntersectionSegment*> active;
+    list<IntersectionSegment*>::iterator activeIter;
+
+    list<IntersectionSegment*> temp;
+    list<IntersectionSegment*>::iterator tempIter;
+
+    double t1;
+    double t2;
+    double minEndT;
     
-    multiset<IntersectionSegment*, GlobalIntSegSetCompare> globalIntSegSet;
-    
+    DBArray<MSegmentData>* mSegments;
+    vector<URegionEmb>* resultUnits;
 };
 
 class SourceUnit {
