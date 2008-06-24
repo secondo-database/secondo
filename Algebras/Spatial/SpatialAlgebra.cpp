@@ -16930,7 +16930,7 @@ public:
 Creates a LineSplitter from the given line.
 
 */
-   LineSplitter(Line* line, bool ignoreCriticalPoints,
+   LineSplitter(Line* line, bool ignoreCriticalPoints, bool allowCycles,
                 Points* points = 0){
         this->theLine = line;
         size = line->Size();
@@ -16939,6 +16939,7 @@ Creates a LineSplitter from the given line.
         used = new bool[size];
         memset(used,false,size);
         this->ignoreCriticalPoints = ignoreCriticalPoints;
+        this->allowCycles = allowCycles;
    }
 
 /*
@@ -16983,6 +16984,9 @@ deletion of this object.
       bool seconddir = false;
       theLine->Get(pos,hs1);
       Point firstPoint = hs1->GetDomPoint();
+      bool isCycle = false;
+
+
       while(!done){ // extension possible
         theLine->Get(pos,hs1);
         int partnerpos = hs1->GetAttr().partnerno;
@@ -17007,68 +17011,79 @@ deletion of this object.
         used[pos] = true;
         used[partnerpos] = true;
 
+        if(isCycle){
+           done = true;
+        } else {
+           bool found = false;
+           int sp = partnerpos-1;
 
-        bool found = false;
-        int sp = partnerpos-1;
+           if(points==0 || !points->Contains(p)){//no forced split
 
-        if(points==0 || !points->Contains(p)){ // no enforced split
-
-            // search for extension of the polyline
-            // search left of partnerpos for an extension
-            while(sp>0 && !found){
-              const HalfSegment* hs3;
-              if(!used[sp]){
+             // search for extension of the polyline
+             // search left of partnerpos for an extension
+             while(sp>0 && !found){
+               const HalfSegment* hs3;
+               if(!used[sp]){
                  theLine->Get(sp,hs3);
                  if(AlmostEqual(p,hs3->GetDomPoint())){
-                   Point p3 = hs3->GetSecPoint(); // avoid cycles
-                   if(pointset.find(p3)==pointset.end()){
-                       found = true;
+                   Point p3 = hs3->GetSecPoint(); // cycles?
+                   if(pointset.find(p3)==pointset.end() ||
+                     (allowCycles && AlmostEqual(p3,firstPoint))){
+                     if(AlmostEqual(p3,firstPoint)){
+                       isCycle = true;
+                     }
+                     found = true;
                    } else {
-                       sp--;
+                     sp--;
                    }
                  } else {
-                    sp = -1; // stop searching
+                   sp = -1; // stop searching
                  }
                } else {
                  sp --; // search next
-              }
-            }
-            // search on the right side of partnerpos for extension
-            if(!found){
-               sp = partnerpos + 1;
-               while(sp<size && !found){
-                  if(!used[sp]){
-                      const HalfSegment* hs3;
-                      theLine->Get(sp,hs3);
-                      if(AlmostEqual(p,hs3->GetDomPoint())){
-                         Point p3 = hs3->GetSecPoint(); // avoid cycles
-                         if(pointset.find(p3)==pointset.end()){
-                            found = true;
-                         } else {
-                           sp++;
-                         }
-                      } else {
-                         sp = size; // stop searching
-                      }
-                   } else {
-                      sp ++; // search next
-                   }
                }
-            }
+             }
+             // search on the right side 
+             if(!found){
+                sp = partnerpos + 1;
+                while(sp<size && !found){
+                  if(!used[sp]){
+                    const HalfSegment* hs3;
+                    theLine->Get(sp,hs3);
+                    if(AlmostEqual(p,hs3->GetDomPoint())){
+                      Point p3 = hs3->GetSecPoint(); // avoid cycles
+                      if(pointset.find(p3)==pointset.end() ||
+                         (allowCycles && AlmostEqual(p3,firstPoint))){
+                        if(AlmostEqual(p3,firstPoint)){
+                          isCycle = true;
+                        }
+                        found = true;
+                      } else {
+                        sp++;
+                      }
+                    } else {
+                        sp = size; // stop searching
+                    }
+                  } else {
+                    sp ++; // search next
+                  }
+                }
+             }
         }
 
         if(found){ // sp is a potential extension of the line
           if(ignoreCriticalPoints || !isCriticalPoint(partnerpos)){
-             pos = sp;
+            pos = sp;
           } else {
-             done = true;
+            done = true;
           }
         }  else { // no extension found
-           done = true;
+          done = true;
         }
 
         if(done && !seconddir && (lastPos < (size-1)) &&
-           (points==0 || !points->Contains(firstPoint))){
+           (points==0 || !points->Contains(firstPoint)) &&
+           (!isCycle)){
            // done means at this point, the line can't be extended
            // in the direction start from the first selected halfsegment.
            // but is is possible the extend the line by going into the
@@ -17081,18 +17096,19 @@ deletion of this object.
              lastPos ++;
            }
            if(lastPos <size){
-              theLine->Get(lastPos,hs);
-              Point p2 = hs->GetDomPoint();
-              if(AlmostEqual(p,p2)){
-                 if(pointset.find(hs->GetSecPoint())==pointset.end()){
-                    if(ignoreCriticalPoints || !isCriticalPoint(lastPos)){
-                       pos = lastPos;
-                       done = false;
-                    }
-                  }
+             theLine->Get(lastPos,hs);
+             Point p2 = hs->GetDomPoint();
+             if(AlmostEqual(p,p2)){
+               if(pointset.find(hs->GetSecPoint())==pointset.end()){
+                 if(ignoreCriticalPoints || !isCriticalPoint(lastPos)){
+                   pos = lastPos;
+                   done = false;
+                 }
                }
+             }
            }
-        }
+          }
+        } // isCycle
       } // while
       result->EndBulkLoad();
       return result;
@@ -17141,8 +17157,11 @@ line.
    int size;
    bool ignoreCriticalPoints;
    Points* points;
+   bool allowCycles;
 };
 
+
+template<bool allowCycles>
 int SpatialPolylines(Word* args, Word& result, int message,
                     Word& local, Supplier s){
 
@@ -17154,10 +17173,12 @@ int SpatialPolylines(Word* args, Word& result, int message,
       case OPEN:
           if(qp->GetNoSons(s)==2){
              local = SetWord(new LineSplitter((Line*)args[0].addr,
-                                ((CcBool*)args[1].addr)->GetBoolval()));
+                                ((CcBool*)args[1].addr)->GetBoolval(),
+                                allowCycles));
           } else {
             local = SetWord(new LineSplitter((Line*)args[0].addr,
                             ((CcBool*)args[1].addr)->GetBoolval(),
+                            allowCycles,
                             ((Points*)args[2].addr)));
           }
           return 0;
@@ -17180,6 +17201,8 @@ int SpatialPolylines(Word* args, Word& result, int message,
    }
    return 0; // ignore unknown message
 }
+
+
 
 
 /*
@@ -18039,6 +18062,17 @@ const string SpatialSpecPolylines  =
     "<text> query trajectory(train1) polylines [TRUE]  count</text--->"
     ") )";
 
+const string SpatialSpecPolylinesC  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>line  x bool [ x points] -> stream( line ) </text--->"
+    "<text> _  polylinesC [ _ , _ ] </text--->"
+    "<text>Returns a stream of simple line objects "
+    " whose union is the original line. The boolean parameter"
+    "indicates to ignore critical points (branches) as splitpoints."
+    " Some of the  resulting polylines may build a cycle.</text--->"
+    "<text> query trajectoryC(train1) polylines [TRUE]  count</text--->"
+    ") )";
+
 const string SpatialSpecSimplify  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>line  x real [x points] -> line </text--->"
@@ -18469,7 +18503,14 @@ Operator spatialarea (
 Operator spatialpolylines (
   "polylines",
   SpatialSpecPolylines,
-  SpatialPolylines,
+  SpatialPolylines<false>,
+  Operator::SimpleSelect,
+  PolylinesMap );
+
+Operator spatialpolylinesC (
+  "polylinesC",
+  SpatialSpecPolylinesC,
+  SpatialPolylines<true>,
   Operator::SimpleSelect,
   PolylinesMap );
 
@@ -18638,7 +18679,8 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialline2region );
     AddOperator( &spatialrect2region );
     AddOperator( &spatialarea );
-    AddOperator( &spatialpolylines );
+    AddOperator( &spatialpolylines);
+    AddOperator( &spatialpolylinesC);
     AddOperator( &spatialsegments );
     AddOperator( &spatialget );
     AddOperator( &spatialsimplify);

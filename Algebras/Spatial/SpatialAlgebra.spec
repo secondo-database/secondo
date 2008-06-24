@@ -44,6 +44,7 @@ operator line2region alias LINE2REGION pattern _ op
 operator rect2region alias RECT2REGION pattern _ op
 operator area alias AREA pattern op ( _ )
 operator polylines alias POLYLINES pattern _ op [ _ ]
+operator polylinesC alias POLYLINESC pattern _ op [ _ ]
 operator simplify alias SIMPLIFY pattern  op ( _ , _ )
 operator segments alias SEGMENTS pattern  op ( _ )
 operator get alias GET pattern   op ( _, _ )
