@@ -996,7 +996,7 @@ Checks whether T is contained in this RelInterval
 [3] O(1)
 
 */
-bool RelInterval::Contains(const DateTime* T)const {
+bool RelInterval::Contains(const DateTime* T, bool relax /*=false*/)const {
     __TRACE__
    if(!IsDefined()){
       return false;
@@ -1006,12 +1006,12 @@ bool RelInterval::Contains(const DateTime* T)const {
    if(compz<0)
      return false;
    if(compz==0)
-     return IsLeftClosed();
+     return IsLeftClosed() || relax;
    int compe = T->CompareTo(&length);
    if(compe<0)
       return true;
    if(compe==0)
-      return IsRightClosed();
+      return IsRightClosed() || relax;
    return false;
 }
 
@@ -2976,6 +2976,26 @@ void MRealMap::Set(double a, double b, double c, bool root){
   Unify();
 }
 
+
+/*
+~ExtremumAt~
+
+Return the point in time where this Map has its extremum.
+If no extremum is present, i.e. if a==0, an undefined 
+duration value is returned.
+
+*/
+DateTime MRealMap::ExtremumAt()const{
+   DateTime res(instanttype);
+   if(a==0){
+      res.SetDefined(false);
+      return res;
+   }
+   res.ReadFrom(-b / (2*a) );
+   return res;
+
+}
+
  
 /*
 ~ReadFrom function~
@@ -3215,6 +3235,51 @@ void MovingRealUnit::Set(MRealMap map, RelInterval interval){
    defined=true;
 }
 
+
+/*
+~Min~ and ~Max~
+
+Returns the minimum value and the maximum value respectively.
+The unit has be be defined.
+
+*/
+ double MovingRealUnit::min() const{
+    assert(defined);
+    DateTime* length = interval.GetLength();
+    DateTime* start = new DateTime(durationtype); 
+    double v1 = At(start);
+    double v2 = At(length);
+    double v3 = v1;
+    DateTime pos = map.ExtremumAt();
+    if(pos.IsDefined()){
+        if(!pos.LessThanZero() && ( pos < (*length))){
+           v3 = At(&pos);
+        }     
+    }
+    delete length;
+    delete start;
+    return ::max(v1,::max(v2,v3));
+ }
+
+ double MovingRealUnit::max() const{
+    assert(defined);
+    DateTime* length = interval.GetLength();
+    DateTime* start = new DateTime(durationtype); 
+    double v1 = At(start);
+    double v2 = At(length);
+    double v3 = v1;
+    DateTime pos = map.ExtremumAt();
+    if(pos.IsDefined()){
+        if(!pos.LessThanZero() && ( pos < (*length))){
+           v3 = At(&pos);
+        }     
+    }
+    delete length;
+    delete start;
+    return ::min(v1,::min(v2,v3));
+ }
+
+
 /*
 ~GetFrom Function~
 
@@ -3264,7 +3329,7 @@ by calling the ~IsDefinedAt~ function before.
 
 */
 double MovingRealUnit::At(const DateTime* duration) const {
-    assert(interval.Contains(duration));
+    assert(interval.Contains(duration,true));
     assert(defined);
     assert(map.IsDefinedAt(duration));
     return map.At(duration);
@@ -6991,16 +7056,19 @@ This functions implements the familiar compare function.
 
 */
    int LinearPointMove::CompareTo(LinearPointMove* LPM){
+       if(!defined && !LPM->defined){
+          return 0;
+       } 
+       if(!defined && LPM->defined){
+          return -1;
+       }
+       if(defined && !LPM->defined){
+          return  1;
+       }
        int comp = interval.CompareTo(&(LPM->interval));  
        if(comp!=0){
          return comp; // different intervals
        }
-       if(!defined && !LPM->defined)
-          return 0;
-       if(!defined && LPM->defined)
-          return -1;
-       if(defined && !LPM->defined)
-          return  1;
        if(startX < LPM->startX) return -1;
        if(startX > LPM->startX) return 1;
        if(startY < LPM->startY) return -1;
@@ -7011,6 +7079,32 @@ This functions implements the familiar compare function.
        if(endY > LPM->endY) return 1;
        return 0;
    }
+
+/*
+~CompareSpatial~
+
+This function compares the spatial components of this instance
+and the argument, i.e. this function works like the ~CompareTo~
+function but ignores the time component of the arguments.
+
+*/
+int LinearPointMove::CompareSpatial(LinearPointMove* lpm){
+       if(!defined && !lpm->defined)
+          return 0;
+       if(!defined && lpm->defined)
+          return -1;
+       if(defined && !lpm->defined)
+          return  1;
+       if(startX < lpm->startX) return -1;
+       if(startX > lpm->startX) return 1;
+       if(startY < lpm->startY) return -1;
+       if(startY > lpm->startY) return 1;
+       if(endX < lpm->endX) return -1;
+       if(endX > lpm->endX) return 1;
+       if(endY < lpm->endY) return -1;
+       if(endY > lpm->endY) return 1;
+       return 0;
+}
 
 
 /*
@@ -9813,6 +9907,9 @@ void PMPoint::ReadFromMPoint(MPoint& P){
   int differentMoves =0; // number of different linear moves
   int lastusedindex = -1;
 
+
+  cout << "Warning time component ignored !!!" << endl;
+
   // we assign each different value in the array to an unique number
   for(int i=0;i<listlength;i++){
      LinearPointMove theMove = AllMoves[i];
@@ -9830,7 +9927,7 @@ void PMPoint::ReadFromMPoint(MPoint& P){
            done = true;
         }
         else{
-           if((AllMoves[MinIndex[hashvalue]]).CompareTo(&theMove)==0) {
+           if((AllMoves[MinIndex[hashvalue]]).CompareSpatial(&theMove)==0) {
               //equal element found; we are done
               done = true;
            }
@@ -10161,6 +10258,7 @@ bool PMPoint::DistanceTo(const double x, const double y, PMReal& result)const {
      result.SetDefined(false);
      return true; 
    }
+   result.SetDefined(true);
    // copying the tree structure as well as the interval and the
    // submove into the result.
    RelInterval* resInterval = result.GetInterval();
@@ -13062,6 +13160,20 @@ ListExpr PMPoint_PMRealTypeMap(ListExpr args){
 }
 
 
+ListExpr MinMaxTypeMap(ListExpr args){
+   string err = "pmreal expected";
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"pmreal")){
+     return nl->SymbolAtom("real");
+   } else {
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+   }
+}
+
 /*
 5.2 Value Mappings
 
@@ -13717,6 +13829,26 @@ int SpeedAndDirectionFun(Word* args, Word& result, int message,
 }
 
 
+int MinFun(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+  PMReal* arg = static_cast<PMReal*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  arg->min(*res); 
+  return 0;
+}
+
+int MaxFun(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+
+  PMReal* arg = static_cast<PMReal*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcReal* res = static_cast<CcReal*>(result.addr);
+  arg->max(*res); 
+  return 0;
+}
+
 /*
 5.3 Specifications of the Operators
 
@@ -13914,6 +14046,22 @@ const string DirectionSpec =
    " \" Computes the Speed of the argument.  \"  "
    " \" \" "
    " <text> query direction(p1)  </text---> ))";
+
+const string MinSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmreal -> real \" "
+   " \" minvalue( _ ) \" "
+   " \" Computes the minimum of the argument.  \"  "
+   " \" \" "
+   " <text> query minvalue(pmr1)  </text---> ))";
+
+const string MaxSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmreal -> real \" "
+   " \" maxvalue( _ ) \" "
+   " \" Computes the maximum of the argument.  \"  "
+   " \" \" "
+   " <text> query maxvalue(pmr1)  </text---> ))";
 
 /*
 5.4 ValueMappings of overloaded Operators
@@ -14362,6 +14510,20 @@ Operator ptranslate(
        TranslateSelect,
        TranslateMap);
 
+Operator min(
+        "minvalue",
+        MinSpec,
+        MinFun,
+        Operator::SimpleSelect,
+        MinMaxTypeMap);
+
+Operator max(
+        "maxvalue",
+        MaxSpec,
+        MaxFun,
+        Operator::SimpleSelect,
+        MinMaxTypeMap);
+
 } // namespace periodic
 
 /*
@@ -14418,6 +14580,8 @@ class PeriodicMoveAlgebra : public Algebra
     AddOperator(&periodic::ptranslate);
     AddOperator(&periodic::pspeed);
     AddOperator(&periodic::pdirection);
+    AddOperator(&periodic::min);
+    AddOperator(&periodic::max);
   }
   ~PeriodicMoveAlgebra() {};
 };

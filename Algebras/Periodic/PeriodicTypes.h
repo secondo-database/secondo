@@ -252,7 +252,7 @@ This function checks whether D2 can be used to extend this interval.
 This function checks whether this interval constains T.
 
 */
-    bool Contains(const DateTime* T) const;
+    bool Contains(const DateTime* T,bool relax = false) const;
 
 /*
 ~Clone~
@@ -782,6 +782,7 @@ class MRealMap{
    ~MRealMap();
    MRealMap& operator=(const MRealMap& source);
    void Set(double a, double b, double c, bool root);
+   DateTime ExtremumAt()const;
    bool ReadFrom(ListExpr le);
    ListExpr ToListExpr()const;
    double At(const DateTime* duration) const;
@@ -835,6 +836,8 @@ class MovingRealUnit{
    ~MovingRealUnit();
    MovingRealUnit& operator=(const MovingRealUnit& source);
    void Set(MRealMap map, RelInterval interval);
+   double min() const;
+   double max() const;
    bool GetFrom(double start, double end, RelInterval interval);
    double At(const DateTime* duration) const;
    bool IsDefinedAt(const DateTime* duration) const;
@@ -847,6 +850,7 @@ class MovingRealUnit{
               MovingRealUnit& unit);
 
    inline void SetDefined(const bool defined);
+   inline bool IsDefined()const{return defined;}
    void Equalize(const MovingRealUnit* source);
 
 
@@ -997,6 +1001,7 @@ halfsegment.
                LinearPointMove& Rest);
    size_t HashValue()const;
    int CompareTo(LinearPointMove* LPM);
+   int CompareSpatial(LinearPointMove* LPM);
    string ToString()const;
 
    bool Connected(LinearPointMove* P2);
@@ -1353,7 +1358,60 @@ PMSimple class.
 
 */
 
-typedef PMSimple<double,MovingRealUnit> PMReal;
+class PMReal: public  PMSimple<double,MovingRealUnit> {
+ public: 
+/* 
+~Constructors~
+
+*/
+  PMReal() {};
+
+  PMReal(int dummy):  PMSimple<double,MovingRealUnit>(dummy){
+  }
+
+/*
+~min~ and ~max~
+
+*/  
+  void min(CcReal& result) const{
+    result.SetDefined(false);
+    if(!defined){
+       return;
+    }
+    const MovingRealUnit* unit;
+    for(int i=0;i<linearMoves.Size();i++){
+       linearMoves.Get(i,unit);
+       if(unit->IsDefined()){
+          if(!result.IsDefined()){
+            result.Set(true,unit->min());
+          } else {
+            result.Set(true,::min(result.GetRealval(), unit->min()));
+          }
+       }
+    }
+  }
+
+  void max(CcReal& result){
+    result.SetDefined(false);
+    if(!defined){
+       return;
+    }
+    const MovingRealUnit* unit;
+    for(int i=0;i<linearMoves.Size();i++){
+       linearMoves.Get(i,unit);
+       if(unit->IsDefined()){
+          if(!result.IsDefined()){
+            result.Set(true,unit->max());
+          } else {
+            result.Set(true,::max(result.GetRealval(), unit->max()));
+          }
+       }
+    }
+
+  }
+  
+
+};
 
 
 
