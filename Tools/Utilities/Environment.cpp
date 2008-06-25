@@ -282,7 +282,7 @@ TTYParameter::CheckConfiguration()
     {
       num = argValue;
     }
-    else if ( argOk && argSwitch == "-coverage" )  // Number of test case
+    else if ( argSwitch == "-coverage" )  // Switch on coverage tests 
     {
       coverage = true;
     }
