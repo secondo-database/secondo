@@ -413,7 +413,8 @@ class ResultUnitFactory {
 
 public:
 
-    ResultUnitFactory() {
+    ResultUnitFactory(MRegion* const _resMRegion) :
+        resMRegion(_resMRegion) {
 
         sourceIter = source->begin();
         minEndT = MAX_DOUBLE;
@@ -474,8 +475,9 @@ private:
     double t2;
     double minEndT;
     
-    DBArray<MSegmentData>* mSegments;
-    vector<URegionEmb>* resultUnits;
+    MRegion* const resMRegion;
+    //DBArray<MSegmentData>* resArray;
+    //vector<URegionEmb>* resultUnits;
 };
 
 class SourceUnit {
@@ -484,8 +486,10 @@ class SourceUnit {
 
 public:
 
-    SourceUnit(const bool _isUnitA, const URegionEmb* const _uRegion,
-           const DBArray<MSegmentData>* _array, SourceUnitPair* const _parent);
+    SourceUnit(const bool _isUnitA, 
+               const URegionEmb* const _uRegion,
+               const DBArray<MSegmentData>* const _array,
+               SourceUnitPair* const _parent);
 
     inline void SetPartner(SourceUnit* _partner) {
 
@@ -594,19 +598,19 @@ class SourceUnitPair {
 
 public:
 
-    SourceUnitPair(const URegionEmb* a, const DBArray<MSegmentData>* aArray,
-            const URegionEmb* b, const DBArray<MSegmentData>* bArray);
+    SourceUnitPair(const URegionEmb* const a, 
+                   const DBArray<MSegmentData>* const aArray,
+                   const URegionEmb* const b, 
+                   const DBArray<MSegmentData>* const bArray,
+                   MRegion* const resultMRegion);
 
     ~SourceUnitPair() {
 
-        //delete result;
     }
 
-    //vector<URegion>* Intersection();
-    //vector<URegion>* Union();
-    //vector<URegion>* Minus();
-
-    
+    void Intersection();
+    void Union();
+    void Minus();
 
     inline Rectangle<2> GetOverlapRect() const {
 
@@ -633,14 +637,12 @@ public:
         return unitA.GetEndTime();
     }
 
-
-
     void ComputeOverlapRect();
     void CreatePFaces();
     void ComputeInnerIntSegs(const SetOp op);
     void AddBoundarySegments(const SetOp op);
     void FindMatesAndCollectIntSegs(ResultUnitFactory* receiver);
-    //void ConstructResultURegions();
+    void ConstructResultUnits();
 
     void FindMates();
     void CollectIntSegs(ResultUnitFactory* receiver);
@@ -648,44 +650,39 @@ public:
     void PrintPFaceCycles();
     void PrintPFacePairs();
     void PrintIntSegsOfPFaces();
-    //void PrintIntSegsOfGlobalList();
-   //void PrintIntSegsOfGlobalListAsVRML(ofstream& target, const string& color);
-    void PrintUnitsAsVRML(ResultUnitFactory& ruf);
-    //void PrintMatesOfIntSegs();
+    void PrintUnitsAsVRML();
     
 private:
 
     SourceUnit unitA;
     SourceUnit unitB;
     Rectangle<2> overlapRect;
-
-    //multiset<IntersectionSegment*, GlobalIntSegSetCompare> globalIntSegSet;
-    //vector<URegion>* result;
+    ResultUnitFactory resultUnitFactory;
 };
 
 class SetOperator {
     
 public:
     
-    SetOperator(const URegionEmb* a, const DBArray<MSegmentData>* aArray,
-                const URegionEmb* b, const DBArray<MSegmentData>* bArray) :
+    SetOperator(const MRegion* const _a, 
+                const MRegion* const _b, 
+                MRegion* const _res) :
+                
+                a(_a), b(_b), res(_res) {
 
-        sourceUnitPair(a, aArray, b, bArray) {
-
-        resultUnits = new vector<ResultUnit>();
     }
     
-    const vector<ResultUnit>* Intersection();
-    const vector<ResultUnit>* Union();
-    const vector<ResultUnit>* Minus();
-    
-    //void PrintUnitsAsVRML();
+    void Intersection();
+    void Union();
+    void Minus();
     
 private:
     
-    SourceUnitPair sourceUnitPair;
-    ResultUnitFactory resultUnitFactory;
-    vector<ResultUnit>* resultUnits;
+    //void RefinementPartition();
+    
+    const MRegion* const a;
+    const MRegion* const b;
+    MRegion* const res;
 };
 
 struct GeneralIntSegSetCompare {

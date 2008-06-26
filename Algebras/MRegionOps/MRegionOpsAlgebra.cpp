@@ -57,7 +57,7 @@ void Intersection(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
 	mrA.Get(0, a);
 	mrB.Get(0, b);
 	
-	SetOperator so = SetOperator(a, aArray, b, bArray);
+	SourceUnitPair so = SourceUnitPair(a, aArray, b, bArray);
 	so.Intersection();
 	
 	/*
@@ -129,7 +129,7 @@ void Union(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
 	mrA.Get(0, a);
 	mrB.Get(0, b);
 	
-	SetOperator so = SetOperator(a, aArray, b, bArray);
+	SourceUnitPair so = SourceUnitPair(a, aArray, b, bArray);
 	so.Union();
 }
 
@@ -147,7 +147,7 @@ void Minus(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
 	mrA.Get(0, a);
 	mrB.Get(0, b);
 	
-	SetOperator so = SetOperator(a, aArray, b, bArray);
+	SourceUnitPair so = SourceUnitPair(a, aArray, b, bArray);
 	so.Minus();
 }
 
@@ -191,11 +191,14 @@ int IntersectionValueMap(Word* args, Word& result, int message,
 	result = qp->ResultStorage(s);
 
 	MRegion* res = static_cast<MRegion*>(result.addr );
+	
+	SetOperator so(mrA, mrB, res);
+	so.Intersection();
 
-	MRegion dummy(0);
-	Intersection(*mrA, *mrB, dummy);
+	//MRegion dummy(0);
+	//Intersection(*mrA, *mrB, dummy);
 
-	res->SetDefined(false);
+	//res->SetDefined(false);
 
 	return 0;
 }

@@ -670,21 +670,175 @@ bool SourceUnit::IsEntirelyOutside(const PFace* pFace) {
 
 */
 
-SourceUnitPair::SourceUnitPair(const URegionEmb* _uRegionA,
-                               const DBArray<MSegmentData>* aArray, 
-                               const URegionEmb* _uRegionB,
-                               const DBArray<MSegmentData>* bArray) :
+SourceUnitPair::SourceUnitPair(const URegionEmb* const _uRegionA,
+                               const DBArray<MSegmentData>* const aArray, 
+                               const URegionEmb* const _uRegionB,
+                               const DBArray<MSegmentData>* const bArray,
+                               MRegion* const resultMRegion) :
 
     unitA(true, _uRegionA, aArray, this), 
-    unitB(false, _uRegionB, bArray, this) {
+    unitB(false, _uRegionB, bArray, this),
+    resultUnitFactory(resultMRegion) {
 
     unitA.SetPartner(&unitB);
     unitB.SetPartner(&unitA);
 
     ComputeOverlapRect();
-
-    //result = new vector<URegion>();
 }
+
+const vector<URegionEmb>* SourceUnitPair::Intersection() {
+
+    if (HasOverlappingBoundingRect()) {
+
+        cout << "HasOverlappingBoundingRect() == true" << endl;
+
+        CreatePFaces();
+        //PrintPFaceCycles();
+        //PrintPFacePairs();
+        ComputeInnerIntSegs(INTERSECTION);
+        //PrintIntSegsOfPFaces();
+        AddBoundarySegments(INTERSECTION);
+        //PrintIntSegsOfPFaces();
+        //FindMates();
+        //PrintIntSegsOfPFaces();
+        FindMatesAndCollectIntSegs(&resultUnitFactory);
+        //PrintIntSegsOfGlobalList();
+        //PrintIntSegsOfGlobalListAsVRML();
+        PrintUnitsAsVRML(resultUnitFactory);
+        //ConstructResultUnits();
+
+    } else {
+
+        cout << "HasOverlappingBoundingRect() == false" << endl;
+
+        CreatePFaces();
+        //PrintPFaceCycles();
+        //PrintPFacePairs();
+        ComputeInnerIntSegs(INTERSECTION);
+        //PrintIntSegsOfPFaces();
+        AddBoundarySegments(INTERSECTION);
+        //PrintIntSegsOfPFaces();
+        //FindMates();
+        //PrintIntSegsOfPFaces();
+        FindMatesAndCollectIntSegs(&resultUnitFactory);
+        //PrintIntSegsOfGlobalList();
+        //PrintIntSegsOfGlobalListAsVRML();
+        PrintUnitsAsVRML(resultUnitFactory);
+        //ConstructResultUnits();
+
+
+        // construct one empty uregion:
+        // URegionEmb* ure = new URegionEmb(this->GetTimeInterval(), 0); 
+        // delete?
+        // URegion ur(0u);
+        // ur.SetEmbedded(ure);
+
+        // result->push_back(ur);
+
+    }
+
+    //return resultUnitFactory.GetResultUnits();
+}
+
+const vector<URegionEmb>* SourceUnitPair::Union() {
+
+    if (HasOverlappingBoundingRect()) {
+
+        cout << "HasOverlappingBoundingRect() == true" << endl;
+
+        CreatePFaces();
+        //PrintPFaceCycles();
+        //PrintPFacePairs();
+        ComputeInnerIntSegs(UNION);
+        //PrintIntSegsOfPFaces();
+        AddBoundarySegments(UNION);
+        //PrintIntSegsOfPFaces();
+        //FindMates();
+        //PrintIntSegsOfPFaces();
+        FindMatesAndCollectIntSegs(&resultUnitFactory);
+        //PrintIntSegsOfGlobalList();
+        //PrintIntSegsOfGlobalListAsVRML();
+        PrintUnitsAsVRML(resultUnitFactory);
+        //ConstructResultUnits();
+
+    } else {
+
+        cout << "HasOverlappingBoundingRect() == false" << endl;
+
+        CreatePFaces();
+        //PrintPFaceCycles();
+        //PrintPFacePairs();
+        ComputeInnerIntSegs(UNION);
+        //PrintIntSegsOfPFaces();
+        AddBoundarySegments(UNION);
+        //PrintIntSegsOfPFaces();
+        //FindMates();
+        //PrintIntSegsOfPFaces();
+        FindMatesAndCollectIntSegs(&resultUnitFactory);
+        //PrintIntSegsOfGlobalList();
+        //PrintIntSegsOfGlobalListAsVRML();
+        PrintUnitsAsVRML(resultUnitFactory);
+        //ConstructResultUnits();
+
+        // TODO: construct one uregion with all elements
+        // from both, unitA and unitB.
+    }
+
+    //return resultUnitFactory.GetResultUnits();
+}
+
+const vector<URegionEmb>* SourceUnitPair::Minus() {
+
+    if (HasOverlappingBoundingRect()) {
+
+        cout << "HasOverlappingBoundingRect() == true" << endl;
+
+        CreatePFaces();
+        //PrintPFaceCycles();
+        //PrintPFacePairs();
+        ComputeInnerIntSegs(MINUS);
+        //PrintIntSegsOfPFaces();
+        AddBoundarySegments(MINUS);
+        //PrintIntSegsOfPFaces();
+        //FindMates();
+        //PrintIntSegsOfPFaces();
+        FindMatesAndCollectIntSegs(&resultUnitFactory);
+        //CollectIntSegs();
+        //PrintIntSegsOfGlobalList();
+        //PrintIntSegsOfGlobalListAsVRML();
+        PrintUnitsAsVRML(resultUnitFactory);
+        //ConstructResultUnits();
+
+    } else {
+
+        cout << "HasOverlappingBoundingRect() == false" << endl;
+
+        CreatePFaces();
+        //PrintPFaceCycles();
+        //PrintPFacePairs();
+        ComputeInnerIntSegs(MINUS);
+        //PrintIntSegsOfPFaces();
+        AddBoundarySegments(MINUS);
+        //PrintIntSegsOfPFaces();
+        //FindMates();
+        //PrintIntSegsOfPFaces();
+        FindMatesAndCollectIntSegs(&resultUnitFactory);
+        //PrintIntSegsOfGlobalList();
+        //PrintIntSegsOfGlobalListAsVRML();
+        PrintUnitsAsVRML(resultUnitFactory);
+        //ConstructResultUnits();
+
+
+        // construct one uregion identical to unitA:
+        //URegion ur(unitA.GetNoOfPFaces());
+        //ur.SetEmbedded(unitA.GetURegionEmb());
+
+        //result->push_back(ur);
+    }
+
+    //return resultUnitFactory.GetResultUnits();
+}
+
 
 
 void SourceUnitPair::ComputeOverlapRect() {
@@ -796,7 +950,7 @@ void SourceUnitPair::PrintIntSegsOfPFaces() {
 
 
 
-void SourceUnitPair::PrintUnitsAsVRML(ResultUnitFactory& ruf) {
+void SourceUnitPair::PrintUnitsAsVRML() {
 
     const string colorA = "1 1 0";
     const string colorB = "0 0.6 1";
@@ -825,7 +979,7 @@ void SourceUnitPair::PrintUnitsAsVRML(ResultUnitFactory& ruf) {
     target << endl;
     target << "# Intersection segments of global list:" << endl;
     target << endl;
-    ruf.PrintIntSegsOfGlobalListAsVRML(target, colorIntSegs);
+    resultUnitFactory.PrintIntSegsOfGlobalListAsVRML(target, colorIntSegs);
 
     target.close();
 }
@@ -836,158 +990,6 @@ void SourceUnitPair::PrintUnitsAsVRML(ResultUnitFactory& ruf) {
 
 */
 
-const vector<ResultUnit>* SetOperator::Intersection() {
-
-    if (sourceUnitPair.HasOverlappingBoundingRect()) {
-
-        cout << "HasOverlappingBoundingRect() == true" << endl;
-
-        sourceUnitPair.CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        sourceUnitPair.ComputeInnerIntSegs(INTERSECTION);
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.AddBoundarySegments(INTERSECTION);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        sourceUnitPair.PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultURegions();
-
-    } else {
-
-        cout << "HasOverlappingBoundingRect() == false" << endl;
-
-        sourceUnitPair.CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        sourceUnitPair.ComputeInnerIntSegs(INTERSECTION);
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.AddBoundarySegments(INTERSECTION);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        sourceUnitPair.PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultURegions();
-
-
-        // construct one empty uregion:
-        // URegionEmb* ure = new URegionEmb(this->GetTimeInterval(), 0); 
-        // delete?
-        // URegion ur(0u);
-        // ur.SetEmbedded(ure);
-
-        // result->push_back(ur);
-
-    }
-
-    return resultUnits;
-}
-
-const vector<ResultUnit>* SetOperator::Union() {
-
-    if (sourceUnitPair.HasOverlappingBoundingRect()) {
-
-        cout << "HasOverlappingBoundingRect() == true" << endl;
-
-        sourceUnitPair.CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        sourceUnitPair. ComputeInnerIntSegs(UNION);
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.AddBoundarySegments(UNION);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        sourceUnitPair.PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultURegions();
-
-    } else {
-
-        cout << "HasOverlappingBoundingRect() == false" << endl;
-
-        sourceUnitPair.CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        sourceUnitPair.ComputeInnerIntSegs(UNION);
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.AddBoundarySegments(UNION);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        sourceUnitPair.PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultURegions();
-
-        // TODO: construct one uregion with all elements
-        // from both, unitA and unitB.
-    }
-
-    return resultUnits;
-}
-
-const vector<ResultUnit>* SetOperator::Minus() {
-
-    if (sourceUnitPair.HasOverlappingBoundingRect()) {
-
-        cout << "HasOverlappingBoundingRect() == true" << endl;
-
-        sourceUnitPair.CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        sourceUnitPair.ComputeInnerIntSegs(MINUS);
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.AddBoundarySegments(MINUS);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //CollectIntSegs();
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        sourceUnitPair.PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultURegions();
-
-    } else {
-
-        cout << "HasOverlappingBoundingRect() == false" << endl;
-
-        sourceUnitPair.CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        sourceUnitPair.ComputeInnerIntSegs(MINUS);
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.AddBoundarySegments(MINUS);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        sourceUnitPair.FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        sourceUnitPair.PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultURegions();
-
-
-        // construct one uregion identical to unitA:
-        //URegion ur(unitA.GetNoOfPFaces());
-        //ur.SetEmbedded(unitA.GetURegionEmb());
-
-        //result->push_back(ur);
-    }
-
-    return resultUnits;
-}
 
 
 
