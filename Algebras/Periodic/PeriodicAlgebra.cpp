@@ -79,14 +79,15 @@ using namespace std;
 #define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
 
 
-
-extern NestedList* nl;
-extern QueryProcessor *qp;
 using namespace datetime;
 
 #include "TemporalAlgebra.h"
+extern NestedList* nl;
+extern QueryProcessor *qp;
+
 
 namespace periodic {
+
 
 
 /*
@@ -118,6 +119,31 @@ This macro is for debugging purposes. At the begin of all functions should the
 
 // the __POS__ macro can be used in debug-messages
 #define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
+
+
+using namespace datetime;
+
+#include "TemporalAlgebra.h"
+
+
+ // the __POS__ macro can be used in debug-messages
+#define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
+
+
+
+extern NestedList* nl;
+extern QueryProcessor *qp;
+using namespace datetime;
+
+#include "TemporalAlgebra.h"
+
+
+
+/*
+1 Definitions of some constants
+
+*/
+
 
 
 using namespace datetime;
@@ -486,13 +512,13 @@ This function translates this bounding box to its nested list representation.
 ListExpr PBBox::ToListExpr()const{
     __TRACE__
    if(!IsDefined())
-       return nl->SymbolAtom("undefined");
+       return ::nl->SymbolAtom("undefined");
     if(IsEmpty())
-       return nl->SymbolAtom("empty");
-    return nl->FourElemList(nl->RealAtom(minX),
-                            nl->RealAtom(minY),
-                            nl->RealAtom(maxX),
-                            nl->RealAtom(maxY));
+       return ::nl->SymbolAtom("empty");
+    return ::nl->FourElemList(::nl->RealAtom(minX),
+                            ::nl->RealAtom(minY),
+                            ::nl->RealAtom(maxX),
+                            ::nl->RealAtom(maxY));
 }
 
 /*
@@ -506,24 +532,24 @@ ListExpr.
 */
 bool PBBox::ReadFrom(const ListExpr LE){
     __TRACE__
- if(nl->IsEqual(LE,"undefined") || nl->IsEqual(LE,"undef")){
+ if(::nl->IsEqual(LE,"undefined") || ::nl->IsEqual(LE,"undef")){
       SetDefined(false);
       SetEmpty(true);
       return true;
   }
-  if(nl->IsEqual(LE,"empty")){
+  if(::nl->IsEqual(LE,"empty")){
      SetDefined(true);
      SetEmpty(true);
      return true;
   }
-  if(nl->ListLength(LE)!=4)
+  if(::nl->ListLength(LE)!=4)
     return false;
 
   double x1,x2,y1,y2;
-  if(!GetNumeric(nl->First(LE),x1)) return false;
-  if(!GetNumeric(nl->Second(LE),y1)) return false;
-  if(!GetNumeric(nl->Third(LE),x2)) return false;
-  if(!GetNumeric(nl->Fourth(LE),y2)) return false;
+  if(!GetNumeric(::nl->First(LE),x1)) return false;
+  if(!GetNumeric(::nl->Second(LE),y1)) return false;
+  if(!GetNumeric(::nl->Third(LE),x2)) return false;
+  if(!GetNumeric(::nl->Fourth(LE),y2)) return false;
   minX = x1<x2?x1:x2;
   maxX = x1<x2?x2:x1;
   minY = y1<y2?y1:y2;
@@ -663,6 +689,11 @@ void PBBox::Intersection(const PBBox* B2){
   SetEmpty(minX>maxX ||  minY>maxY);
 }
 
+void PBBox::Intersection(const PBBox* b2, PBBox& res)const{
+   res.Equalize(this);
+   res.Intersection(b2);
+}
+
 /*
 ~Intersects~
 
@@ -729,6 +760,26 @@ void PBBox::Union(const PBBox* B2){
   minY = minY<B2->minY? minY: B2->minY;
   maxY = maxY>B2->maxY? maxY: B2->maxY;
 }
+
+void PBBox::Union(const PBBox* b2, PBBox& res)const{
+   if(!IsDefined() || !b2->IsDefined()){
+      res.SetDefined(false);
+      return;
+   } else if(IsEmpty()) {
+      res.Equalize(b2);
+   } else if(b2->IsEmpty()){
+      res.Equalize(this); 
+   } else {
+    res.SetEmpty(false); 
+    res.SetDefined(true);
+    res.minX = minX<b2->minX? minX: b2->minX;
+    res.maxX = maxX>b2->maxX? maxX: b2->maxX;
+    res.minY = minY<b2->minY? minY: b2->minY;
+    res.maxY = maxY>b2->maxY? maxY: b2->maxY;
+   }
+}
+
+
 
 /*
 ~Union~
@@ -1272,15 +1323,15 @@ ListExpr RelInterval::ToListExpr(const bool typeincluded)const{
   ListExpr time;
   time = length.ToListExpr(false);
   if(typeincluded)
-       return nl->TwoElemList(nl->SymbolAtom("rinterval"),
-                   nl->ThreeElemList(
-                       nl->BoolAtom(IsLeftClosed()),
-                       nl->BoolAtom(IsRightClosed()),
+       return ::nl->TwoElemList(::nl->SymbolAtom("rinterval"),
+                   ::nl->ThreeElemList(
+                       ::nl->BoolAtom(IsLeftClosed()),
+                       ::nl->BoolAtom(IsRightClosed()),
                        time));
    else
-      return nl->ThreeElemList(
-                   nl->BoolAtom(IsLeftClosed()),
-                   nl->BoolAtom(IsRightClosed()),
+      return ::nl->ThreeElemList(
+                   ::nl->BoolAtom(IsLeftClosed()),
+                   ::nl->BoolAtom(IsRightClosed()),
                    time);
 }
 
@@ -1328,45 +1379,45 @@ bool RelInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
 
    ListExpr V;
    if(typeincluded){
-      if(nl->ListLength(LE)!=2){
+      if(::nl->ListLength(LE)!=2){
          if(DEBUG_MODE)
             cerr << __POS__ << ": wrong length for typed interval" << endl;
          return false;
       }
-      if(!nl->IsEqual(nl->First(LE),"rinterval")){
+      if(!::nl->IsEqual(::nl->First(LE),"rinterval")){
          if(DEBUG_MODE){
             cerr << __POS__ << ": wrong type for interval" << endl;
             cerr << "expected : rinterval , received :";
-            nl->WriteListExpr(nl->First(LE));
+            ::nl->WriteListExpr(::nl->First(LE));
          }
          return false;
       }
-      V = nl->Second(LE);
+      V = ::nl->Second(LE);
    } else
      V = LE;
-   if(nl->ListLength(V)!=3){
+   if(::nl->ListLength(V)!=3){
        if(DEBUG_MODE)
           cerr << __POS__ << ": wrong length for interval" << endl;
        return false;
    }
-   if(nl->AtomType(nl->First(V))!=BoolType){
+   if(::nl->AtomType(::nl->First(V))!=BoolType){
      if(DEBUG_MODE)
         cerr << __POS__ << ": wrong type in interval" << endl;
      return false;
    }
-   if(nl->AtomType(nl->Second(V))!=BoolType){
+   if(::nl->AtomType(::nl->Second(V))!=BoolType){
      if(DEBUG_MODE)
         cerr << __POS__ << ": wrong type in interval" << endl;
      return false;
    }
    DateTime time(durationtype);
-   if(!(time.ReadFrom(nl->Third(V),false))){
+   if(!(time.ReadFrom(::nl->Third(V),false))){
          if(DEBUG_MODE)
            cerr << __POS__ << ": error in reading length of interval" << endl;
          return false;
    }
-   bool LC = nl->BoolValue(nl->First(V));
-   bool RC = nl->BoolValue(nl->Second(V));
+   bool LC = ::nl->BoolValue(::nl->First(V));
+   bool RC = ::nl->BoolValue(::nl->Second(V));
    // a single instant has to be both left- and rightclosed
    if( (time.IsZero()) && (!LC || !RC)){
      if(DEBUG_MODE)
@@ -1910,6 +1961,10 @@ DateTime* PInterval::GetLength()const{
   return relinterval.GetLength();
 }
 
+void PInterval::Length(DateTime& res)const{
+   relinterval.GetLength(res);
+}
+
 /*
 ~GetStart~
 
@@ -1970,11 +2025,11 @@ This requires, that this interval is bounded.
 ListExpr PInterval::ToListExpr(const bool typeincluded)const {
    __TRACE__
   DateTime* EndTime = GetEnd();
-   ListExpr result = nl->FourElemList(
+   ListExpr result = ::nl->FourElemList(
                             startTime.ToListExpr(false),
                             EndTime->ToListExpr(false),
-                            nl->BoolAtom(IsLeftClosed()),
-                            nl->BoolAtom(IsRightClosed()));
+                            ::nl->BoolAtom(IsLeftClosed()),
+                            ::nl->BoolAtom(IsRightClosed()));
    delete EndTime;
    EndTime = NULL;
    return result;
@@ -2017,34 +2072,34 @@ bool PInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
   ListExpr value;
    cout<< "typeincluded : " << typeincluded << endl;
    if(typeincluded){
-      if(nl->ListLength(LE)!=2)
+      if(::nl->ListLength(LE)!=2)
          return false;
-      if(nl->IsEqual(nl->First(LE),"pinterval"))
+      if(::nl->IsEqual(::nl->First(LE),"pinterval"))
          return false;
-      value = nl->Second(LE);
+      value = ::nl->Second(LE);
    } else {
        value = LE;
    }
-   if(nl->ListLength(value)!=4){
+   if(::nl->ListLength(value)!=4){
       cout << "Invalid ListLength" << endl << endl;
       return false;
    }
    bool lc,rc;
-   if( nl->AtomType(nl->Third(value))!=BoolType ||
-       nl->AtomType(nl->Fourth(value))!=BoolType){
+   if( ::nl->AtomType(::nl->Third(value))!=BoolType ||
+       ::nl->AtomType(::nl->Fourth(value))!=BoolType){
        cout << "no bool values" << endl;
        return false;
    }
    DateTime start(instanttype);
    DateTime end(instanttype);
-   if(!start.ReadFrom(nl->First(value),false)){
+   if(!start.ReadFrom(::nl->First(value),false)){
       return false;
    }
-   if(!end.ReadFrom(nl->Second(value),false)){
+   if(!end.ReadFrom(::nl->Second(value),false)){
       return false;
    }
-   lc = nl->BoolValue(nl->Third(value));
-   rc = nl->BoolValue(nl->Fourth(value));
+   lc = ::nl->BoolValue(::nl->Third(value));
+   rc = ::nl->BoolValue(::nl->Fourth(value));
    if( (start==end) && !( rc && lc)) { // a single instant has to be closed
       return false;
    }
@@ -2611,10 +2666,10 @@ This should be checked by calling the isDefinedAt function.
 
 */
 template <class T>
-T LinearConstantMove<T>::At(const DateTime* duration) const {
+void LinearConstantMove<T>::At(const DateTime* duration,T& res) const {
    assert(interval.Contains(duration));
    assert(defined);
-   return value;
+   res = value;
 }
 
 
@@ -2642,17 +2697,17 @@ as nested list.
 template <class T>
 ListExpr LinearConstantMove<T>::ToListExpr()const{
   if(defined){
-      return nl->TwoElemList(
-                    nl->SymbolAtom("linear"),
-                    nl->TwoElemList(
+      return ::nl->TwoElemList(
+                    ::nl->SymbolAtom("linear"),
+                    ::nl->TwoElemList(
                           interval.ToListExpr(false),
                           ToConstantListExpr(value)));
    } else {
-      return nl->TwoElemList(
-                     nl->SymbolAtom("linear"),
-                     nl->TwoElemList(
+      return ::nl->TwoElemList(
+                     ::nl->SymbolAtom("linear"),
+                     ::nl->TwoElemList(
                              interval.ToListExpr(false),
-                             nl->SymbolAtom("undefined")));
+                             ::nl->SymbolAtom("undefined")));
    }
 }
 
@@ -2667,15 +2722,15 @@ value of this unit remains unchanged and the result will be __false__.
 */
 template <class T>
 bool LinearConstantMove<T>::ReadFrom(const ListExpr value){
- if(nl->ListLength(value)!=2){
+ if(::nl->ListLength(value)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": Wrong ListLength" << endl;
         cerr << "expected : 2, received :" 
-             << nl->ListLength(value) << endl;
+             << ::nl->ListLength(value) << endl;
      }
      return false;
   }
-  if(!interval.ReadFrom(nl->First(value),false)){
+  if(!interval.ReadFrom(::nl->First(value),false)){
       if(DEBUG_MODE){
          cerr << __POS__ << ": Can't read the interval" << endl;
       }
@@ -2683,8 +2738,8 @@ bool LinearConstantMove<T>::ReadFrom(const ListExpr value){
       return false;
   }
 
-  ListExpr V = nl->Second(value);
-  if(nl->IsEqual(V,"undefined")){
+  ListExpr V = ::nl->Second(value);
+  if(::nl->IsEqual(V,"undefined")){
       defined = false;
       return true;
   }
@@ -2726,8 +2781,9 @@ map properties for constant values.
 
 */
 template <class T> 
-T* LinearConstantMove<T>::Initial()const{
-  return new T(value);
+bool LinearConstantMove<T>::Initial(T& res)const{
+  res = (value);
+  return defined;
 }
 
 
@@ -2740,8 +2796,9 @@ for the map class.
 
 */
 template <class T>
-T* LinearConstantMove<T>::Final(){
-   return new T(value);
+bool LinearConstantMove<T>::Final(T& res)const {
+   res =(value);
+   return defined;
 }
 
 
@@ -2826,7 +2883,7 @@ nested list representation.
 
 */
 ListExpr ToConstantListExpr(const bool value) {
-  return nl->BoolAtom(value);
+  return ::nl->BoolAtom(value);
 }
 
 
@@ -2840,9 +2897,9 @@ class.
 
 */
 bool ReadFromListExpr(ListExpr le, bool& v){
-   if(nl->AtomType(le)!=BoolType)
+   if(::nl->AtomType(le)!=BoolType)
       return false;
-    v = nl->BoolValue(le);
+    v = ::nl->BoolValue(le);
     return true;
 }
 
@@ -3008,17 +3065,17 @@ __true__ is returned.
 
 */
 bool MRealMap::ReadFrom(ListExpr le){
-  if(nl->ListLength(le)!=4)
+  if(::nl->ListLength(le)!=4)
      return false;
   double tmpa,tmpb,tmpc;
-  if(nl->AtomType(nl->Fourth(le))!=BoolType)
+  if(::nl->AtomType(::nl->Fourth(le))!=BoolType)
      return false;
-  bool tmproot=nl->BoolValue(nl->Fourth(le));
-  if(!GetNumeric(nl->First(le),tmpa))
+  bool tmproot=::nl->BoolValue(::nl->Fourth(le));
+  if(!GetNumeric(::nl->First(le),tmpa))
      return false;
-  if(!GetNumeric(nl->Second(le),tmpb))
+  if(!GetNumeric(::nl->Second(le),tmpb))
      return false;
-  if(!GetNumeric(nl->Third(le),tmpc))
+  if(!GetNumeric(::nl->Third(le),tmpc))
      return false;
   a = tmpa;
   b = tmpb;
@@ -3035,10 +3092,10 @@ This function returns the nested list representation of this map.
 
 */
 ListExpr MRealMap::ToListExpr()const{
-  return nl->FourElemList(nl->RealAtom(a),
-                          nl->RealAtom(b),
-                          nl->RealAtom(c),
-                          nl->BoolAtom(root));
+  return ::nl->FourElemList(::nl->RealAtom(a),
+                          ::nl->RealAtom(b),
+                          ::nl->RealAtom(c),
+                          ::nl->BoolAtom(root));
 }
 
 
@@ -3247,13 +3304,15 @@ The unit has be be defined.
     assert(defined);
     DateTime* length = interval.GetLength();
     DateTime* start = new DateTime(durationtype); 
-    double v1 = At(start);
-    double v2 = At(length);
+    double v1;
+    At(start,v1);
+    double v2;
+    At(length,v2);
     double v3 = v1;
     DateTime pos = map.ExtremumAt();
     if(pos.IsDefined()){
         if(!pos.LessThanZero() && ( pos < (*length))){
-           v3 = At(&pos);
+           At(&pos,v3);
         }     
     }
     delete length;
@@ -3265,13 +3324,15 @@ The unit has be be defined.
     assert(defined);
     DateTime* length = interval.GetLength();
     DateTime* start = new DateTime(durationtype); 
-    double v1 = At(start);
-    double v2 = At(length);
+    double v1;
+    At(start,v1);
+    double v2;
+    At(length,v2);
     double v3 = v1;
     DateTime pos = map.ExtremumAt();
     if(pos.IsDefined()){
         if(!pos.LessThanZero() && ( pos < (*length))){
-           v3 = At(&pos);
+           At(&pos,v3);
         }     
     }
     delete length;
@@ -3328,11 +3389,11 @@ This unit must be defined at this instant. This should be checked
 by calling the ~IsDefinedAt~ function before. 
 
 */
-double MovingRealUnit::At(const DateTime* duration) const {
+void MovingRealUnit::At(const DateTime* duration,double& res) const {
     assert(interval.Contains(duration,true));
     assert(defined);
     assert(map.IsDefinedAt(duration));
-    return map.At(duration);
+    res =  map.At(duration);
 }
 
 
@@ -3356,12 +3417,12 @@ This function computes the representation of this unit in nested list format.
 */
 ListExpr MovingRealUnit::ToListExpr()const{
  if(!defined)
-      return nl->TwoElemList(nl->SymbolAtom("linear"),
-                             nl->TwoElemList(
+      return ::nl->TwoElemList(::nl->SymbolAtom("linear"),
+                             ::nl->TwoElemList(
                                interval.ToListExpr(false),
-                               nl->SymbolAtom("undefined")));
- return nl->TwoElemList(nl->SymbolAtom("linear"),
-                        nl->TwoElemList(
+                               ::nl->SymbolAtom("undefined")));
+ return ::nl->TwoElemList(::nl->SymbolAtom("linear"),
+                        ::nl->TwoElemList(
                             interval.ToListExpr(false),
                             map.ToListExpr()));
       
@@ -3376,19 +3437,19 @@ this unit remains unchanged.
 
 */
 bool MovingRealUnit::ReadFrom(ListExpr le){
-  if(nl->ListLength(le)!=2)
+  if(::nl->ListLength(le)!=2)
       return false;
-  if(nl->AtomType(nl->First(le))!=SymbolType)
+  if(::nl->AtomType(::nl->First(le))!=SymbolType)
       return false;
-  if(nl->SymbolValue(nl->First(le))!="linear")
+  if(::nl->SymbolValue(::nl->First(le))!="linear")
       return false;
-  ListExpr v = nl->Second(le);
-  if(nl->ListLength(v)!=2)
+  ListExpr v = ::nl->Second(le);
+  if(::nl->ListLength(v)!=2)
       return false;
   RelInterval tmpinterval;
-  if(!tmpinterval.ReadFrom(nl->First(v),false))
+  if(!tmpinterval.ReadFrom(::nl->First(v),false))
       return false;
-  if(!map.ReadFrom(nl->Second(v)))
+  if(!map.ReadFrom(::nl->Second(v)))
      return false;
   interval.Equalize(&tmpinterval);
   defined=true;
@@ -3419,11 +3480,13 @@ bool MovingRealUnit::CanSummarized(const MovingRealUnit* MRU) const{
 This function returns the value of this unit at the start of its interval.
 
 */
-double* MovingRealUnit::Initial()const{
-      if(!map.IsDefinedAt(0.0))
-           return NULL;
-      else
-         return new double(map.At(0.0)); 
+bool MovingRealUnit::Initial(double& res)const{
+      if(!map.IsDefinedAt(0.0)){
+        return false;
+      } else {
+        res = (map.At(0.0)); 
+        return true;
+     }
 }
 
 /*
@@ -3432,16 +3495,15 @@ double* MovingRealUnit::Initial()const{
 This function returns the value of this unit at the end of its interval.
 
 */ 
-double* MovingRealUnit::Final(){
+bool MovingRealUnit::Final(double& res)const{
     DateTime* end = interval.GetLength();
-    double* res;
     if(!map.IsDefinedAt(end))
-         res = NULL;
+         return false;
     else
-        res = new double(map.At(end)); 
+        res = (map.At(end)); 
     delete end;
     end = NULL;
-    return res;
+    return true;
 }
 
 
@@ -4040,7 +4102,7 @@ ListExpr PMSimple<T, Unit>::ToListExpr()const {
   __TRACE__
  ListExpr timelist = startTime.ToListExpr(false);
  ListExpr SubMoveList = GetSubMoveList(submove);
-     return nl->TwoElemList(timelist,SubMoveList);
+     return ::nl->TwoElemList(timelist,SubMoveList);
 }
 
 /*
@@ -4064,10 +4126,10 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
      The reason is, that we want to avoid frequently ~Resize~
      on the arrays.
    */
-  if(nl->ListLength(value)!=2){
+  if(::nl->ListLength(value)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong listlength (";
-        cerr << (nl->ListLength(value)) << ")" << endl;
+        cerr << (::nl->ListLength(value)) << ")" << endl;
      }
      SetDefined(false);
      return false;
@@ -4081,19 +4143,19 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
      return false;
   }
 
-  if(!startTime.ReadFrom(nl->First(value),false)){
+  if(!startTime.ReadFrom(::nl->First(value),false)){
      if(DEBUG_MODE){
         cerr << __POS__ << "reading of the start time failed" << endl;
         cerr << "The list is " << endl;
-        nl->WriteListExpr(nl->First(value));
+        ::nl->WriteListExpr(::nl->First(value));
      }
      SetDefined(false);
      return false;
   }
 
   // now we have to append the included submove
-  ListExpr SML = nl->Second(value);
-  if(nl->ListLength(SML)!=2){
+  ListExpr SML = ::nl->Second(value);
+  if(::nl->ListLength(SML)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong list length for submove" << endl;
      }
@@ -4101,15 +4163,15 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
      return false;
   }
 
-  ListExpr SMT = nl->First(SML);
+  ListExpr SMT = ::nl->First(SML);
   int LMIndex = 0;
   int CMIndex = 0;
   int SMIndex = 0;
   int PMIndex = 0;
-  if(nl->IsEqual(SMT,"linear")){
+  if(::nl->IsEqual(SMT,"linear")){
      submove.arrayNumber = LINEAR;
      submove.arrayIndex = 0;
-     if(!AddLinearMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+     if(!AddLinearMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
          if(DEBUG_MODE){
             cerr << __POS__ << " Error in reading linear move" << endl;
          }
@@ -4124,10 +4186,10 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
      CorrectDurationSums();
      return true;
   }
-  if(nl->IsEqual(SMT,"composite")){
+  if(::nl->IsEqual(SMT,"composite")){
      submove.arrayNumber=COMPOSITE;
      submove.arrayIndex = 0;
-     if(!AddCompositeMove(nl->Second(SML),LMIndex,
+     if(!AddCompositeMove(::nl->Second(SML),LMIndex,
                           CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
            cerr << __POS__ << "error in reading composite move" << endl;
@@ -4142,10 +4204,10 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
      CorrectDurationSums();
      return true;
   }
-  if(nl->IsEqual(SMT,"period")){
+  if(::nl->IsEqual(SMT,"period")){
      submove.arrayNumber = PERIOD;
      submove.arrayIndex = 0;
-     if(!AddPeriodMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+     if(!AddPeriodMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
           cerr << __POS__ << " error in reading periodic move" << endl;
         }
@@ -4161,7 +4223,7 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
   }
   if(DEBUG_MODE){
      cerr << __POS__ << "unknown subtype" << endl;
-     nl->WriteListExpr(SMT);
+     ::nl->WriteListExpr(SMT);
   }
   return false;
 }
@@ -4191,11 +4253,10 @@ delete the returned value of this function if the result is not null.
 
 */
 template <class T, class Unit>
-T* PMSimple<T, Unit>::At(const DateTime* instant)const{
+void PMSimple<T, Unit>::At(const DateTime* instant,T& res)const{
   __TRACE__
  DateTime* duration = new DateTime(*instant);
  duration->Minus(&startTime); // now it is a duration
- T* res = 0;
  if(interval.Contains(duration)){
  // in the other case, we have nothing to do
  // because the result is initialized with "undefined"
@@ -4267,14 +4328,11 @@ T* PMSimple<T, Unit>::At(const DateTime* instant)const{
      const Unit* LM;
      linearMoves.Get(sm->arrayIndex,LM);
      if(LM->IsDefinedAt(duration)){
-        T tmpres = LM->At(duration);
-        res = new T();
-        *res = tmpres;
+        LM->At(duration,res);
      }
   }
   delete duration;
   duration = NULL;
-  return res;
 }
 
 /*
@@ -4284,22 +4342,14 @@ This function computes the first defined value of this moving constant.
 
 */
 template <class T, class Unit>
-T* PMSimple<T, Unit>::Initial() const{
+bool PMSimple<T, Unit>::Initial(T& result) const{
     __TRACE__
-  T* res = 0;
-  if(!defined){
-     return res;
+  if(!defined || IsEmpty()){
+    return false;
   }
-  if(IsEmpty()){
-    return res;
-  }
-  /* the first units is also the first
-     unit in the dbarray of the units.
-  */
   const Unit* lm;
   linearMoves.Get(0,lm);
-  res = lm->Initial(); 
-  return res;
+  return lm->Initial(result); 
 }
 
 
@@ -4312,18 +4362,16 @@ If none exists, NULL is returned.
 
 */
 template <class T, class Unit>
-T* PMSimple<T, Unit>::Final(){
+bool PMSimple<T, Unit>::Final(T& res)const{
     __TRACE__
- T* res = 0;
  if(!defined){
-    return res;
+    return false;
  }
  if(IsEmpty()){
-     return res;
+     return false;
   }       
   Unit lm =  GetLastUnit();
-  res = lm.Final();
-  return res;
+  return lm.Final(res);
 }
 
 /*
@@ -4337,6 +4385,12 @@ void PMSimple<T, Unit>::Translate(const DateTime& duration){
    startTime += duration;
 }
 
+template<class T, class Unit>
+void PMSimple<T, Unit>::Translate(const DateTime* duration,
+                                  PMSimple<T,Unit>& res)const{
+   res.Equalize(this);
+   res.startTime += *duration;
+}
  
 /*
 ~Minimize~
@@ -5082,7 +5136,7 @@ ListExpr PMSimple<T, Unit>::GetSubMoveList(const SubMove SM) const{
       SubMoveList = GetPeriodicMoveList(index);
   else{
        cerr << __POS__ << " Error in creating ListExpr" << endl;
-       SubMoveList = nl->TheEmptyList();
+       SubMoveList = ::nl->TheEmptyList();
    }
   return SubMoveList;
 }
@@ -5119,12 +5173,12 @@ ListExpr PMSimple<T, Unit>::GetPeriodicMoveList(const int index)const{
     __TRACE__
   const PeriodicMove* PM=NULL;
   periodicMoves.Get(index,PM);
-  ListExpr periodtype = nl->SymbolAtom("period");
-  ListExpr RepList = nl->IntAtom(PM->repeatations);
+  ListExpr periodtype = ::nl->SymbolAtom("period");
+  ListExpr RepList = ::nl->IntAtom(PM->repeatations);
   ListExpr SML = GetSubMoveList(PM->submove);
-  ListExpr RC = nl->BoolAtom(interval.IsRightClosed());
-  ListExpr LC = nl->BoolAtom(interval.IsLeftClosed());
-  return  nl->TwoElemList(periodtype,nl->FourElemList(RepList,LC,RC,SML));
+  ListExpr RC = ::nl->BoolAtom(interval.IsRightClosed());
+  ListExpr LC = ::nl->BoolAtom(interval.IsLeftClosed());
+  return  ::nl->TwoElemList(periodtype,::nl->FourElemList(RepList,LC,RC,SML));
 }
 
 
@@ -5142,26 +5196,26 @@ ListExpr PMSimple<T, Unit>::GetCompositeMoveList(const int index)const{
    __TRACE__
   const CompositeMove* CM=NULL;
   compositeMoves.Get(index,CM);
-  ListExpr CType = nl->SymbolAtom("composite");
+  ListExpr CType = ::nl->SymbolAtom("composite");
   int minIndex = CM-> minIndex;
   int maxIndex = CM->maxIndex;
   ListExpr SubMovesList;
   if(maxIndex<minIndex){
     cerr << __POS__ << "empty composite move" << endl;
-    SubMovesList = nl->TheEmptyList();
+    SubMovesList = ::nl->TheEmptyList();
   }
   else{
    // construct the List of submoves
     const CSubMove* SM=NULL;
     compositeSubMoves.Get(minIndex,SM);
-    SubMovesList = nl->OneElemList(GetSubMoveList(*SM));
+    SubMovesList = ::nl->OneElemList(GetSubMoveList(*SM));
     ListExpr Last = SubMovesList;
     for(int i=minIndex+1;i<=maxIndex;i++){
       compositeSubMoves.Get(i,SM);
-      Last = nl->Append(Last,GetSubMoveList(*SM));
+      Last = ::nl->Append(Last,GetSubMoveList(*SM));
     }
   }
-  return nl->TwoElemList(CType,SubMovesList);
+  return ::nl->TwoElemList(CType,SubMovesList);
 }
 
 /*
@@ -5192,7 +5246,7 @@ bool PMSimple<T, Unit>::ResizeArrays(const ListExpr value){
    int CMSize = 0;
    int SMSize = 0;
    int PMSize = 0;
-   if(!AddSubMovesSize(nl->Second(value),LMSize,CMSize,SMSize,PMSize))
+   if(!AddSubMovesSize(::nl->Second(value),LMSize,CMSize,SMSize,PMSize))
       return false;
    // set the arrays to the needed size
    if(LMSize>0) linearMoves.Resize(LMSize);
@@ -5220,39 +5274,39 @@ bool PMSimple<T, Unit>::AddSubMovesSize(const ListExpr value,
                                         int &SMSize,int &PMSize){
     __TRACE__
  // all moves have the length 2
-  if(nl->ListLength(value)!=2)
+  if(::nl->ListLength(value)!=2)
      return false;
-  ListExpr type = nl->First(value);
-  if(nl->AtomType(type)!=SymbolType)
+  ListExpr type = ::nl->First(value);
+  if(::nl->AtomType(type)!=SymbolType)
     return false;
   // in a linear move we have only to increment the size of LM
-  if(nl->IsEqual(type,"linear")){
+  if(::nl->IsEqual(type,"linear")){
      LMSize = LMSize +1;
      return true;
   }
-  if(nl->IsEqual(type,"composite")){
+  if(::nl->IsEqual(type,"composite")){
      CMSize = CMSize+1; // the composite move itself
-     ListExpr rest = nl->Second(value);
-     SMSize = SMSize+nl->ListLength(rest); // the contained submoves
-     while(!nl->IsEmpty(rest)){
-        if(!AddSubMovesSize(nl->First(rest),LMSize,CMSize,SMSize,PMSize))
+     ListExpr rest = ::nl->Second(value);
+     SMSize = SMSize+::nl->ListLength(rest); // the contained submoves
+     while(!::nl->IsEmpty(rest)){
+        if(!AddSubMovesSize(::nl->First(rest),LMSize,CMSize,SMSize,PMSize))
            return false;
-        rest = nl->Rest(rest);
+        rest = ::nl->Rest(rest);
      }
      return true;
   }
-  if(nl->IsEqual(type,"period")){
+  if(::nl->IsEqual(type,"period")){
      PMSize = PMSize+1;
-     int len = nl->ListLength(value);
+     int len = ::nl->ListLength(value);
      ListExpr PMove;
      if(len==2)
-         PMove = nl->Second(value);
+         PMove = ::nl->Second(value);
      else if(len==4)
-          PMove = nl->Fourth(value);
+          PMove = ::nl->Fourth(value);
      else // incorrect listlength
          return false;
      
-     return AddSubMovesSize(nl->Second(PMove),
+     return AddSubMovesSize(::nl->Second(PMove),
                             LMSize,CMSize,SMSize,PMSize);
   }
   // a unknown type description
@@ -5308,7 +5362,7 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
                                          int &SMIndex, int &PMIndex){
    __TRACE__
    // a composite move has to contains at least two submoves
-   int len = nl->ListLength(value);
+   int len = ::nl->ListLength(value);
    if(len<2){
       if(DEBUG_MODE){
          cerr << __POS__ << " less than 2 submoves (" 
@@ -5328,20 +5382,20 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
    ListExpr rest = value;
    ListExpr SML,TL,VL;
    bool isFirst = true;
-   while(!nl->IsEmpty(rest)){
-      SML = nl->First(rest);
-      rest = nl->Rest(rest);
-      if(nl->ListLength(SML)!=2){ // all submoves have the 
+   while(!::nl->IsEmpty(rest)){
+      SML = ::nl->First(rest);
+      rest = ::nl->Rest(rest);
+      if(::nl->ListLength(SML)!=2){ // all submoves have the 
                                  // format (type value)
          if(DEBUG_MODE){
             cerr << __POS__ << " submove has wrong length (";
-            cerr << nl->ListLength(SML) << ")" << endl;
+            cerr << ::nl->ListLength(SML) << ")" << endl;
          }
          return false;
       }
-      TL = nl->First(SML);
-      VL = nl->Second(SML);
-      if(nl->IsEqual(TL,"linear")){
+      TL = ::nl->First(SML);
+      VL = ::nl->Second(SML);
+      if(::nl->IsEqual(TL,"linear")){
          // process a linear submove
          int LMPos = LMIndex;
          if(!AddLinearMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
@@ -5374,7 +5428,7 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
          SM.arrayIndex = LMPos;
          compositeSubMoves.Put(SMPos,SM);
          SMPos++;
-      } else if(nl->IsEqual(TL,"period")){
+      } else if(::nl->IsEqual(TL,"period")){
         // process a periodic submove
         int PMPos = PMIndex;
         if(!AddPeriodMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
@@ -5432,19 +5486,19 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
                                       int &LMIndex, int &CMIndex,
                                       int &SMIndex, int &PMIndex){
    __TRACE__
-   int len = nl->ListLength(value);
+   int len = ::nl->ListLength(value);
    if((len!=2) && (len!=4)){  // (repeatations <submove>)
       if(DEBUG_MODE)
         cerr << __POS__ << ": wrong listlength" << endl;
       return false;
    }
-   if(nl->AtomType(nl->First(value))!=IntType){
+   if(::nl->AtomType(::nl->First(value))!=IntType){
      if(DEBUG_MODE){
        cerr << __POS__ << ": wrong type for repeatations" << endl;
      }
      return false;
    }
-   int rep = nl->IntValue(nl->First(value));
+   int rep = ::nl->IntValue(::nl->First(value));
    // rep must be greater than 1 
    if(rep<=1 ){
       if(DEBUG_MODE){
@@ -5455,11 +5509,11 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
    
    ListExpr SML;
    if(len==2)
-      SML = nl->Second(value);
+      SML = ::nl->Second(value);
    if(len==4)
-      SML = nl->Fourth(value);
+      SML = ::nl->Fourth(value);
 
-   if(nl->ListLength(SML)!=2){
+   if(::nl->ListLength(SML)!=2){
       if(DEBUG_MODE){
          cerr << __POS__ << ": wrong length for submove" << endl;
       }
@@ -5469,10 +5523,10 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
    PM.repeatations = rep;
    int IncludePos = PMIndex; // store the positiuon
    PMIndex++;
-   ListExpr SMT = nl->First(SML); // take the submove type
-   if(nl->IsEqual(SMT,"linear")){
+   ListExpr SMT = ::nl->First(SML); // take the submove type
+   if(::nl->IsEqual(SMT,"linear")){
      int LMPos = LMIndex;
-     if(!AddLinearMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+     if(!AddLinearMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
           cerr << __POS__ << ": can't add linear submove" << endl;
         }
@@ -5486,19 +5540,19 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
      PM.interval.Equalize(&SMI);
      PM.interval.Mul(rep);
      if(len==4){
-         ListExpr LC = nl->Second(value);
-         ListExpr RC = nl->Third(value);
-        if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
+         ListExpr LC = ::nl->Second(value);
+         ListExpr RC = ::nl->Third(value);
+        if((::nl->AtomType(LC)!=BoolType) || (::nl->AtomType(RC)!=BoolType))
           return false;
-        PM.interval.SetLeftClosed(nl->BoolValue(LC));
-        PM.interval.SetRightClosed(nl->BoolValue(RC));
+        PM.interval.SetLeftClosed(::nl->BoolValue(LC));
+        PM.interval.SetRightClosed(::nl->BoolValue(RC));
      }
 
      periodicMoves.Put(IncludePos,PM);
      return true;
-   }else if(nl->IsEqual(SMT,"composite")){
+   }else if(::nl->IsEqual(SMT,"composite")){
      int CMPos = CMIndex;
-     if(!AddCompositeMove(nl->Second(SML),LMIndex,CMIndex,
+     if(!AddCompositeMove(::nl->Second(SML),LMIndex,CMIndex,
                           SMIndex,PMIndex)){
         if(DEBUG_MODE){
            cerr << __POS__ << ": can't add composite submove" << endl;
@@ -5513,12 +5567,12 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
      PM.interval.Equalize(&SMI);
      PM.interval.Mul(rep);
      if(len==4){
-         ListExpr LC = nl->Second(value);
-         ListExpr RC = nl->Third(value);
-        if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
+         ListExpr LC = ::nl->Second(value);
+         ListExpr RC = ::nl->Third(value);
+        if((::nl->AtomType(LC)!=BoolType) || (::nl->AtomType(RC)!=BoolType))
           return false;
-        PM.interval.SetLeftClosed(nl->BoolValue(LC));
-        PM.interval.SetRightClosed(nl->BoolValue(RC));
+        PM.interval.SetLeftClosed(::nl->BoolValue(LC));
+        PM.interval.SetRightClosed(::nl->BoolValue(RC));
      }
      periodicMoves.Put(IncludePos,PM);
      return true;
@@ -5534,7 +5588,7 @@ It is realized by going down the repetition tree up to a unit.
 
 */
 template <class T, class Unit>
-Unit PMSimple<T, Unit>::GetLastUnit(){
+Unit PMSimple<T, Unit>::GetLastUnit()const{
     __TRACE__
     const SubMove* s = &submove;
     while(s->arrayNumber!=LINEAR){
@@ -5858,14 +5912,14 @@ units of this moving point. In this case, additional composite moves
 must be inserted in the structure. This is exactly what this function does.
 
 */
-bool PMInt9M::CreateFrom( DBArray<LinearInt9MMove>& linearMoves, 
-                 ArrayRange*                     level,
-                 int                             levelsize,
-                 DBArray<CompositeMove>&          compositeMoves,
-                 DBArray<CSubMove>&                compositeSubMoves,
-                 DBArray<PeriodicMove>&           periodicMoves,
-                 DateTime                        startTime,
-                 SubMove                         submove) {
+bool PMInt9M::CreateFrom( const DBArray<LinearInt9MMove>& linearMoves, 
+                 const ArrayRange*                     level,
+                 const int                             levelsize,
+                 const DBArray<CompositeMove>&          compositeMoves,
+                 const DBArray<CSubMove>&                compositeSubMoves,
+                 const DBArray<PeriodicMove>&           periodicMoves,
+                 const DateTime                        startTime,
+                 const SubMove                         submove) {
    __TRACE__
 
    defined =true;
@@ -6048,24 +6102,35 @@ PMPoints& PMPoints::operator=(const PMPoints& source){
    return *this;
 }
 
-Points* PMPoints::Initial()const{
- if(!defined)
-      return NULL;
-  return At(&startTime);
+void PMPoints::Initial(Points& res)const{
+  if(!defined){
+    res.SetDefined(false);
+    return;
+  }
+  res.Clear();
+  res.SetDefined(true);
+  At(&startTime,res);
 }
 
-Points* PMPoints::Final(){
-   if(!defined)
-      return NULL;
+bool PMPoints::Final(Points& res)const{
+   if(!defined){
+      res.SetDefined(false);
+      return false;
+   }
    DateTime DT(startTime);
    DT.Add(interval.GetLength());
-   return At(&DT); 
+   At(&DT,res); 
+   return  true;
 }
 
 void PMPoints::Translate(const DateTime& duration){
    startTime += duration;
 }
 
+void PMPoints::Translate(const DateTime* duration, PMPoints& res)const{
+   res.Equalize(this);
+   res.startTime += *duration;
+}
 
 /*
 ~CorrectDurationSums~
@@ -6338,43 +6403,43 @@ is stored in the argument __value__ as a double.
 static bool GetNumeric(const ListExpr List, double &value){
    __TRACE__
  ListExpr LE = List;
-  int AT = nl->AtomType(LE);
+  int AT = ::nl->AtomType(LE);
   if(AT==IntType){
-     value = (double)nl->IntValue(LE);
+     value = (double)::nl->IntValue(LE);
      return true;
   }
   if(AT==RealType){
-     value = nl->RealValue(LE);
+     value = ::nl->RealValue(LE);
      return true;
   }
   // check for a rational
-  int L = nl->ListLength(LE);
+  int L = ::nl->ListLength(LE);
   if(L!=5 && L!=6)
      return false;
-  if(!nl->IsEqual(nl->First(LE),"rat"))
+  if(!::nl->IsEqual(::nl->First(LE),"rat"))
      return false;
 
-  LE = nl->Rest(LE); // read over the "rat"
+  LE = ::nl->Rest(LE); // read over the "rat"
   double sign=1.0;
   if(L==6){ // signum is included
-    ListExpr SL = nl->First(LE);
-    if(nl->IsEqual(SL,"+"))
+    ListExpr SL = ::nl->First(LE);
+    if(::nl->IsEqual(SL,"+"))
       sign=1.0;
-    else if(nl->IsEqual(SL,"-"))
+    else if(::nl->IsEqual(SL,"-"))
       sign=-1.0;
     else
       return false;
-    LE = nl->Rest(LE); // read over the signum
+    LE = ::nl->Rest(LE); // read over the signum
   }
-  if(!nl->IsEqual(nl->Third(LE),"/"))
+  if(!::nl->IsEqual(::nl->Third(LE),"/"))
     return false;
-  if ( (nl->AtomType(nl->First(LE))!=IntType) ||
-       (nl->AtomType(nl->Second(LE))!=IntType) ||
-       (nl->AtomType(nl->Fourth(LE))!=IntType))
+  if ( (::nl->AtomType(::nl->First(LE))!=IntType) ||
+       (::nl->AtomType(::nl->Second(LE))!=IntType) ||
+       (::nl->AtomType(::nl->Fourth(LE))!=IntType))
        return false;
-  double ip = nl->IntValue(nl->First(LE));
-  double num = nl->IntValue(nl->Second(LE));
-  double denom = nl->IntValue(nl->Fourth(LE));
+  double ip = ::nl->IntValue(::nl->First(LE));
+  double num = ::nl->IntValue(::nl->Second(LE));
+  double denom = ::nl->IntValue(::nl->Fourth(LE));
   if(ip<0 || num<0 || denom<=0)
      return false;
   value = sign*(ip + num/denom);
@@ -6398,28 +6463,28 @@ void WriteListToStreamRec(ostream &os, const ListExpr Lorig,const int indent,
    __TRACE__
  if(error) return;
   ListExpr L = Lorig;
-  NodeType type= nl->AtomType(L);
+  NodeType type= ::nl->AtomType(L);
   bool res;
   switch(type){
-    case BoolType   : res = nl->BoolValue(L);
+    case BoolType   : res = ::nl->BoolValue(L);
                       if(res)
               os << "TRUE";
           else
               os << "FALSE";
           break;
-    case IntType    : os << (nl->IntValue(L));break;
-    case RealType   : os << nl->RealValue(L);break;
-    case SymbolType : os << nl->SymbolValue(L);break;
-    case StringType : os << "\"" << nl->StringValue(L) << "\""; break;
+    case IntType    : os << (::nl->IntValue(L));break;
+    case RealType   : os << ::nl->RealValue(L);break;
+    case SymbolType : os << ::nl->SymbolValue(L);break;
+    case StringType : os << "\"" << ::nl->StringValue(L) << "\""; break;
     case TextType   : os << "<<A Text>>"; break;
     case NoAtom     : os << endl;
                       for(int i=0;i<indent;i++)
              os << " ";
           os << "(";
-                      while(!nl->IsEmpty(L) && !error){
-             WriteListToStreamRec(os,nl->First(L),indent+4,error);
+                      while(!::nl->IsEmpty(L) && !error){
+             WriteListToStreamRec(os,::nl->First(L),indent+4,error);
        os << " ";
-       L = nl->Rest(L);
+       L = ::nl->Rest(L);
           }   
           os << ")";
           break;
@@ -6670,22 +6735,22 @@ Converts a linear point unit into its nested list representation.
 ListExpr LinearPointMove::ToListExpr()const{
    __TRACE__
    if(defined)
-        return nl->TwoElemList(
-                      nl->SymbolAtom("linear"),
-                      nl->ThreeElemList(
+        return ::nl->TwoElemList(
+                      ::nl->SymbolAtom("linear"),
+                      ::nl->ThreeElemList(
                             interval.ToListExpr(false),
-                            nl->TwoElemList(
-                                 nl->RealAtom((float)startX),
-                                 nl->RealAtom((float)startY)),
-                            nl->TwoElemList(
-                                 nl->RealAtom((float)endX),
-                                 nl->RealAtom((float)endY))));
+                            ::nl->TwoElemList(
+                                 ::nl->RealAtom((float)startX),
+                                 ::nl->RealAtom((float)startY)),
+                            ::nl->TwoElemList(
+                                 ::nl->RealAtom((float)endX),
+                                 ::nl->RealAtom((float)endY))));
     else
-       return nl->TwoElemList(
-                      nl->SymbolAtom("linear"),
-                      nl->TwoElemList(
+       return ::nl->TwoElemList(
+                      ::nl->SymbolAtom("linear"),
+                      ::nl->TwoElemList(
                                  interval.ToListExpr(false),
-                                 nl->SymbolAtom("undefined")));
+                                 ::nl->SymbolAtom("undefined")));
    }
 
 /*
@@ -6700,14 +6765,14 @@ The return values indicates the success.
 bool LinearPointMove::ReadFrom(const ListExpr value){
    __TRACE__
       ListExpr V = value;
-       int L = nl->ListLength(V);
+       int L = ::nl->ListLength(V);
        if(L<2 || L>3)
           return false;
-       if(!interval.ReadFrom(nl->First(V),false))
+       if(!interval.ReadFrom(::nl->First(V),false))
           return false;
 
        if(L==2){ // potentially an undefined move
-           if(nl->IsEqual(nl->Second(V),"undefined")){
+           if(::nl->IsEqual(::nl->Second(V),"undefined")){
                defined = false;
                bbox.SetUndefined();
                isStatic = true;
@@ -6716,31 +6781,31 @@ bool LinearPointMove::ReadFrom(const ListExpr value){
            return false;
        }
        // L == 3
-      ListExpr SP = nl->Second(V);
-      ListExpr EP = nl->Third(V);
+      ListExpr SP = ::nl->Second(V);
+      ListExpr EP = ::nl->Third(V);
       double dv;
-      if(!GetNumeric(nl->First(SP),dv)){
+      if(!GetNumeric(::nl->First(SP),dv)){
         if(DEBUG_MODE){
           cerr << __POS__ << "StartX is not a number" << endl;
         }
         return false;
       }
       startX=dv;
-      if(!GetNumeric(nl->Second(SP),dv)){
+      if(!GetNumeric(::nl->Second(SP),dv)){
         if(DEBUG_MODE){
           cerr << __POS__ << "StartY is not a number" << endl;
         }
         return false;
       }
       startY=dv;
-      if(!GetNumeric(nl->First(EP),dv)){
+      if(!GetNumeric(::nl->First(EP),dv)){
         if(DEBUG_MODE){
            cerr << __POS__ << "EndX is not a number" << endl;
         }
         return false;
       }
       endX=dv;
-      if(!GetNumeric(nl->Second(EP),dv)){
+      if(!GetNumeric(::nl->Second(EP),dv)){
          if(DEBUG_MODE){
            cerr << __POS__ << "EndY is not a number" << endl;
          }
@@ -6765,14 +6830,14 @@ linear moving point.
 [3] O(1)
 
 */
-Point* LinearPointMove::At(const DateTime* duration) const{
+void LinearPointMove::At(const DateTime* duration,Point& res) const{
    __TRACE__
-  assert(interval.Contains(duration));
+   assert(interval.Contains(duration));
    assert(defined);
    double delta = interval.Where(duration);
    double x = startX+delta*(endX-startX);
    double y = startY+delta*(endY-startY);
-   return new Point(true,x,y);
+   res.Set(x,y);
 }
 
 /*
@@ -7255,7 +7320,8 @@ points contained in __P__. Because the size of the result is not
 constant, we use a vector for storing it.  
 
 */
-void LinearPointMove::Toprel(Points& P, vector<LinearInt9MMove>& Result)const{
+void LinearPointMove::Toprel(const Points& P, 
+                             vector<LinearInt9MMove>& Result)const{
    Result.clear();
    Int9M R;
    if(!defined && P.IsEmpty()){
@@ -7484,11 +7550,11 @@ bool LinearPointMove::nearOverlap(const LinearPointMove& lpm,
 ~Direction~
 
 Computes the direction as angle between 0 and 360 degrees. If the point
-is not moving, the direction will have instead the value -1.
+is not moving (static or undefined), the direction will have the value -1.
 
 */
 double LinearPointMove::Direction()const{
-   if(isStatic){
+   if(isStatic || !defined){
      return -1;
    }
    double x = endX-startX;
@@ -7516,6 +7582,9 @@ with the time value. Basically, the speed is given in units per day.
 
 double LinearPointMove::Speed(unsigned int timefactor) const{
   assert(timefactor>0);
+  if(!defined){
+      return 0;
+  }
 
   double time = interval.GetLength()->ToDouble();
   if(time<=0){
@@ -7527,6 +7596,10 @@ double LinearPointMove::Speed(unsigned int timefactor) const{
 
 
 void LinearPointMove::Speed(MovingRealUnit& result) const{
+   if(!defined){
+      result.SetDefined(false);
+      return;
+   } 
    MRealMap map(0,0,Speed(1),false);
    MovingRealUnit unit(map,interval);
    unit.SetDefined(true);
@@ -7551,6 +7624,9 @@ of this LinearPointMOve.
 
 */
 double LinearPointMove::Length() const{
+   if(!defined){
+     return 0.0;
+   }
    double distX = startX-endX;
    double distY = startY-endY;
    double dist = sqrt( distX*distX + distY*distY);
@@ -7672,7 +7748,7 @@ will be zero.
 ListExpr LinearPointsMove::ToListExpr(const DBArray<TwoPoints> &Points) const{
    __TRACE__
    if(!defined)
-      return nl->SymbolAtom("undefined");
+      return ::nl->SymbolAtom("undefined");
    const TwoPoints* Entry;
    unsigned int s = Points.Size();
    if(s<endIndex){
@@ -7695,27 +7771,27 @@ ListExpr LinearPointsMove::ToListExpr(const DBArray<TwoPoints> &Points) const{
    ListExpr Ps,Pe,LastStart,LastEnd;
 
    Points.Get(startIndex,Entry);   
-   Ps = nl->TwoElemList( nl->RealAtom(Entry->startX),
-                         nl->RealAtom(Entry->startY));
-   Pe = nl->TwoElemList( nl->RealAtom(Entry->endX),
-                         nl->RealAtom(Entry->endY));
-   starts = nl->OneElemList(Ps);
-   ends = nl->OneElemList(Pe);
+   Ps = ::nl->TwoElemList( ::nl->RealAtom(Entry->startX),
+                         ::nl->RealAtom(Entry->startY));
+   Pe = ::nl->TwoElemList( ::nl->RealAtom(Entry->endX),
+                         ::nl->RealAtom(Entry->endY));
+   starts = ::nl->OneElemList(Ps);
+   ends = ::nl->OneElemList(Pe);
    LastStart = starts;
    LastEnd = ends;
 
    for(unsigned int i=startIndex+1;i<endIndex;i++){
       Points.Get(i,Entry);
-      Ps = nl->TwoElemList( nl->RealAtom(Entry->startX),
-                            nl->RealAtom(Entry->startY));
-      Pe = nl->TwoElemList( nl->RealAtom(Entry->endX),
-                            nl->RealAtom(Entry->endY));
-      LastStart = nl->Append(LastStart,Ps);
-      LastEnd = nl->Append(LastEnd,Pe); 
+      Ps = ::nl->TwoElemList( ::nl->RealAtom(Entry->startX),
+                            ::nl->RealAtom(Entry->startY));
+      Pe = ::nl->TwoElemList( ::nl->RealAtom(Entry->endX),
+                            ::nl->RealAtom(Entry->endY));
+      LastStart = ::nl->Append(LastStart,Ps);
+      LastEnd = ::nl->Append(LastEnd,Pe); 
    }
 
-   ListExpr res = nl->TwoElemList(nl->SymbolAtom("linear"),
-                         nl->ThreeElemList( interval.ToListExpr(false),
+   ListExpr res = ::nl->TwoElemList(::nl->SymbolAtom("linear"),
+                         ::nl->ThreeElemList( interval.ToListExpr(false),
                                      starts,ends));        
    return res;             
 }
@@ -7738,7 +7814,7 @@ bool LinearPointsMove::ReadFrom(const ListExpr value, DBArray<TwoPoints> &Pts,
                                 int &Index){
    __TRACE__
 // value has to be a list
- if(nl->AtomType(value)!=NoAtom){
+ if(::nl->AtomType(value)!=NoAtom){
    if(DEBUG_MODE){
      cerr << "List for LinearPointsMove is an atom " << endl;
    }
@@ -7746,26 +7822,26 @@ bool LinearPointsMove::ReadFrom(const ListExpr value, DBArray<TwoPoints> &Pts,
    return false;
  }  
  // check the ListLength
- if(nl->ListLength(value)!=3){ // (interval starts ends)
+ if(::nl->ListLength(value)!=3){ // (interval starts ends)
     if(DEBUG_MODE){
       cerr << "Wrong listlength for LinearPointsMove; should be 3, is ";
-      cerr << nl->ListLength(value) << endl; 
+      cerr << ::nl->ListLength(value) << endl; 
     }
     defined = false;
     return false;
  }   
  // read the Interval
- if(!interval.ReadFrom(nl->First(value),false)){
+ if(!interval.ReadFrom(::nl->First(value),false)){
     if(DEBUG_MODE){
       cerr << "LinearPointsMove::ReadFFrom: error in reding interval" << endl;
     }
     defined = false;
     return false;
  }   
- ListExpr starts = nl->Second(value);
- ListExpr ends   = nl->Third(value);
- int L1 = nl->ListLength(starts);
- if(L1 != nl->ListLength(ends)){
+ ListExpr starts = ::nl->Second(value);
+ ListExpr ends   = ::nl->Third(value);
+ int L1 = ::nl->ListLength(starts);
+ if(L1 != ::nl->ListLength(ends)){
    if(DEBUG_MODE){
      cerr << "Error in LinearPointsMove::ReadFrom" << endl;
      cerr << "Different lengths for start and end points " << endl;
@@ -7786,11 +7862,11 @@ bool LinearPointsMove::ReadFrom(const ListExpr value, DBArray<TwoPoints> &Pts,
  ListExpr Start,End;
  startIndex = Index;
  endIndex = Index+L1;
- while(! nl->IsEmpty(starts)){
-    Start = nl->First(starts);
-    End = nl->First(ends);
-    if(nl->AtomType(Start)!=NoAtom  ||
-       nl->AtomType(End)!=NoAtom){
+ while(! ::nl->IsEmpty(starts)){
+    Start = ::nl->First(starts);
+    End = ::nl->First(ends);
+    if(::nl->AtomType(Start)!=NoAtom  ||
+       ::nl->AtomType(End)!=NoAtom){
        if(DEBUG_MODE){
           cerr << "Error in LinearPointsMove::ReadFrom" << endl;
           cerr << "start or end is not a list" << endl;
@@ -7798,21 +7874,21 @@ bool LinearPointsMove::ReadFrom(const ListExpr value, DBArray<TwoPoints> &Pts,
        defined = false;
        return false;
     }   
-    if(nl->ListLength(Start)!=2 ||
-       nl->ListLength(End)!=2) {
+    if(::nl->ListLength(Start)!=2 ||
+       ::nl->ListLength(End)!=2) {
        if(DEBUG_MODE){
           cerr << "Error in LinearPointsMove::ReadFrom" << endl;
           cerr << "Wrong listlength for Start or for End " << endl;
-    cerr << "Expected 2 for both, received " << nl->ListLength(Start);
-    cerr << "(start) and "<<nl->ListLength(End) << "(end)" << endl;
+    cerr << "Expected 2 for both, received " << ::nl->ListLength(Start);
+    cerr << "(start) and "<<::nl->ListLength(End) << "(end)" << endl;
        }
        defined = false;  
        return false;
     }   
-    if(!GetNumeric(nl->First(Start),xs) ||
-       !GetNumeric(nl->Second(Start),ys) ||
-       !GetNumeric(nl->First(End),xe) ||
-       !GetNumeric(nl->Second(End),ye)){
+    if(!GetNumeric(::nl->First(Start),xs) ||
+       !GetNumeric(::nl->Second(Start),ys) ||
+       !GetNumeric(::nl->First(End),xe) ||
+       !GetNumeric(::nl->Second(End),ye)){
        if(DEBUG_MODE){
           cerr << "Error in LinearPointsMove::ReadFrom" << endl;
           cerr << "Cannot find numerical value " << endl;
@@ -7828,8 +7904,8 @@ bool LinearPointsMove::ReadFrom(const ListExpr value, DBArray<TwoPoints> &Pts,
        isStatic=false;
     Pts.Put(Index,TP);        
     Index++;
-    starts=nl->Rest(starts);
-    ends=nl->Rest(ends);
+    starts=::nl->Rest(starts);
+    ends=::nl->Rest(ends);
  }     
  
  defined = true;
@@ -7850,27 +7926,31 @@ interval of this LinearPointsMove, NULL is returned.
      implementation of the sorting of the points.
 
 */
-Points* LinearPointsMove::At(const DateTime* duration,
-                         const DBArray<TwoPoints> &Pts) const{
+void LinearPointsMove::At(const DateTime* duration,
+                         const DBArray<TwoPoints> &Pts,
+                         Points& res) const{
    __TRACE__
-  if(!interval.Contains(duration))
-      return 0;
-   double w = interval.Where(duration);   
-   Points* Result = new Points(Pts.Size());
-   const TwoPoints* Element;
-   Point aPoint;
-   double x,y;
-   Result->StartBulkLoad();
-   for(unsigned int i=startIndex;i<endIndex;i++){
-      Pts.Get(i,Element);
-      x = Element->startX + w * (Element->endX - Element->startX);
-      y = Element->startY + w * (Element->endY - Element->startY); 
-      aPoint = Point(x,y);
-      *Result += aPoint; 
-   }  
-   Result->EndBulkLoad();
-   return  Result;
+  if(!interval.Contains(duration)){
+    res.SetDefined(false);
+    return;
+  }
+  res.SetDefined(true);
+  double w = interval.Where(duration);   
+  res.Resize(Pts.Size());
+  const TwoPoints* Element;
+  Point aPoint;
+  double x,y;
+  res.StartBulkLoad();
+  for(unsigned int i=startIndex;i<endIndex;i++){
+    Pts.Get(i,Element);
+    x = Element->startX + w * (Element->endX - Element->startX);
+    y = Element->startY + w * (Element->endY - Element->startY); 
+    aPoint = Point(x,y);
+    res += aPoint; 
+  }  
+  res.EndBulkLoad();
 }
+
    
 /*
 ~IsDefinedAt~
@@ -8444,16 +8524,16 @@ ListExpr PMPoint::ToListExpr(const bool typeincluded)const{
   if(defined)
      SubMoveList = GetSubMoveList(&submove);
   else
-     SubMoveList = nl->SymbolAtom("undefined");
+     SubMoveList = ::nl->SymbolAtom("undefined");
 
    if(typeincluded)
-      return nl->TwoElemList(
-                  nl->SymbolAtom("pmpoint"),
-                  nl->TwoElemList(
+      return ::nl->TwoElemList(
+                  ::nl->SymbolAtom("pmpoint"),
+                  ::nl->TwoElemList(
                       timelist,
                       SubMoveList));
    else
-      return nl->TwoElemList(timelist,SubMoveList);
+      return ::nl->TwoElemList(timelist,SubMoveList);
 }
 
 /*
@@ -8514,12 +8594,12 @@ ListExpr PMPoint::GetSpatialPeriodicMoveList(const int index)const{
     __TRACE__
   const SpatialPeriodicMove* PM;;
   periodicMoves.Get(index,PM);
-  ListExpr periodtype = nl->SymbolAtom("period");
-  ListExpr RepList = nl->IntAtom(PM->repeatations);
+  ListExpr periodtype = ::nl->SymbolAtom("period");
+  ListExpr RepList = ::nl->IntAtom(PM->repeatations);
   ListExpr SML = GetSubMoveList(&(PM->submove));
-  ListExpr LC = nl->BoolAtom(PM->interval.IsLeftClosed());
-  ListExpr RC = nl->BoolAtom(PM->interval.IsRightClosed());
-  return  nl->TwoElemList(periodtype,nl->FourElemList(RepList,LC,RC,SML));
+  ListExpr LC = ::nl->BoolAtom(PM->interval.IsLeftClosed());
+  ListExpr RC = ::nl->BoolAtom(PM->interval.IsRightClosed());
+  return  ::nl->TwoElemList(periodtype,::nl->FourElemList(RepList,LC,RC,SML));
 }
 
 /*
@@ -8535,26 +8615,26 @@ ListExpr PMPoint::GetSpatialCompositeMoveList(const int index)const{
     __TRACE__
  const SpatialCompositeMove* CM;
  compositeMoves.Get(index,CM);
- ListExpr CType = nl->SymbolAtom("composite");
+ ListExpr CType = ::nl->SymbolAtom("composite");
  int minIndex = CM->minIndex;
  int maxIndex = CM->maxIndex;
  ListExpr SubMovesList;
  if(maxIndex<minIndex){
     cerr << __POS__ << "empty composite move" << endl;
-    SubMovesList = nl->TheEmptyList();
+    SubMovesList = ::nl->TheEmptyList();
  }
  else{
    // construct the List of submoves
    const CSubMove* SM;
    compositeSubMoves.Get(minIndex,SM);
-   SubMovesList = nl->OneElemList(GetSubMoveList(SM));
+   SubMovesList = ::nl->OneElemList(GetSubMoveList(SM));
    ListExpr Last = SubMovesList;
    for(int i=minIndex+1;i<=maxIndex;i++){
      compositeSubMoves.Get(i,SM);
-     Last = nl->Append(Last,GetSubMoveList(SM));
+     Last = ::nl->Append(Last,GetSubMoveList(SM));
    }
  }
- return nl->TwoElemList(CType,SubMovesList);
+ return ::nl->TwoElemList(CType,SubMovesList);
 }
 
 
@@ -8580,10 +8660,10 @@ bool PMPoint::ReadFrom(const ListExpr value){
      would lead to a lot of overhead for copying the contents.
   */
 
-  if(nl->ListLength(value)!=2){
+  if(::nl->ListLength(value)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong listlength (";
-        cerr << (nl->ListLength(value)) << ")" << endl;
+        cerr << (::nl->ListLength(value)) << ")" << endl;
      }
      SetDefined(false);
      return false;
@@ -8597,18 +8677,18 @@ bool PMPoint::ReadFrom(const ListExpr value){
      return false;
   }
 
-  if(!startTime.ReadFrom(nl->First(value),false)){
+  if(!startTime.ReadFrom(::nl->First(value),false)){
      if(DEBUG_MODE){
         cerr << __POS__ << "reading of the start time failed" << endl;
         cerr << "The list is " << endl;
-        nl->WriteListExpr(nl->First(value));
+        ::nl->WriteListExpr(::nl->First(value));
      }
      SetDefined(false);
      return false;
   }
   // now we have to append the included submove
-  ListExpr SML = nl->Second(value);
-  if(nl->ListLength(SML)!=2){
+  ListExpr SML = ::nl->Second(value);
+  if(::nl->ListLength(SML)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong list length for submove" << endl;
      }
@@ -8617,15 +8697,15 @@ bool PMPoint::ReadFrom(const ListExpr value){
   }
 
   // get the submove type
-  ListExpr SMT = nl->First(SML);
+  ListExpr SMT = ::nl->First(SML);
   int LMIndex = 0;
   int CMIndex = 0;
   int SMIndex = 0;
   int PMIndex = 0;
-  if(nl->IsEqual(SMT,"linear")){
+  if(::nl->IsEqual(SMT,"linear")){
      submove.arrayNumber = LINEAR;
      submove.arrayIndex = 0;
-     if(!AddLinearMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+     if(!AddLinearMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
          if(DEBUG_MODE){
             cerr << __POS__ << " Error in reading linear move" << endl;
          }
@@ -8643,10 +8723,10 @@ bool PMPoint::ReadFrom(const ListExpr value){
      return true;
   }
 
-  if(nl->IsEqual(SMT,"composite")){
+  if(::nl->IsEqual(SMT,"composite")){
      submove.arrayNumber=COMPOSITE;
      submove.arrayIndex = 0;
-     if(!AddSpatialCompositeMove(nl->Second(SML),LMIndex,
+     if(!AddSpatialCompositeMove(::nl->Second(SML),LMIndex,
         CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
            cerr << __POS__ << "error in reading composite move" << endl;
@@ -8663,10 +8743,10 @@ bool PMPoint::ReadFrom(const ListExpr value){
      CorrectDurationSums();
      return true;
   }
-  if(nl->IsEqual(SMT,"period")){
+  if(::nl->IsEqual(SMT,"period")){
      submove.arrayNumber = PERIOD;
      submove.arrayIndex = 0;
-     if(!AddPeriodMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+     if(!AddPeriodMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
           cerr << __POS__ << " error in reading periodic move" << endl;
         }
@@ -8684,7 +8764,7 @@ bool PMPoint::ReadFrom(const ListExpr value){
   }
   if(DEBUG_MODE){
      cerr << __POS__ << "unknown subtype" << endl;
-     nl->WriteListExpr(SMT);
+     ::nl->WriteListExpr(SMT);
   }
   return false;
 }
@@ -8971,7 +9051,7 @@ bool PMPoint::ResizeArrays(const ListExpr value){
    int CMSize = 0;
    int SMSize = 0;
    int PMSize = 0;
-   if(!AddSubMovesSize(nl->Second(value),LMSize,CMSize,SMSize,PMSize))
+   if(!AddSubMovesSize(::nl->Second(value),LMSize,CMSize,SMSize,PMSize))
       return false;
    // set the arrays to the needed size
    if(LMSize>0) linearMoves.Resize(LMSize);
@@ -8994,42 +9074,42 @@ bool PMPoint::AddSubMovesSize(const ListExpr value,int &LMSize,int &CMSize,
                               int &SMSize,int &PMSize){
     __TRACE__
    // all moves have the length 2
-   if(nl->ListLength(value)!=2){
+   if(::nl->ListLength(value)!=2){
        return false;
    }
-   ListExpr type = nl->First(value);
+   ListExpr type = ::nl->First(value);
 
    // the type has to be one of {linear, composite, period}
-   if(nl->AtomType(type)!=SymbolType){
+   if(::nl->AtomType(type)!=SymbolType){
        return false;
   }
   // in a linear move we have only to increment the size of LM
-  if(nl->IsEqual(type,"linear")){
+  if(::nl->IsEqual(type,"linear")){
      LMSize = LMSize +1;
      return true;
   }
-  if(nl->IsEqual(type,"composite")){
+  if(::nl->IsEqual(type,"composite")){
      CMSize = CMSize+1; // the composite move itself
-     ListExpr rest = nl->Second(value);
-     while(!nl->IsEmpty(rest)){
+     ListExpr rest = ::nl->Second(value);
+     while(!::nl->IsEmpty(rest)){
         SMSize++; // a new submove
-        if(!AddSubMovesSize(nl->First(rest),LMSize,CMSize,SMSize,PMSize))
+        if(!AddSubMovesSize(::nl->First(rest),LMSize,CMSize,SMSize,PMSize))
            return false;
-        rest = nl->Rest(rest);
+        rest = ::nl->Rest(rest);
      }
      return true;
   }
-  if(nl->IsEqual(type,"period")){
+  if(::nl->IsEqual(type,"period")){
      PMSize = PMSize+1;
      ListExpr PMove;
-     int len = nl->ListLength(value);
+     int len = ::nl->ListLength(value);
      if(len==2){
-        PMove = nl->Second(value);
+        PMove = ::nl->Second(value);
      }
      else{ // invalid listlength
         return false;
      }
-     return AddSubMovesSize(nl->Second(PMove),LMSize,CMSize,SMSize,PMSize);
+     return AddSubMovesSize(::nl->Second(PMove),LMSize,CMSize,SMSize,PMSize);
   }
   // a unknown type description
   return false;
@@ -9070,7 +9150,7 @@ bool PMPoint::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
                    int &CMIndex, int &SMIndex, int &PMIndex){
     __TRACE__
   // a composite move has to contains at least two submoves
-   int len = nl->ListLength(value);
+   int len = ::nl->ListLength(value);
    if(len<2){
       if(DEBUG_MODE){
          cerr << __POS__ << " less than 2 submoves (" << len << ")" << endl;
@@ -9092,19 +9172,19 @@ bool PMPoint::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
    ListExpr rest = value;
    ListExpr SML,TL,VL;
    bool isFirst = true;
-   while(!nl->IsEmpty(rest)){
-      SML = nl->First(rest);
-      rest = nl->Rest(rest);
-      if(nl->ListLength(SML)!=2){ // all submoves have the format (type value)
+   while(!::nl->IsEmpty(rest)){
+      SML = ::nl->First(rest);
+      rest = ::nl->Rest(rest);
+      if(::nl->ListLength(SML)!=2){ // all submoves have the format (type value)
          if(DEBUG_MODE){
             cerr << __POS__ << " submove has wrong length (";
-            cerr << nl->ListLength(SML) << ")" << endl;
+            cerr << ::nl->ListLength(SML) << ")" << endl;
          }
          return false;
       }
-      TL = nl->First(SML);
-      VL = nl->Second(SML);
-      if(nl->IsEqual(TL,"linear")){
+      TL = ::nl->First(SML);
+      VL = ::nl->Second(SML);
+      if(::nl->IsEqual(TL,"linear")){
          // process a linear submove
          int LMPos = LMIndex;
          if(!AddLinearMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
@@ -9140,7 +9220,7 @@ bool PMPoint::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
          SM.arrayIndex = LMPos;
          compositeSubMoves.Put(SMPos,SM);
          SMPos++;
-      } else if(nl->IsEqual(TL,"period")){
+      } else if(::nl->IsEqual(TL,"period")){
         // process a periodic submove
         int PMPos = PMIndex;
         if(!AddPeriodMove(VL,LMIndex,CMIndex,SMIndex,PMIndex)){
@@ -9197,19 +9277,19 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
   __TRACE__
 
 
- int len = nl->ListLength(value); 
+ int len = ::nl->ListLength(value); 
  if(len!=2 ){  // (repeatations <submove>) 
     if(DEBUG_MODE)
        cerr << __POS__ << ": wrong listlength" << endl;
     return false;
  }
- if(nl->AtomType(nl->First(value))!=IntType){
+ if(::nl->AtomType(::nl->First(value))!=IntType){
     if(DEBUG_MODE){
        cerr << __POS__ << ": wrong type for repeatations" << endl;
     }
     return false;
  }
- int rep = nl->IntValue(nl->First(value));
+ int rep = ::nl->IntValue(::nl->First(value));
  // rep must be greater than 1 
  if(rep<=1){
      if(DEBUG_MODE){
@@ -9219,8 +9299,8 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
  }
 
  ListExpr SML;
- SML = nl->Second(value);
- if(nl->ListLength(SML)!=2){
+ SML = ::nl->Second(value);
+ if(::nl->ListLength(SML)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong length for submove" << endl;
      }
@@ -9230,10 +9310,10 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
  PM.repeatations = rep;
  int IncludePos = PMIndex; // store the positiuon
  PMIndex++;
- ListExpr SMT = nl->First(SML); // take the submove type
- if(nl->IsEqual(SMT,"linear")){
+ ListExpr SMT = ::nl->First(SML); // take the submove type
+ if(::nl->IsEqual(SMT,"linear")){
     int LMPos = LMIndex;
-    if(!AddLinearMove(nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
+    if(!AddLinearMove(::nl->Second(SML),LMIndex,CMIndex,SMIndex,PMIndex)){
        if(DEBUG_MODE){
           cerr << __POS__ << ": can't add linear submove" << endl;
        }
@@ -9248,19 +9328,19 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
     PM.interval.Equalize(&SMI);
     PM.interval.Mul(rep);
     if(len==4){
-      ListExpr LC = nl->Second(value);
-      ListExpr RC = nl->Third(value);
-      if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
+      ListExpr LC = ::nl->Second(value);
+      ListExpr RC = ::nl->Third(value);
+      if((::nl->AtomType(LC)!=BoolType) || (::nl->AtomType(RC)!=BoolType))
           return false;
-      PM.interval.SetLeftClosed(nl->BoolValue(LC));
-      PM.interval.SetRightClosed(nl->BoolValue(RC));
+      PM.interval.SetLeftClosed(::nl->BoolValue(LC));
+      PM.interval.SetRightClosed(::nl->BoolValue(RC));
 
      }
     periodicMoves.Put(IncludePos,PM);
     return true;
- }else if(nl->IsEqual(SMT,"composite")){
+ }else if(::nl->IsEqual(SMT,"composite")){
     int CMPos = CMIndex;
-    if(!AddSpatialCompositeMove(nl->Second(SML),LMIndex,
+    if(!AddSpatialCompositeMove(::nl->Second(SML),LMIndex,
                                 CMIndex,SMIndex,PMIndex)){
        if(DEBUG_MODE){
           cerr << __POS__ << ": can't add composite submove" << endl;
@@ -9282,7 +9362,7 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
  if(DEBUG_MODE){
      cerr << __POS__ << ": invalid submove-type for periodic move" << endl;
      cerr << "This list is : " << endl;
-     nl->WriteListExpr(SMT);
+     ::nl->WriteListExpr(SMT);
      cerr << endl << "end of list " << endl;
  }
  return false;
@@ -9299,17 +9379,18 @@ result will be an undefined Point instance.
 [3] O(L), where L is the number of contained linear moves
 
 */
-Point* PMPoint::At(const DateTime* instant)const{
+void PMPoint::At(const DateTime* instant,Point& res)const{
     __TRACE__
     if(IsEmpty()){
-       return new Point(false,0.0,0.0);
+       res.SetDefined(false);
+       return;
     }
+    res.SetDefined(true);
     DateTime* duration = new DateTime(instanttype);
     duration->Equalize(instant);
     duration->Minus(&startTime); // now it is really a duration
-    Point* res;
     if(!interval.Contains(duration)){
-       res = new Point(false,0.0,0.0);
+       res.SetDefined(false);
     } else{
        const SubMove* sm = &submove;
        const SpatialCompositeMove* CM;
@@ -9326,29 +9407,6 @@ Point* PMPoint::At(const DateTime* instant)const{
              int max = CM->maxIndex;
              bool found=false;
              const CSubMove* csm;
-    //           // simple linear search
-    //             while( (cur<=max) && ! found){
-    //                compositeSubMoves.Get(cur,csm); // get the submove
-    //                if(csm->arrayNumber==LINEAR){
-    //                   const LinearPointMove* LM;
-    //                   linearMoves.Get(sm->arrayIndex,LM);
-    //                   RI = LM->interval;
-    //                } else if(csm->arrayNumber==PERIOD){
-    //                   periodicMoves.Get(sm->arrayIndex,PM);
-    //                   RI = PM->interval;
-    //                } else { //another submove is not allowed
-    //                   assert(false);
-    //                }
-    //                if(RI.Contains(duration)) // be happy
-    //                   found=true;
-    //                else{  // search again
-    //                   DateTime* L = RI.GetLength();
-     //                   duration->Minus(L);
-    //                   delete L;
-    //                   L = NULL;
-    //                   cur++;
-    //                }
-    //             }
             // perform binary search
              while(min<max){
                  int mid = (min+max)/2;
@@ -9441,15 +9499,14 @@ Point* PMPoint::At(const DateTime* instant)const{
        const LinearPointMove* LM;
        linearMoves.Get(sm->arrayIndex,LM);
        if(LM->IsDefinedAt(duration)){
-          res=LM->At(duration);
+          LM->At(duration,res);
        }
        else{
-          res = new Point(false,0.0,0.0);
+          res.SetDefined(false);
        }
     }
     delete duration;
     duration = NULL;
-    return res;
 }
 
 /*
@@ -9458,19 +9515,17 @@ Point* PMPoint::At(const DateTime* instant)const{
 This function computes the first location of this moving point.
 
 */
-Point* PMPoint::Initial()const{
+void PMPoint::Initial(Point& res)const{
     __TRACE__
- Point* res = new Point(0,0);
   if(IsEmpty()){
-    res->SetDefined(false);
-    return res;
+    res.SetDefined(false);
+    return;
   }
     
   const LinearPointMove* lm;
   linearMoves.Get(0,lm);
-  res->Set(lm->startX,lm->startY);
-  res->SetDefined(true);
-  return res;
+  res.SetDefined(true);
+  res.Set(lm->startX,lm->startY);
 }
 
 /*
@@ -9480,17 +9535,16 @@ The ~Final~ function returns the last defined position of this point.
 If the value is empty, an undefined point is returned.
 
 */
-Point* PMPoint::Final(){
+bool PMPoint::Final(Point& res){
     __TRACE__
- Point* res = new Point(0,0);
   if(IsEmpty()){
-     res->SetDefined(false);
-     return res;
+     res.SetDefined(false);
+     return false;
   }       
   LinearPointMove lm =  GetLastUnit();
-  res->Set(lm.endX,lm.endY);
-  res->SetDefined(true);
-  return res;
+  res.SetDefined(true);
+  res.Set(lm.endX,lm.endY);
+  return true;
 }
 
 /*
@@ -9501,6 +9555,11 @@ Moves this PMPoint within time.
 */
 void PMPoint::Translate(const DateTime& duration){
    startTime += duration;
+}
+
+void PMPoint::Translate(const DateTime* duration,PMPoint& res)const{
+   res.Equalize(this);
+   res.startTime += *duration;
 }
 
 /*
@@ -9533,12 +9592,16 @@ __d__ is a duration of length zero.
 [3] O(L) where L is the number of the contained linear moves.
 
 */
-Points* PMPoint::Breakpoints(){
-    __TRACE__
-    DateTime DT(durationtype);
-    Points* res = Breakpoints(&DT,false);
-    return res;
-    
+Points* PMPoint::Breakpoints()const{
+  Points* res = new Points(1);
+  Breakpoints(*res);
+  return res;
+}
+
+void PMPoint::Breakpoints(Points& res)const{
+  __TRACE__
+  DateTime DT(durationtype);
+  Breakpoints(&DT,false,res);
 }
 
 /*
@@ -9551,24 +9614,33 @@ undefined. The same result will be occur if the duration is zero
 and the inclusive argument is true.
 
 */
-Points* PMPoint::Breakpoints(const DateTime* duration,const bool inclusive){
+Points* PMPoint::Breakpoints(const DateTime* duration,
+                             const bool inclusive)const{
+  Points* res = new Points(1);
+  Breakpoints(duration,inclusive,*res);
+  return res;
+}
+
+void PMPoint::Breakpoints(const DateTime* duration, 
+                          const bool inclusive, 
+                          Points& res)const{
   __TRACE__
-  Points* Res = new Points(1);
+  res.Clear();
   if(!defined || !duration->IsDefined()){
-      Res->SetDefined(false);
-      return Res;
+      res.SetDefined(false);
+      return;
   }
   if(duration->LessThanZero()){
-      Res->SetDefined(false);
-      return Res; 
+      res.SetDefined(false);
+      return; 
   }
   if(duration->IsZero() && inclusive){
-     Res ->SetDefined(false);
-     return Res;
+     res.SetDefined(false);
+     return;
   }
+  res.SetDefined(true);
   int size = linearMoves.Size();
-  Res->Clear();
-  Res->StartBulkLoad();
+  res.StartBulkLoad();
   const LinearPointMove* LM;
   for(int i=0; i<size; i++){
       linearMoves.Get(i,LM);
@@ -9578,12 +9650,11 @@ Points* PMPoint::Breakpoints(const DateTime* duration,const bool inclusive){
          delete L;
          if(cmp>0 || (cmp==0 && inclusive)){
             Point P(true,LM->startX,LM->startY);
-            *Res += P;
+            res += P;
          }
       }
   }
-  Res->EndBulkLoad();
-  return Res;
+  res.EndBulkLoad();
 }
 
 
@@ -9596,19 +9667,18 @@ This function computes the trajectory of a single periodic moving point.
 [3] O(L), where L is the number of contained linear moves
 
 */
-Line*  PMPoint::Trajectory(){
+void PMPoint::Trajectory(Line& res)const{
     __TRACE__
   const LinearPointMove* LM;
   // each linear moves needs 2 halfsegments
-  Line* Res = new Line(linearMoves.Size()*2);  
-  Res->Clear();
-  Res->StartBulkLoad();
-  HalfSegment HS1;
-  HalfSegment HS2;
+  res.Clear();
   int size = linearMoves.Size();
   if(size>0){
-    Res->Resize(size*2);
+    res.Resize(size*2);
   }
+  res.StartBulkLoad();
+  HalfSegment HS1;
+  HalfSegment HS2;
   int edge=0;
   for(int i=0;i<size;i++){
      linearMoves.Get(i,LM);
@@ -9619,13 +9689,12 @@ Line*  PMPoint::Trajectory(){
           HS1.attr.edgeno = edge;
           HS2.attr.edgeno = edge;
           edge++;
-          *Res+=HS1;
-          *Res+=HS2;
+          res+=HS1;
+          res+=HS2;
         }
      }
   }
-  Res->EndBulkLoad();
-  return Res;
+  res.EndBulkLoad();
 }
 
 /*
@@ -9675,22 +9744,35 @@ This function converts a periodic moving point to a linearly moving one.
 The used data type comes from the TemporalAlgebra. 
 
 */
-MPoint PMPoint::Expand(){
+MPoint PMPoint::Expand()const{
+    __TRACE__
+  // In a first step we compute the number of resulting units.
+  // The reason is, to avoid frequently growing of the result.
+  MPoint res(1);
+  Expand(res);
+  return res;
+}
+
+
+void PMPoint::Expand(MPoint& res)const{
     __TRACE__
   // In a first step we compute the number of resulting units.
   // The reason is, to avoid frequently growing of the result.
   int size = NumberOfExpandedUnits();
-  MPoint Result = MPoint(size);
-  if(size==0)
-    return Result; 
+  res.Clear(); 
+  if(size==0){
+    return; 
+  }
+  res.Resize(size);
   DateTime* CurrentTime = startTime.Clone();
-  Result.StartBulkLoad();
-  AppendUnits(Result, CurrentTime,submove);
-  Result.EndBulkLoad();
+  res.StartBulkLoad();
+  AppendUnits(res, CurrentTime,submove);
+  res.EndBulkLoad();
   delete CurrentTime;
-  CurrentTime = NULL;
-  return Result;
 }
+
+
+
 
 /*
 ~AppendUnits~
@@ -9698,7 +9780,7 @@ MPoint PMPoint::Expand(){
 The function ~AppendUnits~ adds all mpoint-units resulting from S to P.
 
 */
-void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S){
+void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S)const{
     __TRACE__
    if(S.arrayNumber==LINEAR){
         // first create the Intervall
@@ -9747,7 +9829,7 @@ This functions returns the number of needed units of a MPoint of the
 TemporalAlgebra to represent this periodic moving point.
 
 */
-int PMPoint::NumberOfExpandedUnits(){
+int PMPoint::NumberOfExpandedUnits()const{
     __TRACE__
   if(!defined)
       return 0;
@@ -9763,7 +9845,7 @@ This function computed the needed size of a MPoint of the TemporalAlgebra
 to represent this periodic moving one. 
 
 */
-int PMPoint::NumberOfExpandedUnits(const SubMove S){
+int PMPoint::NumberOfExpandedUnits(const SubMove S)const{
     __TRACE__
    if(S.arrayNumber==LINEAR)
        return 1;
@@ -9794,7 +9876,7 @@ Thgis function reads a Periodic moving point from
 a lineary moving one.
 
 */
-void PMPoint::ReadFromMPoint(MPoint& P){
+void PMPoint::ReadFrom(const MPoint& P){
   /* This function works as follow:
      First, we create a list containing all LinearMovingPoints for this
      Periodic Moving Points. After that, we find equal units in this list
@@ -10145,7 +10227,14 @@ This operator computed the topological relationship between this and
 the argument. 
 
 */
-PMInt9M* PMPoint::Toprel(const Point P){
+PMInt9M* PMPoint::Toprel(const Point& P)const{
+  __TRACE__
+  PMInt9M* res = new PMInt9M(0);
+  Toprel(P,*res);
+  return  res;
+}
+
+void PMPoint::Toprel(const Point& P, PMInt9M& res)const{
   __TRACE__
   // first, we create an array of the same size as the 
   // size of the linearmoves
@@ -10181,13 +10270,10 @@ PMInt9M* PMPoint::Toprel(const Point P){
      PM = SPM->ToPeriodicMove();
      PMs.Put(i,PM);
   } 
-  PMInt9M* result = new PMInt9M(1);
-  result->CreateFrom(UnitTopRels,ranges,rs,CMs,compositeSubMoves,
-                     PMs,startTime,submove);
-  result->Minimize();
-  return result;
+  res.CreateFrom(UnitTopRels,ranges,rs,CMs,compositeSubMoves,
+                        PMs,startTime,submove);
+  res.Minimize();
 }
-
 
 /*
 ~Toprel~
@@ -10196,7 +10282,7 @@ This operator computed the topological relationship between this and
 the argument. 
 
 */
-PMInt9M* PMPoint::Toprel(Points& P){
+PMInt9M* PMPoint::Toprel(const Points& P)const {
   __TRACE__
   // first, we create an array of the same size as the 
   // size of the linearmoves
@@ -10338,6 +10424,7 @@ void PMPoint::SpeedAndDirection(bool isSpeed, PMReal& result)const {
      result.SetDefined(false);
      return; 
    }
+   result.SetDefined(true);
    // copying the tree structure as well as the interval and the
    // submove into the result.
    RelInterval* resInterval = result.GetInterval();
@@ -10496,6 +10583,55 @@ void PMPoint::GetInterval(SubMove sm, RelInterval& result) const{
               assert(false);
    }
 }
+
+/*
+~Length~
+
+This function computes the length of the route of the pmpoint.
+This instance has to be defined.
+
+*/
+double PMPoint::Length()const{
+  assert(defined);
+  return Length(submove);    
+}
+
+void PMPoint::Length(CcReal& res)const{
+  if(!IsDefined()){
+    res.SetDefined(false);
+  } else{
+    res.Set(true,Length());
+  }
+}
+
+
+double PMPoint::Length(const SubMove& sm) const{
+   switch(sm.arrayNumber){
+       case LINEAR : {
+         const LinearPointMove* lpm;
+         linearMoves.Get(sm.arrayIndex,lpm);
+         return lpm->Length();    
+     } case COMPOSITE:{
+         const SpatialCompositeMove* scm;
+         const CSubMove* csm;
+         compositeMoves.Get(sm.arrayIndex,scm);
+         double res = 0.0;
+         for(int i=scm->minIndex; i<= scm->maxIndex; i++){
+           compositeSubMoves.Get(i,csm);
+           res += Length(*csm);
+         }
+         return res;
+     } case PERIOD: {
+         const SpatialPeriodicMove* spm;
+         periodicMoves.Get(sm.arrayIndex,spm);
+         return spm->repeatations * Length(spm->submove);
+     }
+     default: assert(false);
+   }
+
+}
+
+
 /*
 3.9 Implementation of the class PMPoints
 
@@ -10798,15 +10934,15 @@ ListExpr PMPoints::ToListExpr(const bool typeincluded)const{
     __TRACE__
    ListExpr value;
    if(!defined)
-      value = nl->BoolAtom(false);
+      value = ::nl->BoolAtom(false);
    else{   
       ListExpr timelist = startTime.ToListExpr(false);
       ListExpr SubMoveList = GetSubMoveList(submove);
-      value = nl->TwoElemList(timelist,SubMoveList);
+      value = ::nl->TwoElemList(timelist,SubMoveList);
    }
    ListExpr res;
    if(typeincluded)
-      res =  nl->TwoElemList( nl->SymbolAtom("pmpoints"),value );
+      res =  ::nl->TwoElemList( ::nl->SymbolAtom("pmpoints"),value );
    else
       res =  value;
    return res;
@@ -10834,7 +10970,7 @@ ListExpr PMPoints::GetSubMoveList(const SubMove SM)const{
       SubMoveList = GetSpatialPeriodicMoveList(index);
   else{
        cerr << __POS__ << " Error in creating ListExpr" << endl;
-       SubMoveList = nl->TheEmptyList();
+       SubMoveList = ::nl->TheEmptyList();
    }
   return SubMoveList;
 }
@@ -10870,12 +11006,12 @@ ListExpr PMPoints::GetSpatialPeriodicMoveList(const int index)const{
     __TRACE__
   const SpatialPeriodicMove* PM;
   periodicMoves.Get(index,PM);
-  ListExpr periodtype = nl->SymbolAtom("period");
-  ListExpr RepList = nl->IntAtom(PM->repeatations);
+  ListExpr periodtype = ::nl->SymbolAtom("period");
+  ListExpr RepList = ::nl->IntAtom(PM->repeatations);
   ListExpr SML = GetSubMoveList(PM->submove);
-  ListExpr LC = nl->BoolAtom(PM->interval.IsLeftClosed());
-  ListExpr RC = nl->BoolAtom(PM->interval.IsRightClosed());
-  return  nl->TwoElemList(periodtype,nl->FourElemList(RepList,LC,RC,SML));
+  ListExpr LC = ::nl->BoolAtom(PM->interval.IsLeftClosed());
+  ListExpr RC = ::nl->BoolAtom(PM->interval.IsRightClosed());
+  return  ::nl->TwoElemList(periodtype,::nl->FourElemList(RepList,LC,RC,SML));
 }
 
 /*
@@ -10891,26 +11027,26 @@ ListExpr PMPoints::GetSpatialCompositeMoveList(const int index)const{
     __TRACE__
  const SpatialCompositeMove* CM;
  compositeMoves.Get(index,CM);
- ListExpr CType = nl->SymbolAtom("composite");
+ ListExpr CType = ::nl->SymbolAtom("composite");
  int minIndex = CM->minIndex;
  int maxIndex = CM->maxIndex;
  ListExpr SubMovesList;
  if(maxIndex<minIndex){
     cerr << __POS__ << "empty composite move" << endl;
-    SubMovesList = nl->TheEmptyList();
+    SubMovesList = ::nl->TheEmptyList();
  }
  else{
    // construct the List of submoves
    const CSubMove* SM;
    compositeSubMoves.Get(minIndex,SM);
-   SubMovesList = nl->OneElemList(GetSubMoveList(*SM));
+   SubMovesList = ::nl->OneElemList(GetSubMoveList(*SM));
    ListExpr Last = SubMovesList;
    for(int i=minIndex+1;i<=maxIndex;i++){
      compositeSubMoves.Get(i,SM);
-     Last = nl->Append(Last,GetSubMoveList(*SM));
+     Last = ::nl->Append(Last,GetSubMoveList(*SM));
    }
  }
- return nl->TwoElemList(CType,SubMovesList);
+ return ::nl->TwoElemList(CType,SubMovesList);
 }
 
 
@@ -10937,12 +11073,12 @@ bool PMPoints::ReadFrom(const ListExpr value){
   */
 
   // for Debugging only
-  //nl->WriteListExpr(value);
+  //::nl->WriteListExpr(value);
 
-if(nl->ListLength(value)!=2){
+if(::nl->ListLength(value)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong listlength (";
-        cerr << (nl->ListLength(value)) << ")" << endl;
+        cerr << (::nl->ListLength(value)) << ")" << endl;
      }
      SetDefined(false);
      return false;
@@ -10957,7 +11093,7 @@ if(nl->ListLength(value)!=2){
      return false;
   }
 
-  if(!startTime.ReadFrom(nl->First(value),false)){
+  if(!startTime.ReadFrom(::nl->First(value),false)){
      if(DEBUG_MODE){
         cerr << __POS__ << "reading of the start time failed" << endl;
         cerr << "The list is " << endl;
@@ -10966,8 +11102,8 @@ if(nl->ListLength(value)!=2){
      return false;
   }
   // now we have to append the included submove
-  ListExpr SML = nl->Second(value);
-  if(nl->ListLength(SML)!=2){ // (submovetype value)
+  ListExpr SML = ::nl->Second(value);
+  if(::nl->ListLength(SML)!=2){ // (submovetype value)
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong list length for submove" << endl;
      }
@@ -10976,18 +11112,18 @@ if(nl->ListLength(value)!=2){
   }
 
 
-  ListExpr SMT = nl->First(SML);
+  ListExpr SMT = ::nl->First(SML);
   int LMIndex = 0;
   int PtsIndex = 0;
   int CMIndex = 0;
   int SMIndex = 0;
   int PMIndex = 0;
   bool res = false;
-  if(nl->IsEqual(SMT,"linear")){
+  if(::nl->IsEqual(SMT,"linear")){
      submove.arrayNumber = LINEAR;
      submove.arrayIndex = 0;
 
-     if(!AddLinearMove(nl->Second(SML),LMIndex,PtsIndex,
+     if(!AddLinearMove(::nl->Second(SML),LMIndex,PtsIndex,
                        CMIndex,SMIndex,PMIndex)){
          if(DEBUG_MODE){
             cerr << __POS__ << " Error in reading linear move" << endl;
@@ -11002,10 +11138,10 @@ if(nl->ListLength(value)!=2){
    bbox.Equalize(&(LM->bbox));
    res = true;
      }
-  } else if(nl->IsEqual(SMT,"composite")){
+  } else if(::nl->IsEqual(SMT,"composite")){
      submove.arrayNumber=COMPOSITE;
      submove.arrayIndex = 0;
-     if(!AddSpatialCompositeMove(nl->Second(SML),LMIndex,PtsIndex,
+     if(!AddSpatialCompositeMove(::nl->Second(SML),LMIndex,PtsIndex,
         CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
            cerr << __POS__ << "error in reading composite move" << endl;
@@ -11020,10 +11156,10 @@ if(nl->ListLength(value)!=2){
    bbox.Equalize(&(CM->bbox));
    res = true;
      }   
-  } else if(nl->IsEqual(SMT,"period")){
+  } else if(::nl->IsEqual(SMT,"period")){
      submove.arrayNumber = PERIOD;
      submove.arrayIndex = 0;
-     if(!AddPeriodMove(nl->Second(SML),LMIndex,PtsIndex,
+     if(!AddPeriodMove(::nl->Second(SML),LMIndex,PtsIndex,
                        CMIndex,SMIndex,PMIndex)){
         if(DEBUG_MODE){
           cerr << __POS__ << " error in reading periodic move" << endl;
@@ -11041,7 +11177,7 @@ if(nl->ListLength(value)!=2){
   } else {
       if(DEBUG_MODE){
    cerr << __POS__ << "unknown subtype" << endl;
-   nl->WriteListExpr(SMT);
+   ::nl->WriteListExpr(SMT);
       }
       res = false;
   }
@@ -11071,7 +11207,7 @@ bool PMPoints::ResizeArrays(const ListExpr value){
    int CMSize = 0;
    int SMSize = 0;
    int PMSize = 0;
-   if(!AddSubMovesSize(nl->Second(value),LMSize,PtsSize,CMSize,SMSize,PMSize))
+   if(!AddSubMovesSize(::nl->Second(value),LMSize,PtsSize,CMSize,SMSize,PMSize))
       return false;
    // set the arrays to the needed size
    if(LMSize>0) linearMoves.Resize(LMSize);
@@ -11095,57 +11231,57 @@ bool PMPoints::AddSubMovesSize(const ListExpr value,int &LMSize, int &PtsSize,
                               int &CMSize, int &SMSize,int &PMSize){
     __TRACE__
 // all moves have the length 2
-if(nl->ListLength(value)!=2)
+if(::nl->ListLength(value)!=2)
    return false;
-ListExpr type = nl->First(value);
-if(nl->AtomType(type)!=SymbolType)
+ListExpr type = ::nl->First(value);
+if(::nl->AtomType(type)!=SymbolType)
   return false;
   // in a linear move we have to increment the size of LM
   // and to add the number of contained Points 
-  if(nl->IsEqual(type,"linear")){
+  if(::nl->IsEqual(type,"linear")){
      LMSize = LMSize +1;
-     ListExpr val = nl->Second(value);
-     if(nl->AtomType(val)!=NoAtom)
+     ListExpr val = ::nl->Second(value);
+     if(::nl->AtomType(val)!=NoAtom)
         return false;
-     if(nl->ListLength(val)==2)
-        if(nl->AtomType(nl->Second(val))==BoolType) // undefined 
+     if(::nl->ListLength(val)==2)
+        if(::nl->AtomType(::nl->Second(val))==BoolType) // undefined 
            return true;
         else
      return false;
-     if(nl->ListLength(val)!=3)
+     if(::nl->ListLength(val)!=3)
         return false;          
-     if(nl->AtomType(nl->Second(val))!=NoAtom ||
-        nl->AtomType(nl->Third(val))!=NoAtom )
+     if(::nl->AtomType(::nl->Second(val))!=NoAtom ||
+        ::nl->AtomType(::nl->Third(val))!=NoAtom )
   return false;
-     int L1 = nl->ListLength(nl->Second(val));
-     if(L1 != nl->ListLength(nl->Third(val)))
+     int L1 = ::nl->ListLength(::nl->Second(val));
+     if(L1 != ::nl->ListLength(::nl->Third(val)))
         return false;         
      PtsSize += L1; // add the Points of this Linear Move              
      return true;
   }
-  if(nl->IsEqual(type,"composite")){
+  if(::nl->IsEqual(type,"composite")){
      CMSize = CMSize+1; // the composite move itself
-     ListExpr rest = nl->Second(value);
-     SMSize = SMSize+nl->ListLength(rest); // the contained submoves
-     while(!nl->IsEmpty(rest)){
-        if(!AddSubMovesSize(nl->First(rest),LMSize,PtsSize,
+     ListExpr rest = ::nl->Second(value);
+     SMSize = SMSize+::nl->ListLength(rest); // the contained submoves
+     while(!::nl->IsEmpty(rest)){
+        if(!AddSubMovesSize(::nl->First(rest),LMSize,PtsSize,
                       CMSize,SMSize,PMSize))
            return false;
-        rest = nl->Rest(rest);
+        rest = ::nl->Rest(rest);
      }
      return true;
   }
-  if(nl->IsEqual(type,"period")){
+  if(::nl->IsEqual(type,"period")){
      PMSize = PMSize+1;
-     int len = nl->ListLength(value);
+     int len = ::nl->ListLength(value);
      ListExpr PMove;
      if(len==2)
-        PMove = nl->Second(value);
+        PMove = ::nl->Second(value);
      else if(len==4)
-        PMove = nl->Fourth(value);
+        PMove = ::nl->Fourth(value);
      else // invalid listlength
         return false;
-     return AddSubMovesSize(nl->Second(PMove),LMSize,PtsSize,
+     return AddSubMovesSize(::nl->Second(PMove),LMSize,PtsSize,
                             CMSize,SMSize,PMSize);
   }
   // a unknown type description
@@ -11191,7 +11327,7 @@ bool PMPoints::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
                    int &PtsIndex,int &CMIndex, int &SMIndex, int &PMIndex){
     __TRACE__
   // a composite move has to contains at least two submoves
-   int len = nl->ListLength(value);
+   int len = ::nl->ListLength(value);
    if(len<2){
       if(DEBUG_MODE){
          cerr << __POS__ << " less than 2 submoves (" << len << ")" << endl;
@@ -11213,19 +11349,19 @@ bool PMPoints::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
    ListExpr rest = value;
    ListExpr SML,TL,VL;
    bool isFirst = true;
-   while(!nl->IsEmpty(rest)){
-      SML = nl->First(rest);
-      rest = nl->Rest(rest);
-      if(nl->ListLength(SML)!=2){ // all submoves have the format (type value)
+   while(!::nl->IsEmpty(rest)){
+      SML = ::nl->First(rest);
+      rest = ::nl->Rest(rest);
+      if(::nl->ListLength(SML)!=2){ // all submoves have the format (type value)
          if(DEBUG_MODE){
             cerr << __POS__ << " submove has wrong length (";
-            cerr << nl->ListLength(SML) << ")" << endl;
+            cerr << ::nl->ListLength(SML) << ")" << endl;
          }
          return false;
       }
-      TL = nl->First(SML);
-      VL = nl->Second(SML);
-      if(nl->IsEqual(TL,"linear")){
+      TL = ::nl->First(SML);
+      VL = ::nl->Second(SML);
+      if(::nl->IsEqual(TL,"linear")){
          // process a linear submove
          int LMPos = LMIndex;
          if(!AddLinearMove(VL,LMIndex,PtsIndex,CMIndex,SMIndex,PMIndex)){
@@ -11261,7 +11397,7 @@ bool PMPoints::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
          SM.arrayIndex = LMPos;
          compositeSubMoves.Put(SMPos,SM);
          SMPos++;
-      } else if(nl->IsEqual(TL,"period")){
+      } else if(::nl->IsEqual(TL,"period")){
         // process a periodic submove
         int PMPos = PMIndex;
         if(!AddPeriodMove(VL,LMIndex,PtsIndex,CMIndex,SMIndex,PMIndex)){
@@ -11313,19 +11449,19 @@ __value__ to this periodic moving point.
 bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
                              int &CMIndex, int &SMIndex, int &PMIndex){
    __TRACE__
- int len = nl->ListLength(value);
+ int len = ::nl->ListLength(value);
  if((len!=2) && (len!=4)){  // (repeatations <submove>)
     if(DEBUG_MODE)
        cerr << __POS__ << ": wrong listlength" << endl;
     return false;
  }
- if(nl->AtomType(nl->First(value))!=IntType){
+ if(::nl->AtomType(::nl->First(value))!=IntType){
     if(DEBUG_MODE){
        cerr << __POS__ << ": wrong type for repeatations" << endl;
     }
     return false;
  }
- int rep = nl->IntValue(nl->First(value));
+ int rep = ::nl->IntValue(::nl->First(value));
  // rep must be greater than 1 
  if(rep<=1){
      if(DEBUG_MODE){
@@ -11336,11 +11472,11 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
  
  ListExpr SML;
  if(len==2)
-     SML = nl->Second(value);
+     SML = ::nl->Second(value);
  else
-     SML = nl->Fourth(value);
+     SML = ::nl->Fourth(value);
 
- if(nl->ListLength(SML)!=2){
+ if(::nl->ListLength(SML)!=2){
      if(DEBUG_MODE){
         cerr << __POS__ << ": wrong length for submove" << endl;
      }
@@ -11350,10 +11486,10 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
  PM.repeatations = rep;
  int IncludePos = PMIndex; // store the positiuon
  PMIndex++;
- ListExpr SMT = nl->First(SML); // take the submove type
- if(nl->IsEqual(SMT,"linear")){
+ ListExpr SMT = ::nl->First(SML); // take the submove type
+ if(::nl->IsEqual(SMT,"linear")){
     int LMPos = LMIndex;
-    if(!AddLinearMove(nl->Second(SML),LMIndex,PtsIndex,
+    if(!AddLinearMove(::nl->Second(SML),LMIndex,PtsIndex,
                       CMIndex,SMIndex,PMIndex)){
        if(DEBUG_MODE){
           cerr << __POS__ << ": can't add linear submove" << endl;
@@ -11369,19 +11505,19 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
     PM.interval.Equalize(&SMI);
     PM.interval.Mul(rep);
     if(len==4){
-      ListExpr LC = nl->Second(value);
-      ListExpr RC = nl->Third(value);
-      if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
+      ListExpr LC = ::nl->Second(value);
+      ListExpr RC = ::nl->Third(value);
+      if((::nl->AtomType(LC)!=BoolType) || (::nl->AtomType(RC)!=BoolType))
           return false;
-      PM.interval.SetLeftClosed(nl->BoolValue(LC));
-      PM.interval.SetRightClosed(nl->BoolValue(RC));
+      PM.interval.SetLeftClosed(::nl->BoolValue(LC));
+      PM.interval.SetRightClosed(::nl->BoolValue(RC));
 
      }
     periodicMoves.Put(IncludePos,PM);
     return true;
- }else if(nl->IsEqual(SMT,"composite")){
+ }else if(::nl->IsEqual(SMT,"composite")){
     int CMPos = CMIndex;
-    if(!AddSpatialCompositeMove(nl->Second(SML),LMIndex,PtsIndex,
+    if(!AddSpatialCompositeMove(::nl->Second(SML),LMIndex,PtsIndex,
                                 CMIndex,SMIndex,PMIndex)){
        if(DEBUG_MODE){
           cerr << __POS__ << ": can't add composite submove" << endl;
@@ -11397,12 +11533,12 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
     PM.interval.Equalize(&SMI);
     PM.interval.Mul(rep);
     if(len==4){
-      ListExpr LC = nl->Second(value);
-      ListExpr RC = nl->Third(value);
-      if((nl->AtomType(LC)!=BoolType) || (nl->AtomType(RC)!=BoolType))
+      ListExpr LC = ::nl->Second(value);
+      ListExpr RC = ::nl->Third(value);
+      if((::nl->AtomType(LC)!=BoolType) || (::nl->AtomType(RC)!=BoolType))
           return false;
-      PM.interval.SetLeftClosed(nl->BoolValue(LC));
-      PM.interval.SetRightClosed(nl->BoolValue(RC));
+      PM.interval.SetLeftClosed(::nl->BoolValue(LC));
+      PM.interval.SetRightClosed(::nl->BoolValue(RC));
 
      }
     periodicMoves.Put(IncludePos,PM);
@@ -11412,7 +11548,7 @@ bool PMPoints::AddPeriodMove(const ListExpr value,int &LMIndex, int &PtsIndex,
  if(DEBUG_MODE){
      cerr << __POS__ << ": invalid submove-type for periodic move" << endl;
      cerr << "This list is : " << endl;
-     nl->WriteListExpr(SMT);
+     ::nl->WriteListExpr(SMT);
      cerr << endl << "end of list " << endl;
  }
  return false;
@@ -11427,10 +11563,16 @@ This function computes all locations where a point of this pointset has
 halted.
 
 */
-Points* PMPoints::Breakpoints(){
+Points* PMPoints::Breakpoints()const{
     DateTime DT(durationtype);
     return Breakpoints(&DT,false);
 }
+
+void PMPoints::Breakpoints(Points& res) const{
+    DateTime DT(durationtype);
+    Breakpoints(&DT,false,res);
+}
+
 /*
 ~BreakPoints~
 
@@ -11440,24 +11582,33 @@ duration is zero and inclusive is true, the result will be an undefined
 points value.
 
 */
-Points* PMPoints::Breakpoints(const DateTime* duration, const bool inclusive){
-   Points* Res = new Points(1);
+Points* PMPoints::Breakpoints(const DateTime* duration, 
+                              const bool inclusive) const{
+  Points* res = new Points(1);
+  Breakpoints(duration,inclusive,*res);
+  return  res;
+}
+
+void PMPoints::Breakpoints(const DateTime* duration,
+                           const bool inclusive,
+                           Points& res) const{
+   res.Clear();
    if(!defined || !duration->IsDefined()){
-       Res->SetDefined(false);
-       return Res;
+       res.SetDefined(false);
+       return;
    }
    if(duration->LessThanZero()){
-        Res->SetDefined(false);
-        return Res;
+       res.SetDefined(false);
+       return;
    }
    if(duration->IsZero() && inclusive){
-       Res->SetDefined(false);
-       return Res;
+       res.SetDefined(false);
+       return;
    }
+   res.SetDefined(true);
    const LinearPointsMove* LM;
    const TwoPoints* TP;
-   Res->Clear();
-   Res->StartBulkLoad();
+   res.StartBulkLoad();
    int size = linearMoves.Size();
    for(int i=0;i<size;i++){
       linearMoves.Get(i,LM);
@@ -11472,14 +11623,13 @@ Points* PMPoints::Breakpoints(const DateTime* duration, const bool inclusive){
               thePoints.Get(j,TP);
               if(TP->IsStatic()){
                 Point P(true,TP->GetStartX(),TP->GetStartY());
-                *Res += P;
+                res += P;
               }
 
           }
       }
    }
-   Res->EndBulkLoad();
-   return Res;
+   res.EndBulkLoad();
 }
 
 /*
@@ -11491,12 +11641,11 @@ an undefined points object.
 
 */
 
-Points* PMPoints::At(const DateTime* instant)const{
+void PMPoints::At(const DateTime* instant, Points& res)const{
     __TRACE__
     DateTime* duration = new DateTime(instanttype);
     duration->Equalize(instant);
     duration->Minus(&startTime); // now it is really a duration
-    Points* res;
     if(interval.Contains(duration)){
        const SubMove* sm;
        sm  = &submove;
@@ -11573,18 +11722,19 @@ Points* PMPoints::At(const DateTime* instant)const{
        const LinearPointsMove* LM;
        linearMoves.Get(sm->arrayIndex,LM);
        if(LM->IsDefinedAt(duration))
-          res=LM->At(duration,thePoints);
+          LM->At(duration,thePoints,res);
        else
-          res = new Points(false);
+          res.SetDefined(false);
     } else { // the duration does not contains the argument instant
-         res = new Points(false);
+         res.SetDefined(false);
     }
     delete duration;
     duration = NULL;
-    return res;
 }
 
-namespace periodic{
+
+
+
 
 
 /*
@@ -11838,148 +11988,148 @@ periodic algebra.
 */
 ListExpr PBBoxProperty(){
   __TRACE__
-  return (nl->TwoElemList(
-            nl->FiveElemList(
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List"),
-                nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                nl->StringAtom("-> Data"),
-                nl->StringAtom("pbbox"),
-                nl->StringAtom("(minx miny maxx maxy)"),
-                nl->StringAtom("(12.0 23.3  100.987 5245.978)"),
-                nl->StringAtom("All numeric values are valid."))
+  return (::nl->TwoElemList(
+            ::nl->FiveElemList(
+                ::nl->StringAtom("Signature"),
+                ::nl->StringAtom("Example Type List"),
+                ::nl->StringAtom("List Rep"),
+                ::nl->StringAtom("Example List"),
+                ::nl->StringAtom("Remarks")),
+            ::nl->FiveElemList(
+                ::nl->StringAtom("-> Data"),
+                ::nl->StringAtom("pbbox"),
+                ::nl->StringAtom("(minx miny maxx maxy)"),
+                ::nl->StringAtom("(12.0 23.3  100.987 5245.978)"),
+                ::nl->StringAtom("All numeric values are valid."))
          ));
 }
 
 
 ListExpr RelIntervalProperty(){
   __TRACE__
-  return (nl->TwoElemList(
-            nl->FiveElemList(
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List"),
-                nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                nl->StringAtom("-> Data"),
-                nl->StringAtom("rinterval"),
-                nl->StringAtom("(<datetime> lC rC lI rI)"),
-                nl->StringAtom("((time (2 120000)) TRUE FALSE FALSE FALSE)"),
-                nl->StringAtom("a interval without fixed start"))
+  return (::nl->TwoElemList(
+            ::nl->FiveElemList(
+                ::nl->StringAtom("Signature"),
+                ::nl->StringAtom("Example Type List"),
+                ::nl->StringAtom("List Rep"),
+                ::nl->StringAtom("Example List"),
+                ::nl->StringAtom("Remarks")),
+            ::nl->FiveElemList(
+                ::nl->StringAtom("-> Data"),
+                ::nl->StringAtom("rinterval"),
+                ::nl->StringAtom("(<datetime> lC rC lI rI)"),
+                ::nl->StringAtom("((time (2 120000)) TRUE FALSE FALSE FALSE)"),
+                ::nl->StringAtom("a interval without fixed start"))
          ));
 }
 
 ListExpr PIntervalProperty(){
   __TRACE__
-  return (nl->TwoElemList(
-        nl->FiveElemList(
-            nl->StringAtom("Signature"),
-            nl->StringAtom("Example Type List"),
-            nl->StringAtom("List Rep"),
-            nl->StringAtom("Example List"),
-            nl->StringAtom("Remarks")),
-        nl->FiveElemList(
-            nl->StringAtom("-> Data"),
-            nl->StringAtom("pinterval"),
-            nl->StringAtom("(<instant> <instant> leftClosed rightClosed)"),
-            nl->StringAtom("((instant 1.1)(instant 1.5) TRUE FALSE)"),
-            nl->StringAtom(""))
+  return (::nl->TwoElemList(
+        ::nl->FiveElemList(
+            ::nl->StringAtom("Signature"),
+            ::nl->StringAtom("Example Type List"),
+            ::nl->StringAtom("List Rep"),
+            ::nl->StringAtom("Example List"),
+            ::nl->StringAtom("Remarks")),
+        ::nl->FiveElemList(
+            ::nl->StringAtom("-> Data"),
+            ::nl->StringAtom("pinterval"),
+            ::nl->StringAtom("(<instant> <instant> leftClosed rightClosed)"),
+            ::nl->StringAtom("((instant 1.1)(instant 1.5) TRUE FALSE)"),
+            ::nl->StringAtom(""))
      ));
 }
 
 
 ListExpr PMPointProperty(){
   __TRACE__
-  return (nl->TwoElemList(
-            nl->FiveElemList(
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List"),
-                nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                nl->StringAtom("-> Data"),
-                nl->StringAtom("pmpoint"),
-                nl->StringAtom("(<startTime> <submove>)"),
-                nl->StringAtom("..."),
-                nl->StringAtom("see in the documentation"))
+  return (::nl->TwoElemList(
+            ::nl->FiveElemList(
+                ::nl->StringAtom("Signature"),
+                ::nl->StringAtom("Example Type List"),
+                ::nl->StringAtom("List Rep"),
+                ::nl->StringAtom("Example List"),
+                ::nl->StringAtom("Remarks")),
+            ::nl->FiveElemList(
+                ::nl->StringAtom("-> Data"),
+                ::nl->StringAtom("pmpoint"),
+                ::nl->StringAtom("(<startTime> <submove>)"),
+                ::nl->StringAtom("..."),
+                ::nl->StringAtom("see in the documentation"))
          ));
 }
 
 ListExpr PMPointsProperty(){
   __TRACE__
-  return (nl->TwoElemList(
-            nl->FiveElemList(
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List"),
-                nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                nl->StringAtom("-> Data"),
-                nl->StringAtom("pmpoints"),
-                nl->StringAtom("(<startTime> <submove>)"),
-                nl->StringAtom("..."),
-                nl->StringAtom("see in the documentation"))
+  return (::nl->TwoElemList(
+            ::nl->FiveElemList(
+                ::nl->StringAtom("Signature"),
+                ::nl->StringAtom("Example Type List"),
+                ::nl->StringAtom("List Rep"),
+                ::nl->StringAtom("Example List"),
+                ::nl->StringAtom("Remarks")),
+            ::nl->FiveElemList(
+                ::nl->StringAtom("-> Data"),
+                ::nl->StringAtom("pmpoints"),
+                ::nl->StringAtom("(<startTime> <submove>)"),
+                ::nl->StringAtom("..."),
+                ::nl->StringAtom("see in the documentation"))
          ));
 }
 
 ListExpr PMBoolProperty(){
   __TRACE__
-  return (nl->TwoElemList(
-            nl->FiveElemList(
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List"),
-                nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                nl->StringAtom("-> Data"),
-                nl->StringAtom("pmbool"),
-                nl->StringAtom("(<startTime> <submove>)"),
-                nl->StringAtom(" ... "),
-                nl->StringAtom("see in the documentation"))
+  return (::nl->TwoElemList(
+            ::nl->FiveElemList(
+                ::nl->StringAtom("Signature"),
+                ::nl->StringAtom("Example Type List"),
+                ::nl->StringAtom("List Rep"),
+                ::nl->StringAtom("Example List"),
+                ::nl->StringAtom("Remarks")),
+            ::nl->FiveElemList(
+                ::nl->StringAtom("-> Data"),
+                ::nl->StringAtom("pmbool"),
+                ::nl->StringAtom("(<startTime> <submove>)"),
+                ::nl->StringAtom(" ... "),
+                ::nl->StringAtom("see in the documentation"))
          ));
 }
 
 ListExpr PMInt9MProperty(){
   __TRACE__
-  return (nl->TwoElemList(
-            nl->FiveElemList(
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List"),
-                nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                nl->StringAtom("-> Data"),
-                nl->StringAtom("pmint9m"),
-                nl->StringAtom("(<startTime> <submove>)"),
-                nl->StringAtom(" ... "),
-                nl->StringAtom("see in the documentation"))
+  return (::nl->TwoElemList(
+            ::nl->FiveElemList(
+                ::nl->StringAtom("Signature"),
+                ::nl->StringAtom("Example Type List"),
+                ::nl->StringAtom("List Rep"),
+                ::nl->StringAtom("Example List"),
+                ::nl->StringAtom("Remarks")),
+            ::nl->FiveElemList(
+                ::nl->StringAtom("-> Data"),
+                ::nl->StringAtom("pmint9m"),
+                ::nl->StringAtom("(<startTime> <submove>)"),
+                ::nl->StringAtom(" ... "),
+                ::nl->StringAtom("see in the documentation"))
          ));
 }
 
 
 ListExpr PMRealProperty(){
   __TRACE__
-  return (nl->TwoElemList(
-            nl->FiveElemList(
-                nl->StringAtom("Signature"),
-                nl->StringAtom("Example Type List"),
-                nl->StringAtom("List Rep"),
-                nl->StringAtom("Example List"),
-                nl->StringAtom("Remarks")),
-            nl->FiveElemList(
-                nl->StringAtom("-> Data"),
-                nl->StringAtom("pmreal"),
-                nl->StringAtom("(<startTime> <submove>)"),
-                nl->StringAtom(" ... "),
-                nl->StringAtom("see in the documentation"))
+  return (::nl->TwoElemList(
+            ::nl->FiveElemList(
+                ::nl->StringAtom("Signature"),
+                ::nl->StringAtom("Example Type List"),
+                ::nl->StringAtom("List Rep"),
+                ::nl->StringAtom("Example List"),
+                ::nl->StringAtom("Remarks")),
+            ::nl->FiveElemList(
+                ::nl->StringAtom("-> Data"),
+                ::nl->StringAtom("pmreal"),
+                ::nl->StringAtom("(<startTime> <submove>)"),
+                ::nl->StringAtom(" ... "),
+                ::nl->StringAtom("see in the documentation"))
          ));
 }
 /*
@@ -12511,49 +12661,49 @@ all type constructors don't have arguments, this is trivial.
 bool CheckPBBox( ListExpr type, ListExpr& errorInfo )
 {
     __TRACE__
- return (nl->IsEqual( type, "pbbox" ));
+ return (::nl->IsEqual( type, "pbbox" ));
 }
 
 bool CheckRelInterval( ListExpr type, ListExpr& errorInfo )
 {
     __TRACE__
- return (nl->IsEqual( type, "rinterval" ));
+ return (::nl->IsEqual( type, "rinterval" ));
 }
 
 bool CheckPInterval( ListExpr type, ListExpr& errorInfo )
 {
     __TRACE__
- return (nl->IsEqual( type, "pinterval" ));
+ return (::nl->IsEqual( type, "pinterval" ));
 }
 
 bool CheckPMPoint( ListExpr type, ListExpr& errorInfo )
 {
     __TRACE__
- return (nl->IsEqual( type, "pmpoint" ));
+ return (::nl->IsEqual( type, "pmpoint" ));
 }
 
 bool CheckPMPoints( ListExpr type, ListExpr& errorInfo )
 {
     __TRACE__
-  return (nl->IsEqual( type, "pmpoints" ));
+  return (::nl->IsEqual( type, "pmpoints" ));
 }
 
 bool CheckPMBool( ListExpr type, ListExpr& errorInfo )
 {
     __TRACE__
- return (nl->IsEqual( type, "pmbool" ));
+ return (::nl->IsEqual( type, "pmbool" ));
 }
 
 bool CheckPMInt9M( ListExpr type, ListExpr& errorInfo )
 {
     __TRACE__
- return (nl->IsEqual( type, "pmint9m" ));
+ return (::nl->IsEqual( type, "pmint9m" ));
 }
 
 bool CheckPMReal( ListExpr type, ListExpr& errorInfo )
 {
     __TRACE__
-  return (nl->IsEqual( type, "pmreal" ));
+  return (::nl->IsEqual( type, "pmreal" ));
 }
 
 /*
@@ -12693,303 +12843,316 @@ of secondo.
 */
 ListExpr PBBoxPBBoxBoolTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)==2) {
-        if(nl->IsEqual(nl->First(args),"pbbox") &&
-           nl->IsEqual(nl->First(args),"pbbox"))
-          return nl->SymbolAtom("bool");
+  if(::nl->ListLength(args)==2) {
+        if(::nl->IsEqual(::nl->First(args),"pbbox") &&
+           ::nl->IsEqual(::nl->First(args),"pbbox"))
+          return ::nl->SymbolAtom("bool");
         else
           ErrorReporter::ReportError("Two values of type pbbox expected\n");
-        return nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->SymbolAtom(TYPE_ERROR);
    }
    ErrorReporter::ReportError("Wrong number of arguments \n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr PBBoxPBBoxPBBoxTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)==2) {
-        if(nl->IsEqual(nl->First(args),"pbbox") &&
-           nl->IsEqual(nl->Second(args),"pbbox"))
-           return nl->SymbolAtom("pbbox");
+  if(::nl->ListLength(args)==2) {
+        if(::nl->IsEqual(::nl->First(args),"pbbox") &&
+           ::nl->IsEqual(::nl->Second(args),"pbbox"))
+           return ::nl->SymbolAtom("pbbox");
         ErrorReporter::ReportError("Two Elements of type pbbox expected\n");
-        return nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->SymbolAtom(TYPE_ERROR);
    }
    ErrorReporter::ReportError("Wrong number of arguments\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr PIntervalInstantTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)!=1){
+  if(::nl->ListLength(args)!=1){
        ErrorReporter::ReportError("Invalid number of arguments\n");
-       return nl->SymbolAtom(TYPE_ERROR);
+       return ::nl->SymbolAtom(TYPE_ERROR);
   }
-  if(nl->IsEqual(nl->First(args),"pinterval"))
-       return nl->SymbolAtom("instant");
+  if(::nl->IsEqual(::nl->First(args),"pinterval"))
+       return ::nl->SymbolAtom("instant");
   ErrorReporter::ReportError("value of type pinterval expected\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr EqualsTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)!=2){
+  if(::nl->ListLength(args)!=2){
      ErrorReporter::ReportError("two arguments expected\n");
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
   }
-  if(nl->IsEqual(nl->First(args),"pbbox") &&
-     nl->IsEqual(nl->Second(args),"pbbox"))
-     return nl->SymbolAtom("bool");
-  if(nl->IsEqual(nl->First(args),"pinterval") &&
-     nl->IsEqual(nl->Second(args),"pinterval"))
-     return nl->SymbolAtom("bool");
+  if(::nl->IsEqual(::nl->First(args),"pbbox") &&
+     ::nl->IsEqual(::nl->Second(args),"pbbox"))
+     return ::nl->SymbolAtom("bool");
+  if(::nl->IsEqual(::nl->First(args),"pinterval") &&
+     ::nl->IsEqual(::nl->Second(args),"pinterval"))
+     return ::nl->SymbolAtom("bool");
 
   ErrorReporter::ReportError("Invalid arguments \n");
-  return nl->SymbolAtom(TYPE_ERROR);
+  return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr AtTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)!=2){
+  if(::nl->ListLength(args)!=2){
       ErrorReporter::ReportError("At expects two arguments\n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(!nl->IsEqual(nl->Second(args),"instant")){
+   if(!::nl->IsEqual(::nl->Second(args),"instant")){
      ErrorReporter::ReportError("The second argument must be an instant\n");
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->AtomType(nl->First(args))!=SymbolType){
+   if(::nl->AtomType(::nl->First(args))!=SymbolType){
       ErrorReporter::ReportError("At can't handle composite types \n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   string arg = nl->SymbolValue(nl->First(args));
+   string arg = ::nl->SymbolValue(::nl->First(args));
 
    if(arg=="pmpoint")
-     return nl->SymbolAtom("point");
+     return ::nl->SymbolAtom("point");
    if(arg=="pmbool")
-     return nl->SymbolAtom("bool");
+     return ::nl->SymbolAtom("bool");
    if(arg=="pmint9m")
-     return nl->SymbolAtom("int9m");
+     return ::nl->SymbolAtom("int9m");
    if(arg=="pmpoints")
-     return nl->SymbolAtom("points");
+     return ::nl->SymbolAtom("points");
    if(arg=="pmreal")
-     return nl->SymbolAtom("real");
+     return ::nl->SymbolAtom("real");
 
    ErrorReporter::ReportError(
         "at can not handle a value of type " + arg +  "\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr InitialOrFinalTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)!=1){
+  if(::nl->ListLength(args)!=1){
       ErrorReporter::ReportError("Wrong number of arguments\n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->AtomType(nl->First(args))!=SymbolType){
+   if(::nl->AtomType(::nl->First(args))!=SymbolType){
       ErrorReporter::ReportError("Only simple types are allowed here.\n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   string arg = nl->SymbolValue(nl->First(args));
+   string arg = ::nl->SymbolValue(::nl->First(args));
    if(arg=="pmpoint")
-     return nl->SymbolAtom("point");
+     return ::nl->SymbolAtom("point");
    if(arg=="pmbool")
-     return nl->SymbolAtom("bool");
+     return ::nl->SymbolAtom("bool");
    if(arg=="pmint9m")
-     return nl->SymbolAtom("int9m");
+     return ::nl->SymbolAtom("int9m");
    if(arg=="pmpoints")
-     return nl->SymbolAtom("points");
+     return ::nl->SymbolAtom("points");
    if(arg=="pmreal")
-     return nl->SymbolAtom("real");
+     return ::nl->SymbolAtom("real");
    ErrorReporter::ReportError("Can't handle values of type "+arg+"\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr BreakpointsTypeMap(ListExpr args){
     __TRACE__
- int length = nl->ListLength(args);
+ int length = ::nl->ListLength(args);
    if(length!=1 && length!=3){
        ErrorReporter::ReportError(
          "Wrong number of arguments, one or three arguments expected\n");
-       return nl->SymbolAtom(TYPE_ERROR);
+       return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->AtomType(nl->First(args))!=SymbolType){
+   if(::nl->AtomType(::nl->First(args))!=SymbolType){
       ErrorReporter::ReportError("breakpoints can only handle simple types ");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   string arg = nl->SymbolValue(nl->First(args));
+   string arg = ::nl->SymbolValue(::nl->First(args));
    if(length==3){
      // check the second argument to be a duration type
-     if(!nl->IsEqual(nl->Second(args),"duration")){
+     if(!::nl->IsEqual(::nl->Second(args),"duration")){
         ErrorReporter::ReportError(
              "The second argument must be of type duration\n");
-        return nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->SymbolAtom(TYPE_ERROR);
      }
      // check the third argument for bool type 
-     if(!nl->IsEqual(nl->Third(args),"bool")){
+     if(!::nl->IsEqual(::nl->Third(args),"bool")){
         ErrorReporter::ReportError(
              "The third argument must be of type bool\n");
-        return nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->SymbolAtom(TYPE_ERROR);
      } 
    }
 
    if(arg=="pmpoint")
-      return nl->SymbolAtom("points");
+      return ::nl->SymbolAtom("points");
    if(arg=="pmpoints")
-      return nl->SymbolAtom("points");
+      return ::nl->SymbolAtom("points");
 
    ErrorReporter::ReportError(
           "Invalid type for breakpoints operator : "+arg+"\n");
-   return nl->SymbolAtom(TYPE_ERROR);   
+   return ::nl->SymbolAtom(TYPE_ERROR);   
 }
 
 ListExpr PMPointInstantTypeMap(ListExpr args){
     __TRACE__
-   if(nl->ListLength(args)!=1){
+   if(::nl->ListLength(args)!=1){
       ErrorReporter::ReportError("Invalid number of arguments \n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->IsEqual(nl->First(args),"pmpoint"))
-      return nl->SymbolAtom("instant");
+   if(::nl->IsEqual(::nl->First(args),"pmpoint"))
+      return ::nl->SymbolAtom("instant");
 
    ErrorReporter::ReportError(
         "invalid type detected, value of type pmpoint expected\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr PMPointPIntervalTypeMap(ListExpr args){
     __TRACE__
-   if(nl->ListLength(args)!=1){
+   if(::nl->ListLength(args)!=1){
       ErrorReporter::ReportError("Invalid number of arguments\n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->IsEqual(nl->First(args),"pmpoint"))
-      return nl->SymbolAtom("pinterval");
+   if(::nl->IsEqual(::nl->First(args),"pmpoint"))
+      return ::nl->SymbolAtom("pinterval");
    ErrorReporter::ReportError(
          "Wrong types detected, required are pmpoint x pinterval\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr PMPointPBBoxTypeMap(ListExpr args){
     __TRACE__
-   if(nl->ListLength(args)!=1){
+   if(::nl->ListLength(args)!=1){
       ErrorReporter::ReportError("Wrong number of arguments\n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->IsEqual(nl->First(args),"pmpoint"))
-      return nl->SymbolAtom("pbbox");
+   if(::nl->IsEqual(::nl->First(args),"pmpoint"))
+      return ::nl->SymbolAtom("pbbox");
    ErrorReporter::ReportError("pmpoint requiered\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr TrajectoryTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)==1) {
-        if(nl->IsEqual(nl->First(args),"pmpoint"))
-           return nl->SymbolAtom("line");
+  if(::nl->ListLength(args)==1) {
+        if(::nl->IsEqual(::nl->First(args),"pmpoint"))
+           return ::nl->SymbolAtom("line");
         else{
           ErrorReporter::ReportError(
                         "invalid type for trajectory operator\n");
-          return nl->SymbolAtom(TYPE_ERROR);
+          return ::nl->SymbolAtom(TYPE_ERROR);
         }
    }
    ErrorReporter::ReportError(
                "Wrong number of arguments for the trajectory operator\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr ContainsTypeMap(ListExpr args){
     __TRACE__
-   if(nl->ListLength(args)!=2){
+   if(::nl->ListLength(args)!=2){
       ErrorReporter::ReportError("Contains requires 2 arguments\n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->IsEqual(nl->First(args),"pbbox") &&
-      nl->IsEqual(nl->Second(args),"pbbox"))
-      return nl->SymbolAtom("bool");
-   if(nl->IsEqual(nl->First(args),"pinterval")){
-      if(nl->IsEqual(nl->Second(args),"pinterval"))
-         return nl->SymbolAtom("bool");
-      if(nl->IsEqual(nl->Second(args),"instant"))
-         return nl->SymbolAtom("bool");
+   if(::nl->IsEqual(::nl->First(args),"pbbox") &&
+      ::nl->IsEqual(::nl->Second(args),"pbbox"))
+      return ::nl->SymbolAtom("bool");
+   if(::nl->IsEqual(::nl->First(args),"pinterval")){
+      if(::nl->IsEqual(::nl->Second(args),"pinterval"))
+         return ::nl->SymbolAtom("bool");
+      if(::nl->IsEqual(::nl->Second(args),"instant"))
+         return ::nl->SymbolAtom("bool");
    }
    ErrorReporter::ReportError("Invalid types for the contains operator\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr IntersectsTypeMap(ListExpr args){
     __TRACE__
-   if(nl->ListLength(args)!=2){
+   if(::nl->ListLength(args)!=2){
       ErrorReporter::ReportError("intersects requires two operands\n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->IsEqual(nl->First(args),"pbbox") &&
-      nl->IsEqual(nl->Second(args),"pbbox"))
-      return nl->SymbolAtom("bool");
-   if(nl->IsEqual(nl->First(args),"pinterval") &&
-      nl->IsEqual(nl->Second(args),"pinterval"))
-         return nl->SymbolAtom("bool");
+   if(::nl->IsEqual(::nl->First(args),"pbbox") &&
+      ::nl->IsEqual(::nl->Second(args),"pbbox"))
+      return ::nl->SymbolAtom("bool");
+   if(::nl->IsEqual(::nl->First(args),"pinterval") &&
+      ::nl->IsEqual(::nl->Second(args),"pinterval"))
+         return ::nl->SymbolAtom("bool");
    ErrorReporter::ReportError("Invalid types for intersects operator\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr LengthTypeMap(ListExpr args){
     __TRACE__
-   if(nl->ListLength(args)!=1){
+   if(::nl->ListLength(args)!=1){
        ErrorReporter::ReportError("Lengths requires one argument\n");
-       return nl->SymbolAtom(TYPE_ERROR);
+       return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->IsEqual(nl->First(args),"pinterval"))
-       return nl->SymbolAtom("duration");
+   if(::nl->IsEqual(::nl->First(args),"pinterval"))
+       return ::nl->SymbolAtom("duration");
    ErrorReporter::ReportError("value of type pinterval expected\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
+ListExpr PMPoint_Real_TypeMap(ListExpr args){
+   __TRACE__
+   string err = "pmpoint expected";
+   if(::nl->ListLength(args)!=1){
+      ErrorReporter::ReportError(err);
+      return ::nl->TypeError();
+   }
+   if(!::nl->IsEqual(::nl->First(args),"pmpoint")){
+      ErrorReporter::ReportError(err);
+      return ::nl->TypeError();
+   }
+   return ::nl->SymbolAtom("real");
+}
 
 ListExpr ExpandTypeMap(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)!=1){
+  if(::nl->ListLength(args)!=1){
        ErrorReporter::ReportError("Invalid number of arguments\n");
-       return nl->SymbolAtom(TYPE_ERROR);
+       return ::nl->SymbolAtom(TYPE_ERROR);
   }
-   if(nl->IsEqual(nl->First(args),"pmpoint")){ 
-       return nl->SymbolAtom("mpoint");
+   if(::nl->IsEqual(::nl->First(args),"pmpoint")){ 
+       return ::nl->SymbolAtom("mpoint");
    }
    ErrorReporter::ReportError(
                 "expand expects a pmpoint as operand\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 
 ListExpr CreatePMPointMap(ListExpr args){
-   if(nl->ListLength(args)!=1){
+   if(::nl->ListLength(args)!=1){
      ErrorReporter::ReportError("One argument expected.\n");
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->IsEqual(nl->First(args),"mpoint"))
-     return nl->SymbolAtom("pmpoint");
+   if(::nl->IsEqual(::nl->First(args),"mpoint"))
+     return ::nl->SymbolAtom("pmpoint");
    ErrorReporter::ReportError("mpoint expected \n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 
 ListExpr ToprelTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=2){
+   if(::nl->ListLength(args)!=2){
       ErrorReporter::ReportError("Two arguments required\n");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->IsEqual(nl->First(args),"pmpoint")){ 
-      if(nl->IsEqual(nl->Second(args),"point") ||
-         nl->IsEqual(nl->Second(args),"points"))
-         return nl->SymbolAtom("pmint9m");
+   if(::nl->IsEqual(::nl->First(args),"pmpoint")){ 
+      if(::nl->IsEqual(::nl->Second(args),"point") ||
+         ::nl->IsEqual(::nl->Second(args),"points"))
+         return ::nl->SymbolAtom("pmint9m");
       else{
          ErrorReporter::ReportError("pmpoints x <invalid type>\n");
-         return nl->SymbolAtom(TYPE_ERROR);
+         return ::nl->SymbolAtom(TYPE_ERROR);
       }
    }
-   if((nl->IsEqual(nl->First(args),"point")||
-       nl->IsEqual(nl->First(args),"points"))){
-     if(nl->IsEqual(nl->Second(args),"pmpoint")){
-         return nl->SymbolAtom("pmint9m");
+   if((::nl->IsEqual(::nl->First(args),"point")||
+       ::nl->IsEqual(::nl->First(args),"points"))){
+     if(::nl->IsEqual(::nl->Second(args),"pmpoint")){
+         return ::nl->SymbolAtom("pmint9m");
      }
      else{
         ErrorReporter::ReportError(
@@ -12998,148 +13161,148 @@ ListExpr ToprelTypeMap(ListExpr args){
    }
    ErrorReporter::ReportError(
           "first argument is not in {pmpoint,point,points}\n");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr IntersectionTypeMap(ListExpr args){
-    if(nl->ListLength(args)!=2){
+    if(::nl->ListLength(args)!=2){
         ErrorReporter::ReportError("Two arguments needed");
-        return nl->SymbolAtom(TYPE_ERROR);  
+        return ::nl->SymbolAtom(TYPE_ERROR);  
     }
     // for tests we use only a pmbool 
-    if(nl->AtomType(nl->First(args))!=SymbolType){
+    if(::nl->AtomType(::nl->First(args))!=SymbolType){
         ErrorReporter::ReportError("The first argument can't be composite");
-        return nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->SymbolAtom(TYPE_ERROR);
     }
-    if(nl->AtomType(nl->Second(args))!=SymbolType){
+    if(::nl->AtomType(::nl->Second(args))!=SymbolType){
         ErrorReporter::ReportError("The second argument can't be composite");
-        return nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->SymbolAtom(TYPE_ERROR);
     }
-    string arg1 = nl->SymbolValue(nl->First(args));
-    string arg2 = nl->SymbolValue(nl->Second(args));
+    string arg1 = ::nl->SymbolValue(::nl->First(args));
+    string arg2 = ::nl->SymbolValue(::nl->Second(args));
     if(arg1=="pbbox" && arg2=="pbbox") // intersection of two boxes
-       return nl->SymbolAtom("pbbox");
+       return ::nl->SymbolAtom("pbbox");
     if(arg1!="pmbool"){
         ErrorReporter::ReportError("The first argument type is not accepted");
-        return nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->SymbolAtom(TYPE_ERROR);
     }
     if(arg2!="pinterval"){
         ErrorReporter::ReportError("The second argument is not accepted");
-        return nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->SymbolAtom(TYPE_ERROR);
     }
-    return nl->SymbolAtom(arg1);
+    return ::nl->SymbolAtom(arg1);
 }
 
 ListExpr DistanceTypeMap(ListExpr args){
-  if(nl->ListLength(args)!=2){
+  if(::nl->ListLength(args)!=2){
      ErrorReporter::ReportError("Two arguments required");
-     return nl->SymbolAtom(TYPE_ERROR);  
+     return ::nl->SymbolAtom(TYPE_ERROR);  
   }
   // for tests we use only a pmbool 
-  if(nl->AtomType(nl->First(args))!=SymbolType){
+  if(::nl->AtomType(::nl->First(args))!=SymbolType){
       ErrorReporter::ReportError("The first argument can't be composite");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
   }
-  if(nl->AtomType(nl->Second(args))!=SymbolType){
+  if(::nl->AtomType(::nl->Second(args))!=SymbolType){
       ErrorReporter::ReportError("The second argument can't be composite");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
   }
-  string arg1 = nl->SymbolValue(nl->First(args));
-  string arg2 = nl->SymbolValue(nl->Second(args));
+  string arg1 = ::nl->SymbolValue(::nl->First(args));
+  string arg2 = ::nl->SymbolValue(::nl->Second(args));
   // up to now only pmpoint x point -> pmreal is supported
   if( ( arg1=="pmpoint" && arg2=="point" ) ||
       ( arg1=="point" && arg2=="pmpoint")){
-     return nl->SymbolAtom("pmreal");
+     return ::nl->SymbolAtom("pmreal");
   }
   ErrorReporter::ReportError(arg1 + " x  " + arg2 + 
                              " is not a valid argument pair");
-  return nl->SymbolAtom(TYPE_ERROR); 
+  return ::nl->SymbolAtom(TYPE_ERROR); 
   
 }
 
 ListExpr NumberOfNodesMap(ListExpr args){
-   if(nl->ListLength(args)!=1){
+   if(::nl->ListLength(args)!=1){
      ErrorReporter::ReportError("invalid number of arguments");
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   ListExpr arg = nl->First(args);
-   if(nl->AtomType(arg)!=SymbolType){
+   ListExpr arg = ::nl->First(args);
+   if(::nl->AtomType(arg)!=SymbolType){
       ErrorReporter::ReportError("composite types not allowed here");
-      return nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   string type = nl->SymbolValue(arg);
+   string type = ::nl->SymbolValue(arg);
    if(type=="pmpoint"){
-     return nl->SymbolAtom("int");
+     return ::nl->SymbolAtom("int");
    }
    ErrorReporter::ReportError(type+" not allowed here");
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 
 ListExpr TranslateMap(ListExpr args){
-   if(nl->ListLength(args)!=2){
+   if(::nl->ListLength(args)!=2){
      ErrorReporter::ReportError("invalid number of arguments");
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
+   ListExpr arg1 = ::nl->First(args);
+   ListExpr arg2 = ::nl->Second(args);
 
-   if( (nl->AtomType(arg1)!=SymbolType) ){
-     string type = nl->ToString(arg1);
+   if( (::nl->AtomType(arg1)!=SymbolType) ){
+     string type = ::nl->ToString(arg1);
      ErrorReporter::ReportError("arg1: composite types not allowed here "
                                  +  type);
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(nl->AtomType(arg2)==NoAtom){
-     if(nl->ListLength(arg2)==1){
-         arg2 = nl->First(arg2);
+   if(::nl->AtomType(arg2)==NoAtom){
+     if(::nl->ListLength(arg2)==1){
+         arg2 = ::nl->First(arg2);
      }else{
          ErrorReporter::ReportError("invalid number of arguments");
-         return nl->SymbolAtom(TYPE_ERROR);
+         return ::nl->SymbolAtom(TYPE_ERROR);
      }
    }
-   if( (nl->AtomType(arg2)!=SymbolType) ){
-     string type = nl->ToString(arg2);
+   if( (::nl->AtomType(arg2)!=SymbolType) ){
+     string type = ::nl->ToString(arg2);
      ErrorReporter::ReportError("arg2: composite types not allowed here "
                                 +  type);
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   if(!nl->IsEqual(arg2,"duration")){
+   if(!::nl->IsEqual(arg2,"duration")){
      ErrorReporter::ReportError("second argument must be a duration");
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
    }
-   string sarg1 = nl->SymbolValue(arg1);
+   string sarg1 = ::nl->SymbolValue(arg1);
    if( (sarg1=="pmpoint") || 
        (sarg1=="pmint") ||
        (sarg1=="pmreal") ||
        (sarg1=="pmstring") ||
        (sarg1=="pmbool") ||
        (sarg1=="pmpoints") ){
-       return nl->SymbolAtom(sarg1); 
+       return ::nl->SymbolAtom(sarg1); 
    }
    ErrorReporter::ReportError("unexpected first argument " + sarg1);
-   return nl->SymbolAtom(TYPE_ERROR);
+   return ::nl->SymbolAtom(TYPE_ERROR);
    
 
 }
 
 ListExpr StartTypeMap(ListExpr args){
-  if(nl->ListLength(args)!=1){
+  if(::nl->ListLength(args)!=1){
      ErrorReporter::ReportError("invalid number of arguments");
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
   }
-  ListExpr arg = nl->First(args);
-  if(nl->AtomType(args)!=SymbolType){
+  ListExpr arg = ::nl->First(args);
+  if(::nl->AtomType(args)!=SymbolType){
      ErrorReporter::ReportError("composite type not allowed");
-     return nl->SymbolAtom(TYPE_ERROR);
+     return ::nl->SymbolAtom(TYPE_ERROR);
   }
-  string type = nl->SymbolValue(arg);
+  string type = ::nl->SymbolValue(arg);
   if(type=="pmpoint"){
-    return nl->SymbolAtom("instant");
+    return ::nl->SymbolAtom("instant");
   } 
  
   ErrorReporter::ReportError(type+" is not supported");
-  return nl->SymbolAtom(TYPE_ERROR);
+  return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
 ListExpr EndTypeMap(ListExpr args){
@@ -13148,29 +13311,29 @@ ListExpr EndTypeMap(ListExpr args){
 
 
 ListExpr PMPoint_PMRealTypeMap(ListExpr args){
-   if(nl->ListLength(args)!=1){
+   if(::nl->ListLength(args)!=1){
       ErrorReporter::ReportError("invalid number of arguments");
-      return nl->TypeError();
+      return ::nl->TypeError();
    }
-   if(!nl->IsEqual(nl->First(args),"pmpoint")){
+   if(!::nl->IsEqual(::nl->First(args),"pmpoint")){
       ErrorReporter::ReportError("pmpoint required");
-      return nl->TypeError();
+      return ::nl->TypeError();
    }
-   return nl->SymbolAtom("pmreal"); 
+   return ::nl->SymbolAtom("pmreal"); 
 }
 
 
 ListExpr MinMaxTypeMap(ListExpr args){
    string err = "pmreal expected";
-   if(nl->ListLength(args)!=1){
+   if(::nl->ListLength(args)!=1){
      ErrorReporter::ReportError(err);
-     return nl->TypeError();
+     return ::nl->TypeError();
    }
-   if(nl->IsEqual(nl->First(args),"pmreal")){
-     return nl->SymbolAtom("real");
+   if(::nl->IsEqual(::nl->First(args),"pmreal")){
+     return ::nl->SymbolAtom("real");
    } else {
      ErrorReporter::ReportError(err);
-     return nl->TypeError();
+     return ::nl->TypeError();
    }
 }
 
@@ -13181,648 +13344,332 @@ The value mappings compute the result of an operator. For each type
 combination of the operators a single value mapping must be provided.
 
 */
-int EqualsFun_PBBoxPBBox_Bool(Word* args, Word& result, int message,
-                         Word& local, Supplier s){
-    __TRACE__
-  result = qp->ResultStorage(s);
-   PBBox* B1 = (PBBox*) args[0].addr;
-   PBBox* B2 = (PBBox*) args[1].addr;
-   ((CcBool*) result.addr)->Set(true,B1->CompareTo(B2)==0);
-   return 0;
+template<class A1, class A2>
+class IntersectsF{
+public: 
+  void operator()(A1* a1, A2* a2, CcBool* res){
+    if(!a1->IsDefined() || !a2->IsDefined()){
+      res->SetDefined(false);
+    } else {
+      res->Set(true,a1->Intersects(a2));
+    }
+  }
+};
+
+template<class A1>
+class EqualF{
+public:
+  void operator()(A1* a1, A1* a2, CcBool* res){
+     res->Set(true,a1->CompareTo(a2)==0);
+  }
+};
+
+template<class A>
+class UnionF{
+public:
+  void operator()(A* a1, A* a2, A* res){
+     a1->Union(a2,*res);
+  }
+};
+
+template<class ArgT, class ResT>
+class AtF_Sec{
+  public:
+  void operator()(ArgT* a1, DateTime* i, ResT* res){
+    a1->At(i,*res);
+  }
+};
+
+template<class ArgT, class ResT, class CT>
+class AtF_C{
+  public:
+  void operator()(ArgT* a1, DateTime* i, ResT* res){
+    CT r;
+    a1->At(i,r);
+    res->Set(true, r);
+  }
+};
+
+ 
+
+template<class A1, class A2, class ResT>
+class IntersectionF{
+  public:
+  void operator()(A1* a1, A2* a2, ResT* res){
+     a1->Intersection(a2,*res);
+  }
+};
+
+
+template<class T1, class T2>
+class ContainsF{
+  public:
+  void operator()(T1* a1, T2* a2, CcBool* res){
+     res->Set(true,a1->Contains(a2));
+  }
+};
+
+template<class A, class R>
+class InitialF_Sec{
+  public:
+  void operator()(A* a,R* res){
+     a->Initial(*res);
+  }
+};
+
+template<class A, class R, class CT>
+class InitialF_C{
+  public:
+  void operator()(A* a,R* res){
+     CT r;
+     a->Initial(r);
+     res->Set(true,r);
+  }
+};
+
+template<class A, class R>
+class FinalF_Sec{
+  public:
+  void operator()(A* a,R* res){
+     a->Final(*res);
+  }
+};
+
+template<class A, class R, class CT>
+class FinalF_C{
+  public:
+  void operator()(A* a,R* res){
+     CT r;
+     a->Final(r);
+     res->Set(true,r);
+  }
+};
+
+
+template<class A1, class A2>
+class ToprelF{
+  public:
+  void operator()(A1* a1, A2* a2, PMInt9M* r){
+     a1->Toprel(a2,*r);
+  }
+};
+
+template<class A1, class A2>
+class ToprelF_Symm{
+  public:
+  void operator()(A2* a1, A1* a2, PMInt9M* r){
+     a2->Toprel(a1,*r);
+     r->Transpose();
+  }
+};
+
+
+template<class A1, class A2>
+class DistanceF{
+  public:
+  void operator()(A1* a1, A2* a2, PMReal* res){
+    a1->DistanceTo(a2->GetX(), a2->GetY(),*res);
+  }
+  void operator()(A2* a1, A1* a2, PMReal* res){
+    a2->DistanceTo(a1->GetX(), a1->GetY(),*res);
+  }
+};
+
+
+template<class A>
+class TrajectoryF{
+  public:
+  void operator()(A* arg, Line* res){
+    arg->Trajectory(*res);
+  }
+};
+
+
+template<class A, class R>
+class LengthF{
+  public:
+  void operator()(A* arg, R* res){
+    arg->Length(*res);
+  }
+};
+
+
+template<class A, class R>
+class StartF{
+  public:
+  void operator()(A* a, R* res){
+      a->GetStart(*res);
+  }
+};
+
+template<class A, class R>
+class EndF{
+  public:
+  void operator()(A* a, R* res){
+      a->GetEnd(*res);
+  }
+};
+
+template<class A, class R>
+class IntervalF{
+  public:
+  void operator()(A* a, R* res){
+      a->GetInterval(*res);
+  }
+};
+
+
+template<class A, class R>
+class ExpandF{
+  public:
+  void operator()(A* a, R* res){
+      a->Expand(*res);
+  }
+};
+
+template<class A, class R>
+class CreateF{
+  public:
+  void operator()(A* a, R* res){
+      res->ReadFrom(*a);
+  }
+};
+
+
+template<class A, class R>
+class NumberOfNodesF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfNodes()));
+  }
+};
+
+template<class A, class R>
+class NumberOfPeriodicNodesF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfPeriodicNodes()));
+  }
+};
+
+template<class A, class R>
+class NumberOfCompositeNodesF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfCompositeNodes()));
+  }
+};
+
+template<class A, class R>
+class NumberOfUnitsF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfUnits()));
+  }
+};
+
+template<class A, class R>
+class NumberOfFlatUnitsF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfFlatUnits()));
+  }
+};
+
+template<class A1,class A2, class R>
+class TranslateF{
+  public:
+  void operator()(A1* a1,A2* a2, R* res){
+      a1->Translate(a2,*res);  
+    }
+  };
+
+
+  /*
+  ~Generic Value Mapping Function~
+
+  This function realized value mappings in the form
+    A1 [x] A2 [->] R
+  where Fun is the function applied to a1 and a2.
+
+  */
+  template<class A1, class A2, class R, class Fun>
+  int GenVM2(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+    result = ::qp->ResultStorage(s);
+    A1* a1 = static_cast<A1*>(args[0].addr);
+    A2* a2 = static_cast<A2*>(args[1].addr);
+    R* res = static_cast<R*>(result.addr); 
+    if(!a1->IsDefined() || !a2->IsDefined()){
+      res->SetDefined(false);
+    }  else {
+      Fun fun;
+      fun(a1,a2,res);
+  }
+  return 0;
 }
 
-int EqualsFun_PIntervalPInterval_Bool(Word* args, Word& result, 
-                int message, Word& local, Supplier s){
-    __TRACE__
-  result = qp->ResultStorage(s);
-   PInterval* I1 = (PInterval*) args[0].addr;
-   PInterval* I2 = (PInterval*) args[1].addr;
-   ((CcBool*) result.addr)->Set(true,I1->CompareTo(I2)==0);
-   return 0;
+
+/*
+~Generic Value Mapping~
+
+This value mapping realized functions with signatur
+  A [->] R
+
+*/
+template<class A, class R, class Fun>
+int GenVM1(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+  result = ::qp->ResultStorage(s);
+  A* a = static_cast<A*>(args[0].addr);
+  R* res = static_cast<R*>(result.addr); 
+  if(!a->IsDefined()){
+    res->SetDefined(false);
+  }  else {
+    Fun fun;
+    fun(a,res);
+  }
+  return 0;
 }
 
-int ContainsFun_PBBoxPBBox_Bool(Word* args, Word& result, int message,
-                           Word& local, Supplier s){
-    __TRACE__
-  result = qp->ResultStorage(s);
-   PBBox* B1 = (PBBox*) args[0].addr;
-   PBBox* B2 = (PBBox*) args[1].addr;
-   ((CcBool*) result.addr)->Set(true,B1->Contains(B2));
-   return 0;
-}
+/*
+Value Mapping for the ~breakpoints~ function
 
-int IntersectsFun_PBBoxPBBox_Bool(Word* args, Word& result, int message,
-                             Word& local, Supplier s){
-    __TRACE__
-  result = qp->ResultStorage(s);
-   PBBox* B1 = (PBBox*) args[0].addr;
-   PBBox* B2 = (PBBox*) args[1].addr;
-   bool res = B1->Intersects(B2);
-   ((CcBool*) result.addr)->Set(true,res);
-   return 0;
-}
+This function must have its own value mappig because we evaluate the number
+of sons within the operator tree. 
 
-int UnionFun_PBBoxPBBox(Word* args, Word& result, int message,
-                        Word& local, Supplier s){
-    __TRACE__
-  result = qp->ResultStorage(s);
-   PBBox* B1 = (PBBox*) args[0].addr;
-   PBBox* B2 = (PBBox*) args[1].addr;
-   PBBox* TMP = B1->Clone();
-   TMP->Union(B2);
-   ((PBBox*) result.addr)->Equalize(TMP);
-   delete TMP;
-   TMP = NULL;
-   return 0;
-}
-
-int Intersection_PBBox_PBBox(Word* args, Word& result,
-                           int message, Word& local, Supplier s){
-    __TRACE__
-  result = qp->ResultStorage(s);
-   PBBox* B1 = (PBBox*) args[0].addr;
-   PBBox* B2 = (PBBox*) args[1].addr;
-   PBBox* TMP = B1->Clone();
-   TMP->Intersection(B2);
-   ((PBBox*) result.addr)->Equalize(TMP);
-   delete TMP;
-   TMP = NULL;
-   return 0;
-}
-
-int AtFun_PI(Word* args, Word& result,
+*/
+template<class A>
+int BreakpointsFun(Word* args, Word& result,
                    int message, Word& local, Supplier s){
     __TRACE__
-   result = qp->ResultStorage(s);
-   PMPoint* P = (PMPoint*) args[0].addr;
-   DateTime* I = (DateTime*) args[1].addr;
-   Point* Res = P->At(I);
-   ((Point*) result.addr)->CopyFrom(Res);
-   delete Res;
-   Res = NULL;
-   return 0;
-}
-
-int AtFun_BI(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-   result = qp->ResultStorage(s);
-    PMBool* B = (PMBool*) args[0].addr;
-    DateTime* I = (DateTime*) args[1].addr;
-    bool* Res = B->At(I);
-    if(!Res) 
-       ((CcBool*) result.addr)->Set(false,false);
-     else
-       ((CcBool*) result.addr)->Set(true,*Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int AtFun_PMInt9MInstant(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-   result = qp->ResultStorage(s);
-   PMInt9M* B = (PMInt9M*) args[0].addr;
-   DateTime* I = (DateTime*) args[1].addr;
-   Int9M* Res  = B->At(I);
-   if(!Res) 
-       ((Int9M*) result.addr)->SetDefined(false);
-     else
-       ((Int9M*) result.addr)->Equalize(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int AtFun_PMPointsInstant(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-   result = qp->ResultStorage(s);
-   PMPoints* B = (PMPoints*) args[0].addr;
-   DateTime* I = (DateTime*) args[1].addr;
-   Points* Res  = B->At(I);
-   assert(false);
-   if(!Res) 
-       ((Points*) result.addr)->SetDefined(false);
-     else
-       ((Points*) result.addr)->CopyFrom(Res);
-  
-   delete Res;
-   Res = NULL;
-   return 0;
-}
-
-int AtFun_PMRealInstant(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-   result = qp->ResultStorage(s);
-   PMReal* B = (PMReal*) args[0].addr;
-   DateTime* I = (DateTime*) args[1].addr;
-   double* res  = B->At(I);
-   if(!res)
-       ((CcReal*) result.addr)->Set(false,0);
-   else
-       ((CcReal*) result.addr)->Set(true,*res);
-   delete res;
-   res = NULL;
-   return 0;
-}
-
-
-int InitialFun_P(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    result = qp->ResultStorage(s);
-    PMPoint* P = (PMPoint*) args[0].addr;
-    Point* Res = P->Initial();
-    ((Point*) result.addr)->CopyFrom(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int InitialFun_B(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-   result = qp->ResultStorage(s);
-    PMBool* B = (PMBool*) args[0].addr;
-    bool* Res = B->Initial();
-    if(!Res)
-       ((CcBool*) result.addr)->Set(false,false);
-    else
-       ((CcBool*) result.addr)->Set(true,*Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int InitialFun_PMInt9M(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    result = qp->ResultStorage(s);
-    PMInt9M* B = (PMInt9M*) args[0].addr;
-    Int9M* Res = B->Initial();
-    if(!Res)
-       ((Int9M*) result.addr)->SetDefined(false);
-    else
-       ((Int9M*) result.addr)->Equalize(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int InitialFun_PMPoints(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    result = qp->ResultStorage(s);
-    PMPoints* B = (PMPoints*) args[0].addr;
-    Points* Res = B->Initial();
-    if(!Res)
-       ((Points*) result.addr)->SetDefined(false);
-    else
-       ((Points*) result.addr)->CopyFrom(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int InitialFun_PMReal(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    result = qp->ResultStorage(s);
-    PMReal* B = (PMReal*) args[0].addr;
-    double* Res = B->Initial();
-    if(!Res)
-       ((CcReal*) result.addr)->Set(false,0.0);
-    else
-       ((CcReal*) result.addr)->Set(true,*Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int FinalFun_P(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    result = qp->ResultStorage(s);
-    PMPoint* P = (PMPoint*) args[0].addr;
-    Point* Res = P->Final();
-    ((Point*) result.addr)->CopyFrom(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int FinalFun_PMInt9M(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    result = qp->ResultStorage(s);
-    PMInt9M* P = (PMInt9M*) args[0].addr;
-    Int9M* Res = P->Final();
-    if(!Res)
-       ((Int9M*) result.addr)->SetDefined(false);
-    else
-       ((Int9M*) result.addr)->Equalize(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-int FinalFun_B(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-   result = qp->ResultStorage(s);
-    PMBool* B = (PMBool*) args[0].addr;
-    bool* Res = B->Final();
-    if(!Res)
-        ((CcBool*) result.addr)->Set(false,false);
-    else
-        ((CcBool*) result.addr)->Set(true,*Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int FinalFun_PMPoints(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    result = qp->ResultStorage(s);
-    PMPoints* B = (PMPoints*) args[0].addr;
-    Points* Res = B->Final();
-    if(!Res)
-        ((Points*) result.addr)->SetDefined(false);
-    else
-        ((Points*) result.addr)->CopyFrom(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int FinalFun_PMReal(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    result = qp->ResultStorage(s);
-    PMReal* B = (PMReal*) args[0].addr;
-    double* Res = B->Final();
-    if(!Res)
-        ((CcReal*) result.addr)->Set(false,0.0);
-    else
-        ((CcReal*) result.addr)->Set(true,*Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int TrajectoryFun(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-   PMPoint* P = (PMPoint*) args[0].addr;
-   Line* L = P->Trajectory();
-   result.addr = L;
-   return 0;
-}
-
-int BreakpointsFun_PMPoint(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    int sons = qp->GetNoSons(s);
-    PMPoint* P = (PMPoint*) args[0].addr;
-    Points* Res = 0;
+    result = ::qp->ResultStorage(s);
+    Points* res = static_cast<Points*>(result.addr);
+    int sons = ::qp->GetNoSons(s);
+    A* P = static_cast<A*>(args[0].addr);
     if(sons==1){
-        Res = P->Breakpoints();
+       P->Breakpoints(*res);
     } else{
-      DateTime* DT = (DateTime*) args[1].addr;
-      CcBool* Inclusive = (CcBool*) args[2].addr;
-      if(!Inclusive->IsDefined()){
-         Res->SetDefined(false);
+      DateTime* DT = static_cast<DateTime*>(args[1].addr);
+      CcBool* Inclusive = static_cast<CcBool*>(args[2].addr);
+      if(!Inclusive->IsDefined() || !DT->IsDefined()){
+         res->SetDefined(false);
       } else{
-          Res = P->Breakpoints(DT,Inclusive->GetBoolval());
+         P->Breakpoints(DT,Inclusive->GetBoolval(),*res);
       }
     }
-    //((Points* )result.addr)->CopyFrom(Res);
-    result.addr = Res;
-    //cout <<  "the copy\n" << (*((Points*)result.addr)) << endl;
-    //delete Res;
-    return 0;
-}
-
-int BreakpointsFun_PMPoints(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-    __TRACE__
-    int sons = qp->GetNoSons(s);
-    PMPoints* P = (PMPoints*) args[0].addr;
-    Points* Res = 0;
-    if(sons==1){
-      Res = P->Breakpoints();
-    } else{
-       DateTime* DT = (DateTime*) args[1].addr;
-       CcBool* Inclusive = (CcBool*) args[2].addr;
-       if(!Inclusive->IsDefined()){
-          Res->SetDefined(false);
-       }else{
-          Res = P->Breakpoints(DT,Inclusive->GetBoolval());
-       }
-    }
-    ((Points*)result.addr)->CopyFrom(Res);
-    delete Res;
     return 0;
 }
 
 
-int IntersectsFun_PIntervalPInterval_Bool(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-
-    __TRACE__
-   result = qp->ResultStorage(s);
-    PInterval* I1 = (PInterval*) args[0].addr;
-    PInterval* I2 = (PInterval*) args[1].addr;
-    bool res = I1->Intersects(I2);
-    ((CcBool*) result.addr)->Set(true,res);
-    return 0;
-}
-
-int ContainsFun_PIntervalInstant_Bool(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-    result = qp->ResultStorage(s);
-    PInterval* I = (PInterval*) args[0].addr;
-    DateTime* T = (DateTime*) args[1].addr;
-    bool res = I->Contains(T);
-    ((CcBool*) result.addr)->Set(true,res);
-    return 0;
-}
-
-int ContainsFun_PIntervalPInterval_Bool(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-    result = qp->ResultStorage(s);
-    PInterval* I1 = (PInterval*) args[0].addr;
-    PInterval* I2 = (PInterval*) args[1].addr;
-    bool res = I1->Contains(I2);
-    ((CcBool*) result.addr)->Set(true,res);
-    return 0;
-}
-
-int LengthFun_PInterval_Duration(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-    result = qp->ResultStorage(s);
-    PInterval* I = (PInterval*) args[0].addr;
-    DateTime* Res = I->GetLength();
-    ((DateTime*) result.addr)->Equalize(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int StartFun_PInterval_Instant(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-    result = qp->ResultStorage(s);
-    PInterval* I = (PInterval*) args[0].addr;
-    DateTime* Res = I->GetStart();
-    ((DateTime*) result.addr)->Equalize(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
-
-int EndFun_PInterval_Instant(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-    result = qp->ResultStorage(s);
-    PInterval* I = (PInterval*) args[0].addr;
-    DateTime* Res = I->GetEnd();
-    ((DateTime*) result.addr)->Equalize(Res);
-    delete Res;
-    Res = NULL;
-    return 0;
-}
 
 
-int StartFun_PMPoint_Instant(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-    result = qp->ResultStorage(s);
-    PMPoint* P = (PMPoint*) args[0].addr;
-    DateTime S = P->GetStart();
-    ((DateTime*) result.addr)->Equalize(&S);
-    return 0;
-}
-
-int EndFun_PMPoint_Instant(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-    result = qp->ResultStorage(s);
-    PMPoint* P = (PMPoint*) args[0].addr;
-    DateTime End = P->GetEnd();
-    ((DateTime*) result.addr)->Equalize(&End);
-    return 0;
-}
-
-int IntervalFun_PMPoint_Instant(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-    result = qp->ResultStorage(s);
-    PMPoint* P = (PMPoint*) args[0].addr;
-    PInterval I = P->GetInterval();
-    ((PInterval*) result.addr)->Equalize(&I);
-    return 0;
-}
-
-int ExpandFun_PMPoint_MPoint(Word* args, Word& result,
-                   int message, Word& local, Supplier s){
-   __TRACE__
-
-   result = qp->ResultStorage(s);
-   PMPoint* P = (PMPoint*) args[0].addr;
-   MPoint Res = P->Expand();
-   ((MPoint*) result.addr)->CopyFrom(&Res);
-   return 0;
-}                   
-
-int CreateFun_P_PM(Word* args, Word& result, int message, 
-                  Word&local, Supplier s){
-  result = qp->ResultStorage(s);
-  MPoint* MP = (MPoint*) args[0].addr;
-  ((PMPoint*)result.addr)->ReadFromMPoint(*MP);
-  return 0; 
-}
-
-
-int Toprel_PMPoint_Point(Word* args, Word& result, int message, 
-                  Word&local, Supplier s){
-  __TRACE__
-  result = qp->ResultStorage(s);
-  PMPoint* MP = (PMPoint*) args[0].addr;
-  Point*    P = (Point*) args[1].addr;
-  PMInt9M* res = MP->Toprel(*P);
-  ((PMInt9M*)result.addr)->Equalize(res);
-  delete res; 
-  res = NULL;
-  return 0; 
-}
-
-int Toprel_Point_PMPoint(Word* args, Word& result, int message, 
-                  Word&local, Supplier s){
-  result = qp->ResultStorage(s);
-  PMPoint* MP = (PMPoint*) args[1].addr;
-  Point*    P = (Point*) args[0].addr;
-  PMInt9M* res = MP->Toprel(*P);
-  res->Transpose(); 
-  ((PMInt9M*)result.addr)->Equalize(res);
-  delete res;
-  res = NULL; 
-  return 0; 
-}
-
-int Toprel_PMPoint_Points(Word* args, Word& result, int message, 
-                  Word&local, Supplier s){
-  __TRACE__
-  result = qp->ResultStorage(s);
-  PMPoint* MP = (PMPoint*) args[0].addr;
-  Points*    P = (Points*) args[1].addr;
-  PMInt9M* res = MP->Toprel(*P);
-  ((PMInt9M*)result.addr)->Equalize(res);
-  delete res;
-  res = NULL; 
-  return 0; 
-}
-
-int Toprel_Points_PMPoint(Word* args, Word& result, int message, 
-                  Word&local, Supplier s){
-  result = qp->ResultStorage(s);
-  PMPoint* MP = (PMPoint*) args[1].addr;
-  Points*    P = (Points*) args[0].addr;
-  PMInt9M* res = MP->Toprel(*P);
-  res->Transpose(); 
-  ((PMInt9M*)result.addr)->Equalize(res);
-  delete res; 
-  res = NULL;
-  return 0; 
-}
-
-
-int Intersection_PMBool_PInterval(Word* args, Word& result, int message, 
-                  Word&local, Supplier s){
-  result = qp->ResultStorage(s);
-  PMBool*   MB = (PMBool*) args[0].addr;
-  PInterval*  I = (PInterval*) args[1].addr;
-  DateTime* T1 = I->GetStart();
-  DateTime* T2 = I->GetEnd();
-  PMBool* res = (PMBool*)result.addr;
-  MB->Intersection((*T1),I->IsLeftClosed(),
-                   (*T2),I->IsRightClosed(),
-                   res
-                   );
-  delete T1;
-  delete T2;
-  return 0; 
-}
-
-int Distance_PMPoint_Point(Word* args, Word& result, int message, 
-                  Word&local, Supplier s){
-
-  result = qp->ResultStorage(s);
-  PMPoint* pmpoint = (PMPoint*) args[0].addr;
-  Point* point = (Point*) args[1].addr;
-  PMReal* res = (PMReal*) result.addr;
-  if(!pmpoint->IsDefined() || !point->IsDefined())
-     res->SetDefined(false);
-  else
-     pmpoint->DistanceTo(point->GetX(),point->GetY(),(*res));
-  return 0;
-}
-int Distance_Point_PMPoint(Word* args, Word& result, int message, 
-                  Word&local, Supplier s){
-
-  result = qp->ResultStorage(s);
-  PMPoint* pmpoint = (PMPoint*) args[1].addr;
-  Point* point = (Point*) args[0].addr;
-  PMReal* res = (PMReal*) result.addr;
-  if(!pmpoint->IsDefined() || !point->IsDefined())
-     res->SetDefined(false);
-  else
-     pmpoint->DistanceTo(point->GetX(),point->GetY(),(*res));
-  return 0;
-}
-
-template <class T>
-int NumberOfNodes_T(Word* args, Word& result, int message, 
-         Word&local, Supplier s){
-   result = qp->ResultStorage(s);
-   T* arg = (T*) args[0].addr;
-   CcInt* res = (CcInt*)result.addr;
-   res->Set(true,(int) arg->NumberOfNodes());
-   return 0;
-}
-
-template <class T>
-int NumberOfPeriodicNodes_T(Word* args, Word& result, int message, 
-         Word&local, Supplier s){
-   result = qp->ResultStorage(s);
-   T* arg = (T*) args[0].addr;
-   CcInt* res = (CcInt*)result.addr;
-   res->Set(true,(int) arg->NumberOfPeriodicNodes());
-   return 0;
-}
-
-template <class T>
-int NumberOfCompositeNodes_T(Word* args, Word& result, int message, 
-         Word&local, Supplier s){
-   result = qp->ResultStorage(s);
-   T* arg = (T*) args[0].addr;
-   CcInt* res = (CcInt*)result.addr;
-   res->Set(true,(int) arg->NumberOfCompositeNodes());
-   return 0;
-}
-
-template <class T>
-int NumberOfUnits_T(Word* args, Word& result, int message, 
-         Word&local, Supplier s){
-   result = qp->ResultStorage(s);
-   T* arg = (T*) args[0].addr;
-   CcInt* res = (CcInt*)result.addr;
-   res->Set(true,(int) arg->NumberOfUnits());
-   return 0;
-}
-
-template <class T>
-int NumberOfFlatUnits_T(Word* args, Word& result, int message, 
-         Word&local, Supplier s){
-   result = qp->ResultStorage(s);
-   T* arg = (T*) args[0].addr;
-   CcInt* res = (CcInt*)result.addr;
-   res->Set(true,(int) arg->NumberOfFlatUnits());
-   return 0;
-}
-
-template<class T>
-int Translate_T_Dur(Word* args, Word& result, int message,
-                    Word& local, Supplier s){
-  result = qp->ResultStorage(s);
-  T* arg1 = (T*) args[0].addr;
-  DateTime* arg2 = (DateTime*) args[1].addr;
-  T* res = (T*) result.addr;
-  res->Equalize(arg1);
-  res->Translate(*arg2);
-  return 0;
-}
 
 template<bool isSpeed>
 int SpeedAndDirectionFun(Word* args, Word& result, int message,
               Word& local, Supplier s){
-
   PMPoint* arg = (PMPoint*) args[0].addr;
-  result = qp->ResultStorage(s);
+  result = ::qp->ResultStorage(s);
   PMReal* res = (PMReal*) result.addr;
   arg->SpeedAndDirection(isSpeed,*res); 
   return 0;
@@ -13833,7 +13680,7 @@ int MinFun(Word* args, Word& result, int message,
               Word& local, Supplier s){
 
   PMReal* arg = static_cast<PMReal*>(args[0].addr);
-  result = qp->ResultStorage(s);
+  result = ::qp->ResultStorage(s);
   CcReal* res = static_cast<CcReal*>(result.addr);
   arg->min(*res); 
   return 0;
@@ -13843,7 +13690,7 @@ int MaxFun(Word* args, Word& result, int message,
               Word& local, Supplier s){
 
   PMReal* arg = static_cast<PMReal*>(args[0].addr);
-  result = qp->ResultStorage(s);
+  result = ::qp->ResultStorage(s);
   CcReal* res = static_cast<CcReal*>(result.addr);
   arg->max(*res); 
   return 0;
@@ -13946,6 +13793,13 @@ const string LengthSpec =
    " \" length( _ ) \" "
    " \"computes the duration of a pinterval\" "
    " \" query length(I)\" ))";
+
+const string LengthSpec2 =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"pmpoint -> real\""
+   " \" length( _ ) \" "
+   " \"computes the length of the route of a pmpoint\" "
+   " \" query length(p)\" ))";
 
 const string ExpandSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
@@ -14072,72 +13926,95 @@ the correct map is choosen.
 
 */
 ValueMapping EqualsValueMap[] = {
-        EqualsFun_PBBoxPBBox_Bool,EqualsFun_PIntervalPInterval_Bool };
-
-ValueMapping AtValueMap[] =
-   {AtFun_PI,AtFun_BI,AtFun_PMInt9MInstant,AtFun_PMPointsInstant,
-    AtFun_PMRealInstant};
-
-ValueMapping ContainsValueMap[] = {
-    ContainsFun_PBBoxPBBox_Bool, ContainsFun_PIntervalPInterval_Bool,
-    ContainsFun_PIntervalInstant_Bool
+  GenVM2<PBBox, PBBox, CcBool, EqualF<PBBox> >,
+  GenVM2<PInterval, PInterval, CcBool, EqualF<PInterval> >
 };
 
 ValueMapping IntersectsValueMap[] = {
-    IntersectsFun_PBBoxPBBox_Bool, IntersectsFun_PIntervalPInterval_Bool
+  GenVM2<PBBox, PBBox,CcBool, IntersectsF<PBBox, PBBox> >,
+  GenVM2<PInterval, PInterval, CcBool, IntersectsF<PInterval, PInterval> >
 };
 
+ValueMapping AtValueMap[] = { 
+  GenVM2<PMPoint, DateTime, Point, AtF_Sec<PMPoint, Point> >,
+  GenVM2<PMBool, DateTime, CcBool, AtF_C<PMBool, CcBool, bool> >,
+  GenVM2<PMInt9M, DateTime, Int9M, AtF_Sec<PMInt9M, Int9M> >,
+  GenVM2<PMPoints, DateTime, Points, AtF_Sec<PMPoints, Points> >,
+  GenVM2<PMReal, DateTime, CcReal, AtF_C<PMReal, CcReal, double> >
+};
+
+
+ValueMapping IntersectionValueMap[] = {
+  GenVM2<PBBox, PBBox, PBBox, IntersectionF<PBBox, PBBox, PBBox> >
+};
+
+
+ValueMapping ContainsValueMap[] = {
+  GenVM2<PBBox, PBBox, CcBool, ContainsF<PBBox, PBBox> >,
+  GenVM2<PInterval, PInterval, CcBool, ContainsF<PInterval, PInterval> >,
+  GenVM2<PInterval, DateTime, CcBool, ContainsF<PInterval, DateTime> >
+};
+
+
 ValueMapping InitialValueMap[] = {
-    InitialFun_B,InitialFun_P,InitialFun_PMInt9M,InitialFun_PMPoints,
-    InitialFun_PMReal
+  GenVM1<PMBool, CcBool, InitialF_C<PMBool, CcBool, bool> >,
+  GenVM1<PMPoint, Point, InitialF_Sec<PMPoint, Point> >,
+  GenVM1<PMInt9M, Int9M, InitialF_Sec<PMInt9M, Int9M> >,
+  GenVM1<PMPoints, Points, InitialF_Sec<PMPoints, Points> >,
+  GenVM1<PMReal, CcReal, InitialF_C<PMReal, CcReal, double> >
 };
 
 ValueMapping FinalValueMap[] = {
-    FinalFun_B,FinalFun_P,InitialFun_PMInt9M,FinalFun_PMPoints,
-    FinalFun_PMReal
+  GenVM1<PMBool, CcBool, FinalF_C<PMBool, CcBool, bool> >,
+  GenVM1<PMPoint, Point, FinalF_Sec<PMPoint, Point> >,
+  GenVM1<PMInt9M, Int9M, FinalF_Sec<PMInt9M, Int9M> >,
+  GenVM1<PMPoints, Points, FinalF_Sec<PMPoints, Points> >,
+  GenVM1<PMReal, CcReal, FinalF_C<PMReal, CcReal, double> >
 };
 
 ValueMapping BreakpointsValueMap[] = {
-     BreakpointsFun_PMPoint,BreakpointsFun_PMPoints
+  BreakpointsFun<PMPoint>,
+  BreakpointsFun<PMPoints>
 };
 
 ValueMapping ToprelValueMap[] = {
-     Toprel_Point_PMPoint, Toprel_PMPoint_Point,
-     Toprel_Points_PMPoint,Toprel_PMPoint_Points
+  GenVM2<Point, PMPoint, PMInt9M, ToprelF_Symm<PMPoint, Point> >,
+  GenVM2<PMPoint, Point, PMInt9M, ToprelF<PMPoint, Point> >,
+  GenVM2<Points, PMPoint, PMInt9M, ToprelF_Symm<PMPoint, Points> >,
+  GenVM2<PMPoint, Points, PMInt9M, ToprelF<PMPoint, Points> >
 };
 
-ValueMapping IntersectionValueMap[] = {
-     Intersection_PBBox_PBBox, Intersection_PMBool_PInterval
-};
 
 ValueMapping DistanceValueMap[] = {
-  Distance_PMPoint_Point, Distance_Point_PMPoint
+ GenVM2<PMPoint,Point, PMReal, DistanceF<PMPoint, Point> >,
+ GenVM2<Point, PMPoint, PMReal, DistanceF<PMPoint, Point> >
 }; 
 
 ValueMapping NumberOfNodesValueMap[] ={
-   NumberOfNodes_T<PMPoint>
+  GenVM1<PMPoint,CcInt, NumberOfNodesF<PMPoint, CcInt> >
 };
 
 ValueMapping NumberOfCompositeNodesValueMap[] ={
-   NumberOfCompositeNodes_T<PMPoint>
+  GenVM1<PMPoint,CcInt, NumberOfCompositeNodesF<PMPoint, CcInt> >
 };
 
 ValueMapping NumberOfPeriodicNodesValueMap[] ={
-   NumberOfPeriodicNodes_T<PMPoint>
+  GenVM1<PMPoint,CcInt, NumberOfPeriodicNodesF<PMPoint, CcInt> >
 };
 
 ValueMapping NumberOfUnitsValueMap[] ={
-   NumberOfUnits_T<PMPoint>
+  GenVM1<PMPoint,CcInt, NumberOfUnitsF<PMPoint, CcInt> >
 };
 
 ValueMapping NumberOfFlatUnitsValueMap[] ={
-   NumberOfFlatUnits_T<PMPoint>
+  GenVM1<PMPoint,CcInt, NumberOfFlatUnitsF<PMPoint, CcInt> >
 };
 
 ValueMapping TranslateValueMap[] ={
-   Translate_T_Dur<PMPoint>, Translate_T_Dur<PMBool>,
-   Translate_T_Dur<PMInt9M>,
-   Translate_T_Dur<PMPoints>
+  GenVM2<PMPoint,DateTime,PMPoint, TranslateF<PMPoint,DateTime,PMPoint> >,
+  GenVM2<PMBool,DateTime,PMBool, TranslateF<PMBool,DateTime,PMBool> >,
+  GenVM2<PMInt9M,DateTime,PMInt9M, TranslateF<PMInt9M,DateTime,PMInt9M> >,
+  GenVM2<PMPoints,DateTime,PMPoints, TranslateF<PMPoints,DateTime,PMPoints> >
 };
 
 /*
@@ -14151,7 +14028,7 @@ array.
 
 */
 static int TranslateSelect(ListExpr args){
-   string arg = nl->SymbolValue(nl->First(args));
+   string arg = ::nl->SymbolValue(::nl->First(args));
    if(arg=="pmpoint") return 0;
    if(arg=="pmbool") return 1;
    if(arg=="pmint9m") return 2;
@@ -14162,114 +14039,114 @@ static int TranslateSelect(ListExpr args){
 
 static int EqualsSelect(ListExpr args){
     __TRACE__
- if(nl->IsEqual(nl->First(args),"pbbox"))
+ if(::nl->IsEqual(::nl->First(args),"pbbox"))
      return 0;
-  if(nl->IsEqual(nl->First(args),"pinterval"))
+  if(::nl->IsEqual(::nl->First(args),"pinterval"))
      return 1;
   return -1;
 }
 
 static int AtSelect(ListExpr args){
     __TRACE__
-  if(nl->IsEqual(nl->First(args),"pmpoint"))
+  if(::nl->IsEqual(::nl->First(args),"pmpoint"))
      return 0;
-  if(nl->IsEqual(nl->First(args),"pmbool"))
+  if(::nl->IsEqual(::nl->First(args),"pmbool"))
      return 1;
-  if(nl->IsEqual(nl->First(args),"pmint9m"))
+  if(::nl->IsEqual(::nl->First(args),"pmint9m"))
      return 2;
-  if(nl->IsEqual(nl->First(args),"pmpoints"))
+  if(::nl->IsEqual(::nl->First(args),"pmpoints"))
      return 3;
-  if(nl->IsEqual(nl->First(args),"pmreal"))
+  if(::nl->IsEqual(::nl->First(args),"pmreal"))
      return 4;
   return -1;
 }
 
 static int FinalSelect(ListExpr args){
     __TRACE__
- if(nl->IsEqual(nl->First(args),"pmbool"))
+ if(::nl->IsEqual(::nl->First(args),"pmbool"))
      return 0;
-  if(nl->IsEqual(nl->First(args),"pmpoint"))
+  if(::nl->IsEqual(::nl->First(args),"pmpoint"))
      return 1;
-  if(nl->IsEqual(nl->First(args),"pmint9m"))
+  if(::nl->IsEqual(::nl->First(args),"pmint9m"))
      return 2;
-  if(nl->IsEqual(nl->First(args),"pmpoints"))
+  if(::nl->IsEqual(::nl->First(args),"pmpoints"))
      return 3;
-  if(nl->IsEqual(nl->First(args),"pmreal"))
+  if(::nl->IsEqual(::nl->First(args),"pmreal"))
      return 4;
   return -1;
 }
 
 static int InitialSelect(ListExpr args){
     __TRACE__
- if(nl->IsEqual(nl->First(args),"pmbool"))
+ if(::nl->IsEqual(::nl->First(args),"pmbool"))
      return 0;
-  if(nl->IsEqual(nl->First(args),"pmpoint"))
+  if(::nl->IsEqual(::nl->First(args),"pmpoint"))
      return 1;
-  if(nl->IsEqual(nl->First(args),"pmint9m"))
+  if(::nl->IsEqual(::nl->First(args),"pmint9m"))
      return 2;
-  if(nl->IsEqual(nl->First(args),"pmpoints"))
+  if(::nl->IsEqual(::nl->First(args),"pmpoints"))
      return 3;
-  if(nl->IsEqual(nl->First(args),"pmreal"))
+  if(::nl->IsEqual(::nl->First(args),"pmreal"))
      return 4;
   return -1;
 }
 
 static int ContainsSelect(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)!=2)
+  if(::nl->ListLength(args)!=2)
       return -1;
-   if(nl->IsEqual(nl->First(args),"pbbox") &&
-      nl->IsEqual(nl->Second(args),"pbbox"))
+   if(::nl->IsEqual(::nl->First(args),"pbbox") &&
+      ::nl->IsEqual(::nl->Second(args),"pbbox"))
          return 0;
-   if(nl->IsEqual(nl->First(args),"pinterval") &&
-      nl->IsEqual(nl->Second(args),"pinterval"))
+   if(::nl->IsEqual(::nl->First(args),"pinterval") &&
+      ::nl->IsEqual(::nl->Second(args),"pinterval"))
          return 1;
-   if(nl->IsEqual(nl->First(args),"pinterval") &&
-      nl->IsEqual(nl->Second(args),"instant"))
+   if(::nl->IsEqual(::nl->First(args),"pinterval") &&
+      ::nl->IsEqual(::nl->Second(args),"instant"))
          return 2;
    return -1;
 }
 
 static int IntersectsSelect(ListExpr args){
     __TRACE__
-  if(nl->ListLength(args)!=2)
+  if(::nl->ListLength(args)!=2)
       return -1;
-   if(nl->IsEqual(nl->First(args),"pbbox") &&
-      nl->IsEqual(nl->Second(args),"pbbox"))
+   if(::nl->IsEqual(::nl->First(args),"pbbox") &&
+      ::nl->IsEqual(::nl->Second(args),"pbbox"))
          return 0;
-   if(nl->IsEqual(nl->First(args),"pinterval") &&
-      nl->IsEqual(nl->Second(args),"pinterval"))
+   if(::nl->IsEqual(::nl->First(args),"pinterval") &&
+      ::nl->IsEqual(::nl->Second(args),"pinterval"))
          return 1;
    return -1;
 }
 
 static int BreakpointsSelect(ListExpr args){
    __TRACE__
-   int len = nl->ListLength(args);
+   int len = ::nl->ListLength(args);
    if(len!=1 && len!=3)
       return -1;
-   if(nl->IsEqual(nl->First(args),"pmpoint"))
+   if(::nl->IsEqual(::nl->First(args),"pmpoint"))
         return 0;
-   if(nl->IsEqual(nl->First(args),"pmpoints"))
+   if(::nl->IsEqual(::nl->First(args),"pmpoints"))
         return 1;
    return -1;
 }
 
 static int ToprelSelect(ListExpr args){
   __TRACE__
-  if(nl->ListLength(args)!=2)
+  if(::nl->ListLength(args)!=2)
       return -1; // error in type mapping detected
-  if(nl->IsEqual(nl->First(args),"point") &&
-     nl->IsEqual(nl->Second(args),"pmpoint"))
+  if(::nl->IsEqual(::nl->First(args),"point") &&
+     ::nl->IsEqual(::nl->Second(args),"pmpoint"))
        return 0;
-  if(nl->IsEqual(nl->First(args),"pmpoint") &&
-     nl->IsEqual(nl->Second(args),"point"))
+  if(::nl->IsEqual(::nl->First(args),"pmpoint") &&
+     ::nl->IsEqual(::nl->Second(args),"point"))
        return 1;
-  if(nl->IsEqual(nl->First(args),"points") &&
-     nl->IsEqual(nl->Second(args),"pmpoint"))
+  if(::nl->IsEqual(::nl->First(args),"points") &&
+     ::nl->IsEqual(::nl->Second(args),"pmpoint"))
        return 2;
-  if(nl->IsEqual(nl->First(args),"pmpoint") &&
-     nl->IsEqual(nl->Second(args),"points"))
+  if(::nl->IsEqual(::nl->First(args),"pmpoint") &&
+     ::nl->IsEqual(::nl->Second(args),"points"))
        return 3;
   return -1; 
 
@@ -14277,8 +14154,8 @@ static int ToprelSelect(ListExpr args){
 
 static int IntersectionSelect(ListExpr args){
    __TRACE__
-   string arg1 = nl->SymbolValue(nl->First(args)); 
-   string arg2 = nl->SymbolValue(nl->Second(args));
+   string arg1 = ::nl->SymbolValue(::nl->First(args)); 
+   string arg2 = ::nl->SymbolValue(::nl->Second(args));
    if(arg1=="pbbox" && arg2=="pbbox")
        return 0;
    if(arg1=="pmbool" && arg2=="pinterval")
@@ -14288,8 +14165,8 @@ static int IntersectionSelect(ListExpr args){
 
 static int DistanceSelect(ListExpr args){
   __TRACE__
-  string arg1 = nl->SymbolValue(nl->First(args));
-  string arg2 = nl->SymbolValue(nl->Second(args));
+  string arg1 = ::nl->SymbolValue(::nl->First(args));
+  string arg2 = ::nl->SymbolValue(::nl->Second(args));
   if(arg1=="pmpoint" && arg2=="point")
      return 0;
   if(arg1=="point" && arg2=="pmoint")
@@ -14298,7 +14175,7 @@ static int DistanceSelect(ListExpr args){
 }
 
 static int NumberOfAnyNodesSelect(ListExpr args){
-  string type = nl->SymbolValue(nl->First(args));
+  string type = ::nl->SymbolValue(::nl->First(args));
   if(type=="pmpoint"){
     return 0;
   }
@@ -14316,42 +14193,49 @@ static int NumberOfAnyNodesSelect(ListExpr args){
 Operator punion(
         "union",      // name
         UnionSpec,    // specification
-        UnionFun_PBBoxPBBox, // value mapping
+        GenVM2<PBBox, PBBox, PBBox, UnionF<PBBox> >, // value mapping
         Operator::SimpleSelect, // selection function
         PBBoxPBBoxPBBoxTypeMap); // type mapping
 
 Operator ptrajectory(
         "trajectory",
         TrajectorySpec,
-        TrajectoryFun,
+        GenVM1<PMPoint,Line, TrajectoryF<PMPoint> >,
         Operator::SimpleSelect,
         TrajectoryTypeMap);
 
 Operator plength(
         "length",
         LengthSpec,
-        LengthFun_PInterval_Duration,
+        GenVM1<PInterval, DateTime, LengthF<PInterval, DateTime> >,
         Operator::SimpleSelect,
         LengthTypeMap);
+
+Operator plength2(
+        "length",
+        LengthSpec2,
+        GenVM1<PMPoint, CcReal, LengthF<PMPoint,CcReal> >,
+        Operator::SimpleSelect,
+        PMPoint_Real_TypeMap);
 
 Operator pstart(
         "start",
         StartSpec,
-        StartFun_PInterval_Instant,
+        GenVM1<PInterval, DateTime, StartF<PInterval,DateTime> >,
         Operator::SimpleSelect,
         PIntervalInstantTypeMap);
 
 Operator pend(
         "end",
         EndSpec,
-        EndFun_PInterval_Instant,
+        GenVM1<PInterval,DateTime, EndF<PInterval,DateTime> >,
         Operator::SimpleSelect,
         PIntervalInstantTypeMap);
         
 Operator pexpand(
         "expand",
         ExpandSpec,
-        ExpandFun_PMPoint_MPoint,
+        GenVM1<PMPoint, MPoint, ExpandF<PMPoint, MPoint> >,
         Operator::SimpleSelect,
         ExpandTypeMap);
         
@@ -14359,7 +14243,7 @@ Operator pexpand(
 Operator createpmpoint(
         "createpmpoint",
         CreatePMPointSpec,
-        CreateFun_P_PM,
+        GenVM1<MPoint, PMPoint, CreateF<MPoint, PMPoint> >,
         Operator::SimpleSelect,
         CreatePMPointMap);
 
@@ -14564,6 +14448,7 @@ class PeriodicMoveAlgebra : public Algebra
     AddOperator(&periodic::ptrajectory);
     AddOperator(&periodic::pbreakpoints);
     AddOperator(&periodic::plength);
+    AddOperator(&periodic::plength2);
     AddOperator(&periodic::pstart);
     AddOperator(&periodic::pend);
     AddOperator(&periodic::pexpand);
@@ -14588,7 +14473,6 @@ class PeriodicMoveAlgebra : public Algebra
 
   PeriodicMoveAlgebra periodicMoveAlgebra;
 
-} // namespace periodic
 
 
 /*
@@ -14616,5 +14500,5 @@ InitializePeriodicAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   __TRACE__
   nl = nlRef;
   qp = qpRef;
-  return (&periodic::periodicMoveAlgebra);
+  return (&periodicMoveAlgebra);
 }

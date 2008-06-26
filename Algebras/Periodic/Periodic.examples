@@ -7,12 +7,44 @@ Signature: pbbox x pbbox -> bool
 Example  : query [const pbbox value (12.0 23.3  100.987 5245.978)] = [const pbbox value (12.0 23.3  100.987 5245.978)]
 Result   : (bool TRUE) 
 
+Operator : =
+Number   : 2
+Signature: pinteral x pinterval -> bool
+Example  : query [const pinterval value ("2001-1-1" "2001-2-2" TRUE TRUE)] = [const pinterval value ("2001-1-1" "2001-2-2" TRUE FALSE)]
+Result   : (bool FALSE) 
 
 Operator : atinstant
 Number   : 1
-Signature: pmobject x instant -> object
+Signature: pmpoint x instant -> point
 Example  : query [const pmpoint value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))  ( 13506.0  11159.0 ) ( 13336.0  10785.0 )))) ] atinstant [const instant value "2007-01-30-18:56"] 
 Result   : (point (13424.4 10979.48))
+
+Operator : atinstant
+Number   : 2
+Signature: pmbool x instant -> bool
+Example  : query [const pmbool value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 )) TRUE ))) ] atinstant [const instant value "2007-01-30-18:56"] 
+Result   : (bool TRUE)
+
+Operator : atinstant
+Number   : 3
+Signature: pmint9m x instant -> int9m
+Example  : query [const pmint9m value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 )) 255 ))) ] atinstant [const instant value "2007-01-30-18:56"] 
+Result   : (int9m (FALSE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE))
+
+Operator : atinstant
+Number   : 4
+Signature: pmpoints x instant -> points
+Example  : query [const pmpoints value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))((1 0))((6 7)))) ] atinstant [const instant value "2007-01-30-18:56"] 
+Result   : bug
+Remark   : unknown
+
+ 
+Operator : atinstant
+Number   : 5
+Signature: pmreal x instant -> real
+Example  : query [const pmreal value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))((1 0))((6 7)))) ] atinstant [const instant value "2007-01-30-18:56"] 
+Result   : bug
+Remark   : have to be checked
 
 
 Operator : breakpoints
@@ -92,6 +124,12 @@ Signature: pinterval -> duration
 Example  : query length([const pinterval value ("2007-01-30"  "2007-01-31" TRUE TRUE)])
 Result   : (duration (1 0))
 
+Operator  : length
+Number    : 2
+Signature : pmpoint -> real
+Example   : query length(train7) = length(createpmpoint(train7));
+Result    : (bool TRUE)
+
 
 Operator : numberOfCNodes
 Number   : 1
@@ -161,5 +199,38 @@ Number   : 1
 Signature:  pbbox x pbbox -> pbbox
 Example  : query  [const pbbox value (12.0 23.3  100.987 5245.978)] union [const pbbox value (13.0 24.3  100.0 1000.0)]
 Result   : (pbbox (12.0 23.3 100.987 5245.978))
+
+
+Operator  : minvalue
+Number    : 1
+Signature : pmreal -> real
+Example   : query minvalue(distance(createpmpoint(train7),[const point value (0 0)]))
+Result    : (real 10086.4000019829)
+Tolerance : 0.2
+
+Operator  : maxvalue
+Number    : 1
+Signature : pmreal -> real
+Example   : query maxvalue(distance(createpmpoint(train7),[const point value (0 0)]))
+Result    : (real 16730.5916811092)
+Tolerance : 0.2
+
+
+Operator : direction 
+Number   : 1
+Signature: pmpoint -> line
+Example  : query minvalue(direction([const pmpoint value ("2007-01-30-18:00" ( linear (( TRUE  FALSE (0  7000000))  ( 1000.0  1000.0 ) ( 2000.0  2000.0 )))) ]))
+Result   : (real 45.0)
+Tolerance : 0.4
+
+
+Operator : speed 
+Number   : 1
+Signature: pmpoint -> line
+Example  : query minvalue(speed([const pmpoint value ("2007-01-30-18:00" ( linear (( TRUE  FALSE (0      7000000))  ( 1000.0  1000.0 ) ( 1000.0  1000.0 )))) ]))
+Result   : (real 0.0)
+Tolerance : 0.1
+
+
 
 

@@ -85,6 +85,31 @@ using namespace toprel;
 
 namespace periodic {
 
+/* 
+~[_][_]TRACE[_][_]~
+
+This macro is for debugging purposes. At the begin of all functions should the
+[_][_]TRACE[_][_] symbol.
+
+*/
+//#define TRACEON 
+#ifdef TRACEON
+#define __TRACE__ cout << __POS__ << endl;
+#else
+#define __TRACE__
+#endif
+
+#define TTRACE 
+#ifdef TTRACE
+#define __TTRACE__ cout << __POS__ << endl;
+#else
+#define __TTRACE__
+#endif
+
+
+// the __POS__ macro can be used in debug-messages
+#define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
+
 static const int LINEAR = 0;
 static const int COMPOSITE = 1;
 static const int PERIOD = 2;
@@ -146,9 +171,11 @@ class PBBox: public StandardAttribute {
     PBBox* Clone() const;
     void Equalize(const PBBox* B2);
     void Intersection(const PBBox* B2);
+    void Intersection(const PBBox* b2, PBBox& res) const;
     bool Intersects(const PBBox* B2)const;
     double Size()const;
     void Union(const PBBox* B2);
+    void Union(const PBBox* b2, PBBox& res) const;
     void Union(const double x, const double y);
     void SetUndefined();
     bool GetVertex(const int No,double& x, double& y) const;
@@ -497,6 +524,7 @@ class PInterval : public StandardAttribute{
     void CopyFrom(const StandardAttribute* arg);
     void Equalize(const PInterval* D2);
     DateTime* GetLength()const;
+    void Length(DateTime& res) const; 
     DateTime* GetStart()const;
     void GetStart(DateTime& result)const;
     DateTime* GetEnd()const;
@@ -676,7 +704,7 @@ class LinearConstantMove{
    LinearConstantMove<T>& operator=(const LinearConstantMove<T> source);
    void Set(const T value, const RelInterval interval);
 
-   T At(const DateTime* duration) const;
+   void At(const DateTime* duration, T& res) const;
 
    bool IsDefinedAt(const DateTime* duration)const;
    
@@ -686,9 +714,9 @@ class LinearConstantMove{
 
    virtual bool CanSummarized(const LinearConstantMove<T>* LCM) const;
 
-   virtual T* Initial()const;
+   virtual bool Initial(T& res)const;
 
-   virtual T* Final();
+   virtual bool Final(T& res)const;
 
    void SetDefined(bool defined);
    bool GetDefined();
@@ -839,13 +867,13 @@ class MovingRealUnit{
    double min() const;
    double max() const;
    bool GetFrom(double start, double end, RelInterval interval);
-   double At(const DateTime* duration) const;
+   void At(const DateTime* duration,double& res) const;
    bool IsDefinedAt(const DateTime* duration) const;
    ListExpr ToListExpr()const;
    bool ReadFrom(ListExpr le);
    bool CanSummarized(const MovingRealUnit* MRU) const;
-   double* Initial()const;
-   double* Final();
+   bool Initial(double& result )const;
+   bool Final(double& res)const;
    bool Split(const DateTime duration, const bool toLeft, 
               MovingRealUnit& unit);
 
@@ -967,7 +995,7 @@ This units has to be defined at the given duration.
 
 
 */
-   Point* At(const DateTime* duration)const;
+   void At(const DateTime* duration, Point& res)const;
 
 /*
 ~IsDefinedAt~
@@ -1007,7 +1035,7 @@ halfsegment.
    bool Connected(LinearPointMove* P2);
 
    int Toprel(const Point P,LinearInt9MMove* Result)const;   
-   void Toprel(Points& P, vector<LinearInt9MMove>& Result)const;  
+   void Toprel(const Points& P, vector<LinearInt9MMove>& Result)const;  
 
    void DistanceTo(const double x, const double y,MovingRealUnit& result)const;
 
@@ -1136,8 +1164,9 @@ class LinearPointsMove{
    bool ReadFrom(const ListExpr value, 
                  DBArray<TwoPoints> &Points, 
      int &Index);
-   Points* At(const DateTime* duration, 
-                     const DBArray<TwoPoints> &Pts) const;
+   void At(const DateTime* duration, 
+           const DBArray<TwoPoints> &Pts,
+           Points& res         ) const;
    bool IsDefinedAt(const DateTime* duration) const;
    bool ProhablyIntersects(const PBBox* window) const;
    bool IsDefined() const; 
@@ -1219,10 +1248,12 @@ class PMSimple : public StandardAttribute {
      bool ReadFrom(const ListExpr value);
      bool IsEmpty()const;
   
-     T* At(const DateTime* instant)const;
-     T* Initial() const;
-     T* Final();
+     void At(const DateTime* instant,T& res)const;
+     bool Initial(T& result) const;
+     bool Final(T& result)const;
      void Translate(const DateTime& duration);
+     void Translate(const DateTime* duration,
+                    PMSimple<T,Unit>& res) const;
 
      void Minimize();
      int NumberOfLinearMoves();
@@ -1315,7 +1346,7 @@ class PMSimple : public StandardAttribute {
     bool AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
                        int &SMIndex, int &PMIndex);
 
-    Unit GetLastUnit();
+    Unit GetLastUnit()const;
     bool MinimizationRequired();
 
     SubMove MinimizeRec(SubMove SM, 
@@ -1427,14 +1458,14 @@ public:
   PMInt9M();
   PMInt9M(int dummy);
   void Transpose();
-  bool CreateFrom( DBArray<LinearInt9MMove>& linearMoves, 
-                 ArrayRange*                     level,
-                 int                             levelsize,
-                 DBArray<CompositeMove>&          compositeMoves,
-                 DBArray<CSubMove>&                compositeSubMoves,
-                 DBArray<PeriodicMove>&           periodicMoves,
-                 DateTime                        startTime,
-                 SubMove                         submove);
+  bool CreateFrom( const DBArray<LinearInt9MMove>& linearMoves, 
+                  const ArrayRange*                     level,
+                 const int                             levelsize,
+                 const DBArray<CompositeMove>&          compositeMoves,
+                 const DBArray<CSubMove>&                compositeSubMoves,
+                 const DBArray<PeriodicMove>&           periodicMoves,
+                 const DateTime                        startTime,
+                 const SubMove                         submove);
 
 };
 
@@ -1469,22 +1500,34 @@ class PMPoint : public StandardAttribute {
      bool ReadFrom(const ListExpr value);
      PMPoint* Intersection(const PInterval* interval);
      bool IsEmpty()const;
-     Point* At(const DateTime* instant)const;
-     Point* Initial()const;
-     Point* Final();
+     void At(const DateTime* instant, Point& res)const;
+     void Initial(Point& res)const;
+     bool Final(Point& res);
      void Translate(const DateTime& duration);
-     inline Points* Breakpoints();
-     Points* Breakpoints(const DateTime* minDuration,const bool inclusive);
-     Line*  Trajectory();
+     void Translate(const DateTime* duration, PMPoint& res)const;
+     Points* Breakpoints()const;
+     void Breakpoints(Points& res)const;
+     Points* Breakpoints(const DateTime* minDuration,
+                         const bool inclusive)const;
+     void Breakpoints(const DateTime* minDuration,
+                      const bool inclusive,
+                      Points& res)const;
+     void Trajectory(Line& res)const;
      DateTime GetStart()const;
      DateTime GetEnd()const;
      PInterval GetInterval()const;
      void GetInterval(SubMove sm, RelInterval& result)const;
      PBBox GetBbox()const;
-     MPoint Expand();
-     void ReadFromMPoint(MPoint& P);
-     PMInt9M* Toprel(const Point P); 
-     PMInt9M* Toprel(Points& P);
+     MPoint Expand()const;
+     void Expand(MPoint& res)const;
+     void ReadFrom(const MPoint& P);
+
+     PMInt9M* Toprel(const Point& P)const; 
+     void Toprel(const Point& P,PMInt9M& res)const;
+
+     PMInt9M* Toprel(const Points& P)const;
+
+
      bool DistanceTo(const double x, const double y, PMReal& result)const;
      bool CheckCorrectness();
      void PrintArrayContents();
@@ -1495,6 +1538,8 @@ class PMPoint : public StandardAttribute {
      inline size_t NumberOfUnits() const;
      inline size_t NumberOfCompositeNodes()const;
      inline size_t NumberOfFlatUnits() const; 
+     double Length()const;
+     void Length(CcReal& res)const;
   private:
      DBArray<LinearPointMove> linearMoves;
      DBArray<SpatialCompositeMove> compositeMoves;
@@ -1535,15 +1580,16 @@ class PMPoint : public StandardAttribute {
                                     int &Lcount,int &Ccount,
                                     int &Scount,int &Pcount);
 
-     void AppendUnits(MPoint& P, DateTime* Time, const SubMove S);
-     int NumberOfExpandedUnits();
-     int NumberOfExpandedUnits(const SubMove S);
+     void AppendUnits(MPoint& P, DateTime* Time, const SubMove S)const;
+     int NumberOfExpandedUnits()const;
+     int NumberOfExpandedUnits(const SubMove S)const;
      LinearPointMove GetLastUnit();
      bool FillFromRepTree(int& cpos, int& cspos, int& ppos, RepTree TR);
      
      void CorrectDurationSums();
      void GetLength(SubMove sm, DateTime& result);
 
+     double Length(const SubMove& sm) const;
 
   };
 
@@ -1577,12 +1623,19 @@ class PMPoints : public StandardAttribute {
      ListExpr ToListExpr(const bool typeincluded)const;
      bool ReadFrom(const ListExpr value);
      bool IsEmpty()const;
-     inline Points* Breakpoints();
-     Points* Breakpoints(const DateTime* duration,const bool inclusive);
-     Points* At(const DateTime* T)const;
-     Points* Initial()const;
-     Points* Final();
+     inline Points* Breakpoints()const;
+     void Breakpoints(Points& res) const;
+     
+     Points* Breakpoints(const DateTime* duration,const bool inclusive)const;
+     void Breakpoints(const DateTime* duration, 
+                      const bool inclusive,
+                      Points& res)const;
+     
+     void At(const DateTime* T, Points& res)const;
+     void  Initial(Points& res)const;
+     bool Final(Points& res) const;
      void Translate(const DateTime& duration);
+     void Translate(const DateTime* duration,PMPoints& res)const;
  private:
      DBArray<LinearPointsMove> linearMoves;
      DBArray<TwoPoints> thePoints;
