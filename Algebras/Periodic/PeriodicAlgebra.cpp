@@ -74,6 +74,7 @@ using namespace std;
 #include "NodeTypes.h"
 #include "TopRel.h"
 #include "DBArray.h"
+#include "GenericTC.h"
 
  // the __POS__ macro can be used in debug-messages
 #define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
@@ -509,7 +510,7 @@ This function translates this bounding box to its nested list representation.
 [3] O(1)
 
 */
-ListExpr PBBox::ToListExpr()const{
+ListExpr PBBox::ToListExpr(const ListExpr typeInfo)const{
     __TRACE__
    if(!IsDefined())
        return ::nl->SymbolAtom("undefined");
@@ -530,7 +531,7 @@ ListExpr.
 [3] O(1)
 
 */
-bool PBBox::ReadFrom(const ListExpr LE){
+bool PBBox::ReadFrom(const ListExpr LE, const ListExpr typeInfo){
     __TRACE__
  if(::nl->IsEqual(LE,"undefined") || ::nl->IsEqual(LE,"undef")){
       SetDefined(false);
@@ -1335,6 +1336,10 @@ ListExpr RelInterval::ToListExpr(const bool typeincluded)const{
                    time);
 }
 
+ListExpr RelInterval::ToListExpr(const ListExpr typeInfo)const{
+   return ToListExpr(false);
+}
+
 /*
 ~IsLeftClosed~
 
@@ -2035,6 +2040,10 @@ ListExpr PInterval::ToListExpr(const bool typeincluded)const {
    return result;
 }
 
+ListExpr PInterval::ToListExpr(const ListExpr typeInfo)const {
+   return ToListExpr(false);
+}
+
 /*
 ~IsLeftClosed~
 
@@ -2109,6 +2118,10 @@ bool PInterval::ReadFrom(const ListExpr LE, const bool typeincluded){
    DateTime duration = end-start;
    Set(&start,&duration,lc,rc);
    return true;
+}
+
+bool PInterval::ReadFrom(const ListExpr LE, const ListExpr typeInfo){
+   return ReadFrom(LE,false);
 }
 
 /*
@@ -4098,7 +4111,7 @@ nested list representation.
 
 */
 template <class T, class Unit>
-ListExpr PMSimple<T, Unit>::ToListExpr()const {
+ListExpr PMSimple<T, Unit>::ToListExpr(const ListExpr typeInfo)const {
   __TRACE__
  ListExpr timelist = startTime.ToListExpr(false);
  ListExpr SubMoveList = GetSubMoveList(submove);
@@ -4119,7 +4132,8 @@ expensive tests before creating the actual object.
 
 */
 template <class T, class Unit>
-bool PMSimple<T, Unit>::ReadFrom(const ListExpr value){
+bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
+                                 const ListExpr typeInfo){
     __TRACE__
    /* The list is scanned twice. In the first scan we
      compute only the needed size of the contained arrays.
@@ -8536,6 +8550,11 @@ ListExpr PMPoint::ToListExpr(const bool typeincluded)const{
       return ::nl->TwoElemList(timelist,SubMoveList);
 }
 
+ListExpr PMPoint::ToListExpr(const ListExpr typeInfo)const{
+   return ToListExpr(false);
+}
+
+
 /*
 ~GetSubMove~
 
@@ -8652,7 +8671,7 @@ in this list.
 [3] O(L)  where L = number of linear moves
 
 */
-bool PMPoint::ReadFrom(const ListExpr value){
+bool PMPoint::ReadFrom(const ListExpr value, const ListExpr typeInfo){
     __TRACE__
  /* The list is scanned twice. In the first scan we
      compute only the needed size for each of the  contained arrays. 
@@ -10948,6 +10967,11 @@ ListExpr PMPoints::ToListExpr(const bool typeincluded)const{
    return res;
 }
 
+ListExpr PMPoints::ToListExpr(const ListExpr typeInfo)const{
+   return ToListExpr(false);
+}
+
+
 /*
 ~GetSubMove~
 
@@ -11064,7 +11088,7 @@ in this list.
 [3] O(L)  where L = number of linear moves
 
 */
-bool PMPoints::ReadFrom(const ListExpr value){
+bool PMPoints::ReadFrom(const ListExpr value, const ListExpr typeInfo){
     __TRACE__
  /* The list is scanned twice. In the first scan we
      compute only the needed size of the contained arrays. The reason is,
@@ -11738,1147 +11762,70 @@ void PMPoints::At(const DateTime* instant, Points& res)const{
 
 
 /*
-4 Implementing Type Constructors 
-
-4.1 ListConversions
-
-4.1.1 Out functions
-
-~ Outfunction for PBBox~
+4 Secondo Type Constructors 
 
 */
-ListExpr OutPBBox(ListExpr typeInfo,Word value){
-    __TRACE__
-   return ((PBBox*) value.addr)->ToListExpr();
-}
 
+GenTC<PBBox> pbbox;
 
-/*
-~Out Function for RelInterval~
+GenTC<RelInterval>  relinterval;
 
-*/
-ListExpr OutRelInterval( ListExpr typeInfo, Word value ){
-    __TRACE__
-  RelInterval* D = (RelInterval*) value.addr;
-   return D->ToListExpr(false);
-}
+GenTC<PInterval> pinterval;
 
-/*
-~Out Function for Interval~
+GenTC<PMPoint> pmpoint;
 
-*/
-ListExpr OutPInterval( ListExpr typeInfo, Word value ){
-    __TRACE__
-  PInterval* I = (PInterval*) value.addr;
-   return I->ToListExpr(false);
-}
+GenTC<PMPoints> pmpoints;
 
-/*
-~Out-Function for PMPoint~
+GenTC<PMBool> pmbool;
 
-*/
-ListExpr OutPMPoint( ListExpr typeInfo, Word value ){
-    __TRACE__
-  PMPoint* P = (PMPoint*) value.addr;
-   return P->ToListExpr(false);
-}
+GenTC<PMInt9M> pmint9m;
 
-/*
-~Out-Function for PMPoints~
+GenTC<PMReal> pmreal;
 
-*/
-ListExpr OutPMPoints(ListExpr typeInfo, Word value){
-    __TRACE__
-   PMPoints* P = (PMPoints*) value.addr;
-   ListExpr res =  P->ToListExpr(false);
-   return res;
-}
-
-
-/*
-~Out-Functions for PMBool~
-
-*/
-ListExpr OutPMBool( ListExpr typeInfo, Word value ){
-   __TRACE__
-   PMBool* B = (PMBool*) value.addr;
-   return B->ToListExpr();
-}
-
-/*
-~Out-Functions for PMInt9M~
-
-*/
-ListExpr OutPMInt9M( ListExpr typeInfo, Word value ){
-   __TRACE__
-   PMInt9M* B = (PMInt9M*) value.addr;
-   return B->ToListExpr();
-}
-
-
-/*
-~Out-Functions for PMReal~
-
-*/
-ListExpr OutPMReal( ListExpr typeInfo, Word value ){
-   __TRACE__
-   PMReal* B = (PMReal*) value.addr;
-   return B->ToListExpr();
-}
-
-
-/*
-4.1.2 In functions
-
-~In-Function for PBBox~
-
-*/
-Word InPBBox( const ListExpr typeInfo, const ListExpr instance,
-              const int errorPos, ListExpr& errorInfo, bool& correct ){
-  __TRACE__
-  PBBox* B = new PBBox(0);
-  if(B->ReadFrom(instance)){
-    correct=true;
-    return SetWord(B);
-  }
-  correct = false;
-  delete B;
-  B = NULL;
-  return SetWord(Address(0));
-}
-
-/*
-~ In-Function for RelInterval~
-
-*/
-Word InRelInterval( const ListExpr typeInfo, const ListExpr instance,
-              const int errorPos, ListExpr& errorInfo, bool& correct ){
-  __TRACE__
-  RelInterval* D = new RelInterval(0);
-  if(D->ReadFrom(instance,false)){
-    correct=true;
-    return SetWord(D);
-  }
-  correct = false;
-  delete D;
-  D = NULL;
-  return SetWord(Address(0));
-}
-
-/*
-~In Function for PInterval~
-
-*/
-Word InPInterval( const ListExpr typeInfo, const ListExpr instance,
-              const int errorPos, ListExpr& errorInfo, bool& correct ){
-  __TRACE__
-  PInterval* I = new PInterval(0);
-  if(I->ReadFrom(instance,false)){
-    correct=true;
-    return SetWord(I);
-  }
-  correct = false;
-  delete I;
-  I = NULL;
-  return SetWord(Address(0));
-}
-
-/*
-~In-Function for PMPoint~
-
-*/
-Word InPMPoint( const ListExpr typeInfo, const ListExpr instance,
-              const int errorPos, ListExpr& errorInfo, bool& correct ){
-  __TRACE__
-  PMPoint* P = new PMPoint(0);
-  if(P->ReadFrom(instance)){
-    correct=true;
-    if(!P->CheckCorrectness()){
-       cerr << "Structure of the created periodic move is wrong" << endl;
-       P->PrintArrayContents();
-    }
-    return SetWord(P);
-  }
-  correct = false;
-  delete P;
-  P = NULL;
-  return SetWord(Address(0));
-}
-
-
-/*
-~In-Function for PMPoints~
-
-*/
-Word InPMPoints(const ListExpr typeInfo, const ListExpr instance,
-                const int errorPos, ListExpr &errorInfo, bool &correct){
-  __TRACE__ 
-  PMPoints* P = new PMPoints(0);
-  if(P->ReadFrom(instance)){
-    correct=true;
-    return SetWord(P);
-  }
-  correct = false;
-  delete P;
-  P = NULL;
-  return SetWord(Address(0));    
-}       
-
-
-/*
-~In-Function for PMBool~
-
-*/
-Word InPMBool( const ListExpr typeInfo, const ListExpr instance,
-              const int errorPos, ListExpr& errorInfo, bool& correct ){
-  __TRACE__
-  PMBool* B = new PMBool(0);
-  if(B->ReadFrom(instance)){
-    correct=true;
-    return SetWord(B);
-  }
-  correct = false;
-  delete B;
-  B = NULL;
-  return SetWord(Address(0));
-}
-
-/*
-~In-Function for PMInt9M~
-
-*/
-Word InPMInt9M( const ListExpr typeInfo, const ListExpr instance,
-              const int errorPos, ListExpr& errorInfo, bool& correct ){
-  __TRACE__
-  PMInt9M* B = new PMInt9M(0);
-  if(B->ReadFrom(instance)){
-    correct=true;
-    return SetWord(B);
-  }
-  correct = false;
-  delete B;
-  B = NULL;
-  return SetWord(Address(0));
-}
-
-/*
-~In-Function for PMReal~
-
-*/
-Word InPMReal( const ListExpr typeInfo, const ListExpr instance,
-               const int errorPos, ListExpr& errorInfo, bool& correct ){
-  __TRACE__
-  PMReal* B = new PMReal(0);
-  if(B->ReadFrom(instance)){
-    correct=true;
-    return SetWord(B);
-  }
-  correct = false;
-  delete B;
-  B = NULL;
-  return SetWord(Address(0));
-}
-
-/*
-4.2  ~Property~ Functions
-
-The following functions describe the types of the 
-periodic algebra.
-
-*/
-ListExpr PBBoxProperty(){
-  __TRACE__
-  return (::nl->TwoElemList(
-            ::nl->FiveElemList(
-                ::nl->StringAtom("Signature"),
-                ::nl->StringAtom("Example Type List"),
-                ::nl->StringAtom("List Rep"),
-                ::nl->StringAtom("Example List"),
-                ::nl->StringAtom("Remarks")),
-            ::nl->FiveElemList(
-                ::nl->StringAtom("-> Data"),
-                ::nl->StringAtom("pbbox"),
-                ::nl->StringAtom("(minx miny maxx maxy)"),
-                ::nl->StringAtom("(12.0 23.3  100.987 5245.978)"),
-                ::nl->StringAtom("All numeric values are valid."))
-         ));
-}
-
-
-ListExpr RelIntervalProperty(){
-  __TRACE__
-  return (::nl->TwoElemList(
-            ::nl->FiveElemList(
-                ::nl->StringAtom("Signature"),
-                ::nl->StringAtom("Example Type List"),
-                ::nl->StringAtom("List Rep"),
-                ::nl->StringAtom("Example List"),
-                ::nl->StringAtom("Remarks")),
-            ::nl->FiveElemList(
-                ::nl->StringAtom("-> Data"),
-                ::nl->StringAtom("rinterval"),
-                ::nl->StringAtom("(<datetime> lC rC lI rI)"),
-                ::nl->StringAtom("((time (2 120000)) TRUE FALSE FALSE FALSE)"),
-                ::nl->StringAtom("a interval without fixed start"))
-         ));
-}
-
-ListExpr PIntervalProperty(){
-  __TRACE__
-  return (::nl->TwoElemList(
-        ::nl->FiveElemList(
-            ::nl->StringAtom("Signature"),
-            ::nl->StringAtom("Example Type List"),
-            ::nl->StringAtom("List Rep"),
-            ::nl->StringAtom("Example List"),
-            ::nl->StringAtom("Remarks")),
-        ::nl->FiveElemList(
-            ::nl->StringAtom("-> Data"),
-            ::nl->StringAtom("pinterval"),
-            ::nl->StringAtom("(<instant> <instant> leftClosed rightClosed)"),
-            ::nl->StringAtom("((instant 1.1)(instant 1.5) TRUE FALSE)"),
-            ::nl->StringAtom(""))
-     ));
-}
-
-
-ListExpr PMPointProperty(){
-  __TRACE__
-  return (::nl->TwoElemList(
-            ::nl->FiveElemList(
-                ::nl->StringAtom("Signature"),
-                ::nl->StringAtom("Example Type List"),
-                ::nl->StringAtom("List Rep"),
-                ::nl->StringAtom("Example List"),
-                ::nl->StringAtom("Remarks")),
-            ::nl->FiveElemList(
-                ::nl->StringAtom("-> Data"),
-                ::nl->StringAtom("pmpoint"),
-                ::nl->StringAtom("(<startTime> <submove>)"),
-                ::nl->StringAtom("..."),
-                ::nl->StringAtom("see in the documentation"))
-         ));
-}
-
-ListExpr PMPointsProperty(){
-  __TRACE__
-  return (::nl->TwoElemList(
-            ::nl->FiveElemList(
-                ::nl->StringAtom("Signature"),
-                ::nl->StringAtom("Example Type List"),
-                ::nl->StringAtom("List Rep"),
-                ::nl->StringAtom("Example List"),
-                ::nl->StringAtom("Remarks")),
-            ::nl->FiveElemList(
-                ::nl->StringAtom("-> Data"),
-                ::nl->StringAtom("pmpoints"),
-                ::nl->StringAtom("(<startTime> <submove>)"),
-                ::nl->StringAtom("..."),
-                ::nl->StringAtom("see in the documentation"))
-         ));
-}
-
-ListExpr PMBoolProperty(){
-  __TRACE__
-  return (::nl->TwoElemList(
-            ::nl->FiveElemList(
-                ::nl->StringAtom("Signature"),
-                ::nl->StringAtom("Example Type List"),
-                ::nl->StringAtom("List Rep"),
-                ::nl->StringAtom("Example List"),
-                ::nl->StringAtom("Remarks")),
-            ::nl->FiveElemList(
-                ::nl->StringAtom("-> Data"),
-                ::nl->StringAtom("pmbool"),
-                ::nl->StringAtom("(<startTime> <submove>)"),
-                ::nl->StringAtom(" ... "),
-                ::nl->StringAtom("see in the documentation"))
-         ));
-}
-
-ListExpr PMInt9MProperty(){
-  __TRACE__
-  return (::nl->TwoElemList(
-            ::nl->FiveElemList(
-                ::nl->StringAtom("Signature"),
-                ::nl->StringAtom("Example Type List"),
-                ::nl->StringAtom("List Rep"),
-                ::nl->StringAtom("Example List"),
-                ::nl->StringAtom("Remarks")),
-            ::nl->FiveElemList(
-                ::nl->StringAtom("-> Data"),
-                ::nl->StringAtom("pmint9m"),
-                ::nl->StringAtom("(<startTime> <submove>)"),
-                ::nl->StringAtom(" ... "),
-                ::nl->StringAtom("see in the documentation"))
-         ));
-}
-
-
-ListExpr PMRealProperty(){
-  __TRACE__
-  return (::nl->TwoElemList(
-            ::nl->FiveElemList(
-                ::nl->StringAtom("Signature"),
-                ::nl->StringAtom("Example Type List"),
-                ::nl->StringAtom("List Rep"),
-                ::nl->StringAtom("Example List"),
-                ::nl->StringAtom("Remarks")),
-            ::nl->FiveElemList(
-                ::nl->StringAtom("-> Data"),
-                ::nl->StringAtom("pmreal"),
-                ::nl->StringAtom("(<startTime> <submove>)"),
-                ::nl->StringAtom(" ... "),
-                ::nl->StringAtom("see in the documentation"))
-         ));
-}
-/*
-4.3 ~Create~ Functions
-
-The following functions are used to create instances of the 
-types of this algebra. 
-
-*/
-Word CreatePBBox(const ListExpr typeInfo){
-  __TRACE__
-  return SetWord(new PBBox(1));
-}
-
-Word CreateRelInterval(const ListExpr typeInfo){
-  __TRACE__
-  return SetWord(new RelInterval(1));
-}
-
-Word CreatePInterval(const ListExpr typeInfo){
-  __TRACE__
-  return SetWord(new PInterval(1));
-}
-
-Word CreatePMPoint(const ListExpr typeInfo){
-  __TRACE__
-  return SetWord(new PMPoint(1));
-}
-
-Word CreatePMPoints(const ListExpr typeInfo){
-  __TRACE__
-  return SetWord(new PMPoints(1));
-}
-
-Word CreatePMBool(const ListExpr typeInfo){
-  __TRACE__
-  return SetWord(new PMBool(1));
-}
-
-Word CreatePMInt9M(const ListExpr typeInfo){
-  __TRACE__
-  return SetWord(new PMInt9M(1));
-}
-
-Word CreatePMReal(const ListExpr typeInfo){
-  __TRACE__
-  return SetWord(new PMReal(1));
-}
-
-/*
-4.4. ~Delete~ Functions
-
-The ~delete~ functions can be used to destroy the 
-instances of types of this algebra.
-
-*/
-void DeletePBBox(const ListExpr typeInfo,Word &w){
-  __TRACE__
-  PBBox* B = (PBBox*) w.addr;
-  delete B;
-  B = NULL;
-  w.addr=0;
-}
-
-
-void DeleteRelInterval(const ListExpr typeInfo,Word &w){
-  __TRACE__
-  RelInterval* D = (RelInterval*) w.addr;
-  D->Destroy();
-  delete D;
-  D = NULL;
-  w.addr=0;
-}
-
-void DeletePInterval(const ListExpr typeInfo,Word &w){
-  __TRACE__
-  PInterval* I = (PInterval*) w.addr;
-  I->Destroy();
-  delete I;
-  I = NULL;
-  w.addr=0;
-}
-
-void DeletePMPoint(const ListExpr typeInfo,Word &w){
-  __TRACE__
-  PMPoint* P = (PMPoint*) w.addr;
-  P->Destroy();
-  delete P;
-  P = NULL;
-  w.addr=0;
-}
-
-void DeletePMPoints(const ListExpr typeInfo,Word &w){
-  __TRACE__
-  PMPoints* P = (PMPoints*) w.addr;
-  P->Destroy();
-  delete P;
-  P = NULL;
-  w.addr=0;
-}
-
-void DeletePMBool(const ListExpr typeInfo,Word &w){
-  __TRACE__
-  PMBool* B = (PMBool*) w.addr;
-  B->Destroy();
-  delete B;
-  B = NULL;
-  w.addr=0;
-}
-
-void DeletePMInt9M(const ListExpr typeInfo,Word &w){
-  __TRACE__
-  PMInt9M* B = (PMInt9M*) w.addr;
-  B->Destroy();
-  delete B;
-  B = NULL;
-  w.addr=0;
-}
-
-void DeletePMReal(const ListExpr typeInfo,Word &w){
-  __TRACE__
-  PMReal* B = (PMReal*) w.addr;
-  B->Destroy();
-  delete B;
-  B = NULL;
-  w.addr=0;
-}
-
-/*
-4.5 ~Open~ Functions
-
-The open functions are called to read objects from 
-a SmiRecord.
-
-*/
-bool OpenPBBox( SmiRecord& valueRecord,
-                size_t& offset, 
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PBBox *bb = (PBBox*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( bb );
-  return true;
-}
-
-bool OpenRelInterval( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  RelInterval *ri = (RelInterval*)Attribute::Open( valueRecord, 
-                                                   offset, typeInfo );
-  value = SetWord( ri );
-  return true;
-}
-
-bool OpenPInterval( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PInterval *e = (PInterval*)Attribute::Open( valueRecord, offset,
-                                                  typeInfo );
-  value = SetWord(e);
-  return true;
-}
-
-
-bool OpenPMPoints( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMPoints *e = (PMPoints*)Attribute::Open( valueRecord, offset,typeInfo);
-  value = SetWord(e);
-  return true;
-}
-
-
-bool OpenPMBool( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMBool *e = (PMBool*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord(e);
-  return true;
-}
-
-bool OpenPMInt9M( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMInt9M *e = (PMInt9M*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( e );
-  return true;
-}
-
-bool OpenPMReal( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMReal *e = (PMReal*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( e );
-  return true;
-}
-
-
-/*
-4.6 ~Save~ Functions
-
-The save functions are used by the query processor to store objects in
-SmiRecords.
-
-*/
-bool SavePBBox( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PBBox* B = (PBBox *)value.addr;
-  Attribute::Save( valueRecord,offset, typeInfo,B );
-  return true;
-}
-
-bool SaveRelInterval( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  RelInterval* D = (RelInterval *)value.addr;
-  Attribute::Save( valueRecord,offset, typeInfo,D );
-  return true;
-}
-
-bool SavePInterval( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PInterval* I = (PInterval *)value.addr;
-  Attribute::Save( valueRecord,offset, typeInfo,I );
-  return true;
-}
-
-
-bool SavePMPoint( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMPoint* P = (PMPoint *)value.addr;
-  Attribute::Save( valueRecord, offset, typeInfo,P );
-  return true;
-}
-
-
-bool OpenPMPoint( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMPoint *e = (PMPoint*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord(e);
-  return true;
-}
-
-
-
-bool SavePMPoints( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMPoints* P = (PMPoints *)value.addr;
-  Attribute::Save( valueRecord,offset, typeInfo,P );
-  return true;
-}
-
-bool SavePMBool( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMBool* B = (PMBool *)value.addr;
-  Attribute::Save( valueRecord, offset,typeInfo,B );
-  return true;
-}
-
-bool SavePMInt9M( SmiRecord& valueRecord,
-                size_t& offset,
-                const ListExpr typeInfo,
-                Word& value ){
-  __TRACE__
-  PMInt9M* B = (PMInt9M *)value.addr;
-  Attribute::Save( valueRecord, offset,typeInfo,B );
-  return true;
-}
-
-bool SavePMReal( SmiRecord& valueRecord,
-                 size_t& offset,
-                 const ListExpr typeInfo,
-                 Word& value ){
-  __TRACE__
-  PMReal* B = (PMReal *)value.addr;
-  Attribute::Save( valueRecord, offset,typeInfo,B );
-  return true;
-}
-
-/*
-4.7 ~Close~-Functions
-
-The close functions destroy the instances.
-
-*/
-void ClosePBBox(const ListExpr typeInfo, Word& w ){
-  __TRACE__
-  delete (PBBox *)w.addr;
-  w.addr = 0;
-}
-
-void CloseRelInterval(const ListExpr typeInfo, Word& w ){
-    __TRACE__
- delete (RelInterval *)w.addr;
-  w.addr = 0;
-}
-
-void ClosePInterval(const ListExpr typeInfo, Word& w ){
-    __TRACE__
- delete (PInterval *)w.addr;
-  w.addr = 0;
-}
-
-void ClosePMPoint(const ListExpr typeInfo, Word& w ){
-    __TRACE__
- delete (PMPoint *)w.addr;
-  w.addr = 0;
-}
-
-void ClosePMPoints(const ListExpr typeInfo, Word& w ){
-    __TRACE__
- delete (PMPoints *)w.addr;
-  w.addr = 0;
-}
-
-void ClosePMBool(const ListExpr typeInfo, Word& w ){
-    __TRACE__
- delete (PMBool *)w.addr;
-  w.addr = 0;
-}
-
-void ClosePMInt9M(const ListExpr typeInfo, Word& w ){
-    __TRACE__
-  delete (PMInt9M *)w.addr;
-  w.addr = 0;
-}
-
-void ClosePMReal(const ListExpr typeInfo, Word& w ){
-    __TRACE__
-  delete (PMReal *)w.addr;
-  w.addr = 0;
-}
-
-/*
-4.8 ~Clone~-Functions
-
-The clone functions can be used for get a copy
-of an existing object.
-
-*/
-Word ClonePBBox(const ListExpr typeInfo, const Word& w )
-{
-     __TRACE__
-return SetWord( ((PBBox *)w.addr)->Clone() );
-}
-
-Word CloneRelInterval(const ListExpr typeInfo, const Word& w )
-{
-     __TRACE__
-return SetWord( ((RelInterval *)w.addr)->Clone() );
-}
-
-Word ClonePInterval(const ListExpr typeInfo, const Word& w )
-{
-    __TRACE__
- return SetWord( ((PInterval *)w.addr)->Clone() );
-}
-
-Word ClonePMPoint(const ListExpr typeInfo, const Word& w )
-{
-    __TRACE__
- return SetWord( ((PMPoint *)w.addr)->Clone() );
-}
-
-Word ClonePMPoints(const ListExpr typeInfo, const Word& w )
-{
-    __TRACE__
- return SetWord( ((PMPoints *)w.addr)->Clone() );
-}
-
-Word ClonePMBool(const ListExpr typeInfo, const Word& w )
-{
-    __TRACE__
- return SetWord( ((PMBool *)w.addr)->Clone() );
-}
-
-Word ClonePMInt9M(const ListExpr typeInfo, const Word& w )
-{
-    __TRACE__
- return SetWord( ((PMInt9M *)w.addr)->Clone() );
-}
-
-Word ClonePMReal(const ListExpr typeInfo, const Word& w )
-{
-    __TRACE__
- return SetWord( ((PMReal *)w.addr)->Clone() );
-}
-
-/*
-4.9 ~SizeOf~-Functions
-
-This functions must be provided for allocating the
-correct memory space for an object in query processing.
-
-*/
-int SizeOfPBBox(){
-    __TRACE__
- return sizeof(PBBox);
-}
-
-int SizeOfRelInterval(){
-    __TRACE__
- return sizeof(RelInterval);
-}
-
-int SizeOfPInterval(){
-    __TRACE__
- return sizeof(PInterval);
-}
-
-int SizeOfPMPoint(){
-    __TRACE__
- return sizeof(PMPoint);
-}
-
-int SizeOfPMPoints(){
-    __TRACE__
- return sizeof(PMPoints);
-}
-
-int SizeOfPMBool(){
-    __TRACE__
- return sizeof(PMBool);
-}
-
-int SizeOfPMInt9M(){
-    __TRACE__
- return sizeof(PMInt9M);
-}
-
-int SizeOfPMReal(){
-    __TRACE__
- return sizeof(PMReal);
-}
-
-/*
-4.10 ~Cast~-Functions
-
-Some functions proving dynamic casts.
-
-*/
-void* CastPBBox( void* addr )
-{
-    __TRACE__
- return new (addr) PBBox;
-}
-
-void* CastRelInterval( void* addr )
-{
-    __TRACE__
- return new (addr) RelInterval;
-}
-
-void* CastPInterval( void* addr )
-{
-    __TRACE__
- return new (addr) PInterval;
-}
-
-void* CastPMPoint( void* addr )
-{
-    __TRACE__
- return new (addr) PMPoint;
-}
-
-void* CastPMPoints( void* addr )
-{
-    __TRACE__
- return new (addr) PMPoints;
-}
-
-void* CastPMBool( void* addr )
-{
-    __TRACE__
- return new (addr) PMBool;
-}
-
-void* CastPMInt9M( void* addr )
-{
-    __TRACE__
- return new (addr) PMInt9M;
-}
-
-void* CastPMReal( void* addr )
-{
-    __TRACE__
- return new (addr) PMReal;
-}
-
-/*
-4.11 Kind Checking Functions
-
-This function checks whether the type constructor is applied correctly. Since
-all type constructors don't have arguments, this is trivial.
-
-*/
-bool CheckPBBox( ListExpr type, ListExpr& errorInfo )
-{
-    __TRACE__
- return (::nl->IsEqual( type, "pbbox" ));
-}
-
-bool CheckRelInterval( ListExpr type, ListExpr& errorInfo )
-{
-    __TRACE__
- return (::nl->IsEqual( type, "rinterval" ));
-}
-
-bool CheckPInterval( ListExpr type, ListExpr& errorInfo )
-{
-    __TRACE__
- return (::nl->IsEqual( type, "pinterval" ));
-}
-
-bool CheckPMPoint( ListExpr type, ListExpr& errorInfo )
-{
-    __TRACE__
- return (::nl->IsEqual( type, "pmpoint" ));
-}
-
-bool CheckPMPoints( ListExpr type, ListExpr& errorInfo )
-{
-    __TRACE__
-  return (::nl->IsEqual( type, "pmpoints" ));
-}
-
-bool CheckPMBool( ListExpr type, ListExpr& errorInfo )
-{
-    __TRACE__
- return (::nl->IsEqual( type, "pmbool" ));
-}
-
-bool CheckPMInt9M( ListExpr type, ListExpr& errorInfo )
-{
-    __TRACE__
- return (::nl->IsEqual( type, "pmint9m" ));
-}
-
-bool CheckPMReal( ListExpr type, ListExpr& errorInfo )
-{
-    __TRACE__
-  return (::nl->IsEqual( type, "pmreal" ));
-}
-
-/*
-5. TypeConstructors
-
-In this section, the type constructors for using in the 
-algebra are defined. 
-
-*/
-TypeConstructor pbbox(
-        "pbbox",            //name
-        PBBoxProperty,      //property function describing signature
-        OutPBBox, InPBBox,  //Out and In functions
-        0,                  //SaveToList and
-        0,                  //RestoreFromList functions
-        CreatePBBox, DeletePBBox, //object creation and deletion
-        OpenPBBox,    SavePBBox,  //object open and save
-        ClosePBBox,  ClonePBBox,  //object close and clone
-        CastPBBox,                //cast function
-        SizeOfPBBox,              //sizeof function
-        CheckPBBox               //kind checking function
-    );
-
-TypeConstructor relinterval(
-        "rinterval",                //name
-        RelIntervalProperty,        //property function describing signature
-        OutRelInterval, InRelInterval, //Out and In functions
-        0,                             //SaveToList and
-        0,                             //RestoreFromList functions
-        CreateRelInterval, DeleteRelInterval, //object creation and deletion
-        OpenRelInterval, SaveRelInterval, //object open and save
-        CloseRelInterval,  CloneRelInterval, //object close and clone
-        CastRelInterval,      //cast function
-        SizeOfRelInterval,    //sizeof function
-        CheckRelInterval     //kind checking function
-    );
-
-TypeConstructor pinterval(
-        "pinterval",                //name
-        PIntervalProperty,        //property function describing signature
-        OutPInterval, InPInterval, //Out and In functions
-        0,                             //SaveToList and
-        0,                             //RestoreFromList functions
-        CreatePInterval, DeletePInterval, //object creation and deletion
-        OpenPInterval, SavePInterval, //object open and save
-        ClosePInterval,  ClonePInterval, //object close and clone
-        CastPInterval,      //cast function
-        SizeOfPInterval,    //sizeof function
-        CheckPInterval     //kind checking function
-  );
-
-TypeConstructor pmpoint(
-        "pmpoint",             //name
-        PMPointProperty,       //property function describing signature
-        OutPMPoint, InPMPoint, //Out and In functions
-        0,                     //SaveToList and
-        0,                     // RestoreFromList functions
-        CreatePMPoint, DeletePMPoint, //object creation and deletion
-        //0,0,
-        OpenPMPoint,    SavePMPoint, //object open and save
-        ClosePMPoint,  ClonePMPoint,  //object close and clone
-        CastPMPoint,                  //cast function
-        SizeOfPMPoint,                //sizeof function
-        CheckPMPoint                //kind checking function
-    );
-
-TypeConstructor pmpoints(
-        "pmpoints",             //name
-        PMPointsProperty,       //property function describing signature
-        OutPMPoints, InPMPoints, //Out and In functions
-        0,                     //SaveToList and
-        0,                     // RestoreFromList functions
-        CreatePMPoints, DeletePMPoints, //object creation and deletion
-        0,0,
-        //OpenPMPoints,    SavePMPoints , //object open and save
-        ClosePMPoints,  ClonePMPoints,  //object close and clone
-        CastPMPoints,                  //cast function
-        SizeOfPMPoints,                //sizeof function
-        CheckPMPoints                //kind checking function
-     );
-
-TypeConstructor pmbool(
-        "pmbool",            //name
-        PMBoolProperty,      //property function describing signature
-        OutPMBool, InPMBool, //Out and In functions
-        0,                   //SaveToList and
-        0,                   //RestoreFromList functions
-        CreatePMBool, DeletePMBool,//object creation and deletion
-        0,0,
-        //OpenPMBool,    SavePMBool, //object open and save
-        ClosePMBool,  ClonePMBool,  //object close and clone
-        CastPMBool,                 //cast function
-        SizeOfPMBool,               //sizeof function
-        CheckPMBool                //kind checking function
-     );
-
-TypeConstructor pmint9m(
-        "pmint9m",            //name
-        PMInt9MProperty,      //property function describing signature
-        OutPMInt9M, InPMInt9M, //Out and In functions
-        0,                   //SaveToList and
-        0,                   //RestoreFromList functions
-        CreatePMInt9M, DeletePMInt9M,//object creation and deletion
-        0,0,
-        //OpenPMInt9M,    SavePMInt9M, //object open and save
-        ClosePMInt9M,  ClonePMInt9M,  //object close and clone
-        CastPMInt9M,                 //cast function
-        SizeOfPMInt9M,               //sizeof function
-        CheckPMInt9M                //kind checking function
-    );
-
-
-TypeConstructor pmreal(
-        "pmreal",            //name
-        PMRealProperty,      //property function describing signature
-        OutPMReal, InPMReal, //Out and In functions
-        0,                   //SaveToList and
-        0,                   //RestoreFromList functions
-        CreatePMReal, DeletePMReal,//object creation and deletion
-        //0,0,
-        OpenPMReal, SavePMReal, //object open and save
-        ClosePMReal,  ClonePMReal,  //object close and clone
-        CastPMReal,                 //cast function
-        SizeOfPMReal,               //sizeof function
-        CheckPMReal                //kind checking function
-     );
 
 /*
 5 Implementing Operators
 
 4.1 Type Mappings
 
-A type mapping checks the signature of an operator. This must be done
-very carefully. A wrong implementation here will lead to a crash
-of secondo.
+
+4.1.1 Template function for simple Type Mappings of the form
+
+  
 
 */
-ListExpr PBBoxPBBoxBoolTypeMap(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)==2) {
-        if(::nl->IsEqual(::nl->First(args),"pbbox") &&
-           ::nl->IsEqual(::nl->First(args),"pbbox"))
-          return ::nl->SymbolAtom("bool");
-        else
-          ErrorReporter::ReportError("Two values of type pbbox expected\n");
-        return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   ErrorReporter::ReportError("Wrong number of arguments \n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
 
-ListExpr PBBoxPBBoxPBBoxTypeMap(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)==2) {
-        if(::nl->IsEqual(::nl->First(args),"pbbox") &&
-           ::nl->IsEqual(::nl->Second(args),"pbbox"))
-           return ::nl->SymbolAtom("pbbox");
-        ErrorReporter::ReportError("Two Elements of type pbbox expected\n");
-        return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   ErrorReporter::ReportError("Wrong number of arguments\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
 
-ListExpr PIntervalInstantTypeMap(ListExpr args){
-    __TRACE__
+template<class A, class R>
+ListExpr TypeMap1(ListExpr args){
+  string err = A::BasicType()+ " expected";
   if(::nl->ListLength(args)!=1){
-       ErrorReporter::ReportError("Invalid number of arguments\n");
-       return ::nl->SymbolAtom(TYPE_ERROR);
+    ErrorReporter::ReportError(err);
+    return ::nl->TypeError();
   }
-  if(::nl->IsEqual(::nl->First(args),"pinterval"))
-       return ::nl->SymbolAtom("instant");
-  ErrorReporter::ReportError("value of type pinterval expected\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
+  if(!::nl->IsEqual(::nl->First(args),A::BasicType())){
+    ErrorReporter::ReportError(err);
+    return ::nl->TypeError();
+  }
+  return ::nl->SymbolAtom(R::BasicType());
 }
+
+template<class A1, class A2, class R>
+ListExpr TypeMap2(ListExpr args){
+  string err = A1::BasicType()+ " x " + A2::BasicType() + " expected";
+  if(::nl->ListLength(args)!=2){
+    ErrorReporter::ReportError(err);
+    return ::nl->TypeError();
+  }
+  if(!::nl->IsEqual(::nl->First(args),A1::BasicType()) ||
+     !::nl->IsEqual(::nl->Second(args),A2::BasicType())){
+    ErrorReporter::ReportError(err);
+    return ::nl->TypeError();
+  }
+  return ::nl->SymbolAtom(R::BasicType());
+}
+
+
 
 ListExpr EqualsTypeMap(ListExpr args){
     __TRACE__
@@ -12992,60 +11939,7 @@ ListExpr BreakpointsTypeMap(ListExpr args){
    return ::nl->SymbolAtom(TYPE_ERROR);   
 }
 
-ListExpr PMPointInstantTypeMap(ListExpr args){
-    __TRACE__
-   if(::nl->ListLength(args)!=1){
-      ErrorReporter::ReportError("Invalid number of arguments \n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->IsEqual(::nl->First(args),"pmpoint"))
-      return ::nl->SymbolAtom("instant");
 
-   ErrorReporter::ReportError(
-        "invalid type detected, value of type pmpoint expected\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-ListExpr PMPointPIntervalTypeMap(ListExpr args){
-    __TRACE__
-   if(::nl->ListLength(args)!=1){
-      ErrorReporter::ReportError("Invalid number of arguments\n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->IsEqual(::nl->First(args),"pmpoint"))
-      return ::nl->SymbolAtom("pinterval");
-   ErrorReporter::ReportError(
-         "Wrong types detected, required are pmpoint x pinterval\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-ListExpr PMPointPBBoxTypeMap(ListExpr args){
-    __TRACE__
-   if(::nl->ListLength(args)!=1){
-      ErrorReporter::ReportError("Wrong number of arguments\n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->IsEqual(::nl->First(args),"pmpoint"))
-      return ::nl->SymbolAtom("pbbox");
-   ErrorReporter::ReportError("pmpoint requiered\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-ListExpr TrajectoryTypeMap(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)==1) {
-        if(::nl->IsEqual(::nl->First(args),"pmpoint"))
-           return ::nl->SymbolAtom("line");
-        else{
-          ErrorReporter::ReportError(
-                        "invalid type for trajectory operator\n");
-          return ::nl->SymbolAtom(TYPE_ERROR);
-        }
-   }
-   ErrorReporter::ReportError(
-               "Wrong number of arguments for the trajectory operator\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
 
 ListExpr ContainsTypeMap(ListExpr args){
     __TRACE__
@@ -13082,57 +11976,7 @@ ListExpr IntersectsTypeMap(ListExpr args){
    return ::nl->SymbolAtom(TYPE_ERROR);
 }
 
-ListExpr LengthTypeMap(ListExpr args){
-    __TRACE__
-   if(::nl->ListLength(args)!=1){
-       ErrorReporter::ReportError("Lengths requires one argument\n");
-       return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->IsEqual(::nl->First(args),"pinterval"))
-       return ::nl->SymbolAtom("duration");
-   ErrorReporter::ReportError("value of type pinterval expected\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
 
-ListExpr PMPoint_Real_TypeMap(ListExpr args){
-   __TRACE__
-   string err = "pmpoint expected";
-   if(::nl->ListLength(args)!=1){
-      ErrorReporter::ReportError(err);
-      return ::nl->TypeError();
-   }
-   if(!::nl->IsEqual(::nl->First(args),"pmpoint")){
-      ErrorReporter::ReportError(err);
-      return ::nl->TypeError();
-   }
-   return ::nl->SymbolAtom("real");
-}
-
-ListExpr ExpandTypeMap(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)!=1){
-       ErrorReporter::ReportError("Invalid number of arguments\n");
-       return ::nl->SymbolAtom(TYPE_ERROR);
-  }
-   if(::nl->IsEqual(::nl->First(args),"pmpoint")){ 
-       return ::nl->SymbolAtom("mpoint");
-   }
-   ErrorReporter::ReportError(
-                "expand expects a pmpoint as operand\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-
-ListExpr CreatePMPointMap(ListExpr args){
-   if(::nl->ListLength(args)!=1){
-     ErrorReporter::ReportError("One argument expected.\n");
-     return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->IsEqual(::nl->First(args),"mpoint"))
-     return ::nl->SymbolAtom("pmpoint");
-   ErrorReporter::ReportError("mpoint expected \n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
 
 
 ListExpr ToprelTypeMap(ListExpr args){
@@ -13309,33 +12153,6 @@ ListExpr EndTypeMap(ListExpr args){
    return StartTypeMap(args);
 }
 
-
-ListExpr PMPoint_PMRealTypeMap(ListExpr args){
-   if(::nl->ListLength(args)!=1){
-      ErrorReporter::ReportError("invalid number of arguments");
-      return ::nl->TypeError();
-   }
-   if(!::nl->IsEqual(::nl->First(args),"pmpoint")){
-      ErrorReporter::ReportError("pmpoint required");
-      return ::nl->TypeError();
-   }
-   return ::nl->SymbolAtom("pmreal"); 
-}
-
-
-ListExpr MinMaxTypeMap(ListExpr args){
-   string err = "pmreal expected";
-   if(::nl->ListLength(args)!=1){
-     ErrorReporter::ReportError(err);
-     return ::nl->TypeError();
-   }
-   if(::nl->IsEqual(::nl->First(args),"pmreal")){
-     return ::nl->SymbolAtom("real");
-   } else {
-     ErrorReporter::ReportError(err);
-     return ::nl->TypeError();
-   }
-}
 
 /*
 5.2 Value Mappings
@@ -13585,14 +12402,47 @@ class TranslateF{
   };
 
 
-  /*
+template<class A, class R>
+class SpeedF{
+   public:
+   void operator()(A* a, R* res){
+     a->SpeedAndDirection(true,*res);
+   }
+};
+
+template<class A, class R>
+class DirectionF{
+   public:
+   void operator()(A* a, R* res){
+     a->SpeedAndDirection(false,*res);
+   }
+};
+
+template<class A, class R>
+class MinF{
+   public:
+   void operator()(A* a, R* res){
+     a->min(*res);
+   }
+};
+
+template<class A, class R>
+class MaxF{
+   public:
+   void operator()(A* a, R* res){
+     a->max(*res);
+   }
+};
+
+
+/*
   ~Generic Value Mapping Function~
 
   This function realized value mappings in the form
     A1 [x] A2 [->] R
   where Fun is the function applied to a1 and a2.
 
-  */
+*/
   template<class A1, class A2, class R, class Fun>
   int GenVM2(Word* args, Word& result, int message,
             Word& local, Supplier s){
@@ -13664,37 +12514,6 @@ int BreakpointsFun(Word* args, Word& result,
 
 
 
-
-template<bool isSpeed>
-int SpeedAndDirectionFun(Word* args, Word& result, int message,
-              Word& local, Supplier s){
-  PMPoint* arg = (PMPoint*) args[0].addr;
-  result = ::qp->ResultStorage(s);
-  PMReal* res = (PMReal*) result.addr;
-  arg->SpeedAndDirection(isSpeed,*res); 
-  return 0;
-}
-
-
-int MinFun(Word* args, Word& result, int message,
-              Word& local, Supplier s){
-
-  PMReal* arg = static_cast<PMReal*>(args[0].addr);
-  result = ::qp->ResultStorage(s);
-  CcReal* res = static_cast<CcReal*>(result.addr);
-  arg->min(*res); 
-  return 0;
-}
-
-int MaxFun(Word* args, Word& result, int message,
-              Word& local, Supplier s){
-
-  PMReal* arg = static_cast<PMReal*>(args[0].addr);
-  result = ::qp->ResultStorage(s);
-  CcReal* res = static_cast<CcReal*>(result.addr);
-  arg->max(*res); 
-  return 0;
-}
 
 /*
 5.3 Specifications of the Operators
@@ -14190,54 +13009,61 @@ static int NumberOfAnyNodesSelect(ListExpr args){
 
 */
 
+class Duration{
+  public:
+  static const string BasicType(){
+     return "duration";
+  }
+};
+
 Operator punion(
         "union",      // name
         UnionSpec,    // specification
         GenVM2<PBBox, PBBox, PBBox, UnionF<PBBox> >, // value mapping
         Operator::SimpleSelect, // selection function
-        PBBoxPBBoxPBBoxTypeMap); // type mapping
+        TypeMap2<PBBox, PBBox, PBBox> ); // type mapping
 
 Operator ptrajectory(
         "trajectory",
         TrajectorySpec,
         GenVM1<PMPoint,Line, TrajectoryF<PMPoint> >,
         Operator::SimpleSelect,
-        TrajectoryTypeMap);
+        TypeMap1<PMPoint,Line>);
 
 Operator plength(
         "length",
         LengthSpec,
         GenVM1<PInterval, DateTime, LengthF<PInterval, DateTime> >,
         Operator::SimpleSelect,
-        LengthTypeMap);
+        TypeMap1<PInterval, Duration>);
 
 Operator plength2(
         "length",
         LengthSpec2,
         GenVM1<PMPoint, CcReal, LengthF<PMPoint,CcReal> >,
         Operator::SimpleSelect,
-        PMPoint_Real_TypeMap);
+        TypeMap1<PMPoint,CcReal>);
 
 Operator pstart(
         "start",
         StartSpec,
         GenVM1<PInterval, DateTime, StartF<PInterval,DateTime> >,
         Operator::SimpleSelect,
-        PIntervalInstantTypeMap);
+        TypeMap1<PInterval, DateTime>);
 
 Operator pend(
         "end",
         EndSpec,
         GenVM1<PInterval,DateTime, EndF<PInterval,DateTime> >,
         Operator::SimpleSelect,
-        PIntervalInstantTypeMap);
+        TypeMap1<PInterval, Instant>);
         
 Operator pexpand(
         "expand",
         ExpandSpec,
         GenVM1<PMPoint, MPoint, ExpandF<PMPoint, MPoint> >,
         Operator::SimpleSelect,
-        ExpandTypeMap);
+        TypeMap1<PMPoint,MPoint>);
         
 
 Operator createpmpoint(
@@ -14245,22 +13071,22 @@ Operator createpmpoint(
         CreatePMPointSpec,
         GenVM1<MPoint, PMPoint, CreateF<MPoint, PMPoint> >,
         Operator::SimpleSelect,
-        CreatePMPointMap);
+        TypeMap1<MPoint,PMPoint>);
 
 
 Operator pspeed(
-        "speed",      // name
-        SpeedSpec,    // specification
-        SpeedAndDirectionFun<true>, // value mapping
-        Operator::SimpleSelect, // selection function
-        PMPoint_PMRealTypeMap); // type mapping
+        "speed",     
+        SpeedSpec,    
+        GenVM1<PMPoint,PMReal, SpeedF<PMPoint, PMReal> >, 
+        Operator::SimpleSelect, 
+        TypeMap1<PMPoint,PMReal>);
 
 Operator pdirection(
-        "direction",      // name
-        DirectionSpec,    // specification
-        SpeedAndDirectionFun<false>, // value mapping
+        "direction",      
+        DirectionSpec,    
+        GenVM1<PMPoint,PMReal, DirectionF<PMPoint, PMReal> >, 
         Operator::SimpleSelect, // selection function
-        PMPoint_PMRealTypeMap); // type mapping
+        TypeMap1<PMPoint,PMReal>); // type mapping
 /*
 5.7.2 Overloaded Operators
 
@@ -14397,16 +13223,16 @@ Operator ptranslate(
 Operator min(
         "minvalue",
         MinSpec,
-        MinFun,
+        GenVM1<PMReal, CcReal, MinF<PMReal, CcReal> >,
         Operator::SimpleSelect,
-        MinMaxTypeMap);
+        TypeMap1<PMReal, CcReal>);
 
 Operator max(
         "maxvalue",
         MaxSpec,
-        MaxFun,
+        GenVM1<PMReal, CcReal, MaxF<PMReal, CcReal> >,
         Operator::SimpleSelect,
-        MinMaxTypeMap);
+        TypeMap1<PMReal, CcReal>);
 
 } // namespace periodic
 

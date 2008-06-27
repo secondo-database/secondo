@@ -77,6 +77,7 @@ natural language (like each second monday of the month) can't be modelled.
 #include "TopRel.h"
 #include "DBArray.h"
 #include "RepTree.h"
+#include "GenericTC.h"
 
 using namespace datetime;
 using namespace toprel;
@@ -163,8 +164,8 @@ class PBBox: public StandardAttribute {
     void SetEmpty(const bool empty );
     size_t HashValue() const;
     void CopyFrom(const StandardAttribute* arg);
-    ListExpr ToListExpr() const;
-    bool ReadFrom(const ListExpr LE);
+    ListExpr ToListExpr(const ListExpr typeInfo) const;
+    bool ReadFrom(const ListExpr LE, const ListExpr typeInfo);
     int  CompareTo(const PBBox* B2)const;
     bool Contains(const double x, const  double y)const;
     bool Contains(const PBBox* B2)const;
@@ -181,6 +182,19 @@ class PBBox: public StandardAttribute {
     bool GetVertex(const int No,double& x, double& y) const;
     void SetEmpty();
     string ToString() const;
+    static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+       return nl->IsEqual(type,BasicType());
+    }
+    static const string BasicType(){
+      return "pbbox";
+    }
+    static ListExpr Property(){
+       __TRACE__
+       return gentc::GenProperty("-> DATA", 
+                          BasicType(),
+                          "(minx miny maxx maxy)",
+                          "(12.0 23.3  100.987 5245.978)");
+     }
   private:
     double minX;
     double maxX;
@@ -378,6 +392,7 @@ nested list representation.
 
 */
     ListExpr ToListExpr(const bool typeincluded) const;
+    ListExpr ToListExpr(const ListExpr typeInfo) const;
 
 /*
 ~IsLeftClosed~
@@ -458,6 +473,20 @@ interval at the right end as well as the left end at the same time.
     bool Split(const DateTime duration, const bool closeFirst,
                RelInterval& Rest);
     bool Plus(const RelInterval* I); 
+    static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+      return nl->IsEqual(type,BasicType());
+    }
+    static const string BasicType(){ 
+        return "rinterval";
+    }
+    static ListExpr Property(){
+      __TRACE__
+      return gentc::GenProperty( "-> DATA",
+                                 BasicType(),
+                                 "(<datetime> lC rC lI rI)",
+                                 "((time (2 120000)) TRUE FALSE FALSE FALSE)",
+                                 "an interval without fixed start");
+    }
   private:
     DateTime length;
 
@@ -505,6 +534,7 @@ class PInterval : public StandardAttribute{
     PInterval& operator=(const PInterval& source);
 
     bool ReadFrom(ListExpr list, bool typeIncluded);
+    bool ReadFrom(ListExpr list, const ListExpr typeInfo);
     bool Append(const RelInterval* D2);
     bool CanAppended(const RelInterval* D2)const;
     bool Contains(const DateTime* T)const;
@@ -530,12 +560,26 @@ class PInterval : public StandardAttribute{
     DateTime* GetEnd()const;
     void GetEnd(DateTime& result)const;
     ListExpr ToListExpr(const bool typeincluded)const;
+    ListExpr ToListExpr(const ListExpr typeInfo)const;
     bool IsLeftClosed()const;
     bool IsRightClosed()const;
     bool Set(const DateTime* startTime,const DateTime* length, 
              const bool leftClosed, const bool rightClosed);
     bool SetLength(const DateTime* T);
     string ToString()const;
+    static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+      return nl->IsEqual(type,BasicType());
+    }
+    static const string BasicType(){
+      return "pinterval";
+    }
+    static ListExpr Property(){
+      __TRACE__
+      return gentc::GenProperty("-> Data",
+                                BasicType(),
+                                "(<instant> <instant> leftClosed rightClosed)",
+                                "((instant 1.1)(instant 1.5) TRUE FALSE)");
+    }
   private:
     DateTime startTime;
     RelInterval relinterval;
@@ -1244,8 +1288,8 @@ class PMSimple : public StandardAttribute {
      void SetDefined( bool defined );
      size_t HashValue() const;
      void CopyFrom(const StandardAttribute* arg);
-     ListExpr ToListExpr()const;
-     bool ReadFrom(const ListExpr value);
+     ListExpr ToListExpr(const ListExpr typeInfo)const;
+     bool ReadFrom(const ListExpr value,const ListExpr typeInfo);
      bool IsEmpty()const;
   
      void At(const DateTime* instant,T& res)const;
@@ -1377,9 +1421,27 @@ This class is just an instantiation of the
 PMSimple class.
 
 */
+class PMBool: public PMSimple<bool,LinearConstantMove<bool> >{
+  public:
+  PMBool() {};
 
-typedef PMSimple<bool,LinearBoolMove> PMBool;
-
+  PMBool(int dummy):  PMSimple<bool,LinearConstantMove<bool> >(dummy){
+  }
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+    return nl->IsEqual(type,BasicType());
+  }
+  static const string BasicType(){
+    return "pmbool";
+  }
+  static ListExpr Property(){
+    __TRACE__
+    return gentc::GenProperty("-> DATA",
+                              BasicType(),
+                              "(<startTime> <submove>)",
+                              " ... ",
+                              "see in the documentation");
+  }
+};
 
 /*
 2.3.10 The class PMReal
@@ -1440,8 +1502,21 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
     }
 
   }
-  
-
+ 
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+    return nl->IsEqual(type,BasicType());
+  } 
+  static const string BasicType(){
+       return "pmreal";
+  }
+  static ListExpr Property(){
+    __TRACE__
+    return gentc::GenProperty("-> DATA",
+                              BasicType(),
+                              "(<startTime> <submove>)",
+                              " ... ",
+                              "see in the documentation");
+  }
 };
 
 
@@ -1466,6 +1541,18 @@ public:
                  const DBArray<PeriodicMove>&           periodicMoves,
                  const DateTime                        startTime,
                  const SubMove                         submove);
+  static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+      return  nl->IsEqual(type,BasicType());
+  }
+  static const string BasicType(){
+     return "pmint9m"; 
+  }
+  static ListExpr Property(){
+    __TRACE__
+    return gentc::GenProperty( "-> DATA", BasicType(),
+                               "(<startTime> <submove>)",
+                               " ... ","see in the documentation");
+  }
 
 };
 
@@ -1497,7 +1584,8 @@ class PMPoint : public StandardAttribute {
      size_t HashValue() const;
      void CopyFrom(const StandardAttribute* arg);
      ListExpr ToListExpr(const bool typeincluded)const;
-     bool ReadFrom(const ListExpr value);
+     ListExpr ToListExpr(const ListExpr typeInfo)const;
+     bool ReadFrom(const ListExpr value, const ListExpr typeInfo);
      PMPoint* Intersection(const PInterval* interval);
      bool IsEmpty()const;
      void At(const DateTime* instant, Point& res)const;
@@ -1540,6 +1628,20 @@ class PMPoint : public StandardAttribute {
      inline size_t NumberOfFlatUnits() const; 
      double Length()const;
      void Length(CcReal& res)const;
+     static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+       return nl->IsEqual(type,"pmpoint");
+     }
+     static const string BasicType(){
+       return "pmpoint";
+     }
+     static ListExpr Property(){
+       __TRACE__
+       return gentc::GenProperty("-> DATA",
+                                 BasicType(),
+                                 "(<startTime> <submove>)",
+                                 "...",
+                                 "see the documentation");
+      }
   private:
      DBArray<LinearPointMove> linearMoves;
      DBArray<SpatialCompositeMove> compositeMoves;
@@ -1621,7 +1723,8 @@ class PMPoints : public StandardAttribute {
      size_t HashValue() const;
      void CopyFrom(const StandardAttribute* arg);
      ListExpr ToListExpr(const bool typeincluded)const;
-     bool ReadFrom(const ListExpr value);
+     ListExpr ToListExpr(const ListExpr typeInfo)const;
+     bool ReadFrom(const ListExpr value, const ListExpr typeInfo);
      bool IsEmpty()const;
      inline Points* Breakpoints()const;
      void Breakpoints(Points& res) const;
@@ -1636,6 +1739,20 @@ class PMPoints : public StandardAttribute {
      bool Final(Points& res) const;
      void Translate(const DateTime& duration);
      void Translate(const DateTime* duration,PMPoints& res)const;
+     static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+       return nl->IsEqual(type,BasicType());
+     }
+     static const string BasicType(){
+       return "pmpoints";
+     }
+     static ListExpr Property(){
+       __TRACE__
+       return gentc::GenProperty("-> DATA",
+                                 BasicType(),
+                                 "(<startTime> <submove>)",
+                                 "...",
+                                 "see the documentation");
+      }
  private:
      DBArray<LinearPointsMove> linearMoves;
      DBArray<TwoPoints> thePoints;
