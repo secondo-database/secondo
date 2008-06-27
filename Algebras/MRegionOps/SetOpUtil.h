@@ -415,19 +415,10 @@ public:
 
     ResultUnitFactory(MRegion* const _resMRegion) :
         resMRegion(_resMRegion) {
-
-        sourceIter = source->begin();
-        minEndT = MAX_DOUBLE;
+        
     }
 
-    void Start() {
-
-        while (sourceIter != source->end()) {
-
-            t1 = min((*sourceIter)->GetStartT(), minEndT);
-            ComputeCurrentTimeLevel();
-        }
-    }
+    void Start();
 
     inline void AddIntSeg(IntersectionSegment* intSeg) {
 
@@ -453,7 +444,7 @@ private:
 
     inline bool HasMoreSegsToInsert() const {
 
-        return sourceIter != source->end() && 
+        return sourceIter != source.end() && 
         NumericUtil::NearlyEqual((*sourceIter)->GetStartT(), t1);
     }
 
@@ -468,16 +459,11 @@ private:
     list<IntersectionSegment*> active;
     list<IntersectionSegment*>::iterator activeIter;
 
-    list<IntersectionSegment*> temp;
-    list<IntersectionSegment*>::iterator tempIter;
-
     double t1;
     double t2;
     double minEndT;
     
     MRegion* const resMRegion;
-    //DBArray<MSegmentData>* resArray;
-    //vector<URegionEmb>* resultUnits;
 };
 
 class SourceUnit {
@@ -608,9 +594,7 @@ public:
 
     }
 
-    void Intersection();
-    void Union();
-    void Minus();
+    void Operate(const SetOp op);
 
     inline Rectangle<2> GetOverlapRect() const {
 
@@ -636,6 +620,8 @@ public:
 
         return unitA.GetEndTime();
     }
+    
+private:
 
     void ComputeOverlapRect();
     void CreatePFaces();
@@ -652,8 +638,6 @@ public:
     void PrintIntSegsOfPFaces();
     void PrintUnitsAsVRML();
     
-private:
-
     SourceUnit unitA;
     SourceUnit unitB;
     Rectangle<2> overlapRect;
@@ -664,12 +648,18 @@ class SetOperator {
     
 public:
     
-    SetOperator(const MRegion* const _a, 
-                const MRegion* const _b, 
+    SetOperator(MRegion* const _a, 
+                MRegion* const _b, 
                 MRegion* const _res) :
                 
                 a(_a), b(_b), res(_res) {
 
+    }
+    
+    ~SetOperator() {
+        
+        // delete a_ref;
+        // delete b_ref;
     }
     
     void Intersection();
@@ -678,11 +668,15 @@ public:
     
 private:
     
-    //void RefinementPartition();
+    void RefinementPartition();
+    void Operate(const SetOp op);
     
-    const MRegion* const a;
-    const MRegion* const b;
+    MRegion* const a;
+    MRegion* const b;
     MRegion* const res;
+    
+    MRegion* a_ref;
+    MRegion* b_ref;
 };
 
 struct GeneralIntSegSetCompare {

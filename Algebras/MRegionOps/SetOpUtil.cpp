@@ -85,11 +85,22 @@ PointExtSet::GetIntersectionSegment() const {
 
 */
 
+void ResultUnitFactory::Start() {
+
+    sourceIter = source.begin();
+    minEndT = MAX_DOUBLE;
+
+    while (sourceIter != source.end()) {
+
+        t1 = min((*sourceIter)->GetStartT(), minEndT);
+        ComputeCurrentTimeLevel();
+    }
+}
 
 void ResultUnitFactory::ComputeCurrentTimeLevel() {
     
     // Precondition of this first version: 
-    // A ResultUnit contains only one face with one cycle!
+    // A resultUnit consists of only one face with one cycle!
     
     UpdateActiveSegList();
     
@@ -102,8 +113,8 @@ void ResultUnitFactory::ComputeCurrentTimeLevel() {
     URegionEmb resultUnit(interval, 0);
     
     
-    const IntersectionSegment* const firstSegInCycle = active.begin();
-    IntersectionSegment* seg = firstSegInCycle;
+    const IntersectionSegment* const firstSegInCycle = *active.begin();
+    IntersectionSegment* seg = *active.begin();
     IntersectionSegment* rightMate;
     
     unsigned int faceNo = 0;
@@ -133,13 +144,19 @@ void ResultUnitFactory::ComputeCurrentTimeLevel() {
                           finalEnd.GetX(),
                           finalEnd.GetY());
         
-        //resultUnit.PutSegment(segmentNo, );
+        
+        resultUnit.PutSegment(resMRegion->GetMSegmentDataW(), 
+                              segmentNo,
+                              mSeg,
+                              true);
         
         segmentNo++;
         
         seg = rightMate;
         
     } while (seg != firstSegInCycle);
+    
+    resMRegion->Add(resultUnit);
 }
 
 void ResultUnitFactory::UpdateActiveSegList() {
@@ -686,7 +703,7 @@ SourceUnitPair::SourceUnitPair(const URegionEmb* const _uRegionA,
     ComputeOverlapRect();
 }
 
-const vector<URegionEmb>* SourceUnitPair::Intersection() {
+void SourceUnitPair::Operate(const SetOp op) {
 
     if (HasOverlappingBoundingRect()) {
 
@@ -695,16 +712,17 @@ const vector<URegionEmb>* SourceUnitPair::Intersection() {
         CreatePFaces();
         //PrintPFaceCycles();
         //PrintPFacePairs();
-        ComputeInnerIntSegs(INTERSECTION);
+        ComputeInnerIntSegs(op);
         //PrintIntSegsOfPFaces();
-        AddBoundarySegments(INTERSECTION);
+        AddBoundarySegments(op);
         //PrintIntSegsOfPFaces();
         //FindMates();
         //PrintIntSegsOfPFaces();
         FindMatesAndCollectIntSegs(&resultUnitFactory);
+        PrintIntSegsOfPFaces();
         //PrintIntSegsOfGlobalList();
         //PrintIntSegsOfGlobalListAsVRML();
-        PrintUnitsAsVRML(resultUnitFactory);
+        PrintUnitsAsVRML();
         //ConstructResultUnits();
 
     } else {
@@ -714,132 +732,19 @@ const vector<URegionEmb>* SourceUnitPair::Intersection() {
         CreatePFaces();
         //PrintPFaceCycles();
         //PrintPFacePairs();
-        ComputeInnerIntSegs(INTERSECTION);
+        ComputeInnerIntSegs(op);
         //PrintIntSegsOfPFaces();
-        AddBoundarySegments(INTERSECTION);
+        AddBoundarySegments(op);
         //PrintIntSegsOfPFaces();
         //FindMates();
         //PrintIntSegsOfPFaces();
         FindMatesAndCollectIntSegs(&resultUnitFactory);
         //PrintIntSegsOfGlobalList();
         //PrintIntSegsOfGlobalListAsVRML();
-        PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultUnits();
-
-
-        // construct one empty uregion:
-        // URegionEmb* ure = new URegionEmb(this->GetTimeInterval(), 0); 
-        // delete?
-        // URegion ur(0u);
-        // ur.SetEmbedded(ure);
-
-        // result->push_back(ur);
-
+        PrintUnitsAsVRML();
+        ConstructResultUnits();
     }
-
-    //return resultUnitFactory.GetResultUnits();
 }
-
-const vector<URegionEmb>* SourceUnitPair::Union() {
-
-    if (HasOverlappingBoundingRect()) {
-
-        cout << "HasOverlappingBoundingRect() == true" << endl;
-
-        CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        ComputeInnerIntSegs(UNION);
-        //PrintIntSegsOfPFaces();
-        AddBoundarySegments(UNION);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultUnits();
-
-    } else {
-
-        cout << "HasOverlappingBoundingRect() == false" << endl;
-
-        CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        ComputeInnerIntSegs(UNION);
-        //PrintIntSegsOfPFaces();
-        AddBoundarySegments(UNION);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultUnits();
-
-        // TODO: construct one uregion with all elements
-        // from both, unitA and unitB.
-    }
-
-    //return resultUnitFactory.GetResultUnits();
-}
-
-const vector<URegionEmb>* SourceUnitPair::Minus() {
-
-    if (HasOverlappingBoundingRect()) {
-
-        cout << "HasOverlappingBoundingRect() == true" << endl;
-
-        CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        ComputeInnerIntSegs(MINUS);
-        //PrintIntSegsOfPFaces();
-        AddBoundarySegments(MINUS);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //CollectIntSegs();
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultUnits();
-
-    } else {
-
-        cout << "HasOverlappingBoundingRect() == false" << endl;
-
-        CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        ComputeInnerIntSegs(MINUS);
-        //PrintIntSegsOfPFaces();
-        AddBoundarySegments(MINUS);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        PrintUnitsAsVRML(resultUnitFactory);
-        //ConstructResultUnits();
-
-
-        // construct one uregion identical to unitA:
-        //URegion ur(unitA.GetNoOfPFaces());
-        //ur.SetEmbedded(unitA.GetURegionEmb());
-
-        //result->push_back(ur);
-    }
-
-    //return resultUnitFactory.GetResultUnits();
-}
-
-
 
 void SourceUnitPair::ComputeOverlapRect() {
 
@@ -887,6 +792,11 @@ void SourceUnitPair::FindMatesAndCollectIntSegs(ResultUnitFactory* receiver) {
 
     unitA.FindMatesAndCollectIntSegs(receiver);
     unitB.FindMatesAndCollectIntSegs(receiver);
+}
+
+void SourceUnitPair::ConstructResultUnits() {
+    
+    resultUnitFactory.Start();
 }
 
 void SourceUnitPair::PrintPFaceCycles() {
@@ -991,7 +901,100 @@ void SourceUnitPair::PrintUnitsAsVRML() {
 */
 
 
+void SetOperator::Intersection() {
+    
+    Operate(INTERSECTION);
+}
 
+void SetOperator::Union() {
+
+    Operate(UNION);
+}
+
+void SetOperator::Minus() {
+
+    Operate(MINUS);
+}
+
+void SetOperator::RefinementPartition() {
+    
+    // TODO: This is just a dummy.
+    
+    a_ref = a;
+    b_ref = b;
+}
+
+void SetOperator::Operate(const SetOp op) {
+    
+    // Note: Only one unit is supported yet!
+    
+    RefinementPartition();
+
+    const DBArray<MSegmentData>* aArray = a_ref->GetMSegmentData();
+    const DBArray<MSegmentData>* bArray = b_ref->GetMSegmentData();
+    const URegionEmb* a;
+    const URegionEmb* b;
+
+    a_ref->Get(0, a);
+    b_ref->Get(0, b);
+
+    SourceUnitPair so = SourceUnitPair(a, aArray, b, bArray, res);
+    so.Operate(op);
+    
+    /*
+        //Compute the refinement partition:
+        RefinementPartition<
+                MRegion,
+                MRegion,
+                URegionEmb,
+                URegionEmb> rp(*this, mr);
+        
+        // Get the number of region units from the refinement partition:
+        const unsigned int nOfUnits = rp.Size();
+        
+        const URegionEmb* aa;
+        const URegionEmb* bb;
+        const URegionEmb* a;
+        const URegionEmb* b;
+        PUnitPair* unitPair;
+        vector<URegion>* resultUnits;
+        Interval<Instant>* interval;
+        int aPos, bPos;
+        
+        const DBArray<MSegmentData>* aArray = this->GetMSegmentData();
+        const DBArray<MSegmentData>* bArray = mr.GetMSegmentData();
+
+        for (unsigned int i = 0; i < nOfUnits; i++) {
+            
+            // Get the interval of region unit i 
+            // from the refinement partition:
+            rp.Get(i, interval, aPos, bPos);
+            
+            // Skip this region unit, 
+            // if one of the movingregions is undefined:
+            if (aPos == -1 || bPos == -1)
+                continue;
+            
+            this->Get(aPos, aa);
+            mr.Get(bPos, bb);
+            
+            //aa->Restrict(interval, a);
+            //bb->Restrict(interval, b);
+            a = aa;
+            b = bb;
+            
+            unitPair = new PUnitPair(a, aArray, b, bArray);
+            resultUnits = unitPair->Intersection();
+            
+            vector<URegion>::iterator it;
+            for (it = resultUnits->begin(); it != resultUnits->end(); it++)
+                res.AddURegion(*it);
+            
+            delete unitPair;
+            
+        }
+        */
+}
 
 /*
 
@@ -1049,6 +1052,8 @@ bool IntersectionSegment::IsLeftOf(const IntersectionSegment* intSeg) const {
             else
                 if (this->GetEndWT().IsRight(s))
                     return false;
+                else
+                    return true;
                 //else // this is colinear to intSeg.
                     //if (op == INTERSECTION)
                         //return this->ResultFaceIsLeft();

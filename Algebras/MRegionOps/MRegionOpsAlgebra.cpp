@@ -42,115 +42,6 @@ using namespace std;
 
 namespace mregionops {
 
-
-void Intersection(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
-	
-	// Precondition (for testing):
-	// mrA and mrB contains just one unit
-	// over the same interval.
-	
-	const DBArray<MSegmentData>* aArray = mrA.GetMSegmentData();
-	const DBArray<MSegmentData>* bArray = mrB.GetMSegmentData();
-	const URegionEmb* a;
-	const URegionEmb* b;
-	
-	mrA.Get(0, a);
-	mrB.Get(0, b);
-	
-	SourceUnitPair so = SourceUnitPair(a, aArray, b, bArray);
-	so.Intersection();
-	
-	/*
-	//Compute the refinement partition:
-	RefinementPartition<
-	        MRegion,
-	        MRegion,
-	        URegionEmb,
-	        URegionEmb> rp(*this, mr);
-	
-	// Get the number of region units from the refinement partition:
-	const unsigned int nOfUnits = rp.Size();
-	
-	const URegionEmb* aa;
-	const URegionEmb* bb;
-	const URegionEmb* a;
-	const URegionEmb* b;
-	PUnitPair* unitPair;
-	vector<URegion>* resultUnits;
-	Interval<Instant>* interval;
-	int aPos, bPos;
-	
-	const DBArray<MSegmentData>* aArray = this->GetMSegmentData();
-	const DBArray<MSegmentData>* bArray = mr.GetMSegmentData();
-
-	for (unsigned int i = 0; i < nOfUnits; i++) {
-		
-		// Get the interval of region unit i 
-		// from the refinement partition:
-		rp.Get(i, interval, aPos, bPos);
-		
-		// Skip this region unit, 
-		// if one of the movingregions is undefined:
-		if (aPos == -1 || bPos == -1)
-			continue;
-		
-		this->Get(aPos, aa);
-		mr.Get(bPos, bb);
-		
-		//aa->Restrict(interval, a);
-		//bb->Restrict(interval, b);
-		a = aa;
-		b = bb;
-		
-		unitPair = new PUnitPair(a, aArray, b, bArray);
-		resultUnits = unitPair->Intersection();
-		
-		vector<URegion>::iterator it;
-		for (it = resultUnits->begin(); it != resultUnits->end(); it++)
-			res.AddURegion(*it);
-		
-		delete unitPair;
-		
-	}
-	*/
-}
-
-void Union(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
-	
-	// Precondition (for testing):
-	// mrA and mrB contains just one unit
-	// over the same interval.
-	
-	const DBArray<MSegmentData>* aArray = mrA.GetMSegmentData();
-	const DBArray<MSegmentData>* bArray = mrB.GetMSegmentData();
-	const URegionEmb* a;
-	const URegionEmb* b;
-	
-	mrA.Get(0, a);
-	mrB.Get(0, b);
-	
-	SourceUnitPair so = SourceUnitPair(a, aArray, b, bArray);
-	so.Union();
-}
-
-void Minus(MRegion& mrA, MRegion& mrB, MRegion& mrResult) {
-	
-	// Precondition (for testing):
-	// mrA and mrB contains just one unit
-	// over the same interval.
-	
-	const DBArray<MSegmentData>* aArray = mrA.GetMSegmentData();
-	const DBArray<MSegmentData>* bArray = mrB.GetMSegmentData();
-	const URegionEmb* a;
-	const URegionEmb* b;
-	
-	mrA.Get(0, a);
-	mrB.Get(0, b);
-	
-	SourceUnitPair so = SourceUnitPair(a, aArray, b, bArray);
-	so.Minus();
-}
-
 /*
 
  Type Mapping Functions
@@ -195,33 +86,28 @@ int IntersectionValueMap(Word* args, Word& result, int message,
 	SetOperator so(mrA, mrB, res);
 	so.Intersection();
 
-	//MRegion dummy(0);
-	//Intersection(*mrA, *mrB, dummy);
-
-	//res->SetDefined(false);
-
 	return 0;
 }
 
 int UnionValueMap(Word* args, Word& result, int message, Word& local,
 		Supplier s) {
+    
 	MRegion* mrA = static_cast<MRegion*>(args[0].addr );
 	MRegion* mrB = static_cast<MRegion*>(args[1].addr );
 
 	result = qp->ResultStorage(s);
 
 	MRegion* res = static_cast<MRegion*>(result.addr );
-
-	MRegion dummy(0);
-	Union(*mrA, *mrB, dummy);
-
-	res->SetDefined(false);
+	
+	SetOperator so(mrA, mrB, res);
+	so.Union();
 
 	return 0;
 }
 
 int MinusValueMap(Word* args, Word& result, int message, Word& local,
 		Supplier s) {
+    
 	MRegion* mrA = static_cast<MRegion*>(args[0].addr );
 	MRegion* mrB = static_cast<MRegion*>(args[1].addr );
 
@@ -229,10 +115,8 @@ int MinusValueMap(Word* args, Word& result, int message, Word& local,
 
 	MRegion* res = static_cast<MRegion*>(result.addr );
 
-	MRegion dummy(0);
-	Minus(*mrA, *mrB, dummy);
-
-	res->SetDefined(false);
+	SetOperator so(mrA, mrB, res);
+	so.Minus();
 
 	return 0;
 }
