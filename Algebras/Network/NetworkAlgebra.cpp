@@ -260,7 +260,7 @@ bool chkPoint03 (SimpleLine *route, Point point, bool startSmaller, double &pos,
 
 Returns true if a ~point~ is part of a ~sline~, false elsewhere. If the point
 is part of the sline his distance from the start is computed also. Used by
-operator ~sline2gline~.
+operator ~line2gline~.
 
 */
 bool checkPoint (SimpleLine *route, Point point, bool startSmaller,
@@ -485,9 +485,11 @@ Creates a RectangleList from a given gline.
     aliasRectangleList.Clear();
     for (int i = 0 ; i < gl->NoOfComponents(); i++) {
       gl->Get(i, ri);
-      elem = new Rectangle<2>(true, (double) ri->m_iRouteId,
-                              (double) ri->m_iRouteId, ri->m_dStart,
-                              ri->m_dEnd);
+      elem = new Rectangle<2>(true,
+                              (double) ri->m_iRouteId,
+                              (double) ri->m_iRouteId,
+                              min(ri->m_dStart,ri->m_dEnd),
+                              max(ri->m_dStart, ri->m_dEnd));
       aliasRectangleList.Append(*elem);
     }
   }
@@ -1313,8 +1315,8 @@ void Network::Destroy()
   delete m_pBTreeJunctionsByRoute1; m_pBTreeJunctionsByRoute1 = 0;
   m_pBTreeJunctionsByRoute2->DeleteFile();
   delete m_pBTreeJunctionsByRoute2; m_pBTreeJunctionsByRoute2 = 0;
-  m_xAdjacencyList.Destroy();
-  m_xSubAdjacencyList.Destroy();
+//  m_xAdjacencyList.Destroy();
+//  m_xSubAdjacencyList.Destroy();
 }
 
 /*
@@ -3690,17 +3692,15 @@ int OpGPoint2RectValueMapping(Word* args,
                                    Word& local,
                                    Supplier in_xSupplier)
 {
-   GPoint *pGPoint = (GPoint*) args[0].addr;
-   result = qp->ResultStorage(in_xSupplier);
-   if (pGPoint == NULL || !pGPoint->IsDefined()) {
-     result = SetWord(false);
-     return 0;
-   }
-   result = SetWord(new Rectangle<2>(true, (double) pGPoint->GetRouteId(),
-                              (double) pGPoint->GetRouteId(),
-                              pGPoint->GetPosition(),
-                              pGPoint->GetPosition()));
-   return 0; // ignore unknown message
+  result = qp->ResultStorage( in_xSupplier );
+  Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
+  GPoint* arg = static_cast<GPoint*>(args[0].addr);
+  if(!arg->IsDefined()){
+    box->SetDefined(false);
+  } else {
+    (*box) = arg->BoundingBox();
+  }
+  return 0;
 } //end ValueMapping
 
 const string OpGPoint2RectSpec  =
@@ -3849,9 +3849,9 @@ Operator networklength (
 );
 
 /*
-1.4.5 Operator ~sline2gline~
+1.4.5 Operator ~line2gline~
 
-Translates a spatial ~sline~ value into a network ~GLine~ value.
+Translates a spatial ~line~ value into a network ~GLine~ value.
 
 */
 
@@ -3874,7 +3874,7 @@ ListExpr OpLine2GLineTypeMap(ListExpr in_xArgs)
 
   if( (!nl->IsAtom( xLineDesc )) ||
       nl->AtomType( xLineDesc ) != SymbolType ||
-      nl->SymbolValue( xLineDesc ) != "sline" )
+      nl->SymbolValue( xLineDesc ) != "line" )
   {
     sendMessage("Second element must be of type sline.");
     return (nl->SymbolAtom( "typeerror" ));
@@ -3902,9 +3902,9 @@ int OpLine2GLineValueMapping(Word* args,
     return 0;
   }
   pGLine->SetNetworkId(pNetwork->GetId());
-  SimpleLine* pLine = (SimpleLine*)args[1].addr;
+  Line* pLine = (Line*)args[1].addr;
   if(pLine == NULL || !pLine->IsDefined()) {
-    string strMessage = "sline does not exist.";
+    string strMessage = "line does not exist.";
     cerr << strMessage << endl;
     sendMessage(strMessage);
     pGLine->SetDefined(false);
@@ -3919,14 +3919,14 @@ int OpLine2GLineValueMapping(Word* args,
   RITree *tree;
   pLine->Get(0,hs);
   Tuple *pCurrentRoute;
-  int iRouteTid, iRouteId;
+  int iRouteTid, iRouteId, firstRouteId;
   CcInt *pRouteId;
   SimpleLine *pRouteCurve;
   bool bLeftFound, bRightFound;
-  double leftPos, rightPos;
+  double leftPos, rightPos, firstLeftPos, firstRightPos, difference;
   GenericRelationIterator* pRoutesIt = pRoutes->MakeScan();
   bool found = false;
-  while( (pCurrentRoute = pRoutesIt->GetNextTuple()) != 0 && !found) {
+  while( (pCurrentRoute = pRoutesIt->GetNextTuple()) != 0) {
     iRouteTid = -1;
     pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
     iRouteId = pRouteId->GetIntval();
@@ -3937,21 +3937,47 @@ int OpLine2GLineValueMapping(Word* args,
           checkPoint(pRouteCurve, hs->GetRightPoint(), true, rightPos);
       if (bRightFound) {
         found = true;
-        if (leftPos > rightPos) {
-          tree = new RITree(iRouteId, rightPos, leftPos, 0,0);
+        difference = fabs(leftPos - rightPos);
+        firstLeftPos = leftPos;
+        firstRightPos = rightPos;
+        firstRouteId = iRouteId;
+        pCurrentRoute->DeleteIfAllowed();
+        while ((pCurrentRoute = pRoutesIt->GetNextTuple()) != 0){
+          iRouteTid = -1;
+          pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
+          iRouteId = pRouteId->GetIntval();
+          pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+          bLeftFound =
+              checkPoint(pRouteCurve, hs->GetLeftPoint(), true, leftPos);
+          if (bLeftFound) {
+            bRightFound =
+                  checkPoint(pRouteCurve, hs->GetRightPoint(), true, rightPos);
+            if (bRightFound) {
+              if (fabs(leftPos - rightPos) < difference) {
+                firstRouteId = iRouteId;
+                firstLeftPos = leftPos;
+                firstRightPos = rightPos;
+                difference = fabs(leftPos - rightPos);
+              }
+            }
+          }
+          pCurrentRoute->DeleteIfAllowed();
+        }
+        if (firstLeftPos > firstRightPos) {
+          tree = new RITree(firstRouteId, firstRightPos, firstLeftPos, 0,0);
         } else {
-          tree = new RITree(iRouteId, leftPos, rightPos, 0,0);
+          tree = new RITree(firstRouteId, firstLeftPos, firstRightPos, 0,0);
         }
       }
     }
-    pCurrentRoute->DeleteIfAllowed();
+    if (!found) pCurrentRoute->DeleteIfAllowed();
   }
   delete pRoutesIt;
   for (int i = 1 ; i < pLine->Size(); i++) {
     pLine->Get(i, hs);
     GenericRelationIterator* pRoutesIt = pRoutes->MakeScan();
     found = false;
-    while( (pCurrentRoute = pRoutesIt->GetNextTuple()) != 0 && !found) {
+    while( (pCurrentRoute = pRoutesIt->GetNextTuple()) != 0) {
       iRouteTid = -1;
       pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
       iRouteId = pRouteId->GetIntval();
@@ -3962,14 +3988,41 @@ int OpLine2GLineValueMapping(Word* args,
             checkPoint(pRouteCurve, hs->GetRightPoint(), true, rightPos);
         if (bRightFound) {
           found = true;
-          if (leftPos > rightPos) {
-            tree->insert(iRouteId, rightPos, leftPos);
+          difference = fabs(leftPos - rightPos);
+          firstLeftPos = leftPos;
+          firstRightPos = rightPos;
+          firstRouteId = iRouteId;
+          pCurrentRoute->DeleteIfAllowed();
+          while ((pCurrentRoute = pRoutesIt->GetNextTuple()) != 0){
+            iRouteTid = -1;
+            pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
+            iRouteId = pRouteId->GetIntval();
+            pRouteCurve =
+                (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
+            bLeftFound =
+              checkPoint(pRouteCurve, hs->GetLeftPoint(), true, leftPos);
+            if (bLeftFound) {
+              bRightFound =
+                  checkPoint(pRouteCurve, hs->GetRightPoint(), true, rightPos);
+              if (bRightFound) {
+                if (fabs(leftPos - rightPos) < difference) {
+                  firstRouteId = iRouteId;
+                  firstLeftPos = leftPos;
+                  firstRightPos = rightPos;
+                  difference = fabs(leftPos - rightPos);
+                }
+              }
+            }
+            pCurrentRoute->DeleteIfAllowed();
+          }
+          if (firstLeftPos > firstRightPos) {
+            tree->insert(firstRouteId, firstRightPos, firstLeftPos);
           } else {
-            tree->insert(iRouteId, leftPos, rightPos);
+            tree->insert(firstRouteId, firstLeftPos, firstRightPos);
           }
         }
       }
-      pCurrentRoute->DeleteIfAllowed();
+      if (!found) pCurrentRoute->DeleteIfAllowed();
     }
     delete pRoutesIt;
   } // end for pLine-Components
@@ -3985,14 +4038,14 @@ int OpLine2GLineValueMapping(Word* args,
 const string OpLine2GLineSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>network x sline -> gline" "</text--->"
+  "( <text>network x line -> gline" "</text--->"
   "<text>sline2gline(_,_)</text--->"
-  "<text>Translates a sline to a gline value.</text--->"
-  "<text>sline2gline(B_NETWORK, sline)</text--->"
+  "<text>Translates a line to a gline value.</text--->"
+  "<text>line2gline(B_NETWORK, sline)</text--->"
   ") )";
 
 Operator sline2gline (
-          "sline2gline",               // name
+          "line2gline",               // name
           OpLine2GLineSpec,          // specification
           OpLine2GLineValueMapping,  // value mapping
           Operator::SimpleSelect,        // selection function
@@ -4891,9 +4944,9 @@ Operator shortest_path (
 );
 
 /*
-1.4.17 Operator ~gline2sline~
+1.4.17 Operator ~gline2line~
 
-Returns the ~sline~ value of the given ~GLine~.
+Returns the ~line~ value of the given ~GLine~.
 
 */
 
@@ -4912,7 +4965,7 @@ ListExpr OpGLine2LineTypeMap(ListExpr in_xArgs)
     sendMessage("Element must be of type gline.");
     return (nl->SymbolAtom("typeerror"));
   }
-  return nl->SymbolAtom( "sline" );
+  return nl->SymbolAtom( "line" );
 }
 
 int OpGLine2LineValueMapping(Word* args,
@@ -4921,7 +4974,7 @@ int OpGLine2LineValueMapping(Word* args,
                                    Word& local,
                                    Supplier in_xSupplier)
 {
-  SimpleLine* pLine = (SimpleLine*) qp->ResultStorage(in_xSupplier).addr;
+  Line* pLine = (Line*) qp->ResultStorage(in_xSupplier).addr;
   result = SetWord(pLine);
   pLine->SetDefined(true);
   GLine* pGLine = (GLine*)args[0].addr;
@@ -4933,11 +4986,11 @@ int OpGLine2LineValueMapping(Word* args,
   Network* pNetwork = NetworkManager::GetNetwork(pGLine->GetNetworkId());
   const RouteInterval *rI;
   const HalfSegment *hs;
-  SimpleLine *resLine = new SimpleLine(1);
+  Line *resLine = new Line(1);
   resLine->StartBulkLoad();
   for (int i=0; i < pGLine->NoOfComponents(); i++) {
     pGLine->Get(i,rI);
-    SimpleLine pSubline = *new SimpleLine(1);
+    SimpleLine pSubline = *new Line(1);
     pNetwork->GetLineValueOfRouteInterval(rI, pSubline);
     for (int j = 0; j < pSubline.Size(); j++) {
       pSubline.Get(j,hs);
@@ -4954,20 +5007,70 @@ int OpGLine2LineValueMapping(Word* args,
 const string OpGLine2LineSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>gline -> sline" "</text--->"
-  "<text>gline2sline(GLINE)</text--->"
+  "( <text>gline -> line" "</text--->"
+  "<text>gline2line(GLINE)</text--->"
   "<text>Returns the line value of the gline.</text--->"
-  "<text> gline2sline(gline) </text--->"
+  "<text> gline2line(gline) </text--->"
   ") )";
 
-Operator networkgline2sline (
-          "gline2sline",               // name
+Operator networkgline2line (
+          "gline2line",               // name
           OpGLine2LineSpec,          // specification
           OpGLine2LineValueMapping,  // value mapping
           Operator::SimpleSelect,        // selection function
           OpGLine2LineTypeMap        // type mapping
 );
 
+/*
+1.4.18 Operator ~isempty~
+
+Returns if the ~GLine~. is empty.
+
+*/
+ListExpr OpNetIsEmptyTypeMap(ListExpr args){
+  if (nl->ListLength(args) != 1) {
+    return (nl->SymbolAtom("typeerror"));
+  }
+  ListExpr gline = nl->First(args);
+  if (!nl->IsAtom(gline) || nl->AtomType(gline) != SymbolType ||
+       nl->SymbolValue(gline) != "gline"){
+    return (nl->SymbolAtom("typeerror"));
+  }
+  return nl->SymbolAtom("bool");
+}
+
+int OpNetIsEmptyValueMap (Word* args, Word& result, int message,
+      Word& local, Supplier in_pSupplier){
+  GLine* pGline = (GLine*) args[0].addr;
+  result = qp->ResultStorage(in_pSupplier);
+  CcBool* pResult = (CcBool*) result.addr;
+  if (!(pGline->IsDefined())) {
+    pResult->Set(false, false);
+    return 0;
+  };
+  if (pGline->NoOfComponents() == 0)
+    pResult-> Set(true, true);
+  else
+    pResult->Set(true,false);
+  return 0;
+}
+
+const string OpNetIsEmptySpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>gline -> bool" "</text--->"
+  "<text>isemtpy(_)</text--->"
+  "<text>Returns true if the gline is empty.</text--->"
+  "<text>query isempty(gline)</text--->"
+  ") )";
+
+Operator networkisempty (
+          "isempty",               // name
+          OpNetIsEmptySpec,          // specification
+          OpNetIsEmptyValueMap,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpNetIsEmptyTypeMap        // type mapping
+);
 
 
 /*
@@ -5004,7 +5107,8 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networkrouteintervals);
     AddOperator(&networkintersects);
     AddOperator(&networkgpoint2rect);
-    AddOperator(&networkgline2sline);
+    AddOperator(&networkgline2line);
+    AddOperator(&networkisempty);
   }
   ~NetworkAlgebra() {};
 };

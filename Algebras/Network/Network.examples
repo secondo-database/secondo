@@ -39,6 +39,12 @@ Example  : query length(shortest_path(X_GPOINT, X_GPOINT2));
 Result   : 773.1299430081
 Tolerance:%0.01
 
+Operator : isempty
+Number   : 1
+Signature: gline -> bool
+Example  : query isempty([const gline value(1((1 0.0 0.5)))]);
+Result   : FALSE
+
 Operator : netdistance
 Number   : 1
 Signature: gpoint x gpoint -> real
@@ -72,10 +78,10 @@ Signature: gpoint x gpoint -> bool
 Example  : query X_GPOINT = X_GPOINT;
 Result   : TRUE
 
-Operator : sline2gline
+Operator : line2gline
 Number   : 1
-Signature: sline -> gline
-Example  : query sline2gline(B_NETWORK, [const sline value((8594.0 8773.0 8982.0 8781.0))]);
+Signature: line -> gline
+Example  : query line2gline(B_NETWORK, [const line value((8594.0 8773.0 8982.0 8781.0))]);
 Result   : (gline (1 ((1 385.0474775448921 773.1299430080975))))
 Tolerance:%0.01
 
@@ -134,9 +140,9 @@ Example  : query gpoint2rect([const gpoint value (1 1 0.8 2)]);
 Result   : (rect(1.0 1.0 0.8 0.8))
 Tolerance: 0.01%
 
-Operator : gline2sline
+Operator : gline2line
 Number   : 1
-Signature: gline -> sline
-Example  : query gline2sline([const gline value(1((1 0.0 1013.204931293)))]);
-Result   : (sline((8209.0 8769.0 8293.0 8768.0)(8293.0 8768.0 8594.0 8773.0)(8594.0 8773.0 8982.0 8781.0)(8982.0 8781.0 9222.0 8787.0)))
+Signature: gline -> line
+Example  : query gline2line([const gline value(1((1 0.0 1013.204931293)))]);
+Result   : (line((8209.0 8769.0 8293.0 8768.0)(8293.0 8768.0 8594.0 8773.0)(8594.0 8773.0 8982.0 8781.0)(8982.0 8781.0 9222.0 8787.0)))
 Tolerance: 0.01%

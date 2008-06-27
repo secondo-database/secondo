@@ -299,6 +299,15 @@ Returns the network distance between 2 ~gpoint~
 
     bool operator== (const GPoint& p) const;
 
+    inline const Rectangle<2> BoundingBox() const {
+      assert(m_bDefined);
+      return Rectangle<2>(true,
+                          (double) m_xRouteLocation.rid,
+                          (double) m_xRouteLocation.rid,
+                          m_xRouteLocation.d,
+                          m_xRouteLocation.d);
+    }
+
   private:
 
 /*

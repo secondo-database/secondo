@@ -2120,7 +2120,9 @@ Initialize return value
             else { side = None;}
         }
         pCurrentRoute->DeleteIfAllowed();
-        break;
+        if (fabs(uEndPoint.Distance(uStartPoint) - fabs(dEndPos-dStartPos))>1.0)
+          continue;
+        else break;
       }
     }
     pCurrentRoute->DeleteIfAllowed();
@@ -2183,7 +2185,8 @@ Initialize return value
         iSecCheckRouteId = pCurrentRoute->GetTupleId();
       }
     }
-    if (bEndFound) {
+    if (bEndFound &&
+       (fabs(uEndPoint.Distance(uStartPoint) - fabs(dEndPos-dStartPos))<1.0)) {
 /*
 Moving point stays on the same route.
 Check if the direction,speed and side are the same as before. If this is the
@@ -5421,6 +5424,113 @@ Operator tempnetunitrid("unitrid",
                 OpUnitPosTimeTypeMap );
 
 
+/*
+1.3.25 Operator ~unitbox~
+
+Returns the bounding box of the ~ugpoint~ as rectangle of dimension 3. with
+rid, rid, min(p0.pos. p1.pos), max(p0.pos, p1.pos), timeInterval.start,
+timeInterval.end.
+
+*/
+
+ListExpr OpUnitBoxTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+  return nl->SymbolAtom("rect3");
+}
+
+int OpUnitBoxValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s ){
+  result = qp->ResultStorage( s );
+  Rectangle<3>* box = static_cast<Rectangle<3>* >(result.addr);
+  UGPoint* arg = static_cast<UGPoint*>(args[0].addr);
+  if(!arg->IsDefined()){
+    box->SetDefined(false);
+  } else {
+    (*box) = arg->BoundingBox();
+  }
+  return 0;
+}
+
+const string OpUnitBoxSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>ugpoint -> rect3" "</text--->"
+  "<text> unitbox (_)</text--->"
+  "<text>Returns the bounding box rectangle of the ugpoint in form: rid,"
+  " rid, min(startpos, endpos), max(startpos, endpos), timeInterval.start,"
+  " timeInterval.end. </text--->"
+  "<text>unitbox(UGPOINT)</text--->"
+  ") )";
+
+Operator tempnetunitbox("unitbox",
+                OpUnitBoxSpec,
+                OpUnitBoxValueMapping,
+                Operator::SimpleSelect,
+                OpUnitBoxTypeMap );
+
+/*
+1.3.26 Operator ~unitbox~
+
+Returns the bounding box of the ~ugpoint~ as rectangle of dimension 2. with
+rid, rid, min(p0.pos. p1.pos), max(p0.pos, p1.pos).
+
+*/
+
+ListExpr OpUnitBox2TypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+      nl->AtomType( xMGPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMGPointDesc ) != "ugpoint" )
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+  return nl->SymbolAtom("rect");
+}
+
+int OpUnitBox2ValueMapping( Word* args, Word& result, int message,
+                             Word& local, Supplier s ){
+
+  result = qp->ResultStorage( s );
+  Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
+  UGPoint* arg = static_cast<UGPoint*>(args[0].addr);
+  if(!arg->IsDefined()){
+    box->SetDefined(false);
+  } else {
+    (*box) = arg->BoundingBox2d();
+  }
+  return 0;
+}
+
+const string OpUnitBox2Spec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>ugpoint -> rect2" "</text--->"
+  "<text> unitbox2 (_)</text--->"
+  "<text>Returns the bounding box rectangle of the ugpoint in form: rid,"
+  " rid, min(startpos, endpos), max(startpos, endpos). </text--->"
+  "<text>unitbox2(UGPOINT)</text--->"
+  ") )";
+
+Operator tempnetunitbox2("unitbox2",
+                OpUnitBox2Spec,
+                OpUnitBox2ValueMapping,
+                Operator::SimpleSelect,
+                OpUnitBox2TypeMap );
+
 //1.3.25 Operator ~mgpoint2mpoint~
 //
 //Returns the ~mpoint~ value of the given ~MGPoint~.
@@ -5549,6 +5659,8 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetunitendpos);
     AddOperator(&tempnetunitstarttime);
     AddOperator(&tempnetunitendtime);
+    AddOperator(&tempnetunitbox);
+    AddOperator(&tempnetunitbox2);
   }
 
 

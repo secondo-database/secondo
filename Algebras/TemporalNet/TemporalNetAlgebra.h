@@ -171,7 +171,28 @@ Functions to be part of relations
 
   virtual const Rectangle<3> BoundingBox() const
   {
-    throw SecondoException("Method UGPoint::BoundingBox not implemented.");
+    if (this->IsDefined())
+      return Rectangle<3> (true,
+                         (double) p0.GetRouteId(),
+                         (double) p0.GetRouteId(),
+                         min(p0.GetPosition(),p1.GetPosition()),
+                         max(p0.GetPosition(),p1.GetPosition()),
+                         timeInterval.start.ToDouble(),
+                         timeInterval.end.ToDouble());
+    else
+      return Rectangle<3>();
+  }
+
+  inline const Rectangle<2> BoundingBox2d() const
+  {
+    if (this->IsDefined())
+      return Rectangle<2> (true,
+                           (double) p0.GetRouteId(),
+                           (double) p0.GetRouteId(),
+                          min(p0.GetPosition(), p1.GetPosition()),
+                          max(p0.GetPosition(), p1.GetPosition()));
+    else
+      return Rectangle<2>();
   }
 
   virtual void TemporalFunction( const Instant& t,
