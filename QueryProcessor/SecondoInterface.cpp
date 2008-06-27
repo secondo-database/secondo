@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -309,7 +309,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     if ( RTFlag::isActive("SMI:NoTransactions") ) {
 
        mode = SmiEnvironment::SingleUserSimple;
-       cout << "  Setting mode to SingleUserSimple" << endl;
+       cout << "  Setting SmiEnnvironment to mode SingleUserSimple"
+	       " (transaction submodule disabled)" << endl;
 
     } else { // Transactions and logging are used
 
@@ -2026,8 +2027,6 @@ SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
     }
     else
     {
-      cout << __PRETTY_FUNCTION__ << "errorCode = " << errorCode << "errMsg="
-          << errMsg << "(" << GetErrorMessage(errorCode) << ")" << endl;
       if ( !SecondoSystem::AbortTransaction() )
       {
         errMsg = errMsg
