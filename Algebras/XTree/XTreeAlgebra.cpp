@@ -954,7 +954,7 @@ int nnsearch_VM(
       {
         const string seperator = "\n" + string(70, '-') + "\n";
         cmsg.error() << seperator
-            << "Operator rangesearch:" << endl
+            << "Operator nnsearch:" << endl
             << "Got an \"" << typeName << "\" attribute, but the "
             << "xtree contains \"" << xtree->typeName()
             << "\" attriubtes!" << seperator << endl;
