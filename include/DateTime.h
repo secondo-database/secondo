@@ -621,6 +621,10 @@ delta in [0,1].
   virtual unsigned char getDB3DecimalCount(){ return 0; }
   virtual string getDB3String() const { return ToString(); }
 
+  static const string BasicType(){
+    return "instant";
+  }
+
 
   private:
     // the data-part of datetime

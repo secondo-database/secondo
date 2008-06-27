@@ -2521,7 +2521,9 @@ representing the  value 1 over their interval.
 */
    void ReadFrom(const MBool& arg);
 
-
+   static const string BasicType(){
+      return "mint";
+   }
 
 };
 
@@ -2621,6 +2623,10 @@ Precondition: ccvalue.IsDefined() == true
 */
    void AtValue( const CcReal& ccvalue, MReal& result ) const;
 
+
+   static const string BasicType(){
+      return "mreal";
+   }
 
 private:
    void Simplify(const int min, const int max,
@@ -2871,7 +2877,9 @@ void EqualizeUnitsSpatial(const double epsilon,
                           MPoint& result, 
                           const bool skipSplit = false) const;
 
-
+  static const string BasicType(){
+    return "mpoint";
+  }
 
 private:
    void Simplify(const int min, const int max,
