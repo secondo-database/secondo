@@ -61,6 +61,7 @@ shows examples of these spatial data types.
 #include "RectangleAlgebra.h"
 #include "WinUnix.h"
 #include "AvlTree.h"
+#include "Symbols.h"
 
 
 typedef double Coord;
@@ -1066,7 +1067,9 @@ as an attribute.
     }
 
 
-
+  static const string BasicType(){
+    return symbols::POINT;
+  }
 
 
   private:
@@ -2097,6 +2100,10 @@ as an attribute.
       return new (addr) Line();
    }
 
+   static const string BasicType(){
+      return symbols::LINE;
+   }
+
   private:
 
    inline Line() {} // This constructor should only be used 
@@ -2568,7 +2575,10 @@ The following functions are needed to act as an attribute type.
   inline void Put(const int i, const LRS& lrs){
     lrsArray.Put(i,lrs);
   }
- 
+
+  static const string BasicType(){
+    return "sline";
+  } 
 
   private:
     DBArray<HalfSegment> segments;
@@ -3537,6 +3547,9 @@ The region must be defined!
       return region;
   }
 
+  static const string BasicType(){
+    return symbols::REGION;
+  }
 
   private:
 /*

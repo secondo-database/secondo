@@ -293,6 +293,9 @@ class CcInt : public StandardAttribute
       }
   }
 
+  static const string BasicType(){
+    return symbols::INT;
+  }
  
   static long intsCreated;
   static long intsDeleted;
@@ -488,6 +491,10 @@ class CcReal : public StandardAttribute
          Set(true,v);
       }
   }
+  
+  static const string BasicType(){
+    return symbols::REAL;
+  }
 
  private:
   bool  defined;
@@ -641,6 +648,9 @@ class CcBool : public StandardAttribute
      }
   }
 
+  static const string BasicType(){
+     return symbols::BOOL;
+  }
 
  private:
   bool defined;
@@ -819,6 +829,9 @@ class CcString : public StandardAttribute
      Set(true,value);
   }
 
+  static const string BasicType(){
+    return symbols::STRING;
+  }
  
  private:
   bool   defined;
