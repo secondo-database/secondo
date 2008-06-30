@@ -57,22 +57,37 @@ enum SIM_MATRIX_ID
     SIM_MATRIX_LAB256
 };
 
+Sym HSV8("hsv8");
+Sym HSV16("hsv16");
+Sym HSV32("hsv32");
 Sym HSV64("hsv64");
 Sym HSV128("hsv128");
 Sym HSV256("hsv256");
 Sym LAB256("lab256");
 
+Sym HSV8_NCOMPR("hsv8_ncompr");
+Sym HSV16_NCOMPR("hsv16_ncompr");
+Sym HSV32_NCOMPR("hsv32_ncompr");
 Sym HSV64_NCOMPR("hsv64_ncompr");
 Sym HSV128_NCOMPR("hsv128_ncompr");
 Sym HSV256_NCOMPR("hsv256_ncompr");
 Sym LAB256_NCOMPR("lab256_ncompr");
 
+Sym HSV8_DESCR("hsv-color histogram with 8 bins");
+Sym HSV16_DESCR("hsv-color histogram with 16 bins");
+Sym HSV32_DESCR("hsv-color histogram with 32 bins");
 Sym HSV64_DESCR("hsv-color histogram with 64 bins");
 Sym HSV128_DESCR("hsv-color histogram with 128 bins");
 Sym HSV256_DESCR("hsv-color histogram with 256 bins");
 Sym LAB256_DESCR("lab-color histogram with 256 bins");
 
 
+Sym HSV8_NCOMPR_DESCR(
+        "uncompressed hsv-color histogram with 8 bins");
+Sym HSV16_NCOMPR_DESCR(
+        "uncompressed hsv-color histogram with 16 bins");
+Sym HSV32_NCOMPR_DESCR(
+        "uncompressed hsv-color histogram with 32 bins");
 Sym HSV64_NCOMPR_DESCR(
         "uncompressed hsv-color histogram with 64 bins");
 Sym HSV128_NCOMPR_DESCR(
@@ -235,6 +250,15 @@ getdata functions for the avaliable  distdata types:
 
 ********************************************************************/
     template<bool compressData>
+    static DistData* getData_hsv8(const void* attr);
+
+    template<bool compressData>
+    static DistData* getData_hsv16(const void* attr);
+
+    template<bool compressData>
+    static DistData* getData_hsv32(const void* attr);
+
+    template<bool compressData>
     static DistData* getData_hsv64(const void* attr);
 
     template<bool compressData>
@@ -250,6 +274,9 @@ getdata functions for the avaliable  distdata types:
 gethpoint functions:
 
 ********************************************************************/
+    static HPoint* getHPoint_hsv8(const void* attr);
+    static HPoint* getHPoint_hsv16(const void* attr);
+    static HPoint* getHPoint_hsv32(const void* attr);
     static HPoint* getHPoint_hsv64(const void* attr);
     static HPoint* getHPoint_hsv128(const void* attr);
     static HPoint* getHPoint_hsv256(const void* attr);
@@ -343,6 +370,132 @@ Auxiliary arrays for picture distfun:
 1.1 Implementation of inline and template methods
 
 ********************************************************************/
+/*
+Method ~getData[_]hsv8~:
+
+*/
+template<bool compressData> DistData*
+PictureFuns::getData_hsv8 (const void* attr)
+{
+    unsigned long size;
+    const char* imgdata = static_cast<const Picture*> (attr)->
+                                                  GetJPEGData (size);
+
+    JPEGPicture rgb ((unsigned char *) imgdata, size);
+
+    unsigned long int rgbSize;
+    unsigned char* rgbData = rgb.GetImageData (rgbSize);
+
+    const unsigned int numOfPixels = rgbSize / 3;
+
+    unsigned long hist_abs[8];
+    memset (hist_abs, 0, 8*sizeof (unsigned long));
+
+    for (int i = 0; i < 8; ++i)
+        hist_abs[i] = 0;
+
+    for (unsigned long pos = 0; pos < (numOfPixels); ++pos)
+    {
+        unsigned char r = rgbData[ (3*pos) ];
+        unsigned char g = rgbData[ (3*pos) +1];
+        unsigned char b = rgbData[ (3*pos) +2];
+
+        HSV hsv (r, g, b);
+
+        int h_offset = hsv.h / 180;  // 2 parts
+        int s_offset = hsv.s / 128;  // 2 parts
+        int v_offset = hsv.v / 256; // 2 parts
+        ++hist_abs[4*h_offset + 2*s_offset + v_offset];
+    }
+
+    return encodeHistogram<histDomain> (
+            hist_abs, numOfPixels, 8, compressData);
+}
+
+/*
+Method ~getData[_]hsv16~:
+
+*/
+template<bool compressData> DistData*
+PictureFuns::getData_hsv16 (const void* attr)
+{
+    unsigned long size;
+    const char* imgdata = static_cast<const Picture*> (attr)->
+                                                  GetJPEGData (size);
+
+    JPEGPicture rgb ((unsigned char *) imgdata, size);
+
+    unsigned long int rgbSize;
+    unsigned char* rgbData = rgb.GetImageData (rgbSize);
+
+    const unsigned int numOfPixels = rgbSize / 3;
+
+    unsigned long hist_abs[16];
+    memset (hist_abs, 0, 16*sizeof (unsigned long));
+
+    for (int i = 0; i < 16; ++i)
+        hist_abs[i] = 0;
+
+    for (unsigned long pos = 0; pos < (numOfPixels); ++pos)
+    {
+        unsigned char r = rgbData[ (3*pos) ];
+        unsigned char g = rgbData[ (3*pos) +1];
+        unsigned char b = rgbData[ (3*pos) +2];
+
+        HSV hsv (r, g, b);
+
+        int h_offset = hsv.h / 90;  // 4 parts
+        int s_offset = hsv.s / 128;  // 2 parts
+        int v_offset = hsv.v / 256; // 2 parts
+        ++hist_abs[4*h_offset + 2*s_offset + v_offset];
+    }
+
+    return encodeHistogram<histDomain> (
+            hist_abs, numOfPixels, 16, compressData);
+}
+
+/*
+Method ~getData[_]hsv32~:
+
+*/
+template<bool compressData> DistData*
+PictureFuns::getData_hsv32 (const void* attr)
+{
+    unsigned long size;
+    const char* imgdata = static_cast<const Picture*> (attr)->
+                                                  GetJPEGData (size);
+
+    JPEGPicture rgb ((unsigned char *) imgdata, size);
+
+    unsigned long int rgbSize;
+    unsigned char* rgbData = rgb.GetImageData (rgbSize);
+
+    const unsigned int numOfPixels = rgbSize / 3;
+
+    unsigned long hist_abs[32];
+    memset (hist_abs, 0, 32*sizeof (unsigned long));
+
+    for (int i = 0; i < 32; ++i)
+        hist_abs[i] = 0;
+
+    for (unsigned long pos = 0; pos < (numOfPixels); ++pos)
+    {
+        unsigned char r = rgbData[ (3*pos) ];
+        unsigned char g = rgbData[ (3*pos) +1];
+        unsigned char b = rgbData[ (3*pos) +2];
+
+        HSV hsv (r, g, b);
+
+        int h_offset = hsv.h / 90;  // 4 parts
+        int s_offset = hsv.s / 128;  // 2 parts
+        int v_offset = hsv.v / 128; // 4 parts
+        ++hist_abs[8*h_offset + 4*s_offset + v_offset];
+    }
+
+    return encodeHistogram<histDomain> (
+            hist_abs, numOfPixels, 32, compressData);
+}
+
 /*
 Method ~getData[_]hsv64~:
 
@@ -525,11 +678,7 @@ PictureFuns::getData_lab256 (const void* attr)
             hist_abs, numOfPixels, 256, compressData);
 }
 
-/*
-Method ~eucl[_]hsv64~:
-
-*/
-// distance functions
+// euclidean distance functions
 template<unsigned dim, bool compressedData> void
 PictureFuns::euclidean (
 const DistData* dd1, const DistData* dd2, double &result)

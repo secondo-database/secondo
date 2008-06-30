@@ -110,13 +110,19 @@ symbols::Sym DDATA_NATIVE_DESCR(
 const int DDATA_NATIVE_ID = 0;
 
 // id's for the picture algebra types (defined in PictureFuns.h)
-const int DDATA_HSV64_ID         = 1000;
-const int DDATA_HSV128_ID        = 1001;
-const int DDATA_HSV256_ID        = 1002;
+const int DDATA_HSV8_ID         = 1000;
+const int DDATA_HSV16_ID         = 1001;
+const int DDATA_HSV32_ID         = 1002;
+const int DDATA_HSV64_ID         = 1003;
+const int DDATA_HSV128_ID        = 1004;
+const int DDATA_HSV256_ID        = 1005;
 const int DDATA_LAB256_ID        = 1011;
-const int DDATA_HSV64_NCOMPR_ID  = 1020;
-const int DDATA_HSV128_NCOMPR_ID = 1021;
-const int DDATA_HSV256_NCOMPR_ID = 1022;
+const int DDATA_HSV8_NCOMPR_ID   = 1020;
+const int DDATA_HSV16_NCOMPR_ID  = 1021;
+const int DDATA_HSV32_NCOMPR_ID  = 1022;
+const int DDATA_HSV64_NCOMPR_ID  = 1023;
+const int DDATA_HSV128_NCOMPR_ID = 1024;
+const int DDATA_HSV256_NCOMPR_ID = 1025;
 const int DDATA_LAB256_NCOMPR_ID = 1031;
 
 typedef DistData* (*GetDataFun)(const void* attr);
