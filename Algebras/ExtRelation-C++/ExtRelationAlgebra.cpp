@@ -2383,8 +2383,8 @@ class KSmallestLocalInfo{
 Constructs a localinfo tor given k and the attribute indexes by ~attrnumbers~.
 
 */
-    KSmallestLocalInfo(int ak, vector<int>& attrnumbers):
-       elems(0),numbers(attrnumbers),pos(0){
+    KSmallestLocalInfo(int ak, vector<int>& attrnumbers,bool Smallest):
+       elems(0),numbers(attrnumbers),pos(0),smallest(Smallest){
        if(ak<0){
           k = 0;
        } else {
@@ -2473,8 +2473,13 @@ available.
     vector<int> numbers;
     unsigned int k;
     unsigned int pos;
+    bool smallest;
 
-    int compareTuples(Tuple* t1, Tuple* t2){
+    inline int compareTuples(Tuple* t1, Tuple* t2){
+      return smallest?compareTuplesSmaller(t1,t2): compareTuplesSmaller(t2,t1); 
+    }
+
+    int compareTuplesSmaller(Tuple* t1, Tuple* t2){
        for(unsigned int i=0;i<numbers.size();i++){
           Attribute* a1 = t1->GetAttribute(numbers[i]);
           Attribute* a2 = t2->GetAttribute(numbers[i]);
@@ -2529,6 +2534,7 @@ available.
     }
 };
 
+template<bool smaller>
 int ksmallestVM(Word* args, Word& result,
                            int message, Word& local, Supplier s)
 {
@@ -2550,7 +2556,7 @@ int ksmallestVM(Word* args, Word& result,
       int k = cck->IsDefined()?cck->GetIntval():0;
 
 
-      KSmallestLocalInfo* linfo = new   KSmallestLocalInfo(k,attrPos);
+      KSmallestLocalInfo* linfo = new   KSmallestLocalInfo(k,attrPos,smaller);
       qp->Request(args[0].addr,elem);
       Tuple* tuple;
       while(qp->Received(args[0].addr)){
@@ -2604,14 +2610,33 @@ const string ksmallestSpec  =
     "</text--->"
     ") )";
 
+const string kbiggestSpec  = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>stream(tuple([a1:d1, ... ,an:dn])))"
+    " x int x a_k x  ... a_m -> "
+    "(stream (tuple(...)))</text--->"
+    "<text>_ kbiggest [k ; list ]</text--->"
+    "<text>returns the k biggest elements from the input stream"
+    "</text--->"
+    "<text>query employee feed kbiggest[10; Salary] consume "
+    "</text--->"
+    ") )";
+
 Operator ksmallest (
          "ksmallest",   
          ksmallestSpec,
-         ksmallestVM,
+         ksmallestVM<true>,
          Operator::SimpleSelect,
          ksmallestTM 
 );
 
+Operator kbiggest (
+         "kbiggest",   
+         kbiggestSpec,
+         ksmallestVM<false>,
+         Operator::SimpleSelect,
+         ksmallestTM 
+);
 
 /*
 2.11 Operator ~sortBy~
@@ -9256,6 +9281,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&krdup);
     AddOperator(&extreladdcounter);
     AddOperator(&ksmallest);
+    AddOperator(&kbiggest);
 
 #ifdef USE_PROGRESS
 // support for progress queries

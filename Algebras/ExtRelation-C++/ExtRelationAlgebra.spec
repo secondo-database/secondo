@@ -69,4 +69,5 @@ operator symmproduct alias SYMMPRODUCT pattern _ _ op
 operator addcounter alias ADDCOUNTER pattern _  op [_ , _]
 
 operator ksmallest alias KSMALLEST pattern _ op [_ ; list  ] 
+operator kbiggest alias KBIGGEST pattern _ op [_ ; list  ] 
 
