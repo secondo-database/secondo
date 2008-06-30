@@ -68,3 +68,5 @@ operator symmproductextend alias SYMMPRODUCTEXTEND pattern _ _ op [ funlist ] im
 operator symmproduct alias SYMMPRODUCT pattern _ _ op
 operator addcounter alias ADDCOUNTER pattern _  op [_ , _]
 
+operator ksmallest alias KSMALLEST pattern _ op [_ ; list  ] 
+

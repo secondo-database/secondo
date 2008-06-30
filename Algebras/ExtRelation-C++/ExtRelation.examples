@@ -281,3 +281,12 @@ Number   : 4
 Signature: ((stream (tuple([a1:d1, ..., ai:int, ..., aj: real, ..., an:dn]))) x ai) -> tream(tuple((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real)(CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real)(Count int) (CountXY int) (CovXY real) (CorrXY real)))
 Example  : query ten feed extend[r: -1.0 * .no] stats[r,no] consume
 Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX real) (VarX real) (CountY int) (MinY real) (MaxY real) (SumY real) (AvgY real) (VarY real) (Count int) (CountXY int) (CovXY real) (CorrXY real)))) ((10 -10.0  -1.0 -55.0 -5.5 9.166666666666666 10 1.0 10.0 55.0 5.5 9.166666666666666 10 10 -9.166666666666666 -1.0)))
+
+
+
+Operator : ksmallest 
+Number   : 1
+Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...)) 
+Example  : query (plz feed sortby[Ort] head [10] project[Ort]) (plz feed ksmallest[10;Ort] project[Ort]) mergediff count
+Result   : (int 0)
+

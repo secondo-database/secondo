@@ -23,6 +23,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
+//[_] [\_]
+//[x] [\ensuremath{\times}]
+//[->] [\ensuremath{\rightarrow}]
+//[>] [\ensuremath{>}]
+//[<] [\ensuremath{<}]
+
+
 
 [1] Implementation of Module Extended Relation Algebra
 
@@ -2288,6 +2295,322 @@ Operator krdup (
          krdupTM         // type mapping
 );
 
+/*
+
+2.10 Operator k-smallest
+
+2.10.1 Type Mapping
+
+   stream(tuple(...)) [x] int [x] attr[_]1 ... attr[_]n [->] tuple(...)
+
+
+*/
+
+ListExpr ksmallestTM(ListExpr args){
+
+  string err = "stream(tuple(...)) x int x attr_1 x ... x attr_n   expected";
+  if(nl->ListLength(args) < 3 ){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  ListExpr Stream = nl->First(args);
+  args = nl->Rest(args);
+  ListExpr Int = nl->First(args);
+  ListExpr AttrList = nl->Rest(args);
+
+  if(nl->ListLength(AttrList)!=1 ){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  AttrList = nl->First(AttrList);
+ 
+  if(!IsStreamDescription(Stream)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  } 
+  if(!nl->IsEqual(Int,symbols::INT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+ 
+  ListExpr StreamList = nl->Second(nl->Second(Stream));
+
+  int attrNo = 0;
+  ListExpr NumberList;
+  ListExpr Last;
+  ListExpr attrType = nl->TheEmptyList();
+  while(!nl->IsEmpty(AttrList)){
+     ListExpr Attr = nl->First(AttrList);
+     if(nl->AtomType(Attr)!=SymbolType){
+        ErrorReporter::ReportError(err);
+        return nl->TypeError();
+     }
+     string attrName = nl->SymbolValue(Attr);
+     int j = FindAttribute(StreamList,attrName, attrType);
+     if(j==0){
+        ErrorReporter::ReportError("Attribute name " + attrName + "not found");
+        return nl->TypeError();
+     }
+     if(attrNo==0){
+      NumberList = nl->OneElemList(nl->IntAtom(j-1));
+      Last = NumberList;
+     } else {
+       Last = nl->Append(Last, nl->IntAtom(j-1));
+     }
+     attrNo++;
+     AttrList = nl->Rest(AttrList);
+  }
+
+  return nl->ThreeElemList(
+              nl->SymbolAtom("APPEND"),
+              nl->TwoElemList(nl->IntAtom(attrNo),
+                              NumberList),
+              Stream);
+}
+
+
+/*
+2.10.2 LocalInfo
+
+
+*/
+class KSmallestLocalInfo{
+ public:
+
+/*
+~Constructor~
+
+Constructs a localinfo tor given k and the attribute indexes by ~attrnumbers~.
+
+*/
+    KSmallestLocalInfo(int ak, vector<int>& attrnumbers):
+       elems(0),numbers(attrnumbers),pos(0){
+       if(ak<0){
+          k = 0;
+       } else {
+          k = ak;
+       }
+    }
+
+/*
+~insertTuple~
+
+Inserts a tuple into the local buffer. If the buffer would be 
+overflow (size [>] k) , the maximum element is removed from the buffer.
+
+*/
+    void insertTuple(Tuple* tuple){
+       if(elems.size() < k){
+          elems.push_back(tuple);
+          if(elems.size()==k){
+            initializeHeap();
+          }
+       } else {
+         Tuple* maxTuple = elems[0];
+
+         int cmp = compareTuples(tuple,maxTuple);
+         if(cmp>=0){ // tuple >= maxTuple
+            tuple->DeleteIfAllowed();
+         } else {
+            maxTuple->DeleteIfAllowed();
+            elems[0] = tuple;
+            sink(0,elems.size());
+         }  
+       } 
+    }
+
+/*
+~Destructor~
+
+Destroy this instance and calls DeleteIfAllowed for all
+non processed tuples.
+
+
+*/
+    ~KSmallestLocalInfo(){
+        for(unsigned int i=0;i<elems.size();i++){
+          if(elems[i]){
+            elems[i]->DeleteIfAllowed();
+            elems[i] = 0;
+          }
+        }
+    }
+
+
+/*
+~nextTuple~
+
+Returns the next tuple within the buffer, or 0 if no tuple is
+available.
+
+*/
+   Tuple* nextTuple(){
+      if(pos==0){
+         // sort the elements
+         if(elems.size()< k){
+            initializeHeap();
+         }
+         for(unsigned int i=elems.size()-1; i>0; i--){
+            Tuple* top = elems[0];
+            Tuple* last = elems[i];
+            elems[0] = last;
+            elems[i] = top;
+            sink(0,i);
+         } 
+      }
+      if(pos<elems.size()){
+         Tuple* res = elems[pos];
+         elems[pos] = 0;
+         pos++;
+         return res;
+      } else {
+        return 0;
+      }
+   }
+
+ private:
+    vector<Tuple*> elems;
+    vector<int> numbers;
+    unsigned int k;
+    unsigned int pos;
+
+    int compareTuples(Tuple* t1, Tuple* t2){
+       for(unsigned int i=0;i<numbers.size();i++){
+          Attribute* a1 = t1->GetAttribute(numbers[i]);
+          Attribute* a2 = t2->GetAttribute(numbers[i]);
+          int cmp = a1->Compare(a2);
+          if(cmp!=0){
+            return cmp;
+          }
+       } 
+       return 0;
+    }
+
+    void initializeHeap(){
+       int s = elems.size()/2;
+       for(int i=s; i>=0; i--){
+          sink(i,elems.size());
+       }
+    }
+
+    void sink(unsigned int i, unsigned int max){
+      unsigned int root = i;
+      unsigned int son1 = ((i+1)*2) - 1;
+      unsigned int son2 = ((i+1)*2+1) - 1;
+      unsigned int swapWith;
+
+      bool done = false;
+      do{
+        swapWith = root;
+        son1 = ((root+1)*2) - 1;
+        son2 = ((root+1)*2+1) - 1;
+        if(son1<max){
+          int cmp = compareTuples(elems[root],elems[son1]);
+          if(cmp<0){
+             swapWith = son1;
+          }
+        }
+        if(son2 < max){
+          int cmp = compareTuples(elems[swapWith],elems[son2]);
+          if(cmp<0){
+            swapWith = son2;
+          }
+        }
+        if(swapWith!=root){
+          Tuple* t1 = elems[root];
+          Tuple* t2 = elems[swapWith];
+          elems[swapWith] = t1;
+          elems[root] = t2;
+        }
+        done = (swapWith == root);
+        root = swapWith;
+
+      }while(!done);
+    }
+};
+
+int ksmallestVM(Word* args, Word& result,
+                           int message, Word& local, Supplier s)
+{
+  switch( message )
+  {
+    case OPEN:{
+      qp->Open(args[0].addr);
+      CcInt* cck = static_cast<CcInt*>(args[1].addr);
+      int attrNum = (static_cast<CcInt*>(args[3].addr))->GetIntval();
+      Supplier son;
+      Word elem;
+      vector<int> attrPos;
+      for(int i=0;i<attrNum;i++){
+         son = qp->GetSupplier(args[4].addr,i);
+         qp->Request(son,elem);
+         int anum = (static_cast<CcInt*>(elem.addr))->GetIntval();
+         attrPos.push_back(anum);
+      }
+      int k = cck->IsDefined()?cck->GetIntval():0;
+
+
+      KSmallestLocalInfo* linfo = new   KSmallestLocalInfo(k,attrPos);
+      qp->Request(args[0].addr,elem);
+      Tuple* tuple;
+      while(qp->Received(args[0].addr)){
+         tuple = static_cast<Tuple*>(elem.addr);
+         linfo->insertTuple(tuple);
+         qp->Request(args[0].addr,elem);
+      }
+      local.addr = linfo;
+      return 0;
+    }
+    case REQUEST:{
+       KSmallestLocalInfo* linfo;
+       linfo = static_cast<KSmallestLocalInfo*>(local.addr);
+       if(linfo){
+         Tuple* tuple = linfo->nextTuple();
+         if(tuple){
+           result=SetWord(tuple);
+           return YIELD;
+         }
+       } 
+       return CANCEL;
+       
+    }
+    case CLOSE:{
+       qp->Close(args[0].addr);
+       KSmallestLocalInfo* linfo;
+       linfo = static_cast<KSmallestLocalInfo*>(local.addr);
+       if(linfo){
+          delete linfo;
+          local.addr=0;
+       }
+       return 0;
+    }
+    default:{
+       return  0;
+    }
+  } 
+  
+}
+
+
+const string ksmallestSpec  = 
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>stream(tuple([a1:d1, ... ,an:dn])))"
+    " x int x a_k x  ... a_m -> "
+    "(stream (tuple(...)))</text--->"
+    "<text>_ ksmallest [k ; list ]</text--->"
+    "<text>returns the k smallest elements from the input stream"
+    "</text--->"
+    "<text>query employee feed ksmallest[10; Salary] consume "
+    "</text--->"
+    ") )";
+
+Operator ksmallest (
+         "ksmallest",   
+         ksmallestSpec,
+         ksmallestVM,
+         Operator::SimpleSelect,
+         ksmallestTM 
+);
 
 
 /*
@@ -8932,6 +9255,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelprojectextend);
     AddOperator(&krdup);
     AddOperator(&extreladdcounter);
+    AddOperator(&ksmallest);
 
 #ifdef USE_PROGRESS
 // support for progress queries
