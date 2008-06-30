@@ -380,6 +380,8 @@ void print_complex_postfix_without_implicit_parameters(){
   for(int i=0;i<size1;i++)
       (*yaccrules1)  << ((*currenttranslation.arguments1)[i]) 
                      << " " << endl;
+
+
   (*yaccrules1) <<  newtoken << "'[' ";
   int size2 = currenttranslation.arguments2->size();
 
@@ -388,6 +390,7 @@ void print_complex_postfix_without_implicit_parameters(){
   int separators = 0; // number of ';'
   // = length of the first sublist
   int nextseparator = (*currenttranslation.sublistlengths)[0]; 
+
   for(int i=0;i<size2;i++){
       if(i==nextseparator){ // end of this sublist
         // write separator into the pattern
@@ -405,12 +408,14 @@ void print_complex_postfix_without_implicit_parameters(){
   }
   (*yaccrules1) << " ']'" << endl;
   // write the translation
+
+
   string space = "NestedText::AtomC(\" \")";
   (*yaccrules1) << "     { $$ =";
   (*yaccrules1) << "     NestedText::Concat( " << endl;
   (*yaccrules1) << "     NestedText::AtomC(\"(\")," << endl; 
   (*yaccrules1) << "     NestedText::Concat( $" 
-                << (size1+1+separators) 
+                << (size1+1) 
                 << "," << endl; // operatortoken
   for(int i=0; i<size1;i++){ // arguments before operator
       (*yaccrules1) << "     NestedText::Concat(" << space << "," << endl;
