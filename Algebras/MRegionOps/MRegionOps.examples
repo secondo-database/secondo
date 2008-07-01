@@ -20,5 +20,17 @@ Signature:
 Example  : query TRUE
 Result   : TRUE
 
+Operator : intersects
+Number   : 1
+Signature: 
+Example  : query TRUE
+Result   : TRUE
+
+Operator : inside
+Number   : 1
+Signature: 
+Example  : query TRUE
+Result   : TRUE
+
 
 

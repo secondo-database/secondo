@@ -20,8 +20,7 @@
 #define SETOPUTIL_H_
 
 #include "MovingRegionAlgebra.h"
-//#include "point.h"
-//#include "vector.h"
+#include "NList.h"
 #include "NumericUtil.h"
 #include "PointVector.h"
 #include "Segment.h"
@@ -32,10 +31,21 @@
 #include <queue>
 #include <deque>
 
+using namespace std;
+
+Word InMRegion(
+        const ListExpr typeInfo,
+        const ListExpr instance,
+        const int errorPos,
+        ListExpr& errorInfo,
+        bool& correct);
+
 namespace mregionops {
 
-#define REDUCE_PFACES_BY_BOUNDING_RECT
+//#define REDUCE_PFACES_BY_BOUNDING_RECT
 #define VRML_OUTFILE "out.wrl"
+
+//void Bar();
 
 enum SetOp {
 
@@ -137,6 +147,11 @@ public:
     inline ~IntersectionSegment() {
 
     }
+    
+    inline unsigned int GetID() const {
+        
+        return *id;
+    }
 
     inline const Point3D* GetStartXYT() const {
 
@@ -178,11 +193,6 @@ public:
         return endW;
     }
 
-    inline double GetMaxW() const {
-
-        return max(GetStartW(), GetEndW());
-    }
-
     inline bool ResultFaceIsLeft() const {
 
         return resultFaceIsLeft;
@@ -215,12 +225,12 @@ public:
 
     inline void AddMate(IntersectionSegment* s) {
 
-        // Note: We compare pointers here!
-        if (matesOfThis->empty() || matesOfThis->back() != s) {
+        if (matesOfThis->empty() || 
+            matesOfThis->back()->GetID() != s->GetID()) {
             
             matesOfThis->push_back(s);
             
-        } else { // matesOfThis->back() == s
+        } else {
             
             // s is already a mate of this.
             // nothing to do...
@@ -256,6 +266,11 @@ public:
 
         *inserted = true;
     }
+    
+    inline void MarkAsNotInserted() {
+
+        *inserted = false;
+    }
 
     inline void Delete() {
 
@@ -272,6 +287,7 @@ public:
             delete matesOfBuddy;
             delete inserted;
             delete hasReference;
+            delete id;
             delete this;
         }
     }
@@ -352,7 +368,7 @@ public:
     }
 
     string GetVRMLDesc();
-    void Print();
+    void Print() const;
     void PrintMates();
 
 private:
@@ -363,6 +379,7 @@ private:
     deque<IntersectionSegment*>* matesOfBuddy;
     bool* inserted;
     bool* hasReference;
+    unsigned int* id;
 
     double startW;
     double endW;
@@ -370,34 +387,113 @@ private:
     bool isLeftBoundary;
     TouchingMode relationToRightBoundary;
     
+    static unsigned int instancePairCount;
+    
     inline IntersectionSegment() {
 
         relationToRightBoundary = UNDEFINED;
     }
 };
 
+
+
 class ResultCycle {
     
+public:
     
-};
-
-class ResultUnit {
-    
-    inline void AddMSegment(const MSegmentData& mseg) {
-
-        mSegments.push_back(mseg);
+    inline ResultCycle() {
+        
     }
     
-    inline void SetInterval(const double start, const double end) {
-        
-        //interval = Interval<Instant>();
+    inline void Append(const Point2D& initial, const Point2D& final) {
+
+        NList coords(NList(initial.GetX()), NList(initial.GetY()),
+                     NList(final.GetX()), NList(final.GetY()));
+
+        cycle.append(coords);
+    }
+    
+    inline NList GetList() const {
+
+        return cycle;
     }
     
 private:
     
-    vector<MSegmentData> mSegments;
-    Interval<Instant> interval;
-    //vector<ResultCycle> cycles;
+    NList cycle;
+};
+
+class ResultFace {
+    
+public:
+    
+    inline ResultFace() {
+        
+    }
+    
+    inline void AppendCycle(const ResultCycle& cycle) {
+        
+        face.append(cycle.GetList());
+    }
+    
+    inline NList GetList() const {
+
+        return face;
+    }
+    
+private:
+    
+    NList face;
+};
+
+class ResultUnit {
+    
+public:
+    
+    inline ResultUnit(const double start,
+                      const double end,
+                      const bool lc,
+                      const bool rc) {
+        
+        interval = NList(NList(start),
+                         NList(end),
+                         NList(lc, true),
+                         NList(rc, true));
+    }
+
+    inline void AppendFace(const ResultFace& face) {
+
+        faces.append(face.GetList());
+    }
+    
+    inline NList GetList() const {
+
+        return NList(interval, faces);
+    }
+    
+private:
+    
+    NList interval;
+    NList faces;
+};
+
+class ResultUnitList {
+    
+public:
+    
+    inline ResultUnitList(NList* _resultUnitList) :
+        resultUnitList(_resultUnitList) {
+        
+    }
+    
+    inline void AppendUnit(const ResultUnit& unit) {
+        
+        resultUnitList->append(unit.GetList());
+    }
+    
+private:
+    
+    NList* const resultUnitList;
 };
 
 struct GlobalIntSegSetCompare {
@@ -413,8 +509,10 @@ class ResultUnitFactory {
 
 public:
 
-    ResultUnitFactory(MRegion* const _resMRegion) :
-        resMRegion(_resMRegion) {
+    ResultUnitFactory(//MRegion* const _resMRegion,
+                      NList* const _resUnitList) :
+        //resMRegion(_resMRegion),
+        resultUnitList(_resUnitList) {
         
     }
 
@@ -429,6 +527,7 @@ public:
         }
     }
 
+    void PrintActive() const;
     void PrintIntSegsOfGlobalList();
     void PrintIntSegsOfGlobalListAsVRML(ofstream& target, const string& color);
 
@@ -463,7 +562,8 @@ private:
     double t2;
     double minEndT;
     
-    MRegion* const resMRegion;
+    //MRegion* const resMRegion;
+    ResultUnitList resultUnitList;
 };
 
 class SourceUnit {
@@ -588,7 +688,8 @@ public:
                    const DBArray<MSegmentData>* const aArray,
                    const URegionEmb* const b, 
                    const DBArray<MSegmentData>* const bArray,
-                   MRegion* const resultMRegion);
+                   //MRegion* const resultMRegion,
+                   NList* const resultUnitList);
 
     ~SourceUnitPair() {
 
@@ -670,13 +771,17 @@ private:
     
     void RefinementPartition();
     void Operate(const SetOp op);
-    
+    void AppendUnitList(const NList* resultUnitList);
+    MRegion* CreateResultMRegionFromList();
+
     MRegion* const a;
     MRegion* const b;
     MRegion* const res;
     
     MRegion* a_ref;
     MRegion* b_ref;
+    
+    NList resultMRegionList;
 };
 
 struct GeneralIntSegSetCompare {
@@ -704,12 +809,30 @@ public:
         minEndT = MAX_DOUBLE;
     }
     
+    void PrintActive() const {
+
+        if (active.empty())
+            cout << "active is empty." << endl;
+        
+        for (list<IntersectionSegment*>::const_iterator it = active.begin(); it
+                != active.end(); it++) {
+
+            (*it)->Print();
+        }
+    }
+    
     void Start() {
         
         while (sourceIter != source->end()) {
             
             t = min((*sourceIter)->GetStartT(), minEndT);
+            //cout << "t = " << t << endl;
+            
+            //PrintActive();
             ComputeCurrentTimeLevel();
+            //PrintActive();
+            //cout << endl;
+            
         }
     }
     
@@ -869,7 +992,7 @@ public:
         return this->GetD_WT() - this->GetB_WT(); // vector BD
     }
 
-    const IntersectionSegment* GetIntSegMaxW();
+    const IntersectionSegment* GetRightmostIntSeg();
 
     bool Intersection(PFace& pf, const SetOp op);
 
@@ -1005,7 +1128,7 @@ private:
     bool hasBoundaryIntSegs;
     const bool initialStartPointIsA;
     InsideOutside entirelyInsideOutside;
-    IntersectionSegment* intSegMaxW; // Does not make sense.
+    //IntersectionSegment* intSegMaxW; // Does not make sense.
 
     //const unsigned int pFaceNoInCycle;
 
