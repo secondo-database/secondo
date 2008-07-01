@@ -477,6 +477,10 @@ as an attribute.
          WinUnix::writeLittle64(o,y); 
        }
     }
+  
+    static const string BasicType(){
+       return symbols::POINTS;
+    }
 
 
   protected:
@@ -1068,7 +1072,7 @@ as an attribute.
 
 
   static const string BasicType(){
-    return symbols::POINT;
+    return symbols::POINTS;
   }
 
 
