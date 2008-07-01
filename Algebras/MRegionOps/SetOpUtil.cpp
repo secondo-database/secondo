@@ -19,6 +19,8 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 
 #include "SetOpUtil.h"
 
+using namespace std;
+
 namespace mregionops {
 
 /*
@@ -93,9 +95,27 @@ void ResultUnitFactory::Start() {
     while (sourceIter != source.end()) {
 
         t1 = min((*sourceIter)->GetStartT(), minEndT);
+        
         ComputeCurrentTimeLevel();
+        //UpdateActiveSegList();
+        
+        //PrintActive();
+        //cout << endl;
     }
 }
+
+void ResultUnitFactory::PrintActive() const {
+
+    if (active.empty())
+        cout << "active is empty." << endl;
+
+    for (list<IntersectionSegment*>::const_iterator it = active.begin(); it
+            != active.end(); it++) {
+
+        (*it)->Print();
+    }
+}
+
 
 void ResultUnitFactory::ComputeCurrentTimeLevel() {
     
@@ -104,59 +124,54 @@ void ResultUnitFactory::ComputeCurrentTimeLevel() {
     
     UpdateActiveSegList();
     
+    cout << "t1 = " << t1 << endl;
+    cout << "t2 = " << t2 << endl;
+    
     // Construct the resultUnit:
-    DateTime start(instanttype);
-    DateTime end(instanttype);
-    start.ReadFrom(t1);
-    end.ReadFrom(t2);
-    Interval<Instant> interval(start, end, true, true);
-    URegionEmb resultUnit(interval, 0);
+    ResultUnit unit(t1, t2, true, false);
     
+    activeIter = active.begin();
     
-    const IntersectionSegment* const firstSegInCycle = *active.begin();
-    IntersectionSegment* seg = *active.begin();
-    IntersectionSegment* rightMate;
+    while (activeIter != active.end()) {
+
+        if (!(*activeIter)->IsInserted()) {
+
+            const IntersectionSegment* firstSegInCycle = *activeIter;
+            IntersectionSegment* seg = *activeIter;
+            IntersectionSegment* rightMate;
+
+            ResultFace face;
+            ResultCycle cycle;
+            
+            int count = 0;
+            cout << "firstSegInCycle: " << firstSegInCycle->GetID() << endl;
+
+            do {
+                
+                cout << seg->GetID() << ": " 
+                     << seg->GetStartXYT()->GetX() << " | " 
+                     << seg->GetStartXYT()->GetY() << " | " 
+                     << seg->GetStartXYT()->GetT() << endl;
+                
+                seg->MarkAsInserted();
+                rightMate = seg->GetActiveRightMate();
+
+                cycle.Append(seg->Evaluate(t1), seg->Evaluate(t2));
+
+                seg = rightMate;
+                
+                if (count++ == 20) break;
+
+            } while (seg->GetID() != firstSegInCycle->GetID());
+
+            face.AppendCycle(cycle);
+            unit.AppendFace(face);
+        }
+
+        activeIter++;
+    }
     
-    unsigned int faceNo = 0;
-    unsigned int cycleNo = 0;
-    unsigned int segmentNo = 0;
-    bool insideAbove = true;
-    
-    do {
-        
-        rightMate = seg->GetActiveRightMate();
-        
-        Point2D initialStart(seg->Evaluate(t1));
-        Point2D initialEnd(rightMate->Evaluate(t1));
-        Point2D finalStart(seg->Evaluate(t2));
-        Point2D finalEnd(rightMate->Evaluate(t2));
-        
-        MSegmentData mSeg(faceNo,
-                          cycleNo,
-                          segmentNo,
-                          insideAbove,
-                          initialStart.GetX(),
-                          initialStart.GetY(),
-                          initialEnd.GetX(),
-                          initialEnd.GetY(),
-                          finalStart.GetX(),
-                          finalStart.GetY(),
-                          finalEnd.GetX(),
-                          finalEnd.GetY());
-        
-        
-        resultUnit.PutSegment(resMRegion->GetMSegmentDataW(), 
-                              segmentNo,
-                              mSeg,
-                              true);
-        
-        segmentNo++;
-        
-        seg = rightMate;
-        
-    } while (seg != firstSegInCycle);
-    
-    resMRegion->Add(resultUnit);
+    resultUnitList.AppendUnit(unit);
 }
 
 void ResultUnitFactory::UpdateActiveSegList() {
@@ -175,6 +190,8 @@ void ResultUnitFactory::UpdateActiveSegList() {
 
             UpdateMinEndT();
             (*activeIter)->UpdateMateList(t1);
+            (*activeIter)->MarkAsNotInserted();
+            
             activeIter++;
         }
     }
@@ -186,11 +203,17 @@ void ResultUnitFactory::UpdateActiveSegList() {
         activeIter = active.insert(activeIter, newSeg);
         UpdateMinEndT();
         (*activeIter)->UpdateMateList(t1);
+        (*activeIter)->MarkAsNotInserted();
+        
         sourceIter++;
+        activeIter = active.end();
     }
     
     // Set next relevant time value:
-    t2 = min((*sourceIter)->GetStartT(), minEndT);
+    if (sourceIter != source.end())
+        t2 = min((*sourceIter)->GetStartT(), minEndT);
+    else
+        t2 = minEndT;
 }
 
 
@@ -675,8 +698,8 @@ bool SourceUnit::IsEntirelyOutside(const PFace* pFace) {
     Point3D middleXYT = (pFace->GetA_XYT() + pFace->GetC_XYT()) * 0.5;
     Point middleXY(middleXYT.GetX(), middleXYT.GetY());
 
-    cout << "middleXYT: " << middleXYT.GetX() << " | " << middleXYT.GetY()
-            << " | " << middleXYT.GetT() << endl;
+    //cout << "middleXYT: " << middleXYT.GetX() << " | " << middleXYT.GetY()
+            //<< " | " << middleXYT.GetT() << endl;
 
     return !GetMedianRegion().InnerContains(middleXY);
 }
@@ -691,11 +714,13 @@ SourceUnitPair::SourceUnitPair(const URegionEmb* const _uRegionA,
                                const DBArray<MSegmentData>* const aArray, 
                                const URegionEmb* const _uRegionB,
                                const DBArray<MSegmentData>* const bArray,
-                               MRegion* const resultMRegion) :
+                               //MRegion* const resultMRegion,
+                               NList* const resultUnitList) :
 
     unitA(true, _uRegionA, aArray, this), 
     unitB(false, _uRegionB, bArray, this),
-    resultUnitFactory(resultMRegion) {
+    resultUnitFactory(//resultMRegion, 
+                      resultUnitList) {
 
     unitA.SetPartner(&unitB);
     unitB.SetPartner(&unitA);
@@ -719,11 +744,12 @@ void SourceUnitPair::Operate(const SetOp op) {
         //FindMates();
         //PrintIntSegsOfPFaces();
         FindMatesAndCollectIntSegs(&resultUnitFactory);
+        //CollectIntSegs(&resultUnitFactory);
         PrintIntSegsOfPFaces();
-        //PrintIntSegsOfGlobalList();
+        resultUnitFactory.PrintIntSegsOfGlobalList();
         //PrintIntSegsOfGlobalListAsVRML();
         PrintUnitsAsVRML();
-        //ConstructResultUnits();
+        ConstructResultUnits();
 
     } else {
 
@@ -937,63 +963,58 @@ void SetOperator::Operate(const SetOp op) {
 
     a_ref->Get(0, a);
     b_ref->Get(0, b);
-
-    SourceUnitPair so = SourceUnitPair(a, aArray, b, bArray, res);
+    
+    //NList resultUnitList;
+    
+    SourceUnitPair so = SourceUnitPair(a, aArray, 
+                                       b, bArray, 
+                                       &resultMRegionList);
     so.Operate(op);
     
-    /*
-        //Compute the refinement partition:
-        RefinementPartition<
-                MRegion,
-                MRegion,
-                URegionEmb,
-                URegionEmb> rp(*this, mr);
-        
-        // Get the number of region units from the refinement partition:
-        const unsigned int nOfUnits = rp.Size();
-        
-        const URegionEmb* aa;
-        const URegionEmb* bb;
-        const URegionEmb* a;
-        const URegionEmb* b;
-        PUnitPair* unitPair;
-        vector<URegion>* resultUnits;
-        Interval<Instant>* interval;
-        int aPos, bPos;
-        
-        const DBArray<MSegmentData>* aArray = this->GetMSegmentData();
-        const DBArray<MSegmentData>* bArray = mr.GetMSegmentData();
+    //resultUnitList.enclose();
+    //AppendUnitList(&resultUnitList);
+    
+    //CreateResultMRegionFromList();
+    //res->SetDefined(false);
+    
+    MRegion* operationResult = CreateResultMRegionFromList();
+    res->CopyFrom(operationResult);
+    delete operationResult;
+    
 
-        for (unsigned int i = 0; i < nOfUnits; i++) {
-            
-            // Get the interval of region unit i 
-            // from the refinement partition:
-            rp.Get(i, interval, aPos, bPos);
-            
-            // Skip this region unit, 
-            // if one of the movingregions is undefined:
-            if (aPos == -1 || bPos == -1)
-                continue;
-            
-            this->Get(aPos, aa);
-            mr.Get(bPos, bb);
-            
-            //aa->Restrict(interval, a);
-            //bb->Restrict(interval, b);
-            a = aa;
-            b = bb;
-            
-            unitPair = new PUnitPair(a, aArray, b, bArray);
-            resultUnits = unitPair->Intersection();
-            
-            vector<URegion>::iterator it;
-            for (it = resultUnits->begin(); it != resultUnits->end(); it++)
-                res.AddURegion(*it);
-            
-            delete unitPair;
-            
-        }
-        */
+}
+
+void SetOperator::AppendUnitList(const NList* resultUnitList) {
+    
+    resultMRegionList.append(*resultUnitList);
+}
+
+MRegion* SetOperator::CreateResultMRegionFromList() {
+    
+    ListExpr errorInfo = NList().listExpr();
+    bool correct = false;
+        
+    Word result = InMRegion(NList("movingregion").listExpr(),
+                            resultMRegionList.listExpr(),
+                            0,
+                            errorInfo,
+                            correct);
+    
+    if (correct) {
+    
+        return (MRegion*)result.addr;
+        
+    } else {
+        
+        cerr << "resultMRegionListExpr is incorrect:" << endl;
+        cerr << resultMRegionList << endl;
+        cerr << NList(errorInfo) << endl;
+        
+        MRegion* result = new MRegion(0);
+        result->SetDefined(false);
+        
+        return result;
+    }
 }
 
 /*
@@ -1001,6 +1022,8 @@ void SetOperator::Operate(const SetOp op) {
 Class IntersectionSegment
 
 */
+
+unsigned int IntersectionSegment::instancePairCount = 0;
 
 pair<IntersectionSegment*, IntersectionSegment*> 
 IntersectionSegment::createBuddyPair(const Point3D& a, const Point3D& b) {
@@ -1031,7 +1054,13 @@ IntersectionSegment::createBuddyPair(const Point3D& a, const Point3D& b) {
 			
 	first->inserted = second->inserted = new bool(false);
 	first->hasReference = second->hasReference = new bool(true);
-
+	
+	cout << "Create IntSegPair: " 
+	     << IntersectionSegment::instancePairCount << endl;
+	
+	first->id = second->id = 
+	    new unsigned int(IntersectionSegment::instancePairCount++);
+	
 	return pair<IntersectionSegment*, IntersectionSegment*>(first, second);
 }
 
@@ -1147,7 +1176,9 @@ Point3D IntersectionSegment::Evaluate(const double t) const {
 }
 
 
-void IntersectionSegment::Print() {
+void IntersectionSegment::Print() const {
+    
+    cout << "ID: " << GetID() << endl;
 
     cout << "Start_XYT: " << GetStartXYT()->GetX() << " | " 
                           << GetStartXYT()->GetY() << " | " 
@@ -1160,9 +1191,9 @@ void IntersectionSegment::Print() {
     //cout << "Start_WT: " << GetStartW() << " | " << GetStartT() << endl;
     //cout << "End_WT: " << GetEndW() << " | " << GetEndT() << endl;
 
-    //cout << "IsRightBoundary() == " << this->IsRightBoundary() << endl;
+    cout << "IsRightBoundary() == " << this->IsRightBoundary() << endl;
 
-    //cout << "ResultFaceIsLeft: " << ResultFaceIsLeft() << endl;
+    cout << "ResultFaceIsLeft: " << ResultFaceIsLeft() << endl;
     //cout << "RelationToRightBoundary: " 
     // << GetRelationToRightBoundaryOfPFace() << endl;
 
@@ -1301,7 +1332,7 @@ void MateEngine::ComputeCurrentTimeLevel() {
             }
         }
 
-        if (removedOrInserted) {
+        if (true) {
 
             DoMating();
         }
@@ -1321,6 +1352,7 @@ void MateEngine::ComputeCurrentTimeLevel() {
         DoMating();
         UpdateMinEndT();
         sourceIter++;
+        activeIter = active.end();
     }
 }
 
@@ -1366,7 +1398,6 @@ PFace::PFace(SourceUnit* _unit,
     hasIntSegs = false;
     hasBoundaryIntSegs = false;
     entirelyInsideOutside = UNKNOWN;
-    intSegMaxW = 0;
 
     ComputeBoundingRect();
     ComputeNormalVector();
@@ -1666,32 +1697,51 @@ bool PFace::IntersectsRightBoundary(IntersectionSegment* intSeg) const {
     return false;
 }
 
-const IntersectionSegment* PFace::GetIntSegMaxW() {
-
-    // Note: We can ignore orthogonal segments, since 
-    // we find always a non-orthogonal segment
-    // with equal w-coord.
+const IntersectionSegment* PFace::GetRightmostIntSeg() {
 
     assert(!generalIntSegSet.empty());
 
-    if (intSegMaxW == 0) {
+    const IntersectionSegment* rightmost;
+    double t;
 
-        set<IntersectionSegment*>::iterator iter;
-        iter = generalIntSegSet.begin();
-        intSegMaxW = *iter;
+    set<IntersectionSegment*>::iterator iter;
+    iter = generalIntSegSet.end();
+    iter--;
+    rightmost = *iter;
+    t = (*iter)->GetStartT();
 
-        iter++;
+    while (true) {
 
-        while (iter != generalIntSegSet.end()) {
-
-            if ((*iter)->GetMaxW() > intSegMaxW->GetMaxW())
-                intSegMaxW = *iter;
-
-            iter++;
+        while (NumericUtil::NearlyEqual((*iter)->GetStartT(), t)) {
+            
+            // We walk to the last intSeg of the next lower timelevel,
+            // if there is one:
+            if (iter == generalIntSegSet.begin()) {
+                
+                cout << "rightmost intSeg: ";
+                rightmost->Print();
+                cout << endl;
+                
+                return rightmost;
+            }
+            
+            iter--;
+        }
+        
+        // Update t:
+        t = (*iter)->GetStartT();
+        
+        // Now, iter points to the last intSeg of the current timelevel,
+        // which is the rightmost intSeg of this timelevel.
+        
+        if (rightmost->IsLeftOf(*iter)) {
+            
+            // This intSeg is right of rightMost:
+            rightmost = *iter;
         }
     }
 
-    return intSegMaxW;
+    //return rightmost;
 }
 
 string PFace::GetVRMLDesc() {
@@ -1834,9 +1884,9 @@ void PFacePair::ComputeBoundarySegments() {
 
     if (!left->HasIntSegsTouchingRightBoundary()) {
 
-        const IntersectionSegment* intSegMaxW = left->GetIntSegMaxW();
+        const IntersectionSegment* rightmost = left->GetRightmostIntSeg();
 
-        if (intSegMaxW->ResultFaceIsRight()) {
+        if (rightmost->ResultFaceIsRight()) {
 
             // Both, the entire right boundary of PFace left and 
             // the entire left boundary of PFace right 
