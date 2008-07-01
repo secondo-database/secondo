@@ -2384,7 +2384,8 @@ Constructs a localinfo tor given k and the attribute indexes by ~attrnumbers~.
 
 */
     KSmallestLocalInfo(int ak, vector<int>& attrnumbers,bool Smallest):
-       elems(0),numbers(attrnumbers),pos(0),smallest(Smallest){
+       elems(0),numbers(attrnumbers),pos(0),smallest(Smallest),
+       firstRequest(true){
        if(ak<0){
           k = 0;
        } else {
@@ -2392,32 +2393,6 @@ Constructs a localinfo tor given k and the attribute indexes by ~attrnumbers~.
        }
     }
 
-/*
-~insertTuple~
-
-Inserts a tuple into the local buffer. If the buffer would be 
-overflow (size [>] k) , the maximum element is removed from the buffer.
-
-*/
-    void insertTuple(Tuple* tuple){
-       if(elems.size() < k){
-          elems.push_back(tuple);
-          if(elems.size()==k){
-            initializeHeap();
-          }
-       } else {
-         Tuple* maxTuple = elems[0];
-
-         int cmp = compareTuples(tuple,maxTuple);
-         if(cmp>=0){ // tuple >= maxTuple
-            tuple->DeleteIfAllowed();
-         } else {
-            maxTuple->DeleteIfAllowed();
-            elems[0] = tuple;
-            sink(0,elems.size());
-         }  
-       } 
-    }
 
 /*
 ~Destructor~
@@ -2444,7 +2419,19 @@ Returns the next tuple within the buffer, or 0 if no tuple is
 available.
 
 */
-   Tuple* nextTuple(){
+   Tuple* nextTuple(Word& stream){
+      if(firstRequest){
+         Word elem;
+         qp->Request(stream.addr,elem);
+         Tuple* tuple;
+         while(qp->Received(stream.addr)){
+           tuple = static_cast<Tuple*>(elem.addr);
+           insertTuple(tuple);
+           qp->Request(stream.addr,elem);
+           firstRequest = false;
+         }
+      }
+
       if(pos==0){
          // sort the elements
          if(elems.size()< k){
@@ -2474,6 +2461,35 @@ available.
     unsigned int k;
     unsigned int pos;
     bool smallest;
+    bool firstRequest;
+
+
+/*
+~insertTuple~
+
+Inserts a tuple into the local buffer. If the buffer would be 
+overflow (size [>] k) , the maximum element is removed from the buffer.
+
+*/
+    void insertTuple(Tuple* tuple){
+       if(elems.size() < k){
+          elems.push_back(tuple);
+          if(elems.size()==k){
+            initializeHeap();
+          }
+       } else {
+         Tuple* maxTuple = elems[0];
+
+         int cmp = compareTuples(tuple,maxTuple);
+         if(cmp>=0){ // tuple >= maxTuple
+            tuple->DeleteIfAllowed();
+         } else {
+            maxTuple->DeleteIfAllowed();
+            elems[0] = tuple;
+            sink(0,elems.size());
+         }  
+       } 
+    }
 
     inline int compareTuples(Tuple* t1, Tuple* t2){
       return smallest?compareTuplesSmaller(t1,t2): compareTuplesSmaller(t2,t1); 
@@ -2554,16 +2570,7 @@ int ksmallestVM(Word* args, Word& result,
          attrPos.push_back(anum);
       }
       int k = cck->IsDefined()?cck->GetIntval():0;
-
-
       KSmallestLocalInfo* linfo = new   KSmallestLocalInfo(k,attrPos,smaller);
-      qp->Request(args[0].addr,elem);
-      Tuple* tuple;
-      while(qp->Received(args[0].addr)){
-         tuple = static_cast<Tuple*>(elem.addr);
-         linfo->insertTuple(tuple);
-         qp->Request(args[0].addr,elem);
-      }
       local.addr = linfo;
       return 0;
     }
@@ -2571,7 +2578,7 @@ int ksmallestVM(Word* args, Word& result,
        KSmallestLocalInfo* linfo;
        linfo = static_cast<KSmallestLocalInfo*>(local.addr);
        if(linfo){
-         Tuple* tuple = linfo->nextTuple();
+         Tuple* tuple = linfo->nextTuple(args[0]);
          if(tuple){
            result=SetWord(tuple);
            return YIELD;
