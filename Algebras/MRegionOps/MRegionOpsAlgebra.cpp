@@ -49,23 +49,40 @@ namespace mregionops {
 */
 
 ListExpr MRMRMRTypeMap(ListExpr args) {
-	
-	NList type(args);
-	const string errMsg = "Expecting two movingregions.";
-	
-	if (type.length() != 2)
-		return NList::typeError(errMsg);
 
-	// movingregion x movingregion -> movingregion
-	if (type.first().isSymbol("movingregion") && 
-		type.second().isSymbol("movingregion")) {
+    NList type(args);
+    const string errMsg = "Expecting two movingregions.";
 
-		return NList("movingregion").listExpr();
-	}
+    if (type.length() != 2)
+        return NList::typeError(errMsg);
 
-	return NList::typeError(errMsg);
+    // movingregion x movingregion -> movingregion
+    if (type.first().isSymbol("movingregion") && 
+        type.second().isSymbol("movingregion")) {
+
+        return NList("movingregion").listExpr();
+    }
+
+    return NList::typeError(errMsg);
 }
 
+ListExpr MRMRMBTypeMap(ListExpr args) {
+
+    NList type(args);
+    const string errMsg = "Expecting two movingregions.";
+
+    if (type.length() != 2)
+        return NList::typeError(errMsg);
+
+    // movingregion x movingregion -> mbool
+    if (type.first().isSymbol("movingregion") && 
+        type.second().isSymbol("movingregion")) {
+
+        return NList("mbool").listExpr();
+    }
+
+    return NList::typeError(errMsg);
+}
 
 /*
 
@@ -73,52 +90,82 @@ ListExpr MRMRMRTypeMap(ListExpr args) {
 
 */
 
-int IntersectionValueMap(Word* args, Word& result, int message, 
-		Word& local, Supplier s) {
-	
-	MRegion* mrA = static_cast<MRegion*>(args[0].addr );
-	MRegion* mrB = static_cast<MRegion*>(args[1].addr );
+int IntersectionValueMap(Word* args, Word& result, int message, Word& local,
+        Supplier s) {
 
-	result = qp->ResultStorage(s);
+    MRegion* mrA = static_cast<MRegion*>(args[0].addr );
+    MRegion* mrB = static_cast<MRegion*>(args[1].addr );
 
-	MRegion* res = static_cast<MRegion*>(result.addr );
-	
-	SetOperator so(mrA, mrB, res);
-	so.Intersection();
+    result = qp->ResultStorage(s);
 
-	return 0;
+    MRegion* res = static_cast<MRegion*>(result.addr );
+
+    SetOperator so(mrA, mrB, res);
+    so.Intersection();
+
+    return 0;
 }
 
-int UnionValueMap(Word* args, Word& result, int message, Word& local,
-		Supplier s) {
-    
-	MRegion* mrA = static_cast<MRegion*>(args[0].addr );
-	MRegion* mrB = static_cast<MRegion*>(args[1].addr );
+int UnionValueMap(Word* args, Word& result, int message, Word& local, 
+        Supplier s) {
 
-	result = qp->ResultStorage(s);
+    MRegion* mrA = static_cast<MRegion*>(args[0].addr );
+    MRegion* mrB = static_cast<MRegion*>(args[1].addr );
 
-	MRegion* res = static_cast<MRegion*>(result.addr );
-	
-	SetOperator so(mrA, mrB, res);
-	so.Union();
+    result = qp->ResultStorage(s);
 
-	return 0;
+    MRegion* res = static_cast<MRegion*>(result.addr );
+
+    SetOperator so(mrA, mrB, res);
+    so.Union();
+
+    return 0;
 }
 
-int MinusValueMap(Word* args, Word& result, int message, Word& local,
-		Supplier s) {
-    
-	MRegion* mrA = static_cast<MRegion*>(args[0].addr );
-	MRegion* mrB = static_cast<MRegion*>(args[1].addr );
+int MinusValueMap(Word* args, Word& result, int message, Word& local, 
+        Supplier s) {
 
-	result = qp->ResultStorage(s);
+    MRegion* mrA = static_cast<MRegion*>(args[0].addr );
+    MRegion* mrB = static_cast<MRegion*>(args[1].addr );
 
-	MRegion* res = static_cast<MRegion*>(result.addr );
+    result = qp->ResultStorage(s);
 
-	SetOperator so(mrA, mrB, res);
-	so.Minus();
+    MRegion* res = static_cast<MRegion*>(result.addr );
 
-	return 0;
+    SetOperator so(mrA, mrB, res);
+    so.Minus();
+
+    return 0;
+}
+
+int IntersectsValueMap(Word* args, Word& result, int message, Word& local,
+        Supplier s) {
+
+    MRegion* mrA = static_cast<MRegion*>(args[0].addr );
+    MRegion* mrB = static_cast<MRegion*>(args[1].addr );
+
+    result = qp->ResultStorage(s);
+
+    MBool* res = static_cast<MBool*>(result.addr );
+
+    res->SetDefined(false);
+
+    return 0;
+}
+
+int InsideValueMap(Word* args, Word& result, int message, Word& local,
+        Supplier s) {
+
+    MRegion* mrA = static_cast<MRegion*>(args[0].addr );
+    MRegion* mrB = static_cast<MRegion*>(args[1].addr );
+
+    result = qp->ResultStorage(s);
+
+    MBool* res = static_cast<MBool*>(result.addr );
+
+    res->SetDefined(false);
+
+    return 0;
 }
 
 /*
@@ -129,34 +176,53 @@ int MinusValueMap(Word* args, Word& result, int message, Word& local,
 
 struct IntersectionInfo : OperatorInfo {
 
-	IntersectionInfo() {
-		name = "intersection";
-		signature = "movingregion x movingregion -> movingregion";
-		syntax = "intersection(_, _)";
-		meaning = "Intersection operation for two movingregions.";
-	}
+    IntersectionInfo() {
+        name = "intersection";
+        signature = "movingregion x movingregion -> movingregion";
+        syntax = "intersection(_, _)";
+        meaning = "Intersection operation for two movingregions.";
+    }
 };
 
 struct UnionInfo : OperatorInfo {
 
-	UnionInfo() {
-		name = "union";
-		signature = "movingregion x movingregion -> movingregion";
-		syntax = "_ union _";
-		meaning = "Union operation for two movingregions.";
-	}
+    UnionInfo() {
+        name = "union";
+        signature = "movingregion x movingregion -> movingregion";
+        syntax = "_ union _";
+        meaning = "Union operation for two movingregions.";
+    }
 };
 
 struct MinusInfo : OperatorInfo {
 
-	MinusInfo() {
-		name = "minus";
-		signature = "movingregion x movingregion -> movingregion";
-		syntax = "_ minus _";
-		meaning = "Minus operation for two movingregions.";
-	}
+    MinusInfo() {
+        name = "minus";
+        signature = "movingregion x movingregion -> movingregion";
+        syntax = "_ minus _";
+        meaning = "Minus operation for two movingregions.";
+    }
 };
 
+struct IntersectsInfo : OperatorInfo {
+
+    IntersectsInfo() {
+        name = "intersects";
+        signature = "movingregion x movingregion -> mbool";
+        syntax = "_ intersects _";
+        meaning = "Intersects predicate for two movingregions.";
+    }
+};
+
+struct InsideInfo : OperatorInfo {
+
+    InsideInfo() {
+        name = "inside";
+        signature = "movingregion x movingregion -> mbool";
+        syntax = "_ inside _";
+        meaning = "Inside predicate for two movingregions.";
+    }
+};
 
 /*
 
@@ -165,30 +231,31 @@ struct MinusInfo : OperatorInfo {
 */
 
 class MRegionOpsAlgebra : public Algebra {
-	
+
 public:
-	
-	MRegionOpsAlgebra() :
-		Algebra() {
 
-		AddOperator(IntersectionInfo(), IntersectionValueMap, 
-					MRMRMRTypeMap);
-		AddOperator(UnionInfo(), UnionValueMap, MRMRMRTypeMap);
-		AddOperator(MinusInfo(), MinusValueMap, MRMRMRTypeMap);
-	}
+    MRegionOpsAlgebra() :
+        Algebra() {
 
-	~MRegionOpsAlgebra() {
-		
-	}
+        AddOperator(IntersectionInfo(), IntersectionValueMap, MRMRMRTypeMap);
+        AddOperator(UnionInfo(), UnionValueMap, MRMRMRTypeMap);
+        AddOperator(MinusInfo(), MinusValueMap, MRMRMRTypeMap);
+        AddOperator(IntersectsInfo(), IntersectsValueMap, MRMRMBTypeMap);
+        AddOperator(InsideInfo(), InsideValueMap, MRMRMBTypeMap);
+    }
+
+    ~MRegionOpsAlgebra() {
+
+    }
 };
 
 } // end of namespace mregionops
 
 extern "C"Algebra*
 InitializeMRegionOpsAlgebra( NestedList* nlRef,
-		QueryProcessor* qpRef )
+        QueryProcessor* qpRef )
 {
-	// The C++ scope-operator :: must be used to qualify the full name 
-	return new mregionops::MRegionOpsAlgebra;
+    // The C++ scope-operator :: must be used to qualify the full name 
+    return new mregionops::MRegionOpsAlgebra;
 }
 
