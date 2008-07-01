@@ -46,8 +46,9 @@ maxN = maxP + maxC + L = P + L-1 + L = L-1+L + L-1 + L = 4L-2 = O(L)
 */
 
 /*
+3 Preparations
 
-1 Includes and Definitions
+3.1 Includes and Definitions
 
 */
 
@@ -75,6 +76,7 @@ using namespace std;
 #include "TopRel.h"
 #include "DBArray.h"
 #include "GenericTC.h"
+#include "GenOps.h"
 
  // the __POS__ macro can be used in debug-messages
 #define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
@@ -88,13 +90,6 @@ extern QueryProcessor *qp;
 
 
 namespace periodic {
-
-
-
-/*
-1 Definitions of some constants
-
-*/
 
 /* 
 ~[_][_]TRACE[_][_]~
@@ -130,22 +125,9 @@ using namespace datetime;
  // the __POS__ macro can be used in debug-messages
 #define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__ 
 
-
-
-extern NestedList* nl;
-extern QueryProcessor *qp;
 using namespace datetime;
 
 #include "TemporalAlgebra.h"
-
-
-
-/*
-1 Definitions of some constants
-
-*/
-
-
 
 using namespace datetime;
 
@@ -153,7 +135,7 @@ using namespace datetime;
 
 
 /*
-2 Implementation of supporting functions
+3.2 Implementation of supporting functions
 
 
 The following functions support the implementation of functions of
@@ -293,13 +275,10 @@ double PointPosOnSegment(double x1, double y1,
 }
 
 
-
-
-
 /*
 3 Implementation of the classes
 
-3.1 The class PBBox 
+3.1 ~PBBox~ 
 
 */
 
@@ -952,7 +931,7 @@ PBBox& PBBox::operator=(const PBBox& source){
 
 
 /*
-3.2 Implementation of RelInterval
+3.2 ~RelInterval~
 
 */
 
@@ -1682,7 +1661,7 @@ bool RelInterval::GetCanDelete() const{
 }
 
 /*
-3.3 Implementation of PInterval
+3.3 ~PInterval~
 
 */
 /*
@@ -2223,7 +2202,7 @@ FLOB* PInterval::GetFLOB(const int i){
 }
 
 /*
-3.4 Implementation of CompositeMove
+3.4 ~CompositeMove~
 
 */
 
@@ -2391,7 +2370,7 @@ void SpatialCompositeMove::ToCompositeMove(CompositeMove& result)const{
 
 
 /*
-3.6 Implementation of the class ~SubMove~
+3.6 ~SubMove~
 
 
 */
@@ -2438,7 +2417,7 @@ void CSubMove::Equalize(const CSubMove* SM){
 
 
 /*
-3.7 Implementation of the ~PeriodicMove~
+3.7 ~PeriodicMove~
 
 */
 
@@ -2583,7 +2562,7 @@ void SpatialPeriodicMove::ToPeriodicMove(PeriodicMove& result) const{
 
 
 /*
-3.9 Implementation of the LinearConstantMove
+3.9 ~LinearConstantMove~
 
 */
 /*
@@ -2881,11 +2860,8 @@ void LinearConstantMove<T>::Equalize(const LinearConstantMove<T>* source){
 
 
 
-
-
-
 /*
-3.9 Implementation of the LinearBoolMove class
+3.9 ~LinearBoolMove~
 
 */
 /*
@@ -2919,7 +2895,7 @@ bool ReadFromListExpr(ListExpr le, bool& v){
 
 
 /*
-3.10 The class LinearInt9mMove 
+3.10 ~LinearInt9mMove~ 
 
 This class provides the unit type for a periodic moving 9 intersection matrix.
 
@@ -2972,7 +2948,7 @@ void LinearInt9MMove::Transpose(){
 
 
 /*
-3.11 Implementation of the ~MRealMap~ class
+3.11 ~MRealMap~ 
 
 */
 /*
@@ -3236,10 +3212,8 @@ void MRealMap::Unify(){
 }
 
 /*
-3.12 Implementation of the MRealUnit class
+3.12 ~MovingRealUnit~
 
-*/
-/*
 ~constructor~
 
 This constructor does nothing.
@@ -3581,7 +3555,7 @@ void MovingRealUnit::Equalize(const MovingRealUnit* source){
 }
 
 /*
-3.13 Implementation of the LinearPointMove class
+3.13 ~LinearPointMove~
 
 */
 /*
@@ -3645,7 +3619,7 @@ bool LinearPointMove::Connected(LinearPointMove* P2){
 
 
 /*
-~An stream operator~
+~A stream operator~
 
 This operator can be used for debugging purposes. Its defines
 a formatted output for a LinearPointMove. 
@@ -3659,7 +3633,7 @@ ostream& operator<<(ostream& os, const LinearPointMove LPM){
 
 
 /*
-3.14 Implementation of the ~TwoPoints~ class
+3.14 ~TwoPoints~ 
 
 */
 /*
@@ -3746,7 +3720,7 @@ void TwoPoints::Equalize(const TwoPoints* source){
 }
 
 /*
-3.15 Implementation of the ~LinearPointsMove~ class
+3.15 ~LinearPointsMove~ 
 
 */
 /*
@@ -3804,7 +3778,7 @@ unsigned int LinearPointsMove::GetEndIndex()const {
 
 
 /*
-3.16 Implementation of the PMSimple class
+3.16 ~PMSimple~ 
 
 */
 /*
@@ -5864,7 +5838,7 @@ void PMSimple<T, Unit>::CorrectDurationSums(){
 
 
 /*
-3.17 Implementation of PMInt9M
+3.17 ~PMInt9M~
 
 */
 /*
@@ -6087,7 +6061,7 @@ bool PMInt9M::CreateFrom( const DBArray<LinearInt9MMove>& linearMoves,
 }
 
 /*
-3.18 Implementation of PMPoint
+3.18 ~PMPoint~
 
 */
 PMPoint::PMPoint(){}
@@ -6102,7 +6076,7 @@ PMPoint& PMPoint::operator=(const PMPoint& source){
 }
  
 /*
-3.19 Implementation of PMPoints
+3.19 ~PMPoints~
 
 */
 PMPoints::PMPoints(){}
@@ -6198,7 +6172,7 @@ void PMPoints::GetLength(SubMove sm, DateTime& result){
 }
 
 /*
-3.20 IMplementation of ~SimplePoint~
+3.20 ~SimplePoint~
 
 */
 
@@ -6721,7 +6695,7 @@ ostream& operator<< (ostream &os, class PMPoints &P){
 
 
 /*
-3.3 Implementation of the __LinearPointMove__ class
+3.3 ~LinearPointMove~ class
 
 ~Constructor~
 
@@ -7649,7 +7623,7 @@ double LinearPointMove::Length() const{
 
 
 /*
-3.4 The TwoPoints Class
+3.4 ~TwoPoints~
 
 
 */
@@ -11783,123 +11757,636 @@ GenTC<PMInt9M> pmint9m;
 GenTC<PMReal> pmreal;
 
 
+
 /*
-5 Implementing Operators
+~ Class Duration~
 
-4.1 Type Mappings
-
-
-4.1.1 Template function for simple Type Mappings of the form
-
-  
+This class is used for naming the DateTimeType 'duration'
 
 */
 
 
+
+
+class Duration{
+  public:
+  static const string BasicType(){
+     return "duration";
+  }
+};
+
+
+
+/*
+
+10 Definition of Operators
+
+
+10.1 ~=~
+
+~Type Mapping~ and ~Selection Function~
+
+*/
+
+static complexTM getEqualsCTM(){
+   complexTM tm;
+   tm.add(tm2<PBBox,PBBox,CcBool>());
+   tm.add(tm2<PInterval,PInterval,CcBool>());
+   return tm;
+}
+
+static ListExpr EqualsTypeMap(ListExpr args){
+   return getEqualsCTM()(args);
+}
+
+static int EqualsSelect(ListExpr args){
+   return getEqualsCTM().select(args);
+}
+
+/*
+~Functor~ and ~Value Mapping Array~
+
+*/
+
+template<class A1,class A2,class R>
+class EqualF{
+public:
+  void operator()(A1* a1, A2* a2, R* res){
+     res->Set(true,a1->CompareTo(a2)==0);
+  }
+};
+
+ValueMapping EqualsValueMap[] = {
+  GenVM2<PBBox, PBBox, CcBool, EqualF<PBBox,PBBox,CcBool> >,
+  GenVM2<PInterval, PInterval, CcBool, EqualF<PInterval,PInterval, CcBool> >
+};
+
+/*
+~Operator Instance~
+
+*/
+
+Operator pequals(
+       "=",  
+       getEqualsCTM().getSpecification(
+           "_ = _ ", 
+           "Check for equality of the arguments",
+           "query a = b"),  
+       getEqualsCTM().getVMCount(),
+       EqualsValueMap, 
+       EqualsSelect,  
+       EqualsTypeMap);
+
+/*
+10.2  ~At~
+
+*/
+
+static complexTM getAtCTM(){
+  complexTM tm;
+  tm.add(tm2<PMPoint,DateTime,Point>());
+  tm.add(tm2<PMBool,DateTime,CcBool>());
+  tm.add(tm2<PMInt9M,DateTime,Int9M>());
+  tm.add(tm2<PMPoints,DateTime,Points>());
+  tm.add(tm2<PMReal,DateTime,CcReal>());
+  return tm;
+}
+
+static ListExpr AtTypeMap(ListExpr args){
+   return getAtCTM()(args);
+}
+
+static int AtSelect(ListExpr args){
+   return getAtCTM().select(args);
+}
+
+template<class ArgT, class ResT>
+class AtF_Sec{
+  public:
+  void operator()(ArgT* a1, DateTime* i, ResT* res){
+    a1->At(i,*res);
+  }
+};
+
+template<class ArgT, class ResT, class CT>
+class AtF_C{
+  public:
+  void operator()(ArgT* a1, DateTime* i, ResT* res){
+    CT r;
+    a1->At(i,r);
+    res->Set(true, r);
+  }
+};
+
+ValueMapping AtValueMap[] = { 
+  GenVM2<PMPoint, DateTime, Point, AtF_Sec<PMPoint, Point> >,
+  GenVM2<PMBool, DateTime, CcBool, AtF_C<PMBool, CcBool, bool> >,
+  GenVM2<PMInt9M, DateTime, Int9M, AtF_Sec<PMInt9M, Int9M> >,
+  GenVM2<PMPoints, DateTime, Points, AtF_Sec<PMPoints, Points> >,
+  GenVM2<PMReal, DateTime, CcReal, AtF_C<PMReal, CcReal, double> >
+};
+
+Operator pat(
+       "atinstant",    
+       getAtCTM().getSpecification(
+         "_ atinstant _",
+         "returns the value of the first argument for a given instant",        
+         "query pm atinstant i"),
+       getAtCTM().getVMCount(),           
+       AtValueMap,
+       AtSelect,
+       AtTypeMap);
+
+
+/*
+10.3 ~Union~
+
+*/
+
+const string UnionSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"pbbox x pbbox -> pbbox\""
+   " \" _ union _ \" "
+   " \"computes the union of the arguments\" "
+   " \" query B1 union B2\" ))";
+
+template<class A1, class A2,class R>
+class UnionF{
+public:
+  void operator()(A1* a1, A2* a2, R* res){
+     a1->Union(a2,*res);
+  }
+};
+
+Operator punion(
+        "union",      
+        UnionSpec,    
+        GenVM2<PBBox, PBBox, PBBox, UnionF<PBBox,PBBox,PBBox> >, 
+        Operator::SimpleSelect, 
+        TypeMap2<PBBox, PBBox, PBBox> ); 
+
+/*
+10.4 ~Trajectory~
+
+*/
+
+const string TrajectorySpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"pmpoint -> line\""
+   " \" trajectory( _ ) \" "
+   " \"computes the trajectory of the argument\" "
+   " \" query trajectory(P5)\" ))";
+
+template<class A,class R>
+class TrajectoryF{
+  public:
+  void operator()(A* arg, R* res){
+    arg->Trajectory(*res);
+  }
+};
+
+Operator ptrajectory(
+        "trajectory",
+        TrajectorySpec,
+        GenVM1<PMPoint,Line, TrajectoryF<PMPoint,Line> >,
+        Operator::SimpleSelect,
+        TypeMap1<PMPoint,Line>);
+
+
+/*
+10.5 ~length~
+
+*/
+
+const string LengthSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"pinterval -> duration\""
+   " \" length( _ ) \" "
+   " \"computes the duration of a pinterval\" "
+   " \" query length(I)\" ))";
+
 template<class A, class R>
-ListExpr TypeMap1(ListExpr args){
-  string err = A::BasicType()+ " expected";
-  if(::nl->ListLength(args)!=1){
-    ErrorReporter::ReportError(err);
-    return ::nl->TypeError();
+class LengthF{
+  public:
+  void operator()(A* arg, R* res){
+    arg->Length(*res);
   }
-  if(!::nl->IsEqual(::nl->First(args),A::BasicType())){
-    ErrorReporter::ReportError(err);
-    return ::nl->TypeError();
+};
+
+Operator plength(
+        "length",
+        LengthSpec,
+        GenVM1<PInterval, DateTime, LengthF<PInterval, DateTime> >,
+        Operator::SimpleSelect,
+        TypeMap1<PInterval, Duration>);
+
+/*
+10.6 ~length2~
+
+*/
+
+const string LengthSpec2 =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"pmpoint -> real\""
+   " \" length( _ ) \" "
+   " \"computes the length of the route of a pmpoint\" "
+   " \" query length(p)\" ))";
+
+Operator plength2(
+        "length",
+        LengthSpec2,
+        GenVM1<PMPoint, CcReal, LengthF<PMPoint,CcReal> >,
+        Operator::SimpleSelect,
+        TypeMap1<PMPoint,CcReal>);
+
+
+/*
+10.7 ~start~
+
+*/
+
+const string StartSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"pinterval -> instant\""
+   " \" start( _ ) \" "
+   " \"computes the start time of a pinterval\" "
+   " \" query start(I)\" ))";
+
+template<class A, class R>
+class StartF{
+  public:
+  void operator()(A* a, R* res){
+      a->GetStart(*res);
   }
-  return ::nl->SymbolAtom(R::BasicType());
+};
+
+Operator pstart(
+        "start",
+        StartSpec,
+        GenVM1<PInterval, DateTime, StartF<PInterval,DateTime> >,
+        Operator::SimpleSelect,
+        TypeMap1<PInterval, DateTime>);
+
+
+/*
+10.8 ~end~
+
+*/
+
+const string EndSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"pinterval -> instant\""
+   " \" end( _ ) \" "
+   " \"computes the start time of a pinterval\" "
+   " \" query end(I)\" ))";
+
+template<class A, class R>
+class EndF{
+  public:
+  void operator()(A* a, R* res){
+      a->GetEnd(*res);
+  }
+};
+
+Operator pend(
+        "end",
+        EndSpec,
+        GenVM1<PInterval,DateTime, EndF<PInterval,DateTime> >,
+        Operator::SimpleSelect,
+        TypeMap1<PInterval, Instant>);
+
+
+/*
+10.9 ~expand~
+
+*/
+
+const string ExpandSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmpoint -> mpoint\""
+   " \" expand(_) \" "
+   " \"creates a moving point from a periodic one\""
+   " \"\""
+   " \" query expand(I)\" ))";
+
+template<class A, class R>
+class ExpandF{
+  public:
+  void operator()(A* a, R* res){
+      a->Expand(*res);
+  }
+};
+
+Operator pexpand(
+        "expand",
+        ExpandSpec,
+        GenVM1<PMPoint, MPoint, ExpandF<PMPoint, MPoint> >,
+        Operator::SimpleSelect,
+        TypeMap1<PMPoint,MPoint>);
+
+/*
+10.10 ~createpmpoint~
+
+*/
+
+const string CreatePMPointSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"mpoint  -> pmpoint\""
+   " \" createpmpoint(_) \" "
+   " <text>creates a periodic moving point "
+          "from a linearly moving one</text--->"
+   " \"\""
+   " \" query createpmpoint(p1)\" ))";
+
+template<class A, class R>
+class CreateF{
+  public:
+  void operator()(A* a, R* res){
+      res->ReadFrom(*a);
+  }
+};
+
+Operator createpmpoint(
+        "createpmpoint",
+        CreatePMPointSpec,
+        GenVM1<MPoint, PMPoint, CreateF<MPoint, PMPoint> >,
+        Operator::SimpleSelect,
+        TypeMap1<MPoint,PMPoint>);
+
+/*
+10.11 ~speed~
+
+*/
+
+const string SpeedSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmpoint -> pmreal \" "
+   " \" speed( _ ) \" "
+   " \" Computes the Speed of the argument.  \"  "
+   " \" \" "
+   " <text> query speed(p1)  </text---> ))";
+
+template<class A, class R>
+class SpeedF{
+   public:
+   void operator()(A* a, R* res){
+     a->SpeedAndDirection(true,*res);
+   }
+};
+
+Operator pspeed(
+        "speed",     
+        SpeedSpec,    
+        GenVM1<PMPoint,PMReal, SpeedF<PMPoint, PMReal> >, 
+        Operator::SimpleSelect, 
+        TypeMap1<PMPoint,PMReal>);
+
+/*
+10.12 ~direction~
+
+*/
+
+const string DirectionSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmpoint -> pmreal \" "
+   " \" direction( _ ) \" "
+   " \" Computes the Speed of the argument.  \"  "
+   " \" \" "
+   " <text> query direction(p1)  </text---> ))";
+
+template<class A, class R>
+class DirectionF{
+   public:
+   void operator()(A* a, R* res){
+     a->SpeedAndDirection(false,*res);
+   }
+};
+
+Operator pdirection(
+        "direction",      
+        DirectionSpec,    
+        GenVM1<PMPoint,PMReal, DirectionF<PMPoint, PMReal> >, 
+        Operator::SimpleSelect, 
+        TypeMap1<PMPoint,PMReal>); 
+
+
+/*
+10.13 ~contains~
+
+*/
+static complexTM getContainsCTM(){
+   complexTM tm;
+   tm.add(tm2<PBBox,PBBox,CcBool>());
+   tm.add(tm2<PInterval,PInterval,CcBool>());
+   tm.add(tm2<PInterval,DateTime,CcBool>());
+   return tm;
 }
 
-template<class A1, class A2, class R>
-ListExpr TypeMap2(ListExpr args){
-  string err = A1::BasicType()+ " x " + A2::BasicType() + " expected";
-  if(::nl->ListLength(args)!=2){
-    ErrorReporter::ReportError(err);
-    return ::nl->TypeError();
+static ListExpr ContainsTypeMap(ListExpr args){
+   return getContainsCTM()(args);
+}
+
+static int ContainsSelect(ListExpr args){
+   return getContainsCTM().select(args);
+}
+
+template<class T1, class T2>
+class ContainsF{
+  public:
+  void operator()(T1* a1, T2* a2, CcBool* res){
+     res->Set(true,a1->Contains(a2));
   }
-  if(!::nl->IsEqual(::nl->First(args),A1::BasicType()) ||
-     !::nl->IsEqual(::nl->Second(args),A2::BasicType())){
-    ErrorReporter::ReportError(err);
-    return ::nl->TypeError();
+};
+
+ValueMapping ContainsValueMap[] = {
+  GenVM2<PBBox, PBBox, CcBool, ContainsF<PBBox, PBBox> >,
+  GenVM2<PInterval, PInterval, CcBool, ContainsF<PInterval, PInterval> >,
+  GenVM2<PInterval, DateTime, CcBool, ContainsF<PInterval, DateTime> >
+};
+
+Operator pcontains(
+        "contains",
+        getContainsCTM().getSpecification(
+         "_ contains _ ",
+         "check for containedness",
+         "query a contains b"),
+        getContainsCTM().getVMCount(),
+        ContainsValueMap,
+        ContainsSelect,
+        ContainsTypeMap);
+
+
+/*
+10.14 ~intersects~
+
+*/
+static complexTM getIntersectsCTM(){
+   complexTM tm;
+   tm.add(tm2<PBBox,PBBox,CcBool>());
+   tm.add(tm2<PInterval,PInterval,CcBool>());
+   return tm;
+}
+
+static ListExpr IntersectsTypeMap(ListExpr args){
+   return getIntersectsCTM()(args);
+}
+
+static int IntersectsSelect(ListExpr args){
+   return getIntersectsCTM().select(args);
+}
+
+template<class A1, class A2>
+class IntersectsF{
+public: 
+  void operator()(A1* a1, A2* a2, CcBool* res){
+    if(!a1->IsDefined() || !a2->IsDefined()){
+      res->SetDefined(false);
+    } else {
+      res->Set(true,a1->Intersects(a2));
+    }
   }
-  return ::nl->SymbolAtom(R::BasicType());
+};
+
+ValueMapping IntersectsValueMap[] = {
+  GenVM2<PBBox, PBBox,CcBool, IntersectsF<PBBox, PBBox> >,
+  GenVM2<PInterval, PInterval, CcBool, IntersectsF<PInterval, PInterval> >
+};
+
+Operator pintersects(
+        "intersects",
+        getIntersectsCTM().getSpecification(
+          " _ intersects _ ",
+          " Check for a common element",
+          " query a intersects b "
+        ),
+        getIntersectsCTM().getVMCount(),
+        IntersectsValueMap,
+        IntersectsSelect,
+        IntersectsTypeMap);
+
+/*
+10.15 ~initial~
+
+*/
+static complexTM getInitialCTM(){
+   complexTM tm;
+   tm.add(tm1<PMBool,CcBool>());
+   tm.add(tm1<PMPoint,Point>());
+   tm.add(tm1<PMInt9M,Int9M>());
+   tm.add(tm1<PMPoints,Points>());
+   tm.add(tm1<PMReal,CcReal>());
+   return tm;
 }
 
+static ListExpr InitialTypeMap(ListExpr args){
+   return getInitialCTM()(args);
+}
 
+static int InitialSelect(ListExpr args){
+   return getInitialCTM().select(args);
+}
 
-ListExpr EqualsTypeMap(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("two arguments expected\n");
-     return ::nl->SymbolAtom(TYPE_ERROR);
+template<class A, class R>
+class InitialF_Sec{
+  public:
+  void operator()(A* a,R* res){
+     a->Initial(*res);
   }
-  if(::nl->IsEqual(::nl->First(args),"pbbox") &&
-     ::nl->IsEqual(::nl->Second(args),"pbbox"))
-     return ::nl->SymbolAtom("bool");
-  if(::nl->IsEqual(::nl->First(args),"pinterval") &&
-     ::nl->IsEqual(::nl->Second(args),"pinterval"))
-     return ::nl->SymbolAtom("bool");
+};
 
-  ErrorReporter::ReportError("Invalid arguments \n");
-  return ::nl->SymbolAtom(TYPE_ERROR);
+template<class A, class R, class CT>
+class InitialF_C{
+  public:
+  void operator()(A* a,R* res){
+     CT r;
+     a->Initial(r);
+     res->Set(true,r);
+  }
+};
+
+ValueMapping InitialValueMap[] = {
+  GenVM1<PMBool, CcBool, InitialF_C<PMBool, CcBool, bool> >,
+  GenVM1<PMPoint, Point, InitialF_Sec<PMPoint, Point> >,
+  GenVM1<PMInt9M, Int9M, InitialF_Sec<PMInt9M, Int9M> >,
+  GenVM1<PMPoints, Points, InitialF_Sec<PMPoints, Points> >,
+  GenVM1<PMReal, CcReal, InitialF_C<PMReal, CcReal, double> >
+};
+
+Operator pinitial(
+       "initial",               
+       getInitialCTM().getSpecification(
+          "initial( _ )",
+          "the first defined vavlue of the argument",
+          "qiery initial(pm1)"),             
+       getInitialCTM().getVMCount(), 
+       InitialValueMap,
+       InitialSelect,
+       InitialTypeMap);
+
+
+/*
+10.16 ~final~
+
+*/
+static complexTM getFinalCTM(){
+   complexTM tm;
+   tm.add(tm1<PMBool,CcBool>());
+   tm.add(tm1<PMPoint,Point>());
+   tm.add(tm1<PMInt9M,Int9M>());
+   tm.add(tm1<PMPoints,Points>());
+   tm.add(tm1<PMReal,CcReal>());
+   return tm;
 }
 
-ListExpr AtTypeMap(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)!=2){
-      ErrorReporter::ReportError("At expects two arguments\n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(!::nl->IsEqual(::nl->Second(args),"instant")){
-     ErrorReporter::ReportError("The second argument must be an instant\n");
-     return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->AtomType(::nl->First(args))!=SymbolType){
-      ErrorReporter::ReportError("At can't handle composite types \n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   string arg = ::nl->SymbolValue(::nl->First(args));
-
-   if(arg=="pmpoint")
-     return ::nl->SymbolAtom("point");
-   if(arg=="pmbool")
-     return ::nl->SymbolAtom("bool");
-   if(arg=="pmint9m")
-     return ::nl->SymbolAtom("int9m");
-   if(arg=="pmpoints")
-     return ::nl->SymbolAtom("points");
-   if(arg=="pmreal")
-     return ::nl->SymbolAtom("real");
-
-   ErrorReporter::ReportError(
-        "at can not handle a value of type " + arg +  "\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
+static ListExpr FinalTypeMap(ListExpr args){
+   return getFinalCTM()(args);
 }
 
-ListExpr InitialOrFinalTypeMap(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)!=1){
-      ErrorReporter::ReportError("Wrong number of arguments\n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->AtomType(::nl->First(args))!=SymbolType){
-      ErrorReporter::ReportError("Only simple types are allowed here.\n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   string arg = ::nl->SymbolValue(::nl->First(args));
-   if(arg=="pmpoint")
-     return ::nl->SymbolAtom("point");
-   if(arg=="pmbool")
-     return ::nl->SymbolAtom("bool");
-   if(arg=="pmint9m")
-     return ::nl->SymbolAtom("int9m");
-   if(arg=="pmpoints")
-     return ::nl->SymbolAtom("points");
-   if(arg=="pmreal")
-     return ::nl->SymbolAtom("real");
-   ErrorReporter::ReportError("Can't handle values of type "+arg+"\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
+static int FinalSelect(ListExpr args){
+   return getFinalCTM().select(args);
 }
+
+template<class A, class R>
+class FinalF_Sec{
+  public:
+  void operator()(A* a,R* res){
+     a->Final(*res);
+  }
+};
+
+template<class A, class R, class CT>
+class FinalF_C{
+  public:
+  void operator()(A* a,R* res){
+     CT r;
+     a->Final(r);
+     res->Set(true,r);
+  }
+};
+
+ValueMapping FinalValueMap[] = {
+  GenVM1<PMBool, CcBool, FinalF_C<PMBool, CcBool, bool> >,
+  GenVM1<PMPoint, Point, FinalF_Sec<PMPoint, Point> >,
+  GenVM1<PMInt9M, Int9M, FinalF_Sec<PMInt9M, Int9M> >,
+  GenVM1<PMPoints, Points, FinalF_Sec<PMPoints, Points> >,
+  GenVM1<PMReal, CcReal, FinalF_C<PMReal, CcReal, double> >
+};
+
+Operator pfinal(
+       "final",               
+       getFinalCTM().getSpecification(
+         "final ( _ )",
+         "returns the last defined value of the argument",
+         "query last(pm1)"),              // specification
+       getFinalCTM().getVMCount(),                     
+       FinalValueMap,
+       FinalSelect,
+       FinalTypeMap);
+
+/*
+10.17 ~breakpoints~
+
+*/
 
 ListExpr BreakpointsTypeMap(ListExpr args){
     __TRACE__
@@ -11940,555 +12427,6 @@ ListExpr BreakpointsTypeMap(ListExpr args){
 }
 
 
-
-ListExpr ContainsTypeMap(ListExpr args){
-    __TRACE__
-   if(::nl->ListLength(args)!=2){
-      ErrorReporter::ReportError("Contains requires 2 arguments\n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->IsEqual(::nl->First(args),"pbbox") &&
-      ::nl->IsEqual(::nl->Second(args),"pbbox"))
-      return ::nl->SymbolAtom("bool");
-   if(::nl->IsEqual(::nl->First(args),"pinterval")){
-      if(::nl->IsEqual(::nl->Second(args),"pinterval"))
-         return ::nl->SymbolAtom("bool");
-      if(::nl->IsEqual(::nl->Second(args),"instant"))
-         return ::nl->SymbolAtom("bool");
-   }
-   ErrorReporter::ReportError("Invalid types for the contains operator\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-ListExpr IntersectsTypeMap(ListExpr args){
-    __TRACE__
-   if(::nl->ListLength(args)!=2){
-      ErrorReporter::ReportError("intersects requires two operands\n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->IsEqual(::nl->First(args),"pbbox") &&
-      ::nl->IsEqual(::nl->Second(args),"pbbox"))
-      return ::nl->SymbolAtom("bool");
-   if(::nl->IsEqual(::nl->First(args),"pinterval") &&
-      ::nl->IsEqual(::nl->Second(args),"pinterval"))
-         return ::nl->SymbolAtom("bool");
-   ErrorReporter::ReportError("Invalid types for intersects operator\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-
-
-
-ListExpr ToprelTypeMap(ListExpr args){
-   if(::nl->ListLength(args)!=2){
-      ErrorReporter::ReportError("Two arguments required\n");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->IsEqual(::nl->First(args),"pmpoint")){ 
-      if(::nl->IsEqual(::nl->Second(args),"point") ||
-         ::nl->IsEqual(::nl->Second(args),"points"))
-         return ::nl->SymbolAtom("pmint9m");
-      else{
-         ErrorReporter::ReportError("pmpoints x <invalid type>\n");
-         return ::nl->SymbolAtom(TYPE_ERROR);
-      }
-   }
-   if((::nl->IsEqual(::nl->First(args),"point")||
-       ::nl->IsEqual(::nl->First(args),"points"))){
-     if(::nl->IsEqual(::nl->Second(args),"pmpoint")){
-         return ::nl->SymbolAtom("pmint9m");
-     }
-     else{
-        ErrorReporter::ReportError(
-            "second argument is not of type pmpoint\n");
-     }
-   }
-   ErrorReporter::ReportError(
-          "first argument is not in {pmpoint,point,points}\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-ListExpr IntersectionTypeMap(ListExpr args){
-    if(::nl->ListLength(args)!=2){
-        ErrorReporter::ReportError("Two arguments needed");
-        return ::nl->SymbolAtom(TYPE_ERROR);  
-    }
-    // for tests we use only a pmbool 
-    if(::nl->AtomType(::nl->First(args))!=SymbolType){
-        ErrorReporter::ReportError("The first argument can't be composite");
-        return ::nl->SymbolAtom(TYPE_ERROR);
-    }
-    if(::nl->AtomType(::nl->Second(args))!=SymbolType){
-        ErrorReporter::ReportError("The second argument can't be composite");
-        return ::nl->SymbolAtom(TYPE_ERROR);
-    }
-    string arg1 = ::nl->SymbolValue(::nl->First(args));
-    string arg2 = ::nl->SymbolValue(::nl->Second(args));
-    if(arg1=="pbbox" && arg2=="pbbox") // intersection of two boxes
-       return ::nl->SymbolAtom("pbbox");
-    if(arg1!="pmbool"){
-        ErrorReporter::ReportError("The first argument type is not accepted");
-        return ::nl->SymbolAtom(TYPE_ERROR);
-    }
-    if(arg2!="pinterval"){
-        ErrorReporter::ReportError("The second argument is not accepted");
-        return ::nl->SymbolAtom(TYPE_ERROR);
-    }
-    return ::nl->SymbolAtom(arg1);
-}
-
-ListExpr DistanceTypeMap(ListExpr args){
-  if(::nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("Two arguments required");
-     return ::nl->SymbolAtom(TYPE_ERROR);  
-  }
-  // for tests we use only a pmbool 
-  if(::nl->AtomType(::nl->First(args))!=SymbolType){
-      ErrorReporter::ReportError("The first argument can't be composite");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-  }
-  if(::nl->AtomType(::nl->Second(args))!=SymbolType){
-      ErrorReporter::ReportError("The second argument can't be composite");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-  }
-  string arg1 = ::nl->SymbolValue(::nl->First(args));
-  string arg2 = ::nl->SymbolValue(::nl->Second(args));
-  // up to now only pmpoint x point -> pmreal is supported
-  if( ( arg1=="pmpoint" && arg2=="point" ) ||
-      ( arg1=="point" && arg2=="pmpoint")){
-     return ::nl->SymbolAtom("pmreal");
-  }
-  ErrorReporter::ReportError(arg1 + " x  " + arg2 + 
-                             " is not a valid argument pair");
-  return ::nl->SymbolAtom(TYPE_ERROR); 
-  
-}
-
-ListExpr NumberOfNodesMap(ListExpr args){
-   if(::nl->ListLength(args)!=1){
-     ErrorReporter::ReportError("invalid number of arguments");
-     return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   ListExpr arg = ::nl->First(args);
-   if(::nl->AtomType(arg)!=SymbolType){
-      ErrorReporter::ReportError("composite types not allowed here");
-      return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   string type = ::nl->SymbolValue(arg);
-   if(type=="pmpoint"){
-     return ::nl->SymbolAtom("int");
-   }
-   ErrorReporter::ReportError(type+" not allowed here");
-   return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-
-ListExpr TranslateMap(ListExpr args){
-   if(::nl->ListLength(args)!=2){
-     ErrorReporter::ReportError("invalid number of arguments");
-     return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   ListExpr arg1 = ::nl->First(args);
-   ListExpr arg2 = ::nl->Second(args);
-
-   if( (::nl->AtomType(arg1)!=SymbolType) ){
-     string type = ::nl->ToString(arg1);
-     ErrorReporter::ReportError("arg1: composite types not allowed here "
-                                 +  type);
-     return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(::nl->AtomType(arg2)==NoAtom){
-     if(::nl->ListLength(arg2)==1){
-         arg2 = ::nl->First(arg2);
-     }else{
-         ErrorReporter::ReportError("invalid number of arguments");
-         return ::nl->SymbolAtom(TYPE_ERROR);
-     }
-   }
-   if( (::nl->AtomType(arg2)!=SymbolType) ){
-     string type = ::nl->ToString(arg2);
-     ErrorReporter::ReportError("arg2: composite types not allowed here "
-                                +  type);
-     return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   if(!::nl->IsEqual(arg2,"duration")){
-     ErrorReporter::ReportError("second argument must be a duration");
-     return ::nl->SymbolAtom(TYPE_ERROR);
-   }
-   string sarg1 = ::nl->SymbolValue(arg1);
-   if( (sarg1=="pmpoint") || 
-       (sarg1=="pmint") ||
-       (sarg1=="pmreal") ||
-       (sarg1=="pmstring") ||
-       (sarg1=="pmbool") ||
-       (sarg1=="pmpoints") ){
-       return ::nl->SymbolAtom(sarg1); 
-   }
-   ErrorReporter::ReportError("unexpected first argument " + sarg1);
-   return ::nl->SymbolAtom(TYPE_ERROR);
-   
-
-}
-
-ListExpr StartTypeMap(ListExpr args){
-  if(::nl->ListLength(args)!=1){
-     ErrorReporter::ReportError("invalid number of arguments");
-     return ::nl->SymbolAtom(TYPE_ERROR);
-  }
-  ListExpr arg = ::nl->First(args);
-  if(::nl->AtomType(args)!=SymbolType){
-     ErrorReporter::ReportError("composite type not allowed");
-     return ::nl->SymbolAtom(TYPE_ERROR);
-  }
-  string type = ::nl->SymbolValue(arg);
-  if(type=="pmpoint"){
-    return ::nl->SymbolAtom("instant");
-  } 
- 
-  ErrorReporter::ReportError(type+" is not supported");
-  return ::nl->SymbolAtom(TYPE_ERROR);
-}
-
-ListExpr EndTypeMap(ListExpr args){
-   return StartTypeMap(args);
-}
-
-
-/*
-5.2 Value Mappings
-
-The value mappings compute the result of an operator. For each type 
-combination of the operators a single value mapping must be provided.
-
-*/
-template<class A1, class A2>
-class IntersectsF{
-public: 
-  void operator()(A1* a1, A2* a2, CcBool* res){
-    if(!a1->IsDefined() || !a2->IsDefined()){
-      res->SetDefined(false);
-    } else {
-      res->Set(true,a1->Intersects(a2));
-    }
-  }
-};
-
-template<class A1>
-class EqualF{
-public:
-  void operator()(A1* a1, A1* a2, CcBool* res){
-     res->Set(true,a1->CompareTo(a2)==0);
-  }
-};
-
-template<class A>
-class UnionF{
-public:
-  void operator()(A* a1, A* a2, A* res){
-     a1->Union(a2,*res);
-  }
-};
-
-template<class ArgT, class ResT>
-class AtF_Sec{
-  public:
-  void operator()(ArgT* a1, DateTime* i, ResT* res){
-    a1->At(i,*res);
-  }
-};
-
-template<class ArgT, class ResT, class CT>
-class AtF_C{
-  public:
-  void operator()(ArgT* a1, DateTime* i, ResT* res){
-    CT r;
-    a1->At(i,r);
-    res->Set(true, r);
-  }
-};
-
- 
-
-template<class A1, class A2, class ResT>
-class IntersectionF{
-  public:
-  void operator()(A1* a1, A2* a2, ResT* res){
-     a1->Intersection(a2,*res);
-  }
-};
-
-
-template<class T1, class T2>
-class ContainsF{
-  public:
-  void operator()(T1* a1, T2* a2, CcBool* res){
-     res->Set(true,a1->Contains(a2));
-  }
-};
-
-template<class A, class R>
-class InitialF_Sec{
-  public:
-  void operator()(A* a,R* res){
-     a->Initial(*res);
-  }
-};
-
-template<class A, class R, class CT>
-class InitialF_C{
-  public:
-  void operator()(A* a,R* res){
-     CT r;
-     a->Initial(r);
-     res->Set(true,r);
-  }
-};
-
-template<class A, class R>
-class FinalF_Sec{
-  public:
-  void operator()(A* a,R* res){
-     a->Final(*res);
-  }
-};
-
-template<class A, class R, class CT>
-class FinalF_C{
-  public:
-  void operator()(A* a,R* res){
-     CT r;
-     a->Final(r);
-     res->Set(true,r);
-  }
-};
-
-
-template<class A1, class A2>
-class ToprelF{
-  public:
-  void operator()(A1* a1, A2* a2, PMInt9M* r){
-     a1->Toprel(a2,*r);
-  }
-};
-
-template<class A1, class A2>
-class ToprelF_Symm{
-  public:
-  void operator()(A2* a1, A1* a2, PMInt9M* r){
-     a2->Toprel(a1,*r);
-     r->Transpose();
-  }
-};
-
-
-template<class A1, class A2>
-class DistanceF{
-  public:
-  void operator()(A1* a1, A2* a2, PMReal* res){
-    a1->DistanceTo(a2->GetX(), a2->GetY(),*res);
-  }
-  void operator()(A2* a1, A1* a2, PMReal* res){
-    a2->DistanceTo(a1->GetX(), a1->GetY(),*res);
-  }
-};
-
-
-template<class A>
-class TrajectoryF{
-  public:
-  void operator()(A* arg, Line* res){
-    arg->Trajectory(*res);
-  }
-};
-
-
-template<class A, class R>
-class LengthF{
-  public:
-  void operator()(A* arg, R* res){
-    arg->Length(*res);
-  }
-};
-
-
-template<class A, class R>
-class StartF{
-  public:
-  void operator()(A* a, R* res){
-      a->GetStart(*res);
-  }
-};
-
-template<class A, class R>
-class EndF{
-  public:
-  void operator()(A* a, R* res){
-      a->GetEnd(*res);
-  }
-};
-
-template<class A, class R>
-class IntervalF{
-  public:
-  void operator()(A* a, R* res){
-      a->GetInterval(*res);
-  }
-};
-
-
-template<class A, class R>
-class ExpandF{
-  public:
-  void operator()(A* a, R* res){
-      a->Expand(*res);
-  }
-};
-
-template<class A, class R>
-class CreateF{
-  public:
-  void operator()(A* a, R* res){
-      res->ReadFrom(*a);
-  }
-};
-
-
-template<class A, class R>
-class NumberOfNodesF{
-  public:
-  void operator()(A* a, R* res){
-      res->Set(true, static_cast<int>(a->NumberOfNodes()));
-  }
-};
-
-template<class A, class R>
-class NumberOfPeriodicNodesF{
-  public:
-  void operator()(A* a, R* res){
-      res->Set(true, static_cast<int>(a->NumberOfPeriodicNodes()));
-  }
-};
-
-template<class A, class R>
-class NumberOfCompositeNodesF{
-  public:
-  void operator()(A* a, R* res){
-      res->Set(true, static_cast<int>(a->NumberOfCompositeNodes()));
-  }
-};
-
-template<class A, class R>
-class NumberOfUnitsF{
-  public:
-  void operator()(A* a, R* res){
-      res->Set(true, static_cast<int>(a->NumberOfUnits()));
-  }
-};
-
-template<class A, class R>
-class NumberOfFlatUnitsF{
-  public:
-  void operator()(A* a, R* res){
-      res->Set(true, static_cast<int>(a->NumberOfFlatUnits()));
-  }
-};
-
-template<class A1,class A2, class R>
-class TranslateF{
-  public:
-  void operator()(A1* a1,A2* a2, R* res){
-      a1->Translate(a2,*res);  
-    }
-  };
-
-
-template<class A, class R>
-class SpeedF{
-   public:
-   void operator()(A* a, R* res){
-     a->SpeedAndDirection(true,*res);
-   }
-};
-
-template<class A, class R>
-class DirectionF{
-   public:
-   void operator()(A* a, R* res){
-     a->SpeedAndDirection(false,*res);
-   }
-};
-
-template<class A, class R>
-class MinF{
-   public:
-   void operator()(A* a, R* res){
-     a->min(*res);
-   }
-};
-
-template<class A, class R>
-class MaxF{
-   public:
-   void operator()(A* a, R* res){
-     a->max(*res);
-   }
-};
-
-
-/*
-  ~Generic Value Mapping Function~
-
-  This function realized value mappings in the form
-    A1 [x] A2 [->] R
-  where Fun is the function applied to a1 and a2.
-
-*/
-  template<class A1, class A2, class R, class Fun>
-  int GenVM2(Word* args, Word& result, int message,
-            Word& local, Supplier s){
-    result = ::qp->ResultStorage(s);
-    A1* a1 = static_cast<A1*>(args[0].addr);
-    A2* a2 = static_cast<A2*>(args[1].addr);
-    R* res = static_cast<R*>(result.addr); 
-    if(!a1->IsDefined() || !a2->IsDefined()){
-      res->SetDefined(false);
-    }  else {
-      Fun fun;
-      fun(a1,a2,res);
-  }
-  return 0;
-}
-
-
-/*
-~Generic Value Mapping~
-
-This value mapping realized functions with signatur
-  A [->] R
-
-*/
-template<class A, class R, class Fun>
-int GenVM1(Word* args, Word& result, int message,
-          Word& local, Supplier s){
-  result = ::qp->ResultStorage(s);
-  A* a = static_cast<A*>(args[0].addr);
-  R* res = static_cast<R*>(result.addr); 
-  if(!a->IsDefined()){
-    res->SetDefined(false);
-  }  else {
-    Fun fun;
-    fun(a,res);
-  }
-  return 0;
-}
-
-/*
-Value Mapping for the ~breakpoints~ function
-
-This function must have its own value mappig because we evaluate the number
-of sons within the operator tree. 
-
-*/
 template<class A>
 int BreakpointsFun(Word* args, Word& result,
                    int message, Word& local, Supplier s){
@@ -12511,433 +12449,10 @@ int BreakpointsFun(Word* args, Word& result,
     return 0;
 }
 
-
-
-
-
-/*
-5.3 Specifications of the Operators
-
-The following strings contain textual descriptions for
-operators of this algebra.
-
-*/
-const string EqualsSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pbbox x pbbox -> bool\""
-   " \" _ = _ \" "
-   "   \"checks whether the arguments are equal\" "
-   "   \" query B1 = B2\" ))";
-
-const string ContainsSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pbbox x pbbox -> bool\""
-   " \" _ contains _ \" "
-   "   \"returns true if a contains b\""
-   "   \" query B1 contains B2\" ))";
-
-const string IntersectsSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pbbox x pbbox -> bool\""
-   " \" _ intersects _ \" "
-   "   \"checks if the arguments share a common point\" "
-   "   \" query B1 intersects B2\" ))";
-
-const string IntersectionSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pbbox x pbbox -> pbbox\""
-   " \" _ intersection _ \" "
-   "   \"computes the intersection between the arguments\" "
-   "   \" query B1 intersection B2\" ))";
-
-const string UnionSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pbbox x pbbox -> pbbox\""
-   " \" _ union _ \" "
-   " \"computes the union of the arguments\" "
-   " \" query B1 union B2\" ))";
-
-const string AtSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pmobject x instant -> object\""
-   " \" _ atinstant _ \" "
-   " <text>computes the value  of the argument at the given time</text---> "
-   " \" query P5 atinstant [const instant value 1.5]\" ))";
-
-const string InitialSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pmobject -> object\""
-   " \" initial(_) \" "
-   " \"computes the first defined value of the argument\" "
-   " \" query initial(P1)\" ))";
-
-const string FinalSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pmobject -> object\""
-   " \" final(_) \" "
-   " \"computes the last defined value of the argument\" "
-   " \" query last(P1)\" ))";
-
-const string TrajectorySpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pmpoint -> line\""
-   " \" trajectory( _ ) \" "
-   " \"computes the trajectory of the argument\" "
-   " \" query trajectory(P5)\" ))";
-   
-const string BreakpointsSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pmpoint | pmpoints  -> points\""
-   " \" breakpoints( _ ) \" "
-   " \"computes the breakpoints of the argument\" "
-   " \" query breakpoints(P5)\" ))";
-
-const string StartSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pinterval -> instant\""
-   " \" start( _ ) \" "
-   " \"computes the start time of a pinterval\" "
-   " \" query start(I)\" ))";
-
-const string EndSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pinterval -> instant\""
-   " \" end( _ ) \" "
-   " \"computes the start time of a pinterval\" "
-   " \" query end(I)\" ))";
-
-const string LengthSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pinterval -> duration\""
-   " \" length( _ ) \" "
-   " \"computes the duration of a pinterval\" "
-   " \" query length(I)\" ))";
-
-const string LengthSpec2 =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"pmpoint -> real\""
-   " \" length( _ ) \" "
-   " \"computes the length of the route of a pmpoint\" "
-   " \" query length(p)\" ))";
-
-const string ExpandSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmpoint -> mpoint\""
-   " \" expand(_) \" "
-   " \"creates a moving point from a periodic one\""
-   " \"\""
-   " \" query expand(I)\" ))";
-   
-const string CreatePMPointSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"mpoint  -> pmpoint\""
-   " \" createpmpoint(_) \" "
-   " <text>creates a periodic moving point "
-          "from a linearly moving one</text--->"
-   " \"\""
-   " \" query createpmpoint(p1)\" ))";
-
-const string ToprelSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmobject x spatial[temporal] object -> pmint9m\""
-   " \" toprel(_,_) \" "
-   " <text>computes the moving 9 intersection"
-          " matrix for this combination</text--->"
-   " \"\""
-   " \" query toprel(p1,p2)\" ))";
-
-const string DistanceSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmpoint x point -> pmreal\""
-   " \" distance(_, _) \" "
-   " <text>computes the distance between a"
-          " static point and a periodic moving one</text--->"
-   " \"\""
-   " \" query distance(pm1,p1)\" ))";
-
-const string NumberOfNodesSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmobject -> int\""
-   " \" NumberOfNodes(_) \" "
-   " \"computes the number of nodes of this object\""
-   " \"\""
-   " \" query numberOfNodes(pm)\" ))";
-
-const string NumberOfCompositeNodesSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmobject -> int\""
-   " \" NumberOfCompositeNodes(_) \" "
-   " \"computes the number of nodes of this object\""
-   " \"\""
-   " \" query numberOfCompositeNodes(pm)\" ))";
-
-const string NumberOfPeriodicNodesSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmobject -> int\""
-   " \" NumberOfPeriodicNodes(_) \" "
-   " \"computes the number of nodes of this object\""
-   " \"\""
-   " \" query numberOfPeriodicNodes(pm)\" ))";
-
-const string NumberOfUnitsSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmobject -> int\""
-   " \" NumberOfUnits(_) \" "
-   " \"computes the number of units of this object\""
-   " \"\""
-   " \" query numberOfUnits(pm)\" ))";
-
-const string NumberOfFlatUnitsSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmobject -> int\""
-   " \" NumberOfFlatUnits(_) \" "
-   " <text>computes the number of units of this object "
-          "in the flat representation</text--->"
-   " \"\""
-   " \" query numberOfUnits(pm)\" ))";
-
-const string TranslateSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmobject x duration -> pmobject \" "
-   " \" translate(_ , _) \" "
-   " \" translates this object in time  \"  "
-   " \" \" "
-   " <text> query translate(o1,[const duration value (10 9)]) </text---> ))";
-
-const string SpeedSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmpoint -> pmreal \" "
-   " \" speed( _ ) \" "
-   " \" Computes the Speed of the argument.  \"  "
-   " \" \" "
-   " <text> query speed(p1)  </text---> ))";
-
-const string DirectionSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmpoint -> pmreal \" "
-   " \" direction( _ ) \" "
-   " \" Computes the Speed of the argument.  \"  "
-   " \" \" "
-   " <text> query direction(p1)  </text---> ))";
-
-const string MinSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmreal -> real \" "
-   " \" minvalue( _ ) \" "
-   " \" Computes the minimum of the argument.  \"  "
-   " \" \" "
-   " <text> query minvalue(pmr1)  </text---> ))";
-
-const string MaxSpec =
-   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
-   " ( \"pmreal -> real \" "
-   " \" maxvalue( _ ) \" "
-   " \" Computes the maximum of the argument.  \"  "
-   " \" \" "
-   " <text> query maxvalue(pmr1)  </text---> ))";
-
-/*
-5.4 ValueMappings of overloaded Operators
-
-For overloaded operators an array of value mappings must 
-exists. Using the Select function (Section [ref]{select_function}),
-the correct map is choosen.
-
-*/
-ValueMapping EqualsValueMap[] = {
-  GenVM2<PBBox, PBBox, CcBool, EqualF<PBBox> >,
-  GenVM2<PInterval, PInterval, CcBool, EqualF<PInterval> >
-};
-
-ValueMapping IntersectsValueMap[] = {
-  GenVM2<PBBox, PBBox,CcBool, IntersectsF<PBBox, PBBox> >,
-  GenVM2<PInterval, PInterval, CcBool, IntersectsF<PInterval, PInterval> >
-};
-
-ValueMapping AtValueMap[] = { 
-  GenVM2<PMPoint, DateTime, Point, AtF_Sec<PMPoint, Point> >,
-  GenVM2<PMBool, DateTime, CcBool, AtF_C<PMBool, CcBool, bool> >,
-  GenVM2<PMInt9M, DateTime, Int9M, AtF_Sec<PMInt9M, Int9M> >,
-  GenVM2<PMPoints, DateTime, Points, AtF_Sec<PMPoints, Points> >,
-  GenVM2<PMReal, DateTime, CcReal, AtF_C<PMReal, CcReal, double> >
-};
-
-
-ValueMapping IntersectionValueMap[] = {
-  GenVM2<PBBox, PBBox, PBBox, IntersectionF<PBBox, PBBox, PBBox> >
-};
-
-
-ValueMapping ContainsValueMap[] = {
-  GenVM2<PBBox, PBBox, CcBool, ContainsF<PBBox, PBBox> >,
-  GenVM2<PInterval, PInterval, CcBool, ContainsF<PInterval, PInterval> >,
-  GenVM2<PInterval, DateTime, CcBool, ContainsF<PInterval, DateTime> >
-};
-
-
-ValueMapping InitialValueMap[] = {
-  GenVM1<PMBool, CcBool, InitialF_C<PMBool, CcBool, bool> >,
-  GenVM1<PMPoint, Point, InitialF_Sec<PMPoint, Point> >,
-  GenVM1<PMInt9M, Int9M, InitialF_Sec<PMInt9M, Int9M> >,
-  GenVM1<PMPoints, Points, InitialF_Sec<PMPoints, Points> >,
-  GenVM1<PMReal, CcReal, InitialF_C<PMReal, CcReal, double> >
-};
-
-ValueMapping FinalValueMap[] = {
-  GenVM1<PMBool, CcBool, FinalF_C<PMBool, CcBool, bool> >,
-  GenVM1<PMPoint, Point, FinalF_Sec<PMPoint, Point> >,
-  GenVM1<PMInt9M, Int9M, FinalF_Sec<PMInt9M, Int9M> >,
-  GenVM1<PMPoints, Points, FinalF_Sec<PMPoints, Points> >,
-  GenVM1<PMReal, CcReal, FinalF_C<PMReal, CcReal, double> >
-};
-
 ValueMapping BreakpointsValueMap[] = {
   BreakpointsFun<PMPoint>,
   BreakpointsFun<PMPoints>
 };
-
-ValueMapping ToprelValueMap[] = {
-  GenVM2<Point, PMPoint, PMInt9M, ToprelF_Symm<PMPoint, Point> >,
-  GenVM2<PMPoint, Point, PMInt9M, ToprelF<PMPoint, Point> >,
-  GenVM2<Points, PMPoint, PMInt9M, ToprelF_Symm<PMPoint, Points> >,
-  GenVM2<PMPoint, Points, PMInt9M, ToprelF<PMPoint, Points> >
-};
-
-
-ValueMapping DistanceValueMap[] = {
- GenVM2<PMPoint,Point, PMReal, DistanceF<PMPoint, Point> >,
- GenVM2<Point, PMPoint, PMReal, DistanceF<PMPoint, Point> >
-}; 
-
-ValueMapping NumberOfNodesValueMap[] ={
-  GenVM1<PMPoint,CcInt, NumberOfNodesF<PMPoint, CcInt> >
-};
-
-ValueMapping NumberOfCompositeNodesValueMap[] ={
-  GenVM1<PMPoint,CcInt, NumberOfCompositeNodesF<PMPoint, CcInt> >
-};
-
-ValueMapping NumberOfPeriodicNodesValueMap[] ={
-  GenVM1<PMPoint,CcInt, NumberOfPeriodicNodesF<PMPoint, CcInt> >
-};
-
-ValueMapping NumberOfUnitsValueMap[] ={
-  GenVM1<PMPoint,CcInt, NumberOfUnitsF<PMPoint, CcInt> >
-};
-
-ValueMapping NumberOfFlatUnitsValueMap[] ={
-  GenVM1<PMPoint,CcInt, NumberOfFlatUnitsF<PMPoint, CcInt> >
-};
-
-ValueMapping TranslateValueMap[] ={
-  GenVM2<PMPoint,DateTime,PMPoint, TranslateF<PMPoint,DateTime,PMPoint> >,
-  GenVM2<PMBool,DateTime,PMBool, TranslateF<PMBool,DateTime,PMBool> >,
-  GenVM2<PMInt9M,DateTime,PMInt9M, TranslateF<PMInt9M,DateTime,PMInt9M> >,
-  GenVM2<PMPoints,DateTime,PMPoints, TranslateF<PMPoints,DateTime,PMPoints> >
-};
-
-/*
-5.6 SelectionFunctions
-
-[label]{select_function}
-
-The selection function selects a valuemapping for the given arguments.
-The returned number corresponds to the array index of the value mapping
-array.
-
-*/
-static int TranslateSelect(ListExpr args){
-   string arg = ::nl->SymbolValue(::nl->First(args));
-   if(arg=="pmpoint") return 0;
-   if(arg=="pmbool") return 1;
-   if(arg=="pmint9m") return 2;
-   if(arg=="pmpoints") return 3;
-   return -1; // should not happen
-}
-
-
-static int EqualsSelect(ListExpr args){
-    __TRACE__
- if(::nl->IsEqual(::nl->First(args),"pbbox"))
-     return 0;
-  if(::nl->IsEqual(::nl->First(args),"pinterval"))
-     return 1;
-  return -1;
-}
-
-static int AtSelect(ListExpr args){
-    __TRACE__
-  if(::nl->IsEqual(::nl->First(args),"pmpoint"))
-     return 0;
-  if(::nl->IsEqual(::nl->First(args),"pmbool"))
-     return 1;
-  if(::nl->IsEqual(::nl->First(args),"pmint9m"))
-     return 2;
-  if(::nl->IsEqual(::nl->First(args),"pmpoints"))
-     return 3;
-  if(::nl->IsEqual(::nl->First(args),"pmreal"))
-     return 4;
-  return -1;
-}
-
-static int FinalSelect(ListExpr args){
-    __TRACE__
- if(::nl->IsEqual(::nl->First(args),"pmbool"))
-     return 0;
-  if(::nl->IsEqual(::nl->First(args),"pmpoint"))
-     return 1;
-  if(::nl->IsEqual(::nl->First(args),"pmint9m"))
-     return 2;
-  if(::nl->IsEqual(::nl->First(args),"pmpoints"))
-     return 3;
-  if(::nl->IsEqual(::nl->First(args),"pmreal"))
-     return 4;
-  return -1;
-}
-
-static int InitialSelect(ListExpr args){
-    __TRACE__
- if(::nl->IsEqual(::nl->First(args),"pmbool"))
-     return 0;
-  if(::nl->IsEqual(::nl->First(args),"pmpoint"))
-     return 1;
-  if(::nl->IsEqual(::nl->First(args),"pmint9m"))
-     return 2;
-  if(::nl->IsEqual(::nl->First(args),"pmpoints"))
-     return 3;
-  if(::nl->IsEqual(::nl->First(args),"pmreal"))
-     return 4;
-  return -1;
-}
-
-static int ContainsSelect(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)!=2)
-      return -1;
-   if(::nl->IsEqual(::nl->First(args),"pbbox") &&
-      ::nl->IsEqual(::nl->Second(args),"pbbox"))
-         return 0;
-   if(::nl->IsEqual(::nl->First(args),"pinterval") &&
-      ::nl->IsEqual(::nl->Second(args),"pinterval"))
-         return 1;
-   if(::nl->IsEqual(::nl->First(args),"pinterval") &&
-      ::nl->IsEqual(::nl->Second(args),"instant"))
-         return 2;
-   return -1;
-}
-
-static int IntersectsSelect(ListExpr args){
-    __TRACE__
-  if(::nl->ListLength(args)!=2)
-      return -1;
-   if(::nl->IsEqual(::nl->First(args),"pbbox") &&
-      ::nl->IsEqual(::nl->Second(args),"pbbox"))
-         return 0;
-   if(::nl->IsEqual(::nl->First(args),"pinterval") &&
-      ::nl->IsEqual(::nl->Second(args),"pinterval"))
-         return 1;
-   return -1;
-}
 
 static int BreakpointsSelect(ListExpr args){
    __TRACE__
@@ -12951,193 +12466,12 @@ static int BreakpointsSelect(ListExpr args){
    return -1;
 }
 
-static int ToprelSelect(ListExpr args){
-  __TRACE__
-  if(::nl->ListLength(args)!=2)
-      return -1; // error in type mapping detected
-  if(::nl->IsEqual(::nl->First(args),"point") &&
-     ::nl->IsEqual(::nl->Second(args),"pmpoint"))
-       return 0;
-  if(::nl->IsEqual(::nl->First(args),"pmpoint") &&
-     ::nl->IsEqual(::nl->Second(args),"point"))
-       return 1;
-  if(::nl->IsEqual(::nl->First(args),"points") &&
-     ::nl->IsEqual(::nl->Second(args),"pmpoint"))
-       return 2;
-  if(::nl->IsEqual(::nl->First(args),"pmpoint") &&
-     ::nl->IsEqual(::nl->Second(args),"points"))
-       return 3;
-  return -1; 
-
-}
-
-static int IntersectionSelect(ListExpr args){
-   __TRACE__
-   string arg1 = ::nl->SymbolValue(::nl->First(args)); 
-   string arg2 = ::nl->SymbolValue(::nl->Second(args));
-   if(arg1=="pbbox" && arg2=="pbbox")
-       return 0;
-   if(arg1=="pmbool" && arg2=="pinterval")
-       return 1;
-   return -1; // should never occur
-}
-
-static int DistanceSelect(ListExpr args){
-  __TRACE__
-  string arg1 = ::nl->SymbolValue(::nl->First(args));
-  string arg2 = ::nl->SymbolValue(::nl->Second(args));
-  if(arg1=="pmpoint" && arg2=="point")
-     return 0;
-  if(arg1=="point" && arg2=="pmoint")
-     return 1;
-  return -1; // should never be the case
-}
-
-static int NumberOfAnyNodesSelect(ListExpr args){
-  string type = ::nl->SymbolValue(::nl->First(args));
-  if(type=="pmpoint"){
-    return 0;
-  }
-  return -1;
-}
-
-
-/*
-5.7 Definition of the Operators
-
-5.7.1 Non overloaded Operators
-
-*/
-
-class Duration{
-  public:
-  static const string BasicType(){
-     return "duration";
-  }
-};
-
-Operator punion(
-        "union",      // name
-        UnionSpec,    // specification
-        GenVM2<PBBox, PBBox, PBBox, UnionF<PBBox> >, // value mapping
-        Operator::SimpleSelect, // selection function
-        TypeMap2<PBBox, PBBox, PBBox> ); // type mapping
-
-Operator ptrajectory(
-        "trajectory",
-        TrajectorySpec,
-        GenVM1<PMPoint,Line, TrajectoryF<PMPoint> >,
-        Operator::SimpleSelect,
-        TypeMap1<PMPoint,Line>);
-
-Operator plength(
-        "length",
-        LengthSpec,
-        GenVM1<PInterval, DateTime, LengthF<PInterval, DateTime> >,
-        Operator::SimpleSelect,
-        TypeMap1<PInterval, Duration>);
-
-Operator plength2(
-        "length",
-        LengthSpec2,
-        GenVM1<PMPoint, CcReal, LengthF<PMPoint,CcReal> >,
-        Operator::SimpleSelect,
-        TypeMap1<PMPoint,CcReal>);
-
-Operator pstart(
-        "start",
-        StartSpec,
-        GenVM1<PInterval, DateTime, StartF<PInterval,DateTime> >,
-        Operator::SimpleSelect,
-        TypeMap1<PInterval, DateTime>);
-
-Operator pend(
-        "end",
-        EndSpec,
-        GenVM1<PInterval,DateTime, EndF<PInterval,DateTime> >,
-        Operator::SimpleSelect,
-        TypeMap1<PInterval, Instant>);
-        
-Operator pexpand(
-        "expand",
-        ExpandSpec,
-        GenVM1<PMPoint, MPoint, ExpandF<PMPoint, MPoint> >,
-        Operator::SimpleSelect,
-        TypeMap1<PMPoint,MPoint>);
-        
-
-Operator createpmpoint(
-        "createpmpoint",
-        CreatePMPointSpec,
-        GenVM1<MPoint, PMPoint, CreateF<MPoint, PMPoint> >,
-        Operator::SimpleSelect,
-        TypeMap1<MPoint,PMPoint>);
-
-
-Operator pspeed(
-        "speed",     
-        SpeedSpec,    
-        GenVM1<PMPoint,PMReal, SpeedF<PMPoint, PMReal> >, 
-        Operator::SimpleSelect, 
-        TypeMap1<PMPoint,PMReal>);
-
-Operator pdirection(
-        "direction",      
-        DirectionSpec,    
-        GenVM1<PMPoint,PMReal, DirectionF<PMPoint, PMReal> >, 
-        Operator::SimpleSelect, // selection function
-        TypeMap1<PMPoint,PMReal>); // type mapping
-/*
-5.7.2 Overloaded Operators
-
-*/
-Operator pequals(
-       "=",                        // name
-       EqualsSpec,                 // specification
-       2,                          // number of functions
-       EqualsValueMap,             // array with value mappings
-       EqualsSelect,               // selection function
-       EqualsTypeMap);             // type mapping
-
-Operator pcontains(
-        "contains",
-        ContainsSpec,
-        3,
-        ContainsValueMap,
-        ContainsSelect,
-        ContainsTypeMap);
-
-Operator pintersects(
-        "intersects",
-        IntersectsSpec,
-        2,
-        IntersectsValueMap,
-        IntersectsSelect,
-        IntersectsTypeMap);
-
-Operator pat(
-       "atinstant",               // name
-       AtSpec,              // specification
-       5,                         // number of functions
-       AtValueMap,
-       AtSelect,
-       AtTypeMap);
-
-Operator pinitial(
-       "initial",               // name
-       InitialSpec,              // specification
-       5,                         // number of functions
-       InitialValueMap,
-       InitialSelect,
-       InitialOrFinalTypeMap);
-
-Operator pfinal(
-       "final",               // name
-       FinalSpec,              // specification
-       5,                         // number of functions
-       FinalValueMap,
-       FinalSelect,
-       InitialOrFinalTypeMap);
+const string BreakpointsSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+   " ( \"pmpoint | pmpoints  -> points\""
+   " \" breakpoints( _ ) \" "
+   " \"computes the breakpoints of the argument\" "
+   " \" query breakpoints(P5)\" ))";
 
 Operator pbreakpoints(
        "breakpoints",               // name
@@ -13147,78 +12481,431 @@ Operator pbreakpoints(
        BreakpointsSelect,
        BreakpointsTypeMap);
 
+
+/*
+10.18 ~toprel~
+
+*/
+
+
+static complexTM getTopRelCTM(){
+   complexTM tm;
+   tm.add(tm2<Point,PMPoint,PMInt9M>());
+   tm.add(tm2<PMPoint,Point,PMInt9M>());
+   tm.add(tm2<Points,PMPoint,PMInt9M>());
+   tm.add(tm2<PMPoint,Points,PMInt9M>());
+   return tm;
+}
+
+static ListExpr ToprelTypeMap(ListExpr args){
+   return getTopRelCTM()(args);
+}
+
+static int ToprelSelect(ListExpr args){
+   return getTopRelCTM().select(args);
+}
+
+template<class A1, class A2>
+class ToprelF{
+  public:
+  void operator()(A1* a1, A2* a2, PMInt9M* r){
+     a1->Toprel(a2,*r);
+  }
+};
+
+template<class A1, class A2>
+class ToprelF_Symm{
+  public:
+  void operator()(A2* a1, A1* a2, PMInt9M* r){
+     a2->Toprel(a1,*r);
+     r->Transpose();
+  }
+};
+
+ValueMapping ToprelValueMap[] = {
+  GenVM2<Point, PMPoint, PMInt9M, ToprelF_Symm<PMPoint, Point> >,
+  GenVM2<PMPoint, Point, PMInt9M, ToprelF<PMPoint, Point> >,
+  GenVM2<Points, PMPoint, PMInt9M, ToprelF_Symm<PMPoint, Points> >,
+  GenVM2<PMPoint, Points, PMInt9M, ToprelF<PMPoint, Points> >
+};
+
 Operator ptoprel(
-       "toprel",             // name
-       ToprelSpec,           // specification
-       4,                    // number of functions
+       "toprel",             
+       getTopRelCTM().getSpecification(
+        "toprel(_,_)",
+        "computes the topologicial relationship between the arguments",
+        "query toprel( a, b)" 
+       ),           // specification
+       getTopRelCTM().getVMCount(),                    // number of functions
        ToprelValueMap,
        ToprelSelect,
        ToprelTypeMap);
 
+/*
+10.18 ~intersection~
+
+*/
+static complexTM getIntersectionCTM(){
+   complexTM tm;
+   tm.add(tm2<PBBox,PBBox,PBBox>());
+   return tm;
+}
+
+static ListExpr IntersectionTypeMap(ListExpr args){
+   return getIntersectionCTM()(args);
+}
+
+static int IntersectionSelect(ListExpr args){
+   return getIntersectionCTM().select(args);
+}
+
+template<class A1, class A2, class ResT>
+class IntersectionF{
+  public:
+  void operator()(A1* a1, A2* a2, ResT* res){
+     a1->Intersection(a2,*res);
+  }
+};
+
+ValueMapping IntersectionValueMap[] = {
+  GenVM2<PBBox, PBBox, PBBox, IntersectionF<PBBox, PBBox, PBBox> >
+};
+
 Operator pintersection(
-       "intersection",             // name
-       IntersectionSpec,           // specification
-       2,                    // number of functions
+       "intersection", 
+       getIntersectionCTM().getSpecification(
+        " _ intersection _ ",
+        "computes the common part of the arguments",
+        " query b1 intersection b2"),
+       getIntersectionCTM().getVMCount(),
        IntersectionValueMap,
        IntersectionSelect,
        IntersectionTypeMap);
 
+/*
+10.19 ~distance~
+
+*/
+static complexTM getDistanceCTM(){
+   complexTM tm;
+   tm.add(tm2<PMPoint,Point,PMReal>());
+   tm.add(tm2<Point,PMPoint,PMReal>());
+   return tm;
+}
+
+static ListExpr DistanceTypeMap(ListExpr args){
+   return getDistanceCTM()(args);
+}
+
+static int DistanceSelect(ListExpr args){
+   return getDistanceCTM().select(args);
+}
+
+template<class A1, class A2>
+class DistanceF{
+  public:
+  void operator()(A1* a1, A2* a2, PMReal* res){
+    a1->DistanceTo(a2->GetX(), a2->GetY(),*res);
+  }
+  void operator()(A2* a1, A1* a2, PMReal* res){
+    a2->DistanceTo(a1->GetX(), a1->GetY(),*res);
+  }
+};
+
+ValueMapping DistanceValueMap[] = {
+ GenVM2<PMPoint,Point, PMReal, DistanceF<PMPoint, Point> >,
+ GenVM2<Point, PMPoint, PMReal, DistanceF<PMPoint, Point> >
+}; 
+
 Operator pdistance(
        "distance",             // name
-       DistanceSpec,           // specification
-       2,                    // number of functions
+       getDistanceCTM().getSpecification(
+         "distance(_, _",
+         "computes the distance of the arguments",
+         "query distance(pm1, p1)"),           // specification
+       getDistanceCTM().getVMCount(),                    // number of functions
        DistanceValueMap,
        DistanceSelect,
        DistanceTypeMap);
 
+
+/*
+10.20 ~numberOfNodes~
+
+*/
+static complexTM getNumberOfNodesCTM(){
+   complexTM tm;
+   tm.add(tm1<PMPoint,CcInt>());
+   return tm;
+}
+
+static ListExpr NumberOfNodesTypeMap(ListExpr args){
+   return getNumberOfNodesCTM()(args);
+}
+
+static int NumberOfNodesSelect(ListExpr args){
+   return getNumberOfNodesCTM().select(args);
+}
+
+template<class A, class R>
+class NumberOfNodesF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfNodes()));
+  }
+};
+
+
+ValueMapping NumberOfNodesValueMap[] ={
+  GenVM1<PMPoint,CcInt, NumberOfNodesF<PMPoint, CcInt> >
+};
+
 Operator pnumberOfNodes(
        "numberOfNodes",             // name
-       NumberOfNodesSpec,           // specification
-       1,                    // number of functions
+       getNumberOfNodesCTM().getSpecification(
+         "numberOfNodes( _ )",
+         "number of nodes within the repetition tree",
+         "query numberOfNodes(pm1)"),
+       getNumberOfNodesCTM().getVMCount(),
        NumberOfNodesValueMap,
-       NumberOfAnyNodesSelect,
-       NumberOfNodesMap);
+       NumberOfNodesSelect,
+       NumberOfNodesTypeMap);
+
+
+/*
+10.21 ~NumberOfCNodes~
+
+*/
+static complexTM getNumberOfCNodesCTM(){
+   complexTM tm;
+   tm.add(tm1<PMPoint,CcInt>());
+   return tm;
+}
+
+static ListExpr NumberOfCNodesTypeMap(ListExpr args){
+   return getNumberOfCNodesCTM()(args);
+}
+
+static int NumberOfCNodesSelect(ListExpr args){
+   return getNumberOfCNodesCTM().select(args);
+}
+
+template<class A, class R>
+class NumberOfCompositeNodesF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfCompositeNodes()));
+  }
+};
+
+ValueMapping NumberOfCompositeNodesValueMap[] ={
+  GenVM1<PMPoint,CcInt, NumberOfCompositeNodesF<PMPoint, CcInt> >
+};
 
 Operator pnumberOfCNodes(
        "numberOfCNodes",             // name
-       NumberOfCompositeNodesSpec,           // specification
-       1,                    // number of functions
+       getNumberOfCNodesCTM().getSpecification(
+         "numberOfCNodes( _ )",
+         "number of composite nodes within the repetition tree",
+         "query numberOfCNodes(pm1)"),
+       getNumberOfCNodesCTM().getVMCount(), 
        NumberOfCompositeNodesValueMap,
-       NumberOfAnyNodesSelect,
-       NumberOfNodesMap);
+       NumberOfCNodesSelect,
+       NumberOfCNodesTypeMap);
+
+
+/*
+10.22 ~numberOfPNodes~
+
+*/
+static complexTM getNumberOfPNodesCTM(){
+   complexTM tm;
+   tm.add(tm1<PMPoint,CcInt>());
+   return tm;
+}
+
+static ListExpr NumberOfPNodesTypeMap(ListExpr args){
+   return getNumberOfPNodesCTM()(args);
+}
+
+static int NumberOfPNodesSelect(ListExpr args){
+   return getNumberOfPNodesCTM().select(args);
+}
+
+template<class A, class R>
+class NumberOfPeriodicNodesF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfPeriodicNodes()));
+  }
+};
+
+ValueMapping NumberOfPeriodicNodesValueMap[] ={
+  GenVM1<PMPoint,CcInt, NumberOfPeriodicNodesF<PMPoint, CcInt> >
+};
 
 Operator pnumberOfPNodes(
-       "numberOfPNodes",             // name
-       NumberOfPeriodicNodesSpec,           // specification
-       1,                    // number of functions
+       "numberOfPNodes",            
+       getNumberOfPNodesCTM().getSpecification(
+         "numberOfPNodes( _ )",
+         "number of periodic nodes within the repetition tree",
+         "query numberOfPNodes(pm1)"),
+       getNumberOfPNodesCTM().getVMCount(),
        NumberOfPeriodicNodesValueMap,
-       NumberOfAnyNodesSelect,
-       NumberOfNodesMap);
+       NumberOfPNodesSelect,
+       NumberOfPNodesTypeMap);
+
+/*
+10.23 ~numberOfUnits~
+
+*/
+static complexTM getNumberOfUnitsCTM(){
+   complexTM tm;
+   tm.add(tm1<PMPoint,CcInt>());
+   return tm;
+}
+
+static ListExpr NumberOfUnitsTypeMap(ListExpr args){
+   return getNumberOfUnitsCTM()(args);
+}
+
+static int NumberOfUnitsSelect(ListExpr args){
+   return getNumberOfUnitsCTM().select(args);
+}
+
+template<class A, class R>
+class NumberOfUnitsF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfUnits()));
+  }
+};
+
+ValueMapping NumberOfUnitsValueMap[] ={
+  GenVM1<PMPoint,CcInt, NumberOfUnitsF<PMPoint, CcInt> >
+};
 
 Operator pnumberOfUnits(
-       "numberOfUnits",             // name
-       NumberOfUnitsSpec,           // specification
-       1,                    // number of functions
+       "numberOfUnits",             
+        getNumberOfUnitsCTM().getSpecification(
+         "numberOfUnits( _ )",
+         "number of units within the repetition tree",
+         "query numberUnits(pm1)"),
+        getNumberOfUnitsCTM().getVMCount(), 
        NumberOfUnitsValueMap,
-       NumberOfAnyNodesSelect,
-       NumberOfNodesMap);
+       NumberOfUnitsSelect,
+       NumberOfUnitsTypeMap);
+
+/*
+10.24 ~numberOfFlatUnits~
+
+*/
+static complexTM getNumberOfFlatUnitsCTM(){
+   complexTM tm;
+   tm.add(tm1<PMPoint,CcInt>());
+   return tm;
+}
+
+static ListExpr NumberOfFlatUnitsTypeMap(ListExpr args){
+   return getNumberOfFlatUnitsCTM()(args);
+}
+
+static int NumberOfFlatUnitsSelect(ListExpr args){
+   return getNumberOfFlatUnitsCTM().select(args);
+}
+
+template<class A, class R>
+class NumberOfFlatUnitsF{
+  public:
+  void operator()(A* a, R* res){
+      res->Set(true, static_cast<int>(a->NumberOfFlatUnits()));
+  }
+};
+
+ValueMapping NumberOfFlatUnitsValueMap[] ={
+  GenVM1<PMPoint,CcInt, NumberOfFlatUnitsF<PMPoint, CcInt> >
+};
 
 Operator pnumberOfFlatUnits(
-       "numberOfFlatUnits",             // name
-       NumberOfFlatUnitsSpec,           // specification
-       1,                    // number of functions
-       NumberOfFlatUnitsValueMap,
-       NumberOfAnyNodesSelect,
-       NumberOfNodesMap);
+       "numberOfFlatUnits",
+        getNumberOfFlatUnitsCTM().getSpecification(
+         "numberOfFlatUnits( _ )",
+         "number of units when the argument would be expanded",
+         "query numberFlastUnits(pm1)"),
+        getNumberOfFlatUnitsCTM().getVMCount(),
+        NumberOfFlatUnitsValueMap,
+        NumberOfFlatUnitsSelect,
+        NumberOfFlatUnitsTypeMap);
 
+
+/*
+10.25 ~translate~
+
+*/
+static complexTM getTranslateCTM(){
+   complexTM tm;
+   tm.add(tm2<PMPoint,Duration,PMPoint>());
+   tm.add(tm2<PMBool,Duration,PMBool>());
+   tm.add(tm2<PMInt9M,Duration,PMInt9M>());
+   tm.add(tm2<PMPoints,Duration,PMPoints>());
+   return tm;
+}
+
+static ListExpr TranslateTypeMap(ListExpr args){
+   return getTranslateCTM()(args);
+}
+
+static int TranslateSelect(ListExpr args){
+   return getTranslateCTM().select(args);
+}
+
+template<class A1,class A2, class R>
+class TranslateF{
+  public:
+  void operator()(A1* a1,A2* a2, R* res){
+      a1->Translate(a2,*res);  
+    }
+  };
+
+ValueMapping TranslateValueMap[] ={
+  GenVM2<PMPoint,DateTime,PMPoint, TranslateF<PMPoint,DateTime,PMPoint> >,
+  GenVM2<PMBool,DateTime,PMBool, TranslateF<PMBool,DateTime,PMBool> >,
+  GenVM2<PMInt9M,DateTime,PMInt9M, TranslateF<PMInt9M,DateTime,PMInt9M> >,
+  GenVM2<PMPoints,DateTime,PMPoints, TranslateF<PMPoints,DateTime,PMPoints> >
+};
 
 Operator ptranslate(
        "ptranslate",             // name
-       TranslateSpec,           // specification
-       4,                    // number of functions
+       getTranslateCTM().getSpecification(
+         " _ ptranslate [ _ ]",
+         " translates the first argument in time",
+         " query pm1 ptranslate [ d1 ] "),
+       getTranslateCTM().getVMCount(),
        TranslateValueMap,
        TranslateSelect,
-       TranslateMap);
+       TranslateTypeMap);
+
+
+
+/*
+10.27 ~minvalue~
+
+*/
+const string MinSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmreal -> real \" "
+   " \" minvalue( _ ) \" "
+   " \" Computes the minimum of the argument.  \"  "
+   " \" \" "
+   " <text> query minvalue(pmr1)  </text---> ))";
+
+template<class A, class R>
+class MinF{
+   public:
+   void operator()(A* a, R* res){
+     a->min(*res);
+   }
+};
 
 Operator min(
         "minvalue",
@@ -13226,6 +12913,26 @@ Operator min(
         GenVM1<PMReal, CcReal, MinF<PMReal, CcReal> >,
         Operator::SimpleSelect,
         TypeMap1<PMReal, CcReal>);
+
+/*
+10.29  ~maxvalue~
+
+*/
+const string MaxSpec =
+   "((\"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" \"Example\" )"
+   " ( \"pmreal -> real \" "
+   " \" maxvalue( _ ) \" "
+   " \" Computes the maximum of the argument.  \"  "
+   " \" \" "
+   " <text> query maxvalue(pmr1)  </text---> ))";
+
+template<class A, class R>
+class MaxF{
+   public:
+   void operator()(A* a, R* res){
+     a->max(*res);
+   }
+};
 
 Operator max(
         "maxvalue",
