@@ -541,6 +541,10 @@ an attribute type within secondo relations.
              value = tmp.value;
        }
 
+       static const string BasicType(){
+          return "int9m";
+       }
+
 
    private:
        // we use the appropriate bits of this value for the different
@@ -1070,6 +1074,10 @@ clusters.
 
       void updateBoxChecks();
 
+      static const string BasicType(){
+        return "cluster";
+      }
+
    private:
       unsigned char BitVector[64];  // the set of matrices
       unsigned char BitVectorT[64]; // set of transposed matrices
@@ -1410,7 +1418,9 @@ Function for easy creating a default predicate group.
 */
 void SetToDefault();
 
-
+   static const string BasicType(){
+     return "predicategroup";
+   }
 
 private:
    mutable DBArray<Cluster> theClusters;
