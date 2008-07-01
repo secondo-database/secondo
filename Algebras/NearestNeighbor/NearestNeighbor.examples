@@ -1,0 +1,8 @@
+Database : berlintest
+Restore  : No
+
+Operator : distancescan
+Number   : 1
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL2D
+Example  : query Kinos creatertree[geoData] Kinos distancescan [[const point value (0.0 -1.2)], 5] consume
+Result   : file_platform
