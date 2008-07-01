@@ -479,7 +479,7 @@ as an attribute.
     }
   
     static const string BasicType(){
-       return symbols::POINTS;
+       return symbols::POINT;
     }
 
 
