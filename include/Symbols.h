@@ -100,6 +100,7 @@ namespace symbols {
  // spatial, temporal, temporalunit algebra
 #undef MPOINT
 #undef POINT
+#undef POINTS
 #undef LINE
 #undef REGION
 #undef SLINE
@@ -108,6 +109,7 @@ namespace symbols {
  Sym REGION("region");
  Sym LINE("line");
  Sym SLINE("sline");
+ Sym POINTS("points");
  
 
  // histogram types
