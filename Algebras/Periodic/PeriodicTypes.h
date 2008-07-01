@@ -32,6 +32,10 @@
 //[rowsep] [\\]
 
 
+\makeatletter
+\renewcommand{\l@subsection}{\@dottedtocline{2}{1.5em}{3.3em}}
+\makeatother
+
 
 [titlepage]
 [emptypage]
