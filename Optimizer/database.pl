@@ -713,8 +713,8 @@ showRelationAttrs([[AttrD, Type] | Rest]) :-
   write(' '), write(AttrD), write(':'), write(Type), write(' '),
   showRelationAttrs(Rest), !.
 
-showRelationSchemas([]).
-  % filters all relation opbjects from the database schema
+showRelationSchemas([]).         
+  % filters all relation objects from the database schema
 showRelationSchemas([Obj | ObjList]) :-
   Obj = ['OBJECT',Rel,_ | [[[_ | [[_ | [AttrList2]]]]]]],
   write('  '), write(Rel), write('  ['),
@@ -736,6 +736,37 @@ showDatabaseSchema :-
   write('(Type \'showDatabase.\' to see meta data
          collected by the optimizer.)\n'),
   !.
+
+
+getSchema(Rel, Objs, AttrList) :-
+  Member = ['OBJECT',Rel,_ | [[[rel | [[tuple | [AttrList]]]]]]],
+  member(Member, Objs).
+  
+   
+getSchemas(Rels):-
+  getSecondoList(Objs),	
+  findall([Rel, AttrList], getSchema(Rel, Objs, AttrList), Rels).       	
+
+disjointListPair(L, A, B) :-
+  member(A, L), 	
+  member(B, L), 
+  A \= B.
+
+checkMember(O, L, R):-
+  member(A, L),
+  R = ['OBJECT', A | _],  
+  member(R, O).	
+
+restrictObjList(L, Objs):-
+  getSecondoList(Otmp),
+  findall( R, checkMember(Otmp, L, R), Objs).
+  
+getPairs(Rels, Pairs) :-
+  findall([A, B], disjointListPair(Rels, A, B), Pairs).	
+
+
+
+  	
 
 /*
 1.2 Spelling of Relation and Attribute Names
@@ -1037,7 +1068,16 @@ There is an index named ~IndexName~ of type ~IndexType~ on relation
 
 */
 
-hasIndex(rel(Rel, _, _), attr(_:A, _, _), IndexName, Type) :-
+hasIndex(A, B, C, D) :-
+  not(optimizerOption(noIndex)), hasIndex2(A, B, C, D).	
+/*
+
+fails always when the use of indexes is switched off.
+
+*/
+
+
+hasIndex2(rel(Rel, _, _), attr(_:A, _, _), IndexName, Type) :-
   hasIndex(rel(Rel, _, _), attr(A, _, _), IndexName, Type).
 /*
 
@@ -1046,7 +1086,7 @@ via dynamic predicate ~storedIndex/5~.
 
 */
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, Type) :-
+hasIndex2(rel(Rel, _, _), attr(Attr, _, _), Index, Type) :-
   databaseName(DB),
   storedIndex(DB, Rel, Attr, Type, Index),
   !.
@@ -1057,7 +1097,7 @@ for relation ~Rel~ and attribute ~Attr~ then this rule fails.
 
 */
 
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
+hasIndex2(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   databaseName(DB),
   storedNoIndex(DB, Rel, Attr),
   !,
@@ -1071,7 +1111,7 @@ index available for relation ~Rel~ and attribute ~Attr~.
 */
 
 % cases: Attr in lc, Rel in lc or uc succeeds (index found)
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
+hasIndex2(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   not(Attr = _:_),
   spelled(Rel:Attr, attr(Attr2, 0, l)),
   ( ( spelled(Rel, _, l), URel = Rel ) % Rel in lc
@@ -1090,7 +1130,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   !.
 
 %attr in lc fails (no index)
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
+hasIndex2(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   not(Attr = _:_),
   spelled(Rel:Attr, attr(_, 0, l)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
@@ -1099,7 +1139,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
 
 
 % cases: Attr in uc, Rel in lc or uc succeeds (index found)
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
+hasIndex2(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
   not(Attr = _:_),
   spelled(Rel:Attr, attr(Attr2, 0, u)),
   ( ( spelled(Rel, _, l), URel = Rel ) % Rel in lc
@@ -1120,7 +1160,7 @@ hasIndex(rel(Rel, _, _), attr(Attr, _, _), Index, IndexType) :-
 
 
 %attr in uc fails (no index)
-hasIndex(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
+hasIndex2(rel(Rel, _, _), attr(Attr, _, _), _, _) :-
   not(Attr = _:_),
   spelled(Rel:Attr, attr(_, 0, u)),
   verifyIndexAndStoreNoIndex(Rel, Attr),
