@@ -3,8 +3,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1016,10 +1016,10 @@ Handle Implicit arguments in parameter functions:
 */
 
 plan_to_atom(implicitArg(1), Result) :-
-  atom_concat('.', ' ', Result).
+  atom_concat('.', ' ', Result), !.
 
 plan_to_atom(implicitArg(2), Result) :-
-  atom_concat('..', ' ', Result).
+  atom_concat('..', ' ', Result), !.
 
 
 /*
@@ -1109,6 +1109,26 @@ plan_to_atom(sortRightThenMergejoin(X, Y, A, B), Result) :-
   !.
 
 
+plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  optimizerOption(useRandomSMJ), % maps sortmergejoin to sortmergejoin_r2
+  concat_atom([XAtom, YAtom, 'sortmergejoin_r2[',
+    AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
+
+plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  optimizerOption(useRandomSMJ3),
+  concat_atom([XAtom, YAtom, 'sortmergejoin_r3[',
+    AAtom, ', ', BAtom, '] '], '', Result),
+  !.
 
 
 plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
@@ -1119,6 +1139,17 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   concat_atom([XAtom, YAtom, 'sortmergejoin[',
     AAtom, ', ', BAtom, '] '], '', Result),
   !.
+
+
+plan_to_atom(sortmergejoin_r2(X, Y, A, B), Result) :-
+  plan_to_atom(X, XAtom),
+  plan_to_atom(Y, YAtom),
+  plan_to_atom(A, AAtom),
+  plan_to_atom(B, BAtom),
+  concat_atom([XAtom, YAtom, 'sortmergejoin_r2[',
+    AAtom, ', ', BAtom, '] '], '', Result),
+  !.
+
 
 plan_to_atom(pjoin2(X, Y, Fields), Result) :-
   plan_to_atom(X, XAtom),
@@ -1161,7 +1192,8 @@ plan_to_atom(extend(Stream, Fields), Result) :-
 plan_to_atom(field(NewAttr, Expr), Result) :-
   plan_to_atom(attrname(NewAttr), NAtom),
   plan_to_atom(Expr, EAtom),
-  concat_atom([NAtom, ': ', EAtom], '', Result).
+  concat_atom([NAtom, ': ', EAtom], '', Result),
+  !.
 
 
 /*
@@ -1212,7 +1244,8 @@ plan_to_atom(project(Stream, Fields), Result) :-
 
 % Ignore sortby with empty sort list
 plan_to_atom(sortby(Stream, []), Result) :-
-  plan_to_atom(Stream, Result), !.
+  plan_to_atom(Stream, Result), 
+  !.
 
 
 
@@ -1291,7 +1324,6 @@ plan_to_atom(predinfo(Sel, Cost, X), Result) :-
   !.
 
 
-
 plan_to_atom(fun(Params, Expr), Result) :-
   params_to_atom(Params, ParamAtom),
   plan_to_atom(Expr, ExprAtom),
@@ -1323,11 +1355,13 @@ Sort orders and attribute names.
 
 plan_to_atom(asc(Attr), Result) :-
   plan_to_atom(Attr, AttrAtom),
-  atom_concat(AttrAtom, ' asc', Result).
+  atom_concat(AttrAtom, ' asc', Result), 
+  !.
 
 plan_to_atom(desc(Attr), Result) :-
   plan_to_atom(Attr, AttrAtom),
-  atom_concat(AttrAtom, ' desc', Result).
+  atom_concat(AttrAtom, ' desc', Result), 
+  !.
 
 plan_to_atom(attr(Name, Arg, Case), Result) :-
   plan_to_atom(a(Name, Arg, Case), ResA),
@@ -1346,7 +1380,8 @@ plan_to_atom(attr2(Name, Arg, Case), Result) :-
   !.
 
 plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
-  plan_to_atom(a(Name, Arg, Case), Result).
+  plan_to_atom(a(Name, Arg, Case), Result), 
+  !.
 
 plan_to_atom(a(A:B, _, l), Result) :-
   concat_atom([B, '_', A], '', Result),
@@ -1512,7 +1547,7 @@ plan_to_atom(Term, Result) :-
   functor(Term, Op, 1),
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
-  concat_atom([Op, '(', Res1, ')'], '', Result).
+  concat_atom([Op, '(', Res1, ')'], '', Result), !.
 
 /* 2 arguments: infix */
 plan_to_atom(Term, Result) :-
@@ -1521,7 +1556,7 @@ plan_to_atom(Term, Result) :-
   arg(2, Term, Arg2),
   plan_to_atom(Arg1, Res1),
   plan_to_atom(Arg2, Res2),
-  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result).
+  concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !.
 
 /* 3+ arguments: prefix */
 
@@ -1531,7 +1566,7 @@ plan_to_atom(InTerm,OutTerm) :-
   InTerm =.. [Op|ArgsIn],
   plan_to_atom_2(ArgsIn,ArgsOut),
   concat_atom(ArgsOut, ', ', ArgsOutAtom),
-  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm).
+  concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !.
 
 /* Standard translation of atomic terms */
 plan_to_atom(X, Result) :-
@@ -1541,8 +1576,8 @@ plan_to_atom(X, Result) :-
 
 /* Error case */
 plan_to_atom(X, _) :-
-  write('Error while converting term: '),
-  write(X),
+  write('Error in plan_to_atom: No rule for handling term '),
+  write(X), 
   nl.
 
 /* auxiliary predicate */
@@ -1903,6 +1938,7 @@ A join can always be translated to a ~symmjoin~.
 */
 
 join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
+  not(optimizerOption(noSymmjoin)), 
   Arg1 => Arg1S,
   Arg2 => Arg2S.
 
@@ -2177,9 +2213,15 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2), 99997)   :-
+  not(optimizerOption(noHashjoin)), 
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
+join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
+        attrname(Attr2), attrname(Attr1), 99997)   :-
+  not(optimizerOption(noHashjoin)), 
+  isOfFirst(Attr1, X, Y),
+  isOfSecond(Attr2, X, Y).
 
 
 /*
@@ -2581,7 +2623,7 @@ createPathInfo([H|T]) :-
   C2c is ceil(C2),
   getRealSize(A1, C1Real),
   getRealSize(A2, C2Real),
-  SelReal is SizeReal / (C1Real * C2Real),
+  SelReal is SizeReal / max((C1Real * C2Real),1),
   %showValue('SelEst: ', SelEst),
   %showValue('SelReal: ', SelReal),
   relativeError(SelEst, SelReal, SelErr),
@@ -2610,7 +2652,8 @@ relativeError(0, _, inf).
 
 
 
-checkSizes :-
+getSizes(L, Format) :-
+  optimizerOption(useCounters),	
   computeNodeSizes, !,
   findall([Src-Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr], pathInfo(Src, Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr), L),
   Format = [ ['Edge', 'l'],
@@ -2622,7 +2665,11 @@ checkSizes :-
              ['Sz-Est', 'l'],
              ['Sz-Real', 'l'],
              ['E2', 'l']
-             ],
+             ].
+
+
+checkSizes :-
+  getSizes(L, Format),	
   current_prolog_flag(float_format, FF),
   set_prolog_flag(float_format, '%.7f'),
   showTuples(L, Format),
@@ -2659,12 +2706,15 @@ computeObservedNodeSizes :-
   createObservedNodeSizes( L ).
 
 
-showPredOrder :-
+getPredOrder(L, Format) :-
   findall([Src-Tgt, Op, Pred], edgePredicate(Src, Tgt, Pred, Op), L),
   Format = [ ['Edge',    'l'],
 	     ['Operator   ', 'l'],
              ['Predicate',   'l']
-             ],
+             ].
+
+showPredOrder :-
+  getPredOrder(L, Format),
   showTuples(L, Format).
 
 edgePredicate(Source, Target, PlanFragment, Op) :-
@@ -2885,10 +2935,17 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
   cost(Y, 1, SizeY, CostY),
   hashjoinTC(A, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                          % producing the arguments
+  %showValue('SizeX', SizeX),
+  %showValue('SizeY', SizeY),
+  %showValue('CostX', CostX),
+  %showValue('CostY', CostY),
+  H is                                          % producing the arguments
     A * NBuckets * (SizeX/NBuckets + 1) *       % computing the product for each
       (SizeY/NBuckets +1) +                     % pair of buckets
-    B * S.                                      % producing the result tuples
+    B * S,
+  %showValue('Hashcost', H),  
+  C is CostX + CostY + H.                       % producing the result tuples
+
 
 cost(sort(X), Sel, S, C) :-
   cost(X, Sel, SizeX, CostX),
@@ -3852,7 +3909,9 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 
 */
 
-:- op(990,  fx, sql).
+:- op(993,  fx, sql).
+:- op(992,  fx, create).
+:- op(991,  xfx, by).
 :- op(988,  fx, with).
 :- op(987, xfx, in).
 :- op(986, xfx, first).
@@ -3968,7 +4027,7 @@ lookup(select Attrs from Rels where Preds,
 
 lookup(select Attrs from Rels,
         select Attrs2 from Rels2) :-
-  lookupRels(Rels, Rels2),
+  lookupRels(Rels, Rels2), !,
   lookupAttrs(Attrs, Attrs2).
 
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
@@ -4045,13 +4104,27 @@ lookupRel(Rel, rel(Rel2, *, Case)) :-
   not(duplicateAttrs(Rel)),
   assert(queryRel(Rel, rel(Rel2, *, Case))).
 
-lookupRel(Term, Term) :-
-  write('Error in query: relation '), write(Term), write(' not known'),
-  nl, fail.
+
+lookupRel(Rel as Var, Rel as Var) :-
+  relError(Rel).
+
+lookupRel(Atom, Atom) :-
+  atom(Atom),
+  relError(Atom).
+
+relError(Atom) :-  
+  concat_atom( ['relation ', Atom, ' not known!'], Msg),
+  lookupError(Msg).
 
 defined(Var) :-
   variable(Var, _),
-  write('Error in query: doubly defined variable '), write(Var), write('.'), nl.
+  concat_atom(['variable ', Var, ' doubly defined!'], Msg),
+  lookupError(Msg).
+
+lookupError(Msg) :-
+  nl, write('*** Error during lookup: '), write(Msg),
+  write(' *** '), nl, nl,
+  fail.
 
 /*
 ----    duplicateAttrs(Rel) :-
@@ -4068,6 +4141,7 @@ duplicateAttrs(Rel) :-
   member(Attr, Attrs2),
   relation(Rel, Attrs),
   member(Attr, Attrs),
+  not(Rel = Rel2),
   write('Error in query: duplicate attribute names in relations '),
   write(Rel2), write(' and '), write(Rel), write('.'), nl.
 
@@ -5614,6 +5688,8 @@ sql Term :- defaultExceptionHandler((
   appendToRel('SqlHistory', Term, Query, Cost, PlanBuild, PlanExec)
  )).
 
+sql create X by Term :- let(X, Term).
+
 sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   isDatabaseOpen,
   mStreamOptimize(Term, SecondoQuery, Cost),
@@ -5622,6 +5698,9 @@ sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query, _)
  )).
+
+
+
 
 
 let(X, Term) :- defaultExceptionHandler((
