@@ -80,6 +80,7 @@ topological predicates.
 #include "StandardTypes.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
+#include "GenericTC.h"
 
 
 
@@ -431,7 +432,7 @@ The ListRepresentation is a list containing 9 boolean elements
 describing the value of the matrix entries.
 
 */
-       ListExpr ToListExpr()const  ;
+       ListExpr ToListExpr(const ListExpr typeInfo)const  ;
 
 /*
 2.1.17 ReadFrom Function
@@ -448,7 +449,7 @@ return value is true. Allowed formats are:
   * a list consisting of nine boolean values representing the matrix entries.
 
 */
-       bool ReadFrom(const ListExpr LE);
+       bool ReadFrom(const ListExpr LE, const ListExpr typeInfo);
 
 /*
 2.1.18 Equalize functions
@@ -545,7 +546,16 @@ an attribute type within secondo relations.
           return "int9m";
        }
 
+       static ListExpr Property(){
+          return gentc::GenProperty("-> DATA",
+                                    BasicType(),
+                                   "(ii ib ie bi bb be ei eb ee)",
+                           "(TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE)");
+       }
 
+       static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+         return nl->IsEqual(type,BasicType());
+       }
    private:
        // we use the appropriate bits of this value for the different
        // entries in the matrix
@@ -578,6 +588,16 @@ This standard constructor should only be used in the cast function.
 
 */
       Cluster(){} 
+
+
+      Cluster(int dummy){
+        memcpy(BitVector,emptyBlock,64);
+        memcpy(BitVectorT,emptyBlock,64);
+        strcpy(name,"complete");
+        strcpy(name,"empty");
+        defined = true;
+        updateBoxChecks();
+      }
       
 /*
 2.2.2 Constructor
@@ -857,7 +877,7 @@ The format of the nested list is a list contaning a string representing the
 name of the cluster followed by a set of matrix numbers.
 
 */      
-      ListExpr ToListExpr()const;
+      ListExpr ToListExpr(const ListExpr typeInfo)const;
       
 /*
 2.5.17 ReadFrom
@@ -894,7 +914,7 @@ Instead of writing ''and'', ''or'', ''not'', we can also use the abbreviations '
 
 
 */
-      bool ReadFrom(const ListExpr LE);
+      bool ReadFrom(const ListExpr LE,const ListExpr);
 
 /*
 
@@ -1077,6 +1097,17 @@ clusters.
       static const string BasicType(){
         return "cluster";
       }
+       
+      static ListExpr Property(){
+          return gentc::GenProperty("-> DATA",
+                                    BasicType(),
+                                   "(\"name \" (m1, m2 , ...))",
+                           "(\"bothempty\" (1))");
+       }
+
+       static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+         return nl->IsEqual(type,BasicType());
+       }
 
    private:
       unsigned char BitVector[64];  // the set of matrices
@@ -1289,7 +1320,7 @@ This function returns the cluster representing all non-covered matrices.
 This function computes the nested list representaton of this predicate cluster.
 
 */
-    ListExpr ToListExpr();
+    ListExpr ToListExpr(const ListExpr typeInfo);
 
 /*
 2.3.7 ReadFrom
@@ -1304,7 +1335,7 @@ disjoint. This means all cluster names must be different and the matrix sets
 can't have any common matrices.
 
 */
-    bool ReadFrom(const ListExpr instance);
+    bool ReadFrom(const ListExpr instance, const ListExpr typeInfo);
 
 /*
 2.3.8 MakeEmpty
@@ -1420,6 +1451,18 @@ void SetToDefault();
 
    static const string BasicType(){
      return "predicategroup";
+   }
+
+
+   static ListExpr Property(){
+       return gentc::GenProperty("-> DATA",
+                                 BasicType(),
+                            "(c1 c2 c2)",
+                           "(....)");
+   }
+
+   static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+     return nl->IsEqual(type,BasicType());
    }
 
 private:

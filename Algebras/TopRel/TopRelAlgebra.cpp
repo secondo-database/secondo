@@ -55,6 +55,7 @@ level remains. Models are also removed from type constructors.
 #include "LogMsg.h"
 
 #include "FTextAlgebra.h"
+#include "GenericTC.h"
 
 extern "C"{
 #include "Tree.h"
@@ -160,7 +161,7 @@ This function returns the NestedList representation of a
 9 intersection matrix.
 
 */
-ListExpr Int9M::ToListExpr() const {
+ListExpr Int9M::ToListExpr(ListExpr typeInfo) const {
   if(!defined)
     return nl->SymbolAtom("undefined");
   ListExpr Last;
@@ -187,7 +188,7 @@ Allowed representations are a single int atom in range [0, 511],
 or a list containing nine boolean (or int) atoms representing the matrix entries.
 
 */
-bool Int9M::ReadFrom(const ListExpr LE){
+bool Int9M::ReadFrom(const ListExpr LE,const ListExpr typeInfo){
    // case uf undefined
    if(nl->IsEqual(LE,"undefined")){
        defined = false;
@@ -545,7 +546,7 @@ position followed by all matrix numbers of the
 contained 9 intersection matrices.
 
 */
-ListExpr Cluster::ToListExpr()const{
+ListExpr Cluster::ToListExpr(const ListExpr TypeInfo)const{
     if(!defined)
       return nl->SymbolAtom("undefined");
     // check for contained values
@@ -570,7 +571,7 @@ list of representations of 9 intersection matrices or a textual
 representation (string, or text) of the conditions which must hold for this cluster.
 
 */
-bool Cluster::ReadFrom(const ListExpr LE){
+bool Cluster::ReadFrom(const ListExpr LE,const ListExpr typeInfo){
 
    // first, we handle the case of definition by condition
    // using the tree parser
@@ -645,7 +646,7 @@ bool Cluster::ReadFrom(const ListExpr LE){
    while(!nl->IsEmpty(scan) && correct){
        elem = nl->First(scan);
        scan = nl->Rest(scan);
-       if(!current.ReadFrom(elem)){
+       if(!current.ReadFrom(elem,nl->TheEmptyList())){
           correct = false;
        }
        else{
@@ -1251,7 +1252,7 @@ This function computes the external representation  of this
 PredicateGroup in nested list format.
 
 */
-ListExpr PredicateGroup::ToListExpr(){
+ListExpr PredicateGroup::ToListExpr(const ListExpr typeInfo){
   // we have at least one element in the this predicategroup
   if(!defined)
       return nl->SymbolAtom("undefined");
@@ -1260,11 +1261,11 @@ ListExpr PredicateGroup::ToListExpr(){
      return nl->TheEmptyList();
 
   theClusters.Get(0,C);
-  ListExpr res = nl->OneElemList(C->ToListExpr());
+  ListExpr res = nl->OneElemList(C->ToListExpr(nl->TheEmptyList()));
   ListExpr Last = res;
   for(int i=1;i<theClusters.Size();i++){
        theClusters.Get(i,C);
-       Last = nl->Append(Last,C->ToListExpr());
+       Last = nl->Append(Last,C->ToListExpr(nl->TheEmptyList()));
   }
   return res;
 }
@@ -1278,7 +1279,7 @@ predicate-cluster, this predicate cluster is not changed and
 the result will be false.
 
 */
-bool PredicateGroup::ReadFrom(const ListExpr instance){
+bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
    int length = nl->ListLength(instance);
    /*
     The maximum count of non-overlapping, non-empty clusters is 512.
@@ -1297,7 +1298,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance){
    while(!nl->IsEmpty(LE)){
       // error in cluster representation
       ListExpr cl = nl->First(LE);
-      if(!CurrentCluster.ReadFrom(cl)){
+      if(!CurrentCluster.ReadFrom(cl, nl->TheEmptyList())){
          return false;
       }
       // empty clusters are not allowed
@@ -1492,22 +1493,22 @@ void PredicateGroup::SetToDefault(){
                     );
      bool ok; 
      Cluster clEqual(false);
-     ok = clEqual.ReadFrom(nlEqual);
+     ok = clEqual.ReadFrom(nlEqual,nl->TheEmptyList());
      assert(ok);
      Cluster clInside(false);
-     ok = clInside.ReadFrom(nlInside);
+     ok = clInside.ReadFrom(nlInside,nl->TheEmptyList());
      assert(ok);
      Cluster clMeet(false);
-     ok = clMeet.ReadFrom(nlMeet);
+     ok = clMeet.ReadFrom(nlMeet,nl->TheEmptyList());
      assert(ok);
      Cluster clOverlap(false);
-     ok = clOverlap.ReadFrom(nlOverlap);
+     ok = clOverlap.ReadFrom(nlOverlap,nl->TheEmptyList());
      assert(ok);
      Cluster clCoveredBy(false);
-     ok = clCoveredBy.ReadFrom(nlCoveredBy);
+     ok = clCoveredBy.ReadFrom(nlCoveredBy,nl->TheEmptyList());
      assert(ok);
      Cluster clDisjoint(false);
-     ok = clDisjoint.ReadFrom(nlDisjoint);
+     ok = clDisjoint.ReadFrom(nlDisjoint,nl->TheEmptyList());
      assert(ok);
      Cluster clContains(clInside);
      clContains.Transpose();
@@ -1547,370 +1548,14 @@ bool PredicateGroup::operator==(const PredicateGroup& I2) const{
 
 
 /*
-4 Functions for the type constructors
-
-4.1 Out Functions
+4 Defining Type Constructors 
 
 */
-ListExpr OutInt9M(ListExpr TypeInfo, Word value){
-   return ((Int9M*)value.addr)->ToListExpr();
-}
 
-ListExpr OutCluster(ListExpr TypeInfo, Word value){
-   return ((Cluster*)value.addr)->ToListExpr();
-}
+GenTC<Int9M> int9m;
+GenTC<Cluster> cluster;
+GenTC<PredicateGroup> predicategroup;
 
-ListExpr OutPredicateGroup(ListExpr TypeInfo, Word value){
-   return ((PredicateGroup*)value.addr)->ToListExpr();
-}
-
-/*
-4.2 In functions
-
-*/
-Word
-InInt9M( const ListExpr typeInfo, const ListExpr instance,
-        const int errorPos, ListExpr& errorInfo, bool& correct ){
-  unsigned short number = 0;
-  Int9M* res = new Int9M(number);
-  if(res->ReadFrom(instance)){
-     correct=true;
-     return SetWord(res);
-  }
-  correct=false;
-  delete res;
-  return SetWord(Address(0));
-}
-
-Word
-InCluster(const ListExpr typeInfo, const ListExpr instance,
-          const int errorPos, ListExpr& errorInfo, bool& correct){
-   Cluster* res = new Cluster(false,false);
-   //nl->WriteListExpr(instance);
-   if(res->ReadFrom(instance)){
-      correct = true;
-      return SetWord(res);
-   }
-   correct = false;
-   delete res;
-   return SetWord(Address(0));
-}
-
-Word
-InPredicateGroup(const ListExpr typeInfo, const ListExpr instance,
-          const int errorPos, ListExpr& errorInfo, bool& correct){
-   PredicateGroup* res = new PredicateGroup(1);
-   if(res->ReadFrom(instance)){
-      correct = true;
-      return SetWord(res);
-   }
-   correct = false;
-   delete res;
-   return SetWord(Address(0));
-} 
-
-/*
-4.2 Functions for the creation of objects
-
-*/
-Word
-CreateInt9M( const ListExpr typeInfo )
-{
-  unsigned short number =0;
-  return (SetWord( new Int9M(number)));
-}
-
-Word
-CreateCluster( const ListExpr typeInfo){
-   return (SetWord(new Cluster(false,false)));
-}
-
-Word
-CreatePredicateGroup( const ListExpr typeInfo){
-   return (SetWord(new PredicateGroup(0)));
-}
-
-/*
-4.3 Functions for object deletion
-
-*/
-void
-DeleteInt9M( const ListExpr typeInfo, Word& w )
-{
-  delete (Int9M*) w.addr;
-  w.addr = 0;
-}
-
-void
-DeleteCluster(const ListExpr typeInfo, Word& w){
-   delete (Cluster*) w.addr;
-   w.addr = 0;
-}
-
-void
-DeletePredicateGroup(const ListExpr typeInfo, Word& w){
-   delete (PredicateGroup*) w.addr;
-   w.addr = 0;
-}
-
-/*
-4.4 Closing objects
-
-*/
-void
-CloseInt9M( const ListExpr typeInfo, Word& w )
-{
-  delete (Int9M*) w.addr;
-  w.addr = 0;
-}
-
-void CloseCluster(const ListExpr typeInfo, Word& w){
-   delete (Cluster*) w.addr;
-   w.addr = 0;
-}
-
-void
-ClosePredicateGroup(const ListExpr typeInfo, Word& w){
-   delete (PredicateGroup*) w.addr;
-   w.addr = 0;
-}
-
-/*
-4.5 Copying of objects
-
-*/
-Word
-CloneInt9M( const ListExpr typeInfo, const Word& w )
-{
-  return SetWord( ((Int9M *)w.addr)->Clone() );
-}
-
-Word CloneCluster(const ListExpr typeInfo, const Word& w){
-    return SetWord(((Cluster*)w.addr)->Clone());
-}
-
-Word ClonePredicateGroup(const ListExpr typeInfo, const Word& w){
-    return SetWord(((PredicateGroup*)w.addr)->Clone());
-}
-
-/*
-4.6 Size of objects
-
-*/
-int
-SizeOfInt9M()
-{
-  return sizeof(Int9M);
-}
-
-int SizeOfCluster(){
-   return sizeof(Cluster);
-}
-
-int SizeOfPredicateGroup(){
-   return sizeof(PredicateGroup);
-}
-
-/*
-4.7 Cast functions
-
-*/
-void* CastInt9M( void* addr )
-{
-  return (new (addr) Int9M);
-}
-
-void* CastCluster(void* addr){
-   return (new (addr) Cluster);
-}
-
-void* CastPredicateGroup(void* addr){
-   return (new (addr) PredicateGroup);
-}
-
-/*
-4.8 Property Functions
-
-*/
-ListExpr
-Int9MProperty()
-{
-  return nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("int9m"),
-                             nl->StringAtom("(II IB IE BI BB"
-                                            " BE EI EB EE)"),
-                             nl->StringAtom("TRUE FALSE TRUE ... FALSE")));
-}
-
-ListExpr
-ClusterProperty()
-{
-  return nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("cluster"),
-                             nl->StringAtom("string int int ... int "),
-                             nl->StringAtom("'equals' 5 64 511")));
-}
-
-ListExpr
-PredicateGroupProperty()
-{
-  return nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("predicategroup"),
-                             nl->StringAtom("<cluster_1>..<cluster_n> "),
-                             nl->StringAtom("c1 c2 c3")));
-}
-/*
-4.9 Kind Checking
-
-*/
-bool
-CheckInt9M( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual(type, "int9m" ));
-}
-
-bool
-CheckCluster( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual(type, "cluster" ));
-}
-
-bool
-CheckPredicateGroup( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual(type, "predicategroup" ));
-}
-
-/*
-4.10 Open Functions
-
-*/
-bool
-OpenInt9M( SmiRecord& valueRecord,
-           size_t& offset,
-           const ListExpr typeInfo,
-           Word& value )
-{
-  Int9M *i9m = (Int9M*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( i9m );
-  return true;
-}
-
-bool
-OpenCluster( SmiRecord& valueRecord,
-           size_t& offset,
-           const ListExpr typeInfo,
-           Word& value )
-{
-  Cluster *cluster;
-  cluster = (Cluster*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( cluster );
-  return true;
-}
-
-bool
-OpenPredicateGroup( SmiRecord& valueRecord,
-           size_t& offset,
-           const ListExpr typeInfo,
-           Word& value )
-{
-  PredicateGroup *pgroup;
-  pgroup = (PredicateGroup*)Attribute::Open( valueRecord,
-                                                offset, typeInfo );
-  value = SetWord( pgroup );
-  return true;
-}
-
-/*
-4.11 Save Functions
-
-*/
-bool
-SaveInt9M( SmiRecord& valueRecord,
-             size_t& offset,
-             const ListExpr typeInfo,
-             Word& value )
-{
-  Int9M *int9m = (Int9M *)value.addr;
-  Attribute::Save( valueRecord, offset, typeInfo, int9m );
-  return true;
-}
-
-bool
-SaveCluster( SmiRecord& valueRecord,
-             size_t& offset,
-             const ListExpr typeInfo,
-             Word& value )
-{
-  Cluster *cluster = (Cluster *)value.addr;
-  Attribute::Save( valueRecord, offset, typeInfo, cluster );
-  return true;
-}
-
-bool
-SavePredicateGroup( SmiRecord& valueRecord,
-             size_t& offset,
-             const ListExpr typeInfo,
-             Word& value )
-{
-  PredicateGroup *pgroup = (PredicateGroup *)value.addr;
-  Attribute::Save( valueRecord, offset, typeInfo, pgroup );
-  return true;
-}
-
-/*
-5 Type Constructor
-
-*/
-TypeConstructor int9m(
-        "int9m",
-        Int9MProperty,
-        OutInt9M,  InInt9M,
-        0,        0,
-        CreateInt9M, DeleteInt9M,
-        OpenInt9M, SaveInt9M, CloseInt9M, CloneInt9M,
-        CastInt9M,
-        SizeOfInt9M,
-        CheckInt9M );
-
-TypeConstructor cluster(
-        "cluster",
-        ClusterProperty,
-        OutCluster,  InCluster,
-        0,        0,
-        CreateCluster, DeleteCluster,
-        OpenCluster, SaveCluster, CloseCluster, CloneCluster,
-        CastCluster,
-        SizeOfCluster,
-        CheckCluster );
-
-TypeConstructor predicategroup(
-        "predicategroup",
-        PredicateGroupProperty,
-
-        OutPredicateGroup,  InPredicateGroup,
-        0,        0,
-        CreatePredicateGroup, DeletePredicateGroup,
-        OpenPredicateGroup, SavePredicateGroup,
-        ClosePredicateGroup, ClonePredicateGroup,
-        CastPredicateGroup,
-        SizeOfPredicateGroup,
-        CheckPredicateGroup );
 
 /*
 7 Definition of Algebra operators

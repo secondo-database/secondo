@@ -30,7 +30,7 @@ This function converts a 9 intersection matrix to its external representation.
 
 */
 ListExpr ToConstantListExpr(const Int9M value){
-    return value.ToListExpr();
+    return value.ToListExpr(::nl->TheEmptyList());
 }
 
 /*
@@ -41,7 +41,7 @@ external representation.
 
 */
 bool ReadFromListExpr(ListExpr le, Int9M& value){
-    return value.ReadFrom(le);
+    return value.ReadFrom(le,::nl->TheEmptyList());
 }
 
 /*
