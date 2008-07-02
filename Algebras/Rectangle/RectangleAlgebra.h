@@ -118,6 +118,14 @@ The copy constructor.
 Checks if the rectangle is defined.
 
 */
+    inline bool IsEmpty() const
+    {
+      return !IsDefined();
+    };
+/*
+Checks if the rectangle is defined (For conformity with other spatial types)
+
+*/
     inline Rectangle<dim>& operator = ( const Rectangle<dim>& r );
 /*
 Redefinition of operator ~=~.
@@ -574,7 +582,7 @@ inline bool Rectangle<dim>::AlmostEqual( const Rectangle<dim>& r ) const
      return false;
   }
   for( unsigned i = 0; i < dim; i++ ){
-    if( !::AlmostEqual(min[i] , r.min[i]) || 
+    if( !::AlmostEqual(min[i] , r.min[i]) ||
         !::AlmostEqual(max[i] , r.max[i]) ){
     }
   }

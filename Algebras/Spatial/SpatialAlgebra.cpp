@@ -96,7 +96,7 @@ declare an enumeration, ~SpatialType~, containing the four types, and a function
 corresponding ~SpatialType~ type name.
 
 */
-enum SpatialType { stpoint, stpoints, stline, stregion, 
+enum SpatialType { stpoint, stpoints, stline, stregion,
                    stbox, sterror, stsline };
 
 SpatialType
@@ -110,7 +110,7 @@ SpatialTypeOfSymbol( ListExpr symbol )
     if ( s == "line"   ) return (stline);
     if ( s == "region" ) return (stregion);
     if ( s == "rect"   ) return (stbox);
-    if ( s == "sline"   ) return (stsline);
+    if ( s == "sline"  ) return (stsline);
   }
   return (sterror);
 }
@@ -866,6 +866,23 @@ double Point::Distance( const Point& p ) const
 {
   double dx = p.x - x,
          dy = p.y - y;
+
+  return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
+}
+
+double Point::Distance( const Rectangle<2>& r ) const
+{
+  assert( IsDefined() && r.IsDefined() );
+  double rxmin = r.MinD(0), rxmax = r.MaxD(0),
+         rymin = r.MinD(1), rymax = r.MaxD(1);
+  double dx =
+        (   (x > rxmin || AlmostEqual(x,rxmin))
+         && (x < rxmax || AlmostEqual(x,rxmax))) ? (0.0) :
+        (min(abs(x-rxmin),abs(x-rxmax)));
+  double dy =
+        (   (y > rymin || AlmostEqual(y,rymin))
+         && (y < rymax || AlmostEqual(y,rymax))) ? (0.0) :
+        (min(abs(y-rymin),abs(y-rymax)));
 
   return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
 }
@@ -1954,6 +1971,20 @@ double Points::Distance( const Points& ps ) const
   }
   return result;
 }
+
+double Points::Distance( const Rectangle<2>& r ) const
+{
+  assert( IsDefined() && !IsEmpty() && r.IsDefined() );
+  double result = numeric_limits<double>::max();
+  const Point *pi;
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, pi );
+    result = MIN( result, pi->Distance( r ) );
+  }
+  return result;
+}
+
 
 void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
 {
@@ -3537,28 +3568,28 @@ void Line::StartBulkLoad()
 /*
 ~EndBulkLoad~
 
-Finishs the bulkload for a line. If this function is called, 
-both HalfSegments assigned to a segment of the line must be part 
-of this line. 
+Finishs the bulkload for a line. If this function is called,
+both HalfSegments assigned to a segment of the line must be part
+of this line.
 
 The parameter ~sort~ can be set to __false__ if the Halfsegments are
 already ordered using the HalfSegment order.
 
-The parameter ~realminize~ can be set to __false__ if the line is 
+The parameter ~realminize~ can be set to __false__ if the line is
 already realminized, meaning each pair of different Segments has
 at most a common endpoint. Furthermore, the two halgsegments belonging
-to a segment must have the same edge number. The edge numbers mut be 
-in Range [0..Size()-1]. HalfSegments belonging to different segments 
+to a segment must have the same edge number. The edge numbers mut be
+in Range [0..Size()-1]. HalfSegments belonging to different segments
 must have different edge numbers.
 
-Only change one of the parameters if you exacly know what you do. 
-Changing such parameters without fulifilling the conditions stated 
+Only change one of the parameters if you exacly know what you do.
+Changing such parameters without fulifilling the conditions stated
 above may construct invalid line representations which again may
 produce a system crash within some operators.
- 
+
 */
 
-void Line::EndBulkLoad( bool sort /* = true */, 
+void Line::EndBulkLoad( bool sort /* = true */,
                         bool realminize /* = true */
                       ){
   if(sort){
@@ -3573,7 +3604,7 @@ void Line::EndBulkLoad( bool sort /* = true */,
        for(int i=0;i<line2->Size();i++){
          line2->Get(i,hs);
          line.Append(*hs);
-       } 
+       }
        line2->Destroy();
        delete line2;
      }
@@ -4031,6 +4062,17 @@ double Line::Distance( const Line& l ) const
   }
   return result;
 }
+
+double Line::Distance( const Rectangle<2>& r ) const
+{
+  assert( IsOrdered() && !IsEmpty() && r.IsDefined() );
+  Region rr( r );
+  if ( Intersects(rr) || Inside(rr) ) return 0.0;
+  Line rb;
+  rr.Boundary( &rb );
+  return Distance( rb );
+}
+
 
 int Line::NoComponents() const
 {
@@ -4585,7 +4627,7 @@ int Line::getUnusedExtension(int startPos,const DBArray<bool>& used)const{
   const HalfSegment* hs;
   line.Get(startPos,hs);
   Point p = hs->GetDomPoint();
-  int pos = startPos-1; 
+  int pos = startPos-1;
   bool done = false;
   const bool* u;
   // search on the left side
@@ -4602,8 +4644,8 @@ int Line::getUnusedExtension(int startPos,const DBArray<bool>& used)const{
          pos--;
        }
      }
-  }  
-  // search on the right side 
+  }
+  // search on the right side
   done = false;
   pos = startPos+1;
   int size = line.Size();
@@ -4658,7 +4700,7 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
   if(!bbox.IsDefined()){
     bbox = hs1->BoundingBox();
   } else {
-    bbox = bbox.Union(hs1->BoundingBox()); 
+    bbox = bbox.Union(hs1->BoundingBox());
   }
   length += hs1->Length();
 
@@ -4668,7 +4710,7 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
   if(getUnusedExtension(partner,used)>=0){
      extensionPos.insert(partner);
   }
-  
+
   edgeno++;
   while(!extensionPos.empty()){
 
@@ -4686,7 +4728,7 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
       Hs1.attr.edgeno = edgeno;
       used.Put(pos,true);
       line.Put(pos,Hs1);
-      
+
       partner = Hs1.attr.partnerno;
       line.Get(partner,hs2);
       Hs2 = (*hs2);
@@ -4710,9 +4752,9 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
 /*
 ~ComputeComponents~
 
-Computes the length of this lines as well as its bounding box and the number 
-of components of this line. Each Halfsegment is assigned to a face number 
-(the component) and an egde number within this face. 
+Computes the length of this lines as well as its bounding box and the number
+of components of this line. Each Halfsegment is assigned to a face number
+(the component) and an egde number within this face.
 
 
 
@@ -4722,7 +4764,7 @@ void Line::computeComponents() {
   length = 0.0;
   noComponents = 0;
   bbox.SetDefined(false);
- 
+
   if(Size()==0){
     return;
   }
@@ -4739,8 +4781,8 @@ void Line::computeComponents() {
     const bool* u;
     used.Get(i,u);
     if(!(*u)){ // an unused halfsegment
-      collectFace(faceno,i,used);    
-      faceno++; 
+      collectFace(faceno,i,used);
+      faceno++;
     }
   }
   noComponents = faceno;
@@ -5249,7 +5291,7 @@ TypeConstructor line(
 /*
 7 The type SimpleLine
 
-7.1 Constructor 
+7.1 Constructor
 
 This constructor coinstructs a simple line from ~src~
 
@@ -5260,7 +5302,7 @@ isdefined is set to false;
 SimpleLine::SimpleLine(const Line& src):segments(0),lrsArray(0){
   fromLine(src);
   del.refs = 1;
-  del.isDelete = true; 
+  del.isDelete = true;
 }
 
 /*
@@ -5303,7 +5345,7 @@ bool SimpleLine::EndBulkLoad(){
 
   // recompute Bounding box;
   if(segments.Size()>0){
-    const HalfSegment* hs;  
+    const HalfSegment* hs;
     segments.Get(0,hs);
     bbox = hs->BoundingBox();
     for(int i=1; i< segments.Size();i++){
@@ -5313,7 +5355,7 @@ bool SimpleLine::EndBulkLoad(){
   }else{
     bbox.SetDefined(false);
   }
- 
+
   if(!computePolyline()){
      segments.Clear();
      lrsArray.Clear();
@@ -5322,7 +5364,7 @@ bool SimpleLine::EndBulkLoad(){
   } else {
      TrimToSize();
      return true;
-  } 
+  }
 }
 
 /*
@@ -5454,7 +5496,11 @@ double SimpleLine::Distance(const SimpleLine& sl)const{
   return result;
 }
 
-
+double SimpleLine::Distance(const Rectangle<2>& r)const{
+  Line sll(0);
+  toLine(sll);
+  return sll.Distance( r );
+}
 
 bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
  if(!isdefined){
@@ -5468,10 +5514,10 @@ bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
  if( !Find( lrs,lrsPos ) ){
     return false;
  }
- 
+
  const LRS *lrs2;
  lrsArray.Get( lrsPos, lrs2 );
- 
+
  const HalfSegment *hs;
  segments.Get( lrs2->hsPos, hs );
 
@@ -5505,25 +5551,25 @@ bool SimpleLine::AtPoint( const Point& p,
      }
    }
   }
- 
+
   if( found ){
     const LRS *lrs;
     lrsArray.Get( hs->attr.edgeno, lrs );
     segments.Get( lrs->hsPos, hs );
     result = lrs->lrsPos + p.Distance( hs->GetDomPoint() );
- 
+
     if( startsSmaller != this->startSmaller ){
       result = length - result;
     }
- 
+
     if( AlmostEqual( result, 0.0 ) ){
       result = 0;
     } else if( AlmostEqual( result, length ) ){
       result = length;
     }
- 
+
     assert( result >= 0.0 && result <= length );
- 
+
     return true;
   }
   return false;
@@ -5534,7 +5580,7 @@ void SimpleLine::SubLine( double pos1, double pos2,
   if( IsEmpty() || !isdefined){
      return;
   }
- 
+
   if( pos1 < 0 ){
     pos1 = 0;
   } else if( pos1 > length ){
@@ -5546,28 +5592,28 @@ void SimpleLine::SubLine( double pos1, double pos2,
   } else if( pos2 > length ){
     pos2 = length;
   }
- 
+
   if( AlmostEqual( pos1, pos2 ) || pos1 > pos2 ){
     return;
   }
- 
+
   if( startsSmaller != this->startSmaller ) {
     double aux = length - pos1;
     pos1 = length - pos2;
     pos2 = aux;
   }
- 
+
   // First search for the first half segment
   LRS lrs( pos1, 0 );
   int lrsPos;
   Find( lrs, lrsPos );
- 
+
   const LRS *lrs2;
   lrsArray.Get( lrsPos, lrs2 );
 
   const HalfSegment *hs;
   segments.Get( lrs2->hsPos, hs );
- 
+
   l.Clear();
   l.StartBulkLoad();
   int edgeno = 0;
@@ -5579,14 +5625,14 @@ void SimpleLine::SubLine( double pos1, double pos2,
      auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
      l += auxHs;
    }
- 
+
    while( lrsPos < lrsArray.Size() - 1 &&
           ( lrs2->lrsPos + hs->Length() < pos2 ||
             AlmostEqual( lrs2->lrsPos + hs->Length(), pos2 ) ) ) {
      // Get the next half segment in the sequence
      lrsArray.Get( ++lrsPos, lrs2 );
      segments.Get( lrs2->hsPos, hs );
- 
+
      if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs)){
        auxHs.attr.edgeno = ++edgeno;
        l += auxHs;
@@ -5594,7 +5640,7 @@ void SimpleLine::SubLine( double pos1, double pos2,
        l += auxHs;
      }
    }
- 
+
    l.EndBulkLoad();
 }
 
@@ -5676,12 +5722,12 @@ bool SimpleLine::SelectInitialSegment( const Point &startPoint,
   bool success = Find(startPoint, currentHS, false);
   if ( !success || currentHS < 0 || currentHS >= Size() ){
      currentHS = -1;
-     if (tolerance > 0.0) { 
+     if (tolerance > 0.0) {
        // try to find the point with minimum distance to startPoint,
        // where the distance is smaller than tolerance
        double minDist = tolerance; // currentHS is -1
        double distance = 0.0;
-       for(int pos=0; pos<Size(); pos++) { 
+       for(int pos=0; pos<Size(); pos++) {
          // scan all dominating point, save the index of the HalfSegment with
          // the currently smallest distance to startPoint to currentHS and the
          // current minimum distance to minDist
@@ -5754,7 +5800,7 @@ void SimpleLine::fromLine(const Line& src){
   if(!src.IsDefined()){
      SetDefined(false);
      return;
-  } 
+  }
   SetDefined(true);
   if(src.IsEmpty()){
     return;
@@ -5765,7 +5811,7 @@ void SimpleLine::fromLine(const Line& src){
   for(int i=0;i<src.Size();i++){
     src.Get(i,hs);
     if(hs->IsLeftDomPoint()){
-       HalfSegment hs2 = *hs;  
+       HalfSegment hs2 = *hs;
        hs2.attr.edgeno = edgeno;
        edgeno++;
        (*this) += hs2;
@@ -5838,14 +5884,14 @@ void SimpleLine::SetPartnerNo(){
      return true;
   }
 
-  // the halfsegment array has to be sorted, realminized and 
+  // the halfsegment array has to be sorted, realminized and
   // the partnernumber must be set correctly
 
   // step 1: try to find the start of the polyline and check for branches
   int size = segments.Size();
   int start = -1;
   int end = -1;
-  int count = 0; 
+  int count = 0;
   int pos = 0;
   const HalfSegment* hs;
   Point p1;
@@ -5880,7 +5926,7 @@ void SimpleLine::SetPartnerNo(){
        } else { // third end detected
          return false;
        }
-    } 
+    }
   }
 
   if(start<0 && end>=0){ // loop detected
@@ -5895,7 +5941,7 @@ void SimpleLine::SetPartnerNo(){
     pos = start;
   }
 
-  // the line has two or zero endpoints, may be several components 
+  // the line has two or zero endpoints, may be several components
   vector<bool> used(size,false);
   int noUnused = size;
   const HalfSegment* hs1;
@@ -5933,7 +5979,7 @@ void SimpleLine::SetPartnerNo(){
            found = true;
            hsPos = partnerpos-1;
          }
-       }     
+       }
        if(!found  && (partnerpos < (size-1) && !used[partnerpos+1])){
            segments.Get(partnerpos+1,hs2);
            Point p2 = hs2->GetDomPoint();
@@ -5945,7 +5991,7 @@ void SimpleLine::SetPartnerNo(){
        if(!found){  // no extension found
          return false;
        }
-    }  
+    }
   }
   lrsArray.Append(LRS(lrsPos,hsPos));
   length = lrsPos;
@@ -5984,9 +6030,9 @@ int SimpleLine::Compare(const Attribute* arg)const{
 }
 
 ostream& SimpleLine::Print(ostream& o)const{
-  o << "SimpleLine def =" << isdefined 
+  o << "SimpleLine def =" << isdefined
     << " size = " << Size() << endl;
-  return o; 
+  return o;
 }
 
 ostream& operator<<(ostream& o, const SimpleLine& cl){
@@ -6023,7 +6069,7 @@ Word
                                     nl->TwoElemList(nl->Third(segment),
                                                     nl->Fourth(segment))));
    hs = static_cast<HalfSegment*>(
-           InHalfSegment( nl->TheEmptyList(), halfSegment, 
+           InHalfSegment( nl->TheEmptyList(), halfSegment,
                           0, errorInfo, correct ).addr);
    if(!correct){
       delete hs;
@@ -6050,7 +6096,7 @@ Word
    const HalfSegment *hs;
    ListExpr halfseg, halfpoints, flatseg;
    SimpleLine* l = static_cast<SimpleLine*>(value.addr);
- 
+
    if( l->IsEmpty() ){
      return nl->TheEmptyList();
    }
@@ -6058,7 +6104,7 @@ Word
    result = nl->TheEmptyList();
    last = result;
    bool first = true;
- 
+
    for( int i = 0; i < l->Size(); i++ ) {
       l->Get( i, hs );
       if( hs->IsLeftDomPoint() ){
@@ -6186,6 +6232,80 @@ ordered( true )
   EndBulkLoad( false, false, false, false );
   del.refs=1;
   del.isDelete=true;
+}
+
+Region::Region( const Rectangle<2>& r )
+{
+    SetDefined( IsDefined());
+    Clear();
+    if(  r.IsDefined() )
+    {
+      HalfSegment hs;
+      int partnerno = 0;
+      double min0 = r.MinD(0), max0 = r.MaxD(0),
+      min1 = r.MinD(1), max1 = r.MaxD(1);
+
+      Point v1(true, max0, min1),
+      v2(true, max0, max1),
+      v3(true, min0, max1),
+      v4(true, min0, min1);
+
+      if( AlmostEqual(v1, v2) ||
+          AlmostEqual(v2, v3) ||
+          AlmostEqual(v3, v4) ||
+          AlmostEqual(v4, v1) )
+      { // one interval is (almost) empty, so will be the region
+        SetDefined( true );
+        return;
+      }
+
+      StartBulkLoad();
+
+      hs.Set(true, v1, v2);
+      hs.attr.faceno = 0;         // only one face
+      hs.attr.cycleno = 0;        // only one cycle
+      hs.attr.edgeno = partnerno;
+      hs.attr.partnerno = partnerno++;
+      hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
+      *this += hs;
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+      *this += hs;
+
+      hs.Set(true, v2, v3);
+      hs.attr.faceno = 0;         // only one face
+      hs.attr.cycleno = 0;        // only one cycle
+      hs.attr.edgeno = partnerno;
+      hs.attr.partnerno = partnerno++;
+      hs.attr.insideAbove = (hs.GetLeftPoint() == v2);
+      *this += hs;
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+      *this += hs;
+
+      hs.Set(true, v3, v4);
+      hs.attr.faceno = 0;         // only one face
+      hs.attr.cycleno = 0;        // only one cycle
+      hs.attr.edgeno = partnerno;
+      hs.attr.partnerno = partnerno++;
+      hs.attr.insideAbove = (hs.GetLeftPoint() == v3);
+      *this += hs;
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+      *this += hs;
+
+      hs.Set(true, v4, v1);
+      hs.attr.faceno = 0;         // only one face
+      hs.attr.cycleno = 0;        // only one cycle
+      hs.attr.edgeno = partnerno;
+      hs.attr.partnerno = partnerno++;
+      hs.attr.insideAbove = (hs.GetLeftPoint() == v4);
+      *this += hs;
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
+      *this += hs;
+
+      EndBulkLoad();
+      SetDefined( true );
+    }
+    else
+      SetDefined( false );
 }
 
 void Region::StartBulkLoad()
@@ -6699,7 +6819,7 @@ bool Region::InInterior( const Point& p ) const
 
 double Region::Distance( const Point& p ) const
 {
-  assert( IsOrdered() && !IsEmpty() && p.IsDefined() );
+  assert( IsDefined() && p.IsDefined() && IsOrdered() && !IsEmpty() );
 
   if( Contains( p ) )
     return 0.0;
@@ -6715,6 +6835,13 @@ double Region::Distance( const Point& p ) const
       result = MIN( result, hs->Distance( p ) );
   }
   return result;
+}
+
+double Region::Distance( const Rectangle<2>& r ) const
+{
+  assert( IsDefined() && r.IsDefined() && IsOrdered() && !IsEmpty() );
+  Region rr( r );
+  return Distance( rr );
 }
 
 double Region::Area() const
@@ -8880,12 +9007,12 @@ As owner only __first__ and __second__ are the allowed values.
      }
      this->owner = owner;
      switch(owner){
-        case first: { 
-             insideAbove_first = hs->GetAttr().insideAbove; 
+        case first: {
+             insideAbove_first = hs->GetAttr().insideAbove;
              insideAbove_second = false;
              break;
         } case second: {
-             insideAbove_second = hs->GetAttr().insideAbove; 
+             insideAbove_second = hs->GetAttr().insideAbove;
              insideAbove_first = false;
              break;
         } default: {
@@ -8958,13 +9085,13 @@ This function writes this segment to __out__.
 
 */
   void avlseg::AVLSegment::Print(ostream& out)const{
-    out << "Segment("<<x1<<", " << y1 << ") -> (" << x2 << ", " << y2 <<") " 
-        << owner << " [ " << insideAbove_first << ", " 
+    out << "Segment("<<x1<<", " << y1 << ") -> (" << x2 << ", " << y2 <<") "
+        << owner << " [ " << insideAbove_first << ", "
         << insideAbove_second << "] con("
         << con_below << ", " << con_above << ")";
 
   }
-  
+
 /*
 
 ~Equalize~
@@ -8980,9 +9107,9 @@ The value of this segment is taken from the argument.
      y2 = src.y2;
      owner = src.owner;
      insideAbove_first = src.insideAbove_first;
-     insideAbove_second = src.insideAbove_second;    
+     insideAbove_second = src.insideAbove_second;
      con_below = src.con_below;
-     con_above = src.con_above; 
+     con_above = src.con_above;
   }
 
 
@@ -8994,7 +9121,7 @@ The value of this segment is taken from the argument.
 ~crosses~
 
 Checks whether this segment and __s__ have an intersection point of their
-interiors.  
+interiors.
 
 */
  bool avlseg::AVLSegment::crosses(const avlseg::AVLSegment& s) const{
@@ -9005,7 +9132,7 @@ interiors.
 /*
 ~crosses~
 
-This function checks whether the interiors of the related 
+This function checks whether the interiors of the related
 segments are crossing. If this function returns true,
 the parameters ~x~ and ~y~ are set to the intersection point.
 
@@ -9024,8 +9151,8 @@ the parameters ~x~ and ~y~ are set to the intersection point.
     }
     if(compareSlopes(s)==0){ // parallel or disjoint lines
        return false;
-    } 
-    
+    }
+
     if(isVertical()){
         x = x1; // compute y for s
         y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
@@ -9037,8 +9164,8 @@ the parameters ~x~ and ~y~ are set to the intersection point.
     if(s.isVertical()){
        x = s.x1;
        y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
-       return !AlmostEqual(y,s.y1) && !AlmostEqual(y,s.y2) && 
-              (y>s.y1) && (y<s.y2) && 
+       return !AlmostEqual(y,s.y1) && !AlmostEqual(y,s.y2) &&
+              (y>s.y1) && (y<s.y2) &&
               !AlmostEqual(x1,x) && !AlmostEqual(x2,x);
     }
     // avoid problems with rounding errors during computation of
@@ -9056,18 +9183,18 @@ the parameters ~x~ and ~y~ are set to the intersection point.
       return false;
     }
 
-    
-    // both segments are non vertical 
+
+    // both segments are non vertical
     double m1 = (y2-y1)/(x2-x1);
     double m2 = (s.y2-s.y1)/(s.x2-s.x1);
     double c1 = y1 - m1*x1;
     double c2 = s.y1 - m2*s.x1;
     double xs = (c2-c1) / (m1-m2);  // x coordinate of the intersection point
-     
+
     x = xs;
     y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
 
-    return !AlmostEqual(x1,xs) && !AlmostEqual(x2,xs) && // not an endpoint   
+    return !AlmostEqual(x1,xs) && !AlmostEqual(x2,xs) && // not an endpoint
            !AlmostEqual(s.x1,xs) && !AlmostEqual(s.x2,xs) && // of any segment
            (x1<xs) && (xs<x2) && (s.x1<xs) && (xs<s.x2);
 }
@@ -9075,7 +9202,7 @@ the parameters ~x~ and ~y~ are set to the intersection point.
 /*
 ~extends~
 
-This function returns true, iff this segment is an extension of 
+This function returns true, iff this segment is an extension of
 the argument, i.e. if the right point of ~s~ is the left point of ~this~
 and the slopes are equal.
 
@@ -9089,8 +9216,8 @@ and the slopes are equal.
 ~exactEqualsTo~
 
 This function checks if s has the same geometry like this segment, i.e.
-if both endpoints are equal.  
- 
+if both endpoints are equal.
+
 */
 bool avlseg::AVLSegment::exactEqualsTo(const avlseg::AVLSegment& s)const{
   return pointEqual(x1,y1,s.x1,s.y1) &&
@@ -9132,14 +9259,14 @@ Returns the length of this segment.
 /*
 ~InnerDisjoint~
 
-This function checks whether this segment and s have at most a 
-common endpoint. 
+This function checks whether this segment and s have at most a
+common endpoint.
 
 */
 
   bool avlseg::AVLSegment::innerDisjoint(const avlseg::AVLSegment& s)const{
       if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
-        return true; 
+        return true;
       }
       if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
         return true;
@@ -9166,19 +9293,19 @@ common endpoint.
          return false;
       }
       return true;
-    
+
   }
 /*
 ~Intersects~
 
-This function checks whether this segment and ~s~ have at least a 
-common point. 
+This function checks whether this segment and ~s~ have at least a
+common point.
 
 */
 
   bool avlseg::AVLSegment::intersects(const avlseg::AVLSegment& s)const{
       if(pointEqual(x1,y1,s.x2,s.y2)){ // common endpoint
-        return true; 
+        return true;
       }
       if(pointEqual(s.x1,s.y1,x2,y2)){ // common endpoint
         return true;
@@ -9188,8 +9315,8 @@ common point.
       }
       if(compareSlopes(s)==0){ // parallel or disjoint lines
          return false;
-      } 
-    
+      }
+
       if(isVertical()){
         double x = x1; // compute y for s
         double y =  s.y1 + ((x-s.x1)/(s.x2-s.x1))*(s.y2 - s.y1);
@@ -9201,8 +9328,8 @@ common point.
          double y = y1 + ((x-x1)/(x2-x1))*(y2-y1);
          return ((contains(x,y) && s.contains(x,y)));
       }
-    
-      // both segments are non vertical 
+
+      // both segments are non vertical
       double m1 = (y2-y1)/(x2-x1);
       double m2 = (s.y2-s.y1)/(s.x2-s.x1);
       double c1 = y1 - m1*x1;
@@ -9225,7 +9352,7 @@ Checks whether this segment and ~s~ have a common segment.
 
       if(compareSlopes(s)!=0){
           return false;
-      } 
+      }
       // one segment is a extension of the other one
       if(pointEqual(x1,y1,s.x2,s.y2)){
           return false;
@@ -9253,8 +9380,8 @@ part of the interior of this segment.
      }
 
      if(!AlmostEqual(x,x1) && x < x1){ // (x,y) left of this
-         return false; 
-     }     
+         return false;
+     }
      if(!AlmostEqual(x,x2) && x > x2){ // (X,Y) right of this
         return false;
      }
@@ -9283,8 +9410,8 @@ segment.
      }
      if(AlmostEqual(x1,x2)){ // vertical segment
         return (y>=y1) && (y <= y2);
-     } 
-     // check if (x,y) is located on the line 
+     }
+     // check if (x,y) is located on the line
      double res1 = (x-x1)*(y2-y1);
      double res2 = (y-y1)*(x2-x1);
      if(!AlmostEqual(res1,res2)){
@@ -9304,7 +9431,7 @@ Compares this with s. The x intervals must overlap.
 */
 
  int avlseg::AVLSegment::compareTo(const avlseg::AVLSegment& s) const{
- 
+
     if(!xOverlaps(s)){
       cerr << "Warning: compare AVLSegments with disjoint x intervals" << endl;
       cerr << "This may be a problem of roundig errors!" << endl;
@@ -9341,13 +9468,13 @@ Compares this with s. The x intervals must overlap.
 
 
    if(overlaps(s)){
-     return 0; 
+     return 0;
    }
 
     bool v1 = isVertical();
     bool v2 = s.isVertical();
-   
-    if(!v1 && !v2){ 
+
+    if(!v1 && !v2){
        double x = max(x1,s.x1); // the right one of the left coordinates
        double y_this = getY(x);
        double y_s = s.getY(x);
@@ -9362,7 +9489,7 @@ Compares this with s. The x intervals must overlap.
          if(cmp!=0){
            return cmp;
          }
-         // if the segments are connected, the left segment 
+         // if the segments are connected, the left segment
          // is the smaller one
          if(AlmostEqual(x2,s.x1)){
              return -1;
@@ -9372,11 +9499,11 @@ Compares this with s. The x intervals must overlap.
          }
          // the segments have an proper overlap
          return 0;
-       }  
+       }
    } else if(v1 && v2){ // both are vertical
       if(AlmostEqual(y1,s.y2) || (y1>s.y2)){ // this is above s
         return 1;
-      } 
+      }
       if(AlmostEqual(s.y1,y2) || (s.y1>y2)){ // s above this
         return 1;
       }
@@ -9435,10 +9562,10 @@ Preconditions:
 
 1) this segment and ~s~ have to overlap.
 
-2) the owner of this and ~s~ must be different 
+2) the owner of this and ~s~ must be different
 
 ~left~, ~common~ and ~right~ will contain the
-explicitely left part, a common part, and 
+explicitely left part, a common part, and
 an explecitely right part. The left and/or right part
 my be empty. The existence can be checked using the return
 value of this function. Let ret the return value. It holds:
@@ -9455,10 +9582,10 @@ earlier.
 
 */
 
-  int avlseg::AVLSegment::split(const avlseg::AVLSegment& s, 
-                               avlseg::AVLSegment& left, 
-                               avlseg::AVLSegment& common, 
-                               avlseg::AVLSegment& right, 
+  int avlseg::AVLSegment::split(const avlseg::AVLSegment& s,
+                               avlseg::AVLSegment& left,
+                               avlseg::AVLSegment& common,
+                               avlseg::AVLSegment& right,
                                const bool checkOwner/* = true*/) const{
 
      assert(overlaps(s));
@@ -9477,7 +9604,7 @@ earlier.
         left.x1 = x1;
         left.y1 = y1;
         left.x2 = x1;
-        left.y2 = y1; 
+        left.y2 = y1;
      } else { // there is a left part
        result = result | LEFT;
        if(cmp<0){ // this is smaller
@@ -9494,13 +9621,13 @@ earlier.
          left.x1 = s.x1;
          left.y1 = s.y1;
          left.x2 = this->x1;
-         left.y2 = this->y1; 
+         left.y2 = this->y1;
          left.owner = s.owner;
          left.con_above = s.con_above;
          left.con_below = s.con_below;
          left.insideAbove_first = s.insideAbove_first;
          left.insideAbove_second = s.insideAbove_second;
-       } 
+       }
      }
 
     // there is an overlapping part
@@ -9558,19 +9685,19 @@ earlier.
 /*
 ~splitAt~
 
-This function divides a segment into two parts at the point 
+This function divides a segment into two parts at the point
 provided by (x, y). The point must be on the interior of this segment.
 
 */
 
-  void avlseg::AVLSegment::splitAt(const double x, const double y, 
-               avlseg::AVLSegment& left, 
+  void avlseg::AVLSegment::splitAt(const double x, const double y,
+               avlseg::AVLSegment& left,
                avlseg::AVLSegment& right)const{
 
   /*
     // debug::start
     if(!ininterior(x,y)){
-         cout << "ininterior check failed (may be an effect" 
+         cout << "ininterior check failed (may be an effect"
               << " of rounding errors !!!" << endl;
          cout << "The segment is " << *this << endl;
          cout << "The point is (" <<  x << " , " << y << ")" << endl;
@@ -9603,14 +9730,14 @@ provided by (x, y). The point must be on the interior of this segment.
 /*
 ~splitCross~
 
-Splits two crossing segments into the 4 corresponding parts. 
+Splits two crossing segments into the 4 corresponding parts.
 Both segments have to cross each other.
 
 */
-void avlseg::AVLSegment::splitCross(const avlseg::AVLSegment& s, 
+void avlseg::AVLSegment::splitCross(const avlseg::AVLSegment& s,
                                           avlseg::AVLSegment& left1,
                                           avlseg::AVLSegment& right1,
-                                          avlseg::AVLSegment& left2, 
+                                          avlseg::AVLSegment& left2,
                                           avlseg::AVLSegment& right2) const{
 
     double x,y;
@@ -9629,11 +9756,11 @@ This functions creates a ~HalfSegment~ from this segment.
 The owner must be __first__ or __second__.
 
 */
-HalfSegment avlseg::AVLSegment::convertToHs(bool lpd, 
+HalfSegment avlseg::AVLSegment::convertToHs(bool lpd,
                             avlseg::ownertype owner/* = both*/)const{
    assert( owner!=both || this->owner==first || this->owner==second);
    assert( owner==both || owner==first || owner==second);
- 
+
    bool insideAbove;
    if(owner==both){
       insideAbove = this->owner==first?insideAbove_first
@@ -9642,8 +9769,8 @@ HalfSegment avlseg::AVLSegment::convertToHs(bool lpd,
       insideAbove = owner==first?insideAbove_first
                                   :insideAbove_second;
    }
-   
-   HalfSegment hs(lpd, Point(true,x1,y1), Point(true,x2,y2)); 
+
+   HalfSegment hs(lpd, Point(true,x1,y1), Point(true,x2,y2));
    hs.attr.insideAbove = insideAbove;
    return hs;
 }
@@ -9651,7 +9778,7 @@ HalfSegment avlseg::AVLSegment::convertToHs(bool lpd,
 /*
 ~pointequal~
 
-This function checks if the points defined by (x1, y1) and 
+This function checks if the points defined by (x1, y1) and
 (x2,y2) are equals using the ~AlmostEqual~ function.
 
 */
@@ -9700,7 +9827,7 @@ smaller than the point defined by (x2, y2).
 ~compareSlopes~
 
 compares the slopes of __this__ and __s__. The slope of a vertical
-segment is greater than all other slopes. 
+segment is greater than all other slopes.
 
 */
    int avlseg::AVLSegment::compareSlopes(const avlseg::AVLSegment& s) const{
@@ -9722,7 +9849,7 @@ segment is greater than all other slopes.
       double res2 = (s.y2-s.y1)/(s.x2-s.x1);
       int result = -3;
       if( AlmostEqual(res1,res2)){
-         result = 0; 
+         result = 0;
       } else if(res1<res2){
          result =  -1;
       } else { // res1>res2
@@ -9769,16 +9896,16 @@ in the x interval of this segment;
 /*
 ~GetY~
 
-Computes the y value for the specified  __x__. 
-__x__ must be contained in the x-interval of this segment. 
-If the segment is vertical, the minimum y value of this 
+Computes the y value for the specified  __x__.
+__x__ must be contained in the x-interval of this segment.
+If the segment is vertical, the minimum y value of this
 segment is returned.
 
-*/  
+*/
   double avlseg::AVLSegment::getY(const double x) const{
 
      if(!xContains(x)){
-       cerr << "Warning: compute y value for a x outside the x interval!" 
+       cerr << "Warning: compute y value for a x outside the x interval!"
             << endl;
        double diff1 = x1 - x;
        double diff2 = x - x2;
@@ -9793,7 +9920,7 @@ segment is returned.
 
 
 /*
-3.12 Shift Operator 
+3.12 Shift Operator
 
 */
 ostream& avlseg::operator<<(ostream& o, const avlseg::AVLSegment& s){
@@ -9867,11 +9994,11 @@ void insertEvents(const avlseg::AVLSegment& seg,
 void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                       avlseg::AVLSegment& current,
                       avlseg::AVLSegment const*& neighbour,
-                      priority_queue<HalfSegment,  
-                                     vector<HalfSegment>, 
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
                                      greater<HalfSegment> >& q1,
-                      priority_queue<HalfSegment,  
-                                     vector<HalfSegment>, 
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
                                      greater<HalfSegment> >& q2){
     avlseg::AVLSegment left1, right1, left2, right2;
 
@@ -9890,7 +10017,7 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
           insertEvents(right1,true,true,q1,q2);
        } else if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
           current.splitAt(neighbour->getX2(),neighbour->getY2(),left1,right1);
-          current = left1; 
+          current = left1;
           insertEvents(left1,false,true,q1,q2);
           insertEvents(right1,true,true,q1,q2);
        } else if(current.crosses(*neighbour)){
@@ -9912,7 +10039,7 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
               cerr << "1 : The segments overlaps" << endl;
            }
            if(neighbour->ininterior(current.getX1(),current.getY1())){
-              cerr << "2 : neighbour->ininterior(current.x1,current.y1)" 
+              cerr << "2 : neighbour->ininterior(current.x1,current.y1)"
                    << endl;
            }
            if(neighbour->ininterior(current.getX2(),current.getY2())){
@@ -9921,7 +10048,7 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
            }
           if(current.ininterior(neighbour->getX1(),neighbour->getY1())){
              cerr << " case 4 : current.ininterior(neighbour->getX1(),"
-                  << "neighbour.getY1()" << endl;  
+                  << "neighbour.getY1()" << endl;
              cerr << "may be an effect of rounding errors" << endl;
 
              cerr << "remove left part from current" << endl;
@@ -9930,7 +10057,7 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
              cerr << "removed part is " << left1 << endl;
              current = right1;
              insertEvents(current,false,true,q1,q2);
-             return;  
+             return;
 
           }
           if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
@@ -9942,7 +10069,7 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
           }
           assert(false);
        }
-    } 
+    }
 }
 
 
@@ -9958,11 +10085,11 @@ interiors and performs the required actions.
 void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                      avlseg::AVLSegment const*& leftN,
                      avlseg::AVLSegment const*& rightN,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2){
   if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
     avlseg::AVLSegment left1, right1, left2, right2;
@@ -9998,14 +10125,14 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
 ~selectNext~
 
 Selects the minimum halfsegment from ~v~1, ~v~2, ~q~1, and ~q~2.
-If no values are available, the return value will be __none__. 
+If no values are available, the return value will be __none__.
 In this case, __result__ remains unchanged. Otherwise, __result__
 is set to the minimum value found. In this case, the return value
 will be ~first~ or ~second~.
 If some halfsegments are equal, the one
-from  ~v~1 is selected. 
-Note: ~pos~1 and ~pos~2 are increased automatically. In the same way, 
-      the topmost element of the selected queue is deleted. 
+from  ~v~1 is selected.
+Note: ~pos~1 and ~pos~2 are increased automatically. In the same way,
+      the topmost element of the selected queue is deleted.
 
 The template parameter can be instantiated with ~Region~ or ~Line~
 
@@ -10015,11 +10142,11 @@ avlseg::ownertype selectNext(T1 const* const v1,
                      int& pos1,
                      T2 const* const v2,
                      int& pos2,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2,
                      HalfSegment& result,
                      int& src = 0
@@ -10033,25 +10160,25 @@ avlseg::ownertype selectNext(T1 const* const v1,
      v1->Get(pos1,values[0]);
      number++;
   }  else {
-     values[0] = 0;   
+     values[0] = 0;
   }
   if(q1.empty()){
-    values[1] = 0; 
+    values[1] = 0;
   } else {
     values[1] = &q1.top();
-    number++;   
+    number++;
   }
   if(pos2<v2->Size()){
      v2->Get(pos2,values[2]);
      number++;
   }  else {
-     values[2] = 0;   
+     values[2] = 0;
   }
   if(q2.empty()){
-    values[3] = 0; 
+    values[3] = 0;
   } else {
     values[3] = &q2.top();
-    number++;   
+    number++;
   }
   // no halfsegments found
 
@@ -10059,7 +10186,7 @@ avlseg::ownertype selectNext(T1 const* const v1,
      return avlseg::none;
   }
   // search for the minimum.
-  int index = -1; 
+  int index = -1;
   for(int i=0;i<4;i++){
     if(values[i]){
        if(index<0 || (result > *values[i])){
@@ -10070,11 +10197,11 @@ avlseg::ownertype selectNext(T1 const* const v1,
   }
   src = index +  1;
   switch(index){
-    case 0: pos1++; return avlseg::first; 
+    case 0: pos1++; return avlseg::first;
     case 1: q1.pop();  return avlseg::first;
     case 2: pos2++;  return avlseg::second;
     case 3: q2.pop();  return avlseg::second;
-    default: assert(false);   
+    default: assert(false);
   }
   return avlseg::none;
 }
@@ -10088,11 +10215,11 @@ avlseg::ownertype selectNext(Region const* const reg1,
                      int& pos1,
                      Region const* const reg2,
                      int& pos2,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2,
                      HalfSegment& result,
                      int& src // for debugging only
@@ -10100,7 +10227,7 @@ avlseg::ownertype selectNext(Region const* const reg1,
    return selectNext<Region,Region>(reg1,pos1,reg2,pos2,q1,q2,result,src);
 }
 
-/* 
+/*
 7.8 ~line~ [x] ~line~
 
 
@@ -10111,11 +10238,11 @@ avlseg::ownertype selectNext(Line const* const line1,
                      int& pos1,
                      Line const* const line2,
                      int& pos2,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2,
                      HalfSegment& result,
                      int& src
@@ -10138,11 +10265,11 @@ avlseg::ownertype selectNext(Line const* const line,
                      int& pos1,
                      Region const* const region,
                      int& pos2,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2,
                      HalfSegment& result,
                      int& src
@@ -10160,14 +10287,14 @@ at position ~posLine~ and possible splitted segments stored
 in ~q~. The return value of the function will be ~first~ if the
 next event comes from the line value and ~second~ if the next
 event comes from the point value. Depending of the return value,
-one of the arguments ~resHs~ or ~resPoint~ is set the the value of 
-this event. 
+one of the arguments ~resHs~ or ~resPoint~ is set the the value of
+this event.
 The positions are increased automatically by this function.
 
 */
 avlseg::ownertype selectNext( Line const* const line,
-                      priority_queue<HalfSegment, 
-                                     vector<HalfSegment>, 
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
                       Point const* const point,
@@ -10181,7 +10308,7 @@ avlseg::ownertype selectNext( Line const* const line,
    const HalfSegment* hsq = 0;
    const HalfSegment* hsmin = 0;
    HalfSegment hstmp;
-   int src = 0;  
+   int src = 0;
    if(posLine < size){
       line->Get(posLine,hsl);
    }
@@ -10199,7 +10326,7 @@ avlseg::ownertype selectNext( Line const* const line,
        hsmin = hsq;
      }
    }
-  
+
    if(posPoint==0){  // point not already used
      if(!hsmin){
        src = 3;
@@ -10222,7 +10349,7 @@ avlseg::ownertype selectNext( Line const* const line,
     case 3: resPoint = *point;
             posPoint++;
             return avlseg::second;
-    default: assert(false); 
+    default: assert(false);
              return avlseg::none;
    }
 }
@@ -10230,31 +10357,31 @@ avlseg::ownertype selectNext( Line const* const line,
 /*
 ~selectNext~ line [x] points
 
-This function works like the function above but instead for a point, a 
+This function works like the function above but instead for a point, a
 points value is used.
 
 */
 
-  
+
 avlseg::ownertype selectNext( Line const* const line,
-                      priority_queue<HalfSegment, 
-                                     vector<HalfSegment>, 
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
                       Points const* const point,
-                      int& posPoint, 
+                      int& posPoint,
                       HalfSegment& resHs,
                       Point& resPoint){
 
    int sizeP = point->Size();
    int sizeL = line->Size();
 
-  
+
    const HalfSegment* hsl = 0;
    const HalfSegment* hsq = 0;
    const HalfSegment* hsmin = 0;
    HalfSegment hstmp;
-   int src = 0;  
+   int src = 0;
    if(posLine < sizeL){
       line->Get(posLine,hsl);
    }
@@ -10272,7 +10399,7 @@ avlseg::ownertype selectNext( Line const* const line,
        hsmin = hsq;
      }
    }
-  
+
    const Point * cp;
    if(posPoint<sizeP){  // point not already used
      point->Get(posPoint,cp);
@@ -10297,7 +10424,7 @@ avlseg::ownertype selectNext( Line const* const line,
     case 3: resPoint = *cp;
             posPoint++;
             return avlseg::second;
-    default: assert(false); 
+    default: assert(false);
              return avlseg::none;
    }
 
@@ -10308,7 +10435,7 @@ avlseg::ownertype selectNext( Line const* const line,
 9 Set Operations (union, intersection, difference)
 
 
-The following functions implement the operations ~union~, 
+The following functions implement the operations ~union~,
 ~intersection~ and ~difference~ for some combinations of spatial types.
 
 
@@ -10321,8 +10448,8 @@ stored in ~result~.
 
 */
 avlseg::ownertype selectNext(const Line& src, int& pos,
-                            priority_queue<HalfSegment,  
-                                           vector<HalfSegment>, 
+                            priority_queue<HalfSegment,
+                                           vector<HalfSegment>,
                                            greater<HalfSegment> >& q,
                             HalfSegment& result){
 
@@ -10339,7 +10466,7 @@ avlseg::ownertype selectNext(const Line& src, int& pos,
    const HalfSegment* hs;
    src.Get(pos,hs);
    if(q.empty()){
-      result = *hs;      
+      result = *hs;
       pos++;
       return avlseg::first;
    } else{
@@ -10381,7 +10508,7 @@ void Realminize2(const Line& src, Line& result){
   const avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1, right1,left2,right2;
-  
+
   result.StartBulkLoad();
   int edgeno = 0;
   avlseg::AVLSegment tmpL,tmpR;
@@ -10424,15 +10551,15 @@ void Realminize2(const Line& src, Line& result){
              edgeno++;
              sss.remove(*member);
           }
-      }      
+      }
   }
   result.EndBulkLoad();
 } // Realminize2
 
 
 avlseg::ownertype selectNext(const DBArray<HalfSegment>& src, int& pos,
-                     priority_queue<HalfSegment,  
-                     vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                     vector<HalfSegment>,
                      greater<HalfSegment> >& q,
                      HalfSegment& result){
 
@@ -10449,7 +10576,7 @@ avlseg::ownertype selectNext(const DBArray<HalfSegment>& src, int& pos,
    const HalfSegment* hs;
    src.Get(pos,hs);
    if(q.empty()){
-      result = *hs;      
+      result = *hs;
       pos++;
       return avlseg::first;
    } else{
@@ -10472,7 +10599,7 @@ avlseg::ownertype selectNext(const DBArray<HalfSegment>& src, int& pos,
 
 
 DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
-  
+
   DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
 
   if(segments.Size()==0){ // no halfsegments, nothing to realminize
@@ -10491,7 +10618,7 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
   const avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1, right1,left2,right2;
-  
+
   int edgeno = 0;
   avlseg::AVLSegment tmpL,tmpR;
   while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
@@ -10531,12 +10658,12 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
              edgeno++;
              sss.remove(*member);
           }
-      }      
+      }
   }
   res->Sort(HalfSegmentCompare);
   res->TrimToSize();
   return res;
-} 
+}
 
 /*
 ~Split~
@@ -10547,10 +10674,10 @@ But at all crossing points and so on, the segments will be split.
 
 */
 DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
-  
+
   DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
 
-  if(segments.Size()==0){ // no halfsegments, nothing to split 
+  if(segments.Size()==0){ // no halfsegments, nothing to split
     res->TrimToSize();
     return res;
   }
@@ -10566,7 +10693,7 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
   const avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1, right1,left2,right2;
-  
+
   int edgeno = 0;
   avlseg::AVLSegment tmpL,tmpR;
 
@@ -10629,7 +10756,7 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
              edgeno++;
              sss.remove(*member);
           }
-      }      
+      }
   }
   res->Sort(HalfSegmentCompare);
   res->TrimToSize();
@@ -10641,11 +10768,11 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
   }
 
   return res;
-} 
+}
 
 bool hasOverlaps(const DBArray<HalfSegment>& segments,
                  const bool ignoreEqual){
-  if(segments.Size()<2){ // no overlaps possible 
+  if(segments.Size()<2){ // no overlaps possible
     return false;
   }
 
@@ -10660,7 +10787,7 @@ bool hasOverlaps(const DBArray<HalfSegment>& segments,
   const avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1, right1,left2,right2;
-  
+
   avlseg::AVLSegment tmpL,tmpR;
 
   while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
@@ -10676,7 +10803,7 @@ bool hasOverlaps(const DBArray<HalfSegment>& segments,
       }
       if(nextHS.IsLeftDomPoint()){
          if(member){ // overlapping segment found in sss
-            if(!ignoreEqual || !member->exactEqualsTo(current)){ 
+            if(!ignoreEqual || !member->exactEqualsTo(current)){
               return true;
             }
             double xm = member->getX2();
@@ -10696,10 +10823,10 @@ bool hasOverlaps(const DBArray<HalfSegment>& segments,
              splitNeighbours(sss,leftN,rightN,q,q);
              sss.remove(*member);
           }
-      }      
+      }
   }
   return false;
-} 
+}
 
 
 
@@ -10812,9 +10939,9 @@ void SetOp(const Line& line1,
          if(member && member->exactEqualsTo(current)){
              // insert the segments into the result
              switch(op){
-                case avlseg::union_op : { 
+                case avlseg::union_op : {
                      HalfSegment hs1 = member->convertToHs(true,avlseg::first);
-                     hs1.attr.edgeno = edgeno; 
+                     hs1.attr.edgeno = edgeno;
                      result += hs1;
                      hs1.SetLeftDomPoint(false);
                      result += hs1;
@@ -10822,25 +10949,25 @@ void SetOp(const Line& line1,
                      break;
                 } case avlseg::intersection_op : {
                      if(member->getOwner()==avlseg::both){
-                        HalfSegment hs1 = 
+                        HalfSegment hs1 =
                            member->convertToHs(true,avlseg::first);
-                        hs1.attr.edgeno = edgeno; 
+                        hs1.attr.edgeno = edgeno;
                         result += hs1;
                         hs1.SetLeftDomPoint(false);
                         result += hs1;
                         edgeno++;
-                      } 
+                      }
                       break;
                 } case avlseg::difference_op :{
                       if(member->getOwner()==avlseg::first){
-                        HalfSegment hs1 = 
+                        HalfSegment hs1 =
                             member->convertToHs(true,avlseg::first);
-                        hs1.attr.edgeno = edgeno; 
+                        hs1.attr.edgeno = edgeno;
                         result += hs1;
                         hs1.SetLeftDomPoint(false);
                         result += hs1;
                         edgeno++;
-                      } 
+                      }
                       break;
                 } default : {
                       assert(false);
@@ -10850,7 +10977,7 @@ void SetOp(const Line& line1,
              splitNeighbours(sss,leftN,rightN,q1,q2);
          }
        }
-  } 
+  }
   result.EndBulkLoad(true,false);
 } // setop line x line -> line
 
@@ -10917,7 +11044,7 @@ void SetOp(const Region& reg1,
                  edgeno++;
               }
           }
-          s = reg2.Size(); 
+          s = reg2.Size();
           for(int i=0;i<s;i++){
               reg2.Get(i,hs);
               if(hs->IsLeftDomPoint()){
@@ -10933,7 +11060,7 @@ void SetOp(const Region& reg1,
           return;
         } case avlseg::difference_op: {
            result = reg1;
-           return; 
+           return;
         } case avlseg::intersection_op:{
            return;
         } default: assert(false);
@@ -10975,12 +11102,12 @@ void SetOp(const Region& reg1,
        }
        if(nextHs.IsLeftDomPoint()){
           if(member){ // overlapping segment found
-            if((member->getOwner()==avlseg::both) ||    
+            if((member->getOwner()==avlseg::both) ||
                (member->getOwner()==owner)){
                cerr << "overlapping segments detected within a single region"
                     << endl;
-               cerr << "the argument is " 
-                    << (owner==avlseg::first?"first":"second") 
+               cerr << "the argument is "
+                    << (owner==avlseg::first?"first":"second")
                     << endl;
                cerr.precision(16);
                cerr << "stored is " << *member << endl;
@@ -10990,7 +11117,7 @@ void SetOp(const Region& reg1,
                cout << "The common part is " << tmp_common << endl;
                cout << "The lenth = " << tmp_common.length() << endl;
                assert(false);
-            } 
+            }
             int parts = member->split(current,left1,common1,right1);
             sss.remove(*member);
             if(parts & avlseg::LEFT){
@@ -11042,7 +11169,7 @@ void SetOp(const Region& reg1,
               }
             }
             // insert element
-            sss.insert(current); 
+            sss.insert(current);
           }
        } else {  // nextHs.IsRightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -11071,7 +11198,7 @@ void SetOp(const Region& reg1,
                       hs1.SetLeftDomPoint(false);
                       result += hs1;
                       edgeno++;
-                  } 
+                  }
                   break;
                 }
                 case avlseg::difference_op : {
@@ -11140,7 +11267,7 @@ Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op){
 
 
 /*
-9.4 ~region~ [x] ~line~ [->] ~region~  
+9.4 ~region~ [x] ~line~ [->] ~region~
 
 This combination can only be used for the operations
 ~union~ and ~difference~. In both cases, the result will be
@@ -11192,7 +11319,7 @@ void SetOp(const Line& line,
    }
    if(region.Size()==0){
       switch(op){
-         case avlseg::intersection_op: return; 
+         case avlseg::intersection_op: return;
          case avlseg::difference_op: result = line;
                              return;
          default : assert(false);
@@ -11269,7 +11396,7 @@ void SetOp(const Line& line,
            }
         } else { // no overlapping segment in sss found
           splitByNeighbour(sss,current,leftN,q1,q2);
-          splitByNeighbour(sss,current,rightN,q1,q2); 
+          splitByNeighbour(sss,current,rightN,q1,q2);
           // update coverage numbers
           if(owner==avlseg::second){ // the region
             bool iac = current.getInsideAbove();
@@ -11298,10 +11425,10 @@ void SetOp(const Line& line,
                   current.con_below = leftN->con_above;
                }
             }
-            current.con_above = current.con_below; 
+            current.con_above = current.con_below;
           }
           // insert element
-          sss.insert(current); 
+          sss.insert(current);
         }
      } else { // nextHs.IsRightDomPoint()
        if(member && member->exactEqualsTo(current)){
@@ -11320,7 +11447,7 @@ void SetOp(const Line& line,
                 break;
               }
               case avlseg::difference_op: {
-                if( (member->getOwner()==avlseg::first) &&  
+                if( (member->getOwner()==avlseg::first) &&
                     (member->con_above==0)){
                     HalfSegment hs1 = member->convertToHs(true,avlseg::first);
                     hs1.attr.edgeno = edgeno;
@@ -11412,8 +11539,8 @@ void CommonBorder(
        }
        if(nextHs.IsLeftDomPoint()){
           if(member){ // overlapping segment found
-            assert(member->getOwner()!=avlseg::both);   
-            assert(member->getOwner()!=owner); 
+            assert(member->getOwner()!=avlseg::both);
+            assert(member->getOwner()!=owner);
             int parts = member->split(current,left1,common1,right1);
             sss.remove(*member);
             if(parts & avlseg::LEFT){
@@ -11431,7 +11558,7 @@ void CommonBorder(
             splitByNeighbour(sss,current,leftN,q1,q2);
             splitByNeighbour(sss,current,rightN,q1,q2);
 
-            sss.insert(current); 
+            sss.insert(current);
           }
        } else {  // nextHs.IsRightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -11441,19 +11568,19 @@ void CommonBorder(
                  result += hs;
                  hs.SetLeftDomPoint(false);
                  result += hs;
-                 edgeno++; 
+                 edgeno++;
               }
               sss.remove(*member);
               splitNeighbours(sss,leftN,rightN,q1,q2);
           } // current found in sss
-          if(((pos1 >= size1) && q1.empty())  || 
+          if(((pos1 >= size1) && q1.empty())  ||
              ((pos2 >= size2) && q2.empty())){
              done = true;
-          } 
+          }
        } // right endpoint
   }
   result.EndBulkLoad();
-} // commonborder 
+} // commonborder
 
 /*
 ~IsSpatialType~
@@ -12486,7 +12613,7 @@ ListExpr SpatialTypeMapCompare(ListExpr args){
        st == stregion ||
        st == stsline){
      return nl->SymbolAtom("bool");
-   }  
+   }
    ErrorReporter::ReportError(err);
    return nl->TypeError();
 }
@@ -12542,12 +12669,12 @@ IntersectsTM( ListExpr args )
          ((st2 == stpoints) || (st2 == stline) || (st2 == stregion)))
     {
       return (nl->SymbolAtom( "bool" ));
-    } 
+    }
     else if(st1==stsline && st2==stsline)
     {
       return (nl->SymbolAtom( "bool" ));
     }
-    else 
+    else
     {
       ErrorReporter::ReportError(" t_1 x t_2 expected,"
                                  " with t_1, t_2 in {points,line,region}");
@@ -13038,6 +13165,26 @@ SpatialDistanceMap( ListExpr args )
     } else if((t1==stpoints) && (t2==stsline)){
       return erg;
     } else if((t1==stsline) && (t2==stsline)){
+      return erg;
+    } else if((t1==stbox) && (t2==stpoint)){
+      return erg;
+    } else if((t1==stpoint) && (t2==stbox)){
+      return erg;
+    } else if((t1==stbox) && (t2==stpoints)){
+      return erg;
+    } else if((t1==stpoints) && (t2==stbox)){
+      return erg;
+    } else if((t1==stbox) && (t2==stline)){
+      return erg;
+    } else if((t1==stline) && (t2==stbox)){
+      return erg;
+    } else if((t1==stbox) && (t2==stregion)){
+      return erg;
+    } else if((t1==stregion) && (t2==stbox)){
+      return erg;
+    } else if((t1==stbox) && (t2==stsline)){
+      return erg;
+    } else if((t1==stsline) && (t2==stbox)){
       return erg;
     }
   }
@@ -13795,11 +13942,11 @@ ListExpr MakeLineTypeMap(ListExpr args){
 /*
 ~Union2TypeMap~
 
-Signatures:  
- 
+Signatures:
+
   line [x] line [->] line
 
-  line [x] region [->] region 
+  line [x] region [->] region
 
   region [x] line [->] region
 
@@ -13843,11 +13990,11 @@ ListExpr Union2TypeMap(ListExpr args){
 /*
 ~Intersection2TypeMap~
 
-Signatures:   
+Signatures:
 
   line [x] line [->] line
 
-  line [x] region [->] line 
+  line [x] region [->] line
 
   region [x] line [->] line
 
@@ -13890,11 +14037,11 @@ ListExpr Intersection2TypeMap(ListExpr args){
 /*
 ~Difference2TypeMap~
 
-Signatures:   
+Signatures:
 
   line [x] line [->] line
 
-  line [x] region [->] line 
+  line [x] region [->] line
 
   region [x] line [->] region
 
@@ -13968,13 +14115,13 @@ ListExpr toLineTypeMap(ListExpr args){
   const string err = "sline expected";
   if(nl->ListLength(args)!=1){
     ErrorReporter::ReportError(err);
-    return nl->TypeError();   
+    return nl->TypeError();
   }
   if(nl->IsEqual(nl->First(args),"sline")){
     return nl->SymbolAtom("line");
   }
   ErrorReporter::ReportError(err);
-  return nl->TypeError();   
+  return nl->TypeError();
 }
 
 
@@ -13989,13 +14136,13 @@ ListExpr fromLineTypeMap(ListExpr args){
   const string err = "line expected";
   if(nl->ListLength(args)!=1){
     ErrorReporter::ReportError(err);
-    return nl->TypeError();   
+    return nl->TypeError();
   }
   if(nl->IsEqual(nl->First(args),"line")){
     return nl->SymbolAtom("sline");
   }
   ErrorReporter::ReportError(err);
-  return nl->TypeError();   
+  return nl->TypeError();
 }
 
 /*
@@ -14009,13 +14156,13 @@ ListExpr isCycleTypeMap(ListExpr args){
   const string err = "sline expected";
   if(nl->ListLength(args)!=1){
     ErrorReporter::ReportError(err);
-    return nl->TypeError();   
+    return nl->TypeError();
   }
   if(nl->IsEqual(nl->First(args),"sline")){
     return nl->SymbolAtom("bool");
   }
   ErrorReporter::ReportError(err);
-  return nl->TypeError();   
+  return nl->TypeError();
 }
 
 
@@ -14055,7 +14202,7 @@ SpatialSelectIsEmpty( ListExpr args )
 
   if(nl->IsEqual(arg1,"sline")){
     return 4;
-  } 
+  }
 
   return -1; // This point should never be reached
 }
@@ -14142,7 +14289,7 @@ SpatialSelectIntersects( ListExpr args )
   if ( SpatialTypeOfSymbol( arg1 ) == stregion &&
        SpatialTypeOfSymbol( arg2 ) == stregion )
     return 8;
-  
+
   if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
        SpatialTypeOfSymbol( arg2 ) == stsline )
     return 9;
@@ -14492,14 +14639,36 @@ SpatialSelectDistance( ListExpr args )
   if ( st1 == stregion && st2 == stregion ) return 13;
 
   if( st1 == stsline && st2 == stpoint ) return 14;
- 
+
   if( st1 == stpoint && st2 == stsline) return 15;
-  
+
   if( st1 == stsline && st2 == stpoints) return 16;
 
   if( st1 == stpoints && st2 == stsline ) return 17;
 
   if( st1 == stsline && st2 == stsline) return  18;
+
+  if( st1 == stbox && st2 == stpoint ) return  19;
+
+  if( st1 == stpoint && st2 == stbox ) return  20;
+
+  if( st1 == stbox && st2 == stpoints ) return  21;
+
+  if( st1 == stpoints && st2 == stbox ) return  22;
+
+  if( st1 == stbox && st2 == stline ) return  23;
+
+  if( st1 == stline && st2 == stbox ) return  24;
+
+  if( st1 == stbox && st2 == stregion ) return  25;
+
+  if( st1 == stregion && st2 == stbox ) return  26;
+
+  if( st1 == stbox && st2 == stsline ) return  27;
+
+  if( st1 == stsline && st2 == stbox ) return  28;
+
+  // (rect2 x rect2) has already been implemented in the RectangleAlgebra!
 
   return -1; // This point should never be reached
 }
@@ -14543,7 +14712,7 @@ SpatialSelectNoSegments( ListExpr args )
 
   if (SpatialTypeOfSymbol( arg1 ) == stregion)
     return 1;
-  
+
   if (SpatialTypeOfSymbol( arg1 ) == stsline)
     return 2;
 
@@ -14575,7 +14744,7 @@ SpatialSelectBBox( ListExpr args )
 
   if (SpatialTypeOfSymbol( arg1 ) == stsline)
     return 4;
-  
+
   return -1; // This point should never be reached
 }
 
@@ -14725,7 +14894,7 @@ int SpatialSimplifySelect(ListExpr args){
 static int SetOpSelect(ListExpr args){
    string type1 = nl->SymbolValue(nl->First(args));
    string type2 = nl->SymbolValue(nl->Second(args));
-   
+
   if( (type1=="line") && (type2=="line")){
       return 0;
    }
@@ -14752,7 +14921,7 @@ static int SpatialSelectSize(ListExpr args){
    if(st==stsline){
      return 2;
    }
-   return -1; 
+   return -1;
 }
 
 static int SpatialSelectCrossings(ListExpr args){
@@ -14807,7 +14976,7 @@ SpatialEqual( Word* args, Word& result, int message,
      return 0;
   }
   bool e = (*a1) == (*a2);
-  res->Set(true,e); 
+  res->Set(true,e);
   return 0;
 }
 
@@ -15505,16 +15674,16 @@ SpatialSingle_ps( Word* args, Word& result, int message,
 template<class A, class B,bool symm>
 int SpatialDistance( Word* args, Word& result, int message,
                      Word& local, Supplier s ){
-  
+
    result = qp->ResultStorage( s );
    CcReal* res = static_cast<CcReal*>(result.addr);
-   A* arg1=0; 
-   B* arg2=0; 
+   A* arg1=0;
+   B* arg2=0;
    if(symm){
-     arg1 = static_cast<A*>(args[1].addr);  
+     arg1 = static_cast<A*>(args[1].addr);
      arg2 = static_cast<B*>(args[0].addr);
    } else {
-     arg1 = static_cast<A*>(args[0].addr);  
+     arg1 = static_cast<A*>(args[0].addr);
      arg2 = static_cast<B*>(args[1].addr);
    }
    if(!arg1->IsDefined() || !arg2->IsDefined() ||
@@ -15633,7 +15802,7 @@ SpatialSize( Word* args, Word& result, int message,
   if(!a->IsDefined()){
     res->SetDefined(false);
   } else {
-    res->Set(true,a->SpatialSize());   
+    res->Set(true,a->SpatialSize());
   }
   return 0;
 }
@@ -16174,74 +16343,7 @@ int SpatialRect2Region( Word* args, Word& result, int message,
   res->SetDefined(true);
   res->Clear();
   if(  rect->IsDefined() )
-  {
-    HalfSegment hs;
-    int partnerno = 0;
-    double min0 = rect->MinD(0), max0 = rect->MaxD(0),
-           min1 = rect->MinD(1), max1 = rect->MaxD(1);
-
-    Point v1(true, max0, min1),
-          v2(true, max0, max1),
-          v3(true, min0, max1),
-          v4(true, min0, min1);
-
-    if( AlmostEqual(v1, v2) ||
-        AlmostEqual(v2, v3) ||
-        AlmostEqual(v3, v4) ||
-        AlmostEqual(v4, v1) )
-    { // one interval is (almost) empty, so will be the region
-      res->SetDefined( true );
-      return 0;
-    }
-
-    res->StartBulkLoad();
-
-    hs.Set(true, v1, v2);
-    hs.attr.faceno = 0;         // only one face
-    hs.attr.cycleno = 0;        // only one cycle
-    hs.attr.edgeno = partnerno;
-    hs.attr.partnerno = partnerno++;
-    hs.attr.insideAbove = (hs.GetLeftPoint() == v1);
-    *res += hs;
-    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-    *res += hs;
-
-    hs.Set(true, v2, v3);
-    hs.attr.faceno = 0;         // only one face
-    hs.attr.cycleno = 0;        // only one cycle
-    hs.attr.edgeno = partnerno;
-    hs.attr.partnerno = partnerno++;
-    hs.attr.insideAbove = (hs.GetLeftPoint() == v2);
-    *res += hs;
-    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-    *res += hs;
-
-    hs.Set(true, v3, v4);
-    hs.attr.faceno = 0;         // only one face
-    hs.attr.cycleno = 0;        // only one cycle
-    hs.attr.edgeno = partnerno;
-    hs.attr.partnerno = partnerno++;
-    hs.attr.insideAbove = (hs.GetLeftPoint() == v3);
-    *res += hs;
-    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-    *res += hs;
-
-    hs.Set(true, v4, v1);
-    hs.attr.faceno = 0;         // only one face
-    hs.attr.cycleno = 0;        // only one cycle
-    hs.attr.edgeno = partnerno;
-    hs.attr.partnerno = partnerno++;
-    hs.attr.insideAbove = (hs.GetLeftPoint() == v4);
-    *res += hs;
-    hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-    *res += hs;
-
-    res->EndBulkLoad();
-    res->SetDefined( true );
-  }
-  else
-    res->SetDefined( false );
-
+  *res = Region( *rect );
   return 0;
 }
 
@@ -17043,7 +17145,7 @@ deletion of this object.
                  sp --; // search next
                }
              }
-             // search on the right side 
+             // search on the right side
              if(!found){
                 sp = partnerpos + 1;
                 while(sp<size && !found){
@@ -17395,7 +17497,7 @@ int SetOpVM(Word* args, Word& result, int message,
             Word& local, Supplier s){
    result = qp->ResultStorage(s);
    t1* arg1 = static_cast<t1*>(args[0].addr);
-   t2* arg2 = static_cast<t2*>(args[1].addr); 
+   t2* arg2 = static_cast<t2*>(args[1].addr);
    tres* res = static_cast<tres*>(result.addr);
    SetOp(*arg1,*arg2,*res,op);
    return 0;
@@ -17406,7 +17508,7 @@ int SetOpVMSym(Word* args, Word& result, int message,
             Word& local, Supplier s){
    result = qp->ResultStorage(s);
    t1* arg1 = static_cast<t1*>(args[0].addr);
-   t2* arg2 = static_cast<t2*>(args[1].addr); 
+   t2* arg2 = static_cast<t2*>(args[1].addr);
    tres* res = static_cast<tres*>(result.addr);
    SetOp(*arg2,*arg1,*res,op);
    return 0;
@@ -17421,7 +17523,7 @@ int CommonBorder2VM(Word* args, Word& result, int message,
             Word& local, Supplier s){
    result = qp->ResultStorage(s);
    Region* arg1 = static_cast<Region*>(args[0].addr);
-   Region* arg2 = static_cast<Region*>(args[1].addr); 
+   Region* arg2 = static_cast<Region*>(args[1].addr);
    Line* res = static_cast<Line*>(result.addr);
    CommonBorder(*arg2,*arg1,*res);
    return 0;
@@ -17513,7 +17615,7 @@ ValueMapping spatialintersectsmap[] = {
   SpatialIntersectsVM<Points,Region,true>,
   SpatialIntersectsVM<Line,Region,true>,
   SpatialIntersectsVM<Region,Region,false>,
-  SpatialIntersectsVM<SimpleLine,SimpleLine,false> 
+  SpatialIntersectsVM<SimpleLine,SimpleLine,false>
 };
 
 ValueMapping spatialinsidemap[] = {
@@ -17588,7 +17690,18 @@ ValueMapping spatialdistancemap[] = {
   SpatialDistance<SimpleLine,Point, true>,
   SpatialDistance<SimpleLine, Points, false>,
   SpatialDistance<SimpleLine, Points, true>,
-  SpatialDistance<SimpleLine, SimpleLine, false> };
+  SpatialDistance<SimpleLine, SimpleLine, false>,
+  SpatialDistance<Point, Rectangle<2>, true>,
+  SpatialDistance<Point, Rectangle<2>, false>,
+  SpatialDistance<Points, Rectangle<2>, true>,
+  SpatialDistance<Points, Rectangle<2>, false>,
+  SpatialDistance<Line, Rectangle<2>, true>,
+  SpatialDistance<Line, Rectangle<2>, false>,
+  SpatialDistance<Region, Rectangle<2>, true>,
+  SpatialDistance<Region, Rectangle<2>, false>,
+  SpatialDistance<SimpleLine, Rectangle<2>, true>,
+  SpatialDistance<SimpleLine, Rectangle<2>, false>
+};
 
 ValueMapping spatialnocomponentsmap[] = {
   SpatialNoComponents_ps,
@@ -17823,8 +17936,8 @@ const string SpatialSpecSingle  =
 
 const string SpatialSpecDistance  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(point||points||line||sline x "
-  "point||points||line||sline) -> real</text--->"
+  "( <text>(point||points||line||sline||rect x "
+  "point||points||line||sline||rect) -> real</text--->"
   "<text>distance(_, _)</text--->"
   "<text>compute distance between two spatial objects.</text--->"
   "<text>query distance(point, line)</text--->"
@@ -18287,7 +18400,7 @@ Operator spatialsingle (
 Operator spatialdistance (
   "distance",
   SpatialSpecDistance,
-  19,
+  29,
   spatialdistancemap,
   SpatialSelectDistance,
   SpatialDistanceMap );

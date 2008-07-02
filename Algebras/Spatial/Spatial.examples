@@ -11,7 +11,7 @@ Result   : TRUE
 Operator : +
 Number   : 1
 Signature: point x point -> point
-Example  : query [const point value (0.0 -1.2)] + [const point value (-5.0 1.2)] 
+Example  : query [const point value (0.0 -1.2)] + [const point value (-5.0 1.2)]
 Result   : (point (-5.0 0.0))
 
 
@@ -54,7 +54,7 @@ Operator : atposition
 Number   : 2
 Signature: sline x real x bool -> point
 Example  : query WFlaechen feed filter[.Name = "Spree"] UBahn feed {u} symmjoin[.geoData intersects_new ..geoData_u] extend[Schnitt: intersection_new(.geoData, .geoData_u)] project[Schnitt] extend[Start: atposition(fromline(.Schnitt), 0.0, TRUE)] consume
-Result   : file 
+Result   : file
 
 Operator : bbox
 Number   : 1
@@ -109,7 +109,7 @@ Operator : crossings
 Number   : 1
 Signature: (line x line) -> points
 Example  : query strassen feed {s1} strassen feed {s2} spatialjoin[geoData_s1, geoData_s2] filter[.Name_s1 < .Name_s2] filter[.geoData_s1 intersects .geoData_s2] projectextendstream[Name_s1, Name_s2; Cross: components(crossings(.geoData_s1, .geoData_s2))] project[Cross] consume
-Result   : bug 
+Result   : bug
 Remark   : some points are in the result which are not crossings of streets
 
 
@@ -151,7 +151,7 @@ Result   : (real -1.2)
 Operator : ininterior
 Number   : 1
 Signature: (point x region) -> bool
-Example  : query mehringdamm ininterior thecenter 
+Example  : query mehringdamm ininterior thecenter
 Result   : TRUE
 
 
@@ -171,7 +171,7 @@ Result   : file
 
 Operator : intersects
 Number   : 1
-Signature: (points||line||region x points||line||region) -> bool 
+Signature: (points||line||region x points||line||region) -> bool
 Example  : query trajectory(train7) intersects thecenter
 Result   : TRUE
 
@@ -186,7 +186,7 @@ Result   : FALSE
 Operator : line2region
 Number   : 1
 Signature: line -> region
-Example  : query commonborder(tiergarten, tiergarten) line2region = tiergarten 
+Example  : query commonborder(tiergarten, tiergarten) line2region = tiergarten
 Result   : TRUE
 
 
@@ -322,61 +322,61 @@ Signature: (line x rect) -> line, (region x rect) --> region
 Example  : query windowclippingout(trajectory(train7), bbox(thecenter))
 Result   : file
 
-Operator : polylines 
+Operator : polylines
 Number   : 1
 Signature: line  -> stream (line)
 Example  : query BGrenzenLine polylines [FALSE]  count
 Result   : (int 2)
 
-Operator : polylinesC 
+Operator : polylinesC
 Number   : 1
 Signature: line  -> stream (line)
 Example  : query BGrenzenLine polylinesC [FALSE]  count
 Result   : (int 1)
 
-Operator : simplify 
+Operator : simplify
 Number   : 1
 Signature: line x real  -> line
-Example  : query no_segments(simplify(BGrenzenLine,2000.0))  
+Example  : query no_segments(simplify(BGrenzenLine,2000.0))
 Result   : (int 24)
 
 Operator : simplify
 Number   : 2
 Signature: line x real x points -> line
-Example  : query no_segments(simplify(BGrenzenLine,2000.0, vertices(BGrenzenLine) )) = no_segments(BGrenzenLine) 
+Example  : query no_segments(simplify(BGrenzenLine,2000.0, vertices(BGrenzenLine) )) = no_segments(BGrenzenLine)
 Result   : (bool TRUE)
- 
-Operator : segments 
+
+Operator : segments
 Number   : 1
 Signature: line  -> stream (line)
 Example  : query (segments(BGrenzenLine) count) = no_segments(BGrenzenLine)
 Result   : (bool TRUE)
 
-Operator : makeline 
+Operator : makeline
 Number   : 1
 Signature: point x point -> line
 Example  : query makeline([const point value ( 0 0 )] , [const point value ( 100 100)])
-Result   : (line ( (0.0 0.0 100.0 100.0))) 
+Result   : (line ( (0.0 0.0 100.0 100.0)))
 
-Operator : realminize 
+Operator : realminize
 Number   : 1
 Signature: line -> line
 Example  : query trajectory(train1) = realminize(trajectory(train1))
 Result   : TRUE
-Remark   : just a correction of the internal line representation 
+Remark   : just a correction of the internal line representation
 
 
-Operator : center 
+Operator : center
 Number   : 1
 Signature: points -> point
 Example  : query center( [const points value ((0 0)(10 10))])
 Result   : (point (5.0 5.0))
 
-Operator : convexhull 
+Operator : convexhull
 Number   : 1
 Signature: points -> region
-Example  : query convexhull([const points value ((0 0) (10 0) (10 10) (5 3) )]) 
-Result   : (region ( ( ( (10.0 0.0) (0.0 0.0) (10.0 10.0))))) 
+Example  : query convexhull([const points value ((0 0) (10 0) (10 10) (5 3) )])
+Result   : (region ( ( ( (10.0 0.0) (0.0 0.0) (10.0 10.0)))))
 
 
 
@@ -426,7 +426,7 @@ Result    : (bool TRUE)
 Operator  : intersection2
 Number    : 3
 Signature : line x region -> region
-Example   : query  isempty(trajectory(train7) intersection2 thecenter) 
+Example   : query  isempty(trajectory(train7) intersection2 thecenter)
 Result    : FALSE
 Remark    : returns the part of the line which are in interior or on boundary of the region
 
@@ -471,28 +471,28 @@ Example   : query (thecenter commonborder2 thecenter) = boundary(thecenter)
 Result    : (bool TRUE)
 
 Operator  : fromline
-Number    : 1 
+Number    : 1
 Signature : line -> sline
 Example   : query abs(size(BGrenzenLine) - size(fromline(BGrenzenLine))) < 0.0001
 Result    : (bool TRUE)
 
 
 Operator  : toline
-Number    : 1 
+Number    : 1
 Signature : sline -> line
 Example   : query (BGrenzenLine) = toline(fromline(BGrenzenLine))
 Result    : (bool TRUE)
 
 
 Operator  : iscycle
-Number    : 1 
+Number    : 1
 Signature : sline -> bool
 Example   : query iscycle(fromline(BGrenzenLine))
 Result    : (bool TRUE)
 
 
 Operator  : iscycle
-Number    : 2 
+Number    : 2
 Signature : sline -> bool
 Example   : query iscycle(fromline(trajectory(train7)))
 Result    : (bool FALSE)

@@ -312,6 +312,13 @@ Operators redefinition.
 */
     double Distance( const Points& ps ) const;
 /*
+4.3.13 Operation ~distance~ (with ~rect2~)
+
+*Precondition:* ~u.IsDefined()~ and ~V.IsOrdered()~
+
+*/
+    double Distance( const Rectangle<2>& r ) const;
+/*
 4.3.13 Operation ~direction~
 
 *Precondition:* ~u.IsDefined()~ and ~v.IsDefined()~
@@ -445,7 +452,7 @@ as an attribute.
        return defined;
     }
 
-    virtual double getMinX() const{ 
+    virtual double getMinX() const{
       return x;
     }
     virtual double getMaxX() const{
@@ -474,10 +481,10 @@ as an attribute.
          uint32_t type = 1;
          WinUnix::writeLittleEndian(o,type);
          WinUnix::writeLittle64(o,x);
-         WinUnix::writeLittle64(o,y); 
+         WinUnix::writeLittle64(o,y);
        }
     }
-  
+
     static const string BasicType(){
        return symbols::POINT;
     }
@@ -925,6 +932,15 @@ the size of ~U~ and ~m~ is the size of ~V~.
 */
     double Distance( const Points& ps ) const;
 /*
+5.4.9 Operation ~distance~ (with ~rect2~)
+
+*Precondition:* ~U.IsOrdered() and V.IsOrdered()~
+
+
+*/
+    double Distance( const Rectangle<2>& r ) const;
+
+/*
 4.3.14 Operation ~translate~
 
 *Precondition:* ~U.IsOrdered()~
@@ -1019,7 +1035,7 @@ as an attribute.
        return IsDefined();
     }
 
-    virtual double getMinX() const{ 
+    virtual double getMinX() const{
       return bbox.MinD(0);
     }
     virtual double getMaxX() const{
@@ -1053,11 +1069,11 @@ as an attribute.
          double maxX = getMaxX();
          double minY = getMinY();
          double maxY = getMaxY();
-         WinUnix::writeLittle64(o,minX); 
-         WinUnix::writeLittle64(o,minY); 
-         WinUnix::writeLittle64(o,maxX); 
+         WinUnix::writeLittle64(o,minX);
+         WinUnix::writeLittle64(o,minY);
+         WinUnix::writeLittle64(o,maxX);
          WinUnix::writeLittle64(o,maxY);
-         // number of points 
+         // number of points
          WinUnix::writeLittleEndian(o,size);
          const Point* p;
          for(uint32_t i=0;i<size;i++){
@@ -1573,21 +1589,21 @@ Marks the begin of a bulk load of half segments relaxing the condition that the 
 ordered.
 
 */
-     void EndBulkLoad (bool sort = true, 
+     void EndBulkLoad (bool sort = true,
                        bool realminize = true);
 /*
 
 Marks the end of a bulk load for this line.
 If all parameters are set to __true__, the only condition to the content
-of the Halfsegment array is that for each segment both corresponding Halfsegments are 
+of the Halfsegment array is that for each segment both corresponding Halfsegments are
 included.
 
-If ~sort~ is set to __false__, the halfsegments must be sorted using the 
-halfsegment order. 
+If ~sort~ is set to __false__, the halfsegments must be sorted using the
+halfsegment order.
 
 If ~realminize~ is set to __false__, the halfsegments has to be realminized. This means
 each pair of different halfsegments has at most a common endpoint.
-Furthermore, the edge numbers of the halfsegments must be the same for the 
+Furthermore, the edge numbers of the halfsegments must be the same for the
 two halfsegments of a segment. The allowed range for the edge numbers is [0..Size()/2-1].
 
 */
@@ -1829,6 +1845,26 @@ is the ~points~ result size.
 
 */
     double Distance( const Line& l ) const;
+
+/*
+6.4.5 Operation ~distance~ (with ~rect2~)
+
+*Precondition:* ~!U.IsEmpty() and !V.IsEmpty()~
+
+*/
+    double Distance( const Rectangle<2>& r ) const;
+
+/*
+5.4.9 Operation ~distance~ (with ~points~)
+
+*Precondition:* ~U.IsOrdered() and V.IsOrdered()~
+
+*Semantics:* $\min\{ dist(u, v) | u \in U, v \in V \}$
+
+*Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~
+
+*/
+
 /*
 6.4.5 Operation ~no\_components~
 
@@ -2033,7 +2069,7 @@ as an attribute.
        return IsDefined();
     }
 
-    virtual double getMinX() const{ 
+    virtual double getMinX() const{
       return bbox.MinD(0);
     }
     virtual double getMaxX() const{
@@ -2066,14 +2102,14 @@ as an attribute.
 
          WinUnix::writeBigEndian(o,length);
          // header end
-         
+
          // type
          WinUnix::writeLittleEndian(o,getshpType());
          // box
-         WinUnix::writeLittle64(o,getMinX()); 
-         WinUnix::writeLittle64(o,getMinY()); 
-         WinUnix::writeLittle64(o,getMaxX()); 
-         WinUnix::writeLittle64(o,getMaxY()); 
+         WinUnix::writeLittle64(o,getMinX());
+         WinUnix::writeLittle64(o,getMinY());
+         WinUnix::writeLittle64(o,getMaxX());
+         WinUnix::writeLittle64(o,getMaxY());
          // numparts
          WinUnix::writeLittleEndian(o,segs);
          // numpoints
@@ -2093,9 +2129,9 @@ as an attribute.
               p = hs->GetRightPoint();
               WinUnix::writeLittle64(o,p.GetX());
               WinUnix::writeLittle64(o,p.GetY());
-           }  
+           }
          }
-         
+
 
        }
     }
@@ -2110,7 +2146,7 @@ as an attribute.
 
   private:
 
-   inline Line() {} // This constructor should only be used 
+   inline Line() {} // This constructor should only be used
                     // within the Cast function.
 /*
 6.10 Private member functions
@@ -2239,7 +2275,7 @@ This constructor creates an undefined SimpleLine object and initializes the
 contained arrays to have ~size~ number od slots.
 
 */
-  SimpleLine(int size): 
+  SimpleLine(int size):
             segments(size),lrsArray(size/2),
             isdefined(false),startSmaller(true),
             isCycle(false),isOrdered(true),length(0.0),
@@ -2252,15 +2288,15 @@ contained arrays to have ~size~ number od slots.
 ~Constructor~
 
 
-Constructs a ~SimpleLine~ froma complex one.
- 
+Constructs a ~SimpleLine~ from a complex one.
+
 */
-  SimpleLine(const Line& src);  
+  SimpleLine(const Line& src);
 
 /*
 ~CopyConstructor~
 
-*/  
+*/
   SimpleLine(const SimpleLine& src):
     segments(src.Size()),lrsArray(src.Size()){
     Equalize(src);
@@ -2290,7 +2326,7 @@ Constructs a ~SimpleLine~ froma complex one.
   void Destroy(){
      segments.Destroy();
      lrsArray.Destroy();
-  } 
+  }
 
 
 /*
@@ -2365,7 +2401,7 @@ Returns the start point of this simple line.
 
 Returns the end point of this simple line.
 
-*/  
+*/
   Point EndPoint(const bool startSmaller) const;
 
 /*
@@ -2379,7 +2415,7 @@ Checks whether ~p~ is located on this line.
 /*
 ~TrimToSize~
 
-Changes the capacities of the contained arrays to the required size. 
+Changes the capacities of the contained arrays to the required size.
 
 */
   inline void TrimToSize(){
@@ -2390,7 +2426,7 @@ Changes the capacities of the contained arrays to the required size.
 /*
 ~Comparison~
 
-The operator __==__ checks whether the structure of two simple lines are equals.
+The operator __==__ checks whether the structures of two simple lines are equal.
 This operator may return a __false__ result even if the lines have the same
 geometry.
 
@@ -2425,7 +2461,7 @@ geometry.
      }
      // the lrsArray is equals if the segments are equals
      return  true;
-  }  
+  }
 
   bool operator!=(const SimpleLine& sl) const{
      return !(*this == sl);
@@ -2441,6 +2477,7 @@ geometry.
 
   double Distance(const SimpleLine& sl) const;
 
+  double Distance(const Rectangle<2>& r) const;
 
 
 
@@ -2449,7 +2486,7 @@ geometry.
 ~AtPosition~
 
 
-*/ 
+*/
   bool AtPosition(double pos, const bool startsSmaller,
                   Point& p) const;
 
@@ -2489,9 +2526,9 @@ The following functions are needed to act as an attribute type.
 
 */
   inline int NumOfFLOBs() const{
-    return 2;   
+    return 2;
   }
-  
+
   inline FLOB* GetFLOB(const int i){
     if(i==0)
        return &segments;
@@ -2515,7 +2552,7 @@ The following functions are needed to act as an attribute type.
   }
   size_t HashValue() const{
     return bbox.HashValue() + segments.Size();
-  }  
+  }
 
   void CopyFrom(const StandardAttribute* right){
      Equalize(*(static_cast<const SimpleLine*>(right)));
@@ -2556,9 +2593,9 @@ The following functions are needed to act as an attribute type.
   }
 
   void toLine(Line& result) const;
-  
+
   void fromLine(const Line& src);
-  
+
   static void* Cast(void* addr){
     return new (addr) SimpleLine();
   }
@@ -2566,23 +2603,23 @@ The following functions are needed to act as an attribute type.
   inline void Get( const int i, const HalfSegment*& hs ) const{
     segments.Get(i,hs);
   }
-  
+
   inline void Put(const int i, const HalfSegment& hs){
     segments.Put(i,hs);
   }
 
-  
+
   inline void Get( const int i, const LRS*& lrs ) const{
     lrsArray.Get(i,lrs);
   }
-  
+
   inline void Put(const int i, const LRS& lrs){
     lrsArray.Put(i,lrs);
   }
 
   static const string BasicType(){
     return "sline";
-  } 
+  }
 
   private:
     DBArray<HalfSegment> segments;
@@ -2599,7 +2636,7 @@ The following functions are needed to act as an attribute type.
         const HalfSegment* seg;
         segments.Clear();
         lrsArray.Clear();
-        
+
         int size = src.segments.Size();
         if(size>0){
           segments.Resize(size);
@@ -2620,7 +2657,7 @@ The following functions are needed to act as an attribute type.
         }
         this->isdefined = src.isdefined;
         this->startSmaller = src.startSmaller;
-        this->isCycle = src.isCycle; 
+        this->isCycle = src.isCycle;
         this->isOrdered = src.isOrdered;
         this->length = src.length;
         this->bbox = src.bbox;
@@ -2649,11 +2686,11 @@ bool Find( const Point& p, int& pos, const bool& exact = false ) const {
 
  bool Find( const LRS& lrs, int& pos ) const {
    assert( IsOrdered() );
- 
+
    if( IsEmpty()  || ! isdefined){
      return false;
    }
- 
+
    if( lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 ) &&
        lrs.lrsPos > Length() && !AlmostEqual( lrs.lrsPos, Length() ) ){
      return false;
@@ -2663,7 +2700,7 @@ bool Find( const Point& p, int& pos, const bool& exact = false ) const {
    if( pos > 0 ){
      pos--;
    }
- 
+
    return true;
  }
 
@@ -2691,15 +2728,15 @@ segment within the halfsegmenst array.
 ~computePolyline~
 
 This function searches for a polyline within the halfsegment array and
-creates the lrsarray. Additionally, the edge number of each segment is set 
+creates the lrsarray. Additionally, the edge number of each segment is set
 to the corresponding entry within the lrs array. If the segments does not
 represent a simple polyLine, i.e. several components or branches, the result
-of this function will be __false__. 
+of this function will be __false__.
 
 */
 bool computePolyline();
 
-   
+
 };
 
 
@@ -2747,6 +2784,13 @@ The copy constructor. If the flag ~onlyLeft~ is set, then only the half segments
 dominating point are copied.
 
 */
+
+    Region( const Rectangle<2>& r );
+/*
+Creates a rectangular region from a rect2 objects.
+
+*/
+
     inline void Destroy();
 /*
 This function should be called before the destructor if one wants to destroy the
@@ -3037,6 +3081,28 @@ Assignement operator redefinition.
 
 */
   double Distance( const Region& r ) const;
+/*
+  6.4.4 Operation ~distance~ (with ~region~)
+
+  *Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
+
+  *Semantics:* $\min\{ dist(u, v) | u \in U, v \in V \}$
+
+  *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
+
+*/
+
+  double Distance( const Rectangle<2>& r ) const;
+/*
+  6.4.4 Operation ~distance~ (with ~rect2~)
+
+  *Precondition:* ~U.IsOrdered() $\&\&$ V.IsOrdered()~
+
+  *Semantics:* $\min\{ dist(u, v) | u \in U, v \in V \}$
+
+  *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
+
+*/
 
 /*
 6.4.4 Operation ~components~
@@ -3522,8 +3588,8 @@ The region must be defined!
 
 */
 
-  virtual bool hasBox() const { 
-     return IsDefined() && !IsEmpty(); 
+  virtual bool hasBox() const {
+     return IsDefined() && !IsEmpty();
   }
 
   virtual void writeShape(ostream& o, uint32_t RecNo) const{
@@ -3542,9 +3608,9 @@ The region must be defined!
    virtual double getMaxY() const{
      return bbox.MaxD(1);
    }
-   
-   virtual uint32_t getshpType() const{ 
-     return 5; 
+
+   virtual uint32_t getshpType() const{
+     return 5;
    }
 
   const DBArray<HalfSegment>& GetHalfSegments(){
@@ -4643,7 +4709,7 @@ This function writes this segment to __out__.
 
 */
   void Print(ostream& out)const;
-  
+
 /*
 
 ~Equalize~
@@ -4661,7 +4727,7 @@ The value of this segment is taken from the argument.
 ~crosses~
 
 Checks whether this segment and __s__ have an intersection point of their
-interiors.  
+interiors.
 
 */
  bool crosses(const AVLSegment& s) const;
@@ -4669,7 +4735,7 @@ interiors.
 /*
 ~crosses~
 
-This function checks whether the interiors of the related 
+This function checks whether the interiors of the related
 segments are crossing. If this function returns true,
 the parameters ~x~ and ~y~ are set to the intersection point.
 
@@ -4679,7 +4745,7 @@ the parameters ~x~ and ~y~ are set to the intersection point.
 /*
 ~extends~
 
-This function returns true, iff this segment is an extension of 
+This function returns true, iff this segment is an extension of
 the argument, i.e. if the right point of ~s~ is the left point of ~this~
 and the slopes are equal.
 
@@ -4691,8 +4757,8 @@ and the slopes are equal.
 ~exactEqualsTo~
 
 This function checks if s has the same geometry like this segment, i.e.
-if both endpoints are equal.  
- 
+if both endpoints are equal.
+
 */
 bool exactEqualsTo(const AVLSegment& s)const;
 
@@ -4725,8 +4791,8 @@ Returns the length of this segment.
 /*
 ~InnerDisjoint~
 
-This function checks whether this segment and s have at most a 
-common endpoint. 
+This function checks whether this segment and s have at most a
+common endpoint.
 
 */
 
@@ -4735,8 +4801,8 @@ common endpoint.
 /*
 ~Intersects~
 
-This function checks whether this segment and ~s~ have at least a 
-common point. 
+This function checks whether this segment and ~s~ have at least a
+common point.
 
 */
 
@@ -4826,10 +4892,10 @@ Preconditions:
 
 1) this segment and ~s~ have to overlap.
 
-2) the owner of this and ~s~ must be different 
+2) the owner of this and ~s~ must be different
 
 ~left~, ~common~ and ~right~ will contain the
-explicitely left part, a common part, and 
+explicitely left part, a common part, and
 an explecitely right part. The left and/or right part
 my be empty. The existence can be checked using the return
 value of this function. Let ret the return value. It holds:
@@ -4846,27 +4912,27 @@ earlier.
 
 */
 
-  int split(const AVLSegment& s, AVLSegment& left, AVLSegment& common, 
+  int split(const AVLSegment& s, AVLSegment& left, AVLSegment& common,
             AVLSegment& right, const bool checkOwner = true) const;
 
 
 /*
 ~splitAt~
 
-This function divides a segment into two parts at the point 
+This function divides a segment into two parts at the point
 provided by (x, y). The point must be on the interior of this segment.
 
 */
 
-  void splitAt(const double x, const double y, 
-               AVLSegment& left, 
+  void splitAt(const double x, const double y,
+               AVLSegment& left,
                AVLSegment& right)const;
 
 
 /*
 ~splitCross~
 
-Splits two crossing segments into the 4 corresponding parts. 
+Splits two crossing segments into the 4 corresponding parts.
 Both segments have to cross each other.
 
 */
@@ -4887,7 +4953,7 @@ HalfSegment convertToHs(bool lpd, ownertype owner = both )const;
 
 
 /*
-3.10.1 Public Data Members 
+3.10.1 Public Data Members
 
 These members are not used in this class. So the user of
 this class can change them without any problems within this
@@ -4918,7 +4984,7 @@ private:
 /*
 ~pointequal~
 
-This function checks if the points defined by (x1, y1) and 
+This function checks if the points defined by (x1, y1) and
 (x2,y2) are equals using the ~AlmostEqual~ function.
 
 */
@@ -4948,7 +5014,7 @@ smaller than the point defined by (x2, y2).
 ~compareSlopes~
 
 compares the slopes of __this__ and __s__. The slope of a vertical
-segment is greater than all other slopes. 
+segment is greater than all other slopes.
 
 */
    int compareSlopes(const AVLSegment& s) const;
@@ -4978,12 +5044,12 @@ in the x interval of this segment;
 /*
 ~GetY~
 
-Computes the y value for the specified  __x__. 
-__x__ must be contained in the x-interval of this segment. 
-If the segment is vertical, the minimum y value of this 
+Computes the y value for the specified  __x__.
+__x__ must be contained in the x-interval of this segment.
+If the segment is vertical, the minimum y value of this
 segment is returned.
 
-*/  
+*/
   double getY(const double x) const;
 };
 
@@ -4999,7 +5065,7 @@ This function is used to realize plane sweep algorithms.
 It inserts the Halfsegmsnts for ~seg~ into ~q~1 and
 ~q~2 depending on the owner of ~seg~. The flags ~createLeft~
 and ~createRight~ control which Halfsegments (LeftDomPoint or not)
-should be inserted. 
+should be inserted.
 
 */
 void insertEvents(const avlseg::AVLSegment& seg,
@@ -5018,7 +5084,7 @@ void insertEvents(const avlseg::AVLSegment& seg,
 This function splits current (and neigbour) if required. neigbour
 is replaces in ~sss~ by its left part (the part before the crossing)
 and current is shortened to its left part. The remainding parts (the right parts)
-are inserted into the corresponding queues depending on the woner of ~current~ and 
+are inserted into the corresponding queues depending on the woner of ~current~ and
 ~neighbour~.
 
 */
@@ -5036,25 +5102,25 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
 /*
 ~splitByNeighbours~
 
-Splits the segments ~leftN~ and ~rightN~ at their crossing point and 
-replaces them by their left parts in ~sss~. The right parts are 
+Splits the segments ~leftN~ and ~rightN~ at their crossing point and
+replaces them by their left parts in ~sss~. The right parts are
 inserted into the queues.
 
 */
 void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                      avlseg::AVLSegment const*& leftN,
                      avlseg::AVLSegment const*& rightN,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2);
 
 /*
 ~SetOp~
 
-This function realizes some set operations on two line objects. 
+This function realizes some set operations on two line objects.
 ~op~ may be instantiated with avlseg::union[_]op, avlseg::difference[_]op,
 or avlseg::intersection[_]op.
 
@@ -5064,7 +5130,7 @@ Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op);
 /*
 ~SetOp~
 
-This function realizes some set operations on two region objects. 
+This function realizes some set operations on two region objects.
 ~op~ may be instantiated with avlseg::union[_]op, avlseg::difference[_]op,
 or avlseg::intersection[_]op.
 
@@ -5076,7 +5142,7 @@ Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op);
 
 Creates a reamlinized representation of the HalfSegments in ~segments~. This means,
 if halfsegments overlap, only one of the segments left. If halfsegments are crossing
-or touching at their interior, their are split. 
+or touching at their interior, their are split.
 
 */
 DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments);
@@ -5085,7 +5151,7 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments);
 ~Split~
 
 This function is similar to Realminize. In contrast to that function, segments covering the
-same space left instead to replace by a single segment. 
+same space left instead to replace by a single segment.
 
 */
 DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments);
@@ -5096,7 +5162,7 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments);
 This function checks whether in ~segments~ at least two segments overlap.
 
 */
-bool hasOverlaps(const DBArray<HalfSegment>& segments, 
+bool hasOverlaps(const DBArray<HalfSegment>& segments,
                  const bool ignoreEqual=false);
 
 
@@ -5112,11 +5178,11 @@ avlseg::ownertype selectNext(Region const* const reg1,
                      int& pos1,
                      Region const* const reg2,
                      int& pos2,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2,
                      HalfSegment& result,
                      int& src // for debugging only
@@ -5127,12 +5193,12 @@ avlseg::ownertype selectNext(Region const* const reg1,
 
 The following set of functions determines the smallest Halfsegment from the
 arguments  HalfSegment at position ~pos1~ of ~line1~, HalfSegment at position
-~pos2~ of ~line2~ and the heads of the queues. The smallest halfsegment is 
+~pos2~ of ~line2~ and the heads of the queues. The smallest halfsegment is
 returned in result. The return value is __avlseg::first__ iff the Halfsegment
 comes from ~line1~ or ~q1~, __avlseg::second__ if the HalfSegment comes from
 ~line2~ or ~q2~ and __avlseg::none__ if all arguments are exhausted.
-The argument ~src~ is used for debugging purposed and returns the exact source 
-of the smallest halfSegment. 
+The argument ~src~ is used for debugging purposed and returns the exact source
+of the smallest halfSegment.
 
 
 */
@@ -5140,11 +5206,11 @@ avlseg::ownertype selectNext(Line const* const line1,
                      int& pos1,
                      Line const* const line2,
                      int& pos2,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2,
                      HalfSegment& result,
                      int& src
@@ -5154,29 +5220,29 @@ avlseg::ownertype selectNext(Line const* const line,
                      int& pos1,
                      Region const* const region,
                      int& pos2,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q1,
-                     priority_queue<HalfSegment,  
-                                    vector<HalfSegment>, 
+                     priority_queue<HalfSegment,
+                                    vector<HalfSegment>,
                                     greater<HalfSegment> >& q2,
                      HalfSegment& result,
                      int& src
                     );
 
 avlseg::ownertype selectNext( Line const* const line,
-                      priority_queue<HalfSegment, 
-                                     vector<HalfSegment>, 
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
                       Points const* const point,
-                      int& posPoint, 
+                      int& posPoint,
                       HalfSegment& resHs,
                       Point& resPoint);
 
 avlseg::ownertype selectNext( Line const* const line,
-                      priority_queue<HalfSegment, 
-                                     vector<HalfSegment>, 
+                      priority_queue<HalfSegment,
+                                     vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
                       Point const* const point,
