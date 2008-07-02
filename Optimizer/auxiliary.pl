@@ -3,8 +3,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and 
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -139,7 +139,8 @@ write_tuples(AttrDescription, [Tuple | TupleList], M) :-
 
 */
 
-pretty_print([[rel, [tuple, AttrDescription]], Tuples]) :-
+pretty_print([[RelType, [tuple, AttrDescription]], Tuples]) :-
+  (RelType = rel ; RelType = trel),	
   !,
   nl,
   max_attr_length(AttrDescription, AttrLength),
@@ -216,7 +217,8 @@ display(rect, [L, R, B, T]) :-
   write(', yb = '), write(B),
   write(', yt = '), write(T).
 
-display([rel, [tuple, Attrs]], Tuples) :-
+display([Rel, [tuple, Attrs]], Tuples) :-
+  (Rel = rel ; Rel = trel),	
   !,
   nl,
   max_attr_length(Attrs, AttrLength),
@@ -924,6 +926,26 @@ listObj :-
   secondo('list objects').	
 
 
+% search for a description of operator O
+
+findop(O) :-
+  concat_atom([ 'query SEC2OPERATORINFO feed filter[.Name contains "', 
+                O, '"] consume' ], Q),
+  runQuery(Q).  
+
+% dump the command history to a given file name
+
+cmdHist2File(Name) :-
+  concat_atom(['query SEC2COMMANDS feed '], Q),
+  dumpQueryResult2File(Q, Name, Q2),
+  runQuery(Q2).
+    
+% dump the result of a secondo query to a CSV file
+
+dumpQueryResult2File(Q, File, Q2) :-
+  concat_atom([Q, ' dumpstream["', File, '","|"] tconsume'], Q2).
+
+
 :-
   op(800, fx, query),
   op(800, fx, delete),
@@ -942,6 +964,9 @@ Useful for debugging
 showValue(Name, Var) :-
   write(Name), write(': '), write(Var), nl, nl.
 
+
+mark(X) :-
+  write('(* Mark '), write(X), write(' *)'), nl.	
 
 /*
 2.1 Generic display for printing formatted tables
@@ -1001,6 +1026,53 @@ showHeaderRec([H|T], Tmp1, Res1, Tmp2, Res2, Tmp3, Res3 ) :-
   append(Tmp2, [WriteSpec], L2),
   showHeaderRec(T, L1, Res1, L2, Res2, TotalLen, Res3 ).
 
+
+/*
+Write a list of tuples to a file. The members of an inner 
+list are separated by a comma. 
+
+*/
+
+writeElem(FD, []) :-
+  write(FD, '\n').	
+
+writeElem(FD, [H | T]) :-
+  write(FD, H),
+  ( length(T, 0) -> write(FD, '  ')
+                 ;  write(FD, ', ') ),
+  writeElem(FD, T).  
+
+dumpTuples2File(Name, T, Format) :-
+  project(1, Format, Fp),	
+  append([Fp], T, L),
+  showValue('L:', L),
+  open(Name, write, FD),
+  checklist( writeElem(FD), L),
+  close(FD).
+
+/*
+Extract the N-th element out of all tuples given in list
+L and unify them with R.
+
+*/
+
+project(N, L, R) :-
+  maplist(nth1(N), L, R).	
+
+
+/*
+A predicate which translates the first letter of an atom to
+lower case.
+
+*/
+
+downcase_first(Atom, Res) :-	
+  atom_chars(Atom, [H | T]),	
+  downcase_atom(H, Hdown),
+  append([Hdown], T, L), 
+  name(Res, L).
+
+
 /*
 2.2 The built in predicate ~portray~
 
@@ -1030,7 +1102,7 @@ portray(Term) :-
   write(Term).
 
 /*
-2. 3 ~subList/3~
+2.3 ~subList/3~
 
 ----
   subList(+L, +N, ?Res)
@@ -1047,5 +1119,62 @@ subListRec([H|_], N, N, [H]).
 subListRec([H|T], N, Pos, [H|T2]) :-
   NewPos is Pos + 1,
   subListRec(T, N, NewPos, T2).
+
+
+/*
+2.4 Runtime Flags
+ 
+the dynamic predicate ~flag~ a tool for setting and querying options.
+This is useful to set global options.
+
+*/
+
+:- dynamic flag/2,
+   clearflags.
+
+clearflags :-
+  retractall( flag(_,_) ).
+
+setflag(F) :- assert( flag(F, on) ).
+clearflag(F) :- retractall( flag(F, _) ).
+
+showflag( [F, Val], _ ) :-
+  nl, write(F), write(' --> '), write(Val), nl.	
+
+
+showflags :-
+  findall( [X, Y], flag(X, Y), L),
+  maplist( showflag, L, _). 
+
+/*
+2.5 Running Queries
+
+The clause ~runQuery~ can be used to execute or just print queries
+depending on the flag ~runMode~.
+
+*/
+
+showQuery(Q) :-
+  nl, write(Q), nl.
+
+runQuery(Q) :-
+  flag(runMode, on),
+  nl, write('Executing '), write(Q), write(' ...'), nl, 	
+  secondo(Q), !.
+
+runQuery(Q) :-
+  showQuery(Q).
+
+
+runQuery(Q, Res) :-
+  flag(runMode, on),
+  nl, write('Executing '), write(Q), write(' ...'), nl, 	
+  secondo(Q, [_, Res]),
+  nl, write('Result: '), write(Res), nl, !. 
+
+runQuery(Q, Res) :-
+  showQuery(Q),
+  Res = 999,
+  nl, write('Dummy-Result: '), write(Res), nl. 
 
 
