@@ -1188,11 +1188,13 @@ cluster named ''unspecified'' containing all 512 9-intersection matrices.
 /*
 2.3.3. Destructor
 
-This destructor destroys the contained FLOB.
+This destructor destroys the contained FLOB if canDelete is set to true.
 
 */
     ~PredicateGroup(){
+        if(canDelete){
           theClusters.Destroy();
+        }
     }
 
 /*
@@ -1463,6 +1465,10 @@ void SetToDefault();
 
    static bool CheckKind(ListExpr type, ListExpr& errorInfo){
      return nl->IsEqual(type,BasicType());
+   }
+
+   void Destroy(){
+      canDelete = true;
    }
 
 private:

@@ -189,10 +189,10 @@ instances of types of this algebra.
 template<class T>
 void Delete(const ListExpr typeInfo,Word &w){
   T* B = static_cast<T*>(w.addr);
-//  int nof = B->NumOfFLOBs();
-//  for(int i=0;i< nof; i++){
-//    (B->GetFLOB(i))->Destroy();
-//  }
+  int nof = B->NumOfFLOBs();
+  for(int i=0;i< nof; i++){
+    (B->GetFLOB(i))->Destroy();
+  }
   delete B;
   B = NULL;
   w.addr=0;
