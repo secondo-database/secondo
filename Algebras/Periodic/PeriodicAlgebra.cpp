@@ -1,54 +1,5 @@
 /*
-
-//paragraph [3] Time: [{\tt\small Time:}{\it] [}]
-//paragraph [4] Big: [\begin{center}\Huge{] [}\end{center}]
-//[_] [\_]
-//[&] [\&]
-//[newline] [\\]
-//[content] [\tableofcontents]
-//[start_formula] [$]
-//[end_formula] [$]
-//[secondo] [\textsc{secondo}]
-//[R] [I\hspace*{-0.25em}R]
-//[->] [\ensuremath{\rightarrow}]
-//[<] [\textless]
-//[label] [\label]
-//[ref] [\ref]
-//[infty] [\ensuremath{\infty}]
-//[mul] [\ensuremath{\cdot}]
-//[titlepage] [\title{PeriodicAlgabra}\author{Thomas Behr}\maketitle]
-//[startpicture][\begin{center}\leavevmode \epsfbox{Figures/]
-//[endpicture] [}\end{center}]
-//[newpage] [\newpage]
-//[emptypage] [\thispagestyle{empty}]
-//[emptypages] [\pagestyle{empty} \thispagestyle{empty}]
-//[normalpages] [\pagestyle{plain} \thispagestyle{plain}]
-//[romanpagenum] [\pagenumbering{Roman}]
-//[arabicpagenum] [\pagenumbering{arabic}]
-//[resetpagenum] [\setcounter{page}{1}]
-
-
-2 Preconsiderations
-
-A periodic moving object is modelled as an object consisting on several types
-of movements. The types are linear move, composite move and periodic move.
-A linear move modells a unit in earlier papers. A composite move is the
-concatenation of movements of type linear or periodic. A periodic move
-repeats a composite or linear move a number of times. We can think about a
-periodic moving object as a tree. The leafs are the linear moves. The inner nodes
-are periodic or composite ones. The maximal number of all nodes depends on the
-number of the leafs. So the maximal number of periodic moves is L+C , where
-L and C are the numbers of linear and composite moves. On the other hand, the
-number of composite moves is L-1. The reason is, that a composite move requires at
-least two submoves. Summarized we get:[newline]
-maxN = maxP + maxC + L = P + L-1 + L = L-1+L + L-1 + L = 4L-2 = O(L)
-
-*/
-
-/*
-3 Preparations
-
-3.1 Includes and Definitions
+3 Connecting with Secondo 
 
 */
 
@@ -83,7 +34,7 @@ extern QueryProcessor *qp;
 namespace periodic {
 
 /*
-4 Secondo Type Constructors 
+3.1 Secondo Type Constructors 
 
 */
 
@@ -121,10 +72,10 @@ class Duration{
 
 /*
 
-10 Definition of Operators
+3.2 Definition of Operators
 
 
-10.1 ~=~
+3.2.1 ~=~
 
 ~Type Mapping~ and ~Selection Function~
 
@@ -180,7 +131,7 @@ Operator pequals(
        EqualsTypeMap);
 
 /*
-10.2  ~At~
+3.2.2  ~At~
 
 */
 
@@ -241,7 +192,7 @@ Operator pat(
 
 
 /*
-10.3 ~Union~
+3.2.3 ~Union~
 
 */
 
@@ -268,7 +219,7 @@ Operator punion(
         TypeMap2<PBBox, PBBox, PBBox> ); 
 
 /*
-10.4 ~Trajectory~
+3.2.4 ~Trajectory~
 
 */
 
@@ -296,7 +247,7 @@ Operator ptrajectory(
 
 
 /*
-10.5 ~length~
+3.2.5 ~length~
 
 */
 
@@ -323,7 +274,7 @@ Operator plength(
         TypeMap1<PInterval, Duration>);
 
 /*
-10.6 ~length2~
+3.2.6 ~length2~
 
 */
 
@@ -343,7 +294,7 @@ Operator plength2(
 
 
 /*
-10.7 ~start~
+3.2.7 ~start~
 
 */
 
@@ -371,7 +322,7 @@ Operator pstart(
 
 
 /*
-10.8 ~end~
+3.2.8 ~end~
 
 */
 
@@ -399,7 +350,7 @@ Operator pend(
 
 
 /*
-10.9 ~expand~
+3.2.9 ~expand~
 
 */
 
@@ -427,7 +378,7 @@ Operator pexpand(
         TypeMap1<PMPoint,MPoint>);
 
 /*
-10.10 ~createpmpoint~
+3.2.10 ~createpmpoint~
 
 */
 
@@ -456,7 +407,7 @@ Operator createpmpoint(
         TypeMap1<MPoint,PMPoint>);
 
 /*
-10.11 ~speed~
+3.2.11 ~speed~
 
 */
 
@@ -484,7 +435,7 @@ Operator pspeed(
         TypeMap1<PMPoint,PMReal>);
 
 /*
-10.12 ~direction~
+3.2.12 ~direction~
 
 */
 
@@ -513,7 +464,7 @@ Operator pdirection(
 
 
 /*
-10.13 ~contains~
+3.2.13 ~contains~
 
 */
 static complexTM getContainsCTM(){
@@ -559,7 +510,7 @@ Operator pcontains(
 
 
 /*
-10.14 ~intersects~
+3.2.14 ~intersects~
 
 */
 static complexTM getIntersectsCTM(){
@@ -607,7 +558,7 @@ Operator pintersects(
         IntersectsTypeMap);
 
 /*
-10.15 ~initial~
+3.2.15 ~initial~
 
 */
 static complexTM getInitialCTM(){
@@ -667,7 +618,7 @@ Operator pinitial(
 
 
 /*
-10.16 ~final~
+3.2.16 ~final~
 
 */
 static complexTM getFinalCTM(){
@@ -726,7 +677,7 @@ Operator pfinal(
        FinalTypeMap);
 
 /*
-10.17 ~breakpoints~
+3.2.17 ~breakpoints~
 
 */
 
@@ -736,11 +687,11 @@ ListExpr BreakpointsTypeMap(ListExpr args){
    if(length!=1 && length!=3){
        ErrorReporter::ReportError(
          "Wrong number of arguments, one or three arguments expected\n");
-       return ::nl->SymbolAtom(TYPE_ERROR);
+       return ::nl->TypeError();
    }
    if(::nl->AtomType(::nl->First(args))!=SymbolType){
       ErrorReporter::ReportError("breakpoints can only handle simple types ");
-      return ::nl->SymbolAtom(TYPE_ERROR);
+      return ::nl->TypeError();
    }
    string arg = ::nl->SymbolValue(::nl->First(args));
    if(length==3){
@@ -748,13 +699,13 @@ ListExpr BreakpointsTypeMap(ListExpr args){
      if(!::nl->IsEqual(::nl->Second(args),"duration")){
         ErrorReporter::ReportError(
              "The second argument must be of type duration\n");
-        return ::nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->TypeError();
      }
      // check the third argument for bool type 
      if(!::nl->IsEqual(::nl->Third(args),"bool")){
         ErrorReporter::ReportError(
              "The third argument must be of type bool\n");
-        return ::nl->SymbolAtom(TYPE_ERROR);
+        return ::nl->TypeError();
      } 
    }
 
@@ -765,7 +716,7 @@ ListExpr BreakpointsTypeMap(ListExpr args){
 
    ErrorReporter::ReportError(
           "Invalid type for breakpoints operator : "+arg+"\n");
-   return ::nl->SymbolAtom(TYPE_ERROR);   
+   return ::nl->TypeError();   
 }
 
 
@@ -825,7 +776,7 @@ Operator pbreakpoints(
 
 
 /*
-10.18 ~toprel~
+3.2.18 ~toprel~
 
 */
 
@@ -884,7 +835,7 @@ Operator ptoprel(
        ToprelTypeMap);
 
 /*
-10.18 ~intersection~
+3.2.18 ~intersection~
 
 */
 static complexTM getIntersectionCTM(){
@@ -925,7 +876,7 @@ Operator pintersection(
        IntersectionTypeMap);
 
 /*
-10.19 ~distance~
+3.2.19 ~distance~
 
 */
 static complexTM getDistanceCTM(){
@@ -972,7 +923,7 @@ Operator pdistance(
 
 
 /*
-10.20 ~numberOfNodes~
+3.2.20 ~numberOfNodes~
 
 */
 static complexTM getNumberOfNodesCTM(){
@@ -1015,7 +966,7 @@ Operator pnumberOfNodes(
 
 
 /*
-10.21 ~NumberOfCNodes~
+3.2.21 ~NumberOfCNodes~
 
 */
 static complexTM getNumberOfCNodesCTM(){
@@ -1057,7 +1008,7 @@ Operator pnumberOfCNodes(
 
 
 /*
-10.22 ~numberOfPNodes~
+3.2.22 ~numberOfPNodes~
 
 */
 static complexTM getNumberOfPNodesCTM(){
@@ -1098,7 +1049,7 @@ Operator pnumberOfPNodes(
        NumberOfPNodesTypeMap);
 
 /*
-10.23 ~numberOfUnits~
+3.2.23 ~numberOfUnits~
 
 */
 static complexTM getNumberOfUnitsCTM(){
@@ -1139,7 +1090,7 @@ Operator pnumberOfUnits(
        NumberOfUnitsTypeMap);
 
 /*
-10.24 ~numberOfFlatUnits~
+3.2.24 ~numberOfFlatUnits~
 
 */
 static complexTM getNumberOfFlatUnitsCTM(){
@@ -1181,7 +1132,7 @@ Operator pnumberOfFlatUnits(
 
 
 /*
-10.25 ~translate~
+3.2.25 ~translate~
 
 */
 static complexTM getTranslateCTM(){
@@ -1230,7 +1181,7 @@ Operator ptranslate(
 
 
 /*
-10.27 ~minvalue~
+3.2.27 ~minvalue~
 
 */
 const string MinSpec =
@@ -1257,7 +1208,7 @@ Operator min(
         TypeMap1<PMReal, CcReal>);
 
 /*
-10.29  ~maxvalue~
+3.2.29  ~maxvalue~
 
 */
 const string MaxSpec =
@@ -1286,9 +1237,9 @@ Operator max(
 } // namespace periodic
 
 /*
-6 Creating the Algebra
+3.3 Creating the Algebra
 
-6.1 Definition of the PeriodicAlgebra
+3.3.1 Definition of the PeriodicAlgebra
 
 */
 class PeriodicMoveAlgebra : public Algebra
@@ -1351,19 +1302,8 @@ class PeriodicMoveAlgebra : public Algebra
 
 
 /*
-6.2 Initialization
+3.3.2 Initialization
 
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
-
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
-
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime.
 
 */
 

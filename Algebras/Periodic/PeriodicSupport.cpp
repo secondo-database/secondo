@@ -1,5 +1,5 @@
 /*
-3.2 Implementation of supporting functions
+3 Implementation of supporting functions
 
 
 The following functions support the implementation of functions of
@@ -19,7 +19,7 @@ namespace periodic {
 
 
 /*
-~About~
+3.1 ~About~
 
 The ~About~ function checks whether the distance between the 
 arguments is less than EPSILON. EPSILON is a macro defined at 
@@ -33,7 +33,7 @@ bool About(const double a, const double b){
 
 
 /*
-~Signum~
+3.2 ~Signum~
 
 This function returns:
   
@@ -52,7 +52,7 @@ int Signum(const double arg){
 
 
 /*
-~Distance~
+3.3 ~Distance~
 
 The distance function computes the Euclidean distance between the
 points defined by (Ax,Ay) and (Bx,By).
@@ -66,7 +66,7 @@ double Distance(const double Ax, const double Ay,
 }                
 
 /*
-~SignedArea~
+3.4 ~SignedArea~
 
 This function computes the signed area of the triangle defined
 by (p,q,r). The result will be positive if r is located
@@ -84,7 +84,7 @@ double SignedArea(const double Px, const double Py,
 }
 
 /*
-~PointOnSegment~
+3.5 ~PointOnSegment~
 
 The function ~PointOnSegment~ checks whether the point (Px,Py)
 is contained in the pointset of the segment ( (Ax,Ay)[->](Bx,By))
@@ -108,7 +108,7 @@ bool PointOnSegment(const double Px, const double Py,
 }                    
 
 /* 
-~PointPosOnSegment~
+3.6 ~PointPosOnSegment~
 
 This function computes, where the directed segment defined by s=(x1,y1,x2,y2)
 is splitted by the point p=(x,y). The result is :
@@ -145,7 +145,7 @@ double PointPosOnSegment(double x1, double y1,
 
 
 /*
-~GetNumeric~
+3.7 ~GetNumeric~
 
 Numbers have different representations in nested lists (IntAtom, RealAtom
 or Rationals). All Classes should be have the possibility to read any
@@ -248,7 +248,7 @@ void WriteListToStreamRec(ostream &os, const ListExpr Lorig,const int indent,
 
 
 /*
-~WriteListExprToStream~
+3.8 ~WriteListExprToStream~
 
 This function writes a ListExpr given by __L__ to __os__.
 

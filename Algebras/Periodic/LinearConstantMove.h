@@ -1,6 +1,6 @@
 
 /*
-1.1 Implementation of the template class LinearConstantMove
+1.1 ~LinearConstantMove~
 
 */
 

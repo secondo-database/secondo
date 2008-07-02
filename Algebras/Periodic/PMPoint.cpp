@@ -1,5 +1,5 @@
 /*
-1.1 Implementation of the class PMPoint
+1.1 ~PMPoint~
 
 ~includes~
 

@@ -1,5 +1,5 @@
 /*
-1.1 Implementation of the class PBBox
+1.1 ~PBBox~
 
 */
 

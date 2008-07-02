@@ -119,10 +119,6 @@ static const int LINEAR = 0;
 static const int COMPOSITE = 1;
 static const int PERIOD = 2;
 static const bool DEBUG_MODE = true;
-// a constant to handle numeric inaccuraccies in computations with doubles
-
-static const string TYPE_ERROR = "typeerror";
-
 
 
 /*
