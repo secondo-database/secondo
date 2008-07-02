@@ -1,0 +1,14 @@
+#/bin/sh
+#
+# 02.07.2008
+#
+# A small script which prints a cvs log in reverse order
+#
+
+if [ -e $1 ]; then
+  cvs log $1 | tac - | sed '/\t.*/d; s/commitid: .*//'
+else
+  echo "$1: no such file"
+fi
+
+
