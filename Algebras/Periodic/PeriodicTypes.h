@@ -120,19 +120,10 @@ static const int COMPOSITE = 1;
 static const int PERIOD = 2;
 static const bool DEBUG_MODE = true;
 // a constant to handle numeric inaccuraccies in computations with doubles
-static const double EPSILON = 0.00001;
 
 static const string TYPE_ERROR = "typeerror";
 
 
-/* 
-
-1.1 Some forward declarations 
-
-*/
-
-
-static bool GetNumeric(const ListExpr List, double &value);
 
 /*
 
@@ -140,7 +131,7 @@ static bool GetNumeric(const ListExpr List, double &value);
 
 2.1 Some simple classes
 
-2.1.1 The Class PBBox
+2.1.1 ~PBBox~
 
 This class is the implementation of the minimum bounding box. This class is
 also an algebra class.
@@ -223,7 +214,7 @@ in the following way:
 
 /*
 
-2.1.2 The class RelInterval
+2.1.2 ~RelInterval~
 
 This class represents a relative interval. This means that a RelInterval
 has all properties of a familiar interval (Closeness,length) without a
@@ -521,7 +512,7 @@ leftClosed, rightClosed, defined, and canDelete.
 
 
 /*
-2.1.3 The class PInterval
+2.1.3 ~PInterval~
 
 This class provides a structure for an interval. In the contrary to
 a RelInterval an Interval has a fixed start time and a fixed end time.
@@ -546,8 +537,8 @@ class PInterval : public StandardAttribute{
     bool Intersects(const PInterval* I)const;
     PInterval* Clone() const;
     void Destroy();
-    inline int NumOfFLOBs() const;
-    inline FLOB* GetFLOB(const int i);
+    int NumOfFLOBs() const;
+    FLOB* GetFLOB(const int i);
     int CompareTo(const PInterval* D2)const;
     int Compare(const Attribute* arg) const;
     bool Adjacent(const Attribute*) const{return false;}
@@ -593,7 +584,7 @@ class PInterval : public StandardAttribute{
 /*
 2.2 Classes for building periodic moves from units
 
-2.2.1 CompositeMoves [&] SpatialCompositeMove
+2.2.1 ~CompositeMoves~ [&] ~SpatialCompositeMove~
 
 This class defines a composition of several submoves.
 These submoves are stored in an  array and
@@ -641,7 +632,7 @@ class SpatialCompositeMove: public CompositeMove{
 
 /*
 
-2.2.2 SubMoves
+2.2.2 ~SubMoves~
 
 A submove is defined by an array-number and an index in this array.
 This class is used to store the submoves of a composite and periodic move .
@@ -658,7 +649,7 @@ class SubMove{
 };
 
 /*
-2.2.3 CSubMove
+2.2.3 ~CSubMove~
 
 A CSubmove extend the SubMove type by a duration.
 This class is used for implementing the sons of a
@@ -676,9 +667,9 @@ public:
 
 /*
 
-2.2.3 Periodic Move [&] SpatialPeriodicMove.
+2.2.3 ~PeriodicMove~ [&] ~SpatialPeriodicMove~
 
-A Periodic Move is determined by the number of repeatations 
+A periodic move is determined by the number of repetitions 
 and the repeated submove. To accelerate operations
 also the whole relinterval is stored. For Spatial types also the
 minimum bounding box is contained as member.
@@ -722,7 +713,7 @@ class SpatialPeriodicMove: public PeriodicMove{
 /*
 2.3 Classes for building unit types
 
-2.3.1 The class LinearConstantMove
+2.3.1 ~LinearConstantMove~
 
 This is a template class which can be used for representing any
 discrete changing periodic moving objects. Examples include
@@ -801,8 +792,14 @@ flag for the defined state of this unit.
 };
 
 
+// include the implementation
+}
+#include "LinearConstantMove.h"
+namespace periodic{
+
+
 /*
-2.3.2 The class LinearBoolMove
+2.3.2 ~LinearBoolMove~
 
 This class is an example for the __LinearConstant__ class.
 Whenever you want to implement a periodic moving 'constant',
@@ -810,27 +807,23 @@ you have to define such a class.
 
 
 */
-inline ListExpr ToConstantListExpr(const bool value);
+ListExpr ToConstantListExpr(const bool value);
 
-inline bool ReadFromListExpr(ListExpr le, bool& v);
+bool ReadFromListExpr(ListExpr le, bool& v);
 
 
 typedef LinearConstantMove<bool> LinearBoolMove ; 
 
 
 /*
-2.3.3 The class LinearInt9MMove
+2.3.3 ~LinearInt9MMove~
 
 
 */
 
-inline ListExpr ToConstantListExpr(const Int9M value);
-inline bool ReadFromListExpr(ListExpr le, Int9M& value);
+ListExpr ToConstantListExpr(const Int9M value);
+bool ReadFromListExpr(ListExpr le, Int9M& value);
 
-/*
-~LinearInt9MMove~
-
-*/
 
 class LinearInt9MMove: public LinearConstantMove<Int9M> {
 public:
@@ -842,7 +835,7 @@ public:
 
 
 /* 
-2.3.4 The class MRealMap 
+2.3.4 ~MRealMap~ 
 
 This class defines a mapping for moving reals. This means, this class 
 can be used for defining units of moving reals.
@@ -862,9 +855,9 @@ class MRealMap{
    bool ReadFrom(ListExpr le);
    ListExpr ToListExpr()const;
    double At(const DateTime* duration) const;
-   inline double At(const double d) const;
+   double At(const double d) const;
    bool IsDefinedAt(const DateTime* duration) const;
-   inline bool IsDefinedAt(const double d) const;
+   bool IsDefinedAt(const double d) const;
    bool EqualsTo(const MRealMap RM2)const;
    void Equalize(const MRealMap* RM);
    bool EqualsTo(const MRealMap& RM, double timediff) const;
@@ -896,7 +889,7 @@ computing the value at time ~t~ is given by:
 
 
 /*
-2.3.5 The class MovingRealUnit
+2.3.5 ~MovingRealUnit~
 
 This class represents a single unit of a moving real. This means, this class
 manages a relative interval and a mrealmap.
@@ -925,8 +918,8 @@ class MovingRealUnit{
    bool Split(const DateTime duration, const bool toLeft, 
               MovingRealUnit& unit);
 
-   inline void SetDefined(const bool defined);
-   inline bool IsDefined()const{return defined;}
+   void SetDefined(const bool defined);
+   bool IsDefined()const{return defined;}
    void Equalize(const MovingRealUnit* source);
 
 
@@ -959,7 +952,7 @@ Flag for the defined state of this unit.
 
 
 /*
-2.3.6 The Class LinearPointMove
+2.3.6 ~LinearPointMove~
 
 The LinearPointMove class is the unit type for moving points.
 This class defines a point moving from
@@ -1063,7 +1056,7 @@ halfsegment.
    bool GetHalfSegment(const bool LeftDominatingPoint,
                        HalfSegment& seg)const;
    bool Intersects(const PBBox* window)const;
-   inline bool IsDefined()const; 
+   bool IsDefined()const; 
    bool IsStatic()const;
    void SetUndefined();
    bool CanBeExtendedBy(const LinearPointMove* P2)const;
@@ -1120,7 +1113,7 @@ ostream& operator<<(ostream& os, const LinearPointMove LPM);
 
 
 /*
-2.3.7 The Class LinearPointsMove
+2.3.7 ~LinearPointsMove~
 
 This is the unit representation for MovingPoints values.
 This class manages a set of point in a relative time interval.
@@ -1151,19 +1144,19 @@ class TwoPoints{
    ~TwoPoints();
    TwoPoints& operator=(const TwoPoints& source);
 
-   inline bool InnerIntersects(const TwoPoints &TP) const;
-   inline bool IsStatic() const;
+   bool InnerIntersects(const TwoPoints &TP) const;
+   bool IsStatic() const;
    int  CompareTo(const TwoPoints TP) const;
    bool operator< (const TwoPoints TP)const;
    bool operator> (const TwoPoints TP)const;
    bool operator== (const TwoPoints TP)const;
-   inline bool IsSpatialExtension(const TwoPoints* TP) const;
-   inline double Speed(const RelInterval interval) const;
-   inline double GetStartX()const; 
-   inline double GetEndX()const;
-   inline double GetStartY()const;
-   inline double GetEndY()const;
-   inline void Equalize(const TwoPoints* source);
+   bool IsSpatialExtension(const TwoPoints* TP) const;
+   double Speed(const RelInterval interval) const;
+   double GetStartX()const; 
+   double GetEndX()const;
+   double GetStartY()const;
+   double GetEndY()const;
+   void Equalize(const TwoPoints* source);
   private:
       double startX;
       double startY;
@@ -1172,7 +1165,6 @@ class TwoPoints{
 };
 
 /*
-2.3.7.2 The LinearPointsMove Class
 
 
 If we take the structure for units of fixed size for moving points 
@@ -1239,7 +1231,7 @@ class LinearPointsMove{
 };
 
 /*
-2.3.7.3 ArrayRange
+2.3.7.3 ~ArrayRange~
 
 This is a very simple class providing a range in an array
 represented by the minimum and maximum index in this array.
@@ -1255,13 +1247,14 @@ class ArrayRange {
 
 
 /*
-2.3.8 The Class PMSimple
+2.3.8 ~PMSimple~
 
 This class represents a simple periodic moving type.
-The managed type is T, the used unit representation is defined by Unit.
-This template can be used for all type with an unit representation of
-fixed size without any further summarizing attributes (e.g. bounding box)
-in the nodes of the repetition tree.
+The managed type is __T__, the used unit representation is defined by Unit.
+This template can be used for all types with a unit representation of
+fixed size (without FLOBs).
+This class provides no functionality to add further informations, e.g. 
+bounding box, to the nodes of the repetition tree.
 
 */
 template <class T, class Unit>
@@ -1412,17 +1405,19 @@ class PMSimple : public StandardAttribute {
      Just call this function after the object is changed.
     */
     void CorrectDurationSums();
-
-
-
 };
+
+// include the implementation
+}
+#include "PMSimple.h"
+namespace periodic{
 
 
 /*
-2.3.9 The Class PMBool
+2.3.9 ~PMBool~
 
-This class is just an instantiation of the
-PMSimple class.
+This class is an extension of the
+~PMSimple~ class.
 
 */
 class PMBool: public PMSimple<bool,LinearConstantMove<bool> >{
@@ -1448,10 +1443,9 @@ class PMBool: public PMSimple<bool,LinearConstantMove<bool> >{
 };
 
 /*
-2.3.10 The class PMReal
+2.3.10 ~PMReal~
 
-This class is an instantiation of the 
-PMSimple class.
+This class is a simple extension of the ~PMSimple~ class.
 
 */
 
@@ -1526,10 +1520,10 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
 
 
 /*
-2.3.11 The Class PMInt9M
+2.3.11 ~PMInt9M~
 
 This class is derived from an instatiation of the
-PMSimple class. 
+~PMSimple~ class. 
 
 */
 class PMInt9M : public PMSimple<Int9M,LinearInt9MMove> {
@@ -1562,7 +1556,7 @@ public:
 
 
 /*
-2.3.12 The Class PMPoint
+2.3.12 ~PMPoint~
 
 This class represents a single periodic moving point.
 
@@ -1625,11 +1619,11 @@ class PMPoint : public StandardAttribute {
      void PrintArrayContents();
      void SpeedAndDirection(bool isSpeed,PMReal& result) const;
 
-     inline size_t NumberOfNodes() const;
-     inline size_t NumberOfPeriodicNodes()const;
-     inline size_t NumberOfUnits() const;
-     inline size_t NumberOfCompositeNodes()const;
-     inline size_t NumberOfFlatUnits() const; 
+     size_t NumberOfNodes() const;
+     size_t NumberOfPeriodicNodes()const;
+     size_t NumberOfUnits() const;
+     size_t NumberOfCompositeNodes()const;
+     size_t NumberOfFlatUnits() const; 
      double Length()const;
      void Length(CcReal& res)const;
      static bool CheckKind(ListExpr type, ListExpr& errorInfo){
@@ -1701,7 +1695,7 @@ class PMPoint : public StandardAttribute {
 
 
 /*
-2.3.13 The Class PMPoints
+2.3.13 ~PMPoints~
 
 This class represents a set of periodic moving points.
 
@@ -1730,7 +1724,7 @@ class PMPoints : public StandardAttribute {
      ListExpr ToListExpr(const ListExpr typeInfo)const;
      bool ReadFrom(const ListExpr value, const ListExpr typeInfo);
      bool IsEmpty()const;
-     inline Points* Breakpoints()const;
+     Points* Breakpoints()const;
      void Breakpoints(Points& res) const;
      
      Points* Breakpoints(const DateTime* duration,const bool inclusive)const;
@@ -1797,7 +1791,7 @@ class PMPoints : public StandardAttribute {
   };
 
 /*
-2.4.1.1 The class SimplePoint
+2.4.1.1 ~SimplePoint~
 
 This class provides a single point with
 coordinates in [R].
