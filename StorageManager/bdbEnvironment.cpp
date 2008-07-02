@@ -2,8 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and 
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,21 +30,23 @@ February 2003 Ulrich Telle, adjusted for Berkeley DB version 4.1.25
 
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
-October 2003 M. Spiekermann Startup modified. SecondoHome directory will be created if the
-configuration file contains no or a non-existent directory.
+October 2003 M. Spiekermann Startup modified. SecondoHome directory will be
+created if the configuration file contains no or a non-existent directory.
 
-April 2004 Hoffmann Changed some implementation details, so that the list databases
-command is available under Windows XP.
+April 2004 Hoffmann Changed some implementation details, so that the list
+databases command is available under Windows XP.
 
-August 2004 M. Spiekermann, A new parameter ~dontSyncDiskCache~ has been introduced to speed
-up closing files at the end of a query. The problem arised in the ~Array~ algebra. Since big arrays
-open many files a remarkable delay between the end of a query and the representation of the result
-was detected. Since a query changes no data on disk syncronisation is not neccessary.
+August 2004 M. Spiekermann, A new parameter ~dontSyncDiskCache~ has been
+introduced to speed up closing files at the end of a query. The problem arised
+in the ~Array~ algebra. Since big arrays open many files a remarkable delay
+between the end of a query and the representation of the result was detected.
+Since a query changes no data on disk syncronisation is not neccessary.
 
-August 26, 2004. M. Spiekermann removed the DB\_PRIVATE flag in the ~Startup~ of the Berkeley-DB Environment.
-This has two reasons. First the Berkeley-DB tools like db\_stat, db\_checkpoint etc. can not operate on
-such environments, and second environments produced by SecondoTTY and the Secondo-Server should now be more
-compatible.
+August 26, 2004. M. Spiekermann removed the DB\_PRIVATE flag in the ~Startup~
+of the Berkeley-DB Environment.  This has two reasons. First the Berkeley-DB
+tools like db\_stat, db\_checkpoint etc. can not operate on such environments,
+and second environments produced by SecondoTTY and the Secondo-Server should
+now be more compatible.
 
 
 */
@@ -139,7 +141,12 @@ SmiEnvironment::Implementation::~Implementation()
 DbHandleIndex
 SmiEnvironment::Implementation::AllocateDbHandle()
 {
+  static bool traceHandles =
+	        RTFlag::isActive("SMI:traceHandles") ? true : false;
   DbHandleIndex idx = instance.impl->firstFreeDbHandle;
+
+  if (traceHandles)
+    cerr << "Allocate: firstFree idx = " << idx;	  
 
   if ( idx == 0 )
   {
@@ -164,6 +171,10 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   new Db( instance.impl->bdbEnv, DB_CXX_NO_EXCEPTIONS );
   instance.impl->dbHandles[idx].inUse    = true;
   instance.impl->dbHandles[idx].nextFree = 0;
+
+  if (traceHandles)
+    cerr << "Allocate: returned idx = " << idx;	 
+
   return (idx);
 }
 
@@ -1110,23 +1121,33 @@ SmiEnvironment::ShutDown()
     instance.impl->bdbDatabases = 0;
   }
 
-  // --- Close and destroy temporary environment
+  // --- Remove the temporary environment
 
   rc = dbtmp->close( 0 );
   SetBDBError( rc );
-  string oldHome = FileSystem::GetCurrentFolder();
+
+  const char* tmpHome = strdup( instance.impl->tmpHome.c_str() );
+
+  // spm: for some reason the next command fails. This produces
+  // always an error message on shutdown. Maybe some handles are still
+  // open which should be fixed elsewhere. For now we will remove the directory
+  // using file system operations instead of Berkeley-DB API. 
+  
+  cerr << "Removing temporary Berkeley-DB environment " << tmpHome << endl; 
+  //rc = dbtmp->remove( tmpHome, 0 );
+  //SetBDBError( rc );
   FileSystem::SetCurrentFolder( instance.impl->bdbHome );
   FileSystem::EraseFolder( instance.impl->tmpHome );
-  FileSystem::SetCurrentFolder( oldHome );
+  FileSystem::SetCurrentFolder( instance.impl->bdbHome );
 
-  // --- Close Berkeley DB environment
+  // --- Close the Berkeley DB environment
 
   rc = dbenv->close( 0 );
   SetBDBError( rc );
   instance.impl->envClosed = true;
   smiStarted = false;
 
-  // --- Check error condition
+  // --- Check if new errors arised 
 
   bool ok = ( errs == GetNumOfErrors() );
   return ok;
