@@ -248,7 +248,7 @@ void* Cast(void* addr){
 }
 
 
-ListExpr GenProperty(string signature,
+static ListExpr GenProperty(string signature,
                      string example_type_list,
                      string list_rep,
                      string example_list,
