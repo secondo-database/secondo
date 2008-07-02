@@ -4,7 +4,7 @@
 % Some TPC-H queries in Secondo SQL syntax notated
 % as prolog facts.
 
-tpcQuery(1, select
+tpcQuery(tpc1, select
 	[ 
           count(*) as count_order,
           lreturnflag,
@@ -32,7 +32,8 @@ orderby
   ]
 ).
 
-tpcQuery(simple1, select
+
+tpcQuery(tpc1_simplified, select
 	[ 
       count(*) as count_order,
       lreturnflag,
@@ -50,7 +51,73 @@ groupby [
         ] 
 ).
 
-tpcQuery(10, select
+
+tpcQuery(tpc3, select
+  [ 
+    lorderkey,
+    sum(lextendedprice * (1 - ldiscount)) as revenue,
+    oorderdate,
+    oshippriority 
+  ]
+from
+	[ 
+    customer,
+    orders,
+    lineitem
+  ]
+where
+	[
+    cmktsegment = "BUILDING", 
+    ccustkey = ocustkey,
+    lorderkey = oorderkey 
+  ]
+groupby
+  [ 
+    lorderkey,
+    oorderdate,
+    oshippriority 
+  ]
+orderby
+  [ 
+    revenue desc,
+    oorderdate asc 
+  ]
+first 10
+).
+
+
+tpcQuery(tpc5, select
+       [
+        nname,
+        sum(lextendedprice * (1 - ldiscount)) as revenue
+       ]
+from
+       [
+        customer,
+        orders,
+        lineitem,
+        supplier,
+        nation,
+        region
+       ]
+where
+       [
+        ccustkey = ocustkey,
+        lorderkey = oorderkey,
+        lsuppkey = ssuppkey,
+        cnationkey = snationkey,
+        snationkey = nnationkey,
+        nregionkey = rregionkey,
+        rname = "ASIA", 
+	((oorderdate >= theInstant(1994,1,1)) and (oorderdate < theInstant(1995,1,1)))
+       ]
+groupby [ nname ]
+orderby [ revenue desc ]
+).
+
+
+
+tpcQuery(tpc10, select
       [
         ccustkey,
         cname,
@@ -91,71 +158,8 @@ orderby [ revenue desc]
 first 20 
 ).
 
-tpcQuery(5, select
-       [
-        nname,
-        sum(lextendedprice * (1 - ldiscount)) as revenue
-       ]
-from
-       [
-        customer,
-        orders,
-        lineitem,
-        supplier,
-        nation,
-        region
-       ]
-where
-       [
-        ccustkey = ocustkey,
-        lorderkey = oorderkey,
-        lsuppkey = ssuppkey,
-        cnationkey = snationkey,
-        snationkey = nnationkey,
-        nregionkey = rregionkey,
-        rname = "ASIA", 
-	((oorderdate >= theInstant(1994,1,1)) and (oorderdate < theInstant(1995,1,1)))
-       ]
-groupby [ nname ]
-orderby [ revenue desc ]
-).
 
-
-tpcQuery(3, select
-  [ 
-    lorderkey,
-    sum(lextendedprice * (1 - ldiscount)) as revenue,
-    oorderdate,
-    oshippriority 
-  ]
-from
-	[ 
-    customer,
-    orders,
-    lineitem
-  ]
-where
-	[
-    cmktsegment = "BUILDING", 
-    ccustkey = ocustkey,
-    lorderkey = oorderkey 
-  ]
-groupby
-  [ 
-    lorderkey,
-    oorderdate,
-    oshippriority 
-  ]
-orderby
-  [ 
-    revenue desc,
-    oorderdate asc 
-  ]
-first 10
-).
-
-
-tpcQueryExt(3.1, select
+tpcQueryExt(tpc3a, select
   [ 
     oorderdate,
     oshippriority 
@@ -173,7 +177,8 @@ where
 first 10
 ).
 
-tpcQueryExt(3.2, select
+
+tpcQueryExt(tpc3b, select
   [ 
     oorderdate,
     oshippriority 
@@ -192,8 +197,7 @@ first 10
 
 
 
-
-tpcQueryExt(3.3, select
+tpcQueryExt(tpc3c, select
   [ 
     oorderdate,
     oshippriority 
@@ -215,9 +219,8 @@ first 10
 
 
 
-
 % a variant of TPC-3 which includes some correlated predicates
-tpcQueryExt(correl1, select
+tpcQueryExt(tpc3_correlated, select
 	[ 
           cnationkey,
           count(*) as sumX
@@ -247,7 +250,7 @@ groupby [
 ).
 
 % a query which demonstrates the need of randomization
-tpcQueryExt(random1,
+tpcQueryExt(tpc_random1,
   
   select [ l1:ldiscount, l1:lorderkey, 
            l1:lsuppkey, l1:lcomment, 
@@ -264,7 +267,10 @@ tpcQueryExt(random1,
 
 
 
-%% simple binary joins
+/*
+tpcJP Some facts which encode simple binary joins
+
+*/
 
 tpcJP( bj1, part, ppartkey, partsupp, pspartkey).
 
@@ -281,15 +287,42 @@ tpcJP( bj5a, lineitem, lcommitdate, orders, oorderdate).
 
 tpcJP( bj6, customer, ccustkey, orders, ocustkey).
 
-tpcIndex( i1, lineitem, lorderkey ).
-tpcIndex( i2, orders, oorderkey ).
-tpcIndex( i3, partsupp, pssuppkey ).
 
 % a rule for creating equi join queries from the predicates
 % encoded in tpcJP.
 tpcQuery2( X, select count(*) from [ R1, R2 ] where A1 = A2 ) :-
   tpcJP( X, R1, A1, R2, A2 ).
   
+
+tpcGetQuery(No, X) :-
+  ( not(tpcQuery(No, X)), not(tpcQueryExt(No, X)), not(tpcQuery2(No, X)) ) 
+    -> write('There is no tpc query with label '), write(No), nl, fail
+     ; ( tpcQuery(No, X) ; tpcQueryExt(No, X) ; tpcQuery2(No, X) ).
+
+
+sql2Query(Term, Query) :-
+  defaultExceptionHandler((
+  isDatabaseOpen,
+  getTime( mOptimize(Term, Query, _), PlanBuild ),
+  nl, write('Optimization time: '), write(PlanBuild), nl
+  %%appendToRel('SqlHistory', Term, Query, Cost, PlanBuild, PlanExec)
+ )).
+
+
+tpc(No) :- tpcGetQuery(No, X), !, sql(X).
+tpcOptimize(No) :- tpcGetQuery(No, X), !, optimize(X).
+tpcAfterLookup(No) :- tpcGetQuery(No, X), callLookup(X,Y), !, write(Y).
+
+
+%%% 
+%%% Experiments
+%%%
+
+/*
+Derived Data
+
+*/
+
 tpcBigScan('query LINEITEM_512MB feed count').
 
 % create derived data if necessary
@@ -307,54 +340,45 @@ createIfNecessary(O) :-
   relation(O, _),	
   nl, write('Object '), write(O) , write(' is already present.'), nl.	
 
-createObjects :-
+createTPCObjects :-
   findall([O], createIfNecessary(O), _).
 
 
+/*
+Index Definitions
 
-tpcGetQuery(No, X) :-
-  ( not(tpcQuery(No, X)), not(tpcQuery2(No, X)) ) 
-    -> write('There is no tpc query with label '), write(No), nl, fail 
-     ; ( tpcQuery(No, X) ; tpcQuery2(No, X)).
+*/
 
-%tpcGetQuery(No, X) :-
-% tpcQuery(No, X).
-
-
-sql2Query(Term, Query) :-
-  defaultExceptionHandler((
-  isDatabaseOpen,
-  getTime( mOptimize(Term, Query, _), PlanBuild ),
-  nl, write('Optimization time: '), write(PlanBuild), nl
-  %%appendToRel('SqlHistory', Term, Query, Cost, PlanBuild, PlanExec)
- )).
+tpcIndex( i1, lineitem, lorderkey ).
+tpcIndex( i2, orders, oorderkey ).
+tpcIndex( i3, partsupp, pssuppkey ).
 
 
-tpc(No) :- tpcGetQuery(No, X), !, sql(X), !.
+indexCmd(Rel, Attr, Q) :-
+  rel_to_atom2(Rel, Rel_A),
+  attr_to_atom(Rel, Attr, Attr_A),
+  downcase_first(Rel_A, Rel_Adown),
+  concat_atom([ 'let ', Rel_Adown, '_', Attr_A, ' = ', 
+                Rel_A, ' createbtree[', Attr_A, ']' ], Q).
 
-tpc(No) :- tpcQuery2(No, X), sql(X).
+createIndex(X) :-
+  tpcIndex(X, Rel, Attr), 
+  indexCmd(Rel, Attr, Q),
+  runQuery(Q).
 
-
-tpcOptimize(No) :- tpcGetQuery(No, X), !, optimize(X).
-tpcAfterLookup(No) :- tpcGetQuery(No, X), callLookup(X,Y), !, write(Y).
-
-
-tpcOptimize2(No) :- tpcQuery2(No, X), optimize(X).
-tpcPlan2 :-
-  findall( No, tpcOptimize2(No), L ), nl, write(L), nl.
-
-tpcRun2 :-
-  findall( No, tpcOptimize2(No), L ), nl, write(L), nl.
-
+createIndexes :-
+  findall(X, createIndex(X), _).
 
 
-tpcCorrel(N) :-
-  tpcCorrelated(N, T), sql(T). 
+prepareTPC :-
+  createTPCObjects,	
+  createIndexes.  
 
-%%% 
-%%% Experiments
-%%%
 
+/*
+Auxiliary Functions
+
+*/
 
 attr_to_atom( Rel, Attr, Atom) :-
   spelled(Rel:Attr, attr(Name, Arg, Case)),
@@ -366,6 +390,12 @@ rel_to_atom2( Rel, Atom) :-
 
 sampleRel(RelAtom, S) :-
   concat_atom([RelAtom, '_sample_j'], S).
+
+/*
+
+Clauses for Query Construction
+
+*/
 
 
 joinTerm(smj, R1, R2, A1, A2, Term) :-
@@ -402,74 +432,10 @@ histaggr(Attr, Width, Ntuples, Result) :-
      ' groupby[Bucket; Percent: . count / ', Ntuples ,'] consume'], Result ).
 
 
-% the dynamic predicate ~flag~ a tool for setting and querying options.
+%% queries for an index scan
 
-:- dynamic flag/2,
-   clearflags.
-
-clearflags :-
-  retractall( flag(_,_) ).
-
-setflag(F) :- assert( flag(F, on) ).
-clearflag(F) :- retractall( flag(F, _) ).
-
-showflag( [F, Val], _ ) :-
-  nl, write(F), write(' --> '), write(Val), nl.	
-
-
-showflags :-
-  findall( [X, Y], flag(X, Y), L),
-  maplist( showflag, L, _).  
-  	
-
-
-showQuery(Q) :-
-  nl, write(Q), nl.
-
-runQuery(Q) :-
-  flag(runMode, on),
-  nl, write('Executing '), write(Q), write(' ...'), nl, 	
-  secondo(Q), !.
-
-runQuery(Q) :-
-  showQuery(Q).
-
-
-runQuery(Q, Res) :-
-  flag(runMode, on),
-  nl, write('Executing '), write(Q), write(' ...'), nl, 	
-  secondo(Q, [_, Res]), 
-  nl, write('Result: '), write(Res), nl, !. 
-
-runQuery(Q, Res) :-
-  showQuery(Q),
-  Res = 999,
-  nl, write('Dummy-Result: '), write(Res), nl. 
-
-
-
-letIndex(Rel, Attr, Q) :-
-  rel_to_atom2(Rel, Rel_A),
-  attr_to_atom(Rel, Attr, Attr_A),
-  concat_atom([ 'let ', Rel_A, '_', Attr_A, ' = ', 
-                Rel_A, ' createbtree[', Attr_A, ']' ], Q).
-
-createIndex(X) :-
-  tpcIndex(X, Rel, Attr), 
-  letIndex(Rel, Attr, Q),
-  runQuery(Q).
-
-createIndexes :-
-  findall(X, createIndex(X), _).
-
-findop(O) :-
-  concat_atom([ 'query SEC2OPERATORINFO feed filter[.Name contains "', 
-                O, '"] consume' ], Q),
-  runQuery(Q).  
-
-% to do: small index names !!!
 indexScan(Value, Q) :- 
-  concat_atom(['query lineitem_lORDERKEY LINEITEM leftrange[', Value, ']'], Q). 
+  concat_atom(['query lINEITEM_lORDERKEY LINEITEM leftrange[', Value, ']'], Q). 
 
 
 getSuffix(shuffle, ' shuffle3 count').
@@ -481,7 +447,7 @@ indexQuery(Value, Q, S) :-
   concat_atom([Q_tmp, Q_tmp2], Q).
 
 
-% rules for running a query which have a cache clearing effect.
+% rules for running a query which has a cache clearing effect.
 
 clearCache :-
   tpcBigScan(Q),
@@ -512,21 +478,6 @@ compareIndexScans(L) :-
   indexScanRun(clear_cache, shuffle, L),	
   indexScanRun(clear_cache, no_shuffle, L),	
   cmdHist2File('indexscan_clear_cache.csv'). 
-
-
-
-% dump the command history to a given file name
-
-cmdHist2File(Name) :-
-  concat_atom(['query SEC2COMMANDS feed '], Q),
-  dumpQueryResult2File(Q, Name, Q2),
-  runQuery(Q2).
-    
-% dump the result of a secondo query to a CSV file
-
-dumpQueryResult2File(Q, File, Q2) :-
-  concat_atom([Q, ' dumpstream["', File, '","|"] tconsume'], Q2).
-
 
 
 % create a relation wich contains 3 histograms
@@ -562,7 +513,6 @@ createOutputs(X) :-
   concat_atom([X, '_hists.csv'], File2),
   dumpQueryResult2File(Q3, File2, Q4),  
   runQuery(Q4).
-
 
 
 histquery(Jointype, R1, R2, A1, A2, File):-
@@ -632,10 +582,6 @@ experiment(compare_tpc, 'Run TPC-H queries with and without adaptive join').
 experiment(compare_tpc_idx, 'Run TPC-H queries with and without adaptive join, use of indexes is allowed').
 
 
-
-
-
-
 showExperiment(X, Y) :-
   experiment(X, Y),
   nl, write(X), write(':'), 
@@ -664,32 +610,47 @@ compare_index_scans :-
 
 
 runtpc(Id) :-	
-  tpcQuery(Id, Q) ; tpcQueryExt(Id, Q),
+  nl, write('*** Test Query '), write(Id), write(' ***'), nl, nl, 
+  (tpcQuery(Id, Q) ; tpcQueryExt(Id, Q)),
   sql2Query(Q, Cmd),
   runQuery(Cmd).
 
 runtpc(_).
 
+runtpc2(Id) :-	
+  runtpc(Id),	
+  getSizes(L, Format),
+  concat_atom([Id, '_checkSizes.csv'], Name),
+  dumpTuples2File(Name, L, Format),
+  getPredOrder(L2, Format2),
+  concat_atom([Id, '_predOrder.csv'], Name2),
+  dumpTuples2File(Name2, L2, Format2).
 
-compare_tpc_queries(Param) :-	
-  Q = [3, 5, 10, correl1, random1],
+runtpc2(_).
+
+compare_tpc_queries(Param, Q) :-	
   delOption(adaptiveJoin),
   setOption(useCounters),
   setOption(noSymmjoin),
+  setOption(noprogress),
   (Param = useIndex -> delOption(noIndex) 
                       ; setOption(noIndex) ),
   checklist(runtpc, Q), !,
-  setOption(adaptiveJoin),  
-  checklist(runtpc, Q). 
+  setOption(adaptiveJoin),
+  delOption(useCounters),  
+  checklist(runtpc2, Q). 
 
 compare_tpc :-
-  compare_tpc_queries(noIndex).
+  Q = [tpc3, tpc5, tpc10, tpc3_correlated, tpc_random1],
+  compare_tpc_queries(noIndex, Q).
 
 compare_tpc_idx :-
-  compare_tpc_queries(useIndex).
+  Q = [tpc10],
+  compare_tpc_queries(useIndex, Q).
 
 
-runAll :-
+checkAll :-
+  clearflag(runMode),	
   findall(X, showExperiment(X,_), L),
   checklist(call, L).   
   
