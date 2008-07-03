@@ -161,7 +161,7 @@ Precondition: DBState = dbClosed.
   bool ok = false;
   if ( testMode )
   {
-    if ( SmiEnvironment::IsDatabaseOpen() )
+    if ( IsDatabaseOpen() )
     {
       cerr << " CreateDatabase: database is already open!" << endl;
       exit( 0 );
@@ -196,7 +196,7 @@ Precondition: dbState = dbClosed.
 
 */
   bool ok = false;
-  if ( SmiEnvironment::IsDatabaseOpen() )
+  if ( IsDatabaseOpen() )
   {
     cerr << " DestroyDatabase: database is already open!" << endl;
   }
@@ -217,7 +217,7 @@ Precondition: dbState = dbClosed.
 
 */
   SI_Error ok = ERR_NO_ERROR;
-  if ( testMode && SmiEnvironment::IsDatabaseOpen() )
+  if ( testMode && IsDatabaseOpen() )
   {
     cerr << " OpenDatabase: database is already open!" << endl;
     exit( 0 );
@@ -250,7 +250,7 @@ Closes the actually opened database. All open segments are closed and the alloca
 Precondition: dbState = dbOpen.
 
 */
-  if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
+  if ( testMode && !IsDatabaseOpen() )
   {
     cerr << " CloseDatabase: database is already closed!" << endl;
     assert( false );
@@ -264,7 +264,7 @@ bool
 SecondoSystem::IsDatabaseOpen()
 {
 /*
-Returns the state of the database ~state~.
+Returns the state of the database.
 
 */
   return (SmiEnvironment::IsDatabaseOpen());
@@ -310,7 +310,7 @@ Precondition: dbState = dbOpen.
   string typeName = "";
   string typeExprString="";
 
-  if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
+  if ( testMode && !IsDatabaseOpen() )
   {
     cerr << " SaveObject: database is not open!" << endl;
     exit( 0 );
@@ -361,7 +361,7 @@ Returns error 1 if there was a problem in writing the file.
 Precondition: dbState = dbOpen.
 
 */
-  if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
+  if ( testMode && !IsDatabaseOpen() )
   {
     cerr << " SaveDatabase: database is not open!" << endl;
     exit( 0 );
@@ -408,7 +408,7 @@ Precondition: dbState = dbOpen.
   
   int rc = 0;
 
-  if ( testMode && !SmiEnvironment::IsDatabaseOpen() )
+  if ( testMode && !IsDatabaseOpen() )
   {
     cerr << " RestoreObjectFromFile: database is not open!" << endl;
     exit( 0 );
@@ -482,7 +482,7 @@ Precondition: dbState = dbClosed.
   ListExpr types, objects;
   SI_Error rc = ERR_NO_ERROR;
 
-  if ( testMode && SmiEnvironment::IsDatabaseOpen() )
+  if ( testMode && IsDatabaseOpen() )
   {
     cerr << " RestoreDatabase: database is not closed!" << endl;
     assert( false );
@@ -556,6 +556,7 @@ Load database types and objects from file named ~filename~.
           {
             rc = ERR_IN_DEFINITIONS_FILE; // Error in types or objects
           }
+	  SmiEnvironment::UpdateCatalog();
         }
         else
         {
@@ -824,13 +825,29 @@ SecondoSystem::StartUp()
 bool
 SecondoSystem::ShutDown()
 {
+  if ( secondoSystem->IsDatabaseOpen() ) {
+     secondoSystem->CloseDatabase();
+  }
+
   if ( secondoSystem->initialized )
   {
     secondoSystem->algebraManager->UnloadAlgebras();
     delete secondoSystem->catalog;
     secondoSystem->catalog = 0;
-    secondoSystem->initialized   = false;
+    secondoSystem->initialized  = false;
   }
+
+  if ( !SmiEnvironment::ShutDown() )
+  {
+      string errMsg;
+      const string bullet(" - ");
+      SmiEnvironment::GetLastErrorCode( errMsg );
+      cmsg.error() << bullet << "Error: SmiEnvironment::ShutDown() failed."
+                   << endl;
+      cmsg.error() << bullet << "Error: " << errMsg << endl;
+      cmsg.send();
+  }
+
   return (!secondoSystem->initialized);
 }
 

@@ -295,13 +295,17 @@ int createObj(string& objName, ListExpr valueExpr) {
   }
   else
   {
-    qp.Construct( valueExpr, correct, evaluable, defined,
-                  isFunction, tree, resultType );
-    if ( !defined )
-    {
-      rc = 8;      // Undefined object value in expression
+    try 
+    {	  
+      qp.Construct( valueExpr, correct, evaluable, defined,
+                    isFunction, tree, resultType );
     }
-    else if ( correct )
+    catch (SI_Error err) 
+    {
+      rc = err;	    
+    }	    
+
+    if ( correct )
     {
       if ( evaluable || isFunction )
       {
@@ -337,14 +341,6 @@ int createObj(string& objName, ListExpr valueExpr) {
           ctlg.UpdateObject( objName, SetWord( valueExpr ) );
         }
       }
-      else
-      {
-        rc = 3;   // Expression not evaluable
-      }
-    }
-    else
-    {
-      rc = 2;    // Error in expression
     }
   }  
   return rc;

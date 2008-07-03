@@ -2591,6 +2591,8 @@ QueryProcessor::Subtree( const ListExpr expr,
     typeOfAnnotation = nl->Second(nl->First( expr ));
     cls = cls && nl->AtomType(typeOfAnnotation) == SymbolType;
     symbolForOperatorOrObject = nl->First(nl->First( expr ));
+
+
   }
 
   if (!cls)
@@ -2704,7 +2706,7 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.resultAlgId = 0;
       node->u.op.counterNo = 0;
       node->u.op.supportsProgress =
-  algebraManager->getOperator(algebraId, opId)->SupportsProgress();
+      algebraManager->getOperator(algebraId, opId)->SupportsProgress();
 
       if (traceNodes)
       {
@@ -3014,79 +3016,69 @@ abstraction. In this case, it is not evaluable, but we may want to store
 the function in a database object.
 
 */
+  correct = false;
+  evaluable = false;
+  isFunction = false;
+
   ListExpr list = nl->TheEmptyList();
-
   list = AnnotateX( expr, defined );
-  if ( nl->ListLength( list ) >= 2 )
+
+  if ( nl->ListLength( list ) < 2 ) {
+    DestroyValuesArray();
+    throw ERR_IN_QUERY_EXPR;
+  }	  
+
+  resultType = nl->Second( list );
+  if ( TypeOfSymbol(resultType) == QP_TYPEERROR )
+  {   // check if a type error was detected
+      DestroyValuesArray();
+      throw ERR_IN_QUERY_EXPR;
+  }
+
+  // Make a consistency check of the annotated list structure.
+  // There should be no typeerror symbol in the list. This may
+  // be helpful to detect bugs in the annotate function.
+
+  vector<ListExpr> allAtoms;
+  nl->ExtractAtoms( resultType, allAtoms );
+
+  for ( vector<ListExpr>::const_iterator it = allAtoms.begin();
+	it != allAtoms.end();
+	it++ )
   {
-    bool listOk = true;
-    resultType = nl->Second( list );
-
-    if ( TypeOfSymbol(resultType) == QP_TYPEERROR )
-    { // check if a type error was detected
-      listOk = false;
-    }
-    else
+    if ( nl->AtomType(*it) == SymbolType &&
+	 TypeOfSymbol(*it) == QP_TYPEERROR )
     {
-      // Make a consistency check of the annotated list structure.
-      // There should be no typeerror symbol in the list. This may
-      // be helpful to detect bugs in the annotate function.
-
-      vector<ListExpr> allAtoms;
-      nl->ExtractAtoms( resultType, allAtoms );
-
-      for ( vector<ListExpr>::const_iterator it = allAtoms.begin();
-            it != allAtoms.end();
-            it++ )
-      {
-        if ( nl->AtomType(*it) == SymbolType &&
-             TypeOfSymbol(*it) == QP_TYPEERROR )
-        {
-          listOk = false;
-          cerr << endl
-               << "Annotated list contains a \"typeerror\" symbol, "
-                  "hence the result type should be \"typeerror\"."
-                  "Maybe there is a bug in some operators type map "
-                  "function or in the annotate function of the "
-                  "query processor." << endl;
-          break;
-        }
-      }
-    }
-
-    if ( !listOk )
-    {
-      correct = false;
-      evaluable = false;
-      isFunction = false;
       DestroyValuesArray();
-    }
-    else if( !defined )
-    {
-      correct = true;
-      evaluable = false;
-      isFunction = false;
-      DestroyValuesArray();
-    }
-    else
-    {
-      correct = true;
-
-      tree = SubtreeX( list );
-      QueryTree = tree;
-      ResetCounters();
-
-      evaluable = tree->evaluable;
-      isFunction = (tree->nodetype == Operator) ?
-                     tree->u.op.isFun : false;
+      cerr << endl
+	   << "Annotated list contains a \"typeerror\" symbol, "
+	      "hence the result type should be \"typeerror\"."
+	      "Maybe there is a bug in some operators type map "
+	      "function or in the annotate function of the "
+	      "query processor." << endl;
+      throw ERR_IN_QUERY_EXPR;
     }
   }
-  else
+
+  correct = true;
+  if( !defined )
   {
-    correct = false;
-    evaluable = false;
-    isFunction = false;
+    DestroyValuesArray();
+    throw ERR_UNDEF_OBJ_VALUE;
   }
+
+  tree = SubtreeX( list );
+  QueryTree = tree;
+  ResetCounters();
+
+  evaluable = tree->evaluable;
+  isFunction = (tree->nodetype == Operator) ?
+		 tree->u.op.isFun : false;
+
+  if (!evaluable && !isFunction) {
+    throw ERR_EXPR_NOT_EVALUABLE;
+  }	
+
 }
 
 void

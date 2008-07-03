@@ -783,6 +783,9 @@ Allows to set an SmiError code and a system error code or an error message.
   static bool GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi);
 
 
+  static void UpdateCatalog();
+
+
  private:
 
   SmiEnvironment();

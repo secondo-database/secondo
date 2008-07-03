@@ -451,17 +451,14 @@ SecondoInterface::Terminate()
       SecondoSystem::AbortTransaction();
       activeTransaction = false;
     }
-    // --- Close database, if one is open
-    if ( SecondoSystem::GetInstance()->IsDatabaseOpen() )
-    {
-      SecondoSystem::GetInstance()->CloseDatabase();
-    }
+
     if ( derivedObjPtr != 0 ) { // The destructor closes a relation object
       cmsg.info() << "Closing system tables ..." << endl;
       cmsg.send();
       delete derivedObjPtr;
       derivedObjPtr = 0;
     }
+
     if ( !SecondoSystem::ShutDown() )
     {
       cmsg.error() << bullet << "Error: SecondoSytem::Shutdown() failed."
@@ -474,16 +471,7 @@ SecondoInterface::Terminate()
       ss = 0;
     }
 
-    if ( !SmiEnvironment::ShutDown() )
-    {
-      string errMsg;
-      SmiEnvironment::GetLastErrorCode( errMsg );
-      cmsg.error() << bullet << "Error: SmiEnvironment::ShutDown() failed."
-                   << endl;
-      cmsg.error() << bullet << "Error: " << errMsg << endl;
-      cmsg.send();
-         }
-    initialized = false;
+     initialized = false;
     activeTransaction = false;
     nl = 0;
     al = 0;
@@ -1500,96 +1488,86 @@ SecondoInterface::Command_Query( const ListExpr list,
 
   StopWatch queryTime;
   StartCommand();
-  qp.Construct( nl.Second( list ), correct, evaluable, defined,
-                isFunction, tree, resultType );
 
+  try {
 
-  if (printQueryAnalysis) {
-    cmsg.info() << padStr("Analyze ...",20) << queryTime.diffTimes() << endl;
-    cmsg.send();
-    queryTime.start();
-  }
+    qp.Construct( nl.Second( list ), correct, evaluable, defined,
+                  isFunction, tree, resultType );
 
-  if ( !defined ) // Undefined object value
-  {
-    errorCode = ERR_UNDEF_OBJ_VALUE;
-  }
-
-  if ( !correct ) // Error in query
-  {
-    errorCode = ERR_IN_QUERY_EXPR;
-  }
-
-  if ( !evaluable && !isFunction )
-  {
-    errorCode = ERR_EXPR_NOT_EVALUABLE;  // Query not evaluable
-  }
-
-  if ( evaluable )
-  {
-     if (printQueryAnalysis) {
-       cmsg.info() << padStr("Execute ...",20);
-       cmsg.send();
-     }
-
-     qp.ResetTimer();
-
-     qp.EvalP( tree, result, 1 );
-
-     queryReal = queryTime.diffSecondsReal();
-     queryCPU = queryTime.diffSecondsCPU();
-     if (printQueryAnalysis)
-     {
-       showTimes(queryReal, queryCPU);
-     }
-
-     StopWatch outObj;
-     ListExpr valueList = ctlg.OutObject( resultType, result );
-
-     if (printQueryAnalysis)
-     {
-       cmsg.info() << padStr("OutObject ...",20) << outObj.diffTimes() << endl;
-       cmsg.send();
-     }
-     outObjReal = outObj.diffSecondsReal();
-
-     resultList = nl.TwoElemList( resultType, valueList );
-
-     StopWatch destroyTime;
-     qp.Destroy( tree, true );
-     if ( RTFlag::isActive("SI:DestroyOpTreeTime") ) {
-       cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
-       cmsg.send();
-     }
-
-
-
-
-     if (RTFlag::isActive("NL:MemInfo"))
-     {
-       cmsg.info() << nl.ReportTableSizes(true) << endl;
-       cmsg.send();
-     }
-     else
-     {
-       nl.ReportTableSizes(false);
-     }
-
-  }
-
-  if ( isFunction ) // abstraction or function object
-  {
-    ListExpr second = nl.Second( list );
-    if ( nl.IsAtom( second ) )  // function object
-    {
-      ListExpr valueList = ctlg.GetObjectValue( nl.SymbolValue( second ) );
-      resultList = nl.TwoElemList( resultType, valueList );
+    if (printQueryAnalysis) {
+      cmsg.info() << padStr("Analyze ...",20) << queryTime.diffTimes() << endl;
+      cmsg.send();
+      queryTime.start();
     }
-    else
+
+    if ( evaluable )
     {
-      resultList = nl.TwoElemList( resultType, second );
+       if (printQueryAnalysis) {
+	 cmsg.info() << padStr("Execute ...",20);
+	 cmsg.send();
+       }
+
+       qp.ResetTimer();
+
+       qp.EvalP( tree, result, 1 );
+
+       queryReal = queryTime.diffSecondsReal();
+       queryCPU = queryTime.diffSecondsCPU();
+       if (printQueryAnalysis)
+       {
+	 showTimes(queryReal, queryCPU);
+       }
+
+       StopWatch outObj;
+       ListExpr valueList = ctlg.OutObject( resultType, result );
+
+       if (printQueryAnalysis)
+       {
+	 cmsg.info() << padStr("OutObject ...",20) 
+	             << outObj.diffTimes() << endl;
+	 cmsg.send();
+       }
+       outObjReal = outObj.diffSecondsReal();
+
+       resultList = nl.TwoElemList( resultType, valueList );
+
+       StopWatch destroyTime;
+       qp.Destroy( tree, true );
+       if ( RTFlag::isActive("SI:DestroyOpTreeTime") ) {
+	 cmsg.info() << "Destroy " << destroyTime.diffTimes() << endl;
+	 cmsg.send();
+       }
+
+       if (RTFlag::isActive("NL:MemInfo"))
+       {
+	 cmsg.info() << nl.ReportTableSizes(true) << endl;
+	 cmsg.send();
+       }
+       else
+       {
+	 nl.ReportTableSizes(false);
+       }
+
     }
-  }
+
+    if ( isFunction ) // abstraction or function object
+    {
+      ListExpr second = nl.Second( list );
+      if ( nl.IsAtom( second ) )  // function object
+      {
+	ListExpr valueList = ctlg.GetObjectValue( nl.SymbolValue( second ) );
+	resultList = nl.TwoElemList( resultType, valueList );
+      }
+      else
+      {
+	resultList = nl.TwoElemList( resultType, second );
+      }
+    }
+
+  } catch (SI_Error err) {
+    
+    errorCode = err;
+  }  
 
   qp.Destroy( tree, true );
   SmiEnvironment::SetFlag_NOSYNC(true);
@@ -1678,7 +1656,6 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
 
   if ( sys.IsDatabaseOpen() )
   {
-    {
       StartCommand();
       string objName = nl.SymbolValue( nl.Second( list ) );
       ListExpr valueExpr = nl.Fourth( list );
@@ -1693,58 +1670,49 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
       }
       else
       {
+        try {
+
         qp.Construct( valueExpr, correct, evaluable, defined,
                       isFunction, tree, resultType );
 
-        if ( !defined ) // Undefined object value in expression
-        {
-          errorCode = ERR_UNDEF_OBJ_VALUE;
-        }
-        else if ( correct )
-        {
-          if ( evaluable || isFunction )
-          {
-            string typeName = "";
-            ctlg.CreateObject(objName, typeName, resultType, 0);
-          }
-          if ( evaluable )
-          {
-            qp.EvalP( tree, result, 1 );
+	if ( evaluable || isFunction )
+	{
+	  string typeName = "";
+	  ctlg.CreateObject(objName, typeName, resultType, 0);
+	}
+	if ( evaluable )
+	{
+	  qp.EvalP( tree, result, 1 );
 
-            if( IsRootObject( tree ) && !IsConstantObject( tree ) )
-            {
-              ctlg.CloneObject( objName, result );
-              qp.Destroy( tree, true );
-            }
-            else
-            {
-              ctlg.UpdateObject( objName, result );
-              qp.Destroy( tree, false );
-            }
-          }
-          else if ( isFunction ) // abstraction or function object
-          {
-            if ( nl.IsAtom( valueExpr ) )  // function object
-            {
-               ListExpr functionList = ctlg.GetObjectValue(
-                                              nl.SymbolValue( valueExpr ) );
-               ctlg.UpdateObject( objName, SetWord( functionList ) );
-            }
-            else
-            {
-               ctlg.UpdateObject( objName, SetWord( valueExpr ) );
-            }
-          }
-          else // Expression not evaluable
-          {
-            errorCode = ERR_EXPR_NOT_EVALUABLE;
-          }
-        }
-        else // Error in expression
-        {
-          errorCode = ERR_IN_QUERY_EXPR;
-        }
-      }
+	  if( IsRootObject( tree ) && !IsConstantObject( tree ) )
+	  {
+	    ctlg.CloneObject( objName, result );
+	    qp.Destroy( tree, true );
+	  }
+	  else
+	  {
+	    ctlg.UpdateObject( objName, result );
+	    qp.Destroy( tree, false );
+	  }
+	}
+	else if ( isFunction ) // abstraction or function object
+	{
+	  if ( nl.IsAtom( valueExpr ) )  // function object
+	  {
+	     ListExpr functionList = ctlg.GetObjectValue(
+					    nl.SymbolValue( valueExpr ) );
+	     ctlg.UpdateObject( objName, SetWord( functionList ) );
+	  }
+	  else
+	  {
+	     ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+	  }
+	}
+      } catch (SI_Error err) {
+        
+	 errorCode = err;     
+         qp.Destroy( tree, true );
+      }	      
       FinishCommand( errorCode, errorMessage );
     }
   }
@@ -1782,82 +1750,73 @@ SecondoInterface::Command_Update( const ListExpr list, string& errorMessage )
 
   ListExpr resultType = nl.TheEmptyList();
 
-
   if ( sys.IsDatabaseOpen() )
   {
     {
       StartCommand();
       string objName = nl.SymbolValue( nl.Second( list ) );
       ListExpr valueExpr = nl.Fourth( list );
+
+      try {
+
+      if ( ctlg.IsSystemObject(objName) ) {
+	throw ERR_IDENT_RESERVED;
+      }
+      
+      if ( derivedObjPtr && derivedObjPtr->isDerived(objName) ) {
+	throw ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED;
+      }
+      
+      if ( !ctlg.IsObjectName( objName ) ) {
+	// identifier not a known object name
+	throw ERR_IDENT_UNKNOWN_OBJ;
+      }
+
       qp.Construct( valueExpr, correct, evaluable, defined,
                     isFunction, tree, resultType );
 
-      if ( !defined ) // Undefined object value in expression
-      {
-        errorCode = ERR_UNDEF_OBJ_VALUE;
+      
+      ListExpr typeExpr = ctlg.GetObjectTypeExpr( objName );
+      if ( !nl.Equal( typeExpr, resultType ) ) {
+	// types of object and expression do not agree
+	throw ERR_EXPR_TYPE_NEQ_OBJ_TYPE;
       }
-      else if ( correct )
-      {
-        if ( ctlg.IsSystemObject(objName) )
-        {
-          errorCode = ERR_IDENT_RESERVED;
-        }
-        else if ( derivedObjPtr && derivedObjPtr->isDerived(objName) )
-        {
-          errorCode = ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED;
-        }
-        else if ( !ctlg.IsObjectName( objName ) )
-        {
-          // identifier not a known object name
-          errorCode = ERR_IDENT_UNKNOWN_OBJ;
-        }
-        else
-        {
-          ListExpr typeExpr = ctlg.GetObjectTypeExpr( objName );
 
-          if ( !nl.Equal( typeExpr, resultType ) )
-          {
-            // types of object and expression do not agree
-            errorCode = ERR_EXPR_TYPE_NEQ_OBJ_TYPE;
-          }
-          else if ( evaluable )
-          {
-            qp.EvalP( tree, result, 1 );
-
-            if ( IsRootObject( tree ) && !IsConstantObject( tree ) )
-            {
-               ctlg.CloneObject( objName, result );
-               qp.Destroy( tree, true );
-            }
-            else
-            {
-               ctlg.UpdateObject( objName, result );
-               qp.Destroy( tree, false );
-            }
-          }
-          else if ( isFunction )   // abstraction or function object
-          {
-            if ( nl.IsAtom( valueExpr ) )  // function object
-            {
-              ListExpr functionList = ctlg.GetObjectValue(
-                                             nl.SymbolValue( valueExpr ) );
-              ctlg.UpdateObject( objName, SetWord( functionList ) );
-            }
-            else
-            {
-              ctlg.UpdateObject( objName, SetWord( valueExpr ) );
-            }
-          }
-          else // Expression not evaluable
-          {
-            errorCode = ERR_EXPR_NOT_EVALUABLE;
-          }
-        }
-      }
-      else // Error in expression
+      if ( evaluable )
       {
-        errorCode = ERR_IN_QUERY_EXPR;
+	qp.EvalP( tree, result, 1 );
+
+	if ( IsRootObject( tree ) && !IsConstantObject( tree ) )
+	{
+	   ctlg.CloneObject( objName, result );
+	   qp.Destroy( tree, true );
+	}
+	else
+	{
+	   ctlg.UpdateObject( objName, result );
+	   qp.Destroy( tree, false );
+	}
       }
+      else  // abstraction or function object
+      {
+	assert(isFunction);
+	if ( nl.IsAtom( valueExpr ) )  // function object
+	{
+	  ListExpr functionList = ctlg.GetObjectValue(
+					 nl.SymbolValue( valueExpr ) );
+	  ctlg.UpdateObject( objName, SetWord( functionList ) );
+	}
+	else
+	{
+	  ctlg.UpdateObject( objName, SetWord( valueExpr ) );
+	}
+      }
+
+      } catch (SI_Error err) {
+        
+	 errorCode = err;     
+         qp.Destroy( tree, true );
+      }	      
       FinishCommand( errorCode, errorMessage );
     }
   }

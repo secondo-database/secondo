@@ -597,13 +597,14 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
          (!onCommit && !entry.dropOnCommit) )
     {
       Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-      int ret;
-      if ( (ret = dbp->remove( ConstructFileName(
-                                     entry.fileId ).c_str(), 0, 0 )) != 0 )
-      {
-	SetBDBError(ret);
-        rc = ret;
-      }
+      
+      string file = ConstructFileName( entry.fileId );
+      //cerr << "Erasing file " << file << endl;
+      //cerr << "onCommit:" << onCommit << endl;
+      //cerr << "entry:" << entry.dropOnCommit << endl;
+      rc = dbp->remove( file.c_str(), 0, 0 );
+      
+      SetBDBError(rc);
       delete dbp;
     }
     instance.impl->bdbFilesToDrop.pop();
@@ -1105,11 +1106,7 @@ SmiEnvironment::ShutDown()
 
   // --- Close current database, if opened
 
-  if ( dbOpened )
-  {
-    CloseDatabase();
-  }
-  SmiEnvironment::Implementation::CloseDbHandles();
+  assert(!dbOpened);
 
   // --- Close Berkeley DB environment
 
@@ -1142,6 +1139,7 @@ SmiEnvironment::ShutDown()
 
   // --- Close the Berkeley DB environment
 
+  cerr << "Closing Berkeley-DB environment " << instance.impl->bdbHome << endl; 
   rc = dbenv->close( 0 );
   SetBDBError( rc );
   instance.impl->envClosed = true;
@@ -1247,23 +1245,25 @@ SmiEnvironment::CloseDatabase()
     SetError( E_SMI_DB_NOTOPEN );
     return (false);
   }
+  cerr << "Function CloseDatabase" << endl; 
+
 
   int    rc = 0;
   Db*    dbseq = instance.impl->bdbSeq;
   Db*    dbctl = instance.impl->bdbCatalog;
   Db*    dbidx = instance.impl->bdbCatalogIndex;
 
-  // --- Implicitly commit/abort transaction???
-
-  if ( instance.impl->txnStarted )
+  // --- Implicitly commit/abort transaction
+  if (instance.impl->txnStarted) 
   {
     CommitTransaction();
-//    AbortTransaction();
-  }
-  else
+  } 
+  else 
   {
+    SmiEnvironment::Implementation::UpdateCatalog(true);
     SmiEnvironment::Implementation::CloseDbHandles();
-  }
+    //SmiEnvironment::Implementation::EraseFiles( rc == 0 );
+  }  
 
   // --- Close Berkeley DB sequences
 
@@ -1272,9 +1272,9 @@ SmiEnvironment::CloseDatabase()
     rc = dbseq->close( 0 );
     SetBDBError( rc );
     delete dbseq;
+    dbseq = 0;
     instance.impl->bdbSeq = 0;
   }
-
 
   // --- Close Berkely DB filecatalog and associated index
 
@@ -1283,6 +1283,7 @@ SmiEnvironment::CloseDatabase()
     rc = dbctl->close( 0 );
     SetBDBError( rc );
     delete dbctl;
+    dbctl = 0;
     instance.impl->bdbCatalog = 0;
   }
 
@@ -1291,6 +1292,7 @@ SmiEnvironment::CloseDatabase()
     rc = dbidx->close( 0 );
     SetBDBError( rc );
     delete dbidx;
+    dbidx = 0;
     instance.impl->bdbCatalogIndex = 0;
   }
 
@@ -1391,6 +1393,14 @@ SmiEnvironment::BeginTransaction()
   return (rc == 0);
 }
 
+void
+SmiEnvironment::UpdateCatalog() {
+
+    SmiEnvironment::Implementation::UpdateCatalog( true );
+    SmiEnvironment::Implementation::CloseDbHandles();
+} 
+
+
 bool
 SmiEnvironment::CommitTransaction()
 {
@@ -1419,16 +1429,8 @@ SmiEnvironment::CommitTransaction()
            cerr << "Calling CloseDbHandles() ..." << endl;
     )
 
-    if ( rc == 0 )
-    {
-      SmiEnvironment::Implementation::CloseDbHandles();
-      SmiEnvironment::Implementation::EraseFiles( true );
-    }
-    else
-    {
-      SmiEnvironment::Implementation::CloseDbHandles();
-      SmiEnvironment::Implementation::EraseFiles( false );
-    }
+    SmiEnvironment::Implementation::CloseDbHandles();
+    SmiEnvironment::Implementation::EraseFiles( rc == 0 );
 
     LOGMSG( "SMI:DbHandles",
       cerr << "Time for CloseDbHandles(): " << closeTime.diffTimes() << endl;
