@@ -42,3 +42,9 @@ Number   : 1
 Signature: xtree x relation x hrect -> tuple stream
 Example  : query strassen creatextree[geoData] strassen windowintersects[[const hrect value (2 (9000.0 9000.0) (10000.0 10000.0))]] count
 Result   : 29
+
+Operator : nnscan
+Number   : 1
+Signature: xtree x relation x hpoint -> tuple stream
+Example  : query strassen creatextree[geoData] strassen nnscan[[const hpoint value (2 (0.0 0.0))]] head[30] count
+Result   : 30

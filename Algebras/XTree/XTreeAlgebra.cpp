@@ -689,15 +689,15 @@ int rangesearchHPoint_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  Search_LI *info;
+  Search_LI *li;
   switch (message)
   {
     case OPEN :
     {
       XTree *xtree = static_cast<XTree*>(args[0].addr);
 
-      info = new Search_LI( static_cast<Relation*>(args[1].addr));
-      local = SetWord(info);
+      li = new Search_LI(static_cast<Relation*>(args[1].addr));
+      local = SetWord(li);
 
       HPointAttr *attr =
           static_cast<HPointAttr*>(args[2].addr);
@@ -723,23 +723,23 @@ int rangesearchHPoint_VM(
       // metric as distance function
       searchRad *= searchRad;
 
-      xtree->rangeSearch(attr->hpoint(), searchRad, info->results);
-      info->initResultIterator();
+      xtree->rangeSearch(attr->hpoint(), searchRad, li->results);
+      li->initResultIterator();
 
-      assert(info->relation != 0);
+      assert(li->relation != 0);
       return 0;
     }
 
     case REQUEST :
     {
-      info = (Search_LI*)local.addr;
-      if(!info->defined)
+      li = (Search_LI*)local.addr;
+      if(!li->defined)
         return CANCEL;
 
-      TupleId tid = info->next();
+      TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -751,8 +751,8 @@ int rangesearchHPoint_VM(
 
     case CLOSE :
     {
-      info = (Search_LI*)local.addr;
-      delete info;
+      li = (Search_LI*)local.addr;
+      delete li;
       return 0;
     }
   }
@@ -767,15 +767,15 @@ int rangesearch_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  Search_LI *info;
+  Search_LI *li;
   switch (message)
   {
     case OPEN :
     {
       XTree *xtree = static_cast<XTree*>(args[0].addr);
 
-      info = new Search_LI( static_cast<Relation*>(args[1].addr));
-      local = SetWord(info);
+      li = new Search_LI(static_cast<Relation*>(args[1].addr));
+      local = SetWord(li);
 
       Attribute *attr = static_cast<Attribute*>(args[2].addr);
 
@@ -818,23 +818,23 @@ int rangesearch_VM(
         delete r;
       }
 
-      xtree->rangeSearch(p, searchRad, info->results);
-      info->initResultIterator();
+      xtree->rangeSearch(p, searchRad, li->results);
+      li->initResultIterator();
 
-      assert(info->relation != 0);
+      assert(li->relation != 0);
       return 0;
     }
 
     case REQUEST :
     {
-      info = (Search_LI*)local.addr;
-      if(!info->defined)
+      li = (Search_LI*)local.addr;
+      if(!li->defined)
         return CANCEL;
 
-      TupleId tid = info->next();
+      TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -846,8 +846,8 @@ int rangesearch_VM(
 
     case CLOSE :
     {
-      info = (Search_LI*)local.addr;
-      delete info;
+      li = (Search_LI*)local.addr;
+      delete li;
       return 0;
     }
   }
@@ -862,7 +862,7 @@ int nnsearchHPoint_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  Search_LI *info;
+  Search_LI *li;
 
   switch (message)
   {
@@ -870,8 +870,8 @@ int nnsearchHPoint_VM(
     {
       XTree *xtree = static_cast<XTree*>(args[0].addr);
 
-      info = new Search_LI( static_cast<Relation*>(args[1].addr));
-      local = SetWord(info);
+      li = new Search_LI(static_cast<Relation*>(args[1].addr));
+      local = SetWord(li);
 
       HPointAttr *attr = static_cast<HPointAttr*>(args[2].addr);
       int nnCount = static_cast<CcInt*>(args[3].addr)->GetValue();
@@ -889,23 +889,23 @@ int nnsearchHPoint_VM(
         return CANCEL;
       }
 
-      xtree->nnSearch(attr->hpoint(), nnCount , info->results);
-      info->initResultIterator();
+      xtree->nnSearch(attr->hpoint(), nnCount , li->results);
+      li->initResultIterator();
 
-      assert(info->relation != 0);
+      assert(li->relation != 0);
       return 0;
     }
 
     case REQUEST :
     {
-      info = (Search_LI*)local.addr;
-      if(!info->defined)
+      li = (Search_LI*)local.addr;
+      if(!li->defined)
         return CANCEL;
 
-      TupleId tid = info->next();
+      TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -917,8 +917,8 @@ int nnsearchHPoint_VM(
 
     case CLOSE :
     {
-      info = (Search_LI*)local.addr;
-      delete info;
+      li = (Search_LI*)local.addr;
+      delete li;
       return 0;
     }
   }
@@ -933,7 +933,7 @@ int nnsearch_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  Search_LI *info;
+  Search_LI *li;
 
   switch (message)
   {
@@ -941,8 +941,8 @@ int nnsearch_VM(
     {
       XTree *xtree = static_cast<XTree*>(args[0].addr);
 
-      info = new Search_LI( static_cast<Relation*>(args[1].addr));
-      local = SetWord(info);
+      li = new Search_LI(static_cast<Relation*>(args[1].addr));
+      local = SetWord(li);
 
       Attribute *attr = static_cast<Attribute*>(args[2].addr);
       int nnCount = static_cast<CcInt*>(args[3].addr)->GetValue();
@@ -978,23 +978,23 @@ int nnsearch_VM(
         delete r;
       }
 
-      xtree->nnSearch(p, nnCount , info->results);
-      info->initResultIterator();
+      xtree->nnSearch(p, nnCount , li->results);
+      li->initResultIterator();
 
-      assert(info->relation != 0);
+      assert(li->relation != 0);
       return 0;
     }
 
     case REQUEST :
     {
-      info = (Search_LI*)local.addr;
-      if(!info->defined)
+      li = (Search_LI*)local.addr;
+      if(!li->defined)
         return CANCEL;
 
-      TupleId tid = info->next();
+      TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -1006,8 +1006,169 @@ int nnsearch_VM(
 
     case CLOSE :
     {
-      info = (Search_LI*)local.addr;
-      delete info;
+      li = (Search_LI*)local.addr;
+      delete li;
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/********************************************************************
+1.1.1.1 nnscan[_]LI
+
+Local Info object for the nnscan value mapping.
+
+********************************************************************/
+struct nnscan_LI
+{
+  XTree *xtree;
+  Relation *relation;
+};
+
+/********************************************************************
+1.1.1.1 nnscanHPoint[_]VM
+
+********************************************************************/
+int nnscanHPoint_VM(
+        Word *args, Word &result, int message,
+        Word &local, Supplier s)
+{
+  nnscan_LI *li;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      li = new nnscan_LI();
+      li->xtree = static_cast<XTree*>(args[0].addr);
+      li->relation = static_cast<Relation*>(args[1].addr);
+      local = SetWord(li);
+
+      HPointAttr *attr = static_cast<HPointAttr*>(args[2].addr);
+      string typeName = static_cast<CcString*>(args[3].addr)->GetValue();
+
+      if (attr->dim() != li->xtree->dim())
+      {
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+            << "Operator nnscan:" << endl
+            << "The given hpoint has the dimension "
+            << attr->dim() << ", but the xtree contains "
+            << li->xtree->dim() << "-dimensional data!"
+            << seperator << endl;
+        cmsg.send();
+        return CANCEL;
+      }
+
+      li->xtree->nnscan_init(attr->hpoint());
+
+      assert(li->relation != 0);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      li = static_cast<nnscan_LI*>(local.addr);
+      TupleId tid = li->xtree->nnscan_next();
+      if(tid)
+      {
+        Tuple *tuple = li->relation->GetTuple(tid);
+        result = SetWord(tuple);
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      li = static_cast<nnscan_LI*>(local.addr);
+      li->xtree->nnscan_cleanup();
+      delete li;
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/********************************************************************
+1.1.1.1 nnscan[_]VM
+
+********************************************************************/
+int nnscan_VM(
+        Word* args, Word& result, int message, 
+        Word& local, Supplier s)
+{
+  nnscan_LI *li;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      li = new nnscan_LI();
+      li->xtree = static_cast<XTree*>(args[0].addr);
+      li->relation = static_cast<Relation*>(args[1].addr);
+      local = SetWord(li);
+
+      Attribute *attr = static_cast<Attribute*>(args[2].addr);
+      string typeName = static_cast<CcString*>(args[3].addr)->GetValue();
+
+      if (li->xtree->typeName() != typeName)
+      {
+        const string seperator = "\n" + string(70, '-') + "\n";
+        cmsg.error() << seperator
+            << "Operator nnscan:" << endl
+            << "Got an \"" << typeName << "\" attribute, but the "
+            << "xtree contains \"" << li->xtree->typeName()
+            << "\" attriubtes!" << seperator << endl;
+        cmsg.send();
+        return CANCEL;
+      }
+
+      HPoint *p;
+      if (li->xtree->getdataType() == 0)
+      { // use gethpoint function
+        HPointInfo info = HPointReg::getInfo(
+                typeName, li->xtree->getdataName());
+        p = info.getHPoint(attr);
+      }
+      else
+      { // use getbbox function
+        BBoxInfo info = BBoxReg::getInfo(
+                typeName, li->xtree->getdataName());
+        HRect *r = info.getBBox(attr);
+        p = new HPoint(r->center());
+        delete r;
+      }
+
+      li->xtree->nnscan_init(p);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      li = static_cast<nnscan_LI*>(local.addr);
+      TupleId tid = li->xtree->nnscan_next();
+      if(tid)
+      {
+        Tuple *tuple = li->relation->GetTuple(tid);
+        result = SetWord(tuple);
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      li = static_cast<nnscan_LI*>(local.addr);
+      li->xtree->nnscan_cleanup();
+      delete li;
       return 0;
     }
   }
@@ -1023,7 +1184,7 @@ int windowintersects_VM(
         Word *args, Word &result, int message,
         Word &local, Supplier s)
 {
-  Search_LI *info;
+  Search_LI *li;
 
   switch (message)
   {
@@ -1031,9 +1192,9 @@ int windowintersects_VM(
     {
       XTree *xtree = static_cast<XTree*>(args[0].addr);
 
-      info = new Search_LI(
+      li = new Search_LI(
           static_cast<Relation*>(args[1].addr));
-      local = SetWord(info);
+      local = SetWord(li);
 
       HRectAttr *attr =
           static_cast<HRectAttr*>(args[2].addr);
@@ -1051,23 +1212,23 @@ int windowintersects_VM(
         return CANCEL;
       }
 
-      xtree->windowIntersects(attr->hrect(), info->results);
-      info->initResultIterator();
+      xtree->windowIntersects(attr->hrect(), li->results);
+      li->initResultIterator();
 
-      assert(info->relation != 0);
+      assert(li->relation != 0);
       return 0;
     }
 
     case REQUEST :
     {
-      info = (Search_LI*)local.addr;
-      if(!info->defined)
+      li = (Search_LI*)local.addr;
+      if(!li->defined)
         return CANCEL;
 
-      TupleId tid = info->next();
+      TupleId tid = li->next();
       if(tid)
       {
-        Tuple *tuple = info->relation->GetTuple(tid);
+        Tuple *tuple = li->relation->GetTuple(tid);
         result = SetWord(tuple);
         return YIELD;
       }
@@ -1079,8 +1240,8 @@ int windowintersects_VM(
 
     case CLOSE :
     {
-      info = (Search_LI*)local.addr;
-      delete info;
+      li = (Search_LI*)local.addr;
+      delete li;
       return 0;
     }
   }
@@ -1313,6 +1474,44 @@ ListExpr windowintersects_TM(ListExpr args)
 }
 
 /********************************************************************
+1.1.1.1 nnscan[_]TM
+
+********************************************************************/
+ListExpr nnscan_TM(ListExpr args)
+{
+    // initialize distance functions and distdata types
+    if (!DistfunReg::isInitialized())
+        DistfunReg::initialize();
+
+    NList args_NL(args);
+
+    CHECK_LIST_LENGTH(3, args_NL);
+
+    NList attrs;
+    NList mtree_NL = args_NL.first();
+    NList rel_NL = args_NL.second();
+    NList data_NL = args_NL.third();
+
+    CHECK_COND(
+            mtree_NL.isEqual(XTREE),
+            "First argument must be a xtree!");
+    CHECK_REL(rel_NL, attrs, 2);
+    CHECK_SYMBOL(data_NL, 3);
+
+    /* further type checkings for the data parameter will be done
+       in the value mapping function, since that needs some data from
+       the xtree object */
+
+    NList append(APPEND);
+    NList result (
+        append,
+        NList(data_NL.str(), true).enclose(),
+        NList(NList(STREAM), rel_NL.second()));
+
+    return result.listExpr();
+}
+
+/********************************************************************
 1.1.1 Selection functions
 
 ********************************************************************/
@@ -1404,6 +1603,11 @@ ValueMapping rangesearch_Map[] = {
 ValueMapping nnsearch_Map[] = {
     nnsearchHPoint_VM,
     nnsearch_VM,
+};
+
+ValueMapping nnscan_Map[] = {
+    nnscanHPoint_VM,
+    nnscan_VM,
 };
 
 /********************************************************************
@@ -1509,6 +1713,21 @@ struct windowintersects_Info : OperatorInfo
     }
 };
 
+struct nnscan_Info : OperatorInfo
+{
+    nnscan_Info()
+    {
+        name = "nnscan";
+        signature = "xtree x relation x fun x hpoint x int -> tuple stream";
+        syntax = "_ _ nnscan [_]";
+        meaning =
+            "Returns a tuple stream, which contains the ranking of the indized"
+            "elements, based on the distance to the query point. The relation "
+            "must contain at least the same tuples, that had been used "
+            "to create the xtree.";
+        example = "xt strassen nnscan [p] head[30] count";
+    }
+};
 
 /********************************************************************
 1.1 Create and initialize the Algebra
@@ -1552,6 +1771,11 @@ public:
         AddOperator(windowintersects_Info(),
                     windowintersects_VM,
                     windowintersects_TM);
+
+        AddOperator(nnscan_Info(),
+                    nnscan_Map,
+                    search_Select,
+                    nnscan_TM);
     }
 
     ~XTreeAlgebra()
