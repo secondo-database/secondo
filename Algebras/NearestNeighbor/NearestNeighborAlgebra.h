@@ -75,10 +75,23 @@ extern QueryProcessor* qp;
 #define NN_DIM 2
 
 
-//template<unsigned dim>
+//template <unsigned dim>
 class DistanceElement
 {
+  private:
+    //int level;
+    long nodeId;
+    BBox<NN_DIM> MBR;
+    //long fatherId;
+    bool leaf;
+    long tpId;
+    double distance;
+
   public:
+
+    bool IsLeaf() const { return leaf; }
+    long TupleId() const { return tpId; }
+    long NodeId() const { return nodeId; }
 
     struct Near : public binary_function< DistanceElement, 
                         DistanceElement, bool >
@@ -86,57 +99,34 @@ class DistanceElement
         bool operator()(const DistanceElement e1, 
                               const DistanceElement e2) const
         {
-            //return e1.m_priority < e2.m_priority;
-            return true;
+          return e1.distance >= e2.distance;
         }
     };
 
-    //int level;
-    long nodeId;
-    BBox<NN_DIM> MBR;
-    //long fatherId;
-    bool isLeaf;
-    int minEntries;
-    int maxEntries;
-    int countEntries;
-
     DistanceElement():
-      //level( -1 ),
       nodeId( -1 ),
-      //fatherId( -1 ),
-      isLeaf( true ),
-      minEntries( -1 ),
-      maxEntries( -1 ),
-      countEntries( -1 )
-      {
-        double dmin[NN_DIM], dmax[NN_DIM];
-        for(unsigned int i=0; i < NN_DIM; i++)
-        {
-          dmin[i] = 0.0;
-          dmax[i] = 0.0;
-        }
-        MBR = Rectangle<NN_DIM>(true, dmin, dmax);
-      }
+      leaf( true ),
+      tpId( -1 ),
+      distance( -1 )
+      {}
 
-    DistanceElement( long node, BBox<NN_DIM> box, bool leaf, 
-                      int minE, int maxE, int countE ):
-      //level( lev ),
+    DistanceElement( long node, BBox<NN_DIM> box, bool l, long tid, 
+                      double dist ):
       nodeId( node ),
       MBR( box ),
-      //fatherId( father ),
-      isLeaf( leaf ),
-      minEntries( minE ),
-      maxEntries( maxE ),
-      countEntries( countE )
+      leaf( l ),
+      tpId( tid ),
+      distance( dist )
     {}
 
     virtual ~DistanceElement()
     {}
 };
 
-typedef vector< class DistanceElement> NNVector;
+typedef vector< class DistanceElement > NNVector;
 typedef priority_queue< DistanceElement, 
-      NNVector,DistanceElement::Near > NNpriority_queue;
+      vector<class DistanceElement>,
+      DistanceElement::Near > NNpriority_queue;
 
 
 

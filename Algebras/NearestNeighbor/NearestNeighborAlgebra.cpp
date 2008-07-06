@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ""[2]
 
-[1] NearestNeighbors Algebra
+[1] NearestNeighbor Algebra
 
 June 2008, A. Braese
 
@@ -55,7 +55,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "RTreeAlgebra.h"
-#include "NearestNeighborsAlgebra.h"
+#include "NearestNeighborAlgebra.h"
 
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
@@ -412,15 +412,30 @@ together and can be used if all input tuples are needed in a result set
 ordered by distance to a given reference point 
 
 */
+template <unsigned dim, class LeafInfo>
+R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetPubNode(
+    const SmiRecordId recno, 
+    const bool leaf,
+    const int min, 
+    const int max )
+{
+  assert( file.IsOpen() );
+  R_TreeNode<dim, LeafInfo> *node = 
+      new R_TreeNode<dim, LeafInfo>( leaf, min, max );
+  node->Read( file, recno );
+  return node;
+}
+
 template <unsigned dim>
 struct DistanceScanLocalInfo
 {
   Relation* relation;
   R_Tree<dim, TupleId>* rtree;
-  Point position;
+  BBox<dim> position;
   int quantity, noFound;
   bool first;
   bool scanFlag;
+  int min, max;
   NNpriority_queue* qp;
 };
 
@@ -438,11 +453,13 @@ int distanceScanFun (Word* args, Word& result, int message,
       localInfo = new DistanceScanLocalInfo<dim>;
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
-      localInfo->position = *(Point*)args[2].addr;
-      localInfo->quantity = ((CcInt*)args[1].addr)->GetIntval();
+      Point pos = *(Point*)args[2].addr;
+      localInfo->position = pos.BoundingBox();
+      localInfo->quantity = ((CcInt*)args[3].addr)->GetIntval();
       localInfo->noFound = 0;
       localInfo->first = true;
       localInfo->scanFlag = true;
+      localInfo->qp = new NNpriority_queue;
 
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
@@ -459,46 +476,62 @@ int distanceScanFun (Word* args, Word& result, int message,
         return CANCEL;
       }
 
-      R_TreeLeafEntry<dim, TupleId> e;
-
       if(localInfo->first)
       {
         localInfo->first = false;
-     /*   int minE = localInfo->rtree->MinEntries(0);
-        int maxE = localInfo->rtree->MaxEntries(0);
+        localInfo->min = localInfo->rtree->MinEntries(0);
+        localInfo->max = localInfo->rtree->MaxEntries(0);
         long nodeId = localInfo->rtree->RootRecordId();
-        R_TreeNode<dim, TupleId> *tmp = localInfo->rtree->GetNode( nodeId, 
-        0, minE, maxE );
+        R_TreeNode<dim, TupleId> *tmp = localInfo->rtree->GetPubNode( nodeId, 
+        false, localInfo->min, localInfo->max );
         localInfo->qp->push( DistanceElement( nodeId, tmp->BoundingBox(), 
-                false, minE, maxE, tmp->EntryCount() ));
-  
+                false, -1, tmp->BoundingBox().Distance(localInfo->position)));
         delete tmp;
-        if ( node.isLeaf() )
-        if( localInfo->rtree->First( localInfo->position, e ) )
-        {
-          Tuple *tuple = localInfo->relation->GetTuple(e.info);
-          result = SetWord(tuple);
-          return YIELD;
-        }
-        else*/
-          return CANCEL;
       }
-      else
+      while ( !localInfo->qp->empty() )
       {
-        /*if( localInfo->rtree->Next( e ) )
+        DistanceElement elem = localInfo->qp->top();
+        localInfo->qp->pop();
+        if ( elem.IsLeaf() )
         {
-          Tuple *tuple = localInfo->relation->GetTuple(e.info);
+          Tuple *tuple = localInfo->relation->GetTuple(elem.TupleId());
           result = SetWord(tuple);
+          ++localInfo->noFound;
           return YIELD;
         }
-        else*/
-          return CANCEL;
+        else
+        {
+          R_TreeNode<2, TupleId> *tmp = localInfo->rtree->GetPubNode( 
+                elem.NodeId(), elem.IsLeaf(), localInfo->min, localInfo->max );
+          cout << "Read Node " << elem.NodeId() << endl;
+          for ( int ii = 0; ii < tmp->EntryCount(); ++ii )
+          {
+            if ( tmp->IsLeaf() )
+            {
+              R_TreeLeafEntry<dim, TupleId> e = 
+                (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
+
+              localInfo->qp->push( DistanceElement( 0, e.box, 
+                  true, e.info, e.box.Distance(localInfo->position)));
+            }
+            else
+            {
+              R_TreeInternalEntry<dim> e = 
+                (R_TreeInternalEntry<dim>&)(*tmp)[ii];
+              localInfo->qp->push( DistanceElement( e.pointer, e.box, 
+                  false, -1, e.box.Distance(localInfo->position)));
+            }
+          }
+          delete tmp;
+        }
       }
+      return CANCEL;
     }
 
     case CLOSE :
     {
       localInfo = (DistanceScanLocalInfo<dim>*)local.addr;
+      delete localInfo->qp;
       delete localInfo;
       return 0;
     }
@@ -512,7 +545,7 @@ int distanceScanFun (Word* args, Word& result, int message,
 
 */
 ValueMapping distanceScanMap [] = { distanceScanFun<2>,
-                                             distanceScanFun<3> };
+                                             distanceScanFun<2> };
 
 
 /*
@@ -593,10 +626,10 @@ Operator distancescan (
 
 */
 
-class NearestNeighborsAlgebra : public Algebra
+class NearestNeighborAlgebra : public Algebra
 {
  public:
-  NearestNeighborsAlgebra() : Algebra()
+  NearestNeighborAlgebra() : Algebra()
   {
 
 
@@ -610,7 +643,7 @@ class NearestNeighborsAlgebra : public Algebra
 //        distanceScanNextTypeMap );
     AddOperator( &distancescan );
   }
-  ~NearestNeighborsAlgebra() {};
+  ~NearestNeighborAlgebra() {};
 };
 
 /*
@@ -640,17 +673,17 @@ file "Algebras/Management/AlgebraList.i.cfg".
 
 extern "C"
 Algebra*
-InitializeNearestNeighborsAlgebra( NestedList* nlRef, 
+InitializeNearestNeighborAlgebra( NestedList* nlRef, 
                                QueryProcessor* qpRef )
 {
   // The C++ scope-operator :: must be used to qualify the full name 
-  return new near::NearestNeighborsAlgebra; 
+  return new near::NearestNeighborAlgebra; 
 }
 
 /*
 7 Examples and Tests
 
-The file "NearestNeighbors.examples" contains for every operator one example.
+The file "NearestNeighbor.examples" contains for every operator one example.
 This allows one to verify that the examples are running and to provide a 
 coarse regression test for all algebra modules. The command "Selftest <file>" 
 will execute the examples. Without any arguments, the examples for all active
