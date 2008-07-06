@@ -117,6 +117,70 @@ struct NNEntry
         }
     }
 };
+
+/********************************************************************
+1.1.1 Struct "NNEntry"[4]:
+
+This struct is used for the nnscan methods.
+
+********************************************************************/
+struct NNScanEntry
+{
+    bool isNodeId;
+    union 
+    {
+        SmiRecordId nodeId;
+        TupleId tid;
+    };
+    double dist;
+
+    NNScanEntry(TupleId _tid, double _dist)
+    : isNodeId(false), tid(_tid), dist(_dist)
+    {}
+
+    NNScanEntry(SmiRecordId _nodeId, double _dist)
+    : isNodeId(true), nodeId(_nodeId), dist(_dist)
+    {}
+
+    bool operator > (const NNScanEntry& op2) const
+    {
+        if (dist > op2.dist)
+            return true;
+        else if (dist < op2.dist)
+            return false;
+
+        // dist == op2.dist
+        if (isNodeId)
+        {
+            if (op2.isNodeId)
+            { // isNodeId && op2.isNodeId
+                if (nodeId > op2.nodeId)
+                    return true;
+                else
+                    return false;
+            }
+            else
+            { // isNodeId && !op2.isNodeId
+                return false;
+            }
+        }
+        else
+        { // !isNodeId
+            if (op2.isNodeId)
+            { // !isNodeId && op2.isNodeId
+                return true;
+            }
+            else
+            { // !isNodeId && !op2.isNodeId
+                if (tid > op2.tid)
+                    return true;
+                else
+                    return false;
+            }
+        }
+    }
+};
+
 /********************************************************************
 1.1 Struct "Header"[4]
 
@@ -225,6 +289,14 @@ Returns the "nncount"[4] nearest neighbours ot the point in the result list.
 
 */
     void nnSearch(HPoint *p, int nncount, list<TupleId> *results);
+
+/*
+These methods are used for the nnscan operator, which returns a ranking of the indized elements, based on their distance to to the reference object "p"[4].
+
+*/
+    void nnscan_init(HPoint *p);
+    TupleId nnscan_next();
+    void nnscan_cleanup();
 
 /*
 Returns the count of all supernodes.
@@ -350,6 +422,9 @@ Selects one of the chields of "treeMngr->curNode"[4] as next node in the path.
 
 */
     int chooseSubtree(HRect *bbox);
+
+    vector<NNScanEntry> nnscan_queue;
+    HPoint *nnscan_ref;
 }; // class XTree
 
 
@@ -647,7 +722,6 @@ unsigned XTree::topologicalSplit(
     }
     return split_axis;
  }
-
 
 } // namespace xtreeAlgebra
 #endif // #ifndef __XTREE_H__
