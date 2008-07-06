@@ -51,4 +51,9 @@ This algebra provides the "xtree"[4] type constructor and the following operator
     Signature: "xtree relation x hrect -> tuple stream"[4]\\
     Example: "xt strassen windowintersects[r] count"[4]
 
+  * "[_] [_] nnscan [[_]]"[4]\\
+     Returns a tuple stream, which contains the ranking of the indized elements, based on the distance to the query point. The relation must contain at least the same tuples, that had been used to create the xtree.\\[1ex]
+    Signature: "xtree relation x DATA -> tuple stream"[4]\\
+    Example: "xt strassen nnscan[p] head[ 10 ] count"[4]
+
 */
