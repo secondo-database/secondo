@@ -1147,3 +1147,82 @@ void XTree::nnSearch(HPoint *p, int nncount, list<TupleId> *results)
     cmsg.send();
     #endif
 } // nnSearch
+
+/*
+Method ~nnscan[_]init~:
+
+*/
+void XTree::nnscan_init(HPoint *p) 
+{
+    #ifdef __XTREE_DEBUG
+    assert(isInitialized());
+    #endif
+
+    nnscan_ref = p;
+    nnscan_queue.clear();
+    nnscan_queue.push_back(NNScanEntry(header.root, 0));      
+};
+
+/*
+Method ~nnscan[_]next~:
+
+*/
+TupleId XTree::nnscan_next() 
+{
+    while (!nnscan_queue.empty())
+    {
+	NNScanEntry e = nnscan_queue.front();
+        pop_heap(nnscan_queue.begin(), nnscan_queue.end(),
+                greater<NNScanEntry>());
+        nnscan_queue.pop_back();
+	if (e.isNodeId)
+        { // node entry
+            NodePtr node = getNode(e.nodeId);
+            if (node->isLeaf())
+            { // leaf node
+                LeafNodePtr curNode = node->cast<LeafNode>();
+                LeafNode::iterator it;
+                for(it = curNode->begin(); it != curNode->end(); ++it)
+                {
+                    double dist = (*it)->dist(nnscan_ref);
+                    nnscan_queue.push_back(NNScanEntry((*it)->tid(), dist));
+                    push_heap(
+                            nnscan_queue.begin(),
+                            nnscan_queue.end(),
+                            greater<NNScanEntry>());
+                }
+            }
+            else
+            { // internal node
+                InternalNodePtr curNode = node->cast<InternalNode>();
+                InternalNode::iterator it;
+                for(it = curNode->begin(); it != curNode->end(); ++it)
+                {
+                    double dist = SpatialDistfuns::minDist(
+                                                     nnscan_ref, (*it)->bbox());
+                    nnscan_queue.push_back(NNScanEntry((*it)->chield(), dist));
+                    push_heap(
+                            nnscan_queue.begin(),
+                            nnscan_queue.end(),
+                            greater<NNScanEntry>());
+                }
+            }
+        }
+        else
+        { // object entry
+            return e.tid;
+        }
+    }
+
+    // all indized entries processed
+    return 0;
+};
+
+/*
+Method ~nnscan[_]cleanup~:
+
+*/
+void XTree::nnscan_cleanup()
+{
+    delete nnscan_ref;
+}
