@@ -412,126 +412,84 @@ together and can be used if all input tuples are needed in a result set
 ordered by distance to a given reference point 
 
 */
-template <unsigned dim, class LeafInfo>
-R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetPubNode(
-    const SmiRecordId recno, 
-    const bool leaf,
-    const int min, 
-    const int max )
-{
-  assert( file.IsOpen() );
-  R_TreeNode<dim, LeafInfo> *node = 
-      new R_TreeNode<dim, LeafInfo>( leaf, min, max );
-  node->Read( file, recno );
-  return node;
-}
 
-template <unsigned dim>
+template <unsigned dim, class LeafInfo>
 struct DistanceScanLocalInfo
 {
   Relation* relation;
   R_Tree<dim, TupleId>* rtree;
   BBox<dim> position;
   int quantity, noFound;
-  bool first;
   bool scanFlag;
-  int min, max;
-  NNpriority_queue* qp;
+  NNpriority_queue* pq;
 };
-
 
 template <unsigned dim>
 int distanceScanFun (Word* args, Word& result, int message, 
              Word& local, Supplier s)
 {
-  DistanceScanLocalInfo<dim> *localInfo;
+  DistanceScanLocalInfo<dim, TupleId> *localInfo;
 
   switch (message)
   {
     case OPEN :
     {
-      localInfo = new DistanceScanLocalInfo<dim>;
+      localInfo = new DistanceScanLocalInfo<dim, TupleId>;
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
+      //localInfo->position =
+      //  new BBox<dim> (
+      //    (((StandardSpatialAttribute<dim> *)args[2].addr)->
+      //      BoundingBox()) );
       Point pos = *(Point*)args[2].addr;
       localInfo->position = pos.BoundingBox();
       localInfo->quantity = ((CcInt*)args[3].addr)->GetIntval();
       localInfo->noFound = 0;
-      localInfo->first = true;
       localInfo->scanFlag = true;
-      localInfo->qp = new NNpriority_queue;
 
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
+
+      localInfo->pq = new NNpriority_queue;
+      localInfo->rtree->FirstDistancesScan(localInfo->position, 
+                                            localInfo->pq);
+
       local = SetWord(localInfo);
       return 0;
     }
 
     case REQUEST :
     {
-      localInfo = (DistanceScanLocalInfo<dim>*)local.addr;
-      if ( (localInfo->quantity > 0 && localInfo->noFound >=localInfo->quantity)
-          || (localInfo->noFound >= localInfo->rtree->EntryCount()))
+      localInfo = (DistanceScanLocalInfo<dim, TupleId>*)local.addr;
+      if ( !localInfo->scanFlag )
       {
         return CANCEL;
       }
 
-      if(localInfo->first)
+      if ( localInfo->quantity > 0 && localInfo->noFound >=localInfo->quantity)
       {
-        localInfo->first = false;
-        localInfo->min = localInfo->rtree->MinEntries(0);
-        localInfo->max = localInfo->rtree->MaxEntries(0);
-        long nodeId = localInfo->rtree->RootRecordId();
-        R_TreeNode<dim, TupleId> *tmp = localInfo->rtree->GetPubNode( nodeId, 
-        false, localInfo->min, localInfo->max );
-        localInfo->qp->push( DistanceElement( nodeId, tmp->BoundingBox(), 
-                false, -1, tmp->BoundingBox().Distance(localInfo->position)));
-        delete tmp;
+        return CANCEL;
       }
-      while ( !localInfo->qp->empty() )
+
+      TupleId tid;
+      if ( localInfo->rtree->NextDistancesScan( localInfo->position, 
+                                            localInfo->pq, tid ) )
       {
-        DistanceElement elem = localInfo->qp->top();
-        localInfo->qp->pop();
-        if ( elem.IsLeaf() )
-        {
-          Tuple *tuple = localInfo->relation->GetTuple(elem.TupleId());
+          Tuple *tuple = localInfo->relation->GetTuple(tid);
           result = SetWord(tuple);
           ++localInfo->noFound;
           return YIELD;
-        }
-        else
-        {
-          R_TreeNode<2, TupleId> *tmp = localInfo->rtree->GetPubNode( 
-                elem.NodeId(), elem.IsLeaf(), localInfo->min, localInfo->max );
-          cout << "Read Node " << elem.NodeId() << endl;
-          for ( int ii = 0; ii < tmp->EntryCount(); ++ii )
-          {
-            if ( tmp->IsLeaf() )
-            {
-              R_TreeLeafEntry<dim, TupleId> e = 
-                (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
-
-              localInfo->qp->push( DistanceElement( 0, e.box, 
-                  true, e.info, e.box.Distance(localInfo->position)));
-            }
-            else
-            {
-              R_TreeInternalEntry<dim> e = 
-                (R_TreeInternalEntry<dim>&)(*tmp)[ii];
-              localInfo->qp->push( DistanceElement( e.pointer, e.box, 
-                  false, -1, e.box.Distance(localInfo->position)));
-            }
-          }
-          delete tmp;
-        }
       }
-      return CANCEL;
+      else
+      {
+        return CANCEL;
+      }
     }
 
     case CLOSE :
     {
-      localInfo = (DistanceScanLocalInfo<dim>*)local.addr;
-      delete localInfo->qp;
+      localInfo = (DistanceScanLocalInfo<dim, TupleId>*)local.addr;
+      delete localInfo->pq;
       delete localInfo;
       return 0;
     }

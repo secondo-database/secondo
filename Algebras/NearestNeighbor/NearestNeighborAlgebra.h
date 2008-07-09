@@ -55,8 +55,6 @@ dimensions. The desired dimensions are passed as a parameter to the template.
 #include <stack>
 #include <limits>
 #include <string.h>
-#include <vector>
-#include <queue>
 
 using namespace std;
 
@@ -72,62 +70,66 @@ using namespace std;
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
-#define NN_DIM 2
 
-
-//template <unsigned dim>
-class DistanceElement
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::FirstDistancesScan( const BBox<dim>& box, 
+                                   NNpriority_queue* pq )
 {
-  private:
-    //int level;
-    long nodeId;
-    BBox<NN_DIM> MBR;
-    //long fatherId;
-    bool leaf;
-    long tpId;
-    double distance;
+  R_TreeNode<dim, TupleId> *tmp = GetNode( RootRecordId(), 
+                     false, 
+                     MinEntries( 0 ), 
+                     MaxEntries( 0 ) );
 
-  public:
+  pq->push( DistanceElement<TupleId>( RootRecordId(), false, -1, 
+      tmp->BoundingBox().Distance(box), 0));
+  delete tmp;
+}
 
-    bool IsLeaf() const { return leaf; }
-    long TupleId() const { return tpId; }
-    long NodeId() const { return nodeId; }
-
-    struct Near : public binary_function< DistanceElement, 
-                        DistanceElement, bool >
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::NextDistancesScan( const BBox<dim>& box, 
+                                   NNpriority_queue* pq, LeafInfo& result )
+{
+  while ( !pq->empty() )
+  {
+    DistanceElement<LeafInfo> elem = pq->top();
+    pq->pop();
+    if ( elem.IsLeaf() )
     {
-        bool operator()(const DistanceElement e1, 
-                              const DistanceElement e2) const
+      result = elem.TupleId();
+      return true;
+    }
+    else
+    {
+      R_TreeNode<dim, LeafInfo> *tmp = GetNode( elem.NodeId(), 
+                     elem.IsLeaf(), 
+                     MinEntries( elem.Level() ), 
+                     MaxEntries( elem.Level() ) );
+      for ( int ii = 0; ii < tmp->EntryCount(); ++ii )
+      {
+        if ( tmp->IsLeaf() )
         {
-          return e1.distance >= e2.distance;
+          R_TreeLeafEntry<dim, LeafInfo> e = 
+            (R_TreeLeafEntry<dim, LeafInfo>&)(*tmp)[ii];
+
+          pq->push( DistanceElement<LeafInfo>( 0, 
+              true, e.info, e.box.Distance( box ), 
+              elem.Level() + 1));
         }
-    };
+        else
+        {
+          R_TreeInternalEntry<dim> e = 
+            (R_TreeInternalEntry<dim>&)(*tmp)[ii];
+          pq->push( DistanceElement<LeafInfo>( e.pointer, 
+              false, -1, e.box.Distance( box ), 
+              elem.Level() + 1));
+        }
+      }
+      delete tmp;
+    }
+  }
 
-    DistanceElement():
-      nodeId( -1 ),
-      leaf( true ),
-      tpId( -1 ),
-      distance( -1 )
-      {}
-
-    DistanceElement( long node, BBox<NN_DIM> box, bool l, long tid, 
-                      double dist ):
-      nodeId( node ),
-      MBR( box ),
-      leaf( l ),
-      tpId( tid ),
-      distance( dist )
-    {}
-
-    virtual ~DistanceElement()
-    {}
-};
-
-typedef vector< class DistanceElement > NNVector;
-typedef priority_queue< DistanceElement, 
-      vector<class DistanceElement>,
-      DistanceElement::Near > NNpriority_queue;
-
+  return false;
+}
 
 
 #endif
