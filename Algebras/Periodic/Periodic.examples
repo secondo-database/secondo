@@ -34,7 +34,7 @@ Result   : (int9m (FALSE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE))
 Operator : atinstant
 Number   : 4
 Signature: pmpoints x instant -> points
-Example  : query [const pmpoints value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))((1 0))((6 7)))) ] atinstant [const instant value "2007-01-30-18:56"] 
+Example  : query [const pmpoints value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))((1 0))((6 7))))) ] atinstant [const instant value "2007-01-30-18:56"] 
 Result   : bug
 Remark   : unknown
 
@@ -42,7 +42,7 @@ Remark   : unknown
 Operator : atinstant
 Number   : 5
 Signature: pmreal x instant -> real
-Example  : query [const pmreal value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))((1 0))((6 7)))) ] atinstant [const instant value "2007-01-30-18:56"] 
+Example  : query [const pmreal value ("2007-01-30-18:00" ( linear  (( TRUE  FALSE ( 0  7000000 ))((1 0))((6 7))))) ] atinstant [const instant value "2007-01-30-18:56"] 
 Result   : bug
 Remark   : have to be checked
 
