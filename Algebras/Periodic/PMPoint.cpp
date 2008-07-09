@@ -411,7 +411,7 @@ The caller has to ensure that __arg__ is of type PMPoint.
 */
 void PMPoint::CopyFrom(const StandardAttribute* arg){
     __TRACE__
-  Equalize((PMPoint*)arg);
+  Equalize(static_cast<const PMPoint*>(arg));
 }
 
 
@@ -1793,7 +1793,7 @@ Thgis function reads a Periodic moving point from
 a lineary moving one.
 
 */
-void PMPoint::ReadFrom(const MPoint& P){
+void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
   /* This function works as follow:
      First, we create a list containing all LinearMovingPoints for this
      Periodic Moving Points. After that, we find equal units in this list
@@ -1906,8 +1906,9 @@ void PMPoint::ReadFrom(const MPoint& P){
   int differentMoves =0; // number of different linear moves
   int lastusedindex = -1;
 
-
-  cout << "Warning time component ignored !!!" << endl;
+  if(twostep){
+     cout << "Warning time component ignored !!!" << endl;
+  }
 
   // we assign each different value in the array to an unique number
   for(int i=0;i<listlength;i++){
@@ -1926,7 +1927,10 @@ void PMPoint::ReadFrom(const MPoint& P){
            done = true;
         }
         else{
-           if((AllMoves[MinIndex[hashvalue]]).CompareSpatial(&theMove)==0) {
+           int cmp=twostep?
+                      (AllMoves[MinIndex[hashvalue]]).CompareSpatial(&theMove)
+                     :(AllMoves[MinIndex[hashvalue]]).CompareTo(&theMove);
+           if(cmp==0) {
               //equal element found; we are done
               done = true;
            }
@@ -1949,6 +1953,18 @@ void PMPoint::ReadFrom(const MPoint& P){
   
   /* Debugging output */
   //RT.PrintNL();
+
+  if(twostep){
+    // in the twostep process it is possible that spatial repetations has
+    // been recognized but the temporal deviation is too much to accept that
+    // as a periodic move
+    // so we have to check all recognized periodic nodes for temporal
+    // deviations in the move 
+      
+
+  }
+
+
 
   linearMoves.Clear();
   compositeMoves.Clear();

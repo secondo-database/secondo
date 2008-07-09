@@ -1602,7 +1602,7 @@ class PMPoint : public StandardAttribute {
      PBBox GetBbox()const;
      MPoint Expand()const;
      void Expand(MPoint& res)const;
-     void ReadFrom(const MPoint& P);
+     void ReadFrom(const MPoint& P,const bool twostep = true);
 
      PMInt9M* Toprel(const Point& P)const; 
      void Toprel(const Point& P,PMInt9M& res)const;
