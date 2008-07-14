@@ -117,48 +117,18 @@ otherwise the symbol ~typeerror~. Again we use interface ~NList.h~ for
 manipulating list expressions. For every operator is one type mapping 
 function given.
 
+The function distanceScanCommonTypeMap is the type map for distancescan
+mode: 1), distancescanstart (mode: 2), distancescannext (mode: 3),
+distancescanlast (mode: 4)
+
 */
-
-ListExpr
-distanceScanStartTypeMap( ListExpr args )
-{	
-  NList type(args);
-  if ( type != NList(XRECTANGLE, XRECTANGLE) ) {
-    return NList::typeError("Expecting two rectangles");
-  }  
-
-  return NList(BOOL).listExpr();
-}
-
-
-ListExpr
-distanceScanNextTypeMap( ListExpr args )
-{
-  NList type(args);
-  const string errMsg = "Expecting two rectangles "
-	                "or a point and a rectangle";
-
-  // first alternative: xpoint x xrectangle -> bool
-  if ( type == NList(XPOINT, XRECTANGLE) ) {
-    return NList(BOOL).listExpr();
-  }  
-  
-  // second alternative: xrectangle x xrectangle -> bool
-  if ( type == NList(XRECTANGLE, XRECTANGLE) ) {
-    return NList(BOOL).listExpr();
-  }  
-  
-  return NList::typeError(errMsg);
-}
-
-
 ListExpr
 distanceScanTypeMap( ListExpr args )
 {	
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  char* errmsg = "Incorrect input for operator windowintersects.";
+  char* errmsg = "Incorrect input for distancescan functions.";
   string rtreeDescriptionStr, relDescriptionStr, argstr;
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -177,7 +147,6 @@ distanceScanTypeMap( ListExpr args )
   (nl->SymbolValue(quantity) == "int"),
   "Operator distanceScan expects a fourth argument of type integer (k or -1).\n"
   "Operator distanceScan gets '" + argstr + "'.");
-
 
   /* Query window: find out type of key */
   CHECK_COND(nl->IsAtom(position) &&
@@ -294,11 +263,12 @@ distanceScanTypeMap( ListExpr args )
     "dimension.\nBut gets "+attrTypeRtree_str+
     " as left type and "+attrTypeWindow_str+" as right type.\n");
 
-  return
-    nl->TwoElemList(
-      nl->SymbolAtom("stream"),
-      tupleDescription);
+    return
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        tupleDescription);
 }
+
 
 /*
 5.2 Selection Function
@@ -338,78 +308,8 @@ distanceScanSelect( ListExpr args )
 For any operator a value mapping function must be defined. It contains
 the code which gives an operator its functionality
 
-5.3.1 The ~distanceScanStart~ prepares the scan
-
-*/
-int
-distanceScanStartFun (Word* args, Word& result, int message, 
-              Word& local, Supplier s)
-{
-
-/*
-----
-  XRectangle *r1 = static_cast<XRectangle*>( args[0].addr );
-  XRectangle *r2 = static_cast<XRectangle*>( args[1].addr );
-
-  result = qp->ResultStorage(s);  
-                                query processor has provided
-                                a CcBool instance for the result
-
-  CcBool* b = static_cast<CcBool*>( result.addr );
-  b->Set(true, r1->intersects(*r2));
-                               the first argument says the boolean
-                               value is defined, the second is the
-                               real boolean value
-----
-
-*/
-
-  return 0;
-}
-
-/*
-4.3.2 The ~distanceScanNext~ gives always the next point after a 
-distanceSanStart.
-It can be used if only some values of the input set are needed, not all
-
-*/
-int
-distanceScanNextFun (Word* args, Word& result, int message, 
-             Word& local, Supplier s)
-{
-
-/*
-----
-  cout << "insideFun_PR" << endl;
-  XPoint* p = static_cast<XPoint*>( args[0].addr );
-  XRectangle* r = static_cast<XRectangle*>( args[1].addr );
-
-  result = qp->ResultStorage(s);   
-                                query processor has provided
-                                a CcBool instance for the result
-
-  CcBool* b = static_cast<CcBool*>( result.addr );
-  
-  bool res = ( p->GetX() >= r->GetXLeft() 
-            && p->GetX() <= r->GetXRight()
-            && p->GetY() >= r->GetYBottom() 
-            && p->GetY() <= r->GetYTop() );
-
-  b->Set(true, res); the first argument says the boolean
-                     value is defined, the second is the
-                     real boolean value)
-----
-
-*/
-
-  return 0;
-}
-
-/*
-4.3.3 The ~distanceScan~ results a stream of all input tuples in the 
-right order. It has the functionality of distanceScanStart and distanceSanNext
-together and can be used if all input tuples are needed in a result set
-ordered by distance to a given reference point 
+The struct DistanceScanLocalInfo is needet to save the data
+from one to next function call
 
 */
 
@@ -421,8 +321,18 @@ struct DistanceScanLocalInfo
   BBox<dim> position;
   int quantity, noFound;
   bool scanFlag;
-  NNpriority_queue* pq;
+//  NNpriority_queue* pq;
 };
+
+
+
+/*
+5.3.1 The ~distanceScan~ results a stream of all input tuples in the 
+right order. It has the functionality of distanceScanStart and distanceSanNext
+together and can be used if all input tuples are needed in a result set
+ordered by distance to a given reference point 
+
+*/
 
 template <unsigned dim>
 int distanceScanFun (Word* args, Word& result, int message, 
@@ -450,9 +360,7 @@ int distanceScanFun (Word* args, Word& result, int message,
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
 
-      localInfo->pq = new NNpriority_queue;
-      localInfo->rtree->FirstDistancesScan(localInfo->position, 
-                                            localInfo->pq);
+      localInfo->rtree->FirstDistanceScan(localInfo->position);
 
       local = SetWord(localInfo);
       return 0;
@@ -472,8 +380,7 @@ int distanceScanFun (Word* args, Word& result, int message,
       }
 
       TupleId tid;
-      if ( localInfo->rtree->NextDistancesScan( localInfo->position, 
-                                            localInfo->pq, tid ) )
+      if ( localInfo->rtree->NextDistanceScan( localInfo->position, tid ) )
       {
           Tuple *tuple = localInfo->relation->GetTuple(tid);
           result = SetWord(tuple);
@@ -489,7 +396,7 @@ int distanceScanFun (Word* args, Word& result, int message,
     case CLOSE :
     {
       localInfo = (DistanceScanLocalInfo<dim, TupleId>*)local.addr;
-      delete localInfo->pq;
+      localInfo->rtree->LastDistanceScan();
       delete localInfo;
       return 0;
     }
@@ -498,47 +405,13 @@ int distanceScanFun (Word* args, Word& result, int message,
 
 }
 
+
 /*
 5.1.4 Definition of value mapping vectors
 
 */
 ValueMapping distanceScanMap [] = { distanceScanFun<2>,
                                              distanceScanFun<2> };
-
-
-/*
-
-4.4 Operator Descriptions
-
-Similar to the ~property~ function of a type constructor, an operator needs to
-be described, e.g. for the ~list operators~ command.  This is now done by
-creating a subclass of class ~OperatorInfo~.
-
-*/
-struct distanceScanStartInfo : OperatorInfo {
-
-  distanceScanStartInfo()
-  {
-    name      = "distancescanstart";
-    signature = XRECTANGLE + " x " + XRECTANGLE + " -> " + BOOL;
-    syntax    = "_" + INTERSECTS + "_";
-    meaning   = "Intersection predicate for two xrectangles.";
-  }
-
-}; // Don't forget the semicolon here. Otherwise the compiler 
-   // returns strange error messages
-
-
-struct distanceScanNextInfo : OperatorInfo {
-
-  distanceScanNextInfo()
-  {
-    name      = "distancescannext"; 
-    signature = XPOINT + " x " + XRECTANGLE + " -> " + BOOL;
-    syntax    = "_" + INSIDE + "_";
-    meaning   = "Inside predicate.";
-  }
-};  
 
 
 /*
@@ -557,11 +430,13 @@ const string distanceScanSpec  =
       "<text>Uses the given rtree to find all k tuples"
       " in the given relation in order of their distance from the "
       " position T. The nearest tuple first.</text--->"
-      "<text>query citiesInd cities windowintersects"
-      " [r] consume; where citiesInd "
-      "is e.g. created with 'let citiesInd = "
-      "cities creatertree [pos]'</text--->"
+      "<text>query kinos_geoData Kinos distancescan "
+      "[[const point value (10539.0 14412.0)], 5] consume; "
+      "where kinos_geoData "
+      "is e.g. created with 'let kinos_geoData = "
+      "Kinos creatertree [geoData]'</text--->"
       ") )";
+
 
 
 
@@ -577,6 +452,7 @@ Operator distancescan (
          distanceScanSelect, // trivial selection function
          distanceScanTypeMap    // type mapping
 );
+
 
 
 /*
@@ -595,10 +471,6 @@ class NearestNeighborAlgebra : public Algebra
 5.3 Registration of Operators
 
 */
-// AddOperator( distanceScanStartInfo(), 
-//        distanceScanStartFun, distanceScanStartTypeMap );
-// AddOperator( distanceScanNextInfo(), distanceScanNextFun, 
-//        distanceScanNextTypeMap );
     AddOperator( &distancescan );
   }
   ~NearestNeighborAlgebra() {};

@@ -1,49 +1,117 @@
 /*
-//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
-//paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
 
-{\Large \bf Anhang D: RTree-Template }
+[1] Header-File of NearestNeighborAlgebra
 
-[1] Header-File of R-Tree Algebra
+July 2008, Angelika Braese.
 
-1996, Original code from Claudio Esperanca
+This header file implements some functions which the NearestNeighborAlgebra
+needs and which are defined in RTree Algebra.
+The follow code must be included in the RTree Algebra:
 
-October 1997, Geraldo Zimbrao made some adaptions.
+----
+#include <vector>
+#include <queue>
 
-July 2003, Victor Almeida.
+template<class LeafInfo>
+class DistanceElement
+{
+  private:
+    long nodeId;
+    bool leaf;
+    LeafInfo tpId;
+    double distance;
+    int level;
 
-October 2003, Victor Almeida changed the R-Tree class to be a template
-on the number of dimensions.
+  public:
 
-October 2004, Herbert Schoenhammer, tested and divided in Header-File and
-Implementation File. Some few corrections in SplitAlgorithms LinearSplit and
-AxisSplit were done.
+    bool IsLeaf() const { return leaf; }
+    LeafInfo TupleId() const { return tpId; }
+    long NodeId() const { return nodeId; }
+    int Level() const { return level; }
 
-December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable
-level remains. Models are also removed from type constructors.
+    struct Near : public binary_function< DistanceElement<LeafInfo>, 
+                        DistanceElement<LeafInfo>, bool >
+    {
+        bool operator()(const DistanceElement<LeafInfo> e1, 
+                              const DistanceElement<LeafInfo> e2) const
+        {
+          return e1.distance >= e2.distance;
+        }
+    };
 
-February 2007, Christian Duentgen added operator for bulk loading
-R-trees.
+    DistanceElement():
+      nodeId( -1 ),
+      leaf( true ),
+      tpId( -1 ),
+      level( -1 )
+      {}
 
-[TOC]
+    DistanceElement( long node, bool l, LeafInfo tid, 
+                      double dist, int curLevel ):
+      nodeId( node ),
+      leaf( l ),
+      tpId( tid ),
+      distance( dist ),
+      level( curLevel )
+    {}
 
-0 Overview
+    virtual ~DistanceElement()
+    {}
+};
 
-This header file implements a disk-resident representation of a R-Tree.
-Setting some parameters the R-Tree-behaviour of Guttman or the R[*]-Tree
-of Kriegel et al. can be selected.
+typedef vector< DistanceElement<TupleId> > NNVector;
+typedef priority_queue< DistanceElement<TupleId>, NNVector, 
+        DistanceElement<TupleId>::Near > NNpriority_queue;
 
-The R-Tree is implemented as a template to satisfy the usage with various
-dimensions. The desired dimensions are passed as a parameter to the template.
+
+template <unsigned dim, class LeafInfo>
+class R_Tree
+{
+  public:
+...
+void FirstDistanceScan( const BBox<dim>& box );
+/ *
+FirstDistanceScan initializes the priority queue
+
+* /
+
+void LastDistanceScan(  );
+/ *
+LastDistanceScan deletes the priority queue of the distancescan
+
+* /
+
+bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box, 
+                                   LeafInfo& result );
+/ *
+NextDistanceScan returns true and fills the result with the
+ID of the next tuple if there is a next tuple else it returns false
+
+* /
+...
+  private:
+...
+    NNpriority_queue* pq;
+    / *
+    The priority queue for the distancescan functions
+
+    * /
+    bool distanceFlag;
+    / *
+    true, after a call of FirstDistanceScan
+
+    * /
+...
+}
+
+----
 
 1 Defines and Includes
 
 */
 
-#ifndef __NEARESTNEIGHBORS_ALGEBRA_H__
-#define __NEARESTNEIGHBORS_ALGEBRA_H__
+#ifndef __NEARESTNEIGHBOR_ALGEBRA_H__
+#define __NEARESTNEIGHBOR_ALGEBRA_H__
 
 #include "stdarg.h"
 
@@ -55,6 +123,7 @@ dimensions. The desired dimensions are passed as a parameter to the template.
 #include <stack>
 #include <limits>
 #include <string.h>
+
 
 using namespace std;
 
@@ -71,10 +140,15 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 
+/*
+FirstDistanceScan initializes the priority queue
+
+*/
 template <unsigned dim, class LeafInfo>
-void R_Tree<dim, LeafInfo>::FirstDistancesScan( const BBox<dim>& box, 
-                                   NNpriority_queue* pq )
+void R_Tree<dim, LeafInfo>::FirstDistanceScan( const BBox<dim>& box )
 {
+  distanceFlag = true;
+  pq = new NNpriority_queue;
   R_TreeNode<dim, TupleId> *tmp = GetNode( RootRecordId(), 
                      false, 
                      MinEntries( 0 ), 
@@ -85,10 +159,28 @@ void R_Tree<dim, LeafInfo>::FirstDistancesScan( const BBox<dim>& box,
   delete tmp;
 }
 
+/*
+LastDistanceScan deletes the priority queue of the distancescan
+
+*/
 template <unsigned dim, class LeafInfo>
-bool R_Tree<dim, LeafInfo>::NextDistancesScan( const BBox<dim>& box, 
-                                   NNpriority_queue* pq, LeafInfo& result )
+void R_Tree<dim, LeafInfo>::LastDistanceScan(  )
 {
+  assert(distanceFlag);
+  distanceFlag = false;
+  delete pq;
+}
+
+/*
+NextDistanceScan returns true and fills the result with the
+ID of the next tuple if there is a next tuple else it returns false
+
+*/
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box, 
+                                   LeafInfo& result )
+{
+  assert(distanceFlag);
   while ( !pq->empty() )
   {
     DistanceElement<LeafInfo> elem = pq->top();
@@ -100,7 +192,7 @@ bool R_Tree<dim, LeafInfo>::NextDistancesScan( const BBox<dim>& box,
     }
     else
     {
-      R_TreeNode<dim, LeafInfo> *tmp = GetNode( elem.NodeId(), 
+     R_TreeNode<dim, LeafInfo> *tmp = GetNode( elem.NodeId(), 
                      elem.IsLeaf(), 
                      MinEntries( elem.Level() ), 
                      MaxEntries( elem.Level() ) );
