@@ -128,7 +128,7 @@ distanceScanTypeMap( ListExpr args )
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  char* errmsg = "Incorrect input for distancescan functions.";
+  char* errmsg = "Incorrect input for operator windowintersects.";
   string rtreeDescriptionStr, relDescriptionStr, argstr;
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -138,31 +138,39 @@ distanceScanTypeMap( ListExpr args )
   /* Split argument in four parts */
   ListExpr rtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
-  ListExpr position = nl->Third(args);
+  ListExpr searchWindow = nl->Third(args);
   ListExpr quantity = nl->Fourth(args);
+
   // check for fourth argument type == int
   nl->WriteToString(argstr, quantity);
   CHECK_COND((nl->IsAtom(quantity)) &&
 	  (nl->AtomType(quantity) == SymbolType) &&
   (nl->SymbolValue(quantity) == "int"),
-  "Operator distanceScan expects a fourth argument of type integer (k or -1).\n"
-  "Operator distanceScan gets '" + argstr + "'.");
+  "Operator distancescan expects a fourth argument of type integer (k or -1).\n"
+  "Operator distancescan gets '" + argstr + "'.");
 
   /* Query window: find out type of key */
-  CHECK_COND(nl->IsAtom(position) &&
-    nl->AtomType(position) == SymbolType &&
-    (algMgr->CheckKind("SPATIAL2D", position, errorInfo)||
-     algMgr->CheckKind("SPATIAL3D", position, errorInfo)),
-    "Operator distanceScan expects that the position\n"
-    "is of TYPE SPATIAL2D or SPATIAL3D.");
+  CHECK_COND(nl->IsAtom(searchWindow) &&
+    nl->AtomType(searchWindow) == SymbolType &&
+    (algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo)||
+     algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo)||
+     algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo)||
+     algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo)||
+     nl->SymbolValue(searchWindow) == "rect"  ||
+     nl->SymbolValue(searchWindow) == "rect3" ||
+     nl->SymbolValue(searchWindow) == "rect4" ||
+     nl->SymbolValue(searchWindow) == "rect8" ),
+    "Operator distancescan expects that the search window\n"
+    "is of TYPE rect, rect3, rect4, rect8 or "
+    "of kind SPATIAL2D, SPATIAL3D, SPATIAL4D, SPATIAL8D.");
 
   /* handle rtree part of argument */
   nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
   CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
     !nl->IsAtom(rtreeDescription) &&
     nl->ListLength(rtreeDescription) == 4,
-    "Operator distanceScan expects a R-Tree with structure "
-    "(rtree||rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
+    "Operator distancescan expects a R-Tree with structure "
+    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
     "bool)\nbut gets a R-Tree list with structure '"
     +rtreeDescriptionStr+"'.");
 
@@ -174,23 +182,32 @@ distanceScanTypeMap( ListExpr args )
   CHECK_COND(nl->IsAtom(rtreeKeyType) &&
     nl->AtomType(rtreeKeyType) == SymbolType &&
     (algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
-     algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)),
-   "Operator distanceScan expects a R-Tree with key type\n"
-   "of kind SPATIAL2D or SPATIAL3D.");
+     algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
+     algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
+     algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo)||
+     nl->IsEqual(rtreeKeyType, "rect")||
+     nl->IsEqual(rtreeKeyType, "rect3")||
+     nl->IsEqual(rtreeKeyType, "rect4")||
+     nl->IsEqual(rtreeKeyType, "rect8")),
+   "Operator distancescan expects a R-Tree with key type\n"
+   "of kind SPATIAL2D, SPATIAL3D, SPATIAL4D, SPATIAL8D\n"
+   "or rect, rect3, rect4, rect8.");
 
   /* handle rtree type constructor */
   CHECK_COND(nl->IsAtom(rtreeSymbol) &&
     nl->AtomType(rtreeSymbol) == SymbolType &&
     (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
-     nl->SymbolValue(rtreeSymbol) == "rtree3") ,
-   "Operator distanceScan expects a R-Tree \n"
-   "of type rtree or rtree3.");
+     nl->SymbolValue(rtreeSymbol) == "rtree3" ||
+     nl->SymbolValue(rtreeSymbol) == "rtree4" ||
+     nl->SymbolValue(rtreeSymbol) == "rtree8") ,
+   "Operator distancescan expects a R-Tree \n"
+   "of type rtree, rtree3, rtree4,  or rtree8.");
 
   CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
     !nl->IsAtom(rtreeTupleDescription) &&
     nl->ListLength(rtreeTupleDescription) == 2,
-    "Operator distanceScan expects a R-Tree with structure "
-    "(rtree||rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
+    "Operator windowintersects expects a R-Tree with structure "
+    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
     "bool)\nbut gets a first list with wrong tuple description in "
     "structure \n'"+rtreeDescriptionStr+"'.");
 
@@ -201,15 +218,15 @@ distanceScanTypeMap( ListExpr args )
     nl->AtomType(rtreeTupleSymbol) == SymbolType &&
     nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
     IsTupleDescription(rtreeAttrList),
-    "Operator distanceScan expects a R-Tree with structure "
-    "(rtree||rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
+    "Operator windowintersects expects a R-Tree with structure "
+    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
     "bool)\nbut gets a first list with wrong tuple description in "
     "structure \n'"+rtreeDescriptionStr+"'.");
 
   CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
     nl->AtomType(rtreeTwoLayer) == BoolType,
-   "Operator distanceScan expects a R-Tree with structure "
-   "(rtree||rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
+   "Operator windowintersects expects a R-Tree with structure "
+   "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
    "bool)\nbut gets a first list with wrong tuple description in "
    "structure \n'"+rtreeDescriptionStr+"'.");
 
@@ -228,7 +245,7 @@ distanceScanTypeMap( ListExpr args )
     !nl->IsEmpty(tupleDescription) &&
     !nl->IsAtom(tupleDescription) &&
     nl->ListLength(tupleDescription) == 2,
-    "Operator distanceScan expects a R-Tree with structure "
+    "Operator distancescan expects a R-Tree with structure "
     "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
     "but gets a relation list with structure \n"
     "'"+relDescriptionStr+"'.");
@@ -240,28 +257,49 @@ distanceScanTypeMap( ListExpr args )
     nl->AtomType(tupleSymbol) == SymbolType &&
     nl->SymbolValue(tupleSymbol) == "tuple" &&
     IsTupleDescription(attrList),
-    "Operator distanceScan expects a R-Tree with structure "
+    "Operator distancescan expects a R-Tree with structure "
     "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
     "but gets a relation list with structure \n"
     "'"+relDescriptionStr+"'.");
 
   /* check that rtree and rel have the same associated tuple type */
   CHECK_COND(nl->Equal(attrList, rtreeAttrList),
-   "Operator distanceScan: The tuple type of the R-tree\n"
+   "Operator distancescan: The tuple type of the R-tree\n"
    "differs from the tuple type of the relation.");
 
   string attrTypeRtree_str, attrTypeWindow_str;
   nl->WriteToString (attrTypeRtree_str, rtreeKeyType);
-  nl->WriteToString (attrTypeWindow_str, position);
+  nl->WriteToString (attrTypeWindow_str, searchWindow);
 
   CHECK_COND(
     ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL2D", position, errorInfo) ) ||
+      nl->IsEqual(searchWindow, "rect") ) ||
+    ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
+      algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo) ) ||
+    ( nl->IsEqual(rtreeKeyType, "rect") &&
+      nl->IsEqual(searchWindow, "rect") ) ||
     ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL3D", position, errorInfo) ) ,
-    "Operator distanceScan expects joining attributes of same "
+      nl->IsEqual(searchWindow, "rect3") ) ||
+    ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
+      algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo) ) ||
+    ( nl->IsEqual(rtreeKeyType, "rect3") &&
+      nl->IsEqual(searchWindow, "rect3") ) ||
+    ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
+      nl->IsEqual(searchWindow, "rect4") ) ||
+    ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
+      algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo) ) ||
+    ( nl->IsEqual(rtreeKeyType, "rect4") &&
+      nl->IsEqual(searchWindow, "rect4") ) ||
+    ( algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo) &&
+      nl->IsEqual(searchWindow, "rect8") ) ||
+    ( algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo) &&
+      algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo) ) ||
+    ( nl->IsEqual(rtreeKeyType, "rect8") &&
+      nl->IsEqual(searchWindow, "rect8") ),
+    "Operator distancescan expects joining attributes of same "
     "dimension.\nBut gets "+attrTypeRtree_str+
     " as left type and "+attrTypeWindow_str+" as right type.\n");
+
 
     return
       nl->TwoElemList(
@@ -290,13 +328,21 @@ int
 distanceScanSelect( ListExpr args )
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr position = nl->Third(args),
+  ListExpr searchWindow = nl->Third(args),
            errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  if (algMgr->CheckKind("SPATIAL2D", position, errorInfo))
+  if (nl->SymbolValue(searchWindow) == "rect" ||
+      algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo))
     return 0;
-  else if (algMgr->CheckKind("SPATIAL3D", position, errorInfo))
+  else if (nl->SymbolValue(searchWindow) == "rect3" ||
+           algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo))
     return 1;
+  else if (nl->SymbolValue(searchWindow) == "rect4" ||
+           algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo))
+    return 2;
+  else if (nl->SymbolValue(searchWindow) == "rect8" ||
+           algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo))
+    return 3;
 
   return -1; /* should not happen */
 }  
@@ -347,12 +393,10 @@ int distanceScanFun (Word* args, Word& result, int message,
       localInfo = new DistanceScanLocalInfo<dim, TupleId>;
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
-      //localInfo->position =
-      //  new BBox<dim> (
-      //    (((StandardSpatialAttribute<dim> *)args[2].addr)->
-      //      BoundingBox()) );
-      Point pos = *(Point*)args[2].addr;
-      localInfo->position = pos.BoundingBox();
+      StandardSpatialAttribute<dim>* pos = 
+          (StandardSpatialAttribute<dim> *)args[2].addr;
+      localInfo->position = pos->BoundingBox();
+
       localInfo->quantity = ((CcInt*)args[3].addr)->GetIntval();
       localInfo->noFound = 0;
       localInfo->scanFlag = true;
@@ -411,7 +455,9 @@ int distanceScanFun (Word* args, Word& result, int message,
 
 */
 ValueMapping distanceScanMap [] = { distanceScanFun<2>,
-                                             distanceScanFun<2> };
+                                    distanceScanFun<3>,
+                                    distanceScanFun<4>,
+                                    distanceScanFun<8>};
 
 
 /*
@@ -447,7 +493,7 @@ const string distanceScanSpec  =
 Operator distancescan (
          "distancescan",        // name
          distanceScanSpec,      // specification
-         2,                         //number of overloaded functions
+         4,                         //number of overloaded functions
          distanceScanMap,  // value mapping
          distanceScanSelect, // trivial selection function
          distanceScanTypeMap    // type mapping
