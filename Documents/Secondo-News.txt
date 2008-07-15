@@ -1,25 +1,36 @@
 
 
-                     ***** SECONDO NEWS ***** 
+                     ***** SECONDO NEWS *****
 
  This file is a replacement of the secondo-news mailing list. Please add here
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
-
-2007-05-30 lrsArray removed from the line type 
+2008-07-15  Added new members to template class R_Tree
 ===============================================================================
-In order to make the line type more simple, the lrsArray and further members 
-has been removed from the Line class. Thereby, some functions are not longer 
+In order to support Angelika Braese's implementation of the
+NearestNeighborAlgebra, class R_Tree was extended with additional private
+attributes and public functions.
+Therefore
+
+ YOU NEED TO RESTORE ALL YOUR DATABASES CONTAINING RTREES!
+
+Christian
+
+
+2007-05-30 lrsArray removed from the line type
+===============================================================================
+In order to make the line type more simple, the lrsArray and further members
+has been removed from the Line class. Thereby, some functions are not longer
 available. For compensating that, a new type sline with a corresponding
 class SimpleLine has been introduced. A Simple line represents a simple
-polyline (i.e. with at most one component and without any branches). 
+polyline (i.e. with at most one component and without any branches).
 There are some functions (and operators) for converting between the types
 provided.
 
 By the changes at the line type:
 
- YOU NEED TO RESTORE ALL YOUR DATABASES CONTAINING LINES! 
+ YOU NEED TO RESTORE ALL YOUR DATABASES CONTAINING LINES!
 
 
 Have fun!
@@ -34,8 +45,8 @@ file "Attribute.h".
 You can use these functions in TypeConstructors for attribute types, so that
 you no longer need to implement them yourself.
 
-We used this method to provide OPEN and SAVE methods to all MAPPING and some 
-further types. Therefore 
+We used this method to provide OPEN and SAVE methods to all MAPPING and some
+further types. Therefore
 
 YOU NEED TO RESTORE ALL YOUR DATABASES!
 
@@ -45,30 +56,30 @@ Thomas & Christian
 2007-09-10  Changes in representation of type movingregion and uregion
 ===============================================================================
 
-In order to establish a proper use of the defined flag within mapping types, 
-I needed to change the representations of datatypes movingregion and uregion. 
+In order to establish a proper use of the defined flag within mapping types,
+I needed to change the representations of datatypes movingregion and uregion.
 You need to restore any database containing objects of these types!
 
 Christian
 
 
-2007-06-06  First changes for Linux x86_64 systems 
+2007-06-06  First changes for Linux x86_64 systems
 ===============================================================================
 
 We have managed to install and compile secondo on a Linux 64 bit system. The
 following problems and limitations still arise:
 
  - Some tests fail due to floating point precision errors
- 
+
  - Some tests,e.g those for operator tuplesize, need to provide new platform
    dependent results.
- 
+
  - Some system constants defined in limits.h INT_MAX and LONG_MAX may exceed
    numbers representable in nested lists.
 
  - The Jpl directory does not compile
 
- 
+
 However, but all operations work without system crashes!
 
 
@@ -84,7 +95,7 @@ Best Regards
 Markus
 
 
-2007-04-24  Changes in the RelationAlgebra 
+2007-04-24  Changes in the RelationAlgebra
 ===============================================================================
 
 The base class GenericRelation was revised in order to make it compatible with
@@ -106,8 +117,8 @@ relation as result.
 Moreover, the TupleBuffer now ignores to copy persistent LOBs (LOBs which are
 stored on disk). This saves again much processing time since LOBs on disk have
 their own lob-file and record-id which are stable during the query. Only LOBs
-which are created in the query itself need to be written to the lob-file of 
-temporary result relations. 
+which are created in the query itself need to be written to the lob-file of
+temporary result relations.
 
 
 Best Regards
@@ -122,18 +133,18 @@ Due to inconsistent management of allocated management and some contradictions
 in the concept of fresh and solid tuples we changed the concept and
 implementation of the tuple representation. Now tuples are always handled like
 the former "fresh" tuples and writing them to disk has no effect for their
-current memory organization. 
+current memory organization.
 
 The folowing major changes happend:
 
 (1) The solid state of tuples is removed, thus tuples are stateless now.
-(3) The FLOB class has been revised. 
+(3) The FLOB class has been revised.
 (4) The DBArray class has a new function "TrimToSize", which resizes the array
     and the underlying FLOB to hold exactly the number of elements which are
     stored in it.
 (5) Some bug fixes in operator implementations concerning reference counting.
 
-Moreover, the optional "Main Memory" relational algebra implementation files 
+Moreover, the optional "Main Memory" relational algebra implementation files
 are removed.
 
 If make fails, please try "make clean; make". Afterwards you should rebuild
@@ -148,12 +159,12 @@ Thomas and Markus
 ===============================================================================
 I have implemented and added a new algbera module, the 'GSLAlgebra'. It uses
 functions imported from the GNU Scientific Library (GSL) and therefore depends
-on this library. I have included the GSL into the installsdk script and copied 
-the gsl sources/binaries into the gnu-folders of the 
+on this library. I have included the GSL into the installsdk script and copied
+the gsl sources/binaries into the gnu-folders of the
 SECONDO_SDK_INSTALLATION_KIT.
 
-If you get problems compiling Secondo, please install GSL 1.8 manually (e.g. 
-using yast) or by getting the recent SECONDO_SDK_INSTALLATION_KIT and 
+If you get problems compiling Secondo, please install GSL 1.8 manually (e.g.
+using yast) or by getting the recent SECONDO_SDK_INSTALLATION_KIT and
 re-running the 'installsdk' script.
 
 Christian
@@ -161,16 +172,16 @@ Christian
 
 2007-01-02  R-Trees
 ===============================================================================
-I have implemented bulkloading for RTrees. Also, using the nodes(_) operator, 
+I have implemented bulkloading for RTrees. Also, using the nodes(_) operator,
 you can inspect your RTrees now.
 
-As changes were done in the RTree implementation, you may need to restore your 
+As changes were done in the RTree implementation, you may need to restore your
 RTree-Indices, if you run into problems.
 
 Christian
 
 
-2007-05-01  Example Queries 
+2007-05-01  Example Queries
 ===============================================================================
 
 There are new features for the definition of example queries please study
@@ -179,9 +190,9 @@ the file Documents/Secondo-Ideas.txt for details.
 Regards,
 
 Markus
- 
 
-2006-28-11 Operator specs 
+
+2006-28-11 Operator specs
 ===============================================================================
 
 From now on, we have an new mechanism for specifying example queries. In the
@@ -189,17 +200,17 @@ future it should guarantee that all example queries of the online help will
 run and produce correct results. Thus it is another way of defining little
 tests which are suitable for a quick regression test over all algebra modules.
 The concept is described in the file Documents/Secondo-Ideas.txt. Basically
-you need to provide an ".examples" file in the algebra module's directory (for 
-an example refer to the StandardAlgebra). 
+you need to provide an ".examples" file in the algebra module's directory (for
+an example refer to the StandardAlgebra).
 
 At startup for each active algebra the ".examples" file will be read in and the
 examples are processed by the Secondo-Parser. Errors will be displayed during
 startup (Currently ther are a lot of them). Template files are generated below
-bin/tmp. 
+bin/tmp.
 
 Kind regards,
 
-Markus 
+Markus
 
 
 2006-10-05 Changes in building the OptServer
@@ -219,24 +230,24 @@ Best regards,
 ===============================================================================
 
 I have corrected the query processor's Eval function. The error was that
-we needed to call the Request for "simple" objects in stream operators 
+we needed to call the Request for "simple" objects in stream operators
 (operators that do return streams). Now we only call Request when it is
 really necessary, i.e. for nodes that cannot be previously evaluated by
 the query processor, e.g. streams and functions.
- 
+
 Best regards,
 Victor
 
-2006-09-11 Support for MAC OSX  
+2006-09-11 Support for MAC OSX
 ===============================================================================
 
-I have changed a lot of makefiles and cpp-files in order to make the 
+I have changed a lot of makefiles and cpp-files in order to make the
 build process also possible on Mac OSX. It may happen, that now the system
 does not compile on Windows since I haven't it tested for this platform yet.
 
 In case of trouble please send a mail to markus.spiekermann(at)fernuni-hagen.de
 
-Regards 
+Regards
   Markus
 
 2006-08-22 New System Tables
@@ -284,7 +295,7 @@ Ralf
 Command Times:
 --------------
 The output of the query or command times has been changed.
-Now also the times for 
+Now also the times for
 
 1) creating the list representation for the result object
 2) for committing the transaction (which is reasonable!)
@@ -299,8 +310,8 @@ configuration file by replacing it with SecondoConfig.example.
 Counters:
 ---------
 There are new counters which keep track of bytes read or written to disk.
-They are implemented in SmiRecord and the PrefetchingIterator. There are 
-counters for 
+They are implemented in SmiRecord and the PrefetchingIterator. There are
+counters for
 
 1) The number of function calls
 2) The number of transferred bytes
@@ -308,17 +319,17 @@ counters for
 
 Note: The last value is not identical to reading pages from disk. This
 information is only present in the Berkeley-DB cache. Currently, we have no
-interface to access the Berkeley-DB cache statistics.   
+interface to access the Berkeley-DB cache statistics.
 
 Finally, all command times and counter values are stored in the system tables
 
   SEC_COMMANDS
   SEC_COUNTERS
 
-which are non persistent relation objects whose values are only kept during the 
+which are non persistent relation objects whose values are only kept during the
 current session. However, you can store them by
 
-let sessionCmds = SEC_COMMANDS feed consume; 
+let sessionCmds = SEC_COMMANDS feed consume;
 
 Regards
 
@@ -340,9 +351,9 @@ e.g. #yields @$(HOME)/data/query1.result
 
 Moreover, the notation $(VARIABLE) can be used for SECONDO's restore and save
 commands, but then the file name needs to be a text atom which can easily
-specified by enclosing it in single quotes, e.g. 
+specified by enclosing it in single quotes, e.g.
 
-restore database germany from '$(VARIABLE)/secondo-data/germany'; 
+restore database germany from '$(VARIABLE)/secondo-data/germany';
 
 Note: On windows the path separator must be a backslash, for example
 
@@ -353,7 +364,7 @@ scripts will run all files below "Tests/Testspecs" which are ending with
 ".test". Moreover, you need not to set up your own data in a test. The databases
 defined in "bin/createdb.test" are restored before all other tests. Hence, if
 you need a specific database of the secondo-data repository, please add it there
-in the test file you must only open the database. 
+in the test file you must only open the database.
 
 Finally, you can run all tests locally by calling
 
@@ -405,9 +416,9 @@ instead of many of them. This speeds up linking. For convenicence and
 backward compatibility there are some shell scripts called
 
 bin: SecondoTTYBDB, SecondoTTYCS, TestRunnner, TestRunnerCS, SecondoMonitor
-Optimizer: SecondoPL, SecondoPLCS 
+Optimizer: SecondoPL, SecondoPLCS
 
-Hope it works for all, 
+Hope it works for all,
 
 Markus
 
@@ -451,20 +462,20 @@ which is only deleted when the counter is zero.
 2005-11-22 Problems with Javagui using Java Version 1.5
 ===============================================================================
 When you are using Javagui with Sun's Java Version 1.5, the snapshot function
-of Javagui leads to a hang up of the Java Virtual Machine on linux systems. 
+of Javagui leads to a hang up of the Java Virtual Machine on linux systems.
 The error message will be:
     "Couldn't execl robot child process: Permission denied"
 
-To solve this problem, go into the jdk/jre/lib/i386 subfolder of your java 
+To solve this problem, go into the jdk/jre/lib/i386 subfolder of your java
 installation and change the file "awt_robot" to be executable using the command
    chmod ugo+x awt_robot
 Depending on the installation of the java sdk it may be required to do that
-with root rights. If you don't have root access, install your private java-sdk 
-or ask your administrator. 
- 
+with root rights. If you don't have root access, install your private java-sdk
+or ask your administrator.
+
 
 2005-10-26  Notes for Problems on newer Linux Systems:
-=============================================================================== 
+===============================================================================
 
 1) Installation problems:
 -------------------------
@@ -472,7 +483,7 @@ Some new linux distributions (e.g. SuSe 9.2) are equipped with bash version 3.0.
 This causes problems in the installsdk script. For example the configure script
 of the gcc will break due to compatibility problems of the trap command when the
 bash is running in posix mode. At the secondo website you can download a newer
-version of installsdk which solves this problem. 
+version of installsdk which solves this problem.
 
 2) Environment problems:
 ------------------------
@@ -495,23 +506,23 @@ by changing important variables like PATH or LD_LIBRARY_PATH.
 
 3) Secondo Server Startup Problems
 ----------------------------------
-There seems to be a problem in retrieving the IP-address for localhost. 
+There seems to be a problem in retrieving the IP-address for localhost.
 In the file SecondoConfig.ini the value localhost must be replaced by 127.0.0.1
 
 
 Best Regards
 
     Markus Spiekermann
- 
+
 
 2005-09-29
-=============================================================================== 
+===============================================================================
 Dear all,
 
 currently there is a problem (only MS-WINDOWS) with the jpeg library used by
 the picture algebra.  A file called jpeg62.dll is missing in the
 Secondo-SDK/bin directory. If you have this problem, please download
-"jpeg6b-3-bin.zip" from the SECONDO website or disable the picture algebra. 
+"jpeg6b-3-bin.zip" from the SECONDO website or disable the picture algebra.
 
 Markus
 
@@ -527,24 +538,24 @@ For instance the setttings
 SECONDO_ACTIVATE_ALL_ALGEBRAS="true"
 SECONDO_YACC=/usr/bin/bison
 
-will compile and link all algebra modules. The systems parser generator must 
+will compile and link all algebra modules. The systems parser generator must
 be used otherwise it is not possible to create the Secondo-Parser. On windows
-we haven't yet a newer version of bison, hence it is not possible to activate 
-all algebras there. It will also only work if there are no empty algebra 
+we haven't yet a newer version of bison, hence it is not possible to activate
+all algebras there. It will also only work if there are no empty algebra
 directories. This can be avoided by using optin -P (prune empty directories).
 This should always be used by cvs checkout and update commands.
 
-With the new switch all subdirectories of Algebras (execept Management) are 
-used. Moreover for every directory a library file "lib/lib<algdir>.a"  may be 
-produced (except NauticalMap since it does not compile). All these files are 
-linked togehter with the applications. Moreover the file AlgebraList.i.cfg 
-may not contain entries which have no algebra directory, hence this will 
-result in an "undefined reference" error when linking all together.   
+With the new switch all subdirectories of Algebras (execept Management) are
+used. Moreover for every directory a library file "lib/lib<algdir>.a"  may be
+produced (except NauticalMap since it does not compile). All these files are
+linked togehter with the applications. Moreover the file AlgebraList.i.cfg
+may not contain entries which have no algebra directory, hence this will
+result in an "undefined reference" error when linking all together.
 
-Moreover, the libraries are now grouped by the "-( lib1 ... -libN -)" linker 
+Moreover, the libraries are now grouped by the "-( lib1 ... -libN -)" linker
 command which will automatically resolve circular dependencies among them.
 
-However, this was only for your information most of you will not need it. The 
+However, this was only for your information most of you will not need it. The
 overnight make run will use it to ensure that all algebras will compile.
 
 Bye
@@ -633,7 +644,7 @@ are needed by the optimizer.  Three files, nameley '<relname>_sample_j',
 '<relname>_small' with name '<relname>_<attrname>_small' will be created, if
 and only if there is an index available for the the pair
 (<relname>,<attrname>).
- 
+
 Gathered information look up are stored in local memory and are available via
 predicates 'storedX', where 'X' is one of 'Spell', 'Card', 'Sel', 'PET',
 'Index', 'TupleSize' or 'Rel'.
@@ -649,7 +660,7 @@ optimizer directory.
 
 3. Make a simple query for each relation in your database, e.g.  (sql) select
 count(*) from <relname>, using SecondoPL for example.
-   
+
 For every pair (<relname>,<attrname>) there is information available if an
 index exists or not. If you add an index '<relname>_<attrname>' to your
 database simply type 'updateIndex(<relname>,<attrname>)' to inform the
@@ -705,7 +716,7 @@ Frank
 ================================================================================
 Dear all,
 
-I have documented some new (or old but undocumented) configuration options in 
+I have documented some new (or old but undocumented) configuration options in
 SecondoConfig.example. I will mention two important things here:
 
 1) There is a new section QueryProcessor:
@@ -717,23 +728,23 @@ SecondoConfig.example. I will mention two important things here:
 #MaxMemPerOperator=4096
 
 if the parameter above is set, the memory available for operators can be
-defined. Before, it was hard coded, e.g. hashjoin 16MB and other operators 
-like product only 2MB. This seems to be a little bit unfair when one tries to 
-compare two algorithms. 
+defined. Before, it was hard coded, e.g. hashjoin 16MB and other operators
+like product only 2MB. This seems to be a little bit unfair when one tries to
+compare two algorithms.
 
-Moreover, we can test with small inputs if the persistent implementation of 
-the algorithms work. It turned out that the sortmergejoin has a problem, 
-since it chrashes with a segmentation fault in some of my queries when the 
-memory is less than 4MB. Maybe some branches of code were called which have 
+Moreover, we can test with small inputs if the persistent implementation of
+the algorithms work. It turned out that the sortmergejoin has a problem,
+since it chrashes with a segmentation fault in some of my queries when the
+memory is less than 4MB. Maybe some branches of code were called which have
 never been called before. By default every operator will have 16MB now.
 
 2) Stack Trace
 
-I have improved the output of the stacktrace. On a linux system (if compiled 
-with debugging information [-ggdb]) we will see complete function and file 
-names instead of mangled C++ Symbols now. 
+I have improved the output of the stacktrace. On a linux system (if compiled
+with debugging information [-ggdb]) we will see complete function and file
+names instead of mangled C++ Symbols now.
 
-# Uncomment the next line if you don't want 
+# Uncomment the next line if you don't want
 # to see a stack trace when Secondo chrashes.
 # Note: The stack trace is not available on windows!
 RTFlags += DEBUG:DemangleStackTrace
@@ -760,18 +771,18 @@ Output Example:
 
  Tuple::DeleteIfAllowed() --> [ RelationAlgebra.h:412 ]
 
- MergeJoinLocalInfo::ClearBucket(std::vector<Tuple*, std::allocator<Tuple*> 
+ MergeJoinLocalInfo::ClearBucket(std::vector<Tuple*, std::allocator<Tuple*>
 >&) --> [ ExtRelAlgPersistent.cpp:710 ]
 
  MergeJoinLocalInfo::NextResultTuple() --> [ ExtRelAlgPersistent.cpp:940 ]
 
- int MergeJoin<false>(Word*, Word&, int, Word&, void*) --> 
+ int MergeJoin<false>(Word*, Word&, int, Word&, void*) -->
 [ ExtRelAlgPersistent.cpp:1068 ]
 
- Operator::CallValueMapping(int, Word*, Word&, int, Word&, void*) --> 
+ Operator::CallValueMapping(int, Word*, Word&, int, Word&, void*) -->
 [ Algebra.h:181 ]
 
- AlgebraManager::Execute(int, int, Word*, Word&, int, Word&, void*) --> 
+ AlgebraManager::Execute(int, int, Word*, Word&, int, Word&, void*) -->
 [ AlgebraManager.h:661 ]
 
  QueryProcessor::Eval(OpNode*, Word&, int) --> [ QueryProcessor.cpp:2682 ]
@@ -780,32 +791,32 @@ Output Example:
 
  Head(Word*, Word&, int, Word&, void*) --> [ ExtRelationAlgebra.cpp:1020 ]
 
- Operator::CallValueMapping(int, Word*, Word&, int, Word&, void*) --> 
+ Operator::CallValueMapping(int, Word*, Word&, int, Word&, void*) -->
 [ Algebra.h:181 ]
 
- AlgebraManager::Execute(int, int, Word*, Word&, int, Word&, void*) --> 
+ AlgebraManager::Execute(int, int, Word*, Word&, int, Word&, void*) -->
 [ AlgebraManager.h:661 ]
 
  QueryProcessor::Eval(OpNode*, Word&, int) --> [ QueryProcessor.cpp:2682 ]
 
  QueryProcessor::Request(void*, Word&) --> [ QueryProcessor.cpp:2792 ]
 
- TCountStream(Word*, Word&, int, Word&, void*) --> 
+ TCountStream(Word*, Word&, int, Word&, void*) -->
 [ RelationAlgebra.cpp:1864 ]
 
- Operator::CallValueMapping(int, Word*, Word&, int, Word&, void*) --> 
+ Operator::CallValueMapping(int, Word*, Word&, int, Word&, void*) -->
 [ Algebra.h:181 ]
 
- AlgebraManager::Execute(int, int, Word*, Word&, int, Word&, void*) --> 
+ AlgebraManager::Execute(int, int, Word*, Word&, int, Word&, void*) -->
 [ AlgebraManager.h:661 ]
 
  QueryProcessor::Eval(OpNode*, Word&, int) --> [ QueryProcessor.cpp:2682 ]
 
- SecondoInterface::Command_Query(AlgebraLevel, unsigned long, unsigned long&, 
+ SecondoInterface::Command_Query(AlgebraLevel, unsigned long, unsigned long&,
 std::string&) --> [ SecondoInterface.cpp:1344 ]
 
- SecondoInterface::Secondo(std::string const&, unsigned long, int, bool, bool, 
-unsigned long&, int&, int&, std::string&, std::string const&) --> 
+ SecondoInterface::Secondo(std::string const&, unsigned long, int, bool, bool,
+unsigned long&, int&, int&, std::string&, std::string const&) -->
 [ SecondoInterface.cpp:1129 ]
 
  SecondoTTY::CallSecondo() --> [ SecondoTTY.cpp:590 ]
@@ -850,7 +861,7 @@ the table size of 32767 will be exceeded. I found no
 switches to resize this table, hence I decided to use
 a newer version of bison which works fine. On linux
 you can easily switch to a newer version if you edit
-the makfile.linux and set 
+the makfile.linux and set
 
   YACC=/usr/bin/bison
 
@@ -880,28 +891,28 @@ simply call
 
 this should be already done in all installations. By default $HOME/secondo
 is assumed to be the directory where the SECONDO sources are present.
-If not so you can pass the directory as optional argument. The second 
-parameter can overrule the default directory SECONDO_SDK=/home/secondo-sdk. 
-This is interesting for global installations like we have on zeppelin. 
+If not so you can pass the directory as optional argument. The second
+parameter can overrule the default directory SECONDO_SDK=/home/secondo-sdk.
+This is interesting for global installations like we have on zeppelin.
 
 Since the automatic detection of the Berkeley-DB version was very slow on
 windows-msys I removed it. If you have already installed a newer Berkeley-DB
-please set up the directory in the file ".secondo.sdkrc". Moreover, you may 
-have to change the CVSROOT variable it is also defined there. In most cases 
-this should be the only file to change. 
+please set up the directory in the file ".secondo.sdkrc". Moreover, you may
+have to change the CVSROOT variable it is also defined there. In most cases
+this should be the only file to change.
 
 I hope, that now the environment configuration is
 
 (1) better to maintain
 (2) better to understand
 (3) has more verbose error messages in case of missing directores, etc
- 
+
 Bye
 
 Markus
 
-P.S.: When you have more than one SECONDO source trees on your computer you 
-can simply change the environment by calling "setvar"  (without parameter 
+P.S.: When you have more than one SECONDO source trees on your computer you
+can simply change the environment by calling "setvar"  (without parameter
 $PWD) in the root of a SECONDO source tree.
 
 
@@ -952,13 +963,13 @@ the script. You can call the script by
 
   make runtests
 
-Please do this before you check in changes in important modules!!! 
+Please do this before you check in changes in important modules!!!
 
-The test creates his own berkeley db database directory The output of the 
+The test creates his own berkeley db database directory The output of the
 tests will be stored in Tests/Testspecs/<name>.log
 
-Moreover, every night a cron job retrieves a CVS copy, compiles SECONDO and 
-runs these tests. All people who commited since the last succesful run will 
+Moreover, every night a cron job retrieves a CVS copy, compiles SECONDO and
+runs these tests. All people who commited since the last succesful run will
 get an email if any error happens.
 
 Currently, the oldrelalg.test fails with a segmentation fault.
@@ -971,14 +982,14 @@ Markus
 ===============================================================================
 Dear all,
 
-I'm sorry but unfortunately, my instructions were misguiding. The problem is, 
-that the directory for the Berkeley-DB was hard coded into the setvar script 
-and  I told you another name. Hence, even if you have installed a new 
-Berkeley-DB it will not be used.  
+I'm sorry but unfortunately, my instructions were misguiding. The problem is,
+that the directory for the Berkeley-DB was hard coded into the setvar script
+and  I told you another name. Hence, even if you have installed a new
+Berkeley-DB it will not be used.
 
-With the command 'catvar' all important used directories are displayed. If 
-BERKELEY_DB_DIR is not the directory where you have installed it, still the 
-old verision will be used. Now I fixed the problem and the only restriction 
+With the command 'catvar' all important used directories are displayed. If
+BERKELEY_DB_DIR is not the directory where you have installed it, still the
+old verision will be used. Now I fixed the problem and the only restriction
 is that the library must be installed below directory $SECONDO_SDK
 
 If you already have installed Berkeley-DB 4.2.52. do
@@ -992,13 +1003,13 @@ If you already have installed Berkeley-DB 4.2.52. do
 If you haven't done it already, the old instructions will work.
 
 
-2005-01-24 Berkeley-DB Release change 
+2005-01-24 Berkeley-DB Release change
 ===============================================================================
 Dear all,
 
 I changed some SMI code in order to make it possible that
 you can use SECONDO also with Berkeley DB version 4.2.52.
-This version has native mingw support, hence it is easier to 
+This version has native mingw support, hence it is easier to
 install with gcc on windows.
 
 Since version 4.2.52 is intented to be used for the CeBit-Version, please
@@ -1008,7 +1019,7 @@ as possible, because there are only 3 weeks left for testing this version.
 Here are the upgrade instructions:
 
 1) update Secondo (cvs update)
-2) run make update-environment 
+2) run make update-environment
 3) close all open shells and start a new one
 4) Download Berkeley-DB 4.2.52 (without encryption) from www.sleepycat.com
 or if you have access from zeppelin:/home/secondo/SECONDO_CD/{linux,windows}/
@@ -1040,34 +1051,34 @@ Markus
 Dear all,
 
 since Zhiming had problems with nested lists containing German "Umlaute" like
-� �etc. I revised the scanner specifications in order to make them more 
+� �etc. I revised the scanner specifications in order to make them more
 secure. However, the problem with "Umlaute" seems to be only a problem
-of the Java based nested list scanner and is still present. Besides some 
-other improvements to the nested list parsing were done and explained below: 
+of the Java based nested list scanner and is still present. Besides some
+other improvements to the nested list parsing were done and explained below:
 
 Changes in the C++ and Java Scanner:
 -Special characters like \t \v \a \b, etc. will be overwritten.
 -Moreover there should be no problem to interchange nested list files
 between linux and windows.
- 
+
 Changes in C++:
--The error message was improved. The position of the character causing an 
+-The error message was improved. The position of the character causing an
 error and the last token name will be displayed.
--The scanner and parser can be switched into a debug mode displaying many 
-useful information. This can be done by a new command called "set", For 
+-The scanner and parser can be switched into a debug mode displaying many
+useful information. This can be done by a new command called "set", For
 example
 
   (set "NLParser:Debug" = TRUE);
 
-will turn on the debug mode for the parser. Note: The command is only 
-recognized in nested list syntax. Moreover the command can be used to 
-change the RTFlags defined in the SecondoConfig.ini at runtime. Currently only 
+will turn on the debug mode for the parser. Note: The command is only
+recognized in nested list syntax. Moreover the command can be used to
+change the RTFlags defined in the SecondoConfig.ini at runtime. Currently only
 boolean values are supported. However,
 some of them are not really runtime parameters since they are only used at
 startup of the system, hence changing them later is meaningless.
 
-The flag "NLScanner:Debug" will be used to control the scanners output. If 
-both are switched on the output is very noisy and not easy to understand 
+The flag "NLScanner:Debug" will be used to control the scanners output. If
+both are switched on the output is very noisy and not easy to understand
 since scanning and parsing are interleaved.
 
 Bye
@@ -1094,8 +1105,8 @@ are set in SecondoConfig.ini the files
   cmd-times.csv
   cmd-counters.csv
 
-will be created. This is useful to import data into 
-spreadsheets programs, e.g. MS-Excel. Before you 
+will be created. This is useful to import data into
+spreadsheets programs, e.g. MS-Excel. Before you
 import the counters.csv file it may be necessary to edit
 it, since the number of counters depends on the executed
 code hence on the commands you type in. Look at the
@@ -1119,11 +1130,11 @@ SmiRecord::Write
 4|9|0|0|0|0
 
 The first column contains the number of the command and the following columns
-the values of the counters. If the number of counters changes a new headline 
-will be printed. List databases produces no output of counters, hence there 
-is no headline. 
+the values of the counters. If the number of counters changes a new headline
+will be printed. List databases produces no output of counters, hence there
+is no headline.
 
-Information about using counters in your code will be found in the file 
+Information about using counters in your code will be found in the file
 include/Counter.h
 
 Bye
@@ -1135,18 +1146,18 @@ Markus
 ===============================================================================
 Hi all,
 
-  I have just finished a new approach for indexing complex data types using 
-B-Trees. 
+  I have just finished a new approach for indexing complex data types using
+B-Trees.
 
-  The idea is to use a string representation of the objects that preserve the 
-ordering. For that, a new abstract class is created, namely  
-IndexableStandardAttribute, which has three functions: one for writing the 
-value into a string (char *), one for reading the value from a string, and 
-finally one for returning the size of the string representation of the object 
-in bytes. 
+  The idea is to use a string representation of the objects that preserve the
+ordering. For that, a new abstract class is created, namely
+IndexableStandardAttribute, which has three functions: one for writing the
+value into a string (char *), one for reading the value from a string, and
+finally one for returning the size of the string representation of the object
+in bytes.
 
-  The data type class must implement this abstract class in order to be 
-indexable by B-Trees. For the Secondo type checking, I have created a kind 
+  The data type class must implement this abstract class in order to be
+indexable by B-Trees. For the Secondo type checking, I have created a kind
 called INDEXABLE which the data types must belong.
 
   As an example, one can see the DateTime algebra.
@@ -1159,9 +1170,9 @@ Victor
 ===============================================================================
 Dear All,
 
-I've implemented 3 new operators, "units", "theyear", and "themonth" in 
-Secondo. The "units" operator didn't work at first because of an error with 
-the definition of the UPoint class. Now Markus has fixed it and it works 
+I've implemented 3 new operators, "units", "theyear", and "themonth" in
+Secondo. The "units" operator didn't work at first because of an error with
+the definition of the UPoint class. Now Markus has fixed it and it works
 fine.
 
 The signatures of these OPs are as follows:
@@ -1195,36 +1206,36 @@ Zhiming
 Dear all,
 
 some time ago, I explained how to configure make
-to create a version of Secondo which uses a persistent 
+to create a version of Secondo which uses a persistent
 implementation of the Nested-List module capable to
 restore large objects. The changes made there address
 two things
 
 (1) The variable NL_PERSISTENT  in the makefile.env
-which switches between persistent and in memory 
+which switches between persistent and in memory
 representation.
 
 (2) This variable was also used to define a Berkeley-DB mode
 without logging and transactions.
 
 The latter was now changed to a runtime flag. If you define
-the flag 
+the flag
 
-SMI:NoTransactions 
+SMI:NoTransactions
 
 in the SecondoConfig.ini file (the RTFlags key).
 Secondo will startup the SMI without transactions and logging.
 This mode can be useful for restoring databases or to see which
-overhead logging and transactions causes during query processing 
+overhead logging and transactions causes during query processing
 
 You can also use the version with the NL_PERSISTENT flag permanently
 since for the most commands the buffer of the Nested-List module is big enough
-and hence no additional disk I/O is needed. I tested it for a while and I 
-think it runs stable now. 
+and hence no additional disk I/O is needed. I tested it for a while and I
+think it runs stable now.
 
 However, each time when you change the NL_PERSISTENT key, run make clean
-before building Secondo again. This is due to the fact that the Nestedlist 
-module is used nearly everywhere in the system and I'm not sure if the make 
+before building Secondo again. This is due to the fact that the Nestedlist
+module is used nearly everywhere in the system and I'm not sure if the make
 files handles all dependencies correct.
 
 Bye Markus
@@ -1238,16 +1249,16 @@ I have changed some makefiles and created some new ones since some of them were
 too complex. Now the structure is as follows (-> indicates a include relation)
 
 makefile -> makfile.env
-             
+
 The top level makefile should only call other makfiles in an appropriate order.
 The rules for creating libraries were moved to a file makefile.libs. Every sub
 level makefile includes makefile.env which contains all basic definitions such
-as names of tools, directories for searching includes, etc. 
+as names of tools, directories for searching includes, etc.
 
-makfile.env 
+makfile.env
 ->makefile.jni
 ->makefile.algebras
-->makefile.optimizer 
+->makefile.optimizer
 ->makefile.{.linux,.win32}
 
 makefile.algebras is used for the definition of algebra names and directories
@@ -1268,9 +1279,9 @@ makefile.optimizer contains information about the Prolog and JPL installation.
 If this file detects that Prolog is installed (this is determined by some
 environment variables which have to be set manually after prolog installation)
 the optimizer will be compiled. Additonally, the JPL based Optimizer Server
-will be compiled. 
+will be compiled.
 
-Finally, here are some installation instructions: 
+Finally, here are some installation instructions:
 
 MS-Windows: The Berkeley-DB will now be installed at a global place in the file
 system, therefore you will have to change some environment variables.  When you
@@ -1289,7 +1300,7 @@ you will never have to change to the Win32 directory and run "make install"
 anymore.
 
 Linux: Replace your setvar.bash script with the version in the secondo directory
-Maybe it was renamed try 
+Maybe it was renamed try
 
 which setvar
 
@@ -1310,25 +1321,25 @@ Hello all,
 
 I have commited the following changes to CVS
 
-1) new operators seqinit: int -> bool and seqnext: -> int implemented in the 
+1) new operators seqinit: int -> bool and seqnext: -> int implemented in the
 StandardAlgebra.
 These operators allow to create a sequence of numbers. After startup the
-Sequence counter is set to 0. With seqinit it can be resetted to an arbitrary 
-integer value. The seqnext() can be used in conjunction with the extend 
-operators to add unique or uniformly distributed attribute values (seqnext() 
+Sequence counter is set to 0. With seqinit it can be resetted to an arbitrary
+integer value. The seqnext() can be used in conjunction with the extend
+operators to add unique or uniformly distributed attribute values (seqnext()
 mod N) to relations
 
 2) The random number generation in the randint and sample operator are revised
-as recommended in the man page documentation of the rand() function. In C++ 
-code always use the computation of rand()/(RAND_MAX+1.0) to create floating 
-values in the range [0,1) and multiply them by a constant N to create values 
-in the range [0,N-1]. On Windows the library dependent constant RAND_MAX is 
-limited to 32.000 which is a very small value. With the modification above 
-the sample operator will create uniformly distributed numbers but limited to 
-a total number of samples of 3*RAND_MAX/4 to avoid long runtimes. 
+as recommended in the man page documentation of the rand() function. In C++
+code always use the computation of rand()/(RAND_MAX+1.0) to create floating
+values in the range [0,1) and multiply them by a constant N to create values
+in the range [0,N-1]. On Windows the library dependent constant RAND_MAX is
+limited to 32.000 which is a very small value. With the modification above
+the sample operator will create uniformly distributed numbers but limited to
+a total number of samples of 3*RAND_MAX/4 to avoid long runtimes.
 
-3) In case of abnormal program termination a stack trace will be printed on 
-the screen (linux version only). This may help to determine the origin of 
+3) In case of abnormal program termination a stack trace will be printed on
+the screen (linux version only). This may help to determine the origin of
 trouble at a first glance.
 
 Bye
