@@ -675,30 +675,6 @@ Converts a leaf node to an internal one. The node must be empty.
 
 */
 
-    void FirstDistanceScan( const BBox<dim>& box );
-/*
-FirstDistanceScan initializes the priority queue.
-
-Implemented by NearestNeighborAlgebra.
-
-*/
-
-    void LastDistanceScan(  );
-/*
-LastDistanceScan deletes the priority queue of the distancescan
-
-Implemented by NearestNeighborAlgebra.
-
-*/
-
-    bool NextDistanceScan( const BBox<dim>& box, LeafInfo& result );
-/*
-NextDistanceScan returns true and fills the result with the
-ID of the next tuple if there is a next tuple else it returns false
-
-Implemented by NearestNeighborAlgebra.
-
-*/
 
   private:
     bool leaf;
@@ -761,22 +737,6 @@ in ~seed1~ and ~seed2~.
 Returns the entry position that should be assigned next to one of the
 two groups with bounding boxes ~b1~ and ~b2~, respectively.
 (Algorithm ~PickNext~ of Guttman)
-
-*/
-
-    NNpriority_queue* pq;
-/*
-The priority queue for the distancescan functions
-
-Used by NearestNeighborAlgebra.
-
-*/
-
-    bool distanceFlag;
-/*
-true, after a call of FirstDistanceScan
-
-Used by NearestNeighborAlgebra.
 
 */
 
@@ -1727,6 +1687,31 @@ can be used to inspect the R-tree structure.
 
 */
 
+    void FirstDistanceScan( const BBox<dim>& box );
+/*
+FirstDistanceScan initializes the priority queue.
+
+Implemented by NearestNeighborAlgebra.
+
+*/
+
+    void LastDistanceScan(  );
+/*
+LastDistanceScan deletes the priority queue of the distancescan
+
+Implemented by NearestNeighborAlgebra.
+
+*/
+
+    bool NextDistanceScan( const BBox<dim>& box, LeafInfo& result );
+/*
+NextDistanceScan returns true and fills the result with the
+ID of the next tuple if there is a next tuple else it returns false
+
+Implemented by NearestNeighborAlgebra.
+
+*/
+
 
   private:
     SmiRecordFile file;
@@ -1930,6 +1915,20 @@ A counter used in ~Introspect~ routines
     long nodeId[ MAX_PATH_SIZE ];
 /*
 An array to save the nodeIds of the path during the ~Introspect~ routines
+
+*/
+
+    NNpriority_queue* pq;
+/*
+The priority queue for the distancescan functions
+Used by NearestNeighborAlgebra.
+
+*/
+
+    bool distanceFlag;
+/*
+true, after a call of FirstDistanceScan
+Used by NearestNeighborAlgebra.
 
 */
 
