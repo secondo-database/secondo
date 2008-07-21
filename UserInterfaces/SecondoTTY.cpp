@@ -830,12 +830,12 @@ int SecondoTTYMode(const TTYParameter& tp)
     }
     hist_file.close();
   }
+  ofstream out_history(HISTORY_FILE,ofstream::out | ofstream::trunc );
 #endif
   int rc = appPointer->Execute();
   delete appPointer;
 #ifdef READLINE
   /* save the last xxx enties in the history to a file */
-  ofstream out_history(HISTORY_FILE,ofstream::out | ofstream::trunc );
   if(out_history){
      int start_history = history_length-HISTORY_FILE_ENTRIES;
      if(start_history <0) start_history=0;
