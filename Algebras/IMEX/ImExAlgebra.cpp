@@ -403,8 +403,9 @@ Operator csvexport( "csvexport",
 
 ListExpr csvimportTM(ListExpr args){
   string err = " rel(tuple(a_1 : t_1)...(a_n : t_n)) x "
-               "text x int x string expected";
-  if(nl->ListLength(args)!=4){
+               "text x int x string [x string] expected";
+  int len = nl->ListLength(args);
+  if((len!=4) && (len!=5)){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -412,6 +413,10 @@ ListExpr csvimportTM(ListExpr args){
      !nl->IsEqual(nl->Second(args),symbols::TEXT) ||
      !nl->IsEqual(nl->Third(args),symbols::INT) ||
      !nl->IsEqual(nl->Fourth(args),symbols::STRING)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if( (len==5) && !nl->IsEqual(nl->Fifth(args),symbols::STRING)){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -445,13 +450,13 @@ ListExpr csvimportTM(ListExpr args){
 
 
 const string csvimportSpec  =
-    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> rel(tuple(...) x text x int x string "
-    "-> stream (tuple(...))</text--->"
-    "<text> rel csvimport[filename, headersize, comment] </text--->"
-    "<text> returns the content of the file as a stream </text--->"
-    "<text> not tested !!!</text--->"
-    ") )";
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text> rel(tuple(...) x text x int x string [x string] "
+   "-> stream (tuple(...))</text--->"
+   "<text> rel csvimport[filename, headersize, comment, separator] </text--->"
+   "<text> returns the content of the file as a stream </text--->"
+   "<text> not tested !!!</text--->"
+   ") )";
 /*
 1.3 Value Mapping for csvimport
 
@@ -459,8 +464,10 @@ const string csvimportSpec  =
 class CsvImportInfo{
 public:
   CsvImportInfo(ListExpr type, FText* filename, 
-                CcInt* hSize , CcString* comment){
+                CcInt* hSize , CcString* comment,
+                const string& separator){
 
+      this->separator = separator;
       BasicTuple = 0;
       tupleType = 0;
       defined = filename->IsDefined() && hSize->IsDefined() &&
@@ -561,14 +568,14 @@ private:
   TupleType* tupleType;
   Tuple* BasicTuple;
   vector<Attribute*> instances;
+  string separator;
   Tuple* createTuple(string line){
-      string sep = ",";
       Tuple* result = BasicTuple->Clone();
       string::size_type lastPos = 0;
       bool end = false;
       for(unsigned int i=0;i<instances.size();i++){
          Attribute* attr = instances[i]->Clone();
-         string::size_type pos  = line.find_first_of(sep, lastPos);
+         string::size_type pos  = line.find_first_of(separator, lastPos);
          if(pos!=string::npos  || lastPos != string::npos && !end){
             if(pos==string::npos){
                pos = line.size();
@@ -577,8 +584,8 @@ private:
             string attrstr = line.substr(lastPos,pos -lastPos);
             attr->ReadFromString(attrstr);
             result->PutAttribute(i,attr);
-            lastPos = pos+1;
-            pos = line.find_first_of(sep, lastPos);
+            lastPos = pos+separator.length();
+            pos = line.find_first_of(separator, lastPos);
          } else {
             attr->SetDefined(false);
             result->PutAttribute(i,attr);
@@ -595,10 +602,19 @@ int csvimportVM(Word* args, Word& result,
   switch(message){
     case OPEN: {
       ListExpr type = qp->GetType(qp->GetSon(s,0));
+      int sons = qp->GetNoSons(s);
       FText* fname = static_cast<FText*>(args[1].addr);
       CcInt* skip = static_cast<CcInt*>(args[2].addr);
       CcString* comment = static_cast<CcString*>(args[3].addr);
-      local  = SetWord(new CsvImportInfo(type,fname,skip,comment));
+      string separator = ",";
+      if(sons==5){
+        CcString* cCSep = static_cast<CcString*>(args[4].addr);
+        separator = cCSep->GetValue();
+        if(separator.length()==0){
+          separator=",";
+        }
+      }
+      local  = SetWord(new CsvImportInfo(type,fname,skip,comment,separator));
       return 0;
     }
     case REQUEST: {
@@ -2068,7 +2084,7 @@ int numOfNeighbours(const DBArray<HalfSegment>& segs,const int pos){
    const HalfSegment* hs1;
    const HalfSegment* hs2;
    segs.Get(pos,hs1);
-	 Point dp = hs1->GetDomPoint();
+   Point dp = hs1->GetDomPoint();
    double dpx = dp.GetX();
    int num = 0;
    bool done= false;
