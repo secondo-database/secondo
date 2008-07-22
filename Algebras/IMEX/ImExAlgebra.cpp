@@ -81,31 +81,32 @@ extern AlgebraManager* am;
 
 1.1 Type Mapping
 
-   stream(CSVEXPORTABLE) x string x bool -> stream(CSVEXPORTABLE)
+   stream(CSVEXPORTABLE) x text x bool -> stream(CSVEXPORTABLE)
    stream ( tuple ( (a1 t1) ... (an tn))) x string x bool x bool -> stream (tuple(...))
+   stream ( tuple ( (a1 t1) ... (an tn))) x string x bool x bool x string -> stream (tuple(...))
 
 */
 
 ListExpr csvexportTM(ListExpr args){
   int len = nl->ListLength(args); 
-  if(len != 3 && len != 4){
+  if(len != 3 && len != 4 && len!=5){
     ErrorReporter::ReportError("wrong number of arguments");
     return nl->TypeError();
   }
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if(len == 3){ // stream(CSV) x string x bool
-    if(!nl->IsEqual(nl->Second(args),"text") || 
-       !nl->IsEqual(nl->Third(args),"bool")){
-       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
+    if(!nl->IsEqual(nl->Second(args),symbols::TEXT) || 
+       !nl->IsEqual(nl->Third(args),symbols::BOOL)){
+       ErrorReporter::ReportError("stream x text x bool expected");
        return nl->TypeError();
     }
     ListExpr stream = nl->First(args);
     if(nl->ListLength(stream)!=2){
-       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool expected");
        return nl->TypeError();
     }
     if(!nl->IsEqual(nl->First(stream),"stream")){
-       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
+       ErrorReporter::ReportError("stream x text x bool expected");
        return nl->TypeError();
     }
     if(!am->CheckKind("CSVEXPORTABLE",nl->Second(stream),errorInfo)){
@@ -114,15 +115,21 @@ ListExpr csvexportTM(ListExpr args){
     }
     return stream;
   } else { // stream(tuple(...) )
-    if( !nl->IsEqual(nl->Second(args),"text") ||
-        !nl->IsEqual(nl->Third(args),"bool") ||
-        !nl->IsEqual(nl->Fourth(args),"bool")  ){
-       ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
+    if( !nl->IsEqual(nl->Second(args),symbols::TEXT) ||
+        !nl->IsEqual(nl->Third(args),symbols::BOOL) ||
+        !nl->IsEqual(nl->Fourth(args),symbols::BOOL)  ){
+       ErrorReporter::ReportError("stream x text x bool x"
+                                  " bool [x string] expected");
+       return nl->TypeError();
+    }
+    if(len==5 && !nl->IsEqual(nl->Fifth(args),symbols::STRING)){
+       ErrorReporter::ReportError("stream x text x bool x "
+                                  "bool [x string] expected");
        return nl->TypeError();
     }
     ListExpr stream = nl->First(args);
     if(nl->ListLength(stream)!=2 ||
-       !nl->IsEqual(nl->First(stream),"stream")){ 
+       !nl->IsEqual(nl->First(stream),symbols::STREAM)){ 
        ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
@@ -178,7 +185,9 @@ public:
    }
   
    CsvExportLocalInfo(string fname, bool append,bool names, 
+                      const string& sep,
                       ListExpr type){
+     this->sep = sep;
      if(append){
        f.open(fname.c_str(), ios::out | ios::app);
      } else {
@@ -215,7 +224,7 @@ public:
      int s = tuple->GetNoAttributes();
      for(int i=0;i<s;i++){
         if(i>0){
-          f << ",";
+          f << sep;
         }
         f << tuple->GetAttribute(i)->getCsvStr();
      }
@@ -224,6 +233,7 @@ public:
 
 private:
   fstream f;
+  string sep;
 };
 
 int CsvExportVM(Word* args, Word& result,
@@ -294,6 +304,14 @@ int CsvExportVM2(Word* args, Word& result,
       FText* fname = static_cast<FText*>(args[1].addr);
       CcBool* append  = static_cast<CcBool*>(args[2].addr);
       CcBool* names   = static_cast<CcBool*>(args[3].addr);
+      string sep = ",";
+      if(qp->GetNoSons(s)==5){
+        CcString* ccSep = static_cast<CcString*>(args[4].addr);
+        sep =  ccSep->GetValue();
+        if(sep.length()==0){
+           sep =",";
+        } 
+      }
       if(!fname->IsDefined() || !append->IsDefined() || !names->IsDefined()){
          local = SetWord(Address(0));
       } else {
@@ -301,6 +319,7 @@ int CsvExportVM2(Word* args, Word& result,
          linfo = (new CsvExportLocalInfo(fname->GetValue(), 
                                          append->GetBoolval(),
                                          names->GetBoolval(),
+                                         sep,
                                          qp->GetType(s)));
          if(!linfo->isOk()){
             delete linfo;
@@ -365,10 +384,13 @@ int csvExportSelect( ListExpr args )
 const string CsvExportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(X) x  string x bool -> stream(X)\n"
-    "stream(tuple(...))) x string x bool x bool -> stream(tuple...)</text--->"
-    "<text> stream csvexport [ file , append [writenames]]</text--->"
+    "stream(tuple(...))) x string x bool x bool "
+    "[x string]-> stream(tuple...)</text--->"
+    "<text> stream csvexport [ file , append, "
+    "[writenames, [separator]]]</text--->"
     "<text> Exports stream content to a csv file </text--->"
-    "<text>query ten feed exportcsv[\"ten.csv\", FALSE] count</text--->"
+    "<text>query ten feed exportcsv[\"ten.csv\", "
+    "FALSE,TRUE,\";\"] count</text--->"
     ") )";
 
 /*
