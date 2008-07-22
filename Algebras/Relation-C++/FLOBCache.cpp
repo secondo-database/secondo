@@ -280,6 +280,7 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
                          long pageno, size_t size, bool isTempFile, 
                          const char *flob )
 {
+
   SmiRecordFile *file;
   if( fileId == 0 )
   {
@@ -435,7 +436,9 @@ void FLOBCache::Drop( SmiFileId fileId, bool isTemp, bool paged )
     file->Close();
     file->Drop();
     delete file;
-  }
+  } 
+
+
 }
 
 void FLOBCache::DecReference( const FLOBKey key )

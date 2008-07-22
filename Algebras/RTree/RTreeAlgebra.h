@@ -2990,8 +2990,8 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
   //  Write node[currentLevel] to disk
   assert(file.IsOpen());
   SmiRecordId recId;
-  SmiRecord *rec = new SmiRecord();
-  int RecordAppended = file.AppendRecord(recId, *rec);
+  SmiRecord rec;
+  bool RecordAppended = file.AppendRecord(recId, rec);
   assert(RecordAppended);
   // Possible signature for write are:
   bli->node[bli->currentLevel]->Write(file, recId);

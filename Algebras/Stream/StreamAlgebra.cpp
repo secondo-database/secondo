@@ -3845,7 +3845,12 @@ int StreamTailTupleTreamVM(Word* args, Word& result,
       li = static_cast<TailLocalInfo*>(local.addr);
       if(li->finished){ DEBUGMESSAGE("End REQUEST: CANCEL2 "); return CANCEL; }
       Tuple *restuple = li->GetNextTuple();
-      if(!restuple){ DEBUGMESSAGE("End REQUEST: CANCEL3 "); return CANCEL; }
+      if(!restuple){ 
+        DEBUGMESSAGE("End REQUEST: CANCEL3 "); return CANCEL; 
+      } else {
+         restuple->IncReference();  // reference for the stream
+      }
+     
       result = SetWord( restuple );
       DEBUGMESSAGE("End REQUEST: YIELD");
       return YIELD;
@@ -3908,7 +3913,7 @@ class DataTailLocalInfo: public TailLocalInfo
       Tuple *tuple = GetNextTuple();
       if(tuple){
         Attribute *elem = (tuple->GetAttribute(0))->Copy();
-        tuple->DeleteIfAllowed();
+        //tuple->DeleteIfAllowed();
         return elem;
       } // else: No elem left!
       return static_cast<Attribute*>(0);

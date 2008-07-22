@@ -2961,7 +2961,7 @@ struct ShuffleBuf {
    
      TupleBuf::const_iterator it = buffer.begin();
      while( it != buffer.end() ) {
-       (*it)->DecReference();
+       //(*it)->DecReference();
        (*it)->DeleteIfAllowed();
        it++;
      } 

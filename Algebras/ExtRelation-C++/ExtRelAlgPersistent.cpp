@@ -123,8 +123,7 @@ class TupleQueue {
   inline void pop() 
   {
     Tuple* t = q.top().tuple();
-    t->DecReference();
-    //tuple.DeleteIfAllowed();
+    t->DeleteIfAllowed();
     q.pop();
   }       
 
@@ -360,8 +359,8 @@ class SortByLocalInfo : protected ProgressWrapper
       << "Sortby.MAX_MEMORY (" << MAX_MEMORY/1024 << " kb)" << endl;
     cmsg.send();
 
-    lastTuple = 0;
-    minTuple = 0;
+    lastTuple.setTuple(0);
+    minTuple.setTuple(0);
     rel=0;
   }     
 
@@ -370,9 +369,12 @@ class SortByLocalInfo : protected ProgressWrapper
     StreamIterator<Tuple> is(stream);
     while( is.valid() )   // consume the stream completely
     {
-      AppendTuple(*is);
+      Tuple* tuple = *is;
+      AppendTuple(tuple);
       ++is;
+      tuple->DeleteIfAllowed();
     }
+
   }
 
   inline StreamIterator<Tuple> GetIterator() 
@@ -451,7 +453,7 @@ class SortByLocalInfo : protected ProgressWrapper
   {
     progress->read++;
     c++; // tuple counter;
-    TupleAndRelPos nextTuple = TupleAndRelPos(t, tupleCmpBy);
+    TupleAndRelPos nextTuple(t, tupleCmpBy);
     if( MAX_MEMORY > (size_t)t->GetSize() )
     {
       currentRun->push(nextTuple);
@@ -471,7 +473,7 @@ class SortByLocalInfo : protected ProgressWrapper
 
         // get first tuple and store it in an relation
         currentRun->push(nextTuple);
-        minTuple = currentRun->top().tuple();
+        minTuple.setTuple(currentRun->top().tuple());
         rel->AppendTuple( minTuple.tuple );
         lastTuple = minTuple;
         currentRun->pop();
@@ -485,7 +487,7 @@ class SortByLocalInfo : protected ProgressWrapper
           // the current relation and push
 
           currentRun->push(nextTuple);
-          minTuple = currentRun->top().tuple();
+          minTuple.setTuple(currentRun->top().tuple());
           rel->AppendTuple( minTuple.tuple );
           lastTuple = minTuple;
           
@@ -500,7 +502,7 @@ class SortByLocalInfo : protected ProgressWrapper
           if ( !currentRun->empty() )
           {
             // Append the minimum to the current relation
-            minTuple = currentRun->top().tuple();
+            minTuple.setTuple(currentRun->top().tuple());
             rel->AppendTuple( minTuple.tuple );
             lastTuple = minTuple;
             
@@ -638,8 +640,8 @@ In this case we need to delete also all tuples stored in memory.
       while( !queue[i].empty() )
       {
         Tuple* t = queue[i].top().tuple();
-        queue[i].pop();
         tbuf->AppendTuple(t);
+        queue[i].pop();
       }          
      }
 
@@ -1164,7 +1166,6 @@ public:
               else // switch to next tuple of B
               {
                 //cout << "b:refs =" << b->GetNumOfRefs();      
-                b->DecReference();      
                 b->DeleteIfAllowed();   
                 ++iterB;
                 continueProbe = false;
@@ -1719,7 +1720,6 @@ private:
     vector<Tuple*>::iterator i = bucket.begin();
     while( i != bucket.end() )
     {
-      (*i)->DecReference();
       (*i)->DeleteIfAllowed();
       i++;
     }

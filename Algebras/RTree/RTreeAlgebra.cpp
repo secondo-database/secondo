@@ -1072,7 +1072,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   }
 
   ListExpr tupleDescription = nl->Second(relDescription);
-  ListExpr attrList = nl->Second(tupleDescription);
+  //ListExpr attrList = nl->Second(tupleDescription);
 
   /* check that rtree and rel have the same associated tuple type */
   //

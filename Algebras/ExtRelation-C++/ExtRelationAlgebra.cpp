@@ -1488,7 +1488,7 @@ VarValueMapping(Word* args, Word& result, int message,
         SEC_STD_REAL Diff = ( (currentAttr->GetValue() * 1.0) - mean );
         diffsum += Diff * Diff;
       }
-      currentTuple->DeleteIfAllowed();
+     // currentTuple->DeleteIfAllowed();
       currentTuple = relIter->GetNextTuple();
     }
     delete relIter;
@@ -1850,7 +1850,9 @@ template<class Tx, class Rx, class Ty, class Ry> int
           sumY += currY;
         }
         tp->AppendTuple(currentTuple);
-        currentTuple->DeleteIfAllowed();
+        if(currentTuple->DeleteIfAllowed()){
+            cout << "stats :: deleting a tuple stored in a buffer !!!" << endl;
+        }
         qp->Request(args[0].addr, currentTupleWord);
       }
       qp->Close(args[0].addr);
@@ -1892,7 +1894,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
             sumsqX += currX * currX;
             sumsqY += currY * currY;
           }
-          currentTuple->DeleteIfAllowed();
+         // currentTuple->DeleteIfAllowed();
           currentTuple = relIter->GetNextTuple();
         }
         delete relIter;
@@ -2164,7 +2166,6 @@ Destroy this instance.
 
    ~KrdupLocalInfo(){
        if(lastTuple!=0){
-          lastTuple->DecReference();
           lastTuple->DeleteIfAllowed();
        }
        lastTuple = 0;
@@ -2189,7 +2190,6 @@ inline bool  ReplaceIfNonEqual(Tuple* newTuple){
    if(Equals(newTuple)){
      return false;
    } else{ // replace the tuple
-     lastTuple->DecReference();
      lastTuple->DeleteIfAllowed();
      newTuple->IncReference();
      lastTuple = newTuple;
@@ -3041,7 +3041,6 @@ int RdupValueMapping(Word* args, Word& result, int message,
               // tuples are not equal. Return the tuple
               // stored in local info and store the current one
               // there.
-              lastOutputTuple->DecReference();
               lastOutputTuple->DeleteIfAllowed();
 
               rli->returned++;
@@ -3074,7 +3073,6 @@ int RdupValueMapping(Word* args, Word& result, int message,
           lastOutputTuple = rli->localTuple;
           if(lastOutputTuple != 0)
           {
-            lastOutputTuple->DecReference();
             lastOutputTuple->DeleteIfAllowed();
             rli->localTuple = 0;
           }
@@ -3086,7 +3084,6 @@ int RdupValueMapping(Word* args, Word& result, int message,
       {
         if (rli->localTuple != 0 )
         {
-          rli->localTuple->DecReference();
           rli->localTuple->DeleteIfAllowed();
           rli->localTuple = 0;
         }
@@ -3300,7 +3297,6 @@ private:
     Word tuple;
     if(deleteOldTuple && (currentATuple != 0))
     {
-      currentATuple->DecReference();
       currentATuple->DeleteIfAllowed();
     }
 
@@ -3323,7 +3319,6 @@ private:
     Word tuple;
     if(deleteOldTuple && (currentBTuple != 0))
     {
-      currentBTuple->DecReference();
       currentBTuple->DeleteIfAllowed();
     }
 
@@ -3393,11 +3388,10 @@ public:
             {
               NextBTuple(true);
             }
-            result->DecReference();
+            result->DeleteIfAllowed();
           }
           else
           {
-            currentBTuple->DecReference();
             currentBTuple->DeleteIfAllowed();
             return 0;
           }
@@ -3416,11 +3410,10 @@ public:
             {
               NextATuple(true);
             }
-            result->DecReference();
+            result->DeleteIfAllowed();
           }
           else
           {
-            currentATuple->DecReference();
             currentATuple->DeleteIfAllowed();
             return 0;
           }
@@ -3442,11 +3435,7 @@ public:
             {
               NextATuple(true);
             }
-            tmp->DecReference();
-            if(!outputAWithoutB)
-            {
-              tmp->DeleteIfAllowed();
-            }
+            tmp->DeleteIfAllowed();
           }
           else if(smallerThan(currentBTuple, currentATuple))
           {
@@ -3462,11 +3451,7 @@ public:
             {
               NextBTuple(true);
             }
-            tmp->DecReference();
-            if(!outputBWithoutA)
-            {
-              tmp->DeleteIfAllowed();
-            }
+            tmp->DeleteIfAllowed();
 
           }
           else
@@ -3489,11 +3474,7 @@ public:
             {
               NextBTuple(true);
             }
-            match->DecReference();
-            if(!outputMatches)
-            {
-              match->DeleteIfAllowed();
-            }
+            match->DeleteIfAllowed();
           }
         }
       }
@@ -6455,7 +6436,7 @@ int GroupByValueMapping
 (Word* args, Word& result, int message, Word& local, Supplier supplier)
 {
   Tuple *s = 0;
-  Word sWord =SetWord(Address(0));
+  Word sWord = SetWord(Address(0));
   TupleBuffer* tp = 0;
   GenericRelationIterator* relIter = 0;
   int i = 0, j = 0, k = 0;
@@ -6491,7 +6472,7 @@ int GroupByValueMapping
       qp->Request(args[0].addr, sWord);
       if (qp->Received(args[0].addr))
       {
-        gbli = new GroupByLocalInfo;
+        gbli = new GroupByLocalInfo();
         gbli->t = (Tuple*)sWord.addr;
         gbli->t->IncReference();
         ListExpr resultType = GetTupleResultType( supplier );
@@ -6516,17 +6497,17 @@ int GroupByValueMapping
     {
       Counter::getRef("GroupBy:Request")++;
       if(local.addr == 0)
-        return CANCEL;
-      else
       {
-        gbli = (GroupByLocalInfo *)local.addr;
-        if( gbli->t == 0 ) // Stream ends
-          return CANCEL;
-
-        tp = new TupleBuffer(gbli->MAX_MEMORY);
-        tp->AppendTuple(gbli->t);
+        return CANCEL;
       }
+      gbli = (GroupByLocalInfo *)local.addr;
+      if( gbli->t == 0 ) { // Stream ends
+          return CANCEL;
+      }
+      tp = new TupleBuffer(gbli->MAX_MEMORY);
+      tp->AppendTuple(gbli->t);
 
+    
       // get number of attributes
       numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
 
@@ -6668,7 +6649,7 @@ int GroupByValueMapping
 (Word* args, Word& result, int message, Word& local, Supplier supplier)
 {
   Tuple *s = 0;
-  Word sWord =SetWord(Address(0));
+  Word sWord = SetWord(Address(0));
   TupleBuffer* tp = 0;
   GenericRelationIterator* relIter = 0;
   int i = 0, j = 0, k = 0;
@@ -6702,27 +6683,29 @@ int GroupByValueMapping
     case OPEN:
     {
 
-      if (gbli) delete gbli;
-      gbli = new GroupByLocalInfo;
-        gbli->stableValue = 5;
-        gbli->stableState = false;
+      if (gbli) {
+        delete gbli;
+      }
+      gbli = new GroupByLocalInfo();
+      gbli->stableValue = 5;
+      gbli->stableState = false;
 
-        numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
-        value2 = (Supplier)args[2].addr; // list of functions
-        noOffun  =  qp->GetNoSons(value2);
+      numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
+      value2 = (Supplier)args[2].addr; // list of functions
+      noOffun  =  qp->GetNoSons(value2);
 
-        gbli->noAttrs = numberatt + noOffun;
-        gbli->noGroupAttrs = numberatt;
-        gbli->noAggrAttrs = noOffun;
-        gbli->attrSizeTmp = new double[gbli->noAttrs];
-        gbli->attrSizeExtTmp = new double[gbli->noAttrs];
+      gbli->noAttrs = numberatt + noOffun;
+      gbli->noGroupAttrs = numberatt;
+      gbli->noAggrAttrs = noOffun;
+      gbli->attrSizeTmp = new double[gbli->noAttrs];
+      gbli->attrSizeExtTmp = new double[gbli->noAttrs];
 
-        for (int i = 0; i < gbli->noAttrs; i++)
-        {
-          gbli->attrSizeTmp[i] = 0.0;
-          gbli->attrSizeExtTmp[i] = 0.0;
-        }
-        gbli->progressInitialized = false;
+      for (int i = 0; i < gbli->noAttrs; i++)
+      {
+        gbli->attrSizeTmp[i] = 0.0;
+        gbli->attrSizeExtTmp[i] = 0.0;
+      }
+      gbli->progressInitialized = false;
 
       local = SetWord(gbli);  //from now, progress queries possible
 
@@ -6734,7 +6717,7 @@ int GroupByValueMapping
       {
         gbli->read++;
         gbli->t = (Tuple*)sWord.addr;
-        gbli->t->IncReference();
+        //gbli->t->IncReference();
         ListExpr resultType = GetTupleResultType( supplier );
         gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
         gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
@@ -6800,16 +6783,14 @@ int GroupByValueMapping
         else
         {
           // store tuple pointer in local info
-          gbli->t->DecReference();
           gbli->t->DeleteIfAllowed();
           gbli->t = s;
-          gbli->t->IncReference();
+          //gbli->t->IncReference();
         }
       }
       if (ifequal)
       // last group finished, stream ends
       {
-        gbli->t->DecReference();
         gbli->t->DeleteIfAllowed();
         gbli->t = 0;
       }
@@ -6870,7 +6851,6 @@ int GroupByValueMapping
           gbli->resultTupleType->DeleteIfAllowed();
         if( gbli->t != 0 )
         {
-          gbli->t->DecReference();
           gbli->t->DeleteIfAllowed();
         }
         delete gbli;
@@ -7643,6 +7623,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             }
             else
             {
+
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;
               continue; // Go back to the loop
@@ -7926,13 +7907,15 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       if(pli)
       {
-        if( pli->currTuple != 0 )
+        if( pli->currTuple != 0 ){
           pli->currTuple->DeleteIfAllowed();
+        }
 
         delete pli->leftIter;
         delete pli->rightIter;
-        if( pli->resultTupleType != 0 )
+        if( pli->resultTupleType != 0 ){
           pli->resultTupleType->DeleteIfAllowed();
+        }
 
         if( pli->rightRel != 0 )
         {
@@ -8377,7 +8360,6 @@ SymmProductExtend(Word* args, Word& result,
                 + i, ((StandardAttribute*)value.addr)->Clone() );
               qp->ReInitResultStorage( supplier3 );
             }
-            leftTuple->DeleteIfAllowed();
             leftTuple = 0;
             result = SetWord( resultTuple );
             return YIELD;
@@ -8466,7 +8448,6 @@ SymmProductExtend(Word* args, Word& result,
                 + i, ((StandardAttribute*)value.addr)->Clone() );
               // extend effective left tuple
             }
-            rightTuple->DeleteIfAllowed();
             rightTuple = 0;
             result = SetWord( resultTuple );
             return YIELD;
@@ -8743,7 +8724,6 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             Tuple *resultTuple = new Tuple( pli->resultTupleType );
             Concat( leftTuple, pli->currTuple, resultTuple );
-            leftTuple->DeleteIfAllowed();
             leftTuple = 0;
             result = SetWord( resultTuple );
             return YIELD;
@@ -8804,7 +8784,6 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             Tuple *resultTuple = new Tuple( pli->resultTupleType );
             Concat( pli->currTuple, rightTuple, resultTuple );
-            rightTuple->DeleteIfAllowed();
             rightTuple = 0;
             result = SetWord( resultTuple );
             return YIELD;

@@ -854,7 +854,6 @@ void TupleBuffer::clearAll()
    {
      //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl; 
      //if (*it != 0) {
-       (*it)->DecReference();
        (*it)->DeleteIfAllowed();
      //}  
    }  
@@ -1010,9 +1009,9 @@ void TupleBuffer::AppendTuple( Tuple *t )
         memoryBuffer.begin();
       while( iter != memoryBuffer.end() )
       {
-        diskBuffer->AppendTupleNoLOBs( *iter );
-        (*iter)->DecReference();
-        (*iter)->DeleteIfAllowed();
+        Tuple* tuple = *iter;
+        diskBuffer->AppendTupleNoLOBs( tuple );
+        tuple->DeleteIfAllowed();
         iter++;
       }
       memoryBuffer.clear();
@@ -1037,7 +1036,7 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
   }
   else 
   {
-    return diskBuffer->GetTuple( id );
+    return diskBuffer->GetTuple( id+1 );
   }  
 }
 
@@ -1118,6 +1117,7 @@ Tuple *TupleBufferIterator::GetNextTuple()
 
     Tuple *result = 
       tupleBuffer.memoryBuffer[currentTuple];
+    result->IncReference();
     currentTuple++;
 
     return result;
@@ -1190,7 +1190,7 @@ Tuple* RandomTBuf::ReplacedByRandom(Tuple* s, size_t& i, bool& replaced)
 	t = memBuf[i];
 	if (t != 0) {
 	  //cout << "t:" << *t << endl;
-	  t->DecReference();
+	  t->DeleteIfAllowed();
 	}  
 	s->IncReference();
 	memBuf[i] = s;
@@ -1205,7 +1205,7 @@ void RandomTBuf::copy2TupleBuf(TupleBuffer& tb)
 {
     for(iterator it = begin(); it != end(); it++) {
       if (*it != 0) {
-        (*it)->DecReference();	    
+        (*it)->DeleteIfAllowed();	    
         tb.AppendTuple(*it);
       }	
     }	

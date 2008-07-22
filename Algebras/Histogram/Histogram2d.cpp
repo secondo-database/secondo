@@ -2261,7 +2261,6 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       resultHg->Insert(attrXValue, attrYValue);
       
       //tuplePtr->DecReference();
-      tuplePtr->DeleteIfAllowed();
     }
     
     delete it;
@@ -2883,7 +2882,7 @@ Argument 0 Histogram2d, 1 real value
             nextTuple.tuple->IncReference();
             currentRun->push(nextTuple);
             minTuple = currentRun->top();
-            minTuple.tuple->DecReference();
+            minTuple.tuple->DeleteIfAllowed();
             rel->AppendTuple( minTuple.tuple );
             lastTuple = minTuple;
             currentRun->pop();
@@ -2898,7 +2897,7 @@ Argument 0 Histogram2d, 1 real value
               nextTuple.tuple->IncReference();
               currentRun->push(nextTuple);
               minTuple = currentRun->top();
-              minTuple.tuple->DecReference();
+              minTuple.tuple->DeleteIfAllowed();
               rel->AppendTuple( minTuple.tuple );
               lastTuple = minTuple;
               currentRun->pop();
@@ -2913,7 +2912,7 @@ Argument 0 Histogram2d, 1 real value
               {
                 // Append the minimum to the current relation    
                 minTuple = currentRun->top();
-                minTuple.tuple->DecReference();
+                minTuple.tuple->DeleteIfAllowed();
                 rel->AppendTuple( minTuple.tuple );
                 lastTuple = minTuple;
                 currentRun->pop();
@@ -2999,7 +2998,6 @@ Argument 0 Histogram2d, 1 real value
     {
       while( !mergeTuples.empty() )
       {
-        mergeTuples.top().tuple->DecReference();
         mergeTuples.top().tuple->DeleteIfAllowed();
         mergeTuples.pop();
       }
@@ -3008,7 +3006,6 @@ Argument 0 Histogram2d, 1 real value
       {
         while( !queue[i].empty() )
         {
-          queue[i].top().tuple->DecReference();
           queue[i].top().tuple->DeleteIfAllowed();
           queue[i].pop();
         }
@@ -3051,7 +3048,7 @@ Argument 0 Histogram2d, 1 real value
           if ( !queue[idx].empty() )
           {
             t = queue[idx].top().tuple;
-            t->DecReference();
+            t->DeleteIfAllowed();
             queue[idx].pop();
           }
           else
@@ -3169,7 +3166,7 @@ Argument 0 Histogram2d, 1 real value
 
       {
         currentTuple = stream.top();
-        currentTuple.tuple->DecReference();
+        currentTuple.tuple->DeleteIfAllowed();
         stream.pop();
         count++; // tuple counter;
         Tuple* t = static_cast<Tuple*>( currentTuple.tuple );
@@ -3195,7 +3192,7 @@ Argument 0 Histogram2d, 1 real value
             nextTuple.tuple->IncReference();
             currentRun->push(nextTuple);
             minTuple = currentRun->top();
-            minTuple.tuple->DecReference();
+            minTuple.tuple->DeleteIfAllowed();
             rel->AppendTuple( minTuple.tuple );
             lastTuple = minTuple;
             currentRun->pop();
@@ -3210,7 +3207,7 @@ Argument 0 Histogram2d, 1 real value
               nextTuple.tuple->IncReference();
               currentRun->push(nextTuple);
               minTuple = currentRun->top();
-              minTuple.tuple->DecReference();
+              minTuple.tuple->DeleteIfAllowed();
               rel->AppendTuple( minTuple.tuple );
               lastTuple = minTuple;
               currentRun->pop();
@@ -3225,7 +3222,7 @@ Argument 0 Histogram2d, 1 real value
               {
                 // Append the minimum to the current relation    
                 minTuple = currentRun->top();
-                minTuple.tuple->DecReference();
+                minTuple.tuple->DeleteIfAllowed();
                 rel->AppendTuple( minTuple.tuple );
                 lastTuple = minTuple;
                 currentRun->pop();
@@ -3311,7 +3308,6 @@ In this case we need to delete also all tuples stored in memory.
     {
       while( !mergeTuples.empty() )
       {
-        mergeTuples.top().tuple->DecReference();
         mergeTuples.top().tuple->DeleteIfAllowed();
         mergeTuples.pop();
       }
@@ -3320,7 +3316,6 @@ In this case we need to delete also all tuples stored in memory.
       {
         while( !queue[i].empty() )
         {
-          queue[i].top().tuple->DecReference();
           queue[i].top().tuple->DeleteIfAllowed();
           queue[i].pop();
         }
@@ -3363,7 +3358,7 @@ In this case we need to delete also all tuples stored in memory.
           if ( !queue[idx].empty() )
           {
             t = queue[idx].top().tuple;
-            t->DecReference();
+            t->DeleteIfAllowed();
             queue[idx].pop();
           }
           else
@@ -3660,7 +3655,6 @@ Argument 0 tuple stream, 1 attribute name X, 2 attribute name Y,
       {
         tuplePos = tuples.top();
         tuples.pop();
-        tuplePos.tuple->DecReference();
         t = tuplePos.tuple;
         x = (CcReal*)t->GetAttribute(indexX->GetIntval()-1);
         y = (CcReal*)t->GetAttribute(indexY->GetIntval()-1);

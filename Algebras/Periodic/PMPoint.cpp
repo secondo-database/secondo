@@ -1960,7 +1960,8 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
     // as a periodic move
     // so we have to check all recognized periodic nodes for temporal
     // deviations in the move 
-      
+         
+ 
 
   }
 

@@ -63,6 +63,13 @@ class RTuple {
     return *this;
   }	  
 
+  inline void setTuple(Tuple* tuple){
+    releaseTuple();
+    this->tuple=tuple;
+    holdTuple();
+  }
+
+
   inline friend bool operator==(const RTuple& r, const void* p) 
   { 
     return r.tuple == p; 
@@ -79,7 +86,6 @@ class RTuple {
    inline void releaseTuple() 
    {
      if (tuple) {
-       tuple->DecReference();
        tuple->DeleteIfAllowed();      
      }
    }     

@@ -1596,7 +1596,8 @@ The function makes use of four arguments:
       resultHg->Insert(attrPtr->GetRealval());
       
       //tuplePtr->DecReference();
-      tuplePtr->DeleteIfAllowed();
+      // tuplePtr->DeleteIfAllowed(); // will be deleted 
+                                      // when  the bufer is destroyed
     }
     
     delete it;
@@ -2106,7 +2107,7 @@ The function makes use of four arguments:
             nextTuple.tuple->IncReference();
             currentRun->push(nextTuple);
             minTuple = currentRun->top();
-            minTuple.tuple->DecReference();
+            minTuple.tuple->DeleteIfAllowed();
             rel->AppendTuple( minTuple.tuple );
             lastTuple = minTuple;
             currentRun->pop();
@@ -2121,7 +2122,7 @@ The function makes use of four arguments:
               nextTuple.tuple->IncReference();
               currentRun->push(nextTuple);
               minTuple = currentRun->top();
-              minTuple.tuple->DecReference();
+              minTuple.tuple->DeleteIfAllowed();
               rel->AppendTuple( minTuple.tuple );
               lastTuple = minTuple;
               currentRun->pop();
@@ -2136,7 +2137,7 @@ The function makes use of four arguments:
               {
                 // Append the minimum to the current relation    
                 minTuple = currentRun->top();
-                minTuple.tuple->DecReference();
+                minTuple.tuple->DeleteIfAllowed();
                 rel->AppendTuple( minTuple.tuple );
                 lastTuple = minTuple;
                 currentRun->pop();
@@ -2222,7 +2223,6 @@ The function makes use of four arguments:
     {
       while( !mergeTuples.empty() )
       {
-        mergeTuples.top().tuple->DecReference();
         mergeTuples.top().tuple->DeleteIfAllowed();
         mergeTuples.pop();
       }
@@ -2231,7 +2231,6 @@ The function makes use of four arguments:
       {
         while( !queue[i].empty() )
         {
-          queue[i].top().tuple->DecReference();
           queue[i].top().tuple->DeleteIfAllowed();
           queue[i].pop();
         }
@@ -2260,7 +2259,7 @@ The function makes use of four arguments:
       {
         // Take the first one.
         TupleAndRelPos p = mergeTuples.top();
-        p.tuple->DecReference();
+        p.tuple->DeleteIfAllowed();
         mergeTuples.pop();
         Tuple *result = p.tuple;
         Tuple *t = 0;
@@ -2273,7 +2272,7 @@ The function makes use of four arguments:
           if ( !queue[idx].empty() )
           {
             t = queue[idx].top().tuple;
-            t->DecReference();
+            t->DeleteIfAllowed();
             queue[idx].pop();
           }
           else
@@ -2401,7 +2400,6 @@ The function makes use of four arguments:
         lastvalue = value;
         value = val->GetRealval();
 
-        currentTuple->DecReference();
         currentTuple->DeleteIfAllowed();
 
         // next bin reached?

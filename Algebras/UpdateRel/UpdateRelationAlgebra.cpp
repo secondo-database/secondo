@@ -724,7 +724,6 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
            i != deletedTuples->end();
            i++ )
       {
-        (*i)->DecReference();
         (*i)->DeleteIfAllowed();
       }
       delete deletedTuples;
@@ -735,7 +734,6 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
              j != (*hashTable)[i]->end();
              j++ )
         {
-          (*j)->DecReference();
           (*j)->DeleteIfAllowed();
         }
         delete (*hashTable)[i];
@@ -790,7 +788,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
       if (!localTransport->deletedTuples->empty())
       {
         newTuple = localTransport->deletedTuples->back();
-        newTuple->DecReference();
+        newTuple->DeleteIfAllowed();
         localTransport->deletedTuples->pop_back();
         result = SetWord(newTuple);
         return YIELD;
@@ -851,7 +849,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
           if (!localTransport->deletedTuples->empty())
           {
             newTuple = localTransport->deletedTuples->back();
-            newTuple->DecReference();
+            newTuple->DeleteIfAllowed();
             localTransport->deletedTuples->pop_back();
             result = SetWord(newTuple);
             tupleFound = true;
@@ -1174,7 +1172,6 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
            i != deletedTuples->end();
            i++ )
       {
-        (*i)->DecReference();
         (*i)->DeleteIfAllowed();
       }
       delete deletedTuples;
@@ -1185,7 +1182,6 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
              j != (*hashTable)[i]->end();
              j++ )
         {
-          (*j)->DecReference();
           (*j)->DeleteIfAllowed();
         }
         delete (*hashTable)[i];
@@ -1302,7 +1298,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
           if (!localTransport->deletedTuples->empty())
           {
             newTuple = localTransport->deletedTuples->back();
-            newTuple->DecReference();
+            newTuple->DeleteIfAllowed();
             localTransport->deletedTuples->pop_back();
             result = SetWord(newTuple);
             tupleFound = true;
@@ -2278,7 +2274,6 @@ int UpdateSearch(Word* args, Word& result, int message,
            i != updatedTuples->end();
            i++ )
       {
-        (*i)->DecReference();
         (*i)->DeleteIfAllowed();
       }
       delete updatedTuples;
@@ -2289,7 +2284,6 @@ int UpdateSearch(Word* args, Word& result, int message,
              j != (*hashTable)[i]->end();
              j++ )
         {
-          (*j)->DecReference();
           (*j)->DeleteIfAllowed();
         }
         delete (*hashTable)[i];
@@ -2345,7 +2339,7 @@ int UpdateSearch(Word* args, Word& result, int message,
       if (!localTransport->updatedTuples->empty())
       {
         newTuple = localTransport->updatedTuples->back();
-        newTuple->DecReference();
+        newTuple->DeleteIfAllowed();
         localTransport->updatedTuples->pop_back();
         result = SetWord(newTuple);
         return YIELD;
@@ -2435,7 +2429,7 @@ int UpdateSearch(Word* args, Word& result, int message,
           if (!localTransport->updatedTuples->empty())
           {
             newTuple = localTransport->updatedTuples->back();
-            newTuple->DecReference();
+            newTuple->DeleteIfAllowed();
             localTransport->updatedTuples->pop_back();
             result = SetWord(newTuple);
             tupleFound = true;
@@ -2942,7 +2936,6 @@ int UpdateSearchSave(Word* args, Word& result, int message,
            i != updatedTuples->end();
            i++ )
       {
-        (*i)->DecReference();
         (*i)->DeleteIfAllowed();
       }
       delete updatedTuples;
@@ -2954,7 +2947,6 @@ int UpdateSearchSave(Word* args, Word& result, int message,
              j != (*i)->end();
              j++ )
         {
-          (*j)->DecReference();
           (*j)->DeleteIfAllowed();
         }
         delete (*i);
@@ -2982,7 +2974,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       }       
 
       Tuple* t = updatedTuples->back();
-      t->DecReference();
+      t->DeleteIfAllowed();
       updatedTuples->pop_back();
 
       return t;

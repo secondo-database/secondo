@@ -868,6 +868,8 @@ Create a new tuple which is a clone of this tuple.
 */
     inline bool DeleteIfAllowed() 
     {
+      assert(refs>0);
+      refs--;
       if( refs == 0 ){
         delete this;
         return true;
@@ -888,11 +890,11 @@ Deletes the tuple if it is allowed, i.e., there are no references
 Increses the reference count of this tuple.
 
 */
-    inline void DecReference()
-    {
-      if (refs > 0) 
-        refs--;
-    }
+//    inline void DecReference()
+//    {
+//      if (refs > 0) 
+//        refs--;
+//    }
 /*
 Decreses the reference count of this tuple.
 
@@ -995,7 +997,7 @@ Initializes the attributes array with zeros.
       tupleType->IncReference();
       noAttributes = NoAttr;
 
-      refs = 0;
+      refs = 1;
       tupleId = 0;
       tupleSize = 0;
       tupleFile = 0;

@@ -4032,6 +4032,86 @@ void split(const UPoint unit,
 }
 
 
+void eqTimes(MPoint& mpoint, 
+             vector<int>& indexes,
+             MPoint& changed,
+             DBArray<bool>& used,
+             DateTime& eps) {
+
+   // first collect the different durations within a set
+   //vector<int>::iterator it;
+   //vector<UPoint> units;
+   //DateTime minDur(durationtype);
+   //DateTime maxDur(durationtype);
+   //const UPoint* unit;
+
+
+}
+
+
+/*
+~ChangeTimes~
+
+This function tries to equalize the durations of units covering the
+same space. The maximum deviation is given by ~eps~.
+
+*/
+void changeTimes(MPoint& mpoint,
+                 const DateTime& eps){
+
+
+   // step 1: collect the rectangles of all units into an rtree
+   mmrtree::Rtree<2> tree(3,7);
+   const UPoint* unit=0;
+   for(int i=0;i<mpoint.GetNoComponents();i++){
+       mpoint.Get(i,unit);
+       tree.insert(unit->BoundingBoxSpatial(),i);
+   }
+   
+   cout << " There are " << tree.noObjects() << " stored in the tree " << endl;
+
+ /*
+   DBArray<bool> used(mpoint.GetNoComponents);
+   MPoint changed(mpoint);   
+
+
+
+   for(int i=0;i<mpoint.GetNoComponents()){
+     used.Append(false);
+   }
+
+   const bool* u;
+   const UPoint* unit;
+
+   for(int i=0;i<mpoint.NoComponents();i++){
+      used.Get(i,u);
+      if(!*u){ // not used unit
+         mpoint.Get(i,unit);
+         Rectangle2D box(unit->GetSpatialBoundingBox());
+         vector<long> c;
+         tree.findAllExact(box,c);
+         vector<long>::iterator it;
+         vector<int> indexes;
+         const bool* u2;
+         const UPoint* unit2;
+         for(it i=c.begin();i!=c.end();it++){
+           used.Get(*it,u2);
+           if(!u2){
+              mpoint.Get(*it,unit2);
+              if(AlmostEqual(unit->p0,unit2.p0) &&
+                 AlmostEqual(unit->p1,unit2.p1)){
+                 indexes.push_back(*it);
+              }
+           }
+         }
+         eqTimes(mpoint,indexes,changed,used,eps); 
+      }
+   }
+
+ */
+
+}
+
 /*
 ~EqualizeUnitsSpatial~
 
@@ -4112,11 +4192,10 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
    }  
    
    set<long> cands;
-   result.StartBulkLoad();
    for(int i=0;i<tmp.GetNoComponents();i++){
        tmp.Get(i,unit);
        if(AlmostEqual(unit->p0,unit->p1)){
-          result.MergeAdd(*unit);
+          result.Add(*unit);
        } else {
           HalfSegment hs(true,unit->p0,unit->p1);
           Rectangle<2> box = hs.BoundingBox();
@@ -4124,8 +4203,7 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
           split(*unit,cands,centers,result,epsilon);
        }
    }
-
-   result.EndBulkLoad();
+   changeTimes(result, DateTime(0,2000,durationtype));
    delete clusters;
 }
 
