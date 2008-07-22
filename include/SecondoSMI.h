@@ -510,8 +510,10 @@ handles before dropping a ~SmiFile~.
 */
   bool Truncate();
 /*
-Truncates a ~SmiFile~. It is necessary to close any record iterators or record
-handles before truncating a ~SmiFile~.
+Empties an ~SmiFile~. It is necessary to close any record iterators or record
+handles before truncating it. This method is only used to free disk data for
+tuple buffers since the Remove() operation does not work for them (bug?). 
+Without this compromise solution the data would only be deleted when secondo shuts down.
 
 */
   bool Remove();
