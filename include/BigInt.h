@@ -131,7 +131,7 @@ static void Add( const unsigned long* s1,
  // first, we initialize sum with 0
  for(unsigned int i=0; i<size ; i++){
     for(unsigned int j=0;j<numberOfBits;j++){
-      pos = 1L << j;
+      pos = 1UL << j;
       c1 = ((s1[i] & pos) !=0)?1:0;
       c2 = ((s2[i] & pos) !=0)?1:0;
       res = c1+c2+c3;
@@ -192,7 +192,7 @@ bool IsOne(unsigned int p){
    }
    unsigned long v = value[p1];
    unsigned int pos = p%numberOfBits;
-   unsigned long bitmask = 1L << pos;
+   unsigned long bitmask = 1UL << pos;
    return (v&bitmask)!=0;
 }
 
@@ -439,13 +439,13 @@ If not, the result will conatain an undefined value.
     }
     // If the highest bit of the first part is used, a long
     // value is also too small for representing this value.
-    if( ((1L << (numberOfBitsM1)) & value[0]) !=0){
+    if( ((1UL << (numberOfBitsM1)) & value[0]) !=0){
         correct = false;
     }
     // copy the value of the lowest part into a result
     unsigned long v = value[0];
-    long r = 0L;
-    unsigned long pos = 1L << (numberOfBitsM1);
+    long r = 0UL;
+    unsigned long pos = 1UL << (numberOfBitsM1);
     for(unsigned int i=0;i<numberOfBits;i++){
        if( (v&pos)>0)
           r++;
@@ -724,10 +724,10 @@ Compares the values of this integers regardless to the signum.
 */
 int CompareAbsTo(const BigInt<size> arg)const{
   unsigned long v1,v2;
-  for(int i=size-1;i>=0;i++){
+  for(int i=size-1;i>=0;i--){
      for(int j=(numberOfBitsM1);j>=0;j--){
-        v1 = (1L << j) | value[i];
-        v2 = (1L << j) | arg.value[i];
+        v1 = (1UL << j) | value[i];
+        v2 = (1UL << j) | arg.value[i];
         if(v1>v2) 
             return 1;
         if(v2>v1)
@@ -803,7 +803,7 @@ void ShiftRight1(){
    for(unsigned int i=0;i<size;i++){
       value[i] = value[i] >> 1;
       if(i<size-1){
-        value[i] = value[i] |  (( value[i+1] & 1L) << (numberOfBitsM1));
+        value[i] = value[i] |  (( value[i+1] & 1UL) << (numberOfBitsM1));
       }
    }
 }
@@ -823,10 +823,10 @@ void ShiftRight(const int positions){
   unsigned long tmp;
   for(unsigned int i=0;i<size;i++){
     if( (i+jump)>=size){
-      value[i] = 0L; 
+      value[i] = 0UL; 
     }else{
        if(i+jump+1<=size){
-          tmp=0L;
+          tmp=0UL;
        }else{
           tmp = value[i+jump+1] << (numberOfBits-shift);
        }
@@ -851,14 +851,14 @@ This function reads the value of this bigint from a long value;
       v = value;
     }
     for(unsigned int i=1;i<size;i++){
-      this->value[i]=0L;
+      this->value[i]=0UL;
     }
     unsigned long pos=0;
     this->value[0]=0;
     while(v>0){
       pos++;
-      if((v&1L)!=0){
-         this->value[0] = this->value[0] | 1L<<(pos-1); 
+      if((v&1UL)!=0){
+         this->value[0] = this->value[0] | 1UL<<(pos-1); 
       }
       v = v /2;
     }
@@ -1005,7 +1005,7 @@ void WriteTo(std::ostream& o)const{
   unsigned long test;
   for(int i=size-1;i>=0;i--){
     for(int j=(numberOfBitsM1);j>-1;j--){
-      pos = 1L << j;
+      pos = 1UL << j;
       test=value[i]&pos;
       if(test!=0){
          write=true;
@@ -1033,7 +1033,7 @@ void WriteComplete(std::ostream& o)const{
   unsigned long test;
   for(int i=size-1;i>=0;i--){
     for(int j=(numberOfBitsM1);j>-1;j--){
-      pos = 1L << j;
+      pos = 1UL << j;
       test=value[i]&pos;
       if(test!=0){
          o << "1";
@@ -1064,7 +1064,7 @@ void WriteTo10(std::ostream& o)const{
   unsigned  long v;
   for(int i=(size-1);i>=0;i--){
      for(int j=(numberOfBitsM1);j>-1;j--){
-        pos = 1L << j;
+        pos = 1UL << j;
         v = value[i]&pos;
         one = v!=0;
         if(one){
