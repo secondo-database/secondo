@@ -1192,7 +1192,9 @@ public:
       grpB->AppendTuple(tmpB.tuple);
 
       // advance the tuple pointer
-      ptB = RTuple( NextTupleB() );
+      Tuple* tB = NextTupleB();
+      ptB = RTuple( tB );
+      if(tB) tB->DeleteIfAllowed(); // remove from input stream
       
       // collect a group of tuples from B which
       // have the same attribute value
@@ -1207,7 +1209,9 @@ public:
           grpB->AppendTuple(ptB.tuple);
 
           // release tuple of input B
-          ptB = RTuple( NextTupleB() );
+          Tuple* tB = NextTupleB();
+          ptB = RTuple( tB );
+          if(tB) tB->DeleteIfAllowed(); // remove from input stream
         }
         else
         {
@@ -1221,8 +1225,9 @@ public:
       {
         // skip tuples from A while they are smaller than the 
         // value of the tuples in grpB        
-        
-        ptA = RTuple( NextTupleA() );
+        Tuple* tA = NextTupleA(); 
+        ptA = RTuple( tA );
+        if(tA) tA->DeleteIfAllowed();
         if (ptA != 0) {
           cmp = CompareTuples( ptA.tuple, tmpB.tuple );
         }  
@@ -1257,10 +1262,11 @@ public:
             continueMerge = false;
             delete iter;
             iter = 0;
-           
-            ptA = RTuple( NextTupleA() );
-            if (ptA != 0) {
+            Tuple* tA = NextTupleA(); 
+            ptA = RTuple( tA );
+            if (tA) {
               cmp = CompareTuples( ptA.tuple, tmpB.tuple );
+              tA->DeleteIfAllowed();
             }  
           }               
         }         
@@ -1296,8 +1302,12 @@ public:
     void InitIteration()
     { 
     // read in the first tuple of both input streams
-    ptA = RTuple( NextTupleA() );
-    ptB = RTuple( NextTupleB() );
+    Tuple* tA = NextTupleA();
+    ptA = RTuple( tA );
+    if(tA) tA->DeleteIfAllowed();
+    Tuple* tB = NextTupleB();
+    ptB = RTuple( tB );
+    if(tB) tB->DeleteIfAllowed();
 
     // initialize the status for the result
     // set iteration   
@@ -1787,7 +1797,7 @@ private:
       }
 
       size_t hashB = HashTuple(tupleB, attrIndexB);
-      tupleB->IncReference();
+      //tupleB->IncReference();
       bucketsB[hashB].push_back( tupleB );
       qp->Request(streamB.addr, wTupleB);
     }

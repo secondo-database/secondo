@@ -1488,7 +1488,7 @@ VarValueMapping(Word* args, Word& result, int message,
         SEC_STD_REAL Diff = ( (currentAttr->GetValue() * 1.0) - mean );
         diffsum += Diff * Diff;
       }
-     // currentTuple->DeleteIfAllowed();
+      currentTuple->DeleteIfAllowed();
       currentTuple = relIter->GetNextTuple();
     }
     delete relIter;
@@ -1894,7 +1894,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
             sumsqX += currX * currX;
             sumsqY += currY * currY;
           }
-         // currentTuple->DeleteIfAllowed();
+          currentTuple->DeleteIfAllowed();
           currentTuple = relIter->GetNextTuple();
         }
         delete relIter;
@@ -3292,49 +3292,60 @@ private:
   Tuple* currentATuple;
   Tuple* currentBTuple;
 
-  Tuple* NextATuple(bool deleteOldTuple)
+/*
+~NextATuple~
+
+Stores the next tuple from stream A into currentATuple which is 
+unequal to the currently store A tuple.
+
+*/
+  void NextATuple()
   {
     Word tuple;
-    if(deleteOldTuple && (currentATuple != 0))
-    {
-      currentATuple->DeleteIfAllowed();
+    qp->Request(streamA.addr,tuple);
+    if(!currentATuple){ // first tuple
+       if(qp->Received(streamA.addr)){
+          currentATuple = static_cast<Tuple*>(tuple.addr);
+       } 
+    } else { // currentAtuple already exists
+       while(qp->Received(streamA.addr) &&
+             TuplesEqual(currentATuple, static_cast<Tuple*>(tuple.addr))){
+          (static_cast<Tuple*>(tuple.addr))->DeleteIfAllowed();
+          qp->Request(streamA.addr,tuple);
+       }
+       currentATuple->DeleteIfAllowed(); // remove from inputstream or buffer 
+       if(qp->Received(streamA.addr)){
+         currentATuple = static_cast<Tuple*>(tuple.addr);
+       } else {
+         currentATuple=0;
+       }
     }
-
-    qp->Request(streamA.addr, tuple);
-    if(qp->Received(streamA.addr))
-    {
-      currentATuple = (Tuple*)tuple.addr;
-      currentATuple->IncReference();
-      return currentATuple;
-    }
-    else
-    {
-      currentATuple = 0;
-      return 0;
+  }
+  
+  void NextBTuple()
+  {
+    Word tuple;
+    if(!currentBTuple){ // first tuple
+       qp->Request(streamB.addr,tuple);
+       if(qp->Received(streamB.addr)){
+          currentBTuple = static_cast<Tuple*>( tuple.addr);
+       } 
+    } else { // currentAtuple already exists
+       qp->Request(streamB.addr,tuple);
+       while(qp->Received(streamB.addr) &&
+             TuplesEqual(currentBTuple, static_cast<Tuple*>(tuple.addr))){
+          (static_cast<Tuple*>(tuple.addr))->DeleteIfAllowed();
+          qp->Request(streamB.addr,tuple);
+       }
+       currentBTuple->DeleteIfAllowed();
+       if(qp->Received(streamB.addr)){
+         currentBTuple = static_cast<Tuple*>(tuple.addr);
+       } else {
+         currentBTuple=0;
+       }
     }
   }
 
-  Tuple* NextBTuple(bool deleteOldTuple)
-  {
-    Word tuple;
-    if(deleteOldTuple && (currentBTuple != 0))
-    {
-      currentBTuple->DeleteIfAllowed();
-    }
-
-    qp->Request(streamB.addr, tuple);
-    if(qp->Received(streamB.addr))
-    {
-      currentBTuple = (Tuple*)tuple.addr;
-      currentBTuple->IncReference();
-      return currentBTuple;
-    }
-    else
-    {
-      currentBTuple = 0;
-      return 0;
-    }
-  }
 
   bool TuplesEqual(Tuple* a, Tuple* b)
   {
@@ -3355,15 +3366,22 @@ public:
 
     qp->Open(streamA.addr);
     qp->Open(streamB.addr);
-
-    NextATuple(false);
-    NextBTuple(false);
+    NextATuple();
+    NextBTuple();
   }
 
   virtual ~SetOperation()
   {
     qp->Close(streamA.addr);
     qp->Close(streamB.addr);
+    if(currentATuple){
+      currentATuple->DeleteIfAllowed();
+      currentATuple=0;
+    }
+    if(currentBTuple){
+      currentBTuple->DeleteIfAllowed();
+      currentBTuple=0;
+    }
   }
 
   Tuple* NextResultTuple()
@@ -3374,7 +3392,7 @@ public:
       if(currentATuple == 0)
       {
         if(currentBTuple == 0)
-        {
+        { // stream exhausted
           return 0;
         }
         else
@@ -3382,17 +3400,13 @@ public:
           if(outputBWithoutA)
           {
             result = currentBTuple;
-            NextBTuple(false);
-            while(currentBTuple != 0 &&
-                  TuplesEqual(result, currentBTuple))
-            {
-              NextBTuple(true);
-            }
-            result->DeleteIfAllowed();
+            result->IncReference();
+            NextBTuple();
           }
           else
           {
             currentBTuple->DeleteIfAllowed();
+            currentBTuple = 0;
             return 0;
           }
         }
@@ -3404,17 +3418,13 @@ public:
           if(outputAWithoutB)
           {
             result = currentATuple;
-            NextATuple(false);
-            while(currentATuple != 0 &&
-                  TuplesEqual(result, currentATuple))
-            {
-              NextATuple(true);
-            }
-            result->DeleteIfAllowed();
+            result->IncReference();
+            NextATuple();
           }
           else
           {
             currentATuple->DeleteIfAllowed();
+            currentATuple=0;
             return 0;
           }
         }
@@ -3426,33 +3436,18 @@ public:
             if(outputAWithoutB)
             {
               result = currentATuple;
+              result->IncReference();
             }
-
-            Tuple* tmp = currentATuple;
-            NextATuple(false);
-            while(currentATuple != 0 &&
-                  TuplesEqual(tmp, currentATuple))
-            {
-              NextATuple(true);
-            }
-            tmp->DeleteIfAllowed();
+            NextATuple();
           }
           else if(smallerThan(currentBTuple, currentATuple))
           {
             if(outputBWithoutA)
             {
               result = currentBTuple;
+              result->IncReference();
             }
-
-            Tuple* tmp = currentBTuple;
-            NextBTuple(false);
-            while(currentBTuple != 0 &&
-                  TuplesEqual(tmp, currentBTuple))
-            {
-              NextBTuple(true);
-            }
-            tmp->DeleteIfAllowed();
-
+            NextBTuple();
           }
           else
           {
@@ -3461,20 +3456,10 @@ public:
             if(outputMatches)
             {
               result = match;
+              result->IncReference();
             }
-
-            NextATuple(false);
-            while(currentATuple != 0 &&
-                  TuplesEqual(match, currentATuple))
-            {
-              NextATuple(true);
-            }
-            while(currentBTuple != 0 &&
-                  TuplesEqual(match, currentBTuple))
-            {
-              NextBTuple(true);
-            }
-            match->DeleteIfAllowed();
+            NextATuple();
+            NextBTuple();
           }
         }
       }
@@ -4585,10 +4570,10 @@ int Loopjoin(Word* args, Word& result, int message,
 
       if ( lli ) delete lli;
 
-      lli = new LoopjoinLocalInfo;
-        resultType = GetTupleResultType( s );
-        lli->resultTupleType =
-          new TupleType( nl->Second( resultType ) );
+      lli = new LoopjoinLocalInfo();
+      resultType = GetTupleResultType( s );
+      lli->resultTupleType =
+           new TupleType( nl->Second( resultType ) );
 
       local = SetWord(lli);
 
@@ -6852,6 +6837,14 @@ int GroupByValueMapping
         if( gbli->t != 0 )
         {
           gbli->t->DeleteIfAllowed();
+        }
+        if(gbli->attrSizeTmp){
+            delete[] gbli->attrSizeTmp;
+            gbli->attrSizeTmp=0;
+        }
+        if(gbli->attrSizeExtTmp){
+          delete[] gbli->attrSizeExtTmp;
+          gbli->attrSizeExtTmp=0;
         }
         delete gbli;
         local = SetWord(Address(0));
