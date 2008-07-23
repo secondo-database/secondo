@@ -770,7 +770,6 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
                (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
-        nextTup->IncReference();
         nextBucket->push_back(nextTup);
         nextTup = iter->GetNextTuple();
       }
@@ -1216,7 +1215,6 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
              (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
-        nextTup->IncReference();
         nextBucket->push_back(nextTup);
         nextTup = iter->GetNextTuple();
       }
@@ -2320,7 +2318,6 @@ int UpdateSearch(Word* args, Word& result, int message,
               (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
-        nextTup->IncReference();
         nextBucket->push_back(nextTup);
         nextTup = iter->GetNextTuple();
       }
@@ -3013,7 +3010,6 @@ int UpdateSearchSave(Word* args, Word& result, int message,
               (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
           localTransport->getBucket(hashValue);
-        nextTup->IncReference();
         nextBucket->push_back(nextTup);
 
         nextTup = iter->GetNextTuple();
