@@ -439,12 +439,16 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 void
 SecondoInterface::Terminate()
 {
+  static bool traceHandles =
+	        RTFlag::isActive("SMI:traceHandles") ? true : false;
   const string bullet(" - ");
   if ( initialized )
   {
 
-    cmsg.info() << "Terminating the secondo interface instance ..." << endl;
-    cmsg.send();
+    if (traceHandles) {	  
+      cmsg.info() << "Terminating the secondo interface instance ..." << endl;
+      cmsg.send();
+    }  
     // --- Abort open transaction, if there is an open transaction
     if ( activeTransaction )
     {
@@ -453,8 +457,10 @@ SecondoInterface::Terminate()
     }
 
     if ( derivedObjPtr != 0 ) { // The destructor closes a relation object
-      cmsg.info() << "Closing system tables ..." << endl;
-      cmsg.send();
+      if (traceHandles) {	    
+        cmsg.info() << "Closing system tables ..." << endl;
+        cmsg.send();
+      }	
       delete derivedObjPtr;
       derivedObjPtr = 0;
     }
