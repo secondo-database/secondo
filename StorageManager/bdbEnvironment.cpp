@@ -128,6 +128,8 @@ SmiEnvironment::Implementation::~Implementation()
 {
   if ( !envClosed )
   {
+    cerr << "SmiEnvironment::Implementation::~Implementation()"
+	 << " -> Closing Environments" << endl;
     CloseDbHandles();
     int rc = bdbEnv->close( 0 );
     SetBDBError(rc);
@@ -146,7 +148,7 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   DbHandleIndex idx = instance.impl->firstFreeDbHandle;
 
   if (traceHandles)
-    cerr << "Allocate: firstFree idx = " << idx;	  
+    cerr << "Allocate: firstFree idx = " << idx << endl;	  
 
   if ( idx == 0 )
   {
@@ -173,7 +175,7 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   instance.impl->dbHandles[idx].nextFree = 0;
 
   if (traceHandles)
-    cerr << "Allocate: returned idx = " << idx;	 
+    cerr << "Allocate: returned idx = " << idx << endl;	 
 
   return (idx);
 }
@@ -217,7 +219,10 @@ SmiEnvironment::Implementation::CloseDbHandles()
       {
         const char* f;
         const char* d;
-        instance.impl->dbHandles[idx].handle->get_dbname(&f, &d);
+        int rc = instance.impl->dbHandles[idx].handle->get_dbname(&f, &d);
+	if (rc != 0) {
+	  f = "unknown file name";
+        }	  
         cerr << "closing handle for idx = "
              << idx << " (" << f << ")" << endl;
       }
@@ -1093,6 +1098,9 @@ Transactions, logging and locking are enabled.
 bool
 SmiEnvironment::ShutDown()
 {
+  static bool traceHandles =
+	        RTFlag::isActive("SMI:traceHandles") ? true : false;
+
   if ( !smiStarted )
   {
     return (true);
@@ -1123,24 +1131,24 @@ SmiEnvironment::ShutDown()
   rc = dbtmp->close( 0 );
   SetBDBError( rc );
 
-  const char* tmpHome = strdup( instance.impl->tmpHome.c_str() );
+  if (traceHandles)
+    cerr << "Removing temporary Berkeley-DB environment " 
+         << instance.impl->tmpHome << endl; 
 
-  // spm: for some reason the next command fails. This produces
-  // always an error message on shutdown. Maybe some handles are still
-  // open which should be fixed elsewhere. For now we will remove the directory
-  // using file system operations instead of Berkeley-DB API. 
-  
-  cerr << "Removing temporary Berkeley-DB environment " << tmpHome << endl; 
-  //rc = dbtmp->remove( tmpHome, 0 );
-  //SetBDBError( rc );
   FileSystem::SetCurrentFolder( instance.impl->bdbHome );
   FileSystem::EraseFolder( instance.impl->tmpHome );
   FileSystem::SetCurrentFolder( instance.impl->bdbHome );
 
   // --- Close the Berkeley DB environment
 
-  cerr << "Closing Berkeley-DB environment " << instance.impl->bdbHome << endl; 
+  instance.impl->CloseDbHandles();
+  
+  if (traceHandles)
+    cerr << "Closing Berkeley-DB environment " 
+	 << instance.impl->bdbHome << endl; 
+
   rc = dbenv->close( 0 );
+  //cerr << "dbenv->close returns " << rc << endl;
   SetBDBError( rc );
   instance.impl->envClosed = true;
   smiStarted = false;
@@ -1240,13 +1248,12 @@ SmiEnvironment::OpenDatabase( const string& dbname )
 bool
 SmiEnvironment::CloseDatabase()
 {
+  //cerr << "Function CloseDatabase" << endl; 
   if ( !dbOpened )
   {
     SetError( E_SMI_DB_NOTOPEN );
     return (false);
   }
-  cerr << "Function CloseDatabase" << endl; 
-
 
   int    rc = 0;
   Db*    dbseq = instance.impl->bdbSeq;
