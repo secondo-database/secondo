@@ -53,10 +53,10 @@ let ORDERS = [ const rel(tuple([
 			   oSHIPPRIORITY: int,
 			   oCOMMENT: text] )) value ()
               ]
-              csvimport['orders.tbl', 0, "", "|"] consume;
+              csvimport['order.tbl', 0, "", "|"] consume;
 
 
-let CUSTOMERS = [ const rel(tuple([
+let CUSTOMER = [ const rel(tuple([
 			      cCUSTKEY: int,
 			      cNAME: string,
 			      cADDRESS: string,
@@ -66,7 +66,7 @@ let CUSTOMERS = [ const rel(tuple([
 			      cMKTSEGMENT: string,
 			      cCOMMENT: text] )) value ()
                 ]
-                csvimport['customers.tbl', 0, "", "|"] consume;
+                csvimport['customer.tbl', 0, "", "|"] consume;
 
 
 
