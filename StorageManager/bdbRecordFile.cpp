@@ -79,6 +79,7 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
                              const SmiFile::AccessType accessType
                                /* = SmiFile::ReadOnly */ )
 {
+
   int rc = 0;
   Dbt key;
   Dbt data;
@@ -91,7 +92,7 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   key.set_size( sizeof( SmiRecordId ) );
   if ( accessType == SmiFile::Update )
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_RMW : 0;
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_RMW : 0;
     rc = impl->bdbFile->get( tid, &key, &data, flags );
   }
   else if ( !impl->isSystemCatalogFile )
@@ -100,7 +101,7 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->get( 0, &key, &data, flags );
   }
 

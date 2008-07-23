@@ -300,7 +300,8 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
 
     if ( rc == 0 )
     {
-      rc = dbseq->get( tid, &key, &data, DB_RMW );
+      u_int32_t rwFlag = useTransactions ? DB_RMW : 0;	    
+      rc = dbseq->get( tid, &key, &data, rwFlag );
       if ( rc == DB_NOTFOUND  || rc == DB_KEYEMPTY )
       {
         newFileId = 1;
@@ -767,7 +768,6 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 SmiEnvironment::SmiEnvironment()
 {
   impl = new Implementation();
-
 }
 
 SmiEnvironment::~SmiEnvironment()
@@ -999,7 +999,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
         cout << "SMI-Mode: SingleUserSimple" << endl;
         singleUserMode  = true;
         useTransactions = false;
-        flags = DB_CREATE | DB_INIT_MPOOL | DB_INIT_LOCK;
+        flags = DB_CREATE | DB_INIT_MPOOL | DB_PRIVATE;
 /*
 creates a private environment for the calling process and enables
 automatic recovery during startup. If the environment does not exist,
@@ -1073,12 +1073,14 @@ Transactions, logging and locking are enabled.
   }
   }
 
-  db_timeout_t microSeconds = 0;
-  rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
-  cout << "Lock timeout: " << microSeconds << " (10e-6 s)" << endl;
+  if (useTransactions) {
+    db_timeout_t microSeconds = 0;
+    rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
+    cout << "Lock timeout: " << microSeconds << " (10e-6 s)" << endl;
 
-  rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
-  cout << "TXN timeout: " << microSeconds << " (10e-6 s)" << endl;
+    rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
+    cout << "TXN timeout: " << microSeconds << " (10e-6 s)" << endl;
+  }  
 
   // --- Create temporary Berkeley DB environment
 

@@ -120,7 +120,8 @@ SmiRecord::Read( void* buffer,
       }
       else
       {
-        flags = (!smiFile->impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+        flags = (!smiFile->impl->isTemporaryFile) 
+		&& SmiEnvironment::useTransactions ? DB_DIRTY_READ : 0;
         rc = impl->bdbFile->get( 0, &key, &data, flags );
         SmiEnvironment::SetBDBError( rc );
       }

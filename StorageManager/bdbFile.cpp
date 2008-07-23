@@ -154,6 +154,7 @@ SmiFile::SmiFile( const bool isTemporary /* = false */)
     fixedRecordLength( 0 ), uniqueKeys( true ), keyDataType( SmiKey::Unknown )
 {
   trace = RTFlag::isActive("SMI:traceHandles") ? true : false; 
+  useTxn = SmiEnvironment::useTransactions;
   if ( !isTemporary )
   {
     impl = new Implementation();
@@ -270,8 +271,9 @@ SmiFile::Create( const string& context /* = "Default" */ )
       // --- Open Berkeley DB file
 
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
+      u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
       u_int32_t flags = (!impl->isTemporaryFile) ? 
-                           DB_CREATE | DB_DIRTY_READ | commitFlag : DB_CREATE;
+                           DB_CREATE | dirtyFlag | commitFlag : DB_CREATE;
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       if (trace)
         cerr << "Creating " << *this << endl;	      
@@ -414,9 +416,10 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       // --- Open Berkeley DB file
 
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
+      u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 
                                 0, bdbType, 
-                                DB_CREATE | DB_DIRTY_READ | commitFlag, 0 );
+                                DB_CREATE | dirtyFlag | commitFlag, 0 );
 
       if (trace)
         cerr << "opening by name = " << name << ", " << *this << endl;
@@ -565,8 +568,9 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       // --- Open Berkeley DB file
 
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
+      u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
       u_int32_t flags = (!impl->isTemporaryFile) ? 
-                            DB_DIRTY_READ | commitFlag : 0;
+                            dirtyFlag | commitFlag : 0;
 
       rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
       fileId = fileid;

@@ -558,6 +558,7 @@ records of the ~SmiFile~.
   SmiFile( SmiFile &smiFile );
   ~SmiFile();
   bool CheckName( const string& name );
+  bool useTxn;
 /*
 Checks whether the given name ~name~ is valid.
 

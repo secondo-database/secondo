@@ -89,7 +89,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )
@@ -127,7 +127,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 
   if ( uniqueKeys && accessType == SmiFile::Update )
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_RMW : 0;
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_RMW : 0;
     rc = impl->bdbFile->get( tid, &bdbKey, &data, flags );
   }
   else if ( !impl->isSystemCatalogFile )
@@ -136,7 +136,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->get( 0, &bdbKey, &data, flags );
   }
 
