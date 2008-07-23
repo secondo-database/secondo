@@ -309,7 +309,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     if ( RTFlag::isActive("SMI:NoTransactions") ) {
 
        mode = SmiEnvironment::SingleUserSimple;
-       cout << "  Setting SmiEnnvironment to mode SingleUserSimple"
+       cout << "  SmiEnvironment mode  = SingleUserSimple"
 	       " (transaction submodule disabled)" << endl;
 
     } else { // Transactions and logging are used
