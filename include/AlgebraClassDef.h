@@ -126,13 +126,13 @@ Returns a reference to the operator identified by ~index~.
 
 */
  protected:
-  void AddTypeConstructor( TypeConstructor* tc );
-  void AddOperator( Operator* op );
+  void AddTypeConstructor( TypeConstructor* tc, const bool nonstatic = false );
+  void AddOperator( Operator* op, const bool nonstatic = false );
 
   void AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm);
   
   void AddOperator( OperatorInfo oi, ValueMapping vms[], 
-		    SelectFunction sf,TypeMapping tm    );
+		    SelectFunction sf,TypeMapping tm);
 
 /*
 Are used by the subclassed algebra to add its type constructors and
@@ -142,7 +142,9 @@ base class.
 */
  private:
   vector<TypeConstructor*> tcs;
+  vector<bool> tcdel;
   vector<Operator*> ops;
+  vector<bool> opdel;
   int tcsNum;
   int opsNum;
 

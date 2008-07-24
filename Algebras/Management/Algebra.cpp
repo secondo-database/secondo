@@ -487,20 +487,38 @@ Algebra::Algebra() : tcsNum(0), opsNum(0)
 
 Algebra::~Algebra()
 {
+  // delete dynamicly created operators
+  for(unsigned int i=0;i<ops.size();i++){
+     if(opdel[i] && ops[i]){
+         delete ops[i];
+         ops[i] = 0;
+     }
+  }
+  // delete type contructors
+  for(unsigned int i=0;i<tcs.size();i++){
+     if(tcdel[i] && tcs[i]){
+         delete tcs[i];
+         tcs[i] = 0;
+     }
+  }
+
 }
 
 void
-Algebra::AddTypeConstructor( TypeConstructor* tc )
+Algebra::AddTypeConstructor( TypeConstructor* tc, 
+                             const bool nonstatic /* = false */ )
 {
   tcs.push_back( tc );
+  tcdel.push_back(nonstatic);
   tcsNum++;
 
 }
 
 void
-Algebra::AddOperator( Operator* op )
+Algebra::AddOperator( Operator* op, const bool nonstatic /* = false */)
 {
   ops.push_back( op );
+  opdel.push_back(nonstatic);
   opsNum++;
 }
 
@@ -508,7 +526,7 @@ void
 Algebra::AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm )
 {
   Operator* newOp = new Operator(oi, vm, tm);
-  AddOperator(newOp);
+  AddOperator(newOp,true);
 }
 
 void
@@ -516,6 +534,6 @@ Algebra::AddOperator( OperatorInfo oi, ValueMapping vms[],
 		      SelectFunction sf, TypeMapping tm   )
 {
   Operator* newOp = new Operator(oi, vms, sf, tm);
-  AddOperator(newOp);
+  AddOperator(newOp,true);
 }
 

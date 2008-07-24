@@ -3802,7 +3802,7 @@ class PartStreamAlgebra : public Algebra
       TypeConstructor* ptuple = new TypeConstructor( ci, ptf );
 
       ptuple->AssociateKind( "PTUPLE" );
-      AddTypeConstructor( ptuple );
+      AddTypeConstructor( ptuple,true );
 
 /*
 4 Operators
@@ -3825,7 +3825,7 @@ class PartStreamAlgebra : public Algebra
         psm::pfeed_tm     
       );
 
-      AddOperator( op );
+      AddOperator( op,true );
       
         oi.name =      "pdelete";
         oi.signature = "stream(ptuple(y) -> stream(tuple(y))";
@@ -3838,7 +3838,7 @@ class PartStreamAlgebra : public Algebra
         psm::pdelete_tm     
       );
 
-      AddOperator( op );
+      AddOperator( op,true );
       
         oi.name =      "PSTREAM1";
         oi.signature = "((stream(ptuple(y)) ...) -> stream(tuple(y))";
@@ -3851,7 +3851,7 @@ class PartStreamAlgebra : public Algebra
         psm::PSTREAM1_tm     
       );
 
-      AddOperator( op );
+      AddOperator( op,true );
       
         oi.name =      "PSTREAM2";
         oi.signature = "((...) (stream(ptuple(y)) ...) -> stream(tuple(y))";
@@ -3864,7 +3864,7 @@ class PartStreamAlgebra : public Algebra
         psm::PSTREAM2_tm     
       );
 
-      AddOperator( op );
+      AddOperator( op,true );
 
         oi.name =      "puse";
         oi.signature = "stream(ptuple(y) x ( stream(tuple(y)) "
@@ -3879,7 +3879,7 @@ class PartStreamAlgebra : public Algebra
         psm::puse_tm     
       );
       
-      AddOperator( op );
+      AddOperator( op,true );
 
         oi.name =      "pjoin1";
         oi.signature = "( stream(ptuple(y1)) rel(tuple(y2)) "
@@ -3901,7 +3901,7 @@ class PartStreamAlgebra : public Algebra
         psm::pjoin1_tm     
       );
 
-      AddOperator( op );
+      AddOperator( op,true );
      
         oi.name =      "pjoin2";
         oi.signature = "( stream(ptuple(y1)) stream(ptuple(y2)) "
@@ -3921,7 +3921,7 @@ class PartStreamAlgebra : public Algebra
       );
 
       
-      AddOperator( op );
+      AddOperator( op,true );
       
         oi.name =      "pcreate";
         oi.signature = "stream(tuple(y)) x int -> stream(ptuple(y))";
@@ -3935,7 +3935,7 @@ class PartStreamAlgebra : public Algebra
         psm::pcreate_tm     
       );
       
-      AddOperator( op );
+      AddOperator( op,true );
 
       
         oi.name =      "pcreate2";
@@ -3952,7 +3952,7 @@ class PartStreamAlgebra : public Algebra
         psm::pcreate2_tm     
       );
       
-      AddOperator( op );
+      AddOperator( op,true );
 
         oi.name =      "shuffle";
         oi.signature = "stream(tuple(y)) -> stream(tuple(y))";
@@ -3966,7 +3966,7 @@ class PartStreamAlgebra : public Algebra
         psm::shuffle_tm     
       );
       
-      AddOperator( op );
+      AddOperator( op,true );
 
         oi.name =      "shuffle2";
         oi.signature = "stream(tuple(y)) x int -> stream(tuple(y))";
@@ -3982,7 +3982,7 @@ class PartStreamAlgebra : public Algebra
         psm::shuffle2_tm     
       );
 
-      AddOperator( op );
+      AddOperator( op,true );
 
 
         oi.name =      "shuffle3";
@@ -4000,7 +4000,7 @@ class PartStreamAlgebra : public Algebra
         psm::shuffle_tm     
       );
 
-      AddOperator( op );
+      AddOperator( op,true );
 
 
         oi.name =      "memshuffle";
@@ -4018,7 +4018,7 @@ class PartStreamAlgebra : public Algebra
         psm::memshuffle_tm     
       );
       
-      AddOperator( op );
+      AddOperator( op,true );
 
         oi.name =      "pshow";
         oi.signature = "stream(ptuple(y)) -> stream(ptuple(y))";
@@ -4031,10 +4031,10 @@ class PartStreamAlgebra : public Algebra
         psm::pshow_tm
       );
       
-      AddOperator( op );
+      AddOperator( op,true );
 
       op = new Operator( runtimeInfo(), psm::runtime_vm, psm::runtime_tm );
-      AddOperator( op );
+      AddOperator( op,true );
       op->SetRequestsArguments();
 
     }
