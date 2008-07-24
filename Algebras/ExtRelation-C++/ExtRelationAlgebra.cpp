@@ -8351,7 +8351,6 @@ SymmProductExtend(Word* args, Word& result,
                 leftTuple->GetNoAttributes()
                 + pli->currTuple->GetNoAttributes()
                 + i, ((StandardAttribute*)value.addr)->Clone() );
-              qp->ReInitResultStorage( supplier3 );
             }
             leftTuple->DeleteIfAllowed();
             leftTuple = 0;
