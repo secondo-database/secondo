@@ -3918,7 +3918,6 @@ class RTreeAlgebra : public Algebra
   ~RTreeAlgebra() {};
 };
 
-RTreeAlgebra rtreeAlgebra;
 
 
 extern "C"
@@ -3927,6 +3926,6 @@ InitializeRTreeAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&rtreeAlgebra);
+  return (new RTreeAlgebra);
 }
 

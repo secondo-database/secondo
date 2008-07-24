@@ -2576,7 +2576,6 @@ class BTreeAlgebra : public Algebra
   ~BTreeAlgebra() {};
 };
 
-BTreeAlgebra btreealgebra;
 
 extern "C"
 Algebra*
@@ -2587,5 +2586,5 @@ InitializeBTreeAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (&btreealgebra);
+  return (new BTreeAlgebra());
 }

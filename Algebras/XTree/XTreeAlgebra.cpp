@@ -1784,7 +1784,6 @@ public:
 
 } // namespace xtreeAlgebra
 
-xtreeAlgebra::XTreeAlgebra xtreeAlg;
 
 extern "C"
 Algebra *InitializeXTreeAlgebra(
@@ -1792,5 +1791,5 @@ Algebra *InitializeXTreeAlgebra(
 {
     nl = nlRef;
     qp = qpRef;
-    return (&xtreeAlg);
+    return (new xtreeAlgebra::XTreeAlgebra());
 }

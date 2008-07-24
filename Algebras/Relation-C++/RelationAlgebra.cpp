@@ -5287,7 +5287,6 @@ Register operators which are able to handle progress messages
   ~RelationAlgebra() {};
 };
 
-RelationAlgebra relationalgebra;
 /*
 
 7 Initialization
@@ -5319,6 +5318,6 @@ InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   nl = nlRef;
   qp = qpRef;
   am = SecondoSystem::GetAlgebraManager();
-  return (&relationalgebra);
+  return (new RelationAlgebra());
 }
 

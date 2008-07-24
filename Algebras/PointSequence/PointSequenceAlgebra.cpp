@@ -918,8 +918,6 @@ class PointSequenceAlgebra : public Algebra
   ~PointSequenceAlgebra() {};
 };
 
-PointSequenceAlgebra pointSequenceAlgebra;
-
 /*
 6 Initialization
 
@@ -943,7 +941,7 @@ InitializePointSequenceAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&pointSequenceAlgebra);
+  return (new PointSequenceAlgebra());
 }
 
 

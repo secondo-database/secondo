@@ -6467,8 +6467,6 @@ class TemporalLiftedAlgebra : public Algebra
     ~TemporalLiftedAlgebra() {}
 };
 
-TemporalLiftedAlgebra tempLiftedAlgebra;
-
 /*
 
 5 Initialization
@@ -6482,5 +6480,5 @@ InitializeTemporalLiftedAlgebra(NestedList *nlRef, QueryProcessor
 {
   nl = nlRef;
   qp = qpRef;
-  return (&tempLiftedAlgebra);
+  return (new TemporalLiftedAlgebra());
 }

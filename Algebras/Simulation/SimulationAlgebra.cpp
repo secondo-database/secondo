@@ -1746,8 +1746,6 @@ class SimulationAlgebra : public Algebra
 };
 
 
-SimulationAlgebra simulationAlgebra;
-
 /*
 7 Initialization
 
@@ -1771,5 +1769,5 @@ InitializeSimulationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&simulationAlgebra);
+  return (new SimulationAlgebra());
 }

@@ -1885,8 +1885,6 @@ class HashAlgebra : public Algebra
   ~HashAlgebra() {};
 };
 
-HashAlgebra hashalgebra;
-
 extern "C"
 Algebra*
 InitializeHashAlgebra( NestedList* nlRef, 
@@ -1896,5 +1894,5 @@ InitializeHashAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (&hashalgebra);
+  return (new HashAlgebra());
 }

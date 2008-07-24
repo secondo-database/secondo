@@ -816,8 +816,6 @@ class RasterAlgebra : public Algebra
   ~RasterAlgebra() {};
 };
 
-RasterAlgebra RasterAlgebra;
-
 
 //14 Initialization
 
@@ -828,5 +826,5 @@ InitializeRasterAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&RasterAlgebra);
+  return (new RasterAlgebra());
 }

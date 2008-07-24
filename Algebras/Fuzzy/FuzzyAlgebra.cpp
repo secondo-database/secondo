@@ -4159,7 +4159,6 @@ class FuzzyAlgebra : public Algebra
   ~FuzzyAlgebra() {};
 };
 
-FuzzyAlgebra fuzzyAlgebra;
 
 
 /*
@@ -4193,6 +4192,6 @@ InitializeFuzzyAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   if(SimplePointCls==0) error(__LINE__);
   nl = nlRef;
   qp = qpRef;
-  return (&fuzzyAlgebra);
+  return (new FuzzyAlgebra());
 }
 

@@ -4063,8 +4063,6 @@ public:
   ~StreamAlgebra() {};
 };
 
-StreamAlgebra streamAlgebra;
-
 /*
 7 Initialization
 
@@ -4088,7 +4086,7 @@ InitializeStreamAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&streamAlgebra);
+  return (new StreamAlgebra());
 }
 
 

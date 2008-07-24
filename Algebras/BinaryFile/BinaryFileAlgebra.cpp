@@ -551,7 +551,6 @@ class BinaryFileAlgebra : public Algebra
   ~BinaryFileAlgebra() {};
 };
 
-BinaryFileAlgebra binFileAlgebra;
 
 /*
 6 Initialization
@@ -579,7 +578,7 @@ InitializeBinaryFileAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (&binFileAlgebra);
+  return (new BinaryFileAlgebra());
 }
 
 

@@ -1205,7 +1205,6 @@ class RasterSpatialAlgebra : public Algebra
   ~RasterSpatialAlgebra() {};
 };
 
-RasterSpatialAlgebra RasterSpatialAlgebra;
 
 
 //14 Initialization
@@ -1217,6 +1216,6 @@ InitializeRasterSpatialAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&RasterSpatialAlgebra);
+  return (new RasterSpatialAlgebra());
 }
 

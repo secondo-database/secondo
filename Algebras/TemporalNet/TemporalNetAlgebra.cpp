@@ -5667,8 +5667,6 @@ class TemporalNetAlgebra : public Algebra
   ~TemporalNetAlgebra() {};
 };
 
-TemporalNetAlgebra temporalNetAlgebra;
-
 /*
 Initialization
 
@@ -5691,5 +5689,5 @@ extern "C" Algebra* InitializeTemporalNetAlgebra( NestedList* in_pNL,
 {
   nl = in_pNL;
   qp = in_pQP;
-  return (&temporalNetAlgebra);
+  return (new TemporalNetAlgebra());
 }

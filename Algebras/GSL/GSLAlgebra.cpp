@@ -1468,8 +1468,6 @@ class GSLAlgebra : public Algebra
     
 };
 
-GSLAlgebra gslAlgebra;
-
 /*
 7 Initialization
 
@@ -1493,5 +1491,5 @@ InitializeGSLAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&gslAlgebra);
+  return (new GSLAlgebra());
 }

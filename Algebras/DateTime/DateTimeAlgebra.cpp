@@ -3011,7 +3011,6 @@ class DateTimeAlgebra : public Algebra
   ~DateTimeAlgebra() {};
 };
 
-DateTimeAlgebra dateTimeAlgebra;
 
 /*
 6 Initialization
@@ -3039,7 +3038,7 @@ InitializeDateTimeAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (&dateTimeAlgebra);
+  return (new DateTimeAlgebra());
 }
 
 } // end of namespace

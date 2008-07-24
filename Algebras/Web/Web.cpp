@@ -5894,10 +5894,6 @@ class WebAlgebra : public Algebra
   ~WebAlgebra() {};
 };
 
-WebAlgebra webAlgebra;
-
-
-
 /*
 8. Initialization
 
@@ -5921,7 +5917,7 @@ InitializeWebAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&webAlgebra);
+  return (new WebAlgebra());
 }
 
 

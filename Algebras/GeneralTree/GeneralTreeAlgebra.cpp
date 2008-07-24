@@ -1212,7 +1212,6 @@ class GeneralTreeAlgebra
 
 } // namespace gta
 
-gta::GeneralTreeAlgebra generalTreeAlgebra;
 
 extern "C"
 Algebra* InitializeGeneralTreeAlgebra(
@@ -1220,5 +1219,5 @@ Algebra* InitializeGeneralTreeAlgebra(
 {
     nl = nlRef;
     qp = qpRef;
-    return (&generalTreeAlgebra);
+    return (new gta::GeneralTreeAlgebra());
 }

@@ -3059,7 +3059,7 @@ class TopRelAlgebra : public Algebra
     AddOperator(&toprel::getcluster);
   }
   ~TopRelAlgebra() {};
-} toprelAlgebra;
+};
 
 
 void InitializeTranspArray(){
@@ -3085,6 +3085,6 @@ InitializeTopRelAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   nl = nlRef;
   qp = qpRef;
   InitializeTranspArray();
-  return (&toprelAlgebra);
+  return (new TopRelAlgebra());
 }
 

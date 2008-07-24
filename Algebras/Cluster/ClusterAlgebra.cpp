@@ -2109,8 +2109,6 @@ public:
   ~ClusterAlgebra() {}; 
 };
 
-ClusterAlgebra clusterAlgebra;
-
 
 } // end of namespace clusteralg 
 
@@ -2145,5 +2143,5 @@ InitializeClusterAlgebra(  NestedList* nlRef,
  //    cmsg.file() << "Cluster: InitializeClusterAlgebra " 
  //                << endl; cmsg.send(); }
   
-  return (&clusteralg::clusterAlgebra);
+  return (new clusteralg::ClusterAlgebra());
 }

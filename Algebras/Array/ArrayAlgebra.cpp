@@ -3626,8 +3626,6 @@ class ArrayAlgebra : public Algebra
   ~ArrayAlgebra() {};
 };
 
-ArrayAlgebra arrayAlgebra;
-
 /*
 6 Initialization
 
@@ -3647,7 +3645,7 @@ InitializeArrayAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (&arrayAlgebra);
+  return new ArrayAlgebra();
 }
 
 /*

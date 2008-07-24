@@ -5582,8 +5582,6 @@ class TemporalExtAlgebra : public Algebra
     ~TemporalExtAlgebra() {}
 };
 
-TemporalExtAlgebra tempExtAlgebra;
-
 /*
 
 10 Initialization
@@ -5596,6 +5594,6 @@ InitializeTemporalExtAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;
-  return (&tempExtAlgebra);
+  return (new TemporalExtAlgebra());
 }
 

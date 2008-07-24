@@ -256,6 +256,6 @@ InitializeMRegionOpsAlgebra( NestedList* nlRef,
         QueryProcessor* qpRef )
 {
     // The C++ scope-operator :: must be used to qualify the full name 
-    return new mregionops::MRegionOpsAlgebra;
+    return new mregionops::MRegionOpsAlgebra();
 }
 

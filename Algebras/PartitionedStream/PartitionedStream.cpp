@@ -4045,7 +4045,6 @@ class PartStreamAlgebra : public Algebra
 
 };
 
-PartStreamAlgebra partStreamAlgebra;
 
 /*
 5 Initialization
@@ -4065,7 +4064,7 @@ InitializePartitionedStreamAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
   st.insert(pjoinRel);
   st.insert(costRel);
   
-  return (&partStreamAlgebra);
+  return (new PartStreamAlgebra());
 }
 
 

@@ -2153,8 +2153,6 @@ class PlugJoinAlgebra : public Algebra
   ~PlugJoinAlgebra() {};
 };
 
-PlugJoinAlgebra plugjoinalgebra;
-
 
 extern "C"
 Algebra*
@@ -2162,6 +2160,6 @@ InitializePlugJoinAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&plugjoinalgebra);
+  return (new PlugJoinAlgebra());
 }
 

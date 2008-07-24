@@ -1296,7 +1296,6 @@ public:
 
 } // namespace mtreeAlgebra
 
-mtreeAlgebra::MTreeAlgebra mtreeAlg;
 
 extern "C"
 Algebra *InitializeMTreeAlgebra(
@@ -1304,5 +1303,5 @@ Algebra *InitializeMTreeAlgebra(
 {
     nl = nlRef;
     qp = qpRef;
-    return (&mtreeAlg);
+    return new mtreeAlgebra::MTreeAlgebra();
 }

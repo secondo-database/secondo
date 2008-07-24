@@ -6753,7 +6753,6 @@ class PlaneSweepAlgebra : public Algebra
   ~PlaneSweepAlgebra() {};
 };
 
-PlaneSweepAlgebra planeSweepAlgebra;
 
 extern "C"
 Algebra*
@@ -6761,5 +6760,5 @@ InitializePlaneSweepAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&planeSweepAlgebra);
+  return (new PlaneSweepAlgebra());
 }

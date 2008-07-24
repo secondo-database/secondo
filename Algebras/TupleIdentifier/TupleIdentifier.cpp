@@ -736,8 +736,6 @@ class TupleIdentifierAlgebra : public Algebra
   ~TupleIdentifierAlgebra() {};
 };
 
-TupleIdentifierAlgebra tupleIdentifierAlgebra;
-
 /*
 6 Initialization
 
@@ -761,7 +759,7 @@ InitializeTupleIdentifierAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&tupleIdentifierAlgebra);
+  return (new TupleIdentifierAlgebra());
 }
 
 

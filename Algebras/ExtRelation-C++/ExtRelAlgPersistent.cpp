@@ -557,6 +557,7 @@ In this case we need to delete also all tuples stored in memory.
       {
         delete relations[i].second;
         relations[i].second = 0;
+        relations[i].first->Clear();
         delete relations[i].first;
         relations[i].first = 0;
       }

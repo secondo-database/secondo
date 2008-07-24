@@ -1809,8 +1809,6 @@ class GraphAlgebra : public Algebra
   ~GraphAlgebra() {};
 };
 
-GraphAlgebra graphAlgebra;
-
 /*
 6 Initialization
 
@@ -1834,5 +1832,5 @@ InitializeGraphAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&graphAlgebra);
+  return (new GraphAlgebra());
 }

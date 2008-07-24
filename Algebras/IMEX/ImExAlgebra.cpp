@@ -3276,8 +3276,6 @@ public:
   ~ImExAlgebra() {};
 };
 
-ImExAlgebra imExAlgebra;
-
 /*
 9 Initialization
 
@@ -3289,7 +3287,7 @@ InitializeImExAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&imExAlgebra);
+  return (new ImExAlgebra());
 }
 
 

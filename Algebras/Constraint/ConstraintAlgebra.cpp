@@ -5499,8 +5499,6 @@ class ConstraintAlgebra : public Algebra
   ~ConstraintAlgebra() {};
 };
 
-ConstraintAlgebra constraintAlgebra;
-
 /*
 11 Initialization
 
@@ -5517,7 +5515,7 @@ InitializeConstraintAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&constraintAlgebra);
+  return (new ConstraintAlgebra());
 }
 
 } // namespace

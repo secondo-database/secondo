@@ -2320,14 +2320,13 @@ public:
   ;
 };
 
-ChessAlgebra chessAlgebra;
 extern "C"
   Algebra*
   InitializeChessAlgebra( NestedList * nlRef, QueryProcessor * qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return ( &chessAlgebra );
+  return ( new ChessAlgebra() );
 }
 
 } // Namespace chessAlgebra

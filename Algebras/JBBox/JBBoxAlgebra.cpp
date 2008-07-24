@@ -1835,8 +1835,6 @@ class JBBoxAlgebra : public Algebra
   ~JBBoxAlgebra(){};
 };
 
-JBBoxAlgebra jbboxalgebra;
-
 
 /*
 
@@ -1858,7 +1856,7 @@ InitializeJBBoxAlgebra( NestedList* nlRef,
 
   nl = nlRef;
   qp = qpRef;
-  return (&jbboxalgebra);
+  return (new JBBoxAlgebra());
 }
 
 } // end namespace jbbox

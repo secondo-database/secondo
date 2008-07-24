@@ -8985,12 +8985,11 @@ public:
     ~MovingRegionAlgebra() {}
 };
 
-static MovingRegionAlgebra movingRegionAlgebra;
 
 extern "C"
 Algebra* InitializeMovingRegionAlgebra(NestedList* nlRef,
                                        QueryProcessor *qpRef) {
     nl = nlRef;
     qp = qpRef;
-    return &movingRegionAlgebra;
+    return new MovingRegionAlgebra();
 }

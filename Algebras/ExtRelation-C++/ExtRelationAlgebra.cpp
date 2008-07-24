@@ -9285,8 +9285,6 @@ class ExtRelationAlgebra : public Algebra
   ~ExtRelationAlgebra() {};
 };
 
-ExtRelationAlgebra extRelationalgebra;
-
 /*
 
 4 Initialization
@@ -9314,6 +9312,6 @@ InitializeExtRelationAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (&extRelationalgebra);
+  return (new ExtRelationAlgebra());
 }
 

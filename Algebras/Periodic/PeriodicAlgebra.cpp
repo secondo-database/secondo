@@ -1297,7 +1297,6 @@ class PeriodicMoveAlgebra : public Algebra
   ~PeriodicMoveAlgebra() {};
 };
 
-  PeriodicMoveAlgebra periodicMoveAlgebra;
 
 
 
@@ -1315,5 +1314,5 @@ InitializePeriodicAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   __TRACE__
   nl = nlRef;
   qp = qpRef;
-  return (&periodicMoveAlgebra);
+  return (new PeriodicMoveAlgebra());
 }

@@ -615,11 +615,9 @@ public:
     ~PictureAlgebra() {}
 };
 
-static PictureAlgebra picturealgebra;
-
 extern "C" 
 Algebra* InitializePictureAlgebra(NestedList* nlPar, QueryProcessor *qpPar) {
     nl = nlPar;
     qp = qpPar;
-    return &picturealgebra;
+    return new PictureAlgebra();
 }

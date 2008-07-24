@@ -165,6 +165,6 @@ extern "C"
 Algebra* InitializeHistogramAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   // The C++ scope-operator :: must be used to qualify the full name 
-  return new hgr::HistogramAlgebra;
+  return new hgr::HistogramAlgebra();
 }
 

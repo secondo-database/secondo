@@ -721,7 +721,6 @@ class FunctionAlgebra : public Algebra
   ~FunctionAlgebra() {};
 };
 
-FunctionAlgebra functionAlgebra;
 
 /*
 4 Initialization
@@ -749,7 +748,7 @@ InitializeFunctionAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (&functionAlgebra);
+  return (new FunctionAlgebra());
 }
 
 } // end of namespace FunctionAlgebra

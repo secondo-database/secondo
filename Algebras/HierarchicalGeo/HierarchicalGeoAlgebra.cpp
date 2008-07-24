@@ -12296,7 +12296,6 @@ class HierarchicalGeoAlgebra : public Algebra
   }
   ~HierarchicalGeoAlgebra() {};
 };
-HierarchicalGeoAlgebra hierarchicalGeoAlgebra;
 
 /*
 Initialization
@@ -12322,6 +12321,6 @@ InitializeHierarchicalGeoAlgebra( NestedList* nlRef,
 {
   nl = nlRef;
   qp = qpRef;
-  return (&hierarchicalGeoAlgebra);
+  return (new HierarchicalGeoAlgebra());
 }
 

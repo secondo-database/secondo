@@ -11371,8 +11371,6 @@ class TemporalAlgebra : public Algebra
   ~TemporalAlgebra() {};
 };
 
-TemporalAlgebra temporalAlgebra;
-
 /*
 7 Initialization
 
@@ -11396,7 +11394,7 @@ InitializeTemporalAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&temporalAlgebra);
+  return (new TemporalAlgebra());
 }
 
 

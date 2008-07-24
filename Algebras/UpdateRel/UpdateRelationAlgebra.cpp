@@ -4699,8 +4699,6 @@ class UpdateRelationAlgebra : public Algebra
   ~UpdateRelationAlgebra() {};
 };
 
-UpdateRelationAlgebra updateRelationalgebra;
-
 /*
 
 4 Initialization
@@ -4726,6 +4724,6 @@ InitializeUpdateRelationAlgebra( NestedList* nlRef,
 {
   nl = nlRef;
   qp = qpRef;
-  return (&updateRelationalgebra);
+  return (new UpdateRelationAlgebra());
 }
 

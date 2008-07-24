@@ -10091,8 +10091,6 @@ public:
   ~TemporalUnitAlgebra() {};
 };
 
-TemporalUnitAlgebra temporalUnitAlgebra;
-
 /*
 7 Initialization
 
@@ -10116,7 +10114,7 @@ InitializeTemporalUnitAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&temporalUnitAlgebra);
+  return (new TemporalUnitAlgebra());
 }
 
 

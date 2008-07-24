@@ -5919,7 +5919,6 @@ class OldRelationAlgebra : public Algebra
   ~OldRelationAlgebra() {};
 };
 
-OldRelationAlgebra oldrelationalgebra;
 /*
 
 7 Initialization
@@ -5944,6 +5943,6 @@ InitializeOldRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&oldrelationalgebra);
+  return (new OldRelationAlgebra());
 }
 

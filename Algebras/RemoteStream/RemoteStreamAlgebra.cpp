@@ -378,7 +378,6 @@ class RemoteStreamAlgebra : public Algebra
   ~RemoteStreamAlgebra() {};
 };
 
-RemoteStreamAlgebra remoteStreamAlgebra;
 
 /*
 6 Initialization
@@ -391,6 +390,6 @@ InitializeRemoteStreamAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&remoteStreamAlgebra);
+  return (new RemoteStreamAlgebra());
 }
 

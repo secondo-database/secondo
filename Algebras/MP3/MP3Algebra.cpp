@@ -4534,8 +4534,6 @@ public:
   ~MP3Algebra() {};
 };
 
-MP3Algebra mp3Algebra;
-
 } // end namespace mp3
 
 /*
@@ -4560,7 +4558,7 @@ Algebra*
 InitializeMP3Algebra( NestedList* nlRef, QueryProcessor* qpRef ) {
     nl = nlRef;
     qp = qpRef;
-    return (&mp3::mp3Algebra);
+    return (new mp3::MP3Algebra);
 }
 
 

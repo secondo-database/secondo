@@ -713,8 +713,6 @@ class PolygonAlgebra : public Algebra
     ~PolygonAlgebra() {};
 };
 
-PolygonAlgebra polygonAlgebra;
-
 /*
 
 5 Initialization
@@ -727,7 +725,7 @@ InitializePolygonAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;
-  return (&polygonAlgebra);
+  return (new PolygonAlgebra());
 }
 
 } // end of namespace

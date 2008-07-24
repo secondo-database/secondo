@@ -5113,8 +5113,6 @@ class NetworkAlgebra : public Algebra
   ~NetworkAlgebra() {};
 };
 
-NetworkAlgebra networkAlgebra;
-
 /*
 Initialization
 
@@ -5139,8 +5137,7 @@ InitializeNetworkAlgebra( NestedList* nlRef,
 {
   nl = nlRef;
   qp = qpRef;
-
-  return (&networkAlgebra);
+  return (new NetworkAlgebra());
 }
 
 

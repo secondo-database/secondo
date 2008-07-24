@@ -5247,8 +5247,6 @@ class MidiAlgebra : public Algebra
   ~MidiAlgebra() {};
 };
 
-MidiAlgebra midiAlgebra;
-
 /*
 6 Initialization
 
@@ -5271,5 +5269,5 @@ InitializeMidiAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&midiAlgebra);
+  return (new MidiAlgebra());
 }

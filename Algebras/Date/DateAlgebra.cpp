@@ -981,7 +981,6 @@ class DateAlgebra : public Algebra
   ~DateAlgebra() {};
 };
 
-DateAlgebra dateAlgebra;
 
 /*
 
@@ -1010,7 +1009,7 @@ InitializeDateAlgebra( NestedList* nlRef,
   nl = nlRef;
   qp = qpRef;
   am = amRef;
-  return (&dateAlgebra);
+  return (new DateAlgebra());
 }
 
 /*

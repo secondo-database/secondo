@@ -3732,7 +3732,7 @@ InitializeFTextAlgebra( NestedList* nlRef,
 {
   if(traces)
     cout << '\n' <<"InitializeFTextAlgebra"<<'\n';
-  ftext::FTextAlgebra* ptr = new ftext::FTextAlgebra;
+  ftext::FTextAlgebra* ptr = new ftext::FTextAlgebra();
   ptr->Init(nl, qp, am);
   return ptr;
 }

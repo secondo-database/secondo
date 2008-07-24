@@ -71,6 +71,12 @@ AlgebraManager::AlgebraManager( NestedList& nlRef,
 
 AlgebraManager::~AlgebraManager()
 {
+  // delete algebra pointers
+  for(unsigned int i=0;i<algebra.size();i++){
+      delete algebra[i];
+      algebra[i] = 0;
+  }
+
 }
 
 ListExpr

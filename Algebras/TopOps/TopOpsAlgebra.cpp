@@ -3252,7 +3252,7 @@ class TopOpsAlgebra : public Algebra {
         AddOperator(&trContains);
       }
      ~TopOpsAlgebra(){}
-} topOpsAlgebra;
+};
 
 /* 
 Functions exported in the header file.
@@ -3277,6 +3277,6 @@ Algebra* InitializeTopOpsAlgebra( NestedList* nlRef, QueryProcessor* qpRef ) {
     nl = nlRef;
     qp = qpRef;
     topops::initClusters();
-    return (&topops::topOpsAlgebra);
+    return (new topops::TopOpsAlgebra());
 }
 

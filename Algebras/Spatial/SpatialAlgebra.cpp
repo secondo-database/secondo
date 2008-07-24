@@ -18810,7 +18810,6 @@ class SpatialAlgebra : public Algebra
   ~SpatialAlgebra() {};
 };
 
-SpatialAlgebra spatialAlgebra;
 
 /*
 12 Initialization
@@ -18835,7 +18834,7 @@ InitializeSpatialAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&spatialAlgebra);
+  return (new SpatialAlgebra());
 }
 
 

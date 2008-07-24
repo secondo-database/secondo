@@ -4486,7 +4486,6 @@ class CcAlgebra1 : public Algebra
 
 };
 
-CcAlgebra1 ccalgebra1;
 
 /*
 7 Initialization
@@ -4511,7 +4510,7 @@ InitializeStandardAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&ccalgebra1);
+  return (new CcAlgebra1);
 }
 
 /*

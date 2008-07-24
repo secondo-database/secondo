@@ -1666,8 +1666,6 @@ class RectangleAlgebra : public Algebra
   ~RectangleAlgebra() {};
 };
 
-RectangleAlgebra rectangleAlgebra;
-
 /*
 6 Initialization
 
@@ -1691,7 +1689,7 @@ InitializeRectangleAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
-  return (&rectangleAlgebra);
+  return (new RectangleAlgebra());
 }
 
 
