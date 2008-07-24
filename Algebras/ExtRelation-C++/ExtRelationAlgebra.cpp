@@ -8353,6 +8353,7 @@ SymmProductExtend(Word* args, Word& result,
                 + i, ((StandardAttribute*)value.addr)->Clone() );
               qp->ReInitResultStorage( supplier3 );
             }
+            leftTuple->DeleteIfAllowed();
             leftTuple = 0;
             result = SetWord( resultTuple );
             return YIELD;
@@ -8441,6 +8442,7 @@ SymmProductExtend(Word* args, Word& result,
                 + i, ((StandardAttribute*)value.addr)->Clone() );
               // extend effective left tuple
             }
+            rightTuple->DeleteIfAllowed();
             rightTuple = 0;
             result = SetWord( resultTuple );
             return YIELD;
@@ -8717,6 +8719,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             Tuple *resultTuple = new Tuple( pli->resultTupleType );
             Concat( leftTuple, pli->currTuple, resultTuple );
+            leftTuple->DeleteIfAllowed();
             leftTuple = 0;
             result = SetWord( resultTuple );
             return YIELD;
@@ -8777,6 +8780,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
           {
             Tuple *resultTuple = new Tuple( pli->resultTupleType );
             Concat( pli->currTuple, rightTuple, resultTuple );
+            rightTuple->DeleteIfAllowed();
             rightTuple = 0;
             result = SetWord( resultTuple );
             return YIELD;
