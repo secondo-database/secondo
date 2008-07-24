@@ -4205,14 +4205,14 @@ class MakeOp
 public:
    MakeOp() {};
    ~MakeOp() {};
-   Region* Intersection(const Region* reg1, const Region* reg2);
-   Line* Intersection(const Region* reg, const Line* line);
-   Line* Intersection(const Line* reg1, const Line* reg2);
-   Region* Union(const Region* reg1, const Region* reg2);
-   Line* Union(const Line* line1, const Line* line2);
-   Region* Minus(const Region* reg1, const Region* reg2);
-   Line* Minus(const Line* line, const Region* reg);
-   Line* Minus(const Line* line1, const Line* line2);
+   void Intersection(const Region* reg1, const Region* reg2,Region* result);
+   void Intersection(const Region* reg, const Line* line,Line* result);
+   void Intersection(const Line* reg1, const Line* reg2i,Line* result);
+   void Union(const Region* reg1, const Region* reg2,Region* result);
+   void Union(const Line* line1, const Line* line2,Line* result);
+   void Minus(const Region* reg1, const Region* reg2,Region* result);
+   void Minus(const Line* line, const Region* reg,Line* result);
+   void Minus(const Line* line1, const Line* line2i,Line* result);
    bool Intersects(const Region* reg1, const Region* reg2);
    bool Intersects(const Line* line1, const Line* line2);
    bool Intersects (const Region* reg, const Line* line);
@@ -4231,7 +4231,7 @@ If the segment classifikation contains the number 2, the segment is added to res
 intersection-operator for two region-objects
 
 */
-Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
+void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
 {
   // first Realmisation of both regions
    Region* res1  = new Region(0);
@@ -4256,7 +4256,6 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    HalfSegment hsAkt;
    const HalfSegment *hs1 = 0;
    const HalfSegment *hs2 = 0;
-   Region* result = new Region(0);
    result->Clear();
    result->StartBulkLoad();
    State status;
@@ -4331,7 +4330,6 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    result->EndBulkLoad();
-   return result;
 }
 
 /*
@@ -4340,7 +4338,7 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
 */
 
 
- Line* MakeOp::Intersection(const Region* reg, const Line* line)
+ void MakeOp::Intersection(const Region* reg, const Line* line, Line* result)
  {
   // first Realmisation of both arguments
    Line* resline  = new Line(0);
@@ -4361,7 +4359,6 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    int j = 0;
    HalfSegment hsAkt;
    const HalfSegment *hs1, *hs2;
-   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -4448,14 +4445,13 @@ Region* MakeOp::Intersection(const Region* reg1, const Region* reg2)
    
    result->EndBulkLoad();
   // cout << " ===========================result fertig ========" << endl;
-   return result;
 }
 
 /*
 ~Intersection~ operation
 
 */
-Line* MakeOp::Intersection(const Line* line1, const Line* line2)
+void MakeOp::Intersection(const Line* line1, const Line* line2, Line* result)
 {
   // first Realmisation of both lines
    Line* res1 = new Line(0);
@@ -4474,7 +4470,6 @@ Line* MakeOp::Intersection(const Line* line1, const Line* line2)
    int i = 0;
    int j = 0;
    const HalfSegment *hs1, *hs2;
-   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
    // execute until one argument is empty
@@ -4507,7 +4502,6 @@ Line* MakeOp::Intersection(const Line* line1, const Line* line2)
          *result += hsNew;       
     }
    result->EndBulkLoad();
-   return result;
 }
 
 /*
@@ -4586,7 +4580,11 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
             else                                ns = ns-1;
          }
          // if one intersection is found, break and return true
-         if (ms == 2 || ns == 2) { return true; }
+         if (ms == 2 || ns == 2) { 
+            res1->Destroy(); delete res1;
+            res2->Destroy(); delete res2;
+            return true; 
+         }
          // set new segmentclasses in SEntry
          ent.SetU(ms);
          ent.SetO(ns);
@@ -4671,7 +4669,11 @@ bool MakeOp::P_Intersects(const Region* reg, const Line* line)
          }
          if (status == FIRST || status == BOTH) {
             if ( pred != 0  && pred->GetEntry().GetO() > 0 )
-               { return true; }
+               {  
+                  resline->Destroy(); delete resline;
+                  resregion->Destroy(); delete resregion;
+                  return true; 
+               }
             // segments from line are deleted at once
             if (status == FIRST) sweepline.Delete(node);
          }
@@ -4763,8 +4765,11 @@ bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
       if (hs1->GetLeftPoint()==hs2->GetLeftPoint()||
           hs1->GetLeftPoint()==hs2->GetRightPoint()
        || hs1->GetRightPoint()==hs2->GetLeftPoint()||
-          hs1->GetRightPoint()==hs2->GetRightPoint() )
+          hs1->GetRightPoint()==hs2->GetRightPoint() ){
+         res1->Destroy(); delete res1;
+         res2->Destroy(); delete res2;
          return true;
+      }
       else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
       else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2;  status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
@@ -4796,7 +4801,11 @@ bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
          if (hsAkt.attr.insideAbove == true)   ns = ns+1;
          else                                   ns = ns-1;
          // set segmentclasses in SEntry
-         if (ms == 2 || ns == 2) return true;
+         if (ms == 2 || ns == 2) {
+           res1->Destroy(); delete res1;
+           res2->Destroy(); delete res2;
+           return true;
+         }
          ent.SetU(ms);
          ent.SetO(ns);
          node->SetEntry(ent);
@@ -4845,8 +4854,11 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
       if (hs1->GetLeftPoint()==hs2->GetLeftPoint()||
           hs1->GetLeftPoint()==hs2->GetRightPoint()||
           hs1->GetRightPoint()==hs2->GetLeftPoint()||
-          hs1->GetRightPoint()==hs2->GetRightPoint() )
+          hs1->GetRightPoint()==hs2->GetRightPoint() ){
+          res1->Destroy(); delete res1;
+          res2->Destroy(); delete res2;
           return true;
+      }
       else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
       else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
@@ -4881,7 +4893,12 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
          } //  end else
          else if (status == SECOND) {
             if (pred != 0)
-               { if (pred->GetEntry().GetO() == 1) return true; }
+               { if (pred->GetEntry().GetO() == 1) {
+                   res1->Destroy(); delete res1;
+                   res2->Destroy(); delete res2;
+                   return true; 
+                 }
+            }
             else sweepline.Delete (node);
          }
       }
@@ -4923,7 +4940,11 @@ bool MakeOp::Intersects (const Line* line1, const Line* line2)
       if (hs1->GetLeftPoint()==hs2->GetLeftPoint() ||
           hs1->GetLeftPoint()==hs2->GetRightPoint() ||
           hs1->GetRightPoint()==hs2->GetLeftPoint() ||
-          hs1->GetRightPoint() == hs2->GetRightPoint() ) return true;
+          hs1->GetRightPoint() == hs2->GetRightPoint() ) {
+           res1->Destroy(); delete res1;
+           res2->Destroy(); delete res2;
+           return true;
+      }
       if ( *hs1 < *hs2)       i ++;
       else if ( *hs1 > *hs2)  j ++;
    } // end while
@@ -4937,7 +4958,8 @@ bool MakeOp::Intersects (const Line* line1, const Line* line2)
 
 */
 
-Region* MakeOp::Union(const Region* reg1, const Region* reg2)
+void MakeOp::Union(const Region* reg1, const Region* reg2, 
+                      Region* result)
 {
    SLine sweepline;
    int i = 0;   
@@ -4950,16 +4972,12 @@ Region* MakeOp::Union(const Region* reg1, const Region* reg2)
    SEntry oldEntry1, oldEntry2;
    BinTreeNode<SEntry>* oldnode1;
    BinTreeNode<SEntry>* oldnode2;
-   Region* res1, *res2, *result, *pres1, *pres2, *qres1, *qres2;
+   Region* res1, *res2;
    MakeRealm mr;
    
    // first Realmisation of both regions
    res1 = new Region(0);
    res2 = new Region(0);
-   pres1 = new Region(0);
-   pres2 = new Region(0);
-   qres1 = new Region(0);
-   qres2 = new Region(0);
 
    switch ( kindofrealm )
    {
@@ -4974,8 +4992,7 @@ Region* MakeOp::Union(const Region* reg1, const Region* reg2)
    //cout << "realm ok" << *res2 << endl;
 
    // initialisations
-   result = new Region(0);
-   result ->Clear();
+   result->Clear();
    result->StartBulkLoad();
    // while there are segments in the realm-based arguments
    //cout << "hier noch union ok" << endl;
@@ -5069,7 +5086,6 @@ Region* MakeOp::Union(const Region* reg1, const Region* reg2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    result->EndBulkLoad(true,true,true,true);
-   return result;
 }
 
 /*
@@ -5077,7 +5093,7 @@ Region* MakeOp::Union(const Region* reg1, const Region* reg2)
 
 */
 
-Line* MakeOp::Union(const Line* line1, const Line* line2)
+void MakeOp::Union(const Line* line1, const Line* line2,Line* result)
 {
   // first Realmisation of both lines
    Line* res1 = new Line(0);
@@ -5096,7 +5112,6 @@ Line* MakeOp::Union(const Line* line1, const Line* line2)
    int i = 0;
    int j = 0;
    const HalfSegment *hs1, *hs2;
-   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
    // while there are segments in the realm-based arguments
@@ -5135,7 +5150,6 @@ Line* MakeOp::Union(const Line* line1, const Line* line2)
     }
    
    result->EndBulkLoad();
-   return result;
 }
 
 
@@ -5143,7 +5157,7 @@ Line* MakeOp::Union(const Line* line1, const Line* line2)
 ~Minus~ operator
 
 */
-Region* MakeOp::Minus(const Region* reg1, const Region* reg2)
+void MakeOp::Minus(const Region* reg1, const Region* reg2, Region* result)
 {
   // first Realmisation of both regions
    Region* res1 = new Region(0);
@@ -5163,7 +5177,6 @@ Region* MakeOp::Minus(const Region* reg1, const Region* reg2)
    int i = 0;   int j = 0;  int counter = 0;
    HalfSegment hsAkt;
    const HalfSegment *hs1, *hs2;
-   Region* result = new Region(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -5257,14 +5270,13 @@ Region* MakeOp::Minus(const Region* reg1, const Region* reg2)
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    result->EndBulkLoad();
-   return result;
 }
 
 /*
 ~Minus~ operator
 
 */
-Line* MakeOp::Minus(const Line* line, const Region* reg)
+void MakeOp::Minus(const Line* line, const Region* reg,Line* result)
 {   // first Realmisation of both arguments
    Line* resLine = new Line(0);
    Region* resReg = new Region(0);
@@ -5284,7 +5296,6 @@ Line* MakeOp::Minus(const Line* line, const Region* reg)
    int j = 0;
    HalfSegment hsAkt;
    const HalfSegment *hs1, *hs2;
-   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -5347,8 +5358,6 @@ Line* MakeOp::Minus(const Line* line, const Region* reg)
    resReg->Destroy(); delete resReg;
    // VTA - I need to come back here
    result->EndBulkLoad();
-   return result;
-
 }
 
 /*
@@ -5356,7 +5365,7 @@ Line* MakeOp::Minus(const Line* line, const Region* reg)
 
 */
 
-Line* MakeOp::Minus(const Line* line1, const Line* line2)
+void MakeOp::Minus(const Line* line1, const Line* line2,Line* result)
 {
   // first Realmisation of both lines
    Line* res1 = new Line(0);
@@ -5375,7 +5384,6 @@ Line* MakeOp::Minus(const Line* line1, const Line* line2)
    int i = 0;
    int j = 0;
    const HalfSegment *hs1, *hs2;
-   Line* result = new Line(0);
    result ->Clear();
    result->StartBulkLoad();
     // while there are segments in the first arguments
@@ -5413,7 +5421,6 @@ Line* MakeOp::Minus(const Line* line1, const Line* line2)
          *result += hsNew;       
     }
    result->EndBulkLoad();
-   return result;
 }
 
 /*
@@ -5490,7 +5497,7 @@ static int realm_lr( Word* args, Word& result, int message,
    Region *r2 = ((Region*)args[1].addr);
    if (l1->IsDefined() && r2->IsDefined())
    {
-      Line* test1 = new Line(0);
+      Line* test1 = static_cast<Line*>(result.addr);
       Region* test2 = new Region(0);
       MakeRealm mr;
       switch ( kindofrealm )
@@ -5504,7 +5511,7 @@ static int realm_lr( Word* args, Word& result, int message,
       }       
 
       //mr.REALM2( l1, r2, test1 , test2 );
-      result.addr = test1;
+      delete test2;
       return(0);
    }
    else  {
@@ -5528,7 +5535,7 @@ static int realm_rl( Word* args, Word& result, int message,
    if (l1->IsDefined() && r2->IsDefined())
    {
       Line* test1 = new Line(0);
-      Region* test2 = new Region(0);
+      Region* test2 = static_cast<Region*>(result.addr);
       MakeRealm mr;
       switch ( kindofrealm )
       {
@@ -5539,7 +5546,7 @@ static int realm_rl( Word* args, Word& result, int message,
                          break;
         default: cout << "should not happen" << endl;
       }       
-      result.addr = test2;
+      delete test1;
       return(0);
    }
    else  {
@@ -5561,7 +5568,7 @@ static int realm_ll( Word* args, Word& result, int message,
    Line *l2 = ((Line*)args[1].addr);
    if (l1->IsDefined() && l2->IsDefined())
    {
-      Line* test1 = new Line(0);
+      Line* test1 = static_cast<Line*>(result.addr);
       Line* test2 = new Line(0);
       MakeRealm mr;
       switch ( kindofrealm )
@@ -5573,7 +5580,7 @@ static int realm_ll( Word* args, Word& result, int message,
                          break;
         default: cout << "should not happen" << endl;
       }       
-      result.addr = test1;
+      delete test2;
       return(0);
    }
    else
@@ -5596,7 +5603,7 @@ static int realm_rr( Word* args, Word& result, int message,
    Region *r2 = ((Region*)args[1].addr);
    if (r1->IsDefined() && r2->IsDefined())
    {
-      Region* test1 = new Region(0);
+      Region* test1 = static_cast<Region*>(result.addr);
       Region* test2 = new Region(0);
       MakeRealm mr;
       switch ( kindofrealm )
@@ -5608,7 +5615,7 @@ static int realm_rr( Word* args, Word& result, int message,
                          break;
         default: cout << "should not happen" << endl;
       }       
-      result.addr = test1;
+      delete test2;
       return(0);
    }
    else
@@ -5688,9 +5695,7 @@ static int Inter_ll( Word* args, Word& result, int message,
          if (line1->BoundingBox().Intersects(line2->BoundingBox())) {
             Line* res = 0;
             MakeOp mo;
-            res = mo.Intersection( line1, line2 );
-
-            ((Line*)result.addr)->CopyFrom(res);              
+            mo.Intersection( line1, line2, static_cast<Line*>(result.addr));
             delete res;
             return(0);
          }
@@ -5702,8 +5707,7 @@ static int Inter_ll( Word* args, Word& result, int message,
       else  {
          Line* res = 0;
          MakeOp mo;
-         res = mo.Intersection( line1, line2 );
-         ((Line*)result.addr)->CopyFrom(res);
+         mo.Intersection( line1, line2,static_cast<Line*>(result.addr));
          delete res;
          return(0);
       }
@@ -5734,14 +5738,8 @@ static int Inter_lr( Word* args, Word& result, int message,
       if (l1->BoundingBox().IsDefined() &&
          r2->BoundingBox().IsDefined() ) {
          if ( l1->BoundingBox().Intersects( r2->BoundingBox())) {
-            Line* res = new Line(0);
             MakeOp mo;
-            res = mo.Intersection( r2, l1 );
-            if (res->IsEmpty() ){
-              ((Line *)result.addr)->Clear();
-            }
-            else
-              result.addr = res ;
+            mo.Intersection( r2, l1,static_cast<Line*>(result.addr));
             return(0);
          }
          else   {
@@ -5750,15 +5748,8 @@ static int Inter_lr( Word* args, Word& result, int message,
          }
       }
       else  {
-         Line* res = new Line(0);
          MakeOp mo;
-         res = mo.Intersection( r2, l1  );
-         if (res->IsEmpty() ) {
-           ((Line *)result.addr)->Clear();
-           ((Line *)result.addr)->SetDefined( false );
-         }
-         else
-            result.addr = res;
+         mo.Intersection( r2, l1,static_cast<Line*>(result.addr));
          return(0);
       }
    }
@@ -5787,14 +5778,8 @@ static int Inter_rl ( Word* args, Word& result, int message,
       if (l1->BoundingBox().IsDefined() &&
          r2->BoundingBox().IsDefined() ) {
          if ( l1->BoundingBox().Intersects( r2->BoundingBox() ) )  {
-            Line* res = new Line(0);
             MakeOp mo;
-            res = mo.Intersection( r2, l1 );
-            if (res->IsEmpty() ) {
-              ((Line *)result.addr)->Clear();
-            }
-            else
-               result.addr = res;
+            mo.Intersection( r2, l1,static_cast<Line*>(result.addr));
             return(0);
          }
          else   {
@@ -5803,15 +5788,8 @@ static int Inter_rl ( Word* args, Word& result, int message,
          }
       }
       else  {
-         Line* res = new Line(0);
          MakeOp mo;
-         res = mo.Intersection( r2, l1  );
-         if (res->IsEmpty() ) {
-            ((Line *)result.addr)->Clear();
-            ((Line *)result.addr)->SetDefined( false );
-         }
-         else
-            result.addr = res;
+         mo.Intersection( r2, l1, static_cast<Line*>(result.addr));
          return(0);
       }
    }
@@ -5840,14 +5818,8 @@ static int Inter_rr( Word* args, Word& result, int message,
       if (r1->BoundingBox().IsDefined() &&
          r2->BoundingBox().IsDefined() ) {
          if ( r1->BoundingBox().Intersects( r2->BoundingBox())) {
-            Region* res = new Region(0);
             MakeOp mo;
-            res = mo.Intersection( r1, r2 );
-            if ( res->IsEmpty() ){
-              ((Region *)result.addr)->Clear();
-            }
-            else
-               result.addr = res;
+            mo.Intersection( r1, r2,static_cast<Region*>(result.addr) );
             return(0);
          }
          else   { // no intersection possible
@@ -5856,14 +5828,8 @@ static int Inter_rr( Word* args, Word& result, int message,
          }
       }
       else  {
-         Region* res = new Region(0);
          MakeOp mo;
-         res = mo.Intersection( r1, r2 );
-         if ( res->IsEmpty() ) {
-            ((Region *)result.addr)->Clear();
-         }
-         else
-            result.addr = res;
+         mo.Intersection( r1, r2,static_cast<Region*>(result.addr));
          return(0);
       }
    }
@@ -6174,18 +6140,16 @@ Word& local, Supplier s )
          return (0);
       }
       else if (r1->IsEmpty() ) {
-         result.addr = r2;
+         (static_cast<Region*>(result.addr))->CopyFrom(r2);
          return(0);
       }
       else if (r2->IsEmpty() ) {
-         result.addr = r1;
+         (static_cast<Region*>(result.addr))->CopyFrom(r1);
          return(0);
       }
       else {
-         Region* res = new Region(0);
          MakeOp mo;
-         res = mo.Union( r1, r2 );
-         result.addr = res;
+         mo.Union( r1, r2,static_cast<Region*>(result.addr) );
          return(0);
       }
    }
@@ -6208,7 +6172,7 @@ static int Union_lr( Word* args, Word& result, int message,
    Line *line = ((Line*)args[0].addr);
    Region *reg = ((Region*)args[1].addr);
    if ( reg->IsDefined()&&!reg->IsEmpty()&&line->IsDefined() ) {
-      result.addr = reg;
+      (static_cast<Region*>(result.addr))->CopyFrom(reg);
       return(0);
    }
    else  {
@@ -6230,7 +6194,7 @@ Word& local, Supplier s )
    Region *reg = ((Region*)args[0].addr);
    if ( ! reg -> IsEmpty() && line->IsDefined() &&
    reg->IsDefined() )    {
-      result.addr = reg;
+      (static_cast<Region*>(result.addr))->CopyFrom(reg);
       return(0);
    }
    else  {
@@ -6252,19 +6216,16 @@ Word& local, Supplier s )
    Line *line2 = ((Line*)args[1].addr);
    if (line1->IsDefined() && line2->IsDefined() )    {
       if ( line1->IsEmpty() ) {
-         *(Line*)result.addr = *line2;
+         ((Line*)result.addr)->CopyFrom(line2);
          return(0);
       }
       else if (line2->IsEmpty() ) {
-         *(Line*)result.addr = *line1;
+         ((Line*)result.addr)->CopyFrom(line1);
          return(0);
       }
       else {
-         Line* res = 0;
          MakeOp mo;
-         res = mo.Union( line1, line2 );
-         ((Line*)result.addr)->CopyFrom(res);
-         delete res;
+         mo.Union( line1, line2,static_cast<Line*>(result.addr));
          return(0);
       }
    }
@@ -6351,36 +6312,24 @@ static int Minus_rr( Word* args, Word& result, int message,
          return(0);
       }
       else if ( r2->IsEmpty() ) {
-         result.addr = r1;
+         (static_cast<Region*>(result.addr))->CopyFrom(r1);
          return(0);
       }
       else if (r1->BoundingBox().IsDefined() &&
       r2->BoundingBox().IsDefined() ) {
          if ((r1->BoundingBox().Intersects(r2->BoundingBox()))) {
-            Region* res = new Region(0);
             MakeOp mo;
-            res = mo.Minus( r1, r2 );
-            if (res->IsEmpty() )
-              ((Region *)result.addr)->Clear();
-            else
-               result.addr = res;
+            mo.Minus( r1, r2,static_cast<Region*>(result.addr));
             return(0);
          }
          else   {
-            result.addr = r1;
+            (static_cast<Region*>(result.addr))->CopyFrom(r1);
             return (0);
          }
       }
       else    {
-         Region* res = new Region(0);
          MakeOp mo;
-         res = mo.Minus( r1, r2 );
-         if (res->IsEmpty() ){
-           ((Region *)result.addr)->Clear();
-           ((Region *)result.addr)->SetDefined( false );
-         }
-         else
-            result.addr = res;
+         mo.Minus( r1, r2, static_cast<Region*>(result.addr));
          return(0);
       }
    }
@@ -6409,31 +6358,18 @@ Word& local, Supplier s )
       else if (line->BoundingBox().IsDefined() &&
       reg->BoundingBox().IsDefined() ) {
          if (line->BoundingBox().Intersects(reg->BoundingBox())) {
-            Line* res = new Line(0);
             MakeOp mo;
-            res = mo.Minus( line,reg );
-            if ( res -> IsEmpty() ){
-              ((Line *)result.addr)->Clear();
-            }
-            else
-               result.addr = res;
+            mo.Minus( line,reg,static_cast<Line*>(result.addr) );
             return(0);
          }
          else   {
-            result.addr = line;
+            (static_cast<Line*>(result.addr))->CopyFrom(line);
             return (0);
          }
       }
       else    {
-         Line* res = new Line(0);
          MakeOp mo;
-         res = mo.Minus( line, reg );
-         if ( res -> IsEmpty() ){
-              ((Line *)result.addr)->Clear();
-              ((Line *)result.addr)->SetDefined( false );
-            }
-         else
-            result.addr = res;
+         mo.Minus( line, reg,static_cast<Line*>(result.addr) );
          return(0);
       }
    } // if IsDefined()
@@ -6455,7 +6391,7 @@ Word& local, Supplier s )
    Line *line = ((Line*)args[1].addr);
    Region *reg = ((Region*)args[0].addr);
    if ( ! line->IsEmpty() && line->IsDefined() && reg->IsDefined() )    {
-      result.addr = reg ;
+      (static_cast<Region*>(result.addr))->CopyFrom(reg) ;
       return(0);
    }
    else  {
@@ -6477,37 +6413,25 @@ static int Minus_ll( Word* args, Word& result, int message,
   Line *line2 = ((Line*)args[1].addr);
   if (line1->IsDefined() && line2->IsDefined() )    {
     if (line1->IsEmpty() || line2->IsEmpty()) {
-       result.addr = line1;
+       (static_cast<Line*>(result.addr))->CopyFrom(line1);
        return (0);
     }
     else if (line1->BoundingBox().IsDefined() &&
              line2->BoundingBox().IsDefined() ) {
       if ((line1->BoundingBox().Intersects
            (line2->BoundingBox() ) ) ) {
-        Line* res = new Line(0);
         MakeOp mo;
-        res = mo.Minus( line1, line2 );
-        if (res->IsEmpty() ){
-          ((Line *) result.addr)->Clear();
-        }
-        else
-          result.addr = res;
+        mo.Minus( line1, line2,static_cast<Line*>(result.addr) );
         return(0);
       }
       else {
-        result.addr = line1;
+        (static_cast<Line*>(result.addr))->CopyFrom(line1);
             return(0);
       }
     }
     else {
-      Line* res = new Line(0);
       MakeOp mo;
-      res = mo.Minus( line1, line2 );
-      if (res ->IsEmpty() ){
-        ((Line *) result.addr)->Clear();
-      }
-      else
-        result.addr = res;
+      mo.Minus( line1, line2,static_cast<Line*>(result.addr) );
       return(0);
     }
   }
