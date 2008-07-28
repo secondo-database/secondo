@@ -999,7 +999,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
         cout << "SMI-Mode: SingleUserSimple" << endl;
         singleUserMode  = true;
         useTransactions = false;
-        flags = DB_CREATE | DB_INIT_MPOOL | DB_PRIVATE;
+        flags = DB_CREATE | DB_INIT_MPOOL | DB_INIT_LOCK;
 /*
 creates a private environment for the calling process and enables
 automatic recovery during startup. If the environment does not exist,
