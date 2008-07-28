@@ -52,13 +52,6 @@ this functions return the number of stored faces, a list of all faces or a speci
          vector<Face*> *getFaces();
 /*
 
-get a deep clone of the face
-
-*/ 
-         RegionForInterpolation* clone();
-
-/*
-
 Is the cached hashcode valid?
 
 */       
@@ -87,7 +80,14 @@ set the cached hashcode invalid
 This function tries to split all faces along the given splitline and adds the new ones to this region.The function delivers a list all added faces, 
  
 */       
-         vector<Face*> *splitOnLine(vector<LineWA*> *splitLine);      
+         vector<Face*> *splitOnLine(vector<LineWA*> *splitLine);
+/*
+
+get a deep clone of the face
+
+*/ 
+         RegionForInterpolation* clone();
+               
 /*          
  
 1.1.1 Overridden Methods

@@ -46,7 +46,7 @@ It is usesed to include all other header files.
 #ifndef REGIONINTERPOLATOR_H_
 #define REGIONINTERPOLATOR_H_
 
-#define USE_OVERLAP
+//#define USE_OVERLAP
 
 #include <vector>
 #include <iostream>
