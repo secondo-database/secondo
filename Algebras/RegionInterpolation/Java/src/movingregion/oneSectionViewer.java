@@ -6,7 +6,7 @@
 
 package movingregion;
 import java.awt.*;
-import javax.swing.*;
+
 public class oneSectionViewer extends javax.swing.JPanel
 {
     
@@ -19,6 +19,10 @@ public class oneSectionViewer extends javax.swing.JPanel
     
     public oneSectionViewer(mLineRep myTri,int time, int of)
     {
+        maxX=0;
+        maxY=0;
+        minX=Integer.MAX_VALUE;
+        minY=Integer.MAX_VALUE;
         this.myTri=myTri;
         this.time=time;
         this.of=of;
@@ -49,8 +53,9 @@ public class oneSectionViewer extends javax.swing.JPanel
     }
     
     public void paint(Graphics g)
-    {
-        g.clearRect(0,0,this.getWidth(),this.getHeight());        
+    {                
+        g.setColor(Color.WHITE);
+        g.fillRect(0,0,this.getWidth(),this.getHeight());        
         g.setColor(Color.BLACK);
         g.drawRect(0,0,this.getWidth(),this.getHeight());        
         g.setColor(Color.BLUE);
@@ -74,7 +79,7 @@ public class oneSectionViewer extends javax.swing.JPanel
     }
     public Dimension getPreferredSize()
     {
-        return(new Dimension(wid+10,hei+10));
+        return(new Dimension(wid,hei));
     }
     
     /** This method is called from within the constructor to

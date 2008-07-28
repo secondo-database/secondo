@@ -176,7 +176,7 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         return(Holes.size());
     }
     
-    public ConvexHullTreeNode getCycle()
+    public ConvexHullTreeNode getCycle()    
     {
         return(Cycle);
     }
@@ -306,5 +306,26 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         }
         return(res);
     }
+    
+    public static void main(String[] arg)
+    {
+        LineWA[] face0=new LineWA[6];
+	face0[0]=new LineWA(52,217);
+   	face0[1]=new LineWA(91,280);
+   	face0[2]=new LineWA(249,275);
+   	face0[3]=new LineWA(241,159);
+   	face0[4]=new LineWA(125,203);
+   	face0[5]=new LineWA(97,150);
+	LineWA[] hole0=new LineWA[6];
+	hole0[0]=new LineWA(114,220);
+   	hole0[1]=new LineWA(80,202);
+   	hole0[2]=new LineWA(67,223);
+   	hole0[3]=new LineWA(108,265);
+   	hole0[4]=new LineWA(215,253);
+   	hole0[5]=new LineWA(227,205);
+        Face test=new Face(face0,null);
+        test.addHole(hole0);
+    }
+    
     
 }

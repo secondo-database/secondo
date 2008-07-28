@@ -3,6 +3,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import javax.swing.*;
+import javax.swing.border.*;
 import java.io.*;
 
 public class tegnecanvas extends JPanel implements ActionListener
@@ -26,25 +27,35 @@ public class tegnecanvas extends JPanel implements ActionListener
     
     public tegnecanvas(MCIContents myParent)
     {
+        this.setBackground(Color.WHITE);
         Snaps[0]=new Region();
         Snaps[1]=new Region();
         this.myParent=myParent;
         setLayout(new BorderLayout());
         reDrawButt = new JButton("Draw");
         reDrawButt.addActionListener(this);
+        reDrawButt.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
+        
         addFaceButt = new JButton("addFace");
         addFaceButt.addActionListener(this);
+        addFaceButt.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
         addHoleButt = new JButton("addHole");
         addHoleButt.addActionListener(this);
+        addHoleButt.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
         drawNextSS = new JButton("Store Snapshot");
         drawNextSS.addActionListener(this);
+        drawNextSS.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
         save1Butt=new JButton("Save First");
         save1Butt.addActionListener(this);
+        save1Butt.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
         save2Butt=new JButton("Save Sec");
         save2Butt.addActionListener(this);
+        save2Butt.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
         loadButt=new JButton("Load");
-        loadButt.addActionListener(this);
+        loadButt.addActionListener(this);        
+        loadButt.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
         drawUtils=new JToolBar();
+        drawUtils.setLayout(new java.awt.FlowLayout(FlowLayout.LEFT,4,4));
         drawUtils.add(reDrawButt);
         drawUtils.add(addFaceButt);
         drawUtils.add(addHoleButt);
@@ -52,7 +63,8 @@ public class tegnecanvas extends JPanel implements ActionListener
         drawUtils.add(save1Butt);
         drawUtils.add(save2Butt);
         drawUtils.add(loadButt);
-        add(drawUtils,BorderLayout.NORTH);
+        drawUtils.setMargin(new Insets(3,3,3,3));
+        add(drawUtils,BorderLayout.NORTH);        
         enableEvents(AWTEvent.MOUSE_EVENT_MASK);
         fistSnapPoints = new Vector();
     }
@@ -264,7 +276,8 @@ public class tegnecanvas extends JPanel implements ActionListener
     
     public void paint(Graphics g)
     {
-        super.paint(g);
+        super.paint(g);   
+         
         if(avtiveSnap>=1)
         {
             Snaps[0].paintRegion(g,false);
@@ -278,9 +291,9 @@ public class tegnecanvas extends JPanel implements ActionListener
         Dimension storrelse;
         Point nvpunkt,gpunkt;
         storrelse = this.getSize();
-        g.setColor(Color.black);
-        g.drawRect(0,0,storrelse.width-1, storrelse.height-1);
         
+        g.setColor(Color.black);
+        g.drawRect(0,0,storrelse.width-1, storrelse.height-1);                        
         antallpunkt = fistSnapPoints.size();
         if (antallpunkt >0)
         {

@@ -20,11 +20,13 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     JScrollPane Scroll;
     ConvexHullTreeViewer myParent;
     boolean enabled=true;
+    private int heig;
+    private int wid;
     
     /** Creates new form ConvexHullTreeTreeViewer */
     public ConvexHullTreeTreeViewer(ConvexHullTreeNode node,ConvexHullTreeViewer myParent)
     {
-        
+        this.setBackground(Color.MAGENTA);
         this.myParent=myParent;
         DefaultMutableTreeNode root=createNode(node);
         myTree=new JTree(root);
@@ -38,6 +40,7 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
     
     public ConvexHullTreeTreeViewer(Region region,ConvexHullTreeViewer myParent)
     {
+        this.setBackground(Color.MAGENTA);
         this.myParent=myParent;
         DefaultMutableTreeNode root=createRegion(region);
         myTree=new JTree(root);
@@ -191,6 +194,33 @@ public class ConvexHullTreeTreeViewer extends JPanel implements TreeSelectionLis
 
     }// </editor-fold>//GEN-END:initComponents
     
+    public Dimension getPreferredSize()
+    {
+        return(new Dimension(getWid(),getHeig()));
+    }
+    public Dimension getMaximumSize()
+    {
+        return(new Dimension(getWid(),getHeig()));
+    }
+    public Dimension getMinimumSize()
+    {
+        return(new Dimension(getWid(),getHeig()));
+    }
+    public int getHeig() {
+        return heig;
+    }
+
+    public void setHeig(int heig) {
+        this.heig = heig;
+    }
+
+    public int getWid() {
+        return wid;
+    }
+
+    public void setWid(int wid) {
+        this.wid = wid;
+    }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables

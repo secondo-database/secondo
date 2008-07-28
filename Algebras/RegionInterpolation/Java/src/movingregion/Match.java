@@ -97,7 +97,7 @@ public abstract class Match
     
     public void addName(String newName)
     {
-        this.name=name+" "+newName;
+        this.name=name+"§"+newName;
     }
     
     public String getName()
@@ -210,7 +210,7 @@ public abstract class Match
     
     public void fertig()
     {
-        generateRatings();
+        //generateRatings();
         Iterator keyIter=maps.keySet().iterator();
         while(keyIter.hasNext())
         {
@@ -298,7 +298,7 @@ public abstract class Match
                 
                 if(tmp.getSource() instanceof Face)
                 {
-                    System.out.println("Split");
+                    System.out.println("SplitFF");
                     System.out.println(this.source);
                     System.out.println("Target");
                     System.out.println(this.target);
@@ -334,14 +334,30 @@ public abstract class Match
                             this.matchFaces(tmpSour,tmpTar);
                         }
                     }
+                    else
+                   //Split failed match each face with best matched
+                   {
+                      Face[] tmpSour=new Face[1];
+                      tmpSour[0]=sou;
+                      Face[] tmpTar=new Face[tmp.getNrTargets()];
+                      Face[] tmpTar2=new Face[1];
+                      for(int i = 0; i < tmp.getNrTargets(); i++)
+                      {
+                         tmpTar[i]= (Face)tmp.getTargetAt(i);
+                      }
+                      tmpTar2[0]=getBestMatch(sou, tmpTar);
+                      matchFaces(tmpSour, tmpTar2);             
+                    }
                     keyIter=maps.keySet().iterator();
                     continue;
                 }
                 
-                if(tmp.getSource() instanceof ConvexHullTreeNode&&((ConvexHullTreeNode)tmp.getSource()).isHole())
+                if(tmp.getSource() instanceof ConvexHullTreeNode && 
+                        ((ConvexHullTreeNode)tmp.getSource()).isHole() &&
+                        ((ConvexHullTreeNode)tmp.getSource()).getParentNode() instanceof Face)
                 {
                     System.out.println(tmp);
-                    System.out.println("Split");
+                    System.out.println("SplitHH");
                     System.out.println(this.source);
                     System.out.println("Target");
                     System.out.println(this.target);
@@ -355,27 +371,16 @@ public abstract class Match
                     System.out.println(tmp);
                     LineWA[][] newSources=sou.getSplitNodes(sou.getSplitLine(t1,t2));
                     ConvexHullTreeNode[] newSourcesCHTN=new ConvexHullTreeNode[2];
-                    if(parentsou instanceof Face&& sou.isHole() &&newSources.length==2&&newSources[0]!=null && newSources[1]!=null)
+                    if(newSources!=null && newSources.length==2&&newSources[0]!=null && newSources[1]!=null)
                     {
+                        ConvexHullTreeNode[] oldtargets=new ConvexHullTreeNode[2];                        
+                        oldtargets[0]=t1;
+                        oldtargets[1]=t2;
                         ((Face)parentsou).removeHole(sou);
                         newSourcesCHTN[0]=new ConvexHullTreeNode(newSources[0],true,parentsou);
                         newSourcesCHTN[1]=new ConvexHullTreeNode(newSources[1],true,parentsou);
                         ((Face)parentsou).addHole(newSourcesCHTN[0]);
                         ((Face)parentsou).addHole(newSourcesCHTN[1]);
-                        
-//                    if(parentsou instanceof ConvexHullTreeNode&& newSources.length==2)
-//                    {
-//                        ((ConvexHullTreeNode)parentsou).removeChild(sou);
-//                        ((ConvexHullTreeNode)parentsou).addHole(new ConvexHullTreeNode(newSources[0],true,parentsou));
-//                        ((ConvexHullTreeNode)parentsou).addHole(new ConvexHullTreeNode(newSources[1],true,parentsou));
-//                    }
-//                    if(newSources.length==2)
-//                    {
-                        ConvexHullTreeNode[] oldtargets=new ConvexHullTreeNode[2];
-                        
-                        oldtargets[0]=t1;
-                        oldtargets[1]=t2;
-                        
                         ConvexHullTreeNode[] new1=new ConvexHullTreeNode[1];
                         ConvexHullTreeNode[] new2=new ConvexHullTreeNode[1];
                         ConvexHullTreeNode[] old1=new ConvexHullTreeNode[1];
@@ -394,141 +399,181 @@ public abstract class Match
                             tmpSour[0]=this.getBestMatch(tmpTar[0],newSourcesCHTN);
                             this.matchCHTNs(tmpSour,tmpTar);
                         }
-                    }
-                    else
+                    } 
+                    else 
                     {
-                        this.Arearating=0;
-                        this.Hausdorffrating=0;
-                        this.Ovelaprating=0;
-                        this.linearRating=0;
+                        ConvexHullTreeNode[] tmpSour = new ConvexHullTreeNode[1];
+                        tmpSour[0] = sou;
+                        ConvexHullTreeNode[] tmpTar = new ConvexHullTreeNode[tmp.getNrTargets()];
+                        ConvexHullTreeNode[] tmpTar2 = new ConvexHullTreeNode[1];
+                        for (int i = 0; i < tmp.getNrTargets(); i++) 
+                        {
+                            tmpTar[i] = (ConvexHullTreeNode) tmp.getTargetAt(i);
+                        }
+                        tmpTar2[0] = getBestMatch(sou, tmpTar);
+                        this.matchCHTNs(tmpSour, tmpTar2);
                     }
                     keyIter=maps.keySet().iterator();
                     continue;
                 }
-                if(tmp.getSource() instanceof ConvexHullTreeNode&&((ConvexHullTreeNode)tmp.getSource()).getParentNode()instanceof ConvexHullTreeNode)
+
+                if (tmp.getSource() instanceof ConvexHullTreeNode) 
                 {
-                    System.out.println(tmp);
-                    System.out.println("Split");
-                    System.out.println(this.source);
-                    System.out.println("Target");
-                    System.out.println(this.target);
-                    ConvexHullTreeNode sou=(ConvexHullTreeNode)tmp.getSource();
-                    ConvexHullTreeNode t1=(ConvexHullTreeNode)tmp.getTargetAt(0);
-                    ConvexHullTreeNode t2=(ConvexHullTreeNode)tmp.getTargetAt(1);
-                    this.removeMatches(sou);
-                    this.removeMatches(t1);
-                    this.removeMatches(t2);
-                    RegionTreeNode parentsou= sou.getParentNode();
-                    System.out.println(tmp);
-                    LineWA[][] newSources=sou.getSplitNodes(sou.getSplitLine(t1,t2));
-                    ConvexHullTreeNode[] newSourcesCHTN=new ConvexHullTreeNode[2];
-                    keyIter=maps.keySet().iterator();
-//                    if(newSources!=null&&newSources.length==2&&newSources[0]!=null && newSources[1]!=null)
-//                    {
-//                        ((ConvexHullTreeNode)parentsou).removeChild(sou);
-//                        newSourcesCHTN[0]=((ConvexHullTreeNode)parentsou).addChild(newSources[0]);
-//                        newSourcesCHTN[1]=((ConvexHullTreeNode)parentsou).addChild(newSources[1]);
-//                        
-//                        
-//                        
-////                    if(parentsou instanceof ConvexHullTreeNode&& newSources.length==2)
-//                    {
-//                        ((ConvexHullTreeNode)parentsou).removeChild(sou);
-//                        ((ConvexHullTreeNode)parentsou).addHole(new ConvexHullTreeNode(newSources[0],true,parentsou));
-//                        ((ConvexHullTreeNode)parentsou).addHole(new ConvexHullTreeNode(newSources[1],true,parentsou));
-//                    }
-//                    if(newSources.length==2)
-//                    {
-//                        ConvexHullTreeNode[] oldtargets=new ConvexHullTreeNode[2];
-//                        
-//                        oldtargets[0]=t1;
-//                        oldtargets[1]=t2;
-//                        
-//                        ConvexHullTreeNode[] new1=new ConvexHullTreeNode[1];
-//                        ConvexHullTreeNode[] new2=new ConvexHullTreeNode[1];
-//                        ConvexHullTreeNode[] old1=new ConvexHullTreeNode[1];
-//                        ConvexHullTreeNode[] old2=new ConvexHullTreeNode[1];
-//                        new1[0]=newSourcesCHTN[0];
-//                        new2[0]=newSourcesCHTN[1];
-//                        old1[0]=this.getBestMatch(newSourcesCHTN[0],oldtargets);
-//                        old2[0]=this.getBestMatch(newSourcesCHTN[1],oldtargets);
-//                        this.matchCHTNs(new1,old1);
-//                        this.matchCHTNs(new2,old2);
-//                        for(int i=2;i<tmp.getNrTargets();i++)
-//                        {
-//                            ConvexHullTreeNode[] tmpTar=new ConvexHullTreeNode[1];
-//                            tmpTar[0]=(ConvexHullTreeNode)tmp.getTargetAt(i);
-//                            ConvexHullTreeNode[] tmpSour=new ConvexHullTreeNode[1];
-//                            tmpSour[0]=this.getBestMatch(tmpTar[0],newSourcesCHTN);
-//                            this.matchCHTNs(tmpSour,tmpTar);
-//                        }
-//                    }
-//                    else
-//                    {
-////                        this.Arearating=0;
-////                        this.Hausdorffrating=0;
-////                        this.Ovelaprating=0;
-////                        this.linearRating=0;
-////                    }
-//                    keyIter=maps.keySet().iterator();
-//                    continue;
-//                }
-                if(tmp.getNrTargets()>1)
-                {
-                    System.out.println("Echtes Problem");
-                    while(tmp.getNrTargets()>1)
+                    System.out.println("1 zu n ungelöst");
+                    ConvexHullTreeNode[] tmpSour = new ConvexHullTreeNode[1];
+                    tmpSour[0] = (ConvexHullTreeNode) tmp.getSource();
+                    removeMatches((ConvexHullTreeNode) tmp.getSource());
+                    ConvexHullTreeNode[] tmpTar = new ConvexHullTreeNode[tmp.getNrTargets()];
+                    ConvexHullTreeNode[] tmpTar2 = new ConvexHullTreeNode[1];
+                    for (int i = 0; i < tmp.getNrTargets(); i++) 
                     {
-                        tmp.removeTarget(1);
+                        tmpTar[i] = (ConvexHullTreeNode) tmp.getTargetAt(i);
                     }
+                    tmpTar2[0] = getBestMatch((ConvexHullTreeNode) tmp.getSource(), tmpTar);
+                    
+                    matchCHTNs(tmpSour, tmpTar2);
+                    keyIter = maps.keySet().iterator();
+                    System.out.println("Weiter");
+                    continue;
                 }
-//                if(tmp.getTargetAt(0)instanceof ConvexHullTreeNode)
+//                if(tmp.getSource() instanceof ConvexHullTreeNode&&((ConvexHullTreeNode)tmp.getSource()).getParentNode()instanceof ConvexHullTreeNode)
 //                {
-//                    Vector Children=new Vector();
-//                    ConvexHullTreeNode Parent=null;
-//                    if(((ConvexHullTreeNode)tmp.getTargetAt(0)).getParentNode()instanceof ConvexHullTreeNode)
+////                    vector<ConvexHullTreeNode*> tmpSour;
+////             tmpSour.push_back( (ConvexHullTreeNode*) tmp->getSource());             
+////             removeMatches((ConvexHullTreeNode*) tmp->getSource());                                               
+////             vector<ConvexHullTreeNode*> tmpTar;
+////             vector<ConvexHullTreeNode*> tmpTar2;
+////             for(int i = 0; i < tmp->getNrTargets(); i++)
+////             {
+////               tmpTar.push_back( (ConvexHullTreeNode*) tmp->getTargetAt(i));
+////             }
+////             tmpTar2.push_back(getBestMatch( (ConvexHullTreeNode*) tmp->getSource(), &tmpTar));
+////             matchCHTNs(&tmpSour, &tmpTar2);            
+////               iter = maps.begin();                                             
+////               continue;         
+////               
+//                    System.out.println(tmp);
+//                    System.out.println("SplitCC");
+//                    System.out.println(this.source);
+//                    System.out.println("Target");
+//                    System.out.println(this.target);
+//                    ConvexHullTreeNode sou=(ConvexHullTreeNode)tmp.getSource();
+//                    ConvexHullTreeNode t1=(ConvexHullTreeNode)tmp.getTargetAt(0);
+//                    ConvexHullTreeNode t2=(ConvexHullTreeNode)tmp.getTargetAt(1);
+//                    this.removeMatches(sou);
+//                    this.removeMatches(t1);
+//                    this.removeMatches(t2);
+//                    RegionTreeNode parentsou= sou.getParentNode();
+//                    System.out.println(tmp);
+//                    LineWA[][] newSources=sou.getSplitNodes(sou.getSplitLine(t1,t2));
+//                    ConvexHullTreeNode[] newSourcesCHTN=new ConvexHullTreeNode[2];
+//                    keyIter=maps.keySet().iterator();
+////                    if(newSources!=null&&newSources.length==2&&newSources[0]!=null && newSources[1]!=null)
+////                    {
+////                        ((ConvexHullTreeNode)parentsou).removeChild(sou);
+////                        newSourcesCHTN[0]=((ConvexHullTreeNode)parentsou).addChild(newSources[0]);
+////                        newSourcesCHTN[1]=((ConvexHullTreeNode)parentsou).addChild(newSources[1]);
+////                        
+////                        
+////                        
+//////                    if(parentsou instanceof ConvexHullTreeNode&& newSources.length==2)
+////                    {
+////                        ((ConvexHullTreeNode)parentsou).removeChild(sou);
+////                        ((ConvexHullTreeNode)parentsou).addHole(new ConvexHullTreeNode(newSources[0],true,parentsou));
+////                        ((ConvexHullTreeNode)parentsou).addHole(new ConvexHullTreeNode(newSources[1],true,parentsou));
+////                    }
+////                    if(newSources.length==2)
+////                    {
+////                        ConvexHullTreeNode[] oldtargets=new ConvexHullTreeNode[2];
+////                        
+////                        oldtargets[0]=t1;
+////                        oldtargets[1]=t2;
+////                        
+////                        ConvexHullTreeNode[] new1=new ConvexHullTreeNode[1];
+////                        ConvexHullTreeNode[] new2=new ConvexHullTreeNode[1];
+////                        ConvexHullTreeNode[] old1=new ConvexHullTreeNode[1];
+////                        ConvexHullTreeNode[] old2=new ConvexHullTreeNode[1];
+////                        new1[0]=newSourcesCHTN[0];
+////                        new2[0]=newSourcesCHTN[1];
+////                        old1[0]=this.getBestMatch(newSourcesCHTN[0],oldtargets);
+////                        old2[0]=this.getBestMatch(newSourcesCHTN[1],oldtargets);
+////                        this.matchCHTNs(new1,old1);
+////                        this.matchCHTNs(new2,old2);
+////                        for(int i=2;i<tmp.getNrTargets();i++)
+////                        {
+////                            ConvexHullTreeNode[] tmpTar=new ConvexHullTreeNode[1];
+////                            tmpTar[0]=(ConvexHullTreeNode)tmp.getTargetAt(i);
+////                            ConvexHullTreeNode[] tmpSour=new ConvexHullTreeNode[1];
+////                            tmpSour[0]=this.getBestMatch(tmpTar[0],newSourcesCHTN);
+////                            this.matchCHTNs(tmpSour,tmpTar);
+////                        }
+////                    }
+////                    else
+////                    {
+//////                        this.Arearating=0;
+//////                        this.Hausdorffrating=0;
+//////                        this.Ovelaprating=0;
+//////                        this.linearRating=0;
+//////                    }
+////                    keyIter=maps.keySet().iterator();
+////                    continue;
+////                }
+//                if(tmp.getNrTargets()>1)
+//                {
+//                    System.out.println("Echtes Problem");
+//                    while(tmp.getNrTargets()>1)
 //                    {
-//                        Parent=(ConvexHullTreeNode)((ConvexHullTreeNode)tmp.getTargetAt(0)).getParentNode();
+//                        tmp.removeTarget(1);
 //                    }
-//                    
-//                    
-//                    boolean sameParent=true;
-//                    for(int i=0;i<tmp.getNrTargets();i++)
-//                    {
-//                        if(!(tmp.getTargetAt(i)instanceof ConvexHullTreeNode))
-//                        {
-//                            sameParent=false;
-//                        }
-//                        else
-//                        {
-//                            if(Parent!=null&&Parent.equals(((ConvexHullTreeNode)tmp.getTargetAt(i)).getParentNode()))
-//                            {
-//                                System.out.println("XXX"+Parent.getLineForChild((ConvexHullTreeNode)tmp.getTargetAt(i)));
-//                                Children.add((ConvexHullTreeNode)tmp.getTargetAt(i));
-//                            }
-//                            else
-//                            {
-//                                sameParent=false;
-//                            }
-//                        }
-//                    }
-//                    if(sameParent)
-//                    {
-//                        ConvexHullTreeNode[] ChildList=new ConvexHullTreeNode[Children.size()];
-//                        for(int i=0;i<Children.size();i++)
-//                        {
-//                            ChildList[i]=(ConvexHullTreeNode)Children.get(i);
-//                        }
-//                        Parent.joinChildren(ChildList);
-//                        tmp.removeTargets();
-//                        tmp.addTarget(ChildList[0].getParentNode());
-//                    }
-             }
+//                }
+////                if(tmp.getTargetAt(0)instanceof ConvexHullTreeNode)
+////                {
+////                    Vector Children=new Vector();
+////                    ConvexHullTreeNode Parent=null;
+////                    if(((ConvexHullTreeNode)tmp.getTargetAt(0)).getParentNode()instanceof ConvexHullTreeNode)
+////                    {
+////                        Parent=(ConvexHullTreeNode)((ConvexHullTreeNode)tmp.getTargetAt(0)).getParentNode();
+////                    }
+////                    
+////                    
+////                    boolean sameParent=true;
+////                    for(int i=0;i<tmp.getNrTargets();i++)
+////                    {
+////                        if(!(tmp.getTargetAt(i)instanceof ConvexHullTreeNode))
+////                        {
+////                            sameParent=false;
+////                        }
+////                        else
+////                        {
+////                            if(Parent!=null&&Parent.equals(((ConvexHullTreeNode)tmp.getTargetAt(i)).getParentNode()))
+////                            {
+////                                System.out.println("XXX"+Parent.getLineForChild((ConvexHullTreeNode)tmp.getTargetAt(i)));
+////                                Children.add((ConvexHullTreeNode)tmp.getTargetAt(i));
+////                            }
+////                            else
+////                            {
+////                                sameParent=false;
+////                            }
+////                        }
+////                    }
+////                    if(sameParent)
+////                    {
+////                        ConvexHullTreeNode[] ChildList=new ConvexHullTreeNode[Children.size()];
+////                        for(int i=0;i<Children.size();i++)
+////                        {
+////                            ChildList[i]=(ConvexHullTreeNode)Children.get(i);
+////                        }
+////                        Parent.joinChildren(ChildList);
+////                        tmp.removeTargets();
+////                        tmp.addTarget(ChildList[0].getParentNode());
+////                    }
+//             }
             }//1Zu n
             
         }//while
     }//func
     
-    private void generateRatings()
+    protected void generateRatings()
     {
         LineWA[][]lines=new LineWA[source.getNrOfFaces()+target.getNrOfFaces()][];
         
@@ -536,7 +581,7 @@ public abstract class Match
         {
             lines[i]=source.getFace(i).getCycle().getLines();
             RegionTreeNode[] tmp=this.getMatches(source.getFace(i));
-            if(tmp==null||tmp[0]==null)
+            if(tmp==null||tmp.length==0||tmp[0]==null)
             {
                 Hausdorffrating+=TriRepUtil.getDiameter(source.getFace(i).getCycle().getLines());
                 Ovelaprating+=0.0;
@@ -556,7 +601,7 @@ public abstract class Match
         {
             lines[i+source.getNrOfFaces()]=target.getFace(i).getCycle().getLines();
             RegionTreeNode[] tmp=this.getMatches(target.getFace(i));
-            if(tmp==null||tmp[0]==null)
+            if(tmp==null||tmp.length==0||tmp[0]==null)
             {
                 Hausdorffrating+=TriRepUtil.getDiameter(target.getFace(i).getCycle().getLines());
                 Ovelaprating+=0.0;
@@ -604,7 +649,7 @@ public abstract class Match
         for(int i=0;i<children.length;i++)
         {
             RegionTreeNode[] tmp=this.getMatches(children[i]);
-            if(tmp==null||tmp[0]==null)
+            if(tmp==null||tmp.length==0||tmp[0]==null)
             {
                 Hausdorffrating+=TriRepUtil.getDiameter(source.getCycle().getLines());
                 Ovelaprating+=0.0;
@@ -624,7 +669,7 @@ public abstract class Match
         for(int i=0;i<source.getNrOfHoles();i++)
         {
             RegionTreeNode[] tmp=this.getMatches(source.getHole(i));
-            if(tmp==null||tmp[0]==null)
+            if(tmp==null||tmp.length==0||tmp[0]==null)
             {
                 Hausdorffrating+=TriRepUtil.getDiameter(source.getHole(i).getLines());
                 Ovelaprating+=0.0;
@@ -666,7 +711,7 @@ public abstract class Match
         for(int i=0;i<children.length;i++)
         {
             RegionTreeNode[] tmp=this.getMatches(children[i]);
-            if(tmp==null||tmp[0]==null)
+            if(tmp==null||tmp.length==0||tmp[0]==null)
             {
                 Hausdorffrating+=TriRepUtil.getDiameter(source.getLines());
                 Ovelaprating+=0.0;
@@ -738,7 +783,7 @@ public abstract class Match
         Region r2=new Region();
         r2.addFace(f2);
         //SimpleMatch sm=new SimpleMatch(r1,r2);
-        OverlappingMatch sm=new OverlappingMatch(r1,r2,.5);
+        OverlappingMatch sm=new OverlappingMatch(r1,r2,.5,true);
         System.out.println(sm);
         mLineRep lr=new mLineRep(sm);
         String filename="test";

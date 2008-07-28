@@ -1,12 +1,11 @@
 package movingregion;
-import java.applet.*;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.swing.border.*;
 import javax.swing.event.*;
 import java.util.*;
 import java.io.*;
-import java.text.*;
 
 public class MCIContents extends JApplet implements ActionListener,ChangeListener,ComponentListener
 {
@@ -54,7 +53,8 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     
     public void componentResized( ComponentEvent e )
     {
-        int heig=e.getComponent().getHeight();
+        int heig=this.knappanel.getHeight();        
+        //int heig=e.getComponent().getHeight();        
         if(tab.getTabCount()!=2)
         {
             result.setHei(heig);
@@ -63,7 +63,9 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
             sections.setHei(heig);
             matchviewer.setHei(heig);
         }
-        int widt=e.getComponent().getWidth();
+        //int widt=e.getComponent().getWidth();
+        int widt=this.knappanel.getWidth();
+        System.out.println("h = "+heig+"; b = "+widt);
         if(tab.getTabCount()!=2)
         {
             result.setWid(widt);
@@ -79,16 +81,22 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     
     public void init()
     {
-        String[] matchTypes = {"OptimalMatch", "OverlapMatch", "CentroidMatch","SteinerPointMatch","SimpleMatch"};
+        String[] matchTypes = {"OptimalMatch", "OverlapMatch", "CentroidMatch","SteinerPointMatch"};
         matchType = new JComboBox();
         for ( int i=0;i< matchTypes.length;i++ )
         {
             matchType.addItem( matchTypes[i]);
         }
         matchType.addActionListener(this);
+        JPanel MTPanel=new JPanel();
+        MTPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        MTPanel.add(matchType);
         matchParam= new JSlider(0,100,50);
         matchParam.setMinimumSize(new Dimension(30,1));
         matchParam.addChangeListener(this);
+        JPanel MPPanel=new JPanel();
+        MPPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        MPPanel.add(matchParam);
         resultScroller=new JScrollPane();
         tab=new JTabbedPane(JTabbedPane.BOTTOM);
         heiMod=new SpinnerNumberModel(400,100,1000,10);
@@ -101,20 +109,29 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         knappanel = new JPanel();
         draw.setLayout(new BorderLayout());
         knappanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        export=new JButton("Export (VRML)");
+        export=new JButton("Export (VRML)");                
+        export.setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
+        export.setMargin(new Insets(3,3,3,3));
         tekst = new JLabel("VRML Filename:");
         toleransefelt = new JTextField(10);
+        JPanel VRMLPanel =new JPanel();
+        VRMLPanel.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+        JPanel matchPanel=new JPanel();
+        matchPanel.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
+        matchPanel.setLayout(new GridLayout(3,1));
         vrmlViewerLabel=new JLabel("VRML Application");
         vrmlViewer = new JTextField(10);
         vrmlViewer.setText("dune");
         timeSpinner=new JSpinner(new SpinnerNumberModel(10,1,20,1));
         timeSpinner.addChangeListener(this);
-        knappanel.add(tekst);
-        knappanel.add(toleransefelt);
-        knappanel.add(vrmlViewerLabel);
-        knappanel.add(vrmlViewer);
-        knappanel.add(matchType);
-        knappanel.add(matchParam);
+        VRMLPanel.add(tekst);
+        VRMLPanel.add(toleransefelt);
+        VRMLPanel.add(vrmlViewerLabel);
+        VRMLPanel.add(vrmlViewer);
+        knappanel.add(VRMLPanel);
+        matchPanel.add(MTPanel);
+        matchParam.setVisible(false);
+        matchPanel.add(MPPanel);        
         WeightPanel=new JPanel();
         AreaWeightPanel=new JPanel();
         OverlapWeightPanel=new JPanel();
@@ -149,16 +166,21 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         LinearWeightPanel.add(LinearWeight);
         LinearWeightPanel.add(LinearRatingRes);
         
-        WeightPanel.setLayout(new GridLayout(0,5));
+        WeightPanel.setLayout(new GridLayout(0,4));
         WeightPanel.add(AreaWeightPanel);
         WeightPanel.add(OverlapWeightPanel);
         WeightPanel.add(HausdorffWeightPanel);
-        WeightPanel.add(LinearWeightPanel);
-        knappanel.add(WeightPanel);
+        WeightPanel.add(LinearWeightPanel);       
+        matchPanel.add(WeightPanel);        
+        knappanel.add(matchPanel);
         export.addActionListener(this);
         drawUtils.add(export);
-        drawUtils.add(new Label("time of second snapp:"));
-        drawUtils.add(timeSpinner);
+        drawUtils.addSeparator();
+        JPanel test=new JPanel();
+        test.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        test.add(new Label("time of second snap:"));
+        test.add(timeSpinner);
+        drawUtils.add(test);
         tegneomr = new tegnecanvas(this);
         draw.add(tegneomr);
         drawUtils.setRollover(true);
@@ -217,19 +239,19 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         Match match=null;
         if((this.matchType.getSelectedItem()+"").equals("SimpleMatch"))
         {
-            match=new SimpleMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot());;
+            match=new SimpleMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot());
         }
         if((this.matchType.getSelectedItem()+"").equals("OverlapMatch"))
         {
-            match=new OverlappingMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot(),matchParam.getValue()/100.0);
+            match=new OverlappingMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot(),matchParam.getValue()/100.0,true);
         }
         if((this.matchType.getSelectedItem()+"").equals("CentroidMatch"))
         {
-            match=new CentroidMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot(),matchParam.getValue()/100.0);
+            match=new CentroidMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot(),matchParam.getValue()/100.0,true);
         }
         if((this.matchType.getSelectedItem()+"").equals("SteinerPointMatch"))
         {
-            match=new SteinerPointMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot(),matchParam.getValue()/100.0);
+            match=new SteinerPointMatch(tegneomr.getFirstSnapshot(),tegneomr.getSecondSnapshot(),matchParam.getValue()/100.0,true);
         }
         if((this.matchType.getSelectedItem()+"").equals("OptimalMatch"))
         {
@@ -252,9 +274,13 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         tab.addTab("First",firstS);
         tab.addTab("Second",secS);
         tab.addTab("Sections",sections);
-        wfdisp = true;
+        wfdisp = true;        
         ComponentEvent e=new ComponentEvent(tegneomr,ComponentEvent.COMPONENT_RESIZED);
         this.componentResized(e);
+        System.out.println("Source");
+        System.out.println(match.getSource());
+        System.out.println("Target");
+        System.out.println(match.getTarget());
     }
     
     public void actionPerformed(ActionEvent e)
@@ -280,23 +306,40 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
 //        }
         if(e.getSource()==matchType)
         {
+            if(matchType.getSelectedItem().equals("OptimalMatch"))
+            {
+                matchParam.setVisible(false);
+                this.AreaWeight.setVisible(true);
+                this.HausdorffWeight.setVisible(true);
+                this.LinearWeight.setVisible(true);
+                this.OverlapWeight.setVisible(true);
+            }
+            else
+            {     
+                this.AreaWeight.setVisible(false);
+                this.HausdorffWeight.setVisible(false);
+                this.LinearWeight.setVisible(false);
+                this.OverlapWeight.setVisible(false);
+                matchParam.setVisible(true);     
+            }
             if(tegneomr.isready())
             {
                 newDraw();
                 store();
-            }
+            }            
         }
         if (e.getSource() == export)
         {
             String filename;
             filename = toleransefelt.getText();
-            String app=vrmlViewer.getText();
-            FileOutputStream filestream;
-            OutputStreamWriter fs;
+            String app=vrmlViewer.getText();            
             try
             {
-                trirep.saveAsVRML(filename+".vrml",((Integer)timeSpinner.getValue()).intValue());
-                Runtime.getRuntime().exec(app+" "+filename+".vrml");
+                if(trirep!=null)
+                {
+                    trirep.saveAsVRML(filename+".vrml",((Integer)timeSpinner.getValue()).intValue());
+                    Runtime.getRuntime().exec(app+" "+filename+".vrml");
+                }
             }
             catch(IOException ex)
             {

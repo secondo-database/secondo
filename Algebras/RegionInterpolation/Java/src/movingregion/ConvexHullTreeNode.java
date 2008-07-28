@@ -100,14 +100,10 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
      */
     public ConvexHullTreeNode()
     {
-        linelist = new Vector();
-        //overlaplist = new Vector();
+        linelist = new Vector();        
         smallesty = Integer.MAX_VALUE;
         smallestx = Integer.MAX_VALUE;
         smallestpoint = -1;
-//        min_overlap = 0;
-//        min_overlap_match = 80;
-//        matched = false;
         myParent=null;
     }
     
@@ -274,41 +270,41 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
     }
     
-    public ConvexHullTreeNode addChild(LineWA[] newChild)
-    {
-        ConvexHullTreeNode newNode=new ConvexHullTreeNode(newChild,1,this.isHole(),this);       //@TODO bloody Hack
-        LineWA[] thisOutline=this.getOrderedOutLine();
-        LineWA[] newOutline=newNode.getOrderedOutLine();
-        int insertIndex;
-        for(int i=0;i< thisOutline.length;i++)
-        {
-            for(int j=0;j<newOutline.length;j++)
-            {
-                if(thisOutline[i].equals(newOutline[j]))
-                {
-                    if(thisOutline[(i+1)%thisOutline.length].equals(newOutline[(j+1)%newOutline.length]))
-                    {
-                        ((CHLine)this.linelist.elementAt(i)).child=newNode;
-                        return(newNode);
-                    }
-                    if(TriRepUtil.PointOnLine(newOutline[(j+1)%newOutline.length],thisOutline[i],thisOutline[(i+1)%thisOutline.length]))
-                    {
-                        ((CHLine)this.linelist.elementAt(i)).child=newNode;
-                        this.linelist.insertElementAt(new CHLine(newOutline[(j+1)%newOutline.length]),i+1);                        
-                        return(newNode);
-                    }
-                    if(TriRepUtil.PointOnLine(newOutline[(j-1+newOutline.length)%newOutline.length],thisOutline[i],thisOutline[(i-1+thisOutline.length)%thisOutline.length]))
-                    {
-                        ((CHLine)this.linelist.elementAt((i-1+thisOutline.length)%thisOutline.length)).child=newNode;
-                        this.linelist.insertElementAt(new CHLine(newOutline[(j-1+newOutline.length)%newOutline.length]),(i-1+thisOutline.length)%thisOutline.length);                        
-                        return(newNode);
-                    }
-                    insertIndex=i;
-                }
-            }
-        }
-        return(null);
-    }
+//    public ConvexHullTreeNode addChild(LineWA[] newChild)
+//    {
+//        ConvexHullTreeNode newNode=new ConvexHullTreeNode(newChild,1,this.isHole(),this);       //@TODO bloody Hack
+//        LineWA[] thisOutline=this.getOrderedOutLine();
+//        LineWA[] newOutline=newNode.getOrderedOutLine();
+//        int insertIndex;
+//        for(int i=0;i< thisOutline.length;i++)
+//        {
+//            for(int j=0;j<newOutline.length;j++)
+//            {
+//                if(thisOutline[i].equals(newOutline[j]))
+//                {
+//                    if(thisOutline[(i+1)%thisOutline.length].equals(newOutline[(j+1)%newOutline.length]))
+//                    {
+//                        ((CHLine)this.linelist.elementAt(i)).child=newNode;
+//                        return(newNode);
+//                    }
+//                    if(TriRepUtil.PointOnLine(newOutline[(j+1)%newOutline.length],thisOutline[i],thisOutline[(i+1)%thisOutline.length]))
+//                    {
+//                        ((CHLine)this.linelist.elementAt(i)).child=newNode;
+//                        this.linelist.insertElementAt(new CHLine(newOutline[(j+1)%newOutline.length]),i+1);                        
+//                        return(newNode);
+//                    }
+//                    if(TriRepUtil.PointOnLine(newOutline[(j-1+newOutline.length)%newOutline.length],thisOutline[i],thisOutline[(i-1+thisOutline.length)%thisOutline.length]))
+//                    {
+//                        ((CHLine)this.linelist.elementAt((i-1+thisOutline.length)%thisOutline.length)).child=newNode;
+//                        this.linelist.insertElementAt(new CHLine(newOutline[(j-1+newOutline.length)%newOutline.length]),(i-1+thisOutline.length)%thisOutline.length);                        
+//                        return(newNode);
+//                    }
+//                    insertIndex=i;
+//                }
+//            }
+//        }
+//        return(null);
+//    }
     
     public int hashCode()
     {
@@ -395,14 +391,19 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
                     {
                         tmp1=(LineDist)pdist1.elementAt(0);
                         tmp2=(LineDist)pdist2.elementAt(0);
-                        //if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
-                        //&&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
+                        if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
+                        &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
                             resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
                         pdist2.remove(0);
                     }
                 }
             }
             
+        }
+        if(pdist1.size()==0||pdist2.size()==0)
+        {
+            System.out.println("Problem");
+            return(null);
         }
         LineDist tmp1=(LineDist)pdist1.elementAt(0);
         LineDist tmp2=(LineDist)pdist2.elementAt(0);
@@ -440,7 +441,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             thismaxdist=Math.max(thismaxdist,Math.sqrt((thisLines[i].x-centerThis.x)*(thisLines[i].x-centerThis.x)+(thisLines[i].y-centerThis.y)*(thisLines[i].y-centerThis.y)));
         }
-        double scale=thismaxdist/distLine*1.05;
+        double scale=thismaxdist/distLine*1.15;
         for(int i=0;i<resv.size();i++)
         {
             doublePoint tmp=((doublePoint)resv.elementAt(i));
@@ -485,7 +486,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         if(IntersectionPoints.size()!=2)
         {
-            
+            return(null);
         }
         else
         {
@@ -555,6 +556,10 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
                 res[0][index1++]=polyLine[i];
             }
         }
+        if(res[0][0].equals(res[0][res[0].length-1]))
+            return(null);
+        if(res[1][0].equals(res[1][res[1].length-1]))
+            return(null);
         
         return(res);
     }
@@ -1459,7 +1464,9 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         
         ConvexHullTreeNode test= new ConvexHullTreeNode(linelist,0,null);
         javax.swing.JFrame testF=new javax.swing.JFrame();
-        //testF.getContentPane().add(new ConvexHullTreeViewer(test));
+        Region testr=new Region();
+        testr.addFace(new Face(linelist,testr));
+        testF.getContentPane().add(new ConvexHullTreeViewer(testr));
         testF.setVisible(true);
     }
     

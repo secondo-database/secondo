@@ -9,13 +9,16 @@ public class OverlappingMatch extends Match
     double threshold;
     /** Creates a new instance of OverlappingMatch */
     
-    public OverlappingMatch(Region source, Region target,double threshold)
+    public OverlappingMatch(Region source, Region target,double threshold,boolean useFinalize)
     {
-        super(source,target,"OverlapingMatch "+((int)(threshold*100))+" %","this implements the Fixed theshold overlaping Match for set of cycles");
+        super(source,target,"OverlappingMatch "+((int)(threshold*100))+" %","this implements the Fixed theshold overlaping Match for set of cycles");
         this.threshold=threshold;
         this.addMatch(source,target);
         this.matchFaces(source.getFaces(),target.getFaces());
-        this.fertig();
+        
+        if(useFinalize)
+            this.fertig();
+        this.generateRatings();
     }
     
     public void matchFaces(Face[] faces1,Face[] faces2)

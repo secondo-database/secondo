@@ -17,13 +17,14 @@ public class SectionViewer extends javax.swing.JPanel
     public SectionViewer(mLineRep myTri)
     {
         this.myTri=myTri;
-        initComponents();
-        TimesSpinner.setModel(new SpinnerNumberModel(2,2,100,1));
+        
+        initComponents();        
+        TimesSpinner.setModel(new SpinnerNumberModel(3,2,100,1));
         SectionMain.setLayout(new GridLayout(3,1));
         SectionMain.add(new oneSectionViewer(myTri,0,2));
         SectionMain.add(new oneSectionViewer(myTri,1,2));
         SectionMain.add(new oneSectionViewer(myTri,2,2));
-    }
+    }        
     
     /** This method is called from within the constructor to
      * initialize the form.
@@ -66,25 +67,24 @@ public class SectionViewer extends javax.swing.JPanel
         SectionMain.removeAll();
         SectionMain.setLayout(new GridLayout(times,1));
         for(int i=0;i<times;i++)
-        {
-            oneSectionViewer tmp=new oneSectionViewer(myTri,i,times-1);
-            tmp.setHei(this.hei/3);
-            tmp.setWid(this.wid-this.Scroller.getVerticalScrollBar().getWidth()-12);
-            SectionMain.add(tmp);
+        {      
+            SectionMain.add(new oneSectionViewer(myTri,i,times-1));
         }
         Scroller.setViewportView(SectionMain);
+        this.setHei(hei);
+        this.setWid(wid);
     }//GEN-LAST:event_TimesSpinnerStateChanged
     
         public void setHei(int height)
     {
-            this.hei=height;
+        this.hei=height;
         Component[] tmp=SectionMain.getComponents();
+        Scroller.setViewportView(SectionMain);
         for(int i=0;i<tmp.length;i++)
         {
             if(tmp[i] instanceof oneSectionViewer)
-                ((oneSectionViewer)tmp[i]).setHei(height/3);
-        }
-        Scroller.setViewportView(SectionMain);
+                ((oneSectionViewer)tmp[i]).setHei((height-this.JustALayoutPanel.getHeight()-this.Scroller.getHorizontalScrollBar().getHeight())/3);
+        }        
     }
     
     
@@ -92,12 +92,12 @@ public class SectionViewer extends javax.swing.JPanel
     {
         this.wid=width;
         Component[] tmp=SectionMain.getComponents();
+        Scroller.setViewportView(SectionMain);
         for(int i=0;i<tmp.length;i++)
         {
             if(tmp[i] instanceof oneSectionViewer)
                 ((oneSectionViewer)tmp[i]).setWid(width-this.Scroller.getVerticalScrollBar().getWidth()-12);
-        }
-        Scroller.setViewportView(SectionMain);
+        }        
     }
     
     

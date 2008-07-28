@@ -102,7 +102,7 @@ public class LineWA implements Comparable ,Serializable{
   }
   public String toString()
   {
-      //return("Line in ("+x+";"+y+") with "+Math.toDegrees(angle)+"°");
-      return(+x+";"+y);
+      return("Line in ("+x+";"+y+") with "+angle+"°");
+      //return(+x+";"+y);
   }
 }

@@ -80,8 +80,8 @@ public class TriRepOutPutCanvas extends JPanel
     
     public void paint(Graphics g)
     {
-        g.clearRect(0,0,this.getWidth(),this.getHeight());
-        
+        g.setColor(Color.WHITE);
+        g.fillRect(0,0,this.getWidth(),this.getHeight());                
         for(int i=0;i<trirep.triangles.size();i++)
         {
             this.paintLine(g,trirep.getTriangle(i).p1,trirep.getTriangle(i).p2);

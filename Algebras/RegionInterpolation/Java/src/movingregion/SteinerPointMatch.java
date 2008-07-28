@@ -19,7 +19,7 @@ public class SteinerPointMatch extends Match
 {
     int threshold;
     /** Creates a new instance of CentroidMatch */
-    public SteinerPointMatch(Region source, Region target,double thresholdRel)
+    public SteinerPointMatch(Region source, Region target,double thresholdRel, boolean useFinalize)
     {
         
         super(source,target,"Steiner-Point Match "+ ((int)(thresholdRel*100))+ " %","this implements a Matching according to the Steiner Point");
@@ -38,7 +38,10 @@ public class SteinerPointMatch extends Match
         System.out.println("HALLO"+greatestDist+" "+threshold);
         this.addMatch(source,target);
         this.matchFaces(source.getFaces(),target.getFaces());
-        this.fertig();
+        
+        if(useFinalize)
+            this.fertig();
+        this.generateRatings();
     }
     public void matchFaces(Face[] faces1,Face[] faces2)
     {
@@ -79,7 +82,7 @@ public class SteinerPointMatch extends Match
                         unmatched.remove(matches[i]);
                         dimMatch+=((Face)matches[i]).getCycle().getChildren().length;
                     }
-                    this.matchCHTNs(next.getCycle().getChildren(),this.getTargetChildren(next));
+                    this.matchCHTNs(next.getHolesAndConcavities(),this.getTargetChildren(next));
                 }
                 else
                 {
@@ -89,12 +92,12 @@ public class SteinerPointMatch extends Match
                         {
                             unmatched.remove(getMatches(matches[0])[i]);
                         }
-                        this.matchCHTNs(((Face)matches[0]).getCycle().getChildren(),this.getTargetChildren(matches[0]));
+                        this.matchCHTNs(((Face)matches[0]).getHolesAndConcavities(),this.getTargetChildren(matches[0]));
                     }
                     else
                     {
                         unmatched.remove(matches[0]);
-                        this.matchCHTNs(next.getCycle().getChildren(),((Face)matches[0]).getCycle().getChildren());
+                        this.matchCHTNs(next.getHolesAndConcavities(),this.getTargetChildren(next));
                     }
                 }
             }
@@ -102,6 +105,10 @@ public class SteinerPointMatch extends Match
     }
     public void matchCHTNs(ConvexHullTreeNode[] chtn1,ConvexHullTreeNode[] chtn2)
     {
+        if(chtn1.length==0)
+        {
+            return;
+        }
         HashSet unmatched=new HashSet(source.getNrOfFaces()+target.getNrOfFaces());
         for(int i=0;i< chtn1.length;i++)
         {

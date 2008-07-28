@@ -364,7 +364,7 @@ public class mLineRep
         {
             Face tmpFace=myMatch.getSource().getFace(i);
             RegionTreeNode[] matched=(this.myMatch.getMatches(tmpFace));
-            if(matched==null||matched[0]==null)
+            if(matched==null||matched.length==0||matched[0]==null)
             {
                 addTrianglesFromFaceNull(tmpFace,0);
             }
@@ -513,7 +513,7 @@ public class mLineRep
         Region r2=new Region();
         r2.addFace(f2);
         //SimpleMatch sm=new SimpleMatch(r1,r2);
-        OverlappingMatch sm=new OverlappingMatch(r1,r2,.5);
+        OverlappingMatch sm=new OverlappingMatch(r1,r2,.5,true);
         System.out.println(sm);
         mLineRep lr=new mLineRep(sm);
         String filename="test";

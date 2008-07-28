@@ -129,10 +129,10 @@ public class TriRepUtil
      */
     public static LineWA[] convexHull(LineWA[] lt)
     {
-        //      System.out.println("convexHull bekommt:");
+              System.out.println("convexHull bekommt:");
         for(int i=0;i<lt.length;i++)
         {
-            //   System.out.println(lt[i]);
+               System.out.println(lt[i]);
         }
         int minpoint, miny, minx, tmpx, tmpy;
         Stack unfinishedhull;
@@ -163,8 +163,8 @@ public class TriRepUtil
             }
         }
         
-        System.out.print("Have found minimum y: ");
-        System.out.println(index);
+    //    System.out.print("Have found minimum y: ");
+    //    System.out.println(index);
         // Swaps the minimum point with the first point.
         tmp = lt[0];
         lt[0] = lt[index];
@@ -187,6 +187,30 @@ public class TriRepUtil
         {
             //      System.out.println(lt[j]);
         }
+        
+        Vector tmpvec = new Vector();
+        tmpvec.add(lt[0]);
+        for (i = 1; i < lt.length; i++) {
+            if (Math.abs(((LineWA) tmpvec.elementAt(tmpvec.size() - 1)).angle - lt[i].angle) > 0.01) {
+                tmpvec.add(lt[i]);
+            } else {
+                tmpx = lt[0].x - lt[i].x;
+                tmpy = lt[0].y - lt[i].y;
+                double distli = Math.sqrt(tmpx * tmpx + tmpy * tmpy);
+                tmpx = lt[0].x - ((LineWA) tmpvec.elementAt(tmpvec.size() - 1)).x;
+                tmpy = lt[0].y - ((LineWA) tmpvec.elementAt(tmpvec.size() - 1)).y;
+                double disttmp = Math.sqrt(tmpx * tmpx + tmpy * tmpy);
+                if (distli > disttmp) {
+                    tmpvec.remove(tmpvec.size() - 1);
+                    tmpvec.add(lt[i]);
+                }
+            }
+        }
+        lt=new LineWA[tmpvec.size()];
+        for (i = 0; i < tmpvec.size(); i++) {
+            lt[i] = (LineWA) tmpvec.elementAt(i);
+        }
+        
         // Use graham scan to create convex hull
         unfinishedhull = new Stack();
         // The point with the lowest y-coordinate is on the hull

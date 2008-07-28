@@ -19,7 +19,7 @@ public class CentroidMatch extends Match
 {
     int threshold;
     /** Creates a new instance of CentroidMatch */
-    public CentroidMatch(Region source, Region target,double thresholdRel)
+    public CentroidMatch(Region source, Region target,double thresholdRel, boolean useFinalize)
     {
         
         super(source,target,"CentroidMatch "+((int)(thresholdRel*100))+" %","this implements the position of centroids Match, known from the paper of Erlend Tøssebro (5.2 1)");
@@ -38,7 +38,9 @@ public class CentroidMatch extends Match
         this.addMatch(source,target);
         this.matchFaces(source.getFaces(),target.getFaces());
         
-        this.fertig();
+        if(useFinalize)
+            this.fertig();
+        this.generateRatings();
     }
     
     public void matchFaces(Face[] faces1,Face[] faces2)
@@ -79,7 +81,7 @@ public class CentroidMatch extends Match
                         unmatched.remove(matches[i]);
                         dimMatch+=((Face)matches[i]).getCycle().getChildren().length;
                     }
-                    this.matchCHTNs(next.getCycle().getChildren(),this.getTargetChildren(next));
+                    this.matchCHTNs(next.getHolesAndConcavities(),this.getTargetChildren(next));
                 }
                 else
                 {
@@ -89,12 +91,13 @@ public class CentroidMatch extends Match
                         {
                             unmatched.remove(getMatches(matches[0])[i]);
                         }
-                        this.matchCHTNs(((Face)matches[0]).getCycle().getChildren(),this.getTargetChildren(matches[0]));
+                        this.matchCHTNs(((Face)matches[0]).getHolesAndConcavities(),this.getTargetChildren(matches[0]));
                     }
                     else
                     {
                         unmatched.remove(matches[0]);
-                        this.matchCHTNs(next.getCycle().getChildren(),((Face)matches[0]).getCycle().getChildren());
+                        
+                        this.matchCHTNs(next.getHolesAndConcavities(),this.getTargetChildren(next));
                     }
                 }
             }
@@ -103,6 +106,10 @@ public class CentroidMatch extends Match
     
     public void matchCHTNs(ConvexHullTreeNode[] chtn1,ConvexHullTreeNode[] chtn2)
     {
+        if(chtn1==null||chtn1.length==0||chtn2==null||chtn2.length==0)
+        {
+            return;
+        }
         HashSet unmatched=new HashSet(source.getNrOfFaces()+target.getNrOfFaces());
         for(int i=0;i< chtn1.length;i++)
         {
@@ -115,6 +122,8 @@ public class CentroidMatch extends Match
                     this.addMatch(chtn1[i],chtn2[j]);
                     this.addMatch(chtn2[j],chtn1[i]);
                     System.out.println("addMatch");
+                    System.out.println(chtn1[i]);
+                    System.out.println(chtn2[j]);
                 }
             }
             unmatched.add(chtn1[i]);

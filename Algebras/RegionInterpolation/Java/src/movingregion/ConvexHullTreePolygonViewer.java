@@ -2,7 +2,6 @@
 
 package movingregion;
 import java.awt.*;
-import javax.swing.*;
 
 
 public class ConvexHullTreePolygonViewer extends javax.swing.JPanel
@@ -161,8 +160,8 @@ public class ConvexHullTreePolygonViewer extends javax.swing.JPanel
     
     public void paint(Graphics g)
     {
-        
-        g.clearRect(0,0,this.getWidth(),this.getHeight());
+        g.setColor(Color.WHITE);
+        g.fillRect(0,0,this.getWidth(),this.getHeight());        
         for(int j=0;j<root.getNrOfFaces();j++)
         {
             drawFace(g,null,root.getFace(j));
@@ -181,6 +180,17 @@ public class ConvexHullTreePolygonViewer extends javax.swing.JPanel
     }
     
     public Dimension getPreferredSize()
+    {
+        return(new Dimension(wid,hei));
+    }
+        
+    public Dimension getMaximumSize() 
+    {
+        
+        return(new Dimension(wid,hei));
+    }
+    
+    public Dimension getMinimumSize() 
     {
         return(new Dimension(wid,hei));
     }
