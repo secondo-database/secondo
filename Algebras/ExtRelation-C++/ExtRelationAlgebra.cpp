@@ -4660,8 +4660,9 @@ int Loopjoin(Word* args, Word& result, int message,
            if( lli->tuplex.addr != 0 )
              ((Tuple*)lli->tuplex.addr)->DeleteIfAllowed();
 
-           if( lli->resultTupleType != 0 )
-              lli->resultTupleType->DeleteIfAllowed();
+         }
+         if( lli->resultTupleType){
+            lli->resultTupleType->DeleteIfAllowed();
          }
          delete lli;
          local = SetWord(Address(0));
