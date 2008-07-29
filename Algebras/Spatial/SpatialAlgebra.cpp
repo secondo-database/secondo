@@ -9353,7 +9353,7 @@ Checks whether this segment and ~s~ have a common segment.
       if(compareSlopes(s)!=0){
           return false;
       }
-      // one segment is a extension of the other one
+      // one segment is an extension of the other one
       if(pointEqual(x1,y1,s.x2,s.y2)){
           return false;
       }
@@ -9435,6 +9435,8 @@ Compares this with s. The x intervals must overlap.
     if(!xOverlaps(s)){
       cerr << "Warning: compare AVLSegments with disjoint x intervals" << endl;
       cerr << "This may be a problem of roundig errors!" << endl;
+      cerr << "*this = " << *this << endl;
+      cerr << " s    = " << s << endl;
     }
 
     if(isPoint()){
@@ -9606,7 +9608,7 @@ earlier.
         left.x2 = x1;
         left.y2 = y1;
      } else { // there is a left part
-       result = result | LEFT;
+       result = result | avlseg::LEFT;
        if(cmp<0){ // this is smaller
          left.x1 = x1;
          left.y1 = y1;
@@ -9657,7 +9659,7 @@ earlier.
         return result;
     }
 
-    result = result | RIGHT;
+    result = result | avlseg::RIGHT;
     right.x1 = common.x2;
     right.y1 = common.y2;
     if(cmp<0){ // right part comes from s
@@ -9769,7 +9771,6 @@ HalfSegment avlseg::AVLSegment::convertToHs(bool lpd,
       insideAbove = owner==first?insideAbove_first
                                   :insideAbove_second;
    }
-
    HalfSegment hs(lpd, Point(true,x1,y1), Point(true,x2,y2));
    hs.attr.insideAbove = insideAbove;
    return hs;
@@ -9909,7 +9910,10 @@ segment is returned.
             << endl;
        double diff1 = x1 - x;
        double diff2 = x - x2;
-       cerr << "difference to x is " << (diff1>diff2?diff1:diff2) << endl;
+       double diff = (diff1>diff2?diff1:diff2);
+       cerr << "difference to x is " << diff << endl;
+       cerr << "The segment is " << *this << endl;
+       //assert(diff < 1.0); 
      }
      if(isVertical()){
         return y1;
@@ -9949,6 +9953,9 @@ void insertEvents(const avlseg::AVLSegment& seg,
                   priority_queue<HalfSegment,
                                  vector<HalfSegment>,
                                  greater<HalfSegment> >& q2){
+   if(seg.isPoint()){
+     return;
+   }
    switch(seg.getOwner()){
       case avlseg::first: {
            if(createLeft){
@@ -9989,9 +9996,12 @@ void insertEvents(const avlseg::AVLSegment& seg,
 
 ~neighbour~ has to be an neighbour from ~current~ within ~sss~.
 
+The return value is true, if current was changed.
+
+
 */
 
-void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
+bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                       avlseg::AVLSegment& current,
                       avlseg::AVLSegment const*& neighbour,
                       priority_queue<HalfSegment,
@@ -10006,29 +10016,39 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
        if(neighbour->ininterior(current.getX1(),current.getY1())){
           neighbour->splitAt(current.getX1(),current.getY1(),left1,right1);
           sss.remove(*neighbour);
-          neighbour = sss.insert2(left1);
-          insertEvents(left1,false,true,q1,q2);
+          if(!left1.isPoint()){
+            neighbour = sss.insert2(left1);
+            insertEvents(left1,false,true,q1,q2);
+          }
           insertEvents(right1,true,true,q1,q2);
+          return false;
        } else if(neighbour->ininterior(current.getX2(),current.getY2())){
           neighbour->splitAt(current.getX2(),current.getY2(),left1,right1);
           sss.remove(*neighbour);
-          neighbour = sss.insert2(left1);
-          insertEvents(left1,false,true,q1,q2);
+          if(!left1.isPoint()){
+            neighbour = sss.insert2(left1);
+            insertEvents(left1,false,true,q1,q2);
+          }
           insertEvents(right1,true,true,q1,q2);
+          return false;
        } else if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
           current.splitAt(neighbour->getX2(),neighbour->getY2(),left1,right1);
           current = left1;
           insertEvents(left1,false,true,q1,q2);
           insertEvents(right1,true,true,q1,q2);
+          return true;
        } else if(current.crosses(*neighbour)){
           neighbour->splitCross(current,left1,right1,left2,right2);
           sss.remove(*neighbour);
-          neighbour = sss.insert2(left1);
+          if(!left1.isPoint()){
+            neighbour = sss.insert2(left1);
+          }
           current = left2;
           insertEvents(left1,false,true,q1,q2);
           insertEvents(right1,true,true,q1,q2);
           insertEvents(left2,false,true,q1,q2);
           insertEvents(right2,true,true,q1,q2);
+          return true;
        } else {  // forgotten case or wrong order of halfsegments
           cerr.precision(16);
           cerr << "Warning wrong order in halfsegment array detected" << endl;
@@ -10057,7 +10077,7 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
              cerr << "removed part is " << left1 << endl;
              current = right1;
              insertEvents(current,false,true,q1,q2);
-             return;
+             return true;
 
           }
           if(current.ininterior(neighbour->getX2(),neighbour->getY2())){
@@ -10068,7 +10088,10 @@ void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
              cerr << "6 : crosses" << endl;
           }
           assert(false);
+          return true;
        }
+    } else {
+      return false;
     }
 }
 
@@ -10096,27 +10119,68 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
     if(leftN->ininterior(rightN->getX2(),rightN->getY2())){
        leftN->splitAt(rightN->getX2(),rightN->getY2(),left1,right1);
        sss.remove(*leftN);
-       leftN = sss.insert2(left1);
-       insertEvents(left1,false,true,q1,q2);
+       if(!left1.isPoint()){
+         leftN = sss.insert2(left1);
+         insertEvents(left1,false,true,q1,q2);
+       }
        insertEvents(right1,true,true,q1,q2);
     } else if(rightN->ininterior(leftN->getX2(),leftN->getY2())){
        rightN->splitAt(leftN->getX2(),leftN->getY2(),left1,right1);
        sss.remove(*rightN);
-       rightN = sss.insert2(left1);
-       insertEvents(left1,false,true,q1,q2);
+       if(!left1.isPoint()){
+         rightN = sss.insert2(left1);
+         insertEvents(left1,false,true,q1,q2);
+       }
        insertEvents(right1,true,true,q1,q2);
     } else if (rightN->crosses(*leftN)){
          leftN->splitCross(*rightN,left1,right1,left2,right2);
          sss.remove(*leftN);
          sss.remove(*rightN);
-         leftN = sss.insert2(left1);
-         rightN = sss.insert2(left2);
+         if(!left1.isPoint()) {
+           leftN = sss.insert2(left1);
+         }
+         if(!left2.isPoint()){
+            rightN = sss.insert2(left2);
+         }
          insertEvents(left1,false,true,q1,q2);
          insertEvents(left2,false,true,q1,q2);
          insertEvents(right1,true,true,q1,q2);
          insertEvents(right2,true,true,q1,q2);
-    } else { // forgotten case
-       assert(false);
+    } else { // forgotten case or overlapping segments (rounding errors)
+       if(leftN->overlaps(*rightN)){
+         cerr << "Overlapping neighbours found" << endl;
+         cout << "leftN = " << *leftN << endl;
+         cout << "rightN = " << *rightN << endl;
+         avlseg::AVLSegment left;  
+         avlseg::AVLSegment common;  
+         avlseg::AVLSegment right;  
+         int parts = leftN->split(*rightN, left,common,right,false);
+         sss.remove(*leftN);
+         sss.remove(*rightN);
+         if(parts & avlseg::LEFT){
+           if(!left.isPoint()){
+             cout << "insert left part" << left << endl;
+             leftN = sss.insert2(left);
+             insertEvents(left,false,true,q1,q2);
+           }
+         } 
+         if(parts & avlseg::COMMON){
+           if(!common.isPoint()){
+             cout << "insert common part" << common << endl;
+             rightN = sss.insert2(common);
+             insertEvents(common,false,true,q1,q2);
+           }           
+         }
+         if(parts & avlseg::RIGHT){
+           if(!right.isPoint()){
+             cout << "insert events for the right part" << right << endl;;
+             insertEvents(right,true,true,q1,q2);
+           }
+         }
+
+       } else {
+          assert(false);
+       }
     }
   } // intersecting neighbours
 }
@@ -10536,7 +10600,10 @@ void Realminize2(const Line& src, Line& result){
          } else { // no overlapping segment found
             splitByNeighbour(sss,current,leftN,q,q);
             splitByNeighbour(sss,current,rightN,q,q);
-            sss.insert(current);
+            if(!current.isPoint()){
+              sss.insert(current);
+              insertEvents(current,false,true,q,q);
+            }
          }
       } else {  // nextHS rightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -10607,7 +10674,8 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
     return res;
   }
 
-  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
+  priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
   avltree::AVLTree<avlseg::AVLSegment> sss;
 
   int pos = 0;
@@ -10620,8 +10688,8 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
   avlseg::AVLSegment left1, right1,left2,right2;
 
   int edgeno = 0;
-  avlseg::AVLSegment tmpL,tmpR;
-  while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
+  avlseg::AVLSegment tmpL,tmpR,tmpM;
+  while(selectNext(segments,pos,q1,nextHS)!=avlseg::none) {
       avlseg::AVLSegment current(&nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
@@ -10632,18 +10700,34 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
          tmpR = *rightN;
          rightN = &tmpR;
       }
+      if(member){
+         tmpM = *member;
+         member = &tmpM;
+      }
       if(nextHS.IsLeftDomPoint()){
          if(member){ // overlapping segment found in sss
             double xm = member->getX2();
             double xc = current.getX2();
             if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
                current.splitAt(xm,member->getY2(),left1,right1);
-               insertEvents(right1,true,true,q,q);
+               insertEvents(right1,true,true,q1,q2);
+            } else if(AlmostEqual(xm,xc) && current.isVertical()){
+               double ym = member->getY2();
+               double yc = current.getY2();
+               if(!AlmostEqual(ym,yc) && (ym < yc)){
+                  current.splitAt(xc,yc,left1,right1);
+                  insertEvents(right1,true,true,q1,q2);
+               }
             }
          } else { // no overlapping segment found
-            splitByNeighbour(sss,current,leftN,q,q);
-            splitByNeighbour(sss,current,rightN,q,q);
-            sss.insert(current);
+            if(splitByNeighbour(sss,current,leftN,q1,q2)){
+               insertEvents(current,true,true,q1,q2);
+            } else if(splitByNeighbour(sss,current,rightN,q1,q2)) {
+               insertEvents(current,true,true,q1,q2); 
+            } else {
+               sss.insert(current);
+               insertEvents(current,false,true,q1,q2);
+            }
          }
       } else {  // nextHS rightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -10654,7 +10738,7 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
              hs2.attr.edgeno = edgeno;
              res->Append(hs1);
              res->Append(hs2);
-             splitNeighbours(sss,leftN,rightN,q,q);
+             splitNeighbours(sss,leftN,rightN,q1,q2);
              edgeno++;
              sss.remove(*member);
           }
@@ -10731,8 +10815,10 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
 
             sss.remove(*member);
             if(sr & avlseg::LEFT){
-              sss.insert(tmp_left);
-              insertEvents(tmp_left,false,true,q,q);
+              if(!tmp_left.isPoint()){
+                sss.insert(tmp_left);
+                insertEvents(tmp_left,false,true,q,q);
+              }
             }
             insertEvents(tmp_common,true,true,q,q);
             if(sr & avlseg::RIGHT){
@@ -10741,7 +10827,10 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
          } else { // no overlapping segment found
             splitByNeighbour(sss,current,leftN,q,q);
             splitByNeighbour(sss,current,rightN,q,q);
-            sss.insert(current);
+            if(!current.isPoint()){
+              sss.insert(current);
+              insertEvents(current,false,true,q,q);
+            }
          }
       } else {  // nextHS rightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -10815,7 +10904,10 @@ bool hasOverlaps(const DBArray<HalfSegment>& segments,
          } else { // no overlapping segment found
             splitByNeighbour(sss,current,leftN,q,q);
             splitByNeighbour(sss,current,rightN,q,q);
-            sss.insert(current);
+            if(!current.isPoint()){
+              sss.insert(current);
+              insertEvents(current,false,true,q,q);
+            }
          }
       } else {  // nextHS rightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -10920,12 +11012,16 @@ void SetOp(const Line& line1,
                  sss.remove(*member);
                  member = &common1;
                  if(parts & avlseg::LEFT){
-                     sss.insert(left1);
-                     insertEvents(left1,false,true,q1,q2);
+                     if(!left1.isPoint()){
+                       sss.insert(left1);
+                       insertEvents(left1,false,true,q1,q2);
+                     }
                  }
                  assert(parts & avlseg::COMMON);
-                 sss.insert(common1);
-                 insertEvents(common1,false,true,q1,q2);
+                 if(!common1.isPoint()){
+                   sss.insert(common1);
+                   insertEvents(common1,false,true,q1,q2);
+                 }
                  if(parts & avlseg::RIGHT){
                     insertEvents(right1,true,true,q1,q2);
                  }
@@ -10933,7 +11029,10 @@ void SetOp(const Line& line1,
           } else { // no overlapping segment found
             splitByNeighbour(sss,current,leftN,q1,q2);
             splitByNeighbour(sss,current,rightN,q1,q2);
-            sss.insert(current);
+            if(!current.isPoint()){
+              sss.insert(current);
+              insertEvents(current,false,true,q1,q2);
+            }
           }
        } else { // nextHS rightDomPoint
          if(member && member->exactEqualsTo(current)){
@@ -11121,8 +11220,10 @@ void SetOp(const Region& reg1,
             int parts = member->split(current,left1,common1,right1);
             sss.remove(*member);
             if(parts & avlseg::LEFT){
-              sss.insert(left1);
-              insertEvents(left1,false,true,q1,q2);
+              if(!left1.isPoint()){
+                sss.insert(left1);
+                insertEvents(left1,false,true,q1,q2);
+              }
             }
             assert(parts & avlseg::COMMON);
             // update coverage numbers
@@ -11131,8 +11232,10 @@ void SetOp(const Region& reg1,
             }  else {
                common1.con_above--;
             }
-            sss.insert(common1);
-            insertEvents(common1,false,true,q1,q2);
+            if(!common1.isPoint()){
+              sss.insert(common1);
+              insertEvents(common1,false,true,q1,q2);
+            }
             if(parts & avlseg::RIGHT){
                insertEvents(right1,true,true,q1,q2);
             }
@@ -11169,7 +11272,10 @@ void SetOp(const Region& reg1,
               }
             }
             // insert element
-            sss.insert(current);
+            if(!current.isPoint()){
+              sss.insert(current);
+              insertEvents(current,false,true,q1,q2);
+            }
           }
        } else {  // nextHs.IsRightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -11377,8 +11483,10 @@ void SetOp(const Line& line,
              sss.remove(*member);
              member = &common1;
              if(parts & avlseg::LEFT){
-                sss.insert(left1);
-                insertEvents(left1,false,true,q1,q2);
+                if(!left1.isPoint()){
+                  sss.insert(left1);
+                  insertEvents(left1,false,true,q1,q2);
+                }
              }
              assert(parts & avlseg::COMMON);
              if(owner==avlseg::second) {  // the region
@@ -11388,8 +11496,10 @@ void SetOp(const Line& line,
                   common1.con_above--;
                }
              } // for a line is nothing to do
-             sss.insert(common1);
-             insertEvents(common1,false,true,q1,q2);
+             if(!common1.isPoint()){
+               sss.insert(common1);
+               insertEvents(common1,false,true,q1,q2);
+             }
              if(parts & avlseg::RIGHT){
                  insertEvents(right1,true,true,q1,q2);
              }
@@ -11428,7 +11538,10 @@ void SetOp(const Line& line,
             current.con_above = current.con_below;
           }
           // insert element
-          sss.insert(current);
+          if(!current.isPoint()){
+            sss.insert(current);
+            insertEvents(current,false,true,q1,q2);
+          }
         }
      } else { // nextHs.IsRightDomPoint()
        if(member && member->exactEqualsTo(current)){
@@ -11544,12 +11657,16 @@ void CommonBorder(
             int parts = member->split(current,left1,common1,right1);
             sss.remove(*member);
             if(parts & avlseg::LEFT){
-              sss.insert(left1);
-              insertEvents(left1,false,true,q1,q2);
+              if(!left1.isPoint()){
+                sss.insert(left1);
+                insertEvents(left1,false,true,q1,q2);
+              }
             }
             assert(parts & avlseg::COMMON);
-            sss.insert(common1);
-            insertEvents(common1,false,true,q1,q2);
+            if(!common1.isPoint()){
+              sss.insert(common1);
+              insertEvents(common1,false,true,q1,q2);
+            }
             if(parts & avlseg::RIGHT){
                insertEvents(right1,true,true,q1,q2);
             }
@@ -11557,8 +11674,10 @@ void CommonBorder(
             // try to split segments if required
             splitByNeighbour(sss,current,leftN,q1,q2);
             splitByNeighbour(sss,current,rightN,q1,q2);
-
-            sss.insert(current);
+            if(!current.isPoint()){
+              sss.insert(current);
+              insertEvents(current,false,true,q1,q2);
+            }
           }
        } else {  // nextHs.IsRightDomPoint
           if(member && member->exactEqualsTo(current)){

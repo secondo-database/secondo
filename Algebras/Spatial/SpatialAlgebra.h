@@ -5089,7 +5089,7 @@ are inserted into the corresponding queues depending on the woner of ~current~ a
 
 */
 
-void splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
+bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                       avlseg::AVLSegment& current,
                       avlseg::AVLSegment const*& neighbour,
                       priority_queue<HalfSegment,
