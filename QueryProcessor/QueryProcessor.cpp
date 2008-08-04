@@ -3441,22 +3441,70 @@ Then call the operator's value mapping function.
         {
 
 #ifdef USE_PROGRESS
+	  CheckProgress();
+#endif
 
-  // Example code which interrupts the evaluation of the
-  // query tree in order to propagate a progress message.
+                        if ( traceNodes )
+                        {
+                          it = argsPrinted.find(tree->id);
+                          if ( (it == argsPrinted.end()))
+                          {
+                            cerr << fn <<
+                            "*** Value mapping function's args" << endl;
+                            for ( i = 0; i < tree->u.op.noSons; i++ )
+                            {
+                              cerr << fn << "arg[" << i << "].addr = "
+                              << arg[i].addr << endl;
+                            }
+                            argsPrinted[tree->id] = true;
+                          }
+                          cerr << fn << "*** Call value mapping for "
+                          << nl->SymbolValue(tree->u.symbol) << endl;
+                        }
 
-  // For timer based interrupts we will use the clock() function
-  // which returns an approximation of CPU time used by this program.
-  // On a multitasking system with much CPU load the time may be
-  // a multiple of the one defined here.
+          tree->u.op.theOperator->incCalls(tree->u.op.opFunId / 65536);
+          status =
+            (*(tree->u.op.valueMap))( arg, result, message,
+                                      tree->u.op.local, tree );
+
+          tree->u.received = (status == YIELD);
+          if ( status == FAILURE )  //new error code
+          {
+                        cerr << fn << "Evaluation of operator failed."
+                        << endl;
+            exit( 0 );
+          }
+
+        }
+        return;
+                        if (traceNodes)
+                        cerr << fn << "Operator return status ="
+                        << status << endl;
+      }
+    }
+  }
+}
+
+
+void 
+QueryProcessor::CheckProgress()
+{
+
+/*
+Interrupts the evaluation of the query tree in order to propagate a progress 
+message. For timer based interrupts we will use the clock() function
+which returns an approximation of CPU time used by this program.
+On a multitasking system with much CPU load the time may be
+a multiple of the one defined here.
+
+*/
   static clock_t clockDelta = CLOCKS_PER_SEC ;
   static clock_t lastClock = clock();
 
-  // Do a clock check only after some calls of this code
-  // branch.
+  // Do a clock check only after some calls of this code branch.
   static const int progressDelta = 100;
+
   static int progressCtr = progressDelta;
-  //static bool allowProgress = true;
   ProgressInfo progress;
 
   if (allowProgress)
@@ -3480,47 +3528,14 @@ Then call the operator's value mapping function.
     }
     progressCtr = progressDelta;
   }
-#endif
-
-                        if ( traceNodes )
-                        {
-                          it = argsPrinted.find(tree->id);
-                          if ( (it == argsPrinted.end()))
-                          {
-                            cerr << fn <<
-                            "*** Value mapping function's args" << endl;
-                            for ( i = 0; i < tree->u.op.noSons; i++ )
-                            {
-                              cerr << fn << "arg[" << i << "].addr = "
-                              << arg[i].addr << endl;
-                            }
-                            argsPrinted[tree->id] = true;
-                          }
-                          cerr << fn << "*** Call value mapping for "
-                          << nl->SymbolValue(tree->u.symbol) << endl;
-                        }
-          tree->u.op.theOperator->incCalls(tree->u.op.opFunId / 65536);
-          status =
-            (*(tree->u.op.valueMap))( arg, result, message,
-                                      tree->u.op.local, tree );
-
-          tree->u.received = (status == YIELD);
-          if ( status == FAILURE )  //new error code
-          {
-                        cerr << fn << "Evaluation of operator failed."
-                        << endl;
-            exit( 0 );
-          }
-
-        }
-        return;
-                        if (traceNodes)
-                        cerr << fn << "Operator return status ="
-                        << status << endl;
-      }
-    }
-  }
 }
+
+
+
+
+
+
+
 
 /*
 1.1 Procedures for Cooperation with Operator Evaluation Functions

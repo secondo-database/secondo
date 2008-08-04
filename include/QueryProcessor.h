@@ -726,6 +726,17 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
  
 */
 
+
+  void CheckProgress();
+
+/*
+Trigger a progress query if the time has come to do so.
+
+*/
+
+
+
+
   void AllocateValues( int idx );
   void AllocateArgVectors( int idx );
   SecondoCatalog* GetCatalog()
