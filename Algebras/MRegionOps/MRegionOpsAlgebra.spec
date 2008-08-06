@@ -20,4 +20,7 @@
 operator intersection alias INTERSECTION pattern op ( _ , _)
 operator minus alias MINUS pattern _ infixop _
 operator union alias UNION pattern _ infixop _
+operator intersects alias INTERSECTS pattern _ infixop _
+operator inside alias INSIDE pattern _ infixop _
+
 
