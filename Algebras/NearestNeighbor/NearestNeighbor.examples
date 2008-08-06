@@ -12,3 +12,9 @@ Number   : 2
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL2D
 Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] consume
 Result   : file_platform
+
+Operator : knearest
+Number   : 3
+Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query UnitTrains feed head[20] UTrip knearest [train1, 2] consume
+Result   : file_platform

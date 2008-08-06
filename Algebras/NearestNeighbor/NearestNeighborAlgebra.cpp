@@ -117,9 +117,9 @@ otherwise the symbol ~typeerror~. Again we use interface ~NList.h~ for
 manipulating list expressions. For every operator is one type mapping 
 function given.
 
-The function distanceScanCommonTypeMap is the type map for distancescan
-mode: 1), distancescanstart (mode: 2), distancescannext (mode: 3),
-distancescanlast (mode: 4)
+The function distanceScanTypeMap is the type map for distancescan.
+The function knearestTypeMap is the type map for the operator knearest
+
 
 */
 ListExpr
@@ -308,6 +308,75 @@ distanceScanTypeMap( ListExpr args )
 }
 
 
+ListExpr
+knearestTypeMap( ListExpr args )
+{	
+  string argstr, argstr2;
+
+  CHECK_COND(nl->ListLength(args) == 4,
+    "Operator knearest expects a list of length four.");
+
+  ListExpr first = nl->First(args),
+           second = nl->Second(args),
+           third = nl->Third(args),
+           quantity = nl->Fourth(args);
+
+  ListExpr tupleDescription = nl->Second(first);
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND(nl->ListLength(first) == 2  &&
+    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
+    (nl->ListLength(nl->Second(first)) == 2) &&
+    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
+    (nl->ListLength(nl->Second(first)) == 2) &&
+    (IsTupleDescription(nl->Second(tupleDescription))),
+    "Operator knearest expects as first argument a list with structure "
+    "(stream (tuple ((a1 t1)...(an tn))))\n"
+    "Operator knearest gets as first argument '" + argstr + "'." );
+
+  nl->WriteToString(argstr, second);
+  CHECK_COND(nl->IsAtom(second) &&
+    nl->AtomType(second) == SymbolType,
+    "Operator knearest expects as second argument an atom "
+    "(an attribute name).\n"
+    "Operator knearest gets '" + argstr + "'.\n");
+
+  string attrName = nl->SymbolValue(second);
+  ListExpr attrType;
+  int j;
+  if( !(j = FindAttribute(nl->Second(nl->Second(first)), 
+                          attrName, attrType)) )
+  {
+    nl->WriteToString(argstr, nl->Second(nl->Second(first)));
+    ErrorReporter::ReportError(
+      "Operator knearest expects as secong argument an attribute name.\n"
+      "Attribute name '" + attrName + 
+      "' does not belong to the tuple of the first argument.\n"
+      "Known Attribute(s): " + argstr + "\n");
+    return nl->SymbolAtom("typeerror");
+  }
+
+  // check for third argument type == mpoint
+  nl->WriteToString(argstr, quantity);
+  CHECK_COND((nl->IsEqual( third, "mpoint" )),
+  "Operator knearest expects a third argument of type point.\n"
+  "Operator knearest gets '" + argstr + "'.");
+
+  // check for fourth argument type == int
+  nl->WriteToString(argstr, quantity);
+  CHECK_COND((nl->IsAtom(quantity)) &&
+	  (nl->AtomType(quantity) == SymbolType) &&
+  (nl->SymbolValue(quantity) == "int"),
+  "Operator knearest expects a fourth argument of type integer (k or -1).\n"
+  "Operator knearest gets '" + argstr + "'.");
+
+  return
+    nl->TwoElemList(
+      nl->SymbolAtom("stream"),
+      tupleDescription);
+}
+
+
 /*
 5.2 Selection Function
 
@@ -374,9 +443,10 @@ struct DistanceScanLocalInfo
 
 /*
 5.3.1 The ~distanceScan~ results a stream of all input tuples in the 
-right order. It has the functionality of distanceScanStart and distanceSanNext
-together and can be used if all input tuples are needed in a result set
-ordered by distance to a given reference point 
+right order. It returns the k tuples with the lowest distance to a given
+reference point. The are ordered by distance to the given reference point.
+If the last parameter k has a value <= 0, all tuples of the input stream
+will returned.
 
 */
 
@@ -449,9 +519,22 @@ int distanceScanFun (Word* args, Word& result, int message,
 
 }
 
+/*
+5.3.2 The ~knearest~ operator results a stream of all input tuples which 
+contains the k-nearest units to the given mpoint. The tuples are splitted 
+into multiple tuples with disjoint units if necessary. The tuples in the 
+result stream are not necessarily ordered by time or distance to the 
+given mpoint 
+
+*/
+int knearestFun (Word* args, Word& result, int message, 
+             Word& local, Supplier s)
+{
+  return 0;
+}
 
 /*
-5.1.4 Definition of value mapping vectors
+5.4 Definition of value mapping vectors
 
 */
 ValueMapping distanceScanMap [] = { distanceScanFun<2>,
@@ -461,7 +544,7 @@ ValueMapping distanceScanMap [] = { distanceScanFun<2>,
 
 
 /*
-5.1.5 Specification of operators
+5.5 Specification of operators
 
 */
 
@@ -471,7 +554,7 @@ const string distanceScanSpec  =
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))\n"
       "For T = ti and ti in SPATIAL<d>D, for"
-      " d in {2, 3}</text--->"
+      " d in {2, 3, 4, 8}</text--->"
       "<text>_ _ distancescan [ _, _ ]</text--->"
       "<text>Uses the given rtree to find all k tuples"
       " in the given relation in order of their distance from the "
@@ -483,11 +566,27 @@ const string distanceScanSpec  =
       "Kinos creatertree [geoData]'</text--->"
       ") )";
 
+const string knearestSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>stream(tuple ((x1 t1)...(xn tn))"
+      " ti) x xi x mpoint x k ->"
+      " (stream (tuple ((x1 t1)...(xn tn))))"
+      "</text--->"
+      "<text>_ _ knearest [ _, _ ]</text--->"
+      "<text>The operator results a stream of all input tuples "
+      "which contains the k-nearest units to the given mpoint. "
+      "The tuples are splitted into multiple tuples with disjoint "
+      "units if necessary. The tuples in the result stream are "
+      "not necessarily ordered by time or distance to the given "
+      "mpoint.</text--->"
+      "<text>query query UnitTrains feed head[20] UTrip knearest "
+      "[train1, 2] consume;</text--->"
+      ") )";
 
 
 
 /*
-5.1.6 Definition of operators
+5.6 Definition of operators
 
 */
 Operator distancescan (
@@ -499,10 +598,18 @@ Operator distancescan (
          distanceScanTypeMap    // type mapping
 );
 
+Operator knearest (
+         "knearest",        // name
+         knearestSpec,      // specification
+         knearestFun,      // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         knearestTypeMap    // type mapping
+);
+
 
 
 /*
-5 Implementation of the Algebra Class
+6 Implementation of the Algebra Class
 
 */
 
@@ -514,16 +621,17 @@ class NearestNeighborAlgebra : public Algebra
 
 
 /*   
-5.3 Registration of Operators
+6.1 Registration of Operators
 
 */
     AddOperator( &distancescan );
+    AddOperator( &knearest );
   }
   ~NearestNeighborAlgebra() {};
 };
 
 /*
-6 Initialization
+7 Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list
@@ -557,7 +665,7 @@ InitializeNearestNeighborAlgebra( NestedList* nlRef,
 }
 
 /*
-7 Examples and Tests
+8 Examples and Tests
 
 The file "NearestNeighbor.examples" contains for every operator one example.
 This allows one to verify that the examples are running and to provide a 

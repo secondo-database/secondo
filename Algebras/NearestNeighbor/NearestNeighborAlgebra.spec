@@ -18,3 +18,4 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator distancescan alias DISTANCESCAN pattern _ _ op [_, _]
+operator knearest alias KNEAREST pattern _ _ op [_, _]
