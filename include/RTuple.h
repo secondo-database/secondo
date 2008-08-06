@@ -63,11 +63,24 @@ class RTuple {
     return *this;
   }	  
 
+  inline RTuple& operator=(Tuple* t) 
+  {
+    releaseTuple();	  
+    tuple = t;
+    holdTuple();
+    return *this;
+  }	  
+
+/* 
+ Note: Function ~setTuple~ decrements the reference counter for the previously
+ assigned tuple but does *not* increment it for the new one! 
+
+*/
   inline void setTuple(Tuple* tuple){
     releaseTuple();
     this->tuple=tuple;
-    holdTuple();
   }
+
 
 
   inline friend bool operator==(const RTuple& r, const void* p) 

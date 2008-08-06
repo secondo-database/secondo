@@ -207,7 +207,9 @@ class LocalInfo : public ProgressLocalInfo {
 
   public:
     LocalInfo() : ProgressLocalInfo(), ptr(0) {}
-    ~LocalInfo() {}   
+    ~LocalInfo() { if (ptr) delete ptr; }   
+
+    inline void deletePtr() { if (ptr) {delete ptr; ptr = 0; } }
 
     T* ptr;  
 };	
