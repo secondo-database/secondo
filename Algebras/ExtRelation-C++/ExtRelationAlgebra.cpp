@@ -2782,7 +2782,7 @@ values for the second sort attribute  and so on.
 
 */
 template<bool lexicographically> int
-SortBy(Word* args, Word& result, int message, Word& local, Supplier s);
+sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s);
 /*
 
 2.11.3 Specification of operator ~sortBy~
@@ -2809,7 +2809,7 @@ const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator extrelsortby (
          "sortby",               // name
          SortBySpec,             // specification
-         SortBy<false>,          // value mapping
+         sortby_vm<false>,       // value mapping
          Operator::SimpleSelect, // trivial selection function
          SortByTypeMap           // type mapping
 );
@@ -2885,7 +2885,7 @@ const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator extrelsort (
          "sort",             // name
          SortSpec,           // specification
-         SortBy<true>,               // value mapping
+         sortby_vm<true>,               // value mapping
          Operator::SimpleSelect,          // trivial selection function
          IdenticalTypeMap<true>         // type mapping
 );
@@ -3765,15 +3765,15 @@ ListExpr JoinTypeMap (ListExpr args)
 
 */
 
-extern int
+template<bool expectSorted> int
 mergejoin_vm( Word* args, Word& result,
               int message, Word& local, Supplier s );
 
-extern int
-sortmergejoin_vm( Word* args, Word& result,
+template<bool expectSorted> int
+mergejoin_vm( Word* args, Word& result,
                   int message, Word& local, Supplier s );
 
-extern int
+  /*extern int
 sortmergejoinr_vm( Word* args, Word& result,
                    int message, Word& local, Supplier s );
 
@@ -3783,7 +3783,7 @@ sortmergejoinr2_vm( Word* args, Word& result,
 
 extern int 
 sortmergejoinr3_vm( Word* args, Word& result, 
-                    int message, Word& local, Supplier s );
+                    int message, Word& local, Supplier s ); */
 
 /*
 
@@ -3811,11 +3811,11 @@ const string MergeJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 
 */
 Operator extrelmergejoin(
-         "mergejoin",        // name
-         MergeJoinSpec,     // specification
-         mergejoin_vm,         // value mapping
-         Operator::SimpleSelect,          // trivial selection function
-         JoinTypeMap<false, 0>   // type mapping
+         "mergejoin",             // name
+         MergeJoinSpec,           // specification
+         mergejoin_vm<true>,      // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         JoinTypeMap<false, 0>    // type mapping
 );
 
 /*
@@ -3846,11 +3846,11 @@ const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
 
 */
 Operator extrelsortmergejoin(
-         "sortmergejoin",        // name
-         SortMergeJoinSpec,     // specification
-         sortmergejoin_vm,         // value mapping
-         Operator::SimpleSelect,          // trivial selection function
-         JoinTypeMap<false, 1>   // type mapping
+         "sortmergejoin",            // name
+         SortMergeJoinSpec,          // specification
+         mergejoin_vm<false>,        // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         JoinTypeMap<false, 1>       // type mapping
 );
 
 /*
@@ -9237,17 +9237,17 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergejoin);
 
     AddOperator(&extrelsortmergejoin);
-    AddOperator(sortmergejoinrInfo("sortmergejoin_r"), 
-                    sortmergejoinr_vm, 
-                    JoinTypeMap<false, 1> );
+    //AddOperator(sortmergejoinrInfo("sortmergejoin_r"), 
+    //                sortmergejoinr_vm, 
+    //                JoinTypeMap<false, 1> );
 
-    AddOperator(sortmergejoinrInfo("sortmergejoin_r2"), 
-                    sortmergejoinr2_vm, 
-                    JoinTypeMap<false, 1> );
+    //AddOperator(sortmergejoinrInfo("sortmergejoin_r2"), 
+    //                sortmergejoinr2_vm, 
+    //                JoinTypeMap<false, 1> );
 
-    AddOperator(sortmergejoinrInfo("sortmergejoin_r3"),
-                    sortmergejoinr3_vm, 
-                    JoinTypeMap<false, 1> );
+    //AddOperator(sortmergejoinrInfo("sortmergejoin_r3"),
+    //                sortmergejoinr3_vm, 
+    //                JoinTypeMap<false, 1> );
 
     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
