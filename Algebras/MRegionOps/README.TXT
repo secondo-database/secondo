@@ -1,6 +1,7 @@
 
 
-The current version of the MRegionOpsAlgebra is not yet working! 
-Don't waste your time with testing...
-
-Greetings from M. Hoeger!
+Bedingt testbarer Zwischenstand: 
+Operatoren union, intersection und minus verarbeiten MRegions 
+die aus jeweils einer unit bestehen. 
+Sonderfälle, wie sich berührende oder koplanare 'PFaces', 
+funktionieren leider noch nicht.

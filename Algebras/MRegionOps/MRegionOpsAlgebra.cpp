@@ -240,8 +240,8 @@ public:
         AddOperator(IntersectionInfo(), IntersectionValueMap, MRMRMRTypeMap);
         AddOperator(UnionInfo(), UnionValueMap, MRMRMRTypeMap);
         AddOperator(MinusInfo(), MinusValueMap, MRMRMRTypeMap);
-        AddOperator(IntersectsInfo(), IntersectsValueMap, MRMRMBTypeMap);
-        AddOperator(InsideInfo(), InsideValueMap, MRMRMBTypeMap);
+        //AddOperator(IntersectsInfo(), IntersectsValueMap, MRMRMBTypeMap);
+        //AddOperator(InsideInfo(), InsideValueMap, MRMRMBTypeMap);
     }
 
     ~MRegionOpsAlgebra() {

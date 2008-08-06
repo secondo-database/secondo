@@ -1,0 +1,247 @@
+#
+# MRegionOpsAlgebra-Testfile
+#
+# July 2008, M. Hoeger
+#
+
+
+
+
+delete database mropstestdb;
+
+#setup mregionopstest
+
+# *
+# * Preparing the test database
+# *
+
+#create database mropstestdb;
+#open database mropstestdb;
+
+restore database mropstestdb from mropstestdb;
+
+
+# *
+# * Create data in the test database
+# *
+
+let mrA = mr1a;
+let mrB = mr2a;
+let step = 0.1;
+
+# *
+# * dummy 
+# *
+
+#testcase dummy
+#yields (bool TRUE)
+query TRUE;
+
+
+# *
+# * set the tolerance.
+# *
+
+
+# tolerance_real 0.0009
+
+
+
+# ***********************************************************
+# * minus
+# ***********************************************************
+
+#testcase mrA minus mrB
+#yields (real 0.0)
+
+query 
+realstream(
+	instant2real(inst(initial(mrA))), 
+	instant2real(inst(final(mrA))), 
+	step
+) 
+use[ 
+	fun(t: real) 
+		abs(
+			area(
+				minus_new(  
+					val(mrA atinstant create_instant(t)), 
+					val(mrB atinstant create_instant(t))
+				) 
+			)
+		)
+		-
+		abs(
+			area(
+				val((mrA minus mrB) atinstant create_instant(t))
+			)
+		)
+] 
+transformstream max[elem];
+
+# ***********************************************************
+
+#testcase mrB minus mrA
+#yields (real 0.0)
+
+query 
+realstream(
+	instant2real(inst(initial(mrA))), 
+	instant2real(inst(final(mrA))), 
+	step
+) 
+use[ 
+	fun(t: real) 
+		abs(
+			area(
+				minus_new(  
+					val(mrB atinstant create_instant(t)), 
+					val(mrA atinstant create_instant(t))
+				) 
+			)
+		)
+		-
+		abs(
+			area(
+				val((mrB minus mrA) atinstant create_instant(t))
+			)
+		)
+] 
+transformstream max[elem];
+
+
+
+# ***********************************************************
+# * intersection
+# ***********************************************************
+
+#testcase mrA intersection mrB
+#yields (real 0.0)
+
+query 
+realstream(
+	instant2real(inst(initial(mrA))), 
+	instant2real(inst(final(mrA))), 
+	step
+) 
+use[ 
+	fun(t: real) 
+		abs(
+			area(
+				intersection_new(  
+					val(mrA atinstant create_instant(t)), 
+					val(mrB atinstant create_instant(t))
+				) 
+			)
+		)
+		-
+		abs(
+			area(
+				val(intersection(mrA, mrB) atinstant create_instant(t))
+			)
+		)
+] 
+transformstream max[elem];
+
+# ***********************************************************
+
+#testcase mrB intersection mrA
+#yields (real 0.0)
+
+query 
+realstream(
+	instant2real(inst(initial(mrA))), 
+	instant2real(inst(final(mrA))), 
+	step
+) 
+use[ 
+	fun(t: real) 
+		abs(
+			area(
+				intersection_new(  
+					val(mrA atinstant create_instant(t)), 
+					val(mrB atinstant create_instant(t))
+				) 
+			)
+		)
+		-
+		abs(
+			area(
+				val(intersection(mrB, mrA) atinstant create_instant(t))
+			)
+		)
+] 
+transformstream max[elem];
+
+
+# ***********************************************************
+# * union
+# ***********************************************************
+
+#testcase mrA union mrB
+#yields (real 0.0)
+
+query 
+realstream(
+	instant2real(inst(initial(mrA))), 
+	instant2real(inst(final(mrA))), 
+	step
+) 
+use[ 
+	fun(t: real) 
+		abs(
+			area(
+				union_new(  
+					val(mrA atinstant create_instant(t)), 
+					val(mrB atinstant create_instant(t))
+				) 
+			)
+		)
+		-
+		abs(
+			area(
+				val((mrA union mrB) atinstant create_instant(t))
+			)
+		)
+] 
+transformstream max[elem];
+
+# ***********************************************************
+
+#testcase mrB union mrA
+#yields (real 0.0)
+
+query 
+realstream(
+	instant2real(inst(initial(mrA))), 
+	instant2real(inst(final(mrA))), 
+	step
+) 
+use[ 
+	fun(t: real) 
+		abs(
+			area(
+				union_new(  
+					val(mrA atinstant create_instant(t)), 
+					val(mrB atinstant create_instant(t))
+				) 
+			)
+		)
+		-
+		abs(
+			area(
+				val((mrB union mrA) atinstant create_instant(t))
+			)
+		)
+] 
+transformstream max[elem];
+
+
+
+
+
+#teardown
+
+close database;
+delete database mropstestdb;
+

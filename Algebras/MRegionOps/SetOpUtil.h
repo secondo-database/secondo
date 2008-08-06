@@ -20,6 +20,7 @@
 #define SETOPUTIL_H_
 
 #include "MovingRegionAlgebra.h"
+#include "TemporalAlgebra.h"
 #include "NList.h"
 #include "NumericUtil.h"
 #include "PointVector.h"
@@ -30,6 +31,7 @@
 #include <list>
 #include <queue>
 #include <deque>
+#include "Test.h"
 
 using namespace std;
 
@@ -40,12 +42,17 @@ Word InMRegion(
         ListExpr& errorInfo,
         bool& correct);
 
+
+
+
 namespace mregionops {
 
-//#define REDUCE_PFACES_BY_BOUNDING_RECT
-#define VRML_OUTFILE "out.wrl"
 
-//void Bar();
+
+//#define REDUCE_PFACES_BY_BOUNDING_RECT
+//#define VRML_OUTFILE "out.wrl"
+
+
 
 enum SetOp {
 
@@ -60,12 +67,15 @@ enum SourceFlag {
     PFACE_B
 };
 
-enum TouchingMode {
-
-    NO_TOUCH = 0,
-    TOUCH_IN_STARTPOINT = 1,
-    TOUCH_IN_ENDPOINT = 2,
-    UNDEFINED = 3
+enum RelationToBoundary {
+    
+    UNDEFINED_RELATION,
+    NO_TOUCH_OF_BOUNDARY,
+    TOUCH_LEFT_BOUNDARY_ONLY,
+    TOUCH_RIGHT_BOUNDARY_IN_STARTPOINT_ONLY,
+    TOUCH_RIGHT_BOUNDARY_IN_ENDPOINT_ONLY,
+    COLINEAR_TO_RIGHT_BOUNDARY,
+    COLINEAR_TO_LEFT_BOUNDARY
 };
 
 enum InsideOutside {
@@ -75,9 +85,17 @@ enum InsideOutside {
     OUTSIDE
 };
 
+enum TypeOfCycle {
+
+    UNKNOWN_CYCLE,
+    OUTER_CYCLE,
+    HOLE_CYCLE
+};
+
 class Point3DExt;
 class PointExtSet;
 class IntersectionSegment;
+class ResultMovingCycle;
 class PFace;
 class PFaceCycle;
 class PFaceIterator;
@@ -138,7 +156,52 @@ private:
     set<Point3DExt, PointExtCompare> s;
 };
 
+struct Mate {
+    
+    inline Mate(const double _startTime, 
+                IntersectionSegment* const _intSeg) :
+                
+                    startTime(_startTime),
+                    intSeg(_intSeg) {
+        
+    }
+    
+    void Print() const;
+    
+    const double startTime;
+    IntersectionSegment* const intSeg;
+};
 
+class MateList {
+    
+public:
+    
+    inline MateList() {
+        
+    }
+    
+    inline bool IsEmpty() const {
+        
+        return mates.empty();
+    }
+    
+    void AddMate(const double startTime, IntersectionSegment* m);
+    
+    void Update(const double t);
+    
+    inline IntersectionSegment* GetActiveMate() const {
+
+        assert(!mates.empty());
+
+        return mates.front().intSeg;
+    }
+    
+    void Print() const;
+    
+private:
+    
+    list<Mate> mates;
+};
 
 class IntersectionSegment {
 
@@ -151,6 +214,11 @@ public:
     inline unsigned int GetID() const {
         
         return *id;
+    }
+    
+    inline const PFace* GetPFace() const {
+        
+        return pFace;
     }
 
     inline const Point3D* GetStartXYT() const {
@@ -202,6 +270,17 @@ public:
 
         return !resultFaceIsLeft;
     }
+    
+    inline bool ResultFaceIsVanished() const {
+
+        return  (relationToBoundary == COLINEAR_TO_RIGHT_BOUNDARY && 
+                ResultFaceIsRight()) 
+                ||
+                (relationToBoundary == COLINEAR_TO_LEFT_BOUNDARY && 
+                ResultFaceIsLeft());
+    }
+    
+    bool IsTouchingLine(const PFace& other) const;
 
     inline bool IsLeftBoundary() const {
 
@@ -223,40 +302,31 @@ public:
         isLeftBoundary = false;
     }
 
-    inline void AddMate(IntersectionSegment* s) {
+    inline void AddMate(const double startTime, IntersectionSegment* s) {
 
-        if (matesOfThis->empty() || 
-            matesOfThis->back()->GetID() != s->GetID()) {
-            
-            matesOfThis->push_back(s);
-            
-        } else {
-            
-            // s is already a mate of this.
-            // nothing to do...
-        }
-            
+        mates.AddMate(startTime, s);
     }
+    
+    pair<IntersectionSegment*, const PFace*>
+    GetNextActiveMateOfResultCycle(const IntersectionSegment* prev) const;
+    
+    inline RelationToBoundary GetRelationToBoundaryOfPFace() const {
 
-    inline IntersectionSegment* GetActiveRightMate() const {
-
-        if (this->IsLeftBoundary())
-            return matesOfThis->front();
-        else
-            return matesOfBuddy->front();
+        return relationToBoundary;
     }
-
-    inline TouchingMode GetRelationToRightBoundaryOfPFace() const {
-
-        return relationToRightBoundary;
+    
+    inline bool TouchesRightBoundaryOfPFace() const {
+        
+        return relationToBoundary == TOUCH_RIGHT_BOUNDARY_IN_STARTPOINT_ONLY ||
+               relationToBoundary == TOUCH_RIGHT_BOUNDARY_IN_ENDPOINT_ONLY;
     }
-
-    inline void SetRelationToRightBoundaryOfPFace(
-            TouchingMode _relationToRightBoundary) {
-
-        relationToRightBoundary = _relationToRightBoundary;
+    
+    inline bool IsColinearToBoundaryOfPFace() const {
+        
+        return relationToBoundary == COLINEAR_TO_RIGHT_BOUNDARY ||
+               relationToBoundary == COLINEAR_TO_LEFT_BOUNDARY;
     }
-
+    
     inline bool IsInserted() const {
 
         return *inserted;
@@ -283,8 +353,6 @@ public:
 
             delete startXYT;
             delete endXYT;
-            delete matesOfThis;
-            delete matesOfBuddy;
             delete inserted;
             delete hasReference;
             delete id;
@@ -296,30 +364,25 @@ public:
 
         return NumericUtil::NearlyEqual(GetStartT(), GetEndT());
     }
-    /*
     
-    inline bool IsLeftOf(const Point2D& pointWT) {
-        
-        return pointWT.IsLeft(GetStartWT(), GetEndWT());
-    }
-    
-    inline bool IsRightOf(const Point2D& pointWT) {
-
-        return pointWT.IsRight(GetStartWT(), GetEndWT());
-    }
-    
-    */
     bool IsLeftOf(const IntersectionSegment* s) const;
 
-    void SetWCoords(const PFace& pFace);
+    void SetWCoords();
 
-    void SetSideOfResultFace(const PFace& self, const PFace& other,
-            const SetOp op);
+    void SetSideOfResultFace(const PFace& self, const PFace& other);
+    
+    void SetRelationToBoundaryOfPFace();
     
     Point3D Evaluate(const double t) const;
 
     static pair<IntersectionSegment*, IntersectionSegment*> createBuddyPair(
             const Point3D& a, const Point3D& b);
+    
+    inline void SetPFace(const PFace* _pFace) {
+        
+        assert(pFace == 0);
+        pFace = _pFace;
+    }
 
     inline void SetStartWT(const Point2D& _startWT) {
 
@@ -353,64 +416,214 @@ public:
     
     inline void UpdateMateList(const double t) {
         
-        assert(!matesOfThis->empty());
-        assert(!matesOfBuddy->empty());
+        assert(!this->mates.IsEmpty());
+        assert(!buddy->mates.IsEmpty());
 
-        if (NumericUtil::NearlyEqual(matesOfThis->front()->GetEndT(), t)) {
-
-            matesOfThis->pop_front();
-        }
-
-        if (NumericUtil::NearlyEqual(matesOfBuddy->front()->GetEndT(), t)) {
-
-            matesOfBuddy->pop_front();
-        }
+        this->mates.Update(t);
+        buddy->mates.Update(t);
     }
+    
+    Vector3D GetNormalVectorOfResultFace() const;
 
     string GetVRMLDesc();
     void Print() const;
     void PrintMates();
 
 private:
+    
+    inline void SetBuddy(IntersectionSegment* _buddy) {
+        
+        buddy = _buddy;
+    }
+    
+    inline void SetRelationToBoundaryOfPFace(RelationToBoundary rtb) {
+
+        assert(relationToBoundary == UNDEFINED_RELATION);
+        relationToBoundary = rtb;
+    }
 
     Point3D* startXYT;
     Point3D* endXYT;
-    deque<IntersectionSegment*>* matesOfThis;
-    deque<IntersectionSegment*>* matesOfBuddy;
     bool* inserted;
     bool* hasReference;
     unsigned int* id;
-
+    
+    const PFace* pFace;
+    IntersectionSegment* buddy;
+    MateList mates;
     double startW;
     double endW;
     bool resultFaceIsLeft;
     bool isLeftBoundary;
-    TouchingMode relationToRightBoundary;
+    RelationToBoundary relationToBoundary;
     
     static unsigned int instancePairCount;
     
-    inline IntersectionSegment() {
+    inline IntersectionSegment() :
+        
+                pFace(0),
+                relationToBoundary(UNDEFINED_RELATION) {
 
-        relationToRightBoundary = UNDEFINED;
     }
 };
 
-
-
-class ResultCycle {
+struct MedianCycleSeg {
     
-public:
-    
-    inline ResultCycle() {
+    inline MedianCycleSeg() {
         
     }
     
-    inline void Append(const Point2D& initial, const Point2D& final) {
+    MedianCycleSeg(const Segment2D& _seg,
+                   const PFace* _pFace,
+                   ResultMovingCycle* _cycle);
+    
+    inline bool IsVertical() const {
+        
+        return seg.IsVertical();
+    }
+    
+    bool SameCycle(const MedianCycleSeg* mcs) const;
+    
+    bool IsAbove(const MedianCycleSeg* mcs) const;
+    
+    void Print() const {
+        
+        cout << "(" << seg.GetStart().GetX() << " | " <<
+                       seg.GetStart().GetY() << " | " <<
+                       seg.GetEnd().GetX() << " | " <<
+                       seg.GetEnd().GetY() << ")" << endl;
+    }
+    
+    Segment2D seg;
+    const PFace* pFace;
+    ResultMovingCycle* cycle;
+};
 
-        NList coords(NList(initial.GetX()), NList(initial.GetY()),
-                     NList(final.GetX()), NList(final.GetY()));
+class MedianCycle {
+    
+public:
+    
+    inline MedianCycle(ResultMovingCycle* _parent) :
+        
+        firstAppend(true),
+        parent(_parent) {
+        
+    }
+    
+    void Append(const Segment2D& seg, const PFace* pFace);
+    
+    TypeOfCycle GetType() const;
+    
+    inline MedianCycleSeg* GetSeg(unsigned int i) const {
+        
+        assert(i < segs.size());
+        return (MedianCycleSeg*) &segs[i];
+    }
+    
+    inline unsigned int GetNoSegs() const {
+        
+        return segs.size();
+    }
+    
+    inline MedianCycleSeg* GetUpperMinimalSeg() const {
+        
+        if (minimal1.seg.GetEnd().IsLeft(minimal2.seg))
+            return (MedianCycleSeg*) &minimal1;
+        else
+            return (MedianCycleSeg*) &minimal2;
+    }
+    
+private:
+    
+    bool firstAppend;
+    MedianCycleSeg minimal1;
+    MedianCycleSeg minimal2;
+    vector<MedianCycleSeg> segs;
+    ResultMovingCycle* parent;
+};
+
+class ResultMovingCycle {
+    
+public:
+    
+    inline void StartBulkLoad() {
+        
+        //cout << "StartBulkLoad()" << endl;
+        
+        assert(!loading);
+        
+        loading = true;
+        //firstAppend = true;
+    }
+    
+    inline void EndBulkLoad() {
+        
+        //cout << "EndBulkLoad()" << endl;
+
+        assert(loading);
+        
+        type = medianCycle.GetType();
+        loading = false;
+    }
+    
+    inline bool IsEmpty() const {
+        
+        return cycle.isEmpty();
+    }
+    
+    inline const MedianCycle* GetMedianCycle() const {
+        
+        assert(!loading);
+        
+        return &medianCycle;
+    }
+    
+    inline void Append(const Segment2D& initial, 
+                const Segment2D& middle,
+                const Segment2D& final,
+                const PFace* pFace) {
+        
+        assert(loading);
+
+        NList coords(NList(initial.GetStart().GetX()), 
+                     NList(initial.GetStart().GetY()),
+                     NList(final.GetStart().GetX()), 
+                     NList(final.GetStart().GetY()));
 
         cycle.append(coords);
+        medianCycle.Append(middle, pFace);
+        
+        //cout << "coords: " << coords << endl;
+        
+        //firstAppend = false;
+    }
+    
+    inline TypeOfCycle GetType() const {
+        
+        return type;
+    }
+    
+    inline void AddHoleCycle(ResultMovingCycle* hole) {
+        
+        assert(type == OUTER_CYCLE && hole->type == HOLE_CYCLE);
+        
+        holes.push_back(hole);
+    }
+    
+    inline int GetNoHoleCycles() const {
+        
+        return holes.size();
+    }
+    
+    inline const ResultMovingCycle* GetHoleCycle(const unsigned int i) const {
+        
+        assert(i < holes.size());
+        return holes[i];
+    }
+    
+    inline unsigned int GetID() const {
+        
+        return id;
     }
     
     inline NList GetList() const {
@@ -418,20 +631,43 @@ public:
         return cycle;
     }
     
+    static ResultMovingCycle* CreateInstance() {
+        
+        return new ResultMovingCycle(instanceCount++);
+    }
+    
 private:
     
     NList cycle;
+    MedianCycle medianCycle;
+    bool loading;
+    //bool firstAppend;
+    TypeOfCycle type;
+    const unsigned int id;
+    vector<ResultMovingCycle*> holes;
+    
+    static unsigned int instanceCount;
+    
+    inline ResultMovingCycle(unsigned int _id) :
+
+        medianCycle(this),
+        loading(false), 
+        //firstAppend(true),
+        type(UNKNOWN_CYCLE), 
+        id(_id) {
+
+    }
 };
 
-class ResultFace {
+class ResultMovingFace {
     
 public:
     
-    inline ResultFace() {
+    inline ResultMovingFace() {
         
     }
     
-    inline void AppendCycle(const ResultCycle& cycle) {
+    inline void AppendCycle(const ResultMovingCycle& cycle) {
         
         face.append(cycle.GetList());
     }
@@ -444,6 +680,29 @@ public:
 private:
     
     NList face;
+};
+
+class ResultMovingFaces {
+    
+public:
+    
+    inline ResultMovingFaces() {
+        
+    }
+    
+    inline void AppendFace(const ResultMovingFace& face) {
+        
+        faces.append(face.GetList());
+    }
+    
+    inline NList GetList() const {
+
+        return faces;
+    }
+    
+private:
+    
+    NList faces;
 };
 
 class ResultUnit {
@@ -461,9 +720,9 @@ public:
                          NList(rc, true));
     }
 
-    inline void AppendFace(const ResultFace& face) {
+    inline void AppendFaces(const ResultMovingFaces& _faces) {
 
-        faces.append(face.GetList());
+        faces = _faces.GetList();
     }
     
     inline NList GetList() const {
@@ -496,6 +755,99 @@ private:
     NList* const resultUnitList;
 };
 
+
+struct MedianCycleSegCompareByStartX {
+
+    bool operator()(const MedianCycleSeg* const& s1,
+                    const MedianCycleSeg* const& s2) const {
+
+        return s1->seg.GetStart().GetX() < s2->seg.GetStart().GetX();
+    }
+};
+
+struct MedianCycleSegCompareByCycleID {
+
+    bool operator()(const MedianCycleSeg* const& s1,
+                    const MedianCycleSeg* const& s2) const {
+
+        return s1->SameCycle(s2);
+    }
+};
+
+class ResultCycleContainer {
+    
+public:
+    
+    ResultCycleContainer() {
+        
+    }
+    
+    ~ResultCycleContainer();
+    
+    ResultMovingCycle* GetNewResultCycle() const;
+    void Add(ResultMovingCycle* cycle);
+    ResultMovingFaces GetResultMovingFaces() const;
+    
+    inline bool HasHoles() {
+        
+        return holes.size() > 0;
+    }
+    
+    inline unsigned int GetNoFaces() const {
+        
+        return faces.size();
+    }
+    
+    inline const ResultMovingCycle* GetFace(unsigned int i) const {
+        
+        assert(i >= 0 && i < faces.size());
+        
+        return faces[i];
+    }
+    
+    void LinkHolesToFaces();
+    
+private:
+    
+    void InitSets();
+    void StartPlaneSweep();
+    void ComputeCurrentXLevel();
+    void FindEnclosingFace();
+    
+    inline bool EndsRightOfCurrentX(const MedianCycleSeg* mcs) const {
+
+        //return mcs->seg.GetEnd().GetX() > x;
+        return NumericUtil::Greater(mcs->seg.GetEnd().GetX(), x);
+    }
+    
+    inline bool StartsLeftOfCurrentX(const MedianCycleSeg* mcs) const {
+
+        //return mcs->seg.GetStart().GetX() <= x;
+        return NumericUtil::LowerOrNearlyEqual(mcs->seg.GetStart().GetX(), x);
+    }
+    
+    inline bool IsOutOfRange(const MedianCycleSeg* mcs) const {
+
+        return !EndsRightOfCurrentX(mcs);
+    }
+    
+    vector<ResultMovingCycle*> faces;
+    vector<ResultMovingCycle*> holes;
+    
+    multiset<MedianCycleSeg*, MedianCycleSegCompareByStartX> fSegs;
+    multiset<MedianCycleSeg*, MedianCycleSegCompareByStartX>::iterator 
+                                                                fSegIter;
+    
+    multiset<MedianCycleSeg*, MedianCycleSegCompareByStartX> hSegs;
+    multiset<MedianCycleSeg*, MedianCycleSegCompareByStartX>::iterator 
+                                                                 hSegsIter;
+    
+    list<MedianCycleSeg*> active;
+    list<MedianCycleSeg*>::iterator activeIter;
+    
+    double x;
+};
+
 struct GlobalIntSegSetCompare {
 
     bool operator()(const IntersectionSegment* const& s1,
@@ -510,9 +862,11 @@ class ResultUnitFactory {
 public:
 
     ResultUnitFactory(//MRegion* const _resMRegion,
-                      NList* const _resUnitList) :
+                      NList* const _resUnitList,
+                      const SourceUnitPair* const _parent) :
         //resMRegion(_resMRegion),
-        resultUnitList(_resUnitList) {
+        resultUnitList(_resUnitList),
+        parent(_parent) {
         
     }
 
@@ -526,6 +880,14 @@ public:
             intSeg->MarkAsInserted();
         }
     }
+    
+    inline bool HasSegments() const {
+        
+        return !source.empty();
+    }
+    
+    void ResultIsEmpty();
+    void ResultIsUnitA();
 
     void PrintActive() const;
     void PrintIntSegsOfGlobalList();
@@ -535,6 +897,8 @@ private:
 
     void ComputeCurrentTimeLevel();
     void UpdateActiveSegList();
+    void ConstructResultUnitAsListExpr();
+    void ConstructResultUnitAsURegionEmb();
 
     inline bool IsOutOfRange(IntersectionSegment* seg) const {
 
@@ -553,7 +917,8 @@ private:
     }
 
     multiset<IntersectionSegment*, GlobalIntSegSetCompare> source;
-    multiset<IntersectionSegment*, GlobalIntSegSetCompare>::iterator sourceIter;
+    multiset<IntersectionSegment*, GlobalIntSegSetCompare>::iterator 
+                                                              sourceIter;
 
     list<IntersectionSegment*> active;
     list<IntersectionSegment*>::iterator activeIter;
@@ -562,8 +927,10 @@ private:
     double t2;
     double minEndT;
     
-    //MRegion* const resMRegion;
+    MRegion* resMRegion;
     ResultUnitList resultUnitList;
+    const SourceUnitPair* const parent;
+    ResultCycleContainer* resultCycleContainer;
 };
 
 class SourceUnit {
@@ -596,6 +963,8 @@ public:
 
         return isUnitA;
     }
+    
+    const SetOp GetOperation() const;
 
     inline Interval<Instant> GetTimeInterval() const {
 
@@ -638,7 +1007,7 @@ public:
     }
 
     void CreatePFaces();
-    void AddBoundarySegments(const SetOp op);
+    void AddBoundarySegments();
     void FindMates();
     void CollectIntSegs(ResultUnitFactory* receiver);
     void FindMatesAndCollectIntSegs(ResultUnitFactory* receiver);
@@ -656,6 +1025,7 @@ private:
     void ComputeBoundingRect();
     //void ComputeMedianTime();
     void ComputeMedianRegion();
+    void ConnectPFacesInCycles();
 
     const URegionEmb* const uRegion;
     const DBArray<MSegmentData>* const array;
@@ -680,14 +1050,15 @@ private:
 
 class SourceUnitPair {
 
-    friend class SourceUnit;
+    //friend class SourceUnit;
 
 public:
 
-    SourceUnitPair(const URegionEmb* const a, 
+    SourceUnitPair(const URegionEmb* const unitA, 
                    const DBArray<MSegmentData>* const aArray,
-                   const URegionEmb* const b, 
+                   const URegionEmb* const unitB, 
                    const DBArray<MSegmentData>* const bArray,
+                   const SetOp operation,
                    //MRegion* const resultMRegion,
                    NList* const resultUnitList);
 
@@ -695,7 +1066,12 @@ public:
 
     }
 
-    void Operate(const SetOp op);
+    void Operate();
+    
+    inline const SetOp GetOperation() const {
+        
+        return op;
+    }
 
     inline Rectangle<2> GetOverlapRect() const {
 
@@ -726,8 +1102,8 @@ private:
 
     void ComputeOverlapRect();
     void CreatePFaces();
-    void ComputeInnerIntSegs(const SetOp op);
-    void AddBoundarySegments(const SetOp op);
+    void ComputeInnerIntSegs();
+    void AddBoundarySegments();
     void FindMatesAndCollectIntSegs(ResultUnitFactory* receiver);
     void ConstructResultUnits();
 
@@ -741,8 +1117,10 @@ private:
     
     SourceUnit unitA;
     SourceUnit unitB;
+    const SetOp op;
     Rectangle<2> overlapRect;
     ResultUnitFactory resultUnitFactory;
+    //NList* const resultUnitList;
 };
 
 class SetOperator {
@@ -755,12 +1133,14 @@ public:
                 
                 a(_a), b(_b), res(_res) {
 
+        //a_ref = new MRegion(0);
+        //b_ref = new MRegion(0);
     }
     
     ~SetOperator() {
         
-        // delete a_ref;
-        // delete b_ref;
+        //delete a_ref;
+        //delete b_ref;
     }
     
     void Intersection();
@@ -769,7 +1149,7 @@ public:
     
 private:
     
-    void RefinementPartition();
+    //void ComputeRefinementPartition();
     void Operate(const SetOp op);
     void AppendUnitList(const NList* resultUnitList);
     MRegion* CreateResultMRegionFromList();
@@ -778,8 +1158,8 @@ private:
     MRegion* const b;
     MRegion* const res;
     
-    MRegion* a_ref;
-    MRegion* b_ref;
+    //MRegion* a_ref;
+    //MRegion* b_ref;
     
     NList resultMRegionList;
 };
@@ -791,6 +1171,12 @@ struct GeneralIntSegSetCompare {
 };
 
 struct RightIntSegSetCompare {
+
+    bool operator()(const IntersectionSegment* const& s1,
+            const IntersectionSegment* const& s2) const;
+};
+
+struct ColinearIntSegSetCompare {
 
     bool operator()(const IntersectionSegment* const& s1,
             const IntersectionSegment* const& s2) const;
@@ -823,9 +1209,13 @@ public:
     
     void Start() {
         
-        while (sourceIter != source->end()) {
+        while (sourceIter != source->end() || !active.empty()) {
             
-            t = min((*sourceIter)->GetStartT(), minEndT);
+            if (sourceIter != source->end())
+                t = min((*sourceIter)->GetStartT(), minEndT);
+            else
+                t = minEndT;
+            
             //cout << "t = " << t << endl;
             
             //PrintActive();
@@ -834,7 +1224,7 @@ public:
             //cout << endl;
             
         }
-    }
+    }   
     
 private:
     
@@ -877,10 +1267,8 @@ class PFace {
 
 public:
 
-    PFace(SourceUnit* _unit, 
-          const MSegmentData* _mSeg, 
-          bool _initialStartPointIsA);
-
+    PFace(SourceUnit* _unit, const MSegmentData* _mSeg);
+          
     ~PFace() {
 
         DeleteGeneralIntSegs();
@@ -895,6 +1283,16 @@ public:
     inline Rectangle<2> GetBoundingRect() const {
 
         return boundingRect;
+    }
+    
+    inline double GetStartTime() const {
+        
+        return unit->GetStartTime();
+    }
+    
+    inline double GetEndTime() const {
+
+        return unit->GetEndTime();
     }
 
     inline Point3D GetA_XYT() const {
@@ -976,6 +1374,11 @@ public:
 
         return mSeg->GetCycleNo() == 0;
     }
+    
+    inline const SetOp GetOperation() const {
+        
+        return unit->GetOperation();
+    }
 
     inline bool InitialStartPointIsA() const {
 
@@ -986,6 +1389,14 @@ public:
 
         return wVector;
     }
+    
+    inline Vector3D GetNormalVectorOfResultFace() const {
+        
+        if (GetOperation() == MINUS && IsPartOfUnitB())
+            return - GetNormalVector();
+        else
+            return GetNormalVector();
+    }
 
     inline Vector2D GetRightBoundaryVectorWT() const {
 
@@ -994,7 +1405,7 @@ public:
 
     const IntersectionSegment* GetRightmostIntSeg();
 
-    bool Intersection(PFace& pf, const SetOp op);
+    bool Intersection(PFace& pf);
 
     bool IntersectionPlaneSegment(const Segment3D& seg, Point3D& result);
 
@@ -1055,6 +1466,22 @@ public:
 
         return !rightIntSegSet.empty();
     }
+    
+    inline bool HasIntSegsColinearToRightBoundary() const {
+        
+        return !rightColinearIntSegSet.empty();
+    }
+    
+    inline bool HasIntSegsColinearToLeftBoundary() const {
+
+        return !leftColinearIntSegSet.empty();
+    }
+    
+    inline bool HasIntSegsColinearToBoundary() const {
+
+        return !leftColinearIntSegSet.empty()
+                || !rightColinearIntSegSet.empty();
+    }
 
     inline void MarkAsEntirelyOutside() {
 
@@ -1085,6 +1512,30 @@ public:
 
         return !unit->IsUnitA();
     }
+    
+    inline const PFace* GetRightNeighbour() const {
+        
+        assert(rightNeighbour != 0);
+        return rightNeighbour;
+    }
+    
+    inline const PFace* GetLeftNeighbour() const {
+
+        assert(leftNeighbour != 0);
+        return leftNeighbour;
+    }
+    
+    inline void SetRightNeighbour(const PFace* rn) {
+        
+        assert(rightNeighbour == 0);
+        rightNeighbour = rn;
+    }
+    
+    inline void SetLeftNeighbour(const PFace* ln) {
+
+        assert(leftNeighbour == 0);
+        leftNeighbour = ln;
+    }
 
     void FindMates();
     void CollectIntSegs(ResultUnitFactory* receiver) const;
@@ -1098,6 +1549,7 @@ public:
 
 private:
 
+    void SetInitialStartPointIsA();
     void ComputeBoundingRect();
     void ComputeNormalVector();
     void ComputeWTCoords();
@@ -1113,7 +1565,10 @@ private:
 
     set<IntersectionSegment*, GeneralIntSegSetCompare> generalIntSegSet;
     set<IntersectionSegment*, RightIntSegSetCompare> rightIntSegSet;
+    set<IntersectionSegment*, ColinearIntSegSetCompare> rightColinearIntSegSet;
+    set<IntersectionSegment*, ColinearIntSegSetCompare> leftColinearIntSegSet;
     list<IntersectionSegment*> orthogonalIntSegList;
+    
     //set<double> relevantTimeValueSet;
 
     //Point3D a, b, c, d;
@@ -1126,12 +1581,11 @@ private:
     bool hasIntSegs;
     bool hasInnerIntSegs;
     bool hasBoundaryIntSegs;
-    const bool initialStartPointIsA;
+    bool initialStartPointIsA;
     InsideOutside entirelyInsideOutside;
-    //IntersectionSegment* intSegMaxW; // Does not make sense.
-
-    //const unsigned int pFaceNoInCycle;
-
+    
+    const PFace* rightNeighbour;
+    const PFace* leftNeighbour;
 };
 
 class PFacePair {
@@ -1153,7 +1607,8 @@ public:
         return right;
     }
 
-    void ComputeBoundarySegments();
+    void ComputeBoundarySegmentsNormal();
+    void ComputeBoundarySegmentsSpecial();
 
     inline void AddBoundarySegment(const Point3D& start, const Point3D& end) {
 
@@ -1186,8 +1641,7 @@ class PFaceCycle {
 
 public:
 
-    inline PFaceCycle(bool _isOuterCycle) :
-        isOuterCycle(_isOuterCycle) {
+    inline PFaceCycle() {
 
     }
 
@@ -1215,13 +1669,13 @@ public:
 
         return pFaces.size();
     }
-
+    
+    void ConnectPFaces();
     PFaceCycleIterator GetPFaceCycleIterator();
 
 private:
 
     deque<PFace*> pFaces;
-    const bool isOuterCycle;
 };
 
 class PFaceCycleIterator {

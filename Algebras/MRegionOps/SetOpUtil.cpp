@@ -17,11 +17,15 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 */
 
 
+
+
 #include "SetOpUtil.h"
 
 using namespace std;
 
 namespace mregionops {
+
+
 
 /*
 
@@ -83,25 +87,730 @@ PointExtSet::GetIntersectionSegment() const {
 
 /*
 
+Class IntersectionSegment
+
+*/
+
+unsigned int IntersectionSegment::instancePairCount = 0;
+
+pair<IntersectionSegment*, IntersectionSegment*> 
+IntersectionSegment::createBuddyPair(const Point3D& a, 
+                                     const Point3D& b) {
+
+    IntersectionSegment* first = new IntersectionSegment();
+    IntersectionSegment* second = new IntersectionSegment();
+    
+    first->SetBuddy(second);
+    second->SetBuddy(first);
+
+    // The startpoint's t-coord is always lower or equal to the
+    // endpoint's t-coord.
+    // Note: We don't care for x and y!
+
+    if (a.GetT() <= b.GetT()) {
+
+        first->startXYT = second->startXYT = new Point3D(a);
+        first->endXYT = second->endXYT = new Point3D(b);
+
+    } else { // a.GetT() > b.GetT()
+
+        first->startXYT = second->startXYT = new Point3D(b);
+        first->endXYT = second->endXYT = new Point3D(a);
+    }
+    
+    first->inserted = second->inserted = new bool(false);
+    first->hasReference = second->hasReference = new bool(true);
+    
+    //cout << "Create IntSegPair: " 
+         //<< IntersectionSegment::instancePairCount << endl;
+    
+    first->id = second->id = 
+        new unsigned int(IntersectionSegment::instancePairCount++);
+    
+    return pair<IntersectionSegment*, IntersectionSegment*>(first, second);
+}
+
+bool IntersectionSegment::IsLeftOf(const IntersectionSegment* intSeg) const {
+    
+    // TODO: Avoid multiple computation of the same value.
+    
+    Segment2D s(intSeg->GetStartWT(), intSeg->GetEndWT(), false);
+
+    if (this->GetStartWT().IsLeft(s))
+        return true;
+
+    if (this->GetStartWT().IsRight(s))
+        return false;
+    // Startpoint of this is colinear to intSeg.
+    if (this->GetEndWT().IsLeft(s))
+        return true;
+
+    if (this->GetEndWT().IsRight(s))
+        return false;
+
+    return true;
+    //else // this is colinear to intSeg.
+    //if (op == INTERSECTION)
+    //return this->ResultFaceIsLeft();
+    //else // op == UNION | MINUS
+    //return this->ResultFaceIsRight();    
+}
+
+void IntersectionSegment::SetWCoords() {
+
+    SetStartW(GetPFace()->TransformToW(*GetStartXYT()));
+    SetEndW(GetPFace()->TransformToW(*GetEndXYT()));
+}
+
+void IntersectionSegment::SetSideOfResultFace(const PFace& self,
+                                              const PFace& other) {
+    
+    const SetOp op = self.GetOperation();
+
+    // First, we compute the normalized cross product of the normal vectors of 
+    // PFaces self and other:
+    Vector3D cross = self.GetNormalVector() ^ other.GetNormalVector();
+    cross.Normalize();
+
+    // Second, we compute the normalized vector from the startpoint to
+    // the endpoint of this intersection segment:
+    Vector3D startToEnd = *GetEndXYT() - *GetStartXYT();
+    startToEnd.Normalize();
+
+    // Third, we calculate the cosinus of the angle between cross and startToEnd
+    // Note that both vectors have unit length and the angle 
+    // must be either 0 or pi. Hence the cosinus equals 1 or -1.
+    double cos = startToEnd * cross;
+
+    //cout << "cos = " << cos << endl;
+    assert(NumericUtil::NearlyEqual(cos, 1.0) || NumericUtil::NearlyEqual(cos,
+            -1.0));
+
+    // If cos equals 1, 
+    // the normal vector of other points to the right side of this segment.
+    // If cos equals -1, 
+    // the normal vector of other points to the left side of this segment.
+
+    if (op == INTERSECTION || (op == MINUS && other.IsPartOfUnitA())) {
+
+        if (cos > 0.0) // normalOfOther points to the right side of startToEnd.
+            this->SetResultFaceIsLeft();
+        else
+            // normalOfOther points to the left side of startToEnd.
+            this->SetResultFaceIsRight();
+
+    } else { // op == UNION || (op == MINUS && self.IsPartOfUnitA())
+
+        if (cos > 0.0) // normalOfOther points to the right side of startToEnd.
+            this->SetResultFaceIsRight();
+        else
+            // normalOfOther points to the left side of startToEnd.
+            this->SetResultFaceIsLeft();
+    }
+}
+
+void IntersectionSegment::SetRelationToBoundaryOfPFace() {
+
+    if (this->GetRelationToBoundaryOfPFace() != UNDEFINED_RELATION)
+        return;
+
+    const Segment2D rightBoundary(GetPFace()->GetB_WT(), 
+                                  GetPFace()->GetD_WT(), 
+                                  false);
+    
+    const Segment2D leftBoundary(GetPFace()->GetA_WT(), 
+                                 GetPFace()->GetC_WT(), 
+                                 false);
+
+    const bool startOnRightBoundary = GetStartWT().IsColinear(rightBoundary);
+    const bool endOnRightBoundary = GetEndWT().IsColinear(rightBoundary);
+    const bool startOnLeftBoundary = GetStartWT().IsColinear(leftBoundary);
+    const bool endOnLeftBoundary = GetEndWT().IsColinear(leftBoundary);
+    
+    if (!startOnRightBoundary && !endOnRightBoundary &&
+        !startOnLeftBoundary && !endOnLeftBoundary) {
+        
+        SetRelationToBoundaryOfPFace(NO_TOUCH_OF_BOUNDARY);
+        return;
+    }
+    
+    if (startOnRightBoundary && !endOnRightBoundary) {
+
+        SetRelationToBoundaryOfPFace(TOUCH_RIGHT_BOUNDARY_IN_STARTPOINT_ONLY);
+        return;
+    }
+    
+    if (!startOnRightBoundary && endOnRightBoundary) {
+
+        SetRelationToBoundaryOfPFace(TOUCH_RIGHT_BOUNDARY_IN_ENDPOINT_ONLY);
+        return;
+    }
+
+    if (startOnRightBoundary && endOnRightBoundary) {
+
+        SetRelationToBoundaryOfPFace(COLINEAR_TO_RIGHT_BOUNDARY);
+        return;
+    }
+
+    if (startOnLeftBoundary && endOnLeftBoundary) {
+        
+        SetRelationToBoundaryOfPFace(COLINEAR_TO_LEFT_BOUNDARY);
+        return;
+    }
+    
+    SetRelationToBoundaryOfPFace(TOUCH_LEFT_BOUNDARY_ONLY);
+}
+
+Point3D IntersectionSegment::Evaluate(const double t) const {
+
+    // We compute the intersection point
+    // of the horizontal plane, defined by t, and this segment.
+    
+    // Precondition:
+    // t is between t_start and t_end.
+    assert(NumericUtil::Between(this->GetStartT(), t, this->GetEndT()));
+
+    // Point3D pointInPlane(0.0, 0.0, t);
+    // Vector3D normalVectorOfPlane(0.0, 0.0, 1.0);
+    // Vector3D u = *this->GetEndXYT() - *this->GetStartXYT();
+    // Vector3D w = this->GetStartXYT() - pointInPlane;
+    // double d = normalVectorOfPlane * u;
+    // double n = -normalVectorOfPlane * w;
+    
+    // This can be simplified to:
+
+    const Vector3D u = *this->GetEndXYT() - *this->GetStartXYT();
+    const double d = this->GetEndT() - this->GetStartT();
+    const double n = t - this->GetStartT();
+
+    // This segment must not be parallel to plane:
+    assert(!NumericUtil::NearlyEqual(d, 0.0));
+
+    const double s = n / d;
+
+    // This segment intersects the plane:
+    assert(NumericUtil::Between(0.0, s, 1.0));
+
+    // Compute segment intersection point:
+    return *this->GetStartXYT() + s * u;
+}
+
+Vector3D IntersectionSegment::GetNormalVectorOfResultFace() const {
+
+    return pFace->GetNormalVectorOfResultFace();
+}
+
+pair<IntersectionSegment*, const PFace*> 
+IntersectionSegment::GetNextActiveMateOfResultCycle(
+        const IntersectionSegment* prev) const {
+
+    IntersectionSegment* mate1 = this->mates.GetActiveMate();
+
+    if (prev != 0) {
+
+        if (mate1->GetID() != prev->GetID()) {
+
+            return make_pair(mate1, this->GetPFace());
+
+        } else {
+
+            IntersectionSegment* mate2 = buddy->mates.GetActiveMate();
+            assert(mate2->GetID() != prev->GetID());
+
+            return make_pair(mate2, buddy->GetPFace());
+        }
+
+    } else { // prev == 0
+
+        // This is first segment in cycle.
+        return make_pair(mate1, this->GetPFace());
+    }
+}
+
+bool IntersectionSegment::IsTouchingLine(const PFace& other) const {
+    
+    if (!IsColinearToBoundaryOfPFace())
+        return false;
+    
+    const Vector2D wOther(other.GetWVector());
+    Vector2D wSelf;
+    Vector2D wNeighbour;
+    
+    if (relationToBoundary == COLINEAR_TO_RIGHT_BOUNDARY) {
+        
+        wSelf = Vector2D(-(GetPFace()->GetWVector()));
+        wNeighbour = Vector2D(GetPFace()->GetRightNeighbour()->GetWVector());
+        
+    } else { // relationToBoundary == COLINEAR_TO_LEFT_BOUNDARY
+        
+        wSelf = Vector2D(GetPFace()->GetWVector());
+        wNeighbour = Vector2D(-(GetPFace()->GetLeftNeighbour()->GetWVector()));
+    }
+    
+    // Now, we check if wSelf and wNeighbour points to the same side of wOther:
+    const Point2D pSelf(wSelf.GetX(), wSelf.GetY());
+    const Point2D pNeighbour(wNeighbour.GetX(), wNeighbour.GetY());
+    const Point2D pOther(wOther.GetX(), wOther.GetY());
+    const Point2D zero;
+    
+    const double sideOfSelf = pSelf.WhichSide(zero, pOther);
+    const double sideOfNeighbour = pNeighbour.WhichSide(zero, pOther);
+    
+    const double sgn = sideOfSelf * sideOfNeighbour;
+    
+    return NumericUtil::Greater(sgn, 0.0);
+}
+
+void IntersectionSegment::Print() const {
+    
+    cout << "ID: " << GetID() << endl;
+
+    cout << "Start_XYT: " << GetStartXYT()->GetX() << " | " 
+                          << GetStartXYT()->GetY() << " | " 
+                          << GetStartXYT()->GetT() << endl;
+
+    cout << "End_XYT: " << GetEndXYT()->GetX() << " | " 
+                        << GetEndXYT()->GetY() << " | " 
+                        << GetEndXYT()->GetT() << endl;
+
+    //cout << "Start_WT: " << GetStartW() << " | " << GetStartT() << endl;
+    //cout << "End_WT: " << GetEndW() << " | " << GetEndT() << endl;
+
+    cout << "IsRightBoundary() == " << this->IsRightBoundary() << endl;
+
+    cout << "ResultFaceIsLeft: " << ResultFaceIsLeft() << endl;
+    cout << "RelationToBoundary: " 
+    << GetRelationToBoundaryOfPFace() << endl;
+    cout << "ResultFaceIsVanished: " << ResultFaceIsVanished() << endl;
+
+    //cout << "inserted:" << *inserted << endl;
+    //cout << "matesOfThis->size() == " << matesOfThis->size() << endl;
+
+
+}
+
+string IntersectionSegment::GetVRMLDesc() {
+    
+    return GetStartXYT()->GetVRMLDesc() + GetEndXYT()->GetVRMLDesc();
+}
+
+void IntersectionSegment::PrintMates() {
+    
+    //cout << "Welcome to IntersectionSegment::PrintMates()" << endl;
+    
+    //cout << "inserted:" << *inserted << endl;
+    //cout << "matesOfThis->size() == " << matesOfThis->size() << endl;
+    
+    if (mates.IsEmpty()) {
+        
+        cout << "matesOfThis is empty." << endl;
+        cout << "*********************************************" << endl;
+        
+    } else {
+        
+        mates.Print();
+    }
+}
+
+
+
+/*
+
+ Class MedianCycleSeg
+
+*/
+
+MedianCycleSeg::MedianCycleSeg(const Segment2D& _seg,
+                               const PFace* _pFace,
+                               ResultMovingCycle* _cycle) :
+
+      seg(_seg),
+      pFace(_pFace),
+      cycle(_cycle) {
+    
+}
+
+bool MedianCycleSeg::SameCycle(const MedianCycleSeg* mcs) const {
+
+    return cycle->GetID() == mcs->cycle->GetID();
+}
+
+bool MedianCycleSeg::IsAbove(const MedianCycleSeg* mcs) const {
+
+    // Precondition: Both segments are currently active during a
+    // plane-sweep in x-direction.
+
+    const double a = seg.GetStart().WhichSide(mcs->seg);
+    const double b = seg.GetEnd().WhichSide(mcs->seg);
+
+    if (NumericUtil::GreaterOrNearlyEqual(a, 0.0)
+            && NumericUtil::GreaterOrNearlyEqual(b, 0.0)) {
+
+        // Both, start- and endpoint of this segment are
+        // left or onto the other segment.
+        return true;
+    }
+
+    if (NumericUtil::LowerOrNearlyEqual(a, 0.0)
+            && NumericUtil::LowerOrNearlyEqual(b, 0.0)) {
+
+        // Both, start- and endpoint of this segment are
+        // right or onto the other segment.
+        return false;
+    }
+
+    // Start and endpoint of this segment are on different
+    // sides of the other segment.
+    // We have to check the opposite direction:
+
+    const double c = mcs->seg.GetStart().WhichSide(seg);
+    const double d = mcs->seg.GetEnd().WhichSide(seg);
+
+    return NumericUtil::LowerOrNearlyEqual(c, 0.0)
+            && NumericUtil::LowerOrNearlyEqual(d, 0.0);
+}
+
+/*
+
+ Class MedianCycle
+
+*/
+
+void MedianCycle::Append(const Segment2D& seg, const PFace* pFace) {
+
+    assert(seg.GetStart() < seg.GetEnd());
+
+    MedianCycleSeg s(seg, pFace, parent);
+
+    segs.push_back(s);
+
+    if (firstAppend) {
+
+        minimal1 = s;
+        firstAppend = false;
+        return;
+    }
+
+    if (seg.GetStart() < minimal1.seg.GetStart())
+        minimal1 = s;
+    else if (seg.GetStart() == minimal1.seg.GetStart())
+        minimal2 = s;
+}
+
+TypeOfCycle MedianCycle::GetType() const {
+
+    Vector2D first(minimal1.pFace->GetNormalVectorOfResultFace());
+    Vector2D second(minimal2.pFace->GetNormalVectorOfResultFace());
+
+    first.Normalize();
+    second.Normalize();
+    
+    Vector2D sum = first + second;
+
+    assert(!NumericUtil::NearlyEqual(sum.GetX(), 0.0));
+
+    if (sum.GetX() > 0.0)
+        return HOLE_CYCLE;
+    else
+        return OUTER_CYCLE;
+}
+
+/*
+
+ Class ResultMovingCycle
+
+*/
+
+unsigned int ResultMovingCycle::instanceCount = 0;
+
+/*
+
+ Class ResultCycleContainer
+
+*/
+
+ResultCycleContainer::~ResultCycleContainer() {
+
+    for (unsigned int i = 0; i < faces.size(); i++)
+        delete faces[i];
+
+    for (unsigned int i = 0; i < holes.size(); i++)
+        delete holes[i];
+}
+
+ResultMovingCycle* ResultCycleContainer::GetNewResultCycle() const {
+
+    return ResultMovingCycle::CreateInstance();
+}
+
+void ResultCycleContainer::Add(ResultMovingCycle* cycle) {
+
+    assert(cycle->GetType() != UNKNOWN_CYCLE);
+
+    if (cycle->GetType() == OUTER_CYCLE)
+        faces.push_back(cycle);
+    else
+        holes.push_back(cycle);
+}
+
+ResultMovingFaces ResultCycleContainer::GetResultMovingFaces() const {
+
+    ResultMovingFaces resultMovingFaces;
+
+    const int noFaces = faces.size();
+    const ResultMovingCycle* cycle;
+
+    for (int i = 0; i < noFaces; i++) {
+
+        cycle = faces[i];
+
+        assert(cycle->GetType() == OUTER_CYCLE);
+
+        ResultMovingFace face;
+        face.AppendCycle(*cycle);
+
+        const int noHoles = cycle->GetNoHoleCycles();
+
+        for (int h = 0; h < noHoles; h++) {
+
+            face.AppendCycle(*(cycle->GetHoleCycle(h)));
+        }
+
+        resultMovingFaces.AppendFace(face);
+    }
+
+    return resultMovingFaces;
+}
+
+void ResultCycleContainer::LinkHolesToFaces() {
+
+    if (!HasHoles()) {
+
+        // Nothing to link...
+        return;
+    }
+
+    //cout << "faces: " << faces.size() << endl;
+    //cout << "holes: " << holes.size() << endl;
+    
+    InitSets();
+    StartPlaneSweep();
+}
+
+void ResultCycleContainer::InitSets() {
+
+    const MedianCycle* mc;
+
+    for (unsigned int i = 0; i < faces.size(); i++) {
+
+        mc = faces[i]->GetMedianCycle();
+        for (unsigned int j = 0; j < mc->GetNoSegs(); j++) {
+
+            MedianCycleSeg* seg = mc->GetSeg(j);
+            if (!seg->IsVertical()) {
+                
+                //cout << "fSegs.insert: ";
+                //seg->Print();
+                //cout << endl;
+                
+                fSegs.insert(mc->GetSeg(j));
+            }
+        }
+    }
+    
+    //cout << "fSegs: " << fSegs.size() << endl;
+
+    for (unsigned int i = 0; i < holes.size(); i++) {
+
+        mc = holes[i]->GetMedianCycle();
+        
+        //cout << "hSegs.insert: ";
+        // mc->GetUpperMinimalSeg()->Print();
+        //cout << endl;
+        
+        hSegs.insert(mc->GetUpperMinimalSeg());
+    }
+    
+    //cout << "hSegs: " << hSegs.size() << endl;
+}
+
+void ResultCycleContainer::StartPlaneSweep() {
+
+    fSegIter = fSegs.begin();
+    hSegsIter = hSegs.begin();
+
+    while (hSegsIter != hSegs.end()) {
+
+        // Get the next relevant x-value:
+        x = (*hSegsIter)->seg.GetStart().GetX();
+        
+        ComputeCurrentXLevel();
+        hSegsIter++;
+    }
+}
+
+void ResultCycleContainer::ComputeCurrentXLevel() {
+    
+    //cout << "x-level: " << x << endl;
+
+    // remove old segs from active:
+    activeIter = active.begin();
+
+    while (activeIter != active.end()) {
+
+        if (IsOutOfRange(*activeIter))
+            activeIter = active.erase(activeIter);
+        else
+            activeIter++;
+    }
+
+    // add new segs to active:
+    while (fSegIter != fSegs.end() && StartsLeftOfCurrentX(*fSegIter)) {
+
+        if (EndsRightOfCurrentX(*fSegIter))
+            active.push_back(*fSegIter);
+
+        fSegIter++;
+    }
+    
+    //cout << "active: " << active.size() << endl;
+
+    FindEnclosingFace();
+}
+
+void ResultCycleContainer::FindEnclosingFace() {
+
+    ResultMovingCycle* hole = (*hSegsIter)->cycle;
+    ResultMovingCycle* face;
+
+    activeIter = active.begin();
+    multiset<MedianCycleSeg*, MedianCycleSegCompareByCycleID> segsAbove;
+    multiset<MedianCycleSeg*>::iterator segsAboveIter;
+
+    while (activeIter != active.end()) {
+        
+        if ((*activeIter)->IsAbove(*hSegsIter))
+            segsAbove.insert(*activeIter);
+
+        activeIter++;
+    }
+
+    assert(segsAbove.size() > 0);
+
+    segsAboveIter = segsAbove.begin();
+    MedianCycleSeg* seg1;
+    bool enclosingCycleFound = false;
+
+    while (!enclosingCycleFound) {
+
+        assert(segsAboveIter != segsAbove.end());
+
+        seg1 = *segsAboveIter;
+        segsAboveIter++;
+
+        if (segsAboveIter == segsAbove.end() || 
+                !(*segsAboveIter)->SameCycle(seg1)) {
+
+            enclosingCycleFound = true;
+            face = seg1->cycle;
+            face->AddHoleCycle(hole);
+        }
+
+        segsAboveIter++;
+    }
+}
+
+/*
+
+ Struct Mate
+
+*/
+
+void Mate::Print() const {
+    
+    cout << "StartTime: " << startTime << endl;
+    intSeg->Print();
+}
+
+/*
+
+ Class MateList
+
+*/
+
+void MateList::AddMate(const double startTime, IntersectionSegment* m) {
+
+    if (mates.empty() || mates.back().intSeg->GetID() != m->GetID()) {
+
+        mates.push_back(Mate(startTime, m));
+    }
+}
+
+void MateList::Update(const double t) {
+    
+    assert(!mates.empty());
+
+    list<Mate>::const_iterator iter = mates.begin();
+    
+    iter++; // 
+    
+    if (iter != mates.end() &&
+        NumericUtil::GreaterOrNearlyEqual(t, (*iter).startTime)) {
+        
+        mates.pop_front();
+    }
+}
+
+void MateList::Print() const {
+
+    list<Mate>::const_iterator it;
+
+    for (it = mates.begin(); it != mates.end(); ++it) {
+
+        (*it).Print();
+        cout << endl;
+    }
+}
+
+/*
+
  Class ResultUnitFactory
 
 */
 
 void ResultUnitFactory::Start() {
+    
+    if (source.empty()) {
+        
+        ResultIsEmpty();
+        return;
+    }
 
     sourceIter = source.begin();
-    minEndT = MAX_DOUBLE;
+    t1 = (*sourceIter)->GetStartT();
+    
+    UpdateActiveSegList();
 
-    while (sourceIter != source.end()) {
+    do {
 
-        t1 = min((*sourceIter)->GetStartT(), minEndT);
-        
+        // Set the final timelevel:
+        if (sourceIter != source.end())
+            t2 = min((*sourceIter)->GetStartT(), minEndT);
+        else
+            t2 = minEndT;
+
+        //cout << "t1 = " << t1 << endl;
+        //cout << "t2 = " << t2 << endl;
+        //cout << "minEndT = " << minEndT << endl;
+
         ComputeCurrentTimeLevel();
-        //UpdateActiveSegList();
-        
-        //PrintActive();
-        //cout << endl;
-    }
+      
+        // Set the new initial timelevel:
+        t1 = t2;
+
+        UpdateActiveSegList();
+
+    } while (sourceIter != source.end() || !active.empty());
 }
 
 void ResultUnitFactory::PrintActive() const {
@@ -119,16 +828,14 @@ void ResultUnitFactory::PrintActive() const {
 
 void ResultUnitFactory::ComputeCurrentTimeLevel() {
     
-    // Precondition of this first version: 
-    // A resultUnit consists of only one face with one cycle!
+    if(active.empty()) {
+        
+        ResultIsEmpty();
+        return;
+    }
     
-    UpdateActiveSegList();
-    
-    cout << "t1 = " << t1 << endl;
-    cout << "t2 = " << t2 << endl;
-    
-    // Construct the resultUnit:
-    ResultUnit unit(t1, t2, true, false);
+    resultCycleContainer = new ResultCycleContainer();
+    const double t12 = (t1 + t2) / 2.0;
     
     activeIter = active.begin();
     
@@ -137,41 +844,72 @@ void ResultUnitFactory::ComputeCurrentTimeLevel() {
         if (!(*activeIter)->IsInserted()) {
 
             const IntersectionSegment* firstSegInCycle = *activeIter;
-            IntersectionSegment* seg = *activeIter;
-            IntersectionSegment* rightMate;
-
-            ResultFace face;
-            ResultCycle cycle;
+            IntersectionSegment* currentSeg = *activeIter;
+            IntersectionSegment* prevSeg = 0;
+            pair<IntersectionSegment*, const PFace*> temp;
             
-            int count = 0;
-            cout << "firstSegInCycle: " << firstSegInCycle->GetID() << endl;
+            ResultMovingCycle* cycle = 
+                resultCycleContainer->GetNewResultCycle();
+            
+            //int count = 0;
+            //cout << "firstSegInCycle: " << firstSegInCycle->GetID() << endl;
+            
+            Point2D initialStart(currentSeg->Evaluate(t1));
+            Point2D mediumStart(currentSeg->Evaluate(t12));
+            Point2D finalStart(currentSeg->Evaluate(t2));
 
+            cycle->StartBulkLoad();
+            
             do {
+                /*
+                cout << currentSeg->GetID() << ": " 
+                     << currentSeg->GetStartXYT()->GetX() << " | " 
+                     << currentSeg->GetStartXYT()->GetY() << " | " 
+                     << currentSeg->GetStartXYT()->GetT() << " -> "
+                     << currentSeg->GetEndXYT()->GetX() << " | " 
+                     << currentSeg->GetEndXYT()->GetY() << " | " 
+                     << currentSeg->GetEndXYT()->GetT() << endl;
+                 */
                 
-                cout << seg->GetID() << ": " 
-                     << seg->GetStartXYT()->GetX() << " | " 
-                     << seg->GetStartXYT()->GetY() << " | " 
-                     << seg->GetStartXYT()->GetT() << endl;
+                currentSeg->MarkAsInserted();
                 
-                seg->MarkAsInserted();
-                rightMate = seg->GetActiveRightMate();
-
-                cycle.Append(seg->Evaluate(t1), seg->Evaluate(t2));
-
-                seg = rightMate;
+                temp = currentSeg->GetNextActiveMateOfResultCycle(prevSeg);
                 
-                if (count++ == 20) break;
+                prevSeg = currentSeg;
+                currentSeg = temp.first;
+                
+                Point2D initialEnd(currentSeg->Evaluate(t1));
+                Point2D mediumEnd(currentSeg->Evaluate(t12));
+                Point2D finalEnd(currentSeg->Evaluate(t2));
+                
+                Segment2D initial(initialStart, initialEnd, false);
+                Segment2D medium(mediumStart, mediumEnd, true);
+                Segment2D final(finalStart, finalEnd, false);
+                
+                cycle->Append(initial, 
+                              medium,
+                              final,
+                              temp.second);
 
-            } while (seg->GetID() != firstSegInCycle->GetID());
+                initialStart = initialEnd;
+                mediumStart = mediumEnd;
+                finalStart = finalEnd;
+                
+                //if (count++ == 20) break;
 
-            face.AppendCycle(cycle);
-            unit.AppendFace(face);
+            } while (currentSeg->GetID() != firstSegInCycle->GetID());
+            
+            cycle->EndBulkLoad();
+            resultCycleContainer->Add(cycle);
         }
 
         activeIter++;
     }
     
-    resultUnitList.AppendUnit(unit);
+    //cout << "unit: " << t1 << " -> " << t12 << " -> " << t2 << endl;
+    
+    ConstructResultUnitAsListExpr();
+    delete resultCycleContainer;
 }
 
 void ResultUnitFactory::UpdateActiveSegList() {
@@ -208,14 +946,64 @@ void ResultUnitFactory::UpdateActiveSegList() {
         sourceIter++;
         activeIter = active.end();
     }
-    
-    // Set next relevant time value:
-    if (sourceIter != source.end())
-        t2 = min((*sourceIter)->GetStartT(), minEndT);
-    else
-        t2 = minEndT;
 }
 
+void ResultUnitFactory::ConstructResultUnitAsListExpr() {
+    
+    resultCycleContainer->LinkHolesToFaces();
+    
+    ResultUnit unit(t1, t2, true, false);
+    unit.AppendFaces(resultCycleContainer->GetResultMovingFaces());
+    resultUnitList.AppendUnit(unit);
+}
+
+void ResultUnitFactory::ConstructResultUnitAsURegionEmb() {
+    
+    resultCycleContainer->LinkHolesToFaces();
+    
+    Instant startTime(instanttype);
+    Instant endTime(instanttype);
+    startTime.ReadFrom(t1);
+    endTime.ReadFrom(t2);
+    const Interval<Instant> iv(startTime, endTime, true, false);
+    const DBArray<MSegmentData>* resArrayR = resMRegion->GetMSegmentData();
+    const unsigned int startPos = resArrayR->Size();
+    
+    URegionEmb unit(iv, startPos);
+    
+    DBArray<MSegmentData>* resArrayRW = 
+        (DBArray<MSegmentData>*)resMRegion->GetFLOB(1);
+    const unsigned int noFaces = resultCycleContainer->GetNoFaces();
+    const ResultMovingCycle* face;
+    const ResultMovingCycle* hole;
+    unsigned int mSegCount = 0;
+    
+    for (unsigned int i = 0; i < noFaces; i++) {
+        
+        face = resultCycleContainer->GetFace(i);
+        
+        // TODO: Construct MSegmentData from face and 
+        // add them to unit:
+        //MSegmentData mSeg(...);
+        //unit.PutSegment(resArrayRW, mSegCount++, mSeg, true);
+        
+    }
+    
+    resMRegion->Add(unit);
+}
+
+void ResultUnitFactory::ResultIsEmpty() {
+
+    // Nothing to do.
+    cout << "ResultUnitFactory::ResultIsEmpty()" << endl;
+}
+
+void ResultUnitFactory::ResultIsUnitA() {
+
+    // TODO
+    
+    assert(false);
+}
 
 void ResultUnitFactory::PrintIntSegsOfGlobalList() {
 
@@ -286,20 +1074,20 @@ SourceUnit::SourceUnit(const bool _isUnitA,
 		     const DBArray<MSegmentData>* _array, 
 		     SourceUnitPair* const _parent) :
 		    	 
-		    isUnitA(_isUnitA),
 	        uRegion(_uRegion), 
 	        array(_array),
 	        parent(_parent), 
 			startTime(_uRegion->timeInterval.start.ToDouble()),
 			endTime(_uRegion->timeInterval.end.ToDouble()),
-			medianRegion(0) {
+			medianRegion(0),
+			isUnitA(_isUnitA) {
 
 	ComputeBoundingRect();
 	hasMedianRegion = false;
 	medianTime = GetTimeInterval().start + 
 	 ((GetTimeInterval().end - GetTimeInterval().start) * 0.5);
 	
-	cout << "medianTime = " << medianTime.ToDouble() << endl;
+	//cout << "medianTime = " << medianTime.ToDouble() << endl;
 }
 
 void SourceUnit::ComputeBoundingRect() {
@@ -340,60 +1128,44 @@ void SourceUnit::ComputeMedianRegion() {
 
 void SourceUnit::CreatePFaces() {
 
-    cout << "Welcome to PUnit::CreatePFaces()" << endl;
-
     const MSegmentData* segment;
 
-    unsigned int endPos = uRegion->GetStartPos() + uRegion->GetSegmentsNum();
     int cycleNo = -1;
+    int faceNo = -1;
     cycleCount = 0;
     pFaceCountTotal = 0;
-    //unsigned int pFaceNoInCycle = 0;
-    bool isOuterCycle;
-    bool intialStartPointIsA;
 
-    for (unsigned int i = uRegion->GetStartPos(); i < endPos; i++) {
+    for (int i = 0; i < uRegion->GetSegmentsNum(); i++) {
 
         uRegion->GetSegment(array, i, segment);
 
-        if (((int)segment->GetCycleNo()) != cycleNo) { // New cycle
+        if ((int)segment->GetCycleNo() != cycleNo ||
+            (int)segment->GetFaceNo() != faceNo) {
 
-            //pFaceNoInCycle = 0;
-
-            // The first cycle of a face is an outer one:
-            isOuterCycle = segment->GetCycleNo() == 0;
-
-            // Check, if we have to flip the segments of this cycle 
-            // to construct the pFaceCycle properly:
-
-            // intialStartPointIsA = 
-            // (isOuterCycle && segment->GetInsideAbove()) 
-            // || (!isOuterCycle && segment->GetInsideAbove());
-
-            // This can be simplified to:
-
-            intialStartPointIsA = segment->GetInsideAbove();
-
-            pFacesCycles.push_back(PFaceCycle(isOuterCycle));
-
+            // We encountered a new cycle:
+            // Add the new cycle:
+            pFacesCycles.push_back(PFaceCycle());
             cycleCount++;
             cycleNo = segment->GetCycleNo();
+            faceNo = segment->GetFaceNo();
         }
 
         //cout << endl;
         //cout << endl;
-        //cout << "segment->GetSegmentNo() = " << segment->GetSegmentNo()<<endl;
+        //cout << "segment->GetSegmentNo() = " 
+        //<< segment->GetSegmentNo() << endl;
+        //cout << "segment->GetInsideAbove() = " 
+        //<< segment->GetInsideAbove() << endl;
         //cout << endl;
-        cout << segment->ToString() << endl;
+        //cout << segment->ToString() << endl;
         //cout << endl;
 
-        PFace* pFace = new PFace(this, segment, intialStartPointIsA);
+        PFace* pFace = new PFace(this, segment);
 
         assert(!pFacesCycles.empty());
 
         pFacesCycles.back().Add(pFace);
         pFaceCountTotal++;
-        //pFaceNoInCycle++;
 
 #ifdef REDUCE_PFACES_BY_BOUNDING_RECT
 
@@ -408,10 +1180,20 @@ void SourceUnit::CreatePFaces() {
 
         //pFace->Print();
     }
+    
+    ConnectPFacesInCycles();
 
-    cout << "cycleCount = " << cycleCount << endl;
-    cout << "pFaceCount = " << pFaceCountTotal << endl;
-    cout << "pFacesReducedCount = " << pFacesReduced.size() << endl;
+    //cout << "cycleCount = " << cycleCount << endl;
+    //cout << "pFaceCount = " << pFaceCountTotal << endl;
+    //cout << "pFacesReducedCount = " << pFacesReduced.size() << endl;
+}
+
+void SourceUnit::ConnectPFacesInCycles() {
+    
+    list<PFaceCycle>::iterator iter;
+    
+    for (iter = pFacesCycles.begin(); iter != pFacesCycles.end(); iter++)
+        (*iter).ConnectPFaces();
 }
 
 void SourceUnit::PrintPFaceCycles() {
@@ -561,9 +1343,10 @@ void SourceUnit::PrintVRMLDesc(ofstream& target, const string& color) {
     target << "} # end Transform" << endl;
 }
 
-void SourceUnit::AddBoundarySegments(const SetOp op) {
+void SourceUnit::AddBoundarySegments() {
 
     bool firstPairInCycle;
+    const SetOp op = this->GetOperation();
 
     for (list<PFaceCycle>::iterator iter = pFacesCycles.begin(); iter
             != pFacesCycles.end(); iter++) {
@@ -577,6 +1360,8 @@ void SourceUnit::AddBoundarySegments(const SetOp op) {
 
             //pair.GetLeft()->Print();
             //pair.GetRight()->Print();
+            
+            
 
             if (!pair.GetLeft()->HasIntSegs()) {
 
@@ -626,8 +1411,17 @@ void SourceUnit::AddBoundarySegments(const SetOp op) {
                 }
 
             } else { // pair.GetLeft()->HasIntSegs() == true
+                
+                if (!pair.GetLeft()->HasIntSegsColinearToRightBoundary()
+                    && !pair.GetRight()->HasIntSegsColinearToLeftBoundary()) {
 
-                pair.ComputeBoundarySegments();
+                    pair.ComputeBoundarySegmentsNormal();
+                    
+                } else {
+                    cout << "pair.ComputeBoundarySegmentsSpecial() called." 
+                         << endl;
+                    pair.ComputeBoundarySegmentsSpecial();
+                }
             }
 
             firstPairInCycle = false;
@@ -692,7 +1486,7 @@ bool SourceUnit::IsEntirelyOutside(const PFace* pFace) {
     // We don't know and have to use the plumbline algorithm
     // to find the answer:
 
-    cout << "Plumbline used." << endl;
+    //cout << "Plumbline used." << endl;
 
     //Vector3D aToMiddle = (pFace->GetC_XYT() - pFace->GetA_XYT()) * 0.5;
     Point3D middleXYT = (pFace->GetA_XYT() + pFace->GetC_XYT()) * 0.5;
@@ -701,7 +1495,12 @@ bool SourceUnit::IsEntirelyOutside(const PFace* pFace) {
     //cout << "middleXYT: " << middleXYT.GetX() << " | " << middleXYT.GetY()
             //<< " | " << middleXYT.GetT() << endl;
 
-    return !GetMedianRegion().InnerContains(middleXY);
+    return !GetMedianRegion().Contains(middleXY);
+}
+
+const SetOp SourceUnit::GetOperation() const {
+
+    return parent->GetOperation();
 }
 
 /*
@@ -710,17 +1509,27 @@ bool SourceUnit::IsEntirelyOutside(const PFace* pFace) {
 
 */
 
-SourceUnitPair::SourceUnitPair(const URegionEmb* const _uRegionA,
-                               const DBArray<MSegmentData>* const aArray, 
-                               const URegionEmb* const _uRegionB,
-                               const DBArray<MSegmentData>* const bArray,
+SourceUnitPair::SourceUnitPair(const URegionEmb* const _unitA,
+                               const DBArray<MSegmentData>* const _aArray, 
+                               const URegionEmb* const _unitB,
+                               const DBArray<MSegmentData>* const _bArray,
+                               const SetOp _operation,
                                //MRegion* const resultMRegion,
-                               NList* const resultUnitList) :
+                               NList* const _resultUnitList) :
 
-    unitA(true, _uRegionA, aArray, this), 
-    unitB(false, _uRegionB, bArray, this),
+    unitA(true, _unitA, _aArray, this), 
+    unitB(false, _unitB, _bArray, this),
+    op(_operation),
+    //resultUnitList(_resultUnitList),
     resultUnitFactory(//resultMRegion, 
-                      resultUnitList) {
+                      _resultUnitList,
+                      this) {
+    
+    assert(NumericUtil::NearlyEqual(_unitA->timeInterval.start.ToDouble(), 
+                                    _unitB->timeInterval.start.ToDouble()) 
+            
+       &&  NumericUtil::NearlyEqual(_unitA->timeInterval.end.ToDouble(), 
+                                    _unitB->timeInterval.end.ToDouble()));  
 
     unitA.SetPartner(&unitB);
     unitB.SetPartner(&unitA);
@@ -728,48 +1537,46 @@ SourceUnitPair::SourceUnitPair(const URegionEmb* const _uRegionA,
     ComputeOverlapRect();
 }
 
-void SourceUnitPair::Operate(const SetOp op) {
+void SourceUnitPair::Operate() {
 
-    if (HasOverlappingBoundingRect()) {
-
-        cout << "HasOverlappingBoundingRect() == true" << endl;
+    //if (op == UNION || HasOverlappingBoundingRect()) {
+    if (true) {
 
         CreatePFaces();
+        //return;
         //PrintPFaceCycles();
+        //return;
         //PrintPFacePairs();
-        ComputeInnerIntSegs(op);
+        ComputeInnerIntSegs();
         //PrintIntSegsOfPFaces();
-        AddBoundarySegments(op);
+        AddBoundarySegments();
         //PrintIntSegsOfPFaces();
         //FindMates();
         //PrintIntSegsOfPFaces();
         FindMatesAndCollectIntSegs(&resultUnitFactory);
         //CollectIntSegs(&resultUnitFactory);
-        PrintIntSegsOfPFaces();
-        resultUnitFactory.PrintIntSegsOfGlobalList();
+        //PrintIntSegsOfPFaces();
+        //resultUnitFactory.PrintIntSegsOfGlobalList();
         //PrintIntSegsOfGlobalListAsVRML();
         PrintUnitsAsVRML();
         ConstructResultUnits();
 
     } else {
 
-        cout << "HasOverlappingBoundingRect() == false" << endl;
+        switch (op) {
+        
+        case MINUS:
+                    
+            resultUnitFactory.ResultIsUnitA();
+            break;
 
-        CreatePFaces();
-        //PrintPFaceCycles();
-        //PrintPFacePairs();
-        ComputeInnerIntSegs(op);
-        //PrintIntSegsOfPFaces();
-        AddBoundarySegments(op);
-        //PrintIntSegsOfPFaces();
-        //FindMates();
-        //PrintIntSegsOfPFaces();
-        FindMatesAndCollectIntSegs(&resultUnitFactory);
-        //PrintIntSegsOfGlobalList();
-        //PrintIntSegsOfGlobalListAsVRML();
-        PrintUnitsAsVRML();
-        ConstructResultUnits();
+        case INTERSECTION:
+
+            resultUnitFactory.ResultIsEmpty();
+            break;
+        }
     }
+    
 }
 
 void SourceUnitPair::ComputeOverlapRect() {
@@ -783,7 +1590,7 @@ void SourceUnitPair::CreatePFaces() {
     unitB.CreatePFaces();
 }
 
-void SourceUnitPair::ComputeInnerIntSegs(const SetOp op) {
+void SourceUnitPair::ComputeInnerIntSegs() {
 
     for (list<PFace*>::iterator iterA = unitA.pFacesReduced.begin(); iterA
             != unitA.pFacesReduced.end(); iterA++) {
@@ -791,15 +1598,15 @@ void SourceUnitPair::ComputeInnerIntSegs(const SetOp op) {
         for (list<PFace*>::iterator iterB = unitB.pFacesReduced.begin(); iterB
                 != unitB.pFacesReduced.end(); iterB++) {
 
-            (*iterA)->Intersection(**iterB, op);
+            (*iterA)->Intersection(**iterB);
         }
     }
 }
 
-void SourceUnitPair::AddBoundarySegments(const SetOp op) {
+void SourceUnitPair::AddBoundarySegments() {
 
-    unitA.AddBoundarySegments(op);
-    unitB.AddBoundarySegments(op);
+    unitA.AddBoundarySegments();
+    unitB.AddBoundarySegments();
 }
 
 void SourceUnitPair::FindMates() {
@@ -822,7 +1629,7 @@ void SourceUnitPair::FindMatesAndCollectIntSegs(ResultUnitFactory* receiver) {
 
 void SourceUnitPair::ConstructResultUnits() {
     
-    resultUnitFactory.Start();
+        resultUnitFactory.Start();
 }
 
 void SourceUnitPair::PrintPFaceCycles() {
@@ -892,11 +1699,15 @@ void SourceUnitPair::PrintUnitsAsVRML() {
     const string colorB = "0 0.6 1";
     const string colorIntSegs = "1 0 0";
 
-    ofstream target(VRML_OUTFILE);
+    const string filename = "unit_" + 
+                            GetTimeInterval().start.ToString() + 
+                            ".wrl";
+    
+    ofstream target(filename.c_str());
 
     if (!target.is_open()) {
 
-        cerr << "Unable to open file: " << VRML_OUTFILE << endl;
+        cerr << "Unable to open file: " << filename << endl;
         return;
     }
 
@@ -942,47 +1753,40 @@ void SetOperator::Minus() {
     Operate(MINUS);
 }
 
-void SetOperator::RefinementPartition() {
-    
-    // TODO: This is just a dummy.
-    
-    a_ref = a;
-    b_ref = b;
-}
 
 void SetOperator::Operate(const SetOp op) {
     
-    // Note: Only one unit is supported yet!
-    
-    RefinementPartition();
+    // Note: Only one unit is supported!
 
-    const DBArray<MSegmentData>* aArray = a_ref->GetMSegmentData();
-    const DBArray<MSegmentData>* bArray = b_ref->GetMSegmentData();
-    const URegionEmb* a;
-    const URegionEmb* b;
+    if (!a->IsDefined() || !b->IsDefined()) {
 
-    a_ref->Get(0, a);
-    b_ref->Get(0, b);
+        res->SetDefined(false);
+        return;
+    }
+
+    const URegionEmb* unitA;
+    const URegionEmb* unitB;
+    const DBArray<MSegmentData>* aArray;
+    const DBArray<MSegmentData>* bArray;
     
-    //NList resultUnitList;
+    a->Get(0, unitA);
+    b->Get(0, unitB);
     
-    SourceUnitPair so = SourceUnitPair(a, aArray, 
-                                       b, bArray, 
+    aArray = a->GetMSegmentData();
+    bArray = b->GetMSegmentData();
+
+    SourceUnitPair so = SourceUnitPair(unitA, aArray, 
+                                       unitB, bArray, 
+                                       op, 
                                        &resultMRegionList);
-    so.Operate(op);
-    
-    //resultUnitList.enclose();
-    //AppendUnitList(&resultUnitList);
-    
-    //CreateResultMRegionFromList();
-    //res->SetDefined(false);
+    so.Operate();
     
     MRegion* operationResult = CreateResultMRegionFromList();
     res->CopyFrom(operationResult);
     delete operationResult;
-    
-
 }
+
+
 
 void SetOperator::AppendUnitList(const NList* resultUnitList) {
     
@@ -990,6 +1794,8 @@ void SetOperator::AppendUnitList(const NList* resultUnitList) {
 }
 
 MRegion* SetOperator::CreateResultMRegionFromList() {
+    
+    //cout << resultMRegionList << endl;
     
     ListExpr errorInfo = NList().listExpr();
     bool correct = false;
@@ -1017,220 +1823,6 @@ MRegion* SetOperator::CreateResultMRegionFromList() {
     }
 }
 
-/*
-
-Class IntersectionSegment
-
-*/
-
-unsigned int IntersectionSegment::instancePairCount = 0;
-
-pair<IntersectionSegment*, IntersectionSegment*> 
-IntersectionSegment::createBuddyPair(const Point3D& a, const Point3D& b) {
-
-	IntersectionSegment* first = new IntersectionSegment();
-	IntersectionSegment* second = new IntersectionSegment();
-
-	// The startpoint's t-coord is always lower or equal to the
-	// endpoint's t-coord.
-	// Note: We don't care for x and y!
-
-	if (a.GetT() <= b.GetT()) {
-
-		first->startXYT = second->startXYT = new Point3D(a);
-		first->endXYT = second->endXYT = new Point3D(b);
-
-	} else { // a.GetT() > b.GetT()
-
-		first->startXYT = second->startXYT = new Point3D(b);
-		first->endXYT = second->endXYT = new Point3D(a);
-	}
-
-	first->matesOfThis = new deque<IntersectionSegment*>();
-	second->matesOfBuddy = first->matesOfThis;
-	
-	second->matesOfThis = new deque<IntersectionSegment*>();
-	first->matesOfBuddy = second->matesOfThis;
-			
-	first->inserted = second->inserted = new bool(false);
-	first->hasReference = second->hasReference = new bool(true);
-	
-	cout << "Create IntSegPair: " 
-	     << IntersectionSegment::instancePairCount << endl;
-	
-	first->id = second->id = 
-	    new unsigned int(IntersectionSegment::instancePairCount++);
-	
-	return pair<IntersectionSegment*, IntersectionSegment*>(first, second);
-}
-
-bool IntersectionSegment::IsLeftOf(const IntersectionSegment* intSeg) const {
-    
-    // TODO: Avoid multiple computation of the same value.
-    
-    Segment2D s(intSeg->GetStartWT(), intSeg->GetEndWT());
-
-    if (this->GetStartWT().IsLeft(s))
-        return true;
-    else
-        if (this->GetStartWT().IsRight(s))
-            return false;
-        else // Startpoint of this is colinear to intSeg.
-            if (this->GetEndWT().IsLeft(s))
-                return true;
-            else
-                if (this->GetEndWT().IsRight(s))
-                    return false;
-                else
-                    return true;
-                //else // this is colinear to intSeg.
-                    //if (op == INTERSECTION)
-                        //return this->ResultFaceIsLeft();
-                    //else // op == UNION | MINUS
-                        //return this->ResultFaceIsRight();    
-}
-
-void IntersectionSegment::SetWCoords(const PFace& pFace) {
-
-    this->SetStartW(pFace.TransformToW(*this->GetStartXYT()));
-    this->SetEndW(pFace.TransformToW(*this->GetEndXYT()));
-}
-
-void IntersectionSegment::SetSideOfResultFace(const PFace& self,
-        const PFace& other, const SetOp op) {
-
-    // First, we compute the normalized cross product of the normal vectors of 
-    // PFaces self and other:
-    Vector3D cross = self.GetNormalVector() ^ other.GetNormalVector();
-    cross.Normalize();
-
-    // Second, we compute the normalized vector from the startpoint to
-    // the endpoint of this intersection segment:
-    Vector3D startToEnd = *GetEndXYT() - *GetStartXYT();
-    startToEnd.Normalize();
-
-    // Third, we calculate the cosinus of the angle between cross and startToEnd
-    // Note that both vectors have unit length and the angle 
-    // must be either 0 or pi. Hence the cosinus equals 1 or -1.
-    double cos = startToEnd * cross;
-
-    //cout << "cos = " << cos << endl;
-    assert(NumericUtil::NearlyEqual(cos, 1.0) || NumericUtil::NearlyEqual(cos,
-            -1.0));
-
-    // If cos equals 1, 
-    // the normal vector of other points to the right side of this segment.
-    // If cos equals -1, 
-    // the normal vector of other points to the left side of this segment.
-
-    if (op == INTERSECTION || (op == MINUS && other.IsPartOfUnitA())) {
-
-        if (cos > 0.0) // normalOfOther points to the right side of startToEnd.
-            this->SetResultFaceIsLeft();
-        else
-            // normalOfOther points to the left side of startToEnd.
-            this->SetResultFaceIsRight();
-
-    } else { // op == UNION || (op == MINUS && self.IsPartOfUnitA())
-
-        if (cos > 0.0) // normalOfOther points to the right side of startToEnd.
-            this->SetResultFaceIsRight();
-        else
-            // normalOfOther points to the left side of startToEnd.
-            this->SetResultFaceIsLeft();
-    }
-}
-
-Point3D IntersectionSegment::Evaluate(const double t) const {
-
-    // We compute the intersection point
-    // of the horizontal plane, defined by t, and this segment.
-    
-    // Precondition:
-    // t is between t_start and t_end.
-    assert(NumericUtil::Between(this->GetStartT(), t, this->GetEndT()));
-
-    // Point3D pointInPlane(0.0, 0.0, t);
-    // Vector3D normalVectorOfPlane(0.0, 0.0, 1.0);
-    // Vector3D u = *this->GetEndXYT() - *this->GetStartXYT();
-    // Vector3D w = this->GetStartXYT() - pointInPlane;
-    // double d = normalVectorOfPlane * u;
-    // double n = -normalVectorOfPlane * w;
-    
-    // This can be simplified to:
-
-    const Vector3D u = *this->GetEndXYT() - *this->GetStartXYT();
-    const double d = this->GetEndT() - this->GetStartT();
-    const double n = t - this->GetStartT();
-
-    // This segment must not be parallel to plane:
-    assert(!NumericUtil::NearlyEqual(d, 0.0));
-
-    const double s = n / d;
-
-    // This segment intersects the plane:
-    assert(NumericUtil::Between(0.0, s, 1.0));
-
-    // Compute segment intersection point:
-    return *this->GetStartXYT() + s * u;
-}
-
-
-void IntersectionSegment::Print() const {
-    
-    cout << "ID: " << GetID() << endl;
-
-    cout << "Start_XYT: " << GetStartXYT()->GetX() << " | " 
-                          << GetStartXYT()->GetY() << " | " 
-                          << GetStartXYT()->GetT() << endl;
-
-    cout << "End_XYT: " << GetEndXYT()->GetX() << " | " 
-                        << GetEndXYT()->GetY() << " | " 
-                        << GetEndXYT()->GetT() << endl;
-
-    //cout << "Start_WT: " << GetStartW() << " | " << GetStartT() << endl;
-    //cout << "End_WT: " << GetEndW() << " | " << GetEndT() << endl;
-
-    cout << "IsRightBoundary() == " << this->IsRightBoundary() << endl;
-
-    cout << "ResultFaceIsLeft: " << ResultFaceIsLeft() << endl;
-    //cout << "RelationToRightBoundary: " 
-    // << GetRelationToRightBoundaryOfPFace() << endl;
-
-    //cout << "inserted:" << *inserted << endl;
-    //cout << "matesOfThis->size() == " << matesOfThis->size() << endl;
-
-
-}
-
-string IntersectionSegment::GetVRMLDesc() {
-	
-	return GetStartXYT()->GetVRMLDesc() + GetEndXYT()->GetVRMLDesc();
-}
-
-void IntersectionSegment::PrintMates() {
-	
-	//cout << "Welcome to IntersectionSegment::PrintMates()" << endl;
-	
-	//cout << "inserted:" << *inserted << endl;
-	//cout << "matesOfThis->size() == " << matesOfThis->size() << endl;
-	
-	if (matesOfThis->empty()) {
-		
-		cout << "matesOfThis is empty." << endl;
-		cout << "*********************************************" << endl;
-		return;
-	}
-	
-	deque<IntersectionSegment*> mates = *matesOfThis;
-	
-	deque<IntersectionSegment*>::iterator iter;
-	for (iter = mates.begin(); iter != mates.end(); ++iter) {
-		
-		(*iter)->Print();
-	}
-	
-}
 
 bool GeneralIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
         const IntersectionSegment* const& s2) const {
@@ -1242,32 +1834,26 @@ bool GeneralIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
 
     if (NumericUtil::Lower(s1->GetStartT(), s2->GetStartT()))
         return true;
-    else
-        if (NumericUtil::Greater(s1->GetStartT(), s2->GetStartT()))
-            return false;
-        else // s1->GetStartT() == s2->GetStartT()
-            if (NumericUtil::Lower(s1->GetStartW(), s2->GetStartW()))
-                return true;
-            else
-                if (NumericUtil::Greater(s1->GetStartW(), s2->GetStartW()))
-                    return false;
-                else // s1->GetStartW() == s2->GetStartW()
-                    return s1->GetEndWT().IsLeft(s2->GetStartWT(),
-                                                 s2->GetEndWT());
+
+    if (NumericUtil::Greater(s1->GetStartT(), s2->GetStartT()))
+        return false;
+    // s1->GetStartT() == s2->GetStartT()
+    if (NumericUtil::Lower(s1->GetStartW(), s2->GetStartW()))
+        return true;
+
+    if (NumericUtil::Greater(s1->GetStartW(), s2->GetStartW()))
+        return false;
+    // s1->GetStartW() == s2->GetStartW()
+    return s1->GetEndWT().IsLeft(s2->GetStartWT(), s2->GetEndWT());
 }
 
 bool RightIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
         const IntersectionSegment* const& s2) const {
 
-    assert(s1->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_STARTPOINT ||
-            s1->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_ENDPOINT);
-
-    assert(s2->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_STARTPOINT ||
-            s2->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_ENDPOINT);
-
     double t1, t2, t3, t4;
 
-    if (s1->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_STARTPOINT) {
+    if (s1->GetRelationToBoundaryOfPFace() == 
+        TOUCH_RIGHT_BOUNDARY_IN_STARTPOINT_ONLY) {
 
         t1 = s1->GetStartT();
         t2 = s1->GetEndT();
@@ -1278,7 +1864,8 @@ bool RightIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
         t2 = s1->GetStartT();
     }
 
-    if (s2->GetRelationToRightBoundaryOfPFace() == TOUCH_IN_STARTPOINT) {
+    if (s2->GetRelationToBoundaryOfPFace() == 
+        TOUCH_RIGHT_BOUNDARY_IN_STARTPOINT_ONLY) {
 
         t3 = s2->GetStartT();
         t4 = s2->GetEndT();
@@ -1291,8 +1878,14 @@ bool RightIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
 
     if (NumericUtil::NearlyEqual(t1, t3))
         return NumericUtil::Lower(t2, t4);
-    else
-        return NumericUtil::Lower(t1, t3);
+    
+    return NumericUtil::Lower(t1, t3);
+}
+
+bool ColinearIntSegSetCompare::operator()(const IntersectionSegment* const& s1,
+        const IntersectionSegment* const& s2) const {
+    
+    return NumericUtil::Lower(s1->GetStartT(), s2->GetStartT());
 }
 
 /*
@@ -1309,12 +1902,9 @@ void MateEngine::ComputeCurrentTimeLevel() {
 
     while (activeIter != active.end()) {
 
-        bool removedOrInserted = false;
-
         while (activeIter != active.end() && IsOutOfRange(*activeIter)) {
 
             activeIter = active.erase(activeIter);
-            removedOrInserted = true;
         }
 
         if (activeIter == active.end())
@@ -1328,17 +1918,11 @@ void MateEngine::ComputeCurrentTimeLevel() {
 
                 activeIter = active.insert(activeIter, newSeg);
                 sourceIter++;
-                removedOrInserted = true;
             }
         }
 
-        if (true) {
-
-            DoMating();
-        }
-        
+        DoMating();
         UpdateMinEndT();
-
         activeIter++;
     }
 
@@ -1377,8 +1961,8 @@ void MateEngine::DoMating() {
     } else { // pred->IsLeftBoundary() == true
 
         current->MarkAsRightBoundary();
-        current->AddMate(pred);
-        pred->AddMate(current);
+        current->AddMate(t, pred);
+        pred->AddMate(t, current);
     }
 }
 
@@ -1388,20 +1972,51 @@ void MateEngine::DoMating() {
 
 */
 
-PFace::PFace(SourceUnit* _unit, 
-             const MSegmentData* _mSeg, 
-             bool _initialStartPointIsA) :
+PFace::PFace(SourceUnit* _unit, const MSegmentData* _mSeg) :
 
-    unit(_unit), mSeg(_mSeg), 
-    initialStartPointIsA(_initialStartPointIsA) {
+    unit(_unit), mSeg(_mSeg) {
 
     hasIntSegs = false;
     hasBoundaryIntSegs = false;
     entirelyInsideOutside = UNKNOWN;
+    rightNeighbour = 0;
+    leftNeighbour = 0;
 
+    SetInitialStartPointIsA();
     ComputeBoundingRect();
     ComputeNormalVector();
     ComputeWTCoords();
+}
+
+void PFace::SetInitialStartPointIsA() {
+    
+    double startX, startY, endX, endY;
+    
+    if (!mSeg->GetPointInitial()) {
+        
+        startX = mSeg->GetInitialStartX();
+        startY = mSeg->GetInitialStartY();
+        endX = mSeg->GetInitialEndX();
+        endY = mSeg->GetInitialEndY();
+        
+    } else {
+        
+        startX = mSeg->GetFinalStartX();
+        startY = mSeg->GetFinalStartY();
+        endX = mSeg->GetFinalEndX();
+        endY = mSeg->GetFinalEndY();
+    }
+    
+    if (NumericUtil::Lower(startX, endX))
+        initialStartPointIsA = mSeg->GetInsideAbove();
+    else
+        if (NumericUtil::Greater(startX, endX))
+            initialStartPointIsA = !mSeg->GetInsideAbove();
+        else // startX equals endX
+            if (NumericUtil::Lower(startY, endY))
+                initialStartPointIsA = mSeg->GetInsideAbove();
+            else
+                initialStartPointIsA = !mSeg->GetInsideAbove();
 }
 
 bool PFace::IntersectionPlaneSegment(const Segment3D& seg, Point3D& result) {
@@ -1422,9 +2037,9 @@ bool PFace::IntersectionPlaneSegment(const Segment3D& seg, Point3D& result) {
 
     double s = n / d;
 
-    //if (NumericUtil::Lower(s, 0.0) || NumericUtil::Lower(1.0, s)) 
     // No intersection point, if s < -eps or s > 1 + eps.
-    if (s< 0.0 || s> 1.0)return false;
+    if (NumericUtil::Lower(s, 0.0) || NumericUtil::Greater(s, 1.0)) 
+        return false;
 
     // Compute segment intersection point:
     result = seg.GetStart() + s * u;
@@ -1432,10 +2047,10 @@ bool PFace::IntersectionPlaneSegment(const Segment3D& seg, Point3D& result) {
     return true;
 }
 
-bool PFace::Intersection(PFace& other, const SetOp op) {
-
-    if (!this->GetBoundingRect().Intersects(other.GetBoundingRect()))
-        return false;
+bool PFace::Intersection(PFace& other) {
+    
+    //if (!this->GetBoundingRect().Intersects(other.GetBoundingRect()))
+        //return false;
 
     if (this->IsParallelTo(other)) // The PFaces are parallel.
         return false;
@@ -1504,16 +2119,35 @@ bool PFace::Intersection(PFace& other, const SetOp op) {
 
     if (result.first == 0 || result.second == 0) // There is no intersection.
         return false;
-
-    // We got an intersection segment buddy pair
+    
+    // We got an intersection segment buddy pair:
+    result.first->SetPFace(this);
+    result.second->SetPFace(&other);
+    
     // and compute the w-coords of each segment:
-    result.first->SetWCoords(*this);
-    result.second->SetWCoords(other);
+    result.first->SetWCoords();
+    result.second->SetWCoords();
 
     // Check, on which side of the segment the result face is:
-    result.first->SetSideOfResultFace(*this, other, op);
-    result.second->SetSideOfResultFace(other, *this, op);
+    result.first->SetSideOfResultFace(*this, other);
+    result.second->SetSideOfResultFace(other, *this);
+    
+    // Determine the relation of the segment to the PFace's boundary:
+    result.first->SetRelationToBoundaryOfPFace();
+    result.second->SetRelationToBoundaryOfPFace();
+    
+    
+    if (result.first->ResultFaceIsVanished() ||
+        result.second->ResultFaceIsVanished() ||
+        result.first->IsTouchingLine(other) ||
+        result.second->IsTouchingLine(*this)) {
+        
+        result.first->Delete();
+        result.second->Delete();
 
+        return false;
+    }
+    
     // Add one of them to each PFace:
     this->AddInnerIntSeg(result.first);
     other.AddInnerIntSeg(result.second);
@@ -1594,24 +2228,6 @@ void PFace::FindMates() {
 
     MateEngine mateEngine(&generalIntSegSet);
     mateEngine.Start();
-    
-    //set<double>::iterator timeIter;
-    //int count = 0;
-    // Find mates for each relevant time value:
-
-    //for (timeIter = relevantTimeValueSet.begin(); timeIter
-        //    != relevantTimeValueSet.end(); timeIter++) {
-
-        //cout << count << endl;
-        //cout << *timeIter << endl;
-       //cout << "relevantTimeValueSet.size() == "
-                //<< relevantTimeValueSet.size() << endl;
-        //mateEngine.ComputeTimeLevel(*timeIter);
-
-        //if (++count == 10)
-        //break;
-    //}
-    
 }
 
 void PFace::CollectIntSegs(ResultUnitFactory* receiver) const {
@@ -1633,13 +2249,24 @@ bool PFace::IsParallelTo(const PFace& pf) const {
 
 void PFace::AddInnerIntSeg(IntersectionSegment* intSeg) {
 
-    // Precondition: w-coords and resultFaceIsLeft are already set.
-
-    if (IntersectsRightBoundary(intSeg)) {
-
-        rightIntSegSet.insert(intSeg);
+    const RelationToBoundary relToBoundary = 
+        intSeg->GetRelationToBoundaryOfPFace();
+    
+    assert(relToBoundary != UNDEFINED_RELATION);
+    
+    if (relToBoundary != NO_TOUCH_OF_BOUNDARY) {
+        
+        if (relToBoundary == TOUCH_RIGHT_BOUNDARY_IN_STARTPOINT_ONLY ||
+            relToBoundary == TOUCH_RIGHT_BOUNDARY_IN_ENDPOINT_ONLY)
+            rightIntSegSet.insert(intSeg);
+        else
+            if (relToBoundary == COLINEAR_TO_RIGHT_BOUNDARY) 
+                rightColinearIntSegSet.insert(intSeg); 
+            else 
+                if (relToBoundary == COLINEAR_TO_LEFT_BOUNDARY) 
+                    leftColinearIntSegSet.insert(intSeg);
     }
-
+         
     if (!intSeg->IsOrthogonalToTAxis()) {
 
         generalIntSegSet.insert(intSeg);
@@ -1657,6 +2284,8 @@ void PFace::AddInnerIntSeg(IntersectionSegment* intSeg) {
 }
 
 void PFace::AddBoundaryIntSegs(IntersectionSegment* intSeg) {
+    
+    intSeg->SetPFace(this);
 
     // Set the w-coords of the intersection segment, 
     // depending of this PFace:
@@ -1669,32 +2298,6 @@ void PFace::AddBoundaryIntSegs(IntersectionSegment* intSeg) {
 
     hasIntSegs = true;
     hasBoundaryIntSegs = true;
-}
-
-bool PFace::IntersectsRightBoundary(IntersectionSegment* intSeg) const {
-
-    if (intSeg->GetRelationToRightBoundaryOfPFace() == NO_TOUCH)
-        return false;
-    
-    const Segment2D rightBoundary(this->GetB_WT(), this->GetD_WT());
-    
-    const bool startOnBoundary = intSeg->GetStartWT().IsColinear(rightBoundary);
-    const bool endOnBoundary = intSeg->GetEndWT().IsColinear(rightBoundary);
-
-    if (startOnBoundary && !endOnBoundary) {
-
-        intSeg->SetRelationToRightBoundaryOfPFace(TOUCH_IN_STARTPOINT);
-        return true;
-    }
-
-    if (!startOnBoundary && endOnBoundary) {
-
-        intSeg->SetRelationToRightBoundaryOfPFace(TOUCH_IN_ENDPOINT);
-        return true;
-    }
-
-    intSeg->SetRelationToRightBoundaryOfPFace(NO_TOUCH);
-    return false;
 }
 
 const IntersectionSegment* PFace::GetRightmostIntSeg() {
@@ -1718,9 +2321,9 @@ const IntersectionSegment* PFace::GetRightmostIntSeg() {
             // if there is one:
             if (iter == generalIntSegSet.begin()) {
                 
-                cout << "rightmost intSeg: ";
-                rightmost->Print();
-                cout << endl;
+                //cout << "rightmost intSeg: ";
+                //rightmost->Print();
+                //cout << endl;
                 
                 return rightmost;
             }
@@ -1877,7 +2480,7 @@ void PFace::PrintOrthogonalIntSegs() {
     cout << "*********************************************" << endl;
 }
 
-void PFacePair::ComputeBoundarySegments() {
+void PFacePair::ComputeBoundarySegmentsNormal() {
 
     // Precondition: left->HasIntSegs() == true.
     assert(left->HasIntSegs());
@@ -1904,7 +2507,8 @@ void PFacePair::ComputeBoundarySegments() {
 
     } else { // left->HasIntSegsTouchingRightBoundary() == true
 
-        const Point3D* p1 = &(left->GetB_XYT());
+        const Point3D p = left->GetB_XYT();
+        const Point3D* p1 = &p;
         const Point3D* p2;
         bool boundaryIntSegFound;
 
@@ -1913,8 +2517,8 @@ void PFacePair::ComputeBoundarySegments() {
         for (iter = left->rightIntSegSet.begin(); iter
                 != left->rightIntSegSet.end(); ++iter) {
 
-            if ((*iter)->GetRelationToRightBoundaryOfPFace()
-                    == TOUCH_IN_STARTPOINT) {
+            if ((*iter)->GetRelationToBoundaryOfPFace()
+                    == TOUCH_RIGHT_BOUNDARY_IN_STARTPOINT_ONLY) {
 
                 p2 = (*iter)->GetStartXYT();
                 boundaryIntSegFound = (*iter)->ResultFaceIsLeft();
@@ -1941,6 +2545,147 @@ void PFacePair::ComputeBoundarySegments() {
     }
 }
 
+void PFacePair::ComputeBoundarySegmentsSpecial() {
+
+    assert(left->HasIntSegs());
+    
+    Range<Instant> boundary(0);
+    Instant start(instanttype);
+    Instant end(instanttype);
+
+    if (!left->HasIntSegsTouchingRightBoundary()) {
+
+        const IntersectionSegment* rightmost = left->GetRightmostIntSeg();
+
+        if (rightmost->ResultFaceIsRight()) {
+
+            // Both, the entire right boundary of PFace left and 
+            // the entire left boundary of PFace right 
+            // contributes to a result face:
+
+            //AddEntireBoundary();
+            start.ReadFrom(left->GetA_WT().GetT());
+            end.ReadFrom(left->GetC_WT().GetT());
+            boundary.StartBulkLoad();
+            boundary.Add(Interval<Instant>(start, end, true, true));
+            boundary.EndBulkLoad(false);
+
+        } else { // intSegMaxW->ResultFaceIsLeft() == true
+
+            // Neither the right boundary of PFace left nor 
+            // the left boundary of PFace right 
+            // contributes to a result face:
+            // do nothing...
+        }
+
+    } else { // left->HasIntSegsTouchingRightBoundary() == true
+
+        const Point3D p = left->GetB_XYT();
+        const Point3D* p1 = &p;
+        const Point3D* p2;
+        bool boundaryIntSegFound;
+        
+        set<IntersectionSegment*>::iterator iter;
+        
+        boundary.StartBulkLoad();
+
+        for (iter = left->rightIntSegSet.begin(); iter
+                != left->rightIntSegSet.end(); ++iter) {
+
+            if ((*iter)->GetRelationToBoundaryOfPFace()
+                    == TOUCH_RIGHT_BOUNDARY_IN_STARTPOINT_ONLY) {
+
+                p2 = (*iter)->GetStartXYT();
+                boundaryIntSegFound = (*iter)->ResultFaceIsLeft();
+
+            } else { // TOUCH_IN_ENDPOINT
+
+                p2 = (*iter)->GetEndXYT();
+                boundaryIntSegFound = (*iter)->ResultFaceIsRight();
+            }
+
+            if (boundaryIntSegFound) {
+
+                //AddBoundarySegment(*p1, *p2);
+                start.ReadFrom(p1->GetT());
+                end.ReadFrom(p2->GetT());
+                boundary.Add(Interval<Instant>(start, end, true, true));
+            }
+
+            p1 = p2;
+        }
+
+        // Create the last boundary part:
+        if (!boundaryIntSegFound) {
+
+            //AddBoundarySegment(*p1, left->GetD_XYT());
+            start.ReadFrom(p1->GetT());
+            end.ReadFrom(left->GetD_XYT().GetT());
+            boundary.Add(Interval<Instant>(start, end, true, true));
+        }
+        
+        boundary.EndBulkLoad(false);
+    }
+    
+    Range<Instant> colinearSegsOfLeft(0);
+    Range<Instant> colinearSegsOfRight(0);
+    colinearSegsOfLeft.StartBulkLoad();
+    colinearSegsOfRight.StartBulkLoad();
+    
+    set<IntersectionSegment*, ColinearIntSegSetCompare>::const_iterator iter;
+    
+    for (iter = left->rightColinearIntSegSet.begin();
+            iter != left->rightColinearIntSegSet.end(); iter++) {
+
+        start.ReadFrom((*iter)->GetStartT());
+        end.ReadFrom((*iter)->GetEndT());
+        colinearSegsOfLeft.Add(Interval<Instant>(start, end, true, true));
+    }
+    
+    for (iter = right->leftColinearIntSegSet.begin();
+            iter != right->leftColinearIntSegSet.end(); iter++) {
+
+        start.ReadFrom((*iter)->GetStartT());
+        end.ReadFrom((*iter)->GetEndT());
+        colinearSegsOfRight.Add(Interval<Instant>(start, end, true, true));
+    }
+    
+    colinearSegsOfLeft.EndBulkLoad(false);
+    colinearSegsOfRight.EndBulkLoad(false);
+    
+    Range<Instant> colinear(colinearSegsOfLeft.GetNoComponents() + 
+                            colinearSegsOfRight.GetNoComponents());
+    
+    colinearSegsOfLeft.Union(colinearSegsOfRight, colinear);
+    
+    Range<Instant> resultBoundary(0);
+    boundary.Minus(colinear, resultBoundary);
+    
+    const Vector3D u = left->GetB_XYT() - left->GetD_XYT();
+    const double d = left->GetEndTime() - left->GetStartTime();
+    
+    for (int i = 0; i < resultBoundary.GetNoComponents(); i++) {
+        
+        const Interval<Instant>* iv;
+        resultBoundary.Get(i, iv);
+        double t1 = iv->start.ToDouble();
+        double t2 = iv->end.ToDouble();
+        double n1 = t1 - left->GetStartTime();
+        double n2 = t2 - left->GetStartTime();
+        
+        double s1 = n1 / d;
+        double s2 = n2 / d;
+        
+        assert(NumericUtil::Between(0.0, s1, 1.0));
+        assert(NumericUtil::Between(0.0, s2, 1.0));
+        
+        Point3D p1(left->GetB_XYT() + s1 * u);
+        Point3D p2(left->GetB_XYT() + s2 * u);
+        
+        AddBoundarySegment(p1, p2);
+    }
+}
+
 /*
 
 Class PFaceCycle
@@ -1950,6 +2695,18 @@ Class PFaceCycle
 PFaceCycleIterator PFaceCycle::GetPFaceCycleIterator() {
 
 	return PFaceCycleIterator(this);
+}
+
+void PFaceCycle::ConnectPFaces() {
+
+    PFaceCycleIterator iter = GetPFaceCycleIterator();
+
+    while (iter.HasNextPair()) {
+
+        PFacePair pair = iter.GetNextPair();
+        pair.GetLeft()->SetRightNeighbour(pair.GetRight());
+        pair.GetRight()->SetLeftNeighbour(pair.GetLeft());
+    }
 }
 
 } // end of namespace mregionops

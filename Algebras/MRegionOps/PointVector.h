@@ -347,6 +347,23 @@ public:
 
         return y;
     }
+    
+    inline bool operator ==(const Point2D& p) const {
+        
+        return NumericUtil::NearlyEqual(x, p.x) &&
+               NumericUtil::NearlyEqual(y, p.y);
+    }
+    
+    inline bool operator <(const Point2D& p) const {
+
+        if (NumericUtil::Lower(x, p.x))
+            return true;
+        else 
+            if (NumericUtil::Greater(x, p.x))
+                return false;
+            else
+                return NumericUtil::Lower(y, p.y);
+    }
 
     inline Vector2D operator -(const Point2D& p) const {
 
@@ -467,6 +484,13 @@ public:
                 << " " << y << " " << z << ", ";
 
         return oss.str();
+    }
+    
+    inline bool operator ==(const Point3D& p) const {
+
+        return NumericUtil::NearlyEqual(x, p.x) && 
+               NumericUtil::NearlyEqual(y, p.y) && 
+               NumericUtil::NearlyEqual(z, p.z);
     }
 
     inline Vector3D operator -(const Point3D& p) const {
