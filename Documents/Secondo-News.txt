@@ -6,6 +6,16 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2008-08-07  Word changed
+===============================================================================
+To save memory usage, the struct Word was changed to be a variant. 
+Because of this change, you hav to restore all your databases.
+
+Thomas
+
+
+
+
 2008-07-15  Added new members to template class R_Tree
 ===============================================================================
 In order to support Angelika Braese's implementation of the
