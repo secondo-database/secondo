@@ -88,8 +88,7 @@ Therefore some inline initialization functions ("SetWord"[4]) are defined below.
   float    rval; // floating point value with single precision
 
 
-  Word(){
-    init();
+  Word():addr(0),list(0),ival(0),rval(0.0f){
   }
 
   Word(const Word& src){
@@ -97,7 +96,7 @@ Therefore some inline initialization functions ("SetWord"[4]) are defined below.
   }
 
   ~Word(){
-     init();
+    // init();
   }
 
   Word& operator=(const Word& src){
