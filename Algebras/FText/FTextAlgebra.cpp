@@ -2740,7 +2740,7 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
   // get information on resulttype
   ListExpr myTypeNL = qp->GetType( s );
   // call InFunction
-  Word myRes = SetWord( 0 );
+  Word myRes = SetWord( Address(0) );
   int errorPos = 0;
   ListExpr& errorInfo = nl->GetErrorList();
   bool correct = true;

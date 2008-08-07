@@ -640,7 +640,7 @@ The function below test if a name is reserved for system use.
 
     ObjectsCatalogEntry() : 
       algebraId(0), typeId(0), typeName(""), typeExpr(""), 
-      value(SetWord(0)), valueDefined(false), valueRecordId(0), 
+      value(SetWord(Address(0))), valueDefined(false), valueRecordId(0), 
       state(Undefined) {}
 
     ostream& print(ostream& os) const {

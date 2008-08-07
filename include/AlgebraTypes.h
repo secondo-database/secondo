@@ -70,60 +70,21 @@ apply an appropriate type cast.
 
 */
 
-struct Word
-{
-//  Word()                   : addr( 0 )       {};
-//  Word( Address  newaddr ) : addr( newaddr ) {};
-//  Word( ListExpr newlist ) : list( newlist ) {};
-//  Word( int      newival ) : ival( newival ) {};
-//  Word( float    newrval ) : rval( newrval ) {};
-/*
-Unfortunately C++ does not allow members with constructors in unions.
-Therefore some inline initialization functions ("SetWord"[4]) are defined below.
 
-*/
-  Address  addr; // generic reference
-  ListExpr list; // nested list expression
-  int      ival; // integer value
-  float    rval; // floating point value with single precision
+union Word{
+  Word():addr(0){}
+  Word(Address a):addr(a){}
+  Word(ListExpr l):list(l) {}
 
-
-  Word():addr(0),list(0),ival(0),rval(0.0f){
+  void setAddr(Address a){
+     addr = a;
+  }
+  void setList(ListExpr l){
+     list = l;
   }
 
-  Word(const Word& src){
-     equalize(src);
-  }
-
-  ~Word(){
-    // init();
-  }
-
-  Word& operator=(const Word& src){
-     equalize(src);
-     return *this;
-  }
-
-  void setAddr(Address addr){
-    this->addr = addr;
-  }
-
-
-  private:
-
-    inline void equalize(const Word& src){
-     this->addr = src.addr;
-     this->list = src.list;
-     this->ival = src.ival;
-     this->rval = src.rval;
-    }
-
-    inline void init(){
-      addr = 0;
-      list = 0;
-      ival = 0;
-      rval = 0.0f;
-    }
+  Address addr;
+  ListExpr list;
 };
 
 
@@ -138,12 +99,11 @@ constructor must be added to the list of constructors.
 
 static inline Word SetWord( Address  newaddr )
                      { Word w; w.addr = newaddr; return w; };
+
 static inline Word SetWord( ListExpr newlist )
                      { Word w; w.list = newlist; return w; };
-static inline Word SetWord( int      newival )
-                     { Word w; w.ival = newival; return w; };
-static inline Word SetWord( float    newrval )
-                     { Word w; w.rval = newrval; return w; };
+
+
 /*
 Are several inline initialization functions for ~Word~ instances.
 

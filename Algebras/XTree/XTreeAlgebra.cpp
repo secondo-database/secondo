@@ -77,7 +77,7 @@ Word InXTree(
         int errorPos, ListExpr &error_Info, bool &correct)
 {
     correct = false;
-    return SetWord(0);
+    return SetWord(Address(0));
 }
 
 Word CreateXTree(const ListExpr type_Info)
@@ -129,7 +129,7 @@ void CloseXTree(const ListExpr type_Info, Word &w)
 }
 
 Word CloneXTree(const ListExpr type_Info, const Word &w)
-{ return SetWord(0); }
+{ return SetWord(Address(0)); }
 
 int SizeOfXTree()
 { return sizeof(XTree); }

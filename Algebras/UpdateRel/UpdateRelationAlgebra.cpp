@@ -433,7 +433,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -636,7 +636,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -867,7 +867,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
       {
         localTransport = (LocalTransport*) local.addr;
         delete localTransport;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -974,7 +974,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -1316,7 +1316,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
       {
         localTransport = (LocalTransport*) local.addr;
         delete localTransport;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -1435,7 +1435,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -1628,7 +1628,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
       {
         firstcall = (bool*) local.addr;
         delete firstcall;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -1849,7 +1849,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
       {
         firstcall = (bool*) local.addr;
         delete firstcall;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -2178,7 +2178,7 @@ int UpdateDirect(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType *)local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -2446,7 +2446,7 @@ int UpdateSearch(Word* args, Word& result, int message,
       {
         localTransport = (LocalTransport*) local.addr;
         delete localTransport;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -2826,7 +2826,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType *)local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -3162,7 +3162,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       {
         localTransport = (LocalTransport*) local.addr;
         delete localTransport;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -3309,7 +3309,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -3476,7 +3476,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
       {
         firstcall = (bool*) local.addr;
         delete firstcall;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -3776,7 +3776,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
       {
         firstcall = (bool*) local.addr;
         delete firstcall;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -4246,7 +4246,7 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
       {
         localTransport = (int*) local.addr;
         delete[] localTransport;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -4422,7 +4422,7 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
       {
         localTransport = (int*) local.addr;
         delete[] localTransport;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }
@@ -4617,7 +4617,7 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
       {
         localTransport = (int*) local.addr;
         delete[] localTransport;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }

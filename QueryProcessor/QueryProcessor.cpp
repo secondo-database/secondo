@@ -1458,7 +1458,7 @@ function index.
   bool definedValue=false,
        hasNamedType=false, correct=false, newOperator=false;
 
-  Word value=SetWord(0);
+  Word value=SetWord(Address(0));
 
   if ( traceMode )
   {
@@ -3630,7 +3630,7 @@ QueryProcessor::Received( const Supplier s )
 void
 QueryProcessor::Open( const Supplier s )
 {
-  Word result = SetWord( 0 );
+  Word result = SetWord( Address(0) );
   OpTree tree = (OpTree) s;
   Eval( tree, result, OPEN );
 }
@@ -4169,7 +4169,7 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 //     ErrorReporter::GetErrorMessage(errorMessage);
 //     errorString = "Object query refers to undefined value: " + errorMessage;
     errorString += "Object query refers to undefined value. ";
-    queryResult = SetWord( 0 );
+    queryResult = SetWord( Address(0) );
   }
   else if ( correct )
   {
@@ -4185,7 +4185,7 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 //       ErrorReporter::GetErrorMessage(errorMessage);
 //       errorString = "Operator query not evaluable: " + errorMessage;
       errorString += "Operator query not evaluable. ";
-      queryResult = SetWord( 0 );
+      queryResult = SetWord( Address(0) );
     }
   }
   else
@@ -4193,7 +4193,7 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 //     ErrorReporter::GetErrorMessage(errorMessage);
 //     errorString = "Error in operator query: " + errorMessage;
     errorString += "Error in operator query. ";
-    queryResult = SetWord( 0 );
+    queryResult = SetWord( Address(0) );
   }
   delete qpp;
   return ( defined && correct && evaluable );

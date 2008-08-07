@@ -2427,10 +2427,10 @@ CcHeadTypeMap( ListExpr args )
 4.1.2 Value mapping function of operator ~head~
 
 */
+
 static int
 CcHead(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  int maxTuples;
   Word tupleWord;
   CcTuple* tuple;
 
@@ -2441,15 +2441,14 @@ CcHead(Word* args, Word& result, int message, Word& local, Supplier s)
       //cout << "head OPEN" << endl;
 
       qp->Open(args[0].addr);
-      local.ival = 0;
+      local.addr = new int(((CcInt*)args[1].addr)->GetIntval());
       return 0;
 
-    case REQUEST:
+    case REQUEST:{
 
       //cout << "head REQUEST" << endl;
-
-      maxTuples = ((CcInt*)args[1].addr)->GetIntval();
-      if(local.ival >= maxTuples)
+      int* c = static_cast<int*>(local.addr);
+      if( (*c) <= 0)
       {
         return CANCEL;
       }
@@ -2459,18 +2458,24 @@ CcHead(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         tuple = (CcTuple*)tupleWord.addr;
         result = SetWord(tuple);
-        local.ival++;
+        (*(c))--;
         return YIELD;
       }
       else
       {
         return CANCEL;
       }
+    }
     case CLOSE:
 
       //cout << "head CLOSE" << endl;
 
       qp->Close(args[0].addr);
+      if(local.addr){
+         int* li = static_cast<int*>(local.addr);
+         delete li;
+         local.addr=0;
+      }
       return 0;
   }
   return 0;

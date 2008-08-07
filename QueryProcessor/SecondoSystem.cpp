@@ -302,7 +302,7 @@ Precondition: dbState = dbOpen.
   ListExpr objectList, typeExpr, valueList;
   objectList = typeExpr = valueList = nl->TheEmptyList();
 
-  Word value = SetWord(0);
+  Word value = SetWord(Address(0));
 
   bool defined = false;
   bool hasTypeName = false;
@@ -670,7 +670,7 @@ SecondoSystem::RestoreObjects( ListExpr objects,
   ListExpr valueList = nl->Empty();
   int objno = 0;
   string objectName="", typeName="";
-  Word value = SetWord(0);
+  Word value = SetWord(Address(0));
   bool correctObj = false;
   bool correct = true;
 

@@ -86,7 +86,7 @@ Word InMTree(
         int errorPos, ListExpr &error_Info, bool &correct)
 {
     correct = false;
-    return SetWord(0);
+    return SetWord(Address(0));
 }
 
 Word Createmtree(const ListExpr type_Info)
@@ -136,7 +136,7 @@ void CloseMTree(const ListExpr type_Info, Word &w)
 }
 
 Word CloneMTree(const ListExpr type_Info, const Word &w)
-{ return SetWord(0); }
+{ return SetWord(Address(0)); }
 
 int SizeOfMTree()
 { return sizeof(MTree); }

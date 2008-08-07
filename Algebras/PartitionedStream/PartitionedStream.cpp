@@ -678,7 +678,7 @@ struct PartStreamMappings {
   template<class T>
   inline static T* nextOfStream(const Word& w)
   {
-    Word wTuple = SetWord(0); 
+    Word wTuple = SetWord(Address(0)); 
     qp->Request(w.addr, wTuple);
     if( qp->Received(w.addr) )
       return static_cast<T*>( wTuple.addr );
@@ -689,7 +689,7 @@ struct PartStreamMappings {
   template<class T>
   inline static T* nextOfStream2(const Supplier s)
   {
-    Word wTuple = SetWord(0);
+    Word wTuple = SetWord(Address(0));
     qp->Request(s, wTuple);
     if( qp->Received(s) )
       return static_cast<T*>( wTuple.addr );

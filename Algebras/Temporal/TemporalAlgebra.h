@@ -6534,7 +6534,7 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
       if( local.addr != 0 )
       {
         delete (UnitsLocalInfo *)local.addr;
-        local = SetWord(0);
+        local = SetWord(Address(0));
       }
       return 0;
   }

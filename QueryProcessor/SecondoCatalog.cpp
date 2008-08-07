@@ -1392,7 +1392,7 @@ Precondition: dbState = dbOpen.
     // create a relation object for the system table
     const SystemInfoRel* table = GetSystemTable(name);
     if (table == 0)
-       return SetWord(0);
+       return SetWord(Address(0));
     
     ListExpr typeInfo = table->relSchema().listExpr();
     ListExpr value = table->relValues().listExpr();

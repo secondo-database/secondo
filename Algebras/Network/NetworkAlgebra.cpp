@@ -2436,7 +2436,7 @@ Word Network::InNetwork(ListExpr in_xTypeInfo,
   else
   {
     delete pNetwork;
-    return SetWord(0);
+    return SetWord(Address(0));
   }
 }
 
@@ -4714,7 +4714,7 @@ int OpPolyGPointValueMapping(Word* args,
       case CLOSE:
            if (local.addr != 0) {
              delete (GPointList*) local.addr;
-             local = SetWord(0);
+             local = SetWord(Address(0));
            }
            return 0;
    }
@@ -4792,7 +4792,7 @@ int OpRouteIntervalsValueMapping(Word* args,
       case CLOSE:
            if (local.addr != 0) {
              delete (RectangleList*) local.addr;
-             local = SetWord(0);
+             local = SetWord(Address(0));
            }
            return 0;
    }

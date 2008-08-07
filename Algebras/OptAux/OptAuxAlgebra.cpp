@@ -392,7 +392,7 @@ int predcounts_vm(Word* args, Word& result, int message,
       case OPEN : { 
 
       // local==0 means: there was an error occured in OPEN phase
-      local = SetWord(0);
+      local = SetWord(Address(0));
 
       // allocate temporary memory to store local data
       try {

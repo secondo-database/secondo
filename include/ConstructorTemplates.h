@@ -135,7 +135,7 @@ struct ConstructorFunctions
                   const int errorPos, ListExpr& errorInfo, bool& correct )
   {
     assert(false);
-    return SetWord(0);
+    return SetWord(Address(0));
   }
 
 };
