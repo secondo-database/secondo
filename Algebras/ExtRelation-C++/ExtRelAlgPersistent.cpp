@@ -122,13 +122,15 @@ public:
     cmpPtr(rhs.cmpPtr)  
   {};     
 
+  /* without the code below we get a better performance
+   *
   inline TupleAndRelPos& operator=(const TupleAndRelPos& rhs)
   {
     ref = rhs.ref;
     pos = rhs.pos;
     cmpPtr = rhs.cmpPtr;
     return *this;    
-  }       
+  } */      
  
   inline bool operator<(const TupleAndRelPos& rhs) const 
   { 
@@ -1007,7 +1009,9 @@ sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN:
     {
-      if ( li ) delete li;
+      if (li) {
+	delete li;
+      }
 
       li = new LocalInfo<SortByLocalInfo>();
       local.addr = li;
@@ -1048,19 +1052,14 @@ sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE:
       qp->Close(args[0].addr);
 
-      if (li) {
-	      
-        //li->deletePtr();
-        delete li;
-        local.addr = 0;
-      } 	
+      // Note: object deletion is handled in OPEN and CLOSEPROGRESS
       return 0;
 
 
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
 
-      if ( li ) {	      
+      if (li) {	      
         delete li;
 	local.addr = 0;
       }	
@@ -1869,10 +1868,8 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN:
 
       if ( li ) {
-        delete li->ptr;
         delete li;
       }
-
       li = new LocalType();
       local.addr = li;
 
@@ -1914,20 +1911,13 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       //needed for progress estimation. Instead, everything is deleted on 
       //(repeated) OPEN and on CLOSEPROGRESS
 
-      if ( li ) {
-        //li->deletePtr();
-        delete li;
-        local.addr = 0;
-      }
-      
       return 0;
 
     case CLOSEPROGRESS:
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
-      if ( li ) {
-        //li->deletePtr;
+      if (li) {
         delete li;
 	local.addr = 0;
       }
@@ -2714,7 +2704,9 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     case OPEN:
 
-      if ( li ) delete li;
+      if ( li ) { 
+	delete li;
+      }	
 
       li = new LocalType();
       li->memorySecond = 12582912;	 //default, reset by constructor below
@@ -2744,21 +2736,17 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return result.addr != 0 ? YIELD : CANCEL;
 
     case CLOSE:
-     
-      if (li) {
-        //li->deletePtr();
-	delete li;
-	local.addr = 0;
-      }	
+    
+      // Note: object deletion is handled in OPEN and CLOSEPROGRESS
       return 0;
 
 
     case CLOSEPROGRESS:
+
       qp->CloseProgress(args[0].addr);
       qp->CloseProgress(args[1].addr);
 
       if (li) {
-        //li->deletePtr();
 	delete li;
 	local.addr = 0;
       }	
@@ -2777,7 +2765,10 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       const double vHashJoin = 0.0067;  //millisecs per tuple right
       const double wHashJoin = 0.0025;  //millisecs per tuple returned
 
-      if( !li ) return CANCEL;
+      if( !li ) {
+         //cerr << "CANCEL PROGRESS (1)" << endl; 		  
+         return CANCEL;
+      }	      
       else
       {
        if (qp->RequestProgress(args[0].addr, &p1)
@@ -2839,10 +2830,12 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 		cout << "li->memorySecond = " << li->memorySecond << endl;
 	      }
 
+          //cerr << "YIELD PROGRESS" << endl; 		  
           return YIELD;
         }
         else
         {
+          //cerr << "CANCEL PROGRESS (2)" << endl; 		  
           return CANCEL;
         }
       }

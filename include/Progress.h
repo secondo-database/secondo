@@ -118,7 +118,7 @@ class ProgressLocalInfo
 public:
 
   ProgressLocalInfo(); 
-
+	  
   ~ProgressLocalInfo();
 
   int returned;        	//current number of tuples returned

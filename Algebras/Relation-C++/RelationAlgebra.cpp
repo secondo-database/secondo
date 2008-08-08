@@ -1056,6 +1056,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 class FeedLocalInfo: public ProgressLocalInfo
 {
 public:
+  FeedLocalInfo() : rit(0) {}
+  ~FeedLocalInfo() { if (rit) delete rit; }
+
   GenericRelationIterator* rit;
 };
 
@@ -1100,13 +1103,9 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       }
     }
     case CLOSE :{
-      if(local.addr)
-      {
-        fli = (FeedLocalInfo*) local.addr;
-        delete fli->rit;
-        delete fli;
-        local = SetWord(Address(0));
-      }
+        // Note: object deletion is handled in OPEN and CLOSEPROGRESS
+	// keep the local info structure since it may still be
+	// needed for handling progress messages.
       return 0;
     }
     case CLOSEPROGRESS:{ 
@@ -1374,8 +1373,6 @@ Consume(Word* args, Word& result, int message,
 
     qp->Close(args[0].addr);
     cli->state = 1;
-    delete cli;
-    local = SetWord(Address(0));
     return 0;
   }
 
@@ -1440,6 +1437,8 @@ Consume(Word* args, Word& result, int message,
   else if ( message == CLOSEPROGRESS )
   {
     qp->CloseProgress(args[0].addr);
+    cli = (consumeLocalInfo*) local.addr;
+    if ( cli ) delete cli;
     return 0;
   }
 
@@ -1787,12 +1786,8 @@ Filter(Word* args, Word& result, int message,
         return CANCEL;
 
     case CLOSE:
-       
-      fli = (FilterLocalInfo*) local.addr;
-      if(fli){
-         delete fli;
-         local = SetWord(Address(0));
-      }
+      
+      // Note: object deletion is handled in (repeated) OPEN and CLOSEPROGRESS 
       qp->Close(args[0].addr);
       return 0;
 
@@ -2281,6 +2276,18 @@ Project(Word* args, Word& result, int message,
 class ProjectLocalInfo: public ProgressLocalInfo
 {
 public:
+
+  ProjectLocalInfo() {
+    tupleType = 0;	  
+    read = 0;
+    progressInitialized = false;
+  }
+
+  ~ProjectLocalInfo() {	
+    tupleType->DeleteIfAllowed();
+    tupleType = 0;
+  }
+
   TupleType *tupleType;
 };
 
@@ -2303,10 +2310,8 @@ Project(Word* args, Word& result, int message,
       pli = (ProjectLocalInfo*) local.addr;
       if ( pli ) delete pli;
 
-      pli = new ProjectLocalInfo;
+      pli = new ProjectLocalInfo();
       pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
-      pli->read = 0;
-      pli->progressInitialized = false;
       local = SetWord(pli);
 
       qp->Open(args[0].addr);
@@ -2315,7 +2320,6 @@ Project(Word* args, Word& result, int message,
     case REQUEST:{
 
       pli = (ProjectLocalInfo*) local.addr;
-
 
       qp->Request(args[0].addr, elem1);
       if (qp->Received(args[0].addr))
@@ -2340,14 +2344,8 @@ Project(Word* args, Word& result, int message,
       else return CANCEL;
     }
     case CLOSE: {
-      if(local.addr)
-      {
-         pli = (ProjectLocalInfo*) local.addr;
-         pli->tupleType->DeleteIfAllowed();
-         pli->tupleType = 0;
-         delete pli; 
-         local = SetWord(Address(0));
-      }
+
+      // Note: object deletion is done in repeated OPEN or CLOSEPROGRESS
       qp->Close(args[0].addr);
       return 0;
 
@@ -2874,6 +2872,28 @@ Product(Word* args, Word& result, int message,
 class ProductLocalInfo: public ProgressLocalInfo
 {
 public:
+
+  ProductLocalInfo() : 
+    resultTupleType(0),
+    currentTuple(0),
+    rightRel(0),
+    iter(0)
+  {}	  
+
+  ~ProductLocalInfo() 
+  {
+    if(currentTuple != 0)
+      currentTuple->DeleteIfAllowed();
+    if( iter != 0 )
+      delete iter;
+    resultTupleType->DeleteIfAllowed();
+    if( rightRel )
+    {
+      rightRel->Clear();
+      delete rightRel;
+    }
+  }	  
+
   TupleType *resultTupleType;
   Tuple* currentTuple;
   TupleBuffer *rightRel;
@@ -3003,21 +3023,7 @@ Product(Word* args, Word& result, int message,
 
     case CLOSE:
     {
-      if(pli)
-      {
-        if(pli->currentTuple != 0)
-          pli->currentTuple->DeleteIfAllowed();
-        if( pli->iter != 0 )
-          delete pli->iter;
-        pli->resultTupleType->DeleteIfAllowed();
-        if( pli->rightRel )
-        {
-          pli->rightRel->Clear();
-          delete pli->rightRel;
-        }
-        delete pli;
-        local = SetWord(Address(0));
-      }
+      // Note: object deletion is done in (repeated) OPEN and CLOSEPROGRESS
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
 
@@ -5123,11 +5129,8 @@ Buffer(Word* args, Word& result, int message,
 
 
     case CLOSE :
-      if(bli)
-      {
-        delete bli;
-        local = SetWord(Address(0));
-      }
+
+      // Note: object deletion is done in (repeated) OPEN and CLOSEPROGRESS
       qp->Close(args[0].addr);
       return 0;
 
