@@ -81,7 +81,6 @@ It is usesed to include all other header files.
 #include "OverlapingMatch.h"
 #include "OptimalMatch.h" 
 #include "mLineRep.h"
-#include "PlaneSweepAlgebra.h"
 
 
 
