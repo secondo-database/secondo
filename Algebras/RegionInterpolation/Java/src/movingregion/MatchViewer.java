@@ -100,7 +100,6 @@ public class MatchViewer extends javax.swing.JPanel
                 String tmp="";
                 while (fm.stringWidth(tmp)<maxStringWidth)
                 {
-                  //  System.out.println(tmp);
                     if(Descrip.indexOf(" ")!=-1)
                     {
                         tmp=tmp+" "+ Descrip.substring(0,Descrip.indexOf(" "));

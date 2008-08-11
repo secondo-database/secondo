@@ -71,6 +71,10 @@ public class tegnecanvas extends JPanel implements ActionListener
     
     public void setSnapshoot(Region region)
     {
+        if(avtiveSnap==2)
+        {
+            redraw();
+        }
         this.Snaps[avtiveSnap]=region;
         avtiveSnap++;
         this.addFace=true;
@@ -167,13 +171,7 @@ public class tegnecanvas extends JPanel implements ActionListener
         }
         if (e.getSource() == reDrawButt)
         {
-            Snaps[0]=new Region();
-            Snaps[1]=new Region();
-            fistSnapPoints.removeAllElements();
-            avtiveSnap=0;
-            this.addFace=true;
-            this.addHole=false;
-            myParent.newDraw();
+            redraw();
         }
         if (e.getSource() == drawNextSS)
         {
@@ -200,6 +198,17 @@ public class tegnecanvas extends JPanel implements ActionListener
         }
         
         this.repaint();
+    }
+    
+    public void redraw() 
+    {
+        Snaps[0] = new Region();
+        Snaps[1] = new Region();
+        fistSnapPoints.removeAllElements();
+        avtiveSnap = 0;
+        this.addFace = true;
+        this.addHole = false;
+        myParent.newDraw();
     }
     
     public boolean isready()

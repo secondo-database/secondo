@@ -70,11 +70,10 @@ public class ConvexHullTreeTreeViewerRenderer extends DefaultTreeCellRenderer
         
         if(sel)
         {
-            //if(!expanded)
-            //{
-             //   tree.expandRow(row);
-              //  System.out.println("Expand"+row);
-            //}
+            if(!expanded)
+            {
+                tree.expandRow(row);
+            }
             setBackground(Color.ORANGE);
         }
         return this;

@@ -65,7 +65,6 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         }
         //int widt=e.getComponent().getWidth();
         int widt=this.knappanel.getWidth();
-        System.out.println("h = "+heig+"; b = "+widt);
         if(tab.getTabCount()!=2)
         {
             result.setWid(widt);
@@ -277,33 +276,12 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
         wfdisp = true;        
         ComponentEvent e=new ComponentEvent(tegneomr,ComponentEvent.COMPONENT_RESIZED);
         this.componentResized(e);
-        System.out.println("Source");
-        System.out.println(match.getSource());
-        System.out.println("Target");
-        System.out.println(match.getTarget());
     }
     
     public void actionPerformed(ActionEvent e)
     {
-        System.out.println(e);
-//        if(e.getSource()==matchType)
-//        {
-//            if((this.matchType.getSelectedItem()+"").equals("SimpleMatch"))
-//            {
-//                this.matchParamCenter.setVisible(false);
-//                this.matchParamOverlap.setVisible(false);
-//            }
-//            if((this.matchType.getSelectedItem()+"").equals("OverlapMatch"))
-//            {
-//                this.matchParamCenter.setVisible(false);
-//                this.matchParamOverlap.setVisible(true);
-//            }
-//            if((this.matchType.getSelectedItem()+"").equals("CentroidMatch"))
-//            {
-//                this.matchParamCenter.setVisible(true);
-//                this.matchParamOverlap.setVisible(false);
-//            }
-//        }
+        if(TriRepUtil.debugging)
+            System.out.println(e);
         if(e.getSource()==matchType)
         {
             if(matchType.getSelectedItem().equals("OptimalMatch"))
@@ -343,7 +321,8 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
             }
             catch(IOException ex)
             {
-                System.out.println(ex.getLocalizedMessage());
+                if(TriRepUtil.debuggingWarnings)
+                    System.out.println(ex.getLocalizedMessage());
             }
         }
         this.repaint();

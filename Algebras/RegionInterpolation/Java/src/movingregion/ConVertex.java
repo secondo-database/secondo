@@ -18,7 +18,6 @@ public class ConVertex
     private int index;
     private int xCoord;
     private int yCoord;
-    //private double angle;
     private boolean isConcave=false;
     
     
@@ -28,15 +27,8 @@ public class ConVertex
         this.index=index;
         this.xCoord=x;
         this.yCoord=y;
-//        double a=Math.sqrt((preX-folX)*(preX-folX)+(preY-folY)*(preY-folY));
-//        double b=Math.sqrt((preX-x)*(preX-x)+(preY-y)*(preY-y));
-//        double c=Math.sqrt((folX-x)*(folX-x)+(folY-y)*(folY-y));
-//        this.angle=Math.toDegrees(Math.acos((a*a-b*b-c*c)/(-2*b*c)));
-//        System.out.println(angle);
-//        System.out.println(((x-preX)*(folY-preY)-(folX-preX)*(y-preY)));
         if(((x-preX)*(folY-preY)-(folX-preX)*(y-preY))<0)
             isConcave=true;
-//            angle=360-angle;
     }
     
     
@@ -47,8 +39,6 @@ public class ConVertex
         double b=Math.sqrt((preX-x)*(preX-x)+(preY-y)*(preY-y));
         double c=Math.sqrt((folX-x)*(folX-x)+(folY-y)*(folY-y));
         double angle=Math.acos((a*a-b*b-c*c)/(-2*b*c));
-//        System.out.println(angle);
-//        System.out.println(((x-preX)*(folY-preY)-(folX-preX)*(y-preY)));
         if(((x-preX)*(folY-preY)-(folX-preX)*(y-preY))<0)            
             angle=Math.PI*2*-angle;
         return (angle);
@@ -61,8 +51,6 @@ public class ConVertex
         double b=Math.sqrt((preX-x)*(preX-x)+(preY-y)*(preY-y));
         double c=Math.sqrt((folX-x)*(folX-x)+(folY-y)*(folY-y));
         double angle=Math.toDegrees(Math.acos((a*a-b*b-c*c)/(-2*b*c)));
-//        System.out.println(angle);
-//        System.out.println(((x-preX)*(folY-preY)-(folX-preX)*(y-preY)));
         if(((x-preX)*(folY-preY)-(folX-preX)*(y-preY))<0)            
             angle=360-angle;
         return (angle);
@@ -111,12 +99,5 @@ public class ConVertex
             res=false;
         return(res);
     }
-//    public static void main(String[] args)
-//    {
-//        ConVertex v1=new ConVertex(1,0,0,-1,2,1,1);
-//        ConVertex v2=new ConVertex(2,-1,-2,0,0,1,1);
-//        ConVertex v3=new ConVertex(3,1,1,-1,3,-1,2);
-//       // this.angle=Math.toDegrees(Math.acos(((preX-x)*(folX-x)+(preY-y)*(folY-y))/(b*b*c*c)));
-//    }
     
 }

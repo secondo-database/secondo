@@ -60,9 +60,11 @@ public class mLineRep
     public void addTriangle(PointWNL p1,PointWNL p2, PointWNL p3)
     {
         if(p1.t!=p2.t)
-            System.out.println("Fehler erste beide Punkte müssen dasselbe t haben.");
+            if(TriRepUtil.debuggingWarnings)
+                System.out.println("Fehler erste beide Punkte müssen dasselbe t haben.");
         if(p1.t==p3.t)
-            System.out.println("Fehler dritter Punkt muss ein anderes t haben.");
+            if(TriRepUtil.debuggingWarnings)
+                System.out.println("Fehler dritter Punkt muss ein anderes t haben.");
         PointWNL corr=this.getCorrespondingPoint(p1,p2);
         if(corr==null)
         {
@@ -76,7 +78,8 @@ public class mLineRep
             }
             else
             {
-                System.out.println("Dritte Punkte stimmen nicht");
+                if(TriRepUtil.debuggingWarnings)
+                    System.out.println("Dritte Punkte stimmen nicht");
                 triangles.add(new triangle(p1,p2,p3));
             }
         }
@@ -85,40 +88,47 @@ public class mLineRep
     
     public int findMatchingIndex(LineWA[] s,int j ,double angle, boolean ka)
     {
-        System.out.println(Math.toDegrees(angle)+" "+j);
+        if(TriRepUtil.debugging)
+            System.out.println(Math.toDegrees(angle)+" "+j);
         //int oldJ=j;
         if(angle<s[0].angle)
         {
-            System.out.println(s[0].angle+" > "+angle+" Abbruch");
+            if(TriRepUtil.debugging)
+                System.out.println(s[0].angle+" > "+angle+" Abbruch");
             return(0);
         }
         if(s[0].angle==angle&&ka)
             return(0);
         if(angle>s[s.length-1].angle)
         {
-            System.out.println(s[0].angle+" < "+angle+" Abbruch");
+            if(TriRepUtil.debugging)
+                System.out.println(s[0].angle+" < "+angle+" Abbruch");
             return(0);
         }
         while(!(s[j].angle>=angle&&s[(j-1+s.length)%s.length].angle<=angle))
         {
             if(j!=0&&angle<s[j-1].angle)
             {
-                System.out.println("Down");
+                if(TriRepUtil.debugging)
+                    System.out.println("Down");
                 j--;
             }
             else
             {
                 //if(s[0].angle!=angle)
                 {
-                    System.out.println("Up");
+                    if(TriRepUtil.debugging)
+                        System.out.println("Up");
                     j++;
                 }
             }
         }
-        System.out.println(Math.toDegrees(s[j].angle)+" "+j);
+        if(TriRepUtil.debugging)
+            System.out.println(Math.toDegrees(s[j].angle)+" "+j);
         if(s[j].angle-angle<0.001&&ka)
         {
-            System.out.println("GLeicheWinkel "+j+ ka);
+            if(TriRepUtil.debugging)
+                System.out.println("GLeicheWinkel "+j+ ka);
             j=(j+1)%s.length;
             
         }
@@ -129,39 +139,51 @@ public class mLineRep
     {
         LineWA[] s1=chtn1.getOrderedOutLine();
         LineWA[] s2=chtn2.getOrderedOutLine();
-        System.out.println("RP bekam:");
-        TriRepUtil.printLineList(s1);
-        System.out.println("und");
-        TriRepUtil.printLineList(s2);
+        if(TriRepUtil.debugging)
+        {
+            System.out.println("RP bekam:");
+            TriRepUtil.printLineList(s1);
+            System.out.println("und");
+            TriRepUtil.printLineList(s2);
+        }
         TriRepUtil.computeLineAngles(s1);
         TriRepUtil.computeLineAngles(s2);
         Arrays.sort(s1);
         Arrays.sort(s2);
-        
-        System.out.println("nach dem Sortieren:");
-        TriRepUtil.printLineList(s1);
-        System.out.println("und");
-        TriRepUtil.printLineList(s2);
+        if(TriRepUtil.debugging)
+        {
+            System.out.println("nach dem Sortieren:");
+            TriRepUtil.printLineList(s1);
+            System.out.println("und");
+            TriRepUtil.printLineList(s2);
+        }
         int jj=0;
         for(int i=0;i< s1.length;i++)
         {
-            
-            System.out.println("zu       "+new PointWNL(s1[i].x,s1[i].y,time1));
-            System.out.println("Line von "+new PointWNL(s1[(i+1+s1.length)%s1.length].x,s1[(i+1+s1.length)%s1.length].y,time1));
+            if(TriRepUtil.debugging)
+            {
+                System.out.println("zu       "+new PointWNL(s1[i].x,s1[i].y,time1));
+                System.out.println("Line von "+new PointWNL(s1[(i+1+s1.length)%s1.length].x,s1[(i+1+s1.length)%s1.length].y,time1));
+            }
             jj=findMatchingIndex(s2,jj,s1[i].angle,false);
-            System.out.println("Match    "+new PointWNL(s2[jj].x,s2[jj].y,time2));
+            if(TriRepUtil.debugging)
+                System.out.println("Match    "+new PointWNL(s2[jj].x,s2[jj].y,time2));
             this.addTriangle(new PointWNL(s1[i].x,s1[i].y,time1),new PointWNL(s1[(i+1+s1.length)%s1.length].x,s1[(i+1+s1.length)%s1.length].y,time1),new PointWNL(s2[jj].x,s2[jj].y,time2));
             
         }
         jj=0;//s1.length-1;
-        System.out.println("Und Weiter");
+        if(TriRepUtil.debugging)
+            System.out.println("Und Weiter");
         for(int i=0;i<s2.length;i++)
         {
-            System.out.println("zu       "+new PointWNL(s2[i].x,s2[i].y,time2));
-            System.out.println("Line von "+new PointWNL(s2[(i+1+s2.length)%s2.length].x,s2[(i+1+s2.length)%s2.length].y,time2));
-            
+            if(TriRepUtil.debugging)
+            {
+                System.out.println("zu       "+new PointWNL(s2[i].x,s2[i].y,time2));
+                System.out.println("Line von "+new PointWNL(s2[(i+1+s2.length)%s2.length].x,s2[(i+1+s2.length)%s2.length].y,time2));
+            }
             jj=findMatchingIndex(s1,jj,s2[i].angle,true);
-            System.out.println("Match    "+new PointWNL(s1[jj].x,s1[jj].y,time1));
+            if(TriRepUtil.debugging)
+                System.out.println("Match    "+new PointWNL(s1[jj].x,s1[jj].y,time1));
             this.addTriangle(new PointWNL(s2[i].x,s2[i].y,time2),new PointWNL(s2[(i+1+s2.length)%s2.length].x,s2[(i+1+s2.length)%s2.length].y,time2),new PointWNL(s1[jj].x,s1[jj].y,time1));
         }
     }
@@ -173,7 +195,8 @@ public class mLineRep
     
     public void addTrianglesFromCHTPoint(ConvexHullTreeNode chtn,int time,PointWNL p3)
     {
-        System.out.println("CHTPOint "+p3);
+        if(TriRepUtil.debugging)
+            System.out.println("CHTPOint "+p3);
         LineWA[] tmp=chtn.getOrderedOutLine();
         PointWNL p1;
         PointWNL p2;
@@ -192,7 +215,8 @@ public class mLineRep
     
     public void addTrianglesFromCHTNull(ConvexHullTreeNode cht,int time)
     {
-        System.out.println("CHTNull "+cht+" "+time);
+        if(TriRepUtil.debugging)
+            System.out.println("CHTNull "+cht+" "+time);
         LineWA[] edgesLine=cht.getOrderedOutLine();
         PointWNL[] edges=new PointWNL[edgesLine.length];
         for(int i=0;i< edgesLine.length;i++)
@@ -212,7 +236,8 @@ public class mLineRep
     
     public void addTrianglesFromCHTCHT(ConvexHullTreeNode cht1,ConvexHullTreeNode cht2,int time1,int time2)
     {
-        System.out.println("CHTCHT");
+        if(TriRepUtil.debugging)
+            System.out.println("CHTCHT");
         this.rotaring_pane(cht1,cht2,time1,time2);
         for(int i=0;i<cht1.getChildren().length;i++)
         {
@@ -229,7 +254,8 @@ public class mLineRep
                 }
                 else
                 {
-                    System.out.println("Problem mehrere Matches CHT");
+                    if(TriRepUtil.debuggingWarnings)
+                        System.out.println("Problem mehrere Matches CHT");
                 }
             }
         }
@@ -246,17 +272,20 @@ public class mLineRep
     
     public void addTrianglesFromFace(Face face,int time)
     {
-        System.out.println("Face");
+        if(TriRepUtil.debugging)
+            System.out.println("Face");
         int sectime;
         if(time==0)
             sectime=this.secTime;
         else
             sectime=0;
         RegionTreeNode[] chtn2=(this.myMatch.getMatches(face));
-        System.out.println(chtn2);
+        if(TriRepUtil.debugging)
+            System.out.println(chtn2);
         if(chtn2[0]==null)
         {
-            System.out.println("Null");
+            if(TriRepUtil.debugging)
+                System.out.println("Null");
             PointWNL p3=new PointWNL(face.getCycle().getCenter().x,face.getCycle().getCenter().y,sectime);
             this.addTrianglesFromCHTPoint(face.getCycle(),time,p3);
             for (int i=0;i<face.getNrOfHoles();i++)
@@ -293,7 +322,8 @@ public class mLineRep
     
     public void addTrianglesFromRegion(Region reg,int time)
     {
-        System.out.println("Region");
+        if(TriRepUtil.debugging)
+            System.out.println("Region");
         for (int i=0;i<reg.getNrOfFaces();i++)
         {
             this.addTrianglesFromFace(reg.getFace(i),time);
@@ -309,14 +339,16 @@ public class mLineRep
     
     public void addTrianglesFromHoleNull(ConvexHullTreeNode hole,int time)
     {
-        System.out.println("HoleNull");
+        if(TriRepUtil.debugging)
+            System.out.println("HoleNull");
         PointWNL p3=new PointWNL(hole.getCenter().x,hole.getCenter().y,getSecTime(time));
         this.addTrianglesFromCHTPoint(hole,time,p3);
     }
     
     public void addTrianglesFromFaceFace(Face face1,Face face2, int time1, int time2)
     {
-        System.out.println("FaceFace");
+        if(TriRepUtil.debugging)
+            System.out.println("FaceFace");
         this.addTrianglesFromCHTCHT(face1.getCycle(),face2.getCycle(),time1,time2);
         for (int i=0;i<face1.getNrOfHoles();i++)
         {
@@ -346,7 +378,8 @@ public class mLineRep
     }
     public void addTrianglesFromFaceNull(Face face,int time)
     {
-        System.out.println("FaceNull");
+        if(TriRepUtil.debugging)
+            System.out.println("FaceNull");
         PointWNL p3=new PointWNL(face.getCycle().getCenter().x,face.getCycle().getCenter().y,getSecTime(time));
         this.addTrianglesFromCHTPoint(face.getCycle(),time,p3);
         for (int i=0;i<face.getNrOfHoles();i++)
@@ -376,7 +409,8 @@ public class mLineRep
                 }
                 else
                 {
-                    System.out.println("Problem, mehrere Matches");
+                    if(TriRepUtil.debuggingWarnings)
+                        System.out.println("Problem, mehrere Matches");
                 }
             }
         }
@@ -490,45 +524,5 @@ public class mLineRep
         fs.write("      solid FALSE\n");
         fs.write("   }\n");
         fs.write("}\n");
-    }
-    public static void main(String[] args)
-    {
-        
-        LineWA[] fl1=new LineWA[4];
-        fl1[0]=new LineWA(0,0);
-        fl1[1]=new LineWA(0,200);
-        //fl1[2]=new LineWA(100,180);
-        fl1[2]=new LineWA(200,200);
-         fl1[3]=new LineWA(130,100);
-        Face f1=new Face(fl1,null);
-        Region r1=new Region();
-        r1.addFace(f1);
-        LineWA[] fl2=new LineWA[4];
-        fl2[0]=new LineWA(0,200);
-        fl2[1]=new LineWA(200,200);
-        //fl2[2]=new LineWA(200,00);
-        fl2[2]=new LineWA(130,100);
-        fl2[3]=new LineWA(00,0);
-        Face f2=new Face(fl2,null);
-        Region r2=new Region();
-        r2.addFace(f2);
-        //SimpleMatch sm=new SimpleMatch(r1,r2);
-        OverlappingMatch sm=new OverlappingMatch(r1,r2,.5,true);
-        System.out.println(sm);
-        mLineRep lr=new mLineRep(sm);
-        String filename="test";
-        String app="dune";
-        FileOutputStream filestream;
-        OutputStreamWriter fs;
-        System.out.println("test");
-        try
-        {
-            lr.saveAsVRML(filename+".vrml",5);
-            Runtime.getRuntime().exec(app+" "+filename+".vrml");
-        }
-        catch(IOException ex)
-        {
-            System.out.println(ex.getLocalizedMessage());
-        }
     }
 }

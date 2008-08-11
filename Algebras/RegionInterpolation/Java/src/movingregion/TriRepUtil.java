@@ -11,6 +11,8 @@ import java.util.*;
  */
 public class TriRepUtil
 {
+    public static boolean debugging=false;
+    public static boolean debuggingWarnings=true;
     
     /**
      * Checks whether the points p1 and p2 are on the same side of the line
@@ -129,10 +131,13 @@ public class TriRepUtil
      */
     public static LineWA[] convexHull(LineWA[] lt)
     {
-              System.out.println("convexHull bekommt:");
-        for(int i=0;i<lt.length;i++)
+        if(TriRepUtil.debugging)
         {
-               System.out.println(lt[i]);
+            System.out.println("convexHull bekommt:");
+            for(int i=0;i<lt.length;i++)
+            {
+                   System.out.println(lt[i]);
+            }
         }
         int minpoint, miny, minx, tmpx, tmpy;
         Stack unfinishedhull;
@@ -162,9 +167,6 @@ public class TriRepUtil
                 index = a;
             }
         }
-        
-    //    System.out.print("Have found minimum y: ");
-    //    System.out.println(index);
         // Swaps the minimum point with the first point.
         tmp = lt[0];
         lt[0] = lt[index];
@@ -182,12 +184,14 @@ public class TriRepUtil
         
         // Sort the points with respect to the angle
         Arrays.sort(lt);
-        //   System.out.println("Sorted:");
-        for(int j=0;j<lt.length;j++)
+        if(TriRepUtil.debugging)
         {
-            //      System.out.println(lt[j]);
+            System.out.println("Sorted:");
+            for(int j=0;j<lt.length;j++)
+            {
+                System.out.println(lt[j]);
+            }
         }
-        
         Vector tmpvec = new Vector();
         tmpvec.add(lt[0]);
         for (i = 1; i < lt.length; i++) {
@@ -272,10 +276,13 @@ public class TriRepUtil
     }*/
         finishedhull = new LineWA[unfinishedhull.size()];
         unfinishedhull.toArray(finishedhull);
-        System.out.println("convexHull erzeugt:");
-        for( i=0;i<finishedhull.length;i++)
+        if(TriRepUtil.debugging)
         {
-            System.out.println(finishedhull[i]);
+            System.out.println("convexHull erzeugt:");
+            for( i=0;i<finishedhull.length;i++)
+            {
+                System.out.println(finishedhull[i]);
+            }
         }
         return(finishedhull);
     }
@@ -470,13 +477,6 @@ public class TriRepUtil
         double areaovr=getSingleOverlap(obj1,obj2);
         double a1 = (double)findArea(obj1);
         double a2 = (double)findArea(obj2);
-    /*    System.out.println(areaovr);
-    System.out.println(a1);
-    System.out.println(a2);
-    System.out.println("Overlaps in per cent");
-    System.out.println((areaovr/a1)*100);
-    System.out.println((areaovr/a2)*100);
-    System.out.println();*/
         double[] overlaps = new double[2];
         overlaps[0]=(areaovr/a1)*100;
         overlaps[1]=(areaovr/a2)*100;
@@ -740,15 +740,19 @@ public class TriRepUtil
     
     public static LineWA[] joinLinelists(LineWA[] first,LineWA[]second)
     {
-        for(int i=0;i<first.length;i++)
+        if(TriRepUtil.debugging)
         {
-            System.out.println(first[i]);
-        }
-        System.out.println();
-        
-        for(int i=0;i<second.length;i++)
-        {
-            System.out.println(second[i]);
+            System.out.println("JoinLininList");
+            for(int i=0;i<first.length;i++)
+            {
+                System.out.println(first[i]);
+            }
+            System.out.println();
+
+            for(int i=0;i<second.length;i++)
+            {
+                System.out.println(second[i]);
+            }
         }
         try
         {
@@ -1057,10 +1061,6 @@ public class TriRepUtil
         for (int a=0;a<lines.length;a++)
         {
             System.out.println(lines[a]);
-//            System.out.print("X: ");
-//            System.out.print(lines[a].x);
-//            System.out.print("   Y: ");
-//            System.out.println(lines[a].y);
         }
     }
     
@@ -1175,7 +1175,8 @@ public class TriRepUtil
                     tmpdist=x*x+y*y;
             }*/
         }
-        System.out.println("Besser brauchte"+(System.currentTimeMillis()-sTime)+"ms");
+        if(TriRepUtil.debugging)
+            System.out.println("Besser brauchte"+(System.currentTimeMillis()-sTime)+"ms");
         return(Math.sqrt(tmpdist));
     }
     
@@ -1230,18 +1231,9 @@ public class TriRepUtil
                     tmpdist=x*x+y*y;
             }
         }
-        System.out.println("Einfach brauchte"+(System.currentTimeMillis()-sTime)+"ms");
+        if(TriRepUtil.debugging)
+            System.out.println("Einfach brauchte"+(System.currentTimeMillis()-sTime)+"ms");
         return(Math.sqrt(tmpdist));
     }
     
-    public static void main(String[] arg)
-    {
-        LineWA[] test=new LineWA[2];
-        test[0]=new LineWA(0,0);
-        test[1]=new LineWA(501,216);
-        LineWA[] test2=new LineWA[2];
-        test2[0]=new LineWA(484,-157);
-        test2[1]=new LineWA(501,216);
-        System.out.println(TriRepUtil.getRectangularDistance(new LineWA(100,200),new LineWA(250,80),new LineWA(200,160)));
-    }
 }

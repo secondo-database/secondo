@@ -121,9 +121,12 @@ public class CentroidMatch extends Match
                 {
                     this.addMatch(chtn1[i],chtn2[j]);
                     this.addMatch(chtn2[j],chtn1[i]);
-                    System.out.println("addMatch");
-                    System.out.println(chtn1[i]);
-                    System.out.println(chtn2[j]);
+                    if(TriRepUtil.debugging)
+                    {
+                        System.out.println("addMatch");
+                        System.out.println(chtn1[i]);
+                        System.out.println(chtn2[j]);
+                    }
                 }
             }
             unmatched.add(chtn1[i]);
@@ -201,6 +204,7 @@ public class CentroidMatch extends Match
     
     private static double getDistance(ConvexHullTreeNode chtn1,ConvexHullTreeNode chtn2)
     {
+        if(chtn1==null || chtn2==null) return(1000000);
         LineWA center1=chtn1.getCenter();
         LineWA center2=chtn2.getCenter();
         return(Math.sqrt((center1.x-center2.x)*(center1.x-center2.x)+(center1.y-center2.y)*(center1.y-center2.y)));

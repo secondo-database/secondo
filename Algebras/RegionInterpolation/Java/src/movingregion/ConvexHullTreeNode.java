@@ -168,10 +168,12 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         if (level==0)
         {
             double area=TriRepUtil.getArea(linelist);
-            System.out.println("Area="+area);
+            if(TriRepUtil.debugging)
+                System.out.println("Area="+area);
             if(area<0)
             {
-                System.out.println("Falsche Drehrichtung");
+                if(TriRepUtil.debugging)
+                    System.out.println("Falsche Drehrichtung");
                 LineWA[] tmplistrev = new LineWA[linelist.length];
                 for (int i=0;i<linelist.length;i++)
                 {
@@ -183,11 +185,11 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         // Create temporary list so that convexHull() won't change the order of
         // points in the original linelist.
         tmplist = new LineWA[linelist.length];
-//        System.out.println("Konstruiere Node Level: "+level);
+        if(TriRepUtil.debugging)
+           System.out.println("Konstruiere Node Level: "+level);
         for (int a=0;a<linelist.length;a++)
         {
             tmplist[a] = linelist[a];
-//            System.out.println(tmplist[a]);
         }
         // Find the convex hull
         convhull = TriRepUtil.convexHull(tmplist);
@@ -350,7 +352,8 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             if(pdist1.size()==0||pdist2.size()==0)
             {
-                System.out.println("nix");
+                if(TriRepUtil.debuggingWarnings)
+                    System.out.println("keine Splitline gefunden ");
                 return(null);
             }
             LineDist tmp1=(LineDist)pdist1.elementAt(0);
@@ -402,7 +405,8 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         if(pdist1.size()==0||pdist2.size()==0)
         {
-            System.out.println("Problem");
+            if(TriRepUtil.debuggingWarnings)
+                System.out.println("Problem bei der Erstellung einer Splitline");
             return(null);
         }
         LineDist tmp1=(LineDist)pdist1.elementAt(0);
@@ -511,8 +515,11 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
                 lowIndexLine=((Integer)IntersectionIndexLine.elementAt(0)).intValue();
                 highIndexLine=((Integer)IntersectionIndexLine.elementAt(1)).intValue();
             }
-            System.out.println("lowHIg"+lowIndexPoly+highIndexPoly);
-            System.out.println("lowHIg"+lowIndexLine+highIndexLine);
+            if(TriRepUtil.debugging)
+            {
+                System.out.println("lowHIg"+lowIndexPoly+highIndexPoly);
+                System.out.println("lowHIg"+lowIndexLine+highIndexLine);
+            }
             res[0]=new LineWA[polyLine.length-highIndexPoly+lowIndexPoly+highIndexLine-lowIndexLine+2];
             res[1]=new LineWA[highIndexPoly-lowIndexPoly+highIndexLine-lowIndexLine+2];
             int index1=0;
@@ -527,7 +534,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
             }
             int indexindex=IntersectionIndexPoly.indexOf(new Integer(lowIndexPoly));  //toDo Sonderfall
             
-            if(lowIndexPoly==highIndexPoly)System.out.println("Problem");
+            if(lowIndexPoly==highIndexPoly && TriRepUtil.debuggingWarnings)System.out.println("Problem: highIndex == lowIndex");
             
             res[0][index1++]=(LineWA)IntersectionPoints.elementAt(indexindex);
             res[1][index2++]=(LineWA)IntersectionPoints.elementAt(indexindex);
@@ -933,142 +940,6 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         return(smallestpoint);
     }
     
-//    /**
-//     * This function draws this convex hull three node in a "flattened" way.
-//     * It was used for debugging purposes, and is not necessary for the
-//     * algorithm itself to work.
-//     *
-//     * @param g The graphic into which the function should draw.
-//     * @param xdisp Displacement in the x direction
-//     * @param ydisp Displacement in the y direction.
-//     *
-//     * @return The centre of the drawn object given as an [x,y] coordinate pair.
-//     */
-//    public int[] drawThis(Graphics g, int xdisp, int ydisp)
-//    {
-//        CHLine line, next;
-//        int length, minx, maxx, miny, maxy;
-//        int[] centre;
-//        length = linelist.size();
-//        line = (CHLine)linelist.firstElement();
-//        minx = Integer.MAX_VALUE;
-//        miny = Integer.MAX_VALUE;
-//        maxx = 0;
-//        maxy = 0;
-//        centre = new int[2];
-//        for (int a=1;a<=length;a++)
-//        {
-//            if (a == length)
-//            {
-//                next = (CHLine)linelist.firstElement();
-//            }
-//            else next = (CHLine)linelist.elementAt(a);
-//            //g.setColor(Color.black);
-//            if (line.x < minx) minx = line.x;
-//            if (line.y < miny) miny = line.y;
-//            if (line.x > maxx) maxx = line.x;
-//            if (line.y > maxy) maxy = line.y;
-//            g.drawOval(computex(line.x, line.y)-2+xdisp, computey(line.y)+ydisp, 4, 4);
-//            if (line.child != null)
-//            {
-//                //g.setColor(Color.red);
-//            }
-//            g.drawLine(computex(line.x, line.y)+xdisp, computey(line.y)+ydisp, computex(next.x, next.y)+xdisp, computey(next.y)+ydisp);
-//            line = next;
-//        }
-//        centre[0] = (minx+maxx)/2;
-//        centre[1] = (miny+maxy)/2;
-//        //    System.out.println("Drawing an overlapping node!");
-//        return(centre);
-//    }
-//
-//    /**
-//     * Draws the convex hull tree with this node as its root. This function
-//     * was made for debugging purposes and is not needed for the algorithm
-//     * itself.
-//     *
-//     * @param g The graphic into which the function should draw.
-//     * @param xdisp Displacement in the x direction
-//     * @param ydisp Displacement in the y direction.
-//     */
-//    public void drawTree(Graphics g, int xdisp, int ydisp)
-//    {
-//        CHLine line, next;
-//        int length, minx, maxx, miny, maxy, cx, cy, ox, oy;
-//        boolean closingline;
-//        int[] centre;
-//        OverlapGraphEdge cedge;
-//        ConvexHullTreeNode cnode;
-//        length = linelist.size();
-//        line = (CHLine)linelist.firstElement();
-//        minx = Integer.MAX_VALUE;
-//        miny = Integer.MAX_VALUE;
-//        maxx = 0;
-//        maxy = 0;
-//        closingline = false;
-//        for (int a=1;a<=length;a++)
-//        {
-//            if (a == length)
-//            {
-//                next = (CHLine)linelist.firstElement();
-//                closingline = true;
-//            }
-//            else
-//            {
-//                next = (CHLine)linelist.elementAt(a);
-//                closingline = false;
-//            }
-//            g.setColor(Color.black);
-//            if (line.x < minx) minx = line.x;
-//            if (line.y < miny) miny = line.y;
-//            if (line.x > maxx) maxx = line.x;
-//            if (line.y > maxy) maxy = line.y;
-//            g.drawOval(computex(line.x, line.y)-2+xdisp, computey(line.y)+ydisp, 4, 4);
-//            if (line.child != null)
-//            {
-//                line.child.drawTree(g, xdisp, ydisp+Y_DISP);
-//                g.setColor(Color.red);
-//            }
-//            if (closingline) g.setColor(Color.blue);
-//            g.drawLine(computex(line.x, line.y)+xdisp, computey(line.y)+ydisp, computex(next.x, next.y)+xdisp, computey(next.y)+ydisp);
-//            line = next;
-//        }
-//        cx = (minx+maxx)/2;
-//        cy = (miny+maxy)/2;
-//        cx = computex(cx, cy);
-//        cy = computey(cy);
-//        cx += xdisp;
-//        cy += ydisp;
-//        for (int b=0;b<overlaplist.size();b++)
-//        {
-//            cedge = (OverlapGraphEdge)overlaplist.elementAt(b);
-//            cnode = cedge.overlapswith;
-//            centre = cnode.drawThis(g, xdisp+X_DISP, ydisp);
-//            ox = computex(centre[0], centre[1])+xdisp;
-//            oy = computey(centre[1])+ydisp;
-//            g.setColor(Color.black);
-//            g.drawOval(cx-2, cy-2, 4, 4);
-//            if (cedge.overlap >= ((100+min_overlap_match)/2))
-//            {
-//                g.setColor(Color.red);
-//            }
-//            if ((cedge.overlap < ((100+min_overlap_match)/2))
-//            && (cedge.overlap >= min_overlap_match))
-//            {
-//                g.setColor(Color.orange);
-//            }
-//            if ((cedge.overlap >= (min_overlap_match/2))
-//            && (cedge.overlap < min_overlap_match))
-//            {
-//                g.setColor(Color.green);
-//            }
-//            if (cedge.overlap < ((min_overlap_match)/2))
-//            {
-//                g.setColor(Color.blue);
-//            }
-//            g.drawLine(cx, cy, ox+X_DISP, oy);
-//        }
-//    }
     
     /**
      * Gets the polygon stored in the node in the order in which it is stored
@@ -1251,12 +1122,14 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             if (TriRepUtil.indexOf(childlist, tojoin[a]) == -1)
             {
-                System.out.println("WARNING ConvexHullTreeNode 469: joinChildren called with non-child node!");
+                if(TriRepUtil.debugging)
+                    System.out.println("WARNING ConvexHullTreeNode 469: joinChildren called with non-child node!");
                 return(null);
             }
             if (tojoin[a] == null)
             {
-                System.out.println("WARNING CHTN 473: Tojoin element is null!");
+                if(TriRepUtil.debugging)
+                    System.out.println("WARNING CHTN 473: Tojoin element is null!");
             }
         }
         // Remove overlap between this node and other nodes (including children).
@@ -1301,13 +1174,16 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
             {
                 if (begindex != -1)
                 {
-                    System.out.println("WARNING ConvexHullTreeNode 510: more than one end point: using last!");
-                    System.out.print("Number of concavities to join: ");
-                    System.out.println(tojoin.length);
-                    System.out.println("Length of concavities:");
-                    for (int l=0;l<tojoin.length;l++)
+                    if(TriRepUtil.debugging)
                     {
-                        System.out.println(tojoin[l].numberOfLines());
+                        System.out.println("WARNING ConvexHullTreeNode 510: more than one end point: using last!");
+                        System.out.print("Number of concavities to join: ");
+                        System.out.println(tojoin.length);
+                        System.out.println("Length of concavities:");
+                        for (int l=0;l<tojoin.length;l++)
+                        {
+                            System.out.println(tojoin[l].numberOfLines());
+                        }
                     }
                 }
                 begindex = next;
@@ -1315,7 +1191,8 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         if (begindex == -1)
         {
-            System.out.println("WARNING ConvexHullTreeNode 516: no begin point found!");
+            if(TriRepUtil.debugging)
+                System.out.println("WARNING ConvexHullTreeNode 516: no begin point found!");
             begindex = 0;
         }
         childvector = new Vector();

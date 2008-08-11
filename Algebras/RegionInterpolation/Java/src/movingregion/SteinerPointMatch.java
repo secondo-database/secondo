@@ -35,7 +35,6 @@ public class SteinerPointMatch extends Match
         }
         double greatestDist=TriRepUtil.getMaxDistance2(tmp);
         threshold=(int)(greatestDist*thresholdRel);
-        System.out.println("HALLO"+greatestDist+" "+threshold);
         this.addMatch(source,target);
         this.matchFaces(source.getFaces(),target.getFaces());
         
@@ -120,7 +119,8 @@ public class SteinerPointMatch extends Match
                 {
                     this.addMatch(chtn1[i],chtn2[j]);
                     this.addMatch(chtn2[j],chtn1[i]);
-                    System.out.println("addMatch");
+                    if(TriRepUtil.debugging)
+                        System.out.println("addMatch");
                 }
             }
             unmatched.add(chtn1[i]);
@@ -185,7 +185,7 @@ public class SteinerPointMatch extends Match
         double best=Double.MAX_VALUE;
         ConvexHullTreeNode bestMatch=null;
         for(int i=0;i<targets.length;i++)
-        {
+        {            
             double overl=getDistance(source,targets[i]);
             if(overl<best)
             {
@@ -198,6 +198,7 @@ public class SteinerPointMatch extends Match
     
     public static double getDistance(ConvexHullTreeNode chtn1,ConvexHullTreeNode chtn2)
     {
+        if(chtn1==null || chtn2==null) return(1000000);
         LineWA center1=chtn1.getSteinerPoint();
         LineWA center2=chtn2.getSteinerPoint();
         return(Math.sqrt((center1.x-center2.x)*(center1.x-center2.x)+(center1.y-center2.y)*(center1.y-center2.y)));

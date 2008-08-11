@@ -212,11 +212,27 @@ public abstract class Match
     {
         //generateRatings();
         Iterator keyIter=maps.keySet().iterator();
+        int iterationen=0;
         while(keyIter.hasNext())
         {
+            if(iterationen>maps.size()*3)
+            {
+                maps.clear();
+                if(TriRepUtil.debuggingWarnings)
+                    System.out.println("Match "+this.getName()+" ließ sich nicht finalisieren und wird gelöscht");
+                this.Arearating=0;
+                this.Hausdorffrating=0;
+                this.Ovelaprating=0;
+                this.linearRating=0;
+                break;
+            }
+            iterationen++;
             SingleMatch tmp=(SingleMatch)maps.get(keyIter.next());
-            System.out.println("EING");
-            System.out.println(tmp);
+            if(TriRepUtil.debugging)
+            {
+                System.out.println("EING"+ iterationen);
+                System.out.println(tmp);
+            }
             if(tmp!=null&&tmp.getNrTargets()==1&&(tmp.getTargetAt(0)instanceof ConvexHullTreeNode))
             {
                 ConvexHullTreeNode stmp=(ConvexHullTreeNode)tmp.getSource();
@@ -298,10 +314,13 @@ public abstract class Match
                 
                 if(tmp.getSource() instanceof Face)
                 {
-                    System.out.println("SplitFF");
-                    System.out.println(this.source);
-                    System.out.println("Target");
-                    System.out.println(this.target);
+                    if(TriRepUtil.debugging)
+                    {
+                        System.out.println("SplitFF");
+                        System.out.println(this.source);
+                        System.out.println("Target");
+                        System.out.println(this.target);
+                    }
                     Face sou=(Face)tmp.getSource();
                     Face t1=(Face)tmp.getTargetAt(0);
                     Face t2=(Face)tmp.getTargetAt(1);
@@ -356,11 +375,14 @@ public abstract class Match
                         ((ConvexHullTreeNode)tmp.getSource()).isHole() &&
                         ((ConvexHullTreeNode)tmp.getSource()).getParentNode() instanceof Face)
                 {
-                    System.out.println(tmp);
-                    System.out.println("SplitHH");
-                    System.out.println(this.source);
-                    System.out.println("Target");
-                    System.out.println(this.target);
+                    if(TriRepUtil.debugging)
+                    {
+                        System.out.println(tmp);
+                        System.out.println("SplitHH");
+                        System.out.println(this.source);
+                        System.out.println("Target");
+                        System.out.println(this.target);
+                    }
                     ConvexHullTreeNode sou=(ConvexHullTreeNode)tmp.getSource();
                     ConvexHullTreeNode t1=(ConvexHullTreeNode)tmp.getTargetAt(0);
                     ConvexHullTreeNode t2=(ConvexHullTreeNode)tmp.getTargetAt(1);
@@ -368,7 +390,8 @@ public abstract class Match
                     this.removeMatches(t1);
                     this.removeMatches(t2);
                     RegionTreeNode parentsou= sou.getParentNode();
-                    System.out.println(tmp);
+                    if(TriRepUtil.debugging)
+                        System.out.println(tmp);
                     LineWA[][] newSources=sou.getSplitNodes(sou.getSplitLine(t1,t2));
                     ConvexHullTreeNode[] newSourcesCHTN=new ConvexHullTreeNode[2];
                     if(newSources!=null && newSources.length==2&&newSources[0]!=null && newSources[1]!=null)
@@ -419,7 +442,8 @@ public abstract class Match
 
                 if (tmp.getSource() instanceof ConvexHullTreeNode) 
                 {
-                    System.out.println("1 zu n ungelöst");
+                    if(TriRepUtil.debugging)
+                        System.out.println("1 zu n ungelöst");
                     ConvexHullTreeNode[] tmpSour = new ConvexHullTreeNode[1];
                     tmpSour[0] = (ConvexHullTreeNode) tmp.getSource();
                     removeMatches((ConvexHullTreeNode) tmp.getSource());
@@ -433,7 +457,8 @@ public abstract class Match
                     
                     matchCHTNs(tmpSour, tmpTar2);
                     keyIter = maps.keySet().iterator();
-                    System.out.println("Weiter");
+                    if(TriRepUtil.debugging)
+                        System.out.println("Weiter");
                     continue;
                 }
 //                if(tmp.getSource() instanceof ConvexHullTreeNode&&((ConvexHullTreeNode)tmp.getSource()).getParentNode()instanceof ConvexHullTreeNode)
@@ -452,11 +477,6 @@ public abstract class Match
 ////               iter = maps.begin();                                             
 ////               continue;         
 ////               
-//                    System.out.println(tmp);
-//                    System.out.println("SplitCC");
-//                    System.out.println(this.source);
-//                    System.out.println("Target");
-//                    System.out.println(this.target);
 //                    ConvexHullTreeNode sou=(ConvexHullTreeNode)tmp.getSource();
 //                    ConvexHullTreeNode t1=(ConvexHullTreeNode)tmp.getTargetAt(0);
 //                    ConvexHullTreeNode t2=(ConvexHullTreeNode)tmp.getTargetAt(1);
@@ -464,7 +484,6 @@ public abstract class Match
 //                    this.removeMatches(t1);
 //                    this.removeMatches(t2);
 //                    RegionTreeNode parentsou= sou.getParentNode();
-//                    System.out.println(tmp);
 //                    LineWA[][] newSources=sou.getSplitNodes(sou.getSplitLine(t1,t2));
 //                    ConvexHullTreeNode[] newSourcesCHTN=new ConvexHullTreeNode[2];
 //                    keyIter=maps.keySet().iterator();
@@ -520,7 +539,6 @@ public abstract class Match
 ////                }
 //                if(tmp.getNrTargets()>1)
 //                {
-//                    System.out.println("Echtes Problem");
 //                    while(tmp.getNrTargets()>1)
 //                    {
 //                        tmp.removeTarget(1);
@@ -547,7 +565,6 @@ public abstract class Match
 ////                        {
 ////                            if(Parent!=null&&Parent.equals(((ConvexHullTreeNode)tmp.getTargetAt(i)).getParentNode()))
 ////                            {
-////                                System.out.println("XXX"+Parent.getLineForChild((ConvexHullTreeNode)tmp.getTargetAt(i)));
 ////                                Children.add((ConvexHullTreeNode)tmp.getTargetAt(i));
 ////                            }
 ////                            else
@@ -611,7 +628,7 @@ public abstract class Match
             }
             else
             {
-                if(this.getMatches(tmp[0]).length<=1)
+                if(this.getMatches(tmp[0])!=null && this.getMatches(tmp[0]).length<=1)
                 {
                     rateFace(target.getFace(i),tmp);
                 }
@@ -742,67 +759,4 @@ public abstract class Match
         return(res);
     }
     
-    public static void main(String[] args)
-    {
-        
-        LineWA[] fl1=new LineWA[9];
-        fl1[0]=new LineWA(197,60);
-        fl1[1]=new LineWA(447,98);
-        fl1[2]=new LineWA(438,192);
-        fl1[3]=new LineWA(353,308);
-        fl1[4]=new LineWA(266,216);
-        fl1[5]=new LineWA(136,204);
-        fl1[6]=new LineWA(47,305);
-        fl1[7]=new LineWA(52,128);
-        fl1[8]=new LineWA(84,99);
-        Face f1=new Face(fl1,null);
-        Region r1=new Region();
-        r1.addFace(f1);
-        LineWA[] fl2=new LineWA[10];
-        fl2[0]=new LineWA(328,70);
-        fl2[1]=new LineWA(448,98);
-        fl2[2]=new LineWA(437,196);
-        fl2[3]=new LineWA(348,310);
-        fl2[4]=new LineWA(266,224);
-        fl2[5]=new LineWA(180,315);
-        fl2[7]=new LineWA(43,306);
-        fl2[6]=new LineWA(135,204);
-        fl2[8]=new LineWA(37,144);
-        fl2[9]=new LineWA(128,81);
-        Face f2=new Face(fl2,null);
-        LineWA[] fl3=new LineWA[3];
-        fl3[0]=new LineWA(100,100);
-        fl3[1]=new LineWA(100,150);
-        fl3[2]=new LineWA(150,150);
-        LineWA[] fl4=new LineWA[3];
-        fl4[0]=new LineWA(101,101);
-        fl4[1]=new LineWA(101,151);
-        fl4[2]=new LineWA(151,151);
-        f1.addHole(fl3);
-        f2.addHole(fl4);
-        Region r2=new Region();
-        r2.addFace(f2);
-        //SimpleMatch sm=new SimpleMatch(r1,r2);
-        OverlappingMatch sm=new OverlappingMatch(r1,r2,.5,true);
-        System.out.println(sm);
-        mLineRep lr=new mLineRep(sm);
-        String filename="test";
-        String app="dune";
-        FileOutputStream filestream;
-        OutputStreamWriter fs;
-        System.out.println("test");
-        MatchViewer testm=new MatchViewer(sm);
-        Frame frame=new Frame();
-        frame.add(testm);
-        frame.setVisible(true);
-        try
-        {
-            lr.saveAsVRML(filename+".vrml",5);
-            Runtime.getRuntime().exec(app+" "+filename+".vrml");
-        }
-        catch(IOException ex)
-        {
-            System.out.println(ex.getLocalizedMessage());
-        }
-    }
 }

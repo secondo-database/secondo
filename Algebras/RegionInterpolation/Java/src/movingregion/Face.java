@@ -287,7 +287,6 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         fs.write("         }\n");
         fs.write("      coordIndex [\n");
         Convexer convexer=new Convexer(polycycle);
-//        System.out.println("Nächstaes Polygon:");
         convexer.writePolygone(fs,tmp);
         fs.write("      ]\n");
         fs.write("      solid FALSE\n");

@@ -23,7 +23,8 @@ public class OverlappingMatch extends Match
     
     public void matchFaces(Face[] faces1,Face[] faces2)
     {
-        System.out.println("FaceMAtch");
+        if(TriRepUtil.debugging)
+            System.out.println("FaceMAtch");
         HashSet unmatched=new HashSet(faces1.length+faces2.length);
         for(int i=0;i< faces1.length;i++)
         {
@@ -36,7 +37,8 @@ public class OverlappingMatch extends Match
                     this.addMatch(faces2[j],faces1[i]);
                     this.addMatch(faces1[i].getCycle(),faces2[j].getCycle());
                     this.addMatch(faces2[j].getCycle(),faces1[i].getCycle());
-                    System.out.println("addMatch");
+                    if(TriRepUtil.debugging)
+                        System.out.println("addMatch");
                 }
             }
             unmatched.add(faces1[i]);
@@ -86,16 +88,19 @@ public class OverlappingMatch extends Match
     {
         if(chtn1!=null&&chtn1.length>0&&chtn2!=null&&chtn2.length>0)
         {
-            System.out.println("MAtchCHTN");
-            System.out.println("source");
-            for(int i=0;i< chtn1.length;i++)
+            if(TriRepUtil.debugging)
             {
-                System.out.println(chtn1[i]);
-            }
-            System.out.println("target");
-            for(int i=0;i< chtn2.length;i++)
-            {
-                System.out.println(chtn2[i]);
+                System.out.println("MAtchCHTN");
+                System.out.println("source");
+                for(int i=0;i< chtn1.length;i++)
+                {
+                    System.out.println(chtn1[i]);
+                }
+                System.out.println("target");
+                for(int i=0;i< chtn2.length;i++)
+                {
+                    System.out.println(chtn2[i]);
+                }
             }
             HashSet unmatched=new HashSet(source.getNrOfFaces()+target.getNrOfFaces());
             for(int i=0;i< chtn1.length;i++)
@@ -108,7 +113,8 @@ public class OverlappingMatch extends Match
                     {
                         this.addMatch(chtn1[i],chtn2[j]);
                         this.addMatch(chtn2[j],chtn1[i]);
-                        System.out.println("addMatch");
+                        if(TriRepUtil.debugging)
+                            System.out.println("addMatch");
                     }
                 }
                 unmatched.add(chtn1[i]);
@@ -130,7 +136,8 @@ public class OverlappingMatch extends Match
                         {
                             unmatched.remove(matches[i]);
                         }
-                        System.out.println("1");
+                        if(TriRepUtil.debugging)
+                            System.out.println("1");
                         this.matchCHTNs(next.getChildren(),this.getTargetChildren(next));
                     }
                     else
@@ -141,13 +148,15 @@ public class OverlappingMatch extends Match
                             {
                                 unmatched.remove(getMatches(matches[0])[i]);
                             }
-                            System.out.println("2");
+                            if(TriRepUtil.debugging)
+                                System.out.println("2");
                             this.matchCHTNs(((ConvexHullTreeNode)matches[0]).getChildren(),this.getTargetChildren(matches[0]));
                         }
                         else
                         {
                             unmatched.remove(matches[0]);
-                            System.out.println("3");
+                            if(TriRepUtil.debugging)
+                                System.out.println("3");
                             this.matchCHTNs(next.getChildren(),((ConvexHullTreeNode)matches[0]).getChildren());
                         }
                     }
@@ -191,8 +200,7 @@ public class OverlappingMatch extends Match
     
     public static double getOverlapp(ConvexHullTreeNode chtn1,ConvexHullTreeNode chtn2)
     {
-        double [] res=TriRepUtil.findOverlap(chtn1.getOutLine(),chtn2.getOutLine());
-        System.out.println("OVER"+res[0]);
+        double [] res=TriRepUtil.findOverlap(chtn1.getOutLine(),chtn2.getOutLine());        
         return((res[0])/100.0);
     }
 }

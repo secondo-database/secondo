@@ -58,7 +58,6 @@ public class ConvexHullTreePolygonViewer extends javax.swing.JPanel
     {
         double scaleX=wid/((maxX-minX)*1.0);
         double scaleY=hei/((maxY-minY)*1.0);
-//        System.out.println(maxX+" "+" "+minX+" "+wid+" "+hei+" "+scaleX+" "+scaleY);
         g.setColor(c);
         Polygon tmp =new Polygon();
         LineWA[]tmpli=node.getOrderedOutLine();
