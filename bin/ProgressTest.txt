@@ -1,0 +1,26 @@
+open database opt
+
+let plz10 = plz feed ten feed product extend[ran: randint(50000)] 
+sortby[ran asc] remove[ran] consume
+
+query plz10 feed {p1} plz10 feed {p2} sortmergejoin[PLZ_p1, PLZ_p2] count
+
+query plz10 feed {p1} plz10 feed {p2} hashjoin[PLZ_p1, PLZ_p2, 99997] count
+
+query plz10 feed sortby[Ort asc] count
+
+
+
+
+
+let plz10_PLZ = plz10 createbtree[PLZ]
+
+query plz10 feed head[50000] {p1} loopjoin[plz10_PLZ plz10 
+exactmatch[.PLZ_p1] {p2}] count
+
+query plz10 feed {p1} ten feed {p2} product count
+
+close database
+
+
+
