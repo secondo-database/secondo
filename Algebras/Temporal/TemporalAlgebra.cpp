@@ -8613,7 +8613,7 @@ int Linearize2_ureal(Word* args, Word& result,
 
         arg = (UReal*) args[0].addr;
         localinfo = new(Linearize2_ureal_LocalInfo);
-        local = SetWord(localinfo);
+        local.setAddr(localinfo);
         localinfo->finished = true;
         localinfo->NoOfResults = 0;
         localinfo->NoOfResultsDelivered = 0;
@@ -8651,7 +8651,7 @@ int Linearize2_ureal(Word* args, Word& result,
           localinfo->finished = true;
           return CANCEL;
         }
-        result = SetWord(
+        result.setAddr(
             localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
         localinfo->NoOfResultsDelivered++;
         return YIELD;
@@ -8662,7 +8662,7 @@ int Linearize2_ureal(Word* args, Word& result,
         {
           localinfo = (Linearize2_ureal_LocalInfo*) local.addr;
           delete localinfo;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
         return 0;
     } // end switch
@@ -9813,14 +9813,14 @@ int GPSVM( Word* args, Word& result, int message,
   GPSLI* li;
   switch(message){
        case OPEN:
-             local = SetWord(new GPSLI((MPoint*)args[0].addr,
+             local.setAddr(new GPSLI((MPoint*)args[0].addr,
                                        (DateTime*)args[1].addr,
                                        GetTupleResultType(s)));
              return 0;
        case REQUEST:
              li = (GPSLI*) local.addr;
               t = li->NextTuple();
-              result= SetWord(t);
+              result.setAddr(t);
               if(t){
                  return YIELD;
               } else {
@@ -9831,7 +9831,7 @@ int GPSVM( Word* args, Word& result, int message,
               {
                 li = (GPSLI*) local.addr;
                 delete li;
-                local = SetWord(Address(0));
+                local.setAddr(0);
               }
               return 0;
   }
