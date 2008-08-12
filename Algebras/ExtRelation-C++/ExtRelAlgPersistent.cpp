@@ -356,7 +356,7 @@ class SortByLocalInfo
         TupleQueue* currentRun = &queue[0];
         TupleQueue* nextRun = &queue[1];
        
-        Word wTuple = SetWord(Address(0));
+        Word wTuple(Address(0));
         size_t  c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
         bool newRelation = true;
 
@@ -711,7 +711,7 @@ class SortByLocalInfo : protected ProgressWrapper
         Heap* currentRun = &queue[0];
         Heap* nextRun = &queue[1];
 
-        Word wTuple = SetWord(Address(0));
+        Word wTuple(Address(0));
         size_t  c = 0, i = 0, a = 0, n = 0, m = 0, r = 0; // counter variables
         bool newRelation = true;
 
@@ -1057,8 +1057,6 @@ sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
     case CLOSEPROGRESS:
-      qp->CloseProgress(args[0].addr);
-
       if (li) {	      
         delete li;
 	local.addr = 0;
@@ -1234,7 +1232,7 @@ private:
   inline Tuple* NextTuple(Word stream, SortByLocalInfo* sli)
   {
     bool yield = false;
-    Word result = SetWord( Address(0) );
+    Word result( Address(0) );
 
     if(!expectSorted)
       return sli->NextResultTuple();
@@ -1609,7 +1607,7 @@ private:
   inline Tuple* NextTuple(Word stream, SortByLocalInfo* sli)
   {
     bool yield = false;
-    Word result = SetWord( Address(0) );
+    Word result( Address(0) );
 
     if(!expectSorted)
       return sli->NextResultTuple();
@@ -1914,9 +1912,6 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       return 0;
 
     case CLOSEPROGRESS:
-      qp->CloseProgress(args[0].addr);
-      qp->CloseProgress(args[1].addr);
-
       if (li) {
         delete li;
 	local.addr = 0;
@@ -2742,9 +2737,6 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
     case CLOSEPROGRESS:
-
-      qp->CloseProgress(args[0].addr);
-      qp->CloseProgress(args[1].addr);
 
       if (li) {
 	delete li;

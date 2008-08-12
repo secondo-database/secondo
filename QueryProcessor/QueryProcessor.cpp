@@ -3136,6 +3136,9 @@ Deletes an operator tree object.
           /* space was allocated for result */
           DeleteResultStorage(tree);
         }
+        if(tree->u.op.supportsProgress){
+          CloseProgress(tree); 
+        }
         break;
       }
       case Object:
@@ -3225,7 +3228,6 @@ QueryProcessor::EvalP( void* node,
   allowProgress = true;
   Eval( node, result, 1 );
   allowProgress = false;
-  CloseProgress( node );
   progressView->FinishProgressView();
   delete progressView;
 }

@@ -338,13 +338,6 @@ is closed already.
 
 
 
-  void CloseProgress( const Supplier s );
-
-/*
-~CloseProgress~ deallocates data structures for operators that support progress. No effect when called for an operator not supporting progress.
-
-*/
-
 
 
 
@@ -734,6 +727,13 @@ Trigger a progress query if the time has come to do so.
 
 */
 
+
+  void CloseProgress( const Supplier s );
+
+/*
+~CloseProgress~ deallocates data structures for operators that support progress. No effect when called for an operator not supporting progress.
+
+*/
 
 
 
