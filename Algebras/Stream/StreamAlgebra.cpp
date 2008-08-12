@@ -200,7 +200,7 @@ int MappingStreamFeed( Word* args, Word& result, int message,
     case OPEN:
       linfo = new SFeedLocalInfo;
       linfo->finished = false;
-      local = SetWord(linfo);
+      local.setAddr(linfo);
       return 0;
 
     case REQUEST:
@@ -210,7 +210,7 @@ int MappingStreamFeed( Word* args, Word& result, int message,
       if ( linfo->finished )
         return CANCEL;
       argValue = args[0];
-      result = SetWord(((Attribute*) (argValue.addr))->Clone());
+      result.setAddr(((Attribute*) (argValue.addr))->Clone());
       linfo->finished = true;
       return YIELD;
 
@@ -219,7 +219,7 @@ int MappingStreamFeed( Word* args, Word& result, int message,
         {
           linfo = ( SFeedLocalInfo*) local.addr;
           delete linfo;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
       return 0;
     }
@@ -736,7 +736,7 @@ int Use_SN( Word* args, Word& result, int message,
       sli->Xfinished = true;
       qp->Open(instream.addr);
       sli->Xfinished = false;
-      local = SetWord(sli);
+      local.setAddr(sli);
 #ifdef GSA_DEBUG
       cout << "Use_SN finished OPEN" << endl;
 #endif
@@ -777,7 +777,7 @@ int Use_SN( Word* args, Word& result, int message,
           (*funArgs)[0] = argValue;         //   parameter function
           qp->Request(fun.addr, funResult); // call parameter function
           // copy result:
-          result = SetWord(((Attribute*) (funResult.addr))->Clone());
+          result.setAddr(((Attribute*) (funResult.addr))->Clone());
           ((Attribute*) (argValue.addr))->DeleteIfAllowed(); // delete argument
 #ifdef GSA_DEBUG
           cout << "        result.addr    =" << result.addr << endl;
@@ -810,7 +810,7 @@ int Use_SN( Word* args, Word& result, int message,
           if ( !sli->Xfinished )
             qp->Close( instream.addr );
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
 #ifdef GSA_DEBUG
       cout << "Use_SN finished CLOSE" << endl;
@@ -836,8 +836,8 @@ int Use_SS( Word* args, Word& result, int message,
     case OPEN :
 
       sli = new UseLocalInfo;
-      sli->X   = SetWord( args[0].addr );
-      sli->fun = SetWord( args[1].addr );
+      sli->X.setAddr( args[0].addr );
+      sli->fun.setAddr( args[1].addr );
       sli->Xfinished   = true;
       sli->funfinished = true;
       sli->XVal.addr   = 0;
@@ -845,7 +845,7 @@ int Use_SS( Word* args, Word& result, int message,
       qp->Open( sli->X.addr );
       sli->Xfinished = false;
       // save the local information
-      local = SetWord(sli);
+      local.setAddr(sli);
 
       return 0;
 
@@ -887,7 +887,7 @@ int Use_SS( Word* args, Word& result, int message,
           qp->Request( sli->fun.addr, funResult );
           if(qp->Received( sli->fun.addr ))
             { // cloning and passing the result
-              result = SetWord(((Attribute*) (funResult.addr))->Clone());
+              result.setAddr(((Attribute*) (funResult.addr))->Clone());
               ((Attribute*) (funResult.addr))->DeleteIfAllowed();
 #ifdef GSA_DEBUG
               cout << "     result.addr=" << result.addr << endl;
@@ -915,7 +915,7 @@ int Use_SS( Word* args, Word& result, int message,
           if ( !sli->Xfinished )
             qp->Close( sli->X.addr );
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
       return 0;
     }  // end switch
@@ -944,7 +944,7 @@ int Use_SNN( Word* args, Word& result, int message,
       sli->Xfinished = true;
       sli->X.addr = 0;
       sli->Y.addr = 0;
-      sli->fun = SetWord(args[2].addr);
+      sli->fun.setAddr(args[2].addr);
       // get argument configuration info
       sli->argConfDescriptor = ((CcInt*)args[3].addr)->GetIntval();
       if(sli->argConfDescriptor & 4)
@@ -958,19 +958,19 @@ int Use_SNN( Word* args, Word& result, int message,
         }
       if(sli->argConfDescriptor & 1)
         { // the first arg is the stream
-          sli->X = SetWord(args[0].addr); // X is the stream
-          sli->Y = SetWord(args[1].addr); // Y is the constant value
+          sli->X.setAddr(args[0].addr); // X is the stream
+          sli->Y.setAddr(args[1].addr); // Y is the constant value
         }
       else
         { // the second arg is the stream
-          sli->X = SetWord(args[1].addr); // X is the stream
-          sli->Y = SetWord(args[0].addr); // Y is the constant value
+          sli->X.setAddr(args[1].addr); // X is the stream
+          sli->Y.setAddr(args[0].addr); // Y is the constant value
         }
 
       qp->Open(sli->X.addr);              // open outer stream argument
       sli->Xfinished = false;
 
-      local = SetWord(sli);
+      local.setAddr(sli);
 #ifdef GSA_DEBUG
       cout << "Use_SNN finished OPEN" << endl;
 #endif
@@ -1031,7 +1031,7 @@ int Use_SNN( Word* args, Word& result, int message,
           (*funargs)[1] = xval;
         }
       qp->Request( sli->fun.addr, funresult );
-      result = SetWord(((Attribute*) (funresult.addr))->Clone());
+      result.setAddr(((Attribute*) (funresult.addr))->Clone());
 #ifdef GSA_DEBUG
       cout << "     result.addr=" << result.addr << endl;
 #endif
@@ -1052,7 +1052,7 @@ int Use_SNN( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close input
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
 #ifdef GSA_DEBUG
       cout << "Use_SNN finished CLOSE" << endl;
@@ -1102,19 +1102,19 @@ int Use_SNS( Word* args, Word& result, int message,
         }
       if(sli->argConfDescriptor & 1)
         { // the first arg is the stream
-          sli->X = SetWord(args[0].addr); // X is the stream
-          sli->Y = SetWord(args[1].addr); // Y is the constant value
+          sli->X.setAddr(args[0].addr); // X is the stream
+          sli->Y.setAddr(args[1].addr); // Y is the constant value
         }
       else
         { // the second arg is the stream
-          sli->X = SetWord(args[1].addr); // X is the stream
-          sli->Y = SetWord(args[0].addr); // Y is the constant value
+          sli->X.setAddr(args[1].addr); // X is the stream
+          sli->Y.setAddr(args[0].addr); // Y is the constant value
         }
       sli->YVal = sli->Y; // save value of constant argument
       qp->Open(sli->X.addr);               // open the ("outer") input stream
       sli->Xfinished = false;
-      sli->fun = SetWord(args[2].addr);
-      local = SetWord(sli);
+      sli->fun.setAddr(args[2].addr);
+      local.setAddr(sli);
 #ifdef GSA_DEBUG
       cout << "Use_SNN finished OPEN" << endl;
 #endif
@@ -1175,7 +1175,7 @@ int Use_SNS( Word* args, Word& result, int message,
           qp->Request(sli->fun.addr, funresult);
           if (qp->Received(sli->fun.addr))
             { // inner stream returned a result
-              result = SetWord(((Attribute*) (funresult.addr))->Clone());
+              result.setAddr(((Attribute*) (funresult.addr))->Clone());
               ((Attribute*) (funresult.addr))->DeleteIfAllowed();
 #ifdef GSA_DEBUG
               cout << "     result.addr=" << result.addr << endl;
@@ -1209,7 +1209,7 @@ int Use_SNS( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr );   // close outer stream
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(Address(0));
         }
 #ifdef GSA_DEBUG
       cout << "Use_SNN finished CLOSE" << endl;
@@ -1258,13 +1258,13 @@ int Use_SSN( Word* args, Word& result, int message,
                <<  endl;
           return 0;
         }
-      sli->X = SetWord(args[0].addr);   // X is the stream
-      sli->Y = SetWord(args[1].addr);   // Y is the constant value
-      sli->fun = SetWord(args[2].addr); // fun is the mapping function
+      sli->X.setAddr(args[0].addr);   // X is the stream
+      sli->Y.setAddr(args[1].addr);   // Y is the constant value
+      sli->fun.setAddr(args[2].addr); // fun is the mapping function
 
       qp->Open(sli->X.addr);            // open outer stream argument
       sli->Xfinished = false;
-      local = SetWord(sli);
+      local.setAddr(sli);
 #ifdef GSA_DEBUG
       cout << "Use_SSN finished OPEN" << endl;
 #endif
@@ -1329,7 +1329,7 @@ int Use_SSN( Word* args, Word& result, int message,
               (*funargs)[0] = sli->XVal;
               (*funargs)[1] = sli->YVal;
               qp->Request( sli->fun.addr, funresult );
-              result = SetWord(((Attribute*) (funresult.addr))->Clone());
+              result.setAddr(((Attribute*) (funresult.addr))->Clone());
               ((Attribute*) (sli->YVal.addr))->DeleteIfAllowed();
 #ifdef GSA_DEBUG
               cout << "Use_SSN finished REQUEST: YIELD" << endl;
@@ -1359,7 +1359,7 @@ int Use_SSN( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close outer instream
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
       result.addr = 0;
 #ifdef GSA_DEBUG
@@ -1417,7 +1417,7 @@ int Use_SSS( Word* args, Word& result, int message,
       sli->fun = args[2]; // fun is the mapping function
       qp->Open(sli->X.addr);            // open X stream argument
       sli->Xfinished = false;
-      local = SetWord(sli);
+      local.setAddr(sli);
 #ifdef GSA_DEBUG
       cout << "Use_SSS finished OPEN" << endl;
 #endif
@@ -1498,7 +1498,7 @@ int Use_SSS( Word* args, Word& result, int message,
               qp->Request( sli->fun.addr, funresult );
               if ( qp->Received(sli->fun.addr) )
                 { // got a value from map result stream
-                  result=SetWord(((Attribute*)(funresult.addr))->Clone());
+                  result.setAddr(((Attribute*)(funresult.addr))->Clone());
                   ((Attribute*) (funresult.addr))->DeleteIfAllowed();
 #ifdef GSA_DEBUG
                   cout << "Use_SSS finished REQUEST: YIELD" << endl;
@@ -1542,7 +1542,7 @@ int Use_SSS( Word* args, Word& result, int message,
           if (!sli->Xfinished)
             qp->Close( sli->X.addr ); // close outer instream
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
 #ifdef GSA_DEBUG
       cout << "Use_SSS finished CLOSE" << endl;
@@ -1932,8 +1932,8 @@ int Streamaggregate( Word* args, Word& result, int message,
       else
         { // there are at least two stream elements
           // match both elements and put the result into the stack
-          (*vector)[0] = SetWord(t1.addr);
-          (*vector)[1] = SetWord(t2.addr);
+          ((*vector)[0]).setAddr(t1.addr);
+          ((*vector)[1]).setAddr(t2.addr);
           qp->Request( aggrmap.addr, resultWord );
           aggrStack.push( AggregStruct( 1, resultWord ) );
           // level 1 because we matched a level 0 elem
@@ -1946,7 +1946,7 @@ int Streamaggregate( Word* args, Word& result, int message,
           while( qp->Received( stream.addr ) )
             {
               long level = 0;
-              iterWord = SetWord( ((Attribute*)t1.addr)->Copy() );
+              iterWord.setAddr(((Attribute*)t1.addr)->Copy() );
               while( !aggrStack.empty() && aggrStack.top().level == level )
                 {
                   (*vector)[0] = aggrStack.top().value;
@@ -2251,7 +2251,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
       resultType = GetTupleResultType( s );
       sli->resultTupleType = new TupleType( nl->Second( resultType ) );
       sli->finished = false;
-      local = SetWord(sli);
+      local.setAddr(sli);
       return 0;
 
     case REQUEST:
@@ -2263,7 +2263,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
       if (sli->finished)
         return CANCEL;
 
-      result = SetWord((Attribute*)((qp->ResultStorage(s)).addr));
+      result.setAddr((Attribute*)((qp->ResultStorage(s)).addr));
 
       qp->Request( args[0].addr, value );
       if (!qp->Received( args[0].addr ))
@@ -2277,7 +2277,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
       newTuple = new Tuple( sli->resultTupleType );
       newTuple->PutAttribute( 0, ((Attribute*)value.addr)->Copy() );
       ((Attribute*)(value.addr))->DeleteIfAllowed();
-      result = SetWord(newTuple);
+      result.setAddr(newTuple);
       return YIELD;
 
     case CLOSE:
@@ -2289,7 +2289,7 @@ int Transformstream_S_TS(Word* args, Word& result, int message,
             qp->Close( args[0].addr );
           sli->resultTupleType->DeleteIfAllowed();
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
       return 0;
     }
@@ -2314,7 +2314,7 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
       qp->Open( args[0].addr );
       sli = new TransformstreamLocalInfo;
       sli->finished = false;
-      local = SetWord(sli);
+      local.setAddr(sli);
 #ifdef GSA_DEBUG
       cout << "Transformstream_TS_S: OPEN finished" << endl;
 #endif
@@ -2372,7 +2372,7 @@ int Transformstream_TS_S(Word* args, Word& result, int message,
           if (!sli->finished)
             qp->Close( args[0].addr );
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
 #ifdef GSA_DEBUG
       cout << "Transformstream_TS_S: CLOSE finished" << endl;
@@ -2669,7 +2669,7 @@ int Echo_Stream(Word* args, Word& result, int message,
             }
             qp->Request(args[0].addr,elem);
             if(qp->Received(args[0].addr)){
-                result = SetWord(elem.addr);
+                result.setAddr(elem.addr);
                 return YIELD;
             } else{
                 return CANCEL;
@@ -2689,7 +2689,7 @@ int Echo_Other(Word* args, Word& result, int message,
                Word& local, Supplier s)
 {
    Attribute* s1 = (Attribute*) args[1].addr;
-   result = SetWord(args[0].addr);
+   result.setAddr(args[0].addr);
    s1->Print(cout) << endl;
    return 0;
 }
@@ -3383,7 +3383,7 @@ realstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       range_d = ((RangeAndDiff*) local.addr);
       if(range_d){
          delete range_d;
-         local = SetWord(Address(0));
+         local.setAddr(0);
       }
       range_d = 0;
       return 0;
@@ -3618,7 +3618,7 @@ ensure_sf( ListExpr args )
 template<class T>
 int ensure_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  Word elem = SetWord(Address(0) );
+  Word elem(Address(0) );
   int num = StdTypes::GetInt(args[1]);
 
   qp->Open(args[0].addr);
@@ -3816,14 +3816,14 @@ int StreamTailTupleTreamVM(Word* args, Word& result,
            || CcN->GetIntval() <= 0
         )
       {
-        local = SetWord( Address(0) );
+        local.setAddr(0);
         DEBUGMESSAGE("End OPEN 1");
         return 0;
       } // else: consume the InputStream
       li = new TailLocalInfo( CcN->GetIntval(),
                               CcKeepOrder->GetBoolval()
                             );
-      local = SetWord(li);
+      local.setAddr(li);
 
       // open and consume the input stream
       qp->Open(InputStream.addr);
@@ -3851,7 +3851,7 @@ int StreamTailTupleTreamVM(Word* args, Word& result,
          restuple->IncReference();  // reference for the stream
       }
      
-      result = SetWord( restuple );
+      result.setAddr( restuple );
       DEBUGMESSAGE("End REQUEST: YIELD");
       return YIELD;
     }
@@ -3862,7 +3862,7 @@ int StreamTailTupleTreamVM(Word* args, Word& result,
       if(local.addr){
         li = static_cast<TailLocalInfo*>(local.addr);
         delete li;
-        local = SetWord( Address(0) );
+        local.setAddr(0);
       }
       DEBUGMESSAGE("End CLOSE");
       return 0;
@@ -3944,7 +3944,7 @@ int StreamTailDataStreamVM(Word* args, Word& result,
                || CcN->GetIntval() <= 0
         )
       {
-        local = SetWord( Address(0) );
+        local.setAddr(0);
         DEBUGMESSAGE("End OPEN 1");
         return 0;
       } // else: consume the InputStream
@@ -3953,7 +3953,7 @@ int StreamTailDataStreamVM(Word* args, Word& result,
                                   CcKeepOrder->GetBoolval(),
                                   elemTypeNL
                                 );
-      local = SetWord(li);
+      local.setAddr(li);
 
       // open and consume the input stream
       qp->Open(InputStream.addr);
@@ -3974,7 +3974,7 @@ int StreamTailDataStreamVM(Word* args, Word& result,
       if(!local.addr){ DEBUGMESSAGE("End REQUEST: CANCEL1 "); return CANCEL; }
       li = static_cast<DataTailLocalInfo*>(local.addr);
       if(li->finished){ DEBUGMESSAGE("End REQUEST: CANCEL2 "); return CANCEL; }
-      result = SetWord(li->GetNextElem());    // extract the object
+      result.setAddr(li->GetNextElem());    // extract the object
       if(!result.addr){
         DEBUGMESSAGE("End REQUEST: CANCEL3 ");
         return CANCEL;
@@ -3989,7 +3989,7 @@ int StreamTailDataStreamVM(Word* args, Word& result,
       if(local.addr){
         li = static_cast<DataTailLocalInfo*>(local.addr);
         delete li;
-        local = SetWord( Address(0) );
+        local.setAddr(0);
       }
       DEBUGMESSAGE("End CLOSE");
       return 0;

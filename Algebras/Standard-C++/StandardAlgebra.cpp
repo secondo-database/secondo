@@ -2981,7 +2981,7 @@ are separated by a space character.
         subword = ((Subword*) local.addr);
         free(subword->subw);
         delete subword;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
