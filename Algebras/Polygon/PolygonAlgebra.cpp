@@ -625,7 +625,7 @@ Polygon::Open( SmiRecord& valueRecord,
              Word& value )
 {
   Polygon *p = (Polygon*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( p );
+  value.setAddr( p );
   return true;
 }
 

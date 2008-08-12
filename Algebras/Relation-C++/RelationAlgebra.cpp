@@ -694,7 +694,7 @@ OpenRel( SmiRecord& valueRecord,
          const ListExpr typeInfo,
          Word& value )
 {
-  value = SetWord( Relation::Open( valueRecord, offset, typeInfo ) );
+  value.setAddr( Relation::Open( valueRecord, offset, typeInfo ) );
   return value.addr != 0;
 }
 
@@ -1027,7 +1027,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       Tuple *t;
       if ((t = rit->GetNextTuple()) != 0)
       {
-        result = SetWord(t);
+        result.setAddr(t);
         return YIELD;
       }
       else
@@ -1085,7 +1085,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       fli->total = r->GetNoTuples();
       fli->rit = r->MakeScan();
       fli->progressInitialized = false;
-      local = SetWord(fli);
+      local.setAddr(fli);
       return 0;
     }
     case REQUEST :{
@@ -1094,7 +1094,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       if ((t = fli->rit->GetNextTuple()) != 0)
       {
         fli->returned++;
-        result = SetWord(t);
+        result.setAddr(t);
         return YIELD;
       }
       else
@@ -1314,7 +1314,7 @@ Consume(Word* args, Word& result, int message,
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, actual);
   }
-  result = SetWord(rel);
+  result.setAddr(rel);
   
   qp->Close(args[0].addr);
   return 0;
@@ -1348,7 +1348,7 @@ Consume(Word* args, Word& result, int message,
     cli = new consumeLocalInfo;
       cli->state = 0;
       cli->current = 0;
-    local = SetWord(cli);
+    local.setAddr(cli);
 
     GenericRelation* rel = (Relation*)((qp->ResultStorage(s)).addr);
     if(rel->GetNoTuples() > 0)
@@ -1366,7 +1366,7 @@ Consume(Word* args, Word& result, int message,
       cli->current++;
       qp->Request(args[0].addr, actual);
     }
-    result = SetWord(rel);
+    result.setAddr(rel);
 
     qp->Close(args[0].addr);
     cli->state = 1;
@@ -1570,7 +1570,7 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
   tupleptr = (Tuple*)args[0].addr;
   index = ((CcInt*)args[2].addr)->GetIntval();
   assert( 1 <= index && index <= tupleptr->GetNoAttributes() );
-  result = SetWord(tupleptr->GetAttribute(index - 1));
+  result.setAddr(tupleptr->GetAttribute(index - 1));
   return 0;
 }
 
@@ -1701,7 +1701,7 @@ Filter(Word* args, Word& result, int message,
       }
       if (found)
       {
-        result = SetWord(tuple);
+        result.setAddr(tuple);
         return YIELD;
       }
       else
@@ -1747,7 +1747,7 @@ Filter(Word* args, Word& result, int message,
       fli = new FilterLocalInfo;
         fli->current = 0;
         fli->returned = 0;
-      local = SetWord(fli);
+      local.setAddr(fli);
 
       qp->Open (args[0].addr);
       return 0;
@@ -1778,7 +1778,7 @@ Filter(Word* args, Word& result, int message,
       if (found)
       {
         fli->returned++;
-        result = SetWord(tuple);
+        result.setAddr(tuple);
         return YIELD;
       }
       else
@@ -2245,7 +2245,7 @@ Project(Word* args, Word& result, int message,
           t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
         }
         ((Tuple*)elem1.addr)->DeleteIfAllowed();
-        result = SetWord(t);
+        result.setAddr(t);
         return YIELD;
       }
       else return CANCEL;
@@ -2309,7 +2309,7 @@ Project(Word* args, Word& result, int message,
 
       pli = new ProjectLocalInfo();
       pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
-      local = SetWord(pli);
+      local.setAddr(pli);
 
       qp->Open(args[0].addr);
       return 0;
@@ -2335,7 +2335,7 @@ Project(Word* args, Word& result, int message,
           t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
         }
         ((Tuple*)elem1.addr)->DeleteIfAllowed();
-        result = SetWord(t);
+        result.setAddr(t);
         return YIELD;
       }
       else return CANCEL;
@@ -2778,7 +2778,7 @@ Product(Word* args, Word& result, int message,
       ListExpr resultType = GetTupleResultType( s );
       pli->resultTupleType = new TupleType(nl->Second(resultType));
 
-      local = SetWord(pli);
+      local.setAddr(pli);
       return 0;
     }
     case REQUEST :
@@ -2801,7 +2801,7 @@ Product(Word* args, Word& result, int message,
           resultTuple = new Tuple( pli->resultTupleType );
           Concat(pli->currentTuple, rightTuple, resultTuple);
           rightTuple->DeleteIfAllowed();
-          result = SetWord(resultTuple);
+          result.setAddr(resultTuple);
           return YIELD;
         }
         else
@@ -2821,7 +2821,7 @@ Product(Word* args, Word& result, int message,
             resultTuple = new Tuple( pli->resultTupleType );
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
-            result = SetWord(resultTuple);
+            result.setAddr(resultTuple);
             return YIELD;
           }
           else
@@ -2939,7 +2939,7 @@ Product(Word* args, Word& result, int message,
       pli->readSecond = 0;
       pli->returned = 0;
       pli->progressInitialized = false;
-      local = SetWord(pli);
+      local.setAddr(pli);
 
       while(qp->Received(args[1].addr))
       {
@@ -2983,7 +2983,7 @@ Product(Word* args, Word& result, int message,
           resultTuple = new Tuple( pli->resultTupleType );
           Concat(pli->currentTuple, rightTuple, resultTuple);
           rightTuple->DeleteIfAllowed();
-          result = SetWord(resultTuple);
+          result.setAddr(resultTuple);
           pli->returned++;
           return YIELD;
         }
@@ -3004,7 +3004,7 @@ Product(Word* args, Word& result, int message,
             resultTuple = new Tuple( pli->resultTupleType );
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
-            result = SetWord(resultTuple);
+            result.setAddr(resultTuple);
             pli->returned++;
             return YIELD;
           }
@@ -4788,7 +4788,7 @@ tconsume_vm( Word* args, Word& result, int message,
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, actual);
   }
-  result = SetWord(rel);
+  result.setAddr(rel);
   
   qp->Close(args[0].addr);
   return 0;
@@ -4894,7 +4894,7 @@ Rename(Word* args, Word& result, int message,
       if (qp->Received(args[0].addr))
       {
         tuple = (Tuple*)t.addr;
-        result = SetWord(tuple);
+        result.setAddr(tuple);
         return YIELD;
       }
       else return CANCEL;
@@ -5054,7 +5054,7 @@ Buffer(Word* args, Word& result, int message,
         bli->state = 0;
         bli->noInBuffer = 0;
         bli->next = -1;
-      local = SetWord(bli);
+      local.setAddr(bli);
 
       qp->Open(args[0].addr);
       return 0;
@@ -5068,7 +5068,7 @@ Buffer(Word* args, Word& result, int message,
         if (qp->Received(args[0].addr))
         {
           tuple = (Tuple*)t.addr;
-          result = SetWord(tuple);
+          result.setAddr(tuple);
           return YIELD;
         }
         else return CANCEL;
@@ -5091,7 +5091,7 @@ Buffer(Word* args, Word& result, int message,
         //return first tuple from the buffer, if possible
 	if ( bli->noInBuffer > 0 )
         {
-          result = SetWord(bli->tuples[0]);
+          result.setAddr(bli->tuples[0]);
           bli->next = 1;
           return YIELD;
         }
@@ -5101,7 +5101,7 @@ Buffer(Word* args, Word& result, int message,
       {
         //return one tuple from the buffer
 
-        result = SetWord(bli->tuples[bli->next]);
+        result.setAddr(bli->tuples[bli->next]);
         bli->next++;
         if ( bli->next == bli->noInBuffer )
         {

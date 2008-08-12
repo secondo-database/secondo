@@ -658,7 +658,7 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
 
   R_Tree<dim, TupleId> *rtree =
     (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   relation = (Relation*)args[0].addr;
   attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
@@ -688,7 +688,7 @@ int CreateRTreeStreamSpatial(Word* args, Word& result, int message,
   Word wTuple;
   R_Tree<dim, TupleId> *rtree =
     (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
       tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
@@ -731,7 +731,7 @@ int CreateRTreeRelRect(Word* args, Word& result, int message,
 
   R_Tree<dim, TupleId> *rtree =
     (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
   relation = (Relation*)args[0].addr;
   attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
@@ -758,7 +758,7 @@ int CreateRTreeStreamRect(Word* args, Word& result, int message,
   Word wTuple;
   R_Tree<dim, TupleId> *rtree =
     (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
       tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
@@ -799,7 +799,7 @@ int CreateRTree2LSpatial(Word* args, Word& result, int message,
   Word wTuple;
   R_Tree<dim, TwoLayerLeafInfo> *rtree =
     (R_Tree<dim, TwoLayerLeafInfo>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
       tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
@@ -848,7 +848,7 @@ int CreateRTree2LRect(Word* args, Word& result, int message,
   Word wTuple;
   R_Tree<dim, TwoLayerLeafInfo> *rtree =
     (R_Tree<dim, TwoLayerLeafInfo>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
       tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
@@ -1189,7 +1189,7 @@ int WindowIntersects( Word* args, Word& result,
 
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
     }
 
@@ -1210,7 +1210,7 @@ int WindowIntersects( Word* args, Word& result,
           if( localInfo->rtree->First( *localInfo->searchBox, e ) )
           {
             Tuple *tuple = localInfo->relation->GetTuple(e.info);
-            result = SetWord(tuple);
+            result.setAddr(tuple);
             return YIELD;
           }
           else
@@ -1221,7 +1221,7 @@ int WindowIntersects( Word* args, Word& result,
           if( localInfo->rtree->Next( e ) )
           {
             Tuple *tuple = localInfo->relation->GetTuple(e.info);
-            result = SetWord(tuple);
+            result.setAddr(tuple);
             return YIELD;
           }
           else
@@ -1237,7 +1237,7 @@ int WindowIntersects( Word* args, Word& result,
         localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo->searchBox;
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     }
@@ -1287,7 +1287,7 @@ int WindowIntersects( Word* args, Word& result,
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
       localInfo->progressInitialized = false;
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
     }
 
@@ -1308,7 +1308,7 @@ int WindowIntersects( Word* args, Word& result,
           if( localInfo->rtree->First( *localInfo->searchBox, e ) )
           {
             Tuple *tuple = localInfo->relation->GetTuple(e.info);
-            result = SetWord(tuple);
+            result.setAddr(tuple);
             localInfo->returned++;
             return YIELD;
           }
@@ -1320,7 +1320,7 @@ int WindowIntersects( Word* args, Word& result,
           if( localInfo->rtree->Next( e ) )
           {
             Tuple *tuple = localInfo->relation->GetTuple(e.info);
-            result = SetWord(tuple);
+            result.setAddr(tuple);
             localInfo->returned++;
             return YIELD;
           }
@@ -1337,7 +1337,7 @@ int WindowIntersects( Word* args, Word& result,
         localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo->searchBox;
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     }
@@ -1349,7 +1349,7 @@ int WindowIntersects( Word* args, Word& result,
       {
         localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     }
@@ -1701,7 +1701,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
             BoundingBox()) );
       localInfo->resultTupleType =
         new TupleType(nl->Second(GetTupleResultType(s)));
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
     }
 
@@ -1724,7 +1724,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
           {
             Tuple *tuple = new Tuple( localInfo->resultTupleType );
             tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
-            result = SetWord(tuple);
+            result.setAddr(tuple);
             return YIELD;
           }
           else
@@ -1736,7 +1736,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
           {
             Tuple *tuple = new Tuple( localInfo->resultTupleType );
             tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
-            result = SetWord(tuple);
+            result.setAddr(tuple);
             return YIELD;
           }
           else
@@ -1754,7 +1754,7 @@ int WindowIntersectsSStandard( Word* args, Word& result,
         delete localInfo->searchBox;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     }
@@ -1782,7 +1782,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
             BoundingBox()) );
       localInfo->resultTupleType =
         new TupleType(nl->Second(GetTupleResultType(s)));
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
     }
 
@@ -1809,7 +1809,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
             0, new TupleIdentifier( true, e.info.tupleId ) );
           tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
           tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
-          result = SetWord(tuple);
+          result.setAddr(tuple);
           return YIELD;
         }
         else
@@ -1824,7 +1824,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
             0, new TupleIdentifier( true, e.info.tupleId ) );
           tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
           tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
-          result = SetWord(tuple);
+          result.setAddr(tuple);
           return YIELD;
         }
         else
@@ -1843,7 +1843,7 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
         delete localInfo->searchBox;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     }
@@ -2062,7 +2062,7 @@ template<int TidIndexPos>
       localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
 //    cerr << "GetTuples<" << TidIndexPos << ">(): localInfo->tidIndex = " 
 //         << localInfo->tidIndex << endl;
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
     }
 
@@ -2095,7 +2095,7 @@ template<int TidIndexPos>
         }
         relTuple->DeleteIfAllowed();
 
-        result = SetWord( resultTuple );
+        result.setAddr( resultTuple );
         return YIELD;
       }
       else
@@ -2110,7 +2110,7 @@ template<int TidIndexPos>
         localInfo = (GetTuplesLocalInfo*)local.addr;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     }
@@ -2533,7 +2533,7 @@ int GetTuplesDbl( Word* args, Word& result, int message,
       localInfo->attrIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
       localInfo->tidIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
       localInfo->lastTuple = 0;
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
     }
 
@@ -2597,7 +2597,7 @@ int GetTuplesDbl( Word* args, Word& result, int message,
             resultTuple->CopyAttribute( j++, relTuple, i );
           relTuple->DeleteIfAllowed();
 
-          result = SetWord( resultTuple );
+          result.setAddr( resultTuple );
           return YIELD;
         }
         qp->Request(args[0].addr, wTuple);
@@ -2627,7 +2627,7 @@ int GetTuplesDbl( Word* args, Word& result, int message,
           resultTuple->CopyAttribute( j++, relTuple, i );
         relTuple->DeleteIfAllowed();
 
-        result = SetWord( resultTuple );
+        result.setAddr( resultTuple );
         return YIELD;
       }
       else
@@ -2642,7 +2642,7 @@ int GetTuplesDbl( Word* args, Word& result, int message,
         localInfo = (GetTuplesDblLocalInfo*)local.addr;
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     }
@@ -2882,7 +2882,7 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
   Word wTuple;
   R_Tree<dim, TupleId> *rtree =
       (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
   tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
@@ -2948,7 +2948,7 @@ template<unsigned dim>
   Word wTuple;
   R_Tree<dim, TwoLayerLeafInfo> *rtree =
       (R_Tree<dim, TwoLayerLeafInfo>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
   tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
@@ -3022,7 +3022,7 @@ template<unsigned dim>
   Word wTuple;
   R_Tree<dim, TupleId> *rtree =
       (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
   tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
@@ -3084,7 +3084,7 @@ int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
   Word wTuple;
   R_Tree<dim, TwoLayerLeafInfo> *rtree =
       (R_Tree<dim, TwoLayerLeafInfo>*)qp->ResultStorage(s).addr;
-  result = SetWord( rtree );
+  result.setAddr( rtree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
   tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
@@ -3728,7 +3728,7 @@ int RTreeNodesVM( Word* args, Word& result, int message,
     case OPEN:
     {
       lci = new RTreeNodesLocalInfo<dim>;
-      local = SetWord(lci);
+      local.setAddr(lci);
       lci->firstCall = true;
       lci->finished = false;
       lci->resultTupleType =
@@ -3771,7 +3771,7 @@ int RTreeNodesVM( Word* args, Word& result, int message,
         tuple->PutAttribute(5, new CcInt(true, node.minEntries));
         tuple->PutAttribute(6, new CcInt(true, node.maxEntries));
         tuple->PutAttribute(7, new CcInt(true, node.countEntries));
-        result = SetWord(tuple);
+        result.setAddr(tuple);
         return YIELD;
       }
     }
@@ -3783,7 +3783,7 @@ int RTreeNodesVM( Word* args, Word& result, int message,
         lci = (RTreeNodesLocalInfo<dim> *)local.addr;
         lci->resultTupleType->DeleteIfAllowed();
         delete lci;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     }

@@ -401,7 +401,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -419,7 +419,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
         const TupleId& tid = tup->GetTupleId();
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr );
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         tup->DeleteIfAllowed();
         return YIELD;
       }
@@ -433,7 +433,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -600,7 +600,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -621,7 +621,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr );
         auxRelation->AppendTuple(newTuple);
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         tup->DeleteIfAllowed();
         return YIELD;
       }
@@ -636,7 +636,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -777,7 +777,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
       resultType = GetTupleResultType( s );
       localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
-      local = SetWord( localTransport );
+      local.setAddr( localTransport );
       return 0;
 
     case REQUEST :
@@ -789,7 +789,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
         newTuple = localTransport->deletedTuples->back();
         newTuple->DeleteIfAllowed();
         localTransport->deletedTuples->pop_back();
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
 
@@ -850,7 +850,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
             newTuple = localTransport->deletedTuples->back();
             newTuple->DeleteIfAllowed();
             localTransport->deletedTuples->pop_back();
-            result = SetWord(newTuple);
+            result.setAddr(newTuple);
             tupleFound = true;
           }
           tup->DeleteIfAllowed();
@@ -867,7 +867,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
       {
         localTransport = (LocalTransport*) local.addr;
         delete localTransport;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -942,7 +942,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -961,7 +961,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
         newTuple->PutAttribute(tup->GetNoAttributes(), tidAttr);
         relation->DeleteTuple(tup);
         tup->DeleteIfAllowed();
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
       else
@@ -974,7 +974,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -1222,7 +1222,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
       resultType = GetTupleResultType( s );
       localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
-      local = SetWord( localTransport );
+      local.setAddr( localTransport );
       return 0;
 
     case REQUEST :
@@ -1234,7 +1234,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
       {
         newTuple = localTransport->deletedTuples->back();
         localTransport->deletedTuples->pop_back();
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
       // No more duplicate left over to send to the outputstream
@@ -1298,7 +1298,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
             newTuple = localTransport->deletedTuples->back();
             newTuple->DeleteIfAllowed();
             localTransport->deletedTuples->pop_back();
-            result = SetWord(newTuple);
+            result.setAddr(newTuple);
             tupleFound = true;
           }
           tup->DeleteIfAllowed();
@@ -1316,7 +1316,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
       {
         localTransport = (LocalTransport*) local.addr;
         delete localTransport;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -1397,7 +1397,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -1420,7 +1420,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
         relation->DeleteTuple(tup);
         auxRelation->AppendTuple(newTuple);
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         tup->DeleteIfAllowed();
         return YIELD;
       }
@@ -1435,7 +1435,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -1586,7 +1586,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
     case OPEN :
       firstcall = new bool;
       *firstcall = true;
-      local = SetWord( firstcall );
+      local.setAddr( firstcall );
       return 0;
 
     case REQUEST :
@@ -1614,7 +1614,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
         resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tidAttr);
-        result = SetWord(resultTuple);
+        result.setAddr(resultTuple);
         insertTuple->DeleteIfAllowed();
         resultTupleType->DeleteIfAllowed();
         return YIELD;
@@ -1628,7 +1628,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
       {
         firstcall = (bool*) local.addr;
         delete firstcall;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -1803,7 +1803,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
     case OPEN :
       firstcall = new bool;
       *firstcall = true;
-      local = SetWord( firstcall );
+      local.setAddr( firstcall );
       return 0;
 
     case REQUEST :
@@ -1834,7 +1834,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
         resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tidAttr);
         auxRelation->AppendTuple(resultTuple);
-        result = SetWord(resultTuple);
+        result.setAddr(resultTuple);
         insertTuple->DeleteIfAllowed();
         resultTupleType->DeleteIfAllowed();
         return YIELD;
@@ -1849,7 +1849,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
       {
         firstcall = (bool*) local.addr;
         delete firstcall;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -2113,7 +2113,7 @@ int UpdateDirect(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -2150,7 +2150,7 @@ int UpdateDirect(Word* args, Word& result, int message,
           // Get the function
           supplier3 = qp->GetSupplier(supplier2, 1);
           funargs = qp->Argument(supplier3);
-          (*funargs)[0] = SetWord(tup);
+          ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
           newAttribute = ((StandardAttribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
@@ -2165,7 +2165,7 @@ int UpdateDirect(Word* args, Word& result, int message,
         delete changedIndices;
         delete newAttrs;
         tup->DeleteIfAllowed();
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
       else
@@ -2178,7 +2178,7 @@ int UpdateDirect(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType *)local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -2325,7 +2325,7 @@ int UpdateSearch(Word* args, Word& result, int message,
       resultType = GetTupleResultType( s );
       localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
-      local = SetWord( localTransport );
+      local.setAddr( localTransport );
       return 0;
 
     case REQUEST :
@@ -2338,7 +2338,7 @@ int UpdateSearch(Word* args, Word& result, int message,
         newTuple = localTransport->updatedTuples->back();
         newTuple->DeleteIfAllowed();
         localTransport->updatedTuples->pop_back();
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
       // No more duplicates to send to the resultstream
@@ -2400,7 +2400,7 @@ int UpdateSearch(Word* args, Word& result, int message,
                   supplier2 = qp->GetSupplier(supplier, i-1);
                   supplier3 = qp->GetSupplier(supplier2, 1);
                   funargs = qp->Argument(supplier3);
-                  (*funargs)[0] = SetWord(nextTup);
+                  ((*funargs)[0]).setAddr(nextTup);
                   qp->Request(supplier3,value);
                   newAttribute =
                     ((StandardAttribute*)value.addr)->Clone();
@@ -2428,7 +2428,7 @@ int UpdateSearch(Word* args, Word& result, int message,
             newTuple = localTransport->updatedTuples->back();
             newTuple->DeleteIfAllowed();
             localTransport->updatedTuples->pop_back();
-            result = SetWord(newTuple);
+            result.setAddr(newTuple);
             tupleFound = true;
           }
           tup->DeleteIfAllowed();
@@ -2446,7 +2446,7 @@ int UpdateSearch(Word* args, Word& result, int message,
       {
         localTransport = (LocalTransport*) local.addr;
         delete localTransport;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -2732,7 +2732,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -2775,7 +2775,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
           supplier2 = qp->GetSupplier(supplier, i-1);
           supplier3 = qp->GetSupplier(supplier2, 1);
           funargs = qp->Argument(supplier3);
-          (*funargs)[0] = SetWord(tup);
+          ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
           newAttribute = ((StandardAttribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
@@ -2811,7 +2811,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
 
         delete changedIndices;
         delete newAttrs;
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
       else
@@ -2826,7 +2826,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType *)local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -3019,7 +3019,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       resultType = GetTupleResultType( s );
       localTransport->resultTupleType =
         new TupleType( nl->Second( resultType ) );
-      local = SetWord( localTransport );
+      local.setAddr( localTransport );
       return 0;
 
     case REQUEST : {
@@ -3031,7 +3031,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       Tuple* lt = localTransport->lastUpdate();
       if ( lt != 0 )
       {
-        result = SetWord(lt);
+        result.setAddr(lt);
         return YIELD;
       }
 
@@ -3100,7 +3100,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                   supplier2 = qp->GetSupplier(supplier, i-1);
                   supplier3 = qp->GetSupplier(supplier2, 1);
                   funargs = qp->Argument(supplier3);
-                  (*funargs)[0] = SetWord(nextTup);
+                  ((*funargs)[0]).setAddr(nextTup);
                   qp->Request(supplier3,value);
                   newAttribute =
                     ((StandardAttribute*)value.addr)->Clone();
@@ -3139,7 +3139,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 	  Tuple* t = localTransport->lastUpdate();
           if ( t != 0 )
           {
-            result = SetWord(t);
+            result.setAddr(t);
             tupleFound = true;
           }
           tup->DeleteIfAllowed();
@@ -3162,7 +3162,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
       {
         localTransport = (LocalTransport*) local.addr;
         delete localTransport;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -3280,7 +3280,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -3296,7 +3296,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
 //         cout << "TID: " << tid << endl;
         StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         tup->DeleteIfAllowed();
         return YIELD;
       }
@@ -3309,7 +3309,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
       {
         resultTupleType = (TupleType*) local.addr;
         resultTupleType->DeleteIfAllowed();
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -3435,7 +3435,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
     case OPEN :
       firstcall = new bool;
       *firstcall = true;
-      local = SetWord( firstcall );
+      local.setAddr( firstcall );
       return 0;
 
     case REQUEST :
@@ -3462,7 +3462,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
         relation->DeleteTuple(deleteTuple);
         resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tid->Clone());
-        result = SetWord(resultTuple);
+        result.setAddr(resultTuple);
         resultTupleType->DeleteIfAllowed();
         deleteTuple->DeleteIfAllowed();
         return YIELD;
@@ -3476,7 +3476,7 @@ int deleteByIdValueMap(Word* args, Word& result, int message,
       {
         firstcall = (bool*) local.addr;
         delete firstcall;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -3706,7 +3706,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
     case OPEN :
       firstcall = new bool;
       *firstcall = true;
-      local = SetWord( firstcall );
+      local.setAddr( firstcall );
       return 0;
 
     case REQUEST :
@@ -3750,7 +3750,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
           // Get the function
           supplier3 = qp->GetSupplier(supplier2, 1);
           funargs = qp->Argument(supplier3);
-          (*funargs)[0] = SetWord(updateTuple);
+          ((*funargs)[0]).setAddr(updateTuple);
           qp->Request(supplier3,value);
           newAttribute = ((Attribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
@@ -3760,7 +3760,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
           resultTuple->CopyAttribute( i, updateTuple, i );
         resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tid->Clone());
-        result = SetWord(resultTuple);
+        result.setAddr(resultTuple);
         delete changedIndices;
         delete newAttrs;
         resultTupleType->DeleteIfAllowed();
@@ -3776,7 +3776,7 @@ int updateByIdValueMap(Word* args, Word& result, int message,
       {
         firstcall = (bool*) local.addr;
         delete firstcall;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -4188,7 +4188,7 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
       localTransport[0] = indexp->GetIntval();
       localTransport[1] = dimp->GetIntval();
       localTransport[2] = spatialp->GetIntval();
-      local = SetWord(localTransport );
+      local.setAddr(localTransport );
       return 0;
 
     case REQUEST :
@@ -4233,7 +4233,7 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
             break;
           }
         }
-        result = SetWord(tup);
+        result.setAddr(tup);
         return YIELD;
       }
       else
@@ -4246,7 +4246,7 @@ int insertRTreeValueMap(Word* args, Word& result, int message,
       {
         localTransport = (int*) local.addr;
         delete[] localTransport;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -4364,7 +4364,7 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
       localTransport[0] = indexp->GetIntval();
       localTransport[1] = dimp->GetIntval();
       localTransport[2] = spatialp->GetIntval();
-      local = SetWord(localTransport );
+      local.setAddr(localTransport );
       return 0;
 
     case REQUEST :
@@ -4409,7 +4409,7 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
             break;
           }
         }
-        result = SetWord(tup);
+        result.setAddr(tup);
         return YIELD;
       }
       else
@@ -4422,7 +4422,7 @@ int deleteRTreeValueMap(Word* args, Word& result, int message,
       {
         localTransport = (int*) local.addr;
         delete[] localTransport;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -4520,7 +4520,7 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
       localTransport[0] = indexp->GetIntval();
       localTransport[1] = dimp->GetIntval();
       localTransport[2] = spatialp->GetIntval();
-      local = SetWord(localTransport );
+      local.setAddr(localTransport );
       return 0;
 
     case REQUEST :
@@ -4604,7 +4604,7 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
               break;
           }
         }
-        result = SetWord(tup);
+        result.setAddr(tup);
         return YIELD;
       }
       else
@@ -4617,7 +4617,7 @@ int updateRTreeValueMap(Word* args, Word& result, int message,
       {
         localTransport = (int*) local.addr;
         delete[] localTransport;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }

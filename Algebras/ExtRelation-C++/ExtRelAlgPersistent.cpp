@@ -662,7 +662,7 @@ sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST:
     {
       SortByLocalInfo* sli = static_cast<SortByLocalInfo*>( local.addr );
-      result = SetWord( sli->NextResultTuple() );
+      result.setAddr( sli->NextResultTuple() );
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
@@ -1044,7 +1044,7 @@ sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
       SortByLocalInfo* sli = li->ptr;
 
-      result = SetWord( sli->NextResultTuple() );
+      result.setAddr( sli->NextResultTuple() );
       li->returned++;
       return result.addr != 0 ? YIELD : CANCEL;
     }
@@ -1476,13 +1476,13 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
       localInfo = new MergeJoinLocalInfo
         (args[0], args[4], args[1], args[5], expectSorted, s);
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
 
     case REQUEST:
       //mergeMeasurer.Enter();
       localInfo = (MergeJoinLocalInfo*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
+      result.setAddr(localInfo->NextResultTuple());
       //mergeMeasurer.Exit();
       return result.addr != 0 ? YIELD : CANCEL;
 
@@ -2349,11 +2349,11 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN:
       localInfo = 
         new HashJoinLocalInfo(args[0], args[5], args[1], args[6], args[4], s);
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
     case REQUEST:
       localInfo = (HashJoinLocalInfo*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
+      result.setAddr(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
       localInfo = (HashJoinLocalInfo*)local.addr;
@@ -2725,7 +2725,7 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       hli = li->ptr;
-      result = SetWord( hli->NextResultTuple() );
+      result.setAddr( hli->NextResultTuple() );
       li->returned++;
 
       return result.addr != 0 ? YIELD : CANCEL;

@@ -1794,7 +1794,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     localinfo->uWord = args[0];
     localinfo->pWord = args[1];
     localinfo->j = 0;
-    local = SetWord(localinfo);
+    local.setAddr(localinfo);
     return 0;
 
   case REQUEST:
@@ -1812,7 +1812,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
         !periods->IsDefined() ||   // as a set-valued type, periods cannot be
         periods->IsEmpty()       ) // undefined, but only empty
     {
-      result = SetWord(Address( 0 ));
+      result.setAddr(0);
       return CANCEL;
     }
 // #ifdef TUA_DEBUG
@@ -1821,7 +1821,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
 // #endif
     if( localinfo->j >= periods->GetNoComponents() )
       {
-        result = SetWord(Address( 0) );
+        result.setAddr(0);
 // #ifdef TUA_DEBUG
 //           cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (1)"
 //                << endl;
@@ -1866,7 +1866,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
         // create unit restricted to interval
         unit->AtInterval( *interval, r );
         Alpha* aux = new Alpha( r );
-        result = SetWord( aux );
+        result.setAddr( aux );
 // #ifdef TUA_DEBUG
 //             cout << "   Result interval="
 //                  << TUPrintTimeInterval(aux->timeInterval)
@@ -1889,7 +1889,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
       return CANCEL;
     }
 
-    result = SetWord(Address( 0 ));
+    result.setAddr(0 );
     cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (4)"
          << endl;
     cout << "Intervals should overlap: " << endl;
@@ -1906,7 +1906,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     if( local.addr != 0 )
     {
       delete (AtPeriodsLocalInfo *)local.addr;
-      local = SetWord(Address(0));
+      local.setAddr(Address(0));
     }
     return 0;
   }
@@ -1949,7 +1949,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     qp->Request( args[0].addr, localinfo->uWord ); // request first unit
     if ( !( qp->Received( args[0].addr) ) )
       {localinfo->uWord.addr = 0; result.addr = 0; return CANCEL; }
-    local = SetWord(localinfo);                    // pass up link to localinfo
+    local.setAddr(localinfo);                    // pass up link to localinfo
     return 0;
 
     case REQUEST:
@@ -2012,7 +2012,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     }
     unit->AtInterval( *interval, resultUnit); // intersect unit and interval
     aux = new Alpha( resultUnit );
-    result = SetWord( aux );
+    result.setAddr( aux );
     localinfo->j++;                           // increase interval counter
     return YIELD;
 
@@ -2026,7 +2026,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
             unit->DeleteIfAllowed();   // delete remaining original unit
           }
         delete (AtPeriodsLocalInfoUS *)localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
     return 0;
 
@@ -3693,7 +3693,7 @@ int TUDistance_UReal_UReal( Word* args, Word& result, int message,
       u2 = (UReal*)(args[1].addr);
 
       localinfo = new TUDistanceLocalInfo;
-      local = SetWord(localinfo);
+      local.setAddr(localinfo);
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       localinfo->NoOfResultsDelivered = 0;
@@ -3724,7 +3724,7 @@ int TUDistance_UReal_UReal( Word* args, Word& result, int message,
         localinfo->finished = true;
         return CANCEL;
       }
-      result = SetWord(
+      result.setAddr(
           localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
@@ -3734,7 +3734,7 @@ int TUDistance_UReal_UReal( Word* args, Word& result, int message,
       {
          localinfo = (TUDistanceLocalInfo*) local.addr;
         delete localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
   }
@@ -3788,7 +3788,7 @@ int TUDistance_UReal_Real( Word* args, Word& result, int message,
     i = (CcReal*)(ii.addr);
 
     localinfo = new TUDistanceLocalInfo;
-    local = SetWord(localinfo);
+    local.setAddr(localinfo);
     localinfo->finished = true;
     localinfo->NoOfResults = 0;
     localinfo->NoOfResultsDelivered = 0;
@@ -3821,7 +3821,7 @@ int TUDistance_UReal_Real( Word* args, Word& result, int message,
         localinfo->finished = true;
         return CANCEL;
       }
-      result = SetWord(
+      result.setAddr(
           localinfo->resultVector[localinfo->NoOfResultsDelivered].Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
@@ -3831,7 +3831,7 @@ int TUDistance_UReal_Real( Word* args, Word& result, int message,
       {
         localinfo = (TUDistanceLocalInfo*) local.addr;
         delete localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
   }
@@ -4000,7 +4000,7 @@ int atmaxUReal( Word* args, Word& result, int message,
       sli->resultUnitVector.clear();
       sli->NoOfResults = 0;
       sli->ResultsDelivered = 0;
-      local = SetWord(sli);
+      local.setAddr(sli);
 
       if ( !ureal->IsDefined() )
         { // ureal undefined
@@ -4023,7 +4023,7 @@ int atmaxUReal( Word* args, Word& result, int message,
       if (sli->NoOfResults <= sli->ResultsDelivered)
         return CANCEL;
 
-      result = SetWord( sli->resultUnitVector[sli->ResultsDelivered].Clone() );
+      result.setAddr( sli->resultUnitVector[sli->ResultsDelivered].Clone() );
 #ifdef TUA_DEBUG
         cout << "    delivered result[" << sli->ResultsDelivered+1
              << "/" << sli->NoOfResults<< "]="
@@ -4041,7 +4041,7 @@ int atmaxUReal( Word* args, Word& result, int message,
 //           for(unsigned int i=0; i< sli->resultUnitVector.size(); i++)
 //             sli->resultUnitVector[i].DeleteIfAllowed();
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(Address(0));
         }
       return 0;
 
@@ -4057,7 +4057,7 @@ int atmaxUConst( Word* args, Word& result, int message,
   // the atmax operator for constant unit types, like uint, ustring or ubool.
   // In fact, it returns just a copy of the argument.
 
-  result = SetWord(((ConstTemporalUnit<T>*)(args[0].addr))->Clone());
+  result.setAddr(((ConstTemporalUnit<T>*)(args[0].addr))->Clone());
   return 0;
 }
 
@@ -4175,7 +4175,7 @@ int atminUReal( Word* args, Word& result, int message,
       sli->resultUnitVector.clear();
       sli->NoOfResults = 0;
       sli->ResultsDelivered = 0;
-      local = SetWord(sli);
+      local.setAddr(sli);
 
       if ( !ureal->IsDefined() )
         { // ureal undefined
@@ -4198,7 +4198,7 @@ int atminUReal( Word* args, Word& result, int message,
       if (sli->NoOfResults <= sli->ResultsDelivered)
         return CANCEL;
 
-      result = SetWord( sli->resultUnitVector[sli->ResultsDelivered].Clone() );
+      result.setAddr( sli->resultUnitVector[sli->ResultsDelivered].Clone() );
 #ifdef TUA_DEBUG
         cout << "    delivered result[" << sli->ResultsDelivered+1
              << "/" << sli->NoOfResults<< "]="
@@ -4216,7 +4216,7 @@ int atminUReal( Word* args, Word& result, int message,
 //           for(unsigned int i=0; i< sli->resultUnitVector.size(); i++)
 //             sli->resultUnitVector[i].DeleteIfAllowed();
         delete sli;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
        }
       return 0;
 
@@ -4232,7 +4232,7 @@ int atminUConst( Word* args, Word& result, int message,
   // the atmin operator for constant unit types, like uint, ustring or ubool.
   // In fact, it returns just a copy of the argument.
 
-  result = SetWord(((ConstTemporalUnit<T>*)(args[0].addr))->Clone());
+  result.setAddr(((ConstTemporalUnit<T>*)(args[0].addr))->Clone());
   return 0;
 }
 
@@ -4402,7 +4402,7 @@ int TU_VM_Abs_UReal( Word* args, Word& result, int message,
     case OPEN:
 
       sli = new TUAbsLocalInfo;
-      local = SetWord(sli);
+      local.setAddr(sli);
       sli->resultVector.clear();
       sli->finished = true;
       sli->NoOfResults = 0;
@@ -4431,7 +4431,7 @@ int TU_VM_Abs_UReal( Word* args, Word& result, int message,
       }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
       {
-        result = SetWord(
+        result.setAddr(
             sli->resultVector[sli->NoOfResultsDelivered].Clone() );
         sli->NoOfResultsDelivered++;
         return YIELD;
@@ -4445,7 +4445,7 @@ int TU_VM_Abs_UReal( Word* args, Word& result, int message,
       {
         sli = (TUAbsLocalInfo*) local.addr;
         delete sli;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
   } // end switch
@@ -4726,7 +4726,7 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
           cout << "  iv=" << TUPrintTimeInterval( iv ) << endl;
 #endif
           // store result
-          sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
+          (sli->resultValues[sli->NoOfResults]).setAddr( uv1->Clone() );
           ((T*)(sli->resultValues[sli->NoOfResults].addr))->timeInterval = iv;
           sli->NoOfResults++;
           sli->finished = false;
@@ -4734,7 +4734,7 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
           cout << "  added result" << endl;
 #endif
         }// else: no result
-      local = SetWord(sli);
+      local.setAddr(sli);
 #ifdef TUA_DEBUG
       cout << "temporalUnitIntersection_CU_CU: finished OPEN" << endl;
 #endif
@@ -4763,7 +4763,7 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
         }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
-          result = SetWord( ((T*)
+          result.setAddr( ((T*)
             (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
           ((T*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
@@ -4791,7 +4791,7 @@ int temporalUnitIntersection_CU_CU( Word* args, Word& result, int message,
               sli->NoOfResultsDelivered++;
             }
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(Address(0));
         }
       return 0;
     } // end switch
@@ -4841,14 +4841,14 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
            uv2->IsDefined() &&
            (uv1->constValue.Compare( uv2 ) == 0 ) )
         { // store result
-          sli->resultValues[sli->NoOfResults] = SetWord( uv1->Clone() );
+          (sli->resultValues[sli->NoOfResults]).setAddr( uv1->Clone() );
           sli->NoOfResults++;
           sli->finished = false;
 #ifdef TUA_DEBUG
           cout << "  Added Result" << endl;
 #endif
         }// else: no result
-      local = SetWord(sli);
+      local.setAddr(sli);
 #ifdef TUA_DEBUG
       cout << "temporalUnitIntersection_CU_C: finished OPEN" << endl;
 #endif
@@ -4878,7 +4878,7 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
         }
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
-          result = SetWord( ((UT*)
+          result.setAddr( ((UT*)
             (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
           ((UT*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
@@ -4908,7 +4908,7 @@ int temporalUnitIntersection_CU_C( Word* args, Word& result, int message,
               sli->NoOfResultsDelivered++;
             }
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(Address(0));
         }
       return 0;
     } // end switch
@@ -4968,7 +4968,7 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
     case OPEN :
 
       localinfo = new MappingUnitIntersection_rLocalInfo;
-      local = SetWord(localinfo);
+      local.setAddr(localinfo);
       localinfo->finished = true;
       localinfo->resvector.clear();
       localinfo->NoOfResults = 0;
@@ -5043,7 +5043,7 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
       {
         localinfo = (MappingUnitIntersection_rLocalInfo*) local.addr;
         delete localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     } // end switch
@@ -5070,7 +5070,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
     case OPEN :
 
       localinfo = new MappingUnitIntersection_rLocalInfo;
-      local = SetWord(localinfo);
+      local.setAddr(localinfo);
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       localinfo->ResultsDelivered = 0;
@@ -5120,7 +5120,7 @@ int temporalUnitIntersection_ureal_real( Word* args, Word& result, int message,
       {
         localinfo = (MappingUnitIntersection_rLocalInfo*) local.addr;
         delete localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(Address(0));
       }
       return 0;
     } // end switch
@@ -5159,7 +5159,7 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
       sli->finished = true;
       sli->NoOfResults = 0;
       sli->NoOfResultsDelivered = 0;
-      local = SetWord(sli);
+      local.setAddr(sli);
       u1 = args[0];
       u2 = args[1];
       uv1 = (UPoint*) (u1.addr);
@@ -5170,7 +5170,7 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
                                res->timeInterval.Inside(uv2->timeInterval) )
       { // 2nd and 3rd condition guarantees, that results on "open borders"
         // are filtered out
-        sli->resultValues[sli->NoOfResults] = SetWord( res );
+        (sli->resultValues[sli->NoOfResults]).setAddr( res );
         sli->NoOfResults++;
         sli->finished = false;
       }
@@ -5212,7 +5212,7 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
 #endif
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
-          result = SetWord( ((UPoint*)
+          result.setAddr( ((UPoint*)
              (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
           ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
@@ -5241,7 +5241,7 @@ temporalUnitIntersection_upoint_upoint( Word* args, Word& result, int message,
               sli->NoOfResultsDelivered++;
             }
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
       return 0;
     } // end switch
@@ -5277,7 +5277,7 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
       sli->finished = true;
       sli->NoOfResults = 0;
       sli->NoOfResultsDelivered = 0;
-      local = SetWord(sli);
+      local.setAddr(sli);
 
       if (uargindex == 0)
         { a0 = args[0]; a1 = args[1]; }
@@ -5295,7 +5295,7 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
           pResult.SetDefined(true);
           pResult.timeInterval.start.SetDefined(true);
           pResult.timeInterval.end.SetDefined(true);
-          sli->resultValues[sli->NoOfResults] = SetWord( pResult.Clone() );
+          (sli->resultValues[sli->NoOfResults]).setAddr( pResult.Clone() );
           sli->NoOfResults++;
           sli->finished = false;
         }
@@ -5311,7 +5311,7 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
         return CANCEL;
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
-          result = SetWord( ((UPoint*)
+          result.setAddr( ((UPoint*)
               (sli->resultValues[sli->NoOfResultsDelivered].addr))->Clone() );
           ((UPoint*)(sli->resultValues[sli->NoOfResultsDelivered].addr))
             ->DeleteIfAllowed();
@@ -5333,7 +5333,7 @@ temporalUnitIntersection_upoint_point( Word* args, Word& result, int message,
               sli->NoOfResultsDelivered++;
             }
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
       return 0;
     } // end switch
@@ -6025,7 +6025,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       sli->NoOfResults = 0;
       sli->NoOfResultsDelivered = 0;
       sli->mpoint = new MPoint(10);
-      local = SetWord(sli);
+      local.setAddr(sli);
 
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the line
@@ -6074,7 +6074,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
-          result = SetWord( cu->Clone() );
+          result.setAddr( cu->Clone() );
           sli->NoOfResultsDelivered++;
           return YIELD;
         }
@@ -6088,7 +6088,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
           sli = (TUIntersectionLocalInfo*) local.addr;
           delete sli->mpoint;
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
       return 0;
     } // end switch
@@ -6135,7 +6135,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
       sli->NoOfResults = 0;
       sli->NoOfResultsDelivered = 0;
       sli->mpoint = new MPoint(10);
-      local = SetWord(sli);
+      local.setAddr(sli);
 
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the uregion/region
@@ -6231,7 +6231,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
-          result = SetWord( cu->Clone() );
+          result.setAddr( cu->Clone() );
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
           cerr << "temporalUnitIntersection_upoint_uregion<"
@@ -6260,7 +6260,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
           sli = (TUIntersectionLocalInfo*) local.addr;
           delete sli->mpoint;
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
 #ifdef TUA_DEBUG
       cerr << "temporalUnitIntersection_upoint_uregion<"
@@ -7574,7 +7574,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
       sli->NoOfResults = 0;
       sli->NoOfResultsDelivered = 0;
       sli->mbool = new MBool(10);
-      local = SetWord(sli);
+      local.setAddr(sli);
 
       // initialize arguments, such that a0 always contains the upoint
       //                       and a1 the uregion
@@ -7637,7 +7637,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           sli->mbool->Get(sli->NoOfResultsDelivered, cu);
-          result = SetWord( cu->Clone() );
+          result.setAddr( cu->Clone() );
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
           cerr << "temporalUnitInside_up_ur: "
@@ -7661,7 +7661,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
           sli = (TUInsideLocalInfo*) local.addr;
           delete sli->mbool;
           delete sli;
-          local = SetWord(Address(0));
+          local.setAddr(0);
         }
 #ifdef TUA_DEBUG
       cerr << "temporalUnitInside_up_ur: Finished CLOSE"<< endl;
@@ -8725,7 +8725,7 @@ int TU_VM_ComparePredicateValue_Const(Word* args, Word& result,
   {
     case OPEN:
       finished = new bool(false); //
-      local = SetWord(finished);
+      local.setAddr(finished);
       return 0;
 
     case REQUEST:
@@ -8757,7 +8757,7 @@ int TU_VM_ComparePredicateValue_Const(Word* args, Word& result,
         case 5: // bigger_or_equal
           compresult = (p1 > -1); break;
       } // end switch (opcode)
-      result = SetWord(
+      result.setAddr(
           new ConstTemporalUnit<CcBool>(iv, CcBool(true, compresult) ) );
       *finished = true; // only one result!
       return YIELD;
@@ -8767,7 +8767,7 @@ int TU_VM_ComparePredicateValue_Const(Word* args, Word& result,
       {
         finished = (bool*) local.addr;
         delete finished;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   } // end switch (message)
@@ -8803,7 +8803,7 @@ template <class T, int opcode, int unit_arg>
   {
     case OPEN:
       finished = new bool(false); //
-      local = SetWord(finished);
+      local.setAddr(finished);
       return 0;
 
     case REQUEST:
@@ -8835,7 +8835,7 @@ template <class T, int opcode, int unit_arg>
         case 5: // bigger_or_equal
           compresult = (p1 > -1);  break;
       } // end switch (opcode)
-      result = SetWord(
+      result.setAddr(
           new ConstTemporalUnit<CcBool>(u1->timeInterval,
                                         CcBool(true, compresult) ) );
       *finished = true; // only one result!
@@ -8846,7 +8846,7 @@ template <class T, int opcode, int unit_arg>
       {
         finished = (bool*) local.addr;
         delete finished;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   } // end switch (message)
@@ -8885,7 +8885,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
       localinfo->NoOfResults = 0;
       localinfo->NoOfResultsDelivered = 0;
       localinfo->intersectionBool = new MBool(5);
-      local = SetWord(localinfo);
+      local.setAddr(localinfo);
 
       if ( !u1->IsDefined() || !u2->IsDefined() )
         {
@@ -8980,7 +8980,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
       if ( localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
         { localinfo->finished = true; return CANCEL; }
       localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result = SetWord( cu->Clone() );
+      result.setAddr( cu->Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
 
@@ -8990,7 +8990,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
         localinfo = (TUCompareValueLocalInfo*) local.addr;
         delete localinfo->intersectionBool;
         delete localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   } // end switch (message)
@@ -9032,7 +9032,7 @@ template <int opcode, int unit_arg>
       localinfo->NoOfResults = 0;
       localinfo->NoOfResultsDelivered = 0;
       localinfo->intersectionBool = new MBool(5);
-      local = SetWord(localinfo);
+      local.setAddr(localinfo);
 
       if ( !u1->IsDefined() || !u2->IsDefined() )
       {
@@ -9121,7 +9121,7 @@ template <int opcode, int unit_arg>
       if ( localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
       { localinfo->finished = true; return CANCEL; }
       localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result = SetWord( cu->Clone() );
+      result.setAddr( cu->Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
 
@@ -9131,7 +9131,7 @@ template <int opcode, int unit_arg>
         localinfo = (TUCompareValueLocalInfo*) local.addr;
         delete localinfo->intersectionBool;
         delete localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   } // end switch (message)
@@ -9166,7 +9166,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
   {
     case OPEN:
       localinfo = new TUCompareValueLocalInfo;
-      local = SetWord(localinfo);
+      local.setAddr(localinfo);
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       localinfo->NoOfResultsDelivered = 0;
@@ -9338,7 +9338,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
         return CANCEL;
       }
       localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result = SetWord( cu->Clone() );
+      result.setAddr( cu->Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
 
@@ -9348,7 +9348,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
         localinfo = (TUCompareValueLocalInfo*) local.addr;
         delete localinfo->intersectionBool;
         delete localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
   }
   return -1;
@@ -9395,7 +9395,7 @@ template<int opcode, int unit_arg>
   {
     case OPEN:
       localinfo = new TUCompareValueLocalInfo;
-      local = SetWord(localinfo);
+      local.setAddr(localinfo);
       localinfo->finished = true;
       localinfo->NoOfResults = 0;
       localinfo->NoOfResultsDelivered = 0;
@@ -9557,7 +9557,7 @@ template<int opcode, int unit_arg>
         return CANCEL;
       }
       localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result = SetWord( cu->Clone() );
+      result.setAddr( cu->Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
 
@@ -9567,7 +9567,7 @@ template<int opcode, int unit_arg>
         localinfo = (TUCompareValueLocalInfo*) local.addr;
         delete localinfo->intersectionBool;
         delete localinfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
   }
   return -1;

@@ -324,7 +324,7 @@ OpenFText( SmiRecord& valueRecord,
   // and uses the same method of the Tuple manager to open objects
   FText *ft =
     (FText*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( ft );
+  value.setAddr( ft );
   return true;
 }
 
@@ -1412,7 +1412,7 @@ The length of a string is three characters or more.
                    stringcursor = 0;
                    mystring = new CcString();
                    mystring->Set(true, &outstr);
-                   result = SetWord(mystring);
+                   result.setAddr(mystring);
                    thetext->start = ++textcursor;
                    local.addr = thetext;
                    return YIELD;
@@ -1442,7 +1442,7 @@ The length of a string is three characters or more.
       {
         thetext = ((TheText*) local.addr);
         delete thetext;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -1552,7 +1552,7 @@ ValMapsentences (Word* args, Word& result, int message,
           case 3 : if ( (c == '\0') || (textcursor > thetext->strlength) )
                    { return CANCEL; }
                    returnsentence = new FText(true, (char*)tmpstr.c_str());
-                   result = SetWord(returnsentence);
+                   result.setAddr(returnsentence);
                    thetext->start = textcursor;
                    local.addr = thetext;
                    return YIELD;
@@ -1564,7 +1564,7 @@ ValMapsentences (Word* args, Word& result, int message,
       {
         thetext = ((TheText*) local.addr);
         delete thetext;
-        local = SetWord( Address(0) );
+        local.setAddr(0);
       }
       return 0;
   }
@@ -1628,7 +1628,7 @@ int ValMapGetCatalog( Word* args, Word& result, int message,
         li->myCatalog.rest(); // ignore 'OBJECTS'
         li->finished = false;
       }
-      local = SetWord( li );
+      local.setAddr( li );
       return 0;
 
     case REQUEST:
@@ -1670,7 +1670,7 @@ int ValMapGetCatalog( Word* args, Word& result, int message,
           newTuple->PutAttribute(  0,(StandardAttribute*)objectNameValue);
           newTuple->PutAttribute(  1,(StandardAttribute*)typeValue);
           newTuple->PutAttribute(  2,(StandardAttribute*)typeExprValue);
-          result = SetWord(newTuple);
+          result.setAddr(newTuple);
           resultTupleType->DeleteIfAllowed();
           foundValidEntry = true;
         } else
@@ -1833,7 +1833,7 @@ int FTextValMapFind( Word* args, Word& result, int message,
                          || (li->patternlen == 0)
                        );
       }
-      local = SetWord(li);
+      local.setAddr(li);
       return 0;
 
     case REQUEST:
@@ -1867,7 +1867,7 @@ int FTextValMapFind( Word* args, Word& result, int message,
       {
         li = (ValMapFindLocalInfo*) local.addr;
         delete li;
-        local = SetWord( Address(0) );
+        local.setAddr( Address(0) );
       }
       return 0;
   }
@@ -2115,19 +2115,19 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
     case REQUEST:
       if(local.addr == 0)
       {
-        result = SetWord( Address(0) );
+        result.setAddr(0);
         return CANCEL;
       }
       finished = (bool*)(local.addr);
       if(*finished)
       {
-        result = SetWord( Address(0) );
+        result.setAddr(0);
         return CANCEL;
       }
       if(!CCommand->IsDefined())
       {
         *finished = true;
-        result = SetWord( Address(0) );
+        result.setAddr(0);
         return CANCEL;
       }
 
@@ -2256,7 +2256,7 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
       newTuple->PutAttribute(  9,(StandardAttribute*)CcElapsedTimeReal);
       newTuple->PutAttribute( 10,(StandardAttribute*)CcElapsedTimeCPU);
 
-      result = SetWord(newTuple);
+      result.setAddr(newTuple);
       resultTupleType->DeleteIfAllowed();
       *finished = true;
       return YIELD;
@@ -2266,7 +2266,7 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
       {
         finished = (bool*)(local.addr);
         delete finished;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -2522,7 +2522,7 @@ int FTextValueMapGetValueNL_stream( Word* args, Word& result, int message,
         }
       }
       qp->Open(args[0].addr);
-      local = SetWord( li );
+      local.setAddr( li );
       return 0;
 
     case REQUEST:
@@ -2544,7 +2544,7 @@ int FTextValueMapGetValueNL_stream( Word* args, Word& result, int message,
               SecondoSystem::GetCatalog()->OutObject(li->myTypeNL,elem);
         nl->WriteToString(valueStr,valueNL);
         Res = new FText(true, valueStr);
-        result = SetWord( Res );
+        result.setAddr( Res );
         ((Attribute*) elem.addr)->DeleteIfAllowed();
         return YIELD;
       }
@@ -2560,7 +2560,7 @@ int FTextValueMapGetValueNL_stream( Word* args, Word& result, int message,
       {
         li = (FTextValueMapGetValueNL_streamLocalInfo*) local.addr;
         delete li;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -2597,7 +2597,7 @@ int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
         }
       }
       qp->Open(args[0].addr);
-      local = SetWord( li );
+      local.setAddr( li );
       return 0;
 
     case REQUEST:
@@ -2619,7 +2619,7 @@ int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
         ListExpr valueNL = myTuple->Out( li->myTypeNL );
         nl->WriteToString(valueStr,valueNL);
         Res = new FText(true, valueStr);
-        result = SetWord( Res );
+        result.setAddr( Res );
         myTuple->DeleteIfAllowed();
         return YIELD;
       }
@@ -2740,7 +2740,7 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
   // get information on resulttype
   ListExpr myTypeNL = qp->GetType( s );
   // call InFunction
-  Word myRes = SetWord( Address(0) );
+  Word myRes( Address(0) );
   int errorPos = 0;
   ListExpr& errorInfo = nl->GetErrorList();
   bool correct = true;

@@ -1708,7 +1708,7 @@ bool
   // and uses the same method of the Tuple manager to open objects
   Graph *bf =
       (Graph*)Attribute::Open( valueRecord, offset, typeInfo );
-  value = SetWord( bf );
+  value.setAddr( bf );
   return true;
 }
 

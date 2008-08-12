@@ -246,16 +246,16 @@ int CsvExportVM(Word* args, Word& result,
       FText* fname = static_cast<FText*>(args[1].addr);
       CcBool* append = static_cast<CcBool*>(args[2].addr);
       if(!fname->IsDefined() || !append->IsDefined()){
-         local = SetWord(Address(0));
+         local.setAddr(0);
       } else {
          CsvExportLocalInfo* linfo; 
          linfo = (new CsvExportLocalInfo(fname->GetValue(), 
                                          append->GetBoolval()));
          if(!linfo->isOk()){
             delete linfo;
-            local = SetWord(Address(0));
+            local.setAddr(0);
          } else {
-             local = SetWord(linfo);
+             local.setAddr(linfo);
          }
       }
       return 0;
@@ -313,7 +313,7 @@ int CsvExportVM2(Word* args, Word& result,
         } 
       }
       if(!fname->IsDefined() || !append->IsDefined() || !names->IsDefined()){
-         local = SetWord(Address(0));
+         local.setAddr(0);
       } else {
          CsvExportLocalInfo* linfo; 
          linfo = (new CsvExportLocalInfo(fname->GetValue(), 
@@ -323,9 +323,9 @@ int CsvExportVM2(Word* args, Word& result,
                                          qp->GetType(s)));
          if(!linfo->isOk()){
             delete linfo;
-            local = SetWord(Address(0));
+            local.setAddr(0);
          } else {
-             local = SetWord(linfo);
+             local.setAddr(linfo);
          }
       }
       return 0;
@@ -636,7 +636,7 @@ int csvimportVM(Word* args, Word& result,
           separator=",";
         }
       }
-      local  = SetWord(new CsvImportInfo(type,fname,skip,comment,separator));
+      local.setAddr(new CsvImportInfo(type,fname,skip,comment,separator));
       return 0;
     }
     case REQUEST: {
@@ -890,7 +890,7 @@ int shpexportVM1(Word* args, Word& result,
     case OPEN:{
        qp->Open(args[0].addr);
        FText* fname = static_cast<FText*>(args[1].addr);
-       local = SetWord(new shpLInfo(fname));
+       local.setAddr(new shpLInfo(fname));
        return 0; 
     }
     case REQUEST: {
@@ -910,11 +910,11 @@ int shpexportVM1(Word* args, Word& result,
         } else {
           Attribute* del = static_cast<Attribute*>(elem.addr);
           del->DeleteIfAllowed();
-          result = SetWord(Address(0));
+          result.setAddr(0);
           return CANCEL;
         }
       } else {
-         result = SetWord(Address(0));
+         result.setAddr(0);
          return CANCEL;
       }
     }
@@ -943,7 +943,7 @@ int shpexportVM2(Word* args, Word& result,
        shpLInfo* linfo  = new shpLInfo(fname);
        int attrPos = (static_cast<CcInt*>(args[3].addr))->GetIntval();
        linfo->setIndex( attrPos);
-       local = SetWord(linfo);
+       local.setAddr(linfo);
        return 0; 
     }
     case REQUEST: {
@@ -962,7 +962,7 @@ int shpexportVM2(Word* args, Word& result,
         result = elem;
         return YIELD;
       } else {
-         result = SetWord(Address(0));
+         result.setAddr(0);
          return CANCEL;
       }
     }
@@ -1318,7 +1318,7 @@ int db3exportVM(Word* args, Word& result,
        qp->Open(args[0].addr);
        FText* fname = static_cast<FText*>(args[1].addr);
        Db3LInfo* linfo  = new Db3LInfo(fname,qp->GetType(s));
-       local = SetWord(linfo);
+       local.setAddr(linfo);
        return 0; 
     }
     case REQUEST: {
@@ -1334,7 +1334,7 @@ int db3exportVM(Word* args, Word& result,
         result = elem;
         return YIELD;
       } else {
-         result = SetWord(Address(0));
+         result.setAddr(0);
          return CANCEL;
       }
     }
@@ -2501,7 +2501,7 @@ int shpimportVM(Word* args, Word& result,
    switch(message){
      case OPEN: {
        FText* fname = static_cast<FText*>(args[1].addr);
-       local = SetWord(new shpimportInfo(type,fname));  
+       local.setAddr(new shpimportInfo(type,fname));  
        return 0;
      }
      case REQUEST: {
@@ -3118,7 +3118,7 @@ int dbimportVM(Word* args, Word& result,
     case OPEN: {
       ListExpr type = qp->GetType(qp->GetSon(s,0));
       FText* fname = static_cast<FText*>(args[1].addr);
-      local  = SetWord(new DbimportInfo(type,fname));
+      local.setAddr(new DbimportInfo(type,fname));
       return 0;
     }
     case REQUEST: {

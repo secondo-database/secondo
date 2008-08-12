@@ -277,7 +277,7 @@ countFun (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   qp->Open(args[0].addr); // open the argument stream
 
-  Word elem = SetWord(Address(0)); // retrieve the first element
+  Word elem(Address(0)); // retrieve the first element
   qp->Request(args[0].addr, elem);
 
   int count = 0;
@@ -321,7 +321,7 @@ printintstreamFun (Word* args, Word& result,
     }
     case REQUEST: {
 
-      Word elem = SetWord(Address(0));
+      Word elem(Address(0));
       qp->Request(args[0].addr, elem);
       if ( qp->Received(args[0].addr) )
       {
@@ -371,7 +371,7 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
       ArgVectorPointer funargs = qp->Argument(args[1].addr);
 
       // Loop over stream elements until the function yields true.
-      Word elem = SetWord(Address(0));
+      Word elem(Address(0));
       qp->Request(args[0].addr, elem);
       while ( qp->Received(args[0].addr) )
       {
@@ -379,7 +379,7 @@ filterFun (Word* args, Word& result, int message, Word& local, Supplier s)
         (*funargs)[0] = elem;
 
         // Instruct the parameter function to be evaluated.
-        Word funresult = SetWord(Address(0));
+        Word funresult(Address(0));
         qp->Request(args[1].addr, funresult);
         CcBool* b = static_cast<CcBool*>( funresult.addr );
 

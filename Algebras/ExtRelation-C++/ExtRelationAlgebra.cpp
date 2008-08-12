@@ -469,7 +469,7 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
           return CANCEL;
         }
 
-        result = SetWord(tuple);
+        result.setAddr(tuple);
         localInfo->lastIndex = *(localInfo->iter);
         localInfo->iter++;
         return YIELD;
@@ -607,7 +607,7 @@ int Cancel(Word* args, Word& result, int message, Word& local, Supplier s)
         }
         else
         {
-          result = SetWord(tuple);
+          result.setAddr(tuple);
           return YIELD;
         }
       }
@@ -724,7 +724,7 @@ int Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   Tuple* tupleptr;
   int index;
   StandardAttribute* res = (StandardAttribute*)((qp->ResultStorage(s)).addr);
-  result = SetWord(res);
+  result.setAddr(res);
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr,t);
@@ -863,7 +863,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       localInfo =
         new HeadLocalInfo( ((CcInt*)args[1].addr)->GetIntval() );
-      local = SetWord( localInfo );
+      local.setAddr( localInfo );
       return 0;
 
     case REQUEST:
@@ -926,7 +926,7 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
 
       hli =
         new HeadLocalInfo( ((CcInt*)args[1].addr)->GetIntval() );
-      local = SetWord( hli );
+      local.setAddr( hli );
 
       qp->Open(args[0].addr);
       return 0;
@@ -1141,7 +1141,7 @@ MaxMinValueMapping(Word* args, Word& result, int message,
   StandardAttribute* extremum =
     (StandardAttribute*)(qp->ResultStorage(s)).addr;
   extremum->SetDefined(false);
-  result = SetWord(extremum);
+  result.setAddr(extremum);
 
   int attributeIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
 
@@ -1966,7 +1966,7 @@ template<class Tx, class Rx, class Ty, class Ry> int
       newTuple->PutAttribute( 14,(StandardAttribute*)CCovXY);
       newTuple->PutAttribute( 15,(StandardAttribute*)CCorrXY);
 
-      result = SetWord(newTuple);
+      result.setAddr(newTuple);
       resultTupleType->DeleteIfAllowed();
 
       *finished = true;
@@ -2231,7 +2231,7 @@ int KrdupVM(Word* args, Word& result, int message,
   {
     case OPEN:
       qp->Open(args[0].addr);
-      local = SetWord(new KrdupLocalInfo(qp->GetSon(s,2)));
+      local.setAddr(new KrdupLocalInfo(qp->GetSon(s,2)));
       return 0;
     case REQUEST:
       qp->Request(args[0].addr,tuple);
@@ -2578,7 +2578,7 @@ int ksmallestVM(Word* args, Word& result,
        if(linfo){
          Tuple* tuple = linfo->nextTuple(args[0]);
          if(tuple){
-           result=SetWord(tuple);
+           result.setAddr(tuple);
            return YIELD;
          }
        } 
@@ -3010,7 +3010,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
       rli->returned = 0;
       rli->stableValue = 50;
       rli->localTuple = 0;
-      local = SetWord(rli);
+      local.setAddr(rli);
 
       qp->Open(args[0].addr);
 
@@ -3045,7 +3045,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
               rli->localTuple = currentTuple;
 
               currentTuple->IncReference();
-              result = SetWord(currentTuple);
+              result.setAddr(currentTuple);
               return YIELD;
             }
             else
@@ -3061,7 +3061,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
             rli->returned++;
             rli->localTuple = currentTuple;
             currentTuple->IncReference();
-            result = SetWord(currentTuple);
+            result.setAddr(currentTuple);
             return YIELD;
           }
         }
@@ -3486,11 +3486,11 @@ SetOpValueMapping(Word* args, Word& result, int message,
       localInfo->outputAWithoutB = outputAWithoutB;
       localInfo->outputMatches = outputMatches;
 
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
     case REQUEST:
       localInfo = (SetOperation*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
+      result.setAddr(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     case CLOSE:
       if(local.addr){
@@ -4026,7 +4026,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -4048,13 +4048,13 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           supplier2 = qp->GetSupplier(supplier, i);
           supplier3 = qp->GetSupplier(supplier2, 1);
           funargs = qp->Argument(supplier3);
-          (*funargs)[0] = SetWord(tup);
+          ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
           newTuple->PutAttribute( tup->GetNoAttributes()+i,
                                   ((StandardAttribute*)value.addr)->Clone() );
         }
         tup->DeleteIfAllowed();
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
       else
@@ -4131,7 +4131,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       eli->progressInitialized = false;
 
-      local = SetWord(eli);
+      local.setAddr(eli);
 
       qp->Open(args[0].addr);
 
@@ -4156,7 +4156,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           supplier2 = qp->GetSupplier(supplier, i);
           supplier3 = qp->GetSupplier(supplier2, 1);
           funargs = qp->Argument(supplier3);
-          (*funargs)[0] = SetWord(tup);
+          ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
           newTuple->PutAttribute( tup->GetNoAttributes()+i,
                                   ((StandardAttribute*)value.addr)->Clone() );
@@ -4170,7 +4170,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
         }
         tup->DeleteIfAllowed();
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
       else
@@ -4443,7 +4443,7 @@ int Loopjoin(Word* args, Word& result, int message,
           new TupleType( nl->Second( resultType ) );
         localinfo->tuplex = tuplex;
         localinfo->streamy = streamy;
-        local = SetWord(localinfo);
+        local.setAddr(localinfo);
       }
       else
       {
@@ -4477,7 +4477,7 @@ int Loopjoin(Word* args, Word& result, int message,
 
             localinfo->tuplex=tuplex;
             localinfo->streamy=streamy;
-            local =  SetWord(localinfo);
+            local.setAddr(localinfo);
           }
           else
           {
@@ -4492,7 +4492,7 @@ int Loopjoin(Word* args, Word& result, int message,
         }
       }
       ctuplexy = new Tuple( localinfo->resultTupleType );
-      tuplexy = SetWord(ctuplexy);
+      tuplexy.setAddr(ctuplexy);
       Concat(ctuplex, ctupley, ctuplexy);
       ctupley->DeleteIfAllowed();
       result = tuplexy;
@@ -4569,7 +4569,7 @@ int Loopjoin(Word* args, Word& result, int message,
       lli->resultTupleType =
            new TupleType( nl->Second( resultType ) );
 
-      local = SetWord(lli);
+      local.setAddr(lli);
 
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, tuplex);
@@ -4620,7 +4620,7 @@ int Loopjoin(Word* args, Word& result, int message,
 
             lli->tuplex=tuplex;
             lli->streamy=streamy;
-            local =  SetWord(lli);
+            local.setAddr(lli);
           }
           else
           {
@@ -4635,7 +4635,7 @@ int Loopjoin(Word* args, Word& result, int message,
         }
       }
       ctuplexy = new Tuple( lli->resultTupleType );
-      tuplexy = SetWord(ctuplexy);
+      tuplexy.setAddr(ctuplexy);
       Concat(ctuplex, ctupley, ctuplexy);
       ctupley->DeleteIfAllowed();
 
@@ -4878,7 +4878,7 @@ Loopselect(Word* args, Word& result, int message,
           new TupleType( nl->Second( resultType ) );
         localinfo->tuplex=tuplex;
         localinfo->streamy=streamy;
-        local = SetWord(localinfo);
+        local.setAddr(localinfo);
       }
       else
       {
@@ -4896,7 +4896,7 @@ Loopselect(Word* args, Word& result, int message,
       streamy = localinfo->streamy;
       // prepare tuplex and tupley for processing.
       // if rely is exausted: fetch next tuplex.
-      tupley=SetWord(Address(0));
+      tupley.setAddr(0);
       while (tupley.addr==0)
       {
         qp->Request(streamy.addr, tupley);
@@ -4916,7 +4916,7 @@ Loopselect(Word* args, Word& result, int message,
 
             localinfo->tuplex=tuplex;
             localinfo->streamy=streamy;
-            local = SetWord(localinfo);
+            local.setAddr(localinfo);
           }
           else
           {
@@ -5151,8 +5151,8 @@ int ExtendStream(Word* args, Word& result, int message,
         localinfo->resultTupleType =
           new TupleType( nl->Second( resultType ) );
         localinfo->tupleX = (Tuple*)wTupleX.addr;
-        localinfo->streamY = SetWord( supplier3 );
-        local = SetWord(localinfo);
+        localinfo->streamY.setAddr( supplier3 );
+        local.setAddr(localinfo);
       }
       else
       {
@@ -5192,7 +5192,7 @@ int ExtendStream(Word* args, Word& result, int message,
             qp->Open( supplier3 );
 
             localinfo->tupleX = (Tuple*)wTupleX.addr;
-            localinfo->streamY = SetWord(supplier3);
+            localinfo->streamY.setAddr(supplier3);
 
             wValueY.setAddr(0);
           }
@@ -5215,7 +5215,7 @@ int ExtendStream(Word* args, Word& result, int message,
                              (StandardAttribute*)wValueY.addr );
 
       // setting the result
-      result = SetWord( tupleXY );
+      result.setAddr( tupleXY );
       return YIELD;
     }
     case CLOSE:
@@ -5545,7 +5545,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
           supplier3 = qp->GetSupplier(supplier2, 1);
           extFunArgs = qp->Argument(supplier3);
-          (*extFunArgs)[0] = SetWord(currTuple);     // pass argument
+          ((*extFunArgs)[0]).setAddr(currTuple);     // pass argument
           qp->Request(supplier3,value);              // call extattr mapping
 //  The original implementation tried to avoid copying the function result,
 //  but somehow, this results in a strongly growing tuplebuffer on disk:
@@ -5556,7 +5556,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
                 ((StandardAttribute*)value.addr)->Clone() );
         }
         currTuple->DeleteIfAllowed();
-        result = SetWord(resultTuple);
+        result.setAddr(resultTuple);
         return YIELD;
       }
       else return CANCEL;
@@ -5567,7 +5567,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       {
         ((TupleType *)local.addr)->DeleteIfAllowed();
         qp->Close(args[0].addr);
-        local = SetWord(Address( 0 ));
+        local.setAddr(0);
       }
       return 0;
     }
@@ -5864,7 +5864,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
         localinfo->resultTupleType =
           new TupleType( nl->Second( resultType ) );
         localinfo->tupleX = (Tuple*)wTupleX.addr;
-        localinfo->streamY = SetWord( supplier3 );
+        localinfo->streamY.setAddr( supplier3 );
 
         //4. get the attribute numbers
         int noOfAttrs = ((CcInt*)args[3].addr)->GetIntval();
@@ -5876,7 +5876,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
           localinfo->attrs.push_back( ((CcInt*)elem2.addr)->GetIntval()-1 );
         }
 
-        local = SetWord(localinfo);
+        local.setAddr(localinfo);
       }
       else
       {
@@ -5916,7 +5916,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
             qp->Open( supplier3 );
 
             localinfo->tupleX = (Tuple*)wTupleX.addr;
-            localinfo->streamY = SetWord(supplier3);
+            localinfo->streamY.setAddr(supplier3);
 
             wValueY.setAddr(0);
           }
@@ -5939,7 +5939,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
       tupleXY->PutAttribute( i, (StandardAttribute*)wValueY.addr );
 
       // setting the result
-      result = SetWord( tupleXY );
+      result.setAddr( tupleXY );
       return YIELD;
     }
     case CLOSE:
@@ -5957,7 +5957,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
         if( localinfo->resultTupleType != 0 )
           localinfo->resultTupleType->DeleteIfAllowed();
         delete localinfo;
-        local = SetWord(Address( 0) );
+        local.setAddr(0);
       }
       qp->Close( args[0].addr );
       return 0;
@@ -6092,7 +6092,7 @@ int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
 
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
-      local = SetWord(new CcInt(true, 0));
+      local.setAddr(new CcInt(true, 0));
       return 0;
 
     case REQUEST :
@@ -6102,7 +6102,7 @@ int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
         if (qp->Received(args[0].addr))
         {
           tuple = (Tuple*)t.addr;
-          result = SetWord(tuple);
+          result.setAddr(tuple);
           return YIELD;
         }
         else
@@ -6114,7 +6114,7 @@ int Concat(Word* args, Word& result, int message, Word& local, Supplier s)
       if (qp->Received(args[1].addr))
       {
         tuple = (Tuple*)t.addr;
-        result = SetWord(tuple);
+        result.setAddr(tuple);
         return YIELD;
       }
       else
@@ -6456,7 +6456,7 @@ int GroupByValueMapping
         ListExpr resultType = GetTupleResultType( supplier );
         gbli->resultTupleType = new TupleType( nl->Second( resultType ) );
         gbli->MAX_MEMORY = qp->MemoryAvailableForOperator();
-        local = SetWord(gbli);
+        local.setAddr(gbli);
 
         cmsg.info("ERA:ShowMemInfo")
           << "GroupBy.MAX_MEMORY ("
@@ -6559,14 +6559,14 @@ int GroupByValueMapping
         // The group was stored in a relation identified by symbol group
         // which is a typemap operator. Here it is stored in the
         // argument vector
-        (*vector)[0] = SetWord(tp);
+        ((*vector)[0]).setAddr(tp);
 
         // compute value of function i and put it into the result tuple
         qp->Request(supplier2, value);
         t->PutAttribute(numberatt + i, (Attribute*)value.addr);
         qp->ReInitResultStorage(supplier2);
       }
-      result = SetWord(t);
+      result.setAddr(t);
       delete tp;
       return YIELD;
     }
@@ -6685,7 +6685,7 @@ int GroupByValueMapping
       }
       gbli->progressInitialized = false;
 
-      local = SetWord(gbli);  //from now, progress queries possible
+      local.setAddr(gbli);  //from now, progress queries possible
 
       // Get the first tuple pointer and store it in the
       // GroupBylocalInfo structure
@@ -6799,7 +6799,7 @@ int GroupByValueMapping
         // The group was stored in a relation identified by symbol group
         // which is a typemap operator. Here it is stored in the
         // argument vector
-        (*vector)[0] = SetWord(tp);
+        ((*vector)[0]).setAddr(tp);
 
         // compute value of function i and put it into the result tuple
         qp->Request(supplier2, value);
@@ -6817,7 +6817,7 @@ int GroupByValueMapping
       }
 
       gbli->returned++;
-      result = SetWord(t);
+      result.setAddr(t);
       delete tp;
       return YIELD;
     }
@@ -7094,8 +7094,8 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
   while( qp->Received( args[0].addr ) )
   {
     vector = qp->Argument(args[2].addr);
-    (*vector)[0] = SetWord(tmpres);
-    (*vector)[1] = SetWord( ((Tuple*)t.addr)->GetAttribute( index-1 ) );
+    ((*vector)[0]).setAddr(tmpres);
+    ((*vector)[1]).setAddr(((Tuple*)t.addr)->GetAttribute( index-1 ) );
     qp->Request(args[2].addr, fctres);
 
     delete tmpres; //delete intermediate result
@@ -7217,8 +7217,8 @@ int AggregateB(Word* args, Word& result, int message,
          AggrStackEntry top = theStack.top();
          theStack.pop();
          // call the parameter function
-         (*vector)[0] = SetWord(top.value);
-         (*vector)[1] = SetWord(attr);
+         ((*vector)[0]).setAddr(top.value);
+         ((*vector)[1]).setAddr(attr);
          qp->Request(args[2].addr, resultWord);
          qp->ReInitResultStorage(args[2].addr);
          top.destroy();  // remove stack content
@@ -7241,8 +7241,8 @@ int AggregateB(Word* args, Word& result, int message,
    while(!theStack.empty()){
      AggrStackEntry top = theStack.top();
      theStack.pop();
-     (*vector)[0] = SetWord(top.value);
-     (*vector)[1] = SetWord(tmpResult.value);
+     ((*vector)[0]).setAddr(top.value);
+     ((*vector)[1]).setAddr(tmpResult.value);
      qp->Request(args[2].addr, resultWord);
      qp->ReInitResultStorage(args[2].addr);
      tmpResult.destroy(); // destroy temporarly result
@@ -7447,7 +7447,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
-      local = SetWord(pli);
+      local.setAddr(pli);
       return 0;
     }
     case REQUEST :
@@ -7511,8 +7511,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             // We match the tuples.
           {
             ArgVectorPointer funArgs = qp->Argument(args[2].addr);
-            (*funArgs)[0] = SetWord( pli->currTuple );
-            (*funArgs)[1] = SetWord( leftTuple );
+            ((*funArgs)[0]).setAddr( pli->currTuple );
+            ((*funArgs)[1]).setAddr( leftTuple );
             Word funResult;
             qp->Request(args[2].addr, funResult);
             CcBool *boolFunResult = (CcBool*)funResult.addr;
@@ -7524,7 +7524,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               Concat( pli->currTuple, leftTuple, resultTuple );
               leftTuple->DeleteIfAllowed();
               leftTuple = 0;
-              result = SetWord( resultTuple );
+              result.setAddr( resultTuple );
               return YIELD;
             }
             else
@@ -7589,8 +7589,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             // We match the tuples.
           {
             ArgVectorPointer funArgs = qp->Argument(args[2].addr);
-            (*funArgs)[0] = SetWord( rightTuple );
-            (*funArgs)[1] = SetWord( pli->currTuple );
+            ((*funArgs)[0]).setAddr( rightTuple );
+            ((*funArgs)[1]).setAddr( pli->currTuple );
             Word funResult;
             qp->Request(args[2].addr, funResult);
             CcBool *boolFunResult = (CcBool*)funResult.addr;
@@ -7602,7 +7602,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               Concat( rightTuple, pli->currTuple, resultTuple );
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;
-              result = SetWord( resultTuple );
+              result.setAddr( resultTuple );
               return YIELD;
             }
             else
@@ -7716,7 +7716,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->returned = 0;
       pli->progressInitialized = false;
 
-      local = SetWord(pli);
+      local.setAddr(pli);
       return 0;
     }
 
@@ -7780,8 +7780,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             // We match the tuples.
           {
             ArgVectorPointer funArgs = qp->Argument(args[2].addr);
-            (*funArgs)[0] = SetWord( pli->currTuple );
-            (*funArgs)[1] = SetWord( leftTuple );
+            ((*funArgs)[0]).setAddr( pli->currTuple );
+            ((*funArgs)[1]).setAddr( leftTuple );
             Word funResult;
             qp->Request(args[2].addr, funResult);
             CcBool *boolFunResult = (CcBool*)funResult.addr;
@@ -7793,7 +7793,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               Concat( pli->currTuple, leftTuple, resultTuple );
               leftTuple->DeleteIfAllowed();
               leftTuple = 0;
-              result = SetWord( resultTuple );
+              result.setAddr( resultTuple );
               pli->returned++;
               return YIELD;
             }
@@ -7860,8 +7860,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
             // We match the tuples.
           {
             ArgVectorPointer funArgs = qp->Argument(args[2].addr);
-            (*funArgs)[0] = SetWord( rightTuple );
-            (*funArgs)[1] = SetWord( pli->currTuple );
+            ((*funArgs)[0]).setAddr( rightTuple );
+            ((*funArgs)[1]).setAddr( pli->currTuple );
             Word funResult;
             qp->Request(args[2].addr, funResult);
             CcBool *boolFunResult = (CcBool*)funResult.addr;
@@ -7873,7 +7873,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               Concat( rightTuple, pli->currTuple, resultTuple );
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;
-              result = SetWord( resultTuple );
+              result.setAddr( resultTuple );
               pli->returned++;
               return YIELD;
             }
@@ -8248,7 +8248,7 @@ SymmProductExtend(Word* args, Word& result,
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
-      local = SetWord(pli);
+      local.setAddr(pli);
       return 0;
     }
     case REQUEST :
@@ -8325,8 +8325,8 @@ SymmProductExtend(Word* args, Word& result,
               noofsons = qp->GetNoSons(supplier2);
               supplier3 = qp->GetSupplier(supplier2, 1);
               extFunArgs = qp->Argument(supplier3);
-              (*extFunArgs)[0] = SetWord(leftTuple);     // pass first argument
-              (*extFunArgs)[1] = SetWord(pli->currTuple);// pass second argument
+              ((*extFunArgs)[0]).setAddr(leftTuple);     // pass first argument
+              ((*extFunArgs)[1]).setAddr(pli->currTuple);// pass second argument
               qp->Request(supplier3,value);              // call extattr mapping
 //  The original implementation tried to avoid copying the function result,
 //  but somehow, this results in a strongly growing tuplebuffer on disk:
@@ -8342,7 +8342,7 @@ SymmProductExtend(Word* args, Word& result,
             }
             leftTuple->DeleteIfAllowed();
             leftTuple = 0;
-            result = SetWord( resultTuple );
+            result.setAddr( resultTuple );
             return YIELD;
           }
         }
@@ -8411,8 +8411,8 @@ SymmProductExtend(Word* args, Word& result,
               noofsons = qp->GetNoSons(supplier2);
               supplier3 = qp->GetSupplier(supplier2, 1);
               extFunArgs = qp->Argument(supplier3);
-              (*extFunArgs)[0] = SetWord(pli->currTuple);// pass 1st argument
-              (*extFunArgs)[1] = SetWord(rightTuple);    // pass 2nd argument
+              ((*extFunArgs)[0]).setAddr(pli->currTuple);// pass 1st argument
+              ((*extFunArgs)[1]).setAddr(rightTuple);    // pass 2nd argument
               qp->Request(supplier3,value);              // call extattr mapping
 //  The original implementation tried to avoid copying the function result,
 //  but somehow, this results in a strongly growing tuplebuffer on disk:
@@ -8431,7 +8431,7 @@ SymmProductExtend(Word* args, Word& result,
             }
             rightTuple->DeleteIfAllowed();
             rightTuple = 0;
-            result = SetWord( resultTuple );
+            result.setAddr( resultTuple );
             return YIELD;
           }
         }
@@ -8641,7 +8641,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       qp->Open(args[1].addr);
 
-      local = SetWord(pli);
+      local.setAddr(pli);
       return 0;
     }
     case REQUEST :
@@ -8708,7 +8708,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
             Concat( leftTuple, pli->currTuple, resultTuple );
             leftTuple->DeleteIfAllowed();
             leftTuple = 0;
-            result = SetWord( resultTuple );
+            result.setAddr( resultTuple );
             return YIELD;
           }
         }
@@ -8769,7 +8769,7 @@ SymmProduct(Word* args, Word& result, int message, Word& local, Supplier s)
             Concat( pli->currTuple, rightTuple, resultTuple );
             rightTuple->DeleteIfAllowed();
             rightTuple = 0;
-            result = SetWord( resultTuple );
+            result.setAddr( resultTuple );
             return YIELD;
           }
         }
@@ -9020,7 +9020,7 @@ int AddCounterValueMap(Word* args, Word& result, int message,
           Tuple* tmp = ((AddCounterLocalInfo*)local.addr)->
                           createTuple((Tuple*)orig.addr);
           ((Tuple*)orig.addr)->DeleteIfAllowed();
-          result = SetWord(tmp);
+          result.setAddr(tmp);
           return YIELD;
        }
 

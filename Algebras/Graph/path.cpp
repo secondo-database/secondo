@@ -644,7 +644,7 @@ bool CheckPath( ListExpr type, ListExpr& errorInfo )
 bool OpenPath(SmiRecord& valueRecord, size_t& offset, 
     const ListExpr typeInfo, Word& value)
 {
-    value = SetWord(Attribute::Open(valueRecord, offset, typeInfo));
+    value.setAddr(Attribute::Open(valueRecord, offset, typeInfo));
     return true;
 }
 

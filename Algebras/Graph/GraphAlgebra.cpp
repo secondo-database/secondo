@@ -887,7 +887,7 @@ int connectedCompFun (Word* args, Word& result, int message,
           localInfo = ((SccStruct*)local.addr);
           delete localInfo->tType;
           delete localInfo;
-          local = SetWord(Address(0));
+          local.setAddr(Address(0));
        }
        return 0;
    }
@@ -1002,7 +1002,7 @@ int edgesFun (Word* args, Word& result, int message, Word& local, Supplier s)
             delete localInfo->tType;
             delete localInfo->edges;
             delete localInfo;
-            local = SetWord(Address(0));
+            local.setAddr(Address(0));
           }
           return 0;
     }
@@ -1073,7 +1073,7 @@ int verticesFun (Word* args, Word& result, int message, Word& local, Supplier s)
             delete localInfo->tType;
             delete localInfo->vertices;
             delete localInfo;
-            local = SetWord(Address(0));
+            local.setAddr(Address(0));
           }
           return 0;
     }
@@ -1198,7 +1198,7 @@ int constGraphFun(Word* args, Word& result, int message,
     qp->Request(args[0].addr,t);
         tup->DeleteIfAllowed();
   }
-    result =SetWord(res);
+    result.setAddr(res);
     qp->Close(args[0].addr);
     return 0;
 }
