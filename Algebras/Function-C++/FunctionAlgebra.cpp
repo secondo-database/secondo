@@ -582,32 +582,32 @@ int WhileDoValueMap(Word* args, Word& result,
   {
     case OPEN :
       sli = new WhileDoValueMapLocalInfo;
-      sli->lastInstance = SetWord(((Attribute*)(args[0].addr))->Copy());
+      sli->lastInstance.setAddr(((Attribute*)(args[0].addr))->Copy());
       sli->pred         = args[1];
       sli->fun          = args[2];
       sli->finished     = false;
       sli->isInitial    = true;
-      local = SetWord(sli);
+      local.setAddr(sli);
       return 0;
 
     case REQUEST :
 
       if( local.addr == 0 )
       {
-        result = SetWord(Address(0));
+        result.setAddr(0);
         return CANCEL;
       }
       sli = (WhileDoValueMapLocalInfo*)local.addr;
 
       if(sli->finished)
       {
-        result = SetWord(Address(0));
+        result.setAddr(0);
         return CANCEL;
       }
       // At first request, forward a copy of the initial instance
       if(sli->isInitial)
       {
-        result = SetWord(((Attribute*)(sli->lastInstance.addr))->Clone());
+        result.setAddr(((Attribute*)(sli->lastInstance.addr))->Clone());
         sli->isInitial = false;
         return YIELD;
       }
@@ -626,13 +626,13 @@ int WhileDoValueMap(Word* args, Word& result,
       if( !(static_cast<CcBool*>(predResult.addr)->IsDefined()) )
       { // UNDEF pred result
         sli->finished = true;
-        result = SetWord(Address(0));
+        result.setAddr(0);
         return CANCEL;
       }
       sli->finished = !(static_cast<CcBool*>(predResult.addr)->GetBoolval());
       if(sli->finished)
       { // Does predicate hold on last instance?
-        result = SetWord(Address(0));
+        result.setAddr(0);
         return CANCEL;
       }
       // Create the next instance
@@ -640,7 +640,7 @@ int WhileDoValueMap(Word* args, Word& result,
       (*funArg)[0] = sli->lastInstance;         //   parameter function
       qp->Request(sli->fun.addr, funResult);    // call parameter function
       // copy result (and hand it over to the out-stream):
-      result = SetWord(((Attribute*) (funResult.addr))->Clone());
+      result.setAddr(((Attribute*) (funResult.addr))->Clone());
       if (((Attribute*) (funResult.addr))
           ->Compare(((Attribute*) (sli->lastInstance.addr))) == 0
          )
@@ -649,7 +649,7 @@ int WhileDoValueMap(Word* args, Word& result,
         return YIELD;
       }
       ((Attribute*) (sli->lastInstance.addr))->DeleteIfAllowed();
-      sli->lastInstance = SetWord(((Attribute*)(result.addr))->Copy());
+      (sli->lastInstance).setAddr(((Attribute*)(result.addr))->Copy());
       return YIELD;
 
     case CLOSE :
@@ -659,7 +659,7 @@ int WhileDoValueMap(Word* args, Word& result,
         sli = (WhileDoValueMapLocalInfo*)local.addr;
         ((Attribute*) (sli->lastInstance.addr))->DeleteIfAllowed();
         delete sli;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
 

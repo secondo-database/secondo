@@ -16746,7 +16746,7 @@ SpatialComponents_r( Word* args, Word& result, int message,
       localInfo = new ComponentsLocalInfo();
       ((Region*)args[0].addr)->Components( localInfo->components );
       localInfo->iter = localInfo->components.begin();
-      local = SetWord( localInfo );
+      local.setAddr( localInfo );
       return 0;
 
     case REQUEST:
@@ -16754,7 +16754,7 @@ SpatialComponents_r( Word* args, Word& result, int message,
       localInfo = (ComponentsLocalInfo*)local.addr;
       if( localInfo->iter == localInfo->components.end() )
         return CANCEL;
-      result = SetWord( *localInfo->iter++ );
+      result.setAddr( *localInfo->iter++ );
       return YIELD;
 
     case CLOSE:
@@ -16767,7 +16767,7 @@ SpatialComponents_r( Word* args, Word& result, int message,
           delete *localInfo->iter++;
         }
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -16785,7 +16785,7 @@ SpatialComponents_ps( Word* args, Word& result, int message,
     case OPEN:
       localInfo = new Points(*((Points*)args[0].addr));
       localInfo->SelectFirst();
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return 0;
 
     case REQUEST:
@@ -16798,7 +16798,7 @@ SpatialComponents_ps( Word* args, Word& result, int message,
       localInfo->GetPt( p );
       result.addr = new Point( *p );
       localInfo->SelectNext();
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
       return YIELD;
     }
 
@@ -16807,7 +16807,7 @@ SpatialComponents_ps( Word* args, Word& result, int message,
       {
         localInfo = (Points*)local.addr;
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
@@ -16945,7 +16945,7 @@ SpatialComponents_l( Word* args, Word& result, int message,
        if(local.addr){
           LineComponentsLi* li = (LineComponentsLi*) local.addr;
           delete li;
-          local = SetWord(Address(0));
+          local.setAddr(0);
        }
        return 0;
      }
@@ -17393,11 +17393,11 @@ int SpatialPolylines(Word* args, Word& result, int message,
    switch (message){
       case OPEN:
           if(qp->GetNoSons(s)==2){
-             local = SetWord(new LineSplitter((Line*)args[0].addr,
+             local.setAddr(new LineSplitter((Line*)args[0].addr,
                                 ((CcBool*)args[1].addr)->GetBoolval(),
                                 allowCycles));
           } else {
-            local = SetWord(new LineSplitter((Line*)args[0].addr,
+            local.setAddr(new LineSplitter((Line*)args[0].addr,
                             ((CcBool*)args[1].addr)->GetBoolval(),
                             allowCycles,
                             ((Points*)args[2].addr)));
@@ -17409,14 +17409,14 @@ int SpatialPolylines(Word* args, Word& result, int message,
            if(res==0){
               return CANCEL;
            } else {
-              result = SetWord(res);
+              result.setAddr(res);
               return YIELD;
            }
       case CLOSE:
            localinfo = (LineSplitter*) local.addr;
            if(localinfo!=0){
               delete localinfo;
-              local = SetWord(Address(0));
+              local.setAddr(0);
            }
            return 0;
    }
@@ -17490,7 +17490,7 @@ int SpatialSegments(Word* args, Word& result, int message,
       si = (SegmentsInfo*) local.addr;
       res = si->NextSegment();
       if(res){
-         result = SetWord(res);
+         result.setAddr(res);
          return YIELD;
       } else {
          return CANCEL;
@@ -17501,7 +17501,7 @@ int SpatialSegments(Word* args, Word& result, int message,
       {
         si = (SegmentsInfo*) local.addr;
         delete si;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
  }

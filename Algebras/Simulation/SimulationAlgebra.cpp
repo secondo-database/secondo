@@ -1405,7 +1405,7 @@ int sim_trips_VM ( Word* args, Word& result,
       { // no optional argument
         sli->minVelocity = 1.0;
       }
-      local = SetWord(sli);
+      local.setAddr(sli);
 
       if ( !mpoint->IsDefined() ||
             mpoint->IsEmpty()   ||
@@ -1430,14 +1430,14 @@ int sim_trips_VM ( Word* args, Word& result,
       if (local.addr == 0)
       {
 //         cout << "We have already finished!" << endl;
-        result = SetWord( Address(0) );
+        result.setAddr(0);
         return CANCEL;
       }
       sli = (SplitMpointLocalInfo*) local.addr;
       if ( sli->finished )
       {
 //         cout << "We have already finished!" << endl;
-        result = SetWord( Address(0) );
+        result.setAddr(0);
         return CANCEL;
       }
 
@@ -1457,7 +1457,7 @@ int sim_trips_VM ( Word* args, Word& result,
           res->EndBulkLoad( false ); // do not sort units
 //           cout << " Finished Trip " << sli->trip << "." << endl;
           assert( res->IsValid() );           // XRIS: only for debugging
-          result = SetWord( res );
+          result.setAddr( res );
           sli->u1.SetDefined( false );
           sli->finished = true;
           return YIELD;
@@ -1466,7 +1466,7 @@ int sim_trips_VM ( Word* args, Word& result,
         { // We have just finished the complete mpoint
 //           cout << "We have already finished!" << endl;
           sli->finished = true;
-          result = SetWord( Address(0) );
+          result.setAddr(0);
           return CANCEL;
         }
       }
@@ -1652,7 +1652,7 @@ int sim_trips_VM ( Word* args, Word& result,
       res->EndBulkLoad( false ); // do not sort units
 //       cout << " Finished Trip #" << sli->trip << "." << endl;
       assert( res->IsValid() );                    // XRIS: only for debugging
-      result = SetWord( res );
+      result.setAddr( res );
 //        cout << endl
 //             << "===================================================" << endl;
       return YIELD;
@@ -1665,7 +1665,7 @@ int sim_trips_VM ( Word* args, Word& result,
         sli = (SplitMpointLocalInfo*) local.addr;
         delete sli;
         sli = 0;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
 
