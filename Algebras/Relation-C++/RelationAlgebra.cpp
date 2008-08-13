@@ -518,7 +518,7 @@ ListExpr RelProp ()
 ListExpr
 OutRel(ListExpr typeInfo, Word  value)
 {
-  Relation* rel = ((Relation *)value.addr);	
+  Relation* rel = ((Relation *)value.addr);
   return rel->Out( typeInfo, rel->MakeScan() );
 }
 
@@ -764,33 +764,33 @@ relation.
 
 class TmpRel {
 
-  public:	
+  public:
   TmpRel(){ trel = 0; };
   ~TmpRel(){}; 
 
   static GenericRelation* In( ListExpr typeInfo, 
-	                      ListExpr value, 
+                              ListExpr value, 
                               int errorPos, 
-	                      ListExpr& errorInfo, 
+                              ListExpr& errorInfo, 
                               bool& correct       ) {
 
     // the last parameter of Relation::In indicates that a 
     // TupleBuffer instance should be created. 
-    GenericRelation* r 	= 
-	    (GenericRelation*)Relation::In( typeInfo, value,
-		                            errorPos, errorInfo, 
-					    correct, true); 
+    GenericRelation* r = 
+      (GenericRelation*)Relation::In( typeInfo, value,
+                                      errorPos, errorInfo, 
+                                      correct, true); 
     return r; 
   }
 
   TupleBuffer* trel; 
-};	
+};
 
 
 ListExpr
 OutTmpRel(ListExpr typeInfo, Word  value)
 {
-  GenericRelation* rel = ((Relation *)value.addr);	
+  GenericRelation* rel = ((Relation *)value.addr);
   return Relation::Out( typeInfo, rel->MakeScan() );
 }
 
@@ -988,7 +988,7 @@ ListExpr FeedTypeMap(ListExpr args)
       && ( TypeOfRelAlgSymbol(nl->First(first)) == rel 
            || TypeOfRelAlgSymbol(nl->First(first)) == trel )
       && ( !(nl->IsAtom(nl->Second(first)) || nl->IsEmpty(nl->Second(first))) 
-	   && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) ),
+      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) ),
   "Operator feed expects an argument of type relation, "
   "(rel(tuple((a1 t1)...(an tn)))).\n"
   "Operator feed gets an argument of type '" + argstr + "'."
@@ -1104,8 +1104,15 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
     }
     case CLOSE :{
         // Note: object deletion is handled in OPEN and CLOSEPROGRESS
-	// keep the local info structure since it may still be
-	// needed for handling progress messages.
+        // keep the local info structure since it may still be
+        // needed for handling progress messages.
+      fli = static_cast<FeedLocalInfo*>(local.addr);
+      if(fli){
+        if(fli->rit){
+          delete fli->rit; 
+          fli->rit=0;
+        }
+      }
       return 0;
     }
     case CLOSEPROGRESS:{ 
@@ -1162,28 +1169,28 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( qp->IsObjectNode(sonOfFeed) )
       {
         if ( !fli ) return CANCEL;
-        else		//an object node, fli defined
-        {			
+        else  //an object node, fli defined
+        {  
           pRes->Card = (double) fli->total;
-          pRes->CopySizes(fli);		//copy all sizes
+          pRes->CopySizes(fli);  //copy all sizes
 
           pRes->Time = (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
             
- 		//any time value created must be > 0; so we add 1
+          //any time value created must be > 0; so we add 1
 
           pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed) 
             / pRes->Time;
 
-	  pRes->BTime = 0.001;		//time must not be 0
+          pRes->BTime = 0.001; //time must not be 0
 
           pRes->BProgress = 1.0;
 
           return YIELD;
-	}
+        }
       }
-      else 	//not an object node
+      else //not an object node
       {
-	if ( qp->RequestProgress(sonOfFeed, &p1) )
+        if ( qp->RequestProgress(sonOfFeed, &p1) )
         {
           pRes->Card = p1.Card;
 
@@ -1191,14 +1198,14 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
 
-	  pRes->Progress = 
-	    ((p1.Progress * p1.Time) +
-	    (fli ? fli->returned : 0) * (uFeed + p1.SizeExt * vFeed))
-		/ pRes->Time;
+          pRes->Progress = 
+             ((p1.Progress * p1.Time) +
+              (fli ? fli->returned : 0) * (uFeed + p1.SizeExt * vFeed))
+              / pRes->Time;
 
           pRes->BTime = p1.Time;
 
-	  pRes->BProgress = p1.Progress;
+          pRes->BProgress = p1.Progress;
 
           return YIELD;
         }
@@ -1327,8 +1334,8 @@ Consume(Word* args, Word& result, int message,
 
 struct consumeLocalInfo
 {
-  int state; 		//0 = working, 1 = finished
-  int current;		//current no of tuples read
+  int state;      //0 = working, 1 = finished
+  int current;    //current no of tuples read
 };
 
 
@@ -1343,11 +1350,11 @@ Consume(Word* args, Word& result, int message,
   {
 
     cli = (consumeLocalInfo*) local.addr;
-    if ( cli ) delete cli;		//needed if consume used in a loop
+    if ( cli ) delete cli;    //needed if consume used in a loop
 
-    cli = new consumeLocalInfo;
-      cli->state = 0;
-      cli->current = 0;
+    cli = new consumeLocalInfo();
+    cli->state = 0;
+    cli->current = 0;
     local.setAddr(cli);
 
     GenericRelation* rel = (Relation*)((qp->ResultStorage(s)).addr);
@@ -1376,14 +1383,14 @@ Consume(Word* args, Word& result, int message,
   else if ( message == REQUESTPROGRESS )
   {
 
-    	//cout << "consume was asked for progress" << endl;
+      //cout << "consume was asked for progress" << endl;
 
     ProgressInfo p1;
     ProgressInfo* pRes;
-    const double uConsume = 0.024; 	//millisecs per tuple
-    const double vConsume = 0.0003;	//millisecs per byte in 
+    const double uConsume = 0.024;   //millisecs per tuple
+    const double vConsume = 0.0003;  //millisecs per byte in 
                                         //  root/extension
-    const double wConsume = 0.001338;	//millisecs per byte in FLOB
+    const double wConsume = 0.001338;  //millisecs per byte in FLOB
 
 
     cli = (consumeLocalInfo*) local.addr;
@@ -1399,16 +1406,16 @@ Consume(Word* args, Word& result, int message,
         p1.Card * (uConsume + p1.SizeExt * vConsume 
           + (p1.Size - p1.SizeExt) * wConsume);
 
-      if ( cli == 0 )		//not yet working
+      if ( cli == 0 )    //not yet working
       {
         pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
       }
       else 
       {
-        if ( cli->state == 0 )	//working
+        if ( cli->state == 0 )  //working
         {
 
-          if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+          if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking, 
                                                         //use pipelining
             pRes->Progress = p1.Progress;
           else
@@ -1418,18 +1425,18 @@ Consume(Word* args, Word& result, int message,
                   + (p1.Size - p1.SizeExt) * wConsume) ) 
                 / pRes->Time;
         }
-        else 			//finished
+        else       //finished
         {
           pRes->Progress = 1.0;
         }
       }
       
-      pRes->BTime = pRes->Time;		//completely blocking
+      pRes->BTime = pRes->Time;    //completely blocking
       pRes->BProgress = pRes->Progress;
   
-      return YIELD;			//successful
+      return YIELD;      //successful
     }
-    else return CANCEL;			//no progress available
+    else return CANCEL;      //no progress available
   }
   else if ( message == CLOSEPROGRESS )
   {
@@ -1721,8 +1728,8 @@ Filter(Word* args, Word& result, int message,
 
 struct FilterLocalInfo
 {
-  int current;		//tuples read
-  int returned;		//tuples returned
+  int current;    //tuples read
+  int returned;    //tuples returned
 };
 
 
@@ -1814,37 +1821,37 @@ Filter(Word* args, Word& result, int message,
       {
         pRes->CopySizes(p1);
         
-        if ( fli )		//filter was started
+        if ( fli )    //filter was started
         {
-          if ( fli->returned >= enoughSuccessesSelection ) 	
-						//stable state assumed now
+          if ( fli->returned >= enoughSuccessesSelection )   
+            //stable state assumed now
           {
             pRes->Card =  p1.Card * 
               ( (double) fli->returned / (double) (fli->current)); 
             pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter; 
 
-            if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+            if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking, 
                                                         //use pipelining
               pRes->Progress = p1.Progress;
             else
               pRes->Progress = (p1.Progress * p1.Time 
                 + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
 
-	    pRes->CopyBlocking(p1);
+      pRes->CopyBlocking(p1);
             return YIELD;
           }
         }
-		//filter not yet started or not enough seen	
+    //filter not yet started or not enough seen  
  
-	pRes->Card = p1.Card * qp->GetSelectivity(s);
+  pRes->Card = p1.Card * qp->GetSelectivity(s);
         pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
 
-        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking, 
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
           pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-	pRes->CopyBlocking(p1);
+  pRes->CopyBlocking(p1);
         return YIELD;
       }
       else return CANCEL;
@@ -2275,12 +2282,12 @@ class ProjectLocalInfo: public ProgressLocalInfo
 public:
 
   ProjectLocalInfo() {
-    tupleType = 0;	  
+    tupleType = 0;    
     read = 0;
     progressInitialized = false;
   }
 
-  ~ProjectLocalInfo() {	
+  ~ProjectLocalInfo() {  
     tupleType->DeleteIfAllowed();
     tupleType = 0;
   }
@@ -2360,8 +2367,8 @@ Project(Word* args, Word& result, int message,
 
       ProgressInfo p1;
       ProgressInfo *pRes;
-      const double uProject = 0.00073;	//millisecs per tuple
-      const double vProject = 0.0004;	//millisecs per tuple and attribute
+      const double uProject = 0.00073;  //millisecs per tuple
+      const double vProject = 0.0004;  //millisecs per tuple and attribute
 
 
       pRes = (ProgressInfo*) result.addr;
@@ -2397,10 +2404,10 @@ Project(Word* args, Word& result, int message,
 
         pRes->Time = p1.Time + p1.Card * (uProject + pli->noAttrs * vProject);
 
-		//only pointers are copied; therefore the tuple sizes do not
-		//matter
+    //only pointers are copied; therefore the tuple sizes do not
+    //matter
 
-        if ( p1.BTime < 0.1 && pipelinedProgress ) 	//non-blocking, 
+        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking, 
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
@@ -2409,7 +2416,7 @@ Project(Word* args, Word& result, int message,
               pli->read * (uProject + pli->noAttrs * vProject)) 
             / pRes->Time;
 
-	pRes->CopyBlocking(p1);		//non-blocking operator
+  pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
       }
@@ -2873,7 +2880,7 @@ public:
     currentTuple(0),
     rightRel(0),
     iter(0)
-  {}	  
+  {}    
 
   ~ProductLocalInfo() 
   {
@@ -2887,7 +2894,7 @@ public:
       rightRel->Clear();
       delete rightRel;
     }
-  }	  
+  }    
 
   TupleType *resultTupleType;
   Tuple* currentTuple;
@@ -3041,9 +3048,9 @@ Product(Word* args, Word& result, int message,
       ProgressInfo p1, p2;
       ProgressInfo *pRes;
       const double uProduct = 0.0003; //millisecs per byte (right input)
-				      //if writing to disk
+              //if writing to disk
       const double vProduct = 0.000042; //millisecs per byte (total output)
-					//if reading from disk
+          //if reading from disk
  
       pRes = (ProgressInfo*) result.addr;
 
@@ -3170,8 +3177,8 @@ struct CountBothInfo : OperatorInfo {
     signature = "stream(tuple(y)) x stream(tuple(z)) -> int";
     syntax =    "_ countboth";
     meaning =   "Counts the number of tuples of two input streams. "
-	        "The streams are requested alternately. The purpose of "
-		"this operator is to expose the overhead of the seek time."; 
+          "The streams are requested alternately. The purpose of "
+    "this operator is to expose the overhead of the seek time."; 
     example =   "plz feed orte feed countboth";
   }
 
@@ -3275,9 +3282,9 @@ TCountStream(Word* args, Word& result, int message,
     if ( qp->RequestProgress(args[0].addr, &p1) )
     {
       pRes->Copy(p1);
-      return YIELD;		
+      return YIELD;    
     }
-    else return CANCEL;			
+    else return CANCEL;      
   }
   else if ( message == CLOSEPROGRESS )
   {
@@ -3296,7 +3303,7 @@ TCountRel(Word* args, Word& result, int message,
   Supplier sonOfCount;
   sonOfCount = qp->GetSupplierSon(s, 0);
 
-  if ( message <= CLOSE ) 		//normal evaluation
+  if ( message <= CLOSE )     //normal evaluation
   {
     GenericRelation* rel = (GenericRelation*)args[0].addr;
     result = qp->ResultStorage(s);
@@ -3346,15 +3353,15 @@ countboth_vm( Word* args, Word& result, int message,
 
     inline bool request(void* addr)
     {
-       Word elem;	    
+       Word elem;      
        qp->Request(addr, elem);
        bool ok = qp->Received(addr);
        if (ok) { 
-	 count++; 
+   count++; 
          static_cast<Tuple*>(elem.addr)->DeleteIfAllowed();
        }
        return ok;
-    }	    
+    }      
 
     int count;
 
@@ -3370,7 +3377,7 @@ countboth_vm( Word* args, Word& result, int message,
 
   while ( recA || recB )
   {
-    if (recA) {	  
+    if (recA) {    
       recA = c.request(args[0].addr); 
     }
     if (recB) {  
@@ -3413,13 +3420,13 @@ TCountStream2(Word* args, Word& result, int message,
   while ( qp->Received(args[0].addr) )
   {
     if ((count % 100) == 0) {    
-      // build a two elem list (simple count)	    
+      // build a two elem list (simple count)      
       NList msgList( NList("simple"), NList(count) );
       // send the message, the message center will call 
       // the registered handlers. Normally the client applications
       // will register them. 
       msg->Send(msgList);
-    }	      
+    }        
     ((Tuple*)elem.addr)->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);
     count++;
@@ -3498,7 +3505,7 @@ Operator relalgcount2 (
          "count2",                // name
          TCountSpec2,             // specification
          TCountStream2,           // value mapping function
-	 Operator::SimpleSelect,
+   Operator::SimpleSelect,
          TCountTypeMap            // type mapping
 );
 /*
@@ -4566,7 +4573,7 @@ static ListExpr dumpstream_tm(ListExpr args)
     cout << attrs.first().first() << endl;
     attrNames.append( attrs.first().first().toStringAtom() );
     attrs.rest();
-  }	  
+  }    
 
 
 // the following line can be compiled using newer gcc compilers (4.1.x),
@@ -4638,7 +4645,7 @@ static int dumpstream_vm( Word* args, Word& result, int message,
       else
         os << endl;
       ctr++;
-    }	    
+    }      
     
   };
 
@@ -4661,8 +4668,8 @@ static int dumpstream_vm( Word* args, Word& result, int message,
 
        for (int i=3; i < max; i++) 
        {
-	 pi->appendToHeadLine( args[i] );      
-       }	  
+   pi->appendToHeadLine( args[i] );      
+       }    
        return 0;
      }
                 
@@ -4725,7 +4732,7 @@ struct TConsumeInfo : OperatorInfo {
     syntax =    "_ tconsume";
     meaning =   "Appends the tuples' values into a tuple buffer."
                 "The result cant be materialized, thus don't "
-		"use it in let commands.";
+    "use it in let commands.";
     example =   "plz feed tconsume";
   }
 
@@ -4827,7 +4834,7 @@ RenameTypeMap( ListExpr args )
   
   nl->WriteToString(argstr, first);  
   if (!IsStreamDescription(first)) {
-    ErrorReporter::ReportError(	  
+    ErrorReporter::ReportError(    
     "Operator rename expects a valid tuple stream "
     "Operator rename gets a list with structure '" + argstr + "'.");
     return nl->TypeError();
@@ -5027,9 +5034,9 @@ const int BUFFERSIZE = 5;
 struct BufferLocalInfo
 {
  int state;        //0 = initial, 1 = buffer filled, 
-		   //2 = buffer empty again
+       //2 = buffer empty again
  int noInBuffer;   //tuples read into buffer;
- int next;	   //index of next tuple to be returned;
+ int next;     //index of next tuple to be returned;
  Tuple* tuples[BUFFERSIZE];
 };
 
@@ -5050,7 +5057,7 @@ Buffer(Word* args, Word& result, int message,
 
       if ( bli ) delete bli;
 
-      bli = new BufferLocalInfo;
+      bli = new BufferLocalInfo();
         bli->state = 0;
         bli->noInBuffer = 0;
         bli->next = -1;
@@ -5061,8 +5068,8 @@ Buffer(Word* args, Word& result, int message,
 
     case REQUEST :
 
-      if ( bli->state == 2 )  		//regular behaviour
-					//put first to avoid overhead
+      if ( bli->state == 2 )      //regular behaviour
+          //put first to avoid overhead
       {
         qp->Request(args[0].addr,t);
         if (qp->Received(args[0].addr))
@@ -5085,11 +5092,11 @@ Buffer(Word* args, Word& result, int message,
           bli->noInBuffer++;
           if ( bli->noInBuffer < BUFFERSIZE ) qp->Request(args[0].addr, t);
         }
-        if ( bli->noInBuffer > 1 ) bli->state = 1;	//next from buffer
-        else bli->state = 3;				//next cancel
+        if ( bli->noInBuffer > 1 ) bli->state = 1;  //next from buffer
+        else bli->state = 3;        //next cancel
 
         //return first tuple from the buffer, if possible
-	if ( bli->noInBuffer > 0 )
+  if ( bli->noInBuffer > 0 )
         {
           result.setAddr(bli->tuples[0]);
           bli->next = 1;
@@ -5106,8 +5113,8 @@ Buffer(Word* args, Word& result, int message,
         if ( bli->next == bli->noInBuffer )
         {
           if ( bli->noInBuffer == BUFFERSIZE ) 
-            bli->state = 2;			//next from stream
-          else bli->state = 3;			//next cancel
+            bli->state = 2;      //next from stream
+          else bli->state = 3;      //next cancel
         } 
         return YIELD;
       }
@@ -5177,7 +5184,7 @@ const string BufferSpec  =
 
 */
 Operator relalgbuffer (
-         "!",               	// name
+         "!",                 // name
          BufferSpec,             // specification
          Buffer,                 // value mapping
          Operator::SimpleSelect, // trivial selection function
@@ -5226,16 +5233,16 @@ class RelationAlgebra : public Algebra
     AddTypeConstructor( &cpprel );
     AddTypeConstructor( &cpptrel );
 
-    AddOperator(&relalgfeed);		    
-    AddOperator(&relalgconsume);	
+    AddOperator(&relalgfeed);        
+    AddOperator(&relalgconsume);  
     AddOperator(&relalgTUPLE);
     AddOperator(&relalgTUPLE2);
     AddOperator(&relalgattr);
-    AddOperator(&relalgfilter);		
-    AddOperator(&relalgproject);	    
-    AddOperator(&relalgremove);		
-    AddOperator(&relalgproduct);	
-    AddOperator(&relalgcount);		
+    AddOperator(&relalgfilter);    
+    AddOperator(&relalgproject);      
+    AddOperator(&relalgremove);    
+    AddOperator(&relalgproduct);  
+    AddOperator(&relalgcount);    
     AddOperator(&relalgcount2);
     AddOperator(&relalgroottuplesize);
     AddOperator(&relalgexttuplesize);
@@ -5243,8 +5250,8 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgrootattrsize);
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
-    AddOperator(&relalgrename);		
-    AddOperator(&relalgbuffer);		
+    AddOperator(&relalgrename);    
+    AddOperator(&relalgbuffer);    
 
     // More recent programming interface for registering operators 
     AddOperator( SizeCountersInfo(), sizecounters_vm, sizecounters_tm );
