@@ -951,14 +951,8 @@ int Head(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
     case CLOSE:
-      if(local.addr)
-      {
-         delete(hli);
-         local.setAddr(0);
-      }
       qp->Close(args[0].addr);
       return 0;
-
 
     case CLOSEPROGRESS:
       if ( hli )
@@ -3077,23 +3071,17 @@ int RdupValueMapping(Word* args, Word& result, int message,
         }
       }
     case CLOSE:
-      if(rli)
+      qp->Close(args[0].addr);
+      return 0;
+
+    case CLOSEPROGRESS:
+      if ( rli )
       {
         if (rli->localTuple != 0 )
         {
           rli->localTuple->DeleteIfAllowed();
           rli->localTuple = 0;
         }
-        delete rli;
-        local.setAddr(0);
-      }
-      qp->Close(args[0].addr);
-      return 0;
-
-
-    case CLOSEPROGRESS:
-      if ( rli )
-      {
         delete rli;
         local.setAddr(0);
       }
@@ -4176,18 +4164,16 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         return CANCEL;
 
     case CLOSE :
-      if(eli)
-      {
-         eli->resultTupleType->DeleteIfAllowed();
-         delete eli;
-         local.setAddr(0);
-      }
       qp->Close(args[0].addr);
       return 0;
 
 
     case CLOSEPROGRESS:
       if ( eli ){
+         if(eli->resultTupleType){
+            eli->resultTupleType->DeleteIfAllowed();
+            eli->resultTupleType=0;
+         }
          delete eli;
          local.setAddr(0);
       }
@@ -4643,7 +4629,11 @@ int Loopjoin(Word* args, Word& result, int message,
       return YIELD;
 
     case CLOSE:
-      if(lli)
+      qp->Close(args[0].addr);
+      return 0;
+
+    case CLOSEPROGRESS:
+      if ( lli )
       {
          if ( lli->tuplex.addr != 0 )
          {
@@ -4657,16 +4647,6 @@ int Loopjoin(Word* args, Word& result, int message,
          if( lli->resultTupleType){
             lli->resultTupleType->DeleteIfAllowed();
          }
-         delete lli;
-         local.setAddr(0);
-      }
-
-      qp->Close(args[0].addr);
-      return 0;
-
-    case CLOSEPROGRESS:
-      if ( lli )
-      {
          delete lli;
          local.setAddr(0);
       }
@@ -6795,7 +6775,7 @@ int GroupByValueMapping
         // The group was stored in a relation identified by symbol group
         // which is a typemap operator. Here it is stored in the
         // argument vector
-        ((*vector)[0]).setAddr(tp);
+        ((*vector)[0]) = SetWord(tp);
 
         // compute value of function i and put it into the result tuple
         qp->Request(supplier2, value);
@@ -6814,18 +6794,24 @@ int GroupByValueMapping
 
       gbli->returned++;
       result.setAddr(t);
-      delete tp;
+      if(tp){
+         delete tp;
+      }
+      tp = 0;
       return YIELD;
     }
     case CLOSE:
     {
       if(gbli)
       {
-        if( gbli->resultTupleType != 0 )
+        if( gbli->resultTupleType != 0 ){
           gbli->resultTupleType->DeleteIfAllowed();
+          gbli->resultTupleType=0;
+        }
         if( gbli->t != 0 )
         {
           gbli->t->DeleteIfAllowed();
+          gbli->t = 0;
         }
         if(gbli->attrSizeTmp){
             delete[] gbli->attrSizeTmp;
@@ -6835,8 +6821,6 @@ int GroupByValueMapping
           delete[] gbli->attrSizeExtTmp;
           gbli->attrSizeExtTmp=0;
         }
-        delete gbli;
-        local.setAddr(0);
       }
       qp->Close(args[0].addr);
       return 0;
@@ -7889,27 +7873,29 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         if( pli->currTuple != 0 ){
           pli->currTuple->DeleteIfAllowed();
+          pli->currTuple=0;
         }
 
         delete pli->leftIter;
         delete pli->rightIter;
         if( pli->resultTupleType != 0 ){
           pli->resultTupleType->DeleteIfAllowed();
+          pli->resultTupleType=0;
         }
 
         if( pli->rightRel != 0 )
         {
           pli->rightRel->Clear();
           delete pli->rightRel;
+          pli->rightRel=0;
         }
 
         if( pli->leftRel != 0 )
         {
           pli->leftRel->Clear();
           delete pli->leftRel;
+          pli->leftRel=0;
         }
-        delete pli;
-        local.setAddr(0);
       }
 
       qp->Close(args[0].addr);
