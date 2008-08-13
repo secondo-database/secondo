@@ -3110,12 +3110,8 @@ Deletes an operator tree object.
     {
       case Operator:
       {
-        if( (tree->u.op.local.addr != 0) && RTFlag::isActive("QP:debuglocal"))
-        {
-          cerr << "LocalInfo for operator "
-              << tree->u.op.theOperator->GetName()
-              << " was not destroyed. local=" << tree->u.op.local.addr
-              << endl;
+        if(tree->u.op.supportsProgress){
+          CloseProgress(tree); 
         }
         for ( int i = 0; i < tree->u.op.noSons; i++ )
         {
@@ -3136,8 +3132,12 @@ Deletes an operator tree object.
           /* space was allocated for result */
           DeleteResultStorage(tree);
         }
-        if(tree->u.op.supportsProgress){
-          CloseProgress(tree); 
+        if( (tree->u.op.local.addr != 0) && RTFlag::isActive("QP:debuglocal"))
+        {
+          cerr << "LocalInfo for operator "
+              << tree->u.op.theOperator->GetName()
+              << " was not destroyed. local=" << tree->u.op.local.addr
+              << endl;
         }
         break;
       }
