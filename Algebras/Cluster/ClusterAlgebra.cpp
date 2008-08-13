@@ -604,7 +604,7 @@ int cluster_cFun (Word* args, Word& result, int message, Word& local,
         Points* pts = static_cast<Points*>(args[0].addr);
         CcInt* minPts = static_cast<CcInt*>(args[1].addr);
         CcReal* eps = static_cast<CcReal*>(args[2].addr);
-        local = SetWord(new ClusterC_LocalInfo(pts,minPts,eps));
+        local.setAddr(new ClusterC_LocalInfo(pts,minPts,eps));
         return 0;
     } case REQUEST : {
         if(local.addr==0){
@@ -614,7 +614,7 @@ int cluster_cFun (Word* args, Word& result, int message, Word& local,
                static_cast<ClusterC_LocalInfo*>(local.addr);
 
         Points* hasNext = linfo->getNext();
-        result = SetWord(hasNext);
+        result.setAddr(hasNext);
         if(hasNext){
            return YIELD;
         } else {
@@ -623,7 +623,7 @@ int cluster_cFun (Word* args, Word& result, int message, Word& local,
     } case CLOSE : {
         if(local.addr!=0){
            delete static_cast<ClusterC_LocalInfo*>(local.addr);
-           local = SetWord(Address(0));
+           local.setAddr(0);
         }
         return 0;
     }
@@ -1402,7 +1402,7 @@ int cluster_dFun (Word* args, Word& result, int message, Word& local,
       case OPEN : {
         Points* pts = static_cast<Points*>(args[0].addr);
         CcReal* eps = static_cast<CcReal*>(args[1].addr);
-        local = SetWord(new ClusterD_LocalInfo(pts,eps));
+        local.setAddr(new ClusterD_LocalInfo(pts,eps));
         return 0;
     } case REQUEST : {
         if(local.addr==0){
@@ -1412,7 +1412,7 @@ int cluster_dFun (Word* args, Word& result, int message, Word& local,
                static_cast<ClusterD_LocalInfo*>(local.addr);
         
         Points* hasNext = linfo->getNext(i);
-        result = SetWord(hasNext);
+        result.setAddr(hasNext);
         if(hasNext){
            return YIELD;
         } else {
@@ -1726,7 +1726,7 @@ int cluster_fFun (Word* args, Word& result, int message, Word& local,
       case OPEN : {
         Points* pts = static_cast<Points*>(args[0].addr);
         CcReal* eps = static_cast<CcReal*>(args[1].addr);
-        local = SetWord(new ClusterF_LocalInfo(pts,eps));
+        local.setAddr(new ClusterF_LocalInfo(pts,eps));
         return 0;
     } case REQUEST : {
         if(local.addr==0){
@@ -1736,7 +1736,7 @@ int cluster_fFun (Word* args, Word& result, int message, Word& local,
                static_cast<ClusterF_LocalInfo*>(local.addr);
         
         Points* hasNext = linfo->getNext();
-        result = SetWord(hasNext);
+        result.setAddr(hasNext);
         if(hasNext){
            return YIELD;
         } else {
