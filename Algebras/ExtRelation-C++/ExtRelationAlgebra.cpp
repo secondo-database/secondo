@@ -398,7 +398,6 @@ struct SampleLocalInfo
 int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   SampleLocalInfo* localInfo = static_cast<SampleLocalInfo*>( local.addr );
-  Word argRelation(Address(0));
 
   Relation* rel = 0;
   Tuple* tuple = 0;
@@ -6429,8 +6428,6 @@ int GroupByValueMapping
   const int indexOfCountArgument = 3;
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
   int attribIdx = 0;
-  Word nAttributesWord(Address(0));
-  Word attribIdxWord(Address(0));
   GroupByLocalInfo *gbli = 0;
 
   // The argument vector contains the following values:
@@ -6642,7 +6639,6 @@ int GroupByValueMapping
   const int indexOfCountArgument = 3;
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
   int attribIdx = 0;
-  Word nAttributesWord(Address(0));
   Word attribIdxWord(Address(0));
   GroupByLocalInfo *gbli;
 
