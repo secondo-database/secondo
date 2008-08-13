@@ -283,8 +283,8 @@ what happens when an Secondo object is updated. Currently nothing
 
 int createObj(string& objName, ListExpr valueExpr) {
 
-  OpTree tree;
-  Word result;
+  OpTree tree(0);
+  Word result(Address(0));
   bool correct=false, evaluable=false, defined=false, isFunction=false;
   ListExpr resultType = nl.TheEmptyList();
 
@@ -314,17 +314,19 @@ int createObj(string& objName, ListExpr valueExpr) {
       }
       if ( evaluable )
       {
-          qp.EvalP( tree, result, 1 );
+        qp.EvalP( tree, result, 1 );
 
         if( IsRootObject( tree ) && !IsConstantObject( tree ) )
         {
           ctlg.CloneObject( objName, result );
           qp.Destroy( tree, true );
+          tree = 0;
         }
         else
         {
           ctlg.UpdateObject( objName, result );
           qp.Destroy( tree, false );
+          tree = 0;
         }
       }
       else if ( isFunction )   // abstraction or function object
