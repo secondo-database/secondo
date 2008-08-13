@@ -1947,7 +1947,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
       ListExpr resultType = GetTupleResultType( s );
       localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
 
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
 
       return 0;
     }
@@ -1955,7 +1955,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
     case REQUEST:
     {
       localInfo = (SpatialJoinLocalInfo<2>*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
+      result.setAddr(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
@@ -1967,7 +1967,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
         //the TupleBuffers are deleted in the destructor of localInfo
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
     }
@@ -2007,7 +2007,7 @@ spatialjoin3ValueMapping(Word* args, Word& result, int message,
       ListExpr resultType = GetTupleResultType( s );
       localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
 
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
 
       return 0;
     }
@@ -2016,7 +2016,7 @@ spatialjoin3ValueMapping(Word* args, Word& result, int message,
     {
       //cout << endl << "REQUEST" << endl;
       localInfo = (SpatialJoinLocalInfo<3>*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
+      result.setAddr(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
@@ -2028,7 +2028,7 @@ spatialjoin3ValueMapping(Word* args, Word& result, int message,
         //the TupleBuffers are deleted in the destructor of localInfo
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
     }
@@ -2068,7 +2068,7 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message,
       ListExpr resultType = GetTupleResultType( s );
       localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
 
-      local = SetWord(localInfo);
+      local.setAddr(localInfo);
 
       return 0;
     }
@@ -2077,7 +2077,7 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message,
     {
       //cout << endl << "REQUEST" << endl;
       localInfo = (SpatialJoinLocalInfo<4>*)local.addr;
-      result = SetWord(localInfo->NextResultTuple());
+      result.setAddr(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
@@ -2089,7 +2089,7 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message,
         //the TupleBuffers are deleted in the destructor of localInfo
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
     }

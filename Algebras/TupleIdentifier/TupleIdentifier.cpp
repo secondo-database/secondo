@@ -401,7 +401,7 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Open(args[0].addr);
       resultType = GetTupleResultType( s );
       resultTupleType = new TupleType( nl->Second( resultType ) );
-      local = SetWord( resultTupleType );
+      local.setAddr( resultTupleType );
       return 0;
 
     case REQUEST :
@@ -419,7 +419,7 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
                           new TupleIdentifier(true,tup->GetTupleId()));
 
         tup->DeleteIfAllowed();
-        result = SetWord(newTuple);
+        result.setAddr(newTuple);
         return YIELD;
       }
       else
@@ -430,7 +430,7 @@ TIDAddTupleId(Word* args, Word& result, int message, Word& local, Supplier s)
       if(local.addr)
       {
         ((TupleType *)local.addr)->DeleteIfAllowed();
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }
       return 0;
   }
