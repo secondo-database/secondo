@@ -2581,13 +2581,18 @@ bucket that the tuple coming from A hashes is also initialized.
     }
 
     // close open streams if necessary
+    Close();
+
+    resultTupleType->DeleteIfAllowed();
+  }
+
+  void Close(){
     if ( !streamAClosed )
       qp->Close(streamA.addr);
     if ( !streamBClosed )
       qp->Close(streamB.addr);
-
-    resultTupleType->DeleteIfAllowed();
   }
+
 
   bool NextTupleA()
   {
@@ -2731,7 +2736,11 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       return result.addr != 0 ? YIELD : CANCEL;
 
     case CLOSE:
-    
+      if(li){
+        if(li->ptr){
+           li->ptr->Close();
+        }
+      }
       // Note: object deletion is handled in OPEN and CLOSEPROGRESS
       return 0;
 
@@ -2739,8 +2748,8 @@ int HashJoin(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSEPROGRESS:
 
       if (li) {
-	delete li;
-	local.addr = 0;
+        delete li;
+        local.addr = 0;
       }	
 
       return 0;
