@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -36,7 +36,7 @@ An overview about System tables is given in the file "SystemInfoRel.cpp".
 #include "NList.h"
 #include "SystemInfoRel.h"
 
-class CmdTimes : public InfoTuple 
+class CmdTimes : public InfoTuple
 {
    int nr;
    string cmdStr;
@@ -48,12 +48,12 @@ class CmdTimes : public InfoTuple
    double outObjReal;
    double copyReal;
 
-   public: 
-   CmdTimes( int num, 
-             const string& cmd, 
-             double realT, 
-             double cpuT, 
-             double commitT, 
+   public:
+   CmdTimes( int num,
+             const string& cmd,
+             double realT,
+             double cpuT,
+             double commitT,
              double qRT,
              double qCT,
              double outRT,
@@ -70,7 +70,7 @@ class CmdTimes : public InfoTuple
    {
    }
    virtual ~CmdTimes() {}
-  
+
    virtual NList valueList() const
    {
      NList value;
@@ -84,27 +84,27 @@ class CmdTimes : public InfoTuple
      value.append( NList(outObjReal) );
      value.append( NList(copyReal) );
      return value;
-   } 
-   
+   }
+
    virtual ostream& print(ostream& os) const
    {
       os << nr << sep << cmdStr << sep << elapsedTime << sep << cpuTime;
       return os;
-   } 
+   }
 
-}; 
+};
 
 
-class CmdTimesRel : public SystemInfoRel 
+class CmdTimesRel : public SystemInfoRel
 {
    public:
-   CmdTimesRel(const string& name) : SystemInfoRel(name) 
-   {} 
+   CmdTimesRel(const string& name) : SystemInfoRel(name)
+   {}
 
    virtual ~CmdTimesRel() {}
-   
+
    virtual void initSchema()
-   { 
+   {
      addAttribute("CmdNr",       sym.INT()  );
      addAttribute("CmdStr",      sym.TEXT() );
      addAttribute("ElapsedTime", sym.REAL() );
@@ -114,24 +114,24 @@ class CmdTimesRel : public SystemInfoRel
      addAttribute("queryCPU",    sym.REAL() );
      addAttribute("outObjReal",  sym.REAL() );
      addAttribute("copyReal",    sym.REAL() );
-   } 
+   }
 
-}; 
+};
 
-class CmdCtr : public InfoTuple 
+class CmdCtr : public InfoTuple
 {
    int nr;
    string ctrStr;
    long value;
 
-   public: 
+   public:
    CmdCtr(int num, const string& cmd, long ctrVal) :
      nr(num),
      ctrStr(cmd),
      value(ctrVal)
    {}
    virtual ~CmdCtr() {}
-   
+
    virtual NList valueList() const
    {
      NList list;
@@ -139,46 +139,46 @@ class CmdCtr : public InfoTuple
      list.append( NList().stringAtom(ctrStr) );
      list.append( NList().intAtom(value) );
      return list;
-   } 
+   }
 
-   
+
    virtual ostream& print(ostream& os) const
    {
       os << nr << sep << ctrStr << sep << value;
       return os;
-   } 
-}; 
+   }
+};
 
 
-class CmdCtrRel : public SystemInfoRel 
+class CmdCtrRel : public SystemInfoRel
 {
    public:
-   CmdCtrRel(const string& name) : SystemInfoRel(name) 
+   CmdCtrRel(const string& name) : SystemInfoRel(name)
    {}
    virtual ~CmdCtrRel() {}
-   
+
    virtual void initSchema()
-   { 
+   {
      addAttribute("CtrNr",  sym.INT()    );
      addAttribute("CtrStr", sym.STRING() );
      addAttribute("Value",  sym.INT()    );
-   } 
-}; 
+   }
+};
 
-class DerivedObjInfo : public InfoTuple 
+class DerivedObjInfo : public InfoTuple
 {
    string name;
    string value;
    string usedObjs;
 
-   public: 
+   public:
    DerivedObjInfo(const string& n, const string& v, const string&u) :
      name(n),
      value(v),
      usedObjs(u)
    {}
    virtual ~DerivedObjInfo() {}
-   
+
    virtual NList valueList() const
    {
      NList list;
@@ -186,39 +186,39 @@ class DerivedObjInfo : public InfoTuple
      list.append( NList().textAtom(value) );
      list.append( NList().textAtom(usedObjs) );
      return list;
-   } 
+   }
 
-   
+
    virtual ostream& print(ostream& os) const
    {
       os << name << sep << value << sep << usedObjs;
       return os;
-   } 
-}; 
+   }
+};
 
 
 
-class DerivedObjRel : public SystemInfoRel 
+class DerivedObjRel : public SystemInfoRel
 {
    public:
-   DerivedObjRel(const string& name) : SystemInfoRel(name, true) 
+   DerivedObjRel(const string& name) : SystemInfoRel(name, true)
    {}
    virtual ~DerivedObjRel() {}
-   
+
    virtual void initSchema()
-   { 
-     addAttribute("name",     sym.STRING() );
-     addAttribute("value",    sym.TEXT()   );
-     addAttribute("usedObjs", sym.TEXT()   );
-   } 
-}; 
+   {
+     addAttribute("Name",     sym.STRING() );
+     addAttribute("Value",    sym.TEXT()   );
+     addAttribute("UsedObjs", sym.TEXT()   );
+   }
+};
 
 
 class CacheInfoTuple : public InfoTuple, public CacheInfo
 {
    public:
    CacheInfoTuple() {}
-   virtual ~CacheInfoTuple() {} 
+   virtual ~CacheInfoTuple() {}
 
    virtual NList valueList() const
    {
@@ -233,32 +233,32 @@ class CacheInfoTuple : public InfoTuple, public CacheInfo
      value.append( NList().intAtom(page_out) );
      value.append( NList().intAtom(pages) );
      return value;
-   } 
-   
+   }
+
    virtual ostream& print(ostream& os) const
    {
       os << cstatNr << sep
-         << bytes << sep 
-         << regsize << sep 
-         << cache_hit << sep 
+         << bytes << sep
+         << regsize << sep
+         << cache_hit << sep
          << cache_miss << sep
          << page_create << sep
          << page_in << sep
          << page_out << sep
-         << pages << endl; 
+         << pages << endl;
       return os;
-   } 
+   }
 };
 
-class CacheInfoRel : public SystemInfoRel 
+class CacheInfoRel : public SystemInfoRel
 {
    public:
-   CacheInfoRel(const string& name) : SystemInfoRel(name) 
+   CacheInfoRel(const string& name) : SystemInfoRel(name)
    {}
    virtual ~CacheInfoRel() {}
-   
+
    virtual void initSchema()
-   { 
+   {
      addAttribute("CStatNr",   sym.INT() );
      addAttribute("Bytes",     sym.INT() );
      addAttribute("RegSize",   sym.INT() );
@@ -268,13 +268,13 @@ class CacheInfoRel : public SystemInfoRel
      addAttribute("Pages_In",  sym.INT() );
      addAttribute("Pages_Out", sym.INT() );
      addAttribute("Pages_All", sym.INT() );
-   } 
-}; 
+   }
+};
 
 class FileInfoTuple : public InfoTuple, public FileInfo
 {
    public:
-   FileInfoTuple(FileInfo* fstat) 
+   FileInfoTuple(FileInfo* fstat)
    {
      fstatNr = fstat->fstatNr;
      file_name = fstat->file_name;
@@ -285,7 +285,7 @@ class FileInfoTuple : public InfoTuple, public FileInfo
      page_in = fstat->page_in;
      page_out = fstat->page_out;
    }
-   virtual ~FileInfoTuple() {} 
+   virtual ~FileInfoTuple() {}
 
    virtual NList valueList() const
    {
@@ -299,32 +299,32 @@ class FileInfoTuple : public InfoTuple, public FileInfo
      value.append( NList().intAtom(page_in) );
      value.append( NList().intAtom(page_out) );
      return value;
-   } 
-   
+   }
+
    virtual ostream& print(ostream& os) const
    {
       os << fstatNr << sep
-         << file_name << sep 
-         << pagesize << sep 
-         << cache_hit << sep 
+         << file_name << sep
+         << pagesize << sep
+         << cache_hit << sep
          << cache_miss << sep
          << page_create << sep
          << page_in << sep
-         << page_out << endl; 
+         << page_out << endl;
       return os;
-   } 
+   }
 };
 
 
 class FileInfoRel : public SystemInfoRel
 {
    public:
-   FileInfoRel(const string& name) : SystemInfoRel(name) 
+   FileInfoRel(const string& name) : SystemInfoRel(name)
    {}
    virtual ~FileInfoRel() {}
-   
+
    virtual void initSchema()
-   { 
+   {
      addAttribute("FStatNr",   sym.INT()  );
      addAttribute("File",      sym.TEXT() );
      addAttribute("PageSize",  sym.INT()  );
@@ -333,32 +333,32 @@ class FileInfoRel : public SystemInfoRel
      addAttribute("Pages_New", sym.INT()  );
      addAttribute("Pages_In",  sym.INT()  );
      addAttribute("Pages_Out", sym.INT()  );
-   } 
-}; 
+   }
+};
 
 class TypeInfoTuple : public InfoTuple
 {
    public:
    string type;
-   int size;  
+   int size;
    string algebra;
    string signature;
    string typeListExample;
    string listRep;
    string valueListExample;
    string remark;
-   
+
    TypeInfoTuple() {
 
      type = "";
-     size = 0;  
+     size = 0;
      signature = "";
      algebra = "";
      typeListExample = "";
      listRep = "";
      valueListExample = "";
      remark = "";
-   } 
+   }
    virtual ~TypeInfoTuple() {}
 
    virtual NList valueList() const
@@ -373,26 +373,26 @@ class TypeInfoTuple : public InfoTuple
      list.append( NList().textAtom(remark) );
      list.append( NList().intAtom(size) );
      return list;
-   } 
-   
+   }
+
    virtual ostream& print(ostream& os) const
    {
       os << type << sep
-         << size << endl; 
+         << size << endl;
       return os;
-   } 
+   }
 };
 
 
 class TypeInfoRel : public SystemInfoRel
 {
    public:
-   TypeInfoRel(const string& name) : SystemInfoRel(name) 
+   TypeInfoRel(const string& name) : SystemInfoRel(name)
    {}
    virtual ~TypeInfoRel() {}
-   
+
    virtual void initSchema()
-   { 
+   {
      addAttribute("Type",             sym.STRING() );
      addAttribute("Algebra",          sym.STRING() );
      addAttribute("Signature",        sym.TEXT()   );
@@ -401,8 +401,8 @@ class TypeInfoRel : public SystemInfoRel
      addAttribute("ValueListExample", sym.TEXT()   );
      addAttribute("Remark",           sym.TEXT()   );
      addAttribute("Size",             sym.INT()    );
-   } 
-}; 
+   }
+};
 
 class OperatorInfoTuple : public InfoTuple
 {
@@ -415,7 +415,7 @@ class OperatorInfoTuple : public InfoTuple
    string example;
    string remark;
    string result;
-   
+
    OperatorInfoTuple() {
 
      name = "";
@@ -426,7 +426,7 @@ class OperatorInfoTuple : public InfoTuple
      example = "";
      result = "";
      remark = "";
-   } 
+   }
    virtual ~OperatorInfoTuple() {}
 
    virtual NList valueList() const
@@ -441,26 +441,26 @@ class OperatorInfoTuple : public InfoTuple
      list.append( NList().textAtom(result) );
      list.append( NList().textAtom(remark) );
      return list;
-   } 
-   
+   }
+
    virtual ostream& print(ostream& os) const
    {
       os << name << sep
-         << algebra << endl; 
+         << algebra << endl;
       return os;
-   } 
+   }
 };
 
 
 class OperatorInfoRel : public SystemInfoRel
 {
    public:
-   OperatorInfoRel(const string& name) : SystemInfoRel(name) 
+   OperatorInfoRel(const string& name) : SystemInfoRel(name)
    {}
    virtual ~OperatorInfoRel() {}
-   
+
    virtual void initSchema()
-   { 
+   {
      addAttribute("Name",      sym.STRING() );
      addAttribute("Algebra",   sym.STRING() );
      addAttribute("Signature", sym.TEXT()   );
@@ -469,8 +469,8 @@ class OperatorInfoRel : public SystemInfoRel
      addAttribute("Example",   sym.TEXT()   );
      addAttribute("Result",    sym.TEXT()   );
      addAttribute("Remark",    sym.TEXT()   );
-   } 
-}; 
+   }
+};
 
 
 class OperatorUsageTuple : public InfoTuple
@@ -480,14 +480,14 @@ class OperatorUsageTuple : public InfoTuple
    string algebra;
    int    vmid;
    int    calls;
-   
+
    OperatorUsageTuple() {
      name = "";
      algebra = "";
      calls = 0;
      vmid = 0;
    }
-   virtual ~OperatorUsageTuple() {} 
+   virtual ~OperatorUsageTuple() {}
 
    virtual NList valueList() const
    {
@@ -497,33 +497,33 @@ class OperatorUsageTuple : public InfoTuple
      list.append( NList().intAtom(vmid));
      list.append( NList().intAtom(calls) );
      return list;
-   } 
-   
+   }
+
    virtual ostream& print(ostream& os) const
    {
       os << name << sep
          << algebra << sep
-         << calls << endl; 
+         << calls << endl;
       return os;
-   } 
+   }
 };
 
 
 class OperatorUsageRel : public SystemInfoRel
 {
    public:
-   OperatorUsageRel(const string& name) : SystemInfoRel(name) 
+   OperatorUsageRel(const string& name) : SystemInfoRel(name)
    {}
    virtual ~OperatorUsageRel() {}
-   
+
    virtual void initSchema()
-   { 
+   {
      addAttribute("Algebra",  sym.STRING() );
      addAttribute("Operator", sym.STRING() );
      addAttribute("ValueMap", sym.INT());
      addAttribute("Calls",    sym.INT()    );
-   } 
-}; 
+   }
+};
 
 
 
