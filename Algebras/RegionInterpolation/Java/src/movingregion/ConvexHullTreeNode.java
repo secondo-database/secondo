@@ -1,5 +1,5 @@
 package movingregion;
-import java.awt.*;
+
 import java.util.*;
 import java.io.*;
 
@@ -95,6 +95,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
     private int smallestx;
     private boolean isHole=false;
     RegionTreeNode myParent;
+    private int sourceOrTarget=0;
     /**
      * Creates an empty convex hull tree node
      */
@@ -120,20 +121,20 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
      * @param minmatch The minimum overlap required for two convex hull tree
      *                 nodes to match.
      */
-    public ConvexHullTreeNode(LineWA[] linelist,RegionTreeNode myParent)
+    public ConvexHullTreeNode(LineWA[] linelist,RegionTreeNode myParent, int sourceOrTarget)
     {
-        this(linelist,0,myParent);
+        this(linelist,0,myParent, sourceOrTarget);
     }
     
     
-    public ConvexHullTreeNode(LineWA[] linelist,boolean isHole,RegionTreeNode myParent)
+    public ConvexHullTreeNode(LineWA[] linelist,boolean isHole,RegionTreeNode myParent, int sourceOrTarget)
     {
-        this(linelist,0, isHole,myParent);
+        this(linelist,0, isHole,myParent, sourceOrTarget);
     }
     
-    public ConvexHullTreeNode(LineWA[] linelist, int level,RegionTreeNode myParent)
+    public ConvexHullTreeNode(LineWA[] linelist, int level,RegionTreeNode myParent, int sourceOrTarget)
     {
-        this(linelist,level,false,myParent);
+        this(linelist,level,false,myParent, sourceOrTarget);
     }
     
     /**
@@ -149,11 +150,12 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
      * @param minmatch The minimum overlap required for two convex hull tree
      *                 nodes to match.
      */
-    public ConvexHullTreeNode(LineWA[] linelist, int level, boolean isHole,RegionTreeNode myParent)
+    public ConvexHullTreeNode(LineWA[] linelist, int level, boolean isHole,RegionTreeNode myParent, int sourceOrTarget)
     {
         LineWA[] tmplist, convhull, childlist;
         this.myParent=myParent;
         this.isHole=isHole;
+        this.sourceOrTarget=sourceOrTarget;
         int node;
         int index1, index2, length, lastindex, noiterations;
         int indexll1, indexll2;
@@ -184,12 +186,27 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         // Create temporary list so that convexHull() won't change the order of
         // points in the original linelist.
-        tmplist = new LineWA[linelist.length];
+        Vector tmplistVector=new Vector();
+        HashSet doubleDet=new HashSet();
+        
         if(TriRepUtil.debugging)
            System.out.println("Konstruiere Node Level: "+level);
         for (int a=0;a<linelist.length;a++)
         {
-            tmplist[a] = linelist[a];
+            if(doubleDet.contains(linelist[a]))
+            {
+                if(TriRepUtil.debuggingWarnings)
+                    System.out.println("Doppelten Punkt: "+linelist[a]+" in Linelist gelöscht");
+            }
+            else
+            {
+                tmplistVector.add(linelist[a]);            
+            }
+        }
+        tmplist = new LineWA[tmplistVector.size()];
+        for(int i=0;i<tmplistVector.size();i++)
+        {
+            tmplist[i] = (LineWA) tmplistVector.elementAt(i);
         }
         // Find the convex hull
         convhull = TriRepUtil.convexHull(tmplist);
@@ -265,7 +282,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
                         childlist[length-b-1] = linelist[b+indexll1-linelist.length];
                     }
                 }
-                insertChild(index1, new ConvexHullTreeNode(childlist, level+1,this.isHole,this));
+                insertChild(index1, new ConvexHullTreeNode(childlist, level+1,this.isHole,this, sourceOrTarget));
             }
             index1 = index2;
             indexll1 = indexll2;
@@ -318,6 +335,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             res=res+tmp[i].x+tmp[i].y;
         }
+        res=res*(this.sourceOrTarget + 1);
         res=res%modu;
         return (res);
     }
@@ -577,8 +595,10 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             boolean res=true;
             ConvexHullTreeNode tmp=(ConvexHullTreeNode)o;
+            if(this.sourceOrTarget!=tmp.getsourceOrTarget())
+                return(false);
             LineWA[]tmp1=this.getLines();
-            LineWA[]tmp2=tmp.getLines();
+            LineWA[]tmp2=tmp.getLines();            
             if(tmp1.length!=tmp2.length)
                 return false;
             for(int i=0;i<tmp1.length;i++)
@@ -880,6 +900,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         
     }
+    
     public void setHole(boolean isHole)
     {
         this.isHole=isHole;
@@ -888,6 +909,16 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         {
             children[i].setHole(isHole);
         }
+    }
+    
+    public void setSourceOrTarget(int sourceOrTarget)
+    {
+        this.sourceOrTarget=sourceOrTarget;
+        ConvexHullTreeNode[] children=this.getChildren();
+        for(int i=0;i<children.length;i++)
+        {
+            children[i].setSourceOrTarget(sourceOrTarget);
+        }        
     }
     
     /**
@@ -996,6 +1027,11 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
 //        resx=resx/lines.length;
 //        resy=resy/lines.length;
         return(new LineWA(resx,resy));
+    }
+    
+    public int getsourceOrTarget()
+    {
+        return(this.sourceOrTarget);
     }
     
     public LineWA getCenter()
@@ -1287,7 +1323,7 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
             childlinelist[nopoints-a-1] = (LineWA)childvector.elementAt(a);
         }
         //TriRepUtil.printLineList(childlinelist);
-        tmpline.child = new ConvexHullTreeNode(childlinelist,1,this);
+        tmpline.child = new ConvexHullTreeNode(childlinelist,1,this, sourceOrTarget);
         ConvexHullTreeNode[] childChildren=tmpline.child.getChildren();
         for (int i=0;i<childChildren.length;i++)
         {
@@ -1312,39 +1348,6 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         res=res+"]"+'\n';
         return(res);
-    }
-    
-    public static void main(String[] arg)
-    {
-        LineWA[] linelist=new LineWA[21];
-        linelist[0]=new LineWA(303,7);
-        linelist[1]=new LineWA(374,32);
-        linelist[2]=new LineWA(357,98);
-        linelist[3]=new LineWA(465,93);
-        linelist[4]=new LineWA(484,157);
-        linelist[5]=new LineWA(501,216);
-        linelist[6]=new LineWA(550,297);
-        linelist[7]=new LineWA(524,366);
-        linelist[8]=new LineWA(399,372);
-        linelist[9]=new LineWA(403,333);
-        linelist[10]=new LineWA(258,378);
-        linelist[11]=new LineWA(196,289);
-        linelist[12]=new LineWA(58,309);
-        linelist[13]=new LineWA(24,237);
-        linelist[14]=new LineWA(80,140);
-        linelist[15]=new LineWA(225,282);
-        linelist[16]=new LineWA(277,279);
-        linelist[17]=new LineWA(186,89);
-        linelist[18]=new LineWA(79,64);
-        linelist[19]=new LineWA(201,25);
-        linelist[20]=new LineWA(262,50);
-        
-        ConvexHullTreeNode test= new ConvexHullTreeNode(linelist,0,null);
-        javax.swing.JFrame testF=new javax.swing.JFrame();
-        Region testr=new Region();
-        testr.addFace(new Face(linelist,testr));
-        testF.getContentPane().add(new ConvexHullTreeViewer(testr));
-        testF.setVisible(true);
     }
     
 }

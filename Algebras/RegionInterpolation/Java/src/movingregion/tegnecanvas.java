@@ -76,6 +76,7 @@ public class tegnecanvas extends JPanel implements ActionListener
             redraw();
         }
         this.Snaps[avtiveSnap]=region;
+        this.Snaps[this.avtiveSnap].setSourceOrTarget(this.avtiveSnap);
         avtiveSnap++;
         this.addFace=true;
         this.addHole=false;
@@ -253,7 +254,7 @@ public class tegnecanvas extends JPanel implements ActionListener
             }
             if(this.addFace)
             {
-                Snaps[avtiveSnap].addFace(new Face(tmp,Snaps[avtiveSnap]));
+                Snaps[avtiveSnap].addFace(new Face(tmp,Snaps[avtiveSnap],avtiveSnap),avtiveSnap);
             }
             if(this.addHole)
             {

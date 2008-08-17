@@ -330,14 +330,14 @@ public class MCIContents extends JApplet implements ActionListener,ChangeListene
     
     public LineWA[] pointListToLineWA(java.util.Vector pointList)
     {
-        LineWA[] result;
+        LineWA[] res;
         Point p;
-        result = new LineWA[pointList.size()];
-        for (int a=0;a<result.length;a++)
+        res = new LineWA[pointList.size()];
+        for (int a=0;a<res.length;a++)
         {
             p = (Point)pointList.elementAt(a);
-            result[a] = new LineWA(p.x, p.y);
+            res[a] = new LineWA(p.x, p.y);
         }
-        return(result);
+        return(res);
     }
 }

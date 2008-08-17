@@ -9,11 +9,11 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
     ConvexHullTreeNode Cycle;
     Vector Holes;
     Region parent;
+    int sourceOrTarget;
     
-    
-    public Face(LineWA[] linelist,Region parent)
+    public Face(LineWA[] linelist,Region parent, int sourceOrTarget)
     {
-        Cycle=new ConvexHullTreeNode(linelist,0,this);
+        Cycle=new ConvexHullTreeNode(linelist,0,this, sourceOrTarget);
         Holes=new Vector();
         this.parent=parent;
     }
@@ -31,9 +31,19 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         this.parent=parent;
     }
 
+    public void setSourceOrTarget(int sourceOrTarget)
+    {
+        this.sourceOrTarget=sourceOrTarget;
+        this.Cycle.setSourceOrTarget(sourceOrTarget);
+        for(int i=0;i<this.getNrOfHoles();i++)
+        {
+            this.getHole(i).setSourceOrTarget(sourceOrTarget);
+        }
+    }
+    
     protected Object clone() 
     {
-        Face res=new Face(Cycle.getLines(),this.getParent());
+        Face res=new Face(Cycle.getLines(),this.getParent(), sourceOrTarget);
         //res.setCycle((ConvexHullTreeNode)this.Cycle.clone());
         for(int i=0;i<this.getNrOfHoles();i++)
         {
@@ -89,16 +99,34 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
             }
             if(cycle1.contains(new Point(holePoints[j].x,holePoints[j].y)))
             {
-                resSplit[0]=TriRepUtil.joinLinelists(resSplit[0],holePoints);       
+                try
+                {
+                    resSplit[0]=TriRepUtil.joinLinelists(resSplit[0],holePoints);       
+                }
+                catch(Exception e)
+                {
+                    if(TriRepUtil.debuggingWarnings)
+                        System.out.println("Problem bei joinLineList1 "+e.getMessage());
+                    return(null);
+                }
             }
             else
             {
-                resSplit[1]=TriRepUtil.joinLinelists(resSplit[1],holePoints);       
+                try
+                {
+                    resSplit[1]=TriRepUtil.joinLinelists(resSplit[1],holePoints);       
+                }
+                catch(Exception e)
+                {
+                    if(TriRepUtil.debuggingWarnings)
+                        System.out.println("Problem bei joinLineList2 "+e.getMessage());
+                    return(null);
+                }
             }
         }
         this.Holes=new Vector();
-        this.Cycle=new ConvexHullTreeNode(resSplit[0],0,this);        
-        Face res=new Face(resSplit[1],this.getParent());
+        this.Cycle=new ConvexHullTreeNode(resSplit[0],0,this, sourceOrTarget);        
+        Face res=new Face(resSplit[1],this.getParent(), sourceOrTarget);
         for(int i=0;i<stillHoles.size();i++)
         {
             LineWA[] holePoints=((ConvexHullTreeNode)stillHoles.elementAt(i)).getLines();
@@ -128,6 +156,7 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         {
             res=res+tmp[i].x+tmp[i].y;
         }
+        res=res * (this.getSourceOrTarget() + 1);
         res=res%modu;
         return (res);
     }
@@ -137,6 +166,8 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         if(o instanceof Face)
         {
             Face tmp=(Face)o;
+            if(this.getSourceOrTarget()!=tmp.getSourceOrTarget())
+                return(false);
             if(this.getNrOfHoles()!=tmp.getNrOfHoles())
                 return false;
             boolean res=Cycle.equals(tmp.getCycle());
@@ -168,9 +199,14 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
     
     public void addHole(LineWA[] linelist)
     {
-        Holes.add(new ConvexHullTreeNode(linelist,true,this));
+        Holes.add(new ConvexHullTreeNode(linelist,true,this, sourceOrTarget));
     }
     
+    public int getSourceOrTarget()
+    {
+        return(this.sourceOrTarget);
+    }
+            
     public int getNrOfHoles()
     {
         return(Holes.size());
@@ -305,26 +341,5 @@ public class Face implements RegionTreeNode,Cloneable, Serializable
         }
         return(res);
     }
-    
-    public static void main(String[] arg)
-    {
-        LineWA[] face0=new LineWA[6];
-	face0[0]=new LineWA(52,217);
-   	face0[1]=new LineWA(91,280);
-   	face0[2]=new LineWA(249,275);
-   	face0[3]=new LineWA(241,159);
-   	face0[4]=new LineWA(125,203);
-   	face0[5]=new LineWA(97,150);
-	LineWA[] hole0=new LineWA[6];
-	hole0[0]=new LineWA(114,220);
-   	hole0[1]=new LineWA(80,202);
-   	hole0[2]=new LineWA(67,223);
-   	hole0[3]=new LineWA(108,265);
-   	hole0[4]=new LineWA(215,253);
-   	hole0[5]=new LineWA(227,205);
-        Face test=new Face(face0,null);
-        test.addHole(hole0);
-    }
-    
     
 }

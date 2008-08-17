@@ -16,6 +16,7 @@ public class LineWA implements Comparable ,Serializable{
   public int x;          // The x-coordinate of the point
   public int y;          // The y-coordinate of the point
   public double angle;   // The angle between the last and next lines.
+  static final long serialVersionUID = 7965461305176575190L;
 
   /**
     * Constructor without parameters. This constructor initializes all
@@ -84,6 +85,11 @@ public class LineWA implements Comparable ,Serializable{
     return(-1);
   }
 
+  public int hashCode()
+  {
+      return((this.x * 4213 + this.y * 133326 + (int)(Math.floor(this.angle * 132451))) % 13542347);
+  }
+  
   /** 
     * Tests equality of two <code>LineWA</code> objects. These objects are 
     * equal if they have the same position.

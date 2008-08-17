@@ -122,7 +122,7 @@ public class Convexer
             actPoly=((ConPolygon)Polygones.elementAt(i));
             for(int j=0;j<actPoly.getNrOfVertices();j++)
             {
-                fs.write(getPositionOfIndex(actPoly.getIndexAt(j),  points)+" ");;
+                fs.write(getPositionOfIndex(actPoly.getIndexAt(j),  points)+" ");
             }
             fs.write(getPositionOfIndex(actPoly.getIndexAt(0),  points)+" -1\n");
         }

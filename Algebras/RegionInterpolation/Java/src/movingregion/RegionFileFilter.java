@@ -1,8 +1,6 @@
 package movingregion;
 
-import javax.swing.filechooser.*;
 import java.io.*;
-import javax.imageio.*;
 
 class RegionFileFilter extends javax.swing.filechooser.FileFilter
 {

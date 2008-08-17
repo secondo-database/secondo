@@ -85,6 +85,11 @@ public class ConVertex
         return(index+": "+"("+xCoord+";"+yCoord+")\n");
     }
     
+    public int hashCode()
+    {
+        return((456122 * this.getX() + 45168 * this.getY() + 4513 * this.index) % 451357821);        
+    }
+    
     public boolean equals(Object o)
     {
         if(!(o instanceof ConVertex))

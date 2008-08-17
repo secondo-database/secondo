@@ -11,7 +11,7 @@ public class MCInterpolator {
     mcicont = new MCIContents();
     mcicont.init();
     dispwindow.getContentPane().add(mcicont,BorderLayout.CENTER);
-    dispwindow.setSize(500,500);    
+    dispwindow.setSize(800,600);    
     dispwindow.setVisible(true);
   }
 }

@@ -139,6 +139,7 @@ public class TriRepUtil
                    System.out.println(lt[i]);
             }
         }
+        
         int minpoint, miny, minx, tmpx, tmpy;
         Stack unfinishedhull;
         int a, index,side, counter,i;
@@ -148,7 +149,7 @@ public class TriRepUtil
         
         // Test length. Any object with three or fewer points is guaranteed
         // to be convex
-        // if (lt.length <= 3) return(lt);
+        if (lt.length <= 3) return(lt);
         
         // Find the point with the lowest y coordinate.
         // If several points have the minimum y-coordinate, pick the one with the
@@ -210,11 +211,30 @@ public class TriRepUtil
                 }
             }
         }
+        if(tmpvec.size()<3)
+            return(lt);
         lt=new LineWA[tmpvec.size()];
         for (i = 0; i < tmpvec.size(); i++) {
             lt[i] = (LineWA) tmpvec.elementAt(i);
-        }
+        }      
         
+        if(TriRepUtil.debugging)
+        {
+            System.out.println("nach Löschen:");
+            for(int j=0;j<lt.length;j++)
+            {
+                System.out.println(lt[j]);
+            }
+        }
+        Arrays.sort(lt);
+        if(TriRepUtil.debugging)
+        {
+            System.out.println("Sorted2:");
+            for(int j=0;j<lt.length;j++)
+            {
+                System.out.println(lt[j]);
+            }
+        }
         // Use graham scan to create convex hull
         unfinishedhull = new Stack();
         // The point with the lowest y-coordinate is on the hull

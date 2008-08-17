@@ -3,9 +3,6 @@
 package movingregion;
 
 import java.util.*;
-import java.io.*;
-import java.awt.*; //Just for debugging
-//import javax.lang.model.SourceVersion;
 
 public abstract class Match
 {
@@ -29,7 +26,9 @@ public abstract class Match
     {
         this.description=description;
         this.name=name;
+        source.setSourceOrTarget(0);
         this.source=source;
+        target.setSourceOrTarget(1);
         this.target=target;
         maps=new HashMap();
     }
@@ -400,8 +399,8 @@ public abstract class Match
                         oldtargets[0]=t1;
                         oldtargets[1]=t2;
                         ((Face)parentsou).removeHole(sou);
-                        newSourcesCHTN[0]=new ConvexHullTreeNode(newSources[0],true,parentsou);
-                        newSourcesCHTN[1]=new ConvexHullTreeNode(newSources[1],true,parentsou);
+                        newSourcesCHTN[0]=new ConvexHullTreeNode(newSources[0],true,parentsou,this.source.sourceOrTarget);
+                        newSourcesCHTN[1]=new ConvexHullTreeNode(newSources[1],true,parentsou,this.source.sourceOrTarget);
                         ((Face)parentsou).addHole(newSourcesCHTN[0]);
                         ((Face)parentsou).addHole(newSourcesCHTN[1]);
                         ConvexHullTreeNode[] new1=new ConvexHullTreeNode[1];
@@ -608,7 +607,7 @@ public abstract class Match
             }
             else
             {
-                if(this.getMatches(tmp[0]).length<=1)
+                if(this.getMatches(tmp[0])!=null && this.getMatches(tmp[0]).length<=1)
                 {
                     rateFace(source.getFace(i),tmp);
                 }

@@ -13,12 +13,14 @@ public class Region implements RegionTreeNode, Cloneable, Serializable
     double scaleX;
     double scaleY;
     static final long serialVersionUID =-7777879906774960304l;
+    int sourceOrTarget;
     public Region()
     {
         Faces=new Vector();
     }
-    public void addFace(Face newFace)
+    public void addFace(Face newFace, int sourceOrTarget)
     {
+        this.sourceOrTarget = sourceOrTarget;
         Faces.add(newFace);
     }
     public int getNrOfFaces()
@@ -41,6 +43,15 @@ public class Region implements RegionTreeNode, Cloneable, Serializable
         return(res);
     }
     
+    public void setSourceOrTarget(int sourceOrTarget)
+    {
+        this.sourceOrTarget=sourceOrTarget;
+        for(int i=0;i<this.getNrOfFaces();i++)
+        {
+            this.getFace(i).setSourceOrTarget(sourceOrTarget);
+        }
+    }
+    
     public Face[] splitOnLine(LineWA[] splitLine)
     {
         Vector resv=new Vector();
@@ -50,7 +61,7 @@ public class Region implements RegionTreeNode, Cloneable, Serializable
             Face tmp=trythis.splitOnLine(splitLine);
             if(tmp!=null)
             {
-                this.addFace(tmp);
+                this.addFace(tmp, this.sourceOrTarget);
                 resv.add(tmp);
                 resv.add(trythis);
             }
@@ -131,7 +142,7 @@ public class Region implements RegionTreeNode, Cloneable, Serializable
         {
             Face tmp=(Face)this.getFace(i).clone();
             tmp.setParent(res);
-            res.addFace(tmp);
+            res.addFace(tmp,this.sourceOrTarget);
         }
         return(res);
     }

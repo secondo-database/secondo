@@ -26,7 +26,7 @@ public class mLineRep
         return((triangle)triangles.elementAt(index));
     }
     
-    public int findIndex(PointWNL p1,PointWNL p2)
+    private int findIndex(PointWNL p1,PointWNL p2)
     {
         int res=-1;
         for (int i=0;i<triangles.size();i++)
@@ -38,7 +38,7 @@ public class mLineRep
         }
         return(res);
     }
-    public void removeTriangle(PointWNL p1,PointWNL p2)
+    private void removeTriangle(PointWNL p1,PointWNL p2)
     {
         int find=this.findIndex(p1,p2);
         if(find!=-1)
@@ -46,7 +46,7 @@ public class mLineRep
             triangles.remove(find);
         }
     }
-    public PointWNL getCorrespondingPoint(PointWNL p1,PointWNL p2)
+    private PointWNL getCorrespondingPoint(PointWNL p1,PointWNL p2)
     {
         PointWNL res=null;
         int find=this.findIndex(p1,p2);
@@ -57,7 +57,7 @@ public class mLineRep
         return(res);
     }
     
-    public void addTriangle(PointWNL p1,PointWNL p2, PointWNL p3)
+    private void addTriangle(PointWNL p1,PointWNL p2, PointWNL p3)
     {
         if(p1.t!=p2.t)
             if(TriRepUtil.debuggingWarnings)
@@ -193,7 +193,7 @@ public class mLineRep
         addTrianglesFromCHTPoint(chtn,time,new PointWNL(x,y,t));
     }
     
-    public void addTrianglesFromCHTPoint(ConvexHullTreeNode chtn,int time,PointWNL p3)
+    private void addTrianglesFromCHTPoint(ConvexHullTreeNode chtn,int time,PointWNL p3)
     {
         if(TriRepUtil.debugging)
             System.out.println("CHTPOint "+p3);
