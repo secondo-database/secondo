@@ -2696,6 +2696,13 @@ int StdPred(Word* args, Word& result, int message,
   return 0;
 }
 
+
+bool overlaps(Region* r1, Region* r2){
+  Int9M matrix;
+  return GetInt9M(r1, r2, matrix, true, cl_overlap);
+}
+
+
 template<class t1, class t2>
 int StdPredSym(Word* args, Word& result, int message,
                     Word& local, Supplier s, Cluster& cl){

@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace topops{
 
   bool wcontains(const Region* reg1, const Region* reg2);
+  bool overlaps(Region* r1, Region* r2);
+
 }
 
 #endif
