@@ -2448,7 +2448,7 @@ Both segments are not vertical.
             || abs((iey-isy)*(fex-fsx)-(fey-fsy)*(iex-isx))
                  <= eps*epsRelaxFactor;
 
-        if (!collinear) {
+        if (!collinear) {        	
             cerr << setprecision(10)
                  << "parameters for segment orientation comparison:"
                  << endl
@@ -2465,6 +2465,13 @@ Both segments are not vertical.
                  << (fey-fsy)*(iex-isx)
                  << endl
                  << "1. and 2. or 3. and 4. should be equal."
+                 <<"("<<isx<<";"<<isy<<")"
+                 <<"("<<iex<<";"<<iey<<")"
+                 <<"("<<fsx<<";"<<fsy<<")"
+                 <<"("<<fex<<";"<<fey<<")"
+                 <<fno<<" "
+                 <<cno<<" "
+                 <<sno              
                  << endl;
         }
 
@@ -3057,9 +3064,8 @@ void URegionEmb::PutSegment(
     const bool isNew) {
 
     if (MRA_DEBUG)
-        cerr << "URegionEmb::PutSegment() called, pos=" << pos
-             << endl;
-
+        cerr << "URegionEmb::PutSegment() called, pos=" << pos <<
+        " "<<segmentsStartPos<<dms.ToString()<< endl;
     segments->Put(segmentsStartPos+pos, dms);
     if(isNew){
         segmentsNum++;
@@ -3111,6 +3117,8 @@ bool URegionEmb::AddSegment(
              << " "
              << segmentno
              << endl;
+
+
 
 /*
 To avoid awkward return value handling, we throw an exception if we find
@@ -5766,6 +5774,382 @@ URegion::URegion(unsigned int n) :
              << endl;
 }
 
+URegion :: URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv):
+   SpatialTemporalUnit<Region, 3>(true)
+{
+	segments = DBArray<MSegmentData>(0);
+	Interval<Instant> newTiv;
+	newTiv.CopyFrom(tiv);
+  	uremb= URegionEmb(newTiv, 0);
+  	timeInterval = newTiv;
+//  	for(unsigned int i = 0; i < linelist.size(); i++)
+//  	{
+//  		MSegmentData newSeg = MSegmentData(linelist[i]);
+//  		cout<<i<<"  :"<<linelist[i].ToString()<<endl;
+////  		AddSegment(linelist[i]);  		        
+//  	}
+//  	assert(false);
+	while(linelist.size() > 0)
+	{
+		int index = getLeftLower(linelist);		
+		MSegmentData first = linelist[index];
+#ifdef MR_DEBUG		
+		cout<<index<<endl;
+		cout<<first.ToString()<<endl;
+#endif					
+		int counter = 1;
+		AddSegment(MSegmentData(linelist[index].GetFaceNo(), 
+		   linelist[index].GetCycleNo(), counter, true,
+		   linelist[index].GetInitialStartX(), 
+		   linelist[index].GetInitialStartY(), 
+		   linelist[index].GetInitialEndX(), 
+		   linelist[index].GetInitialEndY(),
+		   linelist[index].GetFinalStartX(), 
+		   linelist[index].GetFinalStartY(), 
+		   linelist[index].GetFinalEndX(), 
+		   linelist[index].GetFinalEndY()));
+		linelist.erase(linelist.begin() + index);
+		index = findNextToRight(linelist, first);
+		MSegmentData next = linelist[index];
+		AddSegment(next);					
+#ifdef MR_DEBUG								
+		cout<<"Next: "<<next.ToString()<<endl;
+#endif					
+		counter = 2;				
+		while(1 == 1)		
+		{	
+			MSegmentData nextins;
+			if(matchesLeft(next, linelist[index]) || counter == 1)
+			{				
+               nextins = MSegmentData(linelist[index].GetFaceNo(),
+				   linelist[index].GetCycleNo(), counter, true,
+				   linelist[index].GetInitialStartX(), 
+				   linelist[index].GetInitialStartY(), 
+				   linelist[index].GetInitialEndX(), 
+				   linelist[index].GetInitialEndY(),
+				   linelist[index].GetFinalStartX(), 
+				   linelist[index].GetFinalStartY(), 
+				   linelist[index].GetFinalEndX(), 
+				   linelist[index].GetFinalEndY());
+			}
+			else
+			{
+               nextins = MSegmentData(linelist[index].GetFaceNo(), 
+				   linelist[index].GetCycleNo(), counter, false,
+				   linelist[index].GetInitialEndX(), 
+				   linelist[index].GetInitialEndY(), 
+				   linelist[index].GetInitialStartX(), 
+				   linelist[index].GetInitialStartY(),
+				   linelist[index].GetFinalEndX(), 
+				   linelist[index].GetFinalEndY(), 
+				   linelist[index].GetFinalStartX(), 
+				   linelist[index].GetFinalStartY());
+			}
+			next=linelist[index];
+			AddSegment(nextins);			
+			linelist.erase(linelist.begin() + index);
+			index=findNext(linelist, next);
+#ifdef MR_DEBUG			
+			cout<<index<<endl;
+						cout<<nextins.ToString()<<endl;
+#endif			
+			if(matches(first, next) && counter > 2)
+			{
+#ifdef MR_DEBUG
+				cout<<" true"<<endl;
+				cout<<first.ToString()<<endl;
+				cout<<next.ToString()<<endl;
+#endif
+				break;
+			}
+			else
+			{
+#ifdef MR_DEBUG
+				cout<<" false"<<endl;
+#endif				
+			}
+			if(index == -1)
+			{
+#ifdef MR_DEBUG				
+               for(unsigned int i = 0; i < linelist.size(); i++)
+  				{  				
+                   cout<<i<<"  :"<<linelist[i].ToString()<<endl;
+  				}
+  				cout<<"gesucht: "<<next.ToString()<<endl;
+#endif  				
+  				linelist.erase(linelist.begin()+index);
+  				break;
+			}
+			counter++;
+		}					
+	}
+  	SetDefined(true);  	
+}
+
+int URegion :: getLeftLower(const vector<MSegmentData> &linelist)
+{	
+	int res = 0;
+	for(unsigned int i = 1; i < linelist.size(); i++)
+	{
+		Point leftIs = Point(true, linelist[res]. GetInitialStartX(), 
+		   linelist[res].GetInitialStartY());
+		Point leftIe = Point(true, linelist[res].GetInitialEndX(), 
+		   linelist[res].GetInitialEndY());
+		Point leftFs = Point(true, linelist[res].GetFinalStartX(), 
+		   linelist[res].GetFinalStartY());
+		Point leftFe = Point(true, linelist[res].GetFinalEndX(), 
+		   linelist[res].GetFinalEndY());		
+		Point llIs = Point(true, linelist[i].GetInitialStartX(), 
+		   linelist[i].GetInitialStartY());
+		Point llIe = Point(true, linelist[i].GetInitialEndX(), 
+		   linelist[i].GetInitialEndY());
+		Point llFs = Point(true, linelist[i].GetFinalStartX(), 
+		   linelist[i].GetFinalStartY());
+		Point llFe = Point(true, linelist[i].GetFinalEndX(), 
+		   linelist[i].GetFinalEndY());		
+        if(leftIs.GetX()>llIs.GetX() || (AlmostEqual(leftIs.GetX(),llIs.GetX()&&
+		   leftIs.GetY() > llIs.GetY())))		
+		{
+			res = i;						
+			continue;
+		}
+		if(AlmostEqual(leftIs, llIs))
+		{			
+			if((leftIe.GetY() > llIe.GetY()) || 
+			   ((AlmostEqual(leftIe.GetY(), llIe.GetY())) && 
+			   (leftIe.GetX() > llIe.GetX())))
+			{
+				res = i;				
+				continue;
+			}
+			if(AlmostEqual(leftIe, llIe))
+			{
+				if(leftFs > llFs)
+				{
+					res = i;
+					continue;	
+				}
+				if(AlmostEqual(leftFs, llFs))
+				{
+					if((leftFe.GetY() > llFe.GetY()) || 
+                       ((AlmostEqual(leftFe.GetY(), llFe.GetY())) && 
+					   (leftFe.GetX() > llFe.GetX())))
+					{	
+						res = i;
+						continue;
+					}
+				}
+			}
+		}				
+	}
+	return(res);
+}
+
+int URegion :: findNext(const vector<MSegmentData> &linelist, 
+   const MSegmentData dms)
+{
+	for(unsigned int i = 0; i < linelist.size(); i++)
+	{
+		if(matches(linelist[i], dms))
+			return(i);
+	}
+	return(-1);
+}
+
+int URegion :: findNextToRight(const vector<MSegmentData> &linelist, 
+   const MSegmentData dms)
+{
+	for(unsigned int i = 0; i < linelist.size(); i++)
+	{
+		if(matchesToRight(dms, linelist[i]))
+			return(i);
+	}
+	return(-1);
+}
+
+bool URegion :: matches(const MSegmentData &dms1, const MSegmentData &dms2)
+{
+	if(matchesLeft(dms1, dms2) || matchesRight(dms1, dms2))
+		return(true);
+	return(false);
+}
+
+bool URegion :: matchesLeft(const MSegmentData &dms1, const MSegmentData &dms2)
+{
+	if(dms1.GetFaceNo() != dms2.GetFaceNo())
+		return(false);
+	if(dms1.GetCycleNo() != dms2.GetCycleNo())
+		return(false);		
+	double isx1 = dms1.GetInitialStartX();	
+	double isx2 = dms2.GetInitialStartX();
+	double isy1 = dms1.GetInitialStartY();
+	double isy2 = dms2.GetInitialStartY();
+	double iex1 = dms1.GetInitialEndX();		
+	double iey1 = dms1.GetInitialEndY();
+	double iey2 = dms2.GetInitialEndY();
+	double fsx1 = dms1.GetFinalStartX();
+	double fsx2 = dms2.GetFinalStartX();
+	double fsy1 = dms1.GetFinalStartY();
+	double fsy2 = dms2.GetFinalStartY();
+	double fex1 = dms1.GetFinalEndX();	
+	double fey1 = dms1.GetFinalEndY();
+	double fey2 = dms2.GetFinalEndY();
+	if(AlmostEqual(isx1, isx2) && AlmostEqual(isy1, isy2) && 
+	   AlmostEqual(fsx1, fsx2) && AlmostEqual(fsy1, fsy2) && 
+	 !(AlmostEqual(iex1, iex1) && AlmostEqual(iey1, iey2) && 
+	   AlmostEqual(fex1, fex1) && AlmostEqual(fey1, fey2)))
+	{
+		return(true);
+	}
+	if(AlmostEqual(iex1, isx2) && AlmostEqual(iey1, isy2)  && 
+	   AlmostEqual(fex1, fsx2) &&  AlmostEqual(fey1, fsy2) && 
+	 !(AlmostEqual(isx1, iex1) && AlmostEqual(isy1, iey2)  && 
+	   AlmostEqual(fsx1, fex1) && AlmostEqual(fsy1, fey2)))
+	{
+		return(true);
+	}
+	return(false);	
+}
+
+bool URegion :: matchesRight(const MSegmentData &dms1, const MSegmentData &dms2)
+{
+	if(dms1.GetFaceNo() != dms2.GetFaceNo())
+		return(false);
+	if(dms1.GetCycleNo() != dms2.GetCycleNo())
+		return(false);
+	double isx1 = dms1.GetInitialStartX();		
+	double isy1=  dms1.GetInitialStartY();
+	double isy2 = dms2.GetInitialStartY();
+	double iex1 = dms1.GetInitialEndX();
+	double iex2 = dms2.GetInitialEndX();		
+	double iey1 = dms1.GetInitialEndY();
+	double iey2 = dms2.GetInitialEndY();
+	double fsx1=  dms1.GetFinalStartX();	
+	double fsy1 = dms1.GetFinalStartY();
+	double fsy2 = dms2.GetFinalStartY();
+	double fex1 = dms1.GetFinalEndX();
+	double fex2 = dms2.GetFinalEndX();		
+	double fey1 = dms1.GetFinalEndY();
+	double fey2 = dms2.GetFinalEndY();
+	if(AlmostEqual(isx1, iex2) && AlmostEqual(isy1, iey2) && 
+	   AlmostEqual(fsx1, fex2) && AlmostEqual(fsy1, fey2) && 
+	 !(AlmostEqual(iex1, isx1) && AlmostEqual(iey1, isy2) && 
+	   AlmostEqual(fex1, fsx1) && AlmostEqual(fey1, fsy2)))
+	{
+		return(true);
+	}
+	if(AlmostEqual(iex1, iex2) && AlmostEqual(iey1, iey2) && 
+	   AlmostEqual(fex1, fex2) && AlmostEqual(fey1, fey2) && 
+	 !(AlmostEqual(isx1, isx1) && AlmostEqual(isy1, isy2) && 
+	   AlmostEqual(fsx1, fsx1) && AlmostEqual(fsy1, fsy2)))
+	{
+		return(true);
+	}
+	return(false);	
+}
+
+bool URegion::matchesToRight(const MSegmentData &dms1,const MSegmentData &dms2)
+{
+	if(dms1.GetFaceNo() != dms2.GetFaceNo())
+		return(false);
+	if(dms1.GetCycleNo() != dms2.GetCycleNo())
+		return(false);
+	double isx1 = dms1.GetInitialStartX();	
+	double isx2 = dms2.GetInitialStartX();
+	double isy1 = dms1.GetInitialStartY();
+	double isy2 = dms2.GetInitialStartY();
+	double iex1 = dms1.GetInitialEndX();
+	double iex2 = dms2.GetInitialEndX();		
+	double iey1 = dms1.GetInitialEndY();
+	double iey2 = dms2.GetInitialEndY();
+	double fsx1 = dms1.GetFinalStartX();
+	double fsx2 = dms2.GetFinalStartX();
+	double fsy1 = dms1.GetFinalStartY();
+	double fsy2 = dms2.GetFinalStartY();
+	double fex1 = dms1.GetFinalEndX();
+	double fex2 = dms2.GetFinalEndX();		
+	double fey1 = dms1.GetFinalEndY();
+	double fey2 = dms2.GetFinalEndY();
+	if(AlmostEqual(iex1, isx2) && AlmostEqual(iey1, isy2) && 
+	   AlmostEqual(fex1, fsx2) && AlmostEqual(fey1, fsy2) && 
+	 !(AlmostEqual(isx1, iex1) && AlmostEqual(isy1, iey2) && 
+	   AlmostEqual(fsx1, fex1) && AlmostEqual(fsy1, fey2)))
+	{
+		return(true);
+	}		
+	if(AlmostEqual(iex1, iex2) && AlmostEqual(iey1, iey2) && 
+	   AlmostEqual(fex1, fex2) && AlmostEqual(fey1, fey2) && 
+	 !(AlmostEqual(isx1, isx1) && AlmostEqual(isy1, isy2) && 
+	   AlmostEqual(fsx1, fsx1) && AlmostEqual(fsy1, fsy2)))
+	{
+		return(true);
+	}
+	return(false);	
+}
+
+void URegion :: AddURegion(URegion *newRegion)
+{
+	if(timeInterval != newRegion->timeInterval)
+	{
+		throw invalid_argument("Intervals are not equal");
+	}	
+	const DBArray<MSegmentData> *lines = newRegion->GetMSegmentData();
+	for(int i = 0; i < lines->Size(); i++)
+	{
+		const MSegmentData *line;		
+		lines->Get(i, line);
+		AddSegment(*line);
+	}
+}
+
+void URegion::AddSegment(MSegmentData newSeg)
+{
+	uremb.PutSegment(&segments, segments.Size(), newSeg, true);
+	if (uremb.BoundingBox().IsDefined()) 
+	{
+        double min[3] = 
+           { uremb.BoundingBox().MinD(0), 
+           	 uremb.BoundingBox().MinD(1), 
+           	 uremb.BoundingBox().MinD(2) };
+        double max[3] = 
+           { uremb.BoundingBox().MaxD(0), 
+           	 uremb.BoundingBox().MaxD(1), 
+           	 uremb.BoundingBox().MaxD(2) };
+        if (newSeg.GetInitialStartX() < min[0])
+            min[0] = newSeg.GetInitialStartX();
+        if (newSeg.GetFinalStartX() < min[0])
+            min[0] = newSeg.GetFinalStartX();
+        if (newSeg.GetInitialStartY() < min[1])
+            min[1] = newSeg.GetInitialStartY();
+        if (newSeg.GetFinalStartY() < min[1])
+            min[1] = newSeg.GetFinalStartY();
+        if (newSeg.GetInitialStartX() > max[0])
+            max[0] = newSeg.GetInitialStartX();
+        if (newSeg.GetFinalStartX() > max[0])
+            max[0] = newSeg.GetFinalStartX();
+        if (newSeg.GetInitialStartY() > max[1])
+            max[1] = newSeg.GetInitialStartY();
+        if (newSeg.GetFinalStartY() > max[1])
+            max[1] = newSeg.GetFinalStartY();
+        uremb.SetBBox(Rectangle<3>(true, min, max));
+
+    } else {
+        double min[3] =
+            { newSeg.GetInitialStartX() < newSeg.GetFinalStartX()
+              ? newSeg.GetInitialStartX() : newSeg.GetFinalStartX(),
+              newSeg.GetInitialStartY() < newSeg.GetFinalStartY()
+              ? newSeg.GetInitialStartY() : newSeg.GetFinalStartY(),
+              uremb.timeInterval.start.ToDouble() };
+        double max[3] =
+            { newSeg.GetInitialStartX() > newSeg.GetFinalStartX()
+              ? newSeg.GetInitialStartX() : newSeg.GetFinalStartX(),
+              newSeg.GetInitialStartY() > newSeg.GetFinalStartY()
+              ? newSeg.GetInitialStartY() : newSeg.GetFinalStartY(),
+              uremb.timeInterval.end.ToDouble() };
+        uremb.SetBBox(Rectangle<3>(true, min, max));
+	}	
+}
+
 URegion::URegion(int i, MRegion& mr) {
 
   assert( mr.IsDefined() );
@@ -6605,7 +6989,9 @@ segment is copied to the DBArrays for ~msegmentdata~ and ~units~.
 void MRegion::AddURegion(URegion& U ) {
 
 
+#ifdef MR_DEBUG
   cout << "MRegion::AddURegion" << endl;
+  #endif
   U.Print(cout);
 
   if ( !U.IsDefined() )
@@ -7593,6 +7979,7 @@ static ListExpr PresentTypeMap(ListExpr args) {
 }
 
 /*
+ 
 Used by ~at~:
 
 */
@@ -7609,6 +7996,42 @@ static ListExpr AtTypeMap(ListExpr args) {
         && nl->IsEqual(nl->First(args), "movingregion")
         && nl->IsEqual(nl->Second(args), "point"))
         return nl->SymbolAtom("mpoint");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+ 
+used by addURegion
+
+*/
+
+ListExpr AddTypeMap( ListExpr args )
+{
+   if (MRA_DEBUG)
+        cerr << "AddTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), "movingregion")
+        && nl->IsEqual(nl->Second(args), "uregion"))
+        return nl->SymbolAtom("movingregion");
+    else
+        return nl->SymbolAtom("typeerror");
+}
+
+/*
+Used by ~union~:
+
+*/
+
+static ListExpr UnionTypeMap(ListExpr args) {
+    if (MRA_DEBUG)
+        cerr << "UnionTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 2
+        && nl->IsEqual(nl->First(args), "uregion")
+        && nl->IsEqual(nl->Second(args), "uregion"))
+        return nl->SymbolAtom("uregion");
     else
         return nl->SymbolAtom("typeerror");
 }
@@ -8558,6 +8981,63 @@ static ValueMapping atinstantvaluemap[] =
     { MappingAtInstant<MRegion, Region>,
       AtInstantValueMap_URegion };
 
+static int addvaluemap(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s) {
+    result = qp->ResultStorage(s);
+    MRegion* mreg1 = (MRegion* ) args[0].addr;
+    URegion* ureg1 = (URegion*) args[1].addr;
+	MRegion* res = mreg1->Clone();
+	
+	bool disj=true;
+	for(int i=0;i<mreg1->GetNoComponents();i++)
+	{
+		const URegionEmb *ur;
+		mreg1->Get(i,ur);
+		if(!ureg1->timeInterval.Disjoint(ur->timeInterval))
+		{
+			disj=false;
+		}
+	}
+	if(disj)
+	{
+		res->AddURegion(*ureg1);
+	}
+	else
+	{
+		res=new MRegion();
+		res->SetDefined(false);
+		cerr<<"Error, Intervals are not disjoint"<<endl;
+	}
+	result.addr=res;   
+    return 0;
+}
+
+static int unionvaluemap(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier s) {
+    result = qp->ResultStorage(s);
+    URegion* reg1 = (URegion* ) args[0].addr;
+    URegion* reg2 = (URegion*) args[1].addr;
+	URegion* res = reg1->Clone();
+	try
+	{
+		res->AddURegion(reg2);
+	}
+	catch (invalid_argument& e) 
+	{
+		res=new URegion(false);
+		cerr<<e.what()<<endl;
+	}
+	result.addr=res;   
+    return 0;
+}
+
+
 static ValueMapping initialvaluemap[] =
     { MappingInitial<MRegion, URegionEmb, Region> };
 
@@ -8691,6 +9171,27 @@ static const string atspec =
     "    <text>Restrict moving point to region or restrict moving region "
     "to point.</text--->"
     "    <text>mpoint1 at region1</text---> ) )";
+
+
+static const string addspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>(mregion uregion) -> mregion</text--->"
+    "    <text>adduregion(_, _)</text--->"
+    "    <text>Add a Uregion to a Movingregion," 
+    "if all the periods are disjoint.</text--->"
+    "    <text>query adduregion( msnow ,interpolate(thecenter, "
+    "thecenter translate[100.0, -1000.0], theRange(theInstant(2003, 11, 20, 9),"
+    "theInstant(2003, 11, 20, 11), TRUE, FALSE)))</text---> ) )";
+    
+
+static const string unionspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>(uregion uregion) -> uregion </text--->"    
+    "    <text>_ union _</text--->"
+    "    <text>Calculate a URegion by adding one URegion to another." 
+    "Works only, if the periods are equal</text--->"
+    "    <text>uregion1 unit uregion2</text---> ) )";
+    
 
 static const string movespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -8851,6 +9352,18 @@ static Operator at("at",
                    AtSelect,
                    AtTypeMap);
 
+static Operator addURegion("adduregion",
+                   addspec,                   
+                   addvaluemap,
+                     Operator::SimpleSelect,
+                   AddTypeMap);
+                   
+static Operator Union("union",
+                   unionspec,                   
+                   unionvaluemap,
+                     Operator::SimpleSelect,
+                   UnionTypeMap);
+
 #ifdef MRA_TRAVERSED
 static Operator traversed("traversed",
                           traversedspec,
@@ -8956,6 +9469,8 @@ public:
     AddOperator(&intersection);
     AddOperator(&inside);
     AddOperator(&at);
+    AddOperator(&addURegion);
+    AddOperator(&Union);
     AddOperator(&bbox);
     AddOperator(&bbox2d);
     AddOperator(&move);

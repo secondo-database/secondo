@@ -36,6 +36,7 @@ Please see ~MovingRegionAlgebra.cpp~ for more details on the
 
 #ifndef _MOVING_REGION_ALGEBRA_H_
 #define _MOVING_REGION_ALGEBRA_H_
+//#define MR_DEBUG
 
 #include <queue>
 #include <stdexcept>
@@ -748,6 +749,55 @@ class URegion : public SpatialTemporalUnit<Region, 3> {
 private:
 
   friend class MRegion; // neede due to the cruel design of this classes...
+/*
+ 
+1.1 Private Methods
+
+This function returns the index of the MSegment with the smallest initial-x value,
+the smallest initial y-value, if the initial x-values are equal,
+the smallest end x-value,if both initial values are equal or
+the smallest end y-value, if the all other values are equal,
+So it is the index of the "leftest lowest" MSegment in the given list.
+
+*/
+	int getLeftLower(const vector<MSegmentData> &linelist);
+/*
+
+return the index of the MSegment in the given list $linelist$ that matches $dms$.  
+ 
+*/	
+    int findNext(const vector<MSegmentData> &linelist,const MSegmentData dms);
+/*
+
+return the index of the MSegment in the given list $linelist$ that matches the right Points of $dms$.  
+ 
+*/	
+	int findNextToRight(const vector<MSegmentData> &linelist,
+	    const MSegmentData dms);
+/*
+
+returns TRUE, if the end Points of $dms1$ are equal to the initial or the end Points of $dms1$ 
+
+*/	
+	bool matchesToRight(const MSegmentData &dms1,const MSegmentData &dms2);
+/*
+
+returns TRUE, if the initial Points of $dms2$ are equal to the initial or the end Points of $dms2$ 
+
+*/
+	bool matchesLeft(const MSegmentData &dms1,const MSegmentData &dms2);
+/*
+
+returns TRUE, if the end Points of $dms2$ are equal to the initial or the end Points of $dms2$ 
+
+*/	
+	bool matchesRight(const MSegmentData &dms1,const MSegmentData &dms2);
+/*
+
+returns TRUE, if $dms1$ and $dms2$ matches left or right.
+ 
+*/	
+	bool matches(const MSegmentData &dms1,const MSegmentData &dms2);
 
 /*
 1.1 Private attributes
@@ -760,6 +810,7 @@ private:
      methods.
 
 */
+	
     DBArray<MSegmentData> segments;
     URegionEmb uremb;
 
@@ -771,11 +822,21 @@ The default constructor does nothing.
 
 */
     URegion() { }
+    
+/*
+
+This constructor creates a URegion by a given list of MSegments. The MSegments are ordered, so that matchings Segments are together.
+
+ 
+*/    
+    URegion(vector<MSegmentData> linelist,const Interval<Instant> &tiv);
 
 /*
   Use the following constructor to declare temporal object variables etc.
 
 */
+
+	
 
     URegion(bool is_defined):SpatialTemporalUnit<Region, 3>(is_defined) { }
 
@@ -815,12 +876,27 @@ in ~result~.
     virtual void TemporalFunction(const Instant& t,
                                   Region& result,
 				  bool ignoreLimits = false) const;
+/*
+ 
+Adds the MovingSegment ~newSeg~ to the Union and cares for the BoundingBox
+ 
+*/
+	void AddSegment(MSegmentData newSeg);
+	
+/*
+
+This Method checks, if the Time periods of the $newRegion$ are equal to the URegion, 
+and copies the MSegments from thenew one to the old one.
+
+*/
+	void AddURegion(URegion *newRegion);	
 
 /*
 ~At()~ and ~Passes()~ are not yet implemented. Stubs
 required to make this class non-abstract.
 
 */
+	
     virtual bool At(const Region& val,
                     TemporalUnit<Region>& result) const;
     virtual bool Passes(const Region& val) const;
