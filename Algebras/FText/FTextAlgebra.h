@@ -105,8 +105,8 @@ public:
 
 
 private:
-  FLOB theText;
   bool defined;
+  FLOB theText;
 };
 
 /*
