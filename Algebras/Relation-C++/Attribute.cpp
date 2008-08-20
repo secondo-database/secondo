@@ -170,7 +170,7 @@ Deletes an attribute if allowed, i.e. if ~refs~ = 0.
 */
     Attribute* Attribute::Copy()
     {
-      if( del.refs == numeric_limits<unsigned char>::max() )
+      if( del.refs == numeric_limits<uint8_t>::max() )
         return Clone();
       del.refs++;
       return this;
