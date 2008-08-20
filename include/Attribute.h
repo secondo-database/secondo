@@ -59,6 +59,7 @@ derived attribute class must implement.
 //#include "AlgebraManager.h"
 #include "FLOB.h"
 #include "WinUnix.h"
+#include "SecondoSMI.h"
 
 
 extern const double FACTOR;
@@ -86,7 +87,7 @@ struct AttrDelete
   refs( 1 ), isDelete( true )
   {}
 
-  unsigned char refs;
+  uint8_t refs;
   bool isDelete;
 };
 
@@ -331,10 +332,79 @@ functions.
     {
       return os << "< No Print()-function for this datatype! >";
     }
+
 /*
 Prints the attribute. Used for debugging purposes.
 
 */
+
+    inline virtual void 
+    Serialize(char* storage, size_t sz, size_t offset) const
+    {
+       memcpy( &storage[offset], (void*)this, sz );
+    }
+
+/*
+Writes an attribute as byte sequence into ~storage~. The default
+implementation simply writes the byte block of the current instance. 
+
+*/
+
+    inline virtual size_t SerializedSize() const 
+    {
+      return 0;
+    }	    
+/*
+The default implementation returns 0 here. This indicates that the default
+mechanism for making objects persistent is used and the data type's ~SizeOfObj~
+function will be used to determine the block size to be stored on disk.
+
+A datatype which support serialization must implement this function in order
+to overwrite the default.
+
+*/
+
+
+    inline virtual void Rebuild(char* state, size_t sz /*, ObjectCast cast*/) 
+    {
+      memcpy(this, state, sz);
+      //return static_cast<Attribute*>( cast(this) );
+    }	    
+/*
+Rebuild a stored object state given as byte sequence by ~state~. The default
+implementation excpects the state contains the byte block which was produced by 
+the default ~Serialize~ function. The size of the object is  ~sz~
+
+*/
+
+   inline static Attribute* 
+   Create(char* state, size_t sz, int algId, int typeId)
+   {
+      // create an instance of the specified type, which gives 
+      // us an instance of a subclass of class Attribute. 	   
+      Attribute* attr = 
+	      static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
+       
+      // call the spezialized Rebuild function, if not implemented, the default
+      // above will be called.
+      attr->Rebuild(state, sz /*,am->Cast(algId, typeId)*/);
+
+      // Remark: the returned pointer has been created using the new operator!
+      return attr;
+   }	   
+
+/*
+The function above creates a new instance of the C++-class which represents 
+a secondo object for the given algId and typeId. By default the stored 
+state of an objects is defined by its byte block maintained from the C++ runtime
+environment.
+
+Subclasses of an ~Attribute~ may overwrite the ~Serialize~ and ~Rebuild~
+function in order to provide a more compact object state storage representation.
+
+*/
+
+
     static void Save( SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Attribute *elem );
 /*
