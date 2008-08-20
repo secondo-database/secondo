@@ -135,7 +135,7 @@ for details on this attribute.
  private:
     bool isDefined;
     double histogram[256];
-    int histogram_abs[256];
+    uint32_t histogram_abs[256];
     HistogramChannel channel;
     double histogramMaxValue;
 
@@ -308,9 +308,9 @@ only once even if used multiple times.
     bool isDefined;
     bool isGrayscale;
     FLOB jpegData;
-    Histogram histogram[7];
-    unsigned int height;
-    unsigned int width;
+    Histogram histogram[4];
+    uint16_t height;
+    uint16_t width;
 
 /*
 

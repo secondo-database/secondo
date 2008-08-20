@@ -619,5 +619,7 @@ extern "C"
 Algebra* InitializePictureAlgebra(NestedList* nlPar, QueryProcessor *qpPar) {
     nl = nlPar;
     qp = qpPar;
+    cerr << "sizeof(Histogram) = " << sizeof(Histogram) << endl;
+    cerr << "sizeof(Picture) = " << sizeof(Picture) << endl;
     return new PictureAlgebra();
 }
