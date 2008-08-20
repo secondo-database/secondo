@@ -72,8 +72,13 @@ DEFAULTCCFLAGS += -DNL_PERSISTENT
 # Flag for compiling code of operator value mappings which supports progress measurement. 
 DEFAULTCCFLAGS += -DUSE_PROGRESS
 
+
+# Flag for compiling code which uses serialization instead of copying class instances
+# on block. 
+# DEFAULTCCFLAGS += -DUSE_SERIALIZATION
+
 # The next flag activates trace messages. Alternatively you may define it
-# only in some subordinated makefiles to avoid to much messages.
+# only in some subordinated makefiles to avoid to many messages.
 #DEFAULTCCFLAGS += -DTRACE_ON
 
 INC_FILES := $(shell ls $(SECONDO_BUILD_DIR)/makefile.n*c 2>/dev/null)
