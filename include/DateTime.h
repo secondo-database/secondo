@@ -625,6 +625,30 @@ delta in [0,1].
     return "instant";
   }
 
+  inline virtual size_t SerializedSize() const 
+  {
+    return (2 * sizeof(LONGTYPE)) + sizeof(TimeType) + 2;
+  }	  
+
+  inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
+  {
+    WriteVar<LONGTYPE>(day, storage, offset);
+    WriteVar<LONGTYPE>(milliseconds, storage, offset);
+    WriteVar<bool>(defined, storage, offset);
+    WriteVar<bool>(canDelete, storage, offset);
+    WriteVar<TimeType>(type, storage, offset);
+  }	  
+
+  inline virtual void Rebuild(char* state,  size_t sz ) 
+  {
+    size_t offset = 0;	  
+    ReadVar<LONGTYPE>(day, state, offset);
+    ReadVar<LONGTYPE>(milliseconds, state, offset);
+    ReadVar<bool>(defined, state, offset);
+    ReadVar<bool>(canDelete, state, offset);
+    ReadVar<TimeType>(type, state, offset);
+  }	 
+
 
   private:
     // the data-part of datetime

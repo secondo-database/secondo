@@ -71,10 +71,11 @@ by the ~StandardAlgebra~:
 #include "NestedList.h"
 #include "Counter.h"
 #include "Symbols.h"
+#include "Serialize.h"
 
 
 /*
-~Auxilraly Functions~
+~Auxiliary Functions~
 
 ~trim~
 
@@ -82,6 +83,9 @@ This function removes whitespaces from the start and the end of ~value~.
 
 */
  void trimstring(string& str);
+
+
+
 
 
 /*
@@ -296,14 +300,35 @@ class CcInt : public StandardAttribute
   static const string BasicType(){
     return symbols::INT;
   }
+
  
+  inline virtual size_t SerializedSize() const 
+  {
+    return sizeof(int32_t) + 1;
+  }	  
+
+  inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
+  {
+    WriteVar<int32_t>(intval, storage, offset);
+    WriteVar<bool>(defined, storage, offset);
+  }	  
+
+  inline virtual void Rebuild(char* state,  size_t sz ) 
+  {
+    size_t offset = 0;	  
+    ReadVar<int32_t>(intval, state, offset);
+    ReadVar<bool>(defined, state, offset);
+  }	  
+
   static long intsCreated;
   static long intsDeleted;
 
  private:
   bool defined;
-  int  intval;
+  int32_t intval;
 };
+
+
 
 /*
 3.1 CcReal
@@ -496,6 +521,24 @@ class CcReal : public StandardAttribute
     return symbols::REAL;
   }
 
+  inline virtual size_t SerializedSize() const 
+  {
+    return sizeof(SEC_STD_REAL) + 1;
+  }	  
+
+  inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
+  {
+    WriteVar<SEC_STD_REAL>(realval, storage, offset);
+    WriteVar<bool>(defined, storage, offset);
+  }	  
+
+  inline virtual void Rebuild(char* state,  size_t sz ) 
+  {
+    size_t offset = 0;	  
+    ReadVar<SEC_STD_REAL>(realval, state, offset);
+    ReadVar<bool>(defined, state, offset);
+  }	  
+
  private:
   bool  defined;
   SEC_STD_REAL  realval;
@@ -674,16 +717,13 @@ class CcString : public StandardAttribute
 
   inline CcString( bool d, const STRING_T* v ) 
   { 
-    defined = d; 
-    strcpy( stringval, *v); 
+    Set(d, v);
     stringsCreated++; 
   }
 
-  inline CcString( const bool d, const string v )
+  inline CcString( const bool d, const string& v )
   {
-    defined = d;
-    memset ( stringval,'\0',      MAX_STRINGSIZE+1);
-    strncpy( stringval, v.data(), MAX_STRINGSIZE  );
+    Set(d, v);
     stringsCreated++;
   }
 
@@ -734,13 +774,19 @@ class CcString : public StandardAttribute
   { 
     defined = d;
     strcpy( stringval, *v);
+#ifdef USE_SERIALIZATION
+    for( size = 0; (*v)[size] != '\0'; size++ );
+#endif    
   }
 
-  inline void Set( const bool d, const string v ) 
+  inline void Set( const bool d, const string& v ) 
   { 
     defined = d;
     memset ( stringval, '\0',     MAX_STRINGSIZE+1);
     strncpy( stringval, v.data(), MAX_STRINGSIZE  );
+#ifdef USE_SERIALIZATION
+    size = v.size();
+#endif    
   }
 
   inline size_t HashValue() const
@@ -832,9 +878,35 @@ class CcString : public StandardAttribute
   static const string BasicType(){
     return symbols::STRING;
   }
- 
+
+#ifdef USE_SERIALIZATION
+  inline virtual size_t SerializedSize() const 
+  {
+    return sizeof(uint8_t) + size + 1;
+  }	  
+
+  inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
+  {
+    WriteVar<uint8_t>(size, storage, offset);
+    WriteVar<bool>(defined, storage, offset);
+    memcpy(&storage[offset], stringval, size);
+  }	  
+
+  inline virtual void Rebuild(char* state,  size_t sz ) 
+  {
+    size_t offset = 0;	  
+    ReadVar<uint8_t>(size, state, offset);
+    ReadVar<bool>(defined, state, offset);
+    memcpy(stringval, &state[offset], size);
+  }	
+#endif  
+
+
  private:
-  bool   defined;
+  bool     defined;
+#ifdef USE_SERIALIZATION
+  uint8_t  size;
+#endif  
   STRING_T stringval;
 };
 
