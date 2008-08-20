@@ -1,0 +1,263 @@
+Constants
+========= 
+
+      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
+
+      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
+                                        //in merge step (merge)
+
+      const double wMergeJoin = 0.0001738; //millisecs per byte read in 
+                                          //merge step (sortmerge)
+
+      const double xMergeJoin = 0.0012058; //millisecs per result tuple in 
+                                          //merge step 
+
+      const double yMergeJoin = 0.0001072; //millisecs per result attribute in 
+                                          //merge step 
+
+Based on database opt.
+Ralf's PC, disk f
+Secondo of August 18, 2008
+
+let plz10 = plz feed ten feed product extend[ran: randint(50000)] 
+sortby[ran asc] remove[ran] consume
+
+
+let plz10Even = plz10 feed extend[PLZE: .PLZ * 2] project[PLZE, Ort, no] consume
+
+
+let plz10Odd = plz10 feed extend[PLZO: (.PLZ * 2) + 1] 
+project[PLZO, Ort, no] consume
+
+
+
+Constants xMergeJoin, yMergejoin
+================================
+
+query plz10Even feed {p1} plz10Odd feed {p2} 
+sortmergejoin[PLZE_p1, PLZO_p2] count
+
+23 sec
+28
+29
+
+Result 0
+
+
+query plz10Even feed {p1} plz10Even feed {p2} 
+sortmergejoin[PLZE_p1, PLZE_p2] count
+
+70 sec
+74
+77
+
+Result 24879300
+
+Difference 74-28 = 46 sec -> Time for result tuple with 6 attributes
+
+per tuple 46 / 24879300 = 0.0000018489 sec
+
+
+
+let plz10Even15Attrs = plz10Even feed extend[
+  A1: 1, 
+  A2: 1,
+  A3: 1, 
+  A4: 1,
+  A5: 1, 
+  A6: 1,
+  A7: 1, 
+  A8: 1,
+  A9: 1, 
+  A10: 1,
+  A11: 1, 
+  A12: 1]
+  consume
+
+
+let plz10Odd15Attrs = plz10Odd feed extend[
+  A1: 1, 
+  A2: 1,
+  A3: 1, 
+  A4: 1,
+  A5: 1, 
+  A6: 1,
+  A7: 1, 
+  A8: 1,
+  A9: 1, 
+  A10: 1,
+  A11: 1, 
+  A12: 1]
+  consume
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} 
+sortmergejoin[PLZE_p1, PLZO_p2] count
+
+75 sec
+49 
+50
+
+Result 0
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} 
+sortmergejoin[PLZE_p1, PLZE_p2] count
+
+124
+127
+132
+
+Result 24879300
+
+Difference 127 - 49 = 78 -> Time per result tuple with 18 attributes
+
+Difference 78 - 46 = 32 -> Time for additional 12 attributes
+
+per attribute: (32 / 24879300) / 12 = 0.0000001072 (yMergeJoin)
+
+Total time for 18 attributes: 48 sec
+
+per tuple: (78 - 48) / 24879300 = 0.0000012058 (xMergeJoin)
+
+
+
+based on this estimated time for 6 attributes:
+
+	30 + 16 = 46 sec
+
+observed (s.a.) 46 sec   -> correct
+
+
+
+Constant wMergeJoin
+===================
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} 
+sortmergejoin[PLZE_p1, PLZE_p2] head[1] count
+
+32
+38
+41
+
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} 
+sortmergejoin[PLZE_p1, PLZO_p2] count
+
+51
+60
+64
+
+
+plz10Even15Attrs tuplesize = 224
+plz10Even tuplesize = 80
+plz10Odd tuplesize = 80
+
+Difference 60 - 38 = 22
+
+for reading 416270 * (224 + 80) = 126546080 Bytes
+
+per byte 22 / 126546080 = 0.0000001738 secs/byte (wMergeJoin)
+
+
+
+Constant uMergeJoin
+===================
+
+let plz50Even = plz10Even feed ten feed filter[.no < 6] {t} 
+product remove[no_t] consume 
+
+
+Result 2063350 Tuples
+
+plz50Even tuplesize = 50
+
+
+
+let plz50EvenSortedPLZE = plz50Even feed sortby[PLZE asc] consume
+
+let plz10EvenSorted = plz10Even feed sortby[PLZE asc] consume
+
+let plz10OddSorted = plz10Odd feed sortby[PLZO asc] consume
+
+
+
+
+query plz10EvenSorted feed {p1} plz10OddSorted feed {p2} 
+mergejoin[PLZE_p1, PLZO_p2] count
+
+query plz10EvenSorted feed {p1} plz10OddSorted feed {p2} 
+concat count
+
+(interleaved 3 times)
+
+4.43	3.64
+4.06	3.51
+4.08	3.51
+
+-> times too small!
+
+
+query plz50EvenSortedPLZE feed {p1} plz10OddSorted feed {p2} 
+mergejoin[PLZE_p1, PLZO_p2] count
+
+query plz50EvenSortedPLZE feed {p1} plz10OddSorted feed {p2} 
+concat count
+
+query plz50EvenSortedPLZE feed count
+
+
+17	11	7
+11	11	8
+11	10	7
+
+query plz10OddSorted feed count
+
+three times about 1.5 seconds
+
+Difference 11 - (7.5 + 1.5) = 2 seconds
+
+per tuple 2 / 2476020 = 0.0000008077 sec (uMergeJoin)
+
+
+Constant uSortby
+================
+
+query plz10Even feed {p1} FirstEven feed {p2} 
+sortmergejoin[PLZE_p1, PLZE_p2] head[1] consume
+
+query plz10Even feed count
+
+
+9.6	1.5
+12.7	1.5
+14.65	1.5
+
+(not stable)
+
+Difference 12.5 - 1.5 = 11
+
+11 / (416270 * 80) = 0.0000003303 sec
+
+We leave the old constant of 0.00043 for uSortBy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
