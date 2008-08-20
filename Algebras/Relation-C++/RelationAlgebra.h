@@ -149,6 +149,14 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #undef DEBUG
 #define DEBUG(ptr, msg) if (debug) TTRACE(ptr, msg)
 
+#undef ON_DEBUG
+#ifdef TRACE_ON 
+  #define ON_DEBUG(expr) { expr }
+#else
+  #define ON_DEBUG(expr)
+#endif  
+
+
 extern AlgebraManager* am;
 
 /*
@@ -947,12 +955,22 @@ record.
                    vector<double>& attrExtSize,
                    vector<double>& attrSize );
 
+
+
 /*
 Opens a tuple from ~tuplefile~(~rid~) and ~lobfile~.
 
 */
   bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
              SmiRecordId rid );
+
+/*
+Opens a tuple from ~tuplefile~ and ~lobfile~ reading from 
+~record~.
+
+*/
+  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
+             SmiRecord *record );                
 
 /*
 Opens a tuple from ~tuplefile~ and ~lobfile~ reading the 
@@ -962,13 +980,6 @@ current record of ~iter~.
   bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
              PrefetchingIterator *iter );
 
-/*
-Opens a tuple from ~tuplefile~ and ~lobfile~ reading from 
-~record~.
-
-*/
-  bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
-             SmiRecord *record );                
 
   // debug flag  
   static bool debug;
@@ -1024,7 +1035,7 @@ Initializes a tuple.
 
 */
 
-    int refs;
+    uint32_t refs;
 /*
 The reference count of this tuple. There can exist several tuple
 pointers pointing to the same tuple and sometimes we want to prevent 
@@ -1048,19 +1059,19 @@ tuples. The first time these sizes are computed they are stored.
 
 */
 
-    mutable int tupleExtSize;
+    mutable uint16_t tupleExtSize;
 /*
 Stores the size of the tuples taking into account the extension
 part of the tuple, i.e. the small FLOBs.
 
 */
-    mutable int tupleSize;
+    mutable uint32_t tupleSize;
 /*
 Stores the total size of the tuples taking into account the 
 FLOBs.
 
 */
-    int noAttributes;
+    uint8_t noAttributes;
 /*
 Store the number of attributes of the tuple.
 
@@ -1074,12 +1085,19 @@ entries, the it is statically constructed and ~attributes~ point
 to ~defAttributes~, otherwise it is dinamically constructed.
 
 */
-    //mutable PrivateTuple *privateTuple;
-/*
-The private implementation dependent attributes of the class 
-~Tuple~.
 
-*/
+  bool ReadFrom(SmiRecord& record);
+
+  static const size_t MAX_TUPLESIZE = 65535; 
+  static char tupleData[MAX_TUPLESIZE];
+
+  char* WriteToBlock(size_t attrSizes, size_t extensionSize);
+
+
+  size_t CalculateBlockSize( size_t& attrSizes, double& extSize, double& size,
+                                  vector<double>& attrExtSize,
+                                  vector<double>& attrSize, 
+				  bool ignorePersLOBs = false ); 
 
 
 
@@ -1093,7 +1111,7 @@ The unique identification of the tuple inside a relation.
 Stores the tuple type.
 
 */
-  mutable TupleType *tupleType;
+  mutable TupleType* tupleType;
 
 /*
 Reference to an ~SmiRecordFile~ which contains LOBs.
@@ -1113,7 +1131,7 @@ Profiling turned out that a separate member storing the number
 of attributes makes sense since it reduces calls for TupleType::NoAttributes
 
 */
-  int NumOfAttr;
+  //int NumOfAttr;
   
 /*
 Debugging stuff
