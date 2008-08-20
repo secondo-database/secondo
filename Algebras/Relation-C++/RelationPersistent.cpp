@@ -215,6 +215,8 @@ void Tuple::Save( SmiRecordFile *tuplefile,
   extSize += tupleType->GetTotalSize();
   size += tupleType->GetTotalSize();
 
+  this->tupleFile = tuplefile;
+  this->lobFileId = lobFileId;
 
   /*
   for( int i = 0; i < noAttributes; i++)
@@ -266,6 +268,8 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 	     = CalculateBlockSize( attrSizes, extSize, size, 
 		                   attrExtSize, attrSize, 
 			           ignorePersistentLOBs );
+
+  lobFileId = this->lobFileId;
 
   char* data = WriteToBlock(attrSizes, extensionSize);
 
@@ -395,9 +399,8 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 			           ignorePersistentLOBs );
 
   lobFileId = this->lobFileId;
-  //cerr << "this->lobFileId = " << lobFileId << endl;
-  //cerr << "attrSizes = " << attrSizes << endl;
-  //cerr << "extSize = " << extensionSize << endl;
+  DEBUG(this, "attrSizes = " << attrSizes)
+  DEBUG(this, "extSize = " << extensionSize)
 
   char* data = WriteToBlock(attrSizes, extensionSize);
 
@@ -408,8 +411,7 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
   bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
   assert(rc == true);
-  rc = tupleRecord->Write(data, 
-                          tupleType->GetTotalSize()+extensionSize,
+  rc = tupleRecord->Write(data, sizeof(uint16_t) + attrsizes + extensionSize,
                           0);
   assert(rc == true);
 
@@ -504,41 +506,46 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
 
 #ifdef USE_SERIALIZATION
 
-  uint16_t rootSize = attrSizes + extensionSize;
-  const size_t rootSizeLen = sizeof(rootSize);
+  uint16_t blockSize = attrSizes + extensionSize;
 
-          DEBUG(this, "rootSizeLen = " << rootSizeLen)
+  assert( blockSize < MAX_TUPLESIZE );
+  
+  const size_t blockSizeLen = sizeof(blockSize);
+
+  char* data = (char*) malloc( blockSize + blockSizeLen );
+
+
+          DEBUG(this, "blockSizeLen = " << blockSizeLen)
           DEBUG(this, "attrSizes = " << attrSizes)
           DEBUG(this, "extensionSize = " << extensionSize)
-          DEBUG(this, "rootSize = " << rootSize) 
+          DEBUG(this, "blockSize = " << blockSize) 
 
   //char* tupleData = (char*) malloc( rootSizeLen + rootSize );
   //memset(tupleData, 0, rootSizeLen + rootSize);
 
   // write data into the memory block
-  memcpy(tupleData, &rootSize, rootSizeLen);
-  int offset = rootSizeLen;
+  memcpy(data, &blockSize, blockSizeLen);
+  size_t offset = blockSizeLen;
 
   size_t serialSizes = 0;
   // collect all attributes into the memory block
   for( int i = 0; i < noAttributes; i++)
   {
-     DEBUG(this, attributes[i]->IsDefined())
-     DEBUG(this, "offset = " << offset)
-
-    //int algId  = tupleType->GetAttributeType(i).algId;
-    //int typeId = tupleType->GetAttributeType(i).typeId;
+     DEBUG(this, "defined = " << attributes[i]->IsDefined())
 
      size_t serialSize = attributes[i]->SerializedSize();
      size_t sz = (serialSize > 0) ? serialSize : 
 	            tupleType->GetAttributeType(i).size;
-     attributes[i]->Serialize(tupleData, sz, offset); 
+     attributes[i]->Serialize(data, sz, offset); 
 
+
+     DEBUG(this, "offset = " << offset)
+     DEBUG(this, "sz = " << sz)
 #ifdef TRACE_ON     
      serialSizes += sz;
-     //cerr << Array2HexStr((char*)attributes[i], sz, 0) << endl;
-     //cerr << "Attr(" << i << ")" << *attributes[i] << endl;
-     //cerr << Array2HexStr(tupleData, sz, offset) << endl;
+     cerr << "Attr(" << i << ")" << *attributes[i] << endl;
+     cerr << Array2HexStr((char*)attributes[i], sz, 0) << endl;
+     cerr << Array2HexStr(data, sz, offset) << endl;
 #endif
 
      offset += sz; 
@@ -550,7 +557,7 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
   // Copy FLOB data to behind the attributes
   if( extensionSize>0) // there are small FLOBs
   {
-     char *extensionPtr = &tupleData[offset];
+     char *extensionPtr = &data[offset];
      for( int i = 0; i < noAttributes; i++)
      {
        for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
@@ -574,7 +581,6 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
   assert( blockSize < MAX_TUPLESIZE );
   
   char* data = (char*) malloc( blockSize );
-
 
   int offset = 0;
 
@@ -610,10 +616,9 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
 		   << " extSize = " << extensionSize )
  }
 
-  return data;
-
 #endif
 
+  return data;
 
 }	
 
