@@ -1924,9 +1924,23 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       ProgressInfo p1, p2;
       ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
-      const double uMergeJoin = 0.041;  //millisecs per tuple merge (merge)
-      const double vMergeJoin = 0.000076; //millisecs per byte merge (sortmerge)
-      const double uSortBy = 0.00043;     //millisecs per byte sort
+
+      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
+
+      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
+                                        //in merge step (merge)
+
+      const double wMergeJoin = 0.0001738; //millisecs per byte read in 
+                                          //merge step (sortmerge)
+
+      const double xMergeJoin = 0.0012058; //millisecs per result tuple in 
+                                          //merge step 
+
+      const double yMergeJoin = 0.0001072; //millisecs per result attribute in 
+                                          //merge step 
+
+                                      //see file ConstantsSortmergejoin.txt
+
 
       LocalInfo<SortByLocalInfo>* liFirst;
       LocalInfo<SortByLocalInfo>* liSecond;
@@ -1947,15 +1961,29 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
 	  pRes->CopySizes(li);
 
-          if ( expectSorted )
+          if (li->returned > enoughSuccessesJoin ) 	// stable state 
+          {
+            pRes->Card = ((double) li->returned) * p1.Card
+            /  ((double) li->readFirst);
+          }
+          else
+          {
+            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
+          }
+
+
+          if ( expectSorted )   
           {
             pRes->Time = p1.Time + p2.Time +
-              (p1.Card + p2.Card) * uMergeJoin;
+              (p1.Card + p2.Card) * uMergeJoin +
+              pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
 
             pRes->Progress =
               (p1.Progress * p1.Time + p2.Progress * p2.Time +
                 (((double) li->readFirst) + ((double) li->readSecond)) 
-                * uMergeJoin)
+                * uMergeJoin +
+              ((double) li->returned) 
+                * (xMergeJoin + pRes->noAttrs * yMergeJoin))
               / pRes->Time;
 
 	    pRes->CopyBlocking(p1, p2);	   //non-blocking in this case
@@ -1967,7 +1995,8 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 	      p2.Time +
               p1.Card * p1.Size * uSortBy + 
               p2.Card * p2.Size * uSortBy +
-              (p1.Card * p1.Size + p2.Card * p2.Size) * vMergeJoin;
+              (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin +
+              pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
 
             long readFirst = (liFirst ? liFirst->read : 0);
             long readSecond = (liSecond ? liSecond->read : 0);
@@ -1978,8 +2007,9 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
               ((double) readFirst) * p1.Size * uSortBy + 
               ((double) readSecond) * p2.Size * uSortBy +
               (((double) li->readFirst) * p1.Size + 
-                ((double) li->readSecond) * p2.Size) 
-                * vMergeJoin)
+               ((double) li->readSecond) * p2.Size) * wMergeJoin +
+              ((double) li->returned) 
+                * (xMergeJoin + pRes->noAttrs * yMergeJoin))
               / pRes->Time;
 
             pRes->BTime = p1.Time + p2.Time               
@@ -1992,19 +2022,7 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
               + ((double) readSecond) * p2.Size * uSortBy)
 	      / pRes->BTime;
           }
-
-
-
-          if (li->returned > enoughSuccessesJoin ) 	// stable state 
-          {
-            pRes->Card = ((double) li->returned * (p1.Card + p2.Card)
-           /  ((double) li->readFirst + (double) li->readSecond));
-
-          }
-          else
-          {
-            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
-          }
+       
           return YIELD;
         }
         else return CANCEL;
