@@ -411,7 +411,7 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
   bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
   assert(rc == true);
-  rc = tupleRecord->Write(data, sizeof(uint16_t) + attrsizes + extensionSize,
+  rc = tupleRecord->Write(data, sizeof(uint16_t) + attrSizes + extensionSize,
                           0);
   assert(rc == true);
 
@@ -948,8 +948,10 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
 
   // read all attributes
   assert(rootSize < MAX_TUPLESIZE);
+  char* data = (char*) malloc ( rootSize );
 
-  if( (uint16_t)iter->ReadCurrentData( tupleData, 
+
+  if( (uint16_t)iter->ReadCurrentData( data, 
 			               rootSize, 
 				       rootSizeLen) != rootSize )
   {
@@ -964,7 +966,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
     int typeId = tupleType->GetAttributeType(i).typeId;
     int sz = tupleType->GetAttributeType(i).size;
      
-    attributes[i] = Attribute::Create( &tupleData[offset], sz, algId, typeId);
+    attributes[i] = Attribute::Create( &data[offset], sz, algId, typeId);
 
     int serialSize = attributes[i]->SerializedSize();
     int readData = (serialSize > 0) ? serialSize : sz;
@@ -972,7 +974,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
     DEBUG( this, "Defined = " << attributes[i]->IsDefined() )
     DEBUG( this, "numOfFLOBS = " << attributes[i]->NumOfFLOBs() )
     
-    DEBUG( this, Array2HexStr(tupleData, readData, offset) )
+    DEBUG( this, Array2HexStr(data, readData, offset) )
     
     offset += readData;
     rootSize -= readData; 
@@ -1000,7 +1002,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
         if(ptr){
            int size = tmpFLOB->Size();
            DEBUG(this, "tmpFLOB.size = " << size) 
-           memcpy( ptr, &tupleData[offset], size );
+           memcpy( ptr, &data[offset], size );
            offset += size; 
         }
       } else{
@@ -1014,6 +1016,8 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
     attributes[i]->Initialize();
     attributes[i]->InitRefs();
   }  
+
+  free ( data );
 
   TRACE_LEAVE
   return true;
