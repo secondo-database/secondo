@@ -898,6 +898,7 @@ class CcString : public StandardAttribute
     ReadVar<uint8_t>(size, state, offset);
     ReadVar<bool>(defined, state, offset);
     memcpy(stringval, &state[offset], size);
+    stringval[size] = '\0';
   }	
 #endif  
 
