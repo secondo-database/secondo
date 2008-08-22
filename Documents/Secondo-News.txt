@@ -6,10 +6,30 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+
+2008-08-22  Optional Attribute Datatype Serialization
+===============================================================================
+Now its possible to implement functions for attribute data types which manage
+the storage to a memory block and the reinitialization from a memory block.
+This makes it possible to store disk space, since the default block storage
+mechanism is not space efficient. There are example implementations for int,
+real and string. Currently, this is work in progress and can be activated by
+defining the compile flag USE_SERIALIZATION in makefile.options
+
+Documentation: Attribute.h StandardTypes.h 
+
+Note: The code changes require to restore your databases :-(
+
+
+Regards
+
+Markus
+
+
 2008-08-07  Word changed
 ===============================================================================
 To save memory usage, the struct Word was changed to be a variant. 
-Because of this change, you hav to restore all your databases.
+Because of this change, you have to restore all your databases.
 
 Thomas
 
