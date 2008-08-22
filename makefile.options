@@ -74,8 +74,10 @@ DEFAULTCCFLAGS += -DUSE_PROGRESS
 
 
 # Flag for compiling code which uses serialization instead of copying class instances
-# on block. 
-# DEFAULTCCFLAGS += -DUSE_SERIALIZATION
+# on block. After changing this flag you need to do a make clean, rebuild secondo, and
+# restore your databases!
+#
+DEFAULTCCFLAGS += -DUSE_SERIALIZATION
 
 # The next flag activates trace messages. Alternatively you may define it
 # only in some subordinated makefiles to avoid to many messages.

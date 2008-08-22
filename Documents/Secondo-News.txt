@@ -9,16 +9,17 @@
 
 2008-08-22  Optional Attribute Datatype Serialization
 ===============================================================================
-Now its possible to implement functions for attribute data types which manage
+Now it's possible to implement functions for attribute data types which manage
 the storage to a memory block and the reinitialization from a memory block.
-This makes it possible to store disk space, since the default block storage
+This makes it possible to save disk space, since the default block storage
 mechanism is not space efficient. There are example implementations for int,
-real and string. Currently, this is work in progress and can be activated by
-defining the compile flag USE_SERIALIZATION in makefile.options
+real and string. Currently, this is work in progress and can be deactivated by
+undefining the compile flag USE_SERIALIZATION in makefile.options
 
 Documentation: Attribute.h StandardTypes.h 
 
-Note: The code changes require to restore your databases :-(
+Note: The code changes require to do a make clean, to rebuild SECONDO 
+and to restore your databases :-(
 
 
 Regards
