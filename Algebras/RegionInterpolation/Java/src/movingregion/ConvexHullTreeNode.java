@@ -54,6 +54,10 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
             this.x=x;
             this.y=y;
         }
+        public String toString()
+        {
+            return("("+x+";"+y+")");
+        }
     }
     
     private class LineDist implements Comparable
@@ -342,8 +346,13 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
     
     public LineWA[]getSplitLine(ConvexHullTreeNode ref1,ConvexHullTreeNode ref2)
     {
+        System.out.println(this);
+        System.out.println(ref1);
+        System.out.println(ref2);        
         LineWA p1=ref1.getCenter();
         LineWA p2=ref2.getCenter();
+        System.out.println(p1);        
+        System.out.println(p2);        
         Vector pdist1=new Vector();
         Vector pdist2=new Vector();
         Vector resv=new Vector();
@@ -432,6 +441,10 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         if(((TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref1lines).length)<=2)
         &&(TriRepUtil.getIntersections(new LineWA(tmp1.x,tmp1.y),new LineWA(tmp2.x,tmp2.y),ref2lines).length)<=2)
             resv.add(new doublePoint((tmp1.x+tmp2.x)/2.0,(tmp1.y+tmp2.y)/2.0));
+        for(int i=0;i< resv.size();i++)
+        {
+            System.out.println((doublePoint)resv.elementAt(i));
+        }
         double sumLinex=0;
         double sumLiney=0;
         for(int i=0;i<resv.size();i++)
@@ -473,9 +486,11 @@ public class ConvexHullTreeNode implements RegionTreeNode,Serializable
         }
         
         LineWA[] res=new LineWA[resv.size()];
+        System.out.println("RES");
         for(int i=0;i<resv.size();i++)
         {
             doublePoint tmp=((doublePoint)resv.elementAt(i));
+            System.out.println(tmp);
             res[i]=new LineWA((int)Math.round(tmp.x),(int)Math.round(tmp.y));
         }
         
