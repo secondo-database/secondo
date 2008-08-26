@@ -67,23 +67,22 @@ inline void ReadVar(T& value, char* state, size_t& offset)
 
 
 /*
-Some specializations which reduce the data to be transferred
+Some specializations which ensure one byte for a bool value. 
 
 */
 
 
 template<>
-inline void WriteVar<const bool>(const bool& value, 
-		                   char* storage, size_t& offset) 
+inline void WriteVar<bool>(const bool& value, char* storage, size_t& offset) 
 {
-  storage[offset] = value ? '1' : '0';
+  storage[offset] = (value ? '1' : '0');
   offset += 1;
 }	
 
 template<>
 inline void ReadVar<bool>(bool& value, char* state, size_t& offset) 
 {
-  value = (state[offset] == '0') ? false : true;
+  value = ((state[offset] == '0') ? false : true);
   offset += 1;
 }	
 
