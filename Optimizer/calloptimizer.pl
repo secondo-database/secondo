@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@ The optimizer is started by loading this file.
 */
 
 /*
-1.1 Coping with Version-dependant Problems 
+1.1 Coping with Version-dependant Problems
 
 1.1.2 SWI-Prolog 5.4.7 for Windows
 
@@ -48,24 +48,24 @@ The optimizer is started by loading this file.
 % have been replaced by newer ones for more recent polog versions.
 getprompt :-
   current_prolog_flag(version,Version),
-  ( (Version >=50407) 
+  ( (Version >=50407)
     -> ( (Version >= 50600) % test for version of SWI-Prolog later than 5.6
           -> (  % using ISO stream predicates for recent versions
-               stream_property(ConIn,  file_no(0)), 
-               stream_property(ConIn,  mode(read)),  
+               stream_property(ConIn,  file_no(0)),
+               stream_property(ConIn,  mode(read)),
                set_stream(ConIn,  tty(true)),
 
-               stream_property(ConOut, file_no(1)), 
-               stream_property(ConOut, mode(write)), 
+               stream_property(ConOut, file_no(1)),
+               stream_property(ConOut, mode(write)),
                set_stream(ConOut, tty(true)),
-  
-               stream_property(ConErr, file_no(2)), 
-               stream_property(ConErr, mode(write)), 
+
+               stream_property(ConErr, file_no(2)),
+               stream_property(ConErr, mode(write)),
                set_stream(ConErr, tty(true))
             )
           ; (  % using deprecated predicates for old versions
                current_stream(0, read, ConIn), set_stream(ConIn, tty(true)),
-               current_stream(1, write, ConOut), set_stream(ConOut, tty(true)), 
+               current_stream(1, write, ConOut), set_stream(ConOut, tty(true)),
                current_stream(2, write, ConErr), set_stream(ConErr, tty(true))
             )
        )
@@ -78,7 +78,7 @@ getprompt :-
 
 Some features of the optimizer may be switched on or off.
 Optional features can use the predicate ~optimizerOption/1~ to check
-if options are (un)selected and can register with predicate 
+if options are (un)selected and can register with predicate
 ~optimizerOptionInfo/2~ to inform the user on their existence and
 meaning when typing ~showOptions/0~. Predicates ~setOption/1~ and
 ~delOption/1~ should be used to select/unselect options.
@@ -151,32 +151,34 @@ optimizerOptionInfo(allOff, none, no,
 optimizerOptionInfo(nawracosts, none, yes,
                     'Use cost functions as implemented by A. Nawra.',
                     true,
-                    true 
+                    true
                    ).
-
 
 /*
 ----
-optimizerOptionInfo(uniformSpeed, none, yes,    
+optimizerOptionInfo(uniformSpeed, none, yes,
                     'Set machine speed factor to constant 1.0.',
                     true, true).
-optimizerOptionInfo(costsConjuctive, none, yes,  
+optimizerOptionInfo(costsConjuctive, none, yes,
            'Apply costs only to operators directly considered by Dijkstra',
            true, true).
 ----
 
 */
+optimizerOptionInfo(determinePredSig, none, yes,
+                    'Send queries to investigate predicate argument types.',
+                    true, true).
 
 optimizerOptionInfo(immediatePlan, none, yes,
                     'Immediately create a path rather than the POG.',
-                    ( delOption(entropy), 
+                    ( delOption(entropy),
                       loadFiles(immediatePlan)
                     ),
                     ( delOption(intOrders(on)),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
                       delOption(intOrders(test))
-                    ) 
+                    )
                    ).
 
 optimizerOptionInfo(intOrders(on), immediatePlan, yes,
@@ -193,7 +195,7 @@ optimizerOptionInfo(intOrders(on), immediatePlan, yes,
                       correctStoredNodesShape,
                       createMergeJoinPlanEdges,
                       intOrderonImplementation
-                    ), 
+                    ),
                     turnOffIntOrders
                    ).
 optimizerOptionInfo(intOrders(path), immediatePlan, yes,
@@ -209,7 +211,7 @@ optimizerOptionInfo(intOrders(path), immediatePlan, yes,
                       changeModificationsPL2,
                       correctStoredNodesShape,
                       createMergeJoinPlanEdges
-                    ), 
+                    ),
                     turnOffIntOrders
                    ).
 optimizerOptionInfo(intOrders(quick), immediatePlan, yes,
@@ -223,8 +225,8 @@ optimizerOptionInfo(intOrders(quick), immediatePlan, yes,
                       intOrdersPrintWelcomeIO,
                       changeOriginalOptimizer,
                       changeModificationsPL0,
-                      createMergeJoinPlanEdges                      
-                    ), 
+                      createMergeJoinPlanEdges
+                    ),
                     turnOffIntOrders
                    ).
 optimizerOptionInfo(intOrders(test), immediatePlan, yes,
@@ -248,44 +250,41 @@ optimizerOptionInfo(pathTiming, none, no,
                     'Prompt time used to find a best path.',
                     true, true).
 optimizerOptionInfo(dynamicSample, none, yes,
-                    'Use dynamic instead of static (saved) samples.',
+                    'Use dynamic instead of static (saved) samples.', true,
+                    ( notIsDatabaseOpen ; ensureSamplesExist ) ).
+optimizerOptionInfo(autoSamples, none, yes,
+                    'Automatically determine sample sizes.',
                     true, true).
-optimizerOptionInfo(rewriteMacros, none, no, 
+optimizerOptionInfo(rewriteMacros, none, no,
                     'Allow for macros in queries.',
                     true, true).
 optimizerOptionInfo(rewriteInference, none, yes,
                     'Add inferred predicates to where clause.',
                     true, true).
-optimizerOptionInfo(rtreeIndexRules, rewriteInference, yes,  
+optimizerOptionInfo(rtreeIndexRules, rewriteInference, yes,
                     'Infer predicates to exploit R-tree indices.',
-                      (   setOption(rewriteInference), 
+                      (   setOption(rewriteInference),
                           (
                             not(optimizerOption(entropy))
                           ; notIsDatabaseOpen
-                          ; ( retractall(storedSecondoList(_)),
-                              getSecondoList(ObjList),
-                              checkForAddedIndices(ObjList), 
-                              checkForRemovedIndices(ObjList),
-                              checkIfSmallRelationsExist(ObjList),
-                              retractall(storedSecondoList(_))
-                            )
+                          ; ensureSmallObjectsExist
                           )
-                      ), 
+                      ),
                       true).
-optimizerOptionInfo(rewriteCSE, none, yes,      
+optimizerOptionInfo(rewriteCSE, none, yes,
                     'Extend with attributes for CSE values.',
                     true, delOption(rewriteRemove)).
-optimizerOptionInfo(rewriteCSEall, rewriteCSE, no,     
+optimizerOptionInfo(rewriteCSEall, rewriteCSE, no,
                     'Extend with attributes for _ALL_ CSEs.',
                     true, true).
-optimizerOptionInfo(rewriteRemove, rewriteCSE, no,     
+optimizerOptionInfo(rewriteRemove, rewriteCSE, no,
                     'Remove attributes as early as possible.',
                     setOption(rewriteCSE), true).
 
-optimizerOptionInfo(debug, none, no,            
+optimizerOptionInfo(debug, none, no,
                     'Execute debugging code. Also use \'toggleDebug.\'.',
                     showDebugLevel,true).
-optimizerOptionInfo(autosave, none, no,            
+optimizerOptionInfo(autosave, none, no,
                     'Autosave option settings on \'halt.\'.',
                     true, true).
 optimizerOptionInfo(noprogress, none, no,
@@ -304,22 +303,22 @@ optimizer options.
 
 */
 
-showOptions :- 
+showOptions :-
   findall(X,optimizerOptionInfo(X,none,_,_,_,_),Options),
   write('\n\nOptimizer options (and sub-options):\n'),
-  showOption(Options), 
+  showOption(Options),
   write('\nType \'loadOptions.\' to load the saved option configuration.\n'),
   write('Type \'saveOptions.\' to save current option configuration to disk.\n'),
   write('Type \'defaultOptions.\' to restore the default options.\n'),
-  write('Type \'setOption(X).\' to select option X.\n'), 
+  write('Type \'setOption(X).\' to select option X.\n'),
   write('Type \'delOption(X).\' to unselect option X.\n'),
   write('Type \'showOptions.\' to view this option list.\n\n').
 
 showOption([]).
 showOption([Option|Y]) :-
   optimizerOptionInfo(Option,none,_,Text,_,_),
-  write(' ['), 
-  ( optimizerOption(Option) 
+  write(' ['),
+  ( optimizerOption(Option)
       -> write('x')
        ; write(' ')
   ),
@@ -332,13 +331,13 @@ showSubOption(_,[]).
 showSubOption(Super,[Option|Y]) :-
   optimizerOptionInfo(Option,Super,_,Text,_,_),
   write('    ('),
-  ( optimizerOption(Option) 
+  ( optimizerOption(Option)
       -> write('x')
        ; write(' ')
   ),
   write(') '),
   format('~p:~30|~p~n',[Option, Text]),
-  showSubOption(Super,Y), !.	
+  showSubOption(Super,Y), !.
 
 showSubOptions(Super) :-
   findall(X,optimizerOptionInfo(X,Super,_,_,_,_),SubOptions),
@@ -348,16 +347,16 @@ setOption(X) :-
   nonvar(X),
   optimizerOptionInfo(X,_,NonStandard,Text,GoalOn,_),
   retractall(optimizerOption(X)),
-  assert(optimizerOption(X)), 
+  assert(optimizerOption(X)),
   call(GoalOn),
-  write('Switched ON option: \''), write(X), write('\' - '), 
-  write(Text), write('\n'), 
-  ( X \= allOff 
-       -> retractall(optimizerOption(allOff)) 
+  write('Switched ON option: \''), write(X), write('\' - '),
+  write(Text), write('\n'),
+  ( X \= allOff
+       -> retractall(optimizerOption(allOff))
         ; true
   ),
-  ( (X \= standard, NonStandard = yes) 
-       -> retractall(optimizerOption(standard)) 
+  ( (X \= standard, NonStandard = yes)
+       -> retractall(optimizerOption(standard))
         ; true
   ),
   !.
@@ -369,21 +368,21 @@ delOption(X) :-
   nonvar(X),
   optimizerOptionInfo(X,_,_,Text,_,GoalOff),
   ( optimizerOption(X)
-    -> ( retractall(optimizerOption(X)), 
+    -> ( retractall(optimizerOption(X)),
          call(GoalOff),
-         write('Switched OFF option: \''), write(X), write('\' - '), 
+         write('Switched OFF option: \''), write(X), write('\' - '),
          write(Text), write('\n')
        )
     ;  true
   ),
-  ( not( ( optimizerOption(Z), 
+  ( not( ( optimizerOption(Z),
            optimizerOptionInfo(Z,_,yes,_,_,_)
          ))
     -> ( retractall(optimizerOption(standard)),
          assert(optimizerOption(standard))
        )
      ; true
-  ), 
+  ),
   ( not((optimizerOption(Z), Z \= standard))
     -> ( retractall(optimizerOption(allOff)),
          assert(optimizerOption(allOff))
@@ -392,25 +391,25 @@ delOption(X) :-
   ), !.
 
 delOneOption(X) :-
-  write('Unknown option \''), write(X), write('\'.\n'), 
+  write('Unknown option \''), write(X), write('\'.\n'),
   showOptions,
   fail, !.
 
 delOneOption :-
-  optimizerOptionInfo(X,_,_,_,_,_), 
-  X \= none, 
+  optimizerOptionInfo(X,_,_,_,_,_),
+  X \= none,
   delOption(X),
   fail.
 
 delAllOptions :-
   not(delOneOption),
   write('\nSwitched off all options.\n').
-  
+
 delOneNonstandardOption :-
-  optimizerOptionInfo(X,_,yes,_,_,_), 
+  optimizerOptionInfo(X,_,yes,_,_,_),
   X \= standard,
   delOption(X),
-  fail.  
+  fail.
 
 delAllNonstandardOptions :-
   not(delOneNonstandardOption),
@@ -436,7 +435,7 @@ ppCostFactor(0) :-
   optimizerOption(costConjunctive), !.
 
 ppCostFactor(1) :- !.
- 
+
 
 showDebugLevel :-
   findall(X,optDebugLevel(X),List),
@@ -459,7 +458,7 @@ toggleDebug :-
   write('\tLevel \'all\' will output messages from all levels.\n'),
   !.
 
-debugLevel(Mode) :- 
+debugLevel(Mode) :-
   \+(optDebugLevel(Mode)) -> assert(optDebugLevel(Mode)),
   showDebugLevel,
   nl.
@@ -478,7 +477,7 @@ nodebugLevel(Mode) :-
 % loaded by default!
 loadFiles(standard) :-
   ( not(loadedModule(standard)),
-    [optimizer], 
+    [optimizer],
     [statistics],
     [database],
     [operators],
@@ -500,7 +499,7 @@ loadFiles(entropy) :-
   ; true.
 
 
-% Optional files for the correlations options 
+% Optional files for the correlations options
 loadFiles(correlations) :-
   ( not(loadedModule(correlations)),
     ['./Correlations/correlations'],
@@ -514,9 +513,9 @@ loadFiles(immediatePlan) :-
     [immediateplan],
     assert(loadedModule(immediatePlan)),
     immPlanPrintWelcomeMod
-  ) 
+  )
   ; true.
-    
+
 % Optional files for the interesting orders extension
 loadFiles(intOrders) :-
   ( not(loadedModule(intOrders)),
@@ -525,7 +524,7 @@ loadFiles(intOrders) :-
   )
   ; true.
 
-% Optional files for usage of adapative join operators 
+% Optional files for usage of adapative join operators
 loadFiles(adaptiveJoin) :-
   ( not(loadedModule(adaptiveJoin)),
     [adaptiveJoin],
@@ -533,7 +532,7 @@ loadFiles(adaptiveJoin) :-
   )
   ; true.
 
-  
+
 /*
 4 Some Auxiliary predicates for Debugging
 
@@ -545,26 +544,24 @@ Print debugging information
 Predicate ~dm/1~ can be used as ~write~/1. Output is printed when optimizer option
 debug is defined (see file operators.pl).
 
-Predicate ~dm(mode,message)~ writes ~message~ if ~optDebugLevel(mode)~ 
+Predicate ~dm(mode,message)~ writes ~message~ if ~optDebugLevel(mode)~
 or ~optDebugLevel(all)~ is defined.
 
 */
 
-dm([]) :- !.
-
-dm([X1 | XR]) :-
-  optimizerOption(debug), !,
-  write(X1),
-  dm(XR).
+write_list([]).
+write_list([X|Rest]) :-
+  write(X),
+  write_list(Rest).
 
 dm(X) :-
   optimizerOption(debug), !,
-  write(X).
+  write_list(X).
 
 dm(_) :- !.
-  
+
 dm(Level, X) :-
-  ( optDebugLevel(Level) ; optDebugLevel(all) ), !, 
+  ( optDebugLevel(Level) ; optDebugLevel(all) ), !,
   dm(X).
 
 dm(_,_) :- !.
@@ -601,20 +598,17 @@ dc(_,_) :- !.
 
 % Startup procedure for the optimizer
 :- [opsyntax].
-:- loadFiles(standard).        % load the files for the standard optimizer 
+:- loadFiles(standard).        % load the files for the standard optimizer
 
-:- assert( storeupdateRel(0) ),
-   assert( storeupdateIndex(0) ),
-   assert( storedDatabaseOpen(0) ),
-   assert( highNode(0) ),
+:- assert( highNode(0) ),
    assert( boundarySize(0) ),
    assert( boundaryMaxSize(0) ).
-  
+
 /*
 5.2 Setting Startup Options
- 
-The option configuration is stored in a file ~config_optimizer.pl~ between two sessions. It will be loaded and restored on subsequent sessions. If this file does not exist, default options are used.
- 
+
+The option configuration is stored in a file ~config\_optimizer.pl~ between two sessions. It will be loaded and restored on subsequent sessions. If this file does not exist, default options are used.
+
 ~defaultOptions~ restores the built-in default option settings.
 
 ~loadOptions~ restores the option config from disk.
@@ -637,7 +631,7 @@ defaultOptions :-
   setOption(autosave).
 
 
-loadOptions :- 
+loadOptions :-
   delAllOptions,
   retractall(optDebugLevel(_)),
   consult('config_optimizer.pl').
@@ -645,16 +639,16 @@ loadOptions :-
 saveSingleOption(Stream) :-
   optimizerOption(X),
   write(Stream, ':- '),
-  write(Stream, setOption(X)), 
+  write(Stream, setOption(X)),
   write(Stream, '.\n').
 
 saveSingleDebugLevel(Stream) :-
   optDebugLevel(X),
   write(Stream, ':- '),
-  write(Stream, debugLevel(X)), 
+  write(Stream, debugLevel(X)),
   write(Stream, '.\n').
 
-saveOptions :- 
+saveOptions :-
   open('config_optimizer.pl', write, FD),
   write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
   findall(_, saveSingleOption(FD), _),
@@ -663,9 +657,9 @@ saveOptions :-
 
 initializeOptions :-
   catch(
-	 (loadOptions, 
+	 (loadOptions,
 	  write('Loaded options\n')
-         ), 
+         ),
          _, % catch all exceptions
          (defaultOptions,
 	  saveOptions, % save a blanc 'config_optimizer.pl'
@@ -707,6 +701,7 @@ quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
 
 /*
 Testing in database opt
+
 ----
 
 :- [autotest], open 'database opt'.

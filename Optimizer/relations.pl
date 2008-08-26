@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-August 2006, M. Spiekermann. Initial version. 
+August 2006, M. Spiekermann. Initial version.
 
 1 Overview
 
@@ -32,8 +32,8 @@ The interface is presented below
 ----
      relAttrs
      relValue
-     clearRel     
-----     
+     clearRel
+----
 
 Afterwards you can use
 ----
@@ -48,24 +48,24 @@ screen.
 */
 
 
-% store all queries of a session in the dynamic predicate below      
+% store all queries of a session in the dynamic predicate below
 :- dynamic
      queryText/8.
- 
-relAttrs('SqlHistory',  [ ['QueryId', 'int'], 
-                          ['SqlText', 'text'], 
-                          ['QueryPlan', 'text'], 
-                          ['JoinPreds', 'int'], 
+
+relAttrs('SqlHistory',  [ ['QueryId', 'int'],
+                          ['SqlText', 'text'],
+                          ['QueryPlan', 'text'],
+                          ['JoinPreds', 'int'],
                           ['SelPreds', 'int'],
-                          ['Costs', 'real'], 
+                          ['Costs', 'real'],
                           ['PlanBuild', 'int'],
                           ['PlanExec', 'int'] ] ).
- 
+
 
 relAttrs('NodeSizes', [ ['Qid', 'int'],
-                        ['Node', 'int'], 
-                        ['SizeStd', 'real'], 
-                        ['SizeEntropy', 'real'], 
+                        ['Node', 'int'],
+                        ['SizeStd', 'real'],
+                        ['SizeEntropy', 'real'],
                         ['SizeReal', 'real']     ] ).
 
 
@@ -81,9 +81,9 @@ appendToRel('SqlHistory', Term, Plan, Cost, PlanBuild, PlanExec) :-
   quoteText(Plan, Plan2),
   assert( queryText(Qid, Sql2, Plan2, Joins, Sels, Cost, PlanBuild, PlanExec) ).
 
-                         
+
 relValue('SqlHistory', Tuples) :-
-  findall( [Nr, Sql, Plan, Joins, Sels, Costs, T1, T2], 
+  findall( [Nr, Sql, Plan, Joins, Sels, Costs, T1, T2],
            queryText(Nr, Sql, Plan, Joins, Sels, Costs, T1, T2),
            Tuples ).
 
@@ -92,42 +92,41 @@ relValue('NodeSizes', Tuples) :-
   getCounter(qid, Qid),
   findall([Qid, N, S1, S2, S3], createNodeSize(N, S1, S2, S3), Tuples).
 
- 
+
 
 relValue(Name, []) :-
-  nl, write('Error: Meta data relation '), 
+  nl, write('Error: Meta data relation '),
   write(Name), writeln(' unknown!'),
   fail.
 
 
 clearRel('SqlHistory') :-
   retractall( queryText(_,_,_,_,_,_,_,_) ).
- 
+
 clearRel('NodeSizes').
 % tuples are computed and not stored in a dynamic clauses
 
 
 saveRel(Name) :-
   saveRel(Name, Name).
- 
+
 saveRel(Name, Name2) :-
   relAttrs(Name, Attrs),
   makeRelType2(Attrs, Schema), !,
   relValue(Name, Tuples), !,
   Tuples \= [],
   convertList(Tuples, '', SecTuples),
-  %retractall(storedSecondoList(_)),
   getSecondoList(ObjList),
   runCmd(ObjList, Name2, Schema, SecTuples), !,
   clearRel(Name).
 
- 
- 
+
+
 /*
 Convert the list of attributes into a nested list of [rel [ tuple ...]].
 
 */
- 
+
 mkRelType(Attrs, [rel, [tuple, Attrs]]).
 
 
@@ -148,27 +147,27 @@ mkTupFormat([H|T], [NewH|NewT]) :-
  H = [ A, _ ],
  NewH = [ A, 'l' ],
  mkTupFormat(T, NewT).
- 
+
 mkTupFormat([], []).
 
- 
+
 runCmd(ObjList, Obj, S, V) :-
-  not(findRelObj(ObjList, Obj)), 
+  not(findRelObj(ObjList, Obj)),
   nl, write('Object not present! Running let comamnd.'),
   makeRelCmd(Obj, S, V, Cmd),
   nl, writeln(Cmd),
   secondo(Cmd).
- 
+
 runCmd(_, Obj, S, V) :-
   nl, write('Object present! Running update comamnd.'),
   appendToRelCmd(Obj, S, V, Cmd),
   nl, writeln(Cmd),
   secondo(Cmd).
- 
+
 /*
 Search a relation with name ~Rel~ in the object list ~L~
 instantiated by getSecondoList(L).
- 
+
 */
 
 findRelObj([], _) :-
@@ -177,7 +176,7 @@ findRelObj([], _) :-
 findRelObj([H|_], Rel) :-
   H = ['OBJECT', Rel, _, [[rel, [_|_]]]],
   atom(Rel), !.
-  
+
 findRelObj([_|T], Obj) :-
   findRelObj(T, Obj).
 
@@ -187,7 +186,7 @@ Predicate ~convertList/3~ converts a nested prolog list into an atom which
 contains a nested list in SECONDO format.
 
 */
- 
+
 
 convertList(L, Tmp, ResAtom) :-
   convertListRec(L, Tmp, TmpRes),
@@ -201,8 +200,8 @@ convertListRec([H|T], Tmp, ResAtom) :-
   parenthesize(Res1, Presult),
   atom_concat(Tmp, Presult, TmpAtom),
   convertListRec(T, TmpAtom, ResAtom).
-  
-convertListRec([H|T], Tmp, ResAtom) :- 
+
+convertListRec([H|T], Tmp, ResAtom) :-
   concatWithSpace(Tmp, H, Tmp2),
   convertListRec(T, Tmp2, ResAtom).
 
@@ -210,16 +209,16 @@ convertListRec([H|T], Tmp, ResAtom) :-
 Some helper predicates for atom costruction.
 
 */
- 
+
 concatWithSpace(Atom1, Atom2, Result) :-
   atom_concat(Atom1, ' ', Tmp),
   atom_concat(Tmp, Atom2, Result).
- 
+
 appendWithTab(Atom1, Atom2, Result) :-
   atom_concat(Atom1, Atom2, Tmp),
   atom_concat(Tmp, '\t', Result).
 
- 
+
 parenthesize(Atom, Result) :-
   atom_concat('(', Atom, Tmp),
   atom_concat(Tmp, ')',  Result).
@@ -227,72 +226,72 @@ parenthesize(Atom, Result) :-
 parenthesize2(Atom, Result) :-
   atom_concat('[', Atom, Tmp),
   atom_concat(Tmp, ']',  Result).
- 
+
 quoteText(Atom, Result) :-
  atom_concat('<text>', Atom, Tmp),
  atom_concat(Tmp, '</text--->',  Result).
 
 
- 
+
 
 /*
 
-Auxiliary clauses for creating SECONDO ~let~ and ~update~ 
-comamnds. Therefore the tuple type must be written as 
+Auxiliary clauses for creating SECONDO ~let~ and ~update~
+comamnds. Therefore the tuple type must be written as
 
 ----
  rel(tuple([attr1: type1, ..., attrN, typeN])
----- 
+----
 
 */
- 
+
 makeRelType([],Tmp, Tmp).
- 
+
 makeRelType([H|T], Tmp, TypeAtom) :-
   H = [Attr, Type],
   atom_concat(Tmp, Attr, A0),
-  atom_concat(A0, ':', A1), 
-  atom_concat(A1, ' ', A2), 
+  atom_concat(A0, ':', A1),
+  atom_concat(A1, ' ', A2),
   atom_concat(A2, Type, A3),
   concatComma(T, A3, A4),
-  makeRelType(T, A4, TypeAtom). 
-  
+  makeRelType(T, A4, TypeAtom).
+
 concatComma([_|_], Atom, Result) :-
   atom_concat(Atom, ', ', Result).
- 
+
 concatComma(_, Atom, Atom).
- 
+
 makeRelType2(List, TypeAtom) :-
   makeRelType(List, '', Tmp1),
-  atom_concat('rel(tuple([', Tmp1, Tmp2), 
-  atom_concat(Tmp2, ']))', TypeAtom). 
- 
+  atom_concat('rel(tuple([', Tmp1, Tmp2),
+  atom_concat(Tmp2, ']))', TypeAtom).
+
 
 makeRelCmd(ObjName, RelSchema, Values, ResultCmd) :-
   makeRelConstant(RelSchema, Values, RelConstant),
-  atom_concat('let ', ObjName, Q1), 
+  atom_concat('let ', ObjName, Q1),
   atom_concat(Q1 , ' = ', Q2 ),
-  atom_concat(Q2 , RelConstant, ResultCmd ). 
+  atom_concat(Q2 , RelConstant, ResultCmd ).
 
 makeRelConstant(RelSchema, Values, Result) :-
   atom_concat('[const ', RelSchema, Q1 ),
-  atom_concat(Q1 , ' value ', Q2 ), 
+  atom_concat(Q1 , ' value ', Q2 ),
   atom_concat(Q2 , Values, Q3),
   atom_concat(Q3 , ']', Result).
 
 
 /*
-We will update an existing relation by concatenating it with a 
+We will update an existing relation by concatenating it with a
 relation constant.
 
 */
- 
-appendToRelCmd(ObjName, RelSchema, Values, ResultCmd) :- 
+
+appendToRelCmd(ObjName, RelSchema, Values, ResultCmd) :-
   makeRelConstant(RelSchema, Values, RelConstant),
-  atom_concat('update ', ObjName, Q1), 
+  atom_concat('update ', ObjName, Q1),
   atom_concat(Q1 , ' := ', Q2 ),
   atom_concat(Q2 , ObjName, Q3 ),
   atom_concat(Q3 , ' feed ', Q4 ),
   atom_concat(Q4 , RelConstant, Q5),
-  atom_concat(Q5 , ' feed concat consume', ResultCmd ). 
+  atom_concat(Q5 , ' feed concat consume', ResultCmd ).
 

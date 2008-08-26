@@ -1202,7 +1202,7 @@ Virtual attributes to replace CSEs are stored in a table
     The expression is formatted in a way, such that it can be directly used in plans (using
     ~attr/3~).
 
-  * ~FlatSimpleExpr~ is a simle form of the flat CSE not using ~attr/3~, but simple attribute names and
+  * ~FlatSimpleExpr~ is a simple form of the flat CSE not using ~attr/3~, but simple attribute names and
     alias:attributename instead. It is used to find CSEs within plans.
 
   * ~UsedAttrs~ is the list of all simply formatted virtual and base attributes directly occuring

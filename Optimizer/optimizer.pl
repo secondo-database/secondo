@@ -82,8 +82,208 @@ attributes, relations, predicates) are written in PROLOG notation. Also note
 that the where-clause is a list of predicates rather than an arbitrary boolean
 expression and hence allows one to formulate conjunctive queries only.
 
+1.1 Naming Conventions
 
-1.2 Optimization Algorithm
+As the optimizer is implemented as a separated program, apart from the Secondo
+kernel, it has to make some effords to keep itself informed about objects
+saved within Secondo's databases. It does so by querying and inspecting
+Secondo's catalog.
+
+1.1.1 Naming Relations and Attributes
+
+Due to some restrictions of the Prolog system, we restrict the use of
+identifiers in databases when working with the optimizer:
+
+  1 You may not use the underscore '\_' within attribute or relation
+identifiers. The underscore is reserved for identifiers created by the
+optimizer to encode information into the name of database objects containing
+metadata.
+
+  2 Valid identifiers always start with a letter (a-z, A-Z).
+
+  3 You may use any spelling within object names. But you may only use
+any object identifier once, regardless of spelling variants. This means,
+that you may name a relation either 'Plz' or 'plz' or 'PLZ'. But you many NOT
+use two relations, one named 'Plz', and another one named 'PLZ' within the
+same database.
+
+  4 You may use any spelling within attribute names. But you may only use
+any attribute identifier once per relation, regardless of spelling variants.
+This means, that within a relation 'Plz', you may name an attribute either 'No'
+or 'NO' or 'no', but you many NOT use two attributes within 'Plz', one named
+'No', and another one named 'no'. However, you MAY use 'No' or 'NO' as attribute
+identifiers within any other relation (but, again, at most once per relation).
+
+Ignoring this convention may confuse the optimizer. This is, for Prolog does
+not allow certain atoms to start with upper case characters (because these are
+reserved for variable identifiers). We could circumvent this restriction, but
+that would make the code and output messages less readable.
+
+1.1.2 Naming Indexes
+
+Several information, e.g. on specialized indexes cannot be derived from the
+catalog's type descriptions, so we are required to assume a naming convention to
+infer the presence of (specialized) indexes for relations stored in a database.
+When using the Secondo optimizer...
+
+  1 ~Index~ identifiers need to respect following naming convention:\newline
+$<$RelName$>$\_$<$KeyattrName$>$[ \_$<$LogicalIndexTypeCode$>$ [ \_$<$DisambiguationTag$>$ ] ]
+
+$<$RelName$>$ is the name of the base relation, the index is built for.
+
+$<$KeyattrName$>$ is the name (itentifier) of the attribute, that is used to
+generate the keys stored within the index.
+
+$<$LogicalIndexTypeCode$>$ is a alphanumerical code used to describe the logical
+index type. While the base type of any index (rtee, rtree3, btree, xtree, hash
+etc.) can be looked up in the system catalog, the meaning of the index is coded
+using this tag. E.g. a rtree index can be described as a temporal index built on
+single units or objects here. This informatioon is used within optimization
+rules and required to construct small sample objects used to determine
+selectivities and other parameters used during optimization.
+
+$<$DisambiguationTag$>$ is a alphanumerical tag used to distinguish between
+different indexes of the same relation and attribute. E.g. you could create
+both, a xtree and an rtree3 index for indexing spatial data. You just
+need to specify this tag, if you maintain more than a single index on the same
+data. We recommend to use mnemonic tags coding the physical index type, e.g.
+``\_r3'' for a 3d-rtree, or ``\_x'' for a xtree index, or just emumerate them
+(``\_1'', ``\_2'' etc.).
+
+Logical index types are registered in file ~database.pl~ using facts
+~logicalIndexType/8~.
+
+The syntax allows to leave out the $<$LogicalIndexTypeCode$>$.
+In that case, the optimizer will assume a ``standard'' behaviour, e.g. will use
+a simple 'rtree'-index, when the physical index type is 'rtree'.
+
+By now, we have the following logical index types (and ~LogicalIndexTypeCode~s):
+
+  * btree: (none)
+
+  * hash: (none)
+
+  * mtree: (none)
+
+  * xtree: (none)
+
+  * rtree, rtree3, rtree4, rtree8: (none)
+
+  * temporal(rtree,object): tmpobj, temporal(rtree,unit): tmpuni
+
+  * spatial(rtree,object): sptobj, spatial(rtree,unit): sptuni
+
+  * spatiotemporal(rtree3,object): sptmpobj, spatiotemporal(rtree3,unit): sptmpuni
+
+  * keyword(btree): keywdb, keyword(hash): keywdh,
+
+Logical index type are registered in file ~database.pl~ using facts
+~logicalIndexType/8~.
+
+By now, we have the following logical index types:
+
+btree, rtree, rtree3, rtree4, rtree8, hash, mtree, xtree --- standard index types;
+spatial(rtree,object) --- spatial index on total spatial MBR of 2D-moving objects;
+spatial(rtree,unit) --- spatial index on unit-wise spatial MBRs of 2D-moving objects;
+temporal(rtree,object) --- temporal index on total deftime of 2D-moving objects;
+temporal(rtree,unit) --- temporal index on unit-wise deftimes of 2D-moving objects;
+spatiotemporal(rtree3,object) --- spatiotemporal index on total MBR of 2D-moving objects;
+spatiotemporal(rtree3,unit) --- spatiotemporal index on unit-wise MBRs of 2D-moving objects;
+
+1.1.3 Sample Objects
+
+The optimizer uses sampling to calculate basic costs. Samples can be created
+manually or automatically. We use a specific namin schema for such sample
+objects:
+
+  1 ~relationname~\_~sample~\_j and  ~relationname~\_~sample~\_s are used
+for sample relation objects.
+
+  2 ~indexname~\_\_~small~ is used for indexes on small objects.
+
+The ~sample~ and ~small~ objects are usually used to determine selectivities.
+
+
+1.2 Spelling of Identifiers within the Optimizer
+
+As Prolog recognizes any atoms starting with an uppercase character as a
+variable, identifiers starting with a upper case letter cannot be typed
+when using the optimizer. (Also operator names may not start upper-cased.)
+
+Instead, relations, indexes, attributes and any other database objects are
+always referenced using totally down-cased versions of their original
+identifiers when communicating with the optimizer. The optimizer will translate
+this so-called ~DC-Spelling~ into its own ~InternalSpelling~ and convert it to
+the full-spelled ~ExternalSpelling~, when it creates executable plans, which
+are meant to be passed to the Secondo kernel.
+
+Therefore, we have three kinds of spelling within the optimizer:
+
+  * ~ExternalSpelling~: The original spelling of identifiers, as they are known within the Secondo Catalog.
+
+  * ~InternalSpelling~: A representation used to store the ExternalSpelling within Prolog facts without confusing the Prolog system. It is ~only~ used to translate between ~DownCasedSpelling~ and ~ExternalSpelling~.
+
+  * ~DownCasedSpelling~ or ~DC-Spelling~: The fully down-cased version of identifiers in ~ExternalSpelling~. Each upper-case character is substituted by its lower-case counterpart. This spelling is used within the optimizer, e.g. to store and query meta using facts and predicates. The user has to formulate all queries using this spelling for attributes, relations, indexes, etc.
+
+As the optimizer only allows the use of identifiers in DC-Spelling, we need to
+translate between that notation and the ~ExternalSpelling~ (the real names known to the Secondo kernel).
+
+We use dynamic predicate storedSpell(Internal, External) to store the
+translation on disk. Due to this, we must avoid identifiers starting with an
+underscore or a uppercase character. As we proscribe the use of underscores
+within relation and attribute identifiers, we just need to keep care of
+identifiers starting with an uppercase letter.
+
+We do so by introducing an ~InternalSpelling~ schema, which is illustrated
+by the following table:
+
+----
+          External | Internal  | DCspelled
+          ---------+-----------+---------
+           Mouse   | mouse     |  mouse
+           mouse   | lc(mouse) |  mouse
+           mOUSe   | lc(mOUSe) |  mouse
+           MOUSe   | mOUSe     |  mouse
+----
+
+Database object names are maintained by facts
+
+---- storedSpell(+DB, +DCspelledObj, +InternalObj)
+----
+
+where ~DB~ is the DCspelled database name, ~DCspelledObj~ is the object name in
+DownCasedSpelling, and ~InternalObj~ is the object's name in InternalSpelling
+spelling.
+
+Attribute Identifiers are stored using facts
+
+---- storedSpell(+DB, +DCspelledRel : +DCspelledAttr, +InternalAttr)
+----
+
+~DB~ is the name of the database, which is always in DC-spelling (the Secondo
+kernel does not consider spelling for database names at all).
+
+Three predicates are used to translate between the different spelling schemas:
+
+----
+          dcName2internalName(?DC,?Intern)
+          dcName2externalName(?DC,?External)
+          internalName2externalName(?Intern,?Extern)
+----
+
+When using these predicates, at least one of the two arguments must be
+instantiated with a ~ground term~, i.e. a term containing no unbound variable.
+
+Otherwise, or if the translation fails due to some other circumstances, the
+translation predicate will throw an exception. This is to prevent the propagation
+of errors through the optimization process, which easily leads to unpredictable
+behaviour of the optimizer.
+
+So, if you get an exception from these predicates, carefully inspect the error
+message. It is likely, that you just miss-typed an identifier.
+
+
+1.3 Optimization Algorithm
 
 The optimizer employs an as far as we know novel optimization algorithm which is
 based on ~shortest path search in a predicated order graph~. This technique is
@@ -158,7 +358,6 @@ edges~). This path is transformed into a Secondo query plan and returned
 is possible to enter queries in this language. The optimizer determines from it
 the lists of relations and predicates in the form needed for constructing the
 POG, and then invokes step 1 (Section 11).
-
 
 
 2 Data Structures
@@ -822,6 +1021,9 @@ In the target language, we use the following operators:
         exactmatch:     btree(Tuple, AttrType) x rel(Tuple) x AttrType
                                 -> stream(Tuple)
 
+        exactmatch:     hash(Tuple, AttrType) x rel(Tuple) x AttrType
+                                -> stream(Tuple)
+
         extend:         stream(Tuple1) x (Newname x (Tuple -> Attrtype))+
                                 -> stream(Tuple2)
 
@@ -830,8 +1032,8 @@ In the target language, we use the following operators:
 
         remove:         stream(Tuple1) x Attrname+ -> stream(Tuple2)
 
-                                where   Tuple2 is Tuple1 from which the mentioned
-                                        attributes have been removed.
+                                where   Tuple2 is Tuple1 from which the
+                                        mentioned attributes have been removed.
 
         project:        stream(Tuple1) x Attrname+ -> stream(Tuple2)
 
@@ -899,7 +1101,7 @@ Parameter functions are written as
 
 5.1.3 Converting Plans to Atoms and Writing them.
 
-Predicate ~plan\_to\_atom~ converts a plan to a string atom, which represents
+Predicate ~plan\_to\_atom~ converts a plan to a single atom, which represents
 the plan as a SECONDO query in text syntax. For attributes we have to
 distinguish whether a leading ``.'' needs to be written (if the attribute occurs
 within a parameter function) or whether just the attribute name is needed as in
@@ -928,9 +1130,9 @@ wp(Plan) :-
 Function ~newVariable~ outputs a new unique variable name.
 The variable name is unique in the sense that ~newVariable~ never
 outputs the same name twice (in a PROLOG session).
-It should be emphasized that the output
-is not a PROLOG variable but a variable name to be used for defining
-abstractions in the Secondo system.
+It should be emphasized that the output is not a PROLOG variable but a
+variable name (identifier) to be used for defining abstractions in the
+Secondo system.
 
 */
 
@@ -987,6 +1189,21 @@ rel_to_atom(rel(Name, _, u), Name2) :-
   upper(Name, Name2).
 
 
+plan_to_atom(A,A) :-
+  string(A),
+  !.
+
+plan_to_atom(dbobject(DCname),ExtName) :-
+  ( dcName2externalName(DCname,ExtName)
+    -> true
+    ; ( write_list(['\nERROR:\tCannor translate \'',dbobject(DCname),'\'.']),
+        throw(error_SQL(optimizer_plan_to_atom(dbobject(DCname),
+                                                  ExtName):missingData)),
+        fail
+      )
+  ),
+  !.
+
 plan_to_atom(Rel, Result) :-
   rel_to_atom(Rel, Name),
   atom_concat(Name, ' ', Result),
@@ -1040,8 +1257,21 @@ plan_to_atom([X | Xs], Result) :-
 
 
 /*
-Operators: only special syntax. General rules for standard syntax
-see below.
+Operators: You only need to specify translation rules explicitly
+
+  * for operators with a non-standard syntax (e.g. using a semicolon within a parameter list),
+
+  * for operators that perform translations to more complex terms, or nave another name than is used by the kernel,
+
+  * if you want to respect some optimizerOptions,
+
+  * if you use implicit argumets,
+
+  * if you need to change argument order.
+
+
+For general/standart syntax rules, see below.
+Non-standard syntax can be declared in file ~opsyntax.pl~ using facts ~secondoOp/3~.
 
 */
 
@@ -1058,24 +1288,6 @@ plan_to_atom(symmjoin(X, Y, M), Result) :-
   plan_to_atom(M2, MAtom),
   concat_atom([XAtom, YAtom, 'symmjoin[',
     MAtom, '] '], '', Result),
-  !.
-
-plan_to_atom(hashjoin(X, Y, A, B, C), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom, YAtom, 'hashjoin[',
-    AAtom, ', ', BAtom, ', ', C, '] '], '', Result),
-  !.
-
-plan_to_atom(mergejoin(X, Y, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom, YAtom, 'mergejoin[',
-                 AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
 plan_to_atom(symmproductextend(X, Y, Fields), Result) :-
@@ -1095,7 +1307,7 @@ plan_to_atom(sortLeftThenMergejoin(X, Y, A, B), Result) :-
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
   concat_atom([XAtom, 'sortby[', AAtom, ' asc] ',
-	       YAtom, 'mergejoin[', AAtom, ', ', BAtom, '] '], '', Result),
+               YAtom, 'mergejoin[', AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
 plan_to_atom(sortRightThenMergejoin(X, Y, A, B), Result) :-
@@ -1105,7 +1317,7 @@ plan_to_atom(sortRightThenMergejoin(X, Y, A, B), Result) :-
   plan_to_atom(A, AAtom),
   plan_to_atom(B, BAtom),
   concat_atom([XAtom, YAtom, 'sortby[', BAtom, ' asc] ',
-	       'mergejoin[', AAtom, ', ', BAtom, '] '], '', Result),
+               'mergejoin[', AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
 
@@ -1116,7 +1328,7 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(B, BAtom),
   optimizerOption(useRandomSMJ), % maps sortmergejoin to sortmergejoin_r2
   concat_atom([XAtom, YAtom, 'sortmergejoin_r2[',
-    AAtom, ', ', BAtom, '] '], '', Result),
+               AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
 
@@ -1127,35 +1339,7 @@ plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
   plan_to_atom(B, BAtom),
   optimizerOption(useRandomSMJ3),
   concat_atom([XAtom, YAtom, 'sortmergejoin_r3[',
-    AAtom, ', ', BAtom, '] '], '', Result),
-  !.
-
-
-plan_to_atom(sortmergejoin(X, Y, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom, YAtom, 'sortmergejoin[',
-    AAtom, ', ', BAtom, '] '], '', Result),
-  !.
-
-
-plan_to_atom(sortmergejoin_r2(X, Y, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom, YAtom, 'sortmergejoin_r2[',
-    AAtom, ', ', BAtom, '] '], '', Result),
-  !.
-
-
-plan_to_atom(pjoin2(X, Y, Fields), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(Fields, FAtom),
-  concat_atom([XAtom, YAtom, 'pjoin2[', FAtom, '] '], '', Result),
+               AAtom, ', ', BAtom, '] '], '', Result),
   !.
 
 plan_to_atom(pjoin1(X, Y, Ctr, Fields), Result) :-
@@ -1163,17 +1347,7 @@ plan_to_atom(pjoin1(X, Y, Ctr, Fields), Result) :-
   plan_to_atom(Y, YAtom),
   plan_to_atom(Ctr, CtrAtom),
   plan_to_atom(Fields, FAtom),
-  concat_atom([XAtom, YAtom, 'pjoin1[', CtrAtom, '; ', FAtom, '] '], '', Result),
-  !.
-
-
-plan_to_atom(spatialjoin(X, Y, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom, YAtom, 'spatialjoin[',
-    AAtom, ', ', BAtom, '] '], '', Result),
+  concat_atom([XAtom,YAtom, 'pjoin1[', CtrAtom, '; ', FAtom, '] '], '', Result),
   !.
 
 plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
@@ -1181,12 +1355,6 @@ plan_to_atom(groupby(Stream, GroupAttrs, Fields), Result) :-
   plan_to_atom(GroupAttrs, GAtom),
   plan_to_atom(Fields, FAtom),
   concat_atom([SAtom, 'groupby[', GAtom, '; ', FAtom, ']'], '', Result),
-  !.
-
-plan_to_atom(extend(Stream, Fields), Result) :-
-  plan_to_atom(Stream, SAtom),
-  plan_to_atom(Fields, FAtom),
-  concat_atom([SAtom, 'extend[', FAtom, '] '], '', Result),
   !.
 
 plan_to_atom(field(NewAttr, Expr), Result) :-
@@ -1200,8 +1368,6 @@ plan_to_atom(field(NewAttr, Expr), Result) :-
 Using the switch ``removeHiddenAttributes'', ~reduce~ can either be left in the plan or removed from it.
 
 */
-
-
 plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
   not(removeHiddenAttributes), !,		% is used in plan
   plan_to_atom(Stream, StreamAtom),
@@ -1244,63 +1410,16 @@ plan_to_atom(project(Stream, Fields), Result) :-
 
 % Ignore sortby with empty sort list
 plan_to_atom(sortby(Stream, []), Result) :-
-  plan_to_atom(Stream, Result), 
+  plan_to_atom(Stream, Result),
   !.
 
 
-
-/*
-Special Operators for Algebras
-
-Picture Algebra:
-
-*/
-plan_to_atom(equals(X, Y, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom,' ',YAtom,' equals[',AAtom,', ',BAtom, ']'],'',Result),
-  !.
-
-plan_to_atom(like(X, Y, Z, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(Z, ZAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([XAtom,' like[',YAtom,', ',ZAtom,', ',AAtom,', ',BAtom,']'],
-  '', Result),
-  !.
-
-/*
-End of Picture Algebra
-
-Temporal Algebra
-
-*/
-plan_to_atom(theminute(X, Y, Z, A, B), Result) :-
-  plan_to_atom(X, XAtom),
-  plan_to_atom(Y, YAtom),
-  plan_to_atom(Z, ZAtom),
-  plan_to_atom(A, AAtom),
-  plan_to_atom(B, BAtom),
-  concat_atom([' theminute(', XAtom, ', ', YAtom, ', ', ZAtom, ', ',
-    AAtom, ', ', BAtom, ')'],
-  '', Result),
-  !.
-
-/*
-End of Temporal Algebra
-
-*/
-
-
-plan_to_atom(exactmatchfun(IndexName, Rel, attr(Name, R, Case)), Result) :-
+plan_to_atom(exactmatchfun(Index, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(Rel, RelAtom),
   plan_to_atom(a(Name, R, Case), AttrAtom),
+  plan_to_atom(Index,IndexAtom),
   newVariable(T),
-  concat_atom(['fun(', T, ' : TUPLE) ', IndexName,
+  concat_atom(['fun(', T, ' : TUPLE) ', IndexAtom,
     ' ', RelAtom, 'exactmatch[attr(', T, ', ', AttrAtom, ')] '], Result),
   !.
 
@@ -1355,12 +1474,12 @@ Sort orders and attribute names.
 
 plan_to_atom(asc(Attr), Result) :-
   plan_to_atom(Attr, AttrAtom),
-  atom_concat(AttrAtom, ' asc', Result), 
+  atom_concat(AttrAtom, ' asc', Result),
   !.
 
 plan_to_atom(desc(Attr), Result) :-
   plan_to_atom(Attr, AttrAtom),
-  atom_concat(AttrAtom, ' desc', Result), 
+  atom_concat(AttrAtom, ' desc', Result),
   !.
 
 plan_to_atom(attr(Name, Arg, Case), Result) :-
@@ -1380,7 +1499,7 @@ plan_to_atom(attr2(Name, Arg, Case), Result) :-
   !.
 
 plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
-  plan_to_atom(a(Name, Arg, Case), Result), 
+  plan_to_atom(a(Name, Arg, Case), Result),
   !.
 
 plan_to_atom(a(A:B, _, l), Result) :-
@@ -1437,7 +1556,7 @@ plan_to_atom(simpleAggrNoGroupby(AggrOp, Stream, Expr), Result) :-
   Expr \= attr(_, _, _),
   newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
-  Term1 =.. [AggrOp, extend(Stream, [field(ExprAttr, Expr)]), attrname(ExprAttr)],
+  Term1 =.. [AggrOp,extend(Stream,[field(ExprAttr, Expr)]),attrname(ExprAttr)],
   plan_to_atom(Term1, Result),
   !.
 
@@ -1471,8 +1590,7 @@ file ~opsyntax~. There are rules for
 
   * postfix, 1 or 2 arguments
 
-  * postfix followed by one argument in square brackets, in total 2
-or 3 arguments
+  * postfix followed by arguments in square brackets
 
   * prefix, 2 arguments
 
@@ -1499,25 +1617,26 @@ plan_to_atom(Term, Result) :-
   !.
 
 plan_to_atom(Term, Result) :-
-  functor(Term, Op, 2),
-  secondoOp(Op, postfixbrackets, 2),
-  arg(1, Term, Arg1),
-  plan_to_atom(Arg1, Res1),
-  arg(2, Term, Arg2),
-  plan_to_atom(Arg2, Res2),
-  concat_atom([Res1, ' ', Op, '[', Res2, '] '], '', Result),
+  compound(Term),
+  Term =.. [Op, Arg1 | OtherArgs],
+  secondoOp(Op, postfixbrackets1, _),
+  not(OtherArgs = []),                            % this would be (postfix, 1)
+  plan_to_atom(Arg1, RArg1),
+  plan_to_atom_2(OtherArgs, ROtherArgs),
+  concat_atom(ROtherArgs, ' , ', AOtherArgs),
+  concat_atom([RArg1, ' ', Op, '[', AOtherArgs, '] '], '', Result),
   !.
 
 plan_to_atom(Term, Result) :-
-  functor(Term, Op, 3),
-  secondoOp(Op, postfixbrackets, 3),
-  arg(1, Term, Arg1),
-  plan_to_atom(Arg1, Res1),
-  arg(2, Term, Arg2),
-  plan_to_atom(Arg2, Res2),
-  arg(3, Term, Arg3),
-  plan_to_atom(Arg3, Res3),
-  concat_atom([Res1, ' ', Res2, ' ', Op, '[', Res3, '] '], '', Result),
+  compound(Term),
+  Term =.. [Op, Arg1, Arg2 | OtherArgs],
+  secondoOp(Op, postfixbrackets2, _),
+  not(OtherArgs = []),                            % this would be (postfix, 2)
+  plan_to_atom(Arg1, RArg1),
+  plan_to_atom(Arg2, RArg2),
+  plan_to_atom_2(OtherArgs, ROtherArgs),
+  concat_atom(ROtherArgs, ' , ', AOtherArgs),
+  concat_atom([RArg1, ' ', RArg2, ' ', Op, '[', AOtherArgs, '] '], '', Result),
   !.
 
 plan_to_atom(Term, Result) :-
@@ -1559,8 +1678,6 @@ plan_to_atom(Term, Result) :-
   concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !.
 
 /* 3+ arguments: prefix */
-
-
 plan_to_atom(InTerm,OutTerm) :-
   compound(InTerm),
   InTerm =.. [Op|ArgsIn],
@@ -1577,14 +1694,15 @@ plan_to_atom(X, Result) :-
 /* Error case */
 plan_to_atom(X, _) :-
   write('Error in plan_to_atom: No rule for handling term '),
-  write(X), 
-  nl.
+  write(X), nl,
+  throw(error_SQL(optimizer_plan_to_atom(X,undef):malformedExpression)),
+  !, fail.
 
 /* auxiliary predicate */
 plan_to_atom_2([],[]).
 
 plan_to_atom_2([InHead|InRest],[OutHead|OutRest]) :-
-  plan_to_atom(InHead,OutHead),
+  plan_to_atom(InHead,OutHead), !,
   plan_to_atom_2(InRest,OutRest).
 
 /*
@@ -1684,6 +1802,11 @@ select(Arg, pr(Pred, _, _)) => filter(ArgS, Pred) :-
 
 Translation of selections using indices.
 
+July 2008, Christian D[ue]ntgen. Added rules covering mtree indexes.
+
+July 2008, Christian D[ue]ntgen. Problems with indexselect() => , when using
+      A = B, where A ad B are attributes of the same relation.
+
 April 2006, Christian D[ue]ntgen. Added project-translation for index selections.
 
 May 2006, Translating a selection-predicate into a combination of ~windowintersects~/
@@ -1712,55 +1835,94 @@ select(arg(N), Y) => project(X, RenamedAttrNames) :-
   renameAttributes(Var, AttrNames, RenamedAttrNames).
 
 
-
+% replace (Attr = Term) by (Term = Attr)
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
   indexselect(arg(N), pr(Y = attr(AttrName, Arg, Case), Rel)) => X.
 
-
+% generic rule for (Term = Attr): exactmatch using btree or hashtable
+% without rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   exactmatch(IndexName, rel(Name, *, Case), Y)
   :-
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,*,Case),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  dcName2externalName(DCindex,IndexName),
+  (IndexType = btree; IndexType = hash).
 
+% generic rule for (Term = Attr): exactmatch using btree or hashtable
+% with rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   rename(exactmatch(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)), Var \= * ,
-  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,Var,Case),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  dcName2externalName(DCindex,IndexName),
+  (IndexType = btree; IndexType = hash).
 
+% generic rule for (Term = Attr): rangesearch using mtree
+% without rename
+indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
+  rangesearch(IndexName, rel(Name, *, Case), Y, 0.0)
+  :-
+  argument(N, rel(Name, *, Case)),
+  hasIndex(rel(Name,*,Case),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  dcName2externalName(DCindex,IndexName),
+  IndexType = mtree.
 
+% generic rule for (Term = Attr): rangesearch using mtree
+% with rename
+indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
+  rename(rangesearch(IndexName, rel(Name, Var, Case), Y), Var, 0.0)
+  :-
+  argument(N, rel(Name, Var, Case)), Var \= * ,
+  hasIndex(rel(Name,Var,Case),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  dcName2externalName(DCindex,IndexName),
+  IndexType = mtree.
+
+% replace (Attr <= Term) with (Term >= Attr)
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y >= attr(AttrName, Arg, Case), Rel)) => X.
 
+% generic rule for (Term >= Attr): leftrange using btree
+% without rename
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
   leftrange(IndexName, rel(Name, *, Case), Y)
   :-
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,*,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,*,Case), attr(AttrName, Arg, AttrCase), DCindex, btree),
+  dcName2externalName(DCindex,IndexName).
 
-
+% generic rule for (Term >= Attr): leftrange using btree
+% with rename
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
   rename(leftrange(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)), Var \= * ,
-  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), DCindex, btree),
+  dcName2externalName(DCindex,IndexName).
 
+
+% replace (Attr >= Term) with (Term <= Attr)
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
   indexselect(arg(N), pr(Y <= attr(AttrName, Arg, Case), Rel)) => X.
 
-
+% generic rule for (Term <= Attr): rightrange using btree
+% without rename
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   rightrange(IndexName, rel(Name, *, Case), Y)
   :-
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), DCindex, btree),
+  dcName2externalName(DCindex,IndexName).
 
+% generic rule for (Term <= Attr): rightrange using btree
+% with rename
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
   rename(rightrange(IndexName, rel(Name, Var, Case), Y), Var)
   :-
   argument(N, rel(Name, Var, Case)), Var \= * ,
-  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), IndexName, btree).
+  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), DCindex, btree),
+  dcName2externalName(DCindex,IndexName).
 
 
 /*
@@ -1781,11 +1943,12 @@ indexselect(arg(N), pr(Pred, _)) =>
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
   isBBoxPredicate(OP),
   argument(N, rel(Name, *, Case)),
-  (   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree)
-      ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree3)
-      ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree4)
-      ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree8)
-  ).
+  (     hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree)
+      ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
+      ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree4)
+      ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree8)
+  ),
+  dcName2externalName(DCindex,IndexName).
 
 indexselect(arg(N), pr(Pred, _)) =>
   filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias),
@@ -1795,11 +1958,12 @@ indexselect(arg(N), pr(Pred, _)) =>
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)]),
   isBBoxPredicate(OP),
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= *,
-  (   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree)
-    ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree3)
-    ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree4)
-    ; hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase), IndexName, rtree8)
-  ).
+  (   hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree)
+    ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
+    ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree4)
+    ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree8)
+  ),
+  dcName2externalName(DCindex,IndexName).
 
 % exploit commutativity of operators (additional cases)
 indexselect(arg(N), pr(Pred, Rel)) => X :-
@@ -1823,14 +1987,15 @@ indexselect(arg(N), Pred) => X :-
 
 
 
-% 'present' with object_time index
+% 'present' with temporal(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
          rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
-           IndexName, object_time).
+           DCindex, temporal(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
@@ -1838,33 +2003,39 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
-           IndexName, object_time).
+           DCindex, temporal(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
 
-% 'present' with unit_time index
+% 'present' with temporal(rtree,unit) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))),
          rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+           DCindex, temporal(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(gettuples(rdup(sort(
          windowintersectsS(IndexName, queryrect2d(Y)))),
-         rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
+         rel(Name, *, Case)), RelAlias), attr(AttrName,Arg,AttrCase) present Y)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_time).
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+           DCindex, temporal(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
 
 
-% 'passes' with object_space index
+% 'passes' with spatial(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(gettuples(windowintersectsS(IndexName, bbox(Y)), rel(Name, *, Case)),
          attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, *, Case)),
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
-           IndexName, object_space).
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(rename(gettuples(windowintersectsS(IndexName, bbox(Y)),
@@ -1872,23 +2043,28 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
   hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
-           IndexName, object_space).
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
 
 
-% 'passes' with unit_space index
+% 'passes' with spatial(rtree,unit) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
          rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),IndexName, unit_space).
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
          rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),IndexName, unit_space).
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
 
 
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with unit_3d index
@@ -1898,7 +2074,8 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
             rel(Name, *, Case))
   :-
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_3d).
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, unit_3d),
+  dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
@@ -1906,7 +2083,9 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
             rel(Name, *, Case)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, unit_d3).
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+           DCindex, spatiotemporal(rtree3,unit)),
+  dcName2externalName(DCindex,IndexName).
 
 
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with object_3d index
@@ -1915,7 +2094,9 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
   gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), rel(Name, *, Case))
   :-
   argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+           DCindex, spatiotemporal(rtree3,object)),
+  dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
@@ -1923,10 +2104,43 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
          rel(Name, *, Case)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), IndexName, object_d3).
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+           DCindex, spatiotemporal(rtree3,object)),
+  dcName2externalName(DCindex,IndexName).
 
+% 'intersects' with object_4d
+% does not consider 4d-boxes created 'on the fly'
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) intersects Y, _)) =>
+  gettuples(windowintersectsS(IndexName, Y), rel(Name, *, Case))
+  :-
+  argument(N, rel(Name, *, Case)),
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, rtree4),
+  dcName2externalName(DCindex,IndexName).
 
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
+  => rename(gettuples(windowintersectsS(IndexName, Y),
+     rel(Name, *, Case)), RelAlias)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, rtree4),
+  dcName2externalName(DCindex,IndexName).
 
+% 'intersects' with object_8d index
+% does not consider 8d-boxes created 'on the fly'
+indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) intersects Y, _)) =>
+  gettuples(windowintersectsS(IndexName, Y), rel(Name, *, Case))
+  :-
+  argument(N, rel(Name, *, Case)),
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
+  => rename(gettuples(windowintersectsS(IndexName, Y),
+     rel(Name, *, Case)), RelAlias)
+  :-
+  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
+  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
+  dcName2externalName(DCindex,IndexName).
 
 /*
 Here ~ArgS~ is meant to indicate ``argument stream''.
@@ -1938,7 +2152,7 @@ A join can always be translated to a ~symmjoin~.
 */
 
 join(Arg1, Arg2, pr(Pred, _, _)) => symmjoin(Arg1S, Arg2S, Pred) :-
-  not(optimizerOption(noSymmjoin)), 
+  not(optimizerOption(noSymmjoin)),
   Arg1 => Arg1S,
   Arg2 => Arg2S.
 
@@ -1955,7 +2169,8 @@ join(Arg1, arg(N), pr(X=Y, _, _)) => loopjoin(Arg1S, MatchExpr) :-
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
   argument(N, RelDescription),
-  hasIndex(RelDescription, Attr2, IndexName, btree),
+  hasIndex(RelDescription, Attr2, DCindex, btree),
+  dcName2externalName(DCindex,IndexName),
   Arg1 => Arg1S,
   exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
 
@@ -1963,7 +2178,8 @@ join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
-  hasIndex(RelDescription, Attr1, IndexName, btree),
+  hasIndex(RelDescription, Attr1, DCindex, btree),
+  dcName2externalName(DCindex,IndexName),
   Arg2 => Arg2S,
   exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
 
@@ -2031,11 +2247,12 @@ join(Arg1, arg(N), pr(Pred, _, _))
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
   argument(N, RelDescription),% get info on 2nd relation
   (                           % the relation has an index on Attr2:
-      hasIndex(RelDescription, Attr2, IndexName, rtree)
-    ;   hasIndex(RelDescription, Attr2, IndexName, rtree3)
-    ;   hasIndex(RelDescription, Attr2, IndexName, rtree4)
-    ;   hasIndex(RelDescription, Attr2, IndexName, rtree8)
+      hasIndex(RelDescription, Attr2, DCindex, rtree)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree3)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree4)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree8)
   ),
+  dcName2externalName(DCindex,IndexName),
   Arg1 => Arg1S,
   rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
 
@@ -2046,11 +2263,12 @@ join(arg(N), Arg2, pr(Pred, _, _))
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
-  (   hasIndex(RelDescription, Attr1, IndexName, rtree)
-    ; hasIndex(RelDescription, Attr1, IndexName, rtree3)
-    ; hasIndex(RelDescription, Attr1, IndexName, rtree4)
-    ; hasIndex(RelDescription, Attr1, IndexName, rtree8)
+  (   hasIndex(RelDescription, Attr1, DCindex, rtree)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree3)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree4)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree8)
   ),
+  dcName2externalName(DCindex,IndexName),
   Arg2 => Arg2S,
   rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
 
@@ -2213,13 +2431,13 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2), 99997)   :-
-  not(optimizerOption(noHashjoin)), 
+  not(optimizerOption(noHashjoin)),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
         attrname(Attr2), attrname(Attr1), 99997)   :-
-  not(optimizerOption(noHashjoin)), 
+  not(optimizerOption(noHashjoin)),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
@@ -2653,9 +2871,10 @@ relativeError(0, _, inf).
 
 
 getSizes(L, Format) :-
-  optimizerOption(useCounters),	
+  optimizerOption(useCounters),
   computeNodeSizes, !,
-  findall([Src-Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr], pathInfo(Src, Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr), L),
+  findall([Src-Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr],
+  pathInfo(Src, Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr), L),
   Format = [ ['Edge', 'l'],
              ['Arg1', 'l'],
 	     ['Arg2', 'l'],
@@ -2669,7 +2888,7 @@ getSizes(L, Format) :-
 
 
 checkSizes :-
-  getSizes(L, Format),	
+  getSizes(L, Format),
   current_prolog_flag(float_format, FF),
   set_prolog_flag(float_format, '%.7f'),
   showTuples(L, Format),
@@ -2943,7 +3162,7 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
     A * NBuckets * (SizeX/NBuckets + 1) *       % computing the product for each
       (SizeY/NBuckets +1) +                     % pair of buckets
     B * S,
-  %showValue('Hashcost', H),  
+  %showValue('Hashcost', H),
   C is CostX + CostY + H.                       % producing the result tuples
 
 
@@ -3003,7 +3222,7 @@ cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
   cost(Y, 1, SizeY, CostY),
   spatialjoinTC(A, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY + 
+  C is CostX + CostY +
   A * (SizeX + SizeY) +                	% effort is essentially proportional to the
 					% sizes of argument streams
   B * S.                                % cost to produce result tuples
@@ -3084,7 +3303,7 @@ cost(gettuples(X, _), Sel, Size, Cost) :-
 
 
 
-isPrefilter(X) :- 
+isPrefilter(X) :-
   X = spatialjoin(_, _, _, _).
 
 isPrefilter(X) :-
@@ -3673,9 +3892,12 @@ This translates to:
 example6 :- pog(
   [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l), rel(plz, p3, l)],
   [
-    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), rel(staedte, *, u), rel(plz, p1, l)),
-    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1), rel(plz, p1, l), rel(plz, p2, l)),
-    pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5), rel(plz, p2, l), rel(plz, p3, l)),
+    pr(attr(sName, 1, u) = attr(p1:ort, 2, u),
+                           rel(staedte, *, u), rel(plz, p1, l)),
+    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1),
+                             rel(plz, p1, l), rel(plz, p2, l)),
+    pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5),
+                             rel(plz, p2, l), rel(plz, p3, l)),
     pr(attr(bev, 1, u) > 300000,  rel(staedte, *, u)),
     pr(attr(bev, 1, u) < 500000,  rel(staedte, *, u)),
     pr(attr(p2:pLZ, 1, u) > 50000,  rel(plz, p2, l)),
@@ -3694,7 +3916,8 @@ smaller and avoid too many big joins first.
 example7 :- pog(
   [rel(staedte, *, u), rel(plz, p1, l)],
   [
-    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), rel(staedte, *, u), rel(plz, p1, l)),
+    pr(attr(sName, 1, u) = attr(p1:ort, 2, u),
+            rel(staedte, *, u), rel(plz, p1, l)),
     pr(attr(bev, 0, u) > 300000,  rel(staedte, *, u)),
     pr(attr(bev, 0, u) < 500000,  rel(staedte, *, u)),
     pr(attr(p1:pLZ, 0, u) > 50000,  rel(plz, p1, l)),
@@ -3708,8 +3931,10 @@ example7 :- pog(
 example8 :- pog(
   [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l)],
   [
-    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), rel(staedte, *, u), rel(plz, p1, l)),
-    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1), rel(plz, p1, l), rel(plz, p2, l)),
+    pr(attr(sName, 1, u) = attr(p1:ort, 2, u),
+            rel(staedte, *, u), rel(plz, p1, l)),
+    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1),
+            rel(plz, p1, l), rel(plz, p2, l)),
     pr(attr(bev, 0, u) > 300000,  rel(staedte, *, u)),
     pr(attr(bev, 0, u) < 500000,  rel(staedte, *, u)),
     pr(attr(p1:pLZ, 0, u) > 50000,  rel(plz, p1, l)),
@@ -3734,9 +3959,12 @@ example9 :- pog([rel(staedte, s, u), rel(plz, p, l)],
 example10 :- pog(
   [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l), rel(plz, p3, l)],
   [
-    pr(attr(sName, 1, u) = attr(p1:ort, 2, u), rel(staedte, *, u), rel(plz, p1, l)),
-    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1), rel(plz, p1, l), rel(plz, p2, l)),
-    pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5), rel(plz, p2, l), rel(plz, p3, l))
+    pr(attr(sName, 1, u) = attr(p1:ort, 2, u),
+                           rel(staedte, *, u), rel(plz, p1, l)),
+    pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1),
+                            rel(plz, p1, l), rel(plz, p2, l)),
+    pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5),
+                            rel(plz, p2, l), rel(plz, p3, l))
   ],
   _, _).
 
@@ -3784,7 +4012,7 @@ The second query can be written as:
 Note that all relation names and attribute names are written just in lower
 case; the system will lookup the spelling in a table.
 
-Furthermore, it will be possible to add a groupby- and an orderby-clause:
+Furthermore, it possible possible to add a groupby- and an orderby-clause:
 
   * groupby
 
@@ -3838,7 +4066,8 @@ Example using a user defined aggregation function:
 ----
 
 The next example also shows that the where-clause may be omitted. It is also
-possible to combine grouping and ordering:
+possible to combine grouping and ordering. You can further restrict the result
+to the first or last ~N~ tuples by using ~first N~ or ~last N~:
 
 ----    select [ort,
                 min(plz) as minplz,
@@ -3909,25 +4138,25 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 
 */
 
-:- op(993,  fx, sql).
-:- op(992,  fx, create).
+
+:- op(993,  fx,  sql).
+:- op(992,  fx,  create).
 :- op(991,  xfx, by).
-:- op(988,  fx, with).
-:- op(987, xfx, in).
-:- op(986, xfx, first).
-:- op(986, xfx, last).
-%:- op(985, xfx, >>).         % XRIS: what's that operator for?
-:- op(980, xfx, orderby).
-:- op(970, xfx, groupby).
-:- op(960, xfx, from).
-:- op(950,  fx, select).
-:- op(950, xfx, where).
-:- op(940,  fx, distinct).
-:- op(940,  fx, all).
-:- op(935,  fx, nonempty).
-:- op(930, xfx, as).
-:- op(930, xf , asc).
-:- op(930, xf , desc).
+:- op(988,  fx,  with).
+:- op(987, xfx,  in).
+:- op(986, xfx,  first).
+:- op(986, xfx,  last).
+:- op(980, xfx,  orderby).
+:- op(970, xfx,  groupby).
+:- op(960, xfx,  from).
+:- op(950,  fx,  select).
+:- op(950, xfx,  where).
+:- op(940,  fx,  distinct).
+:- op(940,  fx,  all).
+:- op(935,  fx,  nonempty).
+:- op(930, xfx,  as).
+:- op(930, xf ,  asc).
+:- op(930, xf ,  desc).
 
 /*
 This ensures that the select-from-where statement is viewed as a term with the
@@ -4112,7 +4341,7 @@ lookupRel(Atom, Atom) :-
   atom(Atom),
   relError(Atom).
 
-relError(Atom) :-  
+relError(Atom) :-
   concat_atom( ['relation ', Atom, ' not known!'], Msg),
   lookupError(Msg).
 
@@ -4245,12 +4474,35 @@ lookupAttr(Term, Term2) :-
   Term2 =.. [Op|Args2],
   !.
 
+/*
+New:
+
+*/
+
+lookupAttr(Term, dbobject(TermDC)) :-
+  atom(Term),
+  dcName2externalName(TermDC,Term),
+  secondoCatalogInfo(TermDC,_,_,_),
+  !.
+
 lookupAttr(Term, Term) :-
   atom(Term),
-  write('Symbol \''),
-  write(Term),
-  write('\' in attribute list not recognized.'),
-  write(' Supposed to be a Secondo object\n'), !.
+  write_list(['\nERROR:\tSymbol \'',Term,                         %'
+              '\' in attribute list not recognized!']),           %'
+  throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownError)),
+  fail.
+
+/*
+Old code:
+
+----
+lookupAttr(Term, Term) :-
+  atom(Term),
+  write_list(['\nINFO:\tSymbol \'',Term,'\' in attribute list not recognized!',
+            '\n--->\tAssumed to be a database object.']), nl.
+----
+
+*/
 
 lookupAttr(Term, Term) :- !.
 
@@ -4363,13 +4615,32 @@ lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   Term2 =.. [Op|Args2],
   !.
 
+/*
+New:
+*/
+
+lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
+  atom(Term),
+  not(is_list(Term)),
+  dcName2externalName(TermDC,Term),
+  secondoCatalogInfo(TermDC,_,_,_),
+  !.
+
+/*
+Old:
+
+----
 lookupPred1(Term, Term, Rels, Rels) :-
   atom(Term),
   not(is_list(Term)),
   write('Symbol \''), write(Term),
   write('\' not recognized, supposed to be a Secondo object.'), nl, !.
+----
+*/
 
 lookupPred1(Term, Term, Rels, Rels).
+
+
 
 lookupPred2([], [], RelsBefore, RelsBefore).
 
@@ -4532,7 +4803,7 @@ To activate this option use ``setOption(intOrders(V))'' for a variant ~V~.
 
 translate(Select from Rels where Preds, Stream, Select, Cost) :-
   ( optimizerOption(immediatePlan) ; optimizerOption(intOrders(_)) ),
-  getTime(( immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost),
+  getTime(( immPlanTranslate(Select from Rels where Preds, Stream,Select,Cost),
             !
           ), Time),
   ( optimizerOption(pathTiming)
@@ -4629,7 +4900,8 @@ translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2).
 
 % case: attribute with rename
-translateFields([Attr as Name | Select], GroupAttrs, Fields, [Attr as Name | Select2]) :-
+translateFields([Attr as Name | Select], GroupAttrs, Fields,
+                [Attr as Name | Select2]) :-
   member(Attr, GroupAttrs),
   !,
   translateFields(Select, GroupAttrs, Fields, Select2).
@@ -5000,7 +5272,8 @@ in ~Query1~.
 aggrQuery(select all T from F, AggrOp, select T1 from F, AggrExpr) :-
   aggrQuery(select T from F, AggrOp, select T1 from F, AggrExpr), !.
 
-aggrQuery(select distinct T from F, AggrOp, select distinct T1 from F, AggrExpr) :-
+aggrQuery(select distinct T from F, AggrOp,
+          select distinct T1 from F, AggrExpr) :-
   aggrQuery(select T from F, AggrOp, select T1 from F, AggrExpr), !.
 
 aggrQuery(select T from F, AggrOp, select * from F, AggrExpr) :-
@@ -5086,7 +5359,8 @@ userDefAggrQuery(Query groupby G, _, _, _, _) :-
   throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
                                              undef, undef, undef, undef))),
   fail.
-userDefAggrQuery(Query orderby Order, Query1 orderby Order, AggrExpr, Fun, Default) :-
+userDefAggrQuery(Query orderby Order,
+                 Query1 orderby Order, AggrExpr, Fun, Default) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
 userDefAggrQuery(Query first N, Query1 first N, AggrExpr, Fun, Default) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
@@ -5648,7 +5922,7 @@ thrown using the built-in Prolog predicate
 where ~X~ is a term that represents a somehow meaningful error-message, e.g.
 respecting the format
 
-----    <prolog-file>\<Predicate>(<Arguments>).
+----    <prolog-file>_<Predicate>(<Arguments>):<error-explanation>.
 ----
 
 A standard exception handler is implemented by
@@ -5842,7 +6116,7 @@ card(N) :- dijkstra(0, N, Path, _),
   atom_concat(Query, ' count', CountQuery),
   atom_concat('query ', CountQuery, FullQuery),
   secondo(FullQuery, [_, Result]),
-  write('The result for node '), write(N), write(' is: '), write(Result), nl, nl,
+  write('The result for node '), write(N), write(' is: '),write(Result), nl, nl,
   assert(realResult(N, Result)).
 
 

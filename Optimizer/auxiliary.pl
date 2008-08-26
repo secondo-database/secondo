@@ -3,7 +3,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and 
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
 Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -140,7 +140,7 @@ write_tuples(AttrDescription, [Tuple | TupleList], M) :-
 */
 
 pretty_print([[RelType, [tuple, AttrDescription]], Tuples]) :-
-  (RelType = rel ; RelType = trel),	
+  (RelType = rel ; RelType = trel),
   !,
   nl,
   max_attr_length(AttrDescription, AttrLength),
@@ -218,7 +218,7 @@ display(rect, [L, R, B, T]) :-
   write(', yt = '), write(T).
 
 display([Rel, [tuple, Attrs]], Tuples) :-
-  (Rel = rel ; Rel = trel),	
+  (Rel = rel ; Rel = trel),
   !,
   nl,
   max_attr_length(Attrs, AttrLength),
@@ -260,6 +260,9 @@ displayTuple([[Name, Type] | Attrs], [Value | Values], AttrNameLength) :-
   nl,
   displayTuple(Attrs, Values, AttrNameLength).
 
+
+
+
 /*
 
 1.2 Predicate ~secondo~
@@ -269,6 +272,28 @@ Predicate ~secondo~ expects its argument to be a string atom or
 a nested list, representing a query to the SECONDO system. The query is
 executed and the result pretty-printed. If the query fails, the error code
 and error message are printed.
+
+---- secondo(+SecondoExecutableExpression)
+----
+
+Send ~SecondoExecutableExpression~ to the Secondo kernel (using secondo/2) and
+print the returned result onto the screen.
+
+Keep the optimizer informed by tracking 'open', 'close', 'restore', 'let' and
+'delete' commands within ~SecondoExecutableExpression~.
+
+---- secondo_direct(+SecondoExecutableExpression)
+----
+
+Send ~SecondoExecutableExpression~ to the Secondo kernel (using secondo/2) and
+print the returned result onto the screen.
+
+Do NOT keep the optimizer informed by tracking 'open', 'close', 'rstore',
+'let' or 'delete' commands within ~SecondoExecutableExpression~.
+
+This variant is useful within automaically triggered queries to secondo, e.g.
+deleting or creating objects used by the optimizer (like samples, indexes, small
+objects). This command should never be used by the user!
 
 */
 
@@ -283,314 +308,27 @@ atom_postfix(Atom, PrefixLength, Post) :-
   PostLength is Length - PrefixLength,
   sub_atom(Atom, PrefixLength, PostLength, 0, Post).
 
-% The following facts define Secondo object types, that are used for indices:
-indexType(btree).
-indexType(rtree).
-indexType(rtree3).
-indexType(rtree4).
-indexType(rtree8).
-
-/*
----- getSmallIndexCreateQuery(+Granularity, +BBoxType, +Type, +Rel, +Attr,
-                              +IndexName, -QueryAtom)
-----
-Create a ~QueryAtom~ that is a executable Secondo command string, that will create the
-appropriate specialized R-Tree index from relation ~Rel~ for key attribute ~Attr~, with
-bounding boxes of type ~BBoxType~ and granularity of the bounding boxes set to ~Granularity~,
-where the index is named ~IndexName~.
-
-If both, ~Granularity~ and ~BBoxType~ are ~none~, a standard index will be created
-
-*/
-
-getSmallIndexCreateQuery(Granularity,BBoxType,Type,Rel,Attr,IndexName,QueryAtom)
-  :-
-  optimizerOption(entropy),
-  indexCreateQuery(Granularity,BBoxType,Type,Rel,Attr,IndexName,QueryList), !,
-  concat_atom(QueryList, QueryAtom), !.
-
-% Rules to create index queries
-
-% rules to build specialized R-tree indices:
-indexCreateQuery(object, time, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel,
-   '_small feed addid extend[ p: point2d( deftime( .', Attr,
-   ' ) ) ] creatertree[ p ]']) :- !.
-indexCreateQuery(object, space, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel,
-   '_small feed addid extend[ t: trajectory( .', Attr,
-   ' ) ] creatertree[ t ]']) :- !.
-indexCreateQuery(object, d3, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel,
-   '_small feed addid extend[ b: box3d( bbox( trajectory( .', Attr,
-   ' ) ), deftime( .', Attr, ' ) ) ]',
-   ' creatertree[ b ]']) :- !.
-
-indexCreateQuery(unit, time, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel,
-   '_small feed addid extendstream[ Unit: units( .', Attr,
-   ' ) ] extend[ p: point2d( deftime( .Unit ) ) ]',
-   ' creatertree[ p ]']) :- !.
-indexCreateQuery(unit, space, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel,
-   '_small feed addid extendstream[ Unit: units( .', Attr,
-   ' ) ] extend[ t: trajectory( .Unit ) ]',
-   ' creatertree[ t ]']) :- !.
-indexCreateQuery(unit, d3, _, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel,
-   '_small feed addid extendstream[ Unit: units( .', Attr,
-   ' ) ] creatertree[ Unit ]']) :- !.
-
-% for later extensions:
-indexCreateQuery(group10, time,  _, _, _, _, _) :- fail, !.
-indexCreateQuery(group10, space, _, _, _, _, _) :- fail, !.
-indexCreateQuery(group10, d3,    _, _, _, _, _) :- fail, !.
-
-% the standard indices must go last:
-
-% all types 'rtree<n>' are created with 'creatertree':
-indexCreateQuery(none, none, Type, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel,
-   '_small creatertree[ ', Attr, ' ]']) :-
-  sub_atom(Type, 0, _, _, rtree), !.
-
-% all other standard indices are created as follows:
-indexCreateQuery(none, none, Type, Rel, Attr, IndexName,
-  ['let ', IndexName, '_small = ', Rel,
-   '_small create', Type, '[ ', Attr, ' ]']) :- !.
-
-/*
----- createIndexSmall(+Rel, +ObjList, +IndexName,
-                      +LogicalIndexType, +Attr, +Granularity, +BBoxType)
-----
-
-Test, if a \_small index has to be created (is not a member of ~ObjList~) and
-create it if necessary. The index is specified by the relation ~Rel~ and key
-attribute ~Attr~, the index' name ~IndexName~, its type ~LogicalIndexType~,
-the index' ~Granularity~ and type of bounding box ~BBoxType~.
-
-Also, add a \_small relation, if it is still not available.
-
-*/
-
-createIndexSmall(_, _, _, _, _, _, _) :-
-  not(optimizerOption(entropy)),!.
-
-createIndexSmall(Rel, ObjList, IndexName, LogicalIndexType, Attr,
-                                            Granularity, BBoxType) :-
-  optimizerOption(entropy),
-  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
-  concat_atom([Rel, 'small'], '_', RelSmallName),
-  concat_atom([IndexName, 'small'], '_', IndexSmallName),
-  % create _small relation if not present (needed to create _small index)
-  ( not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList))
-    -> tryCreateSmallRelation(Rel, ObjList)
-    ;  true
-  ),
-  % create _small index if not present
-  (   ( indexType(LogicalIndexType),
-        LogicalIndexType = PhysicalIndexType
-      )
-    ; ( optimizerOption(rtreeIndexRules),
-        member([LogicalIndexType, PhysicalIndexType],
-               [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-%               [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3],
-%               for later extensions
-                [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3],
-                [object_d4,rtree4],  [object_d8,rtree8]
-               ])
-      )
-  ),
-  ( not(member(['OBJECT',IndexSmallName,_ ,[[PhysicalIndexType | _]]],ObjList))
-    *-> ( dm(index,['\nIn createIndexSmall: getSmallIndexCreateQuery(',
-                    Granularity, ',', BBoxType, ',', PhysicalIndexType, ',',
-                    Rel, ',', Attr, ',', IndexName, ',', QueryAtom, ')\n']),
-          getSmallIndexCreateQuery(Granularity, BBoxType, PhysicalIndexType,
-                                   Rel, Attr, IndexName, QueryAtom),
-          tryCreate(QueryAtom)
-        )
-    ; true
-  ), !.
-
-createIndexSmall(Rel, ObjList, _, _, _, _, _) :-
-  optimizerOption(entropy),
-  not(member(['OBJECT', Rel, _ , [[rel | _]]], ObjList)),
-  write('ERROR: missing relation '),
-  write(Rel),
-  write(' cannot create small relation and an index on small relation!'), !,
-  fail.
-
-% Test, if there is a _small-relation for relation Rel, otherwise create it
-checkIfSmallRelationExists(Rel, ObjList) :-
-  member(['OBJECT', Rel, _ , [[rel | _]]], ObjList),
-  concat_atom([Rel, 'small'], '_', RelSmallName),
-  not(member(['OBJECT', RelSmallName, _ , [[rel | _]]], ObjList)),
-  downcase_atom(Rel, RelD),
-  tryCreateSmallRelation(RelD, ObjList), !.
-
-% Test if for each relation in ObjList there also is a _small-relation,
-% otherwise create it
-checkIfSmallRelationsExist(ObjList) :-
-  optimizerOption(entropy),
-  findall(X,
-          ( member(['OBJECT', X, _ , [[rel | _]]], ObjList),
-            not(sub_atom(X, _, _, 0, '_small')),
-            not(sub_atom(X, _, _, 1, '_sample_')),
-            not(sub_atom(X, 0, _, 0, 'SEC_DERIVED_OBJ')),
-            checkIfSmallRelationExists(X, ObjList)
-          ),
-          _), !.
-
-checkIfSmallRelationsExist(_) :-
-  not(optimizerOption(entropy)), !.
-
-
-% checkIfIndexIsStored(_, _, LFRel, LFAttr, Granularity, BBoxType,
-%                                            IndexType, IndexName, _) :-
-%  (   ( % standard index
-%        Granularity = none,
-%        BBoxType = none,
-%        LogicalIndexType = IndexType
-%      )
-%    ; ( % specialized R-Tree index
-%        concat_atom([Granularity, BBoxType], '_', LogicalIndexType)
-%      )
-%  ),
-%  databaseName(DB),
-%  storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName), !.
-
-checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr,
-                     Granularity, BBoxType, IndexType,
-                     IndexName, ObjList) :-
-  databaseName(DB),
-  storedNoIndex(DB, LFRel, LFAttr),
-  ( (Granularity = none, BBoxType = none) % standard index
-    -> LogicalIndexType = IndexType
-    ; ( % specializes R-Tree index
-        concat_atom([Granularity, BBoxType], '_', LogicalIndexType)
-      )
-  ),
-  retractall(storedNoIndex(DB, LFRel, LFAttr)),
-  retractall(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
-  assert(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
-  createIndexSmall(Rel,ObjList,IndexName,LogicalIndexType,Attr,
-                                              Granularity,BBoxType), !.
-
-checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr,
-                     Granularity, BBoxType, IndexType,
-                     IndexName, ObjList) :-
-  ( (Granularity = none, BBoxType = none)
-    -> LogicalIndexType = IndexType % standard index
-       % specialized R-Tree index
-    ;  concat_atom([Granularity, BBoxType], '_', LogicalIndexType)
-  ),
-  databaseName(DB),
-  retractall(storedNoIndex(DB, LFRel, LFAttr)),
-  retractall(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
-  assert(storedIndex(DB, LFRel, LFAttr, LogicalIndexType, IndexName)),
-  createIndexSmall(Rel,ObjList,IndexName,LogicalIndexType,Attr,
-                                              Granularity,BBoxType), !.
-
-checkForAddedIndex(ObjList) :-
-  member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
-  indexType(IndexType),
-  concat_atom(L, '_', IndexName),
-  (  ( L = [LFRel, Attr], atomic(LFRel), atomic(Attr) )  % standard index
-     *-> ( Granularity = none, BBoxType = none )
-     ; ( % specialized R-tree index
-        L = [LFRel, Attr, Granularity, BBoxType],
-        member(Granularity, [object, unit, group10]),
-        member(BBoxType, [time, space, d3])
-       )
-  ),
-  not(Attr = small),
-  not(Attr = sample),
-  not(tempConsideredFile(IndexName)),
-  relname(LFRel, Rel),
-  lowerfl(Attr, LFAttr),
-  checkIfIndexIsStored(Rel, Attr, LFRel, LFAttr, Granularity,
-                              BBoxType, IndexType, IndexName, ObjList),
-  assert(tempConsideredFile(IndexName)).
-
-relname(LFRel, LFRel) :-
-  spelled(LFRel, _, l),
-  !.
-
-relname(LFRel, Rel) :-
-  spelled(LFRel, _, u),
-  upper(LFRel, Rel).
-
-checkForAddedIndices(ObjList) :-
-  retractall(tempConsideredFile(_)),
-  findall(_, checkForAddedIndex(ObjList), _), !.
-
-checkForRemovedIndex(ObjList) :-
-  databaseName(DB),
-  storedIndex(DB, Rel, Attr, LogicalIndexType, IndexName),
-  (   ( indexType(LogicalIndexType),
-        LogicalIndexType = PhysicalIndexType
-      )
-    ; ( optimizerOption(rtreeIndexRules),
-        member([LogicalIndexType, PhysicalIndexType],
-              [[object_time,rtree], [object_space,rtree], [object_d3,rtree3],
-%              [group10_time,rtree],[group10_space,rtree],[group10_d3,rtree3],
-%              for later extensions
-               [unit_time,rtree],   [unit_space,rtree],   [unit_d3,rtree3],
-               [object_d4,rtree4], [object_d8, rect8]
-              ])
-      )
-  ),
-  not(member(['OBJECT', IndexName, _ , [[PhysicalIndexType | _]]], ObjList)),
-  retract(storedIndex(DB, Rel, Attr, LogicalIndexType, IndexName)),
-  assert(storedNoIndex(DB, Rel, Attr)),
-  concat_atom([IndexName, 'small'], '_', IndexNameSmall),
-  member(['OBJECT', IndexNameSmall, _ , [[PhysicalIndexType | _]]], ObjList),
-  concat_atom(['delete ',IndexNameSmall], '', QueryAtom),
-  secondo(QueryAtom).
-
-checkForRemovedIndices(ObjList) :-
-  findall(_, checkForRemovedIndex(ObjList), _).
-
-checkIfIndex(X, ObjList) :-
-  sub_atom(X, _, _, _, IndexName),
-  member(['OBJECT', IndexName, _ , [[IndexType | _]]], ObjList),
-  indexType(IndexType),
-  checkForAddedIndices(ObjList),!.
-
-checkIfIndex(_, _) :-
-  true.
-
-checkIsInList(X, ObjList, Type) :-
-  sub_atom(X, _, _, _, Name),
-  member(['OBJECT', Name, _ , [[Type | _]]], ObjList),!.
-
-checkIsInList(_, _, _) :-
-  fail.
-
 
 /*
 Some facts which store important state information
 
+---- databaseName(X)
+----
+
+When a database X gets openend, a fact databaseName(X) gets asserted.
+If no such fact exists, no database is opened. The fact is used to get the name
+of the currently opened database.
+
 */
-
-:- dynamic storeupdateRel/1.
-:- dynamic storeupdateIndex/1.
-:- dynamic storedDatabaseOpen/1.
-
-% the facts above get asserted with value 0 at the startup
-% of the optimizer. Refer to calloptimizer.pl
 
 :- dynamic databaseName/1.
 
-% databaseName/1 gets asserted, when a database is opened
-
-
-secondoResultSucceeded(Result) :-
+promptSecondoResultSucceeded(Result) :-
   write('Command succeeded, result:'),
   nl, nl,
   show(Result), !.
 
-secondoResultFailed :-
+promptSecondoResultFailed :-
   secondo_error_info(ErrorCode, ErrorString),
   write('Command failed with error code : '),
   write(ErrorCode), nl,
@@ -600,215 +338,187 @@ secondoResultFailed :-
 
 
 secondo(X) :-
-  sub_atom(X,0,4,_,S),
-  atom_prefix(S,'open'),
+  sub_atom(X,0,_,_,'open '),
   atom_postfix(X, 14, DB1),
   downcase_atom(DB1, DB), !,
   ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y), !,
-          retractall(storedDatabaseOpen(_)),
-          assert(storedDatabaseOpen(1)),
+    *-> ( promptSecondoResultSucceeded(Y), !,
           retractall(databaseName(_)),
           assert(databaseName(DB)),
-          retractall(storedSecondoList(_)),
-          getSecondoList(ObjList),
-	  readSecondoTypeSizes,
-          checkIfSmallRelationsExist(ObjList),
-          getSecondoList(ObjList2),
-          checkForAddedIndices(ObjList2),
-          checkForRemovedIndices(ObjList2)
+          readSystemIdentifiers,
+          updateCatalog,
+          updateCatalog,
+          ensureSmallObjectsExist
         )
-    ;   ( secondoResultFailed,
+    ;   ( promptSecondoResultFailed,
           fail
         )
   ), !.
 
 secondo(X) :-
-  sub_atom(X,0,5,_,S),
-  atom_prefix(S,'close'), !,
+  sub_atom(X,0,_,_,'close'), !,
   ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y),
-          retract(storedDatabaseOpen(_)),
-          assert(storedDatabaseOpen(0)),
-          retractall(storedSecondoList(_)),
+    *-> ( promptSecondoResultSucceeded(Y),
           retractall(databaseName(_))
         )
-    ;   ( secondoResultFailed,
+    ;   ( promptSecondoResultFailed,
           fail
         )
   ), !.
 
 secondo(X) :-
-  sub_atom(X,0,6,_,S),
-  atom_prefix(S,'update'),
+  sub_atom(X,0,6,_,'update '),
   isDatabaseOpen, !,
   ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y),
-          retractall(storedSecondoList(_))
-        )
-    ;   ( secondoResultFailed,
+    *-> promptSecondoResultSucceeded(Y)
+    ;   ( promptSecondoResultFailed,
           fail
         )
   ), !.
 
 secondo(X) :-
-  sub_atom(X,0,6,_,S),
-  atom_prefix(S,'derive'),
-  isDatabaseOpen, !,
+  member(Command,['let ', 'derive ', 'delete ']),
+  sub_atom(X,0,CommandLength,_,Command),
+  ( notIsDatabaseOpen
+    -> ( write('\nCannot execute command, because no database is open.\n'),
+         !, fail
+       )
+    ;  true
+  ),
+  ( member(Command,['let ', 'derive ']) % if this is a let/derive command,
+    -> ( % we need to test, whether the (downcased) objectname is not
+         % already used in the DB and the name is a valid itentifier
+         sub_atom(X,PosEq,1,_,'='),
+         Namelength is PosEq - CommandLength, !,
+         sub_atom(X,CommandLength,Namelength,_,ExtObjNameA),
+         removeWhitespace(ExtObjNameA,ExtObjName),
+         dcName2externalName(DCobjName,ExtObjName),
+         ( secondoCatalogInfo(DCobjName,ExtOther,_,_) % already used?
+           -> ( write_list(['\nERROR:\tCannot create object \'',
+                           ExtObjName,'\'.\n','--->\tThere already ',
+                          'exits an object named \'',ExtOther,'\'!\n']),
+                nl,
+                !, fail
+              )
+           ;  ( validIdentifier(ExtObjName)        % identifier valid?
+                -> true
+                ;  ( write_list(['\nERROR:\tCannot create object \'',
+                            ExtObjName,'\'.\n',
+                            '--->\tInvalid identifier!\n']),
+                     nl,
+                     !, fail
+                   )
+              )
+         )
+       )
+    ;  true       % if this is a delete command
+  ),
   ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y),
-          retractall(storedSecondoList(_))
+    *-> ( promptSecondoResultSucceeded(Y),
+          updateCatalog,
+          updateCatalog,
+          ensureSmallObjectsExist,
+          ensureSamplesExist
         )
-    ;   ( secondoResultFailed,
+    ;   ( promptSecondoResultFailed,
           fail
         )
-  ), !.
-
-secondo(X) :-
-  sub_atom(X,0,3,_,S),
-  atom_prefix(S,'let'),
-  isDatabaseOpen, !,
-  ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y),
-          retractall(storedSecondoList(_)),
-          getSecondoList(ObjList),
-          checkIfIndex(X, ObjList)
-        )
-    ;   ( secondoResultFailed,
-          fail
-        )
-  ), !.
-
-secondo(X) :-
-  sub_atom(X,0,6,_,S),
-  atom_prefix(S,'create'),
-  sub_atom(X,0,15,_,S),
-  not(atom_prefix(S,'create database')),
-  isDatabaseOpen,
-  ( secondo(X, Y)
-    *-> ( retractall(storedSecondoList(_)),
-          secondoResultSucceeded(Y)
-        )
-    ;   ( secondoResultFailed,
-          fail
-        )
-  ), !.
-
-secondo(X) :-
-  concat_atom([restore, database, DB1, from, _], ' ', X),
-  notIsDatabaseOpen,
-  downcase_atom(DB1, DB), !,
-  ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y),
-          retractall(storedDatabaseOpen(_)),
-          assert(storedDatabaseOpen(1)),
-          retractall(databaseName(_)),
-          assert(databaseName(DB)),
-          retractall(storedSecondoList(_)),
-          getSecondoList(ObjList1),
-	  readSecondoTypeSizes,
-          checkIfSmallRelationsExist(ObjList1),
-          getSecondoList(ObjList2),
-          checkForAddedIndices(ObjList2),
-          getSecondoList(ObjList3),
-          checkForRemovedIndices(ObjList3)
-        )
-    ;   ( secondoResultFailed,
-          fail
-        )
-  ), !.
-
-secondo(X) :-
-  concat_atom(['restore database', _, 'from', _], ' ', X),
-  isDatabaseOpen,
-  write('\nCannot restore database, because a database is open.\n'), !.
-
-secondo(X) :- % variant to use during updateRel is processed
-  concat_atom([Command, _],' ',X),
-  Command = 'delete',
-  storeupdateRel(1),
-  isDatabaseOpen,
-  getSecondoList(ObjList),
-  checkIsInList(X, ObjList, rel),
-  secondo(X, _),
-  retractall(storedSecondoList(_)), !.
-
-secondo(X) :- % normal variant to delete a relation
-  concat_atom([Command, Name],' ',X),
-  Command = 'delete',
-  storeupdateRel(0),
-  isDatabaseOpen,
-  getSecondoList(ObjList),
-  checkIsInList(X, ObjList, rel),
-  databaseName(DB),
-  storedRel(DB, Name, _),
-  secondo(X, Y),
-  retractall(storedSecondoList(_)),
-  downcase_atom(Name, DCName),
-  updateRel(DCName),
-  secondoResultSucceeded(Y), !.
-
-secondo(X) :- % variant used when updating indexes
-  concat_atom([Command, _],' ',X),
-  Command = 'delete',
-  storeupdateIndex(1),
-  isDatabaseOpen,
-  getSecondoList(ObjList),
-  indexType(Type),
-  checkIsInList(X, ObjList, Type),
-  secondo(X, _),
-  retractall(storedSecondoList(_)),
+  ),
   !.
 
-secondo(X) :- % normal variant to delete an index
-  concat_atom([Command, Name],' ',X),
-  Command = 'delete',
-  storeupdateIndex(0),
+secondo(X) :-
+  sub_atom(X,0,_,_,'create '),
+  not(concat_atom([create, database, _], ' ', X)),
   isDatabaseOpen,
-  databaseName(DB),
-  getSecondoList(ObjList),
-  indexType(Type),
-  checkIsInList(X, ObjList, Type),
-  storedIndex(DB, _, _, Type, Name),
-  secondo(X, Y),
-  retractall(storedSecondoList(_)),
-  updateIndex,
-  secondoResultSucceeded(Y), !.
+  ( secondo(X, Y)
+    *-> promptSecondoResultSucceeded(Y)
+    ;   ( promptSecondoResultFailed,
+          fail
+        )
+  ), !.
+
+% restore database
+% One should consider wiping out the knowledge base on the target database!
+secondo(X) :-
+  concat_atom([restore, database, DB1, from, _], ' ', X),
+  ( notIsDatabaseOpen
+    ->  ( downcase_atom(DB1, DB), !,
+         ( secondo(X, Y)
+           *-> ( promptSecondoResultSucceeded(Y),
+                 retractall(databaseName(_)),
+                 assert(databaseName(DB)),
+                 readSystemIdentifiers
+               )
+           ;   ( promptSecondoResultFailed,
+                 fail
+               )
+         )
+        )
+    ; write('\nERROR:\tCannot restore database, because a database is open.\n')
+  ),
+  updateCatalog,
+  updateCatalog,
+  ensureSmallObjectsExist,
+  !.
+
+% restore object
+secondo(X) :-
+  concat_atom([restore, _, from, _], ' ', X),
+  ( isDatabaseOpen
+    ->   write('\nERROR:\tCannot restore object, because no database is open.\n')
+    ;    ( secondo(X, Y)
+           *-> ( promptSecondoResultSucceeded(Y)
+               )
+           ;   ( promptSecondoResultFailed,
+                 fail
+               )
+         )
+  ),
+  updateCatalog,
+  updateCatalog,
+  ensureSmallObjectsExist,
+  !.
 
 secondo(X) :-
-  concat_atom([Command, Name],' ',X),
-  Command = 'list',
-  Name = 'objects',
+  concat_atom([list, objects],' ',X),
   isDatabaseOpen,
   secondo(X, Y),
-  secondoResultSucceeded(Y), !.
+  promptSecondoResultSucceeded(Y), !.
 
 secondo(X) :-
-  sub_atom(X,0,5,_,S),
-  atom_prefix(S,'query'),
+  sub_atom(X,0,_,_,'query'),
   isDatabaseOpen, !,
   ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y), !
+    *-> ( promptSecondoResultSucceeded(Y), !
         )
-    ;   ( secondoResultFailed,
+    ;   ( promptSecondoResultFailed,
           fail
         )
   ), !.
 
+% fallback-case (all other commands)
 secondo(X) :-
   ( secondo(X, Y)
-    *-> ( secondoResultSucceeded(Y), !,
-          retractall(storedSecondoList(_))
-        )
-    ;   ( secondoResultFailed,
+    *-> ( promptSecondoResultSucceeded(Y), !)
+    ;   ( promptSecondoResultFailed,
           fail
         )
   ), !.
 
+% Variant of execulting a command on the Secondo kernel
+% without updating the internal optimizer knowledge base.
+% Not to be used by the user!
+secondo_direct(X) :-
+  ( secondo(X, Y)
+    *-> ( promptSecondoResultSucceeded(Y), !)
+    ;   ( promptSecondoResultFailed,
+          fail
+        )
+  ), !.
 
 /*
 
-1.3 Operators ~query~, ~update~, ~let~, ~create~, ~open~, ~restore~ and ~delete~
+1.4 Operators ~query~, ~update~, ~let~, ~create~, ~open~, ~restore~ and ~delete~
 
 The purpose of these operators is to make using the PROLOG interface
 similar to using SecondoTTY. A SecondoTTY query
@@ -825,18 +535,42 @@ in the PROLOG interface via the ~query~ operator. The operators
 ~delete~, ~let~, ~create~, ~open~, and ~update~ work the same way.
 
 */
-isDatabaseOpen :-
-  storedDatabaseOpen(1), !.
+
+/*
+----
+:-
+  op(800, fx, query),
+  op(800, fx, delete),
+  op(800, fx, let),
+  op(800, fx, create),
+  op(800, fx, open),
+  op(800, fx, derive),
+  op(800, fx, update),
+  op(800, fx, restore).
+----
+
+*/
+
+:- op(993,  fx, open).
+:- op(993,  fx, restore).
+:- op(959,  fx, database).
+%:- op(960, xfx, from).         % already defined in file optimizer.pl
+:- op(993, fx, query).
+:- op(993, fx, delete).
+:- op(993, fx, let).
+:- op(993, fx, create).
+:- op(993, fx, derive).
+:- op(993, fx, update).
+
 
 isDatabaseOpen :-
-  storedDatabaseOpen(0),
-  write('No database open.'), nl,
-  !, fail.
+  ( databaseName(_)
+    -> true
+    ;  ( write('No database open.'), nl, fail)
+  ), !.
 
 notIsDatabaseOpen :-
-  storedDatabaseOpen(Status),
-  Status = 0.
-
+  not(databaseName(_)), !.
 
 query(Query) :-
   query(Query, _).
@@ -850,7 +584,7 @@ query(Query, Time) :-
 let(Query) :-
   isDatabaseOpen,
   atom(Query),
-  atom_concat('let ', Query, QueryText), !,
+  concat_atom(['let', Query], ' ', QueryText), !,
   secondo(QueryText).
 
 derive(Query) :-
@@ -860,13 +594,6 @@ derive(Query) :-
   secondo(QueryText).
 
 create(Query) :-
-  notIsDatabaseOpen,
-  atom(Query),
-  atom_concat('create ', Query, QueryText), !,
-  secondo(QueryText).
-
-create(Query) :-
-  isDatabaseOpen,
   atom(Query),
   atom_concat('create ', Query, QueryText), !,
   secondo(QueryText).
@@ -878,27 +605,56 @@ update(Query) :-
   secondo(QueryText).
 
 delete(Query) :-
+  atom(Query),
+  atom_concat('delete ', Query, QueryText), !,
+  secondo(QueryText).
+
+% more comfortable (without quoting)
+open(Query) :-
   notIsDatabaseOpen,
-  atom(Query),
-  atom_concat('delete ', Query, QueryText), !,
+  Query =.. [database, DB],
+  atom(DB),
+  atom_concat('open database ', DB, QueryText), !,
   secondo(QueryText).
 
-delete(Query) :-
-  isDatabaseOpen,
-  atom(Query),
-  atom_concat('delete ', Query, QueryText), !,
-  secondo(QueryText).
-
+% the hard way...
 open(Query) :-
   notIsDatabaseOpen,
   atom(Query),
   atom_concat('open ', Query, QueryText), !,
   secondo(QueryText).
 
+% the hard way...
 restore(Query) :-
   notIsDatabaseOpen,
   atom(Query),
   atom_concat('restore ', Query, QueryText), !,
+  secondo(QueryText).
+
+% more comfortable (without quoting)
+restore(Query) :-
+  Query =.. [from,Obj,Source],
+  ( ( atom(Source), Obj =.. [database, DB], atom(DB) ) % restore database
+    -> ( notIsDatabaseOpen
+         -> concat_atom(['restore database',DB,'from',Source],' ',QueryText)
+         ; ( write_list(['\nERROR:\tCannot restore a database, \n',
+                         '--->\twhile a database is open!']), nl,
+             !, fail
+           )
+       )
+    ;  ( ( atom(Obj), term_to_atom(Source, SourceA) ) % restore object
+         -> ( notIsDatabaseOpen
+              -> (write_list(['\nERROR:\tCannot restore object.\n',
+                              '--->\tNo database open.']), nl, !, fail)
+              ;  concat_atom(['restore ',Obj,'from',SourceA],' ',QueryText)
+            )
+         ;  ( write_list(['\nERROR:\tInvalid restore command.\n',
+                   '\tThe correct syntax is \'restore <objname> from <file>.\'',
+                   '\n\tor \'restore database <dbname> from <file>.\'.']), nl,
+              !, fail
+            )
+       )
+  ),
   secondo(QueryText).
 
 /*
@@ -923,15 +679,14 @@ listDB :-
 
 lo :- listObj.
 listObj :-
-  secondo('list objects').	
-
+  secondo('list objects').
 
 % search for a description of operator O
 
 findop(O) :-
-  concat_atom([ 'query SEC2OPERATORINFO feed filter[.Name contains "', 
+  concat_atom([ 'query SEC2OPERATORINFO feed filter[.Name contains "',
                 O, '"] consume' ], Q),
-  runQuery(Q).  
+  runQuery(Q).
 
 % dump the command history to a given file name
 
@@ -939,22 +694,19 @@ cmdHist2File(Name) :-
   concat_atom(['query SEC2COMMANDS feed '], Q),
   dumpQueryResult2File(Q, Name, Q2),
   runQuery(Q2).
-    
+
 % dump the result of a secondo query to a CSV file
 
 dumpQueryResult2File(Q, File, Q2) :-
   concat_atom([Q, ' dumpstream["', File, '","|"] tconsume'], Q2).
 
-
-:-
-  op(800, fx, query),
-  op(800, fx, delete),
-  op(800, fx, let),
-  op(800, fx, create),
-  op(800, fx, open),
-  op(800, fx, derive),
-  op(800, fx, update),
-  op(800, fx, restore).
+% removing whitespace (tab, space) from an atomic
+removeWhitespace(ExtObjNameA,ExtObjName) :-
+  atom_chars(ExtObjNameA,CharListDirty),
+  delete(CharListDirty,' ',CharListDirty1),
+  delete(CharListDirty1,'\t',CharListCleaned),
+  atom_chars(ExtObjName,CharListCleaned),
+  !.
 
 /*
 Useful for debugging
@@ -966,7 +718,7 @@ showValue(Name, Var) :-
 
 
 mark(X) :-
-  write('(* Mark '), write(X), write(' *)'), nl.	
+  write('(* Mark '), write(X), write(' *)'), nl.
 
 /*
 2.1 Generic display for printing formatted tables
@@ -1028,22 +780,22 @@ showHeaderRec([H|T], Tmp1, Res1, Tmp2, Res2, Tmp3, Res3 ) :-
 
 
 /*
-Write a list of tuples to a file. The members of an inner 
-list are separated by a comma. 
+Write a list of tuples to a file. The members of an inner
+list are separated by a comma.
 
 */
 
 writeElem(FD, []) :-
-  write(FD, '\n').	
+  write(FD, '\n').
 
 writeElem(FD, [H | T]) :-
   write(FD, H),
   ( length(T, 0) -> write(FD, '  ')
                  ;  write(FD, ', ') ),
-  writeElem(FD, T).  
+  writeElem(FD, T).
 
 dumpTuples2File(Name, T, Format) :-
-  project(1, Format, Fp),	
+  project(1, Format, Fp),
   append([Fp], T, L),
   showValue('L:', L),
   open(Name, write, FD),
@@ -1057,7 +809,7 @@ L and unify them with R.
 */
 
 project(N, L, R) :-
-  maplist(nth1(N), L, R).	
+  maplist(nth1(N), L, R).
 
 
 /*
@@ -1066,10 +818,10 @@ lower case.
 
 */
 
-downcase_first(Atom, Res) :-	
-  atom_chars(Atom, [H | T]),	
+downcase_first(Atom, Res) :-
+  atom_chars(Atom, [H | T]),
   downcase_atom(H, Hdown),
-  append([Hdown], T, L), 
+  append([Hdown], T, L),
   name(Res, L).
 
 
@@ -1123,7 +875,7 @@ subListRec([H|T], N, Pos, [H|T2]) :-
 
 /*
 2.4 Runtime Flags
- 
+
 the dynamic predicate ~flag~ a tool for setting and querying options.
 This is useful to set global options.
 
@@ -1139,12 +891,12 @@ setflag(F) :- assert( flag(F, on) ).
 clearflag(F) :- retractall( flag(F, _) ).
 
 showflag( [F, Val], _ ) :-
-  nl, write(F), write(' --> '), write(Val), nl.	
+  nl, write(F), write(' --> '), write(Val), nl.
 
 
 showflags :-
   findall( [X, Y], flag(X, Y), L),
-  maplist( showflag, L, _). 
+  maplist( showflag, L, _).
 
 /*
 2.5 Running Queries
@@ -1159,7 +911,7 @@ showQuery(Q) :-
 
 runQuery(Q) :-
   flag(runMode, on),
-  nl, write('Executing '), write(Q), write(' ...'), nl, 	
+  nl, write('Executing '), write(Q), write(' ...'), nl,
   secondo(Q), !.
 
 runQuery(Q) :-
@@ -1168,13 +920,33 @@ runQuery(Q) :-
 
 runQuery(Q, Res) :-
   flag(runMode, on),
-  nl, write('Executing '), write(Q), write(' ...'), nl, 	
+  nl, write('Executing '), write(Q), write(' ...'), nl,
   secondo(Q, [_, Res]),
-  nl, write('Result: '), write(Res), nl, !. 
+  nl, write('Result: '), write(Res), nl, !.
 
 runQuery(Q, Res) :-
   showQuery(Q),
   Res = 999,
-  nl, write('Dummy-Result: '), write(Res), nl. 
+  nl, write('Dummy-Result: '), write(Res), nl.
 
+/*
+3.0 Stop Watch Predicate
 
+---- time(+Clause)
+----
+
+This predicate stops the time required to answer query ~Clause~ and prints the
+needed time on screen.
+
+*/
+
+time(Clause) :-
+  get_time(Time1),
+  (call(Clause) ; true),
+  get_time(Time2),
+  Time is Time2 - Time1,
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  MSs is Minute *60000 + Sec*1000 + MilliSec,
+  write('Elapsed Time: '),
+  write(MSs),
+  write(' ms'),nl.

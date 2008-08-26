@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -84,24 +84,19 @@ simple(attr(Attr, 1, _), rel(Rel, *, _), _, Rel:Attr) :- !.
 simple(attr(Var:Attr, 2, _), _, rel(Rel, Var, _),  Rel:Attr) :- !.
 simple(attr(Attr, 2, _), _, rel(Rel, *, _), Rel:Attr) :- !.
 
-simple(Term, Rel1, Rel2, Simple) :-
-  compound(Term),
-  functor(Term, T, 1), !,
-  arg(1, Term, Arg1),
-  simple(Arg1, Rel1, Rel2, Arg1Simple),
-  functor(Simple, T, 1),
-  arg(1, Simple, Arg1Simple).
+simple(dbobject(X),_,_,dbobject(X)) :- !.
 
+simple([], _, _, []) :- !.
+simple([A|Rest], Rel1, Rel2, [Asimple|RestSimple]) :-
+  simple(A,Rel1,Rel2,Asimple),
+  simple(Rest,Rel1,Rel2,RestSimple),
+  !.
 simple(Term, Rel1, Rel2, Simple) :-
   compound(Term),
-  functor(Term, T, 2), !,
-  arg(1, Term, Arg1),
-  arg(2, Term, Arg2),
-  simple(Arg1, Rel1, Rel2, Arg1Simple),
-  simple(Arg2, Rel1, Rel2, Arg2Simple),
-  functor(Simple, T, 2),
-  arg(1, Simple, Arg1Simple),
-  arg(2, Simple, Arg2Simple).
+  Term =.. [Op|Args],
+  simple(Args, Rel1, Rel2, ArgsSimple),
+  Simple =..[Op|ArgsSimple],
+  !.
 
 simple(Term, _, _, Term).
 
@@ -115,7 +110,7 @@ The simple form of predicate ~Pred~ is ~Simple~.
 
 simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple), !.
 simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
-simplePred(X, _) :- throw(sql_ERROR(statistics_simplePred(X, undefined))).
+simplePred(X, _) :- throw(sql_ERROR(statistics_simplePred(X, undefined):malformedExpression)).
 
 /*
 
@@ -131,14 +126,22 @@ sampleS(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
 sampleJ(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_sample_j', Rel2).
 
+% create the name of a selection-sample for a relation
+sampleNameS(lc(Name), lc(Sample)) :-
+  atom_concat(Name, '_sample_s', Sample), !.
 sampleNameS(Name, Sample) :-
-  atom_concat(Name, '_sample_s', Sample).
+  atom_concat(Name, '_sample_s', Sample), !.
 
+% create the name of a join-sample for a relation
+sampleNameJ(lc(Name), lc(Sample)) :-
+  atom_concat(Name, '_sample_j', Sample), !.
 sampleNameJ(Name, Sample) :-
-  atom_concat(Name, '_sample_j', Sample).
+  atom_concat(Name, '_sample_j', Sample), !.
 
+sampleNameSmall(lc(Name), lc(Small)) :-
+  atom_concat(Name, '_small', Small), !.
 sampleNameSmall(Name, Small) :-
-  atom_concat(Name, '_small', Small).
+  atom_concat(Name, '_small', Small), !.
 
 possiblyRename(Rel, Renamed) :-
   Rel = rel(_, *, _),
@@ -152,30 +155,100 @@ possiblyRename(Rel, Renamed) :-
 dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,
-  sampleSizeJoin(JoinSize),
+  % old: sampleSizeJoin(JoinSize),
+  thresholdCardMaxSampleJ(JoinSize),
   Renamed = sample(Rel, JoinSize, 0.00001).
 
 dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, Name, _),
-  sampleSizeJoin(JoinSize),
+  % old: sampleSizeJoin(JoinSize),
+  thresholdCardMaxSampleJ(JoinSize),
   Renamed = rename(sample(Rel, JoinSize, 0.00001), Name).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
   Rel = rel(_, *, _),
   !,
-  sampleSizeSelection(SelectionSize),
+  % old: sampleSizeSelection(SelectionSize),
+  thresholdCardMaxSampleS(SelectionSize),
   Renamed = sample(Rel, SelectionSize, 0.00001).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
   Rel = rel(_, Name, _),
-  sampleSizeSelection(SelectionSize),
+  % old: sampleSizeSelection(SelectionSize),
+  thresholdCardMaxSampleS(SelectionSize),
   Renamed = rename(sample(Rel, SelectionSize, 0.00001), Name).
 
 /*
-----  selectivityQuerySelection(+Pred, +Rel, 
+
+----  determinePredicateArgumentTypes(+PredDescriptor, ?PredSignature)
+----
+
+This auxiliary predicates determine the types of all arguments to a given
+selection/join predicate by sending according ~getTypeNL~
+queries to Secondo.
+
+The result an expression =.. [OP, Arg1Type, ..., ArgnType]
+
+*/
+
+determinePredicateArgumentTypes2([], _ , []).
+determinePredicateArgumentTypes2([Arg|ArgRestL],
+                                          Rel,
+                                          [ArgType|TypeListRestL]) :-
+  possiblyRename(Rel, RelQuery),
+  newVariable(TempAttrName), !,
+  Fields = [newattr(attrname(attr(TempAttrName, 1, l)), Arg)],
+  Query = getTypeNL(extract(extend(RelQuery,Fields), TempAttrName)),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  dm(selectivity,['\ngetTypeNL query : ', QueryAtom, '\n']),
+  getTime(secondo(QueryAtom, [text, ArgType]),QueryTime),
+  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),!,
+  determinePredicateArgumentTypes2(ArgRestL, Rel, TypeListRestL),
+  !.
+
+determinePredicateArgumentTypes2([], _ , _ , []).
+determinePredicateArgumentTypes2([Arg|ArgRestL],
+                                     Rel1, Rel2,
+                                     [ArgType|TypeListRestL]) :-
+  newVariable(TempAttrName), !,
+  Fields = [newattr(attrname(attr(TempAttrName, 1, l)), Arg)],
+  possiblyRename(Rel1, Rel1Query),
+  possiblyRename(Rel2, Rel2Query),
+  Query = getTypeNL(extract(extend(symmproduct(Rel1Query,Rel2Query),
+                                   Fields),TempAttrName)),
+  plan_to_atom(Query, QueryAtom1),
+  atom_concat('query ', QueryAtom1, QueryAtom),
+  dm(selectivity,['\ngetTypeNL query : ', QueryAtom, '\n']),
+  getTime(secondo(QueryAtom, [text, ArgType]),QueryTime),
+  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !,
+  determinePredicateArgumentTypes2(ArgRestL, Rel1, Rel2, TypeListRestL),
+  !.
+
+% for selection predicates:
+determinePredicateArgumentTypes(pr(Pred, Rel), PredSignature) :-
+  Pred =.. [OP|Args],
+  determinePredicateArgumentTypes2(Args, Rel, ArgTypeList),
+  PredSignature =.. [OP|ArgTypeList],
+  dm(selectivity,['The predicate signature is: ', PredSignature]),
+  !.
+
+% for join predicates:
+determinePredicateArgumentTypes(pr(Pred, Rel1, Rel2), PredSignature) :-
+  Pred =.. [OP|Args],
+  determinePredicateArgumentTypes2(Args, Rel1, Rel2, ArgTypeList),
+  PredSignature =.. [OP|ArgTypeList],
+  dm(selectivity,['The predicate signature is: ', PredSignature]),
+  !.
+
+% Error case:
+determinePredicateArgumentTypes(_, error).
+
+/*
+----  selectivityQuerySelection(+Pred, +Rel,
                                 -QueryTime, -BBoxResCard, -FilterResCard)
 
-           selectivityQueryJoin(+Pred, +Rel1, +Rel2, 
+           selectivityQueryJoin(+Pred, +Rel1, +Rel2,
                                 -QueryTime, -BBoxResCard, -FilterResCard)
 ----
 
@@ -185,11 +258,11 @@ If ~optimizerOption(dynamicSample)~ is defined, dynamic samples are used instead
 
 The predicates return the time ~QueryTime~ used for the query, and the cardinality ~FilterResCard~ of the result after applying the predicate.
 
-If ~Pred~ has a predicate operator that performs checking of overlapping minimal bounding boxes, the selectivity query will additionally return the cardinality after the bbox-checking in ~BBoxResCard~, otherwise its return value is set to constant  ~noBBox~. 
+If ~Pred~ has a predicate operator that performs checking of overlapping minimal bounding boxes, the selectivity query will additionally return the cardinality after the bbox-checking in ~BBoxResCard~, otherwise its return value is set to constant  ~noBBox~.
 
 */
 
-selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard, 
+selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
         FilterResCard) :-
   Pred =.. [OP, Arg1, Arg2],
   isBBoxPredicate(OP),     % spatial predicate with bbox-checking
@@ -205,7 +278,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(secondo(QueryAtom, [int, FilterResCard]),QueryTime),
-  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), 
+  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),
   secondo('list counters',  [[1, BBoxResCard]|_]), !.
 
 selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
@@ -224,7 +297,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   getTime(secondo(QueryAtom, [int, ResCard]),QueryTime),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
-selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, 
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
 	FilterResCard) :-
   Pred =.. [OP|_],
   isBBoxPredicate(OP),     % spatial predicate with bbox-checking
@@ -234,7 +307,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
-         Query = count(filter(counter(loopjoin(Rel1Query, 
+         Query = count(filter(counter(loopjoin(Rel1Query,
            fun([param(txx1, tuple)], filter(Rel2Query, Pred3))),1),Pred2) )
        )
     ;  ( sampleS(Rel1, Rel1S),
@@ -243,7 +316,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
          possiblyRename(Rel2S, Rel2Query),
          Rel2S = rel(BaseName, _, _),
          card(BaseName, JoinSize),
-         Query = count(filter(counter(loopjoin(head(Rel1Query, JoinSize), 
+         Query = count(filter(counter(loopjoin(head(Rel1Query, JoinSize),
                        fun([param(txx1, tuple)],
                        filter(Rel2Query, Pred3))),1), Pred2) )
        )
@@ -262,17 +335,17 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
-         Query = count(loopsel(Rel1Query, fun([param(txx1, tuple)], 
+         Query = count(loopsel(Rel1Query, fun([param(txx1, tuple)],
                        filter(Rel2Query, Pred2))))
        )
     ;  ( sampleS(Rel1, Rel1S),
-	 sampleJ(Rel1, Rel1J),   
+         sampleJ(Rel1, Rel1J),
          sampleJ(Rel2, Rel2S),
          Rel1J = rel(BaseName, _, _),
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          card(BaseName, JoinSize),
-         Query = count(loopsel(head(Rel1Query, JoinSize), 
+         Query = count(loopsel(head(Rel1Query, JoinSize),
            fun([param(txx1, tuple)], filter(Rel2Query, Pred2))))
        )
    ),
@@ -285,7 +358,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
 
 /*
 
-----	transformPred(Pred, Param, Arg, Pred2) :- 
+----	transformPred(Pred, Param, Arg, Pred2) :-
 ----
 
 ~Pred2~ is ~Pred~ transformed such that the attribute X of relation ~ArgNo~ is written
@@ -293,7 +366,7 @@ as ``attribute(Param, attrname(X))''
 
 */
 
-transformPred(attr(Attr, Arg, Case), Param, Arg, 
+transformPred(attr(Attr, Arg, Case), Param, Arg,
   attribute(Param, attrname(attr(Attr, Arg, Case)))) :- !.
 
 transformPred(attr(Attr, Arg, Case), _, _, attr(Attr, Arg, Case)) :- !.
@@ -372,16 +445,16 @@ getTime(Goal, TimeMS) :-
 
 /*
 
-----	
+----
 selectivity(+P, -Sel)
 selectivity(+P, -Sel, -CalcPET, -ExpPET)
 getPET(+P, -CalpPET, -ExpPET)
 ----
 
-The selectivity of predicate ~P~ is ~Sel~. The analytic predicate cost function reports the evaluation of the predicate to take ~CalcPET~ milliseconds of time. During the actual query, the evaluation took ~ExpPET~ milliseconds of time for a single evaluation. 
+The selectivity of predicate ~P~ is ~Sel~. The analytic predicate cost function reports the evaluation of the predicate to take ~CalcPET~ milliseconds of time. During the actual query, the evaluation took ~ExpPET~ milliseconds of time for a single evaluation.
 
 If ~selectivity~ is called, it first tries to look up
-the selectivity via the predicate ~sel~. If no selectivity
+the selectivity via the predicate ~sels~. If no selectivity
 is found, a Secondo query is issued, which determines the
 selectivity. The retrieved selectitivity is then stored in
 predicate ~storedSel~. This ensures that a selectivity has to
@@ -402,25 +475,24 @@ sels(Pred, Sel, CalcPET, ExpPET) :-
 sels(Pred, Sel, CalcPET, ExpPET) :-
   commute(Pred, Pred2),
   databaseName(DB),
-  storedSel(DB, Pred2, Sel), 
+  storedSel(DB, Pred2, Sel),
   storedPET(DB, Pred2, CalcPET, ExpPET), !.
 
 
-% Wrapper for standard optimizer
+% Wrapper selectivity/2 for standard optimizer
 selectivity(Pred, Sel) :-
   selectivity(Pred, Sel, _, _).
 
-selectivity(P, _) :- 
+selectivity(P, _) :-
   write('Error in optimizer: cannot find selectivity for '),
-  simplePred(P, PSimple), write(PSimple), nl, 
+  simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(',Sel)\n'),
-  throw(sql_ERROR(statistics_selectivity(P, undefined))), 
+  throw(sql_ERROR(statistics_selectivity(P, undefined))),
   fail, !.
 
 
 
-% Wrapper to get also bbox selectivity
-
+% Wrapper selectivity/5 to get also bbox selectivity
 selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET) :-
   selectivity(Pred, Sel, CalcPET, ExpPET),
   simplePred(Pred, PSimple),
@@ -453,29 +525,37 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   sampleNameJ(BaseName2, SampleName2),
   card(SampleName2, SampleCard2),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
-  nonzero(ResCard, NonzeroResCard), 
+  nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / (SampleCard1 * SampleCard2), % must not be 0
   tupleSizeSplit(BaseName1,TupleSize1),
   tupleSizeSplit(BaseName2,TupleSize2),
-  calcExpPET(MSs, SampleCard1, TupleSize1, 
-                  SampleCard2, TupleSize2, NonzeroResCard, MSsRes), 
+  calcExpPET(MSs, SampleCard1, TupleSize1,
+                  SampleCard2, TupleSize2, NonzeroResCard, MSsRes),
                                          % correct PET
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   predCost(PSimple, CalcPET), % calculated PET
   ExpPET is MSsRes / max(SampleCard1 * SampleCard2, 1),
-  dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET, 
+  dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET,
                   ') ms\nSelectivity     : ', Sel,'\n']),
   databaseName(DB),
   assert(storedPET(DB, PSimple, CalcPET, ExpPET)),
-  assert(storedSel(DB, PSimple, Sel)), 
+  assert(storedSel(DB, PSimple, Sel)),
   ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
     -> true
-    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard), 
+    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard),
          BBoxSel is NonzeroBBoxResCard / (SampleCard1 * SampleCard2),
          dm(selectivity,['BBox-Selectivity: ',BBoxSel,'\n']),
          assert(storedBBoxSel(DB, PSimple, BBoxSel))
        )
-  ),!.
+  ),
+  ( optimizerOption(determinePredSig)
+    -> (
+          determinePredicateArgumentTypes(pr(Pred, Rel1, Rel2), PredSignature),
+          assert(storedPredicateSignature(DB, PSimple, PredSignature))
+       )
+    ; true
+  ),
+  !.
 
 % query for selection-selectivity (static samples case)
 selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
@@ -491,26 +571,35 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   simplePred(pr(Pred, Rel), PSimple),
   predCost(PSimple,CalcPET), % calculated PET
   ExpPET is MSsRes / max(SampleCard,1),
-  dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET, 
+  dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET,
                   ') ms\nSelectivity     : ', Sel,'\n']),
   databaseName(DB),
   assert(storedPET(DB, PSimple, CalcPET, ExpPET)),
-  assert(storedSel(DB, PSimple, Sel)), 
+  assert(storedSel(DB, PSimple, Sel)),
   ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
     -> true
-    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard), 
+    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard),
          BBoxSel is NonzeroBBoxResCard / SampleCard,
          dm(selectivity,['BBox-Selectivity: ',BBoxSel,'\n']),
          assert(storedBBoxSel(DB, PSimple, BBoxSel))
        )
-  ),!.
+  ),
+  ( optimizerOption(determinePredSig)
+      -> (
+           determinePredicateArgumentTypes(pr(Pred, Rel), PredSignature),
+           assert(storedPredicateSignature(DB, PSimple, PredSignature))
+         )
+      ; true
+  ),
+  !.
 
 % query for join-selectivity (dynamic sampling case)
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
   Rel1 = rel(BaseName1, _, _),
   card(BaseName1, Card1),
-  sampleSizeJoin(JoinSize),
+  % old: sampleSizeJoin(JoinSize),
+  thresholdCardMaxSampleJ(JoinSize),
   SampleCard1 is min(Card1, max(JoinSize, Card1 * 0.00001)),
   Rel2 = rel(BaseName2, _, _),
   card(BaseName2, Card2),
@@ -520,32 +609,41 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
   tupleSizeSplit(BaseName1,TupleSize1),
   tupleSizeSplit(BaseName2,TupleSize2),
-  calcExpPET(MSs, SampleCard1, TupleSize1, 
-                  SampleCard2, TupleSize2, NonzeroResCard, MSsRes), 
+  calcExpPET(MSs, SampleCard1, TupleSize1,
+                  SampleCard2, TupleSize2, NonzeroResCard, MSsRes),
                                      % correct PET
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   predCost(PSimple,CalcPET), % calculated PET
   ExpPET is MSsRes / max(SampleCard1 * SampleCard2,1),
-  dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET, 
+  dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET,
                   ') ms\nSelectivity     : ', Sel,'\n']),
 
   databaseName(DB),
-  assert(storedSel(DB, PSimple, Sel)), 
+  assert(storedSel(DB, PSimple, Sel)),
   ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
     -> true
-    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard), 
+    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard),
          BBoxSel is NonzeroBBoxResCard / (SampleCard1 * SampleCard2),
          dm(selectivity,['BBox-Selectivity: ',BBoxSel,'\n']),
          assert(storedBBoxSel(DB, PSimple, BBoxSel))
        )
-  ),!.
+  ),
+  ( optimizerOption(determinePredSig)
+      -> (
+           determinePredicateArgumentTypes(pr(Pred, Rel1, Rel2), PredSignature),
+           assert(storedPredicateSignature(DB, PSimple, PredSignature))
+         )
+      ; true
+  ),
+  !.
 
 % query for selection-selectivity (dynamic sampling case)
 selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
   Rel = rel(BaseName, _, _),
   card(BaseName, Card),
-  sampleSizeSelection(SelectionSize),
+  % old: sampleSizeSelection(SelectionSize),
+  thresholdCardMaxSampleS(SelectionSize),
   SampleCard is min(Card, max(SelectionSize, Card * 0.00001)),
   selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
@@ -555,26 +653,34 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   simplePred(pr(Pred, Rel), PSimple),
   predCost(PSimple,CalcPET), % calculated PET
   ExpPET is MSsRes / max(SampleCard,1),
-  dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET, 
+  dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET,
                   ') ms\nSelectivity     : ', Sel,'\n']),
   databaseName(DB),
-  assert(storedSel(DB, PSimple, Sel)), 
+  assert(storedSel(DB, PSimple, Sel)),
   ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
     -> true
-    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard), 
+    ;  ( nonzero(BBoxResCard, NonzeroBBoxResCard),
          BBoxSel is NonzeroBBoxResCard / SampleCard,
          dm(selectivity,['BBox-Selectivity: ',BBoxSel,'\n']),
          assert(storedBBoxSel(DB, PSimple, BBoxSel))
        )
-  ),!.
+  ),
+  ( optimizerOption(determinePredSig)
+      -> (
+          determinePredicateArgumentTypes(pr(Pred, Rel), PredSignature),
+          assert(storedPredicateSignature(DB, PSimple, PredSignature))
+         )
+      ; true
+  ),
+  !.
 
 % handle ERRORs
-selectivity(P, _, _, _) :- 
+selectivity(P, _, _, _) :-
   write('Error in optimizer: cannot find selectivity for '),
-  simplePred(P, PSimple), write(PSimple), nl, 
+  simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(', _, _, _)\n'),
-  throw(sql_ERROR(statistics_selectivity(P, undefined, 
-    undefined, undefined))), 
+  throw(sql_ERROR(statistics_selectivity(P, undefined,
+    undefined, undefined))),
   fail, !.
 
 
@@ -585,9 +691,9 @@ getPET(P, CalcPET, ExpPET) :-
   storedPET(DB, PSimple, CalcPET, ExpPET), !.
 
 getPET(P, _, _) :- write('Error in optimizer: cannot find PETs for '),
-  simplePred(P, PSimple), write(PSimple), nl, 
+  simplePred(P, PSimple), write(PSimple), nl,
   write('Call: getPET('), write(P), write(', _, _)\n'),
-  throw(sql_ERROR(statistics_getPET(P, undefined, undefined))), 
+  throw(sql_ERROR(statistics_getPET(P, undefined, undefined))),
   fail, !.
 
 /*
@@ -601,6 +707,7 @@ The selectivities retrieved via Secondo queries can be loaded
 readStoredSels :-
   retractall(storedSel(_, _, _)),
   retractall(storedBBoxSel(_, _, _)),
+  retractall(storedPredicateSignature(_, _, _)),
   [storedSels].
 
 /*
@@ -638,7 +745,7 @@ replaceCharList(X, X).
 
 writeStoredSels :-
   open('storedSels.pl', write, FD),
-  write(FD, 
+  write(FD,
     '/* Automatically generated file, do not edit by hand. */\n'),
   findall(_, writeStoredSel(FD), _),
   close(FD).
@@ -653,13 +760,13 @@ writeStoredSel(Stream) :-
   replaceCharList(X, XReplaced),
   write(Stream, storedBBoxSel(DB, XReplaced, Y)), write(Stream, '.\n').
 
-showSel :- 
+showSel :-
   storedSel(DB, X, Y),
   replaceCharList(X, XRepl),
   format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
 %  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
-showBBoxSel :- 
+showBBoxSel :-
   storedBBoxSel(DB, X, Y),
   replaceCharList(X, XRepl),
   format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
@@ -679,16 +786,16 @@ showSels :-
 
 readStoredPETs :-
   retractall(storedPET(_, _, _, _)),
-  [storedPETs].  
+  [storedPETs].
 
 writeStoredPETs :-
   open('storedPETs.pl', write, FD),
-  write(FD, 
+  write(FD,
     '/* Automatically generated file, do not edit by hand. */\n'),
   findall(_, writeStoredPET(FD), _),
   close(FD).
 
-writeStoredPET(Stream) :-  
+writeStoredPET(Stream) :-
   storedPET(DB, X, Y, Z),
 
   replaceCharList(X, XReplaced),
@@ -721,21 +828,20 @@ writePET :-
 
 
 /*
-1.5 Printing Metadata on Database 
+1.5 Printing Metadata on Database
 
 ---- showDatabase
 ----
 
-This predicate will inquire all collected statistical data on the 
+This predicate will inquire all collected statistical data on the
 opened Secondo database and print it on the screen.
 
 */
 
 showSingleOrdering(DB, Rel) :-
-  secRelation(Rel, RelExternal),
-  findall( X, 
-           ( storedOrder(DB,RelExternal,X1),
-             translateOrderingInfo(Rel, X1,X)
+  findall( X,
+           ( storedOrder(DB,Rel,X1),
+             translateOrderingInfo(Rel, X1, X)
            ),
            OrderingAttrs
          ),
@@ -745,23 +851,19 @@ showSingleOrdering(DB, Rel) :-
 translateOrderingInfo(_, none,none) :- !.
 translateOrderingInfo(_, shuffled,shuffled) :- !.
 translateOrderingInfo(Rel, Attr, AttrS) :-
-  secAttr(Rel, Attr, AttrS).
+  dcName2externalName(Rel:Attr, AttrS).
 
 showSingleRelationCard(DB, Rel) :-
-  secRelation(Rel, RelExternal),
-  lowerfl(RelExternal, RelExternalL),
-  storedCard(DB, RelExternalL, Card),
+  storedCard(DB, Rel, Card),
   write('\n\n\tCardinality:   '), write(Card), nl, !.
 
 showSingleRelationCard(_, _) :-
   write('\n\n\tCardinality:   *'), nl, !.
 
-showSingleRelationTuplesize(DB, Rel) :-  
-  secRelation(Rel, RelExternal),
-  lowerfl(RelExternal, RelExternalL),
-  storedTupleSize(DB, RelExternalL, Size),
+showSingleRelationTuplesize(DB, Rel) :-
+  storedTupleSize(DB, Rel, Size),
   tupleSizeSplit(Rel, Size2),
-  write('\tAvg.TupleSize: '), write(Size), write(' = '), 
+  write('\tAvg.TupleSize: '), write(Size), write(' = '),
     write(Size2), nl, !.
 
 showSingleRelationTuplesize(_, _) :-
@@ -769,17 +871,37 @@ showSingleRelationTuplesize(_, _) :-
 
 showSingleIndex(Rel) :-
   databaseName(DB),
-  secRelation(Rel, RelExternal),
-  lowerfl(RelExternal, RelExternalL),
-  storedIndex(DB, RelExternalL, Attr, IndexType, _),
-  secAttr(Rel, Attr, AttrS),
+  storedIndex(DB, Rel, Attr, IndexType, _),
+  dcName2externalName(Rel:Attr, AttrS),
   write('\t('), write(AttrS), write(':'), write(IndexType), write(')').
 
 showSingleRelation :-
   databaseName(DB),
   storedRel(DB, Rel, _),
-  secRelation(Rel, RelS),
-  write('\nRelation '), write(RelS), nl,
+  dcName2externalName(Rel, RelS),
+  ( ( sub_atom(Rel,_,_,1,'_sample_') ; sub_atom(Rel,_,_,0,'_small') )
+    -> fail
+    ;  true
+  ),
+  write('\nRelation '), write(RelS),
+  ( systemTable(Rel,_)
+    -> write('\t***SYSTEM TABLE***')
+    ;  true
+  ),
+  getSampleSname(RelS, SampleS),
+  getSampleJname(RelS, SampleJ),
+  getSmallName(RelS, Small),
+  write('\t(Auxiliary objects:'),
+  ( secondoCatalogInfo(DCSampleS,SampleS,_,_)
+    -> ( card(DCSampleS,CardSS), write_list([' SelSample(',CardSS,') ']) )
+    ; true ),
+  ( secondoCatalogInfo(DCSampleJ,SampleJ,_,_)
+    -> ( card(DCSampleJ,CardSJ), write_list([' JoinSample(',CardSJ,') ']) )
+    ; true ),
+  ( secondoCatalogInfo(DCSmall,Small  ,_,_)
+    -> ( card(DCSmall,CardSM), write_list([' SmallObject(',CardSM,') ']) )
+    ; true ),
+  write(')'), nl,
   findall(_, showAllAttributes(Rel), _),
   findall(_, showAllIndices(Rel), _),
   showSingleOrdering(DB, Rel),
@@ -789,7 +911,7 @@ showSingleRelation :-
 showSingleAttribute(Rel,Attr) :-
   databaseName(DB),
   storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize, ExtFlobSize),
-  secAttr(Rel, Attr, AttrS),
+  dcName2externalName(Rel:Attr, AttrS),
   format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
   [AttrS, Type, CoreTupleSize, InFlobSize, ExtFlobSize]).
 
@@ -804,22 +926,22 @@ showAllIndices(Rel) :-
 
 showDatabase :-
   databaseName(DB),
-  write('\nCollected information for database \''), write(DB), 
+  write('\nCollected information for database \''), write(DB),
     write('\':\n'),
   findall(_, showSingleRelation, _),
-  write('\n(Type \'showDatabaseSchema.\' to view the complete '), 
+  write('\n(Type \'showDatabaseSchema.\' to view the complete '),
   write('database schema.)\n').
 
 showDatabase :-
   write('\nNo database open. Use open \'database <name>\' to'),
   write(' open an existing database.\n'),
-  fail. 
+  fail.
 
 
 /*
 1.5 Determining System Speed and Calibration Factors
 
-To achieve good cost estimations, the used cost factors for operators need to be calibrated. 
+To achieve good cost estimations, the used cost factors for operators need to be calibrated.
 
 */
 
@@ -851,7 +973,7 @@ writeStoredOperatorTF(Stream) :-
   write(Stream, storedOperatorTF(Op, A, B)),
   write(Stream, '.\n').
 
-/* 
+/*
 The Original cost factors for operators are:
 
 */
@@ -935,11 +1057,11 @@ Create a new clause for the temporary storage of the new calibration factor.
 
 */
 
-setCostFactor(tempCostFactor(Op, CF)) :- 
+setCostFactor(tempCostFactor(Op, CF)) :-
   retract(tempCostFactor(Op, _)),
   assert(tempCostFactor(Op, CF)), !.
 
-setCostFactor(tempCostFactor(Op, CF)) :- 
+setCostFactor(tempCostFactor(Op, CF)) :-
   assert(tempCostFactor(Op, CF)).
 
 /*
@@ -1019,7 +1141,7 @@ setOriginalCalibrationFactors :-
      ;  true
    ).
 
-/* 
+/*
 1.6 Estimating PETs using an Analytical Model
 
 ---- predCost(+Pred, -PredCost)
@@ -1044,9 +1166,9 @@ predCost(X = Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(X, PredCostX, ArgTypeX, ArgSizeX, predArg(PA)),
   predCost(Y, PredCostY, ArgTypeY, ArgSizeY, predArg(PA)),
   biggerArg(ArgSizeX, ArgSizeY, ArgSize),
-  equalTCnew(ArgTypeX,  ArgTypeY, OperatorTC), 
+  equalTCnew(ArgTypeX,  ArgTypeY, OperatorTC),
                                    % should somehow depend on ArgSize
-  PredCost is PredCostX + PredCostY + OperatorTC. 
+  PredCost is PredCostX + PredCostY + OperatorTC.
 
 predCost(X < Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   predCost(X, PredCostX, ArgTypeX, ArgSizeX, predArg(PA)),
@@ -1083,7 +1205,7 @@ predCost(X inside Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
   insideTCnew(ArgTypeX, ArgTypeY, OperatorTC, S),
   sTTS(ArgSizeX,ArgSizeXT),
   sTTS(ArgSizeY,ArgSizeYT),
-  PredCost is PredCostX + PredCostY 
+  PredCost is PredCostX + PredCostY
             + (ArgSizeXT ** S) * (ArgSizeYT * OperatorTC ) / 100000.
 
 predCost(X adjacent Y, PredCost, ArgTypeX, ArgSize, predArg(PA)) :- !,
@@ -1150,7 +1272,7 @@ predCost(Rel:Attr, 0,  ArgType, ArgSize, _) :- !,
 % default value changed from 0 to 0.0000005
 predCost(_, 0.0000005, notype, 1, _) :- !.
 
-biggerArg(sizeTerm(X1,X2,X3), sizeTerm(Y1,Y2,Y3), sizeTerm(X1,X2,X3)) :- 
+biggerArg(sizeTerm(X1,X2,X3), sizeTerm(Y1,Y2,Y3), sizeTerm(X1,X2,X3)) :-
   X1+X2+X3 >= Y1+Y2+Y3, !.
 
 biggerArg(_, Arg2, Arg2).
@@ -1207,14 +1329,14 @@ containsTCnew(_, _, 0.00002).
 
 When ~optimizerOption(nawracosts))~ is defined, PETs will be corrected:
 
----- 
+----
 calcExpPET(+MSs, +Card, +TupleSize, -Time)
-calcExpPET(+MSs, +Card1, +TupleSize1, 
+calcExpPET(+MSs, +Card1, +TupleSize1,
                  +Card2, +TupleSize2, +ResCard, -Time)
 ----
 Calculation of experimental net-PETs (predicate evaluation times):
 
-Reduce the measured time ~MSs~ when determinating the selectivity of selection-predicates 
+Reduce the measured time ~MSs~ when determinating the selectivity of selection-predicates
 by the estimated costs of operator feed.
 
 Reduce the measured time when determining the selectivity of join-predicates
@@ -1288,33 +1410,61 @@ example23 :- optimize(
     (th:no mod 7) = no]
   ).
 
+
+
+
 /*
+1.9 Determining Operator Signatures
 
-1.9 Auxiliary Predicates
+The following predicates are used to determine the Signature of operators
+used within queries, especially within predicates.
 
-Convert internal name representations to valid identifiers in Secondo
+The approach investigates a term bottom-up, i.e. it first tries to determine
+the type of the arguments on the leaves of the operator tree by inspecting the
+attribute table or by sending getTypeNL-Queries to Secondo.
+
+Once all argument types are known for a operator node, we check wheter the
+signature is already known. If so, we already know the operator result type.
+Otherwise, we need to query Secondo for it.
+
+---- getOperatorSignature(+Term,+RelList,-Signature)
+----
+
+Determine the signature for ~Term~ when using relations ~Rel1~ and ~Rel2~.
+The result ~Signature~ has format [Op,ArgumentTypeList,ResultType].
+
+~Rel1~ and ~Rel2~ must contain relation descriptors for all relations needed to
+obtain attributes occuring within ~Term~.
 
 */
 
-secRelation(Internal, External) :- 
-  databaseName(DB),
-  storedSpell(DB, Internal, lc(External)),!.
+getSig(attr(Attr,Arg,_), Rel1, Rel2, AttrType) :-
+    % translate Attr, find proper Relation in RelList
+    (Arg = 0
+      -> attrType(Rel1:Attr,AttrType)
+      ;  (Arg = 1
+          -> attrType(Rel1:Attr,AttrType)
+          ;  (Arg = 2
+              -> attrType(Rel2:Attr,AttrType)
+              ;  fail)
+         )
+    ),
+    !.
 
-secRelation(Internal, ExternalU) :-
-  databaseName(DB),
-  storedSpell(DB, Internal, External),
-  upper(External, ExternalU),!.
+getSig(attr(A,B,C), Rel1, Rel2, _) :-
+    throw(sql_ERROR(statistics_getSig(attr(A,B,C), Rel1, Rel2, undefined))),
+    !,
+    fail.
 
-secRelation(Internal, Internal) :- !.
-  
-secAttr(Rel, Internal, External) :- 
-  databaseName(DB),
-  storedSpell(DB, Rel:Internal, lc(External)),!.
+getSig(Term, Rel1, Rel2, ResultType) :-
+    Term =.. [Op|ArgTermList],
+    getSig(ArgTermList, RelList, ArgTypeList),
+    (   storedSignature(Op, ArgTypeList, ResultType)
+        ; ( queryResultType(Term, RelList, ResultType),
+            assert(Op, ArgTypeList, ResultType)
+          )
+    ),
+    !.
 
-secAttr(Rel, Internal, ExternalU) :-
-  databaseName(DB),
-  storedSpell(DB, Rel:Internal, External),
-  upper(External, ExternalU),!.
-
-secAttr(_, Internal, Internal) :- !.
+getSig(ArgTermList, Rel1, Rel2, ArgTypeList) :- !.
 

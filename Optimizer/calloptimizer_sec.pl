@@ -1,25 +1,25 @@
 :- assert(
-optimizerOptionInfo(correlations, none, yes,   
+optimizerOptionInfo(correlations, none, yes,
                      'Try to take predicate interdependence into account.',
-                     ( delOption(entropy), 
+                     ( delOption(entropy),
                        delOption(intOrders(on)),
                        delOption(intOrders(quick)),
                        delOption(intOrders(path)),
                        delOption(intOrders(test)),
-                       loadFiles(correlations) 
-                     ), 
+                       loadFiles(correlations)
+                     ),
                      true )).
 
 :- assert(
-optimizerOptionInfo(adaptiveJoin, none, yes,   
+optimizerOptionInfo(adaptiveJoin, none, yes,
                      'Allow usage of adaptive join operators.',
-                     ( delOption(entropy), 
+                     ( delOption(entropy),
                        delOption(intOrders(on)),
                        delOption(intOrders(quick)),
                        delOption(intOrders(path)),
                        delOption(intOrders(test)),
-                       loadFiles(adaptiveJoin) 
-                     ), 
+                       loadFiles(adaptiveJoin)
+                     ),
                      true )).
 
 :- assert(
@@ -30,17 +30,11 @@ optimizerOptionInfo(entropy, none, yes,
                       delOption(intOrders(path)),
                       delOption(intOrders(test)),
                       delOption(immediatePlan),
-                      loadFiles(entropy), 
+                      loadFiles(entropy),
                       (   notIsDatabaseOpen
-                        ; ( retractall(storedSecondoList(_)),
-                            getSecondoList(ObjList),
-                            checkForAddedIndices(ObjList), 
-                            checkForRemovedIndices(ObjList),
-                            checkIfSmallRelationsExist(ObjList),
-                            retractall(storedSecondoList(_))
-                          )
+                        ; ensureSmallObjectsExist
                       )
-                    ), 
+                    ),
 	            true )).
 
 :- assert(

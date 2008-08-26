@@ -186,6 +186,28 @@ maintainsOrderOP(sortby,                no).
 maintainsOrderOP(sortmergejoin,    special).
 
 /*
+Using the facts with predicate ~isBlockingOP()~, you can specify, whether an operaotor
+blocking or not.
+standard is nonblocking behaviour.
+
+*/
+
+isBlockingOP(product).
+isBlockingOP(hashjoin).
+isBlockingOP(sortmergejoin).
+isBlockingOP(mergejoin).
+isBlockingOP(sort).
+isBlockingOP(sortby).
+isBlockingOP(avg).
+isBlockingOP(sum).
+isBlockingOP(min).
+isBlockingOP(max).
+isBlockingOP(count).
+isBlockingOP(consume).
+isBlockingOP(tconsume).
+isBlockingOP(makemvalue).
+
+/*
 3 Properties Of Certain Datatypes
 
 ~noFlobType(Type)~ indicates that Secondo datatype ~type~ does not have any
@@ -205,6 +227,7 @@ noFlobType(point).
 noFlobType(rect).
 noFlobType(rect3).
 noFlobType(rect4).
+noFlobType(rect8).
 noFlobType(rint).
 noFlobType(rreal).
 noFlobType(periods).

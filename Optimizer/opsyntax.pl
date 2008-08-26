@@ -1,4 +1,5 @@
 /*
+
 ----
 This file is part of SECONDO.
 
@@ -18,11 +19,40 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 ----
 
-1 Operator Syntax
+//paragraph [10] title: [{\Large \bf ]  [}]
+//characters [1] formula:       [$]     [$]
+//[ae] [\"{a}]
+//[oe] [\"{o}]
+//[ue] [\"{u}]
+//[ss] [{\ss}]
+//[Ae] [\"{A}]
+//[Oe] [\"{O}]
+//[Ue] [\"{U}]
+//[**] [$**$]
+//[star] [$*$]
+//[->] [$\rightarrow$]
+//[toc] [\tableofcontents]
+//[=>] [\verb+=>+]
+//[<] [$<$]
+//[>] [$>$]
+//[%] [\%]
+
+//[newpage] [\newpage]
+
+[10] Defining Operator Syntax
 
 [File ~opsyntax.pl~]
+
+[toc]
+
+[newpage]
+
+
+1 Query Language Operator Syntax
+
 
 */
 
@@ -70,6 +100,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 
+2 Executable Language Operator Syntax
+
+
 ----	secondoOp(?Op, ?Syntax, ?NoArgs) :-
 ----
 
@@ -78,10 +111,11 @@ Currently implemented:
 
   * postfix, 1 or 2 arguments: corresponds to \_ \# and \_ \_ \#
 
-  * postfixbrackets, 2 or 3 arguments, of which the last one is put into
-the brackets: \_ \# [ \_ ] or \_ \_ \# [ \_ ]
+  * postfixbrackets1, 2 or more arguments. All but the first one are put into
+      the brackets: \_ \# [ \_ ], \_ \# [ \_ , \_ ], \_ \# [ \_ , \_ , \_ ] ...
 
-  * postfixbrackets2: \_ \# [\_ , \_]
+  * postfixbrackets2: 3 or more arguments. All but the first two are put into
+      the brackets: \_ \_ \# [\_ ], \_ \_ \# [\_ , \_ ] ...
 
   * prefix, 2 arguments: \# (\_, \_)
 
@@ -91,55 +125,105 @@ translated by default.
   * infix, 2 arguments: does not need a rule, translated by default.
 
 For all other forms, a plan\_to\_atom rule has to be programmed explicitly.
+Otherwise, the standard schema is applied:
+
+  * unary operators:   \# ( \_ )           prefix 1
+
+  * binary operators: \_ \# \_              infix
+
+  * N-ary operators:  \# ( \_, \_, \_, ... ) prefix, N [>] 2
+
+----
+Quick Reference:
+
+ OperatorSyntax         |    Use: OperatorType, Arity ( '_' = don't care)
+ -----------------------+------------------------------------------------
+ # ( _ )                |    (no explicit specification)
+ # ( _, _ )             |    prefix, 2
+ # (  _, _, _, ...)     |    (no explicit specification)
+ _ #                    |    postfix, 1
+ _ # _                  |    (no explicit specification)
+ _ # [ _ ]              |    postfixbrackets, _
+ _ # [ _, _ ]           |    postfixbrackets, _
+ _ # [ _, _, ... ]      |    postfixbrackets, _
+ _ _ #                  |    postfix, 2
+ _ _ # [ _ ]            |    postfixbrackets, _
+ _ _ # [ _, _ ]         |    postfixbrackets2, _
+ _ _ # [ _, _, ... ]    |    postfixbrackets2, _
+
+----
 
 */
+
 :- dynamic(secondoOp/3).
 
-secondoOp(distance, prefix, 2).
-secondoOp(intersection_new, prefix, 2).
-secondoOp(intersection, prefix, 2).
-secondoOp(theperiod, prefix, 2).
-secondoOp(everNearerThan, prefix, 3).
-secondoOp(union_new, prefix, 2).
-secondoOp(minus_new, prefix, 2).
-secondoOp(feed, postfix, 1).
-secondoOp(consume, postfix, 1).
-secondoOp(count, postfix, 1).
-secondoOp(pdelete, postfix, 1).
-secondoOp(product, postfix, 2).
-secondoOp(filter, postfixbrackets, 2).
-secondoOp(puse, postfixbrackets, 2).
-secondoOp(pfeed, postfixbrackets, 2).
-secondoOp(pcreate, postfixbrackets, 2).
-secondoOp(loopjoin, postfixbrackets, 2).
-secondoOp(exactmatch, postfixbrackets, 3).
-secondoOp(leftrange, postfixbrackets, 3).
-secondoOp(rightrange, postfixbrackets, 3).
-secondoOp(remove, postfixbrackets, 2).
-secondoOp(sortby, postfixbrackets, 2).
-secondoOp(loopsel, postfixbrackets, 2).
-secondoOp(sum, postfixbrackets, 2).
-secondoOp(min, postfixbrackets, 2).
-secondoOp(max, postfixbrackets, 2).
-secondoOp(memshuffle, postfix, 1).
-secondoOp(shuffle3, postfix, 1).
-secondoOp(avg, postfixbrackets, 2).
-secondoOp(extract, postfixbrackets, 2).
-secondoOp(tuplesize, postfix, 1).
-secondoOp(exttuplesize, postfix, 1).
-secondoOp(attrsize, postfixbrackets, 2).
-secondoOp(head, postfixbrackets, 2).
-secondoOp(tail, postfixbrackets, 2).
-secondoOp(windowintersects, postfixbrackets, 3).
-secondoOp(windowintersectsS, postfixbrackets, 2).
-secondoOp(gettuples, postfix, 2).
-secondoOp(sort, postfix, 1).
-secondoOp(rdup, postfix, 1).
-secondoOp(bbox, prefix, 1).
-secondoOp(box3d, prefix, 2).
-secondoOp(symmproduct, postfix, 2).
-secondoOp(move, prefix, 2).
-secondoOp(var, postfixbrackets, 2).
+secondoOp( attrsize,          postfixbrackets1, 2).
+secondoOp( avg,               postfixbrackets1, 2).
+secondoOp( bbox,              prefix, 1).
+secondoOp( between,           postfixbrackets1, 3).
+secondoOp( box3d,             prefix, 2).
+secondoOp( consume,           postfix, 1).
+secondoOp( count,             postfix, 1).
+secondoOp( distance,          prefix, 2).
+secondoOp( equals,            postfixbarckets2, 4).
+secondoOp( everNearerThan,    prefix, 3).
+secondoOp( exactmatch,        postfixbrackets2, 3).
+secondoOp( exactmatchS,       postfixbrackets1, 2).
+secondoOp( extend,            postfixbrackets1, 2).
+secondoOp( extract,           postfixbrackets1, 2).
+secondoOp( exttuplesize,      postfix, 1).
+secondoOp( feed,              postfix, 1).
+secondoOp( filter,            postfixbrackets1, 2).
+secondoOp( gettuples,         postfix, 2).
+secondoOp( gettuples2,        postfixbrackets2, 3).
+secondoOp( gettuplesdbl,      postfixbrackets2, 3).
+secondoOp( getTypeNL,         postfix, 1).
+secondoOp( getValueNL,        postfix, 1).
+secondoOp( head,              postfixbrackets1, 2).
+secondoOp( hashjoin,          postfixbrackets2, 5).
+secondoOp( intersection_new,  prefix, 2).
+secondoOp( intersection,      prefix, 2).
+secondoOp( leftrange,         postfixbrackets2, 3).
+secondoOp( leftrangeS,        postfixbrackets1, 2).
+secondoOp( like,              postfixbrackets1, 5).
+secondoOp( loopjoin,          postfixbrackets1, 2).
+secondoOp( loopsel,           postfixbrackets1, 2).
+secondoOp( max,               postfixbrackets1, 2).
+secondoOp( memshuffle,        postfix, 1).
+secondoOp( mergejoin,         postfixbrackets2, 4).
+secondoOp( min,               postfixbrackets1, 2).
+secondoOp( minus_new,         prefix, 2).
+secondoOp( move,              prefix, 2).
+secondoOp( nnscan,            postfixbrackets2, 3).
+secondoOp( nnsearch,          postfixbrackets2, 4).
+secondoOp( pcreate,           postfixbrackets1, 2).
+secondoOp( pdelete,           postfix, 1).
+secondoOp( pfeed,             postfixbrackets1, 2).
+secondoOp( pjoin2,            postfixbrackets2, 4).
+secondoOp( product,           postfix, 2).
+secondoOp( puse,              postfixbrackets1, 2).
+secondoOp( range,             postfixbrackets2, 4).
+secondoOp( rangeS,            postfixbrackets1, 3).
+secondoOp( rangesearch,       postfixbrackets2, 4).
+secondoOp( rdup,              postfix, 1).
+secondoOp( remove,            postfixbrackets1, 2).
+secondoOp( rightrange,        postfixbrackets2, 3).
+secondoOp( rightrangeS,       postfixbrackets1, 2).
+secondoOp( shuffle3,          postfix, 1).
+secondoOp( sort,              postfix, 1).
+secondoOp( sortby,            postfixbrackets1, 2).
+secondoOp( sortmergejoin,     postfixbrackets2, 4).
+secondoOp( sortmergejoin_r2,  postfixbrackets2, 4).
+secondoOp( spatialjoin,       postfixbrackets2, 4).
+secondoOp( sum,               postfixbrackets1, 2).
+secondoOp( symmproduct,       postfix, 2).
+secondoOp( tail,              postfixbrackets1, 2).
+secondoOp( theperiod,         prefix, 2).
+secondoOp( tuplesize,         postfix, 1).
+secondoOp( union_new,         prefix, 2).
+secondoOp( var,               postfixbrackets1, 2).
+secondoOp( windowintersects,  postfixbrackets2, 3).
+secondoOp( windowintersectsS, postfixbrackets1, 2).
 
 
 
