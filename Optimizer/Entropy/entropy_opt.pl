@@ -27,7 +27,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-September 2005, G. Zimbrao. Initial version. 
+September 2005, G. Zimbrao. Initial version.
 
 April 2006, M. Spiekermann. Isolating the changes needed for the entropy optimizer.
 Redundant code (code which is also defined in the standard optimizer) removed.
@@ -55,9 +55,9 @@ added. This helps to get an quick overview about the different estimation values
 
    smallResultSize/2,
    smallResultCounter/4,
-   
+
    % smallResultCounter(Nc, Source, Target, Result))
-   
+
    entropy_node/2,
    small_cond_sel/4,
    firstResultSize/2,
@@ -66,7 +66,7 @@ added. This helps to get an quick overview about the different estimation values
    selfJoin/3,
    selfJoinToDo/2,
    buildingSmallPlan/0.
-   
+
 
 /*
 2 Tools for Evaluation of the Entropy Approach
@@ -97,7 +97,7 @@ createNodeSize(Node, SizeStd, SizeEntropy, SizeReal) :-
 
 
 /*
-2.3 User Interface for displaying Estimation Values 
+2.3 User Interface for displaying Estimation Values
 
 The predicate ~compareEstimations/0~ displays values for node sizes
 and selectivity estimations of the standard and entropy approach.
@@ -111,49 +111,49 @@ predicate ~computeCards~ of the standard optimizer.
 Predicate ~showAllSizes/0~ displays already computed values.
 
 */
- 
+
 compareSizes :-
  compareEstimations.
 
 compareEstimations :-
  compareNodeSizes,
- compareEdgeSels. 
+ compareEdgeSels.
 
 allSizes :-
   computeCards,
   showRel('NodeSizes').
- 
+
 
 /*
 Collect all values stored in dynamic predicate into lists and pretty print
 them as tables.
 
 */
- 
+
 compareNodeSizes :-
  findall(X, createCompareSizeTuple(_, X), L ),
- TupFormat = [ ['Node', 'c'], 
-               ['SizeStd', 'l'], 
+ TupFormat = [ ['Node', 'c'],
+               ['SizeStd', 'l'],
                ['SizeEntropy', 'l'] ],
- showTuples(L, TupFormat). 
+ showTuples(L, TupFormat).
 
 
 compareEdgeSels :-
  findall(X, createCompareSelTuple(_, _, X), L ),
- Format = [ ['Source', 'c'], 
-            ['Target', 'c'], 
-            ['SelStd', 'l'], 
+ Format = [ ['Source', 'c'],
+            ['Target', 'c'],
+            ['SelStd', 'l'],
             ['SelEntropy', 'l'] ],
- showTuples(L, Format). 
+ showTuples(L, Format).
 
 
-/* 
+/*
 The clauses below are used to store a list of counters returned by SECONDO.
 The command ~list counters~ will return a list of pairs (ctrNum, value) which
 is stored in ~smallResultSize/2~
 
 */
- 
+
 deleteSmallResultCounter :-
   retractall(smallResultCounter(_,_,_,_)).
 
@@ -229,7 +229,7 @@ assignSmallSelectivity(Source, Target, Result, join(Arg1, Arg2, _), Value) :-
 createSmallSelectivity :-
   deleteSmallSelectivity, !,
   not(createSmallSelectivity2).
- 
+
 createSmallSelectivity2 :-
   smallResultCounter(_, Source, Target, Result),
   smallResultSize(Result, Value),
@@ -245,17 +245,17 @@ Assumes that the small database has the same indexes that are in the full databa
 but with the suffix '\_small'
 
 */
- 
+
 small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
   atom_concat(Rel, '_small', Rel2).
 
 
 
-newResSize(arg(N), Size) :- 
-  argument(N, R ), 
+newResSize(arg(N), Size) :-
+  argument(N, R ),
   small( R, rel(SRel, _, _)),   card(SRel, Size), !.
 
-newResSize(res(N), Size) :- 
+newResSize(res(N), Size) :-
   smallResultSize(N, Size), !.
 
 
@@ -275,7 +275,10 @@ query_small([First|Next], [FirstResult|NextResult]) :-
   query_small(Next, NextResult), !.
 
 query_small(IndexName, NameSmall) :-
-  storedIndex(_,_,_,_,IndexName),
+  atomic(IndexName),
+  dcName2externalName(DCindexName,IndexName),
+  databaseName(DB),
+  storedIndex(DB,_,_,_,DCindexName),
   atom_concat( IndexName, '_small', NameSmall ), !.
 
 query_small(rel(Name, V, C), rel(NameSmall, V, C)) :-
@@ -297,7 +300,7 @@ query_small( Term, Result ) :-
 3 Interaction with the ~standard~ Optimizer
 
 At some places in optimizer.pl it will be checked
-whether ~optimizerOption(entropy)~ holds. If this is true, ~clause2~ will be 
+whether ~optimizerOption(entropy)~ holds. If this is true, ~clause2~ will be
 called instead of ~clause~.
 
 */
@@ -306,11 +309,11 @@ called instead of ~clause~.
 /*
 The rule ~traversePath~ is used inside predicate ~plan/2~ of the
 standard optimizer, but for the entropy approach the version below will
-be called. In this case the values of the counters will be stored in 
+be called. In this case the values of the counters will be stored in
 
 ----  nodePlan/2
       smallResultCounter/4
-----      
+----
 
 
 
@@ -364,7 +367,7 @@ registerSelfJoin(pr(_, Rel1, Rel2), N) :-
   assert(usedAttr(Rel2, IDAttr)),
   nl, nl,
   write('*************'), nl,
-  write('Predicate '), write(N), write(' has a self join on relation '), 
+  write('Predicate '), write(N), write(' has a self join on relation '),
   write(X), nl, nl.
 
 registerSelfJoin(_, _).
@@ -435,7 +438,7 @@ translateEntropy(Stream1, Stream2, Cost1, Cost2) :-
   write('Estimated Cost: '), write(Cost1), nl, nl, !,
 
   % compute a new plan based on the cost annotations of
-  % the new selectivities computed by maximize_entropy 
+  % the new selectivities computed by maximize_entropy
   deleteCounters,
   retract(buildingSmallPlan),
   retractall(selfJoin(_, _, _)),
@@ -465,7 +468,7 @@ assignEntropyCost :-
   createJointProbabilities( JP ),!,
 
   % store selectivities of the first query and  delete the
-  % cost annotations in the POG 
+  % cost annotations in the POG
   saveFirstSizes,
   deleteSizes,
   deleteCostEdges,
@@ -475,8 +478,8 @@ assignEntropyCost :-
 
   feasible(MP, JP, MP2, JP2), !,
 
-  % call the predicate implemented in C++ which computes the 
-  % remaining conditional probabilities. 
+  % call the predicate implemented in C++ which computes the
+  % remaining conditional probabilities.
   write('calling maximize_entropy with:'), nl,
   write( MP2 ), write(', ') , write( JP2 ), nl, nl,
   maximize_entropy(MP2, JP2, Result), !,
@@ -489,24 +492,24 @@ assignEntropyCost :-
 
 /*
 
-4 Predicate ~pl\_maximize\_entropy/3~ 
+4 Predicate ~pl\_maximize\_entropy/3~
 
 This predicate computes conditional probabilities using the
 Maximum Entropy approach. It is done by means of the so called iterative
-scaling algorithm which is implemented in C++. 
+scaling algorithm which is implemented in C++.
 The implementation is in the file "iterative\_scaling.cpp".
 
-Usage: 
+Usage:
 
 ----
     maximize_entropy( [p1 p2 p3 ... pn], [[1, cp1], [2, cp2] ...], R )
-----  
+----
 
 The parameters are a list of marginal probabilites (e.g. the selectivites on the
 sample relations) and a list of conditional probabilities (computed after running
 an initial query plan on a small database). It assumed the same coding of
 predicates using bits, as done in POG construction - that is, to the predicate
-n, if the ith-bit is set to 1 then the ith-predicate is already evaluated.  
+n, if the ith-bit is set to 1 then the ith-predicate is already evaluated.
 
 Each pi is the probability for predicate $2^i$ Each pair [n, cp] is the given
 probability cp of joint predicates n using the ith-bit convention above.  The result
@@ -519,7 +522,7 @@ Example applications:
     R = [[0, 1.0], [1, 0.5], [2, 0.5], [3, 0.25]]
 
     maximize_entropy([[1, 0.5], [2, 0.5], [4, 0.5]], [[3, 0.4], [6, 0.4]], R).
-    R = [ [0, 1.0], [1, 0.5], [2, 0.5], [3, 0.4], 
+    R = [ [0, 1.0], [1, 0.5], [2, 0.5], [3, 0.4],
           [4, 0.5], [5, 0.34], [6, 0.4], [7, 0.32] ]
 ----
 
@@ -552,7 +555,7 @@ entropySel( Source, Target, Sel ) :-
   entropy_node( Target, P2 ),
   P1 > 0,
   Sel is P2 / P1.
- 
+
 /*
 Construction of the input parameters (a lists of marginal probabilites and
 conditional probabilities) for the ~maximize\_entropy/3~ predicate.
@@ -603,7 +606,7 @@ createJointProbability( _, _, [] ).
 
 If any "S_{pq}" lies outside these bounds it will be set to the corresponding boundary value. To avoid zero atoms, additionally the value of "S_{pq}" is reduced or increased by 1 \%, respectively.
 
-Marginals of value 1 can arise if all tuples in a sample qualify. In this case we also lower the selectivity slightly (to 0.99) to avoid zero atoms. 
+Marginals of value 1 can arise if all tuples in a sample qualify. In this case we also lower the selectivity slightly (to 0.99) to avoid zero atoms.
 
 
 */
@@ -623,7 +626,7 @@ saveMarginal([[Pred, Sel]|L]) :-
 loadMarginal(MP) :-
   setof([Pred, Sel], marginal(Pred, Sel), MP).
 
-deleteMarginal :- 
+deleteMarginal :-
   retractall(marginal(_, _)).
 
 
@@ -651,13 +654,13 @@ feasible2([[0, Target, TargetSel] | Joint], Joint2) :-
 
 feasible3(_, [], []).
 
-feasible3(PrevJoint, [[Source, Target, TargetSel] | Joint], 
+feasible3(PrevJoint, [[Source, Target, TargetSel] | Joint],
 	[[Target, TargetSel2] | Joint2]) :-
   LastPred is Target - Source,
   marginal(LastPred, LastPredSel),
-  %nl, write('call adjusted with '), 
-  %write('PrevJoint = '), write(PrevJoint), write(', '), 
-  %write('LastPredSel = '), write(LastPredSel), write(', '), 
+  %nl, write('call adjusted with '),
+  %write('PrevJoint = '), write(PrevJoint), write(', '),
+  %write('LastPredSel = '), write(LastPredSel), write(', '),
   %write('TargetSel'), write(TargetSel), nl,
   adjusted(PrevJoint, LastPredSel, TargetSel, TargetSel2),
   feasible3(TargetSel2, Joint, Joint2).
@@ -677,7 +680,7 @@ adjusted(PSel, QSel, JointSel, JointSel2) :-
   JointSel =< 1.01 * (PSel + QSel - 1),
   JointSel2 is 1.01 * (PSel + QSel - 1).
 
-  
+
 simpleadjust(MP, [_ |JP] , MP2, JP2):-
   margadjust(MP, MP2),
   jointadjust(JP, JP2).
@@ -737,7 +740,7 @@ copyFirstEdgeSelectivity :-
   assert(firstEdgeSelectivity(Source, Target, Sel)),
   fail.
 
- 
+
 /*
 Delete facts stored during the ~entropy~ optimization
 procedure.
@@ -769,6 +772,6 @@ deleteSmallResults :-
 ----
 
 */
- 
+
 
 
