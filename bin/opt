@@ -545,14 +545,20 @@
             (rel 
                 (tuple 
                     (
-                        (name string) 
-                        (value text) 
-                        (usedObjs text)))) 
+                        (Name string) 
+                        (Value text) 
+                        (UsedObjs text)))) 
             (
                 ("plz_Ort" 
                     <text>(createbtree plz Ort)</text---> 
                     <text>( plz )</text--->) 
+                ("plz_Ort_btree" 
+                    <text>(createbtree plz Ort)</text---> 
+                    <text>( plz )</text--->) 
                 ("plz_PLZ" 
+                    <text>(createbtree plz PLZ)</text---> 
+                    <text>( plz )</text--->) 
+                ("plz_PLZ_btree" 
                     <text>(createbtree plz PLZ)</text---> 
                     <text>( plz )</text--->) 
                 ("plz2" 
