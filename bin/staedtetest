@@ -431,14 +431,17 @@
             (rel 
                 (tuple 
                     (
-                        (name string) 
-                        (value text) 
-                        (usedObjs text)))) 
+                        (Name string) 
+                        (Value text) 
+                        (UsedObjs text)))) 
             (
                 ("StaedteD" 
                     '(createdeleterel Staedte)' 
                     '( Staedte )') 
                 ("Kinos_Ort" 
+                    '(creatertree Kinos Ort)' 
+                    '( Staedte )') 
+                ("Kinos_Ort_btree" 
                     '(creatertree Kinos Ort)' 
                     '( Kinos )') 
                 ("Kinos1" 
@@ -446,9 +449,15 @@
                     '( Kinos )') 
                 ("Kinos1_Ort" 
                     '(creatertree Kinos1 Ort)' 
+                    '( Kinos )') 
+                ("Kinos1_Ort_btree" 
+                    '(creatertree Kinos1 Ort)' 
                     '( Kinos1 )') 
                 ("KinosOhneUCI1" 
                     '(consume (feed KinosOhneUCI))' 
+                    '( KinosOhneUCI )') 
+                ("KinosOhneUCI1_Ort_btree" 
+                    '(creatertree KinosOhneUCI1 Ort)' 
                     '( KinosOhneUCI )') 
                 ("KinosOhneUCI1_Ort" 
                     '(creatertree KinosOhneUCI1 Ort)' 
@@ -503,6 +512,9 @@
                     '( Kinos )') 
                 ("Kinos2_Ort" 
                     '(creatertree Kinos2 Ort)' 
+                    '( Kinos )') 
+                ("Kinos2_Ort_btree" 
+                    '(creatertree Kinos2 Ort)' 
                     '( Kinos2 )') 
                 ("staedte_SName" 
                     '(createbtree Staedte SName)' 
@@ -510,10 +522,19 @@
                 ("staedte_Bev" 
                     '(createbtree Staedte Bev)' 
                     '( Staedte )') 
+                ("staedte_Bev_btree" 
+                    '(createbtree Staedte Bev)' 
+                    '( Staedte )') 
                 ("staedte_SName_h" 
                     '(createhash Staedte SName)' 
                     '( Staedte )') 
+                ("staedte_SName_hash" 
+                    '(createhash Staedte SName)' 
+                    '( Staedte )') 
                 ("staedte_Bev_h" 
+                    '(createhash Staedte Bev)' 
+                    '( Staedte )') 
+                ("staedte_Bev_hash" 
                     '(createhash Staedte Bev)' 
                     '( Staedte )'))) 
         (OBJECT Staedte 
