@@ -1184,10 +1184,17 @@ Arguments:
 
 */
 
+rel_to_atom(rel(DCname, _, _), ExtName) :-
+  dcName2externalName(DCname,ExtName).
+
+/*
+Old Code:
+
+----
 rel_to_atom(rel(Name, _, l), Name).
 rel_to_atom(rel(Name, _, u), Name2) :-
   upper(Name, Name2).
-
+*/
 
 plan_to_atom(A,A) :-
   string(A),
@@ -2719,10 +2726,10 @@ resTupleSize(arg(N), TupleSize) :-
 resTupleSize(res(N), TupleSize) :-
   nodeTupleSize(N, TupleSize), !.
 
-resTupleSize(X, _) :-
+resTupleSize(X, Y) :-
   write('ERROR in optimizer: cannot find tuplesize for \''),
   write(X), write('\'.\n'),
-  throw(error_SQL(optimizer_resTupleSize(X, undefined))),
+  throw(error_SQL(optimizer_resTupleSize(X,Y))),
   fail, !.
 
 
@@ -2748,8 +2755,8 @@ getPredNoPET(Source, Target, CalcPET, ExpPET) :-
 getPredNoPET(Index, CalcPET, ExpPET) :-
   storedPredNoPET(Index, CalcPET, ExpPET), !.
 
-getPredNoPET(Index, _, _) :-
-  throw(error_SQL(optimizer_getPredNoPET(Index, undefined, undefined))),
+getPredNoPET(Index, X, Y) :-
+  throw(error_SQL(optimizer_getPredNoPET(Index, X, Y))),
   fail, !.
 
 /*
@@ -4321,39 +4328,30 @@ Translate and store a single relation definition.
   usedAttr/2.
 
 
-lookupRel(Rel as Var, rel(Rel2, Var, Case)) :-
+lookupRel(Rel as Var, Y) :-
+  dcName2externalName(Rel2,Rel),
   relation(Rel, _), !,
-  spelled(Rel, Rel2, Case),
-  not(defined(Var)),
-  assert(variable(Var, rel(Rel2, Var, Case))).
+  ( variable(Var, _)
+    -> ( write_list(['\nERROR:\tLooking up query: Doubly defined variable ',Var,
+                     '.']), nl,
+         throw(error_SQL(optimizer_lookupRel(Rel as Var,Y):doubledVariable)),
+         fail
+       )
+    ;  Y = rel(Rel2, Var, l)
+  ),
+  assert(variable(Var, rel(Rel2, Var, l))).
 
-lookupRel(Rel, rel(Rel2, *, Case)) :-
-  relation(Rel, _), !,
-  spelled(Rel, Rel2, Case),
-  not(duplicateAttrs(Rel)),
-  assert(queryRel(Rel, rel(Rel2, *, Case))).
+lookupRel(Rel, rel(Rel2, *, l)) :-
+  dcName2externalName(Rel2,Rel),
+  relation(Rel2, _), !,
+  not(duplicateAttrs(Rel2)),
+  assert(queryRel(Rel2, rel(Rel2, *, l))).
 
-
-lookupRel(Rel as Var, Rel as Var) :-
-  relError(Rel).
-
-lookupRel(Atom, Atom) :-
-  atom(Atom),
-  relError(Atom).
-
-relError(Atom) :-
-  concat_atom( ['relation ', Atom, ' not known!'], Msg),
-  lookupError(Msg).
-
-defined(Var) :-
-  variable(Var, _),
-  concat_atom(['variable ', Var, ' doubly defined!'], Msg),
-  lookupError(Msg).
-
-lookupError(Msg) :-
-  nl, write('*** Error during lookup: '), write(Msg),
-  write(' *** '), nl, nl,
+lookupRel(X,Y) :- !,
+  write_list(['\nERROR:\tLooking up query: Relation \'',X,'\' unknown!']), nl,
+  throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation)),
   fail.
+
 
 /*
 ----    duplicateAttrs(Rel) :-
@@ -4370,9 +4368,11 @@ duplicateAttrs(Rel) :-
   member(Attr, Attrs2),
   relation(Rel, Attrs),
   member(Attr, Attrs),
-  not(Rel = Rel2),
-  write('Error in query: duplicate attribute names in relations '),
-  write(Rel2), write(' and '), write(Rel), write('.'), nl.
+  not(Rel = Rel2), !,
+  write_list(['\nERROR:\tDuplicate attribute names in relations ',
+              Rel2, ' and ',Rel,'.']),
+  throw(error_SQL(optimizer_duplicateAttrs(Rel):duplicateAttrs)),
+  nl.
 
 /*
 11.3.4 Modification of the Select-Clause
@@ -4449,14 +4449,14 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   !,
   assert(queryAttr(attr(Name, 0, u))).
 
-lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
-  lookupAttr(Expr, Expr2),
+lookupAttr(Expr as Name, Y) :-
+  lookupAttr(Expr, _),
   queryAttr(attr(Name, 0, u)),
   !,
-  write('***** Error: attribute name '), write(Name),
-  write(' doubly defined in query.'),
-  nl.
-
+  write_list(['\nERROR: Lokking up query: Attribute name \'',Name,'\'',
+              ' doubly defined in query.']), nl,
+  throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y):duplicateAttrs)),
+  fail.
 
 /*
 Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
@@ -4487,7 +4487,7 @@ lookupAttr(Term, dbobject(TermDC)) :-
 
 lookupAttr(Term, Term) :-
   atom(Term),
-  write_list(['\nERROR:\tSymbol \'',Term,                         %'
+  write_list(['\nERROR:\tLooking up query: Symbol \'',Term,       %'
               '\' in attribute list not recognized!']),           %'
   throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownError)),
   fail.
