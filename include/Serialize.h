@@ -86,4 +86,22 @@ inline void ReadVar<bool>(bool& value, char* state, size_t& offset)
   offset += 1;
 }	
 
+template<>
+inline void WriteVar<unsigned char>(const unsigned char& value, 
+                                    char* storage, 
+                                    size_t& offset) 
+{
+  storage[offset] = value;
+  offset += 1;
+}	
+
+template<>
+inline void ReadVar<unsigned char>(unsigned char& value, 
+                                   char* state, 
+                                   size_t& offset) 
+{
+  value = state[offset];
+  offset += 1;
+}	
+
 #endif

@@ -17,7 +17,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 ----
 
 \sloppy
@@ -84,6 +84,16 @@ The value 2451547 corresponds to 3.1.2000
 
 */
 enum TimeType  {instanttype, durationtype};
+
+/*
+~some constants for a compact represnetation of flags~
+
+*/
+static const unsigned char DEF_POS = 1;
+static const unsigned char INSTANT_POS = 2;
+static const unsigned char DURATION_POS = 4;
+
+
 
 /*
 1.2 The class declaration
@@ -628,39 +638,42 @@ delta in [0,1].
   inline virtual size_t SerializedSize() const 
   {
     return (2 * sizeof(LONGTYPE)) + sizeof(TimeType) + 2;
-  }	  
+  }
 
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
     WriteVar<LONGTYPE>(day, storage, offset);
     WriteVar<LONGTYPE>(milliseconds, storage, offset);
-    WriteVar<bool>(defined, storage, offset);
-    WriteVar<bool>(canDelete, storage, offset);
-    WriteVar<TimeType>(type, storage, offset);
-  }	  
+    WriteVar<unsigned char>(state, storage, offset);
+    //WriteVar<bool>(defined, storage, offset);
+    //WriteVar<TimeType>(type, storage, offset);
+  }
 
   inline virtual void Rebuild(char* state,  size_t sz ) 
   {
-    size_t offset = 0;	  
+    size_t offset = 0;
     ReadVar<LONGTYPE>(day, state, offset);
     ReadVar<LONGTYPE>(milliseconds, state, offset);
-    ReadVar<bool>(defined, state, offset);
-    ReadVar<bool>(canDelete, state, offset);
-    ReadVar<TimeType>(type, state, offset);
-  }	 
+    ReadVar<unsigned char>(this->state,state,offset);
+   // ReadVar<bool>(defined, state, offset);
+   // ReadVar<TimeType>(type, state, offset);
+  }
 
 
   private:
     // the data-part of datetime
     LONGTYPE day;
     LONGTYPE milliseconds;
-    bool defined;
-    bool canDelete;
-    TimeType type; // can be an instant or a duration
+    unsigned char state;
     // a few functions for internal use
     LONGTYPE ToJulian(const int year, const int month,const int day) const;
     void ToGregorian(const LONGTYPE Julian, LONGTYPE  &year,
                      int &month, int &day) const;
+
+    inline void set(const TimeType type, const bool defined);
+
+    inline bool hasType(const TimeType t) const;
+
 };
 
 Word InInstant( const ListExpr typeInfo, const ListExpr instance,

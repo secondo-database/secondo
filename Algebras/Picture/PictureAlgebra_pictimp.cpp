@@ -669,7 +669,7 @@ static Word InPicture(const ListExpr typeInfo,
             if (PA_DEBUG) 
                 cerr << "InPicture() list elements are correct" << endl;
 
-            DateTime dt;
+            DateTime dt(instanttype);
 
             if (dt.ReadFrom(nl->StringValue(date))) {
                 if (PA_DEBUG) 
