@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -32,12 +32,12 @@ May 2002 Frank Hoffmann port to C++
 
 November 7, 2002 RHG Corrected the type mapping of ~count~.
 
-November 30, 2002 RHG Introduced a function ~RelPersistValue~ 
+November 30, 2002 RHG Introduced a function ~RelPersistValue~
 instead of ~DefaultPersistValue~ which keeps relations that have
-been built in memory in a small cache, so that they need not be 
+been built in memory in a small cache, so that they need not be
 rebuilt from then on.
 
-March 2003 Victor Almeida created the new Relational Algebra 
+March 2003 Victor Almeida created the new Relational Algebra
 organization.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -56,10 +56,10 @@ added.
 
 1 Overview
 
-The Relational Algebra basically implements two type constructors, 
+The Relational Algebra basically implements two type constructors,
 namely ~tuple~ and ~rel~.
 
-More information about the Relational Algebra can be found in the 
+More information about the Relational Algebra can be found in the
 RelationAlgebra.h header file.
 
 2 Defines, includes, and constants
@@ -145,9 +145,9 @@ ListExpr TupleProp ()
 /*
 3.2 ~Out~-function of type constructor ~tuple~
 
-The ~out~-function of type constructor ~tuple~ takes as inputs a 
-type description (~typeInfo~) of the tuple's attribute structure in 
-nested list format and a pointer to a tuple value, stored in main 
+The ~out~-function of type constructor ~tuple~ takes as inputs a
+type description (~typeInfo~) of the tuple's attribute structure in
+nested list format and a pointer to a tuple value, stored in main
 memory. The function returns the tuple value in nested list format.
 
 */
@@ -175,14 +175,14 @@ SaveToListTuple (ListExpr typeInfo, Word  value)
 /*
 3.3 ~In~-function of type constructor ~tuple~
 
-The ~In~-function of type constructor ~tuple~ takes as inputs a 
-type description (~typeInfo~) of the tuples attribute structure in 
-nested list format and the tuple value in nested list format. The 
+The ~In~-function of type constructor ~tuple~ takes as inputs a
+type description (~typeInfo~) of the tuples attribute structure in
+nested list format and the tuple value in nested list format. The
 function returns a pointer to a tuple value, stored in main memory
 in accordance to the tuple value in nested list format.
 
-Error handling in ~InTuple~: ~correct~ is only true if there is the 
-right number of attribute values and all values have correct list 
+Error handling in ~InTuple~: ~correct~ is only true if there is the
+right number of attribute values and all values have correct list
 representations.
 
 Otherwise the following error messages are added to ~errorInfo~:
@@ -194,7 +194,7 @@ Otherwise the following error messages are added to ~errorInfo~:
         (71 tuple 4 <errorPos>)          too many values
 ----
 
-is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple 
+is added to ~errorInfo~. Here ~errorPos~ is the number of the tuple
 in the relation list (passed by ~InRelation~).
 
 
@@ -203,7 +203,7 @@ Word
 InTuple(ListExpr typeInfo, ListExpr value,
         int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  return SetWord( Tuple::In( typeInfo, value, errorPos, 
+  return SetWord( Tuple::In( typeInfo, value, errorPos,
                              errorInfo, correct ) );
 }
 
@@ -218,19 +218,19 @@ the database.
 */
 Word
 RestoreFromListTuple(ListExpr typeInfo, ListExpr value,
-                     int errorPos, ListExpr& errorInfo, 
+                     int errorPos, ListExpr& errorInfo,
                      bool& correct)
 {
-  return 
-    SetWord( Tuple::RestoreFromList( typeInfo, value, errorPos, 
+  return
+    SetWord( Tuple::RestoreFromList( typeInfo, value, errorPos,
                                      errorInfo, correct ) );
 }
 
 /*
 3.4 ~Delete~-function of type constructor ~tuple~
 
-A type constructor's ~delete~-function is used by the query 
-processor in order to deallocate memory occupied by instances 
+A type constructor's ~delete~-function is used by the query
+processor in order to deallocate memory occupied by instances
 of Secondo objects. They may have been created in two ways:
 
   * as return values of operator calls
@@ -261,7 +261,7 @@ names) must be distinct. Hence a tuple type has the form:
                 (name y)))
 ----
 
-and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces 
+and ~x~ and ~y~ must be types of kind DATA. Kind TUPLE introduces
 the following error codes:
 
 ----    (... 1)      Empty tuple type
@@ -282,7 +282,7 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
   bool correct, ckd;
   int unique;
 
-  if( nl->ListLength(type) == 2 && 
+  if( nl->ListLength(type) == 2 &&
       nl->IsEqual(nl->First(type), "tuple", true))
   {
     attrlist = nl->Second(type);
@@ -290,7 +290,7 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
     {
       errorInfo = nl->Append(errorInfo,
         nl->ThreeElemList(
-          nl->IntAtom(61), 
+          nl->IntAtom(61),
           nl->SymbolAtom("TUPLE"),
           nl->IntAtom(1)));
       return false;
@@ -299,7 +299,7 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
     {
       errorInfo = nl->Append(errorInfo,
         nl->FourElemList(
-          nl->IntAtom(61), 
+          nl->IntAtom(61),
           nl->SymbolAtom("TUPLE"),
           nl->IntAtom(2),
           attrlist));
@@ -318,27 +318,27 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
           (nl->AtomType(nl->First(pair)) == SymbolType))
         {
           attrname = nl->SymbolValue(nl->First(pair));
-          unique = std::count(attrnamelist.begin(), 
+          unique = std::count(attrnamelist.begin(),
                               attrnamelist.end(),
                               attrname);
           if (unique > 0)
           {
             errorInfo = nl->Append(errorInfo,
              nl->FourElemList(
-               nl->IntAtom(61), 
+               nl->IntAtom(61),
                nl->SymbolAtom("TUPLE"),
-               nl->IntAtom(3), 
+               nl->IntAtom(3),
                nl->First(pair)));
             correct = false;
           }
           attrnamelist.push_back(attrname);
-          ckd = am->CheckKind("DATA", nl->Second(pair), 
+          ckd = am->CheckKind("DATA", nl->Second(pair),
                               errorInfo);
           if (!ckd)
           {
             errorInfo = nl->Append(errorInfo,
               nl->FourElemList(
-                nl->IntAtom(61), 
+                nl->IntAtom(61),
                 nl->SymbolAtom("TUPLE"),
                 nl->IntAtom(6),
                 nl->Second(pair)));
@@ -349,7 +349,7 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
         {
           errorInfo = nl->Append(errorInfo,
           nl->FourElemList(
-            nl->IntAtom(61), 
+            nl->IntAtom(61),
             nl->SymbolAtom("TUPLE"),
             nl->IntAtom(4),
             nl->First(pair)));
@@ -360,7 +360,7 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
       {
         errorInfo = nl->Append(errorInfo,
           nl->FourElemList(
-            nl->IntAtom(61), 
+            nl->IntAtom(61),
             nl->SymbolAtom("TUPLE"),
             nl->IntAtom(5),
             pair));
@@ -373,8 +373,8 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
   {
     errorInfo = nl->Append(errorInfo,
       nl->ThreeElemList(
-        nl->IntAtom(60), 
-        nl->SymbolAtom("TUPLE"), 
+        nl->IntAtom(60),
+        nl->SymbolAtom("TUPLE"),
         type));
     return false;
   }
@@ -383,8 +383,8 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
 /*
 3.6 ~Cast~-function of type constructor ~tuple~
 
-Casts a tuple from a stream representation of it. This function is 
-used to read objects from the disk by the ~TupleManager~. Since 
+Casts a tuple from a stream representation of it. This function is
+used to read objects from the disk by the ~TupleManager~. Since
 tuples are not part of tuples the implementation of this function
 is not necessary.
 
@@ -398,7 +398,7 @@ CastTuple(void* addr)
 /*
 3.7 ~Create~-function of type constructor ~tuple~
 
-This function is used to allocate memory sufficient for keeping one 
+This function is used to allocate memory sufficient for keeping one
 instance of ~tuple~.
 
 */
@@ -437,7 +437,7 @@ CloneTuple(const ListExpr typeInfo, const Word& w)
 /*
 3.10 ~Sizeof~-function of type constructor ~tuple~
 
-Returns the size of a tuple's root record to be stored on the disk 
+Returns the size of a tuple's root record to be stored on the disk
 as a stream. Since tuples are not part of tuples, the implementation
 of this function is not necessary.
 
@@ -452,7 +452,7 @@ SizeOfTuple()
 3.12 Definition of type constructor ~tuple~
 
 Eventually a type constructor is created by defining an instance of
-class ~TypeConstructor~. Constructor's arguments are the type 
+class ~TypeConstructor~. Constructor's arguments are the type
 constructor's name and the eleven functions previously defined.
 
 */
@@ -543,7 +543,7 @@ SaveToListRel(ListExpr typeInfo, Word  value)
 /*
 4.3 ~Create~-function of type constructor ~rel~
 
-The function is used to allocate memory sufficient for keeping one 
+The function is used to allocate memory sufficient for keeping one
 instance of ~rel~.
 
 */
@@ -557,23 +557,23 @@ CreateRel(const ListExpr typeInfo)
 /*
 4.4 ~In~-function of type constructor ~rel~
 
-~value~ is the list representation of the relation. The structure 
-of ~typeInfo~ and ~value~ are described above. Error handling in 
+~value~ is the list representation of the relation. The structure
+of ~typeInfo~ and ~value~ are described above. Error handling in
 ~InRel~:
 
 The result relation will contain all tuples that have been converted
-correctly (have correct list expressions). For all other tuples, an 
-error message containing the position of the tuple within this 
-relation (list) is added to ~errorInfo~. (This is done by 
-procedure ~InTuple~ called by ~InRel~). If any tuple representation 
-is wrong, then ~InRel~ will return ~correct~ as FALSE and will 
+correctly (have correct list expressions). For all other tuples, an
+error message containing the position of the tuple within this
+relation (list) is added to ~errorInfo~. (This is done by
+procedure ~InTuple~ called by ~InRel~). If any tuple representation
+is wrong, then ~InRel~ will return ~correct~ as FALSE and will
 itself add an error message of the form
 
 ----    (InRel <errorPos>)
 ----
 
-to ~errorInfo~. The value in ~errorPos~ has to be passed from the 
-environment; probably it is the position of the relation object in 
+to ~errorInfo~. The value in ~errorPos~ has to be passed from the
+environment; probably it is the position of the relation object in
 the list of database objects.
 
 */
@@ -581,7 +581,7 @@ Word
 InRel(ListExpr typeInfo, ListExpr value,
       int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  return SetWord( Relation::In( typeInfo, value, errorPos, 
+  return SetWord( Relation::In( typeInfo, value, errorPos,
                                 errorInfo, correct ) );
 }
 
@@ -600,8 +600,8 @@ Word
 RestoreFromListRel(ListExpr typeInfo, ListExpr value,
                    int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  return 
-    SetWord( Relation::RestoreFromList( typeInfo, value, errorPos, 
+  return
+    SetWord( Relation::RestoreFromList( typeInfo, value, errorPos,
                                         errorInfo, correct ) );
 }
 
@@ -633,7 +633,7 @@ and ~x~ must be a type of kind TUPLE.
 bool
 CheckRel(ListExpr type, ListExpr& errorInfo)
 {
-  if ((nl->ListLength(type) == 2) && 
+  if ((nl->ListLength(type) == 2) &&
       nl->IsEqual(nl->First(type), "rel"))
   {
     return am->CheckKind("TUPLE", nl->Second(type), errorInfo);
@@ -642,8 +642,8 @@ CheckRel(ListExpr type, ListExpr& errorInfo)
   {
     errorInfo = nl->Append(errorInfo,
       nl->ThreeElemList(
-        nl->IntAtom(60), 
-        nl->SymbolAtom("REL"), 
+        nl->IntAtom(60),
+        nl->SymbolAtom("REL"),
         type));
     return false;
   }
@@ -664,7 +664,7 @@ CastRel(void* addr)
 
 There is a cache of relations in order to increase performance.
 The cache is responsible for closing the relations.
-In this case we will implement one function that does nothing, 
+In this case we will implement one function that does nothing,
 called ~CloseRel~ and another which the cache will execute, called
 ~CacheCloseRel~.
 
@@ -677,14 +677,14 @@ void CloseRel(const ListExpr typeInfo, Word& w)
 /*
 4.9 ~Open~-function of type constructor ~rel~
 
-This is a slightly modified version of the function ~DefaultOpen~ 
-(from ~Algebra~) which creates the relation from the SmiRecord only 
+This is a slightly modified version of the function ~DefaultOpen~
+(from ~Algebra~) which creates the relation from the SmiRecord only
 if it does not yet exist.
 
-The idea is to maintain a cache containing the relation 
-representations that have been built in memory. The cache basically 
-stores pairs (~recordId~, ~relation\_value~). If the ~recordId~ 
-passed to this function is found, the cached relation value is 
+The idea is to maintain a cache containing the relation
+representations that have been built in memory. The cache basically
+stores pairs (~recordId~, ~relation\_value~). If the ~recordId~
+passed to this function is found, the cached relation value is
 returned instead of building a new one.
 
 */
@@ -704,11 +704,11 @@ OpenRel( SmiRecord& valueRecord,
 */
 bool
 SaveRel( SmiRecord& valueRecord,
-         size_t& offset, 
+         size_t& offset,
          const ListExpr typeInfo,
          Word& value )
 {
-  return 
+  return
     ((Relation *)value.addr)->Save( valueRecord, offset, typeInfo );
 }
 
@@ -737,7 +737,7 @@ CloneRel(const ListExpr typeInfo, const Word& w)
 4.14 Definition of type constructor ~rel~
 
 Eventually a type constructor is created by defining an instance of
-class ~TypeConstructor~. Constructor's arguments are the type 
+class ~TypeConstructor~. Constructor's arguments are the type
 constructor's name and the eleven functions previously defined.
 
 */
@@ -766,24 +766,24 @@ class TmpRel {
 
   public:
   TmpRel(){ trel = 0; };
-  ~TmpRel(){}; 
+  ~TmpRel(){};
 
-  static GenericRelation* In( ListExpr typeInfo, 
-                              ListExpr value, 
-                              int errorPos, 
-                              ListExpr& errorInfo, 
+  static GenericRelation* In( ListExpr typeInfo,
+                              ListExpr value,
+                              int errorPos,
+                              ListExpr& errorInfo,
                               bool& correct       ) {
 
-    // the last parameter of Relation::In indicates that a 
-    // TupleBuffer instance should be created. 
-    GenericRelation* r = 
+    // the last parameter of Relation::In indicates that a
+    // TupleBuffer instance should be created.
+    GenericRelation* r =
       (GenericRelation*)Relation::In( typeInfo, value,
-                                      errorPos, errorInfo, 
-                                      correct, true); 
-    return r; 
+                                      errorPos, errorInfo,
+                                      correct, true);
+    return r;
   }
 
-  TupleBuffer* trel; 
+  TupleBuffer* trel;
 };
 
 
@@ -798,7 +798,7 @@ Word
 InTmpRel(ListExpr typeInfo, ListExpr value,
          int errorPos, ListExpr& errorInfo, bool& correct)
 {
-  return SetWord( TmpRel::In( typeInfo, value, errorPos, 
+  return SetWord( TmpRel::In( typeInfo, value, errorPos,
                                 errorInfo, correct ) );
 }
 
@@ -829,13 +829,13 @@ int TypeOperatorSelect(ListExpr args)
 /*
 5.3 Type Operator ~TUPLE~
 
-Type operators are used only for inferring argument types of 
-parameter functions. They have a type mapping but no evaluation 
+Type operators are used only for inferring argument types of
+parameter functions. They have a type mapping but no evaluation
 function.
 
 5.3.1 Type mapping function of operator ~TUPLE~
 
-Extract tuple type from a stream or relation type given as the 
+Extract tuple type from a stream or relation type given as the
 first argument.
 
 ----    ((stream x) ...)                -> x
@@ -850,15 +850,15 @@ ListExpr TUPLETypeMap(ListExpr args)
 
   CHECK_COND(!nl->IsAtom(args) && !nl->IsEmpty(args),
   "Type operator TUPLE expects a list and not an atom.");
-    
+
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND( 
+  CHECK_COND(
     nl->ListLength(first) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == rel ||
      TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
     nl->ListLength(nl->Second(first)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple, 
+    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
     "Type operator TUPLE expects as argument a list with "
     "structure, (rel(tuple((a1 t1)...(an tn)))) or "
     "(stream(tuple((a1 t1)...(an tn)))).\n"
@@ -901,7 +901,7 @@ Operator relalgTUPLE (
 
 5.4.1 Type mapping function of operator ~TUPLE2~
 
-Extract tuple type from a stream or relation type given as the 
+Extract tuple type from a stream or relation type given as the
 second argument.
 
 ----    ((stream x) (stream y) ...)          -> y
@@ -929,7 +929,7 @@ ListExpr TUPLE2TypeMap(ListExpr args)
 5.4.2 Specification of operator ~TUPLE2~
 
 */
-const string TUPLE2Spec  = 
+const string TUPLE2Spec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Remarks\" ) "
   "( <text><text>((stream x) (stream y) ...) -> y, "
@@ -963,8 +963,8 @@ tuple.
 
 5.5.1 Type mapping function of operator ~feed~
 
-A type mapping function takes a nested list as argument. Its 
-contents are type descriptions of an operator's input parameters. 
+A type mapping function takes a nested list as argument. Its
+contents are type descriptions of an operator's input parameters.
 A nested list describing the output type of the operator is returned.
 
 Result type of feed operation.
@@ -980,20 +980,20 @@ ListExpr FeedTypeMap(ListExpr args)
 
   CHECK_COND(nl->ListLength(args) == 1,
     "Operator feed expects a list of length one.");
-    
+
   first = nl->First(args);
   nl->WriteToString(argstr, first);
-  CHECK_COND( 
-    nl->ListLength(first) == 2 
-      && ( TypeOfRelAlgSymbol(nl->First(first)) == rel 
+  CHECK_COND(
+    nl->ListLength(first) == 2
+      && ( TypeOfRelAlgSymbol(nl->First(first)) == rel
            || TypeOfRelAlgSymbol(nl->First(first)) == trel )
-      && ( !(nl->IsAtom(nl->Second(first)) || nl->IsEmpty(nl->Second(first))) 
+      && ( !(nl->IsAtom(nl->Second(first)) || nl->IsEmpty(nl->Second(first)))
       && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) ),
   "Operator feed expects an argument of type relation, "
   "(rel(tuple((a1 t1)...(an tn)))).\n"
   "Operator feed gets an argument of type '" + argstr + "'."
   " Relation name not known in the database ?");
-     
+
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
 /*
@@ -1068,8 +1068,8 @@ int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   GenericRelation* r=0;
-  FeedLocalInfo* fli=0; 
-  Supplier sonOfFeed;  
+  FeedLocalInfo* fli=0;
+  Supplier sonOfFeed;
 
 
   switch (message)
@@ -1079,7 +1079,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
       fli = (FeedLocalInfo*) local.addr;
       if ( fli ) delete fli;
-      
+
       fli = new FeedLocalInfo();
       fli->returned = 0;
       fli->total = r->GetNoTuples();
@@ -1109,13 +1109,13 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       fli = static_cast<FeedLocalInfo*>(local.addr);
       if(fli){
         if(fli->rit){
-          delete fli->rit; 
+          delete fli->rit;
           fli->rit=0;
         }
       }
       return 0;
     }
-    case CLOSEPROGRESS:{ 
+    case CLOSEPROGRESS:{
 
       sonOfFeed = qp->GetSupplierSon(s, 0);
       fli = (FeedLocalInfo*) local.addr;
@@ -1138,8 +1138,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       const double uFeed = 0.00194;    //milliseconds per tuple
       const double vFeed = 0.0000196;  //milliseconds per Byte
 
- 
- 
+
+
       pRes = (ProgressInfo*) result.addr;
       fli = (FeedLocalInfo*) local.addr;
       sonOfFeed = qp->GetSupplierSon(s, 0);
@@ -1156,7 +1156,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           fli->attrSizeExt = new double[fli->noAttrs];
           for ( int i = 0;  i < fli->noAttrs; i++)
           {
-            fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001); 
+            fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001);
             fli->attrSizeExt[i] = rr->GetTotalExtSize(i) / (fli->total + 0.001);
 
             fli->Size += fli->attrSize[i];
@@ -1170,15 +1170,15 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         if ( !fli ) return CANCEL;
         else  //an object node, fli defined
-        {  
+        {
           pRes->Card = (double) fli->total;
           pRes->CopySizes(fli);  //copy all sizes
 
           pRes->Time = (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
-            
+
           //any time value created must be > 0; so we add 1
 
-          pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed) 
+          pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed)
             / pRes->Time;
 
           pRes->BTime = 0.001; //time must not be 0
@@ -1198,7 +1198,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
 
-          pRes->Progress = 
+          pRes->Progress =
              ((p1.Progress * p1.Time) +
               (fli ? fli->returned : 0) * (uFeed + p1.SizeExt * vFeed))
               / pRes->Time;
@@ -1225,7 +1225,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 5.5.3 Specification of operator ~feed~
 
 */
-const string FeedSpec  = 
+const string FeedSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(rel x) -> (stream x)</text--->"
@@ -1239,7 +1239,7 @@ const string FeedSpec  =
 
 5.5.4 Definition of operator ~feed~
 
-Non-overloaded operators are defined by constructing a new instance 
+Non-overloaded operators are defined by constructing a new instance
 of class ~Operator~, passing all operator functions as constructor
 arguments.
 
@@ -1270,22 +1270,22 @@ ListExpr ConsumeTypeMap(ListExpr args)
 {
   ListExpr first ;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 1,
   "Operator consume expects a list of length one.");
-  
+
   first = nl->First(args);
   nl->WriteToString(argstr, first);
   CHECK_COND(
     ((nl->ListLength(first) == 2) &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
     (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&    
+       nl->IsEmpty(nl->Second(first))) &&
     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
   "Operator consume expects an argument of type (stream(tuple"
   "((a1 t1)...(an tn)))).\n"
   "Operator consume gets an argument of type '" + argstr + "'.");
-  
+
   return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
 }
 
@@ -1301,7 +1301,7 @@ ListExpr ConsumeTypeMap(ListExpr args)
 // standard version
 
 int
-Consume(Word* args, Word& result, int message, 
+Consume(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   Word actual;
@@ -1322,12 +1322,12 @@ Consume(Word* args, Word& result, int message,
     qp->Request(args[0].addr, actual);
   }
   result.setAddr(rel);
-  
+
   qp->Close(args[0].addr);
   return 0;
 }
 
-#else 
+#else
 
 
 // Version with support for progress queries
@@ -1388,41 +1388,41 @@ Consume(Word* args, Word& result, int message,
     ProgressInfo p1;
     ProgressInfo* pRes;
     const double uConsume = 0.024;   //millisecs per tuple
-    const double vConsume = 0.0003;  //millisecs per byte in 
+    const double vConsume = 0.0003;  //millisecs per byte in
                                         //  root/extension
     const double wConsume = 0.001338;  //millisecs per byte in FLOB
 
 
     cli = (consumeLocalInfo*) local.addr;
-    pRes = (ProgressInfo*) result.addr;    
+    pRes = (ProgressInfo*) result.addr;
 
 
     if ( qp->RequestProgress(args[0].addr, &p1) )
     {
       pRes->Card = p1.Card;
       pRes->CopySizes(p1);
-    
-      pRes->Time = p1.Time + 
-        p1.Card * (uConsume + p1.SizeExt * vConsume 
+
+      pRes->Time = p1.Time +
+        p1.Card * (uConsume + p1.SizeExt * vConsume
           + (p1.Size - p1.SizeExt) * wConsume);
 
       if ( cli == 0 )    //not yet working
       {
         pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
       }
-      else 
+      else
       {
         if ( cli->state == 0 )  //working
         {
 
-          if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking, 
+          if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
                                                         //use pipelining
             pRes->Progress = p1.Progress;
           else
-            pRes->Progress = 
-            (p1.Progress * p1.Time + 
-              cli->current *  (uConsume + p1.SizeExt * vConsume 
-                  + (p1.Size - p1.SizeExt) * wConsume) ) 
+            pRes->Progress =
+            (p1.Progress * p1.Time +
+              cli->current *  (uConsume + p1.SizeExt * vConsume
+                  + (p1.Size - p1.SizeExt) * wConsume) )
                 / pRes->Time;
         }
         else       //finished
@@ -1430,10 +1430,10 @@ Consume(Word* args, Word& result, int message,
           pRes->Progress = 1.0;
         }
       }
-      
+
       pRes->BTime = pRes->Time;    //completely blocking
       pRes->BProgress = pRes->Progress;
-  
+
       return YIELD;      //successful
     }
     else return CANCEL;      //no progress available
@@ -1459,7 +1459,7 @@ Consume(Word* args, Word& result, int message,
 5.6.3 Specification of operator ~consume~
 
 */
-const string ConsumeSpec  = 
+const string ConsumeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stream x) -> (rel x)</text--->"
@@ -1494,25 +1494,25 @@ Result type attr operation.
                             APPEND (i) ti)
 ----
 
-This type mapping uses a special feature of the query processor, 
-in that if requests to append a further argument to the given list 
-of arguments, namely, the index of the attribute within the tuple. 
-This index is computed within the type mapping function. The 
-request is given through the result expression of the type mapping 
+This type mapping uses a special feature of the query processor,
+in that if requests to append a further argument to the given list
+of arguments, namely, the index of the attribute within the tuple.
+This index is computed within the type mapping function. The
+request is given through the result expression of the type mapping
 which has the form, for example,
 
 ---- (APPEND (1) string)
 ----
 
-The keyword ~APPEND~ occuring as a first element of a returned type 
-expression tells the query processor to add the elements of the 
-following list - the second element of the type expression - as 
-further arguments to the operator (as if they had been written in 
-the query). The third element  of the query is then used as the 
-real result type. In this case 1 is the index of the attribute 
+The keyword ~APPEND~ occuring as a first element of a returned type
+expression tells the query processor to add the elements of the
+following list - the second element of the type expression - as
+further arguments to the operator (as if they had been written in
+the query). The third element  of the query is then used as the
+real result type. In this case 1 is the index of the attribute
 determined in this procedure. The query processor, more precisely
-the procedure ~anotate~ there, will produce the annotation for the 
-constant 1, append it to the list of annotated arguments, and then 
+the procedure ~anotate~ there, will produce the annotation for the
+constant 1, append it to the list of annotated arguments, and then
 use "string" as the result type of the ~attr~ operation.
 
 */
@@ -1522,24 +1522,24 @@ ListExpr AttrTypeMap(ListExpr args)
   string  attrname, argstr;
   int j;
 
-  nl->WriteToString(argstr, args); 
+  nl->WriteToString(argstr, args);
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator attr expects a list of length two. But got " + argstr + "!");
-  
-  first = nl->First(args);  
-  nl->WriteToString(argstr, first);  
+
+  first = nl->First(args);
+  nl->WriteToString(argstr, first);
   CHECK_COND( (nl->ListLength(first) == 2) &&
               (TypeOfRelAlgSymbol(nl->First(first)) == tuple),
-  "Operator attr expects as first argument a list with structure " 
+  "Operator attr expects as first argument a list with structure "
   "(tuple ((a1 t1)...(an tn)))\n"
   "Operator attr gets a list with structure '" + argstr + "'.");
-  
-  second  = nl->Second(args); 
-  nl->WriteToString(argstr, second);   
-  CHECK_COND( nl->IsAtom(second) && 
+
+  second  = nl->Second(args);
+  nl->WriteToString(argstr, second);
+  CHECK_COND( nl->IsAtom(second) &&
               nl->AtomType(second) == SymbolType,
   "Operator attr expects as second argument a symbol atom "
-  "(attributename).\n" 
+  "(attributename).\n"
   "Operator attr gets '" + argstr + "'.");
 
   attrname = nl->SymbolValue(second);
@@ -1547,24 +1547,24 @@ ListExpr AttrTypeMap(ListExpr args)
   if (j)
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->OneElemList(nl->IntAtom(j)), attrtype);
-  else 
+  else
   {
-    nl->WriteToString( argstr, nl->Second(first) ); 
+    nl->WriteToString( argstr, nl->Second(first) );
     ErrorReporter::ReportError(
     "Attribute name '" + attrname + "' is not known in the tuple.\n"
     "Known Attribute(s): " + argstr);
-    
+
     return nl->SymbolAtom("typeerror");
-  }   
+  }
 }
 /*
 5.7.2 Value mapping function of operator ~attr~
 
-The argument vector ~arg~ contains in the first slot ~args[0]~ the 
-tuple and in ~args[2]~ the position of the attribute as a number. 
-Returns as ~result~ the value of an attribute at the given 
-position ~args[2]~ in a tuple object. The attribute name is 
-argument 2 in the query and is used in the function 
+The argument vector ~arg~ contains in the first slot ~args[0]~ the
+tuple and in ~args[2]~ the position of the attribute as a number.
+Returns as ~result~ the value of an attribute at the given
+position ~args[2]~ in a tuple object. The attribute name is
+argument 2 in the query and is used in the function
 ~AttributeTypeMap~ to determine the attribute number ~args[2]~ .
 
 */
@@ -1585,7 +1585,7 @@ Attr(Word* args, Word& result, int message, Word& local, Supplier s)
 5.7.3 Specification of operator ~attr~
 
 */
-const string AttrSpec  = 
+const string AttrSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Remarks\" ) "
   "( <text>((tuple ((x1 t1)...(xn tn))) xi)  -> "
@@ -1611,7 +1611,7 @@ Operator relalgattr (
 /*
 5.8 Operator ~filter~
 
-Only tuples, fulfilling a certain condition are passed on to the 
+Only tuples, fulfilling a certain condition are passed on to the
 output stream.
 
 5.8.1 Type mapping function of operator ~filter~
@@ -1627,14 +1627,14 @@ ListExpr FilterTypeMap(ListExpr args)
 {
   ListExpr first, second;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator filter expects a list of length two.");
-  
+
   first = nl->First(args);
   second  = nl->Second(args);
-    
-  nl->WriteToString(argstr, first);    
+
+  nl->WriteToString(argstr, first);
   CHECK_COND(
     nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first)) == stream &&
@@ -1644,14 +1644,14 @@ ListExpr FilterTypeMap(ListExpr args)
     "structure (stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator filter gets a list with structure '" + argstr + "'.");
 
-  nl->WriteToString(argstr, second);    
+  nl->WriteToString(argstr, second);
   CHECK_COND(nl->ListLength(second) == 3 &&
              TypeOfRelAlgSymbol(nl->First(second)) == ccmap &&
              TypeOfRelAlgSymbol(nl->Third(second)) == ccbool,
-    "Operator filter expects a list with structure " 
+    "Operator filter expects a list with structure "
     "(map (tuple ((a1 t1)...(an tn))) bool)\n"
     "Operator filter gets a list with structure '" + argstr + "'.");
-    
+
   CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
     "Tuple type in stream is not equal to tuple type "
     "in the function.");
@@ -1670,7 +1670,7 @@ ListExpr FilterTypeMap(ListExpr args)
 // standard version
 
 int
-Filter(Word* args, Word& result, int message, 
+Filter(Word* args, Word& result, int message,
        Word& local, Supplier s)
 {
   bool found = false;
@@ -1734,7 +1734,7 @@ struct FilterLocalInfo
 
 
 int
-Filter(Word* args, Word& result, int message, 
+Filter(Word* args, Word& result, int message,
        Word& local, Supplier s)
 {
   bool found = false;
@@ -1792,8 +1792,8 @@ Filter(Word* args, Word& result, int message,
         return CANCEL;
 
     case CLOSE:
-      
-      // Note: object deletion is handled in (repeated) OPEN and CLOSEPROGRESS 
+
+      // Note: object deletion is handled in (repeated) OPEN and CLOSEPROGRESS
       qp->Close(args[0].addr);
       return 0;
 
@@ -1812,7 +1812,7 @@ Filter(Word* args, Word& result, int message,
 
       ProgressInfo p1;
       ProgressInfo* pRes;
-      const double uFilter = 0.01; 
+      const double uFilter = 0.01;
 
       pRes = (ProgressInfo*) result.addr;
       fli = (FilterLocalInfo*) local.addr;
@@ -1820,33 +1820,33 @@ Filter(Word* args, Word& result, int message,
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
         pRes->CopySizes(p1);
-        
+
         if ( fli )    //filter was started
         {
-          if ( fli->returned >= enoughSuccessesSelection )   
+          if ( fli->returned >= enoughSuccessesSelection )
             //stable state assumed now
           {
-            pRes->Card =  p1.Card * 
-              ( (double) fli->returned / (double) (fli->current)); 
-            pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter; 
+            pRes->Card =  p1.Card *
+              ( (double) fli->returned / (double) (fli->current));
+            pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
 
-            if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking, 
+            if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
                                                         //use pipelining
               pRes->Progress = p1.Progress;
             else
-              pRes->Progress = (p1.Progress * p1.Time 
+              pRes->Progress = (p1.Progress * p1.Time
                 + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
 
       pRes->CopyBlocking(p1);
             return YIELD;
           }
         }
-    //filter not yet started or not enough seen  
- 
+    //filter not yet started or not enough seen
+
   pRes->Card = p1.Card * qp->GetSelectivity(s);
         pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
 
-        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking, 
+        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
@@ -1866,7 +1866,7 @@ Filter(Word* args, Word& result, int message,
 5.8.3 Specification of operator ~filter~
 
 */
-const string FilterSpec  = 
+const string FilterSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream x) (map x bool)) -> "
@@ -1906,14 +1906,14 @@ Result type of filter operation.
                -> (stream (tuple x))
 ----
 
-5.12.0 Specification 
+5.12.0 Specification
 
 */
 
 struct ReduceInfo : OperatorInfo {
- 
+
   ReduceInfo() : OperatorInfo()
-  { 
+  {
     name =      "reduce";
     signature = "stream(tuple(y)) x (stream(tuple(y)) -> bool) x int \n"
                 "-> stream(tuple(y))";
@@ -1930,15 +1930,15 @@ struct ReduceInfo : OperatorInfo {
 ListExpr reduce_tm(ListExpr args)
 {
   string argstr="";
-  
+
   CHECK_COND(nl->ListLength(args) == 3,
   "Operator filter expects a list of length three.");
-  
+
   ListExpr first = nl->First(args);
   ListExpr second  = nl->Second(args);
   ListExpr third  = nl->Third(args);
-    
-  nl->WriteToString(argstr, first);    
+
+  nl->WriteToString(argstr, first);
   CHECK_COND(
     nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first)) == stream &&
@@ -1948,22 +1948,22 @@ ListExpr reduce_tm(ListExpr args)
     "structure (stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator filter gets a list with structure '" + argstr + "'.");
 
-  nl->WriteToString(argstr, second);    
+  nl->WriteToString(argstr, second);
   CHECK_COND(nl->ListLength(second) == 3 &&
              TypeOfRelAlgSymbol(nl->First(second)) == ccmap &&
              TypeOfRelAlgSymbol(nl->Third(second)) == ccbool,
-    "Operator filter expects a list with structure " 
+    "Operator filter expects a list with structure "
     "(map (tuple ((a1 t1)...(an tn))) bool)\n"
     "Operator filter gets a list with structure '" + argstr + "'.");
-    
+
   CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
     "Tuple type in stream is not equal to tuple type "
     "in the function.");
 
-  CHECK_COND( (nl->AtomType(third) == SymbolType) 
+  CHECK_COND( (nl->AtomType(third) == SymbolType)
                && nl->SymbolValue(third) == "int",
-               "Third argument is not of type int." );             
-  
+               "Third argument is not of type int." );
+
   return first;
 }
 
@@ -1972,38 +1972,38 @@ ListExpr reduce_tm(ListExpr args)
 
 */
 int
-reduce_vm( Word* args, Word& result, int message, 
+reduce_vm( Word* args, Word& result, int message,
            Word& local, Supplier s)
 {
   // args[0] : stream(tuple(y))
   // args[1] : stream(tuple(y)) -> bool
   // args[2] : int
- 
+
   struct ReduceInfo {
 
      int m;
      int n;
-     
+
      ReduceInfo(const int ctr) : m( max(ctr-1,0) ), n(m) {}
      ~ReduceInfo(){}
 
      bool passOver()
      {
        if (n == 0)
-       { 
+       {
          n = m;
          return true;
-       }  
+       }
        else
-       { 
+       {
          n--;
          return false;
-       }  
-     } 
-  }; 
-  
+       }
+     }
+  };
+
   ReduceInfo* ri = static_cast<ReduceInfo*>( local.addr);
-  
+
   switch ( message )
   {
 
@@ -2024,10 +2024,10 @@ reduce_vm( Word* args, Word& result, int message,
         qp->Request(args[0].addr, elem);
         ok = qp->Received(args[0].addr);
 
-        if ( !ok ) // no more tuple in the stream 
+        if ( !ok ) // no more tuple in the stream
           break;
-        
-        // apply the parameter function   
+
+        // apply the parameter function
         ArgVectorPointer funargs;
         funargs = qp->Argument(args[1].addr);
         tuple = (Tuple*)elem.addr;
@@ -2039,32 +2039,32 @@ reduce_vm( Word* args, Word& result, int message,
         {
           found = ((CcBool*)funresult.addr)->GetBoolval();
         }
-        
+
         // check if the tuple needs to be passed over
-        if (found) 
+        if (found)
         {
           if ( !ri->passOver() )
             tuple->DeleteIfAllowed();
           else
             break;
-        }        
+        }
         else
         {
            break;
-        } 
+        }
       }
-      
+
       if (tuple)
       {
         result.addr = tuple;
         return YIELD;
       }
       else
-      { 
+      {
         return CANCEL;
-      }  
+      }
     }
-      
+
     case CLOSE:
 
       qp->Close(args[0].addr);
@@ -2094,8 +2094,8 @@ Result type of project operation.
         )
 ----
 
-The type mapping computes the number of attributes and the list of 
-attribute numbers for the given projection attributes and asks the 
+The type mapping computes the number of attributes and the list of
+attribute numbers for the given projection attributes and asks the
 query processor to append it to the given arguments.
 
 */
@@ -2103,39 +2103,39 @@ ListExpr ProjectTypeMap(ListExpr args)
 {
   bool firstcall = true;
   int noAttrs=0, j=0;
-  
+
   // initialize local ListExpr variables
   ListExpr first=nl->TheEmptyList();
-  ListExpr second=first, first2=first, 
+  ListExpr second=first, first2=first,
            attrtype=first, newAttrList=first;
-  ListExpr lastNewAttrList=first, lastNumberList=first, 
+  ListExpr lastNewAttrList=first, lastNumberList=first,
            numberList=first, outlist=first;
   string attrname="", argstr="";
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator project expects a list of length two.");
-  
+
   first = nl->First(args);
   second = nl->Second(args);
-    
-  nl->WriteToString(argstr, first);  
+
+  nl->WriteToString(argstr, first);
   CHECK_COND(
     nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first)) == stream &&
     nl->ListLength(nl->Second(first)) == 2 &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator project expects a list with structure " 
+    "Operator project expects a list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
     "Operator project gets a list with structure '" + argstr + "'.");
-    
-  nl->WriteToString(argstr, second);    
+
+  nl->WriteToString(argstr, second);
   CHECK_COND(
     nl->ListLength(second) > 0 &&
     !nl->IsAtom(second),
-    "Operator project expects a list with attributenames " 
+    "Operator project expects a list with attributenames "
     "(ai...aj)\n"
     "Operator project gets a list '" + argstr + "'.");
- 
+
   noAttrs = nl->ListLength(second);
   set<string> attrNames;
   while (!(nl->IsEmpty(second)))
@@ -2160,14 +2160,14 @@ ListExpr ProjectTypeMap(ListExpr args)
        attrNames.insert(attrname);
     }
 
-    j = FindAttribute(nl->Second(nl->Second(first)), 
+    j = FindAttribute(nl->Second(nl->Second(first)),
                       attrname, attrtype);
     if (j)
     {
       if (firstcall)
       {
         firstcall = false;
-        newAttrList = 
+        newAttrList =
           nl->OneElemList(nl->TwoElemList(first2, attrtype));
         lastNewAttrList = newAttrList;
         numberList = nl->OneElemList(nl->IntAtom(j));
@@ -2176,7 +2176,7 @@ ListExpr ProjectTypeMap(ListExpr args)
       else
       {
         lastNewAttrList =
-          nl->Append(lastNewAttrList, 
+          nl->Append(lastNewAttrList,
                      nl->TwoElemList(first2, attrtype));
         lastNumberList =
           nl->Append(lastNumberList, nl->IntAtom(j));
@@ -2185,21 +2185,21 @@ ListExpr ProjectTypeMap(ListExpr args)
     else
     {
       ErrorReporter::ReportError(
-        "Operator project: Attributename '" + attrname + 
+        "Operator project: Attributename '" + attrname +
         "' is not a known attributename in the tuple stream.");
           return nl->SymbolAtom("typeerror");
     }
   }
-  outlist = 
+  outlist =
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
       nl->TwoElemList(
-        nl->IntAtom(noAttrs), 
+        nl->IntAtom(noAttrs),
         numberList),
       nl->TwoElemList(
         nl->SymbolAtom("stream"),
         nl->TwoElemList(
-          nl->SymbolAtom("tuple"), 
+          nl->SymbolAtom("tuple"),
           newAttrList)));
   return outlist;
 }
@@ -2215,7 +2215,7 @@ ListExpr ProjectTypeMap(ListExpr args)
 
 
 int
-Project(Word* args, Word& result, int message, 
+Project(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   switch (message)
@@ -2271,7 +2271,7 @@ Project(Word* args, Word& result, int message,
   return 0;
 }
 
-# else 
+# else
 
 // progress version
 
@@ -2282,12 +2282,12 @@ class ProjectLocalInfo: public ProgressLocalInfo
 public:
 
   ProjectLocalInfo() {
-    tupleType = 0;    
+    tupleType = 0;
     read = 0;
     progressInitialized = false;
   }
 
-  ~ProjectLocalInfo() {  
+  ~ProjectLocalInfo() {
     tupleType->DeleteIfAllowed();
     tupleType = 0;
   }
@@ -2297,7 +2297,7 @@ public:
 
 
 int
-Project(Word* args, Word& result, int message, 
+Project(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   ProjectLocalInfo *pli=0;
@@ -2407,13 +2407,13 @@ Project(Word* args, Word& result, int message,
     //only pointers are copied; therefore the tuple sizes do not
     //matter
 
-        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking, 
+        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
                                                         //use pipelining
           pRes->Progress = p1.Progress;
         else
-          pRes->Progress = 
-            (p1.Progress * p1.Time +  
-              pli->read * (uProject + pli->noAttrs * vProject)) 
+          pRes->Progress =
+            (p1.Progress * p1.Time +
+              pli->read * (uProject + pli->noAttrs * vProject))
             / pRes->Time;
 
   pRes->CopyBlocking(p1);    //non-blocking operator
@@ -2437,7 +2437,7 @@ Project(Word* args, Word& result, int message,
 5.9.3 Specification of operator ~project~
 
 */
-const string ProjectSpec  = 
+const string ProjectSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream (tuple ((x1 T1) ... "
@@ -2480,8 +2480,8 @@ Result type of ~remove~ operation.
     )
 ----
 
-The type mapping computes the number of attributes and the list of 
-attribute numbers for the given left attributes (after removal) and 
+The type mapping computes the number of attributes and the list of
+attribute numbers for the given left attributes (after removal) and
 asks the query processor to append it to the given arguments.
 
 */
@@ -2556,7 +2556,7 @@ ListExpr RemoveTypeMap(ListExpr args)
       return nl->SymbolAtom("typeerror");
     }
   }
-  // ** here: we need to generate new attr list according to 
+  // ** here: we need to generate new attr list according to
   // ** removeSet
   ListExpr oldAttrList;
   int i;
@@ -2571,7 +2571,7 @@ ListExpr RemoveTypeMap(ListExpr args)
     first2 = nl->First(oldAttrList);
     oldAttrList = nl->Rest(oldAttrList);
 
-    if (removeSet.find(i)==removeSet.end())  
+    if (removeSet.find(i)==removeSet.end())
     // the attribute is not in the removal list
     {
       noAttrs++;
@@ -2664,32 +2664,32 @@ ListExpr ProductTypeMap(ListExpr args)
 {
   ListExpr first, second, list, list1, list2, outlist;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
     "Operator product expects a list of length two.");
 
   first = nl->First(args); second = nl->Second(args);
 
-  nl->WriteToString(argstr, first);  
+  nl->WriteToString(argstr, first);
   CHECK_COND(nl->ListLength(first) == 2 &&
     TypeOfRelAlgSymbol(nl->First(first)) == stream &&
     nl->ListLength(nl->Second(first)) == 2 &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator product expects a first list with structure " 
+    "Operator product expects a first list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator product gets a first list with structure '" + 
+    "Operator product gets a first list with structure '" +
     argstr + "'.");
-    
+
   list1 = nl->Second(nl->Second(first));
 
-  nl->WriteToString(argstr, second);  
+  nl->WriteToString(argstr, second);
   CHECK_COND(nl->ListLength(second) == 2 &&
     TypeOfRelAlgSymbol(nl->First(second)) == stream &&
     nl->ListLength(nl->Second(second)) == 2 &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
-    "Operator product expects a second list with structure " 
+    "Operator product expects a second list with structure "
     "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator product gets a second list with structure '" + 
+    "Operator product gets a second list with structure '" +
     argstr + "'.");
 
   list2 = nl->Second(nl->Second(second));
@@ -2729,7 +2729,7 @@ struct ProductLocalInfo
 };
 
 int
-Product(Word* args, Word& result, int message, 
+Product(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   Word r, u;
@@ -2741,15 +2741,15 @@ Product(Word* args, Word& result, int message,
     {
 
       long MAX_MEMORY = qp->MemoryAvailableForOperator();
-      cmsg.info("RA:ShowMemInfo") 
-        << "Product.MAX_MEMORY (" 
+      cmsg.info("RA:ShowMemInfo")
+        << "Product.MAX_MEMORY ("
         << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
 
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, r);
       pli = new ProductLocalInfo;
-      pli->currentTuple = 
+      pli->currentTuple =
         qp->Received(args[0].addr) ? (Tuple*)r.addr : 0;
 
       /* materialize right stream */
@@ -2875,14 +2875,14 @@ class ProductLocalInfo: public ProgressLocalInfo
 {
 public:
 
-  ProductLocalInfo() : 
+  ProductLocalInfo() :
     resultTupleType(0),
     currentTuple(0),
     rightRel(0),
     iter(0)
-  {}    
+  {}
 
-  ~ProductLocalInfo() 
+  ~ProductLocalInfo()
   {
     if(currentTuple != 0)
       currentTuple->DeleteIfAllowed();
@@ -2894,7 +2894,7 @@ public:
       rightRel->Clear();
       delete rightRel;
     }
-  }    
+  }
 
   TupleType *resultTupleType;
   Tuple* currentTuple;
@@ -3051,7 +3051,7 @@ Product(Word* args, Word& result, int message,
               //if writing to disk
       const double vProduct = 0.000042; //millisecs per byte (total output)
           //if reading from disk
- 
+
       pRes = (ProgressInfo*) result.addr;
 
       if (!pli) return CANCEL;
@@ -3101,7 +3101,7 @@ Product(Word* args, Word& result, int message,
 5.10.3 Specification of operator ~product~
 
 */
-const string ProductSpec  = 
+const string ProductSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Remark\" ) "
   "( <text>((stream (tuple (x1 ... xn))) (stream "
@@ -3147,38 +3147,38 @@ TCountTypeMap(ListExpr args)
 {
   ListExpr first;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 1,
   "Operator count expects a list of length one.");
 
   first = nl->First(args);
-  
-  nl->WriteToString(argstr, first);    
-  CHECK_COND( nl->ListLength(first) == 2 && 
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND( nl->ListLength(first) == 2 &&
     nl->ListLength(nl->Second(first)) == 2 &&
     ( TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-      TypeOfRelAlgSymbol(nl->First(first)) == rel || 
+      TypeOfRelAlgSymbol(nl->First(first)) == rel ||
       TypeOfRelAlgSymbol(nl->First(first)) == trel )  &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator count expects a list with structure " 
+    "Operator count expects a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(rel (tuple ((a1 t1)...(an tn))))\n"
     "Operator count gets a list with structure '" + argstr + "'.");
-  
+
   return nl->SymbolAtom("int");
 }
 
 
 struct CountBothInfo : OperatorInfo {
- 
+
   CountBothInfo() : OperatorInfo()
-  { 
+  {
     name =      "countboth";
     signature = "stream(tuple(y)) x stream(tuple(z)) -> int";
     syntax =    "_ countboth";
     meaning =   "Counts the number of tuples of two input streams. "
           "The streams are requested alternately. The purpose of "
-    "this operator is to expose the overhead of the seek time."; 
+    "this operator is to expose the overhead of the seek time.";
     example =   "plz feed orte feed countboth";
   }
 
@@ -3199,7 +3199,7 @@ countboth_tm(ListExpr args)
     return nl->SymbolAtom("int");
   } else {
     return nl->TypeError();
-  }        
+  }
 }
 
 
@@ -3214,7 +3214,7 @@ countboth_tm(ListExpr args)
 // standard version
 
 int
-TCountStream(Word* args, Word& result, int message, 
+TCountStream(Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   Word elem;
@@ -3235,7 +3235,7 @@ TCountStream(Word* args, Word& result, int message,
 }
 
 int
-TCountRel(Word* args, Word& result, int message, 
+TCountRel(Word* args, Word& result, int message,
           Word& local, Supplier s)
 {
   GenericRelation* rel = (GenericRelation*)args[0].addr;
@@ -3249,7 +3249,7 @@ TCountRel(Word* args, Word& result, int message,
 // progress version
 
 int
-TCountStream(Word* args, Word& result, int message, 
+TCountStream(Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   Word elem;
@@ -3277,14 +3277,14 @@ TCountStream(Word* args, Word& result, int message,
     ProgressInfo p1;
     ProgressInfo* pRes;
 
-    pRes = (ProgressInfo*) result.addr; 
+    pRes = (ProgressInfo*) result.addr;
 
     if ( qp->RequestProgress(args[0].addr, &p1) )
     {
       pRes->Copy(p1);
-      return YIELD;    
+      return YIELD;
     }
-    else return CANCEL;      
+    else return CANCEL;
   }
   else if ( message == CLOSEPROGRESS )
   {
@@ -3297,7 +3297,7 @@ TCountStream(Word* args, Word& result, int message,
 
 
 int
-TCountRel(Word* args, Word& result, int message, 
+TCountRel(Word* args, Word& result, int message,
           Word& local, Supplier s)
 {
   Supplier sonOfCount;
@@ -3316,15 +3316,15 @@ TCountRel(Word* args, Word& result, int message,
 
     ProgressInfo p1;
     ProgressInfo* pRes;
-    
-    pRes = (ProgressInfo*) result.addr; 
+
+    pRes = (ProgressInfo*) result.addr;
 
     if ( qp->IsObjectNode(sonOfCount) )
     {
       return CANCEL;
     }
     else
-    { 
+    {
       if ( qp->RequestProgress(sonOfCount, &p1) )
       {
         pRes->Copy(p1);
@@ -3341,27 +3341,27 @@ TCountRel(Word* args, Word& result, int message,
 }
 
 int
-countboth_vm( Word* args, Word& result, int message, 
+countboth_vm( Word* args, Word& result, int message,
               Word& local, Supplier s )
 {
   Word elemA;
   Word elemB;
 
-  struct Counter 
+  struct Counter
   {
     Counter() : count(0) {}
 
     inline bool request(void* addr)
     {
-       Word elem;      
+       Word elem;
        qp->Request(addr, elem);
        bool ok = qp->Received(addr);
-       if (ok) { 
-   count++; 
+       if (ok) {
+   count++;
          static_cast<Tuple*>(elem.addr)->DeleteIfAllowed();
        }
        return ok;
-    }      
+    }
 
     int count;
 
@@ -3371,18 +3371,18 @@ countboth_vm( Word* args, Word& result, int message,
   qp->Open(args[1].addr);
 
   Counter c;
- 
-  bool recA = c.request(args[0].addr); 
-  bool recB = c.request(args[1].addr); 
+
+  bool recA = c.request(args[0].addr);
+  bool recB = c.request(args[1].addr);
 
   while ( recA || recB )
   {
-    if (recA) {    
-      recA = c.request(args[0].addr); 
+    if (recA) {
+      recA = c.request(args[0].addr);
     }
-    if (recB) {  
-      recB = c.request(args[1].addr); 
-    }  
+    if (recB) {
+      recB = c.request(args[1].addr);
+    }
   }
   result = qp->ResultStorage(s);
   static_cast<CcInt*>(result.addr)->Set(true, c.count);
@@ -3399,14 +3399,14 @@ countboth_vm( Word* args, Word& result, int message,
 
 
 /*
-5.11.3 Value mapping function for operator ~count2~ 
+5.11.3 Value mapping function for operator ~count2~
 
 This operator generates messages! Refer to "Messages.h".
 
 */
 #include "Messages.h"
 int
-TCountStream2(Word* args, Word& result, int message, 
+TCountStream2(Word* args, Word& result, int message,
               Word& local, Supplier s)
 {
   Word elem;
@@ -3414,19 +3414,19 @@ TCountStream2(Word* args, Word& result, int message,
 
   // Get a reference to the message center
   static MessageCenter* msg = MessageCenter::GetInstance();
-  
+
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
   while ( qp->Received(args[0].addr) )
   {
-    if ((count % 100) == 0) {    
-      // build a two elem list (simple count)      
+    if ((count % 100) == 0) {
+      // build a two elem list (simple count)
       NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
       msg->Send(msgList);
-    }        
+    }
     ((Tuple*)elem.addr)->DeleteIfAllowed();
     qp->Request(args[0].addr, elem);
     count++;
@@ -3444,7 +3444,7 @@ TCountStream2(Word* args, Word& result, int message,
 5.11.3 Specification of operator ~count~
 
 */
-const string TCountSpec  = 
+const string TCountSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>((stream/rel (tuple x))) -> int"
@@ -3466,7 +3466,7 @@ TCountSelect( ListExpr args )
   ListExpr first = nl->First(args);
   if (TypeOfRelAlgSymbol(nl->First(first)) == stream)
     return 0;
-  else if( TypeOfRelAlgSymbol(nl->First(first)) == rel 
+  else if( TypeOfRelAlgSymbol(nl->First(first)) == rel
            || TypeOfRelAlgSymbol(nl->First(first)) == trel )
     return 1;
   return -1;
@@ -3489,7 +3489,7 @@ Operator relalgcount (
 );
 
 
-const string TCountSpec2  = 
+const string TCountSpec2  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( '((stream (tuple x))) -> int'"
@@ -3511,12 +3511,12 @@ Operator relalgcount2 (
 /*
 5.11 Operator ~roottuplesize~
 
-Reports the size of the tuples' root part in a relation. This operator 
+Reports the size of the tuples' root part in a relation. This operator
 is useful for the optimizer, but it is usable as an operator itself.
 
 5.11.1 Type mapping function of operator ~roottuplesize~
 
-Operator ~roottuplesize~ accepts a relation or a stream of tuples and 
+Operator ~roottuplesize~ accepts a relation or a stream of tuples and
 returns an integer.
 
 ----    (rel     (tuple x))                 -> int
@@ -3529,24 +3529,24 @@ RootTupleSizeTypeMap(ListExpr args)
 {
   ListExpr first;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 1,
   "Operator tuplesize expects a list of length one.");
 
   first = nl->First(args);
-  
-  nl->WriteToString(argstr, first);    
-  CHECK_COND( nl->ListLength(first) == 2 && 
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND( nl->ListLength(first) == 2 &&
     nl->ListLength(nl->Second(first)) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
     TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator roottuplesize expects a list with structure " 
+    "Operator roottuplesize expects a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator roottuplesize gets a list with structure '" + 
+    "Operator roottuplesize gets a list with structure '" +
     argstr + "'.");
-  
+
   return nl->SymbolAtom("int");
 }
 
@@ -3556,7 +3556,7 @@ RootTupleSizeTypeMap(ListExpr args)
 
 */
 int
-RootTupleSizeStream(Word* args, Word& result, int message, 
+RootTupleSizeStream(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
   Word elem;
@@ -3573,20 +3573,28 @@ RootTupleSizeStream(Word* args, Word& result, int message,
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
-
-  ((CcInt*) result.addr)->Set( true, (int)(totalSize / count) );
+  if(count > 0){
+    ((CcInt*) result.addr)->Set( true, (int)(totalSize / count) );
+  } else {
+    ((CcInt*) result.addr)->Set( false, 0 );
+  }
   qp->Close(args[0].addr);
   return 0;
 }
 
 int
-RootTupleSizeRel(Word* args, Word& result, int message, 
+RootTupleSizeRel(Word* args, Word& result, int message,
                  Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->
-    Set(true, (int)(rel->GetTotalRootSize() / rel->GetNoTuples()) );
+  long count = rel->GetNoTuples();
+  double totalsize = rel->GetTotalRootSize();
+  if(count > 0){
+    ((CcInt*) result.addr)->Set(true, (int)(totalsize / count) );
+  } else {
+    ((CcInt*) result.addr)->Set(false, 0 );
+  }
   return 0;
 }
 
@@ -3595,7 +3603,7 @@ RootTupleSizeRel(Word* args, Word& result, int message,
 5.11.3 Specification of operator ~roottuplesize~
 
 */
-const string RootTupleSizeSpec  = 
+const string RootTupleSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream|rel (tuple x))) -> int"
@@ -3615,7 +3623,7 @@ This function is the same as for the ~count~ operator.
 5.11.5 Definition of operator ~roottuplesize~
 
 */
-ValueMapping roottuplesizemap[] = {RootTupleSizeStream, 
+ValueMapping roottuplesizemap[] = {RootTupleSizeStream,
                                    RootTupleSizeRel };
 
 Operator relalgroottuplesize (
@@ -3631,12 +3639,12 @@ Operator relalgroottuplesize (
 5.11 Operator ~exttuplesize~
 
 Reports the average size of the tuples in a relation taking into
-account the extension part, i.e. the small FLOBs. This operator 
+account the extension part, i.e. the small FLOBs. This operator
 is useful for the optimizer, but it is usable as an operator itself.
 
 5.11.1 Type mapping function of operator ~exttuplesize~
 
-Operator ~exttuplesize~ accepts a relation or a stream of tuples 
+Operator ~exttuplesize~ accepts a relation or a stream of tuples
 and returns a real.
 
 ----    (rel     (tuple x))                 -> real
@@ -3649,24 +3657,24 @@ ExtTupleSizeTypeMap(ListExpr args)
 {
   ListExpr first;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 1,
   "Operator exttuplesize expects a list of length one.");
 
   first = nl->First(args);
-  
-  nl->WriteToString(argstr, first);    
-  CHECK_COND( nl->ListLength(first) == 2 && 
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND( nl->ListLength(first) == 2 &&
     nl->ListLength(nl->Second(first)) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
     TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator exttuplesize expects a list with structure " 
+    "Operator exttuplesize expects a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator exttuplesize gets a list with structure '" + 
+    "Operator exttuplesize gets a list with structure '" +
     argstr + "'.");
-  
+
   return nl->SymbolAtom("real");
 }
 
@@ -3676,7 +3684,7 @@ ExtTupleSizeTypeMap(ListExpr args)
 
 */
 int
-ExtTupleSizeStream(Word* args, Word& result, int message, 
+ExtTupleSizeStream(Word* args, Word& result, int message,
                    Word& local, Supplier s)
 {
   Word elem;
@@ -3693,20 +3701,28 @@ ExtTupleSizeStream(Word* args, Word& result, int message,
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
-
-  ((CcReal*) result.addr)->Set(true, size/count);
+  if( count > 0 ){
+    ((CcReal*) result.addr)->Set(true, (float)(size/count));
+  } else {
+    ((CcReal*) result.addr)->Set(false, 0);
+  }
   qp->Close(args[0].addr);
   return 0;
 }
 
 int
-ExtTupleSizeRel(Word* args, Word& result, int message, 
+ExtTupleSizeRel(Word* args, Word& result, int message,
                 Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
-  ((CcReal*) result.addr)->
-    Set(true, (float)rel->GetTotalExtSize()/rel->GetNoTuples());
+  long count = rel->GetNoTuples();
+  double totalsize = rel->GetTotalExtSize();
+  if( count > 0 ){
+    ((CcReal*) result.addr)->Set(true, (float)(totalsize/count));
+  } else {
+    ((CcReal*) result.addr)->Set(false, 0.0);
+  }
   return 0;
 }
 
@@ -3716,7 +3732,7 @@ ExtTupleSizeRel(Word* args, Word& result, int message,
 5.11.3 Specification of operator ~exttuplesize~
 
 */
-const string ExtTupleSizeSpec  = 
+const string ExtTupleSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream/rel (tuple x))) -> real"
@@ -3736,7 +3752,7 @@ This function is the same as for the ~count~ operator.
 5.11.5 Definition of operator ~exttuplesize~
 
 */
-ValueMapping exttuplesizemap[] = {ExtTupleSizeStream, 
+ValueMapping exttuplesizemap[] = {ExtTupleSizeStream,
                                   ExtTupleSizeRel };
 
 Operator relalgexttuplesize (
@@ -3751,12 +3767,12 @@ Operator relalgexttuplesize (
 /*
 5.11 Operator ~tuplesize~
 
-Reports the average size of the tuples in a relation. This operator 
+Reports the average size of the tuples in a relation. This operator
 is useful for the optimizer, but it is usable as an operator itself.
 
 5.11.1 Type mapping function of operator ~tuplesize~
 
-Operator ~tuplesize~ accepts a stream of tuples and returns a 
+Operator ~tuplesize~ accepts a stream of tuples and returns a
 real.
 
 ----    (real    (tuple x))                 -> real
@@ -3769,25 +3785,25 @@ TupleSizeTypeMap(ListExpr args)
 {
   ListExpr first;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 1,
   "Operator tuplesize expects a list of length one.");
 
   first = nl->First(args);
-  
-  nl->WriteToString(argstr, first);    
-  CHECK_COND( nl->ListLength(first) == 2 && 
+
+  nl->WriteToString(argstr, first);
+  CHECK_COND( nl->ListLength(first) == 2 &&
     nl->ListLength(nl->Second(first)) == 2 &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
     ((TypeOfRelAlgSymbol(nl->First(first)) == rel)
      || TypeOfRelAlgSymbol(nl->First(first)) == trel)) &&
     TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator tuplesize expects a list with structure " 
+    "Operator tuplesize expects a list with structure "
     "(stream (tuple ((a1 t1)...(an tn)))) or "
     "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator tuplesize gets a list with structure '" + 
+    "Operator tuplesize gets a list with structure '" +
     argstr + "'.");
-  
+
   return nl->SymbolAtom("real");
 }
 
@@ -3797,7 +3813,7 @@ TupleSizeTypeMap(ListExpr args)
 
 */
 int
-TupleSizeStream(Word* args, Word& result, int message, 
+TupleSizeStream(Word* args, Word& result, int message,
                 Word& local, Supplier s)
 {
   Word elem;
@@ -3815,19 +3831,28 @@ TupleSizeStream(Word* args, Word& result, int message,
   }
   result = qp->ResultStorage(s);
 
-  ((CcReal*) result.addr)->Set(true, size/count);
+  if (count > 0.0){
+    ((CcReal*) result.addr)->Set(true, (double)(size/count));
+  } else {
+    ((CcReal*) result.addr)->Set(false, 0.0);
+  }
   qp->Close(args[0].addr);
   return 0;
 }
 
 int
-TupleSizeRel(Word* args, Word& result, int message, 
+TupleSizeRel(Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
-  ((CcReal*) result.addr)->
-    Set(true, (float)rel->GetTotalSize()/rel->GetNoTuples());
+  long count = rel->GetNoTuples();
+  double totalsize = rel->GetTotalSize();
+  if(count > 0){
+    ((CcReal*) result.addr)->Set(true, (double)(totalsize/count) );
+  } else {
+      ((CcReal*) result.addr)->Set(false, 0.0);
+  }
   return 0;
 }
 
@@ -3837,7 +3862,7 @@ TupleSizeRel(Word* args, Word& result, int message,
 5.11.3 Specification of operator ~tuplesize~
 
 */
-const string TupleSizeSpec  = 
+const string TupleSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream/rel (tuple x))) -> real"
@@ -3969,8 +3994,11 @@ RootAttrSizeStream(Word* args, Word& result, int message,
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
-
-  ((CcInt*) result.addr)->Set( true, (int)(totalSize / count) );
+  if( count > 0 ){
+    ((CcInt*) result.addr)->Set( true, (long)(totalSize / count) );
+  } else {
+    ((CcInt*) result.addr)->Set( false, 0 );
+  }
   qp->Close(args[0].addr);
   return 0;
 }
@@ -3982,8 +4010,13 @@ RootAttrSizeRel(Word* args, Word& result, int message,
   Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
   int i = ((CcInt*)args[2].addr)->GetIntval() - 1;
-  ((CcInt*) result.addr)->
-    Set(true, (int)(rel->GetTotalRootSize(i) / rel->GetNoTuples()) );
+  long count = rel->GetNoTuples();
+  double totalsize = rel->GetTotalRootSize(i);
+  if( count > 0 ){
+    ((CcInt*) result.addr)->Set(true, (long)(totalsize/count) );
+  } else {
+    ((CcInt*) result.addr)->Set(false, 0 );
+  }
   return 0;
 }
 
@@ -4126,8 +4159,11 @@ ExtAttrSizeStream(Word* args, Word& result, int message,
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
-
-  ((CcReal*) result.addr)->Set( true, totalSize / count );
+  if( count > 0 ){
+    ((CcReal*) result.addr)->Set( true, (double)(totalSize / count) );
+  } else {
+    ((CcReal*) result.addr)->Set( false, 0.0 );
+  }
   qp->Close(args[0].addr);
   return 0;
 }
@@ -4139,8 +4175,13 @@ ExtAttrSizeRel(Word* args, Word& result, int message,
   Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
   int i = ((CcInt*)args[2].addr)->GetIntval() - 1;
-  ((CcReal*) result.addr)->
-    Set(true, rel->GetTotalExtSize(i) / rel->GetNoTuples() );
+  long count = rel->GetNoTuples();
+  double totalsize = rel->GetTotalExtSize(i);
+  if( count > 0 ){
+    ((CcReal*) result.addr)->Set(true, (double)(totalsize / count) );
+  } else {
+    ((CcReal*) result.addr)->Set(false, 0.0 );
+  }
   return 0;
 }
 
@@ -4284,8 +4325,11 @@ AttrSizeStream(Word* args, Word& result, int message,
     qp->Request(args[0].addr, elem);
   }
   result = qp->ResultStorage(s);
-
-  ((CcReal*) result.addr)->Set( true, totalSize / count );
+  if( count > 0){
+    ((CcReal*) result.addr)->Set( true, (double)(totalSize / count) );
+  } else {
+    ((CcReal*) result.addr)->Set( false, 0.0 );
+  }
   qp->Close(args[0].addr);
   return 0;
 }
@@ -4297,8 +4341,13 @@ AttrSizeRel(Word* args, Word& result, int message,
   Relation* rel = (Relation*)args[0].addr;
   result = qp->ResultStorage(s);
   int i = ((CcInt*)args[2].addr)->GetIntval() - 1;
-  ((CcReal*) result.addr)->
-    Set(true, rel->GetTotalSize(i) / rel->GetNoTuples() );
+  long count = rel->GetNoTuples();
+  double totalsize = rel->GetTotalSize(i);
+  if( count > 0 ){
+    ((CcReal*) result.addr)->Set(true, (double)(totalsize / count) );
+  } else {
+    ((CcReal*) result.addr)->Set(false, 0.0 );
+  }
   return 0;
 }
 
@@ -4346,21 +4395,21 @@ Operator relalgattrsize (
 
 This operator maps
 
-----   (stream  (tuple X)) x string -> (stream (tuple X)) 
+----   (stream  (tuple X)) x string -> (stream (tuple X))
 ----
 
 It sums up the sizes (Root, Extension, Flobs) of the tuples of a given input
 stream.  These values are stored as entries in the system table SEC\_COUNTERS
-which can be queried afterwards. 
+which can be queried afterwards.
 
-5.12.0 Specification 
+5.12.0 Specification
 
 */
 
 struct SizeCountersInfo : OperatorInfo {
- 
+
   SizeCountersInfo() : OperatorInfo()
-  { 
+  {
     name =      "sizecounters";
     signature = "stream(tuple(y)) x string -> stream(tuple(y))";
     syntax =    "_ sizecounters[ s ]";
@@ -4380,7 +4429,7 @@ struct SizeCountersInfo : OperatorInfo {
 
 
 /*
-5.12.1 Type mapping 
+5.12.1 Type mapping
 
 The type mapping uses the wrapper class ~NList~ which hides calls
 to class NestedList. Moreover, there are some useful functions for
@@ -4391,19 +4440,19 @@ handling streams of tuples.
 static ListExpr sizecounters_tm(ListExpr args)
 {
   NList l(args);
-  
+
   const string opName = "sizecounters";
   string err1 = opName + "expects (stream(tuple(...)) string)!";
   cout << opName << ": " << l << endl;
-  
+
   if ( !l.checkLength(2, err1) )
     return l.typeError( err1 );
-  
+
   NList attrs;
   if ( !l.first().checkStreamTuple( attrs ) )
     return l.typeError(err1);
-  
-  if ( !l.second().isSymbol(Symbols::STRING()) ) 
+
+  if ( !l.second().isSymbol(Symbols::STRING()) )
     return l.typeError(err1);
 
   return l.first().listExpr();
@@ -4411,16 +4460,16 @@ static ListExpr sizecounters_tm(ListExpr args)
 
 /*
 
-5.12.1 Value mapping 
+5.12.1 Value mapping
 
 */
 
-static int sizecounters_vm( Word* args, Word& result, int message, 
+static int sizecounters_vm( Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
-  // args[0]: stream(tuple(...)) 
+  // args[0]: stream(tuple(...))
   // args[1]: string
-  
+
   struct Info {
 
     long& rootSize;
@@ -4439,71 +4488,71 @@ static int sizecounters_vm( Word* args, Word& result, int message,
      tuples(Counter::getRef("RA::Tuples_" + s))
     {}
     ~Info()
-    {} 
+    {}
 
     void computeSizes()
     {
       extSizeOnly = size - rootSize;
       flobSizeOnly = size - extSize;
-    } 
+    }
 
     void addSizes(Tuple* t)
     {
       tuples++;
-      rootSize += t->GetRootSize(); 
-      extSize += t->GetExtSize(); 
+      rootSize += t->GetRootSize();
+      extSize += t->GetExtSize();
       size += t->GetSize();
     }
-    
+
   };
 
   Info* pi = static_cast<Info*>( local.addr );
   void* stream = args[0].addr;
-  
+
   switch ( message )
   {
 
     case OPEN: {
-      
-      qp->Open(stream); 
+
+      qp->Open(stream);
       local.addr = new Info( StdTypes::GetString(args[1]) );
       return 0;
     }
-               
+
     case REQUEST: {
-     
+
       Word elem;
       qp->Request(stream, elem);
-      if ( qp->Received(stream) ) 
+      if ( qp->Received(stream) )
       {
         Tuple* t = static_cast<Tuple*>(elem.addr);
         pi->addSizes(t);
-        result = elem; 
+        result = elem;
         return YIELD;
       }
       else
-      {  
+      {
         return CANCEL;
-      }  
+      }
     }
-                  
+
     case CLOSE: {
       if(pi)
       {
-        pi->computeSizes();           
+        pi->computeSizes();
         delete pi;
         local.setAddr(0);
       }
-      qp->Close(stream);      
-      return 0;           
+      qp->Close(stream);
+      return 0;
     }
-                
+
     default: {
        assert(false);
-    }       
+    }
   }
   return 0;
-}   
+}
 
 
 /*
@@ -4517,14 +4566,14 @@ This operator maps
 It just passes the tuples streamupwards and dumps the tuple values into a file
 which is specified by the 2nd parameter.
 
-5.12.0 Specification 
+5.12.0 Specification
 
 */
 
 struct DumpStreamInfo : OperatorInfo {
- 
+
   DumpStreamInfo() : OperatorInfo()
-  { 
+  {
     name =      "dumpstream";
     signature = "stream(tuple(y)) x string -> stream(tuple(y))";
     syntax =    "_ dumpstream[ f, s ]";
@@ -4537,7 +4586,7 @@ struct DumpStreamInfo : OperatorInfo {
 
 
 /*
-5.12.1 Type mapping 
+5.12.1 Type mapping
 
 The type mapping uses the wrapper class ~NList~ which hides calls
 to class NestedList. Moreover, there are some useful functions for
@@ -4551,21 +4600,21 @@ handling streams of tuples.
 static ListExpr dumpstream_tm(ListExpr args)
 {
   NList l(args);
-  
+
   const string opName = "dumpstream";
   string err1 = opName + "expects (stream(tuple(...)) string string)!";
-  
+
   if ( !l.checkLength(3, err1) )
     return l.typeError( err1 );
-  
+
   NList attrs;
   if ( !l.first().checkStreamTuple( attrs ) )
     return l.typeError(err1);
-  
-  if ( !l.second().isSymbol(Symbols::STRING()) ) 
+
+  if ( !l.second().isSymbol(Symbols::STRING()) )
     return l.typeError(err1);
 
-  if ( !l.third().isSymbol(Symbols::STRING()) ) 
+  if ( !l.third().isSymbol(Symbols::STRING()) )
     return l.typeError(err1);
 
   NList attrNames;
@@ -4573,11 +4622,11 @@ static ListExpr dumpstream_tm(ListExpr args)
     cout << attrs.first().first() << endl;
     attrNames.append( attrs.first().first().toStringAtom() );
     attrs.rest();
-  }    
+  }
 
 
 // the following line can be compiled using newer gcc compilers (4.1.x),
-// to be compatible with older ones, this line is replaced by  
+// to be compatible with older ones, this line is replaced by
 // two lines.
 //  NList result( NList(Symbols::APPEND()), attrNames, l.first() );
    NList tmp(Symbols::APPEND());
@@ -4590,38 +4639,38 @@ static ListExpr dumpstream_tm(ListExpr args)
 
 /*
 
-5.12.1 Value mapping 
+5.12.1 Value mapping
 
 */
 
-static int dumpstream_vm( Word* args, Word& result, int message, 
+static int dumpstream_vm( Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
-  // args[0]: stream(tuple(...)) 
+  // args[0]: stream(tuple(...))
   // args[1]: string -> file name
   // args[2]: string -> separator
-  
+
   struct Info {
 
     ofstream os;
     const string colsep;
     int maxAttr;
     int ctr;
-    
+
     Info(const string& fileName, const string& sep, int max) :
       colsep(sep)
     {
       maxAttr = max;
-      ctr = 0;       
+      ctr = 0;
       os.open(fileName.c_str(), ios_base::app);
     }
     ~Info()
     {
       os.close();
-    } 
+    }
 
     void appendTuple(Tuple& t)
-    { 
+    {
       for( int i = 0; i < t.GetNoAttributes(); i++)
       {
         os << *t.GetAttribute(i);
@@ -4630,9 +4679,9 @@ static int dumpstream_vm( Word* args, Word& result, int message,
         else
           os << endl;
       }
-    }  
+    }
 
-    void appendToHeadLine(Word w) 
+    void appendToHeadLine(Word w)
     {
       if (ctr == maxAttr)
         return;
@@ -4645,51 +4694,51 @@ static int dumpstream_vm( Word* args, Word& result, int message,
       else
         os << endl;
       ctr++;
-    }      
-    
+    }
+
   };
 
   Info* pi = static_cast<Info*>( local.addr );
   void* stream = args[0].addr;
-  
+
   switch ( message )
   {
 
     case OPEN: {
-      
-      qp->Open(stream); 
-                
-       string name = StdTypes::GetString(args[1]);          
+
+      qp->Open(stream);
+
+       string name = StdTypes::GetString(args[1]);
        string colsep = StdTypes::GetString(args[2]);
 
        int max = qp->GetNoSons( s );
        pi = new Info(name, colsep, max-3);
        local.addr = pi;
 
-       for (int i=3; i < max; i++) 
+       for (int i=3; i < max; i++)
        {
-   pi->appendToHeadLine( args[i] );      
-       }    
+   pi->appendToHeadLine( args[i] );
+       }
        return 0;
      }
-                
+
      case REQUEST: {
-      
+
       Word elem;
       qp->Request(stream, elem);
-      if ( qp->Received(stream) ) 
+      if ( qp->Received(stream) )
       {
         Tuple* t = static_cast<Tuple*>(elem.addr);
         pi->appendTuple(*t);
-        result = elem; 
+        result = elem;
         return YIELD;
       }
       else
-      {  
+      {
         return CANCEL;
-      }  
+      }
     }
-                  
+
     case CLOSE: {
       if(pi)
       {
@@ -4697,15 +4746,15 @@ static int dumpstream_vm( Word* args, Word& result, int message,
         local.setAddr(0);
       }
       qp->Close(stream);
-      return 0;           
+      return 0;
     }
-                
+
     default: {
        assert(false);
-    }       
+    }
   }
   return 0;
-}   
+}
 
 
 /*
@@ -4719,14 +4768,14 @@ This operator maps
 It append the tuples into the tuple buffer which is returned in the
 create function of ~trel~.
 
-5.12.0 Specification 
+5.12.0 Specification
 
 */
 
 struct TConsumeInfo : OperatorInfo {
- 
+
   TConsumeInfo() : OperatorInfo()
-  { 
+  {
     name =      "tconsume";
     signature = "stream(tuple(y)) x string -> trel(tuple(y))";
     syntax =    "_ tconsume";
@@ -4740,7 +4789,7 @@ struct TConsumeInfo : OperatorInfo {
 
 
 /*
-5.12.1 Type mapping 
+5.12.1 Type mapping
 
 */
 
@@ -4749,33 +4798,33 @@ ListExpr tconsume_tm(ListExpr args)
 {
   ListExpr first ;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 1,
   "Operator tconsume expects a list of length one.");
-  
+
   first = nl->First(args);
   nl->WriteToString(argstr, first);
   CHECK_COND(
     ((nl->ListLength(first) == 2) &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
     (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&    
+       nl->IsEmpty(nl->Second(first))) &&
     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
   "Operator tconsume expects an argument of type (stream(tuple"
   "((a1 t1)...(an tn)))).\n"
   "Operator tconsume gets an argument of type '" + argstr + "'.");
-  
+
   return nl->Cons(nl->SymbolAtom("trel"), nl->Rest(first));
 }
 
 /*
-5.12.1 Value mapping 
+5.12.1 Value mapping
 
 */
 
 
 int
-tconsume_vm( Word* args, Word& result, int message, 
+tconsume_vm( Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   Word actual;
@@ -4796,7 +4845,7 @@ tconsume_vm( Word* args, Word& result, int message,
     qp->Request(args[0].addr, actual);
   }
   result.setAddr(rel);
-  
+
   qp->Close(args[0].addr);
   return 0;
 }
@@ -4820,31 +4869,31 @@ ListExpr
 RenameTypeMap( ListExpr args )
 {
   ListExpr first=nl->TheEmptyList();
-  ListExpr first2=first, second=first, rest=first, 
+  ListExpr first2=first, second=first, rest=first,
            listn=first, lastlistn=first;
   string  attrname="", argstr="";
   string  attrnamen="";
   bool firstcall = true;
-  
+
   CHECK_COND(nl->ListLength(args) == 2,
   "Operator rename expects a list of length two.");
-  
+
   first = nl->First(args);
   second  = nl->Second(args);
-  
-  nl->WriteToString(argstr, first);  
+
+  nl->WriteToString(argstr, first);
   if (!IsStreamDescription(first)) {
-    ErrorReporter::ReportError(    
+    ErrorReporter::ReportError(
     "Operator rename expects a valid tuple stream "
     "Operator rename gets a list with structure '" + argstr + "'.");
     return nl->TypeError();
-  }  
-  
-  nl->WriteToString(argstr, second);   
-  CHECK_COND( nl->IsAtom(second) && 
+  }
+
+  nl->WriteToString(argstr, second);
+  CHECK_COND( nl->IsAtom(second) &&
     nl->AtomType(second) == SymbolType,
     "Operator rename expects as second argument a symbol "
-    "atom (attribute suffix) " 
+    "atom (attribute suffix) "
     "Operator rename gets '" + argstr + "'.");
 
   rest = nl->Second(nl->Second(first));
@@ -4866,7 +4915,7 @@ RenameTypeMap( ListExpr args )
     else
     {
       firstcall = false;
-      listn = 
+      listn =
         nl->OneElemList(nl->TwoElemList(nl->SymbolAtom(attrname),
       nl->Second(first2)));
       lastlistn = listn;
@@ -4882,7 +4931,7 @@ RenameTypeMap( ListExpr args )
 
 */
 int
-Rename(Word* args, Word& result, int message, 
+Rename(Word* args, Word& result, int message,
        Word& local, Supplier s)
 {
   Word t;
@@ -4938,7 +4987,7 @@ Rename(Word* args, Word& result, int message,
 5.12.3 Specification of operator ~rename~
 
 */
-const string RenameSpec  = 
+const string RenameSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>((stream (tuple([a1:d1, ... ,"
@@ -5000,22 +5049,22 @@ ListExpr BufferTypeMap(ListExpr args)
 {
   ListExpr first ;
   string argstr;
-  
+
   CHECK_COND(nl->ListLength(args) == 1,
   "Operator ! expects a list of length one.");
-  
+
   first = nl->First(args);
   nl->WriteToString(argstr, first);
   CHECK_COND(
     ((nl->ListLength(first) == 2) &&
     (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
     (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&    
+       nl->IsEmpty(nl->Second(first))) &&
     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
   "Operator ! expects an argument of type (stream(tuple"
   "((a1 t1)...(an tn)))).\n"
   "Operator ! gets an argument of type '" + argstr + "'.");
-  
+
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
 
@@ -5033,7 +5082,7 @@ const int BUFFERSIZE = 5;
 
 struct BufferLocalInfo
 {
- int state;        //0 = initial, 1 = buffer filled, 
+ int state;        //0 = initial, 1 = buffer filled,
        //2 = buffer empty again
  int noInBuffer;   //tuples read into buffer;
  int next;     //index of next tuple to be returned;
@@ -5042,7 +5091,7 @@ struct BufferLocalInfo
 
 
 int
-Buffer(Word* args, Word& result, int message, 
+Buffer(Word* args, Word& result, int message,
        Word& local, Supplier s)
 {
   Word t;
@@ -5082,7 +5131,7 @@ Buffer(Word* args, Word& result, int message,
       }
 
 
-      if ( bli->state == 0 ) 
+      if ( bli->state == 0 )
       {
         //fill the buffer
         qp->Request(args[0].addr, t);
@@ -5112,13 +5161,13 @@ Buffer(Word* args, Word& result, int message,
         bli->next++;
         if ( bli->next == bli->noInBuffer )
         {
-          if ( bli->noInBuffer == BUFFERSIZE ) 
+          if ( bli->noInBuffer == BUFFERSIZE )
             bli->state = 2;      //next from stream
           else bli->state = 3;      //next cancel
-        } 
+        }
         return YIELD;
       }
-      else 
+      else
         if ( bli->state == 3 ) return CANCEL;
         else cout << "Something terrible happened in the ! operator." << endl;
 
@@ -5165,7 +5214,7 @@ Buffer(Word* args, Word& result, int message,
 5.12.3 Specification of operator ~buffer~
 
 */
-const string BufferSpec  = 
+const string BufferSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>stream(tuple(x)) -> stream(tuple(x))</text--->"
@@ -5198,12 +5247,12 @@ Operator relalgbuffer (
 
 6 Class ~RelationAlgebra~
 
-A new subclass ~RelationAlgebra~ of class ~Algebra~ is declared. 
-The only specialization with respect to class ~Algebra~ takes place 
-within the constructor: all type constructors and operators are 
+A new subclass ~RelationAlgebra~ of class ~Algebra~ is declared.
+The only specialization with respect to class ~Algebra~ takes place
+within the constructor: all type constructors and operators are
 registered at the actual algebra.
 
-After declaring the new class, its only instance ~RelationAlgebra~ 
+After declaring the new class, its only instance ~RelationAlgebra~
 is defined.
 
 */
@@ -5233,16 +5282,16 @@ class RelationAlgebra : public Algebra
     AddTypeConstructor( &cpprel );
     AddTypeConstructor( &cpptrel );
 
-    AddOperator(&relalgfeed);        
-    AddOperator(&relalgconsume);  
+    AddOperator(&relalgfeed);
+    AddOperator(&relalgconsume);
     AddOperator(&relalgTUPLE);
     AddOperator(&relalgTUPLE2);
     AddOperator(&relalgattr);
-    AddOperator(&relalgfilter);    
-    AddOperator(&relalgproject);      
-    AddOperator(&relalgremove);    
-    AddOperator(&relalgproduct);  
-    AddOperator(&relalgcount);    
+    AddOperator(&relalgfilter);
+    AddOperator(&relalgproject);
+    AddOperator(&relalgremove);
+    AddOperator(&relalgproduct);
+    AddOperator(&relalgcount);
     AddOperator(&relalgcount2);
     AddOperator(&relalgroottuplesize);
     AddOperator(&relalgexttuplesize);
@@ -5250,10 +5299,10 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgrootattrsize);
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);
-    AddOperator(&relalgrename);    
-    AddOperator(&relalgbuffer);    
+    AddOperator(&relalgrename);
+    AddOperator(&relalgbuffer);
 
-    // More recent programming interface for registering operators 
+    // More recent programming interface for registering operators
     AddOperator( SizeCountersInfo(), sizecounters_vm, sizecounters_tm );
     AddOperator( DumpStreamInfo(), dumpstream_vm, dumpstream_tm );
     AddOperator( ReduceInfo(), reduce_vm, reduce_tm );
@@ -5268,7 +5317,7 @@ class RelationAlgebra : public Algebra
 /*
 Register operators which are able to handle progress messages
 
-*/   
+*/
 #ifdef USE_PROGRESS
     relalgfeed.EnableProgress();
     relalgconsume.EnableProgress();
@@ -5289,17 +5338,17 @@ Register operators which are able to handle progress messages
 
 7 Initialization
 
-Each algebra module needs an initialization function. The algebra 
-manager has a reference to this function if this algebra is 
-included in the list of required algebras, thus forcing the linker 
+Each algebra module needs an initialization function. The algebra
+manager has a reference to this function if this algebra is
+included in the list of required algebras, thus forcing the linker
 to include this module.
 
-The algebra manager invokes this function to get a reference to the 
-instance of the algebra class and to provide references to the 
-global nested list container (used to store constructor, type, 
+The algebra manager invokes this function to get a reference to the
+instance of the algebra class and to provide references to the
+global nested list container (used to store constructor, type,
 operator and object information) and to the query processor.
 
-The function has a C interface to make it possible to load the 
+The function has a C interface to make it possible to load the
 algebra dynamically at runtime.
 
 */
@@ -5312,7 +5361,7 @@ InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
     FLOB::debug = true;
   if ( RTFlag::isActive("RA:TUPLE_Trace") )
     Tuple::debug = true;
- 
+
   nl = nlRef;
   qp = qpRef;
   am = SecondoSystem::GetAlgebraManager();
