@@ -6,6 +6,18 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2008-08-29 Changes at the DateTime class 
+===============================================================================
+In order to save disk space, the DateTime class has been changed. Type and 
+defined flag are now coded within an single character. For this reason, 
+
+  you have to restore all your databases :-(
+
+Regards
+   Thomas 
+
+
+
 
 2008-08-22  Optional Attribute Datatype Serialization
 ===============================================================================
