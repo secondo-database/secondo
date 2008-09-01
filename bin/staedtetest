@@ -441,7 +441,7 @@
                 ("Kinos_Ort" 
                     '(creatertree Kinos Ort)' 
                     '( Staedte )') 
-                ("Kinos_Ort_btree" 
+                ("Kinos_Ort_rtree" 
                     '(creatertree Kinos Ort)' 
                     '( Kinos )') 
                 ("Kinos1" 
@@ -450,13 +450,13 @@
                 ("Kinos1_Ort" 
                     '(creatertree Kinos1 Ort)' 
                     '( Kinos )') 
-                ("Kinos1_Ort_btree" 
+                ("Kinos1_Ort_rtree" 
                     '(creatertree Kinos1 Ort)' 
                     '( Kinos1 )') 
                 ("KinosOhneUCI1" 
                     '(consume (feed KinosOhneUCI))' 
                     '( KinosOhneUCI )') 
-                ("KinosOhneUCI1_Ort_btree" 
+                ("KinosOhneUCI1_Ort_rtree" 
                     '(creatertree KinosOhneUCI1 Ort)' 
                     '( KinosOhneUCI )') 
                 ("KinosOhneUCI1_Ort" 
@@ -513,7 +513,7 @@
                 ("Kinos2_Ort" 
                     '(creatertree Kinos2 Ort)' 
                     '( Kinos )') 
-                ("Kinos2_Ort_btree" 
+                ("Kinos2_Ort_rtree" 
                     '(creatertree Kinos2 Ort)' 
                     '( Kinos2 )') 
                 ("staedte_SName" 
