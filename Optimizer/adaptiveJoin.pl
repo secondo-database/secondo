@@ -555,7 +555,7 @@ Rewrite index selections into application of ~pcreate~
 
 */
 makePStreamRec(Term, Result, Result) :-
-  Term =.. [Functor | [_, rel(_, _, _), _] ],
+  Term =.. [Functor | [_, rel(_, _), _] ],
   btreeOp(Functor),
   writeln('BTree operation on base relation detected!'),
   Result =.. [ pcreate | [Term, 100] ].
@@ -615,13 +615,13 @@ translates ~Arg~ into ~puse(Source, Arg2)~. The occurence of ~Source~
 in Arg will be replaced by ~implicitArg(1)~. For example:
 
 ----
-    rename(project(pfeed(rel(plz, a, l), 100), [attrname(attr(pLZ, 0, u))]), a)
+    rename(project(pfeed(rel(plz, a), 100), [attrname(attr(pLZ, 0, u))]), a)
 ----
 
 will be replaced by
 
 ----
-    puse( pfeed(rel(plz, a, l), 100), rename(project(implicitArg(1),
+    puse( pfeed(rel(plz, a), 100), rename(project(implicitArg(1),
                                        [attrname(attr(pLZ, 0, u))]), a) )
 ----
 

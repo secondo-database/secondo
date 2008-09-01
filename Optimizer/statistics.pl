@@ -75,14 +75,14 @@ is ~Simple~.
 
 */
 
-simple(attr(Var:Attr, 0, _), rel(Rel, Var, _), _, Rel:Attr) :- !.
-simple(attr(Attr, 0, _), rel(Rel, *, _), _, Rel:Attr) :- !.
+simple(attr(Var:Attr, 0, _), rel(Rel, Var), _, Rel:Attr) :- !.
+simple(attr(Attr, 0, _), rel(Rel, *), _, Rel:Attr) :- !.
 
-simple(attr(Var:Attr, 1, _), rel(Rel, Var, _), _, Rel:Attr) :- !.
-simple(attr(Attr, 1, _), rel(Rel, *, _), _, Rel:Attr) :- !.
+simple(attr(Var:Attr, 1, _), rel(Rel, Var), _, Rel:Attr) :- !.
+simple(attr(Attr, 1, _), rel(Rel, *), _, Rel:Attr) :- !.
 
-simple(attr(Var:Attr, 2, _), _, rel(Rel, Var, _),  Rel:Attr) :- !.
-simple(attr(Attr, 2, _), _, rel(Rel, *, _), Rel:Attr) :- !.
+simple(attr(Var:Attr, 2, _), _, rel(Rel, Var),  Rel:Attr) :- !.
+simple(attr(Attr, 2, _), _, rel(Rel, *), Rel:Attr) :- !.
 
 simple(dbobject(X),_,_,dbobject(X)) :- !.
 
@@ -110,7 +110,7 @@ The simple form of predicate ~Pred~ is ~Simple~.
 
 simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple), !.
 simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
-simplePred(X, _) :- throw(sql_ERROR(statistics_simplePred(X, undefined):malformedExpression)).
+simplePred(X, Y) :- throw(sql_ERROR(statistics_simplePred(X, Y):malformedExpression)).
 
 /*
 
@@ -120,10 +120,10 @@ Auxiliary predicates for ~selectivity~.
 
 */
 
-sampleS(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+sampleS(rel(Rel, Var), rel(Rel2, Var)) :-
   atom_concat(Rel, '_sample_s', Rel2).
 
-sampleJ(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+sampleJ(rel(Rel, Var), rel(Rel2, Var)) :-
   atom_concat(Rel, '_sample_j', Rel2).
 
 % create the name of a selection-sample for a relation
@@ -144,36 +144,36 @@ sampleNameSmall(Name, Small) :-
   atom_concat(Name, '_small', Small), !.
 
 possiblyRename(Rel, Renamed) :-
-  Rel = rel(_, *, _),
+  Rel = rel(_, *),
   !,
   Renamed = feed(Rel).
 
 possiblyRename(Rel, Renamed) :-
-  Rel = rel(_, Name, _),
+  Rel = rel(_, Name),
   Renamed = rename(feed(Rel), Name).
 
 dynamicPossiblyRenameJ(Rel, Renamed) :-
-  Rel = rel(_, *, _),
+  Rel = rel(_, *),
   !,
   % old: sampleSizeJoin(JoinSize),
   thresholdCardMaxSampleJ(JoinSize),
   Renamed = sample(Rel, JoinSize, 0.00001).
 
 dynamicPossiblyRenameJ(Rel, Renamed) :-
-  Rel = rel(_, Name, _),
+  Rel = rel(_, Name),
   % old: sampleSizeJoin(JoinSize),
   thresholdCardMaxSampleJ(JoinSize),
   Renamed = rename(sample(Rel, JoinSize, 0.00001), Name).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
-  Rel = rel(_, *, _),
+  Rel = rel(_, *),
   !,
   % old: sampleSizeSelection(SelectionSize),
   thresholdCardMaxSampleS(SelectionSize),
   Renamed = sample(Rel, SelectionSize, 0.00001).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
-  Rel = rel(_, Name, _),
+  Rel = rel(_, Name),
   % old: sampleSizeSelection(SelectionSize),
   thresholdCardMaxSampleS(SelectionSize),
   Renamed = rename(sample(Rel, SelectionSize, 0.00001), Name).
@@ -314,7 +314,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
          sampleJ(Rel2, Rel2S),
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
-         Rel2S = rel(BaseName, _, _),
+         Rel2S = rel(BaseName, _),
          card(BaseName, JoinSize),
          Query = count(filter(counter(loopjoin(head(Rel1Query, JoinSize),
                        fun([param(txx1, tuple)],
@@ -341,7 +341,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
     ;  ( sampleS(Rel1, Rel1S),
          sampleJ(Rel1, Rel1J),
          sampleJ(Rel2, Rel2S),
-         Rel1J = rel(BaseName, _, _),
+         Rel1J = rel(BaseName, _),
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          card(BaseName, JoinSize),
@@ -483,11 +483,11 @@ sels(Pred, Sel, CalcPET, ExpPET) :-
 selectivity(Pred, Sel) :-
   selectivity(Pred, Sel, _, _).
 
-selectivity(P, _) :-
+selectivity(P, X) :-
   write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(',Sel)\n'),
-  throw(sql_ERROR(statistics_selectivity(P, undefined))),
+  throw(sql_ERROR(statistics_selectivity(P, X))),
   fail, !.
 
 
@@ -518,10 +518,10 @@ selectivity(P, Sel, CalcPET, ExpPET) :-
 % query for join-selectivity (static samples case)
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   not(optimizerOption(dynamicSample)),
-  Rel1 = rel(BaseName1, _, _),
+  Rel1 = rel(BaseName1, _),
   sampleNameJ(BaseName1, SampleName1),
   card(SampleName1, SampleCard1),
-  Rel2 = rel(BaseName2, _, _),
+  Rel2 = rel(BaseName2, _),
   sampleNameJ(BaseName2, SampleName2),
   card(SampleName2, SampleCard2),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
@@ -560,7 +560,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
 % query for selection-selectivity (static samples case)
 selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   not(optimizerOption(dynamicSample)),
-  Rel = rel(BaseName, _, _),
+  Rel = rel(BaseName, _),
   sampleNameS(BaseName, SampleName),
   card(SampleName, SampleCard),
   selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard),
@@ -596,12 +596,12 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
 % query for join-selectivity (dynamic sampling case)
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
-  Rel1 = rel(BaseName1, _, _),
+  Rel1 = rel(BaseName1, _),
   card(BaseName1, Card1),
   % old: sampleSizeJoin(JoinSize),
   thresholdCardMaxSampleJ(JoinSize),
   SampleCard1 is min(Card1, max(JoinSize, Card1 * 0.00001)),
-  Rel2 = rel(BaseName2, _, _),
+  Rel2 = rel(BaseName2, _),
   card(BaseName2, Card2),
   SampleCard2 is min(Card2, max(JoinSize, Card2 * 0.00001)),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
@@ -640,7 +640,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
 % query for selection-selectivity (dynamic sampling case)
 selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
-  Rel = rel(BaseName, _, _),
+  Rel = rel(BaseName, _),
   card(BaseName, Card),
   % old: sampleSizeSelection(SelectionSize),
   thresholdCardMaxSampleS(SelectionSize),
@@ -675,12 +675,11 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   !.
 
 % handle ERRORs
-selectivity(P, _, _, _) :-
+selectivity(P, X, Y, Z) :-
   write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(', _, _, _)\n'),
-  throw(sql_ERROR(statistics_selectivity(P, undefined,
-    undefined, undefined))),
+  throw(sql_ERROR(statistics_selectivity(P, X, Y, Z))),
   fail, !.
 
 
@@ -690,10 +689,10 @@ getPET(P, CalcPET, ExpPET) :-
   simplePred(P,PSimple),
   storedPET(DB, PSimple, CalcPET, ExpPET), !.
 
-getPET(P, _, _) :- write('Error in optimizer: cannot find PETs for '),
+getPET(P, X, Y) :- write('Error in optimizer: cannot find PETs for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: getPET('), write(P), write(', _, _)\n'),
-  throw(sql_ERROR(statistics_getPET(P, undefined, undefined))),
+  throw(sql_ERROR(statistics_getPET(P, X, Y))),
   fail, !.
 
 /*
@@ -1451,8 +1450,8 @@ getSig(attr(Attr,Arg,_), Rel1, Rel2, AttrType) :-
     ),
     !.
 
-getSig(attr(A,B,C), Rel1, Rel2, _) :-
-    throw(sql_ERROR(statistics_getSig(attr(A,B,C), Rel1, Rel2, undefined))),
+getSig(attr(A,B,C), Rel1, Rel2, X) :-
+    throw(sql_ERROR(statistics_getSig(attr(A,B,C), Rel1, Rel2, X))),
     !,
     fail.
 

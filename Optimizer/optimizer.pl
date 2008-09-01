@@ -890,28 +890,29 @@ In the next example we need to avoid the name conflict for PLZ
 
 In the PROLOG version, we will use the following notations:
 
-----    rel(Name, Var, Case)
+----    rel(Name, Var)
 ----
 
 For example
 
-----    rel(staedte, *, u)
+----    rel(staedte, *)
 ----
 
-is a term denoting the ~Staedte~ relation; ~u~ says that it is actually to be
-written in upper case whereas
+is a term denoting the un-renamed ~Staedte~ relation.
 
-----    rel(plz, *, l)
+In a term
+
+----    rel(plz, *)
 ----
 
-denotes the ~plz~ relation to be written in lower case. The second argument
-~Var~ contains an explicit variable if it has been assigned, otherwise the
-symbol [*]. If an explicit variable has been used in the query, we need to
-perfom renaming in the plan. For example, in the second query above, the
+the second argument ~Var~ contains an explicit variable if it has been
+assigned, otherwise the symbol [*]. If an explicit variable has been used in
+the query, we need to perfom renaming in the plan. For example, in the second
+query above, the
 relations would be denoted as
 
-----    rel(staedte, s, u)
-        rel(plz, p, l)
+----    rel(staedte, s)
+        rel(plz, p)
 ----
 
 Within predicates, attributes are annotated as follows:
@@ -928,15 +929,15 @@ argument is ignored; it can be set to 0 or 1.
 Hence for the two queries above, the translation would be
 
 ----    fromwhere(
-          [rel(staedte, *, u)],
-          [pr(attr(bev, 0, u) > 500000, rel(staedte, *, u))]
+          [rel(staedte, *)],
+          [pr(attr(bev, 0, u) > 500000, rel(staedte, *))]
         )
 
         fromwhere(
-          [rel(staedte, s, u), rel(plz, p, l)],
+          [rel(staedte, s), rel(plz, p)],
           [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u),
-                rel(staedte, s, u), rel(plz, p, l)),
-           pr(attr(p:pLZ, 0, u) > 40000, rel(plz, p, l))]
+                rel(staedte, s), rel(plz, p)),
+           pr(attr(p:pLZ, 0, u) > 40000, rel(plz, p))]
         )
 ----
 
@@ -954,11 +955,11 @@ So example 2 is rewritten as:
 
 */
 
-example3 :- pog([rel(staedte, s, u), rel(plz, p, l)],
+example3 :- pog([rel(staedte, s), rel(plz, p)],
   [pr(attr(p:ort, 2, u) = attr(s:sName, 1, u),
-        rel(staedte, s, u), rel(plz, p, l) ),
-   pr(attr(p:pLZ, 1, u) > 40000, rel(plz, p, l)),
-   pr((attr(p:pLZ, 1, u) mod 5) = 0, rel(plz, p, l))], _, _).
+        rel(staedte, s), rel(plz, p) ),
+   pr(attr(p:pLZ, 1, u) > 40000, rel(plz, p)),
+   pr((attr(p:pLZ, 1, u) mod 5) = 0, rel(plz, p))], _, _).
 
 /*
 
@@ -967,15 +968,15 @@ The two queries mentioned above are:
 */
 
 example4 :- pog(
-  [rel(staedte, *, u)],
-  [pr(attr(bev, 1, u) > 500000, rel(staedte, *, u))],
+  [rel(staedte, *)],
+  [pr(attr(bev, 1, u) > 500000, rel(staedte, *))],
   _, _).
 
 example5 :- pog(
-  [rel(staedte, s, u), rel(plz, p, l)],
-  [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), rel(staedte, s, u),
-    rel(plz, p,l)),
-   pr(attr(p:pLZ, 1, u) > 40000, rel(plz, p, l))],
+  [rel(staedte, s), rel(plz, p)],
+  [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), rel(staedte, s),
+    rel(plz, p)),
+   pr(attr(p:pLZ, 1, u) > 40000, rel(plz, p))],
   _, _).
 
 /*
@@ -1184,17 +1185,8 @@ Arguments:
 
 */
 
-rel_to_atom(rel(DCname, _, _), ExtName) :-
+rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
-
-/*
-Old Code:
-
-----
-rel_to_atom(rel(Name, _, l), Name).
-rel_to_atom(rel(Name, _, u), Name2) :-
-  upper(Name, Name2).
-*/
 
 plan_to_atom(A,A) :-
   string(A),
@@ -1774,21 +1766,21 @@ of translation results.
 
 res(N) => res(N).
 
-arg(N) => feed(rel(Name, *, Case)) :-
+arg(N) => feed(rel(Name, *)) :-
   isStarQuery,
-  argument(N, rel(Name, *, Case)), !.
+  argument(N, rel(Name, *)), !.
 
-arg(N) => rename(feed(rel(Name, Var, Case)), Var) :-
+arg(N) => rename(feed(rel(Name, Var)), Var) :-
   isStarQuery,
-  argument(N, rel(Name, Var, Case)), !.
+  argument(N, rel(Name, Var)), !.
 
-arg(N) => project(feed(rel(Name, *, Case)), AttrNames) :-
-  argument(N, rel(Name, *, Case)), !,
-  usedAttrList(rel(Name, *, Case), AttrNames).
+arg(N) => project(feed(rel(Name, *)), AttrNames) :-
+  argument(N, rel(Name, *)), !,
+  usedAttrList(rel(Name, *), AttrNames).
 
-arg(N) => rename(project(feed(rel(Name, Var, Case)), AttrNames), Var) :-
-  argument(N, rel(Name, Var, Case)), !,
-  usedAttrList(rel(Name, Var, Case), AttrNames).
+arg(N) => rename(project(feed(rel(Name, Var)), AttrNames), Var) :-
+  argument(N, rel(Name, Var)), !,
+  usedAttrList(rel(Name, Var), AttrNames).
 
 /*
 5.2.2 Translation of Selections
@@ -1828,16 +1820,16 @@ select(arg(N), Y) => X :-
 
 select(arg(N), Y) => project(X, AttrNames) :-
   not(isStarQuery),
-  argument(N, rel(Name, *, Case)),
+  argument(N, rel(Name, *)),
   indexselect(arg(N), Y) => X,
   % no renaming, so just use native projection attr list
-  usedAttrList(rel(Name, *, Case), AttrNames).
+  usedAttrList(rel(Name, *), AttrNames).
 
 select(arg(N), Y) => project(X, RenamedAttrNames) :-
   not(isStarQuery),
-  argument(N, rel(Name, Var, Case)), Var \= * ,
+  argument(N, rel(Name, Var)), Var \= * ,
   indexselect(arg(N), Y) => X,
-  usedAttrList(rel(Name, Var, Case), AttrNames),
+  usedAttrList(rel(Name, Var), AttrNames),
   % with renaming, so modify the projection attr list
   renameAttributes(Var, AttrNames, RenamedAttrNames).
 
@@ -1849,40 +1841,40 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
 % generic rule for (Term = Attr): exactmatch using btree or hashtable
 % without rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  exactmatch(IndexName, rel(Name, *, Case), Y)
+  exactmatch(IndexName, rel(Name, *), Y)
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,*,Case),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,*),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
   dcName2externalName(DCindex,IndexName),
   (IndexType = btree; IndexType = hash).
 
 % generic rule for (Term = Attr): exactmatch using btree or hashtable
 % with rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rename(exactmatch(IndexName, rel(Name, Var, Case), Y), Var)
+  rename(exactmatch(IndexName, rel(Name, Var), Y), Var)
   :-
-  argument(N, rel(Name, Var, Case)), Var \= * ,
-  hasIndex(rel(Name,Var,Case),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  argument(N, rel(Name, Var)), Var \= * ,
+  hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
   dcName2externalName(DCindex,IndexName),
   (IndexType = btree; IndexType = hash).
 
 % generic rule for (Term = Attr): rangesearch using mtree
 % without rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rangesearch(IndexName, rel(Name, *, Case), Y, 0.0)
+  rangesearch(IndexName, rel(Name, *), Y, 0.0)
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,*,Case),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,*),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
   dcName2externalName(DCindex,IndexName),
   IndexType = mtree.
 
 % generic rule for (Term = Attr): rangesearch using mtree
 % with rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rename(rangesearch(IndexName, rel(Name, Var, Case), Y), Var, 0.0)
+  rename(rangesearch(IndexName, rel(Name, Var), Y), Var, 0.0)
   :-
-  argument(N, rel(Name, Var, Case)), Var \= * ,
-  hasIndex(rel(Name,Var,Case),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
+  argument(N, rel(Name, Var)), Var \= * ,
+  hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
   dcName2externalName(DCindex,IndexName),
   IndexType = mtree.
 
@@ -1893,19 +1885,19 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
 % generic rule for (Term >= Attr): leftrange using btree
 % without rename
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
-  leftrange(IndexName, rel(Name, *, Case), Y)
+  leftrange(IndexName, rel(Name, *), Y)
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,*,Case), attr(AttrName, Arg, AttrCase), DCindex, btree),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,*), attr(AttrName, Arg, AttrCase), DCindex, btree),
   dcName2externalName(DCindex,IndexName).
 
 % generic rule for (Term >= Attr): leftrange using btree
 % with rename
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
-  rename(leftrange(IndexName, rel(Name, Var, Case), Y), Var)
+  rename(leftrange(IndexName, rel(Name, Var), Y), Var)
   :-
-  argument(N, rel(Name, Var, Case)), Var \= * ,
-  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), DCindex, btree),
+  argument(N, rel(Name, Var)), Var \= * ,
+  hasIndex(rel(Name,Var), attr(AttrName, Arg, AttrCase), DCindex, btree),
   dcName2externalName(DCindex,IndexName).
 
 
@@ -1916,19 +1908,19 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
 % generic rule for (Term <= Attr): rightrange using btree
 % without rename
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
-  rightrange(IndexName, rel(Name, *, Case), Y)
+  rightrange(IndexName, rel(Name, *), Y)
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name, *, Case), attr(AttrName, Arg, AttrCase), DCindex, btree),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name, *), attr(AttrName, Arg, AttrCase), DCindex, btree),
   dcName2externalName(DCindex,IndexName).
 
 % generic rule for (Term <= Attr): rightrange using btree
 % with rename
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
-  rename(rightrange(IndexName, rel(Name, Var, Case), Y), Var)
+  rename(rightrange(IndexName, rel(Name, Var), Y), Var)
   :-
-  argument(N, rel(Name, Var, Case)), Var \= * ,
-  hasIndex(rel(Name,Var,Case), attr(AttrName, Arg, AttrCase), DCindex, btree),
+  argument(N, rel(Name, Var)), Var \= * ,
+  hasIndex(rel(Name,Var), attr(AttrName, Arg, AttrCase), DCindex, btree),
   dcName2externalName(DCindex,IndexName).
 
 
@@ -1944,31 +1936,31 @@ filter is used.
 % Generic indexselect translation for predicates checking on mbbs
 
 indexselect(arg(N), pr(Pred, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *, Case), Y), Pred)
+  filter(windowintersects(IndexName, rel(Name, *), Y), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
   isBBoxPredicate(OP),
-  argument(N, rel(Name, *, Case)),
-  (     hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree)
-      ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
-      ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree4)
-      ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree8)
+  argument(N, rel(Name, *)),
+  (     hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree)
+      ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
+      ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree4)
+      ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree8)
   ),
   dcName2externalName(DCindex,IndexName).
 
 indexselect(arg(N), pr(Pred, _)) =>
-  filter(rename(windowintersects(IndexName, rel(Name,*,Case),bbox(Y)),RelAlias),
+  filter(rename(windowintersects(IndexName, rel(Name,*),bbox(Y)),RelAlias),
          Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)]),
   isBBoxPredicate(OP),
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= *,
-  (   hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree)
-    ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
-    ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree4)
-    ; hasIndex(rel(Name,_,Case),attr(AttrName,Arg,AttrCase),DCindex,rtree8)
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  (   hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree)
+    ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
+    ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree4)
+    ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree8)
   ),
   dcName2externalName(DCindex,IndexName).
 
@@ -1997,59 +1989,59 @@ indexselect(arg(N), Pred) => X :-
 % 'present' with temporal(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
-         rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) present Y)
+         rel(Name, *)), attr(AttrName, Arg, AttrCase) present Y)
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
            DCindex, temporal(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
-        rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
+        rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
   :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
+  argument(N, rel(Name, RelAlias)), RelAlias \= * ,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
            DCindex, temporal(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 % 'present' with temporal(rtree,unit) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))),
-         rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) present Y)
+         rel(Name, *)), attr(AttrName, Arg, AttrCase) present Y)
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
            DCindex, temporal(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(gettuples(rdup(sort(
          windowintersectsS(IndexName, queryrect2d(Y)))),
-         rel(Name, *, Case)), RelAlias), attr(AttrName,Arg,AttrCase) present Y)
+         rel(Name, *)), RelAlias), attr(AttrName,Arg,AttrCase) present Y)
   :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+  argument(N, rel(Name, RelAlias)), RelAlias \= * ,
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
            DCindex, temporal(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
 
 % 'passes' with spatial(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(gettuples(windowintersectsS(IndexName, bbox(Y)), rel(Name, *, Case)),
+  filter(gettuples(windowintersectsS(IndexName, bbox(Y)), rel(Name, *)),
          attr(AttrName, Arg, AttrCase) passes Y)
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
            DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(rename(gettuples(windowintersectsS(IndexName, bbox(Y)),
-         rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
+         rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name, _, Case), attr(AttrName, Arg, AttrCase),
+  argument(N, rel(Name, RelAlias)), RelAlias \= * ,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
            DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
@@ -2057,19 +2049,19 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 % 'passes' with spatial(rtree,unit) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
-         rel(Name, *, Case)), attr(AttrName, Arg, AttrCase) passes Y)
+         rel(Name, *)), attr(AttrName, Arg, AttrCase) passes Y)
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
            DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
-         rel(Name, *, Case)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
+         rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+  argument(N, rel(Name, RelAlias)), RelAlias \= * ,
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
            DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -2078,19 +2070,19 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
   gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))),
-            rel(Name, *, Case))
+            rel(Name, *))
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, unit_3d),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, unit_3d),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
   rename(gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))),
-            rel(Name, *, Case)), RelAlias)
+            rel(Name, *)), RelAlias)
   :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+  argument(N, rel(Name, RelAlias)), RelAlias \= * ,
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
            DCindex, spatiotemporal(rtree3,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -2098,55 +2090,55 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with object_3d index
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), rel(Name, *, Case))
+  gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), rel(Name, *))
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
            DCindex, spatiotemporal(rtree3,object)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
   rename(gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)),
-         rel(Name, *, Case)), RelAlias)
+         rel(Name, *)), RelAlias)
   :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase),
+  argument(N, rel(Name, RelAlias)), RelAlias \= * ,
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
            DCindex, spatiotemporal(rtree3,object)),
   dcName2externalName(DCindex,IndexName).
 
 % 'intersects' with object_4d
 % does not consider 4d-boxes created 'on the fly'
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) intersects Y, _)) =>
-  gettuples(windowintersectsS(IndexName, Y), rel(Name, *, Case))
+  gettuples(windowintersectsS(IndexName, Y), rel(Name, *))
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, rtree4),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree4),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
   => rename(gettuples(windowintersectsS(IndexName, Y),
-     rel(Name, *, Case)), RelAlias)
+     rel(Name, *)), RelAlias)
   :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, rtree4),
+  argument(N, rel(Name, RelAlias)), RelAlias \= * ,
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree4),
   dcName2externalName(DCindex,IndexName).
 
 % 'intersects' with object_8d index
 % does not consider 8d-boxes created 'on the fly'
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) intersects Y, _)) =>
-  gettuples(windowintersectsS(IndexName, Y), rel(Name, *, Case))
+  gettuples(windowintersectsS(IndexName, Y), rel(Name, *))
   :-
-  argument(N, rel(Name, *, Case)),
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
   => rename(gettuples(windowintersectsS(IndexName, Y),
-     rel(Name, *, Case)), RelAlias)
+     rel(Name, *)), RelAlias)
   :-
-  argument(N, rel(Name, RelAlias, Case)), RelAlias \= * ,
-  hasIndex(rel(Name,_,Case), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
+  argument(N, rel(Name, RelAlias)), RelAlias \= * ,
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
   dcName2externalName(DCindex,IndexName).
 
 /*
@@ -2200,21 +2192,21 @@ exactmatch(IndexName, arg(N), Expr) =>
   exactmatch(IndexName, Rel, Expr) :-
   isStarQuery,
   argument(N, Rel),
-  Rel = rel(_, *, _), % no renaming needed
+  Rel = rel(_, *), % no renaming needed
   !.
 
 exactmatch(IndexName, arg(N), Expr) =>
   rename(exactmatch(IndexName, Rel, Expr), Var) :-
   isStarQuery, % no need for project
   argument(N, Rel),
-  Rel = rel(_, Var, _),
+  Rel = rel(_, Var),
   !.
 
 exactmatch(IndexName, arg(N), Expr) =>
   project(exactmatch(IndexName, Rel, Expr), AttrNames) :-
   not(isStarQuery),
   argument(N, Rel ),
-  Rel = rel(_, *, _), % no renaming needed
+  Rel = rel(_, *), % no renaming needed
   usedAttrList(Rel, AttrNames),
   !.
 
@@ -2223,7 +2215,7 @@ exactmatch(IndexName, arg(N), Expr) =>
   rename(project(exactmatch(IndexName, Rel, Expr), AttrNames), Var) :-
   not(isStarQuery),
   argument(N, Rel),
-  Rel = rel(_, Var, _), % with renaming
+  Rel = rel(_, Var), % with renaming
   usedAttrList(Rel, AttrNames),
   !.
 
@@ -2289,21 +2281,21 @@ rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
   windowintersects(IndexName, Rel, Expr) :-
   isStarQuery,
   argument(N, Rel),
-  Rel = rel(_, *, _), % no renaming needed
+  Rel = rel(_, *), % no renaming needed
   !.
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
   rename(windowintersects(IndexName, Rel, Expr), Var) :-
   isStarQuery, % no need for project
   argument(N, Rel),
-  Rel = rel(_, Var, _),
+  Rel = rel(_, Var),
   !.
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
   project(windowintersects(IndexName, Rel, Expr), AttrNames) :-
   not(isStarQuery),
   argument(N, Rel ),
-  Rel = rel(_, *, _), % no renaming needed
+  Rel = rel(_, *), % no renaming needed
   usedAttrList(Rel, AttrNames),
   !.
 
@@ -2312,7 +2304,7 @@ rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
   rename(project(windowintersects(IndexName, Rel, Expr), AttrNames), Var) :-
   not(isStarQuery),
   argument(N, Rel),
-  Rel = rel(_, Var, _), % with renaming
+  Rel = rel(_, Var), % with renaming
   usedAttrList(Rel, AttrNames),
   !.
 
@@ -2691,7 +2683,7 @@ Argument ~Arg~ has size ~Size~.
 
 */
 
-resSize(arg(N), Size) :- argument(N, rel(Rel, _, _)), card(Rel, Size), !.
+resSize(arg(N), Size) :- argument(N, rel(Rel, _)), card(Rel, Size), !.
 resSize(arg(N), _) :-
   write('Error in optimizer: cannot find cardinality for '),
   argument(N, Rel), wp(Rel), nl, fail.
@@ -2719,7 +2711,7 @@ Get the size of one single tuple from argument number ~N~.
 */
 
 resTupleSize(arg(N), TupleSize) :-
- argument(N, rel(Rel, _, _)),
+ argument(N, rel(Rel, _)),
  tupleSizeSplit(Rel, TupleSize), % should also reflect initial projections
  !.
 
@@ -3008,7 +3000,7 @@ It is assumed that only a single operator of this kind occurs within the term.
 
 */
 
-cost(rel(Rel, _, _), _, Size, 0) :-
+cost(rel(Rel, _), _, Size, 0) :-
   card(Rel, Size).
 
 cost(res(N), _, Size, 0) :-
@@ -3294,9 +3286,8 @@ cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
 % with 'gettuples', the total cost should be OK
 cost(windowintersectsS(IndexName, _), Sel, Size, Cost) :-
   % get relationName Rel from Index
-  concat_atom([RelNameSmall|_],'_',IndexName),
-  spelled(RelNameSmall, RelName, RelCase),
-  Rel = rel(RelName, *, RelCase),
+  concat_atom([RelName|_],'_',IndexName),
+  Rel = rel(RelName, *),
   cost(Rel, 1, RelSize, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,  % bad estimation, may contain additional dublicates
@@ -3897,21 +3888,21 @@ This translates to:
 */
 
 example6 :- pog(
-  [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l), rel(plz, p3, l)],
+  [rel(staedte, *), rel(plz, p1), rel(plz, p2), rel(plz, p3)],
   [
     pr(attr(sName, 1, u) = attr(p1:ort, 2, u),
-                           rel(staedte, *, u), rel(plz, p1, l)),
+                           rel(staedte, *), rel(plz, p1)),
     pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1),
-                             rel(plz, p1, l), rel(plz, p2, l)),
+                             rel(plz, p1), rel(plz, p2)),
     pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5),
-                             rel(plz, p2, l), rel(plz, p3, l)),
-    pr(attr(bev, 1, u) > 300000,  rel(staedte, *, u)),
-    pr(attr(bev, 1, u) < 500000,  rel(staedte, *, u)),
-    pr(attr(p2:pLZ, 1, u) > 50000,  rel(plz, p2, l)),
-    pr(attr(p2:pLZ, 1, u) < 60000,  rel(plz, p2, l)),
-    pr(attr(kennzeichen, 1, u) starts "W",  rel(staedte, *, u)),
-    pr(attr(p3:ort, 1, u) contains "burg",  rel(plz, p3, l)),
-    pr(attr(p3:ort, 1, u) starts "M",  rel(plz, p3, l))
+                             rel(plz, p2), rel(plz, p3)),
+    pr(attr(bev, 1, u) > 300000,  rel(staedte, *)),
+    pr(attr(bev, 1, u) < 500000,  rel(staedte, *)),
+    pr(attr(p2:pLZ, 1, u) > 50000,  rel(plz, p2)),
+    pr(attr(p2:pLZ, 1, u) < 60000,  rel(plz, p2)),
+    pr(attr(kennzeichen, 1, u) starts "W",  rel(staedte, *)),
+    pr(attr(p3:ort, 1, u) contains "burg",  rel(plz, p3)),
+    pr(attr(p3:ort, 1, u) starts "M",  rel(plz, p3))
   ],
   _, _).
 
@@ -3921,34 +3912,34 @@ smaller and avoid too many big joins first.
 
 */
 example7 :- pog(
-  [rel(staedte, *, u), rel(plz, p1, l)],
+  [rel(staedte, *), rel(plz, p1)],
   [
     pr(attr(sName, 1, u) = attr(p1:ort, 2, u),
-            rel(staedte, *, u), rel(plz, p1, l)),
-    pr(attr(bev, 0, u) > 300000,  rel(staedte, *, u)),
-    pr(attr(bev, 0, u) < 500000,  rel(staedte, *, u)),
-    pr(attr(p1:pLZ, 0, u) > 50000,  rel(plz, p1, l)),
-    pr(attr(p1:pLZ, 0, u) < 60000,  rel(plz, p1, l)),
-    pr(attr(kennzeichen, 0, u) starts "F",  rel(staedte, *, u)),
-    pr(attr(p1:ort, 0, u) contains "burg",  rel(plz, p1, l)),
-    pr(attr(p1:ort, 0, u) starts "M",  rel(plz, p1, l))
+            rel(staedte, *), rel(plz, p1)),
+    pr(attr(bev, 0, u) > 300000,  rel(staedte, *)),
+    pr(attr(bev, 0, u) < 500000,  rel(staedte, *)),
+    pr(attr(p1:pLZ, 0, u) > 50000,  rel(plz, p1)),
+    pr(attr(p1:pLZ, 0, u) < 60000,  rel(plz, p1)),
+    pr(attr(kennzeichen, 0, u) starts "F",  rel(staedte, *)),
+    pr(attr(p1:ort, 0, u) contains "burg",  rel(plz, p1)),
+    pr(attr(p1:ort, 0, u) starts "M",  rel(plz, p1))
   ],
   _, _).
 
 example8 :- pog(
-  [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l)],
+  [rel(staedte, *), rel(plz, p1), rel(plz, p2)],
   [
     pr(attr(sName, 1, u) = attr(p1:ort, 2, u),
-            rel(staedte, *, u), rel(plz, p1, l)),
+            rel(staedte, *), rel(plz, p1)),
     pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1),
-            rel(plz, p1, l), rel(plz, p2, l)),
-    pr(attr(bev, 0, u) > 300000,  rel(staedte, *, u)),
-    pr(attr(bev, 0, u) < 500000,  rel(staedte, *, u)),
-    pr(attr(p1:pLZ, 0, u) > 50000,  rel(plz, p1, l)),
-    pr(attr(p1:pLZ, 0, u) < 60000,  rel(plz, p1, l)),
-    pr(attr(kennzeichen, 0, u) starts "F",  rel(staedte, *, u)),
-    pr(attr(p1:ort, 0, u) contains "burg",  rel(plz, p1, l)),
-    pr(attr(p1:ort, 0, u) starts "M",  rel(plz, p1, l))
+            rel(plz, p1), rel(plz, p2)),
+    pr(attr(bev, 0, u) > 300000,  rel(staedte, *)),
+    pr(attr(bev, 0, u) < 500000,  rel(staedte, *)),
+    pr(attr(p1:pLZ, 0, u) > 50000,  rel(plz, p1)),
+    pr(attr(p1:pLZ, 0, u) < 60000,  rel(plz, p1)),
+    pr(attr(kennzeichen, 0, u) starts "F",  rel(staedte, *)),
+    pr(attr(p1:ort, 0, u) contains "burg",  rel(plz, p1)),
+    pr(attr(p1:ort, 0, u) starts "M",  rel(plz, p1))
   ],
   _, _).
 
@@ -3957,21 +3948,21 @@ Let's study a small example again with two independent conditions.
 
 */
 
-example9 :- pog([rel(staedte, s, u), rel(plz, p, l)],
+example9 :- pog([rel(staedte, s), rel(plz, p)],
   [pr(attr(p:ort, 2, u) = attr(s:sName, 1, u),
-        rel(staedte, s, u), rel(plz, p, l) ),
-   pr(attr(p:pLZ, 0, u) > 40000, rel(plz, p, l)),
-   pr(attr(s:bev, 0, u) > 300000, rel(staedte, s, u))], _, _).
+        rel(staedte, s), rel(plz, p) ),
+   pr(attr(p:pLZ, 0, u) > 40000, rel(plz, p)),
+   pr(attr(s:bev, 0, u) > 300000, rel(staedte, s))], _, _).
 
 example10 :- pog(
-  [rel(staedte, *, u), rel(plz, p1, l), rel(plz, p2, l), rel(plz, p3, l)],
+  [rel(staedte, *), rel(plz, p1), rel(plz, p2), rel(plz, p3)],
   [
     pr(attr(sName, 1, u) = attr(p1:ort, 2, u),
-                           rel(staedte, *, u), rel(plz, p1, l)),
+                           rel(staedte, *), rel(plz, p1)),
     pr(attr(p1:pLZ, 1, u) = (attr(p2:pLZ, 2, u) + 1),
-                            rel(plz, p1, l), rel(plz, p2, l)),
+                            rel(plz, p1), rel(plz, p2)),
     pr(attr(p2:pLZ, 1, u) = (attr(p3:pLZ, 2, u) * 5),
-                            rel(plz, p2, l), rel(plz, p3, l))
+                            rel(plz, p2), rel(plz, p3))
   ],
   _, _).
 
@@ -4337,15 +4328,15 @@ lookupRel(Rel as Var, Y) :-
          throw(error_SQL(optimizer_lookupRel(Rel as Var,Y):doubledVariable)),
          fail
        )
-    ;  Y = rel(Rel2, Var, l)
+    ;  Y = rel(Rel2, Var)
   ),
-  assert(variable(Var, rel(Rel2, Var, l))).
+  assert(variable(Var, rel(Rel2, Var))).
 
-lookupRel(Rel, rel(Rel2, *, l)) :-
+lookupRel(Rel, rel(Rel2, *)) :-
   dcName2externalName(Rel2,Rel),
   relation(Rel2, _), !,
   not(duplicateAttrs(Rel2)),
-  assert(queryRel(Rel2, rel(Rel2, *, l))).
+  assert(queryRel(Rel2, rel(Rel2, *))).
 
 lookupRel(X,Y) :- !,
   write_list(['\nERROR:\tLooking up query: Relation \'',X,'\' unknown!']), nl,
@@ -4397,7 +4388,7 @@ lookupAttrs(Attr, Attr2) :-
 
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
   variable(Var, Rel2),
-  Rel2 = rel(Rel, _, _),
+  Rel2 = rel(Rel, _),
   spelled(Rel:Attr, attr(Attr2, VA, Case)),
   (   usedAttr(Rel2, attr(Attr2, VA, Case))
     ; assert(usedAttr(Rel2, attr(Attr2, VA, Case)))
@@ -4548,22 +4539,22 @@ lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
   nextCounter(joinPred,_),
   lookupPred1(Pred, Pred2, [], [Rel1, Rel2]), !.
 
-lookupPred(Pred, undefined) :-
+lookupPred(Pred, X) :-
   lookupPred1(Pred, _, [], Rels),
   length(Rels, N),
   ( (N = 0)
-    -> ( write('Error in query: Predicate \''),  write(Pred),
-         write('\' is a constant. This is not allowed.'), nl
+    -> ( write_list(['\nERROR:\tLooking up query: Predicate \'',Pred,
+                     '\' is a constant. This is not allowed.']), nl
        )
     ; ( (N > 2)
-        -> ( write('Error in query: Predicate \''), write(Pred),
-             write('\' involves more than two relations: '),
-             write(Rels), write('. This is not allowed.'), nl
+        -> ( write_list(['\nERROR:\tLooking up query: Predicate \'',Pred,
+                         '\' involves more than two relations: ',Rels,
+                         '. This is not allowed.']), nl
            )
         ; true
       )
   ),
-  throw(sql_ERROR(optimizer_lookupPred(Pred, undefined))),
+  throw(sql_ERROR(optimizer_lookupPred(Pred, X):malformedExpression)),
   fail, !.
 
 /*
@@ -4577,7 +4568,7 @@ The relation list is updated and returned in ~RelsAfter~.
 
 lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
   :-
-  variable(Var, Rel2), !, Rel2 = rel(Rel, Var, _),
+  variable(Var, Rel2), !, Rel2 = rel(Rel, Var),
   spelled(Rel:Attr, attr(Attr2, X, Case)),
   ( member(Rel2, RelsBefore)
       -> RelsAfter = RelsBefore
@@ -4852,9 +4843,9 @@ translate(Select from [Rel | Rels],
   newVariable(T2),
   !.
 
-makeStream(Rel, feed(Rel)) :- Rel = rel(_, *, _), !.
+makeStream(Rel, feed(Rel)) :- Rel = rel(_, *), !.
 
-makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var, _).
+makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var).
 
 
 /*

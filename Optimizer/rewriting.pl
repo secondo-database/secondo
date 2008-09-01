@@ -110,13 +110,13 @@ extractMacros(QueryIn, QueryOut) :-
   extractMacros1(MacroList),
   !.
 
-extractMacros(with(X), _) :-
+extractMacros(with(X), Y) :-
   write('\nERROR: Correct syntax for using macros in queries is \n'),
   write('           \'sql with <macro> as <mnemo> in <query>.\'\n'),
   write('           \'sql with [<macro> as <mnemo> {, <macro> as <mnemo>}] '),
   write('in <query>.\'.\n'),
   !,
-  throw(sql_ERROR(rewriting_extractMacros(with(X), undefined))),
+  throw(sql_ERROR(rewriting_extractMacros(with(X), Y))),
   fail.
 
 extractMacros(Query, Query).
@@ -1250,7 +1250,7 @@ registerCSE1(VirtualAttr, attr(VirtualAttr, 1, u), RelsBefore, RelsAfter) :-
   mergeRelations(RelsBefore, Base_relations, RelsAfter, 0, _), !.
 
 registerCSE1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter) :-
-  variable(Var, Rel2), !, Rel2 = rel(Rel, _, _),
+  variable(Var, Rel2), !, Rel2 = rel(Rel, _),
   spelled(Rel:Attr, attr(Attr2, _, Case)),
   ( memberchk(Rel2, RelsBefore)
       -> RelsAfter = RelsBefore
@@ -1376,8 +1376,8 @@ attributes.
 % ''incomplete_subplan''
 insertExtend(incomplete_subplan, incomplete_subplan, AttrsIn, AttrsIn).
 
-% Case: feed(rel(Name,Alias,Case))
-insertExtend(feed(rel(Name,Alias,Case)), feed(rel(Name,Alias,Case)),
+% Case: feed(rel(Name,Alias))
+insertExtend(feed(rel(Name,Alias)), feed(rel(Name,Alias)),
              _, AttrsOut) :-
   relation(Name,AttrsOutL),
   list_to_set(AttrsOutL,AttrsOut),
@@ -1726,10 +1726,10 @@ extendPhrase(ArgS, [VA1|InnerVAs], ArgsSE) :-
   ArgsSE = extend(ArgsSE1,[newattr(attrname(attr(VA1,1,u)), CompExpr)]),
   assert(rewritePlanInsertedAttribute(attr(VA1,1,u))), !.
 
-extendPhrase(ArgS, List, _) :-
+extendPhrase(ArgS, List, X) :-
   write('ERROR in extendPhrase('), write(ArgS), write(','), write(List),
   write(', Result).\n\tAttribute list contains a non-virtual attribute.\n'),
-  throw(sql_ERROR(rewriting_extendPhrase(ArgS, List, undefined))), fail, !.
+  throw(sql_ERROR(rewriting_extendPhrase(ArgS, List, X))), fail, !.
 
 
 /*
@@ -1777,12 +1777,12 @@ lookupCSESelect([Arg|Args],[ArgM|ArgsM],AttrsIn,AllExt,AllUsed) :-
 % Handle '*': all base attributes shall be kept
 lookupCSESelect(*,*,_,[],AllBaseAttrs) :-
   findall(X,   % get a set of all attributes from all unrenamed relations
-          ( usedAttr(rel(_,*,_), attr(Attr2, _, _)),
+          ( usedAttr(rel(_,*), attr(Attr2, _, _)),
             downcase_atom(Attr2,X)
           ),
           UnrenamedAttrs),
   findall(Y,   % get a set of all attributes from all renamed relations
-          ( usedAttr(rel(_,Alias,_), attr(Attr2, _, _)),
+          ( usedAttr(rel(_,Alias), attr(Attr2, _, _)),
             Alias \= *,
             downcase_atom(Attr2,Attr3),
             Y = Alias:Attr3
@@ -2024,7 +2024,7 @@ makeRemoveList([A|As],[attrname(Attr)|Bs]) :-
       Attr = attr(A,_,_)
     )
    ;( A = Alias:Name,
-      usedAttr(rel(_,Alias,_),attr(Name,X,Y)),
+      usedAttr(rel(_,Alias),attr(Name,X,Y)),
       Attr = attr(Alias:Name, X, Y)
     )
    ;( virt_attr(A,_,_,_,_),

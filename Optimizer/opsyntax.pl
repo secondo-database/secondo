@@ -169,6 +169,7 @@ secondoOp( equals,            postfixbarckets2, 4).
 secondoOp( everNearerThan,    prefix, 3).
 secondoOp( exactmatch,        postfixbrackets2, 3).
 secondoOp( exactmatchS,       postfixbrackets1, 2).
+secondoOp( extattrsize,       postfixbrackets1, 2).
 secondoOp( extend,            postfixbrackets1, 2).
 secondoOp( extract,           postfixbrackets1, 2).
 secondoOp( exttuplesize,      postfix, 1).
@@ -209,6 +210,8 @@ secondoOp( rdup,              postfix, 1).
 secondoOp( remove,            postfixbrackets1, 2).
 secondoOp( rightrange,        postfixbrackets2, 3).
 secondoOp( rightrangeS,       postfixbrackets1, 2).
+secondoOp( rootattrsize,      postfixbrackets1, 2).
+secondoOp( roottuplesize,     postfix, 1).
 secondoOp( shuffle3,          postfix, 1).
 secondoOp( sort,              postfix, 1).
 secondoOp( sortby,            postfixbrackets1, 2).

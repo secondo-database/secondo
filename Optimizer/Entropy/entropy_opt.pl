@@ -246,14 +246,14 @@ but with the suffix '\_small'
 
 */
 
-small(rel(Rel, Var, Case), rel(Rel2, Var, Case)) :-
+small(rel(Rel, Var), rel(Rel2, Var)) :-
   atom_concat(Rel, '_small', Rel2).
 
 
 
 newResSize(arg(N), Size) :-
   argument(N, R ),
-  small( R, rel(SRel, _, _)),   card(SRel, Size), !.
+  small( R, rel(SRel, _)),   card(SRel, Size), !.
 
 newResSize(res(N), Size) :-
   smallResultSize(N, Size), !.
@@ -281,7 +281,7 @@ query_small(IndexName, NameSmall) :-
   storedIndex(DB,_,_,_,DCindexName),
   atom_concat( IndexName, '_small', NameSmall ), !.
 
-query_small(rel(Name, V, C), rel(NameSmall, V, C)) :-
+query_small(rel(Name, V), rel(NameSmall, V)) :-
   atom_concat( Name, '_small', NameSmall ), !.
 
 query_small( Term, Term ) :-
@@ -356,8 +356,8 @@ registerSelfJoins([Pred | Preds], N) :-
 
 
 registerSelfJoin(pr(_, Rel1, Rel2), N) :-
-  Rel1 = rel(X, _, _),
-  Rel2 = rel(X, _, _),
+  Rel1 = rel(X, _),
+  Rel2 = rel(X, _),
   assert(selfJoin(N, Rel1, Rel2)),
   assert(selfJoinToDo(Rel1, Rel2)),
   atom_concat('xxxID', X, IDAttrName),
@@ -384,19 +384,23 @@ possiblyCorrectSelfJoins(Source, Target, TermIn, TermOut) :-
   retractall(selfJoinToDo(Rel2, Rel1)),
   idAttr(Rel1, 1, Attr1),
   idAttr(Rel2, 2, Attr2),
-  Rel1 = rel(RelName, _, _),
+  Rel1 = rel(RelName, _),
   atom_concat(RelName, '_small', SmallName),
   card(RelName, RelCard),
   card(SmallName, SmallCard),
-  TermOut = reduce(TermIn, Attr1 = Attr2, RelCard div SmallCard).
+  ( SmallCard =:= 0                 % avoid division by zero
+    -> SmallCardCorr is 0.000001
+    ;  SmallCardCorr is SmallCard
+  ),
+  TermOut = reduce(TermIn, Attr1 = Attr2, RelCard div SmallCardCorr).
 
 possiblyCorrectSelfJoins(_, _, Term, Term).
 
 
-idAttr(rel(RelName, *, _), ArgNo, attr(IdAttr, ArgNo, l)) :- !,
+idAttr(rel(RelName, *), ArgNo, attr(IdAttr, ArgNo, l)) :- !,
   atom_concat('xxxID', RelName, IdAttr).
 
-idAttr(rel(RelName, Var, _), ArgNo, attr(Var:IdAttr, ArgNo, l)) :-
+idAttr(rel(RelName, Var), ArgNo, attr(Var:IdAttr, ArgNo, l)) :-
   atom_concat('xxxID', RelName, IdAttr).
 
 

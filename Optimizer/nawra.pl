@@ -1,9 +1,9 @@
 /*
----- 
+----
 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -90,7 +90,7 @@ costCal(Cost, CostCal) :-
 
 /*
 The new rules for the cost estimation. The cost estimation for an input term goes
-recursively. The arguments are: ~Term~, ~Sel~, ~Source~ and ~Result~.  ~term~ is 
+recursively. The arguments are: ~Term~, ~Sel~, ~Source~ and ~Result~.  ~term~ is
 an executable plan of an edge in the POG. ~Sel~ is its selectivity. The variables
 ~Source~ and ~Result~ contain the node number of the considered edge in the
 POG. The remaining variables are the return value straps. ~Size~ is the tuple
@@ -104,7 +104,7 @@ results.
 
 */
 
-costnew(rel(Rel,_,_), _, _, _, Size, TupleSize, 0) :-
+costnew(rel(Rel,_), _, _, _, Size, TupleSize, 0) :-
   card(Rel, Size),
   tupleSizeSplit(Rel, TupleSize), !.
 
@@ -142,7 +142,7 @@ costnew(consume(X), Sel, Source, Result, Size, TupleSize, Cost) :-
 Cost for operator filter. The costs of predicates are taken account of.
 
 For ~filter~, there are several special cases to distinguish:
- 
+
   1 ~filter(spatialjoin(...),P)~
 
   2 ~filter(gettuples(...),P)~
@@ -155,14 +155,14 @@ For the first three cases, the edge is the translation of a spatial predicate, t
 makes use of bounding box checks. The first argument of filter will already reduce
 the set of possible candidates, so that the cardinality of tuples processed by filter
 will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the
-selectivity passed with the second argument of ~cost~ if the ~total~ selectivity. To 
+selectivity passed with the second argument of ~cost~ if the ~total~ selectivity. To
 get the selectivity of the preselection, one can analyse the predicate and lookup
 the table ~storedBBoxSel/3~ for that selectivity, which should be passed to the recursive
 call of ~cost~.
 
-PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is no 
-problem, as the index is used to create a fresh tuple stream. But, as for case 1, we 
-might get into problems, as the selectivity of the bbox-check depends on earlier 
+PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is no
+problem, as the index is used to create a fresh tuple stream. But, as for case 1, we
+might get into problems, as the selectivity of the bbox-check depends on earlier
 predicates - so we should consider both selectivities in the minimization of the entropy.
 
 
@@ -236,11 +236,11 @@ costnew(fun(_, X), Sel, Source, Result, Size, TupleSize, Cost) :-
     costnew(X, Sel, Source, Result, Size, TupleSize, Cost), !.
 
 /*
-Cost estimate for operator hashjoin. 
+Cost estimate for operator hashjoin.
 
-Several aspects are taken into account: 
+Several aspects are taken into account:
 
-  * the number of the evaluations of the Join condition, 
+  * the number of the evaluations of the Join condition,
 
   * the costs for the possible on-disk buffering of the first argument
 
@@ -269,9 +269,9 @@ costnew(hashjoin(X, Y, _, _, NBuckets), Sel, Source, Result, Size, TupleSize, Co
 /*
 Cost estimation for operator sortmergejoin.
 
-Several aspects are taken into account: 
+Several aspects are taken into account:
 
-  * the number of the evaluations of the Join condition, 
+  * the number of the evaluations of the Join condition,
 
   * the costs for the sorting of the arguments,
 
@@ -419,12 +419,11 @@ Cots estimation for operator windowintersectsS.
 
 */
 % Cost function not verified:
-costnew(windowintersectsS(IndexName, _), Sel, Source, Result, 
+costnew(windowintersectsS(IndexName, _), Sel, Source, Result,
         Size, sizeTerm(12,0,0), Cost) :- % constant tuplesize for [tid]
   % get relationName Rel from Index
-  concat_atom([RelNameSmall|_],'_',IndexName),
-  spelled(RelNameSmall, RelName, RelCase),
-  Rel = rel(RelName, *, RelCase),
+  concat_atom([RelName|_],'_',IndexName),
+  Rel = rel(RelName, *),
   costnew(Rel, 1, Source, Result, RelSize, TupleSize, _),
   asserta(storedWindowIntersectsS(TupleSize)), % store tuplesize for gettuples
   storedOperatorTF(windowintersects, A, B),
@@ -497,9 +496,9 @@ costnew(spatialjoin(X, Y, _, _), Sel, Source, Result, Size, TupleSize, Cost) :-
     TotalTupleSizeX is CoreX + InFlobX + ExtFlobX,
     TotalTupleSizeY is CoreY + InFlobY + ExtFlobY,
     Cost is CostX + CostY
-             + ((SizeX * log(SizeX + 1) * TotalTupleSizeX * A1x) 
+             + ((SizeX * log(SizeX + 1) * TotalTupleSizeX * A1x)
              + (SizeX^2 * TotalTupleSizeX * B1x)) /2
-             + ((SizeY * log(SizeY + 1) * TotalTupleSizeY * A1y) 
+             + ((SizeY * log(SizeY + 1) * TotalTupleSizeY * A1y)
              + (SizeY^2 * TotalTupleSizeY * B1y)) /2
              + ((A2 * TupleSizeExt + B2) + (A3 * FlobSize))  * Size, !.
 
@@ -543,7 +542,7 @@ costnew(rdup(X), Sel, Source, Result, Size, TupleSize, Cost) :-
 Cost estimation for operator sort
 
 */
-costnew(sort(X), Sel, Source, Result, Size, TupleSize, Cost) :- 
+costnew(sort(X), Sel, Source, Result, Size, TupleSize, Cost) :-
   costnew(X, Sel, Source, Result, SizeX, TupleSizeX, CostX),
   sortcost(TupleSizeX, SizeX, SortCost),
   TupleSize = TupleSizeX,
@@ -557,7 +556,7 @@ Cost estimation for operator sortby
 */
 costnew(sortby(X, _), Sel, Source, Result, S, TupleSize, C) :-
   costnew(sort(X), Sel, Source, Result, S, TupleSize, C), !.
-  
+
 /*
 Cost estimation for operator mergejoin
 
@@ -573,7 +572,7 @@ costnew(mergejoin(X, Y, _, _), Sel, Source, Result, Size, TupleSize, Cost) :-
   TupleSizeX = sizeTerm(X1,X2,X3),
   TupleSizeY = sizeTerm(Y1,Y2,Y3),
   FlobSize is X3 + Y3,
-  Cost is CostX + CostY 
+  Cost is CostX + CostY
           + PredCost * (SizeX + SizeY)
           + ((A2 * (X1+X2 + Y1+Y2) + B2) + (A3 * FlobSize)) * Size, !.
 
@@ -583,23 +582,23 @@ Cost estimation for operator sortmergejoin
 */
 
 costnew(sortmergejoin(X, Y, AX, AY), Sel, Source, Result, S, TS, C) :-
-  costnew(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), 
+  costnew(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY),
           Sel, Source, Result, S, TS, C), !.
 
 
 % two rules used by the 'interesting orders extension':
 costnew(sortLeftThenMergejoin(X, Y, AX, AY), Sel, Source, Target, S, TS, C) :-
-  costnew(mergejoin(sortby(X, [AX]), Y, AX, AY), Sel, Source, Target, S, TS, C), 
+  costnew(mergejoin(sortby(X, [AX]), Y, AX, AY), Sel, Source, Target, S, TS, C),
   !.
 
 costnew(sortRightThenMergejoin(X, Y, AX, AY), Sel, Source, Target, S, TS, C) :-
-  costnew(mergejoin(X, sortby(Y, [AY]), AX, AY), Sel, Source, Target, S, TS, C), 
+  costnew(mergejoin(X, sortby(Y, [AY]), AX, AY), Sel, Source, Target, S, TS, C),
   !.
 
 
-/* 
+/*
 Predicates auxiliary to cost:
- 
+
 ----    gsf(M, N, S)
         log(B, V, R)
 ----
@@ -629,7 +628,7 @@ sortcost(TupleSize, Size, Cost) :-
    Memory > V,
    storedOperatorTF(intsort, A1, B1),
    Cost is Size * log(Size) * (A1 * (Core + InFlob) + B1),
-% Should be:   
+% Should be:
 %   Cost is Size * log(Size) * (A1 * (Core + InFlob) + B1),
    !.
 
@@ -640,11 +639,11 @@ sortcost(TupleSize, Size, Cost) :-
    storedOperatorTF(intsort, A1, B1),
    storedOperatorTF(extsort, A2, B2),
    PSize is Memory / TupleSizeExt,
-   L is Size / PSize, 
+   L is Size / PSize,
    Cost is Size * log(PSize) * (A1 * TupleSizeExt + B1)
            + Size * log(L) * 1.44 * (A2 * TupleSizeExt + B2),
 % Should be:
-%   L is Size / (2 * PSize), 
+%   L is Size / (2 * PSize),
 %   Cost is Size * log(2,PSize) * (A1 * TupleSizeExt + B1)
 %           + Size * log(2,L) * 1.44 * (A2 * TupleSizeExt + B2),
    !.
@@ -669,7 +668,7 @@ Cost estimation for temporary storing an argument during the hashjoin.
 
 tempRelCost(SizeX, TupleSizeX, SizeY, TupleSizeY, TempCost) :-
    TupleSizeX = sizeTerm(X1,X2,_),
-   TupleSizeY = sizeTerm(Y1,Y2,_),   
+   TupleSizeY = sizeTerm(Y1,Y2,_),
    TupleSizeExtX is X1 + X2,
    TupleSizeExtY is Y1 + Y2,
    bufferSize(Memory),
@@ -741,8 +740,8 @@ notnegativ(Zahl, Zahl) :- Zahl >= 0, !.
 notnegativ(_, 0) :- !.
 
 /*
-Return the estimated cost of a single application of the predicate belonging 
-to the POG-egde (Source Result). 
+Return the estimated cost of a single application of the predicate belonging
+to the POG-egde (Source Result).
 
 XRIS: The choosing of PET type should become more intelligent!
 
@@ -751,7 +750,7 @@ XRIS: The choosing of PET type should become more intelligent!
 getEdgePredCost(Source, Target, PET) :-
   getPredNoPET(Source, Target, _, PET), !.  % chooce calculated PETs
 %  getPredNoPET(Source, Target, PET, _), !. % choose mesured PETs
-  
+
 
 /*
 The clauses test, if a number (attribute size) is smaller than 1000.
@@ -774,7 +773,7 @@ the extend operator as well as the costs, which are connected to the expansion.
 ---- attrlistExtend(+AttrList, -TupleSize, -Cost)
 ----
 
-The clauses use a dynamic predicate ~storedExtendAttrSize/2~ to store 
+The clauses use a dynamic predicate ~storedExtendAttrSize/2~ to store
 information on extension attributes.
 
 ---- attrlistRemove(+AttrList, Size)
@@ -826,7 +825,7 @@ attrlistRemove(X, sizeTerm(-12,0,0)) :-
    ; X = _:Attr
    ; X = attrname(attr(Attr, _, _))
    ; X = attr(Attr, _, _)
-   ; X = Attr   
+   ; X = Attr
   ),
   atomic(Attr),
   atom_concat('xxxID', Rel, Attr),
@@ -834,28 +833,28 @@ attrlistRemove(X, sizeTerm(-12,0,0)) :-
   ( storedSpell(DB, DCRel, Rel) ; storedSpell(DB, DCRel, lc(Rel)) ),
   relation(DCRel,_), !.
 
-attrlistRemove(attrname(attr(Attr, _, _)), 
+attrlistRemove(attrname(attr(Attr, _, _)),
                sizeTerm(CoreR, InFlobR, ExtFlobR)) :-
-  storedExtendAttrSize(attrname(attr(Attr, _, _)), 
+  storedExtendAttrSize(attrname(attr(Attr, _, _)),
                        sizeTerm(Core, InFlob, ExtFlob)),
   CoreR    is -1 * Core,
   InFlobR  is -1 * InFlob,
   ExtFlobR is -1 * ExtFlob, !.
 
-attrlistRemove(attrname(attr(Var:Attr, _, _)), 
+attrlistRemove(attrname(attr(Var:Attr, _, _)),
                sizeTerm(CoreR, InFlobR, ExtFlobR)) :-
-  argument( _, rel(Rel, Var, _)),
+  argument( _, rel(Rel, Var)),
   downcase_atom(Attr, DCAttr),
   downcase_atom(Rel, DCRel),
-  attrSize(DCRel:DCAttr, sizeTerm(Core, InFlob, ExtFlob)), 
+  attrSize(DCRel:DCAttr, sizeTerm(Core, InFlob, ExtFlob)),
   CoreR    is -1 * Core,
   InFlobR  is -1 * InFlob,
   ExtFlobR is -1 * ExtFlob, !.
 %  sizeKlass(AttrSize, SizeExt, Size). % Omitted here.
 
 attrlistRemove(attrname(attr(Attr, _, _)), AttrSize) :-
-  % queryRel(_, rel(Rel, _, _)),
-  argument( _, rel(Rel, _, _)),
+  % queryRel(_, rel(Rel, _)),
+  argument( _, rel(Rel, _)),
   downcase_atom(Attr, DCAttr),
   downcase_atom(Rel, DCRel),
   attrSize(DCRel:DCAttr, AttrSize), !.
@@ -863,25 +862,25 @@ attrlistRemove(attrname(attr(Attr, _, _)), AttrSize) :-
 
 
 
-attrlistRemove(X, _) :-
-  throw(sql_ERROR(nawra_attrlistRemove(X, undefined))),
+attrlistRemove(X, Y) :-
+  throw(sql_ERROR(nawra_attrlistRemove(X, Y))),
   fail, !.
 
 
 /*
 Calculation of Attribute/Projection List Sizes Terms
 
-The following Rules calculate the combined tuple sizes for a list of attributes, 
+The following Rules calculate the combined tuple sizes for a list of attributes,
 e.g. to use when applying a ~project~ operator.
 
 ---- attrlistSize(+AttrList, sizeTerm(-CoreSize, -InFlobSize, -ExtFlobSize))
 ----
 
-Returns a term ~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~ with the 
+Returns a term ~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~ with the
 accumulated tuplesize fractions for all attributes found in ~AttrList~.
 
-The predicate can cope with list elements of different types: 
-~attrname(attr/3)~-terms, ~attr/3~-terms, and plain ~attribute names~ 
+The predicate can cope with list elements of different types:
+~attrname(attr/3)~-terms, ~attr/3~-terms, and plain ~attribute names~
 resp. ~var:attr-name~.
 
 PRECONDITION: Can only be called during a query, when the query has been looked up!
@@ -895,8 +894,8 @@ attrlistSize([X|Xs], SizeTerm) :-
   attrlistSize(Xs, SizeTerm2),
   addSizeTerms([SizeTerm1, SizeTerm2], SizeTerm), !.
 
-attrlistSize(X, _) :-
-  throw(sql_ERROR(nawra_attrlistSize(X, undefined))),
+attrlistSize(X, Y) :-
+  throw(sql_ERROR(nawra_attrlistSize(X, Y))),
   fail, !.
 
 attrlistSize2(X, AttrSize) :-
@@ -905,7 +904,7 @@ attrlistSize2(X, AttrSize) :-
    ; X = Var:Attr
   ),
   atomic(Attr), atomic(Var),
-  argument( _, rel(Rel, Var, _)),
+  argument( _, rel(Rel, Var)),
   downcase_atom(Attr, DCAttr),
   downcase_atom(Rel, DCRel),
   relation(DCRel,RelAttrList),
@@ -934,8 +933,8 @@ attrlistSize2(X, AttrSize) :-
    ; X = Attr
   ),
   atomic(Attr),
-  % queryRel(_, rel(Rel, _, _)),
-  argument( _, rel(Rel, _, _)),
+  % queryRel(_, rel(Rel, _)),
+  argument( _, rel(Rel, _)),
   downcase_atom(Attr, DCAttr),
   downcase_atom(Rel, DCRel),
   relation(DCRel,RelAttrList),
@@ -948,19 +947,19 @@ attrlistSize2(X, AttrSize) :-
 ---- simpleTerm(+Term, -STerm, -Size)
 ----
 
-Simplify a ~Term~ representing extension mapping function, return the simplified 
+Simplify a ~Term~ representing extension mapping function, return the simplified
 term ~STerm~, and the corresponding sizeTerm ~Size~ (containing the componentwise maxima).
 
 */
 
 simpleTerm(attr(Var:Attr, _, _), Rel:Attr, AttrSize) :-
-  argument(_, rel(Rel, Var, _)),
+  argument(_, rel(Rel, Var)),
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   attrSize(DCRel:DCAttr, AttrSize), !.
 
 simpleTerm(attr(Attr, _, _), Rel:Attr, AttrSize) :-
-  argument(_, rel(Rel, _, _)),
+  argument(_, rel(Rel, _)),
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   attrSize(DCRel:DCAttr, AttrSize), !.
@@ -991,7 +990,7 @@ simpleTerm(Term, Term, 0) :- !.
 
 
 /*
-Calculate the cost of an extend operator only once. Store the result a a dynamic 
+Calculate the cost of an extend operator only once. Store the result a a dynamic
 fact and reuse the information.
 
 */
@@ -1005,7 +1004,7 @@ extendSTermCost(STerm, Cost) :-
 
 setExtendSTermCost(STerm, _) :- storedExtendSTermCost(STerm, _), !.
 
-setExtendSTermCost(STerm, Cost) :- 
+setExtendSTermCost(STerm, Cost) :-
   assert(storedExtendSTermCost(STerm, Cost)), !.
 
 /*
@@ -1015,7 +1014,7 @@ shown on the display.
 
 */
 
-costnewPlan(_, 0) :- 
+costnewPlan(_, 0) :-
   write('There isn\'t a POG. Costs aren\'t calculated '), nl, !.
 
 costnewPlan(Plan, _) :-
@@ -1040,7 +1039,7 @@ Estimate costs for operator consume.
 */
 
 endcostnew(consume(X), HighNode, Size, TupleSize) :-
- 
+
   endcostnew(X, HighNode, SizeX, TupleSizeX),
   TupleSizeX = sizeTerm(Core, InFlob, ExtFlob),
   TotalResultTupleSize is Core + InFlob + ExtFlob,
@@ -1112,7 +1111,7 @@ endcostnew(_, HighNode, Size, TupleSize) :-
   nodeTupleSize(HighNode, TupleSize),
   write(' aren`t calculated),'), !.
 
-endcostnew( _, _, 0, 0) :- 
-  nl, 
-  write('Error at the determination of the operators without POG.'), 
+endcostnew( _, _, 0, 0) :-
+  nl,
+  write('Error at the determination of the operators without POG.'),
   nl.

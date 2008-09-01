@@ -277,7 +277,8 @@ internalName2externalName(Intern,Extern) :-
     ;  write('--->\tProbably both arguments unbound? This should not happen!')
   ), !,
   nl,
-  throw(error_SQL(database_internalName2externalName(Intern,Extern):cannotTranslate)),
+  throw(error_SQL(database_internalName2externalName(Intern,Extern)
+                 :cannotTranslate)),
   fail, !.
 
 /*
@@ -344,6 +345,7 @@ and its attributes are retracted.
 */
 
 updateRelationSchema(DCrel) :-
+  dm(dbhandling,['\nTry: updateRelationSchema(',DCrel,').']),
   ( databaseName(DB)
     -> true
     ;  ( write_list(['\nERROR:\tCannot update relation schema for \'',DCrel,
@@ -361,7 +363,9 @@ updateRelationSchema(DCrel) :-
     )
     -> true
     ;  ( write_list(['ERROR:\tCannot retrieve information on relation \'',
-         DCrel,'\':\n','--->\tNo matching relation found in catalog.']), nl,
+                     DCrel,
+                     '\':\n','--->\tNo matching relation found in catalog.']),
+         nl,
          throw(error_SQL(database_updateRelationSchema(DCrel):lostObject)),
          fail, !
        )
@@ -369,9 +373,10 @@ updateRelationSchema(DCrel) :-
   assert(storedSpell(DB,DCrel,IntRel)),           % XRIS: could be omitted!
   ( retrieveAttributes(DB, ExtRel, DCrel, ExtAttrList, DCattrList)
     -> true
-    ; (write('ERROR:\tFailure retrieving attribute information on relation \''),
-         write(ExtRel),write('\': .'), nl,
-         throw(error_SQL(database_updateRelationSchema(DCrel):cannotRetrieveAttribute)),
+    ; (  write_list(['\nERROR:\tFailure retrieving attribute information on ',
+                     'relation \'',ExtRel,'\': .']), nl,
+         throw(error_SQL(database_updateRelationSchema(DCrel)
+                        :cannotRetrieveAttribute)),
          fail, !
       )
   ),
@@ -380,7 +385,8 @@ updateRelationSchema(DCrel) :-
     -> true
     ;  ( write_list(['\nERROR:\tFailure retrieving cardinality for \'',ExtRel,
                      '\'.']), nl,
-         throw(error_SQL(database_updateRelationSchema(DCrel):cannotRetrieveCardinality)),
+         throw(error_SQL(database_updateRelationSchema(DCrel)
+                        :cannotRetrieveCardinality)),
          fail, !
        )
   ),
@@ -388,7 +394,8 @@ updateRelationSchema(DCrel) :-
     -> true
     ;  ( write_list(['\nERROR:\tFailure retrieving tuplesize for \'',ExtRel,
                      '\'.']), nl,
-         throw(error_SQL(database_updateRelationSchema(DCrel):cannotRetrieveTuplesize)),
+         throw(error_SQL(database_updateRelationSchema(DCrel)
+                        :cannotRetrieveTuplesize)),
          fail, !
        )
   ),
@@ -397,7 +404,8 @@ updateRelationSchema(DCrel) :-
 
 updateRelationSchema(DCrel) :-
   write_list(['ERROR:\tupdateRelationSchema failed for \'',DCrel,'\'.']), nl,
-  throw(sql_ERROR(database_updateRelationSchema(DCrel):cannotLookupRelationschema)).
+  throw(sql_ERROR(database_updateRelationSchema(DCrel)
+                 :cannotLookupRelationschema)).
 
 
 /*
@@ -410,6 +418,11 @@ Recursively creates and asserts spelling information for a attribute list
 ~ExtAttrList~ containing attribute names in external spelling.
 Returns a list ~DCattrList~ with all attribute names in down-cased spelling.
 
+If the cardinality of ~ExtRel~ is 0, and the attribute has a type of variable
+size, Secondo will return UNDEF for attrsize, rootattrsize and extattrsize.
+To avoid problems in other parts of the optimizer, we will assert
+storedAttrSize(, ..., 1,0,0) in that case.
+
 */
 retrieveAttributes(_, _, _, [], []).
 retrieveAttributes(DB,ExtRel,DCrel,[[ExtAttr,Type]|Rest],[DCattr|DCattrList]) :-
@@ -421,9 +434,19 @@ retrieveAttributes(DB,ExtRel,DCrel,[[ExtAttr,Type]|Rest],[DCattr|DCattrList]) :-
           ExtFlobSize  is 0
         )
       ; (
-          getTotalAttrSize(ExtRel, ExtAttr, AttrSize),
-          getExtAttrSize(ExtRel, ExtAttr, ExtAttrSize),
-          getRootAttrSize(ExtRel, ExtAttr, RootAttrSize),
+          getTotalAttrSize(ExtRel, ExtAttr, AttrSize1),
+          getExtAttrSize(ExtRel, ExtAttr, ExtAttrSize1),
+          getRootAttrSize(ExtRel, ExtAttr, RootAttrSize1),
+          ( (AttrSize1 = undef ; ExtAttrSize1 = undef ; RootAttrSize1 = undef)
+            -> ( AttrSize is 1,
+                 ExtAttrSize is 1,
+                 RootAttrSize is 1
+               )
+            ;  ( AttrSize is AttrSize1,
+                 ExtAttrSize is ExtAttrSize1,
+                 RootAttrSize is RootAttrSize1
+               )
+          ),
           CoreAttrSize is RootAttrSize,
           InFlobSize   is ExtAttrSize - RootAttrSize,
           ExtFlobSize  is AttrSize - ExtAttrSize
@@ -547,6 +570,7 @@ assertAllSecondoCatalogInfo([Object|MoreObjects]) :-
 
 
 refreshSecondoCatalogInfo :-
+  dm(dbhandling,['\nTry: refreshSecondoCatalogInfo.']),
   retractall(secondoCatalogInfo(_,_,_,_)),
   ( databaseName(_)
     -> ( true )
@@ -562,7 +586,8 @@ refreshSecondoCatalogInfo :-
     ;  (
          write('ERROR:\trefreshSecondoCatalogInfo failed!'), nl,
          write('--->\tRetrieving Catalog failed!'),
-         throw(error_SQL(database_refreshSecondoCatalogInfo:cannotRetrieveCatalog)),
+         throw(error_SQL(database_refreshSecondoCatalogInfo
+                        :cannotRetrieveCatalog)),
          !, fail
        )
   ), !,
@@ -582,6 +607,7 @@ If so, an exception is thrown. Otherwise the predicate succeeds.
 */
 
 checkObjectNamingConvention :-
+  dm(dbhandling,['\nTry: checkObjectNamingConvention.']),
   refreshSecondoCatalogInfo,
   findall(Clashes,(
               secondoCatalogInfo(ObjNameDC,_,_,_),
@@ -601,14 +627,16 @@ checkObjectNamingConvention :-
   length(SortedClashes,NoInstances),
   ( NoInstances > 0
     -> (
-         write('ERROR:\tThe database contains objects violating the unique\n'),
-         write('--->\tdowncased naming convention.'), nl,
-         write('--->\tPlease rename the following objects such that no two of\n'),
-         write('--->\ttheir names are the same, when using lower case \n'),
-         write('--->\tletters only :'),nl,nl,
-         write('--->\t\t'), write(SortedClashes), nl,
-         nl,
-         throw(error_SQL(database_checkObjectNamingConvention(SortedClashes):namingConventionVioled))
+         write_list(
+         ['\nERROR:\tThe database contains objects violating the unique',
+         '\n--->\tdowncased naming convention.',
+         '\n--->\tPlease rename the following objects such that no two of\n',
+         '\n--->\ttheir names are the same, when using lower case \n',
+         '\n--->\tletters only:\n',
+         '\n--->\t\t',SortedClashes]),
+         nl, nl,
+         throw(error_SQL(database_checkObjectNamingConvention(SortedClashes)
+                        :namingConventionVioled))
        )
     ; true
   ),
@@ -625,6 +653,7 @@ persistent meta data.
 
 % identify relation objects, that are known, but not present in the catalog
 findLostRelations(LostRelations) :-
+  dm(dbhandling,['\nTry: findLostRelations(',LostRelations,').']),
   databaseName(DB),
   findall( DCRel,
            (
@@ -636,6 +665,7 @@ findLostRelations(LostRelations) :-
 
 % identify  unknown relation objects within the catalog
 findNewRelations(NewRelations) :-
+  dm(dbhandling,['\nTry: findNewRelations(',NewRelations,').']),
   databaseName(DB),
   findall( DCRel,
            (
@@ -647,6 +677,7 @@ findNewRelations(NewRelations) :-
 
 % identify index objects, that are known, but not present in the catalog
 findLostIndexes(LostIndexes) :-
+  dm(dbhandling,['\nTry: findLostIndexes(',LostIndexes,').']),
   databaseName(DB),
   findall( DCindex,
            (
@@ -658,6 +689,7 @@ findLostIndexes(LostIndexes) :-
 
 % identify  unknown index objects
 findNewIndexes(NewIndexes) :-
+  dm(dbhandling,['\nTry: findNewIndexes(',NewIndexes,').']),
   databaseName(DB),
   findall( DCindex,
            (
@@ -723,6 +755,7 @@ attribute sizes, etc.).
 */
 
 updateCatalog :-
+  dm(dbhandling,['\nTry: updateCatalog.']),
   readSecondoTypeSizes,
   refreshSecondoCatalogInfo,
   findLostRelations(LostRelations),
@@ -740,26 +773,32 @@ updateCatalog :-
   !, fail.
 
 % Do not handle small relations:
-handleNewRelation(DCrel) :- sub_atom(DCrel,_,_,0,'_small'), !.
+handleNewRelation(DCrel) :-
+  dm(dbhandling,['\nTry: handleNewRelation(',DCrel,').']),
+  sub_atom(DCrel,_,_,0,'_small'), !.
 
 % Handle non-small relations:
 handleNewRelation(DCrel) :-
+  dm(dbhandling,['\nTry: handleNewRelation(',DCrel,').']),
   ( databaseName(_)
     -> true
    ;  (  write('ERROR:\tNo database open. Cannot handle new relation!'),nl,
-          throw(error_SQL(database_handleNewRelation(DCrel):noDatabaseOpen)), !, fail
+         throw(error_SQL(database_handleNewRelation(DCrel):noDatabaseOpen)),
+         !, fail
       )
   ),
   ( ( secondoCatalogInfo(DCrel,ExtRel,_,Type),
       Type = [[rel, [tuple, _]]]
     )
     -> true
-    ;  (  write('ERROR:\tObject \''), write(DCrel), write('\' unknown or not a relation.'),nl,
+    ;  (  write_list(['\nERROR:\tObject \'',DCrel,
+                      '\' unknown or not a relation.']),nl,
           throw(error_SQL(database_handleNewRelation(DCrel):typeError)), !, fail
        )
   ),
-  write('INFO:\tRelation \''), write(ExtRel), write('\' has been added to the database.'),nl,
-  write('INFO:\tNow retrieving related metadata...'),nl,
+  write_list(['\nINFO:\tRelation \'',ExtRel,
+              '\' has been added to the database.\n',
+              '--->\tNow retrieving related metadata...']),nl,
   updateRelationSchema(DCrel),   % get spellings, schema, attr names and sizes,
                                  % tuple size, cardinality,
                                  % also retract ordering information
@@ -775,20 +814,24 @@ handleNewRelation(DCrel) :-
   !.
 
 handleNewRelation(DCrel) :-
-  write('ERROR:\tSomething went wrong during updating relation \''),     % '
-  write(DCrel),write('\'.'),nl,                                           %'
+  write_list(['\nERROR:\tSomething went wrong during updating relation \'',
+              DCrel,'\'.']),nl,                                           %'
   throw(error_SQL(database_handleNewRelation(DCrel):unknownError)), !,
   fail.
 
 % Do not handle small indexes:
-handleNewIndex(DCindex) :- sub_atom(DCindex,_,_,0,'_small'), !.
+handleNewIndex(DCindex) :-
+  dm(dbhandling,['\nTry: handleNewIndex(',DCindex,').']),
+  sub_atom(DCindex,_,_,0,'_small'), !.
 
 % Handle non-small indexes:
 handleNewIndex(DCindex) :-
+  dm(dbhandling,['\nTry: handleNewIndex(',DCindex,').']),
   ( databaseName(DB)
     -> true
     ;  (  write('ERROR:\tNo database open. Cannot handle new index!'),nl,
-          throw(error_SQL(database_handleNewIndex(DCindex):noDatabaseOpen)), !, fail
+          throw(error_SQL(database_handleNewIndex(DCindex):noDatabaseOpen)),
+          !, fail
        )
   ),
   secondoCatalogInfo(DCindex,ExtIndex,_,Type),
@@ -806,42 +849,46 @@ handleNewIndex(DCindex) :-
       storedAttrSize(DB,DCrel,DCattr,AttrType,_,_,_),
       member(AttrType,SupportedAttributeTypeList)
     )
-    -> ( write('INFO:\tIndex \''), write(ExtIndex),        %'
-         write('\' has been added to the database.\n'),    %'
-         write('--->\tThe index is for '),write(ExtRel),write(':'),write(ExtAttr),nl,
-         write('--->\tThe index type is '),write(LogicalIndexType),write('.'),nl,
+    -> ( write_list(['\nINFO:\tIndex \'',ExtIndex,
+                     '\' has been added to the database.',
+                     '\n--->\tThe index is for ',ExtRel,':',ExtAttr,
+                     '\n--->\tThe index type is ',LogicalIndexType,'.']),
+         nl,
          ( optimizerOption(entropy)
-           -> ( ( write('INFO:\tNow trying to create the small index.'), nl,
+           -> ( ( write('\nINFO:\tNow trying to create the small index.'), nl,
                   createSmallIndex(DCrel,DCattr,LogicalIndexType)
                 )
                 -> ( write('--->\tSmall index available.'), nl )
-                ;   ( write('WARNING:\tCreating small index failed!'), nl )
+                ;  ( write('WARNING:\tCreating small index failed!'), nl )
               )
-           ; ( write('INFO:\tCreation of the small index not required.'),
+           ; ( write('\nINFO:\tCreation of the small index not required.'),
                nl
              )
          ),
          retractall(storedNoIndex(DB,DCrel,DCattr)),
          assert(storedIndex(DB,DCrel,DCattr,LogicalIndexType,DCindex))
        )
-    ;  ( write('WARNING:\tDatabase object \''), write(ExtIndex),   %'
-         write('\' seems to be an unsupported index.'), nl,        %'
-         write('--->\tPossibly it has been named in a wrong way?'),nl,
-         write('--->\tPossibly the according relation does not exist?'),nl,
-         write('--->\tPossibly unsupported attribute or index type?'),nl
+    ;  ( write_list(['\nWARNING:\tDatabase object \'',ExtIndex,
+                     '\' seems to be an unsupported index.',
+                     '\n--->\tPossibly it has been named in a wrong way?',
+                     '\n--->\tPossibly the according relation does not exist?',
+                     '\n--->\tPossibly unsupported attribute or index type?']),
+         nl
        )
   ), !.
 
 handleLostRelation(DCrel) :-
+  dm(dbhandling,['\nTry: handleLostRelation(',DCrel,').']),
   ( databaseName(_)
     -> true
    ;  (  write('ERROR:\tNo database open. Cannot handle lost relation!'),nl,
-          throw(error_SQL(database_handleLostRelation(DCrel):noDatabaseOpen)), !, fail
+          throw(error_SQL(database_handleLostRelation(DCrel):noDatabaseOpen)),
+          !, fail
       )
   ),
-  write('WARNING:\tRelation \''), write(DCrel),             %'
-  write('\' has been removed from the database.'),nl,       %'
-  write('INFO:\tNow removing related metadata...'),nl,
+  write_list(['\nWARNING:\tRelation \'',DCrel,
+              '\' has been removed from the database.',
+              '\nINFO:\tNow removing related metadata...']),nl,
   % possibly delete small relation
   ( ( atom_concat(DCrel,'_small',DCsmallRel),
       secondoCatalogInfo(DCsmallRel,ExtSmallRel,_,_)
@@ -888,8 +935,7 @@ handleLostRelation(DCrel) :-
   findall( DCindex,
            ( storedIndex(DB,DCrel,_,_,DCindex),
              secondoCatalogInfo(DCindex,ExtIndex,_,_),
-             write('\n--->\tIndex \''), write(ExtIndex),                     %'
-             write('\' is obsolete.'), nl                                    %'
+             write_list(['\n--->\tIndex \'',ExtIndex,'\' is obsolete.']), nl
            ),
            ObsoleteIndexes),
   ( ObsoleteIndexes = []
@@ -901,8 +947,7 @@ handleLostRelation(DCrel) :-
            ( storedIndex(DB,DCrel,_,_,DCindex),
              atom_concat(DCindex,'_small',DCindexSmall),
              secondoCatalogInfo(DCindexSmall,ExtIndexSmall,_,_),
-             write('--->\tDeleting small index \''), write(ExtIndexSmall),   %'
-             write('\': '),                                                  %'
+             write_list(['--->\tDeleting small index \'',ExtIndexSmall,'\': ']),
              ( deleteObject(ExtIndexSmall)
                -> ( write('succeeded.\n'),
                     retractall(storedIndex(DB,DCrel,_,_,DCindexSmall))
@@ -916,18 +961,20 @@ handleLostRelation(DCrel) :-
 
 
 handleLostIndex(DCindex) :-
+  dm(dbhandling,['\nTry: handleLostIndex(',DCindex,').']),
   ( databaseName(DB)
     -> true
    ;  (  write('ERROR:\tNo database open. Cannot handle lost index!'),nl,
-          throw(error_SQL(database_handleLostIndex(DCindex):noDatabaseOpen)), !, fail
+          throw(error_SQL(database_handleLostIndex(DCindex):noDatabaseOpen)),
+          !, fail
       )
   ),
   not(sub_atom(DCindex, _, _, 0, '_small')),  % ignore small index objects
                                               % (they should not be appera here
                                               % anyway)
-  write('WARNING:\tIndex \''), write(DCindex),       %'
-  write('\' has been removed from the database.'),nl, %'
-  write('--->\tNow removing related metadata...'),nl,
+  write_list(['\nWARNING:\tIndex \'',DCindex,
+              '\' has been removed from the database.',
+              '\n--->\tNow removing related metadata...']),nl,
   storedIndex(DB, DCrel, DCattr, IndexType, DCindex),
   % retract storedIndex
   retractall(storedIndex(DB, DCrel, DCattr, IndexType, DCindex)), !,
@@ -940,8 +987,7 @@ handleLostIndex(DCindex) :-
   findall( _,
            ( atom_concat(DCindex,'_small',DCindexSmall),
              secondoCatalogInfo(DCindexSmall,ExtIndexSmall,_,_),
-             write('--->\tDeleting small index \''), write(ExtIndexSmall),   %'
-             write('\': '),                                              %'
+             write_list(['--->\tDeleting small index \'',ExtIndexSmall,'\': ']),
              ( deleteObject(ExtIndexSmall)
                -> ( write('succeeded.\n'),
                     retractall(storedIndex(DB,DCrel,_,_,DCindexSmall))
@@ -968,9 +1014,11 @@ If such an object is found missing, it will be created.
 */
 
 ensureSamplesExist :-       % nothing to do, when using dynamic sampling
+  dm(dbhandling,['\nTry: ensureSamplesExist.']),
   optimizerOption(dynamicSample), !.
 
 ensureSamplesExist :-
+  dm(dbhandling,['\nTry: ensureSamplesExist.']),
   not(optimizerOption(dynamicSample)),
   write_list(['\nINFO:\tEnsuring, that sample relations exist...']), nl,
   databaseName(DB),
@@ -983,13 +1031,15 @@ ensureSamplesExist :-
           ),
           _),
   updateCatalog,
-  write_list(['INFO:\tFinished ensuring, that sample relations exist.']), nl,
+  write_list(['\nINFO:\tFinished ensuring, that sample relations exist.']), nl,
   !.
 
 ensureSmallObjectsExist :-  % nothing to do, when not using entropy approach
+  dm(dbhandling,['\nTry: ensureSmallObjectsExist.']),
   not(optimizerOption(entropy)), !.
 
 ensureSmallObjectsExist :-
+  dm(dbhandling,['\nTry: ensureSmallObjectsExist.']),
   optimizerOption(entropy),
   ensureSmallRelationsExist,
   ensureSmallIndexesExist,
@@ -1002,6 +1052,7 @@ ensureSmallObjectsExist :-
 
 
 ensureSmallRelationsExist :-
+  dm(dbhandling,['\nTry: ensureSmallRelationsExist.']),
   write_list(['\nINFO:\tEnsuring, that small relations exist...']), nl,
   databaseName(DB),
   findall(_,
@@ -1014,17 +1065,19 @@ ensureSmallRelationsExist :-
             createSmallRelationObjectForRel(DCrel)
           ),
           _),
-  write_list(['INFO:\tFinished ensuring, that small relations exist.']), nl,
+  write_list(['\nINFO:\tFinished ensuring, that small relations exist.']), nl,
   !.
 
 ensureSmallRelationsExist :-
+  dm(dbhandling,['\nTry: ensureSmallRelationsExist.']),
   write('\nERROR:\tPredicate ensureSmallRelationsExist failed!'), nl,
   throw(error_SQL(database_ensureSmallRelationsExist:unknownError)),
   fail, !.
 
 
 ensureSmallIndexesExist :-
-  write_list(['INFO:\tEnsuring, that small indexes exist...']), nl,
+  dm(dbhandling,['\nTry: ensureSmallIndexesExist.']),
+  write_list(['\nINFO:\tEnsuring, that small indexes exist...']), nl,
   databaseName(DB),
   findall(_,
           ( storedIndex(DB,DCrel,DCattr,LogicalIndexType,DCindex),
@@ -1035,7 +1088,7 @@ ensureSmallIndexesExist :-
             createSmallIndex(DCrel,DCattr,LogicalIndexType)
           ),
           _),
-  write_list(['INFO:\tFinished ensuring, that small indexes exist.']), nl,
+  write_list(['\nINFO:\tFinished ensuring, that small indexes exist.']), nl,
   !.
 
 ensureSmallIndexesExist :-
@@ -1059,6 +1112,7 @@ Fails, if deletion does not succeed.
 
 
 deleteObject(ExtObjName) :-
+  dm(dbhandling,['\nTry: deleteObject(',ExtObjName,').']),
   concat_atom(['delete ', ExtObjName], '', QueryAtom),
   secondo_direct(QueryAtom).
 
@@ -1073,6 +1127,7 @@ Retracts all stored meta data on relation ~DCrel~ (given in down-cased spelling)
 
 */
 retractAllStoredInfo(DCrel) :-
+  dm(dbhandling,['\nTry: retractAllStoredInfo(',DCrel,').']),
   databaseName(DB),
   retractSels(Rel),
   retractPETs(Rel),
@@ -1100,10 +1155,12 @@ the database.
 */
 
 % do not create static sample realtions, if dynamic sampling is activated
-createSampleRelationObjectsForRel(_) :-
+createSampleRelationObjectsForRel(X) :-
+  dm(dbhandling,['\nTry: createSampleRelationObjectsForRel(',X,').']),
   optimizerOption(dynamicSample), !.
 
 createSampleRelationObjectsForRel(DCrel) :-
+  dm(dbhandling,['\nTry: createSampleRelationObjectsForRel(',DCrel,').']),
   not(optimizerOption(dynamicSample)),
   createSampleJ(DCrel),
   createSampleS(DCrel),
@@ -1141,6 +1198,7 @@ Classify the relation ~DCrel~ to one of three categories
 
 */
 classifyRel(DCrel, SizeClass) :-
+  dm(dbhandling,['\nTry: classifyRel(',DCrel,',',SizeClass,').']),
   card(DCrel, Size),
   member([LowerSizeBound, SizeClass],[[100001,large],[1000,medium],[0,small]]),
   Size >= LowerSizeBound, !.
@@ -1151,26 +1209,31 @@ Create the canonocal small object name for an arbitrary name
 
 */
 getSmallName(Name, NameSmall) :-
+  dm(dbhandling,['\nTry: getSmallName(',Name,',',NameSmall,').']),
   ( atomic(Name)
     -> atom_concat(Name,'_small',NameSmall)
     ; ( write('ERROR:\tName must be atomic!'), nl,
-        throw(error_SQL(database_getSmallName(Name, undefined):wrongInstantiationPattern)),
+        throw(error_SQL(database_getSmallName(Name, NameSmall)
+                       :wrongInstantiationPattern)),
         fail
       )
   ), !.
 
 % case: optimizerOption(entropy) not set
-createSmallRelationObjectForRel(_) :-
+createSmallRelationObjectForRel(X) :-
+  dm(dbhandling,['\nTry: createSmallRelationObjectForRel(',X,').']),
   not(optimizerOption(entropy)), !.
 
 % case: small relation already present
 createSmallRelationObjectForRel(DCrel) :-
+  dm(dbhandling,['\nTry: createSmallRelationObjectForRel(',DCrel,').']),
   optimizerOption(entropy),
   getSmallName(DCrel,DCrelSmall),
   secondoCatalogInfo(DCrelSmall,_,_,_).
 
 % case: need to create small relation
 createSmallRelationObjectForRel(DCrel)  :-
+  dm(dbhandling,['\nTry: createSmallRelationObjectForRel(',DCrel,').']),
   optimizerOption(entropy),
   classifyRel(DCrel, SizeClass),
   member([SizeClass, MinSize, Percent], % lookup sampling parameters in list:
@@ -1190,7 +1253,9 @@ operator. Add a unique identifier attribute ~xxxID[<]relname[>]~ by numbering
 tuples sequentially. If ~MinSize~ = 0, no sampling is needed.
 
 */
-buildSmallRelation(ExtRel, ExtRelSmall, 0, _) :-
+buildSmallRelation(ExtRel, ExtRelSmall, 0, X) :-
+  dm(dbhandling,['\nTry: buildSmallRelation(',ExtRel,',',
+                 ExtRelSmall,',0,',X,').']),
   dcName2externalName(DCrel,ExtRel),
   dcName2externalName(DCrelSmall,ExtRelSmall),
   atom_concat('xxxID', DCrel, IDAttr),
@@ -1204,6 +1269,8 @@ buildSmallRelation(ExtRel, ExtRelSmall, 0, _) :-
   !.
 
 buildSmallRelation(ExtRel, ExtRelSmall, MinSize, Percent) :-
+  dm(dbhandling,['\nTry: buildSmallRelation(',ExtRel,',',
+                 ExtRelSmall,',',MinSize,',',Percent,').']),
   dcName2externalName(DCrel,ExtRel),
   dcName2externalName(DCrelSmall,ExtRelSmall),
   atom_concat('xxxID', DCrel, IDAttr),
@@ -1221,7 +1288,8 @@ buildSmallRelation(ExtRel, ExtRelSmall, MinSize, Percent) :-
 buildSmallRelation(ExtRel, ExtRelSmall, MinSize, Percent) :-
   write('ERROR:\tbuildSmallRelation/4 somehow failed.'), nl,
   throw(error_SQL(database_buildSmallRelation(ExtRel, ExtRelSmall,
-                                                MinSize, Percent):unknownError)).
+                                                MinSize, Percent)
+                                                :unknownError)).
 
 /*
 ---- createSmall(+DCRel, +Size) :-
@@ -1232,6 +1300,7 @@ Create small relation manually, for non-standard databases.
 */
 
 createSmall(DCrel, Size)  :-
+  dm(dbhandling,['\nTry: createSmall(',DCrel,',',Size,').']),
   ( ( ground(DCrel),
       ground(Size),
       number(Size),
@@ -1239,8 +1308,8 @@ createSmall(DCrel, Size)  :-
       DCrel2 = DCrel
     )
     -> true
-    ;  ( write('ERROR:\tIn createSmall(Rel, Size), Rel must be typed in lower \n'),
-         write('\tcase letters, and Size must be a number.'), nl,
+    ;  ( write('ERROR:\tIn createSmall(Rel, Size), Rel must be typed in lower'),
+         write('\n\tcase letters, and Size must be a number.'), nl,
          throw(error_SQL(database_createSmall(DCrel, Size):wrongSpelling)),
          fail
        )
@@ -1302,19 +1371,23 @@ Creating sample object names. The names for relation samples are:
 */
 
 getSampleSname(Name, SampleSname) :-
+  dm(dbhandling,['\nTry: getSampleSname(',Name,',',SampleSname,').']),
   ( atomic(Name)
     -> atom_concat(Name,'_sample_s',SampleSname)
     ; ( write('ERROR:\tName must be atomic!'), nl,
-        throw(error_SQL(database_getSampleSname(Name, undefined):wrongInstantiationPattern)),
+        throw(error_SQL(database_getSampleSname(Name, SampleSname)
+                       :wrongInstantiationPattern)),
         fail
       )
   ), !.
 
 getSampleJname(Name, SampleJname) :-
+  dm(dbhandling,['\nTry: getSampleJname(',Name,',',SampleJname,').']),
   ( atomic(Name)
     -> atom_concat(Name,'_sample_j',SampleJname)
     ; ( write('ERROR:\tName must be atomic!'), nl,
-        throw(error_SQL(database_getSampleSname(Name, undefined):wrongInstantiationPattern)),
+        throw(error_SQL(database_getSampleSname(Name, SampleJname)
+                       :wrongInstantiationPattern)),
         fail
       )
   ), !.
@@ -1341,8 +1414,22 @@ sample would take.
 
 getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
                       CardStd, MemStd, CardRec, MemRec) :-
+  dm(dbhandling,['\nTry: getStandardSampleCard(',DCRel,',',CardMin,',',
+                 CardMax,',',SF,',',MaxMem,',',CardStd,',',MemStd,',',
+                 CardRec,',',MemRec,').']),
   card(DCRel, Card),
   tuplesize(DCRel, TupleSize),
+  dm(dbhandling,['\ngetStandardSampleCard(',DCRel,',...): Card=',Card]),
+  dm(dbhandling,['\ngetStandardSampleCard(',DCRel,',...): TupleSize=',TupleSize]),
+  ( TupleSize =< 0
+    -> ( write_list(['ERROR:\tTuplesize for relation ',DCRel,' < 1!']), nl,
+         throw(error_SQL(database_getStandardSampleCard(DCRel, CardMin, CardMax,
+                      SF, MaxMem,CardStd, MemStd, CardRec, MemRec)
+                      :invalidTupleSize)),
+         fail
+       )
+    ;  true
+  ),
   CardStd     is min(CardMax,max(truncate(SF*Card),Card)),
   MemStd      is CardStd*TupleSize/1024,
   MaximumCard is truncate(min(min(CardMax, MaxMem*1024/TupleSize),Card)),
@@ -1366,10 +1453,13 @@ getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
        )
     ; true
   ),
-  write_list(['CardStd=', CardStd, '\nMemStd=',MemStd, '\nCardRec=',CardRec, '\nMemRec=', MemRec]),nl,
+  write_list(['CardStd=', CardStd, '\nMemStd=',MemStd, '\nCardRec=',CardRec,
+              '\nMemRec=', MemRec]),nl,
   !.
 
 getSampleJsize(DCRel, CardStd, MemStd, CardRec, MemRec) :-
+  dm(dbhandling,['\nTry: getSampleJsize(',DCRel,',',CardStd,',',
+                 MemStd,',',CardRec,',',MemRec,').']),
   thresholdCardMinSampleJ(CardMin),
   thresholdCardMaxSampleJ(CardMax),
   thresholdMemoryMaxSampleJ(MaxMem),
@@ -1378,6 +1468,8 @@ getSampleJsize(DCRel, CardStd, MemStd, CardRec, MemRec) :-
                         CardStd, MemStd, CardRec, MemRec).
 
 getSampleSsize(DCRel, CardStd, MemStd, CardRec, MemRec) :-
+  dm(dbhandling,['\nTry: getSampleSsize(',DCRel,',',CardStd,',',
+                 MemStd,',',CardRec,',',MemRec,').']),
   thresholdCardMinSampleS(CardMin),
   thresholdCardMaxSampleS(CardMax),
   thresholdMemoryMaxSampleS(MaxMem),
@@ -1401,6 +1493,8 @@ with desired sample size ~SampleSize~. The actual sample size is returned as ~Sa
 
 
 createSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
+  dm(dbhandling,['\nTry: createSample(',ExtSample,',',ExtRel,',',
+                 RequestedCard,',',ActualCard,').']),
   sampleQuery(ExtSample, ExtRel, RequestedCard, QueryAtom),
   tryCreate(QueryAtom),
   dcName2externalName(DCrel,ExtRel),
@@ -1408,14 +1502,15 @@ createSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
   ActualCard is truncate(min(Card, max(RequestedCard, Card*0.00001))).
 
 createSampleJ(DCRel) :-
+  dm(dbhandling,['\nTry: createSampleJ(',DCRel,').']),
   dcName2externalName(DCRel,ExtRel),
   sampleNameJ(ExtRel, Sample),
   ( secondoCatalogInfo(_,Sample,_,_)
-    -> ( write_list(['INFO:\tJoin-Sample for \'',ExtRel,'\' already exists.']),
+    -> ( write_list(['\nINFO:\tJoin-Sample for \'',ExtRel,'\' already exists.']),
          nl
        )
     ;  ( getSampleJsize(DCRel, CardStd, MemStd, CardRec, MemRec),
-         write_list(['INFO:\tCreating Join-Sample for \'',ExtRel,'\'.']),nl,
+         write_list(['\nINFO:\tCreating Join-Sample for \'',ExtRel,'\'.']),nl,
          ( CardRec =< CardStd
            -> ( % sample size is ok
                 SampleCard = CardStd,
@@ -1438,7 +1533,8 @@ createSampleJ(DCRel) :-
                                    'cardinality\n','\tmanually and create the ',
                                    'sample e.g. by calling\n','\tcreateSamples(',
                                    DCRel,', ',CardRec,', ',CardRec,').']),nl,
-                       throw(error_SQL(database_createSampleJ(DCRel):requestUserInteraction)),
+                       throw(error_SQL(database_createSampleJ(DCRel)
+                                      :requestUserInteraction)),
                        fail
                      )
               )
@@ -1452,14 +1548,17 @@ createSampleJ(DCRel) :-
   ), !.
 
 createSampleS(DCRel) :-
+  dm(dbhandling,['\nTry: createSampleS(',DCRel,').']),
   dcName2externalName(DCRel,ExtRel),
   sampleNameS(ExtRel, Sample),
   ( secondoCatalogInfo(_,Sample,_,_)
-    -> ( write_list(['INFO:\tSelection-Sample for \'',ExtRel,'\' already exists.']),
+    -> ( write_list(['\nINFO:\tSelection-Sample for \'',ExtRel,
+                     '\' already exists.']),
          nl
        )
     ;  ( getSampleSsize(DCRel, CardStd, MemStd, CardRec, MemRec),
-         write_list(['INFO:\tCreating Selection-Sample for \'',ExtRel,'\'.']),nl,
+         write_list(['\nINFO:\tCreating Selection-Sample for \'',ExtRel,'\'.']),
+         nl,
          ( CardRec =< CardStd
            -> ( % sample size is ok
                 SampleCard = CardStd,
@@ -1475,14 +1574,17 @@ createSampleS(DCRel) :-
                                 ' KB) to ',CardRec,'(',MemRec,' KB).']),nl
                    )
                 ;    ( % leave sample creation to the user
-                       write_list(['ERROR\tSelection sample is to large: ',CardStd,
+                       write_list(['ERROR\tSelection sample is to large: ',
+                                   CardStd,
                                    ' (=',MemStd,' KB).\n','Maximum size is ',
                                    CardRec,' (=',MemRec,' KB).']),nl,nl,
                        write_list(['\tPlease specify the concrete sample ',
                                    'cardinality\n','\tmanually and create the ',
-                                   'sample e.g. by calling\n','\tcreateSamples(',
+                                   'sample e.g. by calling\n',
+                                   '\tcreateSamples(',
                                    DCRel,', ',CardRec,', ',CardRec,').']),nl,
-                       throw(error_SQL(database_createSampleS(DCRel):requestUserInteraction)),
+                       throw(error_SQL(database_createSampleS(DCRel)
+                                      :requestUserInteraction)),
                        fail
                      )
               )
@@ -1497,6 +1599,8 @@ createSampleS(DCRel) :-
 
 % special case: trel (used for system tables)
 sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
+  dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
+                 QueryAtom,').']),
   sub_atom(ExtRel, _, _, _, 'SEC2'),
   concat_atom(['derive ', ExtSample, ' = ', ExtRel,
     ' feed head[', SampleSize, ']
@@ -1505,6 +1609,8 @@ sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
 
 % standard case: rel
 sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
+  dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
+                 QueryAtom,').']),
   concat_atom(['derive ', ExtSample, ' = ', ExtRel,
     ' sample[', SampleSize, ', 0.00001]
       extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
@@ -1522,6 +1628,8 @@ size (cardinality) of selection and join samples.
 */
 
 createSamples(DCrel, SelectionCard, JoinCard) :-
+  dm(dbhandling,['\nTry: createSamples(',DCrel,',',SelectionCard,',',
+                 JoinCard,').']),
   ( ( ground(DCrel), number(SelectionCard), number(JoinCard) )
     -> ( dcName2externalName(DCrel,ExtRel),
          sampleNameS(ExtRel, SampleS),
@@ -1541,6 +1649,7 @@ createSamples(DCrel, SelectionCard, JoinCard) :-
 */
 
 relation(Rel, AttrList) :-
+  dm(dbhandling,['\nTry: relation(',Rel,',',AttrList,').']),
   databaseName(DB),
   storedRel(DB, Rel, AttrList), !.
 
@@ -1695,6 +1804,7 @@ getIntSpellingFromDCattrList(DCattr,[[_, _] | Rest], ExtAttr) :-
     !.
 
 spelling(Rel:Attr, Spelled) :-
+  dm(dbhandling,['\nTry: spelling(',Rel,':',Attr,',',Spelled,').']),
   databaseName(DB),
   ( storedSpell(DB, Rel:Attr, Spelled)
     ; (
@@ -1706,7 +1816,10 @@ spelling(Rel:Attr, Spelled) :-
   ),
   !.
 
-spelling(_:_, _) :- !, fail.
+spelling(DCR:DCA, Rext) :- !,
+  write_list(['\tERROR:\tCannot translate attribute \'',DCR,':',DCA,'\'.']),nl,
+  throw(error_SQL(database_spelling(DCR:DCA, Rext):cannotTranslate)),
+  fail.
 /*
 6.3 Spelling of Relation Names (DEPRECATED)
 
@@ -1722,6 +1835,7 @@ available from the ~secondoCatalogInfo/4~ facts.
 
 */
 spelling(Rel, Spelled) :-
+  dm(dbhandling,['\nTry: spelling(',Rel,',',Spelled,').']),
   databaseName(DB),
   ( storedSpell(DB, Rel, Spelled)
     ; (
@@ -1731,6 +1845,11 @@ spelling(Rel, Spelled) :-
       )
   ),
   !.
+
+spelling(Rel, RelExt) :- !,
+  write_list(['\tERROR:\tCannot translate relation \'',Rel,'\'.']),nl,
+  throw(error_SQL(database_spelling(Rel, RelExt):cannotTranslate)),
+  fail.
 
 /*
 6.5 Storing And Loading of Spelling Information
@@ -1775,13 +1894,15 @@ cardinality. This cardinality is then stored in local memory.
 
 */
 card(DCrel, Size) :-
+  dm(dbhandling,['\nTry: card(',DCrel,',',Size,').']),
   databaseName(DB),
   storedCard(DB, DCrel, Size),
   !.
 
 card(DCrel, Size) :-
-  secondoCatalogInfo(DCrel,ExtRel,_,_),
-  Query = (count(rel(ExtRel, _, l))),
+  dm(dbhandling,['\nTry: card(',DCrel,',',Size,').']),
+  secondoCatalogInfo(DCrel,_,_,_),
+  Query = (count(rel(DCrel, _))),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   secondo(QueryAtom, [int, Size]),
@@ -1789,10 +1910,10 @@ card(DCrel, Size) :-
   assert(storedCard(DB, DCrel, Size)),
   !.
 
-card(DCrel, _) :-
+card(DCrel, X) :-
   write('\ERROR:\tCardinality for relation \''),write(DCrel), %'
   write('\' cannot be retrieved.'),nl,                        %'
-  throw(sql_ERROR(database_card(DCrel, undefined):cannotRetrieveCardinality)),
+  throw(sql_ERROR(database_card(DCrel, X):cannotRetrieveCardinality)),
   fail.
 
 /*
@@ -1824,7 +1945,7 @@ writeStoredCard(Stream) :-
 
 8.1 Looking Up For Existing Indexes
 
----- hasIndex(rel(+Rel, _, _),attr(+Attr, _, _), ?IndexName, ?IndexType) :-
+---- hasIndex(rel(+Rel, _),attr(+Attr, _, _), ?IndexName, ?IndexType) :-
 ----
 
 If it exists, the index name for relation ~Rel~ and attribute ~Attr~
@@ -1839,6 +1960,8 @@ If the predicate fails, this means, that there is no such index.
 */
 
 hasIndex(Rel, Attr, IndexName, IndexType) :-
+  dm(dbhandling,['\nTry: hasIndex(',Rel,',',Attr,',',IndexName,',',
+                 IndexType,').']),
   not(optimizerOption(noIndex)),
   hasIndex2(Rel, Attr, IndexName, IndexType).
 
@@ -1850,23 +1973,23 @@ Gets the index name ~IndexName~ for relation ~Rel~ and attribute ~Attr~
 via dynamic predicate ~storedIndex/5~.
 
 ~Rel~ and ~Attr~ are exressed using relation resp. attribute descriptors
-as terms rel(LFRel,, \_, \_) and attr(LFAttr,\_,\_).
+as terms rel(LFRel,\_) and attr(LFAttr,\_,\_).
 
 */
 
 % simplify attribute descriptor
-hasIndex2(rel(DCrel, _, _), attr(_:DCattr, _, _), DCindexName, Type) :-
-  hasIndex2(rel(DCrel, _, _), attr(DCattr, _, _), DCindexName, Type).
+hasIndex2(rel(DCrel, _), attr(_:DCattr, _, _), DCindexName, Type) :-
+  hasIndex2(rel(DCrel, _), attr(DCattr, _, _), DCindexName, Type).
 
 % fail, if absence of that index is known.
-hasIndex2(rel(DCrel, _, _), attr(DCattr, _, _), _, _) :-
+hasIndex2(rel(DCrel, _), attr(DCattr, _, _), _, _) :-
   databaseName(DB),
   storedNoIndex(DB, DCrel, DCattr),
   !,
   fail.
 
 % check for known presence of index
-hasIndex2(rel(DCrel, _, _), attr(DCattr, _, _), DCindex, Type) :-
+hasIndex2(rel(DCrel, _), attr(DCattr, _, _), DCindex, Type) :-
   databaseName(DB),
   storedIndex(DB, DCrel, DCattr, Type, DCindex),
   !.
@@ -2016,7 +2139,7 @@ Therefore, using the ~LogicalIndexTypeCode~ 'undefined' is prohibited.
 
 % standard indexes - just wrapping physical index types
 logicalIndexType(btree, btree, btree,
-    [int, real, string, text],
+    [int, real, string, text, point],
     ['__REL__', ' createbtree[', '__ATTR__', ']'],
     undefined,
     undefined,
@@ -2031,28 +2154,28 @@ logicalIndexType(hash, hash, hash,
 
 logicalIndexType(rtree, rtree, rtree,
     [point, points, line, sline, region, rect],
-    ['__REL__', ' createtree[', '__ATTR__', ']'],
+    ['__REL__', ' creatertree[', '__ATTR__', ']'],
     undefined,
     undefined,
     undefined).
 
 logicalIndexType(rtree3, rtree3, rtree3,
     [rect3],
-    ['__REL__', ' createtree3[', '__ATTR__', ']'],
+    ['__REL__', ' creatertree3[', '__ATTR__', ']'],
     undefined,
     undefined,
     undefined).
 
 logicalIndexType(rtree4, rtree4, rtree4,
     [rect4],
-    ['__REL__', ' createtree4[', '__ATTR__', ']'],
+    ['__REL__', ' creatertree4[', '__ATTR__', ']'],
     undefined,
     undefined,
     undefined).
 
 logicalIndexType(rtree8, rtree8, rtree8,
     [rect8],
-    ['__REL__', ' createtree8[', '__ATTR__', ']'],
+    ['__REL__', ' creatertree8[', '__ATTR__', ']'],
     undefined,
     undefined,
     undefined).
@@ -2294,12 +2417,14 @@ The resulting ~IndexName~ is in ~external spelling~.
 */
 
 createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
+  dm(dbhandling,['\nTry: createIndex(',LFRel,',',LFAttr,',',
+                 LogicalIndexType,',',CreateSmall,',',IndexName,').']),
   % Check if a database is opened
   ( databaseName(DB)
     -> true
     ; ( write('ERROR:\tNo database open. Cannot create index.'),nl, !,
-        throw(sql_ERROR(database_createIndex(Rel, Attr, LogicalIndexType,
-                                               undefined):noDatabaseOpen)),
+        throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+           CreateSmall, IndexName):noDatabaseOpen)),
         fail
       )
   ),
@@ -2313,10 +2438,10 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
       dcName2externalName(LFRel:LFAttr, Attr)
     )
     -> true
-    ;  ( write('ERROR:\tCannot create index on unknown relation or attribute \''),
-         write(LFRel),write(':'),write(LFAttr), write('\'.'),nl, !,
+    ;  ( write_list(['ERROR:\tCannot create index on unknown relation or ',
+                     'attribute \'',LFRel,':',LFAttr,'\'.']),nl, !,
          throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                               undefined):unknownRelationOrAttribute)),
+               CreateSmall, IndexName):unknownRelationOrAttribute)),
          fail
        )
   ),
@@ -2326,7 +2451,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     ;  ( write('ERROR:\tCannot create index. Relation \''),
          write(LFRel),write('\' unknown.'),nl, !,
          throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                               undefined):unknownRelation)),
+            CreateSmall, IndexName):unknownRelation)),
          fail
        )
   ),
@@ -2337,7 +2462,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
          write(LFAttr), write('\'. Available attributes are:'),
          write(AttrList), nl, !,
          throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                               undefined):attributeNameMismatch)),
+            CreateSmall, IndexName):attributeNameMismatch)),
          fail
        )
   ),
@@ -2351,7 +2476,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
          write(LFRel),write(':'),write(LFAttr),
          write(' under the name \''),write(ExtOldIndexName),write('\'.'),nl, !,
          throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                               undefined):indexAlreadyExists)),
+            CreateSmall, IndexName):indexAlreadyExists)),
          fail
        )
     ;  true
@@ -2367,11 +2492,13 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
          write(' unknown or not matching the type of '),
          write(LFRel),write(':'),write(LFAttr),
          write(' which is \''),write(Type),write('\'.'), nl,
-         findall(X,keyAttributeTypeMatchesIndexType(LFRel,LFAttr,X),AvailIndTypes),
+         findall(X,
+                 keyAttributeTypeMatchesIndexType(LFRel,LFAttr,X),
+                 AvailIndTypes),
          write('\tYou may create the following index types for this key:\n\t'),
          write(AvailIndTypes),nl, !,
          throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                               undefined):unknownIndexType)),
+             CreateSmall, IndexName):unknownIndexType)),
          fail
        )
   ),
@@ -2379,12 +2506,12 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
   ( (   databaseObjectExists(IndexName)
       ; databaseObjectExistsDC(IndexName)
     )
-    -> ( write('ERROR:\tThe index object of type '), write(LogicalIndexType),
-         write(' must be named \''), write(IndexName),
-         write('\',\n--->\tbut there already exists a database object with that name!'),
+    -> ( write_list(['ERROR:\tThe index object of type ',LogicalIndexType,
+         ' must be named \'',IndexName,'\',\n--->\tbut there already exists a',
+         ' database object with that name!']),
          nl, !,
          throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                               undefined):fileAlreadyExists)),
+             CreateSmall, IndexName):fileAlreadyExists)),
          fail
        )
     ;  true
@@ -2396,7 +2523,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     ;  ( write('ERROR:\tThe base relation \''), write(RelName),
          write('\' does not exist. Cannot create the index.'),nl,!,
          throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                               undefined):lostObject)),
+            CreateSmall, IndexName):lostObject)),
          fail
        )
   ),
@@ -2406,9 +2533,10 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
   write('CreationQuery = '),write(CreationQuery),nl,
   ( secondo_direct(CreationQuery)
     -> true
-    ;  ( write('ERROR:\tCould not create index. The creation query failed.'),nl,!,
+    ;  ( write('ERROR:\tCould not create index. The creation query failed.'),
+         nl,!,
          throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                               undefined):creationQueryFailed)),
+             CreateSmall, IndexName):creationQueryFailed)),
          fail
        )
   ),
@@ -2422,10 +2550,10 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
   write('\tIndex \''),write(IndexName),write('\' has been created.'),nl,
   !.
 
-createIndex(LFRel, LFAttr, LogicalIndexType, _) :-
+createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
   write('ERROR:\tSome error occured when trying to create an index:'),nl,!,
   throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-                                        undefined):unknownError)),
+         CreateSmall, IndexName):unknownError)),
   fail.
 
 
@@ -2441,6 +2569,8 @@ Relation and attribute are passed in downcased spelling.
 
 */
 createIndex(DCrel,DCattr,LogicalIndexType) :-
+  dm(dbhandling,['\nTry: createIndex(',DCrel,',',DCattr,',',LogicalIndexType,
+                 ').']),
   ( isDatabaseOpen
     -> true
     ;  ( throw(error_SQL(database_createIndex(DCrel,DCattr,LogicalIndexType)
@@ -2580,12 +2710,16 @@ Creates a '\_small'-index for ~DCRel~:~DCAttr~ having type ~LogicalIndexType~.
 */
 
 createSmallIndex(DCRel,DCAttr,LogicalIndexType) :-
+  dm(dbhandling,['\nTry: createSmallIndex(',DCRel,',',DCAttr,',',
+                 LogicalIndexType,').']),
   (optimizerOption(entropy)
    -> catch( createIndex(DCRel, DCAttr, LogicalIndexType, yes, _),
-            sql_ERROR(database_createIndex(DCRel, DCAttr, LogicalIndexType,IndexName):Reason),
+            sql_ERROR(database_createIndex(DCRel, DCAttr,
+                    LogicalIndexType,IndexName):Reason),
             ( member(Reason,[indexAlreadyExists,fileAlreadyExists])
               -> ( write_list(['\nINFO:\tSmall index already exists.']), nl )
-              ;  throw(sql_ERROR(database_createIndex(DCRel, DCAttr, LogicalIndexType,IndexName):Reason))
+              ;  throw(sql_ERROR(database_createIndex(DCRel, DCAttr,
+                    LogicalIndexType,IndexName):Reason))
             )
           )
    ;  true
@@ -2614,6 +2748,7 @@ Otherwise, it will succeed.
 */
 
 dropIndex(ExtIndexName) :-
+  dm(dbhandling,['\nTry: dropIndex(',ExtIndexName,').']),
   % Check if a database is opened
   ( databaseName(DB)
     -> true
@@ -2672,15 +2807,19 @@ dropIndex(ExtIndexName) :-
   fail.
 
 dropIndex(DCRel,DCAttr,LogicalIndexType) :-
+  dm(dbhandling,['\nTry: dropIndex(',DCRel,',',DCAttr,',',
+                 LogicalIndexType,').']),
   % create index name
   dcName2externalName(DCRel,ExtRelName),
   dcName2externalName(DCRel:DCAttr, ExtAttrName),
-  createIndexName(ExtRelName,ExtAttrName,LogicalIndexType,undefined,no,ExtIndexName),!,
+  createIndexName(ExtRelName,ExtAttrName,LogicalIndexType,undefined,no,
+                  ExtIndexName),!,
   dropIndex(ExtIndexName),!.
 
 dropIndex(LFRel,LFAttr,LogicalIndexType) :-
   write('ERROR:\tSome error occured while trying to drop an index:'),nl,!,
-  throw(sql_ERROR(database_dropIndex(LFRel,LFAttr,LogicalIndexType):unknownError)),
+  throw(sql_ERROR(database_dropIndex(LFRel,LFAttr,LogicalIndexType)
+                 :unknownError)),
   fail.
 
 /*
@@ -2707,7 +2846,7 @@ showIndexes :-
                   dcName2externalName(DCrel:DCattr,ExtAttrName),
                   dcName2externalName(DCindexName,ExtIndexName),
                   format('~p~35|~p~p~p~69|~p~n',
-                         [ExtIndexName, ExtRelName, ':', ExtAttrName, IndexType])
+                         [ExtIndexName, ExtRelName, ':',ExtAttrName,IndexType])
                 ),
                 _)
       )
@@ -2796,6 +2935,7 @@ retractPETs(Rel) :-
 retractPETs(_).
 
 retractStoredInformation(DCrel) :-
+  dm(dbhandling,['\nTry: retractStoredInformation(',DCrel,').']),
   databaseName(DB),
   getSampleSname(DCrel, SampleS),
   getSampleJname(DCrel, SampleJ),
@@ -2817,7 +2957,7 @@ retractStoredInformation(DCrel) :-
   retractall(storedRel(DB, DCrel, _)),
   retractall(storedIndex(DB, DCrel, _, _, _)),
   retractall(storedNoIndex(DB, DCrel, _)),
-  write_list(['INFO:\tRetracted all information on relation \'',DCrel,'\' and ',
+  write_list(['\nINFO:\tRetracted all information on relation \'',DCrel,'\' and ',
               'all according small and sample objects.']),nl,
   !.
 
@@ -2838,6 +2978,11 @@ Succeed or failure of this predicate is quite similar to
 predicate ~card/2~, see section about cardinalities of
 relations. The predicate returns the average total tuplesize, including Flobs.
 
+If the relation has cardinality = 0, Secondo will return a undefined tuplesize.
+Therefor, nAn (not a number) is stored in the internal information database,
+but 1 is returned for the tuplesize to avoid problems, e.g. when calculating
+sample sizes.
+
 */
 
 tupleSizeQuery(RelE, QueryAtom) :-
@@ -2848,23 +2993,52 @@ tupleSizeQuery(RelE, QueryAtom) :-
 tupleSizeQuery(RelE, QueryAtom) :-
   concat_atom(['query ', RelE, ' tuplesize'],QueryAtom).
 
-tuplesize(DCrel, Size) :-
+tuplesize(DCrel, TupleSize) :-
+  dm(dbhandling,['\nTry: tuplesize(',DCrel,',',Size,').']),
   databaseName(DB),
   storedTupleSize(DB, DCrel, Size),
+  ( ( Size = nAn )
+    -> ( write_list(['\nWARNING:\tTuplesize is not a number (nAn). ', Size,
+                     '\n--->\tTherefore, tuplesize is set to 1.']),
+         nl,
+         TupleSize is 1
+       )
+    ;  ( Size =:= 0
+         -> ( write_list(['\nWARNING:\tTuplesize is 0. ', Size,
+                     '\n--->\tTherefore, tuplesize is set to 1.']),
+              nl,
+              TupleSize is 1
+            )
+         ; TupleSize is Size
+       )
+  ),
   !.
 
-tuplesize(DCrel, Size) :-
+tuplesize(DCrel, TupleSize) :-
+  dm(dbhandling,['\nTry: tuplesize(',DCrel,',',Size,').']),
   dcName2externalName(DCrel,ExtRel),
   tupleSizeQuery(ExtRel, QueryAtom),
   secondo(QueryAtom, [real, Size]),
   databaseName(DB),
-  assert(storedTupleSize(DB, DCrel, Size)),
+  ( ( Size \= undef )
+    -> ( StoreTupleSize is Size,
+         TupleSize is Size
+       )
+    ;  ( write_list(['\nWARNING:\Tuplesize query has strange result: ', Size,
+                     '\n--->\tTherefore, tuplesize is set to \'not a number\'',
+                     '(nAn).','\n--->\tPossibly card(',DCrel,')=0?']),
+         nl,
+         StoreTupleSize = nAn,
+         TupleSize is 1
+       )
+  ),
+  assert(storedTupleSize(DB, DCrel, StoreTupleSize)),
   !.
 
-tuplesize(X, _) :-
+tuplesize(X, Y) :-
   write('ERROR:\tCannot retrieve tuplesize for relation \''),write(X),  %'
   write('\'.'),nl,                                                      %'
-  throw(sql_ERROR(database_tuplesize(X, undefined):cannotRetrieveTuplesize));
+  throw(sql_ERROR(database_tuplesize(X, Y):cannotRetrieveTuplesize));
   !, fail.
 
 /*
@@ -2883,8 +3057,8 @@ tupleSizeSplit(DCrel, Size) :-
   relation(DCrel, AttrList),
   tupleSizeSplit2(DB, DCrel, AttrList, Size), !.
 
-tupleSizeSplit(DCrel, _) :-
-  throw(sql_ERROR(database_tupleSizeSplit(DCrel, undefined):unknownError)),
+tupleSizeSplit(DCrel, X) :-
+  throw(sql_ERROR(database_tupleSizeSplit(DCrel, X):unknownError)),
   fail, !.
 
 tupleSizeSplit2(_, _, [], sizeTerm(0,0,0)) :- !.
@@ -2999,8 +3173,8 @@ attrSize(DCRel:DCAttr, sizeTerm(CoreSize, InFlobSize, ExtFlobSize)) :-
   storedAttrSize(DBName, DCRel, DCAttr, _, CoreSize, InFlobSize, ExtFlobSize),
   !.
 
-attrSize(X, _) :-
-  throw(sql_ERROR(database_attrSize(X, undefined):missingData)),
+attrSize(X, Y) :-
+  throw(sql_ERROR(database_attrSize(X, Y):missingData)),
   fail, !.
 
 
@@ -3008,8 +3182,8 @@ attrType(DCRel:DCAttr, Type) :-
   databaseName(DBName),
   storedAttrSize(DBName, DCRel, DCAttr, Type, _, _, _), !.
 
-attrType(X, _) :-
-  throw(sql_ERROR(database_attrType(X, undefined):missingData)),
+attrType(X, Y) :-
+  throw(sql_ERROR(database_attrType(X, Y):missingData)),
   fail, !.
 
 readStoredAttrSizes :-
@@ -3052,8 +3226,8 @@ addSizeTerms([sizeTerm(X1,Y1,Z1)|Rest], sizeTerm(Res1, Res2, Res3)) :-
   Res1 is X1 + X2,
   Res2 is Y1 + Y2,
   Res3 is Z1 + Z2, !.
-addSizeTerms(X, _) :-
-  throw(sql_ERROR(database_addSizeTerms(X, undefined):unknownError)),
+addSizeTerms(X, Y) :-
+  throw(sql_ERROR(database_addSizeTerms(X, Y):unknownError)),
   fail, !.
 
 /*
@@ -3156,7 +3330,8 @@ and ~Description~ is a text describing the system table's meaning.
 
 */
 
-systemTable(sec_derived_obj,'A table containing derived objects, which are dynamically created after a restore.').
+systemTable(sec_derived_obj,
+'A table of derived objects, which are dynamically created after a restore.').
 systemTable(sec2cacheinfo,'A table with cache statistics').
 systemTable(sec2fileinfo,'A table with file access statistics').
 systemTable(sec2operatorinfo,'A table with operator descriptions').
