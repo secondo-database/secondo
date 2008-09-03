@@ -754,9 +754,9 @@ class SortByLocalInfo : protected ProgressWrapper
               //nextTuple.ref.tuple->IncReference();
               currentRun->push(nextTuple);
               minTuple = currentRun->topTuple();
-              //minTuple.tuple->DecReference();
               rel->AppendTuple( minTuple.tuple );
               lastTuple = minTuple;
+              minTuple.tuple->DeleteIfAllowed(); // remove from input stream
               currentRun->pop();
             }
             else
@@ -768,8 +768,8 @@ class SortByLocalInfo : protected ProgressWrapper
                 //##nextTuple.ref.tuple->IncReference();
                 currentRun->push(nextTuple);
                 minTuple = currentRun->topTuple();
-                //minTuple.tuple->DecReference();
                 rel->AppendTuple( minTuple.tuple );
+                minTuple.tuple->DeleteIfAllowed();
                 lastTuple = minTuple;
                 currentRun->pop();
                 m++;
@@ -783,8 +783,8 @@ class SortByLocalInfo : protected ProgressWrapper
                 {
                   // Append the minimum to the current relation
                   minTuple = currentRun->topTuple();
-                  //minTuple.tuple->DecReference();
                   rel->AppendTuple( minTuple.tuple );
+                  minTuple.tuple->DeleteIfAllowed();
                   lastTuple = minTuple;
                   currentRun->pop();
                 }
