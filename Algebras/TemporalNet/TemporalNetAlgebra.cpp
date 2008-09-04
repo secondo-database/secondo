@@ -1964,7 +1964,7 @@ void MGPoint::Intersection(MGPoint *mgp, MGPoint *res){
                 if (pCurr1->timeInterval.start <= tinter &&
                     tinter <= pCurr1->timeInterval.end) {
                     interPosition = pCurr1->p0.GetPosition() +
-                       ((pCurr1->p1.GetPosition() - pCurr1->p0.GetPosition()) *
+                       (((pCurr1->p1.GetPosition() - pCurr1->p0.GetPosition()) *
                      (tinter.ToDouble() - pCurr1->timeInterval.start.ToDouble())
                             / (pCurr1->timeInterval.end.ToDouble() -
                               pCurr1->timeInterval.start.ToDouble())));
