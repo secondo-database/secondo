@@ -93,9 +93,16 @@ Result   : (gline(1((1 0.2 2.4))))
 
 Operator : mpoint2mgpoint
 Number   : 1
-Signature: mpoint -> mgpoint
+Signature: network x mpoint -> mgpoint
 Example  : query mpoint2mgpoint(B_NETWORK, [const mpoint value((("2007-01-01-10:02:01.000" "2007-01-01-10:02:03.000" TRUE FALSE)(8209.0 8769.0 8293.0 8768.0)))]);
 Result   : (mgpoint((("2007-01-01-10:02:01" "2007-01-01-10:02:03" TRUE FALSE)(1 1 1 0.0 84.00595217006948))))
+Tolerance: 0.01%
+
+Operator : mgpoint2mpoint
+Number   : 1
+Signature: mgpoint -> mpoint
+Example  : query mgpoint2mpoint([const mgpoint value((("2007-01-01-10:02:01" "2007-01-01-10:02:03" TRUE FALSE) (1 1 1 0.0 84.00595217006948)))]);
+Result   : (mpoint((("2007-01-01-10:02:01" "2007-01-01-10:02:03" TRUE FALSE)(8209.0 8769.0 8293.0 8768.0))))
 Tolerance: 0.01%
 
 Operator : length
@@ -235,51 +242,66 @@ Signature: mgpoint -> periods
 Example  : query deftime([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0)))]);
 Result   : (periods (("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)))
 
+Operator : deftime
+Number   : 3
+Signature: ugpoint -> periods
+Example  : query deftime([const ugpoint value (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
+Result   : (periods (("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE)))
+
 Operator : unitrid
 Number   : 1
 Signature: ugpoint -> real
-Example  : query unitrid(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head [1] extract [elem]);
+Example  : query unitrid([const ugpoint value (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
 Result   : 1.0
 Tolerance: 0.01%
 
 Operator : unitstartpos
 Number   : 1
 Signature: ugpoint -> real
-Example  : query unitstartpos(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head [1] extract [elem]);
+Example  : query unitstartpos([const ugpoint value (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
 Result   : 0.2
 Tolerance: 0.01%
 
 Operator : unitendpos
 Number   : 1
 Signature: ugpoint -> real
-Example  : query unitendpos(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head [1] extract [elem]);
+Example  : query unitendpos([const ugpoint value (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
 Result   : 1.5
 Tolerance: 0.01%
 
 Operator : unitstarttime
 Number   : 1
 Signature: ugpoint -> real
-Example  : query unitstarttime(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head [1] extract [elem]);
+Example  : query unitstarttime([const ugpoint value (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
 Result   : 2555.4236111111
 Tolerance: 0.01%
 
 Operator : unitendtime
 Number   : 1
 Signature: ugpoint -> real
-Example  : query unitendtime(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head [1] extract [elem]);
+Example  : query unitendtime([const ugpoint value (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
 Result   : 2555.4236226852
 Tolerance: 0.01%
 
 Operator : unitbox
 Number   : 1
 Signature: ugpoint -> rect3
-Example  : query unitbox(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head[1]extract[elem]);
+Example  : query unitbox([const ugpoint value (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
 Result   : (rect3(1.0 1.0 0.2 1.5 2555.4236111111 2555.4236226852))
 Tolerance: 0.01%
 
 Operator : unitbox2
 Number   : 1
 Signature: ugpoint -> rect
-Example  : query unitbox2(units([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5)))]) transformstream head[1]extract[elem]);
+Example  : query unitbox2([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
 Result   : (rect(1.0 1.0 0.2 1.5))
 Tolerance: 0.01%
+
+Operator : distance
+Number   : 1
+Signature: mgpoint x mgpoint -> mreal
+Example  : query distance([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE FALSE)(1 1 1 1.0 15.0)))],[const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 1.0))(("2007-01-01-10:10:01.000" "2007-01-01-10:10:02.000" TRUE FALSE)(1 1 1 1.0 15.0)))]);
+Result   : (mreal((("2007-01-01-10:10" "2007-01-01-10:10:02" TRUE FALSE)(0.0 0.0 0.0 FALSE))))
+Tolerance: 0.01%
+
+

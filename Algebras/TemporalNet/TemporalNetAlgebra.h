@@ -74,10 +74,18 @@ constructor for the temporal unit of gpoint values.
 class UGPoint : public SpatialTemporalUnit<GPoint, 3>
 {
   public:
-  UGPoint() {};
+  UGPoint() {
+    del.refs=1;
+    del.isDelete=true;
+  };
 
   UGPoint(bool is_defined):
-    SpatialTemporalUnit<GPoint, 3>(is_defined) {};
+    SpatialTemporalUnit<GPoint, 3>(is_defined)
+    {
+      del.refs=1;
+      del.isDelete=true;
+      TemporalUnit<GPoint>::defined = is_defined;
+    };
 
   UGPoint( const Interval<Instant>& interval,
            const int in_NetworkID,
@@ -96,7 +104,10 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
         in_RouteID,      // RouteID
         in_Position1,    // d
         in_Side)       // Side
-    {}
+    {
+      del.refs=1;
+      del.isDelete=true;
+    }
 
   UGPoint( const Interval<Instant>& interval,
            const GPoint& p0,
@@ -104,12 +115,27 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( p0 ),
     p1( p1 )
-    {}
+    {
+      del.refs=1;
+      del.isDelete=true;
+      TemporalUnit<GPoint>::defined=true;
+    }
+
+  UGPoint(const UGPoint(&source)){
+    *((TemporalUnit<GPoint>*)this)=*((TemporalUnit<GPoint>*)&source);
+    p0=source.p0;
+    p1=source.p1;
+    del.refs=1;
+    del.isDelete=true;
+    TemporalUnit<GPoint>::defined = source.defined;
+  }
+
 
 /*
 Operator redefinitions
 
-Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~false~ if they are different.
+
+Redefinition of the copy operator ~=~.
 
 */
 
@@ -118,12 +144,25 @@ Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and ~fals
     *((TemporalUnit<GPoint>*)this) = *((TemporalUnit<GPoint>*)&i);
     p0 = i.p0;
     p1 = i.p1;
-
+   TemporalUnit<GPoint>::defined=i.defined;
     return *this;
   }
 
 /*
-Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~false~ if they are equal.
+Returns ~true~ if this temporal unit is equal to the temporal unit ~i~ and
+~false~ if they are different.
+
+*/
+
+   virtual bool operator==( const UGPoint& i ) const
+  {
+    return *((TemporalUnit<GPoint>*)this) == *((TemporalUnit<GPoint>*)&i) &&
+            (p0 == i.p0 ) && ( p1 == i.p1 );
+  }
+
+/*
+Returns ~true~ if this temporal unit is different to the temporal unit ~i~
+and ~false~ if they are equal.
 
 */
 
@@ -145,7 +184,7 @@ Functions to be part of relations
   inline virtual UGPoint* Clone() const
   {
     UGPoint *res;
-    res = new UGPoint( );
+    res = new UGPoint(timeInterval, p0, p1);
     res->defined = TemporalUnit<GPoint>::defined;
     return res;
   }
@@ -154,7 +193,6 @@ Functions to be part of relations
   {
     const UGPoint* i = (const UGPoint*)right;
 
-    TemporalUnit<GPoint>::defined = i->defined;
     if(i->defined)
       {
         timeInterval.CopyFrom( i->timeInterval );
@@ -171,7 +209,6 @@ Functions to be part of relations
 
   virtual const Rectangle<3> BoundingBox() const
   {
-    if (this->IsDefined())
       return Rectangle<3> (true,
                          (double) p0.GetRouteId(),
                          (double) p0.GetRouteId(),
@@ -179,20 +216,15 @@ Functions to be part of relations
                          max(p0.GetPosition(),p1.GetPosition()),
                          timeInterval.start.ToDouble(),
                          timeInterval.end.ToDouble());
-    else
-      return Rectangle<3>();
   }
 
   inline const Rectangle<2> BoundingBox2d() const
   {
-    if (this->IsDefined())
       return Rectangle<2> (true,
                            (double) p0.GetRouteId(),
                            (double) p0.GetRouteId(),
                           min(p0.GetPosition(), p1.GetPosition()),
                           max(p0.GetPosition(), p1.GetPosition()));
-    else
-      return Rectangle<2>();
   }
 
   virtual void TemporalFunction( const Instant& t,
@@ -240,6 +272,12 @@ Functions to be part of relations
 
     double GetUnitEndTime();
 
+    void Distance (const UGPoint &ugp, UReal &ur) const;
+
+    void Deftime(Periods &per);
+
+    Instant TimeAtPos(double pos);
+
     GPoint p0, p1;
 };
 
@@ -259,10 +297,134 @@ The simple constructor should not be used.
 
     MGPoint( const int n );
 
+    ~MGPoint(){}
+
     static ListExpr Property();
 
     static bool Check(ListExpr type,
                       ListExpr& errorInfo);
+
+    int GetNetworkId();
+
+    void Clear();
+
+    virtual Attribute* Clone() const
+    {
+      MGPoint *res = new MGPoint(GetNoComponents());
+      res->StartBulkLoad();
+      const UGPoint *u;
+      for (int i=0; i<GetNoComponents() ; i++) {
+        Get(i,u);
+        res->Add(*u);
+      }
+      res->EndBulkLoad();
+      return (Attribute*) res;
+    }
+
+    void CopyFrom(const StandardAttribute* right)
+    {
+      const MGPoint *src = (const MGPoint*) right;
+      Clear();
+      StartBulkLoad();
+      const UGPoint *u;
+      for (int i = 0; i < src->GetNoComponents(); i++) {
+        src->Get(i,u);
+        Add(*u);
+      }
+      EndBulkLoad();
+    }
+
+/*
+Computes the Euclidean Distance between two mgpoint with help of mpoint
+distance function.
+
+*/
+
+    void Distance(MGPoint *mgp, MReal *result);
+
+/*
+Translates an mgpoint into an mpoint value.
+
+*/
+
+    void Mgpoint2mpoint(MPoint *mp);
+
+/*
+Returns the trajectory of the mgpoint as sorted gline.
+
+*/
+
+   void Trajectory(GLine *res);
+
+/*
+Returns the deftime of the mgpoint as periods value.
+
+*/
+
+   void Deftime(Periods *res);
+
+/*
+Returns true if the mgpoint is defined at least in one of the periods resp.
+at the given Instant.
+
+*/
+   bool Present(Periods *per);
+
+   bool Present(Instant *inst);
+
+/*
+Returns the length of the trip of the mgpoint.
+
+*/
+
+   double Length();
+
+/*
+Returns a mgpoint representing the intersection of 2 mgpoints
+
+*/
+
+  void Intersection(MGPoint* mgp, MGPoint *res);
+
+/*
+Returns a mbool telling when the mgpoint was inside the gline.
+
+*/
+
+  void Inside(GLine* gl, MBool *res);
+
+
+/*
+Returns a mgpoint restricted to the given periods value.
+
+*/
+   void Atperiods(Periods *per, MGPoint *res);
+
+/*
+Returns a mgpoint restricted to the times it was at the given gpoint resp.
+gline.
+
+*/
+   void At(GPoint *gp, MGPoint *res);
+
+   void At(GLine *gl, MGPoint *res);
+
+/*
+Returns a mgpoint with smaller number of units because units with speed
+differences lower than d are compacted to be one unit.
+
+*/
+
+   MGPoint* Simplify(double d);
+
+/*
+Returns true if the mgpoint passes at least once the gpoint resp. gline.
+
+*/
+   bool Passes(GPoint *gp);
+
+   bool Passes(GLine *gl);
+
 
 };
 
