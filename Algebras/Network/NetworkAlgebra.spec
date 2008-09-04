@@ -16,3 +16,5 @@ operator intersects alias INTERSECTS pattern _ infixop _
 operator gpoint2rect alias GPOINT2RECT pattern op ( _ )
 operator gline2line alias GLINE2LINE pattern op ( _ )
 operator isempty alias ISEMPTY pattern op ( _ )
+operator union alias UNION pattern _ infixop _
+operator distance alias DISTANCE pattern op ( _ , _ )

@@ -59,6 +59,20 @@ Example  : query netdistance([const gline value(1((1 0.0 0.5)))], [const gline v
 Result   : 0.2
 Tolerance:%0.01
 
+Operator : distance
+Number   : 1
+Signature: gpoint x gpoint -> real
+Example  : query distance([const gpoint value(1 1 0.8 2)], [const gpoint value (1 1 0.2 2)]);
+Result   : 0.6
+Tolerance:%0.01
+
+Operator : distance
+Number   : 2
+Signature: gline x gline -> real
+Example  : query distance([const gline value(1((1 0.0 0.5)))], [const gline value(1((1 0.7 1.5)))]);
+Result   : 0.2
+Tolerance:%0.01
+
 Operator : point2gpoint
 Number   : 1
 Signature: point -> gpoint
@@ -146,3 +160,15 @@ Signature: gline -> line
 Example  : query gline2line([const gline value(1((1 0.0 1013.204931293)))]);
 Result   : (line((8209.0 8769.0 8293.0 8768.0)(8293.0 8768.0 8594.0 8773.0)(8594.0 8773.0 8982.0 8781.0)(8982.0 8781.0 9222.0 8787.0)))
 Tolerance: 0.01%
+
+Operator : union
+Number   : 1
+Signature: gline x gline -> gline
+Example  : query [const gline value(1((1 0.0 0.5)))] union [const gline value(1((1 0.7 1.5)))];
+Result   : (gline(1((1 0.0 0.5) (1 0.7 1.5))))
+
+Operator : union
+Number   : 2
+Signature: gline x gline -> gline
+Example  : query [const gline value(1((1 0.0 0.5)))] union [const gline value(1((1 0.2 1.5)))];
+Result   : (gline(1((1 0.0 1.5))))

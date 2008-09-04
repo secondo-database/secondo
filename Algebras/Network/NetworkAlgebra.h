@@ -50,6 +50,7 @@ Please include in *.cpp-File.
 #include "StandardAttribute.h"
 #include "SpatialAlgebra.h"
 
+class GLine;
 /*
 4 class GPoint
 
@@ -131,7 +132,11 @@ class GPoint : public StandardAttribute
 
 */
 
-    GPoint() {}
+    GPoint()
+    {
+      del.refs=1;
+      del.isDelete=true;
+    }
 
     GPoint( bool in_bDefined,
             int in_iNetworkId = 0,
@@ -141,13 +146,19 @@ class GPoint : public StandardAttribute
     m_iNetworkId( in_iNetworkId ),
     m_xRouteLocation( in_xRid, in_dLocation, in_xSide ),
     m_bDefined( in_bDefined )
-    {}
+    {
+      del.refs=1;
+      del.isDelete=true;
+    }
 
     GPoint( const GPoint& in_xOther ):
     m_iNetworkId( in_xOther.m_iNetworkId ),
     m_xRouteLocation( in_xOther.m_xRouteLocation ),
     m_bDefined( in_xOther.m_bDefined )
-    {}
+    {
+      del.refs=1;
+      del.isDelete=true;
+    }
 
     GPoint& operator=( const GPoint& in_xOther )
     {
@@ -159,6 +170,8 @@ class GPoint : public StandardAttribute
       }
       return *this;
     }
+
+    ~GPoint(){};
 
 /*
 4.3.2 Methods of class ~gpoint~
@@ -295,7 +308,20 @@ Returns the network distance between 2 ~gpoint~
 
 */
 
-    double distance (GPoint* toGPoint);
+    double Netdistance (GPoint* toGPoint);
+
+/*
+Computes the euclidean distance of 2 glines.
+
+*/
+    double Distance (GPoint* toGPoint);
+
+/*
+Returns true if the gpoint is inside the gline false elsewhere.
+
+*/
+
+    bool Inside(GLine *gl);
 
     bool operator== (const GPoint& p) const;
 
@@ -341,20 +367,32 @@ Defined flag.
 */
 
 
-struct RouteInterval
+class RouteInterval
 {
-  RouteInterval()
+  public:
+   RouteInterval()
   {
-  }
+  };
 
   RouteInterval(int in_iRouteId,
                 double in_dStart,
                 double in_dEnd):
-    m_iRouteId(in_iRouteId),
-    m_dStart(in_dStart),
-    m_dEnd(in_dEnd)
-  {
-  }
+      m_iRouteId(in_iRouteId),
+      m_dStart(in_dStart),
+      m_dEnd(in_dEnd) {};
+
+  RouteInterval(RouteInterval& ri) :
+    m_iRouteId (ri.m_iRouteId),
+    m_dStart (ri.m_dStart),
+    m_dEnd (ri.m_dEnd)
+    {};
+
+  RouteInterval(const RouteInterval& ri):
+      m_iRouteId(ri.m_iRouteId),
+      m_dStart(ri.m_dStart),
+      m_dEnd(ri.m_dEnd) {};
+
+  //~RouteInterval() {};
 
 /*
 The route id.
@@ -382,6 +420,75 @@ The distance interval in the route.
 */
 };
 
+struct GPointPoint{
+
+  GPointPoint(){};
+
+  GPointPoint(GPoint gp, Point p) {
+    m_gp = gp;
+    m_p = p;
+  };
+
+  GPoint m_gp;
+  Point m_p;
+};
+
+struct GPointPointTree {
+  GPointPointTree(){};
+
+  GPointPointTree( GPoint gp, Point p, GPointPointTree *left = 0,
+                   GPointPointTree *right = 0){
+    m_gp = gp;
+    m_p = p;
+    m_left = left;
+    m_right = right;
+  };
+
+  ~GPointPointTree(){};
+
+  void Insert (GPoint gp, Point p) {
+    if (gp == this->m_gp) {}
+    else {
+      if (gp.GetRouteId() < this->m_gp.GetRouteId()) {
+        if (this->m_left != 0) this->m_left->Insert(gp, p);
+        else this->m_left = new GPointPointTree(gp, p,0,0);
+      } else {
+        if (gp.GetRouteId() > this->m_gp.GetRouteId()) {
+          if (this->m_right != 0) this->m_right->Insert(gp, p);
+          else this->m_right = new GPointPointTree(gp, p, 0,0);
+        }else{
+          if(gp.GetRouteId() == this->m_gp.GetRouteId()) {
+            if (gp.GetPosition() < this->m_gp.GetPosition()) {
+              if (this->m_left != 0) this->m_left->Insert(gp, p);
+              else this->m_left = new GPointPointTree(gp , p,0,0);
+            } else {
+              if (gp.GetPosition() > this->m_gp.GetPosition()) {
+                if (this->m_right != 0) this->m_right->Insert(gp, p);
+                else this->m_right = new GPointPointTree(gp, p,0,0);
+              }
+            }
+          }
+        }   // endif rid=rid
+      }
+    }
+  };
+
+  void TreeToVector (DBArray<GPointPoint> *vgp) {
+    if (this->m_left != 0) this->m_left->TreeToVector (vgp);
+    vgp->Append(GPointPoint(m_gp, m_p));
+    if (this->m_right != 0) this->m_right->TreeToVector (vgp);
+  };
+
+  void RemoveTree(){
+    if (m_left != 0) m_left->RemoveTree();
+    if (m_right != 0) m_right->RemoveTree();
+    delete this;
+  };
+
+  GPoint m_gp;
+  Point m_p;
+  GPointPointTree *m_left, *m_right;
+};
 
 
 /*
@@ -580,12 +687,12 @@ Redefinition of the assignment operator.
     return *this;
   }
 
-  bool getUpDownFlag()
+  bool GetUpDownFlag()
   {
     return m_bUpDown;
   }
 
-  int getSectionTid()
+  int GetSectionTid()
   {
     return m_iSectionTid;
   }
@@ -801,7 +908,7 @@ struct JunctionSortEntry
     return (xMeas1->GetRealval() < xMeas2->GetRealval());
   }
 
-  double getRouteMeas()
+  double GetRouteMeas()
   {
     CcReal* pMeas;
     if(m_bFirstRoute)
@@ -816,7 +923,7 @@ struct JunctionSortEntry
 
   }
 
-  double getOtherRouteMeas()
+  double GetOtherRouteMeas()
   {
     CcReal* pMeas;
     if(m_bFirstRoute)
@@ -831,7 +938,7 @@ struct JunctionSortEntry
 
   }
 
-  int getOtherRouteId() {
+  int GetOtherRouteId() {
     CcInt* pRouteId;
     if (m_bFirstRoute) {
       pRouteId = (CcInt*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_ID);
@@ -842,7 +949,7 @@ struct JunctionSortEntry
   }
 
 
-  int getUpSectionId()
+  int GetUpSectionId()
   {
     TupleIdentifier* pTid;
     if(m_bFirstRoute)
@@ -858,7 +965,7 @@ struct JunctionSortEntry
     return pTid->GetTid();
   }
 
-  int getDownSectionId()
+  int GetDownSectionId()
   {
     TupleIdentifier* pTid;
     if(m_bFirstRoute)
@@ -904,6 +1011,12 @@ The B-Tree in the ~routes~ relation type info as string.
   static string routesBTreeTypeInfo;
 
 /*
+The R-Tree in the ~routes~ relation type info as string.
+
+
+
+  static string routesRTreeTypeInfo;
+
 The B-Tree in the ~junctions~ relation type info as string.
 
 */
@@ -1069,7 +1182,7 @@ Returns the section ~tuple~ of the network which includes the ~GPoint~
 
 */
 
-    Tuple* GetSectionOnRoute(GPoint* in_xGPoint);
+ Tuple*  GetSectionOnRoute(GPoint* in_xGPoint);
 
 /*
 GetPointOnRoute
@@ -1077,7 +1190,16 @@ GetPointOnRoute
 Returns the point value of the GPoint on the route.
 
 */
-    Point* GetPointOnRoute(GPoint* in_xGPoint);
+  Point* GetPointOnRoute(GPoint* in_xGPoint);
+
+/*
+GetRouteCurve
+
+Returns the route tuple for the given route id.
+
+*/
+
+  Tuple* GetRoute(int in_RouteId);
 
 /*
 GetLineValueOfRouteInterval
@@ -1087,7 +1209,16 @@ Returns the ~sline~ representing the ~RouteInterval~ in spatial data.
 */
 
   void GetLineValueOfRouteInterval(const RouteInterval* in_rI,
-                                   SimpleLine &out_line);
+                                   SimpleLine *out_line);
+
+/*
+Reads the geometry of the route interval and returns pairs of gpoint-point
+values for all start end points of the halfsegments inside the routeinverval.
+
+*/
+
+  void GetGPointsOnInterval(TupleId iRouteId, double start, double end,
+                            DBArray<GPointPoint> &gpp_list);
 
 /*
 GetSections
@@ -1096,7 +1227,7 @@ Returns a copy of the ~sections~ relation in external representation.
 This function is used in the ~sections~ operator.
 
 */
-    Relation *GetSections();
+  Relation *GetSections();
 
 /*
 GetSectionsInternal
@@ -1340,10 +1471,16 @@ The B-Tree in the ~routes~ relation.
 */
   BTree* m_pBTreeJunctionsByRoute2;
 
+
+//The R-Tree in the ~routes~ relation
+
+// R_Tree<2, TupleIdentifier> *m_pRTreeRoutes;
+
 /*
 The adjacency lists of sections.
 
 */
+
   DBArray<AdjacencyListEntry> m_xAdjacencyList;
 
 /*
@@ -1386,11 +1523,15 @@ The simple constructor. Should not be used.
 
 */
 
+    ostream& Print( ostream& os ) const;
+
     void SetNetworkId(int in_iNetworkId);
 
     void AddRouteInterval(int in_iRouteId,
                           double in_dStart,
                           double in_dEnd);
+
+    void AddRouteInterval(RouteInterval *ri);
 
     static ListExpr Out( ListExpr typeInfo, Word value );
 
@@ -1406,7 +1547,7 @@ The simple constructor. Should not be used.
 
     static void Close( const ListExpr typeInfo, Word& w );
 
-    static Word Clone( const ListExpr typeInfo,
+    static Word CloneGLine( const ListExpr typeInfo,
                        const Word& w );
 
     static void* Cast( void* addr );
@@ -1431,7 +1572,7 @@ The simple constructor. Should not be used.
 
     bool Adjacent(const Attribute*) const;
 
-    Attribute* Clone() const;
+    // Attribute* Clone() const;
 
     size_t HashValue() const;
 
@@ -1449,14 +1590,47 @@ The simple constructor. Should not be used.
 
     void SetSorted(bool);
 
-
 /*
 Computes the network distance of 2 glines.
 
 */
 
-    double distance(GLine* pgl2);
+    double Netdistance(GLine* pgl2);
 
+/*
+Computes the euclidean distance of 2 glines.
+
+*/
+
+    double Distance (GLine* pgl2);
+
+/*
+Computes the union of 2 glines.
+
+*/
+
+
+    void Uniongl (GLine* pgl2, GLine *res);
+
+/*
+Translates a gline value into a line value.
+
+*/
+
+  void Gline2line (Line *res);
+
+
+/*
+Returns true if the glines intersect false elswhere.
+
+*/
+
+
+  bool Intersects (GLine *pgl);
+
+  virtual GLine* Clone() const;
+
+  void Clear();
 
 
   private:
@@ -1523,13 +1697,13 @@ struct RITree {
     m_right = right;
   };
 
-  ~RITree();
+  ~RITree(){};
 
-  double checkTree(RITree& father, int rid, double pos1, double pos2,
+  double CheckTree(RITree& father, int rid, double pos1, double pos2,
                    bool bleft) {
     if (rid < this->m_iRouteId) {
       if (this->m_left != 0) {
-        return this->m_left->checkTree(*this, rid, pos1, pos2, bleft);
+        return this->m_left->CheckTree(*this, rid, pos1, pos2, bleft);
       } else {
         if (bleft) return pos1;
         else return pos2;
@@ -1537,7 +1711,7 @@ struct RITree {
     } else {
       if (rid > this->m_iRouteId) {
         if (this->m_right != 0) {
-          return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+          return this->m_right->CheckTree(*this, rid, pos1, pos2,bleft);
         } else {
           if (bleft) return pos1;
           else return pos2;
@@ -1545,7 +1719,7 @@ struct RITree {
       } else {
         if (pos2 < this->m_dStart) {
           if (this->m_left != 0) {
-            return this->m_left->checkTree(*this, rid, pos1, pos2,bleft);
+            return this->m_left->CheckTree(*this, rid, pos1, pos2,bleft);
           } else {
             if (bleft) return pos1;
             else return pos2;
@@ -1553,7 +1727,7 @@ struct RITree {
         } else {
           if (pos1 > this->m_dEnd) {
             if (this->m_right != 0 ) {
-              return this->m_right->checkTree(*this, rid, pos1, pos2,bleft);
+              return this->m_right->CheckTree(*this, rid, pos1, pos2,bleft);
             } else {
               if (bleft) return pos1;
               else return pos2;
@@ -1572,7 +1746,7 @@ struct RITree {
               }
               if (father.m_left != 0) {
                 //delete this;
-                return father.m_left->checkTree(father, rid, pos1, pos2, bleft);
+                return father.m_left->CheckTree(father, rid, pos1, pos2, bleft);
               } else {
                 return pos1;
               }
@@ -1587,7 +1761,7 @@ struct RITree {
               }
               if (father.m_right != 0 ) {
                 //delete this;
-                return father.m_right->checkTree(father, rid, pos1, pos2,bleft);
+                return father.m_right->CheckTree(father, rid, pos1, pos2,bleft);
               } else {
                 return pos2;
               }
@@ -1601,18 +1775,18 @@ struct RITree {
   };
 
 
-  void insert (int rid, double pos1, double pos2) {
+  void Insert (int rid, double pos1, double pos2) {
     double test;
     if (rid < this->m_iRouteId) {
       if (this->m_left != 0) {
-        this->m_left->insert(rid, pos1, pos2);
+        this->m_left->Insert(rid, pos1, pos2);
       } else {
         this->m_left = new RITree(rid, pos1, pos2,0,0);
       }
     } else {
       if (rid > this->m_iRouteId) {
         if (this->m_right != 0) {
-          this->m_right->insert(rid, pos1, pos2);
+          this->m_right->Insert(rid, pos1, pos2);
         } else {
           this->m_right = new RITree(rid, pos1, pos2,0,0);
         }
@@ -1620,14 +1794,14 @@ struct RITree {
         if(rid == this->m_iRouteId) {
           if (pos2 < this->m_dStart) {
             if (this->m_left != 0) {
-               this->m_left->insert(rid, pos1, pos2);
+               this->m_left->Insert(rid, pos1, pos2);
             } else {
                 this->m_left = new RITree(rid, pos1, pos2,0,0);
             }
           } else {
             if (pos1 > this->m_dEnd) {
               if (this->m_right != 0) {
-                this->m_right->insert(rid, pos1, pos2);
+                this->m_right->Insert(rid, pos1, pos2);
               } else {
                 this->m_right =
                     new RITree(rid, pos1, pos2,0,0);
@@ -1638,7 +1812,7 @@ struct RITree {
               if (this->m_dStart > pos1) {
                 this->m_dStart = pos1;
                 if (this->m_left != 0) {
-                  test = this->m_left->checkTree(*this, rid, this->m_dStart,
+                  test = this->m_left->CheckTree(*this, rid, this->m_dStart,
                                                 this->m_dEnd, true);
                   if (this->m_dStart > test) {
                     this->m_dStart = test;
@@ -1648,7 +1822,7 @@ struct RITree {
               if (this->m_dEnd < pos2) {
                 this->m_dEnd = pos2;
                 if (this->m_right != 0) {
-                  test = this->m_right->checkTree(*this, rid, this->m_dStart,
+                  test = this->m_right->CheckTree(*this, rid, this->m_dStart,
                                                   this->m_dEnd, false);
                   if (this->m_dEnd < test) {
                     this->m_dEnd = test;
@@ -1662,14 +1836,20 @@ struct RITree {
     }
   };
 
-  void treeToGLine (GLine *gline) {
+  void TreeToGLine (GLine *gline) {
     if (this->m_left != 0) {
-      this->m_left->treeToGLine (gline);
+      this->m_left->TreeToGLine (gline);
     }
     gline->AddRouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd);
     if (this->m_right != 0) {
-      this->m_right->treeToGLine (gline);
+      this->m_right->TreeToGLine (gline);
     }
+  };
+
+  void RemoveTree(){
+    if (m_left != 0) m_left->RemoveTree();
+    if (m_right != 0) m_right->RemoveTree();
+    delete this;
   };
 
   int m_iRouteId;

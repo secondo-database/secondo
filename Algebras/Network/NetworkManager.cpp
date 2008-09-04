@@ -81,7 +81,6 @@ Network* NetworkManager::GetNetwork(int in_iNetworkId)
         // Undefined network
         continue;
       }
-
       Network* pNetwork = (Network*)xValue.addr;
       if(pNetwork->GetId() == in_iNetworkId)
       {
