@@ -2604,6 +2604,10 @@ The following functions are needed to act as an attribute type.
     segments.Get(i,hs);
   }
 
+  bool Get(LRS &lrs, int &i){
+    return Find(lrs, i);
+  }
+
   inline void Put(const int i, const HalfSegment& hs){
     segments.Put(i,hs);
   }

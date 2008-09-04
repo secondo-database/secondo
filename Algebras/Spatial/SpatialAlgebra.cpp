@@ -6128,7 +6128,7 @@ Word
 }
 
  Word CreateSimpleLine( const ListExpr typeInfo ) {
-   return SetWord( new SimpleLine( 1 ) );
+   return SetWord( new SimpleLine( 0 ) );
  }
 
 void DeleteSimpleLine( const ListExpr typeInfo, Word& w ) {
@@ -9913,7 +9913,7 @@ segment is returned.
        double diff = (diff1>diff2?diff1:diff2);
        cerr << "difference to x is " << diff << endl;
        cerr << "The segment is " << *this << endl;
-       //assert(diff < 1.0); 
+       //assert(diff < 1.0);
      }
      if(isVertical()){
         return y1;
@@ -10151,9 +10151,9 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
          cerr << "Overlapping neighbours found" << endl;
          cout << "leftN = " << *leftN << endl;
          cout << "rightN = " << *rightN << endl;
-         avlseg::AVLSegment left;  
-         avlseg::AVLSegment common;  
-         avlseg::AVLSegment right;  
+         avlseg::AVLSegment left;
+         avlseg::AVLSegment common;
+         avlseg::AVLSegment right;
          int parts = leftN->split(*rightN, left,common,right,false);
          sss.remove(*leftN);
          sss.remove(*rightN);
@@ -10163,13 +10163,13 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
              leftN = sss.insert2(left);
              insertEvents(left,false,true,q1,q2);
            }
-         } 
+         }
          if(parts & avlseg::COMMON){
            if(!common.isPoint()){
              cout << "insert common part" << common << endl;
              rightN = sss.insert2(common);
              insertEvents(common,false,true,q1,q2);
-           }           
+           }
          }
          if(parts & avlseg::RIGHT){
            if(!right.isPoint()){
@@ -10723,7 +10723,7 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
             if(splitByNeighbour(sss,current,leftN,q1,q2)){
                insertEvents(current,true,true,q1,q2);
             } else if(splitByNeighbour(sss,current,rightN,q1,q2)) {
-               insertEvents(current,true,true,q1,q2); 
+               insertEvents(current,true,true,q1,q2);
             } else {
                sss.insert(current);
                insertEvents(current,false,true,q1,q2);
