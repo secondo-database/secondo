@@ -5452,7 +5452,8 @@ int OpTrajectoryValueMapping(Word* args,
     return 0;
   }
   pMGPoint->Trajectory(res);
-  (*pGLine) = *res;
+  result = SetWord(res);
+//   (*pGLine) = *res;
   return 0;
 }
 
