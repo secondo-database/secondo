@@ -4437,11 +4437,15 @@ int OpLine2GLineValueMapping(Word* args,
     }
     delete pRoutesIt;
   } // end for pLine-Components
-  tree->TreeToGLine(pGLine);
+  tree->TreeToGLine(res);
   tree->RemoveTree();
-  pGLine->SetDefined(true);
-  pGLine->SetNetworkId(pNetwork->GetId());
-  pGLine->SetSorted(true);
+  res->SetDefined(true);
+  res->SetNetworkId(pNetwork->GetId());
+  res->SetSorted(true);
+  result = SetWord(res);
+//   pGLine->SetDefined(true);
+//   pGLine->SetNetworkId(pNetwork->GetId());
+//   pGLine->SetSorted(true);
   return 0;
 } //end ValueMapping
 
