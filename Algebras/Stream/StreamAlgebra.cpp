@@ -4033,6 +4033,121 @@ Operator streamtail( "tail",
 
 
 
+
+/*
+6.6 Operator ~kinds~
+
+6.6.1 Type Mapping
+
+*/
+ListExpr KindsTypeMap(const ListExpr args){
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("Wrong number of arguments ");
+    return nl->TypeError();
+  } else {
+    if(nl->IsEqual(nl->First(args),symbols::STRING)){
+      return nl->TwoElemList(nl->SymbolAtom(symbols::STREAM),
+                             nl->SymbolAtom(symbols::STRING));
+    } else {
+      ErrorReporter::ReportError("Wrong number of arguments ");
+      return nl->TypeError();
+    }
+  }
+}
+
+/*
+6.6.2 Value Mapping
+
+*/
+
+class KindsLocalInfo{
+  public:
+    KindsLocalInfo(CcString* name):pos(0),kinds(){
+       if(!name) {
+         return;
+       }
+       if(!name->IsDefined()){
+         return;
+       }
+       string type = name->GetValue();
+       if(!SecondoSystem::GetCatalog()->IsTypeName(type)){
+         return;
+       }
+       int algId=0;
+       int typeId = 0;
+       SecondoSystem::GetCatalog()->GetTypeId(name->GetValue(),algId,typeId);
+       TypeConstructor* tc = am->GetTC(algId,typeId);
+       kinds = tc->GetKinds(); 
+ 
+    }
+
+    CcString*  nextKind(){
+      if(pos>=kinds.size()){
+        return 0;
+      } else {
+        CcString* res = new CcString(true,kinds[pos]);
+        pos++;
+        return res;
+      }
+    }
+  
+  private:
+     unsigned int pos;
+     vector<string> kinds;
+};
+
+
+int KindsVM(Word* args, Word& result,
+                           int message, Word& local, Supplier s)
+{
+
+  switch(message){
+    case OPEN: { 
+              local.setAddr( new KindsLocalInfo(
+                                   static_cast<CcString*>(args[0].addr)));
+              return 0;
+             }
+    case REQUEST: {
+              KindsLocalInfo* li = static_cast<KindsLocalInfo*>(local.addr);
+              if(!li){
+                 return CANCEL;
+              }else{
+                 result.setAddr(li->nextKind());
+                 return result.addr ? YIELD : CANCEL;   
+              } 
+         }
+    case CLOSE: {
+              KindsLocalInfo* li = static_cast<KindsLocalInfo*>(local.addr);
+              if(li){
+                 delete li;
+                 local.setAddr(0);
+              } 
+              return 0;
+         }
+    default: return 0;
+  }
+
+}
+
+/*
+6.6.3 Specification
+
+*/
+const string KindsSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>string -> stream(string)</text--->"
+      "<text>_ kinds </text--->"
+      "<text>Produces a stream of strings for a given type</text--->"
+      "<text>query string kinds transformstream consume</text---> ))";
+
+Operator kinds (
+      "kinds",
+      KindsSpec,
+      KindsVM,
+      Operator::SimpleSelect,
+      KindsTypeMap );
+
+
 /*
 7 Creating the Algebra
 
@@ -4059,6 +4174,8 @@ public:
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
     AddOperator( &streamtail );
+    AddOperator( &streamtail );
+    AddOperator( &kinds);
   }
   ~StreamAlgebra() {};
 };

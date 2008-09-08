@@ -255,6 +255,10 @@ These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
       return SimpleCheck( type, errorInfo );
   }
 
+  const vector<string>& GetKinds(){
+     return kinds;
+  }
+
 
 /*
 Dummy methods used as placeholders for type constructor functions.

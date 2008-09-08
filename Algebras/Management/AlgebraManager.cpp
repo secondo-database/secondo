@@ -316,6 +316,12 @@ AlgebraManager::Constrs( int algebraId, int typeId )
   return (algebra[algebraId]->GetTypeConstructor( typeId )->name);
 }
 
+TypeConstructor*
+AlgebraManager::GetTC( int algebraId, int typeId )
+{
+  return (algebra[algebraId]->GetTypeConstructor( typeId ));
+}
+
 ListExpr
 AlgebraManager::Props( int algebraId, int typeId )
 {
@@ -443,7 +449,6 @@ AlgebraManager::CheckKind( const string& kindName,
                   type ) );
   return (false);
 }
-
 
 void 
 AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {

@@ -202,4 +202,9 @@ Signature: stream(T) [x bool] -> stream(T), T in DATA
 Example  : query realstream(1.0,1050000.0,1.0) tail[666] count
 Result   : 666
 
+Operator : kinds 
+Number   : 1
+Signature: string -> stream(string)
+Example  : query "int" kinds count
+Result   : 4
 

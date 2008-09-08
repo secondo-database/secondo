@@ -33,3 +33,4 @@ operator feed alias FEED pattern _ op
 operator filter alias FILTER pattern _ op [ fun ] implicit parameter streamelem type STREAMELEM
 operator count alias COUNT pattern _ op
 operator tail alias TAIL pattern _ op [ _ , _ ]
+operator kinds alias KINDS pattern _ op 

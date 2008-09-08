@@ -354,6 +354,13 @@ Returns the number of constructors of algebra ~algebraId~.
 Returns the name of type constructor ~typeId~ of algebra ~algebraId~.
 
 */
+  TypeConstructor* GetTC(int algId, int typeId); 
+/*
+Returns the type constructor for givel algebra id and type id.
+
+*/
+
+
   ListExpr Props( const int algebraId, const int typeId );
 /*
 Returns the type properties  of type constructor ~typeId~ of algebra
