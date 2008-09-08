@@ -2048,6 +2048,7 @@ template<int TidIndexPos>
                    Word& local, Supplier s )
 {
   GetTuplesLocalInfo *localInfo;
+  static MessageCenter* msg = MessageCenter::GetInstance();
 
   switch (message)
   {
@@ -2072,34 +2073,41 @@ template<int TidIndexPos>
 
       Word wTuple;
       qp->Request(args[0].addr, wTuple);
-      if( qp->Received(args[0].addr) )
+      while( qp->Received(args[0].addr) )
       {
         Tuple* sTuple = (Tuple*)wTuple.addr;
         Tuple* resultTuple = new Tuple( localInfo->resultTupleType );
         Tuple* relTuple = localInfo->relation->
             GetTuple(((TupleIdentifier *)sTuple->
             GetAttribute(localInfo->tidIndex))->GetTid());
-        int j = 0;
 
-        // Copy the attributes from the stream tuple
-        for( int i = 0; i < sTuple->GetNoAttributes(); i++ )
-        {
-          if( i != localInfo->tidIndex )
-            resultTuple->CopyAttribute( i, sTuple, j++ );
+        if(!relTuple){
+          NList msg_list(NList("simple") , 
+                    NList("Warning: invalid tuple id"));
+          msg->Send(msg_list);
+          qp->Request(args[0].addr, wTuple);
+        } else {
+          int j = 0;
+
+          // Copy the attributes from the stream tuple
+          for( int i = 0; i < sTuple->GetNoAttributes(); i++ )
+          {
+            if( i != localInfo->tidIndex )
+              resultTuple->CopyAttribute( i, sTuple, j++ );
+          }
+          sTuple->DeleteIfAllowed();
+
+          for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
+          {
+            resultTuple->CopyAttribute( i, relTuple, j++ );
+          }
+          relTuple->DeleteIfAllowed();
+
+          result.setAddr( resultTuple );
+          return YIELD;
         }
-        sTuple->DeleteIfAllowed();
-
-        for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
-        {
-          resultTuple->CopyAttribute( i, relTuple, j++ );
-        }
-        relTuple->DeleteIfAllowed();
-
-        result.setAddr( resultTuple );
-        return YIELD;
       }
-      else
-        return CANCEL;
+      return CANCEL;
     }
 
     case CLOSE :
