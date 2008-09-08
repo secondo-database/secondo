@@ -174,7 +174,7 @@ DateTime::DateTime(){}
 
 
 bool DateTime::hasType(const TimeType t) const{
-   return  (t==instanttype) ? ((state & INSTANT_POS)>0) 
+   return  (t==instanttype) ? ((state & INSTANT_POS)>0)
                             : ((state & DURATION_POS) >0);
 }
 
@@ -596,7 +596,7 @@ day value.
    BigInt<8> bi_ms(milliseconds);
    bi_res.AddInternal(bi_ms,correct);
    //assert(correct);
-   return  bi_res;  
+   return  bi_res;
  }
 
 
@@ -687,7 +687,7 @@ string DateTime::ToString() const{
        tmp << "0";
     tmp << ms;
   } else{
-    tmp << "unknown type, def=" << IsDefined() 
+    tmp << "unknown type, def=" << IsDefined()
         << " type=" << GetType() << " day = " << day << " ms = "
         << milliseconds;
   }
@@ -717,136 +717,195 @@ indicates optional parts. This function is not defined for durations.
 
 */
 bool DateTime::ReadFrom(const string Time){
-   assert(!hasType(durationtype));
-   if(Time=="undefined"){
-      SetDefined(false);
-      return true;
-   }
-   if(Time==begin_of_time){
-        ToMinimum();
+  if(hasType(instanttype)){
+    // read instant type from string
+    if(Time=="undefined"){
+        SetDefined(false);
         return true;
-   }
-   if(Time==end_of_time){
-      ToMaximum();
-      return true;
-   }
-   int year = 0;
-   int digit;
-   int len = Time.length();
-   if(len==0) return false;
-   int pos = 0;
-   // read the year
-   int signum = 1;
-   if(Time[0]=='-'){
+    }
+    if(Time==begin_of_time){
+          ToMinimum();
+          return true;
+    }
+    if(Time==end_of_time){
+        ToMaximum();
+        return true;
+    }
+    int year = 0;
+    int digit;
+    int len = Time.length();
+    if(len==0) return false;
+    int pos = 0;
+    // read the year
+    int signum = 1;
+    if(Time[0]=='-'){
+        signum=-1;
+        pos++;
+    }
+
+    if(pos==len) return false;
+    while(Time[pos]!='-'){
+        digit = datetime::GetValue(Time[pos]);
+        if(digit<0) return false;
+        pos++;
+        if(pos==len) return false;
+        year = year*10+digit;
+      }
+    year = year*signum;
+    pos++; // read over  '-'
+    if(pos==len) return false;
+    // read the month
+    int month = 0;
+    while(Time[pos]!='-'){
+        digit = datetime::GetValue(Time[pos]);
+        if(digit<0) return false;
+        pos++;
+        if(pos==len) return false;
+        month = month*10+digit;
+    }
+    pos++; // read over '-'
+    if(pos==len) return false;
+    // read the day
+    int day = 0;
+    while(Time[pos]!='-'){
+        digit = datetime::GetValue(Time[pos]);
+        if(digit<0) return false;
+        pos++;
+        day = day*10+digit;
+        if(pos==len){ // we allow pure date string without any hour
+          if(!IsValid(year,month,day))
+              return false;
+          this->day = ToJulian(year,month,day);;
+          milliseconds=0;
+          SetDefined(true);
+          return true;
+        }
+    }
+    pos++; // read over '-'
+    if(pos==len) return false;
+    if(!IsValid(year,month,day))
+        return false;
+    // read the hour
+    int hour = 0;
+    while(Time[pos]!=':'){
+        digit = datetime::GetValue(Time[pos]);
+        if(digit<0) return false;
+        pos++;
+        if(pos==len) return false;
+        hour = hour*10+digit;
+    }
+    pos++; // read over ':'
+    if(pos==len) return false;
+    // read the minute
+    int minute = 0;
+    bool done = false;
+    bool next = false;
+    while(!done && !next){
+        digit = datetime::GetValue(Time[pos]);
+        if(digit<0) return false;
+        pos++;
+        minute = minute*10+digit;
+        done = pos==len;
+        if(!done)
+            next = Time[pos]==':';
+    }
+    // initialize seconds and milliseconds with zero
+    LONGTYPE seconds = 0;
+    LONGTYPE mseconds = 0;
+    if(!done){ // we have to read seconds
+      pos++; // read over the ':'
+      if(pos==len) return false;
+      next = false;
+      while(!done && !next){
+          digit = datetime::GetValue(Time[pos]);
+          if(digit<0) return false;
+          pos++;
+          seconds = seconds*10+digit;
+          done = pos==len;
+          if(!done)
+            next = Time[pos]=='.';
+      }
+      if(!done ){ // milliseconds are available
+          pos++; // read over the '.'
+          if(pos==len) return false;
+          next = false;
+          while(!done){
+              digit = datetime::GetValue(Time[pos]);
+              if(digit<0) return false;
+              pos++;
+              mseconds = mseconds*10+digit;
+              done = pos==len;
+          }
+      }
+    }
+    // At this place we have all needed information to create a date
+    this->day = ToJulian(year,month,day);
+    milliseconds = ((hour*60+minute)*60+seconds)*1000+mseconds;
+    if(milliseconds>MILLISECONDS){
+        LONGTYPE dif = milliseconds/MILLISECONDS;
+        this->day += dif;
+        milliseconds -= dif*MILLISECONDS;
+    }
+    SetDefined(true);
+    return true;
+  } else { // read durationtype from string
+    assert(hasType(durationtype));
+    if(Time=="undefined"){
+        SetDefined(false);
+        return true;
+    }
+    LONGTYPE day = 0;
+    int digit;
+    int len = Time.length();
+    if(len==0) return false;
+    int pos = 0;
+    // read the day
+    int signum = 1;
+    if(Time[0]=='-'){
+        signum=-1;
+        pos++;
+    }
+    if(pos==len) return false;
+    while(Time[pos]!=';'){
+        digit = datetime::GetValue(Time[pos]);
+        if(digit<0) return false;
+        pos++;
+        if(pos==len) return false;
+        day = day*10+digit;
+      }
+    day = day*signum;
+    pos++; // read over  ';'
+    bool done = (pos==len);
+    if(done) return false;
+
+    // read the millisecond
+    LONGTYPE mseconds = 0;
+    signum = 1;
+    if(Time[pos]=='-'){
       signum=-1;
       pos++;
-   }
-
-   if(pos==len) return false;
-   while(Time[pos]!='-'){
+      done = (pos==len);
+    }
+    while(!done){
       digit = datetime::GetValue(Time[pos]);
       if(digit<0) return false;
       pos++;
-      if(pos==len) return false;
-      year = year*10+digit;
-   }
-   year = year*signum;
-   pos++; // read over  '-'
-   if(pos==len) return false;
-   // read the month
-   int month = 0;
-   while(Time[pos]!='-'){
-      digit = datetime::GetValue(Time[pos]);
-      if(digit<0) return false;
-      pos++;
-      if(pos==len) return false;
-      month = month*10+digit;
-   }
-   pos++; // read over '-'
-   if(pos==len) return false;
-   // read the day
-   int day = 0;
-   while(Time[pos]!='-'){
-      digit = datetime::GetValue(Time[pos]);
-      if(digit<0) return false;
-      pos++;
-      day = day*10+digit;
-      if(pos==len){ // we allow pure date string without any hour
-         if(!IsValid(year,month,day))
-            return false;
-         this->day = ToJulian(year,month,day);;
-         milliseconds=0;
-         SetDefined(true);
-         return true;
-      }
-   }
-   pos++; // read over '-'
-   if(pos==len) return false;
-   if(!IsValid(year,month,day))
-      return false;
-   // read the hour
-   int hour = 0;
-   while(Time[pos]!=':'){
-      digit = datetime::GetValue(Time[pos]);
-      if(digit<0) return false;
-      pos++;
-      if(pos==len) return false;
-      hour = hour*10+digit;
-   }
-   pos++; // read over ':'
-   if(pos==len) return false;
-   // read the minute
-   int minute = 0;
-   bool done = false;
-   bool next = false;
-   while(!done && !next){
-      digit = datetime::GetValue(Time[pos]);
-      if(digit<0) return false;
-      pos++;
-      minute = minute*10+digit;
+      mseconds = mseconds*10+digit;
       done = pos==len;
-      if(!done)
-          next = Time[pos]==':';
-   }
-   // initialize seconds and milliseconds with zero
-   LONGTYPE seconds = 0;
-   LONGTYPE mseconds = 0;
-   if(!done){ // we have to read seconds
-     pos++; // read over the ':'
-     if(pos==len) return false;
-     next = false;
-     while(!done && !next){
-         digit = datetime::GetValue(Time[pos]);
-         if(digit<0) return false;
-         pos++;
-         seconds = seconds*10+digit;
-         done = pos==len;
-         if(!done)
-           next = Time[pos]=='.';
-     }
-     if(!done ){ // milliseconds are available
-        pos++; // read over the '.'
-        if(pos==len) return false;
-        next = false;
-        while(!done){
-            digit = datetime::GetValue(Time[pos]);
-            if(digit<0) return false;
-            pos++;
-            mseconds = mseconds*10+digit;
-            done = pos==len;
-        }
-     }
-   }
-   // At this place we have all needed information to create a date
-   this->day = ToJulian(year,month,day);
-   milliseconds = ((hour*60+minute)*60+seconds)*1000+mseconds;
-   if(milliseconds>MILLISECONDS){
-      LONGTYPE dif = milliseconds/MILLISECONDS;
-      this->day += dif;
-      milliseconds -= dif*MILLISECONDS;
-   }
-   SetDefined(true);
-   return true;
+    }
+    mseconds = mseconds * signum;
+
+    // store data to attributes
+    this->day = day;
+    milliseconds = mseconds;
+    if(milliseconds>MILLISECONDS){
+        LONGTYPE dif = milliseconds/MILLISECONDS;
+        this->day += dif;
+        milliseconds -= dif*MILLISECONDS;
+    }
+    SetDefined(true);
+    return true;
+  }
 }
 
 
@@ -1131,7 +1190,7 @@ will be __false__.
 bool DateTime::Adjacent(const Attribute* arg) const{
   return false;
   /*
-  // adjacent in discrete case: 
+  // adjacent in discrete case:
   const DateTime* T2 = (const DateTime*) arg;
   if(day==T2->day && abs(milliseconds-T2->milliseconds)==1)
     return true;
@@ -1167,7 +1226,7 @@ instance to the value of the argument.
 void DateTime::SetDefined( bool defined ){
    if(defined){
      state = state | DEF_POS;
-   } else {  
+   } else {
      state = state & ~DEF_POS;
    }
   //this->defined = defined;
@@ -2512,7 +2571,7 @@ int DateTimeToStringFun(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     DateTime *T = static_cast<DateTime*>(args[0].addr);
     string rs = T->ToString();
-    ( static_cast<CcString*>(result.addr))->Set(true,rs); 
+    ( static_cast<CcString*>(result.addr))->Set(true,rs);
    return 0;
 }
 
@@ -2990,6 +3049,8 @@ class DateTimeAlgebra : public Algebra
     instant.AssociateKind("CSVIMPORTABLE");
     AddTypeConstructor( &duration );
     duration.AssociateKind("DATA");
+    duration.AssociateKind("CSVEXPORTABLE");
+    duration.AssociateKind("CSVIMPORTABLE");
 
     // operators
     AddOperator(&dt_add);
@@ -3059,5 +3120,5 @@ InitializeDateTimeAlgebra( NestedList* nlRef,
 
 ostream& operator<<(ostream& o, const datetime::DateTime& DT) {
    return DT.Print(o);
-} 
+}
 

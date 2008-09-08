@@ -1,8 +1,9 @@
+
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -384,9 +385,9 @@ may be false. (a is a double-constant and d a duration value).
 ~Div~
 
 By calling this function, one can compute how often
-a duration is contained within another duration. 
+a duration is contained within another duration.
 The result will be of type integer. The remainder is returned
-in the corresponding argument - also as duration type -. 
+in the corresponding argument - also as duration type -.
 
 */
     LONGTYPE Div(DateTime dividend, DateTime& remainder,bool& overflow);
@@ -409,7 +410,7 @@ same like in the ~Add~ function.
 This operator adds a value to this DateTime.
 
 */
- DateTime operator+=(const DateTime& T2);    
+ DateTime operator+=(const DateTime& T2);
 
 
 /*
@@ -418,7 +419,7 @@ This operator adds a value to this DateTime.
 This operator subtracts a value from this DateTime.
 
 */
- DateTime operator-=(const DateTime& T2);    
+ DateTime operator-=(const DateTime& T2);
 
 
 
@@ -442,7 +443,7 @@ This Operator divides a DateTime by another dateTime
 /*
 ~Operator /~
 
-This Operator divides a DateTime (durationtype) by a LONGTYPE 
+This Operator divides a DateTime (durationtype) by a LONGTYPE
 
 */
     DateTime operator/(const LONGTYPE divisor)const;
@@ -488,7 +489,7 @@ The next two function are defined for any DateTime type.
 /*
 ~SetToZero~
 
-This function changes the value of this DateTime to have 
+This function changes the value of this DateTime to have
 length zero and be the NULLDATE respectively.
 
 */
@@ -555,7 +556,7 @@ set to the maximum possible value.
 ~IsMinimum~
 
 This function checks whether this dateTime value is the mimimum
-representable one. If it is not defined, the result is __false__. 
+representable one. If it is not defined, the result is __false__.
 
 */
     bool IsMinimum() const;
@@ -565,7 +566,7 @@ representable one. If it is not defined, the result is __false__.
 ~IsMaximum~
 
 This function checks whether this dateTime value is the maximum
-representable one. If it is not defined, the result is __false__. 
+representable one. If it is not defined, the result is __false__.
 
 */
     bool IsMaximum() const;
@@ -615,7 +616,7 @@ is adjusted.
 ~Split~
 
 This functions splits a duration into two ones at the specified position
-delta in [0,1]. 
+delta in [0,1].
 
 */
   bool Split(const double delta, DateTime& Rest);
@@ -635,7 +636,7 @@ delta in [0,1].
     return "instant";
   }
 
-  inline virtual size_t SerializedSize() const 
+  inline virtual size_t SerializedSize() const
   {
     return (2 * sizeof(LONGTYPE)) + sizeof(TimeType) + 2;
   }
@@ -649,7 +650,7 @@ delta in [0,1].
     //WriteVar<TimeType>(type, storage, offset);
   }
 
-  inline virtual void Rebuild(char* state,  size_t sz ) 
+  inline virtual void Rebuild(char* state,  size_t sz )
   {
     size_t offset = 0;
     ReadVar<LONGTYPE>(day, state, offset);
