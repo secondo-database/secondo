@@ -114,6 +114,11 @@ storing tuples and LOBs respectively.
 #include "StandardTypes.h"
 #include "Serialize.h"
 
+
+#define TRACE_OFF   
+#include "TraceMacros.h"    
+
+
 using namespace std;
 using namespace symbols;
 
@@ -459,12 +464,19 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
   uint16_t rootSize = attrSizes + extensionSize;
   const size_t rootSizeLen = sizeof(rootSize);
   
-  int newRecordSize = sizeof(int) + rootSizeLen + 
-                      tupleType->GetTotalSize() + 
-                      extensionSize;
+  int newRecordSize = sizeof(int) + rootSizeLen + rootSize;
 
-  bool rc = tupleRecord->Write(data, rootSizeLen + rootSize, 0);
-  assert(rc == true);
+  SHOW(rootSize)
+  size_t bufSize = rootSizeLen + rootSize; 
+  //char* newBuf = (char*) malloc( bufSize );
+  //memcpy(newBuf, &rootSize, rootSizeLen );
+  //memcpy(newBuf + rootSizeLen, data, rootSize);
+
+  SmiSize len = 0;
+  len = tupleRecord->Write(data, bufSize);
+  assert(len == bufSize);
+
+  //free( newBuf );
 
 #else    
     int newRecordSize = sizeof(int) + 
@@ -482,6 +494,8 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
 
     // The record must be truncated in case the size of a small 
     // FLOB was decreased.
+    SHOW(newRecordSize)
+    SHOW(oldRecordSize)
     if( newRecordSize < oldRecordSize ){
       tupleRecord->Truncate( newRecordSize );
     }
@@ -955,6 +969,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
 			               rootSize, 
 				       rootSizeLen) != rootSize )
   {
+    DEBUG(this, "ReadCurrentData failed!") 
     return false;    
   }	  
 
