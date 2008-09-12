@@ -22,6 +22,7 @@
 # (Runner can be found in directory UserInterfaces)
 
 #setup
+delete database upd_test;
 create database upd_test;
 open database upd_test;
 restore Staedte from 'staedte.obj';
