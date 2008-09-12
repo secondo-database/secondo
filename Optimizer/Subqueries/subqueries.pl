@@ -44,7 +44,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 August 2008, Burkart Poneleit. Initial Version
 
-18 Unnesting nested queries
+18 Transforming nested queries to their canonical form
 
 This file enables the SECONDO optimizer to process subqueries or nested queries formulated in SQL syntax. 
 A subquery or nested query is a fully-fledged query contained in another query. 
@@ -60,11 +60,11 @@ Depending on its form, subqueries can yield scalar results, single tuple results
 Subqueries whith a scalar result can be used in the attribute list, the from-clause and the where-clause
 
 
-Queries containing subqueries  will be rewritten by this module to an equivalent unnested form. 
+Queries containing subqueries  will be rewritten by this module to an equivalent canonical form. 
 
 
  
-facts about comparison operators
+Facts about comparison operators
 
 */
 
@@ -167,37 +167,37 @@ subqueryToJoinOp(Op, Op).
 /*
 The following syntax for subqueries will recognized by SECONDO:
 
-exists
+~exists~
 
 ----    select <attr-list>
         from <rel-list>
         where exists(<Subquery>)
 ----
 
-not exists
+~not exists~
 
 ----    select <attr-list>
         from <rel-list>
         where not exists(<Subquery>)
 ----
 
-<compop> any
+~$<$compop$>$ any~
 
 ----    select <attr-list>
         from <rel-list>
         where <compop> any(<Subquery>)
 ----
 
-<compop> all
+~$<$compop$>$ all~
 
 ----    select <attr-list>
         from <rel-list>
         where <compop> all(<Subquery>)
 ----
 
-in = equivalent to = any
+~in~ is equivalent to ~$=$ any~
 
-not in = equivalent to <> all
+~not in~ is equivalent to ~$<$$>$~ all
 
 18.1 Subqueries in predicates
 scalar subquery
@@ -208,20 +208,20 @@ table subquery
 18.2 subqueries in from clause
 table subquery
 
----- rewriteQueryForSubqeryProcessing(+QueryIn,-QueryOut)
+---- rewriteQueryForSubqueryProcessing(+QueryIn,-QueryOut)
 ----
 
-Rewrites a query by unnesting subqueries within ~QueryIn~ and unifies rewritten query with ~QueryOut~.
+Rewrites a query by transforming subqueries within ~QueryIn~ to their canonical form and unifies rewritten query with ~QueryOut~.
 
 */
 
 rewriteQueryForSubqueryProcessing(QueryIn, QueryIn) :-
   not(optimizerOption(subqueries)), !.
   
-rewriteQueryForSubqueryProcessing(QueryIn, QueryOut) :-
-    unnestSubqueries(QueryIn, QueryOut),
-    dm(rewriteQueryForSubqueryProcessing,['\nREWRITING: Subqueries\n\tIn:  ',QueryIn,'\n\tOut: ',
-                    QueryOut,'\n\n']). 
+rewriteQueryForSubqueryProcessing(NestedQuery, CanonicalQuery) :-
+    transform(NestedQuery, CanonicalQuery),
+    dm(rewriteQueryForSubqueryProcessing,['\nREWRITING: Subqueries\n\tIn:  ',NestedQuery,'\n\tOut: ',
+                    CanonicalQuery,'\n\n']). 
 					
 /*
 
@@ -229,20 +229,20 @@ Default handling for queries without subqueries.
 
 */
 
-unnestSubqueries(Query, Query) :-
+transform(Query, Query) :-
   not(isNestedQuery(Query)), !.
   
   
 /*
 
-Nested queries are unnested from the attribute list, the relation list and the predicate list.
+Nested queries are transformed to their canonical form in the attribute list, the relation list and the predicate list.
 
 */
   
-unnestSubqueries(select Attrs from Rels where Preds, select UnnestedAttrs from UnnestedRels where UnnestedPreds) :-
-  unnestAttributes(Rels, Rels2, Attrs, Attrs2, Preds, Preds2),
-  unnestRelations(Rels2, Rels3, Attrs2, Attrs3, Preds2, Preds3),
-  unnestPredicates(Attrs3, UnnestedAttrs, Rels3, UnnestedRels, Preds3, UnnestedPreds).
+transform(select Attrs from Rels where Preds, select CanonicalAttrs from CanonicalRels where CanonicalPreds) :-
+  transformNestedAttributes(Rels, Rels2, Attrs, Attrs2, Preds, Preds2),
+  transformNestedRelations(Rels2, Rels3, Attrs2, Attrs3, Preds2, Preds3),
+  transformNestedPredicates(Attrs3, CanonicalAttrs, Rels3, CanonicalRels, Preds3, CanonicalPreds).
   
   
 /*
@@ -252,15 +252,15 @@ it can be evaluated independently of it and replaced by its result.
 
 */
   
-unnestAttributes([], [], Rels, Rels, Preds, Preds ).
+transformNestedAttributes([], [], Rels, Rels, Preds, Preds ).
   
-unnestAttributes(Attr, Attr2, Rels, Rels2, Preds, Preds2) :-
+transformNestedAttributes(Attr, Attr2, Rels, Rels2, Preds, Preds2) :-
   not(is_list(Attr)),
-  unnestAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2).
+  transformNestedAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2).
   
-unnestAttributes([ Attr | Rest ], [ Attr2 | Rest2 ], Rels, Rels2, Preds, Preds2) :-
-  unnestAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2),
-  unnestAttributes(Rest, Rest2, Rels, Rels2, Preds, Preds2).
+transformNestedAttributes([ Attr | Rest ], [ Attr2 | Rest2 ], Rels, Rels2, Preds, Preds2) :-
+  transformNestedAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2),
+  transformNestedAttributes(Rest, Rest2, Rels, Rels2, Preds, Preds2).
 
 /*
 
@@ -269,7 +269,7 @@ for constants in the attribute list, aliasing has to occurr.
 
 */  
   
-unnestAttribute(Subquery as Variable, Value, Rels, Rels, Preds, Preds) :- 
+transformNestedAttribute(Subquery as Variable, Value, Rels, Rels, Preds, Preds) :- 
   nestingType(Subquery, a),
   optimize(Subquery, SecondoQuery, _),
   atom(SecondoQuery),
@@ -279,7 +279,7 @@ unnestAttribute(Subquery as Variable, Value, Rels, Rels, Preds, Preds) :-
   atom_concat(Result, ' as ', Temp),
   atom_concat(Temp, Variable, Value).  
   
-unnestAttribute(Attr, Attr, Rels, Rels, Preds, Preds) :- 
+transformNestedAttribute(Attr, Attr, Rels, Rels, Preds, Preds) :- 
   not(isQuery(Attr)).  
   
   
@@ -289,36 +289,37 @@ unnestAttribute(Attr, Attr, Rels, Rels, Preds, Preds) :-
 
 */
 
-unnestRelations(Attrs, Attrs, [], [], Preds, Preds).  
+transformNestedRelations(Attrs, Attrs, [], [], Preds, Preds).  
   
-unnestRelations(Attrs, Attrs2, Rel, Rel2, Preds, Preds2) :-
+transformNestedRelations(Attrs, Attrs2, Rel, Rel2, Preds, Preds2) :-
   not(is_list(Rel)),
-  unnestRelation(Attrs, Attrs2, Rel, Rel2, Preds, Preds2).
+  transformNestedRelation(Attrs, Attrs2, Rel, Rel2, Preds, Preds2).
   
-unnestRelations(Attrs, Attrs2, [ Rel | Rest ], [ Rel2 | Rest2], Preds, Preds2) :-
-  unnestRelation(Attrs, Attrs2, Rel, Rel2, Preds, Preds2),
-  unnestRelations(Attrs, Attrs2, Rest, Rest2, Preds, Preds2).
+transformNestedRelations(Attrs, Attrs2, [ Rel | Rest ], [ Rel2 | Rest2], Preds, Preds2) :-
+  transformNestedRelation(Attrs, Attrs2, Rel, Rel2, Preds, Preds2),
+  transformNestedRelations(Attrs, Attrs2, Rest, Rest2, Preds, Preds2).
   
-unnestRelation(Attrs, Attrs, Rel, Rel, Preds, Preds) :- 
+transformNestedRelation(Attrs, Attrs, Rel, Rel, Preds, Preds) :- 
   not(isQuery(Rel)).
 
 
 /*
 
+Subqueries in predicates will be transformed to their canonical equivalents by algorithm NEST-G, as described in 
 
 */  
 
-unnestPredicates(Attrs, Attrs, Rels, Rels, [], []).  
+transformNestedPredicates(Attrs, Attrs, Rels, Rels, [], []).  
   
-unnestPredicates(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
+transformNestedPredicates(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   not(is_list(Pred)),
-  unnestPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2).
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2).
   
-unnestPredicates(Attrs, Attrs2, Rels, Rels2, [ Pred | Rest ], [ Pred2 | Rest2 ]) :-
-  unnestPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2),
-  unnestPredicates(Attrs, Attrs2, Rels, Rels2, Rest, Rest2).
+transformNestedPredicates(Attrs, Attrs2, Rels, Rels2, [ Pred | Rest ], [ Pred2 | Rest2 ]) :-
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2),
+  transformNestedPredicates(Attrs, Attrs2, Rels, Rels2, Rest, Rest2).
   
-unnestPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred) :- 
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred) :- 
   not(isSubqueryPred(Pred)).
   
 /*
@@ -329,7 +330,7 @@ of the outer query, the subquery will be evaluated and replaced by its result.
 
 */
   
-unnestPredicate(Attrs, Attrs, Rels, Rels, SubqueryPred, SubqueryPred2) :-
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, SubqueryPred, SubqueryPred2) :-
   SubqueryPred =..[Op, Attr, Subquery],
   nestingType(Subquery, a),
   optimize(Subquery, SecondoQuery, _),
@@ -347,7 +348,7 @@ of predicates generated from the subquery result.
 
 */
   
-unnestPredicate(Attrs, Attrs2, Rels, Rels2, SubqueryPred, SubqueryPredList) :-
+transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, SubqueryPred, SubqueryPredList) :-
   SubqueryPred =.. [Op, Attr, Subquery],
   nestingType(Subquery, n),
   subqueryToJoinOp(Op, JoinOp),
@@ -374,7 +375,7 @@ makePredList(_, _, [], []).
 
 /* 
 
-Constrict ~StarQueries~ to only select attributes of the given relations
+Restrict ~StarQueries~ to only select attributes of the given relations
 
 */
 
