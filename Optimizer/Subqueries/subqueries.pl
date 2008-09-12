@@ -49,12 +49,16 @@ August 2008, Burkart Poneleit. Initial Version
 This file enables the SECONDO optimizer to process subqueries or nested queries formulated in SQL syntax. 
 A subquery or nested query is a fully-fledged query contained in another query. 
 For example
+
 ---- select * 
      from staedte 
      where plz in (select p:plz from plz as p)
 ---- 	
+
 will yield all entries of relation staedte where plz contains an entry with matching plz. 
-Depending on its form, subqueries can yield scalar results, single tuple results or stream of tuple results.
+Depending on its form, subqueries can yield scalar results, single tuple results or stream of tuple results. 
+Subqueries whith a scalar result can be used in the attribute list, the from-clause and the where-clause
+
 
 Queries containing subqueries  will be rewritten by this module to an equivalent unnested form. 
 
@@ -81,6 +85,13 @@ This predicate is true, if the term is a query formulated in the sql syntax defi
 isQuery(Query) :-
   callLookup(Query, _).
   
+  
+/*
+
+Predicates to recognize nested queries.
+
+*/
+  
 isNestedQuery(select AttrList from _ where _) :-
   makeList(AttrList, AttrList2),
   not(sublist(isSubqueryAttr, AttrList2, [])).
@@ -93,14 +104,21 @@ isNestedQuery(select _ from _ where PredList) :-
   makeList(PredList, PredList2),
   not(sublist(isSubqueryPred, PredList2, [])).
   
+/*
+
+Predicates to recognize subqueries in attribute lists and attributes.
+
+*/
+  
 isSubqueryAttr(Attr as _) :-
   isQuery(Attr).
   
-isSubqueryAttr(Attr) :- isQuery(Attr).
+isSubqueryAttr(Attr) :- 
+  isQuery(Attr).
 
 /*
 
-Predicates to recognize subqueries in predicate lists and predicates
+Predicates to recognize subqueries in predicate lists and predicates.
 
 */
 
@@ -136,12 +154,18 @@ isQuantifier(some).
 :- op(700, xfx, <>).
 :- op(940, xfx, in).
 
+/*
+
+special handling for operator ~in~ which can be replaced by ~=~ as join operator
+
+*/
+
 subqueryToJoinOp(in, =).
 subqueryToJoinOp(Op, Op).
 
 
 /*
-The following syntax for subqueries is recognized by SECONDO:
+The following syntax for subqueries will recognized by SECONDO:
 
 exists
 
@@ -201,7 +225,7 @@ rewriteQueryForSubqueryProcessing(QueryIn, QueryOut) :-
 					
 /*
 
-Default handling.
+Default handling for queries without subqueries.
 
 */
 
@@ -211,62 +235,90 @@ unnestSubqueries(Query, Query) :-
   
 /*
 
-Handling of nested queries in predicate list. 
+Nested queries are unnested from the attribute list, the relation list and the predicate list.
 
 */
   
 unnestSubqueries(select Attrs from Rels where Preds, select UnnestedAttrs from UnnestedRels where UnnestedPreds) :-
   unnestAttributes(Rels, Rels2, Attrs, Attrs2, Preds, Preds2),
   unnestRelations(Rels2, Rels3, Attrs2, Attrs3, Preds2, Preds3),
-  unnestPredicates(Preds3, UnnestedPreds, Attrs3, UnnestedAttrs, Rels3, UnnestedRels).
+  unnestPredicates(Attrs3, UnnestedAttrs, Rels3, UnnestedRels, Preds3, UnnestedPreds).
   
-unnestAttributes(Preds, Preds, [], [], Rels, Rels).
   
-unnestAttributes(Preds, Preds2, Attr, Attr2, Rels, Rels2) :-
-  not(is_list(Attr)),
-  unnestAttribute(Preds, Preds2, Attr, Attr2, Rels, Rels2).
-  
-unnestAttributes(Preds, Preds2, [ Attr | Rest ], [ Attr2 | Rest2 ], Rels, Rels2) :-
-  unnestAttribute(Preds, Preds2, Attr, Attr2, Rels, Rels2),
-  unnestAttributes(Preds, Preds2, Rest, Rest2, Rels, Rels2).
+/*
 
-unnestAttribute(Preds, Preds, Subquery as Variable, Value, Rels, Rels) :- 
-  aggrQuery(Subquery, _, _, _),
+Subqueries in the attribute list have to yield a scalar result. If the nested query is uncorrelated with the outer query,
+it can be evaluated independently of it and replaced by its result.
+
+*/
+  
+unnestAttributes([], [], Rels, Rels, Preds, Preds ).
+  
+unnestAttributes(Attr, Attr2, Rels, Rels2, Preds, Preds2) :-
+  not(is_list(Attr)),
+  unnestAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2).
+  
+unnestAttributes([ Attr | Rest ], [ Attr2 | Rest2 ], Rels, Rels2, Preds, Preds2) :-
+  unnestAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2),
+  unnestAttributes(Rest, Rest2, Rels, Rels2, Preds, Preds2).
+
+/*
+
+Replace a scalar, uncorrelated subquery with its result in the attribute list. As SECONDO does not generate temporary names
+for constants in the attribute list, aliasing has to occurr.
+
+*/  
+  
+unnestAttribute(Subquery as Variable, Value, Rels, Rels, Preds, Preds) :- 
+  nestingType(Subquery, a),
   optimize(Subquery, SecondoQuery, _),
   atom(SecondoQuery),
   atom_concat('query ', SecondoQuery, QueryText),
   secondo(QueryText, [_, Result]),
-  not(is_list(Rest)),
+  not(is_list(Result)),
   atom_concat(Result, ' as ', Temp),
   atom_concat(Temp, Variable, Value).  
   
-unnestAttribute(Preds, Preds, Attr, Attr, Rels, Rels) :- 
+unnestAttribute(Attr, Attr, Rels, Rels, Preds, Preds) :- 
   not(isQuery(Attr)).  
   
-unnestRelations(Preds, Preds, Attrs, Attrs, [], []).  
   
-unnestRelations(Preds, Preds2, Attrs, Attrs2, Rel, Rel2) :-
-  not(is_list(Rel)),
-  unnestRelation(Preds, Preds2, Attrs, Attrs2, Rel, Rel2).
-  
-unnestRelations(Preds, Preds2, Attrs, Attrs2, [ Rel | Rest ], [ Rel2 | Rest2]) :-
-  unnestRelation(Preds, Preds2, Attrs, Attrs2, Rels, Rels2),
-  unnestRelations(Rests, Rests2, Attrs, Attrs2, Rest, Rest2).
-  
-unnestRelation(Preds, Preds, Attrs, Attrs, Rel, Rel) :- 
-  not(isQuery(Rel)). 
+/*
 
-unnestPredicates([], [], Attrs, Attrs, Rels, Rels).  
+
+
+*/
+
+unnestRelations(Attrs, Attrs, [], [], Preds, Preds).  
   
-unnestPredicates(Pred, Pred2, Attrs, Attrs2, Rels, Rels2) :-
+unnestRelations(Attrs, Attrs2, Rel, Rel2, Preds, Preds2) :-
+  not(is_list(Rel)),
+  unnestRelation(Attrs, Attrs2, Rel, Rel2, Preds, Preds2).
+  
+unnestRelations(Attrs, Attrs2, [ Rel | Rest ], [ Rel2 | Rest2], Preds, Preds2) :-
+  unnestRelation(Attrs, Attrs2, Rel, Rel2, Preds, Preds2),
+  unnestRelations(Attrs, Attrs2, Rest, Rest2, Preds, Preds2).
+  
+unnestRelation(Attrs, Attrs, Rel, Rel, Preds, Preds) :- 
+  not(isQuery(Rel)).
+
+
+/*
+
+
+*/  
+
+unnestPredicates(Attrs, Attrs, Rels, Rels, [], []).  
+  
+unnestPredicates(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   not(is_list(Pred)),
-  unnestPredicate(Pred, Pred2, Attrs, Attrs2, Rels, Rels2).
+  unnestPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2).
   
-unnestPredicates([ Pred | Rest ], [ Pred2 | Rest2 ], Attrs, Attrs2, Rels, Rels2) :-
-  unnestPredicate(Pred, Pred2, Attrs, Attrs2, Rels, Rels2),
-  unnestPredicates(Rest, Rest2, Attrs, Attrs2, Rels, Rels2).
+unnestPredicates(Attrs, Attrs2, Rels, Rels2, [ Pred | Rest ], [ Pred2 | Rest2 ]) :-
+  unnestPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2),
+  unnestPredicates(Attrs, Attrs2, Rels, Rels2, Rest, Rest2).
   
-unnestPredicate(Pred, Pred, Attrs, Attrs, Rels, Rels) :- 
+unnestPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred) :- 
   not(isSubqueryPred(Pred)).
   
 /*
@@ -277,7 +329,7 @@ of the outer query, the subquery will be evaluated and replaced by its result.
 
 */
   
-unnestPredicate(SubqueryPred, SubqueryPred2, Attrs, Attrs, Rels, Rels) :-
+unnestPredicate(Attrs, Attrs, Rels, Rels, SubqueryPred, SubqueryPred2) :-
   SubqueryPred =..[Op, Attr, Subquery],
   nestingType(Subquery, a),
   optimize(Subquery, SecondoQuery, _),
@@ -290,40 +342,73 @@ unnestPredicate(SubqueryPred, SubqueryPred2, Attrs, Attrs, Rels, Rels) :-
 /*
 
 The subquery in this predicate does not contain a join predicate that references the relation of the outer query block
-and does not have an aggregation function associated with the column name. 
+and does not have an aggregation function associated with the column name. The predicate will be replaced by a disjunction
+of predicates generated from the subquery result.
 
 */
   
-unnestPredicate(SubqueryPred, SubqueryPred2, Attrs, Attrs2, Rels, Rels2) :-
+unnestPredicate(Attrs, Attrs2, Rels, Rels2, SubqueryPred, SubqueryPredList) :-
   SubqueryPred =.. [Op, Attr, Subquery],
   nestingType(Subquery, n),
   subqueryToJoinOp(Op, JoinOp),
   Subquery =.. [from, Select, Where],
-  constrict(Attrs, Rels, Attrs2),
+  restrict(Attrs, Rels, Attrs2),
   Select =.. [select | SubAttrs],
+  makeList(SubAttrs, SubAttrList),  
+  makePredList(Attr, JoinOp, SubAttrList, SubqueryPred2),
   makeList(Rels, RelsList),
-  (Where =.. [where, SubRels, Preds] 
-    -> (append([SubRels], RelsList, Rels2))
-	; append([Where], RelsList, Rels2)), 
-  makeList(SubAttrs, SubAttrList),
-  makePredList(Attr, JoinOp, SubAttrList, SubqueryPred2).
+  (Where =.. [where, SubRels, SubPreds] 
+    -> ( append([SubRels], RelsList, Rels2),
+	     append([SubPreds], [SubqueryPred2], SubqueryPredList) )
+	; ( append([Where], RelsList, Rels2),
+        SubqueryPredList = SubqueryPred2 )).
   
-makePredList(Attr, Op, [ Result | Rest ], SubqueryPred3) :-
+makePredList(Attr, Op, [ Result | Rest ], SubqueryPred2) :-
   makePredList(Attr, Op, Rest, SubqueryPred),
   Term =.. [Op, Attr, Result],
-  write(Term), nl,
-  append([Term], SubqueryPred, SubqueryPred2),
-  flatten(SubqueryPred2, SubqueryPred3).
+  ( SubqueryPred = [] 
+    -> SubqueryPred2 = Term
+	; SubqueryPred2 =.. [or, SubqueryPred, Term] ).
   
 makePredList(_, _, [], []).
 
-constrict(*, Rels, Attrs2) :-
-  relation(Rels, Attrs2).
+/* 
+
+Constrict ~StarQueries~ to only select attributes of the given relations
+
+*/
+
+restrict(*, Rels, AttrList) :-
+  not(is_list(Rels)),  
+  relation(Rels, AttrList).
   
-constrict(Attrs, Rels, Attrs).
+restrict(*, Rel as Alias, AttrList2) :-
+  restrict(*, Rel, AttrList),
+  maplist(alias(Alias), AttrList, AttrList2).
+  
+restrict(*, [ Rel | Rest ], AttrList) :-
+  restrict(*, Rel, Attrs),
+  restrict(*, Rest, Attrs2),
+  append(Attrs, Attrs2, AttrList).
+  
+restrict(*, [], []).
+  
+restrict(Attrs, _, Attrs).
+
+/*
+
+---- alias(?Alias, ?Attr, ?Alias:Attr).
+----
+
+Helper predicate to alias/un-alias attribute names.
+
+*/
+
+alias(Alias, Attr, Alias:Attr).
   
   
 /*
+
 
 type-A nesting, uncorrelated subquery with scalar result
 
@@ -331,7 +416,8 @@ type-A nesting, uncorrelated subquery with scalar result
 
 nestingType(Subquery, a) :-
   aggrQuery(Subquery, _, _, _),
-  callLookup(Subquery, _).
+  callLookup(Subquery, _),
+  !.
   
 /*
 
