@@ -69,8 +69,6 @@ public:
 
 *************************************************************************/
 
-  inline bool IsDefined() const;
-  inline void SetDefined(bool newDefined);
   inline size_t Sizeof() const;
   size_t HashValue() const;
   void CopyFrom(const StandardAttribute* right);
@@ -105,7 +103,6 @@ public:
 
 
 private:
-  bool defined;
   FLOB theText;
 };
 
@@ -155,7 +152,7 @@ theText( 0 )
   LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
   const char *s;
   f.theText.Get(0, &s);
-  Set( f.defined, s);
+  Set( f.IsDefined(), s);
   LOGMSG( "FText:Trace",  cout <<"End FText(FText& f)"<<'\n'; )
 }
 
@@ -168,7 +165,7 @@ inline FText::~FText()
 inline void FText::Destroy()
 {
   theText.Destroy();
-  defined = false;
+  SetDefined(false);
 }
 
 inline bool FText::SearchString( const char* subString )
@@ -201,7 +198,7 @@ inline void FText::Set( bool newDefined, const char *newString )
 //     theText.Resize( strlen( newString ) + 1 );
     theText.Put( 0, strlen( newString ) + 1, newString );
   }
-  defined = newDefined;
+  SetDefined( newDefined );
 
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
@@ -217,7 +214,7 @@ inline void FText::Set( bool newDefined, const string& newString )
 //     theText.Resize( newString.length() + 1 );
     theText.Put( 0, newString.length() + 1, newString.c_str());
   }
-  defined = newDefined;
+  SetDefined( newDefined );
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
 }
 
@@ -239,18 +236,6 @@ inline const string FText::GetValue() const
   const char* s = 0;
   theText.Get(0, &s);
   return string(s);
-}
-
-inline bool FText::IsDefined() const
-{
-  return defined;
-}
-
-inline void FText::SetDefined( bool newDefined )
-{
-  if(traces)
-    cout << '\n' << "Start SetDefined" << '\n';
-  defined = newDefined;
 }
 
 inline size_t FText::Sizeof() const

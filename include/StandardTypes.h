@@ -39,7 +39,7 @@ Moreover, counters for calls of ~Compare~ and ~HashValue~ are implemented for ty
 ~CcInt~ and ~CcString~. 
 
 May 2006. M. Spiekermann. The implementation of ~Compare~ for ~CcInt~ has been
-changed.  Now first the case that both values are defined is handled and
+changed.  Now first the case that both values are IsDefined is handled and
 equality is tested before unequality. This makes the number of integer
 comparisons for recognizing $A > B$ or $A < B$ symmetric and in the average the
 same since we need 1 for validating $A = B$ and 2 for $A {<,>} B$. Before it was
@@ -106,7 +106,7 @@ class CcInt : public StandardAttribute
  
   inline CcInt( bool d, int v = 0 )
   { 
-    defined = d; intval = v;  
+    SetDefined(d); intval = v;  
     intsCreated++; 
   }
  
@@ -122,17 +122,6 @@ class CcInt : public StandardAttribute
   inline void Finalize() 
   {
     intsDeleted++;
-  }
-
-   
-  inline bool IsDefined() const 
-  { 
-    return (defined); 
-  }
-  
-  inline void SetDefined(bool defined) 
-  { 
-    this->defined = defined;
   }
 
   inline size_t Sizeof() const
@@ -152,25 +141,26 @@ class CcInt : public StandardAttribute
 
   inline void Set( int v )
   { 
-    defined = true, intval = v; 
+    SetDefined(true);
+    intval = v; 
   }
   
   inline void Set( bool d, int v )
   { 
-    defined = d, intval = v; 
+    SetDefined(d); intval = v; 
   }
   
   inline size_t HashValue() const
   { 
     static long& ctr = Counter::getRef(symbols::CTR_INT_HASH);
     ctr++;
-    return (defined ? intval : 0); 
+    return (IsDefined() ? intval : 0); 
   }
   
   inline void CopyFrom(const StandardAttribute* right)
   {
     const CcInt* r = (const CcInt*)right;
-    defined = r->defined;
+    SetDefined(r->IsDefined());
     intval = r->intval;
   }
   
@@ -180,7 +170,8 @@ class CcInt : public StandardAttribute
     static long& ctr = Counter::getRef(symbols::CTR_INT_COMPARE);
     ctr++;
 
-    return Attribute::GenericCompare<CcInt>(this, rhs, defined, rhs->defined);
+    return Attribute::GenericCompare<CcInt>( this, rhs, 
+		                             IsDefined(), rhs->IsDefined() );
   }
 
   inline virtual bool Equal(const CcInt* rhs) const
@@ -188,7 +179,8 @@ class CcInt : public StandardAttribute
     static long& ctr = Counter::getRef(symbols::CTR_INT_EQUAL);
     ctr++;
 
-    return Attribute::GenericEqual<CcInt>(this, rhs, defined, rhs->defined);
+    return Attribute::GenericEqual<CcInt>( this, rhs, 
+		                           IsDefined(), rhs->IsDefined() );
   }
 
   inline virtual bool Less(const CcInt* rhs) const
@@ -196,7 +188,8 @@ class CcInt : public StandardAttribute
     static long& ctr = Counter::getRef(symbols::CTR_INT_LESS);
     ctr++;
 
-    return Attribute::GenericLess<CcInt>(this, rhs, defined, rhs->defined);
+    return Attribute::GenericLess<CcInt>( this, rhs, 
+		                          IsDefined(), rhs->IsDefined() );
   }
 
   
@@ -213,10 +206,21 @@ class CcInt : public StandardAttribute
   
   inline CcInt* Clone() const
   { 
-    return (new CcInt( this->defined, this->intval )); 
+    return (new CcInt( this->IsDefined(), this->intval )); 
   }
   
-  inline ostream& Print( ostream &os ) const { return (os << intval); }
+  inline ostream& Print( ostream& os ) const 
+  { 
+     if ( IsDefined() )
+       return (os << intval);
+     else
+       return (os << "UNDEFINED");	      
+  }
+
+  inline ostream& operator<<(ostream& os) const
+  {
+    return Print(os);	  
+  }	  
 
   ListExpr CopyToList( ListExpr typeInfo )
   {
@@ -258,11 +262,11 @@ class CcInt : public StandardAttribute
   inline void operator=(const CcInt& rhs)
   {
     intval = rhs.intval;
-    defined = rhs.defined;
+    SetDefined( rhs.IsDefined() );
   }
 
   virtual string getCsvStr() const{
-    if(!defined){
+    if(!IsDefined()){
        return "-";
     } else {
        stringstream o;
@@ -277,7 +281,7 @@ class CcInt : public StandardAttribute
   virtual unsigned char getDB3Length() const { return 15; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
   virtual string getDB3String() const {
-      if(!defined){
+      if(!IsDefined()){
         return "";
       } 
       stringstream s;
@@ -310,21 +314,20 @@ class CcInt : public StandardAttribute
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
     WriteVar<int32_t>(intval, storage, offset);
-    WriteVar<bool>(defined, storage, offset);
+    WriteVar<bool>(IsDefined(), storage, offset);
   }	  
 
   inline virtual void Rebuild(char* state,  size_t sz ) 
   {
     size_t offset = 0;	  
     ReadVar<int32_t>(intval, state, offset);
-    ReadVar<bool>(defined, state, offset);
+    ReadVar<bool>(del.isDefined, state, offset);
   }	  
 
   static long intsCreated;
   static long intsDeleted;
 
  private:
-  bool defined;
   int32_t intval;
 };
 
@@ -347,7 +350,7 @@ class CcReal : public StandardAttribute
 
   inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) 
   { 
-    defined = d; 
+    SetDefined(d); 
     realval = v; 
     realsCreated++; 
   }
@@ -363,16 +366,6 @@ class CcReal : public StandardAttribute
   inline void Finalize() 
   {
     realsDeleted++; 
-  }
-
-  inline bool IsDefined() const 
-  { 
-    return defined; 
-  }
-
-  inline void SetDefined(bool defined) 
-  { 
-    this->defined = defined; 
   }
 
   inline size_t Sizeof() const
@@ -393,24 +386,24 @@ class CcReal : public StandardAttribute
   
   inline void Set( SEC_STD_REAL v ) 
   { 
-    defined = true, 
+    SetDefined(true); 
     realval = v; 
   }
 
   inline void Set( bool d, SEC_STD_REAL v ) 
   { 
-    defined = d;
+    SetDefined(d);
     realval = v; 
   }
 
   inline CcReal* Clone() const
   { 
-    return (new CcReal(this->defined, this->realval)); 
+    return (new CcReal(this->IsDefined(), this->realval)); 
   }
 
   inline size_t HashValue() const
   {
-    if(!defined)
+    if(!IsDefined())
       return 0;
 
     unsigned long h = 0;
@@ -426,7 +419,7 @@ class CcReal : public StandardAttribute
   inline void CopyFrom(const StandardAttribute* right)
   {
     const CcReal* r = (const CcReal*)right;
-    defined = r->defined;
+    SetDefined(r->IsDefined());
     realval = r->realval;
   }
 
@@ -435,7 +428,8 @@ class CcReal : public StandardAttribute
     const CcReal* rhs = static_cast<const CcReal*>( arg );
     static long& ctr = Counter::getRef("CcReal::Compare");
     ctr++;
-    return Attribute::GenericCompare<CcReal>(this, rhs, defined, rhs->defined); 
+    return Attribute::GenericCompare<CcReal>( this, rhs, 
+		                              IsDefined(), rhs->IsDefined() );
   }
 
   inline int CompareAlmost( const Attribute* arg ) const
@@ -449,7 +443,8 @@ class CcReal : public StandardAttribute
       return 0;
     else
       return 
-        Attribute::GenericCompare<CcReal>(this, rhs, defined, rhs->defined);
+        Attribute::GenericCompare<CcReal>( this, rhs, 
+			                   IsDefined(), rhs->IsDefined() );
   }
 
   inline bool Adjacent( const Attribute *arg ) const
@@ -476,7 +471,7 @@ class CcReal : public StandardAttribute
   } 
 
   virtual string getCsvStr() const{
-    if(!defined){
+    if(!IsDefined()){
        return "-";
     } else {
        stringstream o;
@@ -491,7 +486,7 @@ class CcReal : public StandardAttribute
   virtual unsigned char getDB3Length() const { return 15; }
   virtual unsigned char getDB3DecimalCount(){ return 6; }
   virtual string getDB3String() const {
-      if(!defined){
+      if(!IsDefined()){
         return "";
       } 
       ostringstream s;
@@ -529,18 +524,17 @@ class CcReal : public StandardAttribute
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
     WriteVar<SEC_STD_REAL>(realval, storage, offset);
-    WriteVar<bool>(defined, storage, offset);
+    WriteVar<bool>(IsDefined(), storage, offset);
   }	  
 
   inline virtual void Rebuild(char* state,  size_t sz ) 
   {
     size_t offset = 0;	  
     ReadVar<SEC_STD_REAL>(realval, state, offset);
-    ReadVar<bool>(defined, state, offset);
+    ReadVar<bool>(del.isDefined, state, offset);
   }	  
 
  private:
-  bool  defined;
   SEC_STD_REAL  realval;
 };
 
@@ -561,7 +555,7 @@ class CcBool : public StandardAttribute
 
   inline CcBool( bool d, int v = false )
   { 
-    defined  = d; 
+    SetDefined(d); 
     boolval = v; 
     boolsCreated++; 
   }
@@ -581,18 +575,8 @@ class CcBool : public StandardAttribute
 
   inline void Set( bool d, bool v )
   { 
-    defined = d;
+    SetDefined(d);
     boolval = v; 
-  }
-
-  inline bool IsDefined() const 
-  { 
-    return defined; 
-  }
-
-  inline void SetDefined(bool defined) 
-  { 
-    this->defined = defined; 
   }
 
   inline size_t Sizeof() const
@@ -612,25 +596,26 @@ class CcBool : public StandardAttribute
   
   inline CcBool* Clone() const
   { 
-    return new CcBool(this->defined, this->boolval); 
+    return new CcBool(this->IsDefined(), this->boolval); 
   }
 
   inline size_t HashValue() const
   { 
-    return (defined ? boolval : false); 
+    return (IsDefined() ? boolval : false); 
   }
 
   inline void CopyFrom(const StandardAttribute* right)
   {
     const CcBool* r = (const CcBool*)right;
-    defined = r->defined;
+    SetDefined(r->IsDefined());
     boolval = r->boolval;
   }
 
   inline int Compare( const Attribute* arg ) const
   {
     const CcBool* rhs = static_cast<const CcBool*>( arg );
-    return Attribute::GenericCompare<CcBool>(this, rhs, defined, rhs->defined); 
+    return Attribute::GenericCompare<CcBool>( this, rhs, 
+		                              IsDefined(), rhs->IsDefined() );
   }
 
   inline bool Adjacent( const Attribute* arg ) const
@@ -659,7 +644,7 @@ class CcBool : public StandardAttribute
   static long boolsDeleted;
 
   virtual string getCsvStr() const{
-    if(!defined){
+    if(!IsDefined()){
        return "-";
     } else {
       return boolval?"true":"false";
@@ -671,7 +656,7 @@ class CcBool : public StandardAttribute
   virtual unsigned char getDB3Length() const { return 1; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
   virtual string getDB3String() const {
-      if(!defined){
+      if(!IsDefined()){
         return "?";
       } 
       return boolval?"T":"F";
@@ -696,7 +681,6 @@ class CcBool : public StandardAttribute
   }
 
  private:
-  bool defined;
   bool boolval;
 };
 
@@ -706,6 +690,9 @@ class CcBool : public StandardAttribute
 */
 
 typedef char STRING_T[MAX_STRINGSIZE+1];
+
+
+#ifdef COMPILE_CCSTRING_WITH_STDSTRING
 
 class CcString : public StandardAttribute
 {
@@ -740,16 +727,6 @@ class CcString : public StandardAttribute
     stringsDeleted++; 
   }
 
-  inline bool IsDefined() const 
-  { 
-    return defined; 
-  }
-
-  inline void SetDefined(bool defined) 
-  { 
-    this->defined = defined; 
-  }
-
   inline size_t Sizeof() const
   {
     return sizeof( *this );
@@ -757,7 +734,11 @@ class CcString : public StandardAttribute
 
   inline const STRING_T* GetStringval() const
   { 
+#ifndef USE_SERIALIZATION
     return &stringval; 
+#else
+    return (STRING_T*)stringval.c_str();
+#endif    
   }
 
   inline const string GetValue() const
@@ -767,25 +748,27 @@ class CcString : public StandardAttribute
 
   inline CcString* Clone() const
   { 
-    return (new CcString( this->defined, &this->stringval )); 
+    return (new CcString( this->IsDefined(), this->stringval.c_str() )); 
   }
 
   inline void Set( bool d, const STRING_T* v ) 
   { 
-    defined = d;
+    SetDefined(d);
+#ifndef USE_SERIALIZATION
     strcpy( stringval, *v);
-#ifdef USE_SERIALIZATION
-    for( size = 0; (*v)[size] != '\0'; size++ );
+#else
+    stringval = (char*)v;
 #endif    
   }
 
   inline void Set( const bool d, const string& v ) 
   { 
-    defined = d;
+    SetDefined(d);
+#ifndef USE_SERIALIZATION
     memset ( stringval, '\0',     MAX_STRINGSIZE+1);
     strncpy( stringval, v.data(), MAX_STRINGSIZE  );
-#ifdef USE_SERIALIZATION
-    size = v.size();
+#else
+    stringval = v;
 #endif    
   }
 
@@ -793,24 +776,32 @@ class CcString : public StandardAttribute
   {
     static long& ctr = Counter::getRef("CcString::HashValue");
     ctr++;
-    if(!defined)
+    if(!IsDefined())
       return 0;
 
-    unsigned long h = 0;
+    size_t h = 0;
+#ifndef USE_SERIALIZATION
     const char* s = stringval;
+#else    
+    const char* s = stringval.c_str();
+#endif    
     while(*s != 0)
     {
       h = 5 * h + *s;
       s++;
     }
-    return size_t(h);
+    return h;
   }
 
   inline void CopyFrom(const StandardAttribute* right)
   {
     const CcString* r = (const CcString*)right;
-    defined = r->defined;
+    SetDefined( r->IsDefined() );
+#ifndef USE_SERIALIZATION
     strcpy(stringval, r->stringval);
+#else
+    stringval = r->stringval;    
+#endif
   }
 
   inline int Compare( const Attribute* arg ) const
@@ -819,19 +810,26 @@ class CcString : public StandardAttribute
     static long& ctr = Counter::getRef("CcString::Compare");
     ctr++;
 
-    if (defined && rhs->defined)
+    if (IsDefined() && rhs->IsDefined())
     { 
+#ifndef USE_SERIALIZATION
       const int cmp = strcmp(stringval, rhs->stringval);
       if (cmp == 0)
          return 0;
       else
          return (cmp < 0) ? -1 : 1;
+#else
+      if (stringval == rhs->stringval)
+        return 0;
+      else
+	return (stringval < rhs->stringval) ? -1 : 1;      
+#endif
     }
     else
     {     
-      // compare only the defined flags
-      if( !defined ) {
-        if ( !rhs->defined )  // case 00
+      // compare only the IsDefined flags
+      if( !IsDefined() ) {
+        if ( !rhs->IsDefined() )  // case 00
           return 0;         
         else          // case 01
           return -1;
@@ -850,7 +848,7 @@ class CcString : public StandardAttribute
   static long stringsDeleted;
 
   virtual string getCsvStr() const{
-    if(!defined){
+    if(!IsDefined()){
        return "-";
     } else {
       return stringval;
@@ -862,7 +860,7 @@ class CcString : public StandardAttribute
   virtual unsigned char getDB3Length() const { return MAX_STRINGSIZE; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
   virtual string getDB3String() const {
-      if(!defined){
+      if(!IsDefined()){
         return "";
       } 
       return string(stringval);
@@ -882,13 +880,215 @@ class CcString : public StandardAttribute
 #ifdef USE_SERIALIZATION
   inline virtual size_t SerializedSize() const 
   {
-    return sizeof(uint8_t) + size + 1;
+    return sizeof(uint8_t) + stringval.size() + 1;
+  }	  
+
+  inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
+  {
+    WriteVar<uint8_t>(stringval.size(), storage, offset);
+    WriteVar<bool>(IsDefined(), storage, offset);
+    stringval.copy(&storage[offset], string::npos);
+  }	  
+
+  inline virtual void Rebuild(char* state,  size_t sz ) 
+  {
+    size_t offset = 0;	  
+    uint8_t size = 0; 
+    ReadVar<uint8_t>(size, state, offset);
+    ReadVar<bool>(del.isDefined, state, offset);
+    char* buffer = new char[size+1];
+    memcpy(buffer, &state[offset], size);
+    buffer[size] = '\0';
+    stringval.assign(buffer);
+
+  }	
+#endif  
+
+
+ private:
+#ifdef USE_SERIALIZATION
+  string   stringval;
+#else  
+  STRING_T stringval;
+#endif  
+};
+
+#endif
+
+
+class CcString : public StandardAttribute
+{
+ public:
+  inline CcString() 
+  { 
+    stringsCreated++; 
+  }
+
+  inline CcString( bool d, const STRING_T* v ) 
+  { 
+    Set(d, v);
+    stringsCreated++; 
+  }
+
+  inline CcString( const bool d, const string& v )
+  {
+    Set(d, v);
+    stringsCreated++;
+  }
+
+  inline ~CcString() 
+  { 
+    stringsDeleted++; 
+  }
+
+  inline void Initialize() 
+  {} 
+
+  inline void Finalize() 
+  { 
+    stringsDeleted++; 
+  }
+
+
+  inline size_t Sizeof() const
+  {
+    return sizeof( *this );
+  }
+
+  inline const STRING_T* GetStringval() const
+  { 
+    return &stringval; 
+  }
+
+  inline const string GetValue() const
+  { 
+    return stringval; 
+  }
+
+  inline CcString* Clone() const
+  { 
+    return (new CcString( IsDefined(), &this->stringval )); 
+  }
+
+  inline void Set( bool d, const STRING_T* v ) 
+  { 
+    SetDefined( d );
+    strcpy( stringval, *v);
+#ifdef USE_SERIALIZATION
+    for( size = 0; (*v)[size] != '\0'; size++ );
+#endif    
+  }
+
+  inline void Set( const bool d, const string& v ) 
+  { 
+    SetDefined( d );
+    memset ( stringval, '\0',     MAX_STRINGSIZE+1);
+    strncpy( stringval, v.data(), MAX_STRINGSIZE  );
+#ifdef USE_SERIALIZATION
+    size = v.size();
+#endif    
+  }
+
+  inline size_t HashValue() const
+  {
+    static long& ctr = Counter::getRef("CcString::HashValue");
+    ctr++;
+    if(!IsDefined())
+      return 0;
+
+    unsigned long h = 0;
+    const char* s = stringval;
+    while(*s != 0)
+    {
+      h = 5 * h + *s;
+      s++;
+    }
+    return size_t(h);
+  }
+
+  inline void CopyFrom(const StandardAttribute* right)
+  {
+    const CcString* r = (const CcString*)right;
+    SetDefined( r->IsDefined() );
+    strcpy(stringval, r->stringval);
+  }
+
+  inline int Compare( const Attribute* arg ) const
+  {
+    const CcString* rhs = static_cast<const CcString*>( arg );
+    static long& ctr = Counter::getRef("CcString::Compare");
+    ctr++;
+
+    if ( IsDefined() && rhs->IsDefined() )
+    { 
+      const int cmp = strcmp(stringval, rhs->stringval);
+      if (cmp == 0)
+         return 0;
+      else
+         return (cmp < 0) ? -1 : 1;
+    }
+    else
+    {     
+      // compare only the defined flags
+      if( !IsDefined() ) {
+        if ( !rhs->IsDefined() )  // case 00
+          return 0;         
+        else          // case 01
+          return -1;
+      }
+      return 1;       // case 10  
+    }  
+  }
+
+  bool Adjacent( const Attribute* arg ) const;
+
+  inline ostream& Print( ostream &os ) const { 
+    return (os << "\"" << stringval << "\""); 
+  }
+
+  static long stringsCreated;
+  static long stringsDeleted;
+
+  virtual string getCsvStr() const{
+    if(!IsDefined()){
+       return "-";
+    } else {
+      return stringval;
+    }
+  }
+
+  virtual bool hasDB3Representation() const {return true;}
+  virtual unsigned char getDB3Type() const { return 'C'; }
+  virtual unsigned char getDB3Length() const { return MAX_STRINGSIZE; }
+  virtual unsigned char getDB3DecimalCount(){ return 0; }
+  virtual string getDB3String() const {
+      if(!IsDefined()){
+        return "";
+      } 
+      return string(stringval);
+  }
+
+  virtual void ReadFromString(string value){
+     if(value.size()>MAX_STRINGSIZE){
+        value = value.substr(0,MAX_STRINGSIZE);
+     }
+     Set(true,value);
+  }
+
+  static const string BasicType(){
+    return symbols::STRING;
+  }
+
+#ifdef USE_SERIALIZATION
+  inline virtual size_t SerializedSize() const 
+  {
+    return  sizeof(uint8_t) + 1 /* defined */ + size;
   }	  
 
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const
   {
     WriteVar<uint8_t>(size, storage, offset);
-    WriteVar<bool>(defined, storage, offset);
+    WriteVar<bool>(IsDefined(), storage, offset);
     memcpy(&storage[offset], stringval, size);
   }	  
 
@@ -896,7 +1096,7 @@ class CcString : public StandardAttribute
   {
     size_t offset = 0;	  
     ReadVar<uint8_t>(size, state, offset);
-    ReadVar<bool>(defined, state, offset);
+    ReadVar<bool>(del.isDefined, state, offset);
     memcpy(stringval, &state[offset], size);
     stringval[size] = '\0';
   }	
@@ -904,12 +1104,14 @@ class CcString : public StandardAttribute
 
 
  private:
-  bool     defined;
 #ifdef USE_SERIALIZATION
   uint8_t  size;
 #endif  
   STRING_T stringval;
 };
+
+
+
 
 void ShowStandardTypesStatistics( const bool reset );
 

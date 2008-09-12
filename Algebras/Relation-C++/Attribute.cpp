@@ -170,7 +170,7 @@ Deletes an attribute if allowed, i.e. if ~refs~ = 0.
 */
     Attribute* Attribute::Copy()
     {
-      if( del.refs == numeric_limits<uint8_t>::max() )
+      if( del.refs == numeric_limits<uint16_t>::max() )
         return Clone();
       del.refs++;
       return this;
@@ -202,3 +202,14 @@ Print the delete reference info to a string (for debugging)
 
 */
 
+
+ostream& operator<<(ostream& os, const Attribute& attr)
+{
+  return attr.Print(os);
+}	
+
+
+/*
+Generalized output operator
+
+*/

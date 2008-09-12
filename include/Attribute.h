@@ -85,10 +85,16 @@ struct AttrDelete
 {
   AttrDelete():
   refs( 1 ), isDelete( true )
+  // Note: variable isDefined belongs to the state of
+  // Attribute objects thus the default constructor should
+  // not change the value here since the default persistency
+  // mechanism does simply copy byte blocks of the object's
+  // current state! 	
   {}
 
-  uint8_t refs;
+  uint16_t refs;
   bool isDelete;
+  bool isDefined;
 };
 
 /*
@@ -117,12 +123,12 @@ The simple constructor.
 The virtual destructor.
 
 */
-    virtual bool IsDefined() const = 0;
+    virtual bool IsDefined() const { return del.isDefined; }
 /*
 Returns whether the attribute is defined.
 
 */
-    virtual void SetDefined(bool defined) = 0;
+    virtual void SetDefined(bool defined) { del.isDefined = defined; }
 /*
 Sets the ~defined~ flag of the attribute.
 
@@ -603,6 +609,13 @@ bool SaveAttribute( SmiRecord& valueRecord,
   Attribute::Save( valueRecord, offset, typeInfo, bf );
   return true;
 }
+
+
+/*
+The generalized output operator
+
+*/
+ostream& operator<<(ostream& os, const Attribute& attr);
 
 #endif
 

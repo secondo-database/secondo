@@ -144,7 +144,7 @@ size_t FText::HashValue() const
   if(traces)
     cout << '\n' << "Start HashValue" << '\n';
 
-  if(!defined)
+  if(!IsDefined())
     return 0;
 
   unsigned long h = 0;
@@ -169,7 +169,7 @@ void FText::CopyFrom( const StandardAttribute* right )
   {
     val = r->GetValue();
   }
-  Set( r->defined, val );
+  Set( r->IsDefined(), val );
 }
 
 int FText::Compare( const Attribute *arg ) const
