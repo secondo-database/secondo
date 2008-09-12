@@ -2693,6 +2693,9 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                   listn)));
+
+  cout << "typemap-result:" << nl->ToString(outlist) << endl;
+
   return outlist;
 }
 
@@ -2792,13 +2795,14 @@ int UpdateDirectSave(Word* args, Word& result, int message,
 
         // copy new attribute values into auxTuple
         Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
-	//cout << "tup:" << *tup << endl;
-	//cout << "new:" << *newTuple << endl;
+	cout << "tup:" << *tup << endl;
+	cout << "new:" << *newTuple << endl;
 
-        for (int i=0; i< auxTuple->GetNoAttributes(); i++){
+        for (int i=0; i< auxTuple->GetNoAttributes() - 1; i++){
             auxTuple->CopyAttribute( i, newTuple, i);
         }
-	//cout << "aux:" << *auxTuple << endl;
+	auxTuple->PutAttribute(auxTuple->GetNoAttributes()-1, tidAttr->Copy());
+	cout << "aux:" << *auxTuple << endl;
 
         auxRelation->AppendTuple(auxTuple);
         auxTuple->DeleteIfAllowed();
@@ -3121,10 +3125,13 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 		// copy the updated tuple into auxTuple and append it
 		// to the auxiliary relation
                 Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
-                for (int i = 0; i < auxTuple->GetNoAttributes(); i++)
+                for (int i = 0; i < auxTuple->GetNoAttributes()-1; i++)
                 {
                   auxTuple->CopyAttribute(i, newTuple, i);
                 }
+                auxTuple->PutAttribute( auxTuple->GetNoAttributes()-1,
+				        tidAttr->Copy() );
+
                 auxRelation->AppendTuple(auxTuple);
 
                 auxTuple->DeleteIfAllowed();
