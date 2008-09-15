@@ -290,6 +290,11 @@ optimizerOptionInfo(autosave, none, no,
 optimizerOptionInfo(noprogress, none, no,
                     'Do not send predicate data for progress estimation.',
                     true, true).
+optimizerOptionInfo(subqueries, none, yes,
+                   'Process subqueries.',
+                   true,
+                   true
+                  ).
 
 :- [calloptimizer_sec]. % include more options
 

@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -189,7 +189,7 @@ cardQuery(Pred, Rel1, Rel2, Query) :-
 
 /*
 
-----	transformPred(Pred, Param, Arg, Pred2) :- 
+----	transformPred(Pred, Param, Arg, Pred2) :-
 ----
 
 ~Pred2~ is ~Pred~ transformed such that the attribute X of relation ~ArgNo~ is written
@@ -197,7 +197,7 @@ as ``attribute(Param, attrname(X))''
 
 */
 
-transformPred(attr(Attr, Arg, Case), Param, Arg, 
+transformPred(attr(Attr, Arg, Case), Param, Arg,
   attribute(Param, attrname(attr(Attr, Arg, Case)))) :- !.
 
 transformPred(attr(Attr, Arg, Case), _, _, attr(Attr, Arg, Case)) :- !.
@@ -301,8 +301,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel) :-
   MSs is Minute *60000 + Sec*1000 + MilliSec,
   write('Elapsed Time: '),
   write(MSs),
-  write(' ms'),nl, 
-  MSsRes is MSs / (SampleCard1 * SampleCard2), 
+  write(' ms'),nl,
+  MSsRes is MSs / (SampleCard1 * SampleCard2),
   Sel is (ResCard + 1) / (SampleCard1 * SampleCard2),	% must not be 0
   write('Predicate Cost: '),
   write(MSsRes),
@@ -323,7 +323,7 @@ selectivity(pr(Pred, Rel), Sel) :-
   cardQuery(Pred, Rel, Query),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  %write('selectivity query : '), 
+  %write('selectivity query : '),
   %write(QueryAtom),
   get_time(Time1),
   secondo(QueryAtom, [int, ResCard]),
@@ -481,7 +481,7 @@ writeStoredSel(Stream) :-
 
 readStoredPETs :-
   retractall(storedPET(_, _)),
-  [storedPETs].  
+  [storedPETs].
 
 writeStoredPETs :-
   open('storedPETs.pl', write, FD),
@@ -489,7 +489,7 @@ writeStoredPETs :-
   findall(_, writeStoredPET(FD), _),
   close(FD).
 
-writeStoredPET(Stream) :-  
+writeStoredPET(Stream) :-
   storedPET(X, Y),
   replaceCharList(X, XReplaced),
   write(Stream, storedPET(XReplaced, Y)),

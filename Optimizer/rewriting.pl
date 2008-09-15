@@ -48,10 +48,12 @@ the finally ~RewrittenQuery~.
 */
 
 rewriteQuery(Query, RewrittenQuery) :-
-  rewriteQueryForMacros(Query, RQuery1),
-  rewriteQueryForInferenceOfPredicates(RQuery1, RQuery2),
-  rewriteQueryForRedundancy(RQuery2, RQuery3),
-  rewriteQueryForCSE(RQuery3, RewrittenQuery).
+ rewriteQueryForMacros(Query, RQuery1),
+ rewriteQueryForSubqueryProcessing(RQuery1, RQuery2),
+ rewriteQueryForInferenceOfPredicates(RQuery2, RQuery3),
+ rewriteQueryForRedundancy(RQuery3, RQuery4),
+ rewriteQueryForCSE(RQuery4, RewrittenQuery).
+
 
 /*
 

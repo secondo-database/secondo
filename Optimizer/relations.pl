@@ -29,16 +29,16 @@ meta data like size estimations costs into relations located in a
 secondo database.
 
 The interface is presented below
-----
-     relAttrs
+
+---- relAttrs
      relValue
      clearRel
 ----
 
 Afterwards you can use
-----
-    saveRel
-    showRel
+
+---- saveRel
+     showRel
 ----
 
 The first one is used ro store a collection of tuples which into a

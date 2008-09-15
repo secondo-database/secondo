@@ -1065,6 +1065,7 @@ ensureSmallRelationsExist :-
             createSmallRelationObjectForRel(DCrel)
           ),
           _),
+  updateCatalog,
   write_list(['\nINFO:\tFinished ensuring, that small relations exist.']), nl,
   !.
 
@@ -1088,6 +1089,7 @@ ensureSmallIndexesExist :-
             createSmallIndex(DCrel,DCattr,LogicalIndexType)
           ),
           _),
+  updateCatalog,
   write_list(['\nINFO:\tFinished ensuring, that small indexes exist.']), nl,
   !.
 
@@ -3479,3 +3481,231 @@ showSystemIdentifiers :-
             ),
           _),
   nl,!.
+
+/*
+15 Managing Relations Within the Database
+
+The following predicates are used to handle relations within the currently opened
+database:
+
+---- create_relation(+ExtRelName, +AttrTypeList)
+drop_relation(+ExtRelName)
+insert_into_relation(+DCrelName, +TupleList)
+delete_from_relation_by_value(+DCrelName, +TupleList)
+----
+
+*/
+
+/*
+---- create_relation(+ExtRelName, +AttrTypeList)
+----
+
+Creates a database object named ~ExtRelName~ (given in external spelling) as an
+object of type rel(tuple((A1 T1) (A2 T2) ... (An Tn)), where (Ai Ti) are pairs
+of (ExtAttributeName DCtypeName). The attributenames and types are passed as a
+list [[A1, V1], [A2, T2], ..., [An, Tn]].
+
+The relation is empty. If the creation fails, an exception is thrown.
+
+*/
+
+create_relation(ExtRelName,AttrTypeList) :-
+  dm(dbhandling,['\nTry: create_relation(',ExtRelName,',',AttrTypeList,').']),
+  ( databaseName(_)
+    -> true
+   ;  (  write('ERROR:\tNo database open. Cannot create relation!'),nl,
+         throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
+                        :noDatabaseOpen)),
+         !, fail
+      )
+  ),
+  dcName2externalName(DCname,ExtRelName),
+  ( secondoCatalogInfo(DCname,ExtRelName2,_,_)
+    -> ( write_list(['\nERROR:\tFailed trying to create relation \'',
+                     ExtRelName,'\'.',
+                     '\n--->\tThere is already an object called \'',
+                     ExtRelName2,'\' in the data base.']),nl,
+         throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
+                        :fileAlreadyExists)), fail
+       )
+    ;  true
+  ),
+  ( validIdentifier(ExtRelName)
+    -> true
+    ;  write_list(['\nERROR:\tFailed trying to create relation \'',
+                     ExtRelName,'\'.',
+                     '\n--->\tThe relation name is invalid.']),nl,
+         throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
+                        :invalidObjectName)), fail
+  ),
+  ( checkAttrTypeList(AttrTypeList)
+    -> true
+    ;  write_list(['\nERROR:\tFailed trying to create relation \'',
+                     ExtRelName,'\'.',
+                     '\n--->\tThe attribute/type list is invalid.']),nl,
+         throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
+                        :invalidArgument)), fail
+  ),
+  getConstRelationTypeExpression(AttrTypeList,TypeExpr),
+  concat_atom(['let ', ExtRelName, ' = [const ', TypeExpr, ' value ()]'],
+              QueryAtom),
+  ( secondo(QueryAtom)
+    -> true
+    ;  ( write_list(['\nERROR:\tFailed trying to create relation \'',
+                     ExtRelName,'\'.',
+                     '\n--->\tSecondo let command failed.']),nl,
+         throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
+                        :secondoCommandFailed)), fail
+       )
+  ),!,
+  updateCatalog,
+  updateCatalog.
+
+create_relation(ExtRelName,AttrTypeList) :-
+    write_list(['\nERROR:\tFailed trying to create relation \'',
+                ExtRelName,'\'.']),nl,
+    throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
+                   :unknownError)),
+    !, fail.
+
+/*
+---- checkAttrTypeList(+AttrTypeList)
+----
+
+Succeeds, iff ~AttrTypeList~ is a list of valid [AttrName, Type]-lists.
+All ~AttrName~s must be valid attribute names, all ~Type~s must be
+registered Secondo types. All AttrName~s must be pairwise different.
+
+*/
+checkAttrTypeList(AttrTypeList) :-
+  ( AttrTypeList = []
+    -> ( write_list(['\nERROR:\tRelation schema must contain one attribute ',
+                     'at least!']), nl,
+         fail
+       )
+    ;  true
+  ),
+  checkAttrTypeList2(AttrTypeList,DCattrNameList),
+  ( is_set(DCattrNameList)
+    -> true
+    ;  ( write_list(['\nERROR:\tAttribute names are not unique in relation ',
+                     'schema ',AttrTypeList,'!']), nl,
+         fail
+       )
+  ),
+  !.
+
+checkAttrTypeList2([],[]) :- !.
+checkAttrTypeList2([[ExtAttrName, Type] | MoreLists],
+                  [DCattrName|MoreDCattrNames]) :-
+  ( secDatatype(Type, _)
+    -> true
+    ;  ( write_list(['\nERROR:\tUnknown data type \'', Type,'\'.']),nl,
+         fail
+       )
+  ),
+  ( secondoCatalogInfo(_,ExtAttrName,_,_)
+    -> (write_list(['\nERROR:\tAttribute name \'',ExtAttrName,'\' is shadowed',
+                    '\n--->\tby the name of an existing database object',
+                    '\n--->\tcalled \'',ExtAttrName,'\'.',
+                    '\n--->\tThis would cause problems in queries.']),nl,
+        fail
+       )
+    ;  true
+  ),
+  dcName2externalName(DCattrName,ExtAttrName),
+  !,
+  checkAttrTypeList2(MoreLists,MoreDCattrNames).
+
+/*
+
+----getConstRelationTypeExpression(+AttrTypeList,TypeExpr)
+----
+
+Create type expression rel(tuple((A1 T1) ... (An Tn))) from ~AttrTypeList~.
+
+*/
+getConstRelationTypeExpression(AttrTypeList,TypeExpr) :-
+  getConstRelationTypeExpression2(AttrTypeList,TupleExpr),
+  concat_atom(['rel(tuple(',TupleExpr,'))'],TypeExpr),
+  !.
+
+getConstRelationTypeExpression2([[AttrName, Type]],AttrExpr) :-
+  concat_atom(['(',AttrName, ' ', Type, ')'], AttrExpr),
+  !.
+
+getConstRelationTypeExpression2([[AN,TY] | More],AttrExpr) :-
+  getConstRelationTypeExpression2(More,MoreExpr),
+  concat_atom(['(',AN,TY,')',MoreExpr],' ',AttrExpr),
+  !.
+
+/*
+---- drop_relation(+ExtRelName)
+----
+
+Drop the relation and possibly dependent objects, delete meta data.
+The relation name is passed in ~external spelling~.
+
+*/
+drop_relation(ExtRelName) :-
+  dm(dbhandling,['\nTry: drop_relation(',ExtRelName,').']),
+  ( databaseName(_)
+    -> true
+   ;  (  write('ERROR:\tNo database open. Cannot drop relation!'),nl,
+         throw(error_SQL(database_drop_relation(ExtRelName):noDatabaseOpen)),
+         !, fail
+      )
+  ),
+  ( ( secondoCatalogInfo(DCrel,ExtRelName,_,Type),
+      Type = [[rel, [tuple, _]]]
+    )
+    -> true
+    ;  (  write_list(['\nERROR:\tObject \'',ExtRelName,
+                      '\' unknown or not a relation.']),nl,
+          throw(error_SQL(database_drop_relation(ExtRelName):typeError)), !, fail
+       )
+  ),
+  deleteObject(ExtRelName),
+  handleLostRelation(DCrel),
+  updateCatalog,
+  updateCatalog,
+  write_list(['\nINFO:\tSuccessfully dropped relation \'',ExtRelName,'\'.']),
+  nl, !.
+
+drop_relation(ExtRelName) :-
+    write_list(['\nERROR:\tFailed trying to drop \'',ExtRelName,'\'.']),nl,
+    throw(error_SQL(database_drop_relation(ExtRelName):unknownError)),
+    !, fail.
+
+/*
+
+---- insert_into_relation(+DCrelName, +TupleList)
+----
+
+Inserts ~n~ tuples into the relation ~DCrelName~, having type
+rel(tuple((A1 T1)(A2 T2)...(Am Tm))). The tuples to insert are passed within
+~TupleList~ as a list [[V11,V12,...,V1m],[V21,V22,...,V2m],...,[Vn1,Vn2,...,Vnm]],
+where the Vij are valid value expressions of type Tj.
+
+The tuples are also inserted into all known indexes for that relation.
+Small objects, samples and stored metadata are NOT updated!
+
+If the insertion fails, an exception is thrown.
+
+*/
+
+
+/*
+
+---- delete_from_relation_by_value(+DCrelName, +TupleList)
+----
+
+Deletes ~n~ tuples from relation ~DCrelName~, having type
+rel(tuple((A1 T1)(A2 T2)...(Am Tm))). The tuples to delete are passed within
+~TupleList~ as a list [[V11,V12,...,V1m],[V21,V22,...,V2m],...,[Vn1,Vn2,...,Vnm]],
+where the Vij are valid value expressions of type Tj.
+
+The tuples are also deleted from all known indexes for that relation.
+Small objects, samples and stored metadata are NOT updated!
+
+*/
