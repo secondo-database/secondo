@@ -4618,20 +4618,17 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
   !.
 
 /*
-Suggestion by Poneleit: add
+Suggested addition by Poneleit:
 
-----
+*/
+
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
  not(is_list(Term)),
  write_list(['\nERROR:\tSymbol \'', Term,
-            '\' not recognized, supposed to be a Secondo object.\n']), %'
+            '\' not recognized. It is neither an attribute, nor a Secondo ',
+            'object.\n']), %'
  throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownError)).
-----
-
-Does not seem to make much sense...
-
-*/
 
 /*
 Old:
