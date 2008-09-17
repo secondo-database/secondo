@@ -1907,7 +1907,18 @@ card(DCrel, Size) :-
   Query = (count(rel(DCrel, _))),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
-  secondo(QueryAtom, [int, Size]),
+  secondo(QueryAtom, ResultList),
+  ( ResultList = [int, Size]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+                     'cardinality query:\n',
+                     'Expected \'[int, <intvalue>]\' but got \'',
+                     ResultList, '\'.']), endl,
+         throw(sql_ERROR(database_card(DCrel, Size)
+                         :unexpectedListType)),
+         fail
+       )
+  ),
   databaseName(DB),
   assert(storedCard(DB, DCrel, Size)),
   !.

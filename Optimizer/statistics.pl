@@ -277,9 +277,34 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [int, FilterResCard]),QueryTime),
+  getTime(secondo(QueryAtom, ResultList),QueryTime),
+  ( ResultList = [int, FilterResCard]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+                     'selectivity query:\n',
+                     'Expected \'[int, <intvalue>]\' but got \'',
+                     ResultList, '\'.']), endl,
+         throw(sql_ERROR(statistics_selectivityQuerySelection(
+                         Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
+                         :unexpectedListType)),
+         fail
+       )
+  ),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),
-  secondo('list counters',  [[1, BBoxResCard]|_]), !.
+  secondo('list counters',  ResultList2),
+  ( ResultList2 = [[1, BBoxResCard]|_]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+                     'list counters query:\n',
+                     'Expected \'[[1, BBoxResCard]|_]\' but got \'',
+                     ResultList2, '\'.']), endl,
+         throw(sql_ERROR(statistics_selectivityQuerySelection(
+                         Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
+                         :unexpectedListType)),
+         fail
+       )
+  ),
+  !.
 
 selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   Pred =.. [OP|_],
@@ -294,7 +319,19 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [int, ResCard]),QueryTime),
+  getTime(secondo(QueryAtom, ResultList),QueryTime),
+  ( ResultList = [int, ResCard]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+                     'selectivity query:\n',
+                     'Expected \'[int, <intvalue>]\' but got \'',
+                     ResultList, '\'.']), endl,
+         throw(sql_ERROR(statistics_selectivityQuerySelection(
+                         Pred, Rel, QueryTime, noBBox, ResCard)
+                         :unexpectedListType)),
+         fail
+       )
+  ),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
@@ -324,9 +361,34 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [int, FilterResCard]),QueryTime),
+  getTime(secondo(QueryAtom, ResultList),QueryTime),
+  ( ResultList = [int, FilterResCard]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+                     'selectivity query:\n',
+                     'Expected \'[int, <intvalue>]\' but got \'',
+                     ResultList, '\'.']), endl,
+         throw(sql_ERROR(statistics_selectivityQueryJoin(
+                         Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
+                         :unexpectedListType)),
+         fail
+       )
+  ),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),
-  secondo('list counters',  [[1, BBoxResCard]|_]), !.
+  secondo('list counters',  ResultList2),
+  ( ResultList2 = [[1, BBoxResCard]|_]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+                     'list counters query:\n',
+                     'Expected \'[[1, BBoxResCard]|_]\' but got \'',
+                     ResultList2, '\'.']), endl,
+         throw(sql_ERROR(statistics_selectivityQueryJoin(
+                         Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
+                         :unexpectedListType)),
+         fail
+       )
+  ),
+  !.
 
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   Pred =.. [OP|_],
@@ -352,7 +414,19 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [int, ResCard]),QueryTime),
+  getTime(secondo(QueryAtom, ResultList),QueryTime),
+  ( ResultList = [int, ResCard]
+    -> true
+    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
+                     'selectivity query:\n',
+                     'Expected \'[int, <intvalue>]\' but got \'',
+                     ResultList, '\'.']), endl,
+         throw(sql_ERROR(statistics_selectivityQueryJoin(
+                         Pred, Rel1, Rel2, QueryTime, noBBox, ResCard)
+                         :unexpectedListType)),
+         fail
+       )
+  ),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
 
