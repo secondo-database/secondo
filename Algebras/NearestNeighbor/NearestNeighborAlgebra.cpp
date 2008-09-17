@@ -56,6 +56,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "StandardTypes.h"
 #include "RTreeAlgebra.h"
 #include "NearestNeighborAlgebra.h"
+#include "TemporalAlgebra.h"
 
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
@@ -371,9 +372,12 @@ knearestTypeMap( ListExpr args )
   "Operator knearest gets '" + argstr + "'.");
 
   return
+    nl->ThreeElemList(
+    nl->SymbolAtom("APPEND"),
+    nl->OneElemList(nl->IntAtom(j)),
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
-      tupleDescription);
+      tupleDescription));
 }
 
 
@@ -526,10 +530,188 @@ into multiple tuples with disjoint units if necessary. The tuples in the
 result stream are not necessarily ordered by time or distance to the 
 given mpoint 
 
+The struct knearestLocalInfo is needet to save the data
+from one to next function call
+
 */
+enum EventType {E_LEFT, E_RIGHT, E_INTERSECT};
+struct EventElem
+{
+  EventType type;
+  Instant pointInTime; //x-axes, sortkey in the priority queue
+  Word tuple;
+  Word intersectTuple;
+  EventElem(EventType t, Instant i, Word tu) 
+     : type(t), pointInTime(i), tuple(tu){}
+  bool operator<( const EventElem& e ) const 
+  {
+    return e.pointInTime < pointInTime;
+  }
+};
+
+struct ActiveElem
+{
+  double distance;  
+  MReal distanceFkt;
+  Word tuple;
+};
+
+class ActiveKey
+{
+public:
+  double distance; //distance from arg3 at time t, y-axes, sortkey in the map
+  int pos;         //to make the key unique
+  ActiveKey( ) : distance(0), pos(0){}
+    ActiveKey( double dist, int p) : distance(dist), pos(p){}
+    bool operator==( const ActiveKey& k ) const 
+    {
+      return distance == k.distance && pos == k.pos;
+    }
+    bool operator<( const ActiveKey& k ) const 
+    {
+      return distance < k.distance || 
+          (distance == k.distance && pos < k.pos);
+    }
+};
+
+//mpoint sample
+//(
+//  (
+//      ("2003-11-20-06:03" "2003-11-20-06:03:52.685" TRUE FALSE) 
+//      (13506.0 11159.0 13336.0 10785.0)) 
+//  (
+//      ("2003-11-20-06:03:52.685" "2003-11-20-06:04:08.127" TRUE FALSE) 
+//      (13336.0 10785.0 13287.0 10675.0)) 
+//)
+
+struct KnearestLocalInfo
+{
+  //To use the plane sweep algrithmus a priority queue for the events and
+  //a map to save the active segments is needed. 
+  int k, max;
+  bool scanFlag;
+  Instant startTime, endTime;
+  map< ActiveKey, ActiveElem > activeLine;
+  priority_queue<EventElem> eventQueue;
+};
+
+double GetDistance( MPoint* mp, UPoint* up, Instant time)
+{
+  return 0;
+}
+
+
 int knearestFun (Word* args, Word& result, int message, 
              Word& local, Supplier s)
 {
+  // The argument vector contains the following values:
+  // args[0] = stream of tuples, 
+  //  the attribute given in args[1] has to be a unit
+  //  the operator expects that the tuples are sorted by the time of the units
+  // args[1] = attribute name
+  // args[2] = mpoint
+  // args[3] = int k, how many nearest are searched
+  // args[4] = int j, attributenumber
+
+  KnearestLocalInfo *localInfo;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      cout << "hier bin ich" << endl;
+      localInfo->max = 10;
+      localInfo = new KnearestLocalInfo;
+      localInfo->k = ((CcInt*)args[3].addr)->GetIntval();
+      localInfo->scanFlag = true;
+      int j = ((CcInt*)args[4].addr)->GetIntval() - 1;
+      local = SetWord(localInfo);
+      const MPoint *mp = (MPoint*)args[2].addr;
+      if (mp->IsEmpty())
+      {
+        return 0;
+      }
+      const UPoint *up1, *up2;
+      mp->Get( 0, up1);
+      mp->Get( mp->GetNoComponents() - 1, up2);
+      localInfo->startTime = up1->timeInterval.start;
+      localInfo->endTime = up2->timeInterval.end;
+      cout << "Gesamt-Startzeit: " << localInfo->startTime.ToString() << endl;
+      cout << "Gesamt-Endezeit: " << localInfo->endTime.ToString() << endl;
+
+      qp->Open(args[0].addr);
+      Word currentTupleWord; 
+      qp->Request( args[0].addr, currentTupleWord );
+      while( qp->Received( args[0].addr ) )
+      {
+        //fill eventqueue with start- and endpoints
+        //((Tuple*)tuple.addr)->DeleteIfAllowed();
+        Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
+        const UPoint* upointAttr 
+            = (const UPoint*)currentTuple->GetAttribute(j);
+        Instant t1 = upointAttr->timeInterval.start;  
+        Instant t2 = upointAttr->timeInterval.end; 
+        if( t1 > localInfo->endTime 
+          || (t1 == localInfo->endTime && !upointAttr->timeInterval.lc) )
+        {
+          //break;  //ready cause the input stream is sorted
+        }
+        if( t2 < localInfo->startTime
+          || (t2 == localInfo->startTime && !upointAttr->timeInterval.rc) )
+        {
+          //continue;
+        }
+        cout << "Startzeit t von unit: " << t1.ToString() << endl;
+        localInfo->eventQueue.push( EventElem(E_LEFT, t1, currentTupleWord) );
+        cout << "Endezeit t: " << t2.ToString() << endl;
+        localInfo->eventQueue.push( EventElem(E_RIGHT, t2, currentTupleWord) );
+        qp->Request( args[0].addr, currentTupleWord );
+      }
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      localInfo = (KnearestLocalInfo*)local.addr;
+      if ( !localInfo->scanFlag )
+      {
+        return CANCEL;
+      }
+
+      if ( !localInfo->k)
+      {
+        return CANCEL;
+      }
+
+      cout << "hier bin ich im Request" << endl;
+      while ( localInfo->max-- && !localInfo->eventQueue.empty() )
+      {
+        EventElem elem = localInfo->eventQueue.top();
+        localInfo->eventQueue.pop();
+        switch ( elem.type ){
+          case E_LEFT:
+            cout << "linkes Element gelesen" << endl;
+            cout << "Zeit: " << elem.pointInTime.ToString() << endl;
+            result = elem.tuple;
+            return YIELD;
+          case E_RIGHT:
+            cout << "Ein rechter" << endl;
+          case E_INTERSECT:
+            break;
+        }
+      }
+      return CANCEL;
+    }
+
+    case CLOSE :
+    {
+      qp->Close(args[0].addr);
+      localInfo = (KnearestLocalInfo*)local.addr;
+      delete localInfo;
+      return 0;
+    }
+  }
+
   return 0;
 }
 
@@ -578,7 +760,8 @@ const string knearestSpec  =
       "The tuples are splitted into multiple tuples with disjoint "
       "units if necessary. The tuples in the result stream are "
       "not necessarily ordered by time or distance to the given "
-      "mpoint.</text--->"
+      "mpoint. The operator expects that the input stream with "
+      "the tuples are sorted by the time of the units</text--->"
       "<text>query query UnitTrains feed head[20] UTrip knearest "
       "[train1, 2] consume;</text--->"
       ") )";
