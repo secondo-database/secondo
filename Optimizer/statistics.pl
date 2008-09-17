@@ -283,7 +283,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
-                     ResultList, '\'.']), endl,
+                     ResultList, '\'.']), nl,
          throw(sql_ERROR(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
@@ -297,7 +297,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                      'list counters query:\n',
                      'Expected \'[[1, BBoxResCard]|_]\' but got \'',
-                     ResultList2, '\'.']), endl,
+                     ResultList2, '\'.']), nl,
          throw(sql_ERROR(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
@@ -325,7 +325,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
-                     ResultList, '\'.']), endl,
+                     ResultList, '\'.']), nl,
          throw(sql_ERROR(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, noBBox, ResCard)
                          :unexpectedListType)),
@@ -367,7 +367,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
-                     ResultList, '\'.']), endl,
+                     ResultList, '\'.']), nl,
          throw(sql_ERROR(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
@@ -381,7 +381,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                      'list counters query:\n',
                      'Expected \'[[1, BBoxResCard]|_]\' but got \'',
-                     ResultList2, '\'.']), endl,
+                     ResultList2, '\'.']), nl,
          throw(sql_ERROR(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
@@ -420,7 +420,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
-                     ResultList, '\'.']), endl,
+                     ResultList, '\'.']), nl,
          throw(sql_ERROR(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, noBBox, ResCard)
                          :unexpectedListType)),

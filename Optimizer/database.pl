@@ -1913,7 +1913,7 @@ card(DCrel, Size) :-
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
                      'cardinality query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
-                     ResultList, '\'.']), endl,
+                     ResultList, '\'.']), nl,
          throw(sql_ERROR(database_card(DCrel, Size)
                          :unexpectedListType)),
          fail
