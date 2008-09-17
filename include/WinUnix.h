@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -41,26 +41,26 @@ using namespace std;
 class WinUnix {
 
   static const bool win32;
- 
+
 public:
    WinUnix(){};
    ~WinUnix(){};
 
    static int getPageSize( void );
    static int getpid( void );
- 
+
    static inline bool isLittleEndian() { return *(char *)&endian_detect == 1;}
 
    static inline int rand(void) { return ::rand(); }
-   static inline int rand(int n) 
-   { 
-     return 1 + (int) (n * 1.0 * (rand() / (RAND_MAX + 1.0))); 
+   static inline int rand(int n)
+   {
+     return 1 + (int) (n * 1.0 * (rand() / (RAND_MAX + 1.0)));
    }
 
    static void srand(unsigned int seed) { return srand(seed); }
-  
+
    static void stacktrace(const std::string& fullAppName="");
-  
+
    static inline bool WindowsHost() { return isWin32(); }
    static inline bool isWin32() { return win32; }
    static inline bool isUnix() { return !win32; }
@@ -68,27 +68,25 @@ public:
    static string getPlatformStr();
 
    static void writeBigEndian(ostream& o, const uint32_t number);
-   
+
    static void writeLittleEndian(ostream& o, const uint32_t number);
-   
+
    static void writeLittleEndian(ostream& o, const uint16_t number);
-   
+
    static void writeBigEndian(ostream& o, const uint16_t number);
 
    static void writeLittle64(ostream& o, const double number);
-   
+
    static void writeBig64(ostream& o, const double number);
 
    static void writeLittleEndian(ostream& o, const unsigned char b);
-   
+
    static void writeBigEndian(ostream& o, const unsigned char b);
 
    static uint32_t convertEndian(const uint32_t n);
    static uint16_t convertEndian(const uint16_t n);
    static uint64_t convertEndian(const uint64_t n);
-   
 
-   
 private:
    static const int endian_detect;
 };
@@ -103,14 +101,14 @@ class CFile {
    fstream object;
 
   public:
-   CFile(const string& name) : fileName(MakePath(name)) 
+   CFile(const string& name) : fileName(MakePath(name))
    { object.clear(); }
    ~CFile() {}
-   bool exists();
-   bool open();      // open for reading
-   bool overwrite(); // overwrite existing 
-   bool append();    // append existing 
-   bool close();
+   bool exists();    // check whether file exists
+   bool open();      // open existing file in reading-mode
+   bool overwrite(); // open (possibly existing) file in overwrite-mode
+   bool append();    // open (possibly existing) file in append-mode
+   bool close();     // close an open file
    bool eof() { return object.eof(); }
    bool fail() { return object.fail(); }
    bool good() { return object.good(); }
@@ -125,7 +123,7 @@ class CFile {
    static const char* pathSep;
 
    static string MakePath(const string& s);
-}; 
+};
 
   /*
   template<class T>

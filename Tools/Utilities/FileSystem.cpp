@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@ May 2002 Ulrich Telle
 Sept 2004 M. Spiekermann. Bugs in ~GetparentFolder~ and ~AppendSlash~ corrected.
 
 Sept 2006 M. Spiekermann. When windows.h is included many WIN-API functions like
-~CopyFile~ are defined as a macro and mapped to ~CopyFileA~ or ~CopyFileB~. This is very awful (stupid windows) since code parts using the same name like class member functions are also renamed which causes strange linker errors! 
+~CopyFile~ are defined as a macro and mapped to ~CopyFileA~ or ~CopyFileB~. This is very awful (stupid windows) since code parts using the same name like class member functions are also renamed which causes strange linker errors!
 
 */
 
@@ -54,12 +54,12 @@ using namespace std;
 
 /*
 2 ~FileErr~ a class representing Nested-List exceptions
-   
+
 */
 class FileErr : public SecondoException {
 
   public:
-   
+
   FileErr(const string& Msg, const int rc) : SecondoException(Msg), rc(rc) {}
   const string msg() {
     /*
@@ -125,8 +125,8 @@ FileSystem::GetParentFolder( const string& folder, int level /* =1 */)
 
   if ( n != string::npos ) { // erase path information
     parent.erase(n);
-  } 
-  
+  }
+
   if (level-1) {
     return GetParentFolder(parent,level-1);
   } else {
@@ -158,6 +158,26 @@ FileSystem::CreateFolder( const string& folder )
 }
 
 bool
+FileSystem::IsDirectory( const string& fileName )
+{
+  try {
+  if (fileName == "") {
+    return false;
+  }
+  FileAttributes fileAttribs = Get_FileAttributes( fileName );
+#ifdef SECONDO_WIN32
+  int isFolder = (fileAttribs & FILE_ATTRIBUTE_DIRECTORY);
+#else
+  int isFolder = S_ISDIR( fileAttribs );
+#endif
+    return isFolder != 0;
+  } catch (FileErr f) {
+    cerr << f.msg();
+    return false;
+  }
+}
+
+bool
 FileSystem::DeleteFileOrFolder( const string& fileName )
 {
   int rc=0;
@@ -165,7 +185,7 @@ FileSystem::DeleteFileOrFolder( const string& fileName )
   try {
   if (fileName == "")
     throw FileErr(errMsg, rc);
-   
+
   FileAttributes fileAttribs = Get_FileAttributes( fileName );
 #ifdef SECONDO_WIN32
   int isFolder = (fileAttribs & FILE_ATTRIBUTE_DIRECTORY);
@@ -309,6 +329,20 @@ FileSystem::Set_FileAttributes( const string& fileName, FileAttributes attribs )
   return (::chmod( fileName.c_str(), attribs ) != -1);
 #endif
 }
+int32_t
+FileSystem::GetFileSize( const string& fileName )
+{
+  if(!FileOrFolderExists(fileName)) {
+    return -1;
+  }
+  std::ifstream f;
+  f.open(fileName.c_str(), std::ios_base::binary | std::ios_base::in);
+  if (!f.good() || f.eof() || !f.is_open()) { return 0; }
+  f.seekg(0, std::ios_base::beg);
+  std::ifstream::pos_type begin_pos = f.tellg();
+  f.seekg(0, std::ios_base::end);
+  return static_cast<int32_t>(f.tellg() - begin_pos);
+}
 
 bool
 FileSystem::FileSearch( const string& folder,
@@ -445,7 +479,7 @@ delete each file.
 
       // Subfolders will only be added to the list if requested
 
-      if ( S_ISLNK( fileAttribs ) == 0 && 
+      if ( S_ISLNK( fileAttribs ) == 0 &&
           (!isFolder || (isFolder && includeFolders)) )
       {
         if ( !searchName ||
@@ -483,10 +517,10 @@ FileSystem::SearchPath( const string& fileName, string& foundFile )
 #ifdef SECONDO_WIN32
   char buffer[MAX_PATH];
   char* filepart;
-  if ( ::SearchPath( NULL, fileName.c_str(), NULL, 
+  if ( ::SearchPath( NULL, fileName.c_str(), NULL,
                      MAX_PATH, buffer, &filepart ) == 0 )
   {
-    if ( ::SearchPath( NULL, fileName.c_str(), ".exe", 
+    if ( ::SearchPath( NULL, fileName.c_str(), ".exe",
                        MAX_PATH, buffer, &filepart ) != 0 )
     {
       foundFile = buffer;
@@ -558,7 +592,7 @@ FileSystem::AppendSlash( string& pathName )
 {
   string::size_type n = pathName.find_last_of(PATH_SLASH[0]);
 
-  if ( n != pathName.length() ) // last character is not a path separator 
+  if ( n != pathName.length() ) // last character is not a path separator
   {
     pathName += PATH_SLASH;
   }

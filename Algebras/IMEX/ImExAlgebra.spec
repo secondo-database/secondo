@@ -28,4 +28,13 @@ operator dbtype alias dbTYPE pattern op( _ )
 operator dbimport alias DBIMPORT pattern _ op [ _ ]
 operator saveObject alias SAVEOBJECT pattern _ op [ _ , _ ]
 operator csvimport  alias csvimport pattern _ op [ _ , _ , _ ]
-
+operator isFile  alias ISFILE pattern op( _ )
+operator isDirectory alias ISDIRECTORY pattern op( _ )
+operator removeFile alias removeFILE pattern op( _ )
+operator createDirectory alias CREATEDIRECTORY pattern op( _ )
+operator fileSize alias FILESIZE pattern op( _, _ )
+operator writeFile alias WRITEFILE pattern op( _, _, _ )
+operator readFile alias READFILE pattern op( _ )
+operator moveFile alias MOVEFILE pattern op( _, _ )
+operator getDirectory alias GETDIRECTORY pattern op( _, _ )
+operator eraseDirectory alias REMOVEDIRECTORY pattern op( _, _ )

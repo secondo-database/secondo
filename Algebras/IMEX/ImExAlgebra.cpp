@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[_] [\_]
 //[TOC] [\tableofcontents]
 
-[1] ImExAlgebra 
+[1] ImExAlgebra
 
 This algebra provides import export functions for different
 data formats.
@@ -55,7 +55,8 @@ This file contains the implementation import / export operators.
 #include <sstream>
 #include <vector>
 #include <fstream>
-
+#include <sys/stat.h>
+#include <stdio.h>
 
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -70,6 +71,7 @@ This file contains the implementation import / export operators.
 #include "TopOpsAlgebra.h"
 #include "DBArray.h"
 #include "Symbols.h"
+#include "FileSystem.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -88,14 +90,14 @@ extern AlgebraManager* am;
 */
 
 ListExpr csvexportTM(ListExpr args){
-  int len = nl->ListLength(args); 
+  int len = nl->ListLength(args);
   if(len != 3 && len != 4 && len!=5){
     ErrorReporter::ReportError("wrong number of arguments");
     return nl->TypeError();
   }
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if(len == 3){ // stream(CSV) x string x bool
-    if(!nl->IsEqual(nl->Second(args),symbols::TEXT) || 
+    if(!nl->IsEqual(nl->Second(args),symbols::TEXT) ||
        !nl->IsEqual(nl->Third(args),symbols::BOOL)){
        ErrorReporter::ReportError("stream x text x bool expected");
        return nl->TypeError();
@@ -129,13 +131,13 @@ ListExpr csvexportTM(ListExpr args){
     }
     ListExpr stream = nl->First(args);
     if(nl->ListLength(stream)!=2 ||
-       !nl->IsEqual(nl->First(stream),symbols::STREAM)){ 
+       !nl->IsEqual(nl->First(stream),symbols::STREAM)){
        ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
     ListExpr tuple = nl->Second(stream);
     if(nl->ListLength(tuple)!=2 ||
-       !nl->IsEqual(nl->First(tuple),"tuple")){ 
+       !nl->IsEqual(nl->First(tuple),"tuple")){
        ErrorReporter::ReportError("stream x text x bool [ x bool] expected");
        return nl->TypeError();
     }
@@ -183,8 +185,8 @@ public:
        f.open(fname.c_str(),ios::out | ios::trunc);
      }
    }
-  
-   CsvExportLocalInfo(string fname, bool append,bool names, 
+
+   CsvExportLocalInfo(string fname, bool append,bool names,
                       const string& sep,
                       ListExpr type){
      this->sep = sep;
@@ -204,7 +206,7 @@ public:
            rest = nl->Rest(rest);
            f << nl->SymbolValue(nl->First(first));
         }
-        f << endl; 
+        f << endl;
      }
    }
 
@@ -248,8 +250,8 @@ int CsvExportVM(Word* args, Word& result,
       if(!fname->IsDefined() || !append->IsDefined()){
          local.setAddr(0);
       } else {
-         CsvExportLocalInfo* linfo; 
-         linfo = (new CsvExportLocalInfo(fname->GetValue(), 
+         CsvExportLocalInfo* linfo;
+         linfo = (new CsvExportLocalInfo(fname->GetValue(),
                                          append->GetBoolval()));
          if(!linfo->isOk()){
             delete linfo;
@@ -271,7 +273,7 @@ int CsvExportVM(Word* args, Word& result,
            CsvExportLocalInfo* linfo;
            linfo  = static_cast<CsvExportLocalInfo*>(local.addr);
            linfo->write( static_cast<Attribute*>( elem.addr));
-           result = elem;   
+           result = elem;
            return YIELD;
          } else {
            return CANCEL;
@@ -310,13 +312,13 @@ int CsvExportVM2(Word* args, Word& result,
         sep =  ccSep->GetValue();
         if(sep.length()==0){
            sep =",";
-        } 
+        }
       }
       if(!fname->IsDefined() || !append->IsDefined() || !names->IsDefined()){
          local.setAddr(0);
       } else {
-         CsvExportLocalInfo* linfo; 
-         linfo = (new CsvExportLocalInfo(fname->GetValue(), 
+         CsvExportLocalInfo* linfo;
+         linfo = (new CsvExportLocalInfo(fname->GetValue(),
                                          append->GetBoolval(),
                                          names->GetBoolval(),
                                          sep,
@@ -341,7 +343,7 @@ int CsvExportVM2(Word* args, Word& result,
            CsvExportLocalInfo* linfo;
            linfo  = static_cast<CsvExportLocalInfo*>(local.addr);
            linfo->write( static_cast<Tuple*>( elem.addr));
-           result = elem;   
+           result = elem;
            return YIELD;
          } else {
            return CANCEL;
@@ -445,7 +447,7 @@ ListExpr csvimportTM(ListExpr args){
 
   // check attribute types for csv importable
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
- 
+
   ListExpr attrlist = nl->Second(nl->Second(nl->First(args)));
   if(nl->IsEmpty(attrlist)){
     ErrorReporter::ReportError(err);
@@ -460,7 +462,7 @@ ListExpr csvimportTM(ListExpr args){
      attrlist = nl->Rest(attrlist);
   }
   return nl->TwoElemList( nl->SymbolAtom(symbols::STREAM),
-                          nl->Second(nl->First(args))); 
+                          nl->Second(nl->First(args)));
 }
 
 
@@ -485,7 +487,7 @@ const string csvimportSpec  =
 */
 class CsvImportInfo{
 public:
-  CsvImportInfo(ListExpr type, FText* filename, 
+  CsvImportInfo(ListExpr type, FText* filename,
                 CcInt* hSize , CcString* comment,
                 const string& separator){
 
@@ -502,13 +504,13 @@ public:
       if(!file.good()){
          defined = false;
          return;
-      } 
+      }
       // skip header
       int skip = hSize->GetIntval();
       string buffer;
       for(int i=0;i<skip && file.good(); i++){
          getline(file,buffer);
-      }       
+      }
       if(!file.good()){
         defined=false;
         return;
@@ -524,7 +526,7 @@ public:
       while(!nl->IsEmpty(attrList)){
          ListExpr attrType = nl->Second(nl->First(attrList));
          attrList = nl->Rest(attrList);
-         int algId; 
+         int algId;
          int typeId;
          string tname;
          if(! ((SecondoSystem::GetCatalog())->LookUpTypeExpr(attrType,
@@ -535,9 +537,9 @@ public:
          Word w = am->CreateObj(algId,typeId)(attrType);
          instances.push_back(static_cast<Attribute*>(w.addr));
       }
-  } 
+  }
 
-  
+
 
   ~CsvImportInfo(){
      if(BasicTuple){
@@ -563,7 +565,7 @@ public:
         return line.find(comment)==0;
       }
    }
-  
+
    Tuple* getNext(){
      if(!defined){
         return 0;
@@ -579,7 +581,7 @@ public:
         return createTuple(buf);
      }
      return 0;
-   } 
+   }
 
 
 private:
@@ -655,7 +657,7 @@ int csvimportVM(Word* args, Word& result,
         delete info;
         local.addr=0;
       }
-       
+
     }
     default: {
      return 0;
@@ -687,9 +689,9 @@ ListExpr shpexportTM(ListExpr args){
   if(len!=2 && len != 3){
     ErrorReporter::ReportError("wrong number of arguments");
     return nl->TypeError();
-  } 
+  }
   string err = "   stream(SHPEXPORTABLE) x text \n "
-               " or stream(tuple(...)) x text x attrname expected"; 
+               " or stream(tuple(...)) x text x attrname expected";
   if(!nl->IsEqual(nl->Second(args),"text")){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -706,7 +708,7 @@ ListExpr shpexportTM(ListExpr args){
       ErrorReporter::ReportError(err);
       return nl->TypeError();
     }
-    return stream; 
+    return stream;
   } else { // len = 3
     ListExpr stream = nl->First(args);
     if(! IsStreamDescription(stream)){
@@ -746,7 +748,7 @@ ListExpr shpexportTM(ListExpr args){
     // all ok, append the index to the result
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                              nl->OneElemList(nl->IntAtom(index)),
-                             stream); 
+                             stream);
   }
 }
 
@@ -778,7 +780,7 @@ class shpLInfo{
     }
 
     bool writeHeader(uint32_t type){
-       file.open((baseName + ".shp").c_str(), 
+       file.open((baseName + ".shp").c_str(),
                   ios::out | ios::trunc | ios_base::binary);
        if(!file.good()){
          return false;
@@ -788,7 +790,7 @@ class shpLInfo{
        uint32_t unused = 0;
        for(int i=0;i<5;i++){
          WinUnix::writeBigEndian(file,unused);
-       } 
+       }
        // dummy for file length
        uint32_t length = 100;
        WinUnix::writeBigEndian(file,length);
@@ -844,9 +846,9 @@ class shpLInfo{
        // write correct file-length into file
        // write correct bounding box into file
        uint32_t len = file.tellp();
-       file.seekp(24,ios_base::beg); 
+       file.seekp(24,ios_base::beg);
        WinUnix::writeBigEndian(file,len);
-       file.seekp(36,ios_base::beg); 
+       file.seekp(36,ios_base::beg);
        WinUnix::writeLittle64(file,xMin);
        WinUnix::writeLittle64(file,yMin);
        WinUnix::writeLittle64(file,xMax);
@@ -862,7 +864,7 @@ class shpLInfo{
 
     int getIndex(){ return index; }
     void setIndex(int index) {this->index = index;}
-  
+
  private:
     string baseName;
     bool first;
@@ -891,7 +893,7 @@ int shpexportVM1(Word* args, Word& result,
        qp->Open(args[0].addr);
        FText* fname = static_cast<FText*>(args[1].addr);
        local.setAddr(new shpLInfo(fname));
-       return 0; 
+       return 0;
     }
     case REQUEST: {
       shpLInfo* linfo= static_cast<shpLInfo*>(local.addr);
@@ -924,7 +926,7 @@ int shpexportVM1(Word* args, Word& result,
         shpLInfo* linfo = static_cast<shpLInfo*>(local.addr);
         linfo->close();
         delete linfo;
-        local.addr=0; 
+        local.addr=0;
       }
       return 0;
     }
@@ -944,7 +946,7 @@ int shpexportVM2(Word* args, Word& result,
        int attrPos = (static_cast<CcInt*>(args[3].addr))->GetIntval();
        linfo->setIndex( attrPos);
        local.setAddr(linfo);
-       return 0; 
+       return 0;
     }
     case REQUEST: {
       shpLInfo* linfo= static_cast<shpLInfo*>(local.addr);
@@ -972,7 +974,7 @@ int shpexportVM2(Word* args, Word& result,
         shpLInfo* linfo = static_cast<shpLInfo*>(local.addr);
         linfo->close();
         delete linfo;
-        local.addr=0; 
+        local.addr=0;
       }
       return 0;
     }
@@ -1078,9 +1080,9 @@ public:
             rest = nl->Rest(rest);
             name = name.substr(0,10);// allow exactly 11 chars
             names.push_back(name);
-          } 
-        } 
-     }   
+          }
+        }
+     }
    }
 
    void writeHeader(Tuple* tuple){
@@ -1099,7 +1101,7 @@ public:
           unsigned char len = attr->getDB3Length();
           if(ismemo){
             len = 10;
-          } 
+          }
           recSize += len;
           exps.push_back(true);
           lengths.push_back(len);
@@ -1116,15 +1118,15 @@ public:
       }
       if(exportable == 0){ // no exportable attributes found
           defined = false;
-          return; 
+          return;
       }
       // open the file
-      f.open((this->fname+".dbf").c_str(), 
+      f.open((this->fname+".dbf").c_str(),
               ios::out | ios::trunc | ios::binary);
 
       if(!f.good()){
           defined = false;
-          return;        
+          return;
       }
 
       unsigned char code = hasMemo?0x83:0x03;
@@ -1154,7 +1156,7 @@ public:
            string name = names[i];
            int len = name.length();
            f << name;
-           // fill with zeros  
+           // fill with zeros
            for(int j=len;j<11;j++){
              f << zero;
            }
@@ -1171,27 +1173,27 @@ public:
               f << reserved;
            }
          }
-         
-      }      
+
+      }
       unsigned char term = 0x0D;
       WinUnix::writeLittleEndian(f,term);
       if(!f.good()){
          f.close();
          defined = false;
-      } 
+      }
    }
 
 
    void writeMemo(string memo){
      string no ="          "; // 10 spaces
      if(firstMemo){
-        fmemo.open((this->fname+".dbt").c_str(), 
+        fmemo.open((this->fname+".dbt").c_str(),
                    ios::out | ios::trunc | ios::binary);
         memNumber = 1;
         firstMemo = false;
         // write the header
         unsigned char zero = 0;
-        unsigned char version = 3; 
+        unsigned char version = 3;
         for(int  i=0;i<512;i++){
            if(i==16){
               fmemo << version;
@@ -1204,8 +1206,8 @@ public:
      if(!fmemo.good() || memo.length()==0){
        f << no;
        return;
-     } 
-     // write block number to f 
+     }
+     // write block number to f
      stringstream ss;
      ss << memNumber;
      no = extendString(ss.str(),10,0);
@@ -1214,7 +1216,7 @@ public:
      fmemo << memo;
      unsigned char term = 0x1A;
      fmemo << term << term;
-     unsigned int len = memo.length() + 2 ; 
+     unsigned int len = memo.length() + 2 ;
      unsigned int blocks = len / 512;
      unsigned int os = len % 512;
      if(os!=0){
@@ -1225,7 +1227,7 @@ public:
      while(os!=0){
        fmemo << zero;
        os = (os + 1 ) % 512;
-     } 
+     }
      memNumber += blocks;
 
    }
@@ -1236,7 +1238,7 @@ public:
       }
       if(first){
          writeHeader(tuple);
-         first = false; 
+         first = false;
       }
       if(!defined){ // no exportable attributes
          return;
@@ -1319,7 +1321,7 @@ int db3exportVM(Word* args, Word& result,
        FText* fname = static_cast<FText*>(args[1].addr);
        Db3LInfo* linfo  = new Db3LInfo(fname,qp->GetType(s));
        local.setAddr(linfo);
-       return 0; 
+       return 0;
     }
     case REQUEST: {
       Db3LInfo* linfo= static_cast<Db3LInfo*>(local.addr);
@@ -1344,7 +1346,7 @@ int db3exportVM(Word* args, Word& result,
         Db3LInfo* linfo = static_cast<Db3LInfo*>(local.addr);
         linfo->close();
         delete linfo;
-        local.addr=0; 
+        local.addr=0;
       }
       return 0;
     }
@@ -1356,7 +1358,7 @@ int db3exportVM(Word* args, Word& result,
 3.3 Specification
 
 */
-  
+
 const string db3exportSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> stream(tuple(...))) x text -> stream(tuple...)</text--->"
@@ -1502,7 +1504,7 @@ int shptypeVM(Word* args, Word& result,
   }
 }
 
-/* 
+/*
 4.3 Specification
 
 */
@@ -1518,8 +1520,8 @@ const string shptypeSpec  =
 
 
 
-/* 
-4.4 Operator instance 
+/*
+4.4 Operator instance
 
 */
 
@@ -1541,12 +1543,12 @@ s x text -> stream(s), s in {point, points, line, region}
 */
 
 ListExpr shpimportTM(ListExpr args){
-  string err = 
+  string err =
   " s x text -> stream(s), s in {point, points, line, region} expected";
   if(nl->ListLength(args)!=2){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
-  } 
+  }
   if(!nl->IsEqual(nl->Second(args),"text")){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -1607,8 +1609,8 @@ class shpimportInfo{
         case 3: return getNextLine();
         case 5: return getNextPolygon();
         case 8: return getNextMultiPoint();
-        default: return 0; 
-      } 
+        default: return 0;
+      }
    }
    void close(){
      if(defined){
@@ -1616,7 +1618,7 @@ class shpimportInfo{
         defined = false;
      }
    }
- 
+
  private:
 
    bool defined;
@@ -1627,7 +1629,7 @@ class shpimportInfo{
    bool readHeader(unsigned int allowedType){
       file.seekg(0,ios::end);
       streampos p = file.tellg();
-      fileend = p; 
+      fileend = p;
       if(p< 100){ // minimum size not reached
          return false;
       }
@@ -1661,7 +1663,7 @@ class shpimportInfo{
       }
       return res;
    }
-   
+
    uint32_t readLittleInt32(){
       uint32_t res;
       file.read(reinterpret_cast<char*>(&res),4);
@@ -1677,7 +1679,7 @@ class shpimportInfo{
       if(!WinUnix::isLittleEndian()){
          tmp = WinUnix::convertEndian(tmp);
       }
-      double res = * (reinterpret_cast<double*>(&tmp)); 
+      double res = * (reinterpret_cast<double*>(&tmp));
       return res;
    }
 
@@ -1688,7 +1690,7 @@ class shpimportInfo{
      // uint32_t recNo =
       readBigInt32();
       uint32_t recLen = readBigInt32();
-      uint32_t type = readLittleInt32(); 
+      uint32_t type = readLittleInt32();
       if(type == 0){ // null shape
         if(recLen!=2 || !file.good()){
           cerr << "Error in shape file detected " << __LINE__ << endl;
@@ -1715,7 +1717,7 @@ class shpimportInfo{
       }
       return new Point(true,x,y);
    }
-   
+
    Attribute* getNextMultiPoint(){
       if(file.tellg()==fileend){
          return 0;
@@ -1726,7 +1728,7 @@ class shpimportInfo{
       len = readBigInt32();
       uint32_t type = 0;
       type = readLittleInt32();
-      
+
       if(!file.good()){
          cerr << " problem in reading file " << __LINE__ << endl;
          cerr << "recNo = " << recNo << endl;
@@ -1745,7 +1747,7 @@ class shpimportInfo{
         } else {
            return new Points(1);
         }
-      } 
+      }
       if(type!=8){
          cerr << "Error in shape file detected " << __LINE__ << endl;
          cout << "type = " << type << endl;
@@ -1755,10 +1757,10 @@ class shpimportInfo{
          return 0;
       }
       // ignore Bounding box
-      readLittleDouble(); 
-      readLittleDouble(); 
-      readLittleDouble(); 
-      readLittleDouble(); 
+      readLittleDouble();
+      readLittleDouble();
+      readLittleDouble();
+      readLittleDouble();
       uint32_t numPoints = readLittleInt32();
 
       uint32_t expectedLen = (40 + numPoints*16) / 2;
@@ -1772,14 +1774,14 @@ class shpimportInfo{
          return 0;
       }
       Points* ps = new Points(numPoints);
-      Point p; 
+      Point p;
       ps->StartBulkLoad();
       for(unsigned int i=0;i<numPoints && file.good();i++){
          double x = readLittleDouble();
          double y = readLittleDouble();
          p.Set(x,y);
          (*ps) += p;
-      }      
+      }
       ps->EndBulkLoad();
       if(!file.good()){
         cerr << "Error in file " << __LINE__ << endl;
@@ -1794,7 +1796,7 @@ class shpimportInfo{
      if(file.tellg()==fileend){
        return 0;
      }
-     //uint32_t recNo = 
+     //uint32_t recNo =
      readBigInt32();
      uint32_t len = readBigInt32();
      uint32_t type = readLittleInt32();
@@ -1814,7 +1816,7 @@ class shpimportInfo{
        file.close();
        defined = false;
        return 0;
-     } 
+     }
      // ignore box
      readLittleDouble();
      readLittleDouble();
@@ -1856,12 +1858,12 @@ class shpimportInfo{
                 (*line) += hs;
                 hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
                 (*line) += hs;
-            } 
+            }
           }
           p1 = p2;
           rpoints++;
        }
-     }      
+     }
      line->EndBulkLoad();
      if(!file.good()){
        cerr << "Error in reading file" << endl;
@@ -1919,7 +1921,7 @@ will be 0.
      // for debugging the file
      uint32_t clen = (44 + 4*numParts + 16*numPoints)/2;
      if(clen!=len){
-        cerr << "File invalid: length given in header seems to be wrong" 
+        cerr << "File invalid: length given in header seems to be wrong"
              << endl;
         file.close();
         defined = false;
@@ -1956,7 +1958,7 @@ will be 0.
         }
         cycles.push_back(cycle);
      }
-     return buildRegion(cycles); 
+     return buildRegion(cycles);
    }
 
 
@@ -2015,7 +2017,7 @@ Builds a region from a set of cycles.
      if(faces2.size()<1){
          cerr << "no face found within the cycles" << endl;
          return new Region(0);
-     } 
+     }
      // build the union of all faces
      Region* reg = faces2[0];
      for(unsigned int i=1;i<faces2.size();i++){
@@ -2035,7 +2037,7 @@ Builds a region from a set of cycles.
 /*
 ~SetPartnerno~
 
-Sets the partner for the halfsegments if the edegno is set correct.  
+Sets the partner for the halfsegments if the edegno is set correct.
 
 */
 void SetPartnerNo(DBArray<HalfSegment>& segs){
@@ -2057,9 +2059,9 @@ void SetPartnerNo(DBArray<HalfSegment>& segs){
        HalfSegment left = *hs2;
        left.attr.partnerno = i;
        segs.Put(i,right);
-       segs.Put(leftpos,left); 
+       segs.Put(leftpos,left);
      }
-  }  
+  }
 }
 
 
@@ -2067,7 +2069,7 @@ void SetPartnerNo(DBArray<HalfSegment>& segs){
 ~numOfNeighbours~
 
 Returns the number of halfsegments having the same dominating point
-like the halfsegment at positition pos (exclusive that segment). 
+like the halfsegment at positition pos (exclusive that segment).
 The DBArray has to be sorted.
 
 */
@@ -2148,12 +2150,12 @@ int numOfNeighbours(const DBArray<HalfSegment>& segs,const int pos){
 ~numOfUnusedNeighbours~
 
 Returns the number of halfsegments having the same dominating point
-like the halfsegment at positition pos (exclusive that segment). 
+like the halfsegment at positition pos (exclusive that segment).
 The DBArray has to be sorted.
 
 */
 int numOfUnusedNeighbours(const DBArray<HalfSegment>& segs,
-                          const int pos, 
+                          const int pos,
                           const bool* used){
    const HalfSegment* hs1;
    const HalfSegment* hs2;
@@ -2256,12 +2258,12 @@ int getUnusedExtension(const DBArray<HalfSegment>& segs,
 }
 
 
-void removeDeadEnd(DBArray<HalfSegment>* segments, 
+void removeDeadEnd(DBArray<HalfSegment>* segments,
                    vector<Point>& path, vector<int>& positions,
                    const bool* used){
 
    int pos = positions.size()-1;
-   while((pos>=0) && 
+   while((pos>=0) &&
          (numOfUnusedNeighbours(*segments,positions[pos],used) < 1)){
        pos--;
    }
@@ -2288,7 +2290,7 @@ Finds simple subcycles within ~path~ and inserts each of them into
 void separateCycles(const vector<Point>& path, vector <vector<Point> >& cycles){
 
   if(path.size()<4){ // path too short for a polyon
-    return; 
+    return;
   }
 
   if(!AlmostEqual(path[0], path[path.size()-1])){
@@ -2298,7 +2300,7 @@ void separateCycles(const vector<Point>& path, vector <vector<Point> >& cycles){
 
   set<Point> visitedPoints;
   vector<Point> cycle;
-  
+
   for(unsigned int i=0;i<path.size(); i++){
     Point p = path[i];
     if(visitedPoints.find(p)!=visitedPoints.end()){ // subpath found
@@ -2310,7 +2312,7 @@ void separateCycles(const vector<Point>& path, vector <vector<Point> >& cycles){
          subpath.push_back(cycle[pos]);
          visitedPoints.erase(cycle[pos]);
          pos--;
-      } 
+      }
       if(pos<0){
         cerr << "internal error during searching a subpath" << endl;
         return;
@@ -2318,7 +2320,7 @@ void separateCycles(const vector<Point>& path, vector <vector<Point> >& cycles){
         subpath.push_back(p); // close path;
         if(subpath.size()>3){
           cycles.push_back(subpath);
-        } 
+        }
         cycle.erase(cycle.begin()+(pos+1), cycle.end());
       }
     } else {
@@ -2328,8 +2330,8 @@ void separateCycles(const vector<Point>& path, vector <vector<Point> >& cycles){
   }
   if(cycle.size()>3){
     cycles.push_back(cycle);
-  } 
-} 
+  }
+}
 
 
 /*
@@ -2344,9 +2346,9 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
   }
   bool isFace = getDir(cycle);
 
-  // create a DBArray of halfsegments representing this cycle 
+  // create a DBArray of halfsegments representing this cycle
   DBArray<HalfSegment> segments1(0);
- 
+
   for(unsigned int i=0;i<cycle.size()-1;i++){
     Point p1 = cycle[i];
     Point p2 = cycle[i+1];
@@ -2361,7 +2363,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
     }
 
     HalfSegment hs1(true,lp,rp);
-    
+
     hs1.attr.edgeno = i;
     hs1.attr.faceno = 0;
     hs1.attr.cycleno =0;
@@ -2370,7 +2372,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
     hs1.attr.partnerno = -1;
 
     HalfSegment hs2 = hs1;
-    hs2.SetLeftDomPoint(false);  
+    hs2.SetLeftDomPoint(false);
 
     segments1.Append(hs1);
     segments1.Append(hs2);
@@ -2381,14 +2383,14 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
   // split the segments at crossings and overlappings
   DBArray<HalfSegment>* segments = Split(segments1);
 
-  
+
   SetPartnerNo(*segments);
 
 
   bool used[segments->Size()];
   for(int i=0;i<segments->Size();i++){
     used[i] = false;
-  } 
+  }
 
   // try to find cycles
 
@@ -2417,7 +2419,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
         if(points.find(ndp)!=points.end()){ // (sub) cycle found
           if(AlmostEqual(path[0],ndp)){ // cycle closed
              path.push_back(ndp);
-             done = true; 
+             done = true;
           } else { // subcycle found
              subcycle = true;
           }
@@ -2425,19 +2427,19 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
         if(!done){
           // no cycle, try to extend
           int nb = getUnusedExtension(*segments,partner,used);
-          if(nb>=0){ // extension found, continue 
-            pos = nb;            
+          if(nb>=0){ // extension found, continue
+            pos = nb;
           } else { // dead end found, track back
             cout << " ----> DEAD END FOUND <--- " << endl;
             done = true; // should never occur
-          }  
+          }
         }
       }
       if(subcycle){
         separateCycles(path,cycles);
       } else if( (path.size()>3 ) && AlmostEqual(path[0],path[path.size()-1])){
         vector<Point> cycle = path;
-        cycles.push_back(cycle);  
+        cycles.push_back(cycle);
       } else {
         cout << "remove invalid path of lengthh " << path.size() << endl;
       }
@@ -2472,7 +2474,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
        hs2.SetLeftDomPoint(false);
        *reg += hs;
        *reg += hs2;
-    } 
+    }
     reg->EndBulkLoad();
 
     if(!result){
@@ -2485,9 +2487,9 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
     }
   }
   if(result){
-    regs.push_back(make_pair(result,isFace)); 
+    regs.push_back(make_pair(result,isFace));
   }
-} 
+}
 
 };
 
@@ -2501,14 +2503,14 @@ int shpimportVM(Word* args, Word& result,
    switch(message){
      case OPEN: {
        FText* fname = static_cast<FText*>(args[1].addr);
-       local.setAddr(new shpimportInfo(type,fname));  
+       local.setAddr(new shpimportInfo(type,fname));
        return 0;
      }
      case REQUEST: {
        shpimportInfo* info = static_cast<shpimportInfo*>(local.addr);
        if(!info){
          return CANCEL;
-       } 
+       }
        Attribute* next = info->getNext();
        result.addr = next;
        return next?YIELD:CANCEL;
@@ -2547,7 +2549,7 @@ const string shpimportSpec  =
 */
 
 ValueMapping shpimportmap[] =
-{  shpimportVM<1>, shpimportVM<3>, 
+{  shpimportVM<1>, shpimportVM<3>,
    shpimportVM<5>, shpimportVM<8>};
 
 /*
@@ -2555,7 +2557,7 @@ ValueMapping shpimportmap[] =
 
 */
 int shpimportSelect( ListExpr args )
-{ 
+{
   string st = nl->SymbolValue(nl->First(args));
   if(st =="point") return 0;
   if(st =="line") return 1;
@@ -2564,8 +2566,8 @@ int shpimportSelect( ListExpr args )
   return -1;
 }
 
-/* 
-5.6 Operator instance 
+/*
+5.6 Operator instance
 
 */
 Operator shpimport( "shpimport",
@@ -2656,7 +2658,7 @@ int dbtypeVM(Word* args, Word& result,
   cerr << "HeaderLength = " << headerlength << endl;
   int noRecords = (headerlength-32) / 32;
 
-  cerr << "noRecord " << noRecords << endl; 
+  cerr << "noRecord " << noRecords << endl;
   f.seekg(0,ios::end);
   if(f.tellg() < headerlength){
       res->Set(true,"invalid filesize");
@@ -2672,7 +2674,7 @@ int dbtypeVM(Word* args, Word& result,
      stringstream ns;
      for(int j=0;j<11;j++){
         if(buffer[j]){
-          ns << buffer[j];     
+          ns << buffer[j];
         }
      }
      string name = ns.str();
@@ -2706,7 +2708,7 @@ int dbtypeVM(Word* args, Word& result,
          f.close();
          return 0;
       }
-     } 
+     }
      if(i>0){
        attrList << ",";
      }
@@ -2715,14 +2717,14 @@ int dbtypeVM(Word* args, Word& result,
   f.close();
   attrList << " ] ";
   attrList.flush();
-  string val = string("[const rel(tuple(") + 
-               attrList.str() + 
+  string val = string("[const rel(tuple(") +
+               attrList.str() +
                string(")) value ()]");
   res->Set(true, val);
   return 0;
 }
 
-/* 
+/*
 6.3 Specification
 
 */
@@ -2736,8 +2738,8 @@ const string dbtypeSpec  =
     "<text> not tested !!!</text--->"
     ") )";
 
-/* 
-6.4 Operator instance 
+/*
+6.4 Operator instance
 
 */
 
@@ -2772,7 +2774,7 @@ ListExpr dbimportTM(ListExpr args){
 }
 
 
-/* 
+/*
 7.2 Specification
 
 */
@@ -2833,7 +2835,7 @@ public:
      defined = true;
      ListExpr numType = nl->Second(
                        SecondoSystem::GetCatalog()->NumericType((type)));
-     tupleType = new TupleType(numType); 
+     tupleType = new TupleType(numType);
      BasicTuple = new Tuple(numType);
      current = 0;
      file.seekg(headerLength,ios::beg);
@@ -2872,7 +2874,7 @@ public:
         }
         int fl = fieldLength[i];
         offset += fl;
-      } 
+      }
       return ResultTuple;
    }
 
@@ -2907,7 +2909,7 @@ private:
   Tuple* BasicTuple;
   TupleType* tupleType;
   unsigned int current;
- 
+
   bool checkFile(){
     file.seekg(0,ios::beg);
     unsigned char code;
@@ -2925,7 +2927,7 @@ private:
        noRecords = WinUnix::convertEndian(noRecords);
        headerLength = WinUnix::convertEndian(headerLength);
        recordSize = WinUnix::convertEndian(recordSize);
-    } 
+    }
     file.seekg(32,ios::beg);
     if(!file.good()){
        cerr << "Error in reading file" << endl;
@@ -2943,8 +2945,8 @@ private:
       file.close();
       return false;
     }
-    if(noAttributes != types.size()){ 
-      cerr << "numbers of types not match " 
+    if(noAttributes != types.size()){
+      cerr << "numbers of types not match "
            << types.size() << " <-> " << noAttributes << endl;
       file.close();
       return false;
@@ -2978,7 +2980,7 @@ private:
                    isMemo.push_back(false);
                    break;
         default : file.close();
-                  return false; 
+                  return false;
       }
       if(type!=types[i]){
         cerr << "non-matching types " << type << " <-> " << types[i] << endl;
@@ -3004,7 +3006,7 @@ private:
     }
 }
 
-  bool store(string type, Tuple* tuple, int index, 
+  bool store(string type, Tuple* tuple, int index,
              unsigned char* buf, int offset, int length){
      stringstream ss;
      for(int i=offset; i<offset+length;i++){
@@ -3046,7 +3048,7 @@ private:
         }
         bool res_bool = s=="y" || s=="Y" || s=="t" || s=="T";
         tuple->PutAttribute(index,new CcBool(true,res_bool));
-        
+
      } else if(type=="text"){
         bool ismemo = isMemo[index];
         if(ismemo){
@@ -3087,7 +3089,7 @@ private:
            }
         }
      } else if(type=="instant"){
-        datetime::DateTime* res = 
+        datetime::DateTime* res =
             new datetime::DateTime(datetime::instanttype);
         if(s.size()==0){
            res->SetDefined(false);
@@ -3138,7 +3140,7 @@ int dbimportVM(Word* args, Word& result,
         delete info;
         local.addr=0;
       }
-       
+
     }
     default: {
      return 0;
@@ -3163,7 +3165,11 @@ Operator dbimport( "dbimport",
 
 8.1 TypeMapping
 
-The Type mapping is T x string x text -> bool
+The Type mapping is:
+
+---- T x string x text -> bool
+----
+
 
 */
 
@@ -3227,11 +3233,11 @@ int saveObjectVM(Word* args, Word& result,
     res->Set(true,false);
     return 0;
   }
-  
-  ListExpr value = (am->OutObj(algId,typeId))(type,args[0]);  
+
+  ListExpr value = (am->OutObj(algId,typeId))(type,args[0]);
 
   string oname = objName->GetValue();
- 
+
   ListExpr objList = nl->FiveElemList(
                         nl->SymbolAtom("OBJECT"),
                         nl->SymbolAtom(oname),
@@ -3239,7 +3245,7 @@ int saveObjectVM(Word* args, Word& result,
                         type,
                         value);
   bool success = nl->WriteToFile(fileName->GetValue(),objList);
-  res->Set(true,success);  
+  res->Set(true,success);
   return 0;
 }
 
@@ -3253,8 +3259,969 @@ Operator saveObject( "saveObject",
                    Operator::SimpleSelect,
                    saveObjectTM);
 
+
 /*
-9 Creating the Algebra
+9 Operator ~isFile~
+
+This operator checks, whether a given file exists in the filesystem.
+If so, it returns ~TRUE~, otherwise ~FALSE~
+
+9.1 Type Mapping Function ~stringORtext2boolTM~
+
+Used for operators ~isFile~, ~removeFile~, ~createDirectory~, ~isDirectory~
+
+---- {text|string} -> bool
+----
+
+*/
+ListExpr stringORtext2boolTM(ListExpr args){
+  string err = "text or string expected";
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(    !nl->IsEqual(nl->First(args),"string")
+      && !nl->IsEqual(nl->First(args),"text")){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  return nl->SymbolAtom("bool");
+}
+
+/*
+9.2 Value Mapping Function for ~checkfile~
+
+We implement this as a template function. The template class parameter ~T~
+may be either CcString or FText.
+
+*/
+
+template<class T>
+int isFileVM(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T* objName = static_cast<T*>(args[0].addr);
+  if(!objName->IsDefined()){
+    res->Set(false,false);
+  } else {
+    string fileNameS = objName->GetValue();
+    res->Set(true,FileSystem::FileOrFolderExists(fileNameS));
+  }
+  return 0;
+}
+
+ValueMapping isFilevaluemap[] = {isFileVM<CcString>, isFileVM<FText>};
+
+
+/*
+9.3 Specification for ~isFile~
+
+*/
+const string isFileSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} -> bool </text--->"
+    "<text> isFile( Name ) </text--->"
+    "<text> Checks, whether the file or directory Name exists.\n"
+    "If Name is UNDEFINED, nothing is done and the result is "
+    "UNDEFINED.</text--->"
+    "<text> query isFile('data.csv')  </text--->"
+    ") )";
+
+/*
+9.4 Selection Function for ~isFile~
+
+*/
+
+int stringORtextSelect( ListExpr args )
+{
+  if(nl->IsEqual(nl->First(args),"string")) {
+    return 0;
+  } else if(nl->IsEqual(nl->First(args),"text")){
+    return 1;
+  }
+  assert( false );
+  return -1;
+}
+
+/*
+9.5 Operator Instance for operator ~isFile~
+
+*/
+Operator isFile ( "isFile",
+                   isFileSpec,
+                   2,
+                   isFilevaluemap,
+                   stringORtextSelect,
+                   stringORtext2boolTM);
+
+
+/*
+10 Operator ~removeFile~
+
+This operator removes/deletes a given file from the file system
+
+10.1 Type Mapping for ~removeFile~
+
+Uses ~stringORtext2boolTM~.
+
+10.2 Value Mapping for ~removeFile~
+
+*/
+
+template<class T>
+int removeFileVM(Word* args, Word& result,
+                 int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T* objName = static_cast<T*>(args[0].addr);
+  if(!objName->IsDefined()){
+    res->Set(false,false);
+  } else {
+    string fileNameS = objName->GetValue();
+    res->Set(true,FileSystem::DeleteFileOrFolder(fileNameS));
+  }
+  return 0;
+}
+
+
+
+ValueMapping removeFilevaluemap[] = {removeFileVM<CcString>,
+                                     removeFileVM<FText>};
+
+/*
+10.4 Selection Function for ~removeFile~
+
+Uses ~stringORtextSelect~.
+
+*/
+
+/*
+10.4 Specification  for ~removeFile~
+
+*/
+const string removeFileSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} -> bool </text--->"
+    "<text> removeFile( Name ) </text--->"
+    "<text> Deletes the file or empty folder with the given Name from"
+    " the files system. Returns TRUE, if this succeeds, and FALSE if the "
+    "file could not be deleted or any error occurs. If the Name is\n"
+    "UNDEFINED, nothing is done and the result is UNDEFINED.\n"
+    "WARNING: Be extremely careful about removing files!</text--->"
+    "<text> query removeFile('data.csv')  </text--->"
+    ") )";
+
+
+/*
+10.5 Operator Instance for operator ~removeFile~
+
+*/
+Operator removeFile ( "removeFile",
+                   removeFileSpec,
+                   2,
+                   removeFilevaluemap,
+                   stringORtextSelect,
+                   stringORtext2boolTM);
+
+
+/*
+11 Operator ~createDirectory~
+
+The operator creates the passed directory within the file system.
+
+11.1 Type Mapping for ~createDirectory~
+
+Uses ~stringORtext2boolTM~.
+
+11.2 Value Mapping for ~createDirectory~
+
+*/
+
+template<class T>
+int createDirectoryVM(Word* args, Word& result,
+                 int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T* objName = static_cast<T*>(args[0].addr);
+  if(!objName->IsDefined()){
+    res->Set(false,false);
+  } else {
+    string fileNameS = objName->GetValue();
+    res->Set(true,FileSystem::CreateFolder(fileNameS));
+  }
+  return 0;
+}
+
+ValueMapping createDirectoryvaluemap[] = {createDirectoryVM<CcString>,
+                                          createDirectoryVM<FText>};
+
+/*
+11.3 Specification  for ~createDirectory~
+
+*/
+const string createDirectorySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} -> bool </text--->"
+    "<text> createDirectory( Name ) </text--->"
+    "<text> Creates a directory with the given Name on"
+    " the files system. Returns TRUE, if this succeeds, and FALSE if the "
+    "directory could not be created or any error occurs. If the Name is\n"
+    "UNDEFINED, nothing is done and the result is UNDEFINED.</text--->"
+    "<text> query createDirectory('my_csv_directory')  </text--->"
+    ") )";
+
+/*
+11.4 Selection Function for ~createDirectory~
+
+Uses ~stringORtextSelect~.
+
+11.5
+Operator Instance for operator ~createDirectory~
+
+*/
+Operator createDirectory ( "createDirectory",
+                   createDirectorySpec,
+                   2,
+                   createDirectoryvaluemap,
+                   stringORtextSelect,
+                   stringORtext2boolTM);
+
+
+/*
+12 Operator ~fileSize~
+
+Returns the size of a file or directory on the file system
+
+12.1 Type Mapping for ~fileSize~
+
+---- {text|string} [ x bool ] -> int
+----
+
+*/
+ListExpr stringORtextOPTIONbool2intTM(ListExpr args){
+  string err = "{text|string} [ x bool ] expected";
+  int listLength = nl->ListLength(args);
+  if(listLength!=1 && listLength !=2){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
+      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if (listLength == 2 && !nl->IsEqual(nl->Second(args),symbols::BOOL)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom(symbols::INT);
+}
+
+/*
+12.2 Value Mapping for ~fileSize~
+
+*/
+
+template<class T>
+int fileSizeVM(Word* args, Word& result,
+                 int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = static_cast<CcInt*>(result.addr);
+  T* objName = static_cast<T*>(args[0].addr);
+  if(!objName->IsDefined()){
+    res->Set(false,0);
+    return 0;
+  }
+  bool recursive = false;
+  if(qp->GetNoSons(s)==2){
+     CcBool* rec = static_cast<CcBool*>(args[1].addr);
+    if(!rec->IsDefined()){
+      res->Set(false,0);
+    } else {
+      recursive = rec->GetBoolval();
+    }
+  }
+  if(recursive){
+    cerr<<"Recursive file size calculation still not implemented!\n"<<endl;
+  }
+  string fileNameS = objName->GetValue();
+  int32_t size = FileSystem::GetFileSize(fileNameS);
+  if(size<0){
+    res->Set(false,0);
+    return 0;
+  }
+  res->Set(true,size);
+  return 0;
+}
+
+ValueMapping fileSizevaluemap[] = {fileSizeVM<CcString>,
+                                   fileSizeVM<FText>};
+
+/*
+12.3 Selection Function for ~fileSize~
+
+Uses ~stringORtextSelect~.
+
+12.3 Specification for ~fileSize~
+
+*/
+const string fileSizeSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} [ x bool ] -> bool </text--->"
+    "<text> fileSize( Name, FALSE ) </text--->"
+    "<text> Returns the file's or directory's size in Bytes.\n"
+    "If Name is UNDEFINED, nothing is done and the result is "
+    "UNDEFINED.</text--->"
+    "<text> query fileSize('data.csv')  </text--->"
+    ") )";
+
+/*
+12.5 Operator Instance for operator ~fileSize~
+
+*/
+Operator fileSize ( "fileSize",
+                   fileSizeSpec,
+                   2,
+                   fileSizevaluemap,
+                   stringORtextSelect,
+                   stringORtextOPTIONbool2intTM);
+
+/*
+13 Operator ~isDirectory~
+
+This operator checks, whether a given file is a directory in the filesystem.
+If so, it returns ~TRUE~, otherwise ~FALSE~
+
+13.1 Type Mapping Function for ~isDirectory~
+
+Uses ~stringORtext2boolTM~.
+
+13.2 Value Mapping Function for ~isDirectory~
+
+We implement this as a template function. The template class parameter ~T~
+may be either CcString or FText.
+
+*/
+
+template<class T>
+int isDirectoryVM(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T* objName = static_cast<T*>(args[0].addr);
+  if(!objName->IsDefined()){
+    res->Set(false,false);
+  } else {
+    string fileNameS = objName->GetValue();
+    res->Set(true,FileSystem::IsDirectory(fileNameS));
+  }
+  return 0;
+}
+
+ValueMapping isDirectoryvaluemap[] = {isDirectoryVM<CcString>,
+                                      isDirectoryVM<FText>};
+
+
+/*
+13.3 Specification for ~isDirectory~
+
+*/
+const string isDirectorySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} -> bool </text--->"
+    "<text> isDirectory( Name ) </text--->"
+    "<text> Checks, whether Name is a directory.\n"
+    "If Name is UNDEFINED, nothing is done and the result is "
+    "UNDEFINED.</text--->"
+    "<text> query isDirectory('data.csv')  </text--->"
+    ") )";
+
+/*
+13.4 Selection Function for ~isDirectory~
+
+Uses ~stringORtextSelect~.
+
+13.5 Operator Instance for operator ~isDirectory~
+
+*/
+Operator isDirectory ( "isDirectory",
+                   isDirectorySpec,
+                   2,
+                   isDirectoryvaluemap,
+                   stringORtextSelect,
+                   stringORtext2boolTM);
+
+
+/*
+14 Operator ~writeFile~
+
+The operator writes a ~text~ to a (text-) file on the file system.
+
+14.1 Type Mapping for ~writeFile~
+
+---- text x {text|string} [ x bool ] -> bool
+----
+
+*/
+ListExpr stringORtext_stringORtext_OPTIONALbool2boolTM(ListExpr args){
+  string err = "{text|string} x {text|string} [ x bool ] expected";
+  int listLength = nl->ListLength(args);
+  if(listLength!=2 && listLength !=3){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
+      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(    !nl->IsEqual(nl->Second(args),symbols::STRING)
+      && !nl->IsEqual(nl->Second(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+
+  if (listLength == 3 && !nl->IsEqual(nl->Third(args),symbols::BOOL)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom(symbols::BOOL);
+}
+
+
+/*
+14.2 Value Mapping for ~writeFile~
+
+*/
+template<class T, class S>
+int writeFileVM(Word* args, Word& result,
+                int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T* content = static_cast<T*>(args[0].addr);
+  S* fileName = static_cast<S*>(args[1].addr);
+
+  if(!content->IsDefined() || !fileName->IsDefined()){
+    res->Set(false,false);
+    return 0;
+  }
+  string fileNameS = fileName->GetValue();
+  if(fileNameS == ""){
+    res->Set(true,false);
+    return 0;
+  }
+  bool append = false;
+  if(qp->GetNoSons(s)==3){
+    CcBool* app = static_cast<CcBool*>(args[2].addr);
+    if(!app->IsDefined()){
+      res->Set(false,false);
+      return 0;
+    } else {
+      append = app->GetBoolval();
+    }
+  }
+  bool fileExists = FileSystem::FileOrFolderExists(fileNameS);
+  bool fileIsDirectory = FileSystem::IsDirectory(fileNameS);
+  if(fileExists && fileIsDirectory){
+    cerr << "writeFile: Cannot write to existing directory!\n"<<endl;
+    res->Set(false,false);
+    return 0;
+  }
+  string contentS = content->GetValue();
+  ofstream file;
+  if(append){
+    file.open(fileNameS.c_str(), ios::out | ios::app | ios_base::binary);
+  } else {
+    file.open(fileNameS.c_str(), ios::out | ios::trunc | ios_base::binary);
+  }
+  if(!file.good()){
+    cerr << "writeFile: Cannot open file '"<< fileName << "'!\n"<<endl;
+    res->Set(false,false);
+    return 0;
+  }
+  file << contentS;
+  if(file.good()){
+    res->Set(true,true);
+  } else {
+    res->Set(true,false);
+  }
+  file.close();
+  return 0;
+}
+
+ValueMapping writeFilevaluemap[] = {writeFileVM<CcString, CcString>,
+                                    writeFileVM<CcString, FText   >,
+                                    writeFileVM<FText,    CcString>,
+                                    writeFileVM<FText,    FText   >};
+
+
+
+/*
+14.3 Specification for ~writeFile~
+
+*/
+const string writeFileSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} x {text|string} [ x bool ] -> bool </text--->"
+    "<text> writeFile( Content, Name, Append ) </text--->"
+    "<text> Writes text Content to file Name. If the file does not exist, it\n"
+    "is created. If optional argument Append = TRUE, Content will be appended\n"
+    "to the file. Otherwise the file gets possibly overwritten.\n"
+    "If any argument is UNDEFINED, nothing is done and the result is "
+    "UNDEFINED. If writing succeeds, result is TRUE.</text--->"
+    "<text> query writeFile('This is content', 'data.csv')  </text--->"
+    ") )";
+
+/*
+14.4 Selection Function for ~writeFile~
+
+*/
+int stringORtext_stringORtext_Select( ListExpr args )
+{
+  int index = 0;
+  // first arg
+  if(nl->IsEqual(nl->First(args),"string")) {
+    index += 0;
+  } else if(nl->IsEqual(nl->First(args),"text")){
+    index +=  2;
+  } else {
+    assert(false);
+    return -1;
+  }
+  // second arg
+  if(nl->IsEqual(nl->Second(args),"string")) {
+    index += 0;
+  } else if(nl->IsEqual(nl->Second(args),"text")){
+    index += 1;
+  } else {
+    assert(false);
+    return -1;
+  }
+  return index;
+}
+
+
+/*
+14.5 Operator Instance for operator ~isDirectory~
+
+*/
+Operator writeFile ( "writeFile",
+                   writeFileSpec,
+                   4,
+                   writeFilevaluemap,
+                   stringORtext_stringORtext_Select,
+                   stringORtext_stringORtext_OPTIONALbool2boolTM);
+
+
+/*
+15 Operator ~readFile~
+
+Reads a file into a text object. If the file contains a NULL, the result is
+UNDEFINED.
+
+15.1 TypeMapping for ~readFile~
+
+---- {text|string} -> text
+----
+
+*/
+
+ListExpr stringORtext2textTM(ListExpr args){
+  string err = "{text|string} expected";
+  int listLength = nl->ListLength(args);
+  if(listLength!=1){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
+      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  return nl->SymbolAtom(symbols::TEXT);
+}
+
+/*
+15.2 Value Mapping for ~readFile~
+
+*/
+
+template<class T>
+int readFileVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  FText* res = static_cast<FText*>(result.addr);
+  T* fileName = static_cast<T*>(args[0].addr);
+  if(!fileName->IsDefined()){
+    res->Set(false,"");
+    return 0;
+  }
+  string fileNameS = fileName->GetValue();
+  if(   fileNameS == ""
+     || !FileSystem::FileOrFolderExists(fileNameS)
+     || FileSystem::IsDirectory(fileNameS)
+    ){
+    cerr << "readFile: Cannot open file '" << fileNameS << "'!" << endl;
+    res->Set(false,"");
+    return 0;
+  }
+  string Content = "";
+  ifstream file;
+  file.open(fileNameS.c_str(),ios::binary);
+  if(!file.good()){
+    cerr << "readFile: Error opening file '" << fileNameS << "'!" << endl;
+    res->Set(false,"");
+    return 0;
+  }
+  // read file character by character and check for NULL
+  char      currChar;
+  bool      ok = true;
+  file.seekg(0,ios::end);
+  streampos fileend = file.tellg();
+  file.seekg(0,ios::beg);
+  while( ok && (file.tellg() != fileend)){
+    file.read(reinterpret_cast<char*>(&currChar),1);
+    ok = (currChar != '\0');
+    if(ok){ // append char to string
+      Content.append(1,currChar);
+    } else{
+      cerr << "readFile: Encountered NULL at position " << file.tellg()
+           << "." << endl;
+    }
+  }
+  file.close();
+  if(ok){
+    res->Set(true,Content);
+  } else {
+    res->Set(false,"");
+  }
+  return 0;
+}
+
+ValueMapping readFilevaluemap[] = {readFileVM<CcString>,
+                                   readFileVM<FText>};
+
+/*
+15.3 Specification for ~readFile~
+
+*/
+const string readFileSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} -> text </text--->"
+    "<text> readFile( Name ) </text--->"
+    "<text> Reads text from file Name. If the file does not exist, \n"
+    "contains a NULL character or some error occurs, the result is "
+    "UNDEFINED.</text--->"
+    "<text> query readFile('data.csv')  </text--->"
+    ") )";
+
+/*
+15.4 Selection Function for ~writeFile~
+
+Uses ~stringORtextSelect~.
+
+15.5 Operator Instance for operator ~readFile~
+
+*/
+Operator readFile ( "readFile",
+                   readFileSpec,
+                   2,
+                   readFilevaluemap,
+                   stringORtextSelect,
+                   stringORtext2textTM);
+
+
+/*
+16 Operator ~moveFile~
+
+Move a file to another location within the file system. Returns TRUE,
+iff this succeeds.
+
+16.1 TypeMapping for ~moveFile~
+
+---- {text|string} x {text|string} -> bool
+----
+
+*/
+
+ListExpr stringORtext_stringORtext2boolTM(ListExpr args){
+  string err = "{text|string} expected";
+  int listLength = nl->ListLength(args);
+  if(listLength!=2){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
+      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(    !nl->IsEqual(nl->Second(args),symbols::STRING)
+      && !nl->IsEqual(nl->Second(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  return nl->SymbolAtom(symbols::BOOL);
+}
+
+/*
+16.2 Value Mapping for ~moveFile~
+
+*/
+
+template<class T, class S>
+int moveFileVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T* fileNameOld = static_cast<T*>(args[0].addr);
+  S* fileNameNew = static_cast<S*>(args[1].addr);
+  if(!fileNameOld->IsDefined() || !fileNameNew->IsDefined()){
+    res->Set(false,false);
+    return 0;
+  }
+  string fileNameOldS = fileNameOld->GetValue();
+  string fileNameNewS = fileNameNew->GetValue();
+  if(   fileNameOldS == "" || fileNameNewS == ""
+     || !FileSystem::FileOrFolderExists(fileNameOldS)
+    ){
+    cerr << "moveFile: Cannot open file '" << fileNameOldS << "'!" << endl;
+    res->Set(true,false);
+    return 0;
+  }
+  bool boolresult = FileSystem::RenameFileOrFolder(fileNameOldS,fileNameNewS);
+  res->Set(true,boolresult);
+  return 0;
+}
+
+ValueMapping moveFilevaluemap[] = {moveFileVM<CcString, CcString>,
+                                   moveFileVM<CcString, FText>,
+                                   moveFileVM<FText,    CcString>,
+                                   moveFileVM<FText,    FText>};
+
+/*
+16.3 Specification for ~moveFile~
+
+*/
+const string moveFileSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} -> text </text--->"
+    "<text> moveFile( OldName, NewName ) </text--->"
+    "<text> Move file OldName to file NewName. Can also be used to rename a "
+    "file.\nReturns TRUE, is move-command succeeds.\n"
+    "WARNING: Be extremely carefully about moving files!\n"
+    "         The operator also overwrites existing files!</text--->"
+    "<text> query moveFile('data.csv', 'data.csv.old')  </text--->"
+    ") )";
+
+/*
+16.4 Selection Function for ~moveFile~
+
+Uses ~stringORtext\_stringORtextSelect~.
+
+
+16.5 Operator Instance for operator ~moveFile~
+
+*/
+Operator moveFile ( "moveFile",
+                   moveFileSpec,
+                   4,
+                   moveFilevaluemap,
+                   stringORtext_stringORtext_Select,
+                   stringORtext_stringORtext2boolTM);
+
+/*
+17 Operator ~getDirectory~
+
+Get a stream of text with the listing of the given directory.
+
+17.1 TypeMapping for ~getDirectory~
+
+---- {text|string} -> stream(text)
+----
+
+*/
+
+ListExpr stringORtext_OPTIONALint2textstreamTM(ListExpr args){
+  string err = "{text|string} [x int] expected";
+  int listLength = nl->ListLength(args);
+  if(listLength!=1 && listLength!=2){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(    !nl->IsEqual(nl->First(args),symbols::STRING)
+      && !nl->IsEqual(nl->First(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(    listLength == 2
+      && !nl->IsEqual(nl->Second(args),symbols::INT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  return nl->TwoElemList( nl->SymbolAtom(symbols::STREAM),
+                          nl->SymbolAtom(symbols::TEXT));
+}
+
+/*
+17.2 Value Mapping for ~getDirectory~
+
+*/
+
+class GetDirectoryLocalInfo
+{ public:
+    GetDirectoryLocalInfo(){
+      elements = FilenameList(0);
+      iter = elements.begin();
+    }
+
+    ~GetDirectoryLocalInfo(){}
+
+    void SetElements(FilenameList L){
+      elements = L;
+      iter = elements.begin();
+    }
+
+    FilenameList elements;
+    FilenameList::iterator iter;
+};
+
+template<class T>
+int getDirectoryVM(Word* args, Word& result,
+                   int message, Word& local, Supplier s){
+  GetDirectoryLocalInfo* li;
+  result = qp->ResultStorage(s);
+  T* dirName = static_cast<T*>(args[0].addr);
+  FText* resText;
+  int levels = 1;
+
+  switch(message){
+    case OPEN:{
+      li = new GetDirectoryLocalInfo();
+      local.setAddr(li);
+      if(!dirName->IsDefined()){
+        cerr << "getDirectory: Directory parameter undefined!"
+             << endl;
+        return 0;
+      }
+      string dirNameS = dirName->GetValue();
+      if(   dirNameS == ""
+         || !FileSystem::FileOrFolderExists(dirNameS)
+         || !FileSystem::IsDirectory(dirNameS)
+        ){
+        cerr << "getDirectory: Cannot open directory '" << dirNameS << "'!"
+             << endl;
+        return 0;
+      }
+      if(qp->GetNoSons(s)==2){ // get optional 2nd argument
+        CcInt* levelsCc = static_cast<CcInt*>(args[1].addr);
+        if(!levelsCc->IsDefined()){
+          cerr << "getDirectory: Optional recursion parameter undefined!"
+               << endl;
+          return 0;
+        } else {
+          levels = levelsCc->GetIntval();
+          if(levels<1){
+            levels = 1;
+          }
+        }
+      }
+      FilenameList L(0);
+      if(FileSystem::FileSearch(dirNameS, L, 0, levels, true, true, 0)){
+        li->SetElements(L);
+      }
+      return 0;
+    }
+
+    case REQUEST:{
+      if(local.addr){
+        li = static_cast<GetDirectoryLocalInfo*>(local.addr);
+      }else{
+        result.setAddr(0);
+        return CANCEL;
+      }
+      if(li->iter == li->elements.end()){
+        result.setAddr(0);
+        return CANCEL;
+      }
+      resText = new FText(true, *(li->iter));
+      result.setAddr(resText);
+      ++(li->iter);
+      return YIELD;
+    }
+
+    case CLOSE:{
+      result.setAddr(0);
+      if(local.addr){
+        li = static_cast<GetDirectoryLocalInfo*>(local.addr);
+        delete li;
+        local.setAddr(0);
+      }
+      return 0;
+    }
+  }
+  // this line should never be reached!
+  return -1;
+}
+
+ValueMapping getDirectoryvaluemap[] = {getDirectoryVM<CcString>,
+                                       getDirectoryVM<FText>};
+
+/*
+17.3 Specification for ~getDirectory~
+
+*/
+const string getDirectorySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {text|string} [ x int] -> stream(text) </text--->"
+    "<text> getDirectory( DirectoryName [, N]) </text--->"
+    "<text> Create a stream of text containing all file names from directory\n"
+    "DirectoryName and its subfolders. The function recurses down to the Nth\n"
+    "level. If N is not specified, N is set to 1 or smaller, meaning that only "
+    "the\n"
+    "direct contents of DirectoryName are listed.</text--->"
+    "<text> query getDirectory('tmp', 2)</text--->"
+    ") )";
+
+/*
+17.4 Selection Function for ~getDirectory~
+
+Uses ~stringORtextSelect~.
+
+
+17.5 Operator Instance for operator ~getDirectory~
+
+*/
+Operator getDirectory( "getDirectory",
+                   getDirectorySpec,
+                   2,
+                   getDirectoryvaluemap,
+                   stringORtextSelect,
+                   stringORtext_OPTIONALint2textstreamTM);
+
+/*
+18 Creating the Algebra
 
 */
 
@@ -3272,6 +4239,15 @@ public:
     AddOperator( &dbimport);
     AddOperator( &saveObject);
     AddOperator( &csvimport);
+    AddOperator( &isFile);
+    AddOperator( &removeFile);
+    AddOperator( &createDirectory);
+    AddOperator( &fileSize);
+    AddOperator( &isDirectory);
+    AddOperator( &writeFile);
+    AddOperator( &readFile);
+    AddOperator( &moveFile);
+    AddOperator( &getDirectory);
   }
   ~ImExAlgebra() {};
 };

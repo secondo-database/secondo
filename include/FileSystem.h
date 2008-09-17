@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -144,6 +144,13 @@ Creates the folder (directory) located at ~folder~.
 The function returns "true"[4], if the folder could be created.
 
 */
+  static bool IsDirectory( const string& fileName );
+/*
+Check, whether fileName is a directory.
+The function returns "true"[4], iff the folder exists.
+
+*/
+
   static bool DeleteFileOrFolder( const string& fileName );
 /*
 Deletes the file or folder (directory) specified in ~fileName~.
@@ -208,6 +215,13 @@ Sets the file attributes for a file to the values specified in ~attribs~ .
 The function returns "true"[4], if the attributes could be set.
 
 */
+  static int32_t GetFileSize( const string& fileName );
+/*
+Returns the file size of the specified file ~fileName~ in Bytes, iff that
+file exists. Return -1 iff the file does not exist or any error occurs.
+
+*/
+
   static bool FileSearch( const string& folder,
                           FilenameList& filenameList,
                           const string* searchName = 0,
