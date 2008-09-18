@@ -122,8 +122,6 @@ using namespace std;
 
 static LONGTYPE min_LONGTYPE = numeric_limits<LONGTYPE>::min();
 static LONGTYPE max_LONGTYPE = numeric_limits<LONGTYPE>::max();
-static int min_int = numeric_limits<int>::min();
-static int max_int = numeric_limits<int>::max();
 
 static string begin_of_time="begin of time";
 static string end_of_time="end of time";
@@ -173,18 +171,6 @@ It is used in a special way in a cast function.
 DateTime::DateTime(){}
 
 
-bool DateTime::hasType(const TimeType t) const{
-   return  (t==instanttype) ? ((state & INSTANT_POS)>0)
-                            : ((state & DURATION_POS) >0);
-}
-
-void DateTime::set(const TimeType t, const bool defined){
-    state = (t==instanttype) ? INSTANT_POS : DURATION_POS;
-    if(defined){
-       state = state | DEF_POS;
-    }
-}
-
 
 /*
 ~Constructor~
@@ -196,7 +182,8 @@ duration zero, respectively.
 DateTime::DateTime(const TimeType type){
   day=0;
   milliseconds=0;
-  set(type,true);
+  this->type = type;
+  del.isDefined = true;
 }
 
 
@@ -217,7 +204,8 @@ DateTime::DateTime(const LONGTYPE Day,
       day += dif;
       milliseconds -= dif*MILLISECONDS;
    }
-   set(type,true);
+   this->type = type;
+   del.isDefined=true;
 }
 
 /*
@@ -259,7 +247,7 @@ void DateTime::Set(const int year,const int month, const int day,
             const int hour, const int minute, const int second,
             const int millisecond){
 
-   assert(hasType(instanttype));
+   assert(type == instanttype);
    LONGTYPE ms = ((hour*60+minute)*60+second)*1000+millisecond;
    LONGTYPE d = ToJulian(year,month,day);
    LONGTYPE dif = ms / MILLISECONDS;
@@ -275,24 +263,6 @@ void DateTime::Set(const int year,const int month, const int day,
 }
 
 
-/*
-~SetType~
-
-*/
-void DateTime::SetType(const TimeType TT){
-    set(TT,IsDefined());
-}
-
-/*
-~GetType~
-
-*/
-TimeType DateTime::GetType()const{
-    return ((state & INSTANT_POS) > 0) ? instanttype
-                                       : durationtype;
-   //return type;
-}
-
 
 
 /*
@@ -303,7 +273,7 @@ Cannot be applied to a duration.
 
 */
 void DateTime::Now(){
-  assert(!hasType(durationtype));
+  assert(type!=(durationtype));
   timeb tb;
   time_t now;
   int ms;
@@ -325,7 +295,7 @@ Cannot applied to a duration.
 
 */
 void DateTime::Today(){
-   assert(!hasType(durationtype));
+   assert(type != (durationtype));
    time_t today;
    time(&today);
    tm* lt = localtime(&today);
@@ -394,7 +364,7 @@ The function can't applied to an instant.
 
 */
 LONGTYPE DateTime::GetDay()const{
-   assert(hasType(durationtype));
+   assert(type == (durationtype));
    return day;
 }
 
@@ -418,7 +388,7 @@ This functions cannot applied to durations.
 */
 
 int DateTime::GetGregDay()const{
-    assert(!hasType(durationtype));
+    assert(type != (durationtype));
     LONGTYPE y;
     int m,d;
     ToGregorian(day,y,m,d);
@@ -426,14 +396,14 @@ int DateTime::GetGregDay()const{
 }
 
 int DateTime::GetMonth()const{
-   assert(!hasType(durationtype));
+   assert(type !=(durationtype));
    LONGTYPE y;
    int m,d;
    ToGregorian(day,y,m,d);
    return m;
 }
 LONGTYPE DateTime::GetYear()const{
-   assert(!hasType(durationtype));
+   assert(type != (durationtype));
    LONGTYPE y;
    int m,d;
    ToGregorian(day,y,m,d);
@@ -441,22 +411,22 @@ LONGTYPE DateTime::GetYear()const{
 }
 
 int DateTime::GetHour()const{
-   assert(!hasType(durationtype));
+   assert(type != (durationtype));
    return (int)(milliseconds / 3600000);
 }
 
 int DateTime::GetMinute()const{
-    assert(!hasType(durationtype));
+    assert(type != (durationtype));
    return (int) ( (milliseconds / 60000) % 60);
 }
 
 int DateTime::GetSecond()const{
-  assert(!hasType(durationtype));
+  assert(type != (durationtype));
   return (int) ( (milliseconds / 1000) % 60);
 }
 
 int DateTime::GetMillisecond()const{
-  assert(!hasType(durationtype));
+  assert(type != (durationtype));
   return (int) (milliseconds % 1000);
 }
 
@@ -611,10 +581,10 @@ string DateTime::ToString() const{
   if(!IsDefined()){
     return "undefined";
   }
-  if(hasType(durationtype)){ //a duration
+  if(type == (durationtype)){ //a duration
     tmp << day << ";";
     tmp << milliseconds;
-  }else if(hasType(instanttype)){ // an instant
+  }else if(type ==(instanttype)){ // an instant
      if(IsMinimum()){
        return begin_of_time;
      }
@@ -717,7 +687,7 @@ indicates optional parts. This function is not defined for durations.
 
 */
 bool DateTime::ReadFrom(const string Time){
-  if(hasType(instanttype)){
+  if(type == (instanttype)){
     // read instant type from string
     if(Time=="undefined"){
         SetDefined(false);
@@ -849,7 +819,7 @@ bool DateTime::ReadFrom(const string Time){
     SetDefined(true);
     return true;
   } else { // read durationtype from string
-    assert(hasType(durationtype));
+    assert(type ==(durationtype));
     if(Time=="undefined"){
         SetDefined(false);
         return true;
@@ -960,10 +930,10 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
      }
      ListExpr TypeList = nl->First(LE);
      if(!nl->IsEqual(TypeList,"datetime")){
-       if( (hasType(instanttype)) && !nl->IsEqual(TypeList,"instant")){
+       if( (type == (instanttype)) && !nl->IsEqual(TypeList,"instant")){
             return false;
        }
-       if( (hasType(durationtype)) && !nl->IsEqual(TypeList,"duration")){
+       if( (type == (durationtype)) && !nl->IsEqual(TypeList,"duration")){
           return false;
        }
      }
@@ -979,14 +949,14 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
       return true;
     }
     if(nl->SymbolValue(ValueList)=="now"){
-        if(hasType(instanttype)){
+        if(type == (instanttype)){
            Now();
            return true;
         } else
            return false;
     }
     if(nl->SymbolValue(ValueList)=="today"){
-        if(hasType(instanttype)){
+        if(type == (instanttype)){
            Today();
            return  true;
         } else
@@ -996,7 +966,7 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
 
   // string representation
   if(nl->AtomType(ValueList)==StringType){
-     if(hasType(instanttype))
+     if(type ==(instanttype))
         return ReadFrom(nl->StringValue(ValueList));
      else
         return false;
@@ -1008,7 +978,7 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
   }
   // accect also integer values
   if(nl->AtomType(ValueList)==IntType ){
-     if(hasType(instanttype)){
+     if(type ==(instanttype)){
         bool res = ReadFrom(nl->IntValue(ValueList));
         return res;
      }
@@ -1019,7 +989,7 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
 
   // (day month year [hour minute [second [millisecond]]])
   if( (nl->ListLength(ValueList)>=3) && nl->ListLength(ValueList)<=7){
-     if(hasType(durationtype))
+     if(type == (durationtype))
         return  false;
      int len = nl->ListLength(ValueList);
      if(len==4) return false; // only hours is not allowed
@@ -1059,7 +1029,7 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
   if(nl->ListLength(ValueList)!=2){
     return false;
   }
-  if(hasType(instanttype))
+  if(type == (instanttype))
      return false;
   ListExpr DayList = nl->First(ValueList);
   ListExpr MSecList = nl->Second(ValueList);
@@ -1159,7 +1129,7 @@ The function ~Split~ splits a duration into two ones.
 
 */
 bool DateTime::Split(const double delta, DateTime& Rest){
-  assert(hasType(durationtype));
+  assert(type == (durationtype));
   assert((delta>=0) && (delta<=1));
   Rest.Equalize(this);
   Mul(delta);
@@ -1204,33 +1174,6 @@ bool DateTime::Adjacent(const Attribute* arg) const{
  */
 }
 
-/*
-~IsDefined~
-
-~IsDefined~ returns true if this instance contains a
-defined value.
-
-*/
-bool DateTime::IsDefined() const{
-   return (state & DEF_POS) > 0;
-   //return defined;
-}
-
-/*
-~SetDefined~
-
-The function ~SetDefined~ sets the defined flasg of this time
-instance to the value of the argument.
-
-*/
-void DateTime::SetDefined( bool defined ){
-   if(defined){
-     state = state | DEF_POS;
-   } else {
-     state = state & ~DEF_POS;
-   }
-  //this->defined = defined;
-}
 
 /*
 ~Sizeof~
@@ -1273,7 +1216,7 @@ a duration type.
 
 */
 void DateTime::Add(const DateTime* P2){
-   assert(hasType(durationtype) || P2->hasType(durationtype));
+   assert( (type == (durationtype)) || (P2->type == durationtype));
    LONGTYPE d1 = day;
    LONGTYPE d2 = P2->day;
    LONGTYPE ms1 = milliseconds;
@@ -1299,7 +1242,7 @@ void DateTime::Add(const DateTime* P2){
    }
    day = d;
    milliseconds = ms;
-   if(P2->hasType(instanttype))
+   if(P2->type ==(instanttype))
       SetType(instanttype);
 }
 
@@ -1349,7 +1292,7 @@ the type of this instance.
 
 */
 void DateTime::Minus(const DateTime* P2) {
-   assert(hasType(instanttype) || P2->hasType(durationtype));
+   assert(type ==(instanttype) || P2->type==(durationtype));
    LONGTYPE d1 = day;
    LONGTYPE d2 = P2->day;
    LONGTYPE ms1 = milliseconds;
@@ -1377,7 +1320,7 @@ void DateTime::Minus(const DateTime* P2) {
    day = d;
    milliseconds = ms;
 
-   if(hasType(instanttype) && P2->hasType(instanttype))
+   if(type==(instanttype) && P2->type==(instanttype))
       SetType(durationtype);
 }
 
@@ -1414,7 +1357,7 @@ This Operator divides a DateTime by an integer
 
 */
 DateTime DateTime::operator/(const LONGTYPE divisor)const{
-  assert(hasType(durationtype));
+  assert(type==(durationtype));
   assert(divisor != 0);
   LDIV_T Q = div(day,divisor);
   LONGTYPE nday = (LONGTYPE) Q.quot;
@@ -1429,7 +1372,7 @@ Computes a multiple of a duration.
 
 */
 void DateTime::Mul(const LONGTYPE factor){
-   assert(hasType(durationtype));
+   assert(type==(durationtype));
    bool of;
    BigInt<2> d(day);
    BigInt<2> ms(milliseconds);
@@ -1453,7 +1396,7 @@ you do.
 
 */
 void DateTime::Mul(const double factor){
-   assert(hasType(durationtype));
+   assert(type==(durationtype));
    double d = day;
    double ms = milliseconds;
    if(day<0.0){
@@ -1549,7 +1492,7 @@ DateTime DateTime::operator*(const double factor)const{
 
 */
   void DateTime::Abs(){
-     assert(hasType(instanttype));
+     assert(type==(durationtype));
      if(day<0){
         day = -1 * day;
         if(milliseconds!=0){
@@ -1576,7 +1519,7 @@ string in format year-month-day-hour:minute:second.millisecond
 ListExpr DateTime::ToListExpr(const bool typeincluded)const {
   assert(IsDefined() );
   ListExpr value;
-  if(hasType(instanttype)){
+  if(type==(instanttype)){
       if( (day<MIN_REPRESENTABLE || day>MAX_REPRESENTABLE )
          && !IsMinimum() && !IsMaximum()){
           value = nl->RealAtom(ToDouble());
@@ -1590,9 +1533,9 @@ ListExpr DateTime::ToListExpr(const bool typeincluded)const {
                              nl->IntAtom((int)milliseconds)
                              );
   if(typeincluded)
-     if(hasType(instanttype))
+     if(type==(instanttype))
         return nl->TwoElemList(nl->SymbolAtom("instant"),value);
-     else if(hasType(durationtype))
+     else if(type==(durationtype))
         return nl->TwoElemList(nl->SymbolAtom("duration"),value);
      else
         return nl->TwoElemList(nl->SymbolAtom("datetime"),value);
@@ -1610,7 +1553,8 @@ P2.
 void DateTime::Equalize(const DateTime* P2){
    day = P2->day;
    milliseconds = P2->milliseconds;
-   set(P2->GetType(), P2->IsDefined());
+   type = P2->type;
+   del.isDefined = P2->del.isDefined;
 }
 
 /*

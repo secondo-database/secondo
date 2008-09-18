@@ -255,15 +255,10 @@ day$\mid\mid$millisecond.
 Sets the type of this DateTime. Be careful in using of this function.
 
 */
-      void SetType(const TimeType TT);
+     inline void SetType(const TimeType TT){
+         type = TT;
+     }
 
-/*
-~GetType~
-
-This function returns the type of this DateTime;
-
-*/
-      TimeType GetType()const;
 
 
 /*
@@ -580,8 +575,6 @@ an attribute of a relation.
 */
      int Compare(const Attribute* arg) const;
      bool Adjacent(const Attribute *arg) const;
-     bool IsDefined() const;
-     void SetDefined( bool defined );
      size_t Sizeof() const;
      size_t HashValue() const;
      void CopyFrom(const StandardAttribute* arg);
@@ -645,9 +638,8 @@ delta in [0,1].
   {
     WriteVar<LONGTYPE>(day, storage, offset);
     WriteVar<LONGTYPE>(milliseconds, storage, offset);
-    WriteVar<unsigned char>(state, storage, offset);
-    //WriteVar<bool>(defined, storage, offset);
-    //WriteVar<TimeType>(type, storage, offset);
+    WriteVar<bool>(del.isDefined,storage,offset);
+    WriteVar<TimeType>(type, storage, offset);
   }
 
   inline virtual void Rebuild(char* state,  size_t sz )
@@ -655,9 +647,18 @@ delta in [0,1].
     size_t offset = 0;
     ReadVar<LONGTYPE>(day, state, offset);
     ReadVar<LONGTYPE>(milliseconds, state, offset);
-    ReadVar<unsigned char>(this->state,state,offset);
-   // ReadVar<bool>(defined, state, offset);
-   // ReadVar<TimeType>(type, state, offset);
+    ReadVar<bool>(del.isDefined, state, offset);
+    ReadVar<TimeType>(type, state, offset);
+  }
+
+/*
+~GetType~
+
+This function returns the type of this DateTime;
+
+*/
+  inline TimeType GetType() const{
+    return type;
   }
 
 
@@ -665,15 +666,11 @@ delta in [0,1].
     // the data-part of datetime
     LONGTYPE day;
     LONGTYPE milliseconds;
-    unsigned char state;
+    TimeType type;
     // a few functions for internal use
     LONGTYPE ToJulian(const int year, const int month,const int day) const;
     void ToGregorian(const LONGTYPE Julian, LONGTYPE  &year,
                      int &month, int &day) const;
-
-    inline void set(const TimeType type, const bool defined);
-
-    inline bool hasType(const TimeType t) const;
 
 };
 
