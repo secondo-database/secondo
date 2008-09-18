@@ -416,7 +416,7 @@ Operator csvexport( "csvexport",
 
   rel(tuple(a[_]1 : t[_]1)...(a[_]n : t[_]n)) x text x int x string -> stream(tuple(...))
 
-  where t[_]i is CVSIMPORTABLE.
+  where t[_]i is CSVIMPORTABLE.
 
   text   :  indicates the filename containing the csv data
   int    :  number of lines to ignore (header)
@@ -456,7 +456,7 @@ ListExpr csvimportTM(ListExpr args){
   while(!nl->IsEmpty(attrlist)){
      ListExpr type = nl->Second(nl->First(attrlist));
      if(!am->CheckKind("CSVIMPORTABLE",type,errorInfo)){
-        ErrorReporter::ReportError("attribute type not in kind CVSEXPORTABLE");
+        ErrorReporter::ReportError("attribute type not in kind CSVEXPORTABLE");
         return nl->TypeError();
      }
      attrlist = nl->Rest(attrlist);
@@ -3577,9 +3577,11 @@ Uses ~stringORtextSelect~.
 const string fileSizeSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> {text|string} [ x bool ] -> bool </text--->"
-    "<text> fileSize( Name, FALSE ) </text--->"
+    "<text> fileSize( Name, Recurse ) </text--->"
     "<text> Returns the file's or directory's size in Bytes.\n"
-    "If Name is UNDEFINED, nothing is done and the result is "
+    "If Name specifies a directory and the optional parameter Recurse is TRUE, "
+    "the operator recurses into subdirectories aggregating the total size.\n"
+    "If Name or Recurse is UNDEFINED, nothing is done and the result is "
     "UNDEFINED.</text--->"
     "<text> query fileSize('data.csv')  </text--->"
     ") )";
@@ -4029,7 +4031,7 @@ const string moveFileSpec  =
     "( <text> {text|string} -> text </text--->"
     "<text> moveFile( OldName, NewName ) </text--->"
     "<text> Move file OldName to file NewName. Can also be used to rename a "
-    "file.\nReturns TRUE, is move-command succeeds.\n"
+    "file.\nReturns TRUE, iff move-command succeeds.\n"
     "WARNING: Be extremely carefully about moving files!\n"
     "         The operator also overwrites existing files!</text--->"
     "<text> query moveFile('data.csv', 'data.csv.old')  </text--->"
@@ -4198,9 +4200,8 @@ const string getDirectorySpec  =
     "<text> getDirectory( DirectoryName [, N]) </text--->"
     "<text> Create a stream of text containing all file names from directory\n"
     "DirectoryName and its subfolders. The function recurses down to the Nth\n"
-    "level. If N is not specified, N is set to 1 or smaller, meaning that only "
-    "the\n"
-    "direct contents of DirectoryName are listed.</text--->"
+    "level. If N is not specified, or N is set to 1 or smaller, meaning that\n"
+    "only the direct contents of DirectoryName are listed.</text--->"
     "<text> query getDirectory('tmp', 2)</text--->"
     ") )";
 
@@ -4221,7 +4222,184 @@ Operator getDirectory( "getDirectory",
                    stringORtext_OPTIONALint2textstreamTM);
 
 /*
-18 Creating the Algebra
+18 Operator ~toCSVtext~
+
+Converts any object of a Type from CSVEXPORTABLE to a text object with the
+corresponding CSV text representation.
+
+18.1 TypeMapping for ~toCSVtext~
+
+---- CSVEXPORTABLE -> text
+----
+
+*/
+
+ListExpr CSVEXPORTABLEtoTextTM(ListExpr args){
+  string err = "CSVEXPORTABLE expected";
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  int listLength = nl->ListLength(args);
+  if(listLength!=1){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!am->CheckKind("CSVEXPORTABLE",nl->First(args),errorInfo)){
+    ErrorReporter::ReportError("stream element not in kind csvexportable");
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom(symbols::TEXT);
+}
+
+
+
+/*
+18.2 Value Mapping for ~toCSVtext~
+
+*/
+
+int toCSVtextVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  result = qp->ResultStorage(s);
+  FText* res = static_cast<FText*>(result.addr);
+  Attribute* object = static_cast<Attribute*>(args[0].addr);
+  if(!object->IsDefined()){
+    res->Set(false,"");
+    return 0;
+  }
+  string objStr = object->getCsvStr();
+  res->Set(true,objStr);
+  return 0;
+}
+
+/*
+18.3 Specification for ~toCSVtext~
+
+*/
+const string toCSVtextSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> X -> text, for X in CSVEXPORTABLE </text--->"
+    "<text> toCSVtext( Obj ) </text--->"
+    "<text>Converts any object of a CSVEXPORTABLE type to its CSV text\n"
+    "representation.</text--->"
+    "<text> query toCSVtext(3.14137) </text--->"
+    ") )";
+
+/*
+18.4 Selection Function for ~toCSVtext~
+
+Uses ~simpleselect~.
+
+
+18.5 Operator Instance for operator ~toCSVtext~
+
+*/
+Operator toCSVtext( "toCSVtext",
+                    toCSVtextSpec,
+                    toCSVtextVM,
+                    Operator::SimpleSelect,
+                    CSVEXPORTABLEtoTextTM);
+
+
+/*
+19 Operator ~fromCSVtext~
+
+Converts any object of a Type from CSVEXPORTABLE to a text object with the
+corresponding CSV text representation.
+
+19.1 TypeMapping for ~fromCSVtext~
+
+---- CSVEXPORTABLE x text -> CSVEXPORTABLE
+----
+
+*/
+
+ListExpr CSVIMPORTABLE_textORstring2CSVIMPORATABLETM(ListExpr args){
+  string err = "CSVIMPORTABLE x {text|string} expected";
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  int listLength = nl->ListLength(args);
+  if(listLength!=2){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!am->CheckKind("CSVIMPORTABLE",nl->First(args),errorInfo)){
+    ErrorReporter::ReportError("stream element not in kind csvimportable");
+    return nl->TypeError();
+  }
+  if(    !nl->IsEqual(nl->Second(args),symbols::STRING)
+      && !nl->IsEqual(nl->Second(args),symbols::TEXT)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  return nl->First(args);
+}
+
+
+
+/*
+19.2 Value Mapping for ~fromCSVtext~
+
+*/
+
+template<class T>
+int fromCSVtextVM(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+  T* InText= static_cast<T*>(args[1].addr);
+  result = qp->ResultStorage( s );
+  Attribute* Res = static_cast<Attribute*>(result.addr);
+
+  if(!InText->IsDefined()){
+    Res->SetDefined(false);
+    return 0;
+  }
+  string myText = InText->GetValue();
+  Res->ReadFromString(myText);
+  return 0;
+}
+
+ValueMapping fromCSVtextvaluemap[] = {fromCSVtextVM<FText>,
+                                      fromCSVtextVM<CcString>};
+
+/*
+19.3 Specification for ~fromCSVtext~
+
+*/
+const string fromCSVtextSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> X x {text|string} -> X, for X in CSVIMPORTABLE </text--->"
+    "<text> fromCSVtext( Pattern, Text ) </text--->"
+    "<text>Converts the textual CSV representation of the CSVIMPORTABLE type\n"
+    "specified by the type of Pattern to a secondo object.</text--->"
+    "<text> query fromCSVtext(0.0, '3.141') </text--->"
+    ") )";
+
+/*
+19.4 Selection Function for ~fromCSVtext~
+
+*/
+
+int fromCSVtextSelect(ListExpr args){
+  if(nl->IsEqual(nl->Second(args),symbols::TEXT)){
+    return 0;
+  } else if(nl->IsEqual(nl->Second(args),symbols::STRING)){
+    return 1;
+  }
+  return -1;
+}
+
+/*
+19.5 Operator Instance for operator ~fromCSVtext~
+
+*/
+Operator fromCSVtext ( "fromCSVtext",
+                   fromCSVtextSpec,
+                   2,
+                   fromCSVtextvaluemap,
+                   fromCSVtextSelect,
+                   CSVIMPORTABLE_textORstring2CSVIMPORATABLETM);
+
+/*
+20 Creating the Algebra
 
 */
 
@@ -4248,6 +4426,8 @@ public:
     AddOperator( &readFile);
     AddOperator( &moveFile);
     AddOperator( &getDirectory);
+    AddOperator( &toCSVtext);
+    AddOperator( &fromCSVtext);
   }
   ~ImExAlgebra() {};
 };

@@ -197,14 +197,14 @@ Result   : TRUE
 Operator : readFile
 Number   : 1
 Signature: string -> text
-Example  : query length(readFile("ten"))
-Result   : 229
+Example  : query length(readFile("ten.csv"))
+Result   : 26
 
 Operator : readFile
 Number   : 2
 Signature: text -> text
-Example  : query length(readFile('ten'))
-Result   : 229
+Example  : query length(readFile('ten.csv'))
+Result   : 26
 
 Operator : moveFile
 Number   : 1
@@ -241,3 +241,21 @@ Number   : 2
 Signature: text [ x int ] -> stream(text)
 Example  : query (getDirectory('.',10) count) > 1
 Result   : TRUE
+
+Operator : toCSVtext
+Number   : 1
+Signature: CSVEXPORTABLE -> text
+Example  : query toCSVtext(TRUE)
+Result   : 'true'
+
+Operator : fromCSVtext
+Number   : 1
+Signature: CSVIMPORTABLE x text -> CSVIMPORTABLE
+Example  : query fromCSVtext(TRUE, 'TRUE')
+Result   : TRUE
+
+Operator : fromCSVtext
+Number   : 2
+Signature: CSVIMPORTABLE x string -> CSVIMPORTABLE
+Example  : query fromCSVtext(TRUE, "")
+Result   : (bool undef)
