@@ -1,8 +1,8 @@
-/*  
----- 
+/*
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -26,23 +26,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Header file  of the Relational Algebra
 
-March 2003 Victor Almeida created the new Relational Algebra 
+March 2003 Victor Almeida created the new Relational Algebra
 organization
 
-Oct 2004 M. Spiekermann changed some frequently called ~small~ 
+Oct 2004 M. Spiekermann changed some frequently called ~small~
 functions into inline functions implemented in the header file. This
-reduced code redundance since the same code written in 
-RelationMainMemory and RelationPersistent can be kept together here 
-and may improve performance when the code is compiled with 
-optimization flags.  
+reduced code redundance since the same code written in
+RelationMainMemory and RelationPersistent can be kept together here
+and may improve performance when the code is compiled with
+optimization flags.
 
-June-July 2004 M. Spiekermann. Changes in class ~Tuple~ and 
-~TupleBuffer~. Storing the attribute array as member variable in 
-class Tuple reduces processing overhead. Moreover the array is 
-needed for both implementations "persistent" and "memory" hence it 
-should not be maintained in class ~privateTuple~. The TupleBuffer 
-was extended. The TupleBuffer constructor was extended by a new 
-boolean parameter which indicates whether the tuples in it are 
+June-July 2004 M. Spiekermann. Changes in class ~Tuple~ and
+~TupleBuffer~. Storing the attribute array as member variable in
+class Tuple reduces processing overhead. Moreover the array is
+needed for both implementations "persistent" and "memory" hence it
+should not be maintained in class ~privateTuple~. The TupleBuffer
+was extended. The TupleBuffer constructor was extended by a new
+boolean parameter which indicates whether the tuples in it are
 stored as "free" or "non-free" tuples.
 
 January 2006 Victor Almeida replaced the ~free~ tuples concept to
@@ -50,11 +50,11 @@ reference counters. There are reference counters on tuples and also
 on attributes. Some assertions were removed, since the code is
 stable.
 
-May 2006 M. Spiekermann. Changes in ~TupleCompareBy~. The number of compare 
+May 2006 M. Spiekermann. Changes in ~TupleCompareBy~. The number of compare
 operations was antisymmetric, e.g. recognizing that two attributes fulfill
-$A > B$ needed one integer comparison more than $A < B$. Now first $A = B$ is 
-tested and determining one of the remaining cases needs only one extra 
-comparison. Hence in the average we will use less ${=,<}$ operations than 
+$A > B$ needed one integer comparison more than $A < B$. Now first $A = B$ is
+tested and determining one of the remaining cases needs only one extra
+comparison. Hence in the average we will use less ${=,<}$ operations than
 before.
 
 April 2007, T. Behr, M. Spiekermann. Removal of the main memory implementation
@@ -68,33 +68,33 @@ September 2007, M. Spiekermann. Dependencies to algebra OldRelationAlgebra remov
 
 1 Overview
 
-The Relational Algebra basically implements two type constructors, 
-namely ~tuple~ and ~rel~. The type system of the Relational Algebra 
+The Relational Algebra basically implements two type constructors,
+namely ~tuple~ and ~rel~. The type system of the Relational Algebra
 can be seen below.
 
 \begin{displaymath}
 \begin{array}{lll}
-& 
-\to \textrm{DATA} & 
-{\underline{\smash{\mathit{int}}}}, 
+&
+\to \textrm{DATA} &
+{\underline{\smash{\mathit{int}}}},
 {\underline{\smash{\mathit{real}}}},
-{\underline{\smash{\mathit{bool}}}}, 
-{\underline{\smash{\mathit{string}}}} 
+{\underline{\smash{\mathit{bool}}}},
+{\underline{\smash{\mathit{string}}}}
 \\
-({\underline{\smash{\mathit{ident}}}} \times \textrm{DATA})^{+} & 
+({\underline{\smash{\mathit{ident}}}} \times \textrm{DATA})^{+} &
 \to \textrm{TUPLE} &
-{\underline{\smash{\mathit{tuple}}}} 
+{\underline{\smash{\mathit{tuple}}}}
 \\
-\textrm{TUPLE} & 
-\to \textrm{REL} & 
+\textrm{TUPLE} &
+\to \textrm{REL} &
 {\underline{\smash{\mathit{rel}}}}
 \end{array}
 \end{displaymath}
 
-The DATA kind should be incremented with more complex data types 
-such as, for example, ${\underline{\smash{\mathit{point}}}}$, 
-${\underline{\smash{\mathit{points}}}}$, 
-${\underline{\smash{\mathit{line}}}}$, 
+The DATA kind should be incremented with more complex data types
+such as, for example, ${\underline{\smash{\mathit{point}}}}$,
+${\underline{\smash{\mathit{points}}}}$,
+${\underline{\smash{\mathit{line}}}}$,
 and ${\underline{\smash{\mathit{region}}}}$ of the Spatial Algebra,
 meaning that these data types can be inserted into relations.
 
@@ -112,15 +112,15 @@ As an example, a relation ~cities~ could be described as
   )
 \end{displaymath}
 
-This file will contain an interface of the memory representation 
-structures (~classes~) for these two type constructors, namely 
+This file will contain an interface of the memory representation
+structures (~classes~) for these two type constructors, namely
 ~Tuple~ and ~Relation~, and some additional ones that are needed
-for the Relational Algebra, such as ~TupleId~, ~RelationIterator~, 
-~TupleType~, ~Attribute~ (which is defined inside the file 
+for the Relational Algebra, such as ~TupleId~, ~RelationIterator~,
+~TupleType~, ~Attribute~ (which is defined inside the file
 Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
 
-                Figure 1: Relational Algebra implementation 
+                Figure 1: Relational Algebra implementation
                 architecture. [RelationAlgebraArchitecture.eps]
 
 2 Defines, includes, and constants
@@ -137,7 +137,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include "NestedList.h"
 #include "Counter.h"
 
-#define MAX_NUM_OF_ATTR 10 
+#define MAX_NUM_OF_ATTR 10
 
 
 #undef TTRACE
@@ -150,11 +150,11 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #define DEBUG(ptr, msg) if (debug) TTRACE(ptr, msg)
 
 #undef ON_DEBUG
-#ifdef TRACE_ON 
+#ifdef TRACE_ON
   #define ON_DEBUG(expr) { expr }
 #else
   #define ON_DEBUG(expr)
-#endif  
+#endif
 
 
 extern AlgebraManager* am;
@@ -164,7 +164,7 @@ extern AlgebraManager* am;
 
 3.1 ~TupleId~
 
-This class implements the unique identification for tuples inside a 
+This class implements the unique identification for tuples inside a
 relation.
 
 */
@@ -173,22 +173,24 @@ typedef long TupleId;
 /*
 3.2 Class ~Attribute~
 
-This abstract class ~Attribute~ is inside the file Attribute.h and 
-contains a set of functions necessary to the management of 
-attributes. All type constructors of the kind DATA must be a 
+This abstract class ~Attribute~ is inside the file Attribute.h and
+contains a set of functions necessary to the management of
+attributes. All type constructors of the kind DATA must be a
 sub-class of ~Attribute~.
 
 3.3 Struct ~AttributeType~
 
-This ~AttributeType~ struct implements the type of each attribute 
-inside a tuple. To identify a data type in the Secondo system the 
-~algebraId~ and the ~typeId~ are necessary. The size of the 
-attribute is also necessary to previously know how much space will 
+This ~AttributeType~ struct implements the type of each attribute
+inside a tuple. To identify a data type in the Secondo system the
+~algebraId~ and the ~typeId~ are necessary. The size of the
+attribute is also necessary to previously know how much space will
 be necessary to store an instance of such attribute's data type.
 
 */
 struct AttributeType
 {
+  friend ostream& operator<<(ostream& o, AttributeType& at);
+
   AttributeType()
     {}
 /*
@@ -221,19 +223,23 @@ Size of attribute instance in bytes.
 */
 };
 
+ostream& operator<<(ostream& o, AttributeType& at);
+
+
 /*
 3.4 Class ~TupleType~
 
-A ~TupleType~ is a collection (an array) of all attribute types 
+A ~TupleType~ is a collection (an array) of all attribute types
 (~AttributeType~) of the tuple. This structure contains the metadata of a tuple attributes.
 
 */
 class TupleType
 {
+  friend ostream& operator<<(ostream& o, const TupleType& tt);
   public:
     TupleType( const ListExpr typeInfo );
 /*
-The first constructor. Creates a tuple type from a ~typeInfo~ list 
+The first constructor. Creates a tuple type from a ~typeInfo~ list
 expression. It sets all member variables, including the total size.
 
 */
@@ -246,7 +252,7 @@ expression. It sets all member variables, including the total size.
 The destructor.
 
 */
-    inline bool DeleteIfAllowed() 
+    inline bool DeleteIfAllowed()
     {
       assert( refs > 0 );
       refs--;
@@ -258,29 +264,29 @@ The destructor.
       }
     }
 /*
-Deletes the tuple type if allowed, i.e. there are no more 
+Deletes the tuple type if allowed, i.e. there are no more
 references to it.
 
 */
     inline void IncReference()
-    { 
+    {
       refs++;
     }
 /*
 Increment the reference count of this tuple type.
 
 */
-    inline int GetNoAttributes() const 
-    { 
-      return noAttributes; 
+    inline int GetNoAttributes() const
+    {
+      return noAttributes;
     }
 /*
 Returns the number of attributes of the tuple type.
 
 */
-    inline int GetTotalSize() const 
+    inline int GetTotalSize() const
     {
-      return totalSize; 
+      return totalSize;
     }
 /*
 Returns the total size of the tuple.
@@ -294,7 +300,7 @@ Returns the total size of the tuple.
 Returns the attribute type at ~index~ position.
 
 */
-    inline void PutAttributeType( int index, 
+    inline void PutAttributeType( int index,
                                   const AttributeType& attrType )
     {
       attrTypeArray[index] = attrType;
@@ -327,6 +333,8 @@ A reference counter.
 */
 };
 
+ostream& operator<<(ostream& o, const TupleType& tt);
+
 /*
 4.2 Struct ~RelationDescriptor~
 
@@ -335,6 +343,7 @@ This struct contains necessary information for opening a relation.
 */
 struct RelationDescriptor
 {
+  friend ostream& operator<<(ostream& o, const RelationDescriptor& rd);
   inline
   RelationDescriptor( TupleType* tupleType ):
     tupleType( tupleType ),
@@ -513,6 +522,10 @@ The LOB's file identification.
 */
 };
 
+
+ostream& operator<<(ostream& o, const RelationDescriptor& rd);
+
+
 /*
 4.2 Class ~RelationDescriptorCompare~
 
@@ -520,7 +533,7 @@ The LOB's file identification.
 class RelationDescriptorCompare
 {
   public:
-    inline bool operator()( const RelationDescriptor& d1, 
+    inline bool operator()( const RelationDescriptor& d1,
                             const RelationDescriptor d2 )
     {
       if( d1.tupleFileId < d2.tupleFileId )
@@ -577,7 +590,7 @@ The first constructor. Creates an empty relation from a ~typeInfo~.
 The second constructor. Creates an empty relation from a ~tupleType~.
 
 */
-  PrivateRelation( const RelationDescriptor& relDesc, 
+  PrivateRelation( const RelationDescriptor& relDesc,
                    bool isTemp ):
     relDesc( relDesc ),
     tupleFile( false, 0, isTemp ),
@@ -625,7 +638,7 @@ A flag telling whether the relation is temporary.
 /*
 3.5 Class ~Tuple~
 
-This class implements the representation of the type 
+This class implements the representation of the type
 constructor ~tuple~.
 
 */
@@ -648,7 +661,7 @@ class Tuple
     }
 
 /*
-The constructor. It contructs a tuple with the metadata passed in 
+The constructor. It contructs a tuple with the metadata passed in
 the ~tupleType~ as argument.
 
 */
@@ -659,7 +672,7 @@ the ~tupleType~ as argument.
       DEBUG(this, "Constructor Tuple(const ListExpr typeInfo) called.")
     }
 /*
-A similar constructor as the above, but taking a list 
+A similar constructor as the above, but taking a list
 expression ~typeInfo~ as argument.
 
 */
@@ -668,8 +681,8 @@ expression ~typeInfo~ as argument.
 The destructor.
 
 */
-    static Tuple *In( const ListExpr typeInfo, ListExpr value, 
-                      int errorPos, ListExpr& errorInfo, 
+    static Tuple *In( const ListExpr typeInfo, ListExpr value,
+                      int errorPos, ListExpr& errorInfo,
                       bool& correct );
 /*
 Creates a tuple from the ~typeInfo~ and ~value~ information.
@@ -680,7 +693,7 @@ Corresponds to the ~In~-function of type constructor ~tuple~.
                                    int errorPos, ListExpr& errorInfo,
                                    bool& correct );
 /*
-Acts as the ~In~ function, but uses internal representation for 
+Acts as the ~In~ function, but uses internal representation for
 the objects.
 
 */
@@ -692,7 +705,7 @@ Corresponds to the ~Out~-function of type constructor ~tuple~.
 */
     ListExpr SaveToList( ListExpr typeInfo );
 /*
-Acts as the ~Out~ function, but uses internal representation for 
+Acts as the ~Out~ function, but uses internal representation for
 the objects.
 
 */
@@ -709,11 +722,11 @@ Returns the unique ~id~ of the tuple.
 */
     void SetTupleId( const TupleId& tupleId );
 /*
-Sets the tuple unique ~id~ of the tuple. This function is necessary 
+Sets the tuple unique ~id~ of the tuple. This function is necessary
 because at the construction time, the tuple does not know its ~id~.
 
 */
-    inline Attribute* GetAttribute( int index ) const 
+    inline Attribute* GetAttribute( int index ) const
     {
       return attributes[index];
     }
@@ -732,9 +745,9 @@ Puts an attribute in the position ~index~ inside the tuple.
                            vector<double>& attrExtSize,
                            vector<double>& attrSize );
 /*
-Puts the attributes from ~newAttrs~ at the corresponding position 
-from ~changedIndices~ into the tuple. Destroys the physical 
-representations of the old attributes and saves the new tuple to 
+Puts the attributes from ~newAttrs~ at the corresponding position
+from ~changedIndices~ into the tuple. Destroys the physical
+representations of the old attributes and saves the new tuple to
 disk. The implementation of this function is found in the
 Update Relation Algebra.
 
@@ -757,7 +770,7 @@ Returns the size of the attribute's root part.
 */
     inline int GetExtSize() const
     {
-      if ( !recomputeExtSize ) 
+      if ( !recomputeExtSize )
         return tupleExtSize;
 
       tupleExtSize = 0;
@@ -766,7 +779,7 @@ Returns the size of the attribute's root part.
         tupleExtSize += GetExtSize(i);
       }
       recomputeExtSize = false;
-      return tupleExtSize; 
+      return tupleExtSize;
     }
 /*
 Returns the size of the tuple taking into account the extension
@@ -807,25 +820,25 @@ Returns the size of attribute i including its extension part.
           }
       }
       return attrMemSize;
-   } 
+   }
 
 
 
     inline int GetSize() const
     {
-      if ( !recomputeSize ) 
+      if ( !recomputeSize )
         return tupleSize;
 
       tupleSize = 0;
       for( int i = 0; i < noAttributes; i++)
       {
-	tupleSize += GetSize(i);      
+	tupleSize += GetSize(i);
       }
       recomputeSize = false;
       return tupleSize;
     }
 /*
-Returns the total size of the tuple taking into account the 
+Returns the total size of the tuple taking into account the
 the FLOBs.
 
 */
@@ -853,7 +866,7 @@ Returns the hash value for attribute number i.
 
 
 
-    inline int GetNoAttributes() const 
+    inline int GetNoAttributes() const
     {
       return noAttributes;
     }
@@ -861,7 +874,7 @@ Returns the hash value for attribute number i.
 Returns the number of attributes of the tuple.
 
 */
-    inline TupleType* GetTupleType() const 
+    inline TupleType* GetTupleType() const
     {
       return tupleType;
     }
@@ -874,7 +887,7 @@ Returns the tuple type.
 Create a new tuple which is a clone of this tuple.
 
 */
-    inline bool DeleteIfAllowed() 
+    inline bool DeleteIfAllowed()
     {
       assert(refs>0);
       refs--;
@@ -900,7 +913,7 @@ Increses the reference count of this tuple.
 */
 //    inline void DecReference()
 //    {
-//      if (refs > 0) 
+//      if (refs > 0)
 //        refs--;
 //    }
 /*
@@ -908,8 +921,8 @@ Decreses the reference count of this tuple.
 
 */
     int GetNumOfRefs() const
-    { 
-      return refs; 
+    {
+      return refs;
     }
 /*
 Returns the number of references
@@ -919,23 +932,23 @@ Returns the number of references
 /*
 ~CopyAttribute~
 
-This function is used to copy attributes from tuples to tuples 
+This function is used to copy attributes from tuples to tuples
 without cloning attributes.
 
 */
-  inline void CopyAttribute( int sourceIndex, 
-                             const Tuple *source, 
+  inline void CopyAttribute( int sourceIndex,
+                             const Tuple *source,
                              int destIndex )
   {
-    if( attributes[destIndex] != 0 ){ 
+    if( attributes[destIndex] != 0 ){
       // remove reference from an old attribute
-      (attributes[destIndex]->DeleteIfAllowed()); 
+      (attributes[destIndex]->DeleteIfAllowed());
     }
     attributes[destIndex] = source->attributes[sourceIndex]->Copy();
   }
-  
+
 /*
-Saves a tuple into ~tuplefile~ and ~lobfile~. Returns the 
+Saves a tuple into ~tuplefile~ and ~lobfile~. Returns the
 sizes of the tuple saved.
 
 */
@@ -946,8 +959,8 @@ sizes of the tuple saved.
              bool ignorePersistentLOBs=false );
 
 /*
-Saves a tuple with updated attributes and reuses the old 
-record. 
+Saves a tuple with updated attributes and reuses the old
+record.
 
 */
   void UpdateSave( const vector<int>& changedIndices,
@@ -965,15 +978,15 @@ Opens a tuple from ~tuplefile~(~rid~) and ~lobfile~.
              SmiRecordId rid );
 
 /*
-Opens a tuple from ~tuplefile~ and ~lobfile~ reading from 
+Opens a tuple from ~tuplefile~ and ~lobfile~ reading from
 ~record~.
 
 */
   bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
-             SmiRecord *record );                
+             SmiRecord *record );
 
 /*
-Opens a tuple from ~tuplefile~ and ~lobfile~ reading the 
+Opens a tuple from ~tuplefile~ and ~lobfile~ reading the
 current record of ~iter~.
 
 */
@@ -981,9 +994,9 @@ current record of ~iter~.
              PrefetchingIterator *iter );
 
 
-  // debug flag  
+  // debug flag
   static bool debug;
-    
+
   private:
 
     static long tuplesCreated;
@@ -1018,16 +1031,16 @@ Initializes the attributes array with zeros.
       recomputeExtSize = true;
       recomputeSize = true;
 
-      if ( noAttributes > MAX_NUM_OF_ATTR ) 
+      if ( noAttributes > MAX_NUM_OF_ATTR )
         attributes = new Attribute*[noAttributes];
-      else 
+      else
         attributes = defAttributes;
 
       InitAttrArray();
 
       tuplesCreated++;
       tuplesInMemory++;
-      if( tuplesInMemory > maximumTuples ) 
+      if( tuplesInMemory > maximumTuples )
         maximumTuples = tuplesInMemory;
     }
 /*
@@ -1038,13 +1051,13 @@ Initializes a tuple.
     uint32_t refs;
 /*
 The reference count of this tuple. There can exist several tuple
-pointers pointing to the same tuple and sometimes we want to prevent 
+pointers pointing to the same tuple and sometimes we want to prevent
 deleting tuples. As an example, in some operators buffers that
 store tuples in memory are used. Until the memory is kept in the
-buffer it cannot be deleted by other pointers. For this case, 
+buffer it cannot be deleted by other pointers. For this case,
 before appending a tuple in the buffer, the reference count of the
 tuple is increased. To delete tuples we always call the function
-~DeleteIfAllowed~, which first checks if ~refs~ = 0 to really 
+~DeleteIfAllowed~, which first checks if ~refs~ = 0 to really
 delete the tuple. This number is initialized with 0 so that normally
 the tuple will be deleted.
 
@@ -1067,7 +1080,7 @@ part of the tuple, i.e. the small FLOBs.
 */
     mutable uint32_t tupleSize;
 /*
-Stores the total size of the tuples taking into account the 
+Stores the total size of the tuples taking into account the
 FLOBs.
 
 */
@@ -1088,7 +1101,7 @@ to ~defAttributes~, otherwise it is dinamically constructed.
 
   bool ReadFrom(SmiRecord& record);
 
-  static const size_t MAX_TUPLESIZE = 65535; 
+  static const size_t MAX_TUPLESIZE = 65535;
   static char tupleData[MAX_TUPLESIZE];
 
   char* WriteToBlock(size_t attrSizes, size_t extensionSize);
@@ -1096,8 +1109,8 @@ to ~defAttributes~, otherwise it is dinamically constructed.
 
   size_t CalculateBlockSize( size_t& attrSizes, double& extSize, double& size,
                                   vector<double>& attrExtSize,
-                                  vector<double>& attrSize, 
-				  bool ignorePersLOBs = false ); 
+                                  vector<double>& attrSize,
+				  bool ignorePersLOBs = false );
 
 
 
@@ -1132,12 +1145,12 @@ of attributes makes sense since it reduces calls for TupleType::NoAttributes
 
 */
   //int NumOfAttr;
-  
+
 /*
 Debugging stuff
 
-*/  
-#ifdef MALLOC_CHECK_  
+*/
+#ifdef MALLOC_CHECK_
   void free (void* ptr) { cerr << "freeing ptr " << ptr << endl; ::free(ptr); }
 #endif
 
@@ -1153,7 +1166,7 @@ The print function for tuples. Used for debugging purposes
 /*
 3.7 Class ~LexicographicalTupleCompare~
 
-This is a class used in the sort algorithm that specifies the 
+This is a class used in the sort algorithm that specifies the
 lexicographical comparison function between two tuples.
 
 */
@@ -1162,7 +1175,7 @@ lexicographical comparison function between two tuples.
 class LexicographicalTupleCompare
 {
   public:
-    inline bool operator()( const Tuple* aConst, 
+    inline bool operator()( const Tuple* aConst,
                             const Tuple* bConst ) const
     {
       Tuple* a = (Tuple*)aConst;
@@ -1170,7 +1183,7 @@ class LexicographicalTupleCompare
 
       for( int i = 0; i < a->GetNoAttributes(); i++ )
       {
-        int cmp = 
+        int cmp =
           ((Attribute*)a->GetAttribute(i))->Compare(
             ((Attribute*)b->GetAttribute(i)));
         if( cmp < 0)
@@ -1185,7 +1198,7 @@ class LexicographicalTupleCompare
 class LexicographicalTupleCompare_Reverse : public LexicographicalTupleCompare
 {
   public:
-    inline bool operator()( const Tuple* a, 
+    inline bool operator()( const Tuple* a,
                             const Tuple* b ) const
     {
       return !LexicographicalTupleCompare::operator()(a, b);
@@ -1198,7 +1211,7 @@ class LexicographicalTupleCompare_Reverse : public LexicographicalTupleCompare
 class LexicographicalTupleCompareAlmost
 {
   public:
-    inline bool operator()( const Tuple* aConst, 
+    inline bool operator()( const Tuple* aConst,
                             const Tuple* bConst ) const
     {
       Tuple* a = (Tuple*)aConst;
@@ -1206,7 +1219,7 @@ class LexicographicalTupleCompareAlmost
 
       for( int i = 0; i < a->GetNoAttributes(); i++ )
       {
-        int cmp = 
+        int cmp =
           ((Attribute*)a->GetAttribute(i))->CompareAlmost(
             ((Attribute*)b->GetAttribute(i)));
         if( cmp < 0)
@@ -1220,10 +1233,10 @@ class LexicographicalTupleCompareAlmost
 /*
 3.8 Class ~TupleCompareBy~
 
-This is a class used in the sort algorithm that specifies the 
-comparison function between two tuples using a set of attributes 
-specified in ~SortOrderSpecification~, which is a vector of pairs 
-containing the index of the attribute and a boolean flag telling 
+This is a class used in the sort algorithm that specifies the
+comparison function between two tuples using a set of attributes
+specified in ~SortOrderSpecification~, which is a vector of pairs
+containing the index of the attribute and a boolean flag telling
 whether the ordering is ascendant or not (descendant).
 
 */
@@ -1239,10 +1252,10 @@ class TupleCompareBy
       len( spec.size() )
       {}
 
-    inline bool operator()( const Tuple* a, 
+    inline bool operator()( const Tuple* a,
                             const Tuple* b ) const
     {
-      if (len > 1) 
+      if (len > 1)
       {
 
         SortOrderSpecification::const_iterator iter = spec.begin();
@@ -1253,7 +1266,7 @@ class TupleCompareBy
           const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
           const int cmpValue = aAttr->Compare( bAttr );
 
-          if( cmpValue !=  0 ) 
+          if( cmpValue !=  0 )
           {
             // aAttr < bAttr ?
             return (cmpValue < 0) ? iter->second : !(iter->second);
@@ -1261,7 +1274,7 @@ class TupleCompareBy
           // the current attribute is equal
           iter++;
         }
-        // all attributes are equal  
+        // all attributes are equal
         return false;
       }
       else
@@ -1270,7 +1283,7 @@ class TupleCompareBy
         const Attribute* aAttr = (const Attribute*) a->GetAttribute(pos);
         const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
         return aAttr->Less(bAttr) ? spec[0].second : !spec[0].second;
-      } 
+      }
   }
 
   private:
@@ -1282,11 +1295,11 @@ class TupleCompareBy
 class TupleCompareBy_Reverse : public TupleCompareBy
 {
   public:
-    TupleCompareBy_Reverse( const SortOrderSpecification& spec ) 
+    TupleCompareBy_Reverse( const SortOrderSpecification& spec )
     : TupleCompareBy(spec)
-    {}	
+    {}
 
-    inline bool operator()( const Tuple* a, 
+    inline bool operator()( const Tuple* a,
                             const Tuple* b ) const
     {
       return !TupleCompareBy::operator()(a, b);
@@ -1304,10 +1317,10 @@ class TupleCompareByAlmost
       len( spec.size() )
       {}
 
-    inline bool operator()( const Tuple* a, 
+    inline bool operator()( const Tuple* a,
                             const Tuple* b ) const
     {
-      if (len > 1) 
+      if (len > 1)
       {
 
         SortOrderSpecification::const_iterator iter = spec.begin();
@@ -1318,7 +1331,7 @@ class TupleCompareByAlmost
           const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
           const int cmpValue = aAttr->CompareAlmost( bAttr );
 
-          if( cmpValue !=  0 ) 
+          if( cmpValue !=  0 )
           {
             // aAttr < bAttr ?
             return (cmpValue < 0) ? iter->second : !(iter->second);
@@ -1326,7 +1339,7 @@ class TupleCompareByAlmost
           // the current attribute is equal
           iter++;
         }
-        // all attributes are equal  
+        // all attributes are equal
         return false;
       }
       else
@@ -1335,7 +1348,7 @@ class TupleCompareByAlmost
         const Attribute* aAttr = (const Attribute*) a->GetAttribute(pos);
         const Attribute* bAttr = (const Attribute*) b->GetAttribute(pos);
         return aAttr->Less(bAttr) ? spec[0].second : !spec[0].second;
-      } 
+      }
   }
 
   private:
@@ -1376,7 +1389,7 @@ The function to retrieve the current tuple ~id~.
 3.9 Class ~GenericRelation~
 
 This abstract class forces its two son classes ~Relation~ and
-~TupleBuffer~ to implement some functions so that both classes 
+~TupleBuffer~ to implement some functions so that both classes
 can be used in a generic way with polymorphism.
 
 */
@@ -1396,7 +1409,7 @@ The function to return the number of tuples.
     virtual double GetTotalRootSize() const = 0;
 /*
 The function to return the total size of the relation
-in bytes, taking into account only the root part of the 
+in bytes, taking into account only the root part of the
 tuples.
 
 */
@@ -1410,8 +1423,8 @@ root part of the tuples.
     virtual double GetTotalExtSize() const = 0;
 /*
 The function to return the total size of the relation
-in bytes, taking into account the root part of the 
-tuples and the extension part, i.e. the small FLOBs. 
+in bytes, taking into account the root part of the
+tuples and the extension part, i.e. the small FLOBs.
 
 */
     virtual double GetTotalExtSize( int i ) const = 0;
@@ -1451,15 +1464,15 @@ The function to append a tuple into the set.
 The function that retrieves a tuple given its ~id~.
 
 */
-    virtual 
-    Tuple *GetTuple( const TupleId& id, 
+    virtual
+    Tuple *GetTuple( const TupleId& id,
                      const int attrIndex,
-                     const vector< pair<int, int> >& intervals ) 
+                     const vector< pair<int, int> >& intervals )
       const = 0;
 /*
 The function is similar to the last one, but instead of only
 retrieving the tuple, it restricts the first FLOB (or DBArray)
-of the attribute indexed by ~attrIndex~ to the positions given 
+of the attribute indexed by ~attrIndex~ to the positions given
 by ~intervals~. This function is used in Double Indexing
 (operator ~gettuplesdbl~).
 
@@ -1498,7 +1511,7 @@ The destructor.
 */
     Tuple *GetNextTuple();
 /*
-Returns the next tuple of the buffer. Returns 0 if the end of the 
+Returns the next tuple of the buffer. Returns 0 if the end of the
 buffer is reached.
 
 */
@@ -1535,7 +1548,7 @@ The iterator if it is not in memory.
 /*
 3.9 Class ~TupleBuffer~
 
-This class is a collection of tuples in memory, if they fit. 
+This class is a collection of tuples in memory, if they fit.
 Otherwise it acts like a relation. The size of memory used is
 passed in the constructor.
 
@@ -1581,7 +1594,7 @@ The destructor. Deletes (if allowed) all tuples.
     virtual GenericRelationIterator *MakeScan() const;
 
 /*
-inherited ~virtual~ functions. 
+inherited ~virtual~ functions.
 
 Note: The function ~AppendTuple~ does not copy the physical representation of
 FLOBS which are in state "InDiskLarge", since TupleBuffers should only be used
@@ -1593,7 +1606,7 @@ for intermediate result sets needed in operator implementations.
     bool SetTupleAtPos( const size_t pos, Tuple* t);
 /*
 Retrieves or assigns a tuple to the memory buffer. If the
-position is out of range or the buffer is not in state inMemory, 
+position is out of range or the buffer is not in state inMemory,
 a null pointer or false will be returned.
 
 For a valid position the stored tuple pointer will be returned or assigned.
@@ -1610,7 +1623,7 @@ Checks if the tuple buffer is empty or not.
 /*
 Returns the number of Free Bytes
 
-*/     
+*/
 
     inline bool InMemory() const { return inMemory; }
 /*
@@ -1647,7 +1660,7 @@ A flag that tells if the buffer fit in memory or not.
 /*
 Switch trace messages on or off
 
-*/  
+*/
   double totalMemSize;
 /*
 The total size of occupied main memory;
@@ -1677,7 +1690,7 @@ taking into account the FLOBs.
 /*
 The class ~RandomTBuf~ provides a special kind of tuple buffer
 which draws a random subset of N tuples for all tuples which
-are given to it. 
+are given to it.
 
 Only the selected tuples are stored there, rejected or released
 tuples must be handled elsewhere
@@ -1707,7 +1720,7 @@ class RandomTBuf
     int run;
     bool trace;
     Storage memBuf;
-}; 
+};
 
 /*
 4 Type constructor ~rel~
@@ -1736,7 +1749,7 @@ The destructor.
     Tuple *GetNextTuple();
 /*
 Retrieves the tuple in the current position of the iterator and moves
-the cursor forward to the next tuple. Returns 0 if the cursor is in 
+the cursor forward to the next tuple. Returns 0 if the cursor is in
 the end of a relation.
 
 */
@@ -1791,7 +1804,7 @@ The destructor.
     Tuple *GetNextTuple(int step=1);
 /*
 Retrieves the tuple in the current position of the iterator and moves
-the cursor forward to the next tuple. Returns 0 if the cursor is in 
+the cursor forward to the next tuple. Returns 0 if the cursor is in
 the end of a relation.
 
 */
@@ -1800,7 +1813,7 @@ the end of a relation.
 /*
 4.1 Class ~Relation~
 
-This class implements the memory representation of the type 
+This class implements the memory representation of the type
 constructor ~rel~.
 
 */
@@ -1808,15 +1821,15 @@ constructor ~rel~.
 struct RelationDescriptor;
 class RelationDescriptorCompare;
 /*
-Forward declaration of the struct ~RelationDescriptor~ and the 
-comparison class ~RelationDescriptorCompare~. These classes will 
+Forward declaration of the struct ~RelationDescriptor~ and the
+comparison class ~RelationDescriptorCompare~. These classes will
 contain the necessary information for opening a relation.
 
 */
 
 struct PrivateRelation;
 /*
-Forward declaration of the struct ~PrivateRelation~. This struct 
+Forward declaration of the struct ~PrivateRelation~. This struct
 will contain the private attributes of the class ~Relation~.
 
 */
@@ -1825,23 +1838,23 @@ class Relation : public GenericRelation
   public:
     Relation( const ListExpr typeInfo, bool isTemp = false );
 /*
-The first constructor. It creates an empty relation from a 
-~typeInfo~. The flag ~isTemp~ can be used to create temporary 
+The first constructor. It creates an empty relation from a
+~typeInfo~. The flag ~isTemp~ can be used to create temporary
 relations.
 
 */
     Relation( TupleType *tupleType, bool isTemp = false );
 /*
-The second constructor. It creates an empty relation from a 
-~tupleType~. The flag ~isTemp~ can be used to create temporary 
+The second constructor. It creates an empty relation from a
+~tupleType~. The flag ~isTemp~ can be used to create temporary
 relations.
 
 */
-    Relation( const RelationDescriptor& relDesc, 
+    Relation( const RelationDescriptor& relDesc,
               bool isTemp = false );
 /*
-The third constructor. It opens a previously created relation. 
-The flag ~isTemporary~ can be used to open temporary created 
+The third constructor. It opens a previously created relation.
+The flag ~isTemporary~ can be used to open temporary created
 relations.
 
 */
@@ -1857,24 +1870,24 @@ The destructor. Deletes the memory part of an relation object.
 Given a relation descriptor, finds if there is an opened relation with that
 descriptor and retrieves its memory representation pointer.This function is
 used to avoid opening several times the same relation. A table indexed by
-descriptors containing the relations is used for this purpose. 
+descriptors containing the relations is used for this purpose.
 
 */
-    static GenericRelation *In( ListExpr typeInfo, ListExpr value, 
-                         int errorPos, ListExpr& errorInfo, 
+    static GenericRelation *In( ListExpr typeInfo, ListExpr value,
+                         int errorPos, ListExpr& errorInfo,
                          bool& correct, bool tupleBuf = false );
 /*
 Creates a relation from the ~typeInfo~ and ~value~ information.
 Corresponds to the ~In~-function of type constructor ~rel~.
 
 */
-    static Relation *RestoreFromList( ListExpr typeInfo, 
-                                      ListExpr value, int errorPos, 
-                                      ListExpr& errorInfo, 
+    static Relation *RestoreFromList( ListExpr typeInfo,
+                                      ListExpr value, int errorPos,
+                                      ListExpr& errorInfo,
                                       bool& correct );
 /*
-Acts like the ~In~ function, but uses internal representation for 
-the objects. Corresponds to the ~RestoreFromList~-function of type 
+Acts like the ~In~ function, but uses internal representation for
+the objects. Corresponds to the ~RestoreFromList~-function of type
 constructor ~rel~.
 
 */
@@ -1886,19 +1899,19 @@ Corresponds to the ~Out~-function of type constructor ~rel~.
 */
     ListExpr SaveToList( ListExpr typeInfo );
 /*
-Acts like the ~Out~ function, but uses internal representation for 
-the objects. Corresponds to the ~SaveToList~-function of type 
+Acts like the ~Out~ function, but uses internal representation for
+the objects. Corresponds to the ~SaveToList~-function of type
 constructor ~rel~.
 
 */
-    static Relation *Open( SmiRecord& valueRecord, size_t& offset, 
+    static Relation *Open( SmiRecord& valueRecord, size_t& offset,
                            const ListExpr typeInfo );
 /*
 Opens a relation.
 Corresponds to the ~Open~-function of type constructor ~rel~.
 
 */
-    bool Save( SmiRecord& valueRecord, size_t& offset, 
+    bool Save( SmiRecord& valueRecord, size_t& offset,
                const ListExpr typeInfo );
 /*
 Saves a relation.
@@ -1931,18 +1944,18 @@ Corresponds to the ~Clone~-function of type constructor ~rel~.
 */
     bool DeleteTuple( Tuple *tuple );
 /*
-Deletes the tuple from the relation. Returns false if the tuple 
+Deletes the tuple from the relation. Returns false if the tuple
 could not be deleted. The implementation of this function belongs
 to the Update Relational Algebra.
 
 */
-    void UpdateTuple( Tuple *tuple, 
-                      const vector<int>& changedIndices, 
+    void UpdateTuple( Tuple *tuple,
+                      const vector<int>& changedIndices,
                       const vector<Attribute *>& newAttrs );
 /*
-Updates the tuple by putting the new attributes at the positions 
+Updates the tuple by putting the new attributes at the positions
 given by ~changedIndices~ and adjusts the physical representation.
-The implementation of this function belongs to the Update 
+The implementation of this function belongs to the Update
 Relational Algebra.
 
 */
@@ -1980,7 +1993,7 @@ Inherited ~virtual~ functions
 /*
 A special variant of ~AppendTuple~ which does not copy the LOBs.
 
-*/    
+*/
 
     RandomRelationIterator *MakeRandomScan() const;
 /*
@@ -1991,11 +2004,11 @@ sample operator.
 
 */
     inline PrivateRelation *GetPrivateRelation()
-    { 
-      return privateRelation; 
+    {
+      return privateRelation;
     }
 /*
-Function to give outside access to the private part of the 
+Function to give outside access to the private part of the
 relation class.
 
 */
@@ -2006,21 +2019,21 @@ relation class.
 
   private:
 
-    void ErasePointer(); 
+    void ErasePointer();
 /*
 Removes the current Relation from the table of opened relations.
 
-*/    
+*/
 
     PrivateRelation *privateRelation;
 /*
 The private attributes of the class ~Relation~.
 
 */
-    static map<RelationDescriptor, Relation*, 
+    static map<RelationDescriptor, Relation*,
                RelationDescriptorCompare> pointerTable;
 /*
-A table containing all opened relations indexed by relation 
+A table containing all opened relations indexed by relation
 descriptors.
 
 */
@@ -2032,7 +2045,7 @@ descriptors.
 4.1 Function ~TypeOfRelAlgSymbol~
 
 Transforms a list expression ~symbol~ into one of the values of
-type ~RelationType~. ~Symbol~ is allowed to be any list. If it is 
+type ~RelationType~. ~Symbol~ is allowed to be any list. If it is
 not one of these symbols, then the value ~error~ is returned.
 
 */
@@ -2042,16 +2055,16 @@ RelationType TypeOfRelAlgSymbol (ListExpr symbol);
 /*
 3.2 Function ~FindAttribute~
 
-Here ~list~ should be a list of pairs of the form 
-(~name~,~datatype~). The function ~FindAttribute~ determines 
-whether ~attrname~ occurs as one of the names in this list. If so, 
-the index in the list (counting from 1) is returned and the 
-corresponding datatype is returned in ~attrtype~. Otherwise 0 is 
+Here ~list~ should be a list of pairs of the form
+(~name~,~datatype~). The function ~FindAttribute~ determines
+whether ~attrname~ occurs as one of the names in this list. If so,
+the index in the list (counting from 1) is returned and the
+corresponding datatype is returned in ~attrtype~. Otherwise 0 is
 returned. Used in operator ~attr~, for example.
 
 */
-int FindAttribute( ListExpr list, 
-                   string attrname, 
+int FindAttribute( ListExpr list,
+                   string attrname,
                    ListExpr& attrtype);
 
 /*
@@ -2075,7 +2088,7 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b);
 /*
 3.6 Function ~Concat~
 
-Copies the attribute values of two tuples ~r~ and ~s~ into 
+Copies the attribute values of two tuples ~r~ and ~s~ into
 tuple ~t~.
 
 */

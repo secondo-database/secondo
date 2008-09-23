@@ -1,8 +1,8 @@
-/*  
----- 
+/*
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2008, University in Hagen, Faculty for Mathematics 
+Copyright (C) 2004-2008, University in Hagen, Faculty for Mathematics
 and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -34,22 +34,22 @@ May 2002 Frank Hoffmann port to C++
 
 November 7, 2002 RHG Corrected the type mapping of ~tcount~.
 
-November 30, 2002 RHG Introduced a function ~RelPersistValue~ 
-instead of ~DefaultPersistValue~ which keeps relations that have 
-been built in memory in a small cache, so that they need not be 
+November 30, 2002 RHG Introduced a function ~RelPersistValue~
+instead of ~DefaultPersistValue~ which keeps relations that have
+been built in memory in a small cache, so that they need not be
 rebuilt from then on.
 
-March 2003 Victor Almeida created the new Relational Algebra 
+March 2003 Victor Almeida created the new Relational Algebra
 organization
 
-November 2004 M. Spiekermann. The declarations of the 
-PrivateRelation have been moved to the files RelationPersistent.h 
-and RelationMainMemory.h. This was necessary to implement some 
+November 2004 M. Spiekermann. The declarations of the
+PrivateRelation have been moved to the files RelationPersistent.h
+and RelationMainMemory.h. This was necessary to implement some
 little functions as inline functions.
 
 June 2005 M. Spiekermann. The tuple's size information will now be i
-stored in member variables and only recomputed after attributes 
-were changed. Changes in class ~TupleBuffer~ which allow to store 
+stored in member variables and only recomputed after attributes
+were changed. Changes in class ~TupleBuffer~ which allow to store
 tuples as "free" or "non-free" tuples in it.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
@@ -71,7 +71,7 @@ fixed.
 
 April 2007, T Behr. The concept of solid tuples has been removed.
 
-May 2007, M. Spiekermann. From now on the function TupleBuffer::Clear() 
+May 2007, M. Spiekermann. From now on the function TupleBuffer::Clear()
 deletes a the pointer to a relation object and marks the buffer's state
 as memory only.
 
@@ -79,17 +79,17 @@ as memory only.
 
 1 Overview
 
-The Relational Algebra basically implements two type constructors, 
+The Relational Algebra basically implements two type constructors,
 namely ~tuple~ and ~rel~.
 
-More information about the Relational Algebra can be found in the 
+More information about the Relational Algebra can be found in the
 RelationAlgebra.h header file.
 
-This file contains the implementation of the Persistent Relational 
-Algebra, where the type constructors ~tuple~ and ~rel~ are kept in 
+This file contains the implementation of the Persistent Relational
+Algebra, where the type constructors ~tuple~ and ~rel~ are kept in
 secondary memory.
 
-A relation has two files: the tuple file and the LOB file, for 
+A relation has two files: the tuple file and the LOB file, for
 storing tuples and LOBs respectively.
 
 
@@ -115,8 +115,8 @@ storing tuples and LOBs respectively.
 #include "Serialize.h"
 
 
-#define TRACE_OFF   
-#include "TraceMacros.h"    
+#define TRACE_OFF
+#include "TraceMacros.h"
 
 
 using namespace std;
@@ -125,6 +125,53 @@ using namespace symbols;
 extern NestedList *nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
+
+/*
+Output funtions
+
+*/
+ostream& operator<<(ostream& o, AttributeType& at){
+  o << "[ algId =" << at.algId
+      << ", typeId =" <<  at.typeId
+      << ", size =" <<  at.size  << "]";
+  return o;
+}
+
+ostream& operator<<(ostream& o, const TupleType& tt){
+  o << " noAttributes " << tt.noAttributes
+      << " totalSize " <<  tt.totalSize
+      << " refs " << tt.refs
+      << " AttrTypes ";
+  for(int i=0 ; i< tt.noAttributes; i++){
+    o << "[" << i << "]" << tt.attrTypeArray[i] << " , ";
+  }
+  return o;
+}
+
+ostream& operator<<(ostream& o, const RelationDescriptor& rd){
+  o << "[ " "tupleType " << (*rd.tupleType) << ",  "
+      << "noTuples " << rd.noTuples << ", "
+      << "totalExtSize " << rd.totalExtSize<< ", "
+      << "totalSize "  << rd.totalSize << ", "
+      << "tupleFileId " << rd.tupleFileId << ", "
+      << "lobFileId " << rd.lobFileId  << ", ";
+
+  o << "attrExtSize [";
+  for(unsigned int i=0; i< rd.attrExtSize.size(); i++){
+    o << rd.attrExtSize[i] << ", ";
+  }
+  o << "]";
+
+  o << "attrSize [";
+  for(unsigned int i=0; i< rd.attrSize.size(); i++){
+    o << rd.attrSize[i] << ", ";
+  }
+  o << "]";
+
+  o << "]";
+
+  return o;
+}
 
 // for displaying debugging outputs set it to true
 bool Tuple::debug = false;
@@ -135,7 +182,7 @@ char Tuple::tupleData[MAX_TUPLESIZE];
 void
 Attribute::counters(bool reset, bool show)
 {
-  StdTypes::UpdateBasicOps(reset);	
+  StdTypes::UpdateBasicOps(reset);
 
   Counter::reportValue(CTR_ATTR_BASIC_OPS, show);
   Counter::reportValue(CTR_ATTR_HASH_OPS, show);
@@ -165,10 +212,10 @@ This struct contains the private attributes of the class ~Tuple~.
 
 */
 
-  Tuple::~Tuple() 
+  Tuple::~Tuple()
   {
     DEBUG(this, "Destructor called.")
-    // delete all attributes if no further references exist 
+    // delete all attributes if no further references exist
     for( int i = 0; i < noAttributes; i++ ){
       if( attributes[i] != 0 )
       {
@@ -177,10 +224,10 @@ This struct contains the private attributes of the class ~Tuple~.
 
         attributes[i]->DeleteIfAllowed();
         attributes[i] = 0;
-      } 
+      }
       else {
 	DEBUG(this, "attributes[" << i << "] == 0")
-      }	      
+      }
     }
     tupleType->DeleteIfAllowed();
     tupleType = 0;
@@ -198,13 +245,13 @@ The destructor.
 
 #ifdef USE_SERIALIZATION
 
-void Tuple::Save( SmiRecordFile *tuplefile, 
+void Tuple::Save( SmiRecordFile *tuplefile,
                          SmiFileId& lobFileId,
                          double& extSize, double& size,
                          vector<double>& attrExtSize, vector<double>& attrSize,
                          bool ignorePersistentLOBs /*=false*/)
 {
-  TRACE_ENTER	
+  TRACE_ENTER
 
 #ifdef TRACE_ON
   static   long& saveCtr = Counter::getRef("RA:Tuple::Save");
@@ -214,8 +261,8 @@ void Tuple::Save( SmiRecordFile *tuplefile,
   saveCtr++;
 #endif
 
-  // Calculate the size of the small FLOB data which will be 
-  // saved together with the tuple attributes and save the LOBs 
+  // Calculate the size of the small FLOB data which will be
+  // saved together with the tuple attributes and save the LOBs
   // in the lobFile.
   extSize += tupleType->GetTotalSize();
   size += tupleType->GetTotalSize();
@@ -230,7 +277,7 @@ void Tuple::Save( SmiRecordFile *tuplefile,
     //int typeId = tupleType->GetAttributeType(i).typeId;
 
     size_t serialSize = attributes[i]->SerializedSize();
-    uint16_t currentSize = (serialSize > 0) ? serialSize 
+    uint16_t currentSize = (serialSize > 0) ? serialSize
 	                     : tupleType->GetAttributeType(i).size;
 
     attrSizes += currentSize;
@@ -244,10 +291,10 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
       attrSize[i] += tmpFLOB->Size();
       size += tmpFLOB->Size();
-  
+
       if( !tmpFLOB->IsLob() )
       {
-        ON_DEBUG(flobCtr++;)      
+        ON_DEBUG(flobCtr++;)
         DEBUG(this, "tmpFLOB.size = "  << tmpFLOB->Size() )
         attrExtSize[i] += tmpFLOB->Size();
         extSize += tmpFLOB->Size();
@@ -256,22 +303,22 @@ void Tuple::Save( SmiRecordFile *tuplefile,
       }
       else
       {
-        ON_DEBUG(lobCtr++;)  
+        ON_DEBUG(lobCtr++;)
         if(ignorePersistentLOBs) {
           if (!tmpFLOB->IsPersistentLob()){
             tmpFLOB->SaveToLob( lobFileId );
           }
         } else {
            tmpFLOB->SaveToLob( lobFileId );
-	}   
+	}
       }
     }
   }*/
 
-  size_t attrSizes = 0;  
-  size_t extensionSize 
-	     = CalculateBlockSize( attrSizes, extSize, size, 
-		                   attrExtSize, attrSize, 
+  size_t attrSizes = 0;
+  size_t extensionSize
+	     = CalculateBlockSize( attrSizes, extSize, size,
+		                   attrExtSize, attrSize,
 			           ignorePersistentLOBs );
 
   lobFileId = this->lobFileId;
@@ -288,7 +335,7 @@ void Tuple::Save( SmiRecordFile *tuplefile,
           DEBUG(this, "rootSizeLen = " << rootSizeLen)
           DEBUG(this, "attrSizes = " << attrSizes)
           DEBUG(this, "extensionSize = " << extensionSize)
-          DEBUG(this, "rootSize = " << rootSize) 
+          DEBUG(this, "rootSize = " << rootSize)
 
   //char* tupleData = (char*) malloc( rootSizeLen + rootSize );
   //memset(tupleData, 0, rootSizeLen + rootSize);
@@ -308,23 +355,23 @@ void Tuple::Save( SmiRecordFile *tuplefile,
     //int typeId = tupleType->GetAttributeType(i).typeId;
 
      size_t serialSize = attributes[i]->SerializedSize();
-     size_t sz = (serialSize > 0) ? serialSize : 
+     size_t sz = (serialSize > 0) ? serialSize :
 	            tupleType->GetAttributeType(i).size;
-     attributes[i]->Serialize(tupleData, sz, offset); 
+     attributes[i]->Serialize(tupleData, sz, offset);
 
-#ifdef TRACE_ON     
+#ifdef TRACE_ON
      serialSizes += sz;
      //cerr << Array2HexStr((char*)attributes[i], sz, 0) << endl;
      //cerr << "Attr(" << i << ")" << *attributes[i] << endl;
      //cerr << Array2HexStr(tupleData, sz, offset) << endl;
 #endif
 
-     offset += sz; 
+     offset += sz;
   }
-  
-  DEBUG(this, "serialSizes = " << serialSizes) 
+
+  DEBUG(this, "serialSizes = " << serialSizes)
   DEBUG(this, "offset = " << offset)
-  
+
   // Copy FLOB data to behind the attributes
   if( extensionSize>0) // there are small FLOBs
   {
@@ -339,13 +386,13 @@ void Tuple::Save( SmiRecordFile *tuplefile,
            extensionPtr += tmpFLOB->WriteTo(extensionPtr);
          }
        }
-     } 
-     DEBUG(this, "extPtr = " << (void*) extensionPtr 
+     }
+     DEBUG(this, "extPtr = " << (void*) extensionPtr
 		   << " extSize = " << extensionSize )
  }
  */
 
-  // Write the data 
+  // Write the data
   DEBUG(this, "Writing tuple to disk!")
   tupleFile = tuplefile;
   SmiRecord *tupleRecord = new SmiRecord();
@@ -370,13 +417,13 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
 //-- stable code --//
 
-void Tuple::Save( SmiRecordFile *tuplefile, 
+void Tuple::Save( SmiRecordFile *tuplefile,
                          SmiFileId& lobFileId,
                          double& extSize, double& size,
                          vector<double>& attrExtSize, vector<double>& attrSize,
                          bool ignorePersistentLOBs /*=false*/)
 {
-  TRACE_ENTER	
+  TRACE_ENTER
 
 // static   long& saveCtr = Counter::getRef("RA:Tuple::Save");
 // static  long& flobCtr = Counter::getRef("RA:Tuple::Save.FLOBs");
@@ -384,10 +431,10 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
 //  saveCtr++;
 
-  // Calculate the size of the small FLOB data which will be 
-  // saved together with the tuple attributes and save the LOBs 
+  // Calculate the size of the small FLOB data which will be
+  // saved together with the tuple attributes and save the LOBs
   // in the lobFile.
- 
+
 
   //cerr << "lobFileId = " << lobFileId << endl;
 
@@ -398,9 +445,9 @@ void Tuple::Save( SmiRecordFile *tuplefile,
   size += tupleType->GetTotalSize();
 
   size_t attrSizes = tupleType->GetTotalSize();
-  size_t extensionSize 
-	     = CalculateBlockSize( attrSizes, extSize, size, 
-		                   attrExtSize, attrSize, 
+  size_t extensionSize
+	     = CalculateBlockSize( attrSizes, extSize, size,
+		                   attrExtSize, attrSize,
 			           ignorePersistentLOBs );
 
   lobFileId = this->lobFileId;
@@ -409,7 +456,7 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
   char* data = WriteToBlock(attrSizes, extensionSize);
 
-  // Write the data 
+  // Write the data
   tupleFile = tuplefile;
   SmiRecord *tupleRecord = new SmiRecord();
   tupleId = 0;
@@ -432,7 +479,7 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
 /*
 
-Saves the updated tuple to disk. Only for the new attributes the real 
+Saves the updated tuple to disk. Only for the new attributes the real
 LOBs are saved to the lobfile.
 
 */
@@ -441,9 +488,9 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
                                vector<double>& attrExtSize,
                                vector<double>& attrSize )
 {
-    size_t attrSizes = 0;	
-    size_t extensionSize 
-	        = CalculateBlockSize( attrSizes, extSize, size, 
+    size_t attrSizes = 0;
+    size_t extensionSize
+	        = CalculateBlockSize( attrSizes, extSize, size,
 		                      attrExtSize, attrSize);
     char* data = WriteToBlock(attrSizes, extensionSize);
 
@@ -463,11 +510,11 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
 
   uint16_t rootSize = attrSizes + extensionSize;
   const size_t rootSizeLen = sizeof(rootSize);
-  
+
   int newRecordSize = sizeof(int) + rootSizeLen + rootSize;
 
   SHOW(rootSize)
-  size_t bufSize = rootSizeLen + rootSize; 
+  size_t bufSize = rootSizeLen + rootSize;
   //char* newBuf = (char*) malloc( bufSize );
   //memcpy(newBuf, &rootSize, rootSizeLen );
   //memcpy(newBuf + rootSizeLen, data, rootSize);
@@ -478,21 +525,21 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
 
   //free( newBuf );
 
-#else    
-    int newRecordSize = sizeof(int) + 
-                      tupleType->GetTotalSize() + 
+#else
+    int newRecordSize = sizeof(int) +
+                      tupleType->GetTotalSize() +
                       extensionSize;
 
     // Now write the attributes
-    bool rc = tupleRecord->Write( data, 
-                                  tupleType->GetTotalSize() + extensionSize, 
+    bool rc = tupleRecord->Write( data,
+                                  tupleType->GetTotalSize() + extensionSize,
                                   0 );
 
     assert(rc == true);
 
 #endif
 
-    // The record must be truncated in case the size of a small 
+    // The record must be truncated in case the size of a small
     // FLOB was decreased.
     SHOW(newRecordSize)
     SHOW(oldRecordSize)
@@ -503,18 +550,18 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
     delete tupleRecord;
 
     free( data );
-    
+
 }
 
 
 char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
 
   // create a single block able to pick up the roots of the
-  // attributes and all small FLOBs 
+  // attributes and all small FLOBs
   //
   // char* tupleData = (char*) malloc( tupleType->GetTotalSize() +
   //		                       extensionSize );
- 
+
   // From now on we limit the block size of a tuple
   // to the size of a 4k memory block.
 
@@ -523,7 +570,7 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
   uint16_t blockSize = attrSizes + extensionSize;
 
   assert( blockSize < MAX_TUPLESIZE );
-  
+
   const size_t blockSizeLen = sizeof(blockSize);
 
   char* data = (char*) malloc( blockSize + blockSizeLen );
@@ -532,7 +579,7 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
           DEBUG(this, "blockSizeLen = " << blockSizeLen)
           DEBUG(this, "attrSizes = " << attrSizes)
           DEBUG(this, "extensionSize = " << extensionSize)
-          DEBUG(this, "blockSize = " << blockSize) 
+          DEBUG(this, "blockSize = " << blockSize)
 
   //char* tupleData = (char*) malloc( rootSizeLen + rootSize );
   //memset(tupleData, 0, rootSizeLen + rootSize);
@@ -548,26 +595,26 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
      DEBUG(this, "defined = " << attributes[i]->IsDefined())
 
      size_t serialSize = attributes[i]->SerializedSize();
-     size_t sz = (serialSize > 0) ? serialSize : 
+     size_t sz = (serialSize > 0) ? serialSize :
 	            tupleType->GetAttributeType(i).size;
-     attributes[i]->Serialize(data, sz, offset); 
+     attributes[i]->Serialize(data, sz, offset);
 
 
      DEBUG(this, "offset = " << offset)
      DEBUG(this, "sz = " << sz)
-#ifdef TRACE_ON     
+#ifdef TRACE_ON
      serialSizes += sz;
      cerr << "Attr(" << i << ")" << *attributes[i] << endl;
      cerr << Array2HexStr((char*)attributes[i], sz, 0) << endl;
      cerr << Array2HexStr(data, sz, offset) << endl;
 #endif
 
-     offset += sz; 
+     offset += sz;
   }
-  
-  DEBUG(this, "serialSizes = " << serialSizes) 
+
+  DEBUG(this, "serialSizes = " << serialSizes)
   DEBUG(this, "offset = " << offset)
-  
+
   // Copy FLOB data to behind the attributes
   if( extensionSize>0) // there are small FLOBs
   {
@@ -582,18 +629,18 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
            extensionPtr += tmpFLOB->WriteTo(extensionPtr);
          }
        }
-     } 
-     DEBUG(this, "extPtr = " << (void*) extensionPtr 
+     }
+     DEBUG(this, "extPtr = " << (void*) extensionPtr
 		   << " extSize = " << extensionSize )
  }
 
 
-#else	
+#else
 
   size_t blockSize = tupleType->GetTotalSize() + extensionSize;
 
   assert( blockSize < MAX_TUPLESIZE );
-  
+
   char* data = (char*) malloc( blockSize );
 
   int offset = 0;
@@ -601,15 +648,15 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
   // collect all attributes into the memory block
   for( int i = 0; i < noAttributes; i++)
   {
-     memcpy( &data[offset], attributes[i], 
+     memcpy( &data[offset], attributes[i],
               tupleType->GetAttributeType(i).size );
       offset += tupleType->GetAttributeType(i).size;
   }
-  
-  DEBUG(this, "offset = " << offset 
-	      << "totalsize = " << tupleType->GetTotalSize()) 
+
+  DEBUG(this, "offset = " << offset
+	      << "totalsize = " << tupleType->GetTotalSize())
   DEBUG(this, "Writing tuple to disk!")
-  
+
 
   // Copy FLOB data to behind the attributes
   if( extensionSize>0) // there are small FLOBs
@@ -625,8 +672,8 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
            extensionPtr += tmpFLOB->WriteTo(extensionPtr);
          }
        }
-     } 
-     DEBUG(this, "extPtr = " << (void*) extensionPtr 
+     }
+     DEBUG(this, "extPtr = " << (void*) extensionPtr
 		   << " extSize = " << extensionSize )
  }
 
@@ -634,14 +681,14 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
 
   return data;
 
-}	
+}
 
-size_t Tuple::CalculateBlockSize( size_t& attrSizes, 
-		                  double& extSize, 
+size_t Tuple::CalculateBlockSize( size_t& attrSizes,
+		                  double& extSize,
 				  double& size,
                                   vector<double>& attrExtSize,
-                                  vector<double>& attrSize, 
-				  bool ignorePersistentLOBs /*= false*/ ) 
+                                  vector<double>& attrSize,
+				  bool ignorePersistentLOBs /*= false*/ )
 {
   assert( attrExtSize.size() == attrSize.size() );
   assert( (size_t)tupleType->GetNoAttributes() >= attrSize.size() );
@@ -656,9 +703,9 @@ size_t Tuple::CalculateBlockSize( size_t& attrSizes,
   for( int i = 0; i < tupleType->GetNoAttributes(); i++)
   {
 
-#ifdef USE_SERIALIZATION	  
+#ifdef USE_SERIALIZATION
     size_t serialSize = attributes[i]->SerializedSize();
-    uint16_t currentSize = (serialSize > 0) ? serialSize 
+    uint16_t currentSize = (serialSize > 0) ? serialSize
 	                     : tupleType->GetAttributeType(i).size;
 
     attrSizes += currentSize;
@@ -688,14 +735,14 @@ size_t Tuple::CalculateBlockSize( size_t& attrSizes,
       }
       else
       {
-        //lobCtr++;  
+        //lobCtr++;
         if(ignorePersistentLOBs) {
           if (!tmpFLOB->IsPersistentLob()){
             tmpFLOB->SaveToLob( lobFileId );
           }
         } else {
            tmpFLOB->SaveToLob( lobFileId );
-	}   
+	}
       }
     }
   }
@@ -708,7 +755,7 @@ bool Tuple::ReadFrom(SmiRecord& record) {
 
 #ifdef USE_SERIALIZATION
 
-  TRACE_ENTER	
+  TRACE_ENTER
   DEBUG(this, "ReadFrom")
 
   // read size
@@ -717,21 +764,21 @@ bool Tuple::ReadFrom(SmiRecord& record) {
 
   if( record.Read(&rootSize, rootSizeLen, 0) != rootSizeLen )
   {
-    record.Finish();	  
-    return false;	    
-  }	    
+    record.Finish();
+    return false;
+  }
 
-  DEBUG(this, "rootSizeLen = " << rootSizeLen) 
-  DEBUG(this, "rootSize = " << rootSize) 
+  DEBUG(this, "rootSizeLen = " << rootSizeLen)
+  DEBUG(this, "rootSize = " << rootSize)
 
   // read all attributes
   assert(rootSize < MAX_TUPLESIZE);
 
   if( record.Read( tupleData, rootSize, rootSizeLen) != rootSize )
   {
-    record.Finish();	  
-    return false;    
-  }	  
+    record.Finish();
+    return false;
+  }
 
   size_t offset = 0;
   int i = 0;
@@ -740,7 +787,7 @@ bool Tuple::ReadFrom(SmiRecord& record) {
     int algId = tupleType->GetAttributeType(i).algId;
     int typeId = tupleType->GetAttributeType(i).typeId;
     int sz = tupleType->GetAttributeType(i).size;
-     
+
     attributes[i] = Attribute::Create( &tupleData[offset], sz, algId, typeId);
 
     int serialSize = attributes[i]->SerializedSize();
@@ -748,23 +795,23 @@ bool Tuple::ReadFrom(SmiRecord& record) {
 
     DEBUG( this, "Defined = " << attributes[i]->IsDefined() )
     DEBUG( this, "numOfFLOBS = " << attributes[i]->NumOfFLOBs() )
-    
-    DEBUG( this, Array2HexStr(tupleData, readData, offset) )
-    
-    offset += readData;
-    rootSize -= readData; 
 
-    DEBUG(this, "readData = " << readData) 
-    DEBUG(this, "offset = " << offset) 
-    DEBUG(this, "rootSize = " << rootSize) 
+    DEBUG( this, Array2HexStr(tupleData, readData, offset) )
+
+    offset += readData;
+    rootSize -= readData;
+
+    DEBUG(this, "readData = " << readData)
+    DEBUG(this, "offset = " << offset)
+    DEBUG(this, "rootSize = " << rootSize)
     DEBUG(this, "Attr(" << i << ")" << *attributes[i])
-    
+
     i++;
   }
 
   // Read the small FLOBs. The read of LOBs is postponed to its
   // usage.
-  
+
   for(int i=0; i< noAttributes; i++)
   {
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
@@ -773,12 +820,12 @@ bool Tuple::ReadFrom(SmiRecord& record) {
       if( !tmpFLOB->IsLob()){
         DEBUG( this, "not tmpFlob[" << i << ","  << j << "].IsLob()" )
         DEBUG( this, "tmpFlob.size = " << tmpFLOB->Size() )
-        void* ptr = tmpFLOB->Malloc(); 
+        void* ptr = tmpFLOB->Malloc();
         if(ptr){
            int size = tmpFLOB->Size();
-           DEBUG(this, "tmpFLOB.size = " << size) 
+           DEBUG(this, "tmpFLOB.size = " << size)
            memcpy( ptr, &tupleData[offset], size );
-           offset += size; 
+           offset += size;
         }
       } else{
         DEBUG( this, "tmpFlob[" << i << ","  << j << "].IsLob()" )
@@ -790,7 +837,7 @@ bool Tuple::ReadFrom(SmiRecord& record) {
     // and initialize the reference counter
     attributes[i]->Initialize();
     attributes[i]->InitRefs();
-  }  
+  }
 
   TRACE_LEAVE
   return true;
@@ -805,7 +852,7 @@ bool Tuple::ReadFrom(SmiRecord& record) {
   // we read all attributes within a single block to
   // avoid frequently fetching small data sizes
   if( (int)
-      record.Read( tupleData, 
+      record.Read( tupleData,
 	           tupleType->GetTotalSize(),
                    offset )                    !=  tupleType->GetTotalSize() )
   {
@@ -847,7 +894,7 @@ bool Tuple::ReadFrom(SmiRecord& record) {
   // Read the small FLOBs. The read of LOBs is postponed to its usage. As for
   // the memorytuple read all small FLOBS into a single block and than
   // distribute them free in memory
- 
+
   if( extensionSize > 0 )
   {
    char* extensionTuple = &tupleData[offset];
@@ -871,7 +918,7 @@ bool Tuple::ReadFrom(SmiRecord& record) {
         /*} else {
           tmpFLOB->SetLobFileId( lobFileId );
         }*/
-      }	
+      }
     }
   }
 
@@ -885,11 +932,11 @@ bool Tuple::ReadFrom(SmiRecord& record) {
 
 #endif
 
-}	
+}
 
 
-bool Tuple::Open( SmiRecordFile* tuplefile, 
-                  SmiFileId lobfileId, 
+bool Tuple::Open( SmiRecordFile* tuplefile,
+                  SmiFileId lobfileId,
 		  SmiRecordId rid )
 {
   tupleId = rid;
@@ -909,8 +956,8 @@ bool Tuple::Open( SmiRecordFile* tuplefile,
 
 
 
-bool Tuple::Open( SmiRecordFile* tuplefile, 
-                  SmiFileId lobfileId, 
+bool Tuple::Open( SmiRecordFile* tuplefile,
+                  SmiFileId lobfileId,
                   SmiRecord* record )
 {
   SmiKey key;
@@ -924,18 +971,18 @@ bool Tuple::Open( SmiRecordFile* tuplefile,
     return false;
   }
 
-  return ReadFrom( *record );	  
+  return ReadFrom( *record );
 }
 
 
 
 #ifdef USE_SERIALIZATION
 
-bool Tuple::Open( SmiRecordFile *tuplefile, 
-                  SmiFileId lobfileId, 
+bool Tuple::Open( SmiRecordFile *tuplefile,
+                  SmiFileId lobfileId,
                   PrefetchingIterator *iter )
 {
-  TRACE_ENTER	
+  TRACE_ENTER
   DEBUG(this, "Open::Prefetch")
 
   iter->ReadCurrentRecordNumber( tupleId );
@@ -946,7 +993,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
   /* In case of the prefetching iterator, we don't need
    *  to read the data first into a single block.
    *  Indeed, we can read each attribute by a single call.
-   **/ 
+   **/
 
   // read size
   uint16_t rootSize = 0;
@@ -954,24 +1001,24 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
 
   if( (size_t)iter->ReadCurrentData(&rootSize, rootSizeLen, 0) != rootSizeLen )
   {
-    return false;	    
-  }	    
+    return false;
+  }
 
-  DEBUG(this, "rootSizeLen = " << rootSizeLen) 
-  DEBUG(this, "rootSize = " << rootSize) 
+  DEBUG(this, "rootSizeLen = " << rootSizeLen)
+  DEBUG(this, "rootSize = " << rootSize)
 
   // read all attributes
   assert(rootSize < MAX_TUPLESIZE);
   char* data = (char*) malloc ( rootSize );
 
 
-  if( (uint16_t)iter->ReadCurrentData( data, 
-			               rootSize, 
+  if( (uint16_t)iter->ReadCurrentData( data,
+			               rootSize,
 				       rootSizeLen) != rootSize )
   {
-    DEBUG(this, "ReadCurrentData failed!") 
-    return false;    
-  }	  
+    DEBUG(this, "ReadCurrentData failed!")
+    return false;
+  }
 
   size_t offset = 0;
   int i = 0;
@@ -980,7 +1027,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
     int algId = tupleType->GetAttributeType(i).algId;
     int typeId = tupleType->GetAttributeType(i).typeId;
     int sz = tupleType->GetAttributeType(i).size;
-     
+
     attributes[i] = Attribute::Create( &data[offset], sz, algId, typeId);
 
     int serialSize = attributes[i]->SerializedSize();
@@ -988,23 +1035,23 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
 
     DEBUG( this, "Defined = " << attributes[i]->IsDefined() )
     DEBUG( this, "numOfFLOBS = " << attributes[i]->NumOfFLOBs() )
-    
-    DEBUG( this, Array2HexStr(data, readData, offset) )
-    
-    offset += readData;
-    rootSize -= readData; 
 
-    DEBUG(this, "readData = " << readData) 
-    DEBUG(this, "offset = " << offset) 
-    DEBUG(this, "rootSize = " << rootSize) 
+    DEBUG( this, Array2HexStr(data, readData, offset) )
+
+    offset += readData;
+    rootSize -= readData;
+
+    DEBUG(this, "readData = " << readData)
+    DEBUG(this, "offset = " << offset)
+    DEBUG(this, "rootSize = " << rootSize)
     DEBUG(this, "Attr(" << i << ")" << *attributes[i])
-    
+
     i++;
   }
 
   // Read the small FLOBs. The read of LOBs is postponed to its
   // usage.
-  
+
   for(int i=0; i< noAttributes; i++)
   {
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
@@ -1013,12 +1060,12 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
       if( !tmpFLOB->IsLob()){
         DEBUG( this, "not tmpFlob[" << i << ","  << j << "].IsLob()" )
         DEBUG( this, "tmpFlob.size = " << tmpFLOB->Size() )
-        void* ptr = tmpFLOB->Malloc(); 
+        void* ptr = tmpFLOB->Malloc();
         if(ptr){
            int size = tmpFLOB->Size();
-           DEBUG(this, "tmpFLOB.size = " << size) 
+           DEBUG(this, "tmpFLOB.size = " << size)
            memcpy( ptr, &data[offset], size );
-           offset += size; 
+           offset += size;
         }
       } else{
         DEBUG( this, "tmpFlob[" << i << ","  << j << "].IsLob()" )
@@ -1030,7 +1077,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
     // and initialize the reference counter
     attributes[i]->Initialize();
     attributes[i]->InitRefs();
-  }  
+  }
 
   free ( data );
 
@@ -1042,8 +1089,8 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
 
 //-- old stable code --/
 
-bool Tuple::Open( SmiRecordFile *tuplefile, 
-                         SmiFileId lobfileId, 
+bool Tuple::Open( SmiRecordFile *tuplefile,
+                         SmiFileId lobfileId,
                          PrefetchingIterator *iter )
 {
   iter->ReadCurrentRecordNumber( tupleId );
@@ -1054,7 +1101,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
   /* In case of the prefetching iterator, we don't need
    *  to read the data first into a single block.
    *  Indeed, we can read each attribute by a single call.
-   **/ 
+   **/
 
   size_t offset = 0;
 
@@ -1083,16 +1130,16 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
 
   // Read the small FLOBs. The read of LOBs is postponed to its
   // usage.
-  
+
   for(int i=0; i< noAttributes; i++){
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
     {
       FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
       if( !tmpFLOB->IsLob()){
-        void* ptr = tmpFLOB->Malloc(); 
+        void* ptr = tmpFLOB->Malloc();
         if(ptr){
            int size = tmpFLOB->Size();
-           if((int)iter->ReadCurrentData( ptr, 
+           if((int)iter->ReadCurrentData( ptr,
                                           size,
                                           offset)!=size){
              // error in getting the data
@@ -1108,13 +1155,13 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
              }
              return false;
            }
-           offset += size; 
+           offset += size;
         }
      } else{
         //tmpFLOB->SetLobFileId( lobFileId );
      }
     }
-  }  
+  }
   // Call the Initialize function for every attribute
   // and initialize the reference counter
   for( int i = 0; i < noAttributes; i++ ){
@@ -1132,12 +1179,12 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
 /*
 3.3 Implementation of the class ~Tuple~
 
-This class implements the persistent representation of the type 
+This class implements the persistent representation of the type
 constructor ~tuple~.
 
 */
-Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value, 
-                               int errorPos, ListExpr& errorInfo, 
+Tuple *Tuple::RestoreFromList( ListExpr typeInfo, ListExpr value,
+                               int errorPos, ListExpr& errorInfo,
                                bool& correct )
 {
   return 0;
@@ -1169,12 +1216,12 @@ void Tuple::PutAttribute( const int index, Attribute* attr )
 }
 
 /*
-The next function updates the tuple by replacing the old attributes at the positions given 
-by 'changedIndices' with the new ones from 'newAttrs'. If the old attribute 
+The next function updates the tuple by replacing the old attributes at the positions given
+by 'changedIndices' with the new ones from 'newAttrs'. If the old attribute
 had FLOBs they are destroyed so that there is no garbage left on the disk.
 
 */
-void Tuple::UpdateAttributes( const vector<int>& changedIndices, 
+void Tuple::UpdateAttributes( const vector<int>& changedIndices,
                               const vector<Attribute*>& newAttrs,
                               double& extSize, double& size,
                               vector<double>& attrExtSize,
@@ -1186,8 +1233,8 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
     index = changedIndices[i];
     assert( index >= 0 && index < GetNoAttributes() );
     assert( attributes[index] != 0 );
-    for (int j = 0; 
-         j < attributes[index]->NumOfFLOBs(); 
+    for (int j = 0;
+         j < attributes[index]->NumOfFLOBs();
          j++)
     {
       FLOB *tmpFLOB = attributes[index]->GetFLOB(j);
@@ -1201,7 +1248,7 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
         assert( index >= 0 && (size_t)index < attrExtSize.size() );
         attrExtSize[index] -= tmpFLOB->Size();
         extSize -= tmpFLOB->Size();
-      }        
+      }
       tmpFLOB->Destroy();
     }
 
@@ -1209,7 +1256,7 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
     attributes[index] = newAttrs[i];
   }
   UpdateSave( changedIndices,
-                            extSize, size, 
+                            extSize, size,
                             attrExtSize, attrSize );
 
   recomputeExtSize = true;
@@ -1223,14 +1270,14 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
 
 This class is used to collect tuples for sorting, for example, or
 to do a cartesian product. In this persistent version, if the buffer
-is small it will be stored in memory and if it exceeds the allowed size, 
+is small it will be stored in memory and if it exceeds the allowed size,
 the current buffer contents will be flushed to disk.
 
 The Iterator will first retrieve the tuples on disk and afterwards the remaining
 tuples which reside in memory.
 
 */
- 
+
 TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
   MAX_MEMORY_SIZE( maxMemorySize ),
   diskBuffer( 0 ),
@@ -1240,10 +1287,10 @@ TupleBuffer::TupleBuffer( const size_t maxMemorySize ):
   totalExtSize( 0),
   totalSize( 0 )
   {
-    if (traceFlag) 
+    if (traceFlag)
     {
-      cmsg.info() << "New Instance of TupleBuffer with size " 
-		  << maxMemorySize / 1024 << "kb " 
+      cmsg.info() << "New Instance of TupleBuffer with size "
+		  << maxMemorySize / 1024 << "kb "
 		  << " address = " << (void*)this << endl;
       cmsg.send();
     }
@@ -1256,28 +1303,28 @@ The constructor.
 
 TupleBuffer::~TupleBuffer()
 {
-  updateDataStatistics();	
+  updateDataStatistics();
   clearAll();
   if( !inMemory ) {
     diskBuffer->DeleteAndTruncate();
     diskBuffer = 0;
-  }  
+  }
 }
 
 void TupleBuffer::clearAll()
 {
-   for( TupleVec::iterator it = memoryBuffer.begin(); 
+   for( TupleVec::iterator it = memoryBuffer.begin();
 	it != memoryBuffer.end(); it++ )
    {
-     //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl; 
+     //cout << (void*) *it << " - " << (*it)->GetNumOfRefs() << endl;
      //if (*it != 0) {
        (*it)->DeleteIfAllowed();
-     //}  
-   }  
+     //}
+   }
    memoryBuffer.clear();
    totalSize=0;
 }
-  
+
 /*
 The destructor.
 
@@ -1297,18 +1344,18 @@ size_t TupleBuffer::FreeBytes() const
     return MAX_MEMORY_SIZE - static_cast<size_t>( ceil(totalMemSize) );
   } else {
     return 0;
-  }    
-}	
+  }
+}
 
 double TupleBuffer::GetTotalRootSize() const
 {
   if( IsEmpty() )
     return 0;
 
-  if (inMemory) 
+  if (inMemory)
     return GetNoTuples() * memoryBuffer[0]->GetRootSize();
-  else	
-    return diskBuffer->GetTupleType()->GetTotalSize(); 
+  else
+    return diskBuffer->GetTupleType()->GetTotalSize();
 }
 
 
@@ -1317,10 +1364,10 @@ double TupleBuffer::GetTotalRootSize(int i) const
   if( IsEmpty() )
     return 0;
 
-  if (inMemory) 
+  if (inMemory)
     return memoryBuffer[0]->GetRootSize(i);
-  else	
-    return diskBuffer->GetTupleType()->GetTotalSize(); 
+  else
+    return diskBuffer->GetTupleType()->GetTotalSize();
 }
 
 double TupleBuffer::GetTotalExtSize() const
@@ -1367,9 +1414,9 @@ TupleBuffer::updateDataStatistics() {
 
   static long& writtenData_Bytes = Counter::getRef(CTR_TBUF_BYTES_W);
   static long& writtenData_Pages = Counter::getRef(CTR_TBUF_PAGES_W);
-  
+
   if (diskBuffer)
-    writtenData_Bytes += (long)ceil( diskBuffer->GetTotalExtSize() );  
+    writtenData_Bytes += (long)ceil( diskBuffer->GetTotalExtSize() );
 
   writtenData_Pages = writtenData_Bytes / WinUnix::getPageSize();
 }
@@ -1384,7 +1431,7 @@ bool TupleBuffer::IsEmpty() const
 
 void TupleBuffer::Clear()
 {
-  updateDataStatistics();	
+  updateDataStatistics();
   if( inMemory )
   {
     clearAll();
@@ -1399,10 +1446,10 @@ void TupleBuffer::Clear()
 
 void TupleBuffer::AppendTuple( Tuple *t )
 {
-  
+
   if( inMemory )
   {
-    if( totalMemSize + t->GetMemSize() <= 
+    if( totalMemSize + t->GetMemSize() <=
         MAX_MEMORY_SIZE )
     {
       t->IncReference();
@@ -1419,10 +1466,10 @@ void TupleBuffer::AppendTuple( Tuple *t )
                     << "-> !inMemory" << endl;
         cmsg.send();
       }
-      diskBuffer = 
+      diskBuffer =
         new Relation( t->GetTupleType(), true );
 
-      vector<Tuple*>::iterator iter = 
+      vector<Tuple*>::iterator iter =
         memoryBuffer.begin();
       while( iter != memoryBuffer.end() )
       {
@@ -1449,24 +1496,24 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
 {
   if( inMemory )
   {
-    return GetTupleAtPos( id );	  
+    return GetTupleAtPos( id );
   }
-  else 
+  else
   {
     return diskBuffer->GetTuple( id+1 );
-  }  
+  }
 }
 
 Tuple* TupleBuffer::GetTupleAtPos( const size_t pos ) const
 {
   if( inMemory )
   {
-    if( pos >= 0 
+    if( pos >= 0
 	&& pos < memoryBuffer.size()
-	&& memoryBuffer[pos] != 0 ) 
+	&& memoryBuffer[pos] != 0 )
     {
       return memoryBuffer[pos];
-    }  
+    }
     return 0;
   }
   return 0;
@@ -1477,13 +1524,13 @@ bool TupleBuffer::SetTupleAtPos( const size_t pos, Tuple* t)
   if( inMemory )
   {
     if( pos >= 0 && pos < memoryBuffer.size() )
-    {	    
-      memoryBuffer[pos] = t;	    
+    {
+      memoryBuffer[pos] = t;
     }
-    return true;	  
-  } 	  
+    return true;
+  }
   return false;
-}	
+}
 
 GenericRelationIterator *TupleBuffer::MakeScan() const
 {
@@ -1499,9 +1546,9 @@ TupleBufferIterator::TupleBufferIterator( const TupleBuffer& tupleBuffer ):
   readData_Pages( Counter::getRef(CTR_TBUF_PAGES_R) ),
   tupleBuffer( tupleBuffer ),
   currentTuple( 0 ),
-  diskIterator( 
-    tupleBuffer.inMemory ?  
-      0 : 
+  diskIterator(
+    tupleBuffer.inMemory ?
+      0 :
       tupleBuffer.diskBuffer->MakeScan() )
   {}
 /*
@@ -1524,7 +1571,7 @@ Tuple *TupleBufferIterator::GetNextTuple()
   {
     Tuple* t = diskIterator->GetNextTuple();
     if (t)
-      readData_Bytes += t->GetExtSize();  
+      readData_Bytes += t->GetExtSize();
     return t;
   }
   else
@@ -1532,7 +1579,7 @@ Tuple *TupleBufferIterator::GetNextTuple()
     if( currentTuple == tupleBuffer.memoryBuffer.size() )
       return 0;
 
-    Tuple *result = 
+    Tuple *result =
       tupleBuffer.memoryBuffer[currentTuple];
     result->IncReference();
     currentTuple++;
@@ -1560,7 +1607,7 @@ RandomTBuf::RandomTBuf(size_t setSize /*= default*/)
     run(0),
     trace(false),
     memBuf(subsetSize,0)
-{} 
+{}
 
 
 Tuple* RandomTBuf::ReplacedByRandom(Tuple* s, size_t& i, bool& replaced)
@@ -1568,38 +1615,38 @@ Tuple* RandomTBuf::ReplacedByRandom(Tuple* s, size_t& i, bool& replaced)
     Tuple* t = 0;
     replaced = false;
 
-    i = streamPos % subsetSize;  	  
-    if ( i == 0 ) 
+    i = streamPos % subsetSize;
+    if ( i == 0 )
     {
      run++;
 
      if (trace) {
 
        cerr << endl
-	    << "subsetSize: " << subsetSize  
+	    << "subsetSize: " << subsetSize
 	    << ", run: " << run
-	    << ", replaced slots:" 
+	    << ", replaced slots:"
 	    << endl;
-     }  
-    }	     
+     }
+    }
 
     if (run > 0)
-    { 
-      int r = WinUnix::rand(run); 
+    {
+      int r = WinUnix::rand(run);
       if (trace) {
         cerr << ", r = " << r;
-      }  
+      }
 
       assert( (r >= 1) && (r <= run) );
 
       //cout << "s:" << *s << endl;
       if ( r == run )
-      { 
+      {
 	if (trace) {
-	  cerr << ", i = " << i;	
-	}	
+	  cerr << ", i = " << i;
+	}
 
-	// tuple s will be selected for the front part 
+	// tuple s will be selected for the front part
 	// of the output stream. The currently stored tuple
 	// t at slot i will be released.
         replaced = true;
@@ -1608,10 +1655,10 @@ Tuple* RandomTBuf::ReplacedByRandom(Tuple* s, size_t& i, bool& replaced)
 	if (t != 0) {
 	  //cout << "t:" << *t << endl;
 	  t->DeleteIfAllowed();
-	}  
+	}
 	s->IncReference();
 	memBuf[i] = s;
-      } 
+      }
     } // end of run > 0
 
     streamPos++;
@@ -1622,11 +1669,11 @@ void RandomTBuf::copy2TupleBuf(TupleBuffer& tb)
 {
     for(iterator it = begin(); it != end(); it++) {
       if (*it != 0) {
-        (*it)->DeleteIfAllowed();	    
+        (*it)->DeleteIfAllowed();
         tb.AppendTuple(*it);
-      }	
-    }	
-}	
+      }
+    }
+}
 
 
 /*
@@ -1634,32 +1681,32 @@ void RandomTBuf::copy2TupleBuf(TupleBuffer& tb)
 
 4.2 Implementation of the class ~Relation~
 
-This class implements the persistent representation of the type 
+This class implements the persistent representation of the type
 constructor ~rel~.
 
 */
-map<RelationDescriptor, Relation*, RelationDescriptorCompare> 
+map<RelationDescriptor, Relation*, RelationDescriptorCompare>
 Relation::pointerTable;
 
 Relation::Relation( const ListExpr typeInfo, bool isTemp ):
 privateRelation( new PrivateRelation( typeInfo, isTemp ) )
 {
-  if( pointerTable.find( privateRelation->relDesc ) == 
+  if( pointerTable.find( privateRelation->relDesc ) ==
                          pointerTable.end() )
-    pointerTable.insert( make_pair( privateRelation->relDesc, 
+    pointerTable.insert( make_pair( privateRelation->relDesc,
                                     this ) );
 }
 
 Relation::Relation( TupleType *tupleType, bool isTemp ):
 privateRelation( new PrivateRelation( tupleType, isTemp ) )
 {
-  if( pointerTable.find( privateRelation->relDesc ) == 
+  if( pointerTable.find( privateRelation->relDesc ) ==
                          pointerTable.end() )
-    pointerTable.insert( make_pair( privateRelation->relDesc, 
+    pointerTable.insert( make_pair( privateRelation->relDesc,
                                     this ) );
 }
 
-Relation::Relation( const RelationDescriptor& relDesc, 
+Relation::Relation( const RelationDescriptor& relDesc,
                     bool isTemp ):
 privateRelation( new PrivateRelation( relDesc, isTemp ) )
 {
@@ -1674,7 +1721,7 @@ Relation::~Relation()
 
 Relation *Relation::GetRelation( const RelationDescriptor& d )
 {
-  map<RelationDescriptor, Relation*>::iterator 
+  map<RelationDescriptor, Relation*>::iterator
     i = pointerTable.find( d );
   if( i == pointerTable.end() )
     return 0;
@@ -1683,8 +1730,8 @@ Relation *Relation::GetRelation( const RelationDescriptor& d )
 }
 
 Relation *
-Relation::RestoreFromList( ListExpr typeInfo, ListExpr value, 
-                           int errorPos, ListExpr& errorInfo, 
+Relation::RestoreFromList( ListExpr typeInfo, ListExpr value,
+                           int errorPos, ListExpr& errorInfo,
                            bool& correct )
 {
   ListExpr rest = value;
@@ -1714,7 +1761,7 @@ Relation::RestoreFromList( ListExpr typeInfo, ListExpr value,
   return new Relation( relDesc );
 }
 
-ListExpr 
+ListExpr
 Relation::SaveToList( ListExpr typeInfo )
 {
   ListExpr result =
@@ -1747,7 +1794,7 @@ Relation::SaveToList( ListExpr typeInfo )
 }
 
 Relation *
-Relation::Open( SmiRecord& valueRecord, size_t& offset, 
+Relation::Open( SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo )
 {
   RelationDescriptor relDesc( typeInfo );
@@ -1786,8 +1833,8 @@ Relation::Open( SmiRecord& valueRecord, size_t& offset,
   return new Relation( relDesc );
 }
 
-bool 
-Relation::Save( SmiRecord& valueRecord, size_t& offset, 
+bool
+Relation::Save( SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo )
 {
   const RelationDescriptor& relDesc = privateRelation->relDesc;
@@ -1825,15 +1872,15 @@ Relation::Save( SmiRecord& valueRecord, size_t& offset,
 void Relation::ErasePointer()
 {
   if( pointerTable.find( privateRelation->relDesc ) !=
-                         pointerTable.end() ) 
-  {	  
-    pointerTable.erase( privateRelation->relDesc );  
+                         pointerTable.end() )
+  {
+    pointerTable.erase( privateRelation->relDesc );
   }
-}	
+}
 
 void Relation::Close()
 {
-  ErasePointer();	
+  ErasePointer();
   delete this;
 }
 
@@ -1842,11 +1889,11 @@ void Relation::Delete()
   privateRelation->tupleFile.Close();
   privateRelation->tupleFile.Drop();
 
-  SecondoSystem::GetFLOBCache()->Drop( 
-    privateRelation->relDesc.lobFileId, 
+  SecondoSystem::GetFLOBCache()->Drop(
+    privateRelation->relDesc.lobFileId,
     privateRelation->isTemp );
 
-  ErasePointer(); 
+  ErasePointer();
 
   delete this;
 }
@@ -1856,8 +1903,8 @@ void Relation::DeleteAndTruncate()
   privateRelation->tupleFile.Remove();
   privateRelation->tupleFile.Drop();
 
-  SecondoSystem::GetFLOBCache()->Drop( 
-    privateRelation->relDesc.lobFileId, 
+  SecondoSystem::GetFLOBCache()->Drop(
+    privateRelation->relDesc.lobFileId,
     privateRelation->isTemp );
 
   ErasePointer();
@@ -1885,8 +1932,8 @@ Relation *Relation::Clone()
 
 void Relation::AppendTuple( Tuple *tuple )
 {
-  tuple->Save( 
-    &privateRelation->tupleFile, 
+  tuple->Save(
+    &privateRelation->tupleFile,
     privateRelation->relDesc.lobFileId,
     privateRelation->relDesc.totalExtSize,
     privateRelation->relDesc.totalSize,
@@ -1899,8 +1946,8 @@ void Relation::AppendTuple( Tuple *tuple )
 
 void Relation::AppendTupleNoLOBs( Tuple *tuple )
 {
-  tuple->Save( 
-    &privateRelation->tupleFile, 
+  tuple->Save(
+    &privateRelation->tupleFile,
     privateRelation->relDesc.lobFileId,
     privateRelation->relDesc.totalExtSize,
     privateRelation->relDesc.totalSize,
@@ -1916,15 +1963,15 @@ void Relation::Clear()
   privateRelation->relDesc.totalExtSize = 0;
   privateRelation->relDesc.totalSize = 0;
   privateRelation->tupleFile.Truncate();
-  SecondoSystem::GetFLOBCache()->Truncate( 
-    privateRelation->relDesc.lobFileId, 
+  SecondoSystem::GetFLOBCache()->Truncate(
+    privateRelation->relDesc.lobFileId,
     privateRelation->isTemp );
 }
 
 Tuple *Relation::GetTuple( const TupleId& id ) const
 {
   Tuple *result = new Tuple( privateRelation->relDesc.tupleType );
-  if( result->Open( 
+  if( result->Open(
         &privateRelation->tupleFile,
         privateRelation->relDesc.lobFileId,
         id ) )
@@ -1935,20 +1982,20 @@ Tuple *Relation::GetTuple( const TupleId& id ) const
 }
 
 /*
-The next fcuntion updates the tuple by deleting the old attributes at the 
-positions given by 'changedIndices' and puts the new attributres 
+The next fcuntion updates the tuple by deleting the old attributes at the
+positions given by 'changedIndices' and puts the new attributres
 from 'newAttrs' into their places. These changes are made persistent.
 
 */
-void Relation::UpdateTuple( Tuple *tuple, 
+void Relation::UpdateTuple( Tuple *tuple,
                             const vector<int>& changedIndices,
                             const vector<Attribute *>& newAttrs )
 {
   tuple->UpdateAttributes(
     changedIndices, newAttrs,
-    privateRelation->relDesc.totalExtSize, 
+    privateRelation->relDesc.totalExtSize,
     privateRelation->relDesc.totalSize,
-    privateRelation->relDesc.attrExtSize, 
+    privateRelation->relDesc.attrExtSize,
     privateRelation->relDesc.attrSize );
 }
 
@@ -1967,23 +2014,23 @@ bool Relation::DeleteTuple( Tuple *tuple )
     privateRelation->relDesc.noTuples -= 1;
     privateRelation->relDesc.totalExtSize -= tuple->GetRootSize();
     privateRelation->relDesc.totalSize -= tuple->GetRootSize();
- 
+
     for (int i = 0; i < tuple->GetNoAttributes(); i++)
-    { 
+    {
       nextAttr = tuple->GetAttribute(i);
       nextAttr->Finalize();
       for (int j = 0; j < nextAttr->NumOfFLOBs(); j++)
       {
         nextFLOB = nextAttr->GetFLOB(j);
 
-        assert( i >= 0 && 
+        assert( i >= 0 &&
                 (size_t)i < privateRelation->relDesc.attrSize.size() );
         privateRelation->relDesc.attrSize[i] -= nextFLOB->Size();
         privateRelation->relDesc.totalSize -= nextFLOB->Size();
 
         if( !nextFLOB->IsLob() )
         {
-          assert( i >= 0 && 
+          assert( i >= 0 &&
                   (size_t)i < privateRelation->relDesc.attrExtSize.size() );
           privateRelation->relDesc.attrExtSize[i] -= nextFLOB->Size();
           privateRelation->relDesc.totalExtSize -= nextFLOB->Size();
@@ -2027,7 +2074,7 @@ double Relation::GetTotalExtSize() const
 
 double Relation::GetTotalExtSize( int i ) const
 {
-  assert( i >= 0 && 
+  assert( i >= 0 &&
           (size_t)i < privateRelation->relDesc.attrExtSize.size() );
   return privateRelation->relDesc.attrExtSize[i];
 }
@@ -2039,7 +2086,7 @@ double Relation::GetTotalSize() const
 
 double Relation::GetTotalSize( int i ) const
 {
-  assert( i >= 0 && 
+  assert( i >= 0 &&
           (size_t)i < privateRelation->relDesc.attrSize.size() );
   return privateRelation->relDesc.attrSize[i];
 }
@@ -2055,7 +2102,7 @@ RandomRelationIterator *Relation::MakeRandomScan() const
 }
 
 /*
-4.4 Implementation of the class ~RelationIterator~ 
+4.4 Implementation of the class ~RelationIterator~
 (using ~PrefetchingIterator~)
 
 This class is used for scanning (iterating through) relations.
@@ -2085,7 +2132,7 @@ Tuple* RelationIterator::GetNextTuple()
 {
 //#define TRACE_ON
 //  NTRACE(10000, "GetNextTuple()")
-//#undef TRACE_ON 
+//#undef TRACE_ON
   if( !iterator->Next() )
   {
     endOfScan = true;
@@ -2093,9 +2140,9 @@ Tuple* RelationIterator::GetNextTuple()
     return 0;
   }
 
-  Tuple *result = new Tuple( 
+  Tuple *result = new Tuple(
     relation.privateRelation->relDesc.tupleType );
-  result->Open( 
+  result->Open(
     &relation.privateRelation->tupleFile,
     relation.
       privateRelation->relDesc.lobFileId,
@@ -2115,7 +2162,7 @@ bool RelationIterator::EndOfScan()
 }
 
 /*
-4.5 Implementation of the class ~RandomRelationIterator~ 
+4.5 Implementation of the class ~RandomRelationIterator~
 (using ~PrefetchingIterator~)
 
 This class is used for scanning (iterating through) relations. Currently, the
@@ -2136,7 +2183,7 @@ Tuple* RandomRelationIterator::GetNextTuple(int step/*=1*/)
 {
 //#define TRACE_ON
 //  NTRACE(10000, "GetNextTuple()")
-//#undef TRACE_ON 
+//#undef TRACE_ON
   for (; step > 0; step--) {
   if( !iterator->Next() )
   {
@@ -2146,9 +2193,9 @@ Tuple* RandomRelationIterator::GetNextTuple(int step/*=1*/)
   }
   }
 
-  Tuple *result = new Tuple( 
+  Tuple *result = new Tuple(
     relation.privateRelation->relDesc.tupleType );
-  result->Open( 
+  result->Open(
     &relation.privateRelation->tupleFile,
     relation.
       privateRelation->relDesc.lobFileId,
