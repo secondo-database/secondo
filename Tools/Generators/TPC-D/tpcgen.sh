@@ -63,12 +63,29 @@ if [ -z $buildDir ]; then
 fi 
 
 
+#check algebra modules
+./listAlgebras.sh >& list.out 
+
+
+function checkAlg {
+  cat list.out | grep -e "$1"
+  if [ $? -ne 0 ]; then
+    echo -e "\n Error: $1 needs to be present! \n"
+    exit 1  
+  fi
+}
+
+checkAlg "ImExAlgebra"
+checkAlg "TopOpsAlgebra"
+checkAlg "TopRelAlgebra"
+
 
 printf "\n%s\n" "Creating database ${dbName} with a scale factor ${scaleFactor}!"
 
 tpcDir=${buildDir}/Tools/Generators/TPC-D
 
 PATH="$PATH:."
+
 
 # Generate data
 printSep "Generating TPC-D data"
