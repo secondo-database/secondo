@@ -56,6 +56,7 @@ SmiBtreeFile::SmiBtreeFile( const SmiKey::KeyDataType keyType,
                             const bool isTemporary /* = false */ )
   : SmiKeyedFile( KeyedBtree, keyType, hasUniqueKeys, isTemporary )
 {
+  useTxn = SmiEnvironment::useTransactions;
 }
   
 SmiBtreeFile::~SmiBtreeFile()
@@ -81,7 +82,8 @@ SmiBtreeFile::SelectRange( const SmiKey& fromKey,
   }
   else
   {
-    rc = impl->bdbFile->cursor( 0, &dbc, DB_DIRTY_READ );
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
+    rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )
   {
@@ -143,7 +145,7 @@ SmiBtreeFile::SelectLeftRange( const SmiKey& toKey,
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )
@@ -205,7 +207,7 @@ SmiBtreeFile::SelectRightRange( const SmiKey& fromKey,
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )
@@ -269,7 +271,8 @@ SmiBtreeFile::SelectAll( SmiKeyedFileIterator& iterator,
   }
   else
   {
-    u_int32_t flags = (!impl->isTemporaryFile) ? DB_DIRTY_READ : 0;
+
+    u_int32_t flags = (!impl->isTemporaryFile) && useTxn ? DB_DIRTY_READ : 0;
     rc = impl->bdbFile->cursor( 0, &dbc, flags );
   }
   if ( rc == 0 )

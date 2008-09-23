@@ -1306,6 +1306,7 @@ reported.
 
  protected:
  private:
+  bool useTxn;
   friend class PrefetchingIterator;
 };
 
