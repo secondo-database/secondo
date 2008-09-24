@@ -21,8 +21,9 @@
 # run with : Runner -c MyConfig.config <relalgtest
 # (Runner can be found in directory UserInterfaces)
 
-#setup
 delete database upd_test;
+
+#setup
 create database upd_test;
 open database upd_test;
 restore Staedte from 'staedte.obj';
