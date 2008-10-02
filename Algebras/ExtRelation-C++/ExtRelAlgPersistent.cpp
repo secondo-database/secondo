@@ -1960,8 +1960,18 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 	  li->SetJoinSizes(p1, p2);
 
 	  pRes->CopySizes(li);
+	  
+	      double factor = (double) li->readFirst / p1.Card;
+	  
+	      if ( (qp->GetSelectivity(s) != 0.1) && 
+		          (li->returned > enoughSuccessesJoin) )
+		    pRes->Card = factor * ((double) li->returned) * p1.Card
+			  / ((double) li->readFirst) +
+			  (1.0 - factor) * p1.Card * p2.Card 
+			    * qp->GetSelectivity(s);
+		  else
 
-          if (li->returned > enoughSuccessesJoin ) 	// stable state 
+          if ( li->returned > enoughSuccessesJoin ) 	// stable state 
           {
             pRes->Card = ((double) li->returned) * p1.Card
             /  ((double) li->readFirst);
