@@ -1730,6 +1730,7 @@ struct FilterLocalInfo
 {
   int current;    //tuples read
   int returned;    //tuples returned
+  bool done;		//arg stream exhausted
 };
 
 
@@ -1754,6 +1755,7 @@ Filter(Word* args, Word& result, int message,
       fli = new FilterLocalInfo;
         fli->current = 0;
         fli->returned = 0;
+		fli->done = false;
       local.setAddr(fli);
 
       qp->Open (args[0].addr);
@@ -1789,7 +1791,10 @@ Filter(Word* args, Word& result, int message,
         return YIELD;
       }
       else
+	  {
+	    fli->done = true;
         return CANCEL;
+	  }
 
     case CLOSE:
 
@@ -1823,6 +1828,16 @@ Filter(Word* args, Word& result, int message,
 
         if ( fli )    //filter was started
         {
+		  if ( fli->done )	//arg stream exhausted, all known
+		  {
+		    pRes->Card = (double) fli->returned;
+			pRes->Time = p1.Time + (double) fli->current
+			  * qp->GetPredCost(s) * uFilter;
+		    pRes->Progress = 1.0;
+			pRes->CopyBlocking(p1);
+			return YIELD;
+		  }
+		
           if ( fli->returned >= enoughSuccessesSelection )
             //stable state assumed now
           {
@@ -1837,13 +1852,13 @@ Filter(Word* args, Word& result, int message,
               pRes->Progress = (p1.Progress * p1.Time
                 + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
 
-      pRes->CopyBlocking(p1);
+            pRes->CopyBlocking(p1);
             return YIELD;
           }
         }
     //filter not yet started or not enough seen
 
-  pRes->Card = p1.Card * qp->GetSelectivity(s);
+        pRes->Card = p1.Card * qp->GetSelectivity(s);
         pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
 
         if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
