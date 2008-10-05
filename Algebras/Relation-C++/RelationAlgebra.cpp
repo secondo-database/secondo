@@ -1866,7 +1866,7 @@ Filter(Word* args, Word& result, int message,
           pRes->Progress = p1.Progress;
         else
           pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-  pRes->CopyBlocking(p1);
+          pRes->CopyBlocking(p1);
         return YIELD;
       }
       else return CANCEL;
@@ -5093,7 +5093,7 @@ ListExpr BufferTypeMap(ListExpr args)
 
 
 
-const int BUFFERSIZE = 5;
+const int BUFFERSIZE = 52;
 
 struct BufferLocalInfo
 {
