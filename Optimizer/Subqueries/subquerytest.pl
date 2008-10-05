@@ -41,6 +41,9 @@ testSubqueries5 :-
 testSubqueries6 :-
   sql(select pnum from parts where qoh = (select count(s:shipdate) from supply as s where [pnum = s:pnum, s:shipdate < 19800101])).
   
+testSubqueries7 :-
+  transformNestedPredicate(pnum, Attrs2, parts, Rels2, qoh= (select count(s:shipdate)from supply as s where[pnum=s:pnum, s:shipdate<19800101]), Preds2).
+  
 ttt :-
 secondo('query SEC2CACHEINFO feed count', A),
 write(A), nl,

@@ -78,6 +78,7 @@ isComparisonOp(>).
 isComparisonOp(<>).
 
 /*
+
 ---- isQuery(+Term)
 ----
 This predicate is true, if the term is a query formulated in the sql syntax defined for secondo. 
@@ -153,8 +154,9 @@ isQuantifier(all).
 isQuantifier(any).
 isQuantifier(some).
 
-:- op(700, xfx, <>).
-:- op(940, xfx, in).
+:- op(700, xfx, <>). 
+:- op(700, xfx, =+). % outer join operator
+:- op(940, xfx, in). % defined with different priority for macros
 
 /*
 
@@ -448,8 +450,11 @@ Only join columns which can be transformed to value "UNDEFINED" are supported.
 Simple transformations from (real 0/1) exist for the following types:
 real, int, bool, string and point.
 
+first version, some results are hardcoded, works only with query
+select pnum from parts where qoh = (select count(s:shipdate) from supply as s where [pnum = s:pnum, s:shipdate < 19800101])
+
 */
-  
+
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   fail,
   Pred =.. [Op, Attr, Subquery],
@@ -522,22 +527,17 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   optimize(LastQuery, LastPlan, _),
   write('\nLastPlan: '), write(LastPlan),
   throw(error_SQL(subqueries_transformNestedPredicate:unknownError)). 
-  
 
-joinPred(Rels, [], _, [], []).
-joinPred(Rels, [ Pred | Rest ], JoinPred, InnerPreds, OuterPreds) :-
-  joinPred(Rels, Pred, JoinPred, InnerPreds, OuterPreds).
+/*
   
-joinPred(Rels, Pred, JoinPred, InnerPreds, OuterPreds) :-
-  not(is_list(Pred)),
-  catch(lookupPred1(Pred, _, Rels, _), error_SQL(optimizer_lookupPred1(Term, Term):unknownError), (!, fail)),
-  makeList(Pred, OuterPreds).
-  
-tempRel1(Rels, JoinPred, Preds, TempRel1).
-tempRel2(Rels, Preds, TempRel2).
-tempRel3(AggregatedAttr, Rel1, Rel2, JoinPred, TempRel3, GroupVar).
-    
-  
+refactored version, not yet complete
+TODO: 
+translation of outerjoin in translation phase of optimizer
+extraction of group variable from tempRel3
+maybe replace temporary relations with streams
+
+*/
+
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   Pred =.. [Op, Attr, Subquery],
   transform(Subquery, CanonicalSubquery),
@@ -549,21 +549,166 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   Where =.. [where | [CanonicalRels | [CanonicalPreds]]],
   write('\nCanonicalRels: '), write(CanonicalRels),
   write('\nCanonicalPreds: '), write(CanonicalPreds),
-  joinPred(CanonicalRels, CanonicalPreds, JoinPred, SimpleInnerPreds, SimpleOuterPreds),
+  joinPred(CanonicalRels, Rels, CanonicalPreds, JoinPred, SimpleInnerPreds, SimpleOuterPreds),
   write('\nJoinPred: '), write(JoinPred),
-  tempRel1(Rels, JoinPred, SimpleOuterPreds, TempRel1),
+  tempRel1(Rels, JoinPred, SimpleOuterPreds, TempRel1, JoinAttr),
   tempRel2(CanonicalRels, SimpleInnerPreds, TempRel2),
-  tempRel3(AggregatedAttr, TempRel1, TempRel2, JoinPred, TempRel3, GroupVar),
+  tempRel3(AggregatedAttr, JoinAttr, TempRel1, TempRel2, JoinPred, TempRel3, GroupVar),
+  !, fail,
   NewPred =.. [Op, Attr, GroupVar],
-  append([JoinPred], [NewPred], PredNext),
+  append(JoinPred, [NewPred], PredNext),
   Attrs = AttrsNext,
   append(Rels, [TempRel3], RelsNext),
-  transformNestedPredicate(Attrs, Attrs2, RelsNext, Rels2, PredNext, Pred2).
+  transformNestedPredicate(Attrs, Attrs2, RelsNext, Rels2, PredNext, Pred2).  
+  
+/*
+
+---- joinPred(+InnerRels, +OuterRels, +PredicateList, -JoinPred, -InnerPreds, -OuterPreds)
+-----
+
+Partition the predicate list in such a way, that ~InnerPreds~ contains all predicates referring to attributes of relations in 
+~InnerPreds~, ~OuterPreds~ contains all predicates refering to attributes of relations in ~OuterPreds~ and ~JoinPred~ contains
+any remaining predicates. 
+
+*/  
+  
+joinPred(_, _, [], [], [], []).
+joinPred(InnerRels, OuterRels, [ Pred | Rest ], JoinPred, InnerPreds, OuterPreds) :-
+  joinPred(InnerRels, OuterRels, Pred, JoinPred1, InnerPreds1, OuterPreds1),
+  joinPred(InnerRels, OuterRels, Rest, JoinPred2, InnerPreds2, OuterPreds2),
+  makeList(JoinPred1, JP1List),
+  makeList(JoinPred2, JP2List),
+  append(JP1List, JP2List, JoinPred),
+  makeList(InnerPreds1, IP1List),
+  makeList(InnerPreds2, IP2List),
+  append(IP1List, IP2List, InnerPreds),
+  makeList(OuterPreds1, OP1List),
+  makeList(OuterPreds2, OP2List),
+  append(OP1List, OP2List, OuterPreds).
+  
+joinPred(InnerRels, OuterRels, Pred, [], InnerPreds, []) :-
+  not(is_list(Pred)),
+  Pred =.. [Op | Args],
+  areAttributesOf(Args, InnerRels),
+  makeList(Pred, InnerPreds).
+  
+joinPred(InnerRels, OuterRels, Pred, [], [], OuterPreds) :-
+  not(is_list(Pred)),
+  Pred =.. [Op | Args],
+  areAttributesOf(Args, OuterRels),
+  makeList(Pred, OuterPreds).
+  
+joinPred(InnerRels, OuterRels, Pred, Pred, [], []).
+
+/*
+
+---- areAttributesOf(AttrList, Rels)
+----
+
+Is true if all attributes in ~AttrList~ are attributes of relations in ~Rels~
+
+*/
+
+areAttributesOf([], _).
+
+areAttributesOf(Attr, Rels) :-
+  ground(Attr),
+  not(is_list(Attr)),
+  isAttributeOf(Attr, Rels).
+
+areAttributesOf([ Attr | Rest ], Rels) :-
+  isAttributeOf(Attr, Rels),  
+  areAttributesOf(Rest, Rels).
+  
+isAttributeOf(Attr, Rel) :-
+  not(is_list(Rel)),
+  relation(Rel, List),
+  member(Attr, List).
+  
+isAttributeOf(Alias:Attr, Rel as _) :-
+  relation(Rel, List),
+  member(Attr, List).
+  
+isAttributeOf(Attr, [ Rel | Rest ]) :-
+  (( relation(Rel, List),
+  member(Attr, List)) ;
+  isAttributeOf(Attr, Rest)).
+  
+isAttributeOf(Attr, [ Rel as _ | Rest ]) :-
+  (( relation(Rel, List),
+  alias(_, UnaliasedAttr, Attr),
+  member(UnaliasedAttr, List)) ;
+  isAttributeOf(Attr, Rest)).
+  
+isAttributeOf(Const, _) :-
+  integer(Const).
+  
+/*
+
+Create a temporary relation which is a projection of Rels to ~JoinAttr~
+
+*/
+  
+tempRel1(Rels, [JoinPred], [], TempRel1, JoinAttr) :-
+  JoinPred =.. [ Op , JoinAttr, Attr2 ],
+  write('\nOp: '), write(Op),
+  write('\nJoinAttr: '), write(JoinAttr),
+  write('\nAttr2: '), write(Attr2),
+  isAttributeOf(JoinAttr, Rels),
+  TemporaryRel1 =.. [from, select distinct JoinAttr, Rels],
+  write('\nTemporaryRel1: '), write(TemporaryRel1), 
+  newTempRel(TemporaryRel1, TempRel1).
+  
+tempRel1(Rels, JoinPred, Preds, TempRel1, JoinAttr) :-
+  JoinPred =.. [ Op , Attr1, JoinAttr ],
+  write('\nOp: '), write(Op),
+  write('\nAttr1: '), write(Attr1),
+  write('\nJoinAttr: '), write(JoinAttr),  
+  isAttributeOf(JoinAttr, Rels),
+  TemporaryRel1 =.. [from, select distinct JoinAttr, where(Rels, Preds)],
+  write('\nTemporaryRel1: '), write(TemporaryRel1), 
+  newTempRel(TemporaryRel1, TempRel1).  
+  
+/*
+
+Create a restriction of ~Rels~ by all predicates supplied.
+
+*/
+
+tempRel2(Rels, Preds, TempRel2) :- 
+  Where =.. [where, Rels, Preds],
+  TemporaryRel2 =.. [from, select *, Where],
+  write('\nTemporaryRel2: '), write(TemporaryRel2),
+  newTempRel(TemporaryRel2, TempRel2).
+  
+tempRel2(Rel, [], Rel).
+  
+/*
+
+Create temporary relation which replaces the aggregation operation by its constant result for the corresponding query.
+
+*/
+
+tempRel3(AggregatedAttr, JoinAttr, Rel1, Rel2, [JoinPred], TempRel3, GroupVar) :- 
+  AggregatedAttr =.. [AggrOp, Attr],
+  AggrOp = count,
+  JoinPred =.. [Op, Attr1, Attr2],
+  not(Op = =+),
+  OuterJoinPred =..[=+, Attr1, Attr2],
+  tempRel3(AggregatedAttr, JoinAttr, Rel1, Rel2, OuterJoinPred, TempRel3, GroupVar).
+	
+tempRel3(AggregatedAttr, JoinAttr, Rel1, Rel2, JoinPred, TempRel3, GroupVar) :-
+  newVariable(NewColumn),
+  AttrList = [JoinAttr, AggregatedAttr as NewColumn],
+  RelList = [Rel1, Rel2],
+  TemporaryRel3 =.. [groupby, from(select AttrList, where(RelList, JoinPred)), [JoinAttr]],
+  write('\nTemporaryRel3: '), write(TemporaryRel3),  
+  newTempRel(TemporaryRel3, TempRel3).
+    
   
 /*
 
 ---- outerJoinExtend(+Rel, -ExtendAtom)
-
 ----
 
 This predicate is true iff ExtendAtom unifies with an extend-Expression in SECONDO-Syntax which gives constant ~undefined~ for
@@ -591,7 +736,6 @@ outerJoinExtend(Rel, ExtendAtom) :-
 /*
 
 ---- undefine(+[AttrName, type], -UndefinedAttr)
-
 ----
 
 UndefinedAttr is a SECONDO-Attribute definition with constant value ~undefined~ for the corresponding SECONDO type ~type~
@@ -639,7 +783,6 @@ restrict(Attrs, _, Attrs).
 /*
 
 ---- alias(?Alias, ?Attr, ?Alias:Attr)
-
 ----
 
 Helper predicate to alias/un-alias attribute names.
@@ -651,13 +794,11 @@ alias(Alias, Attr, Alias:Attr).
 
 /*
 ----  temporaryRelation(TempRelName)
-
 ----
 
 Store all temporary Relations created by the evaluation of a subquery for deletion at halt.
 
 ---- temporaryRelation(TempRelName, RelQuery, Cost)
-
 ----
 Store temporary relation for creation if the optimizer decides on an execution plan involving a temporary Relation.
 
@@ -692,8 +833,9 @@ newTempRel(Query, TempRelName) :-
   optimize(Query, Plan, Cost),
   newTempRel(TempRelName),
   write('\nTempRelName: '), write(TempRelName), nl,
-  assert(temporaryRelation(TempRelName, Plan, Cost)),
+  assert(temporaryRelation(TempRelName, Plan, Cost)), 
   createTempRel(TempRelName).
+%   true.
    
 createTempRel(TempRelName) :-
   ground(TempRelName),
