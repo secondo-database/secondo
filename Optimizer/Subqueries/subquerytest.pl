@@ -38,6 +38,9 @@ testSubqueries5 :-
   transform(select * from staedte where plz in (select max(plz) from plz where ort = sname), Res),
   write('\nRes: '), write(Res).
   
+testSubqueries6 :-
+  sql(select pnum from parts where qoh = (select count(s:shipdate) from supply as s where [pnum = s:pnum, s:shipdate < 19800101])).
+  
 ttt :-
 secondo('query SEC2CACHEINFO feed count', A),
 write(A), nl,
@@ -57,4 +60,12 @@ secondo('query SEC2PJOINCOST feed count', H),
 write(H), nl,
 secondo('query SEC2TYPEINFO feed count', I),
 write(I), nl.  
+
+/*
+
+query <Rel1> feed extend[<NewJoinCol>: <correctly typed undef>] filter [fun(var1: TUPLE) <Rel2> feed filter [not(.<JoinAttr> = attr(var1, <JoinAttr>))] count = <Rel2> feed count] consume
+
+*/
+
+
  

@@ -71,7 +71,7 @@ Facts about comparison operators
 */
 
 isComparisonOp(=).
-isComparisonOp(<=).
+isComparisonOp(=<).
 isComparisonOp(>=).
 isComparisonOp(<).
 isComparisonOp(>).
@@ -80,7 +80,7 @@ isComparisonOp(<>).
 /*
 ---- isQuery(+Term)
 ----
-This predicate is true, if the term is a query formulated in the sql syntax defined for secondo
+This predicate is true, if the term is a query formulated in the sql syntax defined for secondo. 
 
 */
 
@@ -246,38 +246,7 @@ transform(select Attrs from Rels where Preds, select CanonicalAttrs from Canonic
   transformNestedAttributes(Rels, Rels2, Attrs, Attrs2, Preds, Preds2),
   transformNestedRelations(Rels2, Rels3, Attrs2, Attrs3, Preds2, Preds3),
   transformNestedPredicates(Attrs3, CanonicalAttrs, Rels3, CanonicalRels, Preds3, CanonicalPreds).
-  
-transform(Query, CanonicalQuery) :-
-  fail,
-  queryObject(Query, QueryObject),
-  write('\nQueryObject: '), write(QueryObject),
-  transformNestedAttributes(QueryObject, QueryObject2),
-  transformNestedRelations(QueryObject2, QueryObject3),
-  transformNestedPredicates(QueryObject3, CanonicalQueryObject),
-  queryObject(CanonicalQuery, CanonicalQueryObject).  
-	
-queryObject(Query, qry(Attrs, Rels, Preds, OrderBy, GroupBy, FirstClause)) :-
-  Query =.. [Op, QueryRest, Count],
-  (Op = first ; Op = last),
-  queryObject(QueryRest, qry(Attrs, Rels, Preds, OrderBy, GroupBy, [])),
-  FirstClause =.. [Op, Count].
-  
-queryObject(Query, qry(Attrs, Rels, Preds, OrderBy, GroupBy, [])) :-
-  Query =.. [groupby, QueryRest, GroupBy],
-  queryObject(QueryRest, qry(Attrs, Rels, Preds, OrderBy, [], [])).
-  
-queryObject(Query, qry(Attrs, Rels, Preds, OrderBy, [], [])) :-
-  Query =.. [orderby, QueryRest, OrderBy],
-  queryObject(QueryRest, qry(Attrs, Rels, Preds, [], [], [])).
-  
-queryObject(Query, qry(Attrs, Rels, Preds, [], [], [])) :-  
-  Query =.. [from, Select, Where],
-  Select =.. [select, Attrs],
-  Where =.. [where, Rels, Preds].
-  
-queryObject(Query, qry(Attrs, Rels, [], [], [], [])) :-
-  Query =.. [from, Select, Rels],
-  Select =.. [select, Attrs].
+
   
 /*
 
@@ -295,19 +264,6 @@ transformNestedAttributes(Attr, Attr2, Rels, Rels2, Preds, Preds2) :-
 transformNestedAttributes([ Attr | Rest ], [ Attr2 | Rest2 ], Rels, Rels2, Preds, Preds2) :-
   transformNestedAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2),
   transformNestedAttributes(Rest, Rest2, Rels, Rels2, Preds, Preds2).
-
-transformNestedAttributes(qry(Attrs, Rels, Preds, _, _, _), QueryObject2) :-
-  transformNestedAttributes1(Attrs, qry(Attrs, Rels, Preds, _, _, _), QueryObject2).
-  
-transformNestedAttributes1([], QueryObject, QueryObject).
-  
-transformNestedAttributes1(Attr, QueryObject, QueryObject2) :-
-  not(is_list(Attr)),
-  transformNestedAttribute(Attr, QueryObject, QueryObject2).
-  
-transformNestedAttributes1([ Attr | Rest ], QueryObject, QueryObject3) :-
-  transformNestedAttribute(Attr, QueryObject, QueryObject2),
-  transformNestedAttributes1(Rest, QueryObject2, QueryObject3).
 
 /*
 
@@ -418,7 +374,8 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   write('\nNEST-N-J'),
   CanonicalSubquery =.. [from, Select, Where],
   Select =.. [select, CanonicalAttr],    
-  Where =.. [where | [ CanonicalRels | CanonicalPreds ]],
+  ( Where =.. [where | [ CanonicalRels | CanonicalPreds ]] ;
+    ( Where =.. CanonicalRels, CanonicalPreds = [] )),
   restrict(Attrs, Rels, Attrs2),
   makeList(Rels, RelsList),
   makeList(CanonicalRels, CanonicalRelsList),
@@ -442,6 +399,7 @@ resulting query is of type-J, since the aggregation function has been replaced.
 */
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
+  fail,
   Pred =.. [Op, Attr, Subquery],
   transform(Subquery, CanonicalSubquery),
   nestingType(CanonicalSubquery, ja),
@@ -464,12 +422,10 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
       -> TemporaryRel =.. [from, select AggregatedAttr as NewColumn, CanonicalRels]
 	  ;  TemporaryRel =.. [groupby, from(select ProjectionAttrs, CanonicalRels), GroupAttrs] ),
   write('\nTemporaryRel: '), write(TemporaryRel), 
-  optimize(TemporaryRel, RelQuery, Cost),
-  newVariable(TempRel),
-  assert(temporaryRelation(TempRel, RelQuery, Cost)),
+  newTempRel(TemporaryRel, TempRel),
   TempPred =.. [Op, Attr, from(select NewColumn, where(TempRel, CanonicalPreds))],
   write('\nPred2: '), write(TempPred),
-%  createTempRel(TempRel),
+  createTempRel(TempRel),
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, TempPred, Pred2).  
   
 /* 
@@ -478,20 +434,109 @@ Implements Algorithm NEST-JA2 as designed by Ganski, Wong.
 (1) Project the join column of the outer relation and restrict it with any simple predicates applying to the outer relation
 (2) Create a temporary relation, joining the inner relation with the projection of the outer relation. If the aggragate function
 is ~COUNT~, the join must be an outer join, and the inner relation must be restricted and projected before the join is performed.
-If the aggregate function is ~COUNT(*)~, compute the ~COUNT~ function over the join column. The join predicate must use the same operator
+If the aggregate function is ~COUNT([star])~, compute the ~COUNT~ function over the join column. The join predicate must use the same operator
 as the join predicate in the original query (except that it must be converted to the corresponding outer operator in case of
 ~COUNT~), and the join predicate in the original query must be changed to ~=~. In the select clause, select the join column from
 the outer table int the join predicate instead of the inner table. The groupby clause will also contain columns from the outer
 relation 
 (3) Join the outer relation with  the temporary relation, according to the transformed version of the original query
 
-As SECONDO does not implement outer joins we have to simulate them. Left outer join can be simulated by a union of an inner join to <NewJoinCol> and the following query:
-query <Rel1> feed extend[<NewJoinCol>: <correctly typed undef>] filter [fun(var1: TUPLE) <Rel2> feed filter [not(.<JoinAttr> = attr(var1, <JoinAttr>))] count = <Rel2> feed count] consume
+As SECONDO does not implement outer joins we have to simulate them. Outer join can be simulated by a union of an inner join on <JoinAttr2> Op <JoinAttr1> and the following queries
+<Rel1> feed extend[<Rel2Attrs>: <correctly typed undef>] filter [fun(var1: TUPLE) <Rel2> feed filter [not(.<JoinAttr2> Op attr(var1, <JoinAttr1>))] count = <Rel2> feed count]
+<Rel2> feed extend[<Rel1Attrs>: <correctly typed undef>] filter [fun(var1: TUPLE) <Rel1> feed filter [not(.<JoinAttr1> Op attr(var1, <JoinAttr2>))] count = <Rel1> feed count]
 Only join columns which can be transformed to value "UNDEFINED" are supported.
 Simple transformations from (real 0/1) exist for the following types:
 real, int, bool, string and point.
 
 */
+  
+transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
+  fail,
+  Pred =.. [Op, Attr, Subquery],
+  transform(Subquery, CanonicalSubquery),
+  nestingType(CanonicalSubquery, ja),
+  write('\nNEST-JA2'),  
+  CanonicalSubquery =.. [from, Select, Where],
+  Select =.. [select, AggregatedAttr],
+  write('\nAggregatedAttr: '), write(AggregatedAttr),
+  AggregatedAttr =.. [AggrOp | [CanonicalAttr]],
+  write('\nCanonicalAttr: '), write(CanonicalAttr),
+  write('\nAggrOp: '), write(AggrOp),
+  Where =.. [where | [CanonicalRels | [CanonicalPreds]]],
+  write('\nCanonicalRels: '), write(CanonicalRels),
+  write('\nCanonicalPreds: '), write(CanonicalPreds),
+%  joinPred(CanonicalPreds, JoinPred, SimpleInnerPreds, SimpleOuterPreds),
+  CanonicalPreds = [JoinPred, SimpleInnerPreds],
+  write('\nJoinPred: '), write(JoinPred),
+  JoinPred =.. [Op, Attr1, Attr2],
+  write('\nAttr1: '), write(Attr1),
+  write('\nAttr2: '), write(Attr2),  
+%  tempRel1(Rels, JoinPred, SimpleOuterPreds, TempRel1),
+%  tempRel2(CanonicalRels, SimpleInnerPreds, TempRel2),
+%  tempRel3(AggregatedAttr, TempRel1, TempRel2, JoinPred, TempRel3, GroupVar),
+%  NewPred =.. [Op, Attr, GroupVar],
+%  append([JoinPred], [NewPred], Pred2),
+%  Attrs = Attrs2,
+%  append(Rels, [TempRel3], Rels2),
+  TemporaryRel1 =.. [from, select distinct Attr1, Rels],
+  write('\nTemporaryRel1: '), write(TemporaryRel1), 
+  newTempRel(TemporaryRel1, TempRel1),
+  AggrOp = count,
+  newVariable(NewColumn),
+  AttrList = [Attr1, AggregatedAttr as NewColumn],
+  write('\nAttrList: '), write(AttrList),
+  write('\nSimpleInnerPreds: '), write(SimpleInnerPreds),
+  TempWhere2 =.. [where, CanonicalRels, SimpleInnerPreds],
+  TemporaryRel2 =.. [from, select *, TempWhere2],
+  write('\nTemporaryRel2: '), write(TemporaryRel2),
+  newTempRel(TemporaryRel2, TempRel2),
+  append([TempRel1], [TempRel2], Temp3Rels),
+  write('\nTemp3Rels: '), write(Temp3Rels),
+  TemporaryRel3 =.. [from, select *, where(Temp3Rels, pnum=pnum_s)],
+  write('\nTemporaryRel3: '), write(TemporaryRel3),
+  mStreamOptimize(TemporaryRel3, Plan, Cost),
+  write('\nPlan: '), write(Plan),
+  TempRel3 =.. [groupby, from(select AttrList, Temp3Rels), [Attr1]],
+  mStreamOptimize(TempRel3, Plan2, Cost2),
+  write('\nPlan2: '), write(Plan2),
+  outerJoinExtend(TempRel2, ExtendCanonicalRels),
+  outerJoinExtend(TempRel1, ExtendRels),
+  concat_atom([Plan, ' ', TempRel1, ' feed ', ' ', ExtendCanonicalRels,
+				'filter[fun(outerjoin1: TUPLE) ',
+				TempRel2, ' feed filter[not(.pnum_s = attr(outerjoin1, pnum_s))] count = ', TempRel2, 
+				' feed count] sort rdup mergeunion ', 
+				TempRel2, ' ', ' feed ', ' ', ExtendRels,
+				' filter[fun(outerjoin2: TUPLE) ',
+				TempRel1, ' feed filter[not(.pnum = attr(outerjoin2, pnum_s))] count = ', TempRel1,
+				' feed count]',
+				' project[pnum, pnum_s, quan_s, shipdate_s] ',
+				' sort rdup mergeunion sortby[pnum asc] groupby[pnum; Var3: group feed filter[not(isempty(.shipdate_s))]  count ]project[pnum, Var3] consume'], '', OuterJoinQuery),
+  write('\nOuterJoinQuery: '), write(OuterJoinQuery),
+  newTempRel(OuterJoin),
+  assert(temporaryRelation(OuterJoin, OuterJoinQuery, 0)),
+  createTempRel(OuterJoin),
+  WhereJoin =.. [where, [Rels as s, OuterJoin], [s:qoh = var3, pnum = s:pnum]],
+  write('\nWhere: '), write(WhereJoin),
+  LastQuery =.. [from, select pnum, WhereJoin],
+  write('\nLastQuery: '), write(LastQuery),
+  optimize(LastQuery, LastPlan, _),
+  write('\nLastPlan: '), write(LastPlan),
+  throw(error_SQL(subqueries_transformNestedPredicate:unknownError)). 
+  
+
+joinPred(Rels, [], _, [], []).
+joinPred(Rels, [ Pred | Rest ], JoinPred, InnerPreds, OuterPreds) :-
+  joinPred(Rels, Pred, JoinPred, InnerPreds, OuterPreds).
+  
+joinPred(Rels, Pred, JoinPred, InnerPreds, OuterPreds) :-
+  not(is_list(Pred)),
+  catch(lookupPred1(Pred, _, Rels, _), error_SQL(optimizer_lookupPred1(Term, Term):unknownError), (!, fail)),
+  makeList(Pred, OuterPreds).
+  
+tempRel1(Rels, JoinPred, Preds, TempRel1).
+tempRel2(Rels, Preds, TempRel2).
+tempRel3(AggregatedAttr, Rel1, Rel2, JoinPred, TempRel3, GroupVar).
+    
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   Pred =.. [Op, Attr, Subquery],
@@ -501,29 +546,72 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   CanonicalSubquery =.. [from, Select, Where],
   Select =.. [select, AggregatedAttr],
   write('\nAggregatedAttr: '), write(AggregatedAttr),
-  AggregatedAttr =.. [AggrOp | [CanonAttr]],
-  write('\nCanonAttr: '), write(CanonAttr),
-  Where =.. [where | [CanonicalRels | CanonicalPreds]],
+  Where =.. [where | [CanonicalRels | [CanonicalPreds]]],
   write('\nCanonicalRels: '), write(CanonicalRels),
   write('\nCanonicalPreds: '), write(CanonicalPreds),
-  restrict(*, CanonicalRels, AggregatedAttrList),
-  partition(=(CanonAttr), AggregatedAttrList, _, GroupAttrs),
-  write('\nGroupAttrs: '), write(GroupAttrs),
-  newVariable(NewColumn),  
-  write('\nNewColumn: '), write(NewColumn),
-  flatten([GroupAttrs | AggregatedAttr as NewColumn], ProjectionAttrs),
-  ( GroupAttrs = []
-      -> TemporaryRel =.. [from, select AggregatedAttr as NewColumn, CanonicalRels]
-	  ;  TemporaryRel =.. [groupby, from(select ProjectionAttrs, CanonicalRels), GroupAttrs] ),
-  write('\nTemporaryRel: '), write(TemporaryRel), 
-  optimize(TemporaryRel, RelQuery, Cost),
-  newVariable(TempRel),
-  assert(temporaryRelation(TempRel, RelQuery, Cost)),
-  TempPred =.. [Op, Attr, from(select NewColumn, where(TempRel, CanonicalPreds))],
-  write('\nPred2: '), write(TempPred),
-%  createTempRel(TempRel),
-  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, TempPred, Pred2).   
+  joinPred(CanonicalRels, CanonicalPreds, JoinPred, SimpleInnerPreds, SimpleOuterPreds),
+  write('\nJoinPred: '), write(JoinPred),
+  tempRel1(Rels, JoinPred, SimpleOuterPreds, TempRel1),
+  tempRel2(CanonicalRels, SimpleInnerPreds, TempRel2),
+  tempRel3(AggregatedAttr, TempRel1, TempRel2, JoinPred, TempRel3, GroupVar),
+  NewPred =.. [Op, Attr, GroupVar],
+  append([JoinPred], [NewPred], PredNext),
+  Attrs = AttrsNext,
+  append(Rels, [TempRel3], RelsNext),
+  transformNestedPredicate(Attrs, Attrs2, RelsNext, Rels2, PredNext, Pred2).
   
+/*
+
+---- outerJoinExtend(+Rel, -ExtendAtom)
+
+----
+
+This predicate is true iff ExtendAtom unifies with an extend-Expression in SECONDO-Syntax which gives constant ~undefined~ for
+every attribute defined in relation Rel.
+
+*/
+  
+outerJoinExtend(Rel, ExtendAtom) :-
+  ground(Rel),
+%  write('\nRel: '), write(Rel), nl,
+  restrict(*, Rel, AttrList),
+%  write('\nAttrList: '), write(AttrList), nl,
+  secondoCatalogInfo(Rel, _, _, Type),
+  Type = [[rel, [tuple, TypeList]]],
+%  write('\nTypeList: '), write(TypeList), nl,
+  maplist(undefine, TypeList, ExtendAttrList),
+%  write('\nExtendAttrList: '), write(ExtendAttrList), nl,
+  concat_atom(ExtendAttrList, ', ', CommaSeparatedAttrList),
+%  write('\nCommaSeparatedAttrList: '), write(CommaSeparatedAttrList), nl,
+  concat_atom(['extend[', CommaSeparatedAttrList,']'], '', ExtendAtom).
+%  write('\nExtendAtom: '), write(ExtendAtom), nl.
+  
+  
+
+/*
+
+---- undefine(+[AttrName, type], -UndefinedAttr)
+
+----
+
+UndefinedAttr is a SECONDO-Attribute definition with constant value ~undefined~ for the corresponding SECONDO type ~type~
+
+*/
+
+undefine([AttrName, int], UndefinedAttr) :-
+  concat_atom([AttrName, ': real2int(1/0)'], '', UndefinedAttr).
+  
+undefine([AttrName, int], UndefinedAttr) :-
+  concat_atom([AttrName, ': 1/0'], '', UndefinedAttr).
+
+undefine([AttrName, string], UndefinedAttr) :-
+  concat_atom([AttrName, ': num2string(real2int(1/0))'], '', UndefinedAttr).  
+  
+undefine([AttrName, bool], UndefinedAttr) :-
+  concat_atom([AttrName, ': real2int(int2bool(1/0))'], '', UndefinedAttr).
+
+undefine([AttrName, point], UndefinedAttr) :-
+  concat_atom([AttrName, ': makepoint(real2int(1/0), 1)'], '', UndefinedAttr).  
 
 /* 
 
@@ -550,7 +638,8 @@ restrict(Attrs, _, Attrs).
 
 /*
 
----- alias(?Alias, ?Attr, ?Alias:Attr).
+---- alias(?Alias, ?Attr, ?Alias:Attr)
+
 ----
 
 Helper predicate to alias/un-alias attribute names.
@@ -574,6 +663,8 @@ Store temporary relation for creation if the optimizer decides on an execution p
 
 */
 
+:- at_halt(deleteTempRels).
+
 :- dynamic temporaryRelation/1,
    temporaryRelation/3.
    
@@ -582,22 +673,40 @@ Store temporary relation for creation if the optimizer decides on an execution p
 Register deletion of created temporary relations.
 
 */
+
+:- dynamic(relDefined/1).
+
+newTempRel(Var) :-
+  relDefined(N),
+  !,
+  N1 is N + 1,
+  retract(relDefined(N)),
+  assert(relDefined(N1)),
+  atom_concat('temprel', N1, Var).
+
+newTempRel(Var) :-
+  assert(relDefined(1)),
+  Var = 'temprel1'.
    
-:- retractall(temporaryRelation(_)),   
-   at_halt(deleteTempRels).
+newTempRel(Query, TempRelName) :-
+  optimize(Query, Plan, Cost),
+  newTempRel(TempRelName),
+  write('\nTempRelName: '), write(TempRelName), nl,
+  assert(temporaryRelation(TempRelName, Plan, Cost)),
+  createTempRel(TempRelName).
    
 createTempRel(TempRelName) :-
   ground(TempRelName),
   temporaryRelation(TempRelName, RelQuery, _),
   atom(RelQuery),  
-  concat_atom(['derive ', TempRelName, ' = ', RelQuery], '', RelQuery2),  
+  concat_atom(['derive ', TempRelName, ' = ', RelQuery], '', RelQuery2),
   secondo(RelQuery2),
   retractall(temporaryRelation(TempRelName, _, _)),
   assert(temporaryRelation(TempRelName)). 
 
 deleteTempRels :-
   findall(Rel, temporaryRelation(Rel), L),
-  deleteTempRels(L),
+  catch(deleteTempRels(L), _, true),
   retractall(temporaryRelation(_)).
   
 deleteTempRels([]).
@@ -642,7 +751,8 @@ type-J nesting, correlated subquery without aggregation function, row result
 
 nestingType(Subquery, j) :-
   not(aggrQuery(Subquery, _, _, _)), 
-  write('\nnesting Type-J').
+  write('\nnesting Type-J'),
+  !.
   
   
 /*
@@ -653,7 +763,8 @@ type-JA nesting, correlated subquery with aggregation function, scalar result.
 
 nestingType(Subquery, ja) :-
   aggrQuery(Subquery, _, _, _),
-  write('\nnesting Type-JA').
+  write('\nnesting Type-JA'),
+  !.
   
   
 /*
