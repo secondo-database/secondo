@@ -534,9 +534,64 @@ The struct knearestLocalInfo is needet to save the data
 from one to next function call
 
 */
+enum EventType {E_LEFT, E_RIGHT, E_INTERSECT};
+struct EventElem
+{
+  EventType type;
+  Instant pointInTime; //x-axes, sortkey in the priority queue
+  Tuple* tuple;
+  Tuple* intersectTuple;
+  const UPoint* up;
+  MReal* distance;
+  EventElem(EventType t, Instant i, Tuple* tu, const UPoint* upt,
+    MReal* d) : type(t), pointInTime(i), tuple(tu), intersectTuple(NULL),
+    up(upt), distance(d){}
+  EventElem(EventType t, Instant i, Tuple* tu, Tuple* tu2) 
+    : type(t), pointInTime(i), tuple(tu), intersectTuple(tu2),
+    up(NULL), distance(NULL){}
+  bool operator<( const EventElem& e ) const 
+  {
+    return e.pointInTime < pointInTime;
+  }
+};
+
+class ActiveElem
+{
+public:
+  //double distance;  
+  Tuple* tuple;
+  Instant start; //the start time where the element is needed
+  bool lc;
+  ActiveElem(Tuple* t, Instant s, bool l) : tuple(t), start(s), lc(l){}
+};
+
+double CalcDistance( const MReal *mr, Instant t);
+class ActiveKey
+{
+public:
+  static Instant currtime;
+  MReal *distance;
+    ActiveKey( ) : distance(0){}
+    ActiveKey( MReal *dist) : distance(dist){}
+    bool operator==( const ActiveKey& k ) const 
+    {
+      return CalcDistance(distance,currtime) 
+        == CalcDistance(k.distance,currtime);
+    }
+    bool operator<( const ActiveKey& k ) const 
+    {
+      return CalcDistance(distance,currtime) 
+        < CalcDistance(k.distance,currtime);
+    }
+};
+
+Instant ActiveKey::currtime;
+typedef multimap< ActiveKey, ActiveElem >::const_iterator CI;
+typedef multimap< ActiveKey, ActiveElem >::iterator IT;
+
 bool GetPosition( const UPoint* up, Instant t, Coord& x, Coord& y)
 {
-  //calculates the pos. at time t. p is the result
+  //calculates the pos. at time t. x and y is the result
   Instant t0 = up->timeInterval.start;  
   Instant t1 = up->timeInterval.end; 
   if( t == t0 )
@@ -557,8 +612,6 @@ bool GetPosition( const UPoint* up, Instant t, Coord& x, Coord& y)
   y = up->p0.GetY() + factor * (up->p1.GetY() - up->p0.GetY());
   return true;
 }
-
-double CalcDistance( const MReal *mr, Instant t);
 
 void GetDistance( const MPoint* mp, const UPoint* up, 
                    int &mpos, MReal *erg)
@@ -677,61 +730,94 @@ double CalcDistance( const MReal *mr, Instant t)
   return -1;
 }
 
-bool intersects( MReal* m1, MReal* m2, Instant& result )
+bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
 {
   //returns true if m1 intersects m2. The first intersection time is the result
-  return false;
-}
-
-enum EventType {E_LEFT, E_RIGHT, E_INTERSECT};
-struct EventElem
-{
-  EventType type;
-  Instant pointInTime; //x-axes, sortkey in the priority queue
-  Tuple* tuple;
-  Word intersectTuple;
-  const UPoint* up;
-  MReal* distance;
-  EventElem(EventType t, Instant i, Tuple* tu, const UPoint* upt,
-    MReal* d) : type(t), pointInTime(i), tuple(tu), up(upt), distance(d){}
-  bool operator<( const EventElem& e ) const 
+  //The intersection after the time start is calculated
+  int noCo1 = m1->GetNoComponents();
+  int ii = 0;
+  const UReal* u1;
+  if( !noCo1 ){ return false; }
+  m1->Get( ii, u1);
+  while( (start > u1->timeInterval.end || (start == u1->timeInterval.end
+    && !u1->timeInterval.rc)) && ++ii < noCo1 )
   {
-    return e.pointInTime < pointInTime;
+    m1->Get( ii, u1);
   }
-};
-
-class ActiveElem
-{
-public:
-  //double distance;  
-  Tuple* tuple;
-  Instant start; //the start time where the element is needed
-  bool lc;
-  ActiveElem(Tuple* t, Instant s, bool l) : tuple(t), start(s), lc(l){}
-};
-
-class ActiveKey
-{
-public:
-  static Instant currtime;
-  MReal **distance;
-  ActiveKey( ) : distance(0){}
-    ActiveKey( MReal *dist) : distance(&dist){}
-    bool operator==( const ActiveKey& k ) const 
+  int noCo2 = m2->GetNoComponents();
+  const UReal* u2;
+  if( !noCo2 ){ return false; }
+  int jj = 0;
+  m2->Get( jj, u2);
+  while( (start > u2->timeInterval.end || (start == u2->timeInterval.end
+    && !u2->timeInterval.rc)) && ++jj < noCo2 )
+  {
+    m2->Get( jj, u2);
+  }
+  cout << "In intersects" << endl;
+  if( start > u1->timeInterval.end || start > u2->timeInterval.end 
+    || start < u1->timeInterval.start || start < u2->timeInterval.start)
+  {
+    return false;
+  }
+  //u1, u2 are the ureals with the time start to begin with the calculation
+  //formula: t = (-b +- sqrt(b*b - 4ac)) / 2a where a,b,c are a1-a2 ...
+  //if b*b - 4ac > 0 the equation has a result
+  bool hasResult = false;
+  double a, b, c, d, r1, r2;
+  while( !hasResult  && ii < noCo1 && jj < noCo2)
+  {
+    a = u1->a - u2->a;
+    b = u1->b - u2->b;
+    c = u1->c - u2->c;
+    d = b * b - 4 * a * c;
+    if( d >= 0 )
     {
-      return CalcDistance(*distance,currtime) 
-        == CalcDistance(*k.distance,currtime);
+      d = sqrt(d);
+      r1 = (-b - d) / (2 * a);
+      r2 = (-b + d) / (2 * a);
+      if( r1 > r2 ){ swap( r1, r2 );}
+      result.ReadFrom(r1);
+      if( result > start && result <= u1->timeInterval.end 
+        && result <= u2->timeInterval.end)
+      {
+        hasResult = true;
+      }
+      else
+      {
+        result.ReadFrom(r2);
+        if( result > start && result <= u1->timeInterval.end 
+          && result <= u2->timeInterval.end)
+        {
+          hasResult = true;
+        }
+      }
     }
-    bool operator<( const ActiveKey& k ) const 
+    if( !hasResult )
     {
-      return CalcDistance(*distance,currtime) 
-        < CalcDistance(*k.distance,currtime);
+      if( u1->timeInterval.end < u2->timeInterval.end )
+      {
+        ++ii;
+      }
+      else if( u2->timeInterval.end < u1->timeInterval.end )
+      {
+        ++jj;
+      }
+      else
+      {
+        //both ends are the same
+        ++ii;
+        ++jj;
+      }
+      if( ii < noCo1 && jj < noCo2)
+      {
+        m1->Get( ii, u1);
+        m2->Get( jj, u2);
+      }
     }
-};
-
-Instant ActiveKey::currtime;
-typedef multimap< ActiveKey, ActiveElem >::const_iterator CI;
-typedef multimap< ActiveKey, ActiveElem >::iterator IT;
+  }
+  return hasResult;
+}
 
 IT checkFirstK( IT checkIt, int k, multimap< ActiveKey, ActiveElem >& m, 
                int& outpos)
@@ -759,10 +845,29 @@ IT checkFirstK( IT checkIt, int k, multimap< ActiveKey, ActiveElem >& m,
   }
 }
 
-void changeTupleUnit( Tuple *tuple, int attrNr, Instant start, 
+Tuple* changeTupleUnit( Tuple *tuple, int attrNr, Instant start, 
   Instant end, bool lc, bool rc)
 {
-  ///??????????????????????????? Code fehlt noch
+  Tuple* res = new Tuple( tuple->GetTupleType() );
+  for( int ii = 0; ii < tuple->GetNoAttributes(); ++ii)
+  {
+    if( ii != attrNr )
+    {
+      res->CopyAttribute( ii, tuple, ii);
+    }
+    else
+    {
+      const UPoint* upointAttr 
+          = (const UPoint*)tuple->GetAttribute(attrNr);
+      Coord x1, y1, x2, y2;
+      GetPosition( upointAttr, start, x1, y1);
+      GetPosition( upointAttr, end, x2, y2);
+      Interval<Instant> iv( start, end, lc, rc);
+      UPoint* up = new UPoint( iv, x1, y1, x2, y2);
+      res->PutAttribute( ii, up);
+    }
+  }
+  return res;
 }
 
 
@@ -886,6 +991,23 @@ int knearestFun (Word* args, Word& result, int message,
             cout << "hinter pIns def" << endl;
             IT itNew = localInfo->activeLine.insert(pIns);
             cout << "Elements: " << localInfo->activeLine.size() << endl;
+            CI itNeighbor = itNew;
+            Instant intersectTime( start.GetType() );
+            if( ++itNeighbor != localInfo->activeLine.end() &&
+              intersects( elem.distance, itNeighbor->first.distance, 
+              start, intersectTime ))
+            {
+              localInfo->eventQueue.push( EventElem(E_INTERSECT, intersectTime, 
+                elem.tuple, itNeighbor->second.tuple) );
+            }
+            itNeighbor = itNew;
+            if( itNeighbor != localInfo->activeLine.begin() &&
+              intersects( elem.distance, (--itNeighbor)->first.distance, 
+              start, intersectTime ))
+            {
+              localInfo->eventQueue.push( EventElem(E_INTERSECT, intersectTime, 
+                elem.tuple, itNeighbor->second.tuple) );
+            }
             if( localInfo->activeLine.size() > (unsigned)localInfo->k )
             {
               //check if the first k has changed. Then give out the k+1.
@@ -897,10 +1019,11 @@ int knearestFun (Word* args, Word& result, int message,
               {
                 //something in the first k has changed
                 //now give out the element "it", but only until this time. 
-                Tuple* cloneTuple = it->second.tuple->Clone();
-                //now change the unit-attribut to the new time interval
-                changeTupleUnit( cloneTuple, attrNr, it->second.start, 
-                  elem.pointInTime, it->second.lc, true);
+                //Clone the tuple and change the unit-attribut to the 
+                //new time interval
+                Tuple* cloneTuple = changeTupleUnit( it->second.tuple, 
+                  attrNr, it->second.start, elem.pointInTime, 
+                  it->second.lc, true);
                 it->second.start = elem.pointInTime;
                 it->second.lc = false;
                 result = SetWord(cloneTuple);
@@ -932,15 +1055,38 @@ int knearestFun (Word* args, Word& result, int message,
                 localInfo->activeLine, pos);
               if( pos < localInfo->k )
               {
-                cloneTuple = itDel->second.tuple->Clone();
-                changeTupleUnit( cloneTuple, attrNr, itDel->second.start, 
-                  elem.pointInTime, itDel->second.lc, elem.up->timeInterval.rc);
+                cloneTuple = changeTupleUnit( itDel->second.tuple, attrNr, 
+                  itDel->second.start, elem.pointInTime, itDel->second.lc, 
+                  elem.up->timeInterval.rc);
               }
               if( it != localInfo->activeLine.end() )
               {
                 it->second.start = elem.pointInTime;
                 it->second.lc = false;
               }
+              //now calculate the intersection of the neighbors
+              if( itDel != localInfo->activeLine.begin() )
+              {
+                cout << "Calculate intersection after delete" << endl;
+                CI itNeighbor1 = itDel;
+                ++itNeighbor1;
+                if( itNeighbor1 != localInfo->activeLine.end() )
+                {
+                  CI itNeighbor2 = itDel;
+                  --itNeighbor2;
+                  Instant intersectTime( elem.pointInTime.GetType() );
+                  if( intersects( itNeighbor1->first.distance, 
+                    itNeighbor2->first.distance, 
+                    elem.pointInTime, intersectTime ) )
+                  {
+                    localInfo->eventQueue.push( EventElem(E_INTERSECT, 
+                      intersectTime, itNeighbor1->second.tuple, 
+                      itNeighbor2->second.tuple) );
+                  }
+                }
+                cout << "after calculation intersection after delete" << endl;
+              }
+
               elem.distance->Destroy();
               delete elem.distance;
               elem.tuple->DeleteIfAllowed();
