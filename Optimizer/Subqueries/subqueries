@@ -1,0 +1,49 @@
+
+(DATABASE SUBQUERIES 
+	(TYPES)
+    (OBJECTS  
+		(OBJECT parts
+			()
+			(rel
+				(tuple
+					(
+						(pnum int)
+						(qoh int))))
+			(
+				(3 6)
+				(10 1)
+				(8 0)))
+		(OBJECT supply
+			()
+			(rel
+				(tuple
+					(
+						(pnum int)
+						(quan int)
+						(shipdate int))))
+			(
+				(3 4 19790307)
+				(3 2 19780110)
+				(10 1 19780806)
+				(10 2 19811008)
+				(8 5 19830705)))
+				
+		(OBJECT R
+			()
+			(rel
+				(tuple
+					(
+						(X string))))
+			(
+				("A")
+				("B")))
+		(OBJECT S
+			()
+			(rel
+				(tuple
+						(
+							(Y string))))
+			(
+				("B")
+				("C")
+				("E")))))
