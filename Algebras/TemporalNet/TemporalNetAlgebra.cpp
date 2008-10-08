@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2007 - October 2007 Martin Scheppokat
 
-February 2008 - June 2008 Simone Jandt
+February 2008 - October 2008 Simone Jandt
 
 Defines, includes, and constants
 
@@ -1747,7 +1747,6 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) {
                     pStart, pEnd));
             pStart = pEnd;
           } else {
-            tInter1 = tStart;
             while (lrsNext->lrsPos < pCurrUnit->p1.GetPosition()){
               tInter2 = CurrUnit.TimeAtPos(lrsNext->lrsPos);
               pRouteCurve->Get(lrsNext->hsPos, hs);
@@ -1772,7 +1771,7 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) {
             if (tInter1 >= tEnd) {
               tEnd = tInter1 + correcture;
               bendcorrecture = true;
-              tEndNew = tInter2;
+              tEndNew = tEnd;
             }
             mp->Add(UPoint(Interval<Instant>(tInter1, tEnd, true, false),
                           pStart, pEnd));
@@ -1783,7 +1782,7 @@ void MGPoint::Mgpoint2mpoint(MPoint *mp) {
           if (tInter1 >= tEnd) {
             tEnd = tInter1 + correcture;
             bendcorrecture = true;
-            tEndNew = tInter2;
+            tEndNew = tEnd;
           }
           mp->Add(UPoint(Interval<Instant>(tInter1, tEnd, true, false),
                           pStart, pEnd));
