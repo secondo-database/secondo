@@ -323,7 +323,17 @@ Returns true if the gpoint is inside the gline false elsewhere.
 
     bool Inside(GLine *gl);
 
+/*
+Returns true if two gpoint are identical.
+
+*/
+
     bool operator== (const GPoint& p) const;
+
+/*
+Returns a point degenerated rectangle as network bounding box of the gpoint
+
+*/
 
     inline const Rectangle<2> BoundingBox() const {
       assert(m_bDefined);
@@ -333,6 +343,13 @@ Returns true if the gpoint is inside the gline false elsewhere.
                           m_xRouteLocation.d,
                           m_xRouteLocation.d);
     }
+
+/*
+Returns a gline representing the shortest path between two GPoint.
+
+*/
+
+  bool ShortestPath(GPoint *ziel, GLine *result);
 
   private:
 
@@ -1246,6 +1263,13 @@ Method GetAdjacentSections
                              bool in_bUpDown,
                              vector<DirectedSection> &inout_xSections);
 
+/*
+GetSections on RouteInterval.
+
+*/
+
+    void GetSectionsOfRouteInterval(RouteInterval in_ri,
+                                    vector<int> &io_SectionIds);
 
 /*
 2.6.4 Static methods of Class ~Network~ supporting the type constructor
@@ -1352,6 +1376,12 @@ values of the junction on this routes.
 
  void GetJunctionMeasForRoutes(CcInt *pLastRouteId, CcInt *pCurrentSectionRid,
                               double& rid1meas, double& rid2meas);
+
+/*
+Returns the section with the given id.
+
+*/
+ Tuple* GetSection(int n);
 
   private:
 
@@ -1632,6 +1662,9 @@ Returns true if the glines intersect false elswhere.
 
   void Clear();
 
+  GLine& operator=( const GLine& l );
+
+  bool operator== (const GLine& p) const;
 
   private:
 
@@ -1856,5 +1889,7 @@ struct RITree {
   double m_dStart, m_dEnd;
   RITree *m_left, *m_right;
 };
+
+
 
 #endif // __NETWORK_ALGEBRA_H__

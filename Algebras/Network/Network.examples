@@ -29,7 +29,14 @@ Operator : shortest_path
 Number   : 1
 Signature: gpoint x gpoint -> gline
 Example  : query shortest_path(X_GPOINT, X_GPOINT2);
-Result   : (gline(1((2 0.0 1.0)(1 385.0474775448921 773.1299430080975)(1 1.0 385.04744775448921))))
+Result   : (gline(1((1 1.0 773.1299430080975)(2 0.0 1.0))))
+Tolerance: %0.01
+
+Operator : shortest_path
+Number   : 2
+Signature: gpoint x gpoint -> gline
+Example  : query shortest_path([const gpoint value (1 1 0.0 0)],[const gpoint value(1 1 0.5 0)]);
+Result   : (gline(1((1 0.0 0.5))))
 Tolerance: %0.01
 
 Operator : length
@@ -91,6 +98,18 @@ Number   : 2
 Signature: gpoint x gpoint -> bool
 Example  : query X_GPOINT = X_GPOINT;
 Result   : TRUE
+
+Operator : =
+Number   : 3
+Signature: gline x gline -> bool
+Example  : query [const gline value(1((1 0.0 0.5)))] = [const gline value(1((1 0.0 0.5)))]
+Result   : TRUE
+
+Operator : =
+Number   : 4
+Signature: gline x gline -> bool
+Example  : query [const gline value(1((1 0.0 1.5)))] = [const gline value(1((1 0.0 0.5)))]
+Result   : FALSE
 
 Operator : line2gline
 Number   : 1
