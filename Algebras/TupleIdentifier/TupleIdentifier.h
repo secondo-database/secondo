@@ -1,8 +1,8 @@
 /*
----- 
-This file is part of SECONDO. 
+----
+This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -62,7 +62,7 @@ class TupleIdentifier: public StandardAttribute
   inline TupleIdentifier() {};
 /*
 This constructor should not be used.
-  
+
 */
   TupleIdentifier( bool DEFINED, TupleId TID = 0 );
   TupleIdentifier(const TupleIdentifier& source);
@@ -71,13 +71,19 @@ This constructor should not be used.
   void     SetTid( const TupleId tid);
   TupleIdentifier*   Clone() const;
   ostream& Print( ostream& os ) const;
-  inline bool IsDefined() const 
-  { 
-    return (defined); 
+  inline bool IsDefined() const
+  {
+    return (defined);
   }
-  
-  inline void SetDefined(bool DEFINED) 
-  { 
+
+  inline void Set(const bool DEFINED, const TupleId ID)
+  {
+    this->defined = DEFINED;
+    this->tid = static_cast<long>(ID);
+  }
+
+  inline void SetDefined(bool DEFINED)
+  {
     this->defined = DEFINED;
   }
 
@@ -85,33 +91,33 @@ This constructor should not be used.
   {
     return sizeof( *this );
   }
-    
+
   inline size_t HashValue() const
-  { 
-    return (defined ? tid : 0); 
+  {
+    return (defined ? tid : 0);
   }
-  
+
   void CopyFrom(const StandardAttribute* right);
-  
+
   inline int Compare(const Attribute *arg) const
   {
     const TupleIdentifier* tupleI = (const TupleIdentifier*)(arg);
     bool argDefined = tupleI->IsDefined();
-    if(!defined && !argDefined) 
+    if(!defined && !argDefined)
       return 0;
-    if(!defined) 
+    if(!defined)
       return -1;
-    if(!argDefined) 
+    if(!argDefined)
       return 1;
-    if ( tid < tupleI->GetTid() ) 
+    if ( tid < tupleI->GetTid() )
       return (-1);
-    if ( tid > tupleI->GetTid()) 
+    if ( tid > tupleI->GetTid())
       return (1);
     return (0);
   }
 
   bool Adjacent(const Attribute *arg) const;
-  
+
  private:
   long tid;
   bool defined;

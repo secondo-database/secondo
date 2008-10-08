@@ -57,3 +57,11 @@ Number   : 1
 Signature: tid -> int
 Example  : query ten feed addid extend[tidint: tid2int(.TID)] extract[tidint]
 Result   : 1
+
+Operator : int2tid
+Number   : 1
+Signature: int -> tid
+Example  : query int2tid(5) feed transformstream ten gettuples extract[no]
+Result   : 5
+Remark   : Caution: Possible problems due to different value spaces. NEVER use this operator!
+

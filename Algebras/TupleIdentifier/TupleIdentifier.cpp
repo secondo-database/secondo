@@ -393,6 +393,16 @@ ListExpr TIDtid2intTypeMap (ListExpr args)
   return nl->TypeError();
 }
 
+ListExpr TIDint2tidTypeMap (ListExpr args)
+{
+  string error = "int expected";
+  if( (nl->ListLength(args) == 1) && (nl->IsEqual(nl->First(args),"int"))){
+    return nl->SymbolAtom("tid");
+  }
+  ErrorReporter::ReportError(error);
+  return nl->TypeError();
+}
+
 /*
 3.2.2 Value mapping function of operator ~addtupleid~
 
@@ -580,6 +590,17 @@ int TIDtid2intVM ( Word* args, Word& result,
   return 0;
 }
 
+int TIDint2tidVM ( Word* args, Word& result,
+                   int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  TupleIdentifier *res = static_cast<TupleIdentifier*>(result.addr);
+  CcInt* a = static_cast<CcInt*>(args[0].addr);
+  res->Set(a->IsDefined(),static_cast<TupleId>(a->GetIntval()));
+  return 0;
+}
+
+
 /*
 3.3.3 Specification of operators ~=, \#, $<$, $>$, $\leq$, $\geq$~
 
@@ -687,6 +708,19 @@ const string Tid2IntSpec =
     "<text>Caution: Possible problems due to different value spaces.</text--->"
     ") )";
 
+const string Int2TidSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Result\" \"Comment\" ) "
+    "( <text>int -> tid</text--->"
+    "<text>int2tid( _ )</text--->"
+    "<text>Converts the int to a tid.</text--->"
+    "<text>query int2tid(5) feed transformstream ten gettuples extract[no]"
+    "</text--->"
+    "<text>5</text--->"
+    "<text>Caution: Possible problems due to different value spaces. "
+    "NEVER use this operator!</text--->"
+    ") )";
+
 /*
 3.3.4 Definition of operators ~=, \#, $<$, $>$, $\leq$, $\geq$~
 
@@ -748,6 +782,14 @@ Operator tidtid2int (
          TIDtid2intTypeMap         // type mapping
                   );
 
+Operator tidint2tid (
+         "int2tid",                // name
+         Int2TidSpec,              // specification
+         TIDint2tidVM,             // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         TIDint2tidTypeMap         // type mapping
+                  );
+
 /*
 5 Creating the Algebra
 
@@ -770,6 +812,7 @@ class TupleIdentifierAlgebra : public Algebra
     AddOperator( &tidgreater );
     AddOperator( &tidgeq );
     AddOperator( &tidtid2int );
+    AddOperator( &tidint2tid );
   }
   ~TupleIdentifierAlgebra() {};
 };

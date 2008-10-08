@@ -26,3 +26,4 @@ operator < alias LT pattern _ infixop _
 operator >= alias GE pattern _ infixop _
 operator <= alias LE pattern _ infixop _
 operator tid2int alias TID2INT pattern op( _ )
+operator int2tid alias INT2TID pattern op( _ )
