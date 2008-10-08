@@ -383,6 +383,16 @@ AddTupleIdTypeMap(ListExpr args)
              newAttrList));
 }
 
+ListExpr TIDtid2intTypeMap (ListExpr args)
+{
+  string error = "TID expected";
+  if( (nl->ListLength(args) == 1) && (nl->IsEqual(nl->First(args),"tid"))){
+    return nl->SymbolAtom(symbols::INT);
+  }
+  ErrorReporter::ReportError(error);
+  return nl->TypeError();
+}
+
 /*
 3.2.2 Value mapping function of operator ~addtupleid~
 
@@ -525,9 +535,8 @@ Comparison operators
 */
 
 template<int op>
-int
-TIDCompareTupleId( Word* args, Word& result,
-                   int message, Word& local, Supplier s )
+int TIDCompareTupleId( Word* args, Word& result,
+                       int message, Word& local, Supplier s )
 {
   assert((op >= 0) && (op <=5));
   result = qp->ResultStorage( s );
@@ -559,6 +568,16 @@ TIDCompareTupleId( Word* args, Word& result,
   // ERROR:
   ((CcBool *)result.addr)->Set( false, false );
   return (0);
+}
+
+int TIDtid2intVM ( Word* args, Word& result,
+                   int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcInt *res = static_cast<CcInt*>(result.addr);
+  TupleIdentifier* a = static_cast<TupleIdentifier*>(args[0].addr);
+  res->Set(a->IsDefined(),static_cast<int>(a->GetTid()));
+  return 0;
 }
 
 /*
@@ -656,6 +675,18 @@ const string GeqTupleIdSpec =
     "All in-memory tuples have tid=0.</text--->"
     ") )";
 
+const string Tid2IntSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Result\" \"Comment\" ) "
+    "( <text>tid -> int</text--->"
+    "<text>tid2int( _ )</text--->"
+    "<text>Converts the TID to an int value.</text--->"
+    "<text>query ten feed addid extend[tidint: tid2int(.TID)] "
+    "extract[tidint]</text--->"
+    "<text>1</text--->"
+    "<text>Caution: Possible problems due to different value spaces.</text--->"
+    ") )";
+
 /*
 3.3.4 Definition of operators ~=, \#, $<$, $>$, $\leq$, $\geq$~
 
@@ -709,6 +740,13 @@ Operator tidnequal (
          EqualTupleIdTypeMap       // type mapping
                   );
 
+Operator tidtid2int (
+         "tid2int",                // name
+         Tid2IntSpec,              // specification
+         TIDtid2intVM,             // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         TIDtid2intTypeMap         // type mapping
+                  );
 
 /*
 5 Creating the Algebra
@@ -731,7 +769,7 @@ class TupleIdentifierAlgebra : public Algebra
     AddOperator( &tidleq );
     AddOperator( &tidgreater );
     AddOperator( &tidgeq );
-
+    AddOperator( &tidtid2int );
   }
   ~TupleIdentifierAlgebra() {};
 };

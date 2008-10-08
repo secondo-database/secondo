@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -19,11 +19,10 @@
 
 operator tupleid alias TUPLEID pattern op( _ )
 operator addtupleid alias ADDTUPLEID pattern _ op
-
-#Already defined in the StandardAlgebra:
-#operator = alias EQ pattern _ infixop _
-#operator # alias NE pattern _ infixop _
-#operator > alias GT pattern _ infixop _
-#operator < alias LT pattern _ infixop _
-#operator >= alias GE pattern _ infixop _
-#operator <= alias LE pattern _ infixop _
+operator = alias EQ pattern _ infixop _
+operator # alias NE pattern _ infixop _
+operator > alias GT pattern _ infixop _
+operator < alias LT pattern _ infixop _
+operator >= alias GE pattern _ infixop _
+operator <= alias LE pattern _ infixop _
+operator tid2int alias TID2INT pattern op( _ )
