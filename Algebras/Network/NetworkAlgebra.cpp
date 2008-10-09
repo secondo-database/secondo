@@ -3574,6 +3574,11 @@ void* GLine::Cast(void* addr)
   return new (addr) GLine();
 }
 
+int GLine::Size() const
+{
+  return m_xRouteIntervals.Size();
+}
+
 int GLine::SizeOf()
 {
   return sizeof(GLine);
@@ -3613,7 +3618,7 @@ int GLine::Compare( const Attribute* arg ) const
 
 GLine& GLine::operator=( const GLine& l )
 {
-  if( !l.m_xRouteIntervals.Size() > 0 )
+  if( l.m_xRouteIntervals.Size() > 0 )
   {
     m_xRouteIntervals.Clear();
     m_xRouteIntervals.Resize( l.m_xRouteIntervals.Size() );
@@ -3915,7 +3920,7 @@ double GLine::Distance (GLine* pgl2){
 }
 
 
-void GLine::Uniongl(GLine *pgl2, GLine *res){
+void GLine::Uniongl(GLine *pgl2, GLine *&res){
   const RouteInterval *pRi1, *pRi2;
   if (!IsDefined() || NoOfComponents() == 0) {
     if (pgl2->IsDefined() && pgl2->NoOfComponents() > 0){
@@ -4617,10 +4622,13 @@ stack to turn in right order.
             ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
           sectMeas2 =
             ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+          upDown = pElem->upDownFlag;
           if (pElem->sectID != startSectTID){
-            riStack->Push(actRouteId, sectMeas1, sectMeas2, riStack);
+            if (upDown)
+              riStack->Push(actRouteId, sectMeas1, sectMeas2, riStack);
+            else
+              riStack->Push(actRouteId, sectMeas2, sectMeas1, riStack);
             lastSectId = pElem->sectID;
-            upDown = pElem->upDownFlag;
             pElem = visitedSect->Find(pElem->beforeSectId);
           } else {
             end = true;

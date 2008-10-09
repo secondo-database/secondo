@@ -1588,6 +1588,10 @@ The simple constructor. Should not be used.
 
     static int SizeOf();
 
+    size_t Sizeof() const;
+
+    int Size() const;
+
     static ListExpr Property();
 
     static bool Check( ListExpr type, ListExpr& errorInfo );
@@ -1595,8 +1599,6 @@ The simple constructor. Should not be used.
     bool IsDefined() const;
 
     void SetDefined(bool);
-
-    size_t Sizeof() const;
 
     int Compare(const Attribute*) const;
 
@@ -1640,7 +1642,7 @@ Computes the union of 2 glines.
 */
 
 
-    void Uniongl (GLine* pgl2, GLine *res);
+    void Uniongl (GLine* pgl2, GLine *&res);
 
 /*
 Translates a gline value into a line value.
