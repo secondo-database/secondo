@@ -100,6 +100,8 @@ Javagui/tools/MovingPointBuilder.java
 Javagui/tools/PeriodicPointBuilder.java
 Javagui/tools/DisturberGui.java
 Javagui/tools/PointDataDisturber.java
+Javagui/tools/PeriodExtractor.java
+Javagui/tools/UnitWriter.java
 
 Documents/JavaWrapper.pdf
 Documents/Secondo-Ideas.txt
