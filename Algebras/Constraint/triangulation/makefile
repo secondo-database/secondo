@@ -17,22 +17,13 @@ LDFLAGS := -lm
 
 
 OBJECTS := construct.o misc.o monotone.o tri.o
-APP := triangulate
-LIBFILE := ../../../lib/libTriangulation.a 
 
 .PHONY: all
-all: $(LIBFILE) # $(APP)
-
-$(APP): $(OBJECTS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+all: $(OBJECTS) 
 
 $(OBJECTS): $(INC)/triangulate.h
 
-$(LIBFILE): construct.o misc.o monotone.o tri.o
-	ar -rs $@ $^
-	ranlib $@
 
 .PHONY: clean 
 clean:
-	rm -f $(OBJECTS) $(APP) $(LIBFILE)
-
+	rm -f $(OBJECTS)
