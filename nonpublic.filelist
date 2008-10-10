@@ -9,12 +9,11 @@
 ###                                        ###
 
 # Research in progress
-TopOpsAlgebra TopOps
-TopRelAlgebra TopRel
 PeriodicAlgebra Periodic
 RoseAlgebra Rose
 RemoteStreamAlgebra RemoteStream
 PartitionedStreamAlgebra PartitionedStream
+
 
 # Student's algebras
 HierarchicalGeoAlgebra HierarchicalGeo
@@ -24,6 +23,16 @@ WebAlgebra Web
 ChessAlgebra Chess
 RasterAlgebra Raster
 RasterSpatialAlgebra RasterSpatial
+MRegionOpsAlgebra MRegionOps
+OptAuxAlgebra OptAux
+NearestNeighborAlgebra NearestNeighbor
+RegionInterpolationAlgebra RegionInterpolation
+UGridAlgebra UGrid
+
+# Java algebras - not longer supported
+JBBoxAlgebra JBBox
+FuzzyAlgebra Fuzzy
+
 
 ###             ###
 ### Directories ###
