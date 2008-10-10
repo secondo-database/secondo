@@ -64,7 +64,6 @@ ALGEBRAS     += FunctionAlgebra
 
 ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
 ALGEBRA_DEPS += jpeg
-ALGEBRA_DEPS += Triangulation 
 endif
 
 ifndef SECONDO_MIN_ALGEBRA_SET
@@ -128,8 +127,8 @@ ALGEBRAS     += UpdateRelationAlgebra
 
 # to use the import/export algebra, also the
 # topops and the toprel algebras has to be included
-#ALGEBRA_DIRS += IMEX
-#ALGEBRAS     += ImExAlgebra
+ALGEBRA_DIRS += IMEX
+ALGEBRAS     += ImExAlgebra
 
 #ALGEBRA_DIRS += PointSequence
 #ALGEBRAS     += PointSequenceAlgebra
@@ -140,11 +139,11 @@ ALGEBRAS     += MovingRegionAlgebra
 ALGEBRA_DIRS += PlaneSweep
 ALGEBRAS     += PlaneSweepAlgebra
 
-#ALGEBRA_DIRS += TopRel
-#ALGEBRAS     += TopRelAlgebra
+ALGEBRA_DIRS += TopRel
+ALGEBRAS     += TopRelAlgebra
 
-#ALGEBRA_DIRS += TopOps
-#ALGEBRAS     += TopOpsAlgebra
+ALGEBRA_DIRS += TopOps
+ALGEBRAS     += TopOpsAlgebra
 
 ALGEBRA_DIRS += PartitionedStream
 ALGEBRAS     += PartitionedStreamAlgebra
@@ -188,15 +187,11 @@ ALGEBRAS     += CollectionAlgebra
 #ALGEBRA_DIRS  += Web
 #ALGEBRAS      += WebAlgebra
 
-#ALGEBRA_DIRS  += Graph
-#ALGEBRAS      += GraphAlgebra
-
 #ALGEBRA_DIRS  += Cluster
 #ALGEBRAS      += ClusterAlgebra
 
 #ALGEBRA_DIRS  += Constraint 
 #ALGEBRAS      += ConstraintAlgebra
-#ALGEBRA_DEPS  += Triangulation 
 
 #ALGEBRA_DIRS  += MTree
 #ALGEBRAS      += MTreeAlgebra
