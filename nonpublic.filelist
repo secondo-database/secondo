@@ -28,6 +28,10 @@ OptAuxAlgebra OptAux
 NearestNeighborAlgebra NearestNeighbor
 RegionInterpolationAlgebra RegionInterpolation
 UGridAlgebra UGrid
+ConstraintAlgebra Constraint
+PointSequenceAlgebra PointSequence
+ConstraintAlgebra Constraint
+
 
 # Java algebras - not longer supported
 JBBoxAlgebra JBBox
