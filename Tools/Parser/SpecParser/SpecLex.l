@@ -41,6 +41,7 @@ otherChar      [^\(\)\"A-Za-z0-9 \[\]\_\,\;\n  ]
 math           {otherChar}{1,20}
 comment        ^#.*
 space          [   \n]+
+autobuffer     "!!"
 
 %option yylineno
 
@@ -49,6 +50,7 @@ space          [   \n]+
 {comment}       {return ZZCOMMENT;} 
 {space}    ; /* ignore spaces */
 
+{autobuffer}  {return ZZFORCEBUFFER; }
 fun          {yylval.text = strdup(yytext); return ZZFUN;}
 operator     {return ZZOPERATOR;}
 pattern      {return ZZPATTERN;}

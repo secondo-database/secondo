@@ -137,6 +137,8 @@ using namespace std;
 
 #include "CharTransform.h"
 
+extern bool USE_AUTO_BUFFER;
+
 /*
 The System Tables
 
@@ -588,6 +590,7 @@ separate functions which should be named Command\_<name>.
     case 1:  // executable, text form
     {
       SecParser sp;            // translates SECONDO syntax into nested list
+      USE_AUTO_BUFFER = RTFlag::isActive("SI:AUTO_BUFFER");
       string listCommand = ""; // buffer for command in list form
 
       if ( sp.Text2List( commandText, listCommand ) != 0 )

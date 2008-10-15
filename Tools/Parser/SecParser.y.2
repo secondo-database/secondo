@@ -83,10 +83,17 @@ command    :  basic
     |  transaction
     |  database
     |  inquiries
+    |  set
     ;  
 
 basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
-        {PRINTF("(type "); PRINT($2); 
+        {string equalstr;
+        NestedText::CopyOut( $3, equalstr );
+        if(equalstr!="=") {
+          yyerror("type declataion expects a '=' at the third position");
+          return -1;
+        }
+        PRINTF("(type "); PRINT($2); 
         PRINTF(" = "); PRINT($4); PRINTF(")\n");}
     |  ZZDELETE ZZTYPE ZZIDENTIFIER  
         {PRINTF("(delete type "); PRINT($3); 
@@ -113,12 +120,24 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
 
     |    {paramno=0; emptystack();}
       ZZLET ZZIDENTIFIER ZZINFIXOP  valueexpr
-        {PRINTF("(let "); PRINT($3);
+       {string equalstr;
+        NestedText::CopyOut( $3, equalstr );
+        if(equalstr!="=") {
+          yyerror("let command expects a '=' at the third position");
+          return -1;
+        }
+        PRINTF("(let "); PRINT($3);
         PRINTF(" = "); PRINT($5); PRINTF(")\n");}
 
     |    {paramno=0; emptystack();}
       ZZDERIVE ZZIDENTIFIER ZZINFIXOP valueexpr
-        {PRINTF("(derive "); PRINT($3);
+       {string equalstr;
+        NestedText::CopyOut( $3, equalstr );
+        if(equalstr!="=") {
+          yyerror("derive command expects a '=' at the third position");
+          return -1;
+        }
+        PRINTF("(derive "); PRINT($3);
         PRINTF(" = "); PRINT($5); PRINTF(")\n");}
 
     |  ZZPERSISTENT ZZIDENTIFIER
@@ -183,6 +202,26 @@ inquiries  :  ZZLIST ZZDATABASES
         {PRINTF("(list counters)\n");}
     ;
 
+set : ZZIDENTIFIER ZZSTRING ZZINFIXOP ZZBOOLEAN  {
+        string setstr;
+        NestedText::CopyOut( $1, setstr );
+        string equalstr;
+        NestedText::CopyOut( $3, equalstr );
+        if(setstr!="set"){
+          yyerror("expected set but got ZZIDENTIFIER");
+          return -1;
+        }
+        if(equalstr!="="){
+          yyerror("'=' expected in set command");
+          return -1;
+        }
+        PRINTF("( set ");
+        PRINT($2);
+        PRINTF(" = ");
+        PRINT($4);
+        PRINTF(" )");
+      }
+    ;
 
 /* typeexpr*/
 
@@ -424,6 +463,18 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
         NestedText::Concat($3,
         NestedText::AtomC(")")     ))))));
       }
+    | valueexpr ZZINFIXOP_BUF valueexpr
+      {$$ = NestedText::Concat(
+        USE_AUTO_BUFFER?NestedText::AtomC("( !  (")
+                       :NestedText::AtomC("("), 
+        NestedText::Concat($2, 
+        NestedText::Concat(NestedText::AtomC(" "), 
+        NestedText::Concat($1,
+        NestedText::Concat(NestedText::AtomC(" "), 
+        NestedText::Concat($3,
+        USE_AUTO_BUFFER?NestedText::AtomC("))")
+                       :NestedText::AtomC(")")     ))))));
+      }
     | ZZPREFIXOP '(' valueexprlistcomma ')'
       {$$ = NestedText::Concat(NestedText::AtomC("("), 
         NestedText::Concat($1, 
@@ -431,10 +482,28 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
         NestedText::Concat($3,
         NestedText::AtomC(")")     ))));
       }
+    | ZZPREFIXOP_BUF '(' valueexprlistcomma ')'
+      {$$ = NestedText::Concat(
+        USE_AUTO_BUFFER? NestedText::AtomC("( ! (")
+                       : NestedText::AtomC("("), 
+        NestedText::Concat($1, 
+        NestedText::Concat(NestedText::AtomC(" "), 
+        NestedText::Concat($3,
+        USE_AUTO_BUFFER?NestedText::AtomC("))")
+                      :NestedText::AtomC(")") ))));
+      }
     | ZZPREFIXOP '(' ')'
       {$$ = NestedText::Concat(NestedText::AtomC("("), 
         NestedText::Concat($1, 
         NestedText::AtomC(")")     ));
+      }
+    | ZZPREFIXOP_BUF '(' ')'
+      {$$ = NestedText::Concat(
+        USE_AUTO_BUFFER?NestedText::AtomC("( ! (")
+                       :NestedText::AtomC("("), 
+        NestedText::Concat($1, 
+        USE_AUTO_BUFFER?NestedText::AtomC("))")
+                       :NestedText::AtomC(")")     ));
       }
       
 

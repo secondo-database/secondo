@@ -90,6 +90,9 @@ RTFlags += SI:NoCommandEcho
 # the applications list memory.
 #RTFlags += SI:ResultList
 
+#Adds the buffer operator to marked operators
+#RTFlags += SI:AUTO_BUFFER
+
 
 # passwords: uncomment this line if you want to
 # restrict the access to secondo

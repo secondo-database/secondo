@@ -131,7 +131,19 @@ struct trans{
     bool            isSimple;
     bool            hasfunctions;
     bool            isPostfix; // postfix notation needs a special treatment 
+    bool            bufferForced;
 } currenttranslation;
+
+
+ostream& operator<<(ostream& o, const struct trans& t){
+  return o << "["  << t.token->str() << ", "
+           <<      t.opname->str() << ", "
+           <<      t.pattern->str() << ", "
+           <<      t.alias << ", "
+           <<      t.isPostfix << ", "
+           <<      t.bufferForced << "]";
+
+}
 
 
 /*
@@ -153,7 +165,8 @@ bool init(){
   currenttranslation.pattern = new ostringstream();
   currenttranslation.hasfunctions = false;
   currenttranslation.isSimple = true;
-  currenttranslation.isPostfix=false;
+  currenttranslation.isPostfix = false;
+  currenttranslation.bufferForced = false;
   // initialize outputfiles
   lexrules = new ofstream("lexrules"); 
   if(lexrules==NULL)
@@ -227,6 +240,7 @@ void reset(){
   currenttranslation.hasfunctions = false;
   currenttranslation.isSimple = true;
   currenttranslation.isPostfix=false;
+  currenttranslation.bufferForced = false;
   currenttranslation.arguments1->clear();
   currenttranslation.arguments2->clear();
   currenttranslation.implicitNames->clear();
@@ -240,16 +254,20 @@ void reset(){
 
 1.9.1  Print a simple non postfix translation
 
-This function is very easy beacuse all non postfix operators
+This function is very easy because all non-postfix 
+(infix, prefix) operators
 can't have any function symbols. All infix and prefix 
-operator can be handled with standard definitions already
+operators can be handled with standard definitions already
 defined in the Parser. The only thing to do is to write a 
 appropriate rule in the lex specification.
 
 */
 void print_simple_nonpostfix(){
     const string opname = currenttranslation.opname->str();  
-    const string token = currenttranslation.token->str();
+    string token = currenttranslation.token->str();
+    if(currenttranslation.bufferForced){
+      token +=  "_BUF";
+    }
     (*lexrules)  << "\"" << opname << "\" ";
     (*lexrules)  << " { yylval=NestedText::Atom(yytext,yyleng); return ";
     (*lexrules)  << token << ";}"  << endl; 
@@ -272,7 +290,11 @@ void print_simple_postfix(){
   if(size2>0){
      token = token + "_a";
   }
-  
+
+  if(currenttranslation.bufferForced){
+    token += "_autobuffer";
+  }
+
   if(simplepostfixtokens.find(token)==simplepostfixtokens.end()){
     /*
       The rule is not created in this case, we make entries in the
@@ -307,7 +329,12 @@ void print_simple_postfix(){
     string space = "NestedText::AtomC(\" \")";
     (*yaccrules1) << "     { $$ =" << endl;
     (*yaccrules1) << "          NestedText::Concat( " << endl;
-    (*yaccrules1) << "          NestedText::AtomC(\"(\")," << endl; 
+    if(currenttranslation.bufferForced) {
+       (*yaccrules1) << "       (USE_AUTO_BUFFER? NestedText::AtomC(\"( ! (\")"
+                        "                      : NestedText::AtomC(\"(\")) ," << endl; 
+    } else {
+       (*yaccrules1) << "          NestedText::AtomC(\"(\")," << endl; 
+    }
     (*yaccrules1) << "          NestedText::Concat( $" 
                   << (size+1) 
                   << "," << endl;
@@ -323,14 +350,19 @@ void print_simple_postfix(){
          (*yaccrules1) << "     NestedText::Concat( $" << (size+3) << "," 
                       << endl;
     }
-    (*yaccrules1) << "      NestedText::AtomC(\")\")"; 
+    if(currenttranslation.bufferForced){
+       (*yaccrules1) << "      (USE_AUTO_BUFFER? NestedText::AtomC(\"))\")";
+       (*yaccrules1) << "                     : NestedText::AtomC(\")\"))"; 
+    }else{
+       (*yaccrules1) << "      NestedText::AtomC(\")\")"; 
+    }
     for(int i=0;i< size;i++){
         (*yaccrules1) << "))";
     }
     if(size2>0){
         (*yaccrules1) << "))";
     }
-    (*yaccrules1) << "));";
+   (*yaccrules1) << "));";
     (*yaccrules1) << "      }\n";
   }
   // write the rule for lex
@@ -413,7 +445,12 @@ void print_complex_postfix_without_implicit_parameters(){
   string space = "NestedText::AtomC(\" \")";
   (*yaccrules1) << "     { $$ =";
   (*yaccrules1) << "     NestedText::Concat( " << endl;
-  (*yaccrules1) << "     NestedText::AtomC(\"(\")," << endl; 
+  if(currenttranslation.bufferForced){
+     (*yaccrules1) << "     (USE_AUTO_BUFFER?NestedText::AtomC(\"( ! (\")"
+                      "                     :NestedText::AtomC(\"(\"))," << endl;
+  } else {
+     (*yaccrules1) << "     NestedText::AtomC(\"(\")," << endl;
+  }
   (*yaccrules1) << "     NestedText::Concat( $" 
                 << (size1+1) 
                 << "," << endl; // operatortoken
@@ -425,8 +462,12 @@ void print_complex_postfix_without_implicit_parameters(){
       (*yaccrules1) << "     NestedText::Concat(" << space << "," << endl;
       (*yaccrules1) << "     NestedText::Concat( $" << positions[i] << ",";
   }
-
-  (*yaccrules1) << "      NestedText::AtomC(\")\"))"; 
+  if(currenttranslation.bufferForced){
+     (*yaccrules1) << "      (USE_AUTO_BUFFER?NestedText::AtomC(\"))\")"
+                      "                      :NestedText::AtomC(\")\")))"; 
+  } else {
+     (*yaccrules1) << "      NestedText::AtomC(\")\"))"; 
+  }
   for(int i=0;i< size1+size2;i++){
       (*yaccrules1) << "))";
   }
@@ -518,7 +559,13 @@ void print_complex_postfix(){
   string space = "NestedText::AtomC(\" \")";
   (*yaccrules1) << "     { $$ =";
   (*yaccrules1) << "     NestedText::Concat( " << endl;
-  (*yaccrules1) << "      NestedText::AtomC(\"(\")," << endl; 
+  if(currenttranslation.bufferForced){
+     (*yaccrules1) << "      (USE_AUTO_BUFFER?NestedText::AtomC(\"( ! (\")"
+                      "                      :NestedText::AtomC(\"(\"))," 
+                   << endl; 
+  } else {
+     (*yaccrules1) << "      NestedText::AtomC(\"(\")," << endl; 
+  }
   (*yaccrules1) << "     NestedText::Concat( $" << (size1+1) << "," << endl; 
   for(int i=0; i<size1;i++){ // arguments before operator
       (*yaccrules1) << "     NestedText::Concat(" << space << "," << endl;
@@ -529,8 +576,13 @@ void print_complex_postfix(){
       (*yaccrules1) << "     NestedText::Concat( $" << positions[i] << ","
                     << endl;
   }
-
-  (*yaccrules1) << "      NestedText::AtomC(\")\"))" << endl; 
+  if(currenttranslation.bufferForced){
+     (*yaccrules1) << "      (USE_AUTO_BUFFER?NestedText::AtomC(\"))\")"
+                      "                      :NestedText::AtomC(\")\")))" 
+                   << endl; 
+  } else {
+     (*yaccrules1) << "      NestedText::AtomC(\")\"))" << endl; 
+  }
   for(int i=0;i< size1+size2;i++){
       (*yaccrules1) << "))";
   }
@@ -544,15 +596,27 @@ void print_complex_postfix(){
                   << "~Function~" << endl
                   << endl << "*/" << endl;
     (*yaccrules2) << funname << ":   naming "<< funname << "_1" <<  endl;
-    (*yaccrules2) << "      "
-                  << "{$$ = NestedText::Concat(NestedText::AtomC(\"(\"), " 
-                  << endl;
+    (*yaccrules2) << "      ";
+    if(currenttranslation.bufferForced){
+       (*yaccrules2)  << "{$$ = NestedText::Concat( "
+                      << "      (USE_AUTO_BUFFER?NestedText::AtomC(\"( ! (\")"
+                      << "                      :NestedText::AtomC(\"(\")), ";
+     } else {
+       (*yaccrules2)  << "{$$ = NestedText::Concat(NestedText::AtomC(\"(\"), ";
+     } 
+     (*yaccrules2) << endl;
     (*yaccrules2) << "            NestedText::Concat($1, " << endl;
     (*yaccrules2) << "            " 
                   << "NestedText::Concat(NestedText::AtomC(\" \")," 
                   << endl;
     (*yaccrules2) << "            NestedText::Concat($2, " << endl;
-    (*yaccrules2) << "            NestedText::AtomC(\")\")  ))));} " << endl;
+    if(currenttranslation.bufferForced){
+       (*yaccrules2) << "            (USE_AUTO_BUFFER?NestedText::AtomC(\"))\")"
+                     << "                            :NestedText::AtomC(\")\"))"
+                     << "   ))));} " << endl;
+    } else {
+       (*yaccrules2) << "            NestedText::AtomC(\")\")  ))));} " << endl;
+    }
     (*yaccrules2) << "      | " << funname << "_1   {$$ = $1;} " << endl;
     (*yaccrules2) << "     ; " << endl;
   }
@@ -672,7 +736,7 @@ void printtranslation(){
        cerr << " Names : ";
        for(int i=0;i<implicitNamesSize;i++)
             cerr << ((*currenttranslation.implicitNames)[i]) << endl;
-       cout << " Types : ";
+       cerr << " Types : ";
        for(int i=0;i<implicitTypesSize;i++)
             cerr << ((*currenttranslation.implicitTypes)[i]) << endl;
       finalize();
@@ -695,7 +759,7 @@ void printtranslation(){
 
 %token   ZZOPERATOR ZZPATTERN ZZFUN ZZOP ZZINFIXOP  ZZLIST
          ZZIMPLICIT ZZPARAMETER ZZPARAMETERS ZZTYPE ZZTYPES ZZFUNLIST 
-        ZZCOMMENT
+         ZZCOMMENT ZZFORCEBUFFER 
 
 %token<text> ZZIDENTIFIER  ZZSYMBOL ZZALIAS
 
@@ -714,7 +778,7 @@ specs      : spec
           | specs ZZCOMMENT
           ;
 
-spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit
+spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit bufferforced
             {   processedSpecifications++;
                 (*currenttranslation.opname) << $2;
                 currenttranslation.alias = $4;
@@ -722,6 +786,9 @@ spec      :  ZZOPERATOR name ZZALIAS ZZIDENTIFIER ZZPATTERN pattern implicit
                 string op = string($2);
                 string opWithPattern= op+" " + 
                                       currenttranslation.pattern->str();
+                if(currenttranslation.bufferForced ){
+                   opWithPattern +="!!";
+                }
                 if(operatornames.find(op)==operatornames.end()){   
                     operatornames.insert(op);
                     opnamesWithPattern.insert(opWithPattern);
@@ -886,6 +953,14 @@ implicit  : ZZIMPLICIT rest
 rest    : ZZPARAMETER parameterlist ZZTYPE typelist
         |  ZZPARAMETERS parameterlist ZZTYPES typelist
         ;
+
+bufferforced : ZZFORCEBUFFER 
+              { currenttranslation.bufferForced=true;
+               }
+             |{ currenttranslation.bufferForced=false;
+              }
+             ; 
+
 parameterlist : ZZIDENTIFIER
                 { currenttranslation.implicitNames->push_back(string($1)); 
                 }
