@@ -3273,32 +3273,31 @@ The simple constructor. Should not be used.
 */
   GLine::GLine()
   {
-    del.refs=1;
-    del.isDelete=true;
   }
 
   GLine::GLine(int in_iSize):
     m_xRouteIntervals(in_iSize)
   {
+    m_bDefined = false;
     m_bSorted = false;
     m_dLength = 0;
     del.refs=1;
     del.isDelete=true;
   }
 
-  GLine::GLine(GLine* in_xOther):
+  GLine::GLine(const GLine& in_xOther):
   m_xRouteIntervals(0)
   {
-    m_bDefined = in_xOther->m_bDefined;
-    m_bSorted = in_xOther->m_bSorted;
-    m_iNetworkId = in_xOther->m_iNetworkId;
+    m_bDefined = in_xOther.m_bDefined;
+    m_bSorted = in_xOther.m_bSorted;
+    m_iNetworkId = in_xOther.m_iNetworkId;
     m_dLength = 0.0;
     // Iterate over all RouteIntervalls
     const RouteInterval* pCurrentInterval;
-    for (int i = 0; i < in_xOther->m_xRouteIntervals.Size(); i++)
+    for (int i = 0; i < in_xOther.m_xRouteIntervals.Size(); i++)
     {
       // Get next Interval
-      in_xOther->m_xRouteIntervals.Get(i, pCurrentInterval);
+      in_xOther.m_xRouteIntervals.Get(i, pCurrentInterval);
 
       AddRouteInterval(pCurrentInterval->m_iRouteId,
                        pCurrentInterval->m_dStart,
@@ -3440,8 +3439,14 @@ void GLine::SetSorted(bool in_bSorted) {
 Word GLine::In(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct){
   GLine* pGline = new GLine(0);
+  if (nl->ListLength(instance) == 0) {
+    correct = true;
+    pGline->SetDefined(false);
+    return SetWord(pGline);
+  }
   if (nl->ListLength(instance) != 2) {
     correct = false;
+    delete pGline;
     cmsg.inFunError("Expecting (networkid (list of routeintervals))");
     return SetWord(Address(0));
   }
@@ -3449,20 +3454,22 @@ Word GLine::In(const ListExpr typeInfo, const ListExpr instance,
   ListExpr SecondElem = nl->Second(instance);
   if (!nl->IsAtom(FirstElem) || !nl->AtomType(FirstElem)== IntType) {
     correct = false;
+    delete pGline;
     cmsg.inFunError("Networkadress is not evaluable");
     return SetWord(Address(0));
   }
-   pGline->SetNetworkId(nl->IntValue(FirstElem));
+  pGline->SetNetworkId(nl->IntValue(FirstElem));
   if (nl->IsEmpty(SecondElem)) {
-    correct = true;
-    pGline->SetDefined(true);
-    return SetWord(pGline);
+    correct = false;
+    delete pGline;
+    return SetWord(Address(0));
   }
   while (!nl->IsEmpty(SecondElem)) {
     ListExpr start = nl->First(SecondElem);
     SecondElem = nl->Rest(SecondElem);
     if (nl->ListLength(start) != 3) {
       correct = false;
+      delete pGline;
       cmsg.inFunError("Routeinterval incorrect.Expected list of 3 Elements.");
       return SetWord(Address(0));
     }
@@ -3470,15 +3477,16 @@ Word GLine::In(const ListExpr typeInfo, const ListExpr instance,
     ListExpr lpos1 = nl->Second(start);
     ListExpr lpos2 = nl->Third(start);
     if (!nl->IsAtom(lrid) || !nl->AtomType(lrid) == IntType ||
-         !nl->IsAtom(lpos1) || !nl->AtomType(lpos1) == RealType ||
-         !nl->IsAtom(lpos2) || !nl->AtomType(lpos2) == RealType) {
+        !nl->IsAtom(lpos1) || !nl->AtomType(lpos1) == RealType ||
+        !nl->IsAtom(lpos2) || !nl->AtomType(lpos2) == RealType) {
       correct = false;
+      delete pGline;
       cmsg.inFunError("Routeinterval should be list int, real, real.");
       return SetWord(Address(0));
     }
     pGline->AddRouteInterval(nl->IntValue(lrid),
-                             nl->RealValue(lpos1),
-                             nl->RealValue(lpos2));
+                            nl->RealValue(lpos1),
+                            nl->RealValue(lpos2));
   }
   correct = true;
   return SetWord(pGline);
@@ -3489,7 +3497,7 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
 {
   GLine *pGline = (GLine*)in_xValue.addr;
 
-  if(!pGline->IsDefined())
+  if(pGline == 0 || !pGline->IsDefined())
   {
     return nl->SymbolAtom( "undef" );
   }
@@ -3545,8 +3553,8 @@ void GLine::Clear() {
 void GLine::Delete(const ListExpr typeInfo,
                    Word& w )
 {
-  GLine *l = (GLine *)w.addr;
-  // if (l->del.refs == 1) { l->m_xRouteIntervals.Destroy();}
+  GLine *l = (GLine*)w.addr;
+  //if (l->del.refs == 1) l->m_xRouteIntervals.Destroy();
   l->DeleteIfAllowed();
   w.addr = 0;
 }
@@ -3554,8 +3562,8 @@ void GLine::Delete(const ListExpr typeInfo,
 void GLine::Close(const ListExpr typeInfo,
                   Word& w )
 {
-  ((GLine*)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
+    ((GLine*)w.addr)->DeleteIfAllowed();
+    w.addr = 0;
 }
 
 Word GLine::CloneGLine(const ListExpr typeInfo,
@@ -3565,8 +3573,7 @@ Word GLine::CloneGLine(const ListExpr typeInfo,
 }
 
 GLine* GLine::Clone() const{
-  GLine* res = new GLine(*this);
-  return res;
+    return new GLine(*this);
 }
 
 void* GLine::Cast(void* addr)
@@ -3589,18 +3596,18 @@ size_t GLine::Sizeof() const
   return sizeof(*this);
 }
 
-    ostream& GLine::Print( ostream& os ) const
-    {
-       os << "GLine: NetworkId: " << m_iNetworkId << endl;
-       for (int i = 0; i < m_xRouteIntervals.Size() ; i++) {
-         const RouteInterval *ri;
-         Get(i, ri);
-         os << "RouteInterval: " << i << " rid: " << ri->m_iRouteId;
-         os << " from: " << ri->m_dStart << " to: " << ri->m_dEnd << endl;
-       }
-       os << " end gline";
-       return os;
-    };
+ostream& GLine::Print( ostream& os ) const
+{
+    os << "GLine: NetworkId: " << m_iNetworkId << endl;
+    for (int i = 0; i < m_xRouteIntervals.Size() ; i++) {
+      const RouteInterval *ri;
+      Get(i, ri);
+      os << "RouteInterval: " << i << " rid: " << ri->m_iRouteId;
+      os << " from: " << ri->m_dStart << " to: " << ri->m_dEnd << endl;
+    }
+    os << " end gline";
+    return os;
+};
 
 bool GLine::Adjacent( const Attribute* arg ) const
 {
@@ -3613,22 +3620,58 @@ Compare not implemented yet
 */
 int GLine::Compare( const Attribute* arg ) const
 {
- return false;
+ GLine *gl2 = (GLine*) arg;
+  if (IsDefined() && !gl2->IsDefined()) return 1;
+  else
+    if (!IsDefined() && gl2->IsDefined()) return -1;
+    else
+      if (!IsDefined() && !gl2->IsDefined()) return 0;
+      else
+        if (m_dLength < gl2->m_dLength) return -1;
+        else
+          if (m_dLength > gl2->m_dLength) return 1;
+          else
+            if (m_xRouteIntervals.Size() < gl2->m_xRouteIntervals.Size())
+              return -1;
+            else
+              if (m_xRouteIntervals.Size() > gl2->m_xRouteIntervals.Size())
+                return 1;
+              else
+                if (*this == *gl2) return 0;
+                else{
+                  const RouteInterval *ri1, *ri2;
+                  int i = 0;
+                  while(i < m_xRouteIntervals.Size()) {
+                    Get(i,ri1);
+                    gl2->Get(i,ri2);
+                    if (ri1->m_iRouteId < ri2->m_iRouteId) return -1;
+                    else
+                      if (ri1->m_iRouteId > ri2->m_iRouteId) return 1;
+                      else
+                        if (ri1->m_dStart < ri2->m_dStart) return -1;
+                        else
+                          if (ri1->m_dStart > ri2->m_dStart) return 1;
+                          else
+                            if (ri1->m_dEnd < ri2->m_dEnd) return -1;
+                            else
+                              if (ri1->m_dEnd > ri2->m_dEnd) return 1;
+                    i++;
+                  }
+                }
+ return 0;
 }
 
 GLine& GLine::operator=( const GLine& l )
 {
-  if( l.m_xRouteIntervals.Size() > 0 )
-  {
-    m_xRouteIntervals.Clear();
+  if( l.m_xRouteIntervals.Size() > 0 ){
     m_xRouteIntervals.Resize( l.m_xRouteIntervals.Size() );
     const RouteInterval *ri;
-    for( int i = 0; i < l.m_xRouteIntervals.Size(); i++ )
-    {
+    for( int i = 0; i < l.m_xRouteIntervals.Size(); i++ ) {
       l.m_xRouteIntervals.Get( i, ri );
-      m_xRouteIntervals.Append(*ri );
+      m_xRouteIntervals.Put(i, *ri );
     }
-  }
+  } else
+    if (m_xRouteIntervals.Size() > 0) m_xRouteIntervals.Clear();
   m_dLength = l.m_dLength;
   m_bSorted = l.m_bSorted;
   m_bDefined = l.m_bDefined;
@@ -3717,9 +3760,9 @@ double GLine::GetLength(){
 
 */
 
-  void GLine::Get(const int i, const RouteInterval* &ri) const{
-    m_xRouteIntervals.Get(i, ri);
-  };
+void GLine::Get(const int i, const RouteInterval* &ri) const{
+  m_xRouteIntervals.Get(i, ri);
+};
 
 int GLine::NoOfComponents(){
   return m_xRouteIntervals.Size();
@@ -4044,14 +4087,14 @@ void GLine::Uniongl(GLine *pgl2, GLine *&res){
               }
             }
           }
-          while (i < NoOfComponents()-1) {
+          while (i < NoOfComponents()) {
             Get(i,pRi1);
             res->AddRouteInterval(pRi1->m_iRouteId,
                                   pRi1->m_dStart,
                                   pRi1->m_dEnd);
             i++;
           }
-          while (j < pgl2->NoOfComponents()-1) {
+          while (j < pgl2->NoOfComponents()) {
             pgl2->Get(j,pRi2);
             res->AddRouteInterval(pRi2->m_iRouteId, pRi2->m_dStart,
                                   pRi2->m_dEnd);

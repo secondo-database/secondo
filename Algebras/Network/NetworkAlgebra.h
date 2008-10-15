@@ -1539,7 +1539,7 @@ The simple constructor. Should not be used.
     GLine(int in_iSize);
 
 
-    GLine(GLine* in_xOther);
+    GLine(const GLine& in_xOther);
 
     ~GLine() {};
 
