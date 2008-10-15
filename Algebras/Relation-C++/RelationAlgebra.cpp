@@ -5062,27 +5062,45 @@ Expects a stream of tuples and returns the same type.
 */
 ListExpr BufferTypeMap(ListExpr args)
 {
-  ListExpr first ;
-  string argstr;
+  if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("one argument expected");
+     return nl->TypeError();
+  }
+  ListExpr arg = nl->First(args);
 
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator ! expects a list of length one.");
+  // tuple stream 
+  if(IsStreamDescription(arg) ){ 
+    return arg;
+  }
+  // DATA stream
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  if( nl->ListLength(arg)==2 &&
+      nl->IsEqual(nl->First(arg),symbols::STREAM) &&
+      am->CheckKind("DATA",nl->Second(arg),errorInfo)) {
+     return arg;
+  }
+  ErrorReporter::ReportError("stream(tuple(x)), stream(DATA)"
+                             "expected");
+  return nl->TypeError();
 
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    ((nl->ListLength(first) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
-    (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
-  "Operator ! expects an argument of type (stream(tuple"
-  "((a1 t1)...(an tn)))).\n"
-  "Operator ! gets an argument of type '" + argstr + "'.");
-
-  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
 
+
+ListExpr BufferTypeMap2(ListExpr args)
+{
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("DATA expected");
+    return nl->TypeError();
+  }
+  ListExpr arg = nl->First(args);
+  // DATA
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  if(am->CheckKind("DATA",arg,errorInfo)){
+     return arg;    
+  } 
+  ErrorReporter::ReportError("DATA expected");
+  return nl->TypeError();
+} 
 
 /*
 
@@ -5095,25 +5113,27 @@ ListExpr BufferTypeMap(ListExpr args)
 
 const int BUFFERSIZE = 52;
 
-struct BufferLocalInfo
+template <class T>
+class BufferLocalInfo
 {
+ public:
  int state;        //0 = initial, 1 = buffer filled,
        //2 = buffer empty again
  int noInBuffer;   //tuples read into buffer;
  int next;     //index of next tuple to be returned;
- Tuple* tuples[BUFFERSIZE];
+ T* buffer[BUFFERSIZE];
 };
 
 
-int
-Buffer(Word* args, Word& result, int message,
+template<class T>
+int Buffer(Word* args, Word& result, int message,
        Word& local, Supplier s)
 {
-  Word t;
-  Tuple* tuple;
-  BufferLocalInfo* bli;
+  Word e;
+  T* elem;
+  BufferLocalInfo<T>* bli;
 
-  bli = (BufferLocalInfo*) local.addr;
+  bli = (BufferLocalInfo<T>*) local.addr;
 
   switch (message)
   {
@@ -5121,7 +5141,7 @@ Buffer(Word* args, Word& result, int message,
 
       if ( bli ) delete bli;
 
-      bli = new BufferLocalInfo();
+      bli = new BufferLocalInfo<T>();
         bli->state = 0;
         bli->noInBuffer = 0;
         bli->next = -1;
@@ -5135,11 +5155,11 @@ Buffer(Word* args, Word& result, int message,
       if ( bli->state == 2 )      //regular behaviour
           //put first to avoid overhead
       {
-        qp->Request(args[0].addr,t);
+        qp->Request(args[0].addr,e);
         if (qp->Received(args[0].addr))
         {
-          tuple = (Tuple*)t.addr;
-          result.setAddr(tuple);
+          elem = (T*)e.addr;
+          result.setAddr(elem);
           return YIELD;
         }
         else return CANCEL;
@@ -5149,30 +5169,34 @@ Buffer(Word* args, Word& result, int message,
       if ( bli->state == 0 )
       {
         //fill the buffer
-        qp->Request(args[0].addr, t);
+        qp->Request(args[0].addr, e);
         while (qp->Received(args[0].addr) && bli->noInBuffer < BUFFERSIZE)
         {
-          bli->tuples[bli->noInBuffer] = (Tuple*)t.addr;
+          bli->buffer[bli->noInBuffer] = (T*)e.addr;
           bli->noInBuffer++;
-          if ( bli->noInBuffer < BUFFERSIZE ) qp->Request(args[0].addr, t);
+          if ( bli->noInBuffer < BUFFERSIZE ) qp->Request(args[0].addr, e);
         }
-        if ( bli->noInBuffer > 1 ) bli->state = 1;  //next from buffer
-        else bli->state = 3;        //next cancel
+        if ( bli->noInBuffer > 1 ){
+           bli->state = 1;  //next from buffer
+        } else {
+           bli->state = 3;        //next cancel
+        }
 
         //return first tuple from the buffer, if possible
-  if ( bli->noInBuffer > 0 )
+        if ( bli->noInBuffer > 0 )
         {
-          result.setAddr(bli->tuples[0]);
+          result.setAddr(bli->buffer[0]);
           bli->next = 1;
           return YIELD;
+        } else {
+          return CANCEL;
         }
-        else return CANCEL;
       }
       else if ( bli->state == 1 )
       {
-        //return one tuple from the buffer
+        //return one elem from the buffer
 
-        result.setAddr(bli->tuples[bli->next]);
+        result.setAddr(bli->buffer[bli->next]);
         bli->next++;
         if ( bli->next == bli->noInBuffer )
         {
@@ -5182,12 +5206,13 @@ Buffer(Word* args, Word& result, int message,
         }
         return YIELD;
       }
-      else
-        if ( bli->state == 3 ) return CANCEL;
-        else cout << "Something terrible happened in the ! operator." << endl;
-
-
-
+      else {
+        if ( bli->state == 3 ){
+          return CANCEL;
+        } else {
+          cout << "Something terrible happened in the ! operator." << endl;
+        }
+      }
     case CLOSE :
 
       // Note: object deletion is done in (repeated) OPEN and CLOSEPROGRESS
@@ -5224,15 +5249,53 @@ Buffer(Word* args, Word& result, int message,
   }
   return 0;
 }
+
+
+int Buffer2(Word* args, Word& result, int message,
+       Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   StandardAttribute* arg = static_cast<StandardAttribute*>(args[0].addr);
+   StandardAttribute* res = static_cast<StandardAttribute*>(result.addr);
+   res->CopyFrom(arg); 
+   return 0;
+}
+
+
+
 /*
 
-5.12.3 Specification of operator ~buffer~
+5.12.4 SelectionFunction and Value Mapping Array for operator ~buffer~
+
 
 */
+
+ValueMapping BufferVM[] = {Buffer<Tuple>,Buffer<Attribute>};
+
+int BufferSelect(ListExpr args){
+  ListExpr arg = nl->First(args);
+  ListExpr type = nl->Second(arg);
+  if(nl->AtomType(type)==NoAtom && 
+     nl->IsEqual(nl->First(type),symbols::TUPLE)){
+     return 1;
+  } else {
+     return 0;
+  }
+
+}
+
+
+
+/*
+
+5.12.4 Specification of operator ~buffer~
+
+*/
+
 const string BufferSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>stream(tuple(x)) -> stream(tuple(x))</text--->"
+  "( <text>stream(tuple(x)) -> stream(tuple(x)) \n"
+  "        stream(DATA) -> stream(DATA>)</text--->"
   "<text>_ !</text--->"
   "<text>Collects a small number of tuples into"
   " a buffer before passing them to the successor."
@@ -5241,21 +5304,38 @@ const string BufferSpec  =
   "<text>query plz feed filter[.Ort = \"Hagen\"] ! count</text--->"
   ") )";
 
+const string BufferSpec2  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>DATA -> DATA </text--->"
+  "<text>_ !</text--->"
+  "<text>Does nothing</text--->"
+  "<text>query 1 ! </text--->"
+  ") )";
+
 /*
 
 
-5.12.4 Definition of operator ~buffer~
+5.12.5 Definition of operator ~buffer~
 
 */
 Operator relalgbuffer (
          "!",                 // name
          BufferSpec,             // specification
-         Buffer,                 // value mapping
-         Operator::SimpleSelect, // trivial selection function
+         2, 
+         BufferVM,                 // value mapping
+         BufferSelect,     // trivial selection function
          BufferTypeMap           // type mapping
 );
 
 
+Operator relalgbuffer2 (
+         "!",                 // name
+         BufferSpec2,             // specification
+         Buffer2,                 // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         BufferTypeMap2           // type mapping
+);
 
 
 /*
@@ -5316,6 +5396,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgattrsize);
     AddOperator(&relalgrename);
     AddOperator(&relalgbuffer);
+    AddOperator(&relalgbuffer2);
 
     // More recent programming interface for registering operators
     AddOperator( SizeCountersInfo(), sizecounters_vm, sizecounters_tm );
