@@ -36,8 +36,8 @@ operator chartext alias CHARTEXT pattern op(_)
 operator toupper alias TOUPPER pattern op(_)
 operator tolower alias TOLOWER pattern op(_)
 operator totext alias TOTEXT pattern op(_)
-operator sendtext alias SENDTEXT pattern op(_, _, _, _)
-operator receivetext alias RECEIVETEXT pattern op(_, _, _)
+operator sendtextUDP alias SENDTEXTUDP pattern op(_, _, _, _)
+operator receivetextUDP alias RECEIVETEXTUDP pattern op(_, _, _)
 operator isDBObject alias ISDBOBJECT pattern op( _ )
 
 

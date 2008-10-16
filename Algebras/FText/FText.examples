@@ -393,11 +393,21 @@ Signature: string -> bool
 Example  : query isDBObject("blablabla")
 Result   : FALSE
 
-
 Operator : isDBObject
 Number   : 2
 Signature: string -> bool
 Example  : query isDBObject("train1")
 Result   : TRUE
 
+Operator : sendtextUDP
+Number   : 1
+Signature: {string|text}^n -> text, 3<=n<=5
+Example  : query sendtextUDP("Hello World!", '132.176.69.64', '5678', "132.176.69.64", "5678") = "OK. 12 bytes sent."
+Result   : TRUE
+
+Operator : receivetextUDP
+Number   : 1
+Signature: {string|text} x {string|text} x real -> stream(tuple((Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)(SenderIPversion string)))
+Example  : query receivetextUDP("",'2626',0.01) extract[ErrMsg] = 'Timeout.'
+Result   : TRUE
 

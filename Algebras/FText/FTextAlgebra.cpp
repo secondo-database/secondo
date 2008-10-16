@@ -45,6 +45,9 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 ~getTypeNL~, ~getValueNL~, ~replace~, ~tostring~, ~totext~, ~tolower~,
 ~toupper~, ~chartext~.
 
+October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
+~receivetextUDP~
+
 1 Preliminaries
 
 1.1 Includes
@@ -77,14 +80,22 @@ March 2008, Christian D[ue]ntgen added operators ~getcatalog~, $+$, ~substr~,
 #include "SecondoSMI.h"
 
 // for operators sendtext, receivetext
-//#include "SocketIO.h"      //used for web access
-//#include "Base64.h"        //to en-/ decode binary data
-//#include "../BinaryFile/BinaryFileAlgebra.h"
-//#ifdef SECONDO_WIN32
-//#include "../../ClientServer/Win32Socket.h"
-//#else //Linux
-//#include "../../ClientServer/UnixSocket.h"
-//#endif
+#include <stdio.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <unistd.h>
+#ifdef SECONDO_WIN32
+#include "../../ClientServer/Win32Socket.h"
+#else //Linux
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include "../../ClientServer/UnixSocket.h"
+#endif
+#define UDP_MAXBUF 1048576 // set bufferlength to 1MB
+#include "DateTime.h"
+using namespace datetime;
+// endfor operators sendtext, receivetext
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -918,7 +929,7 @@ ListExpr FTextTypeTextData_Data( ListExpr args )
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
 
   if(     type.hasLength(2)
-       && ((type.first()  == symbols::TEXT) || 
+       && ((type.first()  == symbols::TEXT) ||
        (type.first()  == symbols::STRING))
        && (am->CheckKind("DATA",type.second().listExpr(),errorInfo))
     )
@@ -944,11 +955,11 @@ ListExpr FTextTypeReplace( ListExpr args )
   NList type(args);
   // {text|string} x {text|string} x {text|string} --> text
   if(     type.hasLength(3)
-          && ((type.first()  == symbols::TEXT) || 
+          && ((type.first()  == symbols::TEXT) ||
           (type.first()  == symbols::STRING))
-          && ((type.second() == symbols::TEXT) || 
+          && ((type.second() == symbols::TEXT) ||
           (type.second() == symbols::STRING))
-          && ((type.third()  == symbols::TEXT) || 
+          && ((type.third()  == symbols::TEXT) ||
               (type.third()  == symbols::STRING))
     )
   {
@@ -956,13 +967,13 @@ ListExpr FTextTypeReplace( ListExpr args )
   }
   // {text|string} x int    x int  x {text|string} --> text
   if(     type.hasLength(4)
-          && ((type.first()  == symbols::TEXT) || 
+          && ((type.first()  == symbols::TEXT) ||
           (type.first()  == symbols::STRING))
-          && ((type.second() == symbols::INT ) || 
+          && ((type.second() == symbols::INT ) ||
           (type.second() == symbols::INT   ))
-          && ((type.third()  == symbols::INT ) || 
+          && ((type.third()  == symbols::INT ) ||
           (type.third()  == symbols::INT   ))
-          && ((type.fourth() == symbols::TEXT) || 
+          && ((type.fourth() == symbols::TEXT) ||
           (type.fourth() == symbols::STRING))
     )
   {
@@ -1153,31 +1164,69 @@ ListExpr FTextTypeStringText( ListExpr args )
   return NList::typeError("Expected 'string'.");
 }
 
-ListExpr FTextTypeSendText( ListExpr args )
+/*
+Type Mapping Function for ~sendtextUDP~
+
+----
+      {string|text}^n -> text, 3 <= n <= 5.
+----
+
+*/
+ListExpr FTextTypeSendTextUDP( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(3) &&
-      (type.first() == symbols::STRING || type.first() == symbols::TEXT) &&
-      (type.second() == symbols::STRING || type.first() == symbols::TEXT) &&
-      type.third() == symbols::INT
-    )
-  {
-    return NList(symbols::TEXT).listExpr();
+  int noargs = nl->ListLength(args);
+  if(noargs < 3 || noargs > 5){
+    return NList::typeError("Expected {string|text}^n, 3 <= n <= 5.");
   }
-  return NList::typeError("Expected {string|text} x {string|text} x int.");
+
+  for(int i = 1; i<=noargs; i++){
+    string argtype;
+    nl->WriteToString(argtype,nl->Nth(i,args));
+    if((argtype != symbols::STRING) && (argtype != symbols::TEXT)){
+      return NList::typeError("Expected {string|text}^n, 3 <= n <= 5.");
+    }
+  }
+  return NList(symbols::TEXT).listExpr();
 }
 
-ListExpr FTextTypeReceiveText( ListExpr args )
+/*
+Type Mapping Function for ~receivetextUDP~
+
+----
+     {string|text} x {string|text} x real ->
+     {stream(tuple((Ok bool)
+                   (Msg text)
+                   (ErrMsg string)
+                   (SenderIP string)
+                   (SenderPort string)
+                   (SenderIPversion string)
+                  )
+            )
+
+----
+
+*/
+ListExpr FTextTypeReceiveTextUDP( ListExpr args )
 {
   NList type(args);
-  if( type.hasLength(1) &&
-      type.first() == symbols::INT
-    )
-  {
-    return NList(symbols::TEXT).listExpr();
+  int noargs = nl->ListLength(args);
+  if(    (noargs != 3)
+      || (type.first()  != symbols::TEXT && type.first()  != symbols::STRING)
+      || (type.second() != symbols::TEXT && type.second() != symbols::STRING)
+      || (type.third()  != symbols::REAL) ){
+    return NList::typeError("Expected {string|text} x {string|text} x real.");
   }
-  return NList::typeError("Expected int.");
-
+  NList resTupleType = NList(NList("Ok"),NList(symbols::BOOL)).enclose();
+  resTupleType.append(NList(NList("Msg"),NList(symbols::TEXT)));
+  resTupleType.append(NList(NList("ErrMsg"),NList(symbols::STRING)));
+  resTupleType.append(NList(NList("SenderIP"),NList(symbols::STRING)));
+  resTupleType.append(NList(NList("SenderPort"),NList(symbols::STRING)));
+  resTupleType.append(NList(NList("SenderIPversion"),NList(symbols::STRING)));
+  NList resType =
+      NList(NList(NList(symbols::STREAM),
+            NList(NList(symbols::TUPLE),resTupleType)));
+  return resType.listExpr();
 }
 
 /*
@@ -1288,9 +1337,10 @@ int trimstr (char s[])
 // the hyphen/minus sign
 bool IsNonStopCharacter(const char c)
 {
+  const unsigned char uc = static_cast<const unsigned char>(c);
   return ( isalnum(c)
-      || c == '-' || c == 'ß' || c =='ü' || c =='Ü'
-      || c == 'ö' || c == 'Ö' || c == 'ä' || c == 'Ä');
+      || c == '-' || (uc > 191 && uc <215)
+      || (uc > 215 && uc <247) || (uc > 247));
 }
 
 int
@@ -1451,7 +1501,7 @@ The length of a string is three characters or more.
 }
 
 int
-ValMapsentences (Word* args, Word& result, int message, 
+ValMapsentences (Word* args, Word& result, int message,
          Word& local, Supplier s)
 {
   struct TheText {int start, strlength; const char* subw;}* thetext;
@@ -1885,16 +1935,16 @@ ValueMapping FText_VMMap_Find[] =
 int FTextSelectFunFind( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(symbols::STRING)) && 
+  if( (type.first() == NList(symbols::STRING)) &&
       (type.second() == NList(symbols::TEXT)) )
     return 0;
-  if( (type.first() == NList(symbols::TEXT)) && 
+  if( (type.first() == NList(symbols::TEXT)) &&
       (type.second() == NList(symbols::STRING)) )
     return 1;
-  if( (type.first() == NList(symbols::TEXT)) && 
+  if( (type.first() == NList(symbols::TEXT)) &&
       (type.second() == NList(symbols::TEXT)) )
     return 2;
-  if( (type.first() == NList(symbols::STRING)) && 
+  if( (type.first() == NList(symbols::STRING)) &&
       (type.second() == NList(symbols::STRING)) )
     return 3;
   // else: ERROR
@@ -1955,13 +2005,13 @@ ValueMapping FText_VMMap_Plus[] =
 int FTextSelectFunPlus( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(symbols::STRING)) && 
+  if( (type.first() == NList(symbols::STRING)) &&
       (type.second() == NList(symbols::TEXT)) )
     return 0;
-  if( (type.first() == NList(symbols::TEXT)) && 
+  if( (type.first() == NList(symbols::TEXT)) &&
       (type.second() == NList(symbols::STRING)) )
     return 1;
-  if( (type.first() == NList(symbols::TEXT)) && 
+  if( (type.first() == NList(symbols::TEXT)) &&
       (type.second() == NList(symbols::TEXT)) )
     return 2;
   // else: ERROR
@@ -2055,13 +2105,13 @@ ValueMapping FText_VMMap_Neq[] =
 int FTextSelectFunComparePred( ListExpr args )
 {
   NList type(args);
-  if( (type.first() == NList(symbols::STRING)) && 
+  if( (type.first() == NList(symbols::STRING)) &&
       (type.second() == NList(symbols::TEXT)) )
     return 0;
-  else if( (type.first() == NList(symbols::TEXT)) && 
+  else if( (type.first() == NList(symbols::TEXT)) &&
            (type.second() == NList(symbols::STRING)) )
     return 1;
-  else if( (type.first() == NList(symbols::TEXT)) && 
+  else if( (type.first() == NList(symbols::TEXT)) &&
        (type.second() == NList(symbols::TEXT)) )
     return 2;
   return -1; // error
@@ -2894,7 +2944,7 @@ int FTextValueMapConvert( Word* args, Word& result, int message,
 }
 
 /*
-Operator ~sendtext~
+Operator ~sendtextUDP~
 
 Send the text to a given host:port
 
@@ -2902,71 +2952,160 @@ Any status and error messages from the session are appended to the result text
 
 */
 
-template<class T1, class T2, class T3>
-int FTextValueMapSendText( Word* args, Word& result, int message,
-                          Word& local, Supplier s )
+// Helper function -- closes a socket
+void ftextCloseSocket(int socket)
 {
-  result = qp->ResultStorage( s );
-//   T1* CcMessage = static_cast<T1*>(args[0].addr);
-//   T2* CcHost    = static_cast<T2*>(args[1].addr);
-//   T3* CcPort    = static_cast<T3*>(args[2].addr);
-//   FText* Res    = static_cast<FText*>(result.addr);
-//   string myMessage("");
-//   string myHost("");
-//   string myPort("");
-//   ostringstream status;
-//   string myStatusReport("");
-//   bool correct = true;
-//
-//   if(!CcMessage->IsDefined()){
-//     status << "ERROR: Message undefined." << endl;
-//     correct = false;
-//   }else{
-//     myMessage = CcMessage->GetValue();
-//   }
-//   if (!CcHost->IsDefined()){
-//     status << "ERROR: Host undefined." << endl;
-//     correct = false;
-//   }else{
-//     myHost = CcHost->GetValue();
-//   }
-//   if(!CcPort->IsDefined()){
-//     status << "ERROR: Port undefined." << endl;
-//     correct = false;
-//   }else{
-//     myPort = CcPort->GetValue();
-//   }
-//   // connect to a server
-//   status << "Trying to connect to " << myHost << ":"
-//          << myPort << "..." << endl;
-//   if(correct)
-//     Socket *s = Socket::Connect(myHost, myPort /*,
-//       SocketDomain = SocketAnyDomain, maxAttempts = 1, timeout = 1 */);
-//   if(correct){
-//     correct = s->IsOk();
-//   }
-//   if(!correct){
-//     status << "ERROR: " << s->GetErrorText() << endl;
-//   }
-//   if(correct){// send the message
-//     iostream& io = s->GetSocketStream();
-//     io << myMessage << endl;
-//     correct = s->IsOk();
-//     if(correct){
-//       status << "Sent message= '" << myMessage << "' (" << myMessage.length()
-//              << ") characters." << endl;
-//     }else{
-//       status << "ERROR: " << s->GetErrorText() << endl;
-//     }
-//     status << "Closing connection..."
-//     correct = s->Close();
-//     if(correct){
-//     }else{
-//       status << "ERROR: " << s->GetErrorText() << endl;
-//     }
-//   }
-//   // return status
-//   Res->Set( true, status );
+#ifdef SECONDO_WIN32
+  closesocket(socket);
+#else
+  close(socket);
+#endif
+  return;
+}
+
+template<class T1, class T2, class T3, class T4, class T5>
+int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
+                              Word& local, Supplier s )
+{
+  result      = qp->ResultStorage( s );
+  FText* Res  = static_cast<FText*>(result.addr);
+
+  int no_args = qp->GetNoSons(s);
+  ostringstream status;
+  bool correct = true;
+
+  // get message text
+  T1* CcMessage   = static_cast<T1*>(args[0].addr);
+  string myMessage("");
+  if(!CcMessage->IsDefined()){
+    status << "ERROR: Message undefined.";
+    correct = false;
+  }else{
+    myMessage = CcMessage->GetValue();
+  }
+  // get remote IP
+  T2* CcOtherIP   = static_cast<T2*>(args[1].addr);
+  string OtherIP("");
+  if (!CcOtherIP->IsDefined()){
+    status << "ERROR: remoteIP undefined.";
+    correct = false;
+  }else{
+    OtherIP = CcOtherIP->GetValue();
+  }
+  // get remote port number
+  T3* CcOtherPort = static_cast<T3*>(args[2].addr);
+  string OtherPort("");
+  if(!CcOtherPort->IsDefined()){
+    status << "ERROR: remotePort undefined.";
+    correct = false;
+  }else{
+    OtherPort = CcOtherPort->GetValue();
+  }
+  // get sender IP
+  string myIP("");
+  if(no_args>=4){
+    T4* CcMyIP      = static_cast<T4*>(args[3].addr);
+    if (!CcMyIP->IsDefined()){
+      status << "ERROR: localIP undefined.";
+      correct = false;
+    }else{
+      myIP = CcMyIP->GetValue();
+    }
+  }
+  // get sender port
+  string myPort("");
+  if(no_args>=5){
+    T5* CcMyPort    = static_cast<T5*>(args[4].addr);
+    if(!CcMyPort->IsDefined()){
+      status << "ERROR: localPort undefined.";
+      correct = false;
+    }else{
+      myPort = CcMyPort->GetValue();
+    }
+  }
+  // return message on error due to any UNDEFINED parameter
+  if(!correct){
+    Res->Set( true, status.str() );
+    return 0;
+  }
+  // define address struct for local socket:
+  struct addrinfo lhints;
+  struct addrinfo *lsockinfo;          // will point to the results
+  memset(&lhints, 0, sizeof lhints);   // make sure the struct is empty
+  lhints.ai_family   = AF_UNSPEC;      // don't care whether IPv4 or IPv6
+  lhints.ai_socktype = SOCK_DGRAM;     // UDP datagram type socket
+  int resGetaddrinfo = 0;
+  if(myIP == ""){
+    lhints.ai_flags    = AI_PASSIVE;   // fill in my IP for me
+    resGetaddrinfo=getaddrinfo(NULL,
+                               myPort.c_str(),
+                               &lhints,&lsockinfo);
+  }else{
+    resGetaddrinfo=getaddrinfo(myIP.c_str(),
+                               myPort.c_str(),
+                               &lhints,&lsockinfo);
+  }
+  if (resGetaddrinfo == -1) {
+    status << "ERROR: getaddrinfo() failed for local address ("
+           << string(gai_strerror(resGetaddrinfo)) << ").";
+    Res->Set( true, status.str() );
+    return 0;
+  }
+  // define address struct for remote socket (destination)
+  struct addrinfo rhints;
+  struct addrinfo *rsockinfo;          // will point to the results
+  memset(&rhints, 0, sizeof rhints);   // make sure the struct is empty
+  rhints.ai_family   = AF_UNSPEC;      // don't care IPv4 or IPv6
+  rhints.ai_socktype = SOCK_DGRAM;     // UDP datagram type socket
+  resGetaddrinfo = getaddrinfo(OtherIP.c_str(),
+                               OtherPort.c_str(),
+                               &rhints,&rsockinfo);
+  if (resGetaddrinfo == -1) {
+    status << "ERROR: getaddrinfo() failed for remote address ("
+           << string(gai_strerror(resGetaddrinfo)) << ").";
+    Res->Set( true, status.str() );
+    return 0;
+  }
+  // create the local socket
+  int my_socket = socket(lsockinfo->ai_family,
+                         lsockinfo->ai_socktype,
+                         lsockinfo->ai_protocol);
+  if(my_socket == -1){
+    status << "ERROR: socket() failed ("
+           << string(gai_strerror(resGetaddrinfo)) << ").";
+    Res->Set( true, status.str() );
+    return 0;
+  }
+  // connect the socket, so we can use send()
+  int connected = connect(my_socket, rsockinfo->ai_addr, rsockinfo->ai_addrlen);
+  if(connected == -1){
+    status << "ERROR: connect() failed ("
+           << string(gai_strerror(resGetaddrinfo)) << ").";
+    Res->Set( true, status.str() );
+    return 0;
+  }
+  // prepare the datagram message
+  const char *msg  = myMessage.c_str();
+  int msg_len      = strlen(msg);
+  int flags        = MSG_NOSIGNAL;// ignore SIGPIPE when receiver doesn't listen
+  // send message
+  int sent_len = send(my_socket, msg, msg_len, flags);
+  if(sent_len == -1){
+    status << "ERROR: sendto() failed ("
+           << string(gai_strerror(resGetaddrinfo)) << ").";
+  } else if (sent_len != msg_len){
+    status << "WARNING: Only sent " << sent_len << " of " << msg_len
+           << " bytes.";
+    Res->Set( true, status.str() );
+    return 0;
+  } else{
+    status << "OK. " << sent_len << " bytes sent.";
+  }
+  // close socket and return status
+  ftextCloseSocket(my_socket);
+  freeaddrinfo(rsockinfo); // free addrinfo for remote address;
+  freeaddrinfo(lsockinfo); // free addrinfo for local address;
+  Res->Set( true, status.str() );
   return 0;
 }
 
@@ -2975,16 +3114,40 @@ ValueMappingArray for ~sendtext~
 
 */
 
-ValueMapping FText_VMMap_MapSendText[] =
+ValueMapping FText_VMMap_MapSendTextUDP[] =
 {
-  FTextValueMapSendText<CcString,CcString,CcString>,      // 0
-  FTextValueMapSendText<CcString,CcString,FText   >,      // 1
-  FTextValueMapSendText<CcString,FText,   CcString>,      // 2
-  FTextValueMapSendText<CcString,FText,   FText   >,      // 3
-  FTextValueMapSendText<FText,   CcString,CcString>,      // 4
-  FTextValueMapSendText<FText,   CcString,FText   >,      // 5
-  FTextValueMapSendText<FText,   FText,   CcString>,      // 6
-  FTextValueMapSendText<FText,   FText,   FText   >       // 7
+  FTextValueMapSendTextUDP<CcString,CcString,CcString,CcString,CcString>,  // 0
+  FTextValueMapSendTextUDP<CcString,CcString,CcString,CcString,FText   >,  //
+  FTextValueMapSendTextUDP<CcString,CcString,CcString,FText,   CcString>,  // 2
+  FTextValueMapSendTextUDP<CcString,CcString,CcString,FText,   FText   >,  //
+  FTextValueMapSendTextUDP<CcString,CcString,FText   ,CcString,CcString>,  // 4
+  FTextValueMapSendTextUDP<CcString,CcString,FText   ,CcString,FText   >,  //
+  FTextValueMapSendTextUDP<CcString,CcString,FText   ,FText,   CcString>,  // 6
+  FTextValueMapSendTextUDP<CcString,CcString,FText   ,FText,   FText   >,  //
+  FTextValueMapSendTextUDP<CcString,FText   ,CcString,CcString,CcString>,  // 8
+  FTextValueMapSendTextUDP<CcString,FText   ,CcString,CcString,FText   >,  //
+  FTextValueMapSendTextUDP<CcString,FText   ,CcString,FText,   CcString>,  // 10
+  FTextValueMapSendTextUDP<CcString,FText   ,CcString,FText,   FText   >,  //
+  FTextValueMapSendTextUDP<CcString,FText   ,FText   ,CcString,CcString>,  // 12
+  FTextValueMapSendTextUDP<CcString,FText   ,FText   ,CcString,FText   >,  //
+  FTextValueMapSendTextUDP<CcString,FText   ,FText   ,FText,   CcString>,  // 14
+  FTextValueMapSendTextUDP<CcString,FText   ,FText   ,FText,   FText   >,  //
+  FTextValueMapSendTextUDP<FText   ,CcString,CcString,CcString,CcString>,  // 16
+  FTextValueMapSendTextUDP<FText   ,CcString,CcString,CcString,FText   >,  //
+  FTextValueMapSendTextUDP<FText   ,CcString,CcString,FText,   CcString>,  // 18
+  FTextValueMapSendTextUDP<FText   ,CcString,CcString,FText,   FText   >,  //
+  FTextValueMapSendTextUDP<FText   ,CcString,FText   ,CcString,CcString>,  // 20
+  FTextValueMapSendTextUDP<FText   ,CcString,FText   ,CcString,FText   >,  //
+  FTextValueMapSendTextUDP<FText   ,CcString,FText   ,FText,   CcString>,  // 22
+  FTextValueMapSendTextUDP<FText   ,CcString,FText   ,FText,   FText   >,  //
+  FTextValueMapSendTextUDP<FText   ,FText   ,CcString,CcString,CcString>,  // 24
+  FTextValueMapSendTextUDP<FText   ,FText   ,CcString,CcString,FText   >,  //
+  FTextValueMapSendTextUDP<FText   ,FText   ,CcString,FText,   CcString>,  // 26
+  FTextValueMapSendTextUDP<FText   ,FText   ,CcString,FText,   FText   >,  //
+  FTextValueMapSendTextUDP<FText   ,FText   ,FText   ,CcString,CcString>,  // 28
+  FTextValueMapSendTextUDP<FText   ,FText   ,FText   ,CcString,FText   >,  //
+  FTextValueMapSendTextUDP<FText   ,FText   ,FText   ,FText,   CcString>,  // 30
+  FTextValueMapSendTextUDP<FText   ,FText   ,FText   ,FText,   FText   >   // 31
 };
 
 /*
@@ -2992,30 +3155,350 @@ Selection function for ~sendtext~
 
 */
 
-int FTextSelectSendText( ListExpr args )
+int FTextSelectSendTextUDP( ListExpr args )
 {
   NList type(args);
+  int noargs = nl->ListLength(args);
   int index = 0;
-  if( type.first() == "text" )
+  if( noargs>=1 && type.first()=="text" )
+    index += 16;
+  if( noargs>=2 && type.second()=="text" )
+    index += 8;
+  if( noargs>=3 && type.third()=="text" )
     index += 4;
-  if( type.first() == "text" )
+  if( noargs>=4 && type.fourth()=="text" )
     index += 2;
-  if( type.second() == "text" )
+  if( noargs>=5 && type.fifth()=="text" )
     index += 1;
   return index;
 }
 
 /*
-Operator ~receivetext~
+Operator ~receivetextUDP~
 
-Receive text from a given port
+Receive text from a remote host
 
 */
 
-int FTextValueMapReceiveText( Word* args, Word& result, int message,
-                          Word& local, Supplier s )
+// template to convert from string
+template<typename T>
+bool FromString( const std::string& str, T& result )
 {
-  return 0;
+  std::istringstream is(str);
+  is >> result;
+  if( !is ) {
+    return false;
+  }
+  return true;
+}
+
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+  if (sa->sa_family == AF_INET) {
+    return &(((struct sockaddr_in*)sa)->sin_addr);
+  }
+  return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+// retrieve IP address, port number and IP-version of a sender
+void getSenderInfo(struct sockaddr *sa, string &ip,
+                   string &port, string &ipVer)
+{
+  ip = string("");
+  port = string("");
+  ipVer = string("");
+}
+
+template<class T1, class T2>
+int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
+                                 Word& local, Supplier s )
+{
+  bool *finished             = 0;
+
+  CcBool *ccOk               = 0;
+  FText *ccMsg               = 0;
+  CcString *ErrMsg           = 0;
+  CcString *SenderIP         = 0;
+  CcString *SenderPort       = 0;
+  CcString *SenderIPversion  = 0;
+  TupleType *resultTupleType = 0;
+  Tuple *newTuple            = 0;
+
+  bool   m_Ok              = true;
+  string m_Msg             = "";
+  string m_ErrMsg          = "";
+  string m_SenderIP        = "";
+  string m_SenderPort      = "";
+  string m_SenderIPversion = "";
+
+  T1* CcMyIP         = static_cast<T1*>(args[0].addr);
+  T2* CcMyPort       = static_cast<T2*>(args[1].addr);
+  CcReal* CcRtimeout = static_cast<CcReal*>(args[2].addr);
+
+  string myIP("");
+  string myPort("");
+  double timeoutSecs = 0.0;
+  int iMyPort = 0;
+
+  ostringstream status;
+  struct addrinfo lhints; // info for local address
+  struct addrinfo *lsockinfo = 0;
+  int resGetaddrinfo = 0;
+  int my_socket = -1; // local socket, result of socket()
+  int bound = -1;     // result of bind()
+  fd_set fdsread;     // Set of file descriptors
+  int intFdMax = -1;
+  struct timeval vtTimeout;
+  bool hasTimeout = false;
+  int secs = 0;
+  int ms = 0;
+  DateTime currentTime(instanttype);
+  DateTime endTime(instanttype);
+  int selected = -1;  // result of select()
+  char messageBuf[UDP_MAXBUF];
+  struct sockaddr_storage addr_Sender; // info for sender address
+  int addr_Sender_Length = 0;
+
+  switch( message )
+  {
+    case OPEN:
+      finished = new bool(false);
+      local.setAddr( finished );
+      return 0;
+
+    case REQUEST:
+      // check whether already finished
+      if (local.addr == 0)
+        return CANCEL;
+      finished = (bool*) local.addr;
+      if( *finished )
+        return CANCEL;
+      // get arguments
+      if (!CcMyIP->IsDefined()){ // get own IP
+        status << "LocalIP undefined. ";
+        m_Ok = false;
+      }else{
+        myIP = CcMyIP->GetValue();
+      }
+      if(!CcMyPort->IsDefined()){ // get own port
+        status << "LocalPort undefined. ";
+        m_Ok = false;
+      }else{
+        myPort = CcMyPort->GetValue();
+      }
+      if(     (!FromString<int> (myPort,iMyPort))
+           || (iMyPort < 1024)
+           || (iMyPort > 65536)) {
+        status << "LocalPort " << iMyPort
+               << " is no valid port number. ";
+        m_Ok = false;
+      }
+      if(CcRtimeout->IsDefined()){ // get timeout
+        timeoutSecs = CcRtimeout->GetRealval();
+      }
+
+      if(m_Ok){ // define address struct for local datagram socket:
+        memset(&lhints, 0, sizeof lhints);   // make sure the struct is empty
+        lhints.ai_family   = AF_UNSPEC;      // don't care IPv4 or IPv6
+        lhints.ai_socktype = SOCK_DGRAM;     // UDP datagram type socket
+        if(myIP == ""){
+          lhints.ai_flags    = AI_PASSIVE;   // fill in my IP for me
+          resGetaddrinfo=getaddrinfo(NULL,
+                                     myPort.c_str(),
+                                     &lhints,&lsockinfo);
+        }else{
+          resGetaddrinfo=getaddrinfo(myIP.c_str(),
+                                     myPort.c_str(),
+                                     &lhints,&lsockinfo);
+        }
+        if (resGetaddrinfo == -1) {
+          status << "getaddrinfo(...) failed for local address: "
+              << string(gai_strerror(resGetaddrinfo)) << ".";
+          m_Ok = false;
+        }
+      }
+
+      if(m_Ok){ // report local IP and port on stdout
+        for(  struct addrinfo *p = lsockinfo; p != 0; p = p->ai_next){
+          char ipstr[INET6_ADDRSTRLEN];
+          void *addr;
+          char *ipver;
+          if(p->ai_family == AF_INET){ // IPv4
+            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+            addr = &(ipv4->sin_addr);
+            ipver = "IPv4";
+          } else { // IPv6
+            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+            addr = &(ipv6->sin6_addr);
+            ipver = "IPv6";
+          }
+          inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+          cout << "FTextValueMapReceiveTextUDP: local IP: " << string(ipver)
+               << ":" << string(ipstr) << endl;
+        }
+        cout << "FTextValueMapReceiveTextUDP: local Port: " << myPort << endl;
+        // create the socket
+        my_socket = socket(lsockinfo->ai_family,
+                           lsockinfo->ai_socktype,
+                           lsockinfo->ai_protocol); // create socket
+        if(my_socket == -1){
+          status << "socket() failed: " << string(gai_strerror(my_socket))
+                 << ".";
+          m_Ok = false;
+        }
+      }
+
+      if(m_Ok){ // bind socket to local port
+        bound = bind(my_socket, lsockinfo->ai_addr, lsockinfo->ai_addrlen);
+        if(bound == -1){
+          status << "bind() failed: " << string(gai_strerror(my_socket)) << ".";
+          m_Ok = false;
+        }
+      }
+
+      if(m_Ok){ // wait for a message
+        // prepare filedescriptor list for select()
+        FD_ZERO(&fdsread);             // clear the FD set
+        FD_SET(my_socket, &fdsread);   // add socket to FD set
+        intFdMax = my_socket;          // number of the highest FD in set
+        // prepare timeval as timeout for select()
+        vtTimeout.tv_sec  = 0;
+        vtTimeout.tv_usec = 0;
+        hasTimeout = (timeoutSecs>0.0);
+        secs = 0;
+        ms = 0;
+        if(hasTimeout){
+          secs = static_cast<int>(timeoutSecs);                    // seconds
+          ms   = static_cast<int>((timeoutSecs - secs) * 1000000); // microsecs
+          vtTimeout.tv_sec  = secs;
+          vtTimeout.tv_usec = ms;
+          cerr << "Set timeout to " << secs << "sec " << ms << " Âµs" << endl;
+        }
+        currentTime.Now();
+        if(CcRtimeout->IsDefined() && timeoutSecs > 0.0){
+          endTime = currentTime+DateTime(0,
+                                         static_cast<long>(timeoutSecs*1000),
+                                         datetime::durationtype);
+        }
+        // prepare message buffer and sender address info
+        memset(messageBuf,0,UDP_MAXBUF);
+        addr_Sender_Length=sizeof(addr_Sender);
+        // wait for message
+        if(hasTimeout){ // with timeout (waiting)
+          selected = select(intFdMax+1, &fdsread, NULL, NULL, &vtTimeout);
+        } else{         // without timeout (blocking)
+          selected = select(intFdMax+1, &fdsread, NULL, NULL, NULL);
+        }
+        if(selected == -1){ // ERROR!
+          m_Ok = false;
+          status << "select() failed: " << string(gai_strerror(my_socket))
+                 << ".";
+        } else if(selected == 0){ // TIMEOUT!
+          m_Ok = false;
+          status << "Timeout.";
+        } else{
+      // Receive the datagram
+          int res_len = recvfrom(my_socket,
+                                 messageBuf, UDP_MAXBUF,
+                                 0,
+                                 (struct sockaddr*)&addr_Sender,
+                                 (socklen_t*) &addr_Sender_Length);
+          if(res_len == -1){ // Receive failed
+            m_Ok = false;
+            status << "recvfrom() failed: " << string(gai_strerror(my_socket))
+                   << ".";
+          } else if(res_len+1 >= UDP_MAXBUF){ // Message too long
+            m_Ok = false;
+            status << "Message buffer overflow: "
+                << res_len << "/" << UDP_MAXBUF << " bytes.";
+          } else{
+        // create the message string
+            m_Msg = string(messageBuf);
+        // retrieve sender information
+            char s[INET6_ADDRSTRLEN];
+            m_SenderIP = string(
+                   inet_ntop(addr_Sender.ss_family,
+                             get_in_addr((struct sockaddr *)&addr_Sender),
+                             s,
+                             sizeof s
+                            )
+                  );
+//                 ,ntohs (((struct sockaddr_in) addr_Sender).sin_port)
+            m_SenderPort = "";
+            if(((struct sockaddr *)&addr_Sender)->sa_family == AF_INET){
+              m_SenderIPversion = "IPv4";
+            } else if(((struct sockaddr *)&addr_Sender)->sa_family == AF_INET6){
+              m_SenderIPversion = "IPv6";
+            } else {
+              m_SenderIPversion = "???";
+            }
+          }
+        }
+      }
+
+      // create result tuple
+      m_ErrMsg = status.str(); // get error messages
+
+      ccOk            = new CcBool(true, m_Ok);
+      ccMsg           = new FText(m_Ok, m_Msg);
+      ErrMsg          = new CcString(true, m_ErrMsg);
+      SenderIP        = new CcString(m_SenderIP != "", m_SenderIP);
+      SenderPort      = new CcString(m_SenderPort != "", m_SenderPort);
+      SenderIPversion = new CcString(m_SenderIPversion != "",m_SenderIPversion);
+      resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      newTuple        = new Tuple( resultTupleType );
+      newTuple->PutAttribute(  0,(StandardAttribute*)ccOk);
+      newTuple->PutAttribute(  1,(StandardAttribute*)ccMsg);
+      newTuple->PutAttribute(  2,(StandardAttribute*)ErrMsg);
+      newTuple->PutAttribute(  3,(StandardAttribute*)SenderIP);
+      newTuple->PutAttribute(  4,(StandardAttribute*)SenderPort);
+      newTuple->PutAttribute(  5,(StandardAttribute*)SenderIPversion);
+      result.setAddr(newTuple);
+      *finished = true;
+
+      // free created objects
+      resultTupleType->DeleteIfAllowed();
+      if(my_socket >= 0){
+        ftextCloseSocket(my_socket);
+      }
+      if(lsockinfo){
+        freeaddrinfo(lsockinfo);
+      }
+
+      return YIELD;
+
+    case CLOSE:
+      if (local.addr != 0){
+        finished = (bool*) local.addr;
+        delete finished;
+        local.addr = 0;
+      }
+      return 0;
+  }
+  /* should not happen */
+  return -1;
+}
+
+ValueMapping FText_VMMap_MapReceiveTextUDP[] =
+{
+  FTextValueMapReceiveTextUDP<CcString,CcString>,  // 0
+  FTextValueMapReceiveTextUDP<CcString,FText   >,  // 1
+  FTextValueMapReceiveTextUDP<FText,   CcString>,  // 2
+  FTextValueMapReceiveTextUDP<FText,   FText   >   // 3
+};
+
+
+// {string|text}^2 x real
+int FTextSelectReceiveTextUDP( ListExpr args )
+{
+  NList type(args);
+  int index = 0;
+  if( type.first()=="text" )
+    index += 2;
+  if( type.second()=="text" )
+    index += 1;
+  return index;
 }
 
 
@@ -3330,30 +3813,34 @@ const string FTextStringToTextSpec  =
     "</text--->"
     ") )";
 
-const string FTextSendTextSpec  =
+const string FTextSendTextUDPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>{string | text} x {string | text} x int [ x duration] -> "
-    "text</text--->"
-    "<text>sendtext( message, ip, port [, timeout] )</text--->"
-    "<text>Sends message 'message' to 'port' on host 'ip' and returns"
-    "a text with the send status report. Optional parameter 'timeout' "
-    "specifies a duration to wait before terminationg the transmission with "
-    "an timeout error.</text--->"
-    "<text>query sendtext(\"Hello World!\", '127.0.0.0, 2626)"
+    "( <text>{string|text}^n -> text, 3<=n<=5</text--->"
+    "<text>sendtextUDP( message, remoteIP, remotePort [, myIP [, myPort] ] )"
     "</text--->"
+    "<text>Sends 'message' to 'remotePort' to host 'remoteIP' using 'myPort' \n"
+    "on 'myIP' as the sender address/port and returns a text with a send \n"
+    "status report. If optional parameters are omitted or are empty, standard\n"
+    "parameters will be used automatically. DNS is used to lookup for host"
+    "names. Used the UDP connection-less protocol.</text--->"
+    "<text>query sendtextUDP(\"Hello World!\", '127.0.0.0', '2626')</text--->"
     ") )";
 
-const string FTextReceiveTextSpec  =
+const string FTextReceiveTextUDPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>{string | text} x {string | text} x int [ x duration] "
-    "-> text</text--->"
-    "<text>receivetext( port [, timeout] )</text--->"
-    "<text>Receives a message from 'port' on localhostand returns"
-    "it a text value. Optional parameter 'timeout' "
-    "specifies a duration to wait before terminationg the transmission with "
-    "an timeout error.</text--->"
-    "<text>query receivetext( 2626 )"
+    "( <text>{string|text} x {string|text} x real -> stream(tuple(\n"
+    "(Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)\n"
+    "(SenderIPversion string)))</text--->"
+    "<text>receivetextUDP( myIP, myPort, timeout )"
     "</text--->"
+    "<text>Tries to receive a UDP-message to 'myPort' under local address\n"
+    "'myIP' for a duration up to 'timeout' seconds. Parameter 'myIP'\n"
+    "is looked up automatically, being an empty string/text. DNS is used to \n"
+    "lookup for host names. Negative 'timeout' values will deactive the \n"
+    "timeout, possibly waiting forever. The result is a stream with a single \n"
+    "tuple containing an OK-flag, the message, an error message, the \n"
+    "sender's IP and port, and its IP-version.</text--->"
+    "<text>query receivetextUDP(\"\",'2626',0.01) tconsume</text--->"
     ") )";
 
 /*
@@ -3633,23 +4120,24 @@ Operator ftexttotext
     FTextTypeStringText
     );
 
-Operator ftsendtext
+Operator ftsendtextUDP
     (
-    "sendtext",
-    FTextSendTextSpec,
-    4,
-    FText_VMMap_MapSendText,
-    FTextSelectSendText,
-    FTextTypeSendText
+    "sendtextUDP",
+    FTextSendTextUDPSpec,
+    32,
+    FText_VMMap_MapSendTextUDP,
+    FTextSelectSendTextUDP,
+    FTextTypeSendTextUDP
     );
 
-Operator ftreceivetext
+Operator ftreceivetextUDP
     (
-    "receivetext",
-    FTextReceiveTextSpec,
-    FTextValueMapReceiveText,
-    Operator::SimpleSelect,
-    FTextTypeReceiveText
+    "receivetextUDP",
+    FTextReceiveTextUDPSpec,
+    4,
+    FText_VMMap_MapReceiveTextUDP,
+    FTextSelectReceiveTextUDP,
+    FTextTypeReceiveTextUDP
     );
 
 /*
@@ -3697,8 +4185,8 @@ public:
     AddOperator( &getValueNL );
     AddOperator( &ftexttoobject );
     AddOperator( &chartext );
-//     AddOperator( &ftsendtext );
-//     AddOperator( &ftreceivetext);
+    AddOperator( &ftsendtextUDP );
+    AddOperator( &ftreceivetextUDP);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
