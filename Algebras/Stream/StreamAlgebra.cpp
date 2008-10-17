@@ -3845,12 +3845,12 @@ int StreamTailTupleTreamVM(Word* args, Word& result,
       li = static_cast<TailLocalInfo*>(local.addr);
       if(li->finished){ DEBUGMESSAGE("End REQUEST: CANCEL2 "); return CANCEL; }
       Tuple *restuple = li->GetNextTuple();
-      if(!restuple){ 
-        DEBUGMESSAGE("End REQUEST: CANCEL3 "); return CANCEL; 
+      if(!restuple){
+        DEBUGMESSAGE("End REQUEST: CANCEL3 "); return CANCEL;
       } else {
          restuple->IncReference();  // reference for the stream
       }
-     
+
       result.setAddr( restuple );
       DEBUGMESSAGE("End REQUEST: YIELD");
       return YIELD;
@@ -4077,8 +4077,8 @@ class KindsLocalInfo{
        int typeId = 0;
        SecondoSystem::GetCatalog()->GetTypeId(name->GetValue(),algId,typeId);
        TypeConstructor* tc = am->GetTC(algId,typeId);
-       kinds = tc->GetKinds(); 
- 
+       kinds = tc->GetKinds();
+
     }
 
     CcString*  nextKind(){
@@ -4090,7 +4090,7 @@ class KindsLocalInfo{
         return res;
       }
     }
-  
+
   private:
      unsigned int pos;
      vector<string> kinds;
@@ -4102,7 +4102,7 @@ int KindsVM(Word* args, Word& result,
 {
 
   switch(message){
-    case OPEN: { 
+    case OPEN: {
               local.setAddr( new KindsLocalInfo(
                                    static_cast<CcString*>(args[0].addr)));
               return 0;
@@ -4113,15 +4113,15 @@ int KindsVM(Word* args, Word& result,
                  return CANCEL;
               }else{
                  result.setAddr(li->nextKind());
-                 return result.addr ? YIELD : CANCEL;   
-              } 
+                 return result.addr ? YIELD : CANCEL;
+              }
          }
     case CLOSE: {
               KindsLocalInfo* li = static_cast<KindsLocalInfo*>(local.addr);
               if(li){
                  delete li;
                  local.setAddr(0);
-              } 
+              }
               return 0;
          }
     default: return 0;
@@ -4173,7 +4173,6 @@ public:
     AddOperator( realstreamInfo(), realstreamFun, realstreamTypeMap );
     AddOperator( &STREAMELEM );
     AddOperator( &STREAMELEM2 );
-    AddOperator( &streamtail );
     AddOperator( &streamtail );
     AddOperator( &kinds);
   }
