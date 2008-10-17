@@ -3202,12 +3202,42 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 // retrieve IP address, port number and IP-version of a sender
-void getSenderInfo(struct sockaddr *sa, string &ip,
+bool getSenderInfo(struct sockaddr_storage *sas, string &ip,
                    string &port, string &ipVer)
 {
-  ip = string("");
-  port = string("");
-  ipVer = string("");
+  ostringstream tmp;
+  ip = "";
+  port = "";
+  ipVer = "";
+
+  if(sas->ss_family == AF_INET){ // IPv4
+    ipVer = "IPv4";
+    unsigned short int u_port = ((sockaddr_in*)sas)->sin_port;
+    short h_port = ntohs(u_port);
+    char c_ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET,
+              &(((sockaddr_in*)sas)->sin_addr.s_addr),
+              c_ip,
+              INET_ADDRSTRLEN);
+    ip = string(c_ip);
+    tmp << h_port;
+    port = tmp.str();
+    return true;
+  } else if(sas->ss_family == AF_INET6){ // IPv6
+    ipVer = "IPv6";
+    uint16_t u_port = ((sockaddr_in6*)sas)->sin6_port;
+    uint16_t h_port = ntohs(u_port);
+    char c_ip[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET6,
+              &(((sockaddr_in6*)sas)->sin6_addr.s6_addr),
+              c_ip,
+              INET6_ADDRSTRLEN);
+    ip = string(c_ip);
+    tmp << h_port;
+    port = tmp.str();
+    return true;
+  } // else: error
+  return false;
 }
 
 template<class T1, class T2>
@@ -3425,14 +3455,13 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
                             )
                   );
 //                 ,ntohs (((struct sockaddr_in) addr_Sender).sin_port)
+            m_SenderIP = "";
             m_SenderPort = "";
-            if(((struct sockaddr *)&addr_Sender)->sa_family == AF_INET){
-              m_SenderIPversion = "IPv4";
-            } else if(((struct sockaddr *)&addr_Sender)->sa_family == AF_INET6){
-              m_SenderIPversion = "IPv6";
-            } else {
-              m_SenderIPversion = "???";
-            }
+            m_SenderIPversion = "";
+            getSenderInfo(&addr_Sender,
+                          m_SenderIP,
+                          m_SenderPort,
+                          m_SenderIPversion);
           }
         }
       }
