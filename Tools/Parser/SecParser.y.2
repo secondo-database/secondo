@@ -132,7 +132,7 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
     |    {paramno=0; emptystack();}
       ZZDERIVE ZZIDENTIFIER ZZINFIXOP valueexpr
        {string equalstr;
-        NestedText::CopyOut( $3, equalstr );
+        NestedText::CopyOut( $4, equalstr );
         if(equalstr!="=") {
           yyerror("derive command expects a '=' at the third position");
           return -1;
