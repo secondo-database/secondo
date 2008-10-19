@@ -844,30 +844,6 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
   return hasResult;
 }
 
-IT checkFirstK( IT checkIt, int k, vector< ActiveElem >& c, 
-               int& outpos)
-{
-  //checks if "it" is one of the first k, then give out the k+1 iterator
-  //else give out m->end()
-  outpos = 0;
-  IT it = c.begin();
-  while( outpos < k && it != checkIt ) {++outpos; ++it;}
-  if( outpos < k )
-  {
-    int pos = outpos;
-    //something in the first k has changed
-    while( pos < k && it != c.end())
-    { 
-      ++pos;
-      ++it;
-    }
-    return it;
-  }
-  else
-  {
-    return c.end();
-  }
-}
 
 Tuple* changeTupleUnit( Tuple *tuple, int attrNr, Instant start, 
   Instant end, bool lc, bool rc)
@@ -903,7 +879,7 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
     return 0;
   }
 
-  unsigned int pos, max, start;
+  int pos, start, max;
   max = v.size() - 1;
   start = 0;
   bool havePos = false;
@@ -924,7 +900,7 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
     }
     else //same distance
     {
-      while( dist == storeDistance && ++pos < v.size() )
+      while( dist == storeDistance && ++pos < (int)v.size() )
       {
         storeDistance = CalcDistance(v[pos].distance,time);
       }
@@ -932,14 +908,20 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
     }
   }
   if( !havePos){ pos = start; }
-  v.insert(v.begin() + pos,e);
+  if( v.capacity() - v.size() < 1)
+  {
+    v.reserve(v.size() + 1000);
+  }
+
+  cout << "Insert at Pos: " << pos << " Size: " << v.size() << endl;
+  v.insert(v.begin() + (unsigned)pos,e);
   return pos;
 }
 
 unsigned int findActiveElem( vector<ActiveElem> &v, MReal *distance, 
                             Instant time, Tuple *tuple)
 {
-  unsigned int pos, max, start;
+  int pos, max, start;
   max = v.size() - 1;
   start = 0;
   bool havePos = false;
@@ -964,7 +946,7 @@ unsigned int findActiveElem( vector<ActiveElem> &v, MReal *distance,
   int i = pos;
   if( tuple == v[pos].tuple){ havePos = true; }
   else { havePos = false; }
-  while( !havePos && (pos < v.size() || i > 0))
+  while( !havePos && (pos < (int)v.size() || i > 0))
   {
     if( i > 0 )
     {
@@ -976,10 +958,10 @@ unsigned int findActiveElem( vector<ActiveElem> &v, MReal *distance,
       };
     }
 
-    if( !havePos && pos < v.size() )
+    if( !havePos && pos < (int)v.size() )
     {
       ++pos;
-      if( pos < v.size() && tuple == v[pos].tuple)
+      if( pos < (int)v.size() && tuple == v[pos].tuple)
       {
         havePos = true;
       }
@@ -1022,7 +1004,7 @@ int knearestFun (Word* args, Word& result, int message,
     case OPEN :
     {
       localInfo = new KnearestLocalInfo;
-      localInfo->activeLine.reserve(10000);
+      localInfo->activeLine.reserve(1000);
       //localInfo->max = 1000;
       int mpos = 0;
       localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
@@ -1204,7 +1186,7 @@ int knearestFun (Word* args, Word& result, int message,
             if( posDel < localInfo->activeLine.size())
             {
               //check if this tuple is one of the first k, then give out this
-              //and change the start of the k+1 to this time
+              //and change the start of the k+1 and the following to this time
               if( posDel < localInfo->k 
                 && (localInfo->activeLine[posDel].start != elem.pointInTime
                 || (localInfo->activeLine[posDel].lc
@@ -1226,8 +1208,12 @@ int knearestFun (Word* args, Word& result, int message,
   }
                 if( localInfo->k < localInfo->activeLine.size() )
                 {
-                  localInfo->activeLine[localInfo->k].start = elem.pointInTime;
-                  localInfo->activeLine[localInfo->k].lc = false;
+                  for( unsigned int ii = localInfo->k; 
+                      ii < localInfo->activeLine.size(); ++ii)
+                  {
+                    localInfo->activeLine[ii].start = elem.pointInTime;
+                    localInfo->activeLine[ii].lc = false;
+                  }
                 }
               }
               //now calculate the intersection of the neighbors
@@ -1246,12 +1232,11 @@ int knearestFun (Word* args, Word& result, int message,
                     localInfo->activeLine[posDel-1].distance) );
                 }
               }
-
-              //localInfo->activeLine.erase( 
-              //      localInfo->activeLine.begin()+posDel );
-              //elem.distance->Destroy();
-              //delete elem.distance;
-              //elem.tuple->DeleteIfAllowed();
+              localInfo->activeLine.erase( localInfo->activeLine.begin()
+                                              + posDel );
+              elem.distance->Destroy();
+              delete elem.distance;
+              elem.tuple->DeleteIfAllowed();
             }
             else
             {
