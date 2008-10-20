@@ -3326,6 +3326,7 @@ as an attribute.
     ostream& Print( ostream &os ) const;
     virtual Region *Clone() const;
     void Clear();
+    void SetEmpty();
 
 /*
 

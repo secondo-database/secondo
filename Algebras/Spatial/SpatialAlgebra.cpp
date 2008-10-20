@@ -8716,6 +8716,15 @@ void Region::Clear()
   bbox.SetDefined(false);
 }
 
+void Region::SetEmpty()
+{
+  region.SetEmpty();
+  pos = -1;
+  ordered = true;
+  bbox.SetDefined(false);
+}
+
+
 void Region::CopyFrom( const StandardAttribute* right )
 {
   *this = *(const Region *)right;

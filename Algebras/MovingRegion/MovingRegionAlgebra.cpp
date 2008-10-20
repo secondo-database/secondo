@@ -2655,9 +2655,10 @@ Since the ~Intime<Alpha>()~ constructors do not properly initialise their
 no better solution right now to assure that ~value~ has a valid DBArray.
 
 */
-    Region* tmp = new Region(0);
+    /*Region* tmp = new Region(0);
     memcpy(&value, tmp, sizeof(*tmp));
-    delete(tmp);
+    delete(tmp);*/
+    value.SetEmpty();
 }
 
 IRegion::IRegion(const IRegion& ir) {
@@ -2673,9 +2674,10 @@ Since the ~Intime<Alpha>()~ constructors do not properly initialise their
 no better solution right now to assure that ~value~ has a valid DBArray.
 
 */
-    Region* tmp = new Region(0);
+    /*Region* tmp = new Region(0);
     memcpy(&value, tmp, sizeof(*tmp));
-    delete(tmp);
+    delete(tmp);*/
+    value.SetEmpty();
     if (ir.defined) value.CopyFrom(&ir.value);
 }
 
@@ -6602,7 +6604,7 @@ void MRegion::IntersectionRP(
     if (MRA_DEBUG)
         cerr << "MRegion::IntersectionRP() #1 called" << endl;
 
-    res = 0;
+    res = MPoint(0);
 
     UPoint* pending = 0;
 
