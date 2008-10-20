@@ -6,6 +6,21 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+
+2008-10-20 Changes for class FLOB 
+===============================================================================
+In order to save disk space, the FLOB class has been changed. 
+It contains now only a pointer to its meta data which will be
+restored when loaded from disk.
+
+Sorry, but again you have to restore your databases! 
+
+Regards
+   Markus 
+
+
+
+
 2008-08-29 Changes at the DateTime class 
 ===============================================================================
 In order to save disk space, the DateTime class has been changed. Type and 
