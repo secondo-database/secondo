@@ -68,6 +68,7 @@ released by the FLOBs destructor.
 #include "SecondoSMI.h"
 #include "QueryProcessor.h"
 
+
 /*
 A FLOB has one of the following states
    
@@ -75,9 +76,9 @@ A FLOB has one of the following states
 
 enum FLOB_Type { Destroyed, 
                  InMemory, 
-		 InMemoryCached, 
+                 InMemoryCached, 
                  InMemoryPagedCached, 
-		 InDiskLarge          };
+                 InDiskLarge          };
 
 /*
  
@@ -127,6 +128,18 @@ A small FLOB is stored in a main memory structure whereas a large
 FLOB is stored into a seperate SmiRecord in an SmiFile.
 
 */
+
+
+//#define FLOB_TRACE
+
+#ifdef FLOB_TRACE
+#define FT(msg) \
+        cerr << (void*)this << " " << __FUNCTION__ << " " << msg << endl;
+#else
+#define FT(msg)
+#endif
+
+
 class FLOB
 {
 
@@ -146,14 +159,33 @@ The page size for paged access.
 
 */
 
-    static bool debug; 
-/*
-A debug flag. If true some trace messages are printed
+    inline FLOB() 
+    { 
+      fd = new FLOB_Descriptor; 
+      FT(" Default Constr., size = uninitialized");
+      //cerr << (void*)fd << " used" << endl; 
+    }
 
-*/
+    inline FLOB(const FLOB& rhs) : type(rhs.type), size(rhs.size) 
+    { 
+      fd = new FLOB_Descriptor; 
+      *fd = *rhs.fd; 
+      FT("Copy Constr., size =" << size); 
+      //cerr << (void*)fd << " used" << endl;
+    }
 
-
-    inline FLOB() {}
+    inline FLOB& operator=(const FLOB& rhs)
+    {
+      type = rhs.type;
+      size = rhs.size;
+      fd = new FLOB_Descriptor; 
+      *fd = *rhs.fd; 
+      FT("Assignment Operator, size =" << size); 
+      //WinUnix::stacktrace("none");        
+      //cerr << (void*)fd << " used" << endl;
+      return *this;
+    }       
+            
 /*
 This constructor should not be used.
 
@@ -196,7 +228,7 @@ Write data from ~source~ into the FLOBs memory.
       {
         Resize( offset + length );
       }
-      memcpy( fd.inMemory.buffer + offset, source, length );
+      memcpy( fd->inMemory.buffer + offset, source, length );
     }
 
 /*
@@ -217,10 +249,17 @@ Resizes the FLOB. A resize of 0 is not allowed. In order
 to remove the memory representation the function ~Clean~
 must be used.
 
+Function ~SetEmpty~ puts the instance in the same state as if
+FLOB(0) has been called. It should only be called directly after
+FLOB(). This might be useful in some special situations since the
+default constructor of classes representing a SECONDO data type
+is not allowed to do any initializations.
+
 */
     void Resize( size_t size );
 
     void Clean();
+    void SetEmpty();
 
 
 /*
@@ -259,7 +298,7 @@ Sets the LOB file. The FLOB must be a LOB.
     inline void SetLobFileId( SmiFileId lobFileId )
     {
       assert( type == InDiskLarge );
-      fd.inDiskLarge.lobFileId = lobFileId;
+      fd->inDiskLarge.lobFileId = lobFileId;
     }
 
 
@@ -293,25 +332,50 @@ Write or read the internal buffer of an ~InMemory~ FLOB to or from
 the given ~dest~ or ~src~ pointer. 
 
 Function ~ReadFrom~ allocates memory of the sufficient size and stores this
-pointer in ~fd.inMemory.buffer~.  The current value of ~fd.inMemory.buffer~
+pointer in ~fd->inMemory.buffer~.  The current value of ~fd->inMemory.buffer~
 will be ignored since it might be an address which was stored when the
 attribute using this FLOB was written to disk. Afterwards it copies the buffer
 pointed to by ~src~ into this new internal buffer. 
 
-The Function ~WriteTo~ simply copies the internal buffer to a buffer pointed
+The Function ~WriteTo~ simply copies the internal data buffer to a buffer pointed
 to by ~dest~.
 
 */
 
-    
     unsigned int ReadFrom(void* src);
     unsigned int WriteTo(void* dest) const;
+
+/*
+The functions ~SerializeFD~ and ~RestoreFD~ and ~MetaSize~ are used for storing
+and recreating a FLOBs state from/to a byte sequence. 
+
+*/
+    size_t RestoreFD(char* src); 
+    size_t SerializeFD(char* dest) const; 
+    size_t MetaSize() const;
+
+
+/*
+The functions ~SaveToRecord~ and ~OpenFromRecord~ can be used to save and restore a FLOB to
+a SmiRecord. 
+
+If parameter ~checkLob~ is set to false LOBs are ignored, this means even if the data size is 
+bigger than the threshold parameter the FLOB will be handled like an in memory FLOB.
+
+*/    
+    void SaveToRecord( SmiRecord& record, 
+                       size_t& offset, 
+                       SmiFileId& lobFile, bool checkLob = true );
+    void OpenFromRecord( SmiRecord& record, 
+                         size_t& offset, bool checkLob = true );
+
+
 
 /*
 3.13 Allocation of the FLOB's internal buffer
 
 The function below will allocate memory of sufficent size for the internal
-buffer and stores a pointer to it in member ~fd.inMemory.buffer~
+buffer and stores a pointer to it in member ~fd->inMemory.buffer~
 
 */    
     void* Malloc(size_t newSize = 0);
@@ -364,13 +428,12 @@ state to a ~InMemory~ state.
     mutable FLOB_Type type;
     size_t size;
 
-    mutable 
-    union FLOB_Descriptor
+    typedef union FLOB_Descriptor
     {
       struct InMemory
       {
         char *buffer; 
-	// a pointer to the memory representation of a flob
+        // a pointer to the memory representation of a flob
       } inMemory;
 
       struct InMemoryCached
@@ -395,7 +458,10 @@ state to a ~InMemory~ state.
         SmiRecordId lobId;
       } inDiskLarge;
 
-    } fd;
+      FLOB_Descriptor() { inMemory.buffer = 0; }
+    };
+   
+    mutable FLOB_Descriptor* fd;
 
     private:
 
@@ -408,24 +474,20 @@ state to a ~InMemory~ state.
    
 */    
     bool checkState(const FLOB_Type f) const;
-	    
+            
     bool checkState(const FLOB_Type f[], const int n) const;
 
     const string stateStr(const FLOB_Type& f) const;
    
     inline void setState(const FLOB_Type state) const
     {
-      if (debug)
-      { 
-	cerr << "Flob " << (const void*)this << ": " 
-	     << stateStr(type) << " -> " << stateStr(state) << endl;
-      }  
+      FT( stateStr(type) << " -> " << stateStr(state) );
       type = state;
-      memset(&fd, sizeof(FLOB_Descriptor), 0);
+      memset(fd, sizeof(FLOB_Descriptor), 0);
     }
 
-
-
+    
+ 
 };
 
     ostream& operator<<(ostream& os, const FLOB& flob); 
