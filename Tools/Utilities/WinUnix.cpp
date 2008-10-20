@@ -205,10 +205,10 @@ WinUnix::stacktrace(const string& fullAppName)
   int depth = backtrace(buffer,256);
   char** STP = backtrace_symbols(buffer,depth);
 
-  bool runaddr2line = RTFlag::isActive("DEBUG:DemangleStackTrace");
+  bool runaddr2line = RTFlag::isActive("DEBUG:DemangleStackTrace") 
+	              && fullAppName != "none";
 
   
-
   string cmdStr = "addr2line -C auto -fse " + fullAppName + " "; 
   cout << " Result of  " << cmdStr << endl;
   string addressList = "";
@@ -233,6 +233,7 @@ WinUnix::stacktrace(const string& fullAppName)
       cout << str << endl;
     } 
   }
+
   if ( runaddr2line )
   {
     FILE* fp = 0;
