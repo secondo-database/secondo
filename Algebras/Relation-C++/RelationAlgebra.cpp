@@ -1730,7 +1730,7 @@ struct FilterLocalInfo
 {
   int current;    //tuples read
   int returned;    //tuples returned
-  bool done;		//arg stream exhausted
+  bool done;            //arg stream exhausted
 };
 
 
@@ -1755,7 +1755,7 @@ Filter(Word* args, Word& result, int message,
       fli = new FilterLocalInfo;
         fli->current = 0;
         fli->returned = 0;
-		fli->done = false;
+                fli->done = false;
       local.setAddr(fli);
 
       qp->Open (args[0].addr);
@@ -1791,10 +1791,10 @@ Filter(Word* args, Word& result, int message,
         return YIELD;
       }
       else
-	  {
-	    fli->done = true;
+          {
+            fli->done = true;
         return CANCEL;
-	  }
+          }
 
     case CLOSE:
 
@@ -1828,16 +1828,16 @@ Filter(Word* args, Word& result, int message,
 
         if ( fli )    //filter was started
         {
-		  if ( fli->done )	//arg stream exhausted, all known
-		  {
-		    pRes->Card = (double) fli->returned;
-			pRes->Time = p1.Time + (double) fli->current
-			  * qp->GetPredCost(s) * uFilter;
-		    pRes->Progress = 1.0;
-			pRes->CopyBlocking(p1);
-			return YIELD;
-		  }
-		
+                  if ( fli->done )      //arg stream exhausted, all known
+                  {
+                    pRes->Card = (double) fli->returned;
+                        pRes->Time = p1.Time + (double) fli->current
+                          * qp->GetPredCost(s) * uFilter;
+                    pRes->Progress = 1.0;
+                        pRes->CopyBlocking(p1);
+                        return YIELD;
+                  }
+                
           if ( fli->returned >= enoughSuccessesSelection )
             //stable state assumed now
           {
@@ -5453,8 +5453,6 @@ extern "C"
 Algebra*
 InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
-  if ( RTFlag::isActive("RA:FLOB_Trace") )
-    FLOB::debug = true;
   if ( RTFlag::isActive("RA:TUPLE_Trace") )
     Tuple::debug = true;
 

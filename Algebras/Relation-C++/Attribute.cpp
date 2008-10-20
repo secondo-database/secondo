@@ -72,38 +72,18 @@ const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
       int algId = nl->IntValue( nl->First( typeInfo ) ),
           typeId = nl->IntValue( nl->Second( typeInfo ) ),
           size = (algMgr->SizeOfObj(algId, typeId))();
-
-      // Calculate the extension size
-      int extensionSize = 0;
-      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
-      {
-        FLOB *tmpFLOB = elem->GetFLOB(i);
-        extensionSize += tmpFLOB->Size();
-      }
-
-      // Move FLOB data to extension tuple
-      char *extensionElement = 0;
-      if( extensionSize > 0 )
-        extensionElement = (char *)malloc( extensionSize );
-
-      char *extensionPtr = extensionElement;
-      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
-      {
-        FLOB *tmpFLOB = elem->GetFLOB(i);
-        unsigned int size = tmpFLOB->WriteTo( extensionPtr );
-        extensionPtr += size;
-      }
-
+      
       // Write the element
       valueRecord.Write( elem, size, offset );
       offset += size;
 
-      // Write the extension element
-      if( extensionSize > 0 )
+      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
-        valueRecord.Write( extensionElement, extensionSize, offset );
-        free( extensionElement );
+        FLOB *tmpFLOB = elem->GetFLOB(i);
+        SmiFileId fid = 0;
+        tmpFLOB->SaveToRecord(valueRecord, offset, fid, false);
       }
+
     }
 /*
 Default save function.
@@ -131,12 +111,7 @@ Default save function.
       for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
         FLOB *tmpFLOB = elem->GetFLOB(i);
-	unsigned int size = tmpFLOB->Size();
-        char *flob = (char*)malloc( size );
-        valueRecord.Read( flob, size, offset );
-        unsigned int bytes = tmpFLOB->ReadFrom( flob );
-	assert( size == bytes );
-        offset += bytes;
+        tmpFLOB->OpenFromRecord(valueRecord, offset, false);
       }
 
       return elem;
@@ -156,10 +131,10 @@ Default open function.
           delete this;
         else {
           for( int i = 0; i < NumOfFLOBs(); i++) {
-            GetFLOB(i)->Clean();		  
-          }		  
+            GetFLOB(i)->Clean();                  
+          }               
           free( this );
-	}  
+        }  
         return true;
       }
       return false;
@@ -206,7 +181,7 @@ Print the delete reference info to a string (for debugging)
 ostream& operator<<(ostream& os, const Attribute& attr)
 {
   return attr.Print(os);
-}	
+}       
 
 
 /*
