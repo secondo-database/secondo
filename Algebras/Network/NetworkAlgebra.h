@@ -1440,15 +1440,6 @@ Given that all relations are set up, the adjacency lists are created.
                             size_t& inout_iOffset,
                             SmiFileId& fileId);
 
-/*
-Read a flob from a file
-
-*/
-  void OpenAdjacencyList(SmiRecord& in_xValueRecord,
-                         size_t& inout_iOffset);
-
-  void OpenSubAdjacencyList(SmiRecord& in_xValueRecord,
-                            size_t& inout_iOffset);
 
 /*
 2.6.6 Private fields of Class ~Network~
