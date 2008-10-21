@@ -80,22 +80,26 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "SecondoSMI.h"
 
 // for operators sendtext, receivetext
+#define UDP_MAXBUF 1048576 // set bufferlength to 1MB
+#include "DateTime.h"
 #include <stdio.h>
-#include <sys/select.h>
-#include <sys/time.h>
 #include <unistd.h>
 #ifdef SECONDO_WIN32
+#include <io.h>
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include "../../ClientServer/Win32Socket.h"
 #else //Linux
+#include <sys/time.h>
+#include <sys/select.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include "../../ClientServer/UnixSocket.h"
 #endif
-#define UDP_MAXBUF 1048576 // set bufferlength to 1MB
-#include "DateTime.h"
 using namespace datetime;
-// endfor operators sendtext, receivetext
+// end for operators sendtext, receivetext
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -3087,7 +3091,11 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
   // prepare the datagram message
   const char *msg  = myMessage.c_str();
   int msg_len      = strlen(msg);
+#ifdef SECONDO_WIN32 
+  int flags        = 0;
+#else
   int flags        = MSG_NOSIGNAL;// ignore SIGPIPE when receiver doesn't listen
+#endif
   // send message
   int sent_len = send(my_socket, msg, msg_len, flags);
   if(sent_len == -1){
@@ -3212,27 +3220,37 @@ bool getSenderInfo(struct sockaddr_storage *sas, string &ip,
 
   if(sas->ss_family == AF_INET){ // IPv4
     ipVer = "IPv4";
-    unsigned short int u_port = ((sockaddr_in*)sas)->sin_port;
-    short h_port = ntohs(u_port);
+#ifdef SECONDO_WIN32
+    ip = string(inet_ntoa(((sockaddr_in*)sas)->sin_addr));
+#else
     char c_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET,
               &(((sockaddr_in*)sas)->sin_addr.s_addr),
               c_ip,
               INET_ADDRSTRLEN);
     ip = string(c_ip);
+#endif
+    unsigned short int u_port = ((sockaddr_in*)sas)->sin_port;
+    short h_port = ntohs(u_port);
     tmp << h_port;
     port = tmp.str();
     return true;
   } else if(sas->ss_family == AF_INET6){ // IPv6
-    ipVer = "IPv6";
+    ipVer = "IPv6";    
     uint16_t u_port = ((sockaddr_in6*)sas)->sin6_port;
     uint16_t h_port = ntohs(u_port);
+#ifdef SECONDO_WIN32
+    cerr << "Cannot translate IPv6 addresses on window system." << endl;
+    ip = string("");
+    // on Vista and Server2008, it should work
+#else
     char c_ip[INET6_ADDRSTRLEN];
     inet_ntop(AF_INET6,
               &(((sockaddr_in6*)sas)->sin6_addr.s6_addr),
               c_ip,
               INET6_ADDRSTRLEN);
     ip = string(c_ip);
+#endif
     tmp << h_port;
     port = tmp.str();
     return true;
@@ -3292,18 +3310,20 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
 
   switch( message )
   {
-    case OPEN:
+    case OPEN:{
       finished = new bool(false);
       local.setAddr( finished );
       return 0;
-
-    case REQUEST:
+    }
+    case REQUEST:{
       // check whether already finished
-      if (local.addr == 0)
+      if (local.addr == 0){
         return CANCEL;
+      }
       finished = (bool*) local.addr;
-      if( *finished )
+      if( *finished ){
         return CANCEL;
+      }
       // get arguments
       if (!CcMyIP->IsDefined()){ // get own IP
         status << "LocalIP undefined. ";
@@ -3349,7 +3369,11 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
         }
       }
 
-      if(m_Ok){ // report local IP and port on stdout
+      if(m_Ok){
+#ifdef SECONDO_WIN32
+      // no inet_ntop() in WINSocks
+#else
+        // report local IP and port on stdout
         for(  struct addrinfo *p = lsockinfo; p != 0; p = p->ai_next){
           char ipstr[INET6_ADDRSTRLEN];
           void *addr;
@@ -3368,6 +3392,7 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
                << ":" << string(ipstr) << endl;
         }
         cout << "FTextValueMapReceiveTextUDP: local Port: " << myPort << endl;
+#endif
         // create the socket
         my_socket = socket(lsockinfo->ai_family,
                            lsockinfo->ai_socktype,
@@ -3378,7 +3403,6 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
           m_Ok = false;
         }
       }
-
       if(m_Ok){ // bind socket to local port
         bound = bind(my_socket, lsockinfo->ai_addr, lsockinfo->ai_addrlen);
         if(bound == -1){
@@ -3428,7 +3452,7 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
           m_Ok = false;
           status << "Timeout.";
         } else{
-      // Receive the datagram
+          // Receive the datagram
           int res_len = recvfrom(my_socket,
                                  messageBuf, UDP_MAXBUF,
                                  0,
@@ -3443,18 +3467,9 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
             status << "Message buffer overflow: "
                 << res_len << "/" << UDP_MAXBUF << " bytes.";
           } else{
-        // create the message string
+            // create the message string
             m_Msg = string(messageBuf);
-        // retrieve sender information
-            char s[INET6_ADDRSTRLEN];
-            m_SenderIP = string(
-                   inet_ntop(addr_Sender.ss_family,
-                             get_in_addr((struct sockaddr *)&addr_Sender),
-                             s,
-                             sizeof s
-                            )
-                  );
-//                 ,ntohs (((struct sockaddr_in) addr_Sender).sin_port)
+            // retrieve sender information
             m_SenderIP = "";
             m_SenderPort = "";
             m_SenderIPversion = "";
@@ -3494,16 +3509,16 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
       if(lsockinfo){
         freeaddrinfo(lsockinfo);
       }
-
       return YIELD;
-
-    case CLOSE:
+    }
+    case CLOSE:{
       if (local.addr != 0){
         finished = (bool*) local.addr;
         delete finished;
         local.addr = 0;
       }
       return 0;
+    }
   }
   /* should not happen */
   return -1;
