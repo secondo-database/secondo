@@ -43,14 +43,14 @@ operator mergediff alias MERGEDIFF pattern _ _ op
 operator mergeunion alias MERGEUNION pattern _ _ op
 
 operator sortby alias SORTBY pattern _ op [list]
-operator mergejoin alias MERGEJOIN pattern _ _ op [_, _]
-operator sortmergejoin alias SORTMERGEJOIN pattern _ _ op [_, _]
+operator mergejoin alias MERGEJOIN pattern _ _ op [_, _] !!
+operator sortmergejoin alias SORTMERGEJOIN pattern _ _ op [_, _] !!
 operator sortmergejoin_r alias SORTMERGEJOIN_R pattern _ _ op [_, _]
 operator sortmergejoin_r2 alias SORTMERGEJOIN_R2 pattern _ _ op [_, _]
 operator sortmergejoin_r3 alias SORTMERGEJOIN_R3 pattern _ _ op [_, _]
-operator hashjoin alias HASHJOIN pattern _ _ op [_, _, _]
+operator hashjoin alias HASHJOIN pattern _ _ op [_, _, _] !!
 
-operator loopjoin alias LOOPJOIN pattern _ op [ fun ] implicit parameter tuple type TUPLE
+operator loopjoin alias LOOPJOIN pattern _ op [ fun ] implicit parameter tuple type TUPLE !!
 operator loopsel alias LOOPSEL pattern _ op [ fun ] implicit parameter tuple type TUPLE
 
 operator extract alias EXTRACT pattern _ op [ _ ]
@@ -62,7 +62,7 @@ operator sample alias SAMPLEFEED pattern _ op [_, _]
 operator aggregate alias AGGREGATE pattern _ op [ _; _; _ ] 
 operator aggregateB alias AGGREGATEB pattern _ op [ _; _; _ ] 
 
-operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
+operator symmjoin alias SYMMJOIN pattern _ _ op [ fun ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2 !!
 
 operator symmproductextend alias SYMMPRODUCTEXTEND pattern _ _ op [ funlist ] implicit parameters lefttuple, righttuple types TUPLE, TUPLE2
 operator symmproduct alias SYMMPRODUCT pattern _ _ op
