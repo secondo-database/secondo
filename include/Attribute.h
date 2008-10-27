@@ -371,12 +371,9 @@ to overwrite the default.
 */
 
 
-    inline virtual void Rebuild(char* state,size_t sz /*, ObjectCast cast = 0*/)
+    inline virtual void Rebuild(char* state, size_t sz)
     {
       memcpy(this, state, sz);
-      //if(cast){
-      //  cast(this);
-      //}
     }
 
     inline virtual void Rebuild(char* state, size_t sz, ObjectCast cast)
@@ -394,12 +391,8 @@ the default ~Serialize~ function. The size of the object is  ~sz~
 */
 
    inline static Attribute*
-   Create(char* state, size_t sz, int algId, int typeId)
+   Create(Attribute* attr, char* state, size_t sz, int algId, int typeId)
    {
-      // create an instance of the specified type, which gives
-      // us an instance of a subclass of class Attribute.
-      Attribute* attr =
-	      static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
 
       // call the spezialized Rebuild function, if not implemented, the default
       // above will be called.
@@ -542,6 +535,11 @@ Print the delete reference info to a string (for debugging)
        SetDefined(false);
    }
 
+  enum StorageType { Default, Core, Extension };
+
+
+  inline virtual StorageType GetStorageType() const { return Default; }
+
   protected:
 
     AttrDelete del;
@@ -558,6 +556,8 @@ Stores the way this attribute is deleted.
 Set the reference counter to 1
 
 */
+
+
 
 /*
 Counters for basic operations. Useful for verifying cost formulas and determining
