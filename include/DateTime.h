@@ -629,9 +629,11 @@ delta in [0,1].
     return "instant";
   }
 
+  inline virtual StorageType GetStorageType() const { return Core; }
+
   inline virtual size_t SerializedSize() const
   {
-    return (2 * sizeof(LONGTYPE)) + sizeof(TimeType) + 2;
+    return (2 * sizeof(LONGTYPE)) + sizeof(TimeType) + 1;
   }
 
   inline virtual void Serialize(char* storage, size_t sz, size_t offset) const

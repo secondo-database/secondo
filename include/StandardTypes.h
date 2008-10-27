@@ -324,6 +324,9 @@ class CcInt : public StandardAttribute
     ReadVar<bool>(del.isDefined, state, offset);
   }	  
 
+
+  inline virtual StorageType GetStorageType() const { return Core; }
+
   static long intsCreated;
   static long intsDeleted;
 
@@ -533,6 +536,9 @@ class CcReal : public StandardAttribute
     ReadVar<SEC_STD_REAL>(realval, state, offset);
     ReadVar<bool>(del.isDefined, state, offset);
   }	  
+
+
+  inline virtual StorageType GetStorageType() const { return Core; }
 
  private:
   SEC_STD_REAL  realval;
@@ -902,6 +908,8 @@ class CcString : public StandardAttribute
     stringval.assign(buffer);
 
   }	
+
+  inline virtual StorageType GetStorageType() const { return Extension; }
 #endif  
 
 
@@ -1100,6 +1108,8 @@ class CcString : public StandardAttribute
     memcpy(stringval, &state[offset], size);
     stringval[size] = '\0';
   }	
+
+  inline virtual StorageType GetStorageType() const { return Extension; }
 #endif  
 
 
