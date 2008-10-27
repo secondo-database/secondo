@@ -7,6 +7,22 @@
  Just add new messages directly below this text with a new header.
 
 
+2008-10-27 Changes of the Tuple's Block Layout 
+===============================================================================
+In order to allow direct access to attributes wihtout unpacking
+all other attribute data the block layout of tuple records has been
+changed. A special relation iterator which utilizes this feature will
+follow soon. 
+
+Once again you have to restore your databases!
+
+Regards
+   Markus 
+
+
+
+
+
 2008-10-20 Changes for class FLOB 
 ===============================================================================
 In order to save disk space, the FLOB class has been changed. 
