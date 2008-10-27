@@ -23,35 +23,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 /*
-
-----
-This file is part of SECONDO.
-
-Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
-Computer Science, Database Systems for New Applications.
-
-SECONDO is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
-
-*/
-/*
 2 Part one - Determine relations and sql predicates using by the sql query
 
 2.1 Goal of part one
 
-	Goal of part one is to determine any relation and any sql predicate
+  Goal of part one is to determine any relation and any sql predicate
 used by sql query to be optimized. This information will be used by 
 Part two to construct execution plans for secondo database to
 estimate the selectivity of joined predicates.
@@ -91,7 +67,7 @@ estimate the selectivity of joined predicates.
 
 2.3.1 listOfPredicates/1
 
-	The dynamic fact listOfPredicates/1 exists only once. The
+  The dynamic fact listOfPredicates/1 exists only once. The
 argument is
 a list containing the sql predicates of the sql query. The predicates
 are represented as a list of tuples. These tuples consist three elements:
@@ -104,7 +80,7 @@ are represented as a list of tuples. These tuples consist three elements:
 
 2.3.2 listOfRelations/1
 
-	The dynamic fact listOfRelations/1 exists only once, too. The 
+  The dynamic fact listOfRelations/1 exists only once, too. The 
 argument
 is also a list, but it contains the instances of the relations used 
 by the sql predicates of the sql query. Each relation instance is
@@ -114,7 +90,7 @@ one relation twice, if the relation is used with different aliases.
 
 2.3.2.1 instances of relations
 
-	One relation can be used in a sql query more than one time 
+  One relation can be used in a sql query more than one time 
 by defining distinctive aliases. 
 An instance of a relation is identified uniquely??? by an alias or just by
 the name of the relation if no alias was defined. Each sql predicate 
@@ -126,7 +102,7 @@ is exactly bundled with one relation instance.
 
 2.4.1 findRelation/2
 
-	The predicate is used to find a relation (arg 1) in an given list (arg 2)
+  The predicate is used to find a relation (arg 1) in an given list (arg 2)
 of relations. If arg 1 could be found in arg 2, so the predicate finishs 
 successfully otherwise it fails.
 
@@ -167,7 +143,7 @@ findRelation(SearchFor, [ _ | Rest ]):-
 /*
 2.4.2 add\_relation/1
 
-	The predicate appends the list of relations by the given 
+  The predicate appends the list of relations by the given 
 relation (arg 1),
 if arg 1 is not still a part of the list. The list of relations is stored 
 in fact listOfRelations/1.
@@ -198,7 +174,7 @@ add_relation(Relation):-
 /*
 2.4.3 add\_predicate/1
 
-	The predicate appends the list of sql predicates always found
+  The predicate appends the list of sql predicates always found
 by sql predicate (arg 1). Finally the list of sql predicates
 is stored as argument of fact listOfPredicates/1.
 
@@ -216,7 +192,7 @@ add_predicate(Predicate):-
 /*
 2.4.4 build\_list\_of\_predicates/1
 
-	The predicate is the entry point of part one. It initiates 
+  The predicate is the entry point of part one. It initiates 
 the construction of the list of relations and the list of predicates
 finally stored as argument of facts listOfRelations/1 and
 listOfPredicates/1.
@@ -258,7 +234,7 @@ build_list_of_predicates:-
 
 3.1 The goal of Part two
 
-	The goal of part two is the construction of execution plans of
+  The goal of part two is the construction of execution plans of
 predcounts queries, ???which are able to run against
 secondo database. They are constructed using
 predicates "listOfPredicates/1"[1] and "listOfRelations/1" created by part one.
@@ -284,7 +260,7 @@ to bring??? the POG more detailed.
 /*
 3.2.1 predcount execution plans
 
-	The stream consuming sql operator predcount called with a list of 
+  The stream consuming sql operator predcount called with a list of 
 sql predicates determine for each element of the stream which 
 combination of given sql predicates are solved.
 Each sql predicate i given as parameter is identified by an identifier
@@ -296,14 +272,14 @@ identifier identifing a unique comination of solved sql predicates and
 number of tuples of the original stream solving this combination of 
 sql predicates.
 
-	The identifier does not correspond with the POG identifier 
+  The identifier does not correspond with the POG identifier 
 of the sql predicate. (see section below)
 
 */
 /*
 3.2.2 POG identifiers
 
-	Each sql predicate has gotten an identifier in POG during parsing 
+  Each sql predicate has gotten an identifier in POG during parsing 
 the sql query.
 To assign the collected statistics to the right edge of the POG,
 it's necessary to translate each identifier of the results of predcount
@@ -324,7 +300,7 @@ none
 
 3.4.1 build\_queries/1
 
-	The predicate is the entry point of part two. The result is returned
+  The predicate is the entry point of part two. The result is returned
 as the argument. The result is a list of tuples. One tupel per
 relation instance is created. Each tuple contains a query (second
 element) which represents the predcount execution plan for that 
@@ -344,7 +320,7 @@ build_queries(Queries):-
 /*
 3.4.2 build\_queries/2
 
-	The predicate implements a loop over all relation instances given
+  The predicate implements a loop over all relation instances given
 as first argument.
 
 */
@@ -359,7 +335,7 @@ build_queries([ Relation | RRest], [ Query | QRest]):-
 /*
 3.4.3 build\_query/2
 
-	The predicate constructs the tuple [ PredIdentList Query ] 
+  The predicate constructs the tuple [ PredIdentList Query ] 
 for the given relation (argument 1).
 
 */
@@ -379,7 +355,7 @@ build_query(Relation, [ PredIdentList | Query]):-
 /*
 3.4.4 build\_relation\_expr/2
 
-	The predicate builds relation expression " query relation feed \{alias\} " .
+  The predicate builds relation expression " query relation feed \{alias\} " .
 Setting the alias is necessary to support direct using of sql predicates
 of the original query. In addition it prepares the future 
 support of joins.
@@ -398,7 +374,7 @@ build_relation_expr(Relation, RelationExpr):-
 /*
 3.4.5 build\_alias\_string/2
 
-	The predicate builds the relation alias expression " \{alias\} " .
+  The predicate builds the relation alias expression " \{alias\} " .
 
 */
 
@@ -417,7 +393,7 @@ build_alias_string(rel(_,RelAlias), AliasString):-
 /*
 3.4.6 build\_predcount\_exprs/3
 
-	The predicate builds the predcounts expression string 
+  The predicate builds the predcounts expression string 
  " predcounts [ ... ] " .
 
 */
@@ -437,7 +413,7 @@ build_predcount_exprs(Relation, PredcountString, PredIdentList):-
 /*
 3.4.7 build\_predcount\_expr/4
 
-	The predicate builds the expression for each sql predicate of
+  The predicate builds the expression for each sql predicate of
 predcounts expression string and concates the expression to the list
 of predcount expressions (argument 3). It adds the POG identifier 
 of the sql predicate to the translation list (argument 4), too.
@@ -476,7 +452,7 @@ build_predcount_expr(Relation,[ Predicate | Rest ], PredcountExpr,
 /*
 3.4.8 build\_predicate\_expression/3
 
-	The predicate constructs one sql predicate expression for predcount
+  The predicate constructs one sql predicate expression for predcount
 expression.
 
 */
@@ -491,7 +467,7 @@ build_predicate_expression(PredIdent, Expression, PredcountExpr):-
 /*
 3.4.9 build\_comma\_separated\_string/3
 
-	Arg3 = Arg1 + ',' + Arg2 
+  Arg3 = Arg1 + ',' + Arg2 
 
 */
 
@@ -504,7 +480,7 @@ build_comma_separated_string(AtBegin, AtEnd, NewString):-
 /*
 3.4.10 add\_predcount/6
 
-	deprecated
+  deprecated
 
 */
 
@@ -525,7 +501,7 @@ tranforming of the results for the POG
 
 4.1 Goal of part three
 
-	After the construction of predcounts execution plans
+  After the construction of predcounts execution plans
 in part two the plans
 have to be executed now. The predcounts results have to be transformed
 because
@@ -541,13 +517,13 @@ identifiers used by POG. Finally the results are added to the POG.
 
 4.3 Defined dynamic facts
 
-	none
+  none
 
 4.4 Implementation of the predicates
 
 4.4.1 calculate\_predcounts/2
 
-	The predicate is the entry point of part three. It uses the result of
+  The predicate is the entry point of part three. It uses the result of
 part two as first argument and returns the result as second arguent.
 It executes any given predcounts execution plan and transforms each predicate
 identifiers of operator predcounts to POG's one using
@@ -569,7 +545,7 @@ calculate_predcounts([[PredIDs | Query] | QRest],
 /*
 4.4.2 translate\_ident\_bits/3
 
-	The predicate transforms the predicate identifiers of the
+  The predicate transforms the predicate identifiers of the
 operator predcounts 
 (argument one) to the node identifiers of POG (argument three) using
 the translation tables given as a list (argument two).
@@ -594,7 +570,7 @@ translate_ident_bits([ InTupel | IRest], TranTab,
 /*
 4.4.3 calculate\_pog\_ident/3
 
-	The predicate translate each atom identifier of the operator
+  The predicate translate each atom identifier of the operator
 predcounts to the corresponding node identifier of POG.
 
 */
@@ -613,9 +589,9 @@ calculate_pog_ident(_,_,_):-
 /*
 5 A simple example
 
-5.1 [[[Einfuehrung]]]
+5.1 Overview
 
-	The following simple example explains the using of
+  The following simple example explains the using of
 
   * build\_list\_of\_predicates/0
 
@@ -625,184 +601,242 @@ calculate_pog_ident(_,_,_):-
 
 5.2 Code example
 
-        The output that shows the content of variables is modified for easier
-understanding and the lines are numerated.???
-
-5.2.1 Preparation???
+  The output that shows the content of variables is restructured
+for easier understanding. Normally the variable's content is shown
+within one line per variable. For easier reading and referencing
+such a line is devided into more than one. Additionally these lines
+are numerated.
 
 ----
-50 ?- setOption(entropy).
-Total runtime ... Times (elapsed / cpu): 0.080001sec / 0.07sec = 1.14287
-Switched ON option: 'entropy' - Use entropy to estimate selectivities.
+    F=[8,[2,3]]
+----
 
-Yes
-51 ?- sql select count(*) from [ plz as a, plz as b ]
- where [a:plz > 40000, b:plz < 50000, a:plz <50000].
+  For example such a original prolog output line would
+devided as follows:
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+----
+    000 F=
+    001 [
+    002   8,
+    003   [
+    004     2,
+    005     3
+    006   ]
+    007 ]
+----
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+  Now it's possible to reference each element just by the
+line's number.
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+  In Prolog all structured data is represented as a list.
+For simplifing the explanations below we decide between a list and
+a tuple. Both structures are represented as a list in Prolog, but
+a tuple is a list with a fixed len. In no case a list called 
+tuple will be composed of more or less elements as described in
+this example.
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+  For example the list of predicates is a typical list
+because their len is determined by the sql query to be optimized.
+The predicate description which the list of predicates is composed of
+is a typical tuple. It ever contains of three element.
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+5.2.1 Preparation
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+----
+    59 ?- setOption(entropy).
+    Total runtime ... Times (elapsed / cpu): 0.080001sec / 0.07sec = 1.14287
+    Switched ON option: 'entropy' - Use entropy to estimate selectivities.
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+    Yes
+----
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+  Setting the option entropy is nessecary first to let the
+system generate the dynamic facts edge/6. These facts are used
+by later prolog praedicates to analyse the sql query to be
+optimized.
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+  After toggling on the Option entropy the sql query to be
+optimized has to be entered.
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+----
+    60 ?- sql select count(*) from [ plz as a, plz as b ]
+     where [a:plz > 40000, b:plz < 50000, a:plz <50000].
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    Computing best Plan ...
+    Destination node 7 reached at iteration 6
+    Height of search tree for boundary is 1
+    
+    No
+----
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
+  After entering the sql query the option correlation
+has to be toggled on. By doing this the option entropy
+will be toggled off automatically.
 
-Computing best Plan ...
-Destination node 7 reached at iteration 6
-Height of search tree for boundary is 1
-
-No
+----
+    61 ?- setOption(correlation).
 ----
 
 5.2.2 Analyze the query to be opimized
 
-----
-62 ?- build_list_of_predicates.
-
-No
-----
-
-	Now the dynamic facts listOfPredicates/1 and listOfRelations/1 were
-created. The content of their arguments are shown below. 
+  This analysis is done by the prolog predicate 
+build\_list\_of\_predicates/0.
 
 ----
-63 ?- listOfPredicates(X).
-010 X = 
-020 [
-030   [
-031     4, 
-032     rel(plz, a, l), 
-033     attr(a:pLZ, 1, u)<50000
-034   ], 
-040   [
-041     2, 
-042     rel(plz, b, l), 
-043     attr(b:pLZ, 1, u)<50000
-044   ], 
-050   [
-051     1, 
-052     rel(plz, a, l), 
-053     attr(a:pLZ, 1, u)>40000
-054   ]
-060 ]
+    62 ?- build_list_of_predicates.
 
-Yes
+    No
 ----
 
-	The content of X is the list of sql predicates found by
+  After calling the predicate build\_list\_of\_predicates/0
+the dynamic facts listOfPredicates/1 and listOfRelations/1 were
+created. The content of their arguments are shown below.
+
+----
+    63 ?- listOfPredicates(X).
+    010 X = 
+    020 [
+    030   [
+    031     4, 
+    032     rel(plz, a), 
+    033     attr(a:pLZ, 1, u)<50000
+    034   ], 
+    040   [
+    041     2, 
+    042     rel(plz, b), 
+    043     attr(b:pLZ, 1, u)<50000
+    044   ], 
+    050   [
+    051     1, 
+    052     rel(plz, a), 
+    053     attr(a:pLZ, 1, u)>40000
+    054   ]
+    060 ]
+    
+    Yes
+----
+
+  The content of X is the list of sql predicates found by
 predicate build\_list\_of\_predicates/0 before. Each sql predicate found 
-is represented by one tuple/list (lines 30-34, 40-44 and 50-54).
-Each tuple is composed by three elements: (sql joins are disallowed yet!)
+is represented by one tuple (lines 30-34, 40-44 and 50-54).
+Each tuple is composed of three elements: (sql joins are disallowed yet!)
 
   1 POG identifier of the sql predicate (lines 31,41 and 51)
 
-  2 the relation instance of the sql predicate represented by fact rel/3
+  2 the relation instance of the sql predicate represented by fact rel/2
 (lines 32, 42 and 52)
 
   3 the sql predicate itself (lines 33, 43 and 53)
 
 ----
 
-64 ?- listOfRelations(Y).
-
-110 Y = 
-120 [
-130   rel(plz, b, l), 
-140   rel(plz, a, l)
-150 ]
-
-Yes
+    64 ?- listOfRelations(Y).
+    
+    110 Y = 
+    120 [
+    130   rel(plz, b, l), 
+    140   rel(plz, a, l)
+    150 ]
+    
+    Yes
 ----
 
-	The content of Y is the distinctive list of relations
-found by build\_list\_of\_predicates/0. Obwohl??? two sql predicates use
-the same relation instance named b the relation instance b was added
-to the list just once. On the other hand??? the relation plz was added
-twice because it's used by the sql query as relation instance a and b.
-Consequently??? there has to be created two predcounts execution plans.
-One for each relation instance, obwohl??? both execution plans will use
-the same relation plz.
-
+  The content of Y is the distinctive list of relation instances
+found by build\_list\_of\_predicates/0. Although two sql predicates use
+the same relation PLZ the relation was added twice to the list
+because the relation PLZ was used as relation instance a and relation
+instance b within the sql query. On the other hand the relation instance
+b was added just once, although the relation instance is used by
+two predicates. For a more detailed explanation of relation instances
+see the section instances of relations above.
 
 5.2.3 Build predcounts queries and get the statistics
 
 ----
-65 ?- build_queries(Queries), calculate_predcounts(Queries,Result).
-0.init finished
-Total runtime ... Times (elapsed / cpu): 1.91003sec / 1.91sec = 1.00002
-0.init finished
-Total runtime ... Times (elapsed / cpu): 0.530008sec / 0.54sec = 0.981496
-210 Queries = 
-220 [
-230   [
-231     [2] |
-232     query plz feed {b} predcounts [ P2: (.PLZ_b < 50000) ]
-232     consume;
-233   ], 
-240   [
-241     [4, 1] |
-242     query plz  feed  {a} predcounts [ P4: (.PLZ_a < 50000),
-242	P1: (.PLZ_a > 40000) ]  consume;
-243   ]
-250 ],
-310 Result = 
-320 [
-330   [
-331     [2, 21470], 
-332     [0, 19797]
-333   ], 
-340   [
-341     [5, 3127], 
-342     [1, 19797], 
-343     [4, 18343], 
-344     [0, 0]
-345   ]
-350 ]
+    65 ?- build_queries(Queries), calculate_predcounts(Queries,Result).
+    0.init finished
+    Total runtime ... Times (elapsed / cpu): 1.91003sec / 1.91sec = 1.00002
+    0.init finished
+    Total runtime ... Times (elapsed / cpu): 0.530008sec / 0.54sec = 0.981496
+    210 Queries = 
+    220 [
+    230   [
+    231     [2] |
+    232     query plz feed {b} predcounts [ P2: (.PLZ_b < 50000) ]
+    232     consume;
+    233   ], 
+    240   [
+    241     [4, 1] |
+    242     query plz  feed  {a} predcounts [ P4: (.PLZ_a < 50000),
+    242     P1: (.PLZ_a > 40000) ]  consume;
+    243   ]
+    250 ],
+    310 Result = 
+    320 [
+    330   [
+    331     [2, 21470], 
+    332     [0, 19797]
+    333   ], 
+    340   [
+    341     [5, 3127], 
+    342     [1, 19797], 
+    343     [4, 18343], 
+    344     [0, 0]
+    345   ]
+    350 ]
 
-Yes
+    Yes
 ----
 
-	The variable Queries contains a list of tuples (lines
+  The variable Queries contains a list of tuples (lines
 230-233 and 240-243). One tuple
 corresponds with exactly one relation instance (lines 130
 and 140)
-found by build\_list\_of\_predicates/0. Each tuple is composed by two 
+found by build\_list\_of\_predicates/0. Each tuple is composed of two 
 elements:
 
   1 the list of POG identifiers of the sql predicates used by
@@ -811,124 +845,360 @@ POG identifiers corresponds with the order of using the sql predicates
 within the predcounts execution plan
 
   2 predcounts execution plan of one relation instance with all
-sql predicates using that instance
+sql predicates using this relation instance
 
-	The variable Result contains the already transformed result
-of executed predcounts execution plans. What means transformed? This
-issue is discussed later in this document detailed. In a short manner
-one could say, the identifiers of the tupels (column atom) are
-transformed for using it directly for the POG.
+  The variable Result is unified with the list of results of
+predcounts execution plans created by the predicate build\_queries/1.
+(lines 232 and 242) Each result corresponds with one relation instance.
+The order of predcounts results stored in Result matches the order of
+predcounts execution plans in the variable Queries.
 
-5.2.4 How are the results to be interpreted ?
+  The predcounts result is a list of tuples. Each tuple is
+composed of a element atom (first one) and an element count (second
+one). An explanation of the tuple's meaning could be found in the 
+documentation of operator predcounts.
 
-	Each sql predicate i is identified by the identifier 2\^ i.
-Each node of the POG represents set of sql predicates evaluated at 
-this point of the POG. The identifier of the node is composed by
-adding the identifiers of all sql predicates solved at this point.
-For example the node identifier 5 (binary 101) means, that the
-sql predicates with the identifiers 1 (binary 001) and 4 (binary 100)
-are already solved at this point. Please note that nothing was defined
-about the predicate with the identifier 2 (binary 010). This is in
-disconjunction??? with the meaning of the column atom of predcounts
-operator! In case of the operator predcounts atom=5 (binary 101)
-means, that the predicates with the identifiers 4 and 1 are solved
-and the predicate with the identifier 2 is not solved.
+  The predcounts's results stored in Result are already
+transformed. What means transformed? This issue is discussed later in
+this document detailed. In a short manner one could say, the identifiers
+of the tuples (column atom) are transformed for using it directly to
+identify nodes of the POG.
 
-	The cardinality at a node of the POG represents the count of
-rows solving the predicates evaluated at this point of the POG.
-For example a carinality of 41267 at node 5 means that 41267 rows
-solving the sql predicates with the identifiers 4 and 1. To get
-this value using the predcounts result sets, you have to do the
-following:
+5.2.4 How are the predcounts results to be interpreted ?
 
-  1 calculate the cardinalities of each relation instance
-  this can be easiely done by adding the values of column count
-  of all tuples of the predcounts query of the relation instance.
+  Each predcounts result is exclusively calculated for
+exact one relation instance. The tuples attribute atom identifies which
+predicates a tuple has to solve and not to solve to increase the count value
+of this tuple. 
 
-    In case of predcounts query line 232 one gets 41267.
-
-  2 calculate the rows of the relation instance which are solved
-  the predicates identified by 4 and 1. This can be done by adding
-  all tuples of the corresponding predcounts query result where these
-  predicates are solved. 
+  To understand the meaning of predcounts result the predcounts
+execution plan of relation instance a (line 242) will be executed. 
   
-    In case of the example this is just the tupel
-  of line 341. In case of the node 4 of POG it would be the tuples
-  of lines 341 and 342. So one gets 3127 for node 5 and 22924 for
-  node 4.
-
-  3 The initial number of rows (equal to the cardinality at node 0
-  of the POG) is the product of the cardinalities of all relation
-  instances involved by the query to be optimized. 
- 
-    For the example the cardinality at node 0 is the product of
-  41267 and 41267. It's 1702965289.
-
-  4 The step 2 described how many rows C(node) of an relation
-  instance solved 
-  the set of sql predicates at a concrete??? node. To get the
-  cardinality at this node one has to multiplicate??? C(node) with
-  the initial number of rows of the other relation instances
-  determined by step 1.
-
-  5 calculated the cardinalities of additional nodes. By the
-  evaluation of the predcounts queries one gots values at the
-  nodes 2, 5, 1 and 4 nearly directly???. The cardinality at node
-  0 could be calculated indirectly as described at step 3.
-  But based on the values of nodes 2, 5, 1 and 4 one is able to
-  calculate the cardinalities at nodes 7, 3 and 6, too.
- 
-
-    ** noch unklar **
-
 ----
-    The
-  cardinality of node 3 is 425041590 for example. Why? As described
-  at step 4 the cardinality of node 2 is the product of the value
-  21470 of node 2 and the cardinalities of all relation instances
-  not used to determine the value of node 2. In the case of the 
-  example it means 21470 has to be multiplicated with 41267
-  (cardinality of relation instance rel(plz,a,1)). In the case of
-  node 3 the cardinality of node 2 and the cardinality of node 1
-  has to be multiplicated. So one gets 425041590 as result of
-  21470 multiplicated with 19797.
-
-    Generally one could say the cardinality of a node N is
-  calculated as the product of the cardinality of any node M
-  which is a directly [[[Vorgaenger]]] within the POG and
-  either
-
-  a xxx
-
-  b yyy
-
-  The meaning new predicate means the sql predicate which solving
-  is represented by the edge between node M and N.
+    67 ?- secondo(query plz  feed  {a} predcounts [ P4: (.PLZ_a < 50000),
+    P1: (.PLZ_a > 40000) ]  consume;', A).
+    0.init finished
+    Total runtime ...   Times (elapsed / cpu): 0.940014sec / 0.89sec = 1.0562
+    
+    410 A =
+    420 [
+    430   [rel, 
+    431     [tuple, 
+    432       [
+    433         [Atom, int], 
+    434         [Count, int]
+    435       ]
+    436     ]
+    437   ],
+    440   [
+    441     [3, 3127],
+    442     [2, 19797],
+    443     [1, 18343],
+    444     [0, 0]
+    445   ]
+    450 ]
+    
+    Yes
 ----
 
-	By using the steps before one gets the following 
-cardinalities:
+  While looking at the listing above you will see the predcounts
+result is a list of tuples and each tuple is composed of a value Atom
+and a value Count.
 
-  * node 2:  886002490 = 41267 * 21470
+  To understand the value atom one has to imagine the value in
+binary mode. So the value 1 is 01. The Count 18343 means that 18343 tuples
+of the relation instance b solve the the predicate P4 but not the
+predicate P1. (Please note the tuples must not solve the predicate P1.
+This is in contradiction to the meaning of POG's nodes identifier.)
 
-  * node 5:  129041909 = 41267 * 3127
+  To determine how many tuples of relation instance a solves
+the predicate P4 in independence of predicate P1, the values Count of 
+the result's tuples identified by 2 (binary 10) and 3 (binary 11) 
+has to be added. In the example you get a count of 18343 + 3127 = 21470.
 
-  * node 1:  816962799 = 41267 * 19797
+5.2.5 Some Theory
 
-  * node 4:  756960581 = 41267 * 18343
+5.2.5.1 Definitions
 
-  * node 0: 1702965289 = (21470+19797) * (3127+19797+18343+0)
+	.
 
-  * node 3:  425041590 = 21470 * 19797
+  Be $Pi = \{ p_1, p_2, p_4, ..., p_{2^m} \}$ the set of predicates used
+by the sql query to be optimized and $P_{N_i}$ the set of predicates
+solved at POG's node $N_i$.
 
-  * node 7:   67136690 = 21470 * 3127
+  Be $R = \{R_0, R_1, \ldots, R_n \}$ the set of relation instances used by
+the sql query to be optimized and $R_{N_i}$ the set of relation instances
+used by the predicates of set $P_{N_i}$.
 
-  * node 6:  393824210 = 21470 * 18343
+  Be $C_{N_0} = R_0 \times R_1 \times \ldots \times R_n$ the
+initial set of tupels at the start node $N_0$.
+
+  Be $r: P \rightarrow 2^R$ the function which determines the
+relation instances $R_{p_i} \subseteq R$ used by the predicate
+$p_i \in P$.
+
+  Be the cardinality $C_{N_i}$ the count of tuples which solves all
+predicates $p \in P_{N_i}$.
+
+  Be the selectivity $S_{N_i} = \frac{C_{N_i}}{C_{N_0}}$.
+
+  Be $PC_{R_i} \subset \aleph \times \aleph$ the predcounts result. Each 
+element $t \in PC_{R_i}$ is composed of an attribute atom and an attribute
+count. The elements of the tuple $t \in PC_{R_i}$ can be obtained
+by the functions $a_{atom}: PC_{R_i} \rightarrow \aleph$ and
+$a_{count}: PC_{R_i} \rightarrow \aleph$. In addition there is a function
+$solved: PC_{R_i} \rightarrow P$ which determines the set of predicates
+solved by the tuples $e \in R_i$ that are represented by tuple $t \in PC_{R_i}$
+of predcounts result.
+
+  Be $card: R_{N_i} \times \aleph \rightarrow \aleph$ a function which
+determines $\forall t \in R_{N_i}, n \le 2^{|P|}: card(t,n) = ???$
+
+  Be $CM_{R_i}$ the set of tuples $c_{R_i,\aleph} \in \aleph \times
+\aleph$ of the the predcounts result. The elements of the tuple $c_{R_i,\aleph}$
+can be obtained by the functions $a_{atom}(c_{R_i,\aleph}) \mapsto \aleph$ and
+$a_{count}(c_{R_i,\aleph}) \mapsto \aleph$
+
+  Be $s: PC_{R_i} \rightarrow P$ the function which determines
+the set of predicates solved by tuples represented by a tuple
+of predcounts result PC. For example the $a_{atom}(R_i,3)=5$ returns
+the set $\{p_4, p_1\}$.
+
+5.2.5.2 Types of POG's nodes
+
+	.
+
+  While evaluating the predcounts results it's possible to devide
+the set of POG's nodes into the following types of nodes:
+
+  ** was ist mit Praedikaten, die keine Relation verwenden **
+
+	1. the start node $N_0$ with $|P_{N_0}| = 0$
+
+	2. nodes $N_i$ with $|P_{N_i}| = 1$ and $|R_{N_i}| = 1$
+
+	3. nodes $N_i$ with $|R_{N_i}| = 1$
+
+	4. nodes $N_i$ with $|R_{N_i}| > 1$ but 
+$\forall p \in P_{N_i}: |r(p)| = 1$
+
+	5. nodes $N_i$ with $\exists p \in P_{N_i}: |r(p)| \ge 2$
+
+5.2.5.3 Determine the cardinalities
+
+	** Das folgende muesste eigentlich bewiesen werden - oder ? **
+
+5.2.5.3.1 Node of type 1
+
+	Within a POG there exist only one node of type 1. This node is
+the start node of the POG.
+
+	To determine the cardinality of node $N_0$ based on predcount results
+the cardinalities $C_{R_i}$ of all relation instances have to calculated first.
+This can be done by: $$C_{R_i} = \sum_t^{PC_{R_i}} a_{count}(t)$$ 
+
+	The cardinality $C_{N_0}$ can be calculated as follows:
+$$C_{N_0} = \prod_{R_i}^R C_{R_i}$$
+
+5.2.5.3.1 Nodes of type 2 and 3
+
+	The nodes of type 2 are all nodes which follows directly of the
+POG's start node. At all of these nodes just one predicate was evaluated.
+The predicate evaluated uses exactly one relation instance $R_{p_i} \in
+R_{N_i}$ with $p_i \in P_{N_i}$.
 
 
-5.2.5 What means transformed in case of the result set?
+	The cardinality of these nodes $C_{N_i}$ can be obtained using
+predcounts results $PC_{R_i}$:
+$$C_{N_i} = C_{R_i}' * \prod_{R_j}^{R \setminus R_{N_i}} C_{R_j}$$
+with
+$$C_{R_i}' = \sum_t^{\{e \in PC_{R_i} { | } \forall p \in P_{N_i}:
+p \in solved(e)\}}
+a_{count}(t)$$
 
-	To explain let us look at the native??? results of the 
+	The way described above is also usable to determine the
+cardinality $C_{N_i}$ of nodes of type 3.
+
+5.2.5.3.1 Nodes of type 4
+
+	The nodes of type 4 includes all nodes except type 1,2,3 nodes and
+nodes which includes join predicates. To obtain the cardinality of such
+a node the following equation has to be solved:
+$$C_{N_i} = \prod_{R_m}^{R_{N_i}} C_{R_m}' * 
+\prod_{R_j}^{R \setminus R_{N_i}} C_{R_j}$$ with
+$$C_{R_m}' = \sum_t^{\{e \in PC_{R_m} { | } \forall p \in P_{N_i}:
+p \in solved(e)\}} a_{count}(t)$$.
+
+	The both equations above are the general form of the equations
+for type 1,2 and 3 nodes.
+
+5.2.5.3.1 nodes of type 5
+
+	The nodes of type 5 are nodes including join predicates. The
+source is not still able to deal with these predicates.
+
+5.2.6 The cardinalities of the example's nodes
+
+  The sql query to be optimized contains three predicates (see lines 010 - 060):
+
+  * $P1: attr(a:pLZ, 1, u)>40000$
+
+  * $P2: attr(b:pLZ, 1, u)<50000$
+
+  * $P4: attr(a:pLZ, 1, u)<50000$
+
+  The three predicates uses two relation instances. Therefore two
+predcounts execution plans were created (lines 232 and 242).
+
+  * $query plz feed \{b\} predcounts [ P2: (.PLZ\_b < 50000) ] consume;$
+
+  * $query plz  feed  \{a\} predcounts [ P4: (.PLZ\_a < 50000), 
+P1: (.PLZ_a > 40000) ]  consume;$
+
+  The queries's result was stored in the variable Result as follows:
+
+----
+    310 Result =
+    320 [
+    330   [
+    331     [2, 21470],
+    332     [0, 19797]
+    333   ],
+    340   [
+    341     [5, 3127],
+    342     [1, 19797],
+    343     [4, 18343],
+    344     [0, 0]
+    345   ]
+    350 ]
+----
+
+  Using the predcounts result's above we get:
+
+  * $R = \{ R_a, R_b \}$
+
+  * $PC_{R_a} = \{ (5,3127), (1,19797), (4,18343), (0,0) \}$
+
+  * $PC_{R_b} = \{ (2,21470), (0,19797) \}$
+
+  By adding some values we get additionally:
+$$C_{R_a} = \sum_t^{PC_{R_a}} a_{count}(t) = 3127 + 19797 + 18343 + 0 = 41267$$
+$$C_{R_b} = \sum_t^{PC_{R_b}} a_{count}(t) = 21470 + 19797 = 41267$$
+
+  At first all nodes of the example's POG are of the type 1 to 4.
+So the cardinality of each POG's node can be obtained by using the
+equations for type 4 nodes.
+
+
+5.2.6.1 node $N_0$ (type 1)
+
+	$P_{N_0} = \emptyset$ and $R_{N_0} = \emptyset$
+
+  $$C_{N_0} = \prod_{R_i}^R C_{R_i} $$
+$$ C_{N_0} =  \prod_{R_i}^{\{ R_a, R_b\}} C_{R_i} $$
+$$ C_{N_0} =  C_{R_a} * C_{R_b} $$
+$$ C_{N_0} = 41267 * 41267 $$
+$$ C_{N_0} = 1702965289 $$
+
+5.2.6.2 node $N_1$ (type 2)
+
+	$P_{N_1} = \{ p_1 \}$ and $R_{N_1} = \{ R_a \}$
+
+  $$ C_{N_1} = C_{R_{N_1}}' * \prod_{R_i}^{R \setminus R_{N_1}} C_{R_i}$$
+$$ C_{N_1} = C_{R_a}' * \prod_{R_i}^{R \setminus \{ R_a \}} C_{R_i} $$
+$$ C_{N_1} = C_{R_a}' * \prod_{R_i}^{\{ R_b \}} C_{R_i} $$
+$$ C_{N_1} = C_{R_a}' * C_{R_b} $$
+$$ C_{N_1} = \left( \sum_t^{\{e \in PC_{R_a} { | } \forall p \in \{ p_1 \}: 
+p \in solved(e)\}} a_{count}(t) \right) * C_{R_b} $$
+$$ C_{N_1} = \left( \sum_t^{\{ (5,3127), (1,19797) \}} a_{count}(t)
+\right) * C_{R_b} $$
+$$ C_{N_1} = ( 3127 + 19797 ) * 41267$$
+$$ C_{N_1} = 946004708 $$
+
+5.2.6.3 node $N_2$ (type 2)
+
+	$P_{N_2} = \{ p_2 \}$ and $R_{N_2} = \{ R_b \}$
+
+$$ C_{N_2} = C_{R_b}' * C_{R_a} $$
+$$ C_{N_2} = \left( \sum_t^{\{e \in PC_{R_b} { | } \forall p \in \{ p_2 \}: 
+p \in solved(e)\}} a_{count}(t) \right) * C_{R_a} $$
+$$ C_{N_2} = \left( \sum_t^{\{ (2,21470) \}} a_{count}(t)
+\right) * C_{R_a} $$
+$$ C_{N_2} = ( 21470 ) * 41267$$
+$$ C_{N_2} = 886002490 $$
+
+5.2.6.4 node $N_4$ (type 2)
+
+	$P_{N_4} = \{ p_4 \}$ and $R_{N_4} = \{ R_a \}$
+
+$$ C_{N_4} = C_{R_a}' * C_{R_b} $$
+$$ C_{N_4} = \left( \sum_t^{\{e \in PC_{R_a} { | } \forall p \in \{ p_4 \}: 
+p \in solved(e)\}} a_{count}(t) \right) * C_{R_b} $$
+$$ C_{N_4} = \left( \sum_t^{\{ (5,3127), (4,18343) \}} a_{count}(t)
+\right) * C_{R_b} $$
+$$ C_{N_4} = ( 3127 + 18343 ) * 41267$$
+$$ C_{N_4} = 886002490 $$
+
+5.2.6.4 node $N_5$ (type 3)
+
+	$P_{N_5} = \{ p_1, p_4 \}$ and $R_{N_5} = \{ R_a \}$
+
+$$ C_{N_4} = C_{R_a}' * C_{R_b} $$
+$$ C_{N_4} = \left( \sum_t^{\{e \in PC_{R_a} { | } \forall p \in \{ p_1, p_4 \}:
+p \in solved(e)\}} a_{count}(t) \right) * C_{R_b} $$
+$$ C_{N_4} = \left( \sum_t^{\{ (5,3127) \}} a_{count}(t)
+\right) * C_{R_b} $$
+$$ C_{N_4} = ( 3127 ) * 41267$$
+$$ C_{N_4} = 129041909 $$
+
+
+5.2.6.5 node $N_3$ (type 4)
+
+	$P_{N_3} = \{ p_1, p_2 \}$ and $R_{N_3} = \{ R_a, R_b \}$
+
+  $$ C_{N_3} = \prod_{R_m}^{R_{N_3}} C_{R_m}' * 
+\prod_{R_j}^{R \setminus R_{N_3}} C_{R_j} $$
+$$ C_{N_3} = \prod_{R_m}^{\{R_a, R_b\}} C_{R_m}' * 
+\prod_{R_j}^{R \setminus \{ R_a, R_b \}} C_{R_j} $$
+$$ C_{N_3} = \prod_{R_m}^{\{R_a, R_b\}} C_{R_m}' * 
+\prod_{R_j}^{\emptyset} C_{R_j} $$
+$$ C_{N_3} = \prod_{R_m}^{\{R_a, R_b\}} C_{R_m}'$$
+$$ C_{N_3} = C_{R_a}' * C_{R_b}' $$
+
+  ** aus nachfolgender Formel ergibt sich noch ein Fehler (p in Durchschnitt!) **
+
+$$ C_{N_3} = \sum_t^{\{e \in PC_{R_a} { | } \forall p \in P_{N_3}:
+p \in solved(e)\}} a_{count}(t) * 
+\sum_t^{\{e \in PC_{R_b} { | } \forall p \in P_{N_3}:
+p \in solved(e)\}} a_{count}(t)$$.
+
+  ** denn eigentlich muss folgendes herauskommen {p1} statt {p1,p2} **
+
+$$ C_{N_3} = \sum_t^{\{e \in PC_{R_a} { | } \forall p \in \{ p_1 \}: 
+p \in solved(e)\}} a_{count}(t) * 
+\sum_t^{\{e \in PC_{R_b} { | } \forall p \in \{ p_2 \}: 
+p \in solved(e)\}} a_{count}(t)$$
+$$ C_{N_3} = \sum_t^{\{ (5,3127), (1,19797) \}} a_{count}(t) * 
+\sum_t^{\{ (2,21470) \}} a_{count}(t) $$
+$$ C_{N_3} = ( 3127 + 19797 ) * 21470 $$
+$$ C_{N_3} = 22924 * 21470 $$
+$$ C_{N_3} = 492178280 $$
+
+
+5.2.6.5 node $N_6$ (type 4)
+
+	dto
+
+5.2.6.5 node $N_7$ (type 4)
+
+	dto
+
+
+5.2.7 What means transformed in case of the result set?
+
+  ** der Abschnitt muss woanders hin **
+
+  To explain let us look at the native??? results of the 
 predcounts execution plans.
 
 ----
@@ -965,13 +1235,13 @@ Total runtime ...   Times (elapsed / cpu): 0.940014sec / 0.89sec = 1.0562
 Yes
 ----
 
-	As you can see??? the tuples of the result are identified by
+  As you can see??? the tuples of the result are identified by
 0 and 1. The tuple identified by 0 shows the number of rows of the
 relation plz doesn't solve??? the sql predicate " PLZ < 50000 " . The
 other tuple shows the number of rows solve the sql predicate. But
 where should these results are written at the POG?
 
-	For each predcounts execution plan there was created a 
+  For each predcounts execution plan there was created a 
 transformation list (lines 231 and 241). For the example we have to
 look at the first one. The list contains just one element. So the only
 one predicate of predcounts operator corresponds with this element.
@@ -982,7 +1252,7 @@ be used directly. To used this value one have to combine them with
 the result tuples of the other predcounts queries identified with
 atom = 0.
 
-	Let's have a look at the second predounts query (lines 242),
+  Let's have a look at the second predounts query (lines 242),
 their transformation list (line 241) and their native result list (lines
 540-545). The predcounts query builds statistics of two predicates P4
 and P1. Using the transformation list one is able to determine the
@@ -1023,19 +1293,19 @@ result 11 has to be transformed to 101 and 10 to 100.
 
 
 
-	** hier weiter **
+  ** hier weiter **
 
 
 ----
 66 ?-
 ----
 
-	
+  
 */
 /*
 1 Helper predicates
 
-	The following predicates are used for easier programming and
+  The following predicates are used for easier programming and
 understanding of the main code.
 
 1.1 debug\_write
@@ -1043,7 +1313,7 @@ understanding of the main code.
 ----    debug_write(Message)
 ----
 
-	The predicate debug\_write writes the given message to 
+  The predicate debug\_write writes the given message to 
 the screen
 without a trailing newline. The message is only written
 if the fact debug\_level(X) with X greater then 0 is set.
@@ -1080,7 +1350,7 @@ debug_write(_).       % in any other case ignore call of debug_write
         debug_writeln(Msg1, Msg2, Msg3, Msg4)
 ----
 
-	The predicates debug\_writeln write the given message(s) to the 
+  The predicates debug\_writeln write the given message(s) to the 
 screen. The
 given message(s) are concatinated without any delimiter but a newline
 will be appended behind??? the last message. The message(s) are only 
@@ -1108,7 +1378,7 @@ debug_writeln(Message):-
 debug_writeln(_).
 
 /* 
-	The following three predicates write two up to four messages 
+  The following three predicates write two up to four messages 
 using the predicates debug\_write/1 and debug\_writeln/1
 
 */
@@ -1137,7 +1407,7 @@ debug_writeln(Msg1,Msg2,Msg3,Msg4):-
 ----    atom_concat(Txt1, Txt2, Txt3, Txt4, Txt5, Rslt)
 ----
 
-	The predicate atom\_concat/6 concatinates five strings to one. It uses
+  The predicate atom\_concat/6 concatinates five strings to one. It uses
 the already defined predicate atom\_concat/3.
 
 */
