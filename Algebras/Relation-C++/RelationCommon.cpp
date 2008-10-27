@@ -102,6 +102,7 @@ TupleType::TupleType( const ListExpr typeInfo )
 {
   attrTypeArray = 0;
   totalSize = 0;
+  coreSize = 0;
   refs = 1;
   int i = 0;
 
@@ -142,6 +143,7 @@ TupleType::TupleType( const ListExpr typeInfo )
         algId = nl->IntValue( nl->First( b ) ),
         typeId = nl->IntValue( nl->Second( b ) ),
         size = (am->SizeOfObj(algId, typeId))();
+
       }
       else
       {
@@ -152,7 +154,34 @@ TupleType::TupleType( const ListExpr typeInfo )
         algId = nl->IntValue( nl->First(b1) );
         typeId = nl->IntValue( nl->Second(b1) );
         size = (am->SizeOfObj(algId, typeId))();
+
+  
+
+
       }
+      
+
+    Attribute* attr =
+	      static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
+
+      if ( attr->GetStorageType() == Attribute::Extension ) 
+      {
+        coreSize += sizeof(uint32_t);
+      }	
+      else if ( attr->GetStorageType() == Attribute::Default )
+      { 
+	coreSize += ( size + (sizeof(uint32_t) * attr->NumOfFLOBs()) );      
+      }	
+      else 
+      {
+        coreSize += attr->SerializedSize();
+      }
+
+
+      delete attr;
+
+
+
       totalSize += size;
       attrTypeArray[i++] = AttributeType( algId, typeId, size );
     }

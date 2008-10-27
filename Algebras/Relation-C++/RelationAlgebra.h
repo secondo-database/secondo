@@ -131,6 +131,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
 #include <iostream>
 #include <map>
+#include <list>
 
 #include "Algebra.h"
 #include "StandardAttribute.h"
@@ -292,6 +293,17 @@ Returns the number of attributes of the tuple type.
 Returns the total size of the tuple.
 
 */
+    inline int GetCoreSize() const
+    {
+      return coreSize;
+    }
+/*
+Returns the core size of the tuple.
+
+*/
+
+
+
     inline const AttributeType& GetAttributeType( int index ) const
     {
       return attrTypeArray[index];
@@ -331,6 +343,8 @@ Sum of all attribute sizes.
 A reference counter.
 
 */
+
+    int coreSize;   
 };
 
 ostream& operator<<(ostream& o, const TupleType& tt);
@@ -1104,14 +1118,24 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   static const size_t MAX_TUPLESIZE = 65535;
   static char tupleData[MAX_TUPLESIZE];
 
-  char* WriteToBlock(size_t attrSizes, size_t extensionSize);
+  char* WriteToBlock( size_t attrSizes, 
+		      size_t extensionSize, 
+		      list<uint32_t>& extOffsets );
 
 
-  size_t CalculateBlockSize( size_t& attrSizes, double& extSize, double& size,
-                                  vector<double>& attrExtSize,
-                                  vector<double>& attrSize,
-				  bool ignorePersLOBs = false );
+  size_t CalculateBlockSize( size_t& attrSizes, 
+		             double& extSize, 
+			     double& size,
+                             vector<double>& attrExtSize,
+                             vector<double>& attrSize,
+			     list<uint32_t>& extOffsets,
+			     bool ignorePersLOBs = false );
 
+
+  char* GetSMIBufferData(SmiRecord& r, uint16_t& rootSize);
+  char* GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize);
+
+  void InitializeAttributes(char* src, uint16_t rootSize);
 
 
 /*
