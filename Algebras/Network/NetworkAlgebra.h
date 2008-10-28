@@ -49,7 +49,21 @@ Please include in *.cpp-File.
 
 #include "StandardAttribute.h"
 #include "SpatialAlgebra.h"
+#include "RTreeAlgebra.h"
 
+struct SectTreeEntry{
+  SectTreeEntry() {};
+
+  SectTreeEntry(int n) {
+    id = n;
+  };
+
+  ~SectTreeEntry(){};
+
+  int id;
+};
+
+class GPoints;
 class GLine;
 /*
 4 class GPoint
@@ -329,6 +343,8 @@ Returns true if two gpoint are identical.
 */
 
     bool operator== (const GPoint& p) const;
+
+    bool operator!= (const GPoint&p) const;
 
 /*
 Returns a point degenerated rectangle as network bounding box of the gpoint
@@ -1030,10 +1046,11 @@ The B-Tree in the ~routes~ relation type info as string.
 /*
 The R-Tree in the ~routes~ relation type info as string.
 
-
+*/
 
   static string routesRTreeTypeInfo;
 
+/*
 The B-Tree in the ~junctions~ relation type info as string.
 
 */
@@ -1061,6 +1078,15 @@ The internal ~sections~ relation type info as string.
 */
 
   static string sectionsInternalTypeInfo;
+
+/*
+The sectionsBTreeTypeInfo
+
+*/
+
+static string sectionsBTreeTypeInfo;
+
+
 
 /*
 
@@ -1268,8 +1294,8 @@ GetSections on RouteInterval.
 
 */
 
-    void GetSectionsOfRouteInterval(RouteInterval in_ri,
-                                    vector<int> &io_SectionIds);
+    void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
+                                    DBArray<SectTreeEntry> *io_SectionIds);
 
 /*
 2.6.4 Static methods of Class ~Network~ supporting the type constructor
@@ -1441,6 +1467,7 @@ Given that all relations are set up, the adjacency lists are created.
                             SmiFileId& fileId);
 
 
+
 /*
 2.6.6 Private fields of Class ~Network~
 
@@ -1484,18 +1511,21 @@ The B-Tree in the ~routes~ relation.
 The B-Tree in the ~routes~ relation.
 
 */
+
+  R_Tree<2,TupleId> *m_pRTreeRoutes;
+
+/*
+The R-Tree in the ~routes~ relation
+
+*/
   BTree* m_pBTreeJunctionsByRoute1;
 
 /*
-The B-Tree in the ~routes~ relation.
+The B-Tree in the ~junctions~ relation.
 
 */
   BTree* m_pBTreeJunctionsByRoute2;
 
-
-//The R-Tree in the ~routes~ relation
-
-// R_Tree<2, TupleIdentifier> *m_pRTreeRoutes;
 
 /*
 The adjacency lists of sections.
@@ -1509,6 +1539,13 @@ The adjacency lists of sections.
 
 */
   DBArray<DirectedSection> m_xSubAdjacencyList;
+
+/*
+The BTree of the sections route ids.
+
+*/
+
+  BTree* m_pBTreeSectionsByRoute;
 };
 
 /*
@@ -1650,6 +1687,14 @@ Returns true if the glines intersect false elswhere.
 
 
   bool Intersects (GLine *pgl);
+
+
+/*
+Returns the Bounding GPoints of the GLine.
+
+*/
+
+  GPoints* GetBGP();
 
   virtual GLine* Clone() const;
 
@@ -1883,6 +1928,57 @@ struct RITree {
   RITree *m_left, *m_right;
 };
 
+/*
+class GPoints by Jianqiu Xu.
+
+*/
+
+extern string edistjoinpointlist;
+
+class GPoints: public StandardAttribute{
+public:
+  GPoints();
+  GPoints(int in_iSize);
+  GPoints(GPoints* in_xOther);
+  ~GPoints(){}
+  ostream& Print(ostream& os)const;
+  inline bool IsEmpty()const;
+  size_t Sizeof()const;
+  GPoints& operator+=(const GPoint& gp);
+  GPoints& operator-=(const GPoint& gp);
+  bool IsDefined()const{return m_defined;}
+  int NumOfFLOBs()const;
+  FLOB* GetFLOB(const int i);
+  void SetDefined( bool in_bDefined ){m_defined = in_bDefined;}
+  void Get(int i,const GPoint*&)const;
+  inline int Size()const;
+  static int SizeOf();
+  static ListExpr Out(ListExpr typeInfo,Word value);
+  static Word In(const ListExpr typeInfo,const ListExpr instance,
+                 const int errorPos,ListExpr& errorInfo,bool& correct);
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo,Word& w);
+  static void Close(const ListExpr typeInfo,Word& w);
+  static Word CloneGPoints(const ListExpr typeInfo,const Word& w);
+  static void* Cast(void* addr);
+  static ListExpr Property();
+  static bool Check(ListExpr type, ListExpr& errorInfo);
+  static bool SaveGPoints(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo, Word& value);
+  static bool OpenGPoints(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo, Word& value);
+  int Compare(const Attribute*)const;
+  bool Adjacent(const Attribute*)const;
+  GPoints* Clone()const;
+  size_t HashValue()const;
+  void CopyFrom(const StandardAttribute*);
+  GPoints& operator=(const GPoints& gps);
+  void FilterAliasGPoints(Network *pNetwork);
+
+private:
+  bool m_defined;
+  DBArray<GPoint> m_xGPoints;
+};
 
 
 #endif // __NETWORK_ALGEBRA_H__

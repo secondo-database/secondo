@@ -28,7 +28,9 @@ March 2004 Victor Almeida
 
 Mai-Oktober 2007 Martin Scheppokat
 
-February 2008 - October 2008 Simone Jandt
+February 2008 -  Simone Jandt
+
+October 2008 - Jianqiu Xu
 
 1.1 Defines, includes, and constants
 
@@ -40,6 +42,7 @@ February 2008 - October 2008 Simone Jandt
 #include "TupleIdentifier.h"
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
+#include "RTreeAlgebra.h"
 #include "DBArray.h"
 #include "SpatialAlgebra.h"
 #include "NetworkAlgebra.h"
@@ -112,6 +115,93 @@ bool searchRouteInterval(GPoint *pGPoint, GLine *pGLine, size_t low,
   }
   return false;
 }
+
+struct SectTree {
+
+  SectTree(){};
+
+  SectTree(SectTreeEntry *nEntry, SectTree *l = 0, SectTree *r = 0) {
+    value.id = nEntry->id;
+    left = l;
+    right = r;
+  };
+
+  ~SectTree(){};
+
+  void Insert(SectTreeEntry *nEntry){
+    if (nEntry->id < value.id) {
+      if (right != 0) right->Insert(nEntry);
+      else right = new SectTree(nEntry,0,0);
+    } else {
+      if (nEntry->id > value.id) {
+        if(left != 0) left->Insert(nEntry);
+        else left = new SectTree(nEntry,0,0);
+      }
+    }
+  };
+
+  void Find (int n, SectTree *result, bool &found){
+    if (n < value.id) {
+      if (right != 0) right->Find(n, result, found);
+      else {
+        found = false;
+        result = 0;
+      }
+    } else {
+      if (n > value.id) {
+        if (left != 0) left->Find(n, result, found);
+        else {
+          found = false;
+          result = 0;
+        }
+      } else {
+        found = true;
+        result = this;
+      }
+    }
+  };
+
+  void CheckSection(Network *pNetwork, int n, bool updown, GPoints &result){
+    vector<DirectedSection> sectList;
+    sectList.clear();
+    SectTree *pSectTree;
+    int routeId;
+    int netId = pNetwork->GetId();
+    double pos;
+    Side side;
+    pNetwork->GetAdjacentSections(n, updown, sectList);
+    size_t j = 0;
+    bool found = true;
+    while (j < sectList.size() && found) {
+      DirectedSection actSection = sectList[j];
+      Find(actSection.GetSectionTid(), pSectTree, found);
+    }
+    if (!found) {
+      Tuple *actSect = pNetwork->GetSection(n);
+      routeId =
+        ((CcInt*) actSect->GetAttribute(SECTION_RID))->GetIntval();
+      if (updown) {
+        pos =
+          ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+        side = Up;
+      } else {
+        pos =
+          ((CcReal*) actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+        side = Down;
+      }
+      result += GPoint(true, netId, routeId, pos, side);
+    }
+  }
+
+  void Remove(){
+    if (left != 0) left->Remove();
+    if (right != 0) right->Remove();
+    delete this;
+  };
+
+  SectTreeEntry value;
+  SectTree *left, *right;
+};
 
 /*
 1.2.6 ~chkPoint~
@@ -854,12 +944,13 @@ struct PrioQueue {
   int firstFree;
 
 };
-/*
+    /*
+Deprecated
 1.2.10 struct ~DijkstraStruct~
 
 Used for Dijkstras-Algorithm to compute the shortest path between two ~GPoint~.
 
-*/
+
 
 struct DijkstraStruct
 {
@@ -938,12 +1029,12 @@ struct DijkstraStruct
   }
 };
 
-/*
+
 1.2.11 class ~PriorityQueue~
 
 Used for shortest path computing in Dijkstras Algorithm.
 
-*/
+
 
 class PriorityQueue
 {
@@ -1044,7 +1135,7 @@ class PriorityQueue
 
 };
 
-/*
+
 1.2.12 ~Dijkstra~
 
 Modified version of dikstras algorithm calculating shortest path in graphs.
@@ -1054,7 +1145,7 @@ version will process an array of edges. This change is necessary to take into
 account that not all transitions between connecting edges are possible. The
 preceding edge has to be known when looking for the next one.
 
-*/
+
 void Dijkstra(Network* in_pNetwork,
                               int in_iStartSegmentId,
                               GPoint* in_pFromGPoint,
@@ -1281,7 +1372,7 @@ void Dijkstra(Network* in_pNetwork,
 //       << (clock() - xEnterTime) << " / " << CLOCKS_PER_SEC << " Sekunden."
 //       << endl;
 }
-
+    */
 /*
 1.3 Class Definitions
 
@@ -1296,10 +1387,11 @@ string Network::routesTypeInfo =
 string Network::routesBTreeTypeInfo =
       "(btree (tuple ((id int) (length real) (curve sline) "
       "(dual bool) (startsSmaller bool))) int)";
-/*
-string Network::routes TypeInfo =
-      "(rtree (tuple((Seg line)(Box rect))) rect FALSE)"
-*/
+
+string Network::routesRTreeTypeInfo =
+      "(rtree (tuple((id int)(length real)(curve sline)(dual bool)"
+      "(startsSmaller bool))) sline FALSE)";
+
 string Network::junctionsTypeInfo =
       "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
       "(meas2 real) (cc int))))";
@@ -1314,6 +1406,9 @@ string Network::junctionsBTreeTypeInfo =
 string Network::sectionsInternalTypeInfo =
       "(rel (tuple ((rid int) (meas1 real) (meas2 real) "
       "(dual bool) (curve sline)(curveStartsSmaller bool) (rrc int))))";
+string Network::sectionsBTreeTypeInfo =
+      "(btree (tuple ((rid int) (meas1 real) (meas2 real) "
+      "(dual bool) (curve sline)(curveStartsSmaller bool) (rrc int))) int)";
 
 
 /*
@@ -1328,11 +1423,12 @@ m_pRoutes(0),
 m_pJunctions(0),
 m_pSections(0),
 m_pBTreeRoutes(0),
-// m_pRTreeRoutes(0),
+m_pRTreeRoutes(0),
 m_pBTreeJunctionsByRoute1(0),
 m_pBTreeJunctionsByRoute2(0),
 m_xAdjacencyList(0),
-m_xSubAdjacencyList(0)
+m_xSubAdjacencyList(0),
+m_pBTreeSectionsByRoute(0)
 {
 }
 
@@ -1342,6 +1438,7 @@ Network::Network(SmiRecord& in_xValueRecord,
 m_xAdjacencyList(0),
 m_xSubAdjacencyList(0)
 {
+
   // Read network id
   in_xValueRecord.Read( &m_iId, sizeof( int ), inout_iOffset );
   inout_iOffset += sizeof( int );
@@ -1397,12 +1494,13 @@ m_xSubAdjacencyList(0)
     m_pSections->Delete();
     return;
   }
-/*
   //Open  rtree for routes
-  nl->ReadFromString(routesRTreeTypeInfo, xType);
-  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pRTreeRoutes = R_Tree::Open(in_xValueRecord, inout_iOffset, xNumericType);
-  if(!m_pRTreeRoutes)
+  Word xValue;
+
+  if (!(m_pRTreeRoutes->Open(in_xValueRecord,
+                            inout_iOffset,
+                            routesRTreeTypeInfo,
+                            xValue)))
   {
     m_pRoutes->Delete();
     m_pJunctions->Delete();
@@ -1410,7 +1508,9 @@ m_xSubAdjacencyList(0)
     delete m_pBTreeRoutes;
     return;
   }
-*/
+
+  m_pRTreeRoutes = (R_Tree<2,TupleId>*) xValue.addr;
+
   // Open first btree for junctions
   nl->ReadFromString(junctionsBTreeTypeInfo, xType);
   xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
@@ -1423,7 +1523,7 @@ m_xSubAdjacencyList(0)
     m_pJunctions->Delete();
     m_pSections->Delete();
     delete m_pBTreeRoutes;
-    //delete m_pRTreeRoutes;
+    delete m_pRTreeRoutes;
     return;
   }
 
@@ -1439,13 +1539,32 @@ m_xSubAdjacencyList(0)
     m_pJunctions->Delete();
     m_pSections->Delete();
     delete m_pBTreeRoutes;
-    //delete m_pRTreeRoutes;
+    delete m_pRTreeRoutes;
     delete m_pBTreeJunctionsByRoute1;
     return;
   }
 
   m_xAdjacencyList.OpenFromRecord(in_xValueRecord, inout_iOffset);
   m_xSubAdjacencyList.OpenFromRecord(in_xValueRecord, inout_iOffset);
+
+  // Open btree for sections
+  nl->ReadFromString(sectionsBTreeTypeInfo, xType);
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  m_pBTreeSectionsByRoute = BTree::Open(in_xValueRecord,
+                                          inout_iOffset,
+                                          xNumericType);
+  if(!m_pBTreeSectionsByRoute)
+  {
+    m_pRoutes->Delete();
+    m_pJunctions->Delete();
+    m_pSections->Delete();
+    delete m_pBTreeRoutes;
+    delete m_pRTreeRoutes;
+    delete m_pBTreeJunctionsByRoute1;
+    delete m_pBTreeJunctionsByRoute2;
+    return;
+  }
+
 
   m_bDefined = true;
 }
@@ -1460,12 +1579,14 @@ m_pRoutes(0),
 m_pJunctions(0),
 m_pSections(0),
 m_pBTreeRoutes(0),
-// m_pRTreeRoutes(0),
+m_pRTreeRoutes(0),
 m_pBTreeJunctionsByRoute1(0),
 m_pBTreeJunctionsByRoute2(0),
 m_xAdjacencyList(0),
-m_xSubAdjacencyList(0)
+m_xSubAdjacencyList(0),
+m_pBTreeSectionsByRoute(0)
 {
+
   // Check the list
   if(!(nl->ListLength(in_xValue) == 3))
   {
@@ -1635,12 +1756,21 @@ Destructor
 Network::~Network()
 {
   delete m_pRoutes;
+
   delete m_pJunctions;
+
   delete m_pSections;
+
   delete m_pBTreeRoutes;
-  //delete m_pRTreeRoutes;
+
+  delete m_pRTreeRoutes;
+
   delete m_pBTreeJunctionsByRoute1;
+
   delete m_pBTreeJunctionsByRoute2;
+
+  delete m_pBTreeSectionsByRoute;
+
 }
 
 /*
@@ -1653,22 +1783,34 @@ void Network::Destroy()
 {
   assert(m_pRoutes != 0);
   m_pRoutes->Delete(); m_pRoutes = 0;
+
   assert(m_pJunctions != 0);
   m_pJunctions->Delete(); m_pJunctions = 0;
+
   assert(m_pSections != 0);
   m_pSections->Delete(); m_pSections = 0;
+
   assert(m_pBTreeRoutes != 0);
   m_pBTreeRoutes->DeleteFile();
   delete m_pBTreeRoutes; m_pBTreeRoutes = 0;
-  //assert(m_pRTreeRoutes != 0);
+
+  assert(m_pRTreeRoutes != 0);
   //m_pRTreeRoutes->DeleteFile();
-  //delete m_pRTreeRoutes; m_pRTreeRoutes = 0;
+  delete m_pRTreeRoutes; m_pRTreeRoutes = 0;
+
   m_pBTreeJunctionsByRoute1->DeleteFile();
   delete m_pBTreeJunctionsByRoute1; m_pBTreeJunctionsByRoute1 = 0;
+
   m_pBTreeJunctionsByRoute2->DeleteFile();
   delete m_pBTreeJunctionsByRoute2; m_pBTreeJunctionsByRoute2 = 0;
+
 //  m_xAdjacencyList.Destroy();
 //  m_xSubAdjacencyList.Destroy();
+  assert(m_pBTreeSectionsByRoute != 0);
+  m_pBTreeSectionsByRoute->DeleteFile();
+  delete m_pBTreeSectionsByRoute;
+  m_pBTreeSectionsByRoute = 0;
+
 }
 
 /*
@@ -1700,7 +1842,6 @@ void Network::FillRoutes(const Relation *routes)
   int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   m_pRoutes = (Relation *)xResult.addr;
-
   // Create B-Tree for the routes
   ostringstream xThisRoutesPtrStream;
   xThisRoutesPtrStream << (long)m_pRoutes;
@@ -1710,18 +1851,16 @@ void Network::FillRoutes(const Relation *routes)
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted); // no query with side effects, please!
   m_pBTreeRoutes = (BTree*)xResult.addr;
-
-/*  //Create R-Tree for the routes
+  //Create R-Tree for the routes
   ostringstream xNetRoutes;
   xNetRoutes << (long) m_pRoutes;
-  strQuery = "(bulkloadrtree (sortby (extend (projectextendstream (addid " +
-             "(feed (" + routesTypeInfo + "(ptr"+ xNetRoutes +")))(TID) " +
-            "((Seg (fun (tuple1 TUPLE) (segments (toline (attr tuple1 curve)" +
-            ")))))) ((Box(fun(tuple2 TUPLE) (bbox (attr tuple2 Seg))))))+
-            "((Box asc)))Box))"
+
+  strQuery = "(creatertree (" + routesTypeInfo + "(ptr "
+              + xNetRoutes.str() +")) curve)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  if (QueryExecuted) m_pRTreeRoutes = (RTree*) xResult.addr;
-*/
+  assert(QueryExecuted);
+  m_pRTreeRoutes = (R_Tree<2,TupleId>*)xResult.addr;
+
 }
 
 
@@ -2208,6 +2347,16 @@ void Network::FillSections()
     pRoute->DeleteIfAllowed();
   } // End while Routes
   delete pRoutesIt;
+  // Create B-Tree for the sections
+  Word xResult;
+  ostringstream xThisSectionsPtrStream;
+  xThisSectionsPtrStream << (long)m_pSections;
+  string strQuery = "(createbtree (" + sectionsInternalTypeInfo +
+                " (ptr " + xThisSectionsPtrStream.str() + "))" + " rid)";
+
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted); // no query with side effects, please!
+  m_pBTreeSectionsByRoute = (BTree*)xResult.addr;
 }
 
 void Network::FillAdjacencyLists()
@@ -2447,6 +2596,32 @@ Tuple* Network::GetSection(int n) {
 
 Tuple* Network::GetSectionOnRoute(GPoint* in_xGPoint)
 {
+ /*
+New implementation using sectionsBTree
+
+*/
+
+  CcInt *ciRouteId = new CcInt(true, in_xGPoint->GetRouteId());
+  BTreeIterator* pSectionIter =
+      m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
+  while (pSectionIter->Next()){
+    Tuple *actSect =
+      m_pSections->GetTuple(pSectionIter->GetId());
+    assert(actSect != 0);
+    double start =
+      ((CcReal*)actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double end =
+      ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+    if (in_xGPoint->GetPosition() >= start && in_xGPoint->GetPosition() <= end){
+      delete pSectionIter;
+      return actSect;
+    }
+  }
+  delete pSectionIter;
+  return 0;
+
+
+  /*
   vector<JunctionSortEntry> xJunctions;
   CcInt xRouteId(true, in_xGPoint->GetRouteId());
   GetJunctionsOnRoute(&xRouteId,
@@ -2475,10 +2650,12 @@ Tuple* Network::GetSectionOnRoute(GPoint* in_xGPoint)
     // Get next junction
     JunctionSortEntry xCurrentEntry = xJunctions[i];
     xCurrentEntry.m_pJunction->DeleteIfAllowed();
+
   }
 
   if(iSectionId == 0) return 0;
   else return m_pSections->GetTuple(iSectionId);
+    */
 }
 
 Tuple* Network::GetRoute(int in_RouteId){
@@ -2491,14 +2668,31 @@ Tuple* Network::GetRoute(int in_RouteId){
   assert(pRoute != 0);
   delete pRoutesIter;
   return pRoute;
+
 }
 
-void Network::GetSectionsOfRouteInterval(RouteInterval in_ri,
-                                vector<int> &io_SectionIds){
-  //Scan Section Relation for sections of routeid
-  //look which sections are inside the route interval
-  //and the sections including the end point resp. start point
-  //return the ids of all these sections and forget the other ones.
+void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
+                                DBArray<SectTreeEntry> *io_SectionIds){
+  io_SectionIds->Clear();
+  double ristart = min(ri->m_dStart, ri->m_dEnd);
+  double riend = max(ri->m_dStart, ri->m_dEnd);
+  CcInt* ciRouteId = new CcInt(true, ri->m_iRouteId);
+  BTreeIterator* pSectionIter =
+      m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
+  Tuple *actSect;
+  while (pSectionIter->Next()) {
+    actSect = m_pSections->GetTuple(pSectionIter->GetId());
+    assert(actSect != 0);
+    double start =
+      ((CcReal*) actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double end =
+      ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+    if ((ristart <= start && riend >= end) ||
+        (start <= ristart && end >= ristart) ||
+        (start <= riend && end >= riend)){
+      io_SectionIds->Append(SectTreeEntry(pSectionIter->GetId()));
+    }
+  }
 };
 
 Point* Network::GetPointOnRoute(GPoint* in_pGPoint){
@@ -2588,9 +2782,6 @@ void Network::GetAdjacentSections(int in_iSectionId,
                                   vector<DirectedSection> &inout_xSections)
 {
   int iIndex = (2 * (in_iSectionId - 1)) + (in_bUpDown ? 1 : 0);
-
-  cerr << "mSize = " << m_xAdjacencyList.Size() << endl;
-  cerr << "iIndex = " << iIndex << endl;
   const AdjacencyListEntry* xEntry = 0;
   m_xAdjacencyList.Get(iIndex, xEntry);
   if(xEntry->m_iHigh != -1)
@@ -2748,7 +2939,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-
   // Save junctions
   nl->ReadFromString(junctionsInternalTypeInfo, xType);
   xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
@@ -2758,7 +2948,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-
   // Save sections
   nl->ReadFromString(sectionsInternalTypeInfo, xType);
   xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
@@ -2768,7 +2957,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-
   // Save btree for routes
   nl->ReadFromString(routesBTreeTypeInfo, xType);
   xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
@@ -2778,17 +2966,13 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-/*
   // Save rtree for routes
-  nl->ReadFromString(routesRTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!m_pRTreeRoutes->Save(in_xValueRecord,
-                           inout_iOffset,
-                           xNumericType))
+
+  if (!m_pRTreeRoutes->Save(in_xValueRecord,
+                            inout_iOffset))
   {
     return false;
   }
-*/
   // Save first btree for junctions
   nl->ReadFromString(junctionsBTreeTypeInfo, xType);
   xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
@@ -2798,7 +2982,6 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-
   // Save second btree for junctions
   nl->ReadFromString(junctionsBTreeTypeInfo, xType);
   xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
@@ -2808,12 +2991,18 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
-
   SmiFileId fileId = 0;
-
-  m_xAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);  
+  m_xAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
   m_xSubAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
-
+  // Save btree for sections
+  nl->ReadFromString(sectionsBTreeTypeInfo, xType);
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!m_pBTreeSectionsByRoute->Save(in_xValueRecord,
+                                      inout_iOffset,
+                                      xNumericType))
+  {
+    return false;
+  }
   return true;
 }
 
@@ -2883,6 +3072,7 @@ void Network::CloseNetwork(const ListExpr typeInfo, Word& w)
 {
    delete static_cast<Network*> (w.addr);
    w.addr = 0;
+
 }
 
 /*
@@ -2899,7 +3089,7 @@ Word Network::CloneNetwork(const ListExpr typeInfo, const Word& w)
 void Network::DeleteNetwork(const ListExpr typeInfo, Word& w)
 {
   Network* n = (Network*)w.addr;
-  n->Destroy();
+  //n->Destroy();
   delete n;
 }
 
@@ -3571,19 +3761,43 @@ double GLine::Netdistance (GLine* pgl2){
   GLine* pgl1 = (GLine*) this;
   double minDist = numeric_limits<double>::max();
   double aktDist = numeric_limits<double>::max();
-  double lastDist = numeric_limits<double>::max();
-  Network* pNetwork = NetworkManager::GetNetwork(pgl1->GetNetworkId());
-  if (pNetwork == NULL) {
-    cmsg.inFunError("Network not correct.");
-    NetworkManager::CloseNetwork(pNetwork);
-    return minDist;
-  }
-  if (pgl1->GetNetworkId() != pNetwork->GetId() ||
-      pgl2->GetNetworkId() != pNetwork->GetId()) {
+  if (pgl1->GetNetworkId() != pgl2->GetNetworkId()) {
     cmsg.inFunError("Both glines must belong to the network.");
-    NetworkManager::CloseNetwork(pNetwork);
     return minDist;
   }
+  /*
+  GPoints *bGPgl1 = pgl1->GetBGP();
+  GPoints *bGPgl2 = pgl2->GetBGP();
+  const GPoint *gp1, *gp2;
+  for (int i = 0; i < bGPgl1->Size(); i++) {
+    bGPgl1->Get(i,gp1);
+    if (const_cast<GPoint*>(gp1)->Inside(pgl2)) {
+      delete bGPgl1;
+      delete bGPgl2;
+      return 0.0;
+    }
+    for (int j = 0; j < bGPgl2->Size(); j++) {
+      bGPgl2->Get(j, gp2);
+      if (const_cast<GPoint*>(gp2)->Inside(pgl1)) {
+        delete bGPgl1;
+        delete bGPgl2;
+        return 0.0;
+      }
+      aktDist = const_cast<GPoint*>(gp1)->Netdistance(const_cast<GPoint*>(gp2));
+      if (aktDist < minDist) minDist = aktDist;
+      if (minDist <= 0.0) {
+        delete bGPgl1;
+        delete bGPgl2;
+        return 0.0;
+      }
+    }
+  }
+  delete bGPgl1;
+  delete bGPgl2;
+  return minDist;
+    */
+  Network *pNetwork = NetworkManager::GetNetwork(pgl1->GetNetworkId());
+  double lastDist = numeric_limits<double>::max();
   vector<JunctionSortEntry> juncsRoute;
   juncsRoute.clear();
   JunctionSortEntry pCurrJunc;
@@ -3715,6 +3929,7 @@ double GLine::Netdistance (GLine* pgl2){
   gpointlistgline2.clear();
   NetworkManager::CloseNetwork(pNetwork);
   return minDist;
+
 }
 
 /*
@@ -4111,9 +4326,17 @@ Using Dijkstras-Algorithm for shortest path computing
 
 double GPoint::Netdistance (GPoint* pToGPoint){
      GLine* pGLine = new GLine(0);
-     if (ShortestPath(pToGPoint, pGLine)) return pGLine->GetLength();
-     else return numeric_limits<double>::max();
-      /*
+     double res;
+     if (ShortestPath(pToGPoint, pGLine)) {
+       res = pGLine->GetLength();
+       delete pGLine;
+       return res;
+     } else {
+       delete pGLine;
+       return numeric_limits<double>::max();
+     }
+
+    /*
   GPoint* pFromGPoint = (GPoint*) this;
   GLine* pGLine = new GLine(0);
 
@@ -4143,7 +4366,7 @@ double GPoint::Netdistance (GPoint* pToGPoint){
   pToSection->DeleteIfAllowed();
   NetworkManager::CloseNetwork(pNetwork);
   return pGLine->GetLength();
-      */
+  */
 }
 
 
@@ -4206,6 +4429,10 @@ bool GPoint::operator== (const GPoint& p) const{
   }
 }
 
+bool GPoint::operator!= (const GPoint& p) const{
+  return !(*this == p);
+}
+
 /*
 Computes the shortest path between start and end in the network. The path is
 returned as gline value.
@@ -4213,6 +4440,7 @@ returned as gline value.
 */
 
 bool GPoint::ShortestPath(GPoint *end, GLine *result){
+
   GPoint *start = this;
   result->Clear();
   if (start == 0 || end == 0 || !start->IsDefined() ||
@@ -4241,7 +4469,6 @@ bool GPoint::ShortestPath(GPoint *end, GLine *result){
   Tuple* startSection = pNetwork->GetSectionOnRoute(start);
   if (startSection == 0) {
     sendMessage("Starting GPoint not found in network.");
-    startSection->DeleteIfAllowed();
     NetworkManager::CloseNetwork(pNetwork);
     result->SetDefined(false);
     return false;
@@ -4250,7 +4477,6 @@ bool GPoint::ShortestPath(GPoint *end, GLine *result){
   if (endSection == 0) {
     sendMessage("End GPoint not found in network.");
     startSection->DeleteIfAllowed();
-    endSection->DeleteIfAllowed();
     NetworkManager::CloseNetwork(pNetwork);
     result->SetDefined(false);
     return false;
@@ -4500,6 +4726,39 @@ stack to turn in right order.
   return true;
 };
 
+
+GPoints* GLine::GetBGP (){
+  GPoints *result = new GPoints(0);
+  if (!IsDefined() || NoOfComponents() == 0) return result;
+  SectTree *sectionTree;
+  const RouteInterval *ri;
+  DBArray<SectTreeEntry> *actSections;
+  Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+  bool first = true;
+  const SectTreeEntry *nEntry;
+  for (int i = 0; i < Size(); i++) {
+    Get(i,ri);
+    pNetwork->GetSectionsOfRouteInterval(ri, actSections);
+    for (int j = 0; j < actSections->Size(); j++) {
+      actSections->Get(j, nEntry);
+      if (first) {
+        first = false;
+        sectionTree = new SectTree(const_cast<SectTreeEntry*> (nEntry));
+      } else {
+        sectionTree->Insert(const_cast<SectTreeEntry*> (nEntry));
+      }
+    }
+    actSections->Clear();
+  }
+  SectTree *actSect = sectionTree;
+  sectionTree->CheckSection(pNetwork, actSect->value.id, true, *result);
+  sectionTree->CheckSection(pNetwork, actSect->value.id, false, *result);
+  sectionTree->Remove();
+  // In the result List may be doubled GPoints because of junction problematic.
+  // this must be filtered.
+  result->FilterAliasGPoints(pNetwork);
+  return result;
+};
 /*
 1.3.3.3 Secondo Type Constructor for class ~GPoint~
 
@@ -4517,6 +4776,286 @@ TypeConstructor gpoint(
         GPoint::CastGPoint,                         //cast function
         GPoint::SizeOfGPoint,                       //sizeof function
         GPoint::CheckGPoint );                      //kind checking function
+
+/*
+Class GPoints implemented by Jianqiu Xu
+
+*/
+
+string edistjoinpointlist = "(rel(tuple((pid int)(p point))))";
+enum edistjoinpointlistrelation {POINTSID = 0,POINTSOBJECT};
+
+GPoints::GPoints()
+{
+  del.refs = 1;
+  del.isDelete = true;
+}
+GPoints::GPoints(int in_iSize):m_xGPoints(in_iSize)
+{
+  del.refs = 1;
+  del.isDelete = true;
+}
+GPoints::GPoints(GPoints* in_xOther):m_xGPoints(0)
+{
+  const GPoint* pCurrentInterval;
+    for (int i = 0; i < in_xOther->m_xGPoints.Size(); i++)
+    {
+      // Get next Interval
+      in_xOther->m_xGPoints.Get(i, pCurrentInterval);
+    m_xGPoints.Append(*pCurrentInterval);
+    }
+    del.refs=1;
+    del.isDelete=true;
+}
+bool GPoints::IsEmpty()const
+{
+  return m_xGPoints.Size() == 0;
+}
+ostream& GPoints::Print(ostream& os)const
+{
+  for(int i = 0;i < m_xGPoints.Size();i++){
+    const GPoint* pGP;
+    m_xGPoints.Get(i,pGP);
+    os<<"GPoint:"<<i<<" rid "<<pGP->GetRouteId();
+    os<<" Position "<<pGP->GetPosition();
+    os<<" Side "<<(int)pGP->GetSide()<<endl;
+  }
+  return os;
+}
+GPoints& GPoints::operator=(const GPoints& gps)
+{
+  m_xGPoints.Clear();
+  const GPoint* gp;
+  for(int i = 0 ; i < gps.Size();i++){
+    gps.Get(i,gp);
+    m_xGPoints.Append(*gp);
+  }
+  return *this;
+}
+int GPoints::NumOfFLOBs()const
+{
+  return 1;
+}
+FLOB* GPoints::GetFLOB(const int i)
+{
+  assert(i >= 0 && i < NumOfFLOBs());
+  return &m_xGPoints;
+}
+
+size_t GPoints::Sizeof()const
+{
+  return sizeof(*this);
+}
+
+int GPoints::SizeOf()
+{
+  return sizeof(GPoints);
+}
+int GPoints::Size()const
+{
+  return m_xGPoints.Size();
+}
+GPoints& GPoints::operator+=(const GPoint& gp)
+{
+  m_xGPoints.Append(gp);
+  return *this;
+}
+
+GPoints& GPoints::operator-=(const GPoint &gp)
+{
+  GPoints *nGPs = new GPoints(0);
+  const GPoint *actGP;
+  for (int i = 0; i < m_xGPoints.Size(); i++) {
+    m_xGPoints.Get(i, actGP);
+    if (gp != *actGP) nGPs->m_xGPoints.Append(actGP);
+  }
+  return *nGPs;
+}
+
+void GPoints::Get(int i,const GPoint*& pgp)const
+{
+  assert(i >= 0 && i < m_xGPoints.Size());
+  m_xGPoints.Get(i,pgp);
+}
+ListExpr GPoints:: Property()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                             nl->StringAtom("gpoints"),
+                    nl->StringAtom("(<gpoint1><gpoint2>...<gpointN>))"),
+                             nl->StringAtom("((1 2.0 0)(2 3.0 0))"))));
+
+}
+
+ListExpr GPoints::Out(ListExpr in_xTypeInfo,
+                    Word in_xValue)
+{
+  GPoints *pGPS = (GPoints*)in_xValue.addr;
+
+  if(pGPS->IsEmpty())
+  {
+    return nl->TheEmptyList();
+  }
+  const GPoint* pgp;
+  pGPS->Get(0,pgp);
+   ListExpr result =
+    nl->OneElemList(GPoint::OutGPoint(nl->TheEmptyList(),SetWord((void*)pgp)));
+  ListExpr last = result;
+  for(int i = 1; i < pGPS->Size();i++){
+    pGPS->Get(i,pgp);
+    last =
+    nl->Append(last,GPoint::OutGPoint(nl->TheEmptyList(),SetWord((void *)pgp)));
+  }
+  return result;
+}
+Word GPoints::In(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct)
+{
+    if (nl->ListLength(instance) == 0) {
+    correct = false;
+    cmsg.inFunError("Empty List");
+    return SetWord(Address(0));
+    }
+  GPoints* pGPS = new GPoints(nl->ListLength(instance));
+  ListExpr rest = instance;
+   while (!nl->IsEmpty(rest)) {
+    ListExpr first = nl->First(rest);
+    rest = nl->Rest(rest);
+    if (nl->ListLength(first) != 4) {
+      correct = false;
+      cmsg.inFunError("GPoint incorrect.Expected list of 4 Elements.");
+      return SetWord(Address(0));
+    }
+  GPoint* pgp =
+   (GPoint*)GPoint::InGPoint(nl->TheEmptyList(),first,0,errorInfo,correct).addr;
+  if(correct){
+    (*pGPS) += (*pgp);
+    delete pgp;
+  }else{
+    delete pgp;
+    return SetWord(Address(0));
+  }
+  }
+  correct = true;
+  pGPS->SetDefined(true);
+  return SetWord(pGPS);
+}
+bool GPoints::OpenGPoints(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo, Word& value)
+{
+  GPoints* pGPS = (GPoints*)Attribute::Open(valueRecord,offset,typeInfo);
+  value = SetWord(pGPS);
+  return true;
+}
+bool GPoints::SaveGPoints(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo, Word& value)
+{
+  GPoints* pGPS = (GPoints*)value.addr;
+  Attribute::Save(valueRecord,offset,typeInfo,pGPS);
+  return true;
+}
+Word GPoints::Create(const ListExpr typeInfo)
+{
+  return SetWord(new GPoints(0));
+}
+void GPoints::Delete(const ListExpr typeInfo,
+                   Word& w )
+{
+  GPoints *gp = (GPoints *)w.addr;
+  // if (l->del.refs == 1) { l->m_xRouteIntervals.Destroy();}
+  if(gp->DeleteIfAllowed() == true)
+    w.addr = 0;
+}
+void GPoints::Close(const ListExpr typeInfo,
+                  Word& w )
+{
+    if(((GPoints*)w.addr)->DeleteIfAllowed() == true)
+    w.addr = 0;
+}
+Word GPoints::CloneGPoints(const ListExpr typeInfo,
+                  const Word& w )
+{
+  return SetWord(new GPoints(*((GPoints*)w.addr)));
+}
+void* GPoints::Cast(void* addr)
+{
+  return new (addr) GPoints();
+}
+bool GPoints::Check( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual( type, "gpoints" ));
+}
+
+int GPoints::Compare(const Attribute*)const
+{
+  return false;
+
+}
+bool GPoints::Adjacent(const Attribute*)const
+{
+   return false;
+}
+
+GPoints* GPoints::Clone()const
+{
+  GPoints* res = new GPoints(*this);
+  return res;
+}
+size_t GPoints::HashValue()const
+{
+  size_t xHash = 0;
+  // Iterate over all GPoint objects
+  for (int i = 0; i < m_xGPoints.Size(); ++i)
+  {
+    // Get next Interval
+    const GPoint* pCurrentInterval;
+    m_xGPoints.Get(i, pCurrentInterval);
+
+    // Add something for each entry
+  int iNetworkId = pCurrentInterval->GetNetworkId();
+    int iRouteId = pCurrentInterval->GetRouteId();
+    double iPosition = pCurrentInterval->GetPosition();
+    int iSide = (int)pCurrentInterval->GetSide();
+    xHash += iNetworkId + iRouteId + (size_t)iPosition + iSide;
+  }
+  return xHash;
+}
+void GPoints::CopyFrom(const StandardAttribute*)
+{
+  *this = *((const GPoints *)right);
+}
+
+void GPoints::FilterAliasGPoints(Network *pNetwork){
+  //For every GPoint in GPoints check if there are aliases in GPoints.
+  //If this is the case remove the aliases from GPoints
+  GPoints nGPs = *this;
+  for (int i = 0; i < m_xGPoints.Size(); i++)  {
+    const GPoint *actGP;
+    m_xGPoints.Get(i, actGP);
+    GPointList *actGPList =
+        new GPointList(const_cast<GPoint*>(actGP), pNetwork);
+    const GPoint *aliasGP = actGPList->NextGPoint();
+    while (aliasGP != 0) {
+      if (*aliasGP == *actGP) nGPs -= aliasGP;
+      aliasGP = actGPList->NextGPoint();
+    }
+  }
+  *this = nGPs;
+}
+
+TypeConstructor gpoints( "gpoints",
+                         GPoints::Property,
+                         GPoints::Out, GPoints::In,
+                         0, 0,
+                         GPoints::Create, GPoints::Delete,
+                         GPoints::OpenGPoints, GPoints::SaveGPoints,
+                         GPoints::Close, GPoints::CloneGPoints,
+                         GPoints::Cast, GPoints::SizeOf,
+                         GPoints::Check);
 
 
 
@@ -4559,7 +5098,9 @@ int OpNetNetdistance_gpgp (Word* args, Word& result, int message,
     cmsg.inFunError("Both gpoint must be defined!");
     return 0;
   };
-  pResult-> Set(true, pFromGPoint->Netdistance(pToGPoint));
+  double dist =  pFromGPoint->Netdistance(pToGPoint);
+  if (dist != numeric_limits<double>::max()) pResult-> Set(true,dist);
+  else pResult->Set(false, dist);
   return 1;
 };
 
@@ -4573,7 +5114,9 @@ int OpNetNetdistance_glgl (Word* args, Word& result, int message,
     cmsg.inFunError("Both gpoint must be defined!");
     return 0;
   };
-  pResult-> Set(true, pGLine1->Netdistance(pGLine2));
+  double dist = pGLine1->Netdistance(pGLine2);
+  if (dist != numeric_limits<double>::max()) pResult-> Set(true, dist);
+  else pResult->Set(false, dist);
   return 1;
 };
 
@@ -5370,8 +5913,8 @@ int OpNetworkTheNetworkValueMapping(Word* args, Word& result,
   pNetwork->Load(iId,
                  pRoutes,
                  pJunctions);
-
   result = SetWord(pNetwork);
+
   return 0;
 }
 
@@ -5778,12 +6321,14 @@ int OpShortestPathValueMapping( Word* args,
                                   Word& local,
                                   Supplier in_xSupplier )
 {
+
   GPoint *pFromGPoint = (GPoint*) args[0].addr;
   GPoint *pToGPoint = (GPoint*) args[1].addr;
   GLine* pGLine = (GLine*) qp->ResultStorage(in_xSupplier).addr;
   result = SetWord(pGLine);
   pGLine->SetSorted(false);
   pGLine->SetDefined(pFromGPoint->ShortestPath(pToGPoint, pGLine));
+
   return 0;
       /*
   // Get values
@@ -6131,10 +6676,13 @@ class NetworkAlgebra : public Algebra
     AddTypeConstructor( &network );
     AddTypeConstructor( &gpoint );
     AddTypeConstructor( &gline );
+    AddTypeConstructor( &gpoints );
 
     gpoint.AssociateKind( "DATA" );
     gline.AssociateKind( "DATA" );
     network.AssociateKind( "DATA" );
+    gpoints.AssociateKind("DATA");
+
 
     AddOperator(&networkthenetwork);
     AddOperator(&networkroutes);

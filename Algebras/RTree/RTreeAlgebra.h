@@ -1539,6 +1539,20 @@ The destructor.
 
 */
 
+    bool  Open( SmiRecord& valueRecord,
+                size_t& offset,
+                string typeInfo,
+                Word &value);
+
+    bool Save(SmiRecord& valueRecord,
+                size_t& offset);
+
+/*
+Open and Save are used by NetworkAlgebra to save and open the rtree of network.
+
+*/
+
+
     inline void DeleteFile()
     {
       file.Close();
@@ -1722,14 +1736,14 @@ The record file of the R-Tree.
 
     struct Header
     {
-      SmiRecordId rootRecordId;	// Root node address (Path[ 0 ]).
-      int minLeafEntries;      	// min # of entries per leaf node.
-      int maxLeafEntries;      	// max # of entries per leaf node.
-      int minInternalEntries;  	// min # of entries per internal node.
-      int maxInternalEntries;  	// max # of entries per internal node.
-      int nodeCount;          	// number of nodes in this tree.
-      int entryCount;      	    // number of entries in this tree.
-      int height;          	    // height of the tree.
+      SmiRecordId rootRecordId;// Root node address (Path[ 0 ])
+      int minLeafEntries;      // min # of entries per leaf node
+      int maxLeafEntries;      // max # of entries per leaf node
+      int minInternalEntries;  // min # of entries per internal node
+      int maxInternalEntries;  // max # of entries per internal node
+      int nodeCount;           // number of nodes in this tree
+      int entryCount;          // number of entries in this tree
+      int height;              // height of the tree
 
       Header() :
         rootRecordId( 0 ), minLeafEntries( 0 ), maxLeafEntries( 0 ),
@@ -1952,6 +1966,7 @@ R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
   bli( NULL ),
   nodeIdCounter( 0 )
 {
+
   file.Create();
 
   // Calculating maxEntries e minEntries
@@ -2025,7 +2040,6 @@ nodeIdCounter( 0 )
   }
 
   ReadHeader();
-
   assert( header.maxLeafEntries >= 2*header.minLeafEntries &&
           header.minLeafEntries > 0 );
   assert( header.maxInternalEntries >= 2*header.minInternalEntries &&
@@ -2064,6 +2078,7 @@ R_Tree<dim, LeafInfo>::~R_Tree()
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::ReadHeader()
 {
+
   SmiRecord record;
 
   int RecordSelected = file.SelectRecord( (SmiRecordId)1, record,
@@ -2185,8 +2200,7 @@ void R_Tree<dim,LeafInfo>::Insert(const R_TreeLeafEntry<dim,LeafInfo>& entry)
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::LocateBestNode( const R_TreeEntry<dim>& entry,
                                             int level )
-{
-  GotoLevel( 0 );
+{ GotoLevel( 0 );
 
   // Top down search for a node of level 'level'
   while( currLevel < level )
@@ -2555,6 +2569,7 @@ template <unsigned dim, class LeafInfo>
 bool R_Tree<dim, LeafInfo>::FindEntry(
     const R_TreeLeafEntry<dim, LeafInfo>& entry )
 {
+
   // First see if the current entry is the one that is being sought,
   // as is the case with many searches followed by Delete
   if( currLevel == Height() &&
@@ -3255,7 +3270,7 @@ template <unsigned dim>
 Word CreateRTree( const ListExpr typeInfo )
 {
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
-    return SetWord( new R_Tree<dim, TwoLayerLeafInfo>( 4000 ) );
+     return SetWord( new R_Tree<dim, TwoLayerLeafInfo>( 4000 ) );
   else
     return SetWord( new R_Tree<dim, TupleId>( 4000 ) );
 }
@@ -3364,7 +3379,6 @@ bool SaveRTree( SmiRecord& valueRecord,
                 Word& value )
 {
   SmiFileId fileId;
-
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
   {
     R_Tree<dim, TwoLayerLeafInfo> *rtree =
@@ -3391,5 +3405,30 @@ int SizeOfRTree()
   return 0;
 }
 
+
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::Open(SmiRecord& valueRecord,
+                                  size_t& offset,
+                                  string typeInfo,
+                                  Word &value)
+{
+  SmiFileId fileId;
+  size_t n = sizeof(SmiFileId);
+  valueRecord.Read(&fileId, n, offset);
+  offset += n;
+  value = SetWord(new R_Tree<dim, LeafInfo> (fileId));
+  return true;
+};
+
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::Save(SmiRecord& valueRecord,
+                                 size_t& offset)
+{
+const size_t n=sizeof(SmiFileId);
+SmiFileId fileId= this->FileId();
+if (valueRecord.Write(&fileId, n, offset) != n) return false;
+offset += n;
+return true;
+};
 
 #endif
