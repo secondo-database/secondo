@@ -54,13 +54,30 @@ Please include in *.cpp-File.
 struct SectTreeEntry{
   SectTreeEntry() {};
 
-  SectTreeEntry(int n) {
-    id = n;
+  SectTreeEntry(int n, int r, double st, double e, bool stb, bool eb) {
+    secttid = n;
+    rid = r;
+    start = st;
+    end = e;
+    startbool = stb;
+    endbool = eb;
   };
 
   ~SectTreeEntry(){};
 
-  int id;
+  SectTreeEntry& operator=(const SectTreeEntry nEntry) {
+    secttid = nEntry.secttid;
+    rid = nEntry.rid;
+    start = nEntry.start;
+    end = nEntry.end;
+    startbool = nEntry.startbool;
+    endbool = nEntry.endbool;
+    return *this;
+  };
+
+  int secttid, rid;
+  double start, end;
+  bool startbool, endbool;
 };
 
 class GPoints;
@@ -1271,6 +1288,16 @@ This function is used in the ~sections~ operator.
 
 */
   Relation *GetSections();
+
+/*
+GetNetworkPosOfPoint
+
+Returns a GPoint representing the point value in the network if possible, undef
+elsewhere.
+
+*/
+
+  GPoint* GetNetworkPosOfPoint(Point p);
 
 /*
 GetSectionsInternal

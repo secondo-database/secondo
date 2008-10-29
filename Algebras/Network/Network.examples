@@ -62,8 +62,8 @@ Tolerance:%0.01
 Operator : netdistance
 Number   : 2
 Signature: gline x gline -> real
-Example  : query netdistance([const gline value(1((1 0.0 0.5)))], [const gline value(1((1 0.7 1.5)))]);
-Result   : 0.2
+Example  : query netdistance([const gline value(1((1 0.0 0.5)))], [const gline value(1((2 0.7 1.5)))]);
+Result   : 773.3299430080975
 Tolerance:%0.01
 
 Operator : distance

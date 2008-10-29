@@ -121,7 +121,7 @@ struct SectTree {
   SectTree(){};
 
   SectTree(SectTreeEntry *nEntry, SectTree *l = 0, SectTree *r = 0) {
-    value.id = nEntry->id;
+    value = *nEntry;
     left = l;
     right = r;
   };
@@ -129,11 +129,11 @@ struct SectTree {
   ~SectTree(){};
 
   void Insert(SectTreeEntry *nEntry){
-    if (nEntry->id < value.id) {
+    if (nEntry->secttid < value.secttid) {
       if (right != 0) right->Insert(nEntry);
       else right = new SectTree(nEntry,0,0);
     } else {
-      if (nEntry->id > value.id) {
+      if (nEntry->secttid > value.secttid) {
         if(left != 0) left->Insert(nEntry);
         else left = new SectTree(nEntry,0,0);
       }
@@ -141,14 +141,14 @@ struct SectTree {
   };
 
   void Find (int n, SectTree *result, bool &found){
-    if (n < value.id) {
+    if (n < value.secttid) {
       if (right != 0) right->Find(n, result, found);
       else {
         found = false;
         result = 0;
       }
     } else {
-      if (n > value.id) {
+      if (n > value.secttid) {
         if (left != 0) left->Find(n, result, found);
         else {
           found = false;
@@ -161,37 +161,42 @@ struct SectTree {
     }
   };
 
-  void CheckSection(Network *pNetwork, int n, bool updown, GPoints &result){
+  void CheckSection(Network *pNetwork, SectTreeEntry n, GPoints &result){
     vector<DirectedSection> sectList;
     sectList.clear();
     SectTree *pSectTree;
-    int routeId;
-    int netId = pNetwork->GetId();
-    double pos;
-    Side side;
-    pNetwork->GetAdjacentSections(n, updown, sectList);
-    size_t j = 0;
-    bool found = true;
-    while (j < sectList.size() && found) {
-      DirectedSection actSection = sectList[j];
-      Find(actSection.GetSectionTid(), pSectTree, found);
-    }
-    if (!found) {
-      Tuple *actSect = pNetwork->GetSection(n);
-      routeId =
-        ((CcInt*) actSect->GetAttribute(SECTION_RID))->GetIntval();
-      if (updown) {
-        pos =
-          ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
-        side = Up;
-      } else {
-        pos =
-          ((CcReal*) actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
-        side = Down;
+    if (n.startbool){
+      pNetwork->GetAdjacentSections(n.secttid, false, sectList);
+      size_t j = 0;
+      bool found = true;
+      while (j < sectList.size() && found) {
+        DirectedSection actSection = sectList[j];
+        Find(actSection.GetSectionTid(), pSectTree, found);
       }
-      result += GPoint(true, netId, routeId, pos, side);
-    }
+      if (!found)
+        result += GPoint(true, pNetwork->GetId(), n.rid, n.start, None);
+    } else result += GPoint(true, pNetwork->GetId(), n.rid, n.start, None);
+    sectList.clear();
+    if (n.endbool){
+      pNetwork->GetAdjacentSections(n.secttid, true, sectList);
+      size_t j = 0;
+      bool found = true;
+      while (j < sectList.size() && found) {
+        DirectedSection actSection = sectList[j];
+        Find(actSection.GetSectionTid(), pSectTree, found);
+      }
+      if (!found) result += GPoint(true, pNetwork->GetId(), n.rid, n.end, None);
+    } else result += GPoint(true, pNetwork->GetId(), n.rid, n.end, None);
+    sectList.clear();
   }
+
+  void WriteResult(Network* pNetwork, GPoints &result, SectTree &secTr){
+    if (left != 0) left->WriteResult(pNetwork, result, secTr);
+    if (right != 0) right ->WriteResult(pNetwork, result, secTr);
+    secTr.CheckSection(pNetwork, value, result);
+    //TODO: Remove duplicate GPoint from Result, which are caused by junction
+    //problematic
+  };
 
   void Remove(){
     if (left != 0) left->Remove();
@@ -2673,13 +2678,14 @@ Tuple* Network::GetRoute(int in_RouteId){
 
 void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
                                 DBArray<SectTreeEntry> *io_SectionIds){
-  io_SectionIds->Clear();
   double ristart = min(ri->m_dStart, ri->m_dEnd);
   double riend = max(ri->m_dStart, ri->m_dEnd);
   CcInt* ciRouteId = new CcInt(true, ri->m_iRouteId);
   BTreeIterator* pSectionIter =
       m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
   Tuple *actSect;
+  bool bsectstart = true;
+  bool bsectend = true;
   while (pSectionIter->Next()) {
     actSect = m_pSections->GetTuple(pSectionIter->GetId());
     assert(actSect != 0);
@@ -2690,9 +2696,24 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
     if ((ristart <= start && riend >= end) ||
         (start <= ristart && end >= ristart) ||
         (start <= riend && end >= riend)){
-      io_SectionIds->Append(SectTreeEntry(pSectionIter->GetId()));
+      if (start <= ristart) {
+        start = ristart;
+        bsectstart = false;
+      }
+      if (riend <= end) {
+        end = riend;
+        bsectend = false;
+      }
+      SectTreeEntry *sect =
+          new SectTreeEntry(actSect->GetTupleId(), ri->m_iRouteId, start, end,
+                            bsectstart, bsectend);
+      io_SectionIds->Append(*sect);
+      delete sect;
+      if (riend <= end) break;
     }
+    delete actSect;
   }
+  delete pSectionIter;
 };
 
 Point* Network::GetPointOnRoute(GPoint* in_pGPoint){
@@ -3129,6 +3150,80 @@ int Network::SizeOfNetwork()
 int Network::isDefined() {
   return m_bDefined;
 }
+
+GPoint* Network::GetNetworkPosOfPoint(Point p){
+  const Rectangle<2> bbox = p.BoundingBox();
+  R_TreeLeafEntry<2,TupleId> res;
+  ListExpr xType;
+  nl->ReadFromString("(tuple((id int)(length real)(curve sline) (dual bool)"
+                     "(startsSmaller bool)))", xType);
+  ListExpr xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  Tuple *pCurrRoute = new Tuple(xNumericType);
+  if (m_pRTreeRoutes->First(bbox, res)){
+    pCurrRoute = m_pRoutes->GetTuple(res.info);
+    // pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
+  } else {
+    GPoint *result = new GPoint(false);
+    pCurrRoute->DeleteIfAllowed();
+    return result;
+  }
+  double dpos, difference;
+  SimpleLine* pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
+  if (chkPoint(pRouteCurve, p, true, dpos, difference)){
+    GPoint *result = new GPoint(true, GetId(),
+                                pCurrRoute->GetTupleId(),
+                                dpos, None);
+    pCurrRoute->DeleteIfAllowed();
+    return result;
+  } else {
+    pCurrRoute->DeleteIfAllowed();
+    while (m_pRTreeRoutes->Next(res)){
+      pCurrRoute = m_pRoutes->GetTuple(res.info);
+      pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
+      if (chkPoint(pRouteCurve, p, true, dpos, difference)){
+        GPoint *result = new GPoint(true, GetId(),
+                                pCurrRoute->GetTupleId(),
+                                dpos, None);
+        pCurrRoute->DeleteIfAllowed();
+        return result;
+      }
+      pCurrRoute->DeleteIfAllowed();
+    }
+/*
+If the point exact hits a route the route should be found here. If the point
+value is not exact on the route curve we try to map it in the next step with
+bigger tolerance for the hit of the route curve.
+
+*/
+    if (m_pRTreeRoutes->First(bbox, res))
+      pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
+    pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
+    if (chkPoint03(pRouteCurve, p, true, dpos, difference)){
+      GPoint *result = new GPoint(true, GetId(),
+                                pCurrRoute->GetTupleId(),
+                                dpos, None);
+      pCurrRoute->DeleteIfAllowed();
+      return result;
+    } else {
+      pCurrRoute->DeleteIfAllowed();
+      while (m_pRTreeRoutes->Next(res)){
+        pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
+        pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE)
+        if (chkPoint03(pRouteCurve, p, true, dpos, difference)){
+          GPoint *result = new GPoint(true, GetId(),
+                                pCurrRoute->GetTupleId(),
+                                dpos, None);
+          pCurrRoute->DeleteIfAllowed();
+          return result;
+        }
+        pCurrRoute->DeleteIfAllowed();
+      }
+    }
+    GPoint *result = new GPoint(false);
+    return result;
+  }
+}
+
 
 /*
 ~GetJunctionsMeasForRoutes~
@@ -3765,7 +3860,6 @@ double GLine::Netdistance (GLine* pgl2){
     cmsg.inFunError("Both glines must belong to the network.");
     return minDist;
   }
-  /*
   GPoints *bGPgl1 = pgl1->GetBGP();
   GPoints *bGPgl2 = pgl2->GetBGP();
   const GPoint *gp1, *gp2;
@@ -3795,7 +3889,7 @@ double GLine::Netdistance (GLine* pgl2){
   delete bGPgl1;
   delete bGPgl2;
   return minDist;
-    */
+  /*
   Network *pNetwork = NetworkManager::GetNetwork(pgl1->GetNetworkId());
   double lastDist = numeric_limits<double>::max();
   vector<JunctionSortEntry> juncsRoute;
@@ -3929,7 +4023,7 @@ double GLine::Netdistance (GLine* pgl2){
   gpointlistgline2.clear();
   NetworkManager::CloseNetwork(pNetwork);
   return minDist;
-
+    */
 }
 
 /*
@@ -4726,13 +4820,17 @@ stack to turn in right order.
   return true;
 };
 
+/*
+Returns the bounding GPoints of the given GLine.
+
+*/
 
 GPoints* GLine::GetBGP (){
   GPoints *result = new GPoints(0);
   if (!IsDefined() || NoOfComponents() == 0) return result;
   SectTree *sectionTree;
   const RouteInterval *ri;
-  DBArray<SectTreeEntry> *actSections;
+  DBArray<SectTreeEntry> *actSections = new DBArray<SectTreeEntry> (0);
   Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
   bool first = true;
   const SectTreeEntry *nEntry;
@@ -4750,14 +4848,10 @@ GPoints* GLine::GetBGP (){
     }
     actSections->Clear();
   }
-  SectTree *actSect = sectionTree;
-  sectionTree->CheckSection(pNetwork, actSect->value.id, true, *result);
-  sectionTree->CheckSection(pNetwork, actSect->value.id, false, *result);
+  sectionTree->WriteResult(pNetwork, *result, *sectionTree);
   sectionTree->Remove();
-  // In the result List may be doubled GPoints because of junction problematic.
-  // this must be filtered.
-  result->FilterAliasGPoints(pNetwork);
   return result;
+
 };
 /*
 1.3.3.3 Secondo Type Constructor for class ~GPoint~
@@ -5027,24 +5121,6 @@ size_t GPoints::HashValue()const
 void GPoints::CopyFrom(const StandardAttribute*)
 {
   *this = *((const GPoints *)right);
-}
-
-void GPoints::FilterAliasGPoints(Network *pNetwork){
-  //For every GPoint in GPoints check if there are aliases in GPoints.
-  //If this is the case remove the aliases from GPoints
-  GPoints nGPs = *this;
-  for (int i = 0; i < m_xGPoints.Size(); i++)  {
-    const GPoint *actGP;
-    m_xGPoints.Get(i, actGP);
-    GPointList *actGPList =
-        new GPointList(const_cast<GPoint*>(actGP), pNetwork);
-    const GPoint *aliasGP = actGPList->NextGPoint();
-    while (aliasGP != 0) {
-      if (*aliasGP == *actGP) nGPs -= aliasGP;
-      aliasGP = actGPList->NextGPoint();
-    }
-  }
-  *this = nGPs;
 }
 
 TypeConstructor gpoints( "gpoints",
@@ -6035,7 +6111,6 @@ int OpPoint2GPointValueMapping(Word* args,
     pGPoint->SetDefined(false);
     return 0;
   }
-  int iNetworkId = pNetwork->GetId();
 
   Point* pPoint = (Point*)args[1].addr;
   if(pPoint == NULL || !pPoint->IsDefined()) {
@@ -6045,7 +6120,11 @@ int OpPoint2GPointValueMapping(Word* args,
     pGPoint->SetDefined(false);
     return 0;
   }
-
+  GPoint *res = pNetwork->GetNetworkPosOfPoint(*pPoint);
+  result = SetWord(res);
+  return 0;
+/*
+  int iNetworkId = pNetwork->GetId();
   bool bPointFound;
   double dPos, difference;
   int iRouteTid;
@@ -6091,6 +6170,7 @@ int OpPoint2GPointValueMapping(Word* args,
     return 0;
   }
   return 0;
+  */
 } //end ValueMapping
 
 const string OpPoint2GPointSpec  =
