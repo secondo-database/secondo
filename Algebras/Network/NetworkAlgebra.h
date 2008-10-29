@@ -1325,6 +1325,13 @@ GetSections on RouteInterval.
                                     DBArray<SectTreeEntry> *io_SectionIds);
 
 /*
+Get Routeinterval for Halfsegment defined by point interval.
+
+*/
+
+    RouteInterval* Find(Point p1, Point p2);
+
+/*
 2.6.4 Static methods of Class ~Network~ supporting the type constructor
 
 Public parts - Static-Methods supporting the type constructor for
