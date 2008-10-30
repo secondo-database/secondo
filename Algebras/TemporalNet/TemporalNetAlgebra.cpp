@@ -3616,7 +3616,7 @@ Initialize return value
   double dAdjSecCheckEndPos, dFirstAdjSecCheckDiff, dAdjAddCheckEndPos;
   double dAdjSecCheckDiff, dlastSecCheckEndPos, dlastSecDiff;
   double dlastAdjSecCheckEndPos, dlastAdjSecCheckDiff;
-  int iRouteTid, iRouteId, iOldSectionTid, iCurrentSectionTid, iLastRouteId;
+  int iRouteId, iOldSectionTid, iCurrentSectionTid, iLastRouteId;
   int iCurrentSectionRid, iCurrentSectionRTid, iMGPointCurrRId;
   int iSecCheckRouteId, iAdjSecCheckRid, ilastSecEndCheckRouteId;
   int ilastAdjSecCheckRid;
@@ -3640,6 +3640,21 @@ Initialize return value
   getUnitValues(pCurrentUnit, uEndPoint, uStartPoint, aktUnitStartTime,
                   aktUnitEndTime, lAktUnitStartTime, lAktUnitEndTime,
                   lAktUnitDuration);
+  RouteInterval *ri = pNetwork->FindInterval(uStartPoint, uEndPoint);
+  iRouteId = ri->m_iRouteId;
+  pCurrentRoute = pNetwork->GetRoute(iRouteId);
+  pTestRoute = pNetwork->GetRoute(iRouteId);
+  dStartPos = ri->m_dStart;
+  dEndPos = ri->m_dEnd;
+  if (dStartPos < dEndPos) bMovingUp = true;
+  else  bMovingUp = false;
+  if (bDual && bMovingUp)  side = Up;
+  else {
+    if (bDual && !bMovingUp)  side = Down;
+    else  side = None;
+  }
+
+  /*
   GenericRelationIterator* pRoutesIt = pRoutes->MakeScan();
   while( (pCurrentRoute = pRoutesIt->GetNextTuple()) != 0 ) {
     iRouteTid = -1;
@@ -3678,8 +3693,10 @@ Initialize return value
     //delete pRoutes;
     return 0;
   }
+
   pCurrentRoute = pRoutes->GetTuple(iRouteTid);
   pTestRoute = pRoutes->GetTuple(iRouteTid);
+  */
   pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
   dAktUnitDistance = fabs (dEndPos - dStartPos);
   dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
