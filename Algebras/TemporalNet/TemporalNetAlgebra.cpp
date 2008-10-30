@@ -3646,6 +3646,8 @@ Initialize return value
   pTestRoute = pNetwork->GetRoute(iRouteId);
   dStartPos = ri->m_dStart;
   dEndPos = ri->m_dEnd;
+  pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
+  bDual = pDual->GetBoolval();
   if (dStartPos < dEndPos) bMovingUp = true;
   else  bMovingUp = false;
   if (bDual && bMovingUp)  side = Up;

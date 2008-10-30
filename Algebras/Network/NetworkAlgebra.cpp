@@ -2609,6 +2609,7 @@ New implementation using sectionsBTree
   CcInt *ciRouteId = new CcInt(true, in_xGPoint->GetRouteId());
   BTreeIterator* pSectionIter =
       m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
+  delete ciRouteId;
   while (pSectionIter->Next()){
     Tuple *actSect =
       m_pSections->GetTuple(pSectionIter->GetId());
@@ -2621,6 +2622,7 @@ New implementation using sectionsBTree
       delete pSectionIter;
       return actSect;
     }
+    actSect->DeleteIfAllowed();
   }
   delete pSectionIter;
   return 0;
@@ -2683,11 +2685,14 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
   CcInt* ciRouteId = new CcInt(true, ri->m_iRouteId);
   BTreeIterator* pSectionIter =
       m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
+  delete ciRouteId;
   Tuple *actSect;
+  TupleId actSectTID;
   bool bsectstart = true;
   bool bsectend = true;
   while (pSectionIter->Next()) {
-    actSect = m_pSections->GetTuple(pSectionIter->GetId());
+    actSectTID = pSectionIter->GetId();
+    actSect = m_pSections->GetTuple(actSectTID);
     assert(actSect != 0);
     double start =
       ((CcReal*) actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
@@ -2709,9 +2714,12 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
                             bsectstart, bsectend);
       io_SectionIds->Append(*sect);
       delete sect;
-      if (riend <= end) break;
+      if (riend <= end) {
+        actSect->DeleteIfAllowed();
+        break;
+      }
     }
-    delete actSect;
+    actSect->DeleteIfAllowed();
   }
   delete pSectionIter;
 };
@@ -4135,14 +4143,14 @@ distance method of ~GPoint~.
 */
 
 double GLine::Netdistance (GLine* pgl2){
-  GLine* pgl1 = (GLine*) this;
+  //GLine* pgl1 = (GLine*) this;
   double minDist = numeric_limits<double>::max();
   double aktDist = numeric_limits<double>::max();
-  if (pgl1->GetNetworkId() != pgl2->GetNetworkId()) {
+  if (GetNetworkId() != pgl2->GetNetworkId()) {
     cmsg.inFunError("Both glines must belong to the network.");
     return minDist;
   }
-  GPoints *bGPgl1 = pgl1->GetBGP();
+  GPoints *bGPgl1 = GetBGP();
   GPoints *bGPgl2 = pgl2->GetBGP();
   const GPoint *gp1, *gp2;
   for (int i = 0; i < bGPgl1->Size(); i++) {
@@ -4154,7 +4162,7 @@ double GLine::Netdistance (GLine* pgl2){
     }
     for (int j = 0; j < bGPgl2->Size(); j++) {
       bGPgl2->Get(j, gp2);
-      if (const_cast<GPoint*>(gp2)->Inside(pgl1)) {
+      if (const_cast<GPoint*>(gp2)->Inside(this)) {
         delete bGPgl1;
         delete bGPgl2;
         return 0.0;
@@ -5103,6 +5111,19 @@ stack to turn in right order.
 };
 
 /*
+Returns the x,y point represented by gpoint.
+
+*/
+
+Point* GPoint::ToPoint(){
+  Point *res = new Point(false);
+  Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+  if (pNetwork == 0) return res;
+  res = pNetwork->GetPointOnRoute(this);
+  NetworkManager::CloseNetwork(pNetwork);
+  return res;
+};
+/*
 Returns the bounding GPoints of the given GLine.
 
 */
@@ -5130,8 +5151,10 @@ GPoints* GLine::GetBGP (){
     }
     actSections->Clear();
   }
+  delete actSections;
   sectionTree->WriteResult(pNetwork, *result, *sectionTree);
   sectionTree->Remove();
+  NetworkManager::CloseNetwork(pNetwork);
   return result;
 
 };
@@ -5457,7 +5480,7 @@ int OpNetNetdistance_gpgp (Word* args, Word& result, int message,
     return 0;
   };
   double dist =  pFromGPoint->Netdistance(pToGPoint);
-  if (dist != numeric_limits<double>::max()) pResult-> Set(true,dist);
+  if (dist != numeric_limits<double>::max()) pResult->Set(true,dist);
   else pResult->Set(false, dist);
   return 1;
 };
@@ -5473,7 +5496,7 @@ int OpNetNetdistance_glgl (Word* args, Word& result, int message,
     return 0;
   };
   double dist = pGLine1->Netdistance(pGLine2);
-  if (dist != numeric_limits<double>::max()) pResult-> Set(true, dist);
+  if (dist != numeric_limits<double>::max()) pResult->Set(true, dist);
   else pResult->Set(false, dist);
   return 1;
 };

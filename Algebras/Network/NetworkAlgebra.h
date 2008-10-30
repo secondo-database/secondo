@@ -363,6 +363,8 @@ Returns true if two gpoint are identical.
 
     bool operator!= (const GPoint&p) const;
 
+    Point* ToPoint();
+
 /*
 Returns a point degenerated rectangle as network bounding box of the gpoint
 
