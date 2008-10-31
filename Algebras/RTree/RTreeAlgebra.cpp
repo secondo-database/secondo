@@ -1375,7 +1375,7 @@ int WindowIntersects( Word* args, Word& result,
           localInfo->defaultValue = 50;
           localInfo->Size = 0;
           localInfo->SizeExt = 0;
-          localInfo->noAttrs = 
+          localInfo->noAttrs =
             nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
           localInfo->attrSize = new double[localInfo->noAttrs];
           localInfo->attrSizeExt = new double[localInfo->noAttrs];
@@ -2015,7 +2015,7 @@ ListExpr GetTuplesTypeMap(ListExpr args)
                                "type is not of kind DATA)");
     return nl->TypeError();
   }
-  
+
   return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
@@ -2031,8 +2031,8 @@ ListExpr GetTuplesTypeMap(ListExpr args)
 /*
 5.1.3 Value mapping function of operator ~gettuples~
 
-The template parameter ~TidIndexPos~ specifies the argument number, where 
-the attribute index for the tid is stored within the stream argument's 
+The template parameter ~TidIndexPos~ specifies the argument number, where
+the attribute index for the tid is stored within the stream argument's
 tuple type. For ~gettuples~, it is ~2~, for ~gettuples2~, it is ~3~.
 
 */
@@ -2061,7 +2061,7 @@ template<int TidIndexPos>
       localInfo->resultTupleType =
           new TupleType(nl->Second(GetTupleResultType(s)));
       localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
-//    cerr << "GetTuples<" << TidIndexPos << ">(): localInfo->tidIndex = " 
+//    cerr << "GetTuples<" << TidIndexPos << ">(): localInfo->tidIndex = "
 //         << localInfo->tidIndex << endl;
       local.setAddr(localInfo);
       return 0;
@@ -2082,7 +2082,7 @@ template<int TidIndexPos>
             GetAttribute(localInfo->tidIndex))->GetTid());
 
         if(!relTuple){
-          NList msg_list(NList("simple") , 
+          NList msg_list(NList("simple") ,
                     NList("Warning: invalid tuple id"));
           msg->Send(msg_list);
           qp->Request(args[0].addr, wTuple);
@@ -2181,7 +2181,7 @@ ListExpr GetTuples2TypeMap(ListExpr args)
       argStr + "'.");
 
   // Get all three arguments
-  ListExpr 
+  ListExpr
       streamDescription = nl->First(args),
       relDescription = nl->Second(args),
       tidArg = nl->Third(args);
@@ -2194,7 +2194,7 @@ ListExpr GetTuples2TypeMap(ListExpr args)
              "\nOperator gettuples2 expects a first argument with structure "
              "(stream (tuple ((id tid) (a1 t1)...(an tn))))\n"
              "but gets it with structure '" + streamDescriptionStr + "'.");
-  //cerr << "GetTuples2TypeMap: Stream type is: " << streamDescriptionStr 
+  //cerr << "GetTuples2TypeMap: Stream type is: " << streamDescriptionStr
   //     << endl;
 
   // Handle the rel part of arguments
@@ -2204,7 +2204,7 @@ ListExpr GetTuples2TypeMap(ListExpr args)
              "\nOperator gettuples2 expects a second argument with structure "
              "(rel (tuple ((a1 t1)...(an tn))))\n"
              "but gets it with structure '" + relDescriptionStr + "'.");
-  // cerr << "GetTuples2TypeMap: Relation type is: " << relDescriptionStr 
+  // cerr << "GetTuples2TypeMap: Relation type is: " << relDescriptionStr
   //      << endl;
 
   ListExpr sTupleDescription = nl->Second(streamDescription),
@@ -2279,7 +2279,7 @@ ListExpr GetTuples2TypeMap(ListExpr args)
     else
       lastNewAttrList = nl->Append(lastNewAttrList, first);
   }
-  
+
   if( !IsTupleDescription(newAttrList) ){
     ErrorReporter::ReportError("Result after merging tuples is not a "
                                "valid attribute list (Possible reasons: "
@@ -2287,8 +2287,8 @@ ListExpr GetTuples2TypeMap(ListExpr args)
                                "type is not of kind DATA)");
     return nl->TypeError();
   }
-  
-  ListExpr restype = 
+
+  ListExpr restype =
       nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
   nl->OneElemList(
@@ -2496,7 +2496,7 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
                                "type is not of kind DATA)");
     return nl->TypeError();
   }
-  
+
   return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
@@ -2699,8 +2699,8 @@ Operator gettuplesdbl (
 /*
 5.2 Operator ~creatertree\_bulkload~
 
-This operator will create a new r-tree from the scratch, applying a 
-simple bulkload mechanism. The input relation/stream is read and partition 
+This operator will create a new r-tree from the scratch, applying a
+simple bulkload mechanism. The input relation/stream is read and partition
 them into $p =\lceil \frac{N}{c} \rceil$ leaf pages. Then start aggregating
 the leafnodes into $p :=\lceil \frac{p}{c} \rceil$ internal nodes until only
 a single node, the root, remains.
@@ -2709,7 +2709,7 @@ Problems: There may be many nodes to be handled, so we need to store the current
 
 Sorting is not implemented within this algorithm. The input should already be sorted
 with respect to the center or lower left corner of the input bounding boxes, e.g. using
-a Z-order. You can apply other kinds of orderings to take some influence on the 
+a Z-order. You can apply other kinds of orderings to take some influence on the
 overlapping within the r-tree.
 
 */
@@ -2906,13 +2906,13 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
   qp->Request(args[0].addr, wTuple);
   while (qp->Received(args[0].addr))
   {
-    if ((count++ % 10000) == 0) 
+    if ((count++ % 10000) == 0)
     {
       // build a two elem list (simple count)
       NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
       msg->Send(msgList);
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
@@ -2924,7 +2924,7 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
     {
         BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
               GetAttribute(attrIndex))->BoundingBox();
-        R_TreeLeafEntry<dim, TupleId> 
+        R_TreeLeafEntry<dim, TupleId>
               e( box,
                  ((TupleIdentifier *)tuple->
                      GetAttribute(tidIndex))->GetTid() );
@@ -2939,9 +2939,9 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
 
   // build a two elem list (simple count)
   NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
   msg->Send(msgList);
 
   return 0;
@@ -2949,7 +2949,7 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
 
 // VM for double layer indexing
 template<unsigned dim>
-    int CreateRTreeBulkLoadStreamL2Spatial(Word* args, Word& result, 
+    int CreateRTreeBulkLoadStreamL2Spatial(Word* args, Word& result,
                                            int message,
                                            Word& local, Supplier s)
 {
@@ -2971,13 +2971,13 @@ template<unsigned dim>
   qp->Request(args[0].addr, wTuple);
   while (qp->Received(args[0].addr))
   {
-    if ((count++ % 10000) == 0) 
+    if ((count++ % 10000) == 0)
     {
       // build a two elem list (simple count)
       NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
       msg->Send(msgList);
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
@@ -3014,16 +3014,16 @@ template<unsigned dim>
 
   // build a two elem list (simple count)
   NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
   msg->Send(msgList);
 
   return 0;
 }
 
 template<unsigned dim>
-    int CreateRTreeBulkLoadStreamRect( Word* args, Word& result, 
+    int CreateRTreeBulkLoadStreamRect( Word* args, Word& result,
                                        int message,
                                        Word& local, Supplier s )
 {
@@ -3045,23 +3045,23 @@ template<unsigned dim>
   qp->Request(args[0].addr, wTuple);
   while (qp->Received(args[0].addr))
   {
-    if ((count++ % 10000) == 0) 
+    if ((count++ % 10000) == 0)
     {
       // build a two elem list (simple count)
       NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
       msg->Send(msgList);
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
 
     BBox<dim> *box = (BBox<dim>*)tuple->GetAttribute(attrIndex);
     if( box->IsDefined() &&
-        ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->IsDefined() 
+        ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->IsDefined()
       )
     {
-      R_TreeLeafEntry<dim, TupleId> 
+      R_TreeLeafEntry<dim, TupleId>
           e( *box,
              ((TupleIdentifier *)tuple->
                  GetAttribute(tidIndex))->GetTid() );
@@ -3076,9 +3076,9 @@ template<unsigned dim>
   assert( FinalizedBulkLoad );
         // build a two elem list (simple count)
   NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
   msg->Send(msgList);
 
   return 0;
@@ -3108,13 +3108,13 @@ int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
   qp->Request(args[0].addr, wTuple);
   while (qp->Received(args[0].addr))
   {
-    if ((count++ % 10000) == 0) 
+    if ((count++ % 10000) == 0)
     {
       // build a two elem list (simple count)
       NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
       msg->Send(msgList);
     }
     Tuple* tuple = (Tuple*)wTuple.addr;
@@ -3152,9 +3152,9 @@ int CreateRTreeBulkLoadStreamL2Rect(Word* args, Word& result, int message,
   assert( FinalizedBulkLoad );
         // build a two elem list (simple count)
   NList msgList( NList("simple"), NList(count) );
-      // send the message, the message center will call 
+      // send the message, the message center will call
       // the registered handlers. Normally the client applications
-      // will register them. 
+      // will register them.
   msg->Send(msgList);
 
   return 0;
@@ -3289,7 +3289,7 @@ ListExpr RTree2IntTypeMap(ListExpr args)
 {
   string rtreeDescriptionStr, argstr;
   nl->WriteToString (argstr, args);
-  string errmsg = "Incorrect input '" + argstr + 
+  string errmsg = "Incorrect input '" + argstr +
                   "' for rtree inquiry operator.";
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -3304,7 +3304,7 @@ ListExpr RTree2IntTypeMap(ListExpr args)
   ListExpr rtreeSymbol = nl->First(rtreeDescription);
 
   /* handle rtree type constructor */
-  CHECK_COND( 
+  CHECK_COND(
       nl->IsAtom(rtreeSymbol) &&
       nl->AtomType(rtreeSymbol) == SymbolType &&
       (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
@@ -3321,7 +3321,7 @@ ListExpr RTree2RectTypeMap(ListExpr args)
 {
   string rtreeDescriptionStr, argstr;
   nl->WriteToString (argstr, args);
-  string errmsg = "Incorrect input '" + argstr + 
+  string errmsg = "Incorrect input '" + argstr +
       "' for rtree inquiry operator.";
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -3346,7 +3346,7 @@ ListExpr RTree2RectTypeMap(ListExpr args)
   "Rtree inquiry operator expects a R-Tree \n"
       "of type rtree, rtree3, rtree4 or rtree8.");
 
-  if(nl->SymbolValue(rtreeSymbol) == "rtree") 
+  if(nl->SymbolValue(rtreeSymbol) == "rtree")
     return nl->SymbolAtom("rect");
   if(nl->SymbolValue(rtreeSymbol) == "rtree3")
     return nl->SymbolAtom("rect3");
@@ -3417,7 +3417,7 @@ int RTreeInquirySelect (ListExpr args)
   ListExpr rtreeSymbol = nl->First(rtreeDescription),
            rtreeTwoLayer = nl->Fourth(rtreeDescription);
 
-  if(nl->SymbolValue(rtreeSymbol) == "rtree") 
+  if(nl->SymbolValue(rtreeSymbol) == "rtree")
     result = 0;
   else if(nl->SymbolValue(rtreeSymbol) == "rtree3")
     result = 1;
@@ -3441,44 +3441,44 @@ ValueMapping RTreeTreeHeight [] =
 { RTreeTreeHeightVM<2, TupleId>,  // 0
   RTreeTreeHeightVM<3, TupleId>,  // 1
   RTreeTreeHeightVM<4, TupleId>,  // 2
-  RTreeTreeHeightVM<8, TupleId>,  // 3 
+  RTreeTreeHeightVM<8, TupleId>,  // 3
   RTreeTreeHeightVM<2, TwoLayerLeafInfo>,  // 4
   RTreeTreeHeightVM<3, TwoLayerLeafInfo>,  // 5
   RTreeTreeHeightVM<4, TwoLayerLeafInfo>,  // 6
-  RTreeTreeHeightVM<8, TwoLayerLeafInfo>   // 7 
+  RTreeTreeHeightVM<8, TwoLayerLeafInfo>   // 7
   };
 
 ValueMapping RTreeNoOfEntries [] =
 { RTreeNoOfEntriesVM<2, TupleId>,  // 0
   RTreeNoOfEntriesVM<3, TupleId>,  // 1
   RTreeNoOfEntriesVM<4, TupleId>,  // 2
-  RTreeNoOfEntriesVM<8, TupleId>,  // 3 
+  RTreeNoOfEntriesVM<8, TupleId>,  // 3
   RTreeNoOfEntriesVM<2, TwoLayerLeafInfo>,  // 4
   RTreeNoOfEntriesVM<3, TwoLayerLeafInfo>,  // 5
   RTreeNoOfEntriesVM<4, TwoLayerLeafInfo>,  // 6
-  RTreeNoOfEntriesVM<8, TwoLayerLeafInfo>   // 7 
+  RTreeNoOfEntriesVM<8, TwoLayerLeafInfo>   // 7
 };
 
 ValueMapping RTreeNoOfNodes [] =
 { RTreeNoOfNodesVM<2, TupleId>,  // 0
   RTreeNoOfNodesVM<3, TupleId>,  // 1
   RTreeNoOfNodesVM<4, TupleId>,  // 2
-  RTreeNoOfNodesVM<8, TupleId>,  // 3 
+  RTreeNoOfNodesVM<8, TupleId>,  // 3
   RTreeNoOfNodesVM<2, TwoLayerLeafInfo>,  // 4
   RTreeNoOfNodesVM<3, TwoLayerLeafInfo>,  // 5
   RTreeNoOfNodesVM<4, TwoLayerLeafInfo>,  // 6
-  RTreeNoOfNodesVM<8, TwoLayerLeafInfo>   // 7 
+  RTreeNoOfNodesVM<8, TwoLayerLeafInfo>   // 7
 };
 
 ValueMapping RTreeBbox [] =
 { RTreeBboxVM<2, TupleId>,  // 0
   RTreeBboxVM<3, TupleId>,  // 1
   RTreeBboxVM<4, TupleId>,  // 2
-  RTreeBboxVM<8, TupleId>,  // 3 
+  RTreeBboxVM<8, TupleId>,  // 3
   RTreeBboxVM<2, TwoLayerLeafInfo>,  // 4
   RTreeBboxVM<3, TwoLayerLeafInfo>,  // 5
   RTreeBboxVM<4, TwoLayerLeafInfo>,  // 6
-  RTreeBboxVM<8, TwoLayerLeafInfo>   // 7 
+  RTreeBboxVM<8, TwoLayerLeafInfo>   // 7
 };
 
 
@@ -3577,12 +3577,12 @@ Operator rtreebbox(
 This operator allows introspection of an R-tree. It creates a stream
 of tuples, each of which describe one node or entry of the R-Tree.
 
-Signature is 
+Signature is
 
 ----
-    nodes: (rtree) --> stream(tuple((level int) (nodeId int) (MBR rect<D>) 
-                                    (fatherId int) (isLeaf bool) 
-                                    (minEntries int) (maxEntries int) 
+    nodes: (rtree) --> stream(tuple((level int) (nodeId int) (MBR rect<D>)
+                                    (fatherId int) (isLeaf bool)
+                                    (minEntries int) (maxEntries int)
                                     (countEntries int)))
 
 ----
@@ -3638,7 +3638,7 @@ ListExpr RTreeNodesTypeMap(ListExpr args)
   if(         nl->IsEqual(rtreeKeyType, "rect")
            || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
     MBR_ATOM = nl->SymbolAtom("rect");
-  else if(    nl->IsEqual(rtreeKeyType, "rect3") 
+  else if(    nl->IsEqual(rtreeKeyType, "rect3")
            || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
     MBR_ATOM = nl->SymbolAtom("rect3");
   else if(    nl->IsEqual(rtreeKeyType, "rect4")
@@ -3684,7 +3684,7 @@ ListExpr RTreeNodesTypeMap(ListExpr args)
       "bool)\nbut gets a first list with wrong tuple description in "
       "structure \n'"+rtreeDescriptionStr+"'.");
 
-  ListExpr reslist = 
+  ListExpr reslist =
    nl->TwoElemList(
     nl->SymbolAtom("stream"),
     nl->TwoElemList(
@@ -3718,14 +3718,6 @@ ListExpr RTreeNodesTypeMap(ListExpr args)
 */
 
 template<unsigned dim>
-struct RTreeNodesLocalInfo {
-  bool firstCall;
-  bool finished;
-  TupleType *resultTupleType;
-  R_Tree<dim, TupleId> *rtree;
-};
-
-template<unsigned dim>
 int RTreeNodesVM( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
@@ -3751,7 +3743,7 @@ int RTreeNodesVM( Word* args, Word& result, int message,
       if(local.addr == NULL)
         return CANCEL;
       lci = (RTreeNodesLocalInfo<dim> *)local.addr;
-      if(lci->finished) 
+      if(lci->finished)
         return CANCEL;
 
       IntrospectResult<dim> node;
@@ -3809,9 +3801,9 @@ const string RTreeNodesSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" \"Comment\" ) "
     "(<text>(rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) "
-    "-> stream(tuple((level int) (nodeId int) (MBR rect<D>) \n" 
+    "-> stream(tuple((level int) (nodeId int) (MBR rect<D>) \n"
     "                (fatherId int) (isLeaf bool) \n"
-    "                (minEntries int) (maxEntries int) \n" 
+    "                (minEntries int) (maxEntries int) \n"
     "                (countEntries int)))</text--->"
     "<text>nodes( _ )</text--->"
     "<text>Iterates the complete R-tree creating a stream of tuples"
@@ -3839,7 +3831,7 @@ int RTreeNodesSelect (ListExpr args)
   if(         nl->IsEqual(rtreeKeyType, "rect")
            || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
     return 0;
-  else if(    nl->IsEqual(rtreeKeyType, "rect3") 
+  else if(    nl->IsEqual(rtreeKeyType, "rect3")
            || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
     return 1;
   else if(    nl->IsEqual(rtreeKeyType, "rect4")
@@ -3856,7 +3848,7 @@ ValueMapping RTreeNodes [] =
 { RTreeNodesVM<2>,  // 0
   RTreeNodesVM<3>,  // 1
   RTreeNodesVM<4>,  // 2
-  RTreeNodesVM<8>   // 3 
+  RTreeNodesVM<8>   // 3
 };
 
 
@@ -3872,6 +3864,246 @@ Operator rtreenodes(
          RTreeNodes,          // value mapping
          RTreeNodesSelect,    // selection function
          RTreeNodesTypeMap    // type mapping
+        );
+
+/*
+5.10.3 Definition of Operator ~entries~
+
+*/
+const string RTreeEntriesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>(rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) "
+    "-> stream(tuple((nodeid)(bbox))</text--->"
+    "<text>entries( _ )</text--->"
+    "<text>Iterates the complete R-tree creating a stream of tuples"
+    "describing entries.</text--->"
+    "<text></text--->"
+    "<text></text--->"
+    ") )";
+
+template<unsigned dim,class LeafInfo>
+int RTreeEntriesVM( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
+{
+  RTreeNodesLocalInfo<dim> *lci;
+   IntrospectResult<dim> node;
+
+  switch( message )
+  {
+    case OPEN:
+    {
+      lci = new RTreeNodesLocalInfo<dim>;
+      local.setAddr(lci);
+      lci->firstCall = true;
+      lci->finished = false;
+      lci->resultTupleType =
+          new TupleType(nl->Second(GetTupleResultType(s)));
+      lci->rtree = (R_Tree<dim, TupleId>*) args[0].addr;
+    if(lci->firstCall)
+      {
+        lci->firstCall = false;
+        lci->finished = !lci->rtree->IntrospectFirst(node);
+      }
+      return 0;
+    }
+    case REQUEST :
+    {
+    static int level = 0;
+    unsigned long nodeid;
+    static unsigned long tupleid;
+    static BBox<dim> box;
+    if(local.addr == NULL)
+        return CANCEL;
+      lci = (RTreeNodesLocalInfo<dim> *)local.addr;
+      if(lci->finished)
+        return CANCEL;
+    if(level == 0){
+          lci->finished = !lci->rtree->IntrospectNextE(nodeid,box,tupleid);
+      level = lci->rtree->Height();
+          if( lci->finished ){
+            level = 0;
+        return CANCEL;
+      }
+     Tuple *tuple = new Tuple( lci->resultTupleType );
+       tuple->PutAttribute(0, new CcInt(true, nodeid));
+       tuple->PutAttribute(1, new Rectangle<dim>(box));
+     tuple->PutAttribute(2, new CcInt(true, tupleid));
+         result.setAddr(tuple);
+     return YIELD;
+     }else{
+     level--;
+     nodeid = lci->rtree->SmiNodeId(level);
+         Tuple *tuple = new Tuple( lci->resultTupleType );
+       tuple->PutAttribute(0, new CcInt(true, nodeid));
+       tuple->PutAttribute(1, new Rectangle<dim>(box));
+     tuple->PutAttribute(2, new CcInt(true, tupleid));
+         result.setAddr(tuple);
+     return YIELD;
+      }
+    }
+
+    case CLOSE :
+    {
+      if(local.addr)
+      {
+        lci = (RTreeNodesLocalInfo<dim> *)local.addr;
+        lci->resultTupleType->DeleteIfAllowed();
+        delete lci;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+  } // end switch
+  cout << "RTreeNodesVM(): Received UNKNOWN message!" << endl;
+  return 0;
+}
+ValueMapping RTreeEntries[] =
+{ RTreeEntriesVM<2,TupleId>,  // 0
+  RTreeEntriesVM<3,TupleId>,  // 1
+  RTreeEntriesVM<4,TupleId>,  // 2
+  RTreeEntriesVM<8,TupleId>   // 3
+};
+
+int RTreeEntriesSelect (ListExpr args)
+{
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+
+  string rtreeDescriptionStr;
+
+  /* handle rtree part of argument */
+  ListExpr rtreeDescription = nl->First(args);
+  ListExpr rtreeKeyType = nl->Third(rtreeDescription);
+
+  if(         nl->IsEqual(rtreeKeyType, "rect")
+           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
+    return 0;
+  else if(    nl->IsEqual(rtreeKeyType, "rect3")
+           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
+    return 1;
+  else if(    nl->IsEqual(rtreeKeyType, "rect4")
+           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
+    return 2;
+  else if(    nl->IsEqual(rtreeKeyType, "rect8")
+           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
+    return 3;
+
+  return -1;
+}
+
+ListExpr RTreeEntriesTypeMap(ListExpr args)
+{
+   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+
+  char* errmsg = "Incorrect input for operator entries.";
+  string rtreeDescriptionStr;
+
+  CHECK_COND(!nl->IsEmpty(args), errmsg);
+  CHECK_COND(!nl->IsAtom(args), errmsg);
+  CHECK_COND(nl->ListLength(args) == 1, errmsg);
+
+  /* handle rtree part of argument */
+  ListExpr rtreeDescription = nl->First(args);
+  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
+  CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
+      !nl->IsAtom(rtreeDescription) &&
+      nl->ListLength(rtreeDescription) == 4,
+  "Operator nodes expects a R-Tree with structure "
+      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
+      "bool)\nbut gets a R-Tree list with structure '"
+      +rtreeDescriptionStr+"'.");
+
+  ListExpr rtreeSymbol = nl->First(rtreeDescription),
+  rtreeTupleDescription = nl->Second(rtreeDescription),
+  rtreeKeyType = nl->Third(rtreeDescription),
+  rtreeTwoLayer = nl->Fourth(rtreeDescription);
+
+  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
+      nl->AtomType(rtreeKeyType) == SymbolType &&
+      (algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
+      algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
+      algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
+      nl->IsEqual(rtreeKeyType, "rect")||
+      nl->IsEqual(rtreeKeyType, "rect3")||
+      nl->IsEqual(rtreeKeyType, "rect4")),
+  "Operator nodes expects a R-Tree with key type\n"
+      "of kind SPATIAL2D, SPATIAL3D, and SPATIAL4D\n"
+      "or rect, rect3, and rect4.");
+
+  ListExpr MBR_ATOM;
+  if(         nl->IsEqual(rtreeKeyType, "rect")
+           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
+    MBR_ATOM = nl->SymbolAtom("rect");
+  else if(    nl->IsEqual(rtreeKeyType, "rect3")
+           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
+    MBR_ATOM = nl->SymbolAtom("rect3");
+  else if(    nl->IsEqual(rtreeKeyType, "rect4")
+           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
+    MBR_ATOM = nl->SymbolAtom("rect4");
+  else if(    nl->IsEqual(rtreeKeyType, "rect8")
+           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
+    MBR_ATOM = nl->SymbolAtom("rect8");
+
+  /* handle rtree type constructor */
+  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
+      nl->AtomType(rtreeSymbol) == SymbolType &&
+      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
+      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
+      nl->SymbolValue(rtreeSymbol) == "rtree4") ,
+  "Operator nodes expects a R-Tree \n"
+      "of type rtree, rtree3 or rtree4.");
+
+  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
+      !nl->IsAtom(rtreeTupleDescription) &&
+      nl->ListLength(rtreeTupleDescription) == 2,
+  "Operator nodes expects a R-Tree with structure "
+      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
+      "bool)\nbut gets a first list with wrong tuple description in "
+      "structure \n'"+rtreeDescriptionStr+"'.");
+
+  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
+  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
+
+  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
+      nl->AtomType(rtreeTupleSymbol) == SymbolType &&
+      nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
+      IsTupleDescription(rtreeAttrList),
+  "Operator nodes expects a R-Tree with structure "
+      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
+      "bool)\nbut gets a first list with wrong tuple description in "
+      "structure \n'"+rtreeDescriptionStr+"'.");
+
+  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
+      nl->AtomType(rtreeTwoLayer) == BoolType,
+  "Operator nodes expects a R-Tree with structure "
+      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
+      "bool)\nbut gets a first list with wrong tuple description in "
+      "structure \n'"+rtreeDescriptionStr+"'.");
+
+  ListExpr reslist =
+   nl->TwoElemList(
+    nl->SymbolAtom("stream"),
+    nl->TwoElemList(
+     nl->SymbolAtom("tuple"),
+     nl->Cons(
+      nl->TwoElemList(nl->SymbolAtom("nodeid"), nl->SymbolAtom("int")),
+    nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("MBR"), MBR_ATOM),
+          nl->TwoElemList(nl->SymbolAtom("tupleid"),nl->SymbolAtom("int"))
+      )
+     )
+    )
+   );
+  return reslist;
+}
+Operator rtreeentries(
+         "entries",             // name
+         RTreeEntriesSpec,      // specification
+         4,
+         RTreeEntries,          // value mapping
+         RTreeEntriesSelect,    // selection function
+         RTreeEntriesTypeMap    // type mapping
         );
 
 /*
@@ -3902,13 +4134,13 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreenoofnodes );
     AddOperator( &rtreenoofentries );
     AddOperator( &rtreebbox );
-
+  AddOperator( &rtreeentries);
 #else
 
     AddOperator( &creatertree );
     AddOperator( &bulkloadrtree );
-    AddOperator( &windowintersects ); 
-				windowintersects.EnableProgress();
+    AddOperator( &windowintersects );
+        windowintersects.EnableProgress();
     AddOperator( &windowintersectsS );
     AddOperator( &gettuples );
     AddOperator( &gettuplesdbl );
@@ -3918,6 +4150,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreenoofnodes );
     AddOperator( &rtreenoofentries );
     AddOperator( &rtreebbox );
+  AddOperator( &rtreeentries);
 
 #endif
 

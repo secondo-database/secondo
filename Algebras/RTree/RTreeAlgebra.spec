@@ -25,6 +25,7 @@ operator gettuples alias GETTUPLES pattern _ _ op
 operator gettuples2 alias GETTUPLES2 pattern _ _ op[ _ ]
 operator gettuplesdbl alias GETTUPLESDBL pattern _ _ op[ _ ]
 operator nodes alias NODES pattern op ( _ )
+operator entries alias ENTRIES pattern op ( _ )
 operator treeheight alias TREEHEIGHT pattern op ( _ )
 operator no_nodes alias NO_NODES pattern op ( _ )
 operator no_entries alias NO_ENTRIES pattern op ( _ )

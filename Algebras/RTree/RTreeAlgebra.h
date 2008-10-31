@@ -480,7 +480,7 @@ class IntrospectResult
     int minEntries;
     int maxEntries;
     int countEntries;
-
+    R_TreeEntry<dim>** entries;//
     IntrospectResult():
       level( -1 ),
       nodeId( -1 ),
@@ -488,7 +488,8 @@ class IntrospectResult
       isLeaf( true ),
       minEntries( -1 ),
       maxEntries( -1 ),
-      countEntries( -1 )
+      countEntries( -1 ),
+      entries(new R_TreeEntry<dim>*[maxEntries+1])
       {
         double dmin[dim], dmax[dim];
         for(unsigned int i=0; i < dim; i++)
@@ -496,6 +497,10 @@ class IntrospectResult
           dmin[i] = 0.0;
           dmax[i] = 0.0;
         }
+//
+    for(int i = 0 ;i <= maxEntries;i++)
+      entries[i] = NULL;
+//
         MBR = Rectangle<dim>(true, dmin, dmax);
       }
 
@@ -509,8 +514,12 @@ class IntrospectResult
       isLeaf( leaf ),
       minEntries( minE ),
       maxEntries( maxE ),
-      countEntries( countE )
-    {}
+      countEntries( countE ),
+    entries(new R_TreeEntry<dim>*[maxEntries+1])
+    {
+    for(int i = 0 ;i <= maxEntries;i++)
+      entries[i] = NULL;
+  }
 
     virtual ~IntrospectResult()
     {}
@@ -593,8 +602,13 @@ Tells whether this node is a leaf node.
 Returns entry given by index.
 
 */
-
+    R_TreeLeafEntry<dim,LeafInfo>* GetLeafEntry(int index);
     BBox<dim> BoundingBox() const;
+  BBox<dim> BoundingBox(int entryid) const
+  {
+    assert(entryid >= 0 && entryid <= maxEntries);
+    return entries[entryid]->box;
+  }
 /*
 Returns the bounding box of this node.
 
@@ -1695,6 +1709,13 @@ Data structures used during bulk loading will be deleted.
 
     bool IntrospectFirst(IntrospectResult<dim>& result);
     bool IntrospectNext(IntrospectResult<dim>& result);
+  bool IntrospectNextE(unsigned long& nodeid, BBox<dim>& box,unsigned long&
+                        tupleid);
+  SmiRecordId SmiNodeId(int currlevel)
+  {
+    assert(currlevel >= 0 && currlevel <= Height());
+    return path[currlevel];
+  }
 /*
 The last two methods are used to produce a sequence of node decriptions, that
 can be used to inspect the R-tree structure.
@@ -1726,7 +1747,8 @@ Implemented by NearestNeighborAlgebra.
 
 */
 
-
+  void GetNeighborNode(const R_TreeLeafEntry<dim, LeafInfo>& ent ,
+                          vector<int>& list);
   private:
     SmiRecordFile file;
 /*
@@ -1767,7 +1789,6 @@ The record file of the R-Tree.
 The header of the R-Tree which will be written (read) to (from) the file.
 
 */
-
 
     SmiRecordId path[ MAX_PATH_SIZE ];
 /*
@@ -1945,13 +1966,14 @@ true, after a call of FirstDistanceScan
 Used by NearestNeighborAlgebra.
 
 */
-
+    unsigned long noentrynode;//noentryin currnode
 };
 
 /*
 5.1 The constructors
 
 */
+
 template <unsigned dim, class LeafInfo>
 R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
   file( true, pageSize ),
@@ -2722,17 +2744,84 @@ bool R_Tree<dim, LeafInfo>::IntrospectFirst( IntrospectResult<dim>& result)
   nodeIdCounter = 0;
   nodeId[currLevel] = 0;
 
+
   // Remember that we have started a scan of the R_Tree
   scanFlag = true;
   currEntry = -1;
-  for(int i=0; i<MAX_PATH_SIZE; i++)
+  for(int i = 0; i < MAX_PATH_SIZE; i++)
   {
     pathEntry[i] = -1;
     nodeId[i]    = -1;
   }
-
   return true;
 }
+
+template <unsigned dim, class LeafInfo>
+    bool R_Tree<dim, LeafInfo>::IntrospectNextE(unsigned long& nodeid,BBox<dim>&
+                                                  box,unsigned long& tupleid  )
+{
+  // Next can be called only after a 'IntrospectFirst'
+  // or a 'IntrospectNext' operation
+  assert( scanFlag );
+  bool retcode = false;
+
+  pathEntry[currLevel]++;
+//  printf("pathEntry %d\n",pathEntry[currLevel]);
+//  printf("EntryCount() %d\n",nodePtr->EntryCount());
+//  printf("currLevel %d\n",currLevel);
+  while( pathEntry[currLevel] < nodePtr->EntryCount() || currLevel > 0 )
+  {
+    if( pathEntry[currLevel] >= nodePtr->EntryCount())
+    { // All entries in this node were examined. Go up the tree
+        // Find entry in father node corresponding to this node.
+      nodeId[currLevel] = -1;
+      pathEntry[ currLevel ] = -1;
+      UpLevel();
+      assert( pathEntry[ currLevel ] < nodePtr->EntryCount() );
+      pathEntry[currLevel]++;
+    }
+    else
+    { // Search next entry / subtree in this node
+//      pathEntry[currLevel]++;
+
+      if( nodeId[ currLevel ] < 0)
+        nodeId[ currLevel ] = nodeIdCounter;
+      if( pathEntry[currLevel] < nodePtr->EntryCount() )
+      { // produce result
+          if( nodePtr->IsLeaf() )
+          { // Found leaf node
+            // get complete node
+//      printf("leaf\n");
+            R_TreeLeafEntry<dim, LeafInfo> entry =
+                (R_TreeLeafEntry<dim, LeafInfo>&)
+                    (*nodePtr)[ pathEntry[ currLevel ] ];
+//
+            box = entry.box;
+      tupleid = entry.info;
+      nodeid = path[currLevel];
+      retcode = true;
+            break;
+         }
+          else // internal node
+          { // Found internal node
+//      printf("internal node\n");
+            R_TreeInternalEntry<dim> entry =
+                (R_TreeInternalEntry<dim>&) (*nodePtr)[pathEntry[ currLevel]];
+//      printf("pathEntry currLevel %d, %d\n",currLevel,pathEntry[currLevel]);
+      DownLevel( pathEntry[currLevel] );
+            nodeId[currLevel] = ++nodeIdCounter; // set nodeId
+//      printf("pathEntry currLevel %d, %d\n",currLevel,pathEntry[currLevel]);
+      pathEntry[currLevel]++;
+//             pathEntry[currLevel] = -1; // reset for next iteration
+          } // end else
+
+        } //end if
+    } // end else
+  } // end while
+//  pathEntry[currLevel] += nodePtr->EntryCount();
+  return retcode;
+}
+
 
 template <unsigned dim, class LeafInfo>
     bool R_Tree<dim, LeafInfo>::IntrospectNext( IntrospectResult<dim>& result )
@@ -2911,11 +3000,35 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
     return true;
   }
 }
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::GetNeighborNode(const R_TreeLeafEntry<dim, LeafInfo>
+                                                & ent ,vector<int>& list)
+{
+  if(FindEntry(ent)){
+    //currEntry,;
+    //R_TreeNode<dim,LeafInfo>* nodePtr;
+    if(nodePtr->IsLeaf()){
+      for(int i = 0;i < nodePtr->EntryCount();i++){
+        if(i != currEntry){
+          R_TreeLeafEntry<2,LeafInfo> *entry = nodePtr->GetLeafEntry(i);
+          list.push_back(entry->info);
+        }
+      }
+    }
+  }
+}
 
 /*
 5.18 Method Root
 
 */
+template <unsigned dim, class LeafInfo>
+R_TreeLeafEntry<dim,LeafInfo>* R_TreeNode<dim,LeafInfo>::GetLeafEntry(int index)
+{
+  assert(index >= 0 && index <= maxEntries);
+  return (R_TreeLeafEntry<dim,LeafInfo>*)entries[index];
+}
+
 template <unsigned dim, class LeafInfo>
 R_TreeNode<dim, LeafInfo>& R_Tree<dim, LeafInfo>::Root()
 // Loads nodeptr with the root node
@@ -3404,7 +3517,13 @@ int SizeOfRTree()
 {
   return 0;
 }
-
+template<unsigned dim>
+struct RTreeNodesLocalInfo {
+  bool firstCall;
+  bool finished;
+  TupleType *resultTupleType;
+  R_Tree<dim, TupleId> *rtree;
+};
 
 template <unsigned dim, class LeafInfo>
 bool R_Tree<dim, LeafInfo>::Open(SmiRecord& valueRecord,
