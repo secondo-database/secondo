@@ -104,3 +104,8 @@ Example  : query strassen_geoData windowintersectsS[ bbox(thecenter) ] count
 Result   : 1266
 
 
+Operator : entries
+Number   : 1
+Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) -> stream(tuple((nodeId int) (MBR rect<D>) (Tid tupleid)))
+Example  : query entries(strassen_geoData_rtree) filter[.nodeid = 2] tconsume count;
+Result   : (platform(linux (int 3212)))

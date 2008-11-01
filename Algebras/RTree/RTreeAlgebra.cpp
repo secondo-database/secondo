@@ -3874,10 +3874,10 @@ const string RTreeEntriesSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" \"Comment\" ) "
     "(<text>(rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) "
-    "-> stream(tuple((nodeid)(bbox))</text--->"
+    "-> stream(tuple((nodeid int)(bbox key)(tid tupleid))</text--->"
     "<text>entries( _ )</text--->"
-    "<text>Iterates the complete R-tree creating a stream of tuples"
-    "describing entries.</text--->"
+    "<text>Returns a stream of tuples which are all the nodes contain bbox in"
+    "a leaf entry.</text--->"
     "<text></text--->"
     "<text></text--->"
     ") )";
@@ -3925,11 +3925,11 @@ int RTreeEntriesVM( Word* args, Word& result, int message,
             level = 0;
         return CANCEL;
       }
-     Tuple *tuple = new Tuple( lci->resultTupleType );
+       Tuple *tuple = new Tuple( lci->resultTupleType );
        tuple->PutAttribute(0, new CcInt(true, nodeid));
        tuple->PutAttribute(1, new Rectangle<dim>(box));
-     tuple->PutAttribute(2, new CcInt(true, tupleid));
-         result.setAddr(tuple);
+       tuple->PutAttribute(2, new CcInt(true, tupleid));
+       result.setAddr(tuple);
      return YIELD;
      }else{
      level--;
@@ -3955,7 +3955,7 @@ int RTreeEntriesVM( Word* args, Word& result, int message,
       return 0;
     }
   } // end switch
-  cout << "RTreeNodesVM(): Received UNKNOWN message!" << endl;
+  cout << "RTreeEntriesVM(): Received UNKNOWN message!" << endl;
   return 0;
 }
 ValueMapping RTreeEntries[] =
@@ -4010,7 +4010,7 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
   CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
       !nl->IsAtom(rtreeDescription) &&
       nl->ListLength(rtreeDescription) == 4,
-  "Operator nodes expects a R-Tree with structure "
+  "Operator entries expects a R-Tree with structure "
       "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
       "bool)\nbut gets a R-Tree list with structure '"
       +rtreeDescriptionStr+"'.");
@@ -4028,7 +4028,7 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
       nl->IsEqual(rtreeKeyType, "rect")||
       nl->IsEqual(rtreeKeyType, "rect3")||
       nl->IsEqual(rtreeKeyType, "rect4")),
-  "Operator nodes expects a R-Tree with key type\n"
+  "Operator entries expects a R-Tree with key type\n"
       "of kind SPATIAL2D, SPATIAL3D, and SPATIAL4D\n"
       "or rect, rect3, and rect4.");
 
@@ -4052,13 +4052,13 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
       (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
       nl->SymbolValue(rtreeSymbol) == "rtree3" ||
       nl->SymbolValue(rtreeSymbol) == "rtree4") ,
-  "Operator nodes expects a R-Tree \n"
+  "Operator entries expects a R-Tree \n"
       "of type rtree, rtree3 or rtree4.");
 
   CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
       !nl->IsAtom(rtreeTupleDescription) &&
       nl->ListLength(rtreeTupleDescription) == 2,
-  "Operator nodes expects a R-Tree with structure "
+  "Operator entries expects a R-Tree with structure "
       "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
       "bool)\nbut gets a first list with wrong tuple description in "
       "structure \n'"+rtreeDescriptionStr+"'.");
@@ -4070,14 +4070,14 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
       nl->AtomType(rtreeTupleSymbol) == SymbolType &&
       nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
       IsTupleDescription(rtreeAttrList),
-  "Operator nodes expects a R-Tree with structure "
+  "Operator entries expects a R-Tree with structure "
       "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
       "bool)\nbut gets a first list with wrong tuple description in "
       "structure \n'"+rtreeDescriptionStr+"'.");
 
   CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
       nl->AtomType(rtreeTwoLayer) == BoolType,
-  "Operator nodes expects a R-Tree with structure "
+  "Operator entries expects a R-Tree with structure "
       "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
       "bool)\nbut gets a first list with wrong tuple description in "
       "structure \n'"+rtreeDescriptionStr+"'.");
