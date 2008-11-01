@@ -551,7 +551,23 @@ struct EventElem
     up(NULL), distance(d){}
   bool operator<( const EventElem& e ) const 
   {
-    return e.pointInTime < pointInTime;
+    if( e.pointInTime != pointInTime)
+    {
+      return e.pointInTime < pointInTime;
+    }
+    else
+    {
+      //same times
+      if( e.type != type )
+      {
+        return e.type < type;
+      }
+      else
+      {
+        //same types
+        return e.tuple < tuple || (e.tuple == tuple && e.tuple2 < tuple2);
+      }
+    }
   }
 };
 
@@ -709,7 +725,7 @@ void GetDistance( const MPoint* mp, const UPoint* up,
   cout << endl;
 }
 
-double CalcDistance( const MReal *mr, Instant t)
+double CalcDistance( const MReal *mr, Instant t, double &slope)
 {
   int noCo = mr->GetNoComponents();
   const UReal *ur;
@@ -724,7 +740,12 @@ double CalcDistance( const MReal *mr, Instant t)
     { 
       double time = (t - ur->timeInterval.start).ToDouble();
       double erg = ur->a * time * time + ur->b * time + ur->c;
-      return ( ur->r) ? sqrt(erg) : erg;
+      erg = ( ur->r) ? sqrt(erg) : erg;
+      //the slope is if not r: 2a * time + b
+      // else 2a * time + b / 2 * erg
+      slope = 2 * ur->a * time + ur->b;
+      if( ur->r ){ slope /= 2 * erg; }
+      return erg;
     }
   }
   return -1;
@@ -766,12 +787,12 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
   //if b*b - 4ac > 0 the equation has a result
   bool hasResult = false;
   double a, b, c, d, r1, r2, x;
-  double laterTime, firstTime;
+  double laterTime;
   while( !hasResult && ii < noCo1 && jj < noCo2)
   {
     if( u1->timeInterval.start <= u2->timeInterval.start )
     {
-      firstTime = u1->timeInterval.start.ToDouble();;
+      //firstTime = u1->timeInterval.start.ToDouble();;
       laterTime = u2->timeInterval.start.ToDouble();;
       //cout << "in intersects time1: " << u1->timeInterval.start 
       //  << ", time2: " << u2->timeInterval.start << endl;
@@ -782,7 +803,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
     }
     else
     {
-      firstTime = u2->timeInterval.start.ToDouble();;
+      //firstTime = u2->timeInterval.start.ToDouble();;
       laterTime = u1->timeInterval.start.ToDouble();;
       //cout << "in intersects time2: " << u2->timeInterval.start 
       //  << ", time1: " << u1->timeInterval.start << endl;
@@ -792,22 +813,26 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
       c = u2->a * x * x + u2->b * x + u2->c - u1->c;
     }
     d = b * b - 4 * a * c;
-    //cout << "a, b, c, x, d: " << a << " " << b << " " << c << " " << x 
-    //  << " " << d << endl;
     if( d >= 0 )
     {
       d = sqrt(d);
       r1 = (-b - d) / (2 * a);
       r2 = (-b + d) / (2 * a);
+      //cout << "a, b, c, x, d, r1, r2: " << a << " " 
+      //<< b << " " << c << " " << x 
+      //  << " " << d << " " << r1 << " " << r2 << endl;
       if( r1 > r2 ){ swap( r1, r2 );}
-      result.ReadFrom(r1 + laterTime);
-      //cout << "1. time: " << result << endl;
-      if( result > start && result <= u1->timeInterval.end 
-        && result <= u2->timeInterval.end)
+      if( r1 >= 0 )
       {
-        hasResult = true;
+        result.ReadFrom(r1 + laterTime);
+        //cout << "1. time: " << result << endl;
+        if( result > start && result <= u1->timeInterval.end 
+          && result <= u2->timeInterval.end)
+        {
+          hasResult = true;
+        }
       }
-      else
+      if( !hasResult && r2 > 0 )
       {
         result.ReadFrom(r2 + laterTime);
         //cout << "2. time: " << result << endl;
@@ -841,9 +866,72 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
       }
     }
   }
+  if( hasResult )
+  {
+    //if the intersection exact at the end of m1 or m2, don´t take it
+    m1->Get( m1->GetNoComponents()-1, u1);
+    if( result == u1->timeInterval.end )
+    {
+      hasResult = false;
+    }
+  }
+  if( hasResult )
+  {
+    //if the intersection exact at the end of m1 or m2, don´t take it
+    m2->Get( m2->GetNoComponents()-1, u1);
+    if( result == u1->timeInterval.end )
+    {
+      hasResult = false;
+    }
+  }
+  if( hasResult )
+  {
+    double d;
+    for( int ii=0; ii<m1->GetNoComponents();++ii)
+    {
+      const UReal* u1;
+      m1->Get( ii, u1);
+      cout << "IS M1: " << u1->timeInterval.start << " " 
+        << CalcDistance(m1, u1->timeInterval.start, d) << endl;
+    }
+    cout << endl;
+    for( int ii=0; ii<m2->GetNoComponents();++ii)
+    {
+      const UReal* u1;
+      m2->Get( ii, u1);
+      cout << "IS M2: " << u1->timeInterval.start << " " 
+        << CalcDistance(m2, u1->timeInterval.start, d) << endl;
+    }
+  }
   return hasResult;
 }
 
+bool check(vector<ActiveElem> &v, Instant time)
+{
+  double slope;
+      for( IT it=v.begin(); it != v.end(); ++it)
+      { 
+        cout << it->tuple << " " 
+          << CalcDistance(it->distance,time,slope) 
+          << " Start: " << it->start << endl;
+      }
+  for( IT ittest=v.begin(); ittest != v.end(); ++ittest)
+  {
+    double d = 0;
+    if(d-0.01 > CalcDistance(ittest->distance,time,slope))
+    {
+      //for( IT it=v.begin(); it != v.end(); ++it)
+      //{ 
+      //  cout << it->tuple << " " 
+      //    << CalcDistance(it->distance,time,d) 
+      //    << " Start: " << it->start << endl;
+      //}
+      return false;
+    }
+    d = CalcDistance(ittest->distance,time,slope);
+  }
+  return true;
+}
 
 Tuple* changeTupleUnit( Tuple *tuple, int attrNr, Instant start, 
   Instant end, bool lc, bool rc)
@@ -883,26 +971,28 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
   max = v.size() - 1;
   start = 0;
   bool havePos = false;
-  double dist = CalcDistance(e.distance,time);
+  double slope1, slope2;
+  double dist = CalcDistance(e.distance,time,slope1);
   while( !havePos && start <= max)
   {
     pos = (max + start) / 2;
-    double storeDistance = CalcDistance(v[pos].distance,time);
+    double storeDistance = CalcDistance(v[pos].distance,time,slope2);
     cout << "start, max, pos, dist " << start << " " << max
       << " " << pos << " " << storeDistance << endl;
-    if( dist < storeDistance )
+    if( dist < storeDistance || (dist == storeDistance && slope1 < slope2))
     {
       max = pos - 1;
     }
-    else if( dist > storeDistance )
+    else if( dist > storeDistance || (dist == storeDistance && slope1 > slope2))
     {
       start = pos + 1;
     }
-    else //same distance
+    else //same distance and same slope
     {
-      while( dist == storeDistance && ++pos < (int)v.size() )
+      while( dist == storeDistance && slope1 == slope2 
+        && ++pos < (int)v.size() )
       {
-        storeDistance = CalcDistance(v[pos].distance,time);
+        storeDistance = CalcDistance(v[pos].distance,time,slope2);
       }
       havePos = true;
     }
@@ -925,20 +1015,21 @@ unsigned int findActiveElem( vector<ActiveElem> &v, MReal *distance,
   max = v.size() - 1;
   start = 0;
   bool havePos = false;
-  double dist = CalcDistance(distance,time);
+  double slope1, slope2;
+  double dist = CalcDistance(distance,time,slope1);
   while( !havePos && start <= max)
   {
     pos = (max + start) / 2;
-    double storeDistance = CalcDistance(v[pos].distance,time);
-    if( dist < storeDistance )
+    double storeDistance = CalcDistance(v[pos].distance,time,slope2);
+    if( dist < storeDistance || (dist == storeDistance && slope1 < slope2) )
     {
       max = pos - 1;
     }
-    else if( dist > storeDistance )
+    else if( dist > storeDistance || (dist == storeDistance && slope1 > slope2))
     {
       start = pos + 1;
     }
-    else //same distance
+    else //same distance and same slope
     {
       havePos = true;
     }
@@ -1047,7 +1138,8 @@ int knearestFun (Word* args, Word& result, int message,
           cout << "upoint starttime: " << t1.ToString();
           MReal *mr = new MReal(0);
           GetDistance( mp, upointAttr, mpos, mr);
-          localInfo->eventQueue.push( EventElem(E_LEFT, t1, 
+          Instant t3 = t1 >= localInfo->startTime ? t1 : localInfo->startTime;
+          localInfo->eventQueue.push( EventElem(E_LEFT, t3, 
              currentTuple, upointAttr, mr) );
           cout << ", endtime: " << t2.ToString() << endl;
           cout << upointAttr->p0.GetX() << " " << upointAttr->p0.GetY()
@@ -1097,32 +1189,35 @@ int knearestFun (Word* args, Word& result, int message,
             localInfo->eventQueue.pop();
           }
         }
-        double d = CalcDistance(elem.distance, elem.pointInTime);
+        double slope;
+        double d = CalcDistance(elem.distance, elem.pointInTime,slope);
         cout << "******* time: " << elem.pointInTime.ToString() << 
           ", distance: " << d << ", Tuple: " << elem.tuple << endl;
+        assert(check(localInfo->activeLine ,elem.pointInTime));
 
         switch ( elem.type ){
           case E_LEFT:
           {
             cout << "found left element" << endl;
-            Instant start = elem.pointInTime >= localInfo->startTime 
-              ? elem.pointInTime : localInfo->startTime;
+            //Instant start = elem.pointInTime >= localInfo->startTime 
+            //  ? elem.pointInTime : localInfo->startTime;
             bool lc = elem.pointInTime >= localInfo->startTime 
               ? elem.up->timeInterval.lc : false;
-            ActiveElem newElem(elem.distance, elem.tuple, start, 
+            ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime, 
               elem.up->timeInterval.end, lc, elem.up->timeInterval.rc); 
             unsigned int newPos = insertActiveElem( localInfo->activeLine, 
               newElem, elem.pointInTime);
             cout << "Elements: " << localInfo->activeLine.size() 
               << " Pos: " << newPos << endl;
-            Instant intersectTime( start.GetType() );
+            Instant intersectTime( elem.pointInTime.GetType() );
             if( newPos + 1 < localInfo->activeLine.size() &&
               intersects( elem.distance, 
               localInfo->activeLine[newPos+1].distance, 
-              start, intersectTime ))
+              elem.pointInTime, intersectTime ))
             {
               cout << "************has intersection in left " 
-                << intersectTime << endl;
+                << intersectTime << " " << elem.tuple 
+                << " " << localInfo->activeLine[newPos+1].tuple << endl;
               localInfo->eventQueue.push( EventElem(E_INTERSECT, 
                 intersectTime, elem.tuple, 
                 localInfo->activeLine[newPos+1].tuple, elem.distance) );
@@ -1130,10 +1225,12 @@ int knearestFun (Word* args, Word& result, int message,
             if( newPos > 0 &&
               intersects( elem.distance, 
               localInfo->activeLine[newPos-1].distance, 
-              start, intersectTime ))
+              elem.pointInTime, intersectTime ))
             {
               cout << "************has intersection in left " 
-                << intersectTime << endl;
+                << intersectTime 
+                << " " << localInfo->activeLine[newPos-1].tuple 
+                << " " << elem.tuple << endl;
               localInfo->eventQueue.push( EventElem(E_INTERSECT, intersectTime, 
                 localInfo->activeLine[newPos-1].tuple, elem.tuple, 
                 localInfo->activeLine[newPos-1].distance) );
@@ -1151,15 +1248,6 @@ int knearestFun (Word* args, Word& result, int message,
               if( localInfo->activeLine[localInfo->k].start != elem.pointInTime
                 || (rc && localInfo->activeLine[localInfo->k].lc))
               {
-    cout << "Output: " << localInfo->activeLine[localInfo->k].start 
-      << " " << elem.pointInTime << endl;
-    for( IT ittest=localInfo->activeLine.begin(); 
-      ittest != localInfo->activeLine.end(); ++ittest)
-    { 
-      cout << ittest->tuple << " " 
-        << CalcDistance(ittest->distance, 
-        elem.pointInTime) << " Start: " << ittest->start << endl;
-    }
                 Tuple* cloneTuple = changeTupleUnit( 
                   localInfo->activeLine[localInfo->k].tuple, 
                   attrNr, localInfo->activeLine[localInfo->k].start, 
@@ -1197,15 +1285,6 @@ int knearestFun (Word* args, Word& result, int message,
                   localInfo->activeLine[posDel].start, elem.pointInTime, 
                   localInfo->activeLine[posDel].lc, 
                   localInfo->activeLine[posDel].rc);
-  cout << "Output: " << localInfo->activeLine[posDel].start << " " 
-    << elem.pointInTime << endl;
-  for( IT ittest=localInfo->activeLine.begin(); 
-    ittest != localInfo->activeLine.end(); ++ittest)
-  { 
-    cout << ittest->tuple << " " 
-      << CalcDistance(ittest->distance, 
-      elem.pointInTime) << " Start: " << ittest->start << endl;
-  }
                 if( localInfo->k < localInfo->activeLine.size() )
                 {
                   for( unsigned int ii = localInfo->k; 
@@ -1241,11 +1320,12 @@ int knearestFun (Word* args, Word& result, int message,
             else
             {
               //the program should never be here. This is a program error!
+              double slope;
               for( CI it=localInfo->activeLine.begin(); 
                 it!=localInfo->activeLine.end(); ++it)
               {
                 cout << "dist: " << CalcDistance(it->distance, 
-                  elem.pointInTime) << ", Tuple: " << it->tuple << endl;
+                  elem.pointInTime,slope) << ", Tuple: " << it->tuple << endl;
               }
               assert(false);
             }
@@ -1267,12 +1347,13 @@ int knearestFun (Word* args, Word& result, int message,
               //the program should never be here. This is a program error!
               cout << "Tuple of intersection not found! " << elem.tuple
                 << " " << elem.tuple2 << endl;
+              double slope;
               for( IT it=localInfo->activeLine.begin(); 
                 it != localInfo->activeLine.end(); ++it)
               { 
                 cout << it->tuple << " " 
                   << CalcDistance(it->distance, 
-                  elem.pointInTime) << endl;
+                  elem.pointInTime,slope) << endl;
               }
               assert(false);
             }
@@ -1289,13 +1370,6 @@ int knearestFun (Word* args, Word& result, int message,
               localInfo->activeLine[pos].lc = true;
               localInfo->activeLine[pos+1].start = elem.pointInTime;
               localInfo->activeLine[pos+1].lc = true;
-  for( IT ittest=localInfo->activeLine.begin(); 
-    ittest != localInfo->activeLine.end(); ++ittest)
-  { 
-    cout << ittest->tuple << " " 
-      << CalcDistance(ittest->distance, 
-      elem.pointInTime) << " Start: " << ittest->start << endl;
-  }
             }
 
             //look for intersections between the new neighbors
