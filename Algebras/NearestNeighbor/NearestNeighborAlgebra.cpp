@@ -129,7 +129,7 @@ distanceScanTypeMap( ListExpr args )
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  char* errmsg = "Incorrect input for operator windowintersects.";
+  char* errmsg = "Incorrect input for operator distancescan.";
   string rtreeDescriptionStr, relDescriptionStr, argstr;
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -207,7 +207,7 @@ distanceScanTypeMap( ListExpr args )
   CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
     !nl->IsAtom(rtreeTupleDescription) &&
     nl->ListLength(rtreeTupleDescription) == 2,
-    "Operator windowintersects expects a R-Tree with structure "
+    "Operator distancescan expects a R-Tree with structure "
     "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
     "bool)\nbut gets a first list with wrong tuple description in "
     "structure \n'"+rtreeDescriptionStr+"'.");
@@ -219,14 +219,14 @@ distanceScanTypeMap( ListExpr args )
     nl->AtomType(rtreeTupleSymbol) == SymbolType &&
     nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
     IsTupleDescription(rtreeAttrList),
-    "Operator windowintersects expects a R-Tree with structure "
+    "Operator distancescan expects a R-Tree with structure "
     "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
     "bool)\nbut gets a first list with wrong tuple description in "
     "structure \n'"+rtreeDescriptionStr+"'.");
 
   CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
     nl->AtomType(rtreeTwoLayer) == BoolType,
-   "Operator windowintersects expects a R-Tree with structure "
+   "Operator distancescan expects a R-Tree with structure "
    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
    "bool)\nbut gets a first list with wrong tuple description in "
    "structure \n'"+rtreeDescriptionStr+"'.");
@@ -670,11 +670,11 @@ void GetDistance( const MPoint* mp, const UPoint* up,
         up1.Distance(rp1,firstu);
       }
       //cout << "nach up1.Distance ";
-      cout << " M: " << upMp.p0.GetX() << " " << upMp.p0.GetY() << " ";
-      cout << " U: " << up1.p0.GetX() << " " << up1.p0.GetY() << " ";
-      cout << " Tmax: " << (end - start).ToDouble() << " ";
-      firstu.Print(std::cout);
-      cout << " ";
+      //cout << " M: " << upMp.p0.GetX() << " " << upMp.p0.GetY() << " ";
+      //cout << " U: " << up1.p0.GetX() << " " << up1.p0.GetY() << " ";
+      //cout << " Tmax: " << (end - start).ToDouble() << " ";
+      //firstu.Print(std::cout);
+      //cout << " ";
       erg->Add( firstu );
       int jj = ii;
       while( ++jj < noCo && (time2 > end
@@ -712,11 +712,11 @@ void GetDistance( const MPoint* mp, const UPoint* up,
           upMp.TemporalFunction( start, rp1, true);
           up1.Distance(rp1,nextu);
         }
-        cout << " M: " << upMp.p0.GetX() << " " << upMp.p0.GetY() << " ";
-        cout << " U: " << up1.p0.GetX() << " " << up1.p0.GetY() << " ";
-        cout << " Tmax: " << (end - start).ToDouble() << " ";
-        nextu.Print(std::cout);
-        cout << " ";
+        //cout << " M: " << upMp.p0.GetX() << " " << upMp.p0.GetY() << " ";
+        //cout << " U: " << up1.p0.GetX() << " " << up1.p0.GetY() << " ";
+        //cout << " Tmax: " << (end - start).ToDouble() << " ";
+        //nextu.Print(std::cout);
+        //cout << " ";
         erg->Add( nextu );
      }
       break;
@@ -744,9 +744,30 @@ double CalcDistance( const MReal *mr, Instant t, double &slope)
       //the slope is if not r: 2a * time + b
       // else 2a * time + b / 2 * erg
       slope = 2 * ur->a * time + ur->b;
-      if( ur->r ){ slope /= 2 * erg; }
+      if( ur->r && erg){ slope /= 2 * erg; }
       return erg;
     }
+  }
+  return -1;
+}
+
+double CalcSlope( const UReal *ur, Instant t)
+{
+  if( t >= ur->timeInterval.start && t <= ur->timeInterval.end )
+  { 
+    double time = (t - ur->timeInterval.start).ToDouble();
+    //the slope is if not r: 2a * time + b
+    // else 2a * time + b / 2 * div
+    double erg = 2 * ur->a * time + ur->b;
+    if( ur->r)
+    { 
+      double div = 2 * sqrt(ur->a * time * time + ur->b * time + ur->c);
+      if( div){
+        erg /= div;
+      }
+      else erg = -1;
+    }
+    return erg;
   }
   return -1;
 }
@@ -775,8 +796,9 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
   {
     m2->Get( jj, u2);
   }
-  if( start > u1->timeInterval.end || start > u2->timeInterval.end 
-    || start < u1->timeInterval.start || start < u2->timeInterval.start)
+  //if( start >= u1->timeInterval.end || start >= u2->timeInterval.end) 
+    //|| start < u1->timeInterval.start || start < u2->timeInterval.start)
+  if( ii >= noCo1 || jj >= noCo2 )
   {
     return false;
   }
@@ -813,33 +835,59 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
       c = u2->a * x * x + u2->b * x + u2->c - u1->c;
     }
     d = b * b - 4 * a * c;
-    if( d >= 0 )
+    if( d >= 0)
     {
       d = sqrt(d);
-      r1 = (-b - d) / (2 * a);
-      r2 = (-b + d) / (2 * a);
-      //cout << "a, b, c, x, d, r1, r2: " << a << " " 
-      //<< b << " " << c << " " << x 
-      //  << " " << d << " " << r1 << " " << r2 << endl;
+      if( a)
+      {
+        r1 = (-b - d) / (2 * a);
+        r2 = (-b + d) / (2 * a);
+        //cout << "a, b, c, x, d, r1, r2: " << a << " " 
+        //<< b << " " << c << " " << x << " " << d << endl;
+      }
+      else
+      {
+        r1 = -c / b;
+        r2 = -1;
+      }
+      //cout << r1 << " " << r2 << " " 
+      //  << u1->timeInterval.start << " " << u1->timeInterval.start << endl;
       if( r1 > r2 ){ swap( r1, r2 );}
       if( r1 >= 0 )
       {
         result.ReadFrom(r1 + laterTime);
-        //cout << "1. time: " << result << endl;
+        cout << "1. time: " << result << endl;
         if( result > start && result <= u1->timeInterval.end 
           && result <= u2->timeInterval.end)
         {
-          hasResult = true;
+          //now calculate the slope
+          double slope1, slope2;
+          slope1 = CalcSlope( u1,result);
+          slope2 = CalcSlope( u2,result);
+          if( slope1 != slope2 )
+          {
+            hasResult = true;
+          }
+          else cout << "----nearly IS1 " << result << " " << slope1 << " " 
+            << slope2 << endl;
         }
       }
       if( !hasResult && r2 > 0 )
       {
         result.ReadFrom(r2 + laterTime);
-        //cout << "2. time: " << result << endl;
+        cout << "2. time: " << result << endl;
         if( result > start && result <= u1->timeInterval.end 
           && result <= u2->timeInterval.end)
         {
-          hasResult = true;
+          double slope1, slope2;
+          slope1 = CalcSlope( u1,result);
+          slope2 = CalcSlope( u2,result);
+          if( slope1 != slope2 )
+          {
+            hasResult = true;
+          }
+          else cout << "----nearly IS2 " << result << " " << slope1 << " " 
+            << slope2 << endl;
         }
       }
     }
@@ -909,23 +957,23 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result )
 bool check(vector<ActiveElem> &v, Instant time)
 {
   double slope;
+      //for( IT it=v.begin(); it != v.end(); ++it)
+      //{ 
+      //  cout << it->tuple << " " 
+      //    << CalcDistance(it->distance,time,slope) 
+      //    << " Start: " << it->start << endl;
+      //}
+  double d = 0;
+  for( IT ittest=v.begin(); ittest != v.end(); ++ittest)
+  {
+    if(d-0.01 > CalcDistance(ittest->distance,time,slope))
+    {
       for( IT it=v.begin(); it != v.end(); ++it)
       { 
         cout << it->tuple << " " 
           << CalcDistance(it->distance,time,slope) 
           << " Start: " << it->start << endl;
       }
-  for( IT ittest=v.begin(); ittest != v.end(); ++ittest)
-  {
-    double d = 0;
-    if(d-0.01 > CalcDistance(ittest->distance,time,slope))
-    {
-      //for( IT it=v.begin(); it != v.end(); ++it)
-      //{ 
-      //  cout << it->tuple << " " 
-      //    << CalcDistance(it->distance,time,d) 
-      //    << " Start: " << it->start << endl;
-      //}
       return false;
     }
     d = CalcDistance(ittest->distance,time,slope);
@@ -977,8 +1025,6 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
   {
     pos = (max + start) / 2;
     double storeDistance = CalcDistance(v[pos].distance,time,slope2);
-    cout << "start, max, pos, dist " << start << " " << max
-      << " " << pos << " " << storeDistance << endl;
     if( dist < storeDistance || (dist == storeDistance && slope1 < slope2))
     {
       max = pos - 1;
@@ -1193,7 +1239,7 @@ int knearestFun (Word* args, Word& result, int message,
         double d = CalcDistance(elem.distance, elem.pointInTime,slope);
         cout << "******* time: " << elem.pointInTime.ToString() << 
           ", distance: " << d << ", Tuple: " << elem.tuple << endl;
-        assert(check(localInfo->activeLine ,elem.pointInTime));
+        //assert(check(localInfo->activeLine ,elem.pointInTime));
 
         switch ( elem.type ){
           case E_LEFT:
@@ -1223,9 +1269,8 @@ int knearestFun (Word* args, Word& result, int message,
                 localInfo->activeLine[newPos+1].tuple, elem.distance) );
             }
             if( newPos > 0 &&
-              intersects( elem.distance, 
-              localInfo->activeLine[newPos-1].distance, 
-              elem.pointInTime, intersectTime ))
+              intersects( localInfo->activeLine[newPos-1].distance, 
+              elem.distance, elem.pointInTime, intersectTime ))
             {
               cout << "************has intersection in left " 
                 << intersectTime 
@@ -1344,6 +1389,21 @@ int knearestFun (Word* args, Word& result, int message,
             if( pos+1 >= localInfo->activeLine.size()
               || localInfo->activeLine[pos+1].tuple != elem.tuple2)
             {
+              if( pos+2 < localInfo->activeLine.size()
+              && localInfo->activeLine[pos+2].tuple == elem.tuple2)
+              {
+                ActiveElem e = localInfo->activeLine[pos+1];
+                localInfo->activeLine[pos+1] = localInfo->activeLine[pos+2];
+                localInfo->activeLine[pos+2] = e;
+              }
+            }
+            if( pos+1 >= localInfo->activeLine.size()
+              || localInfo->activeLine[pos+1].tuple != elem.tuple2)
+            {
+              if(check(localInfo->activeLine ,elem.pointInTime))
+              {
+                break;
+              }
               //the program should never be here. This is a program error!
               cout << "Tuple of intersection not found! " << elem.tuple
                 << " " << elem.tuple2 << endl;
@@ -1364,8 +1424,6 @@ int knearestFun (Word* args, Word& result, int message,
               cloneTuple = changeTupleUnit( localInfo->activeLine[pos].tuple, 
                 attrNr, localInfo->activeLine[pos].start, elem.pointInTime, 
                 localInfo->activeLine[pos].lc,localInfo->activeLine[pos].rc); 
- cout << "Output: " << localInfo->activeLine[pos].start << " " 
-   << elem.pointInTime << endl;
               localInfo->activeLine[pos].start = elem.pointInTime;
               localInfo->activeLine[pos].lc = true;
               localInfo->activeLine[pos+1].start = elem.pointInTime;
