@@ -3620,8 +3620,10 @@ TypeConstructor network( "network",          Network::NetworkProp,
 The simple constructor. Should not be used.
 
 */
-  GLine::GLine()
+  GLine::GLine():m_xRouteIntervals(0)
   {
+    del.refs=1;
+    del.isDelete=true;
   }
 
   GLine::GLine(int in_iSize):
@@ -3629,7 +3631,7 @@ The simple constructor. Should not be used.
   {
     m_bDefined = false;
     m_bSorted = false;
-    m_dLength = 0;
+    m_dLength = 0.0;
     del.refs=1;
     del.isDelete=true;
   }
@@ -4012,15 +4014,15 @@ int GLine::Compare( const Attribute* arg ) const
 
 GLine& GLine::operator=( const GLine& l )
 {
+  m_xRouteIntervals.Clear();
   if( l.m_xRouteIntervals.Size() > 0 ){
     m_xRouteIntervals.Resize( l.m_xRouteIntervals.Size() );
     const RouteInterval *ri;
     for( int i = 0; i < l.m_xRouteIntervals.Size(); i++ ) {
       l.m_xRouteIntervals.Get( i, ri );
-      m_xRouteIntervals.Put(i, *ri );
+      m_xRouteIntervals.Append(*ri);
     }
-  } else
-    if (m_xRouteIntervals.Size() > 0) m_xRouteIntervals.Clear();
+  }
   m_dLength = l.m_dLength;
   m_bSorted = l.m_bSorted;
   m_bDefined = l.m_bDefined;
@@ -5158,6 +5160,7 @@ GPoints* GLine::GetBGP (){
   return result;
 
 };
+
 /*
 1.3.3.3 Secondo Type Constructor for class ~GPoint~
 

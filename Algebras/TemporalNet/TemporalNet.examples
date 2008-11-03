@@ -41,7 +41,7 @@ Operator : passes
 Number   : 4
 Signature: mgpoint x gpoint -> bool
 Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gpoint value (1 1 2.4 1)];
-Result   : FALSE
+Result   : TRUE
 
 Operator : passes
 Number   : 5
@@ -295,6 +295,13 @@ Number   : 1
 Signature: ugpoint -> rect
 Example  : query unitbox2([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.2 1.5))]);
 Result   : (rect(1.0 1.0 0.2 1.5))
+Tolerance: 0.01%
+
+Operator : unitboundingbox
+Number   : 1
+Signature: ugpoint -> rect3
+Example  : query unitboundingbox([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 84.00595217006948))]);
+Result   : (rect3(8209.0 8293.0 8768.0 8769.0 2555.4236111111 2555.4236226852))
 Tolerance: 0.01%
 
 Operator : distance

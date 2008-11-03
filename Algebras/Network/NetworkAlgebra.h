@@ -365,6 +365,21 @@ Returns true if two gpoint are identical.
 
     Point* ToPoint();
 
+      /*
+Returns the spatial Bounding Box of the point which is a rectangle degenerated
+to a single point.
+
+
+
+    inline const Rectangle<2> BoundingBox(){
+      Point *p = ToPoint();
+      Rectangle<2> result = p->BoundingBox();
+      delete p;
+      return result;
+    };
+
+        */
+
 /*
 Returns a point degenerated rectangle as network bounding box of the gpoint
 

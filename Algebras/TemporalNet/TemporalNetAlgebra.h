@@ -38,6 +38,7 @@ February 2008 - June 2008 Simone Jandt
 #include <iostream>
 #include <sstream>
 #include <string>
+
 #include "NestedList.h"
 #include "QueryProcessor.h"
 
@@ -77,6 +78,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
   UGPoint() {
     del.refs=1;
     del.isDelete=true;
+    m_bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   };
 
   UGPoint(bool is_defined):
@@ -85,6 +87,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
       del.refs=1;
       del.isDelete=true;
       TemporalUnit<GPoint>::defined = is_defined;
+      m_bbox = Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     };
 
   UGPoint( const Interval<Instant>& interval,
@@ -105,8 +108,21 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
         in_Position1,    // d
         in_Side)       // Side
     {
+
       del.refs=1;
       del.isDelete=true;
+      Point *s = p0.ToPoint();
+      Point *e = p1.ToPoint();
+      double ts = interval.start.ToDouble();
+      double te = interval.end.ToDouble();
+      m_bbox = Rectangle<3> (true,
+                             min(s->GetX(), e->GetX()),
+                             max(s->GetX(), e->GetX()),
+                             min(s->GetY(), e->GetY()),
+                             max(s->GetY(), e->GetY()),
+                            ts, te);
+      delete s;
+      delete e;
     }
 
   UGPoint( const Interval<Instant>& interval,
@@ -119,15 +135,31 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
       del.refs=1;
       del.isDelete=true;
       TemporalUnit<GPoint>::defined=true;
+      GPoint sgp = p0;
+      GPoint egp = p1;
+      Point *s = sgp.ToPoint();
+      Point *e = egp.ToPoint();
+      double ts = interval.start.ToDouble();
+      double te = interval.end.ToDouble();
+      m_bbox = Rectangle<3> (true,
+                             min(s->GetX(), e->GetX()),
+                             max(s->GetX(), e->GetX()),
+                             min(s->GetY(), e->GetY()),
+                             max(s->GetY(), e->GetY()),
+                            ts, te);
+      delete s;
+      delete e;
     }
 
   UGPoint(const UGPoint(&source)){
+
     *((TemporalUnit<GPoint>*)this)=*((TemporalUnit<GPoint>*)&source);
     p0=source.p0;
     p1=source.p1;
     del.refs=1;
     del.isDelete=true;
     TemporalUnit<GPoint>::defined = source.defined;
+    m_bbox = source.m_bbox;
   }
 
 
@@ -145,6 +177,7 @@ Redefinition of the copy operator ~=~.
     p0 = i.p0;
     p1 = i.p1;
    TemporalUnit<GPoint>::defined=i.defined;
+   m_bbox = i.m_bbox;
     return *this;
   }
 
@@ -198,16 +231,23 @@ Functions to be part of relations
         timeInterval.CopyFrom( i->timeInterval );
         p0 = i->p0;
         p1 = i->p1;
+        m_bbox = i->m_bbox;
       }
     else
       {
         timeInterval = Interval<Instant>();
         p0 = GPoint( false, 0, 0, 0.0, None);
         p1 = GPoint( false, 0, 0, 0.0, None);
+        m_bbox = Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
       }
   }
 
-  virtual const Rectangle<3> BoundingBox() const
+  virtual const Rectangle<3> BoundingBox() const {
+
+    return m_bbox;
+  }
+
+  virtual const Rectangle<3> NetBoundingBox3d() const
   {
       return Rectangle<3> (true,
                          (double) p0.GetRouteId(),
@@ -218,7 +258,7 @@ Functions to be part of relations
                          timeInterval.end.ToDouble());
   }
 
-  inline const Rectangle<2> BoundingBox2d() const
+  inline const Rectangle<2> NetBoundingBox2d() const
   {
       return Rectangle<2> (true,
                            (double) p0.GetRouteId(),
@@ -279,6 +319,8 @@ Functions to be part of relations
     Instant TimeAtPos(double pos);
 
     GPoint p0, p1;
+
+    Rectangle <3> m_bbox;
 };
 
 /*
@@ -297,7 +339,7 @@ The simple constructor should not be used.
 
     MGPoint( const int n );
 
-    ~MGPoint(){}
+    ~MGPoint() {}
 
     static ListExpr Property();
 
@@ -311,6 +353,10 @@ The simple constructor should not be used.
     virtual Attribute* Clone() const
     {
       MGPoint *res = new MGPoint(GetNoComponents());
+      res->m_trajectory = m_trajectory;
+      res->m_length = m_length;
+      res->m_deftime = m_deftime;
+      res->m_bbox = m_bbox;
       res->StartBulkLoad();
       const UGPoint *u;
       for (int i=0; i<GetNoComponents() ; i++) {
@@ -325,6 +371,10 @@ The simple constructor should not be used.
     {
       const MGPoint *src = (const MGPoint*) right;
       Clear();
+      m_trajectory = src->m_trajectory;
+      m_deftime = src->m_deftime;
+      m_length = src->m_length;
+      m_bbox = src->m_bbox;
       StartBulkLoad();
       const UGPoint *u;
       for (int i = 0; i < src->GetNoComponents(); i++) {
@@ -361,7 +411,7 @@ Returns the deftime of the mgpoint as periods value.
 
 */
 
-   void Deftime(Periods *res);
+   Periods* Deftime();
 
 /*
 Returns true if the mgpoint is defined at least in one of the periods resp.
@@ -424,6 +474,25 @@ Returns true if the mgpoint passes at least once the gpoint resp. gline.
    bool Passes(GPoint *gp);
 
    bool Passes(GLine *gl);
+
+   void EndBulkLoad(const bool sort = true);
+   void Add(const UGPoint& unit);
+   void Restrict(const vector <pair<int,int> >& intervals);
+   bool operator==(const MGPoint &mgp) const;
+   Rectangle<3u> BoundingBox() const;
+
+   void AtInstant( const Instant& t, Intime<GPoint>& result ) const;
+
+    Periods m_deftime;
+    GLine m_trajectory;
+    double m_length;
+    Rectangle<3> m_bbox;
+
+    void RestoreBoundingBox();
+//     void RestoreDeftime();
+//     void RestoreTrajectory();
+//     void RestoreLength();
+    void RestoreAllThree();
 
 
 };
