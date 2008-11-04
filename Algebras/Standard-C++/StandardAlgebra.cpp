@@ -1524,6 +1524,38 @@ ListExpr CcTypeMapTinDATA_TinDATAint( ListExpr args )
   return NList(INT).listExpr();
 }
 
+/*
+4.2.17 Type mapping function ~CcTypeMapTinDATAexpplus2TinDATA~
+
+For operators ~getMinVal~, ~getMaxVal~:
+
+---- T [x T x T x ...] -> T, T in DATA
+----
+
+*/
+
+ListExpr CcTypeMapTinDATAexpplus2TinDATA( ListExpr args )
+{
+  NList mArgs(args);
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  int noArgs = mArgs.length();
+  if(noArgs < 1){
+    return NList::typeError("Expected T^n, T in kind DATA, n >= 1.");
+  }
+  NList type = mArgs.first();
+  if (!SecondoSystem::GetAlgebraManager()->
+         CheckKind("DATA", type.listExpr(), errorInfo)){
+      return NList::typeError("Expected T^n, T in kind DATA, n >= 1.");
+  }
+  for(int i = 2; i < noArgs; i++){
+    if( mArgs.elem(i) != type )
+    {
+      return NList::typeError("Expected T^n, T in kind DATA, n >= 1.");
+    }
+  }
+  return type.listExpr();
+}
+
 
 /*
 4.4 Value mapping functions of operator ~+~
@@ -3605,6 +3637,35 @@ int CCcomparevaluemap( Word* args, Word& result, int message,
 }
 
 /*
+4.26 Operators ~getMinVal~ and ~getMaxVal~
+
+A single template function is used to implement both operators.
+
+*/
+
+template<bool ismin>
+int CCgetminmaxvaluemap( Word* args, Word& result, int message,
+                           Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  int noArgs = qp->GetNoSons(s); // get number of parameters
+  int resultIndex = 0; // index of the parameter holding the result
+  // compare parameter with current result and update currentResult
+  for(int i = 1;i<noArgs; i++){
+    Attribute* Obj1 = (Attribute*) args[i].addr;
+    Attribute* Obj2 = (Attribute*) args[resultIndex].addr;
+    int cmp = Obj1->Compare(Obj2);
+    if((ismin && cmp<0) || (!ismin && cmp>0)){
+      resultIndex = i;
+    }
+  }
+  (static_cast<StandardAttribute*>(result.addr))->
+      CopyFrom(static_cast<StandardAttribute*>(args[resultIndex].addr));
+  return 0;
+}
+
+
+/*
 5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -4216,6 +4277,33 @@ const string CCcompareSpec =
     "<text>query compare(-987, [const int value undef])</text--->"
     ") )";
 
+const string CCgetminvalSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>T^n -> T, T in DATA, n >= 1</text--->"
+    "<text>getMinVal( v1, v2, ... )</text--->"
+    "<text>Extracts the first (leftmost) minimum value from the parameter "
+    "list, using the generic compare function. Since this operator relies on "
+    "the type's implementation of 'Compare', the behaviour may differ, if the "
+    "implementation is non-canonical.</text--->"
+    "<text>query getMinVal(45, -45, 12, 0, -75, 5)</text--->"
+    ") )";
+
+const string CCgetmaxvalSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>T^n -> T, T in DATA, n >= 1</text--->"
+    "<text>getMaxVal( v1, v2, ... )</text--->"
+    "<text>Extracts the first (leftmost) maximum value from the parameter "
+    "list, using the generic compare function. Since this operator relies on "
+    "the type's implementation of 'Compare', the behaviour may differ, if the "
+    "implementation is non-canonical.</text--->"
+    "<text>query getMaxVal(45, -45, 12, 0, -75, 5)</text--->"
+    ") )";
+
+
+/*
+Operator instance definitions
+
+*/
 
 Operator ccplus( "+", CCSpecAdd, 5, ccplusmap,
                  CcMathSelectCompute, CcMathTypeMap );
@@ -4373,6 +4461,12 @@ Operator ccisdefined( "isdefined", CCisdefinedSpec, CCisdefinedValueMap,
 Operator cccompare( "compare", CCcompareSpec, CCcomparevaluemap,
                       Operator::SimpleSelect, CcTypeMapTinDATA_TinDATAint);
 
+Operator ccgetminval( "getMinVal", CCgetminvalSpec, CCgetminmaxvaluemap<true>,
+                      Operator::SimpleSelect, CcTypeMapTinDATAexpplus2TinDATA);
+
+Operator ccgetmaxval( "getMaxVal", CCgetmaxvalSpec, CCgetminmaxvaluemap<false>,
+                      Operator::SimpleSelect, CcTypeMapTinDATAexpplus2TinDATA);
+
 /*
 6 Class ~CcAlgebra~
 
@@ -4420,7 +4514,7 @@ class CcAlgebra1 : public Algebra
     ccReal.AssociateKind( "CSVIMPORTABLE" );
     ccBool.AssociateKind( "CSVIMPORTABLE" );
     ccString.AssociateKind( "CSVIMPORTABLE" );
-    
+
     AddOperator( &ccplus );
     AddOperator( &ccminus );
     AddOperator( &ccproduct );
@@ -4476,6 +4570,8 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccnum2string );
     AddOperator( &ccisdefined );
     AddOperator( &cccompare );
+    AddOperator( &ccgetminval );
+    AddOperator( &ccgetmaxval );
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );
