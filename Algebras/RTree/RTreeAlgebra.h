@@ -1749,6 +1749,13 @@ Implemented by NearestNeighborAlgebra.
 
   void GetNeighborNode(const R_TreeLeafEntry<dim, LeafInfo>& ent ,
                           vector<int>& list);
+   R_TreeNode<dim, LeafInfo> *GetMyNode(SmiRecordId& address,
+                                        const bool leaf,
+                                        const int min, const int max )
+{
+    return GetNode(address,leaf,min,max);
+}
+
   private:
     SmiRecordFile file;
 /*
