@@ -1,5 +1,5 @@
 Database: berlintest
-Restore : No 
+Restore : No
 
 Operator : #
 Number   : 1
@@ -325,7 +325,7 @@ Result   : "hellp"
 
 Operator : round
 Number   : 1
-Signature: real -> real 
+Signature: real -> real
 Example  : query round(10.123, 2)
 Result   : 10.12
 
@@ -414,39 +414,50 @@ Signature: int -> string
 Example  : query char(67)
 Result   : "C"
 
-Operator : abs 
-Number   : 1 
-Signature: real -> real 
+Operator : abs
+Number   : 1
+Signature: real -> real
 Example  : query abs(-3.1)
 Result   : 3.1
 
-Operator : abs 
-Number   : 2 
-Signature: real -> real 
+Operator : abs
+Number   : 2
+Signature: real -> real
 Example  : query abs(4.5)
-Result   : 4.5 
+Result   : 4.5
 
-Operator : abs 
-Number   : 3 
-Signature: int -> int 
+Operator : abs
+Number   : 3
+Signature: int -> int
 Example  : query abs(3)
-Result   : 3 
+Result   : 3
 
-Operator : abs 
-Number   : 4 
-Signature: int -> int 
+Operator : abs
+Number   : 4
+Signature: int -> int
 Example  : query abs(-4)
-Result   : 4 
+Result   : 4
 
-Operator : isdefined 
-Number   : 1 
+Operator : isdefined
+Number   : 1
 Signature: DATA -> bool
 Example  : query isdefined([const int value undef])
 Result   : FALSE
 
-Operator : compare 
-Number   : 1 
+Operator : compare
+Number   : 1
 Signature: T x T -> int, T in kind DATA
 Example  : query compare([const int value undef], -68421)
 Result   : -1
 
+Operator : getMinVal
+Number   : 1
+Signature: T^n -> T, T in kind DATA, n >= 1
+Example  : query getMinVal(45, -45, 12, 0, -75, 5)
+Result   : -75
+
+Operator : getMaxVal
+Number   : 1
+Signature: T^n -> T, T in kind DATA, n >= 1
+Example  : query getMaxVal(45, -45, 12, 0, -75, 5)
+Result   : 45
