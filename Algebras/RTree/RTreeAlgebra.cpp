@@ -4088,9 +4088,9 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
     nl->TwoElemList(
      nl->SymbolAtom("tuple"),
      nl->Cons(
-      nl->TwoElemList(nl->SymbolAtom("nodeid"), nl->SymbolAtom("int")),
+      nl->TwoElemList(nl->SymbolAtom("Nodeid"), nl->SymbolAtom("int")),
     nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("MBR"), MBR_ATOM),
-          nl->TwoElemList(nl->SymbolAtom("tupleid"),nl->SymbolAtom("int"))
+          nl->TwoElemList(nl->SymbolAtom("Tupleid"),nl->SymbolAtom("int"))
       )
      )
     )
