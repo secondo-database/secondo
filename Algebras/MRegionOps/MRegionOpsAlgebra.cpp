@@ -24,23 +24,38 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 #include "QueryProcessor.h"
 #include "ConstructorTemplates.h" 
 #include "StandardTypes.h"
+#include <string>
+#include "TypeMapUtils.h"
+#include "Symbols.h"
+#include "MovingRegionAlgebra.h"
+#include "SetOps.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-#include "TypeMapUtils.h"
-#include "Symbols.h"
-
-#include "MovingRegionAlgebra.h"
-#include "SetOpUtil.h"
-
 using namespace symbols;
 using namespace mappings;
-
-#include <string>
 using namespace std;
 
 namespace mregionops {
+
+void Test() {
+    
+    Instant t1(instanttype);
+    Instant t12(instanttype);
+    Instant t2(instanttype);
+    
+    t1.ReadFrom(0.0);
+    t12.ReadFrom(5000.0);
+    t2.ReadFrom(10000.0);
+    
+    cout << "t1: " << t1 << endl;
+    cout << "t12: " << t12 << endl;
+    cout << "t2: " << t2 << endl;
+    
+    cout << (t12 - t1) / (t2 - t1) << endl;
+    cout << (t12 - t1).ToDouble() / (t2 - t1).ToDouble() << endl;
+}
 
 /*
 
@@ -164,9 +179,13 @@ int InsideValueMap(Word* args, Word& result, int message, Word& local,
     MBool* res = static_cast<MBool*>(result.addr );
 
     res->SetDefined(false);
+    
+    //Test();
 
     return 0;
 }
+
+
 
 /*
 

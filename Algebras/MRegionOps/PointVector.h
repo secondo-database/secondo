@@ -33,7 +33,7 @@ using namespace std;
 namespace mregionops {
 
 #define VRML_SCALE_FACTOR 0.3
-#define VRML_DOUBLE_PRECISION 2
+#define VRML_DOUBLE_PRECISION 16
 
 class Point2D;
 class Point3D;
@@ -89,6 +89,13 @@ public:
     inline double Length2() const {
 
         return x*x + y*y + z*z;
+    }
+    
+    inline bool IsZero() const {
+        
+        return NumericUtil::NearlyEqual(x, 0.0) && 
+               NumericUtil::NearlyEqual(y, 0.0) && 
+               NumericUtil::NearlyEqual(z, 0.0);
     }
 
     inline Vector3D operator -() const {
@@ -168,6 +175,12 @@ public:
             z /= len;
         }
     }
+    
+    inline bool operator ==(const Vector3D& p) const {
+
+        return NumericUtil::NearlyEqual(x, p.x) && NumericUtil::NearlyEqual(y,
+                p.y) && NumericUtil::NearlyEqual(z, p.z);
+    }
 
 private:
 
@@ -224,6 +237,12 @@ public:
     inline double Length2() const {
 
         return x*x + y*y;
+    }
+    
+    inline bool IsZero() const {
+
+        return NumericUtil::NearlyEqual(x, 0.0) && 
+               NumericUtil::NearlyEqual(y, 0.0);
     }
 
     inline Vector2D operator -() const {
@@ -301,6 +320,12 @@ public:
             y /= len;
         }
     }
+    
+    inline bool operator ==(const Vector2D& p) const {
+
+        return NumericUtil::NearlyEqual(x, p.x) && NumericUtil::NearlyEqual(y,
+                p.y);
+    }
 
 private:
 
@@ -354,15 +379,20 @@ public:
                NumericUtil::NearlyEqual(y, p.y);
     }
     
+    inline bool operator !=(const Point2D& p) const {
+        
+        return !(*this == p);
+    }
+    
     inline bool operator <(const Point2D& p) const {
 
         if (NumericUtil::Lower(x, p.x))
             return true;
-        else 
-            if (NumericUtil::Greater(x, p.x))
-                return false;
-            else
-                return NumericUtil::Lower(y, p.y);
+
+        if (NumericUtil::Greater(x, p.x))
+            return false;
+            
+        return NumericUtil::Lower(y, p.y);
     }
 
     inline Vector2D operator -(const Point2D& p) const {
@@ -401,10 +431,28 @@ public:
         res.y = y * f;
         return res;
     }
+    
+    inline double Distance(const Point2D& p) const {
+
+        return (p - *this).Length();
+    }
+
+    inline double Distance2(const Point2D& p) const {
+
+        return (p - *this).Length2();
+    }
 
     inline double WhichSide(const Point2D& start, const Point2D& end) const {
 
-        return (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
+        //return (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
+        
+        Vector2D v1 = end - start;
+        Vector2D v2 = *this - start;
+        
+        v1.Normalize();
+        v2.Normalize();
+        
+        return v1 | v2;
     }
     
     double WhichSide(const Segment2D& s) const;
@@ -492,6 +540,11 @@ public:
                NumericUtil::NearlyEqual(y, p.y) && 
                NumericUtil::NearlyEqual(z, p.z);
     }
+    
+    inline bool operator !=(const Point3D& p) const {
+
+        return !(*this == p);
+    }
 
     inline Vector3D operator -(const Point3D& p) const {
 
@@ -533,6 +586,34 @@ public:
         res.z = z * f;
         return res;
     }
+    
+    inline double Distance(const Point3D& p) const {
+        
+        return (p - *this).Length();
+    }
+    
+    inline double Distance2(const Point3D& p) const {
+
+        return (p - *this).Length2();
+    }
+    
+    double DistanceToPlane(const Point3D& p0, const Vector3D& normal) const {
+ 
+        const double sb = (- (normal * (*this - p0))) / normal.Length2();
+        const Point3D base = *this + (sb * normal);
+        
+        return Distance(base);
+    }
+    
+    double DistanceToPlane2(const Point3D& p0, const Vector3D& normal) const {
+
+        const double sb = (- (normal * (*this - p0))) / normal.Length2();
+        const Point3D base = *this + (sb * normal);
+
+        return Distance2(base);
+    }
+    
+    
 
 private:
 
@@ -541,6 +622,15 @@ private:
     double z;
 };
 
+ostream& operator <<(ostream& o, const Point2D& p);
+ostream& operator <<(ostream& o, const Point3D& p);
+ostream& operator <<(ostream& o, const Vector2D& p);
+ostream& operator <<(ostream& o, const Vector3D& p);
+
 } // end of namespace mregionops
+
+
+
+
 
 #endif // POINTVECTOR_H_

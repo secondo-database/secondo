@@ -24,6 +24,51 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 namespace mregionops {
 
 
+class Segment3D {
+
+public:
+
+    inline Segment3D() {
+        
+    }
+
+    inline Segment3D(const Point3D& _start, const Point3D& _end) :
+        start(_start), end(_end) {
+
+    }
+
+    inline const Point3D& GetStart() const {
+
+        return start;
+    }
+
+    inline const Point3D& GetEnd() const {
+
+        return end;
+    }
+    
+    inline const bool IsOrthogonalToTAxis() const {
+        
+        return NumericUtil::NearlyEqual(start.GetT(), end.GetT());
+    }
+    
+    inline double Length() const {
+
+        return (end - start).Length();
+    }
+
+    inline double Length2() const {
+
+        return (end - start).Length2();
+    }
+
+private:
+
+    Point3D start, end;
+};
+
+
+
 class Segment2D {
 
 public:
@@ -34,7 +79,7 @@ public:
 
     inline Segment2D(const Point2D& p1, 
                      const Point2D& p2,
-                     const bool sort) {
+                     const bool sort = false) {
 
         if (sort && p2 < p1) {
             
@@ -47,18 +92,39 @@ public:
             end = p2;
         }
     }
-
-    inline Point2D GetStart() const {
+    
+    inline Segment2D(const Segment3D& s) {
+        
+        start = Point2D(s.GetStart());
+        end = Point2D(s.GetEnd());
+    }
+                         
+    inline const Point2D& GetStart() const {
 
         return start;
     }
 
-    inline Point2D GetEnd() const {
+    inline const Point2D& GetEnd() const {
 
         return end;
     }
 
-    //bool IsAbove(const Point2D& p) const;
+    inline bool IsParallel(const Segment2D& s) const {
+
+        Vector2D v1 = end - start;
+        Vector2D v2 = s.end - s.start;
+
+        v1.Normalize();
+        v2.Normalize();
+        const double d = v1 | v2;
+
+        return NumericUtil::NearlyEqual(d, 0.0);
+    }
+    
+    inline bool IsColinear(const Segment2D& s) const {
+        
+        return start.IsColinear(s) && end.IsColinear(s);
+    }
     
     inline bool IsVertical() const {
 
@@ -69,42 +135,32 @@ public:
 
         return NumericUtil::NearlyEqual(start.GetY(), end.GetY());
     }
+    
+    inline double Length() const {
+
+        return (end - start).Length();
+    }
+
+    inline double Length2() const {
+
+        return (end - start).Length2();
+    }
+    
+    inline void Flip() {
+        
+        Point2D temp = start;
+        
+        start = end;
+        end = temp;
+    }
 
 private:
 
     Point2D start, end;
 };
 
-
-
-class Segment3D {
-
-public:
-
-    inline Segment3D() {
-        
-    }
-
-    inline Segment3D(Point3D _start, Point3D _end) :
-        start(_start), end(_end) {
-
-        // TODO: Sort Points by t, x, y.
-    }
-
-    inline Point3D GetStart() const {
-
-        return start;
-    }
-
-    inline Point3D GetEnd() const {
-
-        return end;
-    }
-
-private:
-
-    Point3D start, end;
-};
+ostream& operator <<(ostream& o, const Segment2D& s);
+ostream& operator <<(ostream& o, const Segment3D& s);
 
 } // end of namespace mregionops
 
