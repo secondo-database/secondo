@@ -25,92 +25,145 @@ using namespace std;
 namespace mregionops {
 
 const double MAX_DOUBLE = numeric_limits<double>::max();
-const double MIN_DOUBLE = numeric_limits<double>::min();
+const double MIN_DOUBLE = -MAX_DOUBLE;
+
+//const double LN_10 = log(10.0);
 
 class NumericUtil {
 	
 public:
-	
+    
+    
+    //static const double epsilonMax = 0.01;
+    
+    //static const double eps = 0.01;
+    //static const double eps = 0.001;
 	//static const double eps = 0.0001;
-	//static const double eps = 0.00000001;
-	static const double eps = 0.00001;
-	static const double epsRelaxFactor = 10;
-	//static const double MAXDOUBLE = numeric_limits<double>::max();
-	//static const double MINDOUBLE = numeric_limits<double>::min();
+	//static const double eps = 0.00001;
+	//static const double eps = 0.000001;
+	//static const double eps = 0.0000001;
+    static const double eps = 0.00000001;
 	
-	/*
-	1.1.1 Function ~nearlyEqual()~
+	
+/*
+1.1.1 Function ~nearlyEqual()~
 
-	Returns ~true~ if $-eps \le a-b \le eps$.
+Returns ~true~ if $-eps \le a-b \le eps$.
 
-	*/
+*/
 	inline static bool NearlyEqual(double a, double b) {
 		
 	    return fabs(a - b) <= eps;
 	}
 	
-	/*
-	1.1.1 Function ~lowerOrNearlyEqual()~
+	inline static bool NearlyEqual(double a, 
+	                               double b, 
+	                               double _eps) {
 
-	Returns ~true~ if $a \le b+eps$.
+        return fabs(a - b) < _eps;
+    }
+	
+/*
+1.1.1 Function ~lowerOrNearlyEqual()~
 
-	*/
+Returns ~true~ if $a \le b+eps$.
+
+*/
 	inline static bool LowerOrNearlyEqual(double a, double b) {
 		
 	    return a < b || NearlyEqual(a, b);
 	}
+	
+	inline static bool LowerOrNearlyEqual(double a, 
+	                                      double b, 
+	                                      double _eps) {
 
-	/*
-	1.1.1 Function ~lower()~
+        return a < b || NearlyEqual(a, b, _eps);
+    }
 
-	Returns ~true~ if $a < b-eps$.
+/*
+1.1.1 Function ~lower()~
 
-	*/
+Returns ~true~ if $a < b-eps$.
+
+*/
 	inline static bool Lower(double a, double b) {
 		
 	    return a < b - eps;
 	}
+	
+	inline static bool Lower(double a, double b, double _eps) {
 
-	/*
-	1.1.1 Function ~greaterOrNearlyEqual()~
+        return a < b - _eps;
+    }
 
-	Returns ~true~ if $a \ge b-eps$.
+/*
+1.1.1 Function ~greaterOrNearlyEqual()~
 
-	*/
+Returns ~true~ if $a \ge b-eps$.
+
+*/
 	inline static bool GreaterOrNearlyEqual(double a, double b) {
 		
 	    return a > b || NearlyEqual(a, b);
 	}
 	
-	/*
-		1.1.1 Function ~greater()~
+	inline static bool GreaterOrNearlyEqual(double a, 
+	                                        double b, 
+	                                        double _eps) {
 
-		Returns ~true~ if $a > b+eps$.
+        return a > b || NearlyEqual(a, b, _eps);
+    }
+	
+/*
+1.1.1 Function ~greater()~
 
-		*/
-		inline static bool Greater(double a, double b) {
-			
-		    return a > b + eps;
-		}
+Returns ~true~ if $a > b+eps$.
 
-	/*
-	1.1.1 Function ~between()~
+*/
+    inline static bool Greater(double a, double b) {
 
-	Returns ~true~ if $a-eps \le x \le b+eps$ or $b-eps \le x \le a+eps$.
+        return a > b + eps;
+    }
 
-	*/
+    inline static bool Greater(double a, 
+                               double b, 
+                               double _eps) {
+
+        return a > b + _eps;
+    }
+
+/*
+1.1.1 Function ~between()~
+
+Returns ~true~ if $a-eps \le x \le b+eps$ or $b-eps \le x \le a+eps$.
+
+*/
 	inline static bool Between(double a, double x, double b) {
 		
-	    return (LowerOrNearlyEqual(a, x) && LowerOrNearlyEqual(x, b)) || 
-	           (LowerOrNearlyEqual(b, x) && LowerOrNearlyEqual(x, a));
+	    return (LowerOrNearlyEqual(a, x) && 
+	            LowerOrNearlyEqual(x, b)) || 
+	           (LowerOrNearlyEqual(b, x) && 
+	            LowerOrNearlyEqual(x, a));
 	}
 	
-	/*
-	1.1 Function ~minmax4()~
+	inline static bool Between(double a, 
+	                           double x, 
+	                           double b, 
+	                           double _eps) {
+	        
+	    return (LowerOrNearlyEqual(a, x, _eps) && 
+	            LowerOrNearlyEqual(x, b, _eps)) || 
+	           (LowerOrNearlyEqual(b, x, _eps) && 
+	            LowerOrNearlyEqual(x, a, _eps));
+	}
+	
+/*
+1.1 Function ~minmax4()~
 
-	Returns the minimum and maximum value of $a$, $b$, $c$ and $d$.
+Returns the minimum and maximum value of $a$, $b$, $c$ and $d$.
 
-	*/
+*/
 	static pair<double, double> 
 	MinMax4(double a, double b, double c, double d) {
 
