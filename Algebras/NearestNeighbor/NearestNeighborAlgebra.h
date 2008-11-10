@@ -2,7 +2,7 @@
 
 [1] Header-File of NearestNeighborAlgebra
 
-July 2008, Angelika Braese.
+November 2008, Angelika Braese.
 
 This header file implements some functions which the NearestNeighborAlgebra
 needs and which are defined in RTree Algebra.
@@ -103,7 +103,7 @@ ID of the next tuple if there is a next tuple else it returns false
     * /
 ...
 }
-
+End of the definitions which had to be included into RTreeAlgebra.h
 ----
 
 1 Defines and Includes
@@ -113,32 +113,7 @@ ID of the next tuple if there is a next tuple else it returns false
 #ifndef __NEARESTNEIGHBOR_ALGEBRA_H__
 #define __NEARESTNEIGHBOR_ALGEBRA_H__
 
-#include "stdarg.h"
-
-#ifdef SECONDO_WIN32
-#define Rectangle SecondoRectangle
-#endif
-
-#include <iostream>
-#include <stack>
-#include <limits>
-#include <string.h>
-
-
 using namespace std;
-
-#include "SpatialAlgebra.h"
-#include "RelationAlgebra.h"
-#include "Algebra.h"
-#include "NestedList.h"
-#include "QueryProcessor.h"
-#include "RectangleAlgebra.h"
-#include "StandardTypes.h"
-
-
-extern NestedList* nl;
-extern QueryProcessor* qp;
-
 
 /*
 FirstDistanceScan initializes the priority queue

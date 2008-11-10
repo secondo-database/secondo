@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] NearestNeighbor Algebra
 
-June 2008, A. Braese
+November 2008, A. Braese
 
 [toc]
 
@@ -427,7 +427,7 @@ distanceScanSelect( ListExpr args )
 For any operator a value mapping function must be defined. It contains
 the code which gives an operator its functionality
 
-The struct DistanceScanLocalInfo is needet to save the data
+The struct DistanceScanLocalInfo is needed to save the data
 from one to next function call
 
 */
@@ -530,7 +530,7 @@ into multiple tuples with disjoint units if necessary. The tuples in the
 result stream are not necessarily ordered by time or distance to the 
 given mpoint 
 
-The struct knearestLocalInfo is needet to save the data
+The struct knearestLocalInfo is needed to save the data
 from one to next function call
 
 */
