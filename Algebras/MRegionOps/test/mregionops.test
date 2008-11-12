@@ -1,33 +1,72 @@
 #
 # MRegionOpsAlgebra-Testfile
 #
-# July 2008, M. Hoeger
+# November 2008, M. Hoeger
 #
-
-
-
-
-delete database mropstestdb;
-
-#setup mregionopstest
 
 # *
 # * Preparing the test database
 # *
 
-#create database mropstestdb;
-#open database mropstestdb;
+#restore database berlintest from berlintest;
+open database berlintest;
 
-restore database mropstestdb from mropstestdb;
+delete mpA;
+delete mpB;
+delete rA;
+delete rB;
+delete mrA;
+delete mrB;
+delete t0A;
+delete t0B;
+delete t1A;
+delete t1B;
+delete t0;
+delete t1;
+delete noSamples;
+delete step;
+delete samples;
+delete aIb;
+delete bIa;
+delete aUb;
+delete bUa;
+delete aMb;
+delete bMa;
 
+#setup mregionopstest
 
 # *
 # * Create data in the test database
 # *
 
-let mrA = mr1a;
-let mrB = mr2a;
-let step = 0.1;
+let mpA = tripU5;
+#let mpB = mpA;
+let mpB = tripU8a;
+#let mpA = train1;
+#let mpB = train5;
+
+#let rA = grunewald;
+#let rB = grunewald;
+let rA = grunewald translate[0.0, -2000.0];
+let rB = westhafen scale[10.0] translate[-1500.0 - 54000.0, 7500.0 - 150000.0];
+
+let noSamples = 100.0;
+
+let mrA = move(mpA, rA);
+let mrB = move(mpB, rB);
+
+let t0A = instant2real(inst(initial(mpA)));
+let t0B = instant2real(inst(initial(mpB)));
+let t1A = instant2real(inst(final(mpA)));
+let t1B = instant2real(inst(final(mpB)));
+
+let t0 = ifthenelse(t0A < t0B, t0A, t0B);
+let t1 = ifthenelse(t1A > t1B, t1A, t1B);
+
+let step = (abs(t1 - t0)) / noSamples;
+
+let samples = realstream(t0, t1, step) 
+              use[fun(t: real) create_instant(t)] transformstream consume;
 
 # *
 # * dummy 
@@ -37,211 +76,136 @@ let step = 0.1;
 #yields (bool TRUE)
 query TRUE;
 
-
 # *
 # * set the tolerance.
 # *
 
-
 # tolerance_real 0.0009
-
-
-
-# ***********************************************************
-# * minus
-# ***********************************************************
-
-#testcase mrA minus mrB
-#yields (real 0.0)
-
-query 
-realstream(
-	instant2real(inst(initial(mrA))), 
-	instant2real(inst(final(mrA))), 
-	step
-) 
-use[ 
-	fun(t: real) 
-		abs(
-			area(
-				minus_new(  
-					val(mrA atinstant create_instant(t)), 
-					val(mrB atinstant create_instant(t))
-				) 
-			)
-		)
-		-
-		abs(
-			area(
-				val((mrA minus mrB) atinstant create_instant(t))
-			)
-		)
-] 
-transformstream max[elem];
-
-# ***********************************************************
-
-#testcase mrB minus mrA
-#yields (real 0.0)
-
-query 
-realstream(
-	instant2real(inst(initial(mrA))), 
-	instant2real(inst(final(mrA))), 
-	step
-) 
-use[ 
-	fun(t: real) 
-		abs(
-			area(
-				minus_new(  
-					val(mrB atinstant create_instant(t)), 
-					val(mrA atinstant create_instant(t))
-				) 
-			)
-		)
-		-
-		abs(
-			area(
-				val((mrB minus mrA) atinstant create_instant(t))
-			)
-		)
-] 
-transformstream max[elem];
-
-
 
 # ***********************************************************
 # * intersection
 # ***********************************************************
 
 #testcase mrA intersection mrB
+
+#yields ()
+
+let aIb = intersection(mrA, mrB);
+
 #yields (real 0.0)
 
-query 
-realstream(
-	instant2real(inst(initial(mrA))), 
-	instant2real(inst(final(mrA))), 
-	step
-) 
-use[ 
-	fun(t: real) 
-		abs(
-			area(
-				intersection_new(  
-					val(mrA atinstant create_instant(t)), 
-					val(mrB atinstant create_instant(t))
-				) 
-			)
-		)
-		-
-		abs(
-			area(
-				val(intersection(mrA, mrB) atinstant create_instant(t))
-			)
-		)
-] 
-transformstream max[elem];
+query samples feed transformstream 
+use[ fun(t: instant) 
+abs( 
+area(val(aIb atinstant t)) 
+- 
+area(intersection_new(val(mrA atinstant t), val(mrB atinstant t)))
+)]
+printstream transformstream max[elem];
 
 # ***********************************************************
 
 #testcase mrB intersection mrA
+
+#yields ()
+
+let bIa = intersection(mrB, mrA);
+
 #yields (real 0.0)
 
-query 
-realstream(
-	instant2real(inst(initial(mrA))), 
-	instant2real(inst(final(mrA))), 
-	step
-) 
-use[ 
-	fun(t: real) 
-		abs(
-			area(
-				intersection_new(  
-					val(mrA atinstant create_instant(t)), 
-					val(mrB atinstant create_instant(t))
-				) 
-			)
-		)
-		-
-		abs(
-			area(
-				val(intersection(mrB, mrA) atinstant create_instant(t))
-			)
-		)
-] 
-transformstream max[elem];
-
+query samples feed transformstream 
+use[ fun(t: instant) 
+abs( 
+area(val(bIa atinstant t)) 
+- 
+area(intersection_new(val(mrB atinstant t), val(mrA atinstant t)))
+)]
+printstream transformstream max[elem];
 
 # ***********************************************************
 # * union
 # ***********************************************************
 
 #testcase mrA union mrB
+
+#yields ()
+
+let aUb = mrA union mrB;
+
 #yields (real 0.0)
 
-query 
-realstream(
-	instant2real(inst(initial(mrA))), 
-	instant2real(inst(final(mrA))), 
-	step
-) 
-use[ 
-	fun(t: real) 
-		abs(
-			area(
-				union_new(  
-					val(mrA atinstant create_instant(t)), 
-					val(mrB atinstant create_instant(t))
-				) 
-			)
-		)
-		-
-		abs(
-			area(
-				val((mrA union mrB) atinstant create_instant(t))
-			)
-		)
-] 
-transformstream max[elem];
+query samples feed transformstream 
+use[ fun(t: instant) 
+abs( 
+area(val(aUb atinstant t)) 
+- 
+area(union_new(val(mrA atinstant t), val(mrB atinstant t)))
+)]
+printstream transformstream max[elem];
 
 # ***********************************************************
 
 #testcase mrB union mrA
+
+#yields ()
+
+let bUa = mrB union mrA;
+
 #yields (real 0.0)
 
-query 
-realstream(
-	instant2real(inst(initial(mrA))), 
-	instant2real(inst(final(mrA))), 
-	step
-) 
-use[ 
-	fun(t: real) 
-		abs(
-			area(
-				union_new(  
-					val(mrA atinstant create_instant(t)), 
-					val(mrB atinstant create_instant(t))
-				) 
-			)
-		)
-		-
-		abs(
-			area(
-				val((mrB union mrA) atinstant create_instant(t))
-			)
-		)
-] 
-transformstream max[elem];
+query samples feed transformstream 
+use[ fun(t: instant) 
+abs( 
+area(val(bUa atinstant t)) 
+- 
+area(union_new(val(mrB atinstant t), val(mrA atinstant t)))
+)]
+printstream transformstream max[elem];
 
+# ***********************************************************
+# * minus
+# ***********************************************************
 
+#testcase mrA minus mrB
 
+#yields ()
 
+let aMb = mrA minus mrB;
+
+#yields (real 0.0)
+
+query samples feed transformstream 
+use[ fun(t: instant) 
+abs( 
+area(val(aMb atinstant t)) 
+- 
+area(minus_new(val(mrA atinstant t), val(mrB atinstant t)))
+)]
+printstream transformstream max[elem];
+
+# ***********************************************************
+
+#testcase mrB minus mrA
+
+#yields ()
+
+let bMa = mrB minus mrA;
+
+#yields (real 0.0)
+
+query samples feed transformstream 
+use[ fun(t: instant) 
+abs( 
+area(val(bMa atinstant t)) 
+- 
+area(minus_new(val(mrB atinstant t), val(mrA atinstant t)))
+)]
+printstream transformstream max[elem];
+
+# ***********************************************************
 
 #teardown
 
 close database;
-delete database mropstestdb;
+
 
