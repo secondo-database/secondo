@@ -83,6 +83,7 @@ namespace symbols {
 #undef TUPLE 
 #undef REL_TUPLE
 #undef PRINTREFS 
+#undef FEEDPROJECT 
  Sym REL("rel");
  Sym TUPLE("tuple");
  Sym REL_TUPLE("rel(tuple(...))");
@@ -90,6 +91,7 @@ namespace symbols {
  Sym PRINTREFS("printrefs");
  Sym SMJ_R("sortmergejoin_r");
  Sym SMJ_R2("sortmergejoin_r2");
+ Sym FEEDPROJECT("feedproject");
 
  // chess algebra
 #undef MATERIAL 
