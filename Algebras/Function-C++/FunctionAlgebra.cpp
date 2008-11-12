@@ -496,7 +496,7 @@ Performs some while-loop like iteration on an object.
 2.5.1 Type Mapping for ~whiledo~
 
 ----
-      T x (T --> bool) x (T --> T) --> stream(T)
+      T x (T --> bool) x (T --> T) [x bool] --> stream(T)
       where T in kind DATA or T = tuple(X)
 ----
 
@@ -511,7 +511,9 @@ ListExpr WhileDoTypeMap(ListExpr Args)
       "(T (map T bool) (map T T)), where T in DATA or T = tuple(X)";
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-  if(    args.hasLength(3)
+  int noargs = args.length();
+
+  if( (noargs == 3 || noargs == 4)
      // second argument
       && args.second().hasLength(3)
       && args.second().first()  == Symbols::MAP()
@@ -529,8 +531,15 @@ ListExpr WhileDoTypeMap(ListExpr Args)
            ->CheckKind("DATA", args.first().listExpr(), errorInfo)
       )
     {  // case: T x (T --> bool) x (T --> T) --> T, where T in DATA
-      NList restype(Symbols::STREAM(), args.first());
-      return restype.listExpr();
+      if(noargs == 4 && args.fourth() == Symbols::BOOL() ) {
+        NList restype(Symbols::STREAM(), args.first());
+        return restype.listExpr();
+      } else { // append 4th argument bool = TRUE
+        NList restype(Symbols::APPEND(),
+                      NList(false,false),
+                      NList(Symbols::STREAM(), args.first()));
+        return restype.listExpr();
+      }
     }
     else if(
                args.first().hasLength(2)
@@ -566,6 +575,7 @@ struct WhileDoValueMapLocalInfo{
   Word lastInstance;
   Word pred;
   Word fun;
+  bool avoidEndlessLoop;
   bool finished;
   bool isInitial;
 };
@@ -577,6 +587,7 @@ int WhileDoValueMap(Word* args, Word& result,
   Word              predResult, funResult;
   ArgVectorPointer  predArg,    funArg;
   WhileDoValueMapLocalInfo* sli = 0;
+  CcBool *avoidEndless = static_cast<CcBool*>(args[3].addr);
 
   switch (message)
   {
@@ -587,6 +598,15 @@ int WhileDoValueMap(Word* args, Word& result,
       sli->fun          = args[2];
       sli->finished     = false;
       sli->isInitial    = true;
+
+      if(!avoidEndless->IsDefined()){
+        cerr << "WARNING: "<< __PRETTY_FUNCTION__
+             << ": Optional bool parameter is UNDEFINED! Using TRUE." << endl;
+        sli->finished = true;
+        sli->avoidEndlessLoop = true;
+      } else {
+        sli->avoidEndlessLoop = avoidEndless->GetBoolval();
+      }
       local.setAddr(sli);
       return 0;
 
@@ -641,8 +661,9 @@ int WhileDoValueMap(Word* args, Word& result,
       qp->Request(sli->fun.addr, funResult);    // call parameter function
       // copy result (and hand it over to the out-stream):
       result.setAddr(((Attribute*) (funResult.addr))->Clone());
-      if (((Attribute*) (funResult.addr))
-          ->Compare(((Attribute*) (sli->lastInstance.addr))) == 0
+      if ( sli->avoidEndlessLoop
+          && (((Attribute*) (funResult.addr))
+              ->Compare(((Attribute*) (sli->lastInstance.addr))) == 0)
          )
       { // reached a fixpoint: changeing sli->lastInstance not required
         sli->finished = true;
@@ -676,20 +697,21 @@ int WhileDoValueMap(Word* args, Word& result,
 
 const string WhileDoSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>T x (T -> bool) x (T -> T) -> stream(T), where T in kind DATA\n"
-    "tuple(T) x (tuple(T) -> bool) x (tuple(T) -> tuple(T)) -> stream(tuple(T))"
-    "</text--->"
-    "<text>obj whiledo[ pred ; func ]</text--->"
+    "( <text>T x (T -> bool) x (T -> T) x bool -> stream(T), "
+    "where T in kind DATA\n"
+    "tuple(T) x (tuple(T) -> bool) x (tuple(T) x bool -> tuple(T)) -> "
+    "stream(tuple(T))</text--->"
+    "<text>obj whiledo[ pred ; func ; avoidEndless ]</text--->"
     "<text>Always copies the first paramter into the result stream. Then, "
     "it copies 'obj' to its internal loop variable and starts a pre-check "
     "loop: as long as 'pred' evaluates to TRUE on the loop variable, function "
     "'func' is evaluated for the current loop variable. "
-    "Each result is copied into the result stream. If a fixpoint is reached "
-    "during the evaluation (loop variable does not change), the "
-    "processing is stopped. In this case, the two last results will be "
-    "identical. If 'pred' evaluates to UNDEF, the iteration stops immediately "
-    "(without creating any further result objects).</text--->"
-    "<text>query 1 whiledo[ . < 10 ; . + 1] count"
+    "Each result is copied into the result stream. If avoidEndless = TRUE and "
+    "a fixpoint is reached during the evaluation (loop variable does not "
+    "change), the processing is stopped. In this case, the two last results "
+    "will be identical. If 'pred' evaluates to UNDEF, the iteration stops "
+    "immediately (without creating any further result objects).</text--->"
+    "<text>query 1 whiledo[ . < 10 ; . + 1 ; TRUE] count"
     "</text--->))";
 
 

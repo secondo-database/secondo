@@ -40,5 +40,5 @@ Result   : crashes
 Operator : whiledo
 Number   : 1
 Signature: a x (a -> bool) x (a -> a) -> stream(a)
-Example  : query 1 whiledo[ . < 10; . + 1] count
+Example  : query 1 whiledo[ . < 10; . + 1; TRUE] count
 Result   : 10
