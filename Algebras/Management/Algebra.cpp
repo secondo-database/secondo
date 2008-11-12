@@ -113,6 +113,9 @@ OperatorInfo::appendSignature(const string& sig) {
   signature += ", " + sig;
 }  
 
+ostream& operator<<(ostream& o, const OperatorInfo& oi){
+   return oi.Print(o);
+}
 
 /* Member functions of class Operator: */
 
@@ -236,6 +239,24 @@ Operator::AddValueMapping( const int index, ValueMapping f )
     return (false);
   }
 }
+
+
+ostream& Operator::Print(ostream& o) const{
+   o << "Operator [ "<<  name  << ", "
+     <<  specString << ", "
+     <<  spec << ", "
+     << "numOfFunctions = "   <<  numOfFunctions << ", "
+     << "supportsProgress ="  <<  supportsProgress << ", "
+     << "requestsArgs ="  <<     requestsArgs
+     << "]";
+   return o;
+}
+
+ostream& operator<<(ostream& o, const Operator& op){
+  return op.Print(o);
+}
+
+
 
 
 /* Member functions of Class TypeConstructor */

@@ -119,10 +119,24 @@ struct OperatorInfo {
  const ListExpr list() const;
 
  void appendSignature(const string& sig);
+
+
+ ostream& Print(ostream& o) const{
+   o << "OperatorInfo[ " 
+	   <<  name << ", " 
+     <<  signature <<", "
+     <<  syntax << ", "
+     <<  meaning << ", "
+     <<  example << ", "
+     <<  remark << ", "
+     << "supportsProgress = " << supportsProgress << ", "
+     << "requestsArgs = " <<  requestsArgs << "]";
+   return o;
+ }
  
 };
 
-
+ostream& operator<<(ostream& o, const OperatorInfo& oi);
 
 class Operator
 {
@@ -322,6 +336,9 @@ Returns the number of calls for this operator.
 
 */
 
+ostream& Print(ostream& o) const;
+
+
     private:
 
     bool AddValueMapping( const int index, ValueMapping f );
@@ -341,5 +358,8 @@ Adds a value mapping function to the list of overloaded operator functions.
     bool	   requestsArgs;   //operator explicitly asks for evaluation
 			           //of its arguments
 };
+
+
+ostream& operator<<(ostream& o, const Operator& op);
 
 #endif
