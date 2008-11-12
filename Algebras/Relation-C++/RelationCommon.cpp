@@ -105,6 +105,7 @@ TupleType::TupleType( const ListExpr typeInfo )
   coreSize = 0;
   refs = 1;
   int i = 0;
+  size_t offset = sizeof(uint16_t); 
 
   try {
     const string errMsg("TupleType: Wrong list format! Line ");
@@ -154,36 +155,32 @@ TupleType::TupleType( const ListExpr typeInfo )
         algId = nl->IntValue( nl->First(b1) );
         typeId = nl->IntValue( nl->Second(b1) );
         size = (am->SizeOfObj(algId, typeId))();
-
-  
-
-
       }
       
 
-    Attribute* attr =
+      Attribute* attr =
 	      static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
 
+      int currentSize = 0;
       if ( attr->GetStorageType() == Attribute::Extension ) 
       {
-        coreSize += sizeof(uint32_t);
+        currentSize += sizeof(uint32_t);
       }	
       else if ( attr->GetStorageType() == Attribute::Default )
       { 
-	coreSize += ( size + (sizeof(uint32_t) * attr->NumOfFLOBs()) );      
+	currentSize += ( size + (sizeof(uint32_t) * attr->NumOfFLOBs()) );      
       }	
       else 
       {
-        coreSize += attr->SerializedSize();
+        currentSize += attr->SerializedSize();
       }
-
-
+      
       delete attr;
 
-
-
       totalSize += size;
-      attrTypeArray[i++] = AttributeType( algId, typeId, size );
+      attrTypeArray[i++] = AttributeType( algId, typeId, size, offset );
+      coreSize += currentSize; 
+      offset += currentSize;
     }
   }
   catch (SecondoException e) {

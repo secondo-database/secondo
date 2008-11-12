@@ -1216,6 +1216,320 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
+
+struct FeedProjectInfo : OperatorInfo {
+
+  FeedProjectInfo() : OperatorInfo()
+  {
+    name =      symbols::FEEDPROJECT;
+    signature = "rel(tuple(a_1 ... a_n)) x (a_i1 ... a_ik)\n"
+                "-> stream(tuple(a_i1 ... a_ik))";
+    syntax =    "_ feedproject[ _ ]";
+    meaning =   "Creates a stream of tuples from a given relation "
+                " and project them to the given list of attributes.";
+    example =   "plz feedproject[PLZ] count";
+  }
+
+};
+
+
+
+ListExpr feedproject_tm(ListExpr args)
+{
+  NList l(args);
+
+  const string opName = symbols::FEEDPROJECT;
+  const string arg1 = "rel(tuple(...)";
+  const string arg2 = "list of unique symbols (a_1 ... a_k)";
+  cerr << opName << ": " << l << endl;
+
+  string err1("");
+  if ( !l.checkLength(2, err1) )
+    return l.typeError( err1 );
+
+  NList attrs;
+  if ( !l.first().checkRel( attrs ) )
+    return l.typeError(1, arg1);
+
+  cerr << "a1 " << attrs << endl;
+
+  NList atoms = l.second();
+  if ( !l.checkSymbolList( atoms ) )
+    return l.typeError(2, arg2);
+
+  if ( !l.checkUniqueMembers( atoms ) )
+    return l.typeError(2, arg2);
+
+
+  NList indices;
+  NList oldAttrs(attrs);
+  NList newAttrs;
+  int noAtoms = atoms.length();
+  while ( !atoms.isEmpty() )
+  {
+    string attrname = atoms.first().str();
+    ListExpr attrtype = nl->Empty();
+    cerr << "a2 " << attrs << endl;
+    int newIndex = FindAttribute( oldAttrs.listExpr(), attrname, attrtype );
+
+    if (newIndex > 0)
+    {
+      indices.append( NList(newIndex) );   
+      newAttrs.append( oldAttrs.elem(newIndex) );
+    }
+    else
+    {
+      ErrorReporter::ReportError(
+        "Attributename '" + attrname +
+        "' is not a known attributename in the tuple stream.");
+          return nl->SymbolAtom("typeerror");
+    }
+    atoms.rest();
+  }
+
+  NList outlist = NList( NList(symbols::APPEND),
+                         NList( NList( noAtoms ), indices ), 
+			 NList().tupleStreamOf( newAttrs ) );
+
+  cerr << outlist << endl;
+
+  return outlist.listExpr();
+}
+
+
+
+  /*
+int
+Project(Word* args, Word& result, int message,
+        Word& local, Supplier s)
+{
+  ProjectLocalInfo *pli=0;
+  Word elem1(Address(0));
+  Word elem2(Address(0));
+  int noOfAttrs= 0;
+  int index= 0;
+  Supplier son;
+
+  switch (message)
+  {
+    case OPEN:{
+
+      pli = (ProjectLocalInfo*) local.addr;
+      if ( pli ) delete pli;
+
+      pli = new ProjectLocalInfo();
+      pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      local.setAddr(pli);
+
+      qp->Open(args[0].addr);
+      return 0;
+    }
+    case REQUEST:{
+
+      pli = (ProjectLocalInfo*) local.addr;
+
+      qp->Request(args[0].addr, elem1);
+      if (qp->Received(args[0].addr))
+      {
+        pli->read++;
+        Tuple *t = new Tuple( pli->tupleType );
+
+        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
+        assert( t->GetNoAttributes() == noOfAttrs );
+
+        for( int i = 0; i < noOfAttrs; i++)
+        {
+          son = qp->GetSupplier(args[3].addr, i);
+          qp->Request(son, elem2);
+          index = ((CcInt*)elem2.addr)->GetIntval();
+          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
+        }
+        ((Tuple*)elem1.addr)->DeleteIfAllowed();
+        result.setAddr(t);
+        return YIELD;
+      }
+      else return CANCEL;
+    }
+    case CLOSE: {
+
+      // Note: object deletion is done in repeated OPEN or CLOSEPROGRESS
+      qp->Close(args[0].addr);
+      return 0;
+
+    }
+  */
+
+
+int
+feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  GenericRelation* r=0;
+  FeedLocalInfo* fli=0;
+  Supplier sonOfFeed;
+
+
+  switch (message)
+  {
+    case OPEN :{
+      r = (GenericRelation*)args[0].addr;
+
+      fli = (FeedLocalInfo*) local.addr;
+      if ( fli ) delete fli;
+
+      fli = new FeedLocalInfo();
+      fli->returned = 0;
+      fli->total = r->GetNoTuples();
+      TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+      fli->rit = r->MakeScan(tt);
+      fli->progressInitialized = false;
+      local.setAddr(fli);
+      return 0;
+    }
+    case REQUEST :{
+      fli = (FeedLocalInfo*) local.addr;
+      Tuple *t;
+      
+        Supplier son;
+        int noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
+        list<int> usedAttrs;
+
+        Word elem2(Address(0));
+        for( int i = 0; i < noOfAttrs; i++)
+        {
+          son = qp->GetSupplier(args[3].addr, i);
+          qp->Request(son, elem2);
+          int index = ((CcInt*)elem2.addr)->GetIntval();
+	  //cerr << "ind = " << index << endl;
+          usedAttrs.push_back(index-1);
+        }
+
+
+      if ((t = fli->rit->GetNextTuple(usedAttrs)) != 0)
+      {
+        fli->returned++;
+        result.setAddr(t);
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+    case CLOSE :{
+        // Note: object deletion is handled in OPEN and CLOSEPROGRESS
+        // keep the local info structure since it may still be
+        // needed for handling progress messages.
+      fli = static_cast<FeedLocalInfo*>(local.addr);
+      if(fli){
+        if(fli->rit){
+          delete fli->rit;
+          fli->rit=0;
+        }
+      }
+      return 0;
+    }
+    case CLOSEPROGRESS:{
+
+      sonOfFeed = qp->GetSupplierSon(s, 0);
+      fli = (FeedLocalInfo*) local.addr;
+      if ( fli )
+      {
+         delete fli;
+         local.setAddr(0);
+      }
+      return 0;
+
+    }
+    case REQUESTPROGRESS :{
+
+      GenericRelation* rr;
+      rr = (GenericRelation*)args[0].addr;
+
+
+      ProgressInfo p1;
+      ProgressInfo *pRes=0;
+      const double uFeed = 0.00194;    //milliseconds per tuple
+      const double vFeed = 0.0000196;  //milliseconds per Byte
+
+
+
+      pRes = (ProgressInfo*) result.addr;
+      fli = (FeedLocalInfo*) local.addr;
+      sonOfFeed = qp->GetSupplierSon(s, 0);
+
+      if ( fli )
+      {
+        if ( !fli->progressInitialized )
+        {
+          fli->Size =  0;
+          fli->SizeExt =  0;
+
+          fli->noAttrs = nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
+          fli->attrSize = new double[fli->noAttrs];
+          fli->attrSizeExt = new double[fli->noAttrs];
+          for ( int i = 0;  i < fli->noAttrs; i++)
+          {
+            fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001);
+            fli->attrSizeExt[i] = rr->GetTotalExtSize(i) / (fli->total + 0.001);
+
+            fli->Size += fli->attrSize[i];
+            fli->SizeExt += fli->attrSizeExt[i];
+          }
+          fli->progressInitialized = true;
+        }
+      }
+
+      if ( qp->IsObjectNode(sonOfFeed) )
+      {
+        if ( !fli ) return CANCEL;
+        else  //an object node, fli defined
+        {
+          pRes->Card = (double) fli->total;
+          pRes->CopySizes(fli);  //copy all sizes
+
+          pRes->Time = (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
+
+          //any time value created must be > 0; so we add 1
+
+          pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed)
+            / pRes->Time;
+
+          pRes->BTime = 0.001; //time must not be 0
+
+          pRes->BProgress = 1.0;
+
+          return YIELD;
+        }
+      }
+      else //not an object node
+      {
+        if ( qp->RequestProgress(sonOfFeed, &p1) )
+        {
+          pRes->Card = p1.Card;
+
+          pRes->CopySizes(p1);
+
+          pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
+
+          pRes->Progress =
+             ((p1.Progress * p1.Time) +
+              (fli ? fli->returned : 0) * (uFeed + p1.SizeExt * vFeed))
+              / pRes->Time;
+
+          pRes->BTime = p1.Time;
+
+          pRes->BProgress = p1.Progress;
+
+          return YIELD;
+        }
+        else return CANCEL;
+      }
+    }
+  }
+  return 0;
+}
+
+
 #endif
 
 
@@ -5404,6 +5718,7 @@ class RelationAlgebra : public Algebra
     AddOperator( ReduceInfo(), reduce_vm, reduce_tm );
     AddOperator( TConsumeInfo(), tconsume_vm, tconsume_tm );
     AddOperator( CountBothInfo(), countboth_vm, countboth_tm );
+    AddOperator( FeedProjectInfo(), feedproject_vm, feedproject_tm );
 
     cpptuple.AssociateKind( "TUPLE" );
     cpprel.AssociateKind( "REL" );
@@ -5453,9 +5768,6 @@ extern "C"
 Algebra*
 InitializeRelationAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
 {
-  if ( RTFlag::isActive("RA:TUPLE_Trace") )
-    Tuple::debug = true;
-
   nl = nlRef;
   qp = qpRef;
   am = SecondoSystem::GetAlgebraManager();

@@ -140,23 +140,9 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
 #define MAX_NUM_OF_ATTR 10
 
-
-#undef TTRACE
-#define TTRACE(ptr, msg) { \
-	    cerr << (void*)this \
-	         << " " << __FUNCTION__ << ": " \
-	         << msg << endl; }
-
-#undef DEBUG
-#define DEBUG(ptr, msg) if (debug) TTRACE(ptr, msg)
-
-#undef ON_DEBUG
-#ifdef TRACE_ON
-  #define ON_DEBUG(expr) { expr }
-#else
-  #define ON_DEBUG(expr)
-#endif
-
+//Uncomment next line for tracing tuple operations
+//#define TRACE_ON
+#include "TraceMacros.h"
 
 extern AlgebraManager* am;
 
@@ -198,10 +184,12 @@ struct AttributeType
 This constructor should not be used.
 
 */
-  AttributeType( int algId, int typeId, int size ):
-    algId( algId ),
-    typeId( typeId ),
-    size( size )
+  AttributeType( int in_algId, int in_typeId, 
+		 int in_size, size_t in_offset = 0 ):
+    algId( in_algId ),
+    typeId( in_typeId ),
+    size( in_size ),
+    offset( in_offset )	
     {}
 /*
 The constructor.
@@ -222,6 +210,7 @@ The data type's ~id~ of the attribute.
 Size of attribute instance in bytes.
 
 */
+  size_t offset;
 };
 
 ostream& operator<<(ostream& o, AttributeType& at);
@@ -301,8 +290,6 @@ Returns the total size of the tuple.
 Returns the core size of the tuple.
 
 */
-
-
 
     inline const AttributeType& GetAttributeType( int index ) const
     {
@@ -1007,10 +994,12 @@ current record of ~iter~.
   bool Open( SmiRecordFile *tuplefile, SmiFileId lobfileId,
              PrefetchingIterator *iter );
 
+  bool OpenPartial( TupleType* newtype, const list<int>& attrList,
+		    SmiRecordFile *tuplefile, 
+		    SmiFileId lobfileId,
+                    PrefetchingIterator *iter );
 
-  // debug flag
-  static bool debug;
-
+  
   private:
 
     static long tuplesCreated;
@@ -1045,22 +1034,64 @@ Initializes the attributes array with zeros.
       recomputeExtSize = true;
       recomputeSize = true;
 
-      if ( noAttributes > MAX_NUM_OF_ATTR )
+      if ( noAttributes > MAX_NUM_OF_ATTR ) {
         attributes = new Attribute*[noAttributes];
-      else
+      } else {
         attributes = defAttributes;
-
+      }
       InitAttrArray();
 
       tuplesCreated++;
       tuplesInMemory++;
-      if( tuplesInMemory > maximumTuples )
+      if( tuplesInMemory > maximumTuples ) {
         maximumTuples = tuplesInMemory;
+      }	
     }
 /*
 Initializes a tuple.
 
 */
+    void ChangeTupleType(TupleType* newtype, const list<int>& attrIds) {
+  
+	tupleType->DeleteIfAllowed();
+        newtype->IncReference();
+        tupleType = newtype;	
+
+        recomputeExtSize = true;
+        recomputeSize = true;
+
+	// save the current addresses stored in attributes
+        Attribute** tmp_attributes = new Attribute*[noAttributes];
+        for (int i = 0; i<noAttributes; i++) {
+           tmp_attributes[i] = attributes[i];
+        }		
+
+	// free old attribute array if necessary
+        if (noAttributes > MAX_NUM_OF_ATTR){
+          delete [] attributes;
+        }
+
+        // allocate new attribute array if necessary
+        noAttributes = newtype->GetNoAttributes();	    
+        if ( noAttributes > MAX_NUM_OF_ATTR ) {
+          attributes = new Attribute*[noAttributes];
+        } else {
+          attributes = defAttributes;
+        }
+
+        // copy the old addresses in the given order into the
+	// new attribute array
+	int i = 0;
+        list<int>::const_iterator iter = attrIds.begin();
+        while ( iter != attrIds.end() ) {
+           attributes[i] = tmp_attributes[*iter];
+	   iter++;
+	   i++;
+        }
+
+        delete [] tmp_attributes;
+    }	    
+
 
     uint32_t refs;
 /*
@@ -1119,8 +1150,7 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   static char tupleData[MAX_TUPLESIZE];
 
   char* WriteToBlock( size_t attrSizes, 
-		      size_t extensionSize, 
-		      list<uint32_t>& extOffsets );
+		      size_t extensionSize );
 
 
   size_t CalculateBlockSize( size_t& attrSizes, 
@@ -1128,7 +1158,6 @@ to ~defAttributes~, otherwise it is dinamically constructed.
 			     double& size,
                              vector<double>& attrExtSize,
                              vector<double>& attrSize,
-			     list<uint32_t>& extOffsets,
 			     bool ignorePersLOBs = false );
 
 
@@ -1136,6 +1165,8 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   char* GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize);
 
   void InitializeAttributes(char* src, uint16_t rootSize);
+  void InitializeSomeAttributes( const list<int>& attrList, 
+		                 char* src, uint16_t rootSize );
 
 
 /*
@@ -1168,7 +1199,7 @@ Profiling turned out that a separate member storing the number
 of attributes makes sense since it reduces calls for TupleType::NoAttributes
 
 */
-  //int NumOfAttr;
+
 
 /*
 Debugging stuff
@@ -1396,7 +1427,8 @@ class GenericRelationIterator
 The virtual destructor.
 
 */
-    virtual Tuple *GetNextTuple() = 0;
+    virtual Tuple* GetNextTuple() = 0;
+    virtual Tuple* GetNextTuple( const list<int>& attrList ) { return 0; }
 /*
 The function to retrieve the next tuple.
 
@@ -1502,6 +1534,7 @@ by ~intervals~. This function is used in Double Indexing
 
 */
     virtual GenericRelationIterator *MakeScan() const = 0;
+    virtual GenericRelationIterator *MakeScan(TupleType* tt) const { return 0; }
 /*
 The function to initialize a scan returning the iterator.
 
@@ -1759,7 +1792,7 @@ This class is used for scanning (iterating through) relations.
 class RelationIterator : public GenericRelationIterator
 {
   public:
-    RelationIterator( const Relation& relation );
+    RelationIterator( const Relation& relation, TupleType* tt = 0 );
 /*
 The constructor. Creates a ~RelationIterator~ for a given ~relation~
 and positions the cursor in the first tuple, if exists.
@@ -1771,6 +1804,7 @@ The destructor.
 
 */
     Tuple *GetNextTuple();
+    Tuple* GetNextTuple( const list<int>& attrList );
 /*
 Retrieves the tuple in the current position of the iterator and moves
 the cursor forward to the next tuple. Returns 0 if the cursor is in
@@ -1808,6 +1842,13 @@ Stores the state of the iterator.
 Stores the identification of the current tuple.
 
 */
+  TupleType* outtype;
+/*
+  optional output tuple type. This will be used for a scan which
+  already applies a projection
+
+*/  
+
 };
 
 
@@ -2006,6 +2047,7 @@ Returns the tuple type of the tuples of the relation.
     virtual void   AppendTuple( Tuple *tuple );
 
     virtual GenericRelationIterator *MakeScan() const;
+    virtual GenericRelationIterator *MakeScan(TupleType* tt) const;
 
 /*
 Inherited ~virtual~ functions
