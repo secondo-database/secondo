@@ -381,7 +381,7 @@ struct CSProtocol {
  { 
     ignoreMsg = value; 
     msgHandler->ignoreMsg(value);
-    SHOW(IgnoreMsg) 
+    SHOW(ignoreMsg) 
  }
  
  bool nextLine(const string& exp, string& errMsg)

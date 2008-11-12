@@ -40,7 +40,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define SHOW(a) {*traceOS << "  " << #a << " = " << a << endl;} 
 #define TRACE_ENTER {*traceOS << "* Entering " << __FUNCTION__ << endl;}
 #define TRACE_LEAVE {*traceOS << "* Leaving  " << __FUNCTION__ << endl;}
+
+#define DEBUG(ptr, msg) { \
+	    cerr << (void*)this \
+	         << " " << __FUNCTION__ << ": " \
+	         << msg << endl; }
+
+#define DEBUG2(ptr, var) { \
+	    cerr << (void*)this \
+	         << " " << __FUNCTION__ << ": " \
+	         << #var << " = " << var << endl; }
+
+#define ON_DEBUG(expr) { expr }
+
 #else
+
 #define ETRACE(a)
 #define TRACE(a)
 #define NTRACE(n,a)
@@ -49,6 +63,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TRACE_OS(os)
 #define TRACE_ENTER
 #define TRACE_LEAVE
+
+#define DEBUG(ptr, msg)
+#define DEBUG2(ptr, var)
+#define ON_DEBUG(expr)
 #endif
 
 #endif
