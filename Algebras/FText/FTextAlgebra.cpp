@@ -79,27 +79,17 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "Symbols.h"
 #include "SecondoSMI.h"
 
-// for operators sendtext, receivetext
-#define UDP_MAXBUF 1048576 // set bufferlength to 1MB
-#include "DateTime.h"
-#include <stdio.h>
-#include <unistd.h>
-#ifdef SECONDO_WIN32
-#include <io.h>
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include "../../ClientServer/Win32Socket.h"
-#else //Linux
-#include <sys/time.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include "../../ClientServer/UnixSocket.h"
-#endif
-using namespace datetime;
-// end for operators sendtext, receivetext
+// for operators sendtextUDP, receivetextUDP
+//#include "DateTime.h"
+//#include <stdio.h>
+//#include <unistd.h>
+#include "SocketIO.h"
+//#ifdef SECONDO_WIN32
+//#include "../../ClientServer/Win32Socket.h"
+//#else //Linux
+//#include "../../ClientServer/UnixSocket.h"
+//#endif
+// end for operators sendtextUDP, receivetextUDP
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -2957,19 +2947,9 @@ Any status and error messages from the session are appended to the result text
 */
 
 // Helper function -- closes a socket
-void ftextCloseSocket(int socket)
-{
-#ifdef SECONDO_WIN32
-  closesocket(socket);
-#else
-  close(socket);
-#endif
-  return;
-}
-
 template<class T1, class T2, class T3, class T4, class T5>
 int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
-                              Word& local, Supplier s )
+                               Word& local, Supplier s )
 {
   result      = qp->ResultStorage( s );
   FText* Res  = static_cast<FText*>(result.addr);
@@ -2978,7 +2958,7 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
   ostringstream status;
   bool correct = true;
 
-  // get message text
+  // get message text (requiered)
   T1* CcMessage   = static_cast<T1*>(args[0].addr);
   string myMessage("");
   if(!CcMessage->IsDefined()){
@@ -2987,7 +2967,7 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
   }else{
     myMessage = CcMessage->GetValue();
   }
-  // get remote IP
+  // get remote IP (requiered)
   T2* CcOtherIP   = static_cast<T2*>(args[1].addr);
   string OtherIP("");
   if (!CcOtherIP->IsDefined()){
@@ -2996,7 +2976,11 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
   }else{
     OtherIP = CcOtherIP->GetValue();
   }
-  // get remote port number
+  if(OtherIP == ""){
+    status << "ERROR: remoteIP unspecified.";
+    correct = false;
+  }
+  // get remote port number (requiered)
   T3* CcOtherPort = static_cast<T3*>(args[2].addr);
   string OtherPort("");
   if(!CcOtherPort->IsDefined()){
@@ -3005,7 +2989,11 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
   }else{
     OtherPort = CcOtherPort->GetValue();
   }
-  // get sender IP
+  if(OtherPort == ""){
+    status << "ERROR: remotePort unspecified.";
+    correct = false;
+  }
+  // get sender IP (optional)
   string myIP("");
   if(no_args>=4){
     T4* CcMyIP      = static_cast<T4*>(args[3].addr);
@@ -3016,7 +3004,7 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
       myIP = CcMyIP->GetValue();
     }
   }
-  // get sender port
+  // get sender port (requiered)
   string myPort("");
   if(no_args>=5){
     T5* CcMyPort    = static_cast<T5*>(args[4].addr);
@@ -3027,92 +3015,62 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
       myPort = CcMyPort->GetValue();
     }
   }
+  if(myPort == ""){
+    status << "ERROR: localPort unspecified.";
+    correct = false;
+  }
   // return message on error due to any UNDEFINED parameter
   if(!correct){
     Res->Set( true, status.str() );
     return 0;
   }
   // define address struct for local socket:
-  struct addrinfo lhints;
-  struct addrinfo *lsockinfo;          // will point to the results
-  memset(&lhints, 0, sizeof lhints);   // make sure the struct is empty
-  lhints.ai_family   = AF_UNSPEC;      // don't care whether IPv4 or IPv6
-  lhints.ai_socktype = SOCK_DGRAM;     // UDP datagram type socket
-  int resGetaddrinfo = 0;
-  if(myIP == ""){
-    lhints.ai_flags    = AI_PASSIVE;   // fill in my IP for me
-    resGetaddrinfo=getaddrinfo(NULL,
-                               myPort.c_str(),
-                               &lhints,&lsockinfo);
-  }else{
-    resGetaddrinfo=getaddrinfo(myIP.c_str(),
-                               myPort.c_str(),
-                               &lhints,&lsockinfo);
-  }
-  if (resGetaddrinfo == -1) {
-    status << "ERROR: getaddrinfo() failed for local address ("
-           << string(gai_strerror(resGetaddrinfo)) << ").";
+  UDPaddress localAddress(myIP,myPort /*, AF_INET */);
+  //cerr << "localAddress = " << localAddress << endl;
+  if ( !localAddress.isOk() ) {
+    status << "ERROR: Failed creating local address ("
+           << localAddress.getErrorText() << ").";
     Res->Set( true, status.str() );
     return 0;
   }
   // define address struct for remote socket (destination)
-  struct addrinfo rhints;
-  struct addrinfo *rsockinfo;          // will point to the results
-  memset(&rhints, 0, sizeof rhints);   // make sure the struct is empty
-  rhints.ai_family   = AF_UNSPEC;      // don't care IPv4 or IPv6
-  rhints.ai_socktype = SOCK_DGRAM;     // UDP datagram type socket
-  resGetaddrinfo = getaddrinfo(OtherIP.c_str(),
-                               OtherPort.c_str(),
-                               &rhints,&rsockinfo);
-  if (resGetaddrinfo == -1) {
-    status << "ERROR: getaddrinfo() failed for remote address ("
-           << string(gai_strerror(resGetaddrinfo)) << ").";
+  UDPaddress remoteAddress(OtherIP,OtherPort /*, AF_INET */);
+  //cerr << "remoteAddress = " << remoteAddress << endl;
+  if ( !remoteAddress.isOk() ) {
+    status << "ERROR: Failed creating remote address ("
+        << remoteAddress.getErrorText() << ").";
     Res->Set( true, status.str() );
     return 0;
   }
   // create the local socket
-  int my_socket = socket(lsockinfo->ai_family,
-                         lsockinfo->ai_socktype,
-                         lsockinfo->ai_protocol);
-  if(my_socket == -1){
+  UDPsocket localSock(localAddress);
+  if( !localSock.isOk() ){
     status << "ERROR: socket() failed ("
-           << string(gai_strerror(resGetaddrinfo)) << ").";
+           <<  localSock.getErrorText() << ").";
     Res->Set( true, status.str() );
     return 0;
   }
-  // connect the socket, so we can use send()
-  int connected = connect(my_socket, rsockinfo->ai_addr, rsockinfo->ai_addrlen);
-  if(connected == -1){
-    status << "ERROR: connect() failed ("
-           << string(gai_strerror(resGetaddrinfo)) << ").";
-    Res->Set( true, status.str() );
-    return 0;
-  }
-  // prepare the datagram message
-  const char *msg  = myMessage.c_str();
-  int msg_len      = strlen(msg);
-#ifdef SECONDO_WIN32 
-  int flags        = 0;
-#else
-  int flags        = MSG_NOSIGNAL;// ignore SIGPIPE when receiver doesn't listen
-#endif
-  // send message
-  int sent_len = send(my_socket, msg, msg_len, flags);
-  if(sent_len == -1){
-    status << "ERROR: sendto() failed ("
-           << string(gai_strerror(resGetaddrinfo)) << ").";
+  int msg_len = myMessage.length();
+  cerr << "Trying to send " << msg_len << " bytes from IP "
+       << localAddress.getIP() << " Port "
+       << localAddress.getPort() << " to IP "
+       << remoteAddress.getIP() << " Port "
+       << remoteAddress.getPort() << endl;
+  int sent_len = localSock.writeTo(remoteAddress,myMessage);
+  if(sent_len < 0){
+    status << "ERROR: sendto() failed (" << localSock.getErrorText() << ").";
   } else if (sent_len != msg_len){
-    status << "WARNING: Only sent " << sent_len << " of " << msg_len
-           << " bytes.";
+    status << "WARNING: Message sent partially (" << sent_len << "/"
+           <<msg_len<< " bytes).";
     Res->Set( true, status.str() );
     return 0;
   } else{
     status << "OK. " << sent_len << " bytes sent.";
   }
+  localSock.close();
+  Res->Set( true, status.str() );
+  return 0;
   // close socket and return status
-  ftextCloseSocket(my_socket);
-  freeaddrinfo(rsockinfo); // free addrinfo for remote address;
-  freeaddrinfo(lsockinfo); // free addrinfo for local address;
   Res->Set( true, status.str() );
   return 0;
 }
@@ -3200,67 +3158,9 @@ bool FromString( const std::string& str, T& result )
   return true;
 }
 
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-  if (sa->sa_family == AF_INET) {
-    return &(((struct sockaddr_in*)sa)->sin_addr);
-  }
-  return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-// retrieve IP address, port number and IP-version of a sender
-bool getSenderInfo(struct sockaddr_storage *sas, string &ip,
-                   string &port, string &ipVer)
-{
-  ostringstream tmp;
-  ip = "";
-  port = "";
-  ipVer = "";
-
-  if(sas->ss_family == AF_INET){ // IPv4
-    ipVer = "IPv4";
-#ifdef SECONDO_WIN32
-    ip = string(inet_ntoa(((sockaddr_in*)sas)->sin_addr));
-#else
-    char c_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET,
-              &(((sockaddr_in*)sas)->sin_addr.s_addr),
-              c_ip,
-              INET_ADDRSTRLEN);
-    ip = string(c_ip);
-#endif
-    unsigned short int u_port = ((sockaddr_in*)sas)->sin_port;
-    short h_port = ntohs(u_port);
-    tmp << h_port;
-    port = tmp.str();
-    return true;
-  } else if(sas->ss_family == AF_INET6){ // IPv6
-    ipVer = "IPv6";    
-    uint16_t u_port = ((sockaddr_in6*)sas)->sin6_port;
-    uint16_t h_port = ntohs(u_port);
-#ifdef SECONDO_WIN32
-    cerr << "Cannot translate IPv6 addresses on window system." << endl;
-    ip = string("");
-    // on Vista and Server2008, it should work
-#else
-    char c_ip[INET6_ADDRSTRLEN];
-    inet_ntop(AF_INET6,
-              &(((sockaddr_in6*)sas)->sin6_addr.s6_addr),
-              c_ip,
-              INET6_ADDRSTRLEN);
-    ip = string(c_ip);
-#endif
-    tmp << h_port;
-    port = tmp.str();
-    return true;
-  } // else: error
-  return false;
-}
-
 template<class T1, class T2>
-int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
-                                 Word& local, Supplier s )
+    int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
 {
   bool *finished             = 0;
 
@@ -3276,9 +3176,6 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
   bool   m_Ok              = true;
   string m_Msg             = "";
   string m_ErrMsg          = "";
-  string m_SenderIP        = "";
-  string m_SenderPort      = "";
-  string m_SenderIPversion = "";
 
   T1* CcMyIP         = static_cast<T1*>(args[0].addr);
   T2* CcMyPort       = static_cast<T2*>(args[1].addr);
@@ -3288,25 +3185,7 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
   string myPort("");
   double timeoutSecs = 0.0;
   int iMyPort = 0;
-
   ostringstream status;
-  struct addrinfo lhints; // info for local address
-  struct addrinfo *lsockinfo = 0;
-  int resGetaddrinfo = 0;
-  int my_socket = -1; // local socket, result of socket()
-  int bound = -1;     // result of bind()
-  fd_set fdsread;     // Set of file descriptors
-  int intFdMax = -1;
-  struct timeval vtTimeout;
-  bool hasTimeout = false;
-  int secs = 0;
-  int ms = 0;
-  DateTime currentTime(instanttype);
-  DateTime endTime(instanttype);
-  int selected = -1;  // result of select()
-  char messageBuf[UDP_MAXBUF];
-  struct sockaddr_storage addr_Sender; // info for sender address
-  int addr_Sender_Length = 0;
 
   switch( message )
   {
@@ -3337,9 +3216,9 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
       }else{
         myPort = CcMyPort->GetValue();
       }
-      if(     (!FromString<int> (myPort,iMyPort))
-           || (iMyPort < 1024)
-           || (iMyPort > 65536)) {
+      if( (!FromString<int> (myPort,iMyPort))
+                || (iMyPort < 1024)
+                || (iMyPort > 65536)) {
         status << "LocalPort " << iMyPort
                << " is no valid port number. ";
         m_Ok = false;
@@ -3347,149 +3226,58 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
       if(CcRtimeout->IsDefined()){ // get timeout
         timeoutSecs = CcRtimeout->GetRealval();
       }
-
-      if(m_Ok){ // define address struct for local datagram socket:
-        memset(&lhints, 0, sizeof lhints);   // make sure the struct is empty
-        lhints.ai_family   = AF_UNSPEC;      // don't care IPv4 or IPv6
-        lhints.ai_socktype = SOCK_DGRAM;     // UDP datagram type socket
-        if(myIP == ""){
-          lhints.ai_flags    = AI_PASSIVE;   // fill in my IP for me
-          resGetaddrinfo=getaddrinfo(NULL,
-                                     myPort.c_str(),
-                                     &lhints,&lsockinfo);
-        }else{
-          resGetaddrinfo=getaddrinfo(myIP.c_str(),
-                                     myPort.c_str(),
-                                     &lhints,&lsockinfo);
-        }
-        if (resGetaddrinfo == -1) {
-          status << "getaddrinfo(...) failed for local address: "
-              << string(gai_strerror(resGetaddrinfo)) << ".";
-          m_Ok = false;
-        }
+      if(timeoutSecs > 0.0){
+        cout << "INFO: receivetextUDP: Timeout = " << timeoutSecs
+             << " secs." << endl;
+      } else {
+        cout << "INFO: receivetextUDP: No timeout." << endl;
       }
-
+      UDPaddress localAddress;
+      UDPaddress senderAddress;
+      // define address for local datagram socket:
       if(m_Ok){
-#ifdef SECONDO_WIN32
-      // no inet_ntop() in WINSocks
-#else
-        // report local IP and port on stdout
-        for(  struct addrinfo *p = lsockinfo; p != 0; p = p->ai_next){
-          char ipstr[INET6_ADDRSTRLEN];
-          void *addr;
-          char *ipver;
-          if(p->ai_family == AF_INET){ // IPv4
-            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-            addr = &(ipv4->sin_addr);
-            ipver = "IPv4";
-          } else { // IPv6
-            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
-            addr = &(ipv6->sin6_addr);
-            ipver = "IPv6";
-          }
-          inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-          cout << "FTextValueMapReceiveTextUDP: local IP: " << string(ipver)
-               << ":" << string(ipstr) << endl;
-        }
-        cout << "FTextValueMapReceiveTextUDP: local Port: " << myPort << endl;
-#endif
-        // create the socket
-        my_socket = socket(lsockinfo->ai_family,
-                           lsockinfo->ai_socktype,
-                           lsockinfo->ai_protocol); // create socket
-        if(my_socket == -1){
-          status << "socket() failed: " << string(gai_strerror(my_socket))
-                 << ".";
+        localAddress = UDPaddress(myIP,myPort);
+        if ( !(localAddress.isOk()) ) {
+          status << localAddress.getErrorText() << ".";
           m_Ok = false;
         }
       }
-      if(m_Ok){ // bind socket to local port
-        bound = bind(my_socket, lsockinfo->ai_addr, lsockinfo->ai_addrlen);
-        if(bound == -1){
-          status << "bind() failed: " << string(gai_strerror(my_socket)) << ".";
+      if(m_Ok){
+      // create the socket
+        UDPsocket my_socket(localAddress);
+        if(!my_socket.isOk()){
+          status << my_socket.getErrorText() << ".";
           m_Ok = false;
         }
-      }
-
-      if(m_Ok){ // wait for a message
-        // prepare filedescriptor list for select()
-        FD_ZERO(&fdsread);             // clear the FD set
-        FD_SET(my_socket, &fdsread);   // add socket to FD set
-        intFdMax = my_socket;          // number of the highest FD in set
-        // prepare timeval as timeout for select()
-        vtTimeout.tv_sec  = 0;
-        vtTimeout.tv_usec = 0;
-        hasTimeout = (timeoutSecs>0.0);
-        secs = 0;
-        ms = 0;
-        if(hasTimeout){
-          secs = static_cast<int>(timeoutSecs);                    // seconds
-          ms   = static_cast<int>((timeoutSecs - secs) * 1000000); // microsecs
-          vtTimeout.tv_sec  = secs;
-          vtTimeout.tv_usec = ms;
-          cerr << "Set timeout to " << secs << "sec " << ms << " µs" << endl;
-        }
-        currentTime.Now();
-        if(CcRtimeout->IsDefined() && timeoutSecs > 0.0){
-          endTime = currentTime+DateTime(0,
-                                         static_cast<long>(timeoutSecs*1000),
-                                         datetime::durationtype);
-        }
-        // prepare message buffer and sender address info
-        memset(messageBuf,0,UDP_MAXBUF);
-        addr_Sender_Length=sizeof(addr_Sender);
-        // wait for message
-        if(hasTimeout){ // with timeout (waiting)
-          selected = select(intFdMax+1, &fdsread, NULL, NULL, &vtTimeout);
-        } else{         // without timeout (blocking)
-          selected = select(intFdMax+1, &fdsread, NULL, NULL, NULL);
-        }
-        if(selected == -1){ // ERROR!
+      // bind socket to local port
+        if(m_Ok && !my_socket.bind()){
+          status << my_socket.getErrorText() << ".";
           m_Ok = false;
-          status << "select() failed: " << string(gai_strerror(my_socket))
-                 << ".";
-        } else if(selected == 0){ // TIMEOUT!
-          m_Ok = false;
-          status << "Timeout.";
-        } else{
-          // Receive the datagram
-          int res_len = recvfrom(my_socket,
-                                 messageBuf, UDP_MAXBUF,
-                                 0,
-                                 (struct sockaddr*)&addr_Sender,
-                                 (socklen_t*) &addr_Sender_Length);
-          if(res_len == -1){ // Receive failed
+        }
+      // receive a message
+        if(m_Ok){
+          m_Msg = my_socket.readFrom(senderAddress,timeoutSecs);
+          if( !(my_socket.isOk()) ){
+            status << my_socket.getErrorText();
             m_Ok = false;
-            status << "recvfrom() failed: " << string(gai_strerror(my_socket))
-                   << ".";
-          } else if(res_len+1 >= UDP_MAXBUF){ // Message too long
-            m_Ok = false;
-            status << "Message buffer overflow: "
-                << res_len << "/" << UDP_MAXBUF << " bytes.";
-          } else{
-            // create the message string
-            m_Msg = string(messageBuf);
-            // retrieve sender information
-            m_SenderIP = "";
-            m_SenderPort = "";
-            m_SenderIPversion = "";
-            getSenderInfo(&addr_Sender,
-                          m_SenderIP,
-                          m_SenderPort,
-                          m_SenderIPversion);
           }
         }
-      }
-
+        if (!my_socket.close()){
+          status << my_socket.getErrorText() << ".";
+          m_Ok = false;
+        }
       // create result tuple
       m_ErrMsg = status.str(); // get error messages
 
       ccOk            = new CcBool(true, m_Ok);
-      ccMsg           = new FText(m_Ok, m_Msg);
+      ccMsg           = new FText((m_Msg.length() > 0), m_Msg);
       ErrMsg          = new CcString(true, m_ErrMsg);
-      SenderIP        = new CcString(m_SenderIP != "", m_SenderIP);
-      SenderPort      = new CcString(m_SenderPort != "", m_SenderPort);
-      SenderIPversion = new CcString(m_SenderIPversion != "",m_SenderIPversion);
+      SenderIP        = new CcString(senderAddress.getIP() != "",
+                                     senderAddress.getIP());
+      SenderPort      = new CcString(senderAddress.getPort() != "",
+                                     senderAddress.getPort());
+      SenderIPversion = new CcString(senderAddress.getFamily() != "",
+                                     senderAddress.getFamily());
       resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       newTuple        = new Tuple( resultTupleType );
       newTuple->PutAttribute(  0,(StandardAttribute*)ccOk);
@@ -3503,11 +3291,6 @@ int FTextValueMapReceiveTextUDP( Word* args, Word& result, int message,
 
       // free created objects
       resultTupleType->DeleteIfAllowed();
-      if(my_socket >= 0){
-        ftextCloseSocket(my_socket);
-      }
-      if(lsockinfo){
-        freeaddrinfo(lsockinfo);
       }
       return YIELD;
     }
@@ -3531,7 +3314,6 @@ ValueMapping FText_VMMap_MapReceiveTextUDP[] =
   FTextValueMapReceiveTextUDP<FText,   CcString>,  // 2
   FTextValueMapReceiveTextUDP<FText,   FText   >   // 3
 };
-
 
 // {string|text}^2 x real
 int FTextSelectReceiveTextUDP( ListExpr args )
@@ -4184,6 +3966,7 @@ Operator ftreceivetextUDP
     FTextTypeReceiveTextUDP
     );
 
+
 /*
 5 Creating the algebra
 
@@ -4230,7 +4013,7 @@ public:
     AddOperator( &ftexttoobject );
     AddOperator( &chartext );
     AddOperator( &ftsendtextUDP );
-    AddOperator( &ftreceivetextUDP);
+    AddOperator( &ftreceivetextUDP );
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';

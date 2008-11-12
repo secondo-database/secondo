@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -41,7 +41,7 @@ For a description of the public interface see the ~SocketIO~ header file.
 #ifndef INADDR_NONE
 #define INADDR_NONE -1
 #endif
-#endif 
+#endif
 
 #ifdef SECONDO_UNIX
 #include <sys/ioctl.h>
@@ -59,6 +59,9 @@ For a description of the public interface see the ~SocketIO~ header file.
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <errno.h>
+
+//#include <sys/select.h>
+
 extern "C" {
 #include <netdb.h>
 }
@@ -77,6 +80,7 @@ extern "C" {
 using namespace std;
 
 #define MAX_HOST_NAME   256
+
 
 const string unixSocketDir = "/tmp/";
 
@@ -107,9 +111,9 @@ Socket::IsLibraryInitialized()
 1.1 Global and Local Unix Sockets
 
 */
-UnixSocket::UnixSocket( const string& addr, 
+UnixSocket::UnixSocket( const string& addr,
                         const string& port, const SocketDomain domain )
-{ 
+{
   hostAddress    = addr;
   hostPort       = port;
   if ( domain == SockAnyDomain &&
@@ -127,13 +131,13 @@ UnixSocket::UnixSocket( const string& addr,
   ioSocketStream = 0;
 }
 
-UnixSocket::UnixSocket( int newFd ) 
-{ 
-  fd = newFd; 
+UnixSocket::UnixSocket( int newFd )
+{
+  fd = newFd;
   hostAddress = "";
   hostPort = "";
   createFile = false;
-  state = SS_OPEN; 
+  state = SS_OPEN;
   lastError = EC_OK;
   ioSocketBuffer = new SocketBuffer( *this );
   ioSocketStream = new iostream( ioSocketBuffer );
@@ -160,7 +164,7 @@ UnixSocket::~UnixSocket()
 }
 
 bool
-UnixSocket::Open( const int listenQueueSize, 
+UnixSocket::Open( const int listenQueueSize,
                   const int sockType, const int flags )
 {
   union
@@ -171,8 +175,8 @@ UnixSocket::Open( const int listenQueueSize,
   } u;
   int sa_len;
 
-  createFile = false; 
-  
+  createFile = false;
+
   if ( hostAddress.length() > 0 )
   {
     char hostname[MAX_HOST_NAME];
@@ -183,16 +187,16 @@ UnixSocket::Open( const int listenQueueSize,
       lastError = EC_BAD_ADDRESS;
       return (false);
     }
-    
+
     if ( domain == SockLocalDomain )
     {
       u.sock.sa_family = AF_UNIX;
-      sa_len = offsetof( sockaddr, sa_data ) + 
-               sprintf( u.sock.sa_data, "%s%s", 
+      sa_len = offsetof( sockaddr, sa_data ) +
+               sprintf( u.sock.sa_data, "%s%s",
                unixSocketDir.c_str(), hostAddress.c_str() );
-      
+
       unlink( u.sock.sa_data ); // remove file if existed
-      createFile = true; 
+      createFile = true;
     }
     else
     {
@@ -200,13 +204,13 @@ UnixSocket::Open( const int listenQueueSize,
       u.sock_inet.sin_addr.s_addr = htonl( INADDR_ANY );
       u.sock_inet.sin_port = htons( port );
       sa_len = sizeof(sockaddr_in);
-    } 
+    }
   }
   else
   {
     u.sock.sa_family = AF_INET;
     sa_len = 0;
-  } 
+  }
   if ( (fd = socket( u.sock.sa_family, sockType, 0 )) < 0)
   {
     lastError = errno;
@@ -236,9 +240,9 @@ UnixSocket::Open( const int listenQueueSize,
   else if ( flags & ENABLE_BROADCAST )
   {
     int enabled = 1;
-    setsockopt( fd, SOL_SOCKET, SO_BROADCAST, 
+    setsockopt( fd, SOL_SOCKET, SO_BROADCAST,
                 (char*) &enabled, sizeof(enabled) );
-  }    
+  }
   lastError = EC_OK;
   state = SS_OPEN;
   return (true);
@@ -253,7 +257,7 @@ UnixSocket::IsOk()
 string
 UnixSocket::GetErrorText()
 {
-  string msg; 
+  string msg;
   switch (lastError)
   {
     case EC_OK:
@@ -270,14 +274,14 @@ UnixSocket::GetErrorText()
       break;
     case EC_BROKEN_PIPE:
       msg = "Connection is broken";
-      break; 
+      break;
     case EC_INVALID_ACCESS_MODE:
       msg = "Invalid access mode";
       break;
     case EC_MESSAGE_TRUNCATED:
       msg = "Sent message was truncated";
       break;
-    default: 
+    default:
       msg = strerror( lastError );
       break;
   }
@@ -373,7 +377,7 @@ UnixSocket::Accept()
                        (char*) &enabled, sizeof(enabled) ) != 0 )
       {
         lastError = errno;
-        ::close( s );    
+        ::close( s );
         return (NULL);
       }
     }
@@ -381,7 +385,7 @@ UnixSocket::Accept()
     {
       lastError = EC_INVALID_ACCESS_MODE;
       ::close( s );
-      return (NULL); 
+      return (NULL);
     }
     lastError = EC_OK;
     return (new UnixSocket( s ));
@@ -400,13 +404,13 @@ UnixSocket::GetDescriptor()
 }
 
 bool
-UnixSocket::CancelAccept() 
+UnixSocket::CancelAccept()
 {
   // Wakeup listener
   state = SS_SHUTDOWN;
   delete Socket::Connect( hostAddress, hostPort, domain, 1, 0 );
   return (true);
-}  
+}
 
 bool
 UnixSocket::Connect( int maxAttempts, time_t timeout )
@@ -423,10 +427,10 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
       return (false);
     }
   }
-  createFile = false; 
+  createFile = false;
 
   union
-  { 
+  {
     sockaddr    sock;
     sockaddr_in sock_inet;
     char        name[MAX_HOST_NAME];
@@ -446,13 +450,13 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
   }
   else
   {
-    u.sock_inet.sin_family = AF_INET;  
+    u.sock_inet.sin_family = AF_INET;
     u.sock_inet.sin_addr.s_addr = inet_addr( hostAddress.c_str() );
-  
+
     if ( (int)(u.sock_inet.sin_addr.s_addr) == -1 )
     {
       struct hostent* hp;  // entry in hosts table
-      if ( (hp = gethostbyname( hostAddress.c_str() )) == NULL || 
+      if ( (hp = gethostbyname( hostAddress.c_str() )) == NULL ||
             hp->h_addrtype != AF_INET )
       {
         lastError = EC_BAD_ADDRESS;
@@ -505,7 +509,7 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
                          (char*) &enabled, sizeof(enabled) ) != 0 )
         {
           lastError = errno;
-          ::close( fd );    
+          ::close( fd );
           return (false);
         }
       }
@@ -523,7 +527,7 @@ UnixSocket::Connect( int maxAttempts, time_t timeout )
 
 int
 UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
-{ 
+{
   size_t size = 0;
   time_t start = 0;
   if ( state != SS_OPEN )
@@ -534,11 +538,11 @@ UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
   }
   if ( timeout != WAIT_FOREVER )
   {
-    start = time( NULL ); 
+    start = time( NULL );
   }
   do
   {
-    ssize_t rc; 
+    ssize_t rc;
     if ( timeout != WAIT_FOREVER)
     {
       fd_set events;
@@ -560,7 +564,7 @@ UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
         return (size);
       }
       time_t now = time( NULL );
-      timeout = start + timeout >= now ? timeout + start - now : 0;  
+      timeout = start + timeout >= now ? timeout + start - now : 0;
     }
     while ( (rc = ::read( fd, (char*) buf + size, maxSize - size )) < 0 &&
             errno == EINTR );
@@ -574,21 +578,21 @@ UnixSocket::Read( void* buf, size_t minSize, size_t maxSize, time_t timeout )
     {
       SetStreamState( ios::failbit | ios::eofbit );
       lastError = EC_BROKEN_PIPE;
-      return (-1); 
+      return (-1);
     }
     else
     {
-      size += rc; 
+      size += rc;
     }
   }
-  while (size < minSize); 
+  while (size < minSize);
 
   return ((int) size);
 }
 
 bool
 UnixSocket::Read( void* buf, size_t size )
-{ 
+{
   if ( state != SS_OPEN )
   {
     SetStreamState( ios::failbit );
@@ -598,7 +602,7 @@ UnixSocket::Read( void* buf, size_t size )
 
   do
   {
-    ssize_t rc; 
+    ssize_t rc;
     while ( (rc = ::read( fd, buf, size )) < 0 && errno == EINTR );
     if ( rc < 0 )
     {
@@ -614,18 +618,18 @@ UnixSocket::Read( void* buf, size_t size )
     }
     else
     {
-      buf = (char*) buf + rc; 
-      size -= rc; 
+      buf = (char*) buf + rc;
+      size -= rc;
     }
   }
-  while ( size != 0 ); 
+  while ( size != 0 );
 
   return (true);
 }
-    
+
 bool
 UnixSocket::Write( void const* buf, size_t size )
-{ 
+{
   int sleepCtr = 0;
   int writeAttempts = 0;
 
@@ -636,11 +640,11 @@ UnixSocket::Write( void const* buf, size_t size )
     lastError = EC_NOT_OPENED;
     return (false);
   }
-  
+
   do
   {
-    ssize_t rc; 
-    while ( (rc = ::write( fd, buf, size )) < 0 && errno == EINTR ) 
+    ssize_t rc;
+    while ( (rc = ::write( fd, buf, size )) < 0 && errno == EINTR )
     { usleep(100); sleepCtr++; };
     if ( rc < 0 )
     {
@@ -657,24 +661,24 @@ UnixSocket::Write( void const* buf, size_t size )
       return (false);
     }
     else
-    { // the cast below is necessary to avoid a warning of 
-      // comparison of signed and unsigned values. 
-      if ( ((size_t) rc) < size ) { writeAttempts++; } 
-      buf = (char*) buf + rc; 
-      size -= rc; 
+    { // the cast below is necessary to avoid a warning of
+      // comparison of signed and unsigned values.
+      if ( ((size_t) rc) < size ) { writeAttempts++; }
+      buf = (char*) buf + rc;
+      size -= rc;
     }
   }
-  while (size != 0); 
+  while (size != 0);
 
   LOGMSG( "Socket:SendStat",
     if ( writeAttempts || sleepCtr ) {
-      cerr << "Write Attempts: " << writeAttempts 
+      cerr << "Write Attempts: " << writeAttempts
            << ", " << "Sleep calls (100ms): " << sleepCtr << endl;
-    } 
+    }
   )
   return (true);
 }
-    
+
 bool
 UnixSocket::Close()
 {
@@ -711,8 +715,8 @@ UnixSocket::ShutDown()
       SetStreamState( ios::failbit );
       lastError = errno;
       return (false);
-    } 
-  } 
+    }
+  }
   return (true);
 }
 
@@ -734,7 +738,7 @@ Socket::CreateLocal( const string& address, const int listenQueueSize )
 }
 
 Socket*
-Socket::CreateGlobal( const string& address, 
+Socket::CreateGlobal( const string& address,
                       const string& port, const int listenQueueSize )
 {
   UnixSocket* sock = new UnixSocket( address, port, SockGlobalDomain );
@@ -790,7 +794,7 @@ Socket::GetHostname( const string& ipAddress )
 
 Socket*
 Socket::Connect( const string& address, const string& port,
-                 const SocketDomain domain, 
+                 const SocketDomain domain,
                  const int maxAttempts, const time_t timeout )
 {
   UnixSocket* sock = new UnixSocket( address, port, domain );
@@ -798,10 +802,10 @@ Socket::Connect( const string& address, const string& port,
   return (sock);
 }
 
-  
+
 string
-GetProcessName() 
-{ 
+GetProcessName()
+{
   static char name[MAX_HOST_NAME+8];
   struct utsname localHost;
   uname( &localHost );
@@ -809,5 +813,8 @@ GetProcessName()
   return (name);
 }
 
-// --- End of source ---
+//=============================================================================
+// Unix implementation of UDPSockets
+//=============================================================================
 
+// --- End of source ---

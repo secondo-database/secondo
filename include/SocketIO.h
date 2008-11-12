@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -60,7 +60,7 @@ messages.
 
 The set of classes defined here supports a subset of the TCP/IP protocol
 suite. Currently only IP version 4 is supported, but support for IP version
-6 could be incorporated. 
+6 could be incorporated.
 
 Implementations of sockets are mostly based on socket libraries provided
 by the operating system. Local domain sockets are directly supported only
@@ -92,7 +92,7 @@ mask of a rule. The result is compared with the IP address of the rule.
 If the result matches, the decision whether access should be allowed
 or denied is based on the access policy of the rule and the default
 access policy of the rule set. Finally, the class ~SocketAddress~
-hides details of the internet addresses from the user. 
+hides details of the internet addresses from the user.
 
 The class ~Socket~ provides the following methods:
 
@@ -153,11 +153,37 @@ internally only, the class interface is not described here.
 
 #ifdef SECONDO_WIN32
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #else
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netdb.h>          // for getprotobynumber()
 #endif
+
+
+// Debugging and tracing UDPsockets - begin
+
+// (Uncomment the following line for detailed tracing)
+//#define __TRACE_UDP__
+
+#ifdef __TRACE_UDP__
+
+#define __UDP_POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__
+#define __UDP_ENTER__ cerr << "ENTER " <<  __UDP_POS__ << endl;
+#define __UDP_EXIT__ cerr << "EXIT " <<  __UDP_POS__ << endl;
+#define __UDP_MSG(X) cerr << __UDP_POS__ << ": " << X << endl;
+
+#else
+
+#define __POS__ __FILE__
+#define __UDP_ENTER__
+#define __UDP_EXIT__
+#define __UDP_MSG(X)
+
+#endif
+
+// Debugging and tracing UDPsockets - end
 
 using namespace std;
 
@@ -228,8 +254,8 @@ class SocketBuffer;
 Is a forward declaration of the stream buffer class for socket stream support.
 
 */
-class SDB_EXPORT Socket { 
- public: 
+class SDB_EXPORT Socket {
+ public:
   enum SocketDomain
   {
     SockAnyDomain,
@@ -256,15 +282,15 @@ Checks whether the operating socket interface was successfully initialized.
 Initializes a ~Socket~ instance as an invalid socket in closed state.
 
 */
-  virtual ~Socket() {} 
+  virtual ~Socket() {}
 /*
 Destroys a socket.
 
 */
   static Socket*  Connect( const string& address,
-                           const string& port, 
+                           const string& port,
                            const SocketDomain domain =
-                             SockAnyDomain, 
+                             SockAnyDomain,
                            const int maxAttempts =
                              DEFAULT_CONNECT_MAX_ATTEMPTS,
                            const time_t timeout =
@@ -286,26 +312,26 @@ parameter are recognized:
 
 If ~SockAnyDomain~ is specified, a local connection is chosen when either
 the port was omitted in the specification of the address or hostname is
-*localhost*; a global connection is used in all other cases. 
+*localhost*; a global connection is used in all other cases.
 
 This method always creates a new socket object and returns a pointer to it.
 If a connection to the server was not established, this socket contains an
 error code describing reason of failure. So the returned socket should be
-first checked by its ~IsOk~ method. 
+first checked by its ~IsOk~ method.
 
 */
   static Socket*  CreateLocal( const string& address,
                                const int listenQueueSize =
                                  DEFAULT_LISTEN_QUEUE_SIZE);
 /*
-Creates and opens a socket in the local domain at the server side. 
+Creates and opens a socket in the local domain at the server side.
 The parameter ~address~ specifies the name to be assigned to the socket.
 The parameter ~listenQueueSize~ specifies the size of the listen queue.
 
 This method always creates a new socket object and returns a pointer to it.
 If a connection to the server was not established, this socket contains an
 error code describing reason of failure. So the returned socket should be
-first checked by its ~IsOk~ method. 
+first checked by its ~IsOk~ method.
 
 */
   static Socket*  CreateGlobal( const string& address,
@@ -313,14 +339,14 @@ first checked by its ~IsOk~ method.
                                 const int listenQueueSize =
                                   DEFAULT_LISTEN_QUEUE_SIZE );
 /*
-Creates and opens a socket in the global (internet) domain at the server side. 
+Creates and opens a socket in the global (internet) domain at the server side.
 The parameter ~address~ specifies the name to be assigned to the socket.
 The parameter ~listenQueueSize~ specifies the size of the listen queue.
 
 This method always creates a new socket object and returns a pointer to it.
 If a connection to the server was not established, this socket contains an
 error code describing reason of failure. So the returned socket should be
-first checked by its ~IsOk~ method. 
+first checked by its ~IsOk~ method.
 
 */
   virtual SocketDescriptor GetDescriptor() = 0;
@@ -331,7 +357,7 @@ inherited by a child process later on.
 */
   static Socket*  CreateClient( const SocketDescriptor sd );
 /*
-(Re)creates a socket instance for the socket descriptor ~sd~, created by 
+(Re)creates a socket instance for the socket descriptor ~sd~, created by
 the ~Accept~ method.
 
 This method is provided to allow passing socket descriptors to child
@@ -768,16 +794,16 @@ Flushes all output data from the buffer to the associated socket.
 
   streamsize showmanyc() { cerr << "showmanyc called!" << endl; return 0; };
 
-  streampos seekpos ( streampos sp, 
-                      ios_base::openmode which = ios_base::in | ios_base::out ) 
+  streampos seekpos ( streampos sp,
+                      ios_base::openmode which = ios_base::in | ios_base::out )
   {
-    cerr << "streampos called!" << endl; 
-    return EOF; 
+    cerr << "streampos called!" << endl;
+    return EOF;
   };
-  
-  streambuf * setbuf ( char * s, streamsize n ) 
-  { 
-      cerr << "setbuf called!" << endl; return this; 
+
+  streambuf * setbuf ( char * s, streamsize n )
+  {
+      cerr << "setbuf called!" << endl; return this;
   };
   void imbue ( const locale & loc ) { cerr << "imbue called!" << endl; };
 
@@ -795,6 +821,375 @@ Disallows to unget a character.
   char*   inBuffer;     // Input buffer
   char*   outBuffer;    // Output buffer
 };
+
+/*
+
+1.2 UDP-Sockets
+
+UDP (User Datagram Protocol) is a connectionless transmission network protocol.
+Its advantage is, that it is faster than TCP. Its disadvantage is, that there is
+no guarantee of correctness, corect ordering or reliabilty of deliverance of
+data sent.
+
+Instead of sending data streams between two connected sockets, UDP allows to
+send ~datagrams~ to remote sockets and receive such data.
+
+Initialization and finalization is already done by the TCP/IP part in this file.
+
+*/
+
+#ifndef UDP_MAXBUF
+#define UDP_MAXBUF 1048576 // set bufferlength to 1MB
+#endif
+
+struct addrinfo* CloneAddrInfo(const struct addrinfo *orig);
+/*
+A function to create a clone of a ~struct addrinfo~
+
+*/
+
+/*
+1.2.1 Class ~UDPaddress~
+
+*/
+
+class SDB_EXPORT UDPaddress
+{
+  public:
+    UDPaddress();
+/*
+Creates a new ~UDPaddress~ automatically determining the own IP-address and
+some standard port number.
+
+*/
+    UDPaddress(const struct addrinfo *addr);
+/*
+Creates a ~UDPaddress~ from a given ~struct addrinfo~, that may provide
+information on IP-version, IP address, port number, flags, etc.
+
+*/
+    UDPaddress(const struct sockaddr_in      *addr);
+    UDPaddress(const struct sockaddr_in6     *addr);
+    UDPaddress(const struct sockaddr_storage *addr);
+/*
+Creates a ~UDPaddress~ from a given valid ~struct sockaddr\_in~/~sockaddr\_in6~/~sockaddr\_storage~
+
+*/
+    UDPaddress(const UDPaddress &addr);
+/*
+Copy constructor.
+Creates a ~UDPaddress~ from another given UDPaddress ~addr~.
+
+*/
+    UDPaddress(const string ip,
+               const string port,
+               const short int IPver = AF_UNSPEC);
+/*
+Creates a ~UDPaddress~ using the given IP address, port number, and ip-version.
+IP-version is determined automatically. Valid values for IPver are AF\_INET,
+AF\_INET6, or AF\_UNSPEC (default). When AF\_UNSPEC is used, the IP-version is
+determined automatically from ~ip~ which may be an IP-address or a fully
+qualified cononic host name.
+
+*/
+    ~UDPaddress();
+
+    inline string getFamily() const
+    { if(myFamily == AF_INET){
+        return "IPv4";
+      } else if(myFamily == AF_INET6){
+        return "IPv6";
+      }
+      return "unknown";
+    };
+/*
+Return the protocol family (IPv4, IPv6) associated with this address as a string.
+
+*/
+    inline int getFamilyI() const                  { return myFamily;   };
+    inline int getSockTypeI() const                { return SOCK_DGRAM; };
+    inline size_t getAddrLenI() const              { return myAddrlen;  };
+    inline const struct sockaddr *getAddrI() const { return myAddr;     };
+/*
+Get code for IP-family, socket type, protocol type, address type length, and
+address. Used for calls of ~socket()~, connect(), etc.
+
+*/
+    inline string getIP() const { return myIP; };
+
+/*
+Return the associated IP address in string format.
+Two versions: as integer (for socket()) and text.
+
+*/
+    inline string getHostName() const { return myCanonname; };
+/*
+Return the fully qualified host name as a string.
+
+*/
+    inline string getPort() const      { return myPort; };
+/*
+Return the associated port number in string format.
+
+*/
+    inline bool isOk() const           { return myOk; };
+/*
+Returns true, iff the instance has been created successfully.
+Error descriptions can be accessed by means of ~getErrorText()~.
+
+*/
+    string getErrorText() const        { return myErrorMsg; };
+/*
+Returns the error description.
+
+*/
+    UDPaddress& operator=(const UDPaddress& addr);
+/*
+The assignment operator
+
+*/
+    ostream& Print(ostream& o) const;
+
+  protected:
+    bool   myOk;
+    string myErrorMsg;
+    int    myFamily;
+    size_t myAddrlen;
+    struct sockaddr *myAddr;
+    string myIP;
+    string myPort;
+    string myCanonname;
+
+    bool updateMemberVariables();
+    bool updateMemberVariables(const struct addrinfo *myAddrInfo);
+};
+
+ostream& operator<<(ostream &o, const struct sockaddr_in  &a);
+ostream& operator<<(ostream &o, const struct sockaddr_in6 &a);
+ostream& operator<<(ostream &o, const struct sockaddr_storage &a);
+ostream& operator<<(ostream &o, const struct sockaddr     &a);
+ostream& operator<<(ostream &o, const UDPaddress          &a);
+ostream& operator<<(ostream &o, const struct addrinfo     &a);
+ostream& operator<<(ostream &o, const struct protoent     &p);
+
+
+/*
+1.2.1 Class ~UDPsocket~
+
+*/
+
+enum UDPSocketState {UDPVOID=0,   // Invalid socket (not yet created)
+                     UDPFRESH=1,  // newly created but unbound socket
+                     UDPNORECV=2, // bound socket: no receive - send only
+                     UDPNOSEND=3, // bound socket: no send - receive only
+                     UDPNONE=4,   // bound socket: may neither send, nor receive
+                     UDPALL=5};   // bound socket: may send and receive
+
+class SDB_EXPORT UDPsocket
+{
+  public:
+    UDPsocket();
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Create a fresh ~UDPsocket~ in state UDPVOID.
+
+*/
+    UDPsocket(const UDPaddress &address);
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Create a ~UDPsocket~ using the data from UDPaddress. The socket will be in state
+UDPVOID (if ~address~ in invalid) or UDPFRESH.
+
+*/
+
+    ~UDPsocket();
+
+    bool bind();
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Bind the socket to a local port as referenced by protected member ~myAddress~.
+If successful, the socket state is changed to UDPALL. On failure, state will be
+UDPFRESH. Status transitions:
+
+----
+UDPVOID --> UDPVOID
+{UDPFRESH, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL} --> UDPALL
+----
+
+Returns ~true~ iff the socket is bound at the end of this function.
+
+*/
+    bool connect(const UDPaddress &remote);
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Connect to a ~remote~ address. UDPsocket do not need to be connected to work
+with them, but they are allowed to do so. Returns true, if remote is
+~status~ remains unchanged.
+
+~status~ remains unchanged.
+
+*/
+
+    int writeTo(const UDPaddress &receiver, const string &message);
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Send datagram ~message~ to the address specified by ~receiver~.
+Returns the amount of transmitted bytes. If <0, an error occured.
+
+----
+UDPFRESH --> UDPALL
+UDPVOID, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL: unchanged
+----
+
+*/
+
+    int write(const string &message);
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Send datagram ~message~ to the connected remote socket. Requires the socket to
+be bound to a local port and connected to a remote socket.
+
+Returns the amount of transmitted bytes. If <0, an error occured.
+
+----
+UDPVOID, UDPFRESH, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL: unchanged
+----
+
+*/
+
+    string readFrom(UDPaddress &sender, const double timeoutSecs);
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Binds the UDPsocket to the specified port (if necessary) and waits for data
+for up to ~timeoutSecs~ seconds. Negative ~timeoutSecs~ results in blocking.
+
+~sender~ is changed to the address of the sender. If a timeout occurs, ~sender~
+remains unmodified.
+
+If the socket is not already bound to a local port, this is done.
+
+The received message is returend as a string. If an error or timeout occurs,
+the result is an empty string.
+
+----
+UDPVOID, UDPALL --> UDPVOID
+UDPFRESH, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL: unchanged
+----
+
+*/
+    string read(const double timeoutSecs);
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Receive a datagram message (return value) to the connected remote socket.
+Requires the socket to be bound to a local port and connected to a remote socket.
+
+Waits for data for up to ~timeoutSecs~ seconds. Negative ~timeoutSecs~ results
+in blocking.
+
+The received message is returend as a string. If an error or timeout occurs,
+the result is an empty string and an according error message is passed.
+
+----
+UDPVOID, UDPALL --> UDPVOID
+UDPFRESH, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL: unchanged
+----
+
+*/
+    bool close();
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Close the socket. Returns true, iff the socket was closed and reaches status
+UDPFRESH.
+
+----
+UDPVOID --> UDPVOID
+UDPFRESH, UDPNORECV, UDPNOSEND, UDPNONE, UDPALL --> UDPFRESH
+----
+
+*/
+    bool shutdown(UDPSocketState how);
+/*
+Initially clears ~ok~ and ~errorMsg~.
+Shut down the socket. Returns the state of ~ok~.
+~how~ must be from UDPNORECV, UDPNOSEND, UDPNONE, UDPALL.
+Returns ~false~ for invalid argument or if status is in UDPVOID, UDPFRESH.
+
+----
+UDPVOID --> UDPVOID
+UDPFRESH --> UDPFRESH
+UDPNORECV, UDPNOSEND, UDPNONE, UDPALL -->
+----
+
+*/
+
+    inline bool isOk() const { return ok; };
+/*
+Check whether some error has occured on this socket. If ~true~, call ~getErrorText()~
+to get the last error message.
+
+Does not change ~status~, ~ok~ or ~errorMsg~.
+
+*/
+    inline string getErrorText() const { return errorMsg; };
+/*
+Return the last error message for this UDPsocket.
+
+Does not change ~status~, ~ok~ or ~errorMsg~.
+
+*/
+    inline UDPaddress getAddress() const { return myAddress; };
+
+/*
+Return this socket's address.
+
+Does not change ~status~, ~ok~ or ~errorMsg~.
+
+*/
+
+    inline UDPaddress getPartnerAddress() const { return partnerAddress; };
+/*
+Return this socket's partner's address. If the socket is not connected, for the
+result address !isOk() will hold.
+
+Does not change ~status~, ~ok~ or ~errorMsg~.
+
+*/
+
+    inline bool isConnected() const { return connected; };
+/*
+Returns true, iff this socket is connected to a remote host.
+Only if it is connected, methods ~write()~ and ~read()~ can be used.
+Use methods ~writeTo()~ and ~readFrom()~, otherwise.
+
+Does not change ~status~, ~ok~ or ~errorMsg~.
+
+*/
+
+    inline UDPSocketState getStatus() const { return status; };
+/*
+Returns the sockets's state.
+
+Does not change ~status~, ~ok~ or ~errorMsg~.
+
+*/
+
+    ostream& Print(ostream& o) const;
+
+  protected:
+    UDPSocketState status;          // socket state
+    bool connected;                 // true, iff in connected mode
+    bool ok;                        // false, iff an error occured during the
+                                    //  last member function call. Should be set
+                                    //  set to true at the beginning of such
+                                    //  functions.
+    SocketDescriptor mySocket;      // socket handles
+    UDPaddress partnerAddress;      // current communication partner
+    UDPaddress myAddress;           // address info used to create
+                                    //    the socketHandle
+    string errorMsg;                // last error message
+};
+
+ostream& operator<<(ostream &o, const UDPsocket &s);
 
 #endif
 
