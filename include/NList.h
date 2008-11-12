@@ -33,6 +33,7 @@ April 2006, M. Spiekermann. Helpful functions for type mappings added.
 
 #include <assert.h>
 #include <sstream>
+#include <set>
 
 #include "NestedList.h"
 #include "LogMsg.h"
@@ -436,6 +437,18 @@ list stucture and to extract subexpressions or atom values.
     return nlGlobal->TypeError(); 
   }
 
+  inline static ListExpr typeError( int argNumber, 
+		                    const string& expectedListStruct )
+  { 
+    stringstream msg;
+    msg << "Expecting list structure " << expectedListStruct 
+	<< " for argument number "<< argNumber << ".";
+
+    ErrorReporter::ReportError( msg.str() ); 
+    return nlGlobal->TypeError(); 
+  }
+
+
   // interchange with type ~ListExpr~ 
   inline ListExpr listExpr() const { return l; }
  
@@ -515,6 +528,13 @@ Comparison between ~NList/NList~ and ~NList/string~ instances
       return ( str() == rhs );
     }
   }
+
+ inline bool operator<(const NList& rhs) const 
+  { 
+    return (len < rhs.len);
+  }
+
+
  
 /*
 Write the text or binary representation of the nested list
@@ -569,7 +589,50 @@ The functions below may be useful for implementing type mapping
 functions.
 
 */
- 
+
+  inline bool checkAtomList(NList al)
+  {
+    while( !al.isEmpty() ) 
+    {
+       if ( ! al.first().isAtom() ) {
+         return false;	       
+       }	       
+       al.rest();
+    }	    
+    return true;	  
+  }	  
+
+ inline bool checkSymbolList(NList sl)
+  {
+    while( !sl.isEmpty() ) 
+    {
+       if ( ! sl.first().isSymbol() ) {
+         return false;	       
+       }	       
+       sl.rest();
+    }	    
+    return true;	  
+  }	
+
+
+
+  inline bool checkUniqueMembers(NList m)
+  {
+    set<string> tree;	  
+    while( !m.isEmpty() ) 
+    {     	    
+       if ( tree.find(m.first().convertToString()) != tree.end() ) {
+         return false;	       
+       }
+       cerr << "inserting m.first() = " << m.first().convertToString()
+            << endl;
+
+       tree.insert( m.first().convertToString() );       
+       m.rest();
+    }	    
+    return true;	  
+  }	
+
   inline bool checkStream(NList& type)
   {
     return ( hasLength(2) && first().isSymbol(sym.STREAM()) 
@@ -584,6 +647,24 @@ functions.
     append(type);
     return *this;
   } 
+
+  inline NList& tupleOf(NList& type) 
+  {
+    l = nl->OneElemList( nl->SymbolAtom(sym.TUPLE()) );
+    e = l;
+    len = 1;
+    append(type);
+    return *this;
+  } 
+
+  inline NList& tupleStreamOf(NList& type) 
+  {
+    l = nl->OneElemList( nl->SymbolAtom(sym.STREAM()) );
+    e = l;
+    len = 1;
+    append( NList().tupleOf(type) );
+    return *this;
+  }	  
 
 
   inline bool checkStreamTuple(NList& attrs)
