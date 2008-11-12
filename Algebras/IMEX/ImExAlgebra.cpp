@@ -478,7 +478,14 @@ const string csvimportSpec  =
    "( <text> rel(tuple(...) x text x int x string [x string] "
    "-> stream (tuple(...))</text--->"
    "<text> rel csvimport[filename, headersize, comment, separator] </text--->"
-   "<text> returns the content of the file as a stream </text--->"
+   "<text> Returns the content of the CSV (Comma Separated Value) 'filename' "
+   "as a stream of tuples. The types are defined by the first argument, 'rel', "
+   "whose tuple type acts as a template for the result tuple type. 'headersize'"
+   " specifies an amount of lines to ignore at the head of the imported "
+   "textfile. 'comment' defines a character that marks comment lines within "
+   "the textfile. 'separator' defines the character that is expected to "
+   "separate the fields within each line of the textfile (default is \",\"."
+   "</text--->"
    "<text> not tested !!!</text--->"
    ") )";
 /*
