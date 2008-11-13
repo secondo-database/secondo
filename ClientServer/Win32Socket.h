@@ -104,7 +104,6 @@ class LocalWin32Socket : public Socket
   bool    CancelAccept();
   bool    Close();
   bool    ShutDown();
-  virtual ostream& Print(ostream &o) const;
 
  protected:
   void    SetStreamState( ios::iostate newState );
@@ -161,8 +160,6 @@ class LocalWin32Socket : public Socket
   int         lastError;
   string      localName;
 };
-
-ostream& operator<<(ostream &o, const LocalWin32Socket &s)
 
 #endif
 

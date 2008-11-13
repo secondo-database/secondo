@@ -40,8 +40,8 @@ For a description of the public interface see the ~SocketIO~ header file.
 #include <string.h>
 #include <string>
 
-#define MAX_HOST_NAME         256
-#define MILLISECOND           1000
+#define MAX_HOST_NAME  256
+#define MILLISECOND   1000
 
 static HANDLE watchDogMutex;
 
@@ -1356,17 +1356,6 @@ LocalWin32Socket::Connect( int maxAttempts, time_t timeout )
   state = SS_OPEN;
   return (true);
 }
-
-ostream& LocalWin32Socket::Print(ostream &o) const
-{
-  o << "LocalWin32Socket[ operator<< still not implemented ]
-  return o;
-}
-
-ostream& operator<<(ostream &o, const LocalWin32Socket &s)
-{
-  return s.Print(o);
-};
 
 // --- End of source ---
 

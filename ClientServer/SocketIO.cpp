@@ -37,7 +37,8 @@ using namespace std;
 
 #include "SecondoConfig.h"
 #include "SocketIO.h"
-#include <string.h>
+#include <string>
+#include <sstream>
 
 #ifdef SECONDO_WIN32
 #include "Win32Socket.cpp"
@@ -765,10 +766,12 @@ ostream& operator<<(ostream &o, const struct sockaddr_in &a)
     o << " (unknown type " << a.sin_family << ")";
   }
   o << ",\n\tsin_port = " << ntohs(a.sin_port);
+#ifndef SECONDO_WIN32
   char tmpcstr[INET_ADDRSTRLEN];
   inet_ntop(a.sin_family, &a.sin_addr, tmpcstr, INET_ADDRSTRLEN);
-  o << ",\n\tsin_addr = " << string(tmpcstr)
-    << "\n]";
+  o << ",\n\tsin_addr = " << string(tmpcstr);
+#endif
+  o << "\n]";
   return o;
 }
 
@@ -784,11 +787,13 @@ ostream& operator<<(ostream &o, const struct sockaddr_in6 &a)
     o << " (unknown type " << a.sin6_family << ")";
   }
   o << ",\n\tsin6_port = " << ntohs(a.sin6_port)
-      << ",\n\tsin6_flowinfo = " << ntohl(a.sin6_flowinfo);
+    << ",\n\tsin6_flowinfo = " << ntohl(a.sin6_flowinfo);
+#ifndef SECONDO_WIN32
   char tmpcstr[INET6_ADDRSTRLEN];
   inet_ntop(a.sin6_family, &a.sin6_addr, tmpcstr, INET6_ADDRSTRLEN);
-  o << ",\n\tsin6_addr = " << string(tmpcstr)
-      << ",\n\tsin6_scope_id = " << a.sin6_scope_id
+  o << ",\n\tsin6_addr = " << string(tmpcstr);
+#endif
+  o << ",\n\tsin6_scope_id = " << a.sin6_scope_id
     << " ]";
   return o;
 }
@@ -1361,7 +1366,16 @@ bool UDPsocket::close()
     __UDP_EXIT__
     return true;
   }
+#ifdef SECONDO_WIN32
+  int cr = closesocket(mySocket);
+  if(cr <0){
+    ok = false;
+    errorMsg = string(strerror(errno));
+    __UDP_MSG("closesocket() failed:" << errorMsg);
+  }
+#else
   ::close(mySocket);
+#endif
   connected = false;
   status    = UDPFRESH;
   __UDP_EXIT__
