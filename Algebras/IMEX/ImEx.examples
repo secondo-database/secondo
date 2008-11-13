@@ -119,7 +119,7 @@ Result   : TRUE
 Operator : isFile
 Number   : 2
 Signature: text -> bool
-Example  : query isFile('SecondoBDB')
+Example  : query isFile('SecondoTTYBDB')
 Result   : TRUE
 
 Operator : removeFile
@@ -198,13 +198,14 @@ Operator : readFile
 Number   : 1
 Signature: string -> text
 Example  : query length(readFile("ten.csv"))
-Result   : 26
+Result   : (platform (linux (int 26)) (linux64 (int 26)) (win32 (int 37)))
 
 Operator : readFile
 Number   : 2
 Signature: text -> text
 Example  : query length(readFile('ten.csv'))
-Result   : 26
+Result   : (platform (linux (int 26)) (linux64 (int 26)) (win32 (int 37)))
+
 
 Operator : moveFile
 Number   : 1
