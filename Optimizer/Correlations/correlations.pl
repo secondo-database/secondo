@@ -1,4 +1,6 @@
 /*
+//[toc] [\tableofcontents]
+
 
 ----
 This file is part of SECONDO.
@@ -23,6 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 /*
+
+[toc]
+
 2 Part one - Determine relations and sql predicates using by the sql query
 
 2.1 Goal of part one
