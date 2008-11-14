@@ -1607,6 +1607,10 @@ int bboxesFun(Word* args, Word& result, int message,
    case OPEN: {
      qp->Open(args[0].addr);
      MPoint* mp = static_cast<MPoint*>(args[1].addr);
+     if(local.addr){
+       delete static_cast<BBTree*>(local.addr);
+       local.addr = 0;
+     }
      if(mp->IsDefined()){
         BBTree* t = new BBTree(*mp);
         local.addr = t;
@@ -1615,8 +1619,6 @@ int bboxesFun(Word* args, Word& result, int message,
         //cout << "noNodes = " << t->noNodes() << endl;
         //cout << "height = " << t->height() << endl;
         //cout << "tree " << endl << *t << endl << endl;
-
-
      }
      return 0;
    }
@@ -1633,6 +1635,7 @@ int bboxesFun(Word* args, Word& result, int message,
      Range<Instant>* periods = static_cast<Range<Instant>* >(elem.addr);
      if(!periods->IsDefined()){
          result.addr = new Rectangle<2>(false);
+         periods->DeleteIfAllowed();
          return YIELD;
      }
      Instant minInst;
@@ -1642,6 +1645,7 @@ int bboxesFun(Word* args, Word& result, int message,
      Interval<Instant> d(minInst,maxInst,true,true);
      BBTree* t = static_cast<BBTree*>(local.addr);
      result.addr = new Rectangle<2>(t->getBox(d));
+     periods->DeleteIfAllowed();
      return YIELD;  
    }
    case CLOSE : {
