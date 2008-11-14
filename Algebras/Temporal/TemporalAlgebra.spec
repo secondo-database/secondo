@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -68,5 +68,7 @@ operator length alias LENGTH pattern op ( _ )
 
 operator equalizeU alias EQUALIZEU pattern _ op [_]
 operator vertices alias VERTICES pattern op( _ )
+operator hat alias HAT pattern op ( _ )
+
 
 

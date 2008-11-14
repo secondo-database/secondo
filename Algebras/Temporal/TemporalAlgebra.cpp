@@ -1905,7 +1905,81 @@ void MInt::ReadFrom(const MBool& arg){
   }
   EndBulkLoad(false);
 }
-
+void MInt::Hat(MInt& mint)
+{
+//   mint.CopyFrom(this);
+   stack<UInt> uintstack;
+   const UInt* upi;
+   UInt last,curuint;
+   CcInt cur,top;
+   last.SetDefined(true);
+   curuint.SetDefined(false);
+   float lastarea = 0;
+   for(int i = 0;i < GetNoComponents();i++){
+      Get(i,upi);
+      if(!uintstack.empty()){
+        cur.Set(upi->constValue.GetValue());
+        top.Set(uintstack.top().constValue.GetValue());
+        if(cur.GetIntval() >= top.GetIntval())
+            uintstack.push(*upi);
+        else{
+          while(!uintstack.empty() && cur.GetIntval() <= top.GetIntval()){
+            uintstack.pop();
+            if(!uintstack.empty())
+              top.Set(uintstack.top().constValue.GetValue());
+          }
+          if(!uintstack.empty()){
+            last = uintstack.top();
+            Instant inter1 = upi->timeInterval.end;
+            Instant inter2 = last.timeInterval.end;
+            inter1 -= inter2;
+            double time = inter1.GetDay()*(24*60) +
+                          inter1.GetAllMilliSeconds()/1000/60;//minutes
+            double curarea = upi->constValue.GetIntval() * time;
+//            upi->timeInterval.Print(cout);
+//            last.timeInterval.Print(cout)<<endl;
+//            cout<<"time "<<time<<endl;
+//            cout<<"lastarea "<<lastarea<<" curarea "<<curarea<<endl;
+            if(curarea > lastarea){
+              lastarea = curarea;
+              curuint.timeInterval.start = inter2;
+              curuint.timeInterval.end = upi->timeInterval.end;
+              curuint.constValue.Set(upi->constValue.GetValue());
+              curuint.SetDefined(true);
+            }
+          }
+          uintstack.push(*upi);
+        }
+      }else
+        uintstack.push(*upi);
+    }
+//    curuint.Print(cout);
+    while(!uintstack.empty())
+      uintstack.pop();//clear stack
+    UInt begin,end;
+    Get(0,upi);
+    begin.SetDefined(true);
+    begin.timeInterval.start = upi->timeInterval.start;
+    if(curuint.IsDefined() == true)
+      begin.timeInterval.end = curuint.timeInterval.start;
+    else
+      begin.timeInterval.end = upi->timeInterval.end;
+    begin.constValue.Set(upi->constValue.GetValue());
+    if(begin.timeInterval.start != begin.timeInterval.end)
+      mint.Add(begin);
+    if(curuint.IsDefined() == true)
+      mint.Add(curuint);
+    Get(GetNoComponents() - 1,upi);
+    end.SetDefined(true);
+    if(curuint.IsDefined() == true)
+      end.timeInterval.start = curuint.timeInterval.end;
+    else
+      end.timeInterval.start = upi->timeInterval.start;
+    end.timeInterval.end = upi->timeInterval.end;
+    end.constValue.Set(upi->constValue.GetValue());
+    if(end.timeInterval.start != end.timeInterval.end)
+      mint.Add(end);
+}
 
 /*
 3.1 Class ~MReal~
@@ -7442,6 +7516,13 @@ ListExpr EqualizeUTM(ListExpr args){
    ErrorReporter::ReportError(err);
    return nl->TypeError();
 }
+ListExpr MIntHatTypeMap(ListExpr args){
+   string err = "mint expected";
+   if(nl->IsEqual(nl->First(args),"mint"))
+         return nl->SymbolAtom("mint");
+   ErrorReporter::ReportError(err);
+   return nl->TypeError();
+}
 
 /*
 16.2 Selection function
@@ -9993,6 +10074,13 @@ int MPointEqualize( Word* args, Word& result, int message,
    p->EqualizeUnitsSpatial(eps->GetValue(),*res,skipUnits.GetBoolval());
    return 0;
 }
+int MIntHat( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+   MInt* mint = (MInt*)args[0].addr;
+   result = qp->ResultStorage(s);
+   mint->Hat(*(MInt*)result.addr);
+   return 0;
+}
 
 /*
 16.4 Definition of operators
@@ -10808,6 +10896,16 @@ const string EqualizeUSpec =
     " should be split </text--->"
     "<text>query train6 equalizeU[20.0]  </text--->"
     ") )";
+const string MintHatSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mint -> mint </text---> "
+    "<text> mintsp[ _] </text--->"
+    "<text> separate a movingint into three pieces where during the first, the"
+    "int value is smaller than a threshold e, in the second piece all values"
+    "are larger than e, and in the last all values are smaller than e"
+    "<text>query hat(noAtCenter)</text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -11236,6 +11334,12 @@ Operator equalizeU( "equalizeU",
                        Operator::SimpleSelect,
                        EqualizeUTM );
 
+Operator hat( "hat",
+                       MintHatSpec,
+                       MIntHat,
+                       Operator::SimpleSelect,
+                       MIntHatTypeMap );
+
 /*
 6 Creating the Algebra
 
@@ -11367,6 +11471,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporaldisturb);
     AddOperator(&temporallength);
     AddOperator(&equalizeU);
+    AddOperator(&hat);//hat
   }
   ~TemporalAlgebra() {};
 };

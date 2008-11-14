@@ -2086,7 +2086,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
                                timeInterval.start.ToDouble(),
                                timeInterval.end.ToDouble() );
   }
-  
+
   const Rectangle<2> BoundingBoxSpatial() const
   {
     return Rectangle<2>( true, MIN( p0.GetX(), p1.GetX() ),
@@ -2521,9 +2521,11 @@ representing the  value 1 over their interval.
 */
    void ReadFrom(const MBool& arg);
 
+
    static const string BasicType(){
       return "mint";
    }
+   void Hat(MInt& mint);
 
 };
 
@@ -2874,7 +2876,7 @@ Returns the MPoint's minimum bounding rectangle
 
 
 void EqualizeUnitsSpatial(const double epsilon,
-                          MPoint& result, 
+                          MPoint& result,
                           const bool skipSplit = false) const;
 
   static const string BasicType(){

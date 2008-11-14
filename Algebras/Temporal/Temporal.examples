@@ -115,7 +115,7 @@ Result   : (rect (2265.0 2265.0 4892.0 4892.0))
 
 Operator : box3d
 Number   : 1
-Signature: For S in {rect, instant, periods}: S -> rect3 For T in {instant, periods}: rect x T -> rect3  
+Signature: For S in {rect, instant, periods}: S -> rect3 For T in {instant, periods}: rect x T -> rect3
 Example  : query box3d([const rect value (0.0 0.0 1000.0 1000.0)],six30)
 Result   : (rect3 (0.0 0.0 1000.0 1000.0 1417.270833333333 1417.270833333333))
 
@@ -155,7 +155,7 @@ Result   : TRUE
 
 Operator : extdeftime
 Number   : 1
-Signature: mT x uT -> mT with T in {bool, int}  
+Signature: mT x uT -> mT with T in {bool, int}
 Example  : query extdeftime([const mbool value ((("begin of time" "2001-10-10" TRUE FALSE) TRUE) (("2002-10-10" "end of time" TRUE FALSE) TRUE))], [const ubool value (("200-12-30" "2000-12-31" TRUE FALSE) FALSE)])
 Result   : file
 
@@ -230,7 +230,7 @@ Operator : length
 Number   : 1
 Signature: mpoint -> real
 Example  : query length(train7)
-Result   : 31662.1260235619 
+Result   : 31662.1260235619
 
 Operator : maximum
 Number   : 1
@@ -241,7 +241,7 @@ Result   : 10
 
 Operator : mbool2mint
 Number   : 1
-Signature: mbool -> mint 
+Signature: mbool -> mint
 Example  : query mbool2mint(isempty(train7))
 Result   : file
 
@@ -376,7 +376,7 @@ Result   : file
 Operator : union
 Number   : 1
 Signature: (rT rT) -> rT
-Example  : query [const rint value ((0 1 TRUE FALSE))] union [const rint value ((1 2 TRUE FALSE))]    
+Example  : query [const rint value ((0 1 TRUE FALSE))] union [const rint value ((1 2 TRUE FALSE))]
 Result   : (rint ((0 2 TRUE FALSE)))
 
 
@@ -403,31 +403,31 @@ Result   : (mreal ( ( ("2000-03-01" "2000-03-10" TRUE TRUE) (0.0 -3.0 25.0 FALSE
 
 Operator : linearize2
 Number   : 1
-Signature: mreal -> mreal 
+Signature: mreal -> mreal
 Example  : query linearize2([const mreal value ( (("2000-03-01" "2000-03-10" TRUE TRUE) (3.0 -30.0 25.0 FALSE)))])
-Result   : (mreal ( ( ("2000-03-01" "2000-03-06" TRUE TRUE) (0.0 -15.0 25.0 FALSE)) ( ("2000-03-06" "2000-03-10" FALSE TRUE) (0.0 12.0 -50.0 FALSE)))) 
+Result   : (mreal ( ( ("2000-03-01" "2000-03-06" TRUE TRUE) (0.0 -15.0 25.0 FALSE)) ( ("2000-03-06" "2000-03-10" FALSE TRUE) (0.0 12.0 -50.0 FALSE))))
 
 
 Operator : approximate
 Number   : 1
 Signature: stream(tuple(a1 t1) ...(an tn) ) x ai x aj -> mreal, ti = instant, tj = real
 Example  : query intstream(0, 3) transformstream extend[D: int2real(.elem)] extend[ I: create_instant(.D), V : .D * .D] approximate[I,V]
-Result   : (mreal ( ( ("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 1.0 0.0 FALSE)) ( ("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 3.0 1.0 FALSE)) ( ("2000-01-05" "2000-01-06" TRUE FALSE) (0.0 5.0 4.0 FALSE)))) 
+Result   : (mreal ( ( ("2000-01-03" "2000-01-04" TRUE FALSE) (0.0 1.0 0.0 FALSE)) ( ("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 3.0 1.0 FALSE)) ( ("2000-01-05" "2000-01-06" TRUE FALSE) (0.0 5.0 4.0 FALSE))))
 
 
 
-Operator : translateappend 
+Operator : translateappend
 Number   : 1
 Signature: mpoint x mpoint x duration -> mpoint
 Example  : query train5 translateappend[ train6 , [const duration value (0 30000)]]
-Result   : file 
+Result   : file
 
 
-Operator : translateappendS 
+Operator : translateappendS
 Number   : 1
 Signature: stream(tuple([a1 : t1, ...an : tn])) x ai x duration -> mpoint, with ti = mpoint
-Example  : query Trains feed head[3] translateappendS[Trip, [const duration value(0 40000)]] 
-Result   : file 
+Example  : query Trains feed head[3] translateappendS[Trip, [const duration value(0 40000)]]
+Result   : file
 
 Operator : reverse
 Number   : 1
@@ -435,22 +435,26 @@ Signature: mpoint -> mpoint
 Example  : query reverse(train5)
 Result   : file
 
-Operator : samplempoint 
+Operator : samplempoint
 Number   : 1
 Signature: mpoint x duration -> mpoint
 Example  : query samplempoint(train7, [const duration value (0 60000)])
 Result   : file
 
-Operator : samplempoint 
+Operator : samplempoint
 Number   : 2
 Signature: mpoint x duration x bool x bool -> mpoint
 Example  : query trajectory(samplempoint(train7, [const duration value (1 60000)],TRUE,TRUE))=trajectory(train7)
 Result   : (bool TRUE)
 
-Operator : gps 
+Operator : gps
 Number   : 1
 Signature: mpoint x duration -> stream(tuple([Time: instant, Position : point]))
 Example  : query gps(train7, [const duration value (0 60000)]) count
 Result   : 56
 
- 
+Operator : hat
+Number   : 1
+Signature: mint -> mint
+Example  : query hat(noAtCenter);
+Result   : file
