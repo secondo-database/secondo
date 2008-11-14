@@ -19,3 +19,4 @@
 
 operator distancescan alias DISTANCESCAN pattern _ _ op [_, _]
 operator knearest alias KNEAREST pattern _ _ op [_, _]
+operator bboxes alias bboxes pattern  _ op [_]

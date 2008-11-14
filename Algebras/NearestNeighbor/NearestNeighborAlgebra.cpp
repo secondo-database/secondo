@@ -57,6 +57,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "RTreeAlgebra.h"
 #include "NearestNeighborAlgebra.h"
 #include "TemporalAlgebra.h"
+#include "BBTree.h"
 
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
@@ -1565,6 +1566,126 @@ Operator knearest (
 
 
 /*
+6 Operator ~bboxes~
+
+The operator bbox is for test proposes only. It receives a stream of 
+Periods values and a moving point. It produces a stream of rectangles
+which are the bounding boxes of the moving point for each box of the 
+periods value.
+
+*/
+ListExpr bboxesTM(ListExpr args){
+  string err = "stream(periods) x mpoint expected";
+  if(nl->ListLength(args) != 2){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr mp = nl->Second(args);
+  if(!nl->IsEqual(mp,symbols::MPOINT)){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  if(nl->ListLength(stream)!=2){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(stream),symbols::STREAM)   ||
+     !nl->IsEqual(nl->Second(stream),"periods")){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  return nl->TwoElemList(nl->SymbolAtom(symbols::STREAM),
+                         nl->SymbolAtom("rect"));
+
+}
+
+int bboxesFun(Word* args, Word& result, int message, 
+              Word& local, Supplier s){
+
+ switch(message){
+   case OPEN: {
+     qp->Open(args[0].addr);
+     MPoint* mp = static_cast<MPoint*>(args[1].addr);
+     if(mp->IsDefined()){
+        BBTree* t = new BBTree(*mp);
+        local.addr = t;
+        //cout << "mp.size = " << mp->GetNoComponents() << endl;
+        //cout << "no_Leafs = " << t->noLeaves() << endl;
+        //cout << "noNodes = " << t->noNodes() << endl;
+        //cout << "height = " << t->height() << endl;
+        //cout << "tree " << endl << *t << endl << endl;
+
+
+     }
+     return 0;
+   }
+   case REQUEST: {
+     if(!local.addr){
+       return CANCEL;
+     }
+
+     Word elem;
+     qp->Request(args[0].addr,elem);
+     if(!qp->Received(args[0].addr)){
+        return CANCEL;
+     }  
+     Range<Instant>* periods = static_cast<Range<Instant>* >(elem.addr);
+     if(!periods->IsDefined()){
+         result.addr = new Rectangle<2>(false);
+         return YIELD;
+     }
+     Instant minInst;
+     periods->Minimum(minInst);
+     Instant maxInst;
+     periods->Maximum(maxInst);
+     Interval<Instant> d(minInst,maxInst,true,true);
+     BBTree* t = static_cast<BBTree*>(local.addr);
+     result.addr = new Rectangle<2>(t->getBox(d));
+     return YIELD;  
+   }
+   case CLOSE : {
+     qp->Close(args[0].addr);
+     if(local.addr){
+       delete static_cast<BBTree*>(local.addr);
+       local.addr = 0;
+     }
+     return 0;
+   }
+ }
+ return 0; 
+
+}
+
+
+const string bboxesSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>stream(periods) x mpoint -> stream(rect)</text--->"
+      "<text>_ bboxes [ _ ]</text--->"
+      "<text>"
+        "The Operator builds for each periods value its enclosing interval."
+        "It returns for that interval the spatial bounding boc if the "
+        "moving point would be restricted to that interval."
+      "</text--->"
+      
+       "<text>query query UnitTrains feed  projectextend[; D : deftime[.UTrip]"
+              " transformstream bboxes[Train6] transformstream consume"
+      "</text--->"
+      ") )";
+
+
+Operator bboxes (
+         "bboxes",        // name
+         bboxesSpec,      // specification
+         bboxesFun,      // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         bboxesTM    // type mapping
+);
+
+
+
+
+/*
 6 Implementation of the Algebra Class
 
 */
@@ -1582,6 +1703,7 @@ class NearestNeighborAlgebra : public Algebra
 */
     AddOperator( &distancescan );
     AddOperator( &knearest );
+    AddOperator( &bboxes );
   }
   ~NearestNeighborAlgebra() {};
 };

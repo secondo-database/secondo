@@ -128,7 +128,9 @@ void R_Tree<dim, LeafInfo>::FirstDistanceScan( const BBox<dim>& box )
                      false, 
                      MinEntries( 0 ), 
                      MaxEntries( 0 ) );
-
+  
+  cout << "tmp.bbox = "; tmp->BoundingBox().Print(cout)  << endl;
+  cout << "box = "; box.Print(cout) << endl;
   pq->push( DistanceElement<TupleId>( RootRecordId(), false, -1, 
       tmp->BoundingBox().Distance(box), 0));
   delete tmp;
