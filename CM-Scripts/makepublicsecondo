@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [ -d secondo ] ; then
+  echo "directory secondo exists"
+  exit 1
+fi
+
+cvs export -D now secondo
+
+if [ $? != "0" ] ; then
+  echo "problems with cvs export"
+  exit 1
+fi
+
+secondo/CM-Scripts/mkpublic.sh secondo/nonpublic.filelist publicsecondo_filelist
+
+
+if [ -f "secpub.tar" ] ; then
+  echo secpub.tar exists
+  exit 1
+fi
+
+cat publicsecondo_filelist | sed "s/.*/tar -rf secpub.tar &/g" | sh
+
+echo "tar archive created"
+
+rm -r secondo
+
+gzip secpub.tar
+
+
+
