@@ -352,7 +352,6 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          Rel2S = rel(BaseName, _),
-         write('\n>>>>>>>stat_001\n'), nl,
          card(BaseName, JoinSize),
          Query = count(filter(counter(loopjoin(head(Rel1Query, JoinSize),
                        fun([param(txx1, tuple)],
@@ -407,7 +406,6 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
          Rel1J = rel(BaseName, _),
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
-         write('\n>>>>>>>stat_002\n'), nl,
          card(BaseName, JoinSize),
          Query = count(loopsel(head(Rel1Query, JoinSize),
            fun([param(txx1, tuple)], filter(Rel2Query, Pred2))))
@@ -596,11 +594,9 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   not(optimizerOption(dynamicSample)),
   Rel1 = rel(BaseName1, _),
   sampleNameJ(BaseName1, SampleName1),
-  write('\n>>>>>>>stat_003\n'), nl,
   card(SampleName1, SampleCard1),
   Rel2 = rel(BaseName2, _),
   sampleNameJ(BaseName2, SampleName2),
-  write('\n>>>>>>>stat_004\n'), nl,
   card(SampleName2, SampleCard2),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
@@ -640,7 +636,6 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   not(optimizerOption(dynamicSample)),
   Rel = rel(BaseName, _),
   sampleNameS(BaseName, SampleName),
-  write('\n>>>>>>>stat_005\n'), nl,
   card(SampleName, SampleCard),
   selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
@@ -676,13 +671,11 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
   Rel1 = rel(BaseName1, _),
-         write('\n>>>>>>>stat_006\n'), nl,
   card(BaseName1, Card1),
   % old: sampleSizeJoin(JoinSize),
   thresholdCardMaxSampleJ(JoinSize),
   SampleCard1 is min(Card1, max(JoinSize, Card1 * 0.00001)),
   Rel2 = rel(BaseName2, _),
-         write('\n>>>>>>>stat_007\n'), nl,
   card(BaseName2, Card2),
   SampleCard2 is min(Card2, max(JoinSize, Card2 * 0.00001)),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
@@ -722,7 +715,6 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
 selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
   Rel = rel(BaseName, _),
-         write('\n>>>>>>>stat_008\n'), nl,
   card(BaseName, Card),
   % old: sampleSizeSelection(SelectionSize),
   thresholdCardMaxSampleS(SelectionSize),
@@ -974,16 +966,13 @@ showSingleRelation :-
   getSmallName(RelS, Small),
   write('\t(Auxiliary objects:'),
   ( secondoCatalogInfo(DCSampleS,SampleS,_,_)
-    -> (          write('\n>>>>>>>stat_009\n'), nl,
-         card(DCSampleS,CardSS), write_list([' SelSample(',CardSS,') ']) )
+    -> (card(DCSampleS,CardSS), write_list([' SelSample(',CardSS,') ']) )
     ; true ),
   ( secondoCatalogInfo(DCSampleJ,SampleJ,_,_)
-    -> (         write('\n>>>>>>>stat_010\n'), nl,
-         card(DCSampleJ,CardSJ), write_list([' JoinSample(',CardSJ,') ']) )
+    -> (card(DCSampleJ,CardSJ), write_list([' JoinSample(',CardSJ,') ']) )
     ; true ),
   ( secondoCatalogInfo(DCSmall,Small  ,_,_)
-    -> (          write('\n>>>>>>>stat_011\n'), nl,
-         card(DCSmall,CardSM), write_list([' SmallObject(',CardSM,') ']) )
+    -> (card(DCSmall,CardSM), write_list([' SmallObject(',CardSM,') ']) )
     ; true ),
   write(')'), nl,
   findall(_, showAllAttributes(Rel), _),
