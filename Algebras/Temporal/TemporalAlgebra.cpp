@@ -1933,8 +1933,8 @@ void MInt::Hat(MInt& mint)
             Instant inter1 = upi->timeInterval.end;
             Instant inter2 = last.timeInterval.end;
             inter1 -= inter2;
-            double time = inter1.GetDay()*(24*60) +
-                          inter1.GetAllMilliSeconds()/1000/60;//minutes
+            double time = inter1.GetDay()*(24*60*60) +
+                          inter1.GetAllMilliSeconds()/1000.0;//seconds
             double curarea = upi->constValue.GetIntval() * time;
 //            upi->timeInterval.Print(cout);
 //            last.timeInterval.Print(cout)<<endl;
