@@ -47,6 +47,7 @@ public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed,
   protected int min;
   protected int max;
   private static  FunctionFrame functionframe = new FunctionFrame();
+  //private static  MultiFunctionFrame functionframe = new MultiFunctionFrame();
   
   
   public    Double getValueAt(double time){
