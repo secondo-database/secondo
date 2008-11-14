@@ -58,6 +58,7 @@ public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed,
 
   public boolean isExternDisplayed(){
       return(functionframe.isVisible() && this.equals(functionframe.getSource()));
+      //return functionframe.isVisible() && functionframe.contains(this);
   }
 
   public void  displayExtern(){
@@ -67,6 +68,7 @@ public class Dsplmovingint extends DsplGeneric implements LabelAttribute, Timed,
       }
       if(TimeBounds!=null){
          functionframe.setSource(this);
+         //functionframe.addFunction(this);        
          functionframe.setVisible(true);
          functionframe.toFront();
       } else{
