@@ -1649,24 +1649,26 @@ createSamples(DCrel, SelectionCard, JoinCard) :-
 ----  resizeSamples(+DCRel, +SelectionCard, +JoinCard) :-
 ----
 
+User-level command.
 Resize (or possibly create) samples for ~DCRel~ (in down cased spellinf)
 manually, speciying the size (cardinality) of selection and join samples.
 
+Update the stored metadata on the relation samples.
 */
 
-/*
+
 resizeSamples(DCrel, SelectionCard, JoinCard) :-
   dm(dbhandling,['\nTry: resizeSamples(',DCrel,',',SelectionCard,',',
                  JoinCard,').']),
   ( ( ground(DCrel), number(SelectionCard), number(JoinCard) )
     -> ( dcName2externalName(DCrel,ExtRel),
          sampleNameS(ExtRel, SampleS),
-         ( secondoCatalogInfo(SampleS,_,_,_)
+         ( secondoCatalogInfo(_,SampleS,_,_)
           -> resizeSample(SampleS, ExtRel, SelectionCard, _)
           ;  createSample(SampleS, ExtRel, SelectionCard, _)
          ),
          sampleNameJ(ExtRel, SampleJ),
-         ( secondoCatalogInfo(SampleJ,_,_,_)
+         ( secondoCatalogInfo(_,SampleJ,_,_)
           -> resizeSample(SampleJ, ExtRel, JoinCard, _)
           ;  createSample(SampleJ, ExtRel, JoinCard, _)
          )
@@ -1680,14 +1682,13 @@ resizeSamples(DCrel, SelectionCard, JoinCard) :-
 resizeSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
   dm(dbhandling,['\nTry: resizeSample(',ExtSample,',',ExtRel,',',
                  RequestedCard,',',ActualCard,').']),
+  deleteObject(ExtSample),
+  dcName2externalName(DCsample,ExtSample),
+  retractStoredInformation(DCsample),
   sampleQuery(ExtSample, ExtRel, RequestedCard, QueryAtom),
-
-  secondo_direct('delete'),
   tryCreate(QueryAtom),
-  dcName2externalName(DCrel,ExtRel),
-  card(DCrel, Card),
-  ActualCard is truncate(min(Card, max(RequestedCard, Card*0.00001))).
-*/
+  card(DCsample, ActualCard),
+  updateCatalog.
 
 /*
 4 Querying, Storing and Loading Relation Schemas
