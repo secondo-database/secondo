@@ -2683,7 +2683,10 @@ Argument ~Arg~ has size ~Size~.
 
 */
 
-resSize(arg(N), Size) :- argument(N, rel(Rel, _)), card(Rel, Size), !.
+resSize(arg(N), Size) :-
+  argument(N, rel(Rel, _)),
+         write('\n>>>>>>>opt_001\n'), nl,
+  card(Rel, Size), !.
 resSize(arg(N), _) :-
   write('Error in optimizer: cannot find cardinality for '),
   argument(N, Rel), wp(Rel), nl, fail.
@@ -3001,6 +3004,7 @@ It is assumed that only a single operator of this kind occurs within the term.
 */
 
 cost(rel(Rel, _), _, Size, 0) :-
+         write('\n>>>>>>>opt_002\n'), nl,
   card(Rel, Size).
 
 cost(res(N), _, Size, 0) :-

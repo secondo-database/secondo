@@ -1156,7 +1156,7 @@ the database.
 
 */
 
-% do not create static sample realtions, if dynamic sampling is activated
+% do not create static sample relations, if dynamic sampling is activated
 createSampleRelationObjectsForRel(X) :-
   dm(dbhandling,['\nTry: createSampleRelationObjectsForRel(',X,').']),
   optimizerOption(dynamicSample), !.
@@ -1646,6 +1646,50 @@ createSamples(DCrel, SelectionCard, JoinCard) :-
   ), !.
 
 /*
+----  resizeSamples(+DCRel, +SelectionCard, +JoinCard) :-
+----
+
+Resize (or possibly create) samples for ~DCRel~ (in down cased spellinf)
+manually, speciying the size (cardinality) of selection and join samples.
+
+*/
+
+/*
+resizeSamples(DCrel, SelectionCard, JoinCard) :-
+  dm(dbhandling,['\nTry: resizeSamples(',DCrel,',',SelectionCard,',',
+                 JoinCard,').']),
+  ( ( ground(DCrel), number(SelectionCard), number(JoinCard) )
+    -> ( dcName2externalName(DCrel,ExtRel),
+         sampleNameS(ExtRel, SampleS),
+         ( secondoCatalogInfo(SampleS,_,_,_)
+          -> resizeSample(SampleS, ExtRel, SelectionCard, _)
+          ;  createSample(SampleS, ExtRel, SelectionCard, _)
+         ),
+         sampleNameJ(ExtRel, SampleJ),
+         ( secondoCatalogInfo(SampleJ,_,_,_)
+          -> resizeSample(SampleJ, ExtRel, JoinCard, _)
+          ;  createSample(SampleJ, ExtRel, JoinCard, _)
+         )
+       )
+    ;  ( write('You must instantiate all 3 arguments of createSamples/3!'),
+         nl,
+         fail
+       )
+  ), !.
+
+resizeSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
+  dm(dbhandling,['\nTry: resizeSample(',ExtSample,',',ExtRel,',',
+                 RequestedCard,',',ActualCard,').']),
+  sampleQuery(ExtSample, ExtRel, RequestedCard, QueryAtom),
+
+  secondo_direct('delete'),
+  tryCreate(QueryAtom),
+  dcName2externalName(DCrel,ExtRel),
+  card(DCrel, Card),
+  ActualCard is truncate(min(Card, max(RequestedCard, Card*0.00001))).
+*/
+
+/*
 4 Querying, Storing and Loading Relation Schemas
 
 */
@@ -1958,7 +2002,7 @@ writeStoredCard(Stream) :-
 
 8.1 Looking Up For Existing Indexes
 
----- hasIndex(rel(+Rel, _),attr(+Attr, _, _), ?IndexName, ?IndexType) :-
+---- hasIndex(rel(+Rel, _),attr(+Attr, _, _), ?IndexName, ?IndexType)
 ----
 
 If it exists, the index name for relation ~Rel~ and attribute ~Attr~
