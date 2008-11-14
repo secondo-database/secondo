@@ -963,7 +963,7 @@ The assignment operator
     bool updateMemberVariables();
     bool updateMemberVariables(const struct addrinfo *myAddrInfo);
 
-    static string getErrorCodeStr();
+    static string getErrorCodeStr(const int resGetaddrinfo);
 };
 
 ostream& operator<<(ostream &o, const struct sockaddr_in  &a);

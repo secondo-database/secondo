@@ -384,7 +384,7 @@ UDPaddress::UDPaddress(const struct addrinfo *addr)
                                    &myAddrInfo);
   if (resGetaddrinfo < 0) {
     myOk = false;
-    myErrorMsg = getErrorCodeStr();
+    myErrorMsg = getErrorCodeStr(resGetaddrinfo);
   } else {
     myOk = true;
     myErrorMsg = "";
@@ -581,7 +581,7 @@ UDPaddress::UDPaddress(const string ip,
   }
   if (resGetaddrinfo < 0) {
     myOk = false;
-    myErrorMsg = getErrorCodeStr();
+    myErrorMsg = getErrorCodeStr(resGetaddrinfo);
     __UDP_MSG("getaddrinfo() FAILED!")
   } else {
       __UDP_MSG("getaddrinfo() succeded. *myAddrInfo = " << *myAddrInfo)
@@ -711,15 +711,14 @@ UDPaddress& UDPaddress::operator=(const UDPaddress& addr)
   return (*this);
 }
 
-string UDPaddress::getErrorCodeStr()
+string UDPaddress::getErrorCodeStr(const int resGetaddrinfo)
 {
 #ifdef SECONDO_WIN32
   stringstream s;
-	s << WSAGetLastError();
+  s << WSAGetLastError();
   return s.str();
 #else
   return string(gai_strerror(resGetaddrinfo));
-);
 #endif
 }
 
