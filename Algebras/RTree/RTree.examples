@@ -80,7 +80,7 @@ Operator : no_nodes
 Number   : 1
 Signature: rtree<D> -> int
 Example  : query no_nodes(strassen_geoData)
-Result   : (platform (linux (int 61)) (win32 (int 65)) (linux64 (int 80)))
+Result   : (platform (linux (int 55)) (win32 (int 65)) (linux64 (int 80)))
 
 
 Operator : treeheight
@@ -107,5 +107,5 @@ Result   : 1266
 Operator : entries
 Number   : 1
 Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) -> stream(tuple((nodeId int) (MBR rect<D>) (Tid tupleid)))
-Example  : query entries(strassen_geoData_rtree) filter[.nodeid = 2] tconsume count;
+Example  : query entries(strassen_geoData_rtree) filter[.Nodeid = 2] tconsume count;
 Result   : 3212

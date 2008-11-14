@@ -6,46 +6,56 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
-
-2008-10-27 Changes of the Tuple's Block Layout 
+2008-11-14 Changes of TemplateClass Rectangle<dim>
 ===============================================================================
-In order to allow direct access to attributes wihtout unpacking
-all other attribute data the block layout of tuple records has been
-changed. A special relation iterator which utilizes this feature will
-follow soon. 
+Since the defined flag is already included in StandardAttribute, I have removed
+the additional one from the implementation.
 
 Once again you have to restore your databases!
 
 Regards
-   Markus 
+   Christian
 
 
-
-
-
-2008-10-20 Changes for class FLOB 
+2008-10-27 Changes of the Tuple's Block Layout
 ===============================================================================
-In order to save disk space, the FLOB class has been changed. 
+In order to allow direct access to attributes wihtout unpacking
+all other attribute data the block layout of tuple records has been
+changed. A special relation iterator which utilizes this feature will
+follow soon.
+
+Once again you have to restore your databases!
+
+Regards
+   Markus
+
+
+
+
+
+2008-10-20 Changes for class FLOB
+===============================================================================
+In order to save disk space, the FLOB class has been changed.
 It contains now only a pointer to its meta data which will be
 restored when loaded from disk.
 
-Sorry, but again you have to restore your databases! 
+Sorry, but again you have to restore your databases!
 
 Regards
-   Markus 
+   Markus
 
 
 
 
-2008-08-29 Changes at the DateTime class 
+2008-08-29 Changes at the DateTime class
 ===============================================================================
-In order to save disk space, the DateTime class has been changed. Type and 
-defined flag are now coded within an single character. For this reason, 
+In order to save disk space, the DateTime class has been changed. Type and
+defined flag are now coded within an single character. For this reason,
 
   you have to restore all your databases :-(
 
 Regards
-   Thomas 
+   Thomas
 
 
 
@@ -59,9 +69,9 @@ mechanism is not space efficient. There are example implementations for int,
 real and string. Currently, this is work in progress and can be deactivated by
 undefining the compile flag USE_SERIALIZATION in makefile.options
 
-Documentation: Attribute.h StandardTypes.h 
+Documentation: Attribute.h StandardTypes.h
 
-Note: The code changes require to do a make clean, to rebuild SECONDO 
+Note: The code changes require to do a make clean, to rebuild SECONDO
 and to restore your databases :-(
 
 
@@ -72,7 +82,7 @@ Markus
 
 2008-08-07  Word changed
 ===============================================================================
-To save memory usage, the struct Word was changed to be a variant. 
+To save memory usage, the struct Word was changed to be a variant.
 Because of this change, you have to restore all your databases.
 
 Thomas
