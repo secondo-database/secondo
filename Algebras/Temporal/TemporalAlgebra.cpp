@@ -1912,6 +1912,7 @@ void MInt::Hat(MInt& mint)
    const UInt* upi;
    UInt last,curuint;
    CcInt cur,top;
+   int position  = 0;
    last.SetDefined(true);
    curuint.SetDefined(false);
    float lastarea = 0;
@@ -1959,12 +1960,22 @@ void MInt::Hat(MInt& mint)
     UInt begin,end;
     Get(0,upi);
     begin.SetDefined(true);
-    begin.timeInterval.start = upi->timeInterval.start;
+    begin.timeInterval.start = upi->timeInterval.end;
     if(curuint.IsDefined() == true)
       begin.timeInterval.end = curuint.timeInterval.start;
     else
       begin.timeInterval.end = upi->timeInterval.end;
-    begin.constValue.Set(upi->constValue.GetValue());
+    int value = upi->constValue.GetValue();
+    int i;
+    for(i = 0;i < GetNoComponents();i++){
+        Get(i,upi);
+        if(upi->timeInterval.start < begin.timeInterval.end){
+          if(upi->constValue.GetValue() < value)
+            value = upi->constValue.GetValue();
+        }else
+            break;
+    }
+    begin.constValue.Set(value);
     if(begin.timeInterval.start != begin.timeInterval.end)
       mint.Add(begin);
     if(curuint.IsDefined() == true)
@@ -1975,8 +1986,16 @@ void MInt::Hat(MInt& mint)
       end.timeInterval.start = curuint.timeInterval.end;
     else
       end.timeInterval.start = upi->timeInterval.start;
-    end.timeInterval.end = upi->timeInterval.end;
-    end.constValue.Set(upi->constValue.GetValue());
+    value = upi->constValue.GetValue();
+    for(;i < GetNoComponents();i++){
+        Get(i,upi);
+        if(upi->timeInterval.start > end.timeInterval.start){
+          if(upi->constValue.GetValue() < value)
+            value = upi->constValue.GetValue();
+        }
+    }
+    end.timeInterval.end = upi->timeInterval.start;
+    end.constValue.Set(value);
     if(end.timeInterval.start != end.timeInterval.end)
       mint.Add(end);
 }
