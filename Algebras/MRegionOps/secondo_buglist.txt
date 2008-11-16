@@ -250,21 +250,23 @@ Bugliste
         (
             ())))
             
+    query val(mr atinstant create_instant(t)) mit t > 100.0 bringt 
+    beispielsweise auch das erwartete Ergebnis einer leeren Region.
+            
     Das Problem hängt offenbar mit der Methode Region::SetDefined zusammen,
-    die nichts tut. 
+    die gegenwärtig nichts tut.
     
-    inline void SetDefined( bool defined )
+    void Region::SetDefined( bool defined )
     {
         if (!defined)
             Clear();
     }
     
     löst das Problem erstmal. 
-    Vermutlich ist das aber etwas tieferliegendes...
+    Vermutlich ist es aber etwas tieferliegendes...
     
 ********************************************************************************
     
-
 7	Bug in Region::GetNewFaceNo: 
 
 	Liefert im allgemeinen ein falsches Ergebnis.
