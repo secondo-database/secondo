@@ -91,7 +91,181 @@ Bugliste
 
 ********************************************************************************
 
-6	Bug in Region::GetNewFaceNo: 
+6   Problem mit Region::SetDefined(bool defined)
+
+    Beispiel:
+    let mr = [const movingregion value(((0.0 100.0 TRUE TRUE) 
+    ((((0.0 0.0 0.0 0.0) 
+       (0.0 1.0 0.0 1.0) 
+       (1.0 1.0 1.0 1.0) 
+       (1.0 0.0 1.0 0.0))))))];
+       
+    let t0 = -50.0;
+    let t1 = 150.0;
+    let step = (abs(t1 - t0)) / 10.0;
+
+    let times = realstream(t0, t1, step) 
+        use[fun(t: real) create_instant(t)] transformstream consume;
+
+    query times feed transformstream 
+        use[fun(t: instant) val(mr atinstant t)] transformstream consume;
+        
+    Die letzte Query liefert ein falsches Ergebnis:
+    
+    (
+    (rel 
+        (tuple 
+            (
+                (elem region)))) 
+    (
+        (
+            ()) 
+        (
+            ()) 
+        (
+            ()) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0)))))))
+    
+    Richtig ist aber:
+    
+    (
+    (rel 
+        (tuple 
+            (
+                (elem region)))) 
+    (
+        (
+            ()) 
+        (
+            ()) 
+        (
+            ()) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            (
+                (
+                    (
+                        (1.0 0.0) 
+                        (0.0 0.0) 
+                        (0.0 1.0) 
+                        (1.0 1.0))))) 
+        (
+            ()) 
+        (
+            ()) 
+        (
+            ())))
+            
+    Das Problem hängt offenbar mit der Methode Region::SetDefined zusammen,
+    die nichts tut. 
+    
+    inline void SetDefined( bool defined )
+    {
+        if (!defined)
+            Clear();
+    }
+    
+    löst das Problem erstmal. 
+    Vermutlich ist das aber etwas tieferliegendes...
+    
+********************************************************************************
+    
+
+7	Bug in Region::GetNewFaceNo: 
 
 	Liefert im allgemeinen ein falsches Ergebnis.
 
