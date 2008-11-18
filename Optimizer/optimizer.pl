@@ -3003,16 +3003,19 @@ It is assumed that only a single operator of this kind occurs within the term.
 */
 
 
+/*
+% work-around code:
 cost(rel(Rel, _), _, Size, 0) :-
          write('\n>>>>>>>opt_002 FIXME\n'), nl,
   dcName2internalName(RelDC,Rel),
   card(RelDC, Size).
+*/
 
-/*
+% original code:
 cost(rel(Rel, _), _, Size, 0) :-
          write('\n>>>>>>>opt_002 FIXME\n'), nl,
   card(Rel, Size).
-*/
+
 
 cost(res(N), _, Size, 0) :-
   resultSize(N, Size).
@@ -4332,7 +4335,8 @@ Translate and store a single relation definition.
 
 lookupRel(Rel as Var, Y) :-
   dcName2externalName(Rel2,Rel),
-  relation(Rel, _), !,
+% relation(Rel, _), !,            %% original code FIXME
+  relation(Rel2, _), !,           %% changed code FIXME
   ( variable(Var, _)
     -> ( write_list(['\nERROR:\tLooking up query: Doubly defined variable ',Var,
                      '.']), nl,
