@@ -402,7 +402,7 @@ Result   : TRUE
 Operator : sendtextUDP
 Number   : 1
 Signature: {string|text}^n -> text, 3<=n<=5
-Example  : query sendtextUDP("Hello World!", '132.176.69.64', '5678', "", "5678") = "OK. 12 bytes sent."
+Example  : query sendtextUDP("Hello World!", '132.176.69.64', '5678', "", "4321") = "OK. 12 bytes sent."
 Result   : TRUE
 
 Operator : receivetextUDP
