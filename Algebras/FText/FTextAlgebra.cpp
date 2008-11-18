@@ -2946,7 +2946,6 @@ Any status and error messages from the session are appended to the result text
 
 */
 
-// Helper function -- closes a socket
 template<class T1, class T2, class T3, class T4, class T5>
 int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
                                Word& local, Supplier s )
@@ -3019,7 +3018,12 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
     status << "ERROR: localPort unspecified.";
     correct = false;
   }
-  // return message on error due to any UNDEFINED parameter
+  // ensure diffrent sender and receiver address
+  if( (myIP == OtherIP) && (myPort == OtherPort) ){
+    status << "ERROR: sender and receiver address identical.";
+    correct = false;
+  }
+  // return message on error due to any ERROR in parameters
   if(!correct){
     Res->Set( true, status.str() );
     return 0;
@@ -3039,6 +3043,13 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
   if ( !remoteAddress.isOk() ) {
     status << "ERROR: Failed creating remote address ("
         << remoteAddress.getErrorText() << ").";
+    Res->Set( true, status.str() );
+    return 0;
+  }
+  // ensure diffrent sender and receiver address
+  if(     ( localAddress.getIP() == remoteAddress.getIP() )
+       && ( localAddress.getPort() == remoteAddress.getPort() ) ){
+    status << "ERROR: sender and receiver address identical.";
     Res->Set( true, status.str() );
     return 0;
   }
@@ -3067,10 +3078,8 @@ int FTextValueMapSendTextUDP( Word* args, Word& result, int message,
   } else{
     status << "OK. " << sent_len << " bytes sent.";
   }
-  localSock.close();
-  Res->Set( true, status.str() );
-  return 0;
   // close socket and return status
+  localSock.close();
   Res->Set( true, status.str() );
   return 0;
 }
