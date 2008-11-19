@@ -3107,7 +3107,7 @@ bool URegionEmb::AddSegment(
     unsigned int cycleno,
     unsigned int segmentno,
     unsigned int partnerno,
-    double intervalLen,
+    DateTime& intervalLen,
     ListExpr start,
     ListExpr end) {
 
@@ -3315,7 +3315,7 @@ Same for the final instant.
 If we have a point time interval, degeneration is not allowed.
 
 */
-            if (nearlyEqual(intervalLen, 0.0)
+            if (intervalLen.IsZero()
                 && (dms.GetDegeneratedInitialNext() >= 0
                     || dms.GetDegeneratedFinalNext() >= 0)) {
                 stringstream msg;
@@ -3340,7 +3340,7 @@ If we have a point time interval, degeneration is not allowed.
                     << " "
                     << dms.GetFinalEndY();
                 throw invalid_argument(msg.str());
-            } else if (!nearlyEqual(intervalLen, 0.0)
+            } else if (!intervalLen.IsZero()
                      && dms.GetDegeneratedInitialNext() >= 0
                      && dms.GetDegeneratedFinalNext() >= 0) {
                 stringstream msg;
@@ -3375,7 +3375,7 @@ $(x, y, t)$, this is equivalent to the intersection of two trapeziums.
 */
             unsigned int detailedResult;
 
-            if (specialTrapeziumIntersects(intervalLen,
+            if (specialTrapeziumIntersects(intervalLen.ToDouble(),
                                            existingDms.GetInitialStartX(),
                                            existingDms.GetInitialStartY(),
                                            existingDms.GetInitialEndX(),
@@ -3444,7 +3444,7 @@ Add half segments to $cr$ and $rDir$ for region check and direction
 computation.
 
 */
-        double t = nearlyEqual(intervalLen, 0.0) ? 0 : 0.5;
+        double t = intervalLen.IsZero() ? 0 : 0.5;
         double xs =
             dms.GetInitialStartX()
             +(dms.GetFinalStartX()-dms.GetInitialStartX())*t;
@@ -5287,7 +5287,7 @@ See there for more details.
 
     Interval<Instant> tinterval(*start, *end, lc, rc);
 
-    double intervalLen = end->ToDouble()-start->ToDouble();
+    DateTime  intervalLen = *end-*start;
 
     delete start;
     delete end;
@@ -5299,6 +5299,8 @@ any.
 */
     URegionEmb* uregion = new URegionEmb(tinterval, segmentsStartPos);
 
+    
+    int pointno = -1;
     unsigned int faceno = 0;
     unsigned int partnerno = 0;
     ListExpr faces = nl->Second(instance);
@@ -5330,7 +5332,6 @@ any.
         }
 
         unsigned int cycleno = 0;
-        unsigned int pointno = 0;
 
         while (!nl->IsEmpty(cycles)) {
             if (MRA_DEBUG)

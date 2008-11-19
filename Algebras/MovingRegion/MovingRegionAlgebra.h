@@ -625,7 +625,7 @@ description below for details.
         unsigned int cycleno,
         unsigned int segmentno,
         unsigned int partnerno,
-        double intervalLen,
+        DateTime& intervalLen,
         ListExpr start,
         ListExpr end);
 
