@@ -1344,8 +1344,17 @@ This Operator divides a DateTime by another dateTime
 
 */
 double DateTime::operator/(const DateTime T2)const{
-  double myms = (double)(day*MILLISECONDS+milliseconds);
-  double T2ms =  (double)(T2.day*MILLISECONDS+T2.milliseconds);
+  uint64_t u1 = day;
+  uint64_t u2 = MILLISECONDS;
+  uint64_t u3 = milliseconds;
+  uint64_t sum = u1*u2+u3;  
+
+  double myms = (double)(sum);
+   
+  u1 = T2.day;
+  u3 = T2.milliseconds;
+
+  double T2ms =  (double)(u1*u2+u3);
   return myms / T2ms;
 }
 
