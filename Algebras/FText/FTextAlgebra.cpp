@@ -79,17 +79,12 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "Symbols.h"
 #include "SecondoSMI.h"
 
-// for operators sendtextUDP, receivetextUDP
-//#include "DateTime.h"
-//#include <stdio.h>
-//#include <unistd.h>
 #include "SocketIO.h"
-//#ifdef SECONDO_WIN32
-//#include "../../ClientServer/Win32Socket.h"
-//#else //Linux
-//#include "../../ClientServer/UnixSocket.h"
-//#endif
-// end for operators sendtextUDP, receivetextUDP
+#include <math.h>
+#include <time.h>
+#include <sys/timeb.h>
+#include "LogMsg.h"
+#include <limits>
 
 extern NestedList *nl;
 extern QueryProcessor *qp;
@@ -1222,6 +1217,48 @@ ListExpr FTextTypeReceiveTextUDP( ListExpr args )
             NList(NList(symbols::TUPLE),resTupleType)));
   return resType.listExpr();
 }
+
+/*
+Type Mapping Function for ~receivetextUDP~
+
+----
+{string|text} x {string|text} x real x real->
+{stream(tuple((Ok bool)
+                   (Msg text)
+                   (ErrMsg string)
+                   (SenderIP string)
+                   (SenderPort string)
+                   (SenderIPversion string)
+                  )
+            )
+
+----
+
+*/
+ListExpr FTextTypeReceiveTextStreamUDP( ListExpr args )
+{
+  NList type(args);
+  int noargs = nl->ListLength(args);
+  if(    (noargs !=4 )
+      || (type.first()  != symbols::TEXT && type.first()  != symbols::STRING)
+      || (type.second() != symbols::TEXT && type.second() != symbols::STRING)
+      || (type.third()  != symbols::REAL)
+      || (type.fourth() != symbols::REAL) ) {
+    return NList::typeError("Expected {string|text} x "
+                            "{string|text} x real x real.");
+  }
+  NList resTupleType = NList(NList("Ok"),NList(symbols::BOOL)).enclose();
+  resTupleType.append(NList(NList("Msg"),NList(symbols::TEXT)));
+  resTupleType.append(NList(NList("ErrMsg"),NList(symbols::STRING)));
+  resTupleType.append(NList(NList("SenderIP"),NList(symbols::STRING)));
+  resTupleType.append(NList(NList("SenderPort"),NList(symbols::STRING)));
+  resTupleType.append(NList(NList("SenderIPversion"),NList(symbols::STRING)));
+  NList resType =
+      NList(NList(NList(symbols::STREAM),
+            NList(NList(symbols::TUPLE),resTupleType)));
+  return resType.listExpr();
+}
+
 
 /*
 3.3 Value Mapping Functions
@@ -3338,6 +3375,244 @@ int FTextSelectReceiveTextUDP( ListExpr args )
 
 
 /*
+Operator ~receivetextstreamUDP~
+
+*/
+
+struct FTextValueMapReceiveTextStreamUDPLocalInfo{
+  bool       finished;
+  double     localTimeout;
+  double     globalTimeout;
+  bool       hasGlobalTimeout;
+  bool       hasLocalTimeout;
+  double     initial;
+  double     final;
+  UDPaddress localAddress;
+  UDPsocket  my_socket;
+  TupleType *resultTupleType;
+};
+
+template<class T1, class T2>
+int FTextValueMapReceiveTextStreamUDP( Word* args, Word& result, int message,
+                                       Word& local, Supplier s )
+{
+  FTextValueMapReceiveTextStreamUDPLocalInfo *li;
+
+  CcBool    *ccOk             = 0;
+  FText     *ccMsg            = 0;
+  CcString  *ErrMsg           = 0;
+  CcString  *SenderIP         = 0;
+  CcString  *SenderPort       = 0;
+  CcString  *SenderIPversion  = 0;
+  Tuple     *newTuple         = 0;
+
+  bool   m_Ok              = true;
+  string m_Msg             = "";
+  string m_ErrMsg          = "";
+
+  T1* CcMyIP          = static_cast<T1*>(args[0].addr);
+  T2* CcMyPort        = static_cast<T2*>(args[1].addr);
+  CcReal* CcRltimeout = static_cast<CcReal*>(args[2].addr);
+  CcReal* CcRgtimeout = static_cast<CcReal*>(args[3].addr);
+
+  string myIP("");
+  string myPort("");
+  int iMyPort = 0;
+  ostringstream status;
+
+  UDPaddress senderAddress;
+
+  double timeoutSecs = 0.0;
+
+  switch( message )
+  {
+    case OPEN:{
+      li = new FTextValueMapReceiveTextStreamUDPLocalInfo;
+      li->finished      = true;
+      li->localTimeout  = 0.0;
+      li->globalTimeout = 0.0;
+      li->localTimeout  = 0.0;
+      li->globalTimeout = 0.0;
+      struct timeb tb;
+      ftime(&tb);                        // get current time
+      li->initial = tb.time;
+      li->final   = tb.time;
+      li->hasGlobalTimeout = false;
+      li->hasLocalTimeout  = false;
+
+      local.setAddr( li );
+
+      li->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+
+      // get arguments
+      if (!CcMyIP->IsDefined()){ // get own IP
+        status << "LocalIP undefined. ";
+        m_Ok = false;
+      }else{
+        myIP = CcMyIP->GetValue();
+      }
+      if(!CcMyPort->IsDefined()){ // get own port
+        status << "LocalPort undefined. ";
+        m_Ok = false;
+      }else{
+        myPort = CcMyPort->GetValue();
+      }
+      if( (!FromString<int> (myPort,iMyPort))
+            || (iMyPort < 1024)
+            || (iMyPort > 65536)) {
+        status << "LocalPort " << iMyPort
+            << " is no valid port number. ";
+        m_Ok = false;
+      }
+      // local timeout
+      if(CcRltimeout->IsDefined()){ // get timeout
+        li->localTimeout = CcRltimeout->GetRealval();
+      }
+      if(li->localTimeout > 0.0){
+        li->hasLocalTimeout = true;
+        cout << "INFO: receivetextstreamUDP: Local Timeout = "
+             << li->localTimeout
+             << " secs." << endl;
+      } else {
+        li->hasLocalTimeout = false;
+        cout << "INFO: receivetextstreamUDP: No local timeout." << endl;
+      }
+      // global timeout
+      if(CcRgtimeout->IsDefined()){ // get timeout
+        li->globalTimeout = CcRgtimeout->GetRealval();
+      }
+      if(li->globalTimeout > 0.0){
+        li->hasGlobalTimeout = true;
+        cout << "INFO: receivetextstreamUDP: Global Timeout = "
+             << li->globalTimeout
+             << " secs." << endl;
+      } else {
+        li->hasGlobalTimeout = false;
+        cout << "INFO: receivetextstreamUDP: "
+            << "No global timeout (Endless stream!)." << endl;
+      }
+      // correct timeout arguments
+      li->localTimeout = min(li->localTimeout,li->globalTimeout);
+      li->hasLocalTimeout = (li->localTimeout <= li->globalTimeout);
+      if(li->hasGlobalTimeout){
+        li->final = li->initial + li->globalTimeout;
+      }
+      // define address for local datagram socket:
+      if(m_Ok){
+        li->localAddress = UDPaddress(myIP,myPort);
+        if ( !(li->localAddress.isOk()) ) {
+          status << li->localAddress.getErrorText() << ".";
+          m_Ok = false;
+        }
+      }
+      if(m_Ok){
+      // create the socket
+        li->my_socket = UDPsocket(li->localAddress);
+        if(!li->my_socket.isOk()){
+          status << li->my_socket.getErrorText() << ".";
+          m_Ok = false;
+        }
+      // bind socket to local port
+        if(m_Ok && !li->my_socket.bind()){
+          status << li->my_socket.getErrorText() << ".";
+          m_Ok = false;
+        }
+      }
+      li->finished = !m_Ok;
+      if(!m_Ok){
+        cerr << "ERROR: " << status.str() << endl;
+      }
+      return 0;
+    }
+
+    case REQUEST:{
+      // check whether already finished
+      if (local.addr == 0){
+        return CANCEL;
+      }
+      li = (FTextValueMapReceiveTextStreamUDPLocalInfo*) local.addr;
+      if( li->finished ){
+        return CANCEL;
+      }
+      // handle global and local timeouts
+      timeb now;
+      ftime(&now);                      // get current time
+      if(li->hasGlobalTimeout && (li->final <= now.time) ){
+        status << "Global Timeout.";
+        li->finished = true;
+        m_Ok = false;
+      } else if(!li->hasGlobalTimeout && !li->hasLocalTimeout){
+        timeoutSecs = 0.0; // blocking - wait forever
+      } else if(li->hasGlobalTimeout && !li->hasLocalTimeout){
+        timeoutSecs = (li->final - now.time); // remainder of global timeout
+      } else if(!li->hasGlobalTimeout && li->hasLocalTimeout){
+          timeoutSecs = li->localTimeout; // set local timeout;
+      } else if(li->hasGlobalTimeout && li->hasLocalTimeout){
+        timeoutSecs = min( li->localTimeout, (li->final - now.time) );
+      } else {
+        status << "ERROR: Something's wrong.";
+        m_Ok = false;
+        li->finished = true;
+      }
+      // receive a message
+      if(m_Ok){
+        m_Msg = li->my_socket.readFrom(senderAddress,timeoutSecs);
+        if( !(li->my_socket.isOk()) ){
+          status << li->my_socket.getErrorText();
+          m_Ok = false;
+        }
+      }
+      // create result tuple
+      m_ErrMsg = status.str(); // get error messages
+      ccOk            = new CcBool(true, m_Ok);
+      ccMsg           = new FText((m_Msg.length() > 0), m_Msg);
+      ErrMsg          = new CcString(true, m_ErrMsg);
+      SenderIP        = new CcString(senderAddress.getIP() != "",
+                                     senderAddress.getIP());
+      SenderPort      = new CcString(senderAddress.getPort() != "",
+                                     senderAddress.getPort());
+      SenderIPversion = new CcString(senderAddress.getFamily() != "",
+                                     senderAddress.getFamily());
+      newTuple        = new Tuple( li->resultTupleType );
+      newTuple->PutAttribute(  0,(StandardAttribute*)ccOk);
+      newTuple->PutAttribute(  1,(StandardAttribute*)ccMsg);
+      newTuple->PutAttribute(  2,(StandardAttribute*)ErrMsg);
+      newTuple->PutAttribute(  3,(StandardAttribute*)SenderIP);
+      newTuple->PutAttribute(  4,(StandardAttribute*)SenderPort);
+      newTuple->PutAttribute(  5,(StandardAttribute*)SenderIPversion);
+      result.setAddr(newTuple);
+      return YIELD;
+    }
+
+    case CLOSE:{
+      if (local.addr != 0){
+        li = (FTextValueMapReceiveTextStreamUDPLocalInfo*) local.addr;
+        if (!li->my_socket.close()){
+          cerr << "ERROR: " << li->my_socket.getErrorText() << "." << endl;
+        }
+        li->resultTupleType->DeleteIfAllowed();
+        li->resultTupleType = 0;
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  /* should not happen */
+  return -1;
+}
+
+
+ValueMapping FText_VMMap_MapReceiveTextStreamUDP[] =
+{
+  FTextValueMapReceiveTextStreamUDP<CcString,CcString>,  // 0
+  FTextValueMapReceiveTextStreamUDP<CcString,FText   >,  // 1
+  FTextValueMapReceiveTextStreamUDP<FText,   CcString>,  // 2
+  FTextValueMapReceiveTextStreamUDP<FText,   FText   >   // 3
+};
+
+
+/*
 3.4 Definition of Operators
 
 */
@@ -3653,9 +3928,9 @@ const string FTextSendTextUDPSpec  =
     "( <text>{string|text}^n -> text, 3<=n<=5</text--->"
     "<text>sendtextUDP( message, remoteIP, remotePort [, myIP [, myPort] ] )"
     "</text--->"
-    "<text>Sends 'message' to 'remotePort' to host 'remoteIP' using 'myPort' \n"
-    "on 'myIP' as the sender address/port and returns a text with a send \n"
-    "status report. If optional parameters are omitted or are empty, standard\n"
+    "<text>Sends 'message' to 'remotePort' to host 'remoteIP' using 'myPort' "
+    "on 'myIP' as the sender address/port and returns a text with a send "
+    "status report. If optional parameters are omitted or are empty, standard "
     "parameters will be used automatically. DNS is used to lookup for host"
     "names. Used the UDP connection-less protocol.</text--->"
     "<text>query sendtextUDP(\"Hello World!\", '127.0.0.0', '2626')</text--->"
@@ -3663,19 +3938,39 @@ const string FTextSendTextUDPSpec  =
 
 const string FTextReceiveTextUDPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>{string|text} x {string|text} x real -> stream(tuple(\n"
-    "(Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)\n"
+    "( <text>{string|text} x {string|text} x real -> stream(tuple("
+    "(Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)"
     "(SenderIPversion string)))</text--->"
     "<text>receivetextUDP( myIP, myPort, timeout )"
     "</text--->"
-    "<text>Tries to receive a UDP-message to 'myPort' under local address\n"
-    "'myIP' for a duration up to 'timeout' seconds. Parameter 'myIP'\n"
-    "is looked up automatically, being an empty string/text. DNS is used to \n"
-    "lookup for host names. Negative 'timeout' values will deactive the \n"
-    "timeout, possibly waiting forever. The result is a stream with a single \n"
-    "tuple containing an OK-flag, the message, an error message, the \n"
+    "<text>Tries to receive a UDP-message to 'myPort' under local address "
+    "'myIP' for a duration up to 'timeout' seconds. Parameter 'myIP' "
+    "is looked up automatically, being an empty string/text. DNS is used to "
+    "lookup for host names. Negative 'timeout' values will deactive the "
+    "timeout, possibly waiting forever. The result is a stream with a single "
+    "tuple containing an OK-flag, the message, an error message, the "
     "sender's IP and port, and its IP-version.</text--->"
     "<text>query receivetextUDP(\"\",'2626',0.01) tconsume</text--->"
+    ") )";
+
+const string FTextReceiveTextStreamUDPSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>{string|text} x {string|text} x real x real -> stream(tuple("
+    "(Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)"
+    "(SenderIPversion string)))</text--->"
+    "<text>receivetextstreamUDP( myIP, myPort, localTimeout, globalTimeout )"
+    "</text--->"
+    "<text>Tries to receive a series of UDP-messages to 'myPort' under local "
+    "address 'myIP' for a duration up to 'localTimeout' seconds each. "
+    "Terminates after a total time of 'globalTimeout'. Parameter 'myIP' "
+    "is looked up automatically, being an empty string/text. DNS is used to "
+    "lookup for host names. Negative 'timeout' values will deactive the "
+    "timeout, possibly waiting forever. The result is a stream with a single "
+    "tuple containing an OK-flag, the message, an error message, the "
+    "sender's IP and port, and its IP-version. Can also be used to create a "
+    "sequence of 'events' with a selected frequecy. You can use the 'cancel' "
+    "operator to wait for 'magic messages' terminating the stream.</text--->"
+    "<text>query receivetextstreamUDP(\"\",'2626',1.0, 10.0) tconsume</text--->"
     ") )";
 
 /*
@@ -3975,6 +4270,15 @@ Operator ftreceivetextUDP
     FTextTypeReceiveTextUDP
     );
 
+Operator ftreceivetextstreamUDP
+    (
+    "receivetextstreamUDP",
+    FTextReceiveTextStreamUDPSpec,
+    4,
+    FText_VMMap_MapReceiveTextStreamUDP,
+    FTextSelectReceiveTextUDP,
+    FTextTypeReceiveTextStreamUDP
+    );
 
 /*
 5 Creating the algebra
@@ -4023,6 +4327,7 @@ public:
     AddOperator( &chartext );
     AddOperator( &ftsendtextUDP );
     AddOperator( &ftreceivetextUDP );
+    AddOperator( &ftreceivetextstreamUDP );
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';

@@ -411,3 +411,9 @@ Signature: {string|text} x {string|text} x real -> stream(tuple((Ok bool)(Msg te
 Example  : query receivetextUDP("",'2626',0.01) extract[ErrMsg] = 'Timeout.'
 Result   : TRUE
 
+Operator : receivetextstreamUDP
+Number   : 1
+Signature: {string|text} x {string|text} x real x real -> stream(tuple((Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)(SenderIPversion string)))
+Example  : query receivetextstreamUDP("",'2626',0.08,5.0) count >= 50
+Result   : TRUE
+
