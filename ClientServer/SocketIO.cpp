@@ -929,6 +929,17 @@ UDPsocket::UDPsocket(const UDPaddress &address)
   __UDP_EXIT__
 }
 
+UDPsocket::UDPsocket(const UDPsocket &sock)
+{
+  status = sock.status;
+  connected = sock.connected;
+  ok = sock.ok;
+  mySocket = sock.mySocket;
+  partnerAddress = sock.partnerAddress;
+  myAddress = sock.myAddress;
+  errorMsg = sock.errorMsg;
+}
+
 UDPsocket::~UDPsocket()
 {__UDP_ENTER__
   if( (status != UDPFRESH) && (status != UDPVOID) ){
@@ -1391,6 +1402,20 @@ bool UDPsocket::close()
   status    = UDPFRESH;
   __UDP_EXIT__
   return ok;
+}
+
+UDPsocket& UDPsocket::operator=(const UDPsocket& sock)
+{
+  if( this != &sock ){
+    status    = sock.status;
+    connected = sock.connected;
+    ok        = sock.ok;
+    mySocket  = sock.mySocket;
+    partnerAddress = sock.partnerAddress;
+    myAddress = sock.myAddress;
+    errorMsg  = sock.errorMsg;
+  }
+  return (*this);
 }
 
 ostream& UDPsocket::Print(ostream &o) const

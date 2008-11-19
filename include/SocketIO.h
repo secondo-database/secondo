@@ -1004,6 +1004,12 @@ UDPVOID (if ~address~ in invalid) or UDPFRESH.
 
 */
 
+  UDPsocket(const UDPsocket &sock);
+/*
+Copy constructor
+
+*/
+
     ~UDPsocket();
 
     bool bind();
@@ -1172,6 +1178,12 @@ Does not change ~status~, ~ok~ or ~errorMsg~.
 Returns the sockets's state.
 
 Does not change ~status~, ~ok~ or ~errorMsg~.
+
+*/
+
+    UDPsocket& operator=(const UDPsocket& sock);
+/*
+Assignment operator
 
 */
 
