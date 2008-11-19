@@ -1222,12 +1222,15 @@ struct FeedProjectInfo : OperatorInfo {
   FeedProjectInfo() : OperatorInfo()
   {
     name =      symbols::FEEDPROJECT;
+
     signature = "rel(tuple(a_1 ... a_n)) x (a_i1 ... a_ik)\n"
                 "-> stream(tuple(a_i1 ... a_ik))";
     syntax =    "_ feedproject[ _ ]";
     meaning =   "Creates a stream of tuples from a given relation "
                 " and project them to the given list of attributes.";
     example =   "plz feedproject[PLZ] count";
+
+    supportsProgress = true;
   }
 
 };
@@ -1241,7 +1244,6 @@ ListExpr feedproject_tm(ListExpr args)
   const string opName = symbols::FEEDPROJECT;
   const string arg1 = "rel(tuple(...)";
   const string arg2 = "list of unique symbols (a_1 ... a_k)";
-  cerr << opName << ": " << l << endl;
 
   string err1("");
   if ( !l.checkLength(2, err1) )
@@ -1251,7 +1253,7 @@ ListExpr feedproject_tm(ListExpr args)
   if ( !l.first().checkRel( attrs ) )
     return l.typeError(1, arg1);
 
-  cerr << "a1 " << attrs << endl;
+  //cerr << "a1 " << attrs << endl;
 
   NList atoms = l.second();
   if ( !l.checkSymbolList( atoms ) )
@@ -1269,7 +1271,7 @@ ListExpr feedproject_tm(ListExpr args)
   {
     string attrname = atoms.first().str();
     ListExpr attrtype = nl->Empty();
-    cerr << "a2 " << attrs << endl;
+    //cerr << "a2 " << attrs << endl;
     int newIndex = FindAttribute( oldAttrs.listExpr(), attrname, attrtype );
 
     if (newIndex > 0)
@@ -1291,102 +1293,51 @@ ListExpr feedproject_tm(ListExpr args)
                          NList( NList( noAtoms ), indices ), 
 			 NList().tupleStreamOf( newAttrs ) );
 
-  cerr << outlist << endl;
-
   return outlist.listExpr();
 }
 
 
 
-  /*
-int
-Project(Word* args, Word& result, int message,
-        Word& local, Supplier s)
+class FeedProjLocalInfo : public FeedLocalInfo
 {
-  ProjectLocalInfo *pli=0;
-  Word elem1(Address(0));
-  Word elem2(Address(0));
-  int noOfAttrs= 0;
-  int index= 0;
-  Supplier son;
-
-  switch (message)
-  {
-    case OPEN:{
-
-      pli = (ProjectLocalInfo*) local.addr;
-      if ( pli ) delete pli;
-
-      pli = new ProjectLocalInfo();
-      pli->tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
-      local.setAddr(pli);
-
-      qp->Open(args[0].addr);
-      return 0;
+  public:	
+    FeedProjLocalInfo(TupleType* ptr) : tt(ptr) 
+    { 
+       returned = 0; 
+       progressInitialized = false; 
     }
-    case REQUEST:{
+    ~FeedProjLocalInfo() { delete tt; tt = 0; }
 
-      pli = (ProjectLocalInfo*) local.addr;
-
-      qp->Request(args[0].addr, elem1);
-      if (qp->Received(args[0].addr))
-      {
-        pli->read++;
-        Tuple *t = new Tuple( pli->tupleType );
-
-        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
-        assert( t->GetNoAttributes() == noOfAttrs );
-
-        for( int i = 0; i < noOfAttrs; i++)
-        {
-          son = qp->GetSupplier(args[3].addr, i);
-          qp->Request(son, elem2);
-          index = ((CcInt*)elem2.addr)->GetIntval();
-          t->CopyAttribute(index-1, (Tuple*)elem1.addr, i);
-        }
-        ((Tuple*)elem1.addr)->DeleteIfAllowed();
-        result.setAddr(t);
-        return YIELD;
-      }
-      else return CANCEL;
-    }
-    case CLOSE: {
-
-      // Note: object deletion is done in repeated OPEN or CLOSEPROGRESS
-      qp->Close(args[0].addr);
-      return 0;
-
-    }
-  */
+  private:
+    const TupleType* tt;
+};	
 
 
 int
 feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   GenericRelation* r=0;
-  FeedLocalInfo* fli=0;
+  FeedProjLocalInfo* fli=0;
   Supplier sonOfFeed;
-
 
   switch (message)
   {
     case OPEN :{
       r = (GenericRelation*)args[0].addr;
 
-      fli = (FeedLocalInfo*) local.addr;
+      fli = (FeedProjLocalInfo*) local.addr;
       if ( fli ) delete fli;
 
-      fli = new FeedLocalInfo();
-      fli->returned = 0;
-      fli->total = r->GetNoTuples();
       TupleType* tt = new TupleType(nl->Second(GetTupleResultType(s)));
+
+      fli = new FeedProjLocalInfo(tt);
+      fli->total = r->GetNoTuples();
       fli->rit = r->MakeScan(tt);
-      fli->progressInitialized = false;
       local.setAddr(fli);
       return 0;
     }
     case REQUEST :{
-      fli = (FeedLocalInfo*) local.addr;
+      fli = (FeedProjLocalInfo*) local.addr;
       Tuple *t;
       
         Supplier son;
@@ -1419,7 +1370,7 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
         // Note: object deletion is handled in OPEN and CLOSEPROGRESS
         // keep the local info structure since it may still be
         // needed for handling progress messages.
-      fli = static_cast<FeedLocalInfo*>(local.addr);
+      fli = static_cast<FeedProjLocalInfo*>(local.addr);
       if(fli){
         if(fli->rit){
           delete fli->rit;
@@ -1431,7 +1382,7 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSEPROGRESS:{
 
       sonOfFeed = qp->GetSupplierSon(s, 0);
-      fli = (FeedLocalInfo*) local.addr;
+      fli = (FeedProjLocalInfo*) local.addr;
       if ( fli )
       {
          delete fli;
@@ -1454,7 +1405,7 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
       pRes = (ProgressInfo*) result.addr;
-      fli = (FeedLocalInfo*) local.addr;
+      fli = (FeedProjLocalInfo*) local.addr;
       sonOfFeed = qp->GetSupplierSon(s, 0);
 
       if ( fli )
