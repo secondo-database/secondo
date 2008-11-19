@@ -629,7 +629,282 @@ int cluster_cFun (Word* args, Word& result, int message, Word& local,
     }
  }
  return -1; // should never be reached
+}
 
+
+class ClusterG_LocalInfo{
+public:
+/*
+~Constructor~
+
+Creates a new local info from the value coming from the value mapping.
+
+*/
+
+  ClusterG_LocalInfo(Points* pts, CcInt* minPts, CcReal* eps){
+     if(!pts->IsDefined() || !minPts->IsDefined() || !eps->IsDefined()){
+         defined = false;
+         return;
+     }
+     this->pts = pts;
+     this->minPts = max(0,minPts->GetIntval());
+     this->eps =  eps->GetRealval();
+     this->eps2 = this->eps*this->eps;
+     defined = true;
+     size = pts->Size();
+     no = new int[size];
+     pos = 0;
+     // set all points to be  UNCLASSIFIED
+     // and clean all sets
+     for(int i=0;i<size;i++){
+       no[i] = UNCLASSIFIED;
+     }
+     createTree();
+     pos = 0;
+     clusterId = 1;
+  }
+
+/*
+~Destructor~
+
+*/
+ ~ClusterG_LocalInfo(){
+    if(defined){
+       delete[] no;
+       delete tree;
+     }
+  }
+
+/*
+~getNext~
+
+Returns the next cluster as points value.
+
+*/
+ Points* getNext(){
+    if(!defined){ // no next cluster available
+        return 0;
+    }
+    // search the next unclassified point
+    while(pos<size){
+       if(no[pos] >= 0 ){ // point already classified
+         pos++;
+       } else {
+          set<int>* env = getEnv(pos);
+          unsigned int size = env->size();
+          delete env;
+          if ( size<minPts){
+              no[pos] = -2; // mark as NOISE
+              pos++;
+          } else {
+             // create a new cluster
+             Points* result = expand(pos);
+             clusterId++;
+             pos++;
+             return result;
+         }
+       }
+    }
+    return 0;
+ }
+
+
+private:
+/*
+~Members~
+
+*/
+
+  Points* pts;         // source points value
+  unsigned int minPts; // minimum size for core points
+  double eps;          // epsilon
+  double eps2;         // epsilon * epsilon
+  bool  defined;       
+  int* no;             // cluster number
+  int size;            // number of points
+  int pos;             // current position
+  int clusterId;       // current cluster id
+  mmrtree::Rtree<2>* tree;
+
+  static const int UNCLASSIFIED = -1;
+  static const int NOISE = -2;
+
+  void createTree(){
+     tree = new mmrtree::Rtree<2>(10,30);
+     const Point* p;
+     double min1[2];
+     double max1[2];
+
+     /* insert all contained points into an R- tree */
+     for(int i=0;i<pts->Size();i++){
+        pts->Get(i,p);
+        double x = p->GetX();
+        double y = p->GetY();
+        min1[0] = x - FACTOR;
+        min1[1] = y - FACTOR;
+        max1[0] = x + FACTOR;
+        max1[1] = y - FACTOR;
+        Rectangle<2> box(true,min1,max1);
+        tree->insert(box, i);
+     }
+  }
+
+  set<int>* getEnv(int pos){  
+     set<int>* res = new set<int>();
+     const Point* p;
+     pts->Get(pos,p);
+     set<long> cands;
+     double x = p->GetX();
+     double y = p->GetY();
+     double min1[2];
+     double max1[2];
+     min1[0] = x-eps;
+     min1[1] = y-eps;
+     max1[0] = x+eps;
+     max1[1] = y+eps;
+     Rectangle<2> searchbox(true, min1,max1);
+     tree->findAll(searchbox,cands);
+     set<long>::iterator it;
+     for(it = cands.begin(); it!=cands.end(); it++){
+        const Point* p2;
+        int cand = static_cast<int>(*it);
+        pts->Get(cand,p2);
+        if(qdist(p,p2)<eps2){
+           res->insert(cand);
+        }
+    }
+    return res;
+  }
+
+
+  unsigned int getEnvSize(int pos){  
+     int res = 0;
+     const Point* p;
+     double min1[2];
+     double max1[2];
+     pts->Get(pos,p);
+     set<long> cands;
+     double x = p->GetX();
+     double y = p->GetY();
+     min1[0] = x-eps;
+     min1[1] = y-eps;
+     max1[0] = x+eps;
+     max1[1] = y+eps;
+     Rectangle<2> searchbox(true, min1,max1);
+     tree->findAll(searchbox,cands);
+     set<long>::iterator it;
+     for(it = cands.begin(); it!=cands.end(); it++){
+        const Point* p2;
+        int cand = static_cast<int>(*it);
+        pts->Get(cand,p2);
+        if(qdist(p,p2)<eps2){
+           res++;
+        }
+    }
+    return res;
+  }
+
+/* 
+~qdist~
+
+This function computes the square of the distance between two point value.
+
+
+*/
+double qdist(const Point* p1, const Point* p2){
+  double x1 = p1->GetX();
+  double x2 = p2->GetX();
+  double y1 = p1->GetY();
+  double y2 = p2->GetY();
+  double dx = x1-x2;
+  double dy = y1-y2;
+  return dx*dx + dy*dy;
+}
+
+
+/* 
+~expand~
+
+This function implements the expand algorithm of dbscan.
+
+*/
+
+Points* expand(int pos){
+
+
+  Points* result = new Points(minPts);
+  result->StartBulkLoad();
+
+  set<int>* seeds = getEnv(pos);
+  no[pos] = clusterId;
+  const Point* p;
+  pts->Get(pos,p);
+  (*result) += (*p);
+  seeds->erase(pos);
+  while(!seeds->empty()){
+    int cpos = *(seeds->begin());
+    if(no[cpos]<0){ // not classified by another cluster
+       no[cpos] = clusterId;
+       pts->Get(cpos,p);
+       (*result) += (*p);
+       tree->erase(p->BoundingBox(),cpos);
+       set<int>::iterator it;
+       set<int>* env = getEnv(cpos);
+       for(it = env->begin();it!=env->end(); it++){
+          if(no[*it]<0){
+             if(getEnvSize(*it)>=minPts){ // a core point
+                seeds->insert(*it);
+             } else { // border point
+                no[*it] = clusterId;
+                pts->Get(*it,p);
+                (*result) += *p;
+                tree->erase(p->BoundingBox(),*it);
+             }
+          }
+       }
+       delete env;
+    }
+    seeds->erase(cpos);
+  }
+  result->EndBulkLoad();
+  delete seeds;
+  return result;
+}
+
+};
+
+int cluster_gFun (Word* args, Word& result, int message, Word& local,
+                Supplier s) {
+ switch(message){
+      case OPEN : {
+        Points* pts = static_cast<Points*>(args[0].addr);
+        CcInt* minPts = static_cast<CcInt*>(args[1].addr);
+        CcReal* eps = static_cast<CcReal*>(args[2].addr);
+        local.setAddr(new ClusterG_LocalInfo(pts,minPts,eps));
+        return 0;
+    } case REQUEST : {
+        if(local.addr==0){
+          return CANCEL;
+        }
+        ClusterG_LocalInfo* linfo =
+               static_cast<ClusterG_LocalInfo*>(local.addr);
+
+        Points* hasNext = linfo->getNext();
+        result.setAddr(hasNext);
+        if(hasNext){
+           return YIELD;
+        } else {
+           return CANCEL;
+        }
+    } case CLOSE : {
+        if(local.addr!=0){
+           delete static_cast<ClusterG_LocalInfo*>(local.addr);
+           local.setAddr(0);
+        }
+        return 0;
+    }
+ }
+ return -1; // should never be reached
 }
 
 
@@ -1787,14 +2062,24 @@ const string cluster_bSpec =
 
 */
 const string cluster_cSpec =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-      "\"Example\" ) "
-      "( <text>points x int x real -> stream(points)</text--->"
-      "<text> _ cluster_c [_, _] </text--->"
-      "<text>compute cluster for given minPts"
-      " and epsilon. </text--->"
-      "<text>query Kneipen cluster_b[5,200.0] count</text--->"
-      ") )";
+		"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+		"\"Example\" ) "
+		"( <text>points x int x real -> stream(points)</text--->"
+		"<text> _ cluster_c [_, _] </text--->"
+		"<text>compute cluster for given minPts"
+		" and epsilon. </text--->"
+		"<text>query Kneipen cluster_g[5,200.0] count</text--->"
+		") )";
+
+const string cluster_gSpec =
+		"( ( \"Signature\" \"Syntax\" \"Meaning\" "
+		"\"Example\" ) "
+		"( <text>points x int x real -> stream(points)</text--->"
+		"<text> _ cluster_c [_, _] </text--->"
+		"<text>compute cluster for given minPts"
+		" and epsilon. </text--->"
+		"<text>query Kneipen cluster_g[5,200.0] count</text--->"
+		") )";
 /*
 6.4 Specification string for Operator cluster\_d
 
@@ -1843,6 +2128,14 @@ Operator cluster_c (
       cluster_cFun,           //value mapping
       Operator::SimpleSelect, //trivial selection function
       cluster_c_TM          //type mapping
+);
+
+Operator cluster_g (
+      "cluster_g",            //name
+      cluster_gSpec,          //specification
+      cluster_gFun,           //value mapping
+      Operator::SimpleSelect, //trivial selection function
+      cluster_c_TM          //type mapping // equals to c
 );
 
 /*
@@ -2095,6 +2388,7 @@ public:
     AddOperator ( &cluster_a );
     AddOperator ( &cluster_b );
     AddOperator ( &cluster_c );
+    AddOperator ( &cluster_g );
     AddOperator ( &cluster_d );
     AddOperator ( &cluster_e );
     AddOperator ( &cluster_f );
