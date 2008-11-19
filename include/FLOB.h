@@ -347,14 +347,18 @@ to by ~dest~.
 
 /*
 The functions ~SerializeFD~ and ~RestoreFD~ and ~MetaSize~ are used for storing
-and recreating a FLOBs state from/to a byte sequence. 
+and recreating a FLOBs state from/to a byte sequence.  
+
+Function ~DeleteFD~ is used during Attribute::Rebuild since for a new created empty attribute it's
+FLOBs will already allocate their descriptors. Hence they need to be deleted before they can be
+restored to avoid memory leaks.
 
 */
     size_t RestoreFD(char* src); 
     size_t SerializeFD(char* dest) const; 
     size_t MetaSize() const;
 
-
+    inline void DeleteFD() { delete fd; fd = 0; }
 /*
 The functions ~SaveToRecord~ and ~OpenFromRecord~ can be used to save and restore a FLOB to
 a SmiRecord. 

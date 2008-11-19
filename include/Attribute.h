@@ -396,6 +396,9 @@ the default ~Serialize~ function. The size of the object is  ~sz~
 
       // call the spezialized Rebuild function, if not implemented, the default
       // above will be called.
+      for (int i = 0; i < attr->NumOfFLOBs(); i++) {
+        attr->GetFLOB(i)->DeleteFD();
+      }	      
       attr->Rebuild(state, sz ,am->Cast(algId, typeId));
 
       // Remark: the returned pointer has been created using the new operator!
