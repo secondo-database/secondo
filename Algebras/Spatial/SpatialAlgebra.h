@@ -3307,7 +3307,12 @@ as an attribute.
     }
 
     inline void SetDefined( bool defined )
-    {}
+    {
+        if(!defined){
+          Clear();
+        }
+        del.isDefined = defined;
+    }
 
     inline size_t Sizeof() const
     {
