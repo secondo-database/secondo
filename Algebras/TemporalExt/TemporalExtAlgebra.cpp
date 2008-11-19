@@ -1883,7 +1883,7 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
         usegtemp.unit_nr = i;
         for(int k=0;k<utemp->GetSegmentsNum();k++)
         {
-            utemp->GetSegment(oldsgms, utemp->GetStartPos() + k, oldsmg);
+            utemp->GetSegment(oldsgms,  k, oldsmg);
             oldsmg->restrictToInterval(
                 utemp->timeInterval,
                 temp_intervals[i].str_inst,
