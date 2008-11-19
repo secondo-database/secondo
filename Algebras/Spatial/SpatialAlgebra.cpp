@@ -7038,26 +7038,36 @@ void Region::Rotate( const Coord& x, const Coord& y,
   double m11 = c;
   double m12 = y - x*s-y*c;
 
-
   result.StartBulkLoad();
   const HalfSegment *hso;
   Point p1;
   Point p2;
+  Point p1o;
+  Point p2o;
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hso );
-    p1.Set( m00*hso->GetLeftPoint().GetX()
-            + m01*hso->GetLeftPoint().GetY() + m02,
-            m10*hso->GetLeftPoint().GetX()
-           + m11*hso->GetLeftPoint().GetY() + m12);
-    p2.Set( m00*hso->GetRightPoint().GetX()
-             + m01*hso->GetRightPoint().GetY() + m02,
-             m10*hso->GetRightPoint().GetX()
-             + m11*hso->GetRightPoint().GetY() + m12);
+    p1o = hso->GetLeftPoint();
+    p2o = hso->GetRightPoint();
+    p1.Set( m00*p1o.GetX()
+            + m01*p1o.GetY() + m02,
+            m10*p1o.GetX()
+           + m11*p1o.GetY() + m12);
+    p2.Set( m00*p2o.GetX()
+             + m01*p2o.GetY() + m02,
+             m10*p2o.GetX()
+             + m11*p2o.GetY() + m12);
 
     HalfSegment hsr(*hso); // ensure to copy attr;
     hsr.Set(hso->IsLeftDomPoint(),p1,p2);
+    bool above = hso->attr.insideAbove;
+
+    if(p1>p2)  {
+       above = !above;
+    }
+  
+    hsr.attr.insideAbove = above;
     result += hsr;
   }
   result.EndBulkLoad(true,true,true,false); // reordering may be required
