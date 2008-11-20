@@ -728,7 +728,9 @@ TestRunner::GetCommand()
                   string resultFileStr = parse<string>( restOfLine.substr(1) );
                   cout << "Query result specified in file '" << resultFileStr 
                        << "'" << endl;
-                  nl->ReadFromFile( expandVar(resultFileStr), expectedResult );
+                  bool ok = nl->ReadFromFile( expandVar(resultFileStr), 
+				              expectedResult            );
+		  if (!ok) { RegisterError(); } 
                 }       
                 else if (first=='(')
                 {
