@@ -1446,6 +1446,9 @@ Decides whether a half segment is above a point. This is useful when we want to 
 whether a point is inside a region.
 
 */
+    bool RayDown(const Point& p, double &yIntersection) const;
+
+
     double Distance( const Point& p ) const;
 /*
 Computes the distance from the half segment to the point ~p~.
@@ -3592,6 +3595,9 @@ is a hole of an existing face, or if it is a cycle of a new face.
      return Area();
    }
 
+int GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const;
+
+
 /*
 Returns the region's area.
 The region must be defined!
@@ -4508,6 +4514,7 @@ noComponents( 0 ),
 ordered( true )
 { del.refs=1;
   del.isDelete=true;
+  del.isDefined = true;
 }
 
 inline void Region::Destroy()
