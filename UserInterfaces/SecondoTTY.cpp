@@ -79,7 +79,7 @@ using namespace std;
   #include <readline/readline.h>
   #include <readline/history.h>
   #define HISTORY_FILE ".secondo_history"
-  #define HISTORY_FILE_ENTRIES 100
+  #define HISTORY_FILE_ENTRIES 200
 #endif
 
 #include "Application.h"
@@ -854,7 +854,7 @@ int SecondoTTYMode(const TTYParameter& tp)
      if(start_history <0) start_history=0;
      HIST_ENTRY* he;
      out_history.seekg(0,ios::beg);
-     for(int i=0;i<history_length;i++){ // ignore quit
+     for(int i=start_history;i<history_length;i++){ // ignore quit
         he = history_get(i);
         if(he){
            out_history << he->line << endl << endl;
