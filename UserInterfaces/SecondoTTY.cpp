@@ -822,15 +822,28 @@ int SecondoTTYMode(const TTYParameter& tp)
   ifstream hist_file(HISTORY_FILE);
   string histline;
   if(hist_file){
+    string query("");
     while(!hist_file.eof()){
        getline(hist_file,histline);
        if(histline.find_last_not_of(" \t\n")!=string::npos){
-          add_history(histline.c_str());
+          if(query!=""){
+              query = query + "\n" + histline;
+          } else {
+              query = histline;
+          }
+       } else if(query.length()>0){
+          add_history(query.c_str());
+          query = "";
        }
     }
+    if(query!=""){
+      add_history(query.c_str());
+      query = "";
+    } 
     hist_file.close();
   }
-  ofstream out_history(HISTORY_FILE,ofstream::out | ofstream::trunc );
+  fstream out_history(HISTORY_FILE, ios::out | ios::in);
+  out_history.seekg(0,ios::end);
 #endif
   int rc = appPointer->Execute();
   delete appPointer;
@@ -840,10 +853,12 @@ int SecondoTTYMode(const TTYParameter& tp)
      int start_history = history_length-HISTORY_FILE_ENTRIES;
      if(start_history <0) start_history=0;
      HIST_ENTRY* he;
+     out_history.seekg(0,ios::beg);
      for(int i=0;i<history_length;i++){ // ignore quit
         he = history_get(i);
-        if(he)
-           out_history << he->line << endl;
+        if(he){
+           out_history << he->line << endl << endl;
+        }
      }
      out_history.close();
   }
