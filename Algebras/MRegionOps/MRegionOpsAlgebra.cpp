@@ -39,24 +39,6 @@ using namespace std;
 
 namespace mregionops {
 
-void Test() {
-    
-    Instant t1(instanttype);
-    Instant t12(instanttype);
-    Instant t2(instanttype);
-    
-    t1.ReadFrom(0.0);
-    t12.ReadFrom(5000.0);
-    t2.ReadFrom(10000.0);
-    
-    cout << "t1: " << t1 << endl;
-    cout << "t12: " << t12 << endl;
-    cout << "t2: " << t2 << endl;
-    
-    cout << (t12 - t1) / (t2 - t1) << endl;
-    cout << (t12 - t1).ToDouble() / (t2 - t1).ToDouble() << endl;
-}
-
 /*
 
  Type Mapping Functions
@@ -76,24 +58,6 @@ ListExpr MRMRMRTypeMap(ListExpr args) {
         type.second().isSymbol("movingregion")) {
 
         return NList("movingregion").listExpr();
-    }
-
-    return NList::typeError(errMsg);
-}
-
-ListExpr MRMRMBTypeMap(ListExpr args) {
-
-    NList type(args);
-    const string errMsg = "Expecting two movingregions.";
-
-    if (type.length() != 2)
-        return NList::typeError(errMsg);
-
-    // movingregion x movingregion -> mbool
-    if (type.first().isSymbol("movingregion") && 
-        type.second().isSymbol("movingregion")) {
-
-        return NList("mbool").listExpr();
     }
 
     return NList::typeError(errMsg);
@@ -153,40 +117,6 @@ int MinusValueMap(Word* args, Word& result, int message, Word& local,
     return 0;
 }
 
-int IntersectsValueMap(Word* args, Word& result, int message, Word& local,
-        Supplier s) {
-
-    MRegion* mrA = static_cast<MRegion*>(args[0].addr );
-    MRegion* mrB = static_cast<MRegion*>(args[1].addr );
-
-    result = qp->ResultStorage(s);
-
-    MBool* res = static_cast<MBool*>(result.addr );
-
-    res->SetDefined(false);
-
-    return 0;
-}
-
-int InsideValueMap(Word* args, Word& result, int message, Word& local,
-        Supplier s) {
-
-    MRegion* mrA = static_cast<MRegion*>(args[0].addr );
-    MRegion* mrB = static_cast<MRegion*>(args[1].addr );
-
-    result = qp->ResultStorage(s);
-
-    MBool* res = static_cast<MBool*>(result.addr );
-
-    res->SetDefined(false);
-    
-    //Test();
-
-    return 0;
-}
-
-
-
 /*
 
  Operator Descriptions
@@ -223,26 +153,6 @@ struct MinusInfo : OperatorInfo {
     }
 };
 
-struct IntersectsInfo : OperatorInfo {
-
-    IntersectsInfo() {
-        name = "intersects";
-        signature = "movingregion x movingregion -> mbool";
-        syntax = "_ intersects _";
-        meaning = "Intersects predicate for two movingregions.";
-    }
-};
-
-struct InsideInfo : OperatorInfo {
-
-    InsideInfo() {
-        name = "inside";
-        signature = "movingregion x movingregion -> mbool";
-        syntax = "_ inside _";
-        meaning = "Inside predicate for two movingregions.";
-    }
-};
-
 /*
 
  Implementation of the Algebra Class
@@ -259,8 +169,6 @@ public:
         AddOperator(IntersectionInfo(), IntersectionValueMap, MRMRMRTypeMap);
         AddOperator(UnionInfo(), UnionValueMap, MRMRMRTypeMap);
         AddOperator(MinusInfo(), MinusValueMap, MRMRMRTypeMap);
-        //AddOperator(IntersectsInfo(), IntersectsValueMap, MRMRMBTypeMap);
-        //AddOperator(InsideInfo(), InsideValueMap, MRMRMBTypeMap);
     }
 
     ~MRegionOpsAlgebra() {
