@@ -1,20 +1,51 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 //[ue] [\"u]
 //[ae] [\"a]
 //[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
 
-[1] 
+[1] Headerfile of the Set Operator Classes
 
-April 2008, initial version created by M. H[oe]ger for bachelor thesis.
+April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [TOC]
 
 1 Introduction
 
+This file essentially contains the definitions of several classes which 
+provide the core functionality of the three set operators 
+~intersection~, ~union~ and ~minus~ with the signature \\
+movingregion [x] movingregion [->] movingregion \\
+used in the MovingRegion Algebra.
+
+2 Defines and Includes
+
 */
+
 
 #ifndef SETOPS_H_
 #define SETOPS_H_
@@ -105,8 +136,6 @@ enum Decision {
     SKIP
 };
 
-
-
 class Point3DExt;
 class PointExtSet;
 class IntersectionSegment;
@@ -114,6 +143,12 @@ class PFace;
 class SourceUnit;
 class SourceUnitPair;
 
+/*
+1 Class Point3DExt
+
+
+
+*/
 class Point3DExt : public Point3D {
 
 public:
@@ -134,6 +169,12 @@ public:
     SourceFlag sourceFlag;
 };
 
+/*
+1 Struct PointExtCompare
+
+
+
+*/
 struct PointExtCompare {
 
     bool operator()(const Point3DExt& p1, const Point3DExt& p2) const {
@@ -142,6 +183,12 @@ struct PointExtCompare {
     }
 };
 
+/*
+1 Class PointExtSet
+
+
+
+*/
 class PointExtSet {
 
 public:
@@ -170,11 +217,18 @@ private:
     set<Point3DExt, PointExtCompare> s;
 };
 
+/*
+1 Class IntersectionSegment
+
+This class represents essentially an oriented segment in the xyt-space.
+It is used for the result of the intersection of two PFaces.
+
+
+*/
 class IntersectionSegment {
 
 public:
     
-    //IntersectionSegment(const Point3D& a, const Point3D& b);
     IntersectionSegment(const Segment3D& s);
     
     inline unsigned int GetID() const {
@@ -320,6 +374,12 @@ private:
     static unsigned int instanceCount;
 };
 
+/*
+1 Class MSegment
+
+
+
+*/
 class MSegment {
     
 public:
@@ -477,6 +537,12 @@ private:
     const PFace* pFace;
 };
 
+/*
+1 Class MSegmentCritical
+
+
+
+*/
 class MSegmentCritical : public MSegment {
     
 public:
@@ -510,8 +576,12 @@ private:
     Point2D midPoint;
 };
 
+/*
+1 Class ResultUnit
 
 
+
+*/
 class ResultUnit {
     
 public:
@@ -583,7 +653,12 @@ private:
     //vector<ResultFace> faces;
 };
 
+/*
+1 Struct DoubleCompare
 
+
+
+*/
 struct DoubleCompare {
 
     bool operator()(const double& d1, const double& d2) const {
@@ -592,6 +667,12 @@ struct DoubleCompare {
     }
 };
 
+/*
+1 Class ResultUnitFactory
+
+
+
+*/
 class ResultUnitFactory {
 
 public:
@@ -663,6 +744,12 @@ private:
     unsigned int decisionsByDegeneration;
 };
 
+/*
+1 Struct TestRegion
+
+
+
+*/
 struct TestRegion {
     
     TestRegion() :
@@ -678,6 +765,12 @@ struct TestRegion {
     bool defined;
 };
 
+/*
+1 Class SourceUnit
+
+
+
+*/
 class SourceUnit {
 
     friend class SourceUnitPair;
@@ -812,6 +905,12 @@ private:
     TestRegion testRegion;
 };
 
+/*
+1 Class SourceUnitPair
+
+
+
+*/
 class SourceUnitPair {
 
 public:
@@ -900,6 +999,12 @@ private:
     ResultUnitFactory resultUnitFactory;
 };
 
+/*
+1 Class SetOperator
+
+
+
+*/
 class SetOperator {
     
 public:
@@ -938,12 +1043,24 @@ private:
     //MRegion* b_ref;
 };
 
+/*
+1 Struct IntSegCompare
+
+
+
+*/
 struct IntSegCompare {
 
     bool operator()(const IntersectionSegment* const& s1,
             const IntersectionSegment* const& s2) const;
 };
 
+/*
+1 Class IntSegContainer
+
+
+
+*/
 class IntSegContainer {
     
 public:
@@ -1040,6 +1157,12 @@ private:
     Decision lastDecision;
 };
 
+/*
+1 Class PFace
+
+
+
+*/
 class PFace {
 
 public:

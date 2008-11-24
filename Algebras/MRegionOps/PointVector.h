@@ -1,21 +1,48 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 //[ue] [\"u]
 //[ae] [\"a]
 //[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
+//[pow] [\verb+^+]
 
-[1] 
+[1] Headerfile of the Point and Vector classes
 
-April 2008, initial version created by M. H[oe]ger for bachelor thesis.
+April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [TOC]
 
 1 Introduction
 
-*/
+This file contains the definitions of the classes Point2D, Point3D, Vector2D
+and Vector3D.
 
+2 Defines and Includes
+
+*/
 
 #ifndef POINTVECTOR_H_
 #define POINTVECTOR_H_
@@ -26,14 +53,25 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 #include <sstream>
 #include <iostream>
 #include "NumericUtil.h"
-//#include "Segment.h"
 
 using namespace std;
 
 namespace mregionops {
 
+/*
+2.1 VRML Constants
+
+Used for generating a VRML file for debugging.
+
+*/
+
 #define VRML_SCALE_FACTOR 0.3
 #define VRML_DOUBLE_PRECISION 16
+
+/*
+2.2 Forward declarations
+
+*/
 
 class Point2D;
 class Point3D;
@@ -41,9 +79,21 @@ class Vector2D;
 class Vector3D;
 class Segment2D;
 
+/*
+3 Class Vector3D
+
+This class provides a spatial vector of dimension 3.
+It's components are represented by three double values.
+
+*/
 class Vector3D {
 
 public:
+    
+/*
+3.1 Constructors
+
+*/
 
     inline Vector3D() :
         x(0.0), y(0.0), z(0.0) {
@@ -57,9 +107,10 @@ public:
 
     Vector3D(const Vector2D& v);
 
-    ~Vector3D() {
+/*
+3.2 Getter and setter methods
 
-    }
+*/
 
     inline double GetX() const {
 
@@ -80,16 +131,39 @@ public:
 
         return z;
     }
+    
+/*
+3.3 Operators and Predicates
 
+3.3.1 Length
+    
+Returns the length of this vector.
+
+*/
+    
     inline double Length() const {
 
         return sqrt(x*x + y*y + z*z);
     }
+    
+/*
+3.3.2 Length2
+    
+Returns the quadratic length of this vector.
 
+*/
+    
     inline double Length2() const {
 
         return x*x + y*y + z*z;
     }
+    
+/*
+3.3.3 IsZero
+    
+Returns ~true~, if all components are nearly equal to zero.
+
+*/
     
     inline bool IsZero() const {
         
@@ -97,11 +171,25 @@ public:
                NumericUtil::NearlyEqual(y, 0.0) && 
                NumericUtil::NearlyEqual(z, 0.0);
     }
+    
+/*
+3.3.4 operator -
+    
+Returns the negative of this vector.
+
+*/   
 
     inline Vector3D operator -() const {
 
         return Vector3D(-x, -y, -z);
     }
+    
+/*
+3.3.5 operator [*]
+
+Returns the scalar multplication of w and c.
+
+*/     
 
     inline friend Vector3D operator *(const double c, const Vector3D& w) {
 
@@ -111,7 +199,7 @@ public:
         v.z = c * w.z;
         return v;
     }
-
+    
     inline friend Vector3D operator *(const Vector3D& w, const double c) {
 
         Vector3D v;
@@ -120,6 +208,13 @@ public:
         v.z = c * w.z;
         return v;
     }
+    
+/*
+3.3.6 operator /
+    
+Returns the scalar multplication of w and 1/c.
+
+*/         
 
     inline friend Vector3D operator /(const Vector3D& w, const double c) {
 
@@ -129,6 +224,13 @@ public:
         v.z = w.z / c;
         return v;
     }
+    
+/*
+3.3.7 operator +
+    
+Returns the vector sum of this and w.
+
+*/       
 
     inline Vector3D operator +(const Vector3D& w) const {
 
@@ -138,8 +240,15 @@ public:
         v.z = z + w.z;
         return v;
     }
+    
+/*
+3.3.8 operator -
+    
+Returns the vector difference of this and w.
 
-    inline Vector3D operator -(const Vector3D& w)const  {
+*/   
+
+    inline Vector3D operator -(const Vector3D& w) const  {
 
         Vector3D v;
         v.x = x - w.x;
@@ -148,13 +257,25 @@ public:
         return v;
     }
 
-    // Inner Dot Product
+/*
+3.3.9 operator [*] 
+
+Returns the dot product of this and w.
+
+*/  
+
     inline double operator *(const Vector3D& w) const {
 
         return (x * w.x + y * w.y + z * w.z);
     }
 
-    // 3D Exterior Cross Product
+/*
+3.3.10 operator power
+    
+Returns the cross product of this and w.
+
+*/      
+    
     inline Vector3D operator ^(const Vector3D& w) const {
 
         Vector3D v;
@@ -163,6 +284,13 @@ public:
         v.z = x * w.y - y * w.x;
         return v;
     }
+    
+/*
+3.3.11 Normalize
+    
+Normalize this vector to length one.
+
+*/      
 
     inline void Normalize() {
 
@@ -175,6 +303,14 @@ public:
             z /= len;
         }
     }
+    
+/*
+3.3.12 operator ==
+    
+Returns ~true~, if all components of this are nearly equal to all
+components of p.
+
+*/        
     
     inline bool operator ==(const Vector3D& p) const {
 
@@ -189,9 +325,21 @@ private:
     double z;
 };
 
+/*
+4 Class Vector2D
+
+This class provides a spatial vector of dimension 2.
+It's components are represented by two double values.
+
+*/
 class Vector2D {
 
 public:
+    
+/*
+4.1 Constructors
+
+*/
 
     inline Vector2D() :
         x(0.0), y(0.0) {
@@ -205,9 +353,10 @@ public:
 
     Vector2D(const Vector3D& v);
 
-    ~Vector2D() {
+/*
+4.2 Getter and setter methods
 
-    }
+*/
 
     inline double GetX() const {
 
@@ -228,29 +377,65 @@ public:
 
         return y;
     }
+    
+/*
+4.3 Operators and Predicates
+
+4.3.1 Length
+    
+Returns the length of this vector.
+
+*/   
 
     inline double Length() const {
 
         return sqrt(x*x + y*y);
     }
+    
+/*
+4.3.2 Length2
+    
+Returns the quadratic length of this vector.
+
+*/
 
     inline double Length2() const {
 
         return x*x + y*y;
     }
     
+/*
+4.3.3 IsZero
+    
+Returns ~true~, if all components are nearly equal to zero.
+
+*/    
+    
     inline bool IsZero() const {
 
         return NumericUtil::NearlyEqual(x, 0.0) && 
                NumericUtil::NearlyEqual(y, 0.0);
     }
+    
+/*
+4.3.4 operator -
+    
+Returns the negative of this vector.
+
+*/      
 
     inline Vector2D operator -() const {
 
         return Vector2D(-x, -y);
     }
+    
+/*
+4.3.5 operator [*]
+    
+Returns the scalar multplication of w and c.
 
-    // Scalar Multiplies
+*/        
+    
     inline friend Vector2D operator *(const double c, const Vector2D& w) {
 
         Vector2D v;
@@ -266,8 +451,14 @@ public:
         v.y = c * w.y;
         return v;
     }
+    
+/*
+4.3.6 operator /
+    
+Returns the scalar multplication of w and 1/c.
 
-    // Scalar Divides
+*/         
+   
     inline friend Vector2D operator /(const Vector2D& w, const double c) {
 
         Vector2D v;
@@ -275,6 +466,13 @@ public:
         v.y = w.y / c;
         return v;
     }
+    
+/*
+3.3.7 operator +
+    
+Returns the vector sum of this and w.
+
+*/         
 
     inline Vector2D operator +(const Vector2D& w) const {
 
@@ -283,6 +481,13 @@ public:
         v.y = y + w.y;
         return v;
     }
+    
+/*
+3.3.8 operator -
+    
+Returns the vector difference of this and w.
+
+*/         
 
     inline Vector2D operator -(const Vector2D& w) const {
 
@@ -291,24 +496,49 @@ public:
         v.y = y - w.y;
         return v;
     }
+    
+/*
+3.3.9 operator [*]
+    
+Returns the dot product of this and w.
 
-    // Inner Dot Product
+*/  
+   
     inline double operator *(const Vector2D& w) const {
 
         return (x * w.x + y * w.y);
     }
+    
+/*
+3.3.10 operator $|$
+    
+Returns the perp product of this and w: a scalar.
 
-    // 2D Exterior Perp Product
+*/  
+   
     inline double operator |(const Vector2D& w) const {
 
         return (x * w.y - y * w.x);
     }
+    
+/*
+3.3.11 operator power
+    
+Returns the cross product of this and w: a Vector3D
 
-    // 3D Exterior Cross Product
+*/  
+    
     inline Vector3D operator ^(const Vector2D& w) const {
 
         return Vector3D(0.0, 0.0, x * w.y - y * w.x);
     }
+    
+/*
+3.3.12 Normalize
+    
+Normalize this vector to length one.
+
+*/         
 
     inline void Normalize() {
 
@@ -320,6 +550,14 @@ public:
             y /= len;
         }
     }
+    
+/*
+3.3.13 operator ==
+    
+Returns ~true~, if all components of this are nearly equal to all
+components of p.
+
+*/       
     
     inline bool operator ==(const Vector2D& p) const {
 
@@ -333,9 +571,21 @@ private:
     double y;
 };
 
+/*
+5 Class Point2D
+
+This class provides a point in the euclidian plane.
+It's components are represented by two double values.
+
+*/
 class Point2D {
 
 public:
+    
+/*
+5.1 Constructors
+
+*/   
 
     inline Point2D() :
         x(0.0), y(0.0) {
@@ -349,9 +599,10 @@ public:
 
     Point2D(const Point3D& p);
 
-    ~Point2D() {
+/*
+5.2 Getter and setter methods.
 
-    }
+*/      
 
     inline double GetX() const {
 
@@ -372,6 +623,13 @@ public:
 
         return y;
     }
+    
+/*
+5.3 Operators and Predicates
+    
+5.3.1 Operators for comparison.
+
+*/     
     
     inline bool operator ==(const Point2D& p) const {
         
@@ -394,35 +652,70 @@ public:
             
         return NumericUtil::Lower(y, p.y);
     }
+    
+/*
+5.3.2 operator -
+    
+Returns the Vector2D pointing from p to this.
+
+*/      
 
     inline Vector2D operator -(const Point2D& p) const {
 
         return Vector2D(x - p.x, y - p.y);
     }
+    
+/*
+5.3.3 operator +
+    
+Returns the translation of this along v.
 
-    inline Point2D operator +(const Vector2D& v) const // +ve translation
+*/      
+
+    inline Point2D operator +(const Vector2D& v) const
     {
         Point2D p;
         p.x = x + v.GetX();
         p.y = y + v.GetY();
         return p;
     }
+    
+/*
+5.3.4 operator -
+    
+Returns the translation of this along -v.
 
-    inline Point2D operator -(const Vector2D& v) const // -ve translation
+*/      
+
+    inline Point2D operator -(const Vector2D& v) const
     {
         Point2D p;
         p.x = x - v.GetX();
         p.y = y - v.GetY();
         return p;
     }
+    
+/*
+5.3.5 operator +
+    
+Returns the affine sum of this and p.
 
-    inline Point2D operator +(const Point2D& p)const  // affine sum
+*/        
+
+    inline Point2D operator +(const Point2D& p)const
     {
         Point2D sum;
         sum.x = x + p.x;
         sum.y = y + p.y;
         return sum;
     }
+    
+/*
+5.3.6 operator [*]
+    
+Returns this point, scaled by the factor f.
+
+*/     
 
     inline Point2D operator *(const double& f) const {
 
@@ -432,20 +725,50 @@ public:
         return res;
     }
     
+/*
+5.3.7 Distance
+    
+Returns the distance between this and p.
+
+*/    
+    
     inline double Distance(const Point2D& p) const {
 
         return (p - *this).Length();
     }
+    
+/*
+5.3.8 Distance2
+    
+Returns the quadratic distance between this and p.
+
+*/        
 
     inline double Distance2(const Point2D& p) const {
 
         return (p - *this).Length2();
     }
+    
+/*
+5.3.9 WhichSide
+    
+Let l be the line defined by the points start and end.
+Then WhichSide returns:
+
+  * A value greater than zero, if this is left of l.
+
+  * A value lower than zero, if this is right of l.
+  
+  * Zero, if this is on l.
+
+*/    
 
     inline double WhichSide(const Point2D& start, const Point2D& end) const {
 
+        // This is the fast version:
         //return (start.x - x) * (end.y - y) - (end.x - x) * (start.y - y);
         
+        // This is slower, but numerical more stable:
         Vector2D v1 = end - start;
         Vector2D v2 = *this - start;
         
@@ -456,6 +779,14 @@ public:
     }
     
     double WhichSide(const Segment2D& s) const;
+    
+/*
+5.3.10 IsLeft/IsRight/IsColinear
+    
+This predicates evaluates the WhichSide method using 
+an epsilon to avoid rounding errors.
+
+*/        
 
     inline bool IsLeft(const Point2D& start, const Point2D& end) const {
 
@@ -484,9 +815,21 @@ private:
     double y;
 };
 
+/*
+6 Class Point3D
+
+This class provides a point in the euclidian space.
+It's components are represented by three double values.
+
+*/
 class Point3D {
 
 public:
+    
+/*
+6.1 Constructors
+
+*/   
 
     inline Point3D() :
         x(0.0), y(0.0), z(0.0) {
@@ -500,9 +843,10 @@ public:
 
     Point3D(const Point2D& p);
 
-    ~Point3D() {
+/*
+6.2 Getter and setter methods.
 
-    }
+*/ 
 
     inline double GetX() const {
 
@@ -523,17 +867,14 @@ public:
 
         return z;
     }
-
-    inline string GetVRMLDesc() const {
-
-        std::ostringstream oss;
-
-        oss << std::setprecision(VRML_DOUBLE_PRECISION) << std::fixed << x
-                << " " << y << " " << z << ", ";
-
-        return oss.str();
-    }
     
+/*
+6.3 Operators and Predicates
+    
+6.3.1 Operators for comparison.
+
+*/     
+
     inline bool operator ==(const Point3D& p) const {
 
         return NumericUtil::NearlyEqual(x, p.x) && 
@@ -545,13 +886,27 @@ public:
 
         return !(*this == p);
     }
+    
+/*
+6.3.2 operator -
+    
+Returns the Vector3D pointing from p to this.
+
+*/      
 
     inline Vector3D operator -(const Point3D& p) const {
 
         return Vector3D(x - p.x, y - p.y, z - p.z);
     }
+    
+/*
+6.3.3 operator +
+    
+Returns the translation of this along v.
 
-    inline Point3D operator +(const Vector3D& v) const // +ve translation
+*/       
+
+    inline Point3D operator +(const Vector3D& v) const
     {
         Point3D p;
         p.x = x + v.GetX();
@@ -559,8 +914,15 @@ public:
         p.z = z + v.GetZ();
         return p;
     }
+    
+/*
+6.3.4 operator -
+    
+Returns the translation of this along -v.
 
-    inline Point3D operator -(const Vector3D& v) const // -ve translation
+*/     
+
+    inline Point3D operator -(const Vector3D& v) const
     {
         Point3D p;
         p.x = x - v.GetX();
@@ -568,8 +930,15 @@ public:
         p.z = z - v.GetZ();
         return p;
     }
+    
+/*
+6.3.5 operator +
+    
+Returns the affine sum of this and p.
 
-    inline Point3D operator +(const Point3D& p) const // affine sum
+*/        
+
+    inline Point3D operator +(const Point3D& p) const
     {
         Point3D sum;
         sum.x = x + p.x;
@@ -577,6 +946,13 @@ public:
         sum.z = z + p.z;
         return sum;
     }
+    
+/*
+6.3.6 operator [*]
+    
+Returns this point, scaled by the factor f.
+
+*/       
 
     inline Point3D operator *(const double& f) const {
 
@@ -587,15 +963,37 @@ public:
         return res;
     }
     
+/*
+6.3.7 Distance
+    
+Returns the distance between this and p.
+
+*/    
+    
     inline double Distance(const Point3D& p) const {
         
         return (p - *this).Length();
     }
     
+/*
+6.3.8 Distance2
+    
+Returns the quadratic distance between this and p.
+
+*/       
+    
     inline double Distance2(const Point3D& p) const {
 
         return (p - *this).Length2();
     }
+    
+/*
+6.3.9 DistanceToPlane
+    
+Returns the distance between this and a plane 
+defined by the point p0 and the vector normal.
+
+*/   
     
     double DistanceToPlane(const Point3D& p0, const Vector3D& normal) const {
  
@@ -605,6 +1003,14 @@ public:
         return Distance(base);
     }
     
+/*
+6.3.10 DistanceToPlane2
+    
+Returns the quadratic distance between this and a plane 
+defined by the point p0 and the vector normal.
+
+*/     
+    
     double DistanceToPlane2(const Point3D& p0, const Vector3D& normal) const {
 
         const double sb = (- (normal * (*this - p0))) / normal.Length2();
@@ -613,7 +1019,22 @@ public:
         return Distance2(base);
     }
     
+/*
+6.3.11 GetVRMLDesc
     
+Returns a description of this point in VRML format.
+
+*/     
+    
+    inline string GetVRMLDesc() const {
+
+        std::ostringstream oss;
+
+        oss << std::setprecision(VRML_DOUBLE_PRECISION) << std::fixed << x
+                << " " << y << " " << z << ", ";
+
+        return oss.str();
+    }
 
 private:
 
@@ -621,6 +1042,11 @@ private:
     double y;
     double z;
 };
+
+/*
+7 Overloaded output operators
+    
+*/  
 
 ostream& operator <<(ostream& o, const Point2D& p);
 ostream& operator <<(ostream& o, const Point3D& p);

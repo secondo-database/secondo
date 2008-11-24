@@ -1,18 +1,45 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 //[ue] [\"u]
 //[ae] [\"a]
 //[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
 
-[1] 
+[1] Implementation of the Point and Vector classes
 
-April 2008, initial version created by M. H[oe]ger for bachelor thesis.
+April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [TOC]
 
 1 Introduction
+
+This file contains implementations of the classes Point2D, Point3D, Vector2D
+and Vector3D.
+
+2 Defines and Includes
 
 */
 
@@ -20,6 +47,11 @@ April 2008, initial version created by M. H[oe]ger for bachelor thesis.
 #include "Segment.h"
 
 namespace mregionops {
+
+/*
+3 Class Point2D
+
+*/
 
 Point2D::Point2D(const Point3D& p) :
 	x(p.GetX()), y(p.GetY()) {
@@ -53,6 +85,11 @@ ostream& operator <<(ostream& o, const Point2D& p) {
     return o;
 }
 
+/*
+4 Class Point3D
+
+*/
+
 Point3D::Point3D(const Point2D& p) :
 	x(p.GetX()), y(p.GetY()), z(0.0) {
 
@@ -65,6 +102,11 @@ ostream& operator <<(ostream& o, const Point3D& p) {
     return o;
 }
 
+/*
+5 Class Vector2D
+
+*/
+
 Vector2D::Vector2D(const Vector3D& v) :
 	x(v.GetX()), y(v.GetY()) {
 
@@ -76,6 +118,11 @@ ostream& operator <<(ostream& o, const Vector2D& p) {
 
     return o;
 }
+
+/*
+6 Class Vector3D
+
+*/
 
 Vector3D::Vector3D(const Vector2D& v) :
 	x(v.GetX()), y(v.GetY()), z(0.0) {

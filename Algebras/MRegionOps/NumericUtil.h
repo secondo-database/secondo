@@ -1,21 +1,48 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 //[ue] [\"u]
 //[ae] [\"a]
 //[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
 
-[1] 
+[1] Definition and Implementation of the class ~NumericUtil~
 
-April 2008, initial version created by M. H[oe]ger for bachelor thesis.
+April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [TOC]
 
 1 Introduction
 
-*/
+This file contains the definition and implementation of the class
+~NumericUtil~ which provides several static methods to compare 
+floating point values.
 
+2 Defines and Includes
+
+*/
 
 #ifndef NUMERICUTIL_H_
 #define NUMERICUTIL_H_
@@ -27,14 +54,14 @@ namespace mregionops {
 const double MAX_DOUBLE = numeric_limits<double>::max();
 const double MIN_DOUBLE = -MAX_DOUBLE;
 
-//const double LN_10 = log(10.0);
+/*
+3 Class NumericUtil
+
+*/
 
 class NumericUtil {
 	
 public:
-    
-    
-    //static const double epsilonMax = 0.01;
     
     //static const double eps = 0.01;
     //static const double eps = 0.001;
@@ -46,7 +73,7 @@ public:
 	
 	
 /*
-1.1.1 Function ~nearlyEqual()~
+1.1 NearlyEqual
 
 Returns ~true~ if $-eps \le a-b \le eps$.
 
@@ -64,7 +91,7 @@ Returns ~true~ if $-eps \le a-b \le eps$.
     }
 	
 /*
-1.1.1 Function ~lowerOrNearlyEqual()~
+1.1 LowerOrNearlyEqual
 
 Returns ~true~ if $a \le b+eps$.
 
@@ -82,7 +109,7 @@ Returns ~true~ if $a \le b+eps$.
     }
 
 /*
-1.1.1 Function ~lower()~
+1.1 Lower
 
 Returns ~true~ if $a < b-eps$.
 
@@ -98,7 +125,7 @@ Returns ~true~ if $a < b-eps$.
     }
 
 /*
-1.1.1 Function ~greaterOrNearlyEqual()~
+1.1 GreaterOrNearlyEqual
 
 Returns ~true~ if $a \ge b-eps$.
 
@@ -116,7 +143,7 @@ Returns ~true~ if $a \ge b-eps$.
     }
 	
 /*
-1.1.1 Function ~greater()~
+1.1 Greater
 
 Returns ~true~ if $a > b+eps$.
 
@@ -134,7 +161,7 @@ Returns ~true~ if $a > b+eps$.
     }
 
 /*
-1.1.1 Function ~between()~
+1.1 Between
 
 Returns ~true~ if $a-eps \le x \le b+eps$ or $b-eps \le x \le a+eps$.
 
@@ -159,7 +186,7 @@ Returns ~true~ if $a-eps \le x \le b+eps$ or $b-eps \le x \le a+eps$.
 	}
 	
 /*
-1.1 Function ~minmax4()~
+1.1 MinMax4
 
 Returns the minimum and maximum value of $a$, $b$, $c$ and $d$.
 

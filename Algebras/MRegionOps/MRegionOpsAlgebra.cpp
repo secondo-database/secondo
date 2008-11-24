@@ -1,21 +1,52 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 //[ue] [\"u]
 //[ae] [\"a]
 //[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
 
-[1] 
+[1] Implementation of the MRegionOpsAlgebra
 
-April 2008, initial version created by M. H[oe]ger for bachelor thesis.
+April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [TOC]
 
 1 Introduction
 
-*/
+This file essentially contains the implementation of the algebra class and
+the type- and value mapping functions of the three set operators
+~intersection~, ~union~ and ~minus~ with the signature \\
+movingregion [x] movingregion [->] movingregion \\
+used in the MovingRegion Algebra.
 
+For more detailed information please see the files ~SetOps.h~ and ~SetOps.cpp~.
+
+2 Defines and Includes
+
+*/
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -41,7 +72,7 @@ namespace mregionops {
 
 /*
 
- Type Mapping Functions
+3 Type Mapping Functions
 
 */
 
@@ -65,7 +96,7 @@ ListExpr MRMRMRTypeMap(ListExpr args) {
 
 /*
 
- Value Mapping Functions
+4 Value Mapping Functions
 
 */
 
@@ -119,7 +150,7 @@ int MinusValueMap(Word* args, Word& result, int message, Word& local,
 
 /*
 
- Operator Descriptions
+5 Operator Descriptions
 
 */
 
@@ -155,7 +186,7 @@ struct MinusInfo : OperatorInfo {
 
 /*
 
- Implementation of the Algebra Class
+6 Implementation of the Algebra Class
 
 */
 
@@ -180,8 +211,8 @@ public:
 
 extern "C"Algebra*
 InitializeMRegionOpsAlgebra( NestedList* nlRef,
-        QueryProcessor* qpRef )
-{
+        QueryProcessor* qpRef ) {
+    
     // The C++ scope-operator :: must be used to qualify the full name 
     return new mregionops::MRegionOpsAlgebra();
 }
