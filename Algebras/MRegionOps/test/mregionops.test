@@ -34,6 +34,12 @@ delete bUa;
 delete aMb;
 delete bMa;
 
+restore tripU5 from tripU5;
+restore tripU5a from tripU5a;
+restore tripU5b from tripU5b;
+restore tripU8a from tripU8a;
+
+
 #setup mregionopstest
 
 # *
@@ -43,6 +49,8 @@ delete bMa;
 let mpA = tripU5;
 #let mpB = mpA;
 let mpB = tripU8a;
+
+# Not working unfortunatly, since the resulting units have too short intervals...
 #let mpA = train1;
 #let mpB = train5;
 
@@ -194,6 +202,34 @@ printstream transformstream max[elem] < tolerance;
 # ***********************************************************
 
 #teardown
+
+delete mpA;
+delete mpB;
+delete rA;
+delete rB;
+delete mrA;
+delete mrB;
+delete t0A;
+delete t0B;
+delete t1A;
+delete t1B;
+delete t0;
+delete t1;
+delete noSamples;
+delete step;
+delete samples;
+delete tolerance;
+delete aIb;
+delete bIa;
+delete aUb;
+delete bUa;
+delete aMb;
+delete bMa;
+
+delete tripU5;
+delete tripU5a;
+delete tripU5b;
+delete tripU8a;
 
 close database;
 
