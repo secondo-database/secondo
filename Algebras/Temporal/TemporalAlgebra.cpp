@@ -1461,6 +1461,153 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
   return false;
 }
 
+
+void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
+ 
+ 
+  // both arguments have to be defined
+  if(!IsDefined() || !rect.IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+
+  
+  double minX = rect.MinD(0);
+  double minY = rect.MinD(1);
+  double maxX = rect.MaxD(0);
+  double maxY = rect.MaxD(1);
+  double x1 = p0.GetX();
+  double y1 = p0.GetY();
+
+  // check for stationary unit
+  if(AlmostEqual(p0,p1)){
+     if( (x1>=minX) && (x1<=maxX) && // rect contains point
+         (y1>=minY) && (y1<=maxY) ){
+       result = *this;
+     } else {
+       result.SetDefined(false);
+     }
+     return;
+  }
+
+  double x2 = p1.GetX();
+  double y2 = p1.GetY();
+  Instant s = timeInterval.start;
+  Instant e = timeInterval.end;
+  bool lc = timeInterval.lc;
+  bool rc = timeInterval.rc;
+
+  // clip vertical
+  if( ((x1 < minX) && (x2 < minX) )  ||
+      ((x1 > maxX) && (x2 > maxX))) {
+     result.SetDefined(false);
+     return;
+  }
+
+  result = *this;
+  double dx = x2 - x1;
+  double dy = y2 - y1;
+  DateTime dt = e - s;
+
+  if((x1 < minX) || (x2 < minX) ) {
+    // trajectory intersects the left vertical line
+    double delta = (minX-x1)/dx;
+    double y = y1 + delta*dy;
+    Instant i = s + dt*delta;
+    // cut the unit
+    if(x1 < minX){ // unit enters rect
+       x1 = minX;
+       y1 = y;
+       s = i;
+       lc = true;  
+    } else {  // unit leave rect
+       x2 = minX;
+       y2 = y;
+       e = i;
+       rc = true;
+    }
+    dx = x2 - x1;
+    dy = y2 - y1;
+    dt = e - s;
+  }
+
+  // do the same thing for maxX
+  if((x1 > maxX) || (x2 > maxX) ) {
+    // trajectory intersects the right vertical line
+    double delta = (maxX-x1)/dx;
+    double y = y1 + delta*dy;
+    Instant i = s + dt*delta;
+    // cut the unit
+    if(x1 > maxX){ // unit enters rect
+       x1 = maxX;
+       y1 = y;
+       s = i;
+       lc = true;  
+    } else {  // unit leave rect
+       x2 = maxX;
+       y2 = y;
+       e = i;
+       rc = true;
+    }
+    dx = x2 - x1;
+    dy = y2 - y1;
+    dt = e - s;
+  }
+
+  // clip at the horizontal lines
+  if( ((y1<minY) && (y2<minY)) ||
+      ((y1>maxY) && (y2>maxY))){
+    // nothing left
+    result.SetDefined(false);
+    return; 
+  }
+
+  // clip at the bottom line
+  if( (y1 < minY) || (y2<minY)){
+    double delta =  (minY-y1)/dy;
+    double x = x1 + delta*dx;
+    Instant i = s + dt*delta;
+    if(y1 < minY){ // unit enters rect
+       x1 = x;
+       y1 = minY;
+       s = i;
+       lc = true;  
+    } else {  // unit leave rect
+       x2 = x;
+       y2 = minY;
+       e = i;
+       rc = true;
+    }
+    dx = x2 - x1;
+    dy = y2 - y1;
+    dt = e - s;
+  }
+ 
+  if( (y1 > maxY) || (y2>maxY)){
+    double delta =  (maxY-y1)/dy;
+    double x = x1 + delta*dx;
+    Instant i = s + dt*delta;
+    if(y1 > maxY){ // unit enters rect
+       x1 = x;
+       y1 = maxY;
+       s = i;
+       lc = true;  
+    } else {  // unit leave rect
+       x2 = x;
+       y2 = maxY;
+       e = i;
+       rc = true;
+    }
+  }
+
+  Interval<Instant> tmp(s,e,lc,rc);  
+  result.timeInterval=tmp;
+  result.p0.Set(x1,y1);
+  result.p1.Set(x2,y2);
+}
+
+
+
 void UPoint::AtInterval( const Interval<Instant>& i,
                          TemporalUnit<Point>& result ) const
 {

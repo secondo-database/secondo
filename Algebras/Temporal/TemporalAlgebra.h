@@ -1965,6 +1965,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual bool At( const Point& val, TemporalUnit<Point>& result ) const;
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const;
+  void At(const Rectangle<2>& rect, UPoint& result) const;
   void Distance( const Point& p, UReal& result ) const;
   //  void UTrajectory( UPoint& unit,Line& line ) const;
   void UTrajectory( Line& line ) const;
