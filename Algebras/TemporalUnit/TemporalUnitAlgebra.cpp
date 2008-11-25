@@ -6437,6 +6437,7 @@ function (or it's radical).
 OK  +                           uT x       T --> uT
 OK                           ureal x    real --> (stream ureal)
 OK  +                       upoint x  region --> (stream upoint)
+                            upoint x  rect   --> upoint
 
 (*): Not yet implemented
 
@@ -6477,6 +6478,8 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
     if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "region" ) )
       return nl->TwoElemList(nl->SymbolAtom( "stream" ),
                              nl->SymbolAtom( "upoint" ));
+    if( nl->IsEqual( arg1, "upoint" ) && nl->IsEqual( arg2, "rect" ) )
+      return nl->SymbolAtom( "upoint" );
   }
 #ifdef TUA_DEBUG
   cout << "\nTemporalUnitAtTypeMapUnit: 1" << endl;
@@ -6488,9 +6491,21 @@ TemporalUnitAtTypeMapUnit( ListExpr args )
 5.13.2 Value Mapping for ~at~
 
 Instead of implementing dedicated value mappings, we use those for operator
-~intersection~.
+~intersection~ except for "upoint x rect".
 
 */
+
+
+int AtUpR(Word* args, Word& result, 
+          int message, Word& local, Supplier s) {
+
+  result = qp->ResultStorage(s);
+  UPoint* arg1 = static_cast<UPoint*>(args[0].addr);
+  Rectangle<2>* arg2 = static_cast<Rectangle<2>*>(args[1].addr);
+  UPoint* res = static_cast<UPoint*>(result.addr);
+  arg1->At(*arg2,*res);
+  return 0; 
+}
 
 
 /*
@@ -6504,12 +6519,13 @@ TemporalSpecAt =
 "(uT     T     ) -> (stream uT)\n"
 "(ureal  real  ) -> (stream ureal)\n"
 "(upoint region) -> (stream upoint)\n"
+"(upoint rect) -> upoint\n"
 "(*): Not yet implemented</text--->"
 "<text>_ at _ </text--->"
 "<text>restrict the movement to the times "
 "where the equality occurs.\n"
 "Observe, that the result is always a "
-"'(stream UNIT)' rather than a 'UNIT'!</text--->"
+"'(stream UNIT)' rather than a 'UNIT'! except for upoint x rect</text--->"
 "<text>upoint1 at point1 the_mvalue</text---> ) )";
 
 /*
@@ -6549,6 +6565,10 @@ TUSelectAt( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "upoint" &&
       nl->SymbolValue( arg2 ) == "region" )
     return 6;
+  
+  if( nl->SymbolValue( arg1 ) == "upoint" &&
+      nl->SymbolValue( arg2 ) == "rect" )
+    return 7;
 
   return -1; // This point should never be reached
 }
@@ -6561,7 +6581,8 @@ ValueMapping temporalunitatmap[] = {
   temporalUnitIntersection_upoint_point<0>,                   //3
   temporalUnitIntersection_CU_C< UString, CcString, 0 >,      //4
   temporalUnitIntersection_uregion_region<0>,                 //5
-  temporalUnitIntersection_upoint_uregion<0, false>};          //6
+  temporalUnitIntersection_upoint_uregion<0, false>,         //6
+  AtUpR};                                                     //7
 
 /*
 5.13.5  Definition of operator ~at~
@@ -6569,7 +6590,7 @@ ValueMapping temporalunitatmap[] = {
 */
 Operator temporalunitat( "at",
                      TemporalSpecAt,
-                     7,
+                     8,
                      temporalunitatmap,
                      TUSelectAt,
                      TemporalUnitAtTypeMapUnit );
