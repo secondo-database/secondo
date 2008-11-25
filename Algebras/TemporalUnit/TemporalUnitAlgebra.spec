@@ -1,6 +1,7 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science,
+#Copyright (C) 2008, University in Hagen, 
+#Faculty of Mathematics and  Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -48,21 +49,19 @@ operator >> alias VGT pattern _ infixop _
 operator <<== alias VLE pattern _ infixop _
 operator >>== alias VGE pattern _ infixop _
 
-# Operator signatures already defined elsewhere:
-
-#operator no_components alias NO_COMPONENTS pattern op ( _ )
-#operator isempty alias ISEMPTY pattern op ( _ )
-#operator length alias LENGTH pattern op ( _ )
-#operator not alias NOT pattern op ( _ )
-#operator and alias AND pattern _ infixop _
-#operator or alias OR pattern _ infixop _
-#operator sometimes alias SOMETIMES pattern op ( _ )
-#operator never alias NEVER pattern op ( _ )
-#operator always alias ALWAYS pattern op ( _ )
-#operator = alias EQ pattern _ infixop _
-#operator # alias NE pattern _ infixop _
-#operator < alias LT pattern _ infixop _
-#operator > alias GT pattern _ infixop _
-#operator <= alias LE pattern _ infixop _
-#operator >= alias GE pattern _ infixop _
+operator no_components alias NO_COMPONENTS pattern op ( _ )
+operator isempty alias ISEMPTY pattern op ( _ )
+operator length alias LENGTH pattern op ( _ )
+operator not alias NOT pattern op ( _ )
+operator and alias AND pattern _ infixop _
+operator or alias OR pattern _ infixop _
+operator sometimes alias SOMETIMES pattern op ( _ )
+operator never alias NEVER pattern op ( _ )
+operator always alias ALWAYS pattern op ( _ )
+operator = alias EQ pattern _ infixop _
+operator # alias NE pattern _ infixop _
+operator < alias LT pattern _ infixop _
+operator > alias GT pattern _ infixop _
+operator <= alias LE pattern _ infixop _
+operator >= alias GE pattern _ infixop _
 
