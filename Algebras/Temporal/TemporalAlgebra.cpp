@@ -1600,6 +1600,15 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
     }
   }
 
+  if(e<s){
+    cerr << "Warning e < s ; s = " << s << ", e = " << e << endl;
+    result.SetDefined(false);
+    return;
+  }
+  if( (e == s) && (!lc || !rc)){
+     result.SetDefined(false);
+     return;
+  }
   Interval<Instant> tmp(s,e,lc,rc);  
   result.timeInterval=tmp;
   result.p0.Set(x1,y1);
@@ -2059,7 +2068,7 @@ void MInt::Hat(MInt& mint)
    const UInt* upi;
    UInt last,curuint;
    CcInt cur,top;
-   int position  = 0;
+   //int position  = 0;
    last.SetDefined(true);
    curuint.SetDefined(false);
    float lastarea = 0;
