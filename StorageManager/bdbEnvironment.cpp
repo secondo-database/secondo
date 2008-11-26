@@ -128,8 +128,8 @@ SmiEnvironment::Implementation::~Implementation()
 {
   if ( !envClosed )
   {
-    cerr << "SmiEnvironment::Implementation::~Implementation()"
-	 << " -> Closing Environments" << endl;
+    //cerr << "SmiEnvironment::Implementation::~Implementation()"
+    //	   << " -> Closing Environments" << endl;
     CloseDbHandles();
     int rc = bdbEnv->close( 0 );
     SetBDBError(rc);
