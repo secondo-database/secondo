@@ -106,16 +106,21 @@ ID of the next tuple if there is a next tuple else it returns false
 End of the definitions which had to be included into RTreeAlgebra.h
 ----
 
-1 Defines and Includes
+1 Defines and includes for the NearestNeighbor Algebra
 
 */
+
 
 #ifndef __NEARESTNEIGHBOR_ALGEBRA_H__
 #define __NEARESTNEIGHBOR_ALGEBRA_H__
 
+#include "TemporalAlgebra.h"
+
 using namespace std;
 
 /*
+2 Definitions for the ~distancescan operator~
+
 FirstDistanceScan initializes the priority queue
 
 */
@@ -200,5 +205,194 @@ bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box,
   return false;
 }
 
+/*
+3. Class definitions for the ~knearest operator~
+
+*/
+enum EventType {E_RIGHT, E_INTERSECT, E_LEFT};
+struct EventElem
+{
+  EventType type;
+  Instant pointInTime; //x-axes, sortkey in the priority queue
+  Tuple* tuple;
+  Tuple* tuple2; //for intersection
+  const UPoint* up;
+  MReal* distance;
+  EventElem(EventType t, Instant i, Tuple* tu, const UPoint* upt,
+    MReal* d) : type(t), pointInTime(i), tuple(tu), tuple2(NULL),
+    up(upt), distance(d){}
+  EventElem(EventType t, Instant i, Tuple* tu, Tuple* tu2, MReal* d) 
+    : type(t), pointInTime(i), tuple(tu), tuple2(tu2),
+    up(NULL), distance(d){}
+  bool operator<( const EventElem& e ) const 
+  {
+    if( e.pointInTime != pointInTime)
+    {
+      return e.pointInTime < pointInTime;
+    }
+    else
+    {
+      //same times
+      if( e.type != type )
+      {
+        return e.type < type;
+      }
+      else
+      {
+        //same types
+        return e.tuple < tuple || (e.tuple == tuple && e.tuple2 < tuple2);
+      }
+    }
+  }
+};
+
+class ActiveElem
+{
+public:
+  static Instant currtime;
+  MReal *distance;
+  Tuple* tuple;
+  Instant start; //the start time where the element is needed
+  Instant end;
+  bool lc;
+  bool rc;
+  ActiveElem(MReal *dist, Tuple* t, Instant s, Instant e, bool l, bool r) 
+    : distance(dist), tuple(t), start(s), end(e), lc(l), rc(r){}
+};
+
+/*
+the class NNTree implements a tree with iterators
+the methods to find an element or to find the position
+of a new element are implemented outside of the class
+in the NearestNeighborAlgebra.cpp
+
+*/
+template <class T>
+class NNTree
+{
+  public:
+    NNTree() : first(NULL), last(NULL), nrelements(0){}
+    ~NNTree();
+    class iterator
+    {
+      class node;
+    public:
+      iterator( node *n) : itNode(n){}
+      friend bool operator==(const iterator& i, const iterator& j)
+      {
+        return i.itNode == j.itNode;
+      }
+      friend bool operator!=(const iterator& i, const iterator& j)
+      {
+        return i.itNode != j.itNode;
+      }
+      T* operator->(){ return &itNode->elem;}
+      T& operator*(){ return itNode->elem;}
+      T& operator++(){itNode = itNode->next; return *this;} //prefix
+      T operator++(int)  //postfix
+      {
+        iterator tmp = *this; 
+        ++this;
+        return tmp;
+      }
+      T& operator--(){itNode = itNode->prev; return *this;} //prefix
+      T operator--(int)  //postfix
+      {
+        iterator tmp = *this; 
+        --this;
+        return tmp;
+      }
+      bool hasLeft(){ return itNode->prev != NULL; }
+      bool hasRight(){ return itNode->next != NULL; }
+    private:
+      node *itNode;
+    };
+    iterator begin(){return iterator(first);}
+    iterator end(){return iterator(last);}
+    iterator erase( iterator &pos);
+    iterator insert( T &e, iterator &it);
+    unsigned int size(){ return nrelements;}
+  private:
+    class node
+    {
+    public:
+      node *next;
+      node *prev;
+      T elem;
+    };
+
+    node *first;
+    node *last;
+    unsigned int nrelements;
+};
+
+/*
+destructor of NNTree delete all nodes
+
+*/
+template<class T>
+NNTree<T>::~NNTree()
+{
+  while( first != NULL )
+  {
+    node *tmp = first->next;
+    delete first;
+    first = tmp;
+  }
+  nrelements = 0;
+}
+
+/*
+delete the node of the iterator pos und returns the element
+beyond pos or end()
+
+*/
+template<class T>
+typename NNTree<T>::iterator NNTree<T>::erase( iterator &pos)
+{
+  if( pos == end())
+  {
+    return pos;
+  }
+  if( pos.itNode->prev != NULL )
+  {
+    pos.itNode->prev->next = pos.itNode->next;
+  }
+  pos.itNode->next->prev = pos.itNode->prev;
+  node *tmp = pos.itNode->next;
+  delete pos.itNode;
+  --nrelements;
+  return iterator(tmp);
+}
+
+/*
+insert a new node with the element e before the iterator it
+
+*/
+template<class T>
+typename NNTree<T>::iterator NNTree<T>::insert( T &e, iterator &it)
+{
+  node *newNode = new node;
+  if( !size )
+  {
+    ++nrelements;
+    node *lastNode = new node;
+    lastNode->next = NULL;
+    lastNode->prev = newNode;
+    last = lastNode;
+    first = newNode;
+    newNode->prev = NULL;
+    newNode->next = last;
+    newNode->elem = e;
+  }
+  else
+  {
+    ++nrelements;
+    newNode->prev = it.itNode->prev;
+    newNode->next = it.itNode;
+    newNode->elem = e;
+  }
+  return iterator(newNode); 
+}
 
 #endif
