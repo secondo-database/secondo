@@ -1,20 +1,51 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2008, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
 
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 //[ue] [\"u]
 //[ae] [\"a]
 //[oe] [\"o]
+//[x] [$\times $]
+//[->] [$\rightarrow $]
 
-[1] 
+[1] Implementation of the Set Operator Classes
 
-April 2008, initial version created by M. H[oe]ger for bachelor thesis.
+April - November 2008, M. H[oe]ger for bachelor thesis.
 
 [TOC]
 
 1 Introduction
 
+This file essentially contains the implementations of several classes which 
+provide the core functionality of the three set operators 
+~intersection~, ~union~ and ~minus~ with the signature \\
+movingregion [x] movingregion [->] movingregion \\
+used in the MovingRegion Algebra.
+
+2 Defines and Includes
+
 */
+
 
 #include "SetOps.h"
 
@@ -23,8 +54,7 @@ namespace mregionops {
 set<unsigned int> flippedPFaces;
 
 /*
-
-Class Point3DExt
+3 Class Point3DExt
 
 */
 
@@ -80,8 +110,7 @@ bool PointExtSet::GetIntersectionSegment(Segment3D& result) const {
 }
 
 /*
-
-Class IntersectionSegment
+4 Class IntersectionSegment
 
 */
 
@@ -90,8 +119,7 @@ unsigned int IntersectionSegment::instanceCount = 0;
 IntersectionSegment::IntersectionSegment(const Segment3D& s) :
 
     id(instanceCount++),
-    pFace(0),
-    sideOfResultFace(UNK) {
+    pFace(0) {
 
     // The startpoint's t-coord is always lower or equal to the
     // endpoint's t-coord.
@@ -146,56 +174,6 @@ void IntersectionSegment::SetWCoords() {
 
     SetStartWT(GetPFace()->TransformToWT(*GetStartXYT()));
     SetEndWT(GetPFace()->TransformToWT(*GetEndXYT()));
-}
-
-void IntersectionSegment::SetSideOfResultFace(const PFace& self,
-                                              const PFace& other) {
-    
-    const SetOp op = self.GetOperation();
-
-    // First, we compute the normalized cross product of the normal vectors of 
-    // PFaces self and other:
-    Vector3D cross = self.GetNormalVector() ^ other.GetNormalVector();
-    cross.Normalize();
-
-    // Second, we compute the normalized vector from the startpoint to
-    // the endpoint of this intersection segment:
-    Vector3D startToEnd = *GetEndXYT() - *GetStartXYT();
-    startToEnd.Normalize();
-
-    // Third, we calculate the cosinus of the angle between cross and startToEnd
-    // Note that both vectors have unit length and the angle 
-    // must be either 0 or pi. Hence the cosinus equals 1 or -1.
-    double cos = startToEnd * cross;
-
-    //cout << "cos = " << cos << endl;
-    assert(NumericUtil::NearlyEqual(cos, 1.0) || NumericUtil::NearlyEqual(cos,
-            -1.0));
-
-    // If cos equals 1, 
-    // the normal vector of other points to the right side of this segment.
-    // If cos equals -1, 
-    // the normal vector of other points to the left side of this segment.
-
-    if (op == INTERSECTION || (op == MINUS && other.IsPartOfUnitA())) {
-
-        if (cos > 0.0) // normalOfOther points to the right side of startToEnd.
-            SetResultFaceIsRight();
-        else
-            // normalOfOther points to the left side of startToEnd.
-            SetResultFaceIsLeft();
-
-    } else { // op == UNION || (op == MINUS && self.IsPartOfUnitA())
-
-        if (cos > 0.0) // normalOfOther points to the right side of startToEnd.
-            SetResultFaceIsLeft();
-        else
-            // normalOfOther points to the left side of startToEnd.
-            SetResultFaceIsRight();
-    }
-    
-    if (op == MINUS && self.IsPartOfUnitB())
-        FlipSideOfResultFace();
 }
 
 Point3D IntersectionSegment::Evaluate(const double t) const {
@@ -254,8 +232,7 @@ string IntersectionSegment::GetVRMLDesc() {
 }
 
 /*
-
- Class MSegment
+5 Class MSegment
 
 */
 
@@ -297,8 +274,7 @@ bool MSegment::IsParallel(const MSegment& ms) const {
 }
 
 /*
-
- Class MSegmentCritical
+6 Class MSegmentCritical
 
 */
 
@@ -313,8 +289,7 @@ bool MSegmentCritical::HasEqualNormalVector(const MSegmentCritical& msc) const {
 }
 
 /*
-
- Class ResultUnit
+7 Class ResultUnit
 
 */
 
@@ -909,8 +884,7 @@ bool ResultUnit::Check() const {
 }
 
 /*
-
- Class ResultUnitFactory
+8 Class ResultUnitFactory
 
 */
 
@@ -1128,7 +1102,6 @@ void ResultUnitFactory::ProcessNormalPFace(PFace* pFace) {
         lastDecision = decision;
     }
 }
-
 
 void ResultUnitFactory::ProcessCriticalPFace(PFace* pFace) {
     
@@ -1391,8 +1364,7 @@ void ResultUnitFactory::Print() const {
 }
 
 /*
-
-Class SourceUnit
+9 Class SourceUnit
 
 */
 
@@ -1740,8 +1712,7 @@ void SourceUnit::AddToMRegion(MRegion* const target) const {
 }
 
 /*
-
- Class SourceUnitPair
+10 Class SourceUnitPair
 
 */
 
@@ -1879,8 +1850,6 @@ void SourceUnitPair::ComputeOverlapRect() {
     overlapRect = unitA.GetBoundingRect().Intersection(unitB.GetBoundingRect());
 }
 
-
-
 void SourceUnitPair::CreatePFaces() {
 
     unitA.CreatePFaces();
@@ -1953,8 +1922,6 @@ void SourceUnitPair::PrintIntSegsOfPFaces() {
     //unitB.PrintIntSegsOfPFaces();
 }
 
-
-
 void SourceUnitPair::PrintUnitsAsVRML(bool a, bool b, bool res) {
     
     if (!a && !b && !res)
@@ -2009,11 +1976,9 @@ void SourceUnitPair::PrintUnitsAsVRML(bool a, bool b, bool res) {
 }
 
 /*
-
- Class SetOperator
+11 Class SetOperator
 
 */
-
 
 void SetOperator::Intersection() {
     
@@ -2169,6 +2134,13 @@ void SetOperator::Operate(const SetOp op) {
     cout << "Units out: " << res->GetNoComponents() << endl;
 }
 
+/*
+12 Struct IntSegCompare
+
+
+
+*/
+
 bool IntSegCompare::operator()(const IntersectionSegment* const& s1,
         const IntersectionSegment* const& s2) const {
 
@@ -2200,6 +2172,13 @@ bool IntSegCompare::operator()(const IntersectionSegment* const& s1,
     return s1->GetEndWT()->IsLeft(*(s2->GetStartWT()), *(s2->GetEndWT()));
     
 }
+
+/*
+13 Class IntSegContainer
+
+
+
+*/
 
 IntSegContainer::~IntSegContainer() {
 
@@ -2285,8 +2264,7 @@ void IntSegContainer::PrintActive() const {
 }
 
 /*
-
- Class PFace
+14 Class PFace
 
 */
 
@@ -2308,9 +2286,6 @@ PFace::PFace(SourceUnit* _unit, const MSegmentData* _mSeg) :
 }
 
 void PFace::SetInitialStartPointIsA() {
-    
-    //initialStartPointIsA = false;
-    //return;
     
     Point2D start;
     Point2D end;

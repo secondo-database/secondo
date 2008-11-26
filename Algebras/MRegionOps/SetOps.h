@@ -105,7 +105,6 @@ enum Boundary {
 
 enum RelationToBoundary {
     
-    //UNDEFINED,
     NO_TOUCH,
     TOUCH_IN_STARTPOINT,
     TOUCH_IN_ENDPOINT,
@@ -146,12 +145,19 @@ class SourceUnitPair;
 /*
 1 Class Point3DExt
 
-
+This datastructure is used in the class ~PointExtSet~. 
+It simply extends ~Point3D~ with the attribute ~sourceFlag~.
 
 */
+
 class Point3DExt : public Point3D {
 
 public:
+
+/*
+1.1 Constructors
+
+*/
 
     inline Point3DExt() :
         
@@ -164,7 +170,26 @@ public:
         sourceFlag(_sourceFlag) {
     }
 
+/*
+1.1 Comparison method
+
+*/
+
     bool Lower(const Point3DExt& p) const;
+
+/*
+1.1 Attributes
+
+1.1.1 sourceFlag
+
+An enum, indicating the ~PFace~, this ~Point3D~ belongs to.
+Possible values are:
+
+  * $PFACE\_A$
+
+  * $PFACE\_B$
+
+*/
 
     SourceFlag sourceFlag;
 };
@@ -172,9 +197,8 @@ public:
 /*
 1 Struct PointExtCompare
 
-
-
 */
+
 struct PointExtCompare {
 
     bool operator()(const Point3DExt& p1, const Point3DExt& p2) const {
@@ -186,33 +210,69 @@ struct PointExtCompare {
 /*
 1 Class PointExtSet
 
-
+This set is used in the class ~PFace~ to compute the intersection segment of
+two ~PFaces~.
 
 */
+
 class PointExtSet {
 
 public:
+
+/*
+1.1 Constructors
+
+*/
 
     inline PointExtSet() {
         
     }
 
-    inline void Insert(const Point3DExt& p) {
+/*
+1.1 Operators and Predicates
 
-        //pair<set<PointExt>::iterator, bool> ret = s.insert(p);
-        //return ret.second;
+1.1.1 Insert
+
+Inserts p, if p isn't already inserted.
+
+*/  
+
+    inline void Insert(const Point3DExt& p) {
 
         s.insert(p);
     }
+
+/*
+1.1.1 Size
+
+Returns the number of points in the set.
+
+*/  
 
     inline unsigned int Size() const {
 
         return s.size();
     }
 
+/*
+1.1.1 GetIntersectionSegment
+
+Returns ~true~, if there is an intersection segment and writes it to result.
+
+*/  
+
     bool GetIntersectionSegment(Segment3D& result) const;
 
 private:
+
+/*
+1.1 Attributes
+
+1.1.1 s
+
+A ~std::set~ which uses the struct ~PointExtCompare~ for comparison.
+
+*/  
 
     set<Point3DExt, PointExtCompare> s;
 };
@@ -221,26 +281,73 @@ private:
 1 Class IntersectionSegment
 
 This class represents essentially an oriented segment in the xyt-space.
-It is used for the result of the intersection of two PFaces.
-
+Each intersection of two non-disjunct ~PFaces~ create a pair of two 
+~IntersectionSegment~ instances.
+Each instance keeps a pointer to the ~PFace~, it belongs to.
 
 */
+
 class IntersectionSegment {
 
 public:
+
+/*
+1.1 Constructor
+
+The constructor assures the condition: $startpoint.t <= endpoint.t$
+
+*/
     
     IntersectionSegment(const Segment3D& s);
-    
-    inline unsigned int GetID() const {
 
-        return id;
-    }
+/*
+1.1 Getter and setter methods
+
+1.1.1 GetPFace
+    
+Returns a pointer to the ~PFace~, this instance belongs to.
+
+*/
     
     inline const PFace* GetPFace() const {
         
         assert(pFace != 0);
         return pFace;
     }
+
+/*
+1.1.1 SetPFace
+    
+Initialise the field ~pFace~.
+
+*/
+    
+    inline void SetPFace(const PFace* _pFace) {
+
+        assert(pFace == 0);
+        pFace = _pFace;
+    }
+
+/*
+1.1.1 SetWCoords
+    
+Intitialise the fields ~startWT~ and ~endWT~ by the transformations:
+
+  * startXYT [->] startWT
+
+  * endXYT [->] endWT
+
+*/
+
+    void SetWCoords();
+
+/*
+1.1.1 Get$<$Coordinate$>$ methods
+    
+This methods returns points of this ~IntersectionSegment~ 
+either in xyt-coords or in wt-coords.
+
+*/
     
     inline const Point3D* GetStartXYT() const {
 
@@ -291,35 +398,66 @@ public:
 
         return endWT.GetW();
     }
+    
+/*
+1.1 Operators and Predicates
+
+1.1.1 IsOrthogonalToTAxis
+
+Returns ~true~, if this is parallel to the xy-plane.
+
+*/  
 
     inline bool IsOrthogonalToTAxis() const {
 
         return NumericUtil::NearlyEqual(GetStartT(), GetEndT());
     }
+
+/*
+1.1.1 IsLeftOf
+
+Returns ~true~, if this is left of intSeg. 
+
+Preconditions: 
+
+  * $intSeg.startpoint.t <= this.startpoint.t <= intSeg.endpoint.t$
+
+  * this and intSeg don't intersect in their interior.
+
+*/  
     
-    bool IsLeftOf(const IntersectionSegment* s) const;
-    
-    inline bool ResultFaceIsLeft() const {
+    bool IsLeftOf(const IntersectionSegment* intSeg) const;
 
-        return sideOfResultFace == LEFT;
-    }
+/*
+1.1.1 Evaluate
 
-    inline bool ResultFaceIsRight() const {
+Returns the point (in xyt-coords) on this segment with t-coord t.
 
-        return sideOfResultFace == RIGHT;
-    }
+Precondition: $startpoint.t <= t <= endpoint.t$
 
-    void SetWCoords();
-    
-    void SetSideOfResultFace(const PFace& self, const PFace& other);
+*/      
     
     Point3D Evaluate(const double t) const;
     
-    inline void SetPFace(const PFace* _pFace) {
-        
-        assert(pFace == 0);
-        pFace = _pFace;
+/*
+1.1 Methods for debugging
+
+*/    
+
+    inline unsigned int GetID() const {
+
+        return id;
     }
+
+    string GetVRMLDesc();
+    void Print() const;
+
+private:
+
+/*
+1.1 Private methods
+
+*/    
     
     inline void SetStartWT(const Point2D& _startWT) {
 
@@ -330,48 +468,51 @@ public:
 
         endWT = _endWT;
     }
-
-    string GetVRMLDesc();
-    void Print() const;
-
-private:
     
-    inline void SetResultFaceIsLeft() {
-        
-        assert(sideOfResultFace == UNK);
+/*
+1.1 Attributes
 
-        sideOfResultFace = LEFT;
-    }
+1.1.1 id
 
-    inline void SetResultFaceIsRight() {
-        
-        assert(sideOfResultFace == UNK);
+A unique id for each instance.
+Used for debugging only.
 
-        sideOfResultFace = RIGHT;
-    }
-    
-    inline void FlipSideOfResultFace() {
-        
-        assert(sideOfResultFace != UNK);
-        
-        if (sideOfResultFace == LEFT)
-            sideOfResultFace = RIGHT;
-        else
-            sideOfResultFace = LEFT;
-    }
-    
+*/    
+
     unsigned int id;
+	static unsigned int instanceCount;
+
+/*
+1.1.1 startXYT and endXYT
+
+Start- and endpoint of this segment in xyt-coordinates.
+Note that they are independed of the ~PFace~.
+
+*/    
 
     Point3D startXYT;
     Point3D endXYT;
+
+/*
+1.1.1 startWT and endWT
+
+Start- and endpoint of this segment in wt-coordinates.
+Note that the w-coord depends on the ~PFace~.
+We store them here for the sake of efficency.
+
+*/ 
+
     Point2D startWT;
     Point2D endWT;
+
+/*
+1.1.1 pFace
+
+A pointer to the ~PFace~, this instance belongs to.
+
+*/ 
     
     const PFace* pFace;
-    
-    SideOfResultFace sideOfResultFace;
-    
-    static unsigned int instanceCount;
 };
 
 /*
@@ -656,9 +797,8 @@ private:
 /*
 1 Struct DoubleCompare
 
-
-
 */
+
 struct DoubleCompare {
 
     bool operator()(const double& d1, const double& d2) const {
@@ -673,6 +813,7 @@ struct DoubleCompare {
 
 
 */
+
 class ResultUnitFactory {
 
 public:
@@ -750,6 +891,7 @@ private:
 
 
 */
+
 struct TestRegion {
     
     TestRegion() :
@@ -876,7 +1018,6 @@ private:
 
     void NormalizeTimeInterval();
     void ComputeBoundingRect();
-    //void ComputeMedianRegion();
     const Region GetTestRegion(const double t);
     
     const bool isUnitA;
@@ -890,18 +1031,15 @@ private:
     
     double startTime;
     double endTime;
-    //Instant medianTime;
     
     bool hasNormalizedTimeInterval;
     Interval<Instant> originalTimeInterval;
-    //double scaleFactor;
     
     vector<PFace*> pFacesReduced;
     vector<PFace*> pFaces;
     
     Rectangle<2> boundingRect;
     
-    //TestRegion medianRegion;
     TestRegion testRegion;
 };
 
@@ -923,10 +1061,6 @@ public:
                    const bool bIsEmpty,
                    const SetOp operation,
                    MRegion* const resultMRegion);
-
-    ~SourceUnitPair() {
-
-    }
 
     void Operate();
     
@@ -1002,12 +1136,23 @@ private:
 /*
 1 Class SetOperator
 
-
+This class provides the three set operations 
+~intersection~, ~union~ and ~minus~ with the signature
+movingregion [x] movingregion [->] movingregion.
 
 */
+
 class SetOperator {
     
 public:
+
+/*
+1.1 Constructor
+
+The constructor takes three pointers to ~MRegion~ instances, 
+according to the signature a [x] b [->] res.
+
+*/
     
     SetOperator(MRegion* const _a, 
                 MRegion* const _b, 
@@ -1015,38 +1160,61 @@ public:
                 
                 a(_a), b(_b), res(_res) {
 
-        //NumericUtil::SetEpsToDefault();
-        //a_ref = new MRegion(0);
-        //b_ref = new MRegion(0);
     }
     
-    ~SetOperator() {
-        
-        //delete a_ref;
-        //delete b_ref;
-    }
+/*
+1.1 Operators
+
+1.1.1 Intersection
+
+Performs the operation $a \cap b$ and writes the result to res.
+
+*/
     
     void Intersection();
+
+/*
+1.1.1 Union
+
+Performs the operation $a \cup b$ and writes the result to res.
+
+*/
+
     void Union();
+
+/*
+1.1.1 Minus
+
+Performs the operation $a \setminus b$ and writes the result to res.
+
+*/
+
     void Minus();
     
 private:
     
-    //void ComputeRefinementPartition();
+/*
+1.1 Private methods
+
+*/
+    
     void Operate(const SetOp op);
+
+/*
+1.1 Attributes
+
+*/
 
     MRegion* const a;
     MRegion* const b;
     MRegion* const res;
-    
-    //MRegion* a_ref;
-    //MRegion* b_ref;
 };
 
 /*
 1 Struct IntSegCompare
 
-
+This struct implements the ~IntersectionSegment~ order, 
+used in ~IntSegContainer~.
 
 */
 struct IntSegCompare {
@@ -1058,12 +1226,24 @@ struct IntSegCompare {
 /*
 1 Class IntSegContainer
 
+This class is used by the class ~PFace~ and provides essentially
 
+  * an ordered set of ~IntersectionSegments~
+
+  * an ordered multiset of critical timelevels
+
+  * the ability to perform a plane-sweep in t-direction from bottom to top.
 
 */
+
 class IntSegContainer {
     
 public:
+
+/*
+1.1 Constructor
+
+*/
     
     inline IntSegContainer() :
         
@@ -1071,34 +1251,87 @@ public:
         lastDecision(UNDEFINED) {
         
     }
+
+/*
+1.1 Destructor
+
+*/
     
     ~IntSegContainer();
+
+/*
+1.1 Operators
+
+1.1.1 AddIntSeg
+
+Adds seg to the set of ~IntersectionSegments~.
+
+*/
     
     inline void AddIntSeg(IntersectionSegment* seg) {
         
         intSegs.insert(seg);
     }
+
+/*
+1.1.1 AddCriticalTime
+
+Adds t to the multiset of critical timelevels.
+
+*/
     
     inline void AddCriticalTime(const double& t) {
 
         criticalTimes.insert(t);
     }
+
+/*
+1.1.1 GetActiveIntSegs
+
+Returns a pointer to a list of the currently active ~IntersectionSegments~,
+according to the previous call of ~UpdateTimeLevel~. An ~IntersectionSegment~ s 
+is active at time t, if the condition $s.startpoint.t <= t < s.endpoint.t$ 
+holds.
+
+*/ 
     
     inline const list<IntersectionSegment*>* GetActiveIntSegs() const {
 
         return &active;
     }
+
+/*
+1.1.1 UpdateTimeLevel
+
+Updates the list of the currently active ~IntersectionSegments~: Insert 
+segments with $startpoint.t = t$ and remove segments with $endpoint.t = t$.
+
+*/ 
     
     void UpdateTimeLevel(double t);
+
+/*
+1.1.1 SetLastDecision
+
+Remembers the decision for the first brick of the current timelevel.
+
+*/ 
     
     inline void SetLastDecision(const Decision d) {
         
         lastDecision = d;
     }
+
+/*
+1.1.1 GetLastDecision
+
+Returns the correct decision for the first brick of a new timelevel.
+
+Precondition: ~UpdateTimeLevel~ was already called.
+
+*/ 
     
     inline const Decision GetLastDecision() const {
-        
-        // Precondition: UpdateTimeLevel is already called!
         
         if (lastDecision == UNDEFINED) {
             
@@ -1115,73 +1348,161 @@ public:
         else
             return ACCEPT;
     }
+
+/*
+1.1 Methods for debugging
+
+*/ 
     
     void Print() const;
     void PrintActive() const;
     
 private:
+
+/*
+1.1 Private methods
+
+*/   
     
     inline bool IsOutOfRange(IntersectionSegment* seg) const {
 
         return NumericUtil::NearlyEqual(seg->GetEndT(), t);
-        //return fabs(seg->GetEndT() - t) < 0.01;
     }
 
     inline bool HasMoreSegsToInsert() const {
 
         return intSegIter != intSegs.end() && 
-               //fabs((*intSegIter)->GetStartT() - t) < 0.01;
                NumericUtil::NearlyEqual((*intSegIter)->GetStartT(), t);
     }
     
-    inline const IntersectionSegment* GetSecondActiveIntSeg() const {
-        
-        assert(active.size() >= 2);
-        
-        list<IntersectionSegment*>::const_iterator iter = active.begin();
-        iter++;
-        
-        return *iter;
-    }
+/*
+1.1 Attributes
+
+1.1.1 intSegs, intSegIter
+
+A ~std::set~ to store the ~IntersectionSegments~ using the order
+provided by ~IntSegCompare~ and a suitable iterator.
+
+*/    
     
     set<IntersectionSegment*, IntSegCompare> intSegs;
     set<IntersectionSegment*, IntSegCompare>::iterator intSegIter;
 
+/*
+1.1.1 active, activeIter
+
+A ~std::list~ to store the active ~IntersectionSegments~ during the plane-sweep
+and a suitable iterator.
+
+*/    
+
     list<IntersectionSegment*> active;
     list<IntersectionSegment*>::iterator activeIter;
+
+/*
+1.1.1 criticalTimes
+
+A ~std::multiset~ to store the the critical timelevels.
+
+*/   
     
     multiset<double, DoubleCompare> criticalTimes;
+
+/*
+1.1.1 t
+
+The current timelevel.
+
+*/   
     
     double t;
+
+/*
+1.1.1 firstTimeLevel
+
+A flag, indicating that the current timelevel is the lowest one.
+
+*/   
+
     bool firstTimeLevel;
+
+/*
+1.1.1 lastDecision
+
+An enum, that stores the decision for the first brick of the current timelevel:
+
+  * UNDEFINED
+
+  * ACCEPT
+
+  * SKIP
+
+*/   
+
     Decision lastDecision;
 };
 
 /*
 1 Class PFace
 
+This class represents essentially a movingsegment, 
+viewed as a polygonal face in a 3-dimensional xyt-space(time). 
+Due to the restrictions of movingsegments,
+a ~PFace~ can be either a planar trapezium or a triangle.
 
+To simplify computations, we define another 2-dimensional coordinate system for
+each ~PFace~: The wt-system, which is basically constructed as follows:
+
+  * We keep the t-axis from the xyt-system.
+
+  * The w-unitvector is given by the crossproduct of the t-unitvector and
+    the normalvector of the ~PFace~.
 
 */
+
 class PFace {
 
 public:
 
-    PFace(SourceUnit* _unit, const MSegmentData* _mSeg);
-          
-    ~PFace() {
+/*
+1.1 Constructor
 
-    }
+*/
+
+    PFace(SourceUnit* _unit, const MSegmentData* _mSeg);
+ 
+/*
+1.1 Getter and setter methods
+
+1.1.1 GetMSeg
+
+Returns a pointer to the corresponding ~MSegmentData~ instance.
+
+*/         
 
     inline const MSegmentData* GetMSeg() const {
 
         return mSeg;
     }
 
+/*
+1.1.1 GetBoundingRect
+
+Returns the projection bounding rectangle in xy-coords.
+
+*/       
+
     inline Rectangle<2> GetBoundingRect() const {
 
         return boundingRect;
     }
+
+/*
+1.1.1 GetStartTime/GetEndTime
+
+Returns the min./max. value of t.
+
+*/  
     
     inline double GetStartTime() const {
         
@@ -1193,6 +1514,14 @@ public:
         return unit->GetEndTime();
     }
 
+/*
+1.1.1 GetA XYT
+
+Returns the lower left point in xyt-coords of the ~PFace~, 
+if viewed from outside.
+
+*/  
+
     inline Point3D GetA_XYT() const {
 
         if (InitialStartPointIsA())
@@ -1202,6 +1531,14 @@ public:
             return Point3D(mSeg->GetInitialEndX(), mSeg->GetInitialEndY(),
                     unit->GetStartTime());
     }
+
+/*
+1.1.1 GetB XYT
+
+Returns the lower right point in xyt-coords of the ~PFace~, 
+if viewed from outside.
+
+*/  
 
     inline Point3D GetB_XYT() const {
 
@@ -1213,6 +1550,14 @@ public:
                     unit->GetStartTime());
     }
 
+/*
+1.1.1 GetC XYT
+
+Returns the upper left point in xyt-coords of the ~PFace~, 
+if viewed from outside.
+
+*/  
+
     inline Point3D GetC_XYT() const {
 
         if (InitialStartPointIsA())
@@ -1222,6 +1567,14 @@ public:
             return Point3D(mSeg->GetFinalEndX(), mSeg->GetFinalEndY(),
                     unit->GetEndTime());
     }
+
+/*
+1.1.1 GetD XYT
+
+Returns the upper right point in xyt-coords of the ~PFace~, 
+if viewed from outside.
+
+*/  
 
     inline Point3D GetD_XYT() const {
 
@@ -1233,63 +1586,109 @@ public:
                     unit->GetEndTime());
     }
 
-    inline bool AEqualsB() const {
+/*
+1.1.1 GetA WT
 
-        return mSeg->GetPointInitial();
-    }
+Returns the lower left point in wt-coords of the ~PFace~, 
+if viewed from outside.
 
-    inline bool CEqualsD() const {
-
-        return mSeg->GetPointFinal();
-    }
+*/      
 
     inline Point2D GetA_WT() const {
 
         return Point2D(aW, unit->GetStartTime());
     }
 
+/*
+1.1.1 GetB WT
+
+Returns the lower right point in wt-coords of the ~PFace~, 
+if viewed from outside.
+
+*/     
+
     inline Point2D GetB_WT() const {
 
         return Point2D(bW, unit->GetStartTime());
     }
+
+/*
+1.1.1 GetC WT
+
+Returns the upper left point in wt-coords of the ~PFace~, 
+if viewed from outside.
+
+*/     
 
     inline Point2D GetC_WT() const {
 
         return Point2D(cW, unit->GetEndTime());
     }
 
+/*
+1.1.1 GetD WT
+
+Returns the upper right point in wt-coords of the ~PFace~, 
+if viewed from outside.
+
+*/     
+
     inline Point2D GetD_WT() const {
 
         return Point2D(dW, unit->GetEndTime());
     }
 
+/*
+1.1.1 GetNormalVector
+
+Returns the normal unitvector of this ~PFace~,
+which is pointing to the outside.
+
+*/     
+
     inline Vector3D GetNormalVector() const {
 
         return normalVector;
     }
+
+/*
+1.1.1 GetOperation
+
+Returns an enum to indicate the current set operation:
+INTERSECTION, UNION or MINUS.
+
+*/     
     
     inline const SetOp GetOperation() const {
         
         return unit->GetOperation();
     }
 
-    inline bool InitialStartPointIsA() const {
+/*
+1.1.1 GetWVector
 
-        return initialStartPointIsA;
-    }
+Returns the w-unitvector of this ~PFace~,
+which defines the w-axis of the wt-system.
+
+The vector w is either the normalized cross product 
+of the normal vector and the t-unit-vector, or it's negative.
+This depends on the kind of set-operation, we want to perform.
+
+*/        
 
     inline Vector3D GetWVector() const {
 
         return wVector;
     }
-    
-    inline Vector3D GetNormalVectorOfResultFace() const {
-        
-        if (GetOperation() == MINUS && IsPartOfUnitB())
-            return - GetNormalVector();
-        else
-            return GetNormalVector();
-    }
+
+/*
+1.1.1 GetBoundary
+
+Returns a ~Segment2D~ which represents the left or right boundary
+of this ~PFace~, as specified by the parameter b.
+Note that the result depends on the kind of set operation.
+
+*/
     
     inline Segment2D GetBoundary(const Boundary b) const {
         
@@ -1308,25 +1707,81 @@ public:
                 return Segment2D(GetB_WT(), GetD_WT());
         }
     }
-    
-    inline bool NormalVectorsHasSameDirection() const {
 
-        return !(GetOperation() == MINUS && IsPartOfUnitB());
+/*
+1.1 Operators and Predicates
+
+1.1.1 AEqualsB
+
+Returns ~true~, if this ~PFace~ is a triangle and 
+the edge AB is degenerated to a point.
+
+*/
+    
+    inline bool AEqualsB() const {
+
+        return mSeg->GetPointInitial();
     }
+
+/*
+1.1.1 CEqualsD
+
+Returns ~true~, if this ~PFace~ is a triangle and 
+the edge CD is degenerated to a point.
+
+*/
+
+    inline bool CEqualsD() const {
+
+        return mSeg->GetPointFinal();
+    }
+
+/*
+1.1.1 Intersection
+
+Computes the intersection of this ~PFace~ with pf and adds
+one ~IntersectionSegment~ instance to both ~PFaces~.
+
+*/
 
     void Intersection(PFace& pf);
 
-    bool IntersectionPlaneSegment(const Segment3D& seg, Point3D& result);
+/*
+1.1.1 IsParallelTo
+
+Returns ~true~, if this ~PFace~ is parallel to the ~PFace~ pf.
+
+*/    
 
     bool IsParallelTo(const PFace& pf) const;
+
+/*
+1.1.1 IsCoplanarTo
+
+Returns ~true~, if this ~PFace~ is coplanar to the argument.
+
+*/ 
+
     bool IsCoplanarTo(const PFace& pf) const;
     bool IsCoplanarTo(const Point3D& p) const;
     bool IsCoplanarTo(const Segment3D& s) const;
     bool IsCoplanarTo(const IntersectionSegment& s) const;
-    //bool IsEqual(const PFace& pf) const;
+
+/*
+1.1.1 HasEqualNormalVector
+
+Returns ~true~, if the normalvectors of this and pf are equal.
+
+*/ 
+
     bool HasEqualNormalVector(const PFace& pf) const;
 
-    
+/*
+1.1.1 TransformToWT
+
+Transforms the argument from the xyt-system to the wt-system. 
+
+*/     
 
     inline double TransformToW(const Point3D& xyt) const {
 
@@ -1355,73 +1810,150 @@ public:
         return Segment2D(TransformToWT(xyt.GetStart()), 
                          TransformToWT(xyt.GetEnd()));
     }
+
+/*
+1.1.1 MarkAsEntirelyOutside
+
+Marks this ~PFace~ as entirely outside the other movingregion.
+
+*/ 
     
-    inline bool ResultVolumeIsRightOf(const Segment3D& s) const {
-
-        Point2D startWT = TransformToWT(s.GetStart());
-        Point2D endWT = TransformToWT(s.GetEnd());
-
-        if (startWT < endWT)
-            return !NormalVectorsHasSameDirection();
-        else
-            return NormalVectorsHasSameDirection();
-    }
-
     inline void MarkAsEntirelyOutside() {
 
         state = ENTIRELY_OUTSIDE;
     }
+
+/*
+1.1.1 IsEntirelyOutside
+
+Returns ~true~, if this ~PFace~ is entirely outside the other movingregion.
+
+*/ 
 
     inline bool IsEntirelyOutside() const {
 
         return state == ENTIRELY_OUTSIDE;
     }
 
+/*
+1.1.1 MarkAsEntirelyInside
+
+Marks this ~PFace~ as entirely inside the other movingregion.
+
+*/ 
+
     inline void MarkAsEntirelyInside() {
 
         state = ENTIRELY_INSIDE;
     }
 
+/*
+1.1.1 IsEntirelyInside
+
+Returns ~true~, if this ~PFace~ is entirely inside the other movingregion.
+
+*/ 
+
     inline bool IsEntirelyInside() const {
 
         return state == ENTIRELY_INSIDE;
     }
+
+/*
+1.1.1 MarkAsNormalRelevant
+
+Marks this ~PFace~ as normal relevant for the result movingregion.
+This means, that no critical case occured during the intersection process.
+
+*/ 
     
     inline void MarkAsNormalRelevant() {
 
         if (!IsCriticalRelevant())
             state = RELEVANT_NOT_CRITICAL;
     }
+
+/*
+1.1.1 MarkAsCriticalRelevant
+
+Marks this ~PFace~ as critical relevant for the result movingregion.
+This means, that at least one critical case occured during the 
+intersection process.
+
+*/ 
     
     inline void MarkAsCriticalRelevant() {
 
         state = RELEVANT_CRITICAL;
     }
+
+/*
+1.1.1 MarkAsIrrelevant
+
+Marks this ~PFace~ as irrelevant for the result movingregion.
+
+*/ 
     
     inline void MarkAsIrrelevant() {
 
         state = NOT_RELEVANT;
     }
-    
+
+/*
+1.1.1 IsNormalRelevant
+
+Returns ~true~, if this ~PFace~ is normal relevant for the result movingregion.
+
+*/ 
+
     inline bool IsNormalRelevant() const {
 
         return state == RELEVANT_NOT_CRITICAL;
     }
+
+/*
+1.1.1 IsCriticalRelevant
+
+Returns ~true~, if this ~PFace~ is critical relevant 
+for the result movingregion.
+
+*/ 
 
     inline bool IsCriticalRelevant() const {
 
         return state == RELEVANT_CRITICAL;
     }
 
+/*
+1.1.1 IsIrrelevant
+
+Returns ~true~, if this ~PFace~ is irrelevant for the result movingregion.
+
+*/ 
+
     inline bool IsIrrelevant() const {
 
         return state == NOT_RELEVANT;
     }
+
+/*
+1.1.1 GetUnit
+
+Returns a pointer to the ~SourceUnit~ this ~PFace~ belongs to.
+
+*/ 
     
     inline SourceUnit* GetUnit() const {
         
         return unit;
     }
+
+/*
+1.1.1 IsPartOfUnitA/B
+
+Returns ~true~, if this ~PFace~ belongs to ~SourceUnit~ A/B.
+
+*/ 
 
     inline bool IsPartOfUnitA() const {
 
@@ -1432,53 +1964,142 @@ public:
 
         return !unit->IsUnitA();
     }
+
+/*
+1.1.1 GetState
+
+Returns an enum to indicate the state of this ~PFace~.
+
+*/ 
     
     inline State GetState() const {
         
         return state;
     }
+
+/*
+1.1.1 HasInnerIntSegs
+
+Returns ~true~, if this ~PFace~ contains ~IntersectionSegments~ which are not
+colinear to the boundary.
+
+*/ 
     
     inline bool HasInnerIntSegs() const {
         
         return hasInnerIntSegs;
     }
+
+/*
+1.1.1 IsColinearToBoundary
+
+Returns ~true~, if s is colinear to the left or right boundary of this ~PFace~.
+
+*/ 
+
+    bool IsColinearToBoundary(const Segment3D& s) const;
+
+/*
+1.1.1 GetMidPoint
+
+Returns the midpoint of this ~PFace~. 
+Note that this point is never part of the boundary.
+
+*/ 
+    
+    const Point3D GetMidPoint() const;
+
+/*
+1.1.1 GetRelationToBoundary
+
+Returns an enum to indicate the spatial relationship of s and b.
+
+*/ 
+    
+    const RelationToBoundary 
+    GetRelationToBoundary(const Segment3D& s, const Boundary b) const;
+
+/*
+1.1 Methods used by ~ResultUnitFactory~.
+
+The ~ResultUnitFactory~ performs a plane-sweep in t-direction
+from bottom to top, over all relevant ~PFaces~, to construct the result units.
+
+1.1.1 Finalize
+
+This method is called before the plane-sweep starts and
+adds two ~IntersectionSegments~ to each relevant ~PFace~: 
+The left and right border.
+
+*/ 
+    
+    inline void Finalize() {
+        
+        AddBoundary();
+    }
+
+/*
+1.1.1 GetActiveIntSegs
+
+Returns a pointer to a list of the currently active ~IntersectionSegments~,
+according to the previous call of ~UpdateTimeLevel~. An ~IntersectionSegment~ s 
+is active at time t, if the condition $s.startpoint.t <= t < s.endpoint.t$ 
+holds.
+
+*/ 
     
     inline const list<IntersectionSegment*>* GetActiveIntSegs() const {
 
         return intSegs.GetActiveIntSegs();
     }
+
+/*
+1.1.1 UpdateTimeLevel
+
+Updates the list of the currently active ~IntersectionSegments~: Insert 
+segments with $startpoint.t = t$ and remove segments with $endpoint.t = t$.
+
+*/ 
     
     inline void UpdateTimeLevel(double t) {
         
         intSegs.UpdateTimeLevel(t);
     }
+
+/*
+1.1.1 SetLastDecision
+
+Remembers the decision for the first brick of the current timelevel.
+
+*/ 
     
     inline void SetLastDecision(const Decision d) {
 
         intSegs.SetLastDecision(d);
     }
 
-    inline const Decision GetLastDecision() const {
+/*
+1.1.1 GetLastDecision
 
-        // Precondition: UpdateTimeLevel is already called!
+Returns the correct decision for the first brick of a new timelevel,
+or UNDEFINED, if this ~PFace~ is critical.
+
+Precondition: ~UpdateTimeLevel~ is already called.
+
+*/ 
+
+    inline const Decision GetLastDecision() const {
         
         if (IsCriticalRelevant())
             return UNDEFINED;
 
         return intSegs.GetLastDecision();
     }
-    
-    inline void Finalize() {
-        
-        AddBoundary();
-    }
-    
-    bool IsColinearToBoundary(const Segment3D& s) const;
-    
-    const Point3D GetMidPoint() const;
-    
-    const RelationToBoundary 
-    GetRelationToBoundary(const Segment3D& s, const Boundary b) const;
+
+/*
+1.1 Methods for debugging
+
+*/        
     
     inline unsigned int GetID() const {
         
@@ -1489,35 +2110,148 @@ public:
     void Print() const;
 
 private:
+
+/*
+1.1 Private methods
+
+*/    
+    
+    inline bool InitialStartPointIsA() const {
+
+        return initialStartPointIsA;
+    }
     
     void SetInitialStartPointIsA();
     void ComputeBoundingRect();
     void ComputeNormalVector();
     void ComputeWTCoords();
+    bool IntersectionPlaneSegment(const Segment3D& seg, Point3D& result);
     void AddBoundary();
     void AddEntireBoundary();
     void AddIntSeg(const Segment3D& seg, PFace& other);
-    //void AddTouchSeg(const Segment3D& seg);
     void AddBoundaryIntSeg(const Segment3D& seg);
 
+/*
+1.1 Attributes
+
+1.1.1 unit
+
+A pointer to the ~SourceUnit~, this ~PFace~ belongs to.
+
+*/    
+
     SourceUnit* const unit;
+
+/*
+1.1.1 mSeg
+
+A pointer to the ~MSegmentData~, this ~PFace~ represents.
+
+*/    
+
     const MSegmentData* const mSeg;
+
+/*
+1.1.1 boundingRect
+
+The projection bounding rectangle in xy-coords.
+
+*/   
+
     Rectangle<2> boundingRect;
+
+/*
+1.1.1 normalVector
+
+The normal vector of this ~PFace~, pointing to the outside.
+
+*/   
+
     Vector3D normalVector;
+
+/*
+1.1.1 wVector
+
+The w-unitvector of this ~PFace~,
+which defines the w-axis of the wt-system.
+
+The vector w is either the normalized cross product 
+of the normal vector and the t-unit-vector, or it's negative.
+This depends on the kind of set-operation, we want to perform.
+
+*/
+
     Vector3D wVector;
 
+/*
+1.1.1 intSegs
+
+A container to store all ~IntersectionSegments~ of this ~PFace~.
+
+*/  
+
     IntSegContainer intSegs;
+
+/*
+1.1.1 aW, bW, cW, dW
+
+The w-coords of the four vertices of this ~PFace~.
+
+*/  
 
     double aW;
     double bW;
     double cW;
     double dW;
 
-    //bool insideAbove;
+/*
+1.1.1 initialStartPointIsA
+
+A flag, indicating if the vertex A equals the ~initialStartPoint~ of the 
+corresponding ~MSegmentData~ instance.
+
+*/        
+
     bool initialStartPointIsA;
+
+/*
+1.1.1 hasInnerIntSegs
+
+A flag, indicating if this ~PFace~ contains ~IntersectionSegments~ which are not
+colinear to the boundary.
+
+*/        
+
     bool hasInnerIntSegs;
+
+/*
+1.1.1 state
+
+An enum, indicating the state of this ~PFace~. Possible values are:
+
+  * $UNKNOWN$
+
+  * $ENTIRELY\_INSIDE$
+
+  * $ENTIRELY\_OUTSIDE$
+
+  * $RELEVANT\_NOT\_CRITICAL$
+
+  * $RELEVANT\_CRITICAL$
+
+  * $NOT\_RELEVANT$
+
+*/       
      
     State state;
+
+/*
+1.1.1 id
+
+A unique id for each instance.
+Used for debugging only.
+
+*/    
     
     unsigned int id;
     static unsigned int instanceCount;
@@ -1526,5 +2260,4 @@ private:
 } // end of namespace mregionops
 
 #endif /*SETOPS_H_*/
-
 
