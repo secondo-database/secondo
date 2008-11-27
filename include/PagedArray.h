@@ -145,6 +145,7 @@ public:
     if (filePtr) {
       filePtr->Close();
       delete filePtr;
+      filePtr = 0;
     }
 
     for (int i=0; i < MAX_BUFFERS; i++) {
