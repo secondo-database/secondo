@@ -167,6 +167,11 @@ NestedList::~NestedList()
 void
 NestedList::DeleteListMemory()
 {
+   //cerr << "DeleteListMem this = " << (void*)this << endl;
+   //cerr << "stringTable = " << (void*) stringTable << endl;
+   //cerr << "nodeTable = " << (void*) nodeTable << endl;
+   //cerr << "textTable = " << (void*) textTable << endl;
+   
    if (stringTable && nodeTable && textTable) {
 
      delete stringTable;
