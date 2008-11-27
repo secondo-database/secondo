@@ -404,7 +404,7 @@ A session without a control tty can only have background jobs.
 
   // -- parent process
   delete []argv;
-  delete argsbuf;
+  delete[] argsbuf;
   
   if ( pid < 0 )
   {
