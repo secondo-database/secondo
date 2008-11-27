@@ -8883,7 +8883,7 @@ int Region::Compare( const Attribute* arg ) const
       res=-1;
     else  //their sizes are equal
     {
-      bool bboxCmp = bbox.Compare( &cr->bbox );
+      int bboxCmp = bbox.Compare( &cr->bbox );
       if( bboxCmp == 0 )
       {
         bool decided = false;
