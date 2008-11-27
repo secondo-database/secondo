@@ -3266,7 +3266,7 @@ public:
   bool outputMatches;
 
 private:
-  LexicographicalTupleSmaller smallerThan;
+  LexicographicalTupleCmp tupleCmp;
 
   Word streamA;
   Word streamB;
@@ -3331,9 +3331,7 @@ unequal to the currently store A tuple.
 
   bool TuplesEqual(Tuple* a, Tuple* b)
   {
-    const bool t1 = smallerThan(a, b);
-    const bool t2 = smallerThan(b, a);
-    return !(t1 || t2);
+    return (tupleCmp(a,b)==0);
   }
 
 public:
@@ -3413,7 +3411,8 @@ public:
         else
         {
           /* both current tuples != 0 */
-          if(smallerThan(currentATuple, currentBTuple))
+          int cmp = tupleCmp(currentATuple, currentBTuple);
+          if(cmp < 0)
           {
             if(outputAWithoutB)
             {
@@ -3422,7 +3421,7 @@ public:
             }
             NextATuple();
           }
-          else if(smallerThan(currentBTuple, currentATuple))
+          else if(cmp > 0)
           {
             if(outputBWithoutA)
             {
