@@ -588,15 +588,23 @@ FileSystem::SearchPath( const string& fileName, string& foundFile )
 }
 
 void
-FileSystem::AppendSlash( string& pathName )
+FileSystem::AppendItem( string& pathName, const string& item )
 {
   string::size_type n = pathName.find_last_of(PATH_SLASH[0]);
 
   if ( n != pathName.length() ) // last character is not a path separator
   {
     pathName += PATH_SLASH;
+    pathName += item;
   }
 }
+
+void
+FileSystem::AppendSlash( string& pathName )
+{
+  AppendItem(pathName,"");
+}
+
 
 #ifdef SECONDO_WIN32
 void

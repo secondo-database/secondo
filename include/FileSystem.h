@@ -255,10 +255,13 @@ the file is returned in ~foundFile~.
 
 */
   static void AppendSlash( string& pathName );
+  static void AppendItem( string& pathName, const string& item);
+
 /*
 Appends the proper slash character to a pathname.
 This character will either be a forward or backward
-slash, depending on the operating system used.
+slash, depending on the operating system used. The second form also adds the given
+subitem.
 
 */
  protected:
