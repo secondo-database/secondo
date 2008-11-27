@@ -2982,7 +2982,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
                      Word& local, Supplier s)
 {
   Word tuple;
-  LexicographicalTupleCompareAlmost cmp;
+  LexicographicalTupleCmpAlmost cmp1;
 
   Tuple* currentTuple;
   RdupLocalInfo* rli;
@@ -3026,8 +3026,7 @@ int RdupValueMapping(Word* args, Word& result, int message,
 
             currentTuple = (Tuple*)tuple.addr;
             lastOutputTuple = rli->localTuple;
-            if(cmp(currentTuple, lastOutputTuple)
-              || cmp(lastOutputTuple, currentTuple))
+            if(cmp1(currentTuple, lastOutputTuple)!=0)
             {
               // tuples are not equal. Return the tuple
               // stored in local info and store the current one
@@ -3267,7 +3266,7 @@ public:
   bool outputMatches;
 
 private:
-  LexicographicalTupleCompare smallerThan;
+  LexicographicalTupleSmaller smallerThan;
 
   Word streamA;
   Word streamB;

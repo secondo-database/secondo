@@ -734,7 +734,7 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
   TRACE_ENTER
 
   size_t offset = sizeof(rootSize);
-  uint32_t extOffset = 0; //offset + tupleType->GetCoreSize();
+  //uint32_t extOffset = 0; //offset + tupleType->GetCoreSize();
   int i = 0;
 
   DEBUG(this, "rootSize = " << rootSize)

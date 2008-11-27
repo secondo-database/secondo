@@ -1988,7 +1988,7 @@ The function makes use of four arguments:
     return list.typeError(errMsg);
   }  
   
-  static LexicographicalTupleCompare lexCmp;
+  static LexicographicalTupleSmaller lexSmaller;
   
   class TupleAndRelPos
   {
@@ -2026,7 +2026,7 @@ The function makes use of four arguments:
       }
       else
       {
-        return !lexCmp( this->tuple, ref.tuple );
+        return !lexSmaller( this->tuple, ref.tuple );
       }
     }
 
@@ -2046,8 +2046,8 @@ The function makes use of four arguments:
         void *tupleCmp ):
     stream( stream ),
     currentIndex( 0 ),
-    lexiTupleCmp( lexicographic ?
-        (LexicographicalTupleCompare*)tupleCmp :
+    lexiTupleSmaller( lexicographic ?
+        (LexicographicalTupleSmaller*)tupleCmp :
         0 ),
     tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
     lexicographic( lexicographic ),
@@ -2245,8 +2245,8 @@ The function makes use of four arguments:
         relations[i].first = 0;
       }
 
-      delete lexiTupleCmp;
-      lexiTupleCmp = 0;
+      delete lexiTupleSmaller;
+      lexiTupleSmaller = 0;
       delete tupleCmpBy;
       tupleCmpBy = 0;
     }
@@ -2301,7 +2301,7 @@ The function makes use of four arguments:
     size_t currentIndex;
 
     // tuple information
-    LexicographicalTupleCompare *lexiTupleCmp;
+    LexicographicalTupleSmaller *lexiTupleSmaller;
     TupleCompareBy *tupleCmpBy;
     bool lexicographic;
 

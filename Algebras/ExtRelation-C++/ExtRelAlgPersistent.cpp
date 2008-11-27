@@ -94,7 +94,7 @@ in ascending (asc) or descending (desc) order with regard to that attribute.
 
 */
 
-static LexicographicalTupleCompare lexCmp;
+static LexicographicalTupleSmaller lexCmp;
 
 class TupleAndRelPos {
 public:
@@ -308,7 +308,7 @@ CreateCompareObject(bool lexOrder, Word* args) {
 
   if(lexOrder) 
   {
-     tupleCmp = new LexicographicalTupleCompare();
+     tupleCmp = new LexicographicalTupleSmaller();
   }	
   else
   {
@@ -696,7 +696,7 @@ class SortByLocalInfo : protected ProgressWrapper
       stream( stream ),
       currentIndex( 0 ),
       lexiTupleCmp( lexicographic ?
-                    (LexicographicalTupleCompare*)tupleCmp :
+                    (LexicographicalTupleSmaller*)tupleCmp :
                     0 ),
       tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
       lexicographic( lexicographic )
@@ -959,7 +959,7 @@ In this case we need to delete also all tuples stored in memory.
     size_t currentIndex;
 
     // tuple information
-    LexicographicalTupleCompare *lexiTupleCmp;
+    LexicographicalTupleSmaller *lexiTupleCmp;
     TupleCompareBy *tupleCmpBy;
     bool lexicographic;
 

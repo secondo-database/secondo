@@ -1227,7 +1227,7 @@ lexicographical comparison function between two tuples.
 */
 
 // use this one for sorting
-class LexicographicalTupleCompare
+class LexicographicalTupleSmaller
 {
   public:
     inline bool operator()( const Tuple* aConst,
@@ -1250,33 +1250,30 @@ class LexicographicalTupleCompare
     }
 };
 
-class LexicographicalTupleCompare_Reverse : public LexicographicalTupleCompare
+class LexicographicalTupleGreater : public LexicographicalTupleSmaller
 {
   public:
     inline bool operator()( const Tuple* a,
                             const Tuple* b ) const
     {
-      return !LexicographicalTupleCompare::operator()(a, b);
+      return !LexicographicalTupleSmaller::operator()(a, b);
     }
 };
 
 
 
 // use this one to remove duplicates
-class LexicographicalTupleCompareAlmost
+class LexicographicalTupleSmallerAlmost
 {
   public:
     inline bool operator()( const Tuple* aConst,
                             const Tuple* bConst ) const
     {
-      Tuple* a = (Tuple*)aConst;
-      Tuple* b = (Tuple*)bConst;
-
-      for( int i = 0; i < a->GetNoAttributes(); i++ )
+      for( int i = 0; i < aConst->GetNoAttributes(); i++ )
       {
         int cmp =
-          ((Attribute*)a->GetAttribute(i))->CompareAlmost(
-            ((Attribute*)b->GetAttribute(i)));
+          ((Attribute*)aConst->GetAttribute(i))->CompareAlmost(
+            ((Attribute*)bConst->GetAttribute(i)));
         if( cmp < 0)
           return true;
         if( cmp > 0)
@@ -1285,6 +1282,49 @@ class LexicographicalTupleCompareAlmost
       return false;
     }
 };
+
+
+
+class LexicographicalTupleCmp
+{
+  public:
+    inline int operator()( const Tuple* a,
+                            const Tuple* b) const
+    {
+      for( int i = 0; i < a->GetNoAttributes(); i++ )
+      {
+        int cmp =
+          ((Attribute*)a->GetAttribute(i))->Compare(
+            ((Attribute*)b->GetAttribute(i)));
+        if( cmp != 0){
+           return cmp;
+        }
+      }
+      return 0;
+    }
+};
+
+
+class LexicographicalTupleCmpAlmost
+{
+  public:
+    inline int operator()( const Tuple* a,
+                            const Tuple* b) const
+    {
+      for( int i = 0; i < a->GetNoAttributes(); i++ )
+      {
+        int cmp =
+          ((Attribute*)a->GetAttribute(i))->CompareAlmost(
+            ((Attribute*)b->GetAttribute(i)));
+        if( cmp != 0){
+           return cmp;
+        }
+      }
+      return 0;
+    }
+};
+
+
 /*
 3.8 Class ~TupleCompareBy~
 

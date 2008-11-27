@@ -2756,7 +2756,7 @@ Argument 0 Histogram2d, 1 real value
      return 0;
    }  
   
-  static LexicographicalTupleCompare lexCmp;
+  static LexicographicalTupleSmaller lexSmaller;
 
 /*
 9.13 Class TupleAndRelPos
@@ -2798,7 +2798,7 @@ Argument 0 Histogram2d, 1 real value
       }
       else
       {
-        return !lexCmp( this->tuple, ref.tuple );
+        return !lexSmaller( this->tuple, ref.tuple );
       }
     }
 
@@ -2819,13 +2819,13 @@ Argument 0 Histogram2d, 1 real value
   public:
     SortStream( Word stream,
         const bool lexicographic,
-        void *tupleCmp ):
+        void *tupleSmaller ):
     stream( stream ),
     currentIndex( 0 ),
-    lexiTupleCmp( lexicographic ?
-        (LexicographicalTupleCompare*)tupleCmp :
+    lexiTupleSmaller( lexicographic ?
+        (LexicographicalTupleSmaller*)tupleSmaller :
         0 ),
-    tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
+    tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleSmaller ),
     lexicographic( lexicographic ),
     count( 0 )
     {
@@ -3020,8 +3020,8 @@ Argument 0 Histogram2d, 1 real value
         relations[i].first = 0;
       }
 
-      delete lexiTupleCmp;
-      lexiTupleCmp = 0;
+      delete lexiTupleSmaller;
+      lexiTupleSmaller = 0;
       delete tupleCmpBy;
       tupleCmpBy = 0;
     }
@@ -3099,7 +3099,7 @@ Argument 0 Histogram2d, 1 real value
     size_t currentIndex;
 
     // tuple information
-    LexicographicalTupleCompare *lexiTupleCmp;
+    LexicographicalTupleSmaller *lexiTupleSmaller;
     TupleCompareBy *tupleCmpBy;
     bool lexicographic;
 
@@ -3125,13 +3125,13 @@ Argument 0 Histogram2d, 1 real value
   public:
     SortQueue( priority_queue<TupleAndRelPos> stream,
         const bool lexicographic,
-        void *tupleCmp ):
+        void *tupleSmaller ):
     stream( stream ),
     currentIndex( 0 ),
-    lexiTupleCmp( lexicographic ?
-        (LexicographicalTupleCompare*)tupleCmp :
+    lexiTupleSmaller( lexicographic ?
+        (LexicographicalTupleSmaller*)tupleSmaller :
         0 ),
-    tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleCmp ),
+    tupleCmpBy( lexicographic ? 0 : (TupleCompareBy*)tupleSmaller ),
     lexicographic( lexicographic ),
     count( 0 )
     {
@@ -3330,8 +3330,8 @@ In this case we need to delete also all tuples stored in memory.
         relations[i].first = 0;
       }
 
-      delete lexiTupleCmp;
-      lexiTupleCmp = 0;
+      delete lexiTupleSmaller;
+      lexiTupleSmaller = 0;
       delete tupleCmpBy;
       tupleCmpBy = 0;
     }
@@ -3409,7 +3409,7 @@ In this case we need to delete also all tuples stored in memory.
     size_t currentIndex;
 
     // tuple information
-    LexicographicalTupleCompare *lexiTupleCmp;
+    LexicographicalTupleSmaller *lexiTupleSmaller;
     TupleCompareBy *tupleCmpBy;
     bool lexicographic;
 
