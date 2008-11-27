@@ -354,7 +354,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
   if (ok)
   {
     cout << "Initializing the SECONDO System ... " << endl;
-    ss = new SecondoSystem( &GetAlgebraEntry );
+    bool rc = SecondoSystem::CreateInstance( &GetAlgebraEntry );
+    assert(rc);
+    ss = SecondoSystem::GetInstance();
 
     nl = SecondoSystem::GetNestedList();
     nl->setMem(nodeMem, stringMem, textMem);
@@ -467,19 +469,11 @@ SecondoInterface::Terminate()
       derivedObjPtr = 0;
     }
 
-    if ( !SecondoSystem::ShutDown() )
-    {
-      cmsg.error() << bullet << "Error: SecondoSytem::Shutdown() failed."
-                   << endl;
-      cmsg.send();
-    }
-    if ( ss != 0 )
-    {
-      delete ss;
-      ss = 0;
-    }
+    assert ( ss != 0 );
+    delete ss;
+    ss = 0;
 
-     initialized = false;
+    initialized = false;
     activeTransaction = false;
     nl = 0;
     al = 0;
