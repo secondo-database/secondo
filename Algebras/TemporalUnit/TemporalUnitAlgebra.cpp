@@ -45,8 +45,8 @@ OK    uint2ureal:                       uint --> ureal
 
       the_unit:  For T in {bool, int, string, region*}
            *: Crashed for T=region
-OK          point  point  instant instant bool bool --> ubool
-OK          ipoint ipoint bool    bool              --> ubool
+OK          point  point  instant instant bool bool --> upoint
+OK          ipoint ipoint bool    bool              --> upoint
 OK          real real real bool instant instant bool bool --> ureal
 OK          iT duration bool   bool     --> uT
 OK          T instant instant bool bool --> uT
@@ -8149,8 +8149,8 @@ Operator temporalunitalways( "always",
 ----
 
    the_unit:  For T in {bool, int, string}
-              point  point  instant instant bool bool --> ubool
-              ipoint ipoint bool    bool              --> ubool
+              point  point  instant instant bool bool --> upoint
+              ipoint ipoint bool    bool              --> upoint
               real real real bool instant instant bool bool --> ureal
               iT duration bool bool --> uT
               T instant instant bool bool --> uT
@@ -8405,11 +8405,11 @@ const string  TU_Spec_TheUnit =
   "\"Example\" ) "
   "("
   "<text>For T in {bool, int, string}:\n"
-  "point  point  instant instant bool bool --> ubool\n"
-  "ipoint ipoint bool    bool              --> ubool\n"
-  "real real real bool instant instant bool bool --> ureal\n"
-  "iT duration bool bool --> uT\n"
-  "T instant instant bool bool --> uT"
+  "point x point x instant x instant x bool x bool --> upoint\n"
+  "ipoint x ipoint x bool x bool --> upoint\n"
+  "real x real x real x bool x instant x instant x bool x bool --> ureal\n"
+  "iT x duration x bool x bool --> uT\n"
+  "T x instant x instant x bool x bool --> uT"
   "</text--->"
   "<text>the_unit( pstart, pend, tstart, tend, cl, cr )\n"
   "the_unit( ip1, ip2, cl, cr )\n"

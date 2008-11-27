@@ -1397,7 +1397,7 @@ const string RectangleSpecRectangle2  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(int x int x int x int -> rect) or"
         " (real x real x real x real -> rect)</text--->"
-        "<text>rectangle2( _, _, _, _)</text--->"
+        "<text>rectangle2( xmin, xmax, ymin, ymax)</text--->"
         "<text>creates a rect from the given parameters.</text--->"
         "<text>query rectangle2(17.0, 24.3, 12.0, 13.1)</text--->"
         "<text>The sequence of parameters must be "
@@ -1409,7 +1409,7 @@ const string RectangleSpecRectangle3  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(int x int x int x int x int x int -> rect3) or"
         " (real x real x real x real x real x real -> rect3)</text--->"
-        "<text>rectangle3( _, _, _, _, _, _)</text--->"
+        "<text>rectangle3( xmin, xmax, ymin, ymax, zmin, zmax)</text--->"
         "<text>creates a rect3 from the given parameters.</text--->"
         "<text>query rectangle3(17.0, 24.0, 12.0, 13.1, 4.41, 6.18)</text--->"
         "<text>The sequence of parameters must be "
@@ -1419,10 +1419,10 @@ const string RectangleSpecRectangle3  =
 
 const string RectangleSpecRectangle4  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
-        "( <text>(int x int x int x int x int x int x int x int -> rect4) or"
-        " (real x real x real x real x real x real x real x real-> rect4)"
+        "( <text>(int^8 -> rect4) or (real^8 -> rect4)"
         "</text--->"
-        "<text>rectangle4( _, _, _, _, _, _, _, _)</text--->"
+        "<text>rectangle4( d1min,d1max,d2min,d2max,d3min,d3max,d4min,d4max)"
+        "</text--->"
         "<text>creates a rect4 from the given parameters.</text--->"
         "<text>query rectangle3(17.0, 24.0, 12.0, 13.1, "
         "4.41, 6.18, 2.3, 3.74)</text--->"
@@ -1432,13 +1432,30 @@ const string RectangleSpecRectangle4  =
         " and (min4d < max4d).</text--->"
         ") )";
 
+  /*
+const string RectangleSpecRectangle8  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+        "( <text>(int^16 -> rect8) or (real^16 -> rect8)</text--->"
+        "<text>rectangle8( d1min,d1max,d2min,d2max,d3min,d3max,d4min,d4max, "
+        "d5min,d5max,d6min,d6max,d7min,d7max,d8min,d8max)</text--->"
+        "<text>creates a rect8 from the given parameters.</text--->"
+        "<text>query rectangle8(1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8)</text--->"
+        "<text>The sequence of parameters must be "
+        "(d1min,d1max,d2min,d2max,d3min,d3max,d4min,d4max, d5min,d5max,d6min,"
+        "d6max,d7min,d7max,d8min,d8max).</text--->"
+        ") )";
+  */
+
 const string RectangleSpecRectangle8  =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
         "( <text>(int x int x int x int x int x int x int x int x real -> "
         "rect8) or (real x real x real x real x real x real x real x "
         "real x real -> rect8)</text--->"
-        "<text>rectangle8( _, _, _, _, _, _, _, _, _)</text--->"
-        "<text>creates a rect8 from the given parameters.</text--->"
+        "<text>rectangle8( min1d,min2d,min3d,min4d,min5d,min6d,min7d,min8d, "
+        "size )</text--->"
+        "<text>creates a rect8 from the given parameters with minxd as lower "
+        "bound and size computing the upper bound (minxd+size) of the "
+        "respective axis intervals.</text--->"
         "<text>query rectangle8(1,2,3,4,5,6,7,8, 1.2)</text--->"
         "<text>The sequence of parameters must be "
         "(min1d, min2d, min3d, min4d, min5d, min6d, min7d, min8d, size)"
