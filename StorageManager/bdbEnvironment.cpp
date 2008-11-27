@@ -93,6 +93,7 @@ static int getfilename( Db* dbp, const Dbt* pkey, const Dbt* pdata, Dbt* skey );
 /* --- Implementation of class SmiEnvironment --- */
 
 SmiEnvironment SmiEnvironment::instance;
+
 SmiError       SmiEnvironment::lastError = E_SMI_OK;
 string         SmiEnvironment::lastMessage;
 int            SmiEnvironment::numOfErrors = 0;
@@ -116,7 +117,7 @@ SmiEnvironment::Implementation::Implementation()
     bdbDatabases( 0 ), bdbSeq( 0 ), bdbCatalog( 0 ), bdbCatalogIndex( 0 )
 {
   bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
-  tmpEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
+  tmpEnv = 0;
   dbHandles.reserve( DEFAULT_DBHANDLE_ALLOCATION_COUNT );
   SmiDbHandleEntry dummy = { 0, false, 0 };
   dbHandles.push_back( dummy );
@@ -133,11 +134,10 @@ SmiEnvironment::Implementation::~Implementation()
     CloseDbHandles();
     int rc = bdbEnv->close( 0 );
     SetBDBError(rc);
-    rc = tmpEnv->close( 0 );
-    SetBDBError(rc);
+  
+    delete bdbEnv;
+    bdbEnv = 0;
   }
-  delete bdbEnv;
-  delete tmpEnv;
 }
 
 DbHandleIndex
@@ -767,12 +767,15 @@ SmiEnvironment::Implementation::DeleteDatabase( const string& dbname )
 
 SmiEnvironment::SmiEnvironment()
 {
+  //cerr << "*** Constructor SmiEnvironment ***" << endl; 	
   impl = new Implementation();
 }
 
 SmiEnvironment::~SmiEnvironment()
 {
+  //cerr << "*** Destructor SmiEnvironment ***" << endl; 	
   delete impl;
+  impl = 0;
 }
 
 void
@@ -846,8 +849,10 @@ SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
 {
     int rc = 0;
 
+    assert(instance.impl);
+
+    instance.impl->tmpEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
     DbEnv* dbtmp = instance.impl->tmpEnv;
-    assert(dbtmp);
 
     // define a prefix for additional error messages
     dbtmp->set_error_stream( &errStream );
@@ -873,6 +878,42 @@ SmiEnvironment::CreateTmpEnvironment(ostream& errStream)
 
     return rc;
 }
+
+
+int
+SmiEnvironment::DeleteTmpEnvironment()
+{
+ // --- Remove the temporary environment
+
+  static bool traceHandles =
+	        RTFlag::isActive("SMI:traceHandles") ? true : false;
+  
+  DbEnv* dbtmp  = instance.impl->tmpEnv;
+  int rc = dbtmp->close( 0 );
+  SetBDBError( rc );
+
+  const string& tmpHome = instance.impl->tmpHome;
+  string bdbHome = instance.impl->bdbHome;
+
+
+  if (traceHandles) {
+    cerr << "Removing temporary Berkeley-DB environment " 
+         << "tmpHome = " << tmpHome << endl
+         << "bdbHome = " << bdbHome << endl;
+  }  
+
+  string tmpDir("");
+  FileSystem::AppendItem(bdbHome, tmpHome); 
+  FileSystem::EraseFolder( bdbHome );
+
+  delete dbtmp;
+  instance.impl->tmpEnv = 0;
+
+  return rc;
+}
+
+
+
 
 
 bool
@@ -1111,12 +1152,12 @@ SmiEnvironment::ShutDown()
   int rc = 0;
   int errs = GetNumOfErrors();
   DbEnv* dbenv  = instance.impl->bdbEnv;
-  DbEnv* dbtmp  = instance.impl->tmpEnv;
   Db*    dbctlg = instance.impl->bdbDatabases;
 
-  // --- Close current database, if opened
-
+  // --- Current database should be already closed
   assert(!dbOpened);
+
+  DeleteTmpEnvironment();
 
   // --- Close Berkeley DB environment
 
@@ -1127,21 +1168,6 @@ SmiEnvironment::ShutDown()
     delete dbctlg;
     instance.impl->bdbDatabases = 0;
   }
-
-  // --- Remove the temporary environment
-
-  rc = dbtmp->close( 0 );
-  SetBDBError( rc );
-
-  if (traceHandles)
-    cerr << "Removing temporary Berkeley-DB environment " 
-         << instance.impl->tmpHome << endl; 
-
-  FileSystem::SetCurrentFolder( instance.impl->bdbHome );
-  FileSystem::EraseFolder( instance.impl->tmpHome );
-  FileSystem::SetCurrentFolder( instance.impl->bdbHome );
-
-  // --- Close the Berkeley DB environment
 
   instance.impl->CloseDbHandles();
   

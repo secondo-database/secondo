@@ -92,7 +92,7 @@ using namespace std;
 #include "NList.h"
 
 
-SecondoSystem* SecondoSystem::secondoSystem = 0;
+SecondoSystem* SecondoSystem::instance = 0;
 
 /**************************************************************************
 3 Functions and Procedures
@@ -773,8 +773,7 @@ SecondoSystem::GetDatabaseName()
 3.4 Initialization of Values and Test Procedures
 
 */
-SecondoSystem::
-SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
+SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
 {
   nl = new NestedList();
   al = new NestedList();
@@ -785,12 +784,18 @@ SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
   catalog        = 0;
   initialized    = false;
   testMode       = false; // Todo: Should be configurable in SecondoConfig.ini
-  secondoSystem  = this;
   flobCache      = 0;
 }
 
 SecondoSystem::~SecondoSystem()
 {
+  delete flobCache;
+  flobCache = 0;
+  delete nl;
+  nl = 0;
+  delete al;
+  al = 0;
+
   if ( initialized )
   {
     ShutDown();
@@ -798,43 +803,53 @@ SecondoSystem::~SecondoSystem()
   delete catalog;
   delete queryProcessor;
   delete algebraManager;
-  delete nl;
-  delete al;
-  delete flobCache;
-  secondoSystem = 0;
+  
+  instance = 0;
 }
+
+bool
+SecondoSystem::CreateInstance( GetAlgebraEntryFunction f)
+{
+  if (!instance) {
+    instance = new SecondoSystem(f);
+    return true;
+  } 	    
+  return false;
+}
+
 
 SecondoSystem*
 SecondoSystem::GetInstance()
 {
-  return (secondoSystem);
+  assert(instance);
+  return (instance);
 }
 
 bool
 SecondoSystem::StartUp()
 {
-  if ( !secondoSystem->initialized )
+  if ( !instance->initialized )
   {
-    secondoSystem->algebraManager->LoadAlgebras();
-    secondoSystem->catalog = new SecondoCatalog();
-    secondoSystem->initialized = true;
+    instance->algebraManager->LoadAlgebras();
+    instance->catalog = new SecondoCatalog();
+    instance->initialized = true;
   }
-  return (secondoSystem->initialized);
+  return (instance->initialized);
 }
 
 bool
 SecondoSystem::ShutDown()
 {
-  if ( secondoSystem->IsDatabaseOpen() ) {
-     secondoSystem->CloseDatabase();
+  if ( instance->IsDatabaseOpen() ) {
+     instance->CloseDatabase();
   }
 
-  if ( secondoSystem->initialized )
+  if ( instance->initialized )
   {
-    secondoSystem->algebraManager->UnloadAlgebras();
-    delete secondoSystem->catalog;
-    secondoSystem->catalog = 0;
-    secondoSystem->initialized  = false;
+    instance->algebraManager->UnloadAlgebras();
+    delete instance->catalog;
+    instance->catalog = 0;
+    instance->initialized  = false;
   }
 
   if ( !SmiEnvironment::ShutDown() )
@@ -848,37 +863,37 @@ SecondoSystem::ShutDown()
       cmsg.send();
   }
 
-  return (!secondoSystem->initialized);
+  return (!instance->initialized);
 }
 
 AlgebraManager*
 SecondoSystem::GetAlgebraManager()
 {
-  return (secondoSystem->algebraManager);
+  return (instance->algebraManager);
 }
 
 QueryProcessor*
 SecondoSystem::GetQueryProcessor()
 {
-  return (secondoSystem->queryProcessor);
+  return (instance->queryProcessor);
 }
 
 SecondoCatalog*
 SecondoSystem::GetCatalog()
 {
-  return secondoSystem->catalog;
+  return instance->catalog;
 }
 
 NestedList*
 SecondoSystem::GetNestedList()
 {
-  return (secondoSystem->nl);
+  return (instance->nl);
 }
 
 NestedList*
 SecondoSystem::GetAppNestedList()
 {
-  return (secondoSystem->al);
+  return (instance->al);
 }
 
 bool
@@ -893,8 +908,8 @@ bool
 SecondoSystem::CommitTransaction()
 {
   TRACE_ENTER
-  secondoSystem->catalog->CleanUp( false );
-  secondoSystem->flobCache->Clean();
+  instance->catalog->CleanUp( false );
+  instance->flobCache->Clean();
   TRACE_LEAVE
   return (SmiEnvironment::CommitTransaction());
 }
@@ -903,7 +918,7 @@ bool
 SecondoSystem::AbortTransaction()
 {
   TRACE_ENTER
-  secondoSystem->catalog->CleanUp( true );
+  instance->catalog->CleanUp( true );
   TRACE_LEAVE
   return (SmiEnvironment::AbortTransaction());
 }
@@ -911,13 +926,13 @@ SecondoSystem::AbortTransaction()
 void 
 SecondoSystem::InitializeFLOBCache( size_t size )
 {
-  secondoSystem->flobCache = 
+  instance->flobCache = 
     new FLOBCache( size );
 }
 
 FLOBCache*
 SecondoSystem::GetFLOBCache()
 {
-  return secondoSystem->flobCache;
+  return instance->flobCache;
 }
 

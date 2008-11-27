@@ -114,8 +114,7 @@ class DerivedObj;
 class SecondoSystem
 {
  public:
-  SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc );
-  virtual ~SecondoSystem();
+  ~SecondoSystem();
   ListExpr ListDatabaseNames();
 /*
 Simply returns the names of existing databases in a list:
@@ -256,6 +255,7 @@ Returns the name of the currently open database. An empty string is
 returned if no database is in open state.
 
 */
+  static bool CreateInstance(GetAlgebraEntryFunction getAlgebraEntryFunc);
   static SecondoSystem*  GetInstance();
 /*
 Returns a reference to the single instance of the "Secondo"[3] system.
@@ -323,12 +323,14 @@ Returns the FLOB cache.
 
 */
 
-
   
  protected:
+ 
+ private:
+  SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc );
   SecondoSystem( const SecondoSystem& );
   SecondoSystem& operator=( const SecondoSystem& );
- private:
+
   bool RestoreCatalog( ListExpr types, ListExpr objects,
                        ListExpr& errorInfo );
   bool RestoreTypes( ListExpr types, ListExpr& errorInfo );
@@ -337,7 +339,7 @@ Returns the FLOB cache.
 Are internal methods for restoring a database.
 
 */
-  static SecondoSystem* secondoSystem;
+  static SecondoSystem* instance;
 
   NestedList*     nl;
   NestedList*     al;

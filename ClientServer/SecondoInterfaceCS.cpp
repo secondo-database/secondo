@@ -67,8 +67,6 @@ SecondoInterface::~SecondoInterface()
   {
     Terminate();
   }
-  delete nl;
-  al = 0;
 }
 
 
@@ -207,7 +205,16 @@ SecondoInterface::Terminate()
     server->Close();
     delete server;
     server = 0;
+
   }
+
+  if (initialized)
+  {	  
+    delete nl;
+    al = 0;
+    SmiEnvironment::DeleteTmpEnvironment();
+    initialized = false;
+  }  
 }
 
 
