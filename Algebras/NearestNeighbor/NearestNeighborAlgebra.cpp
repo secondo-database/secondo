@@ -540,7 +540,7 @@ from one to next function call
 the type EventElem and ActiveElem are defined in NearestNeighborAlgebra.h
 
 */
-Instant ActiveElem::currtime;
+Instant ActiveElem::currtime(instanttype);
 typedef vector< ActiveElem >::const_iterator CI;
 typedef vector< ActiveElem >::iterator IT;
 typedef NNTree< ActiveElem >::iterator ITT;

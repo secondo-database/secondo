@@ -246,6 +246,8 @@ struct EventElem
   }
 };
 
+
+namespace near{
 class ActiveElem
 {
 public:
@@ -259,6 +261,8 @@ public:
   ActiveElem(MReal *dist, Tuple* t, Instant s, Instant e, bool l, bool r) 
     : distance(dist), tuple(t), start(s), end(e), lc(l), rc(r){}
 };
+}
+
 
 /*
 the class NNTree implements a tree with iterators
