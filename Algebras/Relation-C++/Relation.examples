@@ -32,7 +32,7 @@ Operator : attrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
 Example  : query Orte attrsize[Ort]
-Result   : (platform (linux (real 56.0)) (linux64 (real 64.0)) (win32 (real 56.0)))
+Result   : (platform (linux (real 4.0)) (linux64 (real 64.0)) (win32 (real 56.0)))
 
 
 Operator : consume
@@ -70,14 +70,14 @@ Operator : extattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
 Example  : query Trains extattrsize[Trip]
-Result   : (platform (linux (real 104.0)) (linux64 (real 152.0)) (win32 (real 104.0)))
+Result   : (platform (linux (real 92.0)) (linux64 (real 152.0)) (win32 (real 104.0)))
 
 
 Operator : exttuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains exttuplesize
-Result   : (platform (linux (real 136.0)) (linux64 (real 200.0)) (win32 (real 136.0)))
+Result   : (platform (linux (real 128.0)) (linux64 (real 200.0)) (win32 (real 136.0)))
 
 
 Operator : feed
@@ -112,7 +112,7 @@ Operator : reduce
 Number   : 1
 Signature: stream(tuple(y)) x (stream(tuple(y)) -> bool) x int -> stream(tuple(y))
 Example  : query plz feed reduce[.PLZ > 50000, 2] count
-Result   : 31368 
+Result   : 31368
 
 
 Operator : remove
@@ -133,14 +133,14 @@ Operator : rootattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> int
 Example  : query Trains rootattrsize[Trip]
-Result   : (platform (linux (int 104)) (linux64 (int 152)) (win32 (int 104)))
+Result   : (platform (linux (int 92)) (linux64 (int 152)) (win32 (int 104)))
 
 
 Operator : roottuplesize
 Number   : 1
 Signature: ((stream|rel (tuple x))) -> int
 Example  : query Trains feed project[Id, Trip] roottuplesize
-Result   : (platform (linux (int 116)) (linux64 (int 168)) (win32 (int 116)))
+Result   : (platform (linux (int 104)) (linux64 (int 168)) (win32 (int 116)))
 
 
 Operator : sizecounters
@@ -154,7 +154,7 @@ Operator : tuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
 Example  : query Trains tuplesize
-Result   : (platform (linux (real 10774.97508896797)) (linux64 (real 15608.1708984375)) (win32 (real 11141.83629893239)))
+Result   : (platform (linux (real 10766.97508896797)) (linux64 (real 15608.1708984375)) (win32 (real 11141.83629893239)))
 Remark   : On Linux and Windows this operator returns different values. Maybe it depends on Berkeley-DB or different page sizes.
 
 
@@ -171,9 +171,9 @@ Example  : query plz feed tconsume feed filter[.Ort = "Unna"] count
 Result   : 16
 
 
-Operator : countboth 
+Operator : countboth
 Number   : 1
-Signature: (stream(tuple(x)) (stream(tuple(y)) -> int 
+Signature: (stream(tuple(x)) (stream(tuple(y)) -> int
 Example  : query plz feed Orte feed countboth
-Result   : 41773 
+Result   : 41773
 
