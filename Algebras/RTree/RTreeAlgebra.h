@@ -359,6 +359,7 @@ Returns the size of the entry in disk.
   void Read( char *buffer, int& offset )
   {
     memcpy( &this->box, buffer+offset, sizeof(BBox<dim>) );
+    new(&this->box) BBox<dim>();
     offset += sizeof(BBox<dim>);
     memcpy( &pointer, buffer+offset, sizeof(SmiRecordId) );
     offset += sizeof(SmiRecordId);
@@ -444,6 +445,7 @@ Returns the size of the entry in disk.
   void Read( char *buffer, int& offset )
   {
     memcpy( &this->box, buffer+offset, sizeof(BBox<dim>) );
+    new(&this->box) BBox<dim>();
     offset += sizeof(BBox<dim>);
     memcpy( &info, buffer+offset, sizeof(Info) );
     offset += sizeof(Info);
