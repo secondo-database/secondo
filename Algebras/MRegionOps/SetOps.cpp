@@ -40,7 +40,7 @@ This file essentially contains the implementations of several classes which
 provide the core functionality of the three set operators 
 ~intersection~, ~union~ and ~minus~ with the signature \\
 movingregion [x] movingregion [->] movingregion \\
-used in the MovingRegion Algebra.
+used in the MovingRegionAlgebra.
 
 2 Defines and Includes
 
@@ -54,63 +54,1324 @@ namespace mregionops {
 set<unsigned int> flippedPFaces;
 
 /*
-3 Class Point3DExt
+1 Class SetOperator
 
 */
 
-bool Point3DExt::Lower(const Point3DExt& p) const {
+void SetOperator::Intersection() {
     
-    if (NumericUtil::Lower(GetX(), p.GetX()))
-        return true;
-
-    if (NumericUtil::Greater(GetX(), p.GetX()))
-        return false;
-
-    if (NumericUtil::Lower(GetY(), p.GetY()))
-        return true;
-
-    if (NumericUtil::Greater(GetY(), p.GetY()))
-        return false;
-
-    if (NumericUtil::Lower(GetT(), p.GetT()))
-        return true;
-
-    if (NumericUtil::Greater(GetT(), p.GetT()))
-        return false;
-
-    //cout << "sourceFlag < p.sourceFlag" << endl;
-    return sourceFlag < p.sourceFlag;
+    Operate(INTERSECTION);
 }
 
-bool PointExtSet::GetIntersectionSegment(Segment3D& result) const {
+void SetOperator::Union() {
 
-    if (s.size() != 4)
-        return false;
+    Operate(UNION);
+}
 
-    set<Point3DExt>::iterator it = s.begin();
+void SetOperator::Minus() {
 
-    Point3DExt p1 = *it;
-    it++;
-    Point3DExt p2 = *it;
+    Operate(MINUS);
+}
 
-    if (p1.sourceFlag == p2.sourceFlag)
-        return false;
-
-    it++;
-    Point3DExt p3 = *it;
-
-    if (p2 == p3) {
-
-        // The length of the intersection segment is zero.
-        return false;
+void SetOperator::Operate(const SetOp op) {
+    
+    //seconds = 0.0;
+    //seconds1 = 0.0;
+    //seconds2 = 0.0;
+    //seconds3 = 0.0;
+    //seconds4 = 0.0;
+    //seconds5 = 0.0;
+    //seconds6 = 0.0;
+    flippedPFaces.clear();
+    
+    //StopWatch stopWatch;
+    //stopWatch.start();
+    
+    if (!a->IsDefined() || !b->IsDefined()) {
+        
+        res->SetDefined(false);
+        return;
     }
+    
+    // Compute the RefinementPartition of the 
+    // two MRegions:
+    RefinementPartition<
+    MRegion,
+    MRegion,
+    URegionEmb,
+    URegionEmb> rp(*a, *b);
+    
+#ifdef PRINT_STATISTIC
+    
+    cout << "RefinementPartition with " << rp.Size() << " units created.";
+    cout << endl;
+    
+#endif
+    
+    Interval<Instant>* interval;
+    int aPos;
+    int bPos;
+   
+    bool aIsEmpty;
+    bool bIsEmpty;
+    
+    MRegion* tempA;
+    MRegion* tempB;
+    
+    const URegionEmb* unitA;
+    const URegionEmb* unitB;
+    
+    const URegionEmb* unitARestrict;
+    const URegionEmb* unitBRestrict;
+    URegionEmb* unitARestrictCopy;
+    URegionEmb* unitBRestrictCopy;
+    const DBArray<MSegmentData>* aArray;
+    const DBArray<MSegmentData>* bArray;
+    
+    SourceUnitPair* so;
+    
+    res->Clear();
+    ((DBArray<MSegmentData>*)res->GetFLOB(1))->Clear();
+    res->StartBulkLoad();
+    
+    for (unsigned int i = 0; i < rp.Size(); i++) {
+        
+        // For each interval of the refinement partition...
+        
+        rp.Get(i, interval, aPos, bPos);
+        
+        Periods intervalAsPeriod(1);
+        intervalAsPeriod.Add(*interval);
+        
+        aIsEmpty = (aPos == -1);
+        bIsEmpty = (bPos == -1);
+        
+        assert(!(aIsEmpty && bIsEmpty));
+        
+        if (aIsEmpty || bIsEmpty) {
 
-    result = Segment3D(p2, p3);
-    return true;
+            if (op == INTERSECTION) {
+
+                // Result is empty: nothing to do.
+                continue;
+            }
+
+            if (op == MINUS && aIsEmpty) {
+
+                // Result is empty: nothing to do.
+                continue;
+            }
+        }
+        
+        if (!aIsEmpty) {
+                        
+            a->Get(aPos, unitA);
+            tempA = new MRegion(1);
+            tempA->AtPeriods(&intervalAsPeriod, a);
+            tempA->Get(0, unitARestrict);
+            aArray = tempA->GetMSegmentData();
+            
+            unitARestrictCopy = new URegionEmb(unitARestrict->timeInterval,
+                                    unitARestrict->GetStartPos());
+            unitARestrictCopy->SetSegmentsNum(unitARestrict->GetSegmentsNum());
+            unitARestrictCopy->SetBBox(unitARestrict->BoundingBox());
+        }
+        
+        if (!bIsEmpty) {
+
+            b->Get(bPos, unitB);
+            tempB = new MRegion(1);
+            tempB->AtPeriods(&intervalAsPeriod, b);
+            tempB->Get(0, unitBRestrict);
+            bArray = tempB->GetMSegmentData();
+            
+            unitBRestrictCopy = new URegionEmb(unitBRestrict->timeInterval,
+                    unitBRestrict->GetStartPos());
+            unitBRestrictCopy->SetSegmentsNum(unitBRestrict->GetSegmentsNum());
+            unitBRestrictCopy->SetBBox(unitBRestrict->BoundingBox());
+        }
+ 
+        so = new SourceUnitPair(unitARestrictCopy, aArray, aIsEmpty,
+                                unitBRestrictCopy, bArray, bIsEmpty,
+                                op,
+                                res);
+        so->Operate();
+        
+        delete so;
+        
+        if (!aIsEmpty) {
+            
+            delete tempA;
+            delete unitARestrictCopy;
+        }
+        
+        if (!bIsEmpty) {
+            
+            delete tempB;
+            delete unitBRestrictCopy;
+        }
+    }
+             
+    res->EndBulkLoad(false);
+
+#ifdef PRINT_STATISTIC
+    
+    cout << "Units in : " << rp.Size() << endl;
+    cout << "Units out: " << res->GetNoComponents() << endl;
+    
+#endif
 }
 
 /*
-4 Class IntersectionSegment
+1 Class SourceUnit
+
+*/
+
+SourceUnit::SourceUnit(const bool _isUnitA, 
+             URegionEmb* const _uRegion,
+             const DBArray<MSegmentData>* _array, 
+             const bool _isEmpty,
+             SourceUnitPair* const _parent) :
+                 
+            isUnitA(_isUnitA),
+            isEmpty(_isEmpty),
+            uRegion(_uRegion), 
+            array(_array),
+            parent(_parent), 
+            hasNormalizedTimeInterval(false) {
+
+    if (_isEmpty) 
+        return;
+    
+    originalTimeInterval = _uRegion->timeInterval;
+    
+    NormalizeTimeInterval();
+    ComputeBoundingRect();
+    
+    startTime = _uRegion->timeInterval.start.ToDouble();
+    endTime = _uRegion->timeInterval.end.ToDouble();
+}
+
+SourceUnit::~SourceUnit() {
+    
+    vector<PFace*>::iterator iter;
+    
+    for (iter = pFaces.begin(); iter != pFaces.end(); iter++) {
+        
+        delete *iter;
+    }
+}
+
+void SourceUnit::NormalizeTimeInterval() {
+    
+    if (!NORMALIZE_TIME_INTERVAL_OF_SOURCE_UNITS)
+        return;
+    
+    //cout << "timeInterval.start: " << uRegion->timeInterval.start << endl;
+    //cout << "timeInterval.end: " << uRegion->timeInterval.end << endl;
+    
+    //const double scaledDelta = 1.0;
+    const double delta = 
+        (originalTimeInterval.end - originalTimeInterval.start).ToDouble();
+    
+    //cout << "delta: " << delta << endl;
+    
+    if (delta >= 1.0) {
+        
+        hasNormalizedTimeInterval = false;
+        return;
+    }
+    
+    hasNormalizedTimeInterval = true;
+    uRegion->timeInterval.start.SetToZero();
+    uRegion->timeInterval.end.ReadFrom(1.0);
+    
+    // Adjust the bounding box:
+    const double minX = uRegion->BoundingBox().MinD(0);
+    const double maxX = uRegion->BoundingBox().MaxD(0);
+    const double minY = uRegion->BoundingBox().MinD(1);
+    const double maxY = uRegion->BoundingBox().MaxD(1);
+    const double minT = 0.0;
+    const double maxT = 1.0;
+    
+    uRegion->SetBBox(Rectangle<3>(true, minX, maxX, minY, maxY, minT, maxT));
+    
+    //scaleFactor = delta / scaledDelta;
+    //scaleFactor = delta;
+    
+    //cout << "scaleFactor: " << scaleFactor << endl;
+    //cout << "timeInterval.start: " << uRegion->timeInterval.start << endl;
+    //cout << "timeInterval.end: " << uRegion->timeInterval.end << endl;
+}
+
+void SourceUnit::ComputeBoundingRect() {
+
+    // Calculate the projection bounding rectangle in the (x, y)-plane
+    // of the URegion:
+    
+    const double minX = uRegion->BoundingBox().MinD(0);
+    const double maxX = uRegion->BoundingBox().MaxD(0);
+    const double minY = uRegion->BoundingBox().MinD(1);
+    const double maxY = uRegion->BoundingBox().MaxD(1);
+    
+    boundingRect = Rectangle<2>(true, minX, maxX, minY, maxY);
+}
+
+void SourceUnit::CreatePFaces() {
+
+    const MSegmentData* segment;
+    
+    for (int i = 0; i < uRegion->GetSegmentsNum(); i++) {
+        
+        uRegion->GetSegment(array, i, segment);
+        PFace* pFace = new PFace(this, segment);
+        pFaces.push_back(pFace);
+
+#ifdef OPTIMIZE_BY_BOUNDING_RECT
+        
+        if (parent->HasOverlappingBoundingRect()) {
+
+            if (pFace->GetBoundingRect().Intersects(parent->GetOverlapRect()))
+                pFacesReduced.push_back(pFace);
+            else
+                pFace->MarkAsEntirelyOutside();
+
+        } else {
+
+            pFace->MarkAsEntirelyOutside();
+            pFacesReduced.push_back(pFace);
+        }
+
+#else
+        pFacesReduced.push_back(pFace);
+#endif
+
+    }
+}
+
+void SourceUnit::CollectRelevantPFaces(ResultUnitFactory* receiver) {
+
+    vector<PFace*>::iterator iter;
+    
+    for (iter = pFaces.begin(); iter != pFaces.end(); iter++) {
+        
+        (*iter)->Finalize();
+        
+        assert((*iter)->GetState() != UNKNOWN);
+        assert((*iter)->GetState() != ENTIRELY_INSIDE);
+        assert((*iter)->GetState() != ENTIRELY_OUTSIDE);
+        
+        if ((*iter)->IsNormalRelevant() || (*iter)->IsCriticalRelevant()) {
+            
+            receiver->AddPFace(*iter);
+        }
+    }
+}
+
+void SourceUnit::PrintPFaces() {
+    
+    for (vector<PFace*>::iterator iter = pFaces.begin(); 
+                iter != pFaces.end(); iter++) {
+        
+        (*iter)->Print();
+    }
+}
+
+void SourceUnit::Print() const {
+    
+    cout << ((IsUnitA()) ? "Unit A:" : "Unit B:") << endl;
+    cout << "Interval: " << GetTimeInterval() << endl;
+    cout << "Interval as double: " << GetTimeInterval().start.ToDouble() 
+         << " -> " << GetTimeInterval().end.ToDouble() << endl;
+    cout << "No of PFaces total: " << pFaces.size() << endl;
+    cout << "No of PFaces reduced: " << pFacesReduced.size() << endl;
+}
+
+void SourceUnit::PrintVRMLDesc(ofstream& target, const string& color) {
+
+    const double scale = VRML_SCALE_FACTOR;
+
+    target << "Transform {" << endl;
+    target << "\tscale " << scale << " " << scale << " " << scale << endl;
+    target << "\tchildren [" << endl;
+    target << "\t\tShape {" << endl;
+    target << "\t\t\tgeometry IndexedLineSet {" << endl;
+    target << "\t\t\t\tcoord Coordinate {" << endl;
+    target << "\t\t\t\t\tpoint [" << endl;
+
+    int pFaceCount = 0;
+
+    for (vector<PFace*>::iterator iter = pFaces.begin(); 
+            iter != pFaces.end(); iter++) {
+
+        target << "\t\t\t\t\t\t" << (*iter)->GetVRMLDesc() << endl;
+        pFaceCount++;
+    }
+
+    target << "\t\t\t\t\t]  # end point" << endl;
+    target << "\t\t\t\t} # end coord" << endl;
+    target << "\t\t\t\tcoordIndex [" << endl;
+
+    const int noPoints = pFaceCount * 4;
+
+    for (int i = 0; i < noPoints; i += 4) {
+
+        target << "\t\t\t\t\t" << i << ", " << i + 1 << ", " << i + 2 << ", "
+                << i + 3 << ", " << i << ", " << "-1," << endl;
+    }
+
+    target << "\t\t\t\t] # end coordIndex" << endl;
+
+    target << "\t\t\t\tcolor Color { color [ " << color << " ] }" << endl;
+
+    target << "\t\t\t} # end geometry" << endl;
+    target << "\t\t} # end shape" << endl;
+    target << "\t] # end children" << endl;
+    target << "} # end Transform" << endl;
+}
+
+bool SourceUnit::IsEntirelyOutside(const PFace* pFace) {
+    
+    // Precondition: pFace is known as entirely inside or entirely outside!
+
+    // Check, if the answer is already known:
+
+    if (pFace->IsEntirelyOutside())
+        return true;
+    
+    if (pFace->IsEntirelyInside())
+        return false;
+
+    // We don't know and have to use the plumbline algorithm
+    // to find the answer:
+    
+    assert(pFace->GetState() == UNKNOWN);
+    
+    return IsOutside(pFace->GetMidPoint());
+}
+
+bool SourceUnit::IsOutside(const Point3D& p) {
+    
+    const Point p2D(true, p.GetX(), p.GetY());
+    
+    return !GetTestRegion(p.GetT()).Contains(p2D);
+}
+
+bool SourceUnit::IsOnBorder(const Point3D& p) {
+
+    const Point p2D(true, p.GetX(), p.GetY());
+
+    if (GetTestRegion(p.GetT()).OnBorder(p2D)) {
+
+        return true;
+    }
+
+    // This is not very nice, maybe sometimes even wrong...
+    // It is necessary, since Region::OnBorder may
+    // return false-negative results, because of rounding errors.
+
+    // We paint a 'small' triangle around p and check,
+    // if it intersects the testregion's border.
+    const double d = NumericUtil::eps * 100;
+
+    const Point p1(true, p.GetX() - d, p.GetY() - d);
+    const Point p2(true, p.GetX() + d, p.GetY() - d);
+    const Point p3(true, p.GetX(), p.GetY() + d);
+
+    const bool p1IsInside = GetTestRegion(p.GetT()).Contains(p1);
+    const bool p2IsInside = GetTestRegion(p.GetT()).Contains(p2);
+    const bool p3IsInside = GetTestRegion(p.GetT()).Contains(p3);
+
+    const int sum = p1IsInside + p2IsInside + p3IsInside;
+
+    if (sum == 0 || sum == 3) {
+
+        // The triangle is entirely outside or inside the testregion:
+        return false;
+
+    } else { // sum == 1 || sum == 2
+
+        // The triangle intersects the testregion's border:
+        return true;
+    }
+}
+
+#ifdef CACHE_TESTREGIONS
+
+const Region SourceUnit::GetTestRegion(const double t) {
+    
+    Instant instant(instanttype);
+    instant.ReadFrom(t);
+    
+    if (!testRegion.defined || testRegion.instant != instant) {
+        
+        //cout << "Create new TestRegion at instant: " << instant << endl;
+        
+        Region newTestRegion(0);
+        GetURegionEmb()->TemporalFunction(array, instant, newTestRegion);
+        testRegion.instant = instant;
+        testRegion.region = newTestRegion;
+        testRegion.defined = true;
+        
+    } else {
+        
+        //cout << "TestRegion cachehit at instant: " << instant << endl;
+    }
+        
+    return testRegion.region;
+}
+
+#else
+
+const Region SourceUnit::GetTestRegion(const double t) {
+    
+    Instant instant(instanttype);
+    instant.ReadFrom(t);
+    
+    Region testRegion(0);
+    GetURegionEmb()->TemporalFunction(array, instant, testRegion);
+    
+    return testRegion;
+}
+
+#endif
+
+const SetOp SourceUnit::GetOperation() const {
+
+    return parent->GetOperation();
+}
+
+void SourceUnit::AddGlobalTimeValue(double t) {
+    
+    parent->AddGlobalTimeValue(t);
+}
+
+void SourceUnit::AddToMRegion(MRegion* const target) const {
+    
+    if (IsEmpty())
+        return;
+    
+    DBArray<MSegmentData>* targetArray = 
+        (DBArray<MSegmentData>*)target->GetFLOB(1);
+    const int segmentsStartPos = targetArray->Size();
+    
+    URegionEmb targetUnit(GetOriginalTimeInterval(), segmentsStartPos);
+    
+    const MSegmentData* segment;
+        
+    for (int i = 0; i < uRegion->GetSegmentsNum(); i++) {
+
+        uRegion->GetSegment(array, i, segment);
+        targetUnit.PutSegment(targetArray, i, *segment, true);
+    }
+    
+    target->Add(targetUnit);
+}
+
+/*
+1 Class ResultUnitFactory
+
+*/
+
+void ResultUnitFactory::Start() {
+    
+    if (time.size() < 2) {
+        
+        // Result is empty.
+        return;
+    }
+    
+    // Set the first initial timelevel:
+    timeIter = time.begin();
+    t1 = *timeIter;
+
+    while ((++timeIter) != time.end()) {
+
+        // Set the final timelevel:
+        t2 = *timeIter;
+        
+        // Set the median timelevel:
+        t12 = (t1 + t2) / 2.0;
+
+        ComputeCurrentTimeLevel();
+      
+        // Set the new initial timelevel:
+        t1 = t2;
+    }
+}
+
+void ResultUnitFactory::ComputeCurrentTimeLevel() {
+    
+    //cout << "t1: " << t1 << endl;
+    //cout << "t12: " << t12 << endl;
+    //cout << "t2: " << t2 << endl;
+        
+    assert(NumericUtil::Lower(t1, t2));
+    
+    Instant starttime(instanttype);
+    Instant endtime(instanttype);
+    
+    if (parent->HasNormalizedTimeInterval()) {
+        
+        const double originalStart = 
+            parent->GetOriginalTimeInterval().start.ToDouble();
+        
+        const double originalEnd = 
+            parent->GetOriginalTimeInterval().end.ToDouble();
+        
+        starttime.ReadFrom((1.0 - t1) * originalStart + t1 * originalEnd);
+        endtime.ReadFrom((1.0 - t2) * originalStart + t2 * originalEnd);
+        
+    } else {
+        
+        starttime.ReadFrom(t1);
+        endtime.ReadFrom(t2);
+    }
+    
+    const Interval<Instant> interval(starttime, endtime, true, false);
+
+    //cout << "start: " << starttime.ToDouble() << endl;
+    //cout << "end: " << endtime.ToDouble() << endl;
+
+    resultUnit = new ResultUnit(interval);
+    resultUnit->StartBulkLoad();
+
+    vector<PFace*>::iterator iter;
+    for (iter = pFaces.begin(); iter != pFaces.end(); iter++) {
+
+        PFace* pFace = *iter;
+        //pFace->Print();
+        pFace->UpdateTimeLevel(t1);
+
+        if (pFace->IsNormalRelevant()) {
+
+            ProcessNormalPFace(pFace);
+
+        } else { // pFace->IsCriticalRelevant()
+
+            ProcessCriticalPFace(pFace);
+        }
+    }
+
+    //cout << "ResultUnit: " << t1 << " -> " << t2 << endl;
+    //Instant mediantime(instanttype);
+    //mediantime.ReadFrom(t12);
+    //cout << "mediantime: " << mediantime.ToString() << endl;
+
+    AddCriticalMSegments();
+
+    //cout << "ResultUnit: " << t1 << " -> " << t2 << endl;
+
+    //assert(false);
+
+    //cout << endl;
+    //cout << "ResultUnit: " << t1 << " -> " << t2 << endl;
+    //cout << endl;
+
+    //resultUnit->WriteToVRMLFile();
+    //this->Print();
+
+    resultUnit->EndBulkLoad(MERGE_RESULT_MSEGMENTS);
+
+    ConstructResultUnitAsURegionEmb();
+
+    delete resultUnit;
+}
+
+void ResultUnitFactory::ProcessNormalPFace(PFace* pFace) {
+    
+    //assert(NumericUtil::Lower(t1, t2));
+
+    const list<IntersectionSegment*>* intSegs;
+    list<IntersectionSegment*>::const_iterator intSegIter;
+    
+    Decision decision;
+    Decision lastDecision = pFace->GetLastDecision();
+    bool firstMSegInTimeLevel = true;
+
+    intSegs = pFace->GetActiveIntSegs();
+    intSegIter = intSegs->begin();
+
+    assert(intSegs->size() >= 2);
+
+    const IntersectionSegment* start = *intSegIter;
+    const IntersectionSegment* end;
+
+    Point3D initialStart3D(start->Evaluate(t1));
+    Point3D mediumStart3D(start->Evaluate(t12));
+    Point3D finalStart3D(start->Evaluate(t2));
+
+    while ((++intSegIter) != intSegs->end()) {
+
+        end = *intSegIter;
+        
+        evalutedIntSegs++;
+
+        Point3D initialEnd3D(end->Evaluate(t1));
+        Point3D mediumEnd3D(end->Evaluate(t12));
+        Point3D finalEnd3D(end->Evaluate(t2));
+        
+        Segment3D initial(initialStart3D, initialEnd3D);
+        Segment3D medium(mediumStart3D, mediumEnd3D);
+        Segment3D final(finalStart3D, finalEnd3D);
+        
+        if (mediumStart3D == mediumEnd3D) {
+
+            decisionsByDegeneration++;
+            
+            cout << "Warning: Degenerated MSegment in normal PFace found!" 
+            << endl;
+            cout << "This should never happen..." << endl;
+            cout << "initial: " << initial << endl;
+            cout << "medium: " << medium << endl;
+            cout << "final" << final << endl;
+            
+            start = end;
+            continue;
+        }
+
+            if (lastDecision == UNDEFINED || DECIDE_BY_PLUMBLINE_ONLY) {
+
+                Point3D midpoint3D((mediumStart3D + mediumEnd3D) * 0.5);
+                decision = BelongsToResultUnit(midpoint3D, pFace);
+
+                if (firstMSegInTimeLevel) {
+
+                    pFace->SetLastDecision(decision);
+                    firstMSegInTimeLevel = false;
+                }
+
+            } else { // lastDecision != UNDEFINED
+
+                decisionsByAdjacency++;
+
+                if (firstMSegInTimeLevel) {
+
+                    decision = lastDecision;
+                    pFace->SetLastDecision(decision);
+                    firstMSegInTimeLevel = false;
+
+                } else {
+
+                    if (lastDecision == ACCEPT)
+                        decision = SKIP;
+                    else
+                        decision = ACCEPT;
+                }
+            }
+        
+        
+        switch (decision) {
+
+        case SKIP:
+
+            // This msegment does not contribute to the result.
+            noMSegsSkipped++;
+            break;
+
+        case ACCEPT:
+
+            // This msegment contributes to the result.
+            resultUnit->AddSegment(MSegment(initial, medium, final, pFace));
+            noMSegsValid++;
+            break;
+            
+        case UNDEFINED:
+            
+            // This case should never occur:
+            assert(false);
+            break;
+        }
+        
+        start = end;
+        initialStart3D = initialEnd3D;
+        mediumStart3D = mediumEnd3D;
+        finalStart3D = finalEnd3D;
+        lastDecision = decision;
+    }
+}
+
+void ResultUnitFactory::ProcessCriticalPFace(PFace* pFace) {
+    
+    //assert(NumericUtil::Lower(t1, t2));
+    
+    const list<IntersectionSegment*>* intSegs;
+    list<IntersectionSegment*>::const_iterator intSegIter;
+
+    Decision decision;
+
+    intSegs = pFace->GetActiveIntSegs();
+    intSegIter = intSegs->begin();
+
+    assert(intSegs->size() >= 2);
+
+    const IntersectionSegment* start = *intSegIter;
+    const IntersectionSegment* end;
+
+    Point3D initialStart3D(start->Evaluate(t1));
+    Point3D mediumStart3D(start->Evaluate(t12));
+    Point3D finalStart3D(start->Evaluate(t2));
+
+    while ((++intSegIter) != intSegs->end()) {
+
+        end = *intSegIter;
+        
+        evalutedIntSegs++;
+
+        Point3D initialEnd3D(end->Evaluate(t1));
+        Point3D mediumEnd3D(end->Evaluate(t12));
+        Point3D finalEnd3D(end->Evaluate(t2));
+        
+        Point3D midpoint3D((mediumStart3D + mediumEnd3D) * 0.5);
+        
+        Segment3D initial(initialStart3D, initialEnd3D);
+        Segment3D medium(mediumStart3D, mediumEnd3D);
+        Segment3D final(finalStart3D, finalEnd3D);
+        
+        //cout << "initial: " << initial << endl;
+        //cout << "medium:  " << medium << endl;
+        //cout << "final:   " << final << endl;
+        //cout << "midpoint3D: " << midpoint3D << endl;
+
+        if (mediumStart3D == mediumEnd3D) {
+
+            decisionsByDegeneration++;
+            decision = SKIP;
+            
+        } else {
+            
+            decision = BelongsToResultUnit(midpoint3D, pFace);
+        }
+        
+        switch (decision) {
+
+        case SKIP:
+
+            // This msegment does not contribute to the result.
+            noMSegsSkipped++;
+            //cout << "decision: SKIP" << endl;
+            break;
+
+        case ACCEPT:
+
+            // This msegment contributes to the result.
+            resultUnit->AddSegment(MSegment(initial, medium, final, pFace));
+            noMSegsValid++;
+            //cout << "decision: ACCEPT" << endl;
+            break;
+
+        case UNDEFINED:
+
+            // This msegment is part of a pair of identical ones
+            // and we can't do a decision now.
+            criticalMSegs.push_back(MSegmentCritical(initial, medium, final,
+                                                     midpoint3D, pFace));
+            noMSegCritical++;
+            //cout << "decision: UNDEFINED" << endl;
+            break;
+        }
+        
+        //cout << endl;
+
+        start = end;
+        initialStart3D = initialEnd3D;
+        mediumStart3D = mediumEnd3D;
+        finalStart3D = finalEnd3D;
+    }
+}
+
+Decision ResultUnitFactory::BelongsToResultUnit(const Point3D& midpoint, 
+                                                const PFace* pFace) {
+    
+    if (DECIDE_BY_ENTIRELY_IN_OUT && 
+        pFace->IsNormalRelevant() && 
+        !pFace->HasInnerIntSegs()) {
+        
+        decisionsByEntirelyInOut++;
+        return ACCEPT;
+    }
+    
+    const SourceUnit* ownUnit = pFace->GetUnit();
+    SourceUnit* otherUnit = ownUnit->GetPartner();
+    const SetOp op = parent->GetOperation();
+    
+    decisionsByPlumbline++;
+    
+    if (pFace->IsCriticalRelevant() && otherUnit->IsOnBorder(midpoint)) {
+        
+        // The testpoint is on the border of the testregion.
+        // Hence we can decide it not yet:
+        return UNDEFINED;
+    }
+    
+    if (otherUnit->IsOutside(midpoint)) {
+        
+        if (op == UNION || (op == MINUS && ownUnit->IsUnitA()))
+            return ACCEPT;
+        else
+            return SKIP;
+    } 
+    
+    // The Point is inside of otherUnit.
+
+    if (op == INTERSECTION || (op == MINUS && ownUnit->IsUnitB()))
+        return ACCEPT;
+    else
+        return SKIP;
+}
+
+void ResultUnitFactory::AddCriticalMSegments() {
+    
+    if (criticalMSegs.size() == 0)
+        return;
+    
+    // Sort by midpoints:
+    sort(criticalMSegs.begin(), criticalMSegs.end());
+    
+    const SetOp op = parent->GetOperation();
+    
+    //cout << "criticalMSegs.size() = " << criticalMSegs.size() << endl;
+    
+    
+    //for (unsigned int i = 0; i < criticalMSegs.size(); i++) {
+        
+        //criticalMSegs[i].Print();
+        //cout << "midpoint: ";
+        //cout << criticalMSegs[i].GetMidpoint().GetX() << " | " <<
+        //criticalMSegs[i].GetMidpoint().GetY() << endl;
+    //}
+    
+    assert(criticalMSegs.size() % 2 == 0);
+    
+    for (unsigned int i = 0; i < criticalMSegs.size(); i += 2) {
+        
+        MSegmentCritical mSeg1 = criticalMSegs[i];
+        MSegmentCritical mSeg2 = criticalMSegs[i + 1];
+        
+        //cout << "mSeg1.GetMidpoint(): " << mSeg1.GetMidpoint() << endl;
+        //cout << "mSeg2.GetMidpoint(): " << mSeg2.GetMidpoint() << endl;
+        assert(mSeg1.GetMidpoint() == mSeg2.GetMidpoint());
+
+        if (op == UNION || op == INTERSECTION) {
+
+            if (!mSeg1.HasEqualNormalVector(mSeg2)) {
+
+                // Skip both.
+                noMSegsSkipped++;
+                noMSegsSkipped++;
+
+            } else { // HasEqualNormalVector(other)
+
+                if (mSeg1.IsPartOfUnitA())
+                    resultUnit->AddSegment(mSeg1);
+                else
+                    resultUnit->AddSegment(mSeg2);
+                
+                noMSegsValid++;
+                noMSegsSkipped++;
+            }
+
+        } else { // op == MINUS
+
+            if (mSeg1.HasEqualNormalVector(mSeg2)) {
+
+                // Skip both.
+                noMSegsSkipped++;
+                noMSegsSkipped++;
+
+            } else { // !HasEqualNormalVector(other)
+
+                if (mSeg1.IsPartOfUnitA())
+                    resultUnit->AddSegment(mSeg1);
+                else
+                    resultUnit->AddSegment(mSeg2);
+                
+                noMSegsValid++;
+                noMSegsSkipped++;
+            }
+        }
+    }
+    
+    criticalMSegs.clear();
+}
+
+void ResultUnitFactory::ConstructResultUnitAsURegionEmb() {
+    
+    if (resultUnit->IsEmpty()) {
+        
+        noEmptyUnits++;
+        return;
+    }
+    
+    noUnits++;
+    
+#ifdef PRINT_STATISTIC
+    
+    cout <<  "ResultUnit created: " << resultUnit->GetInterval() << endl;
+    cout << endl;
+
+#endif
+#ifdef  WRITE_VRML_FILE
+    
+    vrml.push_back(resultUnit->GetVRMLDesc());
+    
+#endif
+    
+    const Interval<Instant> interval = resultUnit->GetInterval();
+    DBArray<MSegmentData>* array = 
+        (DBArray<MSegmentData>*)resMRegion->GetFLOB(1);
+    
+    URegionEmb* ure = resultUnit->ConvertToURegionEmb(array);
+    //cout << NList(resultUnit->ConvertToListExpr()) << endl;
+    resMRegion->Add(*ure);
+    delete ure;
+}
+
+void ResultUnitFactory::Print() const {
+    
+    cout <<  "ResultUnitFactory: " << endl;
+    cout <<  "Units created: " << noUnits << endl;
+    cout <<  "Empty units: " << noEmptyUnits << endl;
+    cout <<  "Processed PFaces total: " << pFaces.size() << endl;
+    cout <<  "Evaluated IntSegs total: " << evalutedIntSegs << endl;
+    cout <<  "MSegments total: " << evalutedIntSegs << endl;
+    cout <<  "MSegments valid: " << noMSegsValid << endl;
+    cout <<  "MSegments skipped: " << noMSegsSkipped << endl;
+    cout <<  "MSegments critical: " << noMSegCritical << endl;
+    cout <<  "Decisions by plumbline: " << decisionsByPlumbline << endl;
+    cout <<  "Decisions by entirely inside/outside: " <<  
+                decisionsByEntirelyInOut << endl;
+    cout <<  "Decisions by adjacency: " << decisionsByAdjacency << endl;
+    cout <<  "Decisions by degeneration: " << decisionsByDegeneration << endl;
+    cout << endl;
+}
+
+string ResultUnitFactory::GetVRMLDesc() const {
+    
+    std::ostringstream oss;
+    
+    for (unsigned int i = 0; i < vrml.size(); i++) {
+        
+        oss << vrml[i] << endl;
+    }
+    
+    return oss.str();
+}
+
+/*
+1 Class SourceUnitPair
+
+*/
+
+SourceUnitPair::SourceUnitPair(URegionEmb* const _unitA,
+                               const DBArray<MSegmentData>* const _aArray, 
+                               const bool _aIsEmpty,
+                               URegionEmb* const _unitB,
+                               const DBArray<MSegmentData>* const _bArray,
+                               const bool _bIsEmpty,
+                               const SetOp _operation,
+                               MRegion* const _resultMRegion) :
+                                   
+    unitA(true, _unitA, _aArray, _aIsEmpty, this),
+    unitB(false, _unitB, _bArray, _bIsEmpty, this),
+    op(_operation),
+    resultMRegion(_resultMRegion),
+    resultUnitFactory(_resultMRegion, this) {
+    
+    if (_aIsEmpty || _bIsEmpty)
+        return;
+    
+    assert(_unitA->timeInterval == _unitB->timeInterval);
+    
+    unitA.SetPartner(&unitB);
+    unitB.SetPartner(&unitA);
+
+    ComputeOverlapRect();
+    
+#ifdef PRINT_STATISTIC
+    
+    cout << "SourceUnitPair with interval " << GetOriginalTimeInterval() 
+         << " created." << endl;
+    
+#endif
+#ifdef PRINT_DEBUG_MESSAGES
+    
+    if (HasNormalizedTimeInterval())
+        cout << "Interval was normalized to: " << GetTimeInterval()
+             << endl;
+    
+#endif
+}
+
+void SourceUnitPair::Operate() {
+    
+#ifdef OPTIMIZE_BY_BOUNDING_RECT
+
+    const bool s = false;
+    
+#else
+    
+    const bool s = true;
+        
+#endif
+
+    if ((!unitA.IsEmpty() && !unitB.IsEmpty()) && 
+       (s || op == UNION || HasOverlappingBoundingRect())) {
+
+#ifdef  PRINT_STATISTIC
+        
+        StopWatch stopWatch;
+        stopWatch.start();
+        
+#endif
+        
+        CreatePFaces();
+        
+#ifdef  PRINT_STATISTIC   
+        
+        cout << "CreatePFaces() takes: ";
+        cout << stopWatch.diffTimes() << endl;
+        cout << endl;
+        
+#endif
+#ifdef  PRINT_DEBUG_MESSAGES      
+        
+        cout << "*************************************************************";
+        cout << endl;
+        cout << "PFaces after calling CreatePFaces():" << endl;
+        cout << endl;
+        PrintPFaces();
+        
+#endif
+#ifdef  PRINT_STATISTIC  
+        
+        stopWatch.start();
+        
+#endif
+        
+        ComputeIntSegs();
+        
+#ifdef  PRINT_STATISTIC
+        
+        cout << "ComputeIntSegs() takes: ";
+        cout << stopWatch.diffTimes() << endl;
+        cout << endl;
+        
+#endif
+#ifdef  PRINT_DEBUG_MESSAGES
+        
+        cout << "*************************************************************";
+        cout << endl;
+        cout << "PFaces after calling ComputeIntSegs():" << endl;
+        cout << endl;
+        PrintPFaces();
+        
+#endif
+#ifdef  PRINT_STATISTIC
+        
+        stopWatch.start();
+        
+#endif       
+        
+        CollectRelevantPFaces();
+        
+#ifdef  PRINT_STATISTIC
+        
+        cout << "CollectRelevantPFaces() takes: ";
+        cout << stopWatch.diffTimes() << endl;
+        cout << endl;
+        
+#endif
+#ifdef  PRINT_DEBUG_MESSAGES     
+        
+        cout << "*************************************************************";
+        cout << endl;
+        cout << "PFaces after calling CollectRelevantPFaces():" << endl;
+        cout << endl;
+        PrintPFaces();
+        
+#endif
+#ifdef  PRINT_STATISTIC
+        
+        stopWatch.start();
+        
+#endif
+        
+        ConstructResultUnits();
+        
+#ifdef  PRINT_STATISTIC
+        
+        cout << "ConstructResultUnits() takes: ";
+        cout << stopWatch.diffTimes() << endl;
+        cout << endl;
+        
+#endif 
+        
+        //cout << "ConvertToURegionEmb takes: ";
+        //cout << seconds << endl;
+        //cout << endl;
+        
+        //cout << "ResultUnit::EndBulkLoad takes: ";
+        //cout << seconds2 << endl;
+        //cout << endl;
+
+        //cout << "ResultUnitFactory::BelongsToResultUnit takes: ";
+        //cout << seconds3 << endl;
+        //cout << endl;
+        
+#ifdef  PRINT_STATISTIC
+
+        resultUnitFactory.Print();
+        
+#endif
+#ifdef  WRITE_VRML_FILE
+        
+        ToVrmlFile(showSourceUnitA, showSourceUnitB, showResultUnits);
+        
+#endif
+
+    } else {
+        
+        // unitA.IsEmpty() || unitB.IsEmpty() || 
+        // (!s && op != UNION && !HasOverlappingBoundingRect())
+
+        switch (op) {
+        
+        case MINUS:
+            
+            // Result is unit a:
+            unitA.AddToMRegion(resultMRegion);
+            break;
+
+        case INTERSECTION:
+
+            // Result is empty:
+            // Nothing to do.
+            break;
+            
+        case UNION:
+            
+            assert(unitA.IsEmpty() || unitB.IsEmpty());
+            
+            unitA.AddToMRegion(resultMRegion);
+            unitB.AddToMRegion(resultMRegion);
+            break;
+        }
+    }
+}
+
+void SourceUnitPair::ComputeOverlapRect() {
+
+    overlapRect = unitA.GetBoundingRect().Intersection(unitB.GetBoundingRect());
+}
+
+void SourceUnitPair::CreatePFaces() {
+
+    unitA.CreatePFaces();
+    unitB.CreatePFaces();
+}
+
+void SourceUnitPair::ComputeIntSegs() {
+    
+    vector<PFace*>::iterator iterA;
+    vector<PFace*>::iterator iterB;
+
+    for (iterA = unitA.pFacesReduced.begin(); iterA
+                            != unitA.pFacesReduced.end(); iterA++) {
+
+        for (iterB = unitB.pFacesReduced.begin(); iterB
+                                != unitB.pFacesReduced.end(); iterB++) {
+
+            (*iterA)->Intersection(**iterB);
+        }
+    }
+}
+
+void SourceUnitPair::CollectRelevantPFaces() {
+    
+    unitA.CollectRelevantPFaces(&resultUnitFactory);
+    unitB.CollectRelevantPFaces(&resultUnitFactory);
+}
+
+void SourceUnitPair::ConstructResultUnits() {
+    
+    resultUnitFactory.Start();
+}
+
+void SourceUnitPair::PrintPFaces() {
+
+    cout << endl;
+    cout << "*********************************************" << endl;
+    cout << "PFaces of Unit A:" << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
+
+    unitA.PrintPFaces();
+
+    cout << endl;
+    cout << "*********************************************" << endl;
+    cout << "PFaces of Unit B:" << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
+
+    unitB.PrintPFaces();
+
+}
+
+void SourceUnitPair::ToVrmlFile(bool a, bool b, bool res) {
+    
+    if (!a && !b && !res)
+        return;
+
+    const string colorA = "1 1 0";
+    const string colorB = "0 0.6 1";
+    //const string colorResult = "1 0 0";
+
+    const string filename = "unitpair_" + 
+                            GetTimeInterval().start.ToString() + 
+                            ".wrl";
+    
+    ofstream target(filename.c_str());
+
+    if (!target.is_open()) {
+
+        cerr << "Unable to open file: " << filename << endl;
+        return;
+    }
+
+    target << "#VRML V2.0 utf8" << endl;
+
+    if (a) {
+
+        target << endl;
+        target << "# Unit A:" << endl;
+        target << endl;
+        unitA.PrintVRMLDesc(target, colorA);
+
+    }
+
+    if (b) {
+
+        target << endl;
+        target << "# Unit B:" << endl;
+        target << endl;
+        unitB.PrintVRMLDesc(target, colorB);
+
+    }
+
+    if (res) {
+
+        target << endl;
+        target << "# Result units:" << endl;
+        target << endl;
+        target << resultUnitFactory.GetVRMLDesc() << endl;
+    }
+    
+    target.close();
+}
+
+/*
+1 Class IntersectionSegment
 
 */
 
@@ -212,18 +1473,9 @@ Point3D IntersectionSegment::Evaluate(const double t) const {
 
 void IntersectionSegment::Print() const {
     
-    cout << "ID: " << GetID() << endl;
-
-    cout << "Start_XYT: " << GetStartXYT()->GetX() << " | " 
-                          << GetStartXYT()->GetY() << " | " 
-                          << GetStartXYT()->GetT() << endl;
-
-    cout << "End_XYT: " << GetEndXYT()->GetX() << " | " 
-                        << GetEndXYT()->GetY() << " | " 
-                        << GetEndXYT()->GetT() << endl;
-
-    cout << "Start_WT: " << GetStartW() << " | " << GetStartT() << endl;
-    cout << "End_WT: " << GetEndW() << " | " << GetEndT() << endl;
+    cout << "ID: " << GetID() << " ";
+    cout << *GetStartXYT() << " -> " << *GetEndXYT();
+    //cout << *GetStartWT() << " -> " << *GetEndWT();
 }
 
 string IntersectionSegment::GetVRMLDesc() {
@@ -232,7 +1484,7 @@ string IntersectionSegment::GetVRMLDesc() {
 }
 
 /*
-5 Class MSegment
+1 Class MSegment
 
 */
 
@@ -273,8 +1525,19 @@ bool MSegment::IsParallel(const MSegment& ms) const {
     return GetPFace()->IsParallelTo(*ms.GetPFace());
 }
 
+void MSegment::Print() const {
+        
+        cout << "start: " << NList(GetStartAsListExpr()) << endl;
+        cout << "end: " << NList(GetEndAsListExpr()) << endl;
+        cout << "median: " << this->GetMedianHS() << endl;
+        cout << " F: " << GetFaceNo();
+        cout << " C: " << GetCycleNo();
+        cout << " S: " << GetSegmentNo();
+        cout << " LDP: " << GetMedianHS().IsLeftDomPoint() << endl;
+    }
+
 /*
-6 Class MSegmentCritical
+1 Class MSegmentCritical
 
 */
 
@@ -289,7 +1552,7 @@ bool MSegmentCritical::HasEqualNormalVector(const MSegmentCritical& msc) const {
 }
 
 /*
-7 Class ResultUnit
+1 Class ResultUnit
 
 */
 
@@ -597,7 +1860,7 @@ inside above and inside below segments, we can ignore the entire list.
                     for (int j = i+1; j != 0; j
                             = degenDms.GetDegeneratedFinalNext()) {
 
-                        cout << segments->Size()-1 << " " << j-1 << endl;
+                        //cout << segments->Size()-1 << " " << j-1 << endl;
                         uregion->GetSegment(segments, j-1, auxDegenDms);
                         degenDms = *auxDegenDms;
 
@@ -667,38 +1930,29 @@ void ResultUnit::Print(const bool segments) const {
         }
 }
 
-void ResultUnit::WriteToVRMLFile() const {
+string ResultUnit::GetVRMLDesc() const {
 
-        const string filename = "unit_" + interval.start.ToString() + ".wrl";
-
-        ofstream target(filename.c_str());
-
-        if (!target.is_open()) {
-
-            cerr << "Unable to open file: " << filename << endl;
-            return;
-        }
-
-        target << "#VRML V2.0 utf8" << endl;
+        std::ostringstream oss;
         
-        target << endl;
-        target << "# Interval: " << interval.start.ToDouble();
-        target << " -> " << interval.end.ToDouble() << endl;
-        target << endl;
+        oss << endl;
+        oss << "# Interval: " << interval << endl;
+        oss << "# Interval: " << interval.start.ToDouble();
+        oss << " -> " << interval.end.ToDouble() << endl;
+        oss << endl;
         
-        target << endl;
-        target << "# Unit :" << endl;
-        target << endl;
+        oss << endl;
+        oss << "# Unit :" << endl;
+        oss << endl;
         
-        const double scale= VRML_SCALE_FACTOR;
+        const double scale = VRML_SCALE_FACTOR;
 
-        target << "Transform {" << endl;
-        target << "\tscale " << scale << " " << scale << " " << scale << endl;
-        target << "\tchildren [" << endl;
-        target << "\t\tShape {" << endl;
-        target << "\t\t\tgeometry IndexedLineSet {" << endl;
-        target << "\t\t\t\tcoord Coordinate {" << endl;
-        target << "\t\t\t\t\tpoint [" << endl;
+        oss << "Transform {" << endl;
+        oss << "\tscale " << scale << " " << scale << " " << scale << endl;
+        oss << "\tchildren [" << endl;
+        oss << "\t\tShape {" << endl;
+        oss << "\t\t\tgeometry IndexedLineSet {" << endl;
+        oss << "\t\t\t\tcoord Coordinate {" << endl;
+        oss << "\t\t\t\t\tpoint [" << endl;
 
         int count = 0;
         vector<MSegment>::const_iterator iter;
@@ -720,7 +1974,7 @@ void ResultUnit::WriteToVRMLFile() const {
                             ms.GetFinal().GetEnd().GetY(),
                             interval.end.ToDouble());
             
-            target << "\t\t\t\t\t\t" << a.GetVRMLDesc() 
+            oss << "\t\t\t\t\t\t" << a.GetVRMLDesc() 
                                      << c.GetVRMLDesc()
                                      << d.GetVRMLDesc()
                                      << b.GetVRMLDesc()
@@ -728,26 +1982,28 @@ void ResultUnit::WriteToVRMLFile() const {
             count++;
         }
 
-        target << "\t\t\t\t\t]  # end point" << endl;
-        target << "\t\t\t\t} # end coord" << endl;
-        target << "\t\t\t\tcoordIndex [" << endl;
+        oss << "\t\t\t\t\t]  # end point" << endl;
+        oss << "\t\t\t\t} # end coord" << endl;
+        oss << "\t\t\t\tcoordIndex [" << endl;
 
         const int noPoints = count * 4;
 
         for (int i = 0; i < noPoints; i += 4) {
 
-            target << "\t\t\t\t\t" << i << ", " << i + 1 << ", " << i + 2
+            oss << "\t\t\t\t\t" << i << ", " << i + 1 << ", " << i + 2
                     << ", " << i + 3 << ", " << i << ", " << "-1," << endl;
         }
 
-        target << "\t\t\t\t] # end coordIndex" << endl;
+        oss << "\t\t\t\t] # end coordIndex" << endl;
 
-        //target << "\t\t\t\tcolor Color { color [ " << color << " ] }" << endl;
+        //oss << "\t\t\t\tcolor Color { color [ " << color << " ] }" << endl;
 
-        target << "\t\t\t} # end geometry" << endl;
-        target << "\t\t} # end shape" << endl;
-        target << "\t] # end children" << endl;
-        target << "} # end Transform" << endl;
+        oss << "\t\t\t} # end geometry" << endl;
+        oss << "\t\t} # end shape" << endl;
+        oss << "\t] # end children" << endl;
+        oss << "} # end Transform" << endl;
+        
+        return oss.str();
 }
 
 void ResultUnit::AddMSegmentData(URegionEmb* uregion,
@@ -884,1260 +2140,73 @@ bool ResultUnit::Check() const {
 }
 
 /*
-8 Class ResultUnitFactory
+1 Class Point3DExt
 
 */
 
-void ResultUnitFactory::Start() {
-    
-    if (time.size() < 2) {
-        
-        // Result is empty.
-        return;
-    }
-    
-    // Set the first initial timelevel:
-    timeIter = time.begin();
-    t1 = *timeIter;
+bool Point3DExt::operator <(const Point3DExt& p) const {
 
-    while ((++timeIter) != time.end()) {
-
-        // Set the final timelevel:
-        t2 = *timeIter;
-        
-        // Set the median timelevel:
-        t12 = (t1 + t2) / 2.0;
-
-        ComputeCurrentTimeLevel();
-      
-        // Set the new initial timelevel:
-        t1 = t2;
-    }
-}
-
-void ResultUnitFactory::ComputeCurrentTimeLevel() {
-    
-    //cout << "t1: " << t1 << endl;
-    //cout << "t12: " << t12 << endl;
-    //cout << "t2: " << t2 << endl;
-        
-    assert(NumericUtil::Lower(t1, t2));
-    
-    Instant starttime(instanttype);
-    Instant endtime(instanttype);
-    
-    if (parent->HasNormalizedTimeInterval()) {
-        
-        const double originalStart = 
-            parent->GetOriginalTimeInterval().start.ToDouble();
-        
-        const double originalEnd = 
-            parent->GetOriginalTimeInterval().end.ToDouble();
-        
-        starttime.ReadFrom((1.0 - t1) * originalStart + t1 * originalEnd);
-        endtime.ReadFrom((1.0 - t2) * originalStart + t2 * originalEnd);
-        
-    } else {
-        
-        starttime.ReadFrom(t1);
-        endtime.ReadFrom(t2);
-    }
-    
-    const Interval<Instant> interval(starttime, endtime, true, false);
-
-    //cout << "start: " << starttime.ToDouble() << endl;
-    //cout << "end: " << endtime.ToDouble() << endl;
-
-    resultUnit = new ResultUnit(interval);
-    resultUnit->StartBulkLoad();
-
-    vector<PFace*>::iterator iter;
-    for (iter = pFaces.begin(); iter != pFaces.end(); iter++) {
-
-        PFace* pFace = *iter;
-        //pFace->Print();
-        pFace->UpdateTimeLevel(t1);
-
-        if (pFace->IsNormalRelevant()) {
-
-            ProcessNormalPFace(pFace);
-
-        } else { // pFace->IsCriticalRelevant()
-
-            ProcessCriticalPFace(pFace);
-        }
-    }
-
-    //cout << "ResultUnit: " << t1 << " -> " << t2 << endl;
-    //Instant mediantime(instanttype);
-    //mediantime.ReadFrom(t12);
-    //cout << "mediantime: " << mediantime.ToString() << endl;
-
-    AddCriticalMSegments();
-
-    //cout << "ResultUnit: " << t1 << " -> " << t2 << endl;
-
-    //assert(false);
-
-    //cout << endl;
-    //cout << "ResultUnit: " << t1 << " -> " << t2 << endl;
-    //cout << endl;
-
-    //resultUnit->WriteToVRMLFile();
-    //this->Print();
-
-    resultUnit->EndBulkLoad(MERGE_RESULT_MSEGMENTS);
-
-    ConstructResultUnitAsURegionEmb();
-
-    delete resultUnit;
-}
-
-void ResultUnitFactory::ProcessNormalPFace(PFace* pFace) {
-    
-    //assert(NumericUtil::Lower(t1, t2));
-
-    const list<IntersectionSegment*>* intSegs;
-    list<IntersectionSegment*>::const_iterator intSegIter;
-    
-    Decision decision;
-    Decision lastDecision = pFace->GetLastDecision();
-    bool firstMSegInTimeLevel = true;
-
-    intSegs = pFace->GetActiveIntSegs();
-    intSegIter = intSegs->begin();
-
-    assert(intSegs->size() >= 2);
-
-    const IntersectionSegment* start = *intSegIter;
-    const IntersectionSegment* end;
-
-    Point3D initialStart3D(start->Evaluate(t1));
-    Point3D mediumStart3D(start->Evaluate(t12));
-    Point3D finalStart3D(start->Evaluate(t2));
-
-    while ((++intSegIter) != intSegs->end()) {
-
-        end = *intSegIter;
-        
-        evalutedIntSegs++;
-
-        Point3D initialEnd3D(end->Evaluate(t1));
-        Point3D mediumEnd3D(end->Evaluate(t12));
-        Point3D finalEnd3D(end->Evaluate(t2));
-        
-        Segment3D initial(initialStart3D, initialEnd3D);
-        Segment3D medium(mediumStart3D, mediumEnd3D);
-        Segment3D final(finalStart3D, finalEnd3D);
-        
-        if (mediumStart3D == mediumEnd3D) {
-
-            decisionsByDegeneration++;
-            cout << "Degenerated MSegment in normal PFace found!" << endl;
-            cout << initial << endl;
-            cout << medium << endl;
-            cout << final << endl;
-            
-            start = end;
-            continue;
-        }
-
-            if (lastDecision == UNDEFINED || DECIDE_BY_PLUMBLINE_ONLY) {
-
-                Point3D midpoint3D((mediumStart3D + mediumEnd3D) * 0.5);
-                decision = BelongsToResultUnit(midpoint3D, pFace);
-
-                if (firstMSegInTimeLevel) {
-
-                    pFace->SetLastDecision(decision);
-                    firstMSegInTimeLevel = false;
-                }
-
-            } else { // lastDecision != UNDEFINED
-
-                decisionsBySideOfResultFace++;
-
-                if (firstMSegInTimeLevel) {
-
-                    decision = lastDecision;
-                    pFace->SetLastDecision(decision);
-                    firstMSegInTimeLevel = false;
-
-                } else {
-
-                    if (lastDecision == ACCEPT)
-                        decision = SKIP;
-                    else
-                        decision = ACCEPT;
-                }
-            }
-        
-        
-        switch (decision) {
-
-        case SKIP:
-
-            // This msegment does not contribute to the result.
-            noMSegsSkipped++;
-            break;
-
-        case ACCEPT:
-
-            // This msegment contributes to the result.
-            resultUnit->AddSegment(MSegment(initial, medium, final, pFace));
-            noMSegsValid++;
-            break;
-            
-        case UNDEFINED:
-            
-            // This case should never occur:
-            assert(false);
-            break;
-        }
-        
-        start = end;
-        initialStart3D = initialEnd3D;
-        mediumStart3D = mediumEnd3D;
-        finalStart3D = finalEnd3D;
-        lastDecision = decision;
-    }
-}
-
-void ResultUnitFactory::ProcessCriticalPFace(PFace* pFace) {
-    
-    //assert(NumericUtil::Lower(t1, t2));
-    
-    
-
-    const list<IntersectionSegment*>* intSegs;
-    list<IntersectionSegment*>::const_iterator intSegIter;
-
-    Decision decision;
-
-    intSegs = pFace->GetActiveIntSegs();
-    intSegIter = intSegs->begin();
-
-    assert(intSegs->size() >= 2);
-
-    const IntersectionSegment* start = *intSegIter;
-    const IntersectionSegment* end;
-
-    Point3D initialStart3D(start->Evaluate(t1));
-    Point3D mediumStart3D(start->Evaluate(t12));
-    Point3D finalStart3D(start->Evaluate(t2));
-
-    while ((++intSegIter) != intSegs->end()) {
-
-        end = *intSegIter;
-        
-        evalutedIntSegs++;
-
-        Point3D initialEnd3D(end->Evaluate(t1));
-        Point3D mediumEnd3D(end->Evaluate(t12));
-        Point3D finalEnd3D(end->Evaluate(t2));
-        
-        Point3D midpoint3D((mediumStart3D + mediumEnd3D) * 0.5);
-        
-        Segment3D initial(initialStart3D, initialEnd3D);
-        Segment3D medium(mediumStart3D, mediumEnd3D);
-        Segment3D final(finalStart3D, finalEnd3D);
-        
-        //cout << "initial: " << initial << endl;
-        //cout << "medium:  " << medium << endl;
-        //cout << "final:   " << final << endl;
-        //cout << "midpoint3D: " << midpoint3D << endl;
-
-        if (mediumStart3D == mediumEnd3D) {
-
-            decisionsByDegeneration++;
-            decision = SKIP;
-            
-        } else {
-            
-            decision = BelongsToResultUnit(midpoint3D, pFace);
-        }
-        
-        switch (decision) {
-
-        case SKIP:
-
-            // This msegment does not contribute to the result.
-            noMSegsSkipped++;
-            //cout << "decision: SKIP" << endl;
-            break;
-
-        case ACCEPT:
-
-            // This msegment contributes to the result.
-            resultUnit->AddSegment(MSegment(initial, medium, final, pFace));
-            noMSegsValid++;
-            //cout << "decision: ACCEPT" << endl;
-            break;
-
-        case UNDEFINED:
-
-            // This msegment is part of a pair of identical ones
-            // and we can't do a decision now.
-            criticalMSegs.push_back(MSegmentCritical(initial, medium, final,
-                                                     midpoint3D, pFace));
-            noMSegCritical++;
-            //cout << "decision: UNDEFINED" << endl;
-            break;
-        }
-        
-        //cout << endl;
-
-        start = end;
-        initialStart3D = initialEnd3D;
-        mediumStart3D = mediumEnd3D;
-        finalStart3D = finalEnd3D;
-    }
-}
-
-Decision ResultUnitFactory::BelongsToResultUnit(const Point3D& midpoint, 
-                                                const PFace* pFace) {
-    
-    if (DECIDE_BY_ENTIRELY_IN_OUT && 
-        pFace->IsNormalRelevant() && 
-        !pFace->HasInnerIntSegs()) {
-        
-        decisionsByEntirelyInOut++;
-        return ACCEPT;
-    }
-    
-    const SourceUnit* ownUnit = pFace->GetUnit();
-    SourceUnit* otherUnit = ownUnit->GetPartner();
-    const SetOp op = parent->GetOperation();
-    
-    decisionsByPlumbline++;
-    
-    if (pFace->IsCriticalRelevant() && otherUnit->IsOnBorder(midpoint)) {
-        
-        // The testpoint is on the border of the testregion.
-        // Hence we can decide it not yet:
-        return UNDEFINED;
-    }
-    
-    if (otherUnit->IsOutside(midpoint)) {
-        
-        if (op == UNION || (op == MINUS && ownUnit->IsUnitA()))
-            return ACCEPT;
-        else
-            return SKIP;
-    } 
-    
-    // The Point is inside of otherUnit.
-
-    if (op == INTERSECTION || (op == MINUS && ownUnit->IsUnitB()))
-        return ACCEPT;
-    else
-        return SKIP;
-}
-
-void ResultUnitFactory::AddCriticalMSegments() {
-    
-    if (criticalMSegs.size() == 0)
-        return;
-    
-    // Sort by midpoints:
-    sort(criticalMSegs.begin(), criticalMSegs.end());
-    
-    const SetOp op = parent->GetOperation();
-    
-    //cout << "criticalMSegs.size() = " << criticalMSegs.size() << endl;
-    
-    
-    //for (unsigned int i = 0; i < criticalMSegs.size(); i++) {
-        
-        //criticalMSegs[i].Print();
-        //cout << "midpoint: ";
-        //cout << criticalMSegs[i].GetMidpoint().GetX() << " | " <<
-        //criticalMSegs[i].GetMidpoint().GetY() << endl;
-    //}
-    
-    assert(criticalMSegs.size() % 2 == 0);
-    
-    for (unsigned int i = 0; i < criticalMSegs.size(); i += 2) {
-        
-        MSegmentCritical mSeg1 = criticalMSegs[i];
-        MSegmentCritical mSeg2 = criticalMSegs[i + 1];
-        
-        //cout << "mSeg1.GetMidpoint(): " << mSeg1.GetMidpoint() << endl;
-        //cout << "mSeg2.GetMidpoint(): " << mSeg2.GetMidpoint() << endl;
-        assert(mSeg1.GetMidpoint() == mSeg2.GetMidpoint());
-
-        if (op == UNION || op == INTERSECTION) {
-
-            if (!mSeg1.HasEqualNormalVector(mSeg2)) {
-
-                // Skip both.
-                noMSegsSkipped++;
-                noMSegsSkipped++;
-
-            } else { // HasEqualNormalVector(other)
-
-                if (mSeg1.IsPartOfUnitA())
-                    resultUnit->AddSegment(mSeg1);
-                else
-                    resultUnit->AddSegment(mSeg2);
-                
-                noMSegsValid++;
-                noMSegsSkipped++;
-            }
-
-        } else { // op == MINUS
-
-            if (mSeg1.HasEqualNormalVector(mSeg2)) {
-
-                // Skip both.
-                noMSegsSkipped++;
-                noMSegsSkipped++;
-
-            } else { // !HasEqualNormalVector(other)
-
-                if (mSeg1.IsPartOfUnitA())
-                    resultUnit->AddSegment(mSeg1);
-                else
-                    resultUnit->AddSegment(mSeg2);
-                
-                noMSegsValid++;
-                noMSegsSkipped++;
-            }
-        }
-    }
-    
-    criticalMSegs.clear();
-}
-
-void ResultUnitFactory::ConstructResultUnitAsURegionEmb() {
-    
-    if (resultUnit->IsEmpty()) {
-        
-        noEmptyUnits++;
-        return;
-    }
-    
-    noUnits++;
-    
-    //cout <<  "ResultUnit: " << t1 << " -> " << t2 << endl;
-    //cout << endl;
-    //resultUnit->WriteToVRMLFile();
-    
-    const Interval<Instant> interval = resultUnit->GetInterval();
-    DBArray<MSegmentData>* array = 
-        (DBArray<MSegmentData>*)resMRegion->GetFLOB(1);
-    //URegionEmb ure(interval, array->Size());
-    
-    //resultUnit->WriteToURegionEmb2(&ure, array);
-    //resultUnit->Print();
-    //cout << NList(resultUnit->ConvertToListExpr()) << endl;
-    //cout << endl;
-    //this->Print();
-    //cout << endl;
-    
-    URegionEmb* ure = resultUnit->ConvertToURegionEmb(array);
-    
-    
-    //cout << NList(resultUnit->ConvertToListExpr()) << endl;
-    resMRegion->Add(*ure);
-    delete ure;
-    //cout << "unit written: " << interval << endl;
-}
-
-void ResultUnitFactory::Print() const {
-    
-    cout <<  "ResultUnitFactory: " << endl;
-    cout <<  "Units: " << noUnits << endl;
-    cout <<  "Empty units: " << noEmptyUnits << endl;
-    cout <<  "Processed PFaces total: " << pFaces.size() << endl;
-    cout <<  "Evaluated IntSegs total: " << evalutedIntSegs << endl;
-    //cout <<  "MSegments total: " << evalutedIntSegs << endl;
-    cout <<  "MSegments valid: " << noMSegsValid << endl;
-    cout <<  "MSegments skipped: " << noMSegsSkipped << endl;
-    cout <<  "MSegments critical: " << noMSegCritical << endl;
-    cout <<  "Decisions by plumbline: " << decisionsByPlumbline << endl;
-    cout <<  "Decisions by entirely inside/outside: " <<  
-                decisionsByEntirelyInOut << endl;
-    cout <<  "Decisions by side of result face: " << 
-                decisionsBySideOfResultFace << endl;
-    cout <<  "Decisions by degeneration: " << decisionsByDegeneration << endl;
-}
-
-/*
-9 Class SourceUnit
-
-*/
-
-SourceUnit::SourceUnit(const bool _isUnitA, 
-             URegionEmb* const _uRegion,
-             const DBArray<MSegmentData>* _array, 
-             const bool _isEmpty,
-             SourceUnitPair* const _parent) :
-                 
-            isUnitA(_isUnitA),
-            isEmpty(_isEmpty),
-            uRegion(_uRegion), 
-            array(_array),
-            parent(_parent), 
-            //medianTime(instanttype),
-            hasNormalizedTimeInterval(false) {
-
-    if (_isEmpty) 
-        return;
-    
-    originalTimeInterval = _uRegion->timeInterval;
-    
-    NormalizeTimeInterval();
-    ComputeBoundingRect();
-    
-    startTime = _uRegion->timeInterval.start.ToDouble();
-    endTime = _uRegion->timeInterval.end.ToDouble();
-    //medianTime.ReadFrom((startTime + endTime) * 0.5);
-}
-
-SourceUnit::~SourceUnit() {
-    
-    vector<PFace*>::iterator iter;
-    
-    for (iter = pFaces.begin(); iter != pFaces.end(); iter++) {
-        
-        delete *iter;
-    }
-}
-
-void SourceUnit::NormalizeTimeInterval() {
-    
-    if (!NORMALIZE_TIME_INTERVAL_OF_SOURCE_UNITS)
-        return;
-    
-    //cout << "timeInterval.start: " << uRegion->timeInterval.start << endl;
-    //cout << "timeInterval.end: " << uRegion->timeInterval.end << endl;
-    
-    //const double scaledDelta = 1.0;
-    const double delta = 
-        (originalTimeInterval.end - originalTimeInterval.start).ToDouble();
-    
-    //cout << "delta: " << delta << endl;
-    
-    if (delta >= 1.0) {
-        
-        hasNormalizedTimeInterval = false;
-        return;
-    }
-    
-    hasNormalizedTimeInterval = true;
-    uRegion->timeInterval.start.SetToZero();
-    uRegion->timeInterval.end.ReadFrom(1.0);
-    
-    // Adjust the bounding box:
-    const double minX = uRegion->BoundingBox().MinD(0);
-    const double maxX = uRegion->BoundingBox().MaxD(0);
-    const double minY = uRegion->BoundingBox().MinD(1);
-    const double maxY = uRegion->BoundingBox().MaxD(1);
-    const double minT = 0.0;
-    const double maxT = 1.0;
-    
-    uRegion->SetBBox(Rectangle<3>(true, minX, maxX, minY, maxY, minT, maxT));
-    
-    //scaleFactor = delta / scaledDelta;
-    //scaleFactor = delta;
-    
-    //cout << "scaleFactor: " << scaleFactor << endl;
-    //cout << "timeInterval.start: " << uRegion->timeInterval.start << endl;
-    //cout << "timeInterval.end: " << uRegion->timeInterval.end << endl;
-}
-
-void SourceUnit::ComputeBoundingRect() {
-
-    // Calculate the projection bounding rectangle in the (x, y)-plane
-    // of the URegion:
-    
-    const double minX = uRegion->BoundingBox().MinD(0);
-    const double maxX = uRegion->BoundingBox().MaxD(0);
-    const double minY = uRegion->BoundingBox().MinD(1);
-    const double maxY = uRegion->BoundingBox().MaxD(1);
-    
-    boundingRect = Rectangle<2>(true, minX, maxX, minY, maxY);
-}
-
-void SourceUnit::CreatePFaces() {
-
-    const MSegmentData* segment;
-    
-    for (int i = 0; i < uRegion->GetSegmentsNum(); i++) {
-        
-        uRegion->GetSegment(array, i, segment);
-        PFace* pFace = new PFace(this, segment);
-        pFaces.push_back(pFace);
-
-#ifdef OPTIMIZE_BY_BOUNDING_RECT
-        
-        if (parent->HasOverlappingBoundingRect()) {
-
-            if (pFace->GetBoundingRect().Intersects(parent->GetOverlapRect()))
-                pFacesReduced.push_back(pFace);
-            else
-                pFace->MarkAsEntirelyOutside();
-
-        } else {
-
-            pFace->MarkAsEntirelyOutside();
-            pFacesReduced.push_back(pFace);
-        }
-
-#else
-        pFacesReduced.push_back(pFace);
-#endif
-
-    }
-}
-
-void SourceUnit::CollectRelevantPFaces(ResultUnitFactory* receiver) {
-
-    vector<PFace*>::iterator iter;
-    
-    for (iter = pFaces.begin(); iter != pFaces.end(); iter++) {
-        
-        (*iter)->Finalize();
-        
-        assert((*iter)->GetState() != UNKNOWN);
-        assert((*iter)->GetState() != ENTIRELY_INSIDE);
-        assert((*iter)->GetState() != ENTIRELY_OUTSIDE);
-        
-        if ((*iter)->IsNormalRelevant() || (*iter)->IsCriticalRelevant()) {
-            
-            receiver->AddPFace(*iter);
-        }
-    }
-}
-
-void SourceUnit::PrintPFaces() {
-    
-    for (vector<PFace*>::iterator iter = pFaces.begin(); 
-                iter != pFaces.end(); iter++) {
-        
-        (*iter)->Print();
-    }
-}
-
-void SourceUnit::Print() const {
-    
-    cout << ((IsUnitA()) ? "Unit A:" : "Unit B:") << endl;
-    cout << "Interval: " << GetTimeInterval() << endl;
-    cout << "Interval as double: " << GetTimeInterval().start.ToDouble() 
-         << " -> " << GetTimeInterval().end.ToDouble() << endl;
-    cout << "No of PFaces total: " << pFaces.size() << endl;
-    cout << "No of PFaces reduced: " << pFacesReduced.size() << endl;
-}
-
-void SourceUnit::PrintVRMLDesc(ofstream& target, const string& color) {
-
-    const double scale= VRML_SCALE_FACTOR;
-
-    target << "Transform {" << endl;
-    target << "\tscale " << scale << " " << scale << " " << scale << endl;
-    target << "\tchildren [" << endl;
-    target << "\t\tShape {" << endl;
-    target << "\t\t\tgeometry IndexedLineSet {" << endl;
-    target << "\t\t\t\tcoord Coordinate {" << endl;
-    target << "\t\t\t\t\tpoint [" << endl;
-
-    int pFaceCount = 0;
-
-    for (vector<PFace*>::iterator iter = pFaces.begin(); 
-            iter != pFaces.end(); iter++) {
-
-        target << "\t\t\t\t\t\t" << (*iter)->GetVRMLDesc() << endl;
-        pFaceCount++;
-    }
-
-    target << "\t\t\t\t\t]  # end point" << endl;
-    target << "\t\t\t\t} # end coord" << endl;
-    target << "\t\t\t\tcoordIndex [" << endl;
-
-    const int noPoints = pFaceCount * 4;
-
-    for (int i = 0; i < noPoints; i += 4) {
-
-        target << "\t\t\t\t\t" << i << ", " << i + 1 << ", " << i + 2 << ", "
-                << i + 3 << ", " << i << ", " << "-1," << endl;
-    }
-
-    target << "\t\t\t\t] # end coordIndex" << endl;
-
-    target << "\t\t\t\tcolor Color { color [ " << color << " ] }" << endl;
-
-    target << "\t\t\t} # end geometry" << endl;
-    target << "\t\t} # end shape" << endl;
-    target << "\t] # end children" << endl;
-    target << "} # end Transform" << endl;
-}
-
-bool SourceUnit::IsEntirelyOutside(const PFace* pFace) {
-    
-    // Precondition: pFace is known as entirely inside or entirely outside!
-
-    // Check, if the answer is already known:
-
-    if (pFace->IsEntirelyOutside())
+    if (NumericUtil::Lower(GetX(), p.GetX()))
         return true;
-    
-    if (pFace->IsEntirelyInside())
+
+    if (NumericUtil::Greater(GetX(), p.GetX()))
         return false;
 
-    // We don't know and have to use the plumbline algorithm
-    // to find the answer:
-    
-    assert(pFace->GetState() == UNKNOWN);
-    
-    return IsOutside(pFace->GetMidPoint());
-}
-
-bool SourceUnit::IsOutside(const Point3D& p) {
-    
-    const Point p2D(true, p.GetX(), p.GetY());
-    
-    return !GetTestRegion(p.GetT()).Contains(p2D);
-}
-
-bool SourceUnit::IsOnBorder(const Point3D& p) {
-
-    const Point p2D(true, p.GetX(), p.GetY());
-
-    if (GetTestRegion(p.GetT()).OnBorder(p2D)) {
-
+    if (NumericUtil::Lower(GetY(), p.GetY()))
         return true;
-    }
 
-    // This is not very nice, maybe sometimes even wrong...
-    // It is necessary, since Region::OnBorder may
-    // return false-negative results, because of rounding errors.
-
-    // We paint a 'small' triangle around p and check,
-    // if it intersects the testregion's border.
-    const double d = NumericUtil::eps * 100;
-
-    const Point p1(true, p.GetX() - d, p.GetY() - d);
-    const Point p2(true, p.GetX() + d, p.GetY() - d);
-    const Point p3(true, p.GetX(), p.GetY() + d);
-
-    const bool p1IsInside = GetTestRegion(p.GetT()).Contains(p1);
-    const bool p2IsInside = GetTestRegion(p.GetT()).Contains(p2);
-    const bool p3IsInside = GetTestRegion(p.GetT()).Contains(p3);
-
-    const int sum = p1IsInside + p2IsInside + p3IsInside;
-
-    if (sum == 0 || sum == 3) {
-
-        // The triangle is entirely outside or inside the testregion:
+    if (NumericUtil::Greater(GetY(), p.GetY()))
         return false;
 
-    } else { // sum == 1 || sum == 2
-
-        // The triangle intersects the testregion's border:
+    if (NumericUtil::Lower(GetT(), p.GetT()))
         return true;
+
+    if (NumericUtil::Greater(GetT(), p.GetT()))
+        return false;
+
+    //cout << "sourceFlag < p.sourceFlag" << endl;
+    return sourceFlag < p.sourceFlag;
+}
+
+bool PointExtSet::GetIntersectionSegment(Segment3D& result) const {
+
+    if (s.size() != 4)
+        return false;
+
+    set<Point3DExt>::iterator it = s.begin();
+
+    Point3DExt p1 = *it;
+    it++;
+    Point3DExt p2 = *it;
+
+    if (p1.sourceFlag == p2.sourceFlag)
+        return false;
+
+    it++;
+    Point3DExt p3 = *it;
+
+    if (p2 == p3) {
+
+        // The length of the intersection segment is zero.
+        return false;
     }
+
+    result = Segment3D(p2, p3);
+    return true;
 }
 
-#ifdef CACHE_TESTREGIONS
+void PointExtSet::Print() const {
+    
+    set<Point3DExt>::iterator iter;
+    
+    for (iter = s.begin(); iter != s.end(); ++iter) {
 
-const Region SourceUnit::GetTestRegion(const double t) {
-    
-    Instant instant(instanttype);
-    instant.ReadFrom(t);
-    
-    if (!testRegion.defined || testRegion.instant != instant) {
-        
-        //cout << "Create new TestRegion at instant: " << instant << endl;
-        
-        Region newTestRegion(0);
-        GetURegionEmb()->TemporalFunction(array, instant, newTestRegion);
-        testRegion.instant = instant;
-        testRegion.region = newTestRegion;
-        testRegion.defined = true;
-        
-    } else {
-        
-        //cout << "TestRegion cachehit at instant: " << instant << endl;
+        cout << *iter << endl;
     }
-        
-    return testRegion.region;
-}
-
-#else
-
-const Region SourceUnit::GetTestRegion(const double t) {
-    
-    Instant instant(instanttype);
-    instant.ReadFrom(t);
-    
-    Region testRegion(0);
-    GetURegionEmb()->TemporalFunction(array, instant, testRegion);
-    
-    return testRegion;
-}
-
-#endif
-
-const SetOp SourceUnit::GetOperation() const {
-
-    return parent->GetOperation();
-}
-
-void SourceUnit::AddGlobalTimeValue(double t) {
-    
-    parent->AddGlobalTimeValue(t);
-}
-
-void SourceUnit::AddToMRegion(MRegion* const target) const {
-    
-    if (IsEmpty())
-        return;
-    
-    DBArray<MSegmentData>* targetArray = 
-        (DBArray<MSegmentData>*)target->GetFLOB(1);
-    const int segmentsStartPos = targetArray->Size();
-    
-    URegionEmb targetUnit(GetOriginalTimeInterval(), segmentsStartPos);
-    
-    const MSegmentData* segment;
-        
-    for (int i = 0; i < uRegion->GetSegmentsNum(); i++) {
-
-        uRegion->GetSegment(array, i, segment);
-        targetUnit.PutSegment(targetArray, i, *segment, true);
-    }
-    
-    target->Add(targetUnit);
 }
 
 /*
-10 Class SourceUnitPair
-
-*/
-
-SourceUnitPair::SourceUnitPair(URegionEmb* const _unitA,
-                               const DBArray<MSegmentData>* const _aArray, 
-                               const bool _aIsEmpty,
-                               URegionEmb* const _unitB,
-                               const DBArray<MSegmentData>* const _bArray,
-                               const bool _bIsEmpty,
-                               const SetOp _operation,
-                               MRegion* const _resultMRegion) :
-                                   
-    unitA(true, _unitA, _aArray, _aIsEmpty, this),
-    unitB(false, _unitB, _bArray, _bIsEmpty, this),
-    op(_operation),
-    resultMRegion(_resultMRegion),
-    resultUnitFactory(_resultMRegion, this) {
-    
-    if (_aIsEmpty || _bIsEmpty)
-        return;
-    
-    assert(_unitA->timeInterval == _unitB->timeInterval);
-    
-    unitA.SetPartner(&unitB);
-    unitB.SetPartner(&unitA);
-
-    ComputeOverlapRect();
-}
-
-void SourceUnitPair::Operate() {
-    
-    //StopWatch stopWatch;
-    
-#ifdef OPTIMIZE_BY_BOUNDING_RECT
-
-    const bool s = false;
-    
-#else
-    
-    const bool s = true;
-        
-#endif
-
-    if ((!unitA.IsEmpty() && !unitB.IsEmpty()) && 
-       (s || op == UNION || HasOverlappingBoundingRect())) {
-
-        //stopWatch.start();
-        
-        CreatePFaces();
-        
-        //cout << "CreatePFaces() takes: ";
-        //cout << stopWatch.diffTimes() << endl;
-        //cout << endl;
-        
-        //unitA.Print();
-        //cout << endl;
-        //unitB.Print();
-        //cout << endl;
-        
-        //stopWatch.start();
-        
-        ComputeIntSegs();
-        
-        //cout << "ComputeIntSegs() takes: ";
-        //cout << stopWatch.diffTimes() << endl;
-        //cout << endl;
-        
-        //PrintPFaces();
-        
-        //stopWatch.start();
-        
-        CollectRelevantPFaces();
-        
-        // cout << "CollectRelevantPFaces() takes: ";
-        //cout << stopWatch.diffTimes() << endl;
-        //cout << endl;
-        
-        //PrintUnitsAsVRML(true, true, true);
-        
-        //stopWatch.start();
-        
-        ConstructResultUnits();
-        
-        //cout << "ConstructResultUnits() takes: ";
-        //cout << stopWatch.diffTimes() << endl;
-        //cout << endl;
-        
-        //cout << "ConvertToURegionEmb takes: ";
-        //cout << seconds << endl;
-        //cout << endl;
-        
-        //cout << "ResultUnit::EndBulkLoad takes: ";
-        //cout << seconds2 << endl;
-        //cout << endl;
-
-        //cout << "ResultUnitFactory::BelongsToResultUnit takes: ";
-        //cout << seconds3 << endl;
-        //cout << endl;
-                
-        
-        //resultUnitFactory.Print();
-
-    } else {
-        
-        // unitA.IsEmpty() || unitB.IsEmpty() || 
-        // (!s && op != UNION && !HasOverlappingBoundingRect())
-
-        switch (op) {
-        
-        case MINUS:
-            
-            // Result is unit a:
-            unitA.AddToMRegion(resultMRegion);
-            break;
-
-        case INTERSECTION:
-
-            // Result is empty:
-            // Nothing to do.
-            break;
-            
-        case UNION:
-            
-            assert(unitA.IsEmpty() || unitB.IsEmpty());
-            
-            unitA.AddToMRegion(resultMRegion);
-            unitB.AddToMRegion(resultMRegion);
-            break;
-        }
-    }
-}
-
-void SourceUnitPair::ComputeOverlapRect() {
-
-    overlapRect = unitA.GetBoundingRect().Intersection(unitB.GetBoundingRect());
-}
-
-void SourceUnitPair::CreatePFaces() {
-
-    unitA.CreatePFaces();
-    unitB.CreatePFaces();
-}
-
-void SourceUnitPair::ComputeIntSegs() {
-    
-    vector<PFace*>::iterator iterA;
-    vector<PFace*>::iterator iterB;
-
-    for (iterA = unitA.pFacesReduced.begin(); iterA
-                            != unitA.pFacesReduced.end(); iterA++) {
-
-        for (iterB = unitB.pFacesReduced.begin(); iterB
-                                != unitB.pFacesReduced.end(); iterB++) {
-
-            (*iterA)->Intersection(**iterB);
-        }
-    }
-}
-
-void SourceUnitPair::CollectRelevantPFaces() {
-    
-    unitA.CollectRelevantPFaces(&resultUnitFactory);
-    unitB.CollectRelevantPFaces(&resultUnitFactory);
-}
-
-void SourceUnitPair::ConstructResultUnits() {
-    
-    resultUnitFactory.Start();
-}
-
-void SourceUnitPair::PrintPFaces() {
-
-    cout << endl;
-    cout << "*********************************************" << endl;
-    cout << "PFaces of Unit A:" << endl;
-    cout << "*********************************************" << endl;
-    cout << endl;
-
-    unitA.PrintPFaces();
-
-    cout << endl;
-    cout << "*********************************************" << endl;
-    cout << "PFaces of Unit B:" << endl;
-    cout << "*********************************************" << endl;
-    cout << endl;
-
-    unitB.PrintPFaces();
-
-}
-
-void SourceUnitPair::PrintIntSegsOfPFaces() {
-
-    cout << endl;
-    cout << "*********************************************" << endl;
-    cout << "IntSegs of Unit A:" << endl;
-    cout << "*********************************************" << endl;
-    cout << endl;
-
-    //unitA.PrintIntSegsOfPFaces();
-
-    cout << endl;
-    cout << "*********************************************" << endl;
-    cout << "IntSegs of Unit B:" << endl;
-    cout << "*********************************************" << endl;
-    cout << endl;
-
-    //unitB.PrintIntSegsOfPFaces();
-}
-
-void SourceUnitPair::PrintUnitsAsVRML(bool a, bool b, bool res) {
-    
-    if (!a && !b && !res)
-        return;
-
-    const string colorA = "1 1 0";
-    const string colorB = "0 0.6 1";
-    const string colorIntSegs = "1 0 0";
-
-    const string filename = "unit_" + 
-                            GetTimeInterval().start.ToString() + 
-                            ".wrl";
-    
-    ofstream target(filename.c_str());
-
-    if (!target.is_open()) {
-
-        cerr << "Unable to open file: " << filename << endl;
-        return;
-    }
-
-    target << "#VRML V2.0 utf8" << endl;
-
-    if (a) {
-    
-    target << endl;
-    target << "# Unit A:" << endl;
-    target << endl;
-    unitA.PrintVRMLDesc(target, colorA);
-    
-    }
-    
-    if (b) {
-
-    target << endl;
-    target << "# Unit B:" << endl;
-    target << endl;
-    unitB.PrintVRMLDesc(target, colorB);
-    
-    }
-    
-    //if (res) {
-
-    //target << endl;
-    //target << "# Intersection segments of global list:" << endl;
-    //target << endl;
-    //resultUnitFactory.PrintIntSegsOfGlobalListAsVRML(target, colorIntSegs);
-    
-    //}
-    
-    target.close();
-}
-
-/*
-11 Class SetOperator
-
-*/
-
-void SetOperator::Intersection() {
-    
-    Operate(INTERSECTION);
-}
-
-void SetOperator::Union() {
-
-    Operate(UNION);
-}
-
-void SetOperator::Minus() {
-
-    Operate(MINUS);
-}
-
-void SetOperator::Operate(const SetOp op) {
-    
-    seconds = 0.0;
-    seconds1 = 0.0;
-    seconds2 = 0.0;
-    seconds3 = 0.0;
-    seconds4 = 0.0;
-    seconds5 = 0.0;
-    seconds6 = 0.0;
-    flippedPFaces.clear();
-    
-    StopWatch stopWatch;
-    stopWatch.start();
-    
-    if (!a->IsDefined() || !b->IsDefined()) {
-        
-        res->SetDefined(false);
-        return;
-    }
-    
-    // Compute the RefinementPartition of the 
-    // two MRegions:
-    RefinementPartition<
-    MRegion,
-    MRegion,
-    URegionEmb,
-    URegionEmb> rp(*a, *b);
-    
-    Interval<Instant>* interval;
-    int aPos;
-    int bPos;
-   
-    bool aIsEmpty;
-    bool bIsEmpty;
-    
-    MRegion* tempA;
-    MRegion* tempB;
-    
-    const URegionEmb* unitA;
-    const URegionEmb* unitB;
-    
-    const URegionEmb* unitARestrict;
-    const URegionEmb* unitBRestrict;
-    URegionEmb* unitARestrictCopy;
-    URegionEmb* unitBRestrictCopy;
-    const DBArray<MSegmentData>* aArray;
-    const DBArray<MSegmentData>* bArray;
-    
-    SourceUnitPair* so;
-    
-    res->Clear();
-    ((DBArray<MSegmentData>*)res->GetFLOB(1))->Clear();
-    res->StartBulkLoad();
-    
-    for (unsigned int i = 0; i < rp.Size(); i++) {
-        
-        // For each interval of the refinement partition...
-        
-        rp.Get(i, interval, aPos, bPos);
-        
-        Periods intervalAsPeriod(1);
-        intervalAsPeriod.Add(*interval);
-        
-        aIsEmpty = (aPos == -1);
-        bIsEmpty = (bPos == -1);
-        
-        assert(!(aIsEmpty && bIsEmpty));
-        
-        if (aIsEmpty || bIsEmpty) {
-
-            if (op == INTERSECTION) {
-
-                // Result is empty: nothing to do.
-                continue;
-            }
-
-            if (op == MINUS && aIsEmpty) {
-
-                // Result is empty: nothing to do.
-                continue;
-            }
-        }
-        
-        if (!aIsEmpty) {
-                        
-            a->Get(aPos, unitA);
-            tempA = new MRegion(1);
-            tempA->AtPeriods(&intervalAsPeriod, a);
-            tempA->Get(0, unitARestrict);
-            aArray = tempA->GetMSegmentData();
-            
-            unitARestrictCopy = new URegionEmb(unitARestrict->timeInterval,
-                                    unitARestrict->GetStartPos());
-            unitARestrictCopy->SetSegmentsNum(unitARestrict->GetSegmentsNum());
-            unitARestrictCopy->SetBBox(unitARestrict->BoundingBox());
-        }
-        
-        if (!bIsEmpty) {
-
-            b->Get(bPos, unitB);
-            tempB = new MRegion(1);
-            tempB->AtPeriods(&intervalAsPeriod, b);
-            tempB->Get(0, unitBRestrict);
-            bArray = tempB->GetMSegmentData();
-            
-            unitBRestrictCopy = new URegionEmb(unitBRestrict->timeInterval,
-                    unitBRestrict->GetStartPos());
-            unitBRestrictCopy->SetSegmentsNum(unitBRestrict->GetSegmentsNum());
-            unitBRestrictCopy->SetBBox(unitBRestrict->BoundingBox());
-        }
- 
-        so = new SourceUnitPair(unitARestrictCopy, aArray, aIsEmpty,
-                                unitBRestrictCopy, bArray, bIsEmpty,
-                                op,
-                                res);
-        so->Operate();
-        
-        delete so;
-        
-        if (!aIsEmpty) {
-            
-            delete tempA;
-            delete unitARestrictCopy;
-        }
-        
-        if (!bIsEmpty) {
-            
-            delete tempB;
-            delete unitBRestrictCopy;
-        }
-    }
-             
-    res->EndBulkLoad(false);
-    
-    cout << stopWatch.diffTimes() << endl;
-    cout << "Units in : " << rp.Size() << endl;
-    cout << "Units out: " << res->GetNoComponents() << endl;
-}
-
-/*
-12 Struct IntSegCompare
-
-
+1 Struct IntSegCompare
 
 */
 
@@ -2174,9 +2243,7 @@ bool IntSegCompare::operator()(const IntersectionSegment* const& s1,
 }
 
 /*
-13 Class IntSegContainer
-
-
+1 Class IntSegContainer
 
 */
 
@@ -2238,23 +2305,26 @@ void IntSegContainer::UpdateTimeLevel(double _t) {
 }
 
 void IntSegContainer::Print() const {
+    
+    if (intSegs.empty()) {
+        
+        cout << "Empty." << endl;
+        return;
+    }
 
     set<IntersectionSegment*>::const_iterator iter;
-
-    cout << "intSegs: ";
 
     for (iter = intSegs.begin(); iter != intSegs.end(); ++iter) {
 
         //cout << (*iter)->GetID() << " ";
         (*iter)->Print();
+        cout << endl;
     }
 }
 
 void IntSegContainer::PrintActive() const {
 
     list<IntersectionSegment*>::const_iterator iter;
-
-    cout << "active intSegs: ";
 
     for (iter = active.begin(); iter != active.end(); ++iter) {
 
@@ -2264,7 +2334,7 @@ void IntSegContainer::PrintActive() const {
 }
 
 /*
-14 Class PFace
+1 Class PFace
 
 */
 
@@ -2425,6 +2495,18 @@ void PFace::Intersection(PFace& other) {
     
     if (!intPointSet.GetIntersectionSegment(intSeg))
         return; // There is no intersection.
+    
+#ifdef PRINT_DEBUG_MESSAGES
+    
+    if (intSeg.Length() < 0.1) {
+        
+        cout << "intSeg.Length(): " << intSeg.Length() << endl;
+        cout << "intSeg: " << intSeg << endl;
+        cout << "intPointSet: " << endl;
+        intPointSet.Print();
+    }
+    
+#endif
     
     // We add one intersection segment to each PFace:
     this->AddIntSeg(intSeg, other);
@@ -2718,35 +2800,66 @@ string PFace::GetVRMLDesc() {
            GetB_XYT().GetVRMLDesc();
 }
 
+string PFace::GetStateAsString() const {
+    
+    const State state = GetState();
+    
+    switch (state) {
+    
+    case UNKNOWN:
+        return "UNKNOWN";
+    
+    case ENTIRELY_INSIDE:
+            return "ENTIRELY_INSIDE"; 
+            
+    case ENTIRELY_OUTSIDE:
+            return "ENTIRELY_OUTSIDE"; 
+        
+    case RELEVANT_NOT_CRITICAL:
+            return "RELEVANT_NOT_CRITICAL"; 
+            
+    case RELEVANT_CRITICAL:
+            return "RELEVANT_CRITICAL"; 
+            
+    case NOT_RELEVANT:
+            return "NOT_RELEVANT"; 
+    }
+    
+    // Should never be reached:
+    return "I don't know this state!";
+}
+
 void PFace::Print() const {
 
-    cout << GetID() << endl;
+    cout << "PFace ID: " << GetID() << endl;
+    cout << endl;
+    
     //cout << "Starttime: " << unit->GetStartTime() << endl;
     //cout << "Endtime: " << unit->GetEndTime() << endl;
     
-    //cout << "A_XYT: " << GetA_XYT() << endl;
-    //cout << "B_XYT: " << GetB_XYT() << endl;
-    //cout << "C_XYT: " << GetC_XYT() << endl;
-    //cout << "D_XYT: " << GetD_XYT() << endl;
-    //cout << endl;
-    //cout << "A_WT: " << GetA_WT() << endl;
-    //cout << "B_WT: " << GetB_WT() << endl;
-    //cout << "C_WT: " << GetC_WT() << endl;
-    //cout << "D_WT: " << GetD_WT() << endl;
-    //cout << endl;
-    //cout << "Normal vector: " << GetNormalVector() << endl;
-    //cout << "W vector: " << GetWVector() << endl;
-    
-
+    cout << "A_XYT: " << GetA_XYT() << endl;
+    cout << "B_XYT: " << GetB_XYT() << endl;
+    cout << "C_XYT: " << GetC_XYT() << endl;
+    cout << "D_XYT: " << GetD_XYT() << endl;
+    cout << endl;
+    cout << "A_WT: " << GetA_WT() << endl;
+    cout << "B_WT: " << GetB_WT() << endl;
+    cout << "C_WT: " << GetC_WT() << endl;
+    cout << "D_WT: " << GetD_WT() << endl;
+    cout << endl;
+    cout << "Normal vector: " << GetNormalVector() << endl;
+    cout << "W vector: " << GetWVector() << endl;
+    cout << endl;
+    cout << "State: " << GetStateAsString() << endl;
     //cout << "mSeg->GetInsideAbove(): " << mSeg->GetInsideAbove() << endl;
-    //cout << "InsideOutside: " << entirelyInsideOutside << endl;
+    cout << endl;
+    cout << "IntersectionSegments: "<< endl;
+    intSegs.Print();
+    cout << endl;
     
-    //intSegs.Print();
-
-    //cout << endl;
-    //cout << endl;
-    //cout << "*********************************************" << endl;
-    //cout << endl;
+    cout << endl;
+    cout << "*********************************************" << endl;
+    cout << endl;
 }
 
 } // end of namespace mregionops

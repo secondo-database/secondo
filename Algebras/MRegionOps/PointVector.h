@@ -66,7 +66,7 @@ Used for generating a VRML file for debugging.
 */
 
 #define VRML_SCALE_FACTOR 0.3
-#define VRML_DOUBLE_PRECISION 16
+#define VRML_DOUBLE_PRECISION 2
 
 /*
 2.2 Forward declarations

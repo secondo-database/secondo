@@ -40,7 +40,7 @@ This file contains the definition and implementation of the class
 ~NumericUtil~ which provides several static methods to compare 
 floating point values.
 
-2 Defines and Includes
+1 Defines and Includes
 
 */
 
@@ -55,7 +55,7 @@ const double MAX_DOUBLE = numeric_limits<double>::max();
 const double MIN_DOUBLE = -MAX_DOUBLE;
 
 /*
-3 Class NumericUtil
+1 Class NumericUtil
 
 */
 
@@ -67,9 +67,9 @@ public:
     //static const double eps = 0.001;
 	//static const double eps = 0.0001;
 	//static const double eps = 0.00001;
-	//static const double eps = 0.000001;
+	static const double eps = 0.000001;
 	//static const double eps = 0.0000001;
-    static const double eps = 0.00000001;
+    //static const double eps = 0.00000001;
 	
 	
 /*
@@ -218,6 +218,19 @@ private:
 	NumericUtil() {
 		
 	}
+};
+
+/*
+1 Struct DoubleCompare
+
+*/
+
+struct DoubleCompare {
+
+    inline bool operator()(const double& d1, const double& d2) const {
+        
+        return NumericUtil::Lower(d1, d2);
+    }
 };
 
 } // end of namespace mregionops

@@ -37,15 +37,20 @@ April - November 2008, M. H[oe]ger for bachelor thesis.
 1 Introduction
 
 This file essentially contains the definitions of several classes which 
-provide the core functionality of the three set operators 
+provides the core functionality of the three set operators 
 ~intersection~, ~union~ and ~minus~ with the signature \\
 movingregion [x] movingregion [->] movingregion \\
-used in the MovingRegion Algebra.
+used in the ~MovingRegionAlgebra~.
+
+A general overview about the relationship of this classes is shown below:
+
+                Figure 1: Class diagram [classdiagram.eps]
+
+
 
 2 Defines and Includes
 
 */
-
 
 #ifndef SETOPS_H_
 #define SETOPS_H_
@@ -66,23 +71,144 @@ using namespace std;
 
 namespace mregionops {
 
+/*
+1.1 $PRINT\_DEBUG\_MESSAGES$
+
+Enables the output of messages useful for debugging.
+Note: The output might be very verbose.
+
+*/
+
+//#define PRINT_DEBUG_MESSAGES
+
+/*
+1.1 $PRINT\_STATISTIC$
+
+Enables the output of statistic data for each source unit pair.
+
+*/
+
+//#define PRINT_STATISTIC
+
+#ifdef  PRINT_DEBUG_MESSAGES
+#define PRINT_STATISTIC
+#endif
+
+/*
+1.1 $WRITE\_VRML\_FILE$
+
+Enables the creation of one vrml-file for each source unit pair, 
+showing it's elements as wireframes in the xyt-space.
+Use the flags below to specify the desired output.
+
+Note: The file will be created in the current directory and follows
+the naming convention $unitpair\_<starttime>.wrl$
+
+*/
+
+//#define WRITE_VRML_FILE
+const bool showSourceUnitA = true;
+const bool showSourceUnitB = true;
+const bool showResultUnits = true;
+
+/*
+1.1 $OPTIMIZE\_BY\_BOUNDING\_RECT$
+
+Enables an optimization, using the
+projection bounding rectangles of both source units.
+See the class ~SourceUnit~ for details.
+
+*/
+
 #define OPTIMIZE_BY_BOUNDING_RECT
+
+/*
+1.1 $CACHE\_TESTREGIONS$
+
+Enables the caching of ~Testregions~, used in the class ~SourceUnit~.
+See it's documentation for details.
+
+*/
+
 #define CACHE_TESTREGIONS
+
+/*
+1.1 $NORMALIZE\_TIME\_INTERVAL\_OF\_SOURCE\_UNITS$
+
+Enables the normalization of the interval of a ~SourceUnit~ to 1.0.
+This might be useful to improve the numerical stability of very thin units.
+
+*/
+
 const bool NORMALIZE_TIME_INTERVAL_OF_SOURCE_UNITS = true;
-//const bool SORT_RESULT_MSEGMENTS = false;
-const bool MERGE_RESULT_MSEGMENTS = false;
+
+/*
+1.1 $DECIDE\_BY\_ENTIRELY\_IN\_OUT$
+
+Enables an optimization during the construction of a result unit.
+See the class ~ResultUnitFactory~ for details.
+
+*/
+
 const bool DECIDE_BY_ENTIRELY_IN_OUT = true;
+
+/*
+1.1 $DECIDE\_BY\_PLUMBLINE\_ONLY$
+
+Disables an optimization during the construction of a result unit.
+See the class ~ResultUnitFactory~ for details.
+
+*/
+
 const bool DECIDE_BY_PLUMBLINE_ONLY = false;
 
-//#define VRML_OUTFILE "out.wrl"
+/*
+1.1 $MERGE\_RESULT\_MSEGMENTS$
 
-static double seconds = 0.0;
-static double seconds1 = 0.0;
-static double seconds2 = 0.0;
-static double seconds3 = 0.0;
-static double seconds4 = 0.0;
-static double seconds5 = 0.0;
-static double seconds6 = 0.0;
+Merge adjacent and coplanar moving segments of a result unit.
+
+Note: This feature is not implemented yet!
+
+*/
+
+const bool MERGE_RESULT_MSEGMENTS = false;
+
+//static double seconds = 0.0;
+//static double seconds1 = 0.0;
+//static double seconds2 = 0.0;
+//static double seconds3 = 0.0;
+//static double seconds4 = 0.0;
+//static double seconds5 = 0.0;
+//static double seconds6 = 0.0;
+
+/*
+1 Forward declarations
+
+*/
+
+class SetOperator;
+class SourceUnit;
+class SourceUnitPair;
+class Point3DExt;
+struct PointExtCompare;
+class PointExtSet;
+class IntersectionSegment;
+class MSegment;
+class MSegmentCritical;
+class ResultUnit;
+struct DoubleCompare;
+class ResultUnitFactory;
+struct TestRegion;
+struct IntSegCompare;
+class IntSegContainer;
+class PFace;
+
+/*
+1 Enumeration SetOp
+
+Indicates the kind of set operation.
+
+*/
 
 enum SetOp {
 
@@ -91,42 +217,543 @@ enum SetOp {
     MINUS
 };
 
-enum SourceFlag {
+/*
+1 Class SetOperator
 
-    PFACE_A,
-    PFACE_B
-};
+This class provides the three set operations 
+~intersection~, ~union~ and ~minus~ with the signature
+movingregion [x] movingregion [->] movingregion.
 
-enum Boundary {
+*/
+
+class SetOperator {
     
-    LEFT_BOUNDARY,
-    RIGHT_BOUNDARY
+public:
+
+/*
+1.1 Constructor
+
+The constructor takes three pointers to ~MRegion~ instances, 
+according to the signature a [x] b [->] res.
+
+*/
+    
+    SetOperator(MRegion* const _a, 
+                MRegion* const _b, 
+                MRegion* const _res) :
+                
+                a(_a), b(_b), res(_res) {
+
+    }
+    
+/*
+1.1 Operators
+
+1.1.1 Intersection
+
+Performs the operation $a \cap b$ and writes the result to res.
+
+*/
+    
+    void Intersection();
+
+/*
+1.1.1 Union
+
+Performs the operation $a \cup b$ and writes the result to res.
+
+*/
+
+    void Union();
+
+/*
+1.1.1 Minus
+
+Performs the operation $a \setminus b$ and writes the result to res.
+
+*/
+
+    void Minus();
+    
+private:
+    
+/*
+1.1 Private methods
+
+*/
+    
+    void Operate(const SetOp op);
+
+/*
+1.1 Attributes
+
+*/
+
+    MRegion* const a;
+    MRegion* const b;
+    MRegion* const res;
 };
 
-enum RelationToBoundary {
+/*
+1 Struct TestRegion
+
+This datastructure is used in the class ~SourceUnit~.
+See it's documentation for more details.
+
+*/
+
+struct TestRegion {
     
-    NO_TOUCH,
-    TOUCH_IN_STARTPOINT,
-    TOUCH_IN_ENDPOINT,
-    COLINEAR
+    inline TestRegion() :
+        
+        region(0),
+        instant(instanttype),
+        defined(false) {
+        
+    }
+    
+    Region region;
+    Instant instant;
+    bool defined;
 };
 
-enum State {
+/*
+1 Class SourceUnit
+
+This class represents a single unit of a ~MRegion~ A or B, 
+which are the arguments of the set operation.
+
+*/
+class SourceUnit {
+
+    friend class SourceUnitPair;
+
+public:
+
+/*
+1.1 Constructor
+
+Note that the interval of the parameter ~uRegion~ might be changed!
+
+*/
+
+    SourceUnit(const bool isUnitA, 
+               URegionEmb* const uRegion,
+               const DBArray<MSegmentData>* const array,
+               const bool isEmpty,
+               SourceUnitPair* const parent);
+
+/*
+1.1 Destructor
+
+*/
     
-    UNKNOWN,
-    ENTIRELY_INSIDE,
-    ENTIRELY_OUTSIDE,
-    RELEVANT_NOT_CRITICAL,
-    RELEVANT_CRITICAL,
-    NOT_RELEVANT
+    ~SourceUnit();
+
+/*
+1.1 Getter and setter methods
+
+1.1.1 SetPartner
+    
+Sets a pointer the other ~SourceUnit~ instance, which
+is the other argument of the set operation.
+
+*/
+
+    inline void SetPartner(SourceUnit* _partner) {
+
+        partner = _partner;
+    }
+
+/*
+1.1.1 GetPartner
+    
+Returns a pointer the other ~SourceUnit~ instance, which
+is the other argument of the set operation.
+
+*/
+    
+    inline SourceUnit* GetPartner() const {
+
+        return partner;
+    }
+
+/*
+1.1.1 GetParent
+    
+Returns a pointer the parent object.
+
+*/
+
+    inline SourceUnitPair* GetParent() const {
+
+        return parent;
+    }
+
+/*
+1.1.1 GetParent
+    
+Returns a pointer the corresponding ~URegionEmb~ instance.
+
+*/
+
+    inline const URegionEmb* GetURegionEmb() const {
+
+        return uRegion;
+    }
+
+/*
+1.1.1 IsUnitA/B
+    
+Returns ~true~, if this ~SourceUnit~ represents the first/second argument
+of the set operation.
+
+*/
+
+    inline bool IsUnitA() const {
+
+        return isUnitA;
+    }
+    
+    inline bool IsUnitB() const {
+
+        return !isUnitA;
+    }
+
+/*
+1.1.1 GetOperation
+
+Returns an enum to indicate the current set operation:
+INTERSECTION, UNION or MINUS.
+
+*/     
+    
+    const SetOp GetOperation() const;
+
+/*
+1.1.1 IsEmpty
+    
+Returns ~true~, if this ~SourceUnit~ represents an empty unit.
+
+*/
+    
+    inline bool IsEmpty() const {
+        
+        return isEmpty;
+    }
+
+/*
+1.1.1 HasNormalizedTimeInterval
+    
+Returns ~true~, if the interval of this ~SourceUnit~ was normalized to 1.0.
+This might be useful to improve the numerical stability of very thin units.
+
+*/
+    
+    inline bool HasNormalizedTimeInterval() const {
+        
+        return hasNormalizedTimeInterval;
+    }
+
+/*
+1.1.1 GetTimeInterval
+    
+Returns the current interval of this ~SourceUnit~.
+
+*/
+    
+    inline const Interval<Instant>& GetTimeInterval() const {
+
+        return uRegion->timeInterval;
+    }
+
+/*
+1.1.1 GetOriginalTimeInterval
+    
+Returns the original interval of this ~SourceUnit~ before normalization.
+
+*/
+    
+    inline const Interval<Instant>& GetOriginalTimeInterval() const {
+
+        return originalTimeInterval;
+    }
+
+/*
+1.1.1 GetStart/EndTime
+    
+Returns the start/end of the interval as double value.
+
+*/
+
+    inline double GetStartTime() const {
+
+        return startTime;
+    }
+
+    inline double GetEndTime() const {
+
+        return endTime;
+    }
+
+/*
+1.1.1 GetBoundingRect
+
+Returns the projection bounding rectangle of this ~SourceUnit~ to the xy-plane.
+
+*/     
+
+    inline Rectangle<2> GetBoundingRect() const {
+
+        return boundingRect;
+    }
+
+/*
+1.1.1 GetNoOfPFaces
+
+Returns the number of ~PFaces~ of this ~SourceUnit~, 
+which is equal to the number of ~MSegmentData~ in the ~URegionEmb~.
+
+*/     
+
+    inline unsigned int GetNoOfPFaces() const {
+
+        return pFaces.size();
+    }
+
+/*
+1.1 Operators and Predicates
+
+1.1.1 AddGlobalTimeValue
+
+Adds a relevant timevalue, which marks the border of a result unit.
+This value is passed to the ~ResultUnitFactory~.
+
+*/ 
+    
+    void AddGlobalTimeValue(double t);
+
+/*
+1.1.1 AddToMRegion
+
+Adds this unit to target.
+
+*/ 
+    
+    void AddToMRegion(MRegion* const target) const;
+
+/*
+1.1.1 CreatePFaces
+
+Creates a new ~PFace~ for each ~MSegmentData~ of this unit.
+
+*/ 
+
+    void CreatePFaces();
+
+/*
+1.1.1 CollectRelevantPFaces
+
+Performs a linear scan over the list of all ~PFaces~,
+collecting those which are relevant for the result and
+pass them to the ~ResultUnitFactory~.
+
+*/ 
+
+    void CollectRelevantPFaces(ResultUnitFactory* receiver);
+
+/*
+1.1.1 IsEntirelyOutside
+
+Returns ~true~, if pFace is entirely outside of this ~SourceUnit~.
+
+Precondition: pFace is already known as entirely inside or entirely outside!
+
+*/ 
+    
+    bool IsEntirelyOutside(const PFace* pFace);
+
+/*
+1.1.1 IsOutside
+
+Returns ~true~, if ~p~ is outside of this ~SourceUnit~.
+
+Note: We create a ~TestRegion~ ~tr~ by evaluating this ~SourceUnit~ 
+at time ~p.t~ and check, if the point ~(p.x; p.y)~ is outside of ~tr~. 
+For the sake of efficency, we cache ~tr~ for later use.
+
+*/ 
+
+    bool IsOutside(const Point3D& p);
+
+/*
+1.1.1 IsOnBorder
+
+Returns ~true~, if ~p~ is on the border of this ~SourceUnit~.
+
+Note: We create a ~TestRegion~ ~tr~ by evaluating this ~SourceUnit~ 
+at time ~p.t~ and check, if the point ~(p.x; p.y)~ is on the border of ~tr~. 
+For the sake of efficency, we cache ~tr~ for later use.
+
+*/ 
+
+    bool IsOnBorder(const Point3D& p);
+
+/*
+1.1 Methods for debugging
+
+*/  
+
+    void Print() const;
+    void PrintPFaces();
+    void PrintVRMLDesc(ofstream& target, const string& color);
+
+private:
+
+/*
+1.1 Private methods
+
+*/  
+
+    void NormalizeTimeInterval();
+    void ComputeBoundingRect();
+    const Region GetTestRegion(const double t);
+
+/*
+1.1 Attributes
+
+1.1.1 isUnitA
+
+A flag, indicating which argument of the set operation
+this ~SourceUnit~ represents: A or B.
+
+*/    
+    
+    const bool isUnitA;
+
+/*
+1.1.1 isEmpty
+
+A flag, indicating that this ~SourceUnit~ is empty.
+
+*/    
+
+    const bool isEmpty;
+
+/*
+1.1.1 uRegion
+
+A pointer to the corresponding ~URegionEmb~.
+
+Note that the interval of uRegion might be changed!
+
+*/    
+
+    URegionEmb* const uRegion;
+
+/*
+1.1.1 array
+
+A pointer to the corresponding ~DBArray<MSegmentData>~.
+
+*/   
+
+    const DBArray<MSegmentData>* const array;
+
+/*
+1.1.1 partner
+
+A pointer to  the other ~SourceUnit~ instance, which
+is the other argument of the set operation.
+
+*/   
+    
+    SourceUnit* partner;
+
+/*
+1.1.1 parent
+
+A pointer the parent object.
+
+*/   
+
+    SourceUnitPair* const parent;
+
+/*
+1.1.1 startTime, endTime
+
+The start/end of the interval as double value.
+
+*/   
+    
+    double startTime;
+    double endTime;
+
+/*
+1.1.1 hasNormalizedTimeInterval
+
+A flag, indicating if the interval of this ~SourceUnit~ was normalized to 1.0.
+This might be useful to improve the numerical stability of very thin units.
+
+*/   
+    
+    bool hasNormalizedTimeInterval;
+
+/*
+1.1.1 originalTimeInterval
+
+The original interval of this ~SourceUnit~ before normalization.
+
+*/   
+
+    Interval<Instant> originalTimeInterval;
+
+/*
+1.1.1 pFaces
+
+A ~std::vector~ to store all ~PFaces~.
+
+*/   
+    
+    vector<PFace*> pFaces;
+
+/*
+1.1.1 pFacesReduced
+
+A ~std::vector~ to store a reduced set of ~PFaces~, relevant for the
+intersection process. This optimization can be done in advance by using 
+the projection bounding rectangles of both ~SourceUnits~.
+
+*/  
+
+    vector<PFace*> pFacesReduced;
+
+/*
+1.1.1 boundingRect
+
+The projection bounding rectangle of this ~SourceUnit~ to the xy-plane.
+
+*/  
+    
+    Rectangle<2> boundingRect;
+
+/*
+1.1.1 testRegion
+
+The cached ~TestRegion~ used by the methods ~IsOutside~ and ~IsOnBorder~.
+
+*/  
+    
+    TestRegion testRegion;
 };
 
-enum SideOfResultFace {
-    
-    UNK,
-    LEFT,
-    RIGHT
-};
+/*
+1 Enumeration Decision
+
+Used in the class ~ResultUnitFactory~ to indicate,
+if a brick of a ~PFace~ belongs to the result unit.
+
+*/
 
 enum Decision {
     
@@ -135,146 +762,421 @@ enum Decision {
     SKIP
 };
 
-class Point3DExt;
-class PointExtSet;
-class IntersectionSegment;
-class PFace;
-class SourceUnit;
-class SourceUnitPair;
-
 /*
-1 Class Point3DExt
+1 Class ResultUnitFactory
 
-This datastructure is used in the class ~PointExtSet~. 
-It simply extends ~Point3D~ with the attribute ~sourceFlag~.
+This class essentially collects all relevant ~PFaces~ from both ~SourceUnits~  
+and performs afterwards a plane-sweep in t-direction from bottom to top 
+over all ~PFaces~. For each relevant timevalue a new ~ResultUnit~ is 
+constructed and added to the result ~MRegion~.
 
 */
 
-class Point3DExt : public Point3D {
+class ResultUnitFactory {
 
 public:
 
 /*
-1.1 Constructors
+1.1 Constructor
 
 */
 
-    inline Point3DExt() :
-        
-        Point3D() {
-    }
-
-    inline Point3DExt(double a, double b, double c, SourceFlag _sourceFlag) :
-        
-        Point3D(a, b, c), 
-        sourceFlag(_sourceFlag) {
-    }
-
-/*
-1.1 Comparison method
-
-*/
-
-    bool Lower(const Point3DExt& p) const;
-
-/*
-1.1 Attributes
-
-1.1.1 sourceFlag
-
-An enum, indicating the ~PFace~, this ~Point3D~ belongs to.
-Possible values are:
-
-  * $PFACE\_A$
-
-  * $PFACE\_B$
-
-*/
-
-    SourceFlag sourceFlag;
-};
-
-/*
-1 Struct PointExtCompare
-
-*/
-
-struct PointExtCompare {
-
-    bool operator()(const Point3DExt& p1, const Point3DExt& p2) const {
-
-        return p1.Lower(p2);
-    }
-};
-
-/*
-1 Class PointExtSet
-
-This set is used in the class ~PFace~ to compute the intersection segment of
-two ~PFaces~.
-
-*/
-
-class PointExtSet {
-
-public:
-
-/*
-1.1 Constructors
-
-*/
-
-    inline PointExtSet() {
+    ResultUnitFactory(MRegion* const _resMRegion,
+                      const SourceUnitPair* const _parent) :
+                          
+        resMRegion(_resMRegion),
+        parent(_parent),
+        noUnits(0),
+        noEmptyUnits(0),
+        evalutedIntSegs(0),
+        noMSegsValid(0),
+        noMSegsSkipped(0),
+        noMSegCritical(0),
+        decisionsByPlumbline(0),
+        decisionsByEntirelyInOut(0),
+        decisionsByAdjacency(0),
+        decisionsByDegeneration(0) {
         
     }
 
 /*
 1.1 Operators and Predicates
 
-1.1.1 Insert
+1.1.1 Start
 
-Inserts p, if p isn't already inserted.
+This method starts the construction of all ~ResultUnits~.
 
-*/  
+*/ 
 
-    inline void Insert(const Point3DExt& p) {
+    void Start();
 
-        s.insert(p);
+/*
+1.1.1 AddPFace
+
+Adds a relevant ~PFace~.
+
+*/ 
+    
+    inline void AddPFace(PFace* pf) {
+        
+        pFaces.push_back(pf);
     }
 
 /*
-1.1.1 Size
+1.1.1 AddTimeValue
 
-Returns the number of points in the set.
+Adds a relevant timevalue.
 
-*/  
+*/ 
+    
+    inline void AddTimeValue(double t) {
 
-    inline unsigned int Size() const {
-
-        return s.size();
+        time.insert(t);
     }
 
 /*
-1.1.1 GetIntersectionSegment
-
-Returns ~true~, if there is an intersection segment and writes it to result.
+1.1 Methods for debugging
 
 */  
-
-    bool GetIntersectionSegment(Segment3D& result) const;
-
+    
+    void Print() const;
+    string GetVRMLDesc() const;
+   
 private:
+
+/*
+1.1 Private methods
+
+*/    
+
+    void ComputeCurrentTimeLevel();
+    void ProcessNormalPFace(PFace* pFace);
+    void ProcessCriticalPFace(PFace* pFace);
+    void ConstructResultUnitAsURegionEmb();
+    Decision BelongsToResultUnit(const Point3D& p, const PFace* pFace);
+    void AddCriticalMSegments();
 
 /*
 1.1 Attributes
 
-1.1.1 s
+1.1.1 time, timeIter
 
-A ~std::set~ which uses the struct ~PointExtCompare~ for comparison.
+A ~std::set~ to store the relevant timevalues and a suitable iterator.
+
+*/    
+
+    set<double, DoubleCompare> time;
+    set<double, DoubleCompare>::const_iterator timeIter;
+
+/*
+1.1.1 t1, t12, t2
+
+The start-, middle- and endtime of the current ~ResultUnit~.
+
+*/    
+
+    double t1;
+    double t12;
+    double t2;
+
+/*
+1.1.1 pFaces
+
+A ~std::vector~ to store the relevant ~PFaces~.
+
+*/    
+    
+    vector<PFace*> pFaces;
+
+/*
+1.1.1 criticalMSegs
+
+A ~std::vector~ to store the critical MSegments.
+
+*/    
+
+    vector<MSegmentCritical> criticalMSegs;
+
+/*
+1.1.1 resMRegion
+
+A pointer to the result ~MRegion~.
+
+*/    
+    
+    MRegion* resMRegion;
+
+/*
+1.1.1 parent
+
+A pointer to the parent object.
+
+*/    
+
+    const SourceUnitPair* const parent;
+
+/*
+1.1.1 resultUnit
+
+A pointer to the current ~ResultUnit~.
+
+*/    
+
+    ResultUnit* resultUnit;
+
+/*
+1.1.1 Attributes used for debugging
+
+*/    
+    
+    unsigned int noUnits;
+    unsigned int noEmptyUnits;
+    unsigned int evalutedIntSegs;
+    unsigned int noMSegsValid;
+    unsigned int noMSegsSkipped;
+    unsigned int noMSegCritical;
+    unsigned int decisionsByPlumbline;
+    unsigned int decisionsByEntirelyInOut;
+    unsigned int decisionsByAdjacency;
+    unsigned int decisionsByDegeneration;
+    
+    vector<string> vrml;
+};
+
+/*
+1 Class SourceUnitPair
+
+This class is essentially a container for both ~SourceUnits~ A and B,
+creates and initialise the ~ResultUnitFactory~ and runs the main-loop
+of the set operation by calling the method ~Operate~.
+
+*/
+
+class SourceUnitPair {
+
+public:
+
+/*
+1.1 Constructor
+
+The constructor takes essentially two pointers to ~URegionEmb~ instances,
+one pointer to the global result ~MRegion~ and an enum to indicate the
+kind of set operation. 
+
+*/
+
+    SourceUnitPair(URegionEmb* const unitA, 
+                   const DBArray<MSegmentData>* const aArray,
+                   const bool aIsEmpty,
+                   URegionEmb* const unitB, 
+                   const DBArray<MSegmentData>* const bArray,
+                   const bool bIsEmpty,
+                   const SetOp operation,
+                   MRegion* const resultMRegion);
+
+/*
+1.1 Getter and setter methods
+
+1.1.1 GetOperation
+
+Returns an enum to indicate the current set operation:
+INTERSECTION, UNION or MINUS.
+
+*/     
+
+    inline const SetOp GetOperation() const {
+        
+        return op;
+    }
+
+/*
+1.1.1 GetOverlapRect
+
+Returns the intersection of the projection bounding rectangles of
+both ~SourceUnits~, A and B.
+
+*/     
+
+    inline Rectangle<2> GetOverlapRect() const {
+
+        return overlapRect;
+    }
+
+/*
+1.1.1 HasOverlappingBoundingRect
+
+Returns ~true~, if the intersection of the projection bounding rectangles of
+both ~SourceUnits~ is not empty.
 
 */  
 
-    set<Point3DExt, PointExtCompare> s;
+    inline bool HasOverlappingBoundingRect() const {
+
+        return overlapRect.IsDefined();
+    }
+
+/*
+1.1.1 GetTimeInterval
+    
+Returns the common current interval of both ~SourceUnits~.
+
+*/
+
+    inline const Interval<Instant>& GetTimeInterval() const {
+
+        return unitA.GetTimeInterval();
+    }
+
+/*
+1.1.1 GetOriginalTimeInterval
+    
+Returns the common original interval of both ~SourceUnits~ 
+before normalization.
+
+*/
+    
+    inline const Interval<Instant>& GetOriginalTimeInterval() const {
+
+        return unitA.GetOriginalTimeInterval();
+    }
+
+/*
+1.1.1 GetStart/EndTime
+    
+Returns the start/end of the interval as double value.
+
+*/
+
+    inline double GetStartTime() const {
+
+        return unitA.GetStartTime();
+    }
+
+    inline double GetEndTime() const {
+
+        return unitA.GetEndTime();
+    }
+
+/*
+1.1.1 HasNormalizedTimeInterval
+    
+Returns ~true~, if the interval was normalized to 1.0.
+This might be useful to improve the numerical stability of very thin units.
+
+*/
+    
+    inline bool HasNormalizedTimeInterval() const {
+
+        return unitA.HasNormalizedTimeInterval();
+    }
+
+/*
+1.1 Operators
+
+1.1.1 Operate
+
+This method runs the main-loop of the set operation by calling 
+the following methods:
+
+  1 CreatePFaces
+
+  2 ComputeIntSegs
+
+  3 CollectRelevantPFaces
+
+  4 ConstructResultUnits
+
+*/
+
+    void Operate();
+
+/*
+1.1.1 AddGlobalTimeValue
+
+Adds a relevant timevalue, which marks the border of a result unit.
+This value is passed to the ~ResultUnitFactory~.
+
+*/ 
+
+    inline void AddGlobalTimeValue(double t) {
+
+        resultUnitFactory.AddTimeValue(t);
+    }
+
+/*
+1.1 Methods for debugging
+
+*/  
+
+    void PrintPFaces();
+    void ToVrmlFile(bool a, bool b, bool res);
+    
+private:
+
+/*
+1.1 Private methods
+
+1.1.1 CreatePFaces
+
+Calls ~SourceUnit::CreatePFaces~ on both instances.
+
+*/  
+
+    void CreatePFaces();
+
+/*
+1.1.1 ComputeIntSegs
+
+Intersects each ~PFace~ from ~SourceUnit A~ with each ~PFace~ from
+~SourceUnit B~. The result might be an ~IntersectionSegment~ pair.
+
+*/  
+
+    void ComputeIntSegs();
+
+/*
+1.1.1 CollectRelevantPFaces
+
+Performs a linear scan over all ~PFaces~ of both ~SourceUnits~,
+collecting those which are relevant for the result and
+pass them to the ~ResultUnitFactory~.
+
+*/  
+
+    void CollectRelevantPFaces();
+
+/*
+1.1.1 ConstructResultUnits
+
+Runs the construction of all result units by calling 
+~ResultUnitFactory::Start~.
+
+*/  
+
+    void ConstructResultUnits();
+
+/*
+1.1.1 ComputeOverlapRect
+
+Computes the intersection of the projection bounding rectangles of
+both ~SourceUnits~.
+
+*/ 
+
+    void ComputeOverlapRect();
+    
+/*
+1.1 Attributes
+
+*/
+    
+    SourceUnit unitA;
+    SourceUnit unitB;
+    const SetOp op;
+    Rectangle<2> overlapRect;
+    MRegion* const resultMRegion;
+    ResultUnitFactory resultUnitFactory;
+    
 };
 
 /*
@@ -518,22 +1420,46 @@ A pointer to the ~PFace~, this instance belongs to.
 /*
 1 Class MSegment
 
-
+This class represents a moving segment, which is constructed by 
+the ~ResultUnitFactory~. 
 
 */
+
 class MSegment {
     
 public:
+
+/*
+1.1 Constructor
+
+*/
     
-    MSegment(const Segment3D& _initial,
-             const Segment3D& _median,
-             const Segment3D& _final,
-             const PFace* const _pFace);
+    MSegment(const Segment3D& initial,
+             const Segment3D& median,
+             const Segment3D& final,
+             const PFace* const pFace);
+
+/*
+1.1 Getter and setter methods
+
+1.1.1 GetPFace
+    
+Returns a pointer to the ~PFace~, this ~MSegment~ comes from.
+
+*/
     
     inline const PFace* GetPFace() const {
 
         return pFace;
     }
+
+/*
+1.1.1 GetInitial/GetFinal
+    
+Returns the initial/final state of this ~MSegment~.
+This segment might be degenerated to a point.
+
+*/
     
     inline const Segment2D& GetInitial() const {
 
@@ -544,11 +1470,39 @@ public:
 
         return final;
     }
+
+/*
+1.1.1 GetMedian
+    
+Returns the median state of this ~MSegment~.
+This segment can never degenerate.
+
+*/
     
     inline const Segment2D& GetMedian() const {
 
         return median;
     }
+
+/*
+1.1.1 GetMedianHS
+    
+Returns the median state of this ~MSegment~ as ~HalfSegment~.
+This segment can never degenerate.
+
+*/
+    
+    inline const HalfSegment& GetMedianHS() const {
+        
+        return medianHS;
+    }
+
+/*
+1.1.1 GetFaceNo/GetCycleNo/GetSegmentNo
+    
+Returns the faceno/cycleno/edgeno of this ~MSegment~.
+
+*/
     
     inline int GetFaceNo() const {
         
@@ -564,12 +1518,25 @@ public:
 
         return medianHS.attr.edgeno;
     }
+
+/*
+1.1.1 GetInsideAbove
+    
+Returns the flag insideAbove of this ~MSegment~.
+
+*/
     
     inline int GetInsideAbove() const {
 
-        //return medianHS.attr.insideAbove;
         return insideAbove;
     }
+
+/*
+1.1.1 GetStartAsListExpr/GetEndAsListExpr
+    
+Coverts this ~MSegment~ to ~ListExpr~.
+
+*/
     
     inline const ListExpr GetStartAsListExpr() const {
 
@@ -586,36 +1553,52 @@ public:
                      NList(final.GetEnd().GetX()),
                      NList(final.GetEnd().GetY())).listExpr();
     }
+
+/*
+1.1.1 IsLeftDomPoint
     
-    inline const HalfSegment& GetMedianHS() const {
-        
-        return medianHS;
-    }
+Returns ~true~, if this ~MSegment~ is a left one.
+Note: This is indicated by the median ~HalfSegment~.
+
+*/
     
     inline bool IsLeftDomPoint() const {
         
         return medianHS.IsLeftDomPoint();
     }
+
+/*
+1.1.1 SetLeftDomPoint
     
-    inline void SetFaceNo(int fn) {
+Marks this ~MSegment~ as left.
 
-        medianHS.attr.faceno = fn;
+*/
+
+    inline void SetLeftDomPoint(bool ldp) {
+        
+        medianHS.SetLeftDomPoint(ldp);
     }
 
-    inline void SetCycleNo(int cn) {
+/*
+1.1.1 SetSegmentNo
+    
+Sets the segmentno to sn.
 
-        medianHS.attr.cycleno = cn;
-    }
+*/
     
     inline void SetSegmentNo(int sn) {
         
         medianHS.attr.edgeno = sn;
     }
     
-    inline void SetLeftDomPoint(bool ldp) {
-        
-        medianHS.SetLeftDomPoint(ldp);
-    }
+/*
+1.1 Operators and Predicates
+
+1.1.1 CopyIndicesFrom
+    
+Copies the faceno/cycleno/edgeno from hs to this.
+
+*/    
     
     inline void CopyIndicesFrom(const HalfSegment* hs) {
         
@@ -624,22 +1607,38 @@ public:
         medianHS.attr.edgeno = hs->attr.edgeno;
         //medianHS.attr.insideAbove = hs->attr.insideAbove;
     }
+
+/*
+1.1.1 IsParallel
     
-    inline void Flip() {
-        
-        initial.Flip();
-        median.Flip();
-        final.Flip();
-        
-        insideAbove = !insideAbove;
-    }
+Returns ~true~, if this ~MSegment~ is parallel to ms.
+
+*/
     
     bool IsParallel(const MSegment& ms) const;
+
+/*
+1.1.1 LessByMedianHS
+    
+Returns ~true~, if the median ~HalfSegment~ of this is 
+lower than the median ~HalfSegment~ of ms,
+according to the ~HalfSegment~ order, specified in the ~SpatialAlgebra~.
+
+*/
     
     inline bool LessByMedianHS(const MSegment& ms) const {
         
         return GetMedianHS() < ms.GetMedianHS();
     }
+
+/*
+1.1.1 LogicLess
+    
+Returns ~true~, if the median ~HalfSegment~ of this is 
+lower than the median ~HalfSegment~ of ms,
+similar to ~HalfSegment::LogicCompare~, specified in the ~SpatialAlgebra~.
+
+*/
     
     inline bool LogicLess(const MSegment& ms) const {
         
@@ -649,31 +1648,52 @@ public:
         return GetMedianHS().LogicCompare(ms.GetMedianHS()) == -1;
     }
     
-    inline bool LessByMedianStartPoint(const MSegment& ms) const {
+/*
+1.1 Methods for debugging
 
-        return GetMedian().GetStart() < ms.GetMedian().GetStart();
-    }
-    
-    void Print() const {
-        
-        cout << "start: " << NList(GetStartAsListExpr()) << endl;
-        cout << "end: " << NList(GetEndAsListExpr()) << endl;
-        cout << "median: " << this->GetMedianHS() << endl;
-        cout << " F: " << GetFaceNo();
-        cout << " C: " << GetCycleNo();
-        cout << " S: " << GetSegmentNo();
-        cout << " LDP: " << GetMedianHS().IsLeftDomPoint() << endl;
-    }
+*/  
+
+    void Print() const;
 
 private:
+
+/*
+1.1 Attributes
+
+1.1.1 initial/median/final
+
+The initial/median/final state as ~Segment2D~.
+
+*/    
     
     Segment2D initial;
     Segment2D median;
     Segment2D final;
-    
+
+/*
+1.1.1 medianHS
+
+The median state as ~HalfSegment~.
+
+*/    
+
     HalfSegment medianHS;
+
+/*
+1.1.1 insideAbove
+
+The flag insideAbove.
+
+*/    
     
     bool insideAbove;
+
+/*
+1.1.1 pFace
+
+A pointer to the ~PFace~, this ~MSegment~ comes from.
+
+*/ 
     
     const PFace* pFace;
 };
@@ -681,12 +1701,21 @@ private:
 /*
 1 Class MSegmentCritical
 
-
+This class extends the class ~MSegment~ with the attribute ~midPoint~,
+which is needed to handle critical ~MSegments~. 
+A pair of critical ~MSegments~ is constructed as a result of the
+intersection of two overlapping coplanar PFaces.
 
 */
+
 class MSegmentCritical : public MSegment {
     
 public:
+
+/*
+1.1 Constructor
+
+*/
     
     MSegmentCritical(const Segment3D& _initial,
                      const Segment3D& _median,
@@ -698,14 +1727,48 @@ public:
                          midPoint(_midPoint) {
          
     }
+
+/*
+1.1 Getter and setter methods
+
+1.1.1 GetMidPoint
+    
+Returns the midpoint of this ~MSegmentCritical~, which is equal to
+the midpoint of the median ~HalfSegment~.
+
+*/
     
     inline const Point2D& GetMidpoint() const {
         
         return midPoint;
     }
+
+/*
+1.1 Operators and Predicates
+
+1.1.1 IsPartOfUnitA
+
+Returns ~true~, if the ~Face~ of this belongs to ~SourceUnit~ A.
+
+*/ 
     
     bool IsPartOfUnitA() const;
+
+/*
+1.1.1 HasEqualNormalVector
+
+Returns ~true~, if the normal vectors of this' and pf' ~Face~ are equal.
+
+*/ 
+
     bool HasEqualNormalVector(const MSegmentCritical& msc) const;
+
+/*
+1.1.1 Operator $<$
+
+Returns ~true~, if the midPoint of this is lower as the midpoint of msc.
+
+*/ 
     
     bool operator <(const MSegmentCritical& msc) const {
 
@@ -713,6 +1776,16 @@ public:
     }
     
 private:
+
+/*
+1.1 Attributes
+
+1.1.1 midPoint
+
+The midpoint of this ~MSegmentCritical~, which is equal to
+the midpoint of the median ~HalfSegment~.
+
+*/    
     
     Point2D midPoint;
 };
@@ -720,28 +1793,62 @@ private:
 /*
 1 Class ResultUnit
 
-
+This class essentially collects at first all ~MSegments~ of a result unit,
+produced by the ~ResultUnitFactory~. Afterwards, the ~MSegments~ will be 
+suitably linked together, to form a proper ~URegionEmb~. This is done by 
+calling the method EndBulkLoad.
 
 */
+
 class ResultUnit {
     
 public:
+
+/*
+1.1 Constructor
+
+*/
     
     ResultUnit(const Interval<Instant> _interval) :
         interval(_interval),
         index(0) {
         
     }
+
+/*
+1.1 Getter and setter methods
+
+1.1.1 GetInterval
+    
+Returns the interval as set by the constructor.
+
+*/
     
     inline const Interval<Instant>& GetInterval() const {
         
         return interval;
     }
+
+/*
+1.1 Operators and Predicates
+
+1.1.1 StartBulkLoad
+
+This method must be called before adding the first ~MSegment~.
+
+*/ 
     
     inline void StartBulkLoad() {
         
         index = 0;
     }
+
+/*
+1.1.1 AddSegment
+
+Adds a ~MSegment~ to this ~ResultUnit~.
+
+*/ 
     
     inline void AddSegment(MSegment ms) {
         
@@ -753,23 +1860,76 @@ public:
         ms.SetLeftDomPoint(false);
         msegments.push_back(ms);
     }
+
+/*
+1.1.1 EndBulkLoad
+
+This method must be called after adding the last ~MSegment~ and 
+performs the following tasks:
+
+  * Sort the list ~ms~ of the ~MSegments~ by their median ~HalfSegments~,
+    using ~MSegment::LessByMedianHS~ for comparison.
+
+  * Construct a ~Region~ ~r~ from all median ~HalfSegments~ of ~ms~.
+
+  * Copy the faceNo, cycleNo and edgeNo of each ~HalfSegment~ of ~r~ to
+	the corresponding ~MSegment~ of ~ms~. Since ~r~ and ~ms~ has the same order
+    this can be done by a linear scan.
+
+  * Sort ~ms~ by faceno, cycleno and segmentno, 
+    using ~MSegment::LogicLess~ for comparison.
+
+The parameter ~merge~ is not used yet.
+    
+*/ 
     
     void EndBulkLoad(bool merge);
+
+/*
+1.1.1 ConvertToListExpr
+
+Converts this ~ResultUnit~ to a ~ListExpr~.
+
+*/ 
     
     const ListExpr ConvertToListExpr() const;
+
+/*
+1.1.1 ConvertToURegionEmb
+
+Converts this ~ResultUnit~ to a ~URegionEmb~.
+
+*/ 
     
     URegionEmb* ConvertToURegionEmb(DBArray<MSegmentData>* segments) const;
+
+/*
+1.1.1 IsEmpty
+
+Returns ~true~, if this ~ResultUnit~ contains no ~MSegments~.
+
+*/ 
     
     inline bool IsEmpty() const {
         
         return msegments.size() == 0;
     }
+
+/*
+1.1 Methods for debugging
+
+*/  
     
     void Print(const bool segments = true) const;
-    
-    void WriteToVRMLFile() const;
+    string GetVRMLDesc() const;
+    bool Check() const;
     
 private:
+
+/*
+1.1 Private methods
+
+*/    
     
     void AddMSegmentData(URegionEmb* uregion,
                          DBArray<MSegmentData>* segments, 
@@ -785,429 +1945,178 @@ private:
         return ms1.LogicLess(ms2);
     }
     
-    bool Check() const;
+/*
+1.1 Attributes
+
+1.1.1 interval
+
+The interval of this ~ResultUnit~
+
+*/    
     
     const Interval<Instant> interval;
+
+/*
+1.1.1 msegments
+
+The list of the ~MSegments~.
+
+*/    
+
     vector<MSegment> msegments;
+
+/*
+1.1.1 index
+
+A counter, used in ~AddSegment~.
+
+*/    
+
     unsigned int index;
-    
-    //vector<ResultFace> faces;
 };
 
 /*
-1 Struct DoubleCompare
+1 Enumeration SourceFlag
+
+Indicates the source unit of a ~Point3DExt~.
 
 */
 
-struct DoubleCompare {
+enum SourceFlag {
 
-    bool operator()(const double& d1, const double& d2) const {
-        
-        return NumericUtil::Lower(d1, d2);
-    }
+    PFACE_A,
+    PFACE_B
 };
 
 /*
-1 Class ResultUnitFactory
+1 Class Point3DExt
 
-
+This datastructure is used in the class ~PointExtSet~. 
+It simply extends ~Point3D~ with the attribute ~sourceFlag~.
 
 */
 
-class ResultUnitFactory {
+class Point3DExt : public Point3D {
 
 public:
 
-    ResultUnitFactory(MRegion* const _resMRegion,
-                      const SourceUnitPair* const _parent) :
-                          
-        resMRegion(_resMRegion),
-        parent(_parent),
-        noUnits(0),
-        noEmptyUnits(0),
-        evalutedIntSegs(0),
-        noMSegsValid(0),
-        noMSegsSkipped(0),
-        noMSegCritical(0),
-        decisionsByPlumbline(0),
-        decisionsByEntirelyInOut(0),
-        decisionsBySideOfResultFace(0),
-        decisionsByDegeneration(0) {
+/*
+1.1 Constructors
+
+*/
+
+    inline Point3DExt() :
         
+        Point3D() {
     }
 
-    void Start();
-    
-    inline void AddPFace(PFace* pf) {
+    inline Point3DExt(double a, double b, double c, SourceFlag _sourceFlag) :
         
-        pFaces.push_back(pf);
+        Point3D(a, b, c), 
+        sourceFlag(_sourceFlag) {
     }
-    
-    inline void AddTimeValue(double t) {
-
-        time.insert(t);
-    }
-    
-    void Print() const;
-   
-private:
-
-    void ComputeCurrentTimeLevel();
-    void ProcessNormalPFace(PFace* pFace);
-    void ProcessCriticalPFace(PFace* pFace);
-    void ConstructResultUnitAsURegionEmb();
-    Decision BelongsToResultUnit(const Point3D& p, const PFace* pFace);
-    void AddCriticalMSegments();
-
-    set<double, DoubleCompare> time;
-    set<double, DoubleCompare>::const_iterator timeIter;
-
-    double t1;
-    double t12;
-    double t2;
-    
-    vector<PFace*> pFaces;
-    vector<MSegmentCritical> criticalMSegs;
-    
-    MRegion* resMRegion;
-    const SourceUnitPair* const parent;
-    ResultUnit* resultUnit;
-    
-    unsigned int noUnits;
-    unsigned int noEmptyUnits;
-    unsigned int evalutedIntSegs;
-    unsigned int noMSegsValid;
-    unsigned int noMSegsSkipped;
-    unsigned int noMSegCritical;
-    unsigned int decisionsByPlumbline;
-    unsigned int decisionsByEntirelyInOut;
-    unsigned int decisionsBySideOfResultFace;
-    unsigned int decisionsByDegeneration;
-};
 
 /*
-1 Struct TestRegion
+1.1 Operators and Predicates
 
-
+1.1.1 operator $<$
 
 */
 
-struct TestRegion {
-    
-    TestRegion() :
-        
-        region(0),
-        instant(instanttype),
-        defined(false) {
-        
-    }
-    
-    Region region;
-    Instant instant;
-    bool defined;
-};
-
-/*
-1 Class SourceUnit
-
-
-
-*/
-class SourceUnit {
-
-    friend class SourceUnitPair;
-
-public:
-
-    SourceUnit(const bool _isUnitA, 
-               URegionEmb* const _uRegion,
-               const DBArray<MSegmentData>* const _array,
-               const bool _isEmpty,
-               SourceUnitPair* const _parent);
-    
-    ~SourceUnit();
-
-    inline void SetPartner(SourceUnit* _partner) {
-
-        partner = _partner;
-    }
-    
-    inline SourceUnit* GetPartner() const {
-
-        return partner;
-    }
-
-    inline SourceUnitPair* GetParent() const {
-
-        return parent;
-    }
-
-    inline const URegionEmb* GetURegionEmb() const {
-
-        return uRegion;
-    }
-
-    inline bool IsUnitA() const {
-
-        return isUnitA;
-    }
-    
-    inline bool IsUnitB() const {
-
-        return !isUnitA;
-    }
-    
-    const SetOp GetOperation() const;
-    
-    inline bool IsEmpty() const {
-        
-        return isEmpty;
-    }
-    
-    inline bool HasNormalizedTimeInterval() const {
-        
-        return hasNormalizedTimeInterval;
-    }
-    
-    inline const Interval<Instant>& GetTimeInterval() const {
-
-        return uRegion->timeInterval;
-    }
-    
-    inline const Interval<Instant>& GetOriginalTimeInterval() const {
-
-        return originalTimeInterval;
-    }
-
-    inline double GetStartTime() const {
-
-        return startTime;
-    }
-
-    inline double GetEndTime() const {
-
-        return endTime;
-    }
-
-    inline Rectangle<2> GetBoundingRect() const {
-
-        return boundingRect;
-    }
-
-    inline unsigned int GetNoOfPFaces() const {
-
-        return pFaces.size();
-    }
-    
-    void AddGlobalTimeValue(double t);
-    
-    void AddToMRegion(MRegion* const target) const;
-
-    void CreatePFaces();
-    void CollectRelevantPFaces(ResultUnitFactory* receiver);
-    
-    bool IsEntirelyOutside(const PFace* pFace);
-    bool IsOutside(const Point3D& p);
-    bool IsOnBorder(const Point3D& p);
-
-    void Print() const;
-    void PrintPFaces();
-    void PrintVRMLDesc(ofstream& target, const string& color);
-
-private:
-
-    void NormalizeTimeInterval();
-    void ComputeBoundingRect();
-    const Region GetTestRegion(const double t);
-    
-    const bool isUnitA;
-    const bool isEmpty;
-
-    URegionEmb* const uRegion;
-    const DBArray<MSegmentData>* const array;
-    
-    SourceUnit* partner;
-    SourceUnitPair* const parent;
-    
-    double startTime;
-    double endTime;
-    
-    bool hasNormalizedTimeInterval;
-    Interval<Instant> originalTimeInterval;
-    
-    vector<PFace*> pFacesReduced;
-    vector<PFace*> pFaces;
-    
-    Rectangle<2> boundingRect;
-    
-    TestRegion testRegion;
-};
-
-/*
-1 Class SourceUnitPair
-
-
-
-*/
-class SourceUnitPair {
-
-public:
-
-    SourceUnitPair(URegionEmb* const unitA, 
-                   const DBArray<MSegmentData>* const aArray,
-                   const bool aIsEmpty,
-                   URegionEmb* const unitB, 
-                   const DBArray<MSegmentData>* const bArray,
-                   const bool bIsEmpty,
-                   const SetOp operation,
-                   MRegion* const resultMRegion);
-
-    void Operate();
-    
-    inline const SetOp GetOperation() const {
-        
-        return op;
-    }
-
-    inline Rectangle<2> GetOverlapRect() const {
-
-        return overlapRect;
-    }
-
-    inline bool HasOverlappingBoundingRect() const {
-
-        return overlapRect.IsDefined();
-    }
-
-    inline const Interval<Instant>& GetTimeInterval() const {
-
-        return unitA.GetTimeInterval();
-    }
-    
-    inline const Interval<Instant>& GetOriginalTimeInterval() const {
-
-        return unitA.GetOriginalTimeInterval();
-    }
-
-    inline double GetStartTime() const {
-
-        return unitA.GetStartTime();
-    }
-
-    inline double GetEndTime() const {
-
-        return unitA.GetEndTime();
-    }
-    
-    inline bool HasNormalizedTimeInterval() const {
-
-        return unitA.HasNormalizedTimeInterval();
-    }
-
-    inline void AddGlobalTimeValue(double t) {
-
-        resultUnitFactory.AddTimeValue(t);
-    }
-    
-private:
-
-    
-    void ComputeOverlapRect();
-    void CreatePFaces();
-    void ComputeIntSegs();
-    void CollectRelevantPFaces();
-    void ConstructResultUnits();
-    
-    void PrintPFaces();
-    void PrintIntSegsOfPFaces();
-    void PrintUnitsAsVRML(bool a, bool b, bool res);
-    
-    SourceUnit unitA;
-    SourceUnit unitB;
-    const SetOp op;
-    Rectangle<2> overlapRect;
-    
-    
-    
-    MRegion* const resultMRegion;
-    ResultUnitFactory resultUnitFactory;
-};
-
-/*
-1 Class SetOperator
-
-This class provides the three set operations 
-~intersection~, ~union~ and ~minus~ with the signature
-movingregion [x] movingregion [->] movingregion.
-
-*/
-
-class SetOperator {
-    
-public:
-
-/*
-1.1 Constructor
-
-The constructor takes three pointers to ~MRegion~ instances, 
-according to the signature a [x] b [->] res.
-
-*/
-    
-    SetOperator(MRegion* const _a, 
-                MRegion* const _b, 
-                MRegion* const _res) :
-                
-                a(_a), b(_b), res(_res) {
-
-    }
-    
-/*
-1.1 Operators
-
-1.1.1 Intersection
-
-Performs the operation $a \cap b$ and writes the result to res.
-
-*/
-    
-    void Intersection();
-
-/*
-1.1.1 Union
-
-Performs the operation $a \cup b$ and writes the result to res.
-
-*/
-
-    void Union();
-
-/*
-1.1.1 Minus
-
-Performs the operation $a \setminus b$ and writes the result to res.
-
-*/
-
-    void Minus();
-    
-private:
-    
-/*
-1.1 Private methods
-
-*/
-    
-    void Operate(const SetOp op);
+    bool operator <(const Point3DExt& p) const;
 
 /*
 1.1 Attributes
 
+1.1.1 sourceFlag
+
+An enum, indicating the ~PFace~, this ~Point3D~ belongs to.
+Possible values are:
+
+  * $PFACE\_A$
+
+  * $PFACE\_B$
+
 */
 
-    MRegion* const a;
-    MRegion* const b;
-    MRegion* const res;
+    SourceFlag sourceFlag;
+};
+
+/*
+1 Class PointExtSet
+
+This set is used in the class ~PFace~ to compute the intersection segment of
+two ~PFaces~.
+
+*/
+
+class PointExtSet {
+
+public:
+
+/*
+1.1 Constructors
+
+*/
+
+    inline PointExtSet() {
+        
+    }
+
+/*
+1.1 Operators and Predicates
+
+1.1.1 Insert
+
+Inserts p, if p isn't already inserted.
+
+*/  
+
+    inline void Insert(const Point3DExt& p) {
+
+        s.insert(p);
+    }
+
+/*
+1.1.1 Size
+
+Returns the number of points in the set.
+
+*/  
+
+    inline unsigned int Size() const {
+
+        return s.size();
+    }
+
+/*
+1.1.1 GetIntersectionSegment
+
+Returns ~true~, if there is an intersection segment and writes it to result.
+
+*/  
+
+    bool GetIntersectionSegment(Segment3D& result) const;
+    
+/*
+1.1 Methods for debugging
+
+*/    
+
+void Print() const;    
+    
+private:
+
+/*
+1.1 Attributes
+
+1.1.1 s
+
+A ~std::set~, using the overloaded operator $<$ for comparison.
+
+*/  
+
+    set<Point3DExt> s;
 };
 
 /*
@@ -1440,6 +2349,52 @@ An enum, that stores the decision for the first brick of the current timelevel:
 */   
 
     Decision lastDecision;
+};
+
+/*
+1 Enumeration Boundary
+
+Used in the class ~PFace~ to indicate the border.
+
+*/
+
+enum Boundary {
+    
+    LEFT_BOUNDARY,
+    RIGHT_BOUNDARY
+};
+
+/*
+1 Enumeration RelationToBoundary
+
+Used in the class ~PFace~ to indicate the relation of an
+~IntersectionSegment~ to the ~PFace~ boundary.
+
+*/
+
+enum RelationToBoundary {
+    
+    NO_TOUCH,
+    TOUCH_IN_STARTPOINT,
+    TOUCH_IN_ENDPOINT,
+    COLINEAR
+};
+
+/*
+1 Enumeration State
+
+Used in the class ~PFace~ to indicate it's current state.
+
+*/
+
+enum State {
+    
+    UNKNOWN,
+    ENTIRELY_INSIDE,
+    ENTIRELY_OUTSIDE,
+    RELEVANT_NOT_CRITICAL,
+    RELEVANT_CRITICAL,
+    NOT_RELEVANT
 };
 
 /*
@@ -2107,6 +3062,7 @@ Precondition: ~UpdateTimeLevel~ is already called.
     }
 
     string GetVRMLDesc();
+    string GetStateAsString() const;
     void Print() const;
 
 private:
