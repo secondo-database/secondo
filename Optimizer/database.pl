@@ -2305,7 +2305,7 @@ logicalIndexType(sptuni, spatial(rtree, unit), rtree,
     undefined,
     undefined,
     undefined).
-
+%%% XRIS: CREATERTREE  ?????
 logicalIndexType(sptmpobj, spatiotemporal(rtree3, object), rtree3,
     [upoint,uregion,mpoint,mregion],
     [ '__REL__', ' feed addid extend[ b: box3d( bbox( trajectory(.',
@@ -3015,10 +3015,22 @@ retractStoredInformation(DCrel) :-
   retractall(storedRel(DB, DCrel, _)),
   retractall(storedIndex(DB, DCrel, _, _, _)),
   retractall(storedNoIndex(DB, DCrel, _)),
-  write_list(['\nINFO:\tRetracted all information on relation \'',DCrel,'\' and ',
-              'all according small and sample objects.']),nl,
+  write_list(['\nINFO:\tRetracted all information on relation \'', DCrel,
+              '\' and ', 'all according small and sample objects.']),nl,
   !.
 
+updateRel(Rel) :-
+  dcName2externalName(DCRel,Rel),
+  dcName2externalName(DCRel,ExtRel),
+  write_list(['\nINFO:\updateRel(', Rel, ') retracts all information on \'',
+              DCRel, '\'...']),
+  retractStoredInformation(DCRel),
+  write_list(['\nINFO:\updateRel(', Rel, ') re-collects basic information ',
+              'on \'', DCRel,'\'...']),
+  updateCatalog,
+  write_list(['\nINFO:\tUpdated all information on relation \'',DCRel,'\'.']),
+  nl,
+  !.
 
 /*
 10 Average Size of a Tuple
