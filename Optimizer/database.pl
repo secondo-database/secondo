@@ -399,7 +399,7 @@ updateRelationSchema(DCrel) :-
          fail, !
        )
   ),
-  write_list(['\nINFO:\tUpdated information on relation \'ExtRel','\'.']), nl,
+  write_list(['\nINFO:\tUpdated information on relation \'',ExtRel,'\'.']), nl,
   !.
 
 updateRelationSchema(DCrel) :-
@@ -957,6 +957,7 @@ handleLostRelation(DCrel) :-
            ),
            _),
   retractAllStoredInfo(DCrel), % retract all stored meta data
+  updateCatalog,
   !.
 
 
@@ -3023,12 +3024,12 @@ updateRel(Rel) :-
   dcName2externalName(DCRel,Rel),
   dcName2externalName(DCRel,ExtRel),
   write_list(['\nINFO:\updateRel(', Rel, ') retracts all information on \'',
-              DCRel, '\'...']),
+              ExtRel, '\'...']),
   retractStoredInformation(DCRel),
   write_list(['\nINFO:\updateRel(', Rel, ') re-collects basic information ',
-              'on \'', DCRel,'\'...']),
+              'on \'', ExtRel,'\'...']),
   updateCatalog,
-  write_list(['\nINFO:\tUpdated all information on relation \'',DCRel,'\'.']),
+  write_list(['\nINFO:\tUpdated all information on relation \'',ExtRel,'\'.']),
   nl,
   !.
 
