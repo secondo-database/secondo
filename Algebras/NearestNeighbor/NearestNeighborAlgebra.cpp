@@ -541,9 +541,9 @@ the type EventElem and ActiveElem are defined in NearestNeighborAlgebra.h
 
 */
 Instant ActiveElem::currtime(instanttype);
-typedef vector< ActiveElem >::const_iterator CI;
-typedef vector< ActiveElem >::iterator IT;
-typedef NNTree< ActiveElem >::iterator ITT;
+//Instant ActiveElem::currtime;
+typedef vector< ActiveElem >::iterator ITV;
+typedef NNTree< ActiveElem >::iter IT;
 
 /* 
 GetPosition calculates the position of a upoint at a specific time
@@ -935,22 +935,22 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
 check is only for debug purposes
 
 */
-bool check(vector<ActiveElem> &v, Instant time)
+bool check(NNTree<ActiveElem> &t, Instant time)
 {
   //funtion only for debugging
   double slope;
-  //    int ii=0;
-  //    for( IT it=v.begin(); it != v.end() && ii<50; ++it)
-  //    { 
-  //      ++ii;
-  //      cout << it->tuple << " " 
-  //        << CalcDistance(it->distance,time,slope) 
-  //        << " Start: " << it->start << " Slope: " << slope << endl;
-  //    }
+  //int ii=0;
+  //for( IT it=t.begin(); it != t.end() && ii<50; ++it)
+  //{ 
+  //  ++ii;
+  //  cout << it->tuple << " " 
+  //    << CalcDistance(it->distance,time,slope) 
+  //    << " Start: " << it->start << " Slope: " << slope << endl;
+  //}
   
   double d = 0;
-  IT itOld = v.begin();
-  for( IT ittest=v.begin(); ittest != v.end(); ++ittest)
+  IT itOld = t.begin();
+  for( IT ittest=t.begin(); ittest != t.end(); ++ittest)
   {
     if(d-0.05 > CalcDistance(ittest->distance,time,slope))
     {
@@ -982,6 +982,25 @@ bool check(vector<ActiveElem> &v, Instant time)
       //return false;
       //swap the two entries in activeline
       //cout << "swap" << endl;
+      ActiveElem e = *itOld;
+      *itOld = *ittest;
+      *ittest = e;
+    }
+    itOld = ittest;
+    d = CalcDistance(ittest->distance,time,slope);
+  }
+  return true;
+}
+
+bool check(vector<ActiveElem> &v, Instant time)
+{
+  double slope;
+  double d = 0;
+  ITV itOld = v.begin();
+  for( ITV ittest=v.begin(); ittest != v.end(); ++ittest)
+  {
+    if(d-0.05 > CalcDistance(ittest->distance,time,slope))
+    {
       ActiveElem e = *itOld;
       *itOld = *ittest;
       *ittest = e;
@@ -1142,110 +1161,141 @@ this function builds an unbalanced binary tree
 
 */
 
-IT insertActiveElem( vector<ActiveElem> &v, ActiveElem &e, 
-                              Instant time, int dummy)
+IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e, 
+                              Instant time)
 {
-  if( v.size() == 0)
+  //cout << "ins in" << endl;
+  if( t.size() == 0)
   {
-    v.push_back(e);
-    return v.begin();
+  //cout << "ins out" << endl;
+    return t.addFirst(e);
   }
-
-  int pos, start, max;
-  max = v.size() - 1;
-  start = 0;
-  bool havePos = false;
+  
   double slope1, slope2;
   double dist = CalcDistance(e.distance,time,slope1);
-  while( !havePos && start <= max)
+  //cout << "insert distance " << dist << endl; 
+  IT it = t.root();
+  while( true)
   {
-    pos = (max + start) / 2;
-    double storeDistance = CalcDistance(v[pos].distance,time,slope2);
-    //if( dist < storeDistance || (dist == storeDistance && slope1 < slope2))
+    double storeDistance = CalcDistance(it->distance,time,slope2);
     if( dist + DISTDELTA < storeDistance 
       || (abs(dist - storeDistance) <= DISTDELTA && slope1 < slope2))
     {
-      max = pos - 1;
+      //cout << "untersucht distance (kleiner) " << storeDistance << endl;
+      if( it.hasLeft() )
+        it.leftItem();
+      else
+      {
+  //cout << "ins out" << endl;
+        return t.addLeft( e, it);
+      }
     }
     //else if( dist > storeDistance 
     //|| (dist == storeDistance && slope1 > slope2))
     else if( dist + DISTDELTA > storeDistance 
       || (abs(dist - storeDistance) <= DISTDELTA && slope1 > slope2))
     {
-      start = pos + 1;
+      //cout << "untersucht distance (größer) " << storeDistance << endl;
+      if( it.hasRight() )
+      {
+        it.rightItem();
+      }
+      else
+      {
+  //cout << "ins out" << endl;
+        return t.addRight( e, it);
+      }
     }
     else //same distance and same slope
     {
-      while( abs(dist - storeDistance) < DISTDELTA && slope1 == slope2 
-        && ++pos < (int)v.size() )
+      //cout << "untersucht distance (gleich) " << storeDistance << endl;
+      IT pos = it;
+      ++pos;
+      while( pos != t.end() 
+        && abs(dist - CalcDistance(pos->distance,time,slope2)) < DISTDELTA 
+        && slope1 == slope2)
       {
-        storeDistance = CalcDistance(v[pos].distance,time,slope2);
+        it = pos;
+        ++pos;
       }
-      havePos = true;
+  //cout << "ins out" << endl;
+      return t.addElem( e, it );
     }
   }
-  if( !havePos){ pos = start; }
-  if( v.capacity() - v.size() < 1)
-  {
-    v.reserve(v.size() + 100);
-  }
-
-  //cout << "Insert at Pos: " << pos << " Size: " << v.size() << endl;
-  v.insert(v.begin() + (unsigned)pos,e);
-  return v.begin() + pos;
 }
 
-IT findActiveElem( vector<ActiveElem> &v, MReal *distance, 
-                            Instant time, Tuple *tuple, int dummy)
+IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance, 
+                            Instant time, Tuple *tuple)
 {
-  int pos, max, start;
-  max = v.size() - 1;
-  start = 0;
-  bool havePos = false;
+  //cout << "find in" << endl;
   double slope1, slope2;
   double dist = CalcDistance(distance,time,slope1);
-  while( !havePos && start <= max)
+  //cout << "find distance " << dist << endl; 
+  IT it = t.root();
+  bool havePos = false;
+  while( !havePos && it != t.end())
   {
-    pos = (max + start) / 2;
-    double storeDistance = CalcDistance(v[pos].distance,time,slope2);
-    if( dist < storeDistance || (dist == storeDistance && slope1 < slope2) )
+    double storeDistance = CalcDistance(it->distance,time,slope2);
+    //if( dist + DISTDELTA < storeDistance 
+    //  || (abs(dist - storeDistance) <= DISTDELTA && slope1 < slope2))
+    if( dist < storeDistance 
+      || (dist == storeDistance && slope1 < slope2))
     {
-      max = pos - 1;
+      //cout << "untersucht distance (kleiner) " << storeDistance << endl;
+      if( it.hasLeft() )
+        it.leftItem();
+      else
+      {
+        havePos = true;
+      }
     }
-    else if( dist > storeDistance || (dist == storeDistance && slope1 > slope2))
+    else if( dist > storeDistance 
+    || (dist == storeDistance && slope1 > slope2))
+    //else if( dist + DISTDELTA > storeDistance 
+    //  || (abs(dist - storeDistance) <= DISTDELTA && slope1 > slope2))
     {
-      start = pos + 1;
+      //cout << "untersucht distance (größer) " << storeDistance << endl;
+      if( it.hasRight() )
+        it.rightItem();
+      else
+      {
+        havePos = true;
+      }
     }
     else //same distance and same slope
     {
+      //cout << "same distance in find" << endl;
       havePos = true;
     }
   }
-  int i = pos;
-  if( tuple == v[pos].tuple){ havePos = true; }
+  if( tuple == it->tuple){ havePos = true; }
   else { havePos = false; }
-  while( !havePos && (pos < (int)v.size() || i > 0))
+
+  IT pos1 = it;
+  IT pos2 = it;
+  while( !havePos && (pos1 != t.begin() || pos2 != t.end()))
   {
-    if( i > 0 )
+    if( pos1 != t.begin() )
     {
-      --i;
-      if( tuple == v[i].tuple)
+      --pos1;
+      if( tuple == pos1->tuple)
       { 
-        pos = i; 
+        pos2 = pos1; 
         havePos = true;
       };
     }
 
-    if( !havePos && pos < (int)v.size() )
+    if( !havePos && pos2 != t.end() )
     {
-      ++pos;
-      if( pos < (int)v.size() && tuple == v[pos].tuple)
+      ++pos2;
+      if( pos2 != t.end() && tuple == pos2->tuple)
       {
         havePos = true;
       }
     }
   }
-  return v.begin()+pos;
+  //cout << "find out" << endl;
+  return pos2;
 }
 
 
@@ -1255,12 +1305,13 @@ if yes then erg is set to true.
 The k+1. element is returned if exist else v.end()
 
 */
-IT checkFirstK(vector<ActiveElem> &v, unsigned int k, IT &it, bool &erg)
+IT checkFirstK(NNTree<ActiveElem> &t, unsigned int k, IT &it, bool &erg)
 {
+  //cout << "check first in" << endl;
   unsigned int ii = 0;
-  IT testit=v.begin();
+  IT testit=t.begin();
   erg = false;
-  for( ; testit != v.end() && ii < k; ++testit)
+  for( ; testit != t.end() && ii < k; ++testit)
   { 
     ++ii;
     if( testit == it )
@@ -1268,6 +1319,7 @@ IT checkFirstK(vector<ActiveElem> &v, unsigned int k, IT &it, bool &erg)
       erg = true;
     }
   }
+  //cout << "check first out" << endl;
   return testit;
 }
 
@@ -1276,15 +1328,20 @@ tests if the given element the k. element
 if yes then true is returned.
 
 */
-bool checkK(vector<ActiveElem> &v, unsigned int k, IT &it)
+bool checkK(NNTree<ActiveElem> &t, unsigned int k, IT &it)
 {
+  //cout << "check k in" << endl;
   unsigned int ii = 0;
-  for( IT testit=v.begin(); testit != v.end() && ii < k; ++testit)
+  for( IT testit=t.begin(); testit != t.end() && ii < k; ++testit)
   { 
     ++ii;
     if( ii == k && testit == it )
+    {
+      //cout << "check k out" << endl;
       return true;
+    }
   }
+  //cout << "check k out" << endl;
   return false;
 }
 
@@ -1336,7 +1393,7 @@ this is the right function if the eventqueue is a NNTree
 
 */
 void checkIntersections(EventType type, Instant &time, IT pos,
-                      vector< ActiveElem > &t,
+                      NNTree< ActiveElem > &t,
                       priority_queue<EventElem> &evq, Instant &endTime)
 {
   switch ( type ){
@@ -1439,7 +1496,7 @@ struct KnearestLocalInfo
   //int max;
   bool scanFlag;
   Instant startTime, endTime;
-  vector< ActiveElem > activeLine;
+  NNTree< ActiveElem > activeLine;
   priority_queue<EventElem> eventQueue;
 };
 
@@ -1471,7 +1528,6 @@ int knearestFun (Word* args, Word& result, int message,
     case OPEN :
     {
       localInfo = new KnearestLocalInfo;
-      localInfo->activeLine.reserve(1000);
       localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
       localInfo->scanFlag = true;
       local = SetWord(localInfo);
@@ -1531,17 +1587,15 @@ int knearestFun (Word* args, Word& result, int message,
             localInfo->eventQueue.pop();
           }
         }
+        //cout << localInfo->activeLine.size() << endl;
         //if( elem.pointInTime < localInfo->endTime )
         //{
-          //double slope;
-          //double d = CalcDistance(elem.distance, elem.pointInTime,slope);
-          //cout << "******* time: " << elem.pointInTime.ToString() << 
-          //  ", distance: " << d << ", Tuple: " << elem.tuple << endl;
-          //if( elem.type == E_RIGHT)
-          //{
-          //  cout << "_";
-          //}
-          //assert(check(localInfo->activeLine ,elem.pointInTime));
+        //  double slope;
+        //  double d = CalcDistance(elem.distance, elem.pointInTime,slope);
+        //  cout << "******* time: " << elem.pointInTime.ToString() << 
+        //    ", distance: " << d << ", Tuple: " << elem.tuple << endl;
+        //  assert(check(localInfo->activeLine ,elem.pointInTime));
+        //  cout << "Nach check" << endl;
         //}
 
         switch ( elem.type ){
@@ -1554,8 +1608,10 @@ int knearestFun (Word* args, Word& result, int message,
               ? elem.up->timeInterval.lc : false;
             ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime, 
               elem.up->timeInterval.end, lc, elem.up->timeInterval.rc); 
+            //cout << "vor insert" << endl;
             IT newPos = insertActiveElem( localInfo->activeLine, 
-              newElem, elem.pointInTime, 0);
+              newElem, elem.pointInTime);
+            //cout << "nach insert" << endl;
 
             // check intersections
             checkIntersections(E_LEFT, elem.pointInTime, 
@@ -1594,10 +1650,10 @@ int knearestFun (Word* args, Word& result, int message,
           case E_RIGHT:
           {
             //a unit ends. It has to be removed from the map
+            //cout << "find right elem" << endl;
             IT posDel = findActiveElem( localInfo->activeLine, 
-              elem.distance, elem.pointInTime, elem.tuple, 0);
-            //cout << "found right element" << endl; 
-            //  << " " << localInfo->activeLine[posDel].start << endl;
+              elem.distance, elem.pointInTime, elem.tuple);
+            //cout << "found right element " << posDel->start << endl;
             //look for the right tuple 
             //(more elements can have the same distance)
             Tuple* cloneTuple = NULL;
@@ -1639,7 +1695,7 @@ int knearestFun (Word* args, Word& result, int message,
             {
               //the program should never be here. This is a program error!
               double slope;
-              for( CI it=localInfo->activeLine.begin(); 
+              for( IT it=localInfo->activeLine.begin(); 
                 it!=localInfo->activeLine.end(); ++it)
               {
                 cout << "dist: " << CalcDistance(it->distance, 
@@ -1657,15 +1713,26 @@ int knearestFun (Word* args, Word& result, int message,
           case E_INTERSECT:
             //cout << "found intersection" << endl;
             IT posFirst = findActiveElem( localInfo->activeLine, 
-              elem.distance, elem.pointInTime, elem.tuple, 0);
+              elem.distance, elem.pointInTime, elem.tuple);
+            //cout << "found intersection vpn" << endl;
+            IT posNext = posFirst;
+            ++posNext;
 
-            IT posSec = findActiveElem( localInfo->activeLine, 
-              elem.distance, elem.pointInTime, elem.tuple2, 0);
+            IT posSec;
+            if( posNext == localInfo->activeLine.end() )
+            {
+              //perhaps changed before
+              assert(check(localInfo->activeLine ,elem.pointInTime));
+              break;
+            }
+            if( posNext->tuple != elem.tuple2 )
+              posSec = findActiveElem( localInfo->activeLine, 
+                elem.distance, elem.pointInTime, elem.tuple2);
+            else
+              posSec = posNext;
 
             //check if the first of the inters.-tuples is the k. and give it out
             Tuple* cloneTuple = NULL;
-            IT posNext = posFirst;
-            ++posNext;
             if( checkK(localInfo->activeLine,localInfo->k,posFirst))
             {
               cloneTuple = changeTupleUnit( posFirst->tuple, 
@@ -1682,6 +1749,7 @@ int knearestFun (Word* args, Word& result, int message,
 
             if( posNext == posSec)
             {
+              //cout << "intersection 1" << endl;
               //look for intersections between the new neighbors
               checkIntersections(E_INTERSECT, elem.pointInTime, 
                 posFirst, localInfo->activeLine, localInfo->eventQueue,
@@ -1696,22 +1764,27 @@ int knearestFun (Word* args, Word& result, int message,
             {
               //the are some elements which has the same distance between
               //the two intersect elements, so calc like delete then insert
-              checkIntersections(E_RIGHT, elem.pointInTime, 
+             //cout << "intersection 2" << endl;
+             checkIntersections(E_RIGHT, elem.pointInTime, 
               posSec, localInfo->activeLine, localInfo->eventQueue,
               localInfo->endTime);
 
+             //cout << "intersection 3" << endl;
               ActiveElem newElem(posSec->distance, 
                 posSec->tuple, elem.pointInTime, 
                 posSec->end, posSec->lc, posSec->rc); 
-              localInfo->activeLine.erase( posSec );
+              //cout << "intersection 4" << endl;
+             localInfo->activeLine.erase( posSec );
               IT newPos = insertActiveElem( localInfo->activeLine, 
-                newElem, elem.pointInTime, 0);
+                newElem, elem.pointInTime);
 
               // check intersections
+              //cout << "intersection 5" << endl;
               checkIntersections(E_LEFT, elem.pointInTime, newPos, 
                 localInfo->activeLine, localInfo->eventQueue,
                 localInfo->endTime);
             }
+            //cout << "out intersection" << endl;
             if( cloneTuple )
             {
               result = SetWord(cloneTuple);
@@ -2003,7 +2076,7 @@ int knearestFunVector (Word* args, Word& result, int message,
             {
               //the program should never be here. This is a program error!
               double slope;
-              for( CI it=localInfo->activeLine.begin(); 
+              for( ITV it=localInfo->activeLine.begin(); 
                 it!=localInfo->activeLine.end(); ++it)
               {
                 cout << "dist: " << CalcDistance(it->distance, 

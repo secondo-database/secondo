@@ -258,6 +258,7 @@ public:
   Instant end;
   bool lc;
   bool rc;
+  ActiveElem(){}
   ActiveElem(MReal *dist, Tuple* t, Instant s, Instant e, bool l, bool r) 
     : distance(dist), tuple(t), start(s), end(e), lc(l), rc(r){}
 };
@@ -274,61 +275,95 @@ in the NearestNeighborAlgebra.cpp
 template <class T>
 class NNTree
 {
-  public:
-    NNTree() : first(NULL), last(NULL), nrelements(0){}
-    ~NNTree();
-    class iterator
+  private:
+    class NNnode
     {
-      class node;
     public:
-      iterator( node *n) : itNode(n){}
-      friend bool operator==(const iterator& i, const iterator& j)
+      NNnode(){}
+      NNnode *left;
+      NNnode *right;
+      NNnode *parent;
+      T elem;
+    };
+
+  public:
+    class iter
+    {
+      friend class NNTree;
+    public:
+      iter( ) : itNode(NULL){}
+      iter( NNnode *n) : itNode(n){}
+      friend bool operator==(const NNTree::iter& i, 
+        const iter& j)
       {
         return i.itNode == j.itNode;
       }
-      friend bool operator!=(const iterator& i, const iterator& j)
+      friend bool operator!=(const NNTree::iter& i, 
+        const NNTree::iter& j)
       {
         return i.itNode != j.itNode;
       }
       T* operator->(){ return &itNode->elem;}
       T& operator*(){ return itNode->elem;}
-      T& operator++(){itNode = itNode->next; return *this;} //prefix
-      T operator++(int)  //postfix
+      iter& operator++(); //prefix
+      iter operator++(int)  //postfix
       {
-        iterator tmp = *this; 
+        iter tmp = *this; 
         ++this;
         return tmp;
       }
-      T& operator--(){itNode = itNode->prev; return *this;} //prefix
-      T operator--(int)  //postfix
+      iter& operator--(); //prefix
+      iter operator--(int)  //postfix
       {
-        iterator tmp = *this; 
+        iter tmp = *this; 
         --this;
         return tmp;
       }
-      bool hasLeft(){ return itNode->prev != NULL; }
-      bool hasRight(){ return itNode->next != NULL; }
+      iter &leftItem()
+      { 
+        itNode = itNode->left; return *this; 
+      }
+      iter &rightItem()
+      { 
+        itNode = itNode->right; return *this; 
+      }
+      bool hasLeft( ){ return itNode->left != NULL; }
+      bool hasRight( ){ return itNode->right != NULL; }
     private:
-      node *itNode;
+      typename NNTree::NNnode *itNode;
+      NNnode *nextNode( NNnode *n );
+      NNnode *prevNode( NNnode *n );
     };
-    iterator begin(){return iterator(first);}
-    iterator end(){return iterator(last);}
-    iterator erase( iterator &pos);
-    iterator insert( T &e, iterator &it);
+    NNTree();
+    ~NNTree();
+    iter begin(){return iter(first);}
+    iter end(){return iter(NULL);}
+    iter root(){ return iter(rootnode);}
+    iter erase( iter &pos);
+    iter addFirst( T &e);
+    iter addLeft( T &e, iter &it);
+    iter addRight( T &e, iter &it);
+    iter addElem( T &e, iter &it);
     unsigned int size(){ return nrelements;}
   private:
-    class node
-    {
-    public:
-      node *next;
-      node *prev;
-      T elem;
-    };
 
-    node *first;
-    node *last;
+    NNnode *first;
+    NNnode *rootnode;
     unsigned int nrelements;
+    NNnode *newNode( T &e, NNnode *p);
+    unsigned int nodeCount( NNnode *n );
+    static NNnode *maxNode( NNnode *n );
+    static NNnode *minNode( NNnode *n );
 };
+
+/*
+Konstruktor of NNTree
+
+*/
+template<class T>
+NNTree<T>::NNTree() : first(NULL), rootnode(NULL),nrelements(0)
+{   
+}
 
 /*
 destructor of NNTree delete all nodes
@@ -337,66 +372,309 @@ destructor of NNTree delete all nodes
 template<class T>
 NNTree<T>::~NNTree()
 {
-  while( first != NULL )
-  {
-    node *tmp = first->next;
-    delete first;
-    first = tmp;
-  }
+  iter it = begin();
+  while( (it = erase(it)) != end());
   nrelements = 0;
 }
 
 /*
-delete the node of the iterator pos und returns the element
+delete the NNnode of the iterator pos und returns the element
 beyond pos or end()
 
 */
 template<class T>
-typename NNTree<T>::iterator NNTree<T>::erase( iterator &pos)
+typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
 {
-  if( pos == end())
+  //cout << "in erase" << endl;
+  if( pos.itNode == NULL)
   {
+  //cout << "out erase NULL" << endl;
     return pos;
   }
-  if( pos.itNode->prev != NULL )
+  iter res(pos);
+  ++res;
+  NNnode *p = pos.itNode->parent;
+  if( pos.itNode->left == NULL && pos.itNode->right == NULL)
   {
-    pos.itNode->prev->next = pos.itNode->next;
+    if( p != NULL )
+    {
+      if( p->left == pos.itNode) 
+      {
+        p->left = NULL;
+      }
+      else 
+        p->right = NULL;
+    }
+    else
+    {
+      rootnode = NULL;
+    }
   }
-  pos.itNode->next->prev = pos.itNode->prev;
-  node *tmp = pos.itNode->next;
-  delete pos.itNode;
-  --nrelements;
-  return iterator(tmp);
-}
-
-/*
-insert a new node with the element e before the iterator it
-
-*/
-template<class T>
-typename NNTree<T>::iterator NNTree<T>::insert( T &e, iterator &it)
-{
-  node *newNode = new node;
-  if( !size )
+  else if( pos.itNode->left == NULL || pos.itNode->right == NULL )
   {
-    ++nrelements;
-    node *lastNode = new node;
-    lastNode->next = NULL;
-    lastNode->prev = newNode;
-    last = lastNode;
-    first = newNode;
-    newNode->prev = NULL;
-    newNode->next = last;
-    newNode->elem = e;
+    //only one subtree exists
+    if( p != NULL )
+    {
+      if( p->left == pos.itNode)
+      {
+        p->left = (pos.itNode->left != NULL) ? pos.itNode->left 
+                                            : pos.itNode->right;
+        p->left->parent = p;
+        //if( p->left == res.itNode)
+          //cout << "p->left ist der nächste" << endl;
+      }
+      else 
+      {
+        p->right = (pos.itNode->left != NULL) ? pos.itNode->left 
+                                            : pos.itNode->right;
+        p->right->parent = p;
+      }
+    }
+    else
+    {
+      rootnode = (pos.itNode->left != NULL) 
+        ? pos.itNode->left : pos.itNode->right;
+      rootnode->parent = NULL;
+    }
   }
   else
   {
-    ++nrelements;
-    newNode->prev = it.itNode->prev;
-    newNode->next = it.itNode;
-    newNode->elem = e;
+    //left and right subtree exists
+    //cout << "nodecount left: " << nodeCount( pos.itNode->left) << endl;
+    //cout << "nodecount right: " << nodeCount( pos.itNode->right) << endl;
+    if( nodeCount( pos.itNode->left) >= nodeCount( pos.itNode->right))
+    {
+      NNnode *max = maxNode( pos.itNode->left);
+      if( max->left != NULL )
+      {
+        max->left->parent = max->parent;
+      }
+      if( max->parent->left == max )
+        max->parent->left = max->left;
+      else
+        max->parent->right = max->left;
+
+      max->left = pos.itNode->left;
+      max->right = pos.itNode->right;
+      max->parent = pos.itNode->parent;
+      if( max->left != NULL )
+        max->left->parent = max;
+      max->right->parent = max;
+      if( max->parent != NULL)
+      {
+        if( max->parent->right == pos.itNode )
+          max->parent->right = max;
+        else
+          max->parent->left = max;
+      }
+      else
+        rootnode = max;
+    }
+    else
+    {
+      NNnode *min = minNode( pos.itNode->right);
+      if( min->right != NULL )
+      {
+        min->right->parent = min->parent;
+      }
+      if( min->parent->left == min )
+        min->parent->left = min->right;
+      else
+        min->parent->right = min->right;
+
+      min->left = pos.itNode->left;
+      min->right = pos.itNode->right;
+      min->parent = pos.itNode->parent;
+      min->left->parent = min;
+      if( min->right != NULL )
+        min->right->parent = min;
+      if( min->parent != NULL)
+      {
+        if( min->parent->right == pos.itNode )
+          min->parent->right = min;
+        else
+          min->parent->left = min;
+      }
+      else
+        rootnode = min;
+    }
   }
-  return iterator(newNode); 
+  if( first == pos.itNode )
+  {
+    first = res.itNode;
+    //cout << "first neu belegt" << endl;
+  }
+  delete pos.itNode;
+  --nrelements;
+  //cout << "out erase " << nrelements << endl;
+  return res;
 }
 
+/*
+add the first rootnode
+
+*/
+template<class T>
+typename NNTree<T>::iter NNTree<T>::addFirst( T &e)
+{
+  assert( nrelements == 0 );
+  return iter(newNode(e, NULL));
+}
+
+/*
+add a new NNnode with the element e beyond the iter it
+
+*/
+template<class T>
+typename NNTree<T>::iter NNTree<T>::addLeft( T &e, iter &it)
+{
+  //cout << "add left in" << endl;
+  assert( it.itNode->left == NULL );
+  NNnode *nNode = newNode(e, it.itNode);
+  it.itNode->left = nNode;
+  if( it.itNode == first )
+  {
+    first = nNode;
+  }
+  //cout << "add left out" << endl;
+  return iter(nNode); 
+}
+
+template<class T>
+typename NNTree<T>::iter NNTree<T>::addRight( T &e, iter &it)
+{
+  //cout << "add right in" << endl;
+  assert( it.itNode->right == NULL );
+  NNnode *nNode = newNode(e, it.itNode);
+  it.itNode->right = nNode;
+  //cout << "add right out" << endl;
+  return iter(nNode); 
+}
+
+/*
+add elem beyond given node
+
+*/
+template<class T>
+typename NNTree<T>::iter NNTree<T>::addElem( T &e, iter &it)
+{
+  //cout << "add elem in" << endl;
+  assert( it.itNode == NULL );
+  if( it.itNode->right == NULL)
+  {
+    NNnode *nNode = newNode(e, it.itNode);
+    it.itNode->right = nNode;
+    //cout << "add elem out" << endl;
+    return iter(nNode); 
+  }
+  else
+  {
+    NNnode *n = minNode(it.itNode->right);
+    NNnode *nNode = newNode(e, n);
+    it.itNode->left = nNode;
+    //cout << "add elem out" << endl;
+    return iter(nNode); 
+  }
+}
+
+/*
+iter functions
+
+*/
+//T& operator++(){itNode = itNode->right; return *this;} //prefix
+template<class T>
+typename NNTree<T>::iter& NNTree<T>::iter::operator++()    //prefix
+{
+  itNode = nextNode(itNode); 
+  return *this;
+}
+
+template<class T>
+typename NNTree<T>::iter& NNTree<T>::iter::operator--() //prefix
+{
+  itNode = prevNode(itNode); 
+  return *this;
+}
+
+/*
+private functions
+
+*/
+template<class T>
+typename NNTree<T>::NNnode *NNTree<T>::newNode( T &e, NNnode *p)
+{
+  NNnode *newNode = new NNnode;
+  newNode->left = NULL;
+  newNode->right = NULL;
+  newNode->elem = e;
+  if( !nrelements )
+  {
+    first = newNode;
+    rootnode = newNode;
+    newNode->parent = NULL;
+  }
+  else
+  {
+    newNode->parent = p;
+  }
+  ++nrelements;
+  return newNode; 
+}
+
+template<class T>
+unsigned int NNTree<T>::nodeCount( NNnode *n )
+{
+  if( n != NULL ) 
+    return 1 + nodeCount(n->left) + nodeCount(n->right);
+  else
+    return 0;
+}
+
+template<class T>
+typename NNTree<T>::NNnode *NNTree<T>::maxNode( NNnode *n)
+{
+  if( n->right != NULL )
+    return maxNode( n->right );
+  else
+    return n;
+}
+
+template<class T>
+typename NNTree<T>::NNnode *NNTree<T>::minNode( NNnode *n)
+{
+  if( n->left != NULL )
+    return minNode( n->left );
+  else
+    return n;
+}
+
+template<class T>
+typename NNTree<T>::NNnode *NNTree<T>::iter::nextNode( NNnode *n)
+{
+  if( n->right != NULL )
+    return minNode( n->right );
+  else
+  {
+    while( n->parent != NULL && n->parent->right == n )
+    {
+      n = n->parent;
+    }
+    return n->parent;
+  }
+}
+
+template<class T>
+typename NNTree<T>::NNnode *NNTree<T>::iter::prevNode( NNnode *n)
+{
+  if( n->left != NULL )
+    return NNTree<T>::maxNode( n->left );
+  else
+  {
+    while( n->parent != NULL && n->parent->left == n )
+    {
+      n = n->parent;
+    }
+    return n->parent;
+  }
+}
 #endif
