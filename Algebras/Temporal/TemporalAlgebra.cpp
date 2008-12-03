@@ -3182,20 +3182,58 @@ void MPoint::Trajectory( Line& line ) const
   if (size>0)
     line.Resize(size);
 
+  Point p0(false);      // starting point
+  Point p1(false);      // end point of the first unit
+  Point p_last(false);  // last point of the connected segment
+
   for( int i = 0; i < size; i++ )
   {
     Get( i, unit );
 
     if( !AlmostEqual( unit->p0, unit->p1 ) )
     {
-      hs.Set( true, unit->p0, unit->p1 );
-      hs.attr.edgeno = ++edgeno;
-      line += hs;
-      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
-      line += hs;
+      if(!p0.IsDefined()){ // first unit
+        p0 = unit->p0;
+        p1 = unit->p1;
+        p_last = unit->p1;
+      } else { // segment already exists
+        if(p_last!=unit->p0){ // spatial jump
+           hs.Set(true,p0,p_last);
+           hs.attr.edgeno = ++edgeno;
+           line += hs;
+           hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+           line += hs;
+           p0 = unit->p0;
+           p1 = unit->p1;
+           p_last = unit->p1;
+        } else { // an extension, check direction
+           if(!AlmostEqual(p0,unit->p1)){
+             HalfSegment tmp(true,p0,unit->p1);
+             double dist = tmp.Distance(p1);
+             if(AlmostEqual(dist,0.0)){
+               p_last = unit->p1;
+             } else {
+               hs.Set(true,p0,p_last);
+               hs.attr.edgeno = ++edgeno;
+               line += hs;
+               hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+               line += hs;
+               p0 = unit->p0;
+               p1 = unit->p1;
+               p_last = unit->p1;
+             }
+           }
+       }
+      }
     }
   }
-
+  if(p0.IsDefined() && p_last.IsDefined() && !AlmostEqual(p0,p_last)){
+    hs.Set(true,p0,p_last);
+    hs.attr.edgeno = ++edgeno;
+    line += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    line += hs;
+  }
   line.EndBulkLoad();
 }
 
