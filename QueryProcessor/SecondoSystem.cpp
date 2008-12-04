@@ -796,15 +796,32 @@ SecondoSystem::~SecondoSystem()
   delete al;
   al = 0;
 
+  bool shutdownOk = false;
   if ( initialized )
   {
-    ShutDown();
+    try 
+    { 
+      ShutDown();
+      shutdownOk = true;
+    } 
+    catch (SecondoException e) 
+    {
+      string smiErrors;
+      SmiEnvironment::GetLastErrorCode( smiErrors );
+      cmsg.error() << e.msg() << endl;
+      cmsg.error() << smiErrors << endl;
+      cmsg.send();
+    }
   }
+  
   delete catalog;
   delete queryProcessor;
   delete algebraManager;
   
   instance = 0;
+  
+  if (!shutdownOk)
+    throw SecondoException("Failure during destruction of SecondoSystem");
 }
 
 bool
@@ -852,16 +869,7 @@ SecondoSystem::ShutDown()
     instance->initialized  = false;
   }
 
-  if ( !SmiEnvironment::ShutDown() )
-  {
-      string errMsg;
-      const string bullet(" - ");
-      SmiEnvironment::GetLastErrorCode( errMsg );
-      cmsg.error() << bullet << "Error: SmiEnvironment::ShutDown() failed."
-                   << endl;
-      cmsg.error() << bullet << "Error: " << errMsg << endl;
-      cmsg.send();
-  }
+  SmiEnvironment::ShutDown();
 
   return (!instance->initialized);
 }

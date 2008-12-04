@@ -1176,7 +1176,6 @@ SmiEnvironment::ShutDown()
 	 << instance.impl->bdbHome << endl; 
 
   rc = dbenv->close( 0 );
-  //cerr << "dbenv->close returns " << rc << endl;
   SetBDBError( rc );
   instance.impl->envClosed = true;
   smiStarted = false;
@@ -1184,6 +1183,13 @@ SmiEnvironment::ShutDown()
   // --- Check if new errors arised 
 
   bool ok = ( errs == GetNumOfErrors() );
+
+  if (!ok) throw 
+    SecondoException( "SMI Problems while closing "
+		      "the Berkeley-DB environment! " 
+                      "Check the involved code parts of this session. "
+		      "All SMI files must be closed properly."   );
+
   return ok;
 }
 
