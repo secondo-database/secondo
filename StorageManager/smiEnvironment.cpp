@@ -112,7 +112,13 @@ SmiEnvironment::GetLastErrorCode()
 SmiError
 SmiEnvironment::GetLastErrorCode( string& errorMessage )
 {
-  errorMessage = "Secondo-SMI error stack: \n" + lastMessage;
+  stringstream msg;
+  msg << "\n" 
+      << "--------------------------- \n"
+      << "  Secondo-SMI Error Stack   \n"
+      << "--------------------------- \n" << lastMessage << "\n\n";
+  errorMessage = msg.str();     
+      		 
   lastMessage = "";
   return lastError;
 }
