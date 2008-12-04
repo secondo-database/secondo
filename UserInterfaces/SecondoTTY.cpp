@@ -711,8 +711,17 @@ SecondoTTY::Execute()
     if ( useOutputFile )
       cout.rdbuf( oldOutputBuffer );
   }
-  si->Terminate();
-  delete si;
+
+  try {
+    si->Terminate();
+    delete si;
+    si = 0;
+  }
+  catch (SecondoException e) 
+  {
+     cerr << e.msg() << endl;
+     rc = 17;    
+  }	  
   return (rc);
 }
 

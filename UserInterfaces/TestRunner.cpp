@@ -1510,9 +1510,16 @@ TestRunner::Execute()
       }
     }
     ShowErrorSummary();
-
-    si->Terminate();
-    delete si;
+    
+    try {
+      si->Terminate();
+      delete si;
+    } 
+    catch (SecondoException& e) 
+    {
+      cerr << e.msg() << endl;
+      numErrors++;                  
+    }        
     cout << "--- Secondo TestRunner terminated ---" << endl;
 
   return (numErrors);

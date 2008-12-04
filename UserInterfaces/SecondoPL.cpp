@@ -79,8 +79,15 @@ void handle_exit(void) {
   /* PROLOG interpreter has terminated, shutdown Secondo */
   if(si != 0)
   {
-    si->Terminate();
-    delete si;
+    try {	  
+      si->Terminate();
+      delete si;
+      si = 0;
+    }
+    catch (SecondoException e)
+    {
+       cerr << e.msg() << endl;    
+    }	    
   };
 
 }
