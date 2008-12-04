@@ -184,11 +184,19 @@ struct AttributeType
 This constructor should not be used.
 
 */
-  AttributeType( int in_algId, int in_typeId, 
-		 int in_size, size_t in_offset = 0 ):
+  AttributeType( int in_algId, 
+                 int in_typeId,
+		 int in_numOfFlobs, 
+		 int in_size, 
+		 int in_coreSize,
+		 bool in_extStorage,
+		 size_t in_offset = 0 ):
     algId( in_algId ),
     typeId( in_typeId ),
+    numOfFlobs( in_numOfFlobs ),
     size( in_size ),
+    coreSize( in_coreSize ),
+    extStorage( in_extStorage ),
     offset( in_offset )	
     {}
 /*
@@ -205,7 +213,10 @@ The data type's algebra ~id~ of the attribute.
 The data type's ~id~ of the attribute.
 
 */
+  int numOfFlobs;
   int size;
+  int coreSize;
+  bool extStorage;
 /*
 Size of attribute instance in bytes.
 
@@ -755,7 +766,7 @@ Update Relation Algebra.
 */
     inline int GetRootSize() const
     {
-      return tupleType->GetTotalSize();
+      return tupleType->GetCoreSize();
     }
 /*
 Returns the size of the tuple's root part.
@@ -763,7 +774,7 @@ Returns the size of the tuple's root part.
 */
     inline int GetRootSize( int i ) const
     {
-      return tupleType->GetAttributeType(i).size;
+      return tupleType->GetAttributeType(i).coreSize;
     }
 /*
 Returns the size of the attribute's root part.
@@ -795,6 +806,10 @@ part, i.e. the small FLOBs.
         FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
         if( !tmpFLOB->IsLob() )
           attrExtSize += tmpFLOB->Size();
+      }
+      
+      if (tupleType->GetAttributeType(i).extStorage) {
+        attrExtSize += attributes[i]->SerializedSize();
       }
       return attrExtSize;
     }
@@ -845,10 +860,14 @@ the FLOBs.
 */
     inline int GetSize( int i ) const
     {
-      int tupleSize = GetRootSize(i);
+      int attrSize = GetRootSize(i);
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-        tupleSize += attributes[i]->GetFLOB(j)->Size();
-      return tupleSize;
+        attrSize += attributes[i]->GetFLOB(j)->Size();
+
+      if (tupleType->GetAttributeType(i).extStorage) {
+        attrSize += attributes[i]->SerializedSize();
+      }
+      return attrSize;
     }
 /*
 Returns the total size of an attribute of the tuple taking

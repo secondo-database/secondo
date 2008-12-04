@@ -4098,7 +4098,7 @@ TupleSizeStream(Word* args, Word& result, int message,
 {
   Word elem;
   int count = 0;
-  float size = 0;
+  double size = 0;
 
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, elem);
@@ -4111,7 +4111,7 @@ TupleSizeStream(Word* args, Word& result, int message,
   }
   result = qp->ResultStorage(s);
 
-  if (count > 0.0){
+  if (count > 0){
     ((CcReal*) result.addr)->Set(true, (double)(size/count));
   } else {
     ((CcReal*) result.addr)->Set(false, 0.0);

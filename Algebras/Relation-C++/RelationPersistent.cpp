@@ -257,8 +257,8 @@ void Tuple::Save( SmiRecordFile *tuplefile,
   // Calculate the size of the small FLOB data which will be
   // saved together with the tuple attributes and save the LOBs
   // in the lobFile.
-  extSize += tupleType->GetTotalSize();
-  size += tupleType->GetTotalSize();
+  extSize += tupleType->GetCoreSize();
+  size += tupleType->GetCoreSize();
 
   this->tupleFile = tuplefile;
   this->lobFileId = lobFileId;
@@ -544,7 +544,13 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
     } 
     else if ( st == Attribute::Extension ) {
       currentSize = sizeof(uint32_t);
-      extensionSize += attributes[i]->SerializedSize();
+      size_t ss = attributes[i]->SerializedSize();
+
+      extensionSize += ss; 
+      attrExtSize[i] += ss;
+      extSize += ss;
+      size += ss;
+      attrSize[i] += ss;
     }	    
     else {
       cerr << "ERROR: unknown storage type for attribute No "
@@ -562,6 +568,9 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
       //assert( i >= 0 && (size_t)i < attrSize.size() );
       const size_t tmpSize = tmpFLOB->Size();
 
+      attrExtSize[i] += sizeof(uint32_t); // needed in the core part 
+                                          // to store offset
+      attrSize[i] += sizeof(uint32_t);
       attrSize[i] += tmpSize;
       size += tmpSize;
 
@@ -1880,13 +1889,13 @@ TupleType *Relation::GetTupleType() const
 double Relation::GetTotalRootSize() const
 {
   return privateRelation->relDesc.noTuples *
-         privateRelation->relDesc.tupleType->GetTotalSize();
+         privateRelation->relDesc.tupleType->GetCoreSize();
 }
 
 double Relation::GetTotalRootSize( int i ) const
 {
   return privateRelation->relDesc.noTuples *
-         privateRelation->relDesc.tupleType->GetAttributeType(i).size;
+         privateRelation->relDesc.tupleType->GetAttributeType(i).coreSize;
 }
 
 double Relation::GetTotalExtSize() const

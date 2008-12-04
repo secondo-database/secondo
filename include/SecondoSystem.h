@@ -323,8 +323,6 @@ Returns the FLOB cache.
 
 */
 
-  
- protected:
  
  private:
   SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc );
@@ -350,7 +348,16 @@ Are internal methods for restoring a database.
 
   bool            testMode;
   bool            initialized;
+
+
+#ifdef SECONDO_WIN32 
+  // declare a friend relationship to avoid a misguiding warning
+
+  friend class WinGCC_Avoid_Misguiding_Warnings;
+#endif
+
 };
+
 
 #endif
 

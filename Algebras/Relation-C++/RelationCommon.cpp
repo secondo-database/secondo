@@ -157,30 +157,36 @@ TupleType::TupleType( const ListExpr typeInfo )
         size = (am->SizeOfObj(algId, typeId))();
       }
       
-
+      // To Do: Moving this code into the Algebra Manager
+      //int currentCoreSize = am->GetCoreSize(algid,typeId);
       Attribute* attr =
 	      static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
 
-      int currentSize = 0;
+      int currentCoreSize = 0;
+      int numOfFlobs = attr->NumOfFLOBs();
+      bool extStorage = false;
       if ( attr->GetStorageType() == Attribute::Extension ) 
       {
-        currentSize += sizeof(uint32_t);
+        currentCoreSize = sizeof(uint32_t);
+	extStorage = true;
       }	
       else if ( attr->GetStorageType() == Attribute::Default )
       { 
-	currentSize += ( size + (sizeof(uint32_t) * attr->NumOfFLOBs()) );      
+	currentCoreSize = ( size + (sizeof(uint32_t) * numOfFlobs) );      
       }	
       else 
       {
-        currentSize += attr->SerializedSize();
+        currentCoreSize = attr->SerializedSize();
       }
       
       delete attr;
 
       totalSize += size;
-      attrTypeArray[i++] = AttributeType( algId, typeId, size, offset );
-      coreSize += currentSize; 
-      offset += currentSize;
+      attrTypeArray[i++] = AttributeType( algId, typeId, numOfFlobs, 
+		                          size, currentCoreSize, 
+					  extStorage, offset      );
+      coreSize += currentCoreSize; 
+      offset += currentCoreSize;
     }
   }
   catch (SecondoException e) {
