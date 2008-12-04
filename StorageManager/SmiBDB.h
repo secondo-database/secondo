@@ -241,26 +241,6 @@ class SmiEnvironment::Implementation
 {
  public:
   static DbEnv* GetTempEnvironment() { return instance.impl->tmpEnv; };
-  static DbHandleIndex AllocateDbHandle();
-/*
-Allocates a new "Berkeley DB"[3] handle and returns the index within the handle array.
-
-*/
-  static Db*  GetDbHandle( DbHandleIndex idx );
-/*
-Returns the "Berkeley DB"[3] handle at the position ~idx~ of the handle array.
-
-*/
-  static void FreeDbHandle( DbHandleIndex idx );
-/*
-Marks the "Berkeley DB"[3] handle at position ~idx~ as *not in use*.
-
-*/
-  static void CloseDbHandles();
-/*
-Closes all handles in the handle array which are not in use anymore.
-
-*/
   static SmiFileId GetFileId( const bool isTemporary = false );
 /*
 Returns a unique file identifier.
@@ -371,9 +351,34 @@ Are needed to support listing the names of all existing "Secondo"[3] databases.
 
   queue<SmiDropFilesEntry>         bdbFilesToDrop;
   map<string,SmiCatalogFilesEntry> bdbFilesToCatalog;
+
+  
+  
   vector<SmiDbHandleEntry>         dbHandles;
   DbHandleIndex                    firstFreeDbHandle;
-  
+
+  static DbHandleIndex AllocateDbHandle();
+/*
+Allocates a new "Berkeley DB"[3] handle and returns the index within the handle array.
+
+*/
+  static Db*  GetDbHandle( DbHandleIndex idx );
+/*
+Returns the "Berkeley DB"[3] handle at the position ~idx~ of the handle array.
+
+*/
+  static void FreeDbHandle( DbHandleIndex idx );
+/*
+Marks the "Berkeley DB"[3] handle at position ~idx~ as *not in use*.
+
+*/
+  static void CloseDbHandles();
+/*
+Closes all handles in the handle array which are not in use anymore.
+
+*/
+
+
   friend class SmiEnvironment;
   friend class SmiFile;
   friend class SmiRecordFile;
