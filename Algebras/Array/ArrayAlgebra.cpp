@@ -91,8 +91,8 @@ value mapping of the ~summarize~ operator.
 
 June 2006, V. Almeida moved some code to the FunVector.h and FunVector.cpp files
 
-Januar 2007, Some bug fixes. However, loopswitcha and loopselect a do not work for arrays
-of btree.
+Januar 2007, Some bug fixes. However, loopswitcha and loopselecta still do not work 
+for arrays of btree.
 
 
 1 Preliminaries
@@ -256,7 +256,7 @@ Array::Array()
 
 Array::~Array()
 {
-  delete []array;
+  delete [] array;
 }
 
 void
@@ -265,8 +265,9 @@ Array::initialize( int algebraId, int typeId, int n, Word* elements )
 // If the array is already defined, it will be cleared and redefined.
 
 {
+  cerr << "Array::initialize, defined =" << defined << endl;	
   if (defined) {
-    delete []array;
+    delete [] array;
   }
 
   defined = true;
@@ -509,6 +510,8 @@ bool
 OpenArray( SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo, Word& value )
 {
+  cerr << "*OpenArray" << endl;	
+
   ListExpr valueList = 0;
   string valueString = "";
   int valueLength = 0;
@@ -541,6 +544,7 @@ bool
 SaveArray( SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo, Word& value)
 {
+  cerr << "*SaveArray" << endl;	
   ListExpr valueList;
   string valueString;
   int valueLength;
@@ -568,12 +572,31 @@ elements of the array. Additional details are explained within these function.
 Word
 CreateArray( const ListExpr typeInfo )
 {
+  cerr << "*CreateArray" << endl;	
   return SetWord(new Array());
 }
 
 void
 DeleteArray( const ListExpr typeInfo, Word& w )
 {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  Array* array = (Array*)w.addr;
+  cerr << "*DeleteArray, defined =" << array->isDefined() << endl;	
+
+  if (array->isDefined()) {
+
+    string typeName = sc->GetTypeName(array->getElemAlgId(),
+                                      array->getElemTypeId());
+
+    for (int i=0; i<array->getSize(); i++) {
+      Word element = array->getElement(i);
+      (am->DeleteObj(array->getElemAlgId(),
+                     array->getElemTypeId()))(nl->TheEmptyList(), element);
+    }
+  }
+
+  delete array;
+
   w.addr = 0;
 }
 
@@ -581,6 +604,7 @@ void CloseArray( const ListExpr typeInfo, Word& w )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Array* array = (Array*)w.addr;
+  cerr << "*CloseArray, defined =" << array->isDefined() << endl;	
 
   if (array->isDefined()) {
 
@@ -602,6 +626,7 @@ void CloseArray( const ListExpr typeInfo, Word& w )
 Word
 CloneArray( const ListExpr typeInfo, const Word& w )
 {
+  cerr << "*CloneArray" << endl;	
   Array* array = (Array*)w.addr;
   Array* newarray;
 
@@ -1612,7 +1637,6 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
     qp->Request(args[0].addr, actual);
   }
-  qp->Close(args[0].addr);
 
   result = qp->ResultStorage(s);
 
@@ -1629,10 +1653,13 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
   if (sc->GetTypeId("rel", algebraId, typeId)) {
 
     ((Array*)result.addr)->initialize(algebraId, typeId, n, a);
+    qp->Close(args[0].addr);
     return 0;
 
   } else {
 
+    // should never happen	  
+    assert(false);	  
     return 1;
   }
 }
@@ -2975,8 +3002,8 @@ partjoinFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   ((Array*)result.addr)->initialize(algebraId, typeId, c, a);
 
-  ((GenericRelation*)Acum.addr)->Clear();
-  ((GenericRelation*)Bcum.addr)->Clear();
+  ((Relation*)Acum.addr)->Delete();
+  ((Relation*)Bcum.addr)->Delete();
 
   return 0;
 }
@@ -3218,8 +3245,8 @@ partjoinswitchFun( Word* args, Word& result, int message, Word& local,
 
   ((Array*)result.addr)->initialize(algebraId, typeId, c, a);
 
-  ((GenericRelation*)Acum.addr)->Clear();
-  ((GenericRelation*)Bcum.addr)->Clear();
+  ((Relation*)Acum.addr)->Delete();
+  ((Relation*)Bcum.addr)->Delete();
 
   return 0;
 }
@@ -3389,8 +3416,8 @@ partjoinselectFun( Word* args, Word& result, int message, Word& local,
 
   ((Array*)result.addr)->initialize(algebraId, typeId, c, a);
 
-  ((GenericRelation*)Acum.addr)->Clear();
-  ((GenericRelation*)Bcum.addr)->Clear();
+  ((Relation*)Acum.addr)->Delete();
+  ((Relation*)Bcum.addr)->Delete();
 
   return 0;
 }
