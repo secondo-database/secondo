@@ -4,7 +4,7 @@
 #
 # 12.12.2006, M. Spiekermann
 
-export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples"
+export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamples,SI:PrintCounters"
 
 # On linux the variable below will use a less efficient
 # malloc implementation which does error detection and aborts
@@ -52,9 +52,9 @@ for f in $files; do
 done
 
 if [ $err -ne 0 ]; then
-  echo -e "\n\n Selftest failed! The algebra(s)"
+  echo -e "\n\n Selftest failed! List of failing test files:"
   echo -e "$errFiles"
-  echo -e "\n return with errors."
+  echo -e "\n"
 else
   echo -e "Selftest finished successfully "
 fi
