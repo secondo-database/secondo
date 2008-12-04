@@ -303,6 +303,9 @@ int createObj(string& objName, ListExpr valueExpr) {
     catch (SI_Error err)
     {
       rc = err;
+      qp.Destroy( tree, true );
+      tree = 0;
+      correct = false;
     }
 
     if ( correct )
@@ -336,14 +339,19 @@ int createObj(string& objName, ListExpr valueExpr) {
            ListExpr
              functionList =
                    ctlg.GetObjectValue( nl.SymbolValue( valueExpr ) );
-           ctlg.UpdateObject( objName, SetWord( functionList ) );
+                   ctlg.UpdateObject( objName, SetWord( functionList ) );
         }
         else
         {
           ctlg.UpdateObject( objName, SetWord( valueExpr ) );
         }
       }
-    }
+    } 
+    else 
+    {
+       qp.Destroy( tree, true );
+       tree = 0;
+    }        
   }
   return rc;
 
