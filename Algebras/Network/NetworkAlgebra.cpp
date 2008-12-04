@@ -4768,6 +4768,9 @@ double GPoint::Distance (GPoint* pToGPoint){
     double res = from->Distance(*to);
     delete from;
     delete to;
+    SecondoSystem::GetCatalog()->CloseObject( nl->SymbolAtom("network"),
+                                              pNetwork );
+
     return res;
   } else return numeric_limits<double>::max();
 }
