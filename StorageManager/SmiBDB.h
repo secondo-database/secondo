@@ -357,6 +357,8 @@ Are needed to support listing the names of all existing "Secondo"[3] databases.
   vector<SmiDbHandleEntry>         dbHandles;
   DbHandleIndex                    firstFreeDbHandle;
 
+public:
+
   static DbHandleIndex AllocateDbHandle();
 /*
 Allocates a new "Berkeley DB"[3] handle and returns the index within the handle array.
