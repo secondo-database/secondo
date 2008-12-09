@@ -1710,6 +1710,7 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
 	  {
 	     ctlg.UpdateObject( objName, SetWord( valueExpr ) );
 	  }
+          qp.Destroy( tree, true );
 	}
       } catch (SI_Error err) {
         
