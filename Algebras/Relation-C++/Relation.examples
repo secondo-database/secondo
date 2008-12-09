@@ -31,8 +31,8 @@ Result   : 13
 Operator : attrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
-Example  : query Orte attrsize[Ort]
-Result   : (platform (linux (real 4.0)) (linux64 (real 64.0)) (win32 (real 56.0)))
+Example  : query Orte attrsize[Ort] = Orte feed attrsize[Ort]
+Result   : TRUE
 
 
 Operator : consume
@@ -69,15 +69,15 @@ Result   : 1
 Operator : extattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> real
-Example  : query Trains extattrsize[Trip]
-Result   : (platform (linux (real 92.0)) (linux64 (real 152.0)) (win32 (real 104.0)))
+Example  : query Trains extattrsize[Trip] = Trains feed extattrsize[Trip]
+Result   : TRUE
 
 
 Operator : exttuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
-Example  : query Trains exttuplesize
-Result   : (platform (linux (real 128.0)) (linux64 (real 200.0)) (win32 (real 136.0)))
+Example  : query Trains exttuplesize = Trains feed exttuplesize
+Result   : TRUE
 
 
 Operator : feed
@@ -132,15 +132,15 @@ Result   : 10
 Operator : rootattrsize
 Number   : 1
 Signature: stream|rel(tuple X) x ident -> int
-Example  : query Trains rootattrsize[Trip]
-Result   : (platform (linux (int 92)) (linux64 (int 152)) (win32 (int 104)))
+Example  : query Trains rootattrsize[Trip] = Trains feed rootattrsize[Trip]
+Result   : TRUE
 
 
 Operator : roottuplesize
 Number   : 1
 Signature: ((stream|rel (tuple x))) -> int
-Example  : query Trains feed project[Id, Trip] roottuplesize
-Result   : (platform (linux (int 104)) (linux64 (int 168)) (win32 (int 116)))
+Example  : query Trains roottuplesize = Trains feed roottuplesize
+Result   : TRUE
 
 
 Operator : sizecounters
@@ -153,10 +153,8 @@ Result   : 41267
 Operator : tuplesize
 Number   : 1
 Signature: ((stream/rel (tuple x))) -> real
-Example  : query Trains tuplesize
-Result   : (platform (linux (real 10766.97508896797)) (linux64 (real 15608.1708984375)) (win32 (real 11141.83629893239)))
-Remark   : On Linux and Windows this operator returns different values. Maybe it depends on Berkeley-DB or different page sizes.
-
+Example  : query Trains tuplesize = Trains feed tuplesize
+Result   : TRUE
 
 Operator : tconsume
 Number   : 1
