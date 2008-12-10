@@ -1192,8 +1192,9 @@ plan_to_atom(A,A) :-
   string(A),
   !.
 
-plan_to_atom(dbobject(DCname),ExtName) :-
-  ( dcName2externalName(DCname,ExtName)
+plan_to_atom(dbobject(Name),ExtName) :-
+  dcName2externalName(DCname, Name),       % convert to DC-spelling
+  ( dcName2externalName(DCname,ExtName)    % if Name is known
     -> true
     ; ( write_list(['\nERROR:\tCannor translate \'',dbobject(DCname),'\'.']),
         throw(error_SQL(optimizer_plan_to_atom(dbobject(DCname),
@@ -1416,7 +1417,7 @@ plan_to_atom(sortby(Stream, []), Result) :-
 plan_to_atom(exactmatchfun(Index, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(Rel, RelAtom),
   plan_to_atom(a(Name, R, Case), AttrAtom),
-  plan_to_atom(Index,IndexAtom),
+  plan_to_atom(dbobject(Index),IndexAtom),
   newVariable(T),
   concat_atom(['fun(', T, ' : TUPLE) ', IndexAtom,
     ' ', RelAtom, 'exactmatch[attr(', T, ', ', AttrAtom, ')] '], Result),
@@ -1841,7 +1842,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
 % generic rule for (Term = Attr): exactmatch using btree or hashtable
 % without rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  exactmatch(IndexName, rel(Name, *), Y)
+  exactmatch(dbobject(IndexName), rel(Name, *), Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,*),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -1851,7 +1852,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term = Attr): exactmatch using btree or hashtable
 % with rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rename(exactmatch(IndexName, rel(Name, Var), Y), Var)
+  rename(exactmatch(dbobject(IndexName), rel(Name, Var), Y), Var)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -1861,7 +1862,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term = Attr): rangesearch using mtree
 % without rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rangesearch(IndexName, rel(Name, *), Y, 0.0)
+  rangesearch(dbobject(IndexName), rel(Name, *), Y, 0.0)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,*),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -1871,7 +1872,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term = Attr): rangesearch using mtree
 % with rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rename(rangesearch(IndexName, rel(Name, Var), Y), Var, 0.0)
+  rename(rangesearch(dbobject(IndexName), rel(Name, Var), Y), Var, 0.0)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -1885,7 +1886,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
 % generic rule for (Term >= Attr): leftrange using btree
 % without rename
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
-  leftrange(IndexName, rel(Name, *), Y)
+  leftrange(dbobject(IndexName), rel(Name, *), Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,*), attr(AttrName, Arg, AttrCase), DCindex, btree),
@@ -1894,7 +1895,7 @@ indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term >= Attr): leftrange using btree
 % with rename
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
-  rename(leftrange(IndexName, rel(Name, Var), Y), Var)
+  rename(leftrange(dbobject(IndexName), rel(Name, Var), Y), Var)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var), attr(AttrName, Arg, AttrCase), DCindex, btree),
@@ -1908,7 +1909,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
 % generic rule for (Term <= Attr): rightrange using btree
 % without rename
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
-  rightrange(IndexName, rel(Name, *), Y)
+  rightrange(dbobject(IndexName), rel(Name, *), Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name, *), attr(AttrName, Arg, AttrCase), DCindex, btree),
@@ -1917,7 +1918,7 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term <= Attr): rightrange using btree
 % with rename
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
-  rename(rightrange(IndexName, rel(Name, Var), Y), Var)
+  rename(rightrange(dbobject(IndexName), rel(Name, Var), Y), Var)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var), attr(AttrName, Arg, AttrCase), DCindex, btree),
@@ -1936,7 +1937,7 @@ filter is used.
 % Generic indexselect translation for predicates checking on mbbs
 
 indexselect(arg(N), pr(Pred, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *), Y), Pred)
+  filter(windowintersects(dbobject(IndexName), rel(Name, *), Y), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
@@ -1950,8 +1951,8 @@ indexselect(arg(N), pr(Pred, _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselect(arg(N), pr(Pred, _)) =>
-  filter(rename(windowintersects(IndexName, rel(Name,*),bbox(Y)),RelAlias),
-         Pred)
+  filter(rename(windowintersects(dbobject(IndexName), rel(Name,*),bbox(Y)),
+                RelAlias), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)]),
@@ -1988,7 +1989,7 @@ indexselect(arg(N), Pred) => X :-
 
 % 'present' with temporal(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
+  filter(gettuples(windowintersectsS(dbobject(IndexName), queryrect2d(Y)),
          rel(Name, *)), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, *)),
@@ -1997,7 +1998,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(rename(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
+  filter(rename(gettuples(windowintersectsS(dbobject(IndexName),queryrect2d(Y)),
         rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2007,8 +2008,9 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
 
 % 'present' with temporal(rtree,unit) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))),
-         rel(Name, *)), attr(AttrName, Arg, AttrCase) present Y)
+  filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+         queryrect2d(Y)))), rel(Name, *)),
+         attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
@@ -2017,7 +2019,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(gettuples(rdup(sort(
-         windowintersectsS(IndexName, queryrect2d(Y)))),
+         windowintersectsS(dbobject(IndexName), queryrect2d(Y)))),
          rel(Name, *)), RelAlias), attr(AttrName,Arg,AttrCase) present Y)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2028,7 +2030,8 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
 
 % 'passes' with spatial(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(gettuples(windowintersectsS(IndexName, bbox(Y)), rel(Name, *)),
+  filter(gettuples(windowintersectsS(dbobject(IndexName), bbox(Y)),
+                                     rel(Name, *)),
          attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, *)),
@@ -2037,7 +2040,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(rename(gettuples(windowintersectsS(IndexName, bbox(Y)),
+  filter(rename(gettuples(windowintersectsS(dbobject(IndexName), bbox(Y)),
          rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2048,7 +2051,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 
 % 'passes' with spatial(rtree,unit) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
+  filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), bbox(Y)))),
          rel(Name, *)), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, *)),
@@ -2057,7 +2060,8 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
+  filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+                                                      bbox(Y)))),
          rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2069,8 +2073,8 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with unit_3d index
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))),
-            rel(Name, *))
+  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+            box3d(bbox(Z),Y)))), rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, unit_3d),
@@ -2078,8 +2082,8 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  rename(gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))),
-            rel(Name, *)), RelAlias)
+  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+         box3d(bbox(Z),Y)))), rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
@@ -2090,7 +2094,8 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with object_3d index
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), rel(Name, *))
+  gettuples(windowintersectsS(dbobject(IndexName), box3d(bbox(Z),Y)),
+            rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
@@ -2099,7 +2104,7 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  rename(gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)),
+  rename(gettuples(windowintersectsS(dbobject(IndexName), box3d(bbox(Z),Y)),
          rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2110,14 +2115,14 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 % 'intersects' with object_4d
 % does not consider 4d-boxes created 'on the fly'
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) intersects Y, _)) =>
-  gettuples(windowintersectsS(IndexName, Y), rel(Name, *))
+  gettuples(windowintersectsS(dbobject(IndexName), Y), rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree4),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
-  => rename(gettuples(windowintersectsS(IndexName, Y),
+  => rename(gettuples(windowintersectsS(dbobject(IndexName), Y),
      rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2127,14 +2132,14 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
 % 'intersects' with object_8d index
 % does not consider 8d-boxes created 'on the fly'
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) intersects Y, _)) =>
-  gettuples(windowintersectsS(IndexName, Y), rel(Name, *))
+  gettuples(windowintersectsS(dbobject(IndexName), Y), rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
-  => rename(gettuples(windowintersectsS(IndexName, Y),
+  => rename(gettuples(windowintersectsS(dbobject(IndexName), Y),
      rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2189,21 +2194,21 @@ Try to apply projections as early as possible!
 
 
 exactmatch(IndexName, arg(N), Expr) =>
-  exactmatch(IndexName, Rel, Expr) :-
+  exactmatch(dbobject(IndexName), Rel, Expr) :-
   isStarQuery,
   argument(N, Rel),
   Rel = rel(_, *), % no renaming needed
   !.
 
 exactmatch(IndexName, arg(N), Expr) =>
-  rename(exactmatch(IndexName, Rel, Expr), Var) :-
+  rename(exactmatch(dbobject(IndexName), Rel, Expr), Var) :-
   isStarQuery, % no need for project
   argument(N, Rel),
   Rel = rel(_, Var),
   !.
 
 exactmatch(IndexName, arg(N), Expr) =>
-  project(exactmatch(IndexName, Rel, Expr), AttrNames) :-
+  project(exactmatch(dbobject(IndexName), Rel, Expr), AttrNames) :-
   not(isStarQuery),
   argument(N, Rel ),
   Rel = rel(_, *), % no renaming needed
@@ -2212,7 +2217,7 @@ exactmatch(IndexName, arg(N), Expr) =>
 
 
 exactmatch(IndexName, arg(N), Expr) =>
-  rename(project(exactmatch(IndexName, Rel, Expr), AttrNames), Var) :-
+  rename(project(exactmatch(dbobject(IndexName), Rel, Expr), AttrNames), Var) :-
   not(isStarQuery),
   argument(N, Rel),
   Rel = rel(_, Var), % with renaming
@@ -2278,21 +2283,21 @@ Try to apply projections as early as possible!
 
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  windowintersects(IndexName, Rel, Expr) :-
+  windowintersects(dbobject(IndexName), Rel, Expr) :-
   isStarQuery,
   argument(N, Rel),
   Rel = rel(_, *), % no renaming needed
   !.
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  rename(windowintersects(IndexName, Rel, Expr), Var) :-
+  rename(windowintersects(dbobject(IndexName), Rel, Expr), Var) :-
   isStarQuery, % no need for project
   argument(N, Rel),
   Rel = rel(_, Var),
   !.
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  project(windowintersects(IndexName, Rel, Expr), AttrNames) :-
+  project(windowintersects(dbobject(IndexName), Rel, Expr), AttrNames) :-
   not(isStarQuery),
   argument(N, Rel ),
   Rel = rel(_, *), % no renaming needed
@@ -2301,7 +2306,8 @@ rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
 
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  rename(project(windowintersects(IndexName, Rel, Expr), AttrNames), Var) :-
+  rename(project(windowintersects(dbobject(IndexName), Rel, Expr), AttrNames),
+         Var) :-
   not(isStarQuery),
   argument(N, Rel),
   Rel = rel(_, Var), % with renaming
@@ -3298,10 +3304,11 @@ cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
 % Cost function copied from windowintersects
 % May be wrong, but as it is usually used together
 % with 'gettuples', the total cost should be OK
-cost(windowintersectsS(IndexName, _), Sel, Size, Cost) :-
+cost(windowintersectsS(dbobject(IndexName), _), Sel, Size, Cost) :-
   % get relationName Rel from Index
   concat_atom([RelName|_],'_',IndexName),
-  Rel = rel(RelName, *),
+  dcName2internalName(RelDC,RelName),
+  Rel = rel(RelDC, *),
   cost(Rel, 1, RelSize, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,  % bad estimation, may contain additional dublicates
