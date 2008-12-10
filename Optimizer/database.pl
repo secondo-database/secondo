@@ -3025,7 +3025,8 @@ updateRel(Rel) :-
   dcName2externalName(DCRel,ExtRel),
   write_list(['\nINFO:\updateRel(', Rel, ') retracts all information on \'',
               ExtRel, '\'...']),
-  retractStoredInformation(DCRel),
+%  retractStoredInformation(DCRel), % original code
+  handleLostRelation(DCRel),        % new code - will also remove samples etc.
   write_list(['\nINFO:\updateRel(', Rel, ') re-collects basic information ',
               'on \'', ExtRel,'\'...']),
   updateCatalog,
