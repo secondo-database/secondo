@@ -265,7 +265,7 @@ Array::initialize( int algebraId, int typeId, int n, Word* elements )
 // If the array is already defined, it will be cleared and redefined.
 
 {
-  cerr << "Array::initialize, defined =" << defined << endl;	
+  //cerr << "Array::initialize, defined =" << defined << endl;	
   if (defined) {
     delete [] array;
   }
@@ -510,7 +510,7 @@ bool
 OpenArray( SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo, Word& value )
 {
-  cerr << "*OpenArray" << endl;	
+  //cerr << "*OpenArray" << endl;	
 
   ListExpr valueList = 0;
   string valueString = "";
@@ -544,7 +544,7 @@ bool
 SaveArray( SmiRecord& valueRecord, size_t& offset,
            const ListExpr typeInfo, Word& value)
 {
-  cerr << "*SaveArray" << endl;	
+  //cerr << "*SaveArray" << endl;	
   ListExpr valueList;
   string valueString;
   int valueLength;
@@ -572,7 +572,7 @@ elements of the array. Additional details are explained within these function.
 Word
 CreateArray( const ListExpr typeInfo )
 {
-  cerr << "*CreateArray" << endl;	
+  //cerr << "*CreateArray" << endl;	
   return SetWord(new Array());
 }
 
@@ -581,7 +581,7 @@ DeleteArray( const ListExpr typeInfo, Word& w )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Array* array = (Array*)w.addr;
-  cerr << "*DeleteArray, defined =" << array->isDefined() << endl;	
+  //cerr << "*DeleteArray, defined =" << array->isDefined() << endl;	
 
   if (array->isDefined()) {
 
@@ -604,7 +604,7 @@ void CloseArray( const ListExpr typeInfo, Word& w )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Array* array = (Array*)w.addr;
-  cerr << "*CloseArray, defined =" << array->isDefined() << endl;	
+  //cerr << "*CloseArray, defined =" << array->isDefined() << endl;	
 
   if (array->isDefined()) {
 
@@ -626,7 +626,7 @@ void CloseArray( const ListExpr typeInfo, Word& w )
 Word
 CloneArray( const ListExpr typeInfo, const Word& w )
 {
-  cerr << "*CloneArray" << endl;	
+  //cerr << "*CloneArray" << endl;	
   Array* array = (Array*)w.addr;
   Array* newarray;
 
