@@ -238,6 +238,7 @@ using namespace std;
 #include <time.h>       //needed for random number generator
 
 #include "NList.h"
+#include "RelationAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1350,7 +1351,8 @@ ListExpr ifthenelse2Type(ListExpr args)
 
     if (nl->Equal(arg2, arg3) && nl->IsEqual(arg1,"bool"))
     {
-      return arg2;
+      if ( IsRelDescription(arg2) || IsRelDescription(arg2, true) )	    
+        return arg2;
     }
   }
   ErrorReporter::ReportError("Incorrect input for operator ifthenelse.");
@@ -3049,22 +3051,28 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 int
 ifthenelse2Fun(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-    result = qp->ResultStorage( s );
-
-    Word res;
+    Word res(Address(0));
 
     qp->Request(args[0].addr, res);
-    CcBool* arg1 = (CcBool*) res.addr;
+    CcBool* arg1 = static_cast<CcBool*>( res.addr );
 
     int index = ((arg1->IsDefined() &&  arg1->GetBoolval()) ? 1 : 2 );
     qp->Request(args[index].addr, res);
-    result.addr = res.addr; // ???
 
-    //qp->ReInitResultStorage(qp->GetSon(s,index));
-    //Supplier son = qp->GetSon(s,index);
-    //son->result.addr=0;
-    qp->ChangeResultStorage(qp->GetSon(s,index),SetWord(Address(0)));
+    qp->DeleteResultStorage(s);
 
+    if ( qp->IsOperatorNode(qp->GetSon(s, index)) 
+	   && !qp->IsFunctionNode(qp->GetSon(s, index)) ) 
+    {
+      qp->ChangeResultStorage(s, res);    
+      qp->ReInitResultStorage(qp->GetSon(s,index));
+    } 
+    else 
+    {
+      Relation* r = static_cast<Relation*>( res.addr );
+      qp->ChangeResultStorage(s, SetWord(r->Clone()) );      
+    } 	    
+    result = qp->ResultStorage(s); 
     return 0;
 }
 
@@ -4091,7 +4099,7 @@ const string CCSpecKeywords  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(bool x T x T) ->  T </text--->"
-             "<text>ifthenelse(P, R1, R1)</text--->"
+             "<text>ifthenelse(P, R1, R2)</text--->"
              "<text>Evalutes and returns the second argument R1, if the "
              "boolean value expression, given as a first argument P, can be "
              "evaluated to TRUE. If P evaluates to FALSE, the third argument "
@@ -4105,7 +4113,7 @@ const string CCSpecIfthenelse  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string CCSpecIfthenelse2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" )"
                              "( <text>(bool x T x T) ->  T </text--->"
-             "<text>ifthenelse2(P, R1, R1)</text--->"
+             "<text>ifthenelse2(P, R1, R2)</text--->"
              "<text>Evalutes and returns the second argument R1, if the "
              "boolean value expression, given as a first argument P, can be "
              "evaluated to TRUE. If P evaluates to FALSE or it is undefined, "
@@ -4113,8 +4121,8 @@ const string CCSpecIfthenelse2  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "R2 is evaluated and returned.  "
              "NOTE: The second and the third argument must be of the "
              "same type T.</text--->"
-             "<text>query ifthenelse2(3 < 5,[const string value \"less\"],"
-                "[const string value \"greater\"])</text--->"
+             "<text>query ifthenelse2(3 < 5, ten,"
+                "thousand feed consume) count</text--->"
              ") )";
 
 const string CCSpecBetween  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "

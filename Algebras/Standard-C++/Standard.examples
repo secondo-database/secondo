@@ -139,8 +139,15 @@ Result   : "less"
 Operator : ifthenelse2
 Number   : 1
 Signature: (bool x T x T) ->  T
-Example  : query ifthenelse2(3 < 5,[const string value "less"],[const string value "greater"])
-Result   : "less"
+Example  : query ifthenelse2(3 < 5,ten feed consume,thousand feed consume) count
+Result   : 10
+
+Operator : ifthenelse2
+Number   : 2
+Signature: (bool x T x T) ->  T
+Example  : query ifthenelse2(3 > 5,ten feed tconsume,thousand feed tconsume) count
+Result   : 1000
+
 
 Operator : intersection
 Number   : 1
