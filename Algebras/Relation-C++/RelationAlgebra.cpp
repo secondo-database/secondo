@@ -550,6 +550,7 @@ instance of ~rel~.
 Word
 CreateRel(const ListExpr typeInfo)
 {
+  //cerr << "CreateRel: " << nl->ToString(typeInfo) << endl;	
   Relation* rel = new Relation( typeInfo );
   return (SetWord(rel));
 }
@@ -612,6 +613,7 @@ RestoreFromListRel(ListExpr typeInfo, ListExpr value,
 void DeleteRel(const ListExpr typeInfo, Word& w)
 {
   ((Relation *)w.addr)->Delete();
+  w.addr = 0;
 }
 
 /*
