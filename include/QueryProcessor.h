@@ -379,9 +379,12 @@ get its son number ~no~.
 
 */
 
- bool IsObjectNode( const Supplier s );
+ bool IsObjectNode( const Supplier s ) const;
+ bool IsOperatorNode( const Supplier s ) const;
+ bool IsFunctionNode( const Supplier s ) const;
+
 /*
-Check whether an argument node is of type OBJECT.
+Check whether an argument node is of type OBJECT or OPERATOR.
 
 */
 

@@ -3175,6 +3175,7 @@ Deletes an operator tree object.
               }
             }
           }
+	  tree->u.dobj.value.addr = 0;
         }
         break;
       }
@@ -3381,7 +3382,7 @@ Then call the operator's value mapping function.
             if ( ((OpNode*)(tree->u.op.sons[i].addr))->evaluable )
             {
               if ( !tree->u.op.isStream && message <= CLOSE)
-      //no stream operator, normal evaluation
+              //no stream operator, normal evaluation
               {
                         if ( traceNodes )
                         cerr << fn << "Simple op: compute result for son["
@@ -3806,17 +3807,31 @@ QueryProcessor::GetSupplierSon( const Supplier s, const int no )
 
 
 /*
-Check whether an argument is an object.
+Check whether an argument is an object or an operator.
 
 */
 bool
-QueryProcessor::IsObjectNode( const Supplier s )
+QueryProcessor::IsObjectNode( const Supplier s ) const
 {
-  OpTree tree = (OpTree) s;
+  OpTree tree = static_cast<OpTree>( s );
   return (tree->nodetype == Object);
 }
 
 
+bool
+QueryProcessor::IsOperatorNode( const Supplier s ) const
+{
+  OpTree tree = static_cast<OpTree>( s );
+  return tree->nodetype == Operator;
+}
+
+bool
+QueryProcessor::IsFunctionNode( const Supplier s ) const
+{
+  OpTree tree = static_cast<OpTree>( s );
+  return (tree->nodetype == Operator) 
+	   && ((tree->u.op.resultAlgId == 0) || (tree->u.op.isFun));
+}
 
 
 
@@ -3873,6 +3888,8 @@ Word
 QueryProcessor::ResultStorage( const Supplier s )
 {
   OpTree tree = (OpTree) s;
+  assert (tree->nodetype == Operator);
+
   return (tree->u.op.resultWord);
 }
 
@@ -3892,7 +3909,9 @@ void
 QueryProcessor::ChangeResultStorage( const Supplier s, const Word w )
 {
   OpTree tree = (OpTree) s;
-  tree->u.op.resultWord = w;
+  assert (tree->nodetype == Operator);
+
+  tree->u.op.resultWord.setAddr(w.addr);
 }
 
 void
@@ -3900,15 +3919,23 @@ QueryProcessor::SetDeleteFunction( const Supplier s,
                                    const ObjectDeletion f )
 {
   OpTree tree = (OpTree) s;
+  assert (tree->nodetype == Operator);
+
   tree->u.op.deleteFun = f;
 }
+
+
+
 
 void
 QueryProcessor::DeleteResultStorage( const Supplier s )
 {
   OpTree tree = (OpTree) s;
+  assert (tree->nodetype == Operator);
+
   int algId = tree->u.op.resultAlgId;
   int typeId = tree->u.op.resultTypeId;
+
   if ( tree->u.op.resultWord.addr ) {
     if (!tree->u.op.deleteFun)
     {
@@ -3923,6 +3950,7 @@ QueryProcessor::DeleteResultStorage( const Supplier s )
         tree->u.op.resultWord );
     }
   }
+  tree->u.op.resultWord.setAddr(0);
 }
 
 void
@@ -3930,12 +3958,38 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
 {
 
   OpTree tree = (OpTree) s;
-  ListExpr type = (tree->u.op.isFun)?nl->Third(tree->typeExpr):tree->typeExpr;
-  //ListExpr type = tree->typeExpr;
-  tree->u.op.resultWord =
-    (algebraManager->CreateObj
-      ( tree->u.op.resultAlgId, tree->u.op.resultTypeId ))
-        ( GetCatalog()->NumericType( type ) );
+  assert (tree->nodetype == Operator);
+
+  //cerr << "u.op.isFun = " << tree->u.op.isFun << endl;
+  ListExpr type = (tree->u.op.isFun) ? nl->Third(tree->typeExpr)
+	                             : tree->typeExpr;
+
+  int algId = tree->u.op.resultAlgId;
+  int typeId = tree->u.op.resultTypeId;
+  ListExpr numType = GetCatalog()->NumericType( type );
+
+  //cerr << "typeExpr " << nl->ToString(tree->typeExpr) << endl;
+
+
+
+  if ( (algId == 0) && (typeId == 0) )
+  {
+     ListExpr tmp = numType;
+     while(nl->AtomType(nl->First(tmp))!=IntType ){ 
+       tmp = nl->First(tmp);
+     }
+     algId = nl->IntValue( nl->First(tmp) );
+     typeId = nl->IntValue( nl->Second(tmp) );
+  }
+  
+  //cerr << nl->ToString(numType) << endl;
+  //cerr << "algId = " <<  algId << endl;
+  //cerr << "typeId = " <<  typeId << endl;
+	
+
+  tree->u.op.resultWord =	  
+      algebraManager->CreateObj( algId, typeId )( numType );
+    
 }
 
 /*
