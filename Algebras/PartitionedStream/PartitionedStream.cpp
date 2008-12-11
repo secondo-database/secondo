@@ -3771,6 +3771,43 @@ struct runtimeInfo : OperatorInfo {
 };  
 
 
+struct sortmergejoinrInfo : OperatorInfo {
+
+  sortmergejoinrInfo(const string& _name)
+  {
+    name      = _name; 
+
+    signature = STREAM_TUPLE + " x " + STREAM_TUPLE + " -> " + STREAM_TUPLE;
+    syntax    = "_ _" + SMJ_R + "[an, bm]";
+    meaning   = "Computes a join by sorting the inputs but returns the result "
+                "R = S1 u S2 with a random subset S1 and a sorted subset S2. "
+                "The variant _r does this by generating all output tuples "
+                "two times, the variant _r2 does this in a more sophisticated "
+                "way with less and variant _r3 outputs only the random "
+                "sample S1";
+
+    supportsProgress = true;
+  }
+};
+
+
+extern int
+sortmergejoinr_vm( Word* args, Word& result,
+                   int message, Word& local, Supplier s );
+
+extern int 
+sortmergejoinr2_vm( Word* args, Word& result, 
+                    int message, Word& local, Supplier s );
+
+extern int 
+sortmergejoinr3_vm( Word* args, Word& result, 
+                    int message, Word& local, Supplier s );
+
+
+template<bool, int> extern ListExpr 
+JoinTypeMap(ListExpr args);
+
+
 // Defining static member sym
 Symbols PartStreamMappings::sym;
 
@@ -4036,6 +4073,19 @@ class PartStreamAlgebra : public Algebra
       op = new Operator( runtimeInfo(), psm::runtime_vm, psm::runtime_tm );
       AddOperator( op,true );
       op->SetRequestsArguments();
+
+
+      AddOperator( sortmergejoinrInfo("sortmergejoin_r"), 
+                   sortmergejoinr_vm, 
+                   JoinTypeMap<false, 1> );
+
+      AddOperator( sortmergejoinrInfo("sortmergejoin_r2"), 
+                   sortmergejoinr2_vm, 
+                   JoinTypeMap<false, 1> );
+
+      AddOperator( sortmergejoinrInfo("sortmergejoin_r3"),
+                   sortmergejoinr3_vm, 
+                   JoinTypeMap<false, 1> );
 
     }
 
