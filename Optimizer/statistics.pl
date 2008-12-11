@@ -157,26 +157,30 @@ dynamicPossiblyRenameJ(Rel, Renamed) :-
   !,
   % old: sampleSizeJoin(JoinSize),
   thresholdCardMaxSampleJ(JoinSize),
-  Renamed = sample(Rel, JoinSize, 0.00001).
+  secOptConstant(sampleScalingFactor, SF),
+  Renamed = sample(Rel, JoinSize, SF).
 
 dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, Name),
   % old: sampleSizeJoin(JoinSize),
   thresholdCardMaxSampleJ(JoinSize),
-  Renamed = rename(sample(Rel, JoinSize, 0.00001), Name).
+  secOptConstant(sampleScalingFactor, SF),
+  Renamed = rename(sample(Rel, JoinSize, SF), Name).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
   Rel = rel(_, *),
   !,
   % old: sampleSizeSelection(SelectionSize),
   thresholdCardMaxSampleS(SelectionSize),
-  Renamed = sample(Rel, SelectionSize, 0.00001).
+  secOptConstant(sampleScalingFactor, SF),
+  Renamed = sample(Rel, SelectionSize, SF).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
   Rel = rel(_, Name),
   % old: sampleSizeSelection(SelectionSize),
   thresholdCardMaxSampleS(SelectionSize),
-  Renamed = rename(sample(Rel, SelectionSize, 0.00001), Name).
+  secOptConstant(sampleScalingFactor, SF),
+  Renamed = rename(sample(Rel, SelectionSize, SF), Name).
 
 /*
 
@@ -674,10 +678,11 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   card(BaseName1, Card1),
   % old: sampleSizeJoin(JoinSize),
   thresholdCardMaxSampleJ(JoinSize),
-  SampleCard1 is min(Card1, max(JoinSize, Card1 * 0.00001)),
+  secOptConstant(sampleScalingFactor, SF),
+  SampleCard1 is min(Card1, max(JoinSize, Card1 * SF)),
   Rel2 = rel(BaseName2, _),
   card(BaseName2, Card2),
-  SampleCard2 is min(Card2, max(JoinSize, Card2 * 0.00001)),
+  SampleCard2 is min(Card2, max(JoinSize, Card2 * SF)),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0

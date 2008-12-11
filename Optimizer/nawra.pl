@@ -623,7 +623,7 @@ Rules to estimation costs for internal and external sorting.
 
 sortcost(TupleSize, Size, Cost) :-
    TupleSize = sizeTerm(Core, InFlob, _),
-   bufferSize(Memory),
+   secOptConstant(bufferSize, Memory),
    V is (Core + InFlob) * Size,
    Memory > V,
    storedOperatorTF(intsort, A1, B1),
@@ -635,7 +635,7 @@ sortcost(TupleSize, Size, Cost) :-
 sortcost(TupleSize, Size, Cost) :-
    TupleSize = sizeTerm(Core, InFlob, _),
    TupleSizeExt is Core + InFlob,
-   bufferSize(Memory),
+   secOptConstant(bufferSize, Memory),
    storedOperatorTF(intsort, A1, B1),
    storedOperatorTF(extsort, A2, B2),
    PSize is Memory / TupleSizeExt,
@@ -671,7 +671,7 @@ tempRelCost(SizeX, TupleSizeX, SizeY, TupleSizeY, TempCost) :-
    TupleSizeY = sizeTerm(Y1,Y2,_),
    TupleSizeExtX is X1 + X2,
    TupleSizeExtY is Y1 + Y2,
-   bufferSize(Memory),
+   secOptConstant(bufferSize, Memory),
    PSizeX is (Memory * 0.25) / TupleSizeExtX,
    PSizeY is (Memory * 0.75) / TupleSizeExtY,
    PSizeX < SizeX,
@@ -687,7 +687,7 @@ tempRelCost(_, _, _, _, 0).
 
 
 tempRelCostsymmjoin(SizeX, TupleSizeX, SizeY, TupleSizeY, TempCost) :-
-   bufferSize(Memory),
+   secOptConstant(bufferSize, Memory),
    TupleSizeX = sizeTerm(CoreX, InFlobX, _),
    TupleSizeY = sizeTerm(CoreY, InFlobY, _),
    PSizeX is (Memory * 0.5) / (CoreX + InFlobX),
@@ -700,7 +700,7 @@ tempRelCostsymmjoin(SizeX, TupleSizeX, SizeY, TupleSizeY, TempCost) :-
    !.
 
 tempRelCostsymmjoin(SizeX, TupleSizeX, SizeY, TupleSizeY, TempCost) :-
-   bufferSize(Memory),
+   secOptConstant(bufferSize, Memory),
    TupleSizeX = sizeTerm(CoreX, InFlobX, _),
    TupleSizeY = sizeTerm(CoreY, InFlobY, _),
    PSizeY is (Memory * 0.5) / (CoreY + InFlobY),
@@ -721,7 +721,7 @@ Test for buffer overflow in operator product.
 
 producttest(Size, TupleSize, CF) :-
   TupleSize = sizeTerm(Core,Inflob,Extflob),
-  bufferSize(Memory),
+  secOptConstant(bufferSize, Memory),
   V is Size * (Core+Inflob+Extflob),
   V > Memory,
   CF is 1,

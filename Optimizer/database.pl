@@ -1338,26 +1338,6 @@ a defined threshold (total in-memory size) is reached.
 In these cases, the user is prompted to create sample relations on his own,
 specifying the wanted cardinality.
 
-*/
-
-
-% maximum cardinality for samples
-thresholdCardMaxSampleJ(500).
-thresholdCardMaxSampleS(2000).
-
-% minimum cardinality for samples
-thresholdCardMinSampleJ(50).
-thresholdCardMinSampleS(100).
-
-% maximum memory size for samples in KB
-thresholdMemoryMaxSampleJ(2048).
-thresholdMemoryMaxSampleS(2048).
-
-% scaling factor for samples
-sampleScalingFactor(0.00001).
-
-/*
-
 ----
   getSampleSname(+Name, -SampleSname)
   getSampleJname(+Name, -SampleJname)
@@ -1370,6 +1350,18 @@ Creating sample object names. The names for relation samples are:
   * [<]relname[>]\_sample\_j for a join sample on relation <relname>
 
 ~Name~ may be in dc- or external spelling.
+
+Thepredicates use the following constants defined in ~operators.pl~:
+
+----
+secOptConstant(sampleScalingFactor, 0.00001).  % scaling factor for samples
+secOptConstant(sampleSelMaxDiskSize, 2097152). % maximum byte size for samples
+secOptConstant(sampleSelMinCard, 100).         % minimum cardinality for samples
+secOptConstant(sampleSelMaxCard, 2000).        % maximum cardinality for samples
+secOptConstant(sampleJoinMaxDiskSize, 2097152).% maximum byte size for samples
+secOptConstant(sampleJoinMinCard, 50).         % minimum cardinality for samples
+secOptConstant(sampleJoinMaxCard, 500).        % maximum cardinality for samples
+----
 
 */
 
@@ -1405,10 +1397,10 @@ getSampleJname(Name, SampleJname) :-
 ----
 
 Calculate the cardinality and size (in KB), that a standard join/selection
-sample would take.
+sample would take. The predicates are used to recommend sample sizes.
 
 ~DCRel~ is the relation name, ~CardMin~/~CardMax~ is the minumum/maximum cardinality for the sample,
-~SF~ is the sample scaling factor, and ~MaxMem~ is the maximum memory consumption threshold.
+~SF~ is the sample scaling factor, and ~MaxMem~ is the maximum memory consumption threshold (in KB).
 
 ~CardStd~ is the calculated standard cardinality, and ~MemStd~ the according memory size (in KB).
 ~CardRec~ is the recommended cardinality for the sample, and ~MemRec~ is its size (in KB).
@@ -1423,7 +1415,8 @@ getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
   card(DCRel, Card),
   tuplesize(DCRel, TupleSize),
   dm(dbhandling,['\ngetStandardSampleCard(',DCRel,',...): Card=',Card]),
-  dm(dbhandling,['\ngetStandardSampleCard(',DCRel,',...): TupleSize=',TupleSize]),
+  dm(dbhandling,['\ngetStandardSampleCard(',DCRel,',...): TupleSize=',
+                 TupleSize]),
   ( TupleSize =< 0
     -> ( write_list(['ERROR:\tTuplesize for relation ',DCRel,' < 1!']), nl,
          throw(error_SQL(database_getStandardSampleCard(DCRel, CardMin, CardMax,
@@ -1434,23 +1427,25 @@ getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
     ;  true
   ),
   CardStd     is min(CardMax,max(truncate(SF*Card),Card)),
-  MemStd      is CardStd*TupleSize/1024,
+  MemStd      is CardStd*TupleSize/1024,                     % in KB
   MaximumCard is truncate(min(min(CardMax, MaxMem*1024/TupleSize),Card)),
-
-  ( (MemStd > MaxMem*1024)       % standard sample is too large
+  secondoCatalogInfo(DCRel,ExtRel,_,_),
+  ( (MemStd > MaxMem)            % standard sample is too large (both in KB)
     -> ( CardRec is MaximumCard, % recommend MaximumCard
-         MemRec is CardRec*TupleSize/1024,
-         write_list(['WARNING:\tStandard sample card=',CardStd,' (',
-                     MemStd,' KB) is above the\n','--->\tmaximum memory size =',
-                     MaxMem, ' KB\n','--->\tTherefore, sample card=',CardRec,
-                     ' (',MemRec,' KB) is recommended.']), nl
+         MemRec is CardRec*TupleSize/1024,               % in KB
+         write_list(['WARNING:\tRelation \'',ExtRel,'\':',
+                     '\n--->\tStandard sample card=', CardStd,' (',
+                     MemStd,' KB) is above the\n','--->\tmaximum memory size=',
+                     MaxMem, ' KB\n','--->\tTherefore, reduced sample card=',
+                     CardRec, ' (',MemRec,' KB) is recommended.']), nl
        )
-    ;  ( CardRec is CardStd,     % recommend SandardCard
-         MemRec is CardRec*TupleSize/1024
+    ;  ( CardRec is CardStd,                % recommend SandardCard
+         MemRec is CardRec*TupleSize/1024   % (recommended StandardSize in KB)
        )
   ),
   ( (CardRec < CardMin)
-    -> ( write_list(['WARNING:\tRecommended sample card=',CardRec,' (',
+    -> ( write_list(['WARNING:\tRelation \'',ExtRel,'\':',
+                     '\n--->\tRecommended sample card=',CardRec,' (',
                      MemRec,' KB) is below the\n','--->\trecommended minimum ',
                      'sample card=',CardMin,'.']), nl
        )
@@ -1463,20 +1458,20 @@ getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
 getSampleJsize(DCRel, CardStd, MemStd, CardRec, MemRec) :-
   dm(dbhandling,['\nTry: getSampleJsize(',DCRel,',',CardStd,',',
                  MemStd,',',CardRec,',',MemRec,').']),
-  thresholdCardMinSampleJ(CardMin),
-  thresholdCardMaxSampleJ(CardMax),
-  thresholdMemoryMaxSampleJ(MaxMem),
-  sampleScalingFactor(SF),
+  secOptConstant(sampleJoinMinCard, CardMin),
+  secOptConstant(sampleJoinMaxCard, CardMax),
+  secOptConstant(sampleJoinMaxDiskSize, MaxMem),
+  secOptConstant(sampleScalingFactor, SF),
   getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
                         CardStd, MemStd, CardRec, MemRec).
 
 getSampleSsize(DCRel, CardStd, MemStd, CardRec, MemRec) :-
   dm(dbhandling,['\nTry: getSampleSsize(',DCRel,',',CardStd,',',
                  MemStd,',',CardRec,',',MemRec,').']),
-  thresholdCardMinSampleS(CardMin),
-  thresholdCardMaxSampleS(CardMax),
-  thresholdMemoryMaxSampleS(MaxMem),
-  sampleScalingFactor(SF),
+  secOptConstant(sampleSelMinCard, CardMin),
+  secOptConstant(sampleSelMaxCard, CardMax),
+  secOptConstant(sampleSelMaxDiskSize, MaxMem),
+  secOptConstant(sampleScalingFactor, SF),
   getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
                         CardStd, MemStd, CardRec, MemRec).
 
@@ -1492,6 +1487,17 @@ getSampleSsize(DCRel, CardStd, MemStd, CardRec, MemRec) :-
 Create a random order sample ~ExtSample~ for relation ~ExtRel~ (both in external spelling)
 with desired sample size ~SampleSize~. The actual sample size is returned as ~SampleCard~.
 
+The predicates use some constants defined in file ~operators.pl~ to detremine the
+correct size for sample relations.
+
+----
+secOptConstant(maximumSampleSize, X).
+secOptConstant(minimumSelSampleCard, X).
+secOptConstant(maximumSelSampleCard, X).
+secOptConstant(minimumJoinSampleCard, X).
+secOptConstant(maximumJoinSampleCard, X).
+----
+
 */
 
 
@@ -1502,19 +1508,21 @@ createSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
   tryCreate(QueryAtom),
   dcName2externalName(DCrel,ExtRel),
   card(DCrel, Card),
-  ActualCard is truncate(min(Card, max(RequestedCard, Card*0.00001))).
+  % the following line implements the calculation done by the sample-operator:
+  secOptConstant(sampleScalingFactor, SF),
+  ActualCard is truncate(min(Card, max(RequestedCard, Card*SF))).
 
 createSampleJ(DCRel) :-
   dm(dbhandling,['\nTry: createSampleJ(',DCRel,').']),
   dcName2externalName(DCRel,ExtRel),
   sampleNameJ(ExtRel, Sample),
   ( secondoCatalogInfo(_,Sample,_,_)
-    -> ( write_list(['\nINFO:\tJoin-Sample for \'',ExtRel,'\' already exists.']),
-         nl
+    -> (write_list(['\nINFO:\tJoin-Sample for \'',ExtRel,'\' already exists.']),
+        nl
        )
     ;  ( getSampleJsize(DCRel, CardStd, MemStd, CardRec, MemRec),
          write_list(['\nINFO:\tCreating Join-Sample for \'',ExtRel,'\'.']),nl,
-         ( CardRec =< CardStd
+         ( CardStd =< CardRec
            -> ( % sample size is ok
                 SampleCard = CardStd,
                 SampleSize = MemStd
@@ -1528,18 +1536,18 @@ createSampleJ(DCRel) :-
                                 'restricted\n','\tfrom ',(CardStd),'(',MemStd,
                                 ' KB) to ',CardRec,'(',MemRec,' KB).']),nl
                    )
-                ;    ( % leave sample creation to the user
-                       write_list(['ERROR\tJoin sample is to large: ',CardStd,
-                                   ' (=',MemStd,' KB).\n','Maximum size is ',
-                                   CardRec,' (=',MemRec,' KB).']),nl,nl,
-                       write_list(['\tPlease specify the concrete sample ',
-                                   'cardinality\n','\tmanually and create the ',
-                                   'sample e.g. by calling\n','\tcreateSamples(',
-                                   DCRel,', ',CardRec,', ',CardRec,').']),nl,
-                       throw(error_SQL(database_createSampleJ(DCRel)
-                                      :requestUserInteraction)),
-                       fail
-                     )
+                ;  ( % leave sample creation to the user
+                     write_list(['ERROR\tJoin sample is to large: ',CardStd,
+                                 ' (=',MemStd,' KB).\n','Maximum size is ',
+                                 CardRec,' (=',MemRec,' KB).']),nl,nl,
+                     write_list(['\tPlease specify the concrete sample ',
+                                 'cardinality\n','\tmanually and create the ',
+                                 'sample e.g. by calling\n','\tcreateSamples(',
+                                 DCRel,', ',CardRec,', ',CardRec,').']),nl,
+                     throw(error_SQL(database_createSampleJ(DCRel)
+                                    :requestUserInteraction)),
+                     fail
+                   )
               )
          ),
          createSample(Sample, ExtRel, SampleCard, ActualSampleCard),
@@ -1614,8 +1622,9 @@ sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
 sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
   dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
                  QueryAtom,').']),
+  secOptConstant(sampleScalingFactor, SF),
   concat_atom(['derive ', ExtSample, ' = ', ExtRel,
-    ' sample[', SampleSize, ', 0.00001]
+    ' sample[', SampleSize, ',', SF, ']
       extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
       consume'], '', QueryAtom).
 

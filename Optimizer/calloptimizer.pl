@@ -252,7 +252,7 @@ optimizerOptionInfo(pathTiming, none, no,
 optimizerOptionInfo(dynamicSample, none, yes,
                     'Use dynamic instead of static (saved) samples.', true,
                     ( notIsDatabaseOpen ; ensureSamplesExist ) ).
-optimizerOptionInfo(autoSamples, none, yes,
+optimizerOptionInfo(autoSamples, none, no,
                     'Automatically determine sample sizes.',
                     true, true).
 optimizerOptionInfo(rewriteMacros, none, no,

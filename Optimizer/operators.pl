@@ -60,13 +60,58 @@ spatialjoinTC(20.0, 0.7).
 /*
 1.2 General Constants
 
-A fact with the value of the buffer size in bytes. This is the amount of mainmemory, operators are allowed to use to keep their internal data (e.g. hashtables, tuple buffers etc.). This should be equal to the setting for ~MaxMemPerOperator~
+The predicate
+
+---- secOptConstant(+ConstantName, -Value)
+----
+
+is used to define general constants to be used by the optimizer.
+
+All constants can be printed using predicate
+
+---- showOptConstants/0
+----
+
+*/
+
+showOptConstant :-
+  secOptConstant(X, Y),
+  write('  secOptConstant( '),write(X), write(',\t'), write(Y), write(')'), nl.
+
+showOptConstants :-
+  nl, write('Overview on all optimizer constants secOptConstant/2:\n'),
+  findall(_, showOptConstant, _).
+
+/*
+1.2.1 Constants for Buffer Size
+
+The value of the buffer size in bytes. This is the amount of main memory, operators are allowed to use to keep their internal data (e.g. hashtables, tuple buffers etc.). This should be equal to the setting for ~MaxMemPerOperator~
 in file ~SecondoConfig.ini~.
 
 */
 
-bufferSize(16384000).
+secOptConstant(bufferSize, 16384000). % 15.625 MB ~ 16 MB
 
+/*
+1.2.2 Constants for Sampling
+
+The maximum sample size in bytes. The cardinality of samples will be reduced, such that it hopefully does not get larger than this value.
+
+Minimum and maximun cardinalities for selection and join relation samples
+
+Standard scaling factor for samples.
+
+*/
+
+secOptConstant(sampleScalingFactor, 0.00001).  % scaling factor for samples
+
+secOptConstant(sampleSelMaxDiskSize, 2048).    % maximum KB size for samples
+secOptConstant(sampleSelMinCard, 100).         % minimum cardinality for samples
+secOptConstant(sampleSelMaxCard, 2000).        % maximum cardinality for samples
+
+secOptConstant(sampleJoinMaxDiskSize, 2048).   % maximum KB size for samples
+secOptConstant(sampleJoinMinCard, 50).         % minimum cardinality for samples
+secOptConstant(sampleJoinMaxCard, 500).        % maximum cardinality for samples
 
 /*
 
