@@ -3741,6 +3741,24 @@ ListExpr JoinTypeMap (ListExpr args)
   return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
               joinAttrDescription, outlist);
 }
+
+/*
+Some explicit instantiations in order to use them also
+outside of the implementation file.
+
+*/
+
+template ListExpr
+JoinTypeMap<false, 0>(ListExpr args); 
+
+template ListExpr
+JoinTypeMap<false, 1>(ListExpr args); 
+
+template ListExpr
+JoinTypeMap<true, 2>(ListExpr args); 
+
+
+
 /*
 2.15.2 Value mapping functions of operator ~mergejoin~
 
@@ -3754,17 +3772,6 @@ template<bool expectSorted> int
 mergejoin_vm( Word* args, Word& result,
                   int message, Word& local, Supplier s );
 
-  /*extern int
-sortmergejoinr_vm( Word* args, Word& result,
-                   int message, Word& local, Supplier s );
-
-extern int 
-sortmergejoinr2_vm( Word* args, Word& result, 
-                    int message, Word& local, Supplier s );
-
-extern int 
-sortmergejoinr3_vm( Word* args, Word& result, 
-                    int message, Word& local, Supplier s ); */
 
 /*
 
@@ -9123,24 +9130,6 @@ int printrefs_vm( Word* args, Word& result, int message,
 }
 
 
-struct sortmergejoinrInfo : OperatorInfo {
-
-  sortmergejoinrInfo(const string& _name)
-  {
-    name      = _name; 
-
-    signature = STREAM_TUPLE + " x " + STREAM_TUPLE + " -> " + STREAM_TUPLE;
-    syntax    = "_ _" + SMJ_R + "[an, bm]";
-    meaning   = "Computes a join by sorting the inputs but returns the result "
-                "R = S1 u S2 with a random subset S1 and a sorted subset S2. "
-                "The variant _r does this by generating all output tuples "
-                "two times, the variant _r2 does this in a more sophisticated "
-                "way with less and variant _r3 outputs only the random "
-                "sample S1";
-
-    supportsProgress = true;
-  }
-};
 
 /*
 
@@ -9204,19 +9193,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergejoin);
 
     AddOperator(&extrelsortmergejoin);
-    //AddOperator(sortmergejoinrInfo("sortmergejoin_r"), 
-    //                sortmergejoinr_vm, 
-    //                JoinTypeMap<false, 1> );
-
-    //AddOperator(sortmergejoinrInfo("sortmergejoin_r2"), 
-    //                sortmergejoinr2_vm, 
-    //                JoinTypeMap<false, 1> );
-
-    //AddOperator(sortmergejoinrInfo("sortmergejoin_r3"),
-    //                sortmergejoinr3_vm, 
-    //                JoinTypeMap<false, 1> );
-
-    AddOperator(&extrelhashjoin);
+     AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);

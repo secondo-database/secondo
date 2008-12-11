@@ -2,7 +2,7 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and
+Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
 Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -77,6 +77,7 @@ merging and a simple hash-join.
 #include "Counter.h"
 #include "Progress.h"
 #include "RTuple.h"
+#include "Tupleorder.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -90,166 +91,6 @@ This operator sorts a stream of tuples by a given list of attributes.
 For each attribute it must be specified wether the list should be sorted
 in ascending (asc) or descending (desc) order with regard to that attribute.
 
-2.2.1 Auxiliary definitions for value mapping function of operators ~sort~ and ~sortby~
-
-*/
-
-static LexicographicalTupleSmaller lexCmp;
-
-class TupleAndRelPos {
-public:
-
-  TupleAndRelPos()       :
-    ref(0),
-    pos(0),
-    cmpPtr(0) 
-  {};
-  
-  ~TupleAndRelPos()
-  {}      
-
-  TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0, 
-                 int newPos = 0) :
-    ref( newTuple ),
-    pos(newPos),
-    cmpPtr(cmpObjPtr)
-  {}; 
-
-
-  inline TupleAndRelPos(const TupleAndRelPos& rhs) :
-    ref(rhs.ref),
-    pos(rhs.pos),
-    cmpPtr(rhs.cmpPtr)  
-  {};     
-
-  /* without the code below we get a better performance
-   *
-  inline TupleAndRelPos& operator=(const TupleAndRelPos& rhs)
-  {
-    ref = rhs.ref;
-    pos = rhs.pos;
-    cmpPtr = rhs.cmpPtr;
-    return *this;    
-  } */      
- 
-  inline bool operator<(const TupleAndRelPos& rhs) const 
-  { 
-    // by default < is used to define a sort order
-    // the priority queue creates a maximum heap, hence
-    // we change the result to create a minimum queue.
-    // It would be nice to have also an < operator in the class
-    // Tuple. Moreover lexicographical comparison should be done by means of
-    // TupleCompareBy and an appropriate sort order specification, 
-
-    if (!this->ref || !rhs.ref) {
-      return true;
-    }
-
-    //return !cmp->(this->rt.tuple, ref.rt.tuple);
-
-    
-    if ( cmpPtr ) {
-      return !(*(TupleCompareBy*)cmpPtr)( this->ref, rhs.ref );
-    } else {
-      return !lexCmp( this->ref, rhs.ref );
-    }
-    
-  }
-
-  inline Tuple* tuple() const { return ref; }
-
-  Tuple* ref;
-  int pos;
-
-private:
-   void* cmpPtr;
-
-};
-
-
-class TupleQueue {    
-  
-  typedef priority_queue<TupleAndRelPos> Queue;
-  Queue q;
-
-  public:
-  TupleQueue() {}
-  ~TupleQueue() {}
-
-  inline const TupleAndRelPos& top() { return q.top(); }
-
-  inline Tuple* topTuple() { return q.top().tuple(); }
-
-  inline void push(const TupleAndRelPos& elem) 
-  {
-    elem.tuple()->IncReference();         
-    q.push(elem); 
-  }
- 
-  inline size_t size() { return q.size(); }
-
-  inline bool empty() { return q.empty(); }
-
-  inline void pop() 
-  {
-    Tuple* t = q.top().tuple();
-    t->DeleteIfAllowed();
-    q.pop();
-  }       
-
-};
-
-/*class TupleAndRelPos {
-public:
-
-  TupleAndRelPos() :
-    ref(0),
-    pos(0),
-    cmpPtr(0) 
-  {};
-  
-  TupleAndRelPos(Tuple* newTuple, TupleCompareBy* cmpObjPtr = 0, 
-                 int newPos = 0) :
-    ref(newTuple),
-    pos(newPos),
-    cmpPtr(cmpObjPtr)
-  {}; 
-
-  inline bool operator<(const TupleAndRelPos& rhs) const 
-  { 
-    // by default < is used to define a sort order
-    // the priority queue creates a maximum heap, hence
-    // we change the result to create a minimum queue.
-    // It would be nice to have also an < operator in the class
-    // Tuple. Moreover lexicographical comparison should be done by means of
-    // TupleCompareBy and an appropriate sort order specification, 
-
-    if (!this->ref.tuple || !rhs.ref.tuple) {
-      return true;
-    }
-    if ( cmpPtr ) {
-      return !(*(TupleCompareBy*)cmpPtr)( this->ref.tuple, rhs.ref.tuple );
-    } else {
-      return !lexCmp( this->ref.tuple, rhs.ref.tuple );
-    }
-  }
-
-  inline TupleAndRelPos& operator=(const TupleAndRelPos& rhs)
-  { 
-    this->ref = rhs.ref;
-    return *this; 
-  }
-
-  RTuple ref;
-  int pos;
-
-private:
-  void* cmpPtr;
-
-};*/
-
-
-/*
 2.2.2 class ~SortByLocalInfo~
 
 An algorithm for external sorting is implemented inside this class. The
@@ -301,32 +142,6 @@ or 2N (sorted in opposite order) comparisons in that case.
 */
 
 
-void*
-CreateCompareObject(bool lexOrder, Word* args) {
-
-  void* tupleCmp = 0;
-
-  if(lexOrder) 
-  {
-     tupleCmp = new LexicographicalTupleSmaller();
-  }	
-  else
-  {
-    SortOrderSpecification spec;
-    int nSortAttrs = StdTypes::GetInt( args[2] );
-    for(int i = 1; i <= nSortAttrs; i++)
-    {
-      int sortAttrIndex = StdTypes::GetInt( args[2 * i + 1] );
-      bool sortOrderIsAscending = StdTypes::GetBool( args[2 * i + 2] );
-      
-      spec.push_back(pair<int, bool>(sortAttrIndex, 
-				     sortOrderIsAscending));
-    };
-
-    tupleCmp = new TupleCompareBy( spec );
-  }
-  return tupleCmp;
-} 
 
 #ifndef USE_PROGRESS
 
@@ -648,7 +463,7 @@ sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     case OPEN:
     {
       qp->Open(args[0].addr);      
-      void *tupleCmp = CreateCompareObject(lexicographically, args);
+      void *tupleCmp = CompareObject(lexicographically, args).getPtr();
       SortByLocalInfo* li = new SortByLocalInfo( args[0], 
 		                     lexicographically,  
                                      tupleCmp );
@@ -1031,7 +846,7 @@ sortby_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       if ( li->ptr == 0 )
       {
-        void *tupleCmp = CreateCompareObject(lexicographically, args);
+        void *tupleCmp = CompareObject(lexicographically, args).getPtr();
 
 	//Sorting is done in the following constructor. It was moved from
 	//OPEN to REQUEST to avoid long delays in the OPEN method, which are
@@ -2903,4 +2718,6 @@ mergejoin_vm<true>(Word* args, Word& result, int message,
 template int
 mergejoin_vm<false>(Word* args, Word& result, int message, 
                  Word& local, Supplier s);
+
+
 
