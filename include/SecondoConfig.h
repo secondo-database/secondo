@@ -59,8 +59,6 @@ dependent macros are defined.
 #ifndef SECONDO_CONFIG_H
 #define SECONDO_CONFIG_H
 
-#include "version.h"
-
 
 #define SECONDO_LITTLE_ENDIAN
 /*

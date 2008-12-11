@@ -136,6 +136,7 @@ using namespace std;
 #include "NList.h"
 
 #include "CharTransform.h"
+#include "version.h"
 
 extern bool USE_AUTO_BUFFER;
 
@@ -229,7 +230,9 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 
   stringstream version;
   version << "Version: " << SECONDO_VERSION_MAJOR << "."
-          << SECONDO_VERSION_MINOR << endl;
+                         << SECONDO_VERSION_MINOR << "."
+			 << SECONDO_VERSION_REVISION << endl;
+
   cout << version.str() << endl;
 
   // initialize runtime flags
