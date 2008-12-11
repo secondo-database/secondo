@@ -1664,6 +1664,7 @@ Resize (or possibly create) samples for ~DCRel~ (in down cased spellinf)
 manually, speciying the size (cardinality) of selection and join samples.
 
 Update the stored metadata on the relation samples.
+
 */
 
 
@@ -3651,9 +3652,9 @@ create_relation(ExtRelName,AttrTypeList) :-
 ---- checkAttrTypeList(+AttrTypeList)
 ----
 
-Succeeds, iff ~AttrTypeList~ is a list of valid [AttrName, Type]-lists.
+Succeeds, iff ~AttrTypeList~ is a list of valid \[AttrName, Type\]-lists.
 All ~AttrName~s must be valid attribute names, all ~Type~s must be
-registered Secondo types. All AttrName~s must be pairwise different.
+registered Secondo types. All ~AttrName~s must be pairwise different.
 
 */
 checkAttrTypeList(AttrTypeList) :-
