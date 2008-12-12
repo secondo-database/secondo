@@ -24,6 +24,127 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [Appendix]
 
+*/
+
+/*
+0 Help on User Level Predicates
+
+There are a lot of predicates within the optimizer, that are intended to be
+(or may be) directly called by the user.
+
+To allow for a help functionality, for each such predicate, a fact describing
+the predicate, its syntax, parameters and meaning should be asserted.
+
+These facts have format
+---- helpLine(Name,Arity,ParamList,Meaning)
+----
+~Name~ is the predicate's name, ~Arity~ its arity (number of Parameters),
+~Meaning~ is the meaning of the predicate, and
+
+~ParamList~ is a list of list with format
+---- [ParamType,ParamName,ParamMeaning]
+----
+
+~ParamType~ is one of + (input type, - (output type), ? (input/output type).
+~ParamName~ is the parameter's name, and ~ParamMeaning~ is a textual description
+of the parameter's meaning.
+
+The user level predicates
+
+----
+ helpMe
+ helpMe(+PredicateName)
+----
+
+will print the according (and hopefully helpful) information to the screen.
+
+*/
+:- dynamic(helpLine/4).
+
+:- assert(helpLine(helpMe,2,
+    [[+,'PredicateName','The predicate to get information about.'],
+     [+,'Arity','Chooses amongh predicates with more than one arity.']],
+    'Show help on a user level predicate with a given arity')).
+:- assert(helpLine(helpMe,1,
+    [[+,'PredicateName','The predicate get get information about.']],
+    'Show help on a given user level predicate')).
+:-assert(helpLine(helpMe,0,[],'List available user level predicates.')).
+
+helpMe(Pred, Arity) :-
+  helpLine(Pred, Arity, Params, Meaning),
+  nl, write('Help on predicate \''), write(Pred), write('\''), write(Arity),
+  write('\':  '), write(Meaning), nl,                                       %'
+  write('  '), write(Pred),
+  ( Arity > 0
+    -> ( write('('), nl,
+        helpMeWriteParamList(Params),
+         write('  )')
+       )
+    ; true
+  ),
+  nl, !.
+
+helpMe(Pred, Arity) :-
+  nl, write('No help available for predicate \''), write(Pred), write('/'), %'
+  write(Arity), write('\'.'), nl,                                           %'
+  fail.
+
+helpMe(Pred) :-
+  findall( [Pred, Arity, Meaning], helpLine(Pred, Arity, _, Meaning), PredList),
+  sort(PredList,PredList2),
+  length(PredList2, L),
+  ( L > 1
+    -> ( nl,
+         write('There are several arities for predicate \''), write(Pred), %'
+         write('\'\n'),                                                    %'
+         write('Help is available on the following arities:'), nl,
+         write('---------------------------------------------------------'), nl,
+         helpMePrintLine(PredList2),
+         nl, write('Use \'helpMe(Pred,Arity).\''),
+         write(' for help on a certain arity of that predicate.'), nl
+       )
+    ;  ( L = 1
+         -> ( PredList2 = [[Pred, Arity, _]],
+              helpMe(Pred, Arity)
+            )
+         ;  ( % L = 0
+              write('There is no help on predicate \''), write(Pred),    %'
+              write('\'.'), nl                                           %'
+            )
+       )
+  ),
+  !.
+
+helpMe :-
+  nl, write('Help is available on the following user level predicates:'), nl,
+  write('---------------------------------------------------------'), nl,
+  findall( [Pred, Arity, Meaning],
+          ( helpLine(Pred , Arity, _, Meaning)
+          ),
+          PredList),
+  sort(PredList,PredList2),
+  helpMePrintLine(PredList2),
+  nl, write('Use \'helpMe(Pred).\' or \'helpMe(Pred,Arity).\''),
+  write(' for help on a certain predicate'), nl,
+  !.
+
+helpMePrintLine([]).
+helpMePrintLine([[Pred, Arity, Meaning]|X]) :-
+  write('  '), write(Pred), write('/'), write(Arity), write(': '),
+  write(Meaning), nl,
+  helpMePrintLine(X),
+  !.
+
+helpMeWriteParamList([[Type,Name,Meaning]]) :-
+  write('    '), write(Type), write(Name), write(':\t'), write(Meaning), nl, !.
+helpMeWriteParamList([[Type,Name,Meaning]|X]) :-
+  write('    '), write(Type), write(Name), write(':\t'),
+  write(Meaning), write(','), nl,
+  helpMeWriteParamList(X), !.
+helpMeWriteParamList(_) :-
+  write('ERROR: Wrong parameter format in helpLine/4!'), nl, !.
+
+/*
 1 Initializing and Calling the Optimizer
 
 [File ~calloptimizer.pl~]
@@ -308,6 +429,14 @@ optimizer options.
 
 */
 
+:- assert(helpLine(showOptions,0,[],'List available options.')).
+:- assert(helpLine(setOption, 1, [
+        [+,'OptionName','Name of the option to select.']],
+        'Set a given option.')).
+:- assert(helpLine(delOption, 1, [
+        [+,'OptionName','Name of the option to deselect.']],
+        'Unset a given option.')).
+
 showOptions :-
   findall(X,optimizerOptionInfo(X,none,_,_,_,_),Options),
   write('\n\nOptimizer options (and sub-options):\n'),
@@ -317,7 +446,8 @@ showOptions :-
   write('Type \'defaultOptions.\' to restore the default options.\n'),
   write('Type \'setOption(X).\' to select option X.\n'),
   write('Type \'delOption(X).\' to unselect option X.\n'),
-  write('Type \'showOptions.\' to view this option list.\n\n').
+  write('Type \'showOptions.\' to view this option list.\n\n'),
+  write('Type \'helpMe.\' to get an overview on user level predicates.\n\n').
 
 showOption([]).
 showOption([Option|Y]) :-
@@ -435,6 +565,15 @@ integrated debugging features.
 3.1 Setting Debugging Options
 
 */
+
+:- assert(helpLine(showDebugLevel,0,[],'Show active debug levels.')).
+:- assert(helpLine(toggleDebug,0,[],'Switch debugging mode on/off.')).
+:- assert(helpLine(debugLevel,1,
+  [[+,'Level','The name of the debug level to add to the debug list']],
+  'Add a given level to the debug list.')).
+:- assert(helpLine(nodebugLevel,1,
+  [[+,'Level','The name of the debug level to remove from the debug list']],
+  'Remove a given level from the debug list.')).
 
 ppCostFactor(0) :-
   optimizerOption(costConjunctive), !.
@@ -625,6 +764,10 @@ to disk automatically on system halt.
 
 */
 
+:- assert(helpLine(defaultOptions,0,[],'Choose the default option setting.')).
+:- assert(helpLine(loadOptions,0,[],'Restore option settings to saved ones.')).
+:- assert(helpLine(saveOptions,0,[],'Save option settings to disk.')).
+
 defaultOptions :-
   setOption(standard),
   delOption(useCounters),
@@ -633,6 +776,7 @@ defaultOptions :-
   delOption(useRandomSMJ),
   setOption(debug),
   debugLevel(selectivity),
+  setOption(autoSamples),
   setOption(autosave).
 
 
@@ -662,15 +806,15 @@ saveOptions :-
 
 initializeOptions :-
   catch(
-	 (loadOptions,
-	  write('Loaded options\n')
-         ),
-         _, % catch all exceptions
-         (defaultOptions,
-	  saveOptions, % save a blanc 'config_optimizer.pl'
-          write('Saved options\n')
-         )
-       ).
+    ( loadOptions,
+      write('Loaded options\n')
+    ),
+    _, % catch all exceptions
+    ( defaultOptions,
+      saveOptions, % save a blanc 'config_optimizer.pl'
+      write('Saved options\n')
+    )
+  ).
 
 :- at_halt((optimizerOption(autosave), saveOptions)). % automatically safe option configuration on exit
 :- initializeOptions.
@@ -694,6 +838,8 @@ initializeOptions :-
 6 Shortcuts and Aliases
 
 */
+
+:- assert(helpLine(quit,0,[],'Quit the optimizer.')).
 
 quit :- halt. % aliasing 'halt/0' in conformity to the Secondo system
 

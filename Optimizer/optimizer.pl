@@ -3008,20 +3008,20 @@ It is assumed that only a single operator of this kind occurs within the term.
 
 */
 
-
-/*
-% work-around code:
-cost(rel(Rel, _), _, Size, 0) :-
-         write('\n>>>>>>>opt_002 FIXME\n'), nl,
+% the if-then-else-part  is just for error-detection --- FIXME!
+cost(rel(Rel, X1_), X2_, Size, 0) :-
   dcName2internalName(RelDC,Rel),
-  card(RelDC, Size).
-*/
-
-% original code:
-cost(rel(Rel, _), _, Size, 0) :-
-         write('\n>>>>>>>opt_002 FIXME\n'), nl,
+  ( Rel = RelDC
+    -> true
+    ;  (
+         write('ERROR:\tcost/4 failed due to non-dc relation name.'), nl,
+         write('---> THIS SHOULD BE CORRECTED!'), nl,
+         throw(error_SQL(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
+              :missedTranslation))),
+         fail
+       )
+  ),
   card(Rel, Size).
-
 
 cost(res(N), _, Size, 0) :-
   resultSize(N, Size).
@@ -4341,24 +4341,23 @@ Translate and store a single relation definition.
 
 
 lookupRel(Rel as Var, Y) :-
-  dcName2externalName(Rel2,Rel),
-% relation(Rel, _), !,            %% original code FIXME
-  relation(Rel2, _), !,           %% changed code FIXME
+  dcName2externalName(RelDC,Rel),
+  relation(RelDC, _), !,           %% changed code FIXME
   ( variable(Var, _)
     -> ( write_list(['\nERROR:\tLooking up query: Doubly defined variable ',Var,
                      '.']), nl,
          throw(error_SQL(optimizer_lookupRel(Rel as Var,Y):doubledVariable)),
          fail
        )
-    ;  Y = rel(Rel2, Var)
+    ;  Y = rel(RelDC, Var)
   ),
-  assert(variable(Var, rel(Rel2, Var))).
+  assert(variable(Var, rel(RelDC, Var))).
 
-lookupRel(Rel, rel(Rel2, *)) :-
-  dcName2externalName(Rel2,Rel),
-  relation(Rel2, _), !,
-  not(duplicateAttrs(Rel2)),
-  assert(queryRel(Rel2, rel(Rel2, *))).
+lookupRel(Rel, rel(RelDC, *)) :-
+  dcName2externalName(RelDC,Rel),
+  relation(RelDC, _), !,
+  not(duplicateAttrs(RelDC)),
+  assert(queryRel(RelDC, rel(RelDC, *))).
 
 lookupRel(X,Y) :- !,
   write_list(['\nERROR:\tLooking up query: Relation \'',X,'\' unknown!']), nl,
@@ -4487,11 +4486,6 @@ lookupAttr(Term, Term2) :-
   Term2 =.. [Op|Args2],
   !.
 
-/*
-New:
-
-*/
-
 lookupAttr(Term, dbobject(TermDC)) :-
   atom(Term),
   dcName2externalName(TermDC,Term),
@@ -4504,18 +4498,6 @@ lookupAttr(Term, Term) :-
               '\' in attribute list not recognized!']),           %'
   throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownError)),
   fail.
-
-/*
-Old code:
-
-----
-lookupAttr(Term, Term) :-
-  atom(Term),
-  write_list(['\nINFO:\tSymbol \'',Term,'\' in attribute list not recognized!',
-            '\n--->\tAssumed to be a database object.']), nl.
-----
-
-*/
 
 lookupAttr(Term, Term) :- !.
 
@@ -4652,21 +4634,7 @@ lookupPred1(Term, Term, Rels, Rels) :-
             'object.\n']), %'
  throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownError)).
 
-/*
-Old:
-
-----
-lookupPred1(Term, Term, Rels, Rels) :-
-  atom(Term),
-  not(is_list(Term)),
-  write('Symbol \''), write(Term),
-  write('\' not recognized, supposed to be a Secondo object.'), nl, !.
-----
-*/
-
 lookupPred1(Term, Term, Rels, Rels).
-
-
 
 lookupPred2([], [], RelsBefore, RelsBefore).
 

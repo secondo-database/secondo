@@ -2930,9 +2930,11 @@ The next two predicates provide an update about known indexes and
 an update for informations about relations, which are stored in local
 memory.
 
-9.1 Update Relations
+9.1 Update Relations, Update Databases
 
----- updateRel(DCRel) :-
+----
+updateRel(+DCRel)
+updateDB(+DCDB)
 ----
 
 All information stored in local memory about relation ~Rel~ will
@@ -2946,7 +2948,18 @@ explicit request only (e.g. when that information is needed during optimization)
 The relation is written according to ~down cased spelling~, so that the predicate
 can be used on the user-level.
 
+~updateDB~ will retract all information on the specified database
+(which may not be opened), but ~not~ delete any samples, small objects or indexes.
+
 */
+
+:- assert(helpLine(updateRel,1,
+    [[+,'DCRelName','The name of the relation to handle in DC-spelling.']],
+    'Retract and update all metadata and samples for a given relation.')).
+
+:- assert(helpLine(updateDB,1,
+    [[+,'DCDBName','The name of the database to handle.']],
+    'Retract all metadata for a given database (which may not be opened).')).
 
 % Some auxiliary predicates to retract selectivity and PET information facts
 getRelAttrName(Rel, Arg) :-
@@ -3042,6 +3055,37 @@ updateRel(Rel) :-
   updateCatalog,
   write_list(['\nINFO:\tUpdated all information on relation \'',ExtRel,'\'.']),
   nl,
+  !.
+
+updateDB(DB1) :-
+  atomic(DB1),
+  dcName2externalName(DB,DB1),
+  ( ( ( not(isDatabaseOpen) ; ( databaseName(DBopen),
+                                dcName2externalName(DB2,DBopen),
+                                DB \= DB2
+                              )
+      )
+    )
+    *->( write_list(['\nWARNING:\tupdateDB(', DB, ') retracts all metadata on ',
+                     'the given database, but will not delete any derived ',
+                     'objects!']),
+         retractall(storedOrderings(DB, _, _)),
+         retractall(storedCard(DB, _, _)),
+         retractall(storedAttrSize(DB, _, _, _, _, _, _)),
+         retractall(storedTupleSize(DB, _, _)),
+         retractall(storedSpell(DB, _, _)),
+         retractall(storedRel(DB, _, _)),
+         retractall(storedIndex(DB, _, _, _, _)),
+         retractall(storedNoIndex(DB, _, _)),
+         retractall(storedPET(DB, _, _, _)),
+         retractall(storedSel(DB, _, _)),
+         write_list(['\nINFO: All information on database \'', DB, '\' has ',
+                     'been retracted.'])
+       )
+    ;  ( write_list(['\nERROR:\tYou may not use updateDB/1 on the currently ',
+                      'opened database!']), nl
+       )
+  ),
   !.
 
 /*
