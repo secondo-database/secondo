@@ -753,6 +753,8 @@ nor the object type (though it might change cardinalities, tuplesizes,
 attribute sizes, etc.).
 
 */
+:-assert(helpLine(updateCatalog,0,[],
+   'Re-read the current DB´s catalog and update the metadata.')).
 
 updateCatalog :-
   dm(dbhandling,['\nTry: updateCatalog.']),
@@ -1639,6 +1641,12 @@ size (cardinality) of selection and join samples.
 
 */
 
+:- assert(helpLine(resizeSamples,3,
+    [[+,'DCrel','The relation for which samples shall be created.'],
+     [+,'SelectionCard','Cardinality for the selection sample.'],
+     [+,'JoinCard','Cardinality for the (smaller) join sample.']],
+    'Create (but do not replace) samples for a relation.')).
+
 createSamples(DCrel, SelectionCard, JoinCard) :-
   dm(dbhandling,['\nTry: createSamples(',DCrel,',',SelectionCard,',',
                  JoinCard,').']),
@@ -1647,7 +1655,10 @@ createSamples(DCrel, SelectionCard, JoinCard) :-
          sampleNameS(ExtRel, SampleS),
          createSample(SampleS, ExtRel, SelectionCard, _),
          sampleNameJ(ExtRel, SampleJ),
-         createSample(SampleJ, ExtRel, JoinCard, _)
+         createSample(SampleJ, ExtRel, JoinCard, _),
+         updateCatalog                                % FIXME: added to force
+                                                      % rescan and continue
+                                                      % database setuo
        )
     ;  ( write('You must instantiate all 3 arguments of createSamples/3!'),
          nl,
@@ -1667,6 +1678,11 @@ Update the stored metadata on the relation samples.
 
 */
 
+:- assert(helpLine(resizeSamples,3,
+    [[+,'DCrel','The relation for which samples shall be created.'],
+     [+,'SelectionCard','Cardinality for the selection sample.'],
+     [+,'JoinCard','Cardinality for the (smaller) join sample.']],
+    'Create (and replace existing) samples for a relation.')).
 
 resizeSamples(DCrel, SelectionCard, JoinCard) :-
   dm(dbhandling,['\nTry: resizeSamples(',DCrel,',',SelectionCard,',',
@@ -3093,6 +3109,13 @@ retractStoredInformation(DCrel) :-
   !.
 
 updateRel(Rel) :-
+  ( not( (ground(Rel), atomic(Rel)) )
+    -> ( write_list(['\nERROR:\updateRel/1 requires a concrete relation name ',
+                     'as argument, but gets \'', Rel, '\'.']),
+         fail
+       )
+    ;  ( true )
+  ),
   dcName2externalName(DCRel,Rel),
   dcName2externalName(DCRel,ExtRel),
   write_list(['\nINFO:\updateRel(', Rel, ') retracts all information on \'',

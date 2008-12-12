@@ -3056,7 +3056,14 @@ cost(rel(Rel, _), _, Size, 0) :-
 
 % original code:
 cost(rel(Rel, _), _, Size, 0) :-
-         write('\n>>>>>>>opt_002 FIXME\n'), nl,
+  dcName2internalName(RelDC,Rel),
+  ( not( (Rel = RelDC) )
+    -> ( write('\n>>>>>>>opt_002 FIXME\n'), nl,
+         write('ERROR: wrong spelling in \'cost(rel('), write(Rel), %'
+         write('_), _, '), write(Size), write(')\'')                %'
+       )
+    ;  ( true )
+  ),
   card(Rel, Size).
 
 
@@ -4319,19 +4326,19 @@ lookup(select Attrs from Rels,
         select Attrs2 from Rels2) :-
   lookupRels(Rels, Rels2), !,
   lookupAttrs(Attrs, Attrs2).
-	
-lookup(insert into Rel values Values, 
+
+lookup(insert into Rel values Values,
         insert into Rel2 values Values)
  :-
   lookupRel(Rel, Rel2).
-        
-  
-lookup(insert into Rel select Attrs from Rels where Preds, 
+
+
+lookup(insert into Rel select Attrs from Rels where Preds,
         insert into Rel2 select Attrs2 from Rels2List where Preds2List) :-
   lookup(select Attrs from Rels where Preds, select Attrs2 from Rels2List where Preds2List),
   lookupRelNoDblCheck(Rel, Rel2).
 
-lookup(insert into Rel select Attrs from Rel2, 
+lookup(insert into Rel select Attrs from Rel2,
         insert into RelOut select Attrs2 from Rel2Out) :-
   lookup(select Attrs from Rel2, select Attrs2 from Rel2Out),
   lookupRelNoDblCheck(Rel, RelOut).
@@ -4867,7 +4874,7 @@ translate(Query groupby Attrs,
   makeList(Select, SelAttrs),
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
-	
+
 
 translate(insert into Rel values Val,
         Stream, select*, 0) :-
@@ -4884,8 +4891,8 @@ translate(insert into Rel select SelectQuery from Rels,
         Stream, Select, Cost) :-
   translate(select SelectQuery from Rels, SelectQuery2, Select, Cost),
   updateIndex(insert, Rel, insert(Rel, SelectQuery2), Stream),
-  !.	
-	
+  !.
+
 translate(Select from Rels where Preds, Stream, Select, Cost) :-
   not( optimizerOption(immediatePlan) ),
   not( optimizerOption(intOrders(_))     ),  % standard behaviour
@@ -6312,32 +6319,32 @@ updateAttrIndex(_, Rel, Attr, StreamIn, StreamIn) :-
   not(hasIndex(Rel, Attr, _, _)),
   !.
 
-updateTypedIndex(insert, Attr, IndexName, btree, StreamIn, 
+updateTypedIndex(insert, Attr, IndexName, btree, StreamIn,
 		 insertbtree(StreamIn, IndexName, Attr)) :-
   !.
-      
-updateTypedIndex(insert, Attr, IndexName, rtree, StreamIn, 
+
+updateTypedIndex(insert, Attr, IndexName, rtree, StreamIn,
 		 insertrtree(StreamIn, IndexName, Attr)) :-
   !.
-   
-updateTypedIndex(insert, Attr, IndexName, hash, StreamIn, 
+
+updateTypedIndex(insert, Attr, IndexName, hash, StreamIn,
 		 inserthash(StreamIn, IndexName, Attr)) :-
   !.
 
 
-updateTypedIndex(insert, Attr, IndexName, rtree3, StreamIn, 
+updateTypedIndex(insert, Attr, IndexName, rtree3, StreamIn,
 		 insertrtree(StreamIn, IndexName, Attr)) :-
   !.
 
-updateTypedIndex(insert, Attr, IndexName, rtree4, StreamIn, 
+updateTypedIndex(insert, Attr, IndexName, rtree4, StreamIn,
 		 insertrtree(StreamIn, IndexName, Attr)) :-
   !.
 
-updateTypedIndex(insert, Attr, IndexName, rtree8, StreamIn, 
+updateTypedIndex(insert, Attr, IndexName, rtree8, StreamIn,
 		 insertrtree(StreamIn, IndexName, Attr)) :-
   !.
 
-writeDebug(Text) :- 
+writeDebug(Text) :-
   write(Text), nl.
 
 
