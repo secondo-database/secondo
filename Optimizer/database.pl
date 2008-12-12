@@ -2047,19 +2047,23 @@ as terms rel(LFRel,\_) and attr(LFAttr,\_,\_).
 */
 
 % simplify attribute descriptor
-hasIndex2(rel(DCrel, _), attr(_:DCattr, _, _), DCindexName, Type) :-
-  hasIndex2(rel(DCrel, _), attr(DCattr, _, _), DCindexName, Type).
+hasIndex2(rel(Rel, _), attr(_:Attr, _, _), DCindexName, Type) :-
+  hasIndex2(rel(Rel, _), attr(Attr, _, _), DCindexName, Type).
 
 % fail, if absence of that index is known.
-hasIndex2(rel(DCrel, _), attr(DCattr, _, _), _, _) :-
+hasIndex2(rel(Rel, _), attr(Attr, _, _), _, _) :-
+  dcName2externalName(DCrel,Rel),
+  dcName2externalName(DCattr,Attr),
   databaseName(DB),
   storedNoIndex(DB, DCrel, DCattr),
   !,
   fail.
 
 % check for known presence of index
-hasIndex2(rel(DCrel, _), attr(DCattr, _, _), DCindex, Type) :-
+hasIndex2(rel(Rel, _), attr(Attr, _, _), DCindex, Type) :-
   databaseName(DB),
+  dcName2externalName(DCrel,Rel),
+  dcName2externalName(DCattr,Attr),
   storedIndex(DB, DCrel, DCattr, Type, DCindex),
   !.
 
@@ -2637,6 +2641,13 @@ After creating the index, updateCatalog is called.
 Relation and attribute are passed in downcased spelling.
 
 */
+
+:- assert(helpLine(createIndex,3,
+    [[+,'DCRel','The relation the index is for.'],
+     [+,'DCAttr','The key attribute.'],
+     [?,'LogicalIndexType','The logical index type.']],
+    'Create an index of a specified type over a given attribute for a relation.')).
+
 createIndex(DCrel,DCattr,LogicalIndexType) :-
   dm(dbhandling,['\nTry: createIndex(',DCrel,',',DCattr,',',LogicalIndexType,
                  ').']),
@@ -2816,6 +2827,13 @@ Otherwise, it will succeed.
 
 */
 
+:- assert(helpLine(dropIndex,3,
+    [[+,'DCRel','The relation the index is for.'],
+     [+,'DCAttr','The key attribute.'],
+     [+,'LogicalIndexType','The logical index type.']],
+    'Drop a specified index from the current DB.')).
+
+
 dropIndex(ExtIndexName) :-
   dm(dbhandling,['\nTry: dropIndex(',ExtIndexName,').']),
   % Check if a database is opened
@@ -2899,6 +2917,9 @@ This predicate shows a list of all registered indexes present within the current
 opened database.
 
 */
+:-assert(helpLine(helpMe,0,[],
+         'List information on available indexes within the current DB.')).
+
 
 showIndexes :-
   (databaseName(DB)
@@ -3244,6 +3265,8 @@ datatype) and ~Size~ (containing its size in byte).
 
 */
 
+:-assert(helpLine(showDatatypes,0,[],
+        'List all registered Secondo data types.')).
 
 :-   dynamic(secDatatype/2).
 
@@ -3293,6 +3316,10 @@ Together with the attributes` type, this information is stored as facts
 Throughout the optimizer, attribute sizes are passed in terms ~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~.
 
 */
+
+:-assert(helpLine(showStoredAttrSizes,0,[],
+        'List metadata on attribute sizes in current DB.')).
+
 
 attrSize(DCRel:DCAttr, sizeTerm(CoreSize, InFlobSize, ExtFlobSize)) :-
   databaseName(DBName),
@@ -3409,6 +3436,9 @@ attribute names will be stored in down cased spelling.
 
 */
 
+:-assert(helpLine(showStoredOrders,0,[],
+        'List metadata on stored orderings in current DB.')).
+
 hasStoredOrder(DB, DCRel, DCAttr) :-
   storedOrder(DB, DCRel, DCAttr).
 
@@ -3509,6 +3539,9 @@ A list of all system identifiers can be printed to screen by calling
 
 */
 :- dynamic(systemIdentifier/2).
+
+:-assert(helpLine(showSystemIdentifiers,0,[],
+         'List all known system identifiers.')).
 
 validIdentifier(ExtId) :-
   ( ground(ExtId)

@@ -916,6 +916,9 @@ opened Secondo database and print it on the screen.
 
 */
 
+:-assert(helpLine(showDatabase,0,[],
+         'List available metadata on relations within current database.')).
+
 showSingleOrdering(DB, Rel) :-
   findall( X,
            ( storedOrder(DB,Rel,X1),
