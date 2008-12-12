@@ -2048,12 +2048,14 @@ as terms rel(LFRel,\_) and attr(LFAttr,\_,\_).
 
 % simplify attribute descriptor
 hasIndex2(rel(Rel, _), attr(_:Attr, _, _), DCindexName, Type) :-
-  hasIndex2(rel(Rel, _), attr(Attr, _, _), DCindexName, Type).
+  downcase_atom(Rel,DCrel),
+  downcase_atom(Attr,DCattr),
+  hasIndex2(rel(DCrel, _), attr(DCattr, _, _), DCindexName, Type).
 
 % fail, if absence of that index is known.
 hasIndex2(rel(Rel, _), attr(Attr, _, _), _, _) :-
-  dcName2externalName(DCrel,Rel),
-  dcName2externalName(DCattr,Attr),
+  downcase_atom(Rel,DCrel),
+  downcase_atom(Attr,DCattr),
   databaseName(DB),
   storedNoIndex(DB, DCrel, DCattr),
   !,
@@ -2061,12 +2063,10 @@ hasIndex2(rel(Rel, _), attr(Attr, _, _), _, _) :-
 
 % check for known presence of index
 hasIndex2(rel(Rel, _), attr(Attr, _, _), DCindex, Type) :-
+  downcase_atom(Rel,DCrel),
+  downcase_atom(Attr,DCattr),
   databaseName(DB),
-  dcName2externalName(DCrel,Rel),
-  dcName2externalName(DCattr,Attr),
-  storedIndex(DB, DCrel, DCattr, Type, DCindex),
-  !.
-
+  storedIndex(DB, DCrel, DCattr, Type, DCindex).
 
 /*
 8.2 Storing And Loading About Existing Indexes
