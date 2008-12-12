@@ -662,7 +662,6 @@ struct RIStack {
       actElem = actElem->m_next;
     }
     gline->AddRouteInterval(actRId, actStartPos, actEndPos);
-    RemoveStack();
   };
 
   void RemoveStack(){
@@ -943,6 +942,10 @@ struct PrioQueue {
   bool IsEmpty() {
     if (firstFree == 0) return true;
     else return false;
+  }
+
+  void Destroy(){
+    prioQ.Destroy();
   }
 
   DBArray<PQEntry> prioQ;
@@ -2724,7 +2727,7 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
   delete pSectionIter;
 };
 
-Point* Network::GetPointOnRoute(GPoint* in_pGPoint){
+Point* Network::GetPointOnRoute(const GPoint* in_pGPoint){
   Point *res = new Point(false);
   CcInt* pRouteId = new CcInt(true, in_pGPoint->GetRouteId());
   BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
@@ -2858,10 +2861,12 @@ RouteInterval* Network::Find(Point p1, Point p2){
     double dpos, difference;
     if (chkPoint03(pCurve, p2, true, dpos, difference)) {
       if (gpp1->GetPosition() <= dpos) {
+        pRoute->DeleteIfAllowed();
         return new RouteInterval(gpp1->GetRouteId(),
                                          gpp1->GetPosition(),
                                          dpos);
       } else {
+        pRoute->DeleteIfAllowed();
         return  new RouteInterval(gpp1->GetRouteId(),
                                          dpos,
                                          gpp1->GetPosition());
@@ -2872,10 +2877,12 @@ RouteInterval* Network::Find(Point p1, Point p2){
       pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
       if (chkPoint03(pCurve, p1, true, dpos, difference)) {
         if (gpp2->GetPosition() <= dpos) {
+          pRoute->DeleteIfAllowed();
           return  new RouteInterval(gpp2->GetRouteId(),
                                          gpp2->GetPosition(),
                                          dpos);
         } else {
+          pRoute->DeleteIfAllowed();
           return  new RouteInterval(gpp2->GetRouteId(),
                                          dpos,
                                          gpp2->GetPosition());
@@ -2886,108 +2893,101 @@ RouteInterval* Network::Find(Point p1, Point p2){
         pAdjSect.clear();
         GetAdjacentSections(pSection->GetTupleId(),true, pAdjSect);
         size_t j = 0;
-        bool found = false;
         double dpos2;
         int iCurrSectTid;
-        while (j < pAdjSect.size() && !found) {
+        while (j < pAdjSect.size()) {
           DirectedSection actSection = pAdjSect[j];
           iCurrSectTid = actSection.GetSectionTid();
           pCurrSect = m_pSections->GetTuple(iCurrSectTid);
           pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
           if ((chkPoint(pCurve, p1,true, dpos, difference)) &&
              (chkPoint(pCurve, p2, true, dpos2, difference))){
-            found = true;
             int rid =
                 ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
-            if (dpos <= dpos2) {
-              return  new RouteInterval(rid,dpos, dpos2);
-            } else {
-              return  new RouteInterval(rid,dpos2, dpos);
-            }
+            pCurrSect->DeleteIfAllowed();
+            pRoute->DeleteIfAllowed();
+            pSection->DeleteIfAllowed();
+            pAdjSect.clear();
+            if (dpos <= dpos2) return  new RouteInterval(rid,dpos, dpos2);
+            else return  new RouteInterval(rid,dpos2, dpos);
           } else j++;
           pCurrSect->DeleteIfAllowed();
         }
-        if (!found) {
-          pAdjSect.clear();
-          GetAdjacentSections(pSection->GetTupleId(),false, pAdjSect);
-          j = 0;
-          while (j < pAdjSect.size() && !found) {
-            DirectedSection actSection = pAdjSect[j];
-            iCurrSectTid = actSection.GetSectionTid();
-            pCurrSect = m_pSections->GetTuple(iCurrSectTid);
-            pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
-            if ((chkPoint(pCurve, p1,true, dpos, difference)) &&
-              (chkPoint(pCurve, p2, true, dpos2, difference))){
-              found = true;
-              int rid =
-                  ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
-              if (dpos <= dpos2) {
-                return  new RouteInterval(rid,dpos, dpos2);
-              } else {
-                return  new RouteInterval(rid, dpos2, dpos);
-              }
-            } else j++;
-            pCurrSect->DeleteIfAllowed();
-          }
-          if (!found) {
+        pAdjSect.clear();
+        GetAdjacentSections(pSection->GetTupleId(),false, pAdjSect);
+        j = 0;
+        while (j < pAdjSect.size()) {
+          DirectedSection actSection = pAdjSect[j];
+          iCurrSectTid = actSection.GetSectionTid();
+          pCurrSect = m_pSections->GetTuple(iCurrSectTid);
+          pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
+          if ((chkPoint(pCurve, p1,true, dpos, difference)) &&
+            (chkPoint(pCurve, p2, true, dpos2, difference))){
+            int rid =
+                ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
             pAdjSect.clear();
-            GetAdjacentSections(pSection->GetTupleId(),true, pAdjSect);
-            j = 0;
-            while (j < pAdjSect.size() && !found) {
-              DirectedSection actSection = pAdjSect[j];
-              iCurrSectTid = actSection.GetSectionTid();
-              pCurrSect = m_pSections->GetTuple(iCurrSectTid);
-              pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
-              if ((chkPoint03(pCurve, p1,true, dpos, difference)) &&
-                (chkPoint03(pCurve, p2, true, dpos2, difference))){
-                found = true;
-                int rid =
-                  ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
-                if (dpos <= dpos2) {
-                  return  new RouteInterval(rid,dpos, dpos2);
-                } else {
-                  return  new RouteInterval(rid,dpos2, dpos);
-                }
-              } else j++;
-              pCurrSect->DeleteIfAllowed();
-            }
-            if (!found) {
-              pAdjSect.clear();
-              GetAdjacentSections(pSection->GetTupleId(),
-                                           false, pAdjSect);
-              j = 0;
-              while (j < pAdjSect.size() && !found) {
-                DirectedSection actSection = pAdjSect[j];
-                iCurrSectTid = actSection.GetSectionTid();
-                pCurrSect = m_pSections->GetTuple(iCurrSectTid);
-                pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
-                if ((chkPoint03(pCurve, p1,true, dpos, difference)) &&
-                  (chkPoint03(pCurve, p2, true, dpos2, difference))){
-                  found = true;
-                  int rid =
-                   ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
-                  if (dpos <= dpos2) {
-                    return  new RouteInterval(rid,dpos, dpos2);
-                  } else {
-                    return  new RouteInterval(rid,dpos2, dpos);
-                  }
-                } else j++;
-                pCurrSect->DeleteIfAllowed();
-              }//should not be reached
-              if (!found) {
-                return  new RouteInterval(numeric_limits<int>::max(),
-                                                numeric_limits<double>::max(),
-                                                numeric_limits<double>::max());
-              }
-            }
-          }
+            pSection->DeleteIfAllowed();
+            pCurrSect->DeleteIfAllowed();
+            pRoute->DeleteIfAllowed();
+            if (dpos <= dpos2) return  new RouteInterval(rid,dpos, dpos2);
+            else return  new RouteInterval(rid, dpos2, dpos);
+          } else j++;
+          pCurrSect->DeleteIfAllowed();
         }
+        pAdjSect.clear();
+        GetAdjacentSections(pSection->GetTupleId(),true, pAdjSect);
+        j = 0;
+        while (j < pAdjSect.size()) {
+          DirectedSection actSection = pAdjSect[j];
+          iCurrSectTid = actSection.GetSectionTid();
+          pCurrSect = m_pSections->GetTuple(iCurrSectTid);
+          pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
+          if ((chkPoint03(pCurve, p1,true, dpos, difference)) &&
+            (chkPoint03(pCurve, p2, true, dpos2, difference))){
+            int rid =
+              ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+            pAdjSect.clear();
+            pSection->DeleteIfAllowed();
+            pCurrSect->DeleteIfAllowed();
+            pRoute->DeleteIfAllowed();
+            if (dpos <= dpos2) return  new RouteInterval(rid,dpos, dpos2);
+            else return  new RouteInterval(rid,dpos2, dpos);
+          } else j++;
+          pCurrSect->DeleteIfAllowed();
+        }
+        pAdjSect.clear();
+        GetAdjacentSections(pSection->GetTupleId(), false, pAdjSect);
+        j = 0;
+        while (j < pAdjSect.size()) {
+          DirectedSection actSection = pAdjSect[j];
+          iCurrSectTid = actSection.GetSectionTid();
+          pCurrSect = m_pSections->GetTuple(iCurrSectTid);
+          pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
+          if ((chkPoint03(pCurve, p1,true, dpos, difference)) &&
+            (chkPoint03(pCurve, p2, true, dpos2, difference))){
+            int rid =
+              ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+            pAdjSect.clear();
+            pSection->DeleteIfAllowed();
+            pCurrSect->DeleteIfAllowed();
+            pRoute->DeleteIfAllowed();
+            if (dpos <= dpos2) return  new RouteInterval(rid,dpos, dpos2);
+            else return  new RouteInterval(rid,dpos2, dpos);
+          } else j++;
+          pCurrSect->DeleteIfAllowed();
+        }//should not be reached
+        pAdjSect.clear();
+        pSection->DeleteIfAllowed();
+        pRoute->DeleteIfAllowed();
+        return  new RouteInterval(numeric_limits<int>::max(),
+                                          numeric_limits<double>::max(),
+                                          numeric_limits<double>::max());
       }
     }
   }
   return  new RouteInterval(numeric_limits<int>::max(),
-                                                numeric_limits<double>::max(),
-                                                numeric_limits<double>::max());
+                            numeric_limits<double>::max(),
+                            numeric_limits<double>::max());
 }
 
 /*
@@ -3000,115 +3000,144 @@ RouteInterval* Network::FindInterval(Point p1, Point p2){
   GPoint *gpp2 = GetNetworkPosOfPoint(p2);
   assert (gpp1->IsDefined() && gpp2->IsDefined());
   if (gpp1->GetRouteId() == gpp2->GetRouteId()){
-    return new RouteInterval(gpp1->GetRouteId(),
+    RouteInterval *res = new RouteInterval(gpp1->GetRouteId(),
                              gpp1->GetPosition(),
                              gpp2->GetPosition());
+    delete gpp1;
+    delete gpp2;
+    return res;
   } else {
     Tuple *pCurrSect;
     Tuple *pRoute = GetRoute(gpp1->GetRouteId());
     SimpleLine *pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
     double dpos, difference;
     if (chkPoint03(pCurve, p2, true, dpos, difference)) {
-      return new RouteInterval(gpp1->GetRouteId(),
+      pRoute->DeleteIfAllowed();
+      RouteInterval *res = new RouteInterval(gpp1->GetRouteId(),
                                gpp1->GetPosition(),
                                dpos);
+      delete gpp1;
+      delete gpp2;
+      return res;
     } else {
       pRoute->DeleteIfAllowed();
       pRoute = GetRoute(gpp2->GetRouteId());
       pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
       if (chkPoint03(pCurve, p1, true, dpos, difference)) {
-        return new RouteInterval(gpp2->GetRouteId(),
+        pRoute->DeleteIfAllowed();
+        RouteInterval *res = new RouteInterval(gpp2->GetRouteId(),
                                          dpos,
                                          gpp2->GetPosition());
+        delete gpp1;
+        delete gpp2;
+        return res;
       } else {
         Tuple *pSection = GetSectionOnRoute(gpp1);
         vector<DirectedSection> pAdjSect;
         pAdjSect.clear();
         GetAdjacentSections(pSection->GetTupleId(),true, pAdjSect);
         size_t j = 0;
-        bool found = false;
         double dpos2;
         int iCurrSectTid;
-        while (j < pAdjSect.size() && !found) {
+        while (j < pAdjSect.size()) {
           DirectedSection actSection = pAdjSect[j];
           iCurrSectTid = actSection.GetSectionTid();
           pCurrSect = m_pSections->GetTuple(iCurrSectTid);
           pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
           if ((chkPoint(pCurve, p1,true, dpos, difference)) &&
              (chkPoint(pCurve, p2, true, dpos2, difference))){
-            found = true;
             int rid =
                 ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+            pAdjSect.clear();
+            pRoute->DeleteIfAllowed();
+            pCurrSect->DeleteIfAllowed();
+            pSection->DeleteIfAllowed();
+            delete gpp1;
+            delete gpp2;
             return  new RouteInterval(rid,dpos, dpos2);
           } else j++;
           pCurrSect->DeleteIfAllowed();
         }
-        if (!found) {
-          pAdjSect.clear();
-          GetAdjacentSections(pSection->GetTupleId(),false, pAdjSect);
-          j = 0;
-          while (j < pAdjSect.size() && !found) {
-            DirectedSection actSection = pAdjSect[j];
-            iCurrSectTid = actSection.GetSectionTid();
-            pCurrSect = m_pSections->GetTuple(iCurrSectTid);
-            pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
-            if ((chkPoint(pCurve, p1,true, dpos, difference)) &&
-              (chkPoint(pCurve, p2, true, dpos2, difference))){
-              found = true;
-              int rid =
-                  ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
-              return  new RouteInterval(rid,dpos, dpos2);
-            } else j++;
-            pCurrSect->DeleteIfAllowed();
-          }
-          if (!found) {
+        pAdjSect.clear();
+        GetAdjacentSections(pSection->GetTupleId(),false, pAdjSect);
+        j = 0;
+        while (j < pAdjSect.size()) {
+          DirectedSection actSection = pAdjSect[j];
+          iCurrSectTid = actSection.GetSectionTid();
+          pCurrSect = m_pSections->GetTuple(iCurrSectTid);
+          pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
+          if ((chkPoint(pCurve, p1,true, dpos, difference)) &&
+            (chkPoint(pCurve, p2, true, dpos2, difference))){
+            int rid =
+                ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
             pAdjSect.clear();
-            GetAdjacentSections(pSection->GetTupleId(),true, pAdjSect);
-            j = 0;
-            while (j < pAdjSect.size() && !found) {
-              DirectedSection actSection = pAdjSect[j];
-              iCurrSectTid = actSection.GetSectionTid();
-              pCurrSect = m_pSections->GetTuple(iCurrSectTid);
-              pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
-              if ((chkPoint03(pCurve, p1,true, dpos, difference)) &&
-                (chkPoint03(pCurve, p2, true, dpos2, difference))){
-                found = true;
-                int rid =
-                  ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
-                return  new RouteInterval(rid,dpos, dpos2);
-              } else j++;
-              pCurrSect->DeleteIfAllowed();
-            }
-            if (!found) {
-              pAdjSect.clear();
-              GetAdjacentSections(pSection->GetTupleId(),
-                                           false, pAdjSect);
-              j = 0;
-              while (j < pAdjSect.size() && !found) {
-                DirectedSection actSection = pAdjSect[j];
-                iCurrSectTid = actSection.GetSectionTid();
-                pCurrSect = m_pSections->GetTuple(iCurrSectTid);
-                pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
-                if ((chkPoint03(pCurve, p1,true, dpos, difference)) &&
-                  (chkPoint03(pCurve, p2, true, dpos2, difference))){
-                  found = true;
-                  int rid =
-                   ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
-                  return  new RouteInterval(rid,dpos, dpos2);
-                } else j++;
-                pCurrSect->DeleteIfAllowed();
-              }//should not be reached
-              if (!found) {
-                return new RouteInterval(numeric_limits<int>::max(),
-                                         numeric_limits<double>::max(),
-                                         numeric_limits<double>::max());
-              }
-            }
-          }
+            pRoute->DeleteIfAllowed();
+            pCurrSect->DeleteIfAllowed();
+            pSection->DeleteIfAllowed();
+            delete gpp1;
+            delete gpp2;
+            return  new RouteInterval(rid,dpos, dpos2);
+          } else j++;
+          pCurrSect->DeleteIfAllowed();
         }
+        pAdjSect.clear();
+        GetAdjacentSections(pSection->GetTupleId(),true, pAdjSect);
+        j = 0;
+        while (j < pAdjSect.size()) {
+          DirectedSection actSection = pAdjSect[j];
+          iCurrSectTid = actSection.GetSectionTid();
+          pCurrSect = m_pSections->GetTuple(iCurrSectTid);
+          pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
+          if ((chkPoint03(pCurve, p1,true, dpos, difference)) &&
+            (chkPoint03(pCurve, p2, true, dpos2, difference))){
+            int rid =
+              ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+            pAdjSect.clear();
+            pRoute->DeleteIfAllowed();
+            pCurrSect->DeleteIfAllowed();
+            pSection->DeleteIfAllowed();
+            delete gpp1;
+            delete gpp2;
+            return  new RouteInterval(rid,dpos, dpos2);
+          } else j++;
+          pCurrSect->DeleteIfAllowed();
+        }
+        pAdjSect.clear();
+        GetAdjacentSections(pSection->GetTupleId(), false, pAdjSect);
+        j = 0;
+        while (j < pAdjSect.size()) {
+          DirectedSection actSection = pAdjSect[j];
+          iCurrSectTid = actSection.GetSectionTid();
+          pCurrSect = m_pSections->GetTuple(iCurrSectTid);
+          pCurve = (SimpleLine*) pCurrSect->GetAttribute(SECTION_CURVE);
+          if ((chkPoint03(pCurve, p1,true, dpos, difference)) &&
+            (chkPoint03(pCurve, p2, true, dpos2, difference))){
+            int rid =
+              ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+            pAdjSect.clear();
+            pRoute->DeleteIfAllowed();
+            pCurrSect->DeleteIfAllowed();
+            pSection->DeleteIfAllowed();
+            delete gpp1;
+            delete gpp2;
+            return  new RouteInterval(rid,dpos, dpos2);
+          } else j++;
+          pCurrSect->DeleteIfAllowed();
+        }//should not be reached
+        pAdjSect.clear();
+        pRoute->DeleteIfAllowed();
+        pCurrSect->DeleteIfAllowed();
+        pSection->DeleteIfAllowed();
+        delete gpp1;
+        delete gpp2;
+        return new RouteInterval(numeric_limits<int>::max(),
+                                    numeric_limits<double>::max(),
+                                    numeric_limits<double>::max());
       }
     }
   }
+  delete gpp1;
+  delete gpp2;
   return  new RouteInterval(numeric_limits<int>::max(),
                             numeric_limits<double>::max(),
                             numeric_limits<double>::max());
@@ -3444,11 +3473,7 @@ int Network::isDefined() {
 GPoint* Network::GetNetworkPosOfPoint(Point p){
   const Rectangle<2> bbox = p.BoundingBox();
   R_TreeLeafEntry<2,TupleId> res;
-  ListExpr xType;
-  nl->ReadFromString("(tuple((id int)(length real)(curve sline) (dual bool)"
-                     "(startsSmaller bool)))", xType);
-  ListExpr xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  Tuple *pCurrRoute = new Tuple(xNumericType);
+  Tuple *pCurrRoute;
   if (m_pRTreeRoutes->First(bbox, res)){
     pCurrRoute = m_pRoutes->GetTuple(res.info);
     // pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
@@ -3510,6 +3535,7 @@ bigger tolerance for the hit of the route curve.
       }
     }
     GPoint *result = new GPoint(false);
+    pCurrRoute->DeleteIfAllowed();
     return result;
   }
 }
@@ -3622,6 +3648,8 @@ The simple constructor. Should not be used.
 */
   GLine::GLine()
   {
+    del.refs=1;
+    del.isDelete=true;
   }
 
   GLine::GLine(int in_iSize):
@@ -3629,28 +3657,31 @@ The simple constructor. Should not be used.
   {
     m_bDefined = false;
     m_bSorted = false;
-    m_dLength = 0;
+    m_dLength = 0.0;
     del.refs=1;
     del.isDelete=true;
   }
 
-  GLine::GLine(const GLine& in_xOther):
+  GLine::GLine(const GLine* in_xOther):
   m_xRouteIntervals(0)
   {
-    m_bDefined = in_xOther.m_bDefined;
-    m_bSorted = in_xOther.m_bSorted;
-    m_iNetworkId = in_xOther.m_iNetworkId;
+    m_bDefined = in_xOther->m_bDefined;
+    m_bSorted = in_xOther->m_bSorted;
+    m_iNetworkId = in_xOther->m_iNetworkId;
     m_dLength = 0.0;
     // Iterate over all RouteIntervalls
-    const RouteInterval* pCurrentInterval;
-    for (int i = 0; i < in_xOther.m_xRouteIntervals.Size(); i++)
+    for (int i = 0; i < in_xOther->m_xRouteIntervals.Size(); i++)
     {
       // Get next Interval
-      in_xOther.m_xRouteIntervals.Get(i, pCurrentInterval);
+      const RouteInterval* pCurrentInterval;
+      in_xOther->m_xRouteIntervals.Get(i, pCurrentInterval);
 
-      AddRouteInterval(pCurrentInterval->m_iRouteId,
-                       pCurrentInterval->m_dStart,
-                       pCurrentInterval->m_dEnd);
+      int iRouteId = pCurrentInterval->m_iRouteId;
+      double dStart = pCurrentInterval->m_dStart;
+      double dEnd = pCurrentInterval->m_dEnd;
+      AddRouteInterval(iRouteId,
+                       dStart,
+                       dEnd);
     }
     del.refs=1;
     del.isDelete=true;
@@ -3662,8 +3693,6 @@ The simple constructor. Should not be used.
                 bool& inout_bCorrect)
   {
   // Check the list
-  del.refs=1;
-  del.isDelete=true;
   if(!(nl->ListLength( in_xValue ) == 2))
   {
     string strErrorMessage = "GLine(): List length must be 2.";
@@ -3738,6 +3767,8 @@ The simple constructor. Should not be used.
     m_bSorted = false;
     inout_bCorrect = true;
   }
+  del.refs=1;
+  del.isDelete=true;
   return;
 }
 
@@ -3786,7 +3817,8 @@ void GLine::SetSorted(bool in_bSorted) {
 }
 
 Word GLine::In(const ListExpr typeInfo, const ListExpr instance,
-               const int errorPos, ListExpr& errorInfo, bool& correct){
+               const int errorPos, ListExpr& errorInfo, bool& correct)
+{
   GLine* pGline = new GLine(0);
   if (nl->ListLength(instance) == 0) {
     correct = true;
@@ -3855,7 +3887,6 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
   bool bFirst = true;
   ListExpr xNetworkId = nl->IntAtom(pGline->m_iNetworkId);
   ListExpr xRouteIntervals;
-
   // Iterate over all RouteIntervalls
   for (int i = 0; i < pGline->m_xRouteIntervals.Size(); ++i)
   {
@@ -3898,7 +3929,10 @@ Word GLine::Create(const ListExpr typeInfo)
 
 void GLine::Clear() {
   m_xRouteIntervals.Clear();
+  SetSorted(false);
+  m_dLength = 0.0;
 }
+
 void GLine::Delete(const ListExpr typeInfo,
                    Word& w )
 {
@@ -3918,16 +3952,28 @@ void GLine::Close(const ListExpr typeInfo,
 Word GLine::CloneGLine(const ListExpr typeInfo,
                   const Word& w )
 {
-  return SetWord(new GLine(*((GLine*)w.addr)));
+  return SetWord(((GLine*)w.addr)->Clone());
 }
 
 GLine* GLine::Clone() const{
-    return new GLine(*this);
+  GLine *xOther = new GLine(Size());
+  xOther->SetDefined(m_bDefined);
+  xOther->SetSorted(m_bSorted);
+  xOther->SetNetworkId(m_iNetworkId);
+  const RouteInterval *ri;
+  for (int i = 0; i < Size(); i++){
+    Get(i, ri);
+    int rid = ri->m_iRouteId;
+    double start = ri->m_dStart;
+    double end = ri->m_dEnd;
+    xOther->AddRouteInterval(rid, start, end);
+  }
+  return xOther;
 }
 
 void* GLine::Cast(void* addr)
 {
-  return new (addr) GLine();
+  return new (addr) GLine;
 }
 
 int GLine::Size() const
@@ -3964,7 +4010,7 @@ bool GLine::Adjacent( const Attribute* arg ) const
 }
 
 /*
-Compare not implemented yet
+Compare
 
 */
 int GLine::Compare( const Attribute* arg ) const
@@ -4012,16 +4058,18 @@ int GLine::Compare( const Attribute* arg ) const
 
 GLine& GLine::operator=( const GLine& l )
 {
+  m_xRouteIntervals.Clear();
   if( l.m_xRouteIntervals.Size() > 0 ){
     m_xRouteIntervals.Resize( l.m_xRouteIntervals.Size() );
     const RouteInterval *ri;
     for( int i = 0; i < l.m_xRouteIntervals.Size(); i++ ) {
       l.m_xRouteIntervals.Get( i, ri );
-      m_xRouteIntervals.Put(i, *ri );
+      int rid = ri->m_iRouteId;
+      double start = ri->m_dStart;
+      double end = ri->m_dEnd;
+      AddRouteInterval(rid, start, end);
     }
-  } else
-    if (m_xRouteIntervals.Size() > 0) m_xRouteIntervals.Clear();
-  m_dLength = l.m_dLength;
+  }
   m_bSorted = l.m_bSorted;
   m_bDefined = l.m_bDefined;
   m_iNetworkId = l.m_iNetworkId;
@@ -4087,13 +4135,27 @@ int GLine::NumOfFLOBs() const
 
 FLOB* GLine::GetFLOB(const int i)
 {
-  return &m_xRouteIntervals;
+  if (i == 0) return &m_xRouteIntervals;
+  return 0;
 }
 
 void GLine::CopyFrom(const StandardAttribute* right)
 {
+  *this = *((const GLine*) right);
   //Clear();
-  *this = *((const GLine *)right);
+  /*
+  GLine *src = (GLine*) right;
+  SetDefined(src->IsDefined());
+  SetSorted(src->IsSorted());
+  const RouteInterval* ri;
+  for (int i = 0; i < src->Size(); i++) {
+    src->Get(i,ri);
+    int rid = ri->m_iRouteId;
+    double start = ri->m_dStart;
+    double end = ri->m_dEnd;
+    AddRouteInterval(rid, start, end);
+  }
+  */
 }
 
 double GLine::GetLength(){
@@ -4523,7 +4585,6 @@ void GLine::Gline2line(Line *res){
     res->SetDefined(true);
   } else {
     if (IsDefined() && NoOfComponents() == 0) {
-      res->Clear();
       res->SetDefined(true);
     } else {
       res->SetDefined(false);
@@ -4576,6 +4637,8 @@ bool GLine::Intersects(GLine *pgl){
   }
   return false;
 }
+
+
 /*
 1.3.2.3 Secondo Type Constructor for class ~GLine~
 
@@ -4768,9 +4831,7 @@ double GPoint::Distance (GPoint* pToGPoint){
     double res = from->Distance(*to);
     delete from;
     delete to;
-    SecondoSystem::GetCatalog()->CloseObject( nl->SymbolAtom("network"),
-                                              pNetwork );
-
+    NetworkManager::CloseNetwork(pNetwork);
     return res;
   } else return numeric_limits<double>::max();
 }
@@ -4780,11 +4841,9 @@ bool GPoint::Inside(GLine *gl){
         gl->NoOfComponents() < 1) return false;
   if (GetNetworkId() != gl->GetNetworkId()) return false;
   const RouteInterval *pCurrRInter;
-  if (gl->IsSorted()) {
-    if (searchRouteInterval(this, gl, 0, gl->NoOfComponents()-1))
-      return true;
-    else return false;
-  } else {
+  if (gl->IsSorted())
+    return (searchRouteInterval(this, gl, 0, gl->NoOfComponents()-1));
+  else {
     int i = 0;
     while (i < gl->NoOfComponents()) {
       gl->Get(i, pCurrRInter);
@@ -4910,6 +4969,7 @@ Initialize PriorityQueue
           delete actEntry;
         }
       }
+      adjSectionList.clear();
     } else {
       if (start->GetSide() == 0) {
         dist = sectMeas2 - start->GetPosition();
@@ -4928,6 +4988,7 @@ Initialize PriorityQueue
             delete actEntry;
           }
         }
+        adjSectionList.clear();
       } else {
         dist = start->GetPosition() - sectMeas1;
         pNetwork->GetAdjacentSections(startSectTID, false, adjSectionList);
@@ -4969,7 +5030,7 @@ Initialize PriorityQueue
             delete actEntry;
           }
         }
-
+        adjSectionList.clear();
       }
     }
 /*
@@ -5009,6 +5070,7 @@ Get adjacent sections and insert into priority Queue.
           }
         }
         delete actPQEntry;
+        actSection->DeleteIfAllowed();
       } else {
 /*
 Shortest Path found.
@@ -5028,6 +5090,7 @@ Compute last route interval and resulting gline.
           startRI = sectMeas2;
           endRI = end->GetPosition();
         }
+        actSection->DeleteIfAllowed();
 /*
 Get the sections used for shortest path and write them in right
 order (from start to end gpoint) in the resulting gline. Because dijkstra gives
@@ -5044,7 +5107,6 @@ stack to turn in right order.
         else upDown = true;
         while (!end) {
           //GetSection
-          actSection->DeleteIfAllowed();
           actSection = pNetwork->GetSection(pElem->sectID);
           actRouteId =
               ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
@@ -5062,7 +5124,6 @@ stack to turn in right order.
             pElem = visitedSect->Find(pElem->beforeSectId);
           } else {
             end = true;
-            adjSectionList.clear();
             pNetwork->GetAdjacentSections(startSectTID, true, adjSectionList);
             size_t i = 0;
             bool stsectfound = false;
@@ -5076,8 +5137,8 @@ stack to turn in right order.
               }
               i++;
             }
+            adjSectionList.clear();
             if (!stsectfound) {
-              adjSectionList.clear();
               pNetwork->GetAdjacentSections(startSectTID, false,
                                             adjSectionList);
               i = 0;
@@ -5091,18 +5152,18 @@ stack to turn in right order.
                 }
                 i++;
               }
+              adjSectionList.clear();
             }
           }
         }
-        riStack->StackToGLine(result);
         // Cleanup and return result
+        riStack->StackToGLine(result);
+        riStack->RemoveStack();
         delete actPQEntry;
       }
-      actSection->DeleteIfAllowed();
-
     }
-    adjSectionList.clear();
     visitedSect->Remove();
+    prioQ->Destroy();
     delete prioQ;
   }
   startSection->DeleteIfAllowed();
@@ -5118,7 +5179,7 @@ Returns the x,y point represented by gpoint.
 
 */
 
-Point* GPoint::ToPoint(){
+Point* GPoint::ToPoint() const{
   Point *res = new Point(false);
   Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
   if (pNetwork == 0) return res;
@@ -5126,6 +5187,14 @@ Point* GPoint::ToPoint(){
   NetworkManager::CloseNetwork(pNetwork);
   return res;
 };
+
+Point* GPoint::ToPoint(Network *pNetwork) const{
+  Point *res = new Point(false);
+  if (pNetwork == 0) return res;
+  res = pNetwork->GetPointOnRoute(this);
+  return res;
+};
+
 /*
 Returns the bounding GPoints of the given GLine.
 
@@ -5576,7 +5645,7 @@ int OpGPoint2RectValueMapping(Word* args,
   if(!arg->IsDefined()){
     box->SetDefined(false);
   } else {
-    (*box) = arg->BoundingBox();
+    (*box) = arg->NetBoundingBox();
   }
   return 0;
 } //end ValueMapping
@@ -6516,6 +6585,70 @@ Operator point2gpoint (
           OpPoint2GPointTypeMap        // type mapping
 );
 
+/*
+1.4.13 Operator ~gpoint2point~
+
+Translates a ~gpoint into a spatial ~Point~ value.
+
+*/
+ListExpr OpGPoint2PointTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 ){
+    sendMessage("Expects a list of length 1.");
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  ListExpr xMPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMPointDesc )) ||
+      nl->AtomType( xMPointDesc ) != SymbolType ||
+      nl->SymbolValue( xMPointDesc ) != "gpoint" )
+  {
+    sendMessage("Element must be of type gpoint.");
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+
+  return nl->SymbolAtom( "point" );
+}
+
+int OpGPoint2PointValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  Point* pPoint = (Point*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pPoint );
+  GPoint* pGPoint = (GPoint*)args[0].addr;
+  if(pGPoint == NULL || !pGPoint->IsDefined()) {
+    string strMessage = "Point does not exist.";
+    cerr << strMessage << endl;
+    sendMessage(strMessage);
+    pPoint->SetDefined(false);
+    return 0;
+  }
+  Point *res = pGPoint->ToPoint();
+  result = SetWord(res);
+  return 0;
+} //end ValueMapping
+
+const string OpGPoint2PointSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>gpoint -> point" "</text--->"
+  "<text>gpoint2point(gpoint)</text--->"
+  "<text>Translates a gpoint to a point.</text--->"
+  "<text>gpoint2point(gpoint)</text--->"
+  ") )";
+
+Operator gpoint2point (
+          "gpoint2point",               // name
+          OpGPoint2PointSpec,          // specification
+          OpGPoint2PointValueMapping,  // value mapping
+          Operator::SimpleSelect,        // selection function
+          OpGPoint2PointTypeMap        // type mapping
+);
+
 
 /*
 1.4.14 Operator ~polygpoint~
@@ -7098,6 +7231,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networklength);
     AddOperator(&networknetdistance);
     AddOperator(&point2gpoint);
+    AddOperator(&gpoint2point);
     AddOperator(&netgpequal);
     AddOperator(&sline2gline);
     AddOperator(&networkinside);

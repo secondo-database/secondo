@@ -87,6 +87,13 @@ Example  : query point2gpoint(B_NETWORK, [const point value(8594.0 8773.0)]);
 Result   : (gpoint (1 1 385.0474775448921 2))
 Tolerance:%0.01
 
+Operator : gpoint2point
+Number   : 1
+Signature: gpoint -> point
+Example  : query gpoint2point([const gpoint value(1 1 385.0474775448921 2)]);
+Result   : (point (8594.0 8773.0))
+Tolerance:%0.01
+
 Operator : =
 Number   : 1
 Signature: gpoint x gpoint -> bool

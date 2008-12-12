@@ -29,24 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef __NETWORK_ALGEBRA_H__
 #define __NETWORK_ALGEBRA_H__
 
-#ifndef NESTED_LIST_H
-#error NestedList.h is needed by NetworkAlgebra.h. Please include in *.cpp-File.
-#endif
-
-#ifndef _RELATION_ALGEBRA_H_
-#error RelationAlgebra.h is needed by NetworkAlgebra.h. \
-Please include in *.cpp-File.
-#endif
-
-#ifndef _BTREE_ALGEBRA_H_
-#error BTreeAlgebra.h is needed by NetworkAlgebra.h. \
-Please include in *.cpp-File.
-#endif
-
-#ifndef DBARRAY_H
-#error DBArray.h is needed by NetworkAlgebra.h. Please include in *.cpp-File.
-#endif
-
+#include "NestedList.h"
+#include "RelationAlgebra.h"
+#include "BTreeAlgebra.h"
+#include "DBArray.h"
 #include "StandardAttribute.h"
 #include "SpatialAlgebra.h"
 #include "RTreeAlgebra.h"
@@ -82,6 +68,7 @@ struct SectTreeEntry{
 
 class GPoints;
 class GLine;
+class Network;
 /*
 4 class GPoint
 
@@ -363,21 +350,38 @@ Returns true if two gpoint are identical.
 
     bool operator!= (const GPoint&p) const;
 
-    Point* ToPoint();
+    Point* ToPoint() const;
+
+    Point* ToPoint(Network *pNetwork) const;
+
+/*
+Returns the spatial Bounding Box of the point which is a rectangle degenerated
+to a single point.
+
+*/
+
+    inline const Rectangle<2> BoundingBox(){
+      if (m_bDefined) {
+        Point *p = ToPoint();
+        Rectangle<2> result = p->BoundingBox();
+        delete p;
+        return result;
+      } else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
+    };
 
 /*
 Returns a point degenerated rectangle as network bounding box of the gpoint
 
 */
 
-    inline const Rectangle<2> BoundingBox() const {
-      assert(m_bDefined);
-      return Rectangle<2>(true,
-                          (double) m_xRouteLocation.rid,
-                          (double) m_xRouteLocation.rid,
-                          m_xRouteLocation.d,
-                          m_xRouteLocation.d);
-    }
+    inline const Rectangle<2> NetBoundingBox() const {
+      if (m_bDefined) return Rectangle<2>(true,
+                                          (double) m_xRouteLocation.rid,
+                                          (double) m_xRouteLocation.rid,
+                                          m_xRouteLocation.d,
+                                          m_xRouteLocation.d);
+      else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
+    };
 
 /*
 Returns a gline representing the shortest path between two GPoint.
@@ -390,7 +394,7 @@ Returns a gline representing the shortest path between two GPoint.
 
 /*
 
-4.3.3 private Fields of class ~gline~
+4.3.3 private Fields of class ~gpoint~
 
 Network id
 
@@ -1252,7 +1256,7 @@ GetPointOnRoute
 Returns the point value of the GPoint on the route.
 
 */
-  Point* GetPointOnRoute(GPoint* in_xGPoint);
+  Point* GetPointOnRoute(const GPoint* in_xGPoint);
 
 /*
 GetRouteCurve
@@ -1500,7 +1504,7 @@ Given that all relations are set up, the adjacency lists are created.
                          Transition in_xTransition,
                          vector<DirectedSectionPair> &inout_xPairs);
 
-
+      /*
   void SaveAdjacencyList(SmiRecord& in_xValueRecord,
                          size_t& inout_iOffset,
                          SmiFileId& fileId);
@@ -1508,7 +1512,7 @@ Given that all relations are set up, the adjacency lists are created.
   void SaveSubAdjacencyList(SmiRecord& in_xValueRecord,
                             size_t& inout_iOffset,
                             SmiFileId& fileId);
-
+      */
 
 
 /*
@@ -1610,7 +1614,7 @@ The simple constructor. Should not be used.
     GLine(int in_iSize);
 
 
-    GLine(const GLine& in_xOther);
+    GLine(const GLine* in_xOther);
 
     ~GLine() {};
 
@@ -1675,7 +1679,7 @@ The simple constructor. Should not be used.
 
     bool Adjacent(const Attribute*) const;
 
-    // Attribute* Clone() const;
+    GLine* Clone() const;
 
     size_t HashValue() const;
 
@@ -1738,8 +1742,6 @@ Returns the Bounding GPoints of the GLine.
 */
 
   GPoints* GetBGP();
-
-  virtual GLine* Clone() const;
 
   void Clear();
 
