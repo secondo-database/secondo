@@ -2029,10 +2029,20 @@ If the predicate fails, this means, that there is no such index.
 */
 
 hasIndex(Rel, Attr, IndexName, IndexType) :-
-  dm(dbhandling,['\nTry: hasIndex(',Rel,',',Attr,',',IndexName,',',
+  ( ( ground(Rel), ground(Attr) )
+    -> ( dm(dbhandling,['\nTry: hasIndex(',Rel,',',Attr,',',IndexName,',',
                  IndexType,').']),
-  not(optimizerOption(noIndex)),
-  hasIndex2(Rel, Attr, IndexName, IndexType).
+         not(optimizerOption(noIndex)),
+         hasIndex2(Rel, Attr, IndexName, IndexType)
+      )
+    ; (
+        write_list(['\ERROR:\tUninitialized argument in hasIndex(',Rel,',',
+                    Attr,',', IndexName, ',', IndexType, ').']),
+        throw(sql_ERROR(database_hasIndex(Rel, Attr, IndexName, IndexType)
+                        :cannotTranslate)),
+        fail
+      )
+  ).
 
 
 /*
@@ -2048,12 +2058,16 @@ as terms rel(LFRel,\_) and attr(LFAttr,\_,\_).
 
 % simplify attribute descriptor
 hasIndex2(rel(Rel, _), attr(_:Attr, _, _), DCindexName, Type) :-
+  atomic(Rel),
+  atomic(Attr),
   downcase_atom(Rel,DCrel),
   downcase_atom(Attr,DCattr),
   hasIndex2(rel(DCrel, _), attr(DCattr, _, _), DCindexName, Type).
 
 % fail, if absence of that index is known.
 hasIndex2(rel(Rel, _), attr(Attr, _, _), _, _) :-
+  atomic(Rel),
+  atomic(Attr),
   downcase_atom(Rel,DCrel),
   downcase_atom(Attr,DCattr),
   databaseName(DB),
@@ -2063,6 +2077,8 @@ hasIndex2(rel(Rel, _), attr(Attr, _, _), _, _) :-
 
 % check for known presence of index
 hasIndex2(rel(Rel, _), attr(Attr, _, _), DCindex, Type) :-
+  atomic(Rel),
+  atomic(Attr),
   downcase_atom(Rel,DCrel),
   downcase_atom(Attr,DCattr),
   databaseName(DB),
@@ -2865,8 +2881,9 @@ dropIndex(ExtIndexName) :-
   concat_atom(['delete ', ExtIndexName],'',DeleteIndexAtom),
   secondo_direct(DeleteIndexAtom),
   % update storedIndex/5
-  dcName2externalName(DCRel,RelName),
-  dcName2externalName(DCRel:DCAttr, AttrName),
+  dcName2externalName(DCRel,RelName),            % get DCReal
+  % dcName2externalName(DCRel:DCAttr, AttrName), % original code
+  dcName2externalName(DCAttr, AttrName),         % modified code
   dcName2externalName(DCindexName,ExtIndexName),
   retractall(storedIndex(DB,DCRel,DCAttr,_,DCindexName)),
   % update storedNoIndex/3
@@ -2897,6 +2914,17 @@ dropIndex(DCRel,DCAttr,LogicalIndexType) :-
   dm(dbhandling,['\nTry: dropIndex(',DCRel,',',DCAttr,',',
                  LogicalIndexType,').']),
   % create index name
+  ( not( (ground(DCRel), ground(DCAttr), ground(LogicalIndexType),
+          atomic(DCRel), atomic(DCAttr) )
+       )
+    -> ( write('ERROR:\tYou need to specify all 3 arguments of dropIndex/3.'),
+         nl,
+         throw(sql_ERROR(dropIndex(DCRel,DCAttr,LogicalIndexType)
+                 :unsufficientParameters)),
+         fail
+       )
+    ;  ( true )
+  ),
   dcName2externalName(DCRel,ExtRelName),
   dcName2externalName(DCRel:DCAttr, ExtAttrName),
   createIndexName(ExtRelName,ExtAttrName,LogicalIndexType,undefined,no,
