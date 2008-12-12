@@ -121,6 +121,42 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
       TemporalUnit<GPoint>::defined=true;
     }
 
+    UGPoint( const Interval<Instant>& interval,
+           const int in_NetworkID,
+           const int in_RouteID,
+           const Side in_Side,
+           const double in_Position0,
+           const double in_Position1,
+           Network *pNetwork):
+    SpatialTemporalUnit<GPoint, 3>( interval ),
+    p0( true,        // defined
+        in_NetworkID,    // NetworkID
+        in_RouteID,      // RouteID
+        in_Position0,    // d
+        in_Side),      // Side
+    p1( true,        // defined
+        in_NetworkID,    // NetworkID
+        in_RouteID,      // RouteID
+        in_Position1,    // d
+        in_Side)       // Side
+    {
+      del.refs=1;
+      del.isDelete=true;
+    }
+
+  UGPoint( const Interval<Instant>& interval,
+           const GPoint& p0,
+           const GPoint& p1,
+           Network *pNetwork):
+    SpatialTemporalUnit<GPoint, 3>( interval ),
+    p0( p0 ),
+    p1( p1 )
+    {
+      del.refs=1;
+      del.isDelete=true;
+      TemporalUnit<GPoint>::defined=true;
+    }
+
   UGPoint(const UGPoint(&source)){
     *((TemporalUnit<GPoint>*)this)=*((TemporalUnit<GPoint>*)&source);
     p0=source.p0;
@@ -183,10 +219,7 @@ Functions to be part of relations
 
   inline virtual UGPoint* Clone() const
   {
-    UGPoint *res;
-    res = new UGPoint(timeInterval, p0, p1);
-    res->defined = TemporalUnit<GPoint>::defined;
-    return res;
+    return new UGPoint(*this);
   }
 
   inline virtual void CopyFrom( const StandardAttribute* right )
@@ -207,18 +240,22 @@ Functions to be part of relations
       }
   }
 
-  virtual const Rectangle<3> BoundingBox() const
+  virtual const Rectangle<3> BoundingBox() const;
+
+  Rectangle<3> BoundingBox(Network* pNetwork) const;
+
+  virtual const Rectangle<3> NetBoundingBox3d() const
   {
-      return Rectangle<3> (true,
-                         (double) p0.GetRouteId(),
-                         (double) p0.GetRouteId(),
-                         min(p0.GetPosition(),p1.GetPosition()),
-                         max(p0.GetPosition(),p1.GetPosition()),
-                         timeInterval.start.ToDouble(),
-                         timeInterval.end.ToDouble());
+    return Rectangle<3> (true,
+                        (double) p0.GetRouteId(),
+                        (double) p0.GetRouteId(),
+                        min(p0.GetPosition(),p1.GetPosition()),
+                        max(p0.GetPosition(),p1.GetPosition()),
+                        timeInterval.start.ToDouble(),
+                        timeInterval.end.ToDouble());
   }
 
-  inline const Rectangle<2> BoundingBox2d() const
+  inline const Rectangle<2> NetBoundingBox2d() const
   {
       return Rectangle<2> (true,
                            (double) p0.GetRouteId(),
@@ -279,6 +316,7 @@ Functions to be part of relations
     Instant TimeAtPos(double pos);
 
     GPoint p0, p1;
+
 };
 
 /*
@@ -293,7 +331,10 @@ class MGPoint : public Mapping< UGPoint, GPoint >
 The simple constructor should not be used.
 
 */
-    MGPoint();
+    MGPoint(){
+      del.refs = 1;
+      del.isDelete = true;
+    };
 
     MGPoint( const int n );
 
@@ -308,31 +349,39 @@ The simple constructor should not be used.
 
     void Clear();
 
-    virtual Attribute* Clone() const
-    {
-      MGPoint *res = new MGPoint(GetNoComponents());
-      res->StartBulkLoad();
-      const UGPoint *u;
-      for (int i=0; i<GetNoComponents() ; i++) {
-        Get(i,u);
-        res->Add(*u);
-      }
-      res->EndBulkLoad();
-      return (Attribute*) res;
-    }
+    virtual MGPoint* Clone() const;
 
     void CopyFrom(const StandardAttribute* right)
     {
       const MGPoint *src = (const MGPoint*) right;
       Clear();
+      /*m_bbox = src->BoundingBox();
+      m_length = src->GetLength();*/
+      /*GLine *traj;
+      src->GetTrajectory(traj);
+      m_trajectory = *traj;
+      delete traj;*/
       StartBulkLoad();
       const UGPoint *u;
       for (int i = 0; i < src->GetNoComponents(); i++) {
         src->Get(i,u);
-        Add(*u);
+        Add(*u/*, false*/);
       }
-      EndBulkLoad();
+      EndBulkLoad(true/*, false*/);
     }
+
+
+inline int NumOfFLOBs() const
+{
+  return 1;
+}
+
+
+inline FLOB* GetFLOB(const int i)
+{
+  if (i == 0) return &units;
+  return 0;
+}
 
 /*
 Computes the Euclidean Distance between two mgpoint with help of mpoint
@@ -373,11 +422,20 @@ at the given Instant.
    bool Present(Instant *inst);
 
 /*
+Sets the length of the trip of the mgpoint.
+
+*/
+
+   void SetLength(double x);
+
+/*
 Returns the length of the trip of the mgpoint.
 
 */
 
    double Length();
+
+   double GetLength() const;
 
 /*
 Returns a mgpoint representing the intersection of 2 mgpoints
@@ -425,7 +483,33 @@ Returns true if the mgpoint passes at least once the gpoint resp. gline.
 
    bool Passes(GLine *gl);
 
+/*
+Returns the ~igpoint~ of the time instant.
 
+*/
+
+
+//    MGPoint& operator=(const MGPoint &src);
+
+   Rectangle<3> BoundingBox() const;
+
+  void Add( const UGPoint& unit/*, bool setbbox = true*/);
+  /*void Add(const UGPoint& u, Network *pNetwork, bool setbbox = true);*/
+  void EndBulkLoad( const bool sort = true/*, bool setbbox = false,
+                    bool setTraj = true*/);
+  /*void RestoreBoundingBox(const bool force = false);*/
+  /*void RestoreAll();
+  void RestoreTrajectory();*/
+  void Restrict( const vector< pair<int, int> >& intervals );
+  ostream& Print( ostream &os ) const;
+  bool operator==( const MPoint& r ) const;
+  /*void SetBBox(Rectangle<3> r);*/
+
+  private:
+
+    /*Rectangle<3> m_bbox;
+    double m_length;*/
+    /*GLine m_trajectory;*/
 };
 
 

@@ -304,4 +304,16 @@ Example  : query distance([const mgpoint value( (("2007-01-01-10:10:00.000" "200
 Result   : (mreal((("2007-01-01-10:10" "2007-01-01-10:10:02" TRUE FALSE)(0.0 0.0 0.0 FALSE))))
 Tolerance: 0.01%
 
+Operator : unitboundingbox
+Number   : 1
+Signature: ugpoint -> rect3
+Example  : query unitboundingbox([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 84.00595217006948))]);
+Result   : (rect3(8209.0 8293.0 8768.0 8769.0 2555.4236111111 2555.4236226852))
+Tolerance: 0.01%
 
+Operator : mgpbbox
+Number   : 1
+Signature: mgpoint -> rect3
+Example  : query mgpbbox([const mgpoint value( (("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 84.00595217006948)))]);
+Result   : (rect3(8209.0 8293.0 8768.0 8769.0 2555.4236111111 2555.4236226852))
+Tolerance: 0.01%
