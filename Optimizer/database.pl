@@ -2045,7 +2045,11 @@ If the predicate fails, this means, that there is no such index.
 */
 
 hasIndex(Rel, Attr, IndexName, IndexType) :-
-  ( ( ground(Rel), ground(Attr) )
+  ( ( Rel = rel(RelName, _),
+      Attr = attr(AttrName, _, _),
+      ground(RelName),
+      ground(AttrName)
+    )
     -> ( dm(dbhandling,['\nTry: hasIndex(',Rel,',',Attr,',',IndexName,',',
                  IndexType,').']),
          not(optimizerOption(noIndex)),
