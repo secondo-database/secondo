@@ -956,7 +956,12 @@ showSingleIndex(Rel) :-
   dcName2externalName(Rel:Attr, AttrS),
   write('\t('), write(AttrS), write(':'), write(IndexType), write(')').
 
-showSingleRelation :-
+showSingleRelation :- showRelation(_).
+:- assert(helpLine(showRelation,1,
+    [[+,'RelDC','The relation to get information about.']],
+    'Show meta data on a given relation.')).
+
+showRelation(Rel) :-
   databaseName(DB),
   storedRel(DB, Rel, _),
   dcName2externalName(Rel, RelS),
