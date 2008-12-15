@@ -64,10 +64,10 @@ will print the according (and hopefully helpful) information to the screen.
 :- assert(helpLine(helpMe,2,
     [[+,'PredicateName','The predicate to get information about.'],
      [+,'Arity','Chooses amongh predicates with more than one arity.']],
-    'Show help on a user level predicate with a given arity')).
+    'Show help on a user level predicate with a given arity.')).
 :- assert(helpLine(helpMe,1,
     [[+,'PredicateName','The predicate get get information about.']],
-    'Show help on a given user level predicate')).
+    'Show help on a given user level predicate.')).
 :-assert(helpLine(helpMe,0,[],'List available user level predicates.')).
 
 helpMe(Pred, Arity) :-
