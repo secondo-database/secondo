@@ -2240,7 +2240,27 @@ the index), ~undefined~ is used within the definition.
 
 Therefore, using the ~LogicalIndexTypeCode~ 'undefined' is prohibited.
 
+Predicate ~showIndexTypes~ will list information on all available logical index
+types.
+
 */
+
+:-assert(helpLine(showIndexTypes,0,[],'List available index types.')).
+
+showSingleIndexType :-
+  logicalIndexType(LogicalIndexTypeCode, LogicalTypeExpr, _,
+                   SupportedAttributeTypeList,_,_,_,_),
+  format('~2|~p~34|~p~44|~p~79|~n',
+         [LogicalTypeExpr,LogicalIndexTypeCode,SupportedAttributeTypeList]).
+
+showIndexTypes :-
+  write('\nAvailable index types:\n'),
+  format('~2|~p~34|~p~44|~p~79|~n',
+         ['Index Type','Type Code','Supported Key Types']),
+  write_list(['  --------------------------------------------------',
+              '----------------------------']),nl,
+  findall(_,showSingleIndexType,_),
+  nl,!.
 
 % standard indexes - just wrapping physical index types
 logicalIndexType(btree, btree, btree,
