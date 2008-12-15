@@ -4254,7 +4254,7 @@ clearIsStarQuery     :- retractall(isStarQuery).
 
 /*
 
-----    lookup(Query, Query2) :-
+----    lookup(+Query, -Query2) :-
 ----
 
 ~Query2~ is a modified version of ~Query~ where all relation names and
@@ -4305,7 +4305,7 @@ makeList(L, [L]) :- not(is_list(L)).
 
 11.3.3 Modification of the From-Clause
 
-----    lookupRels(Rels, Rels2)
+----    lookupRels(+Rels, -Rels2)
 ----
 
 Modify the list of relation names. If there are relations without variables,
@@ -4325,7 +4325,7 @@ lookupRels(Rel, Rel2) :-
   lookupRel(Rel, Rel2).
 
 /*
-----    lookupRel(Rel, Rel2) :-
+----    lookupRel(+Rel, -Rel2) :-
 ----
 
 Translate and store a single relation definition.
@@ -4341,8 +4341,12 @@ Translate and store a single relation definition.
 
 
 lookupRel(Rel as Var, Y) :-
+  ground(Rel),            %% changed code FIXME
+  atomic(Rel),            %% changed code FIXME
+  ground(Var),            %% changed code FIXME
+  atomic(Var),            %% changed code FIXME
   dcName2externalName(RelDC,Rel),
-  relation(RelDC, _), !,           %% changed code FIXME
+  relation(RelDC, _), !,  %% changed code FIXME
   ( variable(Var, _)
     -> ( write_list(['\nERROR:\tLooking up query: Doubly defined variable ',Var,
                      '.']), nl,
@@ -4354,6 +4358,8 @@ lookupRel(Rel as Var, Y) :-
   assert(variable(Var, rel(RelDC, Var))).
 
 lookupRel(Rel, rel(RelDC, *)) :-
+  ground(Rel),            %% changed code FIXME
+  atomic(Rel),            %% changed code FIXME
   dcName2externalName(RelDC,Rel),
   relation(RelDC, _), !,
   not(duplicateAttrs(RelDC)),
