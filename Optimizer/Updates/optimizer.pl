@@ -4407,6 +4407,8 @@ Translate and store a single relation definition.
 
 
 lookupRel(Rel as Var, Y) :-
+  ground(Rel), atomic(Rel),       %% changed code FIXME
+  ground(Var), atomic(Var),       %% changed code FIXME
   dcName2externalName(Rel2,Rel),
 % relation(Rel, _), !,            %% original code FIXME
   relation(Rel2, _), !,           %% changed code FIXME
@@ -4421,6 +4423,7 @@ lookupRel(Rel as Var, Y) :-
   assert(variable(Var, rel(Rel2, Var))).
 
 lookupRel(Rel, rel(Rel2, *)) :-
+  ground(Rel), atomic(Rel),       %% changed code FIXME
   dcName2externalName(Rel2,Rel),
   relation(Rel2, _), !,
   not(duplicateAttrs(Rel2)),
@@ -4433,6 +4436,7 @@ lookupRel(X,Y) :- !,
 
 
 lookupRelNoDblCheck(Rel, rel(Rel2, *)) :-
+  ground(Rel), atomic(Rel),       %% changed code FIXME
   dcName2externalName(Rel2,Rel),
   relation(Rel2, _), !,
   assert(queryRel(Rel2, rel(Rel2, *))).
@@ -4481,6 +4485,8 @@ lookupAttrs(Attr, Attr2) :-
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
+  ground(Var),  atomic(Var),  %% changed code FIXME
+  ground(Attr), atomic(Attr), %% changed code FIXME
   variable(Var, Rel2),
   Rel2 = rel(Rel, _),
   spelled(Rel:Attr, attr(Attr2, VA, Case)),
@@ -4495,6 +4501,7 @@ lookupAttr(Attr desc, Attr2 desc) :- !,
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Attr, Attr2) :-
+  ground(Attr), atomic(Attr), %% changed code FIXME
   isAttribute(Attr, Rel),!,
   spelled(Rel:Attr, Attr2),
   queryRel(Rel, Rel2),
@@ -4559,11 +4566,6 @@ lookupAttr(Term, Term2) :-
   Term2 =.. [Op|Args2],
   !.
 
-/*
-New:
-
-*/
-
 lookupAttr(Term, dbobject(TermDC)) :-
   atom(Term),
   dcName2externalName(TermDC,Term),
@@ -4576,18 +4578,6 @@ lookupAttr(Term, Term) :-
               '\' in attribute list not recognized!']),           %'
   throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownError)),
   fail.
-
-/*
-Old code:
-
-----
-lookupAttr(Term, Term) :-
-  atom(Term),
-  write_list(['\nINFO:\tSymbol \'',Term,'\' in attribute list not recognized!',
-            '\n--->\tAssumed to be a database object.']), nl.
-----
-
-*/
 
 lookupAttr(Term, Term) :- !.
 

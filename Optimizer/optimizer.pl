@@ -4341,10 +4341,8 @@ Translate and store a single relation definition.
 
 
 lookupRel(Rel as Var, Y) :-
-  ground(Rel),            %% changed code FIXME
-  atomic(Rel),            %% changed code FIXME
-  ground(Var),            %% changed code FIXME
-  atomic(Var),            %% changed code FIXME
+  ground(Rel), atomic(Rel),       %% changed code FIXME
+  ground(Var), atomic(Var),       %% changed code FIXME
   dcName2externalName(RelDC,Rel),
   relation(RelDC, _), !,  %% changed code FIXME
   ( variable(Var, _)
@@ -4358,8 +4356,7 @@ lookupRel(Rel as Var, Y) :-
   assert(variable(Var, rel(RelDC, Var))).
 
 lookupRel(Rel, rel(RelDC, *)) :-
-  ground(Rel),            %% changed code FIXME
-  atomic(Rel),            %% changed code FIXME
+  ground(Rel), atomic(Rel),  %% changed code FIXME
   dcName2externalName(RelDC,Rel),
   relation(RelDC, _), !,
   not(duplicateAttrs(RelDC)),
@@ -4414,6 +4411,8 @@ lookupAttrs(Attr, Attr2) :-
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
+  ground(Var),  atomic(Var),  %% changed code FIXME
+  ground(Attr), atomic(Attr), %% changed code FIXME
   variable(Var, Rel2),
   Rel2 = rel(Rel, _),
   spelled(Rel:Attr, attr(Attr2, VA, Case)),
@@ -4428,6 +4427,7 @@ lookupAttr(Attr desc, Attr2 desc) :- !,
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Attr, Attr2) :-
+  ground(Attr), atomic(Attr), %% changed code FIXME
   isAttribute(Attr, Rel),!,
   spelled(Rel:Attr, Attr2),
   queryRel(Rel, Rel2),
