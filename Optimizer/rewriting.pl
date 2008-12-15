@@ -118,7 +118,7 @@ extractMacros(with(X), Y) :-
   write('           \'sql with [<macro> as <mnemo> {, <macro> as <mnemo>}] '),
   write('in <query>.\'.\n'),
   !,
-  throw(sql_ERROR(rewriting_extractMacros(with(X), Y))),
+  throw(error_SQL(rewriting_extractMacros(with(X), Y))),
   fail.
 
 extractMacros(Query, Query).
@@ -135,7 +135,7 @@ extractMacros1(Macro as Mnemo) :-
   write('\nERROR: Left side of a macro declaration \'<macro> as <mnemo>\' '),
   write('must be an acyclic expression.'),
   !,
-  throw(sql_ERROR(rewriting_extractMacros1(Macro as Mnemo))),
+  throw(error_SQL(rewriting_extractMacros1(Macro as Mnemo))),
   fail.
 
 extractMacros1(X as Mnemo) :-
@@ -143,7 +143,7 @@ extractMacros1(X as Mnemo) :-
   write('\nERROR: Right side of a macro declaration \'<macro> as <mnemo>\' '),
   write('must be an identifier.'),
   !,
-  throw(sql_ERROR(rewriting_extractMacros1(X as Mnemo))),
+  throw(error_SQL(rewriting_extractMacros1(X as Mnemo))),
   fail.
 
 extractMacros1(Macro as Mnemo) :-
@@ -848,7 +848,7 @@ getExpressionLabel(Node, Label) :- % case: Label known, Node conflicts - Error
   write(Label), write('\': \n'),
   write('\tOld Expression: '), write(NodeOld), write('.\n'),
   write('\tNew Expression: '), write(Node), write('.\n\n'),
-  throw(sql_ERROR(rewriting_getExpressionLabel(rewriting_getExpressionLabel(Node, Label)))),
+  throw(error_SQL(rewriting_getExpressionLabel(rewriting_getExpressionLabel(Node, Label)))),
   fail, !.
 
 
@@ -1731,7 +1731,7 @@ extendPhrase(ArgS, [VA1|InnerVAs], ArgsSE) :-
 extendPhrase(ArgS, List, X) :-
   write('ERROR in extendPhrase('), write(ArgS), write(','), write(List),
   write(', Result).\n\tAttribute list contains a non-virtual attribute.\n'),
-  throw(sql_ERROR(rewriting_extendPhrase(ArgS, List, X))), fail, !.
+  throw(error_SQL(rewriting_extendPhrase(ArgS, List, X))), fail, !.
 
 
 /*

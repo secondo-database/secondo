@@ -4341,10 +4341,10 @@ Translate and store a single relation definition.
 
 
 lookupRel(Rel as Var, Y) :-
-  ground(Rel), atomic(Rel),       %% changed code FIXME
-  ground(Var), atomic(Var),       %% changed code FIXME
+  atomic(Rel),       %% changed code FIXME
+  atomic(Var),       %% changed code FIXME
   dcName2externalName(RelDC,Rel),
-  relation(RelDC, _), !,  %% changed code FIXME
+  relation(RelDC, _), !,          %% changed code FIXME
   ( variable(Var, _)
     -> ( write_list(['\nERROR:\tLooking up query: Doubly defined variable ',Var,
                      '.']), nl,
@@ -4356,7 +4356,7 @@ lookupRel(Rel as Var, Y) :-
   assert(variable(Var, rel(RelDC, Var))).
 
 lookupRel(Rel, rel(RelDC, *)) :-
-  ground(Rel), atomic(Rel),  %% changed code FIXME
+  atomic(Rel),       %% changed code FIXME
   dcName2externalName(RelDC,Rel),
   relation(RelDC, _), !,
   not(duplicateAttrs(RelDC)),
@@ -4411,8 +4411,8 @@ lookupAttrs(Attr, Attr2) :-
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
-  ground(Var),  atomic(Var),  %% changed code FIXME
-  ground(Attr), atomic(Attr), %% changed code FIXME
+  atomic(Var),  %% changed code FIXME
+  atomic(Attr), %% changed code FIXME
   variable(Var, Rel2),
   Rel2 = rel(Rel, _),
   spelled(Rel:Attr, attr(Attr2, VA, Case)),
@@ -4427,7 +4427,7 @@ lookupAttr(Attr desc, Attr2 desc) :- !,
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Attr, Attr2) :-
-  ground(Attr), atomic(Attr), %% changed code FIXME
+  atomic(Attr), %% changed code FIXME
   isAttribute(Attr, Rel),!,
   spelled(Rel:Attr, Attr2),
   queryRel(Rel, Rel2),
@@ -4564,7 +4564,7 @@ lookupPred(Pred, X) :-
         ; true
       )
   ),
-  throw(sql_ERROR(optimizer_lookupPred(Pred, X):malformedExpression)),
+  throw(error_SQL(optimizer_lookupPred(Pred, X):malformedExpression)),
   fail, !.
 
 /*
@@ -4602,13 +4602,6 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
     ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
   ), !.
 
-
-/*
-
-Generic rule for operators of arbitrary arity using (=../2):
-
-*/
-
 lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   compound(Term),
   Term =.. [Op|Args],
@@ -4616,21 +4609,12 @@ lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   Term2 =.. [Op|Args2],
   !.
 
-/*
-New:
-*/
-
 lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
-  atom(Term),
+  atomic(Term),
   not(is_list(Term)),
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
   !.
-
-/*
-Suggested addition by Poneleit:
-
-*/
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
@@ -4653,9 +4637,14 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
 /*
 11.3.6 Check the Spelling of Relation and Attribute Names
 
+---- spelled(+In,-Out)
+----
+
 */
 
 spelled(Rel:Attr, attr(Attr2, 0, l)) :-
+  atomic(Rel),  %% changed code FIXME
+  atomic(Attr), %% changed code FIXME
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr3),
@@ -4663,6 +4652,8 @@ spelled(Rel:Attr, attr(Attr2, 0, l)) :-
   !.
 
 spelled(Rel:Attr, attr(Attr2, 0, u)) :-
+  atomic(Rel),  %% changed code FIXME
+  atomic(Attr), %% changed code FIXME
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr2),
@@ -4671,12 +4662,14 @@ spelled(Rel:Attr, attr(Attr2, 0, u)) :-
 spelled(_:_, attr(_, 0, _)) :- !, fail. % no attr entry in spelling table
 
 spelled(Rel, Rel2, l) :-
+  atomic(Rel),  %% changed code FIXME
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel3),
   Rel3 = lc(Rel2),
   !.
 
 spelled(Rel, Rel2, u) :-
+  atomic(Rel),  %% changed code FIXME
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel2), !.
 
@@ -5916,7 +5909,7 @@ Exception Handling
 If an error is encountered during the optimization process, an exception should be
 thrown using the built-in Prolog predicate
 
-----    throw(sql_ERROR(X)),
+----    throw(error_SQL(X)),
 ----
 
 where ~X~ is a term that represents a somehow meaningful error-message, e.g.
@@ -5933,7 +5926,7 @@ exception-format described above, that is thrown within goal ~G~.
 
 defaultExceptionHandler(G) :-
   catch( G,
-         sql_ERROR(X),
+         error_SQL(X),
          ( write('\nException \''), write(X), write('\' caught.'),
            write('\nAn ERROR occured, please inspect the output above.'),
            fail

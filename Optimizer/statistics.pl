@@ -110,7 +110,7 @@ The simple form of predicate ~Pred~ is ~Simple~.
 
 simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple), !.
 simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
-simplePred(X, Y) :- throw(sql_ERROR(statistics_simplePred(X, Y):malformedExpression)).
+simplePred(X, Y) :- throw(error_SQL(statistics_simplePred(X, Y):malformedExpression)).
 
 /*
 
@@ -288,7 +288,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(sql_ERROR(statistics_selectivityQuerySelection(
+         throw(error_SQL(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
          fail
@@ -302,7 +302,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
                      'list counters query:\n',
                      'Expected \'[[1, BBoxResCard]|_]\' but got \'',
                      ResultList2, '\'.']), nl,
-         throw(sql_ERROR(statistics_selectivityQuerySelection(
+         throw(error_SQL(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
          fail
@@ -330,7 +330,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(sql_ERROR(statistics_selectivityQuerySelection(
+         throw(error_SQL(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, noBBox, ResCard)
                          :unexpectedListType)),
          fail
@@ -372,7 +372,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(sql_ERROR(statistics_selectivityQueryJoin(
+         throw(error_SQL(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
          fail
@@ -386,7 +386,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
                      'list counters query:\n',
                      'Expected \'[[1, BBoxResCard]|_]\' but got \'',
                      ResultList2, '\'.']), nl,
-         throw(sql_ERROR(statistics_selectivityQueryJoin(
+         throw(error_SQL(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
          fail
@@ -425,7 +425,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(sql_ERROR(statistics_selectivityQueryJoin(
+         throw(error_SQL(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, noBBox, ResCard)
                          :unexpectedListType)),
          fail
@@ -565,7 +565,7 @@ selectivity(P, X) :-
   write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(',Sel)\n'),
-  throw(sql_ERROR(statistics_selectivity(P, X))),
+  throw(error_SQL(statistics_selectivity(P, X))),
   fail, !.
 
 
@@ -758,7 +758,7 @@ selectivity(P, X, Y, Z) :-
   write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(', _, _, _)\n'),
-  throw(sql_ERROR(statistics_selectivity(P, X, Y, Z))),
+  throw(error_SQL(statistics_selectivity(P, X, Y, Z))),
   fail, !.
 
 
@@ -771,7 +771,7 @@ getPET(P, CalcPET, ExpPET) :-
 getPET(P, X, Y) :- write('Error in optimizer: cannot find PETs for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: getPET('), write(P), write(', _, _)\n'),
-  throw(sql_ERROR(statistics_getPET(P, X, Y))),
+  throw(error_SQL(statistics_getPET(P, X, Y))),
   fail, !.
 
 /*
@@ -1539,7 +1539,7 @@ getSig(attr(Attr,Arg,_), Rel1, Rel2, AttrType) :-
     !.
 
 getSig(attr(A,B,C), Rel1, Rel2, X) :-
-    throw(sql_ERROR(statistics_getSig(attr(A,B,C), Rel1, Rel2, X))),
+    throw(error_SQL(statistics_getSig(attr(A,B,C), Rel1, Rel2, X))),
     !,
     fail.
 

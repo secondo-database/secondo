@@ -4638,7 +4638,7 @@ lookupPred(Pred, X) :-
         ; true
       )
   ),
-  throw(sql_ERROR(optimizer_lookupPred(Pred, X):malformedExpression)),
+  throw(error_SQL(optimizer_lookupPred(Pred, X):malformedExpression)),
   fail, !.
 
 /*
@@ -6022,7 +6022,7 @@ Exception Handling
 If an error is encountered during the optimization process, an exception should be
 thrown using the built-in Prolog predicate
 
-----    throw(sql_ERROR(X)),
+----    throw(error_SQL(X)),
 ----
 
 where ~X~ is a term that represents a somehow meaningful error-message, e.g.
@@ -6039,7 +6039,7 @@ exception-format described above, that is thrown within goal ~G~.
 
 defaultExceptionHandler(G) :-
   catch( G,
-         sql_ERROR(X),
+         error_SQL(X),
          ( write('\nException \''), write(X), write('\' caught.'),
            write('\nAn ERROR occured, please inspect the output above.'),
            fail

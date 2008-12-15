@@ -404,7 +404,7 @@ updateRelationSchema(DCrel) :-
 
 updateRelationSchema(DCrel) :-
   write_list(['ERROR:\tupdateRelationSchema failed for \'',DCrel,'\'.']), nl,
-  throw(sql_ERROR(database_updateRelationSchema(DCrel)
+  throw(error_SQL(database_updateRelationSchema(DCrel)
                  :cannotLookupRelationschema)).
 
 
@@ -1986,7 +1986,7 @@ card(DCrel, Size) :-
                      'cardinality query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(sql_ERROR(database_card(DCrel, Size)
+         throw(error_SQL(database_card(DCrel, Size)
                          :unexpectedListType)),
          fail
        )
@@ -1998,7 +1998,7 @@ card(DCrel, Size) :-
 card(DCrel, X) :-
   write('\ERROR:\tCardinality for relation \''),write(DCrel), %'
   write('\' cannot be retrieved.'),nl,                        %'
-  throw(sql_ERROR(database_card(DCrel, X):cannotRetrieveCardinality)),
+  throw(error_SQL(database_card(DCrel, X):cannotRetrieveCardinality)),
   fail.
 
 /*
@@ -2054,7 +2054,7 @@ hasIndex(Rel, Attr, IndexName, IndexType) :-
     ; (
         write_list(['\ERROR:\tUninitialized argument in hasIndex(',Rel,',',
                     Attr,',', IndexName, ',', IndexType, ').']),
-        throw(sql_ERROR(database_hasIndex(Rel, Attr, IndexName, IndexType)
+        throw(error_SQL(database_hasIndex(Rel, Attr, IndexName, IndexType)
                         :cannotTranslate)),
         fail
       )
@@ -2548,7 +2548,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
   ( databaseName(DB)
     -> true
     ; ( write('ERROR:\tNo database open. Cannot create index.'),nl, !,
-        throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+        throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
            CreateSmall, IndexName):noDatabaseOpen)),
         fail
       )
@@ -2565,7 +2565,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     -> true
     ;  ( write_list(['ERROR:\tCannot create index on unknown relation or ',
                      'attribute \'',LFRel,':',LFAttr,'\'.']),nl, !,
-         throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
                CreateSmall, IndexName):unknownRelationOrAttribute)),
          fail
        )
@@ -2575,7 +2575,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     -> true
     ;  ( write('ERROR:\tCannot create index. Relation \''),
          write(LFRel),write('\' unknown.'),nl, !,
-         throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
             CreateSmall, IndexName):unknownRelation)),
          fail
        )
@@ -2586,7 +2586,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
          write(LFRel),write('\' does not have an attribute \''),
          write(LFAttr), write('\'. Available attributes are:'),
          write(AttrList), nl, !,
-         throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
             CreateSmall, IndexName):attributeNameMismatch)),
          fail
        )
@@ -2600,7 +2600,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
          write(LogicalIndexType), write(' for '),
          write(LFRel),write(':'),write(LFAttr),
          write(' under the name \''),write(ExtOldIndexName),write('\'.'),nl, !,
-         throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
             CreateSmall, IndexName):indexAlreadyExists)),
          fail
        )
@@ -2622,7 +2622,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
                  AvailIndTypes),
          write('\tYou may create the following index types for this key:\n\t'),
          write(AvailIndTypes),nl, !,
-         throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
              CreateSmall, IndexName):unknownIndexType)),
          fail
        )
@@ -2635,7 +2635,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
          ' must be named \'',IndexName,'\',\n--->\tbut there already exists a',
          ' database object with that name!']),
          nl, !,
-         throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
              CreateSmall, IndexName):fileAlreadyExists)),
          fail
        )
@@ -2647,7 +2647,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     -> true
     ;  ( write('ERROR:\tThe base relation \''), write(RelName),
          write('\' does not exist. Cannot create the index.'),nl,!,
-         throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
             CreateSmall, IndexName):lostObject)),
          fail
        )
@@ -2660,7 +2660,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     -> true
     ;  ( write('ERROR:\tCould not create index. The creation query failed.'),
          nl,!,
-         throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
              CreateSmall, IndexName):creationQueryFailed)),
          fail
        )
@@ -2677,7 +2677,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
 
 createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
   write('ERROR:\tSome error occured when trying to create an index:'),nl,!,
-  throw(sql_ERROR(database_createIndex(LFRel, LFAttr, LogicalIndexType,
+  throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
          CreateSmall, IndexName):unknownError)),
   fail.
 
@@ -2846,11 +2846,11 @@ createSmallIndex(DCRel,DCAttr,LogicalIndexType) :-
                  LogicalIndexType,').']),
   (optimizerOption(entropy)
    -> catch( createIndex(DCRel, DCAttr, LogicalIndexType, yes, _),
-            sql_ERROR(database_createIndex(DCRel, DCAttr,
+            error_SQL(database_createIndex(DCRel, DCAttr,
                     LogicalIndexType,IndexName):Reason),
             ( member(Reason,[indexAlreadyExists,fileAlreadyExists])
               -> ( write_list(['\nINFO:\tSmall index already exists.']), nl )
-              ;  throw(sql_ERROR(database_createIndex(DCRel, DCAttr,
+              ;  throw(error_SQL(database_createIndex(DCRel, DCAttr,
                     LogicalIndexType,IndexName):Reason))
             )
           )
@@ -2892,7 +2892,7 @@ dropIndex(ExtIndexName) :-
   ( databaseName(DB)
     -> true
     ; ( write('ERROR:\tNo database open. Cannot drop index.'),nl, !,
-        throw(sql_ERROR(database_dropIndex(ExtIndexName):noDatabaseOpen)),
+        throw(error_SQL(database_dropIndex(ExtIndexName):noDatabaseOpen)),
         fail
       )
   ),
@@ -2909,7 +2909,7 @@ dropIndex(ExtIndexName) :-
     -> true
     ;  ( write('ERROR:\tThe index \''), write(ExtIndexName),
          write('\' does not exist. Cannot drop the index.'),nl,!,
-         throw(sql_ERROR(dropIndex(ExtIndexName):lostObject)),
+         throw(error_SQL(dropIndex(ExtIndexName):lostObject)),
          fail
        )
   ),
@@ -2943,7 +2943,7 @@ dropIndex(ExtIndexName) :-
 
 dropIndex(ExtIndexName) :-
   write('ERROR:\tSome error occured while trying to drop an index:'),nl,!,
-  throw(sql_ERROR(database_dropIndex(ExtIndexName):unknownError)),
+  throw(error_SQL(database_dropIndex(ExtIndexName):unknownError)),
   fail.
 
 dropIndex(DCRel,DCAttr,LogicalIndexType) :-
@@ -2955,7 +2955,7 @@ dropIndex(DCRel,DCAttr,LogicalIndexType) :-
        )
     -> ( write('ERROR:\tYou need to specify all 3 arguments of dropIndex/3.'),
          nl,
-         throw(sql_ERROR(dropIndex(DCRel,DCAttr,LogicalIndexType)
+         throw(error_SQL(dropIndex(DCRel,DCAttr,LogicalIndexType)
                  :unsufficientParameters)),
          fail
        )
@@ -2969,7 +2969,7 @@ dropIndex(DCRel,DCAttr,LogicalIndexType) :-
 
 dropIndex(LFRel,LFAttr,LogicalIndexType) :-
   write('ERROR:\tSome error occured while trying to drop an index:'),nl,!,
-  throw(sql_ERROR(database_dropIndex(LFRel,LFAttr,LogicalIndexType)
+  throw(error_SQL(database_dropIndex(LFRel,LFAttr,LogicalIndexType)
                  :unknownError)),
   fail.
 
@@ -3256,7 +3256,7 @@ tuplesize(DCrel, TupleSize) :-
 tuplesize(X, Y) :-
   write('ERROR:\tCannot retrieve tuplesize for relation \''),write(X),  %'
   write('\'.'),nl,                                                      %'
-  throw(sql_ERROR(database_tuplesize(X, Y):cannotRetrieveTuplesize));
+  throw(error_SQL(database_tuplesize(X, Y):cannotRetrieveTuplesize));
   !, fail.
 
 /*
@@ -3276,7 +3276,7 @@ tupleSizeSplit(DCrel, Size) :-
   tupleSizeSplit2(DB, DCrel, AttrList, Size), !.
 
 tupleSizeSplit(DCrel, X) :-
-  throw(sql_ERROR(database_tupleSizeSplit(DCrel, X):unknownError)),
+  throw(error_SQL(database_tupleSizeSplit(DCrel, X):unknownError)),
   fail, !.
 
 tupleSizeSplit2(_, _, [], sizeTerm(0,0,0)) :- !.
@@ -3398,7 +3398,7 @@ attrSize(DCRel:DCAttr, sizeTerm(CoreSize, InFlobSize, ExtFlobSize)) :-
   !.
 
 attrSize(X, Y) :-
-  throw(sql_ERROR(database_attrSize(X, Y):missingData)),
+  throw(error_SQL(database_attrSize(X, Y):missingData)),
   fail, !.
 
 
@@ -3407,7 +3407,7 @@ attrType(DCRel:DCAttr, Type) :-
   storedAttrSize(DBName, DCRel, DCAttr, Type, _, _, _), !.
 
 attrType(X, Y) :-
-  throw(sql_ERROR(database_attrType(X, Y):missingData)),
+  throw(error_SQL(database_attrType(X, Y):missingData)),
   fail, !.
 
 readStoredAttrSizes :-
@@ -3451,7 +3451,7 @@ addSizeTerms([sizeTerm(X1,Y1,Z1)|Rest], sizeTerm(Res1, Res2, Res3)) :-
   Res2 is Y1 + Y2,
   Res3 is Z1 + Z2, !.
 addSizeTerms(X, Y) :-
-  throw(sql_ERROR(database_addSizeTerms(X, Y):unknownError)),
+  throw(error_SQL(database_addSizeTerms(X, Y):unknownError)),
   fail, !.
 
 /*
