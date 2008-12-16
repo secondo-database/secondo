@@ -1,11 +1,19 @@
 #!/bin/bash
 
+
+if [ -n "$1"  ]; then
+   REV=" -r $1 "
+else
+   REV=" -D now "
+fi
+
 if [ -d secondo ] ; then
   echo "directory secondo exists"
   exit 1
 fi
 
-cvs export -D now secondo
+
+cvs export $REV  secondo
 
 if [ $? != "0" ] ; then
   echo "problems with cvs export"
