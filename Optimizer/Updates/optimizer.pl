@@ -3045,14 +3045,15 @@ It is assumed that only a single operator of this kind occurs within the term.
 
 */
 
-
 /*
 % work-around code:
 cost(rel(Rel, _), _, Size, 0) :-
          write('\n>>>>>>>opt_002 FIXME\n'), nl,
   dcName2internalName(RelDC,Rel),
   card(RelDC, Size).
+
 */
+
 
 % original code:
 cost(rel(Rel, _), _, Size, 0) :-
@@ -4219,11 +4220,10 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(930, xfx,  as).
 :- op(930, xf ,  asc).
 :- op(930, xf ,  desc).
-
+:- op(940,  xfx, into).
 :- op(950, xfx, select).
-:- op(920, xfx, into).
-:- op(910,  fx, insert).
-:- op(910, xfx, values).
+:- op(930,  fx, insert).
+:- op(950, xfx, values).
 
 
 /*
@@ -4326,23 +4326,16 @@ lookup(select Attrs from Rels,
         select Attrs2 from Rels2) :-
   lookupRels(Rels, Rels2), !,
   lookupAttrs(Attrs, Attrs2).
-
-lookup(insert into Rel values Values,
-        insert into Rel2 values Values)
- :-
-  lookupRel(Rel, Rel2).
-
-
-lookup(insert into Rel select Attrs from Rels where Preds,
-        insert into Rel2 select Attrs2 from Rels2List where Preds2List) :-
-  lookup(select Attrs from Rels where Preds, select Attrs2 from Rels2List where Preds2List),
+	
+lookup(insert into Rel values Values, 
+        insert into Rel2 values Values) :-
+  lookupRel(Rel, Rel2), !.
+     
+        
+lookup(insert into Rel select Attrs from QueryRest, 
+        insert into Rel2 select Attrs2 from QueryRest2) :-
+  lookup(select Attrs from QueryRest, select Attrs2 from QueryRest2),
   lookupRelNoDblCheck(Rel, Rel2).
-
-lookup(insert into Rel select Attrs from Rel2,
-        insert into RelOut select Attrs2 from Rel2Out) :-
-  lookup(select Attrs from Rel2, select Attrs2 from Rel2Out),
-  lookupRelNoDblCheck(Rel, RelOut).
-
 
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   lookup(Query, Query2),
@@ -4692,6 +4685,7 @@ lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
 
 /*
 New:
+
 */
 
 lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
@@ -4724,6 +4718,7 @@ lookupPred1(Term, Term, Rels, Rels) :-
   write('Symbol \''), write(Term),
   write('\' not recognized, supposed to be a Secondo object.'), nl, !.
 ----
+
 */
 
 lookupPred1(Term, Term, Rels, Rels).
@@ -4809,12 +4804,13 @@ example13 :- showTranslate(
 /*
 11.4 Translating a Query to a Plan
 
-----    translate1(+Query, -Stream, -SelectClause, -Cost) :-
+----    translate1(+Query, -Stream, -SelectClause, -UpdateClause, -Cost) :-
 ----
 
 ~Query~ is translated into a ~Stream~ to which still the translation of the
-~SelectClause~ needs to be applied. A ~Cost~ is returned which currently is
-only the cost for evaluating the essential part, the conjunctive query.
+~SelectClause~ and ~UpdateClause~ needs to be applied. A ~Cost~ is
+returned which currently is only the cost for evaluating the essential
+part, the conjunctive query.
 
 */
 
@@ -4822,9 +4818,9 @@ only the cost for evaluating the essential part, the conjunctive query.
 % special handling for the entropy optimizer
 translate1(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
-        select Select2, Cost) :-
+        select Select2, Update, Cost) :-
   optimizerOption(entropy),
-  translate1(Query, Stream, SelectClause, Cost),
+  translate1(Query, Stream, SelectClause, Update, Cost),
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNamesGroup),
   attrnamesSort(Attrs2, AttrNamesSort),
@@ -4833,21 +4829,21 @@ translate1(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
-translate1(Query, Stream3, Select2, Cost2) :-
+translate1(Query, Stream3, Select2, Update, Cost2) :-
   optimizerOption(entropy),
   deleteSmallResults,
   retractall(highNode(_)), assert(highNode(0)),
   assert(buildingSmallPlan),
   retractall(removeHiddenAttributes),
-  translate(Query, Stream1, Select, Cost1),
+  translate(Query, Stream1, Select, Update, Cost1),
   translateEntropy(Stream1, Stream2, Cost1, Cost2),
   % Hook for CSE substitution:
   rewritePlanforCSE(Stream2, Stream3, Select, Select2),
   !.
 
 % default handling
-translate1(Query, Stream2, Select2, Cost) :-
-  translate(Query, Stream, Select, Cost),
+translate1(Query, Stream2, Select2, Update, Cost) :-
+  translate(Query, Stream, Select, Update, Cost),
   rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
   !.
 
@@ -4855,8 +4851,8 @@ translate1(Query, Stream2, Select2, Cost) :-
 %   translate(+Query, -Stream, -SelectClause, -Cost)
 translate(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
-        select Select2, Cost) :-
-  translate(Query, Stream, SelectClause, Cost),
+        select Select2, Update, Cost) :-
+  translate(Query, Stream, SelectClause, Update, Cost),
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNamesGroup),
   attrnamesSort(Attrs2, AttrNamesSort),
@@ -4867,23 +4863,12 @@ translate(Query groupby Attrs,
 
 
 translate(insert into Rel values Val,
-        Stream, select*, 0) :-
+        Stream, select*, [], 0) :-
   updateIndex(insert, Rel, inserttuple(Rel, Val), Stream),
   !.
 
-translate(insert into Rel select SelectQuery from Rels where Condition,
-        Stream, Select, Cost) :-
-  translate(select SelectQuery from Rels where Condition, SelectQuery2, Select, Cost),
-  updateIndex(insert, Rel, insert(Rel, SelectQuery2), Stream),
-  !.
 
-translate(insert into Rel select SelectQuery from Rels,
-        Stream, Select, Cost) :-
-  translate(select SelectQuery from Rels, SelectQuery2, Select, Cost),
-  updateIndex(insert, Rel, insert(Rel, SelectQuery2), Stream),
-  !.
-
-translate(Select from Rels where Preds, Stream, Select, Cost) :-
+translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
   not( optimizerOption(immediatePlan) ),
   not( optimizerOption(intOrders(_))     ),  % standard behaviour
   getTime(( pog(Rels, Preds, _, _),
@@ -4894,7 +4879,9 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   ( optimizerOption(pathTiming)
     -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') )
      ; true
-  ), !.
+  ),
+  splitSelect(Select, Select2, Update),
+  !.
 
 
 /*
@@ -4907,7 +4894,7 @@ To activate this option use ``setOption(intOrders(V))'' for a variant ~V~.
 
 */
 
-translate(Select from Rels where Preds, Stream, Select, Cost) :-
+translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
   ( optimizerOption(immediatePlan) ; optimizerOption(intOrders(_)) ),
   getTime(( immPlanTranslate(Select from Rels where Preds, Stream,Select,Cost),
             !
@@ -4915,7 +4902,8 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   ( optimizerOption(pathTiming)
     -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') )
      ; true
-  ), !.
+  ), 
+  splitSelect(Select, Select2, Update), !.
 
 
 /*
@@ -4934,26 +4922,26 @@ C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniquenes
 */
 
 
-translate(Select from Rel, Stream, Select, 0) :-
+translate(Select from Rel, Stream, Select2, Update, 0) :-
   not(is_list(Rel)),
   makeStream(Rel, Stream),
   (optimizerOption(pathTiming)
     -> write('\nTIMING for path creation: No optimization.\n') ; true
-  ), !.
+  ), splitSelect(Select, Select2, Update), !.
 
-translate(Select from [Rel], Stream, Select, 0) :-
+translate(Select from [Rel], Stream, Select2, Update, 0) :-
   makeStream(Rel, Stream),
   deleteVariables,
   (optimizerOption(pathTiming)
     -> write('\nTIMING for path creation: No optimization.\n') ; true
-  ).
+  ), splitSelect(Select, Select2, Update).
 
 
 translate(Select from [Rel | Rels],
         symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)),
-        Select, 0) :-
+        Select2, Update, 0) :-
   makeStream(Rel, S1),
-  translate1(Select from Rels, S2, Select, _),
+  translate1(Select from Rels, S2, Select2, Update, _),
   newVariable(T1),
   newVariable(T2),
   !.
@@ -5491,24 +5479,28 @@ queryToStream(Query last N, tail(Stream, N), Cost) :-
   queryToStream(Query, Stream, Cost),
   !.
 
-queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
-  translate1(Query, Stream, Select, Cost),
+queryToStream(Query orderby SortAttrs, Stream3, Cost) :-
+  translate1(Query, Stream, Select, Update, Cost),
   finish(Stream, Select, SortAttrs, Stream2),
+  finishUpdate(Update, Stream2, Stream3),
   !.
 
-queryToStream(Select from Rels where Preds, Stream2, Cost) :-
-  translate1(Select from Rels where Preds, Stream, Select1, Cost),
+queryToStream(Select from Rels where Preds, Stream3, Cost) :-
+  translate1(Select from Rels where Preds, Stream, Select1, Update, Cost),
   finish(Stream, Select1, [], Stream2),
+  finishUpdate(Update, Stream2, Stream3),
   !.
 
-queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :-
-  translate1(Select from Rels groupby Attrs, Stream, Select1, Cost),
+queryToStream(Select from Rels groupby Attrs, Stream3, Cost) :-
+  translate1(Select from Rels groupby Attrs, Stream, Select1, Update, Cost),
   finish(Stream, Select1, [], Stream2),
+  finishUpdate(Update, Stream2, Stream3),
   !.
 
-queryToStream(Query, Stream2, Cost) :-
-  translate1(Query, Stream, Select, Cost),
+queryToStream(Query, Stream3, Cost) :-
+  translate1(Query, Stream, Select, Update, Cost),
   finish(Stream, Select, [], Stream2),
+  finishUpdate(Update, Stream2, Stream3),
   !.
 
 /*
@@ -6277,10 +6269,15 @@ allCards :-
 
 
 
+/*
+19 Update operations
+
+*/
 
 
 /*
-Update the Index after an Insert, Update or Delete-Operation
+19.1 Update the Index after an Insert, Update or Delete-Operation
+
 */
 
 
@@ -6300,9 +6297,11 @@ updateIndex(Operation, Rel, [Attr|Attrs], StreamIn, StreamOut) :-
 
 
 updateAttrIndex(Operation, Rel, Attr, StreamIn, StreamOut) :-
-  hasIndex(Rel, Attr, DCindex, IndexType),
+  hasIndex(Rel, Attr, DCindex, LogicalIndexType),
   dcName2externalName(DCindex,IndexName),
-  updateTypedIndex(Operation, Attr, IndexName, IndexType, StreamIn, StreamOut),
+  logicalIndexType(_, LogicalIndexType, PhysicalIndexType, _, _, _, _, _),
+  updateTypedIndex(Operation, Attr, IndexName, PhysicalIndexType,
+		   StreamIn, StreamOut),
   !.
 
 updateAttrIndex(_, Rel, Attr, StreamIn, StreamIn) :-
@@ -6334,7 +6333,35 @@ updateTypedIndex(insert, Attr, IndexName, rtree8, StreamIn,
 		 insertrtree(StreamIn, IndexName, Attr)) :-
   !.
 
-writeDebug(Text) :-
+
+/*
+19.2 Split the select and update clause
+
+*/
+	
+	
+splitSelect(select SelectClause, select SelectClause, []) :-
+  !.
+
+splitSelect(UpdateClause select SelectClause, select SelectClause, UpdateClause) :-
+  !.
+
+
+/*
+19.3 Insert the update commands in the end of the operation
+
+*/
+	
+	
+	
+finishUpdate([], Stream2, Stream2) :-
+  !.
+
+finishUpdate(insert into Rel, Stream2, Stream3) :-
+	updateIndex(insert, Rel, insert(Rel, Stream2), Stream3),
+  !.
+
+writeDebug(Text) :- 
   write(Text), nl.
 
 
