@@ -69,7 +69,7 @@ extern QueryProcessor* qp;
 /*
 2 Operators
 
-2.1 class ~SortByLocalInfo~
+2.1 class ~SortByLocalInfo2~
 
 This class contains some big changes compared to the basic implementation, thus for the
 sake of simplicity and programming time efficiency we did not try to rearrange the code 
@@ -79,11 +79,11 @@ As a result we accept to have many redundant code lines !!!
 
 */
 
-class SortByLocalInfo : protected ProgressWrapper
+class SortByLocalInfo2 : protected ProgressWrapper
 {
   public:
 
-    SortByLocalInfo( Word stream, const bool lexicographic,
+    SortByLocalInfo2( Word stream, const bool lexicographic,
                      void *tupleCmp, ProgressLocalInfo* p ) :
       ProgressWrapper(p),
       stream( stream ),
@@ -170,6 +170,7 @@ class SortByLocalInfo : protected ProgressWrapper
           MAX_MEMORY -= (*is)->GetSize();
           MAX_MEMORY += s->GetSize();     
           AppendTuple(s);
+	  s->DeleteIfAllowed();
         }       
       }
       else 
@@ -177,6 +178,7 @@ class SortByLocalInfo : protected ProgressWrapper
         assert(s == 0);
         // s == 0, and *is was not stored in buffer
         AppendTuple(*is);
+	(*is)->DeleteIfAllowed();
       }
 
       ++is;
@@ -184,7 +186,7 @@ class SortByLocalInfo : protected ProgressWrapper
   }  
 
 
-  HashTable* CreateHashtable(int buckets, int i, int j)
+  HashTable* CreateHashTable(int buckets, int i, int j)
   {       
     // create a hash table for the tuples stored in
     // rtBuf and return a pointer to it.
@@ -241,8 +243,9 @@ class SortByLocalInfo : protected ProgressWrapper
 
         // get first tuple and store it in an relation
         currentRun->push(nextTuple);
-        minTuple.setTuple(currentRun->top().tuple());
+        minTuple = currentRun->topTuple();
         rel->AppendTuple( minTuple.tuple );
+	minTuple.tuple->DeleteIfAllowed();
         lastTuple = minTuple;
         currentRun->pop();
       }
@@ -255,8 +258,9 @@ class SortByLocalInfo : protected ProgressWrapper
           // the current relation and push
 
           currentRun->push(nextTuple);
-          minTuple.setTuple(currentRun->top().tuple());
+          minTuple = currentRun->topTuple();
           rel->AppendTuple( minTuple.tuple );
+	  minTuple.tuple->DeleteIfAllowed();
           lastTuple = minTuple;
           
           currentRun->pop();
@@ -272,6 +276,7 @@ class SortByLocalInfo : protected ProgressWrapper
             // Append the minimum to the current relation
             minTuple.setTuple(currentRun->top().tuple());
             rel->AppendTuple( minTuple.tuple );
+	    minTuple.tuple->DeleteIfAllowed();
             lastTuple = minTuple;
             
             currentRun->pop();
@@ -306,10 +311,11 @@ In this case we need to delete also all tuples stored in memory.
 
 */
 
-    ~SortByLocalInfo()
+    ~SortByLocalInfo2()
     {
       while( !mergeTuples.empty() )
       {
+	mergeTuples.topTuple()->DeleteIfAllowed();
         mergeTuples.pop();
       }
 
@@ -317,6 +323,7 @@ In this case we need to delete also all tuples stored in memory.
       {
         while( !queue[i].empty() )
         {
+	  queue[i].topTuple()->DeleteIfAllowed();
           queue[i].pop();
         }
       }
@@ -324,8 +331,8 @@ In this case we need to delete also all tuples stored in memory.
       for( size_t i = 0; i < relations.size(); i++ )
       {
         delete relations[i].second;
-        relations[i].second = 0;
-        relations[i].first->Clear();
+        relations[i].second = 0;	
+        //relations[i].first->Clear();
         delete relations[i].first;
         relations[i].first = 0;
       }
@@ -483,9 +490,9 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
   // ....
   //
 
-  LocalInfo<SortByLocalInfo>* li;
+  LocalInfo<SortByLocalInfo2>* li;
 
-  li = static_cast<LocalInfo<SortByLocalInfo>*>( local.addr );
+  li = static_cast<LocalInfo<SortByLocalInfo2>*>( local.addr );
 
   switch(message)
   {
@@ -493,7 +500,7 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       if ( li ) delete li;
 
-      li = new LocalInfo<SortByLocalInfo>();
+      li = new LocalInfo<SortByLocalInfo2>();
       local.addr = li;
 
       // at this point the local value is well defined
@@ -517,16 +524,16 @@ SortBy(Word* args, Word& result, int message, Word& local, Supplier s)
         //OPEN to REQUEST to avoid long delays in the OPEN method, which are
         //a problem for progress estimation 
     
-        li->ptr = new SortByLocalInfo( args[0],
+        li->ptr = new SortByLocalInfo2( args[0],
                                      lexicographically,
                                      tupleCmp, li       );
 
         li->ptr->PrepareResultIteration();
       }
 
-      SortByLocalInfo* sli = li->ptr;
+      SortByLocalInfo2* sli = li->ptr;
 
-      result = SetWord( sli->NextResultTuple() );
+      result.setAddr( sli->NextResultTuple() );
       li->returned++;
       return result.addr != 0 ? YIELD : CANCEL;
     }
@@ -603,7 +610,7 @@ McGraw-Hill, 3rd. Edition, 1997.
 
 */
 
-class MergeJoinLocalInfo: protected ProgressWrapper
+class MergeJoinLocalInfo2: protected ProgressWrapper
 {
 protected:
 
@@ -616,12 +623,12 @@ protected:
   GenericRelationIterator *iter;
 
   // members needed for sorting the input streams
-  typedef LocalInfo<SortByLocalInfo> LocalSRT;
+  typedef LocalInfo<SortByLocalInfo2> LocalSRT;
   LocalSRT* liA;
-  SortByLocalInfo* sliA;
+  SortByLocalInfo2* sliA;
 
   LocalSRT* liB;
-  SortByLocalInfo* sliB;
+  SortByLocalInfo2* sliB;
 
   Word streamA;
   Word streamB;
@@ -712,10 +719,10 @@ protected:
     return CompareTuples<false>(t1, t2);
   }
 
-  inline Tuple* NextTuple(Word stream, SortByLocalInfo* sli)
+  inline Tuple* NextTuple(Word stream, SortByLocalInfo2* sli)
   {
     bool yield = false;
-    Word result = SetWord(Address(0) );
+    Word result( Address(0) );
 
     if(!expectSorted) {
       return sli->NextResultTuple();
@@ -747,7 +754,7 @@ protected:
     return NextTuple(streamB, sliB);
   }  
 
-    SortByLocalInfo* SortInput( const Word& stream, int attrIndex, 
+    SortByLocalInfo2* SortInput( const Word& stream, int attrIndex, 
                                 LocalSRT*& li) 
     {
       // sort the input streams
@@ -756,7 +763,7 @@ protected:
       void* tupleCmp = new TupleCompareBy( spec );
 
       li = new LocalSRT();
-      return  new SortByLocalInfo( stream, false,  tupleCmp, li);
+      return  new SortByLocalInfo2( stream, false,  tupleCmp, li);
     }
 
 
@@ -775,15 +782,15 @@ protected:
       void* tupleCmpA = new TupleCompareBy( specA );
       void* tupleCmpB = new TupleCompareBy( specB );
 
-      liA = new LocalInfo<SortByLocalInfo>();
+      liA = new LocalInfo<SortByLocalInfo2>();
       progress->firstLocalInfo = liA;
-      sliA = new SortByLocalInfo( streamA, 
+      sliA = new SortByLocalInfo2( streamA, 
                                   false,  
                                   tupleCmpA, liA );
 
-      liB = new LocalInfo<SortByLocalInfo>();
+      liB = new LocalInfo<SortByLocalInfo2>();
       progress->secondLocalInfo = liB;
-      sliB = new SortByLocalInfo( streamB, 
+      sliB = new SortByLocalInfo2( streamB, 
                                   false,  
                                   tupleCmpB, liB );
 
@@ -791,14 +798,14 @@ protected:
 
 
 public:
-  MergeJoinLocalInfo( Word _streamA, Word wAttrIndexA,
+  MergeJoinLocalInfo2( Word _streamA, Word wAttrIndexA,
                       Word _streamB, Word wAttrIndexB, 
                       bool _expectSorted, Supplier s,
                       ProgressLocalInfo* p, 
                       bool _randomPrefix = false, 
                       bool _earlyExit = false )
   :  ProgressWrapper(p), 
-     traceFlag( RTFlag::isActive("ERA:TraceMergeJoin") )
+     traceFlag( RTFlag::isActive("PSA:TraceMergeJoin") )
   {
     expectSorted = _expectSorted;
     randomPrefix = _randomPrefix;
@@ -843,13 +850,24 @@ public:
       // the Sorting-Algorithm for B. Finally, the sorted streams are merged. 
 
       sliB = SortInput(streamB, attrIndexB, liB);
+
+      if (traceFlag)
+	cerr << "Input B sorted" << endl;
+
       progress->secondLocalInfo = liB;
 
       iterB = sliB->GetIterator();
       // prime numbers: 503, 701, 1009, 2003
-      ht = sliA->CreateHashtable(701, attrIndexA, attrIndexB);
+      ht = sliA->CreateHashTable(701, attrIndexA, attrIndexB);
+
+      if (traceFlag)
+	cerr << "HashTable created" << endl;
+
       continueHashjoin = true;
       sliB->InitRuns();
+
+      if (traceFlag)
+	cerr << "Input B initialized" << endl;
 
     }
     else
@@ -869,9 +887,9 @@ public:
 
   }
 
-  ~MergeJoinLocalInfo()
+  ~MergeJoinLocalInfo2()
   {
-    //cerr << "calling ~MergeJoinLocalInfo()" << endl;    
+    //cerr << "calling ~MergeJoinLocalInfo2()" << endl;    
     if( !expectSorted )
     {
       // delete the objects instantiated for sorting
@@ -894,6 +912,9 @@ public:
 
       if ( !continueProbe ) // initialize hash bucket iteration
       {
+        if (traceFlag)
+  	  cerr << "Initialize hash bucket iteration" << endl;
+
         if ( iterB.valid() ) 
         {
           (*iterB)->IncReference();       
@@ -902,9 +923,11 @@ public:
           sliB->AppendTuple(*iterB);
 
         } 
-        else 
+        else // end of stream B and end of hashjoin                
         {
-          // end of stream B and end of hashjoin                
+          if (traceFlag)
+  	    cerr << "End of stream B" << endl;
+
           continueHashjoin = false;             
           continueProbe = false;
           sliB->FinishRuns();
@@ -922,12 +945,12 @@ public:
               if (a != 0) { // concat a and b
 
                 Tuple* result = new Tuple( resultTupleType );
-                Concat( a, b, result );
+                Concat( a, b, result );		
                 return result;        
               } 
               else // switch to next tuple of B
               {
-                //cout << "b:refs =" << b->GetNumOfRefs();      
+                //cout << "b:refs =" << b->GetNumOfRefs() << endl;      
                 b->DeleteIfAllowed();   
                 ++iterB;
                 continueProbe = false;
@@ -938,6 +961,8 @@ public:
     }       
 
     if (earlyExit) {
+          if (traceFlag)
+  	    cerr << "Early exit" << endl;
       return 0;     
     }  
 
@@ -954,9 +979,7 @@ public:
       grpB->AppendTuple(tmpB.tuple);
 
       // advance the tuple pointer
-      Tuple* tB = NextTupleB();
-      ptB = RTuple( tB );
-      if(tB) tB->DeleteIfAllowed(); // remove from input stream
+      ptB.setTuple( NextTupleB() );
       
       // collect a group of tuples from B which
       // have the same attribute value
@@ -971,9 +994,7 @@ public:
           grpB->AppendTuple(ptB.tuple);
 
           // release tuple of input B
-          Tuple* tB = NextTupleB();
-          ptB = RTuple( tB );
-          if(tB) tB->DeleteIfAllowed(); // remove from input stream
+          ptB.setTuple( NextTupleB() );
         }
         else
         {
@@ -987,9 +1008,7 @@ public:
       {
         // skip tuples from A while they are smaller than the 
         // value of the tuples in grpB        
-        Tuple* tA = NextTupleA(); 
-        ptA = RTuple( tA );
-        if(tA) tA->DeleteIfAllowed();
+        ptA.setTuple(  NextTupleA() );
         if (ptA != 0) {
           cmp = CompareTuples( ptA.tuple, tmpB.tuple );
         }  
@@ -1024,11 +1043,9 @@ public:
             continueMerge = false;
             delete iter;
             iter = 0;
-            Tuple* tA = NextTupleA(); 
-            ptA = RTuple( tA );
-            if (tA) {
+            ptA.setTuple( NextTupleA() );
+            if (ptA != 0) {
               cmp = CompareTuples( ptA.tuple, tmpB.tuple );
-              tA->DeleteIfAllowed();
             }  
           }               
         }         
@@ -1096,7 +1113,7 @@ a random sample of 500 tuples.
 */
 
 
-class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo
+class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo2
 {
 
   public:       
@@ -1108,7 +1125,7 @@ class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo
                              Supplier s,
                              ProgressLocalInfo* p, 
                              bool rnd = false, bool earlyexit = false )
-  : MergeJoinLocalInfo( _streamA, wAttrIndexA,
+  : MergeJoinLocalInfo2( _streamA, wAttrIndexA,
                         _streamB, wAttrIndexB, 
                         _expectSorted, s, p, rnd, earlyexit ),
     streamPos(0),
@@ -1130,7 +1147,7 @@ class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo
 
      if (!firstScanFinished) 
      {
-       res = MergeJoinLocalInfo::NextResultTuple();
+       res = MergeJoinLocalInfo2::NextResultTuple();
 
        while (res != 0)
        {
@@ -1157,7 +1174,7 @@ class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo
               res->DeleteIfAllowed();
             }
 
-         res = MergeJoinLocalInfo::NextResultTuple();
+         res = MergeJoinLocalInfo2::NextResultTuple();
        } 
        if (trace)
          cerr << "copy2TupleBuf" << endl;
@@ -1201,12 +1218,12 @@ class MergeJoinLocalInfoSHF : protected MergeJoinLocalInfo
 
        if ( memBufFinished == true)
        { 
-         res = MergeJoinLocalInfo::NextResultTuple();
+         res = MergeJoinLocalInfo2::NextResultTuple();
          streamPos++;
          while (streamPos == *posIter) 
          {
             res->DeleteIfAllowed();
-            res = MergeJoinLocalInfo::NextResultTuple();
+            res = MergeJoinLocalInfo2::NextResultTuple();
             streamPos++;
             posIter++;
          } 
@@ -1276,6 +1293,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
 
       T* mli = li->ptr;
       result.addr = mli->NextResultTuple();
+
       li->returned++;
 
       //mergeMeasurer.Exit();
@@ -1350,7 +1368,7 @@ MergeJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               p2.Card * p2.Size * uSortBy +
               (p1.Card * p1.Size + p2.Card * p2.Size) * vMergeJoin;
         
-            typedef LocalInfo<SortByLocalInfo> LocalSRT;      
+            typedef LocalInfo<SortByLocalInfo2> LocalSRT;      
             LocalSRT* liFirst = 0;
             LocalSRT* liSecond = 0;
 
@@ -1431,7 +1449,7 @@ int
 sortmergejoinr2_vm( Word* args, Word& result, 
                    int message, Word& local, Supplier s )
 {
-  return MergeJoin<MergeJoinLocalInfo, false, true, false>(args, result, 
+  return MergeJoin<MergeJoinLocalInfo2, false, true, false>(args, result, 
                                               message, local, s);       
 }
 
@@ -1439,7 +1457,7 @@ int
 sortmergejoinr3_vm( Word* args, Word& result, 
                    int message, Word& local, Supplier s )
 {
-  return MergeJoin<MergeJoinLocalInfo, false, true, true>(args, result, 
+  return MergeJoin<MergeJoinLocalInfo2, false, true, true>(args, result, 
                                               message, local, s);       
 }
 
