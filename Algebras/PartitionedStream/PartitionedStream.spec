@@ -42,6 +42,12 @@ operator pjoin1 alias PJOIN1 pattern _ _ op [ _; funlist ]
 
 operator runtime alias RUNTIME pattern op (_, _, _, _, _, _ , _)
 
+
+operator sortmergejoin_r alias SORTMERGEJOIN_R pattern _ _ op [_, _]
+operator sortmergejoin_r2 alias SORTMERGEJOIN_R2 pattern _ _ op [_, _]
+operator sortmergejoin_r3 alias SORTMERGEJOIN_R3 pattern _ _ op [_, _]
+
+
 #operator loopa alias LOOPA pattern _ _ op [ fun ] 
 #         implicit parameters first, second types ELEMENT, ELEMENT2
 
