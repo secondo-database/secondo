@@ -2985,7 +2985,7 @@ This predicate shows a list of all registered indexes present within the current
 opened database.
 
 */
-:-assert(helpLine(helpMe,0,[],
+:-assert(helpLine(showIndexes,0,[],
          'List information on available indexes within the current DB.')).
 
 
@@ -3134,7 +3134,7 @@ retractStoredInformation(DCrel) :-
 
 updateRel(Rel) :-
   ( not( (ground(Rel), atomic(Rel)) )
-    -> ( write_list(['\nERROR:\updateRel/1 requires a concrete relation name ',
+    -> ( write_list(['\nERROR:\tupdateRel/1 requires a concrete relation name ',
                      'as argument, but gets \'', Rel, '\'.']),
          fail
        )
@@ -3142,11 +3142,11 @@ updateRel(Rel) :-
   ),
   dcName2externalName(DCRel,Rel),
   dcName2externalName(DCRel,ExtRel),
-  write_list(['\nINFO:\updateRel(', Rel, ') retracts all information on \'',
+  write_list(['\nINFO:\tupdateRel(', Rel, ') retracts all information on \'',
               ExtRel, '\'...']),
 %  retractStoredInformation(DCRel), % original code
   handleLostRelation(DCRel),        % new code - will also remove samples etc.
-  write_list(['\nINFO:\updateRel(', Rel, ') re-collects basic information ',
+  write_list(['\nINFO:\tupdateRel(', Rel, ') re-collects basic information ',
               'on \'', ExtRel,'\'...']),
   updateCatalog,
   write_list(['\nINFO:\tUpdated all information on relation \'',ExtRel,'\'.']),
