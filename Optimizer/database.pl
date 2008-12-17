@@ -754,7 +754,7 @@ attribute sizes, etc.).
 
 */
 :-assert(helpLine(updateCatalog,0,[],
-   'Re-read the current DB´s catalog and update the metadata.')).
+   'Re-read the current DB\'s catalog and update the metadata.')).        %'
 
 updateCatalog :-
   dm(dbhandling,['\nTry: updateCatalog.']),

@@ -36,12 +36,15 @@ To allow for a help functionality, for each such predicate, a fact describing
 the predicate, its syntax, parameters and meaning should be asserted.
 
 These facts have format
+
 ---- helpLine(Name,Arity,ParamList,Meaning)
 ----
+
 ~Name~ is the predicate's name, ~Arity~ its arity (number of Parameters),
 ~Meaning~ is the meaning of the predicate, and
 
 ~ParamList~ is a list of list with format
+
 ---- [ParamType,ParamName,ParamMeaning]
 ----
 

@@ -450,6 +450,8 @@ transformPred(attr(Attr, Arg, Case), Param, Arg,
 transformPred(attr(Attr, Arg, Case), _, _, attr(Attr, Arg, Case)) :- !.
 
 /*
+
+----
 transformPred(Pred, Param, Arg, Pred2) :-
   compound(Pred),
   functor(Pred, T, 1), !,
@@ -482,6 +484,8 @@ transformPred(Pred, Param, Arg, Pred2) :-
   arg(1, Pred2, Arg1T),
   arg(2, Pred2, Arg2T),
   arg(3, Pred2, Arg3T).
+----
+
 */
 
 transformPred([], _, _, []).
