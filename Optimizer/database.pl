@@ -1641,7 +1641,7 @@ size (cardinality) of selection and join samples.
 
 */
 
-:- assert(helpLine(resizeSamples,3,
+:- assert(helpLine(createSamples,3,
     [[+,'DCrel','The relation for which samples shall be created.'],
      [+,'SelectionCard','Cardinality for the selection sample.'],
      [+,'JoinCard','Cardinality for the (smaller) join sample.']],
@@ -1785,6 +1785,9 @@ showRelationSchemas([Obj | ObjList]) :-
 showRelationSchemas([_ | ObjList]) :-
   showRelationSchemas(ObjList),
   !.
+
+:-assert(helpLine(showDatabaseSchema,0,[],
+                  'Display schemas of all relations in currebr DB.')).
 
 showDatabaseSchema :-
   databaseName(DB),
@@ -3872,15 +3875,19 @@ getConstRelationTypeExpression2([[AN,TY] | More],AttrExpr) :-
   !.
 
 /*
----- drop_relation(+ExtRelName)
+----
+drop_relationExt(+ExtRelName)
+drop_relation(+DCrel)
+
 ----
 
 Drop the relation and possibly dependent objects, delete meta data.
-The relation name is passed in ~external spelling~.
+The relation name is passed in ~external spelling~ (resp. ~DC-spelling~).
 
 */
-drop_relation(ExtRelName) :-
-  dm(dbhandling,['\nTry: drop_relation(',ExtRelName,').']),
+% the internal predicate
+drop_relationInt(ExtRelName) :-
+  dm(dbhandling,['\nTry: drop_relationInt(',ExtRelName,').']),
   ( databaseName(_)
     -> true
    ;  (  write('ERROR:\tNo database open. Cannot drop relation!'),nl,
@@ -3904,9 +3911,27 @@ drop_relation(ExtRelName) :-
   write_list(['\nINFO:\tSuccessfully dropped relation \'',ExtRelName,'\'.']),
   nl, !.
 
-drop_relation(ExtRelName) :-
+drop_relationInt(ExtRelName) :-
     write_list(['\nERROR:\tFailed trying to drop \'',ExtRelName,'\'.']),nl,
     throw(error_SQL(database_drop_relation(ExtRelName):unknownError)),
+    !, fail.
+
+% The user level predicate:
+:- assert(helpLine(drop_relation,1,
+    [[+,'DCrel','The relation to drop.']],
+    'Drop a relation; delete it (and related meta data) from the current DB.')).
+
+drop_relation(DCrel) :-
+  dm(dbhandling,['\nTry: drop_relation(',DCrel,').']),
+  ground(DCRel),
+  atomic(DCRel),
+  relation(DCrel,_),
+  dcName2externalName(DCrel,ExtRelName),
+  drop_relationInt(ExtRelName), !.
+
+drop_relation(DCrel) :-
+    write_list(['\nERROR:\tFailed trying to drop \'',DCrel,'\'.']),nl,
+    throw(error_SQL(database_drop_relation(DCrel):unknownRelation)),
     !, fail.
 
 /*

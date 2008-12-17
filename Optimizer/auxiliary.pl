@@ -297,6 +297,7 @@ objects). This command should never be used by the user!
 
 */
 
+
 % Such facts are used to mark a file has been considered by some predicate:
 :- dynamic(tempConsideredFile/1).
 
@@ -320,6 +321,10 @@ If no such fact exists, no database is opened. The fact is used to get the name
 of the currently opened database.
 
 */
+:- assert(helpLine(secondo,1,
+    [[+,'CommandString',
+        'Send a command to the DBMS kernel. Enclose in single quotes.']],
+    'Show help on a given user level predicate.')).
 
 :- dynamic databaseName/1.
 
@@ -334,8 +339,6 @@ promptSecondoResultFailed :-
   write(ErrorCode), nl,
   write('and error message : '), nl,
   write(ErrorString), nl, !.
-
-
 
 secondo(X) :-
   sub_atom(X,0,_,_,'open '),
@@ -536,21 +539,6 @@ in the PROLOG interface via the ~query~ operator. The operators
 
 */
 
-/*
-----
-:-
-  op(800, fx, query),
-  op(800, fx, delete),
-  op(800, fx, let),
-  op(800, fx, create),
-  op(800, fx, open),
-  op(800, fx, derive),
-  op(800, fx, update),
-  op(800, fx, restore).
-----
-
-*/
-
 :- op(993,  fx, open).
 :- op(993,  fx, restore).
 :- op(959,  fx, database).
@@ -663,6 +651,9 @@ on streams. Hence we provide ~openDB~ and closeDB to close a database.
 
 */
 
+:-assert(helpLine(cdb,0,[],'Close current database.')).
+:-assert(helpLine(closeDB,0,[],'Close current database.')).
+
 cdb :- closeDB.
 closedb :- closeDB.
 closeDB :-
@@ -673,9 +664,15 @@ openDB(Name) :-
   atom_concat('open database ', Name, Cmd),
   secondo(Cmd).
 
+:-assert(helpLine(ldb,0,[],'List available databases.')).
+:-assert(helpLine(listDB,0,[],'List available databases.')).
+
 ldb :- listDB.
 listDB :-
   secondo('list databases').
+
+:-assert(helpLine(lo,0,[],'Send \'list objects\'.')).
+:-assert(helpLine(listObj,0,[],'Send \'list objects\'.')).
 
 lo :- listObj.
 listObj :-

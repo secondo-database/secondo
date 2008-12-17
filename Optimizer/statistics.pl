@@ -850,6 +850,7 @@ showBBoxSel :-
   format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
 %  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
+:-assert(helpLine(showSels,0,[],'Display known selectivities.')).
 showSels :-
   write('\nStored selectivities:\n'),
   findall(_, showSel, _),
@@ -879,6 +880,7 @@ writeStoredPET(Stream) :-
   replaceCharList(X, XReplaced),
   write(Stream, storedPET(DB, XReplaced, Y, Z)), write(Stream, '.\n').
 
+:-assert(helpLine(showPETs,0,[],'Display known predicate evaluation times.')).
 showPETs :-
   write('\nStored predicate costs:\n'),
   format('  ~p~18|~p~34|~p~n',['Calculated [ms]', 'Measured [ms]','Predicate']),

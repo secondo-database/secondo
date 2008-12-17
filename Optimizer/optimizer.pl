@@ -836,6 +836,12 @@ deleteArguments :- retractall(argument(_, _)).
 Write the currently stored nodes and edges, respectively.
 
 */
+:-assert(helpLine(writeNodes,0,[],
+                  'List nodes of the current POG.')).
+:-assert(helpLine(writeEdges,0,[],
+                  'List edges of the current POG.')).
+
+
 writeNode :-
   node(No, Preds, Partition),
   write('Node: '), write(No), nl,
@@ -2575,6 +2581,11 @@ writePlanEdges3:-
   nl,
   fail.
 
+:-assert(helpLine(writePlanEdges,0,[],
+                  'List executable sub plans for all POG edges.')).
+:-assert(helpLine(writePlanEdgesX,0,[],
+                  'List executable and internal sub plans for all POG edges.')).
+
 writePlanEdges :- not(writePlanEdges2).
 
 writePlanEdgesX :- not(writePlanEdges3).
@@ -2768,6 +2779,13 @@ getPredNoPET(Index, X, Y) :-
 Clauses for writing sizes and selectivities for nodes and edges.
 
 */
+
+:-assert(helpLine(writeSizes,0,[],
+      'List estimated cardinalities and selectivities for the current POG.')).
+:-assert(helpLine(writeNodeSizes,0,[],
+      'List estimated cardinalities for the current POG.')).
+:-assert(helpLine(writeEdgeSels,0,[],
+      'List estimated selectivities for the current POG.')).
 
 writeSizes :-
   writeNodeSizes,
@@ -5598,6 +5616,15 @@ Optimize ~Query~ and print the best ~Plan~.
 
 */
 
+:- assert(helpLine(optimize,1,
+    [[+,'SQLquery','The SQL-style query to optimize.']],
+    'Optimize (but do not execute) a query in SQL-style syntax.')).
+:- assert(helpLine(optimize,3,
+    [[+,'SQLquery','The SQL-style query to optimize.'],
+     [-,'SecondoQuery','The optimized executable Secondo plan.'],
+     [-,'CostOut','The estimated cost for the optimized plan.']],
+    'Optimize (but do not execute) a query in SQL-style syntax.')).
+
 optimize(Query) :-
   optimize(Query, SecondoQuery, Cost),
   write('The plan is: '), nl, nl,
@@ -5924,6 +5951,23 @@ exception-format described above, that is thrown within goal ~G~.
 
 */
 
+:- assert(helpLine(sql,1,
+    [[+,'SQLquery','The SQL-style query to run optimized.']],
+    'Optimize and run an SQL-style query .')).
+:- assert(helpLine(sql,2,
+    [[+,'SQLquery','The SQL-style query to run optimized.'],
+     [+,'SECrest','The executable Secondo-style end of the query.']],
+    'Form and run a query from the first (optimized) and second argument .')).
+:- assert(helpLine(let,2,
+    [[+,'ObjName','The name for the object to create.'],
+     [+,'SQLquery','The SQL-style query to run optimized.']],
+    'Create a DB object using an SQL-style value.')).
+:- assert(helpLine(let,3,
+    [[+,'ObjName','The name for the object to create.'],
+     [+,'SQLquery','The SQL-style query to run optimized.'],
+     [+,'SECrest','The executable Secondo-style end of the query.']],
+    'Create a DB object, using a combined SQL and Secondo executable query.')).
+
 defaultExceptionHandler(G) :-
   catch( G,
          error_SQL(X),
@@ -5965,10 +6009,6 @@ sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query, _)
  )).
-
-
-
-
 
 let(X, Term) :- defaultExceptionHandler((
   isDatabaseOpen,
@@ -6142,6 +6182,9 @@ writeRealSizes :-
 computeCards :-
   retractall(realResult(_, _)),
   cards(1).
+
+:-assert(helpLine(allCards,0,[],
+         'Compare estimated and actual cardinalities for the current POG.')).
 
 allCards :-
   computeCards,

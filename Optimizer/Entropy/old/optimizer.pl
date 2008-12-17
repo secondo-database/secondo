@@ -291,7 +291,7 @@ partition([Rel | Rels], N, [Arp | Arps]) :-
 ----
 
 For the given start partition ~Partition0~, a list of predicates ~Preds~
-containing ~NoOfPred~ predicates, return the ~Nodes~ and ~Edges~ of the 
+containing ~NoOfPred~ predicates, return the ~Nodes~ and ~Edges~ of the
 predicate order graph.
 
 */
@@ -345,8 +345,8 @@ This means that for a selection predicate we have to find the arp
 containing its relation and modify it accordingly, the other arps
 in the partition are copied unchanged.
 
-For a join predicate we have to find the two arps containing its 
-two relations and to merge them into a single arp; the remaining 
+For a join predicate we have to find the two arps containing its
+two relations and to merge them into a single arp; the remaining
 arps are copied unchanged.
 
 Or a join predicate may find its two relations in the same arp which means
@@ -482,7 +482,7 @@ copied version reflects a previous application of predicate ~Pred~.
 
 This is implemented by retrieving from each old edge its start node,
 constructing for this start node and predicate ~Pred~ a target node to
-which then the predicate associated with the old edge is applied. 
+which then the predicate associated with the old edge is applied.
 
 */
 
@@ -523,7 +523,7 @@ writeEdgeList([edge(Source, Target, Term, _, _, _) | Edges]) :-
         deleteEdges.
 ----
 
-Just as the names say. Store a list of nodes or edges, repectively, as facts; 
+Just as the names say. Store a list of nodes or edges, repectively, as facts;
 and delete them from memory again.
 
 */
@@ -555,7 +555,7 @@ Write the currently stored nodes and edges, respectively.
 
 */
 writeNode :-
-  node(No, Preds, Partition), 
+  node(No, Preds, Partition),
   write('Node: '), write(No), nl,
   write('Preds: '), write(Preds), nl,
   write('Partition: '), write(Partition), nl, nl,
@@ -579,13 +579,13 @@ writeEdges :- not(writeEdge).
 5.1 Precise Notation for Input
 
 Since now we have to look into the structure of predicates, and need to be
-able to generate Secondo executable expressions in their precise format, we 
+able to generate Secondo executable expressions in their precise format, we
 need to define the input notation precisely.
 
 5.1.1 The Source Language
 [:Section 4.1.1]
 
-We assume the queries can be entered basically as select-from-where 
+We assume the queries can be entered basically as select-from-where
 structures, as follows. Let schemas be given as:
 
 ----    plz(PLZ:string, Ort:string)
@@ -616,17 +616,17 @@ For example
 ----    rel(staedte, *, u)
 ----
 
-is a term denoting the ~Staedte~ relation; ~u~ says that it is actually to be 
+is a term denoting the ~Staedte~ relation; ~u~ says that it is actually to be
 written in upper case whereas
 
 ----    rel(plz, *, l)
 ----
 
 denotes the ~plz~ relation to be written in lower case. The second argument
-~Var~ contains an explicit variable if it has been assigned, otherwise the 
-symbol [*]. If an explicit variable has been used in the query, we need to 
-perfom renaming in the plan. For example, in the second query above, the 
-relations would be denoted as 
+~Var~ contains an explicit variable if it has been assigned, otherwise the
+symbol [*]. If an explicit variable has been used in the query, we need to
+perfom renaming in the plan. For example, in the second query above, the
+relations would be denoted as
 
 ----    rel(staedte, s, u)
         rel(plz, p, l)
@@ -639,33 +639,33 @@ Within predicates, attributes are annotated as follows:
         attr(ort, 2, u)
 ----
 
-This says that  ~ort~ is an attribute of the second argument within a join 
-condition, to be written in upper case. For a selection condition, the second 
+This says that  ~ort~ is an attribute of the second argument within a join
+condition, to be written in upper case. For a selection condition, the second
 argument is ignored; it can be set to 0 or 1.
 
 Hence for the two queries above, the translation would be
 
 ----    fromwhere(
-          [rel(staedte, *, u)], 
+          [rel(staedte, *, u)],
           [pr(attr(bev, 0, u) > 500000, rel(staedte, *, u))]
         )
 
         fromwhere(
           [rel(staedte, s, u), rel(plz, p, l)],
-          [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u), 
+          [pr(attr(s:sName, 1, u) = attr(p:ort, 2, u),
                 rel(staedte, s, u), rel(plz, p, l)),
            pr(attr(p:pLZ, 0, u) > 40000, rel(plz, p, l))]
         )
 ----
 
 Note that the upper or lower case distinction refers only to the first letter
-of a relation or attribute name. Other letters are written on the PROLOG side 
+of a relation or attribute name. Other letters are written on the PROLOG side
 in the same way as in Secondo.
 
 Note further that if explicit variables are used, the attribute name will
 include them, e.g. s:sName.
 
-The projection occurring in the select-from-where statement is for the moment 
+The projection occurring in the select-from-where statement is for the moment
 not passed to the optimizer; it is treated outside.
 
 So example 2 is rewritten as:
@@ -685,7 +685,7 @@ The two queries mentioned above are:
 */
 
 example4 :- pog(
-  [rel(staedte, *, u)], 
+  [rel(staedte, *, u)],
   [pr(attr(bev, 1, u) > 500000, rel(staedte, *, u))],
   _, _).
 
@@ -725,12 +725,12 @@ In the target language, we use the following operators:
                                 where   Tuple3 = Tuple1 o Tuple2
                                         attrname1 occurs in Tuple1
                                         attrname2 occurs in Tuple2
-                                        
+
         loopjoin:       stream(Tuple1) x (Tuple1 -> stream(Tuple2)
                                 -> stream(Tuple3)
 
                                 where   Tuple3 = Tuple1 o Tuple2
-                                
+
         exactmatch:     btree(Tuple, AttrType) x rel(Tuple) x AttrType
                                 -> stream(Tuple)
 
@@ -779,7 +779,7 @@ Parameter functions are written as
 
 ----    fun([param(Var1, Type1), ..., paran(VarN, TypeN)], Expr)
 ----
-        
+
 
 5.1.3 Converting Plans to Atoms and Writing them.
 
@@ -811,7 +811,7 @@ wp(Plan) :-
 
 Function ~newVariable~ outputs a new unique variable name.
 The variable name is unique in the sense that ~newVariable~ never
-outputs the same name twice (in a PROLOG session). 
+outputs the same name twice (in a PROLOG session).
 It should be emphasized that the output
 is not a PROLOG variable but a variable name to be used for defining
 abstractions in the Secondo system.
@@ -829,7 +829,7 @@ newVariable(Var) :-
   assert(varDefined(N1)),
   atom_concat('var', N1, Var).
 
-newVariable(Var) :- 
+newVariable(Var) :-
   assert(varDefined(1)),
   Var = 'var1'.
 
@@ -973,13 +973,13 @@ plan_to_atom(attribute(X, Y), Result) :-
   plan_to_atom(Y, YAtom),
   concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
- 
+
 
 plan_to_atom(date(X), Result) :-
   plan_to_atom(X, XAtom),
   concat_atom(['[const instant value ', XAtom, ']'], '', Result),
   !.
-  
+
 plan_to_atom(interval(X, Y), Result) :-
   concat_atom(['[const duration value (', X, ' ', Y, ')]'], '', Result),
   !.
@@ -991,11 +991,11 @@ Sort orders and attribute names.
 */
 
 plan_to_atom(asc(Attr), Result) :-
-  plan_to_atom(Attr, AttrAtom), 
+  plan_to_atom(Attr, AttrAtom),
   atom_concat(AttrAtom, ' asc', Result).
 
 plan_to_atom(desc(Attr), Result) :-
-  plan_to_atom(Attr, AttrAtom), 
+  plan_to_atom(Attr, AttrAtom),
   atom_concat(AttrAtom, ' desc', Result).
 
 plan_to_atom(attr(Name, Arg, Case), Result) :-
@@ -1023,12 +1023,12 @@ plan_to_atom(a(X, _, u), X2) :-
 
 
 /*
-Translation of operators driven by predicate ~secondoOp~ in 
+Translation of operators driven by predicate ~secondoOp~ in
 file ~opSyntax~. There are rules for
 
   * postfix, 1 or 2 arguments
 
-  * postfix followed by one argument in square brackets, in total 2 
+  * postfix followed by one argument in square brackets, in total 2
 or 3 arguments
 
   * prefix, 2 arguments
@@ -1089,12 +1089,12 @@ plan_to_atom(Term, Result) :-
 
 
 /*
-Generic rules. Operators that are not 
+Generic rules. Operators that are not
 recognized are assumed to be:
 
   * 1 argument: prefix
 
-  * 2 arguments: infix 
+  * 2 arguments: infix
 
   * 3 arguments: prefix
 
@@ -1143,7 +1143,7 @@ params_to_atom([param(Var, Type) | Params], Result) :-
   concat_atom(['(', Var, ': ', TypeAtom, ') ', ParamsAtom], '', Result),
   !.
 
-type_to_atom(tuple, 'TUPLE').           
+type_to_atom(tuple, 'TUPLE').
 type_to_atom(tuple2, 'TUPLE2').
 type_to_atom(group, 'GROUP').
 
@@ -1265,7 +1265,7 @@ join(Arg1, Arg2, pr(Pred, _, _)) => filter(product(Arg1S, Arg2S), Pred) :-
   Arg1 => Arg1S,
   Arg2 => Arg2S.
 
-join(Arg1, Arg2, pr(X<Y, _, _)) => loopjoin(Arg1S, fun([param(t, tuple)], 
+join(Arg1, Arg2, pr(X<Y, _, _)) => loopjoin(Arg1S, fun([param(t, tuple)],
   filter(Arg2S, attribute(t, attrname(Attr1)) < Attr2))) :-
   X = attr(_, _, _),
   Y = attr(_, _, _), !,
@@ -1782,11 +1782,14 @@ writeCostEdge :-
   write('Source: '), write(Source), nl,
   write('Target: '), write(Target), nl,
   write('Plan: '), wp(Plan), nl,
-  write('Result: '), write(Result), nl, 
-  write('Size: '), write(Size), nl, 
-  write('Cost: '), write(Cost), nl, 
+  write('Result: '), write(Result), nl,
+  write('Size: '), write(Size), nl,
+  write('Cost: '), write(Cost), nl,
   nl,
   fail.
+
+:-assert(helpLine(writeCostEdges,0,[],
+                  'List estimated costs for edges in the current POG.')).
 
 writeCostEdges :- not(writeCostEdge).
 
@@ -1812,23 +1815,23 @@ graph.
 9.1 Shortest Path Algorithm by Dijkstra
 
 We implement the shortest path algorithm by Dijkstra. There are two
-relevant sets of nodes: 
- 
-  * center: the nodes for which shortest paths have already been
-computed 
+relevant sets of nodes:
 
-  * boundary: the nodes that have been seen, but that have not yet been  
-expanded. These need to be kept in a priority queue. 
- 
-A node, as used during shortest path computation, is represented as a term 
+  * center: the nodes for which shortest paths have already been
+computed
+
+  * boundary: the nodes that have been seen, but that have not yet been
+expanded. These need to be kept in a priority queue.
+
+A node, as used during shortest path computation, is represented as a term
 
 ----    node(Name, Distance, Path)
 ----
 
 where ~Name~ is the node number, ~Distance~ the distance along the shortest
 path to this node, and ~Path~ is the list of edges forming the shortest path.
-   
-The graph is represented by the set of ~costEdges~. 
+
+The graph is represented by the set of ~costEdges~.
 
 The center is represented as a set of facts of the form
 
@@ -1842,14 +1845,14 @@ possible in constant time.
 The boundary is represented by an abstract data type as described in the
 interface below. Essentially it is a priority queue implementation.
 
- 
-----    successor(Node, Succ) :- 
+
+----    successor(Node, Succ) :-
 ----
 
 ~Succ~ is a successor of node ~Node~ via some edge. This includes computation
 of the distance and path of the successor.
 
-*/ 
+*/
 
 successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
   costEdge(Source, Target, Term, Result, Size, Cost),
@@ -1864,7 +1867,7 @@ successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
 The shortest path from ~Source~ to ~Dest~ is ~Path~ of length ~Length~.
 
 */
- 
+
 dijkstra(Source, Dest, Path, Length) :-
   emptyCenter,
   b_empty(Boundary),
@@ -1876,8 +1879,8 @@ emptyCenter :- not(emptyCenter1).
 
 emptyCenter1 :- retract(center(_, _)), fail.
 
- 
-/* 
+
+/*
 ----    dijkstra1(Boundary, Dest, NoOfCalls) :-
 ----
 
@@ -1888,14 +1891,14 @@ just containing the start node.
 For testing we check at which iteration the destination ~Dest~ is reached.
 
 */
- 
+
 dijkstra1(Boundary, _, _, found) :- !,
         tree_height(Boundary, H),
         write('Height of search tree for boundary is '), write(H), nl.
 
 dijkstra1(Boundary, _, _, _) :- b_isEmpty(Boundary).
 dijkstra1(Boundary, Dest, N, _) :-
-        % write('Boundary = '), writeList(Boundary), nl, write('====='), nl, 
+        % write('Boundary = '), writeList(Boundary), nl, write('====='), nl,
   b_removemin(Boundary, Node, Bound2),
   Node = node(Name, _, _),
   assert(center(Name, Node)),
@@ -1937,19 +1940,19 @@ writePath([costEdge(Source, Target, Term, Result, Size, Cost) | Path]) :-
 
 Insert into ~Boundary~  all successors of node ~Node~ not yet present in
 the center, updating their distance if they are already present, to obtain
-~BoundaryNew~. 
+~BoundaryNew~.
 
-*/   
-putsuccessors(Boundary, Node, BoundaryNew) :-  
+*/
+putsuccessors(Boundary, Node, BoundaryNew) :-
   findall(Succ, successor(Node, Succ), Successors),
 
         % write('successors of '), write(Node), nl,
         % writeList(Successors), nl, nl,
 
-  putsucc1(Boundary, Successors, BoundaryNew). 
- 
-/* 
-----    putsucc1(Boundary, Successors, BoundaryNew) :- 
+  putsucc1(Boundary, Successors, BoundaryNew).
+
+/*
+----    putsucc1(Boundary, Successors, BoundaryNew) :-
 ----
 
 put all successors not yet in the center from the list ~Successors~ into the
@@ -1968,36 +1971,36 @@ this case it replaces the previous node entry in the boundary.
 
   * The first successor does not exist in the boundary. It is inserted.
 
-*/   
+*/
 
 putsucc1(Boundary, [], Boundary).
- 
-putsucc1(Boundary, [node(N, _, _) | Successors], BNew) :- 
-  center(N, _), !, 
-  putsucc1(Boundary, Successors, BNew). 
 
-putsucc1(Boundary, [node(N, D, _) | Successors], BNew) :-  
-  b_memberByName(Boundary, N, node(N, DistOld, _)), 
-  DistOld =< D, !, 
-  putsucc1(Boundary, Successors, BNew). 
+putsucc1(Boundary, [node(N, _, _) | Successors], BNew) :-
+  center(N, _), !,
+  putsucc1(Boundary, Successors, BNew).
+
+putsucc1(Boundary, [node(N, D, _) | Successors], BNew) :-
+  b_memberByName(Boundary, N, node(N, DistOld, _)),
+  DistOld =< D, !,
+  putsucc1(Boundary, Successors, BNew).
 
 putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-
-  b_memberByName(Boundary, N, node(N, DistOld, _)), 
-  D < DistOld, !, 
-  b_deleteByName(Boundary, N, Bound2), 
-  b_insert(Bound2, node(N, D, P), Bound3), 
-  putsucc1(Bound3, Successors, BNew). 
+  b_memberByName(Boundary, N, node(N, DistOld, _)),
+  D < DistOld, !,
+  b_deleteByName(Boundary, N, Bound2),
+  b_insert(Bound2, node(N, D, P), Bound3),
+  putsucc1(Bound3, Successors, BNew).
 
-putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-  
-  b_insert(Boundary, node(N, D, P), Bound2), 
-  putsucc1(Bound2, Successors, BNew). 
+putsucc1(Boundary, [node(N, D, P) | Successors], BNew) :-
+  b_insert(Boundary, node(N, D, P), Bound2),
+  putsucc1(Bound2, Successors, BNew).
 
-  
-/* 
+
+/*
 
 9.2 Interface ~Boundary~
- 
-The boundary is represented in a data structure with the following 
+
+The boundary is represented in a data structure with the following
 operations:
 
 ----    b_empty(-Boundary) :-
@@ -2012,27 +2015,27 @@ Checks whether the boundary is empty.
 
 
 ----    b_removemin(+Boundary, -Node, -BoundaryOut) :-
----- 
+----
 
 Returns the node ~Node~ with minimal distance from the set ~Boundary~ and
 returns also ~BoundaryOut~ where this node is removed.
-   
+
 ----    b_insert(+Boundary, +Node, -BoundaryOut) :-
 ----
- 
+
 Inserts a node that must not yet be present (i.e., no other node of that
 name).
-   
+
 ----    b_memberByName(+Boundary, +Name, -Node) :-
----- 
- 
-If a node ~Node~ with name ~Name~ is present, it is returned. 
- 
+----
+
+If a node ~Node~ with name ~Name~ is present, it is returned.
+
 ----    b_deleteByName(+Boundary, +Name, -BoundaryOut) :-
----- 
- 
-Returns the boundary, where the node with name ~Name~ is deleted. 
- 
+----
+
+Returns the boundary, where the node with name ~Name~ is deleted.
+
 */
 
 /*
@@ -2047,7 +2050,7 @@ The plan corresponding to ~Path~ is ~Plan~.
 plan(Path, Plan) :-
   deleteNodePlans,
   traversePath(Path),
-  highestNode(Path, N), 
+  highestNode(Path, N),
   nodePlan(N, Plan).
 
 
@@ -2256,6 +2259,8 @@ highestNode(Path, N) :-
 9.4 Computing the Best Plan for a Given Predicate Order Graph
 
 */
+
+:-assert(helpLine(bestPlan,0,[],'Show the best plan for the current POG.')).
 
 bestPlan :-
   assignCosts,
@@ -2537,7 +2542,7 @@ callLookup(Query, Query2) :-
   newQuery,
   lookup(Query, Query2), !.
 
-newQuery :- not(clearVariables), not(clearQueryRelations), 
+newQuery :- not(clearVariables), not(clearQueryRelations),
   not(clearQueryAttributes).
 
 clearVariables :- retract(variable(_, _)), fail.
@@ -2578,7 +2583,7 @@ lookup(Query groupby Attrs, Query2 groupby Attrs3) :-
   lookup(Query, Query2),
   makeList(Attrs, Attrs2),
   lookupAttrs(Attrs2, Attrs3).
-  
+
 lookup(Query first N, Query2 first N) :-
   lookup(Query, Query2).
 
@@ -2705,7 +2710,7 @@ lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
   queryAttr(attr(Name, 0, u)),
   !,
-  write('***** Error: attribute name '), write(Name), 
+  write('***** Error: attribute name '), write(Name),
   write(' doubly defined in query.'),
   nl.
 
@@ -2830,44 +2835,44 @@ lookupPred1(Term, Term2, N, RelsBefore, M, RelsAfter) :-
 lookupPred1(Term, Term, N, Rels, N, Rels) :-
   atom(Term),
   not(is_list(Term)),
-  write('Symbol '), write(Term), 
+  write('Symbol '), write(Term),
   write(' not recognized, supposed to be a Secondo object.'), nl, !.
 
 lookupPred1(Term, Term, N, Rels, N, Rels).
- 
+
 
 
 
 /*
 11.3.6 Check the Spelling of Relation and Attribute Names
- 
+
 */
- 
+
 spelled(Rel:Attr, attr(Attr2, 0, l)) :-
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr3),
   Attr3 = lc(Attr2),
   !.
- 
+
 spelled(Rel:Attr, attr(Attr2, 0, u)) :-
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr2),
   !.
- 
+
 spelled(_:_, attr(_, 0, _)) :- !, fail. % no attr entry in spelling table
- 
+
 spelled(Rel, Rel2, l) :-
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel3),
   Rel3 = lc(Rel2),
   !.
- 
+
 spelled(Rel, Rel2, u) :-
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel2), !.
- 
+
 spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
 
 
@@ -2961,7 +2966,7 @@ which will translate to a corresponding projection operation.
 
 translateFields([], _, [], []).
 
-translateFields([count(*) as NewAttr | Select], GroupAttrs, 
+translateFields([count(*) as NewAttr | Select], GroupAttrs,
         [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
@@ -2971,9 +2976,9 @@ translateFields([sum(attr(Name, Var, Case)) as NewAttr | Select], GroupAttrs,
         [NewAttr| Select2]) :-
   translateFields(Select, GroupAttrs, Fields, Select2),
   !.
-  
+
 translateFields([sum(Expr) as NewAttr | Select], GroupAttrs,
-        [field(NewAttr, 
+        [field(NewAttr,
           sum(
             extend(feed(group), field(attr(xxxExprField, 0, l), Expr)),
             attrname(attr(xxxExprField, 0, l))
@@ -3022,7 +3027,7 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
 
 
 translateFields([Term | Select], GroupAttrs,
-        Fields, 
+        Fields,
         Select2) :-
   compound(Term),
   functor(Term, AggrOp, 1),
@@ -3043,8 +3048,8 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   !,
   translateFields(Select, GroupAttrs, Fields, Select2),
   write('*****'), nl,
-  write('***** Error in groupby: '), 
-  write(Attr), 
+  write('***** Error in groupby: '),
+  write(Attr),
   write(' is neither a grouping attribute'), nl,
   write('      nor an aggregate expression.'), nl,
   write('*****'), nl.
@@ -3114,7 +3119,7 @@ queryToStream(Query, Stream2, Cost) :-
 */
 
 translate2(Query, Stream2, Select, Cost2) :-
-  deleteSmallResults,   
+  deleteSmallResults,
   retractall(highNode(_)),assert(highNode(0)),
   translate(Query, Stream1, Select, Cost1), !,
   try_entropy(Stream1, Stream2, Cost1, Cost2), !,
@@ -3522,11 +3527,11 @@ example21(Query, Cost) :- optimize(
         sql(Term, SecondoQueryRest)
         let(X, Term)
         let(X, Term, SecondoQueryRest)
-----    
+----
 
 ~Term~ must be one of the available select-from-where statements.
 It is optimized and Secondo is called to execute it. ~SecondoQueryRest~
-is a character string (atom) containing a sequence of Secondo 
+is a character string (atom) containing a sequence of Secondo
 operators that can be appended to a given
 plan found by the optimizer; in this case the optimizer returns a
 plan producing a stream.
@@ -3591,7 +3596,7 @@ let(X, Term, SecondoQueryRest) :-
 ----    streamOptimize(Term, Query, Cost) :-
 ----
 
-Optimize the ~Term~ producing an incomplete Secondo query plan ~Query~ 
+Optimize the ~Term~ producing an incomplete Secondo query plan ~Query~
 returning a stream.
 
 */
@@ -3667,7 +3672,7 @@ bestPlanConsume :-
   atom_concat(S, ' consume', Q),
   nl, write(Q), nl,
   query(Q).
-  
+
 desplay(int, N) :-
   !,
   write(N),nl,
@@ -3765,7 +3770,7 @@ use_entropy :-
 
 dont_use_entropy :-
   retractall(useEntropy).
-  
+
 deleteSmallResults :-
   deleteSmallResultCounter,
   deleteSmallResultSize,
@@ -3789,8 +3794,8 @@ copyFirstEdgeSelectivity :-
 deleteFirstSizes :-
   retractall(firstResultSize(_,_)),
   retractall(firstEdgeSelectivity(_,_,_)).
-  
-quit :- 
+
+quit :-
   halt.
 
 argList( 1, [_] ).
@@ -3804,7 +3809,7 @@ showValues( Pred, Arity ) :-
 showValues2( Pred, Arity ) :-
   argList( Arity, L ),
   P=..[Pred|L], !, P, nl, write( P ), fail.
-  
+
 
 
 

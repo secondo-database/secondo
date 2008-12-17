@@ -98,6 +98,7 @@ helpMe(Pred) :-
          write('There are several arities for predicate \''), write(Pred), %'
          write('\'\n'),                                                    %'
          write('Help is available on the following arities:'), nl,
+         format('  ~p~20|/~p~28|~p~n',['Predicate','Arity','Meaning']),
          write('---------------------------------------------------------'), nl,
          helpMePrintLine(PredList2),
          nl, write('Use \'helpMe(Pred,Arity).\''),
@@ -117,6 +118,7 @@ helpMe(Pred) :-
 
 helpMe :-
   nl, write('Help is available on the following user level predicates:'), nl,
+  format('  ~p~20|/~p~28|~p~n',['Predicate','Arity','Meaning']),
   write('---------------------------------------------------------'), nl,
   findall( [Pred, Arity, Meaning],
           ( helpLine(Pred , Arity, _, Meaning)
@@ -130,8 +132,9 @@ helpMe :-
 
 helpMePrintLine([]).
 helpMePrintLine([[Pred, Arity, Meaning]|X]) :-
-  write('  '), write(Pred), write('/'), write(Arity), write(': '),
-  write(Meaning), nl,
+  format('  ~p~24|/~p~28|~p~n',[Pred,Arity,Meaning]),
+%  write('  '), write(Pred), write('/'), write(Arity), write(': '),
+%  write(Meaning), nl,
   helpMePrintLine(X),
   !.
 

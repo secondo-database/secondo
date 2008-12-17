@@ -74,6 +74,8 @@ All constants can be printed using predicate
 
 */
 
+:-assert(helpLine(showOptConstants,0,[],'Display settings of several constants.')).
+
 showOptConstant :-
   secOptConstant(X, Y),
   write('  secOptConstant( '),write(X), write(',\t'), write(Y), write(')'), nl.
