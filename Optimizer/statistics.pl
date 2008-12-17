@@ -281,7 +281,19 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, ResultList),QueryTime),
+  getTime(
+    ( secondo(QueryAtom, ResultList)
+      -> (true)
+      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
+                       'whether predicate \'', Pred, '\' is a boolean ',
+                       'function! ']), nl,
+           throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
+               QueryTime, BBoxResCard, FilterResCard):selectivityQueryFailed)),
+           fail
+         )
+    )
+    ,QueryTime
+  ),
   ( ResultList = [int, FilterResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
@@ -323,7 +335,19 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, ResultList),QueryTime),
+  getTime(
+    ( secondo(QueryAtom, ResultList)
+      -> (true)
+      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
+                       'whether predicate \'', Pred, '\' is a boolean ',
+                       'function! ']), nl,
+           throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
+                         QueryTime, noBBox, ResCard):selectivityQueryFailed)),
+           fail
+         )
+    )
+    ,QueryTime
+  ),
   ( ResultList = [int, ResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
@@ -337,6 +361,11 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
        )
   ),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
+
+selectivityQuerySelection(Pred, Rel, QueryTime, BBox, ResCard) :-
+  write_list(['\nERROR:\tSelectivity query failed for unknown reason.']), nl,
+  throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel, QueryTime,
+        BBox, ResCard):selectivityQueryFailed)),  fail.
 
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
 	FilterResCard) :-
@@ -365,7 +394,20 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, ResultList),QueryTime),
+  getTime(
+    ( secondo(QueryAtom, ResultList)
+      -> (true)
+      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
+                       'whether predicate \'', Pred, '\' is a boolean ',
+                       'function! ']), nl,
+           throw(error_SQL(statistics_selectivityQueryJoin(
+                         Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
+                         :selectivityQueryFailed)),
+           fail
+         )
+    )
+    ,QueryTime
+  ),
   ( ResultList = [int, FilterResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
@@ -418,7 +460,19 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, ResultList),QueryTime),
+  getTime(
+    ( secondo(QueryAtom, ResultList)
+      -> (true)
+      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
+                       'whether predicate \'', Pred, '\' is a boolean ',
+                       'function! ']), nl,
+           throw(error_SQL(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
+                         QueryTime, noBBox, ResCard):selectivityQueryFailed)),
+           fail
+         )
+    )
+    ,QueryTime
+  ),
   ( ResultList = [int, ResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
@@ -433,6 +487,10 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   ),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, ResCard) :-
+  write_list(['\nERROR:\tSelectivity query failed for unknown reason.']), nl,
+  throw(error_SQL(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
+        QueryTime, BBox, ResCard):selectivityQueryFailed)), fail.
 
 /*
 
