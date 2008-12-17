@@ -5979,12 +5979,18 @@ defaultExceptionHandler(G) :-
        true.
 
 
+:-assert(helpLine(history,0,[],
+  'List the query history (since last \'storeHistory\').')).
 history :-
   showRel('SqlHistory').
 
+:-assert(helpLine(deleteHistory,0,[],
+  'Delete the query history relation \'SqlHistory\' from the current DB.')).
 deleteHistory :-
   clearRel('SqlHistory').
 
+:-assert(helpLine(storeHistory,0,[],
+  'Store the query history into relation \'SqlHistory\' within the current DB.')).
 storeHistory :-
   saveRel('SqlHistory').
 

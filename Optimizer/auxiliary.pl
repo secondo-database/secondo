@@ -539,6 +539,32 @@ in the PROLOG interface via the ~query~ operator. The operators
 
 */
 
+:- assert(helpLine(let,1,
+    [[+,'ExecQuery','Partial command in Secondo syntax.']],
+    'Prepend \'query \' and send to DBMS-kernel.')).
+:- assert(helpLine(query,1,
+    [[+,'ExecQuery','Partial command in Secondo syntax.']],
+    'Prepend \'query \' and send to DBMS-kernel.')).
+:- assert(helpLine(derive,1,
+    [[+,'ExecQuery','Partial command in Secondo syntax.']],
+    'Prepend \'derive \' and send to DBMS-kernel.')).
+:- assert(helpLine(create,1,
+    [[+,'ExecQuery','Partial command in Secondo syntax.']],
+    'Prepend \'create \' and send to DBMS-kernel.')).
+:- assert(helpLine(update,1,
+    [[+,'ExecQuery','Partial command in Secondo syntax.']],
+    'Prepend \'update \' and send to DBMS-kernel.')).
+:- assert(helpLine(delete,1,
+    [[+,'ExecQuery','Partial command in Secondo syntax.']],
+    'Prepend \'delete \' and send to DBMS-kernel.')).
+:- assert(helpLine(open,1,
+    [[+,'ExecQuery','Partial command in Secondo syntax.']],
+    'Prepend \'open \' and send to DBMS-kernel.')).
+:- assert(helpLine(restore,1,
+    [[+,'ExecQuery','Partial command in Secondo syntax.']],
+    'Prepend \'restore \' and send to DBMS-kernel.')).
+
+
 :- op(993,  fx, open).
 :- op(993,  fx, restore).
 :- op(959,  fx, database).
@@ -680,6 +706,10 @@ listObj :-
 
 % search for a description of operator O
 
+:- assert(helpLine(findop,1,
+    [[+,'OperatorName','The name of the operator to query for.']],
+    'Show help on a given Secondo operator.')).
+
 findop(O) :-
   concat_atom([ 'query SEC2OPERATORINFO feed filter[.Name contains "',
                 O, '"] consume' ], Q),
@@ -687,13 +717,15 @@ findop(O) :-
 
 % dump the command history to a given file name
 
+:- assert(helpLine(cmdHist2File,1,
+    [[+,'FileName','The file used for storing the history.']],
+    'Dump the command history to a file.')).
 cmdHist2File(Name) :-
   concat_atom(['query SEC2COMMANDS feed '], Q),
   dumpQueryResult2File(Q, Name, Q2),
   runQuery(Q2).
 
 % dump the result of a secondo query to a CSV file
-
 dumpQueryResult2File(Q, File, Q2) :-
   concat_atom([Q, ' dumpstream["', File, '","|"] tconsume'], Q2).
 
