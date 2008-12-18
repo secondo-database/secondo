@@ -1414,6 +1414,23 @@ plan_to_atom(project(Stream, Fields), Result) :-
   !.
 
 
+
+plan_to_atom(feedproject(Stream, Fields), Result) :-
+  not(removeHiddenAttributes), !,		% standard behaviour
+  plan_to_atom(Stream, SAtom),
+  plan_to_atom(Fields, FAtom),
+  concat_atom([SAtom, 'feedproject[', FAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(feedproject(Stream, Fields), Result) :-
+  removeHiddenAttributes,
+  plan_to_atom(Stream, SAtom),
+  removeHidden(Fields, Fields2),	% defined after plan_to_atom
+  plan_to_atom(Fields2, FAtom),
+  concat_atom([SAtom, 'feedproject[', FAtom, '] '], '', Result),
+  !.
+
+
 % Ignore sortby with empty sort list
 plan_to_atom(sortby(Stream, []), Result) :-
   plan_to_atom(Stream, Result),
@@ -1781,11 +1798,11 @@ arg(N) => rename(feed(rel(Name, Var)), Var) :-
   isStarQuery,
   argument(N, rel(Name, Var)), !.
 
-arg(N) => project(feed(rel(Name, *)), AttrNames) :-
+arg(N) => feedproject(rel(Name, *), AttrNames) :-
   argument(N, rel(Name, *)), !,
   usedAttrList(rel(Name, *), AttrNames).
 
-arg(N) => rename(project(feed(rel(Name, Var)), AttrNames), Var) :-
+arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
   argument(N, rel(Name, Var)), !,
   usedAttrList(rel(Name, Var), AttrNames).
 
@@ -3054,11 +3071,20 @@ cost(feed(X), Sel, S, C) :-
   feedTC(A),
   C is C1 + A * S.
 
+
 /*
 Here ~feedTC~ means ``feed tuple cost'', i.e., the cost per tuple, a constant to
 be determined in experiments. These constants are kept in file ``operators.pl''.
 
 */
+
+
+cost(feedproject(X, _), Sel, S, C) :-
+  cost(X, Sel, S, C1),
+  feedTC(A),
+  C is C1 + A * S.
+
+
 
 cost(consume(X), Sel, S, C) :-
   cost(X, Sel, S, C1),
@@ -4452,6 +4478,9 @@ lookupAttr(Attr, Attr2) :-
   (   usedAttr(Rel2, Attr2)
     ; assert(usedAttr(Rel2, Attr2))
   ).
+
+
+lookupAttr(count(*), count(*)) :- !.
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
 
