@@ -624,9 +624,6 @@ functions.
        if ( tree.find(m.first().convertToString()) != tree.end() ) {
          return false;	       
        }
-       cerr << "inserting m.first() = " << m.first().convertToString()
-            << endl;
-
        tree.insert( m.first().convertToString() );       
        m.rest();
     }	    
