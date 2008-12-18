@@ -154,3 +154,16 @@ Signature: rect8 -> rect8
 Example  : query bbox(rectangle8(1,2,3,4,5,6,7,8, 1.2))
 Result   : (rect8 (1.0 2.2 2.0 3.2 3.0 4.2 4.0 5.2 5.0 6.2 6.0 7.2 7.0 8.2 8.0 9.2))
 
+
+Operator : enlargeRect
+Number   : 1
+Signature: rect<dim> x real^<dim> -> rect<dim>
+Example  : query enlargeRect(rectangle3(17, 24, 12, 13, 4, 6), -1.0, 1.0, 2.0)
+Result   : (rect3 (18.0 23.0 11.0 14.0 2.0 8.0))
+
+Operator : enlargeRect
+Number   : 2
+Signature: rect<dim> x real^<dim> -> rect<dim>
+Example  : query enlargeRect(rectangle3(17, 24, 12, 13, 4, 6), -1.0, 1.0, -1.0)
+Result   : (rect3 undef)
+

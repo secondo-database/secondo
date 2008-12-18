@@ -663,6 +663,37 @@ ListExpr  RectangleTypeMapRectRect( ListExpr args )
   return (nl->SymbolAtom( "typeerror" ));
 }
 
+/*
+4.1.8 Type mapping function ~RectangleTypeMapEnlargeRect~
+
+It is used for the ~enlargeRect~ operator.
+
+*/
+ListExpr RectangleTypeMapEnlargeRect( ListExpr args )
+{
+  bool ok = true;
+  unsigned int noArgs = nl->ListLength( args );
+  switch(noArgs) {
+    case 3:  ok &= nl->IsEqual( nl->First(args), "rect" );  break;
+    case 4:  ok &= nl->IsEqual( nl->First(args), "rect3" ); break;
+    case 5:  ok &= nl->IsEqual( nl->First(args), "rect4" ); break;
+    case 9:  ok &= nl->IsEqual( nl->First(args), "rect8" ); break;
+    default: ok = false;
+  }
+  if(ok){
+    for(unsigned int i = 2; i <= noArgs; i++) {
+        if ( !nl->IsEqual(nl->Nth(i,args), "real") ) {
+          ok = false;
+          break;
+        }
+    }
+  }
+  if(ok){
+    return nl->First(args);
+  }
+  ErrorReporter::ReportError("Expected rect<Dim> x real^<Dim>.");
+  return (nl->SymbolAtom( "typeerror" ));
+}
 
 /*
 4.2 Selection functions
@@ -1231,6 +1262,48 @@ template<unsigned int dim>
   return 0;
 }
 
+/*
+4.4.11 Value mapping functions of operator ~enlargeRect~
+
+*/
+template<unsigned int dim>
+    int RectangleEnlargeRectValueMap( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<dim> *arg = static_cast<Rectangle<dim> *>(args[0].addr);
+  Rectangle<dim> *res = static_cast<Rectangle<dim> *>(result.addr);
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  double newMin[dim], newMax[dim];
+  for(unsigned int i = 0; i<dim; i++){
+    newMin[i] = 0.0;
+    newMax[i] = 0.0;
+  }
+  for(unsigned int i = 0; i<dim; i++){
+    CcReal* deltaC = static_cast<CcReal*>(args[i+1].addr);
+    if(!deltaC->IsDefined()){ // return undef result
+      res->SetDefined(false);
+      return 0;
+    }
+    double deltaD = deltaC->GetRealval();
+    double minD = arg->MinD(i);
+    double maxD = arg->MaxD(i);
+    if( (deltaD < 0) && ((maxD-minD+2*deltaD) <= 0) ){
+      // interval too small, set result to UNDEF
+      res->SetDefined(false);
+      return 0;
+    } else {
+      newMin[i] = minD - deltaD;
+      newMax[i] = maxD + deltaD;
+    }
+  }
+  res->Set(true, newMin, newMax);
+  return 0;
+}
+
 
 /*
 4.5 Definition of operators
@@ -1322,6 +1395,14 @@ ValueMapping rectangleBboxmap[] =
   RectangleBboxValueMap<3>,
   RectangleBboxValueMap<4>,
   RectangleBboxValueMap<8>
+};
+
+ValueMapping rectangleEnlargeRectmap[] =
+{
+  RectangleEnlargeRectValueMap<2>,
+  RectangleEnlargeRectValueMap<3>,
+  RectangleEnlargeRectValueMap<4>,
+  RectangleEnlargeRectValueMap<8>
 };
 
 /*
@@ -1518,6 +1599,17 @@ const string RectangleSpecBbox  =
     "<text></text--->"
     ") )";
 
+const string RectangleSpecEnlargeRect  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+    "( <text>rect<d> x real^d -> rect<d></text--->"
+    "<text>enlargeRect( rect, m1, ... , md )</text--->"
+    "<text>Enlarges (shrinks) the rectangle by a value mi to each side "
+    "in each dimension.</text--->"
+    "<text>query enlargeRect([const rect3 value "
+    "(1.0 2.0 3.0 4.0 5.0 6.0) ], 2.0, 3.0, -1.0)</text--->"
+    "<text></text--->"
+    ") )";
+
 /*
 4.5.3 Definition of the operators
 
@@ -1641,6 +1733,13 @@ Operator rectanglebbox( "bbox",
                         RectangleRectprojectSelect,
                         RectangleTypeMapRectRect );
 
+Operator rectangleextendrect( "enlargeRect",
+                        RectangleSpecEnlargeRect,
+                        4,
+                        rectangleEnlargeRectmap,
+                        RectangleRectprojectSelect,
+                        RectangleTypeMapEnlargeRect );
+
 /*
 5 Creating the Algebra
 
@@ -1678,6 +1777,8 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleminD );
     AddOperator( &rectanglemaxD );
     AddOperator( &rectanglebbox );
+    AddOperator( &rectangleextendrect );
+
 
   }
   ~RectangleAlgebra() {};
