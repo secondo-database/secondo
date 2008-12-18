@@ -1302,7 +1302,9 @@ ListExpr feedproject_tm(ListExpr args)
 
 class FeedProjLocalInfo : public FeedLocalInfo
 {
-  public:	
+  public:
+    double argTupleSize;
+	
     FeedProjLocalInfo(TupleType* ptr) : tt(ptr) 
     { 
        returned = 0; 
@@ -1321,6 +1323,10 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
   GenericRelation* r=0;
   FeedProjLocalInfo* fli=0;
   Supplier sonOfFeed;
+  Word elem(Address(0));
+  int noOfAttrs= 0;
+  int index= 0;
+  Supplier son;
 
   switch (message)
   {
@@ -1342,16 +1348,14 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       fli = (FeedProjLocalInfo*) local.addr;
       Tuple *t;
       
-        Supplier son;
-        int noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
+        noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
         list<int> usedAttrs;
 
-        Word elem2(Address(0));
         for( int i = 0; i < noOfAttrs; i++)
         {
           son = qp->GetSupplier(args[3].addr, i);
-          qp->Request(son, elem2);
-          int index = ((CcInt*)elem2.addr)->GetIntval();
+          qp->Request(son, elem);
+          index = ((CcInt*)elem.addr)->GetIntval();
 	  //cerr << "ind = " << index << endl;
           usedAttrs.push_back(index-1);
         }
@@ -1401,8 +1405,9 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
       ProgressInfo p1;
       ProgressInfo *pRes=0;
-      const double uFeed = 0.00194;    //milliseconds per tuple
-      const double vFeed = 0.0000196;  //milliseconds per Byte
+      const double uFeedProject = 0.002;     //millisecs per tuple
+      const double vFeedProject = 0.000036;  //millisecs per byte input
+      const double wFeedProject = 0.0018;    //millisecs per attr
 
 
 
@@ -1414,16 +1419,24 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         if ( !fli->progressInitialized )
         {
-          fli->Size =  0;
-          fli->SizeExt =  0;
-
-          fli->noAttrs = nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
+          fli->Size = 0;
+          fli->SizeExt = 0;
+          fli->noAttrs = ((CcInt*)args[2].addr)->GetIntval();
           fli->attrSize = new double[fli->noAttrs];
           fli->attrSizeExt = new double[fli->noAttrs];
-          for ( int i = 0;  i < fli->noAttrs; i++)
+
+	  fli->argTupleSize = rr->GetTotalExtSize() 
+		/ (fli->total + 0.001);
+
+          for( int i = 0; i < fli->noAttrs; i++)
           {
-            fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001);
-            fli->attrSizeExt[i] = rr->GetTotalExtSize(i) / (fli->total + 0.001);
+            son = qp->GetSupplier(args[3].addr, i);
+            qp->Request(son, elem);
+            index = ((CcInt*)elem.addr)->GetIntval();
+            fli->attrSize[i] = rr->GetTotalSize(index-1) 
+		/ (fli->total + 0.001);
+            fli->attrSizeExt[i] = rr->GetTotalExtSize(index-1) 
+		/ (fli->total + 0.001);
 
             fli->Size += fli->attrSize[i];
             fli->SizeExt += fli->attrSizeExt[i];
@@ -1440,11 +1453,16 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           pRes->Card = (double) fli->total;
           pRes->CopySizes(fli);  //copy all sizes
 
-          pRes->Time = (fli->total + 1) * (uFeed + fli->SizeExt * vFeed);
+          pRes->Time = (fli->total + 1) * 
+		(uFeedProject 
+		+ fli->argTupleSize * vFeedProject 
+		+ fli->noAttrs * wFeedProject);
 
           //any time value created must be > 0; so we add 1
 
-          pRes->Progress = fli->returned * (uFeed + fli->SizeExt * vFeed)
+          pRes->Progress = fli->returned * (uFeedProject 
+		+ fli->argTupleSize * vFeedProject 
+		+ fli->noAttrs * wFeedProject)
             / pRes->Time;
 
           pRes->BTime = 0.001; //time must not be 0
@@ -1462,11 +1480,15 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->CopySizes(p1);
 
-          pRes->Time = p1.Time + p1.Card * (uFeed + p1.SizeExt * vFeed);
+          pRes->Time = p1.Time + p1.Card * (uFeedProject 
+		+ fli->argTupleSize * vFeedProject 
+		+ fli->noAttrs * wFeedProject);
 
           pRes->Progress =
              ((p1.Progress * p1.Time) +
-              (fli ? fli->returned : 0) * (uFeed + p1.SizeExt * vFeed))
+              (fli ? fli->returned : 0) * (uFeedProject 
+		+ fli->argTupleSize * vFeedProject 
+		+ fli->noAttrs * wFeedProject))
               / pRes->Time;
 
           pRes->BTime = p1.Time;
@@ -3626,8 +3648,6 @@ int
 countboth_vm( Word* args, Word& result, int message,
               Word& local, Supplier s )
 {
-  Word elemA;
-  Word elemB;
 
   struct Counter
   {
