@@ -58,6 +58,7 @@ nonpublic.filelist
 makefile.nonpublic
 makefile.wine
 Javagui/viewer/makefile.nonpublic
+CM-Scripts/makepublicsecondo
 
 Optimizer/calloptimizer_sec.pl
 
