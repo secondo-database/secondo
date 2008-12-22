@@ -1594,24 +1594,55 @@ plan_to_atom(insert(Rel, InsertQuery),Result) :-
   concat_atom([InsertQuery2, ' ', Rel2, ' insert'], Result),
   !.
 
+plan_to_atom(deletedirect(Rel, DeleteQuery),Result) :-
+  plan_to_atom(DeleteQuery, DeleteQuery2),
+  plan_to_atom(Rel, Rel2),
+  concat_atom([DeleteQuery2, ' ', Rel2, ' deletedirect'], Result),
+  !.
+
 plan_to_atom(insertbtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' insertbtree [', Column2, ']'], Result),
+  concat_atom([InsertQuery2, ' ', IndexName, ' insertbtree [', Column2, ']'], 
+	      Result),
   !.
+
+plan_to_atom(deletebtree(DeleteQuery, IndexName, Column),Result) :-
+  plan_to_atom(DeleteQuery, DeleteQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletebtree [', Column2, ']'], 
+	      Result),
+  !.
+
 
 plan_to_atom(insertrtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' insertrtree [', Column2, ']'], Result),
+  concat_atom([InsertQuery2, ' ', IndexName, ' insertrtree [', Column2, ']'], 
+	      Result),
   !.
+
+plan_to_atom(deletertree(DeleteQuery, IndexName, Column),Result) :-
+  plan_to_atom(DeleteQuery, DeleteQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletertree [', Column2, ']'], 
+	      Result),
+  !.
+
 
 plan_to_atom(inserthash(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
-  concat_atom([InsertQuery2, ' ', IndexName, ' inserthash [', Column2, ']'], Result),
+  concat_atom([InsertQuery2, ' ', IndexName, ' inserthash [', Column2, ']'], 
+	      Result),
   !.
 
+plan_to_atom(deletehash(DeleteQuery, IndexName, Column),Result) :-
+  plan_to_atom(DeleteQuery, DeleteQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletehash [', Column2, ']'], 
+	      Result),
+  !.
 
 
 /*
@@ -4223,6 +4254,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(940,  xfx, into).
 :- op(950, xfx, select).
 :- op(930,  fx, insert).
+:- op(930,  fx, delete).
 :- op(950, xfx, values).
 
 
@@ -4328,14 +4360,30 @@ lookup(select Attrs from Rels,
   lookupAttrs(Attrs, Attrs2).
 	
 lookup(insert into Rel values Values, 
-        insert into Rel2 values Values) :-
-  lookupRel(Rel, Rel2), !.
+        insert into Rel2List values Values) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  !.
      
         
 lookup(insert into Rel select Attrs from QueryRest, 
-        insert into Rel2 select Attrs2 from QueryRest2) :-
+        insert into Rel2List select Attrs2 from QueryRest2) :-
   lookup(select Attrs from QueryRest, select Attrs2 from QueryRest2),
-  lookupRelNoDblCheck(Rel, Rel2).
+  lookupRelNoDblCheck(Rel, Rel2),
+  makeList(Rel2, Rel2List), !.
+
+lookup(delete from Rel where Condition,
+        delete from Rel2List where Condition2) :-
+  lookup(select * from Rel where Condition, 
+	 _ from Rel2List where Condition2),
+  !.
+
+
+lookup(delete from Rel,
+        delete from Rel2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List), !.
+
 
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   lookup(Query, Query2),
@@ -4865,6 +4913,17 @@ translate(Query groupby Attrs,
 translate(insert into Rel values Val,
         Stream, select*, [], 0) :-
   updateIndex(insert, Rel, inserttuple(Rel, Val), Stream),
+  !.
+
+translate(delete from Rel where Condition,
+        Stream, Select, delete from Rel, Cost) :-
+  translate(select * from Rel where Condition, Stream, Select, _, Cost),
+  !.
+
+
+translate(delete from Rel,
+        Stream, Select, delete from Rel, Cost) :-
+  translate(select * from Rel, Stream, Select, _, Cost),
   !.
 
 
@@ -6281,7 +6340,7 @@ allCards :-
 */
 
 
-updateIndex(Operation, rel(Rel, Var), StreamIn, StreamOut) :-
+updateIndex(Operation, [rel(Rel, Var)], StreamIn, StreamOut) :-
   relation(Rel, Attrs),
   updateIndex(Operation, rel(Rel, Var), Attrs, StreamIn, StreamOut),
   !.
@@ -6333,6 +6392,32 @@ updateTypedIndex(insert, Attr, IndexName, rtree8, StreamIn,
 		 insertrtree(StreamIn, IndexName, Attr)) :-
   !.
 
+updateTypedIndex(delete, Attr, IndexName, btree, StreamIn,
+		 deletebtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, rtree, StreamIn,
+		 deletertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, hash, StreamIn,
+		 deletehash(StreamIn, IndexName, Attr)) :-
+  !.
+
+
+updateTypedIndex(delete, Attr, IndexName, rtree3, StreamIn,
+		 deletertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, rtree4, StreamIn,
+		 deletertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, rtree8, StreamIn,
+		 deletertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+
 
 /*
 19.2 Split the select and update clause
@@ -6360,6 +6445,11 @@ finishUpdate([], Stream2, Stream2) :-
 finishUpdate(insert into Rel, Stream2, Stream3) :-
 	updateIndex(insert, Rel, insert(Rel, Stream2), Stream3),
   !.
+
+finishUpdate(delete from Rel, Stream2, Stream3) :-
+	updateIndex(insert, Rel, deletedirect(Rel, Stream2), Stream3),
+  !.
+
 
 writeDebug(Text) :- 
   write(Text), nl.
