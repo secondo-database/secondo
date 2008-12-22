@@ -41,7 +41,7 @@ March 2003 Victor Almeida created the new Relational Algebra
 organization.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable
+(~executable~, ~descriptive~, and ~hybrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
 January 2006 Victor Almeida replaced the ~free~ tuples concept to
