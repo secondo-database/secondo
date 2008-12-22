@@ -59,18 +59,18 @@ specs: specs.test
 	@chmod u+x *.awk
 	@rm -f specs
 	@for file in $(SPECFILES); do \
-          if !((echo -e "\n# file $$file \n" && cat $$file) >> specs) then \
+          if !((echo && echo "# file $$file " && echo && cat $$file) >> specs) then \
             exit 1; \
           fi \
         done
-	@echo -e "\n *** Master spec file specs succesfully concatenated. ***\n"
+	@echo && echo  " *** Master spec file specs succesfully concatenated. ***" && echo
 
 
 PARSERDIR := ../Tools/Parser/SpecParser
 specs.test: $(SPECFILES) ../makefile.algebras
-	@echo -e "\n *** Testing correctness of spec files ***\n";
+	@echo && echo " *** Testing correctness of spec files ***" && echo;
 	@for file in $(SPECFILES); do \
-          echo -e "checking $$file ... "; \
+          echo  "checking $$file ... "; \
           if !($(PARSERDIR)/Parser < $$file &> /dev/null) then \
             $(PARSERDIR)/Parser2 < $$file; \
             exit 1; \
@@ -82,7 +82,7 @@ specs.test: $(SPECFILES) ../makefile.algebras
 
 .PHONY:buildlibs
 buildlibs: examples
-	@echo -e "\n *** Building algebra libs ***\n";
+	@echo && echo  " *** Building algebra libs ***" && echo;
 	for dir in $(USED_ALGEBRA_DIRS); do \
           if [ -e $$dir/makefile ]; then \
             cd $$dir; if !($(MAKE)) then \
@@ -90,7 +90,7 @@ buildlibs: examples
 	    fi; cd ..; \
           fi \
 	done
-	@echo -e "\n *** Algebra libs successfully created ***\n";
+	@echo && echo " *** Algebra libs successfully created ***" && echo;
 
 
 .PHONY: clean
