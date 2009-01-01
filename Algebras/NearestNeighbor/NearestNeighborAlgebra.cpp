@@ -38,11 +38,14 @@ November 2008, A. Braese
 This example algebra provides a distance-scan for a point set
 in a R-Tree. A new datatype is not given but there are some operators:
 
-  1. ~distanceScanStart~, which build the needed data structure for the scan
+  1. ~distancescan~, which gives out k objects stored in a relation, ordered
+                     in a r-tree in the order ascending to their distance to a
+                     given object with the same dimension
 
-  2. ~distanceScanNext~, which gives the next nearest point.
+  2. ~knearest~, which gives out the k-nearest elements to a moving point.
 
-  3. ~distanceScan~, which gives a stream of all input tuples in the right order
+  3. ~knearestvector~, the same as knearest, but uses a vector to store
+                       the active elements, than a unbalanced tree
 
 1 Preliminaries
 
@@ -113,9 +116,9 @@ const double RDELTA = -0.000000015;
 const double QUADDIFF = 0.01;
 
 /*
-5 Creating Operators
+2 Creating Operators
 
-5.1 Type Mapping Functions
+2.1 Type Mapping Functions
 
 A type mapping function checks whether the correct argument types are supplied
 for an operator; if so, it returns a list expression for the result type,
@@ -124,8 +127,6 @@ manipulating list expressions. For every operator is one type mapping
 function given.
 
 The function distanceScanTypeMap is the type map for distancescan.
-The function knearestTypeMap is the type map for the operator knearest
-
 
 */
 ListExpr
@@ -313,7 +314,10 @@ distanceScanTypeMap( ListExpr args )
         tupleDescription);
 }
 
+/*
+The function knearestTypeMap is the type map for the operator knearest
 
+*/
 ListExpr
 knearestTypeMap( ListExpr args )
 {
@@ -387,7 +391,7 @@ knearestTypeMap( ListExpr args )
 
 
 /*
-5.2 Selection Function
+2.2 Selection Function
 
 A selection function is quite similar to a type mapping function. The only
 difference is that it doesn't return a type but the index of a value
@@ -427,7 +431,7 @@ distanceScanSelect( ListExpr args )
 
 
 /*
-5.3 Value Mapping Functions
+2.3 Value Mapping Functions
 
 For any operator a value mapping function must be defined. It contains
 the code which gives an operator its functionality
@@ -445,13 +449,12 @@ struct DistanceScanLocalInfo
   BBox<dim> position;
   int quantity, noFound;
   bool scanFlag;
-//  NNpriority_queue* pq;
 };
 
 
 
 /*
-5.3.1 The ~distanceScan~ results a stream of all input tuples in the 
+The ~distanceScan~ results a stream of all input tuples in the 
 right order. It returns the k tuples with the lowest distance to a given
 reference point. The are ordered by distance to the given reference point.
 If the last parameter k has a value <= 0, all tuples of the input stream
@@ -529,7 +532,7 @@ int distanceScanFun (Word* args, Word& result, int message,
 }
 
 /*
-5.3.2 The ~knearest~ operator results a stream of all input tuples which 
+The ~knearest~ operator results a stream of all input tuples which 
 contains the k-nearest units to the given mpoint. The tuples are splitted 
 into multiple tuples with disjoint units if necessary. The tuples in the 
 result stream are not necessarily ordered by time or distance to the 
@@ -541,7 +544,6 @@ the type EventElem and ActiveElem are defined in NearestNeighborAlgebra.h
 
 */
 Instant ActiveElem::currtime(instanttype);
-//Instant ActiveElem::currtime;
 typedef vector< ActiveElem >::iterator ITV;
 typedef NNTree< ActiveElem >::iter IT;
 
@@ -575,7 +577,7 @@ bool GetPosition( const UPoint* up, Instant t, Coord& x, Coord& y)
 
 /*
 the function GetDistance calculates the distance.
-Result is the MReal erg. The function expected a pointer to an empty MReal.
+Result is the MReal erg. The function expects a pointer to an empty MReal.
 mpos ist the startposition in mp where the function start to look
 This is a optimization cause the upoints are sorted
 by time. A lower time cannot come
@@ -633,11 +635,6 @@ void GetDistance( const MPoint* mp, const UPoint* up,
         upMp.TemporalFunction( start, rp1, true);
         up1.Distance(rp1,firstu);
       }
-      //cout << " M: " << upMp.p0.GetX() << " " << upMp.p0.GetY() << " ";
-      //cout << " U: " << up1.p0.GetX() << " " << up1.p0.GetY() << " ";
-      //cout << " Tmax: " << (end - start).ToDouble() << " ";
-      //firstu.Print(std::cout);
-      //cout << " " ;
       erg->Add( firstu );
       int jj = ii;
       while( ++jj < noCo && (time2 > end
@@ -675,17 +672,11 @@ void GetDistance( const MPoint* mp, const UPoint* up,
           upMp.TemporalFunction( start, rp1, true);
           up1.Distance(rp1,nextu);
         }
-        //cout << " M: " << upMp.p0.GetX() << " " << upMp.p0.GetY() << " ";
-        //cout << " U: " << up1.p0.GetX() << " " << up1.p0.GetY() << " ";
-        //cout << " Tmax: " << (end - start).ToDouble() << " ";
-        //nextu.Print(std::cout);
-        //cout << " ";
         erg->Add( nextu );
      }
       break;
     }
   }
-  //cout << endl;
 }
 
 /*
@@ -701,8 +692,6 @@ double CalcDistance( const MReal *mr, Instant t, double &slope)
   for (int ii=0; ii < noCo; ++ii)
   {
     mr->Get( ii, ur);
-//    cout << "timeintervall: " << ur->timeInterval.start.ToString()
-//      << " bis " << ur->timeInterval.end.ToString() << endl;
     if( t < ur->timeInterval.end 
       || (t == ur->timeInterval.end && ur->timeInterval.rc)
       || (t == ur->timeInterval.end && ii+1 == noCo))
@@ -779,8 +768,6 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
   {
     m2->Get( jj, u2);
   }
-  //if( start >= u1->timeInterval.end || start >= u2->timeInterval.end) 
-    //|| start < u1->timeInterval.start || start < u2->timeInterval.start)
   if( ii >= noCo1 || jj >= noCo2 )
   {
     return false;
@@ -797,7 +784,6 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
   {
     if( u1->timeInterval.start <= u2->timeInterval.start )
     {
-      //firstTime = u1->timeInterval.start.ToDouble();;
       laterTime = u2->timeInterval.start.ToDouble();;
       x = (u2->timeInterval.start - u1->timeInterval.start).ToDouble();
       a = u1->a - u2->a;
@@ -806,7 +792,6 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
     }
     else
     {
-      //firstTime = u2->timeInterval.start.ToDouble();;
       laterTime = u1->timeInterval.start.ToDouble();;
       x = (u1->timeInterval.start - u2->timeInterval.start).ToDouble();
       a = u2->a - u1->a;
@@ -814,33 +799,21 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
       c = u2->a * x * x + u2->b * x + u2->c - u1->c;
     }
     d = b * b - 4 * a * c;
-    //cout << "in intersects time1: " << u1->timeInterval.start 
-    //    << ", time2: " << u2->timeInterval.start << endl;
-    //cout << "a, b, c, d, x: " << a << " " << b << " " << c << " " << d 
-    //  << " " << x << endl;
-    if( d >= 0)
+    if( abs(a) <= QUADDIFF || d >= 0)
     {
-      d = sqrt(d);
-      //cout << "Wurzel: " << d << endl;
-      //if( a && (abs(b)!=d || abs(a) > 0.008))
       if( abs(a) > QUADDIFF)
       {
+        d = sqrt(d);
         r1 = (-b - d) / (2 * a);
         r2 = (-b + d) / (2 * a);
         if( r1 < 0 && r1 > RDELTA) r1 = 0;
         if( r2 < 0 && r2 > RDELTA) r2 = 0;
-        //cout << "a, b, c, x, d: " << a << " " 
-        //<< b << " " << c << " " << x << " " << d << endl;
-        //cout << "r1,r2 " << r1 << " " << r2 << endl;
       }
       else
       {
         r1 = b ? -c / b : -1;
         r2 = -1;  //there is only one result
-        //cout << "not a! " << r1 << endl;
       }
-      //cout << r1 << " " << r2 << " " 
-      //  << u1->timeInterval.start << " " << u1->timeInterval.start << endl;
       if( r1 > r2 ){ swap( r1, r2 );}
       if( abs(r1 - r2) < 0.000000001 
         && (u1->a==0 && u2->a!=0 || u2->a==0 && u1->a!=0))
@@ -864,8 +837,6 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
           {
             hasResult = true;
           }
-          //else cout << "----nearly IS1 " << result << " " << slope1 << " " 
-          //  << slope2 << endl;
         }
       }
       if( !hasResult && r2 >= 0 )
@@ -882,8 +853,6 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
           {
             hasResult = true;
           }
-          //else cout << "----nearly IS2 " << result << " " << slope1 << " " 
-          //  << slope2 << endl;
         }
       }
     }
@@ -932,56 +901,19 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
 }
 
 /* 
-check is only for debug purposes
+check is for debug purposes and to correct the order
 
 */
 bool check(NNTree<ActiveElem> &t, Instant time)
 {
-  //funtion only for debugging
   double slope;
-  //int ii=0;
-  //for( IT it=t.begin(); it != t.end() && ii<50; ++it)
-  //{ 
-  //  ++ii;
-  //  cout << it->tuple << " " 
-  //    << CalcDistance(it->distance,time,slope) 
-  //    << " Start: " << it->start << " Slope: " << slope << endl;
-  //}
-  
   double d = 0;
   IT itOld = t.begin();
   for( IT ittest=t.begin(); ittest != t.end(); ++ittest)
   {
     if(d-0.05 > CalcDistance(ittest->distance,time,slope))
     {
-      //--ittest;
-      //for( int ii=0; ii < ittest->distance->GetNoComponents(); ++ii)
-      //{
-      //  const UReal* ur;
-      //  ittest->distance->Get( ii, ur);
-      //  cout << " Tupel1: " << ittest->tuple << " " ;
-      //  cout << " U: " << ur->a << " " << ur->b << " ";
-      //  cout << ur->c << " " << ur->timeInterval.start << " ";
-      //  cout << ur->timeInterval.end << " ";
-      //  //nextu.Print(std::cout);
-      //  cout << endl;
-      //}
-      //++ittest;
-      //for( int ii=0; ii < ittest->distance->GetNoComponents(); ++ii)
-      //{
-      //  const UReal* ur;
-      //  ittest->distance->Get( ii, ur);
-      //  cout << " Tupel2: " << ittest->tuple << " " ;
-      //  cout << " U: " << ur->a << " " << ur->b << " ";
-      //  cout << ur->c << " " << ur->timeInterval.start << " ";
-      //  cout << ur->timeInterval.end << " ";
-      //  //nextu.Print(std::cout);
-      //  cout << endl;
-      //}
-
-      //return false;
       //swap the two entries in activeline
-      //cout << "swap" << endl;
       ActiveElem e = *itOld;
       *itOld = *ittest;
       *ittest = e;
@@ -1066,14 +998,11 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
   {
     pos = (max + start) / 2;
     double storeDistance = CalcDistance(v[pos].distance,time,slope2);
-    //if( dist < storeDistance || (dist == storeDistance && slope1 < slope2))
     if( dist + DISTDELTA < storeDistance 
       || (abs(dist - storeDistance) <= DISTDELTA && slope1 < slope2))
     {
       max = pos - 1;
     }
-    //else if( dist > storeDistance 
-    //|| (dist == storeDistance && slope1 > slope2))
     else if( dist + DISTDELTA > storeDistance 
       || (abs(dist - storeDistance) <= DISTDELTA && slope1 > slope2))
     {
@@ -1095,7 +1024,6 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
     v.reserve(v.size() + 100);
   }
 
-  //cout << "Insert at Pos: " << pos << " Size: " << v.size() << endl;
   v.insert(v.begin() + (unsigned)pos,e);
   return pos;
 }
@@ -1164,16 +1092,13 @@ this function builds an unbalanced binary tree
 IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e, 
                               Instant time)
 {
-  //cout << "ins in" << endl;
   if( t.size() == 0)
   {
-  //cout << "ins out" << endl;
     return t.addFirst(e);
   }
   
   double slope1, slope2;
   double dist = CalcDistance(e.distance,time,slope1);
-  //cout << "insert distance " << dist << endl; 
   IT it = t.root();
   while( true)
   {
@@ -1181,34 +1106,29 @@ IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e,
     if( dist + DISTDELTA < storeDistance 
       || (abs(dist - storeDistance) <= DISTDELTA && slope1 < slope2))
     {
-      //cout << "untersucht distance (kleiner) " << storeDistance << endl;
       if( it.hasLeft() )
+      {
         it.leftItem();
+      }
       else
       {
-  //cout << "ins out" << endl;
         return t.addLeft( e, it);
       }
     }
-    //else if( dist > storeDistance 
-    //|| (dist == storeDistance && slope1 > slope2))
     else if( dist + DISTDELTA > storeDistance 
       || (abs(dist - storeDistance) <= DISTDELTA && slope1 > slope2))
     {
-      //cout << "untersucht distance (größer) " << storeDistance << endl;
       if( it.hasRight() )
       {
         it.rightItem();
       }
       else
       {
-  //cout << "ins out" << endl;
         return t.addRight( e, it);
       }
     }
     else //same distance and same slope
     {
-      //cout << "untersucht distance (gleich) " << storeDistance << endl;
       IT pos = it;
       ++pos;
       while( pos != t.end() 
@@ -1218,7 +1138,6 @@ IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e,
         it = pos;
         ++pos;
       }
-  //cout << "ins out" << endl;
       return t.addElem( e, it );
     }
   }
@@ -1227,21 +1146,16 @@ IT insertActiveElem( NNTree<ActiveElem> &t, ActiveElem &e,
 IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance, 
                             Instant time, Tuple *tuple)
 {
-  //cout << "find in" << endl;
   double slope1, slope2;
   double dist = CalcDistance(distance,time,slope1);
-  //cout << "find distance " << dist << endl; 
   IT it = t.root();
   bool havePos = false;
   while( !havePos && it != t.end())
   {
     double storeDistance = CalcDistance(it->distance,time,slope2);
-    //if( dist + DISTDELTA < storeDistance 
-    //  || (abs(dist - storeDistance) <= DISTDELTA && slope1 < slope2))
     if( dist < storeDistance 
       || (dist == storeDistance && slope1 < slope2))
     {
-      //cout << "untersucht distance (kleiner) " << storeDistance << endl;
       if( it.hasLeft() )
         it.leftItem();
       else
@@ -1251,10 +1165,7 @@ IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance,
     }
     else if( dist > storeDistance 
     || (dist == storeDistance && slope1 > slope2))
-    //else if( dist + DISTDELTA > storeDistance 
-    //  || (abs(dist - storeDistance) <= DISTDELTA && slope1 > slope2))
     {
-      //cout << "untersucht distance (größer) " << storeDistance << endl;
       if( it.hasRight() )
         it.rightItem();
       else
@@ -1264,7 +1175,6 @@ IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance,
     }
     else //same distance and same slope
     {
-      //cout << "same distance in find" << endl;
       havePos = true;
     }
   }
@@ -1294,7 +1204,6 @@ IT findActiveElem( NNTree<ActiveElem> &t, MReal *distance,
       }
     }
   }
-  //cout << "find out" << endl;
   return pos2;
 }
 
@@ -1307,7 +1216,6 @@ The k+1. element is returned if exist else v.end()
 */
 IT checkFirstK(NNTree<ActiveElem> &t, unsigned int k, IT &it, bool &erg)
 {
-  //cout << "check first in" << endl;
   unsigned int ii = 0;
   IT testit=t.begin();
   erg = false;
@@ -1319,7 +1227,6 @@ IT checkFirstK(NNTree<ActiveElem> &t, unsigned int k, IT &it, bool &erg)
       erg = true;
     }
   }
-  //cout << "check first out" << endl;
   return testit;
 }
 
@@ -1330,18 +1237,15 @@ if yes then true is returned.
 */
 bool checkK(NNTree<ActiveElem> &t, unsigned int k, IT &it)
 {
-  //cout << "check k in" << endl;
   unsigned int ii = 0;
   for( IT testit=t.begin(); testit != t.end() && ii < k; ++testit)
   { 
     ++ii;
     if( ii == k && testit == it )
     {
-      //cout << "check k out" << endl;
       return true;
     }
   }
-  //cout << "check k out" << endl;
   return false;
 }
 
@@ -1402,12 +1306,14 @@ void checkIntersections(EventType type, Instant &time, IT pos,
       IT nextPos = pos;
       ++nextPos;
       Instant intersectTime( time.GetType() );
-      if( nextPos != t.end() &&
-        intersects( pos->distance, nextPos->distance, time, 
-        intersectTime, true ))
+      if( nextPos != t.end())
       {
-        evq.push( EventElem(E_INTERSECT, 
-          intersectTime, pos->tuple, nextPos->tuple, pos->distance) );
+        if( intersects( pos->distance, nextPos->distance, time, 
+          intersectTime, true ))
+        {
+          evq.push( EventElem(E_INTERSECT, 
+            intersectTime, pos->tuple, nextPos->tuple, pos->distance) );
+        }
       }
       if( pos != t.begin())
       {
@@ -1486,6 +1392,29 @@ void checkIntersections(EventType type, Instant &time, IT pos,
 }
 
 /*
+Eliminates duplicate elements in the priority queue
+
+*/
+void deleteDupElements(priority_queue<EventElem> &evq, EventType type,
+                       Tuple* tuple1, Tuple* tuple2, Instant& time)
+{
+  while( !evq.empty() )
+  {
+    //eleminate same elements
+    EventElem elem2 = evq.top();
+    if( type != elem2.type || time != elem2.pointInTime 
+      || tuple1 != elem2.tuple || tuple2 != elem2.tuple2)
+    {
+      break;
+    }
+    else
+    {
+      evq.pop();
+    }
+  }
+}
+
+/*
   To use the plane sweep algrithmus a priority queue for the events and
   a NNTree to save the active segments is needed. 
 
@@ -1493,7 +1422,6 @@ void checkIntersections(EventType type, Instant &time, IT pos,
 struct KnearestLocalInfo
 {
   unsigned int k;
-  //int max;
   bool scanFlag;
   Instant startTime, endTime;
   NNTree< ActiveElem > activeLine;
@@ -1565,53 +1493,25 @@ int knearestFun (Word* args, Word& result, int message,
         return CANCEL;
       }
 
-      //cout << "in request, max: " << localInfo->max << endl;
-      //while ( localInfo->max-- && !localInfo->eventQueue.empty() )
       while ( !localInfo->eventQueue.empty() )
       {
         EventElem elem = localInfo->eventQueue.top();
         localInfo->eventQueue.pop();
         ActiveElem::currtime = elem.pointInTime;
-        while( !localInfo->eventQueue.empty() )
-        {
-          //eleminate same elements
-          EventElem elem2 = localInfo->eventQueue.top();
-          if( elem.type != elem2.type 
-            || elem.pointInTime != elem2.pointInTime 
-            || elem.tuple != elem2.tuple || elem.tuple2 != elem2.tuple2)
-          {
-            break;
-          }
-          else
-          {
-            localInfo->eventQueue.pop();
-          }
-        }
-        //cout << localInfo->activeLine.size() << endl;
-        //if( elem.pointInTime < localInfo->endTime )
-        //{
-        //  double slope;
-        //  double d = CalcDistance(elem.distance, elem.pointInTime,slope);
-        //  cout << "******* time: " << elem.pointInTime.ToString() << 
-        //    ", distance: " << d << ", Tuple: " << elem.tuple << endl;
-        //  assert(check(localInfo->activeLine ,elem.pointInTime));
-        //  cout << "Nach check" << endl;
-        //}
+
+        //eleminate same elements
+        deleteDupElements( localInfo->eventQueue, elem.type,
+          elem.tuple, elem.tuple2, elem.pointInTime);
 
         switch ( elem.type ){
           case E_LEFT:
           {
-            //cout << "found left element" << endl;
-            //Instant start = elem.pointInTime >= localInfo->startTime 
-            //  ? elem.pointInTime : localInfo->startTime;
             bool lc = elem.pointInTime >= localInfo->startTime 
               ? elem.up->timeInterval.lc : false;
             ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime, 
               elem.up->timeInterval.end, lc, elem.up->timeInterval.rc); 
-            //cout << "vor insert" << endl;
             IT newPos = insertActiveElem( localInfo->activeLine, 
               newElem, elem.pointInTime);
-            //cout << "nach insert" << endl;
 
             // check intersections
             checkIntersections(E_LEFT, elem.pointInTime, 
@@ -1650,12 +1550,8 @@ int knearestFun (Word* args, Word& result, int message,
           case E_RIGHT:
           {
             //a unit ends. It has to be removed from the map
-            //cout << "find right elem" << endl;
             IT posDel = findActiveElem( localInfo->activeLine, 
               elem.distance, elem.pointInTime, elem.tuple);
-            //cout << "found right element " << posDel->start << endl;
-            //look for the right tuple 
-            //(more elements can have the same distance)
             Tuple* cloneTuple = NULL;
             if( posDel != localInfo->activeLine.end())
             {
@@ -1710,11 +1606,11 @@ int knearestFun (Word* args, Word& result, int message,
             }
             break;
           }
+
           case E_INTERSECT:
-            //cout << "found intersection" << endl;
+          {
             IT posFirst = findActiveElem( localInfo->activeLine, 
               elem.distance, elem.pointInTime, elem.tuple);
-            //cout << "found intersection vpn" << endl;
             IT posNext = posFirst;
             ++posNext;
 
@@ -1726,8 +1622,10 @@ int knearestFun (Word* args, Word& result, int message,
               break;
             }
             if( posNext->tuple != elem.tuple2 )
+            {
               posSec = findActiveElem( localInfo->activeLine, 
                 elem.distance, elem.pointInTime, elem.tuple2);
+            }
             else
               posSec = posNext;
 
@@ -1749,7 +1647,6 @@ int knearestFun (Word* args, Word& result, int message,
 
             if( posNext == posSec)
             {
-              //cout << "intersection 1" << endl;
               //look for intersections between the new neighbors
               checkIntersections(E_INTERSECT, elem.pointInTime, 
                 posFirst, localInfo->activeLine, localInfo->eventQueue,
@@ -1764,33 +1661,89 @@ int knearestFun (Word* args, Word& result, int message,
             {
               //the are some elements which has the same distance between
               //the two intersect elements, so calc like delete then insert
-             //cout << "intersection 2" << endl;
-             checkIntersections(E_RIGHT, elem.pointInTime, 
-              posSec, localInfo->activeLine, localInfo->eventQueue,
-              localInfo->endTime);
+              vector<ActiveElem> va;
+              set<Tuple*> s;
+              pair< set<Tuple*>::iterator, bool > pr;
 
-             //cout << "intersection 3" << endl;
-              ActiveElem newElem(posSec->distance, 
-                posSec->tuple, elem.pointInTime, 
-                posSec->end, posSec->lc, posSec->rc); 
-              //cout << "intersection 4" << endl;
-             localInfo->activeLine.erase( posSec );
-              IT newPos = insertActiveElem( localInfo->activeLine, 
-                newElem, elem.pointInTime);
+              ActiveElem newElem1(posFirst->distance, 
+                  posFirst->tuple, elem.pointInTime, 
+                  posFirst->end, posFirst->lc, posFirst->rc); 
+              localInfo->activeLine.erase( posFirst );
+              va.push_back(newElem1);
+              s.insert(posFirst->tuple);
 
+              ActiveElem newElem2(posSec->distance, 
+                  posSec->tuple, elem.pointInTime, 
+                  posSec->end, posSec->lc, posSec->rc); 
+              localInfo->activeLine.erase( posSec );
+              va.push_back(newElem2);
+              s.insert(posSec->tuple);
+
+              while( !localInfo->eventQueue.empty() )
+              {
+                //handle all intersections at the same time
+                EventElem elemIs = localInfo->eventQueue.top();
+                if( elemIs.type == E_INTERSECT 
+                  && elem.pointInTime == elemIs.pointInTime)
+                {
+                  localInfo->eventQueue.pop();
+                  //eleminate same elements
+                  deleteDupElements( localInfo->eventQueue, elemIs.type,
+                      elemIs.tuple, elemIs.tuple2, elem.pointInTime);
+
+                  pr = s.insert( elemIs.tuple );
+                  if(pr.second == true) 
+                  {
+                    //the element was not removed yet
+                    IT pos = findActiveElem( localInfo->activeLine, 
+                      elemIs.distance, elemIs.pointInTime, elemIs.tuple);
+                    ActiveElem newElem(pos->distance, 
+                      pos->tuple, elem.pointInTime, 
+                      pos->end, pos->lc, pos->rc); 
+                    localInfo->activeLine.erase( pos );
+                    va.push_back(newElem);
+                  }
+                  pr = s.insert( elemIs.tuple2 );
+                  if(pr.second == true) 
+                  {
+                    //the element was not removed yet
+                    IT pos = findActiveElem( localInfo->activeLine, 
+                      elemIs.distance, elemIs.pointInTime, elemIs.tuple2);
+                    ActiveElem newElem(pos->distance, 
+                      pos->tuple, elem.pointInTime, 
+                      pos->end, pos->lc, pos->rc); 
+                    localInfo->activeLine.erase( pos );
+                    va.push_back(newElem);
+                  }
+                }
+                else
+                {
+                  break;
+                }
+              }
+
+              vector<IT> vit;
+              for( unsigned int ii=0; ii < va.size(); ++ii )
+              {
+                  IT newPos = insertActiveElem( localInfo->activeLine, 
+                    va[ii], elem.pointInTime);
+                  vit.push_back(newPos);
+              }
               // check intersections
-              //cout << "intersection 5" << endl;
-              checkIntersections(E_LEFT, elem.pointInTime, newPos, 
-                localInfo->activeLine, localInfo->eventQueue,
-                localInfo->endTime);
+              for( unsigned int ii=0; ii < vit.size(); ++ii )
+              {
+                checkIntersections(E_LEFT, elem.pointInTime, vit[ii], 
+                  localInfo->activeLine, localInfo->eventQueue,
+                  localInfo->endTime);
+              }
             }
-            //cout << "out intersection" << endl;
             if( cloneTuple )
             {
               result = SetWord(cloneTuple);
               return YIELD;
             }
             break;
+          }
         }
       }
       return CANCEL;
@@ -2177,7 +2130,7 @@ int knearestFunVector (Word* args, Word& result, int message,
 }
 
 /*
-5.4 Definition of value mapping vectors
+2.4 Definition of value mapping vectors
 
 */
 
@@ -2188,7 +2141,7 @@ ValueMapping distanceScanMap [] = { distanceScanFun<2>,
 
 
 /*
-5.5 Specification of operators
+2.5 Specification of operators
 
 */
 
@@ -2200,8 +2153,8 @@ const string distanceScanSpec  =
       "For T = ti and ti in SPATIAL<d>D, for"
       " d in {2, 3, 4, 8}</text--->"
       "<text>_ _ distancescan [ _, _ ]</text--->"
-      "<text>Uses the given rtree to find all k tuples"
-      " in the given relation in order of their distance from the "
+      "<text>Uses the given rtree to find k tuples in the"
+      " relation in order of their distance from the "
       " position T. The nearest tuple first.</text--->"
       "<text>query kinos_geoData Kinos distancescan "
       "[[const point value (10539.0 14412.0)], 5] consume; "
@@ -2250,32 +2203,32 @@ const string knearestFilterSpec  =
 
 
 /*
-5.6 Definition of operators
+2.6 Definition of operators
 
 */
 Operator distancescan (
          "distancescan",        // name
          distanceScanSpec,      // specification
-         4,                         //number of overloaded functions
-         distanceScanMap,  // value mapping
-         distanceScanSelect, // trivial selection function
+         4,                     //number of overloaded functions
+         distanceScanMap,       // value mapping
+         distanceScanSelect,    // trivial selection function
          distanceScanTypeMap    // type mapping
 );
 
 Operator knearest (
-         "knearest",        // name
-         knearestSpec,      // specification
-         knearestFun,      // value mapping
+         "knearest",            // name
+         knearestSpec,          // specification
+         knearestFun,           // value mapping
          Operator::SimpleSelect, // trivial selection function
-         knearestTypeMap    // type mapping
+         knearestTypeMap        // type mapping
 );
 
 Operator knearestvector (
-         "knearestvector",        // name
-         knearestSpec,      // specification
-         knearestFunVector,      // value mapping
-         Operator::SimpleSelect, // trivial selection function
-         knearestTypeMap    // type mapping
+         "knearestvector",      // name
+         knearestSpec,          // specification
+         knearestFunVector,     // value mapping
+         Operator::SimpleSelect,// trivial selection function
+         knearestTypeMap        // type mapping
 );
 
 
@@ -2405,7 +2358,7 @@ Operator bboxes (
 
 
 /*
-6 Implementation of the Algebra Class
+4 Implementation of the Algebra Class
 
 */
 
@@ -2417,7 +2370,7 @@ class NearestNeighborAlgebra : public Algebra
 
 
 /*   
-6.1 Registration of Operators
+5 Registration of Operators
 
 */
     AddOperator( &distancescan );
@@ -2429,7 +2382,7 @@ class NearestNeighborAlgebra : public Algebra
 };
 
 /*
-7 Initialization
+6 Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list
