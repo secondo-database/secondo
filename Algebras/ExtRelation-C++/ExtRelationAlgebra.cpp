@@ -5482,6 +5482,10 @@ ListExpr ExtProjectExtendTypeMap(ListExpr args)
 
 */
 
+#ifndef USE_PROGRESS
+
+// standard version
+
 int
 ExtProjectExtendValueMap(Word* args, Word& result, int message,
                          Word& local, Supplier s)
@@ -5558,6 +5562,222 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
   }
   return 0;
 }
+
+# else
+
+// progress version
+
+class ProjectExtendLocalInfo: public ProgressLocalInfo
+{
+public:
+
+  ProjectExtendLocalInfo() {};
+
+  ~ProjectExtendLocalInfo() {
+    resultTupleType->DeleteIfAllowed();
+    delete [] attrSizeTmp;
+    delete [] attrSizeExtTmp;
+  }
+
+  TupleType *resultTupleType;
+  int stableValue;
+  bool stableState;
+  int noOldAttrs, noNewAttrs;
+  double *attrSizeTmp;
+  double *attrSizeExtTmp;
+};
+
+int
+ExtProjectExtendValueMap(Word* args, Word& result, int message,
+                         Word& local, Supplier s)
+{
+  //  cout << "ExtProjectExtendValueMap() called." << endl;
+  Word elem1, elem2, value;
+  int index=0;
+  Supplier son, supplier, supplier2, supplier3;
+  ArgVectorPointer extFunArgs;
+
+  ProjectExtendLocalInfo *eli;
+  eli = (ProjectExtendLocalInfo*) local.addr;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      if ( eli ) delete eli;
+
+      eli = new ProjectExtendLocalInfo;
+      eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
+      eli->read = 0;
+      eli->stableValue = 50;
+      eli->stableState = false;
+      eli->noOldAttrs = ((CcInt*)args[3].addr)->GetIntval();
+      eli->noNewAttrs = qp->GetNoSons(args[2].addr);
+      eli->attrSizeTmp = new double[eli->noNewAttrs];
+      eli->attrSizeExtTmp = new double[eli->noNewAttrs];
+      for (int i = 0; i < eli->noNewAttrs; i++)
+      {
+        eli->attrSizeTmp[i] = 0.0;
+        eli->attrSizeExtTmp[i] = 0.0;
+      }
+      eli->progressInitialized = false;
+
+      local.setAddr(eli);
+
+      qp->Open(args[0].addr);
+
+      return 0;
+    }
+    case REQUEST :
+    {
+
+      qp->Request(args[0].addr, elem1);
+      if (qp->Received(args[0].addr))
+      {
+        eli->read++;
+
+        Tuple *currTuple     = (Tuple*) elem1.addr;
+        Tuple *resultTuple   = new Tuple( eli->resultTupleType );
+
+        // copy attrs from projection list
+
+        for(int i = 0; i < eli->noOldAttrs; i++)
+        {
+          son = qp->GetSupplier(args[4].addr, i);
+          qp->Request(son, elem2);
+          index = ((CcInt*)elem2.addr)->GetIntval();
+          resultTuple->CopyAttribute(index-1, currTuple, i);
+        }
+
+        // evaluate and add attrs from extension list
+        supplier = args[2].addr;           // get list of ext-functions
+        for(int i = 0; i < eli->noNewAttrs; i++)
+        {
+          supplier2 = qp->GetSupplier(supplier, i); // get an ext-function
+          supplier3 = qp->GetSupplier(supplier2, 1);
+          extFunArgs = qp->Argument(supplier3);
+          ((*extFunArgs)[0]).setAddr(currTuple);     // pass argument
+          qp->Request(supplier3,value);              // call extattr mapping
+
+          resultTuple->PutAttribute( eli->noOldAttrs + i,
+                ((StandardAttribute*)value.addr)->Clone() );
+
+          if (eli->read <= eli->stableValue)
+          {
+            eli->attrSizeTmp[i] += resultTuple->GetSize( eli->noOldAttrs + i );
+            eli->attrSizeExtTmp[i] +=
+              resultTuple->GetExtSize( eli->noOldAttrs + i );
+          }
+
+        }
+        currTuple->DeleteIfAllowed();
+        result.setAddr(resultTuple);
+        return YIELD;
+      }
+      else return CANCEL;
+    }
+    case CLOSE :
+    {
+      qp->Close(args[0].addr);
+      return 0;
+    }
+
+    case CLOSEPROGRESS:
+    {
+      if ( eli ) {
+         delete eli;
+         local.setAddr(0);
+      }
+      return 0;
+    }
+
+    case REQUESTPROGRESS:
+
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      const double uProjectExtend = 0.0012;    //millisecs per tuple
+      const double vProjectExtend = 0.00085;   //millisecs per tuple 
+	                                           //and attribute
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if ( !eli ) return CANCEL;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        if ( !eli->progressInitialized )
+        {
+          eli->noAttrs = eli->noOldAttrs + eli->noNewAttrs;
+          eli->attrSize = new double[eli->noAttrs];
+          eli->attrSizeExt = new double[eli->noAttrs];
+		  eli->Size = 0.0;
+		  eli->SizeExt = 0.0;
+
+          for( int i = 0; i < eli->noOldAttrs; i++)
+          {
+            son = qp->GetSupplier(args[4].addr, i);
+            qp->Request(son, elem2);
+            index = ((CcInt*)elem2.addr)->GetIntval();
+            eli->attrSize[i] = p1.attrSize[index-1];
+            eli->attrSizeExt[i] = p1.attrSizeExt[index-1];
+            eli->Size += eli->attrSize[i];
+            eli->SizeExt += eli->attrSizeExt[i];
+          }
+
+          for (int j = 0; j < eli->noNewAttrs; j++)
+          {
+            eli->attrSize[j + eli->noOldAttrs] = 12;   //size yet unknown
+            eli->attrSizeExt[j + eli->noOldAttrs] = 12;
+            eli->Size += eli->attrSize[j + eli->noOldAttrs];
+            eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+          }
+          eli->progressInitialized = true;
+        }
+
+        if (!eli->stableState && (eli->read >= eli->stableValue))
+        {
+          eli->Size -= 12 * eli->noNewAttrs; 	//subtract default sizes
+          eli->SizeExt -= 12 * eli->noNewAttrs;
+
+          for (int j = 0; j < eli->noNewAttrs; j++)
+          {
+            eli->attrSize[j + eli->noOldAttrs] = eli->attrSizeTmp[j] /
+              eli->stableValue;
+            eli->attrSizeExt[j + eli->noOldAttrs] = eli->attrSizeExtTmp[j] /
+              eli->stableValue;
+            eli->Size += eli->attrSize[j + eli->noOldAttrs];
+            eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+          }
+          eli->stableState = true;
+        }
+
+        pRes->Card = p1.Card;
+
+        pRes->CopySizes(eli);
+
+        pRes->Time = p1.Time + 
+          p1.Card * (uProjectExtend + eli->noAttrs * vProjectExtend);
+
+
+        if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress =
+            (p1.Progress * p1.Time +
+              eli->read * (uProjectExtend + eli->noAttrs * vProjectExtend))
+            / pRes->Time;
+
+        pRes->CopyBlocking(p1);    //non-blocking operator
+
+        return YIELD;
+      }
+      else return CANCEL;
+  }
+  return 0;
+}
+
+#endif
 
 /*
 2.20.3 Specification of operator ~projectextend~
@@ -9223,6 +9443,7 @@ class ExtRelationAlgebra : public Algebra
    extrelloopjoin.EnableProgress();
    extrelgroupby.EnableProgress();
    extrelsymmjoin.EnableProgress();
+   extrelprojectextend.EnableProgress();
 #endif
   }
 
