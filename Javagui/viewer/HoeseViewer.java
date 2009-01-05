@@ -242,11 +242,6 @@ public class HoeseViewer extends SecondoViewer {
    * standard-categories, etc.
    */
   public HoeseViewer() {
-    try {
-      //UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-    } catch (Exception exc) {
-      Reporter.debug("Error loading L&F: " , exc);
-    }
 
     Properties SystemProps = System.getProperties();
     FileSeparator = SystemProps.getProperty("file.separator");
