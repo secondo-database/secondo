@@ -385,10 +385,8 @@ beyond pos or end()
 template<class T>
 typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
 {
-  //cout << "in erase" << endl;
   if( pos.itNode == NULL)
   {
-  //cout << "out erase NULL" << endl;
     return pos;
   }
   iter res(pos);
@@ -420,8 +418,6 @@ typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
         p->left = (pos.itNode->left != NULL) ? pos.itNode->left 
                                             : pos.itNode->right;
         p->left->parent = p;
-        //if( p->left == res.itNode)
-          //cout << "p->left ist der nächste" << endl;
       }
       else 
       {
@@ -440,8 +436,6 @@ typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
   else
   {
     //left and right subtree exists
-    //cout << "nodecount left: " << nodeCount( pos.itNode->left) << endl;
-    //cout << "nodecount right: " << nodeCount( pos.itNode->right) << endl;
     if( nodeCount( pos.itNode->left) >= nodeCount( pos.itNode->right))
     {
       NNnode *max = maxNode( pos.itNode->left);
@@ -502,11 +496,9 @@ typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
   if( first == pos.itNode )
   {
     first = res.itNode;
-    //cout << "first neu belegt" << endl;
   }
   delete pos.itNode;
   --nrelements;
-  //cout << "out erase " << nrelements << endl;
   return res;
 }
 
@@ -528,7 +520,6 @@ add a new NNnode with the element e beyond the iter it
 template<class T>
 typename NNTree<T>::iter NNTree<T>::addLeft( T &e, iter &it)
 {
-  //cout << "add left in" << endl;
   assert( it.itNode->left == NULL );
   NNnode *nNode = newNode(e, it.itNode);
   it.itNode->left = nNode;
@@ -536,18 +527,15 @@ typename NNTree<T>::iter NNTree<T>::addLeft( T &e, iter &it)
   {
     first = nNode;
   }
-  //cout << "add left out" << endl;
   return iter(nNode); 
 }
 
 template<class T>
 typename NNTree<T>::iter NNTree<T>::addRight( T &e, iter &it)
 {
-  //cout << "add right in" << endl;
   assert( it.itNode->right == NULL );
   NNnode *nNode = newNode(e, it.itNode);
   it.itNode->right = nNode;
-  //cout << "add right out" << endl;
   return iter(nNode); 
 }
 
@@ -558,13 +546,11 @@ add elem beyond given node
 template<class T>
 typename NNTree<T>::iter NNTree<T>::addElem( T &e, iter &it)
 {
-  //cout << "add elem in" << endl;
   assert( it.itNode == NULL );
   if( it.itNode->right == NULL)
   {
     NNnode *nNode = newNode(e, it.itNode);
     it.itNode->right = nNode;
-    //cout << "add elem out" << endl;
     return iter(nNode); 
   }
   else
@@ -572,7 +558,6 @@ typename NNTree<T>::iter NNTree<T>::addElem( T &e, iter &it)
     NNnode *n = minNode(it.itNode->right);
     NNnode *nNode = newNode(e, n);
     it.itNode->left = nNode;
-    //cout << "add elem out" << endl;
     return iter(nNode); 
   }
 }
@@ -581,7 +566,6 @@ typename NNTree<T>::iter NNTree<T>::addElem( T &e, iter &it)
 iter functions
 
 */
-//T& operator++(){itNode = itNode->right; return *this;} //prefix
 template<class T>
 typename NNTree<T>::iter& NNTree<T>::iter::operator++()    //prefix
 {

@@ -825,7 +825,6 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
       if( r1 >= 0 )
       {
         result.ReadFrom(r1 + laterTime);
-        //cout << "1. time: " << result << endl;
         if( (result > start || (result == start && !isInsert)) 
           && result <= u1->timeInterval.end && result <= u2->timeInterval.end)
         {
@@ -842,7 +841,6 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
       if( !hasResult && r2 >= 0 )
       {
         result.ReadFrom(r2 + laterTime);
-        //cout << "2. time: " << result << endl;
         if( (result > start || (result == start && !isInsert))
           && result <= u1->timeInterval.end && result <= u2->timeInterval.end)
         {
@@ -881,7 +879,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
   }
   if( hasResult )
   {
-    //if the intersection exact at the end of m1 or m2, don´t take it
+    //if the intersection exact at the end of m1 or m2, do not take it
     m1->Get( m1->GetNoComponents()-1, u1);
     if( result == u1->timeInterval.end )
     {
@@ -890,7 +888,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
   }
   if( hasResult )
   {
-    //if the intersection exact at the end of m1 or m2, don´t take it
+    //if the intersection exact at the end of m1 or m2, do not take it
     m2->Get( m2->GetNoComponents()-1, u1);
     if( result == u1->timeInterval.end )
     {
