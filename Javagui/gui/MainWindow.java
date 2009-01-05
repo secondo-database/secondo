@@ -2057,7 +2057,6 @@ public static void main(String[] args){
   MainWindow SecGui = new MainWindow("Secondo-GUI",user,passwd);
 
   if(LAF!=null){
-     System.out.println("try to change LAF to " + LAF);
      UIManager.LookAndFeelInfo installedLAFs[];
      installedLAFs = UIManager.getInstalledLookAndFeels();
      boolean done = false;
