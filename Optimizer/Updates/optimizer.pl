@@ -6447,7 +6447,7 @@ finishUpdate(insert into Rel, Stream2, Stream3) :-
   !.
 
 finishUpdate(delete from Rel, Stream2, Stream3) :-
-	updateIndex(insert, Rel, deletedirect(Rel, Stream2), Stream3),
+	updateIndex(delete, Rel, deletedirect(Rel, Stream2), Stream3),
   !.
 
 
