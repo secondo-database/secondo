@@ -193,6 +193,9 @@ private static String epsTitle = "Save EPS image";
 private PriorityDialog PriorityDlg;
 
 
+private static String LAF = null;
+
+
 /* return this */
 public Frame getMainFrame(){ return this; }
 
@@ -306,6 +309,12 @@ public MainWindow(String Title,String user,String passwd){
         }
      }
      UseFormattedText=null;
+
+
+     LAF = Config.getProperty("LAF");
+     if(LAF!=null){
+        LAF=LAF.trim();
+     }
 
      String OldObjectStyle = Config.getProperty("OLD_OBJECT_STYLE");
      Environment.OLD_OBJECT_STYLE=OldObjectStyle!=null && 
@@ -2046,8 +2055,35 @@ public static void main(String[] args){
   }
   // start Javagui
   MainWindow SecGui = new MainWindow("Secondo-GUI",user,passwd);
-  SecGui.setVisible(true);
 
+  if(LAF!=null){
+     System.out.println("try to change LAF to " + LAF);
+     UIManager.LookAndFeelInfo installedLAFs[];
+     installedLAFs = UIManager.getInstalledLookAndFeels();
+     boolean done = false;
+     for(int i=0;i<installedLAFs.length && !done;i++){
+       if(installedLAFs[i].getName().equals(LAF)){
+          done = true;
+          try{
+            UIManager.setLookAndFeel(installedLAFs[i].getClassName());
+            Reporter.writeInfo("LAF changed"); 
+          } catch(Exception e){
+            Reporter.debug(e);
+            Reporter.writeError("Problem in changing LAF");
+         }
+       }
+     }
+     if(!done){
+         Reporter.writeError("LAF \""+LAF+"\" not found");
+         Reporter.writeInfo("Available LAFs:");
+         for(int i=0;i<installedLAFs.length;i++){
+           Reporter.writeInfo(installedLAFs[i].getName());
+         }
+     }
+  }
+
+
+  SecGui.setVisible(true);
 
   // simple testmode
   if(Environment.TESTMODE == Environment.SIMPLE_TESTMODE && testfile!=null){

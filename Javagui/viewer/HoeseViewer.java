@@ -243,7 +243,7 @@ public class HoeseViewer extends SecondoViewer {
    */
   public HoeseViewer() {
     try {
-      UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+      //UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
     } catch (Exception exc) {
       Reporter.debug("Error loading L&F: " , exc);
     }
