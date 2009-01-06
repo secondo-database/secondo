@@ -11,10 +11,21 @@ CC = gcc
 DATABASE = DB2 
 MACHINE = SUN
 WORKLOAD = TPCH
+
+ifndef SECONDO_PLATFORM
+  posix = 
+else
+  ifeq ($(SECONDO_PLATFORM),mac_osx)
+    posix = -D_POSIX_SOURCE
+  else
+    posix = 
+  endif
+endif
+
 #
 # add -EDTERABYTE if orderkey will execeed 32 bits (SF >= 300)
 # and make the appropriate change in gen_schema() of runit.sh
-CFLAGS	= -O -DDBNAME=\"dss\" -D$(MACHINE) -D$(DATABASE) -D$(WORKLOAD)
+CFLAGS	= -O -DDBNAME=\"dss\" -D$(MACHINE) -D$(DATABASE) -D$(WORKLOAD) $(posix)
 LDFLAGS = -O
 # The OBJ,EXE and LIB macros will need to be changed for compilation under
 #  Windows NT
