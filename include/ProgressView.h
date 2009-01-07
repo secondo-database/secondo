@@ -122,7 +122,13 @@ class ProgressView
 
       if (DETPROT & 2)
       {
-	ofs << clock() - startClock << ";" ;
+
+       clock_t clocks = clock() - startClock;
+       // convert clocks to milliseconds
+       clocks = (clocks * 1000) / CLOCKS_PER_SEC;
+
+
+       ofs << clocks << ";" ;
 
 	sprintf (progstr, "%6.2f", progress.Progress * 100.0);
         progstr [3] = ',';
