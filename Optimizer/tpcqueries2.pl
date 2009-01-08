@@ -160,6 +160,16 @@ tpc(No) :- tpcQuery(No, X), sql(X).
 tpcOptimize(No) :- tpcQuery(No, X), optimize(X).
 tpcAfterLookup(No) :- tpcQuery(No, X), callLookup(X,Y), !, write(Y).
 
+
+tpch :- query 'LINEITEM feed count',
+  query 'ORDERS feed count',
+  tpc(1), 
+  tpc(3), 
+  tpc(5), 
+  tpc(10).
+
+
+
 % a variant of TPC-3 which includes some correlated predicates
 tpcCorrelated(1, select
 	[ 
