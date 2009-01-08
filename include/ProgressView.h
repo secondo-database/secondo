@@ -123,7 +123,7 @@ class ProgressView
       if (DETPROT & 2)
       {
 
-       clock_t clocks = clock() - startClock;
+       uint64_t clocks = clock() - startClock;
        // convert clocks to milliseconds
        clocks = (clocks * 1000) / CLOCKS_PER_SEC;
 
