@@ -450,6 +450,7 @@ Example call:
 
 */
 
+
 createPredicateFacts(Preds) :-
   optimizerOption(adaptiveJoin),
   storePredicates(Preds),
@@ -835,6 +836,12 @@ deleteArguments :- retractall(argument(_, _)).
 Write the currently stored nodes and edges, respectively.
 
 */
+:-assert(helpLine(writeNodes,0,[],
+                  'List nodes of the current POG.')).
+:-assert(helpLine(writeEdges,0,[],
+                  'List edges of the current POG.')).
+
+
 writeNode :-
   node(No, Preds, Partition),
   write('Node: '), write(No), nl,
@@ -1191,8 +1198,9 @@ plan_to_atom(A,A) :-
   string(A),
   !.
 
-plan_to_atom(dbobject(DCname),ExtName) :-
-  ( dcName2externalName(DCname,ExtName)
+plan_to_atom(dbobject(Name),ExtName) :-
+  dcName2externalName(DCname, Name),       % convert to DC-spelling
+  ( dcName2externalName(DCname,ExtName)    % if Name is known
     -> true
     ; ( write_list(['\nERROR:\tCannor translate \'',dbobject(DCname),'\'.']),
         throw(error_SQL(optimizer_plan_to_atom(dbobject(DCname),
@@ -1406,6 +1414,23 @@ plan_to_atom(project(Stream, Fields), Result) :-
   !.
 
 
+
+plan_to_atom(feedproject(Stream, Fields), Result) :-
+  not(removeHiddenAttributes), !,		% standard behaviour
+  plan_to_atom(Stream, SAtom),
+  plan_to_atom(Fields, FAtom),
+  concat_atom([SAtom, 'feedproject[', FAtom, '] '], '', Result),
+  !.
+
+plan_to_atom(feedproject(Stream, Fields), Result) :-
+  removeHiddenAttributes,
+  plan_to_atom(Stream, SAtom),
+  removeHidden(Fields, Fields2),	% defined after plan_to_atom
+  plan_to_atom(Fields2, FAtom),
+  concat_atom([SAtom, 'feedproject[', FAtom, '] '], '', Result),
+  !.
+
+
 % Ignore sortby with empty sort list
 plan_to_atom(sortby(Stream, []), Result) :-
   plan_to_atom(Stream, Result),
@@ -1415,7 +1440,7 @@ plan_to_atom(sortby(Stream, []), Result) :-
 plan_to_atom(exactmatchfun(Index, Rel, attr(Name, R, Case)), Result) :-
   plan_to_atom(Rel, RelAtom),
   plan_to_atom(a(Name, R, Case), AttrAtom),
-  plan_to_atom(Index,IndexAtom),
+  plan_to_atom(dbobject(Index),IndexAtom),
   newVariable(T),
   concat_atom(['fun(', T, ' : TUPLE) ', IndexAtom,
     ' ', RelAtom, 'exactmatch[attr(', T, ', ', AttrAtom, ')] '], Result),
@@ -1600,6 +1625,21 @@ plan_to_atom(deletedirect(Rel, DeleteQuery),Result) :-
   concat_atom([DeleteQuery2, ' ', Rel2, ' deletedirect'], Result),
   !.
 
+plan_to_atom(updatedirect(Rel, Transformations, UpdateQuery),Result) :-
+  plan_to_atom(UpdateQuery, UpdateQuery2),
+  list_to_atom(Transformations, Transformations2),
+  plan_to_atom(Rel, Rel2),
+  concat_atom([UpdateQuery2, ' ', Rel2, ' updatedirect [', 
+	       Transformations2, ']'], Result),
+  !.
+
+plan_to_atom(set(Attr, Term), Result) :-
+  plan_to_atom(attrname(Attr), Attr2),
+  plan_to_atom(Term, Term2),
+  concat_atom([Attr2, ': ', Term2], Result),
+  
+  !.
+
 plan_to_atom(insertbtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
@@ -1614,6 +1654,12 @@ plan_to_atom(deletebtree(DeleteQuery, IndexName, Column),Result) :-
 	      Result),
   !.
 
+plan_to_atom(updatebtree(UpdateQuery, IndexName, Column),Result) :-
+  plan_to_atom(UpdateQuery, UpdateQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatebtree [', Column2, ']'], 
+	      Result),
+  !.
 
 plan_to_atom(insertrtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
@@ -1629,6 +1675,12 @@ plan_to_atom(deletertree(DeleteQuery, IndexName, Column),Result) :-
 	      Result),
   !.
 
+plan_to_atom(updatertree(UpdateQuery, IndexName, Column),Result) :-
+  plan_to_atom(UpdateQuery, UpdateQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatertree [', Column2, ']'], 
+	      Result),
+  !.
 
 plan_to_atom(inserthash(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
@@ -1644,6 +1696,12 @@ plan_to_atom(deletehash(DeleteQuery, IndexName, Column),Result) :-
 	      Result),
   !.
 
+plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
+  plan_to_atom(UpdateQuery, UpdateQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatehash [', Column2, ']'], 
+	      Result),
+  !.
 
 /*
 Translation of operators driven by predicate ~secondoOp~ in
@@ -1848,11 +1906,11 @@ arg(N) => rename(feed(rel(Name, Var)), Var) :-
   isStarQuery,
   argument(N, rel(Name, Var)), !.
 
-arg(N) => project(feed(rel(Name, *)), AttrNames) :-
+arg(N) => feedproject(rel(Name, *), AttrNames) :-
   argument(N, rel(Name, *)), !,
   usedAttrList(rel(Name, *), AttrNames).
 
-arg(N) => rename(project(feed(rel(Name, Var)), AttrNames), Var) :-
+arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
   argument(N, rel(Name, Var)), !,
   usedAttrList(rel(Name, Var), AttrNames).
 
@@ -1915,7 +1973,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
 % generic rule for (Term = Attr): exactmatch using btree or hashtable
 % without rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  exactmatch(IndexName, rel(Name, *), Y)
+  exactmatch(dbobject(IndexName), rel(Name, *), Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,*),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -1925,7 +1983,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term = Attr): exactmatch using btree or hashtable
 % with rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rename(exactmatch(IndexName, rel(Name, Var), Y), Var)
+  rename(exactmatch(dbobject(IndexName), rel(Name, Var), Y), Var)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -1935,7 +1993,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term = Attr): rangesearch using mtree
 % without rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rangesearch(IndexName, rel(Name, *), Y, 0.0)
+  rangesearch(dbobject(IndexName), rel(Name, *), Y, 0.0)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,*),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -1945,7 +2003,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term = Attr): rangesearch using mtree
 % with rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rename(rangesearch(IndexName, rel(Name, Var), Y), Var, 0.0)
+  rename(rangesearch(dbobject(IndexName), rel(Name, Var), Y), Var, 0.0)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -1959,7 +2017,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) <= Y, Rel)) => X :-
 % generic rule for (Term >= Attr): leftrange using btree
 % without rename
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
-  leftrange(IndexName, rel(Name, *), Y)
+  leftrange(dbobject(IndexName), rel(Name, *), Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,*), attr(AttrName, Arg, AttrCase), DCindex, btree),
@@ -1968,7 +2026,7 @@ indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term >= Attr): leftrange using btree
 % with rename
 indexselect(arg(N), pr(Y >= attr(AttrName, Arg, AttrCase), _)) =>
-  rename(leftrange(IndexName, rel(Name, Var), Y), Var)
+  rename(leftrange(dbobject(IndexName), rel(Name, Var), Y), Var)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var), attr(AttrName, Arg, AttrCase), DCindex, btree),
@@ -1982,7 +2040,7 @@ indexselect(arg(N), pr(attr(AttrName, Arg, Case) >= Y, Rel)) => X :-
 % generic rule for (Term <= Attr): rightrange using btree
 % without rename
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
-  rightrange(IndexName, rel(Name, *), Y)
+  rightrange(dbobject(IndexName), rel(Name, *), Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name, *), attr(AttrName, Arg, AttrCase), DCindex, btree),
@@ -1991,7 +2049,7 @@ indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term <= Attr): rightrange using btree
 % with rename
 indexselect(arg(N), pr(Y <= attr(AttrName, Arg, AttrCase), _)) =>
-  rename(rightrange(IndexName, rel(Name, Var), Y), Var)
+  rename(rightrange(dbobject(IndexName), rel(Name, Var), Y), Var)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var), attr(AttrName, Arg, AttrCase), DCindex, btree),
@@ -2010,7 +2068,7 @@ filter is used.
 % Generic indexselect translation for predicates checking on mbbs
 
 indexselect(arg(N), pr(Pred, _)) =>
-  filter(windowintersects(IndexName, rel(Name, *), Y), Pred)
+  filter(windowintersects(dbobject(IndexName), rel(Name, *), Y), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
@@ -2024,8 +2082,8 @@ indexselect(arg(N), pr(Pred, _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselect(arg(N), pr(Pred, _)) =>
-  filter(rename(windowintersects(IndexName, rel(Name,*),bbox(Y)),RelAlias),
-         Pred)
+  filter(rename(windowintersects(dbobject(IndexName), rel(Name,*),bbox(Y)),
+                RelAlias), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)]),
@@ -2062,7 +2120,7 @@ indexselect(arg(N), Pred) => X :-
 
 % 'present' with temporal(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
+  filter(gettuples(windowintersectsS(dbobject(IndexName), queryrect2d(Y)),
          rel(Name, *)), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, *)),
@@ -2071,7 +2129,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(rename(gettuples(windowintersectsS(IndexName, queryrect2d(Y)),
+  filter(rename(gettuples(windowintersectsS(dbobject(IndexName),queryrect2d(Y)),
         rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2081,8 +2139,9 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
 
 % 'present' with temporal(rtree,unit) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
-  filter(gettuples(rdup(sort(windowintersectsS(IndexName, queryrect2d(Y)))),
-         rel(Name, *)), attr(AttrName, Arg, AttrCase) present Y)
+  filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+         queryrect2d(Y)))), rel(Name, *)),
+         attr(AttrName, Arg, AttrCase) present Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
@@ -2091,7 +2150,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
   filter(rename(gettuples(rdup(sort(
-         windowintersectsS(IndexName, queryrect2d(Y)))),
+         windowintersectsS(dbobject(IndexName), queryrect2d(Y)))),
          rel(Name, *)), RelAlias), attr(AttrName,Arg,AttrCase) present Y)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2102,7 +2161,8 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
 
 % 'passes' with spatial(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(gettuples(windowintersectsS(IndexName, bbox(Y)), rel(Name, *)),
+  filter(gettuples(windowintersectsS(dbobject(IndexName), bbox(Y)),
+                                     rel(Name, *)),
          attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, *)),
@@ -2111,7 +2171,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(rename(gettuples(windowintersectsS(IndexName, bbox(Y)),
+  filter(rename(gettuples(windowintersectsS(dbobject(IndexName), bbox(Y)),
          rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2122,7 +2182,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 
 % 'passes' with spatial(rtree,unit) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
+  filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), bbox(Y)))),
          rel(Name, *)), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, *)),
@@ -2131,7 +2191,8 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
-  filter(rename(gettuples(rdup(sort(windowintersectsS(IndexName, bbox(Y)))),
+  filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+                                                      bbox(Y)))),
          rel(Name, *)), RelAlias), attr(AttrName, Arg, AttrCase) passes Y)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2143,8 +2204,8 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with unit_3d index
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))),
-            rel(Name, *))
+  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+            box3d(bbox(Z),Y)))), rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, unit_3d),
@@ -2152,8 +2213,8 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  rename(gettuples(rdup(sort(windowintersectsS(IndexName, box3d(bbox(Z),Y)))),
-            rel(Name, *)), RelAlias)
+  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+         box3d(bbox(Z),Y)))), rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
@@ -2164,7 +2225,8 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with object_3d index
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)), rel(Name, *))
+  gettuples(windowintersectsS(dbobject(IndexName), box3d(bbox(Z),Y)),
+            rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
@@ -2173,7 +2235,7 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
                        box3d(bbox(Z),Y), _)) =>
-  rename(gettuples(windowintersectsS(IndexName, box3d(bbox(Z),Y)),
+  rename(gettuples(windowintersectsS(dbobject(IndexName), box3d(bbox(Z),Y)),
          rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2184,14 +2246,14 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
 % 'intersects' with object_4d
 % does not consider 4d-boxes created 'on the fly'
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) intersects Y, _)) =>
-  gettuples(windowintersectsS(IndexName, Y), rel(Name, *))
+  gettuples(windowintersectsS(dbobject(IndexName), Y), rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree4),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
-  => rename(gettuples(windowintersectsS(IndexName, Y),
+  => rename(gettuples(windowintersectsS(dbobject(IndexName), Y),
      rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2201,14 +2263,14 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
 % 'intersects' with object_8d index
 % does not consider 8d-boxes created 'on the fly'
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) intersects Y, _)) =>
-  gettuples(windowintersectsS(IndexName, Y), rel(Name, *))
+  gettuples(windowintersectsS(dbobject(IndexName), Y), rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, rtree8),
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
-  => rename(gettuples(windowintersectsS(IndexName, Y),
+  => rename(gettuples(windowintersectsS(dbobject(IndexName), Y),
      rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
@@ -2263,21 +2325,21 @@ Try to apply projections as early as possible!
 
 
 exactmatch(IndexName, arg(N), Expr) =>
-  exactmatch(IndexName, Rel, Expr) :-
+  exactmatch(dbobject(IndexName), Rel, Expr) :-
   isStarQuery,
   argument(N, Rel),
   Rel = rel(_, *), % no renaming needed
   !.
 
 exactmatch(IndexName, arg(N), Expr) =>
-  rename(exactmatch(IndexName, Rel, Expr), Var) :-
+  rename(exactmatch(dbobject(IndexName), Rel, Expr), Var) :-
   isStarQuery, % no need for project
   argument(N, Rel),
   Rel = rel(_, Var),
   !.
 
 exactmatch(IndexName, arg(N), Expr) =>
-  project(exactmatch(IndexName, Rel, Expr), AttrNames) :-
+  project(exactmatch(dbobject(IndexName), Rel, Expr), AttrNames) :-
   not(isStarQuery),
   argument(N, Rel ),
   Rel = rel(_, *), % no renaming needed
@@ -2286,7 +2348,7 @@ exactmatch(IndexName, arg(N), Expr) =>
 
 
 exactmatch(IndexName, arg(N), Expr) =>
-  rename(project(exactmatch(IndexName, Rel, Expr), AttrNames), Var) :-
+  rename(project(exactmatch(dbobject(IndexName), Rel, Expr), AttrNames), Var) :-
   not(isStarQuery),
   argument(N, Rel),
   Rel = rel(_, Var), % with renaming
@@ -2352,21 +2414,21 @@ Try to apply projections as early as possible!
 
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  windowintersects(IndexName, Rel, Expr) :-
+  windowintersects(dbobject(IndexName), Rel, Expr) :-
   isStarQuery,
   argument(N, Rel),
   Rel = rel(_, *), % no renaming needed
   !.
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  rename(windowintersects(IndexName, Rel, Expr), Var) :-
+  rename(windowintersects(dbobject(IndexName), Rel, Expr), Var) :-
   isStarQuery, % no need for project
   argument(N, Rel),
   Rel = rel(_, Var),
   !.
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  project(windowintersects(IndexName, Rel, Expr), AttrNames) :-
+  project(windowintersects(dbobject(IndexName), Rel, Expr), AttrNames) :-
   not(isStarQuery),
   argument(N, Rel ),
   Rel = rel(_, *), % no renaming needed
@@ -2375,7 +2437,8 @@ rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
 
 
 rtreeindexlookupexpr(IndexName, arg(N), Expr) =>
-  rename(project(windowintersects(IndexName, Rel, Expr), AttrNames), Var) :-
+  rename(project(windowintersects(dbobject(IndexName), Rel, Expr), AttrNames),
+         Var) :-
   not(isStarQuery),
   argument(N, Rel),
   Rel = rel(_, Var), % with renaming
@@ -2643,6 +2706,11 @@ writePlanEdges3:-
   nl,
   fail.
 
+:-assert(helpLine(writePlanEdges,0,[],
+                  'List executable sub plans for all POG edges.')).
+:-assert(helpLine(writePlanEdgesX,0,[],
+                  'List executable and internal sub plans for all POG edges.')).
+
 writePlanEdges :- not(writePlanEdges2).
 
 writePlanEdgesX :- not(writePlanEdges3).
@@ -2836,6 +2904,13 @@ getPredNoPET(Index, X, Y) :-
 Clauses for writing sizes and selectivities for nodes and edges.
 
 */
+
+:-assert(helpLine(writeSizes,0,[],
+      'List estimated cardinalities and selectivities for the current POG.')).
+:-assert(helpLine(writeNodeSizes,0,[],
+      'List estimated cardinalities for the current POG.')).
+:-assert(helpLine(writeEdgeSels,0,[],
+      'List estimated selectivities for the current POG.')).
 
 writeSizes :-
   writeNodeSizes,
@@ -3076,28 +3151,20 @@ It is assumed that only a single operator of this kind occurs within the term.
 
 */
 
-/*
-% work-around code:
-cost(rel(Rel, _), _, Size, 0) :-
-         write('\n>>>>>>>opt_002 FIXME\n'), nl,
+% the if-then-else-part  is just for error-detection --- FIXME!
+cost(rel(Rel, X1_), X2_, Size, 0) :-
   dcName2internalName(RelDC,Rel),
-  card(RelDC, Size).
-
-*/
-
-
-% original code:
-cost(rel(Rel, _), _, Size, 0) :-
-  dcName2internalName(RelDC,Rel),
-  ( not( (Rel = RelDC) )
-    -> ( write('\n>>>>>>>opt_002 FIXME\n'), nl,
-         write('ERROR: wrong spelling in \'cost(rel('), write(Rel), %'
-         write('_), _, '), write(Size), write(')\'')                %'
+  ( Rel = RelDC
+    -> true
+    ;  (
+         write('ERROR:\tcost/4 failed due to non-dc relation name.'), nl,
+         write('---> THIS SHOULD BE CORRECTED!'), nl,
+         throw(error_SQL(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
+              :missedTranslation))),
+         fail
        )
-    ;  ( true )
   ),
   card(Rel, Size).
-
 
 cost(res(N), _, Size, 0) :-
   resultSize(N, Size).
@@ -3112,11 +3179,20 @@ cost(feed(X), Sel, S, C) :-
   feedTC(A),
   C is C1 + A * S.
 
+
 /*
 Here ~feedTC~ means ``feed tuple cost'', i.e., the cost per tuple, a constant to
 be determined in experiments. These constants are kept in file ``operators.pl''.
 
 */
+
+
+cost(feedproject(X, _), Sel, S, C) :-
+  cost(X, Sel, S, C1),
+  feedTC(A),
+  C is C1 + A * S.
+
+
 
 cost(consume(X), Sel, S, C) :-
   cost(X, Sel, S, C1),
@@ -3380,10 +3456,11 @@ cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
 % Cost function copied from windowintersects
 % May be wrong, but as it is usually used together
 % with 'gettuples', the total cost should be OK
-cost(windowintersectsS(IndexName, _), Sel, Size, Cost) :-
+cost(windowintersectsS(dbobject(IndexName), _), Sel, Size, Cost) :-
   % get relationName Rel from Index
   concat_atom([RelName|_],'_',IndexName),
-  Rel = rel(RelName, *),
+  dcName2internalName(RelDC,RelName),
+  Rel = rel(RelDC, *),
   cost(Rel, 1, RelSize, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,  % bad estimation, may contain additional dublicates
@@ -4252,9 +4329,11 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(930, xf ,  asc).
 :- op(930, xf ,  desc).
 :- op(940,  xfx, into).
+:- op(960,  xfx, set).
 :- op(950, xfx, select).
 :- op(930,  fx, insert).
-:- op(930,  fx, delete).
+:- op(950,  fx, delete).
+:- op(950,  fx, update).
 :- op(950, xfx, values).
 
 
@@ -4335,7 +4414,7 @@ clearIsStarQuery     :- retractall(isStarQuery).
 
 /*
 
-----    lookup(Query, Query2) :-
+----    lookup(+Query, -Query2) :-
 ----
 
 ~Query2~ is a modified version of ~Query~ where all relation names and
@@ -4384,6 +4463,21 @@ lookup(delete from Rel,
   lookupRel(Rel, Rel2),
   makeList(Rel2, Rel2List), !.
 
+lookup(update Rel set Transformations where Condition, 
+       update Rel2List set Transformations2List where Condition2) :-
+  lookup(select * from Rel where Condition, _ from Rel2List where Condition2),
+  lookupTransformations(Transformations, Transformations2),
+  makeList(Transformations2, Transformations2List),
+  !.
+
+lookup(update Rel set Transformations, 
+       update Rel2List set Transformations2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  lookupTransformations(Transformations, Transformations2),
+  makeList(Transformations2, Transformations2List),
+  !.
+
 
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   lookup(Query, Query2),
@@ -4412,7 +4506,7 @@ makeList(L, [L]) :- not(is_list(L)).
 
 11.3.3 Modification of the From-Clause
 
-----    lookupRels(Rels, Rels2)
+----    lookupRels(+Rels, -Rels2)
 ----
 
 Modify the list of relation names. If there are relations without variables,
@@ -4432,7 +4526,7 @@ lookupRels(Rel, Rel2) :-
   lookupRel(Rel, Rel2).
 
 /*
-----    lookupRel(Rel, Rel2) :-
+----    lookupRel(+Rel, -Rel2) :-
 ----
 
 Translate and store a single relation definition.
@@ -4448,27 +4542,26 @@ Translate and store a single relation definition.
 
 
 lookupRel(Rel as Var, Y) :-
-  ground(Rel), atomic(Rel),       %% changed code FIXME
-  ground(Var), atomic(Var),       %% changed code FIXME
-  dcName2externalName(Rel2,Rel),
-% relation(Rel, _), !,            %% original code FIXME
-  relation(Rel2, _), !,           %% changed code FIXME
+  atomic(Rel),       %% changed code FIXME
+  atomic(Var),       %% changed code FIXME
+  dcName2externalName(RelDC,Rel),
+  relation(RelDC, _), !,          %% changed code FIXME
   ( variable(Var, _)
     -> ( write_list(['\nERROR:\tLooking up query: Doubly defined variable ',Var,
                      '.']), nl,
          throw(error_SQL(optimizer_lookupRel(Rel as Var,Y):doubledVariable)),
          fail
        )
-    ;  Y = rel(Rel2, Var)
+    ;  Y = rel(RelDC, Var)
   ),
-  assert(variable(Var, rel(Rel2, Var))).
+  assert(variable(Var, rel(RelDC, Var))).
 
-lookupRel(Rel, rel(Rel2, *)) :-
-  ground(Rel), atomic(Rel),       %% changed code FIXME
-  dcName2externalName(Rel2,Rel),
-  relation(Rel2, _), !,
-  not(duplicateAttrs(Rel2)),
-  assert(queryRel(Rel2, rel(Rel2, *))).
+lookupRel(Rel, rel(RelDC, *)) :-
+  atomic(Rel),       %% changed code FIXME
+  dcName2externalName(RelDC,Rel),
+  relation(RelDC, _), !,
+  not(duplicateAttrs(RelDC)),
+  assert(queryRel(RelDC, rel(RelDC, *))).
 
 lookupRel(X,Y) :- !,
   write_list(['\nERROR:\tLooking up query: Relation \'',X,'\' unknown!']), nl,
@@ -4476,11 +4569,11 @@ lookupRel(X,Y) :- !,
   fail.
 
 
-lookupRelNoDblCheck(Rel, rel(Rel2, *)) :-
-  ground(Rel), atomic(Rel),       %% changed code FIXME
-  dcName2externalName(Rel2,Rel),
-  relation(Rel2, _), !,
-  assert(queryRel(Rel2, rel(Rel2, *))).
+lookupRelNoDblCheck(Rel, rel(RelDC, *)) :-
+  atomic(Rel),       %% changed code FIXME
+  dcName2externalName(RelDC,Rel),
+  relation(RelDC, _), !,
+  assert(queryRel(RelDC, rel(RelDC, *))).
 
 
 /*
@@ -4526,8 +4619,8 @@ lookupAttrs(Attr, Attr2) :-
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
-  ground(Var),  atomic(Var),  %% changed code FIXME
-  ground(Attr), atomic(Attr), %% changed code FIXME
+  atomic(Var),  %% changed code FIXME
+  atomic(Attr), %% changed code FIXME
   variable(Var, Rel2),
   Rel2 = rel(Rel, _),
   spelled(Rel:Attr, attr(Attr2, VA, Case)),
@@ -4542,13 +4635,16 @@ lookupAttr(Attr desc, Attr2 desc) :- !,
   lookupAttr(Attr, Attr2).
 
 lookupAttr(Attr, Attr2) :-
-  ground(Attr), atomic(Attr), %% changed code FIXME
+  atomic(Attr), %% changed code FIXME
   isAttribute(Attr, Rel),!,
   spelled(Rel:Attr, Attr2),
   queryRel(Rel, Rel2),
   (   usedAttr(Rel2, Attr2)
     ; assert(usedAttr(Rel2, Attr2))
   ).
+
+
+lookupAttr(count(*), count(*)) :- !.
 
 lookupAttr(*, *) :- assert(isStarQuery), !.
 
@@ -4717,13 +4813,6 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
     ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
   ), !.
 
-
-/*
-
-Generic rule for operators of arbitrary arity using (=../2):
-
-*/
-
 lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   compound(Term),
   Term =.. [Op|Args],
@@ -4731,22 +4820,12 @@ lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   Term2 =.. [Op|Args2],
   !.
 
-/*
-New:
-
-*/
-
 lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
-  atom(Term),
+  atomic(Term),
   not(is_list(Term)),
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
   !.
-
-/*
-Suggested addition by Poneleit:
-
-*/
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
@@ -4756,22 +4835,7 @@ lookupPred1(Term, Term, Rels, Rels) :-
             'object.\n']), %'
  throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownError)).
 
-/*
-Old:
-
-----
-lookupPred1(Term, Term, Rels, Rels) :-
-  atom(Term),
-  not(is_list(Term)),
-  write('Symbol \''), write(Term),
-  write('\' not recognized, supposed to be a Secondo object.'), nl, !.
-----
-
-*/
-
 lookupPred1(Term, Term, Rels, Rels).
-
-
 
 lookupPred2([], [], RelsBefore, RelsBefore).
 
@@ -4781,12 +4845,57 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   !.
 
 
+
+lookupTransformations([], []) :- !.
+
+lookupTransformations([T | Ts], [T2 | T2s]) :-
+  lookupTransformation(T, T2),
+  lookupTransformations(Ts, T2s), !.
+
+lookupTransformations(Trans, Trans2) :-
+  not(is_list(Trans)),
+  lookupTransformation(Trans, Trans2), !.
+
+lookupTransformation(Attr = Expr, Attr2 = Expr2) :-
+  lookupAttr(Attr,Attr2),
+  lookupSetExpr(Expr, Expr2),
+  !.
+
+
+lookupSetExpr([], []) :- !.
+
+lookupSetExpr(Attr, Attr2) :-
+  isAttribute(Attr, _), !,
+  lookupAttr(Attr, Attr2).
+
+
+lookupSetExpr([Term|Terms], [Term2|Terms2]) :- 
+  lookupSetExpr(Term, Term2),
+  lookupSetExpr(Terms, Terms2), !.
+
+lookupSetExpr(Term, Term2) :-
+  compound(Term),
+  Term =.. [Op|Args],
+  lookupSetExpr(Args, Args2),
+  Term2 =.. [Op|Args2],
+  !.
+
+lookupSetExpr(Expr, Expr).
+
+
+
+
 /*
 11.3.6 Check the Spelling of Relation and Attribute Names
+
+---- spelled(+In,-Out)
+----
 
 */
 
 spelled(Rel:Attr, attr(Attr2, 0, l)) :-
+  atomic(Rel),  %% changed code FIXME
+  atomic(Attr), %% changed code FIXME
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr3),
@@ -4794,6 +4903,8 @@ spelled(Rel:Attr, attr(Attr2, 0, l)) :-
   !.
 
 spelled(Rel:Attr, attr(Attr2, 0, u)) :-
+  atomic(Rel),  %% changed code FIXME
+  atomic(Attr), %% changed code FIXME
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr2),
@@ -4802,12 +4913,14 @@ spelled(Rel:Attr, attr(Attr2, 0, u)) :-
 spelled(_:_, attr(_, 0, _)) :- !, fail. % no attr entry in spelling table
 
 spelled(Rel, Rel2, l) :-
+  atomic(Rel),  %% changed code FIXME
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel3),
   Rel3 = lc(Rel2),
   !.
 
 spelled(Rel, Rel2, u) :-
+  atomic(Rel),  %% changed code FIXME
   downcase_atom(Rel, DCRel),
   spelling(DCRel, Rel2), !.
 
@@ -4924,6 +5037,18 @@ translate(delete from Rel where Condition,
 translate(delete from Rel,
         Stream, Select, delete from Rel, Cost) :-
   translate(select * from Rel, Stream, Select, _, Cost),
+  !.
+
+translate(update Rel set Transformations where Condition,
+        Stream, Select, update Rel set Transformations2, Cost) :-
+  translate(select * from Rel where Condition, Stream, Select, _, Cost),
+  translateTransformations(Transformations, Transformations2),
+  !.
+
+translate(update Rel set Transformations,
+        Stream, Select, update Rel set Transformations2, Cost) :-
+  translate(select * from Rel, Stream, Select, _, Cost),
+  translateTransformations(Transformations, Transformations2),
   !.
 
 
@@ -5361,6 +5486,16 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   write('*****'), nl.
 
 
+translateTransformations([], []) :-
+  !.
+
+translateTransformations([Transf|Rest], [Transf2|Rest2]) :-
+  translateTransformation(Transf, Transf2),
+  translateTransformations(Rest, Rest2).
+			 
+translateTransformation(Attr = Term, set(Attr, Term)).			 
+
+
 /*
 
 ----    queryToPlan(+Query, -Plan, -Cost) :-
@@ -5393,6 +5528,11 @@ queryToPlan(Query, Stream2, Cost) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default),
   queryToStream(Query1, Stream, Cost),
   Stream2 =.. [simpleUserAggrNoGroupby, Stream, AggrExpr, Fun, Default], !.
+
+% case: update query
+queryToPlan(Query, count(Stream), Cost) :-
+  updateQuery(Query),
+  queryToStream(Query, Stream, Cost), !.
 
 % case: ordinary consume query
 queryToPlan(Query, consume(Stream), Cost) :-
@@ -5520,6 +5660,21 @@ userDefAggrQuery(Query first N, Query1 first N, AggrExpr, Fun, Default) :-
 userDefAggrQuery(Query last N, Query1 last N, AggrExpr, Fun, Default) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
 
+/*
+Check whether ~Query~ is an update query.
+
+*/
+
+
+updateQuery(insert into _ values _) :- !.
+updateQuery(insert into _ select _ from _) :- !.
+updateQuery(delete from _) :- !.
+updateQuery(update _ set _) :- !.
+
+updateQuery(Query groupby _) :- updateQuery(Query).
+updateQuery(Query orderby _) :- updateQuery(Query).
+updateQuery(Query first _)   :- updateQuery(Query).
+updateQuery(Query last _)   :- updateQuery(Query).
 
 /*
 
@@ -5761,6 +5916,15 @@ attrnameSort(Attr, attrname(Attr) asc).
 Optimize ~Query~ and print the best ~Plan~.
 
 */
+
+:- assert(helpLine(optimize,1,
+    [[+,'SQLquery','The SQL-style query to optimize.']],
+    'Optimize (but do not execute) a query in SQL-style syntax.')).
+:- assert(helpLine(optimize,3,
+    [[+,'SQLquery','The SQL-style query to optimize.'],
+     [-,'SecondoQuery','The optimized executable Secondo plan.'],
+     [-,'CostOut','The estimated cost for the optimized plan.']],
+    'Optimize (but do not execute) a query in SQL-style syntax.')).
 
 optimize(Query) :-
   optimize(Query, SecondoQuery, Cost),
@@ -6088,6 +6252,23 @@ exception-format described above, that is thrown within goal ~G~.
 
 */
 
+:- assert(helpLine(sql,1,
+    [[+,'SQLquery','The SQL-style query to run optimized.']],
+    'Optimize and run an SQL-style query .')).
+:- assert(helpLine(sql,2,
+    [[+,'SQLquery','The SQL-style query to run optimized.'],
+     [+,'SECrest','The executable Secondo-style end of the query.']],
+    'Form and run a query from the first (optimized) and second argument .')).
+:- assert(helpLine(let,2,
+    [[+,'ObjName','The name for the object to create.'],
+     [+,'SQLquery','The SQL-style query to run optimized.']],
+    'Create a DB object using an SQL-style value.')).
+:- assert(helpLine(let,3,
+    [[+,'ObjName','The name for the object to create.'],
+     [+,'SQLquery','The SQL-style query to run optimized.'],
+     [+,'SECrest','The executable Secondo-style end of the query.']],
+    'Create a DB object, using a combined SQL and Secondo executable query.')).
+
 defaultExceptionHandler(G) :-
   catch( G,
          error_SQL(X),
@@ -6099,12 +6280,18 @@ defaultExceptionHandler(G) :-
        true.
 
 
+:-assert(helpLine(history,0,[],
+  'List the query history (since last \'storeHistory\').')).
 history :-
   showRel('SqlHistory').
 
+:-assert(helpLine(deleteHistory,0,[],
+  'Delete the query history relation \'SqlHistory\' from the current DB.')).
 deleteHistory :-
   clearRel('SqlHistory').
 
+:-assert(helpLine(storeHistory,0,[],
+  'Store the query history into relation \'SqlHistory\' within the current DB.')).
 storeHistory :-
   saveRel('SqlHistory').
 
@@ -6129,10 +6316,6 @@ sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   write('Estimated Cost: '), write(Cost), nl, nl,
   query(Query, _)
  )).
-
-
-
-
 
 let(X, Term) :- defaultExceptionHandler((
   isDatabaseOpen,
@@ -6307,6 +6490,9 @@ computeCards :-
   retractall(realResult(_, _)),
   cards(1).
 
+:-assert(helpLine(allCards,0,[],
+         'Compare estimated and actual cardinalities for the current POG.')).
+
 allCards :-
   computeCards,
   writeRealSizes.
@@ -6418,6 +6604,30 @@ updateTypedIndex(delete, Attr, IndexName, rtree8, StreamIn,
   !.
 
 
+updateTypedIndex(update, Attr, IndexName, btree, StreamIn,
+		 updatebtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(update, Attr, IndexName, rtree, StreamIn,
+		 updatertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(update, Attr, IndexName, hash, StreamIn,
+		 updatehash(StreamIn, IndexName, Attr)) :-
+  !.
+
+
+updateTypedIndex(update, Attr, IndexName, rtree3, StreamIn,
+		 updatertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(update, Attr, IndexName, rtree4, StreamIn,
+		 updatertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(update, Attr, IndexName, rtree8, StreamIn,
+		 updatertree(StreamIn, IndexName, Attr)) :-
+  !.
 
 /*
 19.2 Split the select and update clause
@@ -6443,13 +6653,17 @@ finishUpdate([], Stream2, Stream2) :-
   !.
 
 finishUpdate(insert into Rel, Stream2, Stream3) :-
-	updateIndex(insert, Rel, insert(Rel, Stream2), Stream3),
+  updateIndex(insert, Rel, insert(Rel, Stream2), Stream3),
   !.
 
 finishUpdate(delete from Rel, Stream2, Stream3) :-
-	updateIndex(delete, Rel, deletedirect(Rel, Stream2), Stream3),
+  updateIndex(delete, Rel, deletedirect(Rel, Stream2), Stream3),
   !.
 
+finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
+  updateIndex(update, Rel, updatedirect(Rel, Transformations, Stream2),
+	      Stream3),
+  !.
 
 writeDebug(Text) :- 
   write(Text), nl.
