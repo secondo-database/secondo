@@ -1606,6 +1606,105 @@ plan_to_atom(simpleUserAggrNoGroupby(Stream, Expr, Fun, Default),
   plan_to_atom(aggregate(Stream, attrname(Expr), Fun, Default), Result),
   !.
 
+/*
+Extensions for SQL ~update~ and ~insert~ commands
+
+*/
+plan_to_atom(inserttuple(Rel, Values), Result) :-
+  plan_to_atom(Rel, Rel2),
+  list_to_atom(Values, Values2),
+  concat_atom([Rel2, ' inserttuple [', Values2, ']'], Result),
+  !.
+
+plan_to_atom(insert(Rel, InsertQuery),Result) :-
+  plan_to_atom(InsertQuery, InsertQuery2),
+  plan_to_atom(Rel, Rel2),
+  concat_atom([InsertQuery2, ' ', Rel2, ' insert'], Result),
+  !.
+
+plan_to_atom(deletedirect(Rel, DeleteQuery),Result) :-
+  plan_to_atom(DeleteQuery, DeleteQuery2),
+  plan_to_atom(Rel, Rel2),
+  concat_atom([DeleteQuery2, ' ', Rel2, ' deletedirect'], Result),
+  !.
+
+plan_to_atom(updatedirect(Rel, Transformations, UpdateQuery),Result) :-
+  plan_to_atom(UpdateQuery, UpdateQuery2),
+  list_to_atom(Transformations, Transformations2),
+  plan_to_atom(Rel, Rel2),
+  concat_atom([UpdateQuery2, ' ', Rel2, ' updatedirect [',
+         Transformations2, ']'], Result),
+  !.
+
+plan_to_atom(set(Attr, Term), Result) :-
+  plan_to_atom(attrname(Attr), Attr2),
+  plan_to_atom(Term, Term2),
+  concat_atom([Attr2, ': ', Term2], Result),
+  !.
+
+plan_to_atom(insertbtree(InsertQuery, IndexName, Column),Result) :-
+  plan_to_atom(InsertQuery, InsertQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([InsertQuery2, ' ', IndexName, ' insertbtree [', Column2, ']'],
+        Result),
+  !.
+
+plan_to_atom(deletebtree(DeleteQuery, IndexName, Column),Result) :-
+  plan_to_atom(DeleteQuery, DeleteQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletebtree [', Column2, ']'],
+        Result),
+  !.
+
+plan_to_atom(updatebtree(UpdateQuery, IndexName, Column),Result) :-
+  plan_to_atom(UpdateQuery, UpdateQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatebtree [', Column2, ']'],
+        Result),
+  !.
+
+plan_to_atom(insertrtree(InsertQuery, IndexName, Column),Result) :-
+  plan_to_atom(InsertQuery, InsertQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([InsertQuery2, ' ', IndexName, ' insertrtree [', Column2, ']'],
+        Result),
+  !.
+
+plan_to_atom(deletertree(DeleteQuery, IndexName, Column),Result) :-
+  plan_to_atom(DeleteQuery, DeleteQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletertree [', Column2, ']'],
+        Result),
+  !.
+
+plan_to_atom(updatertree(UpdateQuery, IndexName, Column),Result) :-
+  plan_to_atom(UpdateQuery, UpdateQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatertree [', Column2, ']'],
+        Result),
+  !.
+
+plan_to_atom(inserthash(InsertQuery, IndexName, Column),Result) :-
+  plan_to_atom(InsertQuery, InsertQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([InsertQuery2, ' ', IndexName, ' inserthash [', Column2, ']'],
+        Result),
+  !.
+
+plan_to_atom(deletehash(DeleteQuery, IndexName, Column),Result) :-
+  plan_to_atom(DeleteQuery, DeleteQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([DeleteQuery2, ' ', IndexName, ' deletehash [', Column2, ']'],
+        Result),
+  !.
+
+plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
+  plan_to_atom(UpdateQuery, UpdateQuery2),
+  plan_to_atom(attrname(Column), Column2),
+  concat_atom([UpdateQuery2, ' ', IndexName, ' updatehash [', Column2, ']'],
+        Result),
+  !.
+
 
 /*
 Translation of operators driven by predicate ~secondoOp~ in
@@ -1721,12 +1820,25 @@ plan_to_atom(X, _) :-
   throw(error_SQL(optimizer_plan_to_atom(X,undef):malformedExpression)),
   !, fail.
 
-/* auxiliary predicate */
+/* auxiliary predicates */
 plan_to_atom_2([],[]).
 
 plan_to_atom_2([InHead|InRest],[OutHead|OutRest]) :-
   plan_to_atom(InHead,OutHead), !,
   plan_to_atom_2(InRest,OutRest).
+
+% used within insert and update:
+list_to_atom([X], AtomX) :-
+  plan_to_atom(X, AtomX),
+  !.
+
+% used within insert and update:
+list_to_atom([X | Xs], Result) :-
+  plan_to_atom(X, XAtom),
+  list_to_atom(Xs, XsAtom),
+  concat_atom([XAtom, ', ', XsAtom], '', Result),
+  !.
+
 
 /*
 Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
@@ -4220,6 +4332,13 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(930, xfx,  as).
 :- op(930, xf ,  asc).
 :- op(930, xf ,  desc).
+:- op(940, xfx,  into).  % for update, insert
+:- op(960, xfx,  set).   % for update, insert
+:- op(950, xfx,  select).% for update, insert
+:- op(930,  fx,  insert).% for update, insert
+:- op(950,  fx,  delete).% for update, insert
+:- op(950,  fx,  update).% for update, insert
+:- op(950, xfx,  values).% for update, insert
 
 /*
 This ensures that the select-from-where statement is viewed as a term with the
@@ -4322,6 +4441,46 @@ lookup(select Attrs from Rels,
   lookupRels(Rels, Rels2), !,
   lookupAttrs(Attrs, Attrs2).
 
+%%%% Begin: for update and insert
+lookup(insert into Rel values Values,
+        insert into Rel2List values Values) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  !.
+
+lookup(insert into Rel select Attrs from QueryRest,
+        insert into Rel2List select Attrs2 from QueryRest2) :-
+  lookup(select Attrs from QueryRest, select Attrs2 from QueryRest2),
+  lookupRelNoDblCheck(Rel, Rel2),
+  makeList(Rel2, Rel2List), !.
+
+lookup(delete from Rel where Condition,
+        delete from Rel2List where Condition2) :-
+  lookup(select * from Rel where Condition,
+   _ from Rel2List where Condition2),
+  !.
+
+lookup(delete from Rel,
+        delete from Rel2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List), !.
+
+lookup(update Rel set Transformations where Condition,
+       update Rel2List set Transformations2List where Condition2) :-
+  lookup(select * from Rel where Condition, _ from Rel2List where Condition2),
+  lookupTransformations(Transformations, Transformations2),
+  makeList(Transformations2, Transformations2List),
+  !.
+
+lookup(update Rel set Transformations,
+       update Rel2List set Transformations2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  lookupTransformations(Transformations, Transformations2),
+  makeList(Transformations2, Transformations2List),
+  !.
+%%%% End: for update and insert
+
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   lookup(Query, Query2),
   makeList(Attrs, Attrs2),
@@ -4411,6 +4570,13 @@ lookupRel(X,Y) :- !,
   throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation)),
   fail.
 
+%%%% Begin: for update and insert
+lookupRelNoDblCheck(Rel, rel(RelDC, *)) :-
+  atomic(Rel),       %% changed code FIXME
+  dcName2externalName(RelDC,Rel),
+  relation(RelDC, _), !,
+  assert(queryRel(RelDC, rel(RelDC, *))).
+%%%% End: for update and insert
 
 /*
 ----    duplicateAttrs(Rel) :-
@@ -4681,6 +4847,43 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   !.
 
 
+%%%% Begin: for update and insert
+lookupTransformations([], []) :- !.
+
+lookupTransformations([T | Ts], [T2 | T2s]) :-
+  lookupTransformation(T, T2),
+  lookupTransformations(Ts, T2s), !.
+
+lookupTransformations(Trans, Trans2) :-
+  not(is_list(Trans)),
+  lookupTransformation(Trans, Trans2), !.
+
+lookupTransformation(Attr = Expr, Attr2 = Expr2) :-
+  lookupAttr(Attr,Attr2),
+  lookupSetExpr(Expr, Expr2),
+  !.
+
+
+lookupSetExpr([], []) :- !.
+
+lookupSetExpr(Attr, Attr2) :-
+  isAttribute(Attr, _), !,
+  lookupAttr(Attr, Attr2).
+
+lookupSetExpr([Term|Terms], [Term2|Terms2]) :-
+  lookupSetExpr(Term, Term2),
+  lookupSetExpr(Terms, Terms2), !.
+
+lookupSetExpr(Term, Term2) :-
+  compound(Term),
+  Term =.. [Op|Args],
+  lookupSetExpr(Args, Args2),
+  Term2 =.. [Op|Args2],
+  !.
+
+lookupSetExpr(Expr, Expr).
+%%%% End: for update and insert
+
 /*
 11.3.6 Check the Spelling of Relation and Attribute Names
 
@@ -4761,12 +4964,13 @@ example13 :- showTranslate(
 /*
 11.4 Translating a Query to a Plan
 
-----    translate1(+Query, -Stream, -SelectClause, -Cost) :-
+----    translate1(+Query, -Stream, -SelectClause, -UpdateClause, -Cost) :-
 ----
 
 ~Query~ is translated into a ~Stream~ to which still the translation of the
-~SelectClause~ needs to be applied. A ~Cost~ is returned which currently is
-only the cost for evaluating the essential part, the conjunctive query.
+~SelectClause~ and ~UpdateClause~ need to be applied. A ~Cost~ is
+returned which currently is only the cost for evaluating the essential
+part, the conjunctive query.
 
 */
 
@@ -4774,9 +4978,9 @@ only the cost for evaluating the essential part, the conjunctive query.
 % special handling for the entropy optimizer
 translate1(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
-        select Select2, Cost) :-
+        select Select2, Update, Cost) :-
   optimizerOption(entropy),
-  translate1(Query, Stream, SelectClause, Cost),
+  translate1(Query, Stream, SelectClause, Update, Cost),
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNamesGroup),
   attrnamesSort(Attrs2, AttrNamesSort),
@@ -4785,21 +4989,21 @@ translate1(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
-translate1(Query, Stream3, Select2, Cost2) :-
+translate1(Query, Stream3, Select2, Update, Cost2) :-
   optimizerOption(entropy),
   deleteSmallResults,
   retractall(highNode(_)), assert(highNode(0)),
   assert(buildingSmallPlan),
   retractall(removeHiddenAttributes),
-  translate(Query, Stream1, Select, Cost1),
+  translate(Query, Stream1, Select, Update, Cost1),
   translateEntropy(Stream1, Stream2, Cost1, Cost2),
   % Hook for CSE substitution:
   rewritePlanforCSE(Stream2, Stream3, Select, Select2),
   !.
 
 % default handling
-translate1(Query, Stream2, Select2, Cost) :-
-  translate(Query, Stream, Select, Cost),
+translate1(Query, Stream2, Select2, Update, Cost) :-
+  translate(Query, Stream, Select, Update, Cost),
   rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
   !.
 
@@ -4807,8 +5011,8 @@ translate1(Query, Stream2, Select2, Cost) :-
 %   translate(+Query, -Stream, -SelectClause, -Cost)
 translate(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
-        select Select2, Cost) :-
-  translate(Query, Stream, SelectClause, Cost),
+        select Select2, Update, Cost) :-
+  translate(Query, Stream, SelectClause, Update, Cost),
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNamesGroup),
   attrnamesSort(Attrs2, AttrNamesSort),
@@ -4817,7 +5021,36 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2),
   !.
 
-translate(Select from Rels where Preds, Stream, Select, Cost) :-
+translate(insert into Rel values Val,
+        Stream, select*, [], 0) :-
+  updateIndex(insert, Rel, inserttuple(Rel, Val), Stream),
+  !.
+
+translate(delete from Rel where Condition,
+        Stream, Select, delete from Rel, Cost) :-
+  translate(select * from Rel where Condition, Stream, Select, _, Cost),
+  !.
+
+
+translate(delete from Rel,
+        Stream, Select, delete from Rel, Cost) :-
+  translate(select * from Rel, Stream, Select, _, Cost),
+  !.
+
+translate(update Rel set Transformations where Condition,
+        Stream, Select, update Rel set Transformations2, Cost) :-
+  translate(select * from Rel where Condition, Stream, Select, _, Cost),
+  translateTransformations(Transformations, Transformations2),
+  !.
+
+translate(update Rel set Transformations,
+        Stream, Select, update Rel set Transformations2, Cost) :-
+  translate(select * from Rel, Stream, Select, _, Cost),
+  translateTransformations(Transformations, Transformations2),
+  !.
+
+
+translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
   not( optimizerOption(immediatePlan) ),
   not( optimizerOption(intOrders(_))     ),  % standard behaviour
   getTime(( pog(Rels, Preds, _, _),
@@ -4828,8 +5061,9 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   ( optimizerOption(pathTiming)
     -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') )
      ; true
-  ), !.
-
+  ),
+  splitSelect(Select, Select2, Update),
+  !.
 
 /*
 Modified version to integrate the optional generation of immediate plans.
@@ -4841,7 +5075,7 @@ To activate this option use ``setOption(intOrders(V))'' for a variant ~V~.
 
 */
 
-translate(Select from Rels where Preds, Stream, Select, Cost) :-
+translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
   ( optimizerOption(immediatePlan) ; optimizerOption(intOrders(_)) ),
   getTime(( immPlanTranslate(Select from Rels where Preds, Stream,Select,Cost),
             !
@@ -4849,8 +5083,8 @@ translate(Select from Rels where Preds, Stream, Select, Cost) :-
   ( optimizerOption(pathTiming)
     -> ( write('\nTIMING for path creation: '), write(Time), write(' ms.\n') )
      ; true
-  ), !.
-
+  ),
+  splitSelect(Select, Select2, Update), !.
 
 /*
 Below we handle the case of queries without where-clause. This results
@@ -4867,30 +5101,30 @@ C. Duentgen, Feb/17/2006: changed tuple variable names for the sake of uniquenes
 
 */
 
-
-translate(Select from Rel, Stream, Select, 0) :-
+translate(Select from Rel, Stream, Select2, Update, 0) :-
   not(is_list(Rel)),
   makeStream(Rel, Stream),
   (optimizerOption(pathTiming)
     -> write('\nTIMING for path creation: No optimization.\n') ; true
-  ), !.
+  ), splitSelect(Select, Select2, Update), !.
 
-translate(Select from [Rel], Stream, Select, 0) :-
+translate(Select from [Rel], Stream, Select2, Update, 0) :-
   makeStream(Rel, Stream),
   deleteVariables,
   (optimizerOption(pathTiming)
     -> write('\nTIMING for path creation: No optimization.\n') ; true
-  ).
+  ), splitSelect(Select, Select2, Update).
 
 
 translate(Select from [Rel | Rels],
         symmjoin(S1, S2, fun([param(T1, tuple), param(T2, tuple2)], true)),
-        Select, 0) :-
+        Select2, Update, 0) :-
   makeStream(Rel, S1),
-  translate1(Select from Rels, S2, Select, _),
+  translate1(Select from Rels, S2, Select2, Update, _),
   newVariable(T1),
   newVariable(T2),
   !.
+
 
 makeStream(Rel, feed(Rel)) :- Rel = rel(_, *), !.
 
@@ -5248,6 +5482,16 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   write('*****'), nl.
 
 
+translateTransformations([], []) :-
+  !.
+
+translateTransformations([Transf|Rest], [Transf2|Rest2]) :-
+  translateTransformation(Transf, Transf2),
+  translateTransformations(Rest, Rest2).
+
+translateTransformation(Attr = Term, set(Attr, Term)).
+
+
 /*
 
 ----    queryToPlan(+Query, -Plan, -Cost) :-
@@ -5280,6 +5524,11 @@ queryToPlan(Query, Stream2, Cost) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default),
   queryToStream(Query1, Stream, Cost),
   Stream2 =.. [simpleUserAggrNoGroupby, Stream, AggrExpr, Fun, Default], !.
+
+% case: update query
+queryToPlan(Query, count(Stream), Cost) :-
+  updateQuery(Query),
+  queryToStream(Query, Stream, Cost), !.
 
 % case: ordinary consume query
 queryToPlan(Query, consume(Stream), Cost) :-
@@ -5407,6 +5656,20 @@ userDefAggrQuery(Query first N, Query1 first N, AggrExpr, Fun, Default) :-
 userDefAggrQuery(Query last N, Query1 last N, AggrExpr, Fun, Default) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
 
+/*
+Check whether ~Query~ is an update query.
+
+*/
+
+updateQuery(insert into _ values _) :- !.
+updateQuery(insert into _ select _ from _) :- !.
+updateQuery(delete from _) :- !.
+updateQuery(update _ set _) :- !.
+
+updateQuery(Query groupby _) :- updateQuery(Query).
+updateQuery(Query orderby _) :- updateQuery(Query).
+updateQuery(Query first _)   :- updateQuery(Query).
+updateQuery(Query last _)    :- updateQuery(Query).
 
 /*
 
@@ -5425,24 +5688,28 @@ queryToStream(Query last N, tail(Stream, N), Cost) :-
   queryToStream(Query, Stream, Cost),
   !.
 
-queryToStream(Query orderby SortAttrs, Stream2, Cost) :-
-  translate1(Query, Stream, Select, Cost),
+queryToStream(Query orderby SortAttrs, Stream3, Cost) :-
+  translate1(Query, Stream, Select, Update, Cost),
   finish(Stream, Select, SortAttrs, Stream2),
+  finishUpdate(Update, Stream2, Stream3),
   !.
 
-queryToStream(Select from Rels where Preds, Stream2, Cost) :-
-  translate1(Select from Rels where Preds, Stream, Select1, Cost),
+queryToStream(Select from Rels where Preds, Stream3, Cost) :-
+  translate1(Select from Rels where Preds, Stream, Select1, Update, Cost),
   finish(Stream, Select1, [], Stream2),
+  finishUpdate(Update, Stream2, Stream3),
   !.
 
-queryToStream(Select from Rels groupby Attrs, Stream2, Cost) :-
-  translate1(Select from Rels groupby Attrs, Stream, Select1, Cost),
+queryToStream(Select from Rels groupby Attrs, Stream3, Cost) :-
+  translate1(Select from Rels groupby Attrs, Stream, Select1, Update, Cost),
   finish(Stream, Select1, [], Stream2),
+  finishUpdate(Update, Stream2, Stream3),
   !.
 
-queryToStream(Query, Stream2, Cost) :-
-  translate1(Query, Stream, Select, Cost),
+queryToStream(Query, Stream3, Cost) :-
+  translate1(Query, Stream, Select, Update, Cost),
   finish(Stream, Select, [], Stream2),
+  finishUpdate(Update, Stream2, Stream3),
   !.
 
 /*
@@ -6238,3 +6505,153 @@ allCards :-
 */
 
 :- ['./Subqueries/subqueries'].
+
+/*
+19 Update operations
+
+*/
+
+
+/*
+19.1 Update the Index after an Insert, Update or Delete-Operation
+
+*/
+
+updateIndex(Operation, [rel(Rel, Var)], StreamIn, StreamOut) :-
+  relation(Rel, Attrs),
+  updateIndex(Operation, rel(Rel, Var), Attrs, StreamIn, StreamOut),
+  !.
+
+
+updateIndex(_, _, [], StreamIn, StreamIn) :-
+  !.
+
+updateIndex(Operation, Rel, [Attr|Attrs], StreamIn, StreamOut) :-
+  lookupAttr(Attr, Attr2),
+  updateAttrIndex(Operation, Rel, Attr2, StreamIn, Stream),
+  updateIndex(Operation, Rel, Attrs, Stream, StreamOut).
+
+
+updateAttrIndex(Operation, Rel, Attr, StreamIn, StreamOut) :-
+  hasIndex(Rel, Attr, DCindex, LogicalIndexType),
+  dcName2externalName(DCindex,IndexName),
+  logicalIndexType(_, LogicalIndexType, PhysicalIndexType, _, _, _, _, _),
+  updateTypedIndex(Operation, Attr, IndexName, PhysicalIndexType,
+       StreamIn, StreamOut),
+  !.
+
+updateAttrIndex(_, Rel, Attr, StreamIn, StreamIn) :-
+  not(hasIndex(Rel, Attr, _, _)),
+  !.
+
+updateTypedIndex(insert, Attr, IndexName, btree, StreamIn,
+     insertbtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(insert, Attr, IndexName, rtree, StreamIn,
+     insertrtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(insert, Attr, IndexName, hash, StreamIn,
+     inserthash(StreamIn, IndexName, Attr)) :-
+  !.
+
+
+updateTypedIndex(insert, Attr, IndexName, rtree3, StreamIn,
+     insertrtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(insert, Attr, IndexName, rtree4, StreamIn,
+     insertrtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(insert, Attr, IndexName, rtree8, StreamIn,
+     insertrtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, btree, StreamIn,
+     deletebtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, rtree, StreamIn,
+     deletertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, hash, StreamIn,
+     deletehash(StreamIn, IndexName, Attr)) :-
+  !.
+
+
+updateTypedIndex(delete, Attr, IndexName, rtree3, StreamIn,
+     deletertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, rtree4, StreamIn,
+     deletertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(delete, Attr, IndexName, rtree8, StreamIn,
+     deletertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+
+updateTypedIndex(update, Attr, IndexName, btree, StreamIn,
+     updatebtree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(update, Attr, IndexName, rtree, StreamIn,
+     updatertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(update, Attr, IndexName, hash, StreamIn,
+     updatehash(StreamIn, IndexName, Attr)) :-
+  !.
+
+
+updateTypedIndex(update, Attr, IndexName, rtree3, StreamIn,
+     updatertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(update, Attr, IndexName, rtree4, StreamIn,
+     updatertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+updateTypedIndex(update, Attr, IndexName, rtree8, StreamIn,
+     updatertree(StreamIn, IndexName, Attr)) :-
+  !.
+
+/*
+19.2 Split the select and update clause
+
+*/
+
+splitSelect(select SelectClause, select SelectClause, []) :-
+  !.
+
+splitSelect(UpdateClause select SelectClause, select SelectClause, UpdateClause) :-
+  !.
+
+
+/*
+19.3 Insert the update commands in the end of the operation
+
+*/
+
+finishUpdate([], Stream2, Stream2) :-
+  !.
+
+finishUpdate(insert into Rel, Stream2, Stream3) :-
+  updateIndex(insert, Rel, insert(Rel, Stream2), Stream3),
+  !.
+
+finishUpdate(delete from Rel, Stream2, Stream3) :-
+  updateIndex(delete, Rel, deletedirect(Rel, Stream2), Stream3),
+  !.
+
+finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
+  updateIndex(update, Rel, updatedirect(Rel, Transformations, Stream2),
+        Stream3),
+  !.
+
+writeDebug(Text) :-
+  write(Text), nl.
