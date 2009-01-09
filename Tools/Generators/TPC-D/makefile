@@ -12,9 +12,20 @@ CC      = gcc
 #                                  SGI, U2200, VMS, WIN32
 DATABASE= DB2 
 PLATFORM= SUN 
+
+ifndef SECONDO_PLATFORM
+  posix = 
+else
+  ifeq ($(SECONDO_PLATFORM),mac_osx)
+     posix = -D_POSIX_SOURCE
+  else
+     posix = 
+  endif
+endif
+
 #
-CFLAGS  = -O -D$(DATABASE) -D$(PLATFORM)
-LDFLAGS = -lm
+CFLAGS  = -O -D$(DATABASE) -D$(PLATFORM) $(posix)
+LDFLAGS = -lm 
 # The OBJ,EXE and LIB macros will need to be changed for compilation under
 #  Windows NT
 OBJ     = .o
