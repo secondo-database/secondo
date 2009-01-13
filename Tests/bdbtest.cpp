@@ -284,9 +284,10 @@ main( int argc, char** argv )
   }
   
 
-
-  assert ( !db1.close(DB_NOSYNC) );
-  assert ( !db2.close(DB_NOSYNC) );
+  bool t1 = db1.close(DB_NOSYNC); 
+  assert (!t1);
+  t1 = db2.close(DB_NOSYNC); 
+  assert ( !t1);
 
   cout << "Time: " << runTime.diffTimes() << endl;
   int BDBclosed = bdb.close(0);

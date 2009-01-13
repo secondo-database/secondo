@@ -232,7 +232,8 @@ CTable<T>::EmptySlot() {
   }
   
   last = leastFree;
-	//cout << "CTable<" << typeid(T).name() << ">::EmptySlot last=" << last << endl;
+	//cout << "CTable<" << typeid(T).name() 
+  //     << ">::EmptySlot last=" << last << endl;
 	
   return last;
 }
@@ -378,7 +379,8 @@ CTable<T>::Iterator::operator++( int /*n = 0*/ ) {
   do {
      if (current >= ct->highestValid) break;
      current++;
-     assert(!ct->OutOfRange(current));
+     bool t1 = ct->OutOfRange(current);
+     assert(!t1);
      // 27.07.2006, spm: valgrind reports an error for the next code line
      // when running a query which uses the groupby  operator of the 
      // OldRelationAlgebra! 
