@@ -432,7 +432,6 @@ char* Tuple::WriteToBlock( size_t coreSize,
       attributes[i]->Serialize( data, currentSize, offset );
       offset += currentSize;
 
-      int numFlobs = attributes[i]->NumOfFLOBs();
       DEBUG(this, "numFlobs = " << numFlobs)
 
 
