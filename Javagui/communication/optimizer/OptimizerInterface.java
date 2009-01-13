@@ -148,10 +148,10 @@ public void disconnect(){
 public String optimize_execute(String query, String Database, IntObj ErrorCode, boolean executeFlag){
    query = query.trim();
    String QUERY = query.toUpperCase();
-   if(!QUERY.startsWith("SQL") && !QUERY.startsWith("SELECT") && ! executeFlag){
-       ErrorCode.value = ErrorCodes.NO_OPTIMIZATION_POSSIBLE;
-       return query;
-   }
+//   if(!QUERY.startsWith("SQL") && !QUERY.startsWith("SELECT") && ! executeFlag){
+//       ErrorCode.value = ErrorCodes.NO_OPTIMIZATION_POSSIBLE;
+//       return query;
+//   }
 
    try{
      if(executeFlag)

@@ -577,13 +577,44 @@ public class CommandPanel extends JScrollPane {
 
   /** optimizes a command if optimizer is enabled */
   private String optimize(String command){
+   IntObj Err = new IntObj();
+
+   // look for insert into, delete from and update rename 
+   boolean isOptUpdateCommand = false;
+   if(command.startsWith("sql ")){
+      isOptUpdateCommand = true;
+   } else if( command.matches("insert *into.*")){
+      isOptUpdateCommand = true;
+   } else if( command.matches("delete *from.*")){
+      isOptUpdateCommand = true;
+   } else if( command.matches("update *[a-z][a-z,A-Z,0-9]* *set.*")){
+      isOptUpdateCommand = true;
+   }
+   if(isOptUpdateCommand){
+     if(!useOptimizer()){ // error select clause found but no optimizer enabled
+        appendText("optimizer not available");
+        showPrompt();
+        return "";
+     }
+     String opt = OptInt.optimize_execute(command,OpenedDatabase,Err,false);
+     if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
+        appendText("\nerror in optimization of this query");
+        showPrompt();
+        return "";
+      }else{
+        return "query " + opt;
+      }
+   }
+
+
+  // some more effort for select which can also be only a part within a query
+
   if(command.length()<6) // command can't contain a select clause
     return command;
 
   String TmpCommand = "";
   int First = 0;
   Interval SelectClauseInterval=null;
-  IntObj Err = new IntObj();
   String SelectClause="";
   boolean isQuery = false;
   int length = command.length();
