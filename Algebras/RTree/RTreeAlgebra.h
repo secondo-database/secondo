@@ -1256,8 +1256,9 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
       for( int i = minSplitPoint + 1; i <= MaxEntries(); i++ )
         n2.Insert( *entries[ sort[ i ] ] );
 
-      assert( n1.BoundingBox().Intersection( n2.BoundingBox() ).Area()
-              == minOverlap );
+      assert( AlmostEqual(
+               n1.BoundingBox().Intersection( n2.BoundingBox() ).Area(),
+               minOverlap ));
 
       // Deallocate the sortedEntry arrays
       for( unsigned i = 0; i < 2*dim; i++)
