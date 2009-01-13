@@ -3128,7 +3128,8 @@ Product(Word* args, Word& result, int message,
           {
             pli->currentTuple = (Tuple*)r.addr;
             pli->iter = pli->rightRel->MakeScan();
-            assert( (rightTuple = pli->iter->GetNextTuple()) != 0 );
+            rightTuple = pli->iter->GetNextTuple();
+            assert( rightTuple != 0 );
             resultTuple = new Tuple( pli->resultTupleType );
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
@@ -3311,7 +3312,8 @@ Product(Word* args, Word& result, int message,
           {
             pli->currentTuple = (Tuple*)r.addr;
             pli->iter = pli->rightRel->MakeScan();
-            assert( (rightTuple = pli->iter->GetNextTuple()) != 0 );
+            rightTuple = pli->iter->GetNextTuple();
+            assert( rightTuple != 0 );
             resultTuple = new Tuple( pli->resultTupleType );
             Concat(pli->currentTuple, rightTuple, resultTuple);
             rightTuple->DeleteIfAllowed();
