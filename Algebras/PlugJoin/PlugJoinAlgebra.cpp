@@ -797,7 +797,8 @@ First buffer the input streams in TupleBuffers.
 Create the SMI-File for storing partitions.
 
 */
-  assert ( hdr.file.Create() );
+  bool t1 = hdr.file.Create();
+  assert ( t1 );
   assert ( hdr.file.IsOpen() );
 
 
@@ -1654,8 +1655,10 @@ void SpatialJoinLocalInfo<dim>::Write
 
   //writing to SMI-file
   SmiRecord* record = new SmiRecord();
-  assert ( hdr.file.SelectRecord ( recNo, *record, SmiFile::Update) );
-  assert ( (*record).Write( buffer, sizeOfRecord, 0) );
+  bool t1 = hdr.file.SelectRecord ( recNo, *record, SmiFile::Update);
+  assert ( t1 );
+  t1 = record->Write( buffer, sizeOfRecord, 0);
+  assert ( t1 );
   delete record;
 
   //erase entries for node ~nodeNo~
@@ -1675,7 +1678,8 @@ void SpatialJoinLocalInfo<dim>::ReadFirstEntries
 {
   //getting number of first record
   typename PartitionInfo::const_iterator inner_iter;
-  assert ( (inner_iter = m->find(actualNodeNo)) != m->end() );
+  inner_iter = m->find(actualNodeNo);
+  assert ( inner_iter != m->end() );
 
   SmiRecordId firstRecordId = inner_iter->second.firstRId;
 
@@ -1692,8 +1696,10 @@ void SpatialJoinLocalInfo<dim>::ReadFirstEntries
 
   //reading first record
   SmiRecord* record = new SmiRecord();
-  assert ( hdr.file.SelectRecord (firstRecordId, *record) );
-  assert ( (*record).Read(buffer, sizeOfRecord, 0) );
+  bool t1 = hdr.file.SelectRecord (firstRecordId, *record);
+  assert ( t1 );
+  t1 = record->Read(buffer, sizeOfRecord, 0); 
+  assert ( t1 );
   delete record;
 
   //reads nodeNo, number of entries and nextRecordId
@@ -1742,8 +1748,10 @@ void SpatialJoinLocalInfo<dim>::ReadNextEntries ( SmiRecordId& nextRecordId,
 
   //reading first record
   SmiRecord* record = new SmiRecord();
-  assert ( hdr.file.SelectRecord (oldNextRecordId, *record) );
-  assert ( (*record).Read(buffer, sizeOfRecord, 0) );
+  bool t1 = hdr.file.SelectRecord (oldNextRecordId, *record);
+  assert ( t1 );
+  t1 = record->Read(buffer, sizeOfRecord, 0); 
+  assert ( t1 );
   delete record;
 
   //reads nodeNo, number of entries and nextRecordId
