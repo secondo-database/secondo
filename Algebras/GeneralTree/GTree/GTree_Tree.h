@@ -258,8 +258,8 @@ gtree::Tree<THeader, TTreeManager>::Tree(SmiFileId fileId)
 #ifdef __GTREE_DEBUG
     Msg::showDbgMsg();
 #endif
-
-    assert(file.Open(fileId));
+    bool t1 = file.Open(fileId);
+    assert(t1);
 
     // compute headerPageCount
     headerPageCount = 0;

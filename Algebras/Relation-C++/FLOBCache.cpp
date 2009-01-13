@@ -425,7 +425,8 @@ void FLOBCache::Drop( SmiFileId fileId, bool isTemp, bool paged )
     if( iter == files.end() )
     {
       file = new SmiRecordFile( false, 0, isTemp );
-      assert( file->Open( fileId ) );
+      bool t1 = file->Open(fileId);
+      assert( t1 );
     }
     else
     {

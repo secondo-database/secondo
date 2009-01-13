@@ -1616,7 +1616,8 @@ int knearestFun (Word* args, Word& result, int message,
             if( posNext == localInfo->activeLine.end() )
             {
               //perhaps changed before
-              assert(check(localInfo->activeLine ,elem.pointInTime));
+              bool t1 = check(localInfo->activeLine ,elem.pointInTime);
+              assert(t1);
               break;
             }
             if( posNext->tuple != elem.tuple2 )
@@ -2051,7 +2052,8 @@ int knearestFunVector (Word* args, Word& result, int message,
             if( posnext < pos)
             {
               //perhaps changed before
-              assert(check(localInfo->activeLine ,elem.pointInTime));
+              bool t1 = check(localInfo->activeLine ,elem.pointInTime);
+              assert(t1);
               break;
             }
 
