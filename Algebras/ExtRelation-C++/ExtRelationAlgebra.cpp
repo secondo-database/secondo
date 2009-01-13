@@ -91,7 +91,8 @@ variance on a stream.
 #include <sstream>
 #include <stack>
 
-#define TRACE_ON
+//#define TRACE_ON
+#undef TRACE_ON
 #include "LogMsg.h"
 #define TRACE_OFF
 

@@ -54,6 +54,7 @@ using namespace std;
 #include <limits.h>
 
 //#define TRACE_ON 1
+#undef TRACE_ON
 #include "LogMsg.h"
 
 #include <db_cxx.h>

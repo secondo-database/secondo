@@ -36,6 +36,7 @@ May 2008, Victor Almeida created the two sons of the ~SmiKeyedFile~ class, namel
 using namespace std;
 
 //#define TRACE_ON 1
+#undef TRACE_ON
 #include "LogMsg.h"
 
 #include <string>

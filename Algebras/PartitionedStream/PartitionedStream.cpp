@@ -54,8 +54,8 @@ for query processing.
 #include <queue>
 #include <algorithm>
 
-//#undef TRACE_ON
-#define TRACE_ON 1
+#undef TRACE_ON
+//#define TRACE_ON 1
 #include "LogMsg.h"
 
 #include "CharTransform.h"

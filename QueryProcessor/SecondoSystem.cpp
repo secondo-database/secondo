@@ -81,6 +81,7 @@ The names of existing databases are stored in a list ~DBTable~.
 using namespace std;
 
 //#define TRACE_ON 1
+#undef TRACE_ON
 #include "LogMsg.h"
 
 #include "ErrorCodes.h"

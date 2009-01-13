@@ -142,6 +142,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 
 //Uncomment next line for tracing tuple operations
 //#define TRACE_ON
+#undef TRACE_ON
 #include "TraceMacros.h"
 
 extern AlgebraManager* am;

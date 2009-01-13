@@ -45,6 +45,7 @@ using namespace std;
 #include <sstream>
 
 //#define TRACE_ON 1
+#undef TRACE_ON
 #include "LogMsg.h"
 #include "SecondoInterface.h"
 #include "SocketIO.h"

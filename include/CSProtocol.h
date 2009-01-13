@@ -249,6 +249,7 @@ The client can close the connection by sending
 #include <list>
 
 //#define TRACE_ON 1
+#undef TRACE_ON
 #include "LogMsg.h"
 #include "ErrorCodes.h"
 #include "NestedList.h"

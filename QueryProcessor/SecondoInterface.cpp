@@ -113,6 +113,7 @@ using namespace std;
 #include <fstream>
 
 //#define TRACE_ON 1
+#undef TRACE_ON
 #include "LogMsg.h"
 
 #include "SecondoInterface.h"

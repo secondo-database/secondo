@@ -100,6 +100,7 @@ The names of existing databases are stored in a list ~DBTable~.
 #include <iostream>
 
 //#define TRACE_ON 1
+#undef TRACE_ON
 #include "LogMsg.h"
 
 #include "SecondoSystem.h"

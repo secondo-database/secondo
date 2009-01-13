@@ -41,7 +41,8 @@ implemented in the HierarchicalGeoAlgebra.h file.
 
 */
 
-#define TRACE_ON
+//#define TRACE_ON
+#undef TRACE_ON
 #include "LogMsg.h"
 #undef TRACE_ON
 
