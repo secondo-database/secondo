@@ -951,8 +951,9 @@ void R_TreeNodePnJ<dim>::Split( R_TreeNodePnJ<dim>& n1,
       for( int i = minSplitPoint + 1; i <= MaxEntries(); i++ )
         n2.Insert( entry[ sort[ i ] ] );
 
-      assert( n1.BoundingBox().Intersection( n2.BoundingBox() ).Area() 
-              == minOverlap );
+      assert( AlmostEqual(
+               n1.BoundingBox().Intersection( n2.BoundingBox() ).Area(), 
+               minOverlap) );
 
       // Deallocate the sortedEntry arrays
       for( unsigned i = 0; i < 2*dim; i++)
