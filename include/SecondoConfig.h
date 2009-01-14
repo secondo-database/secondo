@@ -79,10 +79,14 @@ endian byte order architecture. Otherwise ~\#undef~ this symbol.
   || defined(__MINGW32__)) && !defined(__CYGWIN__)
 #  define SECONDO_WIN32
    // Define Windows version for WINVER and _WIN32_WINNT
-   // 0x0400 = Windows NT 4.0
+   // values are document at MSDN
+
    // 0x0500 = Windows 2000 (NT based)
+   // 0x0501 = Windows XP
+   // 0x0502 = Windows Server 2003 with SP1, Windows XP with SP2
+   // 0x0600 = Windows Vista, Windows Server 2008
 #ifndef WINVER 
-#  define WINVER       0x0400
+#  define WINVER       0x0501
 #endif
 #ifndef _WIN32_WINNT
 #  define _WIN32_WINNT WINVER 
