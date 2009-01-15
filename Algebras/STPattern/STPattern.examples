@@ -1,0 +1,8 @@
+Database : berlintest
+Restore  : NO
+
+Operator : STPATTERN
+Number   : 1
+Signature: ((stream x) ((map1 x mbool1)...(mapn x mbooln))) -> (stream x)
+Example  : query Trains feed stpattern[f1: .Trip inside msnow, f2: distance(.Trip, mehringdamm) < 10.0 ]   count 
+Result   : 14
