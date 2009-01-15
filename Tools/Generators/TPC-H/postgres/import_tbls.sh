@@ -5,23 +5,27 @@
 
 
 db="$1"
-rootDir="$2"
+dataDir="$2"
 
 if [ "$db" == "" ]; then
   echo "Error: no database specified!"
   exit 1
 fi 
 
-if [ "$rootDir" == "" ]; then
-  rootDir=$PWD
+if [ "$dataDir" == "" ]; then
+  dataDir=$PWD
 fi 
 
-echo "db: $db"
-echo "rootDir: $rootDir"
+# import data
+echo -e "\n *** Importing data from $dataDir into database $db ... *** \n"
 
-for table in "customer" "lineitem" "orders"; do
-  echo "COPY $table FROM '$rootDir/s05pp/$table.tbl.pg' WITH DELIMITER AS
+for table in $dataDir/*.tbl.pg; do
+  basename=${table##*/}
+  rel=${basename%.tbl.pg}
+  echo "COPY $rel FROM '$table' WITH DELIMITER AS
 '|'" | psql -d $db -e
 done
 
 vacuumdb -ef -d $db
+
+exit $?

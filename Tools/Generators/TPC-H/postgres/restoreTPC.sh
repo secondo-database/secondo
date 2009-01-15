@@ -6,32 +6,34 @@
 # in the current directory. 
 
 if [ "$1" == "" ]; then
-  printf "\n Usage: $0 <dbname> [<table-dir>]\n\n"
+  echo -e "\n Usage: $0 <dbname> [<table-dir>]\n\n"
   exit 1
 fi
 
 db="$1"
+PATH=".:$PATH"
 
-pg_scripts="$PWD/postgres"
 tbl_dir="$PWD"
 if [ "$2" != "" ]; then
   tbl_dir="$2"
 fi
 
+
 # convert data suitable for the Postgres copy command
+echo -e "\n*** Preparing data files ***\n"
 for file in $tbl_dir/*.tbl
 do
- echo -e "Processing $file ...\n"
- $pg_scripts/rm-lastsep.sh $file
+ if [ ! -e $file.pg ]; then	
+   echo -e "Converting $file ...\n"
+   rm-lastsep.sh $file
+ fi  
 done
 
-cd $tbl_dir
 # create a database
 createdb $db
 
 # create relations
-psql -e -f"$pg_scripts/create_tbls.sql" -d"$db"
+psql -e -f"create_tbls_64bit.sql" -d"$db"
 
 # import data
-echo -e "Importing data into database $db ...\n" 
-psql -e -f"$pg_scripts/import_tbls.sql" -d"$db"
+import_tbls.sh $db $tbl_dir
