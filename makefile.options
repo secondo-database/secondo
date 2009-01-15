@@ -38,12 +38,14 @@ DEBUG = -ggdb
 # Use more optimizations
 #OPTIMIZE += -O2 -finline-functions -mcpu=athlon-xp  
 
-# Do not use assertions. Currently, this does not work
-# since some code uses assertions to check if functions
-# were successful. This must be changed. Assertions should
+# Use even more optimization
+#OPTIMIZE += -O3 -march=native
+
+# Do not use assertions. 
+# Assertions may
 # only check logical constraints without doing any program
-# logic!
-# OPTIMIZE += -DNDEBUG  
+# logic! NEVER use functions having side-effects within an assert(...)!
+#OPTIMIZE += -DNDEBUG  
 
 # Uncomment next lines to generate profiling data used by gprof
 # Run make realclean; make  
