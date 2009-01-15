@@ -1,4 +1,8 @@
 -- TPC-H/TPC-R Pricing Summary Report Query (Q1)
+
+set enable_hashagg = off;
+set work_mem = 4096;
+
 select
 	l_returnflag,
 	l_linestatus,

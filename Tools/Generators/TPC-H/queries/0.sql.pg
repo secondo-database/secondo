@@ -1,0 +1,6 @@
+-- Jan. 2009, M. Spiekermann
+--
+-- do a table scan which really guarantees to read 
+-- and load some data
+
+select L_DISCOUNT, l_EXTENDEDPRICE, l_LINESTATUS, l_QUANTITY, l_RETURNFLAG, l_SHIPDATE, l_TAX from lineitem where l_quantity < 0
