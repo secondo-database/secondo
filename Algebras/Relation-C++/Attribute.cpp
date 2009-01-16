@@ -59,6 +59,7 @@ derived attribute class must implement.
 #include "AlgebraManager.h"
 #include "FLOB.h"
 #include "WinUnix.h"
+#include <limits>
 
 const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
 

@@ -30,6 +30,7 @@ using namespace std;
 #include <string>
 #include <sstream>
 #include <map>
+#include <cstring>
 
 #include "Environment.h"
 #include "TTYParameter.h"

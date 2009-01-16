@@ -1401,7 +1401,7 @@ computing the results.
 This function computes whether two half segments cross each other and returns the crossing point ~p~.
 
 */
-    bool Intersection( const HalfSegment& hs, HalfSegment& hs ) const;
+    bool Intersection( const HalfSegment& hs1, HalfSegment& hs2 ) const;
 /*
 This function computes whether two half segments intersect each other and returns the resulting
 halfsegment ~hs~.

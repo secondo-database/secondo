@@ -32,6 +32,7 @@ Documentation of the encoding scheme of known predicate selectivities.
 #include <stdio.h>
 #include <iostream>
 #include <set>
+#include <cstdlib>
 
 #include "entropy.h"
 

@@ -47,6 +47,9 @@ Sept 2006 M. Spiekermann. When windows.h is included many WIN-API functions like
 
 #include "FileSystem.h"
 #include "LogMsg.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <cstring>
 
 #include <sstream>
 

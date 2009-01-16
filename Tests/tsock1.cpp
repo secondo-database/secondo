@@ -25,6 +25,7 @@ using namespace std;
 #include "SocketIO.h"
 #include <time.h>
 #include <string>
+#include <cstdlib>
 
 #define HDR_SIZE  16
 #define BODY_SIZE 240
@@ -41,7 +42,8 @@ int main( int argc, char* argv[] )
   if ( argc < 4 )
   {
     cout << "Socket test program 1 (Performance test)" << endl
-         << "Usage: tsock1 [(local-server|global-server)|client] host port" << endl;
+         << "Usage: tsock1 [(local-server|global-server)|client] host port"
+         << endl;
     return (EXIT_FAILURE);
   }
 

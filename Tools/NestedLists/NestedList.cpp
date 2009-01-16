@@ -99,6 +99,7 @@ using namespace std;
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <limits.h>
 
 #include "CharTransform.h"
 #include "NLParser.h"

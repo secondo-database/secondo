@@ -23,6 +23,7 @@ ends with ".cpp" or ".h".
 
 #include <string>
 #include <iostream>
+#include <cstdlib>
 
 using namespace std;
 

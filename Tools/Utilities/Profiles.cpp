@@ -29,6 +29,8 @@ using namespace std;
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
+#include <cstring>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -70,7 +72,8 @@ string SmiProfile::GetParameter( const string& sectionName,
               resultString += ',';
             } 
             resultString += 
-              line.substr( valuePos, line.find_last_not_of( " \t\r\n" )-valuePos+1 );
+              line.substr( valuePos, 
+                           line.find_last_not_of( " \t\r\n" )-valuePos+1 );
           }
         }
         break;

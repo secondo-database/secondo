@@ -73,6 +73,7 @@ using namespace std;
 #include <queue>
 #include <iterator>
 #include <sstream>
+#include <limits>
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );

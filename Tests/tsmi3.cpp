@@ -27,6 +27,7 @@ Oct 2006, M. Spiekermann. Many changes in order to get it work again.
 
 #include <iostream>
 #include <string>
+#include <cstdlib>
 
 #include "SecondoSMI.h"
 #include "SmiBDB.h"

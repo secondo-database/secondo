@@ -44,6 +44,8 @@ command instead of hard coded application name SecondoTTYBDB
 #include <string>
 #include <map>
 #include <sys/stat.h>
+#include <cstdlib>
+#include <cstring>
 using namespace std;
 
 #include "SecondoConfig.h"

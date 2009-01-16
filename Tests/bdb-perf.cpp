@@ -24,6 +24,7 @@ does call the same bulk-retrieval APIs as in this code.
 #include <sstream>
 #include <fstream>
 #include "StopWatch.h"
+#include <cstdlib>
 
 using namespace std;
 

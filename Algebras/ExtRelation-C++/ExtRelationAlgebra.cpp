@@ -90,6 +90,7 @@ variance on a stream.
 #include <deque>
 #include <sstream>
 #include <stack>
+#include <limits.h>
 
 //#define TRACE_ON
 #undef TRACE_ON
