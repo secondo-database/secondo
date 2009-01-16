@@ -1238,12 +1238,14 @@ void PMSimple<T, Unit>::GetLength(SubMove sm, DateTime& result){
                       U->interval.StoreLength(result);
                    } break;
       case COMPOSITE: {
-                       const CompositeMove* CM; 
+                       const CompositeMove* CM;
+                       compositeMoves.Get(sm.arrayIndex,CM); 
                        CM->interval.StoreLength(result); 
                       }break;
 
      case PERIOD: {
                    const PeriodicMove* PM;
+                   periodicMoves.Get(sm.arrayIndex,PM);
                    PM->interval.StoreLength(result);
                   } break;
      default: assert(false); // unknown move type
@@ -1735,10 +1737,11 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
    }
    
    ListExpr SML;
-   if(len==2)
+   if(len==2){
       SML = ::nl->Second(value);
-   if(len==4)
+   } else { // len == 4 
       SML = ::nl->Fourth(value);
+   }
 
    if(::nl->ListLength(SML)!=2){
       if(DEBUG_MODE){

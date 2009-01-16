@@ -1789,7 +1789,7 @@ int PMPoint::NumberOfExpandedUnits(const SubMove S)const{
 /*
 ReadFrom
 
-Thgis function reads a Periodic moving point from 
+This function reads a Periodic moving point from 
 a lineary moving one.
 
 */

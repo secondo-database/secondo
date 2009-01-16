@@ -127,7 +127,7 @@ Result   : (duration (1 0))
 Operator  : length
 Number    : 2
 Signature : pmpoint -> real
-Example   : query length(train7) = length(createpmpoint(train7));
+Example   : query abs(length(train7) - length(createpmpoint(train7))) < 0.000001;
 Result    : (bool TRUE)
 
 

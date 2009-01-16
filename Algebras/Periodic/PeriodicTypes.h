@@ -807,7 +807,6 @@ ListExpr ToConstantListExpr(const bool value);
 
 bool ReadFromListExpr(ListExpr le, bool& v);
 
-
 typedef LinearConstantMove<bool> LinearBoolMove ; 
 
 
