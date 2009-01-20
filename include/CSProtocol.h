@@ -288,7 +288,7 @@ class ServerMessage : public MessageHandler {
      cerr << "Warning: Last request was not <Secondo>! "
           << "Message will not be sent to the client." << endl
           << startMessage << endl 
-          << msg.str() << endMessage << endl;
+          << msg.convertToString() << endMessage << endl;
      return false;
    } 
 
