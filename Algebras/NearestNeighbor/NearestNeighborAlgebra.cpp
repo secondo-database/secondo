@@ -367,7 +367,7 @@ knearestTypeMap( ListExpr args )
   }
 
   // check for third argument type == mpoint
-  nl->WriteToString(argstr, quantity);
+  nl->WriteToString(argstr, third);
   CHECK_COND((nl->IsEqual( third, "mpoint" )),
   "Operator knearest expects a third argument of type point.\n"
   "Operator knearest gets '" + argstr + "'.");
@@ -387,6 +387,144 @@ knearestTypeMap( ListExpr args )
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
       tupleDescription));
+}
+
+
+/*
+The function knearestFilterTypeMap is the type map for the 
+operator knearestfilter
+
+*/
+ListExpr
+knearestFilterTypeMap( ListExpr args )
+{
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
+
+  char* errmsg = "Incorrect input for operator knearestfilter.";
+  string rtreeDescriptionStr, relDescriptionStr;
+  string argstr, argstr2;
+
+  CHECK_COND(nl->ListLength(args) == 4,
+    "Operator knearest expects a list of length four.");
+
+  ListExpr rtreeDescription = nl->First(args);
+  ListExpr relDescription = nl->Second(args);
+  ListExpr third = nl->Third(args);
+  ListExpr quantity = nl->Fourth(args);
+
+  // check for third argument type == mpoint
+  nl->WriteToString(argstr, third);
+  CHECK_COND((nl->IsEqual( third, "mpoint" )),
+  "Operator knearestfilter expects a third argument of type mpoint.\n"
+  "Operator knearestfilter gets '" + argstr + "'.");
+
+  // check for fourth argument type == int
+  nl->WriteToString(argstr, quantity);
+  CHECK_COND((nl->IsAtom(quantity)) 
+    && (nl->AtomType(quantity) == SymbolType) 
+    && (nl->SymbolValue(quantity) == "int"),
+  "Operator expects a fourth arg. of type integer.\n"
+  "Operator knearestfilter gets '" + argstr + "'.");
+
+  /* handle rtree part of argument */
+  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
+  CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
+    !nl->IsAtom(rtreeDescription) &&
+    nl->ListLength(rtreeDescription) == 4,
+    "Operator knearestfilter expects a R-Tree with structure "
+    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
+    "bool)\nbut gets a R-Tree list with structure '"
+    +rtreeDescriptionStr+"'.");
+
+  ListExpr rtreeSymbol = nl->First(rtreeDescription),
+           rtreeTupleDescription = nl->Second(rtreeDescription),
+           rtreeKeyType = nl->Third(rtreeDescription),
+           rtreeTwoLayer = nl->Fourth(rtreeDescription);
+
+  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
+    nl->AtomType(rtreeKeyType) == SymbolType &&
+    (algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
+     nl->IsEqual(rtreeKeyType, "rect3")),
+   "Operator knearestfilter expects a R-Tree with key type\n"
+   "of kind SPATIAL3D\n"
+   "or rect3.");
+
+  /* handle rtree type constructor */
+  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
+    nl->AtomType(rtreeSymbol) == SymbolType &&
+     nl->SymbolValue(rtreeSymbol) == "rtree3" ,
+   "Operator knearestfilter expects a R-Tree \n"
+   "of type rtree3.");
+
+  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
+    !nl->IsAtom(rtreeTupleDescription) &&
+    nl->ListLength(rtreeTupleDescription) == 2,
+    "Operator knearestfilter expects a R-Tree with structure "
+    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
+    "bool)\nbut gets a first list with wrong tuple description in "
+    "structure \n'"+rtreeDescriptionStr+"'.");
+
+  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
+  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
+
+  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
+    nl->AtomType(rtreeTupleSymbol) == SymbolType &&
+    nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
+    IsTupleDescription(rtreeAttrList),
+    "Operator knearestfilter expects a R-Tree with structure "
+    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
+    "bool)\nbut gets a first list with wrong tuple description in "
+    "structure \n'"+rtreeDescriptionStr+"'.");
+
+  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
+    nl->AtomType(rtreeTwoLayer) == BoolType,
+   "Operator distancescan expects a R-Tree with structure "
+   "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
+   "bool)\nbut gets a first list with wrong tuple description in "
+   "structure \n'"+rtreeDescriptionStr+"'.");
+
+  /* handle rel part of argument */
+  nl->WriteToString (relDescriptionStr, relDescription);
+  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
+  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
+  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
+
+  ListExpr relSymbol = nl->First(relDescription);;
+  ListExpr tupleDescription = nl->Second(relDescription);
+
+  CHECK_COND(nl->IsAtom(relSymbol) &&
+    nl->AtomType(relSymbol) == SymbolType &&
+    nl->SymbolValue(relSymbol) == "rel" &&
+    !nl->IsEmpty(tupleDescription) &&
+    !nl->IsAtom(tupleDescription) &&
+    nl->ListLength(tupleDescription) == 2,
+    "Operator knearestfilter expects a R-Tree with structure "
+    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
+    "but gets a relation list with structure \n"
+    "'"+relDescriptionStr+"'.");
+
+  ListExpr tupleSymbol = nl->First(tupleDescription);
+  ListExpr attrList = nl->Second(tupleDescription);
+
+  CHECK_COND(nl->IsAtom(tupleSymbol) &&
+    nl->AtomType(tupleSymbol) == SymbolType &&
+    nl->SymbolValue(tupleSymbol) == "tuple" &&
+    IsTupleDescription(attrList),
+    "Operator knearestfilter expects a R-Tree with structure "
+    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
+    "but gets a relation list with structure \n"
+    "'"+relDescriptionStr+"'.");
+
+  /* check that rtree and rel have the same associated tuple type */
+  CHECK_COND(nl->Equal(attrList, rtreeAttrList),
+   "Operator knearestfilter: The tuple type of the R-tree\n"
+   "differs from the tuple type of the relation.");
+
+  return
+    nl->TwoElemList(
+      nl->SymbolAtom("stream"),
+      tupleDescription);
 }
 
 
@@ -2130,6 +2268,351 @@ int knearestFunVector (Word* args, Word& result, int message,
 }
 
 /*
+The ~knearestfilter~ operator results a stream of all input tuples which 
+can be the k-nearest units to the given mpoint. With the result of this
+operator the knearest operator kann immediate be called. The tuples in the 
+result stream ordered by time.
+
+The struct KnearestFilterLocalInfo is needed to save the data
+from one to next function call.
+All needet types are defined in NearestNeighborAlgebra.h
+
+*/
+
+/*
+make a 2 dimensional box of a three dimensional
+
+*/
+const BBox<2> makexyBox( const BBox<3> box)
+{
+    return BBox<2>( true, box.MinD(0), box.MaxD(0),
+                               box.MinD(1), box.MaxD(1));
+}
+
+/*
+calculates the maximum distance of two 2 dimensional boxes
+
+*/
+double maxDistance( const BBox<2> box1, const BBox<2> box2)
+{
+  //the points of the vertices are (x,y) = (minD(0), minD(1))
+  //and (maxD(0), maxD(1))
+  double ax1, ay1, ax2, ay2;
+  double bx1, by1, bx2, by2;
+  ax1 = box1.MinD(0);
+  ay1 = box1.MinD(1);
+  ax2 = box1.MaxD(0);
+  ay2 = box1.MaxD(1);
+  bx1 = box2.MinD(0);
+  by1 = box2.MinD(1);
+  bx2 = box2.MaxD(0);
+  by2 = box2.MaxD(1);
+  //make four diagonals and calc the length, the the maximum
+  double d1 = pow(bx2 - ax1,2) + pow(by2-ay1,2);
+  double d2 = pow(bx2 - ax1,2) + pow(by1-ay2,2);
+  double d3 = pow(bx1 - ax2,2) + pow(by2-ay1,2);
+  double d4 = pow(bx1 - ax2,2) + pow(by1-ay2,2);
+  double d = MIN( (MIN( d1, d2)), (MIN( d3, d4)) );
+
+  return sqrt(d);
+}
+
+/*
+the recursive helpfunction of the function coverage
+
+*/
+void helpcoverage(int cycle, map<Instant, int> &m, R_Tree<3, TupleId>* rtree, 
+                  Instant &t, SmiRecordId nodeid, int level)
+{
+  const int dim = 3;
+  R_TreeNode<dim, TupleId> *tmp = rtree->GetMyNode(
+            nodeid, false, 
+            rtree->MinEntries( level ), 
+            rtree->MaxEntries( level ) );
+  for ( int ii = 0; ii < tmp->EntryCount(); ++ii )
+  {
+    if ( tmp->IsLeaf() )
+    {
+      R_TreeLeafEntry<dim, TupleId> e = 
+        (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
+      Instant ts(t.GetType());
+      Instant te(t.GetType());
+      ts.ReadFrom(e.box.MinD(2));
+      te.ReadFrom(e.box.MaxD(2));
+      if( cycle == 0)
+      {
+        if( ts < t ) m[ts] = 0;
+        if( te < t ) m[te] = 0;
+      }
+      else
+      {
+        typedef map<Instant, int>::iterator ITMAP;
+        ITMAP it = m.find(ts);
+        while( it != m.end() && it->first < te)
+        {
+          ++(it->second);
+          ++it;
+        }
+      }
+    }
+    else
+    {
+      R_TreeInternalEntry<dim> e = 
+        (R_TreeInternalEntry<dim>&)(*tmp)[ii];
+      helpcoverage( cycle, m, rtree, t, e.pointer, level + 1);
+    }
+  }
+  delete tmp;
+}
+
+/*
+calculates the minimum coverage of a rtree-node
+in its timeintervall
+
+*/
+int coverage(R_Tree<3, TupleId>* rtree, Instant &tEnd,
+                 SmiRecordId nodeid, int level)
+{
+  map<Instant, int> m;
+  helpcoverage( 0, m, rtree, tEnd, nodeid, level );
+  helpcoverage( 1, m, rtree, tEnd, nodeid, level );
+  typedef map<Instant, int>::const_iterator ITMAP;
+  int result = 0;
+  ITMAP it = m.begin();
+  if( it != m.end() ) result = it->second;
+  for( ; it != m.end(); ++it)
+  {
+    if( it->second < result ) result = it->second;
+  }
+  return result;
+}
+
+/*
+checks if the coverage k is reached. If yes, the new node or tuple
+must not be inserted into the segment tree. If no, this
+funtion inserts the node or tuple into the segment tree
+
+*/
+bool checkInsert( NNSegTree &timeTree, NNSegTree::SegEntry &s, 
+                 BBox<2> mbox, int k, R_Tree<3, TupleId>* rtree, int level )
+{
+  double reachedCoverage = timeTree.calcCoverage( s.start, s.end, s.mindist );
+  if( reachedCoverage >= k)
+  {
+    return false;
+  }
+
+  if( s.coverage != 1)
+  {
+    //for tuples the coverage must not be calculated
+    s.coverage = coverage(rtree,s.end,s.nodeid,level);
+  }
+  timeTree.insert( s );
+  return true;
+}
+
+/*
+Some elements are needed to save between the knearestfilter calls. 
+
+*/
+typedef map<NNSegTree::SegEntry, TupleId>::const_iterator CIMAP;
+
+struct KnearestFilterLocalInfo
+{
+  unsigned int k;
+  //int max;
+  bool scanFlag;
+  Instant startTime, endTime;
+  vector<FieldEntry> vectorA;
+  vector<FieldEntry> vectorB;
+  NNSegTree timeTree;
+  Relation* relation;
+  R_Tree<3, TupleId>* rtree;
+  map< NNSegTree::SegEntry, TupleId> resultMap;
+  CIMAP mapit;
+  KnearestFilterLocalInfo( const Instant &s, const Instant &e) :
+    startTime(s), endTime(e), timeTree( s, e )
+    {}
+};
+
+/*
+knearestFilterFun is the value function for the knearestfilter operator
+It is a filter operator for the knearest operator. It can be called
+if there exists a rtree for the unit attribute
+The argument vector contains the following values:
+args[0] = a rtree with the unit attribute as key
+args[1] = the relation of the rtree
+args[2] = mpoint
+args[3] = int k, how many nearest are searched
+
+*/
+int knearestFilterFun (Word* args, Word& result, int message, 
+             Word& local, Supplier s)
+{
+  const int dim = 3;
+  KnearestFilterLocalInfo *localInfo;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      const MPoint *mp = (MPoint*)args[2].addr;
+      const UPoint *up1, *up2;
+      mp->Get( 0, up1);
+      mp->Get( mp->GetNoComponents() - 1, up2);
+      BBTree* t = new BBTree(*mp);
+
+      localInfo = new KnearestFilterLocalInfo(
+        up1->timeInterval.start, up2->timeInterval.end);
+      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
+      localInfo->relation = (Relation*)args[1].addr;
+      localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
+      localInfo->scanFlag = true;
+      local = SetWord(localInfo);
+      if (mp->IsEmpty())
+      {
+        return 0;
+      }
+      /* build the segment tree */
+      SmiRecordId adr = localInfo->rtree->RootRecordId();
+      R_TreeNode<dim, TupleId> *tmp = localInfo->rtree->GetMyNode(
+                     adr, 
+                     false, 
+                     localInfo->rtree->MinEntries( 0 ), 
+                     localInfo->rtree->MaxEntries( 0 ) );
+      Instant t1(localInfo->startTime.GetType());
+      Instant t2(localInfo->startTime.GetType());
+      t1.ReadFrom(tmp->BoundingBox().MinD(2));
+      t2.ReadFrom(tmp->BoundingBox().MaxD(2));
+      cout << t1 << endl;
+      cout << t2 << endl;
+
+      if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
+      {
+        localInfo->vectorA.push_back( FieldEntry( 
+          localInfo->rtree->RootRecordId(), 0, t1, t2, 0)); 
+        const BBox<2> xyBox = makexyBox( tmp->BoundingBox() );
+        NNSegTree::SegEntry se(xyBox,t1, t2, 0.0, 0.0, 0,
+              localInfo->rtree->RootRecordId(), -1);
+        localInfo->timeTree.insert( se );
+      }
+      delete tmp;
+      while( !localInfo->vectorA.empty() )
+      {
+        unsigned int vpos;
+        for( vpos = 0; vpos < localInfo->vectorA.size(); ++vpos)
+        {
+          FieldEntry &f = localInfo->vectorA[ vpos ];
+          SmiRecordId adr = f.nodeid;
+          // check if this entry is not deleted
+          if( localInfo->timeTree.erase( f.start, f.end, f.nodeid,
+            f.maxdist) )
+          {
+            R_TreeNode<dim, TupleId> *tmp = localInfo->rtree->GetMyNode(
+                     adr, false, 
+                     localInfo->rtree->MinEntries( f.level ), 
+                     localInfo->rtree->MaxEntries( f.level ) );
+            Instant t1(localInfo->startTime.GetType());
+            Instant t2(localInfo->startTime.GetType());
+            for ( int ii = 0; ii < tmp->EntryCount(); ++ii )
+            {
+              if ( tmp->IsLeaf() )
+              {
+                R_TreeLeafEntry<dim, TupleId> e = 
+                  (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
+                t1.ReadFrom((double)(e.box.MinD(2)));
+                t2.ReadFrom((double)(e.box.MaxD(2)));
+                if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
+                {
+                  const BBox<2> xyBox = makexyBox( e.box );
+                  Interval<Instant> d(t1,t2,true,true);
+                  const BBox<2> mBox(t->getBox(d));
+                  NNSegTree::SegEntry se(xyBox,t1, t2, 
+                        xyBox.Distance( mBox), 
+                        maxDistance( xyBox, mBox), 1,
+                        -1, e.info);
+                  checkInsert( localInfo->timeTree, se, mBox, 
+                    localInfo->k, localInfo->rtree, f.level+1);
+                }
+              }
+              else
+              {
+                R_TreeInternalEntry<dim> e = 
+                  (R_TreeInternalEntry<dim>&)(*tmp)[ii];
+               t1.ReadFrom(e.box.MinD(2));
+                t2.ReadFrom(e.box.MaxD(2));
+               if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
+                {
+                  const BBox<2> xyBox = makexyBox( e.box );
+                  Interval<Instant> d(t1,t2,true,true);
+                  const BBox<2> mBox(t->getBox(d));
+                  NNSegTree::SegEntry se(xyBox,t1, t2, 
+                        xyBox.Distance( mBox), 
+                        maxDistance( xyBox, mBox), 0,
+                        e.pointer, -1);
+                  if( checkInsert( localInfo->timeTree, se, 
+                        mBox, localInfo->k, localInfo->rtree, f.level+1))
+                  {
+                   localInfo->vectorB.push_back( FieldEntry( 
+                          e.pointer, se.maxdist, t1, t2, f.level + 1)); 
+                  }
+                }
+              }
+            }
+            delete tmp;
+          }
+        }
+        localInfo->vectorA.clear();
+        localInfo->vectorA.swap( localInfo->vectorB );
+        cout << "k, Vektor Anzahl " << localInfo->k << ", " 
+          << localInfo->vectorA.size() << endl;
+      }
+      delete t;
+      localInfo->timeTree.fillMap( localInfo->resultMap );
+      localInfo->mapit = localInfo->resultMap.begin();
+      return 0;
+    }
+
+    case REQUEST :
+    {
+     localInfo = (KnearestFilterLocalInfo*)local.addr;
+      if ( !localInfo->scanFlag )
+      {
+        return CANCEL;
+      }
+
+      if ( !localInfo->k)
+      {
+        return CANCEL;
+      }
+
+      /* give out alle elements of the resultmap */
+      if ( localInfo->mapit != localInfo->resultMap.end() )
+      {
+          TupleId tid = localInfo->mapit->second;
+          Tuple *tuple = localInfo->relation->GetTuple(tid);
+          result = SetWord(tuple);
+          ++localInfo->mapit;
+          return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      localInfo = (KnearestFilterLocalInfo*)local.addr;
+      delete localInfo;
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
+/*
 2.4 Definition of value mapping vectors
 
 */
@@ -2193,11 +2676,11 @@ const string knearestFilterSpec  =
       "The operator do not separate tupels if necessary. The "
       "result may have more than the k-nearest tupels. It is a "
       "filter operator for the knearest operator, if there are a great "
-      "many input tupels. It makes only sense if k is not to high. "
+      "many input tupels. "
       "The operator expects a thee dimensional rtree where the "
       "third dimension is the time</text--->"
-      "<text>query kinos_geoData Kinos distancescan "
-      "[train1, 2] consume;</text--->"
+      "<text>query UTOrdered_RTree UTOrdered knearestfilter "
+      "[train1, 5] count;</text--->"
       ") )";
 
 
@@ -2231,7 +2714,13 @@ Operator knearestvector (
          knearestTypeMap        // type mapping
 );
 
-
+Operator knearestfilter (
+         "knearestfilter",        // name
+         knearestFilterSpec,      // specification
+         knearestFilterFun,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         knearestFilterTypeMap    // type mapping
+);
 
 /*
 6 Operator ~bboxes~
@@ -2376,6 +2865,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &distancescan );
     AddOperator( &knearest );
     AddOperator( &knearestvector );
+    AddOperator( &knearestfilter );
     AddOperator( &bboxes );
   }
   ~NearestNeighborAlgebra() {};

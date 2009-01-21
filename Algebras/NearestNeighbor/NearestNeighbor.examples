@@ -30,3 +30,17 @@ Number   : 5
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains feed head[20] UTrip knearestvector [train1, 2] consume
 Result   : file_platform
+
+Operator : knearestfilter
+Number   : 6
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query UTOrdered_RTree UTOrdered knearestfilter[train1, 5] count
+Result   : file_platform
+
+Operator : knearestfilter
+Number   : 6
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query UTO_tree UTOrdered knearestfilter[train1, 5] UTrip knearest[train1, 5] count
+Result   : file_platform
+
+

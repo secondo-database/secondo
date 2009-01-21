@@ -354,6 +354,7 @@ class NNTree
     unsigned int nodeCount( NNnode *n );
     static NNnode *maxNode( NNnode *n );
     static NNnode *minNode( NNnode *n );
+    void deleteAll( NNnode *node);
 };
 
 /*
@@ -372,9 +373,7 @@ destructor of NNTree delete all nodes
 template<class T>
 NNTree<T>::~NNTree()
 {
-  iter it = begin();
-  while( (it = erase(it)) != end());
-  nrelements = 0;
+  deleteAll( rootnode );
 }
 
 /*
@@ -546,7 +545,7 @@ add elem beyond given node
 template<class T>
 typename NNTree<T>::iter NNTree<T>::addElem( T &e, iter &it)
 {
-  assert( it.itNode == NULL );
+  assert( it.itNode != NULL );
   if( it.itNode->right == NULL)
   {
     NNnode *nNode = newNode(e, it.itNode);
@@ -661,4 +660,436 @@ typename NNTree<T>::NNnode *NNTree<T>::iter::prevNode( NNnode *n)
     return n->parent;
   }
 }
+
+template<class T>
+void NNTree<T>::deleteAll( NNnode *node)
+{
+  if( node )
+  {
+    deleteAll( node->left);
+    deleteAll( node->right);
+    delete node;
+  }
+}
+
+
+/*
+Definitions for the operator knearestfilter
+
+*/
+
+struct FieldEntry
+{
+  long nodeid;
+  double maxdist;
+  Instant start, end;
+  int level;
+
+  FieldEntry( long node, double maxd, Instant &s, Instant &e, 
+                  int l):
+    nodeid(node),
+    maxdist(maxd),
+    start(s),
+    end(e),
+    level(l)
+    {}
+};
+
+class NNSegTree
+{
+public:
+  class SegEntry
+  {
+  public:
+    BBox<2> xyBox;
+    Instant start, end;
+    double mindist, maxdist;
+    int coverage;
+    long nodeid;
+    TupleId tpid;
+    SegEntry():
+      start(), end(),
+      mindist(0),maxdist(0),coverage(0),
+      nodeid( -1 ),
+      tpid( -1 )
+      {}
+
+    SegEntry( const BBox<2> &box,Instant &s, Instant &e, double mind,
+      double maxd, int cov,long node, TupleId tid):
+      xyBox(box),
+      start(s), end(e),
+      mindist(mind),maxdist(maxd),coverage(cov),
+      nodeid( node ),
+      tpid( tid )
+    {}
+
+    virtual ~SegEntry()
+    {}
+    friend bool operator!=(const SegEntry& i, 
+      const SegEntry& j)
+    {
+      return i.nodeid != j.nodeid || i.tpid != j.tpid;
+    }
+    bool operator<( const SegEntry& e ) const 
+    {
+      if( e.start != start)
+      {
+        return start < e.start;
+      }
+      else
+      {
+        //same starttimes
+        if( e.end != end )
+        {
+          return end < e.end;
+        }
+        else
+        {
+          //same times
+          return tpid < e.tpid;
+        }
+      }
+    }
+  };
+
+  class SegNode
+  {
+  public:
+    Instant start, end;
+    SegNode* left;
+    SegNode* right;
+    SegNode* parent;
+    NNTree<SegEntry> segEntries;
+    SegNode( const Instant &s, const Instant &e) :
+      start(s), end(e), left(NULL),
+      right(NULL), parent(NULL), segEntries()
+      {}
+  };
+
+  NNSegTree( const Instant &s, const Instant &e);
+  ~NNSegTree();
+  void insert( SegEntry &s );
+  bool checkInsert( SegEntry &s, BBox<2> mbox, bool leaf, int k );
+  bool erase( Instant start, Instant end, long rnodeid, double dist);
+  void fillMap( map< SegEntry, TupleId> &m);
+  int calcCoverage( Instant t1, Instant t2, double distance );
+  typedef NNTree< SegEntry >::iter ITSE;
+private:
+  SegNode *sroot;
+  void makeEmpty( SegNode *node);
+  void insertNode( SegEntry &s, SegNode *node);
+  void eraseEntry( Instant start, Instant end, long rnodeid, 
+    double dist, SegNode *node, bool &result);
+  void checkErase( SegEntry &s, SegNode *node );
+  void mapfill( map< SegEntry, TupleId> &m, SegNode *node);
+  ITSE addEntry(NNTree<SegEntry> &t, SegEntry &e);
+  ITSE findEntry(NNTree<SegEntry> &t, long rnodeid, double dist);
+  int calcCoverage( Instant t1, Instant t2, double distance,
+                            SegNode *node );
+};
+
+NNSegTree::NNSegTree( const Instant &s, const Instant &e)
+{
+  sroot = new SegNode(s, e);
+}
+
+NNSegTree::~NNSegTree()
+{
+  makeEmpty( sroot );
+}
+
+void NNSegTree::insert( SegEntry &s )
+{
+  insertNode( s, sroot );
+}
+
+bool NNSegTree::erase( Instant start, Instant end, 
+                      long rnodeid, double dist)
+{
+  bool result = false;
+  eraseEntry( start, end, rnodeid, dist, sroot, result );
+  return result;
+}
+
+void NNSegTree::fillMap( map< NNSegTree::SegEntry, TupleId> &m)
+{
+  mapfill( m, sroot );
+}
+
+int NNSegTree::calcCoverage( Instant t1, Instant t2, double distance )
+{
+  return calcCoverage( t1, t2, distance, sroot );
+}
+
+/*
+private functions of NNSegTree
+
+*/
+void NNSegTree::makeEmpty( SegNode *node)
+{
+  if( node )
+  {
+    makeEmpty( node->left );
+    makeEmpty( node->right);
+    delete node;
+  }
+}
+
+void NNSegTree::mapfill( map< SegEntry, TupleId> &m, SegNode *node)
+{
+  if( node )
+  {
+    if( node->left )
+    {
+      mapfill( m, node->left );
+      mapfill( m, node->right);
+    }
+    ITSE it = node->segEntries.begin();
+    while( it != node->segEntries.end() )
+    {
+      assert( it->tpid != -1);
+      m[ *it ] = it->tpid;
+      ++it;
+    }
+  }
+}
+
+void NNSegTree::insertNode( SegEntry &s, SegNode *node)
+{
+  if( s.start <= node->start && s.end >= node->end)
+  {
+    // insert the element, the timeintervall is o.K.
+    addEntry(node->segEntries, s);
+    checkErase(s, node);
+  }
+  else if( node->left != NULL)
+  {
+    //the node has childs
+    if( s.start < node->left->end && s.end <= node->left->end) 
+    {
+      //both times are on the left
+      insertNode( s, node->left );
+    }
+    else if( s.start >= node->right->start )
+    {
+      //both times are on the right
+      insertNode( s, node->right );
+    }
+    else /* starttime on the left, endtime on the right */
+    {
+      insertNode( s, node->left );
+      insertNode( s, node->right );
+    }
+  }
+  else /* the node has no childs, make some */
+  {
+    if( s.start > node->start )
+    {
+      SegNode *newleft = new SegNode(node->start, s.start);
+      SegNode *newright = new SegNode(s.start, node->end);
+      newleft->parent = node;
+      newright->parent = node;
+      node->left = newleft;
+      node->right = newright;
+      insertNode( s, node->right );
+    }
+    else
+    {
+      /* the endtime was too low */
+      SegNode *newleft = new SegNode(node->start, s.end);
+      SegNode *newright = new SegNode(s.end, node->end);
+      newleft->parent = node;
+      newright->parent = node;
+      node->left = newleft;
+      node->right = newright;
+      insertNode( s, node->left );
+    }
+  }
+}
+
+void NNSegTree::eraseEntry( Instant start, Instant end, long rnodeid, 
+    double dist, SegNode *node, bool &result)
+{
+  if( start <= node->start && end >= node->end)
+  {
+    ITSE it = findEntry( node->segEntries, rnodeid, dist);
+    if( it != node->segEntries.end() )
+    {
+      node->segEntries.erase( it );
+      result = true;
+    }
+  }
+  else if( node->left )
+  {
+    // there are childs to look for the element
+    if( start < node->left->end && end <= node->left->end) 
+    {
+      //both times are on the left
+      eraseEntry( start, end, rnodeid, dist, node->left, result);
+    }
+    else if( start >= node->right->start )
+    {
+      //both times are on the right
+      eraseEntry( start, end, rnodeid, dist, node->right, result);
+    }
+    else /* starttime on the left, endtime on the right */
+    {
+      eraseEntry( start, end, rnodeid, dist, node->left, result);
+      eraseEntry( start, end, rnodeid, dist, node->right, result);
+    }
+  }
+}
+
+NNSegTree::ITSE NNSegTree::addEntry(NNTree<SegEntry> &t, SegEntry &e)
+{
+  if( t.size() == 0)
+  {
+    return t.addFirst(e);
+  }
+  
+  double dist = e.maxdist;
+  ITSE it = t.root();
+  while( true)
+  {
+    double storeDistance = it->maxdist;
+    if( dist < storeDistance)
+    {
+      if( it.hasLeft() )
+      {
+        it.leftItem();
+      }
+      else
+      {
+        return t.addLeft( e, it);
+      }
+    }
+    else if( dist > storeDistance)
+    {
+      if( it.hasRight() )
+      {
+        it.rightItem();
+      }
+      else
+      {
+        return t.addRight( e, it);
+      }
+    }
+    else //same distance
+    {
+      ITSE pos = it;
+      ++pos;
+      while( pos != t.end() && dist == pos->maxdist)
+      {
+        it = pos;
+        ++pos;
+      }
+      return t.addElem( e, it );
+    }
+  }
+}
+
+NNSegTree::ITSE NNSegTree::findEntry(NNTree<SegEntry> &t, 
+                                     long rnodeid, double dist)
+{
+  ITSE it = t.root();
+  bool havePos = false;
+  while( !havePos && it != t.end())
+  {
+    double storeDistance = it->maxdist;
+    if( dist < storeDistance)
+    {
+      if( it.hasLeft() )
+        it.leftItem();
+      else
+      {
+        havePos = true;
+      }
+    }
+    else if( dist > storeDistance)
+    {
+      if( it.hasRight() )
+        it.rightItem();
+      else
+      {
+        havePos = true;
+      }
+    }
+    else //same distance
+    {
+      havePos = true;
+    }
+  }
+  if( rnodeid == it->nodeid){ havePos = true; }
+  else { havePos = false; }
+
+  ITSE pos1 = it;
+  ITSE pos2 = it;
+  while( !havePos && (pos1 != t.begin() || pos2 != t.end()))
+  {
+    if( pos1 != t.begin() )
+    {
+      --pos1;
+      if( rnodeid == pos1->nodeid)
+      { 
+        pos2 = pos1; 
+        havePos = true;
+      };
+    }
+
+    if( !havePos && pos2 != t.end() )
+    {
+      ++pos2;
+      if( pos2 != t.end() && rnodeid == pos2->nodeid)
+      {
+        havePos = true;
+      }
+    }
+  }
+  return pos2;
+}
+
+void NNSegTree::checkErase( SegEntry &s, SegNode *node )
+{
+}
+
+int NNSegTree::calcCoverage( Instant t1, Instant t2, double distance,
+                            SegNode *node)
+{
+  int result = 0;
+  if( node )
+  {
+    if( node->start <= t1 && node->end >= t2)
+    {
+      ITSE it = node->segEntries.begin();
+      while( it != node->segEntries.end() && it->maxdist < distance)
+      {
+        result += it->coverage;
+        ++it;
+      }
+    }
+    if( node->left )
+    {
+      // there are childs to look for the element
+      if( t2 <= node->left->end) 
+      {
+        //both times are on the left
+        result += calcCoverage( t1, t2, distance, node->left);
+      }
+      else if( t1 >= node->right->start )
+      {
+        //both times are on the right
+        result += calcCoverage( t1, t2, distance, node->right);
+      }
+      else /* starttime on the left, endtime on the right */
+      {
+        int lc, rc;
+        lc = calcCoverage( t1, node->left->end, distance, node->left);
+        rc = calcCoverage( node->right->start, t2, distance, node->right);
+        result += MIN( lc, rc );
+      }
+    }
+  }
+  return result;
+}
+
 #endif
