@@ -38,7 +38,7 @@ Example  : query UTOrdered_RTree UTOrdered knearestfilter[train1, 5] count
 Result   : file_platform
 
 Operator : knearestfilter
-Number   : 6
+Number   : 7
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTO_tree UTOrdered knearestfilter[train1, 5] UTrip knearest[train1, 5] count
 Result   : file_platform

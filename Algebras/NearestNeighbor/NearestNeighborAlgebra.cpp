@@ -2407,7 +2407,7 @@ bool checkInsert( NNSegTree &timeTree, NNSegTree::SegEntry &s,
     //for tuples the coverage must not be calculated
     s.coverage = coverage(rtree,s.end,s.nodeid,level);
   }
-  timeTree.insert( s );
+  timeTree.insert( s, k );
   return true;
 }
 
@@ -2484,8 +2484,6 @@ int knearestFilterFun (Word* args, Word& result, int message,
       Instant t2(localInfo->startTime.GetType());
       t1.ReadFrom(tmp->BoundingBox().MinD(2));
       t2.ReadFrom(tmp->BoundingBox().MaxD(2));
-      cout << t1 << endl;
-      cout << t2 << endl;
 
       if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
       {
@@ -2494,7 +2492,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
         const BBox<2> xyBox = makexyBox( tmp->BoundingBox() );
         NNSegTree::SegEntry se(xyBox,t1, t2, 0.0, 0.0, 0,
               localInfo->rtree->RootRecordId(), -1);
-        localInfo->timeTree.insert( se );
+        localInfo->timeTree.insert( se, localInfo->k );
       }
       delete tmp;
       while( !localInfo->vectorA.empty() )
@@ -2542,7 +2540,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
                t1.ReadFrom(e.box.MinD(2));
                 t2.ReadFrom(e.box.MaxD(2));
                if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
-                {
+               {
                   const BBox<2> xyBox = makexyBox( e.box );
                   Interval<Instant> d(t1,t2,true,true);
                   const BBox<2> mBox(t->getBox(d));
@@ -2564,8 +2562,6 @@ int knearestFilterFun (Word* args, Word& result, int message,
         }
         localInfo->vectorA.clear();
         localInfo->vectorA.swap( localInfo->vectorB );
-        cout << "k, Vektor Anzahl " << localInfo->k << ", " 
-          << localInfo->vectorA.size() << endl;
       }
       delete t;
       localInfo->timeTree.fillMap( localInfo->resultMap );
