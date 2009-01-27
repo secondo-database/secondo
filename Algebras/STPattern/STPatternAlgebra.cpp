@@ -26,6 +26,9 @@ namespace STP{
 4.1.1 Type mapping function of operator ~pattern~
 
 */
+
+#if defined(design_stream)
+
 ListExpr PatternTypeMap(ListExpr args)
 {
 	bool debugme= false;
@@ -142,6 +145,88 @@ ListExpr PatternTypeMap(ListExpr args)
 	return nl->First(args);
 }
 
+#endif
+
+
+#if defined(design_tuple)
+ListExpr PatternTypeMap(ListExpr args)
+{
+	bool debugme= false;
+	ListExpr errorInfo;
+	errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+	string argstr, argstr2;
+
+	if(debugme)
+	{
+		cout<<endl<< nl->ToString(args)<<endl;
+		cout.flush();
+	}
+
+	CHECK_COND(nl->ListLength(args) == 2,
+			"Operator stpattern expects a list of length two.");
+
+	ListExpr first = nl->First(args),
+	second = nl->Second(args);
+
+	nl->WriteToString(argstr, first);
+	if(debugme)
+	{
+		cout<<endl<< argstr<<endl;
+		cout<< "nl->ListLength(first)" << nl->ListLength(first)<<endl;
+		cout<<"(TypeOfRelAlgSymbol(nl->First(first))" <<
+		TypeOfRelAlgSymbol(nl->First(first))<<endl;
+		cout.flush();
+	}
+
+	CHECK_COND( (nl->ListLength(first) == 2) &&
+		(TypeOfRelAlgSymbol(nl->First(first)) == tuple),
+		"Operator stpattern expects as first argument "
+		"a list with structure "
+		"(tuple ((a1 t1)...(an tn)))\n"
+		"Operator stpattern gets a list with structure '" +
+		argstr + "'.");
+
+	nl->WriteToString(argstr, second);
+	CHECK_COND( ! nl->IsAtom(second) ,
+			"Operator  stpattern expects as second argument a "
+			"list of functions\n"
+			"Operator stpattern gets as second argument '" +
+			argstr + "'.\n" );
+
+	ListExpr secondRest = second;
+	ListExpr secondFirst, attrType, newAttrList, numberList;
+	secondFirst = attrType = newAttrList = numberList = nl->Empty();
+	ListExpr lastNewAttrList, lastNumberList;
+	lastNewAttrList = lastNumberList = nl->Empty();
+
+	string attrName = "";
+	while( !nl->IsEmpty(secondRest) )
+	{
+		secondFirst = nl->First(secondRest);
+		secondRest = nl->Rest(secondRest);
+
+		if(debugme)
+		{
+			cout<< nl->ToString(secondFirst)<<endl;
+			cout.flush();
+		}
+		nl->WriteToString(argstr, secondFirst);
+		CHECK_COND(	nl->IsAtom(secondFirst) &&
+				nl->SymbolValue(secondFirst)=="mbool",
+			"Operator stpattern expects a list of mbool. "
+			"Operator stpattern gets '" + argstr + "'.");
+	}
+
+	if(debugme)
+	{
+		cout<<endl<<endl<<"Operator stpattern accepted the input";
+		cout.flush();
+	}
+
+	return nl->SymbolAtom("bool");
+}
+#endif
+
 /*
 4.1.2 Value mapping function of operator ~project~
 
@@ -171,6 +256,8 @@ bool Match(MBool* predRes, Instant& stime)
 	}
 	return false;
 }
+
+#if defined(design_stream)
 int Pattern(Word* args, Word& result, int message, Word& local, Supplier s)
 {
 	bool debugme=false;
@@ -252,13 +339,53 @@ int Pattern(Word* args, Word& result, int message, Word& local, Supplier s)
 	}
 	return 0;
 }
+#endif
 
+#if defined(design_tuple)
+int Pattern(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+	bool debugme=false;
+	Supplier predlist, pred;
+	Word value;
+	int noofpred;
+	bool matchPred;
 
+	DateTime lastMatchTime(instanttype);
+
+	result = qp->ResultStorage( s );
+	predlist = args[1].addr;
+	noofpred = qp->GetNoSons(predlist);
+	assert(noofpred>0);
+
+	for (int i=0; i < noofpred;i++)
+	{
+		pred= qp->GetSon(predlist,i);
+		qp->Request(pred,value);
+		matchPred= Match((MBool*)value.addr,
+				lastMatchTime);
+		if(debugme)
+		{
+			if(matchPred)
+				cout<< " matched Pred "<< i <<
+				" at time "<<
+				lastMatchTime.ToDouble();
+			else
+				cout<< "didn't match Predicate "
+				<< i;
+			cout.flush();
+		}
+		if(!matchPred) break;
+	}
+	((CcBool*)result.addr)->Set(true,matchPred);
+	return 0;
+}
+#endif
 /*
 4.1.3 Specification of operator ~pattern~
 
 */
 
+#if defined(design_stream)
 OperatorInfo STPatternOperatorInfo( "stpattern",
 	"((stream x) ((map1 x mbool1)...(mapn x mbooln))) -> (stream x)",
 	"stpattern[p1: lifted predicate , f2: lifted predicate, ... ] ",
@@ -267,8 +394,18 @@ OperatorInfo STPatternOperatorInfo( "stpattern",
 	"specified pattern are passed on to the output.",
 	"query Trains feed stpattern[f1: .Trip inside "
 	"msnow, f2: distance(.Trip, mehringdamm) < 10.0 ]   count");
+#endif
 
-
+#if defined(design_tuple)
+OperatorInfo STPatternOperatorInfo( "stpattern",
+	"((stream x) ((map1 x mbool1)...(mapn x mbooln))) -> (stream x)",
+	"stpattern[p1: lifted predicate , f2: lifted predicate, ... ] ",
+	"Naive implementation for spatio temporal pattern queries."
+	" It works like filter. Only tuples, fulfilling the "
+	"specified pattern are passed on to the output.",
+	"query Trains feed stpattern[f1: .Trip inside "
+	"msnow, f2: distance(.Trip, mehringdamm) < 10.0 ]   count");
+#endif
 /*
 
 4.1.4 Definition of operator ~pattern~
@@ -304,6 +441,7 @@ public:
 5.3 Registration of Operators
 
 		*/
+		opdefpattern.SetRequestsArguments();
 		AddOperator(&opdefpattern);
 	}
 	~STPatternAlgebra() {};
