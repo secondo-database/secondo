@@ -3724,6 +3724,7 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
         for ( int i = 0; i < p->noAttrs; i++ )
                 cout << static_cast<int>(p->attrSizeExt[i] + 0.5) << " ";
       cout << endl;
+      cout << "sizesStable = " << p->sizesStable << endl;
 
       cout << "BlockingTime = " << p->BTime << endl;
       cout << "BlockingProgress = " << p->BProgress << endl;
