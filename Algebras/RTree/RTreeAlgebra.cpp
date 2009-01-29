@@ -1286,7 +1286,8 @@ int WindowIntersects( Word* args, Word& result,
 
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
-      localInfo->progressInitialized = false;
+      localInfo->sizesInitialized = false;
+      localInfo->sizesStable = false;
       local.setAddr(localInfo);
       return 0;
     }
@@ -1368,7 +1369,7 @@ int WindowIntersects( Word* args, Word& result,
       if (!localInfo) return CANCEL;
       else
       {
-        if (!localInfo->progressInitialized)
+        if (!localInfo->sizesInitialized)
         {
           localInfo->returned = 0;
           localInfo->total = localInfo->relation->GetNoTuples();
@@ -1389,7 +1390,8 @@ int WindowIntersects( Word* args, Word& result,
             localInfo->Size += localInfo->attrSize[i];
             localInfo->SizeExt += localInfo->attrSizeExt[i];
           }
-          localInfo->progressInitialized = true;
+          localInfo->sizesInitialized = true;
+          localInfo->sizesStable = true;
         }
 
         pRes->Size = localInfo->Size;

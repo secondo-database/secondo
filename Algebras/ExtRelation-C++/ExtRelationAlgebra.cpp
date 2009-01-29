@@ -4085,7 +4085,6 @@ public:
 
   TupleType *resultTupleType;
   int stableValue;
-  bool stableState;
   int noOldAttrs, noNewAttrs;
   double *attrSizeTmp;
   double *attrSizeExtTmp;
@@ -4114,7 +4113,6 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       eli->read = 0;
       eli->stableValue = 50;
-      eli->stableState = false;
       eli->noNewAttrs = qp->GetNoSons(args[1].addr);
       eli->attrSizeTmp = new double[eli->noNewAttrs];
       eli->attrSizeExtTmp = new double[eli->noNewAttrs];
@@ -4123,7 +4121,8 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         eli->attrSizeTmp[i] = 0.0;
         eli->attrSizeExtTmp[i] = 0.0;
       }
-      eli->progressInitialized = false;
+      eli->sizesInitialized = false;
+      eli->sizesStable = false;
 
       local.setAddr(eli);
 
@@ -4200,43 +4199,53 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
-        if ( !eli->progressInitialized )
+        if ( !eli->sizesInitialized )
         {
           eli->noOldAttrs = p1.noAttrs;
           eli->noAttrs = eli->noOldAttrs + eli->noNewAttrs;
           eli->attrSize = new double[eli->noAttrs];
           eli->attrSizeExt = new double[eli->noAttrs];
+        }
+
+        if ( !eli->sizesStable)
+        {
+          eli->Size = 0.0;
+          eli->SizeExt = 0.0;
+
+		//old attrs
           for (int i = 0; i < eli->noOldAttrs; i++)
           {
             eli->attrSize[i] = p1.attrSize[i];
             eli->attrSizeExt[i] = p1.attrSizeExt[i];
+            eli->Size += eli->attrSize[i];
+            eli->SizeExt += eli->attrSizeExt[i];
           }
-          eli->Size = p1.Size;
-          eli->SizeExt = p1.SizeExt;
-          for (int j = 0; j < eli->noNewAttrs; j++)
-          {
-            eli->attrSize[j + eli->noOldAttrs] = 12;
-            eli->attrSizeExt[j + eli->noOldAttrs] = 12;
-            eli->Size += eli->attrSize[j + eli->noOldAttrs];
-            eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
-          }
-          eli->progressInitialized = true;
-        }
 
-        if (!eli->stableState && (eli->read >= eli->stableValue))
-        {
-          eli->Size = p1.Size;
-          eli->SizeExt = p1.SizeExt;
-          for (int j = 0; j < eli->noNewAttrs; j++)
+        	//new attrs
+          if ( eli->read < eli->stableValue )
           {
-            eli->attrSize[j + eli->noOldAttrs] = eli->attrSizeTmp[j] /
-              eli->stableValue;
-            eli->attrSizeExt[j + eli->noOldAttrs] = eli->attrSizeExtTmp[j] /
-              eli->stableValue;
-            eli->Size += eli->attrSize[j + eli->noOldAttrs];
-            eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+            for (int j = 0; j < eli->noNewAttrs; j++)
+            {
+              eli->attrSize[j + eli->noOldAttrs] = 12;
+              eli->attrSizeExt[j + eli->noOldAttrs] = 12;
+              eli->Size += eli->attrSize[j + eli->noOldAttrs];
+              eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+            }
           }
-          eli->stableState = true;
+          else
+          {
+            for (int j = 0; j < eli->noNewAttrs; j++)
+            {
+              eli->attrSize[j + eli->noOldAttrs] = eli->attrSizeTmp[j] /
+                eli->stableValue;
+              eli->attrSizeExt[j + eli->noOldAttrs] = eli->attrSizeExtTmp[j] /
+                eli->stableValue;
+              eli->Size += eli->attrSize[j + eli->noOldAttrs];
+              eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+            }
+          }
+          eli->sizesInitialized = true;
+          eli->sizesStable = p1.sizesStable && (eli->read >= eli->stableValue);
         }
 
         pRes->Card = p1.Card;
@@ -5612,7 +5621,6 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       eli->read = 0;
       eli->stableValue = 50;
-      eli->stableState = false;
       eli->noOldAttrs = ((CcInt*)args[3].addr)->GetIntval();
       eli->noNewAttrs = qp->GetNoSons(args[2].addr);
       eli->attrSizeTmp = new double[eli->noNewAttrs];
@@ -5622,7 +5630,8 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
         eli->attrSizeTmp[i] = 0.0;
         eli->attrSizeExtTmp[i] = 0.0;
       }
-      eli->progressInitialized = false;
+      eli->sizesInitialized = false;
+      eli->sizesStable = false;
 
       local.setAddr(eli);
 
@@ -5707,15 +5716,19 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
-        if ( !eli->progressInitialized )
+        if ( !eli->sizesInitialized )	
         {
           eli->noAttrs = eli->noOldAttrs + eli->noNewAttrs;
           eli->attrSize = new double[eli->noAttrs];
           eli->attrSizeExt = new double[eli->noAttrs];
-		  eli->Size = 0.0;
-		  eli->SizeExt = 0.0;
+        }
 
-          for( int i = 0; i < eli->noOldAttrs; i++)
+        if ( !eli->sizesStable )
+        {
+	  eli->Size = 0.0;
+	  eli->SizeExt = 0.0;
+
+          for( int i = 0; i < eli->noOldAttrs; i++)	//old attrs
           {
             son = qp->GetSupplier(args[4].addr, i);
             qp->Request(son, elem2);
@@ -5726,31 +5739,30 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
             eli->SizeExt += eli->attrSizeExt[i];
           }
 
-          for (int j = 0; j < eli->noNewAttrs; j++)
+          if ( eli->read < eli->stableValue )		//new attrs
           {
-            eli->attrSize[j + eli->noOldAttrs] = 12;   //size yet unknown
-            eli->attrSizeExt[j + eli->noOldAttrs] = 12;
-            eli->Size += eli->attrSize[j + eli->noOldAttrs];
-            eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+            for (int j = 0; j < eli->noNewAttrs; j++)	
+            {
+              eli->attrSize[j + eli->noOldAttrs] = 12;   //size yet unknown
+              eli->attrSizeExt[j + eli->noOldAttrs] = 12;
+              eli->Size += eli->attrSize[j + eli->noOldAttrs];
+              eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+            }
           }
-          eli->progressInitialized = true;
-        }
-
-        if (!eli->stableState && (eli->read >= eli->stableValue))
-        {
-          eli->Size -= 12 * eli->noNewAttrs; 	//subtract default sizes
-          eli->SizeExt -= 12 * eli->noNewAttrs;
-
-          for (int j = 0; j < eli->noNewAttrs; j++)
+          else
           {
-            eli->attrSize[j + eli->noOldAttrs] = eli->attrSizeTmp[j] /
-              eli->stableValue;
-            eli->attrSizeExt[j + eli->noOldAttrs] = eli->attrSizeExtTmp[j] /
-              eli->stableValue;
-            eli->Size += eli->attrSize[j + eli->noOldAttrs];
-            eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+            for (int j = 0; j < eli->noNewAttrs; j++)	
+            {
+              eli->attrSize[j + eli->noOldAttrs] = eli->attrSizeTmp[j] /
+                eli->stableValue;
+              eli->attrSizeExt[j + eli->noOldAttrs] = eli->attrSizeExtTmp[j] /
+                eli->stableValue;
+              eli->Size += eli->attrSize[j + eli->noOldAttrs];
+              eli->SizeExt += eli->attrSizeExt[j + eli->noOldAttrs];
+            }
           }
-          eli->stableState = true;
+          eli->sizesInitialized = true;
+          eli->sizesStable = p1.sizesStable && (eli->read >= eli->stableValue);
         }
 
         pRes->Card = p1.Card;
@@ -6811,7 +6823,6 @@ public:
   //new for progress
 
   int stableValue;
-  bool stableState;
 
   int noGroupAttrs;
   int noAggrAttrs;
@@ -6821,7 +6832,7 @@ public:
   // initialization
   GroupByLocalInfo() : ProgressLocalInfo(),
     t(0), resultTupleType(0), MAX_MEMORY(0),
-    stableValue(0), stableState(0),
+    stableValue(0),
     noGroupAttrs(0), noAggrAttrs(0),
     attrSizeTmp(0), attrSizeExtTmp(0)
   {}
@@ -6846,7 +6857,6 @@ int GroupByValueMapping
   const int indexOfCountArgument = 3;
   const int startIndexOfExtraArguments = indexOfCountArgument +1;
   int attribIdx = 0;
-  Word attribIdxWord(Address(0));
   GroupByLocalInfo *gbli;
 
   gbli = (GroupByLocalInfo *)local.addr;
@@ -6869,7 +6879,6 @@ int GroupByValueMapping
       }
       gbli = new GroupByLocalInfo();
       gbli->stableValue = 5;
-      gbli->stableState = false;
 
       numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
       value2 = (Supplier)args[2].addr; // list of functions
@@ -6886,7 +6895,8 @@ int GroupByValueMapping
         gbli->attrSizeTmp[i] = 0.0;
         gbli->attrSizeExtTmp[i] = 0.0;
       }
-      gbli->progressInitialized = false;
+      gbli->sizesInitialized = false;
+      gbli->sizesStable = false;
 
       local.setAddr(gbli);  //from now, progress queries possible
 
@@ -7074,49 +7084,51 @@ int GroupByValueMapping
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
-        if ( !gbli->progressInitialized )
+        if ( !gbli->sizesInitialized )
         {
           gbli->attrSize = new double[gbli->noAttrs];
           gbli->attrSizeExt = new double[gbli->noAttrs];
-          for (int i = 0; i < gbli->noGroupAttrs; i++)
-          {
-            gbli->attrSize[i] = 56;  //guessing string attributes
-            gbli->attrSizeExt[i] = 56;
-          }
-          for (int j = 0; j < gbli->noAggrAttrs; j++)
-          {        //guessing int attributes
-            gbli->attrSize[j + gbli->noGroupAttrs] = 12;
-            gbli->attrSizeExt[j + gbli->noGroupAttrs] = 12;
-
-          }
-
-          gbli->Size = 0.0;
-          gbli->SizeExt = 0.0;
-          for (int i = 0; i < gbli->noAttrs; i++)
-          {
-            gbli->Size += gbli->attrSize[i];
-            gbli->SizeExt += gbli->attrSizeExt[i];
-          }
-          gbli->progressInitialized = true;
         }
 
-        if (!gbli->stableState && (gbli->returned >= gbli->stableValue))
+        if ( !gbli->sizesStable )
         {
+
+          if ( gbli->returned < gbli->stableValue )
+          {
+            for (int i = 0; i < gbli->noGroupAttrs; i++)
+            {
+              gbli->attrSize[i] = 56;  //guessing string attributes
+              gbli->attrSizeExt[i] = 56;
+            }
+            for (int j = 0; j < gbli->noAggrAttrs; j++)
+            {        //guessing int attributes
+              gbli->attrSize[j + gbli->noGroupAttrs] = 12;
+              gbli->attrSizeExt[j + gbli->noGroupAttrs] = 12;
+            }
+          }
+          else
+          {
+            for (int i = 0; i < gbli->noAttrs; i++)
+            {
+              gbli->attrSize[i] = gbli->attrSizeTmp[i] / gbli->stableValue;
+              gbli->attrSizeExt[i] = gbli->attrSizeExtTmp[i] /
+                gbli->stableValue;
+            }
+          }
           gbli->Size = 0.0;
           gbli->SizeExt = 0.0;
           for (int i = 0; i < gbli->noAttrs; i++)
           {
-            gbli->attrSize[i] = gbli->attrSizeTmp[i] / gbli->stableValue;
-            gbli->attrSizeExt[i] = gbli->attrSizeExtTmp[i] /
-              gbli->stableValue;
             gbli->Size += gbli->attrSize[i];
             gbli->SizeExt += gbli->attrSizeExt[i];
           }
-          gbli->stableState = true;
+          gbli->sizesInitialized = true;
+          gbli->sizesStable = p1.sizesStable 
+            && (gbli->returned >= gbli->stableValue);
         }
 
-  //As long as we have not seen 5 result tuples (groups), we guess groups
-  //of size 10
+        //As long as we have not seen 5 result tuples (groups), we guess groups
+        //of size 10
 
         pRes->Card = (gbli->returned < 5 ? p1.Card/10.0 :
           p1.Card * (double) gbli->returned / (double) gbli->read);
@@ -7129,7 +7141,7 @@ int GroupByValueMapping
           + gbli->read * gbli->noAggrAttrs * uGroup)
           / pRes->Time;
 
-  pRes->CopyBlocking(p1);    //non-blocking operator
+        pRes->CopyBlocking(p1);    //non-blocking operator
 
         return YIELD;
       }
@@ -7140,8 +7152,6 @@ int GroupByValueMapping
 }
 
 #endif
-
-
 
 
 
@@ -7921,7 +7931,8 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->readFirst = 0;
       pli->readSecond = 0;
       pli->returned = 0;
-      pli->progressInitialized = false;
+      pli->sizesInitialized = false;
+      pli->sizesStable = false;
 
       local.setAddr(pli);
       return 0;

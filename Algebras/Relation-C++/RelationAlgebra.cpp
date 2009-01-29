@@ -1086,7 +1086,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
       fli->returned = 0;
       fli->total = r->GetNoTuples();
       fli->rit = r->MakeScan();
-      fli->progressInitialized = false;
+      fli->sizesInitialized = false;
+      fli->sizesStable = false;
       local.setAddr(fli);
       return 0;
     }
@@ -1148,7 +1149,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( fli )
       {
-        if ( !fli->progressInitialized )
+        if ( !fli->sizesInitialized )
         {
           fli->Size =  0;
           fli->SizeExt =  0;
@@ -1156,6 +1157,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
           fli->noAttrs = nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
           fli->attrSize = new double[fli->noAttrs];
           fli->attrSizeExt = new double[fli->noAttrs];
+ 
           for ( int i = 0;  i < fli->noAttrs; i++)
           {
             fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001);
@@ -1164,7 +1166,8 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
             fli->Size += fli->attrSize[i];
             fli->SizeExt += fli->attrSizeExt[i];
           }
-          fli->progressInitialized = true;
+          fli->sizesInitialized = true;
+          fli->sizesStable = true;
         }
       }
 
@@ -1308,7 +1311,8 @@ class FeedProjLocalInfo : public FeedLocalInfo
     FeedProjLocalInfo(TupleType* ptr) : tt(ptr) 
     { 
        returned = 0; 
-       progressInitialized = false; 
+       sizesInitialized = false;
+       sizesStable = false; 
     }
     ~FeedProjLocalInfo() { delete tt; tt = 0; }
 
@@ -1417,13 +1421,14 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( fli )
       {
-        if ( !fli->progressInitialized )
+        if ( !fli->sizesInitialized )
         {
           fli->Size = 0;
           fli->SizeExt = 0;
           fli->noAttrs = ((CcInt*)args[2].addr)->GetIntval();
           fli->attrSize = new double[fli->noAttrs];
           fli->attrSizeExt = new double[fli->noAttrs];
+
 
 	  fli->argTupleSize = rr->GetTotalExtSize() 
 		/ (fli->total + 0.001);
@@ -1440,8 +1445,10 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
             fli->Size += fli->attrSize[i];
             fli->SizeExt += fli->attrSizeExt[i];
+            fli->sizesInitialized = true;
+            fli->sizesStable = true;
           }
-          fli->progressInitialized = true;
+
         }
       }
 
@@ -2588,7 +2595,9 @@ public:
   ProjectLocalInfo() {
     tupleType = 0;
     read = 0;
-    progressInitialized = false;
+    sizesInitialized = false;
+    sizesStable = false;
+    
   }
 
   ~ProjectLocalInfo() {
@@ -2682,13 +2691,17 @@ Project(Word* args, Word& result, int message,
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
-        if ( !pli->progressInitialized )
+        if ( !pli->sizesInitialized )
         {
-          pli->Size = 0;
-          pli->SizeExt = 0;
           pli->noAttrs = ((CcInt*)args[2].addr)->GetIntval();
           pli->attrSize = new double[pli->noAttrs];
           pli->attrSizeExt = new double[pli->noAttrs];
+        }
+
+        if ( !pli->sizesStable )
+        {
+          pli->Size = 0;
+          pli->SizeExt = 0;
 
           for( int i = 0; i < pli->noAttrs; i++)
           {
@@ -2700,7 +2713,8 @@ Project(Word* args, Word& result, int message,
             pli->Size += pli->attrSize[i];
             pli->SizeExt += pli->attrSizeExt[i];
           }
-          pli->progressInitialized = true;
+          pli->sizesInitialized = true;
+          pli->sizesStable = p1.sizesStable;
         }
 
         pRes->Card = p1.Card;
@@ -3250,7 +3264,8 @@ Product(Word* args, Word& result, int message,
 
       pli->readSecond = 0;
       pli->returned = 0;
-      pli->progressInitialized = false;
+      pli->sizesInitialized = false;
+      pli->sizesStable = false;
       local.setAddr(pli);
 
       while(qp->Received(args[1].addr))
