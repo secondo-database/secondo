@@ -84,6 +84,7 @@ public:
   int noAttrs;		//no of attributes
   double *attrSize;	//for each attribute, the complete size
   double *attrSizeExt;	//for each attribute, the root and extension size
+  bool sizesStable;	//true when final sizes in subtree are known
 
   double Time;		//expected time, in millisecond
   double Progress;	//a number between 0 and 1
@@ -135,19 +136,18 @@ public:
   void* firstLocalInfo;	//pointers to localinfos of first and second arg
   void* secondLocalInfo;
 
-  bool progressInitialized;
-
-			//the following only defined if progressInitialized
+  bool sizesInitialized;//the following only defined if sizesInitialized
   double Size;		//total tuplesize
   double SizeExt;	//size of root and extension part of tuple
   int noAttrs;		//no of attributes
   double *attrSize;	//full size of each attribute
   double *attrSizeExt;	//size of root and ext. part of each attribute
+  bool sizesStable;	//sizes will not change any more
 
   void SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 ) ;
 
 			//set the sizes for a join of first and second argument
-			//only done once
+			//only done until sizesStable
 };
 
 

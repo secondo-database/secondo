@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ProgressInfo::ProgressInfo()
 {
+  sizesStable = false;
   BTime = 0.001;	//default assumes non-blocking operator,
   BProgress = 1.0;	//time value must be > 0
 }
@@ -39,6 +40,7 @@ void ProgressInfo::CopySizes(ProgressInfo p)	//copy the size fields
     noAttrs = p.noAttrs;
     attrSize = p.attrSize;
     attrSizeExt = p.attrSizeExt;
+    sizesStable = p.sizesStable;
   }
 
 
@@ -49,6 +51,7 @@ void ProgressInfo::CopySizes(ProgressLocalInfo* pli) //copy the size fields
   noAttrs = pli->noAttrs;
   attrSize = pli->attrSize;
   attrSizeExt = pli->attrSizeExt;
+  sizesStable = pli->sizesStable;
 }
 
 
@@ -92,12 +95,13 @@ ProgressLocalInfo::ProgressLocalInfo()  {
   state = 0;
   firstLocalInfo = 0;
   secondLocalInfo = 0;
-  progressInitialized = false;
+  sizesInitialized = false;
+  sizesStable = false;
 }
 
 ProgressLocalInfo::~ProgressLocalInfo() 
 {
-  if ( progressInitialized )
+  if ( sizesInitialized )
   {
     delete [] attrSize;
     delete [] attrSizeExt;
@@ -106,15 +110,19 @@ ProgressLocalInfo::~ProgressLocalInfo()
 
 void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 ) 
 {
-  if ( !progressInitialized )
+  if ( !sizesInitialized )
   {
-      
-    Size = p1.Size + p2.Size;
-    SizeExt = p1.SizeExt + p2.SizeExt;
-
     noAttrs = p1.noAttrs + p2.noAttrs;
     attrSize = new double[noAttrs];
     attrSizeExt = new double[noAttrs];
+  }
+
+  if ( !sizesStable )
+  {
+    Size = p1.Size + p2.Size;
+    SizeExt = p1.SizeExt + p2.SizeExt;
+    noAttrs = p1.noAttrs + p2.noAttrs;
+
     for (int i = 0; i < p1.noAttrs; i++)
     {
       attrSize[i] = p1.attrSize[i];
@@ -125,7 +133,8 @@ void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 )
        attrSize[p1.noAttrs + j] = p2.attrSize[j];
        attrSizeExt[p1.noAttrs + j] = p2.attrSizeExt[j];
     }
-    progressInitialized = true;
+    sizesInitialized = true;
+    sizesStable = p1.sizesStable && p2.sizesStable; 
   }
 }
 
