@@ -352,14 +352,27 @@ of the outer query, the subquery will be evaluated and replaced by its result.
   
 transformNestedPredicate(Attrs, Attrs, Rels, Rels, SubqueryPred, SubqueryPred2) :-
   SubqueryPred =..[Op, Attr, Subquery],
+  evaluateSubquery(Subquery, Result), 
+  SubqueryPred2 =.. [Op, Attr, Result].  
+  
+evaluateSubquery(Subquery, Result) :-
   transform(Subquery, CanonicalSubquery),
   nestingType(CanonicalSubquery, a),
   optimize(CanonicalSubquery, SecondoQuery, _),
   atom(SecondoQuery),
   atom_concat('query ', SecondoQuery, QueryText),
   secondo(QueryText, [_, Res]),
-  not(is_list(Res)),
-  SubqueryPred2 =.. [Op, Attr, Res].  
+  not(is_list(Res)),  
+  typeConversion(Res, Result).
+  
+typeConversion(Data, Result) :-
+  string_concat('"', Temp, Data),
+  string_concat(TempRes, '"', Temp),
+  string_to_list(TempRes, Result).
+  
+typeConversion(Result, Result).
+
+  
  
 /*
 
@@ -924,6 +937,305 @@ join(arg(N), arg(M), pr(OuterJoinPred, _, _)) => smouterjoin(Arg1S, Arg2S, X, Y)
 :- multifile cost/4.
   
 cost(smouterjoin(_, _, _, _), Sel, 1, 0).
+
+%:- multifile lookup/2.
+
+lookup1(select Attrs from Rels where Preds,
+        select Attrs2 from Rels3List where Preds2List) :-   
+  lookupRels(Rels, Rels2),
+  lookupAttrs(Attrs, Attrs2),
+  lookupSubquery(Preds, Preds2, SubqueryRels),
+  makeList(Rels2, Rels2List),
+  makeList(SubqueryRels, SubqueryRelsList),
+  union(Rels2List, SubqueryRelsList, Rels3List),
+  makeList(Preds2, Preds2List),
+  (optimizerOption(entropy)
+    -> registerSelfJoins(Preds2List, 1); true).
+					% needed for entropy optimizer
+					
+lookupSubquery(Pred, Pred2, SubqueryRel) :-
+  not(is_list(Pred)),
+  isSubqueryPred1(Pred),
+  lookupSubqueryPred(Pred, Pred2, SubqueryRel).					
+					
+lookupSubquery([Pred | Rest], [Pred2 | RestList], [SubqueryRel | SubqueryRels2]) :-
+  isSubqueryPred1(Pred),
+  lookupSubqueryPred(Pred, Pred2, SubqueryRel),
+  lookupSubquery(Rest, RestList, SubqueryRels2).
+  
+  
+% quantified predicate 
+lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, RelsAfter, Rels2), Rels2) :-  
+  nl, write('QuantifiedPred'), nl,
+  write('SubqueryPred: '), write(SubqueryPred), nl,
+  SubqueryPred =.. [Op, Attrs, SubqueryTemp],
+  write('Op: '), write(Op), nl,
+  write('Attrs: '), write(Attrs), nl,
+  write('SubqueryTemp: '), write(SubqueryTemp), nl,
+  SubqueryTemp =.. [Quantifier, Subquery],
+  write('Quantifier: '), write(Quantifier), nl,
+  write('Subquery: '), write(Subquery), nl,
+  lookup(Subquery, Subquery2),
+  Subquery2 =.. [from, _, Rels2],
+  write('Rels2: '), write(Rels2), nl,
+  Rels2 =.. [rel, _, _, _],
+  lookupPred1(Attrs, Attrs2, [], [RelsAfter]),
+  Subquery3 =.. [Quantifier, Subquery2],
+  SubqueryPred2 =.. [Op, Attrs2, Subquery3].  
+
+   
+lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, RelsAfter, Rels2), Rels2) :-
+  nl, write('SimplePred'), nl,
+  write('SubqueryPredA: '), write(SubqueryPred), nl,
+  SubqueryPred =.. [Op, Attrs, Subquery],
+  write('Op: '), write(Op), nl,
+  write('Attrs: '), write(Attrs), nl,  
+  write('Subquery: '), write(Subquery), nl,
+  lookup(Subquery, Subquery2),
+  write('Subquery2: '), write(Subquery2), nl,
+  Subquery2 =.. [from, _, Rels2],
+  write('Rels2: '), write(Rels2), nl,
+  Rels2 =.. [rel, _, _],
+  lookupPred1(Attrs, Attrs2, [], [RelsAfter]),
+  SubqueryPred2 =.. [Op, Attrs2, Subquery2].
+  
+lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, RelsAfter, Rels2), Rels2) :-
+  write('SubqueryPredB: '), write(SubqueryPred), nl,
+  SubqueryPred =.. [Op, Attrs, Subquery],
+  write('Op: '), write(Op), nl,
+  write('Attrs: '), write(Attrs), nl,  
+  write('Subquery: '), write(Subquery), nl,
+  lookup(Subquery, Subquery2),
+  write('Subquery2: '), write(Subquery2), nl,
+  Subquery2 =.. [from, _, Where],
+  write('Where: '), write(Where), nl, 
+  Where =.. [where, [Rels2], _],
+  write('Rels2: '), write(Rels2), nl,
+  Rels2 =.. [rel, _, _, _],
+  lookupPred1(Attrs, Attrs2, [], [RelsAfter]),
+  write('Attrs2: '), write(Attrs2), nl,
+  SubqueryPred2 =.. [Op, Attrs2, Subquery2].
+%  write('SubqueryPred2: '), write(SubqueryPred2), nl.   
+
+% 
+lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, Rels), Rels) :-
+  SubqueryPred =.. [Op, Subquery],
+  lookup(Subquery, Subquery2),
+  Subquery2 =.. [from, _, Rels],
+  SubqueryPred2 =.. [Op, Subquery2]. 
+  
+  
+containsSubqueryPred(Pred) :-
+  not(is_list(Pred)),
+  isSubqueryPred1(Pred).
+  
+containsSubqueryPred([Pred | Rest]) :-
+  isSubqueryPred1(Pred) ; 
+  containsSubqueryPred(Rest).   
+
+isSubqueryPred1(Pred) :- 
+  compound(Pred),
+  Pred =.. [Op, _, Subquery],
+  isSubqueryOp(Op),
+  Subquery =.. [from, _, _].
+  
+isSubqueryPred1(Pred) :- 
+  compound(Pred),
+  Pred =.. [Op, Subquery],
+  isSubqueryOp(Op),
+  Subquery =.. [from, _, _].  
+  
+isSubqueryPred1(Pred) :-
+  compound(Pred),
+  Pred =.. [Op, _, QuantifiedPred],
+  QuantifiedPred =.. [Quantifier, Subquery],
+  isComparisonOp(Op),
+  isQuantifier(Quantifier),
+  Subquery =.. [from, _, _].
+  
+isSubqueryOp(in).
+isSubqueryOp(exists).
+isSubqueryOp(Op) :-
+  isComparisonOp(Op).
+
+isQuantifier(all).
+isQuantifier(any).
+isQuantifier(some).
+
+:- op(700, xfx, <>).
+
+isComparisonOp(=).
+isComparisonOp(<=).
+isComparisonOp(=>).
+isComparisonOp(<).
+isComparisonOp(>).
+isComparisonOp(<>).
+
+
+%:- multifile plan_to_atom/2.
+
+subquery_to_atom(Pred, Result) :-
+   write('subquery_to_atom'), nl,
+   write('Pred: '), write(Pred), nl,
+   Pred =.. [in, Attrs, Subquery],
+    write('Attrs: '), write(Attrs), nl, 
+    write('Subquery: '), write(Subquery), nl,
+   Subquery =.. [from, Select, _],
+    write('Select: '), write(Select), nl,
+   Select =.. [select, Arg],
+    write('Arg: '), write(Arg), nl,
+   Expr =.. [=, Arg, Attrs],
+    write('Expr: '), write(Expr), nl,
+   plan_to_atom(Expr, Result),
+    write(Result), nl,
+   !.  
+   
+subquery_to_atom(Pred, Result) :-
+ %  write('subquery_to_atom'), nl,
+   Pred =.. [Op, Attrs, QuantifiedSubquery],
+ %  write('Attrs: '), write(Attrs), nl, 
+   QuantifiedSubquery =.. [_, Subquery],
+ %  write('Subquery: '), write(Subquery), nl,
+   Subquery =.. [from, Select, _],
+ %  write('Select: '), write(Select), nl,
+   Select =.. [select, Arg],
+ %  write('Arg: '), write(Arg), nl,
+   Expr =.. [Op, Arg, Attrs],
+ %  write('Expr: '), write(Expr), nl,
+   plan_to_atom(Expr, Result),
+ %  write(Result), nl,
+   !.     
+   
+/*:- multifile newEdge/4.
+
+newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
+  isSubqueryPred1(P),
+  findRels(R1, R2, Node, Source, Arg1, Arg2),
+  Target is Source + PNo,
+  nodeNo(Arg1, Arg1No),
+  nodeNo(Arg2, Arg2No),
+  Result is Arg1No + Arg2No + PNo,
+  Edge = edge(Source, Target, subquery(Arg1, Arg2, pr(P, R1, R2)), Result,
+    Node, PNo).	   */
+  
+
+:- multifile (=>)/2.
+
+% simple in predicate
+subquery(Arg1, _, pr(Pred, _, _)) => remove(filter(product(Arg1S, feed(Rel)), Expr), AttrList2) :-
+  isSubqueryPred1(Pred), 
+%  write('translateA: '), write(Pred), nl,
+  Arg1 => Arg1S,
+%  write('Arg1: '), write(Arg1), nl,
+  Pred =.. [in, Attrs, Subquery],
+%  write('Attrs: '), write(Attrs), nl,
+  Subquery =.. [from, Select, Rel],
+  not(is_list(Rel)),
+%  write('Rel: '), write(Rel), nl,
+  Rel =.. [rel, Name, _, _],   
+%  write(Name), nl,
+%  write(Var), nl,
+  relation(Name, AttrList),
+%  write(AttrList), nl,
+%  write(AttrList2), nl,
+  myFun(AttrList, AttrList2, *),
+  Select =.. [select, Arg],
+  Expr =.. [=, Attrs, Arg].
+
+% simple in predicate
+subquery(Arg1, _, pr(Pred, _, _)) => remove(filter(product(Arg1S, feed(Rel)), Expr), AttrList2) :-
+  isSubqueryPred1(Pred), 
+%  write('translateA: '), write(Pred), nl,
+  Arg1 => Arg1S,
+%  write('Arg1: '), write(Arg1), nl,
+  Pred =.. [in, Attrs, Subquery],
+%  write('Attrs: '), write(Attrs), nl,
+  Subquery =.. [from, Select, Rel],
+  not(is_list(Rel)),
+%  write('Rel: '), write(Rel), nl,
+  Rel =.. [rel, Name, Var, _],
+%  write(Name), nl,
+%  write(Var), nl,
+  relation(Name, AttrList),
+%  write(AttrList), nl,
+  myFun(AttrList, AttrList2, Var),
+%  write(AttrList2), nl,
+  Select =.. [select, Arg],
+  Expr =.. [=, Attrs, Arg].
+  
+myFun([], [], _).
+
+myFun([Attr | Rest], AttrList2, Var) :-
+  lookupAttr(Var:Attr, Attr2),
+  myFun(Rest, Rest2, Var),
+  flatten([attrname(Attr2), Rest2], AttrList2).
+  
+% in predicate with predicate
+subquery(Arg1, _, pr(Pred, _, _)) => filter(product(Arg1S, filter(feed(Rel), SubPred)), Expr) :-
+  isSubqueryPred1(Pred), 
+%  write('translateB: '), write(Pred), nl,
+  Arg1 => Arg1S,
+%  write('Arg1: '), write(Arg1), nl,
+  Pred =.. [in, Attrs, Subquery],
+%  write('Attrs: '), write(Attrs), nl,
+%  write('Subquery: '), write(Subquery), nl,
+  Subquery =.. [from, Select, Where],
+%  write('Select: '), write(Select), nl,
+%  write('Where: '), write(Where), nl,
+  Where =.. [where, [Rel], [pr(SubPred, _)]],
+%  write('SubPred: '), write(SubPred), nl,
+%  write('Rel: '), write(Rel), nl,
+%  SubPred => SubPred2,
+  Select =.. [select, Arg],
+  Expr =.. [=, Arg, Attrs]. 
+  
+  
+subquery(Arg1, _, pr(Pred, _, _)) => remove(filter(extend(product(Arg1S, feed(Rels)), [newattr(attrname(attr(subext, 1, l)), Expr)]), attr(subext, 1, l) = true), attrname(attr(subext, 1, l)))  :-
+  isSubqueryPred1(Pred),
+%  write('translateC: '), write(Pred), nl,  
+%  write(Pred), nl,
+  Arg1 => Arg1S,
+  Pred =.. [Op, Attrs, QuantifiedSubquery],
+%  write('Op: '), write(Op), nl,
+%  write('Attrs: '), write(Attrs), nl,
+%  write('QuantifiedSubquery: '), write(QuantifiedSubquery), nl,
+  QuantifiedSubquery =.. [_, Subquery],
+%  write('Quantifier: '), write(Quantifier), nl,
+%  write('Subquery: '), write(Subquery), nl,
+  Subquery =.. [from, Select, Rels],
+%  write('Select: '), write(Select), nl,
+%  write('Rels: '), write(Rels), nl,
+  Select =.. [select, Arg],
+%  write('Arg: '), write(Arg), nl,
+%  write('Op: '), write(Op), nl,
+  Expr =.. [Op, Arg, Attrs].
+%  write('Expr: '), write(Expr), nl,  
+
+  
+/*  
+subquery(Arg1, _, pr(Pred, _, _)) => loopsel(feed(Rels), fun([param(T1, tuple)], filter(Arg1S, Expr))) :-
+  fail,
+  isSubqueryPred(Pred), !,
+  Arg1 => Arg1S,
+  Pred =.. [in, Attrs, Subquery],
+  Subquery =.. [from, Select, Rels],
+  Select =.. [select, Arg],
+  Expr =.. [=, attribute(T1, attrname(Arg)), Attrs],
+  newVariable(T1).    
+  
+subquery(Arg1, _, pr(Pred, _, _)) => loopsel(feed(Rels), fun([param(T1, tuple)], filter(Arg1S, Expr))) :-
+  isSubqueryPred(Pred), !,
+%  write(Pred), nl,
+  Arg1 => Arg1S,
+  Pred =.. [Op, Attrs, QuantifiedSubquery],
+  Op => Op2,
+  QuantifiedSubquery =.. [Quantifier, Subquery],
+  Subquery =.. [from, Select, Rels],
+  Select =.. [select, Arg],
+  Expr =.. [Op2, attribute(T1, attrname(Arg)), Attrs],
+  newVariable(T1).
+*/  
+
 
 /*
 join(arg(N), arg(M), pr(OuterJoinPred, _, _)) => mergeunion(
