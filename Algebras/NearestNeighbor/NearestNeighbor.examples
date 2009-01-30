@@ -44,3 +44,9 @@ Example  : query UTO_tree UTOrdered knearestfilter[train1, 5] UTrip knearest[tra
 Result   : file_platform
 
 
+Operator : rect2periods 
+Number   : 1
+Signature: rect3 -> periods
+Example  : query rect2periods(box1000)
+Result   : (periods ( ("2003-11-20-07:32:50" "2003-11-20-07:33" TRUE TRUE)))
+

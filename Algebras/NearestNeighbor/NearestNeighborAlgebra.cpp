@@ -528,6 +528,27 @@ knearestFilterTypeMap( ListExpr args )
 }
 
 
+/* 
+2.1.10 rect2periods TypeMap
+
+signatur ist rect3 -> periods
+
+*/
+ListExpr rect2periodsTypeMap(ListExpr args){
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("Invalid number of arguments");
+    return nl->TypeError();
+  }
+  ListExpr arg = nl->First(args);
+  if(!nl->IsEqual(arg,"rect3")){
+    ErrorReporter::ReportError("rect3 expected");
+    return nl->TypeError();
+  }
+  return nl->SymbolAtom("periods");
+}
+
+
+
 /*
 2.2 Selection Function
 
@@ -2619,6 +2640,28 @@ ValueMapping distanceScanMap [] = { distanceScanFun<2>,
                                     distanceScanFun<8>};
 
 
+int rect2periodsFun (Word* args, Word& result, int message, 
+             Word& local, Supplier s) {
+
+  Rectangle<3>* arg  = static_cast<Rectangle<3>*>(args[0].addr); 
+  result = qp->ResultStorage(s);
+  Periods* res = static_cast<Periods*>(result.addr);
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  double min = arg->MinD(2);
+  double max = arg->MaxD(2);
+  DateTime dt1(instanttype);
+  DateTime dt2(instanttype);
+  dt1.ReadFrom(min);
+  dt2.ReadFrom(max);
+  Interval<DateTime> iv(dt1,dt2,true,true);
+  res->Clear();
+  res->Add(iv);
+  return 0;  
+}
+
 /*
 2.5 Specification of operators
 
@@ -2680,6 +2723,14 @@ const string knearestFilterSpec  =
       ") )";
 
 
+const string rect2periodsSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rect3 -> periods </text--->"
+      "  <text> rect2periods(_)</text--->"
+      "  <text> Creates a single-interval periods value from "
+      "  the third dimension of a rectangle </text--->"
+      "  <text>query rect2periods(rect1) </text--->"
+      ") )";
 
 /*
 2.6 Definition of operators
@@ -2716,6 +2767,15 @@ Operator knearestfilter (
          knearestFilterFun,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
          knearestFilterTypeMap    // type mapping
+);
+
+
+Operator rect2periods (
+         "rect2periods",            // name
+         rect2periodsSpec,          // specification
+         rect2periodsFun,           // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         rect2periodsTypeMap        // type mapping
 );
 
 /*
@@ -2863,6 +2923,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &knearestvector );
     AddOperator( &knearestfilter );
     AddOperator( &bboxes );
+    AddOperator( &rect2periods );
   }
   ~NearestNeighborAlgebra() {};
 };
