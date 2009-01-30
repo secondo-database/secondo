@@ -2528,6 +2528,21 @@ representing the  value 1 over their interval.
    }
    void Hat(MInt& mint);
 
+/*
+~Restrict~
+
+This operator removes the first (last) unit of this mint if it
+starts (ends) with endoftime (beginoftime). If __useValue__
+is set to true, the units are only removed if the stored value is equals to
+the given value.
+
+*/   
+   void Restrict(MInt& result, 
+                 const bool useValue = false, 
+                 const int value = 0) const;
+   
+
+
 };
 
 /*

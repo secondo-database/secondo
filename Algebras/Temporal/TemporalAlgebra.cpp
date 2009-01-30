@@ -2156,6 +2156,44 @@ void MInt::Hat(MInt& mint)
       mint.Add(end);
 }
 
+
+
+void MInt::Restrict(MInt& result, 
+                    const bool useValue /*= false */, 
+                    const int value /*= 0*/ ) const{
+
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  int size = GetNoComponents();
+  if(size==0){
+    return;
+  }
+  result.Resize(size);
+  int last = size-1;
+  for(int i=0;i<size;i++){
+     const UInt* unit;
+     Get(i,unit);
+     if(i==0 || i==last){ 
+       if(unit->timeInterval.start.IsMinimum() || 
+          unit->timeInterval.end.IsMaximum()){
+          if(useValue && unit->constValue.GetIntval()!=value){
+             result.Add(*unit);
+          }
+       } else {
+         result.Add(*unit);
+       } 
+     } else {
+       result.Add(*unit);
+     }
+  } 
+
+}
+
+
 /*
 3.1 Class ~MReal~
 
@@ -7729,6 +7767,8 @@ ListExpr EqualizeUTM(ListExpr args){
    ErrorReporter::ReportError(err);
    return nl->TypeError();
 }
+
+
 ListExpr MIntHatTypeMap(ListExpr args){
    string err = "mint expected";
    if(nl->IsEqual(nl->First(args),"mint"))
@@ -7736,6 +7776,34 @@ ListExpr MIntHatTypeMap(ListExpr args){
    ErrorReporter::ReportError(err);
    return nl->TypeError();
 }
+
+/*
+~RestrictTypeMap~
+
+signatures:
+   mint -> mint
+   mint x int -> mint
+
+*/
+ListExpr restrictTM(ListExpr args){
+  string err = "mint [x int] expected";
+  int len = nl->ListLength(args);
+  if(len!=1 && len!=2){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(args),"mint")){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  if(len==2 && !nl->IsEqual(nl->Second(args),"int")){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  return nl->SymbolAtom("mint");
+}
+
+
 
 /*
 16.2 Selection function
@@ -8332,6 +8400,13 @@ int SampleMPointSelect(ListExpr args){
 }
 
 
+/*
+16.2.35 SelectionFuntion for ~restrict~
+
+*/
+int restrictSelect(ListExpr args){
+   return nl->ListLength(args)==1?0:1;
+}
 
 /*
 16.3 Value mapping functions
@@ -10172,6 +10247,8 @@ int LengthVM(Word* args, Word& result, int message,
   return 0;
 }
 
+
+
 /*
 16.3.49 Some specialized valuemappings for type MPoint
 
@@ -10294,6 +10371,33 @@ int MIntHat( Word* args, Word& result, int message,
    mint->Hat(*(MInt*)result.addr);
    return 0;
 }
+
+
+int restrictVM1( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+   result = qp->ResultStorage(s);
+   MInt* res = static_cast<MInt*>(result.addr);
+   MInt* arg = static_cast<MInt*>(args[0].addr);
+   arg->Restrict(*res);
+   return 0;
+}
+
+int restrictVM2( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+   result = qp->ResultStorage(s);
+   MInt* res = static_cast<MInt*>(result.addr);
+   MInt* arg1 = static_cast<MInt*>(args[0].addr);
+   CcInt* arg2 = static_cast<CcInt*>(args[1].addr);
+   if(!arg2->IsDefined()){
+     res->Clear();
+     res->SetDefined(false);
+     return 0;
+   }
+   arg1->Restrict(*res,true,arg2->GetIntval());
+   return 0;
+}
+
+
 
 /*
 16.4 Definition of operators
@@ -10517,6 +10621,9 @@ ValueMapping temporaltherangemap[] = {
   TemporalTheRangeTM<CcString> // 4
 };
 
+ValueMapping restrictVM[] = {
+  restrictVM1, restrictVM2
+};
 
 /*
 16.4.2 Specification strings
@@ -11119,6 +11226,17 @@ const string MintHatSpec =
     "<text>query hat(noAtCenter)</text--->"
     ") )";
 
+
+const string restrictSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mint [x int] -> mint </text---> "
+    "<text> restrict(_ [, _]) </text--->"
+    "<text> removes infinity units at the ends of the moving int"
+    "if the optional int is given, the units are only removed if "
+    "the value store within the units is equals to the given value "
+    "<text>query restrict(noAtCenter)</text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -11553,6 +11671,12 @@ Operator hat( "hat",
                        Operator::SimpleSelect,
                        MIntHatTypeMap );
 
+Operator restrict( "restrict",
+                    restrictSpec,
+                    2,
+                    restrictVM,
+                    restrictSelect,
+                    restrictTM );
 /*
 6 Creating the Algebra
 
@@ -11685,6 +11809,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporallength);
     AddOperator(&equalizeU);
     AddOperator(&hat);//hat
+    AddOperator(&restrict);
   }
   ~TemporalAlgebra() {};
 };

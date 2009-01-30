@@ -458,3 +458,17 @@ Number   : 1
 Signature: mint -> mint
 Example  : query hat(noAtCenter);
 Result   : file
+
+Operator  : restrict
+Number    : 1
+Signature : mint -> mint
+Example   : query units(restrict(noAtCenter) = noAtCenter) count
+Result    : (int 1)
+
+Operator  : restrict
+Number    : 2
+Signature : mint x int -> mint
+Example   : query units(restrict(noAtCenter, 1) = noAtCenter) count
+Result    : (int 1)
+
+
