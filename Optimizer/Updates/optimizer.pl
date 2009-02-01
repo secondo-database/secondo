@@ -6354,6 +6354,12 @@ storeHistory :-
   saveRel('SqlHistory').
 
 
+% special handling for create query
+sql create Term :- sqlNoQuery(create Term), !.
+
+% special handling for drop query
+sql drop Term :- sqlNoQuery(drop Term), !.
+
 % Default handling
 sql Term :- defaultExceptionHandler((
   isDatabaseOpen,
@@ -6363,6 +6369,7 @@ sql Term :- defaultExceptionHandler((
   query(Query, PlanExec),
   appendToRel('SqlHistory', Term, Query, Cost, PlanBuild, PlanExec)
  )).
+
 
 sql create X by Term :- let(X, Term).
 
@@ -6392,6 +6399,15 @@ let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
   write('Estimated Cost: '), write(Cost), nl, nl,
   concat_atom(['let ', X, ' = ', Query], '', Command),
   secondo(Command)
+ )).
+
+% for create and drop-queries
+sqlNoQuery(Term) :-  defaultExceptionHandler((
+  isDatabaseOpen,
+  mOptimize(Term, Query, Cost),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  secondo(Query)
  )).
 
 
