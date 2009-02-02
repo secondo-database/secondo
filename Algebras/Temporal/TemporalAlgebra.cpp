@@ -1463,15 +1463,15 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
 
 
 void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
- 
- 
+
+
   // both arguments have to be defined
   if(!IsDefined() || !rect.IsDefined()){
      result.SetDefined(false);
      return;
   }
 
-  
+
   double minX = rect.MinD(0);
   double minY = rect.MinD(1);
   double maxX = rect.MaxD(0);
@@ -1519,7 +1519,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
        x1 = minX;
        y1 = y;
        s = i;
-       lc = true;  
+       lc = true;
     } else {  // unit leave rect
        x2 = minX;
        y2 = y;
@@ -1542,7 +1542,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
        x1 = maxX;
        y1 = y;
        s = i;
-       lc = true;  
+       lc = true;
     } else {  // unit leave rect
        x2 = maxX;
        y2 = y;
@@ -1559,7 +1559,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
       ((y1>maxY) && (y2>maxY))){
     // nothing left
     result.SetDefined(false);
-    return; 
+    return;
   }
 
   // clip at the bottom line
@@ -1571,7 +1571,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
        x1 = x;
        y1 = minY;
        s = i;
-       lc = true;  
+       lc = true;
     } else {  // unit leave rect
        x2 = x;
        y2 = minY;
@@ -1582,7 +1582,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
     dy = y2 - y1;
     dt = e - s;
   }
- 
+
   if( (y1 > maxY) || (y2>maxY)){
     double delta =  (maxY-y1)/dy;
     double x = x1 + delta*dx;
@@ -1591,7 +1591,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
        x1 = x;
        y1 = maxY;
        s = i;
-       lc = true;  
+       lc = true;
     } else {  // unit leave rect
        x2 = x;
        y2 = maxY;
@@ -1609,7 +1609,7 @@ void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
      result.SetDefined(false);
      return;
   }
-  Interval<Instant> tmp(s,e,lc,rc);  
+  Interval<Instant> tmp(s,e,lc,rc);
   result.timeInterval=tmp;
   result.p0.Set(x1,y1);
   result.p1.Set(x2,y2);
@@ -2063,12 +2063,10 @@ void MInt::ReadFrom(const MBool& arg){
 }
 void MInt::Hat(MInt& mint)
 {
-//   mint.CopyFrom(this);
    stack<UInt> uintstack;
    const UInt* upi;
    UInt last,curuint;
    CcInt cur,top;
-   //int position  = 0;
    last.SetDefined(true);
    curuint.SetDefined(false);
    float lastarea = 0;
@@ -2080,14 +2078,14 @@ void MInt::Hat(MInt& mint)
         if(cur.GetIntval() >= top.GetIntval())
             uintstack.push(*upi);
         else{
-          while(!uintstack.empty() && cur.GetIntval() <= top.GetIntval()){
+          while(!uintstack.empty() && cur.GetIntval() < top.GetIntval()){
             uintstack.pop();
             if(!uintstack.empty())
               top.Set(uintstack.top().constValue.GetValue());
           }
           if(!uintstack.empty()){
             last = uintstack.top();
-            Instant inter1 = upi->timeInterval.end;
+            Instant inter1 = upi->timeInterval.start;
             Instant inter2 = last.timeInterval.end;
             inter1 -= inter2;
             double time = inter1.GetDay()*(24*60*60) +
@@ -2097,10 +2095,12 @@ void MInt::Hat(MInt& mint)
 //            last.timeInterval.Print(cout)<<endl;
 //            cout<<"time "<<time<<endl;
 //            cout<<"lastarea "<<lastarea<<" curarea "<<curarea<<endl;
-            if(curarea > lastarea){
+            if(curarea >= lastarea){
               lastarea = curarea;
               curuint.timeInterval.start = inter2;
-              curuint.timeInterval.end = upi->timeInterval.end;
+              curuint.timeInterval.end = upi->timeInterval.start;
+              curuint.timeInterval.lc = true;
+              curuint.timeInterval.rc = false;
               curuint.constValue.Set(upi->constValue.GetValue());
               curuint.SetDefined(true);
             }
@@ -2110,56 +2110,72 @@ void MInt::Hat(MInt& mint)
       }else
         uintstack.push(*upi);
     }
-//    curuint.Print(cout);
     while(!uintstack.empty())
       uintstack.pop();//clear stack
-    UInt begin,end;
-    Get(0,upi);
-    begin.SetDefined(true);
-    begin.timeInterval.start = upi->timeInterval.end;
-    if(curuint.IsDefined() == true)
+
+    if(curuint.IsDefined() == true){//find hat
+       UInt begin,end;
+       Get(0,upi);
+       begin.SetDefined(true);
+//    begin.timeInterval.start = upi->timeInterval.end;
+      begin.timeInterval.start = upi->timeInterval.start;
+      begin.timeInterval.lc = true;
       begin.timeInterval.end = curuint.timeInterval.start;
-    else
-      begin.timeInterval.end = upi->timeInterval.end;
-    int value = upi->constValue.GetValue();
-    int i;
-    for(i = 0;i < GetNoComponents();i++){
-        Get(i,upi);
-        if(upi->timeInterval.start < begin.timeInterval.end){
-          if(upi->constValue.GetValue() < value)
-            value = upi->constValue.GetValue();
-        }else
-            break;
-    }
-    begin.constValue.Set(value);
-    if(begin.timeInterval.start != begin.timeInterval.end)
+      begin.timeInterval.rc = false;
+      int value = curuint.constValue.GetValue(); //the same as hat threshold
+      begin.constValue.Set(value);
+
+      assert(begin.timeInterval.start != begin.timeInterval.end);
       mint.Add(begin);
-    if(curuint.IsDefined() == true)
-      mint.Add(curuint);
-    Get(GetNoComponents() - 1,upi);
-    end.SetDefined(true);
-    if(curuint.IsDefined() == true)
+      if(curuint.timeInterval.IsValid())//start != curuint.timeInterval.end)
+        mint.Add(curuint);
+      Get(GetNoComponents() - 1,upi);
+      end.SetDefined(true);
       end.timeInterval.start = curuint.timeInterval.end;
-    else
-      end.timeInterval.start = upi->timeInterval.start;
-    value = upi->constValue.GetValue();
-    for(;i < GetNoComponents();i++){
-        Get(i,upi);
-        if(upi->timeInterval.start > end.timeInterval.start){
-          if(upi->constValue.GetValue() < value)
-            value = upi->constValue.GetValue();
-        }
-    }
-    end.timeInterval.end = upi->timeInterval.start;
-    end.constValue.Set(value);
-    if(end.timeInterval.start != end.timeInterval.end)
+      end.timeInterval.lc = true;
+//    end.timeInterval.end = upi->timeInterval.start;
+      end.timeInterval.end = upi->timeInterval.end;
+      end.timeInterval.rc = true;
+      end.constValue.Set(value); //the same as hat threshold
+      assert(end.timeInterval.start != end.timeInterval.end);
       mint.Add(end);
+    }
+    else{ //hat does not exist,return the first and last
+       UInt begin,end;
+       const UInt* upi1;
+       const UInt* upi2;
+       Get(0,upi1);
+       Get(GetNoComponents() - 1,upi2);
+       begin.SetDefined(true);
+       int firstvalue = upi1->constValue.GetValue();
+       int lastvalue = upi2->constValue.GetValue();
+       if(firstvalue != lastvalue){
+        begin.constValue.Set(firstvalue);
+        begin.timeInterval.start = upi1->timeInterval.start;
+        begin.timeInterval.end = upi1->timeInterval.end;
+        begin.timeInterval.lc = true;
+        begin.timeInterval.rc = false;
+        mint.Add(begin);
+        end.SetDefined(true);
+        end.constValue.Set(lastvalue);
+        end.timeInterval.start = upi1->timeInterval.end;
+        end.timeInterval.end = upi2->timeInterval.end;
+        end.timeInterval.lc = true;
+        end.timeInterval.rc = true;
+        mint.Add(end);
+       }else{
+        begin.constValue.Set(firstvalue);
+        begin.timeInterval.start = upi1->timeInterval.start;
+        begin.timeInterval.end = upi2->timeInterval.end;
+        begin.timeInterval.lc = true;
+        begin.timeInterval.rc = true;
+        mint.Add(begin);
+       }
+    }
 }
 
-
-
-void MInt::Restrict(MInt& result, 
-                    const bool useValue /*= false */, 
+void MInt::Restrict(MInt& result,
+                    const bool useValue /*= false */,
                     const int value /*= 0*/ ) const{
 
   result.Clear();
@@ -2177,19 +2193,19 @@ void MInt::Restrict(MInt& result,
   for(int i=0;i<size;i++){
      const UInt* unit;
      Get(i,unit);
-     if(i==0 || i==last){ 
-       if(unit->timeInterval.start.IsMinimum() || 
+     if(i==0 || i==last){
+       if(unit->timeInterval.start.IsMinimum() ||
           unit->timeInterval.end.IsMaximum()){
           if(useValue && unit->constValue.GetIntval()!=value){
              result.Add(*unit);
           }
        } else {
          result.Add(*unit);
-       } 
+       }
      } else {
        result.Add(*unit);
      }
-  } 
+  }
 
 }
 
