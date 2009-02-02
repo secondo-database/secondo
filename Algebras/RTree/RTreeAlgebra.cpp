@@ -1286,8 +1286,6 @@ int WindowIntersects( Word* args, Word& result,
 
       assert(localInfo->rtree != 0);
       assert(localInfo->relation != 0);
-      localInfo->sizesInitialized = false;
-      localInfo->sizesStable = false;
       local.setAddr(localInfo);
       return 0;
     }
@@ -1369,7 +1367,9 @@ int WindowIntersects( Word* args, Word& result,
       if (!localInfo) return CANCEL;
       else
       {
-        if (!localInfo->sizesInitialized)
+        localInfo->sizesChanged = false;
+
+        if ( !localInfo->sizesInitialized )
         {
           localInfo->returned = 0;
           localInfo->total = localInfo->relation->GetNoTuples();
@@ -1391,14 +1391,10 @@ int WindowIntersects( Word* args, Word& result,
             localInfo->SizeExt += localInfo->attrSizeExt[i];
           }
           localInfo->sizesInitialized = true;
-          localInfo->sizesStable = true;
+          localInfo->sizesChanged = true;
         }
 
-        pRes->Size = localInfo->Size;
-        pRes->SizeExt = localInfo->SizeExt;
-        pRes->noAttrs = localInfo->noAttrs;
-        pRes->attrSize = localInfo->attrSize;
-        pRes->attrSizeExt = localInfo->attrSizeExt;
+        pRes->CopySizes(localInfo);
 
         if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
           pRes->Card = (double) localInfo->defaultValue;

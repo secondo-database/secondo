@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ProgressInfo::ProgressInfo()
 {
-  sizesStable = false;
+  sizesChanged = false;
   BTime = 0.001;	//default assumes non-blocking operator,
   BProgress = 1.0;	//time value must be > 0
 }
@@ -40,7 +40,7 @@ void ProgressInfo::CopySizes(ProgressInfo p)	//copy the size fields
     noAttrs = p.noAttrs;
     attrSize = p.attrSize;
     attrSizeExt = p.attrSizeExt;
-    sizesStable = p.sizesStable;
+    sizesChanged = p.sizesChanged;
   }
 
 
@@ -51,7 +51,7 @@ void ProgressInfo::CopySizes(ProgressLocalInfo* pli) //copy the size fields
   noAttrs = pli->noAttrs;
   attrSize = pli->attrSize;
   attrSizeExt = pli->attrSizeExt;
-  sizesStable = pli->sizesStable;
+  sizesChanged = pli->sizesChanged;
 }
 
 
@@ -96,7 +96,7 @@ ProgressLocalInfo::ProgressLocalInfo()  {
   firstLocalInfo = 0;
   secondLocalInfo = 0;
   sizesInitialized = false;
-  sizesStable = false;
+  sizesChanged = false;
 }
 
 ProgressLocalInfo::~ProgressLocalInfo() 
@@ -110,6 +110,8 @@ ProgressLocalInfo::~ProgressLocalInfo()
 
 void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 ) 
 {
+  sizesChanged = false;
+
   if ( !sizesInitialized )
   {
     noAttrs = p1.noAttrs + p2.noAttrs;
@@ -117,7 +119,7 @@ void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 )
     attrSizeExt = new double[noAttrs];
   }
 
-  if ( !sizesStable )
+  if ( !sizesInitialized || p1.sizesChanged || p2.sizesChanged )
   {
     Size = p1.Size + p2.Size;
     SizeExt = p1.SizeExt + p2.SizeExt;
@@ -134,7 +136,7 @@ void ProgressLocalInfo::SetJoinSizes( ProgressInfo& p1, ProgressInfo& p2 )
        attrSizeExt[p1.noAttrs + j] = p2.attrSizeExt[j];
     }
     sizesInitialized = true;
-    sizesStable = p1.sizesStable && p2.sizesStable; 
+    sizesChanged = true;
   }
 }
 

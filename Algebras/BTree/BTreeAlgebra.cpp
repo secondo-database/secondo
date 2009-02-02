@@ -1348,7 +1348,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         ili->completeReturned = 0;
 
         ili->sizesInitialized = false;
-        ili->sizesStable = false;
+        ili->sizesChanged = false;
 
         ili->relation = (Relation*)args[1].addr;
         local = SetWord(ili);
@@ -1451,6 +1451,8 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( !ili ) return CANCEL;
       else
       {
+        ili->sizesChanged = false;
+
         if (!ili->sizesInitialized )
         {
           ili->total = ili->relation->GetNoTuples();
@@ -1472,7 +1474,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
             ili->SizeExt += ili->attrSizeExt[i];
           }
           ili->sizesInitialized = true;
-          ili->sizesStable = true;
+          ili->sizesChanged = true;
         }
 
         pRes->CopySizes(ili);

@@ -4085,6 +4085,7 @@ public:
 
   TupleType *resultTupleType;
   int stableValue;
+  bool sizesFinal;		//true after stableValue reached
   int noOldAttrs, noNewAttrs;
   double *attrSizeTmp;
   double *attrSizeExtTmp;
@@ -4113,6 +4114,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
       eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       eli->read = 0;
       eli->stableValue = 50;
+      eli->sizesFinal = false;
       eli->noNewAttrs = qp->GetNoSons(args[1].addr);
       eli->attrSizeTmp = new double[eli->noNewAttrs];
       eli->attrSizeExtTmp = new double[eli->noNewAttrs];
@@ -4121,8 +4123,6 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
         eli->attrSizeTmp[i] = 0.0;
         eli->attrSizeExtTmp[i] = 0.0;
       }
-      eli->sizesInitialized = false;
-      eli->sizesStable = false;
 
       local.setAddr(eli);
 
@@ -4199,6 +4199,8 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
+        eli->sizesChanged = false;
+
         if ( !eli->sizesInitialized )
         {
           eli->noOldAttrs = p1.noAttrs;
@@ -4207,7 +4209,8 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           eli->attrSizeExt = new double[eli->noAttrs];
         }
 
-        if ( !eli->sizesStable)
+        if ( !eli->sizesInitialized || p1.sizesChanged || 
+             ( eli->read >= eli->stableValue && !eli->sizesFinal ) )
         {
           eli->Size = 0.0;
           eli->SizeExt = 0.0;
@@ -4245,8 +4248,11 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
             }
           }
           eli->sizesInitialized = true;
-          eli->sizesStable = p1.sizesStable && (eli->read >= eli->stableValue);
+          eli->sizesChanged = true;
         }
+		//ensure sizes are updated only once for passing the threshold
+        if ( eli->read >= eli->stableValue ) eli->sizesFinal = true;
+
 
         pRes->Card = p1.Card;
 
@@ -5592,7 +5598,7 @@ public:
 
   TupleType *resultTupleType;
   int stableValue;
-  bool stableState;
+  bool sizesFinal;
   int noOldAttrs, noNewAttrs;
   double *attrSizeTmp;
   double *attrSizeExtTmp;
@@ -5621,6 +5627,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       eli->resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       eli->read = 0;
       eli->stableValue = 50;
+      eli->sizesFinal = false;
       eli->noOldAttrs = ((CcInt*)args[3].addr)->GetIntval();
       eli->noNewAttrs = qp->GetNoSons(args[2].addr);
       eli->attrSizeTmp = new double[eli->noNewAttrs];
@@ -5630,8 +5637,6 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
         eli->attrSizeTmp[i] = 0.0;
         eli->attrSizeExtTmp[i] = 0.0;
       }
-      eli->sizesInitialized = false;
-      eli->sizesStable = false;
 
       local.setAddr(eli);
 
@@ -5716,6 +5721,8 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
+        eli->sizesChanged = false;
+
         if ( !eli->sizesInitialized )	
         {
           eli->noAttrs = eli->noOldAttrs + eli->noNewAttrs;
@@ -5723,7 +5730,8 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           eli->attrSizeExt = new double[eli->noAttrs];
         }
 
-        if ( !eli->sizesStable )
+        if ( !eli->sizesInitialized || p1.sizesChanged || 
+           ( eli->read >= eli->stableValue && !eli->sizesFinal ) )
         {
 	  eli->Size = 0.0;
 	  eli->SizeExt = 0.0;
@@ -5762,8 +5770,9 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
             }
           }
           eli->sizesInitialized = true;
-          eli->sizesStable = p1.sizesStable && (eli->read >= eli->stableValue);
+          eli->sizesChanged = true;;
         }
+        if ( eli->read >= eli->stableValue ) eli->sizesFinal = true;
 
         pRes->Card = p1.Card;
 
@@ -6823,6 +6832,7 @@ public:
   //new for progress
 
   int stableValue;
+  bool sizesFinal;
 
   int noGroupAttrs;
   int noAggrAttrs;
@@ -6879,6 +6889,7 @@ int GroupByValueMapping
       }
       gbli = new GroupByLocalInfo();
       gbli->stableValue = 5;
+      gbli->sizesFinal = false;
 
       numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
       value2 = (Supplier)args[2].addr; // list of functions
@@ -6895,8 +6906,6 @@ int GroupByValueMapping
         gbli->attrSizeTmp[i] = 0.0;
         gbli->attrSizeExtTmp[i] = 0.0;
       }
-      gbli->sizesInitialized = false;
-      gbli->sizesStable = false;
 
       local.setAddr(gbli);  //from now, progress queries possible
 
@@ -7084,13 +7093,16 @@ int GroupByValueMapping
 
       if ( qp->RequestProgress(args[0].addr, &p1) )
       {
+        gbli->sizesChanged = false;
+
         if ( !gbli->sizesInitialized )
         {
           gbli->attrSize = new double[gbli->noAttrs];
           gbli->attrSizeExt = new double[gbli->noAttrs];
         }
 
-        if ( !gbli->sizesStable )
+        if ( !gbli->sizesInitialized || p1.sizesChanged || 
+           ( gbli->returned >= gbli->stableValue && !gbli->sizesFinal ) )
         {
 
           if ( gbli->returned < gbli->stableValue )
@@ -7123,9 +7135,11 @@ int GroupByValueMapping
             gbli->SizeExt += gbli->attrSizeExt[i];
           }
           gbli->sizesInitialized = true;
-          gbli->sizesStable = p1.sizesStable 
-            && (gbli->returned >= gbli->stableValue);
+          gbli->sizesChanged = true;
         }
+        if ( gbli->returned >= gbli->stableValue ) gbli->sizesFinal = true;
+
+
 
         //As long as we have not seen 5 result tuples (groups), we guess groups
         //of size 10
@@ -7931,8 +7945,6 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->readFirst = 0;
       pli->readSecond = 0;
       pli->returned = 0;
-      pli->sizesInitialized = false;
-      pli->sizesStable = false;
 
       local.setAddr(pli);
       return 0;
@@ -8173,7 +8185,7 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
         double predCost =
           (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
 
-    //the default value of 0.1 is only suitable for selections
+        //the default value of 0.1 is only suitable for selections
 
         pRes->Time = p1.Time + p2.Time +
           p1.Card * p2.Card * predCost * uSymmJoin;
