@@ -984,7 +984,9 @@ class CcString : public StandardAttribute
     strcpy( stringval, *v);
 #ifdef USE_SERIALIZATION
     for( size = 0; (*v)[size] != '\0'; size++ );
-#endif    
+#endif  
+    //cerr << "Set 1: stringval = " << stringval << endl;  
+    //cerr << "Set 1: stringval.size = " << size << endl;  
   }
 
   inline void Set( const bool d, const string& v ) 
@@ -995,6 +997,8 @@ class CcString : public StandardAttribute
 #ifdef USE_SERIALIZATION
     size = v.size();
 #endif    
+    //cerr << "Set 2: stringval = " << stringval << endl;  
+    //cerr << "Set 2: stringval.size = " << size << endl;  
   }
 
   inline size_t HashValue() const
@@ -1016,9 +1020,8 @@ class CcString : public StandardAttribute
 
   inline void CopyFrom(const StandardAttribute* right)
   {
-    const CcString* r = (const CcString*)right;
-    SetDefined( r->IsDefined() );
-    strcpy(stringval, r->stringval);
+    const CcString* r = static_cast<const CcString*>( right );
+    Set( r->IsDefined(), r->stringval );
   }
 
   inline int Compare( const Attribute* arg ) const
