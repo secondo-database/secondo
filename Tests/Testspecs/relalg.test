@@ -245,6 +245,11 @@ query Staedte feed extract[Bev];
 #yields (int undef)
 query Staedte feed head[0] extract[Bev];
 
+#testcase Extract3
+#yields ((rel(tuple((SName2 string)))) (("Aachen")))
+query Staedte feed head[1] groupby[SName; SName2: group feed extract[SName]] project[SName2] consume;
+
+
 #testcase GroupBy1
 #yields ((rel (tuple ((DeptNr int) (anz int))))((1 2) (2 4) (3 4)))
 query Employee feed sortby[DeptNr asc] groupby[DeptNr; anz : group feed count] consume;
