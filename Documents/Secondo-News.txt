@@ -6,6 +6,18 @@
  interesting information which should be kept for future SECONDO users.
  Just add new messages directly below this text with a new header.
 
+2009-03-02 Changes in the SpatialAlgebra
+===============================================================================
+Since the defined flag is already included in StandardAttribute, I have removed
+the additional one from class Point. This is important because class Point will
+be used frequently and the change reduces its size.
+
+
+Sorry, but once again you have to restore your databases!
+
+Regards
+  Markus 
+
 2008-11-14 Changes of TemplateClass Rectangle<dim>
 ===============================================================================
 Since the defined flag is already included in StandardAttribute, I have removed
