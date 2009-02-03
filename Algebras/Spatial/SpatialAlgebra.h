@@ -219,7 +219,7 @@ Operators redefinition.
 */
     inline void Scale( const Coord& factor )
     {
-      assert( defined );
+      assert( IsDefined() );
       this->x *= factor;
       this->y *= factor;
     }
@@ -379,13 +379,11 @@ to be defined here in order for the Point data type to be used in Tuple definiti
 as an attribute.
 
 */
-    inline bool IsDefined() const;
-    inline void SetDefined( bool defined );
     inline size_t Sizeof() const;
 
     inline size_t HashValue() const
     {
-      if( !defined )
+      if( !IsDefined() )
         return 0;
       return (size_t)(5*x + y);
     }
@@ -393,19 +391,19 @@ as an attribute.
     inline void CopyFrom( const StandardAttribute* right )
     {
       const Point* p = (const Point*)right;
-      defined = p->defined;
-      if( defined )
+      SetDefined( p->IsDefined() );
+      if( IsDefined() )
         Set( p->x, p->y );
     }
 
     inline int Compare( const Attribute *arg ) const
     { // CD: Implementation following guidelines from Attribute.h:
       const Point* p = (const Point*)arg;
-      if( !defined && !p->defined )
+      if( !IsDefined() && !p->IsDefined() )
         return 0;
-      if( !defined && p->defined )
+      if( !IsDefined() && p->IsDefined() )
         return -1;
-      if( !p->defined )
+      if( !p->IsDefined() )
         return 1;
       if( *this > *p )
         return 1;
@@ -417,11 +415,11 @@ as an attribute.
     inline int CompareAlmost( const Attribute *arg ) const
     {
       const Point* p = (const Point*)arg;
-      if( !defined && !p->defined )
+      if( !IsDefined() && !p->IsDefined() )
         return 0;
-      if( !defined && p->defined )
+      if( !IsDefined() && p->IsDefined() )
         return -1;
-      if( !p->defined )
+      if( !p->IsDefined() )
         return 1;
       if( AlmostEqual( *this, *p ) )
         return 0;
@@ -449,7 +447,7 @@ as an attribute.
     }
 
     virtual bool hasBox(){
-       return defined;
+       return IsDefined();
     }
 
     virtual double getMinX() const{
@@ -470,7 +468,7 @@ as an attribute.
        // first, write the record header
        WinUnix::writeBigEndian(o,RecNo);
 
-       if(!defined){
+       if(!IsDefined()){
          uint32_t length = 2;
          WinUnix::writeBigEndian(o,length);
          uint32_t type = 0;
@@ -495,7 +493,7 @@ as an attribute.
 4.5 Attributes
 
 */
-    bool defined;
+    //bool defined;
 /*
 A flag that tells if the point is defined or not.
 
@@ -2280,11 +2278,12 @@ contained arrays to have ~size~ number od slots.
 */
   SimpleLine(int size):
             segments(size),lrsArray(size/2),
-            isdefined(false),startSmaller(true),
+            startSmaller(true),
             isCycle(false),isOrdered(true),length(0.0),
             bbox(false),currentHS(-1){
      del.refs=1;
      del.isDelete=true;
+     SetDefined(false);
     }
 
 /*
@@ -2435,10 +2434,10 @@ geometry.
 
 */
   bool operator==(const SimpleLine& sl) const{
-     if(!isdefined && !sl.isdefined){
+     if(!IsDefined() && !sl.IsDefined()){
        return true;
      }
-     if(!isdefined || !sl.isdefined){
+     if(!IsDefined() || !sl.IsDefined()){
        return false;
      }
      if(bbox != sl.bbox){
@@ -2538,13 +2537,13 @@ The following functions are needed to act as an attribute type.
     return &lrsArray;
   }
 
-  inline bool IsDefined() const{
-    return isdefined;
-  }
+  //inline bool IsDefined() const{
+  //  return isIsDefined();
+  //}
 
-  inline void SetDefined(bool defined){
-     isdefined = defined;
-  }
+  //inline void SetDefined(bool IsDefined()){
+  //   isIsDefined() = IsDefined();
+  //}
 
   inline size_t Sizeof() const{
      return sizeof(*this);
@@ -2573,7 +2572,7 @@ The following functions are needed to act as an attribute type.
   void Clear(){
      segments.Clear();
      lrsArray.Clear();
-     isdefined = true;
+     SetDefined( true );
      bbox.SetDefined(false);
      length=0.0;
      isOrdered=true;
@@ -2631,7 +2630,7 @@ The following functions are needed to act as an attribute type.
   private:
     DBArray<HalfSegment> segments;
     DBArray<LRS> lrsArray;
-    bool isdefined;
+    //bool isIsDefined();
     bool startSmaller;
     bool isCycle;
     bool isOrdered;
@@ -2662,7 +2661,7 @@ The following functions are needed to act as an attribute type.
            src.lrsArray.Get(i,lrs);
            lrsArray.Append(*lrs);
         }
-        this->isdefined = src.isdefined;
+        this->SetDefined( src.IsDefined() );
         this->startSmaller = src.startSmaller;
         this->isCycle = src.isCycle;
         this->isOrdered = src.isOrdered;
@@ -2694,7 +2693,7 @@ bool Find( const Point& p, int& pos, const bool& exact = false ) const {
  bool Find( const LRS& lrs, int& pos ) const {
    assert( IsOrdered() );
 
-   if( IsEmpty()  || ! isdefined){
+   if( IsEmpty()  || ! IsDefined()){
      return false;
    }
 
@@ -3304,6 +3303,9 @@ as an attribute.
       return &region;
     }
 
+
+    // SPM: ??? why is a region always defined
+
     inline bool IsDefined() const
     {
       return true;
@@ -3314,7 +3316,7 @@ as an attribute.
         if(!defined){
           Clear();
         }
-        del.isDefined = defined;
+	Attribute::SetDefined( defined );
     }
 
     inline size_t Sizeof() const
@@ -3933,17 +3935,18 @@ double VectorSize(const Point &p1, const Point &p2);
 
 */
 inline Point::Point( const bool d, const Coord& x, const Coord& y ) :
-  defined( d ),
   x( x ),
   y( y )
-{ del.refs=1;
+{ 
+  SetDefined(d);	
+  del.refs=1;
   del.isDelete=true;
 }
 
-inline Point::Point( const Point& p ) :
-  defined( p.IsDefined() )
+inline Point::Point( const Point& p )
 {
-  if( defined )
+  SetDefined( p.IsDefined() );
+  if( IsDefined() )
   {
     x = p.x;
     y = p.y;
@@ -3954,7 +3957,7 @@ inline Point::Point( const Point& p ) :
 
 inline const Rectangle<2> Point::BoundingBox() const
 {
-  assert( defined );
+  assert( IsDefined() );
   return Rectangle<2>( true,
                        x - ApplyFactor(x),
                        x + ApplyFactor(x),
@@ -3964,21 +3967,21 @@ inline const Rectangle<2> Point::BoundingBox() const
 
 inline void Point::Set( const Coord& x, const Coord& y )
 {
-  defined = true;
+  SetDefined( true );
   this->x = x;
   this->y = y;
 }
 
 inline Point Point::Translate( const Coord& x, const Coord& y ) const
 {
-  assert( defined );
+  assert( IsDefined() );
   return Point( true, this->x + x, this->y + y );
 }
 
 
 inline void Point::Translate( const Coord& x, const Coord& y )
 {
-  if( defined )
+  if( IsDefined() )
   {
     this->x += x;
     this->y += y;
@@ -3987,14 +3990,14 @@ inline void Point::Translate( const Coord& x, const Coord& y )
 
 inline Point Point::Add( const Point& p ) const
 {
-  assert( defined && p.defined );
+  assert( IsDefined() && p.IsDefined() );
   return Point( true, this->x + p.x, this->y + p.y );
 }
 
 inline Point& Point::operator=( const Point& p )
 {
-  defined = p.defined;
-  if( defined )
+  SetDefined( p.IsDefined() );
+  if( IsDefined() )
   {
     x = p.x;
     y = p.y;
@@ -4006,10 +4009,10 @@ inline Point& Point::operator=( const Point& p )
 
 inline bool Point::operator==( const Point& p ) const
 {
-  if(!defined && !p.defined){
+  if(!IsDefined() && !p.IsDefined()){
     return true;
   }
-  if(!defined || !p.defined){
+  if(!IsDefined() || !p.IsDefined()){
     return false;
   }
   return AlmostEqual(x, p.x) && AlmostEqual(y, p.y); // changed by TB
@@ -4028,7 +4031,7 @@ inline bool Point::operator<=( const Point& p ) const
 
 inline bool Point::operator<( const Point& p ) const
 {
-  assert( defined && p.defined );
+  assert( IsDefined() && p.IsDefined() );
   bool eqx = AlmostEqual(x,p.x);
   return (!eqx && (x < p.x) ) ||
          (eqx && !AlmostEqual(y,p.y) && (y < p.y));
@@ -4043,7 +4046,7 @@ inline bool Point::operator>=( const Point& p ) const
 
 inline bool Point::operator>( const Point& p ) const
 {
-  assert( defined && p.defined );
+  assert( IsDefined() && p.IsDefined() );
   bool eqx = AlmostEqual(x,p.x);
   return (!eqx && (x > p.x)) ||
          (eqx && !AlmostEqual(y,p.y) && (y>p.y));
@@ -4055,30 +4058,20 @@ inline bool Point::operator>( const Point& p ) const
 
 inline Point Point::operator+( const Point& p ) const
 {
-  assert( defined && p.defined );
+  assert( IsDefined() && p.IsDefined() );
   return Point( true, x + p.x, y + p.y );
 }
 
 inline Point Point::operator-( const Point& p ) const
 {
-  assert( defined && p.defined );
+  assert( IsDefined() && p.IsDefined() );
   return Point( true, x - p.x, y - p.y );
 }
 
 inline Point Point::operator*( const double d ) const
 {
-  assert( defined );
+  assert( IsDefined() );
   return Point( true, x * d, y * d );
-}
-
-inline bool Point::IsDefined() const
-{
-  return defined;
-}
-
-inline void Point::SetDefined( bool defined )
-{
-  this->defined = defined;
 }
 
 inline size_t Point::Sizeof() const

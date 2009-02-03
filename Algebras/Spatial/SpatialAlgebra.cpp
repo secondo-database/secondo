@@ -5297,7 +5297,7 @@ TypeConstructor line(
 This constructor coinstructs a simple line from ~src~
 
 If ~src~ is not simple, the simple line will be invalidated, i.e.
-isdefined is set to false;
+the defined flag is set to false;
 
 */
 SimpleLine::SimpleLine(const Line& src):segments(0),lrsArray(0){
@@ -5312,7 +5312,7 @@ SimpleLine::SimpleLine(const Line& src):segments(0),lrsArray(0){
 */
 void SimpleLine::StartBulkLoad(){
   isOrdered = false;
-  isdefined = true;
+  SetDefined( true );
 }
 
 /*
@@ -5322,7 +5322,7 @@ Appends an HalfSegment during BulkLoading.
 
 */
 SimpleLine& SimpleLine::operator+=(const HalfSegment& hs){
-  assert(!isOrdered && isdefined);
+  assert(!isOrdered && IsDefined());
   segments.Append(hs);
   return *this;
 }
@@ -5375,7 +5375,7 @@ Determines the startPoint of this simple line.
 
 */
 Point SimpleLine::StartPoint( bool startsSmaller ) const {
-  if( IsEmpty() || !isdefined ){
+  if( IsEmpty() || !IsDefined() ){
     return Point( false );
   }
 
@@ -5416,7 +5416,7 @@ Point SimpleLine::EndPoint( bool startsSmaller ) const {
 }
 
 bool SimpleLine::Contains( const Point& p ) const {
- if( IsEmpty()  || !isdefined){
+ if( IsEmpty()  || !IsDefined() ){
    return false;
  }
  int pos;
@@ -5504,7 +5504,7 @@ double SimpleLine::Distance(const Rectangle<2>& r)const{
 }
 
 bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
- if(!isdefined){
+ if(!IsDefined()){
     return false;
  }
  if( startsSmaller != this->startSmaller ){
@@ -5533,7 +5533,7 @@ bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
 bool SimpleLine::AtPoint( const Point& p,
                           bool startsSmaller,
                           double& result ) const {
- if( IsEmpty() || !isdefined ){
+ if( IsEmpty() || !IsDefined() ){
    return false;
  }
 
@@ -5578,7 +5578,7 @@ bool SimpleLine::AtPoint( const Point& p,
 
 void SimpleLine::SubLine( double pos1, double pos2,
                          bool startsSmaller, SimpleLine& l ) const {
-  if( IsEmpty() || !isdefined){
+  if( IsEmpty() || !IsDefined() ){
      return;
   }
 
@@ -5750,7 +5750,7 @@ bool SimpleLine::SelectInitialSegment( const Point &startPoint,
 }
 
 bool SimpleLine::SelectSubsequentSegment() {
-  assert( isdefined );
+  assert( IsDefined() );
 
   const HalfSegment* hs;
 
@@ -5826,7 +5826,7 @@ void SimpleLine::fromLine(const Line& src){
 
 void SimpleLine::toLine(Line& result)const{
   result.Clear();
-  if(!isdefined){
+  if(!IsDefined()){
     result.SetDefined(false);
     return;
   }
@@ -6002,13 +6002,13 @@ void SimpleLine::SetPartnerNo(){
 
 int SimpleLine::Compare(const Attribute* arg)const{
   const SimpleLine* line = static_cast<const SimpleLine*>(arg);
-  if(!isdefined && !line->isdefined){
+  if(!IsDefined() && !line->IsDefined()){
      return true;
   }
-  if(!isdefined){
+  if(!IsDefined()){
     return -1;
   }
-  if(!line->isdefined){
+  if(!line->IsDefined()){
      return 1;
   }
   if(segments.Size() < line->segments.Size()){
@@ -6031,7 +6031,7 @@ int SimpleLine::Compare(const Attribute* arg)const{
 }
 
 ostream& SimpleLine::Print(ostream& o)const{
-  o << "SimpleLine def =" << isdefined
+  o << "SimpleLine def =" << IsDefined()
     << " size = " << Size() << endl;
   return o;
 }
