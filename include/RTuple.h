@@ -81,6 +81,7 @@ class RTuple {
     this->tuple=tuple;
   }
 
+  inline void init() { tuple = 0; }
 
 
   inline friend bool operator==(const RTuple& r, const void* p) 
