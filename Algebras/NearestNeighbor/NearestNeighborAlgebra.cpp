@@ -1188,9 +1188,7 @@ unsigned int insertActiveElem( vector<ActiveElem> &v, ActiveElem &e,
 unsigned int findActiveElem( vector<ActiveElem> &v, MReal *distance, 
                             Instant time, Tuple *tuple)
 {
-  int pos, max, start;
-  max = v.size() - 1;
-  start = 0;
+  int pos(0), max(v.size()-1), start(0);
   bool havePos = false;
   double slope1, slope2;
   double dist = CalcDistance(distance,time,slope1);
@@ -2629,6 +2627,387 @@ int knearestFilterFun (Word* args, Word& result, int message,
   return 0;
 }
 
+
+
+/*
+2.3.4 Coverage
+
+This function computes the coverage number for a three dimensional r-tree.
+
+
+*/
+ListExpr coverageTypeMap(ListExpr args){
+  string err = " rtree(tuple(...) rect3 BOOL) expected";
+  if(nl->ListLength(args) != 1){
+    ErrorReporter::ReportError(err + "1");
+    return nl->TypeError();
+  }
+  ListExpr arg = nl->First(args);
+  if(nl->ListLength(arg)!=4){
+    ErrorReporter::ReportError(err + "2");
+    return nl->TypeError();
+  }
+  ListExpr rtree = nl->First(arg);
+  ListExpr tuple = nl->Second(arg);
+  ListExpr type  = nl->Third(arg);
+  ListExpr dind  = nl->Fourth(arg);
+
+  if(!nl->IsEqual(rtree,"rtree3")){
+    ErrorReporter::ReportError(err + "3");
+    return nl->TypeError();
+  }
+  
+  if(!nl->IsEqual(type,"rect3")){
+    ErrorReporter::ReportError(err + "4");
+    return nl->TypeError();
+  }
+
+  if(nl->AtomType(dind)!=BoolType){
+    ErrorReporter::ReportError(err + "5");
+    return nl->TypeError();
+  }
+
+  if(nl->ListLength(tuple)!=2){
+    ErrorReporter::ReportError(err + "6");
+    return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(tuple),"tuple")){
+    ErrorReporter::ReportError(err + "7");
+    return nl->TypeError();
+  }
+
+  return 
+        nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Coverage"),
+                        nl->SymbolAtom("uint")
+                    ))));
+
+
+}
+
+const string coverageSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rtree(tuple ((x1 t1)...(xn tn)) ti) ->"
+      " (stream (tuple ((Nodeid is)(Coverage uint))))</text--->"
+      "<text> coverage(_) </text--->"
+      "<text>Computes the coverage numbers for a given r-tree </text--->"
+      "<text>query coverage(tree) count </text--->"
+      ") )";
+
+
+struct CoverageEntry{
+     
+     CoverageEntry(R_TreeNode<3, TupleId> node1,int nodeid1): 
+                      node(node1), position(0),nodeId(nodeid1){
+        lastResult = new MInt(1);
+     }  
+
+     CoverageEntry(const CoverageEntry& src):node(src.node), 
+                       position(src.position), lastResult(src.lastResult),
+                       nodeId(src.nodeId){}
+
+     CoverageEntry& operator=(const CoverageEntry& src){
+        node = src.node;
+        position = src.position;
+        lastResult = src.lastResult;
+        nodeId = src.nodeId;
+        return *this;
+     }
+
+     R_TreeNode<3, TupleId> node;
+     int position;
+     MInt* lastResult;
+     int nodeId; // id of the corrosponding node
+};
+
+class CoverageLocalInfo{
+ public:
+
+/*
+~Constructor~
+
+Creates a new CoverageLocalInfo object.
+
+*/
+   CoverageLocalInfo(R_Tree<3, TupleId>* tree, ListExpr tt){
+     this->tree = tree;
+     currentResult = 0;
+     currentPos = 0;
+     height = tree->Height();
+     minInner = tree->MinEntries(0);
+     maxInner = tree->MaxEntries(0);
+     minLeaf  = tree->MinEntries(tree->Height());
+     maxLeaf  = tree->MaxEntries(tree->Height());
+     nodeidcounter = 0; 
+     // get the Root of the tree
+     CoverageEntry entry(tree->Root(),nodeidcounter);
+     nodeidcounter++;
+     estack.push(entry); 
+     tupleType = new TupleType(tt);
+   }
+
+
+/*
+~Destructor~
+
+Detroys this object.
+
+*/   
+   ~CoverageLocalInfo(){
+      while(!estack.empty()){
+         CoverageEntry e = estack.top();
+         estack.pop();
+         if(e.lastResult){
+            delete e.lastResult;
+         }
+      }
+      if(currentResult){
+        delete currentResult;
+      }
+      tupleType->DeleteIfAllowed();
+      tupleType = 0;
+   }  
+
+/*
+~Returns the next Tuple~
+
+If the tree is exhausted, NULL is returned.
+
+*/
+
+   Tuple* nextTuple(){
+      if(currentResult && currentPos>=currentResult->GetNoComponents()){
+        // result completly processed
+        delete currentResult;
+        currentResult = 0;
+        computeNextResult();
+      }else if(!currentResult){
+        // no result computed yet
+        computeNextResult();
+      }
+      if(!currentResult){
+         // tree exhausted
+         return 0;
+      }
+      // get the next result
+      const UInt* res;
+      currentResult->Get(currentPos,res);
+      currentPos++;
+      Tuple* resTuple = new Tuple(tupleType);
+      CcInt* ni = new CcInt(true,currentNodeId);
+      resTuple->PutAttribute(0,ni);
+      resTuple->PutAttribute(1,new UInt(*res));  
+      return resTuple;
+   }
+
+
+ private:
+   R_Tree<3, TupleId>* tree;     // the tree
+   stack<CoverageEntry> estack;  // the recursion stack
+   MInt* currentResult;          // the currently computed result
+   int currentPos;               // position within the current result
+   int currentNodeId;            // the current nodeId
+   TupleType* tupleType;         // the tupleType
+   int maxInner;                 // maximum number of entries of inner nodes
+   int minInner;                 // minimum number of entries of inner nodes
+   int maxLeaf;                  // maximum number of entries of leaf nodes
+   int minLeaf;                  // minimum number of entries of leaf nodes
+   unsigned int height;          // height of the tree
+   int nodeidcounter;            // counter for the current node id
+
+
+/*
+~rect2uint~
+
+Supporting function creates a uint from a rect3.
+
+*/
+   UInt rect2uint(const Rectangle<3> rect){
+     double min = rect.MinD(2);
+     double max = rect.MaxD(2);
+     DateTime dt1(instanttype);
+     DateTime dt2(instanttype);
+     dt1.ReadFrom(min);
+     dt2.ReadFrom(max);
+     Interval<DateTime> iv(dt1,dt2,true,true);
+     CcInt v(true,1);
+     UInt res(iv,v);
+     return res;  
+   }
+
+/*
+~computeNextResult~
+
+This function computes the next result.
+
+*/
+  void computeNextResult(){
+     // for a new result, the position is 0
+     currentPos = 0;
+     // delete old currentResult if present
+     if(currentResult){
+       delete currentResult;
+       currentResult=0;
+     }
+
+     if(estack.empty()){ // tree exhausted
+       return;
+     }
+
+     // get the topmost stack element
+     CoverageEntry coverageEntry = estack.top();
+
+     if(!coverageEntry.node.IsLeaf()){
+        // process an inner node
+        if(coverageEntry.position>= coverageEntry.node.EntryCount()){
+          // node finished
+          currentResult = new MInt(1);
+          // if a node is finished, the final result is lastResult of that node
+          MInt* lastResult = coverageEntry.lastResult;
+          // compute the Hat for lastResult
+          MInt tmp1(1);
+          lastResult->fillUp(0,tmp1); 
+          tmp1.Hat(*currentResult);
+          currentPos = 0;
+          currentNodeId = coverageEntry.nodeId; 
+          estack.pop(); // remove the finished node from the stack
+          if(estack.empty()){ // root node
+             delete coverageEntry.lastResult; 
+             coverageEntry.lastResult = 0;
+             return;
+          } 
+          // stack not empty -> update top element of the stack
+          coverageEntry = estack.top();
+          MInt tmp(1);
+          coverageEntry.lastResult->PlusExtend(lastResult,tmp);
+          coverageEntry.lastResult->CopyFrom(&tmp);  
+          delete lastResult;
+          coverageEntry.position++; // this position has been computed
+          // bring changes to the stack
+          estack.pop();
+          estack.push(coverageEntry);
+          return; // computing the result finished
+        } else {
+         // not finished inner node 
+         // -> go to a leaf storing the path in the stack
+         estack.pop(); // required to bring it again to the stack
+         while(!coverageEntry.node.IsLeaf()){
+            // push to stack
+            estack.push(coverageEntry);
+            R_TreeInternalEntry<3> next = 
+                    *(static_cast<R_TreeInternalEntry<3>*>(
+                                  &coverageEntry.node[coverageEntry.position]));
+            SmiRecordId rid = next.pointer;
+            int min;
+            int max;
+            if(estack.size() == height){
+               min = minLeaf;
+               max = maxLeaf;
+            } else {
+               min = minInner;
+               max = maxInner;
+            }
+            R_TreeNode<3, TupleId> nextNode(true,min,max);
+            tree->GetNode(rid, nextNode);
+            CoverageEntry nextEntry(nextNode,nodeidcounter);
+            nodeidcounter++;
+            coverageEntry = nextEntry; 
+            // start debug
+         }
+         // now entry is a leaf node
+         estack.push(coverageEntry); 
+        }  
+     }
+     // the node to process is a leaf
+		 // build a single MInt from the whole node 
+  	 MInt res(1);
+     MInt v(1);
+     MInt tmp(1);
+     for(int i=0;i<coverageEntry.node.EntryCount();i++){
+       R_TreeLeafEntry<3, TupleId>* le = coverageEntry.node.GetLeafEntry(i);
+       UInt nextUnit(rect2uint(le->box));
+       v.Clear();
+       v.SetDefined(true);
+       v.Add(nextUnit);
+       res.PlusExtend(&v,tmp);
+       res.CopyFrom(&tmp); 
+     }
+     nodeidcounter += coverageEntry.node.EntryCount();
+     currentResult = new MInt(1);
+     MInt tmp1(1);
+     res.fillUp(0,tmp1);
+     tmp1.Hat(*currentResult);
+     currentPos = 0;
+     currentNodeId = coverageEntry.nodeId;    
+     estack.pop();
+     if(estack.empty()){
+       return;
+     }
+     coverageEntry = estack.top();
+     tmp.Clear();
+     coverageEntry.lastResult->PlusExtend(&res, tmp);
+     coverageEntry.lastResult->CopyFrom(&tmp);
+     coverageEntry.position++;   
+     estack.pop();
+     estack.push(coverageEntry);
+  } 
+};
+
+int coverageFun (Word* args, Word& result, int message, 
+             Word& local, Supplier s){
+
+  switch (message){
+     case OPEN : {
+                   ListExpr resultType =
+                     SecondoSystem::GetCatalog()->NumericType(qp->GetType(s));
+                   if(local.addr){
+                     delete static_cast<CoverageLocalInfo*>(local.addr);
+                   }
+                   R_Tree<3, TupleId>* tree = 
+                         static_cast<R_Tree<3, TupleId>*>(args[0].addr);
+                   local.addr = new CoverageLocalInfo(tree,
+                                                nl->Second(resultType));
+                   return 0;
+                 }
+     case REQUEST:{
+                   CoverageLocalInfo* li = 
+                         static_cast<CoverageLocalInfo*>(local.addr);
+                   Tuple* nextTuple = li->nextTuple();
+                   result.addr = nextTuple;
+                   return nextTuple?YIELD:CANCEL;
+                  }
+     case CLOSE:{  
+                   CoverageLocalInfo* li = 
+                         static_cast<CoverageLocalInfo*>(local.addr);
+                   if(li){
+                     delete li;
+                     local.setAddr(0);
+                   }
+                   return 0;
+                } 
+     
+     default: assert(false); // unknown message
+  }
+}
+
+
+Operator coverageop (
+         "coverage",        // name
+         coverageSpec,      // specification
+         coverageFun,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         coverageTypeMap    // type mapping
+);
+
 /*
 2.4 Definition of value mapping vectors
 
@@ -2924,6 +3303,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &knearestfilter );
     AddOperator( &bboxes );
     AddOperator( &rect2periods );
+    AddOperator( &coverageop );
   }
   ~NearestNeighborAlgebra() {};
 };
