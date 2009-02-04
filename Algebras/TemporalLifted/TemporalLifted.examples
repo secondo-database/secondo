@@ -1046,3 +1046,9 @@ Signature: -> mint
 Example  : query zero()
 Result   : file
 
+Operator : eplus 
+Number   : 1
+Signature: mint x mint -> mint
+Example  : query zero() eplus zero() 
+Result   : bug 
+Remark   : alpha state

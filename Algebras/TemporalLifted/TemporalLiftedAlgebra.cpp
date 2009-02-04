@@ -5774,6 +5774,19 @@ int TemporalPlusValueMap( Word* args, Word& result, int message,
   return 0;
 }
 
+
+int eplusVM( Word* args, Word& result, int message,
+ Word& local, Supplier s )
+{
+   MInt* arg1 = static_cast<MInt*>(args[0].addr);
+   MInt* arg2 = static_cast<MInt*>(args[1].addr);
+   result = qp->ResultStorage(s);
+   MInt* res = static_cast<MInt*>(result.addr);
+   arg1->PlusExtend(arg2,*res);
+   return 0;
+}
+
+
 /*
 1.1 Value mapping functions of operator ~concat~
 
@@ -6245,6 +6258,14 @@ const string temporalplusspec
              "<text>Adds two mint-obects when both are existant</text--->"
              "<text>mi1 + mi2</text---> ) )";
 
+const string eplusSpec
+           = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+             "\"Example\" ) "
+             "( <text>mint x mint -> mint</text--->"
+             "<text>_ eplus _</text--->"
+             "<text>Adds two mint-objects</text--->"
+             "<text>mi1 + mi2</text---> ) )";
+
 const string temporalconcatspec
            = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
              "\"Example\" ) "
@@ -6413,6 +6434,12 @@ static Operator temporalplus("+",
                             Operator::SimpleSelect,
                             TemporalPlusTypeMap);
 
+static Operator eplus("eplus",
+                       eplusSpec,
+                       eplusVM,
+                       Operator::SimpleSelect,
+                       TemporalPlusTypeMap);
+
 static Operator temporalconcat("concat",
                             temporalconcatspec,
                             TemporalConcatValueMap,
@@ -6461,6 +6488,7 @@ class TemporalLiftedAlgebra : public Algebra
     AddOperator( &temporalzero);
     AddOperator( &temporalmint);
     AddOperator( &temporalplus);
+    AddOperator( &eplus);
     AddOperator( &temporalconcat);
     AddOperator( &temporalabs);
     }
