@@ -2063,6 +2063,7 @@ void MInt::ReadFrom(const MBool& arg){
 }
 void MInt::Hat(MInt& mint)
 {
+   mint.Clear();
    stack<UInt> uintstack;
    const UInt* upi;
    UInt last,curuint;
@@ -2070,7 +2071,26 @@ void MInt::Hat(MInt& mint)
    last.SetDefined(true);
    curuint.SetDefined(false);
    float lastarea = 0;
-   for(int i = 0;i < GetNoComponents();i++){
+   Get(0,upi);
+   string starttime = upi->timeInterval.start.ToString();
+   Get(GetNoComponents() - 1,upi);
+   string endtime = upi->timeInterval.end.ToString();
+   int nocomponents;
+   int i;
+   bool defstart;
+   if(starttime == "begin of time" && endtime == "end of time"){
+    i = 1;
+    nocomponents = GetNoComponents() - 1;
+    assert(GetNoComponents() >= 3);
+    defstart = true;
+   }else{
+    i = 0;
+    nocomponents = GetNoComponents();
+    assert(GetNoComponents() >= 1);
+    defstart = false;
+   }
+
+   for(i;i < nocomponents;i++){
       Get(i,upi);
       if(!uintstack.empty()){
         cur.Set(upi->constValue.GetValue());
@@ -2078,30 +2098,40 @@ void MInt::Hat(MInt& mint)
         if(cur.GetIntval() >= top.GetIntval())
             uintstack.push(*upi);
         else{
+          int lastvalue = -1;
+          double sumtime = 0;
           while(!uintstack.empty() && cur.GetIntval() < top.GetIntval()){
+            UInt topelem = uintstack.top();
+            lastvalue = topelem.constValue.GetValue();
             uintstack.pop();
             if(!uintstack.empty())
               top.Set(uintstack.top().constValue.GetValue());
           }
-          if(!uintstack.empty()){
+          if(!uintstack.empty() && lastvalue != -1){
             last = uintstack.top();
-            Instant inter1 = upi->timeInterval.start;
-            Instant inter2 = last.timeInterval.end;
-            inter1 -= inter2;
-            double time = inter1.GetDay()*(24*60*60) +
-                          inter1.GetAllMilliSeconds()/1000.0;//seconds
-            double curarea = upi->constValue.GetIntval() * time;
-//            upi->timeInterval.Print(cout);
-//            last.timeInterval.Print(cout)<<endl;
-//            cout<<"time "<<time<<endl;
-//            cout<<"lastarea "<<lastarea<<" curarea "<<curarea<<endl;
-            if(curarea >= lastarea){
+            const UInt* tempupi;
+            int j = i - 1;
+            Get(j,tempupi);
+            UInt lastuint = *tempupi;
+            UInt firstuint = *tempupi;
+            double sumtime = 0;
+            while(*tempupi != last){
+              Instant inter = tempupi->timeInterval.end -
+                              tempupi->timeInterval.start;
+              sumtime+= inter.GetDay()*24*60*60+
+                        inter.GetAllMilliSeconds()/1000.0;
+              j--;
+              firstuint = *tempupi;
+              Get(j,tempupi);
+            }
+            double curarea = lastvalue*sumtime;
+            if(curarea > lastarea){
               lastarea = curarea;
-              curuint.timeInterval.start = inter2;
-              curuint.timeInterval.end = upi->timeInterval.start;
+              curuint.timeInterval.start = firstuint.timeInterval.start;
+              curuint.timeInterval.end = lastuint.timeInterval.end;
               curuint.timeInterval.lc = true;
               curuint.timeInterval.rc = false;
-              curuint.constValue.Set(upi->constValue.GetValue());
+              curuint.constValue.Set(lastvalue);
               curuint.SetDefined(true);
             }
           }
@@ -2115,62 +2145,120 @@ void MInt::Hat(MInt& mint)
 
     if(curuint.IsDefined() == true){//find hat
        UInt begin,end;
-       Get(0,upi);
        begin.SetDefined(true);
-//    begin.timeInterval.start = upi->timeInterval.end;
-      begin.timeInterval.start = upi->timeInterval.start;
-      begin.timeInterval.lc = true;
-      begin.timeInterval.end = curuint.timeInterval.start;
-      begin.timeInterval.rc = false;
-      int value = curuint.constValue.GetValue(); //the same as hat threshold
-      begin.constValue.Set(value);
+       if(defstart){//define "begin of time"
+        Get(0,upi);
+        begin = *upi;
+        mint.Add(begin);
+        Get(1,upi);
+       }else
+        Get(0,upi);
+       begin.timeInterval.start = upi->timeInterval.start;
+       begin.timeInterval.lc = true;
+       begin.timeInterval.end = curuint.timeInterval.start;
+       begin.timeInterval.rc = false;
+       int value = upi->constValue.GetValue();
+       int i;
+       for(i = 1;i < nocomponents;i++){
+        Get(i,upi);
+        if(upi->timeInterval.start >= curuint.timeInterval.start)
+          break;
+        if(upi->constValue.GetValue() < value)
+          value = upi->constValue.GetValue();//the minimum value before hat
+       }
+       begin.constValue.Set(value);
+       assert(begin.timeInterval.start != begin.timeInterval.end);
+       mint.Add(begin);
 
-      assert(begin.timeInterval.start != begin.timeInterval.end);
-      mint.Add(begin);
-      if(curuint.timeInterval.IsValid())//start != curuint.timeInterval.end)
+       if(curuint.timeInterval.IsValid())//start != curuint.timeInterval.end)
         mint.Add(curuint);
-      Get(GetNoComponents() - 1,upi);
-      end.SetDefined(true);
-      end.timeInterval.start = curuint.timeInterval.end;
-      end.timeInterval.lc = true;
-//    end.timeInterval.end = upi->timeInterval.start;
-      end.timeInterval.end = upi->timeInterval.end;
-      end.timeInterval.rc = true;
-      end.constValue.Set(value); //the same as hat threshold
-      assert(end.timeInterval.start != end.timeInterval.end);
-      mint.Add(end);
+       end.SetDefined(true);
+
+       if(defstart){//define "end of time"
+          Get(GetNoComponents() - 2,upi);
+          end.timeInterval.start = curuint.timeInterval.end;
+          end.timeInterval.lc = true;
+          end.timeInterval.end = upi->timeInterval.end;
+          end.timeInterval.rc = false;
+          value = curuint.constValue.GetValue();
+          for(;i < nocomponents;i++){
+            Get(i,upi);
+            if(upi->timeInterval.start < curuint.timeInterval.end)
+              continue;
+            if(upi->constValue.GetValue() < value)
+            value = upi->constValue.GetValue();
+          }
+          end.constValue.Set(value);
+          assert(end.timeInterval.start != end.timeInterval.end);
+          mint.Add(end);
+          Get(GetNoComponents() - 1,upi);
+          end = *upi;
+          mint.Add(end);
+       }else{
+          Get(GetNoComponents() - 1,upi);
+          end.timeInterval.start = curuint.timeInterval.end;
+          end.timeInterval.lc = true;
+          end.timeInterval.end = upi->timeInterval.end;
+          end.timeInterval.rc = false;
+          value = curuint.constValue.GetValue();
+          for(;i < GetNoComponents();i++){
+            Get(i,upi);
+            if(upi->timeInterval.start < curuint.timeInterval.end)
+              continue;
+            if(upi->constValue.GetValue() < value)
+            value = upi->constValue.GetValue();
+          }
+          end.constValue.Set(value); //the same as hat threshold
+          assert(end.timeInterval.start != end.timeInterval.end);
+          mint.Add(end);
+       }
     }
     else{ //hat does not exist,return the first and last
        UInt begin,end;
        const UInt* upi1;
        const UInt* upi2;
-       Get(0,upi1);
-       Get(GetNoComponents() - 1,upi2);
        begin.SetDefined(true);
-       int firstvalue = upi1->constValue.GetValue();
-       int lastvalue = upi2->constValue.GetValue();
+       end.SetDefined(true);
+       if(defstart){
+        Get(0,upi1);
+        begin = *upi1;
+        mint.Add(begin);
+        Get(1,upi1);
+       }else
+        Get(0,upi1);
+       int firstvalue = upi->constValue.GetValue();
+       if(defstart)
+        Get(GetNoComponents() - 2,upi2);
+       else
+        Get(GetNoComponents() - 1,upi2);
+        int lastvalue = upi2->constValue.GetValue();
        if(firstvalue != lastvalue){
-        begin.constValue.Set(firstvalue);
-        begin.timeInterval.start = upi1->timeInterval.start;
-        begin.timeInterval.end = upi1->timeInterval.end;
-        begin.timeInterval.lc = true;
-        begin.timeInterval.rc = false;
-        mint.Add(begin);
-        end.SetDefined(true);
-        end.constValue.Set(lastvalue);
-        end.timeInterval.start = upi1->timeInterval.end;
-        end.timeInterval.end = upi2->timeInterval.end;
-        end.timeInterval.lc = true;
-        end.timeInterval.rc = true;
-        mint.Add(end);
+          begin = *upi1;
+          mint.Add(begin);
+          end = *upi2;
+          mint.Add(end);
+          if(defstart){
+            Get(GetNoComponents() - 1,upi2);
+            end = *upi2;
+            mint.Add(end);
+          }
        }else{
-        begin.constValue.Set(firstvalue);
-        begin.timeInterval.start = upi1->timeInterval.start;
-        begin.timeInterval.end = upi2->timeInterval.end;
-        begin.timeInterval.lc = true;
-        begin.timeInterval.rc = true;
-        mint.Add(begin);
-       }
+         if(defstart){
+            begin.constValue.Set(firstvalue);
+            begin.timeInterval.start = upi1->timeInterval.start;
+            begin.timeInterval.end = upi2->timeInterval.end;
+            begin.timeInterval.lc = true;
+            begin.timeInterval.rc = false;
+            mint.Add(begin);
+            Get(GetNoComponents() - 1,upi2);
+            end = *upi2;
+            mint.Add(end);
+          }else{
+            begin = *upi1;
+            begin.timeInterval.end = upi2->timeInterval.end;
+            mint.Add(begin);
+          }
+        }
     }
 }
 
