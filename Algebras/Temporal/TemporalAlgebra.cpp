@@ -2061,6 +2061,9 @@ void MInt::ReadFrom(const MBool& arg){
   }
   EndBulkLoad(false);
 }
+
+
+
 void MInt::Hat(MInt& mint)
 {
    mint.Clear();
@@ -2070,6 +2073,7 @@ void MInt::Hat(MInt& mint)
    CcInt cur,top;
    last.SetDefined(true);
    curuint.SetDefined(false);
+
    float lastarea = 0;
    Get(0,upi);
    string starttime = upi->timeInterval.start.ToString();
@@ -2297,6 +2301,184 @@ void MInt::Restrict(MInt& result,
 
 }
 
+/*
+~PlusExtend~
+
+This function adds the moving integer values. In contrast to the
+usual '+' function, the result will only be undefined, if both
+arguments are undefined. If only a single argeument is undefined,
+the value of the second parameter build the resulting unit.
+
+*/
+void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
+{
+  result.Clear();
+  if(!this->IsDefined() && !arg2->IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+
+  UInt uInt(true);  
+
+  RefinementPartition<MInt, MInt, UInt, UInt> rp(*this, *arg2);
+  result.StartBulkLoad();
+  Interval<Instant>* iv;
+  int u1Pos;
+  int u2Pos;
+  const UInt *u1;
+  const UInt *u2;
+
+  for(unsigned int i = 0; i < rp.Size(); i++){ 
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if(u1Pos!=-1 || u2Pos!=-1){
+      uInt.timeInterval = *iv;
+      if(u1Pos == -1 ){
+         arg2->Get(u2Pos,u2);
+         uInt.constValue.Set(true, u2->constValue.GetIntval());
+      } else if(u2Pos == -1){
+        this->Get(u1Pos,u1);
+        uInt.constValue.Set(true, u1->constValue.GetIntval()); 
+      } else {
+        this->Get(u1Pos, u1);
+        arg2->Get(u2Pos, u2);
+        uInt.constValue.Set(true,
+           u1->constValue.GetIntval() + u2->constValue.GetIntval());
+      }
+      result.MergeAdd(uInt);
+    }
+  }
+  result.EndBulkLoad(false);
+}
+
+void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
+  assert(unit.IsDefined());
+  int size = units.Size();
+  if(size==0){
+    units.Append(unit);
+  } else {
+    const UInt* lastUnitp;
+    units.Get(size-1, lastUnitp);
+    UInt lastUnit = *lastUnitp;
+    int lastValue = lastUnit.constValue.GetIntval();
+    int newValue  = unit.constValue.GetIntval();
+    if(lastUnit.timeInterval.end == unit.timeInterval.start){
+       if(lastValue == newValue){
+          lastUnit.timeInterval.end = unit.timeInterval.end;
+          lastUnit.timeInterval.rc = unit.timeInterval.rc;
+          units.Put(size-1,lastUnit);
+       } else {
+          // don't allow overlapping intervals
+          assert(!(lastUnit.timeInterval.rc && unit.timeInterval.lc));
+          // no gap in time 
+          if(lastUnit.timeInterval.rc || unit.timeInterval.lc){
+             units.Append(unit);
+          } else { // gap in time
+             if(lastValue==fillValue){
+                lastUnit.timeInterval.rc = true;
+                units.Put(size-1, lastUnit);
+                units.Append(unit); 
+             } else if(newValue==fillValue){
+                UInt copy(unit);
+                copy.timeInterval.lc = true;
+                units.Append(copy);
+             } else {
+                Interval<Instant> iv(unit.timeInterval.start, 
+                                     unit.timeInterval.start, 
+                                     true, true);
+                CcInt aValue(true,fillValue);
+                UInt aUnit(iv,aValue);
+                units.Append(aUnit);
+                units.Append(unit);
+             }
+          }
+       }  
+
+    } else { // a "real" gap in time
+      assert(lastUnitp->timeInterval.end < unit.timeInterval.start);
+      if(lastValue==fillValue){
+        if(fillValue==newValue){ // merge three units
+          lastUnit.timeInterval.end = unit.timeInterval.end;
+          lastUnit.timeInterval.rc =  unit.timeInterval.rc;
+          units.Put(size-1,lastUnit);
+        } else {
+          lastUnit.timeInterval.end = unit.timeInterval.start;
+          lastUnit.timeInterval.rc = !unit.timeInterval.lc;
+          units.Put(size-1, lastUnit);
+          units.Append(unit);
+        }
+      }  else { // lastUnit and fillUnit cannot be merged
+        if(newValue==fillValue){ // fillUnit and newUnit can be merged
+           UInt copy(unit);
+           copy.timeInterval.start = lastUnit.timeInterval.end;
+           copy.timeInterval.lc = !lastUnit.timeInterval.rc;
+           units.Append(copy);
+        } else { // nothing can be merged
+           Interval<Instant> iv(lastUnit.timeInterval.end,
+                                unit.timeInterval.start,
+                                !lastUnit.timeInterval.rc,
+                                !unit.timeInterval.lc);
+           CcInt v(true,fillValue);
+           UInt fill(iv,v);
+           units.Append(fill);
+           units.Append(unit);
+        }
+
+      }   
+
+
+    }
+  }
+}
+
+void MInt::fillUp(int value, MInt& result) const{
+   result.Clear();
+   if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+   }
+   int size = units.Size();
+   const UInt* unit;
+   for(int i=0;i<size;i++){
+     units.Get(i,unit);
+     result.MergeAddFillUp(*unit, value);
+   }
+}
+
+
+int MInt::maximum() const{
+   int max = numeric_limits<int>::min();
+   if(!IsDefined()){
+      return max;
+   } 
+   const UInt* unit;
+   int v;
+   for(int i=0;i<units.Size();i++){
+      units.Get(i,unit);
+      v = unit->constValue.GetIntval();
+      if(v>max){
+        max = v;
+      }
+   }   
+   return max;
+}
+ 
+int MInt::minimum() const{
+   int min = numeric_limits<int>::max();
+   if(!IsDefined()){
+      return min;
+   } 
+   const UInt* unit;
+   int v;
+   for(int i=0;i<units.Size();i++){
+      units.Get(i,unit);
+      v = unit->constValue.GetIntval();
+      if(v<min){
+        min = v;
+      }
+   }   
+   return min;
+}
 
 /*
 3.1 Class ~MReal~
