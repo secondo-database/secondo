@@ -665,7 +665,7 @@ Update entry corresponding to ~pointer~ to have bounding box ~box~.
 
 */
 
-    void Read( SmiRecordFile& file, const SmiRecordId pointer );
+    void Read(SmiRecordFile& file, const SmiRecordId pointer );
     void Read( SmiRecord& record );
 /*
 Reads this node from an ~SmiRecordFile~ at position ~id~.
@@ -1588,6 +1588,11 @@ Deletes the file of the R-Tree.
 Returns the ~SmiFileId~ of the R-Tree database file.
 
 */
+
+    inline void GetNode(SmiRecordId id, R_TreeNode<dim, LeafInfo>& result) {
+        result.Read(file,id);
+    }
+
 
     inline SmiRecordId RootRecordId() const
     {
