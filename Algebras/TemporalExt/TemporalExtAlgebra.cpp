@@ -4858,10 +4858,8 @@ static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
     }
     arg0->Get(u1Pos, u1transfer);
     arg1->Get(u2Pos, u2transfer);
-    UPoint u1(true);
-    UPoint u2(true);
-    u1 = *u1transfer;
-    u2 = *u2transfer;
+    UPoint u1(*u1transfer);
+    UPoint u2(*u2transfer);
     if(u1.IsDefined() && u2.IsDefined())
     { // do not need to test for overlapping deftimes anymore...
       UReal uReal(true);
