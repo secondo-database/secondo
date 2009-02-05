@@ -556,6 +556,7 @@ The destructor.
 
 */
 
+
     static int SizeOfEmptyNode();
 /*
 This is a class function that returns the size in bytes of an empty node.
@@ -803,6 +804,7 @@ R_TreeNode<dim, LeafInfo>::R_TreeNode( const R_TreeNode<dim, LeafInfo>& node ) :
     entries[ i ] = NULL;
 }
 
+
 /*
 4.2 The destructor
 
@@ -836,11 +838,19 @@ int R_TreeNode<dim, LeafInfo>::Size() const
 }
 
 template<unsigned dim, class LeafInfo>
-R_TreeNode<dim, LeafInfo>& R_TreeNode<dim, LeafInfo>::operator =
-    ( const R_TreeNode<dim, LeafInfo>& node )
+R_TreeNode<dim, LeafInfo>& R_TreeNode<dim, LeafInfo>::operator=
+    (const R_TreeNode<dim, LeafInfo>& node )
 {
   assert( minEntries == node.minEntries && maxEntries == node.maxEntries );
   assert( count >= 0 && count <= maxEntries + 1 );
+  // delete old entries
+  for(int i=0;i<this->EntryCount(); i++){
+     delete entries[i];
+     entries[i] = 0;
+  } 
+  // delete[] entries;
+  // entries = new R_TreeEntry<dim>*[src.maxEntries + 1];
+  
 
   for( int i = 0; i < node.count; i++ )
   {
