@@ -2706,7 +2706,7 @@ const string coverageSpec  =
 
 struct CoverageEntry{
      
-     CoverageEntry(R_TreeNode<3, TupleId> node1,int nodeid1): 
+     CoverageEntry(R_TreeNode<3, TupleId>& node1,int nodeid1): 
                       node(node1), position(0),nodeId(nodeid1){
         lastResult = new MInt(1);
      }  
@@ -2721,6 +2721,13 @@ struct CoverageEntry{
         lastResult = src.lastResult;
         nodeId = src.nodeId;
         return *this;
+     }
+
+     void destroyResult(){
+        if(lastResult){
+           delete lastResult;
+           lastResult = 0;
+        }
      }
 
      R_TreeNode<3, TupleId> node;
@@ -2881,8 +2888,7 @@ This function computes the next result.
           currentNodeId = coverageEntry.nodeId; 
           estack.pop(); // remove the finished node from the stack
           if(estack.empty()){ // root node
-             delete coverageEntry.lastResult; 
-             coverageEntry.lastResult = 0;
+             coverageEntry.destroyResult(); 
              return;
           } 
           // stack not empty -> update top element of the stack
@@ -2891,6 +2897,7 @@ This function computes the next result.
           coverageEntry.lastResult->PlusExtend(lastResult,tmp);
           coverageEntry.lastResult->CopyFrom(&tmp);  
           delete lastResult;
+          lastResult = 0;
           coverageEntry.position++; // this position has been computed
           // bring changes to the stack
           estack.pop();
@@ -2947,7 +2954,9 @@ This function computes the next result.
      res.fillUp(0,tmp1);
      tmp1.Hat(*currentResult);
      currentPos = 0;
-     currentNodeId = coverageEntry.nodeId;    
+     currentNodeId = coverageEntry.nodeId;   
+     // delete the result pointer from the leaf node
+     coverageEntry.destroyResult(); 
      estack.pop();
      if(estack.empty()){
        return;
