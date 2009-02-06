@@ -2636,7 +2636,7 @@ This function computes the coverage number for a three dimensional r-tree.
 
 
 */
-ListExpr coverageTypeMap(ListExpr args){
+ListExpr coverageTypeMapCommon(ListExpr args, ListExpr result){
   string err = " rtree(tuple(...) rect3 BOOL) expected";
   if(nl->ListLength(args) != 1){
     ErrorReporter::ReportError(err + "1");
@@ -2654,8 +2654,6 @@ ListExpr coverageTypeMap(ListExpr args){
      here we are not interested on that type, we can ignore it.
   */
   ListExpr dind  = nl->Fourth(arg);
-
-  
 
   if(!nl->IsEqual(rtree,"rtree3")){
     ErrorReporter::ReportError(err + "3");
@@ -2675,8 +2673,11 @@ ListExpr coverageTypeMap(ListExpr args){
     ErrorReporter::ReportError(err + "7");
     return nl->TypeError();
   }
+  return result;
+}
 
-  return 
+inline ListExpr coverageTypeMap(ListExpr args){
+  return coverageTypeMapCommon(args, 
         nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
@@ -2689,9 +2690,28 @@ ListExpr coverageTypeMap(ListExpr args){
                     nl->TwoElemList(
                         nl->SymbolAtom("Coverage"),
                         nl->SymbolAtom("uint")
-                    ))));
+                    )))));
+}
 
-
+inline ListExpr coverage2TypeMap(ListExpr args){
+  return coverageTypeMapCommon(args, 
+        nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Level"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Coverage"),
+                        nl->SymbolAtom("mint")
+                    )))));
 }
 
 const string coverageSpec  =
@@ -2703,6 +2723,14 @@ const string coverageSpec  =
       "<text>query coverage(tree) count </text--->"
       ") )";
 
+const string coverage2Spec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rtree(tuple ((x1 t1)...(xn tn)) ti) ->"
+      " (stream (tuple ((Nodeid is)(Level int)(Coverage mint))))</text--->"
+      "<text> coverage(_) </text--->"
+      "<text>Computes the coverage numbers for a given r-tree </text--->"
+      "<text>query coverage(tree) count </text--->"
+      ") )";
 
 struct CoverageEntry{
      
@@ -2760,6 +2788,8 @@ Creates a new CoverageLocalInfo object.
      nodeidcounter++;
      estack.push(entry); 
      tupleType = new TupleType(tt);
+     completeResult = 0;
+     this->level = 0;
    }
 
 
@@ -2782,6 +2812,10 @@ Detroys this object.
       }
       tupleType->DeleteIfAllowed();
       tupleType = 0;
+      if(completeResult){
+         delete completeResult;
+         completeResult = 0;
+      }
    }  
 
 /*
@@ -2816,6 +2850,22 @@ If the tree is exhausted, NULL is returned.
       return resTuple;
    }
 
+   Tuple* nextTuple2(){
+      computeNextResult();
+      if(!completeResult){
+         return 0;
+      } else {
+        Tuple* resTuple = new Tuple(tupleType);
+        CcInt* ni = new CcInt(true,currentNodeId);
+        CcInt* level  = new CcInt(true, this->level);
+        resTuple->PutAttribute(0,ni);
+        resTuple->PutAttribute(1,level);
+        resTuple->PutAttribute(2,completeResult);  
+        completeResult = 0;
+        return resTuple;
+      }
+   }
+
 
  private:
    R_Tree<3, TupleId>* tree;     // the tree
@@ -2830,6 +2880,8 @@ If the tree is exhausted, NULL is returned.
    int minLeaf;                  // minimum number of entries of leaf nodes
    unsigned int height;          // height of the tree
    int nodeidcounter;            // counter for the current node id
+   MInt* completeResult;         // result without applying the hat function
+   int level;
 
 
 /*
@@ -2865,6 +2917,10 @@ This function computes the next result.
        delete currentResult;
        currentResult=0;
      }
+     if(completeResult){
+       delete completeResult;
+       completeResult=0;
+     }
 
      if(estack.empty()){ // tree exhausted
        return;
@@ -2872,7 +2928,7 @@ This function computes the next result.
 
      // get the topmost stack element
      CoverageEntry coverageEntry = estack.top();
-
+     this->level = estack.size()-1;
      if(!coverageEntry.node.IsLeaf()){
         // process an inner node
         if(coverageEntry.position>= coverageEntry.node.EntryCount()){
@@ -2881,9 +2937,10 @@ This function computes the next result.
           // if a node is finished, the final result is lastResult of that node
           MInt* lastResult = coverageEntry.lastResult;
           // compute the Hat for lastResult
-          MInt tmp1(1);
-          lastResult->fillUp(0,tmp1); 
-          tmp1.Hat(*currentResult);
+          assert(!completeResult);
+          completeResult = new MInt(1);
+          lastResult->fillUp(0,*completeResult); 
+          completeResult->Hat(*currentResult);
           currentPos = 0;
           currentNodeId = coverageEntry.nodeId; 
           estack.pop(); // remove the finished node from the stack
@@ -2933,6 +2990,7 @@ This function computes the next result.
          // now entry is a leaf node
          estack.push(coverageEntry); 
         }  
+        this->level = estack.size()-1;
      }
      // the node to process is a leaf
 		 // build a single MInt from the whole node 
@@ -2950,9 +3008,10 @@ This function computes the next result.
      }
      nodeidcounter += coverageEntry.node.EntryCount();
      currentResult = new MInt(1);
-     MInt tmp1(1);
-     res.fillUp(0,tmp1);
-     tmp1.Hat(*currentResult);
+     assert(!completeResult);
+     completeResult = new MInt(1);
+     res.fillUp(0,*completeResult);
+     completeResult->Hat(*currentResult);
      currentPos = 0;
      currentNodeId = coverageEntry.nodeId;   
      // delete the result pointer from the leaf node
@@ -3008,6 +3067,42 @@ int coverageFun (Word* args, Word& result, int message,
   }
 }
 
+int coverage2Fun (Word* args, Word& result, int message, 
+             Word& local, Supplier s){
+
+  switch (message){
+     case OPEN : {
+                   ListExpr resultType =
+                     SecondoSystem::GetCatalog()->NumericType(qp->GetType(s));
+                   if(local.addr){
+                     delete static_cast<CoverageLocalInfo*>(local.addr);
+                   }
+                   R_Tree<3, TupleId>* tree = 
+                         static_cast<R_Tree<3, TupleId>*>(args[0].addr);
+                   local.addr = new CoverageLocalInfo(tree,
+                                                nl->Second(resultType));
+                   return 0;
+                 }
+     case REQUEST:{
+                   CoverageLocalInfo* li = 
+                         static_cast<CoverageLocalInfo*>(local.addr);
+                   Tuple* nextTuple = li->nextTuple2();
+                   result.addr = nextTuple;
+                   return nextTuple?YIELD:CANCEL;
+                  }
+     case CLOSE:{  
+                   CoverageLocalInfo* li = 
+                         static_cast<CoverageLocalInfo*>(local.addr);
+                   if(li){
+                     delete li;
+                     local.setAddr(0);
+                   }
+                   return 0;
+                } 
+     
+     default: assert(false); // unknown message
+  }
+}
 
 Operator coverageop (
          "coverage",        // name
@@ -3015,6 +3110,14 @@ Operator coverageop (
          coverageFun,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
          coverageTypeMap    // type mapping
+);
+
+Operator coverage2op (
+         "coverage2",        // name
+         coverage2Spec,      // specification
+         coverage2Fun,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         coverage2TypeMap    // type mapping
 );
 
 /*
@@ -3313,6 +3416,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &bboxes );
     AddOperator( &rect2periods );
     AddOperator( &coverageop );
+    AddOperator( &coverage2op );
   }
   ~NearestNeighborAlgebra() {};
 };
