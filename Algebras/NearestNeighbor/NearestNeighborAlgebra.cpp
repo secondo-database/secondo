@@ -2649,19 +2649,19 @@ ListExpr coverageTypeMap(ListExpr args){
   }
   ListExpr rtree = nl->First(arg);
   ListExpr tuple = nl->Second(arg);
-  ListExpr type  = nl->Third(arg);
+  /* The third element contains the type description for the
+     attribute from which the r-tree was created. Because
+     here we are not interested on that type, we can ignore it.
+  */
   ListExpr dind  = nl->Fourth(arg);
+
+  
 
   if(!nl->IsEqual(rtree,"rtree3")){
     ErrorReporter::ReportError(err + "3");
     return nl->TypeError();
   }
   
-  if(!nl->IsEqual(type,"rect3")){
-    ErrorReporter::ReportError(err + "4");
-    return nl->TypeError();
-  }
-
   if(nl->AtomType(dind)!=BoolType){
     ErrorReporter::ReportError(err + "5");
     return nl->TypeError();
