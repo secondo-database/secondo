@@ -129,16 +129,9 @@ void R_Tree<dim, LeafInfo>::FirstDistanceScan( const BBox<dim>& box )
 {
   distanceFlag = true;
   pq = new NNpriority_queue;
-  R_TreeNode<dim, TupleId> *tmp = GetNode( RootRecordId(), 
-                     false, 
-                     MinEntries( 0 ), 
-                     MaxEntries( 0 ) );
-  
-  cout << "tmp.bbox = "; tmp->BoundingBox().Print(cout)  << endl;
-  cout << "box = "; box.Print(cout) << endl;
+  R_TreeNode<dim, TupleId> tmp = Root();
   pq->push( DistanceElement<TupleId>( RootRecordId(), false, -1, 
-      tmp->BoundingBox().Distance(box), 0));
-  delete tmp;
+      tmp.BoundingBox().Distance(box), 0));
 }
 
 /*
