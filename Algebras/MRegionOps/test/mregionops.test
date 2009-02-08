@@ -5,6 +5,11 @@
 #
 
 # *
+# * Note: Call this testscript as follows:
+# * TestRunner --no-tmp -i ../Algebras/MRegionOps/test/mregionops.test
+# *
+
+# *
 # * Preparing the test database
 # *
 
@@ -45,16 +50,16 @@ delete line2;
 delete region1;
 delete region2;
 
-restore tripU5 from tripU5;
-restore tripU5a from tripU5a;
-restore tripU5b from tripU5b;
-restore tripU8a from tripU8a;
-#restore trip1 from trip1;
-#restore trip2 from trip2;
-restore line1 from line1;
-restore line2 from line2;
-restore region1 from region1;
-restore region2 from region2;
+restore tripU5 from '../Algebras/MRegionOps/test/tripU5';
+restore tripU5a from '../Algebras/MRegionOps/test/tripU5a';
+restore tripU5b from '../Algebras/MRegionOps/test/tripU5b';
+restore tripU8a from '../Algebras/MRegionOps/test/tripU8a';
+#restore trip1 from '../Algebras/MRegionOps/test/trip1';
+#restore trip2 from '../Algebras/MRegionOps/test/trip2';
+restore line1 from '../Algebras/MRegionOps/test/line1';
+restore line2 from '../Algebras/MRegionOps/test/line2';
+restore region1 from '../Algebras/MRegionOps/test/region1';
+restore region2 from '../Algebras/MRegionOps/test/region2';
 
 
 #setup mregionopstest
