@@ -61,6 +61,7 @@ A general overview about the relationship of this classes is shown below:
 #include "NumericUtil.h"
 #include "PointVector.h"
 #include "Segment.h"
+#include "Statistic.h"
 #include "DateTime.h"
 #include "StopWatch.h"
 #include <vector>
@@ -84,11 +85,12 @@ Note: The output might be very verbose.
 /*
 1.1 $PRINT\_STATISTIC$
 
-Enables the output of statistic data for each source unit pair.
+Enables the output of statistic data for each set-operation.
 
 */
 
-//#define PRINT_STATISTIC
+#define PRINT_STATISTIC
+
 
 #ifdef  PRINT_DEBUG_MESSAGES
 #define PRINT_STATISTIC
@@ -173,13 +175,8 @@ Note: This feature is not implemented yet!
 
 const bool MERGE_RESULT_MSEGMENTS = false;
 
-//static double seconds = 0.0;
-//static double seconds1 = 0.0;
-//static double seconds2 = 0.0;
-//static double seconds3 = 0.0;
-//static double seconds4 = 0.0;
-//static double seconds5 = 0.0;
-//static double seconds6 = 0.0;
+
+
 
 /*
 1 Forward declarations
@@ -841,6 +838,7 @@ Adds a relevant timevalue.
     
     void Print() const;
     string GetVRMLDesc() const;
+    void AddToOverallStatistic() const;
    
 private:
 
@@ -2990,7 +2988,7 @@ The left and right border.
     
     inline void Finalize() {
         
-        AddBoundary();
+        DecideRelevanceAndAddBoundary();
     }
 
 /*
@@ -3082,7 +3080,7 @@ private:
     void ComputeNormalVector();
     void ComputeWTCoords();
     bool IntersectionPlaneSegment(const Segment3D& seg, Point3D& result);
-    void AddBoundary();
+    void DecideRelevanceAndAddBoundary();
     void AddEntireBoundary();
     void AddIntSeg(const Segment3D& seg, PFace& other);
     void AddBoundaryIntSeg(const Segment3D& seg);

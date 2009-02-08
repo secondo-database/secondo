@@ -52,6 +52,7 @@ used in the MovingRegionAlgebra.
 namespace mregionops {
 
 set<unsigned int> flippedPFaces;
+Statistic statistic;
 
 /*
 1 Class SetOperator
@@ -75,17 +76,7 @@ void SetOperator::Minus() {
 
 void SetOperator::Operate(const SetOp op) {
     
-    //seconds = 0.0;
-    //seconds1 = 0.0;
-    //seconds2 = 0.0;
-    //seconds3 = 0.0;
-    //seconds4 = 0.0;
-    //seconds5 = 0.0;
-    //seconds6 = 0.0;
-    flippedPFaces.clear();
-    
-    //StopWatch stopWatch;
-    //stopWatch.start();
+    //flippedPFaces.clear();
     
     if (!a->IsDefined() || !b->IsDefined()) {
         
@@ -103,8 +94,10 @@ void SetOperator::Operate(const SetOp op) {
     
 #ifdef PRINT_STATISTIC
     
-    cout << "RefinementPartition with " << rp.Size() << " units created.";
-    cout << endl;
+    statistic.Reset();
+    statistic.noUnitsIn = rp.Size();
+    //cout << "RefinementPartition with " << rp.Size() << " units created.";
+    //cout << endl;
     
 #endif
     
@@ -215,10 +208,8 @@ void SetOperator::Operate(const SetOp op) {
     res->EndBulkLoad(false);
 
 #ifdef PRINT_STATISTIC
-    
-    cout << "Units in : " << rp.Size() << endl;
-    cout << "Units out: " << res->GetNoComponents() << endl;
-    
+    statistic.noUnitsResult = res->GetNoComponents();
+    statistic.Print();
 #endif
 }
 
@@ -347,6 +338,9 @@ void SourceUnit::CreatePFaces() {
 #endif
 
     }
+    
+    statistic.noPFaceTotal += pFaces.size();
+    statistic.noPFaceReducedByPBR += pFacesReduced.size();
 }
 
 void SourceUnit::CollectRelevantPFaces(ResultUnitFactory* receiver) {
@@ -506,6 +500,7 @@ const Region SourceUnit::GetTestRegion(const double t) {
     if (!testRegion.defined || testRegion.instant != instant) {
         
         //cout << "Create new TestRegion at instant: " << instant << endl;
+        statistic.NoTestRegionsCreated++;
         
         Region newTestRegion(0);
         GetURegionEmb()->TemporalFunction(array, instant, newTestRegion);
@@ -516,6 +511,7 @@ const Region SourceUnit::GetTestRegion(const double t) {
     } else {
         
         //cout << "TestRegion cachehit at instant: " << instant << endl;
+        statistic.NoTestRegionsCacheHits++;
     }
         
     return testRegion.region;
@@ -681,6 +677,12 @@ void ResultUnitFactory::ComputeCurrentTimeLevel() {
 void ResultUnitFactory::ProcessNormalPFace(PFace* pFace) {
     
     //assert(NumericUtil::Lower(t1, t2));
+    
+#ifdef PRINT_STATISTIC
+        
+        StopWatch stopWatch;
+        stopWatch.start();
+#endif
 
     const list<IntersectionSegment*>* intSegs;
     list<IntersectionSegment*>::const_iterator intSegIter;
@@ -789,11 +791,21 @@ void ResultUnitFactory::ProcessNormalPFace(PFace* pFace) {
         finalStart3D = finalEnd3D;
         lastDecision = decision;
     }
+    
+#ifdef PRINT_STATISTIC
+    statistic.durationProcessNormalPFace += stopWatch.diffSecondsReal();
+#endif
 }
 
 void ResultUnitFactory::ProcessCriticalPFace(PFace* pFace) {
     
     //assert(NumericUtil::Lower(t1, t2));
+    
+#ifdef PRINT_STATISTIC
+        
+        StopWatch stopWatch;
+        stopWatch.start();
+#endif
     
     const list<IntersectionSegment*>* intSegs;
     list<IntersectionSegment*>::const_iterator intSegIter;
@@ -878,6 +890,10 @@ void ResultUnitFactory::ProcessCriticalPFace(PFace* pFace) {
         mediumStart3D = mediumEnd3D;
         finalStart3D = finalEnd3D;
     }
+    
+#ifdef PRINT_STATISTIC
+    statistic.durationProcessCriticalPFace += stopWatch.diffSecondsReal();
+#endif
 }
 
 Decision ResultUnitFactory::BelongsToResultUnit(const Point3D& midpoint, 
@@ -1005,12 +1021,9 @@ void ResultUnitFactory::ConstructResultUnitAsURegionEmb() {
     
     noUnits++;
     
-#ifdef PRINT_STATISTIC
-    
-    cout <<  "ResultUnit created: " << resultUnit->GetInterval() << endl;
-    cout << endl;
+    //cout <<  "ResultUnit created: " << resultUnit->GetInterval() << endl;
+    //cout << endl;
 
-#endif
 #ifdef  WRITE_VRML_FILE
     
     vrml.push_back(resultUnit->GetVRMLDesc());
@@ -1033,7 +1046,6 @@ void ResultUnitFactory::Print() const {
     cout <<  "Units created: " << noUnits << endl;
     cout <<  "Empty units: " << noEmptyUnits << endl;
     cout <<  "Processed PFaces total: " << pFaces.size() << endl;
-    cout <<  "Evaluated IntSegs total: " << evalutedIntSegs << endl;
     cout <<  "MSegments total: " << evalutedIntSegs << endl;
     cout <<  "MSegments valid: " << noMSegsValid << endl;
     cout <<  "MSegments skipped: " << noMSegsSkipped << endl;
@@ -1056,6 +1068,19 @@ string ResultUnitFactory::GetVRMLDesc() const {
     }
     
     return oss.str();
+}
+
+void ResultUnitFactory::AddToOverallStatistic() const {
+    
+    statistic.noRelevantPFaces += pFaces.size();
+    statistic.noMSegsOverall += evalutedIntSegs;
+    statistic.noMSegsValidOverall += noMSegsValid;
+    statistic.noMSegsSkippedOverall += noMSegsSkipped;
+    statistic.noMSegCriticalOverall += noMSegCritical;
+    statistic.decisionsByPlumblineOverall += decisionsByPlumbline;
+    statistic.decisionsByEntirelyInOutOverall += decisionsByEntirelyInOut;
+    statistic.decisionsByAdjacencyOverall += decisionsByAdjacency;
+    statistic.decisionsByDegenerationOverall += decisionsByDegeneration;
 }
 
 /*
@@ -1088,12 +1113,9 @@ SourceUnitPair::SourceUnitPair(URegionEmb* const _unitA,
 
     ComputeOverlapRect();
     
-#ifdef PRINT_STATISTIC
+    //cout << "SourceUnitPair with interval " << GetOriginalTimeInterval() 
+         //<< " created." << endl;
     
-    cout << "SourceUnitPair with interval " << GetOriginalTimeInterval() 
-         << " created." << endl;
-    
-#endif
 #ifdef PRINT_DEBUG_MESSAGES
     
     if (HasNormalizedTimeInterval())
@@ -1127,12 +1149,9 @@ void SourceUnitPair::Operate() {
         
         CreatePFaces();
         
-#ifdef  PRINT_STATISTIC   
+#ifdef  PRINT_STATISTIC
         
-        cout << "CreatePFaces() takes: ";
-        cout << stopWatch.diffTimes() << endl;
-        cout << endl;
-        
+        statistic.durationCreatePFacesOverall += stopWatch.diffSecondsReal();
 #endif
 #ifdef  PRINT_DEBUG_MESSAGES      
         
@@ -1153,10 +1172,7 @@ void SourceUnitPair::Operate() {
         
 #ifdef  PRINT_STATISTIC
         
-        cout << "ComputeIntSegs() takes: ";
-        cout << stopWatch.diffTimes() << endl;
-        cout << endl;
-        
+        statistic.durationComputeIntSegsOverall += stopWatch.diffSecondsReal();
 #endif
 #ifdef  PRINT_DEBUG_MESSAGES
         
@@ -1177,10 +1193,8 @@ void SourceUnitPair::Operate() {
         
 #ifdef  PRINT_STATISTIC
         
-        cout << "CollectRelevantPFaces() takes: ";
-        cout << stopWatch.diffTimes() << endl;
-        cout << endl;
-        
+        statistic.durationCollectRelevantPFacesOverall
+                += stopWatch.diffSecondsReal();
 #endif
 #ifdef  PRINT_DEBUG_MESSAGES     
         
@@ -1201,28 +1215,10 @@ void SourceUnitPair::Operate() {
         
 #ifdef  PRINT_STATISTIC
         
-        cout << "ConstructResultUnits() takes: ";
-        cout << stopWatch.diffTimes() << endl;
-        cout << endl;
+        statistic.durationConstructResultUnitsOverall
+                += stopWatch.diffSecondsReal();
         
-#endif 
-        
-        //cout << "ConvertToURegionEmb takes: ";
-        //cout << seconds << endl;
-        //cout << endl;
-        
-        //cout << "ResultUnit::EndBulkLoad takes: ";
-        //cout << seconds2 << endl;
-        //cout << endl;
-
-        //cout << "ResultUnitFactory::BelongsToResultUnit takes: ";
-        //cout << seconds3 << endl;
-        //cout << endl;
-        
-#ifdef  PRINT_STATISTIC
-
-        resultUnitFactory.Print();
-        
+        resultUnitFactory.AddToOverallStatistic();
 #endif
 #ifdef  WRITE_VRML_FILE
         
@@ -1396,6 +1392,8 @@ IntersectionSegment::IntersectionSegment(const Segment3D& s) :
         startXYT = s.GetEnd();
         endXYT = s.GetStart();
     }
+    
+    statistic.noIntSegsTotal++;
 }
 
 bool IntersectionSegment::IsLeftOf(const IntersectionSegment* intSeg) const {
@@ -1558,11 +1556,11 @@ bool MSegmentCritical::HasEqualNormalVector(const MSegmentCritical& msc) const {
 
 void ResultUnit::EndBulkLoad(bool merge) {
 
-    //StopWatch stopWatch;
-    //stopWatch.start();
-
-    //Print();
-    //WriteToVRMLFile();
+#ifdef PRINT_STATISTIC
+        
+        StopWatch stopWatch;
+        stopWatch.start();
+#endif
 
     if (IsEmpty())
         return;
@@ -1585,7 +1583,7 @@ void ResultUnit::EndBulkLoad(bool merge) {
     }
 
     // Note: Sorting is already done.
-    r.EndBulkLoad(true, true, true, true);
+    r.EndBulkLoad(false, true, true, true);
 
     // Third, we retrive the faceNo, cycleNo and edgeNo of
     // each halfsegment from the region, computed in the 
@@ -1611,7 +1609,11 @@ void ResultUnit::EndBulkLoad(bool merge) {
     }
 
     //this->Print();
-    //seconds2 += stopWatch.diffSecondsReal();
+    
+#ifdef PRINT_STATISTIC
+    statistic.durationEndBulkloadOfResultUnit += stopWatch.diffSecondsReal();
+#endif
+    
 }
 
 const ListExpr ResultUnit::ConvertToListExpr() const {
@@ -1690,8 +1692,11 @@ const ListExpr ResultUnit::ConvertToListExpr() const {
     URegionEmb* 
     ResultUnit::ConvertToURegionEmb(DBArray<MSegmentData>* segments) const {
         
-        //StopWatch stopWatch;
-        //stopWatch.start();
+#ifdef PRINT_STATISTIC
+        
+        StopWatch stopWatch;
+        stopWatch.start();
+#endif
 
         const unsigned int segmentsStartPos = segments->Size();
 
@@ -1756,11 +1761,6 @@ const ListExpr ResultUnit::ConvertToListExpr() const {
         double max[3] = { maxX, maxY, interval.end.ToDouble() };
 
         uregion->SetBBox(Rectangle<3>(true, min, max));
-        
-        //return uregion;
-        
-        // Set the DGM attribut:
-        
         
 /*
 We have to go through the lists of degenerated segments and count 
@@ -1912,10 +1912,12 @@ inside above and inside below segments, we can ignore the entire list.
             uregion->PutSegment(segments, i, dms);
         }
 
-        //seconds += stopWatch.diffSecondsReal();
+#ifdef PRINT_STATISTIC
+    statistic.durationConvertResultUnitToURegionEmb
+            += stopWatch.diffSecondsReal();
+#endif
         
         //assert(Check());
-
         return uregion;
     }
     
@@ -2511,6 +2513,8 @@ void PFace::Intersection(PFace& other) {
     // We add one intersection segment to each PFace:
     this->AddIntSeg(intSeg, other);
     other.AddIntSeg(intSeg, *this);
+    
+    //statistic.noIntSegsTotal += 2;
 }
 
 void PFace::ComputeBoundingRect() {
@@ -2579,8 +2583,14 @@ void PFace::ComputeNormalVector() {
     normalVector.Normalize();
 }
 
-void PFace::AddBoundary() {
-
+void PFace::DecideRelevanceAndAddBoundary() {
+    
+    if (!DECIDE_BY_ENTIRELY_IN_OUT) {
+        
+        if (GetState() == UNKNOWN || IsIrrelevant())
+            MarkAsNormalRelevant();
+    }
+    
     if (IsIrrelevant()) {
 
         return;
@@ -2790,6 +2800,8 @@ void PFace::AddBoundaryIntSeg(const Segment3D& seg) {
     intSeg->SetWCoords();
 
     intSegs.AddIntSeg(intSeg);
+    
+    statistic.noBorderIntSegs++;
 }
 
 string PFace::GetVRMLDesc() {
