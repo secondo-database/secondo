@@ -34,10 +34,27 @@ delete bUa;
 delete aMb;
 delete bMa;
 
+delete tripU5;
+delete tripU5a;
+delete tripU5b;
+delete tripU8a;
+delete trip1;
+delete trip2;
+delete line1;
+delete line2;
+delete region1;
+delete region2;
+
 restore tripU5 from tripU5;
 restore tripU5a from tripU5a;
 restore tripU5b from tripU5b;
 restore tripU8a from tripU8a;
+#restore trip1 from trip1;
+#restore trip2 from trip2;
+restore line1 from line1;
+restore line2 from line2;
+restore region1 from region1;
+restore region2 from region2;
 
 
 #setup mregionopstest
@@ -46,20 +63,63 @@ restore tripU8a from tripU8a;
 # * Create data in the test database
 # *
 
-let mpA = tripU5;
+################################################################################
+
+### Testdata
+
+################################################################################
+
+### Create trips with the SimulationAlgebra
+
+query sim_set_event_params( 60.0, 0.0, 0.0, 0.0 );
+let trip1 = segments(line1) namedtransformstream[Part] extend[Vmax: 0.07] sim_create_trip[Part,Vmax,[const instant value "2009-09-01"],[const point value (302.2033996582031 -1702.5960876632982)], 0.02 ];
+let trip2 = segments(line2) namedtransformstream[Part] extend[Vmax: 0.01] sim_create_trip[Part,Vmax,[const instant value "2009-01-01"],[const point value (700.5922127715812 -1346.0071390955902)], 0.01 ]
+
+
+### Determine two moving points mpA and mpB:
+
+let mpA = trip1;
+let mpB = trip2;
+#let mpA = tripU5;
 #let mpB = mpA;
-let mpB = tripU8a;
+#let mpB = tripU8a;
 
 # Not working unfortunatly, since the resulting units have too short intervals...
 #let mpA = train1;
 #let mpB = train5;
 
+### Determine two regions rA and rB:
+
+let rA = union_new(westhafen rotate[5500.0, 14600.0, 0.0] scale[3.0], westhafen rotate[5500.0, 14600.0, 50.0] scale[3.0]);
+let rB = grunewald scale[0.75] translate[19000.0, 39000.0];
+
+#let rA = union_new(westhafen rotate[5500.0, 14600.0, 0.0] scale[3.0], westhafen rotate[5500.0, 14600.0, 50.0] scale[3.0]);
+#let rB = union_new(westhafen rotate[5500.0, 14600.0, 30.0] scale[3.0], westhafen rotate[5500.0, 14600.0, 90.0] scale[3.0]);
+
+#let rA = r1 scale[3.5];
+#let rB = r2 scale[3.0] rotate[280.0, 180.0, 90.0];
+
+
 #let rA = grunewald;
+#let rA = grunewald translate[0.0, -2000.0];
+#let rA = westhafen;
+#let rA = westhafen rotate[5500.0, 14600.0, 50.0];
+#let rA = union_new(westhafen rotate[5500.0, 14600.0, 0.0] scale[30.0], westhafen rotate[5500.0, 14600.0, 50.0] scale[30.0]);
+
+
+
 #let rB = grunewald;
-let rA = grunewald translate[0.0, -2000.0];
-let rB = westhafen scale[10.0] translate[-1500.0 - 54000.0, 7500.0 - 150000.0];
+
+#let rB = westhafen scale[10.0] translate[-55500.0, -142500.0];
+#let rB = grunewald rotate[-1500.0, 7000.0, 60.0];
+#let rB = union_new(westhafen rotate[5500.0, 14600.0, 30.0] scale[30.0], westhafen rotate[5500.0, 14600.0, 90.0] scale[30.0]);
+
+
+### Determine the number of samples to test the result:
 
 let noSamples = 100.0;
+
+################################################################################
 
 let mrA = move(mpA, rA);
 let mrB = move(mpB, rB);
@@ -98,7 +158,7 @@ area(val(aIb atinstant t))
 - 
 area(intersection_new(val(mrA atinstant t), val(mrB atinstant t)))
 )]
-printstream transformstream max[elem] < tolerance;
+ transformstream max[elem] < tolerance;
 
 # ***********************************************************
 
@@ -117,7 +177,7 @@ area(val(bIa atinstant t))
 - 
 area(intersection_new(val(mrB atinstant t), val(mrA atinstant t)))
 )]
-printstream transformstream max[elem] < tolerance;
+ transformstream max[elem] < tolerance;
 
 # ***********************************************************
 # * union
@@ -138,7 +198,7 @@ area(val(aUb atinstant t))
 - 
 area(union_new(val(mrA atinstant t), val(mrB atinstant t)))
 )]
-printstream transformstream max[elem] < tolerance;
+ transformstream max[elem] < tolerance;
 
 # ***********************************************************
 
@@ -157,7 +217,7 @@ area(val(bUa atinstant t))
 - 
 area(union_new(val(mrB atinstant t), val(mrA atinstant t)))
 )]
-printstream transformstream max[elem] < tolerance;
+ transformstream max[elem] < tolerance;
 
 # ***********************************************************
 # * minus
@@ -178,7 +238,7 @@ area(val(aMb atinstant t))
 - 
 area(minus_new(val(mrA atinstant t), val(mrB atinstant t)))
 )]
-printstream transformstream max[elem] < tolerance;
+ transformstream max[elem] < tolerance;
 
 # ***********************************************************
 
@@ -197,39 +257,39 @@ area(val(bMa atinstant t))
 - 
 area(minus_new(val(mrB atinstant t), val(mrA atinstant t)))
 )]
-printstream transformstream max[elem] < tolerance;
+ transformstream max[elem] < tolerance;
 
 # ***********************************************************
 
 #teardown
 
-delete mpA;
-delete mpB;
-delete rA;
-delete rB;
-delete mrA;
-delete mrB;
-delete t0A;
-delete t0B;
-delete t1A;
-delete t1B;
-delete t0;
-delete t1;
-delete noSamples;
-delete step;
-delete samples;
-delete tolerance;
-delete aIb;
-delete bIa;
-delete aUb;
-delete bUa;
-delete aMb;
-delete bMa;
+#delete mpA;
+#delete mpB;
+#delete rA;
+#delete rB;
+#delete mrA;
+#delete mrB;
+#delete t0A;
+#delete t0B;
+#delete t1A;
+#delete t1B;
+#delete t0;
+#delete t1;
+#delete noSamples;
+#delete step;
+#delete samples;
+#delete tolerance;
+#delete aIb;
+#delete bIa;
+#delete aUb;
+#delete bUa;
+#delete aMb;
+#delete bMa;
 
-delete tripU5;
-delete tripU5a;
-delete tripU5b;
-delete tripU8a;
+#delete tripU5;
+#delete tripU5a;
+#delete tripU5b;
+#delete tripU8a;
 
 close database;
 
