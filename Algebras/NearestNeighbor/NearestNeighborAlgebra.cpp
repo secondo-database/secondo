@@ -479,7 +479,7 @@ distanceScanSelect( ListExpr args )
            algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo))
     return 2;
   else if (nl->SymbolValue(searchWindow) == "rect8" ||
-           algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo))
+           algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo))
     return 3;
 
   return -1; /* should not happen */
