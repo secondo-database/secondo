@@ -50,3 +50,23 @@ Signature: rect3 -> periods
 Example  : query rect2periods(box1000)
 Result   : (periods ( ("2003-11-20-07:32:50" "2003-11-20-07:33" TRUE TRUE)))
 
+Operator  : bboxes
+Number    : 1
+Signature : stream(periods) x mpoint -> stream(rect)
+Example   :query UnitTrains feed  projectextend[; D : deftime(.UTrip)] transformstream bboxes[train6] count = UnitTrains count 
+Result    : (bool TRUE)
+
+Operator  : coverage
+Number    : 1
+Signature : rtree3 -> stream( tuple(NodeId : int) (Coverage uint))
+Example   : query coverage(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) count >847 
+Result    : (bool TRUE)
+
+Operator  : coverage2
+Number    : 1
+Signature : rtree3 -> stream( tuple( NodeId : int, Level : int, Coverage: mint))
+Example   : query coverage2(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) count = no_nodes(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip])
+Result    : (bool TRUE)
+
+
+
