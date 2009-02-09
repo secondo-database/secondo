@@ -1040,8 +1040,6 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
       if ( !ili ) return CANCEL;
       else
       {
-        if (!ili->progressInitialized )
-        {
           ili->total = ili->relation->GetNoTuples();
           ili->defaultValue = 50;
           ili->Size = 0;
@@ -1060,8 +1058,6 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
             ili->Size += ili->attrSize[i];
             ili->SizeExt += ili->attrSizeExt[i];
           }
-          ili->progressInitialized = true;
-        }
 
         pRes->CopySizes(ili);
 
