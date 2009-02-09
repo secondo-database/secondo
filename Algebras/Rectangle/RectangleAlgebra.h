@@ -741,7 +741,8 @@ Distance: returns the Euclidean distance between two rectangles
 template <unsigned dim>
 inline double Rectangle<dim>::Distance(const Rectangle<dim>& r) const
 {
-  assert( (StandardSpatialAttribute<dim>::del.isDefined) && r.IsDefined() );
+  assert(StandardSpatialAttribute<dim>::del.isDefined);
+  assert(r.del.isDefined );
   double sum = 0;
 
   for( unsigned i = 0; i < dim; i++ )
