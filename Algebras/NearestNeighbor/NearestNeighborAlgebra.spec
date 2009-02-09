@@ -22,3 +22,5 @@ operator knearest alias KNEAREST pattern _ _ op [_, _]
 operator knearestvector alias KNEARESTVECTOR pattern _ _ op [_, _]
 operator knearestfilter alias KNEARESTFILTER pattern _ _ op [_, _]
 operator bboxes alias bboxes pattern  _ op [_]
+operator coverage alias COVERAGE pattern op(_)
+operator coverage2 alias COVERAGE2 pattern op(_)
