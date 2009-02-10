@@ -91,6 +91,7 @@ variance on a stream.
 #include <sstream>
 #include <stack>
 #include <limits.h>
+#include <set>
 
 //#define TRACE_ON
 #undef TRACE_ON
@@ -3912,87 +3913,112 @@ Type mapping for ~extend~ is
 */
 ListExpr ExtendTypeMap( ListExpr args )
 {
-  ListExpr first, second, rest, listn, errorInfo,
-           lastlistn, first2, second2, firstr, outlist;
-  //bool loopok;
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-  string argstr, argstr2;
+  ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator extend expects a list of length two.");
-
-  first = nl->First(args);
-  second  = nl->Second(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-             (nl->ListLength(nl->Second(first)) == 2) &&
-             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator extend expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator extend gets as first argument '" + argstr + "'." );
-
-  CHECK_COND(!(nl->IsAtom(second)) &&
-             (nl->ListLength(second) > 0),
-    "Operator extend: Second argument list may not be empty or an atom" );
-
-  rest = nl->Second(nl->Second(first));
-  listn = nl->OneElemList(nl->First(rest));
-  lastlistn = listn;
-  rest = nl->Rest(rest);
-  while (!(nl->IsEmpty(rest)))
-  {
-     lastlistn = nl->Append(lastlistn,nl->First(rest));
-     rest = nl->Rest(rest);
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two elements expected");
+    return nl->TypeError();
   }
-  rest = second;
-  while (!(nl->IsEmpty(rest)))
-  {
-    firstr = nl->First(rest);
-    rest = nl->Rest(rest);
-    first2 = nl->First(firstr);
-    second2 = nl->Second(firstr);
 
-    nl->WriteToString(argstr, first2);
-    CHECK_COND( (nl->IsAtom(first2)) &&
-                (nl->AtomType(first2) == SymbolType),
-      "Operator extend: Attribute name '" + argstr +
-      "' is not an atom or not of type SymbolType" );
+  ListExpr stream = nl->First(args);
 
-    nl->WriteToString(argstr, second2);
-    CHECK_COND( (nl->ListLength(second2) == 3) &&
-                (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-                (am->CheckKind("DATA", nl->Third(second2), errorInfo)),
-      "Operator extend expects a mapping function with list structure"
-      " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n. Operator"
-      " extend gets a list '" + argstr + "'.\n" );
-
-    nl->WriteToString(argstr, nl->Second(first));
-    nl->WriteToString(argstr2, second2);
-    CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator extend: Tuple type in first argument '" + argstr +
-      "' is different from the argument tuple type '" + argstr2 +
-      "' in the mapping function" );
-
-    lastlistn = nl->Append(lastlistn,
-        (nl->TwoElemList(first2,nl->Third(second2))));
-
-    CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator extend: Tuple type in first argument '" + argstr +
-      "' is different from the argument tuple type '" + argstr2 +
-      "' in the mapping function" );
-
-    nl->WriteToString(argstr, listn);
-    CHECK_COND( (CompareNames(listn)),
-     "Operator extend: Attribute names in list '"
-     + argstr + "' must be unique." );
+  if(!IsStreamDescription(stream)){
+    ErrorReporter::ReportError("first argument is not a tuple stream");
+    return nl->TypeError();
   }
-  outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
-  return outlist;
+ 
+  ListExpr tuple = nl->Second(stream);
+  
+  ListExpr functions = nl->Second(args);
+  if(nl->ListLength(functions)<1){
+    ErrorReporter::ReportError("at least one function expected");
+    return nl->TypeError();
+  }
+ 
+  // copy attrlist to newattrlist 
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
+  ListExpr lastlistn = newAttrList;
+  attrList = nl->Rest(attrList);
+  while (!(nl->IsEmpty(attrList)))
+  {
+     lastlistn = nl->Append(lastlistn,nl->First(attrList));
+     attrList = nl->Rest(attrList);
+  }
+
+  // reset attrList
+  attrList = nl->Second(nl->Second(stream));
+  ListExpr typeList;
+  
+
+  // check functions 
+  set<string> usedNames;
+
+  while (!(nl->IsEmpty(functions)))
+  {
+    ListExpr function = nl->First(functions);
+    functions = nl->Rest(functions);
+    if(nl->ListLength(function)!=2){
+      ErrorReporter::ReportError("invalid extension found");
+      return nl->TypeError();
+    }    
+    ListExpr name = nl->First(function);
+    ListExpr map  = nl->Second(function);
+
+    if(nl->AtomType(name)!=SymbolType){
+      ErrorReporter::ReportError("invalid attribute name");
+      return nl->TypeError();  
+    }
+
+    string namestr = nl->SymbolValue(name);
+    int pos = FindAttribute(attrList,namestr,typeList);
+    if(pos!=0){
+       ErrorReporter::ReportError("Attribute "+ namestr + 
+                                  " already member of the tuple");
+       return nl->TypeError();
+    }
+
+    if(SecondoSystem::GetCatalog()->IsTypeName(namestr)){
+       ErrorReporter::ReportError("attribute name "+ namestr + 
+                                  " is known as a type");
+       return nl->TypeError();
+    }
+
+    if(nl->ListLength(map)!=3){
+      ErrorReporter::ReportError("invalid function");
+      return nl->TypeError();
+    }
+  
+    if(!nl->IsEqual(nl->First(map),"map")){
+      ErrorReporter::ReportError("invalid function");
+      return nl->TypeError();
+    }
+
+    ListExpr funResType = nl->Third(map);
+    if(!am->CheckKind("DATA",funResType, errorInfo)){
+      ErrorReporter::ReportError("requested attribute " + namestr +
+                                 "not in kind DATA");
+      return nl->TypeError();
+    }
+
+    ListExpr funArgType = nl->Second(map);
+
+    if(!nl->Equal(funArgType, tuple)){
+      ErrorReporter::ReportError("function type different to the tuple type");
+      return nl->TypeError();
+    }
+
+    if(usedNames.find(namestr)!=usedNames.end()){
+      ErrorReporter::ReportError("Name "+ namestr + "occurs twice");
+      return nl->TypeError();
+    }
+    usedNames.insert(namestr);
+    // append attribute
+    lastlistn = nl->Append(lastlistn, (nl->TwoElemList(name, funResType )));
+  }
+  
+  return nl->TwoElemList(nl->SymbolAtom("stream"),
+            nl->TwoElemList(nl->SymbolAtom("tuple"),newAttrList));
 }
 /*
 2.18.2 Value mapping function of operator ~extend~
