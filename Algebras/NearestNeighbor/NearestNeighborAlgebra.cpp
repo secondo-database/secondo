@@ -52,6 +52,11 @@ in a R-Tree. A new datatype is not given but there are some operators:
 1.1 Includes
 
 */
+#include <vector>
+#include <queue>
+#include <iterator>
+#include <iostream>
+#include <ostream>
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -264,6 +269,49 @@ distanceScanTypeMap( ListExpr args )
       nl->TwoElemList(
         nl->SymbolAtom("stream"),
         nl->Second(relDescription));
+}
+
+ListExpr
+distanceScan2TypeMap( ListExpr args )
+{
+   if(nl->ListLength(args)!=5){
+       ErrorReporter::ReportError("Invalid number of arguments");
+       return nl->TypeError();
+   }
+   ListExpr First4 = nl->FourElemList(
+                           nl->First(args),
+                           nl->Second(args),
+                           nl->Third(args),
+                           nl->Fourth(args));
+
+   ListExpr res1 = distanceScanTypeMap(First4);
+   if(nl->Equal(res1,nl->TypeError())){
+      return res1;
+   }
+   ListExpr attrNameList = nl->Fifth(args);
+   if(nl->AtomType(attrNameList)!=SymbolType){
+     ErrorReporter::ReportError("Invalid attribute name "
+                                "given as fifth element");
+     return nl->TypeError();
+   }
+   string attrName = nl->SymbolValue(attrNameList);
+   ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
+   
+   ListExpr rtreetype = nl->Third(nl->First(args));   
+   ListExpr attrType;
+   int j = FindAttribute(attrList, attrName, attrType);
+   if(j==0){
+     ErrorReporter::ReportError("Attribute "+ attrName + " not found");
+     return nl->TypeError();
+   }
+   if(!nl->Equal(attrType,rtreetype)){
+      ErrorReporter::ReportError("different types of attribute and rtree key");
+      return nl->TypeError();
+   }
+   return nl->ThreeElemList(
+               nl->SymbolAtom("APPEND"),
+               nl->OneElemList( nl->IntAtom(j-1)),
+               res1);
 }
 
 /*
@@ -586,6 +634,288 @@ int distanceScanFun (Word* args, Word& result, int message,
   return 0;
 
 }
+
+
+/* alternative implementation using only standard functions of the rtree */
+template <unsigned dim>
+class DSEntry{
+  public:
+
+/*
+~constructors~
+
+*/
+    DSEntry(const R_TreeNode<dim, TupleId>&  node1, 
+            const StandardSpatialAttribute<dim>* qo1, 
+            const int level1):
+       isTuple(false), node( new R_TreeNode<dim, TupleId>(node1)),
+       tupleId(0),level(level1){
+       distance = qo1->Distance(node1.BoundingBox());
+    }
+
+    DSEntry(const TupleId id, 
+            const BBox<dim>& rect, 
+            const StandardSpatialAttribute<dim>* qo, 
+            const int level1):
+       isTuple(true), node(0), tupleId(id), level(level1){
+       distance = qo->Distance(rect);
+    }
+
+    DSEntry(const DSEntry<dim>& src):
+      isTuple(src.isTuple), node(0), tupleId(src.tupleId), 
+      level(src.level), distance(src.distance){
+      if(src.node){
+         node = new R_TreeNode<dim, TupleId>(*src.node);
+      } 
+    }
+       
+/*
+~Assignment operator~
+
+*/
+    DSEntry<dim>& operator=(const DSEntry<dim> src){
+      isTuple = src.isTuple;
+      if(node){
+        delete node;
+      }
+      if(src.node){
+        node = new R_TreeNode<dim, TupleId>(*src.node);
+      } else {
+        node = 0;
+      }
+      tupleId = src.tupleId;
+      level = src.level;
+      distance = src.distance;
+      return *this;
+    }
+
+/*
+~Destructor~
+
+*/
+
+    ~DSEntry(){ delete node;} 
+
+
+/*
+Check for a tuple entry.
+
+*/
+    bool isTupleEntry() const{
+       return isTuple;
+    }
+
+    bool getLevel() const{
+       return level;
+    }
+
+    TupleId getTupleId() const{ 
+     return tupleId;
+    }
+
+    const R_TreeNode<dim,TupleId>* getNode() const {
+       return  node;
+    }
+ 
+    inline int compare(const DSEntry& e) const{
+       if(distance < e.distance){
+          return -1;
+       } 
+       if(distance > e.distance){
+          return 1;
+       }
+       return 0;
+    }
+
+    bool operator<(const DSEntry& e) const{
+      return compare(e) < 0;
+    }
+    bool operator<=(const DSEntry& e) const{
+      return compare(e) <= 0;
+    }
+    bool operator>(const DSEntry& e) const {
+      return compare(e) > 0;
+    }
+    bool operator>=(const DSEntry& e) const {
+      return compare(e) >= 0;
+    }
+    bool operator==(const DSEntry& e) const{
+      return compare(e) == 0;
+    }
+
+    void Print(ostream& o){
+       if(isTuple){
+         o << "Tuple:" << tupleId << ", level = " 
+           << level << "dist = " << distance ;
+       } else {
+         o << "Node : " << "level = " << level <<  "dist = " << distance;
+       }
+    }    
+
+  private:
+    bool isTuple;
+    R_TreeNode<dim, TupleId>* node;
+    TupleId tupleId;
+    int level;
+    double distance;
+};
+
+
+template <unsigned dim>
+class DSLocalInfo{
+public:
+   DSLocalInfo( R_Tree<dim, TupleId>* rtree, Relation* rel, 
+               StandardSpatialAttribute<dim>* queryObj, CcInt* k){
+     // check if all things are defined 
+     if(rel->GetNoTuples()==0 ||
+         !queryObj->IsDefined() ||
+         queryObj->IsEmpty() ||
+         !k->IsDefined()){
+        this->tree=0;
+        this->rel=0;
+        this->queryObj = 0;
+        this->k = 0;
+        this->returned = 0;
+        return;
+      }
+
+      this->tree = rtree;
+      this->rel   = rel;
+      this->queryObj = queryObj;
+      this->k = k->GetIntval();
+      returned = 0;
+      R_TreeNode<dim, TupleId> root = rtree->Root();
+      // check for an emty tree
+      BBox<dim> box = root.BoundingBox();
+      if(!box.IsDefined()){
+        this->tree=0;
+        this->rel=0;
+        this->queryObj = 0;
+        this->k = 0;
+        this->returned = 0;
+        return;
+      }
+      height = tree->Height();
+      minInnerEntries = tree->MinEntries(0);
+      maxInnerEntries = tree->MaxEntries(0);
+      minLeafEntries = tree->MinEntries(height);
+      maxLeafEntries = tree->MaxEntries(height);
+      DSEntry<dim> first(root,queryObj, 0);
+      dsqueue.push(first); 
+   }
+
+   Tuple* nextTuple(){
+     if(!tree){
+       return 0;
+     }
+     if(k>0 && returned==k){
+       return 0;
+     }
+     if(dsqueue.empty()){
+       return 0;
+     }
+
+
+     DSEntry<dim> top = dsqueue.top();
+     // replace top entry of the queue by its sons
+     // until it's a tuple entry
+     while(!top.isTupleEntry()){
+       dsqueue.pop(); // remove top element
+       int level = top.getLevel();
+       // insert all sons
+       int minEntries,maxEntries;
+       level++; // level for the sons is increased
+
+       if(level>=height){
+         minEntries = this->minLeafEntries;
+         maxEntries = this->maxLeafEntries;
+       } else {
+         minEntries = this->minInnerEntries;
+         maxEntries = this->maxInnerEntries;    
+       }
+ 
+       if(!top.getNode()->IsLeaf()){
+         for(int i = 0; i< top.getNode()->EntryCount();i++){
+            R_TreeInternalEntry<dim>* next = top.getNode()->GetInternalEntry(i);
+            SmiRecordId rid = next->pointer;
+            R_TreeNode<dim, TupleId> nextNode(true, minEntries, maxEntries);
+            tree->GetNode(rid, nextNode);
+            DSEntry<dim> nextEntry(nextNode, queryObj, level);
+            dsqueue.push(nextEntry);
+         }
+       } else { // topmost node was a leaf
+         for(int i=0;i<top.getNode()->EntryCount();i++){
+           R_TreeLeafEntry<dim, TupleId>* le = top.getNode()->GetLeafEntry(i);
+           DSEntry<dim> nextEntry(le->info, le->box, queryObj, level);
+           dsqueue.push(nextEntry); 
+         }
+       } 
+       top = dsqueue.top(); 
+     }
+     dsqueue.pop();
+     // now we have a tuple
+     returned++;
+     Tuple* res = rel->GetTuple(top.getTupleId());
+     return res; 
+   }
+private:
+   R_Tree<dim, TupleId>* tree;
+   Relation* rel;
+   StandardSpatialAttribute<dim>* queryObj;
+   int k;
+   int returned; // number of returned tuples
+   int height;
+   int minInnerEntries;
+   int maxInnerEntries;
+   int minLeafEntries;
+   int maxLeafEntries;
+   priority_queue< DSEntry<dim>, 
+                   vector<DSEntry<dim> >, 
+                   greater<DSEntry<dim> > > dsqueue;
+};
+
+
+template <unsigned dim>
+int distanceScan2Fun (Word* args, Word& result, int message, 
+             Word& local, Supplier s){
+  switch(message){
+    case OPEN : {
+       if(local.addr){
+         DSLocalInfo<dim>* li = static_cast<DSLocalInfo<dim>*>(local.addr);
+         delete li;
+       }
+       R_Tree<dim, TupleId>* rtree = 
+                    static_cast<R_Tree<dim, TupleId> *>(args[0].addr);
+       Relation* rel = static_cast<Relation*>(args[1].addr);
+       StandardSpatialAttribute<dim>* queryObj = 
+             static_cast<StandardSpatialAttribute<dim>*>(args[2].addr); 
+       CcInt* k = static_cast<CcInt*>(args[3].addr);
+       local.addr = new DSLocalInfo<dim>(rtree, rel, queryObj, k);
+       return 0;
+    }
+
+    case REQUEST: {
+      if(!local.addr){
+        return CANCEL;
+      } else {
+        DSLocalInfo<dim>* li = static_cast<DSLocalInfo<dim>*>(local.addr);
+        result.addr = li->nextTuple();
+        return result.addr ? YIELD : CANCEL;
+      }
+    } 
+  
+    case CLOSE:{
+      if(local.addr){
+        DSLocalInfo<dim>* li = static_cast<DSLocalInfo<dim>*>(local.addr);
+        delete li;
+        local.addr = 0;
+      }  
+      return 0;
+    }
+    default : assert(false);
+  }
+}
+
 
 /*
 The ~knearest~ operator results a stream of all input tuples which 
@@ -2890,8 +3220,8 @@ This function computes the next result.
         this->level = estack.size()-1;
      }
      // the node to process is a leaf
-		 // build a single MInt from the whole node 
-  	 MInt res(1);
+     // build a single MInt from the whole node 
+     MInt res(1);
      MInt v(1);
      MInt tmp(1);
      for(int i=0;i<coverageEntry.node.EntryCount();i++){
@@ -3027,6 +3357,10 @@ ValueMapping distanceScanMap [] = { distanceScanFun<2>,
                                     distanceScanFun<4>,
                                     distanceScanFun<8>};
 
+ValueMapping distanceScan2Map [] = {distanceScan2Fun<2>,
+                                    distanceScan2Fun<3>,
+                                    distanceScan2Fun<4>,
+                                    distanceScan2Fun<8>};
 
 int rect2periodsFun (Word* args, Word& result, int message, 
              Word& local, Supplier s) {
@@ -3063,6 +3397,24 @@ const string distanceScanSpec  =
       "For T = ti and ti in SPATIAL<d>D, for"
       " d in {2, 3, 4, 8}</text--->"
       "<text>_ _ distancescan [ _, _ ]</text--->"
+      "<text>Uses the given rtree to find k tuples in the"
+      " relation in order of their distance from the "
+      " position T. The nearest tuple first.</text--->"
+      "<text>query kinos_geoData Kinos distancescan "
+      "[[const point value (10539.0 14412.0)], 5] consume; "
+      "where kinos_geoData "
+      "is e.g. created with 'let kinos_geoData = "
+      "Kinos creatertree [geoData]'</text--->"
+      ") )";
+
+const string distanceScan2Spec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
+      " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k  x attrname->"
+      " (stream (tuple ((x1 t1)...(xn tn))))\n"
+      "For T = ti and ti in SPATIAL<d>D, for"
+      " d in {2, 3, 4, 8}</text--->"
+      "<text>_ _ distancescan [ _, _, _ ]</text--->"
       "<text>Uses the given rtree to find k tuples in the"
       " relation in order of their distance from the "
       " position T. The nearest tuple first.</text--->"
@@ -3131,6 +3483,17 @@ Operator distancescan (
          distanceScanMap,       // value mapping
          distanceScanSelect,    // trivial selection function
          distanceScanTypeMap    // type mapping
+);
+
+Operator distancescan2 (
+         "distancescan2",        // name
+      //   distanceScan2Spec,      // specification
+         distanceScanSpec,      // specification
+         4,                     //number of overloaded functions
+         distanceScan2Map,       // value mapping
+         distanceScanSelect,    // trivial selection function
+         distanceScanTypeMap    // type mapping
+      //   distanceScan2TypeMap    // type mapping
 );
 
 Operator knearest (
@@ -3307,6 +3670,7 @@ class NearestNeighborAlgebra : public Algebra
 
 */
     AddOperator( &distancescan );
+    AddOperator( &distancescan2 );
     AddOperator( &knearest );
     AddOperator( &knearestvector );
     AddOperator( &knearestfilter );

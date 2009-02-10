@@ -605,7 +605,9 @@ Tells whether this node is a leaf node.
 Returns entry given by index.
 
 */
-    R_TreeLeafEntry<dim,LeafInfo>* GetLeafEntry(int index);
+    R_TreeLeafEntry<dim,LeafInfo>* GetLeafEntry(const int index) const;
+    R_TreeInternalEntry<dim>* GetInternalEntry(const int index) const;
+
     BBox<dim> BoundingBox() const;
   BBox<dim> BoundingBox(int entryid) const
   {
@@ -775,8 +777,9 @@ R_TreeNode<dim, LeafInfo>::R_TreeNode( const bool leaf,
   entries( new R_TreeEntry<dim>*[ max + 1 ] ),
   modified( true )
 {
-  for( int i = 0; i <= maxEntries; i++ )
+  for( int i = 0; i <= maxEntries; i++ ){
     entries[ i ] = 0;
+  }
 }
 
 template<unsigned dim, class LeafInfo>
@@ -800,8 +803,9 @@ R_TreeNode<dim, LeafInfo>::R_TreeNode( const R_TreeNode<dim, LeafInfo>& node ) :
           new R_TreeInternalEntry<dim>( (
           R_TreeInternalEntry<dim>&)*node.entries[ i ] );
   }
-  for( ; i <= node.maxEntries; i++ )
+  for( ; i <= node.maxEntries; i++ ){
     entries[ i ] = NULL;
+  }
 }
 
 
@@ -812,8 +816,9 @@ R_TreeNode<dim, LeafInfo>::R_TreeNode( const R_TreeNode<dim, LeafInfo>& node ) :
 template<unsigned dim, class LeafInfo>
 R_TreeNode<dim, LeafInfo>::~R_TreeNode()
 {
-  for( int i = 0; i <= count; i++ )
+  for( int i = 0; i <= count; i++ ){
     delete entries[ i ];
+  }
   delete []entries;
 }
 
@@ -841,30 +846,37 @@ template<unsigned dim, class LeafInfo>
 R_TreeNode<dim, LeafInfo>& R_TreeNode<dim, LeafInfo>::operator=
     (const R_TreeNode<dim, LeafInfo>& node )
 {
-  assert( minEntries == node.minEntries && maxEntries == node.maxEntries );
-  assert( count >= 0 && count <= maxEntries + 1 );
+
   // delete old entries
   for(int i=0;i<this->EntryCount(); i++){
      delete entries[i];
      entries[i] = 0;
-  } 
-  // delete[] entries;
-  // entries = new R_TreeEntry<dim>*[src.maxEntries + 1];
-  
-
-  for( int i = 0; i < node.count; i++ )
-  {
-    if( leaf )
-      entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>
-          ( (R_TreeLeafEntry<dim, LeafInfo>&)*node.entries[ i ] );
-    else
-      entries[ i ] = new R_TreeInternalEntry<dim>
-          ( (R_TreeInternalEntry<dim>&)*node.entries[ i ] );
   }
-
+  
   leaf = node.leaf;
   count = node.count;
   modified = true;
+
+  // if there are a change in size, resize the entries array
+  if(maxEntries!=node.maxEntries){ 
+     delete[] entries;
+     entries = new R_TreeEntry<dim>*[node.maxEntries +1]; 
+     for(int i=node.count; i<=node.maxEntries; i++){
+        entries[i] = 0;
+     }
+  }
+  
+
+  for( int i = 0; i < node.count; i++ ) {
+    if( leaf ){
+      entries[ i ] = new R_TreeLeafEntry<dim, LeafInfo>
+          ( (R_TreeLeafEntry<dim, LeafInfo>&)*node.entries[ i ] );
+    } else {
+      entries[ i ] = new R_TreeInternalEntry<dim>
+          ( (R_TreeInternalEntry<dim>&)*node.entries[ i ] );
+    }
+  }
+
 
   return *this;
 }
@@ -3048,10 +3060,19 @@ void R_Tree<dim, LeafInfo>::GetNeighborNode(const R_TreeLeafEntry<dim, LeafInfo>
 
 */
 template <unsigned dim, class LeafInfo>
-R_TreeLeafEntry<dim,LeafInfo>* R_TreeNode<dim,LeafInfo>::GetLeafEntry(int index)
+R_TreeLeafEntry<dim,LeafInfo>* 
+    R_TreeNode<dim,LeafInfo>::GetLeafEntry(const int index) const
 {
   assert(index >= 0 && index <= maxEntries);
   return (R_TreeLeafEntry<dim,LeafInfo>*)entries[index];
+}
+
+template <unsigned dim, class LeafInfo>
+R_TreeInternalEntry<dim>* 
+     R_TreeNode<dim,LeafInfo>::GetInternalEntry(const int index) const
+{
+  assert(index >= 0 && index < count);
+  return (R_TreeInternalEntry<dim>*)entries[index];
 }
 
 template <unsigned dim, class LeafInfo>

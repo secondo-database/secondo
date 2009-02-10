@@ -2112,6 +2112,17 @@ Calculates the distance between 2 upoints as a real value.
 
 */
 
+  virtual double Distance(const Rectangle<3>& rect) const;
+/*
+  Computes the distance between the three dimensional line defined by 
+  that unit and the rectnagle. 
+
+*/
+
+ virtual bool IsEmpty() const{
+    return IsDefined();
+ }
+
   void Length( CcReal& result ) const;
 /*
 Calculates the spatial length of the unit

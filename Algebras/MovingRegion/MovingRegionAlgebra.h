@@ -984,6 +984,25 @@ The assignment operator
 
     URegion& operator= ( const URegion& U);
 
+
+/*
+  Distance function
+
+*/
+   double Distance(const Rectangle<3>& rect) const{
+     cerr << "Warning URegion::Distance(rect) not implemented";
+     if(!IsDefined()){
+        return -1;
+     } else {
+       return BoundingBox().Distance(rect);
+     }
+  
+   }
+
+   virtual bool IsEmpty() const{
+     return IsDefined();
+   }
+
 };
 
 

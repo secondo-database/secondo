@@ -1684,6 +1684,14 @@ void UPoint::Distance( const Point& p, UReal& result ) const
   return;
 }
 
+double UPoint::Distance(const Rectangle<3>& rect) const{
+  if(!IsDefined()){
+     return -1;
+  }
+  cerr << "UPoint::Distance(const Rectangle<3>&) not implemented yet" << endl;
+  return BoundingBox().Distance(rect); 
+}
+
 void UPoint::Distance( const UPoint& up, UReal& result ) const
 {
   assert( IsDefined() && up.IsDefined() );
