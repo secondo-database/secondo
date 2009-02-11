@@ -3312,6 +3312,44 @@ double HalfSegment::Distance( const HalfSegment& hs ) const
               Distance( hs.GetRightPoint() ) );
 }
 
+
+double HalfSegment::Distance(const Rectangle<2>& rect) const{
+
+  
+  if(rect.Contains(lp.BoundingBox()) || rect.Contains(rp.BoundingBox()) ){
+    return 0.0;
+  }
+  // both endpoints are outside the rectangle
+  double x0(rect.MinD(0));
+  double y0(rect.MinD(1));
+  double x1(rect.MaxD(0));
+  double y1(rect.MaxD(1));
+  Point p0(true,x0,y0);
+  Point p1(true,x1,y0);
+  Point p2(true,x1,y1);
+  Point p3(true,x0,y1);
+  HalfSegment hs(true,p0,p1);
+  double dist = this->Distance(hs);
+  if(dist<FACTOR){
+    return dist;
+  }
+  hs.Set(true,p1,p2);
+  dist = MIN( dist, this->Distance(hs));
+  if(dist<FACTOR){
+    return dist;
+  }
+  hs.Set(true,p2,p3);
+  dist = MIN( dist, this->Distance(hs));
+  if(dist<FACTOR){
+    return dist;
+  }
+  hs.Set(true,p3,p0);
+  dist = MIN( dist, this->Distance(hs));
+  return dist;
+}
+
+
+
 bool HalfSegment::RayAbove( const Point& p, double &abovey0 ) const
 {
   const Coord& x = p.GetX(), y = p.GetY(),
@@ -4064,14 +4102,22 @@ double Line::Distance( const Line& l ) const
   return result;
 }
 
-double Line::Distance( const Rectangle<2>& r ) const
-{
-  assert( IsOrdered() && !IsEmpty() && r.IsDefined() );
-  Region rr( r );
-  if ( Intersects(rr) || Inside(rr) ) return 0.0;
-  Line rb;
-  rr.Boundary( &rb );
-  return Distance( rb );
+double Line::Distance( const Rectangle<2>& r ) const {
+  if(!IsDefined() || IsEmpty() || !r.IsDefined()){
+    return -1;
+  }
+  const HalfSegment* hs;
+  double dist = numeric_limits<double>::max();
+  for(int i=0; i < line.Size() && dist>0; i++){
+     line.Get(i,hs);
+     if(hs->IsLeftDomPoint()){
+       double d = hs->Distance(r);
+       if(d<dist){
+          dist = d;
+       }
+     }
+  }
+  return dist;
 }
 
 
@@ -6236,10 +6282,9 @@ ordered( true )
   del.isDefined = cr.del.isDefined;
 }
 
-Region::Region( const Rectangle<2>& r )
+Region::Region( const Rectangle<2>& r ):region(8)
 {
-    SetDefined( IsDefined());
-    Clear();
+    SetDefined( true);
     if(  r.IsDefined() )
     {
       HalfSegment hs;

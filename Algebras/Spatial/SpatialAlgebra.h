@@ -1457,6 +1457,9 @@ Computes the distance from the half segment to the point ~p~.
 Computes the minimum distance from two half segments.
 
 */
+
+    double Distance(const Rectangle<2>& rect) const;
+
     int LogicCompare( const HalfSegment& hs ) const;
 /*
 Compares two half segments according to their attribute values (~attr~).
