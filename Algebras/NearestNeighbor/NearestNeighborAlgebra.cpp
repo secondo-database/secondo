@@ -760,6 +760,15 @@ Check for a tuple entry.
     double distance;
 };
 
+template<unsigned dim>
+class DSEComp {
+public:
+   bool operator()(const DSEntry<dim>* d1, const DSEntry<dim>* d2) const{
+       return d1->compare(*d2) >= 0;
+   }
+};
+
+
 
 template <unsigned dim>
 class DSLocalInfo{
@@ -800,9 +809,18 @@ public:
       maxInnerEntries = tree->MaxEntries(0);
       minLeafEntries = tree->MinEntries(height);
       maxLeafEntries = tree->MaxEntries(height);
-      DSEntry<dim> first(root,queryObj, 0);
+      DSEntry<dim>* first = new DSEntry<dim>(root,queryObj, 0);
       dsqueue.push(first); 
    }
+
+   ~DSLocalInfo(){
+      while(!dsqueue.empty()){
+         DSEntry<dim>* t = dsqueue.top();
+         delete t;
+         dsqueue.pop();
+      }
+    }
+
 
    Tuple* nextTuple(){
      if(!tree){
@@ -816,12 +834,12 @@ public:
      }
 
 
-     DSEntry<dim> top = dsqueue.top();
+     DSEntry<dim>* top = dsqueue.top();
      // replace top entry of the queue by its sons
      // until it's a tuple entry
-     while(!top.isTupleEntry()){
+     while(!top->isTupleEntry()){
        dsqueue.pop(); // remove top element
-       int level = top.getLevel();
+       int level = top->getLevel();
        // insert all sons
        int minEntries,maxEntries;
        level++; // level for the sons is increased
@@ -834,28 +852,33 @@ public:
          maxEntries = this->maxInnerEntries;    
        }
  
-       if(!top.getNode()->IsLeaf()){
-         for(int i = 0; i< top.getNode()->EntryCount();i++){
-            R_TreeInternalEntry<dim>* next = top.getNode()->GetInternalEntry(i);
+       if(!top->getNode()->IsLeaf()){
+         for(int i = 0; i< top->getNode()->EntryCount();i++){
+            R_TreeInternalEntry<dim>* next=top->getNode()->GetInternalEntry(i);
             SmiRecordId rid = next->pointer;
             R_TreeNode<dim, TupleId> nextNode(true, minEntries, maxEntries);
             tree->GetNode(rid, nextNode);
-            DSEntry<dim> nextEntry(nextNode, queryObj, level);
+            DSEntry<dim>* nextEntry = 
+                  new DSEntry<dim>(nextNode, queryObj, level);
             dsqueue.push(nextEntry);
          }
        } else { // topmost node was a leaf
-         for(int i=0;i<top.getNode()->EntryCount();i++){
-           R_TreeLeafEntry<dim, TupleId>* le = top.getNode()->GetLeafEntry(i);
-           DSEntry<dim> nextEntry(le->info, le->box, queryObj, level);
+         for(int i=0;i<top->getNode()->EntryCount();i++){
+           R_TreeLeafEntry<dim, TupleId>* le = 
+                top->getNode()->GetLeafEntry(i);
+           DSEntry<dim>* nextEntry = 
+                new DSEntry<dim>(le->info, le->box, queryObj, level);
            dsqueue.push(nextEntry); 
          }
        } 
+       delete top; // delete the replaced top element
        top = dsqueue.top(); 
      }
      dsqueue.pop();
      // now we have a tuple
      returned++;
-     Tuple* res = rel->GetTuple(top.getTupleId());
+     Tuple* res = rel->GetTuple(top->getTupleId());
+     delete top;
      return res; 
    }
 private:
@@ -869,9 +892,9 @@ private:
    int maxInnerEntries;
    int minLeafEntries;
    int maxLeafEntries;
-   priority_queue< DSEntry<dim>, 
-                   vector<DSEntry<dim> >, 
-                   greater<DSEntry<dim> > > dsqueue;
+   priority_queue< DSEntry<dim>*, 
+                   vector<DSEntry<dim>* >, 
+                   DSEComp<dim>  > dsqueue;
 };
 
 
