@@ -892,6 +892,23 @@ const Rectangle<2> SymbolicRelation::BoundingBox() const
   }
 }
 
+double SymbolicRelation::Distance(const Rectangle<2>& rect) const{
+  cerr << "SymbolicRelation::Distance not implemented yet" 
+       << __FILE__ << "::" << __LINE__ << endl;
+  if(!IsDefined() || !rect.IsDefined()){
+     return -1;
+  } else {
+    return BoundingBox().Distance(rect);
+  }
+}
+
+bool SymbolicRelation::IsEmpty() const{
+  return IsDefined();
+}
+
+
+
+
 /*
 5 Implementation of auxiliary functions and structures
 

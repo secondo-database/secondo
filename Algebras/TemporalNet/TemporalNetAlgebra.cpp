@@ -3952,6 +3952,16 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
       return *res;
     } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
+ 
+ double UGPoint::Distance(const Rectangle<3>& rect) const{
+   cerr << "Distance function not implemented yet";
+   if(!IsDefined() || !rect.IsDefined()){
+     return -1;
+   } else {
+     return BoundingBox().Distance(rect);
+   }
+
+ }
 
   Rectangle<3> UGPoint::BoundingBox(Network* pNetwork)const{
  if (IsDefined()) {

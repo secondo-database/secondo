@@ -738,6 +738,9 @@ as an attribute.
 Returns the minimum bounding box of the point set descibed by the symbolic relation.
 
 */
+    double Distance(const Rectangle<2>& rect) const;
+    bool IsEmpty() const;
+
 
   private:
     DBArray<LinearConstraint> linConstraints;

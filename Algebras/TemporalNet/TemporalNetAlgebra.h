@@ -240,7 +240,12 @@ Functions to be part of relations
       }
   }
 
-  virtual const Rectangle<3> BoundingBox() const;
+
+ virtual const Rectangle<3> BoundingBox() const;
+ 
+ virtual double Distance(const Rectangle<3>& rect) const;
+
+ virtual bool IsEmpty() const{ return IsDefined(); }
 
   Rectangle<3> BoundingBox(Network* pNetwork) const;
 
