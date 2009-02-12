@@ -272,43 +272,104 @@ distanceScanTypeMap( ListExpr args )
 }
 
 ListExpr
-distanceScan2TypeMap( ListExpr args )
-{
-   if(nl->ListLength(args)!=5){
-       ErrorReporter::ReportError("Invalid number of arguments");
-       return nl->TypeError();
-   }
-   ListExpr First4 = nl->FourElemList(
+distanceScan3TypeMap( ListExpr args ) {
+
+   ListExpr res1;
+   ListExpr rtreetype;
+   int j = -1;
+   if(nl->ListLength(args)==5){
+     ListExpr First4 = nl->FourElemList(
                            nl->First(args),
                            nl->Second(args),
                            nl->Third(args),
                            nl->Fourth(args));
 
-   ListExpr res1 = distanceScanTypeMap(First4);
-   if(nl->Equal(res1,nl->TypeError())){
-      return res1;
-   }
-   ListExpr attrNameList = nl->Fifth(args);
-   if(nl->AtomType(attrNameList)!=SymbolType){
-     ErrorReporter::ReportError("Invalid attribute name "
-                                "given as fifth element");
-     return nl->TypeError();
-   }
-   string attrName = nl->SymbolValue(attrNameList);
-   ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
+     res1 = distanceScanTypeMap(First4);
+     if(nl->Equal(res1,nl->TypeError())){
+        return res1;
+     }
+     ListExpr attrNameList = nl->Fifth(args);
+     if(nl->AtomType(attrNameList)!=SymbolType){
+        ErrorReporter::ReportError("Invalid attribute name "
+                                   "given as fifth element");
+        return nl->TypeError();
+     }
+     string attrName = nl->SymbolValue(attrNameList);
+     ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
    
-   ListExpr rtreetype = nl->Third(nl->First(args));   
-   ListExpr attrType;
-   int j = FindAttribute(attrList, attrName, attrType);
-   if(j==0){
-     ErrorReporter::ReportError("Attribute "+ attrName + " not found");
-     return nl->TypeError();
-   }
-   if(!nl->Equal(attrType,rtreetype)){
-      ErrorReporter::ReportError("different types of attribute and rtree key");
+     rtreetype = nl->Third(nl->First(args));   
+     ListExpr attrType;
+     j = FindAttribute(attrList, attrName, attrType);
+     if(j==0){
+       ErrorReporter::ReportError("Attribute "+ attrName + " not found");
+       return nl->TypeError();
+     }
+     if(!nl->Equal(attrType,rtreetype)){
+        ErrorReporter::ReportError("different types of "
+                                   "attribute and rtree key");
+        return nl->TypeError();
+     }
+  } else if(nl->ListLength(args)!=4){
+    ErrorReporter::ReportError("Wronmg numer of parameters");
+    return nl->TypeError();
+  } else { // four parameter, spatial type must be unique
+    res1 = distanceScanTypeMap(args);
+    if(nl->Equal(res1,nl->TypeError())){
       return nl->TypeError();
-   }
-   return nl->ThreeElemList(
+    }
+    ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
+    rtreetype = nl->Third(nl->First(args));
+
+    // search for rtreetype in attrList and check if unique
+    int pos  = 0;
+    while(!nl->IsEmpty(attrList)){
+      pos++;
+      ListExpr first = nl->First(attrList);
+      attrList = nl->Rest(attrList);
+      ListExpr type = nl->Second(first);
+      if(nl->Equal(type,rtreetype)){
+         if(j>0){
+           ErrorReporter::ReportError("Attribute not unique, "
+                                       "please append attribute name ");
+           return nl->TypeError();
+         } else {
+           j = pos;
+         }
+      }  
+    }
+    if(j<0){
+      ErrorReporter::ReportError("tuple stream does not "
+                                 "contain an indexed attribute");
+      return nl->TypeError();
+    } 
+  }
+
+  // check for allowed combinations
+  ListExpr queryTypeList = nl->Third(args);
+  if(nl->AtomType(queryTypeList)!=SymbolType){
+    ErrorReporter::ReportError("Unsupported type as querytype");
+    return nl->TypeError();
+  }  
+  if(nl->AtomType(rtreetype)!=SymbolType){
+    ErrorReporter::ReportError("Unsupported type within the rtree");
+    return nl->TypeError();
+  }
+  string rt = nl->SymbolValue(rtreetype);
+  string qt = nl->SymbolValue(queryTypeList);
+
+  if( (rt != "point") && (rt != "points") &&
+      (rt != "line") && (rt != "region") &&
+      (rt != "rect")){
+    ErrorReporter::ReportError("Unsupported type within the rtree");
+    return nl->TypeError();
+  }
+  if( (qt != "point") && (qt != "points") &&
+      (qt != "line") && (qt != "region") &&
+      (qt != "rect")){
+    ErrorReporter::ReportError("Unsupported type for query object");
+    return nl->TypeError();
+  }
+  return nl->ThreeElemList(
                nl->SymbolAtom("APPEND"),
                nl->OneElemList( nl->IntAtom(j-1)),
                res1);
@@ -462,7 +523,8 @@ knearestFilterTypeMap( ListExpr args )
   ListExpr relAttrList = nl->Second(nl->Second(relDescription));
 
   if(!nl->Equal(rtreeAttrList, relAttrList)){
-    ErrorReporter::ReportError("relation and rtree have bot the same attrlist");
+    ErrorReporter::ReportError("relation and rtree have"
+                               " not the same attrlist");
     return nl->TypeError();
   }
 
@@ -532,6 +594,52 @@ distanceScanSelect( ListExpr args )
 
   return -1; /* should not happen */
 }  
+
+int distanceScan3Select(ListExpr args){
+   // type indxed by the rtree
+   string t1 = nl->SymbolValue(nl->Third(nl->First(args))); 
+   // typr of query object
+   string t2 = nl->SymbolValue(nl->Third(args));
+
+   if(t1=="point"){
+     if(t2=="point") return 0;
+     if(t2=="points") return 1;
+     if(t2=="line") return 2;
+     if(t2=="region") return 3;
+     if(t2=="rect") return 4;
+   }
+   if(t1=="points"){
+     if(t2=="point") return 5;
+     if(t2=="points") return 6;
+     if(t2=="line") return 7;
+     if(t2=="region") return 8;
+     if(t2=="rect") return 9;
+   }
+   if(t1=="line"){
+     if(t2=="point") return 10;
+     if(t2=="points") return 11;
+     if(t2=="line") return 12;
+     if(t2=="region") return 13;
+     if(t2=="rect") return 14;
+   }
+   if(t1=="region"){
+     if(t2=="point") return 15;
+     if(t2=="points") return 16;
+     if(t2=="line") return 17;
+     if(t2=="region") return 18;
+     if(t2=="rect") return 19;
+   }
+   if(t1=="rect"){
+     if(t2=="point") return 20;
+     if(t2=="points") return 21;
+     if(t2=="line") return 22;
+     if(t2=="region") return 23;
+     if(t2=="rect") return 24;
+   }
+   return 0;
+}
+
+
 
 
 /*
@@ -717,7 +825,7 @@ Check for a tuple entry.
        return  node;
     }
  
-    inline int compare(const DSEntry& e) const{
+    inline int compare(const DSEntry<dim>& e) const{
        if(distance < e.distance){
           return -1;
        } 
@@ -726,31 +834,6 @@ Check for a tuple entry.
        }
        return 0;
     }
-
-    bool operator<(const DSEntry& e) const{
-      return compare(e) < 0;
-    }
-    bool operator<=(const DSEntry& e) const{
-      return compare(e) <= 0;
-    }
-    bool operator>(const DSEntry& e) const {
-      return compare(e) > 0;
-    }
-    bool operator>=(const DSEntry& e) const {
-      return compare(e) >= 0;
-    }
-    bool operator==(const DSEntry& e) const{
-      return compare(e) == 0;
-    }
-
-    void Print(ostream& o){
-       if(isTuple){
-         o << "Tuple:" << tupleId << ", level = " 
-           << level << "dist = " << distance ;
-       } else {
-         o << "Node : " << "level = " << level <<  "dist = " << distance;
-       }
-    }    
 
   private:
     bool isTuple;
@@ -939,6 +1022,313 @@ int distanceScan2Fun (Word* args, Word& result, int message,
   }
 }
 
+/*
+~distanceScan 3~
+
+The distance scan 3 works for all 2 dimensional spatial attributes.
+
+*/
+
+template <unsigned dim, class IndexedType, class QueryType, class DistFun>
+class DS3Entry{
+  public:
+
+/*
+~constructors~
+
+*/
+    DS3Entry(const R_TreeNode<dim, TupleId>&  node1, 
+             const QueryType* qo1, 
+             const int level1):
+       isTuple(false), node( new R_TreeNode<dim, TupleId>(node1)),
+       tupleId(0),level(level1){
+       distance = qo1->Distance(node1.BoundingBox());
+    }
+
+    DS3Entry(const TupleId id, 
+            const BBox<dim>& rect, 
+            const QueryType* qo, 
+            const int level1,
+            const Relation* relation,
+            const int attrpos,
+            const DistFun& df):
+       isTuple(true), node(0), tupleId(id), level(level1){
+
+       Tuple* tuple = relation->GetTuple(id);
+       const IndexedType* obj = 
+             static_cast<IndexedType*>(tuple->GetAttribute(attrpos));
+       distance = df(*qo,*obj);
+       tuple->DeleteIfAllowed();
+    }
+
+    DS3Entry(const DS3Entry<dim, IndexedType, QueryType, DistFun>& src):
+      isTuple(src.isTuple), node(0), tupleId(src.tupleId), 
+      level(src.level), distance(src.distance){
+      if(src.node){
+         node = new R_TreeNode<dim, TupleId>(*src.node);
+      } 
+    }
+       
+/*
+~Assignment operator~
+
+*/
+    DS3Entry<dim,IndexedType, QueryType, DistFun>& 
+       operator=(const DS3Entry<dim, IndexedType, QueryType, DistFun> src){
+      isTuple = src.isTuple;
+      if(node){
+        delete node;
+      }
+      if(src.node){
+        node = new R_TreeNode<dim, TupleId>(*src.node);
+      } else {
+        node = 0;
+      }
+      tupleId = src.tupleId;
+      level = src.level;
+      distance = src.distance;
+      return *this;
+    }
+
+/*
+~Destructor~
+
+*/
+
+    ~DS3Entry(){ delete node;} 
+
+
+/*
+Check for a tuple entry.
+
+*/
+    bool isTupleEntry() const{
+       return isTuple;
+    }
+
+    bool getLevel() const{
+       return level;
+    }
+
+    TupleId getTupleId() const{ 
+     return tupleId;
+    }
+
+    const R_TreeNode<dim,TupleId>* getNode() const {
+       return  node;
+    }
+ 
+    inline int compare(const DS3Entry<dim, IndexedType, 
+                                      QueryType, DistFun>& e) const{
+       if(distance < e.distance){
+          return -1;
+       } 
+       if(distance > e.distance){
+          return 1;
+       }
+       return 0;
+    }
+
+  private:
+    bool isTuple;
+    R_TreeNode<dim, TupleId>* node;
+    TupleId tupleId;
+    int level;
+    double distance;
+};
+
+template<unsigned dim, class IndexedType, class QueryType, class DistFun>
+class DSE3Comp {
+public:
+   bool operator()(
+       const DS3Entry<dim, IndexedType, QueryType, DistFun>* d1,
+       const DS3Entry<dim, IndexedType, QueryType, DistFun>* d2) const{
+       return d1->compare(*d2) >= 0;
+   }
+};
+
+template <unsigned dim, class IndexedType, class QueryType, class DistFun>
+class DS3LocalInfo{
+public:
+   DS3LocalInfo( R_Tree<dim, TupleId>* rtree, Relation* rel, 
+                QueryType* queryObj, CcInt* k, int position){
+     // check if all things are defined 
+     this->position = position;
+     if(rel->GetNoTuples()==0 ||
+         !queryObj->IsDefined() ||
+         queryObj->IsEmpty() ||
+         !k->IsDefined()){
+        this->tree=0;
+        this->rel=0;
+        this->queryObj = 0;
+        this->k = 0;
+        this->returned = 0;
+        return;
+      }
+      this->tree = rtree;
+      this->rel   = rel;
+      this->queryObj = queryObj;
+      this->k = k->GetIntval();
+      returned = 0;
+      R_TreeNode<dim, TupleId> root = rtree->Root();
+      // check for an emty tree
+      BBox<dim> box = root.BoundingBox();
+      if(!box.IsDefined()){
+        this->tree=0;
+        this->rel=0;
+        this->queryObj = 0;
+        this->k = 0;
+        this->returned = 0;
+        return;
+      }
+      height = tree->Height();
+      minInnerEntries = tree->MinEntries(0);
+      maxInnerEntries = tree->MaxEntries(0);
+      minLeafEntries = tree->MinEntries(height);
+      maxLeafEntries = tree->MaxEntries(height);
+      DS3Entry<dim, IndexedType, QueryType, DistFun>* first = 
+          new DS3Entry<dim,IndexedType, QueryType, DistFun>(root,queryObj, 0);
+      dsqueue.push(first); 
+   }
+
+   ~DS3LocalInfo(){
+      while(!dsqueue.empty()){
+         DS3Entry<dim, IndexedType, QueryType, DistFun>* t = dsqueue.top();
+         delete t;
+         dsqueue.pop();
+      }
+    }
+
+
+   Tuple* nextTuple(){
+     if(!tree){
+       return 0;
+     }
+     if(k>0 && returned==k){
+       return 0;
+     }
+     if(dsqueue.empty()){
+       return 0;
+     }
+
+
+     DS3Entry<dim, IndexedType, QueryType, DistFun>* top = dsqueue.top();
+     // replace top entry of the queue by its sons
+     // until it's a tuple entry
+     while(!top->isTupleEntry()){
+       dsqueue.pop(); // remove top element
+       int level = top->getLevel();
+       // insert all sons
+       int minEntries,maxEntries;
+       level++; // level for the sons is increased
+
+       if(level>=height){
+         minEntries = this->minLeafEntries;
+         maxEntries = this->maxLeafEntries;
+       } else {
+         minEntries = this->minInnerEntries;
+         maxEntries = this->maxInnerEntries;    
+       }
+ 
+       if(!top->getNode()->IsLeaf()){
+         for(int i = 0; i< top->getNode()->EntryCount();i++){
+            R_TreeInternalEntry<dim>* next=top->getNode()->GetInternalEntry(i);
+            SmiRecordId rid = next->pointer;
+            R_TreeNode<dim, TupleId> nextNode(true, minEntries, maxEntries);
+            tree->GetNode(rid, nextNode);
+            DS3Entry<dim, IndexedType, QueryType, DistFun>* nextEntry = 
+                  new DS3Entry<dim, IndexedType, 
+                               QueryType, DistFun>(nextNode, queryObj, level);
+            dsqueue.push(nextEntry);
+         }
+       } else { // topmost node was a leaf
+         for(int i=0;i<top->getNode()->EntryCount();i++){
+           R_TreeLeafEntry<dim, TupleId>* le = 
+                top->getNode()->GetLeafEntry(i);
+           DS3Entry<dim, IndexedType, QueryType, DistFun>* nextEntry = 
+                new DS3Entry<dim, IndexedType, 
+                             QueryType, DistFun>(le->info, le->box, 
+                               queryObj, level, rel, position, distFun);
+           dsqueue.push(nextEntry); 
+         }
+       } 
+       delete top; // delete the replaced top element
+       top = dsqueue.top(); 
+     }
+     dsqueue.pop();
+     // now we have a tuple
+     returned++;
+     Tuple* res = rel->GetTuple(top->getTupleId());
+     delete top;
+     return res; 
+   }
+private:
+   R_Tree<dim, TupleId>* tree;
+   Relation* rel;
+   int position;
+   const QueryType* queryObj;
+   int k;
+   int returned; // number of returned tuples
+   int height;
+   int minInnerEntries;
+   int maxInnerEntries;
+   int minLeafEntries;
+   int maxLeafEntries;
+   priority_queue< DS3Entry<dim, IndexedType, QueryType, DistFun>*, 
+                   vector<DS3Entry<dim, IndexedType, QueryType, DistFun>* >, 
+                   DSE3Comp<dim, IndexedType, QueryType, DistFun>  > dsqueue;
+   DistFun distFun;
+};
+
+template <unsigned dim, class IndexedType, class QueryType, class DistFun>
+int distanceScan3Fun (Word* args, Word& result, int message, 
+             Word& local, Supplier s){
+  switch(message){
+    case OPEN : {
+       if(local.addr){
+         DS3LocalInfo<dim, IndexedType, QueryType, DistFun>* li = 
+             static_cast<DS3LocalInfo<dim, IndexedType, 
+                         QueryType, DistFun>*>(local.addr);
+         delete li;
+       }
+       R_Tree<dim, TupleId>* rtree = 
+                    static_cast<R_Tree<dim, TupleId> *>(args[0].addr);
+       Relation* rel = static_cast<Relation*>(args[1].addr);
+       QueryType* queryObj = static_cast<QueryType*>(args[2].addr); 
+       CcInt* k = static_cast<CcInt*>(args[3].addr);
+       int index = qp->GetNoSons(s)-1;       
+       int pos = (static_cast<CcInt*>(args[index].addr))->GetIntval();
+       local.addr = new 
+           DS3LocalInfo<dim,IndexedType,QueryType, DistFun>(rtree, 
+                                                rel, queryObj, k, pos);
+       return 0;
+    }
+
+    case REQUEST: {
+      if(!local.addr){
+        return CANCEL;
+      } else {
+        DS3LocalInfo<dim, IndexedType, QueryType, DistFun>* li = 
+              static_cast<DS3LocalInfo<dim, IndexedType, 
+                                       QueryType,DistFun>*>(local.addr);
+        result.addr = li->nextTuple();
+        return result.addr ? YIELD : CANCEL;
+      }
+    } 
+  
+    case CLOSE:{
+      if(local.addr){
+        DS3LocalInfo<dim, IndexedType, QueryType, DistFun>* li = 
+             static_cast<DS3LocalInfo<dim, IndexedType, 
+                                     QueryType, DistFun>*>(local.addr);
+        delete li;
+        local.addr = 0;
+      }  
+      return 0;
+    }
+    default : assert(false);
+  }
+}
 
 /*
 The ~knearest~ operator results a stream of all input tuples which 
@@ -1450,7 +1840,8 @@ unsigned int findActiveElem( vector<ActiveElem> &v, MReal *distance,
     {
       max = pos - 1;
     }
-    else if( dist > storeDistance || (dist == storeDistance && slope1 > slope2))
+    else if( dist > storeDistance || 
+            (dist == storeDistance && slope1 > slope2))
     {
       start = pos + 1;
     }
@@ -3385,6 +3776,57 @@ ValueMapping distanceScan2Map [] = {distanceScan2Fun<2>,
                                     distanceScan2Fun<4>,
                                     distanceScan2Fun<8>};
 
+template<class T1, class T2>
+class DistFun{
+public:
+  inline double operator()(const T2& o1, const T1& o2) const{
+     return o2.Distance(o1);
+  }
+};
+
+template<class T1, class T2>
+class DistFunSymm{
+public:
+  inline double operator()(const T2& o1, const T1& o2) const{
+     return o1.Distance(o2);
+  }
+};
+
+ValueMapping distanceScan3Map [] = {
+   distanceScan3Fun<2, Point, Point, DistFun<Point,Point> >, 
+   distanceScan3Fun<2, Point, Points, DistFunSymm<Point,Points> >,
+   distanceScan3Fun<2, Point, Line, DistFunSymm<Point,Line> >,
+   distanceScan3Fun<2, Point, Region, DistFunSymm<Point,Region> >,
+   distanceScan3Fun<2, Point, Rectangle<2>, DistFun<Point,Rectangle<2> > >,
+       
+   distanceScan3Fun<2, Points, Point, DistFun<Points,Point> >,
+   distanceScan3Fun<2, Points, Points, DistFun<Points,Points> >,
+   distanceScan3Fun<2, Points, Line, DistFunSymm<Points,Line> >,
+   distanceScan3Fun<2, Points, Region, DistFunSymm<Points,Region> >,
+   distanceScan3Fun<2, Points, Rectangle<2>, DistFun<Points,Rectangle<2> > >,
+       
+   distanceScan3Fun<2, Line, Point, DistFun<Line,Point> >,
+   distanceScan3Fun<2, Line, Points, DistFun<Line,Points> >,
+   distanceScan3Fun<2, Line, Line, DistFun<Line,Line> >,
+   distanceScan3Fun<2, Line, Region, DistFunSymm<Line,Region> >,
+   distanceScan3Fun<2, Line, Rectangle<2>, DistFun<Line,Rectangle<2> > >,
+       
+   distanceScan3Fun<2, Region, Point, DistFun<Region,Point> >,
+   distanceScan3Fun<2, Region, Points, DistFun<Region,Points> >,
+   distanceScan3Fun<2, Region, Line, DistFun<Region,Line> >,
+   distanceScan3Fun<2, Region, Region, DistFun<Region,Region> >,
+   distanceScan3Fun<2, Region, Rectangle<2>, DistFun<Region,Rectangle<2> > >,
+       
+   distanceScan3Fun<2, Rectangle<2>,Point,DistFunSymm<Rectangle<2> ,Point> >,
+   distanceScan3Fun<2, Rectangle<2>,Points,DistFunSymm<Rectangle<2> ,Points > >,
+   distanceScan3Fun<2, Rectangle<2>,Line,DistFunSymm<Rectangle<2> ,Line   > >,
+   distanceScan3Fun<2, Rectangle<2>,Region,DistFunSymm<Rectangle<2>,Region > >,
+   distanceScan3Fun<2, Rectangle<2>,Rectangle<2>,
+                    DistFun<Rectangle<2>,Rectangle<2> > >
+
+ };
+
+
 int rect2periodsFun (Word* args, Word& result, int message, 
              Word& local, Supplier s) {
 
@@ -3430,7 +3872,7 @@ const string distanceScanSpec  =
       "Kinos creatertree [geoData]'</text--->"
       ") )";
 
-const string distanceScan2Spec  =
+const string distanceScan3Spec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k  x attrname->"
@@ -3504,19 +3946,26 @@ Operator distancescan (
          distanceScanSpec,      // specification
          4,                     //number of overloaded functions
          distanceScanMap,       // value mapping
-         distanceScanSelect,    // trivial selection function
+         distanceScanSelect,  
          distanceScanTypeMap    // type mapping
 );
 
 Operator distancescan2 (
          "distancescan2",        // name
-      //   distanceScan2Spec,      // specification
          distanceScanSpec,      // specification
          4,                     //number of overloaded functions
          distanceScan2Map,       // value mapping
-         distanceScanSelect,    // trivial selection function
+         distanceScanSelect,    
          distanceScanTypeMap    // type mapping
-      //   distanceScan2TypeMap    // type mapping
+);
+
+Operator distancescan3 (
+         "distancescan3",        // name
+         distanceScan3Spec,      // specification
+         25,                     //number of overloaded functions
+         distanceScan3Map,       // value mapping
+         distanceScan3Select,    
+         distanceScan3TypeMap    // type mapping
 );
 
 Operator knearest (
@@ -3694,6 +4143,7 @@ class NearestNeighborAlgebra : public Algebra
 */
     AddOperator( &distancescan );
     AddOperator( &distancescan2 );
+    AddOperator( &distancescan3 );
     AddOperator( &knearest );
     AddOperator( &knearestvector );
     AddOperator( &knearestfilter );

@@ -4027,6 +4027,7 @@ void Line::Crossings( const Line& l, Points& result ) const
 
 double Line::Distance( const Point& p ) const
 {
+
   assert( IsOrdered() && !IsEmpty() && p.IsDefined() );
 
   const HalfSegment *hs;
@@ -6891,6 +6892,7 @@ double Region::Distance( const Rectangle<2>& r ) const
   return Distance( rr );
 }
 
+
 double Region::Area() const
 {
   assert( IsDefined() );
@@ -6992,6 +6994,53 @@ double Region::Distance( const Region &r ) const
 
   return result;
 }
+
+
+double Region::Distance( const Line &l ) const
+{
+  if(!IsDefined() || IsEmpty() || 
+     !l.IsDefined() || l.IsEmpty()){
+     return -1;
+  }
+
+  double result = numeric_limits<double>::max();
+  const HalfSegment *hs1, *hs2;
+
+  for(int i=0; i<l.Size();i++){
+     l.Get(i,hs2);
+     if(hs2->IsLeftDomPoint()){
+       if(Contains(hs2->GetDomPoint())){
+         return 0.0;
+       }
+       if(Contains(hs2->GetSecPoint())){
+         return 0.0;
+       }
+     }
+  }
+
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hs1 );
+    if( hs1->IsLeftDomPoint() )
+    {
+      for( int j = 0; j < l.Size(); j++ )
+      {
+        l.Get( j, hs2 );
+        if( hs2->IsLeftDomPoint() )
+        {
+          if( hs1->Intersects( *hs2 ) )
+            return 0.0;
+
+          result = MIN( result, hs1->Distance( *hs2 ) );
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+
 
 void Region::Components( vector<Region*>& components )
 {

@@ -3101,6 +3101,8 @@ Assignement operator redefinition.
 
 */
 
+  double Distance(const Line& l) const;
+
   double Distance( const Rectangle<2>& r ) const;
 /*
   6.4.4 Operation ~distance~ (with ~rect2~)
