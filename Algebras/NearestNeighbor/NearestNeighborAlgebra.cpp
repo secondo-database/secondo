@@ -3323,9 +3323,13 @@ inline ListExpr coverageTypeMap(ListExpr args){
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->TwoElemList(
+                nl->ThreeElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("RecId"),
                         nl->SymbolAtom("int")
                     ),
                     nl->TwoElemList(
@@ -3375,20 +3379,23 @@ const string coverage2Spec  =
 
 struct CoverageEntry{
      
-     CoverageEntry(R_TreeNode<3, TupleId>& node1,int nodeid1): 
-                      node(node1), position(0),nodeId(nodeid1){
+     CoverageEntry(R_TreeNode<3, TupleId>& node1,int nodeid1, 
+                    SmiRecordId recId1): 
+                      node(node1), position(0),nodeId(nodeid1),
+                      recId(recId1){
         lastResult = new MInt(1);
      }  
 
      CoverageEntry(const CoverageEntry& src):node(src.node), 
                        position(src.position), lastResult(src.lastResult),
-                       nodeId(src.nodeId){}
+                       nodeId(src.nodeId),recId(src.recId){}
 
      CoverageEntry& operator=(const CoverageEntry& src){
         node = src.node;
         position = src.position;
         lastResult = src.lastResult;
         nodeId = src.nodeId;
+        recId = src.recId;
         return *this;
      }
 
@@ -3403,6 +3410,7 @@ struct CoverageEntry{
      int position;
      MInt* lastResult;
      int nodeId; // id of the corrosponding node
+     SmiRecordId recId;
 };
 
 class CoverageLocalInfo{
@@ -3425,7 +3433,7 @@ Creates a new CoverageLocalInfo object.
      maxLeaf  = tree->MaxEntries(tree->Height());
      nodeidcounter = 0; 
      // get the Root of the tree
-     CoverageEntry entry(tree->Root(),nodeidcounter);
+     CoverageEntry entry(tree->Root(),nodeidcounter,tree->RootRecordId());
      nodeidcounter++;
      estack.push(entry); 
      tupleType = new TupleType(tt);
@@ -3487,7 +3495,9 @@ If the tree is exhausted, NULL is returned.
       Tuple* resTuple = new Tuple(tupleType);
       CcInt* ni = new CcInt(true,currentNodeId);
       resTuple->PutAttribute(0,ni);
-      resTuple->PutAttribute(1,new UInt(*res));  
+      CcInt* ri = new CcInt(true,currentRecId);
+      resTuple->PutAttribute(1,ri);
+      resTuple->PutAttribute(2,new UInt(*res));  
       return resTuple;
    }
 
@@ -3514,6 +3524,7 @@ If the tree is exhausted, NULL is returned.
    MInt* currentResult;          // the currently computed result
    int currentPos;               // position within the current result
    int currentNodeId;            // the current nodeId
+   int currentRecId;            // the current record id of the node
    TupleType* tupleType;         // the tupleType
    int maxInner;                 // maximum number of entries of inner nodes
    int minInner;                 // minimum number of entries of inner nodes
@@ -3583,7 +3594,8 @@ This function computes the next result.
           lastResult->fillUp(0,*completeResult); 
           completeResult->Hat(*currentResult);
           currentPos = 0;
-          currentNodeId = coverageEntry.nodeId; 
+          currentNodeId = coverageEntry.nodeId;
+          currentRecId = coverageEntry.recId; 
           estack.pop(); // remove the finished node from the stack
           if(estack.empty()){ // root node
              coverageEntry.destroyResult(); 
@@ -3623,7 +3635,7 @@ This function computes the next result.
             }
             R_TreeNode<3, TupleId> nextNode(true,min,max);
             tree->GetNode(rid, nextNode);
-            CoverageEntry nextEntry(nextNode,nodeidcounter);
+            CoverageEntry nextEntry(nextNode,nodeidcounter,rid);
             nodeidcounter++;
             coverageEntry = nextEntry; 
             // start debug
@@ -3655,6 +3667,7 @@ This function computes the next result.
      completeResult->Hat(*currentResult);
      currentPos = 0;
      currentNodeId = coverageEntry.nodeId;   
+     currentRecId = coverageEntry.recId;   
      // delete the result pointer from the leaf node
      coverageEntry.destroyResult(); 
      estack.pop();
