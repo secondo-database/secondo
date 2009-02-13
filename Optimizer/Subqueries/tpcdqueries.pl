@@ -556,7 +556,7 @@ tpcd(18, select
 		oorderkey,
 		oorderdate,
 		ototalprice,
-		sum(lquantity)]
+		sum(lquantity) as quant]
 		from
 		[customer,
 		orders,

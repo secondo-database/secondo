@@ -500,15 +500,15 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, not(Pred2)) :-
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   Pred =.. [Op, Attr, CanonicalSubquery],
-  (nestingType(CanonicalSubquery, n) ; nestingType(CanonicalSubquery, j)), 
-  dm(subqueryUnnesting, ['\nNEST-N-J:\n']), 
   CanonicalSubquery =.. [from, Select, Where],
   Select =.. [select, SubAttr],   
- ( is_list(SubAttr) 
+  Where =.. [where | [ CanonicalRels | CanonicalPreds ]] ,  
+  (nestingType(CanonicalSubquery, n) ; nestingType(CanonicalSubquery, j)), 
+  dm(subqueryUnnesting, ['\nNEST-N-J:\n']), 
+  ( is_list(SubAttr) 
    -> nth1(1, SubAttr, CanonicalAttr)
-   ; SubAttr =.. CanonicalAttr 
- ),   
-  Where =.. [where | [ CanonicalRels | CanonicalPreds ]] ,
+   ; SubAttr = CanonicalAttr 
+  ),   
   restrict(Attrs, Rels, Attrs2),
   makeList(Rels, RelsList),
   makeList(CanonicalRels, CanonicalRelsList),
@@ -518,6 +518,27 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   makeList(CanonicalPreds, CanonicalPredsList),
   append([JoinPredicate], CanonicalPredsList, PredList),
   flatten(PredList, Pred2).
+  
+transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
+  Pred =.. [Op, Attr, CanonicalSubquery],
+  CanonicalSubquery =.. [from, Select, Where],
+  Select =.. [select, SubAttr],   
+  Where = CanonicalRels,  
+  (nestingType(CanonicalSubquery, n) ; nestingType(CanonicalSubquery, j)), 
+  dm(subqueryUnnesting, ['\nNEST-N-J:\n']), 
+  ( is_list(SubAttr) 
+   -> nth1(1, SubAttr, CanonicalAttr)
+   ; SubAttr =.. CanonicalAttr 
+  ),   
+  restrict(Attrs, Rels, Attrs2),
+  makeList(Rels, RelsList),
+  makeList(CanonicalRels, CanonicalRelsList),
+  append(RelsList, CanonicalRelsList, Rels2),
+  subqueryToJoinOp(Op, NewOp),
+  JoinPredicate =.. [NewOp, Attr, CanonicalAttr],
+  makeList(CanonicalPreds, CanonicalPredsList),
+  append([JoinPredicate], CanonicalPredsList, PredList),
+  flatten(PredList, Pred2).  
   
 /*
 
@@ -959,17 +980,12 @@ newTempRel(Var) :-
 
 newTempRel(Var) :-
   assert(relDefined(1)),
+  dropTempRels,
   Var = 'txxrel1'.
   
-/* newTempRel(Query, TempRelName) :-
-  ground(TempRelName), !,  
-  write('\nTempRelName: '), write(TempRelName), nl,
-  assert(temporaryRelation(TempRelName, Query)), 
-  createTempRel(TempRelName).  */
-   
 newTempRel(Query, TempRelName) :-
   newTempRel(TempRelName),
-  write('\nTempRelName: '), write(TempRelName), nl,
+  dm(subqueries, ['\nTempRelName: ', TempRelName, '\n']),
   assert(temporaryRelation(TempRelName, Query)), 
   createTempRel(TempRelName).
 %   true.
@@ -977,11 +993,8 @@ newTempRel(Query, TempRelName) :-
 createTempRel(TempRelName) :-
   ground(TempRelName),
   temporaryRelation(TempRelName, RelQuery),
-  write('\nRelQuery: '), write(RelQuery),
+  dm(subqueries, ['\nRelQuery: ', RelQuery]),
   let(TempRelName, RelQuery),
-%  atom(RelQuery),  
-%  concat_atom(['let ', TempRelName, ' = ', RelQuery], '', RelQuery2),
-%  secondo(RelQuery2),
   retractall(temporaryRelation(TempRelName, _, _)),
   assert(temporaryRelation(TempRelName)). 
 
@@ -990,13 +1003,22 @@ deleteTempRels :-
   catch(deleteTempRels(L), _, true),
   retractall(temporaryRelation(_)).
   
-deleteTempRels([]).
+deleteTempRels([]) :- 
+  retractall(relDefined(_)), 
+  retractall(temporaryRelation(_)).
 
 deleteTempRels([ Rel | Rest ]) :-
-  write('\nDeleting temporary Relation '), write(Rel), write(' ...'),
+  dm(subqueries, ['\nDeleting temporary Relation ', Rel, ' ...']),
   drop_relation(Rel),
-  deleteTempRels(Rest).
+  deleteTempRels(Rest).  
   
+dropTempRels :-
+  findall(Rel, ( databaseName(DB),
+                 storedRel(DB, Rel, _), 
+				 atom_concat('txxrel', No, Rel),
+				 catch(atom_number(No, Number), _, fail)
+				), RelList),
+  deleteTempRels(RelList).
   
 /*
 
