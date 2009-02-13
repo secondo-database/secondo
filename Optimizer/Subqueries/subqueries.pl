@@ -980,7 +980,7 @@ newTempRel(Var) :-
 
 newTempRel(Var) :-
   assert(relDefined(1)),
-  dropTempRels,
+%  dropTempRels,
   Var = 'txxrel1'.
   
 newTempRel(Query, TempRelName) :-
