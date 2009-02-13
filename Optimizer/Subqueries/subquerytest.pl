@@ -44,6 +44,7 @@ testSubqueries6 :-
 testSubqueries7 :-
   transformNestedPredicate(pnum, Attrs2, parts, Rels2, qoh= (select count(s:shipdate)from supply as s where[pnum=s:pnum, s:shipdate<19800101]), Preds2).
   
+ 
 ttt :-
 secondo('query SEC2CACHEINFO feed count', A),
 write(A), nl,
@@ -75,6 +76,7 @@ quan_s, shipdate_s]  sort rdup mergeunion sortby[pnum asc] groupby[pnum; Var3: g
 
 query <Rel1> feed extend[<NewJoinCol>: <correctly typed undef>] filter [fun(var1: TUPLE) <Rel2> feed filter [not(.<JoinAttr> = attr(var1, <JoinAttr>))] count = <Rel2> feed count] consume
 
+select[n1:nname as supp_nation, n2:nname as cust_nation, year_of(lshipdate)as lyear, lextendedprice* (1-ldiscount)as volume]from[supplier, lineitem, orders, customer, nation as n1, nation as n2]where[ssuppkey=lsuppkey, oorderkey=lorderkey, ccustkey=ocustkey, snationkey=n1:nnationkey, cnationkey=n2:nnationkey, (n1:nname=[70, 82, 65, 78, 67, 69]and n2:nname=[71, 69, 82, 77, 65, 78, 89])or (n1:nname=[71, 69, 82, 77, 65, 78, 89]and n2:nname=[70, 82, 65, 78, 67, 69]), between(instant2real(lshipdate), instant2real(instant([49, 57, 57, 53, 45, 48, 49, 45, 48, 49])), instant2real(instant([49, 57, 57, 54, 45, 49, 50, 45, 51, 49])))]
 */
 
 

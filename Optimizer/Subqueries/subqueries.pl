@@ -88,24 +88,35 @@ This predicate is true, if the term is a query formulated in the sql syntax defi
 isQuery(Query) :-
   catch(callLookup(Query, _), error_SQL(optimizer_lookupPred1(Term, Term):unknownError), true).
   
+isQuery(Query) :-
+  catch(callLookup(Query, _), error_SQL(optimizer_lookupPred(Term, Term):malformedExpression), true).
+  
   
 /*
 
 Predicates to recognize nested queries.
 
 */
+
+isNestedQuery(Query orderby _) :- isNestedQuery(Query).
+isNestedQuery(Query groupby _) :- isNestedQuery(Query).
+isNestedQuery(Query first _) :- isNestedQuery(Query).
+isNestedQuery(Query last _) :- isNestedQuery(Query).
   
-isNestedQuery(select AttrList from _ where _) :-
+isNestedQuery(select _ from _ where PredList) :-
+  makeList(PredList, PredList2),
+  not(sublist(isSubqueryPred, PredList2, [])).  
+  
+isNestedQuery(select AttrList from RelList where _) :-
+  isNestedQuery(select AttrList from RelList).
+  
+isNestedQuery(select AttrList from _) :-
   makeList(AttrList, AttrList2),
   not(sublist(isSubqueryAttr, AttrList2, [])).
   
-isNestedQuery(select _ from RelList where _) :-
+isNestedQuery(select _ from RelList) :-
   makeList(RelList, RelList2),
-  not(sublist(isQuery, RelList2, [])).  
-
-isNestedQuery(select _ from _ where PredList) :-
-  makeList(PredList, PredList2),
-  not(sublist(isSubqueryPred, PredList2, [])).
+  not(sublist(isQuery, RelList2, [])).   
   
 /*
 
@@ -124,6 +135,13 @@ isSubqueryAttr(Attr) :-
 Predicates to recognize subqueries in predicate lists and predicates.
 
 */
+
+isSubqueryPred(not(Pred)) :-
+  isSubqueryPred(Pred).
+  
+isSubqueryPred(Pred) :-
+  Pred =.. [not, Attr, in(Query)],
+  isSubqueryPred(Attr in(Query)).
 
 isSubqueryPred(Pred) :- 
   compound(Pred),
@@ -157,6 +175,7 @@ isQuantifier(some).
 :- op(700, xfx, <>). 
 :- op(700, xfx, =+). % outer join operator
 :- op(940, xfx, in). % defined with different priority for macros
+:- op(941, xfx, not).
 :- op(799,  fy, left).
 :- op(799,  fy, outerjoin).
 :- op(799,  fy, right).
@@ -170,6 +189,23 @@ to its canonical form.
 
 subqueryToJoinOp(in, =).
 subqueryToJoinOp(Op, Op).
+
+anyToAggr(<, max).
+anyToAggr(<=, max).
+anyToAggr(>, min).
+anyToAggr(>=, min).
+
+anyToAggr(<, min).
+anyToAggr(<=, min).
+anyToAggr(>, max).
+anyToAggr(>=, max).
+
+inToOr(Attr, List, Pred1) :-
+  List =.. [(,), Elem, Rest],
+  inToOr(Attr, Rest, Pred),
+  Pred1 =.. [or, Attr = Elem, Pred].
+  
+inToOr(Attr, Elem, Attr = Elem).
 
 
 /*
@@ -228,29 +264,49 @@ rewriteQueryForSubqueryProcessing(QueryIn, QueryIn) :-
   
 rewriteQueryForSubqueryProcessing(NestedQuery, CanonicalQuery) :-
     transform(NestedQuery, CanonicalQuery),
-    dm(rewriteQueryForSubqueryProcessing,['\nREWRITING: Subqueries\n\tIn:  ',NestedQuery,'\n\tOut: ',
+    dm(subqueryUnnesting,['\nREWRITING: Subqueries\n\tIn:  ',NestedQuery,'\n\tOut: ',
                     CanonicalQuery,'\n\n']). 
 					
-/*
-
-Default handling for queries without subqueries.
-
-*/
-
-transform(Query, Query) :-
-  not(isNestedQuery(Query)), !.
-  
+ 
   
 /*
 
 Nested queries are transformed to their canonical form in the attribute list, the relation list and the predicate list.
 
 */
+
+transform(Query orderby Order, Query2 orderby Order) :-
+  transform(Query, Query2).
+  
+transform(Query groupby Group, Query2 groupby Group) :-
+  transform(Query, Query2).
+
+transform(Query first N, Query2 first N) :-
+  transform(Query, Query2).
+
+transform(Query last N, Query2 last N) :-
+  transform(Query, Query2).  
   
 transform(select Attrs from Rels where Preds, select CanonicalAttrs from CanonicalRels where CanonicalPreds) :-
-  transformNestedAttributes(Rels, Rels2, Attrs, Attrs2, Preds, Preds2),
-  transformNestedRelations(Rels2, Rels3, Attrs2, Attrs3, Preds2, Preds3),
-  transformNestedPredicates(Attrs3, CanonicalAttrs, Rels3, CanonicalRels, Preds3, CanonicalPreds).
+  transform(select Attrs from Rels, select Attrs2 from Rels2),
+  transformNestedPredicates(Attrs2, CanonicalAttrs, Rels2, CanonicalRels, Preds, CanonicalPredList),
+  flatten(CanonicalPredList, CanonicalPreds).
+  
+transform(select Attrs from Rels, select CanonicalAttrs from CanonicalRels) :-
+  transformNestedAttributes(Attrs, Attrs2, Rels, Rels2),
+  transformNestedRelations(Attrs2, CanonicalAttrs, Rels2, CanonicalRels).  
+  
+/*
+
+Default handling for queries without subqueries.
+
+*/
+
+transform(Query, Query).
+
+/* :-
+  write_canonical(Query), nl,
+  not(isNestedQuery(Query)), !, write('No nesting').  */
 
   
 /*
@@ -260,15 +316,15 @@ it can be evaluated independently of it and replaced by its result.
 
 */
   
-transformNestedAttributes([], [], Rels, Rels, Preds, Preds).
+transformNestedAttributes([], [], Rels, Rels).
   
-transformNestedAttributes(Attr, Attr2, Rels, Rels2, Preds, Preds2) :-
+transformNestedAttributes(Attr, Attr2, Rels, Rels2) :-
   not(is_list(Attr)),
-  transformNestedAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2).
+  transformNestedAttribute(Attr, Attr2, Rels, Rels2).
   
-transformNestedAttributes([ Attr | Rest ], [ Attr2 | Rest2 ], Rels, Rels2, Preds, Preds2) :-
-  transformNestedAttribute(Attr, Attr2, Rels, Rels2, Preds, Preds2),
-  transformNestedAttributes(Rest, Rest2, Rels, Rels2, Preds, Preds2).
+transformNestedAttributes([ Attr | Rest ], [ Attr2 | Rest2 ], Rels, Rels2) :-
+  transformNestedAttribute(Attr, Attr2, Rels, Rels2),
+  transformNestedAttributes(Rest, Rest2, Rels, Rels2).
 
 /*
 
@@ -277,7 +333,7 @@ for constants in the attribute list, aliasing has to occurr.
 
 */  
   
-transformNestedAttribute(Subquery as Variable, Value, Rels, Rels, Preds, Preds) :- 
+transformNestedAttribute(Subquery as Variable, Value, Rels, Rels) :- 
   nestingType(Subquery, a),
   optimize(Subquery, SecondoQuery, _),
   atom(SecondoQuery),
@@ -287,7 +343,7 @@ transformNestedAttribute(Subquery as Variable, Value, Rels, Rels, Preds, Preds) 
   atom_concat(Result, ' as ', Temp),
   atom_concat(Temp, Variable, Value).  
   
-transformNestedAttribute(Attr, Attr, Rels, Rels, Preds, Preds) :- 
+transformNestedAttribute(Attr, Attr, Rels, Rels) :- 
   not(isQuery(Attr)).  
   
   
@@ -297,18 +353,27 @@ Handling of nested queries in the from clause. No transformation is applied at t
 
 */
 
-transformNestedRelations(Attrs, Attrs, [], [], Preds, Preds).  
+transformNestedRelations(Attrs, Attrs, [], []).  
   
-transformNestedRelations(Attrs, Attrs2, Rel, Rel2, Preds, Preds2) :-
+transformNestedRelations(Attrs, Attrs2, Rel, Rel2) :-
   not(is_list(Rel)),
-  transformNestedRelation(Attrs, Attrs2, Rel, Rel2, Preds, Preds2).
+  transformNestedRelation(Attrs, Attrs2, Rel, Rel2).
   
-transformNestedRelations(Attrs, Attrs2, [ Rel | Rest ], [ Rel2 | Rest2], Preds, Preds2) :-
-  transformNestedRelation(Attrs, Attrs2, Rel, Rel2, Preds, Preds2),
-  transformNestedRelations(Attrs, Attrs2, Rest, Rest2, Preds, Preds2).
+transformNestedRelations(Attrs, Attrs2, [ Rel | Rest ], [ Rel2 | Rest2]) :-
+  transformNestedRelation(Attrs, Attrs2, Rel, Rel2),
+  transformNestedRelations(Attrs, Attrs2, Rest, Rest2).
   
-transformNestedRelation(Attrs, Attrs, Rel, Rel, Preds, Preds) :- 
-  not(isQuery(Rel)).
+ 
+transformNestedRelation(Attrs, Attrs, Query, NewRel) :-  
+  isQuery(Query),
+  newTempRel(Query, NewRel).
+  
+transformNestedRelation(Attrs, Attrs, (Query) as _, NewRel) :-
+  isQuery(Query),
+  newTempRel(Query, NewRel).  
+  
+transformNestedRelation(Attrs, Attrs, Rel, Rel) :- 
+  not(isQuery(Rel)).  
 
 
 /*
@@ -335,18 +400,63 @@ transformNestedPredicates(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   not(is_list(Pred)),
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2).
   
-transformNestedPredicates(Attrs, Attrs2, Rels, Rels2, [ Pred | Rest ], [ Pred2 | Rest2 ]) :-
+transformNestedPredicates(Attrs, Attrs2, Rels, Rels3, [ Pred | Rest ], [ Pred2 | Rest2 ]) :-
+  dm(subqueryUnnesting, ['\nPred: ', Pred]),
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2),
-  transformNestedPredicates(Attrs, Attrs2, Rels, Rels2, Rest, Rest2).
+  dm(subqueryUnnesting, ['\nPred2: ', Pred2]),
+  transformNestedPredicates(Attrs, Attrs2, Rels2, Rels3, Rest, Rest2).
+  
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr in List, Pred) :-
+  compound(List),
+  not(isQuery(List)),
+  inToOr(Attr, List, Pred).
+  
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr in Elem, Attr = Elem) :-
+  atomic(Elem).
   
 transformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred) :- 
   not(isSubqueryPred(Pred)).
+  
+/* The SQL predicates EXISTS, NOT EXISTS, ALL and ANY are transformed to a canonical form, which can be further unnested */
+
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, exists(select SubAttr from RelsWhere), TransformedQuery) :-
+  transformNestedPredicate(Attrs, Attrs, Rels, Rels, 0 < (select count(SubAttr) from RelsWhere), TransformedQuery),
+  write_canonical(TransformedQuery).
+  
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, not(exists(select SubAttr from RelsWhere)), TransformedQuery) :-
+  transformNestedPredicate(Attrs, Attrs, Rels, Rels, 0 = (select count(SubAttr) from RelsWhere), TransformedQuery),
+  write_canonical(TransformedQuery).
+  
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, TransformedQuery) :-
+  Pred =.. [Op, Attr, any(select SubAttr from RelsWhere)],
+  anyToAggr(Op, Aggr),
+  AggrExpression =.. [Aggr, SubAttr],
+  NewPred =.. [Op, Attr, select AggrExpression from RelsWhere],
+  transformNestedPredicate(Attrs, Attrs, Rels, Rels, NewPred, TransformedQuery),
+  write_canonical(TransformedQuery).  
+  
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr = any(Query), TransformedQuery) :-
+  transformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr in(Query), TransformedQuery),
+  write_canonical(TransformedQuery).
+  
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr <> any(Query), TransformedQuery) :-
+  transformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr not in(Query), TransformedQuery),
+  write_canonical(TransformedQuery).  
+  
+transformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, TransformedQuery) :-
+  Pred =.. [Op, Attr, all(select SubAttr from RelsWhere)],
+  allToAggr(Op, Aggr),
+  AggrExpression =.. [Aggr, SubAttr],
+  NewPred =.. [Op, Attr, select AggrExpression from RelsWhere],
+  transformNestedPredicate(Attrs, Attrs, Rels, Rels, NewPred, TransformedQuery),
+  write_canonical(TransformedQuery).    
+
   
 /*
 
 The subquery in this predicate does not contain a join predicate that references the relation of the outer query block
 and has an aggregation function associated with the column name. As the subquery yields a scalar result, which is independent
-of the outer query, the subquery will be evaluated and replaced by its result.
+of the outer query, the subqeery will be evaluated and replaced by its result.
 
 */
   
@@ -355,10 +465,9 @@ transformNestedPredicate(Attrs, Attrs, Rels, Rels, SubqueryPred, SubqueryPred2) 
   evaluateSubquery(Subquery, Result), 
   SubqueryPred2 =.. [Op, Attr, Result].  
   
-evaluateSubquery(Subquery, Result) :-
-  transform(Subquery, CanonicalSubquery),
-  nestingType(CanonicalSubquery, a),
-  optimize(CanonicalSubquery, SecondoQuery, _),
+evaluateSubquery(CanonicalSubquery, Result) :-
+  nestingType(CanonicalSubquery, a), 
+  optimize(CanonicalSubquery, SecondoQuery, _), 
   atom(SecondoQuery),
   atom_concat('query ', SecondoQuery, QueryText),
   secondo(QueryText, [_, Res]),
@@ -384,23 +493,31 @@ and does not have an aggregation function associated with the column name. Imple
 (4) Retain the select-clause of the outer query
 
 */
+
+transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, not(Pred2)) :-
+  Pred =.. [not, Attr, in(Query)],
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Attr in(Query), Pred2).
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
-  Pred =.. [Op, Attr, Subquery],
-  transform(Subquery, CanonicalSubquery),
-  (nestingType(CanonicalSubquery, n) ; nestingType(CanonicalSubquery, j)),
-  write('\nNEST-N-J'),
+  Pred =.. [Op, Attr, CanonicalSubquery],
+  (nestingType(CanonicalSubquery, n) ; nestingType(CanonicalSubquery, j)), 
+  dm(subqueryUnnesting, ['\nNEST-N-J:\n']), 
   CanonicalSubquery =.. [from, Select, Where],
-  Select =.. [select, CanonicalAttr],    
-  ( Where =.. [where | [ CanonicalRels | CanonicalPreds ]] ;
-    ( Where =.. CanonicalRels, CanonicalPreds = [] )),
+  Select =.. [select, SubAttr],   
+ ( is_list(SubAttr) 
+   -> nth1(1, SubAttr, CanonicalAttr)
+   ; SubAttr =.. CanonicalAttr 
+ ),   
+  Where =.. [where | [ CanonicalRels | CanonicalPreds ]] ,
   restrict(Attrs, Rels, Attrs2),
   makeList(Rels, RelsList),
   makeList(CanonicalRels, CanonicalRelsList),
   append(RelsList, CanonicalRelsList, Rels2),
   subqueryToJoinOp(Op, NewOp),
   JoinPredicate =.. [NewOp, Attr, CanonicalAttr],
-  append([JoinPredicate], CanonicalPreds, Pred2).
+  makeList(CanonicalPreds, CanonicalPredsList),
+  append([JoinPredicate], CanonicalPredsList, PredList),
+  flatten(PredList, Pred2).
   
 /*
 
@@ -414,7 +531,7 @@ applying the aggregation function on the column
 (2) Transform the subquery by changing references to the aggregation column to this new column in the temporary relation. The
 resulting query is of type-J, since the aggregation function has been replaced.
 
-*/
+* /
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   fail,
@@ -445,6 +562,7 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   write('\nPred2: '), write(TempPred),
   createTempRel(TempRel),
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, TempPred, Pred2).  
+*/  
   
 /* 
 
@@ -474,10 +592,10 @@ select pnum from parts where qoh = (select count(s:shipdate) from supply as s wh
 */
 
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
-  fail,
+  fail,  
   Pred =.. [Op, Attr, Subquery],
   transform(Subquery, CanonicalSubquery),
-  nestingType(CanonicalSubquery, ja),
+  nestingType(CanonicalSubquery, ja), !,
   write('\nNEST-JA2'),  
   CanonicalSubquery =.. [from, Select, Where],
   Select =.. [select, AggregatedAttr],
@@ -557,8 +675,9 @@ maybe replace temporary relations with streams
 */
 
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
-  Pred =.. [Op, Attr, Subquery],
-  transform(Subquery, CanonicalSubquery),
+  fail,
+  Pred =.. [Op, Attr, CanonicalSubquery],
+%  transform(Subquery, CanonicalSubquery),
   nestingType(CanonicalSubquery, ja),
   write('\nNEST-JA2'),  
   CanonicalSubquery =.. [from, Select, Where],
@@ -572,7 +691,7 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   tempRel1(Rels, JoinPred, SimpleOuterPreds, TempRel1, JoinAttr),
   tempRel2(CanonicalRels, SimpleInnerPreds, TempRel2),
   tempRel3(AggregatedAttr, JoinAttr, TempRel1, TempRel2, JoinPred, TempRel3, GroupVar),
-  !, fail,
+%  !, fail,
   NewPred =.. [Op, Attr, GroupVar],
   append(JoinPred, [NewPred], PredNext),
   Attrs = AttrsNext,
@@ -820,7 +939,7 @@ Store temporary relation for creation if the optimizer decides on an execution p
 :- at_halt(deleteTempRels).
 
 :- dynamic temporaryRelation/1,
-   temporaryRelation/3.
+   temporaryRelation/2.
    
 /*
 
@@ -836,27 +955,33 @@ newTempRel(Var) :-
   N1 is N + 1,
   retract(relDefined(N)),
   assert(relDefined(N1)),
-  atom_concat('temprel', N1, Var).
+  atom_concat('txxrel', N1, Var).
 
 newTempRel(Var) :-
   assert(relDefined(1)),
-  Var = 'temprel1'.
+  Var = 'txxrel1'.
+  
+/* newTempRel(Query, TempRelName) :-
+  ground(TempRelName), !,  
+  write('\nTempRelName: '), write(TempRelName), nl,
+  assert(temporaryRelation(TempRelName, Query)), 
+  createTempRel(TempRelName).  */
    
 newTempRel(Query, TempRelName) :-
-  optimize(Query, Plan, Cost),
   newTempRel(TempRelName),
   write('\nTempRelName: '), write(TempRelName), nl,
-  assert(temporaryRelation(TempRelName, Plan, Cost)), 
+  assert(temporaryRelation(TempRelName, Query)), 
   createTempRel(TempRelName).
 %   true.
    
 createTempRel(TempRelName) :-
   ground(TempRelName),
-  temporaryRelation(TempRelName, RelQuery, _),
+  temporaryRelation(TempRelName, RelQuery),
   write('\nRelQuery: '), write(RelQuery),
-  atom(RelQuery),  
-  concat_atom(['let ', TempRelName, ' = ', RelQuery], '', RelQuery2),
-  secondo(RelQuery2),
+  let(TempRelName, RelQuery),
+%  atom(RelQuery),  
+%  concat_atom(['let ', TempRelName, ' = ', RelQuery], '', RelQuery2),
+%  secondo(RelQuery2),
   retractall(temporaryRelation(TempRelName, _, _)),
   assert(temporaryRelation(TempRelName)). 
 
@@ -869,8 +994,7 @@ deleteTempRels([]).
 
 deleteTempRels([ Rel | Rest ]) :-
   write('\nDeleting temporary Relation '), write(Rel), write(' ...'),
-  concat_atom(['delete ', Rel], '', DeleteQuery),
-  catch(secondo(DeleteQuery), sql_ERROR(_), true),
+  drop_relation(Rel),
   deleteTempRels(Rest).
   
   
@@ -882,34 +1006,15 @@ type-A nesting, uncorrelated subquery with scalar result
 
 nestingType(Subquery, a) :-
   aggrQuery(Subquery, _, _, _),
-  catch(callLookup(Subquery, _), error_SQL(optimizer_lookupPred1(Term, Term):unknownError), fail),
+  catch(callLookup(Subquery, _), _, fail),
   write('\nnesting Type-A'),
   !.
-  
-/*
 
-type-N nesting, uncorrelated subquery with row result
-
-*/
-
-nestingType(Subquery, n) :-
-  not(aggrQuery(Subquery , _, _, _)),
-  catch(callLookup(Subquery, _), error_SQL(optimizer_lookupPred1(Term, Term):unknownError), fail), 
-  write('\nnesting Type-N'),
+nestingType(Subquery, a) :-
+  userDefAggrQuery(Subquery, _, _, _, _),
+  catch(callLookup(Subquery, _), _, fail),
+  write('\nnesting Type-A'),
   !.
-  
-  
-/*
-
-type-J nesting, correlated subquery without aggregation function, row result
-
-*/
-
-nestingType(Subquery, j) :-
-  not(aggrQuery(Subquery, _, _, _)), 
-  write('\nnesting Type-J'),
-  !.
-  
   
 /*
 
@@ -921,6 +1026,39 @@ nestingType(Subquery, ja) :-
   aggrQuery(Subquery, _, _, _),
   write('\nnesting Type-JA'),
   !.
+
+nestingType(Subquery, ja) :-
+  userDefAggrQuery(Subquery, _, _, _, _),
+  write('\nnesting Type-JA'),
+  !.  
+  
+/*
+
+type-N nesting, uncorrelated subquery with row result
+
+*/
+
+nestingType(Subquery, n) :-
+  not(userDefAggrQuery(Subquery , _, _, _, _)),
+  not(aggrQuery(Subquery, _, _, _)),
+  catch(callLookup(Subquery, _), _, fail), 
+  write('\nnesting Type-N'),
+  !.  
+  
+/*
+
+type-J nesting, correlated subquery without aggregation function, row result
+
+*/
+
+nestingType(Subquery, j) :-
+  not(userDefAggrQuery(Subquery, _, _, _, _)), 
+  not(aggrQuery(Subquery, _, _, _)),
+  write('\nnesting Type-J'),
+  !.
+  
+nestingType(_, unknown) :-
+  throw(error_SQL(subqueries_nestingType:unknownNesting)). 
   
 :- multifile (=>)/2.
 
@@ -1333,3 +1471,15 @@ partition_([H|T], Pred, Incl, Excl) :-
 	).
 
 :- [subquerytest].
+:- [tpcdqueries].
+
+/*
+isNestedQuery(select[supp_nation, cust_nation, lyear, sum(volume)as revenue]
+from (
+select[n1:nname as supp_nation, n2:nname as cust_nation, year_of(lshipdate)as lyear, lextendedprice* (1-ldiscount)as volume]
+from[supplier, lineitem, orders, customer, nation as n1, nation as n2]
+where[ssuppkey=lsuppkey, oorderkey=lorderkey, ccustkey=ocustkey, snationkey=n1:nnationkey, cnationkey=n2:nnationkey, (n1:nname=[70, 82, 65, 78, 67, 69]and n2:nname=[71, 69, 82, 77, 65, 78, 89])or (n1:nname=[71, 69, 82, 77, 65, 78, 89]and n2:nname=[70, 82, 65, 78, 67, 69]), between(instant2real(lshipdate), instant2real(instant([49, 57, 57, 53, 45, 48, 49, 45, 48, 49])), instant2real(instant([49,57, 57, 54, 45, 49, 50, 45, 51, 49])))])
+as shipping groupby[supp_nation, cust_nation, lyear]orderby[supp_nation, cust_nation, lyear])
+
+transform(select[sum(lextendedprice/7.0)as avg_yearly]from[lineitem, part]where[ppartkey=lpartkey, pbrand=[66, 114, 97, 110, 100, 35, 50, 51], pcontainer=[77,69, 68, 32, 66, 79, 88], lquantity< (select[0.2*avg(lquantity)]from[lineitem]where[lpartkey=ppartkey])], A)
+*/

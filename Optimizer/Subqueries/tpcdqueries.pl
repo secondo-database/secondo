@@ -1,4 +1,4 @@
-tpc(d, No) :- tpcd(No, Query), sql(Query).
+tpc(d, No) :- tpcd(No, Query), setupQuery(No), sql(Query), teardownQuery(No).
 
 tpc(d, No, Query) :- tpcd(No, Query).
 
@@ -18,7 +18,7 @@ executeQueries(_, []).
 executeQueries(Benchmark, [[No, Query] | Rest]) :-
   executeQuery(Benchmark, No),
   executeQueries(Benchmark, Rest).
-   
+  
 executeBenchmark(Benchmark) :- 
     retractall(benchmarkResult(_, _)),
 	findall([No, Query], tpc(Benchmark, No, Query), Queries),
@@ -26,6 +26,25 @@ executeBenchmark(Benchmark) :-
 	findall(Result, benchmarkResult(_, Result), L),
 	nl,
     write_list(L).
+	
+setupQuery(15) :-
+    let(revenue, select
+		[lsuppkey as supplier_no,
+		sum(lextendedprice * (1 - ldiscount)) as total_revenue]
+		from
+		lineitem
+		where
+		[lshipdate >= instant("1996-01-01"),
+		lshipdate < theInstant(year_of(instant("1996-01-01")), month_of(instant("1996-01-01")) + 3, day_of(instant("1996-01-01")))]
+		groupby
+		[lsuppkey]).
+		
+setupQuery(_).
+		
+teardownQuery(15) :-
+  drop_relation(revenue).	
+  
+teardownQuery(_).
 
 tpcd(1, select
 			[lreturnflag,
@@ -77,18 +96,18 @@ tpcd(2, select
 % substitution parameter		
 		 rname = "EUROPE",
 		 pssupplycost = (
-		select
-		min(pssupplycost)
-		from
-		[partsupp, supplier,
-		nation, region]
-		where
-		[ppartkey = pspartkey,
-		 ssuppkey = pssuppkey,
-		 snationkey = nnationkey,
-		 nregionkey = rregionkey,
-% substitution parameter		
-		 rname = "EUROPE"]
+			select
+			min(pssupplycost)
+			from
+			[partsupp, supplier,
+			nation, region]
+			where
+			[ppartkey = pspartkey,
+			 ssuppkey = pssuppkey,
+			 snationkey = nnationkey,
+			 nregionkey = rregionkey,
+	% substitution parameter		
+			 rname = "EUROPE"]
 		)]
 
 		orderby[
@@ -175,7 +194,7 @@ tpcd(5, select
 		[revenue desc]).
 		
 tpcd(6, select
-		[sum(lextendedprice*ldiscount) as revenue]
+%		[sum(lextendedprice*ldiscount) as revenue]
 		from
 		lineitem
 		where
@@ -391,8 +410,8 @@ tpcd(12, select
 		where
 		[oorderkey = lorderkey,
 % substitution parameter
-%		lshipmode in ("MAIL", "SHIP"),
-        lshipmode = "MAIL" or lshipmode = "SHIP",
+		lshipmode in ("MAIL", "SHIP"),
+%        lshipmode = "MAIL" or lshipmode = "SHIP",
 		lcommitdate < lreceiptdate,
 		lshipdate < lcommitdate,
 % substitution parameter		
@@ -460,15 +479,15 @@ select
 		sname,
 		saddress,
 		sphone,
-		totalrevenue]
+		total_revenue]
 		from
 		[supplier,
 		revenue/*[STREAMID]*/]
 		where
-		[ssuppkey = supplierno
-		and totalrevenue = (
+		[ssuppkey = supplier_no,
+		total_revenue = (
 			select
-			max(totalrevenue)
+			max(total_revenue)
 			from
 			revenue/*[STREAMID]*/
 		)]
@@ -491,8 +510,8 @@ tpcd(16, select
 % substitution parameter		
 		not(ptype starts "MEDIUM POLISHED"),
 % substitution parameters		
-		psize in (49, 14, 23, 45, 19, 3, 36, 9)
-		and not(pssuppkey in(
+		psize in (49, 14, 23, 45, 19, 3, 36, 9),
+		pssuppkey not(in(
 			select
 			ssuppkey
 			from
@@ -513,7 +532,8 @@ tpcd(16, select
 		psize]).
 		
 tpcd(17, select
-		[sum(lextendedprice) / 7.0 as avg_yearly]
+%		[sum(lextendedprice / 7.0) as avg_yearly]
+		[sum(lextendedprice / 7.0)]
 		from
 		[lineitem,
 		part]
@@ -547,10 +567,10 @@ tpcd(18, select
 			lorderkey
 			from
 			lineitem
-			groupby
-			[lorderkey /*having
+			/* groupby
+			[lorderkey having
 % substitution parameter			
-			sum(lquantity) > 300*/]
+			sum(lquantity) > 300] */
 		),
 		ccustkey = ocustkey,
 		oorderkey = lorderkey]
@@ -582,8 +602,8 @@ tpcd(19, select
 % substitution parameter										
 										and (pbrand = "Brand#12")
 									)									
-%									and (pcontainer in ( "SM CASE", "SM BOX", "SM PACK", "SM PKG"))
-									and (((pcontainer = "SM CASE" or pcontainer =  "SM BOX") or pcontainer =  "SM PACK") or pcontainer = "SM PKG")
+									and (pcontainer in ( "SM CASE", "SM BOX", "SM PACK", "SM PKG"))
+%									and (((pcontainer = "SM CASE" or pcontainer =  "SM BOX") or pcontainer =  "SM PACK") or pcontainer = "SM PKG")
 								)
 % substitution parameter								
 								and (lquantity >= 1)
@@ -593,8 +613,8 @@ tpcd(19, select
 						)
 						and (between(psize, 1, 5))
 					)
-%					and (lshipmode in ("AIR", "AIR REG"))
-					and (lshipmode = "AIR" or lshipmode =  "AIR REG")
+					and (lshipmode in ("AIR", "AIR REG"))
+%					and (lshipmode = "AIR" or lshipmode =  "AIR REG")
 				)
 			and (lshipinstruct = "DELIVER IN PERSON")
 			)
@@ -612,8 +632,8 @@ tpcd(19, select
 % substitution parameter										
 										and (pbrand = "Brand#23")
 									)
-%									and (pcontainer in ("MED BAG", "MED BOX", "MED PKG", "MED PACK"))
-									and (((pcontainer = "MED BAG" or pcontainer = "MED BOX") or pcontainer = "MED PKG") or pcontainer = "MED PACK")
+									and (pcontainer in ("MED BAG", "MED BOX", "MED PKG", "MED PACK"))
+%									and (((pcontainer = "MED BAG" or pcontainer = "MED BOX") or pcontainer = "MED PKG") or pcontainer = "MED PACK")
 								)
 % substitution parameter								
 								and (lquantity >= 10)
@@ -623,8 +643,8 @@ tpcd(19, select
 						)
 						and (between(psize, 1, 10))
 					)
-%					and (lshipmode in ("AIR", "AIR REG"))
-					and (lshipmode = "AIR" or lshipmode = "AIR REG")
+					and (lshipmode in ("AIR", "AIR REG"))
+%					and (lshipmode = "AIR" or lshipmode = "AIR REG")
 				)
 			and (lshipinstruct = "DELIVER IN PERSON")
 			)		
@@ -642,8 +662,8 @@ tpcd(19, select
 % substitution parameter										
 										and (pbrand = "Brand#34")
 									)
-%									and (pcontainer in ( "LG CASE", "LG BOX", "LG PACK", "LG PKG"))
-									and (((pcontainer = "LG CASE" or pcontainer = "LG BOX") or pcontainer = "LG PACK") or pcontainer = "LG PKG")
+									and (pcontainer in ( "LG CASE", "LG BOX", "LG PACK", "LG PKG"))
+%									and (((pcontainer = "LG CASE" or pcontainer = "LG BOX") or pcontainer = "LG PACK") or pcontainer = "LG PKG")
 								)
 % substitution parameter								
 								and (lquantity >= 20)
@@ -653,8 +673,8 @@ tpcd(19, select
 						)
 						and (between(psize, 1, 15))
 					)
-%					and (lshipmode in ("AIR", "AIR REG"))
-					and (lshipmode = "AIR" or lshipmode = "AIR REG")
+					and (lshipmode in ("AIR", "AIR REG"))
+%					and (lshipmode = "AIR" or lshipmode = "AIR REG")
 				)
 			and (lshipinstruct = "DELIVER IN PERSON")
 			)			
@@ -723,7 +743,7 @@ tpcd(21, select
 			lineitem as l2
 			where
 			[l2:lorderkey = l1:lorderkey,
-			l2:lsuppkey <> l1:lsuppkey]
+			not(l2:lsuppkey = l1:lsuppkey)]
 		),
 		not(exists(
 			select
@@ -732,7 +752,7 @@ tpcd(21, select
 			lineitem as l3
 			where
 			[l3:lorderkey = l1:lorderkey,
-			l3:lsuppkey <> l1:lsuppkey,
+			not(l3:lsuppkey = l1:lsuppkey),
 			l3:lreceiptdate > l3:lcommitdate]
 		)),
 		snationkey = nnationkey,
@@ -756,19 +776,19 @@ tpcd(22, select
 			from
 			customer
 			where
-			substr(cphone, 1, 2) in
+			[substr(cphone, 1, 2) in
 % substitution parameters			
-			(13,35,31,23,29,30,18),
+			("13","35","31","23","29","30","18"),
 			cacctbal > (
 				select
 				avg(cacctbal)
 				from
 				customer
 				where
-				cacctbal > 0.00
-				and substr(cphone, 1, 2) in
+				[cacctbal > 0.00,
+				substr(cphone, 1, 2) in
 % substitution parameter				
-				(13,35,31,23,29,30,18)
+				("13","35","31","23","29","30","18")]
 			),
 			not( exists(
 				select
@@ -777,7 +797,7 @@ tpcd(22, select
 				orders
 				where
 				ocustkey = ccustkey
-			))
+			))]
 		) as custsale
 		groupby
 		[cntrycode]
