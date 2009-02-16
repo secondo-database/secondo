@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -26,3 +26,4 @@ operator knearestfilter alias KNEARESTFILTER pattern _ _ op [_, _]
 operator bboxes alias bboxes pattern  _ op [_]
 operator coverage alias COVERAGE pattern op(_)
 operator coverage2 alias COVERAGE2 pattern op(_)
+operator newknearestfilter alias NEWKNEARESTFILTER pattern _ _ _ _ op [_,_]

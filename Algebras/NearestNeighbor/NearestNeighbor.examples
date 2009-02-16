@@ -44,7 +44,7 @@ Example  : query UTO_tree UTOrdered knearestfilter[train1, 5] UTrip knearest[tra
 Result   : file_platform
 
 
-Operator : rect2periods 
+Operator : rect2periods
 Number   : 1
 Signature: rect3 -> periods
 Example  : query rect2periods(box1000)
@@ -53,13 +53,13 @@ Result   : (periods ( ("2003-11-20-07:32:50" "2003-11-20-07:33" TRUE TRUE)))
 Operator  : bboxes
 Number    : 1
 Signature : stream(periods) x mpoint -> stream(rect)
-Example   :query UnitTrains feed  projectextend[; D : deftime(.UTrip)] transformstream bboxes[train6] count = UnitTrains count 
+Example   :query UnitTrains feed  projectextend[; D : deftime(.UTrip)] transformstream bboxes[train6] count = UnitTrains count
 Result    : (bool TRUE)
 
 Operator  : coverage
 Number    : 1
 Signature : rtree3 -> stream( tuple(NodeId : int) (Coverage uint))
-Example   : query coverage(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) count >847 
+Example   : query coverage(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) count >847
 Result    : (bool TRUE)
 
 Operator  : coverage2
@@ -69,4 +69,10 @@ Example   : query coverage2(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTri
 Result    : (bool TRUE)
 
 
+Operator : newknearestfilter
+Number   : 6
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))
+((btree (tuple ((x1 t1)...(xn tn))) ti)(rel2 (tuple ((x1 t1)...(xn tn))))  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query UTOrdered_RTree UTOrdered btreeOnNumbers numbers newknearestfilter[train1, 5] count
+Result   : file_platform
 
