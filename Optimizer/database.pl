@@ -3923,8 +3923,8 @@ drop_relationInt(ExtRelName) :-
 
 drop_relation(DCrel) :-
   dm(dbhandling,['\nTry: drop_relation(',DCrel,').']),
-  ground(DCRel),
-  atomic(DCRel),
+  ground(DCrel),
+  atomic(DCrel),
   relation(DCrel,_),
   dcName2externalName(DCrel,ExtRelName),
   drop_relationInt(ExtRelName), !.
