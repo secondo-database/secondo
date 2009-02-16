@@ -531,7 +531,7 @@ knearestFilterTypeMap( ListExpr args )
   return
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
-      relAttrList);
+      nl->Second(nl->Second(args)));
 }
 
 
