@@ -2057,48 +2057,6 @@ bool checkK(NNTree<ActiveElem> &t, unsigned int k, IT &it)
   return false;
 }
 
-/*
-fills the eventQueue with the start- and the endpoints of
-all units in the timeinterval of the mpoint.
-All other tupels are deleted
-
-*/
-void fillEventQueue( Word *args, priority_queue<EventElem> &evq,
-                    Instant &startTime, Instant &endTime)
-{
-  const MPoint *mp = (MPoint*)args[2].addr;
-  int mpos = 0;
-  int j = ((CcInt*)args[4].addr)->GetIntval() - 1;
-  qp->Open(args[0].addr);
-  Word currentTupleWord;
-  qp->Request( args[0].addr, currentTupleWord );
-  while( qp->Received( args[0].addr ) )
-  {
-    //fill eventqueue with start- and endpoints
-    Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
-    const UPoint* upointAttr
-        = (const UPoint*)currentTuple->GetAttribute(j);
-    Instant t1 = upointAttr->timeInterval.start;
-    Instant t2 = upointAttr->timeInterval.end;
-    if( t1 >= endTime || t2 <= startTime)
-    {
-      currentTuple->DeleteIfAllowed();
-    }
-    else
-    {
-      MReal *mr = new MReal(0);
-      GetDistance( mp, upointAttr, mpos, mr);
-      Instant t3 = t1 >= startTime ? t1 : startTime;
-      Instant t4 = t2 <= endTime ? t2 : endTime;
-      evq.push( EventElem(E_LEFT, t3,
-          currentTuple, upointAttr, mr) );
-      evq.push( EventElem(E_RIGHT, t4,
-        currentTuple, upointAttr, mr) );
-    }
-    qp->Request( args[0].addr, currentTupleWord );
-  }
-}
-
 
 /*
   To use the plane sweep algrithmus a priority queue for the events and
