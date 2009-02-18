@@ -2975,7 +2975,7 @@ end(end1),
 lc( lc1 ),
 rc( rc1 )
 {
-  assert(IsValid());
+//  assert(IsValid());
 }
 
 template <class Alpha>
