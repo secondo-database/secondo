@@ -2960,25 +2960,22 @@ private:
 */
 template <class Alpha>
 Interval<Alpha>::Interval( const Interval<Alpha>& interval ):
-start(),
-end(),
+start(interval.start),
+end(interval.end),
 lc( interval.lc ),
 rc( interval.rc )
 {
-  this->start.CopyFrom( &interval.start );
-  this->end.CopyFrom( &interval.end );
 }
 
 template <class Alpha>
-Interval<Alpha>::Interval( const Alpha& start, const Alpha& end,
-                           const bool lc, const bool rc ):
-start(),
-end(),
-lc( lc ),
-rc( rc )
+Interval<Alpha>::Interval( const Alpha& start1, const Alpha& end1,
+                           const bool lc1, const bool rc1 ):
+start(start1),
+end(end1),
+lc( lc1 ),
+rc( rc1 )
 {
-  this->start.CopyFrom( &start );
-  this->end.CopyFrom( &end );
+  assert(IsValid());
 }
 
 template <class Alpha>
@@ -2993,15 +2990,13 @@ void Interval<Alpha>::CopyFrom( const Interval<Alpha>& i )
 template <class Alpha>
 bool Interval<Alpha>::IsValid() const
 {
-  if( !start.IsDefined() || !end.IsDefined() )
+  if( !start.IsDefined() || !end.IsDefined() ){ 
     return false;
+  }
 
   int cmp = start.Compare( &end );
   if( cmp < 0 ) // start < end
   {
-    if( start.Adjacent( &end ) )
-      return lc || rc;
-    else
       return true;
   }
   else if( cmp == 0 ) // start == end
@@ -3101,7 +3096,8 @@ bool Interval<Alpha>::Inside( const Interval<Alpha>& i ) const
 template <class Alpha>
 bool Interval<Alpha>::Contains( const Alpha& a ) const
 {
-  assert( IsValid() && a.IsDefined() );
+  assert(this->IsValid());
+  assert(a.IsDefined());
 
   return ( ( start.Compare( &a ) < 0 ||
              ( start.Compare( &a ) == 0 && lc ) ) &&
@@ -3134,7 +3130,8 @@ bool Interval<Alpha>::Contains( const Interval<Alpha>& i ) const
 template <class Alpha>
 bool Interval<Alpha>::Intersects( const Interval<Alpha>& i ) const
 {
-  assert( IsValid() && i.IsValid() );
+  assert( this->IsValid());
+  assert( i.IsValid() );
 
   return !(
             ( ( (start.Compare( &i.start ) < 0) ||
