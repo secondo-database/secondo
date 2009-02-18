@@ -2137,6 +2137,7 @@ public:
      
 
      Word current(Address(0));
+
      qp->Request(stream.addr,current);
 
      if(!qp->Received(stream.addr)){ // stream is empty
@@ -2787,7 +2788,7 @@ this is the right function if the eventqueue is a vector
 */
 void checkIntersections(EventType type, Instant &time, unsigned int pos,
                       vector< ActiveElem > &v,
-                      priority_queue<EventElem> &evq, Instant &endTime)
+                      KNearestQueue &evq, Instant &endTime)
 {
   switch ( type ){
     case E_LEFT:
@@ -2866,12 +2867,15 @@ a vector to save the active segments is needed.
 */
 struct KnearestLocalInfoVector
 {
+  KnearestLocalInfoVector(Word& stream, int attrPos,
+                    const MPoint* mp, int k1, bool scanFlag1):
+     k(k1),scanFlag(scanFlag1), eventQueue(stream, qp, attrPos, mp){} 
   unsigned int k;
   //int max;
   bool scanFlag;
   Instant startTime, endTime;
   vector< ActiveElem > activeLine;
-  priority_queue<EventElem> eventQueue;
+  KNearestQueue eventQueue;
 };
 
 /*
@@ -2893,36 +2897,46 @@ int knearestFunVector (Word* args, Word& result, int message,
 {
 
   KnearestLocalInfoVector *localInfo;
-  const MPoint *mp = (MPoint*)args[2].addr;
 
   switch (message)
   {
     case OPEN :
     {
-      localInfo = new KnearestLocalInfoVector;
-      localInfo->activeLine.reserve(100);
-      localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
-      localInfo->scanFlag = true;
-      local = SetWord(localInfo);
-      if (mp->IsEmpty())
-      {
+      qp->Open(args[0].addr);
+      CcInt* CcK = static_cast<CcInt*>(args[3].addr);
+      if(!CcK->IsDefined()){
+        local.setAddr(0);
+        return 0;
+      }      
+      int k = CcK->GetIntval();
+      int attrPos = ((CcInt*)args[4].addr)->GetIntval() - 1;
+
+      MPoint* mp = static_cast<MPoint*>(args[2].addr);
+      if(!mp->IsDefined() || mp->IsEmpty()){
+        local.setAddr(0);
         return 0;
       }
+
+      Word stream(args[0]);
+      localInfo = new KnearestLocalInfoVector(stream, attrPos, mp, k, true);
+      localInfo->activeLine.reserve(100);
+      local = SetWord(localInfo);
       const UPoint *up1, *up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
       localInfo->startTime = up1->timeInterval.start;
       localInfo->endTime = up2->timeInterval.end;
-
-      fillEventQueue( args, localInfo->eventQueue, localInfo->startTime,
-            localInfo->endTime);
       return 0;
     }
 
     case REQUEST :
     {
-     int attrNr = ((CcInt*)args[4].addr)->GetIntval() - 1;
-     localInfo = (KnearestLocalInfoVector*)local.addr;
+      int attrNr = ((CcInt*)args[4].addr)->GetIntval() - 1;
+      localInfo = (KnearestLocalInfoVector*)local.addr;
+      if(!localInfo){
+        return CANCEL;
+      }
+
       if ( !localInfo->scanFlag )
       {
         return CANCEL;
@@ -3141,7 +3155,10 @@ int knearestFunVector (Word* args, Word& result, int message,
     {
       qp->Close(args[0].addr);
       localInfo = (KnearestLocalInfoVector*)local.addr;
-      delete localInfo;
+      if(localInfo){
+         delete localInfo;
+         local.setAddr(0);
+      }
       return 0;
     }
   }
