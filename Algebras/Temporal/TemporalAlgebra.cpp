@@ -1254,7 +1254,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
     UReal ur2(true);
     UReal diff(true);
     Interval<Instant>
-        iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
+        iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), true, true);
 
     timeInterval.Intersection(other.timeInterval, iv);
     AtInterval(iv, ur1);
@@ -2102,7 +2102,7 @@ void MInt::Hat(MInt& mint)
     defstart = false;
    }
 
-   for(i;i < nocomponents;i++){
+   for(;i < nocomponents;i++){
       Get(i,upi);
       if(!uintstack.empty()){
         cur.Set(upi->constValue.GetValue());
@@ -2111,7 +2111,7 @@ void MInt::Hat(MInt& mint)
             uintstack.push(*upi);
         else{
           int lastvalue = -1;
-          double sumtime = 0;
+          //double sumtime = 0;
           while(!uintstack.empty() && cur.GetIntval() < top.GetIntval()){
             UInt topelem = uintstack.top();
             lastvalue = topelem.constValue.GetValue();
