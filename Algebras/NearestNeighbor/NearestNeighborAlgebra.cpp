@@ -1343,6 +1343,7 @@ from one to next function call
 the type EventElem and ActiveElem are defined in NearestNeighborAlgebra.h
 
 */
+class KNearestQueue;
 Instant ActiveElem::currtime(instanttype);
 typedef vector< ActiveElem >::iterator ITV;
 typedef NNTree< ActiveElem >::iter IT;
@@ -1386,22 +1387,31 @@ by time. A lower time cannot come
 void GetDistance( const MPoint* mp, const UPoint* up,
                    int &mpos, MReal *erg)
 {
-  const UPoint *upn;
+  
   Instant time1 = up->timeInterval.start;
   Instant time2 = up->timeInterval.end;
+  
   int noCo = mp->GetNoComponents();
-  for (int ii=mpos; ii < noCo; ++ii)
+  const UPoint *upn;
+
+  for (int ii=mpos; ii < noCo; ii++)
   {
-    mp->Get( ii, upn);
-    if( time1 < upn->timeInterval.end
-      || (time1 == upn->timeInterval.end && upn->timeInterval.rc))
-    {
+    mp->Get( ii, upn);  // get the current Unit  
+
+    if( time1 < upn->timeInterval.end ||   
+        (time1 == upn->timeInterval.end && upn->timeInterval.rc))
+    { // interval of mp intersects the interval of up
       mpos = ii;
       UReal firstu(true);
+      
+      // take the bigger starting point
       Instant start = up->timeInterval.start < upn->timeInterval.start
         ? upn->timeInterval.start : up->timeInterval.start;
+      
+      // take the smaller end
       Instant end = up->timeInterval.end < upn->timeInterval.end
         ? up->timeInterval.end : upn->timeInterval.end;
+      
       bool lc = up->timeInterval.lc;
       if( lc && (start > up->timeInterval.start || (up->timeInterval.start
         == upn->timeInterval.start && !up->timeInterval.lc)))
@@ -1416,6 +1426,7 @@ void GetDistance( const MPoint* mp, const UPoint* up,
       }
 
       Interval<Instant> iv(start, end, lc, rc);
+
       Coord x1, y1, x2, y2;
       GetPosition( up, start, x1, y1);
       GetPosition( up, end, x2, y2);
@@ -2088,6 +2099,214 @@ void fillEventQueue( Word *args, priority_queue<EventElem> &evq,
   }
 }
 
+
+/*
+  To use the plane sweep algrithmus a priority queue for the events and
+  a NNTree to save the active segments is needed.
+
+*/
+
+class KNearestQueue{
+public:
+/*
+~Constructor~
+
+ consumes the stream until the first unit is found with an interval 
+ which intersects the definition time of the moving point
+
+*/
+
+   KNearestQueue(Word& src, QueryProcessor* qp1, 
+                 int pos1, const MPoint* mpoint1): 
+        stream(src),qp(qp1),pos(pos1),mpoint(mpoint1), mpos(0){
+
+     if(!mpoint->IsDefined() || mpoint->IsEmpty()){
+       lastTuple = 0;
+       return;
+     }
+     const UPoint* tmp;
+     mpoint->Get(0,tmp);
+     Instant tmpstart = tmp->timeInterval.start;
+     bool lc = tmp->timeInterval.lc;
+     mpoint->Get(mpoint->GetNoComponents()-1, tmp);
+     Instant tmpend = tmp->timeInterval.end;
+     bool rc = tmp->timeInterval.rc;
+
+     iv = Interval<Instant>(tmpstart, tmpend,lc,rc);
+     
+     
+
+     Word current(Address(0));
+     qp->Request(stream.addr,current);
+
+     if(!qp->Received(stream.addr)){ // stream is empty
+       lastTuple = 0;
+       return;
+     }
+
+     bool finished = false;
+     while(!finished){
+        lastTuple = static_cast<Tuple*>(current.addr);
+        UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
+        tupleStart = up->timeInterval.start;
+        Instant tupleEnd(up->timeInterval.end);
+        if(up->timeInterval.end <= iv.start){
+          lastTuple->DeleteIfAllowed();
+          lastTuple = 0;
+          qp->Request(stream.addr,current);
+          finished =  !qp->Received(stream.addr);
+         } else {
+           finished = true;
+           if(up->timeInterval.start > iv.end){
+              lastTuple->DeleteIfAllowed();
+              lastTuple = 0;
+           }
+         } 
+     }
+     if(lastTuple){
+       tmp = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
+       tupleStart = tmp->timeInterval.start;
+     }
+ }
+
+
+/*
+~Destructor~
+
+
+*/
+   ~KNearestQueue(){
+      if(lastTuple){
+         lastTuple->DeleteIfAllowed();
+         lastTuple = 0;
+      }
+   } 
+
+
+   inline bool empty() const{
+     if(lastTuple){
+       return false;
+     }
+     return queue.empty();
+   }
+
+   inline void push(EventElem e){
+      queue.push(e);
+   }
+
+   EventElem top(){
+     next();
+     return queue.top();
+   }
+
+   void pop(){
+     next();
+     queue.pop();
+   }
+
+ private:
+   Word stream;                       // source stream
+   QueryProcessor* qp;                // query processor
+   int pos;                           // position of the attribute
+   const MPoint* mpoint;
+   int mpos;
+   Tuple* lastTuple;                  // last Tuple read from stream
+   DateTime tupleStart;               // start instance of the next tuple
+   priority_queue<EventElem> queue;   // the event queue
+   Interval<Instant> iv;              // interval of the moving point
+
+  // forbid access to copy constructor and assignment operator
+  // => force call by reference 
+  KNearestQueue(const KNearestQueue& src){
+     assert(false);
+  }
+  KNearestQueue& operator=(const KNearestQueue& src){
+     assert(false);
+  }
+
+/*
+~next~
+
+This function checks whether the next Event comes from the stream or
+from the queue. If it comes from the queue, the lastTuple is converted 
+to a EventElement and inserted into the queue. 
+
+*/ 
+  inline void next(){
+    if(lastTuple){ // otherwise, we have nothing to do
+      if(queue.empty()){
+        transfer(tupleStart); 
+      }  else {
+        EventElem ev = queue.top();
+        transfer(ev.pointInTime);
+      }     
+    }
+  }
+
+/*
+~transfer~
+
+  Transfers all tuple with starting time <= i into the queue
+
+*/
+
+  inline void transfer(DateTime& i){
+     bool t = false;
+     while( (lastTuple && tupleStart <= i)  || 
+            (lastTuple && !t)){
+       t = transfersingle();
+     }
+  }
+
+/*
+~ transfers the next tuple into the queue~
+lasttuple must be exist.
+
+
+*/
+  inline bool transfersingle(){
+    assert(lastTuple);
+
+   // create a new Event for the queue
+    MReal* mr = new MReal(0);
+    const UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
+
+    bool transferred = false;
+
+    if(iv.Intersects(up->timeInterval) ){ // intersecting interval
+      
+      GetDistance(mpoint, up, mpos, mr);
+      Instant t1 = up->timeInterval.start;
+      Instant t2 = up->timeInterval.end;
+      Instant t3 = t1>= iv.start ? t1 : iv.start;
+      Instant t4 = t2 <= iv.end ? t2 : iv.end;
+      queue.push(EventElem(E_LEFT, t3, lastTuple, up, mr));
+      queue.push(EventElem(E_RIGHT, t4, lastTuple, up, mr));
+      // get the next tuple from the stream
+      transferred = true;
+    }
+    Word current(Address(0));
+    qp->Request(stream.addr,current);
+    if(qp->Received(stream.addr)){
+       lastTuple = static_cast<Tuple*>(current.addr);
+         const UPoint* up = 
+               static_cast<const UPoint*>(lastTuple->GetAttribute(pos));
+         tupleStart = up->timeInterval.start;
+         if(tupleStart > iv.end){ 
+            // tuple starts after the end of the query point 
+            lastTuple->DeleteIfAllowed();
+            lastTuple = 0;
+         } 
+    } else {
+      lastTuple->DeleteIfAllowed(); 
+      lastTuple = 0;
+    }
+    return transferred;
+  }
+
+
+};
+
 /*
 checks if there are intersections and puts them into the eventqueue
 this is the right function if the eventqueue is a NNTree
@@ -2095,7 +2314,7 @@ this is the right function if the eventqueue is a NNTree
 */
 void checkIntersections(EventType type, Instant &time, IT pos,
                       NNTree< ActiveElem > &t,
-                      priority_queue<EventElem> &evq, Instant &endTime)
+                      KNearestQueue& evq, Instant &endTime)
 {
   switch ( type ){
     case E_LEFT:
@@ -2187,12 +2406,11 @@ void checkIntersections(EventType type, Instant &time, IT pos,
     }
   }
 }
-
 /*
 Eliminates duplicate elements in the priority queue
 
 */
-void deleteDupElements(priority_queue<EventElem> &evq, EventType type,
+void deleteDupElements(KNearestQueue& evq, EventType type,
                        Tuple* tuple1, Tuple* tuple2, Instant& time)
 {
   while( !evq.empty() )
@@ -2211,18 +2429,17 @@ void deleteDupElements(priority_queue<EventElem> &evq, EventType type,
   }
 }
 
-/*
-  To use the plane sweep algrithmus a priority queue for the events and
-  a NNTree to save the active segments is needed.
 
-*/
 struct KnearestLocalInfo
 {
+  KnearestLocalInfo(Word& stream, int attrPos,
+                    const MPoint* mp, int k1, bool scanFlag1):
+     k(k1),scanFlag(scanFlag1), eventQueue(stream, qp, attrPos, mp){} 
   unsigned int k;
   bool scanFlag;
+  KNearestQueue eventQueue;
   Instant startTime, endTime;
   NNTree< ActiveElem > activeLine;
-  priority_queue<EventElem> eventQueue;
 };
 
 /*
@@ -2240,9 +2457,6 @@ args[4] = int j, attributenumber
 int knearestFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
-  KnearestLocalInfo *localInfo;
-  const MPoint *mp = (MPoint*)args[2].addr;
-
   switch (message)
   {
     /*
@@ -2252,22 +2466,23 @@ int knearestFun (Word* args, Word& result, int message,
     */
     case OPEN :
     {
-      localInfo = new KnearestLocalInfo();
-      localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
-      localInfo->scanFlag = true;
-      local = SetWord(localInfo);
-      if (mp->IsEmpty())
-      {
-        return 0;
+      qp->Open(args[0].addr);
+      CcInt* k = static_cast<CcInt*>(args[3].addr);
+      const MPoint* mp = static_cast<const MPoint*>(args[2].addr);
+      int attrPos = (static_cast<CcInt*>(args[4].addr))->GetIntval() - 1;
+      if(!mp->IsDefined() || mp->IsEmpty() || !k->IsDefined()){
+         local.addr = 0;
+      } else{
+         KnearestLocalInfo* localInfo = 
+                new KnearestLocalInfo(args[0], attrPos, mp,
+                                      k->GetIntval(), true);
+         const UPoint *up1, *up2;
+         mp->Get( 0, up1);
+         mp->Get( mp->GetNoComponents() - 1, up2);
+         localInfo->startTime = up1->timeInterval.start;
+         localInfo->endTime = up2->timeInterval.end;
+         local = SetWord(localInfo);
       }
-      const UPoint *up1, *up2;
-      mp->Get( 0, up1);
-      mp->Get( mp->GetNoComponents() - 1, up2);
-      localInfo->startTime = up1->timeInterval.start;
-      localInfo->endTime = up2->timeInterval.end;
-
-      fillEventQueue( args, localInfo->eventQueue, localInfo->startTime,
-            localInfo->endTime);
       return 0;
     }
 
@@ -2278,8 +2493,11 @@ int knearestFun (Word* args, Word& result, int message,
     */
     case REQUEST :
     {
+     if(!local.addr){
+       return CANCEL; 
+     } 
      int attrNr = ((CcInt*)args[4].addr)->GetIntval() - 1;
-     localInfo = (KnearestLocalInfo*)local.addr;
+     KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
       if ( !localInfo->scanFlag )
       {
         return CANCEL;
@@ -2550,8 +2768,11 @@ int knearestFun (Word* args, Word& result, int message,
     case CLOSE :
     {
       qp->Close(args[0].addr);
-      localInfo = (KnearestLocalInfo*)local.addr;
-      delete localInfo;
+      KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
+      if(localInfo){
+        delete localInfo;
+        local.setAddr(0);
+      }
       return 0;
     }
   }
@@ -4377,8 +4598,8 @@ newknearestFilterTypeMap( ListExpr args )
 
   ListExpr rtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
-  ListExpr btreeDescription = nl->Third(args);
-  ListExpr brelDescription = nl->Fourth(args);
+  //ListExpr btreeDescription = nl->Third(args);
+  //ListExpr brelDescription = nl->Fourth(args);
   ListExpr queryobject = nl->Fifth(args);
   ListExpr quantity = nl->Sixth(args);
 
