@@ -601,7 +601,12 @@ public class CommandPanel extends JScrollPane {
         appendText("\nerror in optimization of this query");
         showPrompt();
         return "";
-      }else{
+      }else if(opt.startsWith("::ERROR::")){
+        appendText("\nproblem in optimization: \n");
+        appendText(opt.substring(9)+"\n");
+        showPrompt();
+        return "";
+      } else {
         return "query " + opt;
       }
    }
