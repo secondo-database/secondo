@@ -68,6 +68,8 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "BBTree.h"
 #include "BTreeAlgebra.h"
 
+#include "ListUtils.h" 
+
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
 class Algebra. All of the data available in Secondo has a nested list
@@ -138,11 +140,8 @@ The function distanceScanTypeMap is the type map for distancescan.
 ListExpr
 distanceScanTypeMap( ListExpr args )
 {
-  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERROR" ) );
 
   string errmsg = "rtree x rel x rectangle x int expected";
-
   if(nl->ListLength(args)!=4){
     ErrorReporter::ReportError(errmsg + "(wrong number of arguments)");
     return nl->TypeError();
@@ -160,84 +159,42 @@ distanceScanTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  bool isSpatialType =
-             algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo) ||
-             algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo) ||
-             algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo) ||
-             algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo);
-  if(!isSpatialType){
-    if( (!nl->IsEqual(searchWindow, "rect")) &&
-        (!nl->IsEqual(searchWindow, "rect3")) &&
-        (!nl->IsEqual(searchWindow, "rect4")) &&
-        (!nl->IsEqual(searchWindow, "rect8")) ){
+  if( ! listutils::isSpatialType(searchWindow) &&
+      ! listutils::isRectangle(searchWindow)){
     ErrorReporter::ReportError(errmsg +
-                "(searchwindow neither of kind spatial nor a rectangle)");
-    return nl->TypeError();
-   }
+              "(searchwindow neither of kind spatial nor a rectangle)");
+    return listutils::typeError();
   }
-
-  if(nl->ListLength(rtreeDescription) != 4){
+  
+  if(!listutils::isRTreeDescription(rtreeDescription)){
     ErrorReporter::ReportError(errmsg + "(invalid rtree description)");
-    return nl->TypeError();
-  }
+    return listutils::typeError();
+  } 
 
-  ListExpr rtreeSymbol = nl->First(rtreeDescription),
-           rtreeTupleDescription = nl->Second(rtreeDescription),
-           rtreeKeyType = nl->Third(rtreeDescription),
-           rtreeTwoLayer = nl->Fourth(rtreeDescription);
 
-  if(nl->AtomType(rtreeSymbol)!=SymbolType){
-    ErrorReporter::ReportError(errmsg + "(invalid definition of an rtree)");
-    return nl->TypeError();
-  }
-  string rtreestr = nl->SymbolValue(rtreeSymbol);
-  if( (rtreestr != "rtree") &&
-      (rtreestr != "rtree3") &&
-      (rtreestr != "rtree4") &&
-      (rtreestr != "rtree8")  ){
-    ErrorReporter::ReportError(errmsg + "(invalid definition of an rtree)");
-    return nl->TypeError();
-  }
+  ListExpr rtreeKeyType = listutils::getRTreeType(rtreeDescription);
 
-  if(!(algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
-       algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-       algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
-       algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo)||
-       nl->IsEqual(rtreeKeyType, "rect")||
-       nl->IsEqual(rtreeKeyType, "rect3")||
-       nl->IsEqual(rtreeKeyType, "rect4")||
-       nl->IsEqual(rtreeKeyType, "rect8"))){
+  if( !listutils::isSpatialType(rtreeKeyType) ||
+      !listutils::isRectangle(rtreeKeyType)){
     ErrorReporter::ReportError(errmsg + "(tree not over a spatial attribute)");
-    return nl->TypeError();
+    return listutils::typeError();
   }
 
-  if(nl->ListLength(rtreeTupleDescription)!=2){
-    ErrorReporter::ReportError(errmsg + "(tree tuple description wrong)");
-    return nl->TypeError();
-  }
-  if( !nl->IsEqual(nl->First(rtreeTupleDescription),"tuple") ||
-      !IsTupleDescription(nl->Second(rtreeTupleDescription))){
-    ErrorReporter::ReportError(errmsg + "(tree tuple description wrong)");
-    return nl->TypeError();
-  }
-
-  if(nl->AtomType(rtreeTwoLayer) != BoolType){
-    ErrorReporter::ReportError(errmsg + "(error in double indexing flag)");
-    return nl->TypeError();
-  }
-
-  if(!IsRelDescription(relDescription)){
+  if(!listutils::isRelDescription(relDescription)){
     ErrorReporter::ReportError(errmsg + "(second arg is not a relation)");
-    return nl->TypeError();
+    return listutils::typeError();
   }
 
+  ListExpr rtreeTupleDescription = nl->Second(rtreeDescription);
   if(!nl->Equal(rtreeTupleDescription, nl->Second(relDescription))){
     ErrorReporter::ReportError(errmsg +
                  "(type of rtree and relation are different)");
-    return nl->TypeError();
+    return listutils::typeError();
   }
 
-  // check for smae dimension in rtree and query window
+  // check for same dimension in rtree and query window
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  ListExpr errorInfo = listutils::emptyErrorInfo();
   if( !(
           ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
             nl->IsEqual(searchWindow, "rect") ) ||
@@ -375,6 +332,102 @@ distanceScan3TypeMap( ListExpr args ) {
                nl->OneElemList( nl->IntAtom(j-1)),
                res1);
 }
+
+/*
+  rtree3(upoint) x rel x point x instant x int [ x attrname]
+
+*/
+
+ListExpr distanceScan4TypeMap(ListExpr args){
+  string err = "rtree3(upoint) x rel x point x "
+               "instant x int [x attrname] expected";
+  int len = nl->ListLength(args);
+  if((len!=5)  && (len!=6)){
+    ErrorReporter::ReportError(err + " (invalid number of arguments)");
+    return listutils::typeError();
+  }
+  if(!listutils::isRTreeDescription(nl->First(args))){
+    ErrorReporter::ReportError(err + " (invalid rtree)");
+    return listutils::typeError();
+  }
+  if(!nl->IsEqual(nl->First(nl->First(args)),"rtree3")){
+    ErrorReporter::ReportError(err + " (invalid rtree  dimension)");
+    return listutils::typeError();
+  }
+ 
+  if(!listutils::isRelDescription(nl->Second(args))){
+    ErrorReporter::ReportError(err + " (invalid relation)");
+    return listutils::typeError();
+  }
+  if(!nl->IsEqual(nl->Third(args),"point")){
+    ErrorReporter::ReportError(err + " (invalid point)");
+    return listutils::typeError();
+  } 
+  if(!nl->IsEqual(nl->Fourth(args),"instant")){
+    ErrorReporter::ReportError(err + " (invalid instant)");
+    return listutils::typeError();
+  } 
+  if(!nl->IsEqual(nl->Fifth(args),"int")){
+    ErrorReporter::ReportError(err + " (invalid int)");
+    return listutils::typeError();
+  } 
+
+  // relation and rtree must have the same tuple type 
+  if(!nl->Equal(nl->Second(nl->First(args)), nl->Second(nl->Second(args)))){
+    ErrorReporter::ReportError(err + " (different type of rtree and rel)");
+    return listutils::typeError();
+  }
+  ListExpr rtreekey = listutils::getRTreeType(nl->First(args));
+  if(!nl->IsEqual(rtreekey,"upoint")){
+    ErrorReporter::ReportError(err + " (rtree not build on upoint)");
+    return listutils::typeError();
+  }  
+
+  ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
+  ListExpr res1 = nl->TwoElemList(nl->SymbolAtom("stream"),
+                                  nl->Second(nl->Second(args)));
+  if(len==6){
+    ListExpr aname = nl->Sixth(args);
+    if(nl->AtomType(aname)!=SymbolType){
+       ErrorReporter::ReportError(err + " (invalid attribute name)");
+       return listutils::typeError();
+    }
+    string name = nl->SymbolValue(aname);
+    ListExpr type;
+    int j = listutils::findAttribute(attrList, name, type);
+    if(!j){
+      ErrorReporter::ReportError(err + " (attribute not found)");
+      return listutils::typeError();
+    }
+    if(!nl->IsEqual(type,"upoint") ){
+      ErrorReporter::ReportError(err + " (attribute not a upoint)");
+      return listutils::typeError();
+    } 
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                             nl->OneElemList(nl->IntAtom(j)),
+                             res1);
+  } else { // length ==5
+    string name;
+    int j = listutils::findType(attrList, nl->SymbolAtom("upoint"),name);
+    if(!j){
+       ErrorReporter::ReportError(err + " (no upoint stored in relation)");
+       return listutils::typeError();
+    }
+    int j2 = listutils::findType(attrList, 
+                                 nl->SymbolAtom("upoint"),
+                                 name,
+                                 j+1);
+    if(j2){
+       ErrorReporter::ReportError(err + " (upoint stored twice in relation)");
+       return listutils::typeError();
+    }
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                             nl->TwoElemList(nl->IntAtom(j), nl->IntAtom(j)),
+                             res1);
+  }
+}
+
+
 
 /*
 The function knearestTypeMap is the type map for the operator knearest
@@ -1330,6 +1383,342 @@ int distanceScan3Fun (Word* args, Word& result, int message,
     default : assert(false);
   }
 }
+
+
+/*
+Distancescan4 compute the k nearest mpoints for a given point for
+a certain instant.
+
+  rtree(upoint) x rel x point x instant x int x attrname x attrpos
+
+*/
+
+class DS4Entry{
+  public:
+
+/*
+~constructors~
+
+*/
+    DS4Entry(const R_TreeNode<3, TupleId>&  node1,
+             const Point* qo1,
+             const int level1):
+       isTuple(false), node( new R_TreeNode<3, TupleId>(node1)),
+       tupleId(0),level(level1){
+       distance = qo1->Distance(project(node1.BoundingBox()));
+    }
+
+
+    DS4Entry(const TupleId id,
+            const BBox<3>& rect,
+            const Point* qo,
+            const int level1,
+            const Relation* relation,
+            const int attrpos,
+            const Instant& instant):
+       isTuple(true), node(0), tupleId(id), level(level1){
+
+       Tuple* tuple = relation->GetTuple(id);
+       const UPoint* obj =
+             static_cast<UPoint*>(tuple->GetAttribute(attrpos));
+       distance = computeDistance(obj, qo, instant);
+       tuple->DeleteIfAllowed();
+    }
+
+    DS4Entry(const DS4Entry& src):
+      isTuple(src.isTuple), node(0), tupleId(src.tupleId),
+      level(src.level), distance(src.distance){
+      if(src.node){
+         node = new R_TreeNode<3, TupleId>(*src.node);
+      }
+    }
+
+/*
+~Assignment operator~
+
+*/
+    DS4Entry& operator=(const DS4Entry& src){
+      isTuple = src.isTuple;
+      if(node){
+        delete node;
+      }
+      if(src.node){
+        node = new R_TreeNode<3, TupleId>(*src.node);
+      } else {
+        node = 0;
+      }
+      tupleId = src.tupleId;
+      level = src.level;
+      distance = src.distance;
+      return *this;
+    }
+
+/*
+~Destructor~
+
+*/
+
+    ~DS4Entry(){ delete node;}
+
+
+/*
+Check for a tuple entry.
+
+*/
+    bool isTupleEntry() const{
+       return isTuple;
+    }
+
+    bool getLevel() const{
+       return level;
+    }
+
+    TupleId getTupleId() const{
+     return tupleId;
+    }
+
+    double getDistance() const { return distance; }
+
+    const R_TreeNode<3,TupleId>* getNode() const {
+       return  node;
+    }
+
+    inline int compare(const DS4Entry& e) const{
+       if(distance < e.distance){
+          return -1;
+       }
+       if(distance > e.distance){
+          return 1;
+       }
+       return 0;
+    }
+
+  private:
+    bool isTuple;
+    R_TreeNode<3, TupleId>* node;
+    TupleId tupleId;
+    int level;
+    double distance;
+    
+
+    inline Rectangle<2> project(const Rectangle<3> r3){
+       Rectangle<2> result(true, r3.MinD(0),r3.MaxD(0),r3.MinD(1),r3.MaxD(1));
+       return result;
+    }
+  
+    inline double computeDistance(const UPoint* up,
+                                const  Point* p, 
+                                const Instant& i){
+
+
+        if(!up->timeInterval.Contains(i)){
+           return -1;
+        }
+        Point p2(0,0);
+        up->TemporalFunction(i, p2);
+        return p->Distance(p2);
+    }
+};
+
+class DSE4Comp {
+public:
+   bool operator()(
+       const DS4Entry* d1,
+       const DS4Entry* d2) const{
+       return d1->compare(*d2) >= 0;
+   }
+};
+
+class DS4LocalInfo{
+public:
+   DS4LocalInfo( R_Tree<3, TupleId>* rtree, 
+                 Relation* rel,
+                 Point* point, 
+                 Instant* instant,
+                 CcInt* k, int position){
+     // check if all things are defined
+     this->position = position;
+     if(rel->GetNoTuples()==0 ||
+         !point->IsDefined() ||
+         !instant->IsDefined() ||
+         !k->IsDefined()){
+        this->tree=0;
+        this->rel=0;
+        this->point = 0;
+        this->k = 0;
+        this->returned = 0;
+        return;
+      }
+      this->tree = rtree;
+      this->rel   = rel;
+      this->point = point;
+      this->k = k->GetIntval();
+      this->instant = *instant;
+      returned = 0;
+      R_TreeNode<3, TupleId> root = rtree->Root();
+      // check for an empty tree
+      BBox<3> box = root.BoundingBox();
+      if(!box.IsDefined()){
+        this->tree=0;
+        this->rel=0;
+        this->point = 0;
+        this->k = 0;
+        this->returned = 0;
+        return;
+      }
+      height = tree->Height();
+      minInnerEntries = tree->MinEntries(0);
+      maxInnerEntries = tree->MaxEntries(0);
+      minLeafEntries = tree->MinEntries(height);
+      maxLeafEntries = tree->MaxEntries(height);
+      DS4Entry* first = new DS4Entry(root,point, 0);
+      if(first->getDistance()>=0){
+         dsqueue.push(first);
+      }
+   }
+
+   ~DS4LocalInfo(){
+      while(!dsqueue.empty()){
+         DS4Entry* t = dsqueue.top();
+         delete t;
+         dsqueue.pop();
+      }
+    }
+
+
+   Tuple* nextTuple(){
+     if(!tree){
+       return 0;
+     }
+     if(k>0 && returned==k){
+       return 0;
+     }
+     if(dsqueue.empty()){
+       return 0;
+     }
+
+
+     DS4Entry* top = dsqueue.top();
+     // replace top entry of the queue by its sons
+     // until it's a tuple entry
+     while(!dsqueue.empty() && !top->isTupleEntry()){
+       dsqueue.pop(); // remove top element
+       int level = top->getLevel();
+       // insert all sons
+       int minEntries,maxEntries;
+       level++; // level for the sons is increased
+
+       if(level>=height){
+         minEntries = this->minLeafEntries;
+         maxEntries = this->maxLeafEntries;
+       } else {
+         minEntries = this->minInnerEntries;
+         maxEntries = this->maxInnerEntries;
+       }
+
+       if(!top->getNode()->IsLeaf()){
+         for(int i = 0; i< top->getNode()->EntryCount();i++){
+            R_TreeInternalEntry<3>* next=top->getNode()->GetInternalEntry(i);
+            SmiRecordId rid = next->pointer;
+            R_TreeNode<3, TupleId> nextNode(true, minEntries, maxEntries);
+            tree->GetNode(rid, nextNode);
+            DS4Entry* nextEntry = new DS4Entry(nextNode, point, level);
+            if(nextEntry->getDistance() >=0){
+               dsqueue.push(nextEntry);
+            } else {
+               delete nextEntry;
+            }
+         }
+       } else { // topmost node was a leaf
+         for(int i=0;i<top->getNode()->EntryCount();i++){
+           R_TreeLeafEntry<3, TupleId>* le =
+                top->getNode()->GetLeafEntry(i);
+           DS4Entry* nextEntry = new DS4Entry(le->info, le->box,
+                               point, level, rel, position, instant);
+           if(nextEntry->getDistance()>=0){
+              dsqueue.push(nextEntry);
+           } else {
+             delete nextEntry;
+           }
+         }
+       }
+       delete top; // delete the replaced top element
+       if(!dsqueue.empty()){
+           top = dsqueue.top();
+       }
+     }
+     if(dsqueue.empty()){
+       return 0;
+     }
+     dsqueue.pop();
+     // now we have a tuple
+     returned++;
+     Tuple* res = rel->GetTuple(top->getTupleId());
+     delete top;
+     return res;
+   }
+private:
+   R_Tree<3, TupleId>* tree;
+   Relation* rel;
+   int position;
+   const Point* point;
+   int k;
+   int returned; // number of returned tuples
+   int height;
+   int minInnerEntries;
+   int maxInnerEntries;
+   int minLeafEntries;
+   int maxLeafEntries;
+   priority_queue< DS4Entry*,
+                   vector<DS4Entry* >,
+                   DSE4Comp  > dsqueue;
+   Instant instant;
+};
+
+
+
+int distanceScan4Fun (Word* args, Word& result, int message,
+             Word& local, Supplier s){
+
+  switch(message){
+    case OPEN: {
+        R_Tree<3, TupleId>* rtree = 
+                 static_cast<R_Tree<3,TupleId>*> (args[0].addr);
+        Relation* rel   = static_cast<Relation*>(args[1].addr);
+        Point*    point = static_cast<Point*>(args[2].addr);
+        Instant*  instant = static_cast<Instant*>(args[3].addr);
+        CcInt*    k =  static_cast<CcInt*>(args[4].addr);
+        // ignore attrname
+        int attrpos = (static_cast<CcInt*>(args[6].addr))->GetIntval()-1;
+        if(!point->IsDefined() || !instant->IsDefined() || !k->IsDefined()){
+           local.setAddr(0);
+        } else {
+          local.addr = new DS4LocalInfo(rtree, rel, point, instant, 
+                                        k, attrpos); 
+        }
+        return 0;
+     }
+    case REQUEST: {
+        if(!local.addr){
+          return CANCEL;
+        }
+        DS4LocalInfo* li = static_cast<DS4LocalInfo*>(local.addr);
+        result.addr = li->nextTuple();
+        return result.addr ? YIELD : CANCEL;
+     }
+    case CLOSE: {
+        if(local.addr){
+           DS4LocalInfo* li = static_cast<DS4LocalInfo*>(local.addr);
+           delete li;
+           local.addr = 0;
+        }
+        return 0; 
+     }
+    default: assert(false);
+  }
+  return 0;
+}
+
 
 /*
 The ~knearest~ operator results a stream of all input tuples which
@@ -4216,6 +4605,15 @@ Operator distancescan3 (
          distanceScan3TypeMap    // type mapping
 );
 
+Operator distancescan4 (
+         "distancescan4",        // name
+         distanceScan3Spec,      // specification
+         distanceScan4Fun,       // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         distanceScan4TypeMap    // type mapping
+);
+
+
 Operator knearest (
          "knearest",            // name
          knearestSpec,          // specification
@@ -4748,6 +5146,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &coverageop );
     AddOperator( &coverage2op );
     AddOperator( &newknearestfilter);
+    AddOperator( &distancescan4);
   }
   ~NearestNeighborAlgebra() {};
 };
