@@ -1202,7 +1202,7 @@ plan_to_atom(dbobject(Name),ExtName) :-
   dcName2externalName(DCname, Name),       % convert to DC-spelling
   ( dcName2externalName(DCname,ExtName)    % if Name is known
     -> true
-    ; ( write_list(['\nERROR:\tCannor translate \'',dbobject(DCname),'\'.']),
+    ; ( write_list(['\nERROR:\tCannot translate \'',dbobject(DCname),'\'.']),
         throw(error_SQL(optimizer_plan_to_atom(dbobject(DCname),
                                                   ExtName):missingData)),
         fail
@@ -2110,8 +2110,10 @@ indexselect(arg(N), pr(Pred, Rel)) => X :-
 
 
 /*
-C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices
-These indices are recognized by their index type, it is a combination of a ``granularity'' (one of ~object~, ~unit~, ~group10~) and a ``bounding box type'' (one of ~time~, ~space~, ~d3~). Even here, a possible ~rename~ must be done before ~filter~ can be applied.
+C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices.
+These indices are recognized by their index type.
+
+Again. a possible ~rename~ must be done before ~filter~ can be applied.
 
 */
 
@@ -4684,7 +4686,7 @@ lookupAttr(Expr as Name, Y) :-
   lookupAttr(Expr, _),
   queryAttr(attr(Name, 0, u)),
   !,
-  write_list(['\nERROR: Lokking up query: Attribute name \'',Name,'\'',
+  write_list(['\nERROR: Looking up query: Attribute name \'',Name,'\'',
               ' doubly defined in query.']), nl,
   throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y):duplicateAttrs)),
   fail.
@@ -5939,38 +5941,63 @@ optimize(Query, QueryOut, CostOut) :-
 ----
 
 Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
+This predicate is called by the Secondo OptimizerServer.
+
+It will also catch exceptions and transform it into a nested list encoding a
+message that can be handled by the Secondo Javagui.
+
+If the exception has Format
+
+---- <prolog-file>_<Predicate>(<Arguments>):<error-explanation>.
+----
+
+Only ~error-explanation~ will be returned as the message content.
+Otherwise, ''Exception during optimization´´ is returned as the message content.
 
 */
 
+%%error_SQL(optimizer_lookupRel(twen, _G7):unknownRelation)
 
-sqlToPlan(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan) :-
   string(QueryText),
   string_to_atom(QueryText,AtomText),
   term_to_atom(Query, AtomText),
   optimize(Query, Plan, _).
 
-sqlToPlan(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan) :-
   term_to_atom(sql Query, QueryText),
   optimize(Query, Plan, _).
 
-
 /*
-----    sqlToPlan(QueryText, Plan)
+----    sqlToPlan2(QueryText, Plan)
 ----
 
 Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
 ~QueryText~ starts not with sql in this version.
 
 */
-sqlToPlan(QueryText, Plan) :-
-  string(QueryText),
-  string_to_atom(QueryText,AtomText),
-  term_to_atom(Query, AtomText),
-  optimize(Query, Plan, _).
 
-sqlToPlan(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan) :-
   term_to_atom(Query, QueryText),
   optimize(Query, Plan, _).
+
+
+sqlToPlan(QueryText, ResultText) :-
+  catch( sqlToPlan2(QueryText, ResultText),
+         Exc, % catch all exceptions!
+         ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
+           ( ( Exc = error_SQL(ErrorTerm),
+               ErrorTerm = _:Message
+              )
+             -> (MessageToSend = Message) % grap special message
+             ;  (MessageToSend = Exc)     % all other exceptions
+           ),
+           term_to_atom(MessageToSend,ResultTMP),
+           atom_concat('::ERROR::',ResultTMP,ResultText)
+         )
+       ),
+  true.
+
 
 
 
