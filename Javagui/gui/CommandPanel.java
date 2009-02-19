@@ -650,8 +650,13 @@ public class CommandPanel extends JScrollPane {
      if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
         appendText("\nerror in optimization of this query");
         showPrompt();
-	return "";
-      }else{
+        return "";
+      }else if(opt.startsWith("::ERROR::")){
+        appendText("\nproblem in optimization of this query\n");
+        appendText(opt.substring(9)+"\n");
+        showPrompt();
+        return "";
+      } else {
         TmpCommand += isQuery ?  "query "+ opt : opt;
         First = SelectClauseInterval.max+1;
       }
