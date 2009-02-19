@@ -1717,6 +1717,11 @@ plan_to_atom(delete(Identifier),Result) :-
   concat_atom(['delete ', Identifier2], Result),
   !.
 
+plan_to_atom(deleteIndex(Identifier, QueryRest),[Result|QueryRest2]) :-
+  plan_to_atom(QueryRest, QueryRest2),
+  plan_to_atom(Identifier, Identifier2),
+  concat_atom(['delete ', Identifier2], Result),
+  !.
 
 plan_to_atom(rel(Columns),Result) :-
   list_to_atom(Columns, Columns2),
@@ -1841,7 +1846,7 @@ plan_to_atom(X, _) :-
   throw(error_SQL(optimizer_plan_to_atom(X,undef):malformedExpression)),
   !, fail.
 
-/* auxiliary predicate */
+/* auxiliary predicates */
 plan_to_atom_2([],[]).
 
 plan_to_atom_2([InHead|InRest],[OutHead|OutRest]) :-
@@ -4362,6 +4367,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(950, xfx,  values).% for update, insert
 :- op(992,  fx,	drop).
 :- op(950,  fx, table).
+:- op(940,  xfx, columns).
 
 
 /*
@@ -4505,13 +4511,14 @@ lookup(update Rel set Transformations,
   !.
 %%%% End: for update and insert
 
-lookup(create table [Tablename, Columns], 
-       create table [Tablename, Columns]) :-
-  !.
+lookup(create table Tablename columns Columns, 
+       create table Tablename columns Columns2List) :-
+  makeList(Columns, Columns2List), !.
 
 lookup(drop table Rel, 
-       drop table Rel2) :-
+       drop table Rel2List) :-
   lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
   !.
 
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
@@ -4604,11 +4611,13 @@ lookupRel(X,Y) :- !,
   fail.
 
 
+%%%% Begin: for update and insert
 lookupRelNoDblCheck(Rel, rel(RelDC, *)) :-
   atomic(Rel),       %% changed code FIXME
   dcName2externalName(RelDC,Rel),
   relation(RelDC, _), !,
   assert(queryRel(RelDC, rel(RelDC, *))).
+%%%% End: for update and insert
 
 
 /*
@@ -5001,7 +5010,7 @@ example13 :- showTranslate(
 ----
 
 ~Query~ is translated into a ~Stream~ to which still the translation of the
-~SelectClause~ and ~UpdateClause~ needs to be applied. A ~Cost~ is
+~SelectClause~ and ~UpdateClause~ need to be applied. A ~Cost~ is
 returned which currently is only the cost for evaluating the essential
 part, the conjunctive query.
 
@@ -5157,6 +5166,7 @@ translate(Select from [Rel | Rels],
   newVariable(T1),
   newVariable(T2),
   !.
+
 
 makeStream(Rel, feed(Rel)) :- Rel = rel(_, *), !.
 
@@ -5532,7 +5542,7 @@ translateColumns([Column|Rest], [Column2|Rest2]) :-
   translateColumns(Rest, Rest2),
   !.
 
-translateColumn([Name, Type], column(Name, Type2)) :- 
+translateColumn(Name: Type, column(Name, Type2)) :- 
   translateType(Type, Type2), !.
 
 
@@ -5558,6 +5568,16 @@ without a groupby clause.
 
 */
 
+% case: create table query
+queryToPlan(create table TableName columns Columns, 
+	    let(TableName, rel(Columns2)), 0) :-
+  translateColumns(Columns, Columns2),
+  !.
+  
+% case: drop table query
+queryToPlan(drop table [TableName], Result, 0) :-
+  finishUpdate(drop table [TableName], delete(TableName), Result), !.
+
 % case: count query
 queryToPlan(Query, count(Stream), Cost) :-
   countQuery(Query),
@@ -5579,19 +5599,6 @@ queryToPlan(Query, Stream2, Cost) :-
 queryToPlan(Query, count(Stream), Cost) :-
   updateQuery(Query),
   queryToStream(Query, Stream, Cost), !.
-
-% case: create table query
-queryToPlan(create table [TableName, Columns], 
-	    let(TableName, rel(Columns2)), 0) :-
-  translateColumns(Columns, Columns2),
-  !.
-
-  
-% case: drop table query
-queryToPlan(drop table TableName, 
-	    delete(TableName), 0) :-
-  !.
-
 
 % case: ordinary consume query
 queryToPlan(Query, consume(Stream), Cost) :-
@@ -6355,10 +6362,10 @@ storeHistory :-
 
 
 % special handling for create query
-sql create Term :- sqlNoQuery(create Term), !.
+sql create Term :- !, sqlNoQuery(create Term).
 
 % special handling for drop query
-sql drop Term :- sqlNoQuery(drop Term), !.
+sql drop Term :- !, sqlNoQuery(drop Term).
 
 % Default handling
 sql Term :- defaultExceptionHandler((
@@ -6407,8 +6414,18 @@ sqlNoQuery(Term) :-  defaultExceptionHandler((
   mOptimize(Term, Query, Cost),
   nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
   write('Estimated Cost: '), write(Cost), nl, nl,
-  secondo(Query)
+  multiquery(Query)
  )).
+
+
+multiquery([]) :- !.
+
+multiquery([Query|Rest]) :- 
+  secondo(Query),
+  multiQuery(Rest), !.
+
+multiquery(Query) :- 
+  secondo(Query), !.
 
 
 /*
@@ -6612,15 +6629,20 @@ updateIndex(Operation, Rel, [Attr|Attrs], StreamIn, StreamOut) :-
 
 
 updateAttrIndex(Operation, Rel, Attr, StreamIn, StreamOut) :-
-  hasIndex(Rel, Attr, DCindex, LogicalIndexType),
+  findall((DCindex, LogicalIndexType), 
+	  hasIndex(Rel, Attr, DCindex, LogicalIndexType), List),
+  updateAttrIndex(Operation, Rel, Attr, List, StreamIn, StreamOut), 
+  !.
+
+updateAttrIndex(Operation, Rel, Attr, [], StreamIn, StreamIn) :- !.
+
+updateAttrIndex(Operation, Rel, Attr, [(DCindex, LogicalIndexType)|Rest], 
+		StreamIn, StreamOut) :-
   dcName2externalName(DCindex,IndexName),
   logicalIndexType(_, LogicalIndexType, PhysicalIndexType, _, _, _, _, _),
   updateTypedIndex(Operation, Attr, IndexName, PhysicalIndexType,
-		   StreamIn, StreamOut),
-  !.
-
-updateAttrIndex(_, Rel, Attr, StreamIn, StreamIn) :-
-  not(hasIndex(Rel, Attr, _, _)),
+		   StreamIn, Stream2),
+  updateAttrIndex(Operation, Rel, Attr, Rest, Stream2, StreamOut), 
   !.
 
 updateTypedIndex(insert, Attr, IndexName, btree, StreamIn,
@@ -6699,6 +6721,11 @@ updateTypedIndex(update, Attr, IndexName, rtree8, StreamIn,
 		 updatertree(StreamIn, IndexName, Attr)) :-
   !.
 
+updateTypedIndex(drop, _, IndexName, _, StreamIn,
+		 deleteIndex(StreamIn, IndexName)) :-
+  !.
+
+
 /*
 19.2 Split the select and update clause
 
@@ -6731,6 +6758,11 @@ finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
   updateIndex(update, Rel, updatedirect(Rel, Transformations, Stream2),
 	      Stream3),
   !.
+
+finishUpdate(drop table Rel, Stream2, Stream3) :-
+  updateIndex(drop, Rel, Stream2, Stream3),
+  !.
+
 
 writeDebug(Text) :- 
   write(Text), nl.
