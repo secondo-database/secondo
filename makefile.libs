@@ -52,6 +52,7 @@ LIB_SDBUTILS_BASENAMES:=\
 LIB_SDBNL_BASENAMES:=\
 	Tools/NestedLists/NestedList \
 	Tools/NestedLists/NList \
+	Tools/NestedLists/ListUtils \
 	Tools/NestedLists/NLLex \
 	Tools/NestedLists/NLScanner \
 	Tools/NestedLists/NLParser \
