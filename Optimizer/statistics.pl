@@ -110,7 +110,10 @@ The simple form of predicate ~Pred~ is ~Simple~.
 
 simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple), !.
 simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
-simplePred(X, Y) :- throw(error_SQL(statistics_simplePred(X, Y):malformedExpression)).
+simplePred(X, Y) :-
+  term_to_atom(X,Xt),
+  concat_atom(['Malformed expression: \'', Xt, '\'.'],'',ErrorMsg),
+  throw(error_SQL(statistics_simplePred(X, Y):ErrorMsg)).
 
 /*
 
@@ -284,11 +287,13 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   getTime(
     ( secondo(QueryAtom, ResultList)
       -> (true)
-      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
-                       'whether predicate \'', Pred, '\' is a boolean ',
-                       'function! ']), nl,
+      ;  ( term_to_atom(Pred,PredA),
+           concat_atom(['Selectivity query failed: Please check ',
+                       'whether predicate \'', PredA, '\' is a boolean ',
+                       'function!'],'',ErrorMsg),
+           write_list(['\nERROR:\t',ErrorMsg,' ']), nl,
            throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
-               QueryTime, BBoxResCard, FilterResCard):selectivityQueryFailed)),
+               QueryTime, BBoxResCard, FilterResCard):ErrorMsg)),
            fail
          )
     )
@@ -300,7 +305,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(error_SQL(statistics_selectivityQuerySelection(
+         throw(error_Internal(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
          fail
@@ -314,7 +319,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
                      'list counters query:\n',
                      'Expected \'[[1, BBoxResCard]|_]\' but got \'',
                      ResultList2, '\'.']), nl,
-         throw(error_SQL(statistics_selectivityQuerySelection(
+         throw(error_Internal(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
          fail
@@ -338,11 +343,13 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   getTime(
     ( secondo(QueryAtom, ResultList)
       -> (true)
-      ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
-                       'whether predicate \'', Pred, '\' is a boolean ',
-                       'function! ']), nl,
+      ;  ( term_to_atom(Pred,PredA),
+           concat_atom(['Selectivity query failed. Please check ',
+                       'whether predicate \'', PredA, '\' is a boolean ',
+                       'function! '],'',ErrMsg),
+           write_list(['\nERROR:\t',ErrMsg]), nl,
            throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
-                         QueryTime, noBBox, ResCard):selectivityQueryFailed)),
+                         QueryTime, noBBox, ResCard):ErrMsg)),
            fail
          )
     )
@@ -354,7 +361,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(error_SQL(statistics_selectivityQuerySelection(
+         throw(error_Internal(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, noBBox, ResCard)
                          :unexpectedListType)),
          fail
@@ -364,7 +371,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
 
 selectivityQuerySelection(Pred, Rel, QueryTime, BBox, ResCard) :-
   write_list(['\nERROR:\tSelectivity query failed for unknown reason.']), nl,
-  throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel, QueryTime,
+  throw(error_Internal(statistics_selectivityQuerySelection(Pred, Rel, QueryTime,
         BBox, ResCard):selectivityQueryFailed)),  fail.
 
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
@@ -400,7 +407,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
       ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
                        'whether predicate \'', Pred, '\' is a boolean ',
                        'function! ']), nl,
-           throw(error_SQL(statistics_selectivityQueryJoin(
+           throw(error_Internal(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
                          :selectivityQueryFailed)),
            fail
@@ -414,7 +421,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(error_SQL(statistics_selectivityQueryJoin(
+         throw(error_Internal(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
          fail
@@ -428,7 +435,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
                      'list counters query:\n',
                      'Expected \'[[1, BBoxResCard]|_]\' but got \'',
                      ResultList2, '\'.']), nl,
-         throw(error_SQL(statistics_selectivityQueryJoin(
+         throw(error_Internal(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
                          :unexpectedListType)),
          fail
@@ -466,7 +473,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
       ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
                        'whether predicate \'', Pred, '\' is a boolean ',
                        'function! ']), nl,
-           throw(error_SQL(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
+           throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
                          QueryTime, noBBox, ResCard):selectivityQueryFailed)),
            fail
          )
@@ -479,7 +486,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
                      'selectivity query:\n',
                      'Expected \'[int, <intvalue>]\' but got \'',
                      ResultList, '\'.']), nl,
-         throw(error_SQL(statistics_selectivityQueryJoin(
+         throw(error_Internal(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, noBBox, ResCard)
                          :unexpectedListType)),
          fail
@@ -488,8 +495,11 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, ResCard) :-
-  write_list(['\nERROR:\tSelectivity query failed for unknown reason.']), nl,
-  throw(error_SQL(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
+  term_to_atom(Pred,PredT),
+  concat_atom(['Selectivity query failed for: \'',PredT,
+               '\'. Unknown reason.'],'',ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]), nl,
+  throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
         QueryTime, BBox, ResCard):selectivityQueryFailed)), fail.
 
 /*
@@ -627,7 +637,7 @@ selectivity(P, X) :-
   write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(',Sel)\n'),
-  throw(error_SQL(statistics_selectivity(P, X))),
+  throw(error_Internal(statistics_selectivity(P, X))),
   fail, !.
 
 
@@ -817,10 +827,12 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
 
 % handle ERRORs
 selectivity(P, X, Y, Z) :-
-  write('Error in optimizer: cannot find selectivity for '),
-  simplePred(P, PSimple), write(PSimple), nl,
+  simplePred(P, PSimple),
+  term_to_atom(PSimple,PSimpleT),
+  concat_atom(['Cannot find selectivity for \'', PSimpleT, '\'.'],'',ErrMsg),
+  write('Error in optimizer: '), write(ErrMsg),
   write('Call: selectivity('), write(P), write(', _, _, _)\n'),
-  throw(error_SQL(statistics_selectivity(P, X, Y, Z))),
+  throw(error_Internal(statistics_selectivity(P, X, Y, Z):ErrMsg)),
   fail, !.
 
 
@@ -830,10 +842,13 @@ getPET(P, CalcPET, ExpPET) :-
   simplePred(P,PSimple),
   storedPET(DB, PSimple, CalcPET, ExpPET), !.
 
-getPET(P, X, Y) :- write('Error in optimizer: cannot find PETs for '),
-  simplePred(P, PSimple), write(PSimple), nl,
+getPET(P, X, Y) :-
+  simplePred(P, PSimple),
+  term_to_atom(PSimple,PSimpleT),
+  concat_atom(['Cannot find PETs for \'', PSimpleT, '\'.'],'',ErrMsg),
+  write('Error in optimizer: '), write(ErrMsg), nl,
   write('Call: getPET('), write(P), write(', _, _)\n'),
-  throw(error_SQL(statistics_getPET(P, X, Y))),
+  throw(error_Internal(statistics_getPET(P, X, Y):ErrMsg)),
   fail, !.
 
 /*
@@ -1603,7 +1618,8 @@ getSig(attr(Attr,Arg,_), Rel1, Rel2, AttrType) :-
     !.
 
 getSig(attr(A,B,C), Rel1, Rel2, X) :-
-    throw(error_SQL(statistics_getSig(attr(A,B,C), Rel1, Rel2, X))),
+    throw(error_Internal(statistics_getSig(attr(A,B,C), Rel1, Rel2, X)
+                             :unspecifiedError)),
     !,
     fail.
 

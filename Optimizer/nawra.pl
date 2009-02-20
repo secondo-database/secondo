@@ -863,7 +863,7 @@ attrlistRemove(attrname(attr(Attr, _, _)), AttrSize) :-
 
 
 attrlistRemove(X, Y) :-
-  throw(error_SQL(nawra_attrlistRemove(X, Y))),
+  throw(error_Internal(nawra_attrlistRemove(X, Y):unspecifiedError)),
   fail, !.
 
 
@@ -895,7 +895,7 @@ attrlistSize([X|Xs], SizeTerm) :-
   addSizeTerms([SizeTerm1, SizeTerm2], SizeTerm), !.
 
 attrlistSize(X, Y) :-
-  throw(error_SQL(nawra_attrlistSize(X, Y))),
+  throw(error_Internal(nawra_attrlistSize(X, Y):unspecifiedError)),
   fail, !.
 
 attrlistSize2(X, AttrSize) :-

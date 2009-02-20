@@ -1203,7 +1203,7 @@ plan_to_atom(dbobject(Name),ExtName) :-
   ( dcName2externalName(DCname,ExtName)    % if Name is known
     -> true
     ; ( write_list(['\nERROR:\tCannot translate \'',dbobject(DCname),'\'.']),
-        throw(error_SQL(optimizer_plan_to_atom(dbobject(DCname),
+        throw(error_Internal(optimizer_plan_to_atom(dbobject(DCname),
                                                   ExtName):missingData)),
         fail
       )
@@ -1817,7 +1817,7 @@ plan_to_atom(X, Result) :-
 plan_to_atom(X, _) :-
   write('Error in plan_to_atom: No rule for handling term '),
   write(X), nl,
-  throw(error_SQL(optimizer_plan_to_atom(X,undef):malformedExpression)),
+  throw(error_Internal(optimizer_plan_to_atom(X,undef):malformedExpression)),
   !, fail.
 
 /* auxiliary predicates */
@@ -2871,7 +2871,7 @@ resTupleSize(res(N), TupleSize) :-
 resTupleSize(X, Y) :-
   write('ERROR in optimizer: cannot find tuplesize for \''),
   write(X), write('\'.\n'),
-  throw(error_SQL(optimizer_resTupleSize(X,Y))),
+  throw(error_Internal(optimizer_resTupleSize(X,Y):tupleSizeNotFound)),
   fail, !.
 
 
@@ -2898,7 +2898,7 @@ getPredNoPET(Index, CalcPET, ExpPET) :-
   storedPredNoPET(Index, CalcPET, ExpPET), !.
 
 getPredNoPET(Index, X, Y) :-
-  throw(error_SQL(optimizer_getPredNoPET(Index, X, Y))),
+  throw(error_Internal(optimizer_getPredNoPET(Index, X, Y):petNotFound)),
   fail, !.
 
 /*
@@ -3165,7 +3165,7 @@ cost(rel(Rel, X1_), X2_, Size, 0) :-
     ;  (
          write('ERROR:\tcost/4 failed due to non-dc relation name.'), nl,
          write('---> THIS SHOULD BE CORRECTED!'), nl,
-         throw(error_SQL(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
+         throw(error_Internal(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
               :missedTranslation))),
          fail
        )
@@ -4551,9 +4551,9 @@ lookupRel(Rel as Var, Y) :-
   dcName2externalName(RelDC,Rel),
   relation(RelDC, _), !,          %% changed code FIXME
   ( variable(Var, _)
-    -> ( write_list(['\nERROR:\tLooking up query: Doubly defined variable ',Var,
-                     '.']), nl,
-         throw(error_SQL(optimizer_lookupRel(Rel as Var,Y):doubledVariable)),
+    -> ( concat_atom(['Doubly defined variable \'',Var,'\'.'],'',ErrMsg),
+         write_list(['\nERROR:\t',ErrMsg]), nl,
+         throw(error_SQL(optimizer_lookupRel(Rel as Var,Y):ErrMsg)),
          fail
        )
     ;  Y = rel(RelDC, Var)
@@ -4568,8 +4568,10 @@ lookupRel(Rel, rel(RelDC, *)) :-
   assert(queryRel(RelDC, rel(RelDC, *))).
 
 lookupRel(X,Y) :- !,
-  write_list(['\nERROR:\tLooking up query: Relation \'',X,'\' unknown!']), nl,
-  throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation)),
+  term_to_atom(X,XA),
+  concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]), nl,
+  throw(error_SQL(optimizer_lookupRel(X,Y):ErrMsg)),
   fail.
 
 %%%% Begin: for update and insert
@@ -4596,9 +4598,12 @@ duplicateAttrs(Rel) :-
   relation(Rel, Attrs),
   member(Attr, Attrs),
   not(Rel = Rel2), !,
-  write_list(['\nERROR:\tDuplicate attribute names in relations ',
-              Rel2, ' and ',Rel,'.']),
-  throw(error_SQL(optimizer_duplicateAttrs(Rel):duplicateAttrs)),
+  term_to_atom(Rel,RelA),
+  term_to_atom(Rel2,Rel2A),
+  concat_atom(['Duplicate attribute alias names in relations ',
+              Rel2A, ' and ',RelA,'.'],'',ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]),
+  throw(error_SQL(optimizer_duplicateAttrs(Rel):ErrMsg)),
   nl.
 
 /*
@@ -4686,8 +4691,10 @@ lookupAttr(Expr as Name, Y) :-
   lookupAttr(Expr, _),
   queryAttr(attr(Name, 0, u)),
   !,
-  write_list(['\nERROR: Looking up query: Attribute name \'',Name,'\'',
-              ' doubly defined in query.']), nl,
+  term_to_atom(Name,NameA),
+  concat_atom(['Attribute names \'',NameA,'\'',
+              ' were doubly defined in the query.'],'',ErrMsg),
+  write_list(['\nERROR: ',ErrMsg]), nl,
   throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y):duplicateAttrs)),
   fail.
 
@@ -4715,9 +4722,9 @@ lookupAttr(Term, dbobject(TermDC)) :-
 
 lookupAttr(Term, Term) :-
   atom(Term),
-  write_list(['\nERROR:\tLooking up query: Symbol \'',Term,       %'
-              '\' in attribute list not recognized!']),           %'
-  throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownError)),
+  concat_atom(['Unknown symbol: \'',Term,'\' is not recognized!'],'',ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]),
+  throw(error_SQL(optimizer_lookupAttr(Term, Term):ErrMsg)),
   fail.
 
 lookupAttr(Term, Term) :- !.
@@ -4767,24 +4774,28 @@ lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
 lookupPred(Pred, X) :-
   lookupPred1(Pred, _, [], Rels),
   length(Rels, N),
+  term_to_atom(Pred,PredA),
+  term_to_atom(Rels,RelsA),
   ( (N = 0)
-    -> ( write_list(['\nERROR:\tLooking up query: Predicate \'',Pred,
-                     '\' is a constant. This is not allowed.']), nl
+    -> ( conacat_atom(['Malformed predicate: \'',PredA,
+                     '\' is a constant. This is not allowed.'],'',ErrMsg)
        )
     ; ( (N > 2)
-        -> ( write_list(['\nERROR:\tLooking up query: Predicate \'',Pred,
-                         '\' involves more than two relations: ',Rels,
-                         '. This is not allowed.']), nl
-           )
-        ; true
+        -> write_list(['Malformed predicate: \'',PredA,
+                       '\' involves more than two relations: ',RelsA,
+                       '. This is not allowed.'],'',ErrMsg)
+        ; concat_atom(['Malformed predicate: \'',PredA,
+                       '\' unspecified reason.'],'',ErrMsg)
       )
   ),
-  throw(error_SQL(optimizer_lookupPred(Pred, X):malformedExpression)),
+  write_list(['\nERROR:\t',ErrMsg]),nl,
+  throw(error_SQL(optimizer_lookupPred(Pred, X):ErrMsg)),
   fail, !.
 
 /*
-----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter) :-
+----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter)
 ----
+
 ~Pred2~ is the transformed version of ~Pred~; before this is called,
 attributes so far considered have already used relations from list ~RelsBefore~.
 The relation list is updated and returned in ~RelsAfter~.
@@ -4834,10 +4845,11 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
  not(is_list(Term)),
- write_list(['\nERROR:\tSymbol \'', Term,
+ concat_atom(['Symbol \'', Term,
             '\' not recognized. It is neither an attribute, nor a Secondo ',
-            'object.\n']), %'
- throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownError)).
+            'object.\n'],'',ErrMsg),
+ write_list(['\nERROR:\t',ErrMsg]),
+ throw(error_SQL(optimizer_lookupPred1(Term, Term):ErrMsg)).
 
 lookupPred1(Term, Term, Rels, Rels).
 
@@ -5586,8 +5598,10 @@ aggrQuery(Query groupby G, _, _, _) :-
   aggrQuery(Query, _, _, _), !,
   % This is not allowed, simple aggregations have no groupby!
   % Send an error!
-  write('ERROR: Expected a simple aggregation, but found a \'groupby\'!\n'),
-  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef))),
+  concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
+              '',ErrMsg),
+  write_list(['ERROR: ',ErrMsg]),
+  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef):ErrMsg)),
   fail.
 aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
   aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
@@ -5646,9 +5660,11 @@ userDefAggrQuery(Query groupby G, _, _, _, _) :-
   userDefAggrQuery(Query, _, _, _, _), !,
   % This is not allowed, simple aggregations have no groupby!
   % Send an error!
-  write('ERROR: Expected a simple aggregation, but found a \'groupby\'!\n'),
+  concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
+              '',ErrMsg),
+  write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
-                                             undef, undef, undef, undef))),
+                             undef, undef, undef, undef):ErrMsg)),
   fail.
 userDefAggrQuery(Query orderby Order,
                  Query1 orderby Order, AggrExpr, Fun, Default) :-
@@ -5988,9 +6004,15 @@ sqlToPlan(QueryText, ResultText) :-
          ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
            ( ( Exc = error_SQL(ErrorTerm),
                ErrorTerm = _:Message
-              )
-             -> (MessageToSend = Message) % grap special message
-             ;  (MessageToSend = Exc)     % all other exceptions
+             ) %% Problems with the SQL query itself:
+             -> concat_atom(['SQL ERROR: ',Message],'',MessageToSend)
+             ;  ( ( Exc = error_Internal(ErrorTerm),
+                    ErrorTerm = _:Message
+                  )
+                  -> concat_atom(['Internal ERROR: ',Message],'',MessageToSend)
+                  %% all other exceptions:
+                  ;  concat_atom(['Unclassified ERROR: ',Exc],'',MessageToSend)
+                )
            ),
            term_to_atom(MessageToSend,ResultTMP),
            atom_concat('::ERROR::',ResultTMP,ResultText)
@@ -6259,14 +6281,19 @@ Exception Handling
 If an error is encountered during the optimization process, an exception should be
 thrown using the built-in Prolog predicate
 
-----    throw(error_SQL(X)),
+----
+        throw(error_SQL(X)),      for errors in the SQL-query
+        throw(error_Internal(X)), for errors due to optimizer failure
 ----
 
 where ~X~ is a term that represents a somehow meaningful error-message, e.g.
 respecting the format
 
-----    <prolog-file>_<Predicate>(<Arguments>):<error-explanation>.
+----    <prolog-file>_<Predicate>(<Arguments>):<error-message>.
 ----
+
+~error-message~ should be a informative message that can be presented to the user
+and helping him with understanding and possibly fixing the problem.
 
 A standard exception handler is implemented by
 the predicate ~defaultExceptionHandler(G)~ that will catch any exception respecting the
@@ -6293,10 +6320,14 @@ exception-format described above, that is thrown within goal ~G~.
 
 defaultExceptionHandler(G) :-
   catch( G,
-         error_SQL(X),
-         ( write('\nException \''), write(X), write('\' caught.'),
-           write('\nAn ERROR occured, please inspect the output above.'),
-           fail
+         X,
+         ( (error_SQL(X) ; error_Internal(X))
+           % only handle these kinds of exceptions
+           -> ( write('\nException \''), write(X), write('\' caught.'),
+                write('\nAn ERROR occured, please inspect the output above.'),
+                fail
+              )
+           ; throw(X) % other exceptions
          )
        ),
        true.

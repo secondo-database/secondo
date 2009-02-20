@@ -118,7 +118,8 @@ The simple form of predicate ~Pred~ is ~Simple~.
 
 simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple), !.
 simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
-simplePred(X, _) :- throw(X).
+simplePred(X, Y) :-
+  throw(error_Internal(statistics_simplePred(X,Y):malformedExpression).
 
 /*
 
