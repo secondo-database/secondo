@@ -3216,7 +3216,7 @@ updateDB(DB1) :-
 /*
 10 Average Size of a Tuple
 
----- tuplesize(Rel, Size) :-
+---- tuplesize(+Rel, ?Size)
 
 ----
 

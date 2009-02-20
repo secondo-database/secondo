@@ -598,7 +598,7 @@ getTime(Goal, TimeMS) :-
 ----
 selectivity(+P, -Sel)
 selectivity(+P, -Sel, -CalcPET, -ExpPET)
-getPET(+P, -CalpPET, -ExpPET)
+getPET(+P, -CalcPET, -ExpPET)
 ----
 
 The selectivity of predicate ~P~ is ~Sel~. The analytic predicate cost function reports the evaluation of the predicate to take ~CalcPET~ milliseconds of time. During the actual query, the evaluation took ~ExpPET~ milliseconds of time for a single evaluation.
@@ -1604,6 +1604,8 @@ obtain attributes occuring within ~Term~.
 
 */
 
+/*
+----
 getSig(attr(Attr,Arg,_), Rel1, Rel2, AttrType) :-
     % translate Attr, find proper Relation in RelList
     (Arg = 0
@@ -1635,3 +1637,5 @@ getSig(Term, Rel1, Rel2, ResultType) :-
 
 getSig(ArgTermList, Rel1, Rel2, ArgTypeList) :- !.
 
+----
+*/
