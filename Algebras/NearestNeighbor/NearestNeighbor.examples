@@ -11,19 +11,20 @@ Operator : distancescan
 Number   : 2
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
 Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] consume
-Result   : file
+Result   : bug
+Remark   : The distancescan operator does not work on on the fly created r-trees
 
 
 Operator : distancescan2
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
-Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] consume
+Example  : query Kinos creatertree[geoData] Kinos distancescan2 [tiergarten, 5] consume
 Result   : file
 
 Operator : distancescan3
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
-Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] consume
+Example  : query Kinos creatertree[geoData] Kinos distancescan3 [tiergarten, 5] consume
 Result   : file
 
 
