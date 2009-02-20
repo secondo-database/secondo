@@ -174,7 +174,7 @@ distanceScanTypeMap( ListExpr args )
 
   ListExpr rtreeKeyType = listutils::getRTreeType(rtreeDescription);
 
-  if( !listutils::isSpatialType(rtreeKeyType) ||
+  if( !listutils::isSpatialType(rtreeKeyType) &&
       !listutils::isRectangle(rtreeKeyType)){
     ErrorReporter::ReportError(errmsg + "(tree not over a spatial attribute)");
     return listutils::typeError();
@@ -1402,10 +1402,16 @@ class DS4Entry{
 */
     DS4Entry(const R_TreeNode<3, TupleId>&  node1,
              const Point* qo1,
-             const int level1):
+             const int level1,
+             double instantAsDouble):
        isTuple(false), node( new R_TreeNode<3, TupleId>(node1)),
        tupleId(0),level(level1){
-       distance = qo1->Distance(project(node1.BoundingBox()));
+       Rectangle<3> r(node1.BoundingBox());
+       if(!Contains(r,instantAsDouble)){
+         distance = -1;
+       } else {
+         distance = qo1->Distance(project(node1.BoundingBox()));
+       }
     }
 
 
@@ -1518,6 +1524,15 @@ Check for a tuple entry.
         up->TemporalFunction(i, p2);
         return p->Distance(p2);
     }
+
+/*
+Checks whether the instant is inside the time interval stored within r.
+
+*/
+    inline bool Contains(const Rectangle<3> r, double instant){
+      return (r.MinD(2) <= instant) && (instant <= r.MaxD(2));
+    }
+
 };
 
 class DSE4Comp {
@@ -1554,6 +1569,7 @@ public:
       this->point = point;
       this->k = k->GetIntval();
       this->instant = *instant;
+      this->instantAsDouble = instant->ToDouble();
       returned = 0;
       R_TreeNode<3, TupleId> root = rtree->Root();
       // check for an empty tree
@@ -1571,7 +1587,7 @@ public:
       maxInnerEntries = tree->MaxEntries(0);
       minLeafEntries = tree->MinEntries(height);
       maxLeafEntries = tree->MaxEntries(height);
-      DS4Entry* first = new DS4Entry(root,point, 0);
+      DS4Entry* first = new DS4Entry(root,point, 0, instantAsDouble);
       if(first->getDistance()>=0){
          dsqueue.push(first);
       }
@@ -1622,7 +1638,8 @@ public:
             SmiRecordId rid = next->pointer;
             R_TreeNode<3, TupleId> nextNode(true, minEntries, maxEntries);
             tree->GetNode(rid, nextNode);
-            DS4Entry* nextEntry = new DS4Entry(nextNode, point, level);
+            DS4Entry* nextEntry = new DS4Entry(nextNode, point, 
+                                               level, instantAsDouble);
             if(nextEntry->getDistance() >=0){
                dsqueue.push(nextEntry);
             } else {
@@ -1673,6 +1690,7 @@ private:
                    vector<DS4Entry* >,
                    DSE4Comp  > dsqueue;
    Instant instant;
+   double instantAsDouble;
 };
 
 
@@ -4520,12 +4538,26 @@ const string distanceScan3Spec  =
       "<text>Uses the given rtree to find k tuples in the"
       " relation in order of their distance from the "
       " position T. The nearest tuple first.</text--->"
-      "<text>query kinos_geoData Kinos distancescan "
-      "[[const point value (10539.0 14412.0)], 5] consume; "
+      "<text>query kinos_geoData Kinos distancescan3 "
+      "[[const point value (10539.0 14412.0)], 5] tconsume; "
       "where kinos_geoData "
       "is e.g. created with 'let kinos_geoData = "
       "Kinos creatertree [geoData]'</text--->"
       ") )";
+
+const string distanceScan4Spec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rtree3 x rel(T) x point x instant x int [ x attrname] "
+      " -> stream(T) </text--->"
+      "<text>_ _ distancescan4 [ _, _, _ ]</text--->"
+      "<text> Computes the k nearest neighbours of a point from "
+      " a set of moving point units (stored in rel and indexed by the rtree)"
+      " for a given point in time. If the relation contains more than 1 "
+      " attributes of type upoint, the attribute name of the indexed "
+      " attribute must be a parameter of that operator </text--->"
+      "<text>query UnitTrains_rtree UnitTrains distancescan4 "
+      "  [[const point value (10539.0 14412.0)], now(),  5] tconsume;"
+      "</text--->))";
 
 const string knearestSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -4607,7 +4639,7 @@ Operator distancescan3 (
 
 Operator distancescan4 (
          "distancescan4",        // name
-         distanceScan3Spec,      // specification
+         distanceScan4Spec,      // specification
          distanceScan4Fun,       // value mapping
          Operator::SimpleSelect, // trivial selection function
          distanceScan4TypeMap    // type mapping

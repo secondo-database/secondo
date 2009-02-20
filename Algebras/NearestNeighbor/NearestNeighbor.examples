@@ -5,19 +5,42 @@ Operator : distancescan
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
 Example  : query Kinos creatertree[geoData] Kinos distancescan [[const point value (10539.0 14412.0)], 5] consume
-Result   : file_platform
+Result   : file
 
 Operator : distancescan
 Number   : 2
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
 Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] consume
-Result   : file_platform
+Result   : file
+
+
+Operator : distancescan2
+Number   : 1
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
+Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] consume
+Result   : file
+
+Operator : distancescan3
+Number   : 1
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
+Example  : query Kinos creatertree[geoData] Kinos distancescan [tiergarten, 5] consume
+Result   : file
+
+
+Operator : distancescan4
+Number   : 1
+Signature: rtree3 x rel(T) x point x instant x int [x attrname] -> stream(T), T has to contain a upoint attribute
+Example  : query (UnitTrains feed extend[Tid : tupleid(.)] sortby[UTrip] bulkloadrtree [UTrip]) UnitTrains distancescan4[[const point value (0 0)], [const instant value "2003-11-20-9:00"], 0] count
+Result   : (int 94)
+
+
+
 
 Operator : knearest
 Number   : 3
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains feed head[20] UTrip knearest [train1, 2] consume
-Result   : file_platform
+Result   : crashes 
 
 Operator : knearest
 Number   : 4
@@ -29,7 +52,7 @@ Operator : knearestvector
 Number   : 5
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains feed head[20] UTrip knearestvector [train1, 2] consume
-Result   : file_platform
+Result   : crashes
 
 Operator : knearestfilter
 Number   : 6
