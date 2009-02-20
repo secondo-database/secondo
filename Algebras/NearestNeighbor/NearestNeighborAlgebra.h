@@ -29,10 +29,10 @@ class DistanceElement
     long NodeId() const { return nodeId; }
     int Level() const { return level; }
 
-    struct Near : public binary_function< DistanceElement<LeafInfo>, 
+    struct Near : public binary_function< DistanceElement<LeafInfo>,
                         DistanceElement<LeafInfo>, bool >
     {
-        bool operator()(const DistanceElement<LeafInfo> e1, 
+        bool operator()(const DistanceElement<LeafInfo> e1,
                               const DistanceElement<LeafInfo> e2) const
         {
           return e1.distance >= e2.distance;
@@ -46,7 +46,7 @@ class DistanceElement
       level( -1 )
       {}
 
-    DistanceElement( long node, bool l, LeafInfo tid, 
+    DistanceElement( long node, bool l, LeafInfo tid,
                       double dist, int curLevel ):
       nodeId( node ),
       leaf( l ),
@@ -60,7 +60,7 @@ class DistanceElement
 };
 
 typedef vector< DistanceElement<TupleId> > NNVector;
-typedef priority_queue< DistanceElement<TupleId>, NNVector, 
+typedef priority_queue< DistanceElement<TupleId>, NNVector,
         DistanceElement<TupleId>::Near > NNpriority_queue;
 
 
@@ -81,7 +81,7 @@ LastDistanceScan deletes the priority queue of the distancescan
 
 * /
 
-bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box, 
+bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box,
                                    LeafInfo& result );
 / *
 NextDistanceScan returns true and fills the result with the
@@ -130,7 +130,7 @@ void R_Tree<dim, LeafInfo>::FirstDistanceScan( const BBox<dim>& box )
   distanceFlag = true;
   pq = new NNpriority_queue;
   R_TreeNode<dim, TupleId> tmp = Root();
-  pq->push( DistanceElement<TupleId>( RootRecordId(), false, -1, 
+  pq->push( DistanceElement<TupleId>( RootRecordId(), false, -1,
       tmp.BoundingBox().Distance(box), 0));
 }
 
@@ -152,7 +152,7 @@ ID of the next tuple if there is a next tuple else it returns false
 
 */
 template <unsigned dim, class LeafInfo>
-bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box, 
+bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box,
                                    LeafInfo& result )
 {
   assert(distanceFlag);
@@ -167,27 +167,27 @@ bool R_Tree<dim, LeafInfo>::NextDistanceScan( const BBox<dim>& box,
     }
     else
     {
-     R_TreeNode<dim, LeafInfo> *tmp = GetNode( elem.NodeId(), 
-                     elem.IsLeaf(), 
-                     MinEntries( elem.Level() ), 
+     R_TreeNode<dim, LeafInfo> *tmp = GetNode( elem.NodeId(),
+                     elem.IsLeaf(),
+                     MinEntries( elem.Level() ),
                      MaxEntries( elem.Level() ) );
       for ( int ii = 0; ii < tmp->EntryCount(); ++ii )
       {
         if ( tmp->IsLeaf() )
         {
-          R_TreeLeafEntry<dim, LeafInfo> e = 
+          R_TreeLeafEntry<dim, LeafInfo> e =
             (R_TreeLeafEntry<dim, LeafInfo>&)(*tmp)[ii];
 
-          pq->push( DistanceElement<LeafInfo>( 0, 
-              true, e.info, e.box.Distance( box ), 
+          pq->push( DistanceElement<LeafInfo>( 0,
+              true, e.info, e.box.Distance( box ),
               elem.Level() + 1));
         }
         else
         {
-          R_TreeInternalEntry<dim> e = 
+          R_TreeInternalEntry<dim> e =
             (R_TreeInternalEntry<dim>&)(*tmp)[ii];
-          pq->push( DistanceElement<LeafInfo>( e.pointer, 
-              false, -1, e.box.Distance( box ), 
+          pq->push( DistanceElement<LeafInfo>( e.pointer,
+              false, -1, e.box.Distance( box ),
               elem.Level() + 1));
         }
       }
@@ -214,10 +214,10 @@ struct EventElem
   EventElem(EventType t, Instant i, Tuple* tu, const UPoint* upt,
     MReal* d) : type(t), pointInTime(i), tuple(tu), tuple2(NULL),
     up(upt), distance(d){}
-  EventElem(EventType t, Instant i, Tuple* tu, Tuple* tu2, MReal* d) 
+  EventElem(EventType t, Instant i, Tuple* tu, Tuple* tu2, MReal* d)
     : type(t), pointInTime(i), tuple(tu), tuple2(tu2),
     up(NULL), distance(d){}
-  bool operator<( const EventElem& e ) const 
+  bool operator<( const EventElem& e ) const
   {
     if( e.pointInTime != pointInTime)
     {
@@ -252,7 +252,7 @@ public:
   bool lc;
   bool rc;
   ActiveElem(){}
-  ActiveElem(MReal *dist, Tuple* t, Instant s, Instant e, bool l, bool r) 
+  ActiveElem(MReal *dist, Tuple* t, Instant s, Instant e, bool l, bool r)
     : distance(dist), tuple(t), start(s), end(e), lc(l), rc(r){}
 };
 }
@@ -286,12 +286,12 @@ class NNTree
     public:
       iter( ) : itNode(NULL){}
       iter( NNnode *n) : itNode(n){}
-      friend bool operator==(const NNTree::iter& i, 
+      friend bool operator==(const NNTree::iter& i,
         const iter& j)
       {
         return i.itNode == j.itNode;
       }
-      friend bool operator!=(const NNTree::iter& i, 
+      friend bool operator!=(const NNTree::iter& i,
         const NNTree::iter& j)
       {
         return i.itNode != j.itNode;
@@ -301,24 +301,24 @@ class NNTree
       iter& operator++(); //prefix
       iter operator++(int)  //postfix
       {
-        iter tmp = *this; 
+        iter tmp = *this;
         ++this;
         return tmp;
       }
       iter& operator--(); //prefix
       iter operator--(int)  //postfix
       {
-        iter tmp = *this; 
+        iter tmp = *this;
         --this;
         return tmp;
       }
       iter &leftItem()
-      { 
-        itNode = itNode->left; return *this; 
+      {
+        itNode = itNode->left; return *this;
       }
       iter &rightItem()
-      { 
-        itNode = itNode->right; return *this; 
+      {
+        itNode = itNode->right; return *this;
       }
       bool hasLeft( ){ return itNode->left != NULL; }
       bool hasRight( ){ return itNode->right != NULL; }
@@ -356,7 +356,7 @@ Konstruktor of NNTree
 */
 template<class T>
 NNTree<T>::NNTree() : first(NULL), rootnode(NULL),nrelements(0)
-{   
+{
 }
 
 /*
@@ -388,11 +388,11 @@ typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
   {
     if( p != NULL )
     {
-      if( p->left == pos.itNode) 
+      if( p->left == pos.itNode)
       {
         p->left = NULL;
       }
-      else 
+      else
         p->right = NULL;
     }
     else
@@ -407,20 +407,20 @@ typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
     {
       if( p->left == pos.itNode)
       {
-        p->left = (pos.itNode->left != NULL) ? pos.itNode->left 
+        p->left = (pos.itNode->left != NULL) ? pos.itNode->left
                                             : pos.itNode->right;
         p->left->parent = p;
       }
-      else 
+      else
       {
-        p->right = (pos.itNode->left != NULL) ? pos.itNode->left 
+        p->right = (pos.itNode->left != NULL) ? pos.itNode->left
                                             : pos.itNode->right;
         p->right->parent = p;
       }
     }
     else
     {
-      rootnode = (pos.itNode->left != NULL) 
+      rootnode = (pos.itNode->left != NULL)
         ? pos.itNode->left : pos.itNode->right;
       rootnode->parent = NULL;
     }
@@ -489,7 +489,6 @@ typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
   {
     first = res.itNode;
   }
-  delete pos.itNode;
   --nrelements;
   return res;
 }
@@ -519,7 +518,7 @@ typename NNTree<T>::iter NNTree<T>::addLeft( T &e, iter &it)
   {
     first = nNode;
   }
-  return iter(nNode); 
+  return iter(nNode);
 }
 
 template<class T>
@@ -528,7 +527,7 @@ typename NNTree<T>::iter NNTree<T>::addRight( T &e, iter &it)
   assert( it.itNode->right == NULL );
   NNnode *nNode = newNode(e, it.itNode);
   it.itNode->right = nNode;
-  return iter(nNode); 
+  return iter(nNode);
 }
 
 /*
@@ -543,14 +542,14 @@ typename NNTree<T>::iter NNTree<T>::addElem( T &e, iter &it)
   {
     NNnode *nNode = newNode(e, it.itNode);
     it.itNode->right = nNode;
-    return iter(nNode); 
+    return iter(nNode);
   }
   else
   {
     NNnode *n = minNode(it.itNode->right);
     NNnode *nNode = newNode(e, n);
     n->left = nNode;
-    return iter(nNode); 
+    return iter(nNode);
   }
 }
 
@@ -561,14 +560,14 @@ iter functions
 template<class T>
 typename NNTree<T>::iter& NNTree<T>::iter::operator++()    //prefix
 {
-  itNode = nextNode(itNode); 
+  itNode = nextNode(itNode);
   return *this;
 }
 
 template<class T>
 typename NNTree<T>::iter& NNTree<T>::iter::operator--() //prefix
 {
-  itNode = prevNode(itNode); 
+  itNode = prevNode(itNode);
   return *this;
 }
 
@@ -594,13 +593,13 @@ typename NNTree<T>::NNnode *NNTree<T>::newNode( T &e, NNnode *p)
     newNode->parent = p;
   }
   ++nrelements;
-  return newNode; 
+  return newNode;
 }
 
 template<class T>
 unsigned int NNTree<T>::nodeCount( NNnode *n )
 {
-  if( n != NULL ) 
+  if( n != NULL )
     return 1 + nodeCount(n->left) + nodeCount(n->right);
   else
     return 0;
@@ -682,7 +681,7 @@ struct FieldEntry
   Instant start, end;
   int level;
 
-  FieldEntry( long node, double maxd, Instant &s, Instant &e, 
+  FieldEntry( long node, double maxd, Instant &s, Instant &e,
                   int l):
     nodeid(node),
     maxdist(maxd),
@@ -722,12 +721,12 @@ public:
 
     virtual ~SegEntry()
     {}
-    friend bool operator!=(const SegEntry& i, 
+    friend bool operator!=(const SegEntry& i,
       const SegEntry& j)
     {
       return i.nodeid != j.nodeid || i.tpid != j.tpid;
     }
-    bool operator<( const SegEntry& e ) const 
+    bool operator<( const SegEntry& e ) const
     {
       if( e.start != start)
       {
@@ -774,9 +773,9 @@ private:
   SegNode *sroot;
   void makeEmpty( SegNode *node);
   void insertNode( SegEntry &s, SegNode *node, int k);
-  void eraseEntry( Instant start, Instant end, long rnodeid, 
+  void eraseEntry( Instant start, Instant end, long rnodeid,
     double dist, SegNode *node, bool &result);
-  void checkErase( Instant t1, Instant t2, double distance, 
+  void checkErase( Instant t1, Instant t2, double distance,
                             SegNode *node, int k );
   void mapfill( map< SegEntry, TupleId> &m, SegNode *node);
   ITSE addEntry(NNTree<SegEntry> &t, SegEntry &e);
@@ -824,7 +823,7 @@ This function calls the private recursive function
 eraseEntry
 
 */
-bool NNSegTree::erase( Instant start, Instant end, 
+bool NNSegTree::erase( Instant start, Instant end,
                       long rnodeid, double dist)
 {
   bool result = false;
@@ -833,7 +832,7 @@ bool NNSegTree::erase( Instant start, Instant end,
 }
 
 /*
-calls the private recursive method mapfill 
+calls the private recursive method mapfill
 to fill the given map with all elements which
 are in the segment tree
 
@@ -844,7 +843,7 @@ void NNSegTree::fillMap( map< NNSegTree::SegEntry, TupleId> &m)
 }
 
 /*
-calcCoverage calculates the reached coverage in the given 
+calcCoverage calculates the reached coverage in the given
 time intervall until the given distance. It calls the
 recursive private method calcCoverage
 
@@ -916,7 +915,7 @@ void NNSegTree::insertNode( SegEntry &s, SegNode *node, int k)
   else if( node->left != NULL)
   {
     //the node has childs
-    if( s.start < node->left->end && s.end <= node->left->end) 
+    if( s.start < node->left->end && s.end <= node->left->end)
     {
       //both times are on the left
       insertNode( s, node->left, k );
@@ -964,7 +963,7 @@ in all possible nodes. Every appearance is deleted
 in the given (partial) tree
 
 */
-void NNSegTree::eraseEntry( Instant start, Instant end, long rnodeid, 
+void NNSegTree::eraseEntry( Instant start, Instant end, long rnodeid,
     double dist, SegNode *node, bool &result)
 {
   if( start <= node->start && end >= node->end)
@@ -979,7 +978,7 @@ void NNSegTree::eraseEntry( Instant start, Instant end, long rnodeid,
   else if( node->left )
   {
     // there are childs to look for the element
-    if( start < node->left->end && end <= node->left->end) 
+    if( start < node->left->end && end <= node->left->end)
     {
       //both times are on the left
       eraseEntry( start, end, rnodeid, dist, node->left, result);
@@ -997,8 +996,8 @@ void NNSegTree::eraseEntry( Instant start, Instant end, long rnodeid,
   }
 }
 
-/* 
-addEntry inserts a element SegEntry in the 
+/*
+addEntry inserts a element SegEntry in the
 NNTree of the attribute segEntries of a
 node of the segment tree
 
@@ -1009,7 +1008,7 @@ NNSegTree::ITSE NNSegTree::addEntry(NNTree<SegEntry> &t, SegEntry &e)
   {
     return t.addFirst(e);
   }
-  
+
   double dist = e.maxdist;
   ITSE it = t.root();
   while( true)
@@ -1044,13 +1043,13 @@ NNSegTree::ITSE NNSegTree::addEntry(NNTree<SegEntry> &t, SegEntry &e)
   }
 }
 
-/* 
-findEntry looks for a element SegEntry in the 
+/*
+findEntry looks for a element SegEntry in the
 NNTree of the attribute segEntries of a
 node of the segment tree
 
 */
-NNSegTree::ITSE NNSegTree::findEntry(NNTree<SegEntry> &t, 
+NNSegTree::ITSE NNSegTree::findEntry(NNTree<SegEntry> &t,
                                      long rnodeid, double dist)
 {
   ITSE it = t.root();
@@ -1094,8 +1093,8 @@ NNSegTree::ITSE NNSegTree::findEntry(NNTree<SegEntry> &t,
     {
       --pos1;
       if( rnodeid == pos1->nodeid)
-      { 
-        pos2 = pos1; 
+      {
+        pos2 = pos1;
         havePos = true;
       };
     }
@@ -1112,14 +1111,14 @@ NNSegTree::ITSE NNSegTree::findEntry(NNTree<SegEntry> &t,
   return pos2;
 }
 
-/* 
-findEntryMindistance looks for a element SegEntry in the 
+/*
+findEntryMindistance looks for a element SegEntry in the
 NNTree of the attribute segEntries of a
 node of the segment tree which has a mindistance
 higher than the given distance
 
 */
-NNSegTree::ITSE NNSegTree::findEntryMindistance(NNTree<SegEntry> &t, 
+NNSegTree::ITSE NNSegTree::findEntryMindistance(NNTree<SegEntry> &t,
                                      double dist)
 {
   //the function looks first for a maxdistance higher because
@@ -1175,7 +1174,7 @@ after the insertion of the element s into the given node.
 This function deletes the needless elements.
 
 */
-void NNSegTree::checkErase( Instant t1, Instant t2, double distance, 
+void NNSegTree::checkErase( Instant t1, Instant t2, double distance,
                            SegNode *node, int k )
 {
   int c = calcCoverage( t1, t2, distance, sroot, true );
@@ -1238,7 +1237,7 @@ int NNSegTree::calcCoverage( Instant t1, Instant t2, double distance,
     if( node->left )
     {
       // there are childs to look for the element
-      if( t2 <= node->left->end) 
+      if( t2 <= node->left->end)
       {
         //both times are on the left
         result += calcCoverage( t1, t2, distance, node->left, hasEqual);
@@ -1252,7 +1251,7 @@ int NNSegTree::calcCoverage( Instant t1, Instant t2, double distance,
       {
         int lc, rc;
         lc = calcCoverage( t1, node->left->end, distance, node->left,hasEqual);
-        rc = calcCoverage( node->right->start, t2, distance, 
+        rc = calcCoverage( node->right->start, t2, distance,
           node->right, hasEqual);
         result += MIN( lc, rc );
       }
