@@ -1,0 +1,19 @@
+
+(
+    (rel 
+        (tuple 
+            (
+                (Name string) 
+                (Strasse string) 
+                (geoData point)))) 
+    (
+        ("CinemaxX Potsdamer Platz" "Potsdamer Platz 5" 
+            (8529.0 11475.0)) 
+        ("CineStar 3-D-IMAX Potsdamer Platz" "Potsdamer Str. 4" 
+            (8496.0 11441.0)) 
+        ("CineStar Potsdamer Platz" "Potsdamer Str. 4" 
+            (8496.0 11441.0)) 
+        ("UCI Kinowelt Zoo Palast" "Hardenbergstr. 29" 
+            (5740.0 11005.0)) 
+        ("Broadway" "Tauentzienstr. 8" 
+            (5958.0 10811.0))))
