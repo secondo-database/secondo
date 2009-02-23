@@ -68,7 +68,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "BBTree.h"
 #include "BTreeAlgebra.h"
 
-#include "ListUtils.h" 
+#include "ListUtils.h"
 
 /*
 The file "Algebra.h" is included, since the new algebra must be a subclass of
@@ -165,11 +165,11 @@ distanceScanTypeMap( ListExpr args )
               "(searchwindow neither of kind spatial nor a rectangle)");
     return listutils::typeError();
   }
-  
+
   if(!listutils::isRTreeDescription(rtreeDescription)){
     ErrorReporter::ReportError(errmsg + "(invalid rtree description)");
     return listutils::typeError();
-  } 
+  }
 
 
   ListExpr rtreeKeyType = listutils::getRTreeType(rtreeDescription);
@@ -354,7 +354,7 @@ ListExpr distanceScan4TypeMap(ListExpr args){
     ErrorReporter::ReportError(err + " (invalid rtree  dimension)");
     return listutils::typeError();
   }
- 
+
   if(!listutils::isRelDescription(nl->Second(args))){
     ErrorReporter::ReportError(err + " (invalid relation)");
     return listutils::typeError();
@@ -362,17 +362,17 @@ ListExpr distanceScan4TypeMap(ListExpr args){
   if(!nl->IsEqual(nl->Third(args),"point")){
     ErrorReporter::ReportError(err + " (invalid point)");
     return listutils::typeError();
-  } 
+  }
   if(!nl->IsEqual(nl->Fourth(args),"instant")){
     ErrorReporter::ReportError(err + " (invalid instant)");
     return listutils::typeError();
-  } 
+  }
   if(!nl->IsEqual(nl->Fifth(args),"int")){
     ErrorReporter::ReportError(err + " (invalid int)");
     return listutils::typeError();
-  } 
+  }
 
-  // relation and rtree must have the same tuple type 
+  // relation and rtree must have the same tuple type
   if(!nl->Equal(nl->Second(nl->First(args)), nl->Second(nl->Second(args)))){
     ErrorReporter::ReportError(err + " (different type of rtree and rel)");
     return listutils::typeError();
@@ -381,7 +381,7 @@ ListExpr distanceScan4TypeMap(ListExpr args){
   if(!nl->IsEqual(rtreekey,"upoint")){
     ErrorReporter::ReportError(err + " (rtree not build on upoint)");
     return listutils::typeError();
-  }  
+  }
 
   ListExpr attrList = nl->Second(nl->Second(nl->Second(args)));
   ListExpr res1 = nl->TwoElemList(nl->SymbolAtom("stream"),
@@ -402,7 +402,7 @@ ListExpr distanceScan4TypeMap(ListExpr args){
     if(!nl->IsEqual(type,"upoint") ){
       ErrorReporter::ReportError(err + " (attribute not a upoint)");
       return listutils::typeError();
-    } 
+    }
     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                              nl->OneElemList(nl->IntAtom(j)),
                              res1);
@@ -413,7 +413,7 @@ ListExpr distanceScan4TypeMap(ListExpr args){
        ErrorReporter::ReportError(err + " (no upoint stored in relation)");
        return listutils::typeError();
     }
-    int j2 = listutils::findType(attrList, 
+    int j2 = listutils::findType(attrList,
                                  nl->SymbolAtom("upoint"),
                                  name,
                                  j+1);
@@ -1505,15 +1505,15 @@ Check for a tuple entry.
     TupleId tupleId;
     int level;
     double distance;
-    
+
 
     inline Rectangle<2> project(const Rectangle<3> r3){
        Rectangle<2> result(true, r3.MinD(0),r3.MaxD(0),r3.MinD(1),r3.MaxD(1));
        return result;
     }
-  
+
     inline double computeDistance(const UPoint* up,
-                                const  Point* p, 
+                                const  Point* p,
                                 const Instant& i){
 
 
@@ -1546,9 +1546,9 @@ public:
 
 class DS4LocalInfo{
 public:
-   DS4LocalInfo( R_Tree<3, TupleId>* rtree, 
+   DS4LocalInfo( R_Tree<3, TupleId>* rtree,
                  Relation* rel,
-                 Point* point, 
+                 Point* point,
                  Instant* instant,
                  CcInt* k, int position){
      // check if all things are defined
@@ -1638,7 +1638,7 @@ public:
             SmiRecordId rid = next->pointer;
             R_TreeNode<3, TupleId> nextNode(true, minEntries, maxEntries);
             tree->GetNode(rid, nextNode);
-            DS4Entry* nextEntry = new DS4Entry(nextNode, point, 
+            DS4Entry* nextEntry = new DS4Entry(nextNode, point,
                                                level, instantAsDouble);
             if(nextEntry->getDistance() >=0){
                dsqueue.push(nextEntry);
@@ -1700,7 +1700,7 @@ int distanceScan4Fun (Word* args, Word& result, int message,
 
   switch(message){
     case OPEN: {
-        R_Tree<3, TupleId>* rtree = 
+        R_Tree<3, TupleId>* rtree =
                  static_cast<R_Tree<3,TupleId>*> (args[0].addr);
         Relation* rel   = static_cast<Relation*>(args[1].addr);
         Point*    point = static_cast<Point*>(args[2].addr);
@@ -1711,8 +1711,8 @@ int distanceScan4Fun (Word* args, Word& result, int message,
         if(!point->IsDefined() || !instant->IsDefined() || !k->IsDefined()){
            local.setAddr(0);
         } else {
-          local.addr = new DS4LocalInfo(rtree, rel, point, instant, 
-                                        k, attrpos); 
+          local.addr = new DS4LocalInfo(rtree, rel, point, instant,
+                                        k, attrpos);
         }
         return 0;
      }
@@ -1730,7 +1730,7 @@ int distanceScan4Fun (Word* args, Word& result, int message,
            delete li;
            local.addr = 0;
         }
-        return 0; 
+        return 0;
      }
     default: assert(false);
   }
@@ -1794,31 +1794,31 @@ by time. A lower time cannot come
 void GetDistance( const MPoint* mp, const UPoint* up,
                    int &mpos, MReal *erg)
 {
-  
+
   Instant time1 = up->timeInterval.start;
   Instant time2 = up->timeInterval.end;
-  
+
   int noCo = mp->GetNoComponents();
   const UPoint *upn;
 
   for (int ii=mpos; ii < noCo; ii++)
   {
-    mp->Get( ii, upn);  // get the current Unit  
+    mp->Get( ii, upn);  // get the current Unit
 
-    if( time1 < upn->timeInterval.end ||   
+    if( time1 < upn->timeInterval.end ||
         (time1 == upn->timeInterval.end && upn->timeInterval.rc))
     { // interval of mp intersects the interval of up
       mpos = ii;
       UReal firstu(true);
-      
+
       // take the bigger starting point
       Instant start = up->timeInterval.start < upn->timeInterval.start
         ? upn->timeInterval.start : up->timeInterval.start;
-      
+
       // take the smaller end
       Instant end = up->timeInterval.end < upn->timeInterval.end
         ? up->timeInterval.end : upn->timeInterval.end;
-      
+
       bool lc = up->timeInterval.lc;
       if( lc && (start > up->timeInterval.start || (up->timeInterval.start
         == upn->timeInterval.start && !up->timeInterval.lc)))
@@ -2476,13 +2476,13 @@ public:
 /*
 ~Constructor~
 
- consumes the stream until the first unit is found with an interval 
+ consumes the stream until the first unit is found with an interval
  which intersects the definition time of the moving point
 
 */
 
-   KNearestQueue(Word& src, QueryProcessor* qp1, 
-                 int pos1, const MPoint* mpoint1): 
+   KNearestQueue(Word& src, QueryProcessor* qp1,
+                 int pos1, const MPoint* mpoint1):
         stream(src),qp(qp1),pos(pos1),mpoint(mpoint1), mpos(0){
 
      if(!mpoint->IsDefined() || mpoint->IsEmpty()){
@@ -2498,8 +2498,8 @@ public:
      bool rc = tmp->timeInterval.rc;
 
      iv = Interval<Instant>(tmpstart, tmpend,lc,rc);
-     
-     
+
+
 
      Word current(Address(0));
 
@@ -2527,7 +2527,7 @@ public:
               lastTuple->DeleteIfAllowed();
               lastTuple = 0;
            }
-         } 
+         }
      }
      if(lastTuple){
        tmp = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
@@ -2546,7 +2546,7 @@ public:
          lastTuple->DeleteIfAllowed();
          lastTuple = 0;
       }
-   } 
+   }
 
 
    inline bool empty() const{
@@ -2582,7 +2582,7 @@ public:
    Interval<Instant> iv;              // interval of the moving point
 
   // forbid access to copy constructor and assignment operator
-  // => force call by reference 
+  // => force call by reference
   KNearestQueue(const KNearestQueue& src){
      assert(false);
   }
@@ -2594,18 +2594,18 @@ public:
 ~next~
 
 This function checks whether the next Event comes from the stream or
-from the queue. If it comes from the queue, the lastTuple is converted 
-to a EventElement and inserted into the queue. 
+from the queue. If it comes from the queue, the lastTuple is converted
+to a EventElement and inserted into the queue.
 
-*/ 
+*/
   inline void next(){
     if(lastTuple){ // otherwise, we have nothing to do
       if(queue.empty()){
-        transfer(tupleStart); 
+        transfer(tupleStart);
       }  else {
         EventElem ev = queue.top();
         transfer(ev.pointInTime);
-      }     
+      }
     }
   }
 
@@ -2618,7 +2618,7 @@ to a EventElement and inserted into the queue.
 
   inline void transfer(DateTime& i){
      bool t = false;
-     while( (lastTuple && tupleStart <= i)  || 
+     while( (lastTuple && tupleStart <= i)  ||
             (lastTuple && !t)){
        t = transfersingle();
      }
@@ -2640,7 +2640,7 @@ lasttuple must be exist.
     bool transferred = false;
 
     if(iv.Intersects(up->timeInterval) ){ // intersecting interval
-      
+
       GetDistance(mpoint, up, mpos, mr);
       Instant t1 = up->timeInterval.start;
       Instant t2 = up->timeInterval.end;
@@ -2655,16 +2655,16 @@ lasttuple must be exist.
     qp->Request(stream.addr,current);
     if(qp->Received(stream.addr)){
        lastTuple = static_cast<Tuple*>(current.addr);
-         const UPoint* up = 
+         const UPoint* up =
                static_cast<const UPoint*>(lastTuple->GetAttribute(pos));
          tupleStart = up->timeInterval.start;
-         if(tupleStart > iv.end){ 
-            // tuple starts after the end of the query point 
+         if(tupleStart > iv.end){
+            // tuple starts after the end of the query point
             lastTuple->DeleteIfAllowed();
             lastTuple = 0;
-         } 
+         }
     } else {
-      lastTuple->DeleteIfAllowed(); 
+      lastTuple->DeleteIfAllowed();
       lastTuple = 0;
     }
     return transferred;
@@ -2800,7 +2800,7 @@ struct KnearestLocalInfo
 {
   KnearestLocalInfo(Word& stream, int attrPos,
                     const MPoint* mp, int k1, bool scanFlag1):
-     k(k1),scanFlag(scanFlag1), eventQueue(stream, qp, attrPos, mp){} 
+     k(k1),scanFlag(scanFlag1), eventQueue(stream, qp, attrPos, mp){}
   unsigned int k;
   bool scanFlag;
   KNearestQueue eventQueue;
@@ -2839,7 +2839,7 @@ int knearestFun (Word* args, Word& result, int message,
       if(!mp->IsDefined() || mp->IsEmpty() || !k->IsDefined()){
          local.addr = 0;
       } else{
-         KnearestLocalInfo* localInfo = 
+         KnearestLocalInfo* localInfo =
                 new KnearestLocalInfo(args[0], attrPos, mp,
                                       k->GetIntval(), true);
          const UPoint *up1, *up2;
@@ -2860,8 +2860,8 @@ int knearestFun (Word* args, Word& result, int message,
     case REQUEST :
     {
      if(!local.addr){
-       return CANCEL; 
-     } 
+       return CANCEL;
+     }
      int attrNr = ((CcInt*)args[4].addr)->GetIntval() - 1;
      KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
       if ( !localInfo->scanFlag )
@@ -3050,16 +3050,18 @@ int knearestFun (Word* args, Word& result, int message,
               ActiveElem newElem1(posFirst->distance,
                   posFirst->tuple, elem.pointInTime,
                   posFirst->end, posFirst->lc, posFirst->rc);
-              localInfo->activeLine.erase( posFirst );
               va.push_back(newElem1);
               s.insert(posFirst->tuple);
+              localInfo->activeLine.erase( posFirst );
+
 
               ActiveElem newElem2(posSec->distance,
                   posSec->tuple, elem.pointInTime,
                   posSec->end, posSec->lc, posSec->rc);
-              localInfo->activeLine.erase( posSec );
               va.push_back(newElem2);
               s.insert(posSec->tuple);
+              localInfo->activeLine.erase( posSec );
+
 
               while( !localInfo->eventQueue.empty() )
               {
@@ -3234,7 +3236,7 @@ struct KnearestLocalInfoVector
 {
   KnearestLocalInfoVector(Word& stream, int attrPos,
                     const MPoint* mp, int k1, bool scanFlag1):
-     k(k1),scanFlag(scanFlag1), eventQueue(stream, qp, attrPos, mp){} 
+     k(k1),scanFlag(scanFlag1), eventQueue(stream, qp, attrPos, mp){}
   unsigned int k;
   //int max;
   bool scanFlag;
@@ -3272,7 +3274,7 @@ int knearestFunVector (Word* args, Word& result, int message,
       if(!CcK->IsDefined()){
         local.setAddr(0);
         return 0;
-      }      
+      }
       int k = CcK->GetIntval();
       int attrPos = ((CcInt*)args[4].addr)->GetIntval() - 1;
 
@@ -4884,16 +4886,17 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                      localInfo->rtree->MaxEntries( f.level ) );
             Instant t1(localInfo->startTime.GetType());
             Instant t2(localInfo->startTime.GetType());
-            for ( int ii = 0; ii < tmp->EntryCount(); ++ii )
-            {
-              if ( tmp->IsLeaf() )
-              {
+
+
+            if(tmp->IsLeaf()){
+              for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
                 R_TreeLeafEntry<dim, TupleId> e =
                   (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
                 t1.ReadFrom((double)(e.box.MinD(2)));
                 t2.ReadFrom((double)(e.box.MaxD(2)));
-                if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
-                {
+                if(t1 > f.end)
+                  break;
+                if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
                   const BBox<2> xyBox = makexyBox( e.box );
                   Interval<Instant> d(t1,t2,true,true);
                   const BBox<2> mBox(t->getBox(d));
@@ -4901,36 +4904,71 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                         xyBox.Distance( mBox),
                         maxDistance( xyBox, mBox), 1,
                         -1, e.info);
-                  newcheckInsert( localInfo->timeTree, se, mBox,
-                    localInfo->k, localInfo->rtree, f.level+1,localInfo->hats,
-                    localInfo->btreehats);
+                  double reachcov =
+                  localInfo->timeTree.calcCoverage(t1,t2,xyBox.Distance(mBox));
+                  if(reachcov < localInfo->k)
+                    localInfo->timeTree.insert(se,localInfo->k);
                 }
+
               }
-              else
-              {
+            }else{ //Internal node
+                vector<Interval<Instant> > interv;
+                vector<int> covs;
+                CcInt* id = new CcInt(true,f.nodeid);
+                BTreeIterator* btreeiter = localInfo->btreehats->ExactMatch(id);
+                while(btreeiter->Next()){
+                  Tuple* tuple = localInfo->hats->GetTuple(btreeiter->GetId());
+                  UInt* ut = (UInt*)tuple->GetAttribute(2);//NodeId, RecId, Uint
+                  interv.push_back(ut->timeInterval);
+                  covs.push_back(ut->constValue.GetValue());
+                  tuple->DeleteIfAllowed();
+                }
+                delete id;
+
+              for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
                 R_TreeInternalEntry<dim> e =
                   (R_TreeInternalEntry<dim>&)(*tmp)[ii];
-               t1.ReadFrom(e.box.MinD(2));
+                t1.ReadFrom(e.box.MinD(2));
                 t2.ReadFrom(e.box.MaxD(2));
-               if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
-               {
-                  const BBox<2> xyBox = makexyBox( e.box );
-                  Interval<Instant> d(t1,t2,true,true);
-                  const BBox<2> mBox(t->getBox(d));
+                if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
+                    const BBox<2> xyBox = makexyBox( e.box );
+                    Interval<Instant> d(t1,t2,true,true);
+                    const BBox<2> mBox(t->getBox(d));
+                    if(interv.size() == 3){ //exit hat
+                      int cov = 0;
+                      for(int j = 0;j < interv.size();j++){
+                        if(interv[j].Contains(t2)){
+                          cov = covs[j];
+                          break;
+                        }
+                      }
+                      NNSegTree::SegEntry se(xyBox,t1, t2,
+                          xyBox.Distance( mBox),
+                          maxDistance( xyBox, mBox), cov,
+                          e.pointer, -1);
+                      double reachedCoverage =
+                        localInfo->timeTree.calcCoverage( t1, t2, se.mindist );
+                      if(reachedCoverage < localInfo->k){
+                        localInfo->timeTree.insert( se, localInfo->k);
+                        localInfo->vectorB.push_back(FieldEntry(se.nodeid,
+                        se.maxdist, se.start, se.end, f.level+1));
+                      }
+                   }else{// no hat
                   NNSegTree::SegEntry se(xyBox,t1, t2,
                         xyBox.Distance( mBox),
                         maxDistance( xyBox, mBox), 0,
                         e.pointer, -1);
-                  if( newcheckInsert( localInfo->timeTree, se,
-                        mBox, localInfo->k, localInfo->rtree, f.level+1,
-                      localInfo->hats,localInfo->btreehats))
-                  {
-                   localInfo->vectorB.push_back( FieldEntry(
+                    if( checkInsert( localInfo->timeTree, se,
+                        mBox, localInfo->k, localInfo->rtree, f.level+1))
+                      {
+                          localInfo->vectorB.push_back( FieldEntry(
                           e.pointer, se.maxdist, t1, t2, f.level + 1));
-                  }
+                      }
+                    }
                 }
-              }
             }
+          }//else
+
             delete tmp;
           }
         }
