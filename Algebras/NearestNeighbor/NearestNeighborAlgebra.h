@@ -381,6 +381,7 @@ typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
   {
     return pos;
   }
+
   iter res(pos);
   ++res;
   NNnode *p = pos.itNode->parent;
@@ -489,6 +490,7 @@ typename NNTree<T>::iter NNTree<T>::erase( iter &pos)
   {
     first = res.itNode;
   }
+  delete pos.itNode;
   --nrelements;
   return res;
 }
