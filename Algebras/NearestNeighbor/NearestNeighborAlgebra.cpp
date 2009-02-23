@@ -4968,7 +4968,6 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                 }
             }
           }//else
-
             delete tmp;
           }
         }
