@@ -4512,21 +4512,37 @@ int rect2periodsFun (Word* args, Word& result, int message,
 */
 
 const string distanceScanSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\"  )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))\n"
       "For T = ti and ti in SPATIAL<d>D, for"
       " d in {2, 3, 4, 8}</text--->"
       "<text>_ _ distancescan [ _, _ ]</text--->"
-      "<text>Uses the given rtree to find k tuples in the"
-      " relation in order of their distance from the "
-      " position T. The nearest tuple first.</text--->"
+      "<text> Computes the k nearest neighbors for a query object. "
+      " The query object as well as the objects stored in the r-tree "
+      " must be equal to their bounding boxes (i.e. point or retangle types)"
+      " to produce correct results. The result comes ordered by the distance"
+      " to the query object. If k <=0 all stored objects ordered by their"
+      " distance to the query object is returned. </text--->"
       "<text>query kinos_geoData Kinos distancescan "
-      "[[const point value (10539.0 14412.0)], 5] consume; "
-      "where kinos_geoData "
-      "is e.g. created with 'let kinos_geoData = "
-      "Kinos creatertree [geoData]'</text--->"
+      "[[const point value (10539.0 14412.0)], 5] consume; </text--->"
+      ") )";
+
+const string distanceScan2Spec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
+      " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k ->"
+      " (stream (tuple ((x1 t1)...(xn tn))))\n"
+      "For T = ti and ti in SPATIAL<d>D, for"
+      " d in {2, 3, 4, 8}</text--->"
+      "<text>_ _ distancescan2 [ _, _ ]</text--->"
+      "<text> This operator works very similar to the distancescan "
+      " operator but it allows an arbitrary spatial type for the "
+      " query object. The objects indexed by the r-tree must be equal"
+      " to their bounding boxes (point or rectangle). </text--->"
+      "<text>query kinos_geoData Kinos distancescan2 "
+      "[zoogarten, 5] tconsume; </text--->"
       ") )";
 
 const string distanceScan3Spec  =
@@ -4534,17 +4550,24 @@ const string distanceScan3Spec  =
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x T x k  x attrname->"
       " (stream (tuple ((x1 t1)...(xn tn))))\n"
-      "For T = ti and ti in SPATIAL<d>D, for"
-      " d in {2, 3, 4, 8}</text--->"
+      "For T = ti and ti in {point, points, region, rect, rect?},"
+      " </text--->"
       "<text>_ _ distancescan [ _, _, _ ]</text--->"
-      "<text>Uses the given rtree to find k tuples in the"
-      " relation in order of their distance from the "
-      " position T. The nearest tuple first.</text--->"
-      "<text>query kinos_geoData Kinos distancescan3 "
-      "[[const point value (10539.0 14412.0)], 5] tconsume; "
-      "where kinos_geoData "
-      "is e.g. created with 'let kinos_geoData = "
-      "Kinos creatertree [geoData]'</text--->"
+      "<text>This operator returns the k nearest neighbours to a"
+      " query object ordered by their distance to that object. "
+      " Both, the query object and the objects indexed by the r-tree"
+      " can be of an arbitrary supported spatial type."
+      " If the tuples of the rtree (and the relation) contain more "
+      " than one spatial attribute, the indexed attribute must be given"
+      " by its name as an argument. If it is unique, that parameter "
+      " can be omited. Because the distance calculation requires access to"
+      " the tuples, this operator is slower than the distancescan2 operator."
+      " For this reason, this operator should only ne used if the indexed "
+      " spatial objects are not of type point or rectangle."
+      "</text--->"
+      "<text> query Flaechen creatertree[geoData] Flaechen "
+      "distancescan3[BGrenzenLine, 5] tconsume"
+      "</text--->"
       ") )";
 
 const string distanceScan4Spec  =
@@ -4623,7 +4646,7 @@ Operator distancescan (
 
 Operator distancescan2 (
          "distancescan2",        // name
-         distanceScanSpec,      // specification
+         distanceScan2Spec,      // specification
          4,                     //number of overloaded functions
          distanceScan2Map,       // value mapping
          distanceScanSelect,
