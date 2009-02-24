@@ -3305,18 +3305,24 @@ double HalfSegment::Distance( const Point& p ) const
 
 double HalfSegment::Distance( const HalfSegment& hs ) const
 {
-  if( Intersects( hs ) )
+  if( Intersects( hs ) ){
     return 0.0;
+  }
 
-  return MIN( Distance( hs.GetLeftPoint() ),
-              Distance( hs.GetRightPoint() ) );
+  double d1 = MIN( Distance( hs.GetLeftPoint() ),
+                   Distance( hs.GetRightPoint() ) );
+
+  double d2 = MIN( hs.Distance(this->GetLeftPoint()),
+                   hs.Distance(this->GetRightPoint()));
+  return MIN(d1,d2);
 }
 
 
 double HalfSegment::Distance(const Rectangle<2>& rect) const{
 
   
-  if(rect.Contains(lp.BoundingBox()) || rect.Contains(rp.BoundingBox()) ){
+  if(rect.Contains(lp.BoundingBox()) || 
+     rect.Contains(rp.BoundingBox()) ){
     return 0.0;
   }
   // both endpoints are outside the rectangle
@@ -3328,23 +3334,27 @@ double HalfSegment::Distance(const Rectangle<2>& rect) const{
   Point p1(true,x1,y0);
   Point p2(true,x1,y1);
   Point p3(true,x0,y1);
+
   HalfSegment hs(true,p0,p1);
   double dist = this->Distance(hs);
-  if(dist<FACTOR){
-    return dist;
+  if(AlmostEqual(dist,0)){
+    return 0.0;
   }
   hs.Set(true,p1,p2);
   dist = MIN( dist, this->Distance(hs));
-  if(dist<FACTOR){
-    return dist;
+  if(AlmostEqual(dist,0)){
+    return 0.0;
   }
   hs.Set(true,p2,p3);
   dist = MIN( dist, this->Distance(hs));
-  if(dist<FACTOR){
-    return dist;
+  if(AlmostEqual(dist,0)){
+    return 0.0;
   }
   hs.Set(true,p3,p0);
   dist = MIN( dist, this->Distance(hs));
+  if(AlmostEqual(dist,0)){
+    return 0.0;
+  }
   return dist;
 }
 
@@ -6888,8 +6898,31 @@ double Region::Distance( const Point& p ) const
 double Region::Distance( const Rectangle<2>& r ) const
 {
   assert( IsDefined() && r.IsDefined() && IsOrdered() && !IsEmpty() );
-  Region rr( r );
-  return Distance( rr );
+  Point p1(true,r.MinD(0),r.MinD(1));
+  Point p2(true,r.MaxD(0),r.MinD(1));
+  Point p3(true,r.MaxD(0),r.MaxD(1));
+  Point p4(true,r.MinD(0),r.MaxD(1));
+
+  if(Contains(p1)) return 0.0;
+  if(Contains(p2)) return 0.0;
+  if(Contains(p3)) return 0.0;
+  if(Contains(p4)) return 0.0;
+
+  const HalfSegment* hs;
+  double mindist = numeric_limits<double>::max();
+  for(int i=0;i<region.Size(); i++){
+     Get(i,hs);
+     if(hs->IsLeftDomPoint()){
+       double d = hs->Distance(r);
+       if(d<mindist){
+          mindist = d;
+          if(AlmostEqual(mindist,0)){
+             return 0.0;
+          }
+       }
+     }
+  }
+  return mindist;
 }
 
 
