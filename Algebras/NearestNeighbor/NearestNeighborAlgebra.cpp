@@ -835,7 +835,7 @@ class DSEntry{
 ~Assignment operator~
 
 */
-    DSEntry<dim>& operator=(const DSEntry<dim> src){
+    DSEntry<dim>& operator=(const DSEntry<dim>& src){
       isTuple = src.isTuple;
       if(node){
         delete node;
@@ -1128,7 +1128,7 @@ class DS3Entry{
 
 */
     DS3Entry<dim,IndexedType, QueryType, DistFun>&
-       operator=(const DS3Entry<dim, IndexedType, QueryType, DistFun> src){
+       operator=(const DS3Entry<dim, IndexedType, QueryType, DistFun>& src){
       isTuple = src.isTuple;
       if(node){
         delete node;
