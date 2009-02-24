@@ -15,8 +15,12 @@ executeQuery(Benchmark, No) :-
    
 executeQueries(_, []).
 
-executeQueries(Benchmark, [[No, Query] | Rest]) :-
+executeQueries(Benchmark, [[No, _] | Rest]) :-
   executeQuery(Benchmark, No),
+%  N is No + 1,
+%  write_list(['Execute next Query (', N, ')? y/n']),
+%  get_single_char(Answer),
+%  Answer = 121,
   executeQueries(Benchmark, Rest).
   
 executeBenchmark(Benchmark) :- 
@@ -42,7 +46,7 @@ setupQuery(15) :-
 setupQuery(_).
 		
 teardownQuery(15) :-
-  drop_relation(revenue).	
+  catch(drop_relation(revenue), _, true).	
   
 teardownQuery(_).
 
@@ -194,7 +198,7 @@ tpcd(5, select
 		[revenue desc]).
 		
 tpcd(6, select
-%		[sum(lextendedprice*ldiscount) as revenue]
+		[sum(lextendedprice*ldiscount) as revenue]
 		from
 		lineitem
 		where
@@ -205,7 +209,8 @@ tpcd(6, select
 % substitution parameter	
 		between(ldiscount, 0.06 - 0.01, 0.06 + 0.01),
 % substitution parameter	
-		lquantity < 24]).
+		lquantity < 24]
+		groupby[]).
 		
 tpcd(7, select
 		[supp_nation,
@@ -252,7 +257,7 @@ tpcd(8, select
 		then volume
 		else 0
 		end) / sum(volume) as mktshare */
-		aggregate((ifthenelse(nation = "BRAZIL", volume, 0)), (+), 'int', '[const int value 0]') / sum(volume) as mktshare
+		(aggregate((ifthenelse(nation = "BRAZIL", volume, 0.0)), (+), 'real', '[const real value 0.0]') / sum(volume)) as mktshare
 		]
 		from (
 			select
@@ -355,7 +360,7 @@ tpcd(10, select
 		
 tpcd(11, select
 		[pspartkey,
-		sum(pssupplycost * psavailqty) as value]
+		(sum(pssupplycost * psavailqty)) as value]
 		from
 		[partsupp,
 		supplier,
@@ -366,12 +371,12 @@ tpcd(11, select
 % substitution parameter		
 		nname = "GERMANY"]
 		groupby
-		[pspartkey 
+		[pspartkey] 
 /*		having
-			sum(pssupplycost * psavailqty) > (
+		[sum(pssupplycost * psavailqty) > (
 				select
-% substitution parameter				
-				[(sum(pssupplycost * psavailqty) * 0.0001)]
+	% substitution parameter				
+				[sum(pssupplycost * psavailqty * 0.0001)]
 				from
 				[partsupp,
 				supplier,
@@ -380,8 +385,8 @@ tpcd(11, select
 				[pssuppkey = ssuppkey,
 				snationkey = nnationkey,
 				nname = "GERMANY"]
-			)*/
-		]
+			)
+		]*/
 		orderby
 		[value desc]).
 		
@@ -453,14 +458,15 @@ tpcd(14, select
 		else 0
 		end) / sum(lextendedprice * (1 - ldiscount)) as promo_revenue]
 */
-		[100.00 * aggregate((ifthenelse(ptype starts "PROMO", lextendedprice*(1-ldiscount), 0)), 'int', '[const int value 0]') / sum(lextendedprice * (1 - ldiscount)) as promo_revenue]
+		[(aggregate(((ifthenelse(ptype starts "PROMO", lextendedprice*(1-ldiscount), 0)) * 100.0), (+), 'real', '[const real value 0.0]') / sum(lextendedprice * (1 - ldiscount))) as promo_revenue]
 		from
 		[lineitem,
 		part]
 		where
 		[lpartkey = ppartkey,
 		lshipdate >= instant("1995-09-01"),
-		lshipdate < theInstant(year_of(instant("1995-09-01")), month_of(instant("1995-09-01")) + 1, day_of(instant("1995-09-01")))]).
+		lshipdate < theInstant(year_of(instant("1995-09-01")), month_of(instant("1995-09-01")) + 1, day_of(instant("1995-09-01")))]
+		groupby[]).
 		
 tpcd(15, % Query) :-
 /*  create view revenue[STREAM_ID] (supplier_no, total_revenue) as
@@ -511,7 +517,7 @@ tpcd(16, select
 		not(ptype starts "MEDIUM POLISHED"),
 % substitution parameters		
 		psize in (49, 14, 23, 45, 19, 3, 36, 9),
-		pssuppkey not(in(
+		pssuppkey not in(
 			select
 			ssuppkey
 			from
@@ -520,7 +526,7 @@ tpcd(16, select
 %			scomment like "%Customer%Complaints%"
             [scomment contains "Customer",
 			scomment contains "Complaints"]
-		))]
+		)]
 		groupby
 		[pbrand,
 		ptype,
@@ -532,8 +538,7 @@ tpcd(16, select
 		psize]).
 		
 tpcd(17, select
-%		[sum(lextendedprice / 7.0) as avg_yearly]
-		[sum(lextendedprice / 7.0)]
+		[sum(lextendedprice / 7.0) as avg_yearly]		
 		from
 		[lineitem,
 		part]
@@ -543,12 +548,14 @@ tpcd(17, select
 		pcontainer = "MED BOX",
 		lquantity < (
 			select
-			[0.2 * avg(lquantity)]
+			avg(0.2 * lquantity)
 			from
 			[lineitem]
 			where
 			[lpartkey = ppartkey]
-		)]).		
+		)]
+		groupby
+		[]).		
 		
 tpcd(18, select
 		[cname,
@@ -584,8 +591,8 @@ tpcd(18, select
 		[ototalprice desc,
 		oorderdate]).
 		
-tpcd(19, select
-		[sum(lextendedprice * (1 - ldiscount) ) as revenue]
+tpcd(19, fail select
+		[(sum(lextendedprice * (1 - ldiscount) )) as revenue]
 		from
 		[lineitem,
 		part]
@@ -678,7 +685,8 @@ tpcd(19, select
 				)
 			and (lshipinstruct = "DELIVER IN PERSON")
 			)			
-		)]).	
+		)]
+		groupby[]).	
 
 tpcd(20, select
 		[sname,
