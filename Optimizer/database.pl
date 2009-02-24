@@ -346,7 +346,7 @@ and its attributes are retracted.
 
 updateRelationSchema(DCrel) :-
   dm(dbhandling,['\nTry: updateRelationSchema(',DCrel,').']),
-  ( databaseName(DB)
+  ( databaseName(_)
     -> true
     ;  ( write_list(['\nERROR:\tCannot update relation schema for \'',DCrel,
                      '\': No database open.']), nl,
@@ -358,8 +358,7 @@ updateRelationSchema(DCrel) :-
   ( ( secondoCatalogInfo(DCrel,ExtRel, _, TypeExpr),
       (   TypeExpr = [[rel, [tuple, ExtAttrList]]]
         ; TypeExpr = [[trel, [tuple, ExtAttrList]]]
-      ),
-      internalName2externalName(IntRel,ExtRel)
+      )
     )
     -> true
     ;  ( write_list(['ERROR:\tCannot retrieve information on relation \'',
@@ -370,34 +369,16 @@ updateRelationSchema(DCrel) :-
          fail, !
        )
   ),
-  assert(storedSpell(DB,DCrel,IntRel)),           % XRIS: could be omitted!
-  ( retrieveAttributes(DB, ExtRel, DCrel, ExtAttrList, DCattrList)
+  % The predicate getTupleInfo(+DCrel) will inquire for relation schema,
+  % cardinality, tuple sizes, attribute sizes and spelling issues:
+  ( getTupleInfo(DCrel)
     -> true
-    ; (  write_list(['\nERROR:\tFailure retrieving attribute information on ',
+    ; (  write_list(['\nERROR:\tFailure retrieving meta data on ',
                      'relation \'',ExtRel,'\': .']), nl,
          throw(error_Internal(database_updateRelationSchema(DCrel)
-                        :cannotRetrieveAttribute)),
+                        :cannotRetrieveMetaData)),
          fail, !
       )
-  ),
-  assert(storedRel(DB,DCrel,DCattrList)),
-  ( card(DCrel, _)                                % get cardinality
-    -> true
-    ;  ( write_list(['\nERROR:\tFailure retrieving cardinality for \'',ExtRel,
-                     '\'.']), nl,
-         throw(error_Internal(database_updateRelationSchema(DCrel)
-                        :cannotRetrieveCardinality)),
-         fail, !
-       )
-  ),
-  ( tuplesize(DCrel, _)                           % get tuple size
-    -> true
-    ;  ( write_list(['\nERROR:\tFailure retrieving tuplesize for \'',ExtRel,
-                     '\'.']), nl,
-         throw(error_Internal(database_updateRelationSchema(DCrel)
-                        :cannotRetrieveTuplesize)),
-         fail, !
-       )
   ),
   write_list(['\nINFO:\tUpdated information on relation \'',ExtRel,'\'.']), nl,
   !.
@@ -407,117 +388,6 @@ updateRelationSchema(DCrel) :-
   throw(error_Internal(database_updateRelationSchema(DCrel)
                  :cannotLookupRelationschema)).
 
-
-/*
-2.1 Processing Relation Schemas
-
----- retrieveAttributes(+DB, +ExtRel, +DCrel, +ExtAttrList, -DCattrList)
-----
-
-Recursively creates and asserts spelling information for a attribute list
-~ExtAttrList~ containing attribute names in external spelling.
-Returns a list ~DCattrList~ with all attribute names in down-cased spelling.
-
-If the cardinality of ~ExtRel~ is 0, and the attribute has a type of variable
-size, Secondo will return UNDEF for attrsize, rootattrsize and extattrsize.
-To avoid problems in other parts of the optimizer, we will assert
-storedAttrSize(, ..., 1,0,0) in that case.
-
-*/
-retrieveAttributes(_, _, _, [], []).
-retrieveAttributes(DB,ExtRel,DCrel,[[ExtAttr,Type]|Rest],[DCattr|DCattrList]) :-
-  dcName2externalName(DCattr,ExtAttr),
-  internalName2externalName(IntAttr,ExtAttr),
-  ( noFlobType(Type)
-    *-> ( secDatatype(Type, CoreAttrSize),
-          InFlobSize   is 0,
-          ExtFlobSize  is 0
-        )
-      ; (
-          getTotalAttrSize(ExtRel, ExtAttr, AttrSize1),
-          getExtAttrSize(ExtRel, ExtAttr, ExtAttrSize1),
-          getRootAttrSize(ExtRel, ExtAttr, RootAttrSize1),
-          ( (AttrSize1 = undef ; ExtAttrSize1 = undef ; RootAttrSize1 = undef)
-            -> ( AttrSize is 1,
-                 ExtAttrSize is 1,
-                 RootAttrSize is 1
-               )
-            ;  ( AttrSize is AttrSize1,
-                 ExtAttrSize is ExtAttrSize1,
-                 RootAttrSize is RootAttrSize1
-               )
-          ),
-          CoreAttrSize is RootAttrSize,
-          InFlobSize   is ExtAttrSize - RootAttrSize,
-          ExtFlobSize  is AttrSize - ExtAttrSize
-        )
-  ),
-  assert(storedSpell(DB, DCrel:DCattr, IntAttr)),
-  assert(storedAttrSize(DB, DCrel, DCattr, Type,
-                        CoreAttrSize, InFlobSize, ExtFlobSize)),
-  !,
-  retrieveAttributes(DB, ExtRel, DCrel, Rest, DCattrList).
-
-
-% query Secondo for root attr size of an attribute
-totalAttrSizeQuery(RelE, AttrE, QueryAtom) :-
-  secondoCatalogInfo(RelDC,RelE,_,_),
-  systemTable(RelDC,_),
-  concat_atom(['query ', RelE, ' feed attrsize[ ', AttrE, ' ]'],QueryAtom), !.
-
-totalAttrSizeQuery(RelE, AttrE, QueryAtom) :-
-  concat_atom(['query ', RelE, ' attrsize[ ', AttrE, ' ]'],QueryAtom), !.
-
-getTotalAttrSize(RelE, AttrE, AttrSize) :-
-  totalAttrSizeQuery(RelE, AttrE, QueryAtom),
-  write(QueryAtom), nl,
-  secondo(QueryAtom, [real, AttrSize]), !.
-
-getTotalAttrSize(RelE, AttrE, _) :-
-  write('\nERROR:\tSomething\'s wrong in getTotalAttrSize('), write(RelE),
-  write(','), write(AttrE), write(').'),nl,                                   %'
-  fail, !.
-
-
-% query Secondo for root attr size of an attribute
-rootAttrSizeQuery(RelE, AttrE, QueryAtom) :-
-  secondoCatalogInfo(RelDC,RelE,_,_),
-  systemTable(RelDC,_),
-  concat_atom(['query ', RelE, ' feed rootattrsize[ ', AttrE, ' ]'],QueryAtom),
-  !.
-
-rootAttrSizeQuery(RelE, AttrE, QueryAtom) :-
-  concat_atom(['query ', RelE, ' rootattrsize[ ', AttrE, ' ]'],QueryAtom),
-  !.
-
-getRootAttrSize(RelE, AttrE, RootAttrSize) :-
-  rootAttrSizeQuery(RelE, AttrE, QueryAtom),
-  secondo(QueryAtom, [int, RootAttrSize]), !.
-
-getRootAttrSize(RelE, AttrE, _) :-
-  write('\nERROR:\tSomething\'s wrong in getRootAttrSize('), write(RelE),
-  write(','), write(AttrE), write(').'),nl,                                   %'
-  fail, !.
-
-
-% query Secondo for the extattrsize of an attribute
-extAttrSizeQuery(RelE, AttrE, QueryAtom) :-
-  secondoCatalogInfo(RelDC,RelE,_,_),
-  systemTable(RelDC,_),
-  concat_atom(['query ', RelE, ' feed extattrsize[ ', AttrE, ' ]'],QueryAtom),
-  !.
-
-extAttrSizeQuery(RelE, AttrE, QueryAtom) :-
-  concat_atom(['query ', RelE, ' extattrsize[ ', AttrE, ' ]'],QueryAtom), !.
-
-getExtAttrSize(RelE, AttrE, ExtAttrSize) :-
-  extAttrSizeQuery(RelE, AttrE, QueryAtom),
-  secondo(QueryAtom, [real, ExtAttrSize]), !.
-
-getExtAttrSize(RelE, AttrE, _) :-
-  write('\nERROR:\tSomething\'s wrong in getExtAttrSize('), write(RelE),
-  write(','), write(AttrE), write(').'),nl,                                   %'
-  fail, !.
 
 /*
 3 Maintaining Catalog Information
@@ -1150,7 +1020,7 @@ retractAllStoredInfo(DCrel) :-
 
 
 /*
-4.4.3 Creating Sample Relations
+3.4.3 Creating Sample Relations
 
 Sample Relations are used to determine the selectivity of predicates occuring
 in the WHERE clause of a conjunctice database query.
@@ -1175,7 +1045,7 @@ createSampleRelationObjectsForRel(DCrel) :-
 
 
 /*
-4.4.5 Creating Small Relations
+3.4.5 Creating Small Relations
 
 Create small relations for use with the entropy optimizer. Relations are classified into three groups called ~small~, ~middle~, and ~large~ by the ~classify~ predicate. For each group, sample sizes can be set differently. Currently ~small~ sizes are determined as follows:
 
@@ -1905,6 +1775,7 @@ spelling(DCR:DCA, Rext) :- !,
   write_list(['\tERROR:\tCannot translate attribute \'',DCR,':',DCA,'\'.']),nl,
   throw(error_Internal(database_spelling(DCR:DCA, Rext):cannotTranslate)),
   fail.
+
 /*
 6.3 Spelling of Relation Names (DEPRECATED)
 
@@ -1974,8 +1845,8 @@ The cardinality of relation ~Rel~ is ~Size~.
 If ~card~ is called, it tries to look up the cardinality via the
 dynamic predicate ~storedCard/3~ (automatically stored).
 
-If this fails, a Secondo query is issued, which determines the
-cardinality. This cardinality is then stored in local memory.
+If this fails, a Secondo query is issued via ~getTupleInfo/1~, which also
+inquires the cardinality and stores it in local memory.
 
 */
 card(DCrel, Size) :-
@@ -1987,24 +1858,9 @@ card(DCrel, Size) :-
 card(DCrel, Size) :-
   dm(dbhandling,['\nTry: card(',DCrel,',',Size,').']),
   secondoCatalogInfo(DCrel,_,_,_),
-  Query = (count(rel(DCrel, _))),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  secondo(QueryAtom, ResultList),
-  ( ResultList = [int, Size]
-    -> true
-    ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
-                     'cardinality query:\n',
-                     'Expected \'[int, <intvalue>]\' but got \'',
-                     ResultList, '\'.']), nl,
-         throw(error_Internal(database_card(DCrel, Size)
-                         :unexpectedListType)),
-         fail
-       )
-  ),
+  getTupleInfo(DCrel),
   databaseName(DB),
-  assert(storedCard(DB, DCrel, Size)),
-  !.
+  storedCard(DB, DCrel, Size), !.
 
 card(DCrel, X) :-
   write('\ERROR:\tCardinality for relation \''),write(DCrel), %'
@@ -3213,6 +3069,277 @@ updateDB(DB1) :-
   ),
   !.
 
+
+
+/*
+10 Inquiring on Cardinalities, Tuple Sizes, Attribute Types and Attribute Sizes
+
+---- getTupleInfo(+DCrel)
+----
+
+Analyses the relation schema for relation ~DCrel~ and sends a query to Secondo
+to inquire the relation's cardinality, the size information for tuples,
+detailed information on attribute sizes, the attribute types, the the spelling.
+
+For each attribute, the type and size information is stored in a asserted facts
+
+----
+  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize)
+----
+
+~CoreSize~ is the attribute's fixed size within a tuple's root record,
+~InFlobSize~ is the attribute's average variable size of the part of it's FLOB
+data, that is kept within the tuple's root entry.
+~ExtFlobSize~ is the attribute's average variable size of the part of it's FLOB
+data, that is kept within the relation's dedicated FLOB file.
+
+Information on cardinality is asserted in facts
+
+---- storedCard(DB, DCrel, Card)
+----
+
+Information on tuple size is stored in asserted facts
+
+---- storedTupleSize(DB, DCrel, Size),
+----
+
+*/
+
+% The main predicate:
+getTupleInfo(DCrel) :-
+  dm(dbhandling,['\nTry: getTupleInfo(',DCrel,').']),
+  ( databaseName(DB)
+    -> true
+    ;  ( write_list(['\nERROR:\tCannot get tuple information for \'',DCrel,
+                     '\': No database open.']), nl,
+         throw(error_Internal(database_getTupleInfo(DCrel):noDatabaseOpen)),
+         fail, !
+       )
+  ),
+  ( ( secondoCatalogInfo(DCrel,ExtRel, _, TypeExpr),
+      (   TypeExpr = [[rel, [tuple, ExtAttrList]]]
+        ; TypeExpr = [[trel, [tuple, ExtAttrList]]]
+      ),
+      internalName2externalName(IntRel,ExtRel)
+    )
+    -> true
+    ;  ( write_list(['ERROR:\tCannot retrieve tuple information on relation \'',
+                     DCrel,
+                     '\':\n','--->\tNo matching relation found in catalog.']),
+         nl,
+         throw(error_Internal(database_getTupleInfoDCrel):lostObject),
+         fail, !
+       )
+  ),
+  % retract current information
+  retractall(storedCard(DB,DCrel,_)),
+  retractall(storedAttrSize(DB,DCrel,_,_,_,_,_)),
+  retractall(storedTupleSize(DB,DCrel,_)),
+  retractall(storedRel(DB,DCrel,_)),
+  retractall(storedSpell(DB,DCrel,_)),     % spelling of relation
+  retractall(storedSpell(DB,_,IntRel)),    % spelling of relation
+  retractall(storedSpell(DB, DCrel:_, _)), % spelling of attributes
+  % query for new information
+  ( systemTable(DCrel,_)                           % special case: trel objects
+    -> concat_atom([ExtRel,' feed'],'',UsedExtRel) % require an additional
+    ; UsedExtRel = ExtRel                          % 'feed'-operator!
+  ),
+  assert(storedSpell(DB,DCrel,IntRel)),    % XRIS: could be omitted!
+  getTupleInfo2(DB, UsedExtRel, DCrel, ExtAttrList, DCattrList),
+  assert(storedRel(DB,DCrel,DCattrList)),  % Doing this as the last step avoids
+                                           % problems with missing data
+  !.
+
+/*
+----
+getTupleInfo2(+DB, +ExtRel, +DCrel, +ExtAttrList, -DCattrList)
+----
+
+Will inquire and assert size and type data on attributes.
+
+*/
+
+getTupleInfo2(DB,ExtRel,DCrel,ExtAttrList,DCAttrList) :-
+  getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery),
+  secondo(TupleInfoQuery,TupleInfoQueryResultList),
+  ( TupleInfoQueryResultList = [[trel, [tuple, _]], [ResultTuple]]
+    -> true
+    ;  ( write('TupleInfoQuery = '),
+         writeln(TupleInfoQuery),
+         write('TupleInfoQueryResultList = '),
+         writeln(TupleInfoQueryResultList),
+         concat_atom(['Wrong result list'],'',ErrMsg),
+         throw(error_Internal(database_getTupleInfo2(DB,ExtRel,DCrel,
+                                               ExtAttrList,DCAttrList):ErrMsg))
+       )
+  ),
+  analyseTupleInfoQueryResultList(DB,DCrel,ExtAttrList,ResultTuple),
+  !.
+
+/*
+---- getTupleInfoQuery(+ExtRel,+ExtAttrList,-DCAttrList,-TupleInfoQuery)
+----
+
+Creates a complete tuple info query from an ExtensionListExpression
+
+*/
+getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery):-
+  getTupleInfoQuery2(ExtRel,ExtAttrList,DCAttrList,ExtensionList),
+  concat_atom([
+      'query 1 feed transformstream projectextend[; ',
+      'cardi_nality: (',ExtRel,' count), ',
+      'tuple_TotalSize: (',ExtRel,' tuplesize), ',
+      'tuple_RootSize: (',ExtRel,' roottuplesize), ',
+      'tuple_IntFlobSize: ((',ExtRel,' exttuplesize) - (',
+      ExtRel,' roottuplesize)), ',
+      'tupleExtFlobSize__: ((',ExtRel,' tuplesize) - (',ExtRel,
+      ' exttuplesize)), ',ExtensionList,' ] tconsume'], '', TupleInfoQuery),
+  !.
+
+% getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
+% Concatenates an ExtensionList to an ExtensionListExpression
+getTupleInfoQuery2(ExtRel,ExtAttrList,DCattrList,Extension):-
+  getTupleInfoQuery3(ExtRel,ExtAttrList,DCattrList,ExtensionList),
+  concat_atom(ExtensionList,', ',Extension),
+  !.
+
+% getTupleInfoQuery(+ExtRel,+ExtAttrList,-DCattrList,-ExtensionList)
+% creates an ExtensionList from the ExtensionList.
+getTupleInfoQuery3(_,[],[],[]):- !.
+getTupleInfoQuery3(R,
+                   [[A,_]|MoreAttrs],
+                   [AttrDC|MoreDCAttrs],
+                   [AttrExtension|MoreAttrExtensions]):-
+  getTupleInfoQuery3(R,MoreAttrs,MoreDCAttrs,MoreAttrExtensions),
+  dcName2externalName(AttrDC,A),
+  concat_atom([
+     AttrDC,'_c: (',R,' rootattrsize[',A,']), ',
+     AttrDC,'_i: ((',R,' extattrsize[',A,']) - (',R,' rootattrsize[',A,'])), ',
+     AttrDC,'_e: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
+    ],'',AttrExtension),
+  !.
+
+/*
+---- analyseTupleInfoQueryResultList(+DB,+DCrel,+ExtAttrList, +ResultTuple)
+----
+
+This predicate will analyse ~ExtAttrList~ and ~ResultTuple~ (which is the result
+tuple of a TupleInfoQuery in Nested List format) in parallel and assert the
+facts concerning attribute types, attribute sizes, and attribute spelling.
+
+~ExtAttrList~ and ~ResultTuple~ need to cover the same sequence of attributes.
+For each element in ~ExtAttrList~, ~ResultTuple~ is required to contain 3
+elements for the CoreSize, InternalFlobSize and ExternalFlobSize
+(in that order).
+
+Facts are asserted *after* the query result was successfully scanned, such
+that when an error occurs, nothing gets (wrongly) asserted.
+
+*/
+
+analyseTupleInfoQueryResultList(DB,DCrel,
+                                ExtAttrList,
+                                [Card,
+                                 TupleTotalSize,
+                                 TupleSizeCore,
+                                 TupleSizeInt,
+                                 TupleSizeExt|MoreInfos]):-
+  ( Card = undef % Undefined cardinality - may not happen!
+    -> ( concat_atom(['Cardinality query for relation ',DCrel,
+                     ' has strange result: ',Card,'.'],'',ErrMsg),
+         write_list(['\nERROR:\t',ErrMsg]),nl,
+         throw(error_Internal(analyseTupleInfoQueryResultList(DB,DCrel,
+                                ExtAttrList,
+                                [Card,
+                                 TupleTotalSize,
+                                 TupleSizeCore,
+                                 TupleSizeInt,
+                                 TupleSizeExt|MoreInfos])):ErrMsg),
+         fail
+       )
+    ;  true
+  ),
+  ( TupleTotalSize = undef % some error may have occured
+    -> ( Card < 0.5        % special case for card=0
+         -> ( % undef tuplesize due to empty relation
+              write_list(['\nWARNING:\Tuplesize for relation ',DCrel,
+                     ' is undefined due to a cardinality of ', Card,
+                     '\n--->\tTherefore, tuplesize is set to \'not a number\'',
+                     '(nAn).']),nl,
+              StoreTupleSize = nAn
+            )
+         ;  ( % Error! - should not happen!
+              concat_atom(['Tuplesize query for relation ',DCrel,
+                     ' has strange result: ',TupleTotalSize,'.'],'',ErrMsg),
+              write_list(['\nERROR:\t',ErrMsg]),nl,
+              throw(error_Internal(analyseTupleInfoQueryResultList(DB,DCrel,
+                                ExtAttrList,
+                                [Card,
+                                 TupleTotalSize,
+                                 TupleSizeCore,
+                                 TupleSizeInt,
+                                 TupleSizeExt|MoreInfos])):ErrMsg),
+              fail
+            )
+       )
+    ; StoreTupleSize = TupleTotalSize % OK - no problem occured
+  ),
+  analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos),
+  assert(storedCard(DB, DCrel, Card)),
+  assert(storedTupleSize(DB, DCrel, StoreTupleSize)),
+  !.
+
+analyseTupleInfoQueryResultList2(_,_,[],[]):- !.
+
+analyseTupleInfoQueryResultList2(DB,DCrel,
+                                [[ExtAttr,ExtType]|MoreAttrs],
+                                [SizeCore,SizeInt,SizeExt|MoreInfos]):-
+  % take first elem from ExtAttrList, retrieve three entries from
+  % the InfoList and process the information.
+  dcName2externalName(DCType,ExtType),
+  dcName2externalName(DCAttr,ExtAttr),
+  internalName2externalName(IntAttr,ExtAttr),
+  ( noFlobType(DCType)
+    *-> ( % type has fixed size. Use information from SEC2TYPEINFO.
+          secDatatype(DCType, TypeAttrSize),
+          CoreAttrSize is max(1,TypeAttrSize), % but a minimum of 1!
+          InFlobSize   is 0,
+          ExtFlobSize  is 0
+        )
+      ; ( % Use inquired average attribute sizes. Avoid problems with undefined
+          % sizes, which will occur for relations with cardinalit=0.
+          ( SizeCore = undef
+            -> ( secDatatype(DCType, TypeAttrSize),   % Fallback: use typesize
+                 CoreAttrSize is max(1,TypeAttrSize) % but 1 byte at least
+               )
+            ;  CoreAttrSize is max(0,SizeCore) % avoid rounding errors
+          ),
+          ( SizeInt = undef
+            -> InFlobSize is 0
+            ;  InFlobSize is max(0,SizeInt) % avoid rounding errors
+          ),
+          ( SizeInt = undef
+            -> ExtFlobSize is 0
+            ;  ExtFlobSize is max(0,SizeExt) % avoid rounding errors
+          )
+        )
+  ),
+  analyseTupleInfoQueryResultList2(DB,DCrel,MoreAttrs,MoreInfos),
+  assert(storedSpell(DB, DCrel:DCAttr, IntAttr)),
+  assert(storedAttrSize(DB, DCrel, DCAttr, DCType,
+                        CoreAttrSize, InFlobSize, ExtFlobSize)),
+  !.
+
+analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
+  atom_concat(['Retrieval of tuple and attribute information failed.'],
+               '',ErrMsg),
+  throw(error_Internal(database_analyseTupleInfoQueryResultList(DB,DCrel,X,Y)
+                                                               :ErrMsg)),
+  !.
+
+
+
+
 /*
 10 Average Size of a Tuple
 
@@ -3236,18 +3363,20 @@ sample sizes.
 
 */
 
-tupleSizeQuery(RelE, QueryAtom) :-
-  secondoCatalogInfo(RelDC,RelE,_,_),
-  systemTable(RelDC,_),                      % special case: trel objects
-  concat_atom(['query ', RelE, ' feed tuplesize'],QueryAtom), !.
-
-tupleSizeQuery(RelE, QueryAtom) :-
-  concat_atom(['query ', RelE, ' tuplesize'],QueryAtom).
+% private auxiliary predicate:
+tupleSize2(DCrel, Size) :-
+  databaseName(DB),
+  ( storedTupleSize(DB, DCrel, Size)      % already known
+    -> true
+    ;  ( getTupleInfo(DCrel),             % inquire for it
+         storedTupleSize(DB, DCrel, Size) % now it should be there!
+       )
+  ),
+  !.
 
 tuplesize(DCrel, TupleSize) :-
   dm(dbhandling,['\nTry: tuplesize(',DCrel,',',Size,').']),
-  databaseName(DB),
-  storedTupleSize(DB, DCrel, Size),
+  tupleSize2(DCrel, Size),
   ( ( Size = nAn )
     -> ( write_list(['\nWARNING:\tTuplesize is not a number (nAn). ', Size,
                      '\n--->\tTherefore, tuplesize is set to 1.']),
@@ -3260,30 +3389,9 @@ tuplesize(DCrel, TupleSize) :-
               nl,
               TupleSize is 1
             )
-         ; TupleSize is Size
+         ;  TupleSize is Size
        )
   ),
-  !.
-
-tuplesize(DCrel, TupleSize) :-
-  dm(dbhandling,['\nTry: tuplesize(',DCrel,',',Size,').']),
-  dcName2externalName(DCrel,ExtRel),
-  tupleSizeQuery(ExtRel, QueryAtom),
-  secondo(QueryAtom, [real, Size]),
-  databaseName(DB),
-  ( ( Size \= undef )
-    -> ( StoreTupleSize is Size,
-         TupleSize is Size
-       )
-    ;  ( write_list(['\nWARNING:\Tuplesize query has strange result: ', Size,
-                     '\n--->\tTherefore, tuplesize is set to \'not a number\'',
-                     '(nAn).','\n--->\tPossibly card(',DCrel,')=0?']),
-         nl,
-         StoreTupleSize = nAn,
-         TupleSize is 1
-       )
-  ),
-  assert(storedTupleSize(DB, DCrel, StoreTupleSize)),
   !.
 
 tuplesize(X, Y) :-
@@ -3399,19 +3507,6 @@ showOneDatatype :-
 showDatatypes :-
   findall(_, showOneDatatype, _).
 
-/*
-Deprecated version:
-
-----
-readStoredTypeSizes :-
-  retractall(secDatatype(_, _)),
-  [storedTypeSizes].
-
-:-  readStoredTypeSizes.
-
-----
-
-*/
 
 /*
 12 Showing, Loading, Storing and Looking-Up Attribute Sizes and Types
@@ -3491,6 +3586,8 @@ addSizeTerms(X, Y) :-
   concat_atom(['Unknown error.'],'',ErrMsg),
   throw(error_Internal(database_addSizeTerms(X, Y):ErrMsg)),
   fail, !.
+
+
 
 /*
 12 Ordering Information on Relations
