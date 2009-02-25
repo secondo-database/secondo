@@ -2499,8 +2499,6 @@ public:
 
      iv = Interval<Instant>(tmpstart, tmpend,lc,rc);
 
-
-
      Word current(Address(0));
 
      qp->Request(stream.addr,current);
@@ -2512,6 +2510,8 @@ public:
 
      bool finished = false;
      while(!finished){
+        Tuple* temp = lastTuple;
+
         lastTuple = static_cast<Tuple*>(current.addr);
         UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
         tupleStart = up->timeInterval.start;
@@ -2519,6 +2519,7 @@ public:
         if(up->timeInterval.end <= iv.start){
           lastTuple->DeleteIfAllowed();
           lastTuple = 0;
+
           qp->Request(stream.addr,current);
           finished =  !qp->Received(stream.addr);
          } else {
@@ -2560,9 +2561,9 @@ public:
       queue.push(e);
    }
 
-   EventElem top(){
+   EventElem& top(){
      next();
-     return queue.top();
+     return const_cast<EventElem &>(queue.top());
    }
 
    void pop(){
@@ -2603,8 +2604,10 @@ to a EventElement and inserted into the queue.
       if(queue.empty()){
         transfer(tupleStart);
       }  else {
-        EventElem ev = queue.top();
-        transfer(ev.pointInTime);
+//        EventElem ev = queue.top();
+//        transfer(ev.pointInTime);
+          DateTime i = queue.top().pointInTime;
+          transfer(i);
       }
     }
   }
@@ -2631,6 +2634,7 @@ lasttuple must be exist.
 
 */
   inline bool transfersingle(){
+
     assert(lastTuple);
 
    // create a new Event for the queue
@@ -2650,27 +2654,39 @@ lasttuple must be exist.
       queue.push(EventElem(E_RIGHT, t4, lastTuple, up, mr));
       // get the next tuple from the stream
       transferred = true;
-    }
+
+    }else{
+      delete mr;
+      lastTuple->DeleteIfAllowed();
+     }
+
     Word current(Address(0));
     qp->Request(stream.addr,current);
     if(qp->Received(stream.addr)){
+       Tuple* temp = lastTuple;
        lastTuple = static_cast<Tuple*>(current.addr);
          const UPoint* up =
                static_cast<const UPoint*>(lastTuple->GetAttribute(pos));
          tupleStart = up->timeInterval.start;
+
          if(tupleStart > iv.end){
             // tuple starts after the end of the query point
             lastTuple->DeleteIfAllowed();
             lastTuple = 0;
-         }
+            if(transferred){
+              lastTuple = temp;
+              lastTuple->DeleteIfAllowed();
+            }
+            transferred = false;
+         }else
+          transferred = true;
     } else {
       lastTuple->DeleteIfAllowed();
       lastTuple = 0;
+      transferred = false;
     }
     return transferred;
   }
-
-
 };
 
 /*
@@ -2782,9 +2798,8 @@ void deleteDupElements(KNearestQueue& evq, EventType type,
   while( !evq.empty() )
   {
     //eleminate same elements
-    EventElem elem2 = evq.top();
-    if( type != elem2.type || time != elem2.pointInTime
-      || tuple1 != elem2.tuple || tuple2 != elem2.tuple2)
+    if( type != evq.top().type || time != evq.top().pointInTime
+      || tuple1 != evq.top().tuple || tuple2 != evq.top().tuple2)
     {
       break;
     }
@@ -2923,9 +2938,11 @@ int knearestFun (Word* args, Word& result, int message,
                 posAfterK->start = elem.pointInTime;
                 posAfterK->lc = false;
                 result = SetWord(cloneTuple);
+
                 return YIELD;
               }
             }
+
             break;
           }
           case E_RIGHT:
@@ -2990,6 +3007,7 @@ int knearestFun (Word* args, Word& result, int message,
 
           case E_INTERSECT:
           {
+
             IT posFirst = findActiveElem( localInfo->activeLine,
               elem.distance, elem.pointInTime, elem.tuple);
             IT posNext = posFirst;
@@ -3001,6 +3019,7 @@ int knearestFun (Word* args, Word& result, int message,
               //perhaps changed before
               bool t1 = check(localInfo->activeLine ,elem.pointInTime);
               assert(t1);
+
               break;
             }
             if( posNext->tuple != elem.tuple2 )
@@ -3062,14 +3081,15 @@ int knearestFun (Word* args, Word& result, int message,
               s.insert(posSec->tuple);
               localInfo->activeLine.erase( posSec );
 
-
               while( !localInfo->eventQueue.empty() )
               {
                 //handle all intersections at the same time
                 EventElem elemIs = localInfo->eventQueue.top();
+
                 if( elemIs.type == E_INTERSECT
                   && elem.pointInTime == elemIs.pointInTime)
                 {
+
                   localInfo->eventQueue.pop();
                   //eleminate same elements
                   deleteDupElements( localInfo->eventQueue, elemIs.type,
@@ -3102,6 +3122,7 @@ int knearestFun (Word* args, Word& result, int message,
                 }
                 else
                 {
+
                   break;
                 }
               }
@@ -3126,6 +3147,7 @@ int knearestFun (Word* args, Word& result, int message,
               result = SetWord(cloneTuple);
               return YIELD;
             }
+
             break;
           }
         }
@@ -3135,9 +3157,11 @@ int knearestFun (Word* args, Word& result, int message,
 
     case CLOSE :
     {
+
       qp->Close(args[0].addr);
       KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
       if(localInfo){
+
         delete localInfo;
         local.setAddr(0);
       }

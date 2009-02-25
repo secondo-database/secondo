@@ -217,6 +217,8 @@ struct EventElem
   EventElem(EventType t, Instant i, Tuple* tu, Tuple* tu2, MReal* d)
     : type(t), pointInTime(i), tuple(tu), tuple2(tu2),
     up(NULL), distance(d){}
+
+
   bool operator<( const EventElem& e ) const
   {
     if( e.pointInTime != pointInTime)
