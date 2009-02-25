@@ -4727,6 +4727,11 @@ lookupAttr(Term, Term) :-
   throw(error_SQL(optimizer_lookupAttr(Term, Term):ErrMsg)),
   fail.
 
+lookupAttr(Term, Term) :-
+  is_list(Term),
+  catch(string_to_list(_, Term), _, fail),
+  !.
+
 lookupAttr(Term, Term) :- !.
 
 lookupAttr1([],[]) :- !.
