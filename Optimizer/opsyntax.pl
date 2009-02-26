@@ -165,6 +165,7 @@ secondoOp( box3d,             prefix, 2).
 secondoOp( consume,           postfix, 1).
 secondoOp( count,             postfix, 1).
 secondoOp( distance,          prefix, 2).
+secondoOp( enlargeRect,       prefix, 2).
 secondoOp( equals,            postfixbarckets2, 4).
 secondoOp( everNearerThan,    prefix, 3).
 secondoOp( exactmatch,        postfixbrackets2, 3).

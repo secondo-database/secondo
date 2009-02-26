@@ -57,6 +57,11 @@ renameTC(0.1).
 windowintersectsTC(0.1).
 spatialjoinTC(20.0, 0.7).
 
+% sorttidTC and rdupTC are estimated without experiment
+% They still need to be estimated
+sorttidTC(0.1).  % used for sorting tuple ids after a windowIntersectsS 
+rdupTC(0.1).
+
 /*
 1.2 General Constants
 
@@ -166,6 +171,7 @@ isCommutativeOP(adjacent).
 isCommutativeOP(attached).
 isCommutativeOP(overlaps).
 isCommutativeOP(everNearerThan).
+isCommutativeOP(distance).
 
 
 /*
