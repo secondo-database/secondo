@@ -162,7 +162,7 @@ dcName2internalName(DC,lc(Intern)) :-
 dcName2internalName(DC,Intern) :-
   ground(DC),                    % first arg instantiated
   atomic(DC),                    % is DB object identifier
-  secondoCatalogInfo(DC,Extern), % get stored external name from catalog
+  secondoCatalogInfo(DC,Extern,_,_), % get stored external name from catalog
   internalName2externalName(Intern,Extern), % translate extern -> intern
   !.
 % DCrel:DCattr -> InternAttr
@@ -473,10 +473,61 @@ refreshSecondoCatalogInfo :-
 Check whether any objects within the ~secondoCatalogInfo~ facts violates the
 unique downcased naming convention.
 
+Check, whether some relation has an attribute named exactly as a dababase objects
+object.
+
 If so, an exception is thrown. Otherwise the predicate succeeds.
 
 */
 
+% getAllAttributeNameConflicts/0
+%   succeeds, if no problem is found. Otherwise throws an exception!
+checkForAttributeNameConflicts :-
+  findall(Clashes, (
+                     secondoCatalogInfo(DCrel,_,_,[[RelType, [tuple, _]]]),
+                     member(RelType,[trel,rel]),
+                     getAttributeNameConflicts(DCrel,ConflictList),
+                     ConflictList \= [],
+                     secondoCatalogInfo(DCrel,ExtRel,_,_),
+                     Clashes = [ExtRel,ConflictList]
+                   ),
+          FoundClashes),
+  length(FoundClashes,NoInstances),
+  ( NoInstances > 0
+    -> (
+         term_to_atom(FoundClashes,FoundClashedA),
+         concat_atom(
+           ['The database contains relations violating the unique ',
+           'naming convention.',
+           '\n--->\tPlease rename the attributes or objects such that no',
+           '\n--->\tobject name also occurs as an attribute name:\n',
+           '\n--->\t\t',FoundClashedA,'\n'],'',ErrMsg),
+         write_list(['\nERROR:\t',ErrMsg]), nl, nl,
+         throw(error_SQL(database_checkForAttributeNameConflicts
+                        :schemaError#ErrMsg))
+       )
+    ; true
+  ),!.
+
+%  getAttributeNameConflicts(+DCrel,-ConflictList)
+getAttributeNameConflicts(DCrel,ConflictList) :-
+  secondoCatalogInfo(DCrel,ExtRel,_,[[RelType, [tuple, AttrList]]]),
+  member(RelType,[trel,rel]),
+  getAttributeNameConflicts2(ExtRel,AttrList,ConflictList), !.
+
+% returns a list of conflicting attribute names, i.e.
+% attribute names that are also used as an object name in the current database.
+getAttributeNameConflicts2(_,[],[]) :- !.
+
+getAttributeNameConflicts2(ExtRel,[[Attr,_]|More],[ExtRel:Attr|ConflictList]) :-
+  secondoCatalogInfo(_,Attr,_,_), !,
+  getAttributeNameConflicts2(ExtRel,More,ConflictList), !.
+
+getAttributeNameConflicts2(ExtRel,[_|More],ConflictList) :-
+  getAttributeNameConflicts2(ExtRel,More,ConflictList), !.
+
+
+% The main predicate
 checkObjectNamingConvention :-
   dm(dbhandling,['\nTry: checkObjectNamingConvention.']),
   refreshSecondoCatalogInfo,
@@ -508,10 +559,11 @@ checkObjectNamingConvention :-
            '\n--->\t\t',SortedClashesA,'\n'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]), nl, nl,
          throw(error_SQL(database_checkObjectNamingConvention(SortedClashes)
-                        :ErrMsg))
+                        :schemaError#ErrMsg))
        )
     ; true
   ),
+  checkForAttributeNameConflicts,
   !.
 
 /*
@@ -605,17 +657,19 @@ is checked.
     If not, we delete the index (and the small index) and retract according metadata.
 
   3 Then, by comparing the stored metadata with the secondoCatalogInfo, we
-    check for new objects in the database. For each new relation object, we
-    retrieve metadata (relation schema, cardinality, attribute sizes, orderings).
-    We possibly create sample relations and the small relation.
+    check for new objects in the database. \[DEPRECATED: For each new relation
+    object, we retrieve metadata (relation schema, cardinality, attribute sizes,
+    orderings). We possibly create sample relations and the small relation. \]
     For each new index, we check whether the base relation exists. If not,
-    we delete the index (and the small index) and retract according metadata.
-    If so, we check wheather we need to create a small index.
+    we delete the index \[DEPRECATED: (and the small index)\] and retract
+    according metadata. \[DEPRECATED: If so, we check wheather we need to
+    create a small index.\]
 
-This sequence guarantees, that small relations (and samples) are created before
-small indexes are possibly created (which rely on the existence of small relations).
+\[DEPRECATED: This sequence guarantees, that small relations (and samples) are
+created before small indexes are possibly created (which rely on the existence
+of small relations).]\
 
-Also, if a relation is removed, this will be detected when searching for lost
+If a relation is removed, this will be detected when searching for lost
 indexes and a list of obsolete indexes will be printed.
 
 ~updateCatalog~ must be called whenever a database object has been added or
@@ -630,7 +684,7 @@ attribute sizes, etc.).
 
 updateCatalog :-
   dm(dbhandling,['\nTry: updateCatalog.']),
-  readSecondoTypeSizes,
+  % readSecondoTypeSizes,
   refreshSecondoCatalogInfo,
   findLostRelations(LostRelations),
   findall(_,(member(LR,LostRelations),handleLostRelation(LR)),_),
@@ -676,7 +730,8 @@ handleNewRelation(DCrel) :-
   updateRelationSchema(DCrel),   % get spellings, schema, attr names and sizes,
                                  % tuple size, cardinality,
                                  % also retract ordering information
-  ( ( not(sub_atom(DCrel, _, _, 0, '_small')),
+  ( ( optimizerOption(eagerObjectCreation),
+      not(sub_atom(DCrel, _, _, 0, '_small')),
       not(sub_atom(DCrel, _, _, 1, '_sample_')),
       not(systemTable(DCrel,_))
     )
@@ -728,7 +783,7 @@ handleNewIndex(DCindex) :-
                      '\n--->\tThe index is for ',ExtRel,':',ExtAttr,
                      '\n--->\tThe index type is ',LogicalIndexType,'.']),
          nl,
-         ( optimizerOption(entropy)
+         ( ( optimizerOption(entropy), optimizerOption(eagerObjectCreation) )
            -> ( ( write('\nINFO:\tNow trying to create the small index.'), nl,
                   createSmallIndex(DCrel,DCattr,LogicalIndexType)
                 )
@@ -885,6 +940,12 @@ These predicates check, whether for all relation (and index) objects within
 the current database, also samples (small objects) exist, when running without
 ~optimizerOption(dynamicSample)~ (with ~optimizerOption(entropy)~).
 If such an object is found missing, it will be created.
+
+They can be used to create all these objects at once. The normal optimizer
+behaviour is now not to use these predicates any more, but create these objects
+only on demand, i.e. when they are reuired to perform a selectivity query
+(sample objects) or if a small query is created by the entropy optimizer
+(small objects).
 
 */
 
@@ -1117,7 +1178,8 @@ createSmallRelationObjectForRel(DCrel)  :-
          [ [small, 0, 1], [medium, 1000, 0.1], [large, 10000, 0.01] ]),
   dcName2externalName(DCrel,ExtRel),
   getSmallName(ExtRel,ExtRelSmall),
-  buildSmallRelation(ExtRel, ExtRelSmall, MinSize, Percent), !.
+  buildSmallRelation(ExtRel, ExtRelSmall, MinSize, Percent),
+  updateCatalog,!.
 
 /*
 ---- buildSmallRelation(+ExtRel, +ExtRelSmall, +MinSize, +Percent) :-
@@ -1225,7 +1287,7 @@ Creating sample object names. The names for relation samples are:
 
 ~Name~ may be in dc- or external spelling.
 
-Thepredicates use the following constants defined in ~operators.pl~:
+The predicates use the following constants defined in ~operators.pl~:
 
 ----
 secOptConstant(sampleScalingFactor, 0.00001).  % scaling factor for samples
@@ -1374,6 +1436,23 @@ secOptConstant(maximumJoinSampleCard, X).
 
 */
 
+% wrapper that only create the sample if it does not exist yet
+ensureSampleSexists(DCrel) :-
+  dm(dbhandling,['\nTry: ensureSampleSexists(',DCrel,').']),
+  getSampleSname(DCrel, SampleName),
+  ( secondoCatalogInfo(SampleName,_,_,_)
+    -> true
+    ;  ( createSampleS(DCrel), updateCatalog )
+  ), !.
+
+ensureSampleJexists(DCrel) :-
+  dm(dbhandling,['\nTry: ensureSampleJexists(',DCrel,').']),
+  getSampleJname(DCrel, SampleName),
+  ( secondoCatalogInfo(SampleName,_,_,_)
+    -> true
+    ;  ( createSampleJ(DCrel), updateCatalog )
+  ), !.
+
 
 createSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
   dm(dbhandling,['\nTry: createSample(',ExtSample,',',ExtRel,',',
@@ -1422,7 +1501,7 @@ createSampleJ(DCRel) :-
                                 '',ErrMsg),
                      write_list(['ERROR\t',ErrMsg]), nl,
                      throw(error_Internal(database_createSampleJ(DCRel)
-                                    :ErrMsg)),
+                                    #ErrMsg)),
                      fail
                    )
               )
@@ -1475,7 +1554,7 @@ createSampleS(DCRel) :-
                                     '',ErrMsg),
                        write_list(['ERROR\t',ErrMsg]),nl,
                        throw(error_SQL(database_createSampleS(DCRel)
-                                      :ErrMsg)),
+                                      :requestUserInteraction#ErrMsg)),
                        fail
                      )
               )
@@ -1508,7 +1587,6 @@ sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
       extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
       consume'], '', QueryAtom).
 
-
 /*
 
 ----	createSamples(+DCRel, +SelectionCard, +JoinCard) :-
@@ -1536,7 +1614,7 @@ createSamples(DCrel, SelectionCard, JoinCard) :-
          createSample(SampleJ, ExtRel, JoinCard, _),
          updateCatalog                                % FIXME: added to force
                                                       % rescan and continue
-                                                      % database setuo
+                                                      % database setup
        )
     ;  ( write('You must instantiate all 3 arguments of createSamples/3!'),
          nl,
@@ -1603,7 +1681,9 @@ resizeSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
 relation(Rel, AttrList) :-
   dm(dbhandling,['\nTry: relation(',Rel,',',AttrList,').']),
   databaseName(DB),
-  storedRel(DB, Rel, AttrList), !.
+  storedRel(DB, Rel, AttrList)
+% ,!   %% XRIS
+  .
 
 readStoredRels :-
   retractall(storedRel(_, _, _)),
@@ -1857,13 +1937,13 @@ card(DCrel, Size) :-
 
 card(DCrel, Size) :-
   dm(dbhandling,['\nTry: card(',DCrel,',',Size,').']),
+  databaseName(DB),
   secondoCatalogInfo(DCrel,_,_,_),
   getTupleInfo(DCrel),
-  databaseName(DB),
   storedCard(DB, DCrel, Size), !.
 
 card(DCrel, X) :-
-  write('\ERROR:\tCardinality for relation \''),write(DCrel), %'
+  write('\nERROR:\tCardinality for relation \''),write(DCrel), %'
   write('\' cannot be retrieved.'),nl,                        %'
   throw(error_Internal(database_card(DCrel, X):cannotRetrieveCardinality)),
   fail.
@@ -1926,7 +2006,7 @@ hasIndex(Rel, Attr, IndexName, IndexType) :-
                      'hasIndex/4.'],'',ErrMsg),
         write_list(['\ERROR:\t',ErrMsg]),
         throw(error_Internal(database_hasIndex(Rel, Attr, IndexName, IndexType)
-                        :ErrMsg)),
+                        #ErrMsg)),
         fail
       )
   ).
@@ -2421,7 +2501,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     ; ( concat_atom(['No database open: Cannot create Index.'],'',ErrMsg),
         write_list(['ERROR:\t',ErrMsg]),nl, !,
         throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-           CreateSmall, IndexName):ErrMsg)),
+           CreateSmall, IndexName):noDatabase#ErrMsg)),
         fail
       )
   ),
@@ -2439,7 +2519,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
                      LFAttr,'\'.']),
          write_list(['ERROR:\t',ErrMsg]), nl, !,
          throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-               CreateSmall, IndexName):ErrMsg)),
+               CreateSmall, IndexName):unknownIdentifier#ErrMsg)),
          fail
        )
   ),
@@ -2449,7 +2529,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     ;  ( concat_atom(['Invalid relation name: \'',LFRel,'\'.'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]),nl, !,
          throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-            CreateSmall, IndexName):ErrMsg)),
+            CreateSmall, IndexName):unknownRelation#ErrMsg)),
          fail
        )
   ),
@@ -2461,7 +2541,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
                       'Available attributes are: ', AttrListA, '.'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]), nl, !,
          throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-            CreateSmall, IndexName):ErrMsg)),
+            CreateSmall, IndexName):unknownAttribute#ErrMsg)),
          fail
        )
   ),
@@ -2476,7 +2556,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
                       ' called \'', ExtOldIndexName, '\'.'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]),nl, !,
          throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-            CreateSmall, IndexName):ErrMsg)),
+            CreateSmall, IndexName):objectAlreadyExists#ErrMsg)),
          fail
        )
     ;  true
@@ -2499,7 +2579,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
                        'key:\n\t', AvailIndTypesA, '.'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]), nl,
          throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-             CreateSmall, IndexName):ErrMsg)),
+             CreateSmall, IndexName):wrongType#ErrMsg)),
          fail
        )
   ),
@@ -2511,7 +2591,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
                       '\' already exists.'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]), nl, !,
          throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-             CreateSmall, IndexName):ErrMsg)),
+             CreateSmall, IndexName):objectAlreadyExists#ErrMsg)),
          fail
        )
     ;  true
@@ -2524,7 +2604,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
                       '\'. Could not create the index.'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]),nl,!,
          throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-            CreateSmall, IndexName):ErrMsg)),
+            CreateSmall, IndexName):unknownRelation#ErrMsg)),
          fail
        )
   ),
@@ -2537,7 +2617,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
     ;  ( concat_atom(['Secondo command failed: Tried to create an index.'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]),nl,!,
          throw(error_Internal(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-             CreateSmall, IndexName):ErrMsg)),
+             CreateSmall, IndexName)#ErrMsg)),
          fail
        )
   ),
@@ -2555,7 +2635,7 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
   concat_atom(['Unknown error. Tried to create an index.'],'',ErrMsg),
   write_list(['ERROR:\t',ErrMsg]),nl,!,
   throw(error_SQL(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-         CreateSmall, IndexName):ErrMsg)),
+         CreateSmall, IndexName):unspecifiedError#ErrMsg)),
   fail.
 
 
@@ -2584,7 +2664,7 @@ createIndex(DCrel,DCattr,LogicalIndexType) :-
     -> true
     ;  (  concat_atom(['No database open. Cannot create index.'],'',ErrMsg),
           throw(error_SQL(database_createIndex(DCrel,DCattr,LogicalIndexType)
-                                      :ErrMsg)),
+                                      :noDatabase#ErrMsg)),
          fail
        )
   ),
@@ -2595,7 +2675,7 @@ createIndex(DCrel,DCattr,LogicalIndexType) :-
          write_list(['\nERROR:\t',ErrMsg]), nl,
          !,
          throw(error_SQL(database_createIndex(DCrel,DCattr,LogicalIndexType)
-                                      :unspecifiedRelation)),
+                                      :missingParameter#unspecifiedRelation)),
          fail
        )
   ),
@@ -2606,7 +2686,7 @@ createIndex(DCrel,DCattr,LogicalIndexType) :-
          write_list(['\nERROR:\t',ErrMsg]), nl,
          !,
          throw(error_SQL(database_createIndex(DCrel,DCattr,LogicalIndexType)
-                                             :ErrMsg)),
+                                             :missingParameter#ErrMsg)),
          fail
        )
   ),
@@ -2630,7 +2710,7 @@ createIndex(DCrel,DCattr,LogicalIndexType) :-
          write_list(['\nERROR:\t',ErrMsg]), nl,
          !,
          throw(error_SQL(database_createIndex(DCrel,DCattr,LogicalIndexType)
-                                             :ErrMsg)),
+                                             :missingParameter#ErrMsg)),
          fail
        )
   ),
@@ -2641,7 +2721,8 @@ createIndex(DCrel,DCattr,LogicalIndexType) :-
   concat_atom(['Unknown error: Cannot create index. Check whether relation ',
                'and attribute exist.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]), nl,!,
-  throw(error_SQL(database_createIndex(DCrel,DCattr,LogicalIndexType):ErrMsg)),
+  throw(error_SQL(database_createIndex(DCrel,DCattr,LogicalIndexType)
+                                                :unspecifiedError#ErrMsg)),
   fail.
 
 /*
@@ -2711,30 +2792,102 @@ createIndexName(ExtRelName, ExtAttrName, LogicalIndexType,
   !.
 
 /*
-----createSmallIndex(+LFRel,+LFAttr,+LogicalIndexType)
+----
+    createSmallIndex(+DCRel,+DCAttr,+LogicalIndexType)
+    createSmallIndex(+DCindex)
 ----
 
 Creates a '\_small'-index for ~DCRel~:~DCAttr~ having type ~LogicalIndexType~.
 
-~DCRel~ and ~DCAttr~ are atomic terms respecting down-cased spelling rules
-~LogicalIndexType~ is a term.
+Create '\_small'-index for an existing index ~DCindex~ (will also create the
+according small relation, if it does not yet exists).
+
+~DCRel~, ~DCAttr~, and  +DCindex are atomic terms respecting down-cased
+spelling rules. ~LogicalIndexType~ is a term.
 
 */
+
+createSmallIndex(DCindex) :-
+  dm(dbhandling,['\nTry: createSmallIndex(',DCindex,').']),
+  not(optimizerOption(entropy)), !.
+
+createSmallIndex(DCindex) :-
+  dm(dbhandling,['\nTry: createSmallIndex(',DCindex,').']),
+  optimizerOption(entropy),
+  % Check if a database is opened
+  ( databaseName(DB)
+    -> true
+    ; ( concat_atom(['No database open: Cannot create small index for \'',
+                     DCindex,'\'.'],'',ErrMsg),
+        write_list(['ERROR:\t',ErrMsg]),nl, !,
+        throw(error_Internal(database_createSmallIndex(DCindex)#ErrMsg)),
+        fail
+      )
+  ),
+  % Check whether DCindex exists and is registered
+  ( ( secondoCatalogInfo(DCindex,ExtIndex,_,_),
+      storedIndex(DB,_,_,LogicalIndexType,DCindex)
+    )
+    -> true
+    ;  ( concat_atom(['Cannot build a \'_small\'- index for \'',
+                          ExtIndex,'\': No such index registered.'],'',ErrMsg),
+         write_list(['ERROR:\t',ErrMsg]),nl,!,
+         throw(error_Internal(database_createSmallIndex(DCindex)#ErrMsg)),
+         fail
+       )
+  ),
+  % Get information on index type
+  splitIndexObjectName(ExtIndex,_,AttrName,IndexCode,_,IsSmall),
+  dcName2externalName(DCAttr, AttrName),
+  % check if index is not aalready a small-index
+  ( IsSmall = yes
+    -> ( concat_atom(['Cannot build a \'_small\'- index for index \'',
+                       ExtIndex,'\''],'',ErrMsg),
+         write_list(['ERROR:\t',ErrMsg]),nl,!,
+         throw(error_Internal(database_createSmallIndex(DCindex)#ErrMsg)),
+         fail
+       )
+    ; true
+  ),
+  logicalIndexType(IndexCode,LogicalIndexType,_,_,_,_,_,_),
+  % create according small relation if necessary
+  createSmallRelationObjectForRel(DCRel),
+  % create the small index
+  createSmallIndex(DCRel,DCAttr,LogicalIndexType),
+  !.
 
 createSmallIndex(DCRel,DCAttr,LogicalIndexType) :-
   dm(dbhandling,['\nTry: createSmallIndex(',DCRel,',',DCAttr,',',
                  LogicalIndexType,').']),
   (optimizerOption(entropy)
    -> catch( createIndex(DCRel, DCAttr, LogicalIndexType, yes, _),
-            error_SQL(database_createIndex(DCRel, DCAttr,
-                    LogicalIndexType,IndexName):Reason),
-            ( member(Reason,[indexAlreadyExists,fileAlreadyExists])
+             error_SQL(X),
+            ( ( (   X = database_createIndex(DCRel, DCAttr, LogicalIndexType,
+                                                   IndexName):ErrorCode#Message
+                  ; X = database_createIndex(DCRel, DCAttr, LogicalIndexType,
+                                                           IndexName):ErrorCode
+                ),
+                member(ErrorCode,[objectAlreadyExists])
+              )
               -> ( write_list(['\nINFO:\tSmall index already exists.']), nl )
-              ;  throw(error_Internal(database_createIndex(DCRel, DCAttr,
-                    LogicalIndexType,IndexName):Reason))
+              ;  ( bound(Message)
+                   -> throw(error_Internal(database_createIndex(DCRel, DCAttr,
+                                LogicalIndexType,IndexName):ErrorCode#Message))
+                   ;  throw(error_Internal(database_createIndex(DCRel, DCAttr,
+                                LogicalIndexType,IndexName):ErrorCode))
+                 )
             )
           )
    ;  true
+  ),
+  !.
+
+% a wrapper that will create the index only if it is not already present:
+createSmallIndexForIndex(DCindex) :-
+  dm(dbhandling,['\nTry: createSmallIndexForIndex(',DCindex,').']),
+  concat_atom([DCindex,'_small'],'',DCindexSmall),
+  (   secondoCatalogInfo(DCindexSmall,_,_,_)
+    ; ( createSmallIndex(DCindex), updateCatalog )
   ),
   !.
 
@@ -2774,7 +2927,7 @@ dropIndex(ExtIndexName) :-
     ; ( concat_atom(['No database open: Cannot drop index \'',
                      ExtIndexName,'\'.'],'',ErrMsg),
         write_list(['ERROR:\t',ErrMsg]),nl, !,
-        throw(error_SQL(database_dropIndex(ExtIndexName):ErrMsg)),
+        throw(error_SQL(database_dropIndex(ExtIndexName):noDatabase#ErrMsg)),
         fail
       )
   ),
@@ -2784,7 +2937,8 @@ dropIndex(ExtIndexName) :-
     -> ( concat_atom(['Cannot drop \'_small\'- index \'',
                       ExtIndexName,'\' manually.'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]),nl,!,
-         throw(error_SQL(database_dropIndex(ExtIndexName):ErrMsg)),
+         throw(error_SQL(database_dropIndex(ExtIndexName)
+                                        :prohibitedAction#ErrMsg)),
          fail
        )
     ; true
@@ -2795,7 +2949,7 @@ dropIndex(ExtIndexName) :-
     ;  ( concat_atom(['Unknown object: Index \'',ExtIndexName,
                       '\' does not exist'],'',ErrMsg),
          write_list(['ERROR:\t',ErrMsg]),nl,!,
-         throw(error_SQL(dropIndex(ExtIndexName):ErrMsg)),
+         throw(error_SQL(dropIndex(ExtIndexName):unknownIndex#ErrMsg)),
          fail
        )
   ),
@@ -2831,7 +2985,7 @@ dropIndex(ExtIndexName) :-
   concat_atom(['Unknown error: Tried to drop index \'',
                ExtIndexName,'\'.'],'',ErrMsg),
   write_list(['ERROR:\t',ErrMsg]),nl,!,
-  throw(error_SQL(database_dropIndex(ExtIndexName):ErrMsg)),
+  throw(error_SQL(database_dropIndex(ExtIndexName):unspecifiedError#ErrMsg)),
   fail.
 
 dropIndex(DCRel,DCAttr,LogicalIndexType) :-
@@ -2844,7 +2998,8 @@ dropIndex(DCRel,DCAttr,LogicalIndexType) :-
     -> ( concat_atom(['Internal error: Unsufficient parameters.'],'',ErrMsg),
          write('ERROR:\tYou need to specify all 3 arguments of dropIndex/3.'),
          nl,
-         throw(error_SQL(dropIndex(DCRel,DCAttr,LogicalIndexType):ErrMsg)),
+         throw(error_SQL(dropIndex(DCRel,DCAttr,LogicalIndexType)
+                                           :missingParameter#ErrMsg)),
          fail
        )
     ;  ( true )
@@ -2859,7 +3014,7 @@ dropIndex(LFRel,LFAttr,LogicalIndexType) :-
   concat_atom(['Unknown error: Tried to drop an index.'],'',ErrMsg),
   write_list(['ERROR:\t',ErrMsg]),nl,!,
   throw(error_SQL(database_dropIndex(LFRel,LFAttr,LogicalIndexType)
-                 :unknownError)),
+                 :unspecifiedError#ErrMsg)),
   fail.
 
 /*
@@ -3160,6 +3315,8 @@ Will inquire and assert size and type data on attributes.
 */
 
 getTupleInfo2(DB,ExtRel,DCrel,ExtAttrList,DCAttrList) :-
+  dm(dbhandling,['\nTry: getTupleInfo2(',DB,',',ExtRel,',',DCrel,',',
+                  ExtAttrList,',',DCAttrList,').']),
   getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery),
   secondo(TupleInfoQuery,TupleInfoQueryResultList),
   ( TupleInfoQueryResultList = [[trel, [tuple, _]], [ResultTuple]]
@@ -3170,7 +3327,7 @@ getTupleInfo2(DB,ExtRel,DCrel,ExtAttrList,DCAttrList) :-
          writeln(TupleInfoQueryResultList),
          concat_atom(['Wrong result list'],'',ErrMsg),
          throw(error_Internal(database_getTupleInfo2(DB,ExtRel,DCrel,
-                                               ExtAttrList,DCAttrList):ErrMsg))
+                                               ExtAttrList,DCAttrList)#ErrMsg))
        )
   ),
   analyseTupleInfoQueryResultList(DB,DCrel,ExtAttrList,ResultTuple),
@@ -3184,6 +3341,8 @@ Creates a complete tuple info query from an ExtensionListExpression
 
 */
 getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery):-
+  dm(dbhandling,['\nTry: getTupleInfoQuery(',ExtRel,',',ExtAttrList,',',
+                 DCAttrList,',',TupleInfoQuery,').']),
   getTupleInfoQuery2(ExtRel,ExtAttrList,DCAttrList,ExtensionList),
   concat_atom([
       'query 1 feed transformstream projectextend[; ',
@@ -3198,18 +3357,22 @@ getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery):-
 
 % getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
 % Concatenates an ExtensionList to an ExtensionListExpression
+%    getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
 getTupleInfoQuery2(ExtRel,ExtAttrList,DCattrList,Extension):-
+  dm(dbhandling,['\nTry: getTupleInfoQuery2(',ExtRel,',',ExtAttrList,',',
+                 DCattrList,',',Extension,').']),
   getTupleInfoQuery3(ExtRel,ExtAttrList,DCattrList,ExtensionList),
   concat_atom(ExtensionList,', ',Extension),
   !.
 
 % getTupleInfoQuery(+ExtRel,+ExtAttrList,-DCattrList,-ExtensionList)
 % creates an ExtensionList from the ExtensionList.
+%   getTupleInfoQuery3(+ExtRel,+ExtAttrList,-AttrDClist,-AttrExtensionList)
 getTupleInfoQuery3(_,[],[],[]):- !.
-getTupleInfoQuery3(R,
-                   [[A,_]|MoreAttrs],
-                   [AttrDC|MoreDCAttrs],
-                   [AttrExtension|MoreAttrExtensions]):-
+getTupleInfoQuery3(R,AttrList,AttrDClist,AttrExtensionList):-
+  dm(dbhandling,['\nTry: getTupleInfoQuery3(',R,',',AttrList,',',
+                                 AttrDClist,',',AttrExtensionList,')']),
+  AttrList          = [[A,_]|MoreAttrs],
   getTupleInfoQuery3(R,MoreAttrs,MoreDCAttrs,MoreAttrExtensions),
   dcName2externalName(AttrDC,A),
   concat_atom([
@@ -3217,6 +3380,8 @@ getTupleInfoQuery3(R,
      AttrDC,'_i: ((',R,' extattrsize[',A,']) - (',R,' rootattrsize[',A,'])), ',
      AttrDC,'_e: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
     ],'',AttrExtension),
+  AttrDClist        = [AttrDC|MoreDCAttrs],
+  AttrExtensionList = [AttrExtension|MoreAttrExtensions],
   !.
 
 /*
@@ -3237,13 +3402,14 @@ that when an error occurs, nothing gets (wrongly) asserted.
 
 */
 
-analyseTupleInfoQueryResultList(DB,DCrel,
-                                ExtAttrList,
-                                [Card,
-                                 TupleTotalSize,
-                                 TupleSizeCore,
-                                 TupleSizeInt,
-                                 TupleSizeExt|MoreInfos]):-
+analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
+  dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList(',DB,',',DCrel,',',
+                                  ExtAttrList,',',ResList,').']),
+  ResList = [Card,
+             TupleTotalSize,
+             TupleSizeCore,
+             TupleSizeInt,
+             TupleSizeExt|MoreInfos],
   ( Card = undef % Undefined cardinality - may not happen!
     -> ( concat_atom(['Cardinality query for relation ',DCrel,
                      ' has strange result: ',Card,'.'],'',ErrMsg),
@@ -3254,7 +3420,7 @@ analyseTupleInfoQueryResultList(DB,DCrel,
                                  TupleTotalSize,
                                  TupleSizeCore,
                                  TupleSizeInt,
-                                 TupleSizeExt|MoreInfos])):ErrMsg),
+                                 TupleSizeExt|MoreInfos]))#ErrMsg),
          fail
        )
     ;  true
@@ -3278,7 +3444,7 @@ analyseTupleInfoQueryResultList(DB,DCrel,
                                  TupleTotalSize,
                                  TupleSizeCore,
                                  TupleSizeInt,
-                                 TupleSizeExt|MoreInfos])):ErrMsg),
+                                 TupleSizeExt|MoreInfos]))#ErrMsg),
               fail
             )
        )
@@ -3289,11 +3455,14 @@ analyseTupleInfoQueryResultList(DB,DCrel,
   assert(storedTupleSize(DB, DCrel, StoreTupleSize)),
   !.
 
+%   analyseTupleInfoQueryResultList2(+DB,+DCrel,+ExtAttrList,+InfoList)
 analyseTupleInfoQueryResultList2(_,_,[],[]):- !.
 
-analyseTupleInfoQueryResultList2(DB,DCrel,
-                                [[ExtAttr,ExtType]|MoreAttrs],
-                                [SizeCore,SizeInt,SizeExt|MoreInfos]):-
+analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList):-
+  dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList2(',DB,',',DCrel,',',
+                                  ExtAttrList,',',InfoList,').']),
+  ExtAttrList = [[ExtAttr,ExtType]|MoreAttrs],
+  InfoList  = [SizeCore,SizeInt,SizeExt|MoreInfos],
   % take first elem from ExtAttrList, retrieve three entries from
   % the InfoList and process the information.
   dcName2externalName(DCType,ExtType),
@@ -3331,10 +3500,10 @@ analyseTupleInfoQueryResultList2(DB,DCrel,
   !.
 
 analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
-  atom_concat(['Retrieval of tuple and attribute information failed.'],
+  concat_atom(['Retrieval of tuple and attribute information failed.'],
                '',ErrMsg),
   throw(error_Internal(database_analyseTupleInfoQueryResultList(DB,DCrel,X,Y)
-                                                               :ErrMsg)),
+                                                               #ErrMsg)),
   !.
 
 
@@ -3398,7 +3567,7 @@ tuplesize(X, Y) :-
   concat_atom(['Cannot retrieve tuplesize for relation \'',X,'\''],'',ErrMsg),
   write_list(['ERROR:\t',ErrMsg]),
   write('\'.'),nl,                                                      %'
-  throw(error_Internal(database_tuplesize(X, Y):ErrMsg));
+  throw(error_Internal(database_tuplesize(X, Y)#ErrMsg));
   !, fail.
 
 /*
@@ -3419,7 +3588,7 @@ tupleSizeSplit(DCrel, Size) :-
 
 tupleSizeSplit(DCrel, X) :-
   concat_atom(['Unknown error.'],'',ErrMsg),
-  throw(error_Internal(database_tupleSizeSplit(DCrel, X):ErrMsg)),
+  throw(error_Internal(database_tupleSizeSplit(DCrel, X)#ErrMsg)),
   fail, !.
 
 tupleSizeSplit2(_, _, [], sizeTerm(0,0,0)) :- !.
@@ -3496,7 +3665,7 @@ extractSecondoTypeSizes([X|Rest]) :-
 readSecondoTypeSizes :-
   retractall(secDatatype(_, _)),
   isDatabaseOpen, !,
-  secondo('query SEC2TYPEINFO feed project[Type, Size] consume',SecList),
+  secondo('query SEC2TYPEINFO feed project[Type, Size] tconsume',SecList),
   SecList = [_,L],
   extractSecondoTypeSizes(L).
 
@@ -3529,7 +3698,7 @@ attrSize(DCRel:DCAttr, sizeTerm(CoreSize, InFlobSize, ExtFlobSize)) :-
 
 attrSize(X, Y) :-
   concat_atom(['Missing attribute size data on attribute \'',X,'\''],'',ErrMsg),
-  throw(error_Internal(database_attrSize(X, Y):ErrMsg)),
+  throw(error_Internal(database_attrSize(X, Y)#ErrMsg)),
   fail, !.
 
 
@@ -3539,7 +3708,7 @@ attrType(DCRel:DCAttr, Type) :-
 
 attrType(X, Y) :-
   concat_atom(['Missing type data on attribute \'',X,'\''],'',ErrMsg),
-  throw(error_Internal(database_attrType(X, Y):ErrMsg)),
+  throw(error_Internal(database_attrType(X, Y)#ErrMsg)),
   fail, !.
 
 readStoredAttrSizes :-
@@ -3584,7 +3753,7 @@ addSizeTerms([sizeTerm(X1,Y1,Z1)|Rest], sizeTerm(Res1, Res2, Res3)) :-
   Res3 is Z1 + Z2, !.
 addSizeTerms(X, Y) :-
   concat_atom(['Unknown error.'],'',ErrMsg),
-  throw(error_Internal(database_addSizeTerms(X, Y):ErrMsg)),
+  throw(error_Internal(database_addSizeTerms(X, Y)#ErrMsg)),
   fail, !.
 
 
@@ -3733,6 +3902,10 @@ starts with a alphabethic character, and has a lengths of 40 characters at most.
 You should use these facts and the predicate to verify, that identifiers for
 database objects and attributes are valid before using them in the database.
 
+Additionally, you should check whether an attribute name matches an existing
+object name, because this might cause severe problems during type mapping and
+query processing.
+
 The list of system identifiers is updated by calling
 
 ---- readSystemIdentifiers/0
@@ -3880,7 +4053,7 @@ create_relation(ExtRelName,AttrTypeList) :-
                      ExtRelName,'\'.'],'',ErrMsg),
         write_list(['ERROR:\t',ErrMsg]),nl,
         throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
-                        :ErrMsg)),
+                        :noDatabase#ErrMsg)),
         !, fail
       )
   ),
@@ -3890,7 +4063,7 @@ create_relation(ExtRelName,AttrTypeList) :-
                       '\' already exists.'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]),nl,
          throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
-                        :ErrMsg)), fail
+                        :objectAlreadyExists#ErrMsg)), fail
        )
     ;  true
   ),
@@ -3900,7 +4073,7 @@ create_relation(ExtRelName,AttrTypeList) :-
                       ExtRelName,'\'.'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]),nl,
          throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
-                        :ErrMsg)), fail
+                        :schemaError#ErrMsg)), fail
        )
   ),
   ( checkAttrTypeList(AttrTypeList)
@@ -3908,7 +4081,7 @@ create_relation(ExtRelName,AttrTypeList) :-
     ;  ( concat_atom(['Invalid attribute/type list.'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]),nl,
          throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
-                        :ErrMsg)), fail
+                        :schemaError#ErrMsg)), fail
        )
   ),
   getConstRelationTypeExpression(AttrTypeList,TypeExpr),
@@ -3920,7 +4093,7 @@ create_relation(ExtRelName,AttrTypeList) :-
                       ExtRelName,'\'.'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]),nl,
          throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
-                        :ErrMsg)), fail
+                        :unspecifiedError#ErrMsg)), fail
        )
   ),!,
   updateCatalog,
@@ -3930,7 +4103,8 @@ create_relation(ExtRelName,AttrTypeList) :-
     concat_atom(['Unknown error: Tried to create relation \'',ExtRelName,
                  '\'.'],'',ErrMsg),
     write_list(['\nERROR:\t',ErrMsg]),nl,
-    throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList):ErrMsg)),
+    throw(error_SQL(database_create_relation(ExtRelName,AttrTypeList)
+                        :unspecifiedError#ErrMsg)),
     !, fail.
 
 /*
@@ -4023,7 +4197,7 @@ drop_relationInt(ExtRelName) :-
    ;  (  concat_atom(['No database open: Cannot drop relation \'',ExtRelName,
                       '\'.'],'',ErrMsg),
          write('ERROR:\t'),write(ErrMsg),nl,
-         throw(error_SQL(database_drop_relation(ExtRelName):ErrMsg)),
+         throw(error_SQL(database_drop_relation(ExtRelName):noDatabase#ErrMsg)),
          !, fail
       )
   ),
@@ -4034,7 +4208,8 @@ drop_relationInt(ExtRelName) :-
     ;  (  concat_atom(['Type error: Object \'',ExtRelName,
                        '\' unknown or not a relation.'],'',ErrMsg),
           write_list(['\nERROR:\t',ErrMsg]),nl,
-          throw(error_SQL(database_drop_relation(ExtRelName):ErrMsg)), !, fail
+          throw(error_SQL(database_drop_relation(ExtRelName)
+                                   :unknownRelation#ErrMsg)), !, fail
        )
   ),
   deleteObject(ExtRelName),
@@ -4048,7 +4223,8 @@ drop_relationInt(ExtRelName) :-
     write_list(['\nERROR:\tFailed trying to drop \'',ExtRelName,'\'.']),nl,
     concat_atom(['Unknown error: While trying to drop relation \'',ExtRelName,
                  '\'.'],'',ErrMsg),
-    throw(error_SQL(database_drop_relation(ExtRelName):ErrMsg)),
+    throw(error_SQL(database_drop_relation(ExtRelName)
+                                   :unspecifiedError#ErrMsg)),
     !, fail.
 
 % The user level predicate:
@@ -4067,7 +4243,7 @@ drop_relation(DCrel) :-
 drop_relation(DCrel) :-
     concat_atom(['Unknown relation: \'',DCrel,'\'.'],'',ErrMsg),
     write_list(['\nERROR:\tFailed trying to drop \'',DCrel,'\'.']),nl,
-    throw(error_SQL(database_drop_relation(DCrel):ErrMsg)),
+    throw(error_SQL(database_drop_relation(DCrel):unknownRelation#ErrMsg)),
     !, fail.
 
 /*

@@ -349,9 +349,12 @@ secondo(X) :-
           retractall(databaseName(_)),
           assert(databaseName(DB)),
           readSystemIdentifiers,
+          readSecondoTypeSizes,
+          refreshSecondoCatalogInfo,
+          checkObjectNamingConvention,
           updateCatalog,
-          updateCatalog,
-          ensureSmallObjectsExist
+          updateCatalog
+%         ,ensureSmallObjectsExist
         )
     ;   ( promptSecondoResultFailed,
           fail
@@ -419,9 +422,9 @@ secondo(X) :-
   ( secondo(X, Y)
     *-> ( promptSecondoResultSucceeded(Y),
           updateCatalog,
-          updateCatalog,
-          ensureSmallObjectsExist,
-          ensureSamplesExist
+          updateCatalog
+%         ,ensureSmallObjectsExist
+%         ,ensureSamplesExist
         )
     ;   ( promptSecondoResultFailed,
           fail
@@ -461,7 +464,7 @@ secondo(X) :-
   ),
   updateCatalog,
   updateCatalog,
-  ensureSmallObjectsExist,
+% ensureSmallObjectsExist,
   !.
 
 % restore object
@@ -479,7 +482,7 @@ secondo(X) :-
   ),
   updateCatalog,
   updateCatalog,
-  ensureSmallObjectsExist,
+%  ensureSmallObjectsExist,
   !.
 
 secondo(X) :-

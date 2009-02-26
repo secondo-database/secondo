@@ -119,7 +119,8 @@ extractMacros(with(X), Y) :-
                '<mnemo>}] in <query>.\'.\n'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   !,
-  throw(error_SQL(rewriting_extractMacros(with(X), Y):ErrMsg)),
+  throw(error_SQL(rewriting_extractMacros(with(X), Y)
+                                :malformedExpression#ErrMsg)),
   fail.
 
 extractMacros(Query, Query).
@@ -137,7 +138,8 @@ extractMacros1(Macro as Mnemo) :-
                'must be an acyclic expression.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   !,
-  throw(error_SQL(rewriting_extractMacros1(Macro as Mnemo):ErrMsg)),
+  throw(error_SQL(rewriting_extractMacros1(Macro as Mnemo)
+            :malformedExpression#ErrMsg)),
   fail.
 
 extractMacros1(X as Mnemo) :-
@@ -146,7 +148,8 @@ extractMacros1(X as Mnemo) :-
                'must be an identifier.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
   !,
-  throw(error_SQL(rewriting_extractMacros1(X as Mnemo):ErrMsg)),
+  throw(error_SQL(rewriting_extractMacros1(X as Mnemo)
+                                :malformedExpression#ErrMsg)),
   fail.
 
 extractMacros1(Macro as Mnemo) :-

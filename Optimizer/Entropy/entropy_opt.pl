@@ -246,13 +246,21 @@ but with the suffix '\_small'
 
 */
 
+ensureSmallRelExists(DCrel) :-
+  createSmallRelationObjectForRel(DCrel).
+
+ensureSmallRelExists(DCindex) :-
+  createSmallIndexForIndex(DCindex).
+
 small(rel(Rel, Var), rel(Rel2, Var)) :-
-  atom_concat(Rel, '_small', Rel2).
+  atom_concat(Rel, '_small', Rel2),
+  ensureSmallRelExists(Rel).
 
 
 
 newResSize(arg(N), Size) :-
   argument(N, R ),
+  R = (DCrel, _), createSmallRelationObjectForRel(DCrel),
   small( R, rel(SRel, _)),   card(SRel, Size), !.
 
 newResSize(res(N), Size) :-
@@ -279,10 +287,14 @@ query_small(IndexName, NameSmall) :-
   dcName2externalName(DCindexName,IndexName),
   databaseName(DB),
   storedIndex(DB,_,_,_,DCindexName),
-  atom_concat( IndexName, '_small', NameSmall ), !.
+  atom_concat( IndexName, '_small', NameSmall ),
+  ensureSmallIndexExists(IndexName),
+  !.
 
 query_small(rel(Name, V), rel(NameSmall, V)) :-
-  atom_concat( Name, '_small', NameSmall ), !.
+  atom_concat( Name, '_small', NameSmall ),
+  ensureSmallRelExists(Name),
+  !.
 
 query_small( Term, Term ) :-
   atomic(Term), !.
@@ -387,6 +399,7 @@ possiblyCorrectSelfJoins(Source, Target, TermIn, TermOut) :-
   Rel1 = rel(RelName, _),
   atom_concat(RelName, '_small', SmallName),
   card(RelName, RelCard),
+  createSmallRelationObjectForRel(RelName),
   card(SmallName, SmallCard),
   ( SmallCard =:= 0                 % avoid division by zero
     -> SmallCardCorr is 0.000001

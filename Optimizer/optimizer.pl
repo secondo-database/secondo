@@ -1815,9 +1815,10 @@ plan_to_atom(X, Result) :-
 
 /* Error case */
 plan_to_atom(X, _) :-
-  write('Error in plan_to_atom: No rule for handling term '),
-  write(X), nl,
-  throw(error_Internal(optimizer_plan_to_atom(X,undef):malformedExpression)),
+  term_to:atom(X,XA),
+  concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],'',ErrMsg),
+  write(ErrMsg), nl,
+  throw(error_Internal(optimizer_plan_to_atom(X,undef):malformedExpression#ErrMsg)),
   !, fail.
 
 /* auxiliary predicates */
@@ -2869,9 +2870,11 @@ resTupleSize(res(N), TupleSize) :-
   nodeTupleSize(N, TupleSize), !.
 
 resTupleSize(X, Y) :-
-  write('ERROR in optimizer: cannot find tuplesize for \''),
-  write(X), write('\'.\n'),
-  throw(error_Internal(optimizer_resTupleSize(X,Y):tupleSizeNotFound)),
+  term_to_atom(X, XA),
+  concat_atom(['Cannot find tuplesize for \'',XA,'\'.'],
+              '',ErrMsg),
+  write_list(['ERROR in optimizer: ',ErrMsg]), nl,
+  throw(error_Internal(optimizer_resTupleSize(X,Y):missingData#ErrMsg)),
   fail, !.
 
 
@@ -2898,7 +2901,8 @@ getPredNoPET(Index, CalcPET, ExpPET) :-
   storedPredNoPET(Index, CalcPET, ExpPET), !.
 
 getPredNoPET(Index, X, Y) :-
-  throw(error_Internal(optimizer_getPredNoPET(Index, X, Y):petNotFound)),
+  concat_atom(['Cannot find annotated PET.'],'',ErrMsg),
+  throw(error_Internal(optimizer_getPredNoPET(Index, X, Y):missingData#ErrMsg)),
   fail, !.
 
 /*
@@ -3166,7 +3170,7 @@ cost(rel(Rel, X1_), X2_, Size, 0) :-
          write('ERROR:\tcost/4 failed due to non-dc relation name.'), nl,
          write('---> THIS SHOULD BE CORRECTED!'), nl,
          throw(error_Internal(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
-              :missedTranslation))),
+              :malformedExpression))),
          fail
        )
   ),
@@ -4553,7 +4557,8 @@ lookupRel(Rel as Var, Y) :-
   ( variable(Var, _)
     -> ( concat_atom(['Doubly defined variable \'',Var,'\'.'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]), nl,
-         throw(error_SQL(optimizer_lookupRel(Rel as Var,Y):ErrMsg)),
+         throw(error_SQL(optimizer_lookupRel(Rel as Var,Y)
+                                       :malformedExpression#ErrMsg)),
          fail
        )
     ;  Y = rel(RelDC, Var)
@@ -4571,7 +4576,7 @@ lookupRel(X,Y) :- !,
   term_to_atom(X,XA),
   concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]), nl,
-  throw(error_SQL(optimizer_lookupRel(X,Y):ErrMsg)),
+  throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation#ErrMsg)),
   fail.
 
 %%%% Begin: for update and insert
@@ -4603,7 +4608,7 @@ duplicateAttrs(Rel) :-
   concat_atom(['Duplicate attribute alias names in relations ',
               Rel2A, ' and ',RelA,'.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
-  throw(error_SQL(optimizer_duplicateAttrs(Rel):ErrMsg)),
+  throw(error_SQL(optimizer_duplicateAttrs(Rel):malformedExpression#ErrMsg)),
   nl.
 
 /*
@@ -4692,10 +4697,11 @@ lookupAttr(Expr as Name, Y) :-
   queryAttr(attr(Name, 0, u)),
   !,
   term_to_atom(Name,NameA),
-  concat_atom(['Attribute names \'',NameA,'\'',
-              ' were doubly defined in the query.'],'',ErrMsg),
+  concat_atom(['Doubly defined attribute names \'',NameA,'\'',
+              ' within query.'],'',ErrMsg),
   write_list(['\nERROR: ',ErrMsg]), nl,
-  throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y):duplicateAttrs)),
+  throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y)
+                                :malformedExpression#ErrMsg)),
   fail.
 
 /*
@@ -4724,7 +4730,7 @@ lookupAttr(Term, Term) :-
   atom(Term),
   concat_atom(['Unknown symbol: \'',Term,'\' is not recognized!'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
-  throw(error_SQL(optimizer_lookupAttr(Term, Term):ErrMsg)),
+  throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownIdentifier#ErrMsg)),
   fail.
 
 lookupAttr(Term, Term) :-
@@ -4794,7 +4800,7 @@ lookupPred(Pred, X) :-
       )
   ),
   write_list(['\nERROR:\t',ErrMsg]),nl,
-  throw(error_SQL(optimizer_lookupPred(Pred, X):ErrMsg)),
+  throw(error_SQL(optimizer_lookupPred(Pred, X):malformedExpression#ErrMsg)),
   fail, !.
 
 /*
@@ -4854,7 +4860,7 @@ lookupPred1(Term, Term, Rels, Rels) :-
             '\' not recognized. It is neither an attribute, nor a Secondo ',
             'object.\n'],'',ErrMsg),
  write_list(['\nERROR:\t',ErrMsg]),
- throw(error_SQL(optimizer_lookupPred1(Term, Term):ErrMsg)).
+ throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownIdentifier#ErrMsg)).
 
 lookupPred1(Term, Term, Rels, Rels).
 
@@ -5606,7 +5612,8 @@ aggrQuery(Query groupby G, _, _, _) :-
   concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
-  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef):ErrMsg)),
+  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef)
+                                           :malformedExpression#ErrMsg)),
   fail.
 aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
   aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
@@ -5669,7 +5676,8 @@ userDefAggrQuery(Query groupby G, _, _, _, _) :-
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
-                             undef, undef, undef, undef):ErrMsg)),
+                             undef, undef, undef, undef)
+                                    :malformedExpression#ErrMsg)),
   fail.
 userDefAggrQuery(Query orderby Order,
                  Query1 orderby Order, AggrExpr, Fun, Default) :-
@@ -6008,11 +6016,11 @@ sqlToPlan(QueryText, ResultText) :-
          Exc, % catch all exceptions!
          ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
            ( ( Exc = error_SQL(ErrorTerm),
-               ErrorTerm = _:Message
+               ( ErrorTerm = _:ErrorCode#Message ; ErrorTerm = _:Message )
              ) %% Problems with the SQL query itself:
              -> concat_atom(['SQL ERROR: ',Message],'',MessageToSend)
              ;  ( ( Exc = error_Internal(ErrorTerm),
-                    ErrorTerm = _:Message
+                    ( _:ErrorCode#Message ; ErrorTerm = _:Message )
                   )
                   -> concat_atom(['Internal ERROR: ',Message],'',MessageToSend)
                   %% all other exceptions:
@@ -6291,14 +6299,64 @@ thrown using the built-in Prolog predicate
         throw(error_Internal(X)), for errors due to optimizer failure
 ----
 
-where ~X~ is a term that represents a somehow meaningful error-message, e.g.
-respecting the format
+~error\_SQL(X)~ is an exception class to report errors related to the query
+itself (e.g. the user's SQL command is malformed, the user does not have
+sufficient rights to perform the action, etc.).
 
-----    <prolog-file>_<Predicate>(<Arguments>):<error-message>.
+~error\_Internal(X))~ is an exception class to report errors that do not directly
+concern the SQL query, but have been occured dur to internal optimizer problems
+(like missing meta data).
+
+In all cases, ~X~ is a term that represents the error-message respecting format
+
+----    <prolog-file>_<Predicate>(<Arguments>):<error-code>
 ----
 
-~error-message~ should be a informative message that can be presented to the user
-and helping him with understanding and possibly fixing the problem.
+or
+
+----    <prolog-file>_<Predicate>(<Arguments>):<error-code>#<error-message>.
+----
+
+~error-message~ should be a informative, free-form text message that can be
+presented to the user and helping him with understanding and possibly fixing
+the problem.
+
+~error-code~ should be a tag to be used within internal exception handling.
+
+Error codes used by now are:
+
+  * missingData - some expected meta data cannot be retrieved
+
+  * selectivityQueryFailed - a selectivity query failed
+
+  * malformedExpression - an expression does not obey the demanded syntax
+
+  * unexpectedListType - a nested list xpression does not obey the demanded form
+
+  * prohibitedAction - a action has been demanded, that my not be performed
+
+  * missingParameter - a required parameter has not been bound
+
+  * schemaError - an identifier or object violates the naming conventions
+
+  * noDatabase - no database is currently opened
+
+  * requestUserInteraction - user interaction is required to recover from this error
+
+  * unknownIdentifier - the specified identifier is not recognized
+
+  * unknownAttribute - the specified attribute is unknown
+
+  * unknownRelation - the specified relation is unknown
+
+  * unknownIndex - the specified index is not found
+
+  * objectAlreadyExists - an according object already exists or the name is already in use
+
+  * wrongType - a passed argument has a wrong type
+
+  * unspecifiedError - the nature of an error is unknown or irrelevant
+
 
 A standard exception handler is implemented by
 the predicate ~defaultExceptionHandler(G)~ that will catch any exception respecting the
@@ -6325,8 +6383,8 @@ exception-format described above, that is thrown within goal ~G~.
 
 defaultExceptionHandler(G) :-
   catch( G,
-         X,
-         ( (error_SQL(X) ; error_Internal(X))
+         Exception,
+         ( (Exception = error_SQL(X) ; Exception = error_Internal(X))
            % only handle these kinds of exceptions
            -> ( write('\nException \''), write(X), write('\' caught.'),
                 write('\nAn ERROR occured, please inspect the output above.'),

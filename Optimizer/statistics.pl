@@ -113,7 +113,7 @@ simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
 simplePred(X, Y) :-
   term_to_atom(X,Xt),
   concat_atom(['Malformed expression: \'', Xt, '\'.'],'',ErrorMsg),
-  throw(error_SQL(statistics_simplePred(X, Y):ErrorMsg)).
+  throw(error_SQL(statistics_simplePred(X, Y):malformedExpression#ErrorMsg)).
 
 /*
 
@@ -276,7 +276,9 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   BBoxPred =.. [intersects, bbox(Arg1), bbox(Arg2)],
   ( optimizerOption(dynamicSample)
     -> dynamicPossiblyRenameS(Rel, RelQuery)
-    ;  ( sampleS(Rel, RelS),
+    ;  ( Rel = rel(DCrelName, _),
+         ensureSampleSexists(DCrelName), writeln(Rel),
+         sampleS(Rel, RelS),
          possiblyRename(RelS, RelQuery)
        )
   ),
@@ -293,7 +295,8 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
                        'function!'],'',ErrorMsg),
            write_list(['\nERROR:\t',ErrorMsg,' ']), nl,
            throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
-               QueryTime, BBoxResCard, FilterResCard):ErrorMsg)),
+               QueryTime, BBoxResCard, FilterResCard)
+               :selectivityQueryFailed#ErrorMsg)),
            fail
          )
     )
@@ -332,7 +335,9 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   not(isBBoxPredicate(OP)), % normal predicate
   ( optimizerOption(dynamicSample)
     -> dynamicPossiblyRenameS(Rel, RelQuery)
-    ;  ( sampleS(Rel, RelS),
+    ;  ( Rel = rel(DCrelName, _), writeln(Rel),
+         ensureSampleSexists(DCrelName),
+         sampleS(Rel, RelS),
          possiblyRename(RelS, RelQuery)
        )
   ),
@@ -349,7 +354,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
                        'function! '],'',ErrMsg),
            write_list(['\nERROR:\t',ErrMsg]), nl,
            throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
-                         QueryTime, noBBox, ResCard):ErrMsg)),
+                         QueryTime, noBBox, ResCard):selectivityQueryFailed#ErrMsg)),
            fail
          )
     )
@@ -387,7 +392,11 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
          Query = count(filter(counter(loopjoin(Rel1Query,
            fun([param(txx1, tuple)], filter(Rel2Query, Pred3))),1),Pred2) )
        )
-    ;  ( sampleS(Rel1, Rel1S),
+    ;  ( Rel1 = rel(DCrelName1, _), writeln(Rel1),
+         Rel2 = rel(DCrelName2, _), writeln(Rel2),
+         ensureSampleSexists(DCrelName1),
+         ensureSampleJexists(DCrelName2),
+         sampleS(Rel1, Rel1S),
          sampleJ(Rel2, Rel2S),
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
@@ -453,7 +462,12 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
          Query = count(loopsel(Rel1Query, fun([param(txx1, tuple)],
                        filter(Rel2Query, Pred2))))
        )
-    ;  ( sampleS(Rel1, Rel1S),
+    ;  ( Rel1 = rel(DCrelName1, _), writeln(Rel1),
+         Rel2 = rel(DCrelName2, _), writeln(Rel2),
+         ensureSampleSexists(DCrelName1),
+         ensureSampleJexists(DCrelName1),
+         ensureSampleJexists(DCrelName2),
+         sampleS(Rel1, Rel1S),
          sampleJ(Rel1, Rel1J),
          sampleJ(Rel2, Rel2S),
          Rel1J = rel(BaseName, _),
@@ -637,7 +651,7 @@ selectivity(P, X) :-
   write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(',Sel)\n'),
-  throw(error_Internal(statistics_selectivity(P, X))),
+  throw(error_Internal(statistics_selectivity(P, X):selectivityQueryFailed)),
   fail, !.
 
 
@@ -670,9 +684,11 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   not(optimizerOption(dynamicSample)),
   Rel1 = rel(BaseName1, _),
   sampleNameJ(BaseName1, SampleName1),
+  ensureSampleJexists(BaseName1),
   card(SampleName1, SampleCard1),
   Rel2 = rel(BaseName2, _),
   sampleNameJ(BaseName2, SampleName2),
+  ensureSampleJexists(BaseName2),
   card(SampleName2, SampleCard2),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
@@ -712,6 +728,7 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   not(optimizerOption(dynamicSample)),
   Rel = rel(BaseName, _),
   sampleNameS(BaseName, SampleName),
+  ensureSampleSexists(BaseName),
   card(SampleName, SampleCard),
   selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
@@ -832,7 +849,8 @@ selectivity(P, X, Y, Z) :-
   concat_atom(['Cannot find selectivity for \'', PSimpleT, '\'.'],'',ErrMsg),
   write('Error in optimizer: '), write(ErrMsg),
   write('Call: selectivity('), write(P), write(', _, _, _)\n'),
-  throw(error_Internal(statistics_selectivity(P, X, Y, Z):ErrMsg)),
+  throw(error_Internal(statistics_selectivity(P, X, Y, Z)
+                                   :selectivityQueryFailed#ErrMsg)),
   fail, !.
 
 
@@ -848,7 +866,7 @@ getPET(P, X, Y) :-
   concat_atom(['Cannot find PETs for \'', PSimpleT, '\'.'],'',ErrMsg),
   write('Error in optimizer: '), write(ErrMsg), nl,
   write('Call: getPET('), write(P), write(', _, _)\n'),
-  throw(error_Internal(statistics_getPET(P, X, Y):ErrMsg)),
+  throw(error_Internal(statistics_getPET(P, X, Y):missingData#ErrMsg)),
   fail, !.
 
 /*
@@ -1621,7 +1639,7 @@ getSig(attr(Attr,Arg,_), Rel1, Rel2, AttrType) :-
 
 getSig(attr(A,B,C), Rel1, Rel2, X) :-
     throw(error_Internal(statistics_getSig(attr(A,B,C), Rel1, Rel2, X)
-                             :unspecifiedError)),
+                             :unspecifiedError:unspecifiedError)),
     !,
     fail.
 

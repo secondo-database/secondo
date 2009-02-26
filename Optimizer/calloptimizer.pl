@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+
 /*
 0 Help on User Level Predicates
 
@@ -227,7 +228,7 @@ should be called, is it is deactivated, ~GoalOff~ is called.
 ~SuperOption~ is the name of the option that ~Option~ is a suboption of. If ~none~,
 ~Option~ is a top-level option.
 
-If ~NonStandard = yes~ means this option somehow alters the optimization process.
+~NonStandard = yes~ means this option somehow alters the optimization process.
 ~NonStandard = no~ means, the option does not modify the optimization process.
 
 */
@@ -382,6 +383,9 @@ optimizerOptionInfo(dynamicSample, none, yes,
 optimizerOptionInfo(autoSamples, none, no,
                     'Automatically determine sample sizes.',
                     true, true).
+optimizerOptionInfo(eagerObjectCreation, none, yes,
+                'Create all samples and small objects at \'open databases\'.',
+                    true, true).
 optimizerOptionInfo(rewriteMacros, none, no,
                     'Allow for macros in queries.',
                     true, true).
@@ -394,7 +398,7 @@ optimizerOptionInfo(rtreeIndexRules, rewriteInference, yes,
                           (
                             not(optimizerOption(entropy))
                           ; notIsDatabaseOpen
-                          ; ensureSmallObjectsExist
+%                          ; ensureSmallObjectsExist
                           )
                       ),
                       true).

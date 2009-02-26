@@ -32,7 +32,8 @@ optimizerOptionInfo(entropy, none, yes,
                       delOption(immediatePlan),
                       loadFiles(entropy),
                       (   notIsDatabaseOpen
-                        ; ensureSmallObjectsExist
+%                        ; ensureSmallObjectsExist
+                        ; true
                       )
                     ),
 	            true )).
