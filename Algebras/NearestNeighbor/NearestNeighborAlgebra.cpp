@@ -2510,8 +2510,6 @@ public:
 
      bool finished = false;
      while(!finished){
-        Tuple* temp = lastTuple;
-
         lastTuple = static_cast<Tuple*>(current.addr);
         UPoint* up = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
         tupleStart = up->timeInterval.start;
@@ -4983,7 +4981,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                     const BBox<2> mBox(t->getBox(d));
                     if(interv.size() == 3){ //exit hat
                       int cov = 0;
-                      for(int j = 0;j < interv.size();j++){
+                      for(unsigned int j = 0;j < interv.size();j++){
                         if(interv[j].Contains(t2)){
                           cov = covs[j];
                           break;
