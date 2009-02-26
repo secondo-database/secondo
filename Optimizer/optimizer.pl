@@ -1194,6 +1194,12 @@ Arguments:
 rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
 
+plan_to_atom( Pattern , Result):-
+  Pattern =.. [pattern|Preds],
+  list_to_atom(Preds, Preds2),
+  concat_atom(['. stpattern[', Preds2, ']'], '', Result),
+  !.  	
+
 plan_to_atom(A,A) :-
   string(A),
   !.
@@ -1459,6 +1465,29 @@ plan_to_atom(rename(X, Y), Result) :-
   concat_atom([XAtom, '{', Y, '} '], '', Result),
   !.
 
+
+%used for removing the temporarily filter conditions
+%in the form sometimes(Pred). These were generated
+%by the optimizer by rewriting the pattern operator
+%Note that user filter conditions in the same form 
+%'sometimes(Pred)' will not be removed
+
+plan_to_atom(predinfo(Sel, Cost, filter(Stream, sometimes(Pred))) , Result) :-
+  removefilter(sometimes(Pred)),
+  retract(removefilter(sometimes(Pred))),
+  plan_to_atom(Stream, Result),
+  !.
+
+%used for removing the temporarily filter conditions
+%in the form sometimes(Pred). These were generated
+%by the optimizer by rewriting the pattern operator
+%Note that user filter conditions in the same form 
+%'sometimes(Pred)' will not be removed
+plan_to_atom(filter(Stream, sometimes(Pred)) , Result) :-
+  removefilter(sometimes(Pred)),
+  retract(removefilter(sometimes(Pred))),
+  plan_to_atom(Stream, Result),
+  !.
 
 plan_to_atom(predinfo(Sel, Cost, X), Result) :-
   plan_to_atom(X, XAtom),
@@ -2072,6 +2101,13 @@ filter is used.
 
 % Generic indexselect translation for predicates checking on mbbs
 
+% translation rule for sometimes(Pred). It is necessary for STPattern
+indexselect(arg(N), pr(Pred, _)) => filter(IS, Pred) :-
+  Pred =.. [sometimes, InnerPred] ,
+  indexselect(arg(N), pr(InnerPred, _)) => Result,
+  Result= filter(IS, InnerPred). 
+
+% Generic indexselect translation for predicates checking on mbbs
 indexselect(arg(N), pr(Pred, _)) =>
   filter(windowintersects(dbobject(IndexName), rel(Name, *), Y), Pred)
   :-
@@ -2204,6 +2240,63 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+
+% special rules for range queries in the form distance(m(x), y) < d
+% 'distance <' with spatial(rtree,object) index
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(gettuples(windowintersectsS(dbobject(IndexName), 
+				enlargeRect(bbox(Y),D,D)),  rel(Name, *)),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(rename(gettuples(windowintersectsS(dbobject(IndexName), 
+				enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+% 'distance <' with spatial(rtree,unit) index
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), 
+				enlargeRect(bbox(Y),D,D)))),  rel(Name, *)),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), 
+				enlargeRect(bbox(Y),D,D)))),rel(Name, *)), RelAlias),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
            DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -3250,6 +3343,38 @@ cost(filter(X, _), Sel, S, C) :-
   S is SizeX,
   C is CostX + A * SizeX, !.
 
+cost(filter(gettuples(rdup(sort(      
+      windowintersectsS(dbobject(IndexName), BBox))), rel(RelName, *)),
+      FilterPred), Sel, Size, Cost):-
+  Cost is 0,
+  card(RelName, RelCard),
+  Size is RelCard * Sel.
+%   write('...Inside cost estimation '),nl,
+%   card(RelName, RelCard),
+%   write('...Inside cost estimation1 '),nl,
+%   concat_atom(['query no_entries(', IndexName, ') '], '', Command),
+%   write('...Inside cost estimation2 '- Command),nl,
+%   secondo(Command, [_,IndexCard]),
+%   write('...IndexCard' - IndexCard),nl,
+%   windowintersectsTC(WITC),
+%   write('...Inside cost estimation3 '),nl,
+%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25,   % including 20% false positives
+%   write('...Inside cost estimation4 '),nl,
+%   sorttidTC(STC),
+%   write('...Inside cost estimation5 '),nl,
+%   CostSort is Sel * 1.2 * IndexCard * STC,
+%   write('...Inside cost estimation6 '),nl,
+%   rdupTC(RDTC),
+%   write('...Inside cost estimation7 '),nl,
+%   CostRD is Sel * 1.2 * IndexCard * RDTC,
+%   write('...Inside cost estimation8 '),nl,
+%   CostGT is Sel * 1.2 * WITC * 0.75,
+%   Cost is CostWI+ CostSort + CostRD + CostGT,
+%   write('...Total cost is ' - Cost),nl,
+%   Size is Sel * RelCard,
+%   write('...Final size is ' - Size),nl.
+  
+  
 
 
 cost(filter(X, _), Sel, S, C) :- 	% 'normal' filter
@@ -4773,6 +4898,17 @@ lookupPreds([P | Ps], [P2 | P2s]) :-
 lookupPreds(Pred, Pred2) :-
   not(is_list(Pred)),
   lookupPred(Pred, Pred2), !.
+
+lookupPred(sometimes(Pred), pr(Pred2, Rel)) :-	
+%This predicate is added by the optimizer
+%For the sake of optimizeing the pattern
+%operator. The asserted predicate will be used
+%later to remove this predicate
+  removefilter(sometimes(Pred)),		
+  nextCounter(selectionPred,_),
+  lookupPred1(sometimes(Pred), Pred2, [], [Rel]), !,
+  retract(removefilter(sometimes(Pred))),	
+  assert(removefilter(Pred2)).	
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
   nextCounter(selectionPred,_),

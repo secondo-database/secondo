@@ -534,6 +534,11 @@ inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
   member(X passes Z,  Premises),
   X \= Y, X \= Z, Y \= Z.
 
+inferPredicate(Premises, AdditionalConditions):-
+  member( Pattern, Premises),
+  Pattern=.. [pattern|Preds],
+  list_to_set(Preds, Preds2),
+  inferPatternPredicates(Preds2, AdditionalConditions).
 
 /*
 The following rules are deprecated, since generic rules for operators ~OP~ with
@@ -556,6 +561,24 @@ inferPredicate(Premises, [X intersects Y]) :-
 
 */
 
+
+/*
+
+14.2.3 Auxiliary Predicates for Inference of Conditions
+
+---- inferPatternPredicates(+Preds,-InferedPreds)
+For every predicates P inside a pattern query,
+a condition sometimes(P) is add to the query. The
+dynamic predicate removefilter ise used to flag
+sometimes(P). This flag is used in rewritePlan to
+remove sometimes(P) from the query expression again. 
+*/
+
+:- dynamic removefilter/1.
+inferPatternPredicates([], [] ).
+inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
+  assert(removefilter(sometimes(Pred))),
+  inferPatternPredicates(Preds,Preds2).
 
 /*
 
