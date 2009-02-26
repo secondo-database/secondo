@@ -86,10 +86,10 @@ This predicate is true, if the term is a query formulated in the sql syntax defi
 */
 
 isQuery(Query) :-
-  catch(callLookup(Query, _), error_SQL(optimizer_lookupPred1(Term, Term):_), true).
+  catch(callLookup(Query, _), error_SQL(optimizer_lookupPred1(Term, Term):_#_), true).
   
 isQuery(Query) :-
-  catch(callLookup(Query, _), error_SQL(optimizer_lookupPred(Term, Term):_), true).
+  catch(callLookup(Query, _), error_SQL(optimizer_lookupPred(Term, Term):_#_), true).
   
   
 /*
