@@ -96,6 +96,6 @@ Result    : (bool TRUE)
 Operator : newknearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))(btree (tuple ((x1 t1)...(xn tn))) ti)(rel2 (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTOrdered_RTree UTOrdered knearestfilter[train1, 5] count
+Example  : query UTOrdered_RTree UTOrdered btree numbers newknearestfilter[train1, 10] count
 Result   : file_platform
 

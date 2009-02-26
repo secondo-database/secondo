@@ -2517,7 +2517,6 @@ public:
         if(up->timeInterval.end <= iv.start){
           lastTuple->DeleteIfAllowed();
           lastTuple = 0;
-
           qp->Request(stream.addr,current);
           finished =  !qp->Received(stream.addr);
          } else {
@@ -2666,7 +2665,6 @@ lasttuple must be exist.
          const UPoint* up =
                static_cast<const UPoint*>(lastTuple->GetAttribute(pos));
          tupleStart = up->timeInterval.start;
-
          if(tupleStart > iv.end){
             // tuple starts after the end of the query point
             lastTuple->DeleteIfAllowed();
