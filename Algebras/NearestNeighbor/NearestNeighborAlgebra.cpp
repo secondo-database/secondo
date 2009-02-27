@@ -4960,6 +4960,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                   tuple->DeleteIfAllowed();
                 }
                 delete id;
+                delete btreeiter;
 
               for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
                 R_TreeInternalEntry<dim> e =
