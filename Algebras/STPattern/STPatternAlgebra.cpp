@@ -398,13 +398,14 @@ OperatorInfo STPatternOperatorInfo( "stpattern",
 
 #if defined(design_tuple)
 OperatorInfo STPatternOperatorInfo( "stpattern",
-	"((stream x) ((map1 x mbool1)...(mapn x mbooln))) -> (stream x)",
-	"stpattern[p1: lifted predicate , f2: lifted predicate, ... ] ",
+	"(tuple(x) (mbool1...mbooln)) -> bool",
+	"stpattern[lifted predicate , lifted predicate, ... ] ",
 	"Naive implementation for spatio temporal pattern queries."
 	" It works like filter. Only tuples, fulfilling the "
 	"specified pattern are passed on to the output.",
-	"query Trains feed stpattern[f1: .Trip inside "
-	"msnow, f2: distance(.Trip, mehringdamm) < 10.0 ]   count");
+	"query Trains feed filter [. stpattern[.Trip inside msnow,  "
+	"distance(.Trip, mehringdamm) < 10.0 ] ] count");
+
 #endif
 /*
 
