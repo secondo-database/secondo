@@ -2641,7 +2641,6 @@ lasttuple must be exist.
     bool transferred = false;
 
     if(iv.Intersects(up->timeInterval) ){ // intersecting interval
-
       GetDistance(mpoint, up, mpos, mr);
       Instant t1 = up->timeInterval.start;
       Instant t2 = up->timeInterval.end;
@@ -2651,16 +2650,17 @@ lasttuple must be exist.
       queue.push(EventElem(E_RIGHT, t4, lastTuple, up, mr));
       // get the next tuple from the stream
       transferred = true;
-
     }else{
       delete mr;
+      // if there is no Event created from the tuple, we just
+      // delete it
       lastTuple->DeleteIfAllowed();
-     }
+      lastTuple = 0;
+    }
 
     Word current(Address(0));
     qp->Request(stream.addr,current);
     if(qp->Received(stream.addr)){
-       Tuple* temp = lastTuple;
        lastTuple = static_cast<Tuple*>(current.addr);
          const UPoint* up =
                static_cast<const UPoint*>(lastTuple->GetAttribute(pos));
@@ -2669,15 +2669,8 @@ lasttuple must be exist.
             // tuple starts after the end of the query point
             lastTuple->DeleteIfAllowed();
             lastTuple = 0;
-            if(transferred){
-              lastTuple = temp;
-              lastTuple->DeleteIfAllowed();
-            }
-            transferred = false;
-         }else
-          transferred = true;
+         }
     } else {
-      lastTuple->DeleteIfAllowed();
       lastTuple = 0;
       transferred = false;
     }
