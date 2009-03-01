@@ -1194,6 +1194,12 @@ Arguments:
 rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
 
+plan_to_atom( Pattern , Result):-
+  Pattern =.. [pattern|Preds],
+  list_to_atom(Preds, Preds2),
+  concat_atom(['. stpattern[', Preds2, ']'], '', Result),
+  !.  	
+
 plan_to_atom(A,A) :-
   string(A),
   !.
@@ -1202,8 +1208,8 @@ plan_to_atom(dbobject(Name),ExtName) :-
   dcName2externalName(DCname, Name),       % convert to DC-spelling
   ( dcName2externalName(DCname,ExtName)    % if Name is known
     -> true
-    ; ( write_list(['\nERROR:\tCannor translate \'',dbobject(DCname),'\'.']),
-        throw(error_SQL(optimizer_plan_to_atom(dbobject(DCname),
+    ; ( write_list(['\nERROR:\tCannot translate \'',dbobject(DCname),'\'.']),
+        throw(error_Internal(optimizer_plan_to_atom(dbobject(DCname),
                                                   ExtName):missingData)),
         fail
       )
@@ -1459,6 +1465,29 @@ plan_to_atom(rename(X, Y), Result) :-
   concat_atom([XAtom, '{', Y, '} '], '', Result),
   !.
 
+
+%used for removing the temporarily filter conditions
+%in the form sometimes(Pred). These were generated
+%by the optimizer by rewriting the pattern operator
+%Note that user filter conditions in the same form 
+%'sometimes(Pred)' will not be removed
+
+plan_to_atom(predinfo(Sel, Cost, filter(Stream, sometimes(Pred))) , Result) :-
+  removefilter(sometimes(Pred)),
+  retract(removefilter(sometimes(Pred))),
+  plan_to_atom(Stream, Result),
+  !.
+
+%used for removing the temporarily filter conditions
+%in the form sometimes(Pred). These were generated
+%by the optimizer by rewriting the pattern operator
+%Note that user filter conditions in the same form 
+%'sometimes(Pred)' will not be removed
+plan_to_atom(filter(Stream, sometimes(Pred)) , Result) :-
+  removefilter(sometimes(Pred)),
+  retract(removefilter(sometimes(Pred))),
+  plan_to_atom(Stream, Result),
+  !.
 
 plan_to_atom(predinfo(Sel, Cost, X), Result) :-
   plan_to_atom(X, XAtom),
@@ -1732,6 +1761,13 @@ plan_to_atom(column(Name, Type),Result) :-
   concat_atom([Name, ': ', Type], Result),
   !.
 
+plan_to_atom(createIndex(Rel, Columns, LogIndexType), Result) :-
+  rel_to_atom(Rel, Rel2),
+  plan_to_atom(attrname(Columns), Columns2),
+  getCreateIndexExpression(Rel2, Columns2, LogIndexType, no, IndexName, 
+			   Query), 
+  concat_atom(['derive ', IndexName, ' = ', Query], Result), !.
+
 /*
 Translation of operators driven by predicate ~secondoOp~ in
 file ~opsyntax~. There are rules for
@@ -1841,9 +1877,10 @@ plan_to_atom(X, Result) :-
 
 /* Error case */
 plan_to_atom(X, _) :-
-  write('Error in plan_to_atom: No rule for handling term '),
-  write(X), nl,
-  throw(error_SQL(optimizer_plan_to_atom(X,undef):malformedExpression)),
+  term_to:atom(X,XA),
+  concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],'',ErrMsg),
+  write(ErrMsg), nl,
+  throw(error_Internal(optimizer_plan_to_atom(X,undef):malformedExpression#ErrMsg)),
   !, fail.
 
 /* auxiliary predicates */
@@ -2097,6 +2134,13 @@ filter is used.
 
 % Generic indexselect translation for predicates checking on mbbs
 
+% translation rule for sometimes(Pred). It is necessary for STPattern
+indexselect(arg(N), pr(Pred, _)) => filter(IS, Pred) :-
+  Pred =.. [sometimes, InnerPred] ,
+  indexselect(arg(N), pr(InnerPred, _)) => Result,
+  Result= filter(IS, InnerPred). 
+
+% Generic indexselect translation for predicates checking on mbbs
 indexselect(arg(N), pr(Pred, _)) =>
   filter(windowintersects(dbobject(IndexName), rel(Name, *), Y), Pred)
   :-
@@ -2136,8 +2180,10 @@ indexselect(arg(N), pr(Pred, Rel)) => X :-
 
 
 /*
-C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices
-These indices are recognized by their index type, it is a combination of a ``granularity'' (one of ~object~, ~unit~, ~group10~) and a ``bounding box type'' (one of ~time~, ~space~, ~d3~). Even here, a possible ~rename~ must be done before ~filter~ can be applied.
+C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices.
+These indices are recognized by their index type.
+
+Again. a possible ~rename~ must be done before ~filter~ can be applied.
 
 */
 
@@ -2227,6 +2273,63 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+
+% special rules for range queries in the form distance(m(x), y) < d
+% 'distance <' with spatial(rtree,object) index
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(gettuples(windowintersectsS(dbobject(IndexName), 
+				enlargeRect(bbox(Y),D,D)),  rel(Name, *)),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(rename(gettuples(windowintersectsS(dbobject(IndexName), 
+				enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+% 'distance <' with spatial(rtree,unit) index
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), 
+				enlargeRect(bbox(Y),D,D)))),  rel(Name, *)),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), 
+				enlargeRect(bbox(Y),D,D)))),rel(Name, *)), RelAlias),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
            DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -2893,9 +2996,11 @@ resTupleSize(res(N), TupleSize) :-
   nodeTupleSize(N, TupleSize), !.
 
 resTupleSize(X, Y) :-
-  write('ERROR in optimizer: cannot find tuplesize for \''),
-  write(X), write('\'.\n'),
-  throw(error_SQL(optimizer_resTupleSize(X,Y))),
+  term_to_atom(X, XA),
+  concat_atom(['Cannot find tuplesize for \'',XA,'\'.'],
+              '',ErrMsg),
+  write_list(['ERROR in optimizer: ',ErrMsg]), nl,
+  throw(error_Internal(optimizer_resTupleSize(X,Y):missingData#ErrMsg)),
   fail, !.
 
 
@@ -2922,7 +3027,8 @@ getPredNoPET(Index, CalcPET, ExpPET) :-
   storedPredNoPET(Index, CalcPET, ExpPET), !.
 
 getPredNoPET(Index, X, Y) :-
-  throw(error_SQL(optimizer_getPredNoPET(Index, X, Y))),
+  concat_atom(['Cannot find annotated PET.'],'',ErrMsg),
+  throw(error_Internal(optimizer_getPredNoPET(Index, X, Y):missingData#ErrMsg)),
   fail, !.
 
 /*
@@ -3189,8 +3295,8 @@ cost(rel(Rel, X1_), X2_, Size, 0) :-
     ;  (
          write('ERROR:\tcost/4 failed due to non-dc relation name.'), nl,
          write('---> THIS SHOULD BE CORRECTED!'), nl,
-         throw(error_SQL(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
-              :missedTranslation))),
+         throw(error_Internal(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
+              :malformedExpression))),
          fail
        )
   ),
@@ -3270,6 +3376,38 @@ cost(filter(X, _), Sel, S, C) :-
   S is SizeX,
   C is CostX + A * SizeX, !.
 
+cost(filter(gettuples(rdup(sort(      
+      windowintersectsS(dbobject(IndexName), BBox))), rel(RelName, *)),
+      FilterPred), Sel, Size, Cost):-
+  Cost is 0,
+  card(RelName, RelCard),
+  Size is RelCard * Sel.
+%   write('...Inside cost estimation '),nl,
+%   card(RelName, RelCard),
+%   write('...Inside cost estimation1 '),nl,
+%   concat_atom(['query no_entries(', IndexName, ') '], '', Command),
+%   write('...Inside cost estimation2 '- Command),nl,
+%   secondo(Command, [_,IndexCard]),
+%   write('...IndexCard' - IndexCard),nl,
+%   windowintersectsTC(WITC),
+%   write('...Inside cost estimation3 '),nl,
+%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25,   % including 20% false positives
+%   write('...Inside cost estimation4 '),nl,
+%   sorttidTC(STC),
+%   write('...Inside cost estimation5 '),nl,
+%   CostSort is Sel * 1.2 * IndexCard * STC,
+%   write('...Inside cost estimation6 '),nl,
+%   rdupTC(RDTC),
+%   write('...Inside cost estimation7 '),nl,
+%   CostRD is Sel * 1.2 * IndexCard * RDTC,
+%   write('...Inside cost estimation8 '),nl,
+%   CostGT is Sel * 1.2 * WITC * 0.75,
+%   Cost is CostWI+ CostSort + CostRD + CostGT,
+%   write('...Total cost is ' - Cost),nl,
+%   Size is Sel * RelCard,
+%   write('...Final size is ' - Size),nl.
+  
+  
 
 
 cost(filter(X, _), Sel, S, C) :- 	% 'normal' filter
@@ -4365,9 +4503,12 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(950,  fx,  delete).% for update, insert
 :- op(950,  fx,  update).% for update, insert
 :- op(950, xfx,  values).% for update, insert
-:- op(992,  fx,	drop).
-:- op(950,  fx, table).
-:- op(940,  xfx, columns).
+:- op(992,  fx,	 drop).
+:- op(950,  fx,  table).
+:- op(950,  fx,  index).
+:- op(945,  fx,	 on).
+:- op(940, xfx,  columns).
+:- op(930, xfx,  indextype).
 
 
 /*
@@ -4515,11 +4656,43 @@ lookup(create table Tablename columns Columns,
        create table Tablename columns Columns2List) :-
   makeList(Columns, Columns2List), !.
 
+lookup(create index on Rel columns Attrs indextype IndexType, 
+       create index on Rel2List columns Attrs2List indextype IndexType) :-
+  lookup(create index on Rel columns Attrs, 
+	 create index on Rel2List columns Attrs2List), !.
+
+
+lookup(create index on Rel columns Attrs, 
+       create index on Rel2List columns Attrs2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  lookupAttrs(Attrs, Attrs2),
+  makeList(Attrs2, Attrs2List), !.
+
 lookup(drop table Rel, 
        drop table Rel2List) :-
   lookupRel(Rel, Rel2),
   makeList(Rel2, Rel2List),
   !.
+
+lookup(drop index on Rel columns Attrs indextype IndexType, 
+       drop index on Rel2List columns Attrs2List indextype IndexType) :-
+  lookup(drop index on Rel columns Attrs, 
+	 drop index on Rel2List columns Attrs2List), !.
+
+lookup(drop index on Rel columns Attrs, 
+       drop index on Rel2List columns Attrs2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  lookupAttrs(Attrs, Attrs2),
+  makeList(Attrs2, Attrs2List), !.
+
+lookup(drop index Rel, 
+       drop index Rel2List) :-
+  lookupIndex(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  !.
+
 
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   lookup(Query, Query2),
@@ -4541,6 +4714,13 @@ lookup(Query last N, Query2 last N) :-
 makeList(L, L) :- is_list(L).
 
 makeList(L, [L]) :- not(is_list(L)).
+
+
+dissolveList([], []) :- !.
+
+dissolveList([L], L) :- !.
+
+dissolveList([E|R], [E|R]) :- !.
 
 
 
@@ -4589,9 +4769,10 @@ lookupRel(Rel as Var, Y) :-
   dcName2externalName(RelDC,Rel),
   relation(RelDC, _), !,          %% changed code FIXME
   ( variable(Var, _)
-    -> ( write_list(['\nERROR:\tLooking up query: Doubly defined variable ',Var,
-                     '.']), nl,
-         throw(error_SQL(optimizer_lookupRel(Rel as Var,Y):doubledVariable)),
+    -> ( concat_atom(['Doubly defined variable \'',Var,'\'.'],'',ErrMsg),
+         write_list(['\nERROR:\t',ErrMsg]), nl,
+         throw(error_SQL(optimizer_lookupRel(Rel as Var,Y)
+                                       :malformedExpression#ErrMsg)),
          fail
        )
     ;  Y = rel(RelDC, Var)
@@ -4606,8 +4787,10 @@ lookupRel(Rel, rel(RelDC, *)) :-
   assert(queryRel(RelDC, rel(RelDC, *))).
 
 lookupRel(X,Y) :- !,
-  write_list(['\nERROR:\tLooking up query: Relation \'',X,'\' unknown!']), nl,
-  throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation)),
+  term_to_atom(X,XA),
+  concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]), nl,
+  throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation#ErrMsg)),
   fail.
 
 
@@ -4619,6 +4802,9 @@ lookupRelNoDblCheck(Rel, rel(RelDC, *)) :-
   assert(queryRel(RelDC, rel(RelDC, *))).
 %%%% End: for update and insert
 
+lookupIndex(Rel, RelDC) :-
+  atomic(Rel),
+  dcName2externalName(RelDC, Rel).
 
 /*
 ----    duplicateAttrs(Rel) :-
@@ -4636,9 +4822,12 @@ duplicateAttrs(Rel) :-
   relation(Rel, Attrs),
   member(Attr, Attrs),
   not(Rel = Rel2), !,
-  write_list(['\nERROR:\tDuplicate attribute names in relations ',
-              Rel2, ' and ',Rel,'.']),
-  throw(error_SQL(optimizer_duplicateAttrs(Rel):duplicateAttrs)),
+  term_to_atom(Rel,RelA),
+  term_to_atom(Rel2,Rel2A),
+  concat_atom(['Duplicate attribute alias names in relations ',
+              Rel2A, ' and ',RelA,'.'],'',ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]),
+  throw(error_SQL(optimizer_duplicateAttrs(Rel):malformedExpression#ErrMsg)),
   nl.
 
 /*
@@ -4726,9 +4915,12 @@ lookupAttr(Expr as Name, Y) :-
   lookupAttr(Expr, _),
   queryAttr(attr(Name, 0, u)),
   !,
-  write_list(['\nERROR: Lokking up query: Attribute name \'',Name,'\'',
-              ' doubly defined in query.']), nl,
-  throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y):duplicateAttrs)),
+  term_to_atom(Name,NameA),
+  concat_atom(['Doubly defined attribute names \'',NameA,'\'',
+              ' within query.'],'',ErrMsg),
+  write_list(['\nERROR: ',ErrMsg]), nl,
+  throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y)
+                                :malformedExpression#ErrMsg)),
   fail.
 
 /*
@@ -4755,10 +4947,15 @@ lookupAttr(Term, dbobject(TermDC)) :-
 
 lookupAttr(Term, Term) :-
   atom(Term),
-  write_list(['\nERROR:\tLooking up query: Symbol \'',Term,       %'
-              '\' in attribute list not recognized!']),           %'
-  throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownError)),
+  concat_atom(['Unknown symbol: \'',Term,'\' is not recognized!'],'',ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]),
+  throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownIdentifier#ErrMsg)),
   fail.
+
+lookupAttr(Term, Term) :-
+  is_list(Term),
+  catch(string_to_list(_, Term), _, fail),
+  !.
 
 lookupAttr(Term, Term) :- !.
 
@@ -4796,6 +4993,17 @@ lookupPreds(Pred, Pred2) :-
   not(is_list(Pred)),
   lookupPred(Pred, Pred2), !.
 
+lookupPred(sometimes(Pred), pr(Pred2, Rel)) :-	
+%This predicate is added by the optimizer
+%For the sake of optimizeing the pattern
+%operator. The asserted predicate will be used
+%later to remove this predicate
+  removefilter(sometimes(Pred)),		
+  nextCounter(selectionPred,_),
+  lookupPred1(sometimes(Pred), Pred2, [], [Rel]), !,
+  retract(removefilter(sometimes(Pred))),	
+  assert(removefilter(Pred2)).	
+
 lookupPred(Pred, pr(Pred2, Rel)) :-
   nextCounter(selectionPred,_),
   lookupPred1(Pred, Pred2, [], [Rel]), !.
@@ -4807,24 +5015,28 @@ lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
 lookupPred(Pred, X) :-
   lookupPred1(Pred, _, [], Rels),
   length(Rels, N),
+  term_to_atom(Pred,PredA),
+  term_to_atom(Rels,RelsA),
   ( (N = 0)
-    -> ( write_list(['\nERROR:\tLooking up query: Predicate \'',Pred,
-                     '\' is a constant. This is not allowed.']), nl
+    -> ( conacat_atom(['Malformed predicate: \'',PredA,
+                     '\' is a constant. This is not allowed.'],'',ErrMsg)
        )
     ; ( (N > 2)
-        -> ( write_list(['\nERROR:\tLooking up query: Predicate \'',Pred,
-                         '\' involves more than two relations: ',Rels,
-                         '. This is not allowed.']), nl
-           )
-        ; true
+        -> write_list(['Malformed predicate: \'',PredA,
+                       '\' involves more than two relations: ',RelsA,
+                       '. This is not allowed.'],'',ErrMsg)
+        ; concat_atom(['Malformed predicate: \'',PredA,
+                       '\' unspecified reason.'],'',ErrMsg)
       )
   ),
-  throw(error_SQL(optimizer_lookupPred(Pred, X):malformedExpression)),
+  write_list(['\nERROR:\t',ErrMsg]),nl,
+  throw(error_SQL(optimizer_lookupPred(Pred, X):malformedExpression#ErrMsg)),
   fail, !.
 
 /*
-----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter) :-
+----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter)
 ----
+
 ~Pred2~ is the transformed version of ~Pred~; before this is called,
 attributes so far considered have already used relations from list ~RelsBefore~.
 The relation list is updated and returned in ~RelsAfter~.
@@ -4874,10 +5086,11 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
  not(is_list(Term)),
- write_list(['\nERROR:\tSymbol \'', Term,
+ concat_atom(['Symbol \'', Term,
             '\' not recognized. It is neither an attribute, nor a Secondo ',
-            'object.\n']), %'
- throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownError)).
+            'object.\n'],'',ErrMsg),
+ write_list(['\nERROR:\t',ErrMsg]),
+ throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownIdentifier#ErrMsg)).
 
 lookupPred1(Term, Term, Rels, Rels).
 
@@ -5578,6 +5791,51 @@ queryToPlan(create table TableName columns Columns,
 queryToPlan(drop table [TableName], Result, 0) :-
   finishUpdate(drop table [TableName], delete(TableName), Result), !.
 
+% case: create index query
+queryToPlan(create index on [Rel] columns ColumnList indextype IndexType,
+	    createIndex(Rel, ColumnList2, IndexType), 0) :-
+  dissolveList(ColumnList, ColumnList2), !.
+
+% case: create index query
+queryToPlan(create index on [Rel] columns ColumnList,
+	    Result, Cost) :-
+  dissolveList(ColumnList, ColumnList2),
+  convertToLfName(ColumnList2, LfColumnList),
+  convertToLfName(Rel, LfRel),
+  keyAttributeTypeMatchesIndexType(LfRel, LfColumnList, LogIndexType),
+  queryToPlan(create index on [Rel] columns ColumnList indextype LogIndexType, 
+	      Result, Cost), !.
+
+% case: drop index query
+queryToPlan(drop index on [Rel] columns ColumnList indextype IndexType,
+	    Result, Cost) :-
+  dissolveList(ColumnList, ColumnList2),
+  findall(DCIndex, hasIndex(Rel, ColumnList2, DCIndex, IndexType), IndexList),
+  queryToPlan(drop index IndexList, Result, Cost), !.
+
+% case: drop index query
+queryToPlan(drop index on [Rel] columns ColumnList, Result, Cost) :-
+  queryToPlan(drop index on [Rel] columns ColumnList indextype _, Result, 
+	      Cost), !.
+
+% case: drop index query
+queryToPlan(drop index [], [], 0) :-
+  write('\nError:\tNo index found'), nl,
+  throw(error_SQL(optimizer_queryToPlan(drop index [], [], 0):noIndex)),
+  fail.
+
+% case: drop index query
+queryToPlan(drop index [DCTableName], delete(TableName), 0) :-
+  dcName2externalName(DCTableName, TableName), !.
+
+queryToPlan(drop index IndexList, [], 0) :-
+  writeList(['\nError:\tToo many indexes found: ', IndexList]), 
+  nl,
+  throw(error_SQL(optimizer_queryToPlan(drop index IndexList, [], 0)
+		  :multipleIndexes)),
+  fail.
+
+
 % case: count query
 queryToPlan(Query, count(Stream), Cost) :-
   countQuery(Query),
@@ -5654,8 +5912,11 @@ aggrQuery(Query groupby G, _, _, _) :-
   aggrQuery(Query, _, _, _), !,
   % This is not allowed, simple aggregations have no groupby!
   % Send an error!
-  write('ERROR: Expected a simple aggregation, but found a \'groupby\'!\n'),
-  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef))),
+  concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
+              '',ErrMsg),
+  write_list(['ERROR: ',ErrMsg]),
+  throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef)
+                                           :malformedExpression#ErrMsg)),
   fail.
 aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
   aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
@@ -5714,9 +5975,12 @@ userDefAggrQuery(Query groupby G, _, _, _, _) :-
   userDefAggrQuery(Query, _, _, _, _), !,
   % This is not allowed, simple aggregations have no groupby!
   % Send an error!
-  write('ERROR: Expected a simple aggregation, but found a \'groupby\'!\n'),
+  concat_atom(['Expected a simple aggregation, but found a \'groupby\'!\n'],
+              '',ErrMsg),
+  write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
-                                             undef, undef, undef, undef))),
+                             undef, undef, undef, undef)
+                                    :malformedExpression#ErrMsg)),
   fail.
 userDefAggrQuery(Query orderby Order,
                  Query1 orderby Order, AggrExpr, Fun, Default) :-
@@ -6009,38 +6273,69 @@ optimize(Query, QueryOut, CostOut) :-
 ----
 
 Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
+This predicate is called by the Secondo OptimizerServer.
+
+It will also catch exceptions and transform it into a nested list encoding a
+message that can be handled by the Secondo Javagui.
+
+If the exception has Format
+
+---- <prolog-file>_<Predicate>(<Arguments>):<error-explanation>.
+----
+
+Only ~error-explanation~ will be returned as the message content.
+Otherwise, ''Exception during optimization´´ is returned as the message content.
 
 */
 
+%%error_SQL(optimizer_lookupRel(twen, _G7):unknownRelation)
 
-sqlToPlan(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan) :-
   string(QueryText),
   string_to_atom(QueryText,AtomText),
   term_to_atom(Query, AtomText),
   optimize(Query, Plan, _).
 
-sqlToPlan(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan) :-
   term_to_atom(sql Query, QueryText),
   optimize(Query, Plan, _).
 
-
 /*
-----    sqlToPlan(QueryText, Plan)
+----    sqlToPlan2(QueryText, Plan)
 ----
 
 Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
 ~QueryText~ starts not with sql in this version.
 
 */
-sqlToPlan(QueryText, Plan) :-
-  string(QueryText),
-  string_to_atom(QueryText,AtomText),
-  term_to_atom(Query, AtomText),
-  optimize(Query, Plan, _).
 
-sqlToPlan(QueryText, Plan) :-
+sqlToPlan2(QueryText, Plan) :-
   term_to_atom(Query, QueryText),
   optimize(Query, Plan, _).
+
+
+sqlToPlan(QueryText, ResultText) :-
+  catch( sqlToPlan2(QueryText, ResultText),
+         Exc, % catch all exceptions!
+         ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
+           ( ( Exc = error_SQL(ErrorTerm),
+               ( ErrorTerm = _:ErrorCode#Message ; ErrorTerm = _:Message )
+             ) %% Problems with the SQL query itself:
+             -> concat_atom(['SQL ERROR: ',Message],'',MessageToSend)
+             ;  ( ( Exc = error_Internal(ErrorTerm),
+                    ( _:ErrorCode#Message ; ErrorTerm = _:Message )
+                  )
+                  -> concat_atom(['Internal ERROR: ',Message],'',MessageToSend)
+                  %% all other exceptions:
+                  ;  concat_atom(['Unclassified ERROR: ',Exc],'',MessageToSend)
+                )
+           ),
+           term_to_atom(MessageToSend,ResultTMP),
+           atom_concat('::ERROR::',ResultTMP,ResultText)
+         )
+       ),
+  true.
+
 
 
 
@@ -6302,14 +6597,69 @@ Exception Handling
 If an error is encountered during the optimization process, an exception should be
 thrown using the built-in Prolog predicate
 
-----    throw(error_SQL(X)),
+----
+        throw(error_SQL(X)),      for errors in the SQL-query
+        throw(error_Internal(X)), for errors due to optimizer failure
 ----
 
-where ~X~ is a term that represents a somehow meaningful error-message, e.g.
-respecting the format
+~error\_SQL(X)~ is an exception class to report errors related to the query
+itself (e.g. the user's SQL command is malformed, the user does not have
+sufficient rights to perform the action, etc.).
 
-----    <prolog-file>_<Predicate>(<Arguments>):<error-explanation>.
+~error\_Internal(X))~ is an exception class to report errors that do not directly
+concern the SQL query, but have been occured dur to internal optimizer problems
+(like missing meta data).
+
+In all cases, ~X~ is a term that represents the error-message respecting format
+
+----    <prolog-file>_<Predicate>(<Arguments>):<error-code>
 ----
+
+or
+
+----    <prolog-file>_<Predicate>(<Arguments>):<error-code>#<error-message>.
+----
+
+~error-message~ should be a informative, free-form text message that can be
+presented to the user and helping him with understanding and possibly fixing
+the problem.
+
+~error-code~ should be a tag to be used within internal exception handling.
+
+Error codes used by now are:
+
+  * missingData - some expected meta data cannot be retrieved
+
+  * selectivityQueryFailed - a selectivity query failed
+
+  * malformedExpression - an expression does not obey the demanded syntax
+
+  * unexpectedListType - a nested list xpression does not obey the demanded form
+
+  * prohibitedAction - a action has been demanded, that my not be performed
+
+  * missingParameter - a required parameter has not been bound
+
+  * schemaError - an identifier or object violates the naming conventions
+
+  * noDatabase - no database is currently opened
+
+  * requestUserInteraction - user interaction is required to recover from this error
+
+  * unknownIdentifier - the specified identifier is not recognized
+
+  * unknownAttribute - the specified attribute is unknown
+
+  * unknownRelation - the specified relation is unknown
+
+  * unknownIndex - the specified index is not found
+
+  * objectAlreadyExists - an according object already exists or the name is already in use
+
+  * wrongType - a passed argument has a wrong type
+
+  * unspecifiedError - the nature of an error is unknown or irrelevant
+
 
 A standard exception handler is implemented by
 the predicate ~defaultExceptionHandler(G)~ that will catch any exception respecting the
@@ -6336,10 +6686,14 @@ exception-format described above, that is thrown within goal ~G~.
 
 defaultExceptionHandler(G) :-
   catch( G,
-         error_SQL(X),
-         ( write('\nException \''), write(X), write('\' caught.'),
-           write('\nAn ERROR occured, please inspect the output above.'),
-           fail
+         Exception,
+         ( (Exception = error_SQL(X) ; Exception = error_Internal(X))
+           % only handle these kinds of exceptions
+           -> ( write('\nException \''), write(X), write('\' caught.'),
+                write('\nAn ERROR occured, please inspect the output above.'),
+                fail
+              )
+           ; throw(X) % other exceptions
          )
        ),
        true.
@@ -6421,10 +6775,11 @@ sqlNoQuery(Term) :-  defaultExceptionHandler((
 multiquery([]) :- !.
 
 multiquery([Query|Rest]) :- 
-  secondo(Query),
-  multiQuery(Rest), !.
+  multiquery(Query),
+  multiquery(Rest), !.
 
 multiquery(Query) :- 
+  write('Execute: '), write(Query), nl,
   secondo(Query), !.
 
 
@@ -6634,7 +6989,7 @@ updateAttrIndex(Operation, Rel, Attr, StreamIn, StreamOut) :-
   updateAttrIndex(Operation, Rel, Attr, List, StreamIn, StreamOut), 
   !.
 
-updateAttrIndex(Operation, Rel, Attr, [], StreamIn, StreamIn) :- !.
+updateAttrIndex(_, _, _, [], StreamIn, StreamIn) :- !.
 
 updateAttrIndex(Operation, Rel, Attr, [(DCindex, LogicalIndexType)|Rest], 
 		StreamIn, StreamOut) :-
@@ -6722,7 +7077,7 @@ updateTypedIndex(update, Attr, IndexName, rtree8, StreamIn,
   !.
 
 updateTypedIndex(drop, _, IndexName, _, StreamIn,
-		 deleteIndex(StreamIn, IndexName)) :-
+		 deleteIndex(IndexName, StreamIn)) :-
   !.
 
 
@@ -6734,7 +7089,8 @@ updateTypedIndex(drop, _, IndexName, _, StreamIn,
 splitSelect(select SelectClause, select SelectClause, []) :-
   !.
 
-splitSelect(UpdateClause select SelectClause, select SelectClause, UpdateClause) :-
+splitSelect(UpdateClause select SelectClause, select SelectClause, 
+	    UpdateClause) :-
   !.
 
 
@@ -6762,6 +7118,20 @@ finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
 finishUpdate(drop table Rel, Stream2, Stream3) :-
   updateIndex(drop, Rel, Stream2, Stream3),
   !.
+
+
+convertToLfName([], []) :- !.
+
+convertToLfName(attr(DcName, _, _), LfName) :-
+  downcase_atom(DcName, LfName), !.
+
+convertToLfName(rel(DcName, _), LfName) :-
+  downcase_atom(DcName, LfName), !.
+
+convertToLfName([FullName, Rest], [LfName, Rest2]) :- 
+  convertToLfName(FullName, LfName),
+  convertToLfName(Rest, Rest2), !.
+
 
 
 writeDebug(Text) :- 
