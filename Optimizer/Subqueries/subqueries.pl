@@ -379,12 +379,14 @@ transformNestedRelations(Attrs, Attrs2, [ Rel | Rest ], [ Rel2 | Rest2]) :-
   
  
 transformNestedRelation(Attrs, Attrs, Query, NewRel) :-  
-  isQuery(Query),
-  newTempRel(Query, NewRel).
+  transform(Query, CanonicalQuery),
+  isQuery(CanonicalQuery),
+  newTempRel(CanonicalQuery, NewRel).
   
 transformNestedRelation(Attrs, Attrs, (Query) as _, NewRel) :-
-  isQuery(Query),
-  newTempRel(Query, NewRel).  
+  transform(Query, CanonicalQuery),
+  isQuery(CanonicalQuery),
+  newTempRel(CanonicalQuery, NewRel).
   
 transformNestedRelation(Attrs, Attrs, Rel, Rel) :- 
   not(isQuery(Rel)).  
@@ -489,7 +491,8 @@ and does not have an aggregation function associated with the column name. Imple
 %  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Attr in(Query), Pred2).
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
-  Pred =.. [Op, Attr, CanonicalSubquery],
+  Pred =.. [Op, Attr, Subquery],
+  transform(Subquery, CanonicalSubquery),
   CanonicalSubquery =.. [from, Select, Where],
   Select =.. [select, SubAttr],   
   Where =.. [where | [ CanonicalRels | CanonicalPreds ]] ,  
@@ -510,7 +513,8 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   flatten(PredList, Pred2).
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, [JoinPredicate]) :-
-  Pred =.. [Op, Attr, CanonicalSubquery],
+  Pred =.. [Op, Attr, Subquery],
+  transform(Subquery, CanonicalSubquery),
   CanonicalSubquery =.. [from, Select, CanonicalRels],
   Select =.. [select, SubAttr],   
   (nestingType(CanonicalSubquery, n) ; nestingType(CanonicalSubquery, j)), 
@@ -549,49 +553,57 @@ maybe replace temporary relations with streams
 */
 
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-  
-  Pred =.. [Op, Attr, CanonicalSubquery],
-%  transform(Subquery, CanonicalSubquery),
+  Pred =.. [Op, Attr, Subquery],
+  transform(Subquery, CanonicalSubquery),
   nestingType(CanonicalSubquery, ja),
   dm(subqueryUnnesting, ['\nNEST-JA2']),  
-%  write_list(['Execute next Query (', N, ')? y/n']),
-%  get_single_char(Answer),
-%  ( Answer = 121 ; 
-%  throw(error_SQL(subqueries_transformNestedPredicate:notImplementedError))),
   CanonicalSubquery =.. [from, Select, Where],
   Select =.. [select, AggregatedAttr],
-  dm(subqueryUnnesting, ['\nAggregatedAttr: ', AggregatedAttr]),
+  dm(subqueryDebug, ['\nAggregatedAttr: ', AggregatedAttr]),
   Where =.. [where | [CanonicalRels | [CanonicalPreds]]],
-  dm(subqueryUnnesting, ['\nCanonicalRels: ', CanonicalRels]),
-  dm(subqueryUnnesting, ['\nCanonicalPreds: ', CanonicalPreds]),
-  findall(R, (member(R, Rels), not(member(R, CanonicalRels))), OuterRels),
-  joinPred(CanonicalRels, OuterRels, CanonicalPreds, JoinPreds, SimpleInnerPreds, SimpleOuterPreds),
-  dm(subqueryUnnesting, ['\nSimpleInnerPreds: ', SimpleInnerPreds]),
-  dm(subqueryUnnesting, ['\nSimpleOuterPreds: ', SimpleOuterPreds]),  
-  dm(subqueryUnnesting, ['\nJoinPreds: ', JoinPreds]),
-  nth1(1, JoinPreds, JoinPred),
-  dm(subqueryUnnesting, ['\nJoinPred: ', JoinPred]),
-  ( tempRel1(Rels, JoinPred, SimpleOuterPreds, TempRel1, JoinAttr) 
+  dm(subqueryDebug, ['\nRels: ', Rels]),
+  dm(subqueryDebug, ['\nCanonicalRels: ', CanonicalRels]),
+  dm(subqueryDebug, ['\nCanonicalPreds: ', CanonicalPreds]),
+  makeList(CanonicalRels, CRList),
+  makeList(Rels, RList),
+  findall(R, (member(R, RList), not(member(R, CRList))), OuterRels),
+  dm(subqueryDebug, ['\nOuterRels: ', OuterRels]),
+  joinPred(CanonicalRels, OuterRels, CanonicalPreds, JoinPreds, SimpleInnerPreds, SimpleOuterPreds, OuterJoinAttrs),
+  dm(subqueryDebug, ['\nSimpleInnerPreds: ', SimpleInnerPreds]),
+  dm(subqueryDebug, ['\nSimpleOuterPreds: ', SimpleOuterPreds]),  
+  dm(subqueryDebug, ['\nJoinPreds: ', JoinPreds]),
+  dm(subqueryDebug, ['\nOuterJoinAttrs: ', OuterJoinAttrs]),  
+  ( tempRel1(OuterJoinAttrs, SimpleOuterPreds, TempRel1) 
   ;   throw(error_SQL(subqueries_transformNestedPredicate:tempRel1Error))),  
   ( tempRel2(CanonicalRels, SimpleInnerPreds, TempRel2)
     ;   throw(error_SQL(subqueries_transformNestedPredicate:tempRel2Error))),
-  ( tempRel3(AggregatedAttr, JoinAttr, TempRel1, TempRel2, JoinPred, TempRel3, GroupVar, JoinPreds) 
+  ( tempRel3(AggregatedAttr, OuterJoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, GroupVar, NewJoinAttr1, NewJoinAttr2) 
     ;   throw(error_SQL(subqueries_transformNestedPredicate:tempRel3Error))),
-  dm(subqueryUnnesting, ['\nTempRels successful...']), 
+  dm(subqueryDebug, ['\nTempRels successful...']), 
   newTempRel(Var),
   alias(Var, GroupVar, AliasedAttr),
   NewPred =.. [Op, AliasedAttr, Attr],
-  dm(subqueryUnnesting, ['\nNewPred: ', NewPred]),
-  ( aliasPreds(TempRel3, Var, JoinPreds, JoinPreds2) 
-  ;   throw(error_SQL(subqueries_transformNestedPredicate:notImplementedError))),
-  append(JoinPreds2, [NewPred], PredNext),
-  dm(subqueryUnnesting, ['\nPredNext :', PredNext]),
-%  Attrs = AttrsNext,
+  dm(subqueryDebug, ['\nNewPred: ', NewPred]),
+  aliasInternal(NewJoinAttr1, JoinAttr1),
+  NewJoinPred =.. [=, JoinAttr1, Var:NewJoinAttr2],  
+  dm(subqueryDebug, ['\nNewJoinPred: ', NewJoinPred]),
+  append([NewJoinPred], [NewPred], PredNext),
+  dm(subqueryDebug, ['\nPredNext :', PredNext]),
   makeList(Rels, RelsList),
   append(RelsList, [TempRel3 as Var], RelsNext),
-  dm(subqueryUnnesting, ['\nRelsNext :', RelsNext]), 
+  dm(subqueryDebug, ['\nRelsNext :', RelsNext]), 
   transformNestedPredicate(Attrs, Attrs2, RelsNext, Rels2, PredNext, Pred2).  
   
-aliasPreds(_, _, [], []).
+aliasInternal(ExternalAttr, InternalAttr) :-
+  sub_atom(ExternalAttr, B, _, _, '_'),
+  sub_atom(ExternalAttr, 0, B, _, Attr),
+  B1 is B + 1,
+  sub_atom(ExternalAttr, B1, _, 0, Internal),
+  InternalAttr =.. [(:), Internal, Attr].
+  
+aliasInternal(Attr, Attr).
+  
+/* aliasPreds(_, _, [], []).
   
 aliasPreds(TempRel3, Var, [ JoinPred | Rest ], [ JoinPred2 | Rest2 ]) :-
   aliasPred(TempRel3, Var, JoinPred, JoinPred2),
@@ -628,47 +640,76 @@ aliasPred(TempRel3, Var, JoinPred, JoinPred2) :-
   aliasExternal(SecondAttr, Attr),
   isAttributeOf(Attr, TempRel3),
   alias(Var, Attr, AliasedAttr),
-  JoinPred2 =.. [Op, FirstAttr, AliasedAttr]. 
+  JoinPred2 =.. [Op, FirstAttr, AliasedAttr]. */
     
   
 /*
 
----- joinPred(+InnerRels, +OuterRels, +PredicateList, -JoinPred, -InnerPreds, -OuterPreds)
+---- joinPred(+InnerRels, +OuterRels, +PredicateList, -JoinPreds, -InnerPreds, -OuterPreds, -OuterAttrs)
 -----
 
 Partition the predicate list in such a way, that ~InnerPreds~ contains all predicates referring to attributes of relations in 
-~InnerPreds~, ~OuterPreds~ contains all predicates refering to attributes of relations in ~OuterPreds~ and ~JoinPred~ contains
+~InnerRels~, ~OuterPreds~ contains all predicates refering to attributes of relations in ~OuterRels~ and ~JoinPreds~ contains
 any remaining predicates. 
 
 */  
   
-joinPred(_, _, [], [], [], []).
-joinPred(InnerRels, OuterRels, [ Pred | Rest ], JoinPred, InnerPreds, OuterPreds) :-
-  joinPred(InnerRels, OuterRels, Pred, JoinPred1, InnerPreds1, OuterPreds1),
-  joinPred(InnerRels, OuterRels, Rest, JoinPred2, InnerPreds2, OuterPreds2),
+joinPred(_, _, [], [], [], [], []).
+joinPred(InnerRels, OuterRels, [ Pred | Rest ], JoinPreds, InnerPreds, OuterPreds, OuterJoinAttrs) :-
+  joinPred(InnerRels, OuterRels, Pred, JoinPred1, InnerPreds1, OuterPreds1, OuterJoinAttrs1),
+  joinPred(InnerRels, OuterRels, Rest, JoinPred2, InnerPreds2, OuterPreds2, OuterJoinAttrs2),
   makeList(JoinPred1, JP1List),
   makeList(JoinPred2, JP2List),
-  append(JP1List, JP2List, JoinPred),
+  append(JP1List, JP2List, JoinPreds),
   makeList(InnerPreds1, IP1List),
   makeList(InnerPreds2, IP2List),
   append(IP1List, IP2List, InnerPreds),
   makeList(OuterPreds1, OP1List),
   makeList(OuterPreds2, OP2List),
-  append(OP1List, OP2List, OuterPreds).
+  append(OP1List, OP2List, OuterPreds),
+  makeList(OuterJoinAttrs1, OA1List),
+  makeList(OuterJoinAttrs2, OA2List),
+  append(OA1List, OA2List, OuterJoinAttrs).
   
-joinPred(InnerRels, _, Pred, [], InnerPreds, []) :-
+joinPred(InnerRels, _, Pred, [], InnerPreds, [], []) :-
   not(is_list(Pred)),
   Pred =.. [_ | Args],
   areAttributesOf(Args, InnerRels),
   makeList(Pred, InnerPreds).
   
-joinPred(_, OuterRels, Pred, [], [], OuterPreds) :-
+joinPred(_, OuterRels, Pred, [], [], OuterPreds, []) :-
   not(is_list(Pred)),
   Pred =.. [_ | Args],
   areAttributesOf(Args, OuterRels),
   makeList(Pred, OuterPreds).
   
-joinPred(_, _, Pred, Pred, [], []).
+% joinPred(_, _, Pred, Pred, [], [], []).
+
+joinPred(InnerRels, OuterRels, Pred, [Pred], [], [], OuterAttrs) :-
+  makeList(InnerRels, IRelsList),
+  append(IRelsList, OuterRels, Rels),
+  dm(subqueryDebug, ['\njoinPred:\n\t select * from ', Rels, ' where ', Pred]),
+  callLookup(select * from Rels where Pred, _),
+  outerAttrs(OuterRels, OuterAttrs),
+  dm(subqueryDebug, ['\nOuterAttrs: ', OuterAttrs]).
+
+outerAttrs(OuterRels, OuterAttrs) :-
+  findall(Attr, ( 
+		member(Rel, OuterRels), 
+		usedAttr(rel(Rel, _), 
+		attr(Attr2, _, _)), 
+		dcName2externalName(Attr, Attr2) 
+	), OuterAttrs),
+	not(OuterAttrs = []).
+  
+outerAttrs(OuterRels, OuterAttrs) :-
+  findall(Var:Attr, ( 
+		member(Rel as Var, OuterRels), 
+		usedAttr(rel(Rel, Var), 
+		attr(Attr2, _, _)), 
+		dcName2externalName(Attr, Attr2) 
+	), OuterAttrs),
+	not(OuterAttrs = []).
 
 /*
 
@@ -722,40 +763,22 @@ isAttributeOf(Const, _) :-
 Create a temporary relation which is a projection of Rels to ~JoinAttr~
 
 */
-  
-tempRel1(Rels, JoinPred, [], TempRel1, Attr2) :-
-  JoinPred =.. [ Op , JoinAttr, Attr2 ],
-  dm(subqueryUnnesting, ['\nOp: ', Op]),
-  dm(subqueryUnnesting, ['\nJoinAttr: ', JoinAttr]),
-  dm(subqueryUnnesting, ['\nAttr2: ', Attr2]),
-  makeList(Rels, RelsList),
-  member(Rel, RelsList),
-  isAttributeOf(JoinAttr, Rel),
-  TemporaryRel1 =.. [from, select distinct JoinAttr, Rel],
+
+tempRel1(JoinAttrs, [], TempRel1) :-
+  areAttributesOf(JoinAttrs, NeededRels),  
+  dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
+  dm(subqueryDebug, ['\nNeededRels: ', NeededRels]),
+  ground(NeededRels),
+  TemporaryRel1 =.. [from, select distinct JoinAttrs, NeededRels],
   dm(subqueryUnnesting, ['\nTemporaryRel1: ', TemporaryRel1]), 
   newTempRel(TemporaryRel1, TempRel1).
-
-tempRel1(Rels, JoinPred, [], TempRel1, Attr2) :-
-  JoinPred =.. [ Op , Attr2, JoinAttr],
-  dm(subqueryUnnesting, ['\nOp: ', Op]),
-  dm(subqueryUnnesting, ['\nJoinAttr: ', JoinAttr]),
-  dm(subqueryUnnesting, ['\nAttr2: ', Attr2]),
-  makeList(Rels, RelsList),
-  member(Rel, RelsList),
-  isAttributeOf(JoinAttr, Rel),
-  TemporaryRel1 =.. [from, select distinct JoinAttr, Rel],
-  dm(subqueryUnnesting, ['\nTemporaryRel1: ', TemporaryRel1]), 
-  newTempRel(TemporaryRel1, TempRel1).  
   
-tempRel1(Rels, JoinPred, Preds, TempRel1, Attr1) :-
-  JoinPred =.. [ Op , Attr1, JoinAttr ],
-  dm(subqueryUnnesting, ['\nOp: ', Op]),
-  dm(subqueryUnnesting, ['\nAttr1: ', Attr1]),
-  dm(subqueryUnnesting, ['\nJoinAttr: ', JoinAttr]),  
-  makeList(Rels, RelsList),
-  member(Rel, RelsList),
-  isAttributeOf(JoinAttr, Rel), 
-  TemporaryRel1 =.. [from, select distinct JoinAttr, where(Rel, Preds)],
+tempRel1(JoinAttrs, Preds, TempRel1) :-
+  areAttributesOf(JoinAttrs, NeededRels),
+  dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
+  dm(subqueryDebug, ['\nNeededRels: ', NeededRels]),
+  ground(NeededRels),  
+  TemporaryRel1 =.. [from, select distinct JoinAttrs, where(NeededRels, Preds)],
   dm(subqueryUnnesting, ['\nTemporaryRel1: ', TemporaryRel1]), 
   newTempRel(TemporaryRel1, TempRel1).  
   
@@ -784,116 +807,153 @@ Create temporary relation which replaces the aggregation operation by its consta
 
 */
 
-tempRel3(AggregatedAttr, JoinAttr, Rel1, Rel2, JoinPred, TempRel3, NewColumn, JoinPreds) :- 
-  AggregatedAttr =.. [AggrOp, _],
+tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, NewColumn, NewJoinAttr1, NewJoinAttr2) :-
+  AggregatedAttr =.. [AggrOp, Attr],
   not(AggrOp = count),  
-  newVariable(NewColumn),
-  AttrList = [JoinAttr, AggregatedAttr as NewColumn],
-  RelList = [Rel1, Rel2],
-  TemporaryRel3 =.. [groupby, from(select AttrList, where(RelList, JoinPreds)), [JoinAttr]],
+  dm(subqueryDebug, ['\nAggrOp: ', AggrOp]),
+  dm(subqueryDebug, ['\nAttr: ', Attr]), 
+  newVariable(NewColumn),  
+  makeList(AggregatedAttr as NewColumn, AggrList),
+  dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
+  findall(JoinAttr2, 
+    ( member(JoinAttr, JoinAttrs), 
+	  aliasExternal(JoinAttr, JoinAttr2)
+	),
+	JoinAttrs2
+  ),  
+  dm(subqueryDebug, ['\nJoinAttrs2: ', JoinAttrs2]),
+  append(JoinAttrs2, AggrList, AttrList),
+  findall(Pred2, 
+    ( member(Pred, JoinPreds),
+	  aliasExternal(Pred, Pred2)
+	),
+	JoinPreds2
+  ),  
+  TempRelation3 =.. [groupby, from(select AttrList, where([TempRel1, TempRel2], JoinPreds2)), JoinAttrs2],
+  dm(subqueryDebug, ['\nTemporaryRel3: ', TempRelation3]), 
+  optimize(TempRelation3, Plan, _),  
+  dm(subqueryDebug, ['\nPlan: ', Plan]),
+  findJoinAttrs(Plan, JoinAttr1, JoinAttr2),
+  dm(subqueryDebug, ['\nJoinAttr1: ', JoinAttr1, '\nJoinAttr2: ', JoinAttr2]), 
+  ( isAttributeOf(JoinAttr1, TempRel1) 
+    -> ( NewJoinAttr1 = JoinAttr1, NewJoinAttr2 = JoinAttr2 )
+	;  ( NewJoinAttr1 = JoinAttr2, NewJoinAttr2 = JoinAttr1 )
+  ),
+  append([NewJoinAttr2], AggrList, AttrList2),
+  dm(subqueryDebug, ['\nAttrList2: ', AttrList2]),
+  TemporaryRel3 =.. [groupby, from(select AttrList2, where([TempRel1, TempRel2], JoinPreds2)), NewJoinAttr2],
   dm(subqueryUnnesting, ['\nTemporaryRel3: ', TemporaryRel3]),  
   newTempRel(TemporaryRel3, TempRel3).   
   
-tempRel3(AggregatedAttr, JoinAttr, TempRel11, TempRel21, JoinPred, TempRel3, NewColumn, JoinPreds) :- 
+  
+tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, NewColumn, NewJoinAttr1, NewJoinAttr2) :-
   AggregatedAttr =.. [AggrOp, Attr],
   AggrOp = count,  
-  dm(subqueryUnnesting, ['\nAggrOp: ', AggrOp]),
-  dm(subqueryUnnesting, ['\nAttr: ', Attr]),  
-  JoinPred =.. [_, FirstAttr1, SecondAttr1],
-  ( isAttributeOf(FirstAttr1, TempRel11)
-    -> ( FirstAttr2 = FirstAttr1, SecondAttr2 = SecondAttr1 )
-	; ( FirstAttr2 = SecondAttr1, SecondAttr2 = FirstAttr1 )
+  dm(subqueryDebug, ['\nAggrOp: ', AggrOp]),
+  dm(subqueryDebug, ['\nAttr: ', Attr]), 
+  newVariable(NewColumn),  
+  makeList(AggregatedAttr as NewColumn, AggrList),
+  dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
+  findall(JoinAttr2, 
+    ( member(JoinAttr, JoinAttrs), 
+	  aliasExternal(JoinAttr, JoinAttr2)
+	),
+	JoinAttrs2
   ),  
-  aliasExternal(FirstAttr2, FirstAttr3),
-  aliasExternal(SecondAttr2, SecondAttr3),  
-  OuterJoinPred = outerjoin(FirstAttr3, SecondAttr3),
-  newVariable(NewColumn),
-  aliasExternal(JoinAttr, JoinAttr2),
-  AttrList = [JoinAttr2, AggregatedAttr as NewColumn],
-  RelList = [TempRel11, TempRel21],
-  TemporaryRel3 =.. [groupby, from(select AttrList, where(RelList, JoinPreds)), [JoinAttr2]],
-  dm(subqueryUnnesting, ['\nTemporaryRel3: ', TemporaryRel3]),    
-  callLookup(TemporaryRel3, Query),
-  dm(subqueryUnnesting, ['\nTempQuery: ', Query]), 
-  dc(subqueryDebug, 
-    ( optimize(TemporaryRel3, Plan, _),
-	  dm(subqueryDebug, ['\nPlan: ', Plan])
-	)
+  dm(subqueryDebug, ['\nJoinAttrs2: ', JoinAttrs2]),
+  append(JoinAttrs2, AggrList, AttrList),
+  findall(Pred2, 
+    ( member(Pred, JoinPreds),
+	  aliasExternal(Pred, Pred2)
+	),
+	JoinPreds2
+  ),  
+  TemporaryRel3 =.. [groupby, from(select AttrList, where([TempRel1, TempRel2], JoinPreds2)), JoinAttrs2],
+  dm(subqueryDebug, ['\nTemporaryRel3: ', TemporaryRel3]), 
+  optimize(TemporaryRel3, Plan, _),  
+  dm(subqueryDebug, ['\nPlan: ', Plan]),
+  findJoinAttrs(Plan, JoinAttr1, JoinAttr2),
+  dm(subqueryDebug, ['\nJoinAttr1: ', JoinAttr1, '\nJoinAttr2: ', JoinAttr2]), 
+  ( isAttributeOf(JoinAttr1, TempRel1) 
+    -> OuterJoinPred = outerjoin(JoinAttr1, JoinAttr2)
+	;  OuterJoinPred = outerjoin(JoinAttr2, JoinAttr1)
   ),
-  Query =.. [groupby, from(select AttrList2, where([TempRel12, TempRel22], [pr(outerjoin(FirstAttr4, SecondAttr4), _, _)])), [JoinAttr3]],  
-  dm(subqueryUnnesting, ['\nJoinAttr3: ', JoinAttr3]),   
-  plan_to_atom(AttrList2, AttrList3), 
-  plan_to_atom(TempRel12, TempRel13),  
-  plan_to_atom(TempRel22, TempRel23),
-  plan_to_atom(attrname(FirstAttr4), FirstAttr5),
-  plan_to_atom(attrname(SecondAttr4), SecondAttr5),
-  plan_to_atom(NewColumn, NewColumn1),
+  OuterJoinPred =.. [outerjoin, NewJoinAttr1, NewJoinAttr2],
+  dm(subqueryDebug, ['\nOuterJoinPred: ', OuterJoinPred]),  
+  newQuery,
+  lookupRel(TempRel1, IntTempRel1),
+  dm(subqueryDebug, ['\nIntTempRel1: ', IntTempRel1]),
+  lookupRel(TempRel2, IntTempRel2),
+  dm(subqueryDebug, ['\nIntTempRel2: ', IntTempRel2]),
+  lookupAttr(JoinAttr1 as NewColumn, _ as IntNewColumn),
+  dm(subqueryDebug, ['\nIntNewColumn: ', IntNewColumn]),  
+  lookupPred(OuterJoinPred, pr(outerjoin(IntJoinAttr1, IntJoinAttr2), _, _)),
+  dm(subqueryDebug, ['\nIntJoinAttr1: ', IntJoinAttr1]),
+  dm(subqueryDebug, ['\nIntJoinAttr2: ', IntJoinAttr2]),
+  plan_to_atom(IntTempRel1, ExtTempRel1),
+  dm(subqueryDebug, ['\nExtTempRel1: ', ExtTempRel1]),
+  plan_to_atom(IntTempRel2, ExtTempRel2),
+  dm(subqueryDebug, ['\nExtTempRel2: ', ExtTempRel2]),
+  plan_to_atom(attrname(IntJoinAttr1), ExtJoinAttr1),
+  dm(subqueryDebug, ['\nExtJoinAttr1: ', ExtJoinAttr1]),  
+  plan_to_atom(attrname(IntJoinAttr2), ExtJoinAttr2),
+  dm(subqueryDebug, ['\nExtJoinAttr2: ', ExtJoinAttr2]),
+  plan_to_atom(attrname(IntNewColumn), ExtNewColumn),
+  dm(subqueryDebug, ['\nExtNewColumn: ', ExtNewColumn]),  
   newTempRel(TempRel3),
+  dm(subqueryDebug, ['\nTempRel3: ', TempRel3]),
   concat_atom([TempRel3, ' = ', 
-               TempRel13, ' feed ', 
-               TempRel23, ' feed ',
-               ' smouterjoin[',FirstAttr5, ',', SecondAttr5, ']',
-			   ' project[', SecondAttr5, ']',
-               ' sortby[', SecondAttr5, ' asc]', 
-               ' groupby[', SecondAttr5, ';', NewColumn1, ': group count]',			  				   
+               ExtTempRel1, ' feed ', 
+               ExtTempRel2, ' feed ',
+               ' smouterjoin[',ExtJoinAttr1, ',', ExtJoinAttr2, ']',			   
+               ' sortby[', ExtJoinAttr2, ' asc]', 
+               ' groupby[', ExtJoinAttr2, ';', ExtNewColumn, ': group count]',	
+               ' project[', ExtJoinAttr2, ',', ExtNewColumn, ']',			   
                ' consume'], 
-  '', TempRelation3),
+  '', TempRelation3),  
   dm(subqueryUnnesting, ['\nTempRelation3: ', TempRelation3]),
   ( let(TempRelation3) 
     -> true
-	;  throw(error_SQL(subqueries_tempRel3:errorInQuery))).  
+	; throw(error_SQL(subqueries_tempRel3:errorInQuery))). 
+	
+/* 
 
-/* tempRel3(AggregatedAttr, JoinAttr, Rel1, Rel2, JoinPred, TempRel3, NewColumn) :- 
-  AggregatedAttr =.. [AggrOp, Attr],
-  write('\nAggrOp: ', AggrOp),
-  write('\nAttr: ', Attr),
-  AggrOp = count,  
-  JoinPred =.. [Op, Attr1, Attr2],
-  aliasExternal(Attr1, Column1),
-  aliasExternal(Attr2, Column2),
-  OuterJoinPred = outerjoin(Column1, Column2),
-  newVariable(NewColumn),
-  aliasExternal(JoinAttr, JoinColumn),
-  AttrList = [JoinColumn, AggregatedAttr as NewColumn],
-  RelList = [Rel1, Rel2],
-  TemporaryRel3 =.. [groupby, from(select AttrList, where(RelList, OuterJoinPred)), [JoinColumn]],
-  write('\nTemporaryRel3: ', TemporaryRel3),  
-  callLookup(TemporaryRel3, Query),
-  write('\nTempQuery: '), 
-  write(Query),
-%  Query =.. [groupby, from(select AttrList2, where(RelList2, OuterJoinPred2)), [JoinColumn2]],
-  Query =.. [groupby, from(select AttrList2, where([SecRel1, SecRel2], [pr(outerjoin(SecAttr1, SecAttr2), _, _)])), [JoinColumn2]],  
-  write('\nFrom: ', From),
-  write('\nJoinColumn2: ', JoinColumn2),
-  write('\nAfter Query...'),
-%  OuterJoinPred2 =.. [Op2, SecAttr1, SecAttr2],
-  write('\nSecAttr1: ', SecAttr1),
-  write('\nSecAttr2: ', SecAttr2),
-  plan_to_atom(AttrList2, AttrList3),  
-  write('\nAttrList3: ', AttrList3),
-  plan_to_atom(SecRel2, RelList3),
-  write('\nRelList3: ', RelList3),
-  plan_to_atom(SecRel1, RelList4),
-  plan_to_atom(attrname(SecAttr1), Sec2Attr1),
-  write('\nSec2Attr1: ', Sec2Attr1),
-  plan_to_atom(attrname(SecAttr2), Sec2Attr2),
-  write('\nSec2Attr2: ', Sec2Attr2),
-  plan_to_atom(JoinColumn2, SecJoinColumn),
-  write('\nSecJoinColumn: ', SecJoinColumn),
-  plan_to_atom(NewColumn, SecNewColumn),
-  newTempRel(TempRel3),
-  concat_atom([TempRel3, ' = ', RelList4, ' feed ', RelList3, 
-               ' feed smouterjoin[',Sec2Attr2, ',', Sec2Attr1, '] sortby[', Sec2Attr2, ' asc] groupby[', 
-			   Sec2Attr2, ';', SecNewColumn, ': group count] consume'], '', TempRelation3),
-  write('\nTempRelation3: ', TempRelation3),
-  ( let(TempRelation3) 
-    -> true
-	;  throw(error_SQL(subqueries_tempRel3:errorInQuery))). */
+	Ugly hack to find the join Attributes which the optimizer would select on a Join Query with the same predicates. Used only to select
+	which attributes will be used in the outerjoin.
+	
+*/
+	
+findJoinAttrs(Atom, JoinAttr1, JoinAttr2) :-
+  sub_atom(Atom, B, L, A, 'join['), 
+  B1 is B + L,
+  sub_atom(Atom, B1, A, 0, Sub),
+  sub_atom(Sub, B2, _, _, ']'),
+  sub_atom(Sub, 0, B2, _, Sub2),
+  concat_atom(['[', Sub2, ']'], Sub3),
+  term_to_atom(Term, Sub3),
+  Term = [Attr1 | [ Attr2 | _ ]],
+  dcName2externalName(JoinAttr1, Attr1),
+  dcName2externalName(JoinAttr2, Attr2).	
+ 
+aliasExternal(Var:Attr, AliasedAttr) :-
+  concat_atom([Attr, '_', Var], '', AliasedAttr).
+	
+aliasExternal(Attr, Attr) :-
+  atomic(Attr).
   
-aliasExternal(Attr, AliasedAttr) :-
-  ( alias(Var, SimpleAttr, Attr)
-    -> concat_atom([SimpleAttr, '_', Var], '', AliasedAttr)
-    ; Attr = AliasedAttr ).
+aliasExternal(Pred, AliasedPred) :-
+  compound(Pred),
+  Pred =.. [Op, Attr1, Attr2],
+  not(Op = (:)),
+  aliasExternal(Attr1, AliasedAttr1),
+  aliasExternal(Attr2, AliasedAttr2),
+  AliasedPred =.. [Op, AliasedAttr1, AliasedAttr2].
+  
+aliasExternal(Pred, AliasedPred) :-
+  compound(Pred),
+  Pred =.. [UnaryOp, Pred2],
+  aliasExternal(Pred2, AliasedPred2),
+  AliasedPred =..[UnaryOp, AliasedPred2].  
   
 /*
 
@@ -1025,11 +1085,14 @@ newTempRel(Var) :-
 %  dropTempRels,
   Var = 'txxrel1'.
   
-newTempRel(Query, TempRelName) :-
-  newTempRel(TempRelName),
+newTempRel(Query, TempRelName) :-  
   dm(subqueries, ['\nTempRelName: ', TempRelName, '\n']),
-  assert(temporaryRelation(TempRelName, Query)), 
-  createTempRel(TempRelName).
+  ( temporaryRelation(TempRelName, Query)
+    ; ( newTempRel(TempRelName),
+	    assert(temporaryRelation(TempRelName, Query)), 
+        createTempRel(TempRelName)
+	   )
+  ).
 
 newTempRel_direct(Plan, TempRelName) :-
   newTempRel(TempRelName),
@@ -1053,7 +1116,8 @@ deleteTempRels :-
   
 deleteTempRels([]) :- 
   retractall(relDefined(_)), 
-  retractall(temporaryRelation(_)).
+  retractall(temporaryRelation(_)),
+  retractall(temporaryRelation(_, _)).
 
 deleteTempRels([ Rel | Rest ]) :-
   dm(subqueries, ['\nDeleting temporary Relation ', Rel, ' ...']),

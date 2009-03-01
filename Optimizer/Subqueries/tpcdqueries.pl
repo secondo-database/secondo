@@ -11,16 +11,18 @@ executeQuery(Benchmark, No) :-
    ),
    _, concat_atom(['TPC-', BMOut, ' ', No, ' failed', '\n'], Result)),
    concat_atom([Benchmark, No], Key),
+   ( retract(benchmarkResult(Key, _)) ; true ),
    assert(benchmarkResult(Key, Result)).
    
 executeQueries(_, []).
 
 executeQueries(Benchmark, [[No, _] | Rest]) :-
   executeQuery(Benchmark, No),
-%  N is No + 1,
-%  write_list(['Execute next Query (', N, ')? y/n']),
-%  get_single_char(Answer),
-%  Answer = 121,
+  dc(tpcd, (
+  N is No + 1,
+  write_list(['Execute next Query (', N, ')? y/n']),
+  get_single_char(Answer),
+  Answer = 121 )),
   executeQueries(Benchmark, Rest).
   
 executeBenchmark(Benchmark) :- 
@@ -46,7 +48,10 @@ setupQuery(15) :-
 setupQuery(_).
 		
 teardownQuery(15) :-
-  catch(drop_relation(revenue), _, true).	
+  catch(drop_relation(revenue), _, true),
+  closeDB,
+  updateDB(tpcd),
+  open database tpcd.
   
 teardownQuery(_).
 
@@ -591,7 +596,7 @@ tpcd(18, select
 		[ototalprice desc,
 		oorderdate]).
 		
-tpcd(19, select
+tpcd(19, fail select
 		[(sum(lextendedprice * (1 - ldiscount) )) as revenue]
 		from
 		[lineitem,
@@ -696,11 +701,11 @@ tpcd(20, select
 		where
 		[ssuppkey in (
 			select
-			pssuppkey
+			[pssuppkey]
 			from
-			partsupp
+			[partsupp]
 			where
-			pspartkey in (
+			[pspartkey in (
 				select
 				ppartkey
 				from
@@ -709,10 +714,10 @@ tpcd(20, select
 %				pname like ’[COLOR]%’
 % substitution parameter
 				tostring(pname) starts "forest"
-			)
-			and psavailqty > (
+			),
+			psavailqty > (
 				select
-				0.5 * sum(lquantity)
+				sum(lquantity * 0.5)
 				from
 				lineitem
 				where
@@ -722,7 +727,7 @@ tpcd(20, select
 				lshipdate >= instant("1994-01-01"),
 % substitution parameter				
 				lshipdate < theInstant(year_of(instant("1994-01-01")) + 1, month_of(instant("1994-01-01")), day_of(instant("1994-01-01")))]
-			)
+			)]
 		),
 		snationkey = nnationkey,
 % substitution parameter		
