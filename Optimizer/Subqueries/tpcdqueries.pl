@@ -596,7 +596,7 @@ tpcd(18, select
 		[ototalprice desc,
 		oorderdate]).
 		
-tpcd(19, fail select
+tpcd(19, select
 		[(sum(lextendedprice * (1 - ldiscount) )) as revenue]
 		from
 		[lineitem,
