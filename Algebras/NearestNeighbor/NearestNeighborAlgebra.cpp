@@ -104,12 +104,22 @@ file "TypeMapUtils.h" which defines a namespace ~mappings~.
 
 #include "TypeMapUtils.h"
 #include "Symbols.h"
+#include <sys/timeb.h>
 
 using namespace symbols;
 using namespace mappings;
 
 #include <string>
 using namespace std;
+
+int counter = 0;
+double difftimeb( struct timeb* t1, struct timeb* t2 )
+{
+  double dt1 = t1->time + (double)t1->millitm / 1000.0;
+  double dt2 = t2->time + (double)t2->millitm / 1000.0;
+  return dt1 - dt2;
+}
+
 
 /*
 The implementation of the algebra is embedded into
@@ -4861,6 +4871,9 @@ int newknearestFilterFun (Word* args, Word& result, int message,
   const int dim = 3;
   KnearestFilterLocalInfo *localInfo;
 
+//        struct timeb tt1;
+//        struct timeb tt2;
+//   ftime( &tt1 );
   switch (message)
   {
     case OPEN :
@@ -4923,9 +4936,9 @@ int newknearestFilterFun (Word* args, Word& result, int message,
             Instant t1(localInfo->startTime.GetType());
             Instant t2(localInfo->startTime.GetType());
 
-
             if(tmp->IsLeaf()){
               for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
+                counter++;
                 R_TreeLeafEntry<dim, TupleId> e =
                   (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
                 t1.ReadFrom((double)(e.box.MinD(2)));
@@ -4940,10 +4953,13 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                         xyBox.Distance( mBox),
                         maxDistance( xyBox, mBox), 1,
                         -1, e.info);
-                  double reachcov =
-                  localInfo->timeTree.calcCoverage(t1,t2,xyBox.Distance(mBox));
-                  if(reachcov < localInfo->k)
-                    localInfo->timeTree.insert(se,localInfo->k);
+
+//                double reachcov =
+//                localInfo->timeTree.calcCoverage(t1,t2,xyBox.Distance(mBox));
+//                if(reachcov < localInfo->k)
+//                localInfo->timeTree.insert(se,localInfo->k);
+
+                  localInfo->resultMap.insert(make_pair(se,e.info));
                 }
 
               }
@@ -4963,6 +4979,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                 delete btreeiter;
 
               for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
+                counter++;
                 R_TreeInternalEntry<dim> e =
                   (R_TreeInternalEntry<dim>&)(*tmp)[ii];
                 t1.ReadFrom(e.box.MinD(2));
@@ -5012,8 +5029,11 @@ int newknearestFilterFun (Word* args, Word& result, int message,
         localInfo->vectorA.swap( localInfo->vectorB );
       }
       delete t;
+//      ftime(&tt2);
+//      cout<<difftimeb( &tt2, &tt1 )<<endl;
       localInfo->timeTree.fillMap( localInfo->resultMap );
       localInfo->mapit = localInfo->resultMap.begin();
+
       return 0;
     }
 
