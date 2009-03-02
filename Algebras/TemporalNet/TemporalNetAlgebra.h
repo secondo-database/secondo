@@ -127,7 +127,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
            const Side in_Side,
            const double in_Position0,
            const double in_Position1,
-           Network *pNetwork):
+           Network *&pNetwork):
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( true,        // defined
         in_NetworkID,    // NetworkID
@@ -147,7 +147,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
   UGPoint( const Interval<Instant>& interval,
            const GPoint& p0,
            const GPoint& p1,
-           Network *pNetwork):
+           Network *&pNetwork):
     SpatialTemporalUnit<GPoint, 3>( interval ),
     p0( p0 ),
     p1( p1 )
@@ -242,12 +242,12 @@ Functions to be part of relations
 
 
  virtual const Rectangle<3> BoundingBox() const;
- 
+
  virtual double Distance(const Rectangle<3>& rect) const;
 
  virtual bool IsEmpty() const{ return IsDefined(); }
 
-  Rectangle<3> BoundingBox(Network* pNetwork) const;
+  Rectangle<3> BoundingBox(Network* &pNetwork) const;
 
   virtual const Rectangle<3> NetBoundingBox3d() const
   {
@@ -336,21 +336,17 @@ class MGPoint : public Mapping< UGPoint, GPoint >
 The simple constructor should not be used.
 
 */
-    MGPoint(){
-      del.refs = 1;
-      del.isDelete = true;
-    };
+
+    MGPoint(){};
 
     MGPoint( const int n );
-
-    ~MGPoint(){}
 
     static ListExpr Property();
 
     static bool Check(ListExpr type,
                       ListExpr& errorInfo);
 
-    int GetNetworkId();
+    int GetNetworkId() const;
 
     void Clear();
 
@@ -360,31 +356,30 @@ The simple constructor should not be used.
     {
       const MGPoint *src = (const MGPoint*) right;
       Clear();
-      /*m_bbox = src->BoundingBox();
-      m_length = src->GetLength();*/
-      /*GLine *traj;
-      src->GetTrajectory(traj);
-      m_trajectory = *traj;
-      delete traj;*/
       StartBulkLoad();
       const UGPoint *u;
       for (int i = 0; i < src->GetNoComponents(); i++) {
         src->Get(i,u);
-        Add(*u/*, false*/);
+        Add(*u);
       }
-      EndBulkLoad(true/*, false*/);
+      EndBulkLoad(true);
+      if (src->m_traj_Defined) SetTrajectory(src->m_trajectory);
+      SetTrajectoryDefined(src->m_traj_Defined);
+      if (src->m_bbox.IsDefined()) SetBoundingBox(src->BoundingBox());
+      SetBoundingBoxDefined(m_bbox.IsDefined());
     }
 
 
 inline int NumOfFLOBs() const
 {
-  return 1;
+  return 2;
 }
 
 
 inline FLOB* GetFLOB(const int i)
 {
   if (i == 0) return &units;
+  if (i == 1) return &m_trajectory;
   return 0;
 }
 
@@ -394,37 +389,50 @@ distance function.
 
 */
 
-    void Distance(MGPoint *mgp, MReal *result);
+    void Distance(MGPoint *&mgp, MReal *&result);
 
 /*
 Translates an mgpoint into an mpoint value.
 
 */
 
-    void Mgpoint2mpoint(MPoint *mp);
+    void Mgpoint2mpoint(MPoint *&mp);
 
 /*
-Returns the trajectory of the mgpoint as sorted gline.
+Returns the trajectory of the mgpoint as sorted gline or as DBArray of
+~RouteInterval~s
 
 */
 
-   void Trajectory(GLine *res);
+   void Trajectory(GLine* res);
+
+   DBArray<RouteInterval> GetTrajectory() ;
+
+/*
+Sets the Trajetory of the MGPoint from a GLine or a DBArray of ~RouteInterval~s
+
+*/
+   void SetTrajectory(GLine src);
+
+   void SetTrajectory(DBArray<RouteInterval> tra);
+
+   void SetTrajectoryDefined(bool defined);
 
 /*
 Returns the deftime of the mgpoint as periods value.
 
 */
 
-   void Deftime(Periods *res);
+   void Deftime(Periods *&res);
 
 /*
 Returns true if the mgpoint is defined at least in one of the periods resp.
 at the given Instant.
 
 */
-   bool Present(Periods *per);
+   bool Present(Periods *&per);
 
-   bool Present(Instant *inst);
+   bool Present(Instant *&inst);
 
 /*
 Sets the length of the trip of the mgpoint.
@@ -447,31 +455,32 @@ Returns a mgpoint representing the intersection of 2 mgpoints
 
 */
 
-  void Intersection(MGPoint* mgp, MGPoint *res);
+  void Intersection(MGPoint* &mgp, MGPoint *&res);
 
 /*
 Returns a mbool telling when the mgpoint was inside the gline.
 
 */
 
-  void Inside(GLine* gl, MBool *res);
+  void Inside(GLine* &gl, MBool *&res);
 
 
 /*
 Returns a mgpoint restricted to the given periods value.
 
 */
-   void Atperiods(Periods *per, MGPoint *res);
+   void Atperiods(Periods *&per, MGPoint *&res);
 
 /*
 Returns a mgpoint restricted to the times it was at the given gpoint resp.
 gline.
 
 */
-   void At(GPoint *gp, MGPoint *res);
+   void At(GPoint *&gp, MGPoint *&res);
 
-   void At(GLine *gl, MGPoint *res);
+   void At(GLine *&gl, MGPoint *&res);
 
+   /*void Union(MGPoint *mp, MGPoint *&res);*/
 /*
 Returns a mgpoint with smaller number of units because units with speed
 differences lower than d are compacted to be one unit.
@@ -484,9 +493,9 @@ differences lower than d are compacted to be one unit.
 Returns true if the mgpoint passes at least once the gpoint resp. gline.
 
 */
-   bool Passes(GPoint *gp);
+   bool Passes(GPoint *&gp);
 
-   bool Passes(GLine *gl);
+   bool Passes(GLine *&gl);
 
 /*
 Returns the ~igpoint~ of the time instant.
@@ -494,27 +503,25 @@ Returns the ~igpoint~ of the time instant.
 */
 
 
-//    MGPoint& operator=(const MGPoint &src);
+//   MGPoint& operator=(const MGPoint &src);
 
-   Rectangle<3> BoundingBox() const;
+  Rectangle<3> BoundingBox() const;
 
-  void Add( const UGPoint& unit/*, bool setbbox = true*/);
-  /*void Add(const UGPoint& u, Network *pNetwork, bool setbbox = true);*/
-  void EndBulkLoad( const bool sort = true/*, bool setbbox = false,
-                    bool setTraj = true*/);
-  /*void RestoreBoundingBox(const bool force = false);*/
-  /*void RestoreAll();
-  void RestoreTrajectory();*/
+  void Add( const UGPoint& unit);
+  void EndBulkLoad( const bool sort = true);
   void Restrict( const vector< pair<int, int> >& intervals );
   ostream& Print( ostream &os ) const;
-  bool operator==( const MPoint& r ) const;
-  /*void SetBBox(Rectangle<3> r);*/
+  bool operator==( const MGPoint& r ) const;
+  void SetBoundingBoxDefined(bool defined);
+  void SetBoundingBox(Rectangle<3> mbr);
+
+  DBArray<RouteInterval> m_trajectory;
 
   private:
 
-    /*Rectangle<3> m_bbox;
-    double m_length;*/
-    /*GLine m_trajectory;*/
+  bool m_traj_Defined;
+  double m_length;
+  Rectangle<3> m_bbox;
 };
 
 

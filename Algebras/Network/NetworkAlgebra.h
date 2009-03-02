@@ -67,8 +67,74 @@ struct SectTreeEntry{
 };
 
 class GPoints;
-class GLine;
 class Network;
+class GLine;
+
+/*
+3 GLine
+
+3.1 struct RouteInterval
+
+*/
+
+
+class RouteInterval
+{
+  public:
+   RouteInterval()
+  {
+  };
+
+  RouteInterval(int in_iRouteId,
+                double in_dStart,
+                double in_dEnd):
+      m_iRouteId(in_iRouteId),
+      m_dStart(in_dStart),
+      m_dEnd(in_dEnd) {};
+
+  RouteInterval(RouteInterval& ri) :
+    m_iRouteId (ri.m_iRouteId),
+    m_dStart (ri.m_dStart),
+    m_dEnd (ri.m_dEnd)
+    {};
+
+  RouteInterval(const RouteInterval& ri):
+      m_iRouteId(ri.m_iRouteId),
+      m_dStart(ri.m_dStart),
+      m_dEnd(ri.m_dEnd) {};
+
+  ~RouteInterval() {};
+
+  Rectangle<2> BoundingBox(Network* pNetwork) const;
+
+/*
+The route id.
+
+*/
+
+  int m_iRouteId;
+
+/*
+Start position on route.
+
+*/
+
+  double m_dStart;
+
+/*
+End position on route.
+
+*/
+
+  double m_dEnd;
+/*
+The distance interval in the route.
+
+*/
+};
+
+
+
 /*
 4 class GPoint
 
@@ -350,9 +416,11 @@ Returns true if two gpoint are identical.
 
     bool operator!= (const GPoint&p) const;
 
+    void ToPoint(Point *& res);
+
     Point* ToPoint() const;
 
-    Point* ToPoint(Network *pNetwork) const;
+    Point* ToPoint(Network *&pNetwork) const;
 
 /*
 Returns the spatial Bounding Box of the point which is a rectangle degenerated
@@ -378,8 +446,9 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
       if (m_bDefined) return Rectangle<2>(true,
                                           (double) m_xRouteLocation.rid,
                                           (double) m_xRouteLocation.rid,
-                                          m_xRouteLocation.d,
-                                          m_xRouteLocation.d);
+                                          m_xRouteLocation.d - 0.000001,
+                                          m_xRouteLocation.d + 0.000001);
+                  //0.000001 correcture of rounding differences
       else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
     };
 
@@ -414,68 +483,6 @@ Defined flag.
 */
     bool m_bDefined;
 };
-
-/*
-3 GLine
-
-3.1 struct RouteInterval
-
-*/
-
-
-class RouteInterval
-{
-  public:
-   RouteInterval()
-  {
-  };
-
-  RouteInterval(int in_iRouteId,
-                double in_dStart,
-                double in_dEnd):
-      m_iRouteId(in_iRouteId),
-      m_dStart(in_dStart),
-      m_dEnd(in_dEnd) {};
-
-  RouteInterval(RouteInterval& ri) :
-    m_iRouteId (ri.m_iRouteId),
-    m_dStart (ri.m_dStart),
-    m_dEnd (ri.m_dEnd)
-    {};
-
-  RouteInterval(const RouteInterval& ri):
-      m_iRouteId(ri.m_iRouteId),
-      m_dStart(ri.m_dStart),
-      m_dEnd(ri.m_dEnd) {};
-
-  //~RouteInterval() {};
-
-/*
-The route id.
-
-*/
-
-  int m_iRouteId;
-
-/*
-Start position on route.
-
-*/
-
-  double m_dStart;
-
-/*
-End position on route.
-
-*/
-
-  double m_dEnd;
-/*
-The distance interval in the route.
-
-*/
-};
-
 struct GPointPoint{
 
   GPointPoint(){};
@@ -1038,6 +1045,8 @@ struct JunctionSortEntry
   }
 };
 
+
+
 /*
 2.6 Class ~Network~
 
@@ -1256,7 +1265,7 @@ GetPointOnRoute
 Returns the point value of the GPoint on the route.
 
 */
-  Point* GetPointOnRoute(const GPoint* in_xGPoint);
+  void GetPointOnRoute(const GPoint* in_xGPoint, Point *&res);
 
 /*
 GetRouteCurve
@@ -1504,16 +1513,24 @@ Given that all relations are set up, the adjacency lists are created.
                          Transition in_xTransition,
                          vector<DirectedSectionPair> &inout_xPairs);
 
-      /*
-  void SaveAdjacencyList(SmiRecord& in_xValueRecord,
-                         size_t& inout_iOffset,
-                         SmiFileId& fileId);
+/*
+  Helpful functions for Find respectively FindInterval. Tests Network if there
+  is a shorter connection between the two points p1 and p2 than given by
+  start, end.
+  Function doubled because FindInterval is used for ~mpoint~ to ~mgpoint~
+  translation and therefore the values of end and start respectively
+  dpos and dpos2 may not be changed to each other than it is done in Find
+  for ~gline~ ~routeInterval~s.
 
-  void SaveSubAdjacencyList(SmiRecord& in_xValueRecord,
-                            size_t& inout_iOffset,
-                            SmiFileId& fileId);
-      */
+*/
 
+  bool ShorterConnection(Tuple *route, double &start,
+                   double &end, double &dpos, double &dpos2, int &rid,
+                   int &ridt, Point p1, Point p2 );
+
+  bool ShorterConnection2(Tuple *route, double &start,
+                   double &end, double &dpos, double &dpos2, int &rid,
+                   int &ridt, Point p1, Point p2 );
 
 /*
 2.6.6 Private fields of Class ~Network~
@@ -1595,10 +1612,12 @@ The BTree of the sections route ids.
   BTree* m_pBTreeSectionsByRoute;
 };
 
+
 /*
 3.2 class ~gline~
 
 */
+
 
 class GLine : public StandardAttribute
 {
@@ -1697,6 +1716,8 @@ The simple constructor. Should not be used.
 
     void SetSorted(bool);
 
+    DBArray<RouteInterval>* GetRouteIntervals();
+
 /*
 Computes the network distance of 2 glines.
 
@@ -1717,7 +1738,7 @@ Computes the union of 2 glines.
 */
 
 
-    void Uniongl (GLine* pgl2, GLine *&res);
+    void Uniongl (GLine* pgl2, GLine *res);
 
 /*
 Translates a gline value into a line value.
@@ -1733,7 +1754,7 @@ Returns true if the glines intersect false elswhere.
 */
 
 
-  bool Intersects (GLine *pgl);
+  bool Intersects (GLine* pgl);
 
 
 /*
@@ -1952,13 +1973,23 @@ struct RITree {
     }
   };
 
-  void TreeToGLine (GLine *gline) {
+  void TreeToGLine (GLine* gline) {
     if (this->m_left != 0) {
       this->m_left->TreeToGLine (gline);
     }
     gline->AddRouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd);
     if (this->m_right != 0) {
       this->m_right->TreeToGLine (gline);
+    }
+  };
+
+  void TreeToDBArray (DBArray<RouteInterval>* arr) {
+    if (this->m_left != 0) {
+      this->m_left->TreeToDBArray (arr);
+    }
+    arr->Append(RouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd));
+    if (this->m_right != 0) {
+      this->m_right->TreeToDBArray (arr);
     }
   };
 
@@ -1989,8 +2020,8 @@ public:
   ostream& Print(ostream& os)const;
   inline bool IsEmpty()const;
   size_t Sizeof()const;
-  GPoints& operator+=(const GPoint& gp);
-  GPoints& operator-=(const GPoint& gp);
+  GPoints& operator+=(const GPoint &gp);
+  GPoints& operator-=(const GPoint &gp);
   bool IsDefined()const{return m_defined;}
   int NumOfFLOBs()const;
   FLOB* GetFLOB(const int i);
@@ -2016,7 +2047,7 @@ public:
   bool Adjacent(const Attribute*)const;
   GPoints* Clone()const;
   size_t HashValue()const;
-  void CopyFrom(const StandardAttribute*);
+  void CopyFrom(const StandardAttribute* right);
   GPoints& operator=(const GPoints& gps);
   void FilterAliasGPoints(Network *pNetwork);
 

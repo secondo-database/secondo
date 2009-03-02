@@ -41,7 +41,7 @@ Operator : passes
 Number   : 4
 Signature: mgpoint x gpoint -> bool
 Example  : query [const mgpoint value( (("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4)))] passes [const gpoint value (1 1 2.4 1)];
-Result   : FALSE
+Result   : TRUE
 
 Operator : passes
 Number   : 5
