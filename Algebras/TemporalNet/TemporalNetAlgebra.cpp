@@ -67,8 +67,8 @@ bool searchUnit(DBArray<RouteInterval> &rint, size_t low, size_t high,
   if (low <= high) {
     size_t mid = (high + low) / 2;
     size_t n = 0;
-    int imid = mid;
-    if ((mid < n) || (imid >= rint.Size()) || high < n || low < n ) {
+    int imid = (int) mid;
+    if (mid < n || imid >= rint.Size()) {
       return false;
     }else {
       rint.Get(mid, rI);
@@ -76,10 +76,12 @@ bool searchUnit(DBArray<RouteInterval> &rint, size_t low, size_t high,
         return searchUnit(rint, mid+1, high, pRi);
       } else {
         if (rI->m_iRouteId > pRi->m_iRouteId){
-          return searchUnit(rint, low, mid-1, pRi);
+          if (mid == n) return false;
+          else return searchUnit(rint, low, mid-1, pRi);
         } else {
           if (rI->m_dStart > pRi->m_dEnd) {
-            return searchUnit(rint, low, mid-1, pRi);
+            if (mid == n) return false;
+            else return searchUnit(rint, low, mid-1, pRi);
           } else {
             if (rI->m_dEnd < pRi->m_dStart){
               return searchUnit(rint, mid+1, high, pRi);
