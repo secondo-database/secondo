@@ -2328,7 +2328,7 @@ logicalIndexType(sptmpobj, spatiotemporal(rtree3, object), rtree3,
     [upoint,uregion,mpoint,mregion],
     [ '__REL__', ' feed addid extend[ b: box3d( bbox( trajectory(.',
       '__ATTR__', ') ), deftime( .',
-      '__ATTR__', ') ) ] creatertree[ b ]' ],
+      '__ATTR__', ') ) ] sortby[b asc] bulkloadrtree[ b ]' ],
     undefined,
     undefined,
     undefined).
