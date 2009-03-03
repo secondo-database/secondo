@@ -66,8 +66,10 @@ bool searchUnit(DBArray<RouteInterval> &rint, size_t low, size_t high,
   const RouteInterval *rI;
   if (low <= high) {
     size_t mid = (high + low) / 2;
+    size_t n = 0;
     int imid = mid;
-    if ((mid < 0) || (imid >= rint.Size())) {
+    if ((mid < n) || (imid >= rint.Size()) || high < n || low < n ||
+         high >= rint.Size() || low >= rint.Size()) {
       return false;
     }else {
       rint.Get(mid, rI);
