@@ -2565,13 +2565,13 @@ class BTreeAlgebra : public Algebra
 #else
 
     AddOperator(&createbtree);
-    AddOperator(&exactmatch);
+    AddOperator(&exactmatch);   exactmatch.EnableProgress();
     AddOperator(&leftrange);    leftrange.EnableProgress();
-    AddOperator(&rightrange);
+    AddOperator(&rightrange);   rightrange.EnableProgress();
     AddOperator(&cpprange);     cpprange.EnableProgress();
-    AddOperator(&exactmatchs);  exactmatch.EnableProgress();
+    AddOperator(&exactmatchs);  
     AddOperator(&leftranges);
-    AddOperator(&rightranges);  rightrange.EnableProgress();
+    AddOperator(&rightranges);  
     AddOperator(&cppranges);
     AddOperator(&insertbtree);
     AddOperator(&deletebtree);
