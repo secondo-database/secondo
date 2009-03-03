@@ -68,8 +68,7 @@ bool searchUnit(DBArray<RouteInterval> &rint, size_t low, size_t high,
     size_t mid = (high + low) / 2;
     size_t n = 0;
     int imid = mid;
-    if ((mid < n) || (imid >= rint.Size()) || high < n || low < n ||
-         high >= rint.Size() || low >= rint.Size()) {
+    if ((mid < n) || (imid >= rint.Size()) || high < n || low < n ) {
       return false;
     }else {
       rint.Get(mid, rI);
@@ -1903,13 +1902,12 @@ void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
       pRouteCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
       LRS lrs(pCurrUnit->p0.GetPosition(),0);
       if (!pRouteCurve->Get(lrs, lrsposakt)) {
-        cerr << "not found on route" << endl;
         break;
       }
       pRouteCurve->Get( lrsposakt, lrsAkt );
       pRouteCurve->Get( lrsAkt->hsPos, hs );
       pStart = hs->AtPosition(pCurrUnit->p0.GetPosition() - lrsAkt->lrsPos);
-     }
+    }
     if (pCurrUnit->p0.GetPosition() == pCurrUnit->p1.GetPosition()){
        mp->Add(UPoint(Interval<Instant> (tStart, tEnd,
               pCurrUnit->timeInterval.lc, pCurrUnit->timeInterval.rc),
@@ -1918,7 +1916,7 @@ void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
       if (pCurrUnit->p0.GetPosition() < pCurrUnit->p1.GetPosition()){
         tInter1 = tStart;
         lrsposnext = lrsposakt + 1;
-        if (lrsposnext <= (pRouteCurve->Size()/2)-1){
+        if (lrsposnext < (pRouteCurve->Size()/2)){
           pRouteCurve->Get(lrsposnext, lrsNext);
           if (lrsNext->lrsPos >= pCurrUnit->p1.GetPosition()) {
             pEnd = hs->AtPosition(pCurrUnit->p1.GetPosition() - lrsAkt->lrsPos);
@@ -1928,7 +1926,7 @@ void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
             pStart = pEnd;
           } else {
             while (lrsNext->lrsPos <= pCurrUnit->p1.GetPosition() &&
-                   lrsposnext < (pRouteCurve->Size()/2)-1){
+                   lrsposnext < (pRouteCurve->Size()/2)){
               tInter2 = CurrUnit.TimeAtPos(lrsNext->lrsPos);
               pRouteCurve->Get(lrsNext->hsPos, hs);
               pEnd = hs->AtPosition(0);
@@ -1945,7 +1943,7 @@ void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
               lrsposakt = lrsposnext;
               pRouteCurve->Get(lrsposakt, lrsAkt);
               lrsposnext = lrsposakt +1;
-              if (lrsposnext <= (pRouteCurve->Size()/2) - 1)
+              if (lrsposnext < (pRouteCurve->Size()/2))
                 pRouteCurve->Get(lrsposnext, lrsNext);
             }
             pEnd = hs->AtPosition(pCurrUnit->p1.GetPosition() - lrsAkt->lrsPos);
