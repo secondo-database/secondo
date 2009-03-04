@@ -1587,7 +1587,7 @@ createSampleS(DCRel) :-
 sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
   dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
                  QueryAtom,').']),
-  secondoCatalogInfo(_,ExtRel,_,[[trel, [tuple, _]]),
+  secondoCatalogInfo(_,ExtRel,_,[[trel, [tuple, _]]]),
   concat_atom(['derive ', ExtSample, ' = ', ExtRel,
     ' feed head[', SampleSize, ']
       extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
