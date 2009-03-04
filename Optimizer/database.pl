@@ -342,6 +342,19 @@ Prior to asserting the ~storedSpell/3~, ~storedAttrSize/7~,  ~storedTupleSize/3~
 ~storedCard/3~, ~storedOrderings/3~ facts, all such facts regarding the relation
 and its attributes are retracted.
 
+PROBLEM: The Secondo QueryProcessor only supports a fixed amount of function
+objects, which are used by the projectextend operator. You should modify file
+
+---- secondo/QueryProcessor/QueryProcessor.cpp
+----
+
+and change the constant
+
+---- const int MAXFUNCTIONS = 30;
+----
+
+from 30 to at least $3\cdot(maximum number of attributes)+5$.
+
 */
 
 updateRelationSchema(DCrel) :-
@@ -1353,7 +1366,7 @@ getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
   dm(dbhandling,['\ngetStandardSampleCard(',DCRel,',...): Card=',Card]),
   dm(dbhandling,['\ngetStandardSampleCard(',DCRel,',...): TupleSize=',
                  TupleSize]),
-  ( TupleSize =< 0
+  ( TupleSize < 1
     -> ( write_list(['ERROR:\tTuplesize for relation ',DCRel,' < 1!']), nl,
          throw(error_Internal(database_getStandardSampleCard(DCRel, CardMin, CardMax,
                       SF, MaxMem,CardStd, MemStd, CardRec, MemRec)
@@ -1376,7 +1389,7 @@ getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
                      CardRec, ' (',MemRec,' KB) is recommended.']), nl
        )
     ;  ( CardRec is CardStd,                % recommend SandardCard
-         MemRec is CardRec*TupleSize/1024   % (recommended StandardSize in KB)
+         MemRec  is MemStd                  % (recommended StandardSize in KB)
        )
   ),
   ( (CardRec < CardMin)
@@ -1387,8 +1400,8 @@ getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
        )
     ; true
   ),
-  write_list(['CardStd=', CardStd, '\nMemStd=',MemStd, '\nCardRec=',CardRec,
-              '\nMemRec=', MemRec]),nl,
+  dm(dbhandling,['CardStd=', CardStd, '\nMemStd=',MemStd, '\nCardRec=',CardRec,
+                 '\nMemRec=', MemRec, '\n']),
   !.
 
 getSampleJsize(DCRel, CardStd, MemStd, CardRec, MemRec) :-
@@ -1462,8 +1475,7 @@ createSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
   dcName2externalName(DCrel,ExtRel),
   card(DCrel, Card),
   % the following line implements the calculation done by the sample-operator:
-  secOptConstant(sampleScalingFactor, SF),
-  ActualCard is truncate(min(Card, max(RequestedCard, Card*SF))).
+  ActualCard is truncate(min(Card, RequestedCard)).
 
 createSampleJ(DCRel) :-
   dm(dbhandling,['\nTry: createSampleJ(',DCRel,').']),
@@ -1477,20 +1489,22 @@ createSampleJ(DCRel) :-
          write_list(['\nINFO:\tCreating Join-Sample for \'',ExtRel,'\'.']),nl,
          ( CardStd =< CardRec
            -> ( % sample size is ok
-                SampleCard = CardStd,
-                SampleSize = MemStd
+                SampleCard is CardRec,
+                SampleSize is MemRec
               )
            ;  ( % sample size is too big
                 optimizerOption(autoSamples)
                 -> ( % automatically set sample size and force creation
-                    SampleCard = CardRec,
-                    SampleSize = MemRec,
+                    SampleCard is CardRec,
+                    SampleSize is MemRec,
                     write_list(['\tJoin sample size was automatically ',
                                 'restricted\n','\tfrom ',(CardStd),'(',MemStd,
-                                ' KB) to ',CardRec,'(',MemRec,' KB).']),nl
+                                ' KB) to ',CardRec,'(',MemRec,' KB).']),nl,
+                    write_list(['\tUse \'resizeSamples/3\' to force another ',
+                                'arbitrary sample size.']),nl
                    )
                 ;  ( % leave sample creation to the user
-                     write_list(['REQUEST FOR USER INTERACTION:\n',
+                     concat_atom(['REQUEST FOR USER INTERACTION:\n',
                                  'Join sample is to large: ',CardStd,
                                  ' (=',MemStd,' KB).\n','Maximum size is ',
                                  CardRec,' (=',MemRec,' KB).\n\n',
@@ -1528,17 +1542,19 @@ createSampleS(DCRel) :-
          nl,
          ( CardRec =< CardStd
            -> ( % sample size is ok
-                SampleCard = CardStd,
-                SampleSize = MemStd
+                SampleCard is CardRec,
+                SampleSize is MemRec
               )
            ;  ( % sample size is too big
                 optimizerOption(autoSamples)
                 -> ( % automatically set sample size and force creation
-                    SampleCard = CardRec,
-                    SampleSize = MemRec,
+                    SampleCard is CardRec,
+                    SampleSize is MemRec,
                     write_list(['\tSelection sample size was automatically ',
                                 'restricted\n','\tfrom ',(CardStd),'(',MemStd,
-                                ' KB) to ',CardRec,'(',MemRec,' KB).']),nl
+                                ' KB) to ',CardRec,'(',MemRec,' KB).']),nl,
+                    write_list(['\tUse \'resizeSamples/3\' to force another ',
+                                'arbitrary sample size.']),nl
                    )
                 ;    ( % leave sample creation to the user
                        concat_atom(['REQUEST FOR USER INTERACTION:\n',
@@ -1571,7 +1587,7 @@ createSampleS(DCRel) :-
 sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
   dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
                  QueryAtom,').']),
-  sub_atom(ExtRel, _, _, _, 'SEC2'),
+  secondoCatalogInfo(_,ExtRel,_,[[trel, [tuple, _]]),
   concat_atom(['derive ', ExtSample, ' = ', ExtRel,
     ' feed head[', SampleSize, ']
       extend[xxxNo: randint(20000)] sortby[xxxNo asc] remove[xxxNo]
