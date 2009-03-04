@@ -1198,7 +1198,7 @@ plan_to_atom( Pattern , Result):-
   Pattern =.. [pattern|Preds],
   list_to_atom(Preds, Preds2),
   concat_atom(['. stpattern[', Preds2, ']'], '', Result),
-  !.  	
+  !.
 
 plan_to_atom(A,A) :-
   string(A),
@@ -1469,10 +1469,10 @@ plan_to_atom(rename(X, Y), Result) :-
 %used for removing the temporarily filter conditions
 %in the form sometimes(Pred). These were generated
 %by the optimizer by rewriting the pattern operator
-%Note that user filter conditions in the same form 
+%Note that user filter conditions in the same form
 %'sometimes(Pred)' will not be removed
 
-plan_to_atom(predinfo(Sel, Cost, filter(Stream, sometimes(Pred))) , Result) :-
+plan_to_atom(predinfo(_, _, filter(Stream, sometimes(Pred))) , Result) :-
   removefilter(sometimes(Pred)),
   retract(removefilter(sometimes(Pred))),
   plan_to_atom(Stream, Result),
@@ -1481,7 +1481,7 @@ plan_to_atom(predinfo(Sel, Cost, filter(Stream, sometimes(Pred))) , Result) :-
 %used for removing the temporarily filter conditions
 %in the form sometimes(Pred). These were generated
 %by the optimizer by rewriting the pattern operator
-%Note that user filter conditions in the same form 
+%Note that user filter conditions in the same form
 %'sometimes(Pred)' will not be removed
 plan_to_atom(filter(Stream, sometimes(Pred)) , Result) :-
   removefilter(sometimes(Pred)),
@@ -2105,7 +2105,7 @@ filter is used.
 indexselect(arg(N), pr(Pred, _)) => filter(IS, Pred) :-
   Pred =.. [sometimes, InnerPred] ,
   indexselect(arg(N), pr(InnerPred, _)) => Result,
-  Result= filter(IS, InnerPred). 
+  Result= filter(IS, InnerPred).
 
 % Generic indexselect translation for predicates checking on mbbs
 indexselect(arg(N), pr(Pred, _)) =>
@@ -2248,7 +2248,7 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
 % 'distance <' with spatial(rtree,object) index
 
 indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(gettuples(windowintersectsS(dbobject(IndexName), 
+      filter(gettuples(windowintersectsS(dbobject(IndexName),
 				enlargeRect(bbox(Y),D,D)),  rel(Name, *)),
 				distance(attr(AttrName, Arg, AttrCase), Y)< D)
   :-
@@ -2261,7 +2261,7 @@ indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(rename(gettuples(windowintersectsS(dbobject(IndexName), 
+      filter(rename(gettuples(windowintersectsS(dbobject(IndexName),
 				enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias),
 				distance(attr(AttrName, Arg, AttrCase), Y)< D)
   :-
@@ -2275,7 +2275,7 @@ indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
 
 % 'distance <' with spatial(rtree,unit) index
 indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), 
+      filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
 				enlargeRect(bbox(Y),D,D)))),  rel(Name, *)),
 				distance(attr(AttrName, Arg, AttrCase), Y)< D)
   :-
@@ -2288,7 +2288,7 @@ indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), 
+      filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
 				enlargeRect(bbox(Y),D,D)))),rel(Name, *)), RelAlias),
 				distance(attr(AttrName, Arg, AttrCase), Y)< D)
   :-
@@ -3343,9 +3343,12 @@ cost(filter(X, _), Sel, S, C) :-
   S is SizeX,
   C is CostX + A * SizeX, !.
 
-cost(filter(gettuples(rdup(sort(      
+cost(filter(gettuples(rdup(sort(
       windowintersectsS(dbobject(IndexName), BBox))), rel(RelName, *)),
       FilterPred), Sel, Size, Cost):-
+  dm(costFunctions,['cost(filter(gettuples(rdup(sort(windowintersectsS(...): ',
+                    'IndexName= ',IndexName,', BBox=',BBox,
+                    ', FilterPred=',FilterPred]),
   Cost is 0,
   card(RelName, RelCard),
   Size is RelCard * Sel.
@@ -3373,8 +3376,8 @@ cost(filter(gettuples(rdup(sort(
 %   write('...Total cost is ' - Cost),nl,
 %   Size is Sel * RelCard,
 %   write('...Final size is ' - Size),nl.
-  
-  
+
+
 
 
 cost(filter(X, _), Sel, S, C) :- 	% 'normal' filter
@@ -4899,16 +4902,16 @@ lookupPreds(Pred, Pred2) :-
   not(is_list(Pred)),
   lookupPred(Pred, Pred2), !.
 
-lookupPred(sometimes(Pred), pr(Pred2, Rel)) :-	
+lookupPred(sometimes(Pred), pr(Pred2, Rel)) :-
 %This predicate is added by the optimizer
 %For the sake of optimizeing the pattern
 %operator. The asserted predicate will be used
 %later to remove this predicate
-  removefilter(sometimes(Pred)),		
+  removefilter(sometimes(Pred)),
   nextCounter(selectionPred,_),
   lookupPred1(sometimes(Pred), Pred2, [], [Rel]), !,
-  retract(removefilter(sometimes(Pred))),	
-  assert(removefilter(Pred2)).	
+  retract(removefilter(sometimes(Pred))),
+  assert(removefilter(Pred2)).
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
   nextCounter(selectionPred,_),
@@ -5484,11 +5487,14 @@ translateFields([Term | Select], GroupAttrs, Fields, Select2) :-
   compound(Term),
   Term =.. [AggrOp, _],
   isAggregationOP(AggrOp),
-%   Term2 =.. [AggrOp, feed(group), attrname(Attr)],
+%  Term2 =.. [AggrOp, feed(group), attrname(Attr)],
   translateFields(Select, GroupAttrs, Fields, Select2),
-  write('*****'), nl,
-  write('***** Error in groupby: missing name for new attribute'), nl,
-  write('*****'), nl,
+  concat_atom(['Malformed expression: Missing name for aggregation ',
+               'expression.'],ErrMsg), nl,
+  write_list(['ERROR: ',ErrMsg]),
+  throw(error_SQL(optimizer_translateFields([Term | Select], GroupAttrs,
+                                            Fields, Select2)
+                                           :malformedExpression#ErrMsg)),
   !.
 
 /*
@@ -5625,9 +5631,13 @@ translateFields([Term | Select], GroupAttrs,
   Term =.. [AggrOp, _, _, _],
   member(AggrOp, [aggregate]),
   translateFields(Select, GroupAttrs, Fields, Select2),
-  write('*****'), nl,
-  write('***** Error in groupby: missing name for new attribute'), nl,
-  write('*****'), nl,
+  term_to_atom(Term,XA),
+  concat_atom(['Malformed expression: Missing name for aggregation ',
+               'expression in \'',XA,'\'.'],'',ErrMsg), nl,
+  write_list(['ERROR: ',ErrMsg]),
+  throw(error_SQL(optimizer_translateFields([Term | Select], GroupAttrs,
+                                            Fields, Select2)
+                                           :malformedExpression#ErrMsg)),
   !.
 
 % case: ERROR (general error case)
@@ -5635,13 +5645,23 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
   not(member(Attr, GroupAttrs)),
   !,
   translateFields(Select, GroupAttrs, Fields, Select2),
-  write('*****'), nl,
-  write('***** Error in groupby: '),
-  write(Attr),
-  write(' is neither a grouping attribute'), nl,
-  write('      nor an aggregate expression.'), nl,
-  write('*****'), nl.
+  term_to_atom(Attr,XA),
+  concat_atom(['Malformed expression: ',XA,' is neither a grouping attribute ',
+               'nor an aggregate expression.'],'',ErrMsg), nl,
+  write_list(['ERROR: ',ErrMsg]),
+  throw(error_SQL(optimizer_translateFields([Attr | Select], GroupAttrs,
+                                            Fields, Select2)
+                                           :malformedExpression#ErrMsg)),
+  !.
 
+% case: ERROR (fallback error case)
+translateFields(X, GroupAttrs, Fields, Select2) :-
+  term_to_atom(X,XA),
+  concat_atom(['Malformed expression in fields: \'', XA, '\'.'],'',ErrMsg), nl,
+  write_list(['ERROR: ',ErrMsg]),
+  throw(error_SQL(optimizer_translateFields(X, GroupAttrs, Fields, Select2)
+                                           :malformedExpression#ErrMsg)),
+  !.
 
 translateTransformations([], []) :-
   !.
