@@ -677,15 +677,15 @@ is a special segment tree for the operator
 knearestfilter
 
 */
-
+template<class timeType>
 struct FieldEntry
 {
   long nodeid;
   double maxdist;
-  Instant start, end;
+  timeType start, end;
   int level;
 
-  FieldEntry( long node, double maxd, Instant &s, Instant &e,
+  FieldEntry( long node, double maxd, const timeType &s, const timeType &e,
                   int l):
     nodeid(node),
     maxdist(maxd),
@@ -695,14 +695,11 @@ struct FieldEntry
     {}
 };
 
-class NNSegTree
-{
-public:
-  class SegEntry
-  {
+template<class timeType>
+class SegEntry {
   public:
     BBox<2> xyBox;
-    Instant start, end;
+    timeType start, end;
     double mindist, maxdist;
     int coverage;
     long nodeid;
@@ -714,7 +711,8 @@ public:
       tpid( -1 )
       {}
 
-    SegEntry( const BBox<2> &box,Instant &s, Instant &e, double mind,
+    SegEntry( const BBox<2> &box, const timeType &s,
+              const  timeType &e, double mind,
       double maxd, int cov,long node, TupleId tid):
       xyBox(box),
       start(s), end(e),
@@ -725,12 +723,14 @@ public:
 
     virtual ~SegEntry()
     {}
-    friend bool operator!=(const SegEntry& i,
-      const SegEntry& j)
+
+    friend bool operator!=(const SegEntry<timeType>& i, 
+                    const SegEntry<timeType>& j) 
     {
       return i.nodeid != j.nodeid || i.tpid != j.tpid;
     }
-    bool operator<( const SegEntry& e ) const
+
+    bool operator<( const SegEntry<timeType>& e ) const
     {
       if( e.start != start)
       {
@@ -750,59 +750,69 @@ public:
         }
       }
     }
-  };
+};
 
-  class SegNode
-  {
+
+template<class timeType>
+class SegNode {
   public:
-    Instant start, end;
-    SegNode* left;
-    SegNode* right;
-    SegNode* parent;
-    NNTree<SegEntry> segEntries;
-    SegNode( const Instant &s, const Instant &e) :
+    timeType start, end;
+    SegNode<timeType>* left;
+    SegNode<timeType>* right;
+    SegNode<timeType>* parent;
+    NNTree<SegEntry<timeType> > segEntries;
+    SegNode( const timeType &s, const timeType &e) :
       start(s), end(e), left(NULL),
       right(NULL), parent(NULL), segEntries()
       {}
-  };
+};
 
-  NNSegTree( const Instant &s, const Instant &e);
+
+template<class timeType>
+class NNSegTree{
+public:
+  NNSegTree( const timeType &s, const timeType &e);
   ~NNSegTree();
-  void insert( SegEntry &s, int k );
-  bool erase( Instant start, Instant end, long rnodeid, double dist);
-  void fillMap( map< SegEntry, TupleId> &m);
-  int calcCoverage( Instant t1, Instant t2, double distance );
-  typedef NNTree< SegEntry >::iter ITSE;
+  void insert( SegEntry<timeType> &s, int k );
+  bool erase( const timeType& start, const timeType& end,
+              long rnodeid, double dist);
+  void fillMap( map< SegEntry<timeType>, TupleId> &m);
+  int calcCoverage( const timeType& t1,const  timeType& t2, double distance );
+
+  typedef typename NNTree<SegEntry<timeType> >::iter ITSE;
 private:
-  SegNode *sroot;
-  void makeEmpty( SegNode *node);
-  void insertNode( SegEntry &s, SegNode *node, int k);
-  void eraseEntry( Instant start, Instant end, long rnodeid,
-    double dist, SegNode *node, bool &result);
-  void checkErase( Instant t1, Instant t2, double distance,
-                            SegNode *node, int k );
-  void mapfill( map< SegEntry, TupleId> &m, SegNode *node);
-  ITSE addEntry(NNTree<SegEntry> &t, SegEntry &e);
-  ITSE findEntry(NNTree<SegEntry> &t, long rnodeid, double dist);
-  ITSE findEntryMindistance(NNTree<SegEntry> &t, double dist);
-  int calcCoverage( Instant t1, Instant t2, double distance,
-                            SegNode *node, bool hasEqual );
+  SegNode<timeType> *sroot;
+  void makeEmpty( SegNode<timeType> *node);
+  void insertNode( SegEntry<timeType> &s, SegNode<timeType> *node, int k);
+  void eraseEntry( const timeType&  start, const timeType& end, long rnodeid,
+                   double dist, SegNode<timeType> *node, bool &result);
+  void checkErase( const timeType& t1, const timeType& t2, double distance,
+                   SegNode<timeType> *node, int k );
+  void mapfill( map< SegEntry<timeType>, TupleId> &m, 
+                SegNode<timeType> *node);
+  ITSE addEntry(NNTree<SegEntry<timeType> > &t, SegEntry<timeType>  &e);
+  ITSE findEntry(NNTree<SegEntry<timeType> > &t, long rnodeid, double dist);
+  ITSE findEntryMindistance(NNTree<SegEntry<timeType> > &t, double dist);
+  int calcCoverage( const timeType& t1,const timeType& t2, double distance,
+                    SegNode<timeType> *node, bool hasEqual );
 };
 
 /*
 constructor
 
 */
-NNSegTree::NNSegTree( const Instant &s, const Instant &e)
+template<class timeType>
+NNSegTree<timeType>::NNSegTree( const timeType &s, const timeType &e)
 {
-  sroot = new SegNode(s, e);
+  sroot = new SegNode<timeType>(s, e);
 }
 
 /*
 destructor
 
 */
-NNSegTree::~NNSegTree()
+template<class timeType>
+NNSegTree<timeType>::~NNSegTree<timeType>()
 {
   makeEmpty( sroot );
 }
@@ -815,7 +825,8 @@ insertNode. Some elements would be needless.
 They are deleted
 
 */
-void NNSegTree::insert( SegEntry &s, int k )
+template<class timeType>
+void NNSegTree<timeType>::insert( SegEntry<timeType> &s, int k )
 {
   insertNode( s, sroot, k );
 }
@@ -827,8 +838,10 @@ This function calls the private recursive function
 eraseEntry
 
 */
-bool NNSegTree::erase( Instant start, Instant end,
-                      long rnodeid, double dist)
+template<class timeType>
+bool NNSegTree<timeType>::erase(const timeType& start,
+                                const timeType& end,
+                                long rnodeid, double dist)
 {
   bool result = false;
   eraseEntry( start, end, rnodeid, dist, sroot, result );
@@ -841,7 +854,8 @@ to fill the given map with all elements which
 are in the segment tree
 
 */
-void NNSegTree::fillMap( map< NNSegTree::SegEntry, TupleId> &m)
+template<class timeType>
+void NNSegTree<timeType>::fillMap( map< SegEntry<timeType>, TupleId> &m)
 {
   mapfill( m, sroot );
 }
@@ -852,7 +866,10 @@ time intervall until the given distance. It calls the
 recursive private method calcCoverage
 
 */
-int NNSegTree::calcCoverage( Instant t1, Instant t2, double distance )
+template<class timeType>
+int NNSegTree<timeType>::calcCoverage( const timeType& t1,
+                                       const timeType& t2, 
+                                       double distance )
 {
   return calcCoverage( t1, t2, distance, sroot, false );
 }
@@ -868,7 +885,8 @@ to free all nodes of the segment tree.
 It is calles by the destructor of the tree.
 
 */
-void NNSegTree::makeEmpty( SegNode *node)
+template<class timeType>
+void NNSegTree<timeType>::makeEmpty( SegNode<timeType> *node)
 {
   if( node )
   {
@@ -884,7 +902,9 @@ fillMap. It fills a map with all elements which
 are in the segment tree
 
 */
-void NNSegTree::mapfill( map< SegEntry, TupleId> &m, SegNode *node)
+template<class timeType>
+void NNSegTree<timeType>::mapfill( map< SegEntry<timeType>, TupleId> &m,
+                                  SegNode<timeType> *node)
 {
   if( node )
   {
@@ -908,7 +928,9 @@ insertNode insert an element in all nodes where
 it is necessary. Some childs may be created
 
 */
-void NNSegTree::insertNode( SegEntry &s, SegNode *node, int k)
+template<class timeType>
+void NNSegTree<timeType>::insertNode( SegEntry<timeType> &s, 
+                                      SegNode<timeType> *node, int k)
 {
   if( s.start <= node->start && s.end >= node->end)
   {
@@ -939,8 +961,8 @@ void NNSegTree::insertNode( SegEntry &s, SegNode *node, int k)
   {
     if( s.start > node->start )
     {
-      SegNode *newleft = new SegNode(node->start, s.start);
-      SegNode *newright = new SegNode(s.start, node->end);
+      SegNode<timeType> *newleft = new SegNode<timeType>(node->start, s.start);
+      SegNode<timeType> *newright = new SegNode<timeType>(s.start, node->end);
       newleft->parent = node;
       newright->parent = node;
       node->left = newleft;
@@ -950,8 +972,8 @@ void NNSegTree::insertNode( SegEntry &s, SegNode *node, int k)
     else
     {
       /* the endtime was too low */
-      SegNode *newleft = new SegNode(node->start, s.end);
-      SegNode *newright = new SegNode(s.end, node->end);
+      SegNode<timeType> *newleft = new SegNode<timeType>(node->start, s.end);
+      SegNode<timeType> *newright = new SegNode<timeType>(s.end, node->end);
       newleft->parent = node;
       newright->parent = node;
       node->left = newleft;
@@ -967,8 +989,10 @@ in all possible nodes. Every appearance is deleted
 in the given (partial) tree
 
 */
-void NNSegTree::eraseEntry( Instant start, Instant end, long rnodeid,
-    double dist, SegNode *node, bool &result)
+template<class timeType>
+void NNSegTree<timeType>::eraseEntry(const  timeType& start,
+                                     const  timeType& end, long rnodeid,
+    double dist, SegNode<timeType> *node, bool &result)
 {
   if( start <= node->start && end >= node->end)
   {
@@ -1006,7 +1030,10 @@ NNTree of the attribute segEntries of a
 node of the segment tree
 
 */
-NNSegTree::ITSE NNSegTree::addEntry(NNTree<SegEntry> &t, SegEntry &e)
+template<class timeType>
+typename NNSegTree<timeType>::ITSE 
+NNSegTree<timeType>::addEntry(NNTree<SegEntry<timeType> > &t, 
+                              SegEntry<timeType> &e)
 {
   if( t.size() == 0)
   {
@@ -1053,8 +1080,10 @@ NNTree of the attribute segEntries of a
 node of the segment tree
 
 */
-NNSegTree::ITSE NNSegTree::findEntry(NNTree<SegEntry> &t,
-                                     long rnodeid, double dist)
+template<class timeType>
+typename NNSegTree<timeType>::ITSE 
+NNSegTree<timeType>::findEntry(NNTree<SegEntry<timeType> > &t,
+                               long rnodeid, double dist)
 {
   ITSE it = t.root();
   bool havePos = false;
@@ -1122,7 +1151,9 @@ node of the segment tree which has a mindistance
 higher than the given distance
 
 */
-NNSegTree::ITSE NNSegTree::findEntryMindistance(NNTree<SegEntry> &t,
+template<class timeType>
+typename NNSegTree<timeType>::ITSE 
+NNSegTree<timeType>::findEntryMindistance(NNTree<SegEntry<timeType> > &t,
                                      double dist)
 {
   //the function looks first for a maxdistance higher because
@@ -1178,8 +1209,10 @@ after the insertion of the element s into the given node.
 This function deletes the needless elements.
 
 */
-void NNSegTree::checkErase( Instant t1, Instant t2, double distance,
-                           SegNode *node, int k )
+template<class timeType>
+void NNSegTree<timeType>::checkErase( const timeType& t1,
+                                      const timeType& t2, double distance,
+                           SegNode<timeType> *node, int k )
 {
   int c = calcCoverage( t1, t2, distance, sroot, true );
   if( c >= k )
@@ -1210,8 +1243,11 @@ calculates the reached coverage in the given timeintervall
 until the given distance
 
 */
-int NNSegTree::calcCoverage( Instant t1, Instant t2, double distance,
-                            SegNode *node, bool hasEqual)
+template<class timeType>
+int NNSegTree<timeType>::calcCoverage(const timeType& t1, 
+                                      const timeType& t2,
+                                      double distance,
+                                      SegNode<timeType> *node, bool hasEqual)
 {
   int result = 0;
   if( node )

@@ -3610,8 +3610,9 @@ double maxDistance( const BBox<2> box1, const BBox<2> box2)
 the recursive helpfunction of the function coverage
 
 */
-void helpcoverage(int cycle, map<Instant, int> &m, R_Tree<3, TupleId>* rtree,
-                  Instant &t, SmiRecordId nodeid, int level)
+template<class timeType>
+void helpcoverage(int cycle, map<timeType, int> &m, R_Tree<3, TupleId>* rtree,
+                  timeType &t, SmiRecordId nodeid, int level)
 {
   const int dim = 3;
   R_TreeNode<dim, TupleId> *tmp = rtree->GetMyNode(
@@ -3624,10 +3625,8 @@ void helpcoverage(int cycle, map<Instant, int> &m, R_Tree<3, TupleId>* rtree,
     {
       R_TreeLeafEntry<dim, TupleId> e =
         (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
-      Instant ts(t.GetType());
-      Instant te(t.GetType());
-      ts.ReadFrom(e.box.MinD(2));
-      te.ReadFrom(e.box.MaxD(2));
+      timeType ts(e.box.MinD(2));
+      timeType te(e.box.MaxD(2));
       if( cycle == 0)
       {
         if( ts < t ) m[ts] = 0;
@@ -3635,7 +3634,7 @@ void helpcoverage(int cycle, map<Instant, int> &m, R_Tree<3, TupleId>* rtree,
       }
       else
       {
-        typedef map<Instant, int>::iterator ITMAP;
+        typedef typename map<timeType, int>::iterator ITMAP;
         ITMAP it = m.find(ts);
         while( it != m.end() && it->first < te)
         {
@@ -3648,7 +3647,7 @@ void helpcoverage(int cycle, map<Instant, int> &m, R_Tree<3, TupleId>* rtree,
     {
       R_TreeInternalEntry<dim> e =
         (R_TreeInternalEntry<dim>&)(*tmp)[ii];
-      helpcoverage( cycle, m, rtree, t, e.pointer, level + 1);
+      helpcoverage<timeType>( cycle, m, rtree, t, e.pointer, level + 1);
     }
   }
   delete tmp;
@@ -3659,13 +3658,14 @@ calculates the minimum coverage of a rtree-node
 in its timeintervall
 
 */
-int coverage(R_Tree<3, TupleId>* rtree, Instant &tEnd,
+template<class timeType>
+int coverage(R_Tree<3, TupleId>* rtree, timeType &tEnd,
                  SmiRecordId nodeid, int level)
 {
-  map<Instant, int> m;
-  helpcoverage( 0, m, rtree, tEnd, nodeid, level );
-  helpcoverage( 1, m, rtree, tEnd, nodeid, level );
-  typedef map<Instant, int>::const_iterator ITMAP;
+  map<timeType, int> m;
+  helpcoverage<timeType>( 0, m, rtree, tEnd, nodeid, level );
+  helpcoverage<timeType>( 1, m, rtree, tEnd, nodeid, level );
+  typedef typename map<timeType , int>::const_iterator ITMAP;
   int result = 0;
   ITMAP it = m.begin();
   if( it != m.end() ) result = it->second;
@@ -3696,7 +3696,8 @@ must not be inserted into the segment tree. If no, this
 funtion inserts the node or tuple into the segment tree
 
 */
-bool checkInsert( NNSegTree &timeTree, NNSegTree::SegEntry &s,
+template<class timeType>
+bool checkInsert( NNSegTree<timeType> &timeTree, SegEntry<timeType> &s,
                  BBox<2> mbox, int k, R_Tree<3, TupleId>* rtree, int level )
 {
   double reachedCoverage = timeTree.calcCoverage( s.start, s.end, s.mindist );
@@ -3708,13 +3709,14 @@ bool checkInsert( NNSegTree &timeTree, NNSegTree::SegEntry &s,
   if( s.coverage != 1)
   {
     //for tuples the coverage must not be calculated
-    s.coverage = coverage(rtree,s.end,s.nodeid,level);
+    s.coverage = coverage<timeType>(rtree, s.end, s.nodeid, level);
   }
   timeTree.insert( s, k );
   return true;
 }
 
-bool newcheckInsert( NNSegTree &timeTree, NNSegTree::SegEntry &s,
+template<class timeType>
+bool newcheckInsert( NNSegTree<timeType> &timeTree, SegEntry<timeType> &s,
                  BBox<2> mbox, int k, R_Tree<3, TupleId>* rtree, int level,
 Relation* rel,BTree* btree)
 {
@@ -3738,26 +3740,26 @@ Relation* rel,BTree* btree)
 Some elements are needed to save between the knearestfilter calls.
 
 */
-typedef map<NNSegTree::SegEntry, TupleId>::const_iterator CIMAP;
-
+template<class timeType>
 struct KnearestFilterLocalInfo
 {
   unsigned int k;
   //int max;
   bool scanFlag;
-  Instant startTime, endTime;
-  vector<FieldEntry> vectorA;
-  vector<FieldEntry> vectorB;
-  NNSegTree timeTree;
+  timeType startTime, endTime;
+  vector<FieldEntry<timeType> > vectorA;
+  vector<FieldEntry<timeType> > vectorB;
+  NNSegTree<timeType> timeTree;
   Relation* relation;
   R_Tree<3, TupleId>* rtree;
 
   Relation* hats; //new
   BTree* btreehats;//new
 
-  map< NNSegTree::SegEntry, TupleId> resultMap;
+  map<SegEntry<timeType>, TupleId> resultMap;
+  typedef typename map<SegEntry<timeType>, TupleId>::const_iterator CIMAP;
   CIMAP mapit;
-  KnearestFilterLocalInfo( const Instant &s, const Instant &e) :
+  KnearestFilterLocalInfo( const timeType &s, const timeType &e) :
     startTime(s), endTime(e), timeTree( s, e )
     {}
 };
@@ -3773,11 +3775,12 @@ args[2] = mpoint
 args[3] = int k, how many nearest are searched
 
 */
+template<class timeType, class bBoxTreeType>
 int knearestFilterFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   const int dim = 3;
-  KnearestFilterLocalInfo *localInfo;
+  KnearestFilterLocalInfo<timeType> *localInfo;
 
   switch (message)
   {
@@ -3787,10 +3790,10 @@ int knearestFilterFun (Word* args, Word& result, int message,
       const UPoint *up1, *up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
-      BBTree* t = new BBTree(*mp);
+      bBoxTreeType* t = new bBoxTreeType(*mp);
 
-      localInfo = new KnearestFilterLocalInfo(
-        up1->timeInterval.start, up2->timeInterval.end);
+      localInfo = new KnearestFilterLocalInfo<timeType>(
+        up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
@@ -3807,17 +3810,16 @@ int knearestFilterFun (Word* args, Word& result, int message,
                      false,
                      localInfo->rtree->MinEntries( 0 ),
                      localInfo->rtree->MaxEntries( 0 ) );
-      Instant t1(localInfo->startTime.GetType());
-      Instant t2(localInfo->startTime.GetType());
-      t1.ReadFrom(tmp->BoundingBox().MinD(2));
-      t2.ReadFrom(tmp->BoundingBox().MaxD(2));
+      
+      timeType t1(tmp->BoundingBox().MinD(2));
+      timeType t2(tmp->BoundingBox().MaxD(2));
 
       if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
       {
-        localInfo->vectorA.push_back( FieldEntry(
+        localInfo->vectorA.push_back( FieldEntry<timeType>(
           localInfo->rtree->RootRecordId(), 0, t1, t2, 0));
         const BBox<2> xyBox = makexyBox( tmp->BoundingBox() );
-        NNSegTree::SegEntry se(xyBox,t1, t2, 0.0, 0.0, 0,
+        SegEntry<timeType> se(xyBox,t1, t2, 0.0, 0.0, 0,
               localInfo->rtree->RootRecordId(), -1);
         localInfo->timeTree.insert( se, localInfo->k );
       }
@@ -3827,7 +3829,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
         unsigned int vpos;
         for( vpos = 0; vpos < localInfo->vectorA.size(); ++vpos)
         {
-          FieldEntry &f = localInfo->vectorA[ vpos ];
+          FieldEntry<timeType> &f = localInfo->vectorA[ vpos ];
           SmiRecordId adr = f.nodeid;
           // check if this entry is not deleted
           if( localInfo->timeTree.erase( f.start, f.end, f.nodeid,
@@ -3837,26 +3839,24 @@ int knearestFilterFun (Word* args, Word& result, int message,
                      adr, false,
                      localInfo->rtree->MinEntries( f.level ),
                      localInfo->rtree->MaxEntries( f.level ) );
-            Instant t1(localInfo->startTime.GetType());
-            Instant t2(localInfo->startTime.GetType());
             for ( int ii = 0; ii < tmp->EntryCount(); ++ii )
             {
               if ( tmp->IsLeaf() )
               {
                 R_TreeLeafEntry<dim, TupleId> e =
                   (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
-                t1.ReadFrom((double)(e.box.MinD(2)));
-                t2.ReadFrom((double)(e.box.MaxD(2)));
+                timeType t1(e.box.MinD(2));
+                timeType t2(e.box.MaxD(2));
                 if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
                 {
                   const BBox<2> xyBox = makexyBox( e.box );
-                  Interval<Instant> d(t1,t2,true,true);
+                  Interval<timeType> d(t1,t2,true,true);
                   const BBox<2> mBox(t->getBox(d));
-                  NNSegTree::SegEntry se(xyBox,t1, t2,
+                  SegEntry<timeType> se(xyBox,t1, t2,
                         xyBox.Distance( mBox),
                         maxDistance( xyBox, mBox), 1,
                         -1, e.info);
-                  checkInsert( localInfo->timeTree, se, mBox,
+                  checkInsert<timeType>( localInfo->timeTree, se, mBox,
                     localInfo->k, localInfo->rtree, f.level+1);
                 }
               }
@@ -3864,21 +3864,21 @@ int knearestFilterFun (Word* args, Word& result, int message,
               {
                 R_TreeInternalEntry<dim> e =
                   (R_TreeInternalEntry<dim>&)(*tmp)[ii];
-               t1.ReadFrom(e.box.MinD(2));
-                t2.ReadFrom(e.box.MaxD(2));
+                timeType t1(e.box.MinD(2));
+                timeType t2(e.box.MaxD(2));
                if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
                {
                   const BBox<2> xyBox = makexyBox( e.box );
-                  Interval<Instant> d(t1,t2,true,true);
+                  Interval<timeType> d(t1,t2,true,true);
                   const BBox<2> mBox(t->getBox(d));
-                  NNSegTree::SegEntry se(xyBox,t1, t2,
+                  SegEntry<timeType> se(xyBox,t1, t2,
                         xyBox.Distance( mBox),
                         maxDistance( xyBox, mBox), 0,
                         e.pointer, -1);
-                  if( checkInsert( localInfo->timeTree, se,
+                  if( checkInsert<timeType>( localInfo->timeTree, se,
                         mBox, localInfo->k, localInfo->rtree, f.level+1))
                   {
-                   localInfo->vectorB.push_back( FieldEntry(
+                   localInfo->vectorB.push_back( FieldEntry<timeType>(
                           e.pointer, se.maxdist, t1, t2, f.level + 1));
                   }
                 }
@@ -3898,7 +3898,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
 
     case REQUEST :
     {
-     localInfo = (KnearestFilterLocalInfo*)local.addr;
+     localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
       if ( !localInfo->scanFlag )
       {
         return CANCEL;
@@ -3926,7 +3926,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      localInfo = (KnearestFilterLocalInfo*)local.addr;
+      localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
       delete localInfo;
       return 0;
     }
@@ -4713,7 +4713,8 @@ Operator knearestvector (
 Operator knearestfilter (
          "knearestfilter",        // name
          knearestFilterSpec,      // specification
-         knearestFilterFun,       // value mapping
+         knearestFilterFun<double, BBTree2>,       // value mapping
+         //knearestFilterFun<Instant, BBTree>,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
          knearestFilterTypeMap    // type mapping
 );
@@ -4865,11 +4866,12 @@ args[4] = mpoint
 args[5] = int k, how many nearest are searched
 
 */
+template<class timeType, class BBoxTreeType>
 int newknearestFilterFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   const int dim = 3;
-  KnearestFilterLocalInfo *localInfo;
+  KnearestFilterLocalInfo<timeType> *localInfo;
 
 //        struct timeb tt1;
 //        struct timeb tt2;
@@ -4882,9 +4884,9 @@ int newknearestFilterFun (Word* args, Word& result, int message,
       const UPoint *up1, *up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
-      BBTree* t = new BBTree(*mp);
-      localInfo = new KnearestFilterLocalInfo(
-        up1->timeInterval.start, up2->timeInterval.end);
+      BBoxTreeType* t = new BBoxTreeType(*mp);
+      localInfo = new KnearestFilterLocalInfo<timeType>(
+        up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->btreehats = (BTree*)args[2].addr;
@@ -4903,17 +4905,15 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                      false,
                      localInfo->rtree->MinEntries( 0 ),
                      localInfo->rtree->MaxEntries( 0 ) );
-      Instant t1(localInfo->startTime.GetType());
-      Instant t2(localInfo->startTime.GetType());
-      t1.ReadFrom(tmp->BoundingBox().MinD(2));
-      t2.ReadFrom(tmp->BoundingBox().MaxD(2));
+      timeType t1(tmp->BoundingBox().MinD(2));
+      timeType t2(tmp->BoundingBox().MaxD(2));
 
       if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime))
       {
-        localInfo->vectorA.push_back( FieldEntry(
+        localInfo->vectorA.push_back( FieldEntry<timeType>(
           localInfo->rtree->RootRecordId(), 0, t1, t2, 0));
         const BBox<2> xyBox = makexyBox( tmp->BoundingBox() );
-        NNSegTree::SegEntry se(xyBox,t1, t2, 0.0, 0.0, 0,
+        SegEntry<timeType> se(xyBox,t1, t2, 0.0, 0.0, 0,
               localInfo->rtree->RootRecordId(), -1);
         localInfo->timeTree.insert( se, localInfo->k );
       }
@@ -4923,7 +4923,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
         unsigned int vpos;
         for( vpos = 0; vpos < localInfo->vectorA.size(); ++vpos)
         {
-          FieldEntry &f = localInfo->vectorA[ vpos ];
+          FieldEntry<timeType> &f = localInfo->vectorA[ vpos ];
           SmiRecordId adr = f.nodeid;
           // check if this entry is not deleted
           if( localInfo->timeTree.erase( f.start, f.end, f.nodeid,
@@ -4933,23 +4933,21 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                      adr, false,
                      localInfo->rtree->MinEntries( f.level ),
                      localInfo->rtree->MaxEntries( f.level ) );
-            Instant t1(localInfo->startTime.GetType());
-            Instant t2(localInfo->startTime.GetType());
 
             if(tmp->IsLeaf()){
               for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
                 counter++;
                 R_TreeLeafEntry<dim, TupleId> e =
                   (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
-                t1.ReadFrom((double)(e.box.MinD(2)));
-                t2.ReadFrom((double)(e.box.MaxD(2)));
+                timeType t1((double)(e.box.MinD(2)));
+                timeType t2((double)(e.box.MaxD(2)));
                 if(t1 > f.end)
                   break;
                 if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
                   const BBox<2> xyBox = makexyBox( e.box );
-                  Interval<Instant> d(t1,t2,true,true);
+                  Interval<timeType> d(t1,t2,true,true);
                   const BBox<2> mBox(t->getBox(d));
-                  NNSegTree::SegEntry se(xyBox,t1, t2,
+                  SegEntry<timeType> se(xyBox,t1, t2,
                         xyBox.Distance( mBox),
                         maxDistance( xyBox, mBox), 1,
                         -1, e.info);
@@ -4982,11 +4980,11 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                 counter++;
                 R_TreeInternalEntry<dim> e =
                   (R_TreeInternalEntry<dim>&)(*tmp)[ii];
-                t1.ReadFrom(e.box.MinD(2));
-                t2.ReadFrom(e.box.MaxD(2));
+                timeType t1(e.box.MinD(2));
+                timeType t2(e.box.MaxD(2));
                 if( !(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
                     const BBox<2> xyBox = makexyBox( e.box );
-                    Interval<Instant> d(t1,t2,true,true);
+                    Interval<timeType> d(t1,t2,true,true);
                     const BBox<2> mBox(t->getBox(d));
                     if(interv.size() == 3){ //exit hat
                       int cov = 0;
@@ -4996,7 +4994,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                           break;
                         }
                       }
-                      NNSegTree::SegEntry se(xyBox,t1, t2,
+                      SegEntry<timeType> se(xyBox,t1, t2,
                           xyBox.Distance( mBox),
                           maxDistance( xyBox, mBox), cov,
                           e.pointer, -1);
@@ -5004,18 +5002,19 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                         localInfo->timeTree.calcCoverage( t1, t2, se.mindist );
                       if(reachedCoverage < localInfo->k){
                         localInfo->timeTree.insert( se, localInfo->k);
-                        localInfo->vectorB.push_back(FieldEntry(se.nodeid,
-                        se.maxdist, se.start, se.end, f.level+1));
+                        localInfo->vectorB.push_back(FieldEntry<timeType>(
+                            se.nodeid, se.maxdist, se.start, se.end, 
+                            f.level+1));
                       }
                    }else{// no hat
-                  NNSegTree::SegEntry se(xyBox,t1, t2,
+                   SegEntry<timeType> se(xyBox,t1, t2,
                         xyBox.Distance( mBox),
                         maxDistance( xyBox, mBox), 0,
                         e.pointer, -1);
                     if( checkInsert( localInfo->timeTree, se,
                         mBox, localInfo->k, localInfo->rtree, f.level+1))
                       {
-                          localInfo->vectorB.push_back( FieldEntry(
+                          localInfo->vectorB.push_back( FieldEntry<timeType>(
                           e.pointer, se.maxdist, t1, t2, f.level + 1));
                       }
                     }
@@ -5039,7 +5038,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
 
     case REQUEST :
     {
-     localInfo = (KnearestFilterLocalInfo*)local.addr;
+     localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
       if ( !localInfo->scanFlag )
       {
         return CANCEL;
@@ -5067,7 +5066,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      localInfo = (KnearestFilterLocalInfo*)local.addr;
+      localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
       delete localInfo;
       return 0;
     }
@@ -5239,7 +5238,8 @@ const string newknearestFilterSpec  =
 Operator newknearestfilter (
          "newknearestfilter",        // name
          newknearestFilterSpec,      // specification
-         newknearestFilterFun,       // value mapping
+         //newknearestFilterFun<Instant, BBTree>,       // value mapping
+         newknearestFilterFun<double, BBTree2>,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
          newknearestFilterTypeMap    // type mapping
 );
