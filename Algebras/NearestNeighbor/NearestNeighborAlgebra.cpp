@@ -111,8 +111,6 @@ using namespace mappings;
 
 #include <string>
 using namespace std;
-
-int counter = 0;
 double difftimeb( struct timeb* t1, struct timeb* t2 )
 {
   double dt1 = t1->time + (double)t1->millitm / 1000.0;
@@ -4852,11 +4850,11 @@ Operator bboxes (
 
 
 /*
+
 newknearestFilterFun is the value function for the newknearestfilter operator
 It is a filter operator for the knearest operator. It can be called
 if there exists a rtree for the unit attribute and a btree for the units number
 relation built on rtree node
-
 The argument vector contains the following values:
 args[0] = a rtree with the unit attribute as key
 args[1] = the relation of the rtree
@@ -4873,9 +4871,6 @@ int newknearestFilterFun (Word* args, Word& result, int message,
   const int dim = 3;
   KnearestFilterLocalInfo<timeType> *localInfo;
 
-//        struct timeb tt1;
-//        struct timeb tt2;
-//   ftime( &tt1 );
   switch (message)
   {
     case OPEN :
@@ -4921,6 +4916,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
       while( !localInfo->vectorA.empty() )
       {
         unsigned int vpos;
+
         for( vpos = 0; vpos < localInfo->vectorA.size(); ++vpos)
         {
           FieldEntry<timeType> &f = localInfo->vectorA[ vpos ];
@@ -4936,7 +4932,6 @@ int newknearestFilterFun (Word* args, Word& result, int message,
 
             if(tmp->IsLeaf()){
               for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
-                counter++;
                 R_TreeLeafEntry<dim, TupleId> e =
                   (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
                 timeType t1((double)(e.box.MinD(2)));
@@ -4955,7 +4950,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                 double reachcov =
                 localInfo->timeTree.calcCoverage(t1,t2,xyBox.Distance(mBox));
                 if(reachcov < localInfo->k)
-                localInfo->timeTree.insert(se,localInfo->k);
+                  localInfo->timeTree.insert(se,localInfo->k);
                 }
 
               }
@@ -4975,7 +4970,6 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                 delete btreeiter;
 
               for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
-                counter++;
                 R_TreeInternalEntry<dim> e =
                   (R_TreeInternalEntry<dim>&)(*tmp)[ii];
                 timeType t1(e.box.MinD(2));
@@ -5005,7 +4999,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                             f.level+1));
                       }
                    }else{// no hat
-                   SegEntry<timeType> se(xyBox,t1, t2,
+                        SegEntry<timeType> se(xyBox,t1, t2,
                         xyBox.Distance( mBox),
                         maxDistance( xyBox, mBox), 0,
                         e.pointer, -1);
@@ -5026,8 +5020,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
         localInfo->vectorA.swap( localInfo->vectorB );
       }
       delete t;
-//      ftime(&tt2);
-//      cout<<difftimeb( &tt2, &tt1 )<<endl;
+
       localInfo->timeTree.fillMap( localInfo->resultMap );
       localInfo->mapit = localInfo->resultMap.begin();
 
@@ -5052,6 +5045,29 @@ int newknearestFilterFun (Word* args, Word& result, int message,
       {
           TupleId tid = localInfo->mapit->second;
           Tuple *tuple = localInfo->relation->GetTuple(tid);
+//split units
+          const MPoint *mp = (MPoint*)args[4].addr;//4 th parameter
+          const UPoint *up1, *up2;
+          mp->Get( 0, up1);
+          mp->Get( mp->GetNoComponents() - 1, up2);
+          UPoint* up = (UPoint*)tuple->GetAttribute(3);
+          Point p0;
+          if(up->timeInterval.Contains(up1->timeInterval.start)){
+            up->TemporalFunction(up1->timeInterval.start,p0,true);
+            if(p0.IsDefined()){
+              up->timeInterval.start = up1->timeInterval.start;
+              up->p0 = p0;
+            }
+          }
+          Point p1;
+          if(up->timeInterval.Contains(up2->timeInterval.end)){
+            up->TemporalFunction(up2->timeInterval.end,p1,true);
+            if(p1.IsDefined()){
+              up->timeInterval.end = up2->timeInterval.end;
+              up->p1 = p1;
+            }
+          }
+//
           result = SetWord(tuple);
           ++localInfo->mapit;
           return YIELD;
