@@ -179,12 +179,10 @@ This constructor creates a DateTime at the NULL[_]DAY and
 duration zero, respectively.
 
 */
-DateTime::DateTime(const TimeType type){
-  day=0;
-  milliseconds=0;
-  this->type = type;
+DateTime::DateTime(const TimeType type1):
+  day(0),milliseconds(0),type(type1){
   del.isDefined = true;
-}
+ }
 
 
 /*
@@ -195,17 +193,16 @@ The Value of MilliSeconds has to be greater than or equals to zero.
 */
 DateTime::DateTime(const LONGTYPE Day,
                    const LONGTYPE MilliSeconds,
-                   const TimeType type){
+                   const TimeType Type):
+  day(Day), milliseconds(MilliSeconds),type(Type)
+{
    assert(MilliSeconds>=0);
-   day = Day;
-   milliseconds = MilliSeconds;
    if(milliseconds>=MILLISECONDS){
       LONGTYPE dif = milliseconds / MILLISECONDS;
       day += dif;
       milliseconds -= dif*MILLISECONDS;
    }
-   this->type = type;
-   del.isDefined=true;
+   del.isDefined = true;
 }
 
 /*
@@ -215,9 +212,20 @@ This conmstructor creates a DateTime with the same value like the
 argument.
 
 */
-DateTime::DateTime(const DateTime& DT){
-   Equalize(&DT);
+DateTime::DateTime(const DateTime& DT):
+   day(DT.day), milliseconds(DT.milliseconds),type(DT.type)
+   {
+   del.isDefined = DT.del.isDefined;
+   }
+
+
+DateTime::DateTime(const double d):
+  day(0),milliseconds(0),type(instanttype){
+   del.isDefined = true;
+   ReadFrom(d);
 }
+
+
 
 /*
 ~Assignment operator~
@@ -893,7 +901,7 @@ bool DateTime::ReadFrom(const double Time){
       dms += MILLISECONDS;
    }
    milliseconds = dms;
-   SetDefined(true);
+   del.isDefined=true;
    return true;
 }
 

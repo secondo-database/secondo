@@ -145,6 +145,14 @@ argument.
      DateTime(const DateTime& DT);
 
 /*
+~Constructor~
+
+This Constructor creates an instant from a double value.
+
+*/
+     DateTime(const double d);
+
+/*
 ~Assignment operator~
 
 */
