@@ -3810,7 +3810,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
                      false,
                      localInfo->rtree->MinEntries( 0 ),
                      localInfo->rtree->MaxEntries( 0 ) );
-      
+
       timeType t1(tmp->BoundingBox().MinD(2));
       timeType t2(tmp->BoundingBox().MaxD(2));
 
@@ -4952,12 +4952,10 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                         maxDistance( xyBox, mBox), 1,
                         -1, e.info);
 
-//                double reachcov =
-//                localInfo->timeTree.calcCoverage(t1,t2,xyBox.Distance(mBox));
-//                if(reachcov < localInfo->k)
-//                localInfo->timeTree.insert(se,localInfo->k);
-
-                  localInfo->resultMap.insert(make_pair(se,e.info));
+                double reachcov =
+                localInfo->timeTree.calcCoverage(t1,t2,xyBox.Distance(mBox));
+                if(reachcov < localInfo->k)
+                localInfo->timeTree.insert(se,localInfo->k);
                 }
 
               }
@@ -5003,7 +5001,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
                       if(reachedCoverage < localInfo->k){
                         localInfo->timeTree.insert( se, localInfo->k);
                         localInfo->vectorB.push_back(FieldEntry<timeType>(
-                            se.nodeid, se.maxdist, se.start, se.end, 
+                            se.nodeid, se.maxdist, se.start, se.end,
                             f.level+1));
                       }
                    }else{// no hat
