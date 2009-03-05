@@ -132,6 +132,101 @@ Builds the tree for a given mpoint.
 
 ostream& operator<<(ostream& o, const BBTree& t);
 
+class BBTreeNode2;
+
+
+class BBTree2{
+  public:
+
+/*
+~Constructor~
+
+This constructor creates a BBTree for a given MPoint;
+
+*/
+    BBTree2(const MPoint& p);
+
+/*
+~Copy constructor~
+
+*/
+    BBTree2(const BBTree2& t);
+/*
+~Assignment Operator~
+
+*/
+    BBTree2& operator=(const BBTree2& src);
+/*
+~Destructor~
+
+*/
+    ~BBTree2();
+
+/*
+~getBox~
+
+This Operator returns the bounding box of the mpoint
+from which created it this tree when it is restricted to the
+given time interval.
+
+*/
+    Rectangle<2> getBox(Interval<double> interval)const;
+
+/*
+~noLeafs~
+
+Returns the number of leaves within that tree
+
+*/
+    int noLeaves()const;
+
+/*
+~noNodes~
+
+Returns the number of nodes within this tree.
+
+*/
+    int noNodes() const;
+    
+/*
+~height~
+
+Returns the hieght of the tree.
+
+*/
+    int height() const;
+
+/*
+~print~
+
+Writes the tree to o;
+
+*/
+  ostream& print(ostream& o) const;
+
+  private:
+
+/*
+~root~
+
+Represents the root of this tree.
+
+*/
+    BBTreeNode2* root;
+
+/*
+~createFromMPoint~
+
+Builds the tree for a given mpoint.
+
+
+*/
+    void createFromMPoint(const MPoint& p);
+
+};
+
+ostream& operator<<(ostream& o, const BBTree2& t);
+
 
 #endif
 
