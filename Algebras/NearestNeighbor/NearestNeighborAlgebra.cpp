@@ -3773,7 +3773,7 @@ args[2] = mpoint
 args[3] = int k, how many nearest are searched
 
 */
-template<class timeType, class bBoxTreeType>
+template<class timeType>
 int knearestFilterFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
@@ -3788,7 +3788,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
       const UPoint *up1, *up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
-      bBoxTreeType* t = new bBoxTreeType(*mp);
+      BBTree<timeType>* t = new BBTree<timeType>(*mp);
 
       localInfo = new KnearestFilterLocalInfo<timeType>(
         up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
@@ -4711,8 +4711,8 @@ Operator knearestvector (
 Operator knearestfilter (
          "knearestfilter",        // name
          knearestFilterSpec,      // specification
-         knearestFilterFun<double, BBTree2>,       // value mapping
-         //knearestFilterFun<Instant, BBTree>,       // value mapping
+         knearestFilterFun<double>,       // value mapping
+         //knearestFilterFun<Instant>,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
          knearestFilterTypeMap    // type mapping
 );
@@ -4769,11 +4769,11 @@ int bboxesFun(Word* args, Word& result, int message,
      qp->Open(args[0].addr);
      MPoint* mp = static_cast<MPoint*>(args[1].addr);
      if(local.addr){
-       delete static_cast<BBTree*>(local.addr);
+       delete static_cast<BBTree<Instant>*>(local.addr);
        local.addr = 0;
      }
      if(mp->IsDefined()){
-        BBTree* t = new BBTree(*mp);
+        BBTree<Instant>* t = new BBTree<Instant>(*mp);
         local.addr = t;
         //cout << "mp.size = " << mp->GetNoComponents() << endl;
         //cout << "no_Leafs = " << t->noLeaves() << endl;
@@ -4804,7 +4804,7 @@ int bboxesFun(Word* args, Word& result, int message,
      Instant maxInst;
      periods->Maximum(maxInst);
      Interval<Instant> d(minInst,maxInst,true,true);
-     BBTree* t = static_cast<BBTree*>(local.addr);
+     BBTree<Instant>* t = static_cast<BBTree<Instant>*>(local.addr);
      result.addr = new Rectangle<2>(t->getBox(d));
      periods->DeleteIfAllowed();
      return YIELD;
@@ -4812,7 +4812,7 @@ int bboxesFun(Word* args, Word& result, int message,
    case CLOSE : {
      qp->Close(args[0].addr);
      if(local.addr){
-       delete static_cast<BBTree*>(local.addr);
+       delete static_cast<BBTree<Instant>*>(local.addr);
        local.addr = 0;
      }
      return 0;
@@ -4864,7 +4864,7 @@ args[4] = mpoint
 args[5] = int k, how many nearest are searched
 
 */
-template<class timeType, class BBoxTreeType>
+template<class timeType>
 int newknearestFilterFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
@@ -4879,7 +4879,7 @@ int newknearestFilterFun (Word* args, Word& result, int message,
       const UPoint *up1, *up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
-      BBoxTreeType* t = new BBoxTreeType(*mp);
+      BBTree<timeType>* t = new BBTree<timeType>(*mp);
       localInfo = new KnearestFilterLocalInfo<timeType>(
         up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
@@ -5252,8 +5252,8 @@ const string newknearestFilterSpec  =
 Operator newknearestfilter (
          "newknearestfilter",        // name
          newknearestFilterSpec,      // specification
-         //newknearestFilterFun<Instant, BBTree>,       // value mapping
-         newknearestFilterFun<double, BBTree2>,       // value mapping
+         //newknearestFilterFun<Instant>,       // value mapping
+         newknearestFilterFun<double>,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
          newknearestFilterTypeMap    // type mapping
 );
