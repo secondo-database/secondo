@@ -5057,6 +5057,7 @@ Calculate the shortest path using dijkstras algorithm.
 
   int startSectTID = startSection->GetTupleId();
   int lastSectTID = endSection->GetTupleId();
+
   if (startSectTID == lastSectTID) {
     result->AddRouteInterval(start->GetRouteId(), start->GetPosition(),
                             end->GetPosition());
@@ -5074,7 +5075,7 @@ Initialize PriorityQueue
     double dist = 0.0;
     vector<DirectedSection> adjSectionList;
     adjSectionList.clear();
-    if (start->GetSide() == 1) {
+    if (start->GetSide() == 0) {
       dist = start->GetPosition() - sectMeas1;
       pNetwork->GetAdjacentSections(startSectTID, false, adjSectionList);
       SectIDTree *startTree = new SectIDTree(startSectTID,
@@ -5093,7 +5094,7 @@ Initialize PriorityQueue
       }
       adjSectionList.clear();
     } else {
-      if (start->GetSide() == 0) {
+      if (start->GetSide() == 1) {
         dist = sectMeas2 - start->GetPosition();
         SectIDTree *startTree = new SectIDTree(startSectTID,
                                              numeric_limits<int>::max(), true,
@@ -5170,6 +5171,7 @@ Use priorityQueue to find shortestPath.
       sectMeas2 =
         ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
       dist = actPQEntry->distFromStart + fabs(sectMeas2 - sectMeas1);
+
       if (actPQEntry->sectID != lastSectTID) {
 /*
 Search further in the network unitl reached last section.
