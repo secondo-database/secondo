@@ -3320,8 +3320,8 @@ double HalfSegment::Distance( const HalfSegment& hs ) const
 
 double HalfSegment::Distance(const Rectangle<2>& rect) const{
 
-  
-  if(rect.Contains(lp.BoundingBox()) || 
+
+  if(rect.Contains(lp.BoundingBox()) ||
      rect.Contains(rp.BoundingBox()) ){
     return 0.0;
   }
@@ -5578,7 +5578,6 @@ bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
 
  const HalfSegment *hs;
  segments.Get( lrs2->hsPos, hs );
-
  p = hs->AtPosition( pos - lrs2->lrsPos );
  return true;
 }
@@ -7031,7 +7030,7 @@ double Region::Distance( const Region &r ) const
 
 double Region::Distance( const Line &l ) const
 {
-  if(!IsDefined() || IsEmpty() || 
+  if(!IsDefined() || IsEmpty() ||
      !l.IsDefined() || l.IsEmpty()){
      return -1;
   }
@@ -7195,7 +7194,7 @@ void Region::Rotate( const Coord& x, const Coord& y,
     if(p1>p2)  {
        above = !above;
     }
-  
+
     hsr.attr.insideAbove = above;
     result += hsr;
   }
@@ -8715,23 +8714,23 @@ int Region::GetNewFaceNo(HalfSegment &hsS, bool *cycle)
 }
 
 int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
-    
-    // Precondition: 
+
+    // Precondition:
     // hsIn is the smallest (in halfsegment-order) segment of a cycle.
     // startpos is the index of hsIn in the DBArray.
-    
+
     if (hsIn.GetAttr().insideAbove) {
-        
+
         // hsIn belongs to a new face:
         return -1;
     }
-    
+
     // Now we know hsIn belongs to a new hole and we
     // have to encounter the enclosing face.
     // This is done by searching the next halfsegment maxHS 'under' hsIn.
     // Since we go downwards, the facenumber of maxHS must be already known
     // and is equal to the facenumber of hsIn.
-    
+
     double y0;
     double maxY0;
     const HalfSegment *hs = 0;
@@ -8741,13 +8740,13 @@ int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
     int touchedNo = 0;
     int i = startpos - 1;
     bool first = true;
-    
+
     while (i >=0 && touchedNo < coverno) {
-        
+
         Get(i, hs);
-        
+
         if (!hs->IsLeftDomPoint()) {
-            
+
             i--;
             continue;
         }
@@ -8758,16 +8757,16 @@ int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
             touchedNo++;
         }
 
-        if (!AlmostEqual(hs->GetRightPoint().GetX(), p.GetX()) && 
-            hs->RayDown(p, y0)) { 
-            
-            if (first || 
-                y0 > maxY0 || 
+        if (!AlmostEqual(hs->GetRightPoint().GetX(), p.GetX()) &&
+            hs->RayDown(p, y0)) {
+
+            if (first ||
+                y0 > maxY0 ||
                 (AlmostEqual(y0, maxY0) && *hs > *maxHS)) {
 
                 // To find the first halfsegment 'under' hsIn
                 // we compare them as follows:
-                // (1) y-value of the intersection point between a ray down 
+                // (1) y-value of the intersection point between a ray down
                 //     from the left point of hsIn and hs.
                 // (2) halfsegment order.
 
@@ -8776,12 +8775,12 @@ int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
                 first = false;
             }
         }
-        
+
         i--;
     }
 
     if (maxHS == 0) {
-        
+
         cerr << "Problem in rebuilding cycle in a region " << endl;
         cerr << "No outer cycle found" << endl;
         cerr << "hsIn: " << hsIn << endl;
@@ -8796,7 +8795,7 @@ int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
 
         assert(false);
     }
-    
+
     //the new cycle is a holecycle of the face ~maxHS.attr.faceno~
     return maxHS->GetAttr().faceno;
 }
@@ -8805,31 +8804,31 @@ bool HalfSegment::RayDown( const Point& p, double &yIntersection ) const
 {
     if (this->IsVertical())
           return false;
-    
+
     const Coord& x = p.GetX(), y = p.GetY(),
                  xl = GetLeftPoint().GetX(),
                  yl = GetLeftPoint().GetY(),
                  xr = GetRightPoint().GetX(),
                  yr = GetRightPoint().GetY();
-  
+
     // between is true, iff xl <= x <= xr.
     const bool between = CompareDouble(x, xl) != -1 &&
                          CompareDouble(x, xr) != 1;
-    
+
     if (!between)
         return false;
-    
+
     const double k = (yr - yl) / (xr - xl);
     const double a = (yl - k * xl);
     const double y0 = k * x + a;
-    
+
     if (CompareDouble(y0, y) == 1) // y0 > y: this is above p.
         return false;
-    
+
     // y0 <= p: p is above or on this.
 
     yIntersection = y0;
-    
+
     return true;
 }
 
