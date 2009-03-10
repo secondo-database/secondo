@@ -28,3 +28,4 @@ operator unitboundingbox alias UNITBOUNDINGBOX pattern op ( _ )
 operator mgpbbox alias MGPBBOX pattern op ( _ )
 operator mgpoint2mpoint alias MGPOINT2MPOINT pattern op ( _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
+operator union alias UNION pattern _ infixop _

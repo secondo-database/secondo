@@ -1869,7 +1869,8 @@ void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
   const UGPoint *pCurrUnit;
   UGPoint CurrUnit;
   int iAktRouteId = 1;
-  int lrsposakt, lrsposnext;
+  int lrsposakt = 0;
+  int lrsposnext = 0;
   Tuple *pRoute = pNetwork->GetRoute(iAktRouteId);
   SimpleLine *pRouteCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
   Instant correcture(0,1,durationtype);
@@ -2315,9 +2316,6 @@ void MGPoint::Inside(GLine *&gl, MBool *&res){
                                     pCurrentUnit->timeInterval.rc, k, vRI,
                                     res, iRouteMgp);
                 }
-                if (!(interStart == interEnd && (!bInterStart || !bInterEnd))) {
-                  res->MergeAdd(interbool);
-                }
               } else {
                 if (currRInter->m_dEnd >= pCurrentUnit->p0.GetPosition()) {
                   interStart = pCurrentUnit->p0.GetPosition();
@@ -2570,7 +2568,8 @@ Restricts the ~mgpoint~ to the given ~periods~
 void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
   Instant utstart, utend;
   GPoint uGPstart, uGPend;
-  bool ulc, urc;
+  bool ulc = true;
+  bool urc = true;
   const UGPoint *pFirstUnit, *pLastUnit, *pCurrentUnit;
   if(!IsDefined() || !per->IsDefined() || IsEmpty() || per->IsEmpty())
     res->SetDefined(false);
@@ -3062,12 +3061,12 @@ MGPoint* MGPoint::Simplify(double d){
 
   int iNetworkId;
   int iStartRouteId = 0;
-  Side xStartSide;
-  double dStartSpeed;
+  Side xStartSide = None;
+  double dStartSpeed = 0.0;
 
   Instant xStartStartTime;
-  double dStartStartPosition;
-  double dLastEndPosition;
+  double dStartStartPosition = 0.0;
+  double dLastEndPosition = 0.0;
   Instant xLastEndTime;
   for (int i = 0; i < GetNoComponents(); i++)
   {
@@ -3111,6 +3110,7 @@ MGPoint* MGPoint::Simplify(double d){
       dStartSpeed = dCurrentSpeed;
       xStartStartTime = xCurrentStartTime;
       dStartStartPosition = dCurrentStartPosition;
+      dLastEndPosition = dCurrentEndPosition;
     }
 
     //////////////////////////////
@@ -3154,6 +3154,7 @@ MGPoint* MGPoint::Simplify(double d){
       dStartSpeed = dCurrentSpeed;
       xStartStartTime = xCurrentStartTime;
       dStartStartPosition = dCurrentStartPosition;
+      dLastEndPosition = dCurrentEndPosition;
     }
 
     if( i == GetNoComponents() -1)
@@ -3453,7 +3454,7 @@ Word InMGPoint(const ListExpr typeInfo, const ListExpr instance,
   }
   else {
     double test1, test2;
-    RITree *tree;
+    RITree *tree = 0;
     bool firstunit = true;
     while( !nl->IsEmpty( rest ) )
     {
@@ -3533,8 +3534,14 @@ void MGPoint::SetBoundingBoxDefined(bool defined){
   m_bbox.SetDefined(defined);
   if (!defined) m_bbox = Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 }
-    /*
-void MGPoint::Union(MGPoint *mp, MGPoint *&res){
+
+/*
+Merges two MGPoint into one if the time intervals don't overlap.
+Otherwise the union is undefined.
+
+*/
+
+void MGPoint::Union(MGPoint *mp, MGPoint *res){
   if (IsDefined()&&mp->IsDefined()){
     int i = 0;
     int j = 0;
@@ -3543,20 +3550,42 @@ void MGPoint::Union(MGPoint *mp, MGPoint *&res){
     while (i < GetNoComponents() && j < mp->GetNoComponents()){
       Get(i, u1);
       mp->Get(j,u2);
-      if (u1->timeInterval.Before(u2->timeInterval)) {
-        res->Add(u1);
+      if (u1->timeInterval.start.ToDouble() <
+         u2->timeInterval.start.ToDouble()) {
+        res->Add(UGPoint(Interval<Instant> (u1->timeInterval.start,
+                        u1->timeInterval.end,
+                        true, false),
+                        u1->p0.GetNetworkId(),
+                        u1->p0.GetRouteId(),
+                        u1->p0.GetSide(),
+                        u1->p0.GetPosition(),
+                        u1->p1.GetPosition()));
         i++;
       } else {
-        if (u2->timeInterval.Before(u2->timeInterval)) {
-        res->Add(u2);
+        if (u2->timeInterval.start.ToDouble() <
+            u1->timeInterval.start.ToDouble()) {
+          res->Add(UGPoint(Interval<Instant> (u2->timeInterval.start,
+                        u2->timeInterval.end,
+                        true, false),
+                        u2->p0.GetNetworkId(),
+                        u2->p0.GetRouteId(),
+                        u2->p0.GetSide(),
+                        u2->p0.GetPosition(),
+                        u2->p1.GetPosition()));
         j++;
         } else {
           if (*u1 == *u2){
-            res->Add(u1);
+            res->Add(UGPoint(Interval<Instant> (u1->timeInterval.start,
+                        u1->timeInterval.end,
+                        true, false),
+                        u1->p0.GetNetworkId(),
+                        u1->p0.GetRouteId(),
+                        u1->p0.GetSide(),
+                        u1->p0.GetPosition(),
+                        u1->p1.GetPosition()));
             i++;
             j++;
           } else {
-            res->EndBulkLoad();
             res->SetDefined(false);
             i = GetNoComponents();
             j = mp->GetNoComponents();
@@ -3565,20 +3594,50 @@ void MGPoint::Union(MGPoint *mp, MGPoint *&res){
       }
     }
     if (i < GetNoComponents()){
-      res->Add(u1);
+      Get(i,u1);
+      res->Add(UGPoint(Interval<Instant> (u1->timeInterval.start,
+                        u1->timeInterval.end,
+                        true, false),
+                        u1->p0.GetNetworkId(),
+                        u1->p0.GetRouteId(),
+                        u1->p0.GetSide(),
+                        u1->p0.GetPosition(),
+                        u1->p1.GetPosition()));
       i++;
       while (i < GetNoComponents()){
         Get(i,u1);
-        res->Add(u1);
+        res->Add(UGPoint(Interval<Instant> (u1->timeInterval.start,
+                        u1->timeInterval.end,
+                        true, false),
+                        u1->p0.GetNetworkId(),
+                        u1->p0.GetRouteId(),
+                        u1->p0.GetSide(),
+                        u1->p0.GetPosition(),
+                        u1->p1.GetPosition()));
         i++;
       }
     }
     if (j < mp->GetNoComponents()){
-      res->Add(u2);
+      mp->Get(j,u2);
+      res->Add(UGPoint(Interval<Instant> (u2->timeInterval.start,
+                        u2->timeInterval.end,
+                        true, false),
+                        u2->p0.GetNetworkId(),
+                        u2->p0.GetRouteId(),
+                        u2->p0.GetSide(),
+                        u2->p0.GetPosition(),
+                        u2->p1.GetPosition()));
       j++;
       while (j < mp->GetNoComponents()){
         mp->Get(j,u2);
-        res->Add(u2);
+        res->Add(UGPoint(Interval<Instant> (u2->timeInterval.start,
+                        u2->timeInterval.end,
+                        true, false),
+                        u2->p0.GetNetworkId(),
+                        u2->p0.GetRouteId(),
+                        u2->p0.GetSide(),
+                        u2->p0.GetPosition(),
+                        u2->p1.GetPosition()));
         j++;
       }
     }
@@ -3590,7 +3649,14 @@ void MGPoint::Union(MGPoint *mp, MGPoint *&res){
       res->StartBulkLoad();
       while (i < GetNoComponents()){
         Get(i,u1);
-        res->Add(u1);
+        res->Add(UGPoint(Interval<Instant> (u1->timeInterval.start,
+                        u1->timeInterval.end,
+                        true, false),
+                        u1->p0.GetNetworkId(),
+                        u1->p0.GetRouteId(),
+                        u1->p0.GetSide(),
+                        u1->p0.GetPosition(),
+                        u1->p1.GetPosition()));
         i++;
       }
       res->EndBulkLoad();
@@ -3601,7 +3667,14 @@ void MGPoint::Union(MGPoint *mp, MGPoint *&res){
         res->StartBulkLoad();
         while (j < mp->GetNoComponents()){
           mp->Get(j,u2);
-          res->Add(u2);
+          res->Add(UGPoint(Interval<Instant> (u2->timeInterval.start,
+                        u2->timeInterval.end,
+                        true, false),
+                        u2->p0.GetNetworkId(),
+                        u2->p0.GetRouteId(),
+                        u2->p0.GetSide(),
+                        u2->p0.GetPosition(),
+                        u2->p1.GetPosition()));
           j++;
         }
         res->EndBulkLoad();
@@ -3610,7 +3683,7 @@ void MGPoint::Union(MGPoint *mp, MGPoint *&res){
       }
     }
   }
-}*/
+}
 
 TypeConstructor movinggpoint(
         "mgpoint",                                  // Name
@@ -3656,14 +3729,16 @@ void UGPoint::TemporalFunction( const Instant& t,
         result = p1;
         result.SetDefined(true);
       }  else {
-        double tStart = timeInterval.start.ToDouble();
-        double tEnd = timeInterval.end.ToDouble();
-        double tInst = t.ToDouble();
-        double posStart = p0.GetPosition();
-        double posEnd = p1.GetPosition();
-        double posInst = (posEnd-posStart) * (tInst-tStart) /
-                        (tEnd - tStart) + posStart;
-        result = GPoint(true, p0.GetNetworkId(), p0.GetRouteId(), posInst,
+        double posInst = (p1.GetPosition()-p0.GetPosition()) *
+              (t.ToDouble()-timeInterval.start.ToDouble()) /
+              (timeInterval.end.ToDouble() - timeInterval.start.ToDouble())
+              + p0.GetPosition();
+        result = GPoint(true, p0.GetNetworkId(), p0.GetRouteId(),
+                       ((p1.GetPosition()-p0.GetPosition()) *
+                       (t.ToDouble()-timeInterval.start.ToDouble()) /
+                       (timeInterval.end.ToDouble() -
+                           timeInterval.start.ToDouble())
+                        + p0.GetPosition()),
                         p0.GetSide());
         result.SetDefined(true);
       }
@@ -4282,8 +4357,10 @@ Initialize return value
   double dlastAdjSecCheckEndPos, dlastAdjSecCheckDiff;
   int iRouteId, iOldSectionTid, iCurrentSectionTid, iLastRouteId/*, iRouteTid*/;
   int iCurrentSectionRid, iCurrentSectionRTid, iMGPointCurrRId;
-  int iSecCheckRouteId, iAdjSecCheckRid, ilastSecEndCheckRouteId;
-  int ilastAdjSecCheckRid;
+  int iSecCheckRouteId = 0;
+  int iAdjSecCheckRid = 0;
+  int ilastSecEndCheckRouteId = 0;
+  int ilastAdjSecCheckRid = 0;
   CcInt *pCurrentSectionRid, *pCurrentSectionRTid, *pRouteId;
   Tuple *pCurrentRoute, *pOldSectionTuple, *pCurrentSectionT, *pTestRoute;
   SimpleLine *pRouteCurve, *pLastRouteCurve, *pTestRouteCurve;
@@ -6755,12 +6832,13 @@ Operator tempnetdistance("distance",
                 OpDistanceTypeMapping );
 
 
-          /*
+/*
 1.3.4 Operator ~union~
 
 Returns a ~MGPoint~ which is the ~union~ of the two given MGPoints if possible,
 undefined elsewhere.
 
+*/
 
 
 ListExpr OpUnionTypeMap(ListExpr in_xArgs)
@@ -6822,7 +6900,7 @@ Operator tempnetunion("union",
                 OpUnionValueMapping,
                 Operator::SimpleSelect,
                 OpUnionTypeMap );
-            */
+
 
 /*
 1.4 Creating the Algebra
@@ -6876,7 +6954,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetmgpointboundingbox);
     AddOperator(&tempnetmgpoint2mpoint);
     AddOperator(&tempnetdistance);
-    //AddOperator(&tempnetunion);
+    AddOperator(&tempnetunion);
   }
 
 

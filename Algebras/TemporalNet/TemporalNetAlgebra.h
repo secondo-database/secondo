@@ -480,7 +480,7 @@ gline.
 
    void At(GLine *&gl, MGPoint *&res);
 
-   /*void Union(MGPoint *mp, MGPoint *&res);*/
+   void Union(MGPoint *mp, MGPoint *res);
 /*
 Returns a mgpoint with smaller number of units because units with speed
 differences lower than d are compacted to be one unit.
