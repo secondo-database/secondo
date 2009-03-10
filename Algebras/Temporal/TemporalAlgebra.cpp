@@ -1689,7 +1689,7 @@ double UPoint::Distance(const Rectangle<3>& rect) const{
      return -1;
   }
   cerr << "UPoint::Distance(const Rectangle<3>&) not implemented yet" << endl;
-  return BoundingBox().Distance(rect); 
+  return BoundingBox().Distance(rect);
 }
 
 void UPoint::Distance( const UPoint& up, UReal& result ) const
@@ -2327,7 +2327,7 @@ void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
   }
   result.SetDefined(true);
 
-  UInt uInt(true);  
+  UInt uInt(true);
 
   RefinementPartition<MInt, MInt, UInt, UInt> rp(*this, *arg2);
   result.StartBulkLoad();
@@ -2337,7 +2337,7 @@ void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
   const UInt *u1;
   const UInt *u2;
 
-  for(unsigned int i = 0; i < rp.Size(); i++){ 
+  for(unsigned int i = 0; i < rp.Size(); i++){
     rp.Get(i, iv, u1Pos, u2Pos);
     if(u1Pos!=-1 || u2Pos!=-1){
       uInt.timeInterval = *iv;
@@ -2346,7 +2346,7 @@ void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
          uInt.constValue.Set(true, u2->constValue.GetIntval());
       } else if(u2Pos == -1){
         this->Get(u1Pos,u1);
-        uInt.constValue.Set(true, u1->constValue.GetIntval()); 
+        uInt.constValue.Set(true, u1->constValue.GetIntval());
       } else {
         this->Get(u1Pos, u1);
         arg2->Get(u2Pos, u2);
@@ -2378,21 +2378,21 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
        } else {
           // don't allow overlapping intervals
           assert(!(lastUnit.timeInterval.rc && unit.timeInterval.lc));
-          // no gap in time 
+          // no gap in time
           if(lastUnit.timeInterval.rc || unit.timeInterval.lc){
              units.Append(unit);
           } else { // gap in time
              if(lastValue==fillValue){
                 lastUnit.timeInterval.rc = true;
                 units.Put(size-1, lastUnit);
-                units.Append(unit); 
+                units.Append(unit);
              } else if(newValue==fillValue){
                 UInt copy(unit);
                 copy.timeInterval.lc = true;
                 units.Append(copy);
              } else {
-                Interval<Instant> iv(unit.timeInterval.start, 
-                                     unit.timeInterval.start, 
+                Interval<Instant> iv(unit.timeInterval.start,
+                                     unit.timeInterval.start,
                                      true, true);
                 CcInt aValue(true,fillValue);
                 UInt aUnit(iv,aValue);
@@ -2400,7 +2400,7 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
                 units.Append(unit);
              }
           }
-       }  
+       }
 
     } else { // a "real" gap in time
       assert(lastUnitp->timeInterval.end < unit.timeInterval.start);
@@ -2432,7 +2432,7 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
            units.Append(unit);
         }
 
-      }   
+      }
 
 
     }
@@ -2458,7 +2458,7 @@ int MInt::maximum() const{
    int max = numeric_limits<int>::min();
    if(!IsDefined()){
       return max;
-   } 
+   }
    const UInt* unit;
    int v;
    for(int i=0;i<units.Size();i++){
@@ -2467,15 +2467,15 @@ int MInt::maximum() const{
       if(v>max){
         max = v;
       }
-   }   
+   }
    return max;
 }
- 
+
 int MInt::minimum() const{
    int min = numeric_limits<int>::max();
    if(!IsDefined()){
       return min;
-   } 
+   }
    const UInt* unit;
    int v;
    for(int i=0;i<units.Size();i++){
@@ -2484,7 +2484,7 @@ int MInt::minimum() const{
       if(v<min){
         min = v;
       }
-   }   
+   }
    return min;
 }
 
@@ -3542,7 +3542,8 @@ void MPoint::Trajectory( Line& line ) const
            if(!AlmostEqual(p0,unit->p1)){
              HalfSegment tmp(true,p0,unit->p1);
              double dist = tmp.Distance(p1);
-             if(AlmostEqual(dist,0.0)){
+             double dist2 = tmp.Distance(p_last);
+             if(AlmostEqual(dist,0.0) && AlmostEqual(dist2,0.0)){
                p_last = unit->p1;
              } else {
                hs.Set(true,p0,p_last);
@@ -3554,8 +3555,8 @@ void MPoint::Trajectory( Line& line ) const
                p1 = unit->p1;
                p_last = unit->p1;
              }
-           }
-       }
+          }
+        }
       }
     }
   }
