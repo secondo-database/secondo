@@ -582,7 +582,7 @@ checkObjectNamingConvention :-
 /*
 3.2 Identifying Added and Lost Catalog Entries
 
-The following predicates are used to find the names (in ~down cases spelling~)
+The following predicates are used to find the names (in ~down cased spelling~)
 of database objects, that have been added or removed in comparison with the
 persistent meta data.
 
@@ -680,7 +680,7 @@ is checked.
 
 \[DEPRECATED: This sequence guarantees, that small relations (and samples) are
 created before small indexes are possibly created (which rely on the existence
-of small relations).]\
+of small relations).\]
 
 If a relation is removed, this will be detected when searching for lost
 indexes and a list of obsolete indexes will be printed.
@@ -2037,6 +2037,7 @@ hasIndex(Rel, Attr, IndexName, IndexType) :-
 /*
 ---- hasIndex2(+Rel,+Attr, ?IndexName, ?IndexType)
 ----
+
 Gets the index name ~IndexName~ for relation ~Rel~ and attribute ~Attr~
 via dynamic predicate ~storedIndex/5~.
 
@@ -2076,8 +2077,8 @@ hasIndex2(rel(Rel, _), attr(Attr, _, _), DCindex, Type) :-
 /*
 8.2 Storing And Loading About Existing Indexes
 
-Storing and reading of  the dynamic predicates ~storedIndex/5~,
-~storedNoIndex/3~, and ~storedIndexStat/5 in the file ~storedIndexes~.
+Storing and reading of the dynamic predicates ~storedIndex/5~,
+~storedNoIndex/3~, and ~storedIndexStat/5~ in the file ~storedIndexes~.
 
 */
 readStoredIndexes :-
@@ -3045,6 +3046,7 @@ dropIndex(DCRel,DCAttr,LogicalIndexType) :-
                   ExtIndexName),!,
   dropIndex(ExtIndexName),!.
 
+
 dropIndex(LFRel,LFAttr,LogicalIndexType) :-
   concat_atom(['Unknown error: Tried to drop an index.'],'',ErrMsg),
   write_list(['ERROR:\t',ErrMsg]),nl,!,
@@ -3056,13 +3058,12 @@ dropIndex(LFRel,LFAttr,LogicalIndexType) :-
 ---- showIndexes
 ----
 
-This predicate shows a list of all registered indexes present within the currently
-opened database.
+This predicate shows a list of all registered indexes present within the
+currently opened database.
 
 */
 :-assert(helpLine(showIndexes,0,[],
          'List information on available indexes within the current DB.')).
-
 
 showIndexes :-
   (databaseName(DB)
@@ -3093,8 +3094,9 @@ showIndexes :-
 The following predicates are used to inquire and manage metadata on indexes of
 various types.
 
-Metadata are stored using dynamic predicates
----- storedIndexStat(+DB, +DCIndexName, ?DCRelName, +KeyType, -KeyData)
+Metadata are stored using dynamic facts
+
+---- storedIndexStat(DB, DCIndexName, DCRelName, KeyType, KeyData)
 ----
 
 ~KeyType~ is a keyword (identifier) indicating the meaning of the maintained
@@ -3110,12 +3112,14 @@ Between optimizer sessions, the metadata is stored in the file
 ~storedIndexes.pl~ on disk.
 
 When a database is open, predicate
+
 ---- getIndexStatistics(+DCindexName, +KeyName, ?DCrelName, ?KeyValue)
 ----
 
 can be used to access the statistics.
 
 Use predicate
+
 ---- inquireIndexStatistics(+DCindexName)
 ----
 
@@ -3154,8 +3158,10 @@ inquireIndexStatistics(DCindexName) :-
   logicalIndexType(_, LogicalTypeExpr, PhysIndexType,
                       SupportedAttributeTypeList,
                       _, _, _, _),
-  PhysIndexType = PhysIndexType, % REMOVE THIS - just avoid warning
-  SupportedAttributeTypeList = SupportedAttributeTypeList, % REMOVE THIS - just avoid warning
+  % BEGIN --- REMOVE THIS - just avoid warnings
+  PhysIndexType = PhysIndexType,
+  SupportedAttributeTypeList = SupportedAttributeTypeList,
+  % END ---- REMOVE THIS - just avoid warnings
   inquireIndexStatistics(DB,ExtIndexName,DCindexName,DCrel,
                          DCattr,LogicalTypeExpr),
   !.
@@ -3194,8 +3200,8 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
                  assert(storedIndexStat(DB,DCindexName,DCrel,type,KeyType)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,double,Double)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,dim,Dimension)),
-                 write_list(['INFO:\tSuccessfully inquired statistics on index \'',
-                             ExtIndexName,'\'.']),nl
+                 write_list(['INFO:\tSuccessfully inquired statistics on ',
+                             'index \'',ExtIndexName,'\'.']),nl
                )
             ;  (  % List error
                   dm(dbhandling,['Wrong result list format: ',ResList,'\n']),
@@ -3349,6 +3355,7 @@ retractStoredInformation(DCrel) :-
   retractall(storedRel(DB, DCrel, _)),
   retractall(storedIndex(DB, DCrel, _, _, _)),
   retractall(storedNoIndex(DB, DCrel, _)),
+  retractall(storedIndexStat(DB, _, DCrel, _, _)),
   write_list(['\nINFO:\tRetracted all information on relation \'', DCrel,
               '\' and ', 'all according small and sample objects.']),nl,
   !.
@@ -3394,6 +3401,7 @@ updateDB(DB1) :-
          retractall(storedRel(DB, _, _)),
          retractall(storedIndex(DB, _, _, _, _)),
          retractall(storedNoIndex(DB, _, _)),
+         retractall(storedIndexStat(DB, _, _, _, _)),
          retractall(storedPET(DB, _, _, _)),
          retractall(storedSel(DB, _, _)),
          write_list(['\nINFO: All information on database \'', DB, '\' has ',
