@@ -198,7 +198,7 @@ struct SectTree {
   void CheckSection(Network *pNetwork, SectTreeEntry n, GPoints &result){
     vector<DirectedSection> sectList;
     sectList.clear();
-    SectTree *pSectTree;
+    SectTree *pSectTree = 0;
     if (n.startbool || n.endbool) {
       if (n.startbool){
         pNetwork->GetAdjacentSections(n.secttid, false, sectList);
@@ -2137,6 +2137,7 @@ void Network::FillSections()
     //
     JunctionSortEntry xCurrentEntry;
     xCurrentEntry.m_pJunction = 0;
+    xCurrentEntry.m_bFirstRoute = false;
     for(size_t i = 0; i < xJunctions.size(); i++)
     {
       // Get next junction
@@ -2768,7 +2769,7 @@ Tuple* Network::GetRoute(int in_RouteId){
   CcInt* pRouteId = new CcInt(true, in_RouteId);
   BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
   delete pRouteId;
-  Tuple *pRoute;
+  Tuple *pRoute = 0;
   if (pRoutesIter->Next())
     pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
   assert(pRoute != 0);
@@ -2828,7 +2829,7 @@ void Network::GetPointOnRoute(const GPoint* in_pGPoint, Point*& res){
   CcInt* pRouteId = new CcInt(true, in_pGPoint->GetRouteId());
   BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
   delete pRouteId;
-  Tuple *pRoute;
+  Tuple *pRoute = 0;
   if (pRoutesIter->Next())
     pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
   assert(pRoute != 0);
@@ -2850,7 +2851,7 @@ void Network::GetGPointsOnInterval(TupleId iRouteId, double start, double end,
   CcInt* pRouteId = new CcInt(true, rid);
   BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
   delete pRouteId;
-  Tuple *pRoute;
+  Tuple *pRoute = 0;
   if (pRoutesIter->Next())
     pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
   assert(pRoute != 0);
@@ -3405,8 +3406,10 @@ ListExpr Network::Out(ListExpr typeInfo)
   ///////////////////////
   // Output of all routes
   GenericRelationIterator *pRoutesIter = m_pRoutes->MakeScan();
-  Tuple *pCurrentRoute;
-  ListExpr xLast, xNext, xRoutes;
+  Tuple *pCurrentRoute = 0;
+  ListExpr xLast = nl->TheEmptyList();
+  ListExpr xNext = nl->TheEmptyList();
+  ListExpr xRoutes = nl->TheEmptyList();
   bool bFirst = true;
 
   while((pCurrentRoute = pRoutesIter->GetNextTuple()) != 0)
@@ -3451,7 +3454,7 @@ ListExpr Network::Out(ListExpr typeInfo)
   // Output of all junctions
   GenericRelationIterator *pJunctionsIter = m_pJunctions->MakeScan();
   Tuple *pCurrentJunction;
-  ListExpr xJunctions;
+  ListExpr xJunctions = nl->TheEmptyList();
   bFirst = true;
 
   while((pCurrentJunction = pJunctionsIter->GetNextTuple()) != 0)
@@ -3730,7 +3733,7 @@ GPoint* Network::GetNetworkPosOfPoint(Point p){
                                          orig.MinD(1) - 1.0,
                                          orig.MaxD(1) + 1.0);
   R_TreeLeafEntry<2,TupleId> res;
-  Tuple *pCurrRoute;
+  Tuple *pCurrRoute = 0;
   if (m_pRTreeRoutes->First(bbox, res)){
     pCurrRoute = m_pRoutes->GetTuple(res.info);
     // pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
@@ -3888,7 +3891,7 @@ void Network::GetLineValueOfRouteInterval (const RouteInterval *in_ri,
   CcInt* pRouteId = new CcInt(true, in_ri->m_iRouteId);
   BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
   delete pRouteId;
-  Tuple *pRoute;
+  Tuple *pRoute = 0;
   if(pRoutesIter->Next()) pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
   assert(pRoute != 0);
   SimpleLine* pLine = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
@@ -4165,10 +4168,11 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
     return nl->SymbolAtom( "undef" );
   }
 
-  ListExpr xLast, xNext;
+  ListExpr xLast = nl->TheEmptyList();
+  ListExpr xNext = nl->TheEmptyList();
   bool bFirst = true;
   ListExpr xNetworkId = nl->IntAtom(pGline->m_iNetworkId);
-  ListExpr xRouteIntervals;
+  ListExpr xRouteIntervals = nl->TheEmptyList();
   // Iterate over all RouteIntervalls
   for (int i = 0; i < pGline->m_xRouteIntervals.Size(); ++i)
   {
@@ -5067,7 +5071,7 @@ Initialize PriorityQueue
 
 */
     PrioQueue *prioQ = new PrioQueue (0);
-    SectIDTree *visitedSect;
+    SectIDTree *visitedSect = 0;
     double sectMeas1 =
         ((CcReal*) startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
     double sectMeas2 =
@@ -5336,7 +5340,7 @@ GPoints* GLine::GetBGP (){
   GPoints *result = new GPoints(0);
   if (!IsDefined() || NoOfComponents() == 0) return result;
   else {
-    SectTree *sectionTree;
+    SectTree *sectionTree = 0;
     const RouteInterval *ri;
     DBArray<SectTreeEntry> *actSections = new DBArray<SectTreeEntry> (0);
     Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
