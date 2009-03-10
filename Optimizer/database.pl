@@ -808,7 +808,9 @@ handleNewIndex(DCindex) :-
              )
          ),
          retractall(storedNoIndex(DB,DCrel,DCattr)),
-         assert(storedIndex(DB,DCrel,DCattr,LogicalIndexType,DCindex))
+         assert(storedIndex(DB,DCrel,DCattr,LogicalIndexType,DCindex)),
+         inquireIndexStatistics(DB,ExtIndex,
+                                DCindex,DCrel,DCattr,LogicalIndexType)
        )
     ;  ( write_list(['\nWARNING:\tDatabase object \'',ExtIndex,
                      '\' seems to be an unsupported index.',
@@ -892,7 +894,8 @@ handleLostRelation(DCrel) :-
              write_list(['--->\tDeleting small index \'',ExtIndexSmall,'\': ']),
              ( deleteObject(ExtIndexSmall)
                -> ( write('succeeded.\n'),
-                    retractall(storedIndex(DB,DCrel,_,_,DCindexSmall))
+                    retractall(storedIndex(DB,DCrel,_,_,DCindexSmall)),
+                    retractall(storedIndexStat(DB, DCindexSmall, _, _, _))
                   )
                ;  write('FAILED!\n')
              )
@@ -921,6 +924,7 @@ handleLostIndex(DCindex) :-
   storedIndex(DB, DCrel, DCattr, IndexType, DCindex),
   % retract storedIndex
   retractall(storedIndex(DB, DCrel, DCattr, IndexType, DCindex)), !,
+  retractall(storedIndexStat(DB, DCindex, _, _, _)), !,
   % possibly update storedNoIndex/3
   ( storedIndex(DB, DCrel, DCattr, _, _)
     -> true
@@ -933,7 +937,8 @@ handleLostIndex(DCindex) :-
              write_list(['--->\tDeleting small index \'',ExtIndexSmall,'\': ']),
              ( deleteObject(ExtIndexSmall)
                -> ( write('succeeded.\n'),
-                    retractall(storedIndex(DB,DCrel,_,_,DCindexSmall))
+                    retractall(storedIndex(DB,DCrel,_,_,DCindexSmall)),
+                    retractall(storedIndexStat(DB, DCindexSmall, _, _, _))
                   )
                ;  write('FAILED!\n')
              )
@@ -1086,6 +1091,7 @@ retractAllStoredInfo(DCrel) :-
   retractall(storedCard(DB, DCrel, _)),
   retractall(storedOrderings(DB, DCrel, _)),
   retractall(storedIndex(DB, DCrel, _, _, _)),
+  retractall(storedIndexStat(DB, _, DCrel, _, _)),
   retractall(storedNoIndex(DB, DCrel, _)),
   retractall(storedAttrSize(DB, DCrel, _, _, _, _, _)),
   retractall(storedRel(DB, DCrel, _)),
@@ -2070,13 +2076,14 @@ hasIndex2(rel(Rel, _), attr(Attr, _, _), DCindex, Type) :-
 /*
 8.2 Storing And Loading About Existing Indexes
 
-Storing and reading of  the two dynamic predicates ~storedIndex/5~ and
-~storedNoIndex/3~ in the file ~storedIndexes~.
+Storing and reading of  the dynamic predicates ~storedIndex/5~,
+~storedNoIndex/3~, and ~storedIndexStat/5 in the file ~storedIndexes~.
 
 */
 readStoredIndexes :-
   retractall(storedIndex(_, _, _, _, _)),
   retractall(storedNoIndex(_, _, _)),
+  retractall(storedIndexStat(_, _, _, _, _)),
   [storedIndexes].
 
 writeStoredIndexes :-
@@ -2084,6 +2091,7 @@ writeStoredIndexes :-
   write(FD, '/* Automatically generated file, do not edit by hand. */\n'),
   findall(_, writeStoredIndex(FD), _),
   findall(_, writeStoredNoIndex(FD), _),
+  findall(_, writeStoredIndexStatistics(FD), _),
   close(FD).
 
 writeStoredIndex(Stream) :-
@@ -2096,9 +2104,16 @@ writeStoredNoIndex(Stream) :-
   write(Stream, storedNoIndex(DB, U, V)),
   write(Stream, '.\n').
 
+writeStoredIndexStatistics(Stream) :-
+  storedIndexStat(DB, DCindex, DCrel, U, V),
+  write(Stream, storedIndexStat(DB, DCindex, DCrel, U, V)),
+  write(Stream, '.\n').
+
+
 :-
   dynamic(storedIndex/5),
   dynamic(storedNoIndex/3),
+  dynamic(storedIndexStat/5),
   at_halt(writeStoredIndexes),
   readStoredIndexes.
 
@@ -2119,7 +2134,7 @@ physical index type:
 ----
 
 While ~PhysIndesType~ must be a ground term, ~TypeExpressionPattern~ may contain
-variables, if this is required to matcj the index type expression.
+variables, if this is required to match the index type expression.
 
 If you want to add a physical index type, you just need to add an according fact
 here. After this, you may define logical index types using the added physical
@@ -2644,6 +2659,9 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
        )
     ;  true                                      % store no info in small index
   ),
+  % inquire statistics for the new index
+  inquireIndexStatistics(DB,IndexName,
+                         DCindexName,LFRel,LFAttr,LogicalIndexType),
   write('\tIndex \''),write(IndexName),write('\' has been created.'),nl,
   !.
 
@@ -2977,7 +2995,8 @@ dropIndex(ExtIndexName) :-
   % dcName2externalName(DCRel:DCAttr, AttrName), % original code
   dcName2externalName(DCAttr, AttrName),         % modified code
   dcName2externalName(DCindexName,ExtIndexName),
-  retractall(storedIndex(DB,DCRel,DCAttr,_,DCindexName)),
+  retractall(storedIndex(DB,DCRel,DCAttr,_,DCindexName)), % retract info
+  retractall(storedIndexStat(DB,DCindexName,_,_,_)),      % retract statistics
   % update storedNoIndex/3
   ( storedIndex(DB,DCRel,DCAttr, _, _)
     -> true
@@ -3067,6 +3086,152 @@ showIndexes :-
     ; (write_list(['\nWARNING:\tCannot list indexes. No database open.']), nl)
   ),
   nl, nl, !.
+
+/*
+8.5 Inquiring and Managing Metadata on Indexes
+
+The following predicates are used to inquire and manage metadata on indexes of
+various types.
+
+Metadata are stored using dynamic predicates
+---- storedIndexStat(+DB, +DCIndexName, ?DCRelName, +KeyType, -KeyData)
+----
+
+~KeyType~ is a keyword (identifier) indicating the meaning of the maintained
+information, like ~height~ (height of a tree structure), ~entries~ (number of
+stored entries), ~nodes~ (number of nodes in a tree structure), ~bbox~ (total MBR
+for the indexed keys), ~type~ (data type of the keys), ~double~ (whether double
+indexing is used with that index), ~dim~ (dimension of entry values).
+
+~KeyData~ is the stored metadata, which may be a term (e.g. for ~bbox~) or an
+atom.
+
+Between optimizer sessions, the metadata is stored in the file
+~storedIndexes.pl~ on disk.
+
+When a database is open, predicate
+---- getIndexStatistics(+DCindexName, +KeyName, ?DCrelName, ?KeyValue)
+----
+
+can be used to access the statistics.
+
+Use predicate
+---- inquireIndexStatistics(+DCindexName)
+----
+
+to inquire and update the index statistics for index ~DCindexName~.
+
+*/
+
+% index stats already known
+getIndexStatistics(DCindexName, KeyName, DCrelName, KeyValue) :-
+  ground(DCindexName),
+  atomic(DCindexName),
+  databaseName(DB),
+  storedIndexStat(DB, DCindexName, DCrelName, KeyName, KeyValue),
+  !.
+
+% no index stats available!
+getIndexStatistics(DCindexName, _, _, _) :-
+  ground(DCindexName),
+  atomic(DCindexName),
+  databaseName(_),
+  fail,
+  !.
+
+getIndexStatistics(DCindexName, KeyName, DCrelName, KeyValue) :-
+  throw(error_Internal(getIndexStatistics(DCindexName, KeyName, DCrelName,
+                 KeyValue):unknownError)),
+  !.
+
+% wrapper for call by index name only
+%   inquireIndexStatistics(+DCindexName)
+inquireIndexStatistics(DCindexName) :-
+  databaseName(DB),
+  ground(DCindexName),
+  secondoCatalogInfo(DCindexName,ExtIndexName,_,_),
+  storedIndex(DB, DCrel, DCattr, LogicalTypeExpr, DCindexName),
+  logicalIndexType(_, LogicalTypeExpr, PhysIndexType,
+                      SupportedAttributeTypeList,
+                      _, _, _, _),
+  PhysIndexType = PhysIndexType, % REMOVE THIS - just avoid warning
+  SupportedAttributeTypeList = SupportedAttributeTypeList, % REMOVE THIS - just avoid warning
+  inquireIndexStatistics(DB,ExtIndexName,DCindexName,DCrel,
+                         DCattr,LogicalTypeExpr),
+  !.
+
+inquireIndexStatistics(DCindexName) :-
+  concat_atom(['Cannot collect index statistics,'],'',ErrMsg),
+  throw(error_Internal(inquireIndexStatistics(DCindexName)
+                                          :unspecifiedError#ErrMsg)).
+
+% Main predicate
+%   inquireIndexStatistics(+DB,+ExtIndexName,+DCindexName,
+%                          +DCrel,+DCattr,+LogicalTypeExpr)
+inquireIndexStatistics(DB,ExtIndexName,DCindexName,
+                       DCrel,DCattr,LogicalTypeExpr) :-
+  ground(DB),
+  ground(ExtIndexName),
+  ground(DCindexName),
+  ground(DCrel),
+  ground(DCattr),
+  ground(LogicalTypeExpr),
+  logicalIndexType(_, LogicalTypeExpr, PhysIndexType, _, _, _, _, _),
+  retractall(storedIndexStat(DB,DCindexName,_,_,_)), % drop old statistics
+  !,
+  ( memberchk([PhysIndexType,Dimension],
+                [[rtree,2],[rtree3,3],[rtree4,4],[rtree8,8]])
+    -> ( % some rtree index
+          concat_atom(['query ',ExtIndexName],'',Query),
+          secondo(Query,ResList),
+          ( ResList = [[PhysIndexType, [tuple, _], KeyType, Double],
+                       [_, [_, Height], [_, Entries], [_, Nodes], [_, BBox]]]
+            -> (
+                 assert(storedIndexStat(DB,DCindexName,DCrel,height,Height)),
+                 assert(storedIndexStat(DB,DCindexName,DCrel,entries,Entries)),
+                 assert(storedIndexStat(DB,DCindexName,DCrel,nodes,Nodes)),
+                 assert(storedIndexStat(DB,DCindexName,DCrel,bbox,BBox)),
+                 assert(storedIndexStat(DB,DCindexName,DCrel,type,KeyType)),
+                 assert(storedIndexStat(DB,DCindexName,DCrel,double,Double)),
+                 assert(storedIndexStat(DB,DCindexName,DCrel,dim,Dimension)),
+                 write_list(['INFO:\tSuccessfully inquired statistics on index \'',
+                             ExtIndexName,'\'.']),nl
+               )
+            ;  (  % List error
+                  dm(dbhandling,['Wrong result list format: ',ResList,'\n']),
+                  concat_atom(['Wrong result list'],'',ErrMsg),
+                  throw(error_Internal(inquireIndexStatistics(DCindexName)
+                                   :unspecifiedError#ErrMsg))
+               )
+          )
+    )
+  ),!,
+  ( PhysIndexType = btree
+    -> ( % btree index
+         true % no statistics available/ not yet implemented
+       )
+  ),!,
+  ( PhysIndexType = hash
+    -> ( % hashtable index
+         true % no statistics available/ not yet implemented
+       )
+  ),!,
+  ( PhysIndexType = mtree
+    -> ( % mtree index
+         true % no statistics available/ not yet implemented
+       )
+  ),!,
+  ( PhysIndexType = xtree
+    -> ( % xtree index
+         true % no statistics available/ not yet implemented
+       )
+  ),
+  !.
+
+inquireIndexStatistics(DB,DCindexName,DCrel,DCattr,LogicalTypeExpr) :-
+  concat_atom(['Cannot collect index statistics,'],'',ErrMsg),
+  throw(error_Internal(inquireIndexStatistics(DB,DCindexName,DCrel,DCattr,
+                                  LogicalTypeExpr):unspecifiedError#ErrMsg)).
 
 /*
 9 Update Indexes And Relations
