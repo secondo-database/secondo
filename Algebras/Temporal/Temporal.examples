@@ -457,8 +457,22 @@ Operator : hat
 Number   : 1
 Signature: mint -> mint
 Example  : query hat(noAtCenter);
-Result   : file
-
+Result   : (
+    (
+        ("begin of time" "2003-11-20-06:18:16.027" TRUE FALSE)
+        0)
+    (
+        ("2003-11-20-06:18:16.027" "2003-11-20-07:58:39.261" TRUE FALSE)
+        0)
+    (
+        ("2003-11-20-07:58:39.261" "2003-11-20-08:49:55.941" TRUE FALSE)
+        1)
+    (
+        ("2003-11-20-08:49:55.941" "2003-11-20-09:55" TRUE FALSE)
+        0)
+    (
+        ("2003-11-20-09:55" "end of time" TRUE TRUE)
+        0))
 Operator  : restrict
 Number    : 1
 Signature : mint -> mint
