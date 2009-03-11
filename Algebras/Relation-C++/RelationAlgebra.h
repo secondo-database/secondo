@@ -360,15 +360,11 @@ struct RelationDescriptor
   inline
   RelationDescriptor( TupleType* tupleType ):
     tupleType( tupleType ),
-    noTuples( 0 ),
-    totalExtSize( 0.0 ),
-    totalSize( 0.0 ),
     attrExtSize( tupleType->GetNoAttributes() ),
-    attrSize( tupleType->GetNoAttributes() ),
-    tupleFileId( 0 ),
-    lobFileId( 0 )
+    attrSize( tupleType->GetNoAttributes() )
     {
       tupleType->IncReference();
+      init();
       for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
       {
         attrExtSize[i] = 0.0;
@@ -379,14 +375,11 @@ struct RelationDescriptor
   inline
   RelationDescriptor( const ListExpr typeInfo ):
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
-    noTuples( 0 ),
-    totalExtSize( 0.0 ),
-    totalSize( 0.0 ),
     attrExtSize( 0 ),
-    attrSize( 0 ),
-    tupleFileId( 0 ),
-    lobFileId( 0 )
+    attrSize( 0 )
     {
+      // tuple type was created, no need to increment the reference counter
+      init();
       attrExtSize.resize( tupleType->GetNoAttributes() );
       attrSize.resize( tupleType->GetNoAttributes() );
       for( int i = 0; i < tupleType->GetNoAttributes(); i++ )
@@ -395,6 +388,7 @@ struct RelationDescriptor
         attrSize[i] = 0.0;
       }
     }
+   
 /*
 The simple constructors.
 
@@ -407,15 +401,11 @@ The simple constructors.
                       const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
     tupleType( tupleType ),
-    noTuples( noTuples ),
-    totalExtSize( totalExtSize ),
-    totalSize( totalSize ),
     attrExtSize( attrExtSize ),
-    attrSize( attrSize ),
-    tupleFileId( tId ),
-    lobFileId( lId )
+    attrSize( attrSize )
     {
       tupleType->IncReference();
+      init(noTuples, totalExtSize, totalSize, tId, lId);
     }
 
   inline
@@ -426,14 +416,11 @@ The simple constructors.
                       const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
-    noTuples( noTuples ),
-    totalExtSize( totalExtSize ),
-    totalSize( totalSize ),
     attrExtSize( attrExtSize ),
-    attrSize( attrSize ),
-    tupleFileId( tId ),
-    lobFileId( lId )
+    attrSize( attrSize )
     {
+      // tuple type was created, no need to increment the reference counter
+      init(noTuples, totalExtSize, totalSize, tId, lId);
     }
 
 /*
@@ -441,17 +428,13 @@ The first constructor.
 
 */
   inline
-  RelationDescriptor( const RelationDescriptor& desc ):
-    tupleType( desc.tupleType ),
-    noTuples( desc.noTuples ),
-    totalExtSize( desc.totalExtSize ),
-    totalSize( desc.totalSize ),
-    attrExtSize( desc.attrExtSize ),
-    attrSize( desc.attrSize ),
-    tupleFileId( desc.tupleFileId ),
-    lobFileId( desc.lobFileId )
+  RelationDescriptor( const RelationDescriptor& d ):
+    tupleType( d.tupleType ),
+    attrExtSize( d.attrExtSize ),
+    attrSize( d.attrSize )
     {
       tupleType->IncReference();
+      init(d.noTuples, d.totalExtSize, d.totalSize, d.tupleFileId, d.lobFileId);
     }
 /*
 The copy constructor.
@@ -471,16 +454,29 @@ The destructor.
     tupleType->DeleteIfAllowed();
     tupleType = d.tupleType;
     tupleType->IncReference();
-    noTuples = d.noTuples;
-    totalExtSize = d.totalExtSize;
-    totalSize = d.totalSize;
-    tupleFileId = d.tupleFileId;
-    lobFileId = d.lobFileId;
+
+    init(d.noTuples, d.totalExtSize, d.totalSize, d.tupleFileId, d.lobFileId);
     attrExtSize = d.attrExtSize;
     attrSize = d.attrSize;
 
     return *this;
   }
+
+
+  inline void init(  int in_noTuples = 0,
+                     double in_totalExtSize = 0.0,
+                     double in_totalSize = 0.0,
+                     int in_tupleFileId = 0,
+                     int in_lobFileId = 0 )
+  {
+    noTuples = in_noTuples;
+    totalExtSize = in_totalExtSize;
+    totalSize = in_totalSize;
+    tupleFileId = in_tupleFileId;
+    lobFileId = in_lobFileId;
+  }	  
+
+
 /*
 Redefinition of the assignement operator.
 
@@ -568,7 +564,7 @@ This struct contains the private attributes of the class ~Relation~.
 struct PrivateRelation
 {
   PrivateRelation( const ListExpr typeInfo, bool isTemp ):
-    relDesc( new TupleType( nl->Second( typeInfo ) ) ),
+    relDesc( typeInfo ),
     tupleFile( false, 0, isTemp ),
     isTemp( isTemp )
     {
@@ -669,6 +665,7 @@ class Tuple
     inline Tuple( TupleType* tupleType ) :
     tupleType( tupleType )
     {
+      tupleType->IncReference();
       Init( tupleType->GetNoAttributes());
       DEBUG(this, "Constructor Tuple(TupleType *tupleType) called.")
     }
@@ -1041,7 +1038,6 @@ Initializes the attributes array with zeros.
 */
     inline void Init( int NoAttr)
     {
-      tupleType->IncReference();
       noAttributes = NoAttr;
 
       refs = 1;

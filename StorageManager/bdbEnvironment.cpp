@@ -135,10 +135,12 @@ SmiEnvironment::Implementation::~Implementation()
     CloseDbHandles();
     int rc = bdbEnv->close( 0 );
     SetBDBError(rc);
-  
+  }
+ 
+  if (bdbEnv) { 
     delete bdbEnv;
     bdbEnv = 0;
-  }
+  }  
 }
 
 DbHandleIndex

@@ -129,6 +129,8 @@ of the enclosing transaction the handle will be closed.
     if (bdbFile) {	  
       int rc = bdbFile->close( 0 );
       SmiEnvironment::SetBDBError(rc);
+      delete bdbFile;
+      bdbFile = 0;
     }  
   }
 }
@@ -631,6 +633,8 @@ SmiFile::Close()
       if (trace)
         cerr << "closing " << *this << endl;	      
       SmiEnvironment::SetBDBError( rc );
+      delete impl->bdbFile;
+
       impl->bdbFile = new Db( SmiEnvironment::instance.impl->tmpEnv, 
                               DB_CXX_NO_EXCEPTIONS );
     }
