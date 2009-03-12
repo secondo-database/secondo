@@ -466,10 +466,12 @@ Returns a mbool telling when the mgpoint was inside the gline.
 
 
 /*
-Returns a mgpoint restricted to the given periods value.
+Returns a mgpoint restricted to the given periods respectively instant value.
 
 */
    void Atperiods(Periods *&per, MGPoint *&res);
+
+   void Atinstant(Instant *&inst, Intime<GPoint> *&res);
 
 /*
 Returns a mgpoint restricted to the times it was at the given gpoint resp.

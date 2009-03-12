@@ -2679,6 +2679,70 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
 }
 
 /*
+Restricts the ~mgpoint~ to the given ~periods~
+
+*/
+
+void MGPoint::Atinstant(Instant *&per, Intime<GPoint> *&res){
+  if (IsDefined() && !IsEmpty()){
+    const UGPoint *pCurrUnit;
+    Get(0,pCurrUnit);
+    if (per->ToDouble() < pCurrUnit->timeInterval.start.ToDouble())
+      res->SetDefined(false);
+    else{
+      Get( GetNoComponents()-1 ,pCurrUnit);
+      if (pCurrUnit->timeInterval.end.ToDouble() < per->ToDouble())
+        res->SetDefined(false);
+      else {
+        int low = 0;
+        int high = GetNoComponents()-1;
+        bool found = false;
+        while (low <= high && !found){
+          int mid = (high + low)/2;
+          Get(mid, pCurrUnit);
+          if(per->ToDouble() < pCurrUnit->timeInterval.start.ToDouble())
+            high = mid - 1;
+          else {
+            if (pCurrUnit->timeInterval.end.ToDouble() < per->ToDouble())
+              low = mid + 1;
+            else {
+              found = true;
+              if (AlmostEqual(per->ToDouble(),
+                             pCurrUnit->timeInterval.start.ToDouble())){
+                *res = (Intime<GPoint>(*per, pCurrUnit->p0));
+                res->SetDefined(true);
+              } else {
+                if(AlmostEqual(per->ToDouble(),
+                             pCurrUnit->timeInterval.end.ToDouble())) {
+                  *res = (Intime<GPoint>(*per,pCurrUnit->p1));
+                  res->SetDefined(true);
+                }  else {
+                  *res = (Intime<GPoint>(*per,
+                                  GPoint(true,
+                                        pCurrUnit->p0.GetNetworkId(),
+                                        pCurrUnit->p0.GetRouteId(),
+                                        ((pCurrUnit->p1.GetPosition() -
+                                            pCurrUnit->p0.GetPosition()) *
+                                          (per->ToDouble() -
+                                    pCurrUnit->timeInterval.start.ToDouble()) /
+                                    (pCurrUnit->timeInterval.end.ToDouble() -
+                                      pCurrUnit->timeInterval.start.ToDouble())
+                                          + pCurrUnit->p0.GetPosition()),
+                                        pCurrUnit->p0.GetSide())));
+                  res->SetDefined(true);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }else{
+    res->SetDefined(false);
+  }
+}
+
+/*
 Restricts the ~mgpoint~ to the times it was at the given places.
 
 */
@@ -3729,10 +3793,6 @@ void UGPoint::TemporalFunction( const Instant& t,
         result = p1;
         result.SetDefined(true);
       }  else {
-        double posInst = (p1.GetPosition()-p0.GetPosition()) *
-              (t.ToDouble()-timeInterval.start.ToDouble()) /
-              (timeInterval.end.ToDouble() - timeInterval.start.ToDouble())
-              + p0.GetPosition();
         result = GPoint(true, p0.GetNetworkId(), p0.GetRouteId(),
                        ((p1.GetPosition()-p0.GetPosition()) *
                        (t.ToDouble()-timeInterval.start.ToDouble()) /
@@ -5439,6 +5499,36 @@ ListExpr OpAtinstantTypeMap(ListExpr in_xArgs)
   return nl->SymbolAtom("igpoint");
 }
 
+int OpAtinstantValueMapping(Word* args,
+                                   Word& result,
+                                   int message,
+                                   Word& local,
+                                   Supplier in_xSupplier)
+{
+  Intime<GPoint>* pIGPres =
+      (Intime<GPoint>*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pIGPres );
+  MGPoint* pMGP = (MGPoint*)args[0].addr;
+  if(pMGP == NULL ||!pMGP->IsDefined()) {
+    cerr << "MGPoint does not exist." << endl;
+    pIGPres->SetDefined(false);
+    return 0;
+  }
+
+  Instant* per = (Instant*)args[1].addr;
+  if(per == NULL || !per->IsDefined()) {
+    cerr << "Periods are not defined." << endl;
+    pIGPres->SetDefined(false);
+    return 0;
+  }
+  if (pMGP->GetNoComponents() < 1) {
+    pIGPres->SetDefined(true);
+    return 0;
+  }
+  pMGP->Atinstant(per, pIGPres);
+  return 0;
+}
+
 const string OpAtinstantSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mgpoint x instant -> igpoint" "</text--->"
@@ -5449,7 +5539,7 @@ const string OpAtinstantSpec  =
 
 Operator tempnetatinstant("atinstant",
                 OpAtinstantSpec,
-                MappingAtInstant<MGPoint, GPoint>,
+                OpAtinstantValueMapping,
                 Operator::SimpleSelect,
                 OpAtinstantTypeMap );
 
