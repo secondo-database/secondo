@@ -41,7 +41,7 @@ Operator : knearest
 Number   : 3
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains feed head[20] UTrip knearest [train1, 2] consume
-Result   : crashes 
+Result   : crashes
 
 Operator : knearest
 Number   : 4
@@ -55,16 +55,16 @@ Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple 
 Example  : query UnitTrains feed head[20] UTrip knearestvector [train1, 2] consume
 Result   : crashes
 
-Operator : knearestfilter
+Operator : oldknearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTOrdered_RTree UTOrdered knearestfilter[train1, 5] count
+Example  : query UTOrdered_RTree UTOrdered oldknearestfilter[train1, 5] count
 Result   : file_platform
 
-Operator : knearestfilter
+Operator : oldknearestfilter
 Number   : 7
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTO_tree UTOrdered knearestfilter[train1, 5] UTrip knearest[train1, 5] count
+Example  : query UTO_tree UTOrdered oldknearestfilter[train1, 5] UTrip knearest[train1, 5] count
 Result   : file_platform
 
 
@@ -93,9 +93,9 @@ Example   : query coverage2(UnitTrains feed extend[Tid : tupleid(.)] sortby[UTri
 Result    : (bool TRUE)
 
 
-Operator : newknearestfilter
+Operator : knearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))(btree (tuple ((x1 t1)...(xn tn))) ti)(rel2 (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTOrdered_RTree UTOrdered btree numbers newknearestfilter[train1, 10] count
+Example  : query UTOrdered_RTree UTOrdered btree numbers knearestfilter[train1, 10] count
 Result   : file_platform
 

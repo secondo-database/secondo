@@ -500,12 +500,12 @@ knearestTypeMap( ListExpr args )
 
 
 /*
-The function knearestFilterTypeMap is the type map for the
+The function oldknearestFilterTypeMap is the type map for the
 operator knearestfilter
 
 */
 ListExpr
-knearestFilterTypeMap( ListExpr args )
+oldknearestFilterTypeMap( ListExpr args )
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERROR" ) );
@@ -3555,7 +3555,7 @@ int knearestFunVector (Word* args, Word& result, int message,
 }
 
 /*
-The ~knearestfilter~ operator results a stream of all input tuples which
+The ~oldknearestfilter~ operator results a stream of all input tuples which
 can be the k-nearest units to the given mpoint. With the result of this
 operator the knearest operator kann immediate be called. The tuples in the
 result stream ordered by time.
@@ -3763,7 +3763,7 @@ struct KnearestFilterLocalInfo
 };
 
 /*
-knearestFilterFun is the value function for the knearestfilter operator
+oldknearestFilterFun is the value function for the oldknearestfilter operator
 It is a filter operator for the knearest operator. It can be called
 if there exists a rtree for the unit attribute
 The argument vector contains the following values:
@@ -3774,7 +3774,7 @@ args[3] = int k, how many nearest are searched
 
 */
 template<class timeType>
-int knearestFilterFun (Word* args, Word& result, int message,
+int oldknearestFilterFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   const int dim = 3;
@@ -4623,13 +4623,13 @@ const string knearestSpec  =
       "[train1, 2] consume;</text--->"
       ") )";
 
-const string knearestFilterSpec  =
+const string oldknearestFilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ _ knearestfilter [ _, _ ]</text--->"
+      "<text>_ _ oldknearestfilter [ _, _ ]</text--->"
       "<text>The operator results a stream of all input tuples "
       "which are the k-nearest tupels to the given mpoint. "
       "The operator do not separate tupels if necessary. The "
@@ -4638,7 +4638,7 @@ const string knearestFilterSpec  =
       "many input tupels. "
       "The operator expects a thee dimensional rtree where the "
       "third dimension is the time</text--->"
-      "<text>query UTOrdered_RTree UTOrdered knearestfilter "
+      "<text>query UTOrdered_RTree UTOrdered oldknearestfilter "
       "[train1, 5] count;</text--->"
       ") )";
 
@@ -4708,13 +4708,13 @@ Operator knearestvector (
          knearestTypeMap        // type mapping
 );
 
-Operator knearestfilter (
-         "knearestfilter",        // name
-         knearestFilterSpec,      // specification
-         knearestFilterFun<double>,       // value mapping
+Operator oldknearestfilter (
+         "oldknearestfilter",        // name
+         oldknearestFilterSpec,      // specification
+         oldknearestFilterFun<double>,       // value mapping
          //knearestFilterFun<Instant>,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
-         knearestFilterTypeMap    // type mapping
+         oldknearestFilterTypeMap    // type mapping
 );
 
 
@@ -4851,7 +4851,7 @@ Operator bboxes (
 
 /*
 
-newknearestFilterFun is the value function for the newknearestfilter operator
+knearestFilterFun is the value function for the knearestfilter operator
 It is a filter operator for the knearest operator. It can be called
 if there exists a rtree for the unit attribute and a btree for the units number
 relation built on rtree node
@@ -4865,7 +4865,7 @@ args[5] = int k, how many nearest are searched
 
 */
 template<class timeType>
-int newknearestFilterFun (Word* args, Word& result, int message,
+int knearestFilterFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   const int dim = 3;
@@ -5092,11 +5092,11 @@ int newknearestFilterFun (Word* args, Word& result, int message,
 
 /*
 The function knearestFilterTypeMap is the type map for the
-operator newknearestfilter
+operator knearestfilter
 
 */
 ListExpr
-newknearestFilterTypeMap( ListExpr args )
+knearestFilterTypeMap( ListExpr args )
 {
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
@@ -5230,14 +5230,14 @@ newknearestFilterTypeMap( ListExpr args )
       nl->SymbolAtom("stream"),
       tupleDescription);
 }
-const string newknearestFilterSpec  =
+const string knearestFilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
      " ti) x rel1(tuple ((x1 t1)...(xn tn))) x btree(tuple ((x1 t1)...(xn tn)))"
       " x rel2(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ _ _ _ newknearestfilter [ _, _ ]</text--->"
+      "<text>_ _ _ _ knearestfilter [ _, _ ]</text--->"
       "<text>The operator results a stream of all input tuples "
       "which are the k-nearest tupels to the given mpoint. "
       "The operator do not separate tupels if necessary. The "
@@ -5246,16 +5246,16 @@ const string newknearestFilterSpec  =
       "many input tupels. "
       "The operator expects a thee dimensional rtree where the "
       "third dimension is the time</text--->"
-      "<text>query UTOrdered_RTree UTOrdered btreehats hats newknearestfilter "
+      "<text>query UTOrdered_RTree UTOrdered btreehats hats knearestfilter "
       "[train1, 5] count;</text--->"
       ") )";
-Operator newknearestfilter (
-         "newknearestfilter",        // name
-         newknearestFilterSpec,      // specification
+Operator knearestfilter (
+         "knearestfilter",        // name
+         knearestFilterSpec,      // specification
          //newknearestFilterFun<Instant>,       // value mapping
-         newknearestFilterFun<double>,       // value mapping
+         knearestFilterFun<double>,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
-         newknearestFilterTypeMap    // type mapping
+         knearestFilterTypeMap    // type mapping
 );
 
 
@@ -5280,12 +5280,12 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &distancescan3 );
     AddOperator( &knearest );
     AddOperator( &knearestvector );
-    AddOperator( &knearestfilter );
+    AddOperator( &oldknearestfilter );
     AddOperator( &bboxes );
     AddOperator( &rect2periods );
     AddOperator( &coverageop );
     AddOperator( &coverage2op );
-    AddOperator( &newknearestfilter);
+    AddOperator( &knearestfilter);
     AddOperator( &distancescan4);
   }
   ~NearestNeighborAlgebra() {};
