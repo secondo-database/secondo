@@ -4611,7 +4611,7 @@ const string knearestSpec  =
       " ti) x xi x mpoint x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ _ knearest [ _, _ ]</text--->"
+      "<text>_ knearest [_, _, _ ]</text--->"
       "<text>The operator results a stream of all input tuples "
       "which contains the k-nearest units to the given mpoint. "
       "The tuples are splitted into multiple tuples with disjoint "
@@ -4619,8 +4619,8 @@ const string knearestSpec  =
       "not necessarily ordered by time or distance to the given "
       "mpoint. The operator expects that the input stream with "
       "the tuples are sorted by the time of the units</text--->"
-      "<text>query query UnitTrains feed head[20] UTrip knearest "
-      "[train1, 2] consume;</text--->"
+      "<text>query query UnitTrains feed head[20] knearest "
+      "[UTrip,train1, 2] consume;</text--->"
       ") )";
 
 const string oldknearestFilterSpec  =
